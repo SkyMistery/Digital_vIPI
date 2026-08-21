@@ -1,4 +1,4 @@
-@rendermode InteractiveServer
+﻿@rendermode InteractiveServer
 @implements IAsyncDisposable
 @inject IOnlineAtcProvider Online
 @inject IJSRuntime JS
@@ -12,14 +12,16 @@
    dev'essere raggiungibile anche prima di collegarsi (senza callsign si racconta da sé). *@
 @if (_callsign is not null)
 {
-    <a class="live-badge" href="/vsop/live" title="@L["Chrome_ConnectedAs"]">
-        <span class="dot"></span> @_callsign
+    @* Il testo sta in uno <span> proprio: sotto i 1100px la topbar lo toglie e resta il pallino col
+       `title` (uno STATO si puo' comprimere, un comando no). L'`aria-label` porta la frase intera. *@
+    <a class="live-badge" href="/vsop/live" title="@L["Chrome_ConnectedAs"]" aria-label="@(L["Chrome_ConnectedAs"].Value + " " + _callsign)">
+        <span class="dot"></span> <span class="lb-t">@_callsign</span>
     </a>
 }
 else
 {
-    <a class="live-badge off" href="/vsop/live" title="@L["Chrome_OpenLive"]">
-        <span class="dot"></span> @L["Chrome_LiveDisconnected"]
+    <a class="live-badge off" href="/vsop/live" title="@L["Chrome_OpenLive"]" aria-label="@L["Chrome_LiveDisconnected"]">
+        <span class="dot"></span> <span class="lb-t">@L["Chrome_LiveDisconnected"]</span>
     </a>
 }
 

@@ -94,6 +94,17 @@
   <data name="Country_DT" xml:space="preserve"><value>Tunisia</value></data>
   <data name="Country_LI" xml:space="preserve"><value>Italy</value></data>
   <data name="Chrome_BrandSubtitle" xml:space="preserve"><value>/ vLOA · IVAO Italy</value></data>
+  <data name="Chrome_BrandHome" xml:space="preserve"><value>vIPI / vLOA home</value></data>
+  <data name="Chrome_Guide" xml:space="preserve"><value>Guide</value></data>
+  <data name="Chrome_StaffPosition" xml:space="preserve"><value>Staff position</value></data>
+  <data name="Chrome_ZoomOut" xml:space="preserve"><value>Zoom out</value></data>
+  <data name="Chrome_ZoomIn" xml:space="preserve"><value>Zoom in</value></data>
+  <data name="Chrome_ZoomReset" xml:space="preserve"><value>Reset to 100%</value></data>
+  <data name="Chrome_Search" xml:space="preserve"><value>Search</value></data>
+  <data name="Chrome_SearchPh" xml:space="preserve"><value>Search CoP, FIX, callsign</value></data>
+  <data name="Chrome_Logout" xml:space="preserve"><value>Sign out</value></data>
+  <data name="Chrome_Login" xml:space="preserve"><value>Sign in</value></data>
+  <data name="Chrome_LoginTitle" xml:space="preserve"><value>Sign in with IVAO</value></data>
   <data name="Chrome_SkipToContent" xml:space="preserve"><value>Skip to content</value></data>
   <data name="Chrome_AccNav" xml:space="preserve"><value>ACC navigation</value></data>
   <data name="Chrome_ZoomPage" xml:space="preserve"><value>Page zoom</value></data>
@@ -140,7 +151,7 @@
   <data name="Changed_Blocks" xml:space="preserve"><value>blocks</value></data>
   <!-- Search (/vsop/search) -->
   <data name="Search_Title" xml:space="preserve"><value>Search</value></data>
-  <data name="Search_Placeholder" xml:space="preserve"><value>Search CoP, FIX, callsign, frequencies…</value></data>
+  <data name="Search_Placeholder" xml:space="preserve"><value>Search CoP, FIX, callsign</value></data>
   <data name="Search_MinChars" xml:space="preserve"><value>Type at least 2 characters.</value></data>
   <data name="Search_ResultsFor" xml:space="preserve"><value>{0} results for</value></data>
   <data name="Search_NoResults" xml:space="preserve"><value>No results.</value></data>

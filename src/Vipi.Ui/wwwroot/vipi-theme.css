@@ -45,6 +45,9 @@
 
 /* ---------- Product top bar ---------- */
 .topbar{position:sticky;top:0;z-index:45;background:var(--ivao-blue);color:#fff;display:flex;align-items:center;gap:18px;padding:0 22px;height:62px;box-shadow:0 2px 10px rgba(13,44,153,.18)}
+/* ⚠️ Nessun pezzo della barra va a capo DENTRO se stesso: una barra che «sta» perche' il suo contenuto si
+   spezza in due righe non sta. Lo vede l'occhio e non `scrollWidth`, che misura solo il bordo. */
+.topbar .brand,.topbar .live-badge,.topbar .staff-badge,.topbar .editor-btn,.topbar .acc-nav a{white-space:nowrap}
 .brand{display:flex;align-items:center;gap:11px;font-family:var(--font-head);font-weight:800;font-size:19px;color:#fff;letter-spacing:.02em}
 .brand .logo{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#fff,#cfd8ff);display:grid;place-items:center;color:var(--ivao-blue);font-weight:800;font-size:13px}
 .brand small{font-weight:400;opacity:.7;font-family:var(--font-body);font-size:12px}
@@ -52,7 +55,12 @@
 .acc-nav a{color:#cdd6ff;padding:8px 15px;border-radius:9px;font-size:14px;font-weight:500;transition:.15s;font-family:var(--font-head)}
 .acc-nav a:hover{background:rgba(255,255,255,.1);color:#fff}
 .acc-nav a.active{background:#fff;color:var(--ivao-blue);font-weight:700}
-.top-search{flex:1;min-width:140px;max-width:360px;margin-left:8px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:10px;display:flex;align-items:center;gap:8px;padding:7px 13px;transition:.15s}
+/* ⚠️ `flex-basis` e non solo `flex:1`: in flexbox i margini `auto` assorbono lo spazio libero PRIMA che
+   `flex-grow` lo distribuisca, e `.right` ha `margin-left:auto`. Il campo restava quindi al suo minimo a
+   OGNI assetto — a 1600 come a 1024 — e il segnaposto usciva troncato: «Cerca Co…», sulla stringa piu'
+   visibile dell'applicazione. Con una base dichiarata il campo parte da quella, e il margine auto si prende
+   solo cio' che resta. */
+.top-search{flex:1 1 240px;min-width:140px;max-width:360px;margin-left:8px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:10px;display:flex;align-items:center;gap:8px;padding:7px 13px;transition:.15s}
 .top-search:focus-within{background:rgba(255,255,255,.95)}
 .top-search .ico{opacity:.85;font-size:13px}
 .top-search:focus-within .ico{opacity:1}
@@ -2556,3 +2564,65 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    interi — un tasto con l'etichetta tagliata e' un altro tasto (regola 33). */
 .editor-bar .st-head>.st-h2{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .editor-bar .st-head>.pill,.editor-bar .st-head>.sh-chip,.editor-bar .st-head>.btn{flex:none;white-space:nowrap}
+
+/* ---- La topbar sotto i 1400px: tre scaglioni, per priorita' ----
+   ⚠️ Fino al 22 agosto 2026 non c'era UNA media query sulla topbar: non era un difetto da limare, era una
+   cosa mai fatta. Misurato, la barra aveva una larghezza minima INCOMPRIMIBILE di 1385px (1395 in inglese) e
+   il numero non cambiava fra 1280 e 1024 — da li' in giu' la pagina scorreva in orizzontale, e non era la
+   pagina a sforare: dentro il `.wrap` non usciva niente, su editor, home e vIPI ACC.
+
+   Ogni scaglione toglie cio' che serve MENO, e niente sparisce: quello che si comprime resta raggiungibile.
+   ⚠️ E gli `aria-label` restano INTERI dove il testo se ne va: un tasto che diventa un'icona non diventa
+   muto — e' la regola del `title` sui tasti accorciati, applicata all'accessibilita'. */
+
+/* Scaglione 0 (~1500): si stringe lo SPAZIO, non si toglie niente. −30px (gap 18→12 fra quattro pezzi,
+   padding 22→16 per lato). */
+@media (max-width: 1500px) {
+  .topbar{gap:12px;padding:0 16px}
+}
+
+/* Scaglione 1 (~1500): il badge staff perde il testo e resta l'icona. E' l'unico pezzo che non e' ne' un
+   comando ne' uno stato che cambia: «chi sei» lo sai gia'. −110px.
+   ⚠️ La soglia e' 1500 e non 1400, e a dirlo e' stato il `nowrap`: finche' i pezzi potevano andare a capo
+   DENTRO se stessi, a 1440 la barra sembrava stare — si spezzavano il marchio e il badge live, e
+   `scrollWidth` non se ne accorgeva. Vietato il wrap, il difetto e' venuto fuori: 1513px minimi contro 1440.
+   Il wrap non risolveva niente, nascondeva. */
+@media (max-width: 1500px) {
+  .topbar .staff-badge .sb-t{display:none}
+  .topbar .staff-badge{padding:6px 9px}
+}
+
+/* Scaglione 2 (~1300): «Editor» e «Incarichi» a sole icone, la ricerca si chiude in un'icona e si apre al
+   clic a piena riga sotto la barra, il badge live resta il solo pallino col suo `title`.
+   ⚠️ La soglia e' 1300, e ci sono arrivato SBAGLIANDO due volte in direzioni opposte. Prima troppo bassa
+   (1000, poi 1100): a 1024 la media query non scattava affatto e la barra restava a 1161. Poi troppo alta
+   nell'altro senso — misurando lo spazio libero a 1280 avevo letto **306px** e avevo abbassato la soglia a
+   1200 per tenere la ricerca aperta: quel numero era misurato con la ricerca CHIUSA, e riaprendola la barra
+   tornava a sforare di 31px. La misura giusta e' quella dello stato in cui la pagina si trovera', non di
+   quello in cui l'ho fotografata — e uno spazio libero non e' spazio disponibile finche' non ci si e' messo
+   dentro quello che dovrebbe starci.
+   ⚠️ `:focus-within` e non uno stato JS: si apre col fuoco da tastiera esattamente come col clic, e si
+   richiude da sola — nessuno stato da ricordare, niente che possa restare aperto. */
+@media (max-width: 1300px) {
+  /* Il sottotitolo del marchio: e' l'unica cosa della barra che non dice ne' dove sei ne' cosa puoi fare,
+     e col sottotitolo il marchio pesa 202px invece di 81. */
+  .topbar .brand small{display:none}
+
+  /* «Editor» e «Incarichi» diventano sole icone: sono comandi frequenti e restano, ma il loro nome si impara
+     al primo uso e il `title` lo ridà. −120px. */
+  .topbar .editor-btn .eb-t{display:none}
+  .topbar .editor-btn{padding:7px 10px}
+
+  /* Il badge live e' uno STATO, non un comando: il pallino lo dice quanto la frase, e il `title` la ridà
+     intera. Resta cliccabile e resta un link alla vista live. */
+  .topbar .live-badge .lb-t{display:none}
+  .topbar .live-badge{padding:6px 9px}
+
+  .topbar .top-search{position:relative;flex:none;min-width:0;max-width:none;width:38px;padding:7px 10px;
+    transition:width .15s}
+  .topbar .top-search input{width:0;min-width:0;padding:0;opacity:0;transition:opacity .1s}
+  .topbar .top-search:focus-within{position:absolute;left:12px;right:12px;top:calc(100% + 6px);width:auto;
+    z-index:46;padding:9px 14px;box-shadow:0 8px 24px rgba(13,44,153,.28)}
+  .topbar .top-search:focus-within input{width:auto;flex:1;opacity:1}
+}
+}
