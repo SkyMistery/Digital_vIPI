@@ -263,14 +263,24 @@ L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riqua
 
 ### Da rifare, in ordine di guadagno
 
-| # | Pagina | Rotta | Altezza | Cosa le manca (misurato) |
-|---:|---|---|---:|---|
-| 1 | **Sorgenti** | `/vsop/admin/sorgenti` | 1 235 | Sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in fascia, tabelle corte (5 e 6 righe: qui il `thead` fermo **non** serve). |
-| 2 | **Audit** | `/vsop/admin/audit` | 1 166 | Sottotitolo; tabella da 20 righe, **sotto la soglia** in cui l'intestazione appiccicata si ripaga. Poco da fare: il «?» e basta. |
-| 3 | **Diagnostica** | `/vsop/admin/diagnostica` | 900 | Sottotitolo, 2 fasce, nessun «?». |
-| 4 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. |
-| 5 | **Incarichi** / **Incarichi admin** | `/vsop/tasks`, `/vsop/admin/tasks` | 900 | Corte: solo sottotitolo → «?» e il messaggio che non spinge. |
-| 6 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
+⚠️ **Rimisurate il 22 agosto**, dopo il giro della barra admin (§21): ogni pagina admin ha perso la briciola
+(−38px) e guadagnato la barra (+55px a larghezza piena, +87 dove il `.wrap` è a 1100/1200 e le undici voci
+vanno su due righe). Le colonne «prima» sono le misure della ricognizione originale, tenute perché dicono
+quanto pesa il giro.
+
+| # | Pagina | Rotta | Prima | **Ora** | Cosa le manca (misurato) |
+|---:|---|---|---:|---:|---|
+| 1 | **Audit** | `/vsop/admin/audit` | 1 166 | **1 556** | ⚠️ **È cresciuta di 390px senza che nessuno la toccasse**: le righe erano 20 alla ricognizione, sono 28 adesso. È l'unica pagina di questo elenco la cui altezza **cresce da sola per sempre** — un registro non si accorcia — quindi il `thead` appiccicato qui si ripaga eccome, al contrario di quanto diceva la riga vecchia. Più il «?» e il sottotitolo. |
+| 2 | **Sorgenti** | `/vsop/admin/sorgenti` | 1 235 | **1 252** | Sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in fascia, tabelle corte (5 e 6 righe: qui il `thead` fermo **non** serve). Altezza stabile: non dipende dai dati. |
+| 3 | **Diagnostica** | `/vsop/admin/diagnostica` | 900 | 900 | Sottotitolo, 1 fascia, nessun «?». ⚠️ La barra ci sta su **due righe** (87px): è una delle tre pagine col `.wrap` a 1 100px. |
+| 4 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. ⚠️ **Non ha la barra e ha ancora la briciola**: non è in `AdminNav.Voci` (ci si arriva da Documenti). Decidere se entra nell'elenco è parte del suo giro. |
+| 5 | **Incarichi admin** | `/vsop/admin/tasks` | 900 | 900 | Corta: solo sottotitolo → «?» e il messaggio che non spinge. Barra su due righe (`.wrap` a 1 200px). |
+| 6 | **Incarichi** (utente) | `/vsop/tasks` | 900 | 900 | Come sopra. ⚠️ **Non ha la barra e ha ancora la briciola**, ed è giusto: è una pagina d'utente, non admin. |
+| 7 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
+
+⚠️ **Il metro «sottotitolo sì/no» non si misura con `.doc-head .muted`**: su Struttura quel selettore pesca
+«Sola lettura» della barra del lock e risponde «c'è un sottotitolo» su una pagina che non ce l'ha. I «?» si
+contano bene (`.help-hint`), i sottotitoli si guardano.
 
 ### Fuori ambito: le viste pubbliche
 
@@ -540,6 +550,23 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
      «Home › LIBB › Airports › LIBD» è l'unico modo di risalire. La regola non è «le briciole sono rumore»,
      è «due elenchi della stessa cosa divergono» (regola 123) — e senza il secondo elenco non c'è niente da
      togliere.
+
+## 21. Quello che ha lasciato il giro della barra admin (22 agosto)
+
+Non è il giro di **una** pagina: cambia la testa di **tutte e undici**. Regole 125-132.
+
+- **La barra sta in `AdminNav`, e con lei la regola d'accesso di ogni voce** (`Chi.Admin` / `Chi.Chiunque`).
+  Le pagine scrivono `<AdminNav />` nuda. Cambiare chi entra in una pagina è **una riga**, non undici `@if`.
+- **Sopra il titolo, al posto della briciola di pane.** Il titolo torna a toccare il contenuto che intitola, e
+  il terzo elenco degli stessi link sparisce (−38px su tutte e undici).
+- **Niente etichetta «Admin:»** davanti alle voci: il nome della barra vive nell'`aria-label`.
+- **Sette link tolti dalle testate** (cinque in Struttura, due «← Struttura» in ACC e Confinanti) e con loro
+  «Nuovo documento», che non era di Struttura: la testata di Struttura non ha più comandi.
+- ⚠️ **Tre pagine mandano la barra a capo**: Audit e Diagnostica (`.wrap` a 1 100px) e Incarichi admin
+  (1 200px). 87px invece di 55. Non è un difetto — quelle pagine scorrono — ma il `max-width` è una scelta di
+  larghezza di lettura, e chi lo cambia deve sapere che cambia anche questo.
+- **Rete**: `AdminNavTests` (5 casi), fra cui il confronto di ogni voce con le `RouteAttribute` vere
+  dell'assembly — un'etichetta sbagliata si vede, un URL sbagliato no.
 
 ## Dove sta la roba
 

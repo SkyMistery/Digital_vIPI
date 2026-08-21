@@ -23,8 +23,17 @@
 > ⚠️ **La ricognizione di Permessi diceva 1 346px: era la misura a tabella VUOTA.** Le pagine che nel DB di
 > sviluppo non hanno dati vanno **riempite prima di misurarle** — vale per quelle che restano.
 >
-> **La prossima è Sorgenti** (`/vsop/admin/sorgenti`, **1 235px**). Poi Audit, Diagnostica, Nuovo documento,
-> Incarichi, editor APP/vLOA — l'ordine e il misurato stanno in `regole-ui-pagine-admin.md` §15.
+> Poi, il **22 agosto**, un giro che non è di una pagina ma della **testa di tutte e undici**: la barra
+> `AdminNav` sta ora **sopra il titolo** di ogni pagina admin, **al posto della briciola di pane**, e ogni sua
+> voce si porta dietro la propria regola d'accesso — cambiare chi entra in una pagina è **una riga**, non
+> undici `@if` (regole 125-132, §21).
+>
+> ⚠️ **La prossima è AUDIT, non più Sorgenti.** `/vsop/admin/audit` è passata da **1 166 a 1 556px** senza che
+> nessuno la toccasse: le righe erano 20 alla ricognizione, sono 28 adesso. È l'unica pagina dell'elenco la cui
+> altezza **cresce da sola per sempre** — un registro non si accorcia — quindi il `thead` appiccicato lì si
+> ripaga, al contrario di quanto diceva la riga vecchia della ricognizione. **Una misura è una fotografia: su
+> una pagina che accumula va rifatta, non citata.** Poi **Sorgenti** (**1 252px**), Diagnostica, Nuovo
+> documento, Incarichi, editor APP/vLOA — l'ordine e il misurato stanno in `regole-ui-pagine-admin.md` §15.
 >
 > Cancello: `dotnet build Vipi.slnx -c Release --no-incremental` (**0 avvisi** — gli avvisi sono errori e
 > `dotnet test` non li vede) e `dotnet test Vipi.slnx` verde su **entrambi** i TFM.

@@ -1,4 +1,4 @@
-﻿# Handoff — il ramo della densità UI (aggiornato 22 agosto 2026)
+﻿# Handoff — il ramo della densità UI (aggiornato 22 agosto 2026, dopo il giro della barra admin)
 
 > **A cosa serve.** Ripartire a freddo sul ramo `ui-trasferimenti-densita` senza rileggere la cronologia.
 > Chi deve fare **la prossima pagina** legge solo questo file più
@@ -15,7 +15,7 @@ Il perno è che **ogni fascia tolta in testa diventa contenuto visibile**.
 
 ## Le regole sono già scritte — leggerle PRIMA di toccare una pagina
 
-[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **124 voci in 20 gruppi**, ognuna
+[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **132 voci in 21 gruppi**, ognuna
 già costata un giro di correzioni, più la **ricognizione misurata** (§15) di tutte le pagine con cosa manca a
 ognuna e in che ordine conviene farle. Non è un regolamento di stile: è l'elenco di ciò che, saltato, si ripaga.
 
@@ -86,15 +86,48 @@ c'è nessun grant. Con 16 grant scritti nella copia erano **2 449** (2 623 in in
 non ultima. Da lì a **900**: barra admin (undici voci, componente `AdminNav`) al posto delle sei card da
 485px, una riga per **persona** coi chip degli ACC, concessione e revoca nel pannello di destra.
 
-⚠️ La barra la monta **solo Permessi**. Estenderla alle altre nove pagine — e ritirare la `.struct-nav` di
-Struttura, che è il suo doppione parziale — è il giro successivo.
+## La barra admin su tutte e undici: chiuso il 22 agosto
 
-### La prossima pagina
+Non è il giro di una pagina, è la **testa di tutte**. Regole 125-132 e §21; nessuna carta a sé, il perché sta
+nei commenti dei file e nelle regole. Tre commit: `e22929e` (barra ovunque + filtro), `31e253e` (via
+l'etichetta «Admin:»), `5e1abca` (via «Nuovo doc» da Struttura), `73cd6c6` (barra sopra il titolo, via le
+briciole).
 
-La lista §15 riparte da **Sorgenti** (`/vsop/admin/sorgenti`, 1 235px: sottotitolo, 8 paragrafi d'aiuto,
-2 callout in fascia, tabelle corte), poi Audit, Diagnostica, Nuovo documento, Incarichi, editor APP/vLOA.
+**Cosa c'è adesso.** `AdminNav` sta **sopra il titolo** di tutte e undici le pagine admin, al posto della
+briciola di pane. Ogni voce si porta dietro la **propria regola d'accesso** (`Chi.Admin` / `Chi.Chiunque`) e
+il filtro lo fa il componente: le pagine scrivono `<AdminNav />` **nuda**, senza `@if`. Se all'utente resta
+una voce sola — quella della pagina in cui è già — la barra non si rende affatto.
+
+**Perché così, in tre righe che valgono per il prossimo giro.**
+1. La regola 120 («niente elenchi di porte chiuse») **non si difende ripetendo il cancello**: si difende
+   mettendolo una volta accanto alla voce. Undici `@if` copiati sono undici posti dove sbagliarsi.
+2. La barra **non interroga la banca dati**: girerebbe su undici pagine mentre ognuna carica i propri dati,
+   sullo stesso `DbContext` di circuito — la ricetta esatta del «second operation on this context».
+3. **Sopra il titolo**, perché un titolo deve toccare il contenuto che intitola; e al posto della briciola,
+   perché la briciola faceva già quel lavoro peggio (portava dove porta la barra, e inventava una gerarchia:
+   Aeroporti sotto Struttura non ci sta, sono pagine sorelle).
+
+⚠️ Le briciole delle **pagine pubbliche restano**: lì non c'è barra, e sono l'unico modo di risalire.
+⚠️ `/vsop/editor/newdoc` e `/vsop/tasks` **non hanno la barra** e hanno ancora la briciola: la prima non è in
+`AdminNav.Voci` (ci si arriva da Documenti), la seconda è una pagina d'utente. Per newdoc la decisione è
+aperta ed è parte del suo giro.
+
+### La prossima pagina: Audit, non Sorgenti
+
+⚠️ **L'ordine della lista §15 è cambiato, e per un motivo che vale la pena leggere.** Rimisurando dopo questo
+giro, **Audit è passata da 1 166 a 1 556px** — e non per la barra (+49px netti): le righe erano **20** alla
+ricognizione, sono **28** adesso. È l'unica pagina dell'elenco la cui altezza **cresce da sola per sempre**:
+un registro non si accorcia. La riga vecchia della ricognizione diceva «tabella sotto la soglia in cui
+l'intestazione appiccicata si ripaga, poco da fare, il «?» e basta»: era vera **quel giorno**, e la pagina
+l'ha smentita da sola in tre giorni. Quindi: `thead` appiccicato, e il resto dietro.
+
+Poi **Sorgenti** (`/vsop/admin/sorgenti`, **1 252px**: sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout
+in fascia, tabelle corte — qui il `thead` fermo **non** serve), poi Diagnostica, Nuovo documento, Incarichi,
+editor APP/vLOA.
+
 ⚠️ **Prima di misurarle, riempirle**: la lezione di Permessi vale per tutte quelle che mostrano una tabella
-che nel DB di sviluppo è vuota o quasi.
+che nel DB di sviluppo è vuota o quasi. E Audit dice la lezione gemella: **una misura è una fotografia**, e su
+una pagina che accumula va rifatta, non citata.
 
 ## Aperto, e non è di queste pagine
 
@@ -103,8 +136,12 @@ che nel DB di sviluppo è vuota o quasi.
   **niente dentro il `.wrap` sfora**, verificato elencando gli elementi oltre il bordo. È del chrome, non di
   una pagina: va affrontato per sé. È anche la ragione per cui lo sforo orizzontale, da solo, non è più un
   segnale utile sulle singole pagine finché questo non è chiuso.
-- ⚠️ `Vipi.AuroraBridge.Tests` ha **un test instabile**: ogni tanto fallisce nella suite completa e passa
-  sempre da solo (78/78).
+- ⚠️ `Vipi.AuroraBridge.Tests` ha **un test instabile**, ora identificato:
+  `AuroraClientTests.Richieste_in_sequenza_non_si_mescolano`. Fallisce circa **una volta su tre** con
+  «Nessuna risposta a #TRPOS entro 15000 ms» e passa da solo. Usa un `FakeAuroraServer` su socket di
+  loopback con due richieste concorrenti serializzate dal client: cede quando la macchina è carica (suite in
+  parallelo, app accesa). Non è del ramo densità — è roba del bridge Aurora — ma smettere di chiamarlo
+  «instabile e basta» costa un `for` di quattro giri.
 - Sull'editor ACC a blocchi chiusi il pezzo più alto è ormai il **pannello release** (974px con 13 rilasci):
   è roba del giro di `ReleasePanel`, non della densità.
 
@@ -118,7 +155,17 @@ scratchpad e avviare **su un'altra porta** invece di uccidere l'istanza di chi s
 la propria (`Get-Process Vipi.Host | Where-Object { $_.Path -like '*scratchpad*' }`).
 
 ⚠️ **`Vipi.Host` è `net8.0` soltanto**: `dotnet publish -f net10.0` fallisce con `NETSDK1005`. Si pubblica
-senza `-f`. E **5034 è del committente, 5035 può essere già presa**: il 21 agosto ha funzionato la **5037**.
+senza `-f`. E **5034 è del committente, 5035 può essere già presa**: il 21 e il 22 agosto ha funzionato la
+**5037**. Il sintomo della porta occupata è **uscita 82** con `Failed to bind to address` — e ⚠️ se non lo si
+riconosce si finisce a *misurare l'istanza di qualcun altro*: il 22 agosto una tornata di misure è uscita
+sballata perché sulla 5034 rispondeva un build vecchio, senza la barra. Il controllo che lo smaschera è una
+sentinella nella pagina (`nav.admin-nav` assente ⇒ non è il mio build), non il codice HTTP.
+La propria si ferma per **porta**, non per nome, così non si uccide quella di chi sta lavorando:
+
+```powershell
+$mia = (Get-NetTCPConnection -LocalPort 5037 -State Listen).OwningProcess
+Stop-Process -Id $mia -Force
+```
 Un `dotnet test Vipi.slnx` a app accesa muore con `MSB3021` sui `bin/Debug`; `-c Release --no-build` gira lo
 stesso, perché i `bin/Release` non sono bloccati.
 
