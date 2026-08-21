@@ -245,7 +245,7 @@ Misurato guidando tutte le pagine di lavoro a **1600×900, in italiano**, sul DB
 dai dati: in produzione i numeri saranno altri, l'ordine di grandezza no). «Fasce» = callout ed EditLockBar
 messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = intestazione appiccicata.
 
-### Già a norma — dieci pagine, e sono loro ad aver prodotto le regole
+### Già a norma — undici pagine, e sono loro ad aver prodotto le regole
 
 | Pagina | Rotta | Altezza | Note |
 |---|---|---:|---|
@@ -259,6 +259,7 @@ messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = inte
 | Versioni | `/vsop/versioni` | 900 | **da 1 664**: due pannelli misurati col dettaglio a destra (era dentro l'elenco), chip dei filtri che **contano** al posto della fascia di riepilogo, azioni nel pannello, riga 118→63px ([carta](../feature/2026-08-21-versioni-densita-ui.md) — la parte lock e azioni è la [sua](../feature/2026-08-21-versioni-lock-e-azioni.md)) |
 | Permessi | `/vsop/admin/permessi` | 900 | **da 2 449** (misurata con 16 grant: a tabella vuota diceva 1 346): barra admin al posto delle sei card, una riga per persona, concessione e revoca nel pannello ([carta](../feature/2026-08-22-permessi-densita-ui.md)) |
 | Audit | `/vsop/admin/audit` | 900 | **da 13 293** misurata con 248 righe (la ricognizione diceva 1 556 con 28, ed era il numero **col tetto**): un pannello misurato col `thead` fermo, ogni riga una frase al posto del JSON, periodo al posto del tetto muto ([carte](../feature/2026-08-22-audit-cosa-registra.md) e [densità](../feature/2026-08-22-audit-densita-ui.md)). Resta 900 con 500 righe e da zoom 0.8 a 1.5 |
+| Sorgenti | `/vsop/admin/sorgenti` | 900 | **da 1 252**, ma il numero non era il problema: la pagina prometteva «l'import non la tocca più» ed era **falso per Settori, TA e Piste** (gate assenti o solo in un chiamante). Una tabella al posto di due, chi ha deciso la policy, il cambio nel registro ([carte](../feature/2026-08-22-sorgenti-cosa-fa-la-policy.md) e [densità](../feature/2026-08-22-sorgenti-densita-ui.md)). `max-height` e non `height`: il contenuto è corto e fisso |
 
 L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riquadro sì.
 
@@ -271,12 +272,11 @@ quanto pesa il giro.
 
 | # | Pagina | Rotta | Prima | **Ora** | Cosa le manca (misurato) |
 |---:|---|---|---:|---:|---|
-| 1 | **Sorgenti** | `/vsop/admin/sorgenti` | 1 235 | **1 252** | Sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in fascia, tabelle corte (5 e 6 righe: qui il `thead` fermo **non** serve). Altezza stabile: non dipende dai dati. |
-| 2 | **Diagnostica** | `/vsop/admin/diagnostica` | 900 | 900 | Sottotitolo, 1 fascia, nessun «?». ⚠️ La barra ci sta su **due righe** (87px): è una delle tre pagine col `.wrap` a 1 100px. |
-| 3 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. ⚠️ **Non ha la barra e ha ancora la briciola**: non è in `AdminNav.Voci` (ci si arriva da Documenti). Decidere se entra nell'elenco è parte del suo giro. |
-| 4 | **Incarichi admin** | `/vsop/admin/tasks` | 900 | 900 | Corta: solo sottotitolo → «?» e il messaggio che non spinge. Barra su due righe (`.wrap` a 1 200px). |
-| 5 | **Incarichi** (utente) | `/vsop/tasks` | 900 | 900 | Come sopra. ⚠️ **Non ha la barra e ha ancora la briciola**, ed è giusto: è una pagina d'utente, non admin. |
-| 6 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
+| 1 | **Diagnostica** | `/vsop/admin/diagnostica` | 900 | 900 | Sottotitolo, 1 fascia, nessun «?». ⚠️ La barra ci sta su **due righe** (87px): è una delle tre pagine col `.wrap` a 1 100px. |
+| 2 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. ⚠️ **Non ha la barra e ha ancora la briciola**: non è in `AdminNav.Voci` (ci si arriva da Documenti). Decidere se entra nell'elenco è parte del suo giro. |
+| 3 | **Incarichi admin** | `/vsop/admin/tasks` | 900 | 900 | Corta: solo sottotitolo → «?» e il messaggio che non spinge. Barra su due righe (`.wrap` a 1 200px). |
+| 4 | **Incarichi** (utente) | `/vsop/tasks` | 900 | 900 | Come sopra. ⚠️ **Non ha la barra e ha ancora la briciola**, ed è giusto: è una pagina d'utente, non admin. |
+| 5 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
 
 ⚠️ **Il metro «sottotitolo sì/no» non si misura con `.doc-head .muted`**: su Struttura quel selettore pesca
 «Sola lettura» della barra del lock e risponde «c'è un sottotitolo» su una pagina che non ce l'ha. I «?» si
@@ -621,12 +621,75 @@ eventi che nessuno aveva mai scritto. Carte:
      confronta con `innerHeight` (px di finestra) — il confronto giusto è con `clientHeight`.
 
 
+## 23. Quello che ha lasciato il giro Sorgenti (22 agosto)
+
+Undicesima pagina, e la terza di fila in cui **la sostanza è venuta prima della forma**: aprendo
+`/vsop/admin/sorgenti` per la densità è saltato fuori che la promessa scritta nella pagina — «escludi una
+categoria e l'import non la tocca più» — era falsa per **due categorie su cinque**. Carte:
+[cosa fa la policy](../feature/2026-08-22-sorgenti-cosa-fa-la-policy.md) e
+[densità](../feature/2026-08-22-sorgenti-densita-ui.md). Regole **143-152**.
+
+143. ⚠️ **Un gate per categoria, non uno per chiamante.** Il gate dei Settori non c'era in nessuno dei
+     quattro import (job 24h, bottone dell'editor, massivo, «Genera documenti»); quello di TA e Piste c'era
+     nel reimport dell'editor e **non** nella generazione documento, che chiama lo stesso merge. Il gate va
+     nel **corpo condiviso** auto/manual e prima della fetch — è la stessa lezione già scritta per le aree
+     regolamentate, applicata a metà. Gemella della regola 139: come il formattatore, anche la **decisione**
+     sta in un posto solo.
+144. ⚠️ **Una pagina che descrive un meccanismo va riletta contro il meccanismo.** Il testo diceva «non la
+     tocca più» ed era vero per SID e Aree, falso per Settori, TA e Piste. Prima di rendere bella la pagina
+     si verifica che **dica la verità**: la prosa che promette è codice non eseguibile, e invecchia senza
+     avvisare.
+145. **L'atto che cambia il regime di scrittura di tutta l'applicazione va nel registro.** Cambiare le
+     spunte decide quali dati la sorgente può sovrascrivere: era l'ultimo atto amministrativo muto dopo il
+     giro Audit. Nella riga stanno **solo le categorie cambiate**, divise per verso — e il non-evento non si
+     scrive (regola 138): un salvataggio che non cambia niente non lascia riga **e** non riscrive «deciso
+     da X» su una decisione presa da qualcun altro.
+146. ⚠️ **Un default di colonna non è una decisione, e dal valore non si distingue.** `ImportSids` è nato
+     `false` su un DB già popolato: in produzione «SID escluse» può essere una scelta dell'admin o l'effetto
+     di una migration, e **il flag non lo dice**. La cura non è indovinare: è mostrare **chi** ha deciso e
+     **quando**, e dichiarare in pagina che `UpdatedByUserId = 0` significa «nessuno l'ha mai salvata».
+     Vale per ogni tabella di configurazione con un autore che nessuno legge.
+147. ⚠️ **Il verde non si regala: la scelta vince sullo stato.** `GatedImportLoop` marca il successo quando
+     il run non lancia eccezioni, e con la categoria esclusa il run esce subito **senza fare niente**: la
+     tabella mostrava «ok, oggi» per un import che per scelta non importa nulla. E la stessa bugia si
+     ripresenta appena la si sposta di una cella — una categoria esclusa che annuncia il **prossimo giro**,
+     una ferma che annuncia un prossimo **già passato**, una esclusa che mostra l'**errore** di un giro che
+     non la riguarda più. Il gate non era sbagliato: era sbagliato il **racconto**, e si corregge dove si
+     racconta.
+148. **Un elenco intitolato «X» non contiene ciò che X non è.** Nella tabella degli stati comparivano
+     `SpecialAreaForeignOptOut` e `TransferFlowsToAgreements`, che sono segnaposti «già fatto» e non import.
+     La tabella che li ospita è comoda; il fatto che li ospiti non li rende della stessa specie.
+149. ⚠️ **Due tabelle della stessa cosa hanno due vocabolari, sempre.** Sopra «Settori», sotto
+     `AirportSector`; sopra «da sorgente / manuale», sotto «ok / errore»; e il join lo doveva fare a mente
+     chi legge — sbagliandolo. Una riga per cosa, e le etichette da **un** posto solo
+     (`ImportCategoryLabels`, condiviso con il narratore degli eventi). Gemella della regola sui due elenchi
+     di pagine admin che divergevano.
+150. ⚠️ **`max-height` o `height`? Dipende da cosa c'è dentro, e la differenza si vede a occhio.**
+     `vipiFitViewport` (`height`) è giusto dove il contenuto è più alto dello schermo **per mestiere**: là
+     stirare il riquadro e far scorrere l'interno è tutto guadagno. È sbagliato dove il contenuto è corto e
+     **fisso**: qui sei righe lasciavano mezzo riquadro di bianco. Senza misura affatto, però, a 1024×768 e
+     da zoom 1.25 la pagina tornava a scorrere. Da qui `vipiCapViewport`, che scrive **`max-height`**: alto
+     quanto il contenuto quando ci sta, e dentro scorre solo quando non ci starebbe. ⚠️ «La pagina non
+     scorre» non è l'obiettivo — l'obiettivo è che **ciò che si guarda stia a schermo**.
+151. ⚠️ **Due tasti con la stessa parola a due centimetri l'uno dall'altro.** Con la conferma in linea aperta,
+     l'«Annulla» del componente stava accanto all'«Annulla» della pagina, e i due fanno cose diverse: uno
+     chiude la domanda, l'altro butta le modifiche. Nessuna misura lo trova; si vede **guardando la
+     schermata**. Chi mette un tasto accanto a un `InlineConfirm` gli dà un nome che il componente non usa.
+152. ⚠️ **`.se-row input{flex:1}` è la regola dei CAMPI DI TESTO, e si applica anche alle checkbox.** Le
+     caselle delle sei righe si allargavano a riempire la cella, e a schermo non erano incolonnate — lo
+     scostamento dipendeva dalla lunghezza della parola accanto. Un'altra faccia di «una classe non può
+     significare due cose» (regola del `.sector-pick`): `.se-row` è la riga di un **form**, e una cella di
+     tabella non è un form.
+
+
 ## Dove sta la roba
 
 | Cosa | Dove |
 |---|---|
 | Testata in riga | `.st-head` / `.xt-head` (`vipi-theme.css`), esito `.st-msg` |
-| Altezza misurata | `vipiFitViewport(selettore, collapseBelow)` — `vipi-ui.js` |
+| Altezza misurata, contenuto più alto dello schermo | `vipiFitViewport(sel, collapseBelow)` — scrive `height`: il riquadro si stira e dentro scorre |
+| Altezza misurata, contenuto corto e fisso | `vipiCapViewport(sel, collapseBelow)` — scrive `max-height`: alto quanto il contenuto, scorre solo se non ci sta (regola 150) |
+| Etichette delle categorie di import | `ImportCategoryLabels` — condivise fra la pagina Sorgenti e `AuditNarrator` |
 | Quota di una fascia appiccicata | `vipiStickyOffset(selettore, nomeVar, ambito)` → variabile CSS sul `.wrap` |
 | Fattore di zoom | `rootZoom()` — `vipi-ui.js` |
 | «?» che si apre dove c'è posto | `placeHelpPop` + `toggle` in cattura — `vipi-ui.js` |

@@ -1,4 +1,4 @@
-﻿# Handoff — il ramo della densità UI (aggiornato 22 agosto 2026, dopo il giro Audit)
+﻿# Handoff — il ramo della densità UI (aggiornato 22 agosto 2026, dopo il giro Sorgenti)
 
 > **A cosa serve.** Ripartire a freddo sul ramo `ui-trasferimenti-densita` senza rileggere la cronologia.
 > Chi deve fare **la prossima pagina** legge solo questo file più
@@ -15,7 +15,7 @@ Il perno è che **ogni fascia tolta in testa diventa contenuto visibile**.
 
 ## Le regole sono già scritte — leggerle PRIMA di toccare una pagina
 
-[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **142 voci in 22 gruppi**, ognuna
+[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **152 voci in 23 gruppi**, ognuna
 già costata un giro di correzioni, più la **ricognizione misurata** (§15) di tutte le pagine con cosa manca a
 ognuna e in che ordine conviene farle. Non è un regolamento di stile: è l'elenco di ciò che, saltato, si ripaga.
 
@@ -24,7 +24,7 @@ Il §«Dove sta la roba» in coda dice quale classe/funzione usare per ogni pezz
 `.conf-layout`, e in `vipi-ui.js` `vipiFitViewport` / `vipiStickyOffset` / `rootZoom` / `placeHelpPop`) **c'è
 già e si riusa**, non si riscrive.
 
-## Dieci pagine chiuse
+## Undici pagine chiuse
 
 | Pagina | Rotta | Prima → dopo | Carta |
 |---|---|---|---|
@@ -38,6 +38,7 @@ già e si riusa**, non si riscrive.
 | **Versioni** | `/vsop/versioni` | **1 664 → 900** (+ lock e azioni) | `2026-08-21-versioni-lock-e-azioni.md`, `2026-08-21-versioni-densita-ui.md` |
 | **Permessi** | `/vsop/admin/permessi` | **2 449 → 900** | `2026-08-22-permessi-densita-ui.md` |
 | **Audit** | `/vsop/admin/audit` | **13 293 → 900** (+ cosa registra) | `2026-08-22-audit-cosa-registra.md`, `2026-08-22-audit-densita-ui.md` |
+| **Sorgenti** | `/vsop/admin/sorgenti` | **1 252 → 900** (+ cosa fa la policy) | `2026-08-22-sorgenti-cosa-fa-la-policy.md`, `2026-08-22-sorgenti-densita-ui.md` |
 
 Le carte stanno in `docs/feature/`.
 
@@ -150,15 +151,56 @@ revoca dicono la stessa frase); il non-evento non si scrive; **un formattatore p
 pagina** (`AuditNarrator` è condiviso con la storia di Versioni, dove ha ucciso un parser che leggeva chiavi
 che nessuno scrive); **elenco+dettaglio si giustifica con l'azione**, e qui non c'era azione da fare.
 
-### La prossima pagina: Sorgenti
+## Sorgenti: chiusa il 22 agosto, in due giri
 
-**Sorgenti** (`/vsop/admin/sorgenti`, **1 252px**: sottotitolo, 8 paragrafi d'aiuto, nessun «?», 2 callout in
-fascia, tabelle corte — qui il `thead` fermo **non** serve), poi Diagnostica, Nuovo documento, Incarichi,
+**Sostanza** (carta [`2026-08-22-sorgenti-cosa-fa-la-policy.md`](../feature/2026-08-22-sorgenti-cosa-fa-la-policy.md),
+regole 143-152 insieme alla densità). Aperta per la densità, e come su Versioni e Audit è saltato fuori che la
+pagina **prometteva una cosa che il codice non faceva**: «escludi una categoria e l'import non la tocca più»
+era vero per SID e Aree, **falso per Settori, Transition Altitude e Piste**.
+
+- ⚠️ Il gate dei **Settori** non c'era in **nessuno** dei quattro import (job 24h, bottone dell'editor
+  aeroporto, massivo di `/vsop/admin/airports`, «Genera documenti»): escludere la categoria permetteva di
+  aggiungere settori a mano e poi il giro notturno ci ripassava sopra.
+- ⚠️ «Genera documenti» **scavalcava TA e Piste**: stessa `MergeFromSourceAsync` del reimport, ma senza
+  leggere la policy — TA scritta a mano sovrascritta, misure delle piste riportate dalla sorgente, piste
+  tolte a mano che rientravano, TL di fascia ricalcolati.
+- Il cambio di policy non lasciava traccia: era l'ultimo atto amministrativo **muto** dopo il giro Audit.
+- `UpdatedUtc`/`UpdatedByUserId` esistevano dal primo giorno e non li leggeva nessuno. ⚠️ Contano davvero:
+  `ImportSids` è nato `false` su un DB già popolato (migration `AddSidImport`, luglio 2026), e dal valore non
+  si distingue una scelta dell'admin dall'effetto della migrazione. Ora `UpdatedByUserId = 0` lo **dichiara**.
+- ⚠️ La tabella degli stati **regalava il verde**: `GatedImportLoop` marca il successo anche quando il run
+  esce subito perché la categoria è esclusa. E ospitava `SpecialAreaForeignOptOut` e
+  `TransferFlowsToAgreements`, che import non sono, mentre mancava l'anagrafica **ACC**, che si importa ogni
+  giorno.
+
+**Densità** (carta [`2026-08-22-sorgenti-densita-ui.md`](../feature/2026-08-22-sorgenti-densita-ui.md)):
+**1 252 → 900**, a 1600/1440/1280/1024, IT ed EN, zoom 0.8→1.5. Le **due** tabelle diventano **una** (sopra
+diceva «Settori», sotto `AirportSector`; sopra «da sorgente / manuale», sotto «ok / errore»), la spunta e la
+colonna «Provenienza» erano la stessa informazione scritta due volte, e «importa dalla sorgente» stava scritto
+cinque volte, una per riga.
+
+⚠️ **La lezione riusabile del giro è `max-height` contro `height`.** `vipiFitViewport` scrive `height` ed è
+giusto dove il contenuto è più alto dello schermo **per mestiere** (Audit, Aeroporti). Qui il contenuto è
+corto e **fisso**: stirato, il riquadro lasciava **mezzo pannello di bianco**; non misurato affatto, a
+1024×768 e da zoom 1.25 la pagina tornava a scorrere. Da qui **`vipiCapViewport`** in `vipi-ui.js`. «La
+pagina non scorre» non è l'obiettivo: l'obiettivo è che **ciò che si guarda stia a schermo**.
+
+⚠️ E metà dei difetti li ha visti **l'occhio, non le misure**: due tasti «Annulla» affiancati che fanno cose
+diverse (l'uno del componente, l'altro della pagina); le sei caselle **non incolonnate** perché
+`.se-row input{flex:1}` è la regola dei campi di testo e si applicava anche alle checkbox; i link «Dove si
+modifica» che a `display:block` sembravano campi; un errore di rete lungo quattro righe che faceva la riga
+SID alta il doppio; e `e'`/`piu'` al posto di `è`/`più` in tre stringhe nuove.
+
+### La prossima pagina: Diagnostica
+
+**Diagnostica** (`/vsop/admin/diagnostica`, 900px: sottotitolo, 1 fascia, nessun «?»; ⚠️ la barra ci sta su
+**due righe** — 87px — perché è una delle tre pagine col `.wrap` a 1 100px), poi Nuovo documento, Incarichi,
 editor APP/vLOA. L'ordine aggiornato sta in §15.
 
 ⚠️ **Prima di misurarle, riempirle** (lezione di Permessi) e, se accumulano, **rimisurarle** (lezione di
-Audit). Le due insieme dicono la stessa cosa: il numero della ricognizione è vero il giorno in cui è stato
-preso, e su queste due pagine non lo era già più.
+Audit). E, dopo Sorgenti, una terza: ⚠️ **prima di renderla bella, verificare che la pagina dica il vero.**
+Tre pagine su tre, aperte per la densità, nascondevano un difetto di sostanza — e su tutte e tre era la
+**prosa della pagina** a prometterlo. La diagnostica è, per mestiere, una pagina che afferma cose.
 
 ## Aperto, e non è di queste pagine
 
