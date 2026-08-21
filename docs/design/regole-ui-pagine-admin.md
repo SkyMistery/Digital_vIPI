@@ -284,6 +284,10 @@ Il ramo ha chiuso **tutte** le pagine di lavoro della ricognizione. L'ultima cop
 è caduta il 22 agosto, e ⚠️ **il loro «900» era una stima**: misurati davvero, e **in modifica**, erano 3 540
 e 4 351.
 
+⚠️ **La larghezza a cui vale questa tabella**: le pagine admin e gli editor si usano **da 1024 in su**
+(desktop o tablet orizzontale), ed è lì che sono misurate — 1600 / 1440 / 1280 / 1024, IT ed EN. Sotto quella
+soglia non sono supportate, per scelta: il telefono riguarda le **pagine pubbliche** (§29).
+
 ⚠️ **E dal 22 agosto non resta aperto nemmeno il chrome**: la topbar sta a 1024 (§28) e il pannello release
 è passato da 974 a 420px. L'unica cosa rimasta è l'**archiviazione degli incarichi**, che vuole una
 migrazione e aspetta il cutover MariaDB.
@@ -977,7 +981,12 @@ regressione introdotta dal giro precedente e trovata dal committente guardando l
 ## 29. Quello che ha lasciato il giro del telefono (22 agosto 2026)
 
 Il committente ha chiesto il telefono dopo il giro della topbar. Perimetro: **le pagine pubbliche, per
-intero** — chi apre la vIPI dal telefono **consulta**, non scrive. Carta:
+intero** — chi apre la vIPI dal telefono **consulta**, non scrive.
+
+⚠️ **Il perimetro d'uso, dichiarato**: le pagine **pubbliche** si usano **da 375px in su** (telefono
+compreso); **admin ed editor da 1024 in su** — desktop o **tablet orizzontale** — dove sono **verificati** e
+dove **vanno bene come sono**. Non è una rinuncia: è la larghezza a cui quelle pagine sono state misurate,
+IT ed EN, in tutti i giri di questo ramo. Carta:
 [telefono](../feature/2026-08-22-telefono-pagine-pubbliche.md). Regole **205-212**.
 
 205. ⚠️ **Su mobile il segnale NON è `scrollWidth` contro `clientWidth`.** Un browser mobile, quando il

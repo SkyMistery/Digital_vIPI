@@ -459,7 +459,12 @@ Tre scaglioni a **1500** e **1300**, e ⚠️ **quindici stringhe cablate in ita
 ## Il telefono, sulle pagine pubbliche — 22 agosto
 
 Chiesto dal committente dopo il giro della topbar. Perimetro: **le pagine pubbliche, per intero** — chi apre
-la vIPI dal telefono **consulta**, non scrive; le admin restano da desktop e lo si dichiara. Carta:
+la vIPI dal telefono **consulta**, non scrive.
+
+⚠️ **Il perimetro d'uso, che vale per tutto il ramo**: pubbliche **da 375 in su**; **admin ed editor da 1024
+in su** (desktop o **tablet orizzontale**), dove sono verificate e dove **vanno bene come sono** — decisione
+del committente, 22 agosto. Non è una rinuncia: è la larghezza a cui quelle pagine sono state misurate in
+ogni giro, IT ed EN. Carta:
 [telefono](../feature/2026-08-22-telefono-pagine-pubbliche.md), regole 205-212 (§29).
 
 **La barra cambia forma**: sotto i 900px restano marchio, ricerca e «☰»; dentro il menù gli ACC e tutti i

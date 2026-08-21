@@ -7,11 +7,15 @@
 ## Il perimetro, deciso
 
 **Le pagine pubbliche, per intero** (decisione del committente): home, viewer aeroporto, vIPI ACC, APP, vLOA,
-live, ricerca, guida. Le **admin e gli editor restano da desktop**, e lo si dichiara.
+live, ricerca, guida.
+
+**Admin ed editor si usano da 1024 in su** — desktop o **tablet orizzontale** — e lì **vanno bene come
+sono**: è la decisione del committente, ed è sostenuta dalle misure del giro precedente, dove tutte le pagine
+admin e tutti gli editor sono stati verificati a **1600 / 1440 / 1280 / 1024**, IT ed EN. Non è un limite
+subìto: è il perimetro d'uso dichiarato.
 
 ⚠️ La ragione non è la fatica: è che **nessuno scrive una vIPI dal telefono**. Chi apre la vIPI dal telefono
 è un pilota o un controllore che **consulta** prima di collegarsi — e sono esattamente le pagine pubbliche.
-Fare le admin responsive sarebbe lavoro vero per uno scenario che non esiste.
 
 ## Cosa ho trovato, misurato
 
@@ -81,8 +85,9 @@ serve: dentro `.st-scroll` la tabella scorre già, e due barre annidate sono peg
 
 ## Fuori ambito, dichiarato
 
-- **Admin ed editor**: restano da desktop. Le tabelle da 700px e i layout a due colonne non diventano
-  telefono senza riprogettarli, e non è quello che serve.
+- **Admin ed editor**: si usano da **1024 in su** (desktop o tablet orizzontale), dove sono **verificati** —
+  32 combinazioni nel giro della topbar, IT ed EN. Sotto quella soglia non si va: tabelle da 700px e layout a
+  due colonne non diventano telefono senza riprogettarli, e non è quello che serve a nessuno.
 - **Sotto i 360px** non si va: è sotto ogni telefono in commercio.
 - Le **mappe** (Leaflet) si ritagliano già da sole e non sono in questo giro.
 
