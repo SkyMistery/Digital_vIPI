@@ -280,17 +280,42 @@ public sealed class EfEditingRepository : IEditingRepository
         _db.DocumentVersions.Add(version);
         await _db.SaveChangesAsync(ct); // serve version.Id
 
-        // Sezione radice vuota di partenza (l'editor ne aggiunge altre).
-        _db.DocumentSections.Add(new DocumentSection
+        if (parties is { } coppia)
         {
-            DocumentVersionId = version.Id,
-            ParentSectionId = null,
-            Title = "Scopo e validità",
-            Order = 1,
-            Depth = 0,
-            SectionKey = SectionKeys.NewCustom(),
-            RowVersion = Guid.NewGuid().ToByteArray(),
-        });
+            // ⚠️ Una vLOA nasce con la struttura del CATALOGO, da qualunque porta la si crei.
+            //
+            // Prima da qui nasceva con una sezione sola — «Scopo e validità», per giunta con una chiave
+            // libera (`SectionKeys.NewCustom()`) che non è nessuna delle sette del profilo Vloa — mentre la
+            // stessa vLOA generata da «ACC confinanti» nasceva con le sette canoniche. Due porte per la
+            // stessa cosa, due risultati diversi, e da questa usciva un documento **fuori catalogo**: le
+            // sezioni obbligatorie assenti, e l'unica presente sconosciuta a chi decide chi rende il corpo
+            // (doc 13 §3a). La pagina lo dichiarava perfino — «la vLOA nasce vuota» — ma un difetto
+            // documentato resta un difetto.
+            var codici = await _db.Sectors.AsNoTracking()
+                .Where(s => s.Id == coppia.homeSectorId || s.Id == coppia.neighbourSectorId)
+                .Select(s => new { s.Id, AccCode = s.Acc!.Code, AccName = s.Acc.Name })
+                .ToListAsync(ct);
+            var home = codici.FirstOrDefault(x => x.Id == coppia.homeSectorId);
+            var foreign = codici.FirstOrDefault(x => x.Id == coppia.neighbourSectorId);
+
+            Seed.VloaStructureSeeder.Seed(_db, version, Vipi.Application.Content.VloaSections.Canonical(
+                home?.AccCode ?? "", foreign?.AccCode ?? "", foreign?.AccName, version.AiracCycle));
+        }
+        else
+        {
+            // Le vIPI di questo percorso restano com'erano: la loro struttura la costruisce l'editor, e
+            // `EnsureVipiDocumentAsync` — il percorso vero delle vIPI — semina già dal catalogo.
+            _db.DocumentSections.Add(new DocumentSection
+            {
+                DocumentVersionId = version.Id,
+                ParentSectionId = null,
+                Title = "Scopo e validità",
+                Order = 1,
+                Depth = 0,
+                SectionKey = SectionKeys.NewCustom(),
+                RowVersion = Guid.NewGuid().ToByteArray(),
+            });
+        }
         await _db.SaveChangesAsync(ct);
 
         return doc.Id;

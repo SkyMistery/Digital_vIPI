@@ -69,6 +69,21 @@ public sealed class EditingService : IEditingService
             parties = (home, neigh);
             accCode = await _repo.GetAccCodeBySectorAsync(home, ct)
                 ?? throw new Aor.ValidationException("Settore Home inesistente.");
+
+            // ⚠️ Una coppia, una vLOA. Il contratto di `FindVloaIdByPairAsync` lo dichiarava già — «una sola
+            // vLOA per coppia ACC↔ACC» — e nessuno lo imponeva: la generazione da /vsop/admin/confinanti è
+            // idempotente per parti, questa porta no. Le due strade per creare la stessa cosa avevano due
+            // politiche diverse, e il resto dell'applicazione non sa gestirne due: `FindVloaIdByPairAsync`
+            // fa `FirstOrDefault`, quindi con due documenti sulla stessa coppia l'editor ne apre uno **senza
+            // un criterio** e l'altro resta invisibile — pur potendo avere release pubblicate.
+            //
+            // Non si «riusa in silenzio» come fa l'import: lì non c'è nessuno davanti, qui sì, e chi ha
+            // appena scritto un titolo deve sapere perché non è stato usato.
+            var neighAcc = await _repo.GetAccCodeBySectorAsync(neigh, ct)
+                ?? throw new Aor.ValidationException("Settore Neighbour inesistente.");
+            if (await _repo.FindVloaIdByPairAsync(accCode, neighAcc, ct) is int gia)
+                throw new Aor.ValidationException(
+                    $"Esiste già una vLOA {accCode} ↔ {neighAcc} (documento #{gia}): aprila invece di crearne una seconda.");
         }
         else
         {
