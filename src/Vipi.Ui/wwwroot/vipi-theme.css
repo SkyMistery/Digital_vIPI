@@ -2249,3 +2249,34 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .struct .audit-table .c-target{width:230px}
 .struct .audit-table .c-what{min-width:200px;color:var(--ink-soft)}
 .struct .audit-table .c-ev .pill{white-space:nowrap}
+
+
+/* ---- Sorgenti: una tabella sola, sei righe, e sono sei per sempre (22 agosto 2026) ----
+   Un pannello misurato da vipiFitViewport. Il `calc` e' il valore di PARTENZA prima che il JS misuri.
+   ⚠️ Qui il `thead` appiccicato NON serve e non c'e': l'altezza di questa pagina non dipende dai dati.
+   ⚠️ Le regole vanno scritte con `.struct` davanti e verificate col valore CALCOLATO: senza, le larghezze
+   di `.res-table` vincono in silenzio (trappola gia' pagata sui SID). */
+.struct .sorg-pane{height:calc(100vh - 250px);min-height:320px;padding:18px}
+/* vipiFitViewport misura fin dove arriva il pannello, non cosa gli sta sotto: senza questo il padding di
+   fondo del `.wrap` lascia uno scorrimento inutile (misurato su Audit). */
+.wrap.struct:has(.sorg-pane){padding-bottom:18px}
+@media(max-width:900px){.struct .sorg-pane{height:auto;min-height:0}}
+/* Colonne fisse tranne la categoria, che porta nome e descrizione e prende quello che avanza. Il min-width
+   della tabella e' la somma delle fisse PIU' il pavimento dell'elastica, non la somma delle fisse. */
+.struct .sorg-table{table-layout:fixed;min-width:780px}
+.struct .sorg-table td{padding:9px 10px;vertical-align:top}
+.struct .sorg-table .c-cat{min-width:220px}
+.struct .sorg-table .c-prov{width:230px}
+.struct .sorg-table .c-upd{width:250px}
+.struct .sorg-table .c-where{width:180px}
+.struct .sorg-table .pill{white-space:nowrap}
+/* La descrizione e' il DATO (quali colonne la sorgente possiede), non prosa d'aiuto: sta sotto il nome. */
+.struct .sorg-table .sorg-desc{font-size:11px;margin-top:2px;overflow-wrap:anywhere}
+/* La spunta e la parola sono la stessa informazione: una cella sola, non una colonna in piu'. */
+.struct .sorg-table .sorg-pick{gap:6px;align-items:center}
+.struct .sorg-table .c-where a.lnk-mini{display:block;margin:0 0 2px}
+/* Chi ha deciso: fuori dalla tabella, in coda, perche' e' una nota sull'insieme e non su una riga. */
+.struct .sorg-pane .sorg-who{margin:12px 0 0}
+/* ⚠️ «Nessuno l'ha mai salvata» diventa un avviso solo se qualche categoria e' gia' esclusa: e' il caso in
+   cui un import puo' essere fermo da mesi senza che nessuno l'abbia deciso (ImportSids, luglio 2026). */
+.struct .sorg-pane .sorg-never{color:var(--warn-ink);font-weight:600}

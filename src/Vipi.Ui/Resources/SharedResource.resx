@@ -726,6 +726,28 @@
   <data name="Sorg_ProvSource" xml:space="preserve"><value>da sorgente (sola lettura)</value></data>
   <data name="Sorg_ProvManual" xml:space="preserve"><value>manuale</value></data>
   <data name="Sorg_Saved" xml:space="preserve"><value>Policy delle sorgenti salvata.</value></data>
+  <data name="Sorg_HelpAria" xml:space="preserve"><value>Come funzionano le sorgenti dati</value></data>
+  <data name="Sorg_Dirty" xml:space="preserve"><value>{0} modificate</value></data>
+  <data name="Sorg_DirtyTitle" xml:space="preserve"><value>Categorie cambiate rispetto a quanto salvato</value></data>
+  <data name="Sorg_SaveTitle" xml:space="preserve"><value>Salva la policy delle sorgenti</value></data>
+  <data name="Sorg_RevertTitle" xml:space="preserve"><value>Rimetti le spunte come sono salvate</value></data>
+  <data name="Sorg_ColLastUpdate" xml:space="preserve"><value>Ultimo aggiornamento</value></data>
+  <data name="Sorg_ColWhere" xml:space="preserve"><value>Dove si modifica</value></data>
+  <data name="Sorg_ProvSourceAlways" xml:space="preserve"><value>sempre da sorgente</value></data>
+  <data name="Sorg_AccLabel" xml:space="preserve"><value>ACC (anagrafica)</value></data>
+  <data name="Sorg_AccDesc" xml:space="preserve"><value>Elenco ACC e subcenter: non ha una spunta, e' sempre di sorgente</value></data>
+  <data name="Sorg_OnDemand" xml:space="preserve"><value>su richiesta: nessun giro automatico</value></data>
+  <data name="Sorg_LastAndNext" xml:space="preserve"><value>{0} · prossimo {1}</value></data>
+  <data name="Sorg_St_Esclusa" xml:space="preserve"><value>esclusa</value></data>
+  <data name="Sorg_St_SuRichiesta" xml:space="preserve"><value>su richiesta</value></data>
+  <data name="Sorg_St_MaiEseguita" xml:space="preserve"><value>mai eseguita</value></data>
+  <data name="Sorg_St_InErrore" xml:space="preserve"><value>errore</value></data>
+  <data name="Sorg_St_Ferma" xml:space="preserve"><value>ferma</value></data>
+  <data name="Sorg_St_Aggiornata" xml:space="preserve"><value>aggiornata</value></data>
+  <data name="Sorg_ChangeToSource" xml:space="preserve"><value>{0}: passa alla sorgente — al prossimo import quanto scritto a mano sara' sostituito.</value></data>
+  <data name="Sorg_ChangeToManual" xml:space="preserve"><value>{0}: passa a manuale — non si aggiornera' piu' da sola e diventa modificabile.</value></data>
+  <data name="Sorg_DecidedBy" xml:space="preserve"><value>Deciso da {0} il {1}</value></data>
+  <data name="Sorg_NeverDecided" xml:space="preserve"><value>Nessuna persona ha mai salvato questa policy: le esclusioni che vedi vengono dai valori di partenza delle colonne.</value></data>
   <data name="Common_Close" xml:space="preserve"><value>Chiudi</value></data>
   <data name="Common_Error" xml:space="preserve"><value>Errore: </value></data>
   <data name="Conf_Title" xml:space="preserve"><value>ACC confinanti</value></data>
