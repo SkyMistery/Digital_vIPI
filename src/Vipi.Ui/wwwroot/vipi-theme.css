@@ -1200,7 +1200,11 @@ details.ed-sec > summary:hover{color:var(--ivao-lightblue)}
 .res-where{font-family:var(--font-head);font-weight:700;color:var(--ivao-blue);font-size:13px;margin-bottom:4px}
 .res-snip{font-size:14px;color:var(--ink-soft)}
 .res-snip mark{background:#fff3cf;color:var(--ink);padding:0 3px;border-radius:3px;font-weight:600}
-@media(max-width:1080px){.doc-layout,.ed-layout,.ed-layout.with-rail{grid-template-columns:1fr}.toc{position:static;max-height:none}.ed-rail{position:static;max-height:none}.acc-grid{grid-template-columns:repeat(2,1fr)}.aor-wrap{grid-template-columns:1fr}}
+/* ⚠️ `minmax(0,1fr)` e non `1fr`: una traccia `1fr` ha `min-width:auto`, cioe' il min-content del suo
+   contenuto — e non scende sotto. E' la regola del `min-width:0` sui figli di griglia, che il progetto ha
+   gia' scritta per gli editor e che qui, nel collasso a una colonna, non era applicata: misurato, a 375px il
+   viewer aeroporto teneva una colonna da 592 e imporre `width:340px` al layout non la faceva cedere. */
+@media(max-width:1080px){.doc-layout,.ed-layout,.ed-layout.with-rail{grid-template-columns:minmax(0,1fr)}.doc-layout>*,.ed-layout>*{min-width:0}.toc{position:static;max-height:none}.ed-rail{position:static;max-height:none}.acc-grid{grid-template-columns:repeat(2,1fr)}.aor-wrap{grid-template-columns:1fr}}
 
 /* ---------- Screen 5b: Topologia settori ---------- */
 .topo-layout{display:grid;grid-template-columns:330px 1fr 360px;gap:22px;align-items:start}
@@ -2651,3 +2655,100 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .rel-old>summary{cursor:pointer;font-size:12.5px;color:var(--ink-soft);padding:2px 0}
 .rel-old>summary:hover{color:var(--ivao-blue)}
 .rel-old .ver-row{margin-top:4px}
+
+/* ---- Telefono: la barra cambia FORMA, non si comprime piu' ----
+   Sotto i 700px non c'era piu' niente da togliere in riga: misurato, la barra ha un pavimento di 959px che
+   non scende a nessuna larghezza — 959 anche a 375, con 4 comandi su 13 raggiungibili — e i soli codici ACC
+   sono 263px, due terzi di uno schermo da 375. Da qui il menu: in riga restano marchio, ricerca e «☰»;
+   dentro il menu tutto il resto, in un pannello a piena larghezza.
+   ⚠️ La soglia e' 900, e ci sono arrivato correggendomi: l'avevo scritta a 700 dando per buono che «il
+   tablet verticale sta comodo con la barra in riga». Misurato, NON sta: a 768 la barra restava a 959 e
+   sforava di 191px, con 10 comandi su 23 raggiungibili. Un'assunzione scritta in una carta resta
+   un'assunzione finche' non la si misura. */
+.tb-menu{display:none}
+.tb-menu>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  width:38px;height:34px;border-radius:9px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);
+  color:#fff;font-size:17px;flex:none}
+.tb-menu>summary::-webkit-details-marker{display:none}
+.tb-menu>summary::marker{content:""}
+.tb-menu[open]>summary{background:#fff;color:var(--ivao-blue)}
+
+@media (max-width: 900px) {
+  .topbar{gap:10px;padding:0 12px}
+  .tb-menu{display:block}
+  /* Quello che esce dalla riga vive nel menu: non sparisce, cambia posto. */
+  .topbar .acc-nav,.topbar .staff-badge,.topbar .zoom-ctrl,.topbar .live-badge,
+  .topbar .right>.editor-btn,.topbar .right>.user-chip{display:none}
+  .topbar .right{margin-left:auto;gap:8px}
+  /* Il marchio resta, ma solo il logo: il nome per esteso e' 202px su 375 di schermo. */
+  .topbar .brand div{display:none}
+  /* La ricerca resta in riga, chiusa in un'icona: e' il gesto piu' probabile da telefono. */
+  .topbar .top-search{flex:none;width:38px;min-width:0;max-width:none;padding:7px 10px;margin-left:0}
+  .topbar .top-search input{width:0;min-width:0;padding:0;opacity:0}
+  .topbar .top-search:focus-within{position:absolute;left:10px;right:10px;top:calc(100% + 6px);width:auto;
+    z-index:46;padding:9px 14px;box-shadow:0 8px 24px rgba(13,44,153,.28)}
+  .topbar .top-search:focus-within input{width:auto;flex:1;opacity:1}
+
+  /* Il pannello del menu: a piena larghezza sotto la barra, e scorre se non ci sta in altezza. */
+  .tb-menu-pan{position:fixed;left:0;right:0;top:62px;z-index:44;background:var(--ivao-blue);
+    padding:10px 12px 14px;box-shadow:0 10px 26px rgba(13,44,153,.3);
+    max-height:calc(100vh - 62px);overflow:auto;display:flex;flex-direction:column;gap:2px}
+  .tb-menu-pan>a{display:flex;align-items:center;gap:10px;color:#dfe5ff;padding:11px 10px;border-radius:9px;
+    font-size:15px}
+  .tb-menu-pan>a:hover{background:rgba(255,255,255,.12);color:#fff}
+  /* Gli ACC in fila dentro il menu: sono la navigazione primaria, e da telefono restano la prima cosa. */
+  .tb-menu-acc{display:flex;flex-wrap:wrap;gap:6px;padding:2px 2px 10px;margin-bottom:6px;
+    border-bottom:1px solid rgba(255,255,255,.18)}
+  .tb-menu-acc a{color:#cdd6ff;padding:9px 15px;border-radius:9px;font-family:var(--font-head);font-weight:600;
+    background:rgba(255,255,255,.1)}
+  .tb-menu-acc a.active{background:#fff;color:var(--ivao-blue);font-weight:700}
+}
+
+/* ---- Telefono e tablet verticale: una tabella larga scorre DENTRO di se' ----
+   ⚠️ Misurato: a 390px il `.wrap` del viewer aeroporto pretendeva 894px, e il colpevole non era l'indice
+   laterale (che si adeguava) ma le TABELLE. Due cause diverse, e la prima cura ne ha coperta una sola:
+   `.sid-table` porta un `min-width:720px` DICHIARATO, mentre `.rwy-table` non dichiara niente e pretende 542
+   per il suo CONTENUTO. Serve tutte e due le cose — azzerare il minimo e far scorrere — e su TUTTE le
+   tabelle del viewer, non su un elenco di classi che si dimentica sempre la prossima.
+   E' la regola gia' scritta per gli editor: se il minimo che non taglia niente supera il contenitore, meglio
+   far scorrere il contenitore che mozzare dieci campi.
+   ⚠️ Solo dentro `.doc-layout`: negli editor le tabelle stanno gia' in `.st-scroll`, e un secondo
+   contenitore scorrevole darebbe due barre annidate. */
+@media (max-width: 900px) {
+  .wrap .block,.wrap .cb-body,.wrap .doc-main{min-width:0;max-width:100%}
+  /* ⚠️ `.wrap table` e non `.doc-layout table`: la prima versione copriva solo il viewer, e la pagina di
+     RICERCA — che mostra le stesse tabelle fuori da quel layout — restava a 569px su uno schermo da 375.
+     Un elenco di contenitori si dimentica sempre il prossimo: si prende tutto il contenuto e si ESCLUDE
+     dove non serve, invece del contrario.
+     `display:block` fa scorrere la tabella dentro di se'; `min-width:0` toglie i minimi dichiarati, che
+     sopra i 900 servono e sono misurati (le colonne SID sono calcolate col font sui valori veri del DB). */
+  .wrap table{display:block;overflow-x:auto;max-width:100%;min-width:0;-webkit-overflow-scrolling:touch}
+  /* ⚠️ Dentro gli scroller degli editor si RIPRISTINA: la' la tabella sta gia' in un contenitore che scorre,
+     e due barre annidate sono peggio di una pagina che scorre (regola 15). */
+  .st-scroll table,.ed-layout .st-scroll table{display:table;overflow-x:visible}
+  /* Un titolo lungo va a capo invece di allargare la card: «Settori di aerovia» pretendeva 411px su 390. */
+  .wrap .acc-block-h,.wrap h2,.wrap h3{overflow-wrap:anywhere}
+  /* ⚠️ E i risultati di ricerca: gli estratti riportano testo del documento, dove capitano sequenze senza
+     spazi (coordinate, elenchi di fix) che con `overflow-wrap` normale NON si spezzano e allargano tutto.
+     Misurato: `/vsop/search` senza risultati stava in 375, con i risultati saltava a 569 — e nell'elenco di
+     «chi sfora» non compariva NESSUNO, perche' una volta allargato il viewport le righe ci stanno dentro.
+     Il colpevole si trova confrontando la pagina con e senza contenuto, non cercando chi sborda. */
+  .wrap .res-snip,.wrap .res-where,.wrap .prose,.wrap td,.wrap .vmeta{overflow-wrap:anywhere}
+  /* ⚠️ L'indice, che su desktop sta di lato, su telefono finisce IN CIMA e si mangiava il 31% della prima
+     schermata (260px su 844) — su un telefono piccolo quasi il 40%. Chi apre una vIPI dal telefono vuole
+     vedere il documento, non il suo sommario: resta, si vede che c'e', e scorre dentro di se'.
+     ⚠️ Va dopo la media query a 1080, che gli mette `max-height:none`: l'ordine nel foglio conta quanto il
+     peso, e una regola scritta prima perde in silenzio. */
+  .toc{max-height:34vh;overflow:auto}
+
+  /* ⚠️ La riga «titolo · tasti» e' un flex che non andava a capo: su /vsop/{acc}/vipi i tre tasti sono 277px
+     e col titolo superavano lo schermo. Qui a cedere e' la RIGA, che va a capo. */
+  .doc-head{flex-wrap:wrap}
+  .doc-head>*{min-width:0}
+
+  /* ⚠️ 16px sui campi, e non e' una scelta tipografica: sotto quella soglia i browser mobile ZOOMANO da soli
+     quando il campo prende il fuoco, e il layout viewport resta allargato anche dopo. E' cosi' che la pagina
+     di ricerca misurava 569 su uno schermo da 375 pur non avendo UN SOLO elemento oltre il bordo — il
+     documento non sforava, era il viewport a essere largo. Nessuna misura del contenuto lo trova. */
+  .searchbar input,.top-search input,input.app-in,select.app-in,textarea.app-ta,.htree-search,.htree-select{font-size:16px}
+}

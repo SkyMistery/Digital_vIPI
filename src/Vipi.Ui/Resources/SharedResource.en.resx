@@ -95,7 +95,8 @@
   <data name="Country_LI" xml:space="preserve"><value>Italy</value></data>
   <data name="Chrome_BrandSubtitle" xml:space="preserve"><value>/ vLOA · IVAO Italy</value></data>
   <data name="Chrome_BrandHome" xml:space="preserve"><value>vIPI / vLOA home</value></data>
-  <data name="Chrome_Guide" xml:space="preserve"><value>Guide</value></data>
+  <data name="Chrome_Guide" xml:space="preserve"><value>Guide</value></data>
+  <data name="Chrome_Menu" xml:space="preserve"><value>Menu</value></data>
   <data name="Chrome_StaffPosition" xml:space="preserve"><value>Staff position</value></data>
   <data name="Chrome_ZoomOut" xml:space="preserve"><value>Zoom out</value></data>
   <data name="Chrome_ZoomIn" xml:space="preserve"><value>Zoom in</value></data>

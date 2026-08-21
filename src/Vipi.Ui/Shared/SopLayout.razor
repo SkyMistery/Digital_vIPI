@@ -12,6 +12,43 @@
 @if (Chrome.Value.RenderTopbar)
 {
     <header class="topbar">
+        @* ---- Telefono: il menu a scomparsa ----
+           Sotto i 700px la barra non si comprime piu' in riga (misurato: pavimento a 959px, e i soli
+           codici ACC sono 263 su 375 di schermo): cambia FORMA. In riga restano marchio, ricerca e
+           questo tasto; dentro, gli ACC e tutti i comandi.
+           ⚠️ `<details>` nativo e non un menu Blazor: il layout e' SSR statico, e un menu che
+           dipendesse dal circuito non funzionerebbe proprio sulle pagine pubbliche — che sono quelle
+           che si guardano dal telefono. Sopra i 700px il tasto non si rende affatto (CSS). *@
+        <details class="tb-menu" id="tb-menu">
+            <summary aria-label="@L["Chrome_Menu"]" title="@L["Chrome_Menu"]"><span aria-hidden="true">☰</span></summary>
+            <div class="tb-menu-pan">
+                <nav class="tb-menu-acc" aria-label="@L["Chrome_AccNav"]">
+                    @foreach (var acc in Stations.Accs)
+                    {
+                        <a class="@(IsActiveAcc(acc.Code) ? "active" : null)" href="/vsop/@acc.Code.ToLowerInvariant()">@acc.Code</a>
+                    }
+                </nav>
+                <a href="/vsop/guida"><Icon Name="help-circle" /> @L["Chrome_Guide"]</a>
+                <a href="/vsop/live"><Icon Name="radio" /> @L["Chrome_OpenLive"]</a>
+                @if (_canEdit)
+                {
+                    <a href="/vsop/versioni"><Icon Name="pencil" /> @L["Chrome_Editor"]</a>
+                    <a href="/vsop/tasks"><Icon Name="clipboard" /> @L["Nav_Tasks"]</a>
+                }
+                @if (_isAdmin)
+                {
+                    <a href="/vsop/admin/permessi"><Icon Name="key" /> @L["Chrome_Permissions"]</a>
+                }
+                @if (_user is null)
+                {
+                    <a href="/vsop/auth/login?returnUrl=/vsop"><Icon Name="log-in" /> @L["Chrome_Login"]</a>
+                }
+                else
+                {
+                    <a href="/vsop/auth/logout"><Icon Name="log-out" /> @L["Chrome_Logout"]</a>
+                }
+            </div>
+        </details>
         <a class="brand" href="/vsop" aria-label="@L["Chrome_BrandHome"]">
             <span class="logo">vIPI</span>
             <div>vIPI <small>@L["Chrome_BrandSubtitle"]</small></div>
