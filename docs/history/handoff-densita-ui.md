@@ -1,4 +1,4 @@
-﻿# Handoff — il ramo della densità UI (aggiornato 22 agosto 2026: pagine E chrome, tutto chiuso)
+﻿# Handoff — il ramo della densità UI (aggiornato 22 agosto 2026: pagine, chrome e telefono)
 
 > **A cosa serve.** Ripartire a freddo sul ramo `ui-trasferimenti-densita` senza rileggere la cronologia.
 > Chi deve fare **la prossima pagina** legge solo questo file più
@@ -15,7 +15,7 @@ Il perno è che **ogni fascia tolta in testa diventa contenuto visibile**.
 
 ## Le regole sono già scritte — leggerle PRIMA di toccare una pagina
 
-[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **204 voci in 28 gruppi**, ognuna
+[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **212 voci in 29 gruppi**, ognuna
 già costata un giro di correzioni, più la **ricognizione misurata** (§15) di tutte le pagine con cosa manca a
 ognuna e in che ordine conviene farle. Non è un regolamento di stile: è l'elenco di ciò che, saltato, si ripaga.
 
@@ -455,6 +455,35 @@ Tre scaglioni a **1500** e **1300**, e ⚠️ **quindici stringhe cablate in ita
 2. una **`}` di troppo** lasciata negli scaglioni della topbar faceva scartare al parser CSS **solo la prima
    regola dopo**: le figlie funzionavano, la madre no, e sembrava un problema di specificità. **Contare le
    graffe** prima di ogni ipotesi sulla cascata.
+
+## Il telefono, sulle pagine pubbliche — 22 agosto
+
+Chiesto dal committente dopo il giro della topbar. Perimetro: **le pagine pubbliche, per intero** — chi apre
+la vIPI dal telefono **consulta**, non scrive; le admin restano da desktop e lo si dichiara. Carta:
+[telefono](../feature/2026-08-22-telefono-pagine-pubbliche.md), regole 205-212 (§29).
+
+**La barra cambia forma**: sotto i 900px restano marchio, ricerca e «☰»; dentro il menù gli ACC e tutti i
+comandi. ⚠️ La soglia l'avevo scritta **700**, dando per buono che il tablet verticale stesse in riga:
+misurato, **non stava** (a 768 la barra era 959, +191).
+
+**Il contenuto aveva QUATTRO cause**, ognuna trovata dopo aver chiuso la precedente:
+
+1. ⚠️ `.doc-layout` collassava a `grid-template-columns:1fr`, e una traccia `1fr` ha `min-width:auto`: la
+   colonna **non scendeva sotto 592px nemmeno imponendo `width:340px`**. È la regola 55 (`min-width:0` sui
+   figli di griglia), già scritta per gli editor e mai applicata a questo collasso. Da sola: **894 → 375**;
+2. le tabelle, con **due cause opposte** — `.sid-table` ha un `min-width` dichiarato, `.rwy-table` pretende
+   per il suo contenuto: servono entrambe le cure;
+3. la riga «titolo · tasti», un flex che non andava a capo;
+4. gli **estratti di ricerca**, con sequenze senza spazi che non si spezzano.
+
+⚠️ **Due trappole dell'attrezzo, e sono la lezione vera del giro:**
+
+- **su mobile il segnale non è `scrollWidth`**: un browser mobile non fa scorrere, **allarga il viewport e
+  rimpicciolisce tutto** (`scrollLeftMax` 0, `innerWidth` 648 su uno schermo da 375). Si guarda `innerWidth`;
+- **cercare «chi sfora» dopo l'allargamento non trova niente**, perché tutti ci stanno dentro. Il colpevole
+  si trova **confrontando la pagina con e senza contenuto**.
+
+Verificato su **56 combinazioni** (7 pagine × 4 assetti × 2 lingue), e il desktop non è cambiato.
 
 ## Aperto, e non è di queste pagine
 

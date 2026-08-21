@@ -1,4 +1,4 @@
-﻿# Regole di densità e uso per le pagine admin (19-22 agosto 2026) — 204 voci in 28 gruppi
+﻿# Regole di densità e uso per le pagine admin (19-22 agosto 2026) — 212 voci in 29 gruppi
 
 > **A cosa serve.** Fra il 16 e il 20 agosto sette pagine admin sono state rifatte nella forma —
 > [accordi](../feature/2026-08-19-accordi-densita-ui.md), [struttura](../feature/2026-08-19-struttura-densita-ui.md),
@@ -17,8 +17,9 @@
 > [densità](../feature/2026-08-22-editori-app-vloa-densita-ui.md), §27, regole 183-192), che chiudono la
 > ricognizione; poi il **chrome** — topbar, pannello release e il menu «+ Blocco»
 > ([carte](../feature/2026-08-22-topbar-larghezza-e-lingua.md) e
-> [release](../feature/2026-08-22-pannello-release.md), §28, regole 193-204) — e ogni giro ha lasciato una
-> regola pagata a caro prezzo,
+> [release](../feature/2026-08-22-pannello-release.md), §28, regole 193-204); e infine il **telefono** sulle
+> pagine pubbliche ([carta](../feature/2026-08-22-telefono-pagine-pubbliche.md), §29, regole 205-212)
+> — e ogni giro ha lasciato una regola pagata a caro prezzo,
 > spesso da un difetto visto solo **misurando**. Questo foglio le raccoglie perché le pagine ancora da fare del
 > ramo di modifica partano da lì invece di ripagarle.
 >
@@ -973,6 +974,49 @@ regressione introdotta dal giro precedente e trovata dal committente guardando l
      lo ferma a ~13 righe. Era densità, non rischio. Prima di dire «cresce senza tetto», cercare il tetto.
 
 
+## 29. Quello che ha lasciato il giro del telefono (22 agosto 2026)
+
+Il committente ha chiesto il telefono dopo il giro della topbar. Perimetro: **le pagine pubbliche, per
+intero** — chi apre la vIPI dal telefono **consulta**, non scrive. Carta:
+[telefono](../feature/2026-08-22-telefono-pagine-pubbliche.md). Regole **205-212**.
+
+205. ⚠️ **Su mobile il segnale NON è `scrollWidth` contro `clientWidth`.** Un browser mobile, quando il
+     contenuto pretende più dello schermo, **non fa scorrere**: allarga il layout viewport e **rimpicciolisce
+     tutto**. Misurato: `scrollLeftMax` **0** e `innerWidth` **648** su uno schermo da 375. Il difetto non è
+     «la pagina scorre», è «il telefono ha dovuto rimpicciolire», e lo si legge in **`innerWidth`**.
+206. ⚠️ **Cercare «chi sfora» dopo che il viewport si è allargato non trova NIENTE.** Una volta allargato,
+     tutti gli elementi ci stanno dentro: sulla pagina di ricerca l'elenco degli elementi oltre il bordo era
+     **vuoto** mentre il layout era 569. Il colpevole si trova **confrontando la pagina con e senza
+     contenuto** (`/vsop/search` da solo: 375; con i risultati: 569), non cercando chi sborda.
+207. ⚠️ **Una traccia `1fr` ha `min-width:auto`, cioè il min-content del suo contenuto.** Il collasso a una
+     colonna dei layout documento usava `grid-template-columns:1fr`, e la colonna **non scendeva sotto 592px
+     nemmeno imponendo `width:340px` al layout**. Serve `minmax(0,1fr)` più `min-width:0` sui figli. È la
+     regola 55 — già scritta per gli editor — applicata al collasso, dove mancava: da sola vale 894 → 375.
+208. **Una larghezza minima ha due sorgenti, e vanno curate tutte e due.** `.sid-table` porta un
+     `min-width:720px` **dichiarato**, `.rwy-table` non dichiara niente e pretende 542 per il suo
+     **contenuto**: azzerare il minimo non basta se la tabella non può scorrere, e farla scorrere non basta
+     se il minimo resta scritto.
+209. ⚠️ **Un elenco di contenitori si dimentica sempre il prossimo.** La regola sulle tabelle era scritta per
+     `.doc-layout` e la pagina di **ricerca** — stesse tabelle, altro contenitore — restava larga. Si prende
+     **tutto il contenuto** e si **esclude** dove non serve (`.st-scroll`, dove la tabella scorre già), non
+     il contrario.
+210. **Il testo che viene dai DATI va a capo dove capita.** Gli estratti di ricerca riportano testo del
+     documento, dove capitano sequenze senza spazi (coordinate, elenchi di fix) che con `overflow-wrap`
+     normale **non si spezzano** e allargano tutto. Vale per ogni testo di provenienza esterna: `anywhere`.
+211. **Una barra che non si comprime più cambia FORMA.** Sotto i 900px non c'era più niente da togliere in
+     riga (i soli codici ACC sono 263px su 375 di schermo): restano marchio, ricerca e «☰», e il resto vive
+     nel menù. `<details>` **nativo** — il layout è SSR statico, e un menù che dipendesse dal circuito non
+     funzionerebbe proprio sulle pagine pubbliche, che sono quelle che si guardano dal telefono.
+212. ⚠️ **Un'assunzione scritta in una carta resta un'assunzione.** Avevo fissato la soglia a 700 scrivendo
+     che «il tablet verticale sta comodo con la barra in riga»: misurato, **non stava** — a 768 la barra
+     restava 959 e sforava di 191px. La carta serve a decidere prima, non a sostituire la misura dopo.
+
+⚠️ **E una cosa che NON ha risolto niente**, scritta perché non se ne prenda il merito: i **16px sui campi**.
+Introdotti convinti che lo zoom automatico al fuoco fosse la causa della pagina larga; il numero non si è
+mosso di un pixel. La regola resta (evita lo zoom al fuoco su iOS), ma la causa era un'altra — e attribuire
+una guarigione alla cura sbagliata è il modo migliore per ripetere l'errore.
+
+
 ## Dove sta la roba
 
 | Cosa | Dove |
@@ -983,6 +1027,7 @@ regressione introdotta dal giro precedente e trovata dal committente guardando l
 | Riserva per ciò che sta SOTTO il riquadro misurato | terzo argomento `reserveSel` di `vipiFitViewport`/`vipiCapViewport` — facoltativo (regola 179) |
 | Aggiungere un blocco a una sezione (tutti gli editor) | `details.blk-add` in `DocumentSectionsEditor` + delega `wireBlockMenu` in `vipi-ui.js` (regole 187 e 193 — si apre IN LINEA, mai in `position:absolute`) |
 | Scaglioni di compressione della topbar | `@media (max-width: 1500px / 1300px)` in coda a `vipi-theme.css` — spazio, badge staff, marchio, nomi dei comandi, ricerca (regola 198) |
+| Telefono e tablet verticale (pagine pubbliche) | `@media (max-width: 900px)` in coda — menù `.tb-menu`, tabelle che scorrono, testo che va a capo (§29) |
 | Riga della storia release | `#p-release .rel-row` — ⚠️ l'id serve: `.rel-row` nuda perde contro `.ver-row` |
 | Servizio facoltativo in un componente condiviso | `IServiceProvider` + `GetService` (regola 200), mai `@inject` |
 | Riga-titolo di una sezione negli editor | `.dse-head` — il titolo tronca, i comandi no (regola 184) |
