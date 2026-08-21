@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Application.Routing;
 using Vipi.Domain;
@@ -72,6 +72,59 @@ public class EditorTaskLinksTests
 
         Assert.Empty(mappa);
         Assert.Equal(0, repo.Letture);
+    }
+
+
+    /// <summary>
+    /// ⚠️ Il difetto N12, visto guardando la pagina e non da un'asserzione: la tendina si costruiva la chiave
+    /// da se' — <c>"{acc}|"</c> per la vIPI ACC — mentre la chiave vera e' <c>{acc}|{callsign primario}</c>.
+    /// L'incarico nasceva puntando a un documento che non esiste, il collegamento non si risolveva mai, e la
+    /// pagina diceva «il documento collegato non esiste piu'»: falso, e su un documento che era li'.
+    /// Chi sceglie e chi ritrova devono leggere la STESSA chiave, dallo stesso elenco.
+    /// </summary>
+    [Fact]
+    public async Task La_chiave_che_si_sceglie_e_la_stessa_che_ritrova_il_documento()
+    {
+        var accVipi = Doc(ManagedDocKind.AccVipi, ReleaseTargetType.AccVipi, "LIBB|LIBB_CTR", acc: "LIBB", id: 9);
+        var servizio = Servizio(accVipi);
+
+        var opzioni = await servizio.OpzioniAsync();
+        var scelta = opzioni.Single(o => o.Type == ReleaseTargetType.AccVipi);
+
+        // La chiave scelta e' proprio quella dell'elenco, e con quella il link si risolve.
+        Assert.Equal("LIBB|LIBB_CTR", scelta.Key);
+        var mappa = await servizio.ForAsync(new[] { Incarico(scelta.Type, scelta.Key) });
+        Assert.Equal("/vsop/libb/editor", mappa[(scelta.Type, scelta.Key)].Url);
+    }
+
+    /// <summary>Un documento nascosto non si assegna: l'incarico punterebbe a qualcosa che non si vede.</summary>
+    [Fact]
+    public async Task I_documenti_nascosti_non_sono_fra_le_opzioni()
+    {
+        var visibile = Doc(ManagedDocKind.AirportVipi, ReleaseTargetType.Airport, "LIRF", "LIRR", 3);
+        var nascosto = new ManagedDoc(ManagedDocKind.AirportVipi, "Nascosto", "LIMC", "LIMM",
+            IsPublished: true, HasDraft: false, IsHidden: true, ReleaseTargetType.Airport, "LIMC", 4);
+
+        var opzioni = await Servizio(visibile, nascosto).OpzioniAsync();
+
+        Assert.Single(opzioni);
+        Assert.Equal("LIRF", opzioni[0].Key);
+    }
+
+
+    /// <summary>⚠️ Visto guidando la pagina: fra le opzioni compariva «Airport:» — chiave VUOTA. Un incarico
+    /// creato su quella non si sarebbe risolto mai, perche' non c'e' niente da cercare.</summary>
+    [Fact]
+    public async Task Un_documento_senza_chiave_non_si_puo_collegare()
+    {
+        var buono = Doc(ManagedDocKind.AirportVipi, ReleaseTargetType.Airport, "LIRF", "LIRR", 3);
+        var senzaChiave = new ManagedDoc(ManagedDocKind.AirportVipi, "Senza chiave", "", "LIMM",
+            IsPublished: true, HasDraft: false, IsHidden: false, ReleaseTargetType.Airport, "", 5);
+
+        var opzioni = await Servizio(buono, senzaChiave).OpzioniAsync();
+
+        Assert.Single(opzioni);
+        Assert.Equal("LIRF", opzioni[0].Key);
     }
 
     // ---- impalcatura -----------------------------------------------------------------------------------

@@ -2385,12 +2385,17 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    Il layout e' quello di Permessi/Versioni (stessa griglia, stesso vipiFitViewport): il selettore e'
    condiviso piu' sopra, qui stanno solo le cose che sono di QUESTA pagina.
    Le regole nuove vanno in coda al foglio, o perdono in silenzio contro quelle condivise (regola 56). */
-.struct .task-layout .tk-table{table-layout:fixed;min-width:760px}
-.struct .task-layout .tk-table .c-who{width:150px}
-.struct .task-layout .tk-table .c-state{width:104px}
-.struct .task-layout .tk-table .c-prio{width:92px}
-.struct .task-layout .tk-table .c-due{width:110px}
-.struct .task-layout .tk-table .c-doc{width:180px}
+.struct .task-layout .tk-table{table-layout:fixed;min-width:700px}
+/* ⚠️ Le larghezze sono un gioco a somma zero (regola 60): guardando la pagina, TUTTI e undici i titoli
+   uscivano troncati mentre cinque colonne misurabili si prendevano 636px. Il titolo e' IL dato della riga —
+   e' lui la colonna di prosa, e le altre stanno nel minimo che non taglia il loro contenuto. */
+.struct .task-layout .tk-table .c-who{width:132px}
+.struct .task-layout .tk-table .c-state{width:100px}
+.struct .task-layout .tk-table .c-prio{width:84px}
+/* ⚠️ 104px tagliavano «AIRAC 2606 ⚠» proprio sul segno del ritardo — cioe' la cosa che quella colonna
+   esiste per dire. Misurato guardando la pagina, non da un'asserzione. */
+.struct .task-layout .tk-table .c-due{width:124px}
+.struct .task-layout .tk-table .c-doc{width:136px}
 /* La colonna di prosa e' l'unica senza larghezza: si prende quello che avanza (regola 60). Il resto non va
    a capo — una riga alta il doppio si paga su ogni incarico. */
 .struct .task-layout .tk-table td.c-who,.struct .task-layout .tk-table td.c-due,
@@ -2420,7 +2425,12 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    Cinque colonne da 230px a 1280 sono quattro incarichi e la pagina scorreva (854 su 800). Il tabellone e'
    misurato con vipiCapViewport (max-height): il contenuto e' corto — gli incarichi di UNA persona — quindi
    si stira solo fin dove serve, ma misurato lo e' comunque, o a 1024x768 e da zoom 1.25 si torna a scorrere. */
-.struct.tasks-mine .tk-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:stretch}
+/* ⚠️ `grid-template-rows:minmax(0,1fr)` non e' decorazione: senza, la riga implicita della griglia e' `auto`
+   e si dimensiona sul CONTENUTO, ignorando il max-height misurato — il tabellone cresceva e la pagina
+   scorreva lo stesso (misurato: 952 su 900 con 12 incarichi propri). E' la regola del `min-width:0` sui figli
+   di griglia, sull'asse verticale: il minimo automatico di una traccia e' il suo contenuto, e va tolto a mano. */
+.struct.tasks-mine .tk-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-rows:minmax(0,1fr);gap:12px;align-items:stretch;min-height:0}
 @media(max-width:900px){.struct.tasks-mine .tk-board{grid-template-columns:1fr;max-height:none}}
 .struct.tasks-mine .tk-col{display:flex;flex-direction:column;min-width:0;min-height:0}
 /* L'intestazione della colonna resta ferma: e' l'unica cosa che dice DOVE si sta guardando quando si scorre. */
@@ -2439,7 +2449,10 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .struct.tasks-mine .tk-card-doc{display:inline-block;font-size:12px;margin-top:4px}
 .struct.tasks-mine .tk-card-acts{display:flex;align-items:center;gap:6px;margin-top:8px}
 .struct.tasks-mine .tk-card-acts .tk-go{font-size:11.5px;padding:2px 8px;white-space:nowrap}
-.struct.tasks-mine .tk-card-acts .tk-more{font-size:11.5px;padding:2px 4px;height:auto;min-width:0;flex:1}
+/* ⚠️ `flex:1` la faceva larga META' della scheda, per il gesto che si fa di rado: guardando la pagina il
+   menu pesava piu' dell'avanzamento, che e' il passo che si fa davvero (regola 119, in piccolo). */
+.struct.tasks-mine .tk-card-acts .tk-more{font-size:11.5px;padding:2px 4px;height:auto;flex:0 0 auto;
+  width:auto;max-width:130px}
 .struct.tasks-mine .tk-card-acts .tk-del{margin-left:auto}
 
 /* Concluso e bloccato: presenti, contati, chiusi. */
@@ -2450,6 +2463,11 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
   gap:8px;margin-top:10px}
 .struct.tasks-mine .tk-closed-body .tk-card{margin-bottom:0}
 
+/* ⚠️ La stessa regola gia' pagata da Audit: la misura arriva fin dove arriva il riquadro e NON vede cosa gli
+   sta sotto — qui i 70px di respiro in fondo al `.wrap`. Misurato: l'ultima colonna chiusa finiva a 882 dentro
+   900, e la pagina era alta 952 e scorreva per il solo padding. Cinquantadue pixel, gli stessi di Audit. */
+.wrap.struct.tasks-mine{padding-bottom:18px}
+
 /* Il form del promemoria personale: una riga sola, il titolo elastico. */
 .struct.tasks-mine .tk-new{margin-bottom:12px}
 .struct.tasks-mine .tk-new-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -2457,3 +2475,14 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .struct.tasks-mine .tk-new-row .tk-w-prio{flex:0 0 130px;min-width:0}
 .struct.tasks-mine .tk-new-row .tk-w-due{flex:0 0 180px;min-width:0}
 .struct.tasks-mine .tk-new .help{margin:6px 0 0}
+
+/* ⚠️ Non 1.35/1 come Permessi: li' la riga e' «nome + chip», qui e' un TITOLO in prosa, e a 1.35 usciva
+   troncato su tutte le righe. La destra resta larga abbastanza per il form di creazione (misurata). */
+.struct .task-layout{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+/* Sei chip di stato piu' il ritardo schiacciavano la ricerca al suo minimo (150px, ereditato da Permessi,
+   dove i chip sono meno): a schermo si leggeva «Cerca per titolo, person…». */
+.struct .task-layout .struct-bar .htree-search{flex:1 1 210px;min-width:190px}
+/* Il chip «In ritardo» conta e filtra come gli altri: `warn` lo faceva sembrare GIA' ACCESO — guardando la
+   pagina si legge come un filtro attivo che nessuno ha chiesto. Colora il numero, non lo stato. */
+.struct .task-layout .sh-chip.tk-late-chip .chip-n{background:#f6d55c;color:#5a4600}
+.struct .task-layout .sh-chip.tk-late-chip.on .chip-n{background:#fff;color:#5a4600}

@@ -479,7 +479,26 @@
     var fitMin = 320;          // sotto questa altezza il riquadro è inutilizzabile: meglio far scorrere la pagina
     var fitTargets = [];
 
-    function fitOne(sel, collapseBelow, cap) {
+    // ⚠️ La misura vale fin dove arriva il RIQUADRO: quello che gli sta sotto non lo vede. Su /vsop/admin/audit
+    // erano i 18px di padding del `.wrap` e si sono chiusi nel foglio di stile; dove sotto c'è invece
+    // CONTENUTO — le due colonne chiuse in fondo a «I miei incarichi» — il foglio non basta, perché
+    // quell'altezza dipende da quante colonne chiuse ci sono. `reserveSel` è la risposta: gli elementi che
+    // indica si tolgono dallo spazio disponibile. Facoltativo: chi non lo passa si comporta esattamente come
+    // prima.
+    function riserva(reserveSel) {
+        if (!reserveSel) return 0;
+        var tot = 0;
+        var nodi = document.querySelectorAll(reserveSel);
+        for (var i = 0; i < nodi.length; i++) {
+            var r = nodi[i].getBoundingClientRect();
+            if (r.height <= 0) continue;
+            var st = getComputedStyle(nodi[i]);
+            tot += r.height + (parseFloat(st.marginTop) || 0) * rootZoom() + (parseFloat(st.marginBottom) || 0) * rootZoom();
+        }
+        return tot;
+    }
+
+    function fitOne(sel, collapseBelow, cap, reserveSel) {
         var el = document.querySelector(sel);
         if (!el) return;
         var prop = cap ? 'maxHeight' : 'height';
@@ -490,14 +509,14 @@
         // Lo spazio che avanza si misura in pixel di finestra e si SCRIVE in unità di layout: sotto zoom i due
         // numeri non coincidono (vedi rootZoom). I 18px di respiro restano unità di layout, come li ha pensati
         // il foglio di stile.
-        var h = Math.round((window.innerHeight - top) / rootZoom() - 18);
+        var h = Math.round((window.innerHeight - top - riserva(reserveSel)) / rootZoom() - 18);
         el.style[prop] = h >= fitMin ? h + 'px' : '';
     }
 
-    window.vipiFitViewport = function (selector, collapseBelow) {
+    window.vipiFitViewport = function (selector, collapseBelow, reserveSel) {
         var below = collapseBelow || 0;
-        if (!fitTargets.some(function (t) { return t.sel === selector; })) fitTargets.push({ sel: selector, below: below });
-        fitOne(selector, below);
+        if (!fitTargets.some(function (t) { return t.sel === selector; })) fitTargets.push({ sel: selector, below: below, res: reserveSel });
+        fitOne(selector, below, false, reserveSel);
     };
 
     // Come vipiFitViewport, ma scrive `max-height` invece di `height`: il riquadro sta alto quanto il suo
@@ -509,14 +528,14 @@
     // FISSO: su /vsop/admin/sorgenti le sei righe lasciavano mezzo riquadro di bianco perché il riquadro era
     // stato stirato a tutto lo schermo. «La pagina non scorre» non è l'obiettivo: l'obiettivo è che ciò che si
     // guarda stia a schermo, e con `max-height` lo si ottiene senza inventare vuoto.
-    window.vipiCapViewport = function (selector, collapseBelow) {
+    window.vipiCapViewport = function (selector, collapseBelow, reserveSel) {
         var below = collapseBelow || 0;
-        if (!fitTargets.some(function (t) { return t.sel === selector; })) fitTargets.push({ sel: selector, below: below, cap: true });
-        fitOne(selector, below, true);
+        if (!fitTargets.some(function (t) { return t.sel === selector; })) fitTargets.push({ sel: selector, below: below, cap: true, res: reserveSel });
+        fitOne(selector, below, true, reserveSel);
     };
 
     window.addEventListener('resize', function () {
-        fitTargets.forEach(function (t) { fitOne(t.sel, t.below, t.cap); });
+        fitTargets.forEach(function (t) { fitOne(t.sel, t.below, t.cap, t.res); });
     });
 
     window.vipiRevealPanel = function (id) {

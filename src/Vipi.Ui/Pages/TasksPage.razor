@@ -1,4 +1,4 @@
-@page "/vsop/tasks"
+﻿@page "/vsop/tasks"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IEditorTaskService Tasks
@@ -156,7 +156,11 @@
         // persona sola, non di tutta la divisione), e stirare il tabellone lascerebbe mezzo schermo di
         // bianco. Ma non misurarlo affatto rimetterebbe lo scorrimento a 1024×768 e da zoom 1.25:
         // «corto e fisso» non vuol dire «non misurare», vuol dire `max-height` (regola 150).
-        try { await JS.InvokeVoidAsync("vipiCapViewport", ".tk-board", 320); } catch (Exception) { }
+        //
+        // ⚠️ Il terzo argomento è la RISERVA, e senza di lui la misura è sbagliata di quel tanto che basta:
+        // la funzione misura fin dove arriva il tabellone e non vede le due colonne chiuse che gli stanno
+        // SOTTO. Misurato: 784px su 768 a 1024×768 e zoom 1.25 — sedici pixel, cioè i due `summary`.
+        try { await JS.InvokeVoidAsync("vipiCapViewport", ".tk-board", 320, ".tk-closed"); } catch (Exception) { }
     }
 
     private async Task Load()

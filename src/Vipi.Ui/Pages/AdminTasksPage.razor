@@ -1,10 +1,9 @@
-@page "/vsop/admin/tasks"
+﻿@page "/vsop/admin/tasks"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IEditorTaskService Tasks
 @inject IEditAuthorizationService Authz
 @inject IStaffRosterService Roster
-@inject IEditingService Editing
 @inject IEditorTaskLinksService TaskLinks
 @inject IStringLocalizer<SharedResource> L
 @inject IJSRuntime JS
@@ -98,7 +97,7 @@
                                 @ColLabel(s) <span class="chip-n">@n</span>
                             </button>
                         }
-                        <button class="sh-chip warn @(_soloRitardo ? "on" : "")" disabled="@(InRitardo == 0)"
+                        <button class="sh-chip tk-late-chip @(_soloRitardo ? "on" : "")" disabled="@(InRitardo == 0)"
                                 title="@L["AdminTasks_ChipLateTitle"]" @onclick="ToggleRitardo">
                             @L["AdminTasks_ChipLate"] <span class="chip-n">@InRitardo</span>
                         </button>
@@ -206,11 +205,14 @@
                                 <select class="app-in" @bind="_due"><option value="">@L["AdminTasks_None"]</option>@foreach (var c in _upcoming) { <option value="@c.Cycle">@c.Cycle</option> }</select>
                             </div>
                             <div class="field"><label>@L["AdminTasks_DocOptional"]</label>
+                                @* ⚠️ Le chiavi vengono dall'elenco che poi le RITROVA: fabbricarle qui
+                                   («{acc}|» per la vIPI ACC) faceva nascere incarichi che puntavano a un
+                                   documento inesistente. *@
                                 <select class="app-in" @bind="_docKey">
                                     <option value="">@L["AdminTasks_FreeTask"]</option>
-                                    @foreach (var d in _docs)
+                                    @foreach (var o in _opzioni)
                                     {
-                                        <option value="@DocKey(d)">@d.Type · @d.Title (@d.Scope)</option>
+                                        <option value="@ChiaveOpzione(o)">@o.Etichetta</option>
                                     }
                                 </select>
                             </div>
@@ -321,7 +323,7 @@
 @code {
     private IReadOnlyList<EditorTask>? _tasks;
     private IReadOnlyList<StaffRosterEntry>? _members;
-    private IReadOnlyList<DocumentSummary> _docs = Array.Empty<DocumentSummary>();
+    private IReadOnlyList<EditorTaskTargetOption> _opzioni = Array.Empty<EditorTaskTargetOption>();
     private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
     private IReadOnlyDictionary<(ReleaseTargetType Type, string Key), EditorTaskLink> _links =
         new Dictionary<(ReleaseTargetType, string), EditorTaskLink>();
@@ -360,7 +362,7 @@
         _currentCycle = Tasks.CurrentCycle();
         _upcoming = Tasks.UpcomingCycles(14);
         _members = await Roster.ListActiveAsync();
-        _docs = await Editing.ListDocumentsAsync();
+        _opzioni = await TaskLinks.OpzioniAsync();
         await Load();
     }
 
@@ -546,24 +548,15 @@
     private static string NomeRoster(StaffRosterEntry m) =>
         string.IsNullOrWhiteSpace(m.DisplayName) ? $"VID {m.UserId}" : $"{m.DisplayName} · {m.UserId}";
 
-    // Chiave documento per il picker: "{type}:{key}" con etichetta ricavata dal DocumentSummary.
-    private static string DocKey(DocumentSummary d)
-    {
-        if (d.Type == DocumentType.Vloa) return $"Vloa:{d.Id}";
-        if (d.IsAirport) return $"Airport:{d.Scope}";
-        if (d.IsStandaloneApp) return $"App:{d.Scope}";
-        return $"AccVipi:{(d.AccCode ?? d.Scope)}|";   // ACC vIPI: root primario (vuoto)
-    }
+    // Il valore della tendina: la coppia (tipo, chiave) serializzata. ⚠️ La chiave non si costruisce, si
+    // COPIA da chi la possiede — vedi il commento su IEditorTaskLinksService.OpzioniAsync.
+    private static string ChiaveOpzione(EditorTaskTargetOption o) => $"{o.Type}:{o.Key}";
 
     private (ReleaseTargetType?, string?, string?) ParseDocKey(string dk)
     {
         if (string.IsNullOrWhiteSpace(dk)) return (null, null, null);
-        var idx = dk.IndexOf(':');
-        if (idx < 0) return (null, null, null);
-        var type = Enum.Parse<ReleaseTargetType>(dk[..idx]);
-        var key = dk[(idx + 1)..];
-        var label = _docs.FirstOrDefault(d => DocKey(d) == dk) is { } d ? $"{d.Type} · {d.Title}" : key;
-        return (type, key, label);
+        var scelta = _opzioni.FirstOrDefault(o => ChiaveOpzione(o) == dk);
+        return scelta is null ? (null, null, null) : (scelta.Type, scelta.Key, scelta.Etichetta);
     }
 
     private string ColLabel(EditorTaskStatus s) => s switch

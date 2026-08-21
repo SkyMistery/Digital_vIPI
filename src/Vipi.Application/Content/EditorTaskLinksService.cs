@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Routing;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
@@ -8,6 +8,10 @@ namespace Vipi.Application.Content;
 /// <summary>Dove si va a lavorare su un incarico: l'URL dell'editor del documento collegato, e il titolo che
 /// quel documento ha <b>adesso</b>. Url null = il documento non c'è più (o non è raggiungibile).</summary>
 public sealed record EditorTaskLink(string? Url, string? TitoloCorrente);
+
+/// <summary>Un documento collegabile a un incarico: la coppia (tipo, chiave) con cui lo si ritrova, e
+/// l'etichetta da scrivere sull'incarico.</summary>
+public sealed record EditorTaskTargetOption(ReleaseTargetType Type, string Key, string Etichetta);
 
 /// <summary>
 /// Il read-model delle due pagine degli incarichi: per ogni bersaglio, dove porta il tasto «Apri documento».
@@ -31,6 +35,17 @@ public interface IEditorTaskLinksService
 {
     Task<IReadOnlyDictionary<(ReleaseTargetType Type, string Key), EditorTaskLink>> ForAsync(
         IEnumerable<EditorTask> tasks, CancellationToken ct = default);
+
+    /// <summary>
+    /// I documenti che si possono collegare a un incarico, <b>con la chiave che li ritrova</b>.
+    ///
+    /// <para>⚠️ Sta qui, e non nella pagina, per un difetto pagato: la pagina si costruiva la chiave da sé
+    /// (<c>$"{acc}|"</c> per la vIPI ACC) mentre la chiave vera è <c>{acc}|{callsign del settore primario}</c>.
+    /// Un incarico creato così puntava a un documento che <b>non esiste</b>: il collegamento non si risolveva
+    /// mai, e la pagina diceva «il documento collegato non esiste più» — che era falso. Chi sceglie e chi
+    /// ritrova devono leggere la <b>stessa</b> chiave, dallo stesso elenco.</para>
+    /// </summary>
+    Task<IReadOnlyList<EditorTaskTargetOption>> OpzioniAsync(CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IEditorTaskLinksService"/>
@@ -67,4 +82,26 @@ public sealed class EditorTaskLinksService : IEditorTaskLinksService
         }
         return mappa;
     }
+
+    public async Task<IReadOnlyList<EditorTaskTargetOption>> OpzioniAsync(CancellationToken ct = default) =>
+        (await _docs.ListAsync(ct))
+            // ⚠️ Chiave vuota = documento che nessuna ricerca ritrova (nel DB di sviluppo ce n'è uno: un
+            // aeroporto il cui settore primario non porta l'ICAO). Offrirlo sarebbe offrire un collegamento
+            // che nasce gia' rotto — la tendina e' una comodita', e una comodita' non deve mentire.
+            .Where(d => !d.IsHidden && !string.IsNullOrWhiteSpace(d.ReleaseKey))
+            .Select(d => new EditorTaskTargetOption(d.ReleaseTarget, d.ReleaseKey, $"{Tipo(d.Kind)} · {d.Title}"))
+            .OrderBy(o => o.Etichetta, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    // Il nome del tipo per la tendina. Resta grezzo: e' un'etichetta che finisce SCRITTA nell'incarico
+    // (TargetLabel), e quella non si ritraduce dopo — un incarico dato in italiano non deve cambiare nome
+    // perche' chi lo legge ha l'interfaccia in inglese.
+    private static string Tipo(ManagedDocKind kind) => kind switch
+    {
+        ManagedDocKind.AccVipi => "vIPI ACC",
+        ManagedDocKind.AirportVipi => "vIPI aeroporto",
+        ManagedDocKind.AppVipi => "vIPI APP",
+        ManagedDocKind.Vloa => "vLOA",
+        _ => kind.ToString(),
+    };
 }
