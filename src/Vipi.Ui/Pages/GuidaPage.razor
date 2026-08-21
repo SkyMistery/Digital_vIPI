@@ -874,6 +874,85 @@
                staff-code patterns compared with the ones actually seen at login) and the <b>images</b> no
                document cites any more, deleted in two steps: first look at the list, then delete.</p>"),
 
+        new Sec("incarichi", "clipboard", "I miei incarichi", "My tasks",
+            @"<p>La pagina (<code>/vsop/tasks</code>) elenca gli <b>incarichi assegnati a te</b>, più quelli
+               che ti aggiungi da solo. Le tre colonne — <b>Da fare</b>, <b>In corso</b>, <b>In revisione</b> —
+               sono il lavoro in corso; <b>Bloccato</b> e <b>Fatto</b> stanno in fondo, chiusi, col loro
+               conteggio.</p>
+              <ul>
+                <li>Il tasto della scheda porta l''incarico al <b>passo successivo</b> (da fare → in corso →
+                    in revisione → fatto); tutti gli altri stati stanno nel <b>menù</b> accanto, compreso il
+                    ritorno indietro.</li>
+                <li>Se l''incarico è legato a un <b>documento</b>, il collegamento apre l''editor giusto — non
+                    l''elenco dei documenti.</li>
+                <li>La <b>scadenza</b> è un ciclo AIRAC: l''incarico è <b>in ritardo</b> quando quel ciclo è già
+                    cominciato e non è ancora concluso. Il bordo rosso e la pill lo dicono.</li>
+                <li><b>Nuovo incarico</b>, in testata, aggiunge un promemoria <b>a te stesso</b>, senza
+                    documento. Gli incarichi sui documenti li assegna un admin.</li>
+                <li>Puoi eliminare solo gli incarichi che hai <b>creato</b> tu, e viene chiesta conferma: gli
+                    altri li ha assegnati qualcun altro, e sparire non è un modo di rifiutarli.</li>
+              </ul>
+              <p>Ogni cambio di stato lascia una riga nel <b>registro</b>: serve a chi coordina per sapere a che
+               punto è il lavoro, non a controllare le persone.</p>",
+            @"<p>This page (<code>/vsop/tasks</code>) lists the <b>tasks assigned to you</b>, plus the ones you
+               add yourself. The three columns — <b>To do</b>, <b>In progress</b>, <b>In review</b> — are work
+               in progress; <b>Blocked</b> and <b>Done</b> sit at the bottom, collapsed, with their count.</p>
+              <ul>
+                <li>The button on a card moves the task to the <b>next step</b> (to do → in progress → in
+                    review → done); every other status is in the <b>menu</b> next to it, including going back.</li>
+                <li>If the task is tied to a <b>document</b>, the link opens the right editor — not the list of
+                    documents.</li>
+                <li>The <b>due date</b> is an AIRAC cycle: a task is <b>late</b> when that cycle has already
+                    started and the task is not done. The red border and the pill say so.</li>
+                <li><b>New task</b>, in the header, adds a reminder <b>to yourself</b>, with no document.
+                    Document tasks are assigned by an admin.</li>
+                <li>You can only delete tasks <b>you created</b>, and it asks first: the others were assigned by
+                    somebody else, and vanishing is not a way of declining them.</li>
+              </ul>
+              <p>Every status change leaves an entry in the <b>audit log</b>: it is there so whoever coordinates
+               knows how the work is going, not to keep an eye on people.</p>"),
+
+        new Sec("admin-incarichi", "clipboard", "Incarichi: chi sta facendo cosa", "Tasks: who is doing what",
+            @"<p>La pagina (<code>/vsop/admin/tasks</code>) assegna il <b>lavoro editoriale</b> e ne segue
+               l''avanzamento. Ogni incarico ha una <b>persona</b>, una priorità, e se serve una <b>scadenza</b>
+               espressa in ciclo AIRAC: è in ritardo quando quel ciclo è già cominciato e l''incarico non è
+               concluso.</p>
+              <ul>
+                <li>⚠️ Senza chip acceso l''elenco mostra gli incarichi <b>non conclusi</b>: gli incarichi non
+                    si archiviano, e i «Fatto» resterebbero per sempre. Sono a un clic, col loro chip, e il
+                    contatore in testata dice sempre <b>quanti se ne vedono sul totale</b>.</li>
+                <li>I <b>chip contano</b>: per stato, per «in ritardo», e per <b>persona</b> — quelli delle
+                    persone dicono quanti incarichi aperti ha ciascuno e, nel suggerimento, quanti ne ha
+                    conclusi e quanti in ritardo.</li>
+                <li>Scegliendo una riga, a destra c''è tutto l''incarico: descrizione, <b>chi l''ha assegnato</b>
+                    e quando, l''ultimo cambio, la data di conclusione, e il documento collegato da aprire.</li>
+                <li>Da lì si <b>cambia stato</b>, si <b>riassegna</b> a un''altra persona (senza perdere la
+                    storia dell''incarico) e si <b>elimina</b>, con conferma.</li>
+                <li><b>Nuovo incarico</b>, in testata: servono un <b>titolo</b> e una <b>persona</b>, il resto è
+                    facoltativo. Il documento collegato si sceglie fra quelli che esistono.</li>
+              </ul>
+              <p>Creazione, cambio di stato, riassegnazione ed eliminazione finiscono nel <b>registro</b>
+               (Audit), sotto la famiglia «Incarico».</p>",
+            @"<p>This page (<code>/vsop/admin/tasks</code>) assigns <b>editorial work</b> and follows its
+               progress. Every task has a <b>person</b>, a priority, and when needed a <b>due date</b> expressed
+               as an AIRAC cycle: it is late when that cycle has already started and the task is not done.</p>
+              <ul>
+                <li>⚠️ With no chip selected the list shows the <b>unfinished</b> tasks: tasks are never
+                    archived, so the done ones would stay forever. They are one click away, with their own
+                    chip, and the header count always says <b>how many are shown out of the total</b>.</li>
+                <li>The <b>chips count</b>: by status, by «late», and by <b>person</b> — the people chips say
+                    how many open tasks each one has and, in the tooltip, how many they completed and how many
+                    are late.</li>
+                <li>Picking a row shows the whole task on the right: description, <b>who assigned it</b> and
+                    when, the last change, the completion date, and the linked document to open.</li>
+                <li>From there you <b>change the status</b>, <b>reassign</b> it to somebody else (without
+                    losing the task''s history) and <b>delete</b> it, with a confirmation.</li>
+                <li><b>New task</b>, in the header: a <b>title</b> and a <b>person</b> are required, the rest is
+                    optional. The linked document is picked among the ones that exist.</li>
+              </ul>
+              <p>Creation, status changes, reassignment and deletion all go into the <b>audit log</b>, under the
+               «Task» family.</p>"),
+
         new Sec("admin-permessi", "key", "Permessi: chi può modificare cosa", "Permissions: who can edit what",
             @"<p>Un <b>permesso</b> (<code>/vsop/admin/permessi</code>) lega una persona — il suo <b>VID</b> —
                a un <b>ACC</b>. Da quel momento può aprire l'editor dei documenti di quell'ACC, pubblicarne le

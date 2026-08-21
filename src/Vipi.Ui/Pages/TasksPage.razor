@@ -1,17 +1,52 @@
-﻿@page "/vsop/tasks"
+@page "/vsop/tasks"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IEditorTaskService Tasks
 @inject ICurrentUserProvider User
 @inject IEditorTaskLinksService TaskLinks
 @inject IStringLocalizer<SharedResource> L
+@inject IJSRuntime JS
 
 <PageTitle>@L["Tasks_MyTasks"] · IVAO Italia</PageTitle>
 
-<div class="wrap" style="max-width:1200px">
+<div class="wrap struct tasks-mine">
+    @* ⚠️ La briciola RESTA: questa è una pagina d'utente, non ha la barra admin, e senza di lei non c'è
+       nessun modo di risalire (regola 132). *@
     <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <b>@L["Tasks_MyTasks"]</b></div>
-    <div class="doc-head">
-        <div><h2 style="margin-bottom:2px"><Icon Name="clipboard" Size="22" /> @L["Tasks_MyTasks"]</h2><span class="muted">@string.Format(L["Tasks_Subtitle"], _currentCycle)</span></div>
+
+    @* ---- Testata in UNA riga: titolo · conteggio · «?» · comandi ----
+       Il sottotitolo era una fascia sempre a schermo, e ⚠️ diceva una cosa falsa: «trascina lo stato per
+       aggiornare l'avanzamento», mentre il trascinamento non è mai esistito — lo stato si è sempre cambiato
+       coi tasti della card. La prosa che descrive un gesto che non c'è manda a cercarlo. *@
+    <div class="doc-head st-head">
+        <h2 class="st-h2">
+            @L["Tasks_MyTasks"]
+            @if (_tasks is { Count: > 0 })
+            {
+                <span>&nbsp;</span><span class="pill blue" title="@L["Tasks_CountTitle"]">@Aperti / @_tasks.Count</span>
+            }
+        </h2>
+        <HelpHint Href="/vsop/guida#incarichi" AriaLabel="@L["Tasks_HelpAria"]" ExtraClass="wide">
+            <p style="margin:0 0 6px">@string.Format(L["Tasks_Subtitle"].Value, _currentCycle)</p>
+            @((MarkupString)L["Tasks_Intro"].Value)
+        </HelpHint>
+        @if (User.Get() is not null)
+        {
+            <nav class="struct-nav">
+                @* Aggiungersi un promemoria è il gesto raro: il form stava sempre aperto in cima e costava
+                   ~120px a chi voleva solo vedere cosa deve fare (regola 119). *@
+                <button class="btn primary @(_newOpen ? "on" : "")" disabled="@_busy" @onclick="() => _newOpen = !_newOpen"
+                        title="@L["Tasks_NewPersonal"]"><Icon Name="plus" Size="14" /> @L["Tasks_NewPersonal"]</button>
+            </nav>
+            @if (_error is not null || _status is not null)
+            {
+                <span class="st-msg @(_error is not null ? "warn" : "ok")" role="status" aria-live="polite">
+                    <Icon Name="@(_error is not null ? "warning" : "check-circle")" Size="14" />
+                    <span class="st-msg-t">@(_error ?? _status)</span>
+                    <button class="tclose" title="@L["Common_Close"]" @onclick="() => { _status = _error = null; }">✕</button>
+                </span>
+            }
+        }
     </div>
 
     @if (User.Get() is null)
@@ -20,41 +55,62 @@
     }
     else
     {
-        @if (_error is not null) { <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@_error</div></div> }
-        @if (_status is not null) { <div class="callout success"><span class="cic">✓</span><div>@_status</div></div> }
-
-        <div class="section-title"><h3>@L["Tasks_NewPersonal"]</h3><span class="ln"></span></div>
-        <div class="block">
-            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-                <input class="app-in" style="flex:1;min-width:220px" placeholder="@L["Tasks_TitlePlaceholder"]" @bind="_newTitle" />
-                <select class="app-in" style="max-width:130px" @bind="_newPriority">
-                    @foreach (var p in Enum.GetValues<EditorTaskPriority>()) { <option value="@p">@PrioLabel(p)</option> }
-                </select>
-                <select class="app-in" style="max-width:170px" @bind="_newDue">
-                    <option value="">@L["Tasks_NoDue"]</option>
-                    @foreach (var c in _upcoming) { <option value="@c.Cycle">@string.Format(L["Tasks_ByAirac"], c.Cycle)</option> }
-                </select>
-                <button class="btn primary" disabled="@_busy" @onclick="CreateMine">@L["Tasks_AddToMe"]</button>
+        @if (_newOpen)
+        {
+            <div class="block tk-new">
+                <div class="tk-new-row">
+                    <input class="app-in" placeholder="@L["Tasks_TitlePlaceholder"]" @bind="_newTitle" @bind:event="oninput" />
+                    <select class="app-in tk-w-prio" @bind="_newPriority">
+                        @foreach (var p in Enum.GetValues<EditorTaskPriority>()) { <option value="@p">@PrioLabel(p)</option> }
+                    </select>
+                    <select class="app-in tk-w-due" @bind="_newDue">
+                        <option value="">@L["Tasks_NoDue"]</option>
+                        @foreach (var c in _upcoming) { <option value="@c.Cycle">@string.Format(L["Tasks_ByAirac"].Value, c.Cycle)</option> }
+                    </select>
+                    <button class="btn primary" disabled="@(_busy || string.IsNullOrWhiteSpace(_newTitle))" @onclick="CreateMine">
+                        <Icon Name="plus" Size="14" /> @L["Tasks_AddToMe"]</button>
+                </div>
+                <p class="help">@L["Tasks_FreeHint"]</p>
             </div>
-            <p class="help" style="margin:6px 0 0">@L["Tasks_FreeHint"]</p>
-        </div>
+        }
 
         @if (_tasks is null) { <LoadingState /> }
         else if (_tasks.Count == 0) { <p class="help">@L["Tasks_NoneAssigned"]</p> }
         else
         {
-            <div class="apt-2col" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:14px">
-                @foreach (var col in Columns)
+            @* ---- Tre colonne a schermo, due chiuse in fondo ----
+               Cinque colonne da 230px a 1280px sono quattro incarichi e la pagina scorre (854px su 800, con
+               QUATTRO incarichi). «Fatto» e «Bloccato» non sono lavoro in corso: restano, col loro
+               conteggio, e si aprono quando servono. *@
+            <div class="tk-board">
+                @foreach (var col in Attive)
                 {
-                    <div>
-                        <div class="section-title"><h3 style="font-size:14px">@ColLabel(col) <span class="muted">(@Count(col))</span></h3><span class="ln"></span></div>
-                        @foreach (var t in _tasks.Where(t => t.Status == col))
-                        {
-                            @TaskCard(t)
-                        }
+                    <div class="tk-col">
+                        <div class="tk-col-head">@ColLabel(col) <span class="chip-n">@Count(col)</span></div>
+                        <div class="tk-col-body">
+                            @foreach (var t in _tasks.Where(t => t.Status == col))
+                            {
+                                @Card(t)
+                            }
+                            @if (Count(col) == 0) { <p class="help tk-empty">@L["Tasks_ColEmpty"]</p> }
+                        </div>
                     </div>
                 }
             </div>
+
+            @foreach (var col in Chiuse)
+            {
+                <details class="tk-closed">
+                    <summary>@ColLabel(col) <span class="chip-n">@Count(col)</span></summary>
+                    <div class="tk-closed-body">
+                        @foreach (var t in _tasks.Where(t => t.Status == col))
+                        {
+                            @Card(t)
+                        }
+                        @if (Count(col) == 0) { <p class="help">@L["Tasks_ColEmpty"]</p> }
+                    </div>
+                </details>
+            }
         }
     }
 </div>
@@ -65,15 +121,26 @@
         new Dictionary<(ReleaseTargetType, string), EditorTaskLink>();
     private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
     private string _currentCycle = "";
-    private bool _busy;
+    private bool _busy, _newOpen;
     private string? _status, _error;
 
     private string _newTitle = "";
     private EditorTaskPriority _newPriority = EditorTaskPriority.Normal;
     private string _newDue = "";
 
-    private static readonly EditorTaskStatus[] Columns =
-        { EditorTaskStatus.Todo, EditorTaskStatus.InProgress, EditorTaskStatus.InReview, EditorTaskStatus.Done, EditorTaskStatus.Blocked };
+    /// <summary>Le colonne del lavoro in corso: quelle che stanno a schermo.</summary>
+    private static readonly EditorTaskStatus[] Attive =
+        { EditorTaskStatus.Todo, EditorTaskStatus.InProgress, EditorTaskStatus.InReview };
+
+    /// <summary>⚠️ Concluso e bloccato non sono lavoro in corso, e crescono senza tetto: restano col loro
+    /// conteggio, chiusi. È lo stesso ragionamento del filtro «non conclusi» della pagina admin.</summary>
+    private static readonly EditorTaskStatus[] Chiuse =
+        { EditorTaskStatus.Blocked, EditorTaskStatus.Done };
+
+    private static readonly EditorTaskStatus[] Tutti =
+        { EditorTaskStatus.Todo, EditorTaskStatus.InProgress, EditorTaskStatus.InReview, EditorTaskStatus.Blocked, EditorTaskStatus.Done };
+
+    private int Aperti => _tasks?.Count(t => t.Status != EditorTaskStatus.Done) ?? 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -82,20 +149,30 @@
         await Load();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (User.Get() is null) return;
+        // ⚠️ `vipiCapViewport` e non `vipiFitViewport`: qui il contenuto è CORTO (gli incarichi di una
+        // persona sola, non di tutta la divisione), e stirare il tabellone lascerebbe mezzo schermo di
+        // bianco. Ma non misurarlo affatto rimetterebbe lo scorrimento a 1024×768 e da zoom 1.25:
+        // «corto e fisso» non vuol dire «non misurare», vuol dire `max-height` (regola 150).
+        try { await JS.InvokeVoidAsync("vipiCapViewport", ".tk-board", 320); } catch (Exception) { }
+    }
+
     private async Task Load()
     {
         try
         {
             _tasks = await Tasks.ListMineAsync();
             // Una risoluzione per CARICAMENTO, non una per card: il read-model interroga una volta sola, e
-            // se nessun incarico e' legato a un documento non interroga affatto.
+            // se nessun incarico è legato a un documento non interroga affatto.
             _links = await TaskLinks.ForAsync(_tasks);
         }
         catch (Exception ex) { _error = ex.Message; }
     }
 
-    /// <summary>Dove porta il tasto del documento collegato. null = non c'e' un posto dove andare, e allora
-    /// il tasto non si mostra: un'etichetta che mente costa piu' di un'etichetta assente (regola 168).</summary>
+    /// <summary>Dove porta il tasto del documento collegato. null = non c'è un posto dove andare, e allora
+    /// il tasto non si mostra: un'etichetta che mente costa più di un'etichetta assente (regola 168).</summary>
     private EditorTaskLink? Link(EditorTask t) =>
         t.TargetType is { } tipo && !string.IsNullOrWhiteSpace(t.TargetKey)
             && _links.TryGetValue((tipo, t.TargetKey!), out var l) ? l : null;
@@ -110,6 +187,7 @@
                 _newPriority, string.IsNullOrWhiteSpace(_newDue) ? null : _newDue, null, null, null);
             await Tasks.CreateAsync(input);
             _newTitle = ""; _newDue = "";
+            _newOpen = false;
             await Load();
             _status = L["Tasks_AddedMsg"];
         }
@@ -122,6 +200,7 @@
     {
         _busy = true; _status = _error = null;
         try { await Tasks.UpdateStatusAsync(id, status); await Load(); }
+        catch (Vipi.Application.Aor.ValidationException ex) { _error = ServiceErrorNarrator.Testo(ex, L); }
         catch (Exception ex) { _error = ex.Message; }
         finally { _busy = false; }
     }
@@ -130,47 +209,81 @@
     {
         _busy = true; _status = _error = null;
         try { await Tasks.DeleteAsync(id); await Load(); _status = L["AdminTasks_DeletedMsg"]; }
+        catch (Vipi.Application.Aor.ValidationException ex) { _error = ServiceErrorNarrator.Testo(ex, L); }
         catch (Exception ex) { _error = ex.Message; }
         finally { _busy = false; }
     }
 
     private int Count(EditorTaskStatus s) => _tasks?.Count(t => t.Status == s) ?? 0;
 
-    private RenderFragment TaskCard(EditorTask t) => __builder =>
+    /// <summary>Il passo che si fa davvero da uno stato: è quello che merita un tasto proprio, gli altri
+    /// stanno nel menù. Prima erano QUATTRO tasti per card — tutti gli stati tranne il proprio — e
+    /// occupavano due righe ciascuna.</summary>
+    private static EditorTaskStatus? Avanzamento(EditorTaskStatus s) => s switch
     {
-        var overdue = Tasks.IsOverdue(t);
-        <div class="block" style="margin-bottom:8px;@(overdue ? "border-color:var(--ivao-red)" : "")">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        EditorTaskStatus.Todo => EditorTaskStatus.InProgress,
+        EditorTaskStatus.InProgress => EditorTaskStatus.InReview,
+        EditorTaskStatus.InReview => EditorTaskStatus.Done,
+        EditorTaskStatus.Blocked => EditorTaskStatus.InProgress,
+        _ => null,   // concluso: non c'è un «avanti», si riapre dal menù
+    };
+
+    private RenderFragment Card(EditorTask t) => __builder =>
+    {
+        var inRitardo = Tasks.IsOverdue(t);
+        var avanti = Avanzamento(t.Status);
+        <div class="tk-card @(inRitardo ? "late" : "")">
+            <div class="tk-card-pills">
                 <span class="pill @PrioPill(t.Priority)">@PrioLabel(t.Priority)</span>
-                @if (t.DueAiracCycle is not null) { <span class="pill @(overdue ? "future" : "grey")" title="@L["Tasks_DueAiracTitle"]">@(overdue ? L["Tasks_Late"].Value + " " : "")AIRAC @t.DueAiracCycle</span> }
+                @if (t.DueAiracCycle is not null)
+                {
+                    <span class="pill @(inRitardo ? "future" : "grey")" title="@L["Tasks_DueAiracTitle"]">@(inRitardo ? L["Tasks_Late"].Value + " " : "")AIRAC @t.DueAiracCycle</span>
+                }
             </div>
             <b>@t.Title</b>
-            @if (!string.IsNullOrWhiteSpace(t.Description)) { <div class="muted" style="font-size:12px;margin-top:2px">@t.Description</div> }
+            @if (!string.IsNullOrWhiteSpace(t.Description)) { <div class="tk-card-desc">@t.Description</div> }
             @if (t.TargetKey is not null)
             {
                 var link = Link(t);
                 @if (link?.Url is { } url)
                 {
-                    <div style="margin-top:4px"><a class="btn ghost" href="@url" title="@link.TitoloCorrente">@L["Tasks_OpenDoc"]</a></div>
+                    <a class="tk-card-doc" href="@url" title="@link.TitoloCorrente">@(t.TargetLabel ?? L["Tasks_OpenDoc"].Value)</a>
                 }
-                @if (!string.IsNullOrWhiteSpace(t.TargetLabel)) { <div class="muted" style="font-size:11px;margin-top:2px">@t.TargetLabel</div> }
-                @* Il documento non c'e' piu' (o non e' raggiungibile): si dice, invece di offrire un tasto
-                   che porta altrove. L'etichetta resta quella scritta nell'incarico. *@
-                @if (link?.Url is null) { <div class="muted" style="font-size:11px">@L["Tasks_DocGone"]</div> }
-            }
-            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">
-                @foreach (var s in Columns.Where(s => s != t.Status))
+                else
                 {
-                    <button class="btn ghost" style="font-size:11px;padding:2px 8px" disabled="@_busy" @onclick="() => SetStatus(t.Id, s)">→ @ColLabel(s)</button>
+                    @* Il documento non c'è più (o non è raggiungibile): si dice, invece di offrire un tasto
+                       che porta altrove. L'etichetta resta quella scritta nell'incarico. *@
+                    <div class="tk-card-desc">@(t.TargetLabel ?? t.TargetKey) — @L["Tasks_DocGone"]</div>
                 }
+            }
+            <div class="tk-card-acts">
+                @if (avanti is { } prossimo)
+                {
+                    <button class="btn ghost tk-go" disabled="@_busy" title="@L["Tasks_MoveTitle", ColLabel(prossimo)]"
+                            @onclick="() => SetStatus(t.Id, prossimo)">@ColLabel(prossimo) →</button>
+                }
+                @* Gli altri stati nel menù: un gesto che si fa di rado non merita un tasto per ognuno. Una
+                   `select` che scrive al cambio va bene QUI — è una card sola, non una riga in mezzo a
+                   sessanta che si riordinano. *@
+                <select class="app-in tk-more" disabled="@_busy" value=""
+                        title="@L["Tasks_OtherStates"]" @onchange="e => OnPickStatus(t.Id, e.Value?.ToString())">
+                    <option value="">@L["Tasks_OtherStates"]</option>
+                    @foreach (var s in Tutti.Where(s => s != t.Status && s != avanti))
+                    {
+                        <option value="@s">@ColLabel(s)</option>
+                    }
+                </select>
                 @if (t.CreatedByUserId == (User.Get()?.UserId ?? -1))
                 {
-                    @* Eliminare e' irreversibile e qui i tasti sono fitti: la conferma in linea c'era solo
-                       nella pagina admin, mentre qui il cestino cancellava al PRIMO clic. Stesso atto, stessa
-                       politica — e il cestino si stacca dalla fila degli avanzamenti. *@
-                    <span style="margin-left:auto">
+                    @* Eliminare è irreversibile: la conferma in linea c'era solo nella pagina admin, mentre
+                       qui il cestino cancellava al PRIMO clic. Stesso atto, stessa politica — e il cestino
+                       si stacca dalla fila degli avanzamenti. *@
+                    <span class="tk-del">
                         <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["AdminTasks_DeleteTask"]"
-                                       Disabled="@_busy" OnConfirm="() => Delete(t.Id)">
+                                       TriggerTitle="@L["AdminTasks_DeleteTask"]"
+                                       Prompt="@L["AdminTasks_DeletePrompt", t.Title]" Disabled="@_busy"
+                                       ConfirmLabel="@L["Common_Remove"]" CancelLabel="@L["Common_Cancel"]"
+                                       OnConfirm="() => Delete(t.Id)">
                             <Trigger><Icon Name="trash" /></Trigger>
                         </InlineConfirm>
                     </span>
@@ -178,6 +291,9 @@
             </div>
         </div>
     };
+
+    private Task OnPickStatus(int id, string? valore) =>
+        Enum.TryParse<EditorTaskStatus>(valore, out var s) ? SetStatus(id, s) : Task.CompletedTask;
 
     private string ColLabel(EditorTaskStatus s) => s switch
     {

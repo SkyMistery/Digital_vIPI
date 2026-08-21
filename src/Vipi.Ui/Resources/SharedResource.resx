@@ -683,7 +683,7 @@
   <data name="AdminTasks_PersonChipTitle" xml:space="preserve"><value>{0} aperti · {1} completati · {2} in ritardo</value></data>
   <!-- I miei incarichi (/vsop/tasks) -->
   <data name="Tasks_MyTasks" xml:space="preserve"><value>I miei incarichi</value></data>
-  <data name="Tasks_Subtitle" xml:space="preserve"><value>Ciclo AIRAC corrente {0} · trascina lo stato per aggiornare l'avanzamento</value></data>
+  <data name="Tasks_Subtitle" xml:space="preserve"><value>Ciclo AIRAC corrente {0} · i tuoi incarichi, e quelli che ti aggiungi</value></data>
   <data name="Tasks_NotAuth" xml:space="preserve"><value>Non autenticato</value></data>
   <data name="Tasks_NotAuthBody" xml:space="preserve"><value>Accedi per vedere i tuoi incarichi.</value></data>
   <data name="Tasks_NewPersonal" xml:space="preserve"><value>Nuovo incarico personale</value></data>
@@ -697,6 +697,12 @@
   <data name="Tasks_Late" xml:space="preserve"><value>⚠ in ritardo</value></data>
   <data name="Tasks_OpenDoc" xml:space="preserve"><value>Apri documento →</value></data>
   <data name="Tasks_AddedMsg" xml:space="preserve"><value>Incarico aggiunto.</value></data>
+  <data name="Tasks_Intro" xml:space="preserve"><value>&lt;p&gt;Qui stanno gli incarichi assegnati a te, più quelli che ti aggiungi da solo. Le tre colonne sono il lavoro in corso; &lt;b&gt;Bloccato&lt;/b&gt; e &lt;b&gt;Fatto&lt;/b&gt; restano in fondo, chiusi, col loro conteggio.&lt;/p&gt;&lt;p&gt;Il tasto della card porta l'incarico al &lt;b&gt;passo successivo&lt;/b&gt;; gli altri stati stanno nel menù accanto. Se l'incarico è legato a un documento, il collegamento apre l'editor giusto.&lt;/p&gt;&lt;p&gt;La scadenza è un ciclo AIRAC: l'incarico è &lt;b&gt;in ritardo&lt;/b&gt; quando quel ciclo è già cominciato e non è ancora concluso.&lt;/p&gt;</value></data>
+  <data name="Tasks_HelpAria" xml:space="preserve"><value>Come funzionano i miei incarichi</value></data>
+  <data name="Tasks_CountTitle" xml:space="preserve"><value>Incarichi aperti sul totale</value></data>
+  <data name="Tasks_ColEmpty" xml:space="preserve"><value>Niente qui.</value></data>
+  <data name="Tasks_MoveTitle" xml:space="preserve"><value>Porta l'incarico in: {0}</value></data>
+  <data name="Tasks_OtherStates" xml:space="preserve"><value>Altro stato…</value></data>
   <!-- ACC landing (/vsop/{acc}) -->
   <data name="AccLanding_Documents" xml:space="preserve"><value>Documenti</value></data>
   <data name="AccLanding_MainDoc" xml:space="preserve"><value>Documento principale</value></data>

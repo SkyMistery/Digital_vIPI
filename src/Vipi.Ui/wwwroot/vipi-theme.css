@@ -2415,3 +2415,45 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 /* Lo stato in cui l'incarico e' GIA' resta a schermo, spento: sparire farebbe ballare i tasti sotto il
    puntatore proprio mentre ci si sta mirando (regola 31). */
 .struct .task-layout .tk-states .btn.on{background:#e8ecff;border-color:var(--ivao-blue);color:var(--ivao-blue)}
+
+/* ---- I miei incarichi (/vsop/tasks): tabellone corto, due colonne chiuse in fondo ----
+   Cinque colonne da 230px a 1280 sono quattro incarichi e la pagina scorreva (854 su 800). Il tabellone e'
+   misurato con vipiCapViewport (max-height): il contenuto e' corto — gli incarichi di UNA persona — quindi
+   si stira solo fin dove serve, ma misurato lo e' comunque, o a 1024x768 e da zoom 1.25 si torna a scorrere. */
+.struct.tasks-mine .tk-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:stretch}
+@media(max-width:900px){.struct.tasks-mine .tk-board{grid-template-columns:1fr;max-height:none}}
+.struct.tasks-mine .tk-col{display:flex;flex-direction:column;min-width:0;min-height:0}
+/* L'intestazione della colonna resta ferma: e' l'unica cosa che dice DOVE si sta guardando quando si scorre. */
+.struct.tasks-mine .tk-col-head{position:sticky;top:0;z-index:1;background:var(--paper,#fff);
+  display:flex;align-items:center;gap:6px;font-family:var(--font-head);font-size:13.5px;
+  padding:4px 0 6px;border-bottom:2px solid var(--line)}
+.struct.tasks-mine .tk-col-body{flex:1;min-height:0;overflow:auto;padding:8px 4px 0;margin:0 -4px}
+.struct.tasks-mine .tk-empty{margin:6px 2px 0;font-size:12px}
+
+/* La card: quattro tasti «-> stato» diventano un avanzamento + un menu, e la fila non va piu' a capo. */
+.struct.tasks-mine .tk-card{border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin-bottom:8px;
+  background:var(--paper,#fff)}
+.struct.tasks-mine .tk-card.late{border-color:var(--ivao-red)}
+.struct.tasks-mine .tk-card-pills{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.struct.tasks-mine .tk-card-desc{font-size:12px;color:var(--ink-soft);margin-top:2px}
+.struct.tasks-mine .tk-card-doc{display:inline-block;font-size:12px;margin-top:4px}
+.struct.tasks-mine .tk-card-acts{display:flex;align-items:center;gap:6px;margin-top:8px}
+.struct.tasks-mine .tk-card-acts .tk-go{font-size:11.5px;padding:2px 8px;white-space:nowrap}
+.struct.tasks-mine .tk-card-acts .tk-more{font-size:11.5px;padding:2px 4px;height:auto;min-width:0;flex:1}
+.struct.tasks-mine .tk-card-acts .tk-del{margin-left:auto}
+
+/* Concluso e bloccato: presenti, contati, chiusi. */
+.struct.tasks-mine .tk-closed{margin-top:12px;border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.struct.tasks-mine .tk-closed>summary{cursor:pointer;font-family:var(--font-head);font-size:13px;
+  display:flex;align-items:center;gap:6px}
+.struct.tasks-mine .tk-closed-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:8px;margin-top:10px}
+.struct.tasks-mine .tk-closed-body .tk-card{margin-bottom:0}
+
+/* Il form del promemoria personale: una riga sola, il titolo elastico. */
+.struct.tasks-mine .tk-new{margin-bottom:12px}
+.struct.tasks-mine .tk-new-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.struct.tasks-mine .tk-new-row .app-in{flex:1;min-width:220px}
+.struct.tasks-mine .tk-new-row .tk-w-prio{flex:0 0 130px;min-width:0}
+.struct.tasks-mine .tk-new-row .tk-w-due{flex:0 0 180px;min-width:0}
+.struct.tasks-mine .tk-new .help{margin:6px 0 0}

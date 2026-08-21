@@ -680,7 +680,7 @@
   <data name="AdminTasks_PersonChipTitle" xml:space="preserve"><value>{0} open · {1} completed · {2} late</value></data>
   <!-- My tasks (/vsop/tasks) -->
   <data name="Tasks_MyTasks" xml:space="preserve"><value>My tasks</value></data>
-  <data name="Tasks_Subtitle" xml:space="preserve"><value>Current AIRAC cycle {0} · drag the status to update progress</value></data>
+  <data name="Tasks_Subtitle" xml:space="preserve"><value>Current AIRAC cycle {0} · your tasks, and the ones you add yourself</value></data>
   <data name="Tasks_NotAuth" xml:space="preserve"><value>Not authenticated</value></data>
   <data name="Tasks_NotAuthBody" xml:space="preserve"><value>Sign in to see your tasks.</value></data>
   <data name="Tasks_NewPersonal" xml:space="preserve"><value>New personal task</value></data>
@@ -694,6 +694,12 @@
   <data name="Tasks_Late" xml:space="preserve"><value>⚠ late</value></data>
   <data name="Tasks_OpenDoc" xml:space="preserve"><value>Open document →</value></data>
   <data name="Tasks_AddedMsg" xml:space="preserve"><value>Task added.</value></data>
+  <data name="Tasks_Intro" xml:space="preserve"><value>&lt;p&gt;These are the tasks assigned to you, plus the ones you add yourself. The three columns are work in progress; &lt;b&gt;Blocked&lt;/b&gt; and &lt;b&gt;Done&lt;/b&gt; stay at the bottom, collapsed, with their count.&lt;/p&gt;&lt;p&gt;The button on a card moves the task to the &lt;b&gt;next step&lt;/b&gt;; the other states are in the menu next to it. If the task is linked to a document, the link opens the right editor.&lt;/p&gt;&lt;p&gt;The due date is an AIRAC cycle: a task is &lt;b&gt;late&lt;/b&gt; when that cycle has already started and the task is not done yet.&lt;/p&gt;</value></data>
+  <data name="Tasks_HelpAria" xml:space="preserve"><value>How my tasks work</value></data>
+  <data name="Tasks_CountTitle" xml:space="preserve"><value>Open tasks out of the total</value></data>
+  <data name="Tasks_ColEmpty" xml:space="preserve"><value>Nothing here.</value></data>
+  <data name="Tasks_MoveTitle" xml:space="preserve"><value>Move the task to: {0}</value></data>
+  <data name="Tasks_OtherStates" xml:space="preserve"><value>Other status…</value></data>
   <!-- ACC landing (/vsop/{acc}) -->
   <data name="AccLanding_Documents" xml:space="preserve"><value>Documents</value></data>
   <data name="AccLanding_MainDoc" xml:space="preserve"><value>Main document</value></data>
