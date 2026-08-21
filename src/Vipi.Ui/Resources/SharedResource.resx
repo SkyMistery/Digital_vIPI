@@ -656,6 +656,31 @@
   <data name="AdminTasks_LateCount" xml:space="preserve"><value> · {0} in ritardo ⚠</value></data>
   <data name="AdminTasks_CreatedMsg" xml:space="preserve"><value>Incarico creato.</value></data>
   <data name="AdminTasks_DeletedMsg" xml:space="preserve"><value>Incarico eliminato.</value></data>
+  <data name="AdminTasks_Intro" xml:space="preserve"><value>&lt;p&gt;Ogni incarico ha un &lt;b&gt;assegnatario&lt;/b&gt;, una priorità e (se serve) una scadenza espressa in ciclo AIRAC: è in ritardo quando il ciclo di scadenza è già cominciato e l'incarico non è concluso.&lt;/p&gt;&lt;p&gt;Senza chip acceso l'elenco mostra gli incarichi &lt;b&gt;non conclusi&lt;/b&gt;: i «Fatto» restano, e si rivedono col loro chip. Il contatore in testata dice sempre quanti se ne vedono sul totale.&lt;/p&gt;&lt;p&gt;Scegli una riga per cambiarne lo stato, riassegnarla, aprire il documento collegato o eliminarla. Ogni cambio finisce nel &lt;a href=&quot;/vsop/admin/audit&quot;&gt;registro&lt;/a&gt;.&lt;/p&gt;</value></data>
+  <data name="AdminTasks_HelpAria" xml:space="preserve"><value>Cosa sono gli incarichi</value></data>
+  <data name="AdminTasks_CountTitle" xml:space="preserve"><value>Incarichi mostrati sul totale</value></data>
+  <data name="AdminTasks_RefreshTitle" xml:space="preserve"><value>Rileggi l'elenco degli incarichi</value></data>
+  <data name="AdminTasks_SearchPh" xml:space="preserve"><value>Cerca per titolo, persona o documento…</value></data>
+  <data name="AdminTasks_AllDue" xml:space="preserve"><value>Tutte le scadenze</value></data>
+  <data name="AdminTasks_DueFilterTitle" xml:space="preserve"><value>Filtra per ciclo AIRAC di scadenza</value></data>
+  <data name="AdminTasks_ChipStateTitle" xml:space="preserve"><value>Mostra solo: {0}</value></data>
+  <data name="AdminTasks_ChipLate" xml:space="preserve"><value>In ritardo</value></data>
+  <data name="AdminTasks_ChipLateTitle" xml:space="preserve"><value>Solo gli incarichi con la scadenza AIRAC già passata</value></data>
+  <data name="AdminTasks_ClearTitle" xml:space="preserve"><value>Togli tutti i filtri</value></data>
+  <data name="AdminTasks_NoMatch" xml:space="preserve"><value>Nessun incarico con questi filtri.</value></data>
+  <data name="AdminTasks_PickHint" xml:space="preserve"><value>Scegli un incarico per vederne il dettaglio e agire.</value></data>
+  <data name="AdminTasks_RowPickTitle" xml:space="preserve"><value>Scegli l'incarico</value></data>
+  <data name="AdminTasks_NewTaskHint" xml:space="preserve"><value>Assegna un lavoro a uno staffista.</value></data>
+  <data name="AdminTasks_NoDue" xml:space="preserve"><value>senza scadenza</value></data>
+  <data name="AdminTasks_CreatedBy" xml:space="preserve"><value>Assegnato da {0} il {1}</value></data>
+  <data name="AdminTasks_UpdatedAt" xml:space="preserve"><value>Ultimo cambio: {0}</value></data>
+  <data name="AdminTasks_CompletedAt" xml:space="preserve"><value>Concluso il {0}</value></data>
+  <data name="AdminTasks_SetStateTitle" xml:space="preserve"><value>Porta l'incarico in: {0}</value></data>
+  <data name="AdminTasks_Reassign" xml:space="preserve"><value>Riassegna</value></data>
+  <data name="AdminTasks_ReassignTitle" xml:space="preserve"><value>Passa l'incarico a un'altra persona</value></data>
+  <data name="AdminTasks_ReassignedMsg" xml:space="preserve"><value>Incarico riassegnato.</value></data>
+  <data name="AdminTasks_DeletePrompt" xml:space="preserve"><value>Eliminare «{0}»?</value></data>
+  <data name="AdminTasks_PersonChipTitle" xml:space="preserve"><value>{0} aperti · {1} completati · {2} in ritardo</value></data>
   <!-- I miei incarichi (/vsop/tasks) -->
   <data name="Tasks_MyTasks" xml:space="preserve"><value>I miei incarichi</value></data>
   <data name="Tasks_Subtitle" xml:space="preserve"><value>Ciclo AIRAC corrente {0} · trascina lo stato per aggiornare l'avanzamento</value></data>

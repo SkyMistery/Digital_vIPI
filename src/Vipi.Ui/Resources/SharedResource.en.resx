@@ -653,6 +653,31 @@
   <data name="AdminTasks_LateCount" xml:space="preserve"><value> · {0} late ⚠</value></data>
   <data name="AdminTasks_CreatedMsg" xml:space="preserve"><value>Task created.</value></data>
   <data name="AdminTasks_DeletedMsg" xml:space="preserve"><value>Task deleted.</value></data>
+  <data name="AdminTasks_Intro" xml:space="preserve"><value>&lt;p&gt;Every task has an &lt;b&gt;assignee&lt;/b&gt;, a priority and (when needed) a due date expressed as an AIRAC cycle: it is late when the due cycle has already started and the task is not done.&lt;/p&gt;&lt;p&gt;With no chip selected the list shows the &lt;b&gt;unfinished&lt;/b&gt; tasks: the done ones stay, and come back with their own chip. The header count always says how many are shown out of the total.&lt;/p&gt;&lt;p&gt;Pick a row to change its status, reassign it, open the linked document or delete it. Every change goes into the &lt;a href=&quot;/vsop/admin/audit&quot;&gt;audit log&lt;/a&gt;.&lt;/p&gt;</value></data>
+  <data name="AdminTasks_HelpAria" xml:space="preserve"><value>What tasks are</value></data>
+  <data name="AdminTasks_CountTitle" xml:space="preserve"><value>Tasks shown out of the total</value></data>
+  <data name="AdminTasks_RefreshTitle" xml:space="preserve"><value>Reload the task list</value></data>
+  <data name="AdminTasks_SearchPh" xml:space="preserve"><value>Search by title, person or document…</value></data>
+  <data name="AdminTasks_AllDue" xml:space="preserve"><value>All due cycles</value></data>
+  <data name="AdminTasks_DueFilterTitle" xml:space="preserve"><value>Filter by AIRAC due cycle</value></data>
+  <data name="AdminTasks_ChipStateTitle" xml:space="preserve"><value>Show only: {0}</value></data>
+  <data name="AdminTasks_ChipLate" xml:space="preserve"><value>Late</value></data>
+  <data name="AdminTasks_ChipLateTitle" xml:space="preserve"><value>Only tasks whose AIRAC due cycle has already passed</value></data>
+  <data name="AdminTasks_ClearTitle" xml:space="preserve"><value>Clear all filters</value></data>
+  <data name="AdminTasks_NoMatch" xml:space="preserve"><value>No task matches these filters.</value></data>
+  <data name="AdminTasks_PickHint" xml:space="preserve"><value>Pick a task to see its detail and act on it.</value></data>
+  <data name="AdminTasks_RowPickTitle" xml:space="preserve"><value>Pick this task</value></data>
+  <data name="AdminTasks_NewTaskHint" xml:space="preserve"><value>Assign a job to a staff member.</value></data>
+  <data name="AdminTasks_NoDue" xml:space="preserve"><value>no due cycle</value></data>
+  <data name="AdminTasks_CreatedBy" xml:space="preserve"><value>Assigned by {0} on {1}</value></data>
+  <data name="AdminTasks_UpdatedAt" xml:space="preserve"><value>Last change: {0}</value></data>
+  <data name="AdminTasks_CompletedAt" xml:space="preserve"><value>Completed on {0}</value></data>
+  <data name="AdminTasks_SetStateTitle" xml:space="preserve"><value>Move the task to: {0}</value></data>
+  <data name="AdminTasks_Reassign" xml:space="preserve"><value>Reassign</value></data>
+  <data name="AdminTasks_ReassignTitle" xml:space="preserve"><value>Hand the task to somebody else</value></data>
+  <data name="AdminTasks_ReassignedMsg" xml:space="preserve"><value>Task reassigned.</value></data>
+  <data name="AdminTasks_DeletePrompt" xml:space="preserve"><value>Delete “{0}”?</value></data>
+  <data name="AdminTasks_PersonChipTitle" xml:space="preserve"><value>{0} open · {1} completed · {2} late</value></data>
   <!-- My tasks (/vsop/tasks) -->
   <data name="Tasks_MyTasks" xml:space="preserve"><value>My tasks</value></data>
   <data name="Tasks_Subtitle" xml:space="preserve"><value>Current AIRAC cycle {0} · drag the status to update progress</value></data>

@@ -208,27 +208,27 @@
    Il `calc` è il valore di PARTENZA prima che vipiFitViewport misuri; `min-height` allineata al `fitMin` del
    JS (320). Prima la tabella lavorava in mezza pagina perché l'altra metà era il form «Concedi» sempre
    aperto — 16 grant facevano righe da 86px, e sotto il form restavano ~1 100px di bianco. */
-.struct .perm-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:22px;align-items:stretch;
+.struct .perm-layout, .struct .task-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:22px;align-items:stretch;
   height:calc(100vh - 250px);min-height:320px}
-.struct .perm-layout .panel{min-width:0;padding:18px}
-.struct .perm-layout .panel.st-pane{overflow:hidden}
-.wrap.struct:has(.perm-layout){padding-bottom:18px}
-@media(max-width:900px){.struct .perm-layout{grid-template-columns:1fr;height:auto;min-height:0}}
-.struct .perm-layout .struct-bar .htree-search{flex:1 1 150px;min-width:120px}
+.struct .perm-layout .panel, .struct .task-layout .panel{min-width:0;padding:18px}
+.struct .perm-layout .panel.st-pane, .struct .task-layout .panel.st-pane{overflow:hidden}
+.wrap.struct:has(.perm-layout), .wrap.struct:has(.task-layout){padding-bottom:18px}
+@media(max-width:900px){.struct .perm-layout,.struct .task-layout{grid-template-columns:1fr;height:auto;min-height:0}}
+.struct .perm-layout .struct-bar .htree-search, .struct .task-layout .struct-bar .htree-search{flex:1 1 150px;min-width:120px}
 /* Un chip a zero qui è neutro, non verde: «0 persone su LIMM» non è una buona notizia (regola 108). */
-.struct .perm-layout button.sh-chip:disabled{background:#eceef5;color:var(--ink-soft);border-color:var(--line);opacity:.65}
-.struct .perm-layout .doc-rowi{margin-bottom:6px;padding:9px 12px;gap:9px}
-.struct .perm-layout .doc-rowi.acc-pick{cursor:pointer;transition:.12s}
-.struct .perm-layout .doc-rowi.acc-pick:hover{border-color:var(--ivao-lightblue)}
-.struct .perm-layout .doc-rowi.acc-pick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:-2px}
-.struct .perm-layout .doc-rowi.acc-pick.picked{background:#e8ecff;border-color:var(--ivao-blue);box-shadow:inset 3px 0 0 var(--ivao-blue)}
-.struct .perm-layout .doc-rowi .pill{white-space:nowrap}
+.struct .perm-layout button.sh-chip:disabled, .struct .task-layout button.sh-chip:disabled{background:#eceef5;color:var(--ink-soft);border-color:var(--line);opacity:.65}
+.struct .perm-layout .doc-rowi, .struct .task-layout .doc-rowi{margin-bottom:6px;padding:9px 12px;gap:9px}
+.struct .perm-layout .doc-rowi.acc-pick, .struct .task-layout .doc-rowi.acc-pick{cursor:pointer;transition:.12s}
+.struct .perm-layout .doc-rowi.acc-pick:hover, .struct .task-layout .doc-rowi.acc-pick:hover{border-color:var(--ivao-lightblue)}
+.struct .perm-layout .doc-rowi.acc-pick:focus-visible, .struct .task-layout .doc-rowi.acc-pick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:-2px}
+.struct .perm-layout .doc-rowi.acc-pick.picked, .struct .task-layout .doc-rowi.acc-pick.picked{background:#e8ecff;border-color:var(--ivao-blue);box-shadow:inset 3px 0 0 var(--ivao-blue)}
+.struct .perm-layout .doc-rowi .pill, .struct .task-layout .doc-rowi .pill{white-space:nowrap}
 /* Nel pannello: a andare a capo è il gruppo dei tasti, non il testo (regola 111). */
-.struct .perm-layout .ver-row{flex-wrap:wrap}
-.struct .perm-layout .ver-row>div{flex:1 1 180px;min-width:0}
-.struct .perm-layout .ver-row .vact{flex-wrap:nowrap;margin-left:auto}
-.struct .perm-layout .ver-row .vb{min-width:56px}
-.struct .perm-layout p.help{margin:0 0 6px}
+.struct .perm-layout .ver-row, .struct .task-layout .ver-row{flex-wrap:wrap}
+.struct .perm-layout .ver-row>div, .struct .task-layout .ver-row>div{flex:1 1 180px;min-width:0}
+.struct .perm-layout .ver-row .vact, .struct .task-layout .ver-row .vact{flex-wrap:nowrap;margin-left:auto}
+.struct .perm-layout .ver-row .vb, .struct .task-layout .ver-row .vb{min-width:56px}
+.struct .perm-layout p.help, .struct .task-layout p.help{margin:0 0 6px}
 /* Il form di concessione: label in tondo come le altre pagine di lavoro, non in maiuscoletto. */
 .struct .perm-form .field{margin-bottom:10px}
 .struct .perm-form .field label{display:block;font-family:var(--font-body);text-transform:none;letter-spacing:normal;
@@ -2380,3 +2380,38 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .struct .nd-msg{margin:0 0 12px}
 /* La barra del lock sta dentro il pannello, sopra la sola scheda che crea. */
 .struct .nd-pane .lockbar{margin:0 0 12px}
+
+/* ---- Incarichi: l'elenco a sinistra, l'incarico scelto a destra ----
+   Il layout e' quello di Permessi/Versioni (stessa griglia, stesso vipiFitViewport): il selettore e'
+   condiviso piu' sopra, qui stanno solo le cose che sono di QUESTA pagina.
+   Le regole nuove vanno in coda al foglio, o perdono in silenzio contro quelle condivise (regola 56). */
+.struct .task-layout .tk-table{table-layout:fixed;min-width:760px}
+.struct .task-layout .tk-table .c-who{width:150px}
+.struct .task-layout .tk-table .c-state{width:104px}
+.struct .task-layout .tk-table .c-prio{width:92px}
+.struct .task-layout .tk-table .c-due{width:110px}
+.struct .task-layout .tk-table .c-doc{width:180px}
+/* La colonna di prosa e' l'unica senza larghezza: si prende quello che avanza (regola 60). Il resto non va
+   a capo — una riga alta il doppio si paga su ogni incarico. */
+.struct .task-layout .tk-table td.c-who,.struct .task-layout .tk-table td.c-due,
+.struct .task-layout .tk-table td.c-doc,.struct .task-layout .tk-table td.c-task{
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* L'incarico in ritardo si vede scorrendo, senza aprire niente: il fondo perde contro la riga scelta
+   (regola 27), che deve restare riconoscibile anche quando e' in ritardo. */
+.struct .task-layout .tk-table tr.tk-late>td{background:rgba(209,36,47,.06)}
+.struct .task-layout .tk-table tr.tk-late.picked>td{background:#e8ecff}
+
+/* La riga dell'avanzamento per editore: un'etichetta e i chip, che filtrano. */
+.struct .task-layout .tk-people{margin-top:-4px}
+.struct .task-layout .tk-people-lbl{font-size:12px;color:var(--ink-soft);white-space:nowrap}
+
+/* Il pannello di destra: descrizione, tre date, documento, stato, riassegnazione. */
+.struct .task-layout .tk-desc{margin:0 0 10px;font-size:13.5px}
+.struct .task-layout .tk-meta{font-size:12px;color:var(--ink-soft);line-height:1.55;margin-bottom:10px}
+.struct .task-layout .tk-doc{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.struct .task-layout .tk-block{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.struct .task-layout .tk-block .vmeta{margin-bottom:6px}
+.struct .task-layout .tk-states{display:flex;gap:6px;flex-wrap:wrap}
+/* Lo stato in cui l'incarico e' GIA' resta a schermo, spento: sparire farebbe ballare i tasti sotto il
+   puntatore proprio mentre ci si sta mirando (regola 31). */
+.struct .task-layout .tk-states .btn.on{background:#e8ecff;border-color:var(--ivao-blue);color:var(--ivao-blue)}
