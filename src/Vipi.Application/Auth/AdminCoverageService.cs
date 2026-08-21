@@ -91,7 +91,9 @@ public sealed class AdminCoverageService : IAdminCoverageService
                 "e la cosa non si sblocca da dentro: si corregge «Auth:AdminStaffCodes» o la sezione «Division».",
                 // ⚠️ Nessuna rotta: questo NON si ripara da dentro l'applicazione — è proprio ciò che il
                 // rilievo dice. Mandare a /vsop/admin/permessi sarebbe mandare a una porta chiusa.
-                ConsistencyArea.Configurazione),
+                ConsistencyArea.Configurazione,
+                CategoryKey: "Diag_Cat_NessunAdmin", DetailKey: "Diag_Msg_NessunAdmin",
+                DetailArgs: new object[] { string.Join(" | ", c.Patterns), visti }),
         };
     }
 }

@@ -66,9 +66,11 @@
                             else
                             { <span class="node-badge">@L["Diag_Warning"]</span> }
                         </td>
-                        <td><b>@f.Category</b></td>
+                        @* ⚠️ Dal narratore, non dal finding: categoria e dettaglio nascono in italiano perché
+                           li leggono anche l'health check e i log, dove una lingua d'interfaccia non c'è. *@
+                        <td><b>@ConsistencyNarrator.Categoria(f, L)</b></td>
                         <td>@f.Entity</td>
-                        <td class="muted">@f.Detail</td>
+                        <td class="muted">@ConsistencyNarrator.Dettaglio(f, L)</td>
                     </tr>
                 }
             </tbody>

@@ -129,7 +129,9 @@ public sealed class ConsistencyReportService : IConsistencyReportService
             findings.Add(new ConsistencyFinding(CategoriaSondaRotta, ConsistencySeverity.Error, pezzo,
                 $"Il controllo «{pezzo}» non è andato a buon fine ({ex.GetType().Name}: {ex.Message}). " +
                 "Gli altri controlli sono stati eseguiti lo stesso, ma di quest'area il report non sa dire " +
-                "niente: l'assenza di rilievi qui non vuol dire che vada tutto bene.", area));
+                "niente: l'assenza di rilievi qui non vuol dire che vada tutto bene.", area,
+                CategoryKey: "Diag_Cat_SondaRotta", DetailKey: "Diag_Msg_SondaRotta",
+                DetailArgs: new object[] { pezzo, ex.GetType().Name, ex.Message }));
         }
     }
 
@@ -147,7 +149,9 @@ public sealed class ConsistencyReportService : IConsistencyReportService
             {
                 findings.Add(new ConsistencyFinding("Pista orfana", ConsistencySeverity.Error, who,
                     $"ConditionRefId={refId} non corrisponde a nessuna pista: rimossa o re-importata con altro Id.",
-                    ConsistencyArea.Dati, DoveAccordi));
+                    ConsistencyArea.Dati, DoveAccordi,
+                    CategoryKey: "Diag_Cat_PistaOrfana", DetailKey: "Diag_Msg_PistaOrfana",
+                    DetailArgs: new object[] { refId }));
             }
             // 2) Label divergente: la pista esiste ma il suo ident non compare più nell'etichetta denormalizzata.
             else if (t.ConditionRefId is int okId
@@ -157,7 +161,9 @@ public sealed class ConsistencyReportService : IConsistencyReportService
             {
                 findings.Add(new ConsistencyFinding("Label pista divergente", ConsistencySeverity.Warning, who,
                     $"La pista referenziata è ora «{ident}» ma l'etichetta salvata è «{t.ConditionLabel}»: rinominata dopo il salvataggio.",
-                    ConsistencyArea.Dati, DoveAccordi));
+                    ConsistencyArea.Dati, DoveAccordi,
+                    CategoryKey: "Diag_Cat_LabelPista", DetailKey: "Diag_Msg_LabelPista",
+                    DetailArgs: new object[] { ident, t.ConditionLabel! }));
             }
 
             // 3) Area fantasma: l'area denormalizzata non corrisponde ad alcuna area speciale esistente.
@@ -165,7 +171,9 @@ public sealed class ConsistencyReportService : IConsistencyReportService
             {
                 findings.Add(new ConsistencyFinding("Area fantasma", ConsistencySeverity.Warning, who,
                     $"Area «{t.ConditionAreaLabel}» non presente tra le aree speciali: rinominata o rimossa.",
-                    ConsistencyArea.Dati, DoveAccordi));
+                    ConsistencyArea.Dati, DoveAccordi,
+                    CategoryKey: "Diag_Cat_AreaFantasma", DetailKey: "Diag_Msg_AreaFantasma",
+                    DetailArgs: new object[] { t.ConditionAreaLabel! }));
             }
         }
 
@@ -177,7 +185,9 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                 findings.Add(new ConsistencyFinding("Gerarchia dangling", ConsistencySeverity.Error,
                     $"{p.Kind} {p.Reference}",
                     $"ParentCallsign «{p.ParentCallsign}» non esiste nei cataloghi: catena di copertura interrotta.",
-                    ConsistencyArea.Dati, DoveStruttura));
+                    ConsistencyArea.Dati, DoveStruttura,
+                    CategoryKey: "Diag_Cat_GerarchiaDangling", DetailKey: "Diag_Msg_GerarchiaDangling",
+                    DetailArgs: new object[] { p.ParentCallsign }));
             }
         }
 
@@ -198,7 +208,9 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                 $"{r.Kind} {r.Reference}",
                 $"Aree selezionate non più presenti: {string.Join(", ", missing)}. Rimosse dalla sorgente e potate " +
                 "dall'import; nel documento restano citate ma non vengono mostrate.",
-                ConsistencyArea.Dati, DoveDocumenti));
+                ConsistencyArea.Dati, DoveDocumenti,
+                CategoryKey: "Diag_Cat_AreaRegDangling", DetailKey: "Diag_Msg_AreaRegDangling",
+                DetailArgs: new object[] { string.Join(", ", missing) }));
         }
 
         findings.AddRange(CallsignAmbigui(d.ValidCallsigns));
@@ -243,7 +255,9 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                     candidato,
                     $"Con «{altro}» online, «{candidato}» risulterebbe online anche se non lo è: i due callsign si " +
                     "confondono nella risalita della copertura. Rinominare uno dei due, o introdurre una tabella " +
-                    "esplicita callsign↔postazione.", ConsistencyArea.Dati, DoveStruttura);
+                    "esplicita callsign↔postazione.", ConsistencyArea.Dati, DoveStruttura,
+                    CategoryKey: "Diag_Cat_CallsignAmbiguo", DetailKey: "Diag_Msg_CallsignAmbiguo",
+                    DetailArgs: new object[] { altro, candidato });
             }
         }
     }

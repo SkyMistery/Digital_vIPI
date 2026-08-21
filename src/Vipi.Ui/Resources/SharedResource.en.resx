@@ -433,6 +433,35 @@
   <data name="Diag_Area_Server" xml:space="preserve"><value>Server</value></data>
   <data name="Diag_Area_Avvio" xml:space="preserve"><value>Startup</value></data>
   <data name="Diag_Area_Configurazione" xml:space="preserve"><value>Configuration</value></data>
+  <data name="Diag_Cat_PistaOrfana" xml:space="preserve"><value>Orphan runway</value></data>
+  <data name="Diag_Msg_PistaOrfana" xml:space="preserve"><value>ConditionRefId={0} matches no runway: removed, or re-imported with a different Id.</value></data>
+  <data name="Diag_Cat_LabelPista" xml:space="preserve"><value>Diverging runway label</value></data>
+  <data name="Diag_Msg_LabelPista" xml:space="preserve"><value>The referenced runway is now «{0}» but the saved label reads «{1}»: renamed after saving.</value></data>
+  <data name="Diag_Cat_AreaFantasma" xml:space="preserve"><value>Ghost area</value></data>
+  <data name="Diag_Msg_AreaFantasma" xml:space="preserve"><value>Area «{0}» is not among the regulated areas: renamed or removed.</value></data>
+  <data name="Diag_Cat_GerarchiaDangling" xml:space="preserve"><value>Broken hierarchy</value></data>
+  <data name="Diag_Msg_GerarchiaDangling" xml:space="preserve"><value>Parent «{0}» does not exist in the catalogues: the coverage chain stops here.</value></data>
+  <data name="Diag_Cat_AreaRegDangling" xml:space="preserve"><value>Regulated area gone</value></data>
+  <data name="Diag_Msg_AreaRegDangling" xml:space="preserve"><value>Selected areas that no longer exist: {0}. Removed from the source and pruned by the import; the document still cites them but they are not shown.</value></data>
+  <data name="Diag_Cat_CallsignAmbiguo" xml:space="preserve"><value>Ambiguous callsign</value></data>
+  <data name="Diag_Msg_CallsignAmbiguo" xml:space="preserve"><value>With «{0}» online, «{1}» would also appear online when it is not: the two callsigns are confused when walking up the coverage chain.</value></data>
+  <data name="Diag_Cat_SondaRotta" xml:space="preserve"><value>Check did not run</value></data>
+  <data name="Diag_Msg_SondaRotta" xml:space="preserve"><value>The check «{0}» did not complete ({1}: {2}). The others still ran, but this area is unknown to the report: no findings here does not mean all is well.</value></data>
+  <data name="Diag_Cat_Server" xml:space="preserve"><value>Database server settings</value></data>
+  <data name="Diag_Msg_SqlModeIllegibile" xml:space="preserve"><value>@@sql_mode could not be read: there is no way to tell whether an over-long write would fail or be silently truncated.</value></data>
+  <data name="Diag_Msg_NoStrictMode" xml:space="preserve"><value>The server is NOT in strict mode (@@sql_mode = «{0}»): a value longer than its column is silently truncated instead of failing the write. {1} is required. Fix it in the server configuration, not here.</value></data>
+  <data name="Diag_Msg_PacketIllegibile" xml:space="preserve"><value>@@max_allowed_packet could not be read: there is no way to tell whether uploading an image at the 3 MB limit would succeed.</value></data>
+  <data name="Diag_Msg_PacketPiccolo" xml:space="preserve"><value>@@max_allowed_packet = {0} bytes, below the {1} required by block images (the app accepts up to 3 MB). A large image will fail to upload. Fix it in the server configuration.</value></data>
+  <data name="Diag_Cat_Avvio" xml:space="preserve"><value>Startup maintenance</value></data>
+  <data name="Diag_Msg_Avvio" xml:space="preserve"><value>The pass «{0}» failed at startup ({1}: {2}). The application started anyway, but whatever that pass would have fixed was left as it was. It is idempotent: a successful restart redoes it.</value></data>
+  <data name="Diag_Cat_NessunAdmin" xml:space="preserve"><value>No administrator</value></data>
+  <data name="Diag_Msg_NessunAdmin" xml:space="preserve"><value>None of the observed staff codes match the admin patterns in force ({0}). Codes seen and not recognised: {1}. Until this changes nobody can edit or grant permissions, and it cannot be unblocked from inside: fix «Auth:AdminStaffCodes» or the «Division» section.</value></data>
+  <data name="Diag_Cat_ColonnaOrfana" xml:space="preserve"><value>Orphan column in the schema</value></data>
+  <data name="Diag_Msg_ColonnaOrfana" xml:space="preserve"><value>Present in the database but not in the model: likely a rename or removal never applied to the schema. If it is a rename, the data is still HERE and the new column is empty.</value></data>
+  <data name="Diag_Cat_TipoDivergente" xml:space="preserve"><value>Diverging column type</value></data>
+  <data name="Diag_Msg_TipoDivergente" xml:space="preserve"><value>The model says «{0}», the schema has «{1}». Reconciliation does not change types: an ALTER by hand is needed.</value></data>
+  <data name="Diag_Cat_ColonnaMancante" xml:space="preserve"><value>Missing column in the schema</value></data>
+  <data name="Diag_Msg_ColonnaMancante" xml:space="preserve"><value>Expected by the model but absent from the database: startup reconciliation did not add it (it is best-effort - check the «[vIPI schema]» warnings in the logs).</value></data>
   <data name="Diag_Analyzing" xml:space="preserve"><value>Analysis in progress…</value></data>
   <data name="Diag_Failed" xml:space="preserve"><value>The report did not run.</value></data>
   <data name="Diag_NoIssues" xml:space="preserve"><value>No inconsistency detected: all soft-refs resolve and denormalized labels match.</value></data>

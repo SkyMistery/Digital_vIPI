@@ -29,7 +29,20 @@ public enum ConsistencyArea
     Configurazione,
 }
 
-/// <summary>Una singola incongruenza rilevata dal report di consistenza.</summary>
+/// <summary>
+/// Una singola incongruenza rilevata dal report di consistenza.
+///
+/// <para><b>Due modi di leggere lo stesso rilievo, e servono entrambi.</b> <paramref name="Category"/> e
+/// <paramref name="Detail"/> sono il testo **grezzo**, in italiano: lo leggono l'health check e i log, dove
+/// una lingua d'interfaccia non esiste. <paramref name="CategoryKey"/> e <paramref name="DetailKey"/> sono
+/// le chiavi con cui chi lo <b>mostra</b> lo traduce (<c>ConsistencyNarrator</c>, gemello di
+/// <c>AuditNarrator</c>).</para>
+///
+/// <para>⚠️ Non si è scelto di localizzare al momento della scrittura: il finding nasce anche fuori da una
+/// richiesta HTTP (le manutenzioni d'avvio) e viene consumato dove una cultura non c'è. E le chiavi non
+/// sostituiscono il testo grezzo: se una chiave manca o è sbagliata, chi mostra ripiega sul testo — mai una
+/// riga vuota al posto di un fatto.</para>
+/// </summary>
 /// <param name="Category">Famiglia del controllo (es. «Pista orfana», «Gerarchia dangling»).</param>
 /// <param name="Severity">Gravità.</param>
 /// <param name="Entity">Riferimento leggibile all'entità coinvolta (es. «Clausola #42 (LIRR, punti EKMUR)»).</param>
@@ -47,8 +60,16 @@ public enum ConsistencyArea
 /// <para>⚠️ <c>null</c> è una risposta, non una dimenticanza: un link che non porta da nessuna parte è
 /// peggio di nessun link.</para>
 /// </param>
+/// <param name="CategoryKey">
+/// Chiave di traduzione della famiglia, per chi il rilievo lo <b>mostra</b>. <c>null</c> ⇒ si legge
+/// <paramref name="Category"/> così com'è.
+/// </param>
+/// <param name="DetailKey">Chiave di traduzione della spiegazione; gli argomenti stanno in
+/// <paramref name="DetailArgs"/>, nell'ordine in cui li usa il testo.</param>
+/// <param name="DetailArgs">Argomenti di <paramref name="DetailKey"/>.</param>
 public sealed record ConsistencyFinding(string Category, ConsistencySeverity Severity, string Entity,
-    string Detail, ConsistencyArea Area, string? Where = null);
+    string Detail, ConsistencyArea Area, string? Where = null,
+    string? CategoryKey = null, string? DetailKey = null, object[]? DetailArgs = null);
 
 /// <summary>Condizione di una clausola di accordo (soft-ref a pista/area denormalizzate).</summary>
 /// <param name="Points">I punti della clausola, come si leggono: servono solo a dire QUALE clausola nel

@@ -436,6 +436,35 @@
   <data name="Diag_Area_Server" xml:space="preserve"><value>Server</value></data>
   <data name="Diag_Area_Avvio" xml:space="preserve"><value>Avvio</value></data>
   <data name="Diag_Area_Configurazione" xml:space="preserve"><value>Configurazione</value></data>
+  <data name="Diag_Cat_PistaOrfana" xml:space="preserve"><value>Pista orfana</value></data>
+  <data name="Diag_Msg_PistaOrfana" xml:space="preserve"><value>ConditionRefId={0} non corrisponde a nessuna pista: rimossa o re-importata con un altro Id.</value></data>
+  <data name="Diag_Cat_LabelPista" xml:space="preserve"><value>Etichetta pista divergente</value></data>
+  <data name="Diag_Msg_LabelPista" xml:space="preserve"><value>La pista referenziata è ora «{0}» ma l’etichetta salvata è «{1}»: rinominata dopo il salvataggio.</value></data>
+  <data name="Diag_Cat_AreaFantasma" xml:space="preserve"><value>Area fantasma</value></data>
+  <data name="Diag_Msg_AreaFantasma" xml:space="preserve"><value>Area «{0}» non presente fra le aree regolamentate: rinominata o rimossa.</value></data>
+  <data name="Diag_Cat_GerarchiaDangling" xml:space="preserve"><value>Gerarchia interrotta</value></data>
+  <data name="Diag_Msg_GerarchiaDangling" xml:space="preserve"><value>Il padre «{0}» non esiste nei cataloghi: la catena di copertura si interrompe qui.</value></data>
+  <data name="Diag_Cat_AreaRegDangling" xml:space="preserve"><value>Area regolamentata sparita</value></data>
+  <data name="Diag_Msg_AreaRegDangling" xml:space="preserve"><value>Aree scelte che non esistono più: {0}. Rimosse dalla sorgente e potate dall’import; nel documento restano citate ma non si vedono.</value></data>
+  <data name="Diag_Cat_CallsignAmbiguo" xml:space="preserve"><value>Callsign ambiguo</value></data>
+  <data name="Diag_Msg_CallsignAmbiguo" xml:space="preserve"><value>Con «{0}» online, «{1}» risulterebbe online anche se non lo è: i due callsign si confondono nella risalita della copertura.</value></data>
+  <data name="Diag_Cat_SondaRotta" xml:space="preserve"><value>Controllo non riuscito</value></data>
+  <data name="Diag_Msg_SondaRotta" xml:space="preserve"><value>Il controllo «{0}» non è andato a buon fine ({1}: {2}). Gli altri sono stati eseguiti lo stesso, ma di quest’area il report non sa dire niente: qui l’assenza di rilievi non vuol dire che vada tutto bene.</value></data>
+  <data name="Diag_Cat_Server" xml:space="preserve"><value>Configurazione del server</value></data>
+  <data name="Diag_Msg_SqlModeIllegibile" xml:space="preserve"><value>Non si è riusciti a leggere @@sql_mode: impossibile dire se una scrittura troppo lunga fallirebbe o verrebbe troncata in silenzio.</value></data>
+  <data name="Diag_Msg_NoStrictMode" xml:space="preserve"><value>Il server NON è in strict mode (@@sql_mode = «{0}»): un valore più lungo della sua colonna viene troncato in silenzio invece di far fallire la scrittura. Serve {1}. Si corregge nella configurazione del server, non da qui.</value></data>
+  <data name="Diag_Msg_PacketIllegibile" xml:space="preserve"><value>Non si è riusciti a leggere @@max_allowed_packet: impossibile dire se il caricamento di un’immagine al limite dei 3 MB andrebbe a buon fine.</value></data>
+  <data name="Diag_Msg_PacketPiccolo" xml:space="preserve"><value>@@max_allowed_packet = {0} byte, sotto il minimo di {1} richiesto dalle immagini dei blocchi (l’app le accetta fino a 3 MB). Un’immagine grande fallirà il caricamento. Si corregge nella configurazione del server.</value></data>
+  <data name="Diag_Cat_Avvio" xml:space="preserve"><value>Manutenzione d’avvio</value></data>
+  <data name="Diag_Msg_Avvio" xml:space="preserve"><value>La passata «{0}» è fallita all’avvio ({1}: {2}). L’applicazione è partita lo stesso, ma ciò che quella passata avrebbe sistemato è rimasto com’era. È idempotente: un riavvio riuscito la rifà da capo.</value></data>
+  <data name="Diag_Cat_NessunAdmin" xml:space="preserve"><value>Nessun amministratore</value></data>
+  <data name="Diag_Msg_NessunAdmin" xml:space="preserve"><value>Nessuno dei codici staff osservati combacia coi pattern admin in vigore ({0}). Codici visti e non riconosciuti: {1}. Finché è così nessuno può editare né assegnare permessi, e non si sblocca da dentro: si corregge «Auth:AdminStaffCodes» o la sezione «Division».</value></data>
+  <data name="Diag_Cat_ColonnaOrfana" xml:space="preserve"><value>Colonna orfana nello schema</value></data>
+  <data name="Diag_Msg_ColonnaOrfana" xml:space="preserve"><value>Presente nel database ma non nel modello: probabile rinomina o rimozione mai applicata allo schema. Se è una rinomina, i dati sono ancora QUI e la colonna nuova è vuota.</value></data>
+  <data name="Diag_Cat_TipoDivergente" xml:space="preserve"><value>Tipo di colonna divergente</value></data>
+  <data name="Diag_Msg_TipoDivergente" xml:space="preserve"><value>Il modello dice «{0}», lo schema ha «{1}». La riconciliazione non cambia i tipi: serve un ALTER a mano.</value></data>
+  <data name="Diag_Cat_ColonnaMancante" xml:space="preserve"><value>Colonna mancante nello schema</value></data>
+  <data name="Diag_Msg_ColonnaMancante" xml:space="preserve"><value>Attesa dal modello ma assente nel database: la riconciliazione all’avvio non l’ha aggiunta (è best-effort, guarda i warning «[vIPI schema]» nei log).</value></data>
   <data name="Diag_Analyzing" xml:space="preserve"><value>Analisi in corso…</value></data>
   <data name="Diag_Failed" xml:space="preserve"><value>Il report non è stato eseguito.</value></data>
   <data name="Diag_NoIssues" xml:space="preserve"><value>Nessuna incongruenza rilevata: tutti i soft-ref risolvono e le etichette denormalizzate combaciano.</value></data>
