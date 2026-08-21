@@ -458,6 +458,27 @@
   <data name="Struct_OptToAssign" xml:space="preserve"><value>— da assegnare —</value></data>
   <data name="Struct_DropInvalid" xml:space="preserve"><value>Non puoi agganciare {0} sotto {1} (sé stesso/discendente o nazione diversa).</value></data>
   <!-- Area Staff / Grants (/vsop/admin/permessi) -->
+  <data name="Grants_CountTitle" xml:space="preserve"><value>Persone con almeno un permesso</value></data>
+  <data name="Grants_HelpAria" xml:space="preserve"><value>Aiuto sui permessi di modifica</value></data>
+  <data name="Grants_Intro" xml:space="preserve"><value>&lt;p style="margin:0 0 6px"&gt;Un &lt;b&gt;permesso&lt;/b&gt; lega una persona (il suo VID) a un &lt;b&gt;ACC&lt;/b&gt;: da quel momento può aprire l'editor dei documenti di quell'ACC, pubblicarne le release e nasconderne o eliminarne i documenti.&lt;/p&gt;&lt;p style="margin:0 0 6px"&gt;Una riga per &lt;b&gt;persona&lt;/b&gt;: le pill dicono su quali ACC può lavorare. Scegliendola, a destra ci sono i suoi permessi con la data, chi glieli ha dati e come toglierli — e il menu per dargliene un altro.&lt;/p&gt;&lt;p style="margin:0"&gt;Gli &lt;b&gt;admin&lt;/b&gt; non hanno bisogno di permessi: possono già tutto in forza del loro codice staff, e non compaiono in questo elenco.&lt;/p&gt;</value></data>
+  <data name="Grants_SearchPh" xml:space="preserve"><value>cerca VID / nome / ACC…</value></data>
+  <data name="Grants_ChipAccTitle" xml:space="preserve"><value>Chi può modificare {0}</value></data>
+  <data name="Grants_Clear" xml:space="preserve"><value>Togli i filtri</value></data>
+  <data name="Grants_ClearTitle" xml:space="preserve"><value>Togli i filtri e mostra tutte le persone</value></data>
+  <data name="Grants_NoMatch" xml:space="preserve"><value>Nessuna persona corrisponde ai filtri.</value></data>
+  <data name="Grants_RowPickTitle" xml:space="preserve"><value>Scegli la persona: i suoi permessi compaiono a destra</value></data>
+  <data name="Grants_PickHint" xml:space="preserve"><value>Scegli una persona dall'elenco per vederne i permessi, oppure premi «Concedi» per aggiungerne una nuova.</value></data>
+  <data name="Grants_NAcc" xml:space="preserve"><value>{0} ACC</value></data>
+  <data name="Grants_NAccTitle" xml:space="preserve"><value>Su quanti ACC può lavorare</value></data>
+  <data name="Grants_GrantedOn" xml:space="preserve"><value>Concesso il {0}</value></data>
+  <data name="Grants_RevokeTitle" xml:space="preserve"><value>Togli il permesso su questo ACC</value></data>
+  <data name="Grants_RevokePrompt" xml:space="preserve"><value>Togliere a {0} il permesso su {1}? Non potrà più modificare i documenti di quell'ACC.</value></data>
+  <data name="Grants_RevokeYes" xml:space="preserve"><value>Sì, togli</value></data>
+  <data name="Grants_AddAcc" xml:space="preserve"><value>Aggiungi ACC</value></data>
+  <data name="Grants_AddAccTitle" xml:space="preserve"><value>Dà a questa persona il permesso su un altro ACC</value></data>
+  <data name="Grants_VidPh" xml:space="preserve"><value>es. 123456</value></data>
+  <data name="Grants_NamePh" xml:space="preserve"><value>es. Mario Rossi</value></data>
+  <data name="Grants_BadVid" xml:space="preserve"><value>Il VID non è valido: serve un numero maggiore di zero.</value></data>
   <data name="Grants_Subtitle" xml:space="preserve"><value>Tutte le funzioni riservate allo staff</value></data>
   <data name="Grants_StaffOnly" xml:space="preserve"><value>Solo lo staff può accedere a quest'area.</value></data>
   <data name="Grants_StructDesc" xml:space="preserve"><value>ACC, posizioni, settori, ownership, frequenze e topologia.</value></data>
@@ -1035,6 +1056,15 @@
   <data name="Rel_ColDetail" xml:space="preserve"><value>Dettaglio</value></data>
   <data name="Rel_LoadingDiff" xml:space="preserve"><value>Caricamento differenze…</value></data>
   <data name="Nd_Title" xml:space="preserve"><value>Nuovo documento</value></data>
+  <data name="Nav_AdminLabel" xml:space="preserve"><value>Admin:</value></data>
+  <data name="Nav_AdminAria" xml:space="preserve"><value>Pagine di amministrazione</value></data>
+  <data name="Nav_Docs" xml:space="preserve"><value>Documenti</value></data>
+  <data name="Nav_Tasks" xml:space="preserve"><value>Incarichi</value></data>
+  <data name="Nav_Diag" xml:space="preserve"><value>Diagnostica</value></data>
+  <data name="Nav_Perms" xml:space="preserve"><value>Permessi</value></data>
+  <data name="Nav_AirportsTitle" xml:space="preserve"><value>Aeroporti: assegnazione alle ACC, piste, settori TWR.</value></data>
+  <data name="Nav_SourcesTitle" xml:space="preserve"><value>Sorgenti dati e politiche di import.</value></data>
+  <data name="Nav_PermsTitle" xml:space="preserve"><value>Chi può modificare quale ACC.</value></data>
   <data name="Nd_Drafts" xml:space="preserve"><value>Bozze &amp; versioni</value></data>
   <data name="Nd_Subtitle" xml:space="preserve"><value>Scegli il tipo, poi il bersaglio: si apre l'editor che crea il documento.</value></data>
   <data name="Nd_StaffRequired" xml:space="preserve"><value>La creazione di documenti richiede i permessi di staff/admin.</value></data>

@@ -187,6 +187,58 @@
 .struct .ver-acts .btn{margin-left:0}
 /* Il «togli i filtri» dentro una frase: era uno stile in linea ripetuto. */
 .lnk-inline{cursor:pointer;color:var(--ivao-blue);font-weight:600}
+/* ---- Barra delle pagine admin (componente AdminNav) ----
+   Sostituisce le sei card da 138px di «Area Staff» (485px in tutto) e le porta a dieci voci in una riga:
+   l'elenco delle pagine admin stava in due posti e diverso, e nessuno dei due elencava tutto. Le etichette
+   sono nomi corti col nome per esteso nel `title` (regola 33) — una barra che va a capo tre volte costa più
+   di quello che fa risparmiare. */
+.admin-nav{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin:0 0 12px;padding:7px 10px;
+  background:var(--surface);border:1px solid var(--line);border-radius:11px}
+.admin-nav .an-lab{font-family:var(--font-head);font-weight:700;font-size:11px;letter-spacing:.4px;
+  text-transform:uppercase;color:var(--ink-soft);margin-right:2px}
+.admin-nav .an-link{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;text-decoration:none;
+  font-size:12.5px;font-weight:600;color:var(--ivao-blue);border:1px solid transparent;border-radius:8px;
+  padding:3px 8px;transition:.12s}
+.admin-nav a.an-link:hover{background:#eef1fb;border-color:var(--line)}
+/* La voce della pagina corrente è uno stato, non un comando: niente href e nessun effetto al passaggio. */
+.admin-nav .an-link.on{background:var(--ivao-blue);color:#fff;cursor:default}
+.admin-nav .an-link [data-icon]{flex:none;opacity:.85}
+
+/* ---- Permessi: chi ha un permesso a sinistra, la persona scelta (o la concessione) a destra ----
+   Il `calc` è il valore di PARTENZA prima che vipiFitViewport misuri; `min-height` allineata al `fitMin` del
+   JS (320). Prima la tabella lavorava in mezza pagina perché l'altra metà era il form «Concedi» sempre
+   aperto — 16 grant facevano righe da 86px, e sotto il form restavano ~1 100px di bianco. */
+.struct .perm-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:22px;align-items:stretch;
+  height:calc(100vh - 250px);min-height:320px}
+.struct .perm-layout .panel{min-width:0;padding:18px}
+.struct .perm-layout .panel.st-pane{overflow:hidden}
+.wrap.struct:has(.perm-layout){padding-bottom:18px}
+@media(max-width:900px){.struct .perm-layout{grid-template-columns:1fr;height:auto;min-height:0}}
+.struct .perm-layout .struct-bar .htree-search{flex:1 1 150px;min-width:120px}
+/* Un chip a zero qui è neutro, non verde: «0 persone su LIMM» non è una buona notizia (regola 108). */
+.struct .perm-layout button.sh-chip:disabled{background:#eceef5;color:var(--ink-soft);border-color:var(--line);opacity:.65}
+.struct .perm-layout .doc-rowi{margin-bottom:6px;padding:9px 12px;gap:9px}
+.struct .perm-layout .doc-rowi.acc-pick{cursor:pointer;transition:.12s}
+.struct .perm-layout .doc-rowi.acc-pick:hover{border-color:var(--ivao-lightblue)}
+.struct .perm-layout .doc-rowi.acc-pick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:-2px}
+.struct .perm-layout .doc-rowi.acc-pick.picked{background:#e8ecff;border-color:var(--ivao-blue);box-shadow:inset 3px 0 0 var(--ivao-blue)}
+.struct .perm-layout .doc-rowi .pill{white-space:nowrap}
+/* Nel pannello: a andare a capo è il gruppo dei tasti, non il testo (regola 111). */
+.struct .perm-layout .ver-row{flex-wrap:wrap}
+.struct .perm-layout .ver-row>div{flex:1 1 180px;min-width:0}
+.struct .perm-layout .ver-row .vact{flex-wrap:nowrap;margin-left:auto}
+.struct .perm-layout .ver-row .vb{min-width:56px}
+.struct .perm-layout p.help{margin:0 0 6px}
+/* Il form di concessione: label in tondo come le altre pagine di lavoro, non in maiuscoletto. */
+.struct .perm-form .field{margin-bottom:10px}
+.struct .perm-form .field label{display:block;font-family:var(--font-body);text-transform:none;letter-spacing:normal;
+  font-size:12.5px;color:var(--ink-soft);margin-bottom:3px}
+.struct .perm-form .app-in{width:100%}
+.struct .perm-form .perm-go{width:100%;margin-top:4px}
+/* «Un ACC in più a chi c'è già»: menu e tasto sulla stessa riga, in fondo all'elenco dei suoi permessi. */
+.struct .perm-add{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:10px;
+  border-top:1px solid var(--line)}
+.struct .perm-add .app-in{flex:1 1 180px;min-width:140px}
 /* Le sezioni del pannello di destra (storia, release) e la barra di pubblicazione: erano ventisette
    blocchi di stile in linea, cioe' la forma della pagina scritta in nessun foglio. */
 .struct .ver-sec{margin-top:8px}
