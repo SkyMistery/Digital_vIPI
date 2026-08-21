@@ -195,12 +195,22 @@ public sealed class StructureEditingService : IStructureEditingService
         icao = (icao ?? "").Trim().ToUpperInvariant();
         if (icao.Length != 4) throw new ValidationException("ICAO aeroporto non valido.");
 
+        // Una lettura sola della policy per tutta la generazione: decide sia il catalogo settori sia cosa
+        // finisce nel merge (TA e piste).
+        var policy = await _policy.GetAsync(ct);
+
         // Fonte unica: il catalogo AirportSector. Se vuoto, lo importo prima (così funziona anche il bottone admin).
         var catalog = await _airportSectors.ListByAirportAsync(icao, ct);
         if (catalog.Count == 0)
         {
             await _sectorImporter.ImportAsync(icao, ct);
             catalog = await _airportSectors.ListByAirportAsync(icao, ct);
+
+            // ⚠️ Con «Settori» escluso in Sorgenti l'import non fa nulla per scelta: il catalogo resta vuoto e
+            // il documento uscirebbe senza settori e senza spiegazioni. Lo si dice, invece di generarlo monco.
+            if (catalog.Count == 0 && !policy.IsImported(ImportCategory.Sectors))
+                return new AirportDocResult(icao, false, 0, null,
+                    "Settori esclusi in «Sorgenti dati»: aggiungi i settori d'aeroporto a mano in Struttura.");
         }
 
         // Postazioni d'aeroporto (non nascoste) → settori operativi (DEL/GND/TWR/APP), un settore per tipo.
@@ -216,21 +226,14 @@ public sealed class StructureEditingService : IStructureEditingService
         var (created, found) = await _repo.EnsureAirportSectorsAsync(icao, sectors, ct);
         if (!found) return new AirportDocResult(icao, false, 0, null, "Aeroporto non assegnato a una ACC.");
 
-        // Le piste non sono nel catalogo: restano dalla sorgente dettaglio.
-        var runways = await _details.GetRunwaysAsync(icao, ct);
-
-        // Transition Altitude dall'anagrafica (centerId/transitionAltitude già scaricati con cache).
-        int? ta = null;
-        try
-        {
-            ta = (await _directory.GetAirportsAsync(ct))
-                .FirstOrDefault(a => string.Equals(a.Icao, icao, StringComparison.OrdinalIgnoreCase))?.TransitionAltitude;
-        }
-        catch { /* anagrafica non disponibile: TA resta null, sezione da completare a mano */ }
+        // Piste (dalla sorgente dettaglio, non dal catalogo) e Transition Altitude (dall'anagrafica), ma solo
+        // per le categorie che la policy dichiara di sorgente: la decisione sta in un punto solo, condiviso
+        // col reimport dell'editor aeroporto. ⚠️ Senza questo, generare il documento sovrascriveva la TA e le
+        // piste scritte a mano anche con le categorie escluse in «Sorgenti dati» (vedi SourceMergeInputs).
+        var (ta, runways) = await SourceMergeInputs.ReadAsync(policy, icao, _directory, _details, ct);
 
         // 2 — merge nel profilo strutturato (preserva l'editoriale) e 3 — rigenera il documento (Frequenze dal catalogo).
-        await _profile.MergeFromSourceAsync(icao, ta,
-            runways.Select(r => (r.Ident, r.LengthM, r.Bearing)).ToList(), ct);
+        await _profile.MergeFromSourceAsync(icao, ta, runways, ct);
         var docId = await _profile.RebuildDocumentAsync(icao, ct);
         return new AirportDocResult(icao, true, created, docId, null);
     }

@@ -188,18 +188,7 @@ public sealed class AirportEditingService : IAirportEditingService
 
         // Solo le categorie importate vengono passate al merge: per quelle escluse il merge non tocca i dati
         // editoriali dell'utente (null TA / lista piste vuota = "nessun cambio"). L'ATIS è nel catalogo settori.
-        var runways = policy.Runways
-            ? (await _details.GetRunwaysAsync(icao, ct)).Select(r => (r.Ident, r.LengthM, r.Bearing)).ToList()
-            : new List<(string, int?, int?)>();
-
-        int? ta = null;
-        if (policy.TransitionAltitude)
-            try
-            {
-                ta = (await _directory.GetAirportsAsync(ct))
-                    .FirstOrDefault(a => string.Equals(a.Icao, icao, StringComparison.OrdinalIgnoreCase))?.TransitionAltitude;
-            }
-            catch { /* anagrafica non disponibile: TA resta invariata */ }
+        var (ta, runways) = await SourceMergeInputs.ReadAsync(policy, icao, _directory, _details, ct);
 
         await _repo.MergeFromSourceAsync(icao, ta, runways, ct);
     }
