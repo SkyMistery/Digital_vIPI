@@ -1,0 +1,18 @@
+@* Il tasto «Anteprima bozza» col suo «?», per tutti gli editor.
+
+   ⚠️ Perché un componente. Lo stesso identico paragrafo — «Apre la bozza in una nuova scheda (?as=draft)…» —
+   stava scritto TRE volte a mano (editor APP, editor vLOA, editor ACC), in italiano, con l'`AriaLabel` pure
+   lui cablato: in pagina inglese si leggeva in italiano, e tre copie della stessa frase sono tre posti in cui
+   divergere (regola 123). Il testo sta ora nei resx, e chi lo mostra è uno solo. *@
+@inject IStringLocalizer<SharedResource> L
+
+<a class="btn ghost" data-tour="preview" href="@Href" target="_blank" rel="noopener"
+   title="@L["Ed_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
+<HelpHint Href="/vsop/guida#editor-anteprima" AriaLabel="@L["Ed_PreviewHelpAria"]">
+    @((MarkupString)L["Ed_PreviewHelpBody"].Value)
+</HelpHint>
+
+@code {
+    /// <summary>URL della bozza (<c>?as=draft</c>) del documento in modifica.</summary>
+    [Parameter, EditorRequired] public string Href { get; set; } = default!;
+}

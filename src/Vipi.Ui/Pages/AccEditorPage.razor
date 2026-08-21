@@ -163,11 +163,7 @@ else
                    scrive locale — la stessa scadenza compariva a due ore diverse. *@
                 @if (_save == SaveState.Saving) { <span class="save-badge saving"><span class="spin"></span> @L["Ed_Saving"]</span> }
                 else if (_save == SaveState.Saved) { <span class="save-badge saved"><Icon Name="check-circle" Size="13" /> @L["Ed_Saved"]</span> }
-                <a class="btn ghost" data-tour="preview" href="/vsop/@Acc.ToLowerInvariant()/vipi?as=draft" target="_blank" rel="noopener" title="@L["Acc_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
-                <HelpHint Href="/vsop/guida#editor-anteprima" AriaLabel="Aiuto sull'anteprima bozza">
-                    Apre la <b>bozza</b> in una nuova scheda (<code>?as=draft</code>): la vedi come sarà, ma
-                    <b>non</b> è ancora pubblica. Controlla sempre qui prima di <b>pubblicare</b>.
-                </HelpHint>
+                <DraftPreviewLink Href="@($"/vsop/{Acc.ToLowerInvariant()}/vipi?as=draft")" />
                 @if (_editing)
                 {
                     <button class="btn ghost" @onclick="FinishEditing">✓ @L["Lock_FinishEdit"]</button>

@@ -1386,6 +1386,7 @@
   <data name="Dse_ShowInDocTitle" xml:space="preserve"><value>Mostra nel documento pubblicato</value></data>
   <data name="Dse_HideFromDocTitle" xml:space="preserve"><value>Nascondi dal documento pubblicato</value></data>
   <data name="Dse_Paragraph" xml:space="preserve"><value>Paragrafo</value></data>
+  <data name="Dse_Block" xml:space="preserve"><value>Blocco</value></data>
   <data name="Dse_Table" xml:space="preserve"><value>Tabella</value></data>
   <data name="Dse_TextMarkdownPh" xml:space="preserve"><value>Testo (markdown leggero)…</value></data>
   <data name="Dse_TypeLabel" xml:space="preserve"><value>Tipo:</value></data>
@@ -1402,6 +1403,8 @@
   <data name="Ed_DraftVN" xml:space="preserve"><value>Bozza v{0}</value></data>
   <data name="Ed_PublishedVN" xml:space="preserve"><value>Pubblicata v{0}</value></data>
   <data name="Ed_PreviewDraftTitle" xml:space="preserve"><value>Anteprima bozza in nuova scheda (non la versione pubblica)</value></data>
+  <data name="Ed_PreviewHelpAria" xml:space="preserve"><value>Aiuto sull'anteprima bozza</value></data>
+  <data name="Ed_PreviewHelpBody" xml:space="preserve"><value>&lt;p&gt;Apre la &lt;b&gt;bozza&lt;/b&gt; in una nuova scheda (&lt;code&gt;?as=draft&lt;/code&gt;): la vedi come sarà, ma &lt;b&gt;non&lt;/b&gt; è ancora pubblica. Controlla sempre qui prima di &lt;b&gt;pubblicare&lt;/b&gt;.&lt;/p&gt;</value></data>
   <data name="Ed_PreviewDraft" xml:space="preserve"><value>Anteprima bozza</value></data>
   <data name="Ed_PublishTitle" xml:space="preserve"><value>Pubblica la bozza corrente</value></data>
   <data name="Ed_Publish" xml:space="preserve"><value>Pubblica</value></data>
@@ -1427,11 +1430,16 @@
   <data name="Vle_EmptyEditing" xml:space="preserve"><value>Aggiungi la prima sezione qui sotto.</value></data>
   <data name="Vle_EmptyReadonly" xml:space="preserve"><value>Premi «✎ Modifica» per iniziare a comporre la lettera di accordo.</value></data>
   <data name="Vle_NoEditPerm" xml:space="preserve"><value>Non hai i permessi per modificare questa vLOA.</value></data>
-  <data name="Vle_AorToggleHint" xml:space="preserve"><value>Nascondi/mostra i settori nella mappa (persistito nel documento):</value></data>
+  <data name="Vle_AorToggleHint" xml:space="preserve"><value>Spuntati = fanno parte del documento e si vedono a chi lo legge. I chip sopra la mappa, invece, accendono i poligoni solo per te.</value></data>
+  <data name="Vle_AorInDoc" xml:space="preserve"><value>Settori nel documento: {0} di {1}</value></data>
   <data name="Vle_NoDerivedFreq" xml:space="preserve"><value>Nessuna frequenza derivata (proietta i settori dei due ACC).</value></data>
   <data name="Vle_NoFreq" xml:space="preserve"><value>Nessuna frequenza.</value></data>
   <data name="Vle_Frequency" xml:space="preserve"><value>Frequenza</value></data>
   <data name="App_EditorTitle" xml:space="preserve"><value>Editor APP</value></data>
+  <data name="App_HelpAria" xml:space="preserve"><value>Come funziona l'editor APP</value></data>
+  <data name="App_HelpBody" xml:space="preserve"><value>&lt;p&gt;Questo &amp;egrave; il documento di un &lt;b&gt;avvicinamento non remotizzato&lt;/b&gt;: un APP che ha una sua vIPI invece di stare dentro quella dell'ACC.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Le sezioni &lt;b&gt;derivate&lt;/b&gt; (AOR, frequenze, coordinamenti, configurazioni) non si scrivono a mano: le calcola l'applicazione dai dati, e qui si scelgono le opzioni.&lt;/li&gt;&lt;li&gt;Le altre si riempiono a &lt;b&gt;blocchi&lt;/b&gt; — paragrafo, callout, tabella, immagine — col tasto &lt;b&gt;+ Blocco&lt;/b&gt; in fondo alla sezione.&lt;/li&gt;&lt;li&gt;Le modifiche vanno in &lt;b&gt;bozza&lt;/b&gt;: diventano pubbliche solo con una &lt;b&gt;release AIRAC&lt;/b&gt;, in fondo alla pagina.&lt;/li&gt;&lt;/ul&gt;</value></data>
+  <data name="Vle_HelpAria" xml:space="preserve"><value>Come funziona l'editor vLOA</value></data>
+  <data name="Vle_HelpBody" xml:space="preserve"><value>&lt;ul style="margin-top:6px"&gt;&lt;li&gt;Le sezioni &lt;b&gt;derivate&lt;/b&gt; (aree, frequenze, coordinamenti) uniscono i dati dei &lt;b&gt;due&lt;/b&gt; ACC: qui si sceglie cosa entra nel documento, non si riscrivono.&lt;/li&gt;&lt;li&gt;Il documento &amp;egrave; in &lt;b&gt;inglese&lt;/b&gt;: &amp;egrave; la lingua delle vLOA.&lt;/li&gt;&lt;li&gt;Le modifiche vanno in &lt;b&gt;bozza&lt;/b&gt;: diventano pubbliche solo con una &lt;b&gt;release AIRAC&lt;/b&gt;, in fondo alla pagina.&lt;/li&gt;&lt;/ul&gt;</value></data>
   <data name="App_NonRemotized" xml:space="preserve"><value>Avvicinamenti non remotizzati</value></data>
   <data name="App_NotFound" xml:space="preserve"><value>APP non trovato. Verifica che il callsign sia un avvicinamento non remotizzato (es. &lt;code&gt;LIRP_APP&lt;/code&gt;).</value></data>
   <data name="App_DeniedBody" xml:space="preserve"><value>Non hai i permessi per editare la ACC {0}.</value></data>
@@ -1449,7 +1457,6 @@
   <data name="Acc_BlockSectionsOne" xml:space="preserve"><value>1 sezione</value></data>
   <data name="Acc_HelpAria" xml:space="preserve"><value>Aiuto sull'editor vIPI ACC</value></data>
   <data name="Acc_HelpBody" xml:space="preserve"><value>&lt;ul&gt;&lt;li&gt;Il documento e' fatto di &lt;b&gt;blocchi&lt;/b&gt;: i settori di aerovia e un blocco per ogni &lt;b&gt;gruppo APP&lt;/b&gt;. Ogni blocco si apre e si chiude dal titolo; aprendone uno gli altri si chiudono.&lt;/li&gt;&lt;li&gt;Dentro il blocco ogni &lt;b&gt;sezione&lt;/b&gt; si apre e si chiude per conto suo, e «Espandi tutto / Comprimi tutto» in fondo all'indice agisce su tutte.&lt;/li&gt;&lt;li&gt;Qui si scrive nella &lt;b&gt;bozza&lt;/b&gt;: ogni modifica e' salvata subito, ma il pubblico vede solo dopo «Pubblica ora».&lt;/li&gt;&lt;li&gt;AoR, frequenze e coordinamenti sono &lt;b&gt;derivati&lt;/b&gt; dai cataloghi: si cambiano dalla struttura dei settori, non a mano.&lt;/li&gt;&lt;/ul&gt;</value></data>
-  <data name="Acc_PreviewDraftTitle" xml:space="preserve"><value>Apri la bozza live in una nuova scheda</value></data>
   <data name="Acc_LockedByOtherBody" xml:space="preserve"><value>Bloccato da {0}{1}.</value></data>
   <data name="Acc_RemoveGroupTitle" xml:space="preserve"><value>Rimuovi gruppo</value></data>
   <data name="Acc_AirwaySectors" xml:space="preserve"><value>Settori di aerovia</value></data>

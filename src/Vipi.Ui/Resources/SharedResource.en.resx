@@ -1383,6 +1383,7 @@
   <data name="Dse_ShowInDocTitle" xml:space="preserve"><value>Show in the published document</value></data>
   <data name="Dse_HideFromDocTitle" xml:space="preserve"><value>Hide from the published document</value></data>
   <data name="Dse_Paragraph" xml:space="preserve"><value>Paragraph</value></data>
+  <data name="Dse_Block" xml:space="preserve"><value>Block</value></data>
   <data name="Dse_Table" xml:space="preserve"><value>Table</value></data>
   <data name="Dse_TextMarkdownPh" xml:space="preserve"><value>Text (light markdown)…</value></data>
   <data name="Dse_TypeLabel" xml:space="preserve"><value>Type:</value></data>
@@ -1399,6 +1400,8 @@
   <data name="Ed_DraftVN" xml:space="preserve"><value>Draft v{0}</value></data>
   <data name="Ed_PublishedVN" xml:space="preserve"><value>Published v{0}</value></data>
   <data name="Ed_PreviewDraftTitle" xml:space="preserve"><value>Preview draft in a new tab (not the public version)</value></data>
+  <data name="Ed_PreviewHelpAria" xml:space="preserve"><value>Help on the draft preview</value></data>
+  <data name="Ed_PreviewHelpBody" xml:space="preserve"><value>&lt;p&gt;Opens the &lt;b&gt;draft&lt;/b&gt; in a new tab (&lt;code&gt;?as=draft&lt;/code&gt;): you see it as it will look, but it is &lt;b&gt;not&lt;/b&gt; public yet. Always check here before &lt;b&gt;publishing&lt;/b&gt;.&lt;/p&gt;</value></data>
   <data name="Ed_PreviewDraft" xml:space="preserve"><value>Preview draft</value></data>
   <data name="Ed_PublishTitle" xml:space="preserve"><value>Publish the current draft</value></data>
   <data name="Ed_Publish" xml:space="preserve"><value>Publish</value></data>
@@ -1424,11 +1427,16 @@
   <data name="Vle_EmptyEditing" xml:space="preserve"><value>Add the first section below.</value></data>
   <data name="Vle_EmptyReadonly" xml:space="preserve"><value>Press «✎ Edit» to start composing the letter of agreement.</value></data>
   <data name="Vle_NoEditPerm" xml:space="preserve"><value>You do not have permission to edit this vLOA.</value></data>
-  <data name="Vle_AorToggleHint" xml:space="preserve"><value>Hide/show the sectors on the map (persisted in the document):</value></data>
+  <data name="Vle_AorToggleHint" xml:space="preserve"><value>Ticked = part of the document, and visible to whoever reads it. The chips above the map only light up the polygons for you.</value></data>
+  <data name="Vle_AorInDoc" xml:space="preserve"><value>Sectors in the document: {0} of {1}</value></data>
   <data name="Vle_NoDerivedFreq" xml:space="preserve"><value>No derived frequency (project the sectors of the two ACCs).</value></data>
   <data name="Vle_NoFreq" xml:space="preserve"><value>No frequency.</value></data>
   <data name="Vle_Frequency" xml:space="preserve"><value>Frequency</value></data>
   <data name="App_EditorTitle" xml:space="preserve"><value>APP editor</value></data>
+  <data name="App_HelpAria" xml:space="preserve"><value>How the APP editor works</value></data>
+  <data name="App_HelpBody" xml:space="preserve"><value>&lt;p&gt;This is the document of a &lt;b&gt;non-remoted approach&lt;/b&gt;: an APP with its own vIPI instead of living inside the ACC's one.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;b&gt;Derived&lt;/b&gt; sections (AOR, frequencies, coordination, configurations) are not written by hand: the application computes them from the data, and here you pick the options.&lt;/li&gt;&lt;li&gt;The others are filled with &lt;b&gt;blocks&lt;/b&gt; — paragraph, callout, table, image — from the &lt;b&gt;+ Block&lt;/b&gt; button at the end of each section.&lt;/li&gt;&lt;li&gt;Changes go into a &lt;b&gt;draft&lt;/b&gt;: they become public only with an &lt;b&gt;AIRAC release&lt;/b&gt;, at the bottom of the page.&lt;/li&gt;&lt;/ul&gt;</value></data>
+  <data name="Vle_HelpAria" xml:space="preserve"><value>How the vLOA editor works</value></data>
+  <data name="Vle_HelpBody" xml:space="preserve"><value>&lt;ul style="margin-top:6px"&gt;&lt;li&gt;&lt;b&gt;Derived&lt;/b&gt; sections (areas, frequencies, coordination) merge the data of &lt;b&gt;both&lt;/b&gt; ACCs: here you choose what goes into the document, you do not rewrite it.&lt;/li&gt;&lt;li&gt;The document is in &lt;b&gt;English&lt;/b&gt;: it is the language of vLOAs.&lt;/li&gt;&lt;li&gt;Changes go into a &lt;b&gt;draft&lt;/b&gt;: they become public only with an &lt;b&gt;AIRAC release&lt;/b&gt;, at the bottom of the page.&lt;/li&gt;&lt;/ul&gt;</value></data>
   <data name="App_NonRemotized" xml:space="preserve"><value>Non-remotized approaches</value></data>
   <data name="App_NotFound" xml:space="preserve"><value>APP not found. Check that the callsign is a non-remotized approach (e.g. &lt;code&gt;LIRP_APP&lt;/code&gt;).</value></data>
   <data name="App_DeniedBody" xml:space="preserve"><value>You do not have permission to edit ACC {0}.</value></data>
@@ -1446,7 +1454,6 @@
   <data name="Acc_BlockSectionsOne" xml:space="preserve"><value>1 section</value></data>
   <data name="Acc_HelpAria" xml:space="preserve"><value>Help on the ACC vIPI editor</value></data>
   <data name="Acc_HelpBody" xml:space="preserve"><value>&lt;ul&gt;&lt;li&gt;The document is made of &lt;b&gt;blocks&lt;/b&gt;: the airway sectors and one block per &lt;b&gt;APP group&lt;/b&gt;. Each block opens and closes from its title; opening one closes the others.&lt;/li&gt;&lt;li&gt;Inside a block every &lt;b&gt;section&lt;/b&gt; opens and closes on its own, and «Expand all / Collapse all» at the bottom of the index acts on all of them.&lt;/li&gt;&lt;li&gt;You are writing in the &lt;b&gt;draft&lt;/b&gt;: every change is saved at once, but the public only sees it after «Publish now».&lt;/li&gt;&lt;li&gt;AoR, frequencies and coordination are &lt;b&gt;derived&lt;/b&gt; from the catalogues: change them in the sector structure, not by hand.&lt;/li&gt;&lt;/ul&gt;</value></data>
-  <data name="Acc_PreviewDraftTitle" xml:space="preserve"><value>Open the live draft in a new tab</value></data>
   <data name="Acc_LockedByOtherBody" xml:space="preserve"><value>Locked by {0}{1}.</value></data>
   <data name="Acc_RemoveGroupTitle" xml:space="preserve"><value>Remove group</value></data>
   <data name="Acc_AirwaySectors" xml:space="preserve"><value>Airway sectors</value></data>

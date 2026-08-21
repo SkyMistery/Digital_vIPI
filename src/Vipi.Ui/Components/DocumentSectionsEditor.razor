@@ -12,8 +12,8 @@
 
 @if (ShowToc)
 {
-    <div class="ed-layout @(RightRail is not null ? "with-rail" : null)">
-        <EditorToc Items="BuildToc()" />
+    <div class="ed-layout @(RightRail is not null ? "with-rail" : null) @(Wide ? "sid-wide" : null)">
+        <EditorToc Items="BuildToc()" Footer="TocFooter" />
         <div>@SectionsBody</div>
         @if (RightRail is not null)
         {
@@ -62,6 +62,14 @@ else
     /// <summary>Rail azioni a destra (opt-in, richiede <see cref="ShowToc"/>): pulsanti/badge dell'host — Preview, Modifica,
     /// Pubblica, stato salvataggio. Quando presente la griglia diventa 3 colonne (toc | contenuto | azioni).</summary>
     [Parameter] public RenderFragment? RightRail { get; set; }
+
+    /// <summary>Comandi in coda al TOC (espandi/comprimi tutto). L'editor ACC costruisce il proprio TOC e li
+    /// mette da sé; gli editor a singola istanza montano il TOC da qui, quindi glieli passano.</summary>
+    [Parameter] public RenderFragment? TocFooter { get; set; }
+
+    /// <summary>Larghezza piena: toglie l'indice e il rail dal flusso e lascia il contenuto alle tabelle larghe
+    /// (stessa classe `.sid-wide` dell'editor aeroporto e di quello ACC).</summary>
+    [Parameter] public bool Wide { get; set; }
 
     // Voci TOC = sezioni di primo livello (anchor s-{Id}, già usato da CollapsibleBlock) + eventuali extra dell'host.
     private IReadOnlyList<EditorTocItem> BuildToc()
@@ -199,8 +207,12 @@ else
         {
             // Primo livello = card .block COLLASSABILE (CollapsibleBlock), coerente con tutti gli editor/viewer.
             // Alcune sezioni nascono chiuse anche in editing (doc 11 §3i): lo dice il catalogo, non l'host.
+            @* ⚠️ Una sezione NASCOSTA nasce chiusa. Prima pagava la sua altezza intera, solo attenuata: e'
+               esclusa dal documento, quindi non e' li' che si lavora — e su un editor da undici sezioni
+               ognuna di quelle costava una schermata a chi scorreva per arrivare alle altre. Chi la vuole
+               riaprire la riapre; chi la mostra di nuovo la ritrova aperta al ricarico. *@
             <CollapsibleBlock @key="s.Id" Id="@($"s-{s.Id}")" Style="@(hid ? "opacity:.5" : null)"
-                              InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
+                              InitiallyOpen="@(!hid && !SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
                 <Header>@SectionHeader(s, mand, hid, true)</Header>
                 <ChildContent>@SectionBody(s, relDepth)</ChildContent>
             </CollapsibleBlock>
@@ -329,12 +341,21 @@ else
 
             @if (IsEditing)
             {
-                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
-                    <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Prose)">+ @L["Dse_Paragraph"]</button>
-                    <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Callout)">+ Callout</button>
-                    <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Table)">+ @L["Dse_Table"]</button>
-                    <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Image)">+ @L["Dse_Image"]</button>
-                </div>
+                @* ⚠️ Quattro tasti sotto OGNI sezione: su un documento da undici sezioni sono quattro righe
+                   di comandi ripetute undici volte (~40px l'una) per un gesto che si fa qualche volta a
+                   sezione. Uno solo, col tipo scelto dopo: chi paga lo spazio è il gesto raro (regola 119),
+                   e qui lo pagava su ogni sezione di ogni editor.
+                   `<details>` nativo e non un menu Blazor: si apre e si chiude senza circuito, e si chiude da
+                   sé al clic su una voce perché il gestore azzera `open`. *@
+                <details class="blk-add" @key="s.Id">
+                    <summary class="btn ghost">+ @L["Dse_Block"]</summary>
+                    <div class="blk-add-menu">
+                        <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Prose)">@L["Dse_Paragraph"]</button>
+                        <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Callout)">Callout</button>
+                        <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Table)">@L["Dse_Table"]</button>
+                        <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Image)">@L["Dse_Image"]</button>
+                    </div>
+                </details>
             }
         }
 

@@ -176,6 +176,27 @@
         }, true);
     }
 
+    // Il menu «+ Blocco» degli editor si comporta come un menu: si chiude al clic su una voce e al clic fuori.
+    //
+    // ⚠️ `open` di un <details> e' stato del DOM, non del markup: dopo che Blazor ha aggiunto il blocco e
+    // ri-renderizzato, il menu resterebbe spalancato sotto la sezione. E chiuderlo dal C# vorrebbe dire
+    // passare per JS a ogni clic. Una delega sola, in cattura, vale per tutti gli editor e per le sezioni
+    // che ancora non esistono.
+    var blockMenuWired = false;
+    function wireBlockMenu() {
+        if (blockMenuWired) return;
+        blockMenuWired = true;
+        document.addEventListener('click', function (e) {
+            var dentro = e.target && e.target.closest ? e.target.closest('details.blk-add') : null;
+            document.querySelectorAll('details.blk-add[open]').forEach(function (d) {
+                // Il clic sul proprio <summary> lo gestisce il browser (apre/chiude): non toccarlo, o si
+                // riaprirebbe subito dopo essere stato chiuso.
+                if (d === dentro && e.target.closest('summary') === d.querySelector('summary')) return;
+                d.open = false;
+            });
+        }, true);
+    }
+
     // Sospende la persistenza del collasso: l'apertura in massa per la stampa non deve riscrivere le preferenze
     // dell'utente (vedi wirePrint).
     var suppressPersist = false;
@@ -613,6 +634,7 @@
         wireExpand();
         wireAnchors();
         wireCollapse();
+        wireBlockMenu();
         applyDense();
         wireUtcClock();
         wireSearchKey();

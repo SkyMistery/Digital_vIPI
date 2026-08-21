@@ -2486,3 +2486,38 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    pagina si legge come un filtro attivo che nessuno ha chiesto. Colora il numero, non lo stato. */
 .struct .task-layout .sh-chip.tk-late-chip .chip-n{background:#f6d55c;color:#5a4600}
 .struct .task-layout .sh-chip.tk-late-chip.on .chip-n{background:#fff;color:#5a4600}
+
+/* ---- Menu «+ Blocco» degli editor (DocumentSectionsEditor) ----
+   Quattro tasti sotto OGNI sezione erano quattro righe di comandi ripetute per ogni sezione di ogni editor,
+   per un gesto che si fa qualche volta. Uno solo, col tipo scelto dopo. <details> nativo: si apre senza
+   circuito Blazor, e la delega in vipi-ui.js lo chiude al clic su una voce o fuori. */
+.blk-add{position:relative;display:inline-block;margin-top:8px}
+/* ⚠️ Il marcatore di serie va tolto in DUE modi: `list-style` copre Firefox, lo pseudo-elemento WebKit copre
+   Chrome ed Edge. Con uno solo resta il triangolino dentro il tasto. */
+.blk-add>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.blk-add>summary::-webkit-details-marker{display:none}
+.blk-add>summary::marker{content:""}
+.blk-add-menu{position:absolute;z-index:30;top:calc(100% + 4px);left:0;min-width:170px;
+  display:flex;flex-direction:column;gap:2px;padding:6px;
+  background:var(--paper,#fff);border:1px solid var(--line);border-radius:8px;
+  box-shadow:0 8px 24px rgba(16,24,64,.14)}
+/* Le voci sono un elenco, non una barra: piene, allineate a sinistra, senza bordo che le faccia sembrare tasti. */
+.blk-add-menu .btn{justify-content:flex-start;width:100%;border-color:transparent;text-align:left}
+.blk-add-menu .btn:hover{background:#eef1fb;border-color:transparent}
+
+/* ---- vLOA: quali settori stanno NEL DOCUMENTO (editor AoR) ----
+   Erano `.aor-chip` come i chip che AccAor disegna sessanta pixel piu' su, e i due gesti non c'entrano
+   niente: questi scrivono nel documento, quelli accendono un poligono per chi guarda. Un elenco con caselle
+   non si confonde con una fila di chip, e in piu' dice QUANTI settori sono dentro. */
+.vloa-aor-pick{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.vloa-aor-pick .help{margin:2px 0 8px}
+.vloa-aor-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 12px}
+.vloa-aor-row{display:flex;align-items:center;gap:8px;padding:3px 6px;border-radius:6px;cursor:pointer;min-width:0}
+.vloa-aor-row:hover{background:#eef1fb}
+/* ⚠️ La casella NON prende `flex:1`: e' la regola dei campi di testo, e su una checkbox la stira a riempire
+   la cella lasciando l'elenco non incolonnato (gia' pagata sulla pagina Sorgenti). */
+.vloa-aor-row input[type=checkbox]{flex:none;margin:0}
+.vloa-aor-row .sw{flex:none;width:12px;height:12px;border-radius:3px;border:1px solid}
+.vloa-aor-row .vloa-aor-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vloa-aor-row.off{opacity:.55}
+.vloa-aor-row .pill{flex:none}
