@@ -245,7 +245,7 @@ Misurato guidando tutte le pagine di lavoro a **1600×900, in italiano**, sul DB
 dai dati: in produzione i numeri saranno altri, l'ordine di grandezza no). «Fasce» = callout ed EditLockBar
 messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = intestazione appiccicata.
 
-### Già a norma — dodici pagine, e sono loro ad aver prodotto le regole
+### Già a norma — tredici pagine, e sono loro ad aver prodotto le regole
 
 | Pagina | Rotta | Altezza | Note |
 |---|---|---:|---|
@@ -261,6 +261,7 @@ messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = inte
 | Audit | `/vsop/admin/audit` | 900 | **da 13 293** misurata con 248 righe (la ricognizione diceva 1 556 con 28, ed era il numero **col tetto**): un pannello misurato col `thead` fermo, ogni riga una frase al posto del JSON, periodo al posto del tetto muto ([carte](../feature/2026-08-22-audit-cosa-registra.md) e [densità](../feature/2026-08-22-audit-densita-ui.md)). Resta 900 con 500 righe e da zoom 0.8 a 1.5 |
 | Sorgenti | `/vsop/admin/sorgenti` | 900 | **da 1 252**, ma il numero non era il problema: la pagina prometteva «l'import non la tocca più» ed era **falso per Settori, TA e Piste** (gate assenti o solo in un chiamante). Una tabella al posto di due, chi ha deciso la policy, il cambio nel registro ([carte](../feature/2026-08-22-sorgenti-cosa-fa-la-policy.md) e [densità](../feature/2026-08-22-sorgenti-densita-ui.md)). `max-height` e non `height`: il contenuto è corto e fisso |
 | Diagnostica | `/vsop/admin/diagnostica` | 900 | **da 1 349** misurata con otto rilievi (la ricognizione diceva 900 col report **vuoto**), e resta 900 con **76**: due colonne, riquadro misurato col `thead` fermo, chip per **area**, «Dove si ripara» ([carte](../feature/2026-08-22-diagnostica-cosa-afferma.md) e [densità](../feature/2026-08-22-diagnostica-densita-ui.md)). ⚠️ Qui `height` e non `max-height`: il contenuto è più alto dello schermo per mestiere |
+| Nuovo documento | `/vsop/editor/newdoc` | 900 | **da 957** sulla scheda vLOA (le altre tre erano già 900 — ⚠️ su una pagina a schede si misura **ogni scheda**): campi in griglia, tasto **sotto** i campi che gli servono, schede riordinate, barra admin **senza** voce nell'elenco ([carte](../feature/2026-08-22-newdoc-cosa-crea.md) e [densità](../feature/2026-08-22-newdoc-densita-ui.md)). `max-height`: corto e fisso a zoom 1, non a 1.25 |
 
 L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riquadro sì.
 
@@ -273,10 +274,9 @@ quanto pesa il giro.
 
 | # | Pagina | Rotta | Prima | **Ora** | Cosa le manca (misurato) |
 |---:|---|---|---:|---:|---|
-| 1 | **Nuovo documento** | `/vsop/editor/newdoc` | 957 | 957 | Sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia. Il **lock in fascia qui va bene**: la pagina è corta e la fascia è la forma giusta — è la ragione per cui i margini si azzerano nel CSS della testata e non nel componente. ⚠️ **Non ha la barra e ha ancora la briciola**: non è in `AdminNav.Voci` (ci si arriva da Documenti). Decidere se entra nell'elenco è parte del suo giro. |
-| 2 | **Incarichi admin** | `/vsop/admin/tasks` | 900 | 900 | Corta: solo sottotitolo → «?» e il messaggio che non spinge. Barra su due righe (`.wrap` a 1 200px). |
-| 3 | **Incarichi** (utente) | `/vsop/tasks` | 900 | 900 | Come sopra. ⚠️ **Non ha la barra e ha ancora la briciola**, ed è giusto: è una pagina d'utente, non admin. |
-| 4 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
+| 1 | **Incarichi admin** | `/vsop/admin/tasks` | 900 | 900 | Corta: solo sottotitolo → «?» e il messaggio che non spinge. Barra su due righe (`.wrap` a 1 200px). |
+| 2 | **Incarichi** (utente) | `/vsop/tasks` | 900 | 900 | Come sopra. ⚠️ **Non ha la barra e ha ancora la briciola**, ed è giusto: è una pagina d'utente, non admin. |
+| 3 | **Editor APP**, **Editor vLOA** | `/vsop/{acc}/apps/editor`, `/vsop/{acc}/vloa/editor` | 900 | 900 | Corte con i dati di sviluppo; da rimisurare su un documento vero prima di decidere. |
 
 ⚠️ **Il metro «sottotitolo sì/no» non si misura con `.doc-head .muted`**: su Struttura quel selettore pesca
 «Sola lettura» della barra del lock e risponde «c'è un sottotitolo» su una pagina che non ce l'ha. I «?» si
@@ -738,6 +738,52 @@ il difetto peggiore del ramo: **la pagina che diagnostica i guasti moriva se ne 
      del vicino — non lasciata com'era quando stava da solo in fondo alla pagina.
 
 
+## 25. Quello che ha lasciato il giro Nuovo documento (22 agosto)
+
+Tredicesima pagina, e la **quinta di fila** con un difetto di sostanza sotto la densità. Qui il difetto era
+nel **nome**: la pagina si chiama «Nuovo documento» e per tre tipi su quattro non crea niente. Carte:
+[cosa crea](../feature/2026-08-22-newdoc-cosa-crea.md) e
+[densità](../feature/2026-08-22-newdoc-densita-ui.md). Regole **163-170**.
+
+163. ⚠️ **Due porte che creano la stessa cosa hanno due politiche, sempre.** La vLOA si genera da
+     «ACC confinanti» (idempotente per parti: «se esiste già, riusala») e si crea da «Nuovo documento» (che
+     ne faceva sempre una nuova). Il contratto dichiarava «una sola vLOA per coppia» dal primo giorno e
+     nessuno lo imponeva. ⚠️ E il resto dell'applicazione **non sa gestirne due**: la ricerca per coppia fa
+     `FirstOrDefault`, quindi l'editor ne apre una senza un criterio e l'altra resta invisibile pur potendo
+     avere release pubblicate. Gemella della regola 143 (un gate per categoria, non uno per chiamante).
+164. **Rifiutare non è «riusare in silenzio».** L'import può riusare zitto — non c'è nessuno davanti. Una
+     pagina no: chi ha appena scritto un titolo deve sapere **perché** non è stato usato, e il messaggio deve
+     **nominare** quello che c'è già. E dire di no senza dire dove è mezza risposta: accanto al rifiuto ci va
+     il link. ⚠️ La direzione conta: A→B e B→A sono due documenti legittimi, e confonderli sarebbe un difetto
+     peggiore del duplicato, perché toglierebbe un documento vero.
+165. ⚠️ **Un documento nasce con la struttura del suo catalogo, da qualunque porta.** Da qui la vLOA nasceva
+     con **una** sezione a chiave *libera*, mentre dall'altra porta nasceva con le sette del profilo: usciva
+     un documento **fuori catalogo**, con le obbligatorie assenti e l'unica presente sconosciuta a chi decide
+     chi rende il corpo. La pagina lo **dichiarava** perfino — «la vLOA nasce vuota» — e un difetto
+     documentato resta un difetto: la prosa che descrive un difetto lo rende accettabile, non lo cura.
+166. ⚠️ **La porta non può essere più stretta della serratura.** Pagina dietro `IsAdmin`, servizi
+     autorizzati per **grant di ACC**: il responsabile di un ACC non vedeva la pagina ma poteva creare lo
+     stesso andando all'URL dell'editor. È la regola 95 (Versioni) in un altro punto. Il filtro delle tendine
+     si fa con la **stessa** domanda che poi rifiuterebbe (`CanEditAccAsync`), non deducendola dai grant: due
+     letture della stessa regola divergono.
+167. **Un read-model di pagina è la risposta a «questa pagina ha bisogno di elenchi che sono admin-only».**
+     Allentare gli elenchi globali per far entrare un ruolo cambierebbe i permessi anche delle pagine dove si
+     **scrive**. Un servizio che filtra per chi guarda li lascia stretti. ⚠️ Filtra, non autorizza: una
+     tendina è una comodità, non una guardia (regola 96).
+168. **Un'etichetta che mente costa più di un'etichetta lunga.** «Crea e apri editor» su un bersaglio che ha
+     già il documento diceva il falso; ora il tasto dice «Apri» quando apre. Non è un divieto — aprire ciò
+     che c'è è quasi sempre ciò che si vuole — è un'etichetta che smette di mentire. Il dato («ha già un
+     documento») viene da **chi lo possiede**, non da una seconda lettura dell'elenco documenti.
+169. ⚠️ **Su una pagina a schede si misura OGNI scheda.** «La pagina» è la scheda che si apre per prima, e
+     non è detto che sia quella che pesa. Qui erano 957 la vLOA e 900 le altre tre. E si misura anche in due
+     **stati**: vuota e con un bersaglio scelto, perché è allora che compaiono le tendine dipendenti.
+170. ⚠️ **Il tasto va DOVE FINISCE quello che gli serve.** Stava dopo il titolo e sopra i quattro menu
+     obbligatori: si leggeva come se «titolo + Crea» bastasse, e chi lo premeva otteneva un errore che la
+     pagina causava con la propria disposizione. Nessuna misura lo trova — si vede guardando la schermata, o
+     confrontando il bordo del tasto con quello dei campi. E il **perché** di un tasto spento gli sta
+     accanto, non solo in una barra in cima.
+
+
 ## Dove sta la roba
 
 | Cosa | Dove |
@@ -747,6 +793,7 @@ il difetto peggiore del ramo: **la pagina che diagnostica i guasti moriva se ne 
 | Altezza misurata, contenuto corto e fisso | `vipiCapViewport(sel, collapseBelow)` — scrive `max-height`: alto quanto il contenuto, scorre solo se non ci sta (regola 150) |
 | Etichette delle categorie di import | `ImportCategoryLabels` — condivise fra la pagina Sorgenti e `AuditNarrator` |
 | Testo dei rilievi di diagnostica | `ConsistencyNarrator` — chiave ⇒ traduzione, chiave ignota ⇒ testo grezzo (regola 159) |
+| Elenchi filtrati per chi guarda | un **read-model di pagina** (`NewDocumentOptionsService`, `ImportOverviewService`) — regola 167 |
 | Quota di una fascia appiccicata | `vipiStickyOffset(selettore, nomeVar, ambito)` → variabile CSS sul `.wrap` |
 | Fattore di zoom | `rootZoom()` — `vipi-ui.js` |
 | «?» che si apre dove c'è posto | `placeHelpPop` + `toggle` in cattura — `vipi-ui.js` |

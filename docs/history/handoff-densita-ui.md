@@ -1,4 +1,4 @@
-﻿# Handoff — il ramo della densità UI (aggiornato 22 agosto 2026, dopo il giro Diagnostica)
+﻿# Handoff — il ramo della densità UI (aggiornato 22 agosto 2026, dopo il giro Nuovo documento)
 
 > **A cosa serve.** Ripartire a freddo sul ramo `ui-trasferimenti-densita` senza rileggere la cronologia.
 > Chi deve fare **la prossima pagina** legge solo questo file più
@@ -15,7 +15,7 @@ Il perno è che **ogni fascia tolta in testa diventa contenuto visibile**.
 
 ## Le regole sono già scritte — leggerle PRIMA di toccare una pagina
 
-[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **162 voci in 24 gruppi**, ognuna
+[`docs/design/regole-ui-pagine-admin.md`](../design/regole-ui-pagine-admin.md): **170 voci in 25 gruppi**, ognuna
 già costata un giro di correzioni, più la **ricognizione misurata** (§15) di tutte le pagine con cosa manca a
 ognuna e in che ordine conviene farle. Non è un regolamento di stile: è l'elenco di ciò che, saltato, si ripaga.
 
@@ -24,7 +24,7 @@ Il §«Dove sta la roba» in coda dice quale classe/funzione usare per ogni pezz
 `.conf-layout`, e in `vipi-ui.js` `vipiFitViewport` / `vipiStickyOffset` / `rootZoom` / `placeHelpPop`) **c'è
 già e si riusa**, non si riscrive.
 
-## Dodici pagine chiuse
+## Tredici pagine chiuse
 
 | Pagina | Rotta | Prima → dopo | Carta |
 |---|---|---|---|
@@ -40,6 +40,7 @@ già e si riusa**, non si riscrive.
 | **Audit** | `/vsop/admin/audit` | **13 293 → 900** (+ cosa registra) | `2026-08-22-audit-cosa-registra.md`, `2026-08-22-audit-densita-ui.md` |
 | **Sorgenti** | `/vsop/admin/sorgenti` | **1 252 → 900** (+ cosa fa la policy) | `2026-08-22-sorgenti-cosa-fa-la-policy.md`, `2026-08-22-sorgenti-densita-ui.md` |
 | **Diagnostica** | `/vsop/admin/diagnostica` | **1 349 → 900** (+ cosa afferma) | `2026-08-22-diagnostica-cosa-afferma.md`, `2026-08-22-diagnostica-densita-ui.md` |
+| **Nuovo documento** | `/vsop/editor/newdoc` | **957 → 900** (+ cosa crea) | `2026-08-22-newdoc-cosa-crea.md`, `2026-08-22-newdoc-densita-ui.md` |
 
 Le carte stanno in `docs/feature/`.
 
@@ -228,20 +229,68 @@ c'è dentro**, e la differenza si vede a occhio prima che nei numeri.
 categoria e dettaglio, il **bersaglio** restava italiano — «severe | Broken hierarchy | *Settore ACC*
 LGGG_W_CTR». Metà dei bersagli non è un identificatore ma una frase.
 
-### La prossima pagina: Nuovo documento
+## Nuovo documento: chiusa il 22 agosto, in due giri
 
-**Nuovo documento** (`/vsop/editor/newdoc`, 957px: sottotitolo, 8 paragrafi d'aiuto, 2 callout in fascia; ⚠️
-**non ha la barra** e ha ancora la briciola, perché non è in `AdminNav.Voci` — se entri nell'elenco è parte
-del suo giro), poi Incarichi ed editor APP/vLOA. L'ordine aggiornato sta in §15.
+**Sostanza** (carta [`2026-08-22-newdoc-cosa-crea.md`](../feature/2026-08-22-newdoc-cosa-crea.md), regole
+163-170 insieme alla densità). Quinta pagina di fila con un difetto di sostanza sotto la densità, e qui il
+difetto era **nel nome**: si chiama «Nuovo documento» e per **tre tipi su quattro non crea niente** — apre
+l'editor, che crea *se serve*. Il quarto, la vLOA, creava davvero. E creava male:
 
-Le tre lezioni da portarsi dietro, in ordine di quanto sono costate:
-1. ⚠️ **Prima di renderla bella, verificare che dica il vero.** Quattro pagine su quattro — Versioni, Audit,
-   Sorgenti, Diagnostica — aperte per la densità nascondevano un difetto di sostanza, e su tutte e quattro
-   era la **prosa della pagina** a prometterlo.
-2. ⚠️ **Prima di misurarla, riempirla** (Permessi) e, se accumula, **rimisurarla** (Audit). Una pagina che
-   non ha niente da dire misura sempre poco.
+- ⚠️ **da qui si creavano vLOA duplicate**, mentre la generazione da «ACC confinanti» è idempotente per
+  parti. Il contratto dichiarava «una sola vLOA per coppia ACC↔ACC» dal primo giorno e nessuno lo imponeva.
+  E il resto dell'applicazione **non sa gestirne due**: la ricerca per coppia fa `FirstOrDefault`, quindi
+  l'editor ne apriva una senza un criterio e l'altra restava invisibile — pur potendo avere release
+  pubblicate;
+- ⚠️ **la vLOA nasceva fuori catalogo**: una sezione a chiave *libera* invece delle sette del profilo, mentre
+  dall'altra porta nasceva con le canoniche. La pagina lo **dichiarava** — «la vLOA nasce vuota» — e un
+  difetto documentato resta un difetto;
+- ⚠️ **la porta era più stretta della serratura**: pagina dietro `IsAdmin`, servizi autorizzati per **grant
+  di ACC**. Il responsabile di un ACC non vedeva la pagina ma poteva creare andando all'URL dell'editor
+  (regola 95, in un altro punto);
+- il tasto diceva «Crea» anche quando apriva.
+
+**Densità** (carta [`2026-08-22-newdoc-densita-ui.md`](../feature/2026-08-22-newdoc-densita-ui.md)):
+**957 → 900**, e 900 su **tutte e quattro le schede**, a 1600/1440/1280/1024, IT ed EN, zoom 0.8→1.5.
+
+⚠️ **Su una pagina a schede si misura OGNI scheda**: «la pagina» è quella che si apre per prima, e non è
+detto che sia quella che pesa (qui 957 la vLOA, 900 le altre tre). E si misura in **due stati**: vuota e con
+un bersaglio scelto, perché è allora che compaiono le tendine dipendenti.
+
+⚠️ **Il difetto peggiore non era un'altezza**: il tasto che conclude stava **prima** di quattro dei cinque
+campi che gli servono. Si leggeva come se «titolo + Crea» bastasse, e chi lo premeva otteneva un errore che
+la pagina causava con la propria disposizione. Nessuna misura lo trova.
+
+⚠️ E **la coppia `height`/`max-height` si affina ancora**: avevo deciso «niente riquadro misurato, il
+contenuto è corto e fisso» — vero a zoom 1, **falso a 1.25**, dove la pagina tornava a scorrere. «Corto e
+fisso» non vuol dire «non misurare»: vuol dire **`max-height`**.
+
+**Decisione chiusa, lasciata aperta dalla ricognizione**: la barra admin **sì**, la voce nell'elenco **no**.
+Sono due cose diverse — `AdminNav` è già a undici voci e sotto i 1 200px va su due righe, e «Nuovo documento»
+non è una destinazione che si cerca. ⚠️ Regola generale: **la barra mostra dove si può andare, non dove si
+è**; la voce accesa non è un requisito per renderla. E per un utente con un solo grant la barra **non si
+rende affatto** (il componente si nasconde con una voce sola): tolta la briciola, la risalita è il tasto
+«Bozze & versioni» in testata — verificato, perché togliere una briciola in una pagina senza barra sarebbe
+stato lasciarla senza uscita.
+
+### La prossima pagina: Incarichi
+
+**Incarichi admin** (`/vsop/admin/tasks`, 900px) e **Incarichi utente** (`/vsop/tasks`, 900px) — due pagine,
+non una, e la differenza è dichiarata: la seconda è d'utente e resta **senza barra**, con la sua briciola.
+Poi gli **editor APP/vLOA**. L'ordine aggiornato sta in §15.
+
+⚠️ **Quei 900 sono misure a pagina quasi vuota**, e dopo cinque giri vale la pena dirlo prima: la
+ricognizione dava 900 anche a Diagnostica (erano 1 349 con otto rilievi), 1 346 a Permessi (erano 2 449) e
+1 556 ad Audit (erano 13 293).
+
+Le tre lezioni del ramo, in ordine di quanto sono costate:
+1. ⚠️ **Prima di renderla bella, verificare che dica il vero.** **Cinque** pagine su cinque — Versioni,
+   Audit, Sorgenti, Diagnostica, Nuovo documento — aperte per la densità nascondevano un difetto di sostanza.
+   Su quattro era la **prosa della pagina** a prometterlo; sulla quinta era il **nome**.
+2. ⚠️ **Prima di misurarla riempirla** (Permessi) e, se accumula, **rimisurarla** (Audit). E se ha schede,
+   **misurarle tutte** (Nuovo documento).
 3. **Il riquadro misurato non è un riflesso**: `height` dove il contenuto è più alto dello schermo per
-   mestiere, `max-height` dove è corto e fisso, niente dove non serve.
+   mestiere, `max-height` dove è corto e fisso — ma `max-height` **serve lo stesso**, perché lo zoom cambia
+   quello che «ci sta».
 
 ## Aperto, e non è di queste pagine
 

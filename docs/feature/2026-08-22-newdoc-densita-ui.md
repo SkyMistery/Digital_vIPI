@@ -130,17 +130,47 @@ Passi: **1600 / 1440 / 1280 / 1024**, **IT ed EN**, zoom **0.8 → 1.5** con `wi
 **guardare** gli screenshot: il difetto peggiore di questa pagina — il tasto sopra i suoi campi — nessuna
 misura lo trova.
 
-## Slice di questo pezzo (dopo le quattro della sostanza)
+## Esito misurato (verifica live del 22 agosto)
 
-5. **Testata in una riga** + barra admin (senza voce) al posto della briciola + prosa nei «?» + schede
-   riordinate e rinominate.
-6. **La griglia dei campi** e il tasto in fondo; la barra del lock solo sulla scheda che crea.
-7. **Guida** `#nuovo-documento` (IT/EN) + voce nel catalogo di ricerca.
-8. **Misura e rifiniture**: quattro schede × due stati, quattro assetti, due lingue, cinque zoom; poi carta +
-   regole + ricognizione §15 + memoria.
+**957 → 900** sulla scheda vLOA, e **900 su tutte e quattro**: la pagina non scorre a 1600×900, 1440×900,
+1280×800 e 1024×768, in italiano **e** in inglese, da zoom **0.8 a 1.5**. Il pannello misura 218px sulle tre
+schede vIPI e 463 sulla vLOA — cioè quanto il suo contenuto.
 
-⚠️ Trappole già pagate che valgono qui: le regole CSS nuove in **coda** al foglio e con `.struct` davanti;
-una classe non può significare due cose; `.se-row input{flex:1}` è la regola dei **campi di testo** e colpisce
-anche le checkbox (trappola di Sorgenti, e qui ci sono cinque campi); `@bind` a un valore che non è fra le
-opzioni **non ne sceglie nessuna** (trappola di Permessi, e qui ci sono quattro tendine dipendenti); e le
-stringhe nuove si rileggono **in pagina italiana**.
+E il difetto peggiore è chiuso, misurato: **il tasto sta sotto i campi che gli servono** su tutte e quattro
+le schede (il driver lo verifica confrontando il bordo superiore del tasto con il bordo inferiore più basso
+dei campi, non a occhio).
+
+### I due stati che il DB di sviluppo non ha
+
+| Stato | Come si è costruito | Cosa ha detto |
+|---|---|---|
+| coppia vLOA **già esistente** | c'era già: LIBB ↔ LGGG nel DB di sviluppo | il **service** rifiuta, e la pagina offre il link: «Esiste già una vLOA LIBB ↔ LGGG (documento #8)» + «Apri quella che c'è →» verso `/vsop/libb/vloa/editor?acc=LGGG` |
+| utente con **grant ma non admin** | un `EditGrant` scritto nella copia + i pattern admin ristretti a `^IT-DIR$` con `Auth__AdminStaffCodes__0` | la pagina **si apre** (prima no) e la tendina ha **solo LIBB** |
+
+⚠️ Il secondo stato ha fatto emergere una conseguenza della decisione sulla barra: per un utente con un solo
+grant `AdminNav` **non si rende affatto** (il componente si nasconde quando resta una voce sola), e la
+briciola l'ho tolta. La risalita è il tasto **«Bozze & versioni»** in testata — che è esattamente l'unico
+salto che la briciola faceva. Regge, ma andava verificato: togliere una briciola in una pagina senza barra
+sarebbe stato lasciarla senza uscita.
+
+### Quello che ha visto l'occhio e non i numeri
+
+- ⚠️ **Le quattro schede si stiravano a 375px l'una** su schermo largo: `.seg button{flex:1}` è la classe di
+  un segmented control che riempie la riga, e qui quella regola non serviva. **Stessa famiglia della
+  trappola di `.se-row input{flex:1}` su Sorgenti**: una classe pensata per un uso, riusata dove la sua
+  regola fa danno. Il rimedio è lo stesso — non usarla.
+- ⚠️ **Sotto zoom la pagina tornava a scorrere**: 950px a 1.25, 1 132 a 1.5. Avevo deciso «niente riquadro
+  misurato, il contenuto è corto e fisso» — vero a zoom 1, **falso a 1.25**. Serve `vipiCapViewport`
+  (`max-height`): alto quanto il contenuto quando ci sta, e dentro scorre solo quando non ci starebbe.
+  La lezione del ramo si affina: «corto e fisso» non vuol dire «non misurare», vuol dire **`max-height`**.
+
+### Rimasto, e dichiarato
+
+Il pannello è a larghezza piena mentre il modulo è a 720px: c'è del bianco a destra. Stringere il pannello
+sul modulo lo farebbe sembrare una finestra galleggiante in mezzo alla pagina; con quattro schede in cima,
+il riquadro che le contiene deve essere la pagina. Resta così.
+
+## Slice, come sono andate
+
+Otto sulla carta, otto fatte — quattro di sostanza e quattro di forma — più il giro di correzioni che la
+verifica live ha fatto nascere, ed è quello che ha prodotto le regole 165 e 166.
