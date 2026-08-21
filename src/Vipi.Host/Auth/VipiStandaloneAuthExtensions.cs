@@ -318,8 +318,13 @@ public sealed class VipiAuthOptions
     /// <c>firstName</c>/<c>lastName</c> sulla userinfo: senza, il sito conosce il VID e nient'altro.
     /// Unico posto dove l'elenco è scritto: <c>appsettings.json</c> lo ripete per renderlo visibile a
     /// chi configura, ma il default vive qui.
+    /// <para>Niente <c>tracker</c>: chiedeva il permesso di leggere la sessione live <b>dell'utente</b>,
+    /// e nessuno lo usava. Il pallino «in frequenza» (<c>LiveBadge</c>) lo alimenta il polling del server
+    /// col token dell'APPLICAZIONE (sezione <c>Ivao</c>, tutt'altra strada), e il token dell'utente non lo
+    /// conserviamo nemmeno (<c>SaveTokens = false</c>). Era un permesso chiesto a ogni staffista nella
+    /// schermata di consenso IVAO in cambio di niente: si chiede il minimo, e il minimo è questo.</para>
     /// </summary>
-    public static readonly string[] DefaultScopes = { "openid", "profile", "email", "tracker" };
+    public static readonly string[] DefaultScopes = { "openid", "profile", "email" };
 
     /// <summary>Attiva il login IVAO standalone. Default false: in embedded l'auth la fornisce l'host.</summary>
     public bool Enabled { get; set; }

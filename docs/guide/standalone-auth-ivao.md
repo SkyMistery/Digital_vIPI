@@ -49,7 +49,7 @@ motivati sotto: `SaveTokens=false`, claim mappati a mano invece di `ClaimActions
 "VipiAuth": {
   "Enabled": false,
   "Authority": "https://api.ivao.aero",
-  "Scopes": [ "openid", "profile", "email", "tracker" ],
+  "Scopes": [ "openid", "profile", "email" ],
   "CallbackPath": "/signin-oidc",
   "SignedOutCallbackPath": "/signout-callback-oidc"
 }
@@ -131,6 +131,12 @@ che **non** è il placeholder `"User {vid}"` e viene accettato come ripiego — 
 
 Se un giorno il nome sparisse di nuovo, la prima cosa da guardare è lo **scope concesso all'app OAuth**:
 un client registrato per il solo `tracker` non riceve `profile`, e si torna al nickname.
+
+Gli scope chiesti sono **tre**: `openid`, `profile`, `email`. Il `tracker` è stato tolto il 22-ago-2026:
+chiedeva il permesso di leggere la sessione live **dell'utente**, e nessuno lo usava — il pallino «in
+frequenza» (`LiveBadge`) lo alimenta il polling del server col token dell'**applicazione** (sezione `Ivao`),
+e il token utente non lo conserviamo (`SaveTokens = false`). Era un permesso chiesto a ogni staffista nella
+schermata di consenso IVAO in cambio di niente.
 
 `Ivao.It.Logging` **non c'entra** col nome: è la libreria di logging (Serilog) della divisione.
 
