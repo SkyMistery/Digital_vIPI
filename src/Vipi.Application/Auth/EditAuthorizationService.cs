@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
@@ -138,7 +138,7 @@ public sealed class EditAuthorizationService : IEditAuthorizationService
     public Task RevokeGrantAsync(int grantId, CancellationToken ct = default)
     {
         EnsureAdmin();
-        return _grants.RevokeAsync(grantId, ct);
+        return _grants.RevokeAsync(grantId, CurrentUserId ?? 0, ct);
     }
 
     public void EnsureAdmin()

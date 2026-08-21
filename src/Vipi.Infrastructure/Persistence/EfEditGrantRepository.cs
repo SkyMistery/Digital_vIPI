@@ -51,12 +51,15 @@ public sealed class EfEditGrantRepository : IEditGrantRepository
         return grant.Id;
     }
 
-    public async Task RevokeAsync(int grantId, CancellationToken ct = default)
+    public async Task RevokeAsync(int grantId, int actorUserId, CancellationToken ct = default)
     {
         var g = await _db.EditGrants.Include(x => x.Acc).FirstOrDefaultAsync(x => x.Id == grantId, ct);
         if (g is null) return;
         _db.EditGrants.Remove(g);
-        Audit(g.GrantedByUserId, AuditAction.Archive, g.Id, g.UserId, g.Acc?.Code ?? g.AccId.ToString());
+        // ⚠️ L'attore è chi revoca, non g.GrantedByUserId: quello è chi aveva concesso, e per due anni il
+        // registro ha attribuito la revoca a lui. La riga dice Delete e non Archive: il permesso non è
+        // conservato da nessuna parte, la riga esce dalla tabella.
+        Audit(actorUserId, AuditAction.Delete, g.Id, g.UserId, g.Acc?.Code ?? g.AccId.ToString());
         await _db.SaveChangesAsync(ct);
     }
 
