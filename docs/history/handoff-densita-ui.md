@@ -138,6 +138,12 @@ lo si legge anche in SQL. Fuori, dichiarati: gli **import** e i **salvataggi** d
 una tabella con 20 e 28 righe in un DB di sviluppo quasi vuoto — ed erano numeri **col tetto**, perché il
 lettore tagliava a 200 righe in silenzio. Un registro cresce **per sempre**: la misura si rifà, non si cita.
 
+⚠️ **Il bersaglio dice il titolo, e ha tre fonti in ordine**: il titolo **scritto nella riga** (quello che
+il documento aveva al momento dell'atto, e per un documento eliminato l'unico rimasto), poi una mappa
+Id→titolo letta in **una query per pagina** per le righe vecchie che portano solo l'Id, poi l'Id nudo. Su una
+riga di pubblicazione l'`EntityId` è la **versione**, non il documento: cercare la mappa con quello darebbe
+il titolo di un **altro** documento, in silenzio e in modo plausibile.
+
 Cosa insegna, oltre a questo (regole 133-142): il dato grezzo non si butta e non si mette in colonna (il JSON
 sta nel `title`); il vocabolario vecchio si **legge**, non si riscrive (`Archive` e `Delete` per la stessa
 revoca dicono la stessa frase); il non-evento non si scrive; **un formattatore per tipo di dato, non uno per
