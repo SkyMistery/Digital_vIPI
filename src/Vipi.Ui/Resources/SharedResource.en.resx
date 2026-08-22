@@ -835,7 +835,7 @@
   <data name="Sorg_RunwaysLabel" xml:space="preserve"><value>Runways</value></data>
   <data name="Sorg_RunwaysDesc" xml:space="preserve"><value>Runway ident, length and bearing</value></data>
   <data name="Sorg_SectorsLabel" xml:space="preserve"><value>Sectors</value></data>
-  <data name="Sorg_SectorsDesc" xml:space="preserve"><value>Airport sectors (callsign/type/frequency)</value></data>
+  <data name="Sorg_SectorsDesc" xml:space="preserve"><value>Airport sectors (callsign/type/frequency) + TWR polygons from GitHub, 5 NM circle where missing</value></data>
   <data name="Sorg_SidDesc" xml:space="preserve"><value>SIDs from the Aurora sectorfile (GitHub)</value></data>
   <data name="Sorg_SpecialAreasLabel" xml:space="preserve"><value>Regulated areas</value></data>
   <data name="Sorg_SpecialAreasDesc" xml:space="preserve"><value>Per-ACC special areas (name, type, altitudes, shape)</value></data>
@@ -873,7 +873,8 @@
   <data name="Sorg_ProvSourceAlways" xml:space="preserve"><value>always from source</value></data>
   <data name="Sorg_AccLabel" xml:space="preserve"><value>ACCs (directory)</value></data>
   <data name="Sorg_AccDesc" xml:space="preserve"><value>ACC and subcenter list: no checkbox, always from the source</value></data>
-  <data name="Sorg_OnDemand" xml:space="preserve"><value>on demand: no automatic run</value></data>
+  <data name="Sorg_AptLabel" xml:space="preserve"><value>Airports (directory)</value></data>
+  <data name="Sorg_AptDesc" xml:space="preserve"><value>Assigns new division airports to their ACC, with their sector catalogue. ⚠️ The only run that creates: it adds, never removes</value></data>
   <data name="Sorg_LastAndNext" xml:space="preserve"><value>{0} · next {1}</value></data>
   <data name="Sorg_LastData" xml:space="preserve"><value>last data {0}</value></data>
   <data name="Sorg_LastAndMissed" xml:space="preserve"><value>{0} · due {1}, never arrived</value></data>

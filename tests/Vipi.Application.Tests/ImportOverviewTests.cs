@@ -20,19 +20,69 @@ public class ImportOverviewTests
         new(new PolicyFinta(policy), new StatiFinti(stati), new CadenzaFinta());
 
     [Fact]
-    public async Task Ci_sono_sei_righe_e_l_anagrafica_ACC_e_la_prima()
+    public async Task Ci_sono_sette_righe_e_le_due_anagrafiche_stanno_in_testa()
     {
         var righe = await Servizio(ImportPolicySnapshot.AllImported).ListAsync();
 
-        Assert.Equal(6, righe.Count);
-        Assert.Null(righe[0].Categoria);                            // l'anagrafica non ha una spunta
+        Assert.Equal(7, righe.Count);
+        Assert.Equal(new[] { ImportAnagrafica.Acc, ImportAnagrafica.Aeroporti },
+            righe.Take(2).Select(r => r.Anagrafica!.Value));
         Assert.Equal(ImportCategories.Acc, righe[0].StateKey);
-        Assert.True(righe[0].DaSorgente);
+        Assert.True(righe[0].DaSorgente && righe[1].DaSorgente);    // le anagrafiche non hanno una spunta
         Assert.Equal(new[]
         {
             ImportCategory.TransitionAltitude, ImportCategory.Runways, ImportCategory.Sectors,
             ImportCategory.Sids, ImportCategory.SpecialAreas,
-        }, righe.Skip(1).Select(r => r.Categoria!.Value));
+        }, righe.Skip(2).Select(r => r.Categoria!.Value));
+    }
+
+    /// <summary>
+    /// ⚠️ Ogni riga è o una categoria con la spunta, o un'anagrafica: mai tutt'e due, mai nessuna delle due.
+    /// È l'invariante che tiene in piedi il descrittore della pagina — finché regge, «non è una categoria»
+    /// significa «è quell'anagrafica lì», e non «è quella che capita».
+    /// </summary>
+    [Fact]
+    public async Task Categoria_e_anagrafica_si_escludono()
+    {
+        var righe = await Servizio(ImportPolicySnapshot.AllImported).ListAsync();
+
+        Assert.All(righe, r => Assert.True(r.Categoria is null ^ r.Anagrafica is null));
+    }
+
+    /// <summary>
+    /// ⚠️ L'anagrafica aeroporti gira anche lei ogni giorno, ed è l'<b>unico</b> giro che <b>crea</b>
+    /// entità: assegna gli scali nuovi alla loro ACC e ne importa il catalogo settori. Restò a mano fino al
+    /// 22 agosto 2026 proprio per questo — poi la richiesta è stata «in un giorno tutto aggiornato», e la
+    /// riga deve dirlo invece di dire «su richiesta», che da allora sarebbe falso.
+    /// </summary>
+    [Fact]
+    public async Task L_anagrafica_aeroporti_dichiara_il_suo_giro()
+    {
+        var quando = DateTime.UtcNow.AddHours(-5);
+        var riga = (await Servizio(ImportPolicySnapshot.AllImported,
+                Stato(ImportCategories.AirportDirectory, quando)).ListAsync())
+            .Single(r => r.Anagrafica == ImportAnagrafica.Aeroporti);
+
+        Assert.Equal(ImportHealth.Aggiornata, riga.Stato);
+        Assert.Equal(TimeSpan.FromHours(24), riga.Cadenza);
+        Assert.Equal(quando.AddHours(24), riga.ProssimoUtc);
+    }
+
+    /// <summary>
+    /// ⚠️ Nessuna riga resta «su richiesta»: era la domanda del committente — «così siamo sempre sicuri che
+    /// in un giorno sia tutto aggiornato». Tutte e sette hanno una cadenza, e questo test è il posto in cui
+    /// una riga aggiunta domani senza giro si fa notare subito.
+    ///
+    /// <para>L'unica eccezione legittima resta la sorgente <b>sconfigurata</b> (SID senza
+    /// <c>Sectorfile:RawBaseUrl</c>), che è la <see cref="SenzaCadenza"/> degli altri test.</para>
+    /// </summary>
+    [Fact]
+    public async Task Con_le_sorgenti_configurate_nessuna_riga_resta_su_richiesta()
+    {
+        var righe = await Servizio(ImportPolicySnapshot.AllImported).ListAsync();
+
+        Assert.All(righe, r => Assert.NotNull(r.Cadenza));
+        Assert.DoesNotContain(righe, r => r.Stato == ImportHealth.SuRichiesta);
     }
 
     /// <summary>⚠️ Il segnaposto della riconciliazione delle aree estere non è un import e non si mostra.</summary>
@@ -60,18 +110,38 @@ public class ImportOverviewTests
         Assert.Equal(ImportHealth.Esclusa, aree.Stato);
     }
 
-    /// <summary>TA e Piste non hanno un giro automatico: dirlo è diverso dal non dire niente.</summary>
+    /// <summary>
+    /// Dal 22 agosto 2026 TA e Piste hanno il loro giro (<c>AirportDataImportUseCase</c>): la riga deve
+    /// raccontarlo, cadenza e prossimo compresi. Prima questo stesso test asseriva il contrario — la
+    /// pagina diceva «su richiesta», che era vero e non diceva quanto fosse vecchio il dato.
+    /// </summary>
     [Theory]
     [InlineData(ImportCategory.TransitionAltitude)]
     [InlineData(ImportCategory.Runways)]
-    public async Task Le_categorie_senza_giro_automatico_lo_dichiarano(ImportCategory categoria)
+    public async Task TA_e_Piste_dichiarano_il_loro_giro(ImportCategory categoria)
     {
-        var riga = (await Servizio(ImportPolicySnapshot.AllImported).ListAsync())
+        var quando = DateTime.UtcNow.AddHours(-3);
+        var riga = (await Servizio(ImportPolicySnapshot.AllImported, Stato(ImportCategories.AirportData, quando)).ListAsync())
             .Single(r => r.Categoria == categoria);
 
-        Assert.Equal(ImportHealth.SuRichiesta, riga.Stato);
-        Assert.Null(riga.Cadenza);
-        Assert.Null(riga.ProssimoUtc);
+        Assert.Equal(ImportHealth.Aggiornata, riga.Stato);
+        Assert.Equal(TimeSpan.FromHours(24), riga.Cadenza);
+        Assert.Equal(quando.AddHours(24), riga.ProssimoUtc);
+    }
+
+    /// <summary>
+    /// ⚠️ L'invariante della chiave condivisa: TA e Piste leggono la <b>stessa</b> riga di stato, ma la
+    /// policy resta per categoria. Escludere le Piste non deve spegnere il racconto della TA — se un giorno
+    /// il gate scivolasse dal merge al loop, è questo test a cadere.
+    /// </summary>
+    [Fact]
+    public async Task Con_una_chiave_sola_la_categoria_esclusa_resta_l_unica_esclusa()
+    {
+        var righe = await Servizio(new ImportPolicySnapshot(TransitionAltitude: true, Runways: false, true, true, true),
+            Stato(ImportCategories.AirportData, DateTime.UtcNow.AddHours(-3))).ListAsync();
+
+        Assert.Equal(ImportHealth.Esclusa, righe.Single(r => r.Categoria == ImportCategory.Runways).Stato);
+        Assert.Equal(ImportHealth.Aggiornata, righe.Single(r => r.Categoria == ImportCategory.TransitionAltitude).Stato);
     }
 
     [Fact]
@@ -176,7 +246,8 @@ public class ImportOverviewTests
         public TimeSpan? PeriodOf(string category) => category switch
         {
             ImportCategories.Acc or ImportCategories.AirportSector or ImportCategories.SpecialArea
-                or ImportCategories.Sid => TimeSpan.FromHours(24),
+                or ImportCategories.Sid or ImportCategories.AirportData
+                or ImportCategories.AirportDirectory => TimeSpan.FromHours(24),
             _ => null,
         };
     }

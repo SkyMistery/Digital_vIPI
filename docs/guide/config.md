@@ -120,6 +120,8 @@ Mappata su `IvaoOptions` (`src/Vipi.Infrastructure/Ivao/IvaoOptions.cs`). Vedi `
 | `Ivao:AtcPositionDetailPathFormat` | string | `/v2/ATCPositions/{0}` | Template dettaglio postazione ATC d'aeroporto (freq/shape/limiti); `{0}` = composePosition (es. `LIRN_TWR`). |
 | `Ivao:AccImportHours` | int | `24` | Ogni quante ore re-importare automaticamente ACC + settori ACC (job giornaliero). |
 | `Ivao:AirportSectorImportHours` | int | `24` | Ogni quante ore re-importare automaticamente i settori ATC degli aeroporti (`AirportSector`, job giornaliero). |
+| `Ivao:AirportDirectoryImportHours` | int | `24` | Ogni quante ore riassegnare alla loro ACC gli aeroporti nuovi dell'anagrafica (`AirportDirectory`, job giornaliero), col loro catalogo settori. ⚠️ **L'unico giro che crea entità**; additivo, non rimuove né riassegna: uno scalo tolto dalla sorgente resta in archivio e si toglie a mano. Gira **subito dopo** gli ACC (25 s), perché i giri successivi iterano gli aeroporti che questo ha creato. |
+| `Ivao:AirportDataImportHours` | int | `24` | Ogni quante ore rileggere **TA e piste** di tutti gli aeroporti (`AirportData`, job giornaliero). Un giro costa **1** chiamata per la TA (anagrafica, già in cache per `AirportsCacheHours`) più **una per aeroporto** per le piste. Rispetta la policy di `/services/vsop/admin/sources`: con «Transition Altitude» **e** «Piste» escluse non interroga nemmeno la sorgente. |
 | `Ivao:ClientId` | string | `""` | Credenziale app-to-app. **Vuota ⇒ nessun Bearer** (il tracker è pubblico). → §5 secrets. |
 | `Ivao:ClientSecret` | string | `""` | Segreto app-to-app. → §5 secrets. |
 
