@@ -1,4 +1,4 @@
-﻿# HANDOFF — vIPI/vLOA Interactive
+# HANDOFF — vIPI/vLOA Interactive
 
 **Ultimo aggiornamento:** 22 agosto 2026 — **densità UI delle pagine admin**, sul ramo
 `ui-trasferimenti-densita`, **non ancora in `main`**.
@@ -523,7 +523,7 @@ scrive nel tag di Aurora il livello a cui cedere il traffico al prossimo ente.
 - **Configurazione:** riferimento completo in `docs/guide/config.md` (sezioni `Division`/`Ivao`/`Auth`, secrets, env var). Divisione/admin: ADR-0004.
 - **Caveman mode** spesso attivo in queste chat (comunicazione compressa) — non è parte del prodotto.
 - **Divisione pilota:** Italia (`Division:Code=IT`), **ACC pilota:** Roma (LIRR). Validare su una sola ACC prima di estendere.
-- **Brand:** palette §15.1 di `docs/design/piano-vipi-tool.md` (blu `#0D2C99`…), font Nunito Sans + Poppins; tema in `Vipi.Ui/wwwroot/vipi-theme.css` (include `@media print`).
+- **Brand:** la fonte è [ivaoaero/atmosphere](https://github.com/ivaoaero/atmosphere) → `brand/src/tokens.json` (solo colori e font). Regole operative in **`docs/design/regole-brand.md`** — leggerle prima di scrivere un colore. Font: **Poppins** (titoli), **Nunito Sans** (corpo), **IBM Plex Mono**. ⚠️ Fino al 2026-08-22 i primi due erano **scambiati**, e `piano-vipi-tool.md` §15.2 diceva l'opposto: se una carta vecchia dice «Nunito Sans → titoli», è vecchia. Tema in `Vipi.Ui/wwwroot/vipi-theme.css`, a tre livelli, **senza colori letterali fuori dal primo**; include `@media print` e un **tema scuro** che l'utente sceglie (automatico/chiaro/scuro).
 - **Parte più rischiosa:** logica AoR/visibilità → coperta da test S1–S10; mantenerla testata ad ogni modifica.
 - **Pagine interattive** usano `@rendermode InteractiveServer` (editor, trasferimenti, ricerca, changed, admin).
 - **Sicurezza:** ogni nuova operazione di scrittura deve passare per i service Application (guardia authz + lock), mai bypassare dal repo/UI.
