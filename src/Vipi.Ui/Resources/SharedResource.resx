@@ -1674,6 +1674,7 @@
   <data name="Ape_Trans" xml:space="preserve"><value>Trans.</value></data>
   <data name="Ape_Priority" xml:space="preserve"><value>Priorità</value></data>
   <data name="Ape_FixToVerify" xml:space="preserve"><value>fix da verificare</value></data>
+  <data name="Ape_PointUnknown" xml:space="preserve"><value>Questo punto non risulta nel catalogo del sectorfile: controlla la grafia.</value></data>
   <data name="Ape_AliasTitle" xml:space="preserve"><value>Aggiungi l'alias {0} → per gli import futuri</value></data>
   <data name="Ape_Public" xml:space="preserve"><value>pubblica</value></data>
   <data name="Ape_AutoPublishTitle" xml:space="preserve"><value>pubblica automaticamente dal ciclo {0}</value></data>

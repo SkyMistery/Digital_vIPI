@@ -1,0 +1,51 @@
+﻿@using Vipi.Application.Abstractions
+
+@*
+    L'elenco nativo dei punti della divisione, per i campi che stanno DENTRO una tabella.
+
+    Perché l'elenco nativo e non `TypeaheadPicker`. Il picker della pagina trasferimenti apre un riquadro in
+    posizione assoluta, e la tabella delle SID vive dentro un contenitore che scorre: un riquadro che esce dalla
+    riga verrebbe tagliato dal bordo del contenitore, e sulle ultime righe non si vedrebbe affatto. L'elenco
+    nativo lo disegna il browser fuori dalla pagina, quindi non lo taglia niente. È la stessa scelta già fatta
+    in questa tabella per gli identificativi pista (`ape-rwy-idents`), non un secondo modo di suggerire.
+
+    Perché è un COMPONENTE e non un ciclo scritto nella pagina. Sono ~1400 voci. La pagina che lo ospita si
+    ridisegna a ogni tasto scritto nella casella di ricerca, e un elenco scritto lì dentro rifarebbe 1400 nodi
+    di albero a ogni tasto. Qui `ShouldRender` lo blocca: si disegna quando l'elenco cambia davvero — cioè una
+    volta, quando il catalogo arriva — e mai più.
+*@
+
+<datalist id="@Id">
+    @foreach (var e in Entries)
+    {
+        @* Il testo dell'opzione è la NATURA del punto: il browser lo mostra accanto al nome, ed è ciò che
+           distingue due omonimi. Il valore inserito nel campo resta il solo nome. *@
+        <option value="@e.Name">@KindLabel(e.Kind)</option>
+    }
+</datalist>
+
+@code {
+    /// <summary>L'id da citare nell'attributo <c>list</c> dei campi. Uno solo per pagina: l'elenco è lo stesso
+    /// per tutti i campi punto, e il browser filtra da sé su quello che si sta scrivendo.</summary>
+    public const string DefaultId = "vipi-navaid-points";
+
+    [Parameter] public string Id { get; set; } = DefaultId;
+
+    /// <summary>Le voci del catalogo. Vuoto (sorgente non raggiungibile) = elenco vuoto: i campi restano
+    /// scrivibili come prima, si perde solo il suggerimento.</summary>
+    [Parameter] public IReadOnlyList<NavaidName> Entries { get; set; } = Array.Empty<NavaidName>();
+
+    /// <summary>Quante voci sono già a schermo. Confrontarla con quelle in arrivo è ciò che evita il ridisegno.</summary>
+    private int _drawn = -1;
+
+    protected override bool ShouldRender() => _drawn != Entries.Count;
+
+    protected override void OnAfterRender(bool firstRender) => _drawn = Entries.Count;
+
+    private static string KindLabel(NavaidKind kind) => kind switch
+    {
+        NavaidKind.Vor => "VOR",
+        NavaidKind.Ndb => "NDB",
+        _ => "FIX",
+    };
+}
