@@ -29,8 +29,10 @@ public sealed record AdminCoverage(IReadOnlyList<string> Patterns, IReadOnlyList
 /// Risponde a una domanda che finora nessuno poneva: <b>i codici admin configurati corrispondono a quelli
 /// veri di IVAO?</b>
 ///
-/// <para>I pattern (<c>^IT-DIR$</c>, <c>^LI[A-Z0-9]+-CH$</c>, …) sono <b>ipotesi</b>: solo il formato dei
-/// ruoli di divisione è stato osservato davvero. Se sbagliano, i due modi di rompersi non si somigliano —
+/// <para>Dal 22 agosto 2026 il lato divisione <b>non è più un'ipotesi</b>: vale admin qualunque
+/// <c>^IT-[A-Z0-9]+$</c>, perché lo staff di divisione è admin per decisione del committente, e quel formato
+/// è stato osservato davvero ai login. Resta un'ipotesi il lato ACC (<c>^LI[A-Z0-9]+-CH$</c>): nessun codice
+/// chief è ancora comparso. Se sbaglia, i due modi di rompersi non si somigliano —
 /// <b>nessuno è admin</b> significa che in produzione nessuno può editare nulla e non lo si può nemmeno
 /// rimediare da dentro (distribuire i permessi richiede di essere admin); <b>troppi admin</b> significa dare
 /// il controllo editoriale a chi non doveva averlo. Il primo è silenzioso, il secondo lo è ancora di più.</para>

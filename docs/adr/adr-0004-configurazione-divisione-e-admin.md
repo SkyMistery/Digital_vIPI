@@ -15,7 +15,12 @@ aggiungere codici admin senza toccare il codice.
 1. **`DivisionOptions` (sezione `Division`)** centralizza l'identità divisione:
    - `Code` — prefisso degli staff code admin **e** id nell'API membri divisione.
    - `IcaoPrefixes` — prefissi ICAO dei callsign ATC (filtro polling online).
-   - `AdminRolePatterns` — suffissi ruolo (regex) di divisione che valgono come admin.
+   - `AdminRolePatterns` — suffissi ruolo (regex) di divisione che valgono come admin. ⚠️ **Dal 22 agosto
+     2026 il default è il jolly `[A-Z0-9]+`**: lo staff di divisione è admin, tutto. L'elenco puntuale
+     precedente (`DIR`, `ADIR`, `WM`, `AWM`, `AOC`, `AOAC`, `AOA\d+`) lasciava fuori quattro staffisti veri
+     visti ai login (`IT-SOC`, `IT-T01`, `IT-FOC`, `IT-FOAC`), e ogni ruolo nuovo sarebbe nato escluso.
+     Un codice `{Code}-{ruolo}` lo assegna il portale IVAO **solo** allo staff di divisione: il jolly non
+     allarga oltre quell'insieme.
    - `AdminAccRolePatterns` — suffissi ruolo (regex) **ACC-scoped** (chief): il codice ha il prefisso ICAO
      dell'ACC, non della divisione (es. `LIRR-CH`, `LIMM-ACH`).
 2. **Codici admin derivati**: `EditAuthorizationService` costruisce i pattern admin da entrambi i set:

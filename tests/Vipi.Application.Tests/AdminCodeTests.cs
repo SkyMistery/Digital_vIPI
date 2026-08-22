@@ -5,7 +5,11 @@ using Vipi.Application.Content;
 
 namespace Vipi.Application.Tests;
 
-/// <summary>Quali staff position contano come admin editing (IsAdmin). Vertici divisione + AOC/AOAC/AOA&lt;n&gt;.</summary>
+/// <summary>
+/// Quali staff position contano come admin editing (IsAdmin). Dal 22 agosto 2026 la regola è
+/// «<b>staff di divisione = admin</b>»: qualunque <c>{Code}-{ruolo}</c>. Prima era un elenco puntuale, e
+/// lasciava fuori quattro staffisti veri (<c>IT-SOC</c>, <c>IT-T01</c>, <c>IT-FOC</c>, <c>IT-FOAC</c>).
+/// </summary>
 public class AdminCodeTests
 {
     [Theory]
@@ -18,9 +22,18 @@ public class AdminCodeTests
     [InlineData("IT-WM", true)]
     [InlineData("IT-AWM", true)]
     [InlineData("it-dir", true)]          // case-insensitive
-    [InlineData("IT-CH", false)]          // CH da solo non è admin
-    [InlineData("IT-AOA", false)]         // serve il numero
-    [InlineData("IT-DIRX", false)]
+    // I quattro codici veri che l'elenco puntuale escludeva: sono il motivo del cambio di regola.
+    [InlineData("IT-SOC", true)]
+    [InlineData("IT-T01", true)]
+    [InlineData("IT-FOC", true)]
+    [InlineData("IT-FOAC", true)]
+    [InlineData("IT-CH", true)]           // un ruolo di divisione qualunque, anche mai visto prima
+    [InlineData("IT-AOA", true)]
+    // Il jolly vale dentro la divisione, non fuori: il prefisso resta la barriera.
+    [InlineData("DE-DIR", false)]
+    [InlineData("ITDIR", false)]          // senza il trattino non è uno staff code
+    [InlineData("IT-", false)]            // il ruolo non può essere vuoto
+    [InlineData("IT-DIR-X", false)]       // il trattino non fa parte del ruolo
     [InlineData("", false)]
     public void IsAdmin_riconosce_i_codici_corretti(string staffCode, bool expected)
     {

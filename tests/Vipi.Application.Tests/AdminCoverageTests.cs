@@ -8,8 +8,9 @@ using Xunit;
 namespace Vipi.Application.Tests;
 
 /// <summary>
-/// I pattern degli staff code admin sono <b>ipotesi</b>: solo il formato dei ruoli di divisione è stato
-/// osservato davvero contro l'API. Se sbagliano, i due esiti non si somigliano — «nessuno è admin» blocca
+/// I pattern degli staff code admin: dal 22 agosto 2026 il lato divisione è un jolly (<c>^IT-[A-Z0-9]+$</c>,
+/// formato osservato davvero contro l'API), mentre il lato chief ACC resta un'<b>ipotesi</b> mai vista in
+/// un login vero. Se sbagliano, i due esiti non si somigliano — «nessuno è admin» blocca
 /// tutti fuori senza rumore e non si rimedia da dentro (assegnare permessi richiede di essere admin);
 /// «troppi admin» regala il controllo editoriale. Questi test coprono la diagnosi che rende il primo caso
 /// visibile, e il caso in cui non deve suonare.
@@ -39,12 +40,27 @@ public class AdminCoverageTests
     [Fact]
     public async Task Un_codice_di_divisione_vero_risulta_admin()
     {
-        // «IT-AOA1» è la forma osservata davvero via API: è il caso che deve funzionare.
+        // «IT-AOA1» e «IT-T03» sono la coppia osservata davvero via API su un VID solo. Dal 22 agosto 2026
+        // valgono admin tutti e due: prima il secondo restava fuori, ed è il caso che ha cambiato la regola.
         var c = await Servizio(new RosterFinto((704798, new[] { "IT-AOA1", "IT-T03" }))).DescribeAsync();
 
         Assert.True(c.AnyAdmin);
+        Assert.Equal(new[] { "IT-AOA1", "IT-T03" }, c.Rows.Single().Matched);
+        Assert.Empty(c.UnmatchedCodes);
+    }
+
+    /// <summary>
+    /// Un codice che non è della divisione resta fuori <b>e visibile</b>: il jolly allarga dentro
+    /// <c>{Code}-…</c>, non oltre. Un VID può essere staff altrove (o in HQ) e passare di qui coi suoi codici.
+    /// </summary>
+    [Fact]
+    public async Task I_codici_fuori_divisione_restano_fuori_e_si_vedono()
+    {
+        var c = await Servizio(new RosterFinto((704798, new[] { "IT-AOA1", "DE-DIR" }))).DescribeAsync();
+
+        Assert.True(c.AnyAdmin);
         Assert.Equal(new[] { "IT-AOA1" }, c.Rows.Single().Matched);
-        Assert.Equal(new[] { "IT-T03" }, c.UnmatchedCodes);   // gli altri codici restano visibili, non spariscono
+        Assert.Equal(new[] { "DE-DIR" }, c.UnmatchedCodes);   // gli altri codici restano visibili, non spariscono
     }
 
     [Fact]

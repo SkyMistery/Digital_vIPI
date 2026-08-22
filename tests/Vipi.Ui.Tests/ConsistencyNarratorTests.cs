@@ -196,14 +196,18 @@ public class ConsistencyNarratorTests
             throw new InvalidOperationException("connessione caduta");
     }
 
-    /// <summary>Uno staffista nel roster, con un codice che nessun pattern admin riconosce.</summary>
+    /// <summary>
+    /// Uno staffista nel roster, con un codice che nessun pattern admin riconosce. ⚠️ Dal 22 agosto 2026
+    /// vale admin qualunque <c>IT-{ruolo}</c>, quindi per restare fuori il codice dev'essere <b>malformato</b>
+    /// (qui: senza trattino) — un <c>IT-QUALCOSA</c> oggi sarebbe admin.
+    /// </summary>
     private sealed class RosterSenzaAdmin : Vipi.Application.Abstractions.IStaffRosterRepository
     {
         public Task<IReadOnlyList<Vipi.Application.Abstractions.StaffRosterEntry>> ListActiveAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<Vipi.Application.Abstractions.StaffRosterEntry>>(new[]
             {
                 new Vipi.Application.Abstractions.StaffRosterEntry(704798, "Tizio", "C3",
-                    new[] { "IT-QUALCOSA" }, DateTime.UtcNow),
+                    new[] { "ITQUALCOSA" }, DateTime.UtcNow),
             });
 
         public Task UpsertLoginAsync(int userId, string? displayName, IReadOnlyList<string> positions, CancellationToken ct = default) => Task.CompletedTask;

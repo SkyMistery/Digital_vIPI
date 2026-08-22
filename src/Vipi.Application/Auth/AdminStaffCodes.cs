@@ -14,8 +14,8 @@ public static class AdminStaffCodes
 {
     /// <summary>
     /// I pattern in vigore, come stringhe regex. Se <c>Auth:AdminStaffCodes</c> è valorizzato vince lui,
-    /// completo; altrimenti si derivano dalla divisione: ruoli di divisione (<c>^IT-DIR$</c>) e ruoli chief
-    /// ACC-scoped (<c>^LI[A-Z0-9]+-CH$</c>).
+    /// completo; altrimenti si derivano dalla divisione: ruoli di divisione (<c>^IT-[A-Z0-9]+$</c>, cioè
+    /// <b>tutto</b> lo staff di divisione) e ruoli chief ACC-scoped (<c>^LI[A-Z0-9]+-CH$</c>).
     /// </summary>
     public static IReadOnlyList<string> Patterns(AuthOptions auth, DivisionOptions division)
     {

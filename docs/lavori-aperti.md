@@ -964,6 +964,17 @@ coperti** — `IT-SOC`, `IT-T01`, `IT-FOC`, `IT-FOAC`. Se debbano valere admin *
 un coordinatore training o un flight-ops devono poter editare le vIPI? È la decisione che resta a voi.
 Nessun codice chief `{ACC}-CH` è ancora comparso: quel pattern resta **non verificato**.
 
+✅ **DECISA il 22 agosto 2026 dal committente: lo staff di divisione è admin, tutto.** Il default di
+`Division:AdminRolePatterns` è ora il jolly `[A-Z0-9]+`, cioè `^IT-[A-Z0-9]+$`: i quattro codici scoperti
+entrano, e soprattutto **un ruolo nuovo della divisione non nasce più escluso** — l'elenco puntuale
+sbagliava in silenzio, e se ne accorgeva solo chi restava fuori. Il jolly **non allarga oltre la divisione**:
+un codice `IT-…` lo assegna il portale IVAO solo allo staff di divisione, e il prefisso resta la barriera
+(`DE-DIR` non è admin qui). Il lato chief ACC non cambia e **resta l'unica ipotesi non verificata**.
+
+⚠️ **Il rilievo «nessun admin fra gli staffisti conosciuti» ora suona molto più raramente**, ed è voluto: con
+un jolly, per non avere nessun admin serve che i codici siano *malformati* o di un'altra divisione — cioè il
+guasto vero, non una lista incompleta.
+
 ⚠️ **Trappola di configurazione trovata qui:** dalle liste della sezione `Division` si può solo **allargare**
 l'insieme degli admin, mai restringerlo — il binder *aggiunge* ai default invece di sostituirli (era anche
 la causa dei prefissi ICAO duplicati, ora deduplicati). Per restringere davvero si usa
