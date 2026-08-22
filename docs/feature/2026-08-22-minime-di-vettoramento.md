@@ -1,0 +1,79 @@
+# Minime di vettoramento (MRVA): la carta, non la tabella
+
+**22 agosto 2026 — ✅ chiuso, verifica live eseguita.**
+
+Ultima voce del piano. Le minime di vettoramento arrivano nei documenti: quelle **enroute** nella sezione
+`minima` del blocco **Aerovia** della vIPI ACC, quelle **d'aeroporto** nei documenti APP — gruppo-APP dentro
+la vIPI ACC e APP standalone.
+
+## 1. Perché la decisione del 9 agosto andava rivista, e perché solo a metà
+
+`lavori-aperti.md` §E2 aveva scartato l'import: *«nel sectorfile la struttura dei file MVA non dice a quale
+settore appartiene un'area»*. È vero, e **resta vero** — ma vale contro un prodotto preciso: la **tabella**
+`area → quota`. Misurato sui 28 file veri del sector italiano:
+
+| Ostacolo | Misura |
+|---|---|
+| L'etichetta non è un attributo del poligono | in `liph.mva` le **dieci** `L;` stanno tutte in cima al file, prima di qualsiasi vertice |
+| Il legame etichetta↔area va indovinato | su 345 etichette: **261** dentro una sola area, **70** dentro più aree annidate, **13** dentro nessuna |
+| Il testo non è un numero | `TRL`, `NO MINIMA`, `80/TRL`, `*30/40`, `FL85` |
+| Nessun campo dice le unità | `110` = centinaia di piedi, `1500` = piedi, nello stesso formato |
+| Non tutti i tracciati sono aree | **92 su 315** sono aperti: archi e linee di confine (`LINEA2` di `lirs.mva` ha due punti) |
+
+Quello che il formato **dichiara**, invece, è il proprietario del file: `ENRMVA/{acc}.mva` è l'enroute di un
+ACC, `{icao}.mva` è un aeroporto. A quella granularità — che è poi quella dei documenti — l'attribuzione non
+si indovina, **si legge**. Verificato sul `vipi.db`: i 24 file per-aeroporto corrispondono tutti a un APP
+esistente, **zero orfani**.
+
+Da qui la scelta: **una carta per file**, disegnata verbatim. Non asserisce nulla che il sectorfile non dica,
+ed è esattamente ciò che il controllore vede in Aurora quando accende le MRVA di un ente.
+
+## 2. Cosa c'è
+
+| Pezzo | Dove |
+|---|---|
+| Parser puro | `AuroraSectorfileParser.ParseMva` → `MvaChart`/`MvaShape`/`MvaLabel` |
+| Porta + adapter | `IVectoringMinimaSource` → `AuroraMvaProvider` (raw GitHub, cache per percorso) |
+| Composizione | `MinimaCharts` — la regola «una carta per file» in **un posto solo**, condivisa da ACC e APP |
+| Proiezione SVG | `MinimaChartProjector` (stampa e resa senza JavaScript) |
+| Resa | `MinimaSection.razor` + `vipi-mva.js` |
+
+Sezione `minima`: da `Editorial` a **`Derived`**, corpo reso dalla pagina. Riprende il toggle Live/Congelata
+e viene catturata nello snapshot di release. **Nessuno storage**: le tabelle `VectoringMinimaSet/Row`, che
+descrivevano la strada scartata, sono state droppate (modello dati §7.5).
+
+Il fondo di partenza è il **rilievo** (OpenTopoMap, curve di livello con le quote), con Ombreggiatura (Esri)
+e Neutra (Positron) nel selettore. Non è una scelta estetica: la minima dipende dall'orografia, e sulla carta
+di Milano si legge a colpo d'occhio — 195/180 sulle Alpi, 25/30 in pianura padana, 90/110 sull'Appennino.
+
+## 3. Trappole pagate
+
+- **`ValueTuple` si serializza come `{}`.** La carta si congela nella release e la cattura usa
+  `System.Text.Json`: coi vertici in tupla lo snapshot sarebbe tornato **senza vertici**, e il guasto si
+  sarebbe visto solo su un documento pubblicato. Esiste `MvaPoint` per questo, e un test che fa il giro.
+- **`marker.getElement()` è `null` finché la mappa non ha una vista.** Leaflet rimanda `onAdd`: scrivere il
+  testo dell'etichetta dopo `addTo()` — con `fitBounds` più in basso — perdeva **tutte** le etichette, in
+  silenzio. Il testo va dentro l'icona.
+- **Il fit giusto può essere illeggibile.** LIBB è 5,5° di latitudine per 3,1° di longitudine: in un
+  contenitore largo e basso l'inquadratura lavora sull'altezza ed è corretta, ma i tracciati restano grandi un
+  ventesimo della mappa. È la **scatola** ad adattarsi ai dati, non l'inquadratura ai pixel.
+- **Le tile sono chiare in entrambi i temi.** L'etichetta con token di tema diventava bianca su fondo chiaro:
+  colori letterali, unica eccezione voluta, col perché scritto accanto nel CSS.
+- **`<text>` in un blocco di codice Razor è la parola chiave di escape**, non l'elemento SVG: va annidato.
+- **Tre forme di coordinata**, non due come diceva il censimento del sector: DMS coi punti, DMS **compatta**
+  (`liph.mva` — senza, quel file dava zero poligoni in silenzio) e **gradi decimali nudi**, una riga sola in
+  tutti i 28 file (`lipx.mva:14`). Da segnalare all'AOD.
+
+## 4. Verifica live
+
+Copia del `vipi.db` reale, sorgente sectorfile **accesa** (deroga della skill: è il sectorfile l'oggetto della
+verifica). I numeri a schermo combaciano con quelli misurati sui file: LIBB 7 tracciati / 10 etichette / 190
+vertici, LIMM 43 / 51 / 1348, LIBD 6 / 7 / 478. Etichette verbatim (`NO MINIMA`, `80/TRL`), selettore di fondo
+che passa a Esri, callout «nessuna carta» sull'APP senza file (LIBP). La migrazione di drop è stata applicata
+davvero sulla copia.
+
+## 5. Resta aperto
+
+**25 APP su 49 non hanno il file** — fra cui LIRF, LIMC, LIML, LIME, LIPS — e nel sectorfile «non serve» è
+indistinguibile da «non l'ha ancora fatto nessuno». Se quelle carte servono, la richiesta va all'AOD: dal lato
+del codice non c'è niente da fare, e inventarle sarebbe peggio che non averle.

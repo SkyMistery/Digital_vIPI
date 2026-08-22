@@ -1,4 +1,4 @@
-# 13 — Audit dei tre documenti (vIPI ACC · vIPI APP · vLOA) 🟢
+﻿# 13 — Audit dei tre documenti (vIPI ACC · vIPI APP · vLOA) 🟢
 
 > **Stato: CHIUSO** (2026-08-10/11, branch `refactor/13-tre-documenti`). §1-§2 rilevate sul codice del
 > 2026-08-10; §3-§4 approvate dall'owner ed eseguite: **19 passi, 20 commit**, suite **1335 → 1391** verde,
@@ -327,6 +327,12 @@ sezione diventa scrivibile, come deciso il 2026-08-09 (`lavori-aperti.md` §E2).
 `AppMinima.razor` e le sue due chiavi di risorsa si **rimuovono**: il suo testo diventa il **contenuto
 iniziale** della sezione (blocco `Callout` info), seminato alla creazione e backfillato una volta sui
 documenti esistenti — che oggi hanno lì un blocco placeholder vuoto, invisibile in resa.
+
+> ⚠️ **Superata il 22 agosto 2026.** `KindOf("minima")` è tornata `Derived` e `BodySource` `Host`: le MRVA si
+> prendono dal sectorfile come **carta** (una per file `.mva`), che è cosa diversa dalla tabella `area → quota`
+> scartata il 9 agosto — quella resta impossibile. Il toggle Live/Congelata non è più inerte perché ora c'è una
+> derivazione da congelare. Vale ancora quanto scritto qui sul perché la sezione non poteva restare com'era:
+> derivata senza derivazione, non scrivibile e con un toggle senza effetto. Vedi `lavori-aperti.md` §E2.
 
 ### 3c. La vLOA nasce dal catalogo come le altre due (D1, B3, C8)
 

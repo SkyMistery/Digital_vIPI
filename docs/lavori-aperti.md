@@ -1,4 +1,4 @@
-# Lavori aperti — elenco unico
+﻿# Lavori aperti — elenco unico
 
 **Aggiornato:** 22 agosto 2026 (sera, dopo il merge di `coordinamenti-lettura`) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
@@ -860,15 +860,30 @@ L'elenco veniva da prima della riscrittura della vista live (doc 12, 31 luglio) 
   poligono reale**, 16 restano col cerchio. E i 16 non sono un buco: scaricato `twrs.tfl` e confrontato,
   **nessuno dei 16 callsign è presente nel file** — il cerchio copre esattamente le torri che nemmeno la
   sorgente ha.
-- ❌ **Minime MVA da GitHub — scartato il 9 agosto 2026 (decisione del committente).** L'idea era riusare il
-  pattern delle SID (parser, import gated, pubblicazione differita al ciclo successivo). Non si fa, e non per
-  il nostro lato: **nel sectorfile la struttura dei file MVA non dice a quale settore appartiene un'area**.
-  Un import dovrebbe indovinare quell'associazione, e una minima di vettoramento attribuita al settore
-  sbagliato è peggio di una minima assente — è un dato operativo che qualcuno userebbe.
+- ✅ ~~**Minime MVA da GitHub**~~ — **fatte il 22 agosto 2026, come CARTA e non come tabella.** Verificate
+  live sulla copia del `vipi.db` reale.
 
-  Se un giorno le MVA serviranno davvero, la strada non è l'import ma quella **editoriale**: una sezione
-  come le altre, compilata dallo staff e pubblicata col documento, dove l'associazione al settore la
-  dichiara una persona invece di un'euristica. A quel punto è lavoro di editor, non di parser.
+  L'obiezione del 9 agosto era giusta e resta in piedi, ma riguardava **la tabella**: `area → quota` non si
+  può ricostruire dal formato. L'etichetta è un testo piazzato a una coordinata sua, indipendente dai
+  poligoni (in `liph.mva` le dieci `L;` stanno tutte in cima al file); il legame etichetta↔area va indovinato
+  geometricamente e su 345 etichette **70 cadono dentro più aree annidate e 13 dentro nessuna**; il testo non
+  è un numero (`TRL`, `NO MINIMA`, `80/TRL`, `*30/40`) e nessun campo dice le unità (`110` sono centinaia di
+  piedi, `1500` sono piedi); e **92 tracciati su 315 sono aperti**, quindi non sono aree.
+
+  Quello che il formato **dichiara** è un'altra cosa: il proprietario del file. `ENRMVA/{acc}.mva` è
+  l'enroute di un ACC, `{icao}.mva` è un aeroporto — e a quella granularità l'attribuzione non si indovina,
+  si legge. Misurato: i 24 file per-aeroporto corrispondono tutti a un APP esistente, zero orfani. Perciò la
+  sezione mostra **una carta per file**, disegnata verbatim su fondo topografico (tracciati aperti compresi,
+  etichette col testo originale). È esattamente ciò che il controllore vede in Aurora, e non asserisce nulla
+  che il sectorfile non dica.
+
+  Sezione `minima` da `Editorial` a `Derived`: riprende il toggle Live/Congelata e si congela nello snapshot
+  di release. Nessuno storage — le tabelle `VectoringMinimaSet/Row`, che descrivevano la strada scartata,
+  sono state droppate nello stesso giro (modello dati §7.5).
+
+  ⚠️ **Resta aperto**: 25 APP su 49 non hanno il file (fra cui LIRF, LIMC, LIML, LIME, LIPS), e nel
+  sectorfile «non serve» è indistinguibile da «non l'ha ancora fatto nessuno». Se quelle carte servono, la
+  richiesta va all'AOD, non al codice.
 - 33 torri di aeroporti senza APP e senza padre configurato in Struttura, più LIRF stesso. Si sistemano
   dalla pagina: il filtro «solo da agganciare» li raccoglie.
 - La SID `BANA8A` di LIBD (pista 07) ha `InitialClimb = "90"` → resa «90 ft», quota implausibile. Da

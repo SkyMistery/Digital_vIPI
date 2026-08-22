@@ -1612,3 +1612,38 @@ nell'ordine sbagliato uno scalo nuovo resterebbe senza settori e senza piste fin
 `AutoAssignAirportsAsync`: salta gli ICAO già presenti, non rimuove e non riassegna), quindi uno scalo tolto
 dall'anagrafica della sorgente resta in archivio e si toglie a mano — sopra ci può stare del lavoro
 editoriale. Da qui in poi **nessuna** delle sette righe resta «su richiesta», e un test lo pretende.
+
+---
+
+## Minime di vettoramento (MRVA) — 22 agosto 2026
+
+Ultima voce del piano. Le minime entrano nei documenti come **carta** e non come tabella: una per file
+`.mva`, disegnata verbatim su fondo topografico. Enroute nella sezione `minima` del blocco Aerovia,
+aeroporto nei documenti APP. Scheda: [feature/2026-08-22-minime-di-vettoramento.md](../feature/2026-08-22-minime-di-vettoramento.md).
+
+**La decisione del 9 agosto non è stata ribaltata, è stata circoscritta.** Diceva che il formato non dice a
+quale settore appartenga un'area: vero, e vale contro la tabella `area → quota`, che infatti non si fa.
+Misurato sui 28 file: l'etichetta è indipendente dai poligoni (in `liph.mva` le dieci `L;` stanno tutte in
+cima al file), il legame va indovinato geometricamente e su 345 etichette **70 cadono in più aree annidate e
+13 in nessuna**, il testo non è un numero (`TRL`, `NO MINIMA`, `80/TRL`, `*30/40`), nessun campo dice le
+unità, e **92 tracciati su 315 sono aperti** — archi e linee, non aree. Quello che il formato **dichiara** è
+il proprietario del file, ed è la granularità dei documenti: verificato sul `vipi.db`, i 24 file
+per-aeroporto corrispondono tutti a un APP esistente, zero orfani.
+
+`minima` torna **`Derived`** e resa dalla pagina: riprende il toggle Live/Congelata e si congela nello
+snapshot di release. Nessuno storage — `VectoringMinimaSet/Row`, mai popolate e descrizione della strada
+scartata, **droppate** nello stesso giro.
+
+⚠️ **Tre difetti visti solo guidando il browser**, nessuno preso dai test: le etichette erano **tutte vuote**
+(`marker.getElement()` è null finché la mappa non ha una vista — Leaflet rimanda `onAdd`, e il `fitBounds`
+sta più in basso); l'inquadratura era corretta e **illeggibile** (dati alti e stretti in un contenitore largo
+e basso: ora è la scatola ad adattarsi ai dati); in tema scuro l'etichetta diventava bianca **su una tile che
+resta chiara in entrambi i temi**.
+
+⚠️ **Trappola da ricordare**: la carta si congela nella release e la cattura serializza con
+`System.Text.Json`, che di una `ValueTuple` scrive `{}`. Coi vertici in tupla lo snapshot sarebbe tornato
+vuoto e si sarebbe visto **solo su un documento pubblicato**. Da qui `MvaPoint`, e un test che fa il giro.
+
+⚠️ **Resta aperto**: 25 APP su 49 non hanno il file (LIRF, LIMC, LIML, LIME, LIPS…), e nel sectorfile «non
+serve» è indistinguibile da «non l'ha ancora fatto nessuno» — richiesta per l'AOD. E una **terza forma di
+coordinata** non censita: gradi decimali nudi, una riga in tutti i 28 file (`lipx.mva:14`).
