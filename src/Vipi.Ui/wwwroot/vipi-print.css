@@ -57,6 +57,9 @@
   .vipi-root .metar-live,
   .vipi-root .cb-chev,
   .vipi-root .chev,
+  /* Il riassunto «Testo esteso (N frasi)» è l'etichetta di un comando: su carta il testo c'è già sotto
+     (`beforeprint` apre i <details>), e la riga direbbe solo di aprire ciò che è aperto. */
+  .vipi-root .coord-prose > summary,
   .vipi-root .onl-badge,
   .vipi-root .noprint,
   /* Vista live: orologio UTC e tasto «Compatta» sono comandi a schermo, non contenuto. */

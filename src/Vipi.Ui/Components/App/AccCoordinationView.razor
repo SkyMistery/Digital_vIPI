@@ -34,12 +34,12 @@
                                 <div class="body">
                                     @if (ap.Arrivals.Count > 0)
                                     {
-                                        <p class="muted" style="margin:.4em 0 .1em;font-weight:600">@ArrivalsLabel</p>
+                                        <p class="muted coord-kind">@ArrivalsLabel</p>
                                         @RenderTable(ap.Arrivals)
                                     }
                                     @if (ap.Departures.Count > 0)
                                     {
-                                        <p class="muted" style="margin:.4em 0 .1em;font-weight:600">@DeparturesLabel</p>
+                                        <p class="muted coord-kind">@DeparturesLabel</p>
                                         @RenderTable(ap.Departures)
                                     }
                                 </div>
