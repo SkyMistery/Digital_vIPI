@@ -50,14 +50,14 @@ else
                 @* ⚠️ Il chip dice l'ORA, la frase intera sta nel `title`: misurato, «Stai modificando ·
                    lock fino alle 21:06» sono 266px, e a 1024 la testata andava a capo per nove pixel.
                    E' la stessa cura gia' pagata sul giro Versioni (la frase del lock, 647 → 289). *@
-                <span class="sh-chip ok" title="@(L["Lock_Editing"].Value + (_lock.ExpiresUtc is { } mt ? L["Lock_UntilSuffix", mt.ToLocalTime().ToString("HH:mm")].Value : ""))">
-                    🔒 @(_lock.ExpiresUtc is { } me ? L["Lock_EditingShort", me.ToLocalTime().ToString("HH:mm")].Value : L["Lock_EditingNoTime"].Value)
+                <span class="sh-chip ok" data-utc-title="@VipiTime.Iso(_lock.ExpiresUtc)" title="@(L["Lock_Editing"].Value + (_lock.ExpiresUtc is { } mt ? L["Lock_UntilSuffix", VipiTime.Z(mt)].Value : ""))">
+                    🔒 @(_lock.ExpiresUtc is { } me ? L["Lock_EditingShort", VipiTime.Z(me)].Value : L["Lock_EditingNoTime"].Value)
                 </span>
             }
             else if (_lock is { Locked: true, IsMine: false })
             {
-                <span class="sh-chip warn" title="@(string.Format(L["Ed_LockedByOtherBody"].Value, _lock.ByName ?? L["Lock_AnotherEditor"].Value, ""))">
-                    🔒 @(_lock.ByName ?? L["Lock_AnotherEditor"].Value)@(_lock.ExpiresUtc is { } oe ? L["Lock_UntilSuffix", oe.ToLocalTime().ToString("HH:mm")].Value : "")
+                <span class="sh-chip warn" data-utc-title="@VipiTime.Iso(_lock.ExpiresUtc)" title="@(string.Format(L["Ed_LockedByOtherBody"].Value, _lock.ByName ?? L["Lock_AnotherEditor"].Value, _lock.ExpiresUtc is { } ot ? L["Lock_UntilSuffix", VipiTime.Z(ot)].Value : ""))">
+                    🔒 @(_lock.ByName ?? L["Lock_AnotherEditor"].Value)@(_lock.ExpiresUtc is { } oe ? L["Lock_UntilSuffix", VipiTime.Z(oe)].Value : "")
                 </span>
             }
             <button type="button" class="btn ghost st-head-end" @onclick="() => _wide = !_wide"

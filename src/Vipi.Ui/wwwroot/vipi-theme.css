@@ -509,6 +509,11 @@
 .breadcrumb b{color:var(--brand-ink)}
 .airac{display:inline-flex;align-items:center;gap:7px;background:var(--tint-atmos);color:var(--brand-ink);border:1px solid var(--on-dark-soft);padding:5px 12px;border-radius:8px;font-size:12.5px;font-weight:600;font-family:var(--font-head)}
 .muted{color:var(--ink-soft)}
+/* Ora locale del lettore, accodata all'orario UTC scritto dal server (vipi-time.js scrive data-loc).
+   E' un ::after e non un nodo figlio perche' l'elemento lo possiede Blazor: un figlio estraneo finirebbe
+   in mezzo al suo diffing, un attributo che non conosce lo lascia stare. Peso normale e inchiostro tenue:
+   il dato e' l'UTC, questa e' la comodita' — e senza il reset del peso erediterebbe il <b> che la ospita. */
+[data-loc]::after{content:attr(data-loc);color:var(--ink-soft);font-weight:400}
 .pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:600;font-family:var(--font-head)}
 .pill.grey{background:var(--surface-muted);color:var(--ink-mid)}
 .pill.blue{background:var(--line-atmos-soft);color:var(--brand-ink)}

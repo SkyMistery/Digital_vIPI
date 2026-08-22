@@ -1,4 +1,4 @@
-@page "/services/vsop/{Acc}/airports"
+﻿@page "/services/vsop/{Acc}/airports"
 @layout SopLayout
 @rendermode InteractiveServer
 @using System.Text.Json
@@ -201,7 +201,7 @@ else
                             </div>
                         }
 
-                        <p class="muted" style="font-size:12px;margin:10px 0 0">@L["AppLive_UpdatedAt", (_wx.AsOf?.ToLocalTime().ToString("HH:mm:ss") ?? "—")]</p>
+                        <p class="muted" style="font-size:12px;margin:10px 0 0" data-utc="@VipiTime.Iso(_wx.AsOf?.UtcDateTime)" data-utc-fmt="hms">@L["AppLive_UpdatedAt", (_wx.AsOf is { } agg ? VipiTime.Zs(agg.UtcDateTime) : "—")]</p>
                     }
                     else
                     {

@@ -20,12 +20,17 @@
 <div class="lockbar @(_lock.IsMine ? "mine" : _lock.Locked ? "other" : "free")">
     @if (_lock.IsMine)
     {
-        <span class="lb-state"><span class="lb-dot"></span> @L["Lock_Editing"]@(_lock.ExpiresUtc is { } e ? string.Format(L["Lock_UntilSuffix"].Value, e.ToLocalTime().ToString("HH:mm")) : "")</span>
+        @* L'ora e' UTC (col suffisso Z): il server non sa in che fuso sta chi guarda — vedi VipiTime.
+           L'ora locale la scrive vipi-time.js accanto, IN BARRA e non nel tooltip: era nascosta sotto il
+           passaggio del mouse e chi guarda la scadenza del proprio lock rifaceva il conto a mente, che e'
+           esattamente cio' che il doppio orario doveva togliere. La testata a una riga regge perche' la
+           frase in barra ha perso la parola «lock» (Lock_UntilShort), che nel `title` resta per esteso. *@
+        <span class="lb-state" title="@LockTitolo()" data-utc="@VipiTime.Iso(_lock.ExpiresUtc)"><span class="lb-dot"></span> @L["Lock_Editing"]@(_lock.ExpiresUtc is { } e ? string.Format(L["Lock_UntilShort"].Value, VipiTime.Z(e)) : "")</span>
         <button class="btn ghost" @onclick="Release" title="@L["Lock_ReleaseTitle"]">✓ @L["Lock_FinishEdit"]</button>
     }
     else if (_lock.Locked)
     {
-        <span class="lb-state"><span class="lb-dot"></span> 🔒 @L["Lock_LockedByPrefix"] <b>@(_lock.ByName ?? L["Lock_AnotherEditor"].Value)</b>@(_lock.ExpiresUtc is { } e ? string.Format(L["Lock_LockedUntilSuffix"].Value, e.ToLocalTime().ToString("HH:mm")) : "")</span>
+        <span class="lb-state" title="@LockTitolo()" data-utc="@VipiTime.Iso(_lock.ExpiresUtc)"><span class="lb-dot"></span> 🔒 @L["Lock_LockedByPrefix"] <b>@(_lock.ByName ?? L["Lock_AnotherEditor"].Value)</b>@(_lock.ExpiresUtc is { } e ? string.Format(L["Lock_UntilShort"].Value, VipiTime.Z(e)) : "")</span>
         @if (Authz.IsAdmin)
         {
             <button class="btn ghost" @onclick="ForceUnlock" title="@L["Lock_ForceTitle"]">🔓 @L["Lock_ForceUnlock"]</button>
@@ -57,6 +62,16 @@
 
     private LockInfo _lock = LockInfo.Free();
     private CancellationTokenSource? _beat;
+
+    /// <summary>
+    /// La frase per esteso, che in barra non ci sta: in riga si legge «Stai modificando · fino alle 14:32Z»,
+    /// nel tooltip «… · lock fino alle 14:32Z». L'ora locale la mette vipi-time.js in barra, non qui — un
+    /// orario che si vede due volte con lo stesso testo non serve, e il tooltip resta la forma distesa.
+    /// </summary>
+    private string LockTitolo() => _lock.IsMine
+        ? L["Lock_Editing"].Value + (_lock.ExpiresUtc is { } e ? string.Format(L["Lock_UntilSuffix"].Value, VipiTime.Z(e)) : "")
+        : $"{L["Lock_LockedByPrefix"].Value} {_lock.ByName ?? L["Lock_AnotherEditor"].Value}"
+          + (_lock.ExpiresUtc is { } o ? string.Format(L["Lock_LockedUntilSuffix"].Value, VipiTime.Z(o)) : "");
 
     // Risolto dallo scope proprio (OwningComponentBase): VipiDbContext isolato dal circuito. Vedi nota in testa.
     private IResourceLockService Locks = default!;

@@ -1216,6 +1216,7 @@
   <data name="Lock_EditingShort" xml:space="preserve"><value>fino alle {0}</value></data>
   <data name="Lock_EditingNoTime" xml:space="preserve"><value>Stai modificando</value></data>
   <data name="Lock_UntilSuffix" xml:space="preserve"><value> · lock fino alle {0}</value></data>
+  <data name="Lock_UntilShort" xml:space="preserve"><value> · fino alle {0}</value></data>
   <data name="Lock_ReleaseTitle" xml:space="preserve"><value>Rilascia il lock così un altro editor può modificare</value></data>
   <data name="Lock_FinishEdit" xml:space="preserve"><value>Fine modifica</value></data>
   <data name="Lock_LockedByPrefix" xml:space="preserve"><value>In modifica da</value></data>
@@ -1822,7 +1823,8 @@
   <data name="Xfer_UnsavedTitle" xml:space="preserve"><value>Modifiche non salvate</value></data>
   <data name="Xfer_UnsavedBody" xml:space="preserve"><value>Il pannello ha una riga aperta con modifiche non salvate. Salva, oppure chiudi per scartarle.</value></data>
   <data name="Xfer_LockEndingTitle" xml:space="preserve"><value>Il blocco di modifica sta per scadere</value></data>
-  <data name="Xfer_LockEndingBody" xml:space="preserve"><value>Scade alle {0}. Salva quello che hai aperto: alla scadenza la pagina torna in sola lettura.</value></data>
+  <data name="Xfer_LockEndingWhen" xml:space="preserve"><value>Scade alle</value></data>
+  <data name="Xfer_LockEndingWhat" xml:space="preserve"><value>Salva quello che hai aperto: alla scadenza la pagina torna in sola lettura.</value></data>
   <data name="Xfer_SortBy" xml:space="preserve"><value>Ordina</value></data>
   <data name="Xfer_SortManual" xml:space="preserve"><value>manuale</value></data>
   <data name="Xfer_SortCop" xml:space="preserve"><value>punti</value></data>

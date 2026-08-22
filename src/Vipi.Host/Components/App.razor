@@ -47,6 +47,10 @@
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vendor/leaflet/leaflet.js")"></script>
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-ui.js")"></script>
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-screens.js")"></script>
+    @* Ora locale del lettore accanto agli orari UTC. Non serve riagganciarlo da vipi-boot.js: si tiene
+       aggiornato da solo con un MutationObserver, che copre sia la navigazione «enhanced» sia i redisegni
+       di Blazor (l'heartbeat del lock riscrive la barra ogni 60 secondi). *@
+    <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-time.js")"></script>
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-live.js")"></script>
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-aor.js")"></script>
     <!-- Three.js (viewer 3D AoR) — vendorizzato localmente (r128 UMD, espone THREE globale). NON caricato qui:

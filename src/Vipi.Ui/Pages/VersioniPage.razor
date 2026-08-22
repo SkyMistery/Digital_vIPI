@@ -186,7 +186,7 @@
                                    direbbe se aspettare o no. *@
                                 @if (d.IsLocked)
                                 {
-                                    <span class="pill @(IsMyLock(d) ? "green" : "amber")" title="@LockTitle(d)">🔒 @LockBadge(d)</span>
+                                    <span class="pill @(IsMyLock(d) ? "green" : "amber")" data-utc-title="@VipiTime.Iso(d.LockExpiresUtc)" title="@LockTitle(d)">🔒 @LockBadge(d)</span>
                                 }
                             </div>
                         }
@@ -209,7 +209,7 @@
                         </div>
                         @if (sel.IsLocked)
                         {
-                            <span class="pill @(IsMyLock(sel) ? "green" : "amber")" title="@LockTitle(sel)">🔒 @LockBadge(sel)</span>
+                            <span class="pill @(IsMyLock(sel) ? "green" : "amber")" data-utc-title="@VipiTime.Iso(sel.LockExpiresUtc)" title="@LockTitle(sel)">🔒 @LockBadge(sel)</span>
                         }
                     </div>
                     @* Le azioni del documento: erano dentro la riga d'elenco, e con loro la conferma in linea
@@ -375,13 +375,13 @@
     private string LockBadge(ManagedDoc d)
     {
         var chi = IsMyLock(d) ? L["Ver_LockMineShort"].Value : d.LockedByName ?? L["Lock_AnotherEditor"].Value;
-        return d.LockExpiresUtc is { } e ? $"{chi} · {e.ToLocalTime():HH:mm}" : chi;
+        return d.LockExpiresUtc is { } e ? $"{chi} · {VipiTime.Z(e)}" : chi;
     }
 
     private string LockTitle(ManagedDoc d) => IsMyLock(d)
         ? L["Lock_Editing"].Value
         : $"{L["Lock_LockedByPrefix"].Value} {d.LockedByName ?? L["Lock_AnotherEditor"].Value}"
-          + (d.LockExpiresUtc is { } e ? L["Lock_LockedUntilSuffix", e.ToLocalTime().ToString("HH:mm")].Value : "");
+          + (d.LockExpiresUtc is { } e ? L["Lock_LockedUntilSuffix", VipiTime.Z(e)].Value : "");
 
     /// <summary>Azione di scrittura sconsigliata: lock di un ALTRO. Il divieto vero sta nel servizio (il tasto
     /// spento è cortesia, non guardia: l'elenco è una fotografia e una scheda vecchia lo aggirerebbe).</summary>

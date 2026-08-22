@@ -1213,6 +1213,7 @@
   <data name="Lock_EditingShort" xml:space="preserve"><value>until {0}</value></data>
   <data name="Lock_EditingNoTime" xml:space="preserve"><value>You are editing</value></data>
   <data name="Lock_UntilSuffix" xml:space="preserve"><value> · lock until {0}</value></data>
+  <data name="Lock_UntilShort" xml:space="preserve"><value> · until {0}</value></data>
   <data name="Lock_ReleaseTitle" xml:space="preserve"><value>Release the lock so another editor can edit</value></data>
   <data name="Lock_FinishEdit" xml:space="preserve"><value>Finish editing</value></data>
   <data name="Lock_LockedByPrefix" xml:space="preserve"><value>Being edited by</value></data>
@@ -1816,7 +1817,8 @@
   <data name="Xfer_UnsavedTitle" xml:space="preserve"><value>Unsaved changes</value></data>
   <data name="Xfer_UnsavedBody" xml:space="preserve"><value>The panel has a row open with unsaved changes. Save it, or close to discard them.</value></data>
   <data name="Xfer_LockEndingTitle" xml:space="preserve"><value>The edit lock is about to expire</value></data>
-  <data name="Xfer_LockEndingBody" xml:space="preserve"><value>It expires at {0}. Save what you have open: at expiry the page goes back to read-only.</value></data>
+  <data name="Xfer_LockEndingWhen" xml:space="preserve"><value>It expires at</value></data>
+  <data name="Xfer_LockEndingWhat" xml:space="preserve"><value>Save what you have open: at expiry the page goes back to read-only.</value></data>
   <data name="Xfer_SortBy" xml:space="preserve"><value>Sort</value></data>
   <data name="Xfer_SortManual" xml:space="preserve"><value>manual</value></data>
   <data name="Xfer_SortCop" xml:space="preserve"><value>points</value></data>

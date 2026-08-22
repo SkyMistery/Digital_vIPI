@@ -165,7 +165,7 @@
                             <div class="ver-row">
                                 <span class="vb">@g.AccCode</span>
                                 <div>
-                                    <b>@L["Grants_GrantedOn", g.GrantedAtUtc.ToLocalTime().ToString("dd MMM yyyy")]</b>
+                                    <b>@L["Grants_GrantedOn", VipiTime.Day(g.GrantedAtUtc)]</b>
                                     <div class="vmeta">@L["Grants_GrantedBy"]: @Autore(g.GrantedByUserId)</div>
                                 </div>
                                 <span class="vact">

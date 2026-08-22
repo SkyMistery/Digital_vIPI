@@ -97,7 +97,10 @@
                 <span class="cic">⏳</span>
                 <div>
                     <p class="ct">@L["Xfer_LockEndingTitle"]</p>
-                    @(string.Format(L["Xfer_LockEndingBody"].Value, _lockExpiresUtc!.Value.ToLocalTime().ToString("HH:mm")))
+                    @* La frase e' spezzata in due chiavi perche' l'ora sta IN MEZZO: l'ora locale gliela
+                       scrive accanto vipi-time.js con un ::after, che si attacca in coda all'elemento — quindi
+                       lo <span> deve avvolgere il solo orario, non tutta la frase. *@
+                    @L["Xfer_LockEndingWhen"] <span data-utc="@VipiTime.Iso(_lockExpiresUtc)">@VipiTime.Z(_lockExpiresUtc!.Value)</span>. @L["Xfer_LockEndingWhat"]
                 </div>
             </div>
         }
