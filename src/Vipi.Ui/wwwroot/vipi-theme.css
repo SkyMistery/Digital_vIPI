@@ -2329,6 +2329,17 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .sid-edit .tok{min-width:15px;padding:1px 3px}
 .sid-edit .ic-app{margin-left:2px}
 .struct .res-table.sid-edit input{width:100%;box-sizing:border-box}
+/* Via la freccia che Chromium disegna DENTRO i campi con un elenco (`list=`). Non e' cosmesi: la freccia si
+   prende ~11px di larghezza utile, e in queste colonne quei pixel sono l'ultima lettera. Misurato a schermo con
+   «ALAXI» dentro: il campo ne offre 60, il testo ne chiede 60, il testo PIU' la freccia ne chiede 71.
+   ⚠️ Non e' un difetto introdotto dai punti: RWY («34R»: 50 utili contro 58) e TYPE («RNAV»: 66 contro 69)
+   avevano gia' l'elenco, quindi erano gia' tagliate. Allargare le colonne avrebbe voluto dire +24px su una
+   tabella che gia' misura 1068 di minimo. L'elenco continua ad aprirsi scrivendo, che e' come lo si usa.
+   ⚠️ `!important` serve DAVVERO, e non e' pigrizia: su questo pseudo-elemento lo stile del browser vince su
+   quello dell'autore. Provato a schermo — la stessa regola senza `!important` lascia il taglio a 71px, con
+   qualunque selettore: corto, con l'attributo, o con `.struct .res-table.sid-edit` davanti. Non e' la
+   specificita' a decidere qui, quindi alzarla non serve a niente. */
+.struct .res-table.sid-edit input::-webkit-calendar-picker-indicator{display:none !important}
 /* ⚠️ 76px e non 52: l'initial climb arriva a cinque cifre («11000») e il campo numerico porta anche le
    frecce. A 52 il valore si vedeva a metà — misurato scrivendoci dentro, non stimato. */
 .struct .res-table.sid-edit .in-climb{width:76px}

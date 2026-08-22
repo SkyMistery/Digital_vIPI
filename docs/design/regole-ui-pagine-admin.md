@@ -151,13 +151,20 @@ pieno di righe.
     descriveva: un nome che racconta un meccanismo che non c'è più mente a chi legge fra sei mesi.
 43. Chiavi nuove **sempre IT+EN**, nello stesso giro.
 
-## 9. CSS: due trappole che si ripagano
+## 9. CSS: tre trappole che si ripagano
 
 44. Le regole delle pagine di struttura vanno scritte con **`.struct` davanti** e verificate sul **valore
     calcolato**: contro `.res-table`/`.inline-form` una regola da due classi perde **in silenzio**, e il difetto
     si vede solo misurando in pagina.
 45. Le classi che mette il **JS** sono **proprie** (`help-flip`, `help-up`, non `left`): una classe messa a mano
     da chi ha scritto la pagina è una decisione, e toglierla d'ufficio la cancella.
+45-bis. Un campo con `list=` **non è largo quanto sembra**: Chromium disegna la freccia dell'elenco DENTRO il
+    campo e si prende ~11px di larghezza utile — in una colonna stretta, l'ultima lettera. Si toglie con
+    `input::-webkit-calendar-picker-indicator{display:none !important}`, e qui `!important` **serve davvero**:
+    su questo pseudo-elemento lo stile del browser vince su quello dell'autore, quindi la regola 44 non
+    aiuta — alzare la specificità non cambia niente (provato con selettore corto, con l'attributo e con
+    `.struct .res-table.sid-edit` davanti: 71px in tutt'e tre i casi). Misurato con `scrollWidth` contro
+    `clientWidth`, non a occhio.
 
 ## 10. Metodo
 
@@ -1139,3 +1146,7 @@ tre media query; questo le ha tolte, e le cinque regole qui sotto valgono ben ol
   con la riga da 128px, il riquadro col tetto, la larghezza piena e i due stati (modificata / scelta) che
   erano diventati uno; poi le larghezze misurate col font con Condition elastica, e i tre gesti (chip a scala,
   scelta di gruppo col doppio clic, «applica alle scelte»).
+- [Catalogo dei punti](../feature/2026-08-22-catalogo-punti-suggerimenti.md): i campi punto suggeriscono e
+  segnano i nomi inesistenti; il segno **tinge il campo** invece di aggiungergli un'icona, perché un'icona
+  costerebbe 14 dei 76px della colonna — cioè la quinta lettera. E la freccia dell'elenco nativo si prendeva
+  quegli stessi pixel da un'altra parte (regola 45-bis), tagliando anche RWY e TYPE, che erano già rotte.

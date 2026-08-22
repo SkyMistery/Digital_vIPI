@@ -57,6 +57,14 @@ public sealed class AuroraNavaidSource : INavaidSource
         }, ct);
     }
 
+    public Task<NavaidCatalog> RefreshAsync(CancellationToken ct = default)
+    {
+        // Solo la fetta dei punti: chi chiede il catalogo aggiornato non sta chiedendo di riscaricare anche i
+        // poligoni delle torri, che vengono dallo stesso repository ma non c'entrano con quello che sta facendo.
+        _cache.InvalidateNavaids();
+        return GetAsync(ct);
+    }
+
     private Task<string?> GetTextOrNullAsync(string relative, CancellationToken ct) =>
         string.IsNullOrWhiteSpace(relative)
             ? Task.FromResult<string?>(null)

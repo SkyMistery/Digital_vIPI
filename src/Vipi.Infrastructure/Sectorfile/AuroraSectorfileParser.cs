@@ -34,6 +34,12 @@ public static class AuroraSectorfileParser
         {
             var line = raw.Trim();
             if (line.Length == 0) continue;
+            // I file navaid portano righe di commento in stile C ("//++++VOR ESTERNI++++", "//ESTERNI"):
+            // non hanno il punto e virgola, quindi finivano nel catalogo INTERE, come se fossero nomi di
+            // punto. Sulla completion delle SID non si vedeva — nessun prefisso di codice SID inizia per
+            // barra — ma sono comparse in cima all'elenco a discesa dell'editor la prima volta che si è
+            // aperto: e' cosi' che si e' visto un difetto che stava li' da sempre.
+            if (line.StartsWith("//", StringComparison.Ordinal)) continue;
             var name = line.Split(';', 2)[0].Trim();
             if (name.Length != 0) yield return name;
         }

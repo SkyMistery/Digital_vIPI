@@ -68,7 +68,11 @@ public sealed class SectorfileCache
     /// </summary>
     public void Invalidate()
     {
-        Volatile.Write(ref _navaids, null);
+        InvalidateNavaids();
         Volatile.Write(ref _towerPolygons, null);
     }
+
+    /// <summary>Butta via il solo catalogo dei punti. È la fetta che serve a chi SCRIVE, ed è l'unica che
+    /// qualcuno possa voler rileggere subito senza aspettare il giro delle 24 ore.</summary>
+    public void InvalidateNavaids() => Volatile.Write(ref _navaids, null);
 }

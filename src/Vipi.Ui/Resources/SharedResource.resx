@@ -857,6 +857,9 @@
   <data name="Sorg_SaveTitle" xml:space="preserve"><value>Salva la policy delle sorgenti</value></data>
   <data name="Sorg_RevertTitle" xml:space="preserve"><value>Rimetti le spunte come sono salvate</value></data>
   <data name="Sorg_Revert" xml:space="preserve"><value>Ripristina</value></data>
+  <data name="Sorg_ReloadNavaids" xml:space="preserve"><value>Ricarica i punti</value></data>
+  <data name="Sorg_ReloadNavaidsTitle" xml:space="preserve"><value>Riscarica subito dal sectorfile il catalogo di fix, VOR e NDB usato per suggerire i punti negli editor. Senza questo tasto si aggiorna da sé una volta al giorno.</value></data>
+  <data name="Sorg_ReloadNavaidsOk" xml:space="preserve"><value>Catalogo dei punti ricaricato: {0} voci.</value></data>
   <data name="Sorg_ColLastUpdate" xml:space="preserve"><value>Ultimo aggiornamento</value></data>
   <data name="Sorg_ColWhere" xml:space="preserve"><value>Dove si modifica</value></data>
   <data name="Sorg_ProvSourceAlways" xml:space="preserve"><value>sempre da sorgente</value></data>

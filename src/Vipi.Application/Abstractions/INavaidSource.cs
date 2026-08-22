@@ -1,4 +1,4 @@
-namespace Vipi.Application.Abstractions;
+﻿namespace Vipi.Application.Abstractions;
 
 /// <summary>Che cosa è un punto del catalogo. Serve a chi SCEGLIE, non al codice: due nomi uguali di natura
 /// diversa si distinguono solo così, e chi scrive un CoP deve poter dire «no, io intendevo il VOR».</summary>
@@ -67,4 +67,12 @@ public interface INavaidSource
 {
     /// <summary>Il catalogo. <see cref="NavaidCatalog.Empty"/> se la sorgente non è configurata.</summary>
     Task<NavaidCatalog> GetAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Riscarica il catalogo adesso, buttando la copia tenuta in memoria.
+    /// <para>Esiste perché fra due giri automatici passano ventiquattro ore, e un punto aggiunto oggi al
+    /// sectorfile fino ad allora verrebbe segnalato come inesistente a chi lo scrive giusto. È l'unico caso in
+    /// cui qualcuno ha ragione di forzare la mano alla sorgente.</para>
+    /// </summary>
+    Task<NavaidCatalog> RefreshAsync(CancellationToken ct = default);
 }

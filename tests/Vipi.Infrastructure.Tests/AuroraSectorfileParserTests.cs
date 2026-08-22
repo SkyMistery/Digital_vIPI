@@ -123,4 +123,18 @@ public class AuroraSectorfileParserTests
 
         Assert.Contains(rows.Single().Fix, c.Names);
     }
+
+    [Fact]
+    public void Catalogo_Scarta_Le_Righe_Di_Commento()
+    {
+        // Righe vere di itvor.vor e itndb.ndb: senza il filtro finivano nel catalogo come nomi di punto, e
+        // comparivano in cima all'elenco a discesa dell'editor. Una porta anche un nome appiccicato in coda
+        // ("...++++GEBNI"), che NON e' una voce: e' un refuso di chi ha scritto il commento.
+        const string Vor2 = "//+++++++++++++++++++++++++++++++++++++++++++\n//++++VOR ESTERNI(servono per le AEROVIE)++++GEBNI\nAJO;114.80;N041.46.13.900;E008.46.28.800;1;0;";
+
+        var c = AuroraSectorfileParser.ParseNavaids(null, Vor2, "//ESTERNI");
+
+        Assert.Equal("AJO", Assert.Single(c.Entries).Name);
+        Assert.DoesNotContain(c.Names, n => n.StartsWith("//", StringComparison.Ordinal));
+    }
 }

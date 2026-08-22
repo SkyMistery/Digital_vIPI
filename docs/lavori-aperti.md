@@ -792,6 +792,14 @@ L'elenco veniva da prima della riscrittura della vista live (doc 12, 31 luglio) 
   dalla pagina: il filtro «solo da agganciare» li raccoglie.
 - La SID `BANA8A` di LIBD (pista 07) ha `InitialClimb = "90"` → resa «90 ft», quota implausibile. Da
   correggere nell'editor: è un dato, non un bug.
+- Il CoP **`BESIV`** dell'accordo `LIBB_ES_CTR ⇄ LDZO_CTR` (sorvoli, verso LDZO→LIBB) **non esiste nel
+  sectorfile**; a una lettera di distanza c'è `BEKIV`. Lo segnala da solo l'editor degli accordi dal giro del
+  22 agosto ([feature/2026-08-22-catalogo-punti-suggerimenti.md](feature/2026-08-22-catalogo-punti-suggerimenti.md)),
+  ma **correggerlo è una decisione editoriale** — può essere un typo o un punto estero non elencato — e la
+  prende chi conosce l'accordo. Finché resta così, compare anche fra i «punti presenti in un verso solo» del
+  cruscotto delle lacune, dove sembra un'asimmetria dell'archivio e non un errore di scrittura.
+- Stessa cosa da rifare **sui CoP di produzione**: il conteggio (1 su 52) è del DB di sviluppo, che ha 52
+  clausole. Aperta la pagina degli accordi, i nomi fuori catalogo si vedono sottolineati senza cercarli.
 
 ### E3 🟡 Fonte unica — «presidenza aeroporto» ✅ fatta il 9 agosto 2026; resta il distacco dai `Sector`
 Documenti e AoR girano ancora sui `Sector` (proiezione), non direttamente sui cataloghi: **quella parte

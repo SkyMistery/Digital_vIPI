@@ -7,6 +7,7 @@
 @using Vipi.Domain
 @inject IImportPolicyService Policy
 @inject IImportOverviewService Overview
+@inject INavaidSource Navaids
 @inject IStaffRosterRepository StaffRoster
 @inject IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
@@ -52,6 +53,12 @@
                    difetto che si vede solo guardando la schermata: nessuna misura lo trova. *@
                 <button class="btn ghost" disabled="@(_busy || Cambiate.Count == 0)" @onclick="Annulla"
                         title="@L["Sorg_RevertTitle"]">@L["Sorg_Revert"]</button>
+                @* Il catalogo dei punti non è una categoria d'import — non ha una spunta e non finisce in
+                   tabella, perché non tocca il database: vive in memoria e serve a suggerire i nomi negli
+                   editor. Il tasto sta qui lo stesso perché questa è la pagina di chi guarda la SORGENTE, ed
+                   è l'unico posto da cui si può dire «rileggila adesso» senza aspettare le ventiquattro ore. *@
+                <button class="btn ghost" disabled="@_busy" @onclick="RicaricaCatalogo"
+                        title="@L["Sorg_ReloadNavaidsTitle"]"><Icon Name="refresh" Size="14" /> @L["Sorg_ReloadNavaids"]</button>
             </nav>
             @if (_msg is not null || _ok is not null)
             {
@@ -267,6 +274,21 @@
             await LoadAsync();       // stato e provenienze si rileggono insieme: sono la stessa riga
         }
         catch (EditNotAllowedException) { _msg = L["Common_OpAdminOnly"]; }
+        catch (Exception ex) { _msg = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task RicaricaCatalogo()
+    {
+        if (!Authz.IsAdmin) return;
+        _busy = true; _msg = _ok = null;
+        try
+        {
+            var catalogo = await Navaids.RefreshAsync();
+            // Il conteggio e non un «fatto»: e' l'unica cosa che dice se la sorgente ha risposto davvero. Zero
+            // voci con la sorgente configurata significa file spostati, ed e' esattamente cio' che si vuole vedere.
+            _ok = L["Sorg_ReloadNavaidsOk", catalogo.Entries.Count];
+        }
         catch (Exception ex) { _msg = ex.Message; }
         finally { _busy = false; }
     }
