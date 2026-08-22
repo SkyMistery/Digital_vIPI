@@ -134,6 +134,13 @@ non scatta il `resize`, quindi `vipiFitViewport` non rimisura e il driver denunc
 pagina vera non c'e'. E «la pagina scorre?» sotto zoom si chiede con `clientHeight`, non con `innerHeight`:
 `scrollHeight` sta in unita' di layout, `innerHeight` in px di finestra.
 
+Stessa cosa in orizzontale, e il 23 agosto 2026 e' costata un giro di misure buttato: **si confrontano
+`scrollWidth` e `clientWidth`**, che stanno tutti e due in unita' di layout. `getBoundingClientRect().width`
+sta in px di finestra: messo accanto a `clientWidth` dice «serve 1280, ha 914» per ogni elemento della pagina
+e fa sembrare colpevole il primo che capita (la topbar, che non c'entrava). E ⚠️ un elemento con
+`overflow-x:auto` ha `scrollWidth` maggiore del contenitore **per costruzione**: scorre, non sfora. Chi cerca
+il colpevole deve saltarlo, o legge il falso positivo piu' grosso della lista.
+
 ## 5. Bersagli utili nel DB di sviluppo
 
 | Cosa provare | Rotta | Note |
