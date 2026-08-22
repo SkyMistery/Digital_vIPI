@@ -40,6 +40,31 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 > (rename delle rotte), quindi la causa resta la contesa, non una regressione. Il candidato ora ha un indirizzo:
 > il client Aurora è a **porta/socket condivisa**, e in corsa parallela è l'altro progetto a occuparla.
 
+> ### 🆕 22 agosto 2026 — la topbar sfonda fra 1301 e ~1410px (**preesistente**, misurato)
+> Trovato guidando la verifica live dei servizi ATC, e **non e' del giro nuovo**: si misura identico con e
+> senza il tasto aggiunto quel giorno. Lo scaglione 2 della barra (`vipi-theme.css`, `@media (max-width:1300px)`
+> — «Editor»/«Incarichi» a sole icone, ricerca richiusa) scatta **troppo tardi**:
+>
+> | larghezza | sforamento |
+> |---|---|
+> | 1420 e oltre | 0 |
+> | 1400 | +10 |
+> | 1380 | +30 |
+> | 1350 | +60 |
+> | 1320 | +90 |
+> | 1301 | **+109** |
+>
+> Cioe' la soglia andrebbe a **~1410**, non a 1300: appena sopra i 1300 alla barra mancano 109px. Sotto i
+> 1300 lo scaglione scatta e torna tutto a posto, quindi il difetto vive in una fascia sola — che pero'
+> contiene **1366 e 1400**, due larghezze di portatile molto comuni.
+>
+> ⚠️ **Non l'ho corretto da solo perche' e' un compromesso, non un numero.** Il commento nel CSS racconta
+> che quella soglia fu tarata *apposta* per tenere la **ricerca aperta** il piu' a lungo possibile, sbagliando
+> due volte in direzioni opposte. Alzarla a 1410 ripara lo sforamento **e** richiude la ricerca su tutti i
+> portatili 1366: e' esattamente la cosa che quella taratura voleva evitare. Le due strade sono alzare la
+> soglia, oppure recuperare ~110px dentro la fascia (il candidato piu' grasso e' la ricerca, che a barra
+> piena vale piu' di 200px).
+
 ## Dove siamo, in cinque righe
 Il **cutover MariaDB è in `main`** e verificato (A1–A8). Le sezioni **B** (branch), **C** (debito, tranne C3
 tenuta aperta con la ragione scritta) e **D** (verifiche live arretrate) sono **chiuse**. La **E** è stata

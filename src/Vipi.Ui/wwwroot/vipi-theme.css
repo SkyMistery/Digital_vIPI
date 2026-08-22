@@ -2597,6 +2597,14 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 @media (max-width: 1500px) {
   .topbar .staff-badge .sb-t{display:none}
   .topbar .staff-badge{padding:6px 9px}
+
+  /* Anche il tasto «Servizi» (22 agosto 2026) esce a questo scaglione, ed e' misurato: pesa 38px piu' il
+     gap, cioe' 52, e la fascia 1300-1500 e' quella in cui la barra e' gia' al limite — a 1400 sforava di
+     10px anche PRIMA che questo tasto esistesse. E' il pezzo che «serve meno» nel senso della scaletta:
+     l'hub resta a un clic dalla home della documentazione (il collegamento in cima a /services/vsop) e a
+     zero clic dalla radice del dominio, che ci reindirizza. Sotto i 700px torna nel menu ☰, dove lo spazio
+     c'e'. */
+  .topbar .right a[href="/services"]{display:none}
 }
 
 /* Scaglione 2 (~1300): «Editor» e «Incarichi» a sole icone, la ricerca si chiude in un'icona e si apre al

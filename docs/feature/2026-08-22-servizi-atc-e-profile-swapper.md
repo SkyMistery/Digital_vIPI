@@ -1,6 +1,6 @@
 # Feature — Servizi ATC: l'hub `/services` e il primo strumento integrato
 
-Data: 2026-08-22 · Stato: **IN CORSO** — slice 0→4 **fatte**, resta la 5 (verifica live).
+Data: 2026-08-22 · Stato: **FATTO** — slice 0→5, verifica live eseguita.
 Ramo: `feature/services-hub-profile-swapper`, da `main`.
 
 > **Slice 1 chiusa** (rename): 177 file, 759 righe, 35 rotte, i due alias cancellati perché *collassati* sulla
@@ -224,7 +224,40 @@ Il logo della topbar resta puntato a `/services/vsop` — è l'abitudine di chi 
 La slice 1 va **da sola e per prima**: è meccanica, è la sola irreversibile per i segnalibri, e tenerla
 separata la rende revertibile senza portarsi dietro il resto.
 
-## Verifica live (come proverò che funziona, deciso ora)
+## Verifica live — **eseguita** il 22 agosto 2026
+
+App pubblicata e avviata su una copia del DB (i `bin/Debug` erano bloccati dall'istanza di chi lavora: è il
+caso previsto dal runbook, si lancia l'exe pubblicato **dalla sua cartella**), guidata con Edge + puppeteer-core.
+
+| Cosa | Esito |
+|---|---|
+| `/services` elenca i due servizi | ✅ `["/services/vsop","/services/profile-swapper"]` |
+| `/` porta all'hub | ✅ url finale `/services` |
+| Tre profili caricati (1 sorgente + 2 destinazioni) | ✅ `LICC_TWR`, `LICD_TWR`, `BASIC_TWR` |
+| `TRAFFICLISTS` fra le 36 sezioni del sorgente | ✅ |
+| Anteprima resa, **tetto rispettato** | ✅ 341 righe a schermo, `[166, 175]` per blocco (≤200) |
+| Zip scaricato | ✅ `profili-aggiornati-*.zip` |
+| **La sezione copiata è identica a quella del sorgente** | ✅ su entrambi i profili |
+| **Tutto il resto del file è identico byte per byte** | ✅ 43 740 e 39 487 byte confrontati |
+| 11 URL storici → 301, **un salto solo**, poi 200 | ✅ compresi `/sop/guida`, `admin/struttura`, `?p=LIRR_CTR` |
+| La query si ricopia | ✅ `?icao=LIRF` conservato |
+| Endpoint macchina **non** redirezionati | ✅ health 200, `live/atc` 200, `media/<sha>` 404 (non 301) |
+| Telefono 375px, hub e swapper | ✅ nessuno scorrimento orizzontale, una colonna |
+
+### Due difetti visti solo a schermo
+
+1. **La barra sfondava di 62px a 1400** — e la misura ha diviso la colpa: **10px c'erano già** (difetto
+   preesistente, ora annotato in `lavori-aperti.md` con la curva completa), **52px erano del tasto «Servizi»**
+   che avevo aggiunto. Il tasto è entrato nella **scaletta di sfoltimento** che la barra già ha (esce a 1500,
+   come il testo del badge staff), e ora costa **zero** dove lo spazio non c'è. L'hub resta raggiungibile:
+   collegamento in cima alla home della documentazione, voce nel menù ☰, e la radice del dominio che ci porta.
+2. **La card del sorgente si allungava** fino all'altezza dell'elenco destinazioni, lasciandosi sotto un vuoto
+   grande quanto quello: `align-items:start` sulla griglia.
+
+Nessuno dei due sarebbe uscito dai test: il primo è una misura che esiste solo in un browser vero, il
+secondo è una griglia che si comporta esattamente come le si era chiesto.
+
+## Verifica live (come era stata decisa, prima di eseguirla)
 
 Con la skill `verifica-live`, sul flusso vero:
 

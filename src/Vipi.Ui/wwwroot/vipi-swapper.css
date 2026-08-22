@@ -5,7 +5,9 @@
    Tutto sotto .vipi-root, come il resto del modulo (ADR-0005 D3). */
 
 /* ---- le due colonne: sorgente e destinazioni ---- */
-.vipi-root .swap-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0}
+/* align-items:start, o la griglia allunga la card del sorgente fino all'altezza di quella delle
+   destinazioni: caricato un profilo solo, sotto resta un vuoto grande quanto l'elenco accanto. */
+.vipi-root .swap-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0;align-items:start}
 .vipi-root .swap-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px 16px}
 .vipi-root .swap-card h4{font-family:var(--font-head);margin:0 0 2px;font-size:15px}
 .vipi-root .swap-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
