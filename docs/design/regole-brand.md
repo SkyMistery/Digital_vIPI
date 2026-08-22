@@ -97,6 +97,22 @@ coi canali fra 0 e 1. Chi scrive una sonda di contrasto deve gestirlo, o produrr
 ⚠️ La sonda non compone l'**alfa**: il testo su un velo semitrasparente esce come falso positivo. Quei casi
 si ricalcolano a mano componendo il velo sul fondo.
 
+### I due controlli che prendono la classe di errore più insidiosa
+
+Un foglio che **sfugge alla passata sui token** non fa fallire nessun test e non si vede nel tema chiaro.
+È successo a `vipi-aor3d.css`: fondo bianco scritto a mano (bianco su bianco al buio) e famiglie di font
+scritte per nome (quelle *sbagliate*, dopo lo scambio dei ruoli). Da allora:
+
+```powershell
+node sweep.js          # 12 pagine in tema SCURO: ogni fondo dipinto quasi bianco = sospetto
+# lint statico: nessuna famiglia scritta per nome fuori da vipi-fonts.css e dal livello 1
+grep -rnE "font-family: *['\"]?(Poppins|Nunito|IBM Plex|ui-monospace|monospace|system-ui)" src/ ^
+  | findstr /V vendor | findstr /V vipi-fonts.css | findstr /V ivao-font
+```
+
+⚠️ Il lint va fatto **anche** sui `.razor` e sui `.js`, non solo sui `.css`: due dei casi trovati stavano
+in uno stile in linea e in una stringa di stile costruita da JavaScript.
+
 ## Il giorno che il sito ospitante adotta atmosphere
 
 Il livello 1 usa gli stessi nomi che `@ivao/atmosphere-brand` emette in `tokens.css`

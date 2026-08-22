@@ -1222,7 +1222,7 @@
 .toc-preview li{padding:4px 6px;color:var(--ink-soft)}
 .help{font-size:12.5px;color:var(--ink-soft);font-style:italic;margin-top:6px}
 /* ---------- Screen 3b: aeroporto ---------- */
-.metar{font-family:ui-monospace,'Cascadia Code',Consolas,monospace;background:var(--ivao-blue-deep);color:var(--on-dark-soft);border-radius:11px;padding:14px 16px;font-size:14px;line-height:1.6;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.metar{font-family:var(--font-mono);background:var(--ivao-blue-deep);color:var(--on-dark-soft);border-radius:11px;padding:14px 16px;font-size:14px;line-height:1.6;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .metar-live{display:inline-flex;align-items:center;gap:6px;background:color-mix(in srgb,var(--ivao-green) 18%,transparent);color:var(--on-dark-green);border:1px solid color-mix(in srgb,var(--ivao-green) 40%,transparent);border-radius:20px;padding:2px 9px;font-size:11px;font-family:var(--font-head);font-weight:700}
 .metar-live .dot{width:8px;height:8px;border-radius:50%;background:var(--ivao-green)}
 .metar-wind{color:var(--on-dark-yellow)}

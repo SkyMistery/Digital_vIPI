@@ -239,6 +239,53 @@ navigazione «enhanced». Una riga (`DOMContentLoaded`), e non si ripete nel tem
 | tre scelte nel menù a 390px, con lo stato attivo | ✅ `aria-pressed` incluso |
 | sforo della barra a 6 larghezze | ✅ 0px ovunque |
 
+## Coda: il visore 3D era rimasto fuori dal giro
+
+Segnalato dal committente: **nel tema scuro la legenda «SETTORI» del visore 3D era bianca con le scritte
+bianche.** Riprodotto e misurato: `.aor3d-legend` aveva `background: rgba(255,255,255,.92)` **scritto a
+mano** — non si girava — mentre il testo dentro eredita `--ink`, che al buio è `#fafaff`.
+
+`vipi-aor3d.css` era **sfuggito alla passata sui token**, e ne portava tutti i segni:
+
+| cos'era | perché era un difetto | ora |
+|---|---|---|
+| `background: rgba(255,255,255,.92)` | non si gira: bianco su bianco al buio | `color-mix(… var(--surface) 92% …)` |
+| `.lgt` in `var(--ivao-blue)` | il titolo su un fondo che ora si gira | `var(--brand-ink)` |
+| `.aor-vm-btn` in `var(--ivao-lightblue)` | idem, sta su `--tint-atmos` | `var(--brand-ink-2)` |
+| `font-family: 'Nunito Sans'` ×2 | **dopo lo scambio dei ruoli era il font sbagliato** | `var(--font-head)` |
+| `font-family: 'Poppins'` | giusto per caso, ma scavalca il token | `var(--font-head)` |
+| `ui-monospace, Consolas…` ×2 | non è il monospaziato del brand | `var(--font-mono)` |
+| alone dell'etichetta in bianco | su fondo scuro disegna il contorno invece di staccare | alone da `--surface` |
+
+Stessi difetti, fuori da lì: `.metar` in `vipi-theme.css` (il suo `font-family` conteneva
+`'Cascadia Code'`, e la mia sostituzione cercava la stringa esatta senza) e `StructureCoverage.razor`.
+
+### ⚠️ Quello che il CSS non poteva sistemare: l'inchiostro delle etichette
+
+`edgeCol = col × 0.72` — l'inchiostro di ogni settore era il suo colore **scurito**, e il commento accanto
+lo diceva già: «stacco netto sulla mappa **chiara**». Al buio le etichette diventavano blu notte su fondo
+blu notte. Ora si **schiarisce** (`lerp` verso il bianco al 45%) quando la superficie è scura.
+
+⚠️ Il tema si legge dalla **superficie**, non da `data-theme`: così vale per tutti e tre gli stati —
+automatico compreso — senza doverli conoscere. E il parser gestisce `#rrggbb`, `rgb()` **e**
+`color(srgb 0–1)`: è la stessa trappola che aveva già fatto sbagliare la sonda di contrasto.
+
+⚠️ **Ricolorare, non ricostruire.** three.js ha già *disegnato*, e un disegno non si aggiorna da sé come
+farebbe una regola CSS. Al cambio di tema si ricalcolano solo i colori (etichette + materiali degli
+spigoli) e si ridisegna: ricostruire la scena azzererebbe **l'orbita che l'utente si è scelto**. Questo
+chiude l'ultimo punto aperto della carta precedente, dove l'evento `vipi:tema` c'era ma non lo ascoltava
+nessuno.
+
+### Perché la verifica precedente non l'aveva visto
+
+Controllava il font **solo su 5 pagine**, e la vista 3D non era fra quelle. Ora ci sono due controlli che
+prendono l'intera classe di errore, ed è così che questo è stato chiuso:
+
+- una **battuta larga** (`sweep.js`) che su 12 pagine in tema scuro cerca ogni elemento con un fondo
+  dipinto quasi bianco. Dopo la correzione: **0 difetti** (i 2 «sospetti» che segnala sono la pastiglia ACC
+  attiva sulla barra blu, bianca di proposito — è la sonda a risalire male gli antenati, non il CSS);
+- un **lint statico** su `font-family` scritte per nome invece che via token. Dopo la correzione: **0**.
+
 ## Cosa resta aperto
 
 - **Il logo.** Atmosphere ha un componente `IVAOLogo` (SVG, varianti orizzontale/icona, `white`/`atmos`).
@@ -251,8 +298,10 @@ navigazione «enhanced». Una riga (`DOMContentLoaded`), e non si ripete nel tem
 - **Il tema scuro non è stato guardato su tutte le pagine.** Verificate a schermo: landing, vIPI ACC,
   elenco aeroporti, struttura admin, guida. Gli editor, la vista live e i blocchi mappa hanno il tema
   applicato per costruzione (non contengono più colori propri) ma **non sono stati guardati uno per uno**.
-- **Il canvas del visore 3D non si ridipinge al cambio di tema.** Il suo fondo legge `--surface-muted`, che
-  si gira, ma un canvas già disegnato resta com'è finché non lo si ridisegna. `vipiSetTema` emette
-  `vipi:tema` e un `resize` apposta perché ci si possa agganciare: nessuno lo fa ancora.
+- ~~Il canvas del visore 3D non si ridipinge al cambio di tema.~~ **CHIUSO**: `vipi-aor3d.js` ascolta
+  `vipi:tema` e ricolora senza ricostruire la scena.
+- **Le tessere della mappa base restano chiare** anche nel tema scuro: arrivano da CARTO `light_all`, ed
+  esiste `dark_all`. Non l'ho cambiato da solo perché è una scelta estetica e i poligoni sono tarati su
+  una base chiara — ma nel tema scuro il piano della mappa resta un rettangolo luminoso nella scena.
 - **La scelta è per browser**, non per utente: sta in `localStorage`, non nel profilo. Se un domani si
   vorrà seguire l'utente fra dispositivi, va nel DB.

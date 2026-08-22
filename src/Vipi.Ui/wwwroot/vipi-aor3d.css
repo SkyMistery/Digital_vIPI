@@ -1,8 +1,14 @@
-/* Viewer 3D dell'AoR (vipi-aor3d.js). Stili class-based (istanze multiple per pagina). */
+/* Viewer 3D dell'AoR (vipi-aor3d.js). Stili class-based (istanze multiple per pagina).
+
+   ⚠️ Questo foglio era rimasto fuori dal giro sui token del 2026-08-22 e ne portava i segni: la legenda
+   aveva `background: rgba(255,255,255,.92)` scritto a mano — al buio restava bianca col testo quasi
+   bianco sopra, illeggibile — e tre `font-family` scritte per nome, che dopo lo scambio dei ruoli
+   (titoli = Poppins) erano diventate quelle sbagliate. Vale anche qui la regola di
+   docs/design/regole-brand.md: niente colori e niente famiglie scritte a mano, solo token. */
 
 /* Tab 2D/3D del blocco AoR (toggle client-side in vipi-aor3d.js). */
 .aor-viewmode { display: inline-flex; background: var(--tint-atmos); border-radius: 9px; padding: 3px; margin-bottom: 12px; }
-.aor-vm-btn { border: 0; background: transparent; color: var(--ivao-lightblue); padding: 7px 16px; border-radius: 7px; cursor: pointer; font-family: 'Poppins'; font-size: 13px; font-weight: 500; }
+.aor-vm-btn { border: 0; background: transparent; color: var(--brand-ink-2); padding: 7px 16px; border-radius: 7px; cursor: pointer; font-family: var(--font-head); font-size: 13px; font-weight: 500; }
 .aor-vm-btn.on { background: var(--ivao-blue); color: var(--on-brand); font-weight: 600; }
 .aor-view[hidden] { display: none; }
 
@@ -23,18 +29,18 @@
 .aor3d-stage:fullscreen { height: 100%; width: 100%; border-radius: 0; }
 
 .aor3d-legend {
-    position: absolute; top: 12px; left: 12px; background: rgba(255,255,255,.92);
+    position: absolute; top: 12px; left: 12px; background: color-mix(in srgb, var(--surface) 92%, transparent);
     border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; font-size: 12.5px; box-shadow: var(--shadow);
     max-height: calc(100% - 24px); overflow: auto;
 }
 .aor3d-legend .lgt {
-    font-family: 'Nunito Sans'; font-weight: 700; color: var(--ivao-blue); font-size: 11px;
+    font-family: var(--font-head); font-weight: 700; color: var(--brand-ink); font-size: 11px;
     text-transform: uppercase; letter-spacing: .03em; margin-bottom: 6px;
 }
 .aor3d-legend .lg-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; cursor: pointer; user-select: none; }
 .aor3d-legend .lg-row.off { opacity: .38; }
 .aor3d-legend .lg-row .sw { width: 14px; height: 14px; border-radius: 4px; flex: none; }
-.aor3d-legend .lg-row .fl { margin-left: auto; color: var(--ink-soft); font-size: 11px; font-family: ui-monospace, Consolas, monospace; }
+.aor3d-legend .lg-row .fl { margin-left: auto; color: var(--ink-soft); font-size: 11px; font-family: var(--font-mono); }
 
 /* Etichette dei settori: overlay HTML posizionato da vipi-aor3d.js (transform in px sullo stage).
    Il layer non intercetta il mouse — l'orbita continua a funzionare — ma le singole etichette sì (click = toggle). */
@@ -42,10 +48,10 @@
 .aor3d-lab {
     position: absolute; top: 0; left: 0; pointer-events: auto; cursor: pointer; user-select: none;
     white-space: nowrap; text-align: center; line-height: 1.15;
-    font-family: 'Nunito Sans', sans-serif; font-weight: 800; font-size: 12.5px; letter-spacing: .01em;
-    text-shadow: 0 0 3px var(--on-brand), 0 0 3px var(--on-brand), 0 0 6px rgba(255,255,255,.95);
+    font-family: var(--font-head); font-weight: 800; font-size: 12.5px; letter-spacing: .01em;
+    text-shadow: 0 0 3px var(--surface), 0 0 3px var(--surface), 0 0 6px color-mix(in srgb, var(--surface) 95%, transparent);
 }
-.aor3d-lab i { display: block; font-style: normal; font-weight: 600; font-size: 10.5px; opacity: .78; font-family: ui-monospace, Consolas, monospace; }
+.aor3d-lab i { display: block; font-style: normal; font-weight: 600; font-size: 10.5px; opacity: .78; font-family: var(--font-mono); }
 .aor3d-lab:hover { text-decoration: underline; }
 
 .aor3d-hint {
