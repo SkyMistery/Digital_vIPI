@@ -59,7 +59,9 @@ mappa stradale colorata. Quattro correzioni, tutte dal riscontro del committente
 - **AoR accendibile.** I settori della sezione `aor` **della stessa parte di documento** si accendono dal
   controllo dei livelli, spenti all'apertura: servono a vedere come le minime si rapportano ai confini.
   Solo contorno tratteggiato — accesi in più d'uno i riempimenti annacquavano le minime — e **fuori
-  dall'inquadratura**, che resta quella delle minime.
+  dall'inquadratura**, che resta quella delle minime. Il pannello dei livelli nasce **aperto**: chiuso
+  dietro l'iconcina, gli AoR risultavano semplicemente assenti a chi apriva l'editor. Costo misurato sui
+  documenti veri: al massimo 2 fondi + 7 settori.
 
 E la carta **non porta didascalia**: `LIBD — Bari Palese` diceva una cosa più stretta del vero, perché il
 file copre un'area che va oltre lo scalo che gli dà il nome. Resta il titolo della sezione e la mappa.
@@ -81,6 +83,10 @@ Il rilievo sotto non è decorazione: sulla carta di Milano si legge a colpo d'oc
 - **Le tile sono chiare in entrambi i temi.** L'etichetta con token di tema diventava bianca su fondo chiaro:
   colori letterali, unica eccezione voluta, col perché scritto accanto nel CSS.
 - **`<text>` in un blocco di codice Razor è la parola chiave di escape**, non l'elemento SVG: va annidato.
+- **Una funzione dietro un'icona, per chi guarda, non c'è.** L'AoR accendibile era completo e invisibile
+  finché il controllo dei livelli restava chiuso. Verificato riaprendo l'editor con la stessa domanda.
+- **Il velo grigio sull'editor al primo accesso è il TOUR** (`vt-overlay` di `vipi-tour.js`), non un difetto
+  della sezione: fa sembrare tutto disabilitato e allunga la diagnosi.
 - **Un fondo «senza strade» può essere anche senza terreno.** `World Terrain Base` da solo, a questi zoom, è
   quasi bianco: tolte le strade erano sparite anche le montagne. Si è visto solo guardando lo screenshot.
 - **Tre forme di coordinata**, non due come diceva il censimento del sector: DMS coi punti, DMS **compatta**
