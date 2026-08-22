@@ -1,6 +1,6 @@
 # Editor APP ed Editor vLOA — cosa fanno davvero (carta, 22 agosto 2026)
 
-> Ramo `ui-trasferimenti-densita`, pagine `/vsop/{acc}/apps/editor` e `/vsop/{acc}/vloa/editor`. Prima carta
+> Ramo `ui-trasferimenti-densita`, pagine `/services/vsop/{acc}/apps/editor` e `/services/vsop/{acc}/vloa/editor`. Prima carta
 > del giro: **la sostanza**. La forma sta nella gemella
 > [`2026-08-22-editori-app-vloa-densita-ui.md`](2026-08-22-editori-app-vloa-densita-ui.md).
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md); regole: [regole-ui-pagine-admin](../design/regole-ui-pagine-admin.md).

@@ -370,7 +370,7 @@ public static class VipiModuleExtensions
     /// aspetta, e il difetto uscirebbe come colonna mancante a runtime, lontano dalla causa.</para>
     ///
     /// <para>Il guasto non finisce solo nel log: passa da <c>IStartupMaintenanceReport</c> al report di
-    /// consistenza, quindi si vede in <c>/vsop/admin/diagnostica</c> e manda <c>/vsop/health</c> in
+    /// consistenza, quindi si vede in <c>/services/vsop/admin/diagnostics</c> e manda <c>/vsop/health</c> in
     /// Degraded. Un «logga e prosegui» che si ferma al log è un modo per non accorgersene mai.</para>
     /// </summary>
     public static IHost RunVipiStartupMaintenance(this IHost host)

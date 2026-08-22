@@ -1,4 +1,4 @@
-@page "/vsop/{Acc}/apps/vipi"
+@page "/services/vsop/{Acc}/apps/vipi"
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IAppDocumentService AppDoc
@@ -18,14 +18,14 @@
 }
 else if (_view is null)
 {
-    <div class="wrap"><div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Appn_AppNotAvailTitle"]</p>@((MarkupString)string.Format(L["Appn_AppNotFoundBody"], _app, $"/vsop/{Acc.ToLowerInvariant()}/apps/editor?app={_app}"))</div></div></div>
+    <div class="wrap"><div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Appn_AppNotAvailTitle"]</p>@((MarkupString)string.Format(L["Appn_AppNotFoundBody"], _app, $"/services/vsop/{Acc.ToLowerInvariant()}/apps/editor?app={_app}"))</div></div></div>
 }
 else
 {
     <PageTitle>@PreviewTitlePrefix()@_displayName · vIPI IVAO Italia</PageTitle>
 
     <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/vsop/@Acc.ToLowerInvariant()/apps">@L["AccLanding_Apps"]</a> › <b>@_app</b></div>
+        <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@L["AccLanding_Apps"]</a> › <b>@_app</b></div>
         <div class="doc-layout">
             <aside class="toc">
                 <p class="toc-h">@L["Common_Contents"]</p>
@@ -43,18 +43,18 @@ else
                     <div><h2 style="margin-bottom:2px">@_displayName</h2><span class="muted">@_app · @L["Appn_Subtitle"]</span></div>
                     <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
-                        <a class="btn ghost" href="/vsop/live/@_app.ToLowerInvariant()">@L["Common_Operational"]</a>
+                        <a class="btn ghost" href="/services/vsop/live/@_app.ToLowerInvariant()">@L["Common_Operational"]</a>
                         @if (_canEdit)
                         {
-                            <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/apps/editor?app=@_app">@L["Common_Editor"]</a>
+                            <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/apps/editor?app=@_app">@L["Common_Editor"]</a>
                         }
                     </div>
                 </div>
                 @if (_mode.IsPreview)
                 {
                     <PreviewBanner Kind="_mode.Kind" Cycle="@_relCycle"
-                                   PublicHref="@($"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}")"
-                                   DraftHref="@($"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=draft")" />
+                                   PublicHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}")"
+                                   DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=draft")" />
                 }
                 <div class="callout info"><span class="cic"><Icon Name="radio" Size="18" /></span><div><p class="ct">@L["Appn_InfoTitle"]</p>@L["Appn_InfoBody"]</div></div>
 
@@ -129,9 +129,9 @@ else
                 <div class="rail-card">
                     <h5><Icon Name="link" /> @L["Common_Links"]</h5>
                     <ul class="rail-links">
-                        <li><a href="/vsop">@L["Common_Home"]</a></li>
-                        <li><a href="/vsop/@Acc.ToLowerInvariant()">ACC @_acc.Code</a></li>
-                        <li><a href="/vsop/@Acc.ToLowerInvariant()/apps">@L["AccLanding_Apps"]</a></li>
+                        <li><a href="/services/vsop">@L["Common_Home"]</a></li>
+                        <li><a href="/services/vsop/@Acc.ToLowerInvariant()">ACC @_acc.Code</a></li>
+                        <li><a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@L["AccLanding_Apps"]</a></li>
                     </ul>
                 </div>
             </aside>

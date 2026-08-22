@@ -104,7 +104,7 @@ modello EF con `information_schema` **nel verso opposto** al reconciler e produc
 | Tipo colonna divergente | Warning | Il reconciler non cambia i tipi: serve un `ALTER` a mano |
 | Colonna mancante nello schema | Error | Attesa dal modello e assente: il reconcile è best-effort, può aver fallito |
 
-I finding confluiscono nel report di consistenza esistente, quindi si vedono in `/vsop/admin/diagnostica` e
+I finding confluiscono nel report di consistenza esistente, quindi si vedono in `/services/vsop/admin/diagnostics` e
 mandano `/vsop/health` a **Degraded** senza modifiche a valle. Fuori da Npgsql è un no-op: dove le migrazioni EF
 girano davvero il drift non si accumula. Non sta in `/vsop/health/ready`, che l'orchestratore ripete di continuo.
 

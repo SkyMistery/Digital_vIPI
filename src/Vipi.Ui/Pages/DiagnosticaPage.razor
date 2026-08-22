@@ -1,4 +1,4 @@
-﻿@page "/vsop/admin/diagnostica"
+﻿@page "/services/vsop/admin/diagnostics"
 @layout SopLayout
 @rendermode InteractiveServer
 @using Vipi.Application.Diagnostics
@@ -35,7 +35,7 @@
                 </span>
             }
         </h2>
-        <HelpHint Href="/vsop/guida#admin-diagnostica" AriaLabel="@L["Diag_HelpAria"]" ExtraClass="wide">
+        <HelpHint Href="/services/vsop/guide#admin-diagnostica" AriaLabel="@L["Diag_HelpAria"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@L["Diag_Subtitle"]</p>
             @((MarkupString)L["Diag_Intro"].Value)
         </HelpHint>
@@ -316,9 +316,9 @@
     /// qui si traduce solo l'etichetta, con le stesse parole della barra admin — un vocabolario solo.</summary>
     private string Dove(string rotta) => rotta switch
     {
-        "/vsop/admin/trasferimenti" => L["Home_TransfersTitle"],
-        "/vsop/admin/sectorstructure" => L["Struct_Title"],
-        "/vsop/versioni" => L["Nav_Docs"],
+        "/services/vsop/admin/transfers" => L["Home_TransfersTitle"],
+        "/services/vsop/admin/sector-structure" => L["Struct_Title"],
+        "/services/vsop/versions" => L["Nav_Docs"],
         _ => rotta,
     };
 }

@@ -21,7 +21,7 @@
         <b><Icon Name="calendar" /> @L["Rel_AiracRelease"]</b>
         @* Le tre righe di aiuto erano scritte a mano in italiano: il pannello lo montano TUTTI gli editor,
            quindi in inglese erano italiane in cinque pagine, non in una. *@
-        <HelpHint Href="/vsop/guida#editor-release" AriaLabel="@L["Rel_HelpAria"]">
+        <HelpHint Href="/services/vsop/guide#editor-release" AriaLabel="@L["Rel_HelpAria"]">
             @((MarkupString)L["Rel_HelpBody"].Value)
         </HelpHint>
         <span class="muted" style="font-size:12px">@(string.Format(L["Rel_HeaderNote"].Value, _currentCycle))</span>
@@ -289,7 +289,7 @@
         ? PreviewUrlFactory(releaseId)
         : Target switch
         {
-            ReleaseTargetType.AccVipi => $"/vsop/{Key.Split('|')[0].ToLowerInvariant()}/vipi?as=rel:{releaseId}",
+            ReleaseTargetType.AccVipi => $"/services/vsop/{Key.Split('|')[0].ToLowerInvariant()}/vipi?as=rel:{releaseId}",
             _ => null,
         };
 }

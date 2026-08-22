@@ -1,4 +1,4 @@
-﻿@page "/vsop/admin/permessi"
+﻿@page "/services/vsop/admin/permissions"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IEditAuthorizationService Authz
@@ -27,7 +27,7 @@
        navigazione e i permessi. L'hub è diventato la barra qui sotto, e il titolo dice cosa fa la pagina. *@
     <div class="doc-head st-head">
         <h2 class="st-h2">@L["Home_PermsTitle"]&nbsp;<span class="pill blue" title="@L["Grants_CountTitle"]">@CountLabel()</span></h2>
-        <HelpHint Href="/vsop/guida#admin-permessi" AriaLabel="@L["Grants_HelpAria"]" ExtraClass="wide">
+        <HelpHint Href="/services/vsop/guide#admin-permessi" AriaLabel="@L["Grants_HelpAria"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@L["Grants_Subtitle"]</p>
             @((MarkupString)L["Grants_Intro"].Value)
         </HelpHint>

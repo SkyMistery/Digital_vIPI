@@ -78,11 +78,11 @@ public class LiveBadgeTests : TestContext
         var online = Arrange();
 
         var off = RenderComponent<LiveBadge>(p => p.Add(x => x.UserId, 704798));
-        Assert.Equal("/vsop/live", off.Find("a.live-badge.off").GetAttribute("href"));
+        Assert.Equal("/services/vsop/live", off.Find("a.live-badge.off").GetAttribute("href"));
 
         online.SetOnline(("LIBB_ES_CTR", 704798));
         var on = RenderComponent<LiveBadge>(p => p.Add(x => x.UserId, 704798));
-        Assert.Equal("/vsop/live", on.Find("a.live-badge").GetAttribute("href"));
+        Assert.Equal("/services/vsop/live", on.Find("a.live-badge").GetAttribute("href"));
     }
 
     [Fact]

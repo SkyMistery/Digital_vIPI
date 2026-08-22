@@ -1,6 +1,6 @@
 # Sorgenti — densità UI (carta, 22 agosto 2026)
 
-> Ramo `ui-trasferimenti-densita`, pagina `/vsop/admin/sorgenti`. Seconda carta del giro: **la forma**.
+> Ramo `ui-trasferimenti-densita`, pagina `/services/vsop/admin/sources`. Seconda carta del giro: **la forma**.
 > La sostanza sta nella gemella [`2026-08-22-sorgenti-cosa-fa-la-policy.md`](2026-08-22-sorgenti-cosa-fa-la-policy.md).
 > Undicesima pagina del giro. Regole: [regole-ui-pagine-admin](../design/regole-ui-pagine-admin.md).
 
@@ -90,7 +90,7 @@ accanto a ogni nome, e con due sole categorie era già un muro che si legge due 
 
 ## Prosa: «?» e Guida
 
-- `HelpHint Href="/vsop/guida#admin-sorgenti"` in testata, con dentro il sottotitolo e `Sorg_Intro` (i «?» si
+- `HelpHint Href="/services/vsop/guide#admin-sorgenti"` in testata, con dentro il sottotitolo e `Sorg_Intro` (i «?» si
   aprono **a clic**, mai al passaggio del mouse).
 - Nuova sezione `#admin-sorgenti` nella Guida (IT **ed** EN) con: cos'è la policy opt-out, cosa vuol dire
   «congelate» per le aree, quali categorie hanno un giro automatico e quali no, e il segnaposto
@@ -174,7 +174,7 @@ tolta dalla pill si ripresenta nella cella accanto:
 ### Rimasto aperto, e non è di questa pagina
 
 ⚠️ Lo **sforo orizzontale** a 1280 e 1024: `div.right` della topbar misura **1 411px dentro 1 280**, ed è
-identico su `/vsop`, su Audit e su Sorgenti — verificato elencando gli elementi oltre il bordo: **niente
+identico su `/services/vsop`, su Audit e su Sorgenti — verificato elencando gli elementi oltre il bordo: **niente
 dentro il `.wrap` sfora**. È del chrome, come già scritto nell'handoff.
 
 ## Slice, come sono andate

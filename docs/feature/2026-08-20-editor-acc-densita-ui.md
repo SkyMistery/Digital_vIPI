@@ -3,7 +3,7 @@
 Sesto giro della famiglia, dopo [accordi](2026-08-19-accordi-densita-ui.md),
 [struttura](2026-08-19-struttura-densita-ui.md), [ACC admin](2026-08-19-acc-admin-densita-ui.md),
 [aeroporti](2026-08-19-aeroporti-densita-ui.md) e [editor aeroporto](2026-08-20-editor-aeroporto-densita-ui.md):
-`/vsop/{acc}/editor` — `src/Vipi.Ui/Pages/AccEditorPage.razor`. Prima voce della lista «da rifare» nelle
+`/services/vsop/{acc}/editor` — `src/Vipi.Ui/Pages/AccEditorPage.razor`. Prima voce della lista «da rifare» nelle
 [regole](../design/regole-ui-pagine-admin.md) (6 466px misurati in ricognizione).
 
 Carta scritta prima, resoconto aggiunto dopo: dal §3 in giù c'è quello che è successo davvero.
@@ -34,8 +34,8 @@ Quello che invece **era già a norma** e non andava toccato: TOC e rail sono app
 
 | Pagina | In lettura | **In modifica** |
 |---|---:|---:|
-| `/vsop/libb/editor` | 6 466px | **9 690px** |
-| `/vsop/limm/editor` | 5 020px | **8 155px** |
+| `/services/vsop/libb/editor` | 6 466px | **9 690px** |
+| `/services/vsop/limm/editor` | 5 020px | **8 155px** |
 
 **Il primo numero della ricognizione era quello sbagliato**: l'editor si guarda poco e si *modifica*, e in
 modifica la pagina cresce del 50%. Ripartizione in modifica (LIBB, blocco Aerovia = 4 513px):
@@ -120,8 +120,8 @@ Guidata con Edge+puppeteer sulla copia del DB di sviluppo, 1600×900, **in modif
 
 | | Prima | Dopo, all'apertura | Tutto compresso | «Espandi tutto» |
 |---|---:|---:|---:|---:|
-| `/vsop/libb/editor` | 9 690px | **5 595** | **1 468** | 10 080 |
-| `/vsop/limm/editor` | 8 155px | **3 611** | — | — |
+| `/services/vsop/libb/editor` | 9 690px | **5 595** | **1 468** | 10 080 |
+| `/services/vsop/limm/editor` | 8 155px | **3 611** | — | — |
 
 Gli altri due, dopo: LIRR 4 669, LIPP 3 527. Nel dettaglio:
 

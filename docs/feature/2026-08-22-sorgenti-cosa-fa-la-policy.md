@@ -1,6 +1,6 @@
 # Sorgenti — cosa promette la policy e cosa fanno davvero gli import (carta, 22 agosto 2026)
 
-> Ramo `ui-trasferimenti-densita`, pagina `/vsop/admin/sorgenti`. Prima carta del giro: **la sostanza**.
+> Ramo `ui-trasferimenti-densita`, pagina `/services/vsop/admin/sources`. Prima carta del giro: **la sostanza**.
 > La forma sta nella gemella [`2026-08-22-sorgenti-densita-ui.md`](2026-08-22-sorgenti-densita-ui.md).
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md); regole: [regole-ui-pagine-admin](../design/regole-ui-pagine-admin.md).
 
@@ -23,7 +23,7 @@ Audit: la pagina prometteva «pubblicazioni, permessi, struttura» e la struttur
 | Chiamante | Da dove | Gate policy |
 |---|---|---|
 | `AirportSectorImportHostedService` | automatico, ogni 24h | ❌ |
-| `AirportSectorService.ImportFromSourceAsync` | bottone editor aeroporto + massivo `/vsop/admin/airports` | ❌ |
+| `AirportSectorService.ImportFromSourceAsync` | bottone editor aeroporto + massivo `/services/vsop/admin/airports` | ❌ |
 | `AirportImportUseCase.RunAsync` | «Assegna aeroporti noti» in Struttura | ❌ |
 | `StructureEditingService.GenerateAirportDocumentCoreAsync` | «Genera documenti» | ❌ |
 
@@ -153,7 +153,7 @@ da cui si scatena.
 ## Cosa NON faccio, e perché
 
 - **Non aggiungo un «importa adesso» globale.** I trigger manuali esistono già dove l'oggetto vive (ACC e
-  Aree in `/vsop/admin/accs`, settori e SID nell'editor aeroporto, massivi in `/vsop/admin/airports`): un
+  Aree in `/services/vsop/admin/accs`, settori e SID nell'editor aeroporto, massivi in `/services/vsop/admin/airports`): un
   sesto bottone che fa la stessa cosa da un'altra pagina è il modo in cui due elenchi della stessa cosa
   divergono. La riga di stato **porta il link** a dove il giro si lancia.
 - **Non ribalto `ImportSids` in produzione.** `false` resta indistinguibile da una scelta: la pagina ora lo
@@ -165,7 +165,7 @@ da cui si scatena.
 
 - Il gate dei Settori **spegne** un import che oggi gira sempre: se in produzione `ImportSectors` fosse
   `false` per lo stesso incidente di `ImportSids`, l'aggiornamento dei settori si fermerebbe al deploy. ⚠️
-  Da guardare **prima** in `/vsop/admin/sorgenti` di produzione (la colonna «Provenienza» lo dice già oggi) —
+  Da guardare **prima** in `/services/vsop/admin/sources` di produzione (la colonna «Provenienza» lo dice già oggi) —
   ed è la ragione per cui la slice 4 (chi/quando) vale la pena **prima** di andare in produzione, non dopo.
 - `AuditScribe` è `internal` a `Vipi.Infrastructure`: la scrittura sta nello store EF, non nel service
   Application. È già così per gli altri punti di scrittura.

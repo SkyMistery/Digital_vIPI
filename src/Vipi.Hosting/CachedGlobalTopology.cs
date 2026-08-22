@@ -12,7 +12,7 @@ namespace Vipi.Hosting;
 /// ospita: è il costo che si nota per primo, e lo pagherebbe qualcun altro.</para>
 ///
 /// <para><b>Perché una TTL corta e non un invalidamento esplicito.</b> La gerarchia cambia per azione di un
-/// admin in <c>/vsop/admin/sectorstructure</c> o per un import: eventi rari e non urgenti al secondo. Trenta
+/// admin in <c>/services/vsop/admin/sector-structure</c> o per un import: eventi rari e non urgenti al secondo. Trenta
 /// secondi di ritardo su un cambio di gerarchia non cambiano nulla per chi sta controllando; un canale di
 /// invalidamento in più, invece, sarebbe una cosa da tenere allineata per sempre.</para>
 ///

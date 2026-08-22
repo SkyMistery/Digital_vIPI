@@ -1,6 +1,6 @@
 # Incarichi — densità e QoL delle due pagine (carta, 22 agosto 2026)
 
-> Ramo `ui-trasferimenti-densita`, pagine `/vsop/admin/tasks` e `/vsop/tasks`. Seconda carta del giro: **la
+> Ramo `ui-trasferimenti-densita`, pagine `/services/vsop/admin/tasks` e `/services/vsop/tasks`. Seconda carta del giro: **la
 > forma**. La sostanza sta nella gemella [`2026-08-22-incarichi-cosa-sono.md`](2026-08-22-incarichi-cosa-sono.md).
 > Regole: [regole-ui-pagine-admin](../design/regole-ui-pagine-admin.md).
 
@@ -12,8 +12,8 @@ sei persone, perché il riepilogo per editore cresce col numero di **persone**):
 
 | Pagina | Con 12 | Con 60 | Cosa cresce |
 |---|---:|---:|---|
-| Incarichi admin `/vsop/admin/tasks` | **1 813** | **4 764** | la tabella: 64px a riga, e non ha tetto |
-| Incarichi utente `/vsop/tasks` | 900 (con 2 propri) | **1 562** (con 12 propri) | le schede kanban nelle cinque colonne |
+| Incarichi admin `/services/vsop/admin/tasks` | **1 813** | **4 764** | la tabella: 64px a riga, e non ha tetto |
+| Incarichi utente `/services/vsop/tasks` | 900 (con 2 propri) | **1 562** (con 12 propri) | le schede kanban nelle cinque colonne |
 
 A 1280×800 la pagina utente **scorre già con quattro** incarichi (854 su 800).
 
@@ -65,8 +65,8 @@ Guidate entrambe con `verifica-live` (Edge + puppeteer-core, DB copiato e **riem
 
 | Pagina | Prima (12) | Prima (60) | **Dopo** |
 |---|---:|---:|---:|
-| Incarichi admin `/vsop/admin/tasks` | 1 813 | 4 764 | **il viewport**, con 12 e con 60 |
-| Incarichi utente `/vsop/tasks` | 1 562 | — | **il viewport**, con 12 propri e con 10 |
+| Incarichi admin `/services/vsop/admin/tasks` | 1 813 | 4 764 | **il viewport**, con 12 e con 60 |
+| Incarichi utente `/services/vsop/tasks` | 1 562 | — | **il viewport**, con 12 propri e con 10 |
 
 Entrambe restano il viewport a **tutti e quattro** gli assetti, in **tutte e due** le lingue, da zoom 0.8 a
 1.25. ⚠️ **A zoom 1.5 sotto i 1 440px scorrono**, ed è il comportamento della **famiglia**, non di queste
@@ -108,7 +108,7 @@ Prima di dire «l'ho rotto io», si misurano le gemelle.
 
 Scelta della riga, cambio di stato (**la riga non salta più**: verificato, resta in posizione 2 prima e
 dopo), riassegnazione, tasto «Crea» spento finché mancano titolo o persona, e il link che apre **l'editor
-giusto** — `/vsop/libb/editor` → «Editor vIPI Brindisi», non l'elenco dei documenti.
+giusto** — `/services/vsop/libb/editor` → «Editor vIPI Brindisi», non l'elenco dei documenti.
 
 ## Come si verifica
 

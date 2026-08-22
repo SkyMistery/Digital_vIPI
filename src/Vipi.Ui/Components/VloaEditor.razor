@@ -1,6 +1,6 @@
 ﻿@* Editor documentale della vLOA (coppia Home↔Neighbour). Primo editor costruito su IEditingService:
    bozza + lock esclusivo, sezioni (albero) e blocchi (prosa/callout/tabella), pubblicazione. Lato Home editabile.
-   Ospitato da VloaEditorPage (route /vsop/{acc}/vloa/editor?acc=<vicino>). *@
+   Ospitato da VloaEditorPage (route /services/vsop/{acc}/vloa/editor?acc=<vicino>). *@
 @using System.Text.Json
 @using Microsoft.Extensions.DependencyInjection
 @inherits OwningComponentBase
@@ -36,7 +36,7 @@ else
     <div class="editor-bar">
         <div class="doc-head st-head" style="margin:0">
             <h2 class="st-h2">✎ @L["Vle_EditorTitle"] — @Home ↔ @Foreign</h2>
-            <HelpHint Href="/vsop/guida#editor-vloa" AriaLabel="@L["Vle_HelpAria"]" ExtraClass="wide">
+            <HelpHint Href="/services/vsop/guide#editor-vloa" AriaLabel="@L["Vle_HelpAria"]" ExtraClass="wide">
                 <p>@(string.Format(L["Vle_Chrome"].Value, Home, Foreign))</p>
                 <p style="margin:6px 0 0"><b>@L["Vle_BilateralTitle"]</b></p>
                 @((MarkupString)string.Format(L["Vle_BilateralBody"].Value, Home, Foreign))
@@ -84,7 +84,7 @@ else
         <RightRail>
             @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
             else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
-            <DraftPreviewLink Href="@($"/vsop/{Home.ToLowerInvariant()}/vloa?acc={Foreign}&as=draft")" />
+            <DraftPreviewLink Href="@($"/services/vsop/{Home.ToLowerInvariant()}/vloa?acc={Foreign}&as=draft")" />
             @* Il lock e' salito in testata: qui restano i COMANDI (regola 1). *@
             @if (_editing)
             {
@@ -147,7 +147,7 @@ else
     private IReadOnlyList<EditorTocItem> _tocExtra => new[] { new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]) };
 
     private string ReleasePreviewUrl(int releaseId) =>
-        $"/vsop/{(Home ?? "").ToLowerInvariant()}/vloa?acc={Foreign}&as=rel:{releaseId}";
+        $"/services/vsop/{(Home ?? "").ToLowerInvariant()}/vloa?acc={Foreign}&as=rel:{releaseId}";
 
     private enum SaveState { Idle, Saving, Saved }
     private SaveState _save = SaveState.Idle;

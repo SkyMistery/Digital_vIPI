@@ -22,7 +22,7 @@ public class GuideSearchTests
 
     private static SearchHit Doc(string title) => new()
     {
-        DocTitle = title, DocType = DocumentType.Vipi, Where = title, Snippet = title, Url = "/vsop/x",
+        DocTitle = title, DocType = DocumentType.Vipi, Where = title, Snippet = title, Url = "/services/vsop/x",
     };
 
     [Fact]
@@ -34,7 +34,7 @@ public class GuideSearchTests
 
         Assert.NotEmpty(hits);
         Assert.StartsWith("Guida ›", hits[0].Where);                 // la guida viene prima dei documenti
-        Assert.Equal("/vsop/guida#editor-release", hits[0].Url);     // ancora della sezione giusta
+        Assert.Equal("/services/vsop/guide#editor-release", hits[0].Url);     // ancora della sezione giusta
         Assert.Contains(hits, h => h.Where == "vIPI Roma");          // i documenti restano presenti
     }
 

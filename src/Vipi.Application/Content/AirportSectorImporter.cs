@@ -25,7 +25,7 @@ public sealed class AirportSectorImporter : IAirportSectorImporter
         // Policy opt-out: categoria «Settori» esclusa → si esce PRIMA della fetch, così il catalogo resta
         // com'è e i settori aggiunti a mano in Struttura non vengono ripassati dall'import.
         // ⚠️ Il gate sta QUI e non negli hosted service perché questo è il corpo condiviso da quattro
-        // chiamanti (job 24h, bottone dell'editor aeroporto, massivo di /vsop/admin/airports, «Genera
+        // chiamanti (job 24h, bottone dell'editor aeroporto, massivo di /services/vsop/admin/airports, «Genera
         // documenti»): messo in uno solo, gli altri tre lo scavalcherebbero. È la stessa lezione di
         // SpecialAreaImportUseCase, e fino al 22 agosto 2026 qui non c'era: escludere «Settori» vietava
         // l'aggiunta manuale (StructureEditingService.AddSectorAsync) ma non fermava un solo import.

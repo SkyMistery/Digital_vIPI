@@ -2,7 +2,7 @@
 
 Terzo giro della stessa famiglia, dopo
 [accordi](2026-08-19-accordi-densita-ui.md) e [struttura](2026-08-19-struttura-densita-ui.md):
-`/vsop/admin/acc`. Qui però non è solo forma — c'è **una perdita di lavoro** (§D) trovata leggendo il codice
+`/services/vsop/admin/acc`. Qui però non è solo forma — c'è **una perdita di lavoro** (§D) trovata leggendo il codice
 per il resto del giro.
 
 ## Il difetto misurato

@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Vipi.Application/Vipi.Application.csproj" />
+    <Project Path="src/Vipi.AuroraProfiles/Vipi.AuroraProfiles.csproj" />
     <Project Path="src/Vipi.AuroraBridge/Vipi.AuroraBridge.csproj" />
     <Project Path="src/Vipi.AuroraBridge.Contracts/Vipi.AuroraBridge.Contracts.csproj" />
     <Project Path="src/Vipi.AuroraBridge.Core/Vipi.AuroraBridge.Core.csproj" />
@@ -17,6 +18,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Vipi.Application.Tests/Vipi.Application.Tests.csproj" />
     <Project Path="tests/Vipi.AuroraBridge.Tests/Vipi.AuroraBridge.Tests.csproj" />
+    <Project Path="tests/Vipi.AuroraProfiles.Tests/Vipi.AuroraProfiles.Tests.csproj" />
     <Project Path="tests/Vipi.Domain.Tests/Vipi.Domain.Tests.csproj" />
     <Project Path="tests/Vipi.E2E.Tests/Vipi.E2E.Tests.csproj" />
     <Project Path="tests/Vipi.Hosting.Tests/Vipi.Hosting.Tests.csproj" />

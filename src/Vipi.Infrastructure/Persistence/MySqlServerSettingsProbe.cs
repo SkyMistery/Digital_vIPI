@@ -9,7 +9,7 @@ namespace Vipi.Infrastructure.Persistence;
 /// <see cref="ServerSettingsAnalyzer"/>. No-op fuori da MySQL/MariaDB: su SQLite e PostgreSQL nessuna delle
 /// due impostazioni esiste, e la domanda non si pone.
 ///
-/// <para>Una query, sola lettura. Sta nel report di consistenza (<c>/vsop/admin/diagnostica</c> e
+/// <para>Una query, sola lettura. Sta nel report di consistenza (<c>/services/vsop/admin/diagnostics</c> e
 /// <c>/vsop/health</c>), non nella sonda <c>ready</c>. Stesso posto e stessa forma di
 /// <see cref="PostgresSchemaDriftProbe"/>, per la stessa ragione: è l'unico punto letto da entrambi.</para>
 ///

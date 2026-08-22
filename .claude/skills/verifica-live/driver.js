@@ -13,7 +13,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const STEPS = [
   {
     title: 'viewer aeroporto LIBD',
-    path: '/vsop/libb/airports?icao=LIBD',
+    path: '/services/vsop/libb/airports?icao=LIBD',
     waitFor: '.wrap',
     extract: () => ({
       titolo: document.querySelector('h2')?.innerText.trim(),
@@ -28,7 +28,7 @@ const STEPS = [
   },
   {
     title: 'editor aeroporto timeline release',
-    path: '/vsop/libb/airports/editor?icao=LIBD',
+    path: '/services/vsop/libb/airports/editor?icao=LIBD',
     waitFor: '#sec-versioni',
     extract: () => ({
       righeRelease: document.querySelectorAll('#sec-versioni .ver-row').length,

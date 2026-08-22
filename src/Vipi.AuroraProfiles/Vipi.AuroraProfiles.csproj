@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Il motore dell'Aurora Profile Swapper: legge un profilo .cpr, ne scambia sezioni intere, lo riscrive
+    identico byte per byte in tutto il resto.
+
+    Arriva dal repo AuroraProfileSwapper (commit 9c0207a), dove e' nato come libreria deliberatamente
+    ignara della UI. Qui e' entrato COM'ERA: dei tre file e' cambiato il namespace e nient'altro, e i suoi
+    test sono venuti dietro con le 26 fixture reali. Se un giorno un test di questi diventa rosso senza che
+    nessuno abbia toccato il parser, il sospetto e' il multi-target, non la logica.
+
+    ZERO dipendenze, e non e' pigrizia: un parser INI generico riordina le sezioni, normalizza le righe
+    vuote e perde il preambolo. Su un file che Aurora deve poter riaprire, "quasi uguale" e' rotto.
+  -->
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Vipi.AuroraProfiles.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,75 @@
+/* Aurora Profile Swapper — ciò che il tema non ha già.
+   La pagina d'origine si portava 513 righe di CSS proprio, con i colori scritti in chiaro. Qui ne restano
+   una novantina: card, callout, pill, bottoni e tipografia vengono da vipi-theme.css, e ogni colore è un
+   token — la regola del ramo brand, che vale anche per una pagina che arriva da fuori.
+   Tutto sotto .vipi-root, come il resto del modulo (ADR-0005 D3). */
+
+/* ---- le due colonne: sorgente e destinazioni ---- */
+/* align-items:start, o la griglia allunga la card del sorgente fino all'altezza di quella delle
+   destinazioni: caricato un profilo solo, sotto resta un vuoto grande quanto l'elenco accanto. */
+.vipi-root .swap-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0;align-items:start}
+.vipi-root .swap-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px 16px}
+.vipi-root .swap-card h4{font-family:var(--font-head);margin:0 0 2px;font-size:15px}
+.vipi-root .swap-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.vipi-root .swap-hint{margin:0 0 10px;font-size:13px}
+
+/* Sotto i 700px le due colonne diventano una: e' una pagina pubblica, quindi vale il perimetro
+   delle pubbliche (da 375px in su), non quello delle admin. */
+@media (max-width:700px){
+    .vipi-root .swap-cols{grid-template-columns:1fr}
+}
+
+/* ---- l'area di trascinamento ----
+   L'<input type=file> sta SOPRA l'area, trasparente: il rilascio di un file su un input e' comportamento
+   nativo del browser, quindi non c'e' codice di drag&drop da mantenere. Stessa scelta di ImageBlockEditor. */
+.vipi-root .swap-drop{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    min-height:96px;padding:14px;text-align:center;cursor:pointer;
+    border:2px dashed var(--line);border-radius:var(--radius);background:var(--bg);
+    transition:border-color .12s ease, background .12s ease}
+.vipi-root .swap-drop:hover,
+.vipi-root .swap-drop.over{border-color:var(--accent);background:color-mix(in srgb, var(--accent) 6%, var(--bg))}
+.vipi-root .swap-drop input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.vipi-root .swap-drop-t{font-weight:600;font-size:14px}
+.vipi-root .swap-drop-s{color:var(--ink-soft);font-size:13px;text-decoration:underline}
+
+/* ---- file caricato ---- */
+.vipi-root .swap-dests{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:6px}
+.vipi-root .swap-file{display:flex;align-items:center;gap:10px;padding:8px 10px;
+    border:1px solid var(--line);border-radius:9px;background:var(--bg)}
+.vipi-root .swap-ok{color:var(--ivao-green);display:flex}
+.vipi-root .swap-file-info{display:flex;flex-direction:column;min-width:0;flex:1}
+.vipi-root .swap-file-name{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vipi-root .swap-mini{padding:3px 10px;font-size:12.5px}
+
+/* ---- scelta delle sezioni ---- */
+.vipi-root .swap-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0}
+.vipi-root .swap-filter{flex:1;min-width:180px;padding:6px 10px;font:inherit;font-size:14px;
+    border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+.vipi-root .swap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px}
+.vipi-root .swap-sec{display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;
+    border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:14px}
+.vipi-root .swap-sec.on{border-color:var(--accent);background:color-mix(in srgb, var(--accent) 7%, var(--surface))}
+.vipi-root .swap-sec-n{flex:1;font-family:var(--font-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vipi-root .swap-sec-tags{display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap}
+
+/* ---- anteprima ---- */
+.vipi-root .swap-prev{margin:12px 0;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.vipi-root .swap-prev-h{padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--line);
+    font-family:var(--font-head);font-weight:700;font-size:14px}
+.vipi-root .swap-diff summary{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:13.5px}
+.vipi-root .swap-diff+.swap-diff{border-top:1px solid var(--line)}
+.vipi-root .swap-diff-same{padding:0 12px 10px;font-size:13px}
+.vipi-root .swap-diff-body{max-height:420px;overflow:auto;padding:0 0 6px;
+    font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.5}
+.vipi-root .swap-diff-l{padding:0 12px;white-space:pre-wrap;word-break:break-word}
+.vipi-root .swap-diff-l.add{background:color-mix(in srgb, var(--ivao-green) 14%, transparent)}
+.vipi-root .swap-diff-l.del{background:color-mix(in srgb, var(--ivao-red) 12%, transparent)}
+.vipi-root .swap-diff-l.eq{color:var(--ink-soft)}
+.vipi-root .swap-diff-more{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;
+    border-top:1px solid var(--line);font-size:13px}
+
+/* ---- azioni e chiusura ---- */
+.vipi-root .swap-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:18px 0 6px}
+.vipi-root .swap-warn{margin:6px 0 0;padding-left:18px}
+.vipi-root .swap-warn li{margin:2px 0}
+.vipi-root .swap-note{margin-top:22px;font-size:13px}

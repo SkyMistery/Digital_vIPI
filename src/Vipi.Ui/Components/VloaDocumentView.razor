@@ -30,7 +30,7 @@
                 <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
                 @if (_canEdit && !string.IsNullOrWhiteSpace(HomeAcc) && !string.IsNullOrWhiteSpace(ForeignAcc))
                 {
-                    <a class="btn primary" href="/vsop/@HomeAcc.ToLowerInvariant()/vloa/editor?acc=@ForeignAcc">@L["Common_Editor"]</a>
+                    <a class="btn primary" href="/services/vsop/@HomeAcc.ToLowerInvariant()/vloa/editor?acc=@ForeignAcc">@L["Common_Editor"]</a>
                 }
             </div>
         </div>
@@ -110,9 +110,9 @@
             <div class="rail-card">
                 <h5><Icon Name="link" /> @L["Common_Links"]</h5>
                 <ul class="rail-links">
-                    <li><a href="/vsop">@L["Common_Home"]</a></li>
-                    <li><a href="/vsop/@HomeAcc.ToLowerInvariant()/vloa">@L["Vloa_ListLink"]</a></li>
-                    <li><a href="/vsop/@HomeAcc.ToLowerInvariant()/vipi">vIPI @HomeAcc</a></li>
+                    <li><a href="/services/vsop">@L["Common_Home"]</a></li>
+                    <li><a href="/services/vsop/@HomeAcc.ToLowerInvariant()/vloa">@L["Vloa_ListLink"]</a></li>
+                    <li><a href="/services/vsop/@HomeAcc.ToLowerInvariant()/vipi">vIPI @HomeAcc</a></li>
                 </ul>
             </div>
         }

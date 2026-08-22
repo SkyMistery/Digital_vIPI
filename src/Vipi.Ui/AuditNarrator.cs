@@ -9,7 +9,7 @@ namespace Vipi.Ui;
 /// Traduce una riga di audit in una frase leggibile — <b>un solo</b> formattatore per tutte le pagine che
 /// mostrano eventi.
 ///
-/// <para><b>Perché condiviso.</b> Fino al 22 agosto 2026 il pannello «storia» di <c>/vsop/versioni</c> aveva un
+/// <para><b>Perché condiviso.</b> Fino al 22 agosto 2026 il pannello «storia» di <c>/services/vsop/versions</c> aveva un
 /// parser suo che leggeva <c>{"Areas":[…],"Saves":N}</c> — chiavi che <b>nessuno scriveva</b> — e restituiva
 /// sempre stringa vuota, mentre la pagina Audit mostrava il JSON crudo. Due rese diverse dello stesso evento,
 /// entrambe sbagliate a modo loro.</para>

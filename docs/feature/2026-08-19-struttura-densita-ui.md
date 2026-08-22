@@ -1,6 +1,6 @@
 # Struttura (gerarchia settori) — densità della pagina (19 agosto 2026)
 
-Round di sola **forma** su `/vsop/admin/sectorstructure`: nessun modello, nessuna rotta, nessuna migrazione.
+Round di sola **forma** su `/services/vsop/admin/sector-structure`: nessun modello, nessuna rotta, nessuna migrazione.
 È il gemello di [2026-08-19-accordi-densita-ui.md](2026-08-19-accordi-densita-ui.md): stessa diagnosi, stessa
 cura, e ora le due pagine admin che si somigliano hanno anche la stessa testata.
 

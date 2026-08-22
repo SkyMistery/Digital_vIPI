@@ -12,7 +12,7 @@ namespace Vipi.Application.Tests;
 ///
 /// <para>⚠️ Fino al 22 agosto 2026 il link lo costruiva <c>TaskDocLink</c> dalla sola chiave di release, e la
 /// chiave contiene il codice ACC <b>solo</b> per la vIPI ACC: per aeroporti, APP e vLOA il tasto portava a
-/// <c>/vsop/versioni</c>. Tre tipi su quattro, un tasto che diceva «Apri documento» e mostrava un elenco.</para>
+/// <c>/services/vsop/versions</c>. Tre tipi su quattro, un tasto che diceva «Apri documento» e mostrava un elenco.</para>
 /// </summary>
 public class EditorTaskLinksTests
 {
@@ -31,10 +31,10 @@ public class EditorTaskLinksTests
             Incarico(ReleaseTargetType.Vloa, "7"), Incarico(ReleaseTargetType.AccVipi, "LIRR|"),
         });
 
-        Assert.Equal("/vsop/lirr/airports/editor?icao=LIRF", mappa[(ReleaseTargetType.Airport, "LIRF")].Url);
-        Assert.Equal("/vsop/limm/apps/editor?app=LIML_APP", mappa[(ReleaseTargetType.App, "LIML_APP")].Url);
-        Assert.Equal("/vsop/lirr/vloa/editor?acc=LFFF", mappa[(ReleaseTargetType.Vloa, "7")].Url);
-        Assert.Equal("/vsop/lirr/editor", mappa[(ReleaseTargetType.AccVipi, "LIRR|")].Url);
+        Assert.Equal("/services/vsop/lirr/airports/editor?icao=LIRF", mappa[(ReleaseTargetType.Airport, "LIRF")].Url);
+        Assert.Equal("/services/vsop/limm/apps/editor?app=LIML_APP", mappa[(ReleaseTargetType.App, "LIML_APP")].Url);
+        Assert.Equal("/services/vsop/lirr/vloa/editor?acc=LFFF", mappa[(ReleaseTargetType.Vloa, "7")].Url);
+        Assert.Equal("/services/vsop/lirr/editor", mappa[(ReleaseTargetType.AccVipi, "LIRR|")].Url);
     }
 
     /// <summary>Il titolo corrente serve al <c>title</c> del link; l'etichetta a schermo resta quella scritta
@@ -94,7 +94,7 @@ public class EditorTaskLinksTests
         // La chiave scelta e' proprio quella dell'elenco, e con quella il link si risolve.
         Assert.Equal("LIBB|LIBB_CTR", scelta.Key);
         var mappa = await servizio.ForAsync(new[] { Incarico(scelta.Type, scelta.Key) });
-        Assert.Equal("/vsop/libb/editor", mappa[(scelta.Type, scelta.Key)].Url);
+        Assert.Equal("/services/vsop/libb/editor", mappa[(scelta.Type, scelta.Key)].Url);
     }
 
     /// <summary>Un documento nascosto non si assegna: l'incarico punterebbe a qualcosa che non si vede.</summary>

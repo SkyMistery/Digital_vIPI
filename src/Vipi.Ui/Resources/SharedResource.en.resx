@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -93,10 +93,9 @@
   <data name="Country_DA" xml:space="preserve"><value>Algeria</value></data>
   <data name="Country_DT" xml:space="preserve"><value>Tunisia</value></data>
   <data name="Country_LI" xml:space="preserve"><value>Italy</value></data>
-  <data name="Chrome_BrandSubtitle" xml:space="preserve"><value>/ vLOA · IVAO Italy</value></data>
-  <data name="Chrome_BrandHome" xml:space="preserve"><value>vIPI / vLOA home</value></data>
+  <data name="Chrome_BrandSubtitle" xml:space="preserve"><value>IVAO Italy</value></data>
+  <data name="Chrome_BrandHome" xml:space="preserve"><value>ATC Services home</value></data>
   <data name="Chrome_Guide" xml:space="preserve"><value>Guide</value></data>
-
   <data name="Chrome_Menu" xml:space="preserve"><value>Menu</value></data>
   <data name="Chrome_StaffPosition" xml:space="preserve"><value>Staff position</value></data>
   <data name="Chrome_Theme" xml:space="preserve"><value>Theme</value></data>
@@ -1977,4 +1976,59 @@
   <data name="Xfer_ClausesCount_One" xml:space="preserve"><value>{0} clause</value></data>
   <data name="Xfer_SectionsN_One" xml:space="preserve"><value>{0} section</value></data>
   <data name="Xfer_AgreementsN_One" xml:space="preserve"><value>{0} agreement</value></data>
+  <data name="Swap_PageTitle" xml:space="preserve"><value>Aurora Profile Swapper · vIPI</value></data>
+  <data name="Swap_Heading" xml:space="preserve"><value>Aurora Profile Swapper</value></data>
+  <data name="Swap_Intro" xml:space="preserve"><value>Copy whole sections — TRAFFICLISTS, for example — from one Aurora profile into one or more destination profiles, with no manual copy-paste.</value></data>
+  <data name="Swap_Privacy" xml:space="preserve"><value>Profiles reach the server, where they are processed in memory: they are never written to disk nor kept.</value></data>
+  <data name="Swap_SourceTitle" xml:space="preserve"><value>Source profile</value></data>
+  <data name="Swap_SourceHint" xml:space="preserve"><value>The profile to copy from.</value></data>
+  <data name="Swap_DestTitle" xml:space="preserve"><value>Destination profiles</value></data>
+  <data name="Swap_DestHint" xml:space="preserve"><value>The profiles to paste into. You can load more than one.</value></data>
+  <data name="Swap_SecCount" xml:space="preserve"><value>{0} sections</value></data>
+  <data name="Swap_Change" xml:space="preserve"><value>Change</value></data>
+  <data name="Swap_ChangeTitle" xml:space="preserve"><value>Load another file</value></data>
+  <data name="Swap_Remove" xml:space="preserve"><value>Remove</value></data>
+  <data name="Swap_RemoveTitle" xml:space="preserve"><value>Remove this profile</value></data>
+  <data name="Swap_ClearAllDests" xml:space="preserve"><value>Remove all</value></data>
+  <data name="Swap_DropSource" xml:space="preserve"><value>Drop the .cpr file here</value></data>
+  <data name="Swap_DropDest" xml:space="preserve"><value>Drop one or more .cpr files here</value></data>
+  <data name="Swap_PickFromDisk" xml:space="preserve"><value>or pick from disk</value></data>
+  <data name="Swap_ChooseAria" xml:space="preserve"><value>Choose a .cpr profile</value></data>
+  <data name="Swap_SectionsTitle" xml:space="preserve"><value>Sections to copy</value></data>
+  <data name="Swap_SearchPh" xml:space="preserve"><value>Filter sections…</value></data>
+  <data name="Swap_SelectAll" xml:space="preserve"><value>Select all</value></data>
+  <data name="Swap_ClearAll" xml:space="preserve"><value>Clear all</value></data>
+  <data name="Swap_SelectedCount" xml:space="preserve"><value>{0} selected</value></data>
+  <data name="Swap_NoMatch" xml:space="preserve"><value>No section matches the filter.</value></data>
+  <data name="Swap_SecMeta" xml:space="preserve"><value>{0} lines</value></data>
+  <data name="Swap_BadgeNew" xml:space="preserve"><value>NEW</value></data>
+  <data name="Swap_BadgeNewTitle" xml:space="preserve"><value>Missing in every destination profile: it will be appended at the end</value></data>
+  <data name="Swap_BadgeSame" xml:space="preserve"><value>SAME</value></data>
+  <data name="Swap_BadgeSameTitle" xml:space="preserve"><value>Already identical in every destination: copying it changes nothing</value></data>
+  <data name="Swap_PreviewTitle" xml:space="preserve"><value>Preview of the changes</value></data>
+  <data name="Swap_PreviewHint" xml:space="preserve"><value>What will be copied from the source into the destination profiles ({0}).</value></data>
+  <data name="Swap_IdenticalNoChange" xml:space="preserve"><value>identical — no change</value></data>
+  <data name="Swap_DiffTruncated" xml:space="preserve"><value>Showing the first {0} lines out of {1}.</value></data>
+  <data name="Swap_DiffShowAll" xml:space="preserve"><value>Show all lines</value></data>
+  <data name="Swap_WarningsTitle" xml:space="preserve"><value>Warning</value></data>
+  <data name="Swap_WarnSameName" xml:space="preserve"><value>“{0}” has the same name as the source: you risk overwriting the starting file.</value></data>
+  <data name="Swap_WarnSameContent" xml:space="preserve"><value>“{0}” is identical to the source: copying would change nothing.</value></data>
+  <data name="Swap_WarnDuplicate" xml:space="preserve"><value>“{0}” is loaded more than once as a destination.</value></data>
+  <data name="Swap_Btn" xml:space="preserve"><value>Copy and download ({0} profiles)</value></data>
+  <data name="Swap_Busy" xml:space="preserve"><value>Building the zip…</value></data>
+  <data name="Swap_OutputInfo" xml:space="preserve"><value>The output is a single .zip with {0} updated profiles.</value></data>
+  <data name="Swap_ErrTooBig" xml:space="preserve"><value>File “{0}” exceeds the {1} MB limit.</value></data>
+  <data name="Swap_ErrRead" xml:space="preserve"><value>Could not read “{0}”: {1}</value></data>
+  <data name="Swap_ErrSectionMissing" xml:space="preserve"><value>Section [{0}] is not present in the source profile: nothing was copied.</value></data>
+  <data name="Swap_ErrSwap" xml:space="preserve"><value>Error while copying: {0}</value></data>
+  <data name="Swap_Detail" xml:space="preserve"><value>“{0}” — {1} sections ({2} replaced, {3} appended).</value></data>
+  <data name="Swap_Done" xml:space="preserve"><value>Done: {0} sections copied into {1} profiles, downloaded as “{2}”.</value></data>
+  <data name="Swap_Note" xml:space="preserve"><value>Unselected sections stay byte-for-byte identical.</value></data>
+  <data name="Services_Title" xml:space="preserve"><value>ATC Services</value></data>
+  <data name="Services_Intro" xml:space="preserve"><value>The tools for those controlling in IVAO Italy.</value></data>
+  <data name="Services_VsopTitle" xml:space="preserve"><value>vSOP — operational documentation</value></data>
+  <data name="Services_VsopDesc" xml:space="preserve"><value>ACC vIPI, airports, APP and vLOA: the procedures you work with on frequency.</value></data>
+  <data name="Services_SwapperDesc" xml:space="preserve"><value>Copy whole sections between Aurora .cpr profiles, with no manual copy-paste.</value></data>
+  <data name="Services_Open" xml:space="preserve"><value>Open</value></data>
+  <data name="Chrome_Services" xml:space="preserve"><value>Services</value></data>
 </root>

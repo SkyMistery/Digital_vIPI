@@ -1,6 +1,6 @@
 # Diagnostica — densità UI (carta, 22 agosto 2026)
 
-> Ramo `ui-trasferimenti-densita`, pagina `/vsop/admin/diagnostica`. Seconda carta del giro: **la forma**.
+> Ramo `ui-trasferimenti-densita`, pagina `/services/vsop/admin/diagnostics`. Seconda carta del giro: **la forma**.
 > La sostanza sta nella gemella [`2026-08-22-diagnostica-cosa-afferma.md`](2026-08-22-diagnostica-cosa-afferma.md).
 > Dodicesima pagina del giro. Regole: [regole-ui-pagine-admin](../design/regole-ui-pagine-admin.md).
 
@@ -81,7 +81,7 @@ chip che contano una fetta del totale. Accanto al tasto, in `muted`, **da quando
 
 ## Prosa: «?» e Guida
 
-- `HelpHint Href="/vsop/guida#admin-diagnostica"` con dentro il sottotitolo **corretto** (tutte e cinque le
+- `HelpHint Href="/services/vsop/guide#admin-diagnostica"` con dentro il sottotitolo **corretto** (tutte e cinque le
   aree), la frase «sono solo diagnosi», e cosa vuol dire ogni area.
 - Sezione `#admin-diagnostica` nella Guida, IT **ed** EN: le cinque **aree** con, per ognuna, **come nasce** e
   **dove si ripara** (le categorie sono tredici e crescono: raccontarle una per una invecchierebbe). È la pagina in cui la Guida serve di più: ogni riga della tabella è un termine tecnico.

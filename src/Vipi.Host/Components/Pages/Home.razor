@@ -4,6 +4,9 @@
 <PageTitle>vIPI · IVAO Italia</PageTitle>
 
 @code {
-    // Host di sviluppo: la home reindirizza al portale vIPI montato dalla RCL.
-    protected override void OnInitialized() => Nav.NavigateTo("/vsop", replace: true);
+    // La radice porta all'hub dei servizi, non più direttamente alla documentazione: dal 22 agosto 2026 la
+    // documentazione è UNO dei servizi, e chi arriva sul dominio deve vederli tutti.
+    // `replace: true` perché questa pagina non deve finire nella cronologia: chi torna indietro dall'hub
+    // vuole uscire dal sito, non rimbalzare qui e essere rispedito avanti.
+    protected override void OnInitialized() => Nav.NavigateTo("/services", replace: true);
 }

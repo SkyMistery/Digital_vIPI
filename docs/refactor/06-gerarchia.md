@@ -31,7 +31,7 @@ si ri-proiettano i `Sector` operativi.
 | `Vipi.Infrastructure/Persistence/EfHierarchyEditingService.cs:11` | `EfHierarchyEditingService` | Impl: `LoadTreeAsync` (`:34`), `ListConfiningForeignCallsignsAsync` (`:89`, cache 5min), `SetParentAsync` (`:122`), anti-ciclo `EnsureNoCycle` (`:213`); edit esteri admin-only (`:157-161`). |
 | `Vipi.Infrastructure/Persistence/EfSectorProjectionService.cs` | `EfSectorProjectionService` | Materializza i `Sector` proiettati. |
 | `Vipi.Infrastructure/Aor/TopologyBuilder.cs` | `TopologyBuilder` | Impl `ITopologyProvider`. |
-| `Vipi.Ui/Pages/StrutturaPage.razor` | route `/vsop/admin/sectorstructure` | Editor gerarchia; filtro confinanti (`:240`); vincoli parent per-nazione (`:595-598`); `SetParentAsync` (`:259,530`). |
+| `Vipi.Ui/Pages/StrutturaPage.razor` | route `/services/vsop/admin/sector-structure` | Editor gerarchia; filtro confinanti (`:240`); vincoli parent per-nazione (`:595-598`); `SetParentAsync` (`:259,530`). |
 
 Foreign detection via `DivisionOptions.IcaoPrefixes` (`EfHierarchyEditingService.cs:31`).
 

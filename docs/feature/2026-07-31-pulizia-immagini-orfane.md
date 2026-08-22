@@ -20,7 +20,7 @@ sarebbe un secondo modello della stessa verità, che va in deriva appena qualcos
 **2. Dispatch.** Nessun `switch` per tipo. C'è un solo punto che sa *dove* possono comparire i riferimenti
 (`EfMediaMaintenance`) e un solo punto che sa *come* riconoscerli in un testo (`MediaReferenceScanner`).
 
-**3. Ingressi + verifica.** Ingresso: `/vsop/admin/diagnostica`, che è già la pagina delle azioni di manutenzione
+**3. Ingressi + verifica.** Ingresso: `/services/vsop/admin/diagnostics`, che è già la pagina delle azioni di manutenzione
 ed è già riservata agli admin (`Authz.IsAdmin`). Verifica: test sui casi che contano (sotto) + verifica live
 caricando un'immagine, cancellando il blocco, e controllando che compaia nell'elenco solo quando non la cita più
 nessuno.
@@ -76,7 +76,7 @@ Task<int> DeleteOrphansAsync(IReadOnlyList<string> sha, CancellationToken ct);
   pubblicato o incollato quell'immagine in una bozza.
 - Impl `EfMediaMaintenance` in Infrastructure (è tutta lettura di tabelle).
 
-### 4. UI — una card in `/vsop/admin/diagnostica`
+### 4. UI — una card in `/services/vsop/admin/diagnostics`
 
 Due tempi, mai un colpo solo:
 

@@ -49,7 +49,7 @@ Verifica: vedi §7 — guidando l'editor reale, non solo `dotnet test`.
 
 **4. Propagazione — rimuove o rinomina qualcosa?**
 Sì, una cosa sola: **sparisce il placeholder** `🖼️ Immagine (placeholder)` di `BlockRenderer`. Nello stesso
-giro va aggiornata la guida in-app (`/vsop/guida#editor-blocchi`, che oggi elenca tre tipi di blocco) e
+giro va aggiornata la guida in-app (`/services/vsop/guide#editor-blocchi`, che oggi elenca tre tipi di blocco) e
 l'`HelpHint` di `DocumentBlocksEditor` che dice «Paragrafo, Callout, Tabella».
 
 ## Design
@@ -198,7 +198,7 @@ client tiene i file veri sotto i ~300–500 KB; la porta `IMediaStore` è la via
 7. **Aeroporto**: ramo `Image` nel rebuild (`EfAirportRepository`) — senza, l'immagine di una sezione extra
    sparirebbe in silenzio dal documento pubblicato — e resa nel viewer aeroporto.
 8. **Ricerca**: alt + didascalia invece del JSON (R3).
-9. **Guida e stringhe**: `/vsop/guida#editor-blocchi`, `HelpHint`, resx it/en.
+9. **Guida e stringhe**: `/services/vsop/guide#editor-blocchi`, `HelpHint`, resx it/en.
 10. **Chiusura**: questo doc a FATTO, `history/rounds.md`, memoria.
 
 ## Verifica (DoD)

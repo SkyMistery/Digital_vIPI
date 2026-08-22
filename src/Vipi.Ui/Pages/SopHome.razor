@@ -1,4 +1,4 @@
-@page "/vsop"
+@page "/services/vsop"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IAiracService Airac
@@ -10,6 +10,7 @@
 <PageTitle>vIPI · IVAO Italia</PageTitle>
 
 <div class="wrap">
+    <div class="breadcrumb"><a href="/services">‹ @L["Services_Title"]</a></div>
     <div class="hero">
         <span class="airac"><Icon Name="calendar" /> AIRAC @Airac.GetCycle(DateTime.UtcNow)</span>
         <h1>@L["Home_Heading"]</h1>
@@ -24,7 +25,7 @@
             @L["Home_DbEmpty"] @(Authz.IsAdmin ? L["Home_CreateFirstAdmin"] : L["Home_CreateFirstUser"])
             @if (Authz.IsAdmin)
             {
-                <div style="margin-top:10px"><a class="btn primary" href="/vsop/admin/sectorstructure">@L["Home_CreateAccBtn"]</a></div>
+                <div style="margin-top:10px"><a class="btn primary" href="/services/vsop/admin/sector-structure">@L["Home_CreateAccBtn"]</a></div>
             }
         </div></div>
     }
@@ -34,7 +35,7 @@
             @foreach (var acc in Stations.Accs)
             {
                 var n = OnlineCount(acc.Code);
-                <a class="acc-card @(n > 0 ? "on" : "off")" href="/vsop/@acc.Code.ToLowerInvariant()" style="text-decoration:none">
+                <a class="acc-card @(n > 0 ? "on" : "off")" href="/services/vsop/@acc.Code.ToLowerInvariant()" style="text-decoration:none">
                     <div class="onl"><span class="dot"></span> @(n > 0 ? L["Common_OnlineN", n] : L["Common_Offline"])</div>
                     <div class="code">@acc.Code</div>
                     <div class="name">@acc.Name</div>
@@ -44,7 +45,8 @@
     }
 
     <div class="choice-grid" style="margin-top:22px">
-        <a class="choice" href="/vsop/changed"><h4><span class="ic"><Icon Name="sparkles" Size="18" /></span> @L["Home_ChangedTitle"]</h4><p class="muted">@L["Home_ChangedDesc"]</p></a>
+        <a class="choice" href="/services/vsop/changed"><h4><span class="ic"><Icon Name="sparkles" Size="18" /></span> @L["Home_ChangedTitle"]</h4><p class="muted">@L["Home_ChangedDesc"]</p></a>
+        <a class="choice" href="/services/profile-swapper"><h4><span class="ic"><Icon Name="copy" Size="18" /></span> @L["Swap_Heading"]</h4><p class="muted">@L["Services_SwapperDesc"]</p></a>
     </div>
 
     @if (Authz.IsAdmin)
@@ -52,12 +54,12 @@
         <details class="staff-sec" data-persist="vsop-staff" open>
         <summary class="section-title"><h3>@L["Home_StaffSection"] <span class="chev">▸</span></h3><span class="ln"></span></summary>
         <div class="choice-grid">
-            <a class="choice" href="/vsop/versioni"><h4><span class="ic"><Icon Name="file" Size="18" /></span> @L["Home_DocsTitle"]</h4><p class="muted">@L["Home_DocsDesc"]</p></a>
-            <a class="choice" href="/vsop/screens"><h4><span class="ic"><Icon Name="grid" Size="18" /></span> @L["Home_ScreensTitle"]</h4><p class="muted">@L["Home_ScreensDesc"]</p></a>
-            <a class="choice" href="/vsop/admin/acc"><h4><span class="ic"><Icon Name="radio" Size="18" /></span> @L["Home_AccTitle"]</h4><p class="muted">@L["Home_AccDesc"]</p></a>
-            <a class="choice" href="/vsop/admin/sectorstructure"><h4><span class="ic"><Icon Name="building" Size="18" /></span> @L["Home_StructTitle"]</h4><p class="muted">@L["Home_StructDesc"]</p></a>
-            <a class="choice" href="/vsop/admin/trasferimenti"><h4><span class="ic"><Icon Name="refresh" Size="18" /></span> @L["Home_TransfersTitle"]</h4><p class="muted">@L["Home_TransfersDesc"]</p></a>
-            <a class="choice" href="/vsop/admin/permessi"><h4><span class="ic"><Icon Name="key" Size="18" /></span> @L["Home_PermsTitle"]</h4><p class="muted">@L["Home_PermsDesc"]</p></a>
+            <a class="choice" href="/services/vsop/versions"><h4><span class="ic"><Icon Name="file" Size="18" /></span> @L["Home_DocsTitle"]</h4><p class="muted">@L["Home_DocsDesc"]</p></a>
+            <a class="choice" href="/services/vsop/screens"><h4><span class="ic"><Icon Name="grid" Size="18" /></span> @L["Home_ScreensTitle"]</h4><p class="muted">@L["Home_ScreensDesc"]</p></a>
+            <a class="choice" href="/services/vsop/admin/acc"><h4><span class="ic"><Icon Name="radio" Size="18" /></span> @L["Home_AccTitle"]</h4><p class="muted">@L["Home_AccDesc"]</p></a>
+            <a class="choice" href="/services/vsop/admin/sector-structure"><h4><span class="ic"><Icon Name="building" Size="18" /></span> @L["Home_StructTitle"]</h4><p class="muted">@L["Home_StructDesc"]</p></a>
+            <a class="choice" href="/services/vsop/admin/transfers"><h4><span class="ic"><Icon Name="refresh" Size="18" /></span> @L["Home_TransfersTitle"]</h4><p class="muted">@L["Home_TransfersDesc"]</p></a>
+            <a class="choice" href="/services/vsop/admin/permissions"><h4><span class="ic"><Icon Name="key" Size="18" /></span> @L["Home_PermsTitle"]</h4><p class="muted">@L["Home_PermsDesc"]</p></a>
         </div>
         </details>
     }

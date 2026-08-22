@@ -1,7 +1,7 @@
 # Audit — cosa il registro registra davvero (22 agosto 2026)
 
 > Decima pagina del ramo `ui-trasferimenti-densita`, e come per Versioni **la prima carta non è di densità**:
-> aprendo `/vsop/admin/audit` per il `thead` appiccicato è venuto fuori che il registro **non registra
+> aprendo `/services/vsop/admin/audit` per il `thead` appiccicato è venuto fuori che il registro **non registra
 > l'atto più distruttivo dell'app** (l'eliminazione di un documento), che sulla **revoca di un permesso
 > attribuisce l'atto alla persona sbagliata**, e che il suo sottotitolo promette una categoria di eventi
 > — la struttura — che **nessuno ha mai scritto**. La densità è la parte B, dopo.

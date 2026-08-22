@@ -165,7 +165,7 @@ comporta come se il file non esistesse.
 Il file nginx ha già le direttive WebSocket. **Non sono opzionali**: l'applicazione è Blazor Server e senza
 quelle le pagine si aprono e restano mute — nessun errore, i pulsanti semplicemente non rispondono.
 
-⚠️ Il proxy deve mandare all'applicazione **tutto il dominio**, non solo `/vsop`: i callback del login IVAO
+⚠️ Il proxy deve mandare all'applicazione **tutto il dominio**, non solo `/services/vsop`: i callback del login IVAO
 stanno sulla radice (`/signin-oidc`, `/signout-callback-oidc`).
 
 ⚠️ **Una sola istanza dell'applicazione.** Blazor Server tiene lo stato dell'utente in un circuito vivo nel
@@ -201,7 +201,7 @@ strumenti che «normalizzano» i nomi.
 | Sintomo | Causa |
 |---|---|
 | Il servizio **non parte** | leggete `diagnostica/avvio-errore.txt`: la prima riga è quasi sempre la causa |
-| `/vsop/auth/login` risponde **404** | `VipiAuth.Enabled` non è arrivato a `true`. Quell'indirizzo **non esiste** finché il login non è attivo: non è una pagina rotta, è una rotta che l'applicazione non registra. Quasi sempre significa che `appsettings.Production.json` non viene letto — vedi `diagnostica/avvio-diagnostica.txt` |
+| `/services/vsop/auth/login` risponde **404** | `VipiAuth.Enabled` non è arrivato a `true`. Quell'indirizzo **non esiste** finché il login non è attivo: non è una pagina rotta, è una rotta che l'applicazione non registra. Quasi sempre significa che `appsettings.Production.json` non viene letto — vedi `diagnostica/avvio-diagnostica.txt` |
 | Le pagine si aprono ma non rispondono | WebSocket non inoltrati dal proxy |
 | Le pagine cadono in «riconnessione» a ripetizione | più di un processo dietro il proxy (vedi passo 4), oppure timeout del proxy troppo brevi |
 | Il login torna in `http://` e fallisce | manca `X-Forwarded-Proto` |

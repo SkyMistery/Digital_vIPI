@@ -4,7 +4,7 @@
    Strategia: NASCONDI IL CHROME e lascia il contenuto nel flusso normale. Il precedente blocco @media print
    nel tema usava `body *{visibility:hidden}` + `.printable` visibile: `.printable` non esisteva in nessun
    markup (stampa = pagina bianca su tutte le pagine) e il `position:absolute` sul contenuto rompeva la
-   paginazione multi-pagina. Qui non c'è opt-in per pagina: ogni pagina /vsop è stampabile.
+   paginazione multi-pagina. Qui non c'è opt-in per pagina: ogni pagina /services/vsop è stampabile.
 
    Regole confinate in `.vipi-root` (il modulo non tocca body/html del sito ospitante, vedi App.razor); fanno
    eccezione `@page` e il reset dello zoom, che per natura sono globali. Le classi `.vt-*` (tour) vivono fuori

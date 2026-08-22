@@ -125,7 +125,7 @@ stampa. La regola è una sola e vale ovunque: *una colonna si mostra se almeno u
 
 **3. Ingressi + verifica**
 
-Ingressi già esistenti: `/vsop/admin/trasferimenti` per l'editor, le sezioni Coordinamenti di vIPI ACC / vIPI
+Ingressi già esistenti: `/services/vsop/admin/transfers` per l'editor, le sezioni Coordinamenti di vIPI ACC / vIPI
 APP / vLOA per la lettura. Nessun catch-22: non nasce un tipo nuovo da raggiungere, si estendono righe che
 l'utente già crea. L'unico ingresso nuovo è il **filtro «da rivedere»** dentro la pagina che c'è già.
 
@@ -287,7 +287,7 @@ Tre conseguenze da guardare **prima** di stimare, non durante:
 
 ## Report «righe da rivedere» (decisione 6)
 
-Filtro nell'editor `/vsop/admin/trasferimenti`, accanto a quelli che ci sono già (testo, tipo): righe con
+Filtro nell'editor `/services/vsop/admin/transfers`, accanto a quelli che ci sono già (testo, tipo): righe con
 ricevente di tipo `App` e `HandoffKind == Unspecified`, con il conteggio in testata. Sul DB di sviluppo sono
 **16**; sulla produzione va rimisurato. È l'unico modo perché la revisione manuale delle righe esistenti si
 possa chiudere invece di disperdersi.

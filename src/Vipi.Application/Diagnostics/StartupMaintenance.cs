@@ -8,7 +8,7 @@ namespace Vipi.Application.Diagnostics;
 /// servizio systemd un loro guasto non era un degrado ma un <b>ciclo di riavvii</b>: il sito non parte, e il
 /// motivo sta in un log che nessuno guarda. Ora un guasto viene catturato e l'avvio prosegue — ma
 /// «prosegue» non deve voler dire «nessuno lo sa mai». Qui il guasto resta scritto, e da qui entra nel
-/// report di consistenza, cioè in <c>/vsop/admin/diagnostica</c> e in <c>/vsop/health</c> (→ Degraded).</para>
+/// report di consistenza, cioè in <c>/services/vsop/admin/diagnostics</c> e in <c>/vsop/health</c> (→ Degraded).</para>
 ///
 /// <para>Vive quanto il processo: è la fotografia di <b>questo</b> avvio. Un riavvio riuscito la azzera, ed
 /// è il comportamento voluto — la domanda a cui risponde è «l'istanza che sta servendo adesso è partita

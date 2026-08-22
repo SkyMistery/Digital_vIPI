@@ -1,4 +1,4 @@
-@page "/vsop/{Acc}/vipi"
+@page "/services/vsop/{Acc}/vipi"
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IAccDerivationService Profile
@@ -17,15 +17,15 @@
 else if (_notAvailable)
 {
     <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>vIPI</b></div>
-        <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["AccVipi_NotAvailTitle"]</p>@((MarkupString)string.Format(L["AccVipi_NotAvailBody"], _acc.Code, $"/vsop/{Acc.ToLowerInvariant()}/editor"))</div></div>
+        <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>vIPI</b></div>
+        <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["AccVipi_NotAvailTitle"]</p>@((MarkupString)string.Format(L["AccVipi_NotAvailBody"], _acc.Code, $"/services/vsop/{Acc.ToLowerInvariant()}/editor"))</div></div>
     </div>
 }
 else
 {
     <PageTitle>@PreviewTitlePrefix()vIPI @_data.AccName · IVAO Italia</PageTitle>
     <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_data.AccCode</a> › <b>vIPI</b></div>
+        <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_data.AccCode</a> › <b>vIPI</b></div>
         <div class="doc-layout">
             <aside class="toc">
                 <p class="toc-h">@L["Common_Navigation"]</p>
@@ -48,10 +48,10 @@ else
                     <div><h2 style="margin-bottom:2px">vIPI — @_data.AccName</h2><span class="muted">@L["AccVipi_Subtitle"]</span></div>
                     <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
-                        <a class="btn ghost" href="/vsop/live">@L["Common_Operational"]</a>
+                        <a class="btn ghost" href="/services/vsop/live">@L["Common_Operational"]</a>
                         @if (_canEdit)
                         {
-                            <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/editor@(TreeQuery())">@L["Common_Editor"]</a>
+                            <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/editor@(TreeQuery())">@L["Common_Editor"]</a>
                         }
                     </div>
                 </div>
@@ -59,8 +59,8 @@ else
                 @if (_mode.IsPreview)
                 {
                     <PreviewBanner Kind="_mode.Kind" Cycle="@_relCycle"
-                                   PublicHref="@($"/vsop/{Acc.ToLowerInvariant()}/vipi")"
-                                   DraftHref="@($"/vsop/{Acc.ToLowerInvariant()}/vipi?as=draft")" />
+                                   PublicHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vipi")"
+                                   DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vipi?as=draft")" />
                 }
 
                 @foreach (var block in _data.Blocks)
@@ -99,11 +99,11 @@ else
                 <div class="rail-card">
                     <h5><Icon Name="link" /> @L["Common_Links"]</h5>
                     <ul class="rail-links">
-                        <li><a href="/vsop">@L["Common_Home"]</a></li>
-                        <li><a href="/vsop/@Acc.ToLowerInvariant()">ACC @_data.AccCode</a></li>
-                        <li><a href="/vsop/@Acc.ToLowerInvariant()/airports">@L["AccLanding_Airports"]</a></li>
-                        <li><a href="/vsop/@Acc.ToLowerInvariant()/apps">@L["AccLanding_Apps"]</a></li>
-                        <li><a href="/vsop/@Acc.ToLowerInvariant()/vloa">vLoA</a></li>
+                        <li><a href="/services/vsop">@L["Common_Home"]</a></li>
+                        <li><a href="/services/vsop/@Acc.ToLowerInvariant()">ACC @_data.AccCode</a></li>
+                        <li><a href="/services/vsop/@Acc.ToLowerInvariant()/airports">@L["AccLanding_Airports"]</a></li>
+                        <li><a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@L["AccLanding_Apps"]</a></li>
+                        <li><a href="/services/vsop/@Acc.ToLowerInvariant()/vloa">vLoA</a></li>
                     </ul>
                 </div>
             </aside>
@@ -222,7 +222,7 @@ else
         _ => "",
     };
 
-    // ATC online dell'ACC (include gli aeroporti sotto l'ACC), come sulla home /vsop.
+    // ATC online dell'ACC (include gli aeroporti sotto l'ACC), come sulla home /services/vsop.
     private int OnlineCount()
     {
         var snap = Online.GetCurrent();

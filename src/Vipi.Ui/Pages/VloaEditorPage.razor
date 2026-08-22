@@ -1,4 +1,4 @@
-@page "/vsop/{Acc}/vloa/editor"
+@page "/services/vsop/{Acc}/vloa/editor"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IStationResolver Stations
@@ -14,8 +14,8 @@ else if (_foreign.Length > 0)
     <PageTitle>@L["Vle_EditorTitle"] @Acc.ToUpperInvariant() ↔ @_foreign · vIPI</PageTitle>
     <div class="wrap struct">
         <div class="breadcrumb">
-            <a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> ›
-            <a href="/vsop/@Acc.ToLowerInvariant()/vloa">vLOA</a> › <b>@_foreign · @L["Common_Editor"]</b>
+            <a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> ›
+            <a href="/services/vsop/@Acc.ToLowerInvariant()/vloa">vLOA</a> › <b>@_foreign · @L["Common_Editor"]</b>
         </div>
         <VloaEditor Home="@Acc.ToUpperInvariant()" Foreign="@_foreign" />
     </div>
@@ -24,7 +24,7 @@ else
 {
     <PageTitle>@L["Vle_EditorTitle"] @_acc.Code · vIPI</PageTitle>
     <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>@L["Vle_EditorVloa"]</b></div>
+        <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>@L["Vle_EditorVloa"]</b></div>
         <div class="doc-head">
             <div><h2 style="margin-bottom:2px">@L["Vle_EditorVloa"] — @_acc.Name</h2><p class="muted" style="margin:0">@(string.Format(L["Vle_ChooseLoa"].Value, _acc.Code))</p></div>
         </div>
@@ -37,7 +37,7 @@ else
             <div class="choice-grid" style="margin-top:14px">
                 @foreach (var v in _vloas)
                 {
-                    <a class="choice" href="/vsop/@Acc.ToLowerInvariant()/vloa/editor?acc=@v.NeighbourCode">
+                    <a class="choice" href="/services/vsop/@Acc.ToLowerInvariant()/vloa/editor?acc=@v.NeighbourCode">
                         <h4><span class="ic">🤝</span> @v.Title</h4>
                         <p class="muted">@(v.Neighbour ?? v.NeighbourCode ?? L["Vle_BilateralLoa"].Value)</p>
                     </a>

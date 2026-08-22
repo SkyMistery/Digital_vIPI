@@ -1,9 +1,9 @@
 @* Vista live UNICA (doc refactor 12). Rende il modello uniforme LiveView: la pagina non sa se sta mostrando
    un CTR, un APP o una torre — lo decide il descrittore per tipo (ILiveStationKind).
-   /vsop/live           = la postazione con cui sei connesso su IVAO (nessun selettore: la vista segue te)
-   /vsop/live/{callsign} = quella postazione, in consultazione *@
-@page "/vsop/live"
-@page "/vsop/live/{Callsign}"
+   /services/vsop/live           = la postazione con cui sei connesso su IVAO (nessun selettore: la vista segue te)
+   /services/vsop/live/{callsign} = quella postazione, in consultazione *@
+@page "/services/vsop/live"
+@page "/services/vsop/live/{Callsign}"
 @layout SopLayout
 @rendermode InteractiveServer
 @using Vipi.Application.Live
@@ -18,10 +18,10 @@
 
 <div class="wrap">
     <div class="breadcrumb">
-        <a href="/vsop">@L["Common_Home"]</a>
+        <a href="/services/vsop">@L["Common_Home"]</a>
         @if (_view is not null)
         {
-            <text> › </text><a href="/vsop/@_view.AccCode.ToLowerInvariant()">@_view.AccCode</a>
+            <text> › </text><a href="/services/vsop/@_view.AccCode.ToLowerInvariant()">@_view.AccCode</a>
         }
         <text> › </text><b>@L["Live_Tab"]</b>
     </div>
@@ -63,7 +63,7 @@
             {
                 @foreach (var cs in _snapshot.Callsigns.OrderBy(c => c, StringComparer.OrdinalIgnoreCase))
                 {
-                    <a class="ch sw" href="/vsop/live/@cs.ToLowerInvariant()">@cs</a>
+                    <a class="ch sw" href="/services/vsop/live/@cs.ToLowerInvariant()">@cs</a>
                 }
             }
         </div>
@@ -76,7 +76,7 @@
                 <div>
                     <p class="ct">@L["Live_NotYoursTitle", _view.Callsign]</p>
                     @L["Live_NotYoursBody", _myCallsign]
-                    <a class="btn ghost" style="margin-left:8px;padding:3px 10px;font-size:12.5px" href="/vsop/live">↺ @L["Live_FollowMe", _myCallsign]</a>
+                    <a class="btn ghost" style="margin-left:8px;padding:3px 10px;font-size:12.5px" href="/services/vsop/live">↺ @L["Live_FollowMe", _myCallsign]</a>
                 </div>
             </div>
         }
@@ -108,7 +108,7 @@
                 @foreach (var cs in _view.CoverageChain)
                 {
                     var online = _snapshot.Callsigns.Contains(cs);
-                    <a class="xo-chip @(online ? "on" : "")" href="/vsop/live/@cs.ToLowerInvariant()">@cs@(online ? "" : " ·" + L["Live_Offline"].Value)</a>
+                    <a class="xo-chip @(online ? "on" : "")" href="/services/vsop/live/@cs.ToLowerInvariant()">@cs@(online ? "" : " ·" + L["Live_Offline"].Value)</a>
                 }
                 <span class="muted xo-hint">@L["Live_CoveredByHint"]</span>
             </div>
@@ -116,7 +116,7 @@
         else if (IsAirportSide())
         {
             @* Silenzio ingannevole: per una posizione d'aeroporto «nessuno sopra» non è un fatto operativo, è
-               una gerarchia non ancora compilata in /vsop/admin/sectorstructure. Dirlo evita che il controllore
+               una gerarchia non ancora compilata in /services/vsop/admin/sectorstructure. Dirlo evita che il controllore
                concluda di non avere nessuno a cui passare il traffico. *@
             <div class="live-chain lead">
                 <span class="lc-lab">@L["Live_CoveredBy"]</span>
@@ -226,7 +226,7 @@
     /// uccidendo il circuito — la pagina resta al prerender e non si aggiorna più.
     ///
     /// <para>Non è un difetto del provider: è una corsa, e MariaDB ne allarga solo la finestra (query
-    /// divise, latenza maggiore). È così che è emersa, guidando l'app in A6 su <c>/vsop/live/{callsign}</c>.
+    /// divise, latenza maggiore). È così che è emersa, guidando l'app in A6 su <c>/services/vsop/live/{callsign}</c>.
     /// Serializzare è anche semanticamente giusto: due letture sovrapposte scriverebbero <c>_view</c> in
     /// ordine indeterminato.</para>
     /// </summary>

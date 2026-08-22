@@ -31,7 +31,7 @@
 
 | | Difetto | Regola |
 |---|---|---|
-| 1 | **È due pagine in una**: rotta `/vsop/admin/permessi`, titolo «Area Staff», e sopra un hub di navigazione da **485px** (6 card da 138) | 0, 1 |
+| 1 | **È due pagine in una**: rotta `/services/vsop/admin/permissions`, titolo «Area Staff», e sopra un hub di navigazione da **485px** (6 card da 138) | 0, 1 |
 | 2 | ⚠️ L'hub **non è completo** (mancano ACC, Aeroporti, Confinanti, Sorgenti, che stanno solo nella barra di Struttura) e allo stesso tempo è **l'unico** ingresso ad Audit, Incarichi e Diagnostica | 3 |
 | 3 | La tabella lavora in **mezza pagina** mentre l'altra metà è il form «Concedi» sempre aperto: riga **86px** invece di ~40, nome a capo, data a capo in **tre righe** | 0, 13 |
 | 4 | Sotto il form ci sono ~**1 100px di bianco**: il form è alto 373, la tabella 1 438 | 0 |

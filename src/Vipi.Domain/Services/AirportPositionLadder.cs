@@ -6,7 +6,7 @@ public readonly record struct LadderPosition(string Callsign, SectorType Type, s
 /// <summary>
 /// Padre di copertura di una posizione d'aeroporto quando il catalogo non ne porta uno esplicito.
 ///
-/// Il legame che l'admin compila in <c>/vsop/admin/sectorstructure</c> sta sul nodo AEROPORTO
+/// Il legame che l'admin compila in <c>/services/vsop/admin/sector-structure</c> sta sul nodo AEROPORTO
 /// (<c>Airport.ParentCallsign</c>) e vale per tutte le sue posizioni; le posizioni salgono verso di esso lungo
 /// la scaletta operativa <b>DEL → GND → TWR → APP</b>.
 ///

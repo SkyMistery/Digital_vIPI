@@ -153,4 +153,4 @@ curl -s -X POST http://localhost:5034/vsop/api/v1/transfers/resolve \
 
 - Non scrive in Aurora e non conosce Aurora: parla di trasferimenti, non di protocollo.
 - Non assume traffico, non sceglie al posto del controllore, non filtra in silenzio i candidati deboli.
-- Non espone i documenti: per quelli ci sono le pagine `/vsop`.
+- Non espone i documenti: per quelli ci sono le pagine `/services/vsop`.

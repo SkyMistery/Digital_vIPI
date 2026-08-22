@@ -1,7 +1,7 @@
 ﻿// Transport live F3: sottoscrive l'endpoint SSE /vsop/live/atc e notifica i componenti Blazor
 // a ogni cambio della cache ATC. Il browser riconnette da solo su errore (EventSource nativo).
 //
-// Un solo EventSource per pagina, condiviso da piu' sottoscrittori: su /vsop/live convivono la pagina e il
+// Un solo EventSource per pagina, condiviso da piu' sottoscrittori: su /services/vsop/live convivono la pagina e il
 // badge in topbar, e con un singolo riferimento il secondo subscribe() chiuderebbe lo stream del primo.
 // L'identita' del riferimento .NET non e' confrontabile lato JS (ogni interop ne ricostruisce il wrapper),
 // quindi subscribe() restituisce un id e chi si stacca lo ripassa a unsubscribe().

@@ -11,7 +11,7 @@ namespace Vipi.Ui.Tests;
 /// Rete su <c>InlineConfirm</c>, e in particolare sul gancio <c>CanOpenAsync</c> aggiunto il 21 agosto 2026.
 ///
 /// <para><b>Perché serve.</b> Una pagina che elenca è una fotografia: il presupposto dell'azione può essere
-/// cambiato dopo il caricamento. In /vsop/versioni un documento passa in modifica a qualcun altro mentre
+/// cambiato dopo il caricamento. In /services/vsop/versions un documento passa in modifica a qualcun altro mentre
 /// l'elenco sta aperto — il servizio rifiuta comunque, ma senza questo gancio la domanda «eliminare
 /// definitivamente?» veniva posta lo stesso, e l'occupato si scopriva solo <b>dopo</b> aver confermato.</para>
 /// </summary>

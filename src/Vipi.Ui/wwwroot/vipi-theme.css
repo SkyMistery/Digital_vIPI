@@ -1,4 +1,4 @@
-/* Tema brand IVAO — vIPI/vLOA. Portato fedelmente dal mockup v2 (CSS prodotto), eliminato dal repo il 2026-08-01
+﻿/* Tema brand IVAO — vIPI/vLOA. Portato fedelmente dal mockup v2 (CSS prodotto), eliminato dal repo il 2026-08-01
    perché superato dall'app: questo foglio è la fonte, non una copia da risincronizzare.
    Font: i ruoli stanno qui (--font-head/--font-body/--font-mono), le @font-face in vipi-fonts.css.
    Estratto: regole prodotto del mockup (esclusa la barra navigatore del prototipo).
@@ -223,7 +223,23 @@
 :where(.vipi-root) tr:hover td{background:var(--surface-soft)}
 
 /* ---------- Product top bar ---------- */
-.topbar{position:sticky;top:0;z-index:45;background:var(--ivao-blue);color:var(--on-brand);display:flex;align-items:center;gap:18px;padding:0 22px;height:62px;box-shadow:0 2px 10px color-mix(in srgb,var(--ivao-blue) 18%,transparent)}
+/* ⚠️ `--tb-h` e' l'altezza della barra, e prima era il numero 62 ripetuto in tre punti che parlavano tutti
+   della stessa cosa (la barra, il pannello del menu, il popup della ricerca). `--tb-search-min` e' la
+   larghezza sotto la quale il campo di ricerca non merita piu' di restare aperto: la LEGGE la misura in
+   vipi-ui.js, ma vive qui perche' e' una decisione di forma e sta accanto alla regola che la usa.
+   ⚠️ 210 e' misurato, non scelto a occhio: il segnaposto intero («Cerca CoP, FIX…» / «Search CoP, FIX…»)
+   vuole 159px di scatola — 107 di testo piu' icona, gap, imbottitura e bordi — e i 51 che restano sono lo
+   spazio per vedere cio' che si digita. Sotto quella soglia il campo mente due volte: tronca l'invito e
+   nasconde la risposta, e allora tanto vale che si chiuda in un'icona e si riapra a piena riga.
+   ⚠️ L'`overflow` e' la rete di sicurezza, non il meccanismo: quando la barra ci sta — cioe' sempre, se la
+   misura fa il suo mestiere — non si vede. Serve al caso che nessuno scaglione copre (zoom 1.8 su 375px, che
+   in unita' di layout e' meno di quanto pesa la barra al suo minimo): li' scorre DENTRO di se' invece di
+   sfondare la pagina, ed e' la regola gia' scritta per le tabelle strette. La barra di scorrimento si
+   nasconde: non e' contenuto da esplorare, e' un fondo.
+   ⚠️ Con questo `overflow` un discendente `absolute` verrebbe TAGLIATO: per questo il popup della ricerca e'
+   `fixed` (vedi piu' sotto), come lo era gia' il pannello del «☰». */
+.topbar{--tb-h:62px;--tb-search-min:210px;position:sticky;top:0;z-index:45;background:var(--ivao-blue);color:var(--on-brand);display:flex;align-items:center;gap:18px;padding:0 22px;height:var(--tb-h);box-shadow:0 2px 10px color-mix(in srgb,var(--ivao-blue) 18%,transparent);overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.topbar::-webkit-scrollbar{display:none}
 /* ⚠️ Nessun pezzo della barra va a capo DENTRO se stesso: una barra che «sta» perche' il suo contenuto si
    spezza in due righe non sta. Lo vede l'occhio e non `scrollWidth`, che misura solo il bordo. */
 .topbar .brand,.topbar .live-badge,.topbar .staff-badge,.topbar .editor-btn,.topbar .acc-nav a{white-space:nowrap}
@@ -526,7 +542,7 @@
 .acc-card .onl{position:absolute;top:18px;right:18px;font-size:11.5px;display:flex;align-items:center;gap:5px;color:var(--ok-ink);font-weight:600}
 .acc-card .onl .dot{width:8px;height:8px;border-radius:50%;background:var(--ivao-green)}
 .acc-card.off .onl{color:var(--ink-dim)}.acc-card.off .onl .dot{background:var(--grey-mid)}
-/* Card aeroporto (elenco /vsop/{acc}/airports): titolo ICAO + badge ATC online */
+/* Card aeroporto (elenco /services/vsop/{acc}/airports): titolo ICAO + badge ATC online */
 .apt-card{border-radius:18px;transition:transform .15s,border-color .15s,box-shadow .15s}
 .apt-card:hover{transform:translateY(-2px);border-color:var(--ivao-lightblue);box-shadow:0 10px 26px color-mix(in srgb,var(--ivao-blue) 10%,transparent)}
 .apt-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -2419,7 +2435,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    a 1305px e la pagina scorreva di lato. Chiuso non esiste; all'apertura torna e placeHelpPop lo ribalta. */
 .help-hint:not([open]) .help-pop{display:none}
 
-/* ⚠️ La riga documento di /vsop/versioni si SFASCIAVA quando si apriva una conferma in linea. Trovato
+/* ⚠️ La riga documento di /services/vsop/versions si SFASCIAVA quando si apriva una conferma in linea. Trovato
    guardando lo screenshot, non da un numero: la pagina non sforava e non era piu' alta, ma la conferma
    («Eliminare definitivamente «...»? L'operazione e' irreversibile») entra NELLA riga flex e si prende
    ~500px, e senza un pavimento il titolo col suo `flex:1` si comprimeva finche' «vLOA — LIBB ↔ LAAA» non
@@ -2633,7 +2649,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    puntatore proprio mentre ci si sta mirando (regola 31). */
 .struct .task-layout .tk-states .btn.on{background:var(--line-atmos-soft);border-color:var(--ivao-blue);color:var(--brand-ink)}
 
-/* ---- I miei incarichi (/vsop/tasks): tabellone corto, due colonne chiuse in fondo ----
+/* ---- I miei incarichi (/services/vsop/tasks): tabellone corto, due colonne chiuse in fondo ----
    Cinque colonne da 230px a 1280 sono quattro incarichi e la pagina scorreva (854 su 800). Il tabellone e'
    misurato con vipiCapViewport (max-height): il contenuto e' corto — gli incarichi di UNA persona — quindi
    si stira solo fin dove serve, ma misurato lo e' comunque, o a 1024x768 e da zoom 1.25 si torna a scorrere. */
@@ -2769,66 +2785,88 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .editor-bar .st-head>.st-h2{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .editor-bar .st-head>.pill,.editor-bar .st-head>.sh-chip,.editor-bar .st-head>.btn{flex:none;white-space:nowrap}
 
-/* ---- La topbar sotto i 1400px: tre scaglioni, per priorita' ----
+/* ---- La topbar a scaglioni: la scaletta la decide il prodotto, il MOMENTO lo decide la misura ----
    ⚠️ Fino al 22 agosto 2026 non c'era UNA media query sulla topbar: non era un difetto da limare, era una
    cosa mai fatta. Misurato, la barra aveva una larghezza minima INCOMPRIMIBILE di 1385px (1395 in inglese) e
    il numero non cambiava fra 1280 e 1024 — da li' in giu' la pagina scorreva in orizzontale, e non era la
    pagina a sforare: dentro il `.wrap` non usciva niente, su editor, home e vIPI ACC.
 
-   Ogni scaglione toglie cio' che serve MENO, e niente sparisce: quello che si comprime resta raggiungibile.
+   ⚠️ E fino a poche ore dopo gli scaglioni erano tre MEDIA QUERY (1500 / 1300 / 900). Non ha funzionato, e la
+   ragione e' di metodo, non di taratura: **una media query misura la finestra, mentre il problema e' la
+   larghezza della BARRA** — che dipende da login, lunghezza della stringa staff (`string.Join(" · ", …)`:
+   chi ha quattro incarichi pesa il doppio di chi ne ha due), numero di ACC, lingua, **zoom di pagina** (che
+   arriva a 1.8 e che una `@media` non vede affatto) e stato della ricerca. Tarate su UNA configurazione, le
+   soglie erano giuste soltanto li': il committente vedeva la barra rotta gia' a 1940, cioe' 440px sopra la
+   prima soglia. Carta: docs/feature/2026-08-22-topbar-misurata.md.
+
+   Adesso gli scaglioni sono CLASSI, e a metterle e' `vipiFitTopbar` in vipi-ui.js confrontando quanto la
+   barra pretende con quanto ha. Sono CUMULATIVE (`tb-4` implica `tb-1 tb-2 tb-3`): ogni blocco resta scritto una
+   volta sola.
+
+   Quello che NON cambia e' la scaletta: ogni scaglione toglie cio' che serve MENO, e niente sparisce —
+   quello che si comprime resta raggiungibile.
    ⚠️ E gli `aria-label` restano INTERI dove il testo se ne va: un tasto che diventa un'icona non diventa
    muto — e' la regola del `title` sui tasti accorciati, applicata all'accessibilita'. */
 
-/* Scaglione 0 (~1500): si stringe lo SPAZIO, non si toglie niente. −30px (gap 18→12 fra quattro pezzi,
+/* Scaglione 1a: si stringe lo SPAZIO, non si toglie niente. −30px (gap 18→12 fra quattro pezzi,
    padding 22→16 per lato). */
-@media (max-width: 1500px) {
-  .topbar{gap:12px;padding:0 16px}
-}
+.topbar.tb-1{gap:12px;padding:0 16px}
 
-/* Scaglione 1 (~1500): il badge staff perde il testo e resta l'icona. E' l'unico pezzo che non e' ne' un
+/* Scaglione 1b: il badge staff perde il testo e resta l'icona. E' l'unico pezzo che non e' ne' un
    comando ne' uno stato che cambia: «chi sei» lo sai gia'. −110px.
-   ⚠️ La soglia e' 1500 e non 1400, e a dirlo e' stato il `nowrap`: finche' i pezzi potevano andare a capo
-   DENTRO se stessi, a 1440 la barra sembrava stare — si spezzavano il marchio e il badge live, e
-   `scrollWidth` non se ne accorgeva. Vietato il wrap, il difetto e' venuto fuori: 1513px minimi contro 1440.
-   Il wrap non risolveva niente, nascondeva. */
-@media (max-width: 1500px) {
-  .topbar .staff-badge .sb-t{display:none}
-  .topbar .staff-badge{padding:6px 9px}
-}
+   ⚠️ Il `nowrap` sui pezzi della barra non e' decorazione, ed e' quello che ha reso possibile misurare:
+   finche' potevano andare a capo DENTRO se stessi, a 1440 la barra sembrava stare — si spezzavano il marchio
+   e il badge live, e `scrollWidth` non se ne accorgeva. Vietato il wrap, il difetto e' venuto fuori (1513px
+   minimi contro 1440). Il wrap non risolveva niente, nascondeva — e oggi che a leggere `scrollWidth` e' il
+   meccanismo, non piu' un occhio in fase di taratura, mentirebbe a ogni giro. */
+.topbar.tb-1 .staff-badge .sb-t{display:none}
+.topbar.tb-1 .staff-badge{padding:6px 9px}
+/* ⚠️ Qui stava anche `.topbar .right a[href="/services"]{display:none}`, cioe' il tasto «Servizi» che a
+   questo scaglione usciva di riga. Non serve piu': dal 22 agosto il MARCHIO porta a /services — prima
+   portava a /services/vsop, cioe' a uno solo degli strumenti — e due link identici a 100px di distanza sono
+   ingombro, non ridondanza utile. Il tasto e' stato tolto dal markup; nel «☰» la voce resta. */
 
-/* Scaglione 2 (~1300): «Editor» e «Incarichi» a sole icone, la ricerca si chiude in un'icona e si apre al
-   clic a piena riga sotto la barra, il badge live resta il solo pallino col suo `title`.
-   ⚠️ La soglia e' 1300, e ci sono arrivato SBAGLIANDO due volte in direzioni opposte. Prima troppo bassa
-   (1000, poi 1100): a 1024 la media query non scattava affatto e la barra restava a 1161. Poi troppo alta
-   nell'altro senso — misurando lo spazio libero a 1280 avevo letto **306px** e avevo abbassato la soglia a
-   1200 per tenere la ricerca aperta: quel numero era misurato con la ricerca CHIUSA, e riaprendola la barra
-   tornava a sforare di 31px. La misura giusta e' quella dello stato in cui la pagina si trovera', non di
-   quello in cui l'ho fotografata — e uno spazio libero non e' spazio disponibile finche' non ci si e' messo
-   dentro quello che dovrebbe starci.
+/* Scaglione 2: «Editor» e «Incarichi» a sole icone, la ricerca si chiude in un'icona e si apre al clic a
+   piena riga sotto la barra, il badge live resta il solo pallino col suo `title`.
+   ⚠️ Quando questo scaglione scattava a 1300, ci sono arrivato SBAGLIANDO due volte in direzioni opposte, e
+   la seconda volta e' quella che vale ancora: misurando lo spazio libero a 1280 avevo letto **306px** e
+   avevo abbassato la soglia per tenere la ricerca aperta; quel numero era preso con la ricerca CHIUSA, e
+   riaprendola la barra tornava a sforare di 31px. Uno spazio libero non e' spazio disponibile finche' non ci
+   si e' messo dentro quello che dovrebbe starci. La misura di oggi lo mette in conto in due modi: sale
+   sempre RIPARTENDO dal livello 0 (l'unico stato di cui si puo' dire qualcosa di vero e' quello applicato) e
+   non rimisura mai mentre la ricerca ha il fuoco.
    ⚠️ `:focus-within` e non uno stato JS: si apre col fuoco da tastiera esattamente come col clic, e si
    richiude da sola — nessuno stato da ricordare, niente che possa restare aperto. */
-@media (max-width: 1300px) {
-  /* Il sottotitolo del marchio: e' l'unica cosa della barra che non dice ne' dove sei ne' cosa puoi fare,
-     e col sottotitolo il marchio pesa 202px invece di 81. */
-  .topbar .brand small{display:none}
 
-  /* «Editor» e «Incarichi» diventano sole icone: sono comandi frequenti e restano, ma il loro nome si impara
-     al primo uso e il `title` lo ridà. −120px. */
-  .topbar .editor-btn .eb-t{display:none}
-  .topbar .editor-btn{padding:7px 10px}
+/* Il sottotitolo del marchio: e' l'unica cosa della barra che non dice ne' dove sei ne' cosa puoi fare,
+   e col sottotitolo il marchio pesa 202px invece di 81. */
+.topbar.tb-2 .brand small{display:none}
 
-  /* Il badge live e' uno STATO, non un comando: il pallino lo dice quanto la frase, e il `title` la ridà
-     intera. Resta cliccabile e resta un link alla vista live. */
-  .topbar .live-badge .lb-t{display:none}
-  .topbar .live-badge{padding:6px 9px}
+/* «Editor» e «Incarichi» diventano sole icone: sono comandi frequenti e restano, ma il loro nome si impara
+   al primo uso e il `title` lo ridà. −120px. */
+.topbar.tb-2 .editor-btn .eb-t{display:none}
+.topbar.tb-2 .editor-btn{padding:7px 10px}
 
-  .topbar .top-search{position:relative;flex:none;min-width:0;max-width:none;width:38px;padding:7px 10px;
-    transition:width .15s}
-  .topbar .top-search input{width:0;min-width:0;padding:0;opacity:0;transition:opacity .1s}
-  .topbar .top-search:focus-within{position:absolute;left:12px;right:12px;top:calc(100% + 6px);width:auto;
-    z-index:46;padding:9px 14px;box-shadow:0 8px 24px color-mix(in srgb,var(--ivao-blue) 28%,transparent)}
-  .topbar .top-search:focus-within input{width:auto;flex:1;opacity:1}
-}
+/* Il badge live e' uno STATO, non un comando: il pallino lo dice quanto la frase, e il `title` la ridà
+   intera. Resta cliccabile e resta un link alla vista live. */
+.topbar.tb-2 .live-badge .lb-t{display:none}
+.topbar.tb-2 .live-badge{padding:6px 9px}
+
+/* Scaglione 3: la ricerca si chiude in un'icona e si riapre a piena riga sotto la barra.
+   ⚠️ E' uno scaglione SUO, e non insieme alle etichette, perche' chiudere la ricerca costa molto piu' che
+   accorciare un nome: e' misurato, vale 212px in un colpo. Tenendoli insieme il gradino era di 500px e a
+   1440 la barra passava da sfondare a essere mezza vuota — funzionante e brutta, con un buco di 700px in
+   mezzo. La scaletta serve a cedere UN pezzo alla volta: se il gradino e' troppo alto, non e' una scaletta. */
+.topbar.tb-3 .top-search{flex:none;min-width:0;max-width:none;width:38px;padding:7px 10px;
+  transition:width .15s}
+.topbar.tb-3 .top-search input{width:0;min-width:0;padding:0;opacity:0;transition:opacity .1s}
+/* ⚠️ `fixed` e non `absolute`, ed e' obbligatorio da quando la barra ha un `overflow` di sicurezza: un
+   discendente assoluto ci verrebbe TAGLIATO dentro, e il campo di ricerca aperto si vedrebbe a meta'. Da
+   `fixed` la quota non puo' piu' essere `100%` (non c'e' piu' un padre a cui riferirla): e' l'altezza della
+   barra, che ora ha un nome. */
+.topbar.tb-3 .top-search:focus-within{position:fixed;left:12px;right:12px;top:calc(var(--tb-h) + 6px);
+  width:auto;z-index:46;padding:9px 14px;box-shadow:0 8px 24px color-mix(in srgb,var(--ivao-blue) 28%,transparent)}
+.topbar.tb-3 .top-search:focus-within input{width:auto;flex:1;opacity:1}
 
 /* ---- Pannello release: la riga sta in UNA riga ----
    Erano due — titolo sopra, meta sotto — cioe' 68px l'una: su dieci release 680px per una storia che si
@@ -2853,15 +2891,16 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .rel-old>summary:hover{color:var(--brand-ink)}
 .rel-old .ver-row{margin-top:4px}
 
-/* ---- Telefono: la barra cambia FORMA, non si comprime piu' ----
-   Sotto i 700px non c'era piu' niente da togliere in riga: misurato, la barra ha un pavimento di 959px che
+/* ---- Scaglione 3: la barra cambia FORMA, non si comprime piu' ----
+   Arrivati qui non c'era piu' niente da togliere in riga: misurato, la barra ha un pavimento di 959px che
    non scende a nessuna larghezza — 959 anche a 375, con 4 comandi su 13 raggiungibili — e i soli codici ACC
    sono 263px, due terzi di uno schermo da 375. Da qui il menu: in riga restano marchio, ricerca e «☰»;
    dentro il menu tutto il resto, in un pannello a piena larghezza.
-   ⚠️ La soglia e' 900, e ci sono arrivato correggendomi: l'avevo scritta a 700 dando per buono che «il
-   tablet verticale sta comodo con la barra in riga». Misurato, NON sta: a 768 la barra restava a 959 e
-   sforava di 191px, con 10 comandi su 23 raggiungibili. Un'assunzione scritta in una carta resta
-   un'assunzione finche' non la si misura. */
+   ⚠️ Quando era una media query la soglia era 900, e ci sono arrivato correggendomi: l'avevo scritta a 700
+   dando per buono che «il tablet verticale sta comodo con la barra in riga». Misurato, NON stava: a 768 la
+   barra restava a 959 e sforava di 191px. Un'assunzione scritta in una carta resta un'assunzione finche' non
+   la si misura — ed e' esattamente il motivo per cui adesso a misurare non sono piu' io una volta sola, ma
+   la barra a ogni ridimensionamento. */
 .tb-menu{display:none}
 .tb-menu>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
   width:38px;height:34px;border-radius:9px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);
@@ -2870,45 +2909,47 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .tb-menu>summary::marker{content:""}
 .tb-menu[open]>summary{background:var(--on-brand);color:var(--ivao-blue)}
 
-@media (max-width: 900px) {
-  .topbar{gap:10px;padding:0 12px}
-  .tb-menu{display:block}
-  /* Quello che esce dalla riga vive nel menu: non sparisce, cambia posto. */
-  .topbar .acc-nav,.topbar .staff-badge,.topbar .zoom-ctrl,.topbar .live-badge,
-  .topbar .right>.editor-btn,.topbar .right>.user-chip{display:none}
-  .topbar .right{margin-left:auto;gap:8px}
-  /* Il marchio resta, ma solo il logo: il nome per esteso e' 202px su 375 di schermo. */
-  .topbar .brand div{display:none}
-  /* La ricerca resta in riga, chiusa in un'icona: e' il gesto piu' probabile da telefono. */
-  .topbar .top-search{flex:none;width:38px;min-width:0;max-width:none;padding:7px 10px;margin-left:0}
-  .topbar .top-search input{width:0;min-width:0;padding:0;opacity:0}
-  .topbar .top-search:focus-within{position:absolute;left:10px;right:10px;top:calc(100% + 6px);width:auto;
-    z-index:46;padding:9px 14px;box-shadow:0 8px 24px color-mix(in srgb,var(--ivao-blue) 28%,transparent)}
-  .topbar .top-search:focus-within input{width:auto;flex:1;opacity:1}
-
-  /* Il pannello del menu: a piena larghezza sotto la barra, e scorre se non ci sta in altezza. */
-  .tb-menu-pan{position:fixed;left:0;right:0;top:62px;z-index:44;background:var(--ivao-blue);
-    padding:10px 12px 14px;box-shadow:0 10px 26px color-mix(in srgb,var(--ivao-blue) 30%,transparent);
-    max-height:calc(100vh - 62px);overflow:auto;display:flex;flex-direction:column;gap:2px}
-  .tb-menu-pan>a{display:flex;align-items:center;gap:10px;color:var(--on-dark-softer);padding:11px 10px;border-radius:9px;
-    font-size:15px}
-  .tb-menu-pan>a:hover{background:rgba(255,255,255,.12);color:var(--on-brand)}
-  /* Gli ACC in fila dentro il menu: sono la navigazione primaria, e da telefono restano la prima cosa. */
-  .tb-menu-acc{display:flex;flex-wrap:wrap;gap:6px;padding:2px 2px 10px;margin-bottom:6px;
-    border-bottom:1px solid rgba(255,255,255,.18)}
-  .tb-menu-acc a{color:var(--on-dark-soft);padding:9px 15px;border-radius:9px;font-family:var(--font-head);font-weight:600;
-    background:rgba(255,255,255,.1)}
-  .tb-menu-acc a.active{background:var(--on-brand);color:var(--ivao-blue);font-weight:700}
-  /* Le tre scelte del tema, esplicite: sotto i 900 il tasto della barra non c'e' piu' e questo e' il
-     solo posto dove il tema si sceglie. Lo stato attivo lo segna vipiApplyTema() con la classe `on`. */
-  .tb-menu-tema{display:flex;gap:6px;padding:2px 2px 10px;margin-bottom:6px;
-    border-bottom:1px solid rgba(255,255,255,.18)}
-  .tb-menu-tema button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;
-    border:0;cursor:pointer;color:var(--on-dark-soft);background:rgba(255,255,255,.1);
-    padding:9px 8px;border-radius:9px;font-family:var(--font-head);font-weight:600;font-size:13px}
-  .tb-menu-tema button:hover{background:rgba(255,255,255,.18);color:var(--on-brand)}
-  .tb-menu-tema button.on{background:var(--on-brand);color:var(--ivao-blue);font-weight:700}
-}
+/* ⚠️ Viene DOPO lo scaglione 1 nel foglio, e non per caso: `.topbar.tb-1` e `.topbar.tb-4` hanno la stessa
+   specificita', quindi su `gap` e `padding` — le uniche due dichiarazioni che si contendono — vince chi e'
+   scritto per ultimo. Spostare questo blocco piu' in alto rimetterebbe la barra a 16px di padding sul
+   telefono, in silenzio. */
+.topbar.tb-4{gap:10px;padding:0 12px}
+.topbar.tb-4 .tb-menu{display:block}
+/* Quello che esce dalla riga vive nel menu: non sparisce, cambia posto. */
+.topbar.tb-4 .acc-nav,.topbar.tb-4 .staff-badge,.topbar.tb-4 .zoom-ctrl,.topbar.tb-4 .live-badge,
+.topbar.tb-4 .right>.editor-btn,.topbar.tb-4 .right>.user-chip{display:none}
+.topbar.tb-4 .right{margin-left:auto;gap:8px}
+/* Il marchio resta, ma solo il logo: il nome per esteso e' 202px su 375 di schermo. */
+.topbar.tb-4 .brand div{display:none}
+/* La ricerca resta in riga, chiusa in un'icona: e' il gesto piu' probabile da telefono. */
+.topbar.tb-4 .top-search{flex:none;width:38px;min-width:0;max-width:none;padding:7px 10px;margin-left:0}
+.topbar.tb-4 .top-search input{width:0;min-width:0;padding:0;opacity:0}
+.topbar.tb-4 .top-search:focus-within{position:fixed;left:10px;right:10px;top:calc(var(--tb-h) + 6px);
+  width:auto;z-index:46;padding:9px 14px;box-shadow:0 8px 24px color-mix(in srgb,var(--ivao-blue) 28%,transparent)}
+.topbar.tb-4 .top-search:focus-within input{width:auto;flex:1;opacity:1}
+
+/* Il pannello del menu: a piena larghezza sotto la barra, e scorre se non ci sta in altezza. */
+.topbar.tb-4 .tb-menu-pan{position:fixed;left:0;right:0;top:var(--tb-h);z-index:44;background:var(--ivao-blue);
+  padding:10px 12px 14px;box-shadow:0 10px 26px color-mix(in srgb,var(--ivao-blue) 30%,transparent);
+  max-height:calc(100vh - var(--tb-h));overflow:auto;display:flex;flex-direction:column;gap:2px}
+.topbar.tb-4 .tb-menu-pan>a{display:flex;align-items:center;gap:10px;color:var(--on-dark-softer);padding:11px 10px;
+  border-radius:9px;font-size:15px}
+.topbar.tb-4 .tb-menu-pan>a:hover{background:rgba(255,255,255,.12);color:var(--on-brand)}
+/* Gli ACC in fila dentro il menu: sono la navigazione primaria, e da telefono restano la prima cosa. */
+.topbar.tb-4 .tb-menu-acc{display:flex;flex-wrap:wrap;gap:6px;padding:2px 2px 10px;margin-bottom:6px;
+  border-bottom:1px solid rgba(255,255,255,.18)}
+.topbar.tb-4 .tb-menu-acc a{color:var(--on-dark-soft);padding:9px 15px;border-radius:9px;font-family:var(--font-head);
+  font-weight:600;background:rgba(255,255,255,.1)}
+.topbar.tb-4 .tb-menu-acc a.active{background:var(--on-brand);color:var(--ivao-blue);font-weight:700}
+/* Le tre scelte del tema, esplicite: a questo scaglione il tasto della barra non c'e' piu' e questo e' il
+   solo posto dove il tema si sceglie. Lo stato attivo lo segna vipiApplyTema() con la classe `on`. */
+.topbar.tb-4 .tb-menu-tema{display:flex;gap:6px;padding:2px 2px 10px;margin-bottom:6px;
+  border-bottom:1px solid rgba(255,255,255,.18)}
+.topbar.tb-4 .tb-menu-tema button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  border:0;cursor:pointer;color:var(--on-dark-soft);background:rgba(255,255,255,.1);
+  padding:9px 8px;border-radius:9px;font-family:var(--font-head);font-weight:600;font-size:13px}
+.topbar.tb-4 .tb-menu-tema button:hover{background:rgba(255,255,255,.18);color:var(--on-brand)}
+.topbar.tb-4 .tb-menu-tema button.on{background:var(--on-brand);color:var(--ivao-blue);font-weight:700}
 
 /* ---- Telefono e tablet verticale: una tabella larga scorre DENTRO di se' ----
    ⚠️ Misurato: a 390px il `.wrap` del viewer aeroporto pretendeva 894px, e il colpevole non era l'indice
@@ -2936,7 +2977,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
   .wrap .acc-block-h,.wrap h2,.wrap h3{overflow-wrap:anywhere}
   /* ⚠️ E i risultati di ricerca: gli estratti riportano testo del documento, dove capitano sequenze senza
      spazi (coordinate, elenchi di fix) che con `overflow-wrap` normale NON si spezzano e allargano tutto.
-     Misurato: `/vsop/search` senza risultati stava in 375, con i risultati saltava a 569 — e nell'elenco di
+     Misurato: `/services/vsop/search` senza risultati stava in 375, con i risultati saltava a 569 — e nell'elenco di
      «chi sfora» non compariva NESSUNO, perche' una volta allargato il viewport le righe ci stanno dentro.
      Il colpevole si trova confrontando la pagina con e senza contenuto, non cercando chi sborda. */
   .wrap .res-snip,.wrap .res-where,.wrap .prose,.wrap td,.wrap .vmeta{overflow-wrap:anywhere}
@@ -2947,7 +2988,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
      peso, e una regola scritta prima perde in silenzio. */
   .toc{max-height:34vh;overflow:auto}
 
-  /* ⚠️ La riga «titolo · tasti» e' un flex che non andava a capo: su /vsop/{acc}/vipi i tre tasti sono 277px
+  /* ⚠️ La riga «titolo · tasti» e' un flex che non andava a capo: su /services/vsop/{acc}/vipi i tre tasti sono 277px
      e col titolo superavano lo schermo. Qui a cedere e' la RIGA, che va a capo. */
   .doc-head{flex-wrap:wrap}
   .doc-head>*{min-width:0}

@@ -16,7 +16,7 @@ public interface IReleaseTarget
     /// <summary>Discriminatore di release di questo tipo.</summary>
     ReleaseTargetType Type { get; }
 
-    /// <summary>Tipo corrispondente nell'elenco unificato /vsop/versioni.</summary>
+    /// <summary>Tipo corrispondente nell'elenco unificato /services/vsop/versioni.</summary>
     ManagedDocKind ManagedKind { get; }
 
     /// <summary>Ordine di tentativo in <see cref="TryDescribe"/> (più basso prima). L'aeroporto è il catch-all finale

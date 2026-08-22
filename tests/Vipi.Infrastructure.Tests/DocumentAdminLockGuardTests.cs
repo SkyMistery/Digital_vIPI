@@ -16,7 +16,7 @@ namespace Vipi.Infrastructure.Tests;
 ///
 /// <para><b>Perché sta nel servizio e non nella pagina.</b> Prima queste due chiamate guardavano solo il grant
 /// ACC: si poteva eliminare un documento mentre qualcuno lo editava, e quella persona lo scopriva al salvataggio
-/// con il lavoro già perso. Spegnere il tasto in /vsop/versioni non basta — l'elenco è una fotografia, e chi
+/// con il lavoro già perso. Spegnere il tasto in /services/vsop/versions non basta — l'elenco è una fotografia, e chi
 /// arriva da un'altra scheda o con la lista vecchia in mano passerebbe lo stesso.</para>
 ///
 /// <para>Repo veri su SQLite in-memory: il lock è una scrittura atomica DB-side, e un finto direbbe solo ciò

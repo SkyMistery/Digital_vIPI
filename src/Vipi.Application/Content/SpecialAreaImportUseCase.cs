@@ -27,7 +27,7 @@ public sealed class SpecialAreaImportUseCase : ISpecialAreaImportUseCase
     {
         // Policy opt-out: categoria esclusa → si esce PRIMA della fetch e soprattutto prima del prune, così le aree
         // già in DB restano com'erano. Il gate sta qui e non nell'hosted service perché questo è il corpo condiviso
-        // da auto e manual: nel service lo scavalcherebbe il bottone di /vsop/admin/accs.
+        // da auto e manual: nel service lo scavalcherebbe il bottone di /services/vsop/admin/accs.
         if (!(await _policy.GetAsync(ct)).SpecialAreas) return SpecialAreaImportResult.Empty;
 
         // Solo gli ACC abilitati: gli esteri nascono spenti e li accende l'admin col primo import manuale, altrimenti

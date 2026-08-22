@@ -396,7 +396,7 @@ public sealed class EfAirportRepository : IAirportRepository
         else
         {
             // Alla prima generazione il documento resta in BOZZA: l'aeroporto appena importato non è ancora
-            // pubblico. Sarà lo staff a pubblicarlo a mano da /vsop/versioni. (I rebuild successivi — ramo
+            // pubblico. Sarà lo staff a pubblicarlo a mano da /services/vsop/versioni. (I rebuild successivi — ramo
             // "documento esistente" sopra — preservano lo stato: un doc già pubblicato resta pubblicato.)
             doc = new Document
             {

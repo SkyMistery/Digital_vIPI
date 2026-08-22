@@ -1,4 +1,4 @@
-﻿@page "/vsop/admin/audit"
+﻿@page "/services/vsop/admin/audit"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IEditAuthorizationService Authz
@@ -28,7 +28,7 @@
                 <span>&nbsp;</span><span class="pill blue" title="@L["Audit_CountTitle"]">@Filtrate.Count / @_totale</span>
             }
         </h2>
-        <HelpHint Href="/vsop/guida#admin-audit" AriaLabel="@L["Audit_HelpAria"]" ExtraClass="wide">
+        <HelpHint Href="/services/vsop/guide#admin-audit" AriaLabel="@L["Audit_HelpAria"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@L["Audit_Subtitle"]</p>
             @((MarkupString)L["Audit_Intro"].Value)
         </HelpHint>

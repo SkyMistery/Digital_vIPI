@@ -133,7 +133,7 @@
         return el;
     }
 
-    // Al caricamento con un hash (es. arrivo da un "?" HelpHint in nuova scheda su /vsop/guida#editor-release):
+    // Al caricamento con un hash (es. arrivo da un "?" HelpHint in nuova scheda su /services/vsop/guide#editor-release):
     // apre la sezione target e scorre con l'offset della top-bar. Anche su hashchange nella stessa pagina.
     var hashLandingWired = false;
     function wireHashLanding() {
@@ -500,7 +500,7 @@
     var fitMin = 320;          // sotto questa altezza il riquadro è inutilizzabile: meglio far scorrere la pagina
     var fitTargets = [];
 
-    // ⚠️ La misura vale fin dove arriva il RIQUADRO: quello che gli sta sotto non lo vede. Su /vsop/admin/audit
+    // ⚠️ La misura vale fin dove arriva il RIQUADRO: quello che gli sta sotto non lo vede. Su /services/vsop/admin/audit
     // erano i 18px di padding del `.wrap` e si sono chiusi nel foglio di stile; dove sotto c'è invece
     // CONTENUTO — le due colonne chiuse in fondo a «I miei incarichi» — il foglio non basta, perché
     // quell'altezza dipende da quante colonne chiuse ci sono. `reserveSel` è la risposta: gli elementi che
@@ -546,7 +546,7 @@
     // ⚠️ Quale delle due serve dipende da cosa c'è dentro, e la differenza si vede a occhio. `height` è giusto
     // dove il contenuto è più alto dello schermo per mestiere (il registro di audit, l'elenco aeroporti): lì
     // stirare il riquadro E far scorrere l'interno è tutto guadagno. È sbagliato dove il contenuto è corto e
-    // FISSO: su /vsop/admin/sorgenti le sei righe lasciavano mezzo riquadro di bianco perché il riquadro era
+    // FISSO: su /services/vsop/admin/sources le sei righe lasciavano mezzo riquadro di bianco perché il riquadro era
     // stato stirato a tutto lo schermo. «La pagina non scorre» non è l'obiettivo: l'obiettivo è che ciò che si
     // guarda stia a schermo, e con `max-height` lo si ottiene senza inventare vuoto.
     window.vipiCapViewport = function (selector, collapseBelow, reserveSel) {
@@ -558,6 +558,119 @@
     window.addEventListener('resize', function () {
         fitTargets.forEach(function (t) { fitOne(t.sel, t.below, t.cap, t.res); });
     });
+
+    // ---- La topbar sceglie il suo scaglione MISURANDOSI ----
+    //
+    // Fino al 22 agosto 2026 lo sceglievano tre media query (1500/1300/900). Non ha funzionato, e la ragione
+    // e' di metodo: ⚠️ una media query misura la FINESTRA, mentre il problema e' la larghezza della BARRA. Le
+    // due cose non sono la stessa, perche' quanto la barra pretende dipende da sei cose che una `@media` non
+    // vede — login si'/no, lunghezza della stringa staff (chi ha quattro incarichi pesa il doppio di chi ne
+    // ha due), numero di ACC, lingua, ZOOM di pagina (che arriva a 1.8) e stato della ricerca. Tarate su una
+    // configurazione sola, le soglie erano giuste soltanto li': la barra si rompeva gia' a 1940, cioe' 440px
+    // sopra la prima soglia. Carta: docs/feature/2026-08-22-topbar-misurata.md.
+    //
+    // Le regole di ogni scaglione sono le stesse di prima e stanno dov'erano, in vipi-theme.css: qui si
+    // decide solo QUANDO valgono. Le classi sono cumulative (tb-3 implica tb-1 e tb-2).
+    // tb-1 spazi + badge staff a icona · tb-2 sottotitolo e nomi dei comandi via · tb-3 la ricerca si chiude
+    // · tb-4 forma telefono. Oltre tb-4 non c'e' piu' niente da togliere: la barra e' gia' logo + ricerca + «☰».
+    // ⚠️ Sono QUATTRO e non tre perche' il gradino contava: tenendo «la ricerca si chiude» insieme alle
+    // etichette, un solo scaglione buttava via 500px e a 1440 la barra passava da sfondare a essere mezza
+    // vuota. Se un gradino e' piu' alto di quanto serva, non e' una scaletta.
+    var TB_MAX = 4;
+    // Isteresi, e serve solo nel verso che MOSTRA di piu': salire di scaglione si fa appena serve, scendere
+    // solo con margine. Senza, la barra sbatte fra due assetti sul pixel di confine mentre si trascina il bordo.
+    var TB_SLACK = 40;
+    var tbLevel = 0;
+    var tbSettledAt = 0;
+    var tbQueued = false;
+    var tbObserved = null;
+
+    function tbApply(bar, lvl) {
+        for (var i = 1; i <= TB_MAX; i++) bar.classList.toggle('tb-' + i, i <= lvl);
+    }
+
+    // Quanto MANCA perche' la barra stia, a questo scaglione. Due addendi, e il secondo non e' un di piu':
+    // ⚠️ `scrollWidth == clientWidth` da solo MENTE. La ricerca ha `flex-shrink:1`, quindi cede fino al suo
+    // minimo PRIMA che la barra sfori: a quel punto la barra «sta» e il segnaposto dice «Cerca Co…». Il
+    // difetto si e' solo spostato, ed e' lo stesso inganno che in fase di taratura aveva fatto leggere 306px
+    // liberi a 1280 — misurati con la ricerca chiusa.
+    function tbDeficit(bar, lvl) {
+        // ⚠️ `scrollWidth`/`clientWidth` parlano in unita' di LAYOUT: lo zoom di pagina non li tocca, al
+        // contrario di `getBoundingClientRect` (vedi rootZoom). Qui e' proprio quel che serve, e non c'e'
+        // niente da convertire.
+        var d = bar.scrollWidth - bar.clientWidth;
+        if (lvl >= 3) return d;      // da tb-3 la ricerca e' un'icona: non ha un minimo da difendere
+        var search = bar.querySelector('.top-search');
+        if (!search) return d;
+        var min = parseFloat(getComputedStyle(bar).getPropertyValue('--tb-search-min'));
+        if (!min || isNaN(min)) return d;
+        return d + Math.max(0, min - search.clientWidth);
+    }
+
+    function tbFit() {
+        var bar = document.querySelector('.topbar');
+        if (!bar) return;
+        // ⚠️ Mai rimisurare mentre la ricerca ha il fuoco: da tb-2 il campo aperto e' `position:fixed`, esce
+        // dal flusso, e la barra sembra piu' stretta di quanto sara' quando si richiude. Rifare i conti li'
+        // vorrebbe dire far saltare il campo sotto le dita di chi sta scrivendo.
+        var a = document.activeElement;
+        if (a && a.closest && a.closest('.topbar .top-search')) return;
+
+        // ⚠️ Si riparte SEMPRE dal livello 0 e si sale. Misurare lo scaglione corrente e indovinare il
+        // prossimo e' lo stesso errore di prima con un altro vestito: l'unico stato di cui si puo' dire
+        // qualcosa di vero e' quello applicato. Costa tre riflow, una volta per ridimensionamento.
+        var lvl = 0;
+        tbApply(bar, 0);
+        // ⚠️ Lo spazio disponibile e' `bar.clientWidth`, NON `documentElement.clientWidth`, e sbagliarlo e'
+        // costato un difetto che la griglia ha preso: sotto zoom i due numeri divergono — a 1920 con zoom 1.4
+        // la barra ha 1371 unita' di layout mentre `documentElement` continua a dire 1920 — e l'isteresi,
+        // confrontando l'uno con l'altro, diventava un CRICCHETTO: saliva di scaglione allo zoom e non
+        // scendeva piu', tanto che a 1440 la barra era gia' in forma telefono. La misura del fit e quella
+        // dell'isteresi devono stare nella stessa unita', che e' quella della barra.
+        var w = bar.clientWidth;
+        for (; lvl < TB_MAX; lvl++) {
+            if (lvl > 0) tbApply(bar, lvl);
+            if (tbDeficit(bar, lvl) <= 0) break;
+        }
+        if (lvl >= TB_MAX) { lvl = TB_MAX; tbApply(bar, lvl); }
+
+        // ⚠️ L'isteresi frena SOLO la barra che si allarga di poco, e il «di poco» va misurato dall'ultimo
+        // assestamento. Frenare sempre e' un difetto che la verifica ha preso: allungando la stringa staff a
+        // larghezza ferma la barra saliva a tb-1 e, rimessa la stringa corta, NON tornava a tb-0 — perche' la
+        // larghezza non era cambiata e il margine non poteva maturare. Un calo dovuto al CONTENUTO non ha
+        // niente da frenare: non c'e' nessun bordo che si sta trascinando.
+        if (lvl < tbLevel && w > tbSettledAt && w - tbSettledAt < TB_SLACK) {
+            lvl = tbLevel;               // troppo poco margine per rimostrare: si resta dov'eravamo
+            tbApply(bar, lvl);
+        } else {
+            tbSettledAt = w;
+        }
+        tbLevel = lvl;
+    }
+
+    function tbSchedule() {
+        if (tbQueued) return;
+        tbQueued = true;
+        requestAnimationFrame(function () { tbQueued = false; tbFit(); });
+    }
+
+    // Il badge live e' un'isola interattiva: quando ti colleghi in frequenza il suo testo cambia, la barra si
+    // allarga e ⚠️ NESSUN `resize` viene emesso. Da qui l'osservatore.
+    // ⚠️ Solo `childList`/`characterData`: gli ATTRIBUTI restano fuori dall'osservazione, o le classi che
+    // scriviamo noi rientrerebbero da sole e il giro non finirebbe piu'.
+    function tbWatch() {
+        var bar = document.querySelector('.topbar');
+        if (!bar || bar === tbObserved) return;
+        tbObserved = bar;
+        new MutationObserver(tbSchedule).observe(bar, { childList: true, characterData: true, subtree: true });
+        bar.addEventListener('focusout', tbSchedule);
+    }
+
+    window.vipiFitTopbar = function () { tbWatch(); tbFit(); };
+
+    window.addEventListener('resize', tbSchedule);   // e lo zoom ne emette uno apposta (vipi-zoom.js)
+    // I font web cambiano le misure: al primo giro `scrollWidth` e' quello del ripiego, non quello vero.
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(tbSchedule);
 
     window.vipiRevealPanel = function (id) {
         var el = document.getElementById(id);
@@ -640,10 +753,34 @@
         wireSearchKey();
         wirePrint();
         wireHashLanding();   // deep-link "#id" verso sezioni collassate (Guida) → apri + scorri
+        window.vipiFitTopbar();
     };
 
     document.addEventListener('DOMContentLoaded', function () {
         window.vipiApplyZoom && window.vipiApplyZoom();
         window.vipiWireUi();
     });
+
+    // ⚠️ E anche SUBITO, senza aspettare DOMContentLoaded: questo file e' caricato in fondo al <body>, quindi
+    // qui la topbar c'e' gia' — e da quando gli scaglioni non sono piu' media query, fra il primo disegno e
+    // la prima misura la barra sta al livello 0. Misurare adesso e' ciò che tiene quel divario dentro un
+    // fotogramma invece di regalarlo alla rete.
+    window.vipiFitTopbar();
 })();
+
+// Consegna un file al browser a partire da uno stream .NET (Aurora Profile Swapper).
+// Perche' non base64: lo zip dei profili aggiornati passerebbe come UNA stringa dentro un messaggio di
+// interoperabilita', gonfiata di un terzo e tenuta in memoria tre volte (stringa, decodifica, blob). Con
+// DotNetStreamReference i byte arrivano come sono. L'URL si revoca, o il blob resta appeso alla pagina
+// finche' non si cambia scheda.
+window.vipiScaricaFile = async function (nome, streamRef) {
+    const buffer = await streamRef.arrayBuffer();
+    const url = URL.createObjectURL(new Blob([buffer], { type: 'application/zip' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nome;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+};

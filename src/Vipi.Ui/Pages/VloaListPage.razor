@@ -1,4 +1,4 @@
-@page "/vsop/{Acc}/vloa"
+@page "/services/vsop/{Acc}/vloa"
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IStructureEditingService Structure
@@ -16,11 +16,11 @@
 }
 else if (_foreign.Length > 0)
 {
-    @* ---- documento singolo: /vsop/{acc}/vloa?acc=<vicino> ---- *@
+    @* ---- documento singolo: /services/vsop/{acc}/vloa?acc=<vicino> ---- *@
     @if (_view is null)
     {
         <div class="wrap">
-            <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/vsop/@Acc.ToLowerInvariant()/vloa">@L["Vloa_Title"]</a> › <b>—</b></div>
+            <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/vloa">@L["Vloa_Title"]</a> › <b>—</b></div>
             @* Stesse stringhe già localizzate del vecchio viewer vLOA su AppnPage (rotta rimossa, doc 11 §3f). *@
             <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Appn_VloaNotAvailTitle"]</p>@((MarkupString)string.Format(L["Appn_VloaNotAvailBody"], $"{_acc.Code} ↔ {_foreign}"))</div></div>
         </div>
@@ -29,12 +29,12 @@ else if (_foreign.Length > 0)
     {
         <PageTitle>@PreviewTitlePrefix()@_view.Title · IVAO Italia</PageTitle>
         <div class="wrap">
-            <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/vsop/@Acc.ToLowerInvariant()/vloa">@L["Vloa_Title"]</a> › <b>@_view.Title</b></div>
+            <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/vloa">@L["Vloa_Title"]</a> › <b>@_view.Title</b></div>
             @if (_mode.IsPreview)
             {
                 <PreviewBanner Kind="_mode.Kind" Cycle="@_relCycle"
-                               PublicHref="@($"/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}")"
-                               DraftHref="@($"/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}&as=draft")" />
+                               PublicHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}")"
+                               DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}&as=draft")" />
             }
             <VloaDocumentView View="_view" DocId="_viewDocId" UseFrozen="_useFrozen" IsDraft="@(_mode.Kind == PreviewKind.Draft)" Subtitle="@_viewSubtitle" HomeAcc="@_acc.Code" ForeignAcc="@_foreign" />
         </div>
@@ -45,7 +45,7 @@ else
     @* ---- elenco vLOA della ACC ---- *@
     <PageTitle>@L["Vloa_Title"] @_acc.Code · vIPI IVAO Italia</PageTitle>
     <div class="wrap reading-cap">
-        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@L["Vloa_Title"]</b></div>
+        <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@L["Vloa_Title"]</b></div>
         <div class="doc-head">
             <div><h2 style="margin-bottom:2px">@L["Vloa_Title"] — @_acc.Name - @_acc.Code</h2></div>
         </div>
@@ -64,7 +64,7 @@ else
                     {
                         var neigh = v.NeighbourCode ?? v.Title;
                         var neighOnline = NeighOnline(v.NeighbourCode);
-                        <a class="choice apt-card" href="/vsop/@Acc.ToLowerInvariant()/vloa?acc=@v.NeighbourCode">
+                        <a class="choice apt-card" href="/services/vsop/@Acc.ToLowerInvariant()/vloa?acc=@v.NeighbourCode">
                             <div class="apt-top">
                                 <h4>@neigh</h4>
                                 <span class="country-tag">@g.Key</span>
@@ -173,7 +173,7 @@ else
         catch (Vipi.Application.Aor.ValidationException) { return null; }
     }
 
-    // ATC online dell'ACC nazionale (home): stessa regola della home /vsop (include gli aeroporti sotto l'ACC).
+    // ATC online dell'ACC nazionale (home): stessa regola della home /services/vsop (include gli aeroporti sotto l'ACC).
     private int HomeOnline()
     {
         var snap = Online.GetCurrent();

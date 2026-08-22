@@ -73,7 +73,7 @@ Devono combaciare esatti. Se cambi URL (es. ricreando il servizio) vanno aggiorn
 - **Dev locale invariato**: senza `Persistence__Provider` resta SQLite con le migrazioni versionate.
 - **Proxy TLS**: `Program.cs` usa `UseForwardedHeaders` → dietro il proxy Render l'app vede `https`
   (necessario per OIDC e per non andare in loop su `UseHttpsRedirection`).
-- **Tenere sveglio** (opzionale): ping esterno ogni ~10 min (es. cron-job.org su `/vsop`) evita lo sleep.
+- **Tenere sveglio** (opzionale): ping esterno ogni ~10 min (es. cron-job.org su `/services/vsop`) evita lo sleep.
 - **Login ricordato 7 giorni**: cookie auth `ExpireTimeSpan=7gg` sliding + `IsPersistent=true` (`VipiStandaloneAuthExtensions`) → un solo login IVAO, sopravvive a chiusura browser. Le chiavi che firmano il cookie persistono su Neon (vedi DataProtection sopra), quindi il cookie resta valido anche dopo un redeploy.
 - **Caricare dati sul DB Neon** (es. dal DB SQLite locale): `dotnet run --project tools/Vipi.DbSeed -- <vipi.db> "<connstring-postgres-.NET-o-URL>"`. Fa **TRUNCATE di tutte le tabelle** e reinserisce preservando gli ID (schema già creato da `EnsureCreated`). `--dry-run` al posto della connstring per contare solo le righe lette.
 

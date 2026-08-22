@@ -18,7 +18,7 @@ public sealed class EfStationDirectory : IStationDirectory
     }
 
     // Solo ACC domestici non nascosti: l'admin può nascondere ACC importati; gli ACC ESTERI (confinanti, per le
-    // vLOA) restano fuori dalla navigazione pubblica (home /vsop + header) — servono solo agli editor. "Estero"
+    // vLOA) restano fuori dalla navigazione pubblica (home /services/vsop + header) — servono solo agli editor. "Estero"
     // deciso dai prefissi ICAO della divisione (robusto al flag IsForeign, che può essere stale su vLOA vecchie).
     public IReadOnlyList<AccInfo> ListAccs() =>
         _db.Accs.AsNoTracking()

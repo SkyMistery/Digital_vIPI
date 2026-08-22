@@ -16,7 +16,7 @@ namespace Vipi.Ui.Tests;
 /// non ammette due operazioni sovrapposte: EF risponde «A second operation was started on this context
 /// instance» e il circuito muore, lasciando la pagina ferma al prerender.
 ///
-/// <para><b>Come è emersa.</b> Non dai test — da <c>/vsop/live/{callsign}</c> guidata su MariaDB nella
+/// <para><b>Come è emersa.</b> Non dai test — da <c>/services/vsop/live/{callsign}</c> guidata su MariaDB nella
 /// verifica live A6, dove le query divise e la latenza allargano la finestra della corsa quanto basta a
 /// renderla sistematica. È una corsa, però, non un difetto del provider: su SQLite e Postgres capita solo
 /// quando un aggiornamento atterra nell'istante giusto, che è il modo peggiore di avere un guasto.</para>

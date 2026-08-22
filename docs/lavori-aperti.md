@@ -15,7 +15,7 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 > stesso identificativo**, una per ramo, e al secondo merge si è tenuta quella che porta dentro il modello
 > coi trasferimenti (l'altra ne aveva uno più povero, e lo `ModelSnapshot` deve descrivere il modello fuso).
 >
-> Resta fuori da `main` un solo ramo: **`refactor/13-tre-documenti`** (B5), che è una decisione, non lavoro.
+> Restano fuori da `main`: **`refactor/13-tre-documenti`** (B5), che è una decisione e non lavoro; il ramo chiuso e mai fuso **`brand-atmosphere`**; e — dal **22 agosto** — **`feature/services-hub-profile-swapper`**, che è lavoro **finito e verificato** in attesa di merge: hub `/services`, il prefisso delle pagine a `/services/vsop` con le rotte italiane tradotte, e il primo strumento integrato (Aurora Profile Swapper). Carta in [`feature/2026-08-22-servizi-atc-e-profile-swapper.md`](feature/2026-08-22-servizi-atc-e-profile-swapper.md).
 >
 > - **11 agosto — audit full-stack, eseguito** (sta in B5). 34 voci, 23 chiuse, 3 ribaltate dalla misura.
 >   Tre regole di build che cambiano: `TreatWarningsAsErrors` in `Directory.Build.props`, i test che
@@ -32,6 +32,75 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 > sospetto è la **contesa fra progetti** (porta, file temporaneo, cartella condivisa), non il tempo dentro
 > un test. Alla prossima occorrenza **tenere il log intero** (`dotnet test Vipi.slnx > log.txt 2>&1`): il
 > nome del test sta nella riga sopra «Error Message».
+>
+> **22 agosto 2026 — il nome, preso.** `AuroraBridge.Tests.AuroraClientTests.Richieste_in_sequenza_non_si_mescolano`.
+> Caduto nella corsa completa in Release (`la seconda richiesta non ha avuto risposta: Nessuna risposta a #TRPOS
+> entro 15000 ms`), **verde da solo subito dopo in 65 ms** — cioè tre ordini di grandezza sotto la scadenza,
+> il che esclude che sia lento e conferma che la risposta non arriva **affatto**. Il giro non toccava il bridge
+> (rename delle rotte), quindi la causa resta la contesa, non una regressione. Il candidato ora ha un indirizzo:
+> il client Aurora è a **porta/socket condivisa**, e in corsa parallela è l'altro progetto a occuparla.
+
+> ### ✅ 22 agosto 2026 — CHIUSA: la topbar non sfonda più, perché non indovina più
+> Chiusa lo stesso giorno, e **non** con nessuna delle due strade che questa voce proponeva. Il committente
+> l'ha riaperta da un'altra parte: vedeva la barra rotta già a **1940**, cioè 530px sopra il numero misurato
+> qui — perché la sua configurazione (zoom di pagina, stringa staff, login) non era quella su cui le soglie
+> erano state tarate. Il difetto non era la soglia: **una media query misura la finestra, mentre il problema
+> è la larghezza della barra**, che dipende da sei cose che una `@media` non vede.
+>
+> Adesso la barra si **misura** e sceglie da sé lo scaglione (`vipiFitTopbar` in `vipi-ui.js`, classi
+> `tb-1…tb-4` in `vipi-theme.css`). Verificato su **256 combinazioni** — 8 larghezze × 4 zoom × 4 famiglie
+> di pagina × 2 lingue — con `scrollWidth == clientWidth` su tutte e nessun comando perso.
+>
+> ⚠️ E il compromesso che questa voce dava per obbligato **non c'è stato**: a 1366 e 1440 la ricerca resta
+> **aperta e intera**, perché separando «la ricerca si chiude» da «le etichette spariscono» il gradino da
+> 500px è diventato due. Carta: [`feature/2026-08-22-topbar-misurata.md`](feature/2026-08-22-topbar-misurata.md).
+>
+> <details><summary>La misura di allora, per memoria</summary>
+
+> ### 🆕 22 agosto 2026 — la topbar sfonda fra 1301 e ~1410px (**preesistente**, misurato)
+> Trovato guidando la verifica live dei servizi ATC, e **non e' del giro nuovo**: si misura identico con e
+> senza il tasto aggiunto quel giorno. Lo scaglione 2 della barra (`vipi-theme.css`, `@media (max-width:1300px)`
+> — «Editor»/«Incarichi» a sole icone, ricerca richiusa) scatta **troppo tardi**:
+>
+> | larghezza | sforamento |
+> |---|---|
+> | 1420 e oltre | 0 |
+> | 1400 | +10 |
+> | 1380 | +30 |
+> | 1350 | +60 |
+> | 1320 | +90 |
+> | 1301 | **+109** |
+>
+> Cioe' la soglia andrebbe a **~1410**, non a 1300: appena sopra i 1300 alla barra mancano 109px. Sotto i
+> 1300 lo scaglione scatta e torna tutto a posto, quindi il difetto vive in una fascia sola — che pero'
+> contiene **1366 e 1400**, due larghezze di portatile molto comuni.
+>
+> ⚠️ **Non l'ho corretto da solo perche' e' un compromesso, non un numero.** Il commento nel CSS racconta
+> che quella soglia fu tarata *apposta* per tenere la **ricerca aperta** il piu' a lungo possibile, sbagliando
+> due volte in direzioni opposte. Alzarla a 1410 ripara lo sforamento **e** richiude la ricerca su tutti i
+> portatili 1366: e' esattamente la cosa che quella taratura voleva evitare. Le due strade sono alzare la
+> soglia, oppure recuperare ~110px dentro la fascia (il candidato piu' grasso e' la ricerca, che a barra
+> piena vale piu' di 200px).
+>
+> </details>
+
+> ### 🆕 22 agosto 2026 — due difetti trovati guardando, mentre si chiudeva la topbar
+> Nessuno dei due e' del chrome, e nessuno dei due e' stato toccato: sono qui perche' li ha visti la verifica
+> della barra, e perche' il primo e' **la stessa malattia appena curata**.
+>
+> **1. La tabella SID sfora a zoom alto** (🟢 si puo' fare subito). Sul viewer aeroporto a 1280 con zoom 1.4
+> — cioe' **914 unita' di layout** — la pagina sfora di 58px, e il colpevole e' `table.sid-table` col suo
+> `min-width:720px`. Misurato che **non e' il chrome**: tolta la topbar dal DOM lo sforo resta identico.
+> ⚠️ La regola che fa scorrere le tabelle dentro di se' e' `@media (max-width:900px)`, e 914 > 900: **una
+> soglia di viewport che non vede lo zoom**, esattamente il difetto che la barra aveva. La cura e' la stessa
+> in spirito: legare quella regola alla larghezza in unita' di layout, non a quella della finestra.
+>
+> **2. La cultura non arriva al circuito** (🟡 merita una carta sua). Su `/services/vsop?culture=it` il
+> prerender scrive «‹ Servizi ATC» e subito dopo il circuito `InteractiveServer` ri-renderizza
+> **«ATC Services»** — inglese in pagina italiana. Vale per **ogni** pagina `InteractiveServer`: il chrome
+> resta giusto perche' e' SSR statico, ed e' per questo che non se n'era accorto nessuno. Si vede quando la
+> lingua e' scelta dalla query (o dal cookie) e non coincide con quella del browser, quindi un utente
+> italiano con browser italiano non lo incontra mai — ma un pilota straniero che sceglie l'italiano si'.
 
 ## Dove siamo, in cinque righe
 Il **cutover MariaDB è in `main`** e verificato (A1–A8). Le sezioni **B** (branch), **C** (debito, tranne C3
@@ -91,7 +160,7 @@ Le quattro verifiche, tutte passate:
 3. **`LIRF` e `lirf` convivono** nell'indice unico di `Accs.Code` e `WHERE Code='lirf'` ne torna uno solo.
    È la verifica che conta: il default del database è ai_ci, quindi senza la collation sulla colonna il
    secondo INSERT sarebbe stato un duplicate key.
-4. **Avvio con `Persistence__Provider=MySql`** — `/vsop` 200, `/vsop/health` Healthy, `/vsop/health/ready`
+4. **Avvio con `Persistence__Provider=MySql`** — `/services/vsop` 200, `/vsop/health` Healthy, `/vsop/health/ready`
    200, log senza un solo `warn`. E ha **scritto davvero**: import ACC (7 ACC, 36 settori) e aree speciali
    (230 create, 17 aggiornate) andati a buon fine su MariaDB, con `LastSuccessUtc` valorizzato e
    `LastError` vuoto in `ImportStates`.
@@ -110,7 +179,7 @@ Restano **non** verificati e non verificabili qui: `sql_mode` del loro server, e
 `DEFAULT_COLLATION_NAME` vera (mai letta). Vedi «Cosa questo ambiente NON dice» nel README.
 
 ℹ️ Non è un guasto: l'import settori-aeroporto ha scritto **0 aeroporti** perché parte dal catalogo
-aeroporti, che su un database appena creato è vuoto finché non si passa da `/vsop/admin/acc` → «Importa da
+aeroporti, che su un database appena creato è vuoto finché non si passa da `/services/vsop/admin/acc` → «Importa da
 sorgente». Da riprendere in **A6**, che è dove i flussi si guidano.
 
 ℹ️ Osservazione di modello, non urgente: `Accs.Code` porta **due** indici unici, `AK_Accs_Code` (chiave
@@ -137,7 +206,7 @@ Tre aggiunte non chieste ma che il travaso vero (A3) userà:
 
 **Eseguito**: `--from-sqlite src/Vipi.Host/vipi.db --to-mysql <MariaDB 11.4.10 locale>` → 4578 righe lette,
 4588 scritte, 36 contatori risincronizzati, **37 tabelle su 37 combaciano**, e l'host avviato su quel
-database serve le pagine con i dati veri (`/vsop` mostra LIRR/LIMM/LIBB).
+database serve le pagine con i dati veri (`/services/vsop` mostra LIRR/LIMM/LIBB).
 
 ✅ **Il percorso sorgente-Postgres è stato eseguito il 9 agosto 2026** (A3): 4303 righe da Neon, 4314 scritte
 su MariaDB, 38/38 tabelle riconciliate. Era l'unico pezzo del tool che nessuno aveva visto girare.
@@ -153,7 +222,7 @@ su MariaDB, 38/38 tabelle riconciliate. Era l'unico pezzo del tool che nessuno a
 [`../deploy/mariadb/README.md`](../deploy/mariadb/README.md).
 
 **Verificato reimportandolo**, non guardandolo: database vuoto → import → 38 tabelle, 4808 righe, conteggi
-**identici** all'origine; host avviato su quel database → `/vsop` 200 con LIRR/LIMM/LIBB a schermo e
+**identici** all'origine; host avviato su quel database → `/services/vsop` 200 con LIRR/LIMM/LIBB a schermo e
 **nessuna migrazione riapplicata** (`__EFMigrationsHistory` viaggia nel dump apposta).
 
 ⚠️ **Il primo dump era inutilizzabile e sembrava perfetto.** Windows nasce con
@@ -184,7 +253,7 @@ connection string di Neon), non dal sito: usa il secret IVAO dei user-secrets lo
 quello su Render risultava stale il 5 agosto. Esito: «ACC: 0 create, 7 aggiornate · settori ACC: 0 create,
 147 aggiornati».
 
-ℹ️ La pagina è **`/vsop/admin/acc`**, al singolare — `/vsop/admin/accs` non esiste e risponde 404 (su net8
+ℹ️ La pagina è **`/services/vsop/admin/acc`**, al singolare — `/services/vsop/admin/accs` non esiste e risponde 404 (su net8
 non c'è nemmeno il catch-all che su net10 darebbe altro). Il bottone è inoltre inerte finché non si prende
 il **lock di risorsa** dalla barra in cima: `OnLockChanged(mine)` è ciò che accende `_canEdit`.
 
@@ -267,14 +336,14 @@ Guidata con la skill `verifica-live` su `Vipi.Host` con `Persistence__Provider=M
 **Due bug trovati, entrambi corretti e con la loro rete di test.** Nessuno dei due è colpa del provider:
 sono corse che MariaDB rende sistematiche, e che su SQLite e Postgres capitano solo con la tempistica
 giusta — cioè nel modo peggiore.
-- **`/vsop/admin/trasferimenti` e `/vsop/admin/permessi` non si aprivano affatto**: leggono
+- **`/services/vsop/admin/transfers` e `/services/vsop/admin/permissions` non si aprivano affatto**: leggono
   `IStationResolver` dal **markup**, e il lazy-load partiva durante il render sul `DbContext` del circuito
   ⇒ «A second operation was started», circuito morto (la pagina restava al prerender, che a occhio sembra
   viva). Sistemate con `Stations.Prewarm()` nel ciclo di vita, come già facevano `AccVipiPage`, `SopHome` e
   `VloaListPage` dal 29 luglio: queste due erano rimaste indietro. Guardia: `StationResolverPrewarmTests`
   cammina i `.razor` e pretende il Prewarm da **ogni** componente interattivo che legge il resolver nel
   render — il chrome statico (`SopLayout`) è escluso per costruzione, non per elenco.
-- **`/vsop/live/{callsign}` uccideva il circuito**: `LoadAsync` ha **due** ingressi non coordinati — il
+- **`/services/vsop/live/{callsign}` uccideva il circuito**: `LoadAsync` ha **due** ingressi non coordinati — il
   ciclo di vita e il callback SSE `OnLiveUpdate`, che il poller invoca a ogni giro — e un aggiornamento che
   atterra a lettura in corso ne fa partire una seconda sullo stesso context. Serializzati con un
   `SemaphoreSlim`. Guardia: `LivePageConcurrencyTests` lancia i due ingressi in parallelo contro un servizio
@@ -296,7 +365,7 @@ identici alla colonna `longblob` (179286 / 146102 / 280283).
   ritorno.
 - **Pubblicazione degli altri due tipi** ✅ vIPI **ACC** (release v16, payload 62 KB, con la derivazione
   pesante che gira al publish) e **vLOA** (release v2, payload **73 KB**). ⚠️ L'editor vLOA non si apre con
-  `?doc=`: vuole `/vsop/{acc}/vloa/editor?acc={estero}` — con `?doc=8` si finisce sull'editor ACC e si
+  `?doc=`: vuole `/services/vsop/{acc}/vloa/editor?acc={estero}` — con `?doc=8` si finisce sull'editor ACC e si
   pubblica quello, cosa che è successa al primo tentativo.
 - **`sql_mode` non-strict** ✅ provato davvero, mettendo il server in `NO_ENGINE_SUBSTITUTION` e rifacendo la
   passata: **nessuna differenza** sulle pagine esercitate. Le uniche due che cambiavano erano quelle col
@@ -428,7 +497,7 @@ veri contro l'API IVAO. Esito per esteso nella carta,
   (230 aree / 247 legami, conteggi per ACC identici); a video «❄ Congelate». E dura **24 secondi** contro i
   minuti dell'import pieno: la fetch non parte davvero.
 - **2. Dangling** ✅ cancellata a mano l'area `1131` citata dalla vIPI Brindisi: «⚠ 1131 non più disponibile»
-  nell'editor, rilievo in `/vsop/admin/diagnostica`, `/vsop/health` a **Degraded**.
+  nell'editor, rilievo in `/services/vsop/admin/diagnostics`, `/vsop/health` a **Degraded**.
 - **3. R49 «Zita»** ⚠️ la **meccanica multi-ACC funziona** — 7 aree con più enti, fra cui `WEST/EAST SARDINIA`
   e `Donald`/`Eolia` che ora appartengono anche a LIRR — ma **l'esempio è invecchiato**: oggi la sorgente
   elenca la 8870 sotto LIPP, LIRO, LIVK, LIZZ e non più sotto LIRR. Non è l'import: nello stesso giro la
@@ -505,7 +574,7 @@ Host locale puntato a **Neon**, cioè l'unico modo di eseguirlo (in locale non c
 fermati al «non segnala niente», che da solo non distingue *pulito* da *mai eseguito*: si è **introdotto un
 drift finto** — una colonna `Accs.ZzSondaDrift` — e la sonda l'ha vista.
 
-- a schema pulito: `/vsop/admin/diagnostica` «nessuna incongruenza», `/vsop/health` **Healthy**;
+- a schema pulito: `/services/vsop/admin/diagnostics` «nessuna incongruenza», `/vsop/health` **Healthy**;
 - con la colonna estranea: rilievo **«Colonna orfana nello schema — `Accs.ZzSondaDrift`»**, col messaggio
   che conta («se è una rinomina, i dati sono ancora QUI e la colonna nuova è vuota»), e `/vsop/health` a
   **Degraded**;
@@ -540,7 +609,7 @@ ritirato: la decisione su Neon è ancora aperta e va presa prima, non dopo.
 
 **Cosa rende accettabile aspettare, e non era vero prima del 9 agosto:** il guasto temuto — una rinomina
 che lascia i dati nella colonna vecchia mentre l'app legge la nuova, vuota, **senza lanciare niente** — ora
-ha un rilevatore **provato sul campo** (C1): compare in `/vsop/admin/diagnostica` e porta `/vsop/health` a
+ha un rilevatore **provato sul campo** (C1): compare in `/services/vsop/admin/diagnostics` e porta `/vsop/health` a
 Degraded. Il rischio passa da *silenzioso* a *rumoroso*, che è la differenza che conta.
 
 **Cosa lo riaprirebbe, e allora va costruito:** se Neon smettesse di essere un ambiente di prova (dati che
@@ -617,7 +686,7 @@ Erano lavori già scritti e testati che nessuno aveva mai **guidato**. Tutte rif
 veri, non su un database di comodo.
 
 - ✅ **Aree regolamentate** — 6 agosto: esito in B1.
-- ✅ **Settori esteri aggiunti a mano.** In `/vsop/admin/confinanti`, su coppia confermata, provati i tre
+- ✅ **Settori esteri aggiunti a mano.** In `/services/vsop/admin/neighbours`, su coppia confermata, provati i tre
   esiti che contano: **aggiunta** di `LGRP_APP` a LGGG → verificato su IVAO e materializzato con dati veri
   (*Rodos Approach*, 127.250, poligono di 3378 caratteri), **riproiettato** come `Sector` attivo e presente
   nel **picker del ricevente** (`LGRP_APP LGGG`); **ri-aggiunta** dello stesso → «already present», non un
@@ -649,7 +718,7 @@ Ordinate per valore, come lì.
 ### E1 ✅ Live IVAO — **chiusa il 9 agosto 2026**: tre voci su quattro erano già morte
 L'elenco veniva da prima della riscrittura della vista live (doc 12, 31 luglio) e non era stato ricontrollato.
 
-- ~~**Identità «P»** legata al callsign connesso~~ — **già fatto**: `/vsop/live` *è* la tua postazione, presa
+- ~~**Identità «P»** legata al callsign connesso~~ — **già fatto**: `/services/vsop/live` *è* la tua postazione, presa
   dalla connessione IVAO. Il selettore manuale non esiste più, e nemmeno la pagina Ridotta che lo ospitava
   (rimossa al Round 12).
 - ~~**Endpoint membri divisione** da confermare~~ — **confermato da tempo, in negativo**:
@@ -666,7 +735,7 @@ L'elenco veniva da prima della riscrittura della vista live (doc 12, 31 luglio) 
 
   La scelta è però resa **revocabile da sola**: nuova regola nella diagnostica, **«Callsign ambiguo
   (risoluzione live)»**, che riusa il resolver invece di ricopiarne le regole — se l'euristica cambia, la
-  diagnosi cambia con lei. Il giorno che nasce un settore che collide si vede in `/vsop/admin/diagnostica`
+  diagnosi cambia con lei. Il giorno che nasce un settore che collide si vede in `/services/vsop/admin/diagnostics`
   invece che in frequenza. Verificata sui dati veri: nessun rilievo, nessun rumore.
 
 ### E2 Dati reali che mancano
@@ -720,7 +789,7 @@ pubblicati — ed è coperto dai test.
 - **`AirportQuickPanel`** — riga «Adesso» accanto a TA/TL/vento/piste. La presidenza **arriva come parametro**
   dalla pagina live, che l'ha già risolta per le chip: ricalcolarla dentro il pannello vorrebbe dire rifare le
   query a ogni tick del feed, e rischiare che due parti della stessa schermata dicano cose diverse;
-- **viewer dell'aeroporto** `/vsop/{acc}/airports?icao=` — riga nel riepilogo, risolta da
+- **viewer dell'aeroporto** `/services/vsop/{acc}/airports?icao=` — riga nel riepilogo, risolta da
   `IAirportPresidencyService` perché quella pagina sta fuori dalla vista live e non ha un contesto pronto.
   Risolta nel ciclo di vita, mai nel render.
 
@@ -732,7 +801,7 @@ UNICOM», viewer → «Now Nobody online: UNICOM» accanto al ciclo AIRAC.
 
 ### E4 🟡 Auth di produzione — ora si **vede**, e i codici veri dicono già qualcosa
 I pattern admin (`^IT-DIR$`, `^LI[A-Z0-9]+-CH$`, …) erano ipotesi. Due contromisure, fatte il 9 agosto 2026:
-- **scheda «Chi può editare»** in `/vsop/admin/diagnostica`: i pattern in vigore a confronto con i codici
+- **scheda «Chi può editare»** in `/services/vsop/admin/diagnostics`: i pattern in vigore a confronto con i codici
   staff **realmente osservati ai login** (IVAO non espone l'elenco degli staffisti — `/members` è 404 — quindi
   il roster costruito dagli accessi è l'unica fonte possibile);
 - **rilievo grave** nel report di consistenza (quindi anche in `/vsop/health`) quando **nessuno** degli
@@ -768,7 +837,7 @@ la causa dei prefissi ICAO duplicati, ora deduplicati). Per restringere davvero 
   potatura: **estratta e riusata**, non ricopiata. Due regole nel servizio: si scarta solo una bozza, e solo
   se c'è una versione a cui tornare (su un documento mai pubblicato la bozza *è* il documento). Verificato
   sull'app: bozze 11 → 10, audit con documento e numero di versione, zero sezioni o blocchi orfani.
-- ✅ ~~Viewer dell'**audit log**~~ — **esisteva già** (`AuditPage`, rotta `/vsop/admin/audit`): voce stantia.
+- ✅ ~~Viewer dell'**audit log**~~ — **esisteva già** (`AuditPage`, rotta `/services/vsop/admin/audit`): voce stantia.
   ⚠️ Resta la domanda aperta di prodotto: pubblicare una **release** non scrive audit (lo fa solo la
   promozione di una bozza), quindi il viewer non mostra quelle pubblicazioni.
 - 🟢 **Test property-based sull'AoR** — non c'è ancora alcuna libreria property-based nel progetto.
@@ -787,7 +856,7 @@ picker, annulla che rimette l'outline, modifica in blocco).
 ⚠️ **Resta da fare dai colleghi, non dal codice:** le **15 righe** con ricevente APP che non dicono ancora
 dove avviene il trasferimento vanno riviste **a mano** — il loro livello può voler dire «autorizzato» o «al
 trasferimento», e solo chi le ha scritte lo sa. Le elenca il **cruscotto delle lacune** in
-`/vsop/admin/trasferimenti` (genere «da rivedere»). ⚠️ Il numero va **rimisurato sulla produzione MariaDB**: 15
+`/services/vsop/admin/transfers` (genere «da rivedere»). ⚠️ Il numero va **rimisurato sulla produzione MariaDB**: 15
 è il conteggio sul DB di sviluppo.
 
 ### E6-bis 🟡 Accordi di coordinamento — un accordo per COPPIA, il traffico nelle sezioni (in `main` dal 18 ago 2026)

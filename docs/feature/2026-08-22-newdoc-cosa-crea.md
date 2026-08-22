@@ -1,6 +1,6 @@
 # Nuovo documento — cosa crea davvero (carta, 22 agosto 2026)
 
-> Ramo `ui-trasferimenti-densita`, pagina `/vsop/editor/newdoc`. Prima carta del giro: **la sostanza**.
+> Ramo `ui-trasferimenti-densita`, pagina `/services/vsop/editor/new-document`. Prima carta del giro: **la sostanza**.
 > La forma sta nella gemella [`2026-08-22-newdoc-densita-ui.md`](2026-08-22-newdoc-densita-ui.md).
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md); regole: [regole-ui-pagine-admin](../design/regole-ui-pagine-admin.md).
 
@@ -21,8 +21,8 @@ Le due porte che creano una vLOA hanno **due politiche diverse**:
 
 | Da dove | Cosa fa | Idempotente? |
 |---|---|---|
-| `/vsop/admin/confinanti` → `EfNeighbourRepository` | «se esiste già una vLOA Home↔Neighbour, **riusala**» (commento nel codice, passo 4) | **sì** |
-| `/vsop/editor/newdoc` → `EfEditingRepository.CreateDocumentAsync` | aggiunge le `Parties` e crea, sempre | **no** |
+| `/services/vsop/admin/neighbours` → `EfNeighbourRepository` | «se esiste già una vLOA Home↔Neighbour, **riusala**» (commento nel codice, passo 4) | **sì** |
+| `/services/vsop/editor/new-document` → `EfEditingRepository.CreateDocumentAsync` | aggiunge le `Parties` e crea, sempre | **no** |
 
 Per la vIPI il guard c'è (`Il settore {callsign} è già descritto da un altro documento`), perché lo scope
 passa da `Sector.DocumentId`, che è uno-a-molti. La vLOA non ha quel vincolo: le sue parti stanno in

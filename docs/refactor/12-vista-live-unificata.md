@@ -26,8 +26,8 @@ Conseguenze concrete che si pagavano:
 **La vista live è keyed sul callsign.** Non sull'ACC, non su un documento.
 
 ```
-/vsop/live              → la postazione con cui l'utente è connesso su IVAO
-/vsop/live/{callsign}   → quella postazione, in sola consultazione
+/services/vsop/live              → la postazione con cui l'utente è connesso su IVAO
+/services/vsop/live/{callsign}   → quella postazione, in sola consultazione
 ```
 
 L'ACC si deriva dal callsign (`IStationResolver.ResolveByCallsign`). Il documento non entra nella decisione di
@@ -95,11 +95,11 @@ una catena di redirect si paga a ogni apertura:
 
 | URL storico | Destinazione |
 |---|---|
-| `/vsop/{acc}/operativa`, `/vsop/{acc}/live` | `/vsop/live` |
-| `…?p=LIRR_NE_CTR` | `/vsop/live/lirr_ne_ctr` |
-| `/vsop/{acc}/operativa-app?app=X`, `/vsop/{acc}/live-app?app=X` | `/vsop/live/x` |
+| `/vsop/{acc}/operativa`, `/vsop/{acc}/live` | `/services/vsop/live` |
+| `…?p=LIRR_NE_CTR` | `/services/vsop/live/lirr_ne_ctr` |
+| `/vsop/{acc}/operativa-app?app=X`, `/vsop/{acc}/live-app?app=X` | `/services/vsop/live/x` |
 
-> **Trappola di routing, bloccata da un test.** `/vsop/live/{callsign}` è una rotta a parametro che ricade sul
+> **Trappola di routing, bloccata da un test.** `/services/vsop/live/{callsign}` è una rotta a parametro che ricade sul
 > prefisso dello stream SSE `/vsop/live/atc`. La precedenza del routing ASP.NET (segmento **letterale** >
 > parametro) manda quell'URL allo stream, non alla pagina — ma è una proprietà che si può rompere cambiando le
 > rotte, quindi `SmokeTests.Sse_endpoint_wins_over_the_live_page_route` la verifica.
@@ -118,18 +118,18 @@ nella Guida.
 ## 6. Verifica live (2026-07-31)
 
 Guidata su copia del DB reale, 12 postazioni. Rotte finali 200, redirect **a un salto** verificati
-(`/vsop/lirr/operativa` → `/vsop/live`; `…/live?p=LIRR_NE_CTR` → `/vsop/live/lirr_ne_ctr`;
-`…/live-app?app=LIBD_CS0_APP` → `/vsop/live/libd_cs0_app`), stream SSE ancora `text/event-stream`.
+(`/services/vsop/lirr/operativa` → `/services/vsop/live`; `…/live?p=LIRR_NE_CTR` → `/services/vsop/live/lirr_ne_ctr`;
+`…/live-app?app=LIBD_CS0_APP` → `/services/vsop/live/libd_cs0_app`), stream SSE ancora `text/event-stream`.
 Selettore postazione assente su **tutte** le pagine. Nessun errore di circuito, nessuno scroll orizzontale.
 
 | Postazione | Esito |
 |---|---|
-| `LIBB_ES_CTR` (CTR) | titolo dal settore, 6 frequenze, gruppo-APP aperto, chip LIBD/LIBR, doc → `/vsop/libb/vipi` |
+| `LIBB_ES_CTR` (CTR) | titolo dal settore, 6 frequenze, gruppo-APP aperto, chip LIBD/LIBR, doc → `/services/vsop/libb/vipi` |
 | `LIBD_CS0_APP` (APP remotizzato) | pannello aeroporto + SID, catena «sopra di te: LIBB_ES_CTR ·chiuso» |
-| `LIBD_TWR`, `LIRF_TWR` (torre) | 3 e 12 frequenze dal catalogo dell'aeroporto, doc → `/vsop/{acc}/airports?icao=` |
+| `LIBD_TWR`, `LIRF_TWR` (torre) | 3 e 12 frequenze dal catalogo dell'aeroporto, doc → `/services/vsop/{acc}/airports?icao=` |
 | `LIRF_GND`, `LIRF_DEL` | idem, pagina piena senza essere un CTR |
 | `LIRR_NE_CTR` (ACC senza vIPI) | banner + 86 frequenze dai cataloghi |
-| `/vsop/live` senza connessione | stato d'attesa con gli ATC online cliccabili |
+| `/services/vsop/live` senza connessione | stato d'attesa con gli ATC online cliccabili |
 | `ZZZZ_CTR`, `LIBB_CTR`, `LIRF_APP` | «postazione sconosciuta» — non sono nei cataloghi (i due callsign «ovvi» semplicemente non esistono nel DB) |
 
 ### Ritrovamento: la catena di copertura è vuota per i tipi che più ne avrebbero bisogno
@@ -139,7 +139,7 @@ sono agganciati alla gerarchia. Quindi proprio le postazioni per cui la catena d
 principale non ne hanno una.
 
 Un vuoto silenzioso qui è **ingannevole**: «nessuno sopra di me» si legge come un fatto operativo (non ho a chi
-passare il traffico) mentre è un dato non ancora compilato in `/vsop/admin/sectorstructure`. La pagina ora lo
+passare il traffico) mentre è un dato non ancora compilato in `/services/vsop/admin/sector-structure`. La pagina ora lo
 dice a parole per le postazioni d'aeroporto — non nasconde la riga.
 
 **Follow-up aperto (dato, non codice):** agganciare TWR/GND/DEL alla gerarchia di copertura. Finché non è fatto,
@@ -149,7 +149,7 @@ la vista live di quelle postazioni resta corretta ma monca del pezzo che più le
 
 La catena vuota del §6 **non** era un dato mancante: era un legame che nessuno leggeva.
 
-`/vsop/admin/sectorstructure` espone tre generi di nodo — ACC, APP e **Aeroporto** — e il padre impostato sul
+`/services/vsop/admin/sector-structure` espone tre generi di nodo — ACC, APP e **Aeroporto** — e il padre impostato sul
 nodo Aeroporto finisce in `Airport.ParentCallsign` (29 aeroporti popolati, es. `LIBD → LIBD_CS0_APP`).
 La proiezione `EfSectorProjectionService` però derivava `Sector.ParentSectorId` **solo** da
 `AirportSector.ParentCallsign`, popolato per i soli APP (58/58) e **mai** per TWR/GND/DEL (0 su 109).
@@ -173,7 +173,7 @@ La scaletta è dedotta da `CoverageFor` (sequenza operativa standard), non da un
 
 1. **Una sola candidata** → è quella.
 2. **Radice del sottoalbero**: se le candidate hanno una gerarchia configurata fra loro — è il caso degli APP,
-   che in `/vsop/admin/sectorstructure` **sono nodi editabili** — vale quella scritta dall'admin. La radice è
+   che in `/services/vsop/admin/sector-structure` **sono nodi editabili** — vale quella scritta dall'admin. La radice è
    l'unica il cui padre sta fuori dal gruppo. Su LIRF le sei APP pendono da `LIRF_TW1_APP`: la torre si aggancia
    **lì**, non a una scelta alfabetica.
 3. **Callsign senza infisso** (`LIRF_TWR` vs `LIRF_E_TWR`): convenzione di divisione per la posizione principale.
@@ -259,10 +259,10 @@ Ora rende **chip** come i tipi d'area — stessa funzione (`LiveStationParts.Air
 `AreaLiveStation`: una regola per due descrittori, non una copia). Torri, ground e delivery tengono il pannello
 fisso: sono per definizione di un aeroporto solo.
 
-Verificato live: `/vsop/live/libd_cs0_app` → chip `LIBD` · `LIBR`, frequenze e trasferimenti come su un CTR.
-`/vsop/live/libd_twr` → pannello fisso LIBD, invariato.
+Verificato live: `/services/vsop/live/libd_cs0_app` → chip `LIBD` · `LIBR`, frequenze e trasferimenti come su un CTR.
+`/services/vsop/live/libd_twr` → pannello fisso LIBD, invariato.
 
-> **Nota di dato**: `/vsop/live/lirf_tw1_app` non mostra chip perché l'aeroporto LIRF non ha un padre configurato
+> **Nota di dato**: `/services/vsop/live/lirf_tw1_app` non mostra chip perché l'aeroporto LIRF non ha un padre configurato
 > in Struttura, quindi non risulta appeso al dominio di nessuno. È lo stesso buco delle 33 torri orfane (§7).
 
 ### Verifica del filtro sui figli chiusi

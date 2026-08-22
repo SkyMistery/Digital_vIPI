@@ -69,7 +69,7 @@ public sealed class VipiHealthCheck : IHealthCheck
         {
             data["dataConsistencyFindings"] = findings.Count;
             return HealthCheckResult.Degraded(
-                $"{findings.Count} incongruenze dati rilevate (vedi /vsop/admin/diagnostica).", data: data);
+                $"{findings.Count} incongruenze dati rilevate (vedi /services/vsop/admin/diagnostics).", data: data);
         }
 
         // Snapshot mai aggiornato o troppo vecchio: degradato (il DB e la consultazione funzionano comunque).

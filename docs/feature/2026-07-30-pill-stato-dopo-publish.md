@@ -1,10 +1,10 @@
 # Fix — La pill di stato resta «Bozza vN» dopo «Pubblica ora»
 
 Data: 2026-07-30 · Stato: FATTO (build 0 warning, suite **640** verde a fine sessione — 635 dopo questo fix, 640
-col seguito sulla chiave di release in coda al documento; verificato live su `/vsop/libb/editor`).
+col seguito sulla chiave di release in coda al documento; verificato live su `/services/vsop/libb/editor`).
 
 ## Sintomo
-Su `/vsop/libb/editor`, dopo «Pubblica ora», la pill del rail continuava a mostrare «Bozza v13». Sembrava che la
+Su `/services/vsop/libb/editor`, dopo «Pubblica ora», la pill del rail continuava a mostrare «Bozza v13». Sembrava che la
 pubblicazione non avesse funzionato.
 
 ## Cosa era davvero rotto (e cosa no)
@@ -38,7 +38,7 @@ Erano rotte due cose, **entrambe di presentazione**:
 gli argomenti, quindi il numero non arriva mai al testo. Serve l'overload `L["chiave", n]` — la forma già usata
 altrove nel progetto (`L["Common_OnlineN", n]`). Preso al primo giro: il test sull'etichetta è diventato rosso.
 
-## Verifica live (`/vsop/libb/editor`, Edge+CDP)
+## Verifica live (`/services/vsop/libb/editor`, Edge+CDP)
 | Passo | Pill | Etichetta release |
 |---|---|---|
 | apertura | `Published v13` (verde) | `release #12` |
@@ -79,7 +79,7 @@ Test-first (`AccVipiReleaseTargetTests`, 5 casi, 3 rossi prima del fix): due alb
 sbaglierebbe comunque; più il caso maiuscole/minuscole, la chiave legacy e la radice inesistente o senza
 documento. Suite 635 → 640.
 
-Verifica live (`/vsop/libb/editor`): nessuna regressione — `Published v14` → `Draft v15` → **`Published v15`**,
+Verifica live (`/services/vsop/libb/editor`): nessuna regressione — `Published v14` → `Draft v15` → **`Published v15`**,
 release **#14** `Effective`. Catena controllata nel DB: chiave `LIBB|LIBB_ES_CTR` → settore 2 → documento 1 →
 versione 31 (v15) promossa, audit `Publish` coerente.
 

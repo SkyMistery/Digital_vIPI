@@ -8,7 +8,7 @@ Segue [varianti a livelli](2026-08-12-varianti-a-livelli.md) e
 
 ## Obiettivo
 
-`/vsop/admin/trasferimenti` funziona ma **non è spedita**. Il committente la usa e la definisce «scomoda e poco
+`/services/vsop/admin/transfers` funziona ma **non è spedita**. Il committente la usa e la definisce «scomoda e poco
 fluida». Non è una questione di gusto: la pagina ha attriti che si contano nel codice, e ognuno costa gesti a
 ogni riga scritta.
 
@@ -72,7 +72,7 @@ quello nello stesso giro — non lasciata indietro.
 
 ### 3. Ingressi + verifica — «come ci arriva l'utente e come lo verifico?»
 
-**Ingresso invariato**: `/vsop/admin/trasferimenti`, dalla pagina Struttura. Nessun catch-22: il primo gruppo si
+**Ingresso invariato**: `/services/vsop/admin/transfers`, dalla pagina Struttura. Nessun catch-22: il primo gruppo si
 crea dal tasto «+ Gruppo» del navigatore, che è visibile anche quando non c'è nessun gruppo — ed è esattamente
 il caso da guardare, perché con l'albero vuoto la colonna 1 non ha nodi.
 
@@ -154,7 +154,7 @@ E il **difetto 6 si chiude qui**: i due filtri diagnostici («senza ricevente»,
 ## Stato in URL (V5)
 
 ```
-/vsop/admin/trasferimenti?acc=LIRR&vista=elenco&gruppo=42&riga=317&q=VALMA&tipo=Arrival&rev=1&norx=1&ord=cop
+/services/vsop/admin/transfers?acc=LIRR&vista=elenco&gruppo=42&riga=317&q=VALMA&tipo=Arrival&rev=1&norx=1&ord=cop
 ```
 
 Regola di divisione, e non è arbitraria:

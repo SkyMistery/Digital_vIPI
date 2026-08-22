@@ -3,7 +3,7 @@
 namespace Vipi.Application.Content;
 
 /// <summary>
-/// Documento gestibile nell'elenco unificato di /vsop/versioni. Post doc 08 tutti e 4 i tipi (vLOA, vIPI aeroporto,
+/// Documento gestibile nell'elenco unificato di /services/vsop/versioni. Post doc 08 tutti e 4 i tipi (vLOA, vIPI aeroporto,
 /// vIPI ACC, APP standalone) sono su <see cref="Domain.Entities.Document"/>: questo record ne porta identità +
 /// stato (pubblicato/bozza/nascosto) + la chiave di release per la timeline. Versioni/release si caricano a parte
 /// (lazy) all'espansione della riga.
@@ -43,7 +43,7 @@ public sealed record ManagedDoc(
 {
     /// <summary>Ha una release AIRAC EFFETTIVA adesso (doc 10 §3f): gate della visibilità pubblica.
     /// <para>È <b>calcolato</b>, non un campo suo: fino al 21 agosto 2026 il bool e il riepilogo release erano due
-    /// dati per lo stesso fatto — il repo popolava il primo e /vsop/versioni ricaricava il secondo con una seconda
+    /// dati per lo stesso fatto — il repo popolava il primo e /services/vsop/versions ricaricava il secondo con una seconda
     /// <c>SummariesAsync</c> identica.</para></summary>
     public bool HasEffectiveRelease => EffectiveCycle is not null;
 

@@ -1,4 +1,4 @@
-﻿@page "/vsop/admin/trasferimenti"
+﻿@page "/services/vsop/admin/transfers"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IStationResolver Stations
@@ -45,7 +45,7 @@
         <h2 class="xt-h2">@L["Xfer_Heading"]</h2>
         @* Il «?» porta alla sezione di guida di quest'area: la pagina ha cambiato modello, e chi la riapre dopo
            settimane deve poter ritrovare il perche' senza cercarlo. *@
-        <HelpHint Href="/vsop/guida#accordi" AriaLabel="@L["Xfer_HelpAria"]">
+        <HelpHint Href="/services/vsop/guide#accordi" AriaLabel="@L["Xfer_HelpAria"]">
             @((MarkupString)L["Xfer_HelpBody"].Value)
         </HelpHint>
         @if (Authz.IsAdmin)
@@ -161,13 +161,13 @@
                         title="@L["Xfer_ToReviewTitle"]" @onclick="ToggleToReviewFilter">
                     ⚠ @L["Xfer_ToReview"] (@toReview)
                 </button>
-                <HelpHint Href="/vsop/guida#accordi" AriaLabel="@L["Xfer_ToReview"]">
+                <HelpHint Href="/services/vsop/guide#accordi" AriaLabel="@L["Xfer_ToReview"]">
                     @((MarkupString)L["Xfer_ToReviewHelp"].Value)
                 </HelpHint>
                 <button class="btn @(_gapsOpen ? "primary" : "ghost")" disabled="@(lacune.Count == 0)"
                         title="@L["Xfer_GapsTitle"]"
                         @onclick="() => _gapsOpen = !_gapsOpen">◎ @L["Xfer_Gaps"] (@lacune.Count)</button>
-                <HelpHint Href="/vsop/guida#accordi" AriaLabel="@L["Xfer_Gaps"]">
+                <HelpHint Href="/services/vsop/guide#accordi" AriaLabel="@L["Xfer_Gaps"]">
                     @((MarkupString)L["Xfer_GapsHelp"].Value)
                 </HelpHint>
                 @if (_filtering) { <button class="btn ghost" @onclick="ResetFilters">↺ @L["Xfer_Reset"]</button> }
@@ -205,7 +205,7 @@
                 <button class="btn @(_showPreviews ? "primary" : "ghost")" title="@L["Xfer_ShowPreviewsTitle"]"
                         aria-label="@L["Xfer_ShowPreviews"]" aria-pressed="@_showPreviews.ToString().ToLowerInvariant()"
                         @onclick="TogglePreviews">¶</button>
-                <HelpHint ExtraClass="left" Href="/vsop/guida#accordi" AriaLabel="@L["Xfer_ShowPreviews"]">
+                <HelpHint ExtraClass="left" Href="/services/vsop/guide#accordi" AriaLabel="@L["Xfer_ShowPreviews"]">
                     @((MarkupString)L["Xfer_PreviewHelp"].Value)
                 </HelpHint>
             }

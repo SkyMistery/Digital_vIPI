@@ -1,4 +1,4 @@
-﻿@page "/vsop/changed"
+﻿@page "/services/vsop/changed"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IChangesService Changes
@@ -7,7 +7,7 @@
 <PageTitle>@L["Changed_Title"] · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap" style="max-width:1100px">
-    <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <b>@L["Changed_Title"]</b></div>
+    <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <b>@L["Changed_Title"]</b></div>
     <div class="doc-head">
         <div><h2 style="margin-bottom:2px">@L["Changed_Title"]</h2><span class="muted">@L["Changed_Subtitle"]</span></div>
         <span class="airac"><Icon Name="calendar" /> AIRAC @Changes.CurrentCycle</span>

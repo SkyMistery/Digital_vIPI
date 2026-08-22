@@ -20,7 +20,7 @@ namespace Vipi.Hosting;
 /// editoriali: eventi rari. Due minuti di ritardo su una diagnosi non cambiano niente per chi la legge; un
 /// canale di invalidamento in più sarebbe una cosa da tenere allineata per sempre.</para>
 ///
-/// <para>⚠️ Vale <b>solo</b> per l'health check. <c>/vsop/admin/diagnostica</c> continua a leggere il report
+/// <para>⚠️ Vale <b>solo</b> per l'health check. <c>/services/vsop/admin/diagnostics</c> continua a leggere il report
 /// fresco: chi apre quella pagina l'ha aperta per vedere adesso, e ha già fatto login.</para>
 /// </summary>
 public sealed class ConsistencyReportCache

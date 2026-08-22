@@ -56,7 +56,7 @@ risoluzioni diverse: tenerli entrambi vorrebbe dire due sorgenti di verità sull
 **2. Dispatch.** Nessuno `switch` nuovo. Il rendering annidato è un'unica funzione che legge la profondità,
 non un ramo per livello.
 
-**3. Ingressi + verifica.** Ingressi esistenti (`/vsop/admin/trasferimenti`, le sezioni Coordinamenti).
+**3. Ingressi + verifica.** Ingressi esistenti (`/services/vsop/admin/transfers`, le sezioni Coordinamenti).
 Verifica: `/verifica-live` sul caso BIRSU reale, portato alla forma nuova (due alternative per pista, una
 eccezione per area, una trasversale).
 

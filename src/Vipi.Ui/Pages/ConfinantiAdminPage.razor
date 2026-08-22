@@ -1,4 +1,4 @@
-@page "/vsop/admin/confinanti"
+﻿@page "/services/vsop/admin/neighbours"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject INeighbourImportService Neighbours
@@ -32,7 +32,7 @@
         <h2 class="st-h2">
             @L["Conf_Heading"]&nbsp;@if (Authz.IsAdmin) { <span class="pill blue">@CountLabel()</span> }
         </h2>
-        <HelpHint Href="/vsop/guida#admin-confinanti" AriaLabel="@L["Conf_HelpAria"]" ExtraClass="wide">
+        <HelpHint Href="/services/vsop/guide#admin-confinanti" AriaLabel="@L["Conf_HelpAria"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@L["Conf_Subtitle"]</p>
             @((MarkupString)L["Conf_Intro"].Value)
         </HelpHint>
@@ -279,8 +279,8 @@
                             }
                             @if (sel.VloaDocumentId is not null)
                             {
-                                <a class="btn ghost" href="/vsop/@sel.HomeAccCode.ToLowerInvariant()/vloa?acc=@sel.ForeignAccCode" title="@L["Conf_OpenVloaTitle"]"><Icon Name="eye" /> vLOA</a>
-                                <a class="btn ghost" href="/vsop/@sel.HomeAccCode.ToLowerInvariant()/vloa/editor?acc=@sel.ForeignAccCode" title="@L["Conf_OpenVloaEditorTitle"]">@L["Common_Editor"]</a>
+                                <a class="btn ghost" href="/services/vsop/@sel.HomeAccCode.ToLowerInvariant()/vloa?acc=@sel.ForeignAccCode" title="@L["Conf_OpenVloaTitle"]"><Icon Name="eye" /> vLOA</a>
+                                <a class="btn ghost" href="/services/vsop/@sel.HomeAccCode.ToLowerInvariant()/vloa/editor?acc=@sel.ForeignAccCode" title="@L["Conf_OpenVloaEditorTitle"]">@L["Common_Editor"]</a>
                             }
                             @if (sel.Status == NeighbourCandidateStatus.Confirmed)
                             {

@@ -207,6 +207,9 @@
       "vipi.aurorabridge.contracts": {
         "type": "Project"
       },
+      "vipi.auroraprofiles": {
+        "type": "Project"
+      },
       "vipi.domain": {
         "type": "Project"
       },
@@ -233,6 +236,7 @@
         "type": "Project",
         "dependencies": {
           "Vipi.Application": "[1.0.0, )",
+          "Vipi.AuroraProfiles": "[1.0.0, )",
           "Vipi.Domain": "[1.0.0, )"
         }
       }
@@ -455,6 +459,9 @@
       "vipi.aurorabridge.contracts": {
         "type": "Project"
       },
+      "vipi.auroraprofiles": {
+        "type": "Project"
+      },
       "vipi.domain": {
         "type": "Project"
       },
@@ -482,6 +489,7 @@
         "type": "Project",
         "dependencies": {
           "Vipi.Application": "[1.0.0, )",
+          "Vipi.AuroraProfiles": "[1.0.0, )",
           "Vipi.Domain": "[1.0.0, )"
         }
       }

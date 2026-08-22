@@ -2,7 +2,7 @@
 
 Quarto giro della famiglia, dopo [accordi](2026-08-19-accordi-densita-ui.md),
 [struttura](2026-08-19-struttura-densita-ui.md) e [ACC](2026-08-19-acc-admin-densita-ui.md):
-`/vsop/admin/airports`. Le [regole](../design/regole-ui-pagine-admin.md) la indicano come **il caso peggiore
+`/services/vsop/admin/airports`. Le [regole](../design/regole-ui-pagine-admin.md) la indicano come **il caso peggiore
 del ramo** — e la ricognizione lo conferma col numero.
 
 ## Il difetto misurato (1600×900, IT, copia del DB di sviluppo)
@@ -93,7 +93,7 @@ fino a 13 674: metà dello scorrimento è vuoto a sinistra.
 `dotnet test`: **verdi**, 0 avvisi, 2577 test (un fallimento isolato di `Vipi.AuroraBridge.Tests` non si è
 riprodotto né da solo né alla ripetizione della suite: è instabile, e non tocca nulla di questo giro).
 
-Poi guida live con Edge+puppeteer sul flusso reale (copia del DB di sviluppo, `/vsop/admin/airports`).
+Poi guida live con Edge+puppeteer sul flusso reale (copia del DB di sviluppo, `/services/vsop/admin/airports`).
 
 ### Prima → dopo, misurato a 1600×900 in italiano
 

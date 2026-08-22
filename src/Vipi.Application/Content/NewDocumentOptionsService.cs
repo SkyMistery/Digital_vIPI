@@ -29,18 +29,18 @@ public sealed record NewDocumentOptions(
     IReadOnlyList<NewDocumentForeignAcc> ForeignAccs);
 
 /// <summary>
-/// Ciò che <c>/vsop/editor/newdoc</c> può offrire a <b>questa</b> persona.
+/// Ciò che <c>/services/vsop/editor/new-document</c> può offrire a <b>questa</b> persona.
 ///
 /// <para><b>Perché un servizio e non tre letture nella pagina.</b> Due ragioni, e la seconda è quella che
 /// conta. La prima: gli elenchi globali (<c>ListSectorNodesAsync</c>, <c>ListAllAirportsAsync</c>) sono
 /// <c>EnsureAdmin</c>, e allentarli per far entrare qui un responsabile d'ACC cambierebbe i permessi anche
-/// di <c>/vsop/admin/sectorstructure</c> e <c>/vsop/admin/airports</c> — dove si <b>scrive</b>. La seconda:
+/// di <c>/services/vsop/admin/sector-structure</c> e <c>/services/vsop/admin/airports</c> — dove si <b>scrive</b>. La seconda:
 /// la pagina è dietro <c>IsAdmin</c> mentre i servizi che chiama autorizzano per <b>grant di ACC</b>, quindi
 /// il responsabile di LIRR trovava la porta chiusa pur avendo la chiave (bastava andare all'URL
 /// dell'editor). Qui la domanda si fa <b>una volta</b>, con la stessa regola che poi rifiuterebbe.</para>
 ///
 /// <para>⚠️ Filtra, non autorizza: chi crea davvero passa comunque da <c>EnsureCanEditAccAsync</c>. Una
-/// tendina è una comodità, non una guardia — lezione di <c>/vsop/versioni</c>.</para>
+/// tendina è una comodità, non una guardia — lezione di <c>/services/vsop/versions</c>.</para>
 /// </summary>
 public interface INewDocumentOptionsService
 {

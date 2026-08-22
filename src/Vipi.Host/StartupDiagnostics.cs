@@ -63,7 +63,7 @@ public static class StartupDiagnostics
         sb.AppendLine("Configurazione letta (i valori segreti non vengono riportati):");
         sb.AppendLine($"  Persistence:Provider ....... {Mostra(cfg["Persistence:Provider"], "assente ⇒ ricade su SQLite!")}");
         sb.AppendLine($"  ConnectionStrings:Vipi ..... {SenzaPassword(cfg.GetConnectionString("Vipi"))}");
-        sb.AppendLine($"  VipiAuth:Enabled ........... {Mostra(cfg["VipiAuth:Enabled"], "assente ⇒ nessun login, /vsop/auth/login darà 404")}");
+        sb.AppendLine($"  VipiAuth:Enabled ........... {Mostra(cfg["VipiAuth:Enabled"], "assente ⇒ nessun login, /services/vsop/auth/login darà 404")}");
         sb.AppendLine($"  VipiAuth:ClientId .......... {Presenza(cfg["VipiAuth:ClientId"])}");
         sb.AppendLine($"  VipiAuth:ClientSecret ...... {Presenza(cfg["VipiAuth:ClientSecret"])}  (facoltativo: senza, client pubblico con PKCE)");
         sb.AppendLine($"  Ivao:ClientId .............. {Presenza(cfg["Ivao:ClientId"])}");

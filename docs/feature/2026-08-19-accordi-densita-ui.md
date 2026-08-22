@@ -1,7 +1,7 @@
 # Accordi di coordinamento — densità della pagina (19 agosto 2026)
 
 Round di sola **forma**: nessun modello, nessuna rotta, nessuna migrazione. La pagina
-`/vsop/admin/trasferimenti` spendeva in fasce fisse l'altezza che serve alle clausole, e alcune cose si
+`/services/vsop/admin/transfers` spendeva in fasce fisse l'altezza che serve alle clausole, e alcune cose si
 muovevano sotto il puntatore mentre si lavorava.
 
 ## Il perno: sopra le tre colonne, l'altezza è tabella

@@ -49,7 +49,7 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
     public async Task Landing_page_renders()
     {
         var client = _factory.CreateClient();
-        var res = await client.GetAsync("/vsop");
+        var res = await client.GetAsync("/services/vsop");
         Assert.Equal(HttpStatusCode.OK, res.StatusCode);
     }
 
@@ -58,7 +58,7 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
     {
         // Identità dev = admin (fallback statico): la pagina diagnostica esegue il report end-to-end (service+repo+EF).
         var client = _factory.CreateClient();
-        var res = await client.GetAsync("/vsop/admin/diagnostica");
+        var res = await client.GetAsync("/services/vsop/admin/diagnostics");
         Assert.Equal(HttpStatusCode.OK, res.StatusCode);
     }
 
@@ -67,12 +67,12 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
     {
         // Senza callsign nell'URL: nessuna connessione IVAO nei test ⇒ stato d'attesa, che è una pagina valida.
         var client = _factory.CreateClient();
-        var res = await client.GetAsync("/vsop/live");
+        var res = await client.GetAsync("/services/vsop/live");
         Assert.Equal(HttpStatusCode.OK, res.StatusCode);
     }
 
     /// <summary>
-    /// La vista live ha una rotta a parametro <c>/vsop/live/{callsign}</c> che ricade sullo stesso prefisso
+    /// La vista live ha una rotta a parametro <c>/services/vsop/live/{callsign}</c> che ricade sullo stesso prefisso
     /// dello stream SSE <c>/vsop/live/atc</c>. La precedenza del routing (segmento letterale &gt; parametro)
     /// deve continuare a mandare quell'URL allo stream, non alla pagina: se qualcuno cambia le rotte, qui si vede.
     /// </summary>
@@ -181,7 +181,7 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
     [Fact]
     public async Task Ogni_asset_ha_la_propria_impronta_di_contenuto()
     {
-        var html = await _factory.CreateClient().GetStringAsync("/vsop");
+        var html = await _factory.CreateClient().GetStringAsync("/services/vsop");
 
         var versioni = Regex.Matches(html, @"(?<file>[\w\-./]+\.(?:css|js))\?v=(?<impronta>[0-9a-f]+)")
             .Select(m => (File: m.Groups["file"].Value, Impronta: m.Groups["impronta"].Value))
@@ -208,7 +208,7 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
     [Fact]
     public async Task Nessuna_dipendenza_esterna_caricata_dalla_pagina()
     {
-        var html = await _factory.CreateClient().GetStringAsync("/vsop");
+        var html = await _factory.CreateClient().GetStringAsync("/services/vsop");
 
         var esterni = Regex.Matches(html, @"<(?:script|link)\b[^>]*\b(?:src|href)\s*=\s*[""'](?<url>[^""']+)[""']")
             .Select(m => m.Groups["url"].Value)
@@ -230,7 +230,7 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
     /// costruiscono dopo — ma rendono innocuo l'errore di domani.
     /// </summary>
     [Theory]
-    [InlineData("/vsop")]
+    [InlineData("/services/vsop")]
     [InlineData("/vsop/health/ready")]
     public async Task Le_intestazioni_di_sicurezza_ci_sono(string percorso)
     {
@@ -255,7 +255,7 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
     [Fact]
     public async Task La_pagina_non_contiene_script_inline()
     {
-        var html = await _factory.CreateClient().GetStringAsync("/vsop");
+        var html = await _factory.CreateClient().GetStringAsync("/services/vsop");
 
         var inline = Regex.Matches(html, @"<script\b(?<attributi>[^>]*)>(?<corpo>.*?)</script>", RegexOptions.Singleline)
             .Where(m => !m.Groups["attributi"].Value.Contains("src=", StringComparison.OrdinalIgnoreCase))

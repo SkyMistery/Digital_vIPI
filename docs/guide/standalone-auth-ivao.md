@@ -81,8 +81,8 @@ vince sull'utente fittizio `DevCurrentUserProvider`).
 
 | Rotta | Cosa fa |
 |---|---|
-| `GET /vsop/auth/login?returnUrl=/vsop` | avvia il flusso IVAO (Challenge); redirect locale anti open-redirect |
-| `GET /vsop/auth/logout` | logout: cancella cookie locale + sessione IVAO |
+| `GET /services/vsop/auth/login?returnUrl=/services/vsop` | avvia il flusso IVAO (Challenge); redirect locale anti open-redirect |
+| `GET /services/vsop/auth/logout` | logout: cancella cookie locale + sessione IVAO |
 
 Callback OIDC gestiti dal middleware: `/signin-oidc`, `/signout-callback-oidc`.
 

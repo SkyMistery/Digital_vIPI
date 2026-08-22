@@ -13,7 +13,7 @@ public sealed record AffectedDoc(int Id, string Title);
 
 /// <summary>
 /// Segnalazione di revisione ai documenti: quando un evento a monte (oggi: un settore nascosto in
-/// <c>/vsop/admin/acc</c>) può aver reso stantii FREQUENZE / AoR / CONFIGURAZIONI, marca i documenti impattati
+/// <c>/services/vsop/admin/acc</c>) può aver reso stantii FREQUENZE / AoR / CONFIGURAZIONI, marca i documenti impattati
 /// (banner nell'editor) e apre un incarico di revisione. Le due rappresentazioni — flag sul <see cref="Document"/>
 /// e <see cref="EditorTask"/> — sono due facce dello stesso fatto e vengono create/gestite qui insieme.
 /// </summary>

@@ -49,7 +49,7 @@ public class AdminNavTests : TestContext
         public void EnsureAdmin() { }
     }
 
-    private IRenderedComponent<AdminNav> Render(bool admin, string url = "http://localhost/vsop/admin/audit")
+    private IRenderedComponent<AdminNav> Render(bool admin, string url = "http://localhost/services/vsop/admin/audit")
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(admin));
@@ -64,19 +64,19 @@ public class AdminNavTests : TestContext
 
         var nav = cut.Find("nav.admin-nav");
         Assert.Equal(11, nav.QuerySelectorAll(".an-link").Length);
-        Assert.Contains("/vsop/admin/sectorstructure", cut.Markup);
-        Assert.Contains("/vsop/admin/diagnostica", cut.Markup);
+        Assert.Contains("/services/vsop/admin/sector-structure", cut.Markup);
+        Assert.Contains("/services/vsop/admin/diagnostics", cut.Markup);
     }
 
     [Fact]
     public void La_pagina_in_cui_sei_e_uno_stato_non_un_comando()
     {
-        var cut = Render(admin: true, url: "http://localhost/vsop/admin/audit");
+        var cut = Render(admin: true, url: "http://localhost/services/vsop/admin/audit");
 
         var corrente = cut.Find(".an-link.on");
         Assert.Equal("span", corrente.TagName, ignoreCase: true);   // niente href: non ti porta dove sei già
         Assert.Equal("page", corrente.GetAttribute("aria-current"));
-        Assert.Empty(cut.FindAll("a.an-link[href='/vsop/admin/audit']"));
+        Assert.Empty(cut.FindAll("a.an-link[href='/services/vsop/admin/audit']"));
     }
 
     /// <summary>
@@ -86,7 +86,7 @@ public class AdminNavTests : TestContext
     [Fact]
     public void La_query_non_fa_perdere_la_pagina_corrente()
     {
-        var cut = Render(admin: true, url: "http://localhost/vsop/versioni?q=lirr&tipo=vipi");
+        var cut = Render(admin: true, url: "http://localhost/services/vsop/versions?q=lirr&tipo=vipi");
 
         Assert.Equal("Nav_Docs", cut.Find(".an-link.on").TextContent.Trim());
     }
@@ -98,7 +98,7 @@ public class AdminNavTests : TestContext
     [Fact]
     public void Chi_non_e_admin_non_vede_un_elenco_di_porte_chiuse()
     {
-        var cut = Render(admin: false, url: "http://localhost/vsop/versioni");
+        var cut = Render(admin: false, url: "http://localhost/services/vsop/versions");
 
         Assert.Empty(cut.FindAll("nav.admin-nav"));
         Assert.Empty(cut.Markup.Trim());
@@ -124,7 +124,7 @@ public class AdminNavTests : TestContext
             .ToList();
 
         // La voce corrente non ha href (è uno stato): la si aggiunge a mano, altrimenti sfugge alla rete.
-        voci.Add("/vsop/admin/audit");
+        voci.Add("/services/vsop/admin/audit");
 
         Assert.All(voci, url => Assert.Contains(url!.TrimEnd('/'), rotte));
     }
