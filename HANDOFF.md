@@ -1,12 +1,43 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 22 agosto 2026 — **densità UI delle pagine admin**, sul ramo
-`ui-trasferimenti-densita`, **non ancora in `main`**.
+**Ultimo aggiornamento:** 22 agosto 2026 (sera) — **catalogo dei punti**, sul ramo
+`catalogo-punti-suggerimenti`, **non ancora in `main`**.
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
-> ## 🧭 SI RIPARTE DA QUI (22 agosto 2026)
+> ## 🧭 SI RIPARTE DA QUI (22 agosto 2026, sera)
 >
-> **Il lavoro vivo è sul ramo `ui-trasferimenti-densita`**, allineato col remoto e **non fuso**. Per riprendere
+> **Il lavoro vivo è sul ramo `catalogo-punti-suggerimenti`**, allineato col remoto e **non fuso**. È l'**unico**
+> ramo con roba dentro: tutto il resto è in `main` (vedi il blocco successivo). Per riprendere da freddo si
+> legge **un** file:
+> [`docs/feature/2026-08-22-catalogo-punti-suggerimenti.md`](docs/feature/2026-08-22-catalogo-punti-suggerimenti.md).
+>
+> In due righe: i nomi di fix/VOR/NDB che il parser SID già scaricava da GitHub **escono da Infrastructure** e
+> diventano una porta (`INavaidSource` + `NavaidCatalog`), così i campi dove si scrive un punto a mano —
+> FIX e Transition delle SID manuali, correzione fix delle importate, CoP delle clausole — **suggeriscono** i
+> nomi veri e **segnano** quelli che non esistono. Nessuna tabella nuova in database: il catalogo vive in
+> memoria, quindi **non aggiunge niente alla coda di migrazioni ferma per il cutover MariaDB**.
+>
+> Nello stesso giro gli **alias dei fix** smettono di essere invisibili: si vedono e si tolgono da
+> `/services/vsop/admin/sources`, il loro bersaglio passa per lo stesso controllo, e ogni ciclo d'import
+> elenca nei log quelli che puntano a nomi inesistenti.
+>
+> ⚠️ **Trovato un typo vero in archivio e NON corretto:** il CoP `BESIV` dell'accordo `LIBB_ES_CTR ⇄ LDZO_CTR`
+> non esiste nel sectorfile (a una lettera c'è `BEKIV`). Correggerlo è una decisione editoriale e la prende chi
+> conosce l'accordo — sta in [`docs/lavori-aperti.md`](docs/lavori-aperti.md) §E2.
+>
+> ⚠️ **Verifica live: due deroghe alla skill `verifica-live`.** `Sectorfile__RawBaseUrl` va lasciato **acceso**
+> (spento, il catalogo è vuoto e non si verifica niente); e nella pagina accordi bisogna prima **prendere il
+> lock** di struttura, o i tasti di riga restano spenti e il pannello non si apre mai. Sono scritte nella skill.
+>
+> Cancello: `dotnet build Vipi.slnx -c Release --no-incremental` (**0 avvisi**) e `dotnet test Vipi.slnx`
+> (**1 677** verdi su net8).
+
+> ## 🧭 ⚪ STORIA — densità UI delle pagine admin (22 agosto 2026), **FUSA IN `main`**
+>
+> ⚠️ Questo blocco diceva «il lavoro vivo è sul ramo `ui-trasferimenti-densita`, non fuso»: quel ramo **non
+> esiste più**, è in `main` dal 22 agosto. Resta qui perché il METODO e le misure valgono ancora.
+>
+> Per riprendere
 > da freddo si leggono **due** file:
 > [`docs/history/handoff-densita-ui.md`](docs/history/handoff-densita-ui.md) — dove siamo, il metodo, e da dove
 > riparte la prossima pagina — e
@@ -41,10 +72,12 @@
 > Sotto resta lo stato del **18 agosto** (accordi di coordinamento, ramo `feature/accordi-coordinamento`) e
 > quello del **15 agosto** (consegna a Ivao.It): valgono ancora per tutto ciò che non è quest'area.
 
-> ## 🧭 DA DOVE SI RIPARTIVA IL 18 AGOSTO (accordi di coordinamento)
+> ## 🧭 ⚪ STORIA — accordi di coordinamento (18 agosto 2026), **FUSI IN `main`**
 >
-> **Il lavoro vivo è sul ramo `feature/accordi-coordinamento`**, allineato col remoto e **non fuso**. Per
-> riprendere da freddo si legge **un** file:
+> ⚠️ Anche qui: `feature/accordi-coordinamento` **non esiste più**, è in `main` dal 22 agosto. Il contenuto del
+> blocco resta valido come descrizione del modello.
+>
+> Per riprendere da freddo si legge **un** file:
 > [`docs/history/handoff-accordi-coordinamento.md`](docs/history/handoff-accordi-coordinamento.md) — cosa c'è,
 > cosa non va riscoperto a mani nude, cosa resta aperto.
 >
