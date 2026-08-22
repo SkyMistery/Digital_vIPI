@@ -96,8 +96,29 @@ pieno di righe.
     (`vipiApplyZoom` emette un `resize`).
 22. Confrontare va bene finché le due grandezze parlano la stessa lingua: `rect` contro `clientWidth` regge
     anche sotto zoom. È solo ciò che si **scrive** che va convertito.
+22-bis. ⚠️ **Le media query non vedono questo zoom** (23 agosto 2026). `zoom` sta sull'`<html>`, e una `@media`
+    valuta la **finestra**: a 1280 con zoom 1.4 il layout ha **914 unità** e `@media (max-width:900px)` non
+    scatta. Quindi **una soglia di viewport non può governare un difetto che compare a zoom alto**: non si
+    sposta, si **toglie**. È la stessa diagnosi della topbar (§30), ritrovata sulle tabelle del viewer.
+22-ter. Per misurare sotto zoom: `scrollWidth` e `clientWidth` stanno **entrambi** in unità di layout ed è la
+    coppia da usare; `getBoundingClientRect().width` e `innerWidth` stanno in pixel di finestra. Mescolarli
+    dà tabelle di numeri che non tornano — al primo giro di misura ha fatto sembrare colpevole la topbar,
+    che non c'entrava (tolta dal DOM, lo sforo restava identico).
 
 ## 5. Tabelle lunghe
+
+22-quater. **Una tabella che non ci sta scorre dentro il suo contenitore, a qualunque larghezza** — non sotto
+    una soglia. `.wrap *:has(> table){overflow-x:auto;min-width:0}`: quando la tabella ci sta, cioè quasi
+    sempre, non compare nessuna barra. ⚠️ **Il colpevole non è quasi mai quello che dichiara un `min-width`**:
+    a zoom 1.4 sul viewer aeroporto sforava `.rwy-table`, che non dichiara niente e pretende **570 unità** per
+    il suo contenuto, mentre `.sid-table` col suo `min-width:720px` stava già dentro un contenitore che scorre.
+    Si misura, non si deduce dal foglio.
+22-quinquies. In una griglia a colonne uguali servono **due** cose: `repeat(N,minmax(0,1fr))` **e**
+    `min-width:0` sui figli. Il primo azzera il minimo della **traccia**, il secondo quello dell'**elemento**;
+    da solo, il primo lascia il pavimento al min-content del blocco e la riga sfonda comunque (`.apt-2col`).
+22-sexies. Il minimo di un titolo è la sua **parola più lunga**, che in unità di layout non si accorcia mai:
+    `overflow-wrap:anywhere` sui titoli vale **sempre**, non dentro una media query. A zoom 1.8 «Livelli di
+    transizione» pretende 177 unità in una colonna che ne ha 82.
 
 23. **`thead` appiccicato** (`.res-table.sticky-head`) quando la tabella è lunga o ci si **scrive dentro**: con
     152 righe e due caselle identiche da 70px («Lim. inf.» e «Lim. sup.») l'intestazione serve proprio quando è

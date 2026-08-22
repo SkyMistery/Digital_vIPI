@@ -6,6 +6,9 @@
 
 > ## 🧭 SI RIPARTE DA QUI (23 agosto 2026)
 >
+> Per riprendere da freddo si legge **un** file:
+> [`docs/feature/2026-08-23-quattro-difetti-e-le-proprieta.md`](docs/feature/2026-08-23-quattro-difetti-e-le-proprieta.md).
+>
 > Quattro cose chiuse, tutte in `main`, tutte con la loro voce in
 > [`docs/lavori-aperti.md`](docs/lavori-aperti.md). In ordine di quanto sono costate a capirle:
 >

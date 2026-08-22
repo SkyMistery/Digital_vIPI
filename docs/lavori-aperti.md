@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 23 agosto 2026 (quattro difetti chiusi: E4 decisa, E5 property-based, E6-ter, i due della topbar) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+**Aggiornato:** 23 agosto 2026 (E4 decisa il 22 sera; E5 property-based, E6-ter e i due difetti della topbar chiusi il 23) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -105,6 +105,7 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 > </details>
 
 > ### ✅ 23 agosto 2026 — CHIUSI: i due difetti visti mentre si chiudeva la topbar
+> Carta del giro: [`feature/2026-08-23-quattro-difetti-e-le-proprieta.md`](feature/2026-08-23-quattro-difetti-e-le-proprieta.md).
 > Erano stati messi qui senza toccarli. Chiusi tutti e due, e **il primo aveva il colpevole sbagliato**.
 >
 > **1. Le tabelle del viewer sforano a zoom alto** — chiuso. La diagnosi di ieri diceva `table.sid-table`
@@ -982,8 +983,8 @@ coperti** — `IT-SOC`, `IT-T01`, `IT-FOC`, `IT-FOAC`. Se debbano valere admin *
 un coordinatore training o un flight-ops devono poter editare le vIPI? È la decisione che resta a voi.
 Nessun codice chief `{ACC}-CH` è ancora comparso: quel pattern resta **non verificato**.
 
-✅ **DECISA il 22 agosto 2026 dal committente: lo staff di divisione è admin, tutto.** Il default di
-`Division:AdminRolePatterns` è ora il jolly `[A-Z0-9]+`, cioè `^IT-[A-Z0-9]+$`: i quattro codici scoperti
+✅ **DECISA il 22 agosto 2026 (sera) dal committente: lo staff di divisione è admin, tutto.** Il default di
+`Division:AdminRolePatterns` è ora il jolly `[A-Z0-9]+`, cioè `^IT-[A-Z0-9]+$` (carta: [`feature/2026-08-23-quattro-difetti-e-le-proprieta.md`](feature/2026-08-23-quattro-difetti-e-le-proprieta.md) §1): i quattro codici scoperti
 entrano, e soprattutto **un ruolo nuovo della divisione non nasce più escluso** — l'elenco puntuale
 sbagliava in silenzio, e se ne accorgeva solo chi restava fuori. Il jolly **non allarga oltre la divisione**:
 un codice `IT-…` lo assegna il portale IVAO solo allo staff di divisione, e il prefisso resta la barriera
@@ -1103,6 +1104,7 @@ avrebbe prodotto dati **validi e sbagliati** (`AgreementId` spacciato per `Secti
 leggono, non si accettano.
 
 ### E6-ter ✅ CHIUSA il 23 agosto 2026 — non era un test ballerino, era un **difetto del client**
+Carta: [`feature/2026-08-23-quattro-difetti-e-le-proprieta.md`](feature/2026-08-23-quattro-difetti-e-le-proprieta.md) §4.
 Inseguita dall'11 al 22 agosto come un problema di tempi — «il thread-pool sotto carico», «la prova dipende
 dai tempi del socket» — e per due volte la cura proposta è stata allargare l'attesa. Non era quello.
 
