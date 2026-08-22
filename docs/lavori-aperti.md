@@ -24,7 +24,9 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 > dei servizi, colori dai token del tema**.
 >
 > Da qui **`main` è il posto dove si lavora, e non c'è più nessun ramo con lavoro fuori**: gli altri undici sono
-> tutti a zero commit di distanza. Resta **`refactor/13-tre-documenti`** (B5), che è una decisione e non lavoro.
+> tutti a zero commit di distanza — e il 22 agosto sono stati **cancellati tutti e undici**, locale e origin.
+> ⚠️ Cancellandoli è saltata fuori una cosa: **`refactor/13-tre-documenti` (B5) non aspettava nessun ok**, era
+> in `main` dal 15 agosto, portato dentro dal merge dei trasferimenti. Vedi B5. Non resta più nessun ramo.
 > Carte: [servizi ATC](feature/2026-08-22-servizi-atc-e-profile-swapper.md),
 > [brand](feature/2026-08-22-brand-atmosphere.md), [topbar misurata](feature/2026-08-22-topbar-misurata.md).
 >
@@ -130,8 +132,8 @@ oggi nessuno sa rispondere — la rotazione della password Neon, e quattro decis
 `BANA8A`, le 33 torri senza padre, **quali staff code valgono admin** (E4) e se pubblicare una *release*
 debba scrivere audit.
 
-⚠️ **Una decisione di merge** resta lavoro di nessuno finché qualcuno non la prende: **B5**. (B6 è stata
-presa il 15 agosto: fusa.)
+✅ **Non resta più nessuna decisione di merge**: B6 fu presa il 15 agosto, e B5 si è rivelata già presa — il doc
+13 era in `main` da allora senza che l'elenco lo sapesse.
 
 ---
 
@@ -460,7 +462,22 @@ flusso funziona senza, in modalità client pubblico con PKCE (verificato il 5 ag
 
 ## B. Branch non fusi — decisioni, non lavoro
 
-### B5 🟡 `refactor/13-tre-documenti` — pronto, in attesa di un ok
+### B5 ✅ CHIUSA — il doc 13 era **già in `main`**, e nessuno se n'era accorto
+⚠️ **Non c'era nessuna decisione da prendere.** Scoperto il 22 agosto cancellando i rami fusi: la punta di
+`refactor/13-tre-documenti` (`90aa917`, 11 agosto) risultava **antenata di `main`**, cioè zero commit fuori.
+Il lavoro è entrato il **15 agosto**, trasportato dal merge di `feature/trasferimenti-acc-app`, che ne
+condivideva la storia — e la voce qui è rimasta a chiedere un ok per qualcosa di già fatto.
+
+Verificato sul codice, non sul grafo: `EfDocumentMaintenance` in `main` porta `ReconcilePurposeKeyAsync`,
+`MinimaKey` e le sezioni di catalogo mancanti — le tre riconciliazioni one-shot descritte qui sotto. E il
+[doc 13](refactor/13-audit-tre-documenti.md) si dichiara **CHIUSO** in testa da allora.
+
+⚠️ **La lezione**: un ramo che il grafo dice a zero commit non è «da fondere», è **già dentro** — e un
+elenco di lavori aperti può restare vero a metà per una settimana senza che niente lo contraddica. Il ramo
+è stato cancellato (locale e origin) insieme agli altri otto a zero.
+
+<details><summary>La scheda di allora, per memoria</summary>
+
 25 commit, suite **2111** verde su entrambi i TFM, **verifica live fatta** sui tre documenti (copia del
 `vipi.db` reale). È il [doc 13](refactor/13-audit-tre-documenti.md): audit di vIPI ACC, vIPI APP e vLOA, nato
 dall'osservazione che «la sezione delle versioni dovrebbe essere la stessa per tutti e tre».
@@ -482,6 +499,8 @@ sviluppo hanno toccato 15 sezioni e rimosso 18 blocchi. Sono idempotenti e non t
 pubblicate.
 
 **Decisione da prendere:** merge in `main` (serve l'ok esplicito, come per il doc 10) e push.
+
+</details>
 
 ### B6 ✅ FUSA — `feature/trasferimenti-acc-app`, fusa in `main` il 15 agosto 2026
 72 commit, suite **2403** verde su entrambi i TFM, `Release --no-incremental` 0 warning, verifica live su
