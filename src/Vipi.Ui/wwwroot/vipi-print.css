@@ -57,9 +57,11 @@
   .vipi-root .metar-live,
   .vipi-root .cb-chev,
   .vipi-root .chev,
-  /* Il riassunto «Testo esteso (N frasi)» è l'etichetta di un comando: su carta il testo c'è già sotto
-     (`beforeprint` apre i <details>), e la riga direbbe solo di aprire ciò che è aperto. */
-  .vipi-root .coord-prose > summary,
+  /* L'invito «Testo esteso (N frasi)» è l'etichetta di un comando: su carta il testo c'è già sotto
+     (`beforeprint` apre i <details>), e la riga direbbe solo di aprire ciò che è aperto.
+     ⚠️ Si nasconde `.prose-cue`, NON il `summary` che lo contiene: lì dentro c'è anche il titolo della
+     tabella («Arrivi», «Partenze»), che sulla carta deve restare. */
+  .vipi-root .coord-prose > summary > .prose-cue,
   .vipi-root .onl-badge,
   .vipi-root .noprint,
   /* Vista live: orologio UTC e tasto «Compatta» sono comandi a schermo, non contenuto. */

@@ -778,12 +778,15 @@
    con bordo e fondo proprio farebbe sembrare il testo un ramo invece che una lettura alternativa della
    tabella che segue. Quindi: niente bordo, niente fondo, solo la riga cliccabile. */
 .coord-prose{margin:0 0 7px}
-.coord-prose>summary{cursor:pointer;display:inline-flex;align-items:center;gap:6px;list-style:none;
-  font-family:var(--font-body);font-size:12.5px;font-weight:500;color:var(--brand-ink-2)}
+/* Il titolo della tabella e l'invito ad aprire la prosa stanno sulla STESSA riga: allineati alla base, perché
+   hanno corpi diversi (14px il titolo, 12.5 l'invito) e allineati al centro il più piccolo galleggerebbe. */
+.coord-prose>summary{cursor:pointer;display:flex;align-items:baseline;gap:10px;list-style:none}
 .coord-prose>summary::-webkit-details-marker{display:none}
-.coord-prose>summary:hover{text-decoration:underline}
-.coord-prose>summary .chev{transition:.2s;font-size:11px}
-.coord-prose[open]>summary .chev{transform:rotate(90deg)}
+.coord-prose .prose-cue{display:inline-flex;align-items:center;gap:5px;
+  font-family:var(--font-body);font-size:12.5px;font-weight:500;color:var(--brand-ink-2)}
+.coord-prose>summary:hover .prose-cue{text-decoration:underline}
+.coord-prose .prose-cue .chev{transition:.2s;font-size:11px}
+.coord-prose[open]>summary .prose-cue .chev{transform:rotate(90deg)}
 .coord-prose>.prose-body{padding:7px 0 0}
 /* Tabelle dei coordinamenti: sono decine (una per aeroporto/flusso) e con set di colonne variabile — «Flusso» e
    «Condizione» compaiono solo se ci sono dati. Con table-layout:auto ognuna si dimensionava sul proprio
@@ -819,9 +822,11 @@
 .coord-wrap .coord-sub2{margin:8px 0}
 .coord-wrap .coord-sub2>.body{padding:9px 12px}
 .coord-wrap .coord-tools{margin:0 0 6px}
-/* Etichetta «Arrivi»/«Partenze» sopra la tabella: era uno stile in linea ripetuto due volte nella vista ACC,
-   quindi due numeri da tenere d'accordo a mano per una cosa sola. */
-.coord-kind{margin:2px 0 3px;font-weight:600}
+/* Etichetta «Arrivi»/«Partenze» della tabella: era uno stile in linea ripetuto due volte nella vista ACC,
+   quindi due numeri da tenere d'accordo a mano per una cosa sola. Porta il colore da sé (prima veniva da
+   `.muted`): la rende CoordTable, dentro il cartiglio della prosa, dove un `<p class="muted">` non sta. */
+.coord-kind{margin:2px 0 3px;font-weight:600;color:var(--ink-soft)}
+.coord-prose>summary>.coord-kind{margin:0}
 
 /* Tabelle con la faccetta TRASFERIMENTO (accordi ACC→APP): fino a otto colonne invece di quattro. Le larghezze
    fisse qui sopra sommano già 78% con quattro colonne, quindi non c'è spazio da spartire fra le altre quattro

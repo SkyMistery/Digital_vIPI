@@ -46,12 +46,19 @@
 @if (frasi.Count > 0)
 {
     <details class="coord-prose">
-        @* Chevron a SINISTRA e non a destra come nei `.coord-sub`: quelli sono scatole a tutta larghezza, dove
-           il segno va all'estremo opposto del titolo; questo è un comando in linea, e un chevron a fine riga
-           galleggerebbe lontano dalle parole che apre.
+        @* Il TITOLO della tabella sta dentro il summary, così l'invito ad aprire la prosa non si prende una
+           riga per sé: «Arrivi ▸ Testo esteso (2 frasi)» è una riga sola dove prima ce n'erano due, e in un
+           documento con decine di tabelle le righe risparmiate sono decine.
+           Conseguenza voluta: il clic sul titolo apre la prosa. È un bersaglio più grande per la stessa cosa,
+           e il titolo non aveva altro da fare.
+           ⚠️ In STAMPA si nasconde `prose-cue`, non il summary: nascondere il summary porterebbe via anche il
+           titolo, e sulla carta «Arrivi» e «Partenze» devono restare.
            ⚠️ `prose-body` e non `body`: `.coord-sub2 .body` è un selettore DISCENDENTE e prenderebbe anche
            questo, con l'imbottitura del livello sopra. *@
-        <summary><span class="chev">▸</span><span>@ProseSummary(frasi.Count)</span></summary>
+        <summary>
+            @if (!string.IsNullOrWhiteSpace(Title)) { <span class="coord-kind">@Title</span> }
+            <span class="prose-cue"><span class="chev">▸</span>@ProseSummary(frasi.Count)</span>
+        </summary>
         <div class="prose-body">
             @foreach (var f in frasi)
             {
@@ -59,6 +66,12 @@
             }
         </div>
     </details>
+}
+else if (!string.IsNullOrWhiteSpace(Title))
+{
+    @* Senza frasi non c'è niente da aprire, ma il titolo resta: una tabella che perde l'intestazione perché
+       la sua prosa è vuota sarebbe un effetto collaterale, non una scelta. *@
+    <p class="coord-kind">@Title</p>
 }
 
 @* Le classi c-* fissano la larghezza PER COLONNA SEMANTICA (vedi .coord-table nel tema): le colonne opzionali
@@ -131,6 +144,13 @@
 
     /// <summary>Intestazione dell'ultima colonna: «Prossimo» per ciò che esce, «Da» per ciò che entra.</summary>
     [Parameter] public string? LastColHeader { get; set; }
+
+    /// <summary>Titolo della tabella («Arrivi», «Partenze»), reso sulla stessa riga dell'invito ad aprire la
+    /// prosa. Lo passa chi ha DUE tabelle sotto lo stesso nodo e deve dire quale è quale.
+    /// <para>Chi invece ha una tabella sola per nodo non lo passa: lì il titolo è già il cartiglio del
+    /// <c>&lt;details&gt;</c> che la contiene, e ripeterlo sarebbe la stessa parola due volte a due centimetri di
+    /// distanza.</para></summary>
+    [Parameter] public string? Title { get; set; }
 
     private string T(string key, string en) => English ? en : L[key];
 

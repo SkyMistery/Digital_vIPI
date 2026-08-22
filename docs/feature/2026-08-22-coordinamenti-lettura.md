@@ -18,16 +18,31 @@ il traffico con destinazione Tivat LYTV stabile a livello 210 su CRAYE.») e in 
 documento in cuffia legge la tabella, e la prosa distesa lo obbligava a scorrere oltre decine di paragrafi
 per arrivarci.
 
-Le frasi vanno dentro un `<details class="coord-prose">` **chiuso**, con un riassunto che dice quante sono.
+Le frasi vanno dentro un `<details class="coord-prose">` **chiuso**, con un invito che dice quante sono.
+
+⚠️ **L'invito NON si prende una riga per sé**: sta nel cartiglio, accanto al **titolo della tabella** —
+«Arrivi · Testo esteso (2 frasi)». Prima erano due righe per tabella, e in un nodo aeroporto le tabelle sono
+due. Il titolo lo rende `CoordTable` (parametro `Title`), non più la vista: è la stessa riga, e due componenti
+non possono spartirsela. Conseguenza voluta: **il clic sul titolo apre la prosa** — è un bersaglio più grande
+per la stessa cosa, e il titolo non aveva altro da fare. Senza frasi il titolo resta, come `<p class="coord-kind">`:
+una tabella che perde l'intestazione perché la sua prosa è vuota sarebbe un effetto collaterale.
 
 - ⚠️ **Un blocco per TABELLA, non per aeroporto.** Arrivi e partenze sono due tabelle, e la frase che
   introduce una non introduce l'altra. Sta in `CoordTable`, quindi vale per vIPI ACC, vIPI APP e vLOA con una
   modifica sola; per aeroporto avrebbe voluto codice nelle viste, ripetuto, e la vIPI APP — che nodi-aeroporto
   non ha — sarebbe rimasta scoperta.
-- **La stampa lo apre da sé** (`beforeprint` in `vipi-ui.js`) e ne **nasconde il riassunto**: sulla carta il
-  testo esteso *è* il documento, e la riga direbbe solo di aprire ciò che è già aperto.
+- **La stampa lo apre da sé** (`beforeprint` in `vipi-ui.js`) e ne nasconde l'invito: sulla carta il testo
+  esteso *è* il documento, e la riga direbbe solo di aprire ciò che è già aperto.
+  ⚠️ In stampa si nasconde **`.prose-cue`**, non il `summary`: lì dentro c'è anche il titolo della tabella, e
+  «Arrivi»/«Partenze» sulla carta devono restare. Misurato a `emulateMediaType('print')`: invito e chevron
+  nascosti, titolo e frasi visibili.
 - Il riassunto ha **due chiavi** (`Coord_Prose` / `Coord_Prose_One`): la sola forma plurale dà «1 frasi» e
   «1 sentences» in tutte e due le lingue — lo stesso conto che `XferLabels` ha già pagato.
+- ⚠️ **Un caso non si può spostare**: dove il nodo contiene **una sola** tabella (i sorvoli nella vIPI ACC, e
+  ogni gruppo della vIPI APP) il titolo è già il cartiglio del `<details>` che la contiene. Lì `Title` non si
+  passa — ripeterlo sarebbe la stessa parola due volte a due centimetri — e l'invito resta sulla sua riga.
+  Portarlo dentro quel cartiglio vorrebbe dire un comando interattivo dentro un `<summary>`, che il clic del
+  cartiglio intercetta: due controlli per uno stato, e un `stopPropagation` da ricordare.
 - Segue la **cultura dell'interfaccia** quando `English=false`, come le intestazioni di colonna della stessa
   tabella (misurato: in pagina inglese escono `Level`/`Next`, e il riassunto esce `Full text (2 sentences)`).
 - ⚠️ Il corpo si chiama `prose-body` e **non** `body`: `.coord-sub2 .body` è un selettore *discendente* e
@@ -44,10 +59,14 @@ una pagina admin — lo spazio fra una tabella e l'altra superava l'altezza dell
 | `.coord-sub` / il suo corpo | `14px` / `14px 16px` | `10px` / `10px 12px` |
 | `.coord-sub2` / il suo corpo | `10px` / `12px 14px` | `8px` / `9px 12px` |
 | `.coord-tools` | `0 0 10px` | `0 0 6px` |
-| «Arrivi»/«Partenze» | stile in linea, due volte | classe `.coord-kind` |
+| «Arrivi»/«Partenze» | stile in linea, due volte, **riga propria** | classe `.coord-kind`, **nel cartiglio della prosa** |
 
 **Misurato**, non deciso a occhio: sul blocco Aerovia di LIBB tutto espanso, `10345 px → 9249 px` (−1096,
-−10,6%). Il confronto si fa rimettendo in pagina il foglio vecchio e rileggendo l'altezza.
+−10,6%) con la sola densità, e **`→ 8423 px`** (−1922 in tutto, **−18,6%**) con il titolo che sale sulla riga
+dell'invito. Il confronto si fa rimettendo in pagina il foglio vecchio e rileggendo l'altezza.
+
+⚠️ **`getComputedStyle` restituisce un oggetto VIVO**: misurare «prima» e «dopo» tenendo la stessa variabile
+dà due volte il valore *dopo*. Per un giro il padding è sembrato non applicato mentre lo era.
 
 - ⚠️ Tutto sotto `.coord-wrap`: `.coord-sub`/`.coord-sub2` le usano anche l'editor struttura, le aree
   regolamentate e `SectionNode`, che qui non c'entrano.
@@ -97,7 +116,12 @@ bozza (`?as=draft`) si vedono adesso.
   ogni ACC; cambiano **solo** etichette e ordine. Serviva perché nella bozza manca il nodo «Brindisi» che la
   release pubblicata mostra — l'A/B dimostra che manca **anche in `main`**: è contenuto, non codice.
 - Ordine visto a schermo su ES: `Roma-LIRR · Beograd-LYBA · Greece-LGGG · Tirana-LAAA · Zagreb-LDZO`.
-- Prosa: 33 blocchi, **0 aperti** all'apertura del documento; «Espandi tutto» li apre col resto.
+- Prosa: 33 blocchi, **0 aperti** all'apertura del documento; «Espandi tutto» li apre col resto. Gli inviti
+  letti a schermo: `Partenze▸Full text (1 sentence)`, `Arrivi▸Full text (2 sentences)` — titolo e invito sulla
+  stessa riga.
+- ⚠️ L'host del committente sulla **5034 tiene i `bin`**: il secondo giro di verifica si è fatto con l'**exe
+  pubblicato** in scratchpad (`--artifacts-path` per non toccare `src/Vipi.Host/bin`), avviato dalla sua
+  cartella. Il suo processo non è stato fermato.
 - Stampa (`emulateMediaType('print')`): riassunto e chevron nascosti, frasi visibili.
 - `sweep.js`: **0 sospetti** di fondo non girato nel tema scuro.
 - ⚠️ **Lo scaglione «casa» non è riproducibile sui dati di sviluppo di oggi**: né LIBB, né LIRR, né LIMM hanno
@@ -109,4 +133,5 @@ bozza (`?as=draft`) si vedono adesso.
 parte `--- albero ---`; 630 righe, 20 nodi ACC, 70 aeroporti e **170 frasi** identici prima e dopo. Il fixture
 `real-maps.tsv` guadagna due colonne (`AccCode`, `AccForeign`).
 Nuovi: 4 test su `BuildAccTree` (etichetta, etichetta neutra senza riferimento, ordine, «casa» per settore) e
-5 su `CoordTable` (prosa chiusa, singolare, nessuna frase = nessun blocco, modo capofila, inglese).
+7 su `CoordTable` (prosa chiusa, singolare, nessuna frase = nessun blocco, modo capofila, inglese, titolo
+sulla stessa riga dell'invito, titolo che sopravvive senza prosa).

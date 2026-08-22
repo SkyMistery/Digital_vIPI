@@ -220,4 +220,31 @@ public class CoordTableTests : TestContext
 
         Assert.Equal("Full text (2 sentences)", cut.Find("details.coord-prose summary").TextContent.Trim('▸', ' '));
     }
+
+    [Fact]
+    public void The_title_shares_the_line_with_the_prose_cue()
+    {
+        // Il punto del titolo dentro il cartiglio: una riga sola dove prima ce n'erano due, e in un documento
+        // con decine di tabelle le righe risparmiate sono decine.
+        var cut = RenderComponent<CoordTable>(p => p
+            .Add(x => x.Rows, new[] { Said("VALMA", 1, "Una.") })
+            .Add(x => x.Title, "Arrivi"));
+
+        var summary = cut.Find("details.coord-prose > summary");
+        Assert.Equal("Arrivi", summary.QuerySelector(".coord-kind")!.TextContent);
+        Assert.Contains("Coord_Prose_One", summary.QuerySelector(".prose-cue")!.TextContent);
+        Assert.Empty(cut.FindAll("p.coord-kind"));   // niente paragrafo per sé
+    }
+
+    [Fact]
+    public void Without_prose_the_title_survives_on_its_own()
+    {
+        // Una tabella che perde l'intestazione perche' la sua prosa e' vuota sarebbe un effetto collaterale.
+        var cut = RenderComponent<CoordTable>(p => p
+            .Add(x => x.Rows, new[] { Plain() })
+            .Add(x => x.Title, "Partenze"));
+
+        Assert.Empty(cut.FindAll("details.coord-prose"));
+        Assert.Equal("Partenze", cut.Find("p.coord-kind").TextContent);
+    }
 }
