@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -37,6 +37,11 @@ public sealed class SidImportHostedService : BackgroundService
     {
         var repo = sp.GetRequiredService<IAirportSectorRepository>();
         var importer = sp.GetRequiredService<ISidImporter>();
+
+        // Il ciclo riparte dai file, non dalla copia in memoria: la cache di processo non scade da sola, e senza
+        // questa riga un'applicazione che resta su per settimane completerebbe le SID (e suggerirebbe i punti agli
+        // editor) su un catalogo vecchio quanto l'ultimo riavvio.
+        sp.GetRequiredService<SectorfileCache>().Invalidate();
 
         var icaos = await repo.ListAirportIcaosAsync(ct);
         if (icaos.Count == 0) return false;   // aeroporti non ancora importati: non "consumare" il gate, riprova a breve

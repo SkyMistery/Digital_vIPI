@@ -163,6 +163,13 @@ public static class DependencyInjection
         // gli adapter sotto sono transient (AddHttpClient<,>), quindi una cache in campo d'istanza sarebbe
         // per-risoluzione e il suo lock non sincronizzerebbe nulla. Vedi SectorfileCache.
         services.AddSingleton<Sectorfile.SectorfileCache>();
+        // Catalogo dei punti (itvor/itndb/itfix): unico posto che scarica i navaid. Lo usano l'import SID per
+        // completare il fix troncato E gli editor per suggerire/validare i punti scritti a mano.
+        services.AddHttpClient<Vipi.Application.Abstractions.INavaidSource, Sectorfile.AuroraNavaidSource>(c =>
+        {
+            c.Timeout = TimeSpan.FromSeconds(15);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
+        });
         services.AddHttpClient<Vipi.Application.Abstractions.ISidProvider, Sectorfile.AuroraSidProvider>(c =>
         {
             c.Timeout = TimeSpan.FromSeconds(15);
