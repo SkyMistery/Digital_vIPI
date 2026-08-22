@@ -93,9 +93,9 @@
   <data name="Country_DA" xml:space="preserve"><value>Algeria</value></data>
   <data name="Country_DT" xml:space="preserve"><value>Tunisia</value></data>
   <data name="Country_LI" xml:space="preserve"><value>Italia</value></data>
-  <data name="Chrome_BrandSubtitle" xml:space="preserve"><value>/ vLOA · IVAO Italia</value></data>
-  <data name="Chrome_BrandHome" xml:space="preserve"><value>Home vIPI / vLOA</value></data>
-  <data name="Chrome_Guide" xml:space="preserve"><value>Guida</value></data>
+  <data name="Chrome_BrandSubtitle" xml:space="preserve"><value>IVAO Italia</value></data>
+  <data name="Chrome_BrandHome" xml:space="preserve"><value>Home dei servizi ATC</value></data>
+  <data name="Chrome_Guide" xml:space="preserve"><value>Guida</value></data>
   <data name="Chrome_Menu" xml:space="preserve"><value>Menù</value></data>
   <data name="Chrome_StaffPosition" xml:space="preserve"><value>Posizione staff</value></data>
   <data name="Chrome_ZoomOut" xml:space="preserve"><value>Riduci zoom</value></data>

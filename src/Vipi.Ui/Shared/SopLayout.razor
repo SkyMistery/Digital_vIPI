@@ -50,9 +50,13 @@
                 }
             </div>
         </details>
-        <a class="brand" href="/services/vsop" aria-label="@L["Chrome_BrandHome"]">
-            <span class="logo">vIPI</span>
-            <div>vIPI <small>@L["Chrome_BrandSubtitle"]</small></div>
+        @* Il marchio porta all'HUB, non alla documentazione: fino al 22 agosto 2026 puntava a
+           /services/vsop, cioe' a UNO SOLO degli strumenti, mentre stava in cima a tutti. Il testo e'
+           `Services_Title`, la chiave che intitola gia' l'hub: una stringa sola per un solo concetto, non
+           una gemella (FEATURE-PROCESS §1). *@
+        <a class="brand" href="/services" aria-label="@L["Chrome_BrandHome"]">
+            <span class="logo">ATC</span>
+            <div>@L["Services_Title"] <small>@L["Chrome_BrandSubtitle"]</small></div>
         </a>
         <nav class="acc-nav" aria-label="@L["Chrome_AccNav"]">
             @foreach (var acc in Stations.Accs)
@@ -65,7 +69,9 @@
             <input name="q" placeholder="@L["Chrome_SearchPh"]" aria-label="@L["Chrome_Search"]" />
         </form>
         <div class="right">
-            <a class="editor-btn icon-only" href="/services" title="@L["Chrome_Services"]" aria-label="@L["Chrome_Services"]"><Icon Name="grid" /></a>
+            @* ⚠️ Qui stava il tasto «Servizi», tolto insieme al cambio del marchio: adesso e' il marchio a
+               portare all'hub, e due link identici a 100px di distanza sono ingombro, non ridondanza. Nel
+               «☰» la voce resta, perche' li' il marchio e' ridotto al solo logo. *@
             <a class="editor-btn icon-only" href="/services/vsop/guide" title="@L["Chrome_Guide"]" aria-label="@L["Chrome_Guide"]"><Icon Name="help-circle" /></a>
             @if (_staff is { Length: > 0 })
             {

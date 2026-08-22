@@ -93,9 +93,9 @@
   <data name="Country_DA" xml:space="preserve"><value>Algeria</value></data>
   <data name="Country_DT" xml:space="preserve"><value>Tunisia</value></data>
   <data name="Country_LI" xml:space="preserve"><value>Italy</value></data>
-  <data name="Chrome_BrandSubtitle" xml:space="preserve"><value>/ vLOA · IVAO Italy</value></data>
-  <data name="Chrome_BrandHome" xml:space="preserve"><value>vIPI / vLOA home</value></data>
-  <data name="Chrome_Guide" xml:space="preserve"><value>Guide</value></data>
+  <data name="Chrome_BrandSubtitle" xml:space="preserve"><value>IVAO Italy</value></data>
+  <data name="Chrome_BrandHome" xml:space="preserve"><value>ATC services home</value></data>
+  <data name="Chrome_Guide" xml:space="preserve"><value>Guide</value></data>
   <data name="Chrome_Menu" xml:space="preserve"><value>Menu</value></data>
   <data name="Chrome_StaffPosition" xml:space="preserve"><value>Staff position</value></data>
   <data name="Chrome_ZoomOut" xml:space="preserve"><value>Zoom out</value></data>
@@ -2017,7 +2017,7 @@
   <data name="Swap_Detail" xml:space="preserve"><value>“{0}” — {1} sections ({2} replaced, {3} appended).</value></data>
   <data name="Swap_Done" xml:space="preserve"><value>Done: {0} sections copied into {1} profiles, downloaded as “{2}”.</value></data>
   <data name="Swap_Note" xml:space="preserve"><value>Unselected sections stay byte-for-byte identical.</value></data>
-  <data name="Services_Title" xml:space="preserve"><value>ATC services</value></data>
+  <data name="Services_Title" xml:space="preserve"><value>ATC Services</value></data>
   <data name="Services_Intro" xml:space="preserve"><value>The tools for those controlling in IVAO Italy.</value></data>
   <data name="Services_VsopTitle" xml:space="preserve"><value>vSOP — operational documentation</value></data>
   <data name="Services_VsopDesc" xml:space="preserve"><value>ACC vIPI, airports, APP and vLOA: the procedures you work with on frequency.</value></data>
