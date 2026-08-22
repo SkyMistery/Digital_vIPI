@@ -1,4 +1,4 @@
-# Changelog dei round (cronologico)
+﻿# Changelog dei round (cronologico)
 
 Storia incrementale del progetto, un blocco per round. **Per lo stato corrente** vedi `../../HANDOFF.md` e `../../README.md`; per il modello dati `../spec/modello-dati.md`. Lo storico dettagliato di ogni round (passi implementativi, test) è nella cronologia git e nei piani in questa cartella (`handoff-round5.md`, `piano-round20.md`).
 
@@ -1647,3 +1647,12 @@ vuoto e si sarebbe visto **solo su un documento pubblicato**. Da qui `MvaPoint`,
 ⚠️ **Resta aperto**: 25 APP su 49 non hanno il file (LIRF, LIMC, LIML, LIME, LIPS…), e nel sectorfile «non
 serve» è indistinguibile da «non l'ha ancora fatto nessuno» — richiesta per l'AOD. E una **terza forma di
 coordinata** non censita: gradi decimali nudi, una riga in tutti i 28 file (`lipx.mva:14`).
+
+**Rifinitura dopo il primo giro a schermo (stesso giorno).** Il rendering funzionava e non si leggeva. Fondo
+**senza strade** — due tile Esri impilate, terreno più ombreggiatura al 55%, perché prese singolarmente la
+prima a questi zoom è quasi bianca e la seconda fa sparire la costa; OpenTopoMap resta selezionabile come
+«Curve di livello», l'unico con le quote scritte. Tracciati col **casing** (fascia bianca sotto, rosso
+sopra): su un fondo a rilievo una linea sola cambia contrasto a ogni valle. Etichette a **pastiglia** invece
+dell'alone, che cedeva sui bruni della montagna. **AoR accendibile** dal controllo dei livelli, spento
+all'apertura, solo contorno e fuori dall'inquadratura. Via la **didascalia** con l'aeroporto: il file copre
+un'area che va oltre lo scalo che gli dà il nome.

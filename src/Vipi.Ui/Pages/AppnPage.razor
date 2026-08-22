@@ -85,7 +85,7 @@ else
                                     case "configurations": <AppConfigurations Configs="Array.Empty<AccConfiguration>()" Tables="_configTable" MapScope="@($"app-aor-{_app}")" />; break;
                                     case "aor": <AccAor View="_aorView" Id="@($"app-aor-{_app}")" />; break;
                                     case "frequencies": <AppFrequencies Rows="_freqs" />; break;
-                                    case "minima": <MinimaSection View="_minima" />; break;
+                                    case "minima": <MinimaSection View="_minima" Aor="_aorView" />; break;
                                     case "vfr": <AppVfr Content="ReadVfr(s)" />; break;
                                     case "coordination": <AppCoordinationView Coord="_coord" LeadSentence="s.LeadSentence" />; break;
                                     case "regulated": <RegulatedAreas Areas="_areas" />; break;

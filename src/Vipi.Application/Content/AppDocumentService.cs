@@ -244,8 +244,7 @@ public sealed class AppDocumentService : IAppDocumentService
     {
         // Un APP standalone è UN aeroporto: la sua carta è il file di quell'ICAO, e l'ICAO lo dice il callsign.
         var app = Norm(appCallsign);
-        return await MinimaCharts.ForPositionsAsync(
-            _minima, new[] { app }, await _apps.GetAirportNameMapAsync(ct), ct);
+        return await MinimaCharts.ForPositionsAsync(_minima, new[] { app }, ct);
     }
 
     public async Task<AccAorView> GetAorViewAsync(string appCallsign, CancellationToken ct = default)

@@ -1,4 +1,4 @@
-@* Sezione «Minime di vettoramento»: UNA MAPPA PER FILE .mva, come in Aurora, dove accendere le MRVA di un ente
+﻿@* Sezione «Minime di vettoramento»: UNA MAPPA PER FILE .mva, come in Aurora, dove accendere le MRVA di un ente
    mostra tutto il suo file. Il contenuto è riportato verbatim dal sectorfile — tracciati aperti compresi — e le
    etichette sono il testo originale, senza unità aggiunte. L'interattività è client-side (vipi-mva.js);
    l'SVG dentro il contenitore è il fallback per la stampa e per chi non ha JavaScript. *@
@@ -23,8 +23,9 @@ else
     {
         var svg = MinimaChartProjector.Project(c.Chart);
         <div class="mva-chart">
-            <h4 class="mva-title">@c.Title</h4>
-            <div @key="c.Owner" class="mva-leaflet" data-mva="@ChartJson(c.Chart)"
+            @* Nessuna didascalia: il file .mva copre un'area che spesso va oltre lo scalo che gli dà il nome,
+               e scriverci sopra «LIBD — Bari Palese» diceva una cosa più stretta del vero. *@
+            <div @key="c.Owner" class="mva-leaflet" data-mva="@ChartJson(c.Chart)" data-aor="@AorJson()"
                  style="height:360px;border:1px solid var(--line);border-radius:11px;overflow:hidden">
                 @if (svg is not null)
                 {
@@ -56,7 +57,18 @@ else
 @code {
     [Parameter, EditorRequired] public MinimaView View { get; set; } = MinimaView.Empty;
 
+    /// <summary>AoR della STESSA parte di documento (blocco ACC o APP): i suoi settori si possono accendere sopra
+    /// la carta per vedere come le minime si rapportano ai confini. Spenti all'apertura — sono contesto, non il
+    /// contenuto della sezione — e fuori dall'inquadratura, che resta quella delle minime.</summary>
+    [Parameter] public AccAorView? Aor { get; set; }
+
     private static string Num(double v) => v.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    // Settori AoR per l'overlay: stessa forma che AccAor manda a vipi-aor.js (anelli [lat,lng]).
+    private string AorJson() => JsonSerializer.Serialize(
+        (Aor?.Sectors ?? Array.Empty<AccSectorAor>())
+            .Where(s => s.Polygons.Count > 0)
+            .Select(s => new { sec = s.Callsign, color = s.Color, rings = s.Polygons.Select(p => p.Points) }));
 
     // Payload compatto per vipi-mva.js: p = vertici [lat,lon] (ordine Leaflet), c = tracciato chiuso.
     // Nomi brevi perché limm.mva porta 1348 vertici e l'attributo finisce nell'HTML della pagina.

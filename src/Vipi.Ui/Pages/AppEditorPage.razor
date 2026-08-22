@@ -460,7 +460,7 @@ else
             case "minima":
                 @* Sola lettura anche in modifica: la carta viene dal sectorfile. Qui si decide solo se resti Live
                    o venga congelata alla release (toggle del pannello sezione). *@
-                <MinimaSection View="_minima" />
+                <MinimaSection View="_minima" Aor="_aorView" />
                 break;
             case "coordination":
                 <AppCoordinationView Coord="_coord" LeadSentence="s.LeadSentence" />

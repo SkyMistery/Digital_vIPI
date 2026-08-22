@@ -300,12 +300,12 @@ public sealed class AccDerivationService : IAccDerivationService
         // leghi un'area a un settore — tutti i poligoni portano il codice dell'ACC e basta — quindi la carta è
         // dell'ente, come in Aurora. Non si prova a spartirla fra i CTR del blocco.
         if (block.Kind == AccBlockKind.Aerovia)
-            return await MinimaCharts.ForAccAsync(_minima, accCode, null, ct);
+            return await MinimaCharts.ForAccAsync(_minima, accCode, ct);
 
         // Gruppo-APP: una carta per aeroporto membro. I file per-aeroporto sì che hanno un proprietario dichiarato,
         // ed è il nome del file.
         var members = await MembersOfAsync(accCode, block, rootCallsign, ct);
-        return await MinimaCharts.ForPositionsAsync(_minima, members, await _repo.GetAirportNameMapAsync(ct), ct);
+        return await MinimaCharts.ForPositionsAsync(_minima, members, ct);
     }
 
     private async Task<IReadOnlyList<string>> MembersOfAsync(string accCode, AccBlock block, string? rootCallsign, CancellationToken ct)

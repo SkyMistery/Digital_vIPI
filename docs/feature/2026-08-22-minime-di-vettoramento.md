@@ -1,4 +1,4 @@
-# Minime di vettoramento (MRVA): la carta, non la tabella
+﻿# Minime di vettoramento (MRVA): la carta, non la tabella
 
 **22 agosto 2026 — ✅ chiuso, verifica live eseguita.**
 
@@ -42,9 +42,30 @@ Sezione `minima`: da `Editorial` a **`Derived`**, corpo reso dalla pagina. Ripre
 e viene catturata nello snapshot di release. **Nessuno storage**: le tabelle `VectoringMinimaSet/Row`, che
 descrivevano la strada scartata, sono state droppate (modello dati §7.5).
 
-Il fondo di partenza è il **rilievo** (OpenTopoMap, curve di livello con le quote), con Ombreggiatura (Esri)
-e Neutra (Positron) nel selettore. Non è una scelta estetica: la minima dipende dall'orografia, e sulla carta
-di Milano si legge a colpo d'occhio — 195/180 sulle Alpi, 25/30 in pianura padana, 90/110 sull'Appennino.
+## 2-bis. Come si legge la carta (rifatto dopo il primo giro a schermo)
+
+Il primo rendering funzionava ma non si leggeva: tracciati arancioni sottili e numeri senza fondo su una
+mappa stradale colorata. Quattro correzioni, tutte dal riscontro del committente:
+
+- **Fondo senza strade.** La rete stradale non c'entra con le minime e ruba contrasto. Il fondo di partenza
+  sono **due tile impilate**: `World Terrain Base` (terra, mare, vegetazione) più `World Hillshade` al 55%
+  (il rilievo). Provate singolarmente non bastavano — la prima a questi zoom è quasi bianca, la seconda è
+  grigia uniforme e fa sparire la costa. Resta selezionabile **OpenTopoMap** («Curve di livello»): ha le
+  strade, ma è l'unico con le **quote scritte** sulle isoipse.
+- **Tracciati con il *casing*.** Ogni linea è disegnata due volte, fascia bianca sotto e rosso `#c1121f`
+  sopra. Su un fondo che passa dal verde al marrone al blu una linea sola cambia contrasto a ogni valle.
+- **Etichette a pastiglia** invece dell'alone: il contorno bianco reggeva sul mare e cedeva sui bruni della
+  montagna, cioè dove le quote contano.
+- **AoR accendibile.** I settori della sezione `aor` **della stessa parte di documento** si accendono dal
+  controllo dei livelli, spenti all'apertura: servono a vedere come le minime si rapportano ai confini.
+  Solo contorno tratteggiato — accesi in più d'uno i riempimenti annacquavano le minime — e **fuori
+  dall'inquadratura**, che resta quella delle minime.
+
+E la carta **non porta didascalia**: `LIBD — Bari Palese` diceva una cosa più stretta del vero, perché il
+file copre un'area che va oltre lo scalo che gli dà il nome. Resta il titolo della sezione e la mappa.
+
+Il rilievo sotto non è decorazione: sulla carta di Milano si legge a colpo d'occhio — 195/180 sulle Alpi,
+25/30 in pianura padana, 90/110 sull'Appennino.
 
 ## 3. Trappole pagate
 
@@ -60,6 +81,8 @@ di Milano si legge a colpo d'occhio — 195/180 sulle Alpi, 25/30 in pianura pad
 - **Le tile sono chiare in entrambi i temi.** L'etichetta con token di tema diventava bianca su fondo chiaro:
   colori letterali, unica eccezione voluta, col perché scritto accanto nel CSS.
 - **`<text>` in un blocco di codice Razor è la parola chiave di escape**, non l'elemento SVG: va annidato.
+- **Un fondo «senza strade» può essere anche senza terreno.** `World Terrain Base` da solo, a questi zoom, è
+  quasi bianco: tolte le strade erano sparite anche le montagne. Si è visto solo guardando lo screenshot.
 - **Tre forme di coordinata**, non due come diceva il censimento del sector: DMS coi punti, DMS **compatta**
   (`liph.mva` — senza, quel file dava zero poligoni in silenzio) e **gradi decimali nudi**, una riga sola in
   tutti i 28 file (`lipx.mva:14`). Da segnalare all'AOD.

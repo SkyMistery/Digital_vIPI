@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 
 namespace Vipi.Application.Content;
 
@@ -27,15 +27,13 @@ public static class MinimaCharts
 
     /// <summary>La carta enroute di un ACC (<c>ENRMVA/{acc}.mva</c>). Vuota se il file non c'è.</summary>
     public static async Task<MinimaView> ForAccAsync(
-        IVectoringMinimaSource source, string accCode, string? accName, CancellationToken ct)
+        IVectoringMinimaSource source, string accCode, CancellationToken ct)
     {
         var code = (accCode ?? "").Trim().ToUpperInvariant();
         if (code.Length == 0) return MinimaView.Empty;
 
         var chart = await source.GetAccChartAsync(code, ct);
-        return chart.IsEmpty
-            ? MinimaView.Empty
-            : new MinimaView(new[] { new MinimaChart(code, Title(code, accName), chart) });
+        return chart.IsEmpty ? MinimaView.Empty : new MinimaView(new[] { new MinimaChart(code, chart) });
     }
 
     /// <summary>
@@ -44,8 +42,7 @@ public static class MinimaCharts
     /// italiano sono la maggioranza — 24 file per 49 APP — e l'assenza non è un guasto.
     /// </summary>
     public static async Task<MinimaView> ForPositionsAsync(
-        IVectoringMinimaSource source, IEnumerable<string> callsigns,
-        IReadOnlyDictionary<string, string>? airportNames, CancellationToken ct)
+        IVectoringMinimaSource source, IEnumerable<string> callsigns, CancellationToken ct)
     {
         var icaos = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -58,14 +55,8 @@ public static class MinimaCharts
         {
             var chart = await source.GetAirportChartAsync(icao, ct);
             if (chart.IsEmpty) continue;
-            charts.Add(new MinimaChart(icao, Title(icao, Name(airportNames, icao)), chart));
+            charts.Add(new MinimaChart(icao, chart));
         }
         return charts.Count == 0 ? MinimaView.Empty : new MinimaView(charts);
     }
-
-    private static string? Name(IReadOnlyDictionary<string, string>? names, string icao) =>
-        names is not null && names.TryGetValue(icao, out var n) && !string.IsNullOrWhiteSpace(n) ? n : null;
-
-    private static string Title(string code, string? name) =>
-        string.IsNullOrWhiteSpace(name) ? code : $"{code} — {name}";
 }

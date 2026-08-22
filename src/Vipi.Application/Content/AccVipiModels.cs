@@ -1,4 +1,4 @@
-namespace Vipi.Application.Content;
+﻿namespace Vipi.Application.Content;
 
 // Modelli della vIPI ACC: documento a blocchi (Aerovia/CTR + gruppi APP). Riusa i record editoriali/derivati
 // dell'APP (AppSeparationRow, AppFreqOrderOverride, AppFreqRow, AppCoordination, AppAorPolygon).
@@ -85,10 +85,11 @@ public sealed record AccSectorPick(string Callsign, string Name);
 /// file è l'unica attribuzione che il formato dichiari, quindi è anche l'unità di visualizzazione: come in Aurora,
 /// dove accendere le MRVA di un ente mostra tutto il suo file.
 /// </summary>
-/// <param name="Owner">L'ente a cui il file appartiene: codice ACC (<c>LIMM</c>) o ICAO (<c>LIRN</c>).</param>
-/// <param name="Title">Etichetta leggibile per la carta (nome aeroporto se noto, altrimenti l'<paramref name="Owner"/>).</param>
+/// <param name="Owner">L'ente a cui il file appartiene: codice ACC (<c>LIMM</c>) o ICAO (<c>LIRN</c>). Serve come
+/// chiave del contenitore, NON come intestazione: a schermo la carta non porta un nome d'aeroporto, perché il
+/// file copre un'area che spesso va oltre lo scalo che gli dà il nome e la didascalia risultava fuorviante.</param>
 /// <param name="Chart">Tracciati ed etichette verbatim dal sectorfile.</param>
-public sealed record MinimaChart(string Owner, string Title, Abstractions.MvaChart Chart);
+public sealed record MinimaChart(string Owner, Abstractions.MvaChart Chart);
 
 /// <summary>
 /// Sezione «Minime di vettoramento» derivata: <b>una carta per file</b>. Un blocco Aerovia ne ha una (l'enroute

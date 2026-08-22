@@ -595,7 +595,8 @@ else
             case "minima":
                 @* Sola lettura anche in modifica: la carta viene dal sectorfile, non si scrive da qui. Ciò che
                    l'editor decide è se resti Live o venga congelata alla release (toggle del pannello sezione). *@
-                <MinimaSection @key="@($"mva-{bsId}")" View="_minima.GetValueOrDefault(bsId) ?? MinimaView.Empty" />
+                <MinimaSection @key="@($"mva-{bsId}")" View="_minima.GetValueOrDefault(bsId) ?? MinimaView.Empty"
+                               Aor="_aors.GetValueOrDefault(bsId)" />
                 break;
             case "coordination":
                 <AccCoordinationView Coord="_coord.GetValueOrDefault(bsId) ?? AccCoordination.Empty" />

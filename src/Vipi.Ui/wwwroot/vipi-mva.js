@@ -1,23 +1,32 @@
-// Carta delle minime di vettoramento (MRVA): disegna il contenuto di un file .mva su una basemap TOPOGRAFICA.
+﻿// Carta delle minime di vettoramento (MRVA): disegna il contenuto di un file .mva su una basemap TOPOGRAFICA.
 // Idempotente: ogni contenitore .mva-leaflet[data-mva] è inizializzato una sola volta (data-init), come vipi-aor.js.
 //
-// La basemap di partenza è il rilievo, e non è una scelta estetica: la MRVA di una zona dipende dall'orografia,
-// e con le curve di livello sotto i poligoni si legge PERCHÉ in quel punto la minima è quella.
+// La basemap di partenza è il rilievo SENZA STRADE, e non è una scelta estetica: la MRVA di una zona dipende
+// dall'orografia, e col terreno sotto i poligoni si legge PERCHÉ in quel punto la minima è quella. La rete
+// stradale, invece, non c'entra nulla e toglie contrasto ai tracciati.
 (function () {
-    // I tre fondi. OpenTopoMap porta curve di livello e quote scritte (il più utile per capire il dato); Esri
-    // World Hillshade dà il rilievo senza il rumore delle curve; Positron è il fondo neutro già usato dall'AoR.
+    // I fondi. Il primo è quello che si vede all'apertura ed è SENZA STRADE: qui la rete stradale non aggiunge
+    // niente e ruba leggibilità ai tracciati, mentre il rilievo è il motivo per cui la carta sta su una mappa.
+    // Positron è sparito per la stessa ragione: neutro sì, ma è una mappa di strade senza rilievo.
     function basemaps() {
         return {
-            'Rilievo': L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            // Partenza: DUE tile impilate, non una. Provate separatamente non bastavano — «World Terrain Base»
+            // dà terra, mare e vegetazione ma a questi zoom le montagne quasi non si vedono; «World Hillshade»
+            // dà il rilievo ma su fondo grigio uniforme, dove costa e mare spariscono. Insieme si leggono
+            // entrambi, e nessuna delle due porta strade.
+            'Rilievo': L.layerGroup([
+                L.tileLayer('https://server.arcgisonline.com/arcgis/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 13, attribution: '© Esri — World Terrain Base'
+                }),
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 16, opacity: 0.55, attribution: '© Esri — Elevation/World Hillshade'
+                })
+            ]),
+            // Unico fondo con le strade, e l'unico con le QUOTE scritte sulle curve di livello: resta come scelta
+            // esplicita per chi vuole leggere l'altitudine del suolo, non come partenza.
+            'Curve di livello': L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
                 maxZoom: 17, subdomains: 'abc',
                 attribution: '© OpenStreetMap, SRTM | © OpenTopoMap (CC-BY-SA)'
-            }),
-            'Ombreggiatura': L.tileLayer(
-                'https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19, attribution: '© Esri — Elevation/World Hillshade'
-            }),
-            'Neutra': L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-                maxZoom: 19, subdomains: 'abcd', attribution: '© OpenStreetMap, © CARTO'
             })
         };
     }
@@ -31,6 +40,11 @@
         var r = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
         return r || fallback;
     }
+
+    // Colore dei tracciati: LETTERALE come per l'etichetta, e per lo stesso motivo — il substrato è una tile a
+    // rilievo, chiara in tutti e due i temi. Rosso perché deve staccare da verdi, marroni e blu del terreno,
+    // che sono tutto quello che c'è sotto.
+    var MVA_COLOR = '#c1121f';
 
     // L'etichetta è testo che arriva dal sectorfile, cioè da un repository esterno: va scritta come DATO, mai
     // interpretata come marcatura. Serve l'escape perché Leaflet accetta solo una stringa HTML per l'icona.
@@ -47,6 +61,8 @@
 
         var shapes = data.shapes || [], labels = data.labels || [];
         if (!shapes.length && !labels.length) return;
+        var aor = [];
+        try { aor = JSON.parse(el.dataset.aor || '[]') || []; } catch (e) { aor = []; }
 
         el.dataset.init = '1';
         el.innerHTML = '';   // via il fallback SVG reso dal server
@@ -55,20 +71,26 @@
 
         var maps = basemaps();
         maps['Rilievo'].addTo(map);
-        L.control.layers(maps, null, { collapsed: true }).addTo(map);
 
-        var stroke = color('--ivao-color-product-artifice-dark', '#e26e17');
         var layers = [];
 
         shapes.forEach(function (s) {
             var pts = s.p || [];
             if (pts.length < 2) return;
+            // Ogni tracciato è disegnato DUE VOLTE: una fascia bianca sotto e la linea colorata sopra. È la
+            // tecnica cartografica del casing, e qui non è un vezzo — su un fondo a rilievo, che passa dal verde
+            // al marrone al blu, una linea sola cambia contrasto a ogni valle e sparisce dove il terreno ha il
+            // suo stesso tono.
+            var casing = s.c
+                ? L.polygon(pts, { color: '#fff', weight: 5, opacity: 0.9, fill: false, interactive: false })
+                : L.polyline(pts, { color: '#fff', weight: 5, opacity: 0.9, interactive: false });
             // Chiuso = area, aperto = linea. La distinzione viene dal file e NON si corregge qui: i tracciati
             // aperti del sectorfile sono archi e confini, e chiuderli disegnerebbe una figura inesistente.
             var layer = s.c
-                ? L.polygon(pts, { color: stroke, weight: 2, fillColor: stroke, fillOpacity: 0.07 })
-                : L.polyline(pts, { color: stroke, weight: 2 });
+                ? L.polygon(pts, { color: MVA_COLOR, weight: 2.5, fillColor: MVA_COLOR, fillOpacity: 0.05 })
+                : L.polyline(pts, { color: MVA_COLOR, weight: 2.5 });
             if (s.n) layer.bindTooltip(s.n, { sticky: true });
+            casing.addTo(map);
             layer.addTo(map);
             layers.push(layer);
         });
@@ -96,6 +118,21 @@
             });
             return b;
         }
+
+        // AoR della stessa parte di documento: contesto accendibile, spento all'apertura. Non entra nei bounds —
+        // l'inquadratura resta quella delle minime, che sono il contenuto della sezione.
+        var overlays = {};
+        aor.forEach(function (s) {
+            var rings = (s.rings || []).filter(function (r) { return r && r.length >= 3; });
+            if (!rings.length) return;
+            var col = color(s.color, '--ivao-lightblue');
+            overlays['AoR ' + (s.sec || '')] = L.layerGroup(rings.map(function (r) {
+                // Solo contorno tratteggiato: accesi in più d'uno, i riempimenti si sommavano e annacquavano
+                // le minime, che sono il contenuto della sezione — l'AoR qui è un riferimento, non un dato.
+                return L.polygon(r, { color: col, weight: 2, dashArray: '7,5', fill: false, interactive: false });
+            }));
+        });
+        L.control.layers(maps, Object.keys(overlays).length ? overlays : null, { collapsed: true }).addTo(map);
 
         var bounds = boundsOf();
         if (bounds) { fitBox(bounds); map.fitBounds(bounds, { padding: [18, 18] }); }

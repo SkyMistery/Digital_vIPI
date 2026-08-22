@@ -23,7 +23,7 @@
         break;
     case "frequencies": <AppFrequencies Rows="Freqs ?? Array.Empty<AppFreqRow>()" /> break;
     @* Una mappa per file .mva: @key sull'albero come per l'AoR, così al cambio root il JS re-inizializza. *@
-    case "minima": <MinimaSection @key="@(Block.Key + ":minima:" + Root)" View="Minima ?? MinimaView.Empty" /> break;
+    case "minima": <MinimaSection @key="@(Block.Key + ":minima:" + Root)" View="Minima ?? MinimaView.Empty" Aor="Aor" /> break;
     case "vfr": <AppVfr Content="ParseVfr(Block.VfrJson)" /> break;
     case "coordination": <AccCoordinationView Coord="Coord ?? AccCoordination.Empty" LeadSentence="@(Editorial?.LeadSentence ?? false)" /> break;
     case "regulated": <RegulatedAreas Areas="Areas ?? Array.Empty<AccSpecialAreaView>()" /> break;
