@@ -132,6 +132,95 @@ public static class AuroraSectorfileParser
 
     private static string? Blank(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 
+    // --- MRVA (ENRMVA/{acc}.mva e {icao}.mva) ---
+
+    /// <summary>
+    /// Parsa un file <c>.mva</c> (minime di vettoramento) in <see cref="MvaChart"/>: tracciati ed etichette,
+    /// <b>verbatim</b>. Due tipi di riga, indipendenti fra loro:
+    /// <list type="bullet">
+    /// <item><c>L;nome;lat;lon;TESTO;colore;</c> — testo piazzato in un punto. Non è l'attributo quota di un'area:
+    /// in <c>liph.mva</c> le dieci <c>L;</c> stanno tutte in cima al file, prima di qualsiasi vertice.</item>
+    /// <item><c>T;gruppo;lat;lon;[extra];</c> — vertice. Il blocco chiude su riga vuota, su
+    /// <c>T;DUMMY;N000…;E000…;</c> (che alza la penna e non è un vertice) o al cambio di nome gruppo.</item>
+    /// </list>
+    /// Niente viene interpretato: il testo dell'etichetta resta com'è (<c>110</c>, <c>1500</c>, <c>TRL</c>,
+    /// <c>NO MINIMA</c>, <c>80/TRL</c> — nessun campo dice le unità), i tracciati aperti restano aperti, e
+    /// l'associazione etichetta↔area non viene dedotta perché il formato non la dichiara. Puro, deterministico.
+    /// </summary>
+    public static MvaChart ParseMva(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return MvaChart.Empty;
+
+        var labels = new List<MvaLabel>();
+        var shapes = new List<MvaShape>();
+        string? name = null;
+        List<(double Lat, double Lon)>? points = null;
+
+        void Flush()
+        {
+            // Un vertice solo non è né linea né area: niente da disegnare.
+            if (name is not null && points is { Count: >= 2 })
+            {
+                var first = points[0];
+                var last = points[^1];
+                var closed = first.Lat.Equals(last.Lat) && first.Lon.Equals(last.Lon);
+                shapes.Add(new MvaShape(name, closed, points));
+            }
+            name = null; points = null;
+        }
+
+        foreach (var raw in text.Split('\n'))
+        {
+            // I file portano commenti a fine riga ("//START Circle", "//FL110") e interi poligoni commentati:
+            // tolto il commento, quelle righe restano vuote e chiudono il blocco come una riga vuota qualsiasi.
+            var line = raw;
+            var comment = line.IndexOf("//", StringComparison.Ordinal);
+            if (comment >= 0) line = line[..comment];
+            line = line.Trim();
+            if (line.Length == 0) { Flush(); continue; }
+
+            var f = line.Split(';');
+            var tag = f[0].Trim().ToUpperInvariant();
+
+            if (tag == "L" && f.Length >= 6)
+            {
+                Flush();   // una nuova etichetta apre un blocco: quello in corso è finito
+                if (!TryParseMvaCoordinate(f[2], out var lat) || !TryParseMvaCoordinate(f[3], out var lon)) continue;
+                labels.Add(new MvaLabel(f[4].Trim(), lat, lon, Blank(f[5])));
+            }
+            else if (tag == "T" && f.Length >= 4)
+            {
+                var group = f[1].Trim();
+                if (group.Equals("DUMMY", StringComparison.OrdinalIgnoreCase)) { Flush(); continue; }
+                if (!TryParseMvaCoordinate(f[2], out var lat) || !TryParseMvaCoordinate(f[3], out var lon)) continue;
+
+                if (points is null) { name = group; points = new List<(double, double)>(); }
+                else if (!string.Equals(group, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Gruppi consecutivi senza separatore (lirs.mva, libn.mva): li distingue solo il nome.
+                    Flush();
+                    name = group; points = new List<(double, double)>();
+                }
+                points.Add((lat, lon));
+            }
+        }
+        Flush();
+
+        return labels.Count == 0 && shapes.Count == 0 ? MvaChart.Empty : new MvaChart(shapes, labels);
+    }
+
+    /// <summary>
+    /// Coordinata di un file <c>.mva</c>: le due forme DMS di <see cref="TryParseDms"/> più i <b>gradi decimali
+    /// puri</b> senza emisfero (<c>45.55756591</c>), che nel sectorfile compaiono in una riga sola —
+    /// <c>lipx.mva</c> riga 14. È un'anomalia del dato, ma scartarla farebbe sparire un'etichetta in silenzio.
+    /// </summary>
+    /// <remarks>Il ripiego vive qui e NON in <see cref="TryParseDms"/>: <see cref="ParseTowerShapes"/> usa il
+    /// rifiuto di quel metodo per distinguere un vertice da un'intestazione di blocco, e accettare numeri nudi
+    /// gliela romperebbe.</remarks>
+    private static bool TryParseMvaCoordinate(string? token, out double degrees) =>
+        TryParseDms(token, out degrees)
+        || double.TryParse(token?.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out degrees);
+
     // --- TWR shape (DYNAMIC_SEC/twrs.tfl) ---
 
     /// <summary>
@@ -175,8 +264,14 @@ public static class AuroraSectorfileParser
         return result;
     }
 
-    /// <summary>Converte una coordinata DMS Aurora (<c>N041.37.28.965</c> / <c>E015.43.18.960</c>) in gradi decimali
-    /// con segno (S/W negativi). False se malformata.</summary>
+    /// <summary>
+    /// Converte una coordinata DMS Aurora in gradi decimali con segno (S/W negativi). Accetta <b>entrambe</b> le
+    /// forme che convivono nel sectorfile italiano: quella coi punti (<c>N041.37.28.965</c>) e quella
+    /// <b>compatta</b> (<c>N0463144000</c> = 046°31'44.000"), usata da <c>liph.mva</c>, <c>itgeo.geo</c> e dai
+    /// <c>.vfi</c>. False se malformata.
+    /// </summary>
+    /// <remarks>La forma compatta si legge da destra: 3 cifre di millisecondi, 2 di secondi, 2 di primi, il resto
+    /// gradi — così vale sia per la latitudine sia per la longitudine, che ha un grado in più.</remarks>
     public static bool TryParseDms(string? token, out double degrees)
     {
         degrees = 0;
@@ -185,7 +280,10 @@ public static class AuroraSectorfileParser
         var hemi = char.ToUpperInvariant(token[0]);
         if (hemi is not ('N' or 'S' or 'E' or 'W')) return false;
 
-        var parts = token[1..].Split('.');
+        var body = token[1..];
+        if (!body.Contains('.')) return TryParseCompactDms(body, hemi, out degrees);
+
+        var parts = body.Split('.');
         if (parts.Length < 3) return false;
         // Secondi = "SS.sss": parts[2] interi + eventuale parts[3] frazione.
         var secText = parts.Length >= 4 ? parts[2] + "." + parts[3] : parts[2];
@@ -194,6 +292,28 @@ public static class AuroraSectorfileParser
         if (!double.TryParse(secText, NumberStyles.Float, CultureInfo.InvariantCulture, out var sec)) return false;
 
         var value = deg + min / 60.0 + sec / 3600.0;
+        degrees = hemi is 'S' or 'W' ? -value : value;
+        return true;
+    }
+
+    /// <summary>Forma compatta <c>DDD MM SS sss</c> senza separatori, letta da destra. Serve almeno una cifra di
+    /// gradi oltre alle 7 fisse (3 millisecondi + 2 secondi + 2 primi).</summary>
+    private static bool TryParseCompactDms(string body, char hemi, out double degrees)
+    {
+        degrees = 0;
+        if (body.Length < 8) return false;
+        foreach (var c in body) if (!char.IsAsciiDigit(c)) return false;
+
+        var frac = body[^3..];
+        var sec = body[^5..^3];
+        var min = body[^7..^5];
+        var deg = body[..^7];
+
+        if (!int.TryParse(deg, NumberStyles.Integer, CultureInfo.InvariantCulture, out var d)) return false;
+        if (!int.TryParse(min, NumberStyles.Integer, CultureInfo.InvariantCulture, out var m)) return false;
+        if (!double.TryParse(sec + "." + frac, NumberStyles.Float, CultureInfo.InvariantCulture, out var s)) return false;
+
+        var value = d + m / 60.0 + s / 3600.0;
         degrees = hemi is 'S' or 'W' ? -value : value;
         return true;
     }
