@@ -1,4 +1,4 @@
-// Battuta larga sul TEMA SCURO: su ogni pagina cerca gli elementi con un fondo dipinto quasi bianco,
+﻿// Battuta larga sul TEMA SCURO: su ogni pagina cerca gli elementi con un fondo dipinto quasi bianco,
 // cioe' quelli che NON si sono girati. E' il controllo che mancava il 22 agosto e che avrebbe preso
 // subito la legenda del visore 3D (fondo bianco scritto a mano, testo quasi bianco sopra).
 //
@@ -12,9 +12,14 @@
 // attesi su /vsop/<acc>. Tutto il resto va guardato.
 const puppeteer=require('puppeteer-core');
 const EDGE='C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
-const PAGINE=['/vsop','/vsop/lirr','/vsop/lirr/airports','/vsop/admin/struttura','/vsop/guida',
-  '/vsop/aor3d/acc/libb','/vsop/aor3d/acc/limm','/vsop/live','/vsop/versioni','/vsop/admin/confinanti',
-  '/vsop/admin/aeroporti','/vsop/search?q=li'];
+// ⚠️ Le rotte sono quelle DOPO il rename del 22 agosto (/services/vsop), e le prime due sono le pagine
+// che il tema non aveva mai visto: l'hub e lo swapper sono nati sul ramo dei servizi, cioe' dopo la
+// passata sui token. Sono esattamente il posto dove ci si aspetta un foglio sfuggito.
+const PAGINE=['/services','/services/profile-swapper',
+  '/services/vsop','/services/vsop/lirr','/services/vsop/lirr/airports','/services/vsop/admin/sector-structure',
+  '/services/vsop/guide','/services/vsop/aor3d/acc/libb','/services/vsop/aor3d/acc/limm',
+  '/services/vsop/live','/services/vsop/versions','/services/vsop/admin/neighbours',
+  '/services/vsop/admin/airports','/services/vsop/search?q=li'];
 const TROVA=()=>{
   const val=(c)=>{ if(!c) return null;
     if(c[0]==='#'){let h=c.slice(1); if(h.length===3)h=[...h].map(x=>x+x).join(''); return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16));}
@@ -47,7 +52,7 @@ await p.emulateMediaFeatures([{name:'prefers-color-scheme',value:'dark'}]);
 let tot=0;
 for(const u of PAGINE){
   try{
-    await p.goto('http://localhost:5034'+u,{waitUntil:'networkidle2',timeout:40000});
+    await p.goto('http://localhost:'+(process.env.VIPI_PORT||'5034')+u,{waitUntil:'networkidle2',timeout:40000});
     await new Promise(r=>setTimeout(r,u.includes('aor3d')?3500:1000));
     const r=await p.evaluate(TROVA);
     const uniq=[...new Map(r.map(x=>[x.cls+x.tag,x])).values()];

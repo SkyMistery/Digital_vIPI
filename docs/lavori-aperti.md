@@ -15,7 +15,22 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 > stesso identificativo**, una per ramo, e al secondo merge si è tenuta quella che porta dentro il modello
 > coi trasferimenti (l'altra ne aveva uno più povero, e lo `ModelSnapshot` deve descrivere il modello fuso).
 >
-> Restano fuori da `main`: **`refactor/13-tre-documenti`** (B5), che è una decisione e non lavoro; il ramo chiuso e mai fuso **`brand-atmosphere`**; e — dal **22 agosto** — **`feature/services-hub-profile-swapper`**, che è lavoro **finito e verificato** in attesa di merge: hub `/services`, il prefisso delle pagine a `/services/vsop` con le rotte italiane tradotte, e il primo strumento integrato (Aurora Profile Swapper). Carta in [`feature/2026-08-22-servizi-atc-e-profile-swapper.md`](feature/2026-08-22-servizi-atc-e-profile-swapper.md).
+> ✅ **Il 22 agosto sono stati fusi in `main` gli ultimi due rami che avevano roba dentro**, in quest'ordine e non
+> a caso: prima **`brand-atmosphere`** (brand IVAO alla sua fonte, tema chiaro/scuro scelto dall'utente), poi
+> **`feature/services-hub-profile-swapper`** (hub `/services`, prefisso `/services/vsop` con le rotte italiane
+> tradotte, Aurora Profile Swapper, topbar misurata). Il primo **riscrive** `vipi-theme.css` (+937/−546), il
+> secondo ci **aggiunge** poco (+130/−89): mettendo sotto il tema, il secondo merge ha riportato 130 righe sui
+> token invece di 937 all'indietro. Otto file in conflitto, risolti con una regola sola — **struttura dal ramo
+> dei servizi, colori dai token del tema**.
+>
+> Da qui **`main` è il posto dove si lavora, e non c'è più nessun ramo con lavoro fuori**: gli altri undici sono
+> tutti a zero commit di distanza. Resta **`refactor/13-tre-documenti`** (B5), che è una decisione e non lavoro.
+> Carte: [servizi ATC](feature/2026-08-22-servizi-atc-e-profile-swapper.md),
+> [brand](feature/2026-08-22-brand-atmosphere.md), [topbar misurata](feature/2026-08-22-topbar-misurata.md).
+>
+> ⚠️ **Fuso non vuol dire consegnabile**: il blocco al deploy resta dov'era — sezione E, punto 9: le migrazioni degli
+> accordi girano all'avvio e `AgreementSectionsFinalize` fallisce finché la MariaDB di produzione non è convertita. Il merge non
+> lo tocca e non lo risolve.
 >
 > - **11 agosto — audit full-stack, eseguito** (sta in B5). 34 voci, 23 chiuse, 3 ribaltate dalla misura.
 >   Tre regole di build che cambiano: `TreatWarningsAsErrors` in `Directory.Build.props`, i test che
