@@ -1656,3 +1656,22 @@ sopra): su un fondo a rilievo una linea sola cambia contrasto a ogni valle. Etic
 dell'alone, che cedeva sui bruni della montagna. **AoR accendibile** dal controllo dei livelli, spento
 all'apertura, solo contorno e fuori dall'inquadratura. Via la **didascalia** con l'aeroporto: il file copre
 un'area che va oltre lo scalo che gli dà il nome.
+
+**Seconda rifinitura, sempre dallo schermo di chi la usa.** Tre cose che nessun test poteva vedere.
+
+Il **pannello dei livelli nasce aperto**: chiuso dietro l'iconcina, l'AoR accendibile — che c'era, completo e
+funzionante — risultava semplicemente assente a chi apriva l'editor. Una funzione che chiede di indovinare
+dove cliccare, per chi guarda non esiste. Costo misurato sui documenti veri: al massimo 2 fondi + 7 settori.
+
+Via i **tooltip** sui tracciati: mostravano il nome del gruppo (`ZONA1`, `RR US0`, l'ICAO…), cioè un dettaglio
+interno del file, e seguivano il puntatore sopra la cosa che si sta guardando. Tracciati ora
+`interactive: false` — su una carta che si legge non c'è niente da cliccare.
+
+La **larghezza torna piena**, uguale a quella della mappa AoR (misurato: 729px per entrambe sulla stessa
+pagina). Restringerla per far quadrare l'aspetto dei dati — introdotto nel giro precedente per un motivo
+buono, la leggibilità — faceva due mappe di formato diverso nella stessa pagina. Si adatta la sola **altezza**
+(360–620px): su dati alti e stretti l'inquadratura lavora comunque sull'altezza, quindi darne di più è l'unico
+modo di ingrandire il disegno senza toccare la larghezza.
+
+⚠️ Da ricordare per chi torna sull'editor: il **velo grigio al primo accesso è il tour di onboarding**
+(`vt-overlay` di `vipi-tour.js`), non un guasto della pagina. Fa sembrare tutto disabilitato.
