@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Domain;
@@ -26,6 +26,10 @@ public interface IAppDocumentService
 
     /// <summary>Vista AoR come mappa a settori (APP del dominio + shape extra scelte a mano). Riusa il modello di AccAorView.</summary>
     Task<AccAorView> GetAorViewAsync(string appCallsign, CancellationToken ct = default);
+
+    /// <summary>Carta MRVA dell'aeroporto dell'APP, dal sectorfile (<c>{icao}.mva</c>). Vuota se l'aeroporto non
+    /// ha il file: nel sectorfile italiano ce l'hanno 24 aeroporti su 49 APP.</summary>
+    Task<MinimaView> DeriveMinimaAsync(string appCallsign, CancellationToken ct = default);
 
     Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default);
 
@@ -112,10 +116,12 @@ public sealed class AppDocumentService : IAppDocumentService
     private readonly ICoordinationSentenceTemplate _sentence;
     private readonly IDocumentProfileRepository _docProfiles;
     private readonly Aor.IAorService _aor;
+    private readonly IVectoringMinimaSource _minima;
 
     public AppDocumentService(IAppDerivationRepository apps, ISpecialAreaRepository areas, IEditingRepository editing,
         IEditAuthorizationService authz, ITopologyProvider topology, IAgreementService transfers,
-        ICoordinationSentenceTemplate sentence, IDocumentProfileRepository docProfiles, Aor.IAorService aor)
+        ICoordinationSentenceTemplate sentence, IDocumentProfileRepository docProfiles, Aor.IAorService aor,
+        IVectoringMinimaSource minima)
     {
         _apps = apps;
         _areas = areas;
@@ -126,16 +132,17 @@ public sealed class AppDocumentService : IAppDocumentService
         _sentence = sentence;
         _docProfiles = docProfiles;
         _aor = aor;
+        _minima = minima;
     }
 
     private static string Norm(string s) => (s ?? "").Trim().ToUpperInvariant();
 
     // Sezioni "live" dell'APP (derivate o editoriali-strutturate rese da componenti dedicati): ricevono un blocco
     // placeholder alla creazione così restano visibili nel viewer anche senza contenuto memorizzato. Doc refactor 08e.
-    // «minima» non c'è più (doc 13 §3b): è una sezione editoriale come le altre e un blocco tabella vuoto
-    // le darebbe un editor di tabella che nessuno ha chiesto.
+    // «minima» è tornata fra queste: dal giro MRVA la carta la deriva la pagina dal sectorfile, quindi la sezione
+    // ha di nuovo un corpo che non viene dai blocchi.
     private static readonly string[] LiveKeys =
-        { "separations", "configurations", "aor", "frequencies", "vfr", "coordination", "regulated" };
+        { "separations", "configurations", "aor", "frequencies", "minima", "vfr", "coordination", "regulated" };
 
     public async Task<int> EnsureAsync(string appCallsign, CancellationToken ct = default)
     {
@@ -231,6 +238,14 @@ public sealed class AppDocumentService : IAppDocumentService
         static IReadOnlyList<AppCoordGroup> ToGroups(Dictionary<string, List<AppCoordRow>> d) =>
             d.OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
                 .Select(kv => new AppCoordGroup(kv.Key, kv.Value)).ToList();
+    }
+
+    public async Task<MinimaView> DeriveMinimaAsync(string appCallsign, CancellationToken ct = default)
+    {
+        // Un APP standalone è UN aeroporto: la sua carta è il file di quell'ICAO, e l'ICAO lo dice il callsign.
+        var app = Norm(appCallsign);
+        return await MinimaCharts.ForPositionsAsync(
+            _minima, new[] { app }, await _apps.GetAirportNameMapAsync(ct), ct);
     }
 
     public async Task<AccAorView> GetAorViewAsync(string appCallsign, CancellationToken ct = default)

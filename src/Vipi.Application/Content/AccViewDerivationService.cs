@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Domain;
 
 namespace Vipi.Application.Content;
@@ -40,6 +40,7 @@ public sealed class AccViewDerivationService : IAccViewDerivationService
         var freqs = new Dictionary<string, IReadOnlyList<AppFreqRow>>(StringComparer.OrdinalIgnoreCase);
         var coord = new Dictionary<string, AccCoordination>(StringComparer.OrdinalIgnoreCase);
         var aor = new Dictionary<string, AccAorView>(StringComparer.OrdinalIgnoreCase);
+        var minima = new Dictionary<string, MinimaView>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var ab in blocks)
         {
@@ -49,8 +50,10 @@ public sealed class AccViewDerivationService : IAccViewDerivationService
                 ?? await _deriv.DeriveCoordinationAsync(accCode, ab.Block, root, ct);
             aor[ab.Block.Key] = (useFrozen ? await FrozenAsync<AccAorView>(ab, "aor") : null)
                 ?? await _deriv.DeriveAorViewAsync(accCode, ab.Block, root, ct);
+            minima[ab.Block.Key] = (useFrozen ? await FrozenAsync<MinimaView>(ab, "minima") : null)
+                ?? await _deriv.DeriveMinimaAsync(accCode, ab.Block, root, ct);
         }
-        return new AccDerivedSections(freqs, coord, aor);
+        return new AccDerivedSections(freqs, coord, aor, minima);
 
         // Frozen della sotto-sezione, keyato per Id (== RawSection.Id catturato); null se non catturata (Live/assente).
         async Task<T?> FrozenAsync<T>(AccAssembledBlock ab, string key) where T : class =>

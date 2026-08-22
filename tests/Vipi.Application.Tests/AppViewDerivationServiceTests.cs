@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Xunit;
@@ -84,6 +84,8 @@ public class AppViewDerivationServiceTests
             Task.FromResult(AppCoordination.Empty);
         public Task<AccAorView> GetAorViewAsync(string appCallsign, CancellationToken ct = default) =>
             Task.FromResult(AccAorView.Empty);
+        public Task<MinimaView> DeriveMinimaAsync(string appCallsign, CancellationToken ct = default) =>
+            Task.FromResult(MinimaView.Empty);
 
         // Resto non usato dal resolver.
         public Task<int> EnsureAsync(string a, CancellationToken ct = default) => throw new NotImplementedException();

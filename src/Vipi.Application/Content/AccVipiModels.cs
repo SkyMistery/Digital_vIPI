@@ -80,6 +80,29 @@ public sealed class AccVipiData
 /// <summary>Settore selezionabile (per picker membri gruppo / settori aperti config): callsign + nome.</summary>
 public sealed record AccSectorPick(string Callsign, string Name);
 
+/// <summary>
+/// Una carta delle minime di vettoramento, cioè il contenuto di UN file <c>.mva</c> del sectorfile. Il nome del
+/// file è l'unica attribuzione che il formato dichiari, quindi è anche l'unità di visualizzazione: come in Aurora,
+/// dove accendere le MRVA di un ente mostra tutto il suo file.
+/// </summary>
+/// <param name="Owner">L'ente a cui il file appartiene: codice ACC (<c>LIMM</c>) o ICAO (<c>LIRN</c>).</param>
+/// <param name="Title">Etichetta leggibile per la carta (nome aeroporto se noto, altrimenti l'<paramref name="Owner"/>).</param>
+/// <param name="Chart">Tracciati ed etichette verbatim dal sectorfile.</param>
+public sealed record MinimaChart(string Owner, string Title, Abstractions.MvaChart Chart);
+
+/// <summary>
+/// Sezione «Minime di vettoramento» derivata: <b>una carta per file</b>. Un blocco Aerovia ne ha una (l'enroute
+/// del suo ACC); un gruppo-APP o un APP standalone ne ha una per aeroporto membro che abbia il file — e nessuna
+/// per quelli che non ce l'hanno, che nel sectorfile italiano sono la maggioranza.
+/// </summary>
+public sealed record MinimaView(IReadOnlyList<MinimaChart> Charts)
+{
+    public static readonly MinimaView Empty = new(Array.Empty<MinimaChart>());
+
+    /// <summary>Vero se non c'è nessuna carta: la sezione lo dice, invece di mostrare una mappa vuota.</summary>
+    public bool IsEmpty => Charts.Count == 0;
+}
+
 /// <summary>Settore selezionabile come shape AoR extra (picker globale): callsign + nome IVAO + ACC di appartenenza
 /// (per cercare l'ente). Sorgente = tutti i settori DB con poligono.</summary>
 public sealed record SectorShapePick(string Callsign, string Name, string? AccCode);

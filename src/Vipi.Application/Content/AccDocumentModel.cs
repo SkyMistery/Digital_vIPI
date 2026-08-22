@@ -27,4 +27,5 @@ public sealed record AccDocumentModel(
 public sealed record AccDerivedSections(
     IReadOnlyDictionary<string, IReadOnlyList<AppFreqRow>> Freqs,
     IReadOnlyDictionary<string, AccCoordination> Coord,
-    IReadOnlyDictionary<string, AccAorView> Aor);
+    IReadOnlyDictionary<string, AccAorView> Aor,
+    IReadOnlyDictionary<string, MinimaView> Minima);

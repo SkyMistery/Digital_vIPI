@@ -1,4 +1,4 @@
-namespace Vipi.Application.Content;
+﻿namespace Vipi.Application.Content;
 
 /// <summary>
 /// Catalogo UNIFICATO delle sezioni documentali (doc refactor 08a). Fonte unica per: la natura di ogni sezione
@@ -21,11 +21,11 @@ public static class SectionCatalog
             ["frequencies"] = SectionKind.Derived,
             ["coordination"] = SectionKind.Derived,
             ["sids"] = SectionKind.Derived,   // aeroporto (doc 10 §3e): SID derivata a view-time, non più cotta
-            // «minima» è Editorial dal doc 13 §3b: le MVA non si importano (decisione 2026-08-09, lavori-aperti §E2)
-            // e si scrivono a mano. Da derivata non derivava nulla: nessun provider la catturava, il toggle
-            // Live/Congelata non aveva effetto e — peggio — l'editor non offriva i blocchi, quindi era l'unica
-            // sezione del documento in cui NON si poteva scrivere.
-            ["minima"] = SectionKind.Editorial,
+            // «minima» è tornata Derived: le MRVA si prendono dal sectorfile come CARTA (non come tabella), una
+            // per file .mva, e la pagina la disegna. La decisione del 2026-08-09 che le dichiarava non importabili
+            // riguardava la tabella area→quota, che il formato davvero non permette di ricostruire; il disegno sì,
+            // ed è quello che il controllore vede in Aurora. Vedi lavori-aperti §E2.
+            ["minima"] = SectionKind.Derived,
             ["purpose"] = SectionKind.Editorial,   // vLOA: scopo dell'accordo, prosa (doc 13 §3c)
             ["separations"] = SectionKind.Editorial,
             ["configurations"] = SectionKind.Editorial,
@@ -74,7 +74,7 @@ public static class SectionCatalog
                 H("configurations", "Configurazioni", 2),
                 H("aor", "AOR", 3),
                 H("frequencies", "Frequenze", 4),
-                D("minima", "Minime di vettoramento", 5),
+                H("minima", "Minime di vettoramento", 5),
                 H("vfr", "VFR", 6),
                 H("coordination", "Coordinamenti", 7),
                 H("regulated", "Aree regolamentate", 8),
@@ -87,7 +87,7 @@ public static class SectionCatalog
                 H("configurations", "Configurazioni", 2),
                 H("aor", "AOR", 3),
                 H("frequencies", "Frequenze", 4),
-                D("minima", "Minime di vettoramento", 5),
+                H("minima", "Minime di vettoramento", 5),
                 H("coordination", "Coordinamenti", 7),
                 H("regulated", "Aree regolamentate", 8),
                 D("operationaltechnique", "Procedure generali", 9),
@@ -99,7 +99,7 @@ public static class SectionCatalog
                 H("configurations", "Configurazioni", 2),
                 H("aor", "AOR", 3),
                 H("frequencies", "Frequenze", 4),
-                D("minima", "Minime di vettoramento", 5),
+                H("minima", "Minime di vettoramento", 5),
                 H("vfr", "VFR", 6),
                 H("coordination", "Coordinamenti", 7),
                 H("regulated", "Aree regolamentate", 8),

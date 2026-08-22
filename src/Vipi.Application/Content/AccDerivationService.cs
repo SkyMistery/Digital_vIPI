@@ -1,4 +1,4 @@
-using Vipi.Application.Aor;
+﻿using Vipi.Application.Aor;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Domain;
@@ -37,6 +37,10 @@ public interface IAccDerivationService
     /// <summary>Vista AoR del blocco: anelli per-settore (toggleabili) + configurazioni selezionabili. Una sola mappa.</summary>
     Task<AccAorView> DeriveAorViewAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default);
 
+    /// <summary>Carte MRVA del blocco, dal sectorfile: Aerovia → l'enroute dell'ACC; gruppo-APP → una carta per
+    /// aeroporto membro che abbia il file. Vuota se la sorgente non è configurata o nessun membro ha il file.</summary>
+    Task<MinimaView> DeriveMinimaAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default);
+
     /// <summary>Tabella accorpamento per ogni configurazione: settore unificato (aperto) → settori assorbiti (derivato via AorService) + CP/Range.</summary>
     Task<IReadOnlyList<AccConfigTableView>> DeriveConfigTableAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default);
 
@@ -67,9 +71,11 @@ public sealed class AccDerivationService : IAccDerivationService
     private readonly ITopologyProvider _topology;
     private readonly Aor.IAorService _aor;
     private readonly ICoordinationSentenceTemplate _sentence;
+    private readonly IVectoringMinimaSource _minima;
 
     public AccDerivationService(IAccDerivationRepository repo, ISpecialAreaRepository areas, IAgreementService transfers,
-        ITopologyProvider topology, Aor.IAorService aor, ICoordinationSentenceTemplate sentence)
+        ITopologyProvider topology, Aor.IAorService aor, ICoordinationSentenceTemplate sentence,
+        IVectoringMinimaSource minima)
     {
         _repo = repo;
         _areas = areas;
@@ -77,6 +83,7 @@ public sealed class AccDerivationService : IAccDerivationService
         _topology = topology;
         _aor = aor;
         _sentence = sentence;
+        _minima = minima;
     }
 
     public Task<IReadOnlyList<AccTreeRoot>> ListTreeRootsAsync(string accCode, CancellationToken ct = default) =>
@@ -285,6 +292,22 @@ public sealed class AccDerivationService : IAccDerivationService
     /// <summary>Membri effettivi del blocco: Aerovia con lista vuota = TUTTI i CTR dell'ACC (una vIPI per ACC, tutti
     /// gli alberi CTR insieme); altrimenti i callsign indicati. Il parametro <paramref name="rootCallsign"/> non
     /// restringe più a un sottoalbero: la vIPI ACC è unica e copre l'intero ACC.</summary>
+    public async Task<MinimaView> DeriveMinimaAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default)
+    {
+        accCode = Norm(accCode);
+
+        // Aerovia = l'enroute dell'ACC, che nel sectorfile è UN file (ENRMVA/{acc}.mva): dentro non c'è nulla che
+        // leghi un'area a un settore — tutti i poligoni portano il codice dell'ACC e basta — quindi la carta è
+        // dell'ente, come in Aurora. Non si prova a spartirla fra i CTR del blocco.
+        if (block.Kind == AccBlockKind.Aerovia)
+            return await MinimaCharts.ForAccAsync(_minima, accCode, null, ct);
+
+        // Gruppo-APP: una carta per aeroporto membro. I file per-aeroporto sì che hanno un proprietario dichiarato,
+        // ed è il nome del file.
+        var members = await MembersOfAsync(accCode, block, rootCallsign, ct);
+        return await MinimaCharts.ForPositionsAsync(_minima, members, await _repo.GetAirportNameMapAsync(ct), ct);
+    }
+
     private async Task<IReadOnlyList<string>> MembersOfAsync(string accCode, AccBlock block, string? rootCallsign, CancellationToken ct)
     {
         if (block.MemberCallsigns.Count > 0) return block.MemberCallsigns;

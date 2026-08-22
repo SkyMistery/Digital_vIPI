@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -6,7 +6,7 @@ namespace Vipi.Application.Content;
 /// «Configurazioni» non si congela, ma si deriva dalle configurazioni <b>del documento mostrato</b> (doc 13 §3g).</summary>
 public sealed record AppViewDerived(
     IReadOnlyList<AppFreqRow> Freqs, AppCoordination Coord, AccAorView Aor,
-    IReadOnlyList<AccConfigTableView> ConfigTable);
+    IReadOnlyList<AccConfigTableView> ConfigTable, MinimaView Minima);
 
 /// <summary>
 /// Risolve le sezioni derivate (freq/coord/aor/config-table) dell'APP standalone per la VISTA (doc 10 §3d): se
@@ -46,13 +46,15 @@ public sealed class AppViewDerivationService : IAppViewDerivationService
             ?? await _app.DeriveCoordinationAsync(app, ct);
         var aor = (useFrozen ? await FrozenAsync<AccAorView>("aor") : null)
             ?? await _app.GetAorViewAsync(app, ct);
+        var minima = (useFrozen ? await FrozenAsync<MinimaView>("minima") : null)
+            ?? await _app.DeriveMinimaAsync(app, ct);
 
         // L'accorpamento non si congela — si ricalcola da input già congelati — ma le CONFIGURAZIONI da cui parte
         // devono essere quelle del documento mostrato. Prendendole dal service si leggeva la versione di lavoro:
         // sulla pagina pubblica comparivano le configurazioni di una bozza mai pubblicata (doc 13 §3g).
         var configTable = await _app.DeriveConfigTableAsync(app, ConfigurationsOf(view), ct);
 
-        return new AppViewDerived(freqs, coord, aor, configTable);
+        return new AppViewDerived(freqs, coord, aor, configTable, minima);
 
         Task<T?> FrozenAsync<T>(string key) where T : class =>
             _frozen.GetFrozenByKeyAsync<T>(ReleaseTargetType.App, app, key, ct);

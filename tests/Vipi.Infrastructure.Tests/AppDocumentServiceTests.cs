@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Auth;
 using Vipi.Application.Content;
@@ -57,7 +57,8 @@ public class AppDocumentServiceTests : IAsyncLifetime
         var editing = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
         var docProfiles = new EfDocumentProfileRepository(_db);
         _service = new AppDocumentService(repo, new EfSpecialAreaRepository(_db), editing, authz, topo, transfers,
-            new StubCoordinationSentenceTemplate(), docProfiles, new Vipi.Application.Aor.AorService());
+            new StubCoordinationSentenceTemplate(), docProfiles, new Vipi.Application.Aor.AorService(),
+            new NoMinimaSource());
     }
 
     public async Task DisposeAsync()

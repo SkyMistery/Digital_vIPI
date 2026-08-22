@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
@@ -45,7 +45,7 @@ public class AccProfileTests : IAsyncLifetime
         var topo = new TopologyBuilder(_db);
         var transfers = new AgreementService(new EfAgreementRepository(_db), authz, topo);
         _service = new AccDerivationService(_repo, new EfSpecialAreaRepository(_db), transfers, topo,
-            new Vipi.Application.Aor.AorService(), new StubCoordinationSentenceTemplate());
+            new Vipi.Application.Aor.AorService(), new StubCoordinationSentenceTemplate(), new NoMinimaSource());
     }
 
     public async Task DisposeAsync()
