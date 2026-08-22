@@ -1162,6 +1162,8 @@
   <data name="Xfer_MoveDown" xml:space="preserve"><value>Move down</value></data>
   <data name="Xfer_DuplicateRow" xml:space="preserve"><value>Duplicate row (pre-filled form)</value></data>
   <data name="Xfer_CopListHint" xml:space="preserve"><value>(also a list: VALMA, ELB)</value></data>
+  <data name="Xfer_CopUnknown" xml:space="preserve"><value>Not in the catalogue: {0}. Check the spelling, or the point is not in the Italian sectorfile.</value></data>
+  <data name="Xfer_NoPoint" xml:space="preserve"><value>No point with this name</value></data>
   <data name="Xfer_Constraint" xml:space="preserve"><value>Constraint</value></data>
   <data name="Xfer_LevelText" xml:space="preserve"><value>Level text</value></data>
   <data name="Xfer_Value" xml:space="preserve"><value>Value</value></data>

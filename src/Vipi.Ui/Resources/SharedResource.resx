@@ -1165,6 +1165,8 @@
   <data name="Xfer_MoveDown" xml:space="preserve"><value>Sposta giù</value></data>
   <data name="Xfer_DuplicateRow" xml:space="preserve"><value>Duplica riga (form precompilato)</value></data>
   <data name="Xfer_CopListHint" xml:space="preserve"><value>(anche lista: VALMA, ELB)</value></data>
+  <data name="Xfer_CopUnknown" xml:space="preserve"><value>Fuori catalogo: {0}. Controlla la grafia, oppure il punto non è nel sectorfile italiano.</value></data>
+  <data name="Xfer_NoPoint" xml:space="preserve"><value>Nessun punto con questo nome</value></data>
   <data name="Xfer_Constraint" xml:space="preserve"><value>Vincolo</value></data>
   <data name="Xfer_LevelText" xml:space="preserve"><value>Testo quota</value></data>
   <data name="Xfer_Value" xml:space="preserve"><value>Valore</value></data>

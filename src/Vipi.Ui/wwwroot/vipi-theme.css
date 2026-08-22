@@ -2104,6 +2104,11 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-foot{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .xt-subform{margin:0 0 8px;background:var(--tint-atmos-soft);border-radius:6px;padding:8px}
 .xt-warn{margin:0 0 6px;font-size:12.5px}
+/* CoP che il catalogo non conosce: si SOTTOLINEA, non si tinge. La cella dei punti e' gia' in grassetto
+   (e' l'identita' della clausola dentro il gruppo di varianti) e un colore le toglierebbe quel ruolo; la
+   sottolineatura ondulata e' il segno che ovunque vuol dire «controlla come l'hai scritto». Il nome del
+   colpevole sta nel suggerimento: la colonna e' larga quanto il valore, non quanto una spiegazione. */
+.cop-unknown{text-decoration:underline wavy var(--line-yellow);text-underline-offset:3px;cursor:help}
 
 /* ---- I due versi, uno sotto l'altro (Annex D.2: D.2.1 e D.2.2 sono DUE tabelle) ----
    ⚠️ I tasti stanno IN TESTA al blocco e non a piede. Il piede-che-tiene-i-tasti vale per UN corpo che scorre;

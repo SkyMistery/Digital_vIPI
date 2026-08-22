@@ -8,6 +8,7 @@
 @inject INeighbourReader Neighbours
 @inject IAirportEditingService Airports
 @inject IAccDerivationService AccDeriv
+@inject Vipi.Application.Abstractions.INavaidSource Navaids
 @inject IStringLocalizer<SharedResource> L
 @inject IJSRuntime JS
 @inject NavigationManager Nav
@@ -1818,7 +1819,7 @@
         <XferRowsTable Rows="rows" ShowContext="showContext" CanDrag="canDrag"
                        SortColumn="@_sort.ToString()" SortDescending="_sortDesc"
                        OnSort="c => SortBy(Enum.Parse<RowSort>(c))"
-                       Selected="_selected" EditClauseId="_editClauseId"
+                       Selected="_selected" EditClauseId="_editClauseId" Navaids="_navaids"
                        Disabled="@(_busy || !_canEdit)" DragId="_dragId" DragOverId="_dragOver"
                        EditingCell="_cellEdit" CellEditor="@(_canEdit ? CellEditor : null)" OnCellClick="OpenCell"
                        OnEdit="OnEditRow" OnGoToAgreement="GoToAgreement"
@@ -1885,11 +1886,24 @@
            alle sorelle per non lasciarle contraddirsi: adesso è il lato B dell'accordo, e l'invariante non può
            più rompersi perché non c'è più niente da tenere d'accordo. *@
         <div class="xt-grp"><span>@L["Xfer_GrpIdentity"]</span></div>
-        <div class="field">
-            <label>@L["Xfer_ColPoints"] <span class="muted xt-hint">@L["Xfer_CopListHint"]</span></label>
-            <input placeholder="VALMA / VALMA, ELB, TOP" @bind="form.Points" @bind:event="oninput"
-                   @onkeydown="PanelKey" />
-        </div>
+        @* L'elenco propone sull'ULTIMA voce scritta, non su tutta la riga: dentro «VALMA, EL» il nome da
+           completare e' «EL». Qui il picker della pagina e non l'elenco nativo del browser (che invece serve
+           alle tabelle SID): l'elenco nativo filtra sul valore INTERO del campo, e su una riga con la virgola
+           non troverebbe mai niente. *@
+        <TypeaheadPicker Label="@L["Xfer_ColPoints"]" Hint="@L["Xfer_CopListHint"]"
+                         Placeholder="VALMA / VALMA, ELB, TOP" TokenList="true" Max="12"
+                         Items="PointItems(form.Points)" @bind-Text="form.Points"
+                         NoMatch="@L["Xfer_NoPoint"]" OnUnhandledKey="PanelKey" />
+        @{ var fuoriCatalogo = NavaidCheck.UnknownCops(form.Points, _navaids); }
+        @if (fuoriCatalogo.Count > 0)
+        {
+            @* Avviso NON bloccante, come lo sono gli altri di questo pannello: il catalogo e' quello italiano,
+               e un punto puo' essere legittimo e non elencato. Si segnala, non si impedisce. *@
+            <div class="callout xt-warn">
+                <span class="cic">⚠</span>
+                <div>@L["Xfer_CopUnknown", string.Join(", ", fuoriCatalogo)]</div>
+            </div>
+        }
 
         @* --- Livello autorizzato --- *@
         @PanelSection("level", L["Xfer_GrpCleared"], LevelSummary(form))
@@ -2374,6 +2388,45 @@
             .Select(a => new TypeaheadPicker.Item(a.Icao, a.Name + " - " + a.AccCode, Strong: true))
             .ToList();
 
+    /// <summary>
+    /// Carica il catalogo DOPO il primo disegno: è una discesa da GitHub con quindici secondi di timeout, e
+    /// in apertura di pagina significherebbe una colonna vuota ogni volta che la sorgente è lenta. La sorgente
+    /// muta non è un errore di questa pagina: si perdono le proposte, non si perde la scrittura.
+    /// </summary>
+    private async Task LoadNavaidsAsync()
+    {
+        try { _navaids = await Navaids.GetAsync(); }
+        catch (Exception) { }
+    }
+
+    /// <summary>
+    /// I punti da proporre per l'ULTIMA voce scritta. A voce vuota non propone niente: mille e quattrocento
+    /// nomi in ordine alfabetico non sono una proposta, sono un elenco telefonico — e la prima lettera scritta
+    /// lo riduce a qualcosa che si guarda.
+    /// </summary>
+    /// <remarks>Prima chi INIZIA col testo scritto, poi chi lo contiene: dentro «SOS» il punto cercato è SOSIV,
+    /// non BESOSA.</remarks>
+    private IReadOnlyList<TypeaheadPicker.Item> PointItems(string? raw)
+    {
+        var token = CopList.LastToken(raw);
+        if (token.Length == 0) return Array.Empty<TypeaheadPicker.Item>();
+
+        return _navaids.Entries
+            .Where(e => e.Name.Contains(token, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(e => e.Name.StartsWith(token, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+            .Take(12)
+            .Select(e => new TypeaheadPicker.Item(e.Name, KindLabel(e.Kind)))
+            .ToList();
+    }
+
+    private static string KindLabel(Vipi.Application.Abstractions.NavaidKind kind) => kind switch
+    {
+        Vipi.Application.Abstractions.NavaidKind.Vor => "VOR",
+        Vipi.Application.Abstractions.NavaidKind.Ndb => "NDB",
+        _ => "FIX",
+    };
+
     private IReadOnlyList<TypeaheadPicker.Item> AreaItems(string text) =>
         (string.IsNullOrWhiteSpace(text) ? _areas : _areas.Where(a => a.Name.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase)))
             .Take(50).Select(a => new TypeaheadPicker.Item(a.Name, a.Type)).ToList();
@@ -2598,12 +2651,21 @@
     private bool _prefsRestored;
     private bool _revealPanel;
 
+    /// <summary>
+    /// Il catalogo dei punti della divisione: propone i CoP mentre si scrivono e dice quali non risultano.
+    /// Vuoto finché non arriva, e per sempre se la sorgente tace — in quel caso non si segnala nulla, perché
+    /// un GitHub irraggiungibile non è un archivio sbagliato (vedi <see cref="NavaidCheck"/>).
+    /// </summary>
+    private Vipi.Application.Abstractions.NavaidCatalog _navaids =
+        Vipi.Application.Abstractions.NavaidCatalog.Empty;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender && !_prefsRestored)
         {
             _prefsRestored = true;
             await RestorePreferences();
+            await LoadNavaidsAsync();
             StateHasChanged();
         }
 
