@@ -19,6 +19,9 @@
   /* Lo zoom di pagina è applicato inline su <html> da App.razor (localStorage): in stampa va neutralizzato,
      altrimenti al 130% il documento esce tagliato. La dichiarazione !important d'autore batte l'inline. */
   html { zoom: 1 !important; }
+  /* Il foglio e l'inchiostro NON sono tema: qui il bianco e il nero restano letterali di proposito.
+     Il tema scuro non arriva fin qui perche' i suoi due agganci stanno sotto `@media screen`
+     (vedi vipi-theme.css, in fondo): la carta e' sempre chiara. */
   html, body { background: #fff !important; }
 
   /* Le tinte di sfondo portano informazione (piste ARR/DEP, callout, riga TL col QNH corrente, pill):
@@ -74,8 +77,8 @@
   .vipi-root .print-meta + .doc-head { display: none !important; }
   .vipi-root .print-meta { border-bottom: 2px solid var(--ivao-blue); padding-bottom: 5px; margin-bottom: 12px; }
   .vipi-root .print-meta .pm-title { margin: 0; font-size: 13pt; color: var(--ivao-blue); }
-  .vipi-root .print-meta .pm-sub { margin: 2px 0 0; font-size: 9pt; color: #444; }
-  .vipi-root .print-meta .pm-line { display: flex; flex-wrap: wrap; gap: 3mm; margin: 4px 0 0; font-size: 8.5pt; color: #555; }
+  .vipi-root .print-meta .pm-sub { margin: 2px 0 0; font-size: 9pt; color: var(--ink-strong); }
+  .vipi-root .print-meta .pm-line { display: flex; flex-wrap: wrap; gap: 3mm; margin: 4px 0 0; font-size: 8.5pt; color: var(--ink-mid); }
   .vipi-root .print-meta .pm-url { word-break: break-all; }
 
   /* ── Geometria: da layout a colonne a flusso singolo ──────────────────────────── */
@@ -169,8 +172,8 @@
 
   /* ── Ritocchi di leggibilità/inchiostro ───────────────────────────────────────── */
   /* METAR/TAF grezzi: a schermo sono un riquadro blu notte, su carta sarebbero una macchia d'inchiostro. */
-  .vipi-root .metar { background: #fff !important; color: #000 !important; border: 1px solid #999; }
-  .vipi-root .block { border: 1px solid #c8cee0; padding: 12px 14px; margin-bottom: 12px; }
+  .vipi-root .metar { background: #fff !important; color: #000 !important; border: 1px solid var(--ink-faint); }
+  .vipi-root .block { border: 1px solid var(--line-ocean-soft); padding: 12px 14px; margin-bottom: 12px; }
   /* La mappa AoR (Leaflet, o l'SVG di fallback) ha altezza fissa in px: la teniamo, ma intera su una pagina.
      L'attribuzione delle tile resta visibile (licenza della sorgente cartografica). */
   .vipi-root .aor-leaflet { break-inside: avoid; }

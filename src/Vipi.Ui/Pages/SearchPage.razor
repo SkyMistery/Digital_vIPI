@@ -1,4 +1,4 @@
-﻿@page "/vsop/search"
+@page "/vsop/search"
 @layout SopLayout
 @rendermode InteractiveServer
 @using System.Net
@@ -11,7 +11,7 @@
 <div class="wrap" style="max-width:1000px">
     <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <b>@L["Search_Title"]</b></div>
 
-    <div class="searchbar" style="background:#fff;border:1px solid var(--line);max-width:none;margin:6px 0 16px">
+    <div class="searchbar" style="background:var(--surface);border:1px solid var(--line);max-width:none;margin:6px 0 16px">
         <span class="ico"><Icon Name="search" /></span>
         <input @bind="_q" @bind:event="oninput" @onkeyup="OnKey" placeholder="@L["Search_Placeholder"]" style="color:var(--ink)" />
     </div>

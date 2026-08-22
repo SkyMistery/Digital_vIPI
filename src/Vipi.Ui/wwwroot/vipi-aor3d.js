@@ -81,7 +81,10 @@
         var cols = tx1 - tx0 + 1, rows = ty1 - ty0 + 1;
         var canvas = document.createElement('canvas'); canvas.width = cols * 256; canvas.height = rows * 256;
         var g = canvas.getContext('2d');
-        g.fillStyle = '#eef1f7'; g.fillRect(0, 0, canvas.width, canvas.height);
+        // Fondo della texture quando le tessere non arrivano. Un canvas 2D vuole un colore vero:
+        // si legge il token dal :root, cosi' segue il tema invece di restare chiaro sul buio.
+        g.fillStyle = (getComputedStyle(document.documentElement).getPropertyValue('--surface-muted') || '').trim() || '#eeeff5';
+        g.fillRect(0, 0, canvas.width, canvas.height);
 
         var texture = new THREE.CanvasTexture(canvas);
         // Estensione geografica della griglia di tile → angoli in XY (stessa proiezione dei poligoni). Il piano vi si adatta.

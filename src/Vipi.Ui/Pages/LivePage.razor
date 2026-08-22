@@ -1,4 +1,4 @@
-﻿@* Vista live UNICA (doc refactor 12). Rende il modello uniforme LiveView: la pagina non sa se sta mostrando
+@* Vista live UNICA (doc refactor 12). Rende il modello uniforme LiveView: la pagina non sa se sta mostrando
    un CTR, un APP o una torre — lo decide il descrittore per tipo (ILiveStationKind).
    /vsop/live           = la postazione con cui sei connesso su IVAO (nessun selettore: la vista segue te)
    /vsop/live/{callsign} = quella postazione, in consultazione *@
@@ -30,7 +30,7 @@
         <h2 style="margin:0">@(_view?.Title ?? L["Live_Tab"].Value)</h2>
         @if (_view is not null)
         {
-            <span class="live-badge" style="background:#dafbe7;color:#0f7a37;border-color:#a7e9c1"><span class="dot"></span> Live · @_view.Callsign</span>
+            <span class="live-badge" style="background:var(--tint-green);color:var(--ok-ink);border-color:var(--line-green)"><span class="dot"></span> Live · @_view.Callsign</span>
         }
         <span class="muted" style="font-size:13px;margin-left:auto">@L["Live_AtcOnlineN", _snapshot.Callsigns.Count] · @FeedAge()</span>
         <span class="utc-clock" title="@L["Live_UtcNow"]" data-utc-clock>--:--:--Z</span>

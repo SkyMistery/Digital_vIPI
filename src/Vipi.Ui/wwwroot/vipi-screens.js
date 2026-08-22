@@ -30,16 +30,22 @@
         { pair: 'Roma ↔ Tunisi (DTTC)', apt: 'DTTA', phase: 'arr', cop: 'ESEBA', fl: 'FL350+', chain: ['DTTC'], std: 'boundary' },
         { pair: 'Roma ↔ Tunisi (DTTC)', apt: 'DTTA', phase: 'arr', cop: 'PESUN', fl: 'FL310+', chain: ['DTTC'], std: 'boundary' },
     ];
+    // Insieme CATEGORIALE (settore successivo): i valori stanno nei token, qui solo i nomi.
+    // Una stringa di stile in linea accetta var() come qualsiasi altro CSS.
     var NEXT_PALETTE = [
-        { bg: '#e2e8ff', fg: '#0D2C99' }, { bg: '#dafbe7', fg: '#0f7a37' }, { bg: '#f0e8ff', fg: '#6a3fb5' },
-        { bg: '#ffe7d4', fg: '#9a4a00' }, { bg: '#ffe0e6', fg: '#b51d1d' }, { bg: '#d6f1fb', fg: '#0b6b86' },
+        { bg: 'var(--tint-atmos-2)', fg: 'var(--ivao-blue)' },
+        { bg: 'var(--tint-green)', fg: 'var(--ok-ink)' },
+        { bg: 'var(--tint-purple)', fg: 'var(--nbr-ink)' },
+        { bg: 'var(--tint-orange)', fg: 'var(--warn-ink-orange)' },
+        { bg: 'var(--tint-red)', fg: 'var(--danger-ink)' },
+        { bg: 'var(--tint-cyan)', fg: 'var(--cat-app-ink)' },
     ];
     var NEXT_FIXED = { WS2: 0, ES2: 1, CE1: 2, TS: 3, DTTC: 4 };
 
     function flCls(fl) { return fl.indexOf('-') >= 0 ? 'down' : 'up'; }
     function resolveNext(r) { for (var i = 0; i < r.chain.length; i++) { if (xOnline[r.chain[i]]) return r.chain[i]; } return 'UNICOM'; }
     function nextStyle(to) {
-        if (/Confine|UNICOM/.test(to)) return 'background:#eceef5;color:#555;border-left:3px solid #9aa0b0';
+        if (/Confine|UNICOM/.test(to)) return 'background:var(--surface-muted);color:var(--ink-mid);border-left:3px solid var(--ink-faint)';
         var idx = NEXT_FIXED[to];
         if (idx === undefined) { var h = 0; for (var i = 0; i < to.length; i++) h = (h * 31 + to.charCodeAt(i)) >>> 0; idx = h % NEXT_PALETTE.length; }
         var c = NEXT_PALETTE[idx % NEXT_PALETTE.length];

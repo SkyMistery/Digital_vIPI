@@ -55,9 +55,19 @@ THE SOFTWARE.
 - **Licenza:** SIL Open Font License 1.1
 - **Sito:** https://fonts.google.com/specimen/Poppins
 
-Entrambi i font sono **self-hosted** (sottoinsieme generato da Google Fonts) e dichiarati in
+## IBM Plex Mono
+
+- **File:** `src/Vipi.Ui/wwwroot/fonts/ibmplexmono-*.woff2` (subset latin/latin-ext)
+- **Copyright:** © 2017 IBM Corp.
+- **Licenza:** SIL Open Font License 1.1
+- **Sito:** https://fonts.google.com/specimen/IBM+Plex+Mono
+
+Aggiunto il 2026-08-22: è il font monospaziato previsto dal brand IVAO (`font.mono` in
+[ivaoaero/atmosphere](https://github.com/ivaoaero/atmosphere)), prima assente.
+
+Tutti e tre i font sono **self-hosted** (sottoinsieme generato da Google Fonts) e dichiarati in
 `vipi-fonts.css`. La OFL richiede che questa nota accompagni i file ridistribuiti; il testo completo
-della licenza è su https://openfontlicense.org (SIL OFL 1.1). Nessuno dei due font è venduto da solo
+della licenza è su https://openfontlicense.org (SIL OFL 1.1). Nessuno dei tre font è venduto da solo
 né usa i nomi riservati previsti dalla OFL.
 
 ---
