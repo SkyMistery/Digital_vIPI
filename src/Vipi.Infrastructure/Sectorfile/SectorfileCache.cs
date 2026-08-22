@@ -1,4 +1,5 @@
-﻿using Vipi.Application.Abstractions;
+﻿using System.Collections.Concurrent;
+using Vipi.Application.Abstractions;
 
 namespace Vipi.Infrastructure.Sectorfile;
 
@@ -19,9 +20,15 @@ public sealed class SectorfileCache
 {
     private readonly SemaphoreSlim _navGate = new(1, 1);
     private readonly SemaphoreSlim _twrGate = new(1, 1);
+    private readonly SemaphoreSlim _mvaGate = new(1, 1);
 
     private NavaidCatalog? _navaids;
     private IReadOnlyDictionary<string, string>? _towerPolygons;
+
+    // Le carte MRVA sono UNA PER ENTE (ENRMVA/{acc}.mva, {icao}.mva): a differenza delle altre due fette non c'è
+    // un file solo da tenere, ma fino a una trentina. ConcurrentDictionary e non Dictionary+lock perché
+    // Invalidate() è sincrona e non può prendere il gate asincrono che protegge i caricamenti.
+    private readonly ConcurrentDictionary<string, MvaChart> _mvaCharts = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Il catalogo dei punti, caricato una volta sola per processo.</summary>
     public async Task<NavaidCatalog> GetNavaidsAsync(
@@ -56,20 +63,41 @@ public sealed class SectorfileCache
     }
 
     /// <summary>
-    /// Butta via le due fette: il prossimo chiamante riscarica.
+    /// La carta MRVA di un ente (chiave = percorso del file), caricata una volta sola per processo. Un esito
+    /// vuoto viene messo in cache come gli altri: i 25 APP su 49 che non hanno il file darebbero altrimenti un
+    /// GET a ogni apertura del documento, per un 404 che non cambia fino al prossimo ciclo AIRAC.
+    /// </summary>
+    public async Task<MvaChart> GetMvaChartAsync(
+        string key, Func<CancellationToken, Task<MvaChart>> load, CancellationToken ct = default)
+    {
+        if (_mvaCharts.TryGetValue(key, out var hit)) return hit;
+        await _mvaGate.WaitAsync(ct);
+        try
+        {
+            if (_mvaCharts.TryGetValue(key, out var cached)) return cached;   // caricata durante l'attesa
+            var loaded = await load(ct);
+            _mvaCharts[key] = loaded;
+            return loaded;
+        }
+        finally { _mvaGate.Release(); }
+    }
+
+    /// <summary>
+    /// Butta via le tre fette: il prossimo chiamante riscarica.
     ///
     /// <para>Serve perché questa cache non scade mai. Finché conteneva solo dati d'import andava bene — il ciclo
     /// delle 24h li rileggeva comunque — ma il catalogo dei punti lo legge anche chi <b>scrive</b>: senza questo,
     /// un fix pubblicato oggi su GitHub resta invisibile ai suggerimenti fino al riavvio dell'applicazione, e
     /// l'editor segnerebbe come typo un nome che è corretto.</para>
     ///
-    /// <para>Svuota entrambe le fette e non solo i navaid: i poligoni TWR vengono dallo stesso repository e allo
-    /// stesso ritmo, e ricaricarli è un GET che nessuno aspetta (avviene alla prima richiesta, non qui).</para>
+    /// <para>Svuota tutte le fette e non solo i navaid: poligoni TWR e carte MRVA vengono dallo stesso repository
+    /// e allo stesso ritmo, e ricaricarli è un GET che nessuno aspetta (avviene alla prima richiesta, non qui).</para>
     /// </summary>
     public void Invalidate()
     {
         InvalidateNavaids();
         Volatile.Write(ref _towerPolygons, null);
+        _mvaCharts.Clear();
     }
 
     /// <summary>Butta via il solo catalogo dei punti. È la fetta che serve a chi SCRIVE, ed è l'unica che

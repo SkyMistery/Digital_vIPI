@@ -159,7 +159,7 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.ISidFixAliasRepository, EfSidFixAliasRepository>();
         if (configuration is not null)
             services.Configure<Sectorfile.SectorfileOptions>(configuration.GetSection("Sectorfile"));
-        // Cache dei file di sectorfile indipendenti dall'aeroporto (navaid, poligoni TWR). DEVE essere singleton:
+        // Cache dei file di sectorfile (navaid, poligoni TWR, carte MRVA). DEVE essere singleton:
         // gli adapter sotto sono transient (AddHttpClient<,>), quindi una cache in campo d'istanza sarebbe
         // per-risoluzione e il suo lock non sincronizzerebbe nulla. Vedi SectorfileCache.
         services.AddSingleton<Sectorfile.SectorfileCache>();
@@ -179,6 +179,14 @@ public static class DependencyInjection
 
         // Shape TWR reali dal file poligoni Aurora (twrs.tfl) su GitHub: stesso repo raw pubblico dell'import SID.
         services.AddHttpClient<Vipi.Application.Abstractions.ITowerShapeSource, Sectorfile.AuroraTowerShapeProvider>(c =>
+        {
+            c.Timeout = TimeSpan.FromSeconds(15);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
+        });
+
+        // Carte MRVA (ENRMVA/{acc}.mva, {icao}.mva): stesso repo raw. Nessun hosted service — la sezione «minime»
+        // è derivata a view-time e congelata alla release, quindi non c'è niente da importare in tabella.
+        services.AddHttpClient<Vipi.Application.Abstractions.IVectoringMinimaSource, Sectorfile.AuroraMvaProvider>(c =>
         {
             c.Timeout = TimeSpan.FromSeconds(15);
             c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
