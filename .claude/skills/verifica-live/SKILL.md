@@ -178,8 +178,10 @@ Estrarre dati dal DOM non basta: `page.screenshot()` e **aprire l'immagine**. Il
 - **`Invoke-WebRequest` 200 ≠ pagina funzionante** (vedi §4).
 - **Migration**: provarle su una **copia del `vipi.db` reale**, non solo su un DB vuoto da `EnsureCreated`.
   Un indice unico su `AirportSids(AirportId, StableKey)` passa sui test e **fallisce** sui dati veri.
-- **Dato editoriale noto**: la SID `BANA8A` di LIBD (pista 07) ha `InitialClimb = "90"` → resa «90 ft»,
-  quota implausibile (le altre BANAV hanno `9000` → «FL90»). È un errore di contenuto, non di codice.
+- **Dato editoriale noto**: al 23 agosto 2026 `BANA8A` di LIBD (pista 07) è **già corretta a `9000`** nel
+  `vipi.db` di sviluppo; quella ancora sbagliata è **`BANA5Z`** (pista 25), con `InitialClimb = "500"` →
+  resa «500 ft» mentre le altre BANAV stanno a 5000/9000. È un errore di **contenuto**, non di codice: si
+  vede a schermo nella tabella SID e non va «corretto» dal codice.
 
 ## 8. Chiudi
 

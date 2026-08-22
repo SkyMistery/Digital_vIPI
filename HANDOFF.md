@@ -1,10 +1,38 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 22 agosto 2026 (sera) — **gli import girano tutti**, **fuso in `main`**.
+**Ultimo aggiornamento:** 23 agosto 2026 — **quattro difetti chiusi**, tutti in `main`.
 **Non c'è nessun ramo con lavoro fuori.**
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
-> ## 🧭 SI RIPARTE DA QUI (22 agosto 2026, sera)
+> ## 🧭 SI RIPARTE DA QUI (23 agosto 2026)
+>
+> Quattro cose chiuse, tutte in `main`, tutte con la loro voce in
+> [`docs/lavori-aperti.md`](docs/lavori-aperti.md). In ordine di quanto sono costate a capirle:
+>
+> 1. **Aurora, il test ballerino era un difetto vero** (E6-ter). `AuroraClient.SendAsync` si connetteva
+>    *prima* di prendere il turno: due invii insieme aprivano un socket a testa, e `stream` e canale si
+>    leggevano in due istruzioni separate — si poteva scrivere su un socket e aspettare la risposta sul
+>    canale dell'altro. Inseguito per undici giorni come «lentezza del thread-pool». Visto fallire: **200
+>    giri su 200** col client vecchio.
+> 2. **Le tabelle del viewer sforavano a zoom alto**, e il colpevole non era quello scritto ieri
+>    (`.rwy-table`, non `.sid-table`). ⚠️ La regola generale che ne esce: **lo zoom di questa applicazione è
+>    `zoom` sull'`<html>`, e le media query non lo vedono**. Una soglia in `@media` è cieca allo zoom — vale
+>    per la topbar, per le tabelle e per la prossima. 144 combinazioni verificate guidando Edge.
+> 3. **La lingua non arrivava al circuito**: in Blazor Server le richieste sono due, e `/_blazor` non porta
+>    `?culture=it`. Cookie scritto **solo** su richiesta esplicita.
+> 4. **Admin = tutto lo staff di divisione** (E4), decisione del committente: il default è il jolly
+>    `^IT-[A-Z0-9]+$`, e quattro staffisti veri smettono di restare fuori.
+>
+> Più i **test property-based sull'AoR** (E5, CsCheck), che hanno trovato un commento che diceva il falso
+> sull'ordine delle coordinate.
+>
+> Cancello: `dotnet build Vipi.slnx -c Release --no-incremental` (**0 avvisi**), suite **verde su net8 e
+> net10** (E2E compresi, eseguiti in Release: i `bin/Debug` erano bloccati dall'app in esecuzione).
+>
+> ⚠️ **Il blocco al deploy non è cambiato**: la MariaDB di produzione va convertita agli accordi a sezioni
+> prima di pubblicare (E6-bis §9), o `AgreementSectionsFinalize` fallisce all'avvio.
+
+> ## ⚪ STORIA — il giro degli import (22 agosto 2026, sera)
 >
 > **L'ultimo lavoro è in `main`**: il ramo `sorgenti-giro-ta-piste` è stato fuso e cancellato (merge
 > `9be2200`). **Non resta nessun ramo con lavoro fuori.** Per riprendere da freddo si legge **un** file:

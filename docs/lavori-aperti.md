@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 22 agosto 2026 (sera, dopo il merge di `coordinamenti-lettura`) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+**Aggiornato:** 23 agosto 2026 (quattro difetti chiusi: E4 decisa, E5 property-based, E6-ter, i due della topbar) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -104,23 +104,33 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 >
 > </details>
 
-> ### 🆕 22 agosto 2026 — due difetti trovati guardando, mentre si chiudeva la topbar
-> Nessuno dei due e' del chrome, e nessuno dei due e' stato toccato: sono qui perche' li ha visti la verifica
-> della barra, e perche' il primo e' **la stessa malattia appena curata**.
+> ### ✅ 23 agosto 2026 — CHIUSI: i due difetti visti mentre si chiudeva la topbar
+> Erano stati messi qui senza toccarli. Chiusi tutti e due, e **il primo aveva il colpevole sbagliato**.
 >
-> **1. La tabella SID sfora a zoom alto** (🟢 si puo' fare subito). Sul viewer aeroporto a 1280 con zoom 1.4
-> — cioe' **914 unita' di layout** — la pagina sfora di 58px, e il colpevole e' `table.sid-table` col suo
-> `min-width:720px`. Misurato che **non e' il chrome**: tolta la topbar dal DOM lo sforo resta identico.
-> ⚠️ La regola che fa scorrere le tabelle dentro di se' e' `@media (max-width:900px)`, e 914 > 900: **una
-> soglia di viewport che non vede lo zoom**, esattamente il difetto che la barra aveva. La cura e' la stessa
-> in spirito: legare quella regola alla larghezza in unita' di layout, non a quella della finestra.
+> **1. Le tabelle del viewer sforano a zoom alto** — chiuso. La diagnosi di ieri diceva `table.sid-table`
+> col suo `min-width:720px`: **non era lui**, la SID sta già dentro un `div` che scorre. Rimisurato a 1280
+> con zoom 1.4 (**914 unità di layout**): sforo di **35 unità**, e il colpevole è `table.rwy-table`, che non
+> dichiara nessun minimo e ne pretende **570** in una `.cb-body` che ne ha 497.
+> ⚠️ Confermato invece il **meccanismo**: lo zoom qui è `zoom` sull'`<html>` (`vipi-zoom.js`) e **le media
+> query non lo vedono** — misurano la finestra (1280) mentre il layout ne ha 914. Per questo la cura non è
+> spostare la soglia dei 900 ma **toglierla**: il contenitore diretto di una tabella scorre sempre,
+> `.apt-2col` passa a `minmax(0,1fr)` + `min-width:0`, e l'`overflow-wrap` dei titoli esce dalla media query
+> (il minimo di un titolo è la sua parola più lunga, che in unità di layout non si accorcia mai).
+> Verificato guidando Edge su **144 combinazioni** (6 pagine × 6 larghezze × 4 zoom): il viewer aeroporto va
+> da 48px di sforo a **0 su tutti gli zoom fino a 1.8**, e a zoom 1 la pagina è identica a prima.
+> ⚠️ **Restano fuori**, e sono **preesistenti**: i **390px con zoom ≥ 1.25** (elenco aeroporti, landing,
+> ricerca, «cosa è cambiato»). Là il layout ha 312 unità o meno, sotto il pavimento dichiarato di 375
+> (`docs/design/regole-ui-pagine-admin.md`, perimetro d'uso). Se un giorno contano, si riparte da qui.
 >
-> **2. La cultura non arriva al circuito** (🟡 merita una carta sua). Su `/services/vsop?culture=it` il
-> prerender scrive «‹ Servizi ATC» e subito dopo il circuito `InteractiveServer` ri-renderizza
-> **«ATC Services»** — inglese in pagina italiana. Vale per **ogni** pagina `InteractiveServer`: il chrome
-> resta giusto perche' e' SSR statico, ed e' per questo che non se n'era accorto nessuno. Si vede quando la
-> lingua e' scelta dalla query (o dal cookie) e non coincide con quella del browser, quindi un utente
-> italiano con browser italiano non lo incontra mai — ma un pilota straniero che sceglie l'italiano si'.
+> **2. La cultura non arriva al circuito** — chiuso. In Blazor Server le richieste sono **due**: il documento,
+> che porta `?culture=it` e vince con la stringa di query, e la connessione `/_blazor` che apre il circuito,
+> che quella stringa non ce l'ha e ricade su `Accept-Language`. Il circuito nasce con quella cultura e la
+> tiene per tutta la vita. `CultureCookieMiddleware` (in `Vipi.Hosting`, montato **dopo**
+> `UseRequestLocalization`) scrive il cookie standard di `CookieRequestCultureProvider` quando — e **solo**
+> quando — la lingua è stata chiesta esplicitamente nell'indirizzo.
+> ⚠️ **Solo su richiesta esplicita**: scriverlo anche per `Accept-Language` congelerebbe per un anno una
+> scelta che l'utente non ha mai fatto, e cambiare lingua al browser non avrebbe più effetto. Due test E2E,
+> uno per verso; verificato anche guidando Edge con `Accept-Language: en-US`.
 
 ## Dove siamo, in cinque righe
 Il **cutover MariaDB è in `main`** e verificato (A1–A8). Le sezioni **B** (branch), **C** (debito, tranne C3
@@ -881,13 +891,21 @@ L'elenco veniva da prima della riscrittura della vista live (doc 12, 31 luglio) 
   di release. Nessuno storage — le tabelle `VectoringMinimaSet/Row`, che descrivevano la strada scartata,
   sono state droppate nello stesso giro (modello dati §7.5).
 
-  ⚠️ **Resta aperto**: 25 APP su 49 non hanno il file (fra cui LIRF, LIMC, LIML, LIME, LIPS), e nel
-  sectorfile «non serve» è indistinguibile da «non l'ha ancora fatto nessuno». Se quelle carte servono, la
-  richiesta va all'AOD, non al codice.
+  ✅ **Chiuso il 23 agosto 2026 dal committente**: i 25 APP su 49 senza file (fra cui LIRF, LIMC, LIML,
+  LIME, LIPS) sono **procedurali**, e una carta di minime di vettoramento **non ce l'hanno**. Quindi il file
+  che manca non è una lacuna dell'archivio: è la risposta giusta, e la sezione che non compare è corretta.
+  Non c'è nessuna richiesta da mandare all'AOD.
 - 33 torri di aeroporti senza APP e senza padre configurato in Struttura, più LIRF stesso. Si sistemano
   dalla pagina: il filtro «solo da agganciare» li raccoglie.
-- La SID `BANA8A` di LIBD (pista 07) ha `InitialClimb = "90"` → resa «90 ft», quota implausibile. Da
-  correggere nell'editor: è un dato, non un bug.
+- ⚠️ **La SID `BANA8A` di LIBD è GIÀ a `9000`** nel `vipi.db` di sviluppo (verificato il 23 agosto 2026):
+  qualcuno l'ha corretta e nessun documento se n'era accorto. **Da rifare in produzione**, dove nessuno l'ha
+  guardata.
+  ⚠️ **Ma nello stesso aeroporto ce n'è un'altra, e non era in elenco:** `BANA5Z` (pista 25) ha
+  `InitialClimb = "500"` → resa «500 ft», mentre tutte le altre BANAV stanno a 5000 o 9000. È quasi
+  certamente uno zero perduto, ma **correggerla è una decisione editoriale** e la prende chi conosce la
+  procedura. (Nel DB di sviluppo c'è anche `TESTE8A` a `80`, che però è una riga di prova, `IsImported = 0`.)
+  ℹ️ Il valore non arriva dal sectorfile: `libd.sid` **non porta la quota iniziale**, la scrivono a mano gli
+  editori — quindi è un dato che nessun import ricontrolla, e nessun import sovrascrive.
 - Il CoP **`BESIV`** dell'accordo `LIBB_ES_CTR ⇄ LDZO_CTR` (sorvoli, verso LDZO→LIBB) **non esiste nel
   sectorfile**; a una lettera di distanza c'è `BEKIV`. Lo segnala da solo l'editor degli accordi dal giro del
   22 agosto ([feature/2026-08-22-catalogo-punti-suggerimenti.md](feature/2026-08-22-catalogo-punti-suggerimenti.md)),
@@ -989,7 +1007,18 @@ la causa dei prefissi ICAO duplicati, ora deduplicati). Per restringere davvero 
 - ✅ ~~Viewer dell'**audit log**~~ — **esisteva già** (`AuditPage`, rotta `/services/vsop/admin/audit`): voce stantia.
   ⚠️ Resta la domanda aperta di prodotto: pubblicare una **release** non scrive audit (lo fa solo la
   promozione di una bozza), quindi il viewer non mostra quelle pubblicazioni.
-- 🟢 **Test property-based sull'AoR** — non c'è ancora alcuna libreria property-based nel progetto.
+- ✅ **Test property-based sull'AoR** — **fatti il 23 agosto 2026** (`AorProiezioneProperties`, CsCheck 4.8,
+  pacchetto senza dipendenze). Sei proprietà sulla proiezione: nessun punto fuori dal riquadro, lato lungo
+  sempre 400 (cioè scala uniforme), invarianza alla traslazione in longitudine, rapporto fra i lati uguale a
+  quello dell'estensione proiettata, `ProjectShared` di un poligono solo uguale a `Project`, e meno di tre
+  punti ⇒ `null`.
+  ⚠️ **Scrivendoli è uscito un difetto di documentazione**: il commento di `AorPolygonProjector` diceva coppie
+  `[lat,lon]`, mentre il formato IVAO `regionMapPolygon` mette la **longitudine prima** (lo fa
+  `ParsePoints`, e i test esistenti lo sapevano). Chi ne avesse ricavato una fixture avrebbe scritto un
+  poligono **ruotato di 90°**, e la proiezione non se ne lamenta: disegna. Commento corretto.
+  ⚠️ **Sono test non deterministici per costruzione**: i casi cambiano a ogni giro, quindi un rosso può
+  comparire su un codice fermo. Non si rilancia finché passa — è un controesempio nuovo: il seed sta nel
+  messaggio, si riproduce con `-e CsCheck_Seed=…` e si congela in un test a esempio.
 - 🟡 **Editor visuale delle mappe AoR** — è una feature di interazione, non una rifinitura: va disegnata
   con chi la userà prima di essere scritta.
 
@@ -1073,13 +1102,25 @@ migrazioni lo schema è **misto**, e cancellare un guscio si portava via clausol
 avrebbe prodotto dati **validi e sbagliati** (`AgreementId` spacciato per `SectionId`). Le migrazioni si
 leggono, non si accettano.
 
-### E6-ter ⚪ `AuroraClientTests.Richieste_in_sequenza_non_si_mescolano` è instabile
-Trovato il 17 agosto 2026 mentre si chiudeva E6-bis, e **slegato da quel lavoro** (nessun file del bridge
-toccato). In isolamento passa due volte su tre. Il test lancia due `SendAsync` insieme contro un
-`FakeAuroraServer` su socket TCP di loopback e pretende che ognuna riceva la propria risposta: la serializzazione
-che verifica è giusta, ma la prova dipende dai tempi del socket. Un rosso qui **non** significa che il client
-mescoli le richieste. Va reso deterministico (attesa esplicita invece che implicita nei tempi di rete) prima che
-qualcuno impari a rilanciare la suite finché diventa verde — che è il vero danno di un test ballerino.
+### E6-ter ✅ CHIUSA il 23 agosto 2026 — non era un test ballerino, era un **difetto del client**
+Inseguita dall'11 al 22 agosto come un problema di tempi — «il thread-pool sotto carico», «la prova dipende
+dai tempi del socket» — e per due volte la cura proposta è stata allargare l'attesa. Non era quello.
+
+`AuroraClient.SendAsync` **si connetteva prima di prendere il turno**. Due invii lanciati insieme trovavano
+entrambi «non connesso» — l'assegnazione avviene dopo `ConnectAsync`, che cede il controllo — e aprivano
+**un socket a testa**; il secondo chiudeva il primo. E peggio: `stream` e canale delle righe si leggevano in
+**due istruzioni separate**, quindi un invio poteva scrivere su un socket e aspettare la risposta sul canale
+dell'altro. Nessuna delle due arrivava a destinazione: **silenzio fino alla scadenza**, cioè esattamente
+«Nessuna risposta a #TRPOS entro 15000 ms» — che sembrava lentezza e non lo era.
+
+Adesso la connessione è **un oggetto solo** (socket + flusso + canale + ciclo di lettura), letta in un colpo,
+e si apre **dentro** il turno. Visto fallire e visto passare: col client di prima **200 giri su 200**
+aprivano due connessioni, e la prova ci metteva 3 minuti e 10; col client nuovo, **133 ms**.
+
+⚠️ **La lezione, che vale oltre questo caso:** il test lo vede solo se i due invii partono *davvero* insieme
+(due thread e un cancelletto che li rilascia). Chiamati in sequenza sullo stesso thread, su loopback la prima
+connessione fa in tempo e **il difetto non si vede** — ed è per questo che per undici giorni è sembrato un
+problema di tempi. Un rosso a intermittenza merita di essere letto nel codice prima che nel calendario.
 
 ---
 
