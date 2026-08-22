@@ -21,12 +21,33 @@ public enum ImportHealth
 }
 
 /// <summary>
+/// Le righe che <b>non</b> sono una categoria della policy: le anagrafiche, sempre di sorgente e senza
+/// spunta.
+///
+/// <para><b>Perché un'enumerazione e non un secondo <c>null</c>.</b> Fino al 22 agosto 2026 l'anagrafica ACC
+/// si riconosceva <i>solo</i> dal fatto che <c>Categoria</c> fosse <c>null</c>, e la pagina la nominava nel
+/// ramo <c>_ =></c> di tre <c>switch</c>. Con una seconda anagrafica — quella degli aeroporti — quel ramo
+/// avrebbe chiamato «ACC» anche lei, in silenzio e senza che nessun test se ne accorgesse: il dispatch che
+/// funziona finché i casi sono due.</para>
+/// </summary>
+public enum ImportAnagrafica
+{
+    /// <summary>Elenco ACC + subcenter. È la base su cui tutto il resto si appoggia.</summary>
+    Acc,
+    /// <summary>Assegnazione degli aeroporti alla loro ACC (e primo import del loro catalogo settori).</summary>
+    Aeroporti,
+}
+
+/// <summary>
 /// Una riga della pagina Sorgenti: la categoria, da dove viene, com'è andato l'ultimo giro e quando è atteso
-/// il prossimo. <paramref name="Categoria"/> è <c>null</c> per l'anagrafica ACC, che è sempre di sorgente e
-/// non ha una spunta.
+/// il prossimo.
+///
+/// <para>⚠️ <paramref name="Categoria"/> e <paramref name="Anagrafica"/> si escludono: una riga è o una
+/// categoria con la spunta, o un'anagrafica sempre di sorgente. Esattamente uno dei due è valorizzato.</para>
 /// </summary>
 public sealed record ImportOverviewRow(
     ImportCategory? Categoria,
+    ImportAnagrafica? Anagrafica,
     string StateKey,
     bool DaSorgente,
     ImportHealth Stato,
@@ -56,7 +77,7 @@ public sealed record ImportOverviewRow(
 /// </summary>
 public interface IImportOverviewService
 {
-    /// <summary>Le sei righe (anagrafica ACC + le cinque categorie), nell'ordine in cui si leggono.</summary>
+    /// <summary>Le sette righe (le due anagrafiche + le cinque categorie), nell'ordine in cui si leggono.</summary>
     Task<IReadOnlyList<ImportOverviewRow>> ListAsync(CancellationToken ct = default);
 }
 
@@ -79,18 +100,23 @@ public sealed class ImportOverviewService : IImportOverviewService
     /// <see cref="ImportCategories"/> nasce dagli hosted service (<c>AirportSector</c>, <c>SpecialArea</c>,
     /// <c>Sid</c> al singolare) e <see cref="ImportCategory"/> dalla policy. Sono la stessa riga a video.
     /// </summary>
-    private static readonly (ImportCategory? Categoria, string StateKey)[] Righe =
+    private static readonly (ImportCategory? Categoria, ImportAnagrafica? Anagrafica, string StateKey)[] Righe =
     {
-        (null, ImportCategories.Acc),                                    // anagrafica: sempre di sorgente
+        (null, ImportAnagrafica.Acc, ImportCategories.Acc),
+        // ⚠️ L'anagrafica aeroporti NON ha un giro automatico, e la chiave vuota lo dice: assegnare un
+        // aeroporto nuovo alla sua ACC crea entità (aeroporto + catalogo settori) e resta un atto di una
+        // persona. Ma la pagina deve nominarla: era l'unico modo in cui un aeroporto della divisione entra
+        // nel sito, e questo elenco non la citava affatto.
+        (null, ImportAnagrafica.Aeroporti, ""),
         // ⚠️ Stessa chiave per due righe, e non è una svista: è lo STESSO giro sugli STESSI aeroporti
         // (AirportDataImportUseCase), e il gate della policy sta per categoria dentro SourceMergeInputs —
         // quindi la categoria esclusa dice «Esclusa» da sé e ciò che resta (ultimo successo, errore della
         // sorgente) è comune a entrambe. Vedi ImportCategories.AirportData.
-        (ImportCategory.TransitionAltitude, ImportCategories.AirportData),
-        (ImportCategory.Runways, ImportCategories.AirportData),
-        (ImportCategory.Sectors, ImportCategories.AirportSector),
-        (ImportCategory.Sids, ImportCategories.Sid),
-        (ImportCategory.SpecialAreas, ImportCategories.SpecialArea),
+        (ImportCategory.TransitionAltitude, null, ImportCategories.AirportData),
+        (ImportCategory.Runways, null, ImportCategories.AirportData),
+        (ImportCategory.Sectors, null, ImportCategories.AirportSector),
+        (ImportCategory.Sids, null, ImportCategories.Sid),
+        (ImportCategory.SpecialAreas, null, ImportCategories.SpecialArea),
     };
 
     public async Task<IReadOnlyList<ImportOverviewRow>> ListAsync(CancellationToken ct = default)
@@ -103,7 +129,7 @@ public sealed class ImportOverviewService : IImportOverviewService
         var stati = (await _states.GetAllAsync(ct)).ToDictionary(s => s.Category, StringComparer.OrdinalIgnoreCase);
 
         var righe = new List<ImportOverviewRow>(Righe.Length);
-        foreach (var (categoria, chiave) in Righe)
+        foreach (var (categoria, anagrafica, chiave) in Righe)
         {
             var daSorgente = categoria is null || policy.IsImported(categoria.Value);
             var cadenza = chiave.Length == 0 ? null : _schedule.PeriodOf(chiave);
@@ -112,7 +138,7 @@ public sealed class ImportOverviewService : IImportOverviewService
             var successo = stato is null || stato.LastSuccessUtc == default ? (DateTime?)null : stato.LastSuccessUtc;
             var errore = string.IsNullOrWhiteSpace(stato?.LastError) ? null : stato!.LastError;
 
-            righe.Add(new ImportOverviewRow(categoria, chiave, daSorgente,
+            righe.Add(new ImportOverviewRow(categoria, anagrafica, chiave, daSorgente,
                 Salute(daSorgente, cadenza, successo, errore), successo, stato?.LastAttemptUtc, errore, cadenza));
         }
         return righe;

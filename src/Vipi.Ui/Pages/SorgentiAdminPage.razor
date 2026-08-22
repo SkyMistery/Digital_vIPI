@@ -108,10 +108,15 @@
                 <tbody>
                     @foreach (var r in _righe)
                     {
+                        @* Nome, descrizione e link vengono da UNA tabella (ImportCategoryLabels.Riga):
+                           erano tre switch sulla stessa categoria, e ognuno aveva un ramo di scarto che
+                           voleva dire «anagrafica ACC» — con la seconda anagrafica avrebbero chiamato ACC
+                           anche gli aeroporti, in silenzio. Letta una volta per riga, non tre. *@
+                        var t = ImportCategoryLabels.Riga(r, L);
                         <tr>
                             <td class="c-cat">
-                                <b>@Nome(r)</b>
-                                <div class="muted sorg-desc">@Descrizione(r)</div>
+                                <b>@t.Nome</b>
+                                <div class="muted sorg-desc">@t.Descrizione</div>
                             </td>
                             <td class="c-prov">
                                 @if (r.Categoria is ImportCategory cat)
@@ -148,10 +153,10 @@
                                      title="@TitoloStato(r)">@Quando(r)</div>
                             </td>
                             <td class="c-where">
-                                @* La riga porta al posto da cui l'import si lancia a mano: un sesto
-                                   bottone «importa adesso» su questa pagina sarebbe il modo in cui due
-                                   comandi della stessa cosa divergono. *@
-                                @foreach (var (testo, href) in Dove(r))
+                                @* La riga porta al posto da cui l'import si lancia a mano: un bottone
+                                   «importa adesso» su questa pagina sarebbe il modo in cui due comandi
+                                   della stessa cosa divergono. *@
+                                @foreach (var (testo, href) in t.Dove)
                                 {
                                     <a class="lnk-mini" href="@href">@testo</a>
                                 }
@@ -397,20 +402,6 @@
 
     // ---- come si legge una riga ------------------------------------------------------------------------
 
-    private string Nome(ImportOverviewRow r) =>
-        r.Categoria is ImportCategory c ? ImportCategoryLabels.Etichetta(c, L) : L["Sorg_AccLabel"];
-
-    private string Descrizione(ImportOverviewRow r) => r.Categoria switch
-    {
-        // Non è prosa d'aiuto, è il dato: dice QUALI colonne la sorgente possiede.
-        ImportCategory.TransitionAltitude => L["Sorg_TaDesc"],
-        ImportCategory.Runways => L["Sorg_RunwaysDesc"],
-        ImportCategory.Sectors => L["Sorg_SectorsDesc"],
-        ImportCategory.Sids => L["Sorg_SidDesc"],
-        ImportCategory.SpecialAreas => L["Sorg_SpecialAreasDesc"],
-        _ => L["Sorg_AccDesc"],
-    };
-
     private string Stato(ImportHealth h) => L["Sorg_St_" + h];
 
     /// <summary>⚠️ «Esclusa» è NEUTRO, non verde e non rosso: è una scelta, non un guasto (regola 108).</summary>
@@ -453,17 +444,4 @@
             ? L[p > DateTime.UtcNow ? "Sorg_LastAndNext" : "Sorg_LastAndMissed", ultimo, p.ToString("dd MMM · HH:mm")]
             : ultimo;
     }
-
-    /// <summary>Dove si tocca quel dato. Il link va all'elenco, non a un aeroporto a caso.</summary>
-    private IEnumerable<(string Testo, string Href)> Dove(ImportOverviewRow r) => r.Categoria switch
-    {
-        ImportCategory.TransitionAltitude or ImportCategory.Runways or ImportCategory.Sids =>
-            new[] { (L["Struct_NavAirports"].Value, "/services/vsop/admin/airports") },
-        ImportCategory.Sectors => new[]
-        {
-            (L["Struct_Title"].Value, "/services/vsop/admin/sector-structure"),
-            (L["Struct_NavAirports"].Value, "/services/vsop/admin/airports"),
-        },
-        _ => new[] { (L["Struct_NavAcc"].Value, "/services/vsop/admin/acc") },
-    };
 }

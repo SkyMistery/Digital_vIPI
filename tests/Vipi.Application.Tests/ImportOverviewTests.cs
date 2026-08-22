@@ -20,19 +20,49 @@ public class ImportOverviewTests
         new(new PolicyFinta(policy), new StatiFinti(stati), new CadenzaFinta());
 
     [Fact]
-    public async Task Ci_sono_sei_righe_e_l_anagrafica_ACC_e_la_prima()
+    public async Task Ci_sono_sette_righe_e_le_due_anagrafiche_stanno_in_testa()
     {
         var righe = await Servizio(ImportPolicySnapshot.AllImported).ListAsync();
 
-        Assert.Equal(6, righe.Count);
-        Assert.Null(righe[0].Categoria);                            // l'anagrafica non ha una spunta
+        Assert.Equal(7, righe.Count);
+        Assert.Equal(new[] { ImportAnagrafica.Acc, ImportAnagrafica.Aeroporti },
+            righe.Take(2).Select(r => r.Anagrafica!.Value));
         Assert.Equal(ImportCategories.Acc, righe[0].StateKey);
-        Assert.True(righe[0].DaSorgente);
+        Assert.True(righe[0].DaSorgente && righe[1].DaSorgente);    // le anagrafiche non hanno una spunta
         Assert.Equal(new[]
         {
             ImportCategory.TransitionAltitude, ImportCategory.Runways, ImportCategory.Sectors,
             ImportCategory.Sids, ImportCategory.SpecialAreas,
-        }, righe.Skip(1).Select(r => r.Categoria!.Value));
+        }, righe.Skip(2).Select(r => r.Categoria!.Value));
+    }
+
+    /// <summary>
+    /// ⚠️ Ogni riga è o una categoria con la spunta, o un'anagrafica: mai tutt'e due, mai nessuna delle due.
+    /// È l'invariante che tiene in piedi il descrittore della pagina — finché regge, «non è una categoria»
+    /// significa «è quell'anagrafica lì», e non «è quella che capita».
+    /// </summary>
+    [Fact]
+    public async Task Categoria_e_anagrafica_si_escludono()
+    {
+        var righe = await Servizio(ImportPolicySnapshot.AllImported).ListAsync();
+
+        Assert.All(righe, r => Assert.True(r.Categoria is null ^ r.Anagrafica is null));
+    }
+
+    /// <summary>
+    /// L'anagrafica aeroporti non ha un giro automatico e non deve fingerlo: assegnare un aeroporto crea
+    /// entità, e resta un atto di una persona. Ma la pagina deve nominarla — era l'unico import che non
+    /// compariva affatto in un elenco che si intitola «cosa arriva da fuori».
+    /// </summary>
+    [Fact]
+    public async Task L_anagrafica_aeroporti_dice_su_richiesta()
+    {
+        var riga = (await Servizio(ImportPolicySnapshot.AllImported).ListAsync())
+            .Single(r => r.Anagrafica == ImportAnagrafica.Aeroporti);
+
+        Assert.Equal(ImportHealth.SuRichiesta, riga.Stato);
+        Assert.Null(riga.Cadenza);
+        Assert.Null(riga.ProssimoUtc);
     }
 
     /// <summary>⚠️ Il segnaposto della riconciliazione delle aree estere non è un import e non si mostra.</summary>
