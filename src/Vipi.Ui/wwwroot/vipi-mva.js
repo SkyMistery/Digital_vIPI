@@ -132,7 +132,10 @@
                 return L.polygon(r, { color: col, weight: 2, dashArray: '7,5', fill: false, interactive: false });
             }));
         });
-        L.control.layers(maps, Object.keys(overlays).length ? overlays : null, { collapsed: true }).addTo(map);
+        // Pannello APERTO, non l'iconcina: chiuso, gli AoR accendibili non li trovava nessuno — è successo alla
+        // prima persona che ha guardato l'editor. Stessa scelta di vipi-aor.js per le shape torre. Le voci sono
+        // poche: misurate sui documenti veri, al massimo 2 fondi + 7 settori.
+        L.control.layers(maps, Object.keys(overlays).length ? overlays : null, { collapsed: false }).addTo(map);
 
         var bounds = boundsOf();
         if (bounds) { fitBox(bounds); map.fitBounds(bounds, { padding: [18, 18] }); }
@@ -151,7 +154,9 @@
             var h = Math.round(Math.min(620, Math.max(320, avail / aspect)));
             // Un po' di margine oltre l'aspetto esatto (×1.35): incorniciare al millimetro toglie il contesto
             // geografico, che qui serve — è il motivo per cui sotto c'è il rilievo.
-            var w = Math.round(Math.min(avail, Math.max(340, h * aspect * 1.35)));
+            // Il minimo tiene conto del pannello dei livelli, che sta aperto in alto a destra e occupa ~150px:
+            // sotto questa larghezza coprirebbe la carta invece di affiancarla.
+            var w = Math.round(Math.min(avail, Math.max(430, h * aspect * 1.35)));
             el.style.height = h + 'px';
             el.style.width = w + 'px';
             el.style.margin = '0 auto';
