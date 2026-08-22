@@ -1,29 +1,29 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 
 namespace Vipi.Infrastructure.Sectorfile;
 
 /// <summary>
-/// Adapter GitHub del sectorfile Aurora IT: scarica itfix/itvor (cache di processo in <see cref="SectorfileCache"/>)
-/// + <c>&lt;icao&gt;.sid</c>, carica gli alias fix, e delega a <see cref="AuroraSectorfileParser"/>. Repo pubblico raw,
-/// nessuna auth. Lifetime transient (registrato con <c>AddHttpClient&lt;,&gt;</c>): nessuno stato condiviso qui dentro.
+/// Adapter GitHub del sectorfile Aurora IT: scarica <c>&lt;icao&gt;.sid</c>, prende il catalogo dei punti da
+/// <see cref="INavaidSource"/>, carica gli alias fix, e delega a <see cref="AuroraSectorfileParser"/>. Repo pubblico
+/// raw, nessuna auth. Lifetime transient (registrato con <c>AddHttpClient&lt;,&gt;</c>): nessuno stato condiviso qui.
 /// </summary>
 public sealed class AuroraSidProvider : ISidProvider
 {
     private readonly HttpClient _http;
     private readonly SectorfileOptions _opt;
     private readonly ISidFixAliasRepository _aliases;
-    private readonly SectorfileCache _cache;
+    private readonly INavaidSource _navaids;
     private readonly ILogger<AuroraSidProvider> _log;
 
     public AuroraSidProvider(HttpClient http, IOptions<SectorfileOptions> opt, ISidFixAliasRepository aliases,
-        SectorfileCache cache, ILogger<AuroraSidProvider> log)
+        INavaidSource navaids, ILogger<AuroraSidProvider> log)
     {
         _http = http;
         _opt = opt.Value;
         _aliases = aliases;
-        _cache = cache;
+        _navaids = navaids;
         _log = log;
     }
 
@@ -34,9 +34,9 @@ public sealed class AuroraSidProvider : ISidProvider
         var sidText = await GetTextOrNullAsync($"{icao.Trim().ToLowerInvariant()}.sid", ct);
         if (sidText is null) return Array.Empty<SourceSid>();   // aeroporto senza file SID: nessun import
 
-        var nav = await GetNavaidsAsync(ct);
+        var nav = await _navaids.GetAsync(ct);
         var aliasMap = await _aliases.GetMapAsync(ct);
-        var sids = AuroraSectorfileParser.ParseSids(icao, sidText, nav, aliasMap);
+        var sids = AuroraSectorfileParser.ParseSids(icao, sidText, nav.Names, aliasMap);
 
         // Traccia l'esito: un file .sid presente ma con 0 SID estratti segnala un formato cambiato/corrotto (le righe
         // malformate vengono scartate in silenzio dal parser puro). Senza questo log la degradazione è invisibile.
@@ -47,16 +47,6 @@ public sealed class AuroraSidProvider : ISidProvider
             _log.LogInformation("SID {Icao}: {Count} estratti ({Review} da verificare fix).", icao, sids.Count, review);
         return sids;
     }
-
-    // I nomi navaid sono stabili tra i file .sid dello stesso ciclo: caricati una volta per processo dalla cache
-    // condivisa (non da un campo d'istanza, che con lifetime transient sarebbe una cache per-risoluzione).
-    private Task<IReadOnlySet<string>> GetNavaidsAsync(CancellationToken ct) =>
-        _cache.GetNavaidsAsync(async token =>
-        {
-            var fix = await GetTextOrNullAsync(_opt.FixPath, token);
-            var vor = await GetTextOrNullAsync(_opt.VorPath, token);
-            return AuroraSectorfileParser.ParseNavaids(fix, vor);
-        }, ct);
 
     private Task<string?> GetTextOrNullAsync(string relative, CancellationToken ct) =>
         SectorfileRaw.GetTextOrNullAsync(_http, _opt.RawBaseUrl, relative, ct);

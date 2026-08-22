@@ -1,6 +1,6 @@
 # Lavori aperti — elenco unico
 
-**Aggiornato:** 15 agosto 2026 · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+**Aggiornato:** 22 agosto 2026 (sera) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -26,7 +26,10 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 > Da qui **`main` è il posto dove si lavora, e non c'è più nessun ramo con lavoro fuori**: gli altri undici sono
 > tutti a zero commit di distanza — e il 22 agosto sono stati **cancellati tutti e undici**, locale e origin.
 > ⚠️ Cancellandoli è saltata fuori una cosa: **`refactor/13-tre-documenti` (B5) non aspettava nessun ok**, era
-> in `main` dal 15 agosto, portato dentro dal merge dei trasferimenti. Vedi B5. Non resta più nessun ramo.
+> in `main` dal 15 agosto, portato dentro dal merge dei trasferimenti. Vedi B5.
+>
+> ⚠️ **Quella frase è durata fino alla sera del 22 agosto**: c'è di nuovo **un** ramo con lavoro fuori,
+> `catalogo-punti-suggerimenti`, pronto e non fuso — vedi **B7**.
 > Carte: [servizi ATC](feature/2026-08-22-servizi-atc-e-profile-swapper.md),
 > [brand](feature/2026-08-22-brand-atmosphere.md), [topbar misurata](feature/2026-08-22-topbar-misurata.md).
 >
@@ -462,6 +465,25 @@ flusso funziona senza, in modalità client pubblico con PKCE (verificato il 5 ag
 
 ## B. Branch non fusi — decisioni, non lavoro
 
+### B7 🟢 `catalogo-punti-suggerimenti` — pronto, aspetta solo l'ok a fondersi
+**Unico ramo con roba dentro** (22 agosto 2026, sera). Cinque commit, spinto, allineato col remoto.
+Suite **1 677** verde su net8, `Release --no-incremental` **0 avvisi**, verifica live guidata con Edge su
+editor aeroporto (LIBD, LIRF), accordi (LIBB) e sorgenti.
+
+Contenuto e decisioni: [`feature/2026-08-22-catalogo-punti-suggerimenti.md`](feature/2026-08-22-catalogo-punti-suggerimenti.md).
+In breve: il catalogo di fix/VOR/NDB diventa una porta (`INavaidSource`), i campi punto suggeriscono e segnano
+i nomi inesistenti, gli alias dei fix diventano visibili e cancellabili.
+
+**Si può fondere quando si vuole, e non tocca la coda del cutover:** niente entità nuove, **niente migrazioni**
+— il catalogo vive in memoria. È la ragione per cui è stato progettato così: il deploy è fermo in attesa della
+conversione MariaDB (§A) e una tabella in più avrebbe allungato quella coda.
+
+⚠️ Modifiche fuori dal proprio perimetro, da sapere prima di fondere: la classe CSS `.cop-unknown` è stata
+**rinominata** in `.nav-unknown-txt` (serve a due cose ora), e `AuroraSectorfileParser.ParseNavaids` ha
+**cambiato firma** (restituisce `NavaidCatalog`, prende anche il file NDB). Entrambe propagate nello stesso
+giro — nessun chiamante resta indietro.
+
+
 ### B5 ✅ CHIUSA — il doc 13 era **già in `main`**, e nessuno se n'era accorto
 ⚠️ **Non c'era nessuna decisione da prendere.** Scoperto il 22 agosto cancellando i rami fusi: la punta di
 `refactor/13-tre-documenti` (`90aa917`, 11 agosto) risultava **antenata di `main`**, cioè zero commit fuori.
@@ -792,6 +814,14 @@ L'elenco veniva da prima della riscrittura della vista live (doc 12, 31 luglio) 
   dalla pagina: il filtro «solo da agganciare» li raccoglie.
 - La SID `BANA8A` di LIBD (pista 07) ha `InitialClimb = "90"` → resa «90 ft», quota implausibile. Da
   correggere nell'editor: è un dato, non un bug.
+- Il CoP **`BESIV`** dell'accordo `LIBB_ES_CTR ⇄ LDZO_CTR` (sorvoli, verso LDZO→LIBB) **non esiste nel
+  sectorfile**; a una lettera di distanza c'è `BEKIV`. Lo segnala da solo l'editor degli accordi dal giro del
+  22 agosto ([feature/2026-08-22-catalogo-punti-suggerimenti.md](feature/2026-08-22-catalogo-punti-suggerimenti.md)),
+  ma **correggerlo è una decisione editoriale** — può essere un typo o un punto estero non elencato — e la
+  prende chi conosce l'accordo. Finché resta così, compare anche fra i «punti presenti in un verso solo» del
+  cruscotto delle lacune, dove sembra un'asimmetria dell'archivio e non un errore di scrittura.
+- Stessa cosa da rifare **sui CoP di produzione**: il conteggio (1 su 52) è del DB di sviluppo, che ha 52
+  clausole. Aperta la pagina degli accordi, i nomi fuori catalogo si vedono sottolineati senza cercarli.
 
 ### E3 🟡 Fonte unica — «presidenza aeroporto» ✅ fatta il 9 agosto 2026; resta il distacco dai `Sector`
 Documenti e AoR girano ancora sui `Sector` (proiezione), non direttamente sui cataloghi: **quella parte

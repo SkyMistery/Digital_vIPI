@@ -1,9 +1,12 @@
+﻿using Vipi.Application.Abstractions;
+
 namespace Vipi.Infrastructure.Sectorfile;
 
 /// <summary>
-/// Cache di processo (singleton) dei file del sectorfile Aurora indipendenti dall'aeroporto: elenco navaid
-/// (<c>itfix</c>+<c>itvor</c>) e poligoni TWR (<c>twrs.tfl</c>). Sono file grandi e stabili per ciclo di import,
-/// richiesti da più percorsi (job periodico SID, bottone import nell'editor, fallback shape TWR).
+/// Cache di processo (singleton) dei file del sectorfile Aurora indipendenti dall'aeroporto: catalogo dei punti
+/// (<c>itvor</c>+<c>itndb</c>+<c>itfix</c>) e poligoni TWR (<c>twrs.tfl</c>). Sono file grandi e stabili per ciclo
+/// di import, richiesti da più percorsi (job periodico SID, bottone import nell'editor, fallback shape TWR,
+/// suggerimenti dei campi punto negli editor).
 /// <para>
 /// La cache vive qui e NON dentro gli adapter perché questi sono registrati con
 /// <c>AddHttpClient&lt;TInterface, TImplementation&gt;</c>, quindi con lifetime <b>transient</b>: un campo d'istanza
@@ -17,12 +20,12 @@ public sealed class SectorfileCache
     private readonly SemaphoreSlim _navGate = new(1, 1);
     private readonly SemaphoreSlim _twrGate = new(1, 1);
 
-    private IReadOnlySet<string>? _navaids;
+    private NavaidCatalog? _navaids;
     private IReadOnlyDictionary<string, string>? _towerPolygons;
 
-    /// <summary>Nomi dei navaid (fix+vor), caricati una volta sola per processo.</summary>
-    public async Task<IReadOnlySet<string>> GetNavaidsAsync(
-        Func<CancellationToken, Task<IReadOnlySet<string>>> load, CancellationToken ct = default)
+    /// <summary>Il catalogo dei punti, caricato una volta sola per processo.</summary>
+    public async Task<NavaidCatalog> GetNavaidsAsync(
+        Func<CancellationToken, Task<NavaidCatalog>> load, CancellationToken ct = default)
     {
         if (Volatile.Read(ref _navaids) is { } hit) return hit;
         await _navGate.WaitAsync(ct);
@@ -51,4 +54,25 @@ public sealed class SectorfileCache
         }
         finally { _twrGate.Release(); }
     }
+
+    /// <summary>
+    /// Butta via le due fette: il prossimo chiamante riscarica.
+    ///
+    /// <para>Serve perché questa cache non scade mai. Finché conteneva solo dati d'import andava bene — il ciclo
+    /// delle 24h li rileggeva comunque — ma il catalogo dei punti lo legge anche chi <b>scrive</b>: senza questo,
+    /// un fix pubblicato oggi su GitHub resta invisibile ai suggerimenti fino al riavvio dell'applicazione, e
+    /// l'editor segnerebbe come typo un nome che è corretto.</para>
+    ///
+    /// <para>Svuota entrambe le fette e non solo i navaid: i poligoni TWR vengono dallo stesso repository e allo
+    /// stesso ritmo, e ricaricarli è un GET che nessuno aspetta (avviene alla prima richiesta, non qui).</para>
+    /// </summary>
+    public void Invalidate()
+    {
+        InvalidateNavaids();
+        Volatile.Write(ref _towerPolygons, null);
+    }
+
+    /// <summary>Butta via il solo catalogo dei punti. È la fetta che serve a chi SCRIVE, ed è l'unica che
+    /// qualcuno possa voler rileggere subito senza aspettare il giro delle 24 ore.</summary>
+    public void InvalidateNavaids() => Volatile.Write(ref _navaids, null);
 }

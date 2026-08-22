@@ -1,3 +1,4 @@
+﻿using Vipi.Application.Abstractions;
 using Vipi.Infrastructure.Sectorfile;
 using Xunit;
 
@@ -17,10 +18,10 @@ public class SectorfileCacheTests
         var cache = new SectorfileCache();
         var loads = 0;
 
-        Task<IReadOnlySet<string>> Load(CancellationToken _)
+        Task<NavaidCatalog> Load(CancellationToken _)
         {
             Interlocked.Increment(ref loads);
-            return Task.FromResult<IReadOnlySet<string>>(new HashSet<string> { "ELB", "TAQ" });
+            return Task.FromResult(Catalog("ELB", "TAQ"));
         }
 
         var a = await cache.GetNavaidsAsync(Load);
@@ -39,11 +40,11 @@ public class SectorfileCacheTests
         var loads = 0;
         using var release = new SemaphoreSlim(0);
 
-        async Task<IReadOnlySet<string>> SlowLoad(CancellationToken ct)
+        async Task<NavaidCatalog> SlowLoad(CancellationToken ct)
         {
             Interlocked.Increment(ref loads);
             await release.WaitAsync(ct);   // tiene aperto il caricamento finché tutti i chiamanti sono in coda
-            return new HashSet<string> { "ELB" };
+            return Catalog("ELB");
         }
 
         var callers = Enumerable.Range(0, 16).Select(_ => cache.GetNavaidsAsync(SlowLoad)).ToArray();
@@ -83,7 +84,7 @@ public class SectorfileCacheTests
     {
         var cache = new SectorfileCache();
 
-        await cache.GetNavaidsAsync(_ => Task.FromResult<IReadOnlySet<string>>(new HashSet<string> { "ELB" }));
+        await cache.GetNavaidsAsync(_ => Task.FromResult(Catalog("ELB")));
         var twrLoads = 0;
         await cache.GetTowerPolygonsAsync(_ =>
         {
@@ -93,4 +94,32 @@ public class SectorfileCacheTests
 
         Assert.Equal(1, twrLoads);   // il caricamento navaid non deve "riempire" lo slot dei poligoni
     }
+
+    [Fact]
+    public async Task Invalidate_Fa_Riscaricare_Entrambe_Le_Fette()
+    {
+        var cache = new SectorfileCache();
+        int navLoads = 0, twrLoads = 0;
+
+        Task<NavaidCatalog> Nav(CancellationToken _) { navLoads++; return Task.FromResult(Catalog("ELB")); }
+        Task<IReadOnlyDictionary<string, string>> Twr(CancellationToken _)
+        {
+            twrLoads++;
+            return Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>());
+        }
+
+        await cache.GetNavaidsAsync(Nav);
+        await cache.GetTowerPolygonsAsync(Twr);
+        cache.Invalidate();
+        await cache.GetNavaidsAsync(Nav);
+        await cache.GetTowerPolygonsAsync(Twr);
+
+        // Due caricamenti per fetta: senza questo, un fix pubblicato oggi su GitHub resterebbe invisibile ai
+        // suggerimenti dell'editor fino al riavvio dell'applicazione.
+        Assert.Equal(2, navLoads);
+        Assert.Equal(2, twrLoads);
+    }
+
+    private static NavaidCatalog Catalog(params string[] names) =>
+        new(names.Select(n => new NavaidName(n, NavaidKind.Fix)));
 }

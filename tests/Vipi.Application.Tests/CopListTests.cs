@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 using Xunit;
 
 namespace Vipi.Application.Tests;
@@ -38,5 +38,36 @@ public class CopListTests
     {
         Assert.True(CopList.SameAs("TIGRA, NOSTO", "tigra,  nosto"));
         Assert.False(CopList.SameAs("TIGRA, NOSTO", "NOSTO, TIGRA"));
+    }
+
+    // --- Il token che si sta scrivendo, e la scelta che lo completa ---------------------------------
+
+    [Theory]
+    [InlineData("VALMA, EL", "EL")]
+    [InlineData("VALMA,EL", "EL")]
+    [InlineData("EL", "EL")]
+    [InlineData("VALMA, ", "")]
+    [InlineData("", "")]
+    [InlineData(null, "")]
+    public void Il_token_in_scrittura_e_quello_dopo_l_ultima_virgola(string? raw, string atteso) =>
+        Assert.Equal(atteso, CopList.LastToken(raw));
+
+    [Theory]
+    [InlineData("VALMA, EL", "ELB", "VALMA, ELB")]
+    [InlineData("VALMA,EL", "ELB", "VALMA, ELB")]
+    [InlineData("EL", "ELB", "ELB")]
+    [InlineData("VALMA, ", "ELB", "VALMA, ELB")]
+    [InlineData("", "ELB", "ELB")]
+    public void La_scelta_completa_UNA_voce_e_non_riscrive_la_riga(string raw, string picked, string atteso) =>
+        Assert.Equal(atteso, CopList.ReplaceLastToken(raw, picked));
+
+    [Fact]
+    public void La_scelta_non_lascia_una_virgola_in_coda()
+    {
+        // Quello che esce di qui e' cio' che si SALVA: una virgola finale finirebbe nella colonna. Parse la
+        // ignorerebbe, ma chi rilegge il dato a mano no.
+        var scritto = CopList.ReplaceLastToken("VALMA, EL", "ELB");
+        Assert.DoesNotContain(",", scritto[^1..]);
+        Assert.Equal(new[] { "VALMA", "ELB" }, CopList.Parse(scritto));
     }
 }

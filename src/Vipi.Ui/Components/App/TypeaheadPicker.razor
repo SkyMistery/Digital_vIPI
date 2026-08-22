@@ -1,3 +1,4 @@
+﻿@using Vipi.Application.Content
 @inject IStringLocalizer<SharedResource> L
 
 @*
@@ -87,6 +88,16 @@
     /// <summary>Quante voci mostrare al massimo: un elenco più lungo dello schermo non si sceglie, si scorre.</summary>
     [Parameter] public int Max { get; set; } = 50;
 
+    /// <summary>
+    /// Il campo contiene un ELENCO separato da virgola (i punti di una clausola): la scelta completa l'ultima
+    /// voce invece di riscrivere tutta la riga.
+    /// <para>Il come sta in <see cref="CopList"/>, dove sta già il formato di quell'elenco: qui ci sarebbe una
+    /// seconda regola sulla virgola, e due regole sullo stesso separatore sono due occasioni di scriverle
+    /// diverse. Il FILTRO resta di chi usa il componente, come per ogni altro caso — è lui che sa che deve
+    /// filtrare su <c>CopList.LastToken</c> e non sul testo intero.</para>
+    /// </summary>
+    [Parameter] public bool TokenList { get; set; }
+
     /// <summary>Contenuto extra dentro il campo (messaggi, bottoni accessori).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -159,7 +170,7 @@
     private async Task Pick(Item? item)
     {
         _open = false;
-        Text = item?.Value ?? "";
+        Text = TokenList ? CopList.ReplaceLastToken(Text, item?.Value) : item?.Value ?? "";
         await TextChanged.InvokeAsync(Text);
         await OnPick.InvokeAsync(item);
     }

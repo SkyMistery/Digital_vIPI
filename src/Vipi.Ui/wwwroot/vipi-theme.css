@@ -2104,6 +2104,13 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-foot{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .xt-subform{margin:0 0 8px;background:var(--tint-atmos-soft);border-radius:6px;padding:8px}
 .xt-warn{margin:0 0 6px;font-size:12.5px}
+/* Un NOME che il catalogo non conosce, dentro un testo: si SOTTOLINEA, non si tinge. Vale per i CoP di una
+   clausola e per il bersaglio di un alias fix. La cella dei punti e' gia' in grassetto (e' l'identita' della
+   clausola dentro il gruppo di varianti) e un colore le toglierebbe quel ruolo; la sottolineatura ondulata e'
+   il segno che ovunque vuol dire «controlla come l'hai scritto». Il nome del colpevole sta nel suggerimento:
+   la colonna e' larga quanto il valore, non quanto una spiegazione.
+   Coppia con `.nav-unknown`, che e' lo stesso fatto detto su un CAMPO invece che su un testo. */
+.nav-unknown-txt{text-decoration:underline wavy var(--line-yellow);text-underline-offset:3px;cursor:help}
 
 /* ---- I due versi, uno sotto l'altro (Annex D.2: D.2.1 e D.2.2 sono DUE tabelle) ----
    ⚠️ I tasti stanno IN TESTA al blocco e non a piede. Il piede-che-tiene-i-tasti vale per UN corpo che scorre;
@@ -2324,6 +2331,17 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .sid-edit .tok{min-width:15px;padding:1px 3px}
 .sid-edit .ic-app{margin-left:2px}
 .struct .res-table.sid-edit input{width:100%;box-sizing:border-box}
+/* Via la freccia che Chromium disegna DENTRO i campi con un elenco (`list=`). Non e' cosmesi: la freccia si
+   prende ~11px di larghezza utile, e in queste colonne quei pixel sono l'ultima lettera. Misurato a schermo con
+   «ALAXI» dentro: il campo ne offre 60, il testo ne chiede 60, il testo PIU' la freccia ne chiede 71.
+   ⚠️ Non e' un difetto introdotto dai punti: RWY («34R»: 50 utili contro 58) e TYPE («RNAV»: 66 contro 69)
+   avevano gia' l'elenco, quindi erano gia' tagliate. Allargare le colonne avrebbe voluto dire +24px su una
+   tabella che gia' misura 1068 di minimo. L'elenco continua ad aprirsi scrivendo, che e' come lo si usa.
+   ⚠️ `!important` serve DAVVERO, e non e' pigrizia: su questo pseudo-elemento lo stile del browser vince su
+   quello dell'autore. Provato a schermo — la stessa regola senza `!important` lascia il taglio a 71px, con
+   qualunque selettore: corto, con l'attributo, o con `.struct .res-table.sid-edit` davanti. Non e' la
+   specificita' a decidere qui, quindi alzarla non serve a niente. */
+.struct .res-table.sid-edit input::-webkit-calendar-picker-indicator{display:none !important}
 /* ⚠️ 76px e non 52: l'initial climb arriva a cinque cifre («11000») e il campo numerico porta anche le
    frecce. A 52 il valore si vedeva a metà — misurato scrivendoci dentro, non stimato. */
 .struct .res-table.sid-edit .in-climb{width:76px}
@@ -2333,6 +2351,13 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .struct .res-table.sid-edit .in-fix{width:64px}
 .struct .res-table.sid-edit .ic-app{white-space:nowrap}
 .struct .res-table.sid-edit .fix-warn{color:var(--warn-ink);margin-right:2px}
+/* Punto che il catalogo del sectorfile non conosce: si tinge il CAMPO, che non costa un pixel di colonna.
+   L'ombra interna fa leggere il bordo come doppio senza toccare la scatola (box-sizing: border-box e' gia'
+   attivo qui sopra, quindi un bordo piu' spesso mangerebbe la larghezza utile invece di aggiungerla).
+   Giallo e non rosso: un nome fuori catalogo e' un dubbio, non un errore — puo' essere un punto estero che il
+   file italiano non elenca. E il bordo, non lo sfondo: una riga modificata e' gia' tinta di giallo tenue, e uno
+   sfondo su sfondo non si vedrebbe. */
+.struct .res-table.sid-edit input.nav-unknown{border-color:var(--line-yellow);box-shadow:inset 0 0 0 1px var(--line-yellow)}
 /* Cella di scelta: il comando è la cella (mouse e tastiera), la casella dentro è solo il segno. */
 .struct .res-table td.sid-pick{cursor:ns-resize;user-select:none;text-align:center}
 .struct .res-table.sid-edit td.dbl-pick{user-select:none}
@@ -2520,6 +2545,18 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 /* ⚠️ «Nessuno l'ha mai salvata» diventa un avviso solo se qualche categoria e' gia' esclusa: e' il caso in
    cui un import puo' essere fermo da mesi senza che nessuno l'abbia deciso (ImportSids, luglio 2026). */
 .struct .sorg-pane .sorg-never{color:var(--warn-ink);font-weight:600}
+/* Alias dei fix: seconda tabella dentro lo STESSO riquadro misurato, non un pannello in piu' sotto (che
+   avrebbe rimesso a scorrere la pagina). Il titoletto si stacca da cio' che sta sopra, e la tabella e'
+   stretta: due nomi corti e un tasto. */
+.struct .sorg-pane .sorg-h3{margin:22px 0 4px;font-size:14px}
+/* La riga d'aiuto NON corre per tutta la larghezza del pannello: a 1580px sono due righe che l'occhio
+   non riesce a riagganciare a capo. 70ch e' la misura gia' scelta altrove (`.guida-lead`). */
+.struct .sorg-pane .sorg-aliashelp{max-width:70ch}
+.struct .sorg-alias{table-layout:fixed;min-width:320px;max-width:520px;margin-top:8px}
+.struct .sorg-alias td{padding:7px 10px;vertical-align:middle}
+.struct .sorg-alias .c-pfx{width:120px}
+.struct .sorg-alias .c-fix{width:auto}
+.struct .sorg-alias .c-act{width:64px;text-align:right}
 
 
 /* ---- Diagnostica: tre domande, due colonne (22 agosto 2026) ----
@@ -2847,25 +2884,44 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .topbar.tb-2 .editor-btn .eb-t{display:none}
 .topbar.tb-2 .editor-btn{padding:7px 10px}
 
-/* Il badge live e' uno STATO, non un comando: il pallino lo dice quanto la frase, e il `title` la ridà
-   intera. Resta cliccabile e resta un link alla vista live. */
-.topbar.tb-2 .live-badge .lb-t{display:none}
-.topbar.tb-2 .live-badge{padding:6px 9px}
-
-/* Scaglione 3: la ricerca si chiude in un'icona e si riapre a piena riga sotto la barra.
-   ⚠️ E' uno scaglione SUO, e non insieme alle etichette, perche' chiudere la ricerca costa molto piu' che
-   accorciare un nome: e' misurato, vale 212px in un colpo. Tenendoli insieme il gradino era di 500px e a
-   1440 la barra passava da sfondare a essere mezza vuota — funzionante e brutta, con un buco di 700px in
-   mezzo. La scaletta serve a cedere UN pezzo alla volta: se il gradino e' troppo alto, non e' una scaletta. */
-.topbar.tb-3 .top-search{flex:none;min-width:0;max-width:none;width:38px;padding:7px 10px;
-  transition:width .15s}
-.topbar.tb-3 .top-search input{width:0;min-width:0;padding:0;opacity:0;transition:opacity .1s}
-/* ⚠️ `fixed` e non `absolute`, ed e' obbligatorio da quando la barra ha un `overflow` di sicurezza: un
-   discendente assoluto ci verrebbe TAGLIATO dentro, e il campo di ricerca aperto si vedrebbe a meta'. Da
-   `fixed` la quota non puo' piu' essere `100%` (non c'e' piu' un padre a cui riferirla): e' l'altezza della
-   barra, che ora ha un nome. */
-.topbar.tb-3 .top-search:focus-within{position:fixed;left:12px;right:12px;top:calc(var(--tb-h) + 6px);
-  width:auto;z-index:46;padding:9px 14px;box-shadow:0 8px 24px color-mix(in srgb,var(--ivao-blue) 28%,transparent)}
+/* Il badge live e' uno STATO, non un comando: il pallino lo dice quanto la frase, e il `title` la ridà
+
+   intera. Resta cliccabile e resta un link alla vista live. */
+
+.topbar.tb-2 .live-badge .lb-t{display:none}
+
+.topbar.tb-2 .live-badge{padding:6px 9px}
+
+
+
+/* Scaglione 3: la ricerca si chiude in un'icona e si riapre a piena riga sotto la barra.
+
+   ⚠️ E' uno scaglione SUO, e non insieme alle etichette, perche' chiudere la ricerca costa molto piu' che
+
+   accorciare un nome: e' misurato, vale 212px in un colpo. Tenendoli insieme il gradino era di 500px e a
+
+   1440 la barra passava da sfondare a essere mezza vuota — funzionante e brutta, con un buco di 700px in
+
+   mezzo. La scaletta serve a cedere UN pezzo alla volta: se il gradino e' troppo alto, non e' una scaletta. */
+
+.topbar.tb-3 .top-search{flex:none;min-width:0;max-width:none;width:38px;padding:7px 10px;
+
+  transition:width .15s}
+
+.topbar.tb-3 .top-search input{width:0;min-width:0;padding:0;opacity:0;transition:opacity .1s}
+
+/* ⚠️ `fixed` e non `absolute`, ed e' obbligatorio da quando la barra ha un `overflow` di sicurezza: un
+
+   discendente assoluto ci verrebbe TAGLIATO dentro, e il campo di ricerca aperto si vedrebbe a meta'. Da
+
+   `fixed` la quota non puo' piu' essere `100%` (non c'e' piu' un padre a cui riferirla): e' l'altezza della
+
+   barra, che ora ha un nome. */
+
+.topbar.tb-3 .top-search:focus-within{position:fixed;left:12px;right:12px;top:calc(var(--tb-h) + 6px);
+
+  width:auto;z-index:46;padding:9px 14px;box-shadow:0 8px 24px color-mix(in srgb,var(--ivao-blue) 28%,transparent)}
+
 .topbar.tb-3 .top-search:focus-within input{width:auto;flex:1;opacity:1}
 
 /* ---- Pannello release: la riga sta in UNA riga ----
@@ -2909,37 +2965,68 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .tb-menu>summary::marker{content:""}
 .tb-menu[open]>summary{background:var(--on-brand);color:var(--ivao-blue)}
 
-/* ⚠️ Viene DOPO lo scaglione 1 nel foglio, e non per caso: `.topbar.tb-1` e `.topbar.tb-4` hanno la stessa
-   specificita', quindi su `gap` e `padding` — le uniche due dichiarazioni che si contendono — vince chi e'
-   scritto per ultimo. Spostare questo blocco piu' in alto rimetterebbe la barra a 16px di padding sul
-   telefono, in silenzio. */
-.topbar.tb-4{gap:10px;padding:0 12px}
-.topbar.tb-4 .tb-menu{display:block}
-/* Quello che esce dalla riga vive nel menu: non sparisce, cambia posto. */
-.topbar.tb-4 .acc-nav,.topbar.tb-4 .staff-badge,.topbar.tb-4 .zoom-ctrl,.topbar.tb-4 .live-badge,
-.topbar.tb-4 .right>.editor-btn,.topbar.tb-4 .right>.user-chip{display:none}
-.topbar.tb-4 .right{margin-left:auto;gap:8px}
-/* Il marchio resta, ma solo il logo: il nome per esteso e' 202px su 375 di schermo. */
-.topbar.tb-4 .brand div{display:none}
-/* La ricerca resta in riga, chiusa in un'icona: e' il gesto piu' probabile da telefono. */
-.topbar.tb-4 .top-search{flex:none;width:38px;min-width:0;max-width:none;padding:7px 10px;margin-left:0}
-.topbar.tb-4 .top-search input{width:0;min-width:0;padding:0;opacity:0}
-.topbar.tb-4 .top-search:focus-within{position:fixed;left:10px;right:10px;top:calc(var(--tb-h) + 6px);
-  width:auto;z-index:46;padding:9px 14px;box-shadow:0 8px 24px color-mix(in srgb,var(--ivao-blue) 28%,transparent)}
-.topbar.tb-4 .top-search:focus-within input{width:auto;flex:1;opacity:1}
-
-/* Il pannello del menu: a piena larghezza sotto la barra, e scorre se non ci sta in altezza. */
-.topbar.tb-4 .tb-menu-pan{position:fixed;left:0;right:0;top:var(--tb-h);z-index:44;background:var(--ivao-blue);
-  padding:10px 12px 14px;box-shadow:0 10px 26px color-mix(in srgb,var(--ivao-blue) 30%,transparent);
-  max-height:calc(100vh - var(--tb-h));overflow:auto;display:flex;flex-direction:column;gap:2px}
-.topbar.tb-4 .tb-menu-pan>a{display:flex;align-items:center;gap:10px;color:var(--on-dark-softer);padding:11px 10px;
-  border-radius:9px;font-size:15px}
-.topbar.tb-4 .tb-menu-pan>a:hover{background:rgba(255,255,255,.12);color:var(--on-brand)}
-/* Gli ACC in fila dentro il menu: sono la navigazione primaria, e da telefono restano la prima cosa. */
-.topbar.tb-4 .tb-menu-acc{display:flex;flex-wrap:wrap;gap:6px;padding:2px 2px 10px;margin-bottom:6px;
-  border-bottom:1px solid rgba(255,255,255,.18)}
-.topbar.tb-4 .tb-menu-acc a{color:var(--on-dark-soft);padding:9px 15px;border-radius:9px;font-family:var(--font-head);
-  font-weight:600;background:rgba(255,255,255,.1)}
+/* ⚠️ Viene DOPO lo scaglione 1 nel foglio, e non per caso: `.topbar.tb-1` e `.topbar.tb-4` hanno la stessa
+
+   specificita', quindi su `gap` e `padding` — le uniche due dichiarazioni che si contendono — vince chi e'
+
+   scritto per ultimo. Spostare questo blocco piu' in alto rimetterebbe la barra a 16px di padding sul
+
+   telefono, in silenzio. */
+
+.topbar.tb-4{gap:10px;padding:0 12px}
+
+.topbar.tb-4 .tb-menu{display:block}
+
+/* Quello che esce dalla riga vive nel menu: non sparisce, cambia posto. */
+
+.topbar.tb-4 .acc-nav,.topbar.tb-4 .staff-badge,.topbar.tb-4 .zoom-ctrl,.topbar.tb-4 .live-badge,
+
+.topbar.tb-4 .right>.editor-btn,.topbar.tb-4 .right>.user-chip{display:none}
+
+.topbar.tb-4 .right{margin-left:auto;gap:8px}
+
+/* Il marchio resta, ma solo il logo: il nome per esteso e' 202px su 375 di schermo. */
+
+.topbar.tb-4 .brand div{display:none}
+
+/* La ricerca resta in riga, chiusa in un'icona: e' il gesto piu' probabile da telefono. */
+
+.topbar.tb-4 .top-search{flex:none;width:38px;min-width:0;max-width:none;padding:7px 10px;margin-left:0}
+
+.topbar.tb-4 .top-search input{width:0;min-width:0;padding:0;opacity:0}
+
+.topbar.tb-4 .top-search:focus-within{position:fixed;left:10px;right:10px;top:calc(var(--tb-h) + 6px);
+
+  width:auto;z-index:46;padding:9px 14px;box-shadow:0 8px 24px color-mix(in srgb,var(--ivao-blue) 28%,transparent)}
+
+.topbar.tb-4 .top-search:focus-within input{width:auto;flex:1;opacity:1}
+
+
+
+/* Il pannello del menu: a piena larghezza sotto la barra, e scorre se non ci sta in altezza. */
+
+.topbar.tb-4 .tb-menu-pan{position:fixed;left:0;right:0;top:var(--tb-h);z-index:44;background:var(--ivao-blue);
+
+  padding:10px 12px 14px;box-shadow:0 10px 26px color-mix(in srgb,var(--ivao-blue) 30%,transparent);
+
+  max-height:calc(100vh - var(--tb-h));overflow:auto;display:flex;flex-direction:column;gap:2px}
+
+.topbar.tb-4 .tb-menu-pan>a{display:flex;align-items:center;gap:10px;color:var(--on-dark-softer);padding:11px 10px;
+
+  border-radius:9px;font-size:15px}
+
+.topbar.tb-4 .tb-menu-pan>a:hover{background:rgba(255,255,255,.12);color:var(--on-brand)}
+
+/* Gli ACC in fila dentro il menu: sono la navigazione primaria, e da telefono restano la prima cosa. */
+
+.topbar.tb-4 .tb-menu-acc{display:flex;flex-wrap:wrap;gap:6px;padding:2px 2px 10px;margin-bottom:6px;
+
+  border-bottom:1px solid rgba(255,255,255,.18)}
+
+.topbar.tb-4 .tb-menu-acc a{color:var(--on-dark-soft);padding:9px 15px;border-radius:9px;font-family:var(--font-head);
+
+  font-weight:600;background:rgba(255,255,255,.1)}
+
 .topbar.tb-4 .tb-menu-acc a.active{background:var(--on-brand);color:var(--ivao-blue);font-weight:700}
 /* Le tre scelte del tema, esplicite: a questo scaglione il tasto della barra non c'e' piu' e questo e' il
    solo posto dove il tema si sceglie. Lo stato attivo lo segna vipiApplyTema() con la classe `on`. */

@@ -1,4 +1,5 @@
-﻿@inject IStringLocalizer<SharedResource> L
+﻿@using Vipi.Application.Content
+@inject IStringLocalizer<SharedResource> L
 
 @*
     Tabella delle clausole. UNA, usata sia dall'accordo scelto nell'albero sia dalla vista a elenco: le due viste
@@ -217,6 +218,14 @@
     [Parameter] public EventCallback<AgreementClauseRow> OnDrop { get; set; }
 
     /// <summary>La colonna che ordina adesso (nome del valore di <c>RowSort</c>), o <c>null</c> se nessuna.</summary>
+    /// <summary>
+    /// Il catalogo dei punti, per segnare in tabella i CoP che non risultano. Assente o vuoto = nessun segno:
+    /// il giudizio e i suoi limiti stanno tutti in <see cref="NavaidCheck"/>, qui c'è solo la resa.
+    /// </summary>
+    /// <remarks>Il segno sta anche QUI e non nel solo pannello perché il pannello mostra una clausola per
+    /// volta: un typo si trova guardando l'elenco, non aprendo cinquanta riquadri.</remarks>
+    [Parameter] public Vipi.Application.Abstractions.NavaidCatalog? Navaids { get; set; }
+
     [Parameter] public string? SortColumn { get; set; }
 
     /// <summary>Verso corrente dell'ordinamento.</summary>
@@ -268,6 +277,15 @@
 
     private static string Dash(string s) => string.IsNullOrWhiteSpace(s) ? "—" : s;
 
+    /// <summary>I punti della riga. Sottolineati in giallo se almeno uno non risulta a catalogo, col nome del
+    /// colpevole nel suggerimento: la cella è larga quanto basta al valore, non a una spiegazione.</summary>
+    private RenderFragment PointsText(string value, string shown) => __builder =>
+    {
+        var unknown = NavaidCheck.UnknownCops(value, Navaids);
+        if (unknown.Count == 0) { <b>@shown</b> }
+        else { <b class="nav-unknown-txt" title="@L["Xfer_CopUnknown", string.Join(", ", unknown)]">@shown</b> }
+    };
+
     /// <summary>La cella: il valore, oppure l'editor se è questa la cella aperta.</summary>
     private RenderFragment Cell(XferTableRow r, XferCell cell) => __builder =>
     {
@@ -281,7 +299,7 @@
         else if (CellEditor is null)
         {
             @* Sola lettura: nessun bersaglio, nessun puntatore che promette una scrittura che non avverrà. *@
-            if (cell == XferCell.Points) { <b>@shown</b> } else { @shown }
+            if (cell == XferCell.Points) { @PointsText(value, shown) } else { @shown }
         }
         else
         {
@@ -290,7 +308,7 @@
             <span class="xt-cellclick" role="button" tabindex="0" title="@L["Xfer_CellEditTitle"]"
                   @onclick="() => OnCellClick.InvokeAsync(new XferCellRef(r.Clause.Id, cell))"
                   @onkeydown="e => CellKey(e, r, cell)">
-                @if (cell == XferCell.Points) { <b>@shown</b> } else { @shown }
+                @if (cell == XferCell.Points) { @PointsText(value, shown) } else { @shown }
             </span>
         }
     };

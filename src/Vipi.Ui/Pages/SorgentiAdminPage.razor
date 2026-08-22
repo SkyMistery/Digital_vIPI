@@ -7,6 +7,8 @@
 @using Vipi.Domain
 @inject IImportPolicyService Policy
 @inject IImportOverviewService Overview
+@inject INavaidSource Navaids
+@inject ISidFixAliasRepository SidAliases
 @inject IStaffRosterRepository StaffRoster
 @inject IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
@@ -52,6 +54,12 @@
                    difetto che si vede solo guardando la schermata: nessuna misura lo trova. *@
                 <button class="btn ghost" disabled="@(_busy || Cambiate.Count == 0)" @onclick="Annulla"
                         title="@L["Sorg_RevertTitle"]">@L["Sorg_Revert"]</button>
+                @* Il catalogo dei punti non è una categoria d'import — non ha una spunta e non finisce in
+                   tabella, perché non tocca il database: vive in memoria e serve a suggerire i nomi negli
+                   editor. Il tasto sta qui lo stesso perché questa è la pagina di chi guarda la SORGENTE, ed
+                   è l'unico posto da cui si può dire «rileggila adesso» senza aspettare le ventiquattro ore. *@
+                <button class="btn ghost" disabled="@_busy" @onclick="RicaricaCatalogo"
+                        title="@L["Sorg_ReloadNavaidsTitle"]"><Icon Name="refresh" Size="14" /> @L["Sorg_ReloadNavaids"]</button>
             </nav>
             @if (_msg is not null || _ok is not null)
             {
@@ -167,6 +175,64 @@
                     @L["Sorg_DecidedBy", _autore ?? _info.UpdatedByUserId.ToString(), quando.ToString("dd MMM yyyy · HH:mm")]
                 }
             </p>
+
+            @* ---- Alias dei fix ----
+               Stanno QUI, dentro il riquadro che si misura da solo, e non in una pagina propria: sono la
+               toppa manuale sopra la sorgente, cioe' esattamente la domanda di questa pagina. Un riquadro in
+               piu' sotto avrebbe rimesso a scorrere una pagina che e' stata messa a misura apposta.
+
+               ⚠️ Fino a oggi si potevano solo CREARE (la casella «alias» nell'editor aeroporto) e non si
+               vedevano da nessuna parte: `ListAsync` e `DeleteAsync` esistevano nel repository e non li
+               chiamava nessuno. Un alias sbagliato — o diventato sbagliato perche' il punto e' sparito dal
+               sectorfile — restava a risolvere per sempre, in silenzio, leggibile solo nel database. *@
+            <h3 class="sorg-h3">@L["Sorg_AliasTitle"] <span class="pill blue">@(_alias?.Count ?? 0)</span></h3>
+            <p class="help sorg-aliashelp">@L["Sorg_AliasHelp"]</p>
+
+            @if (_alias is null)
+            {
+                <LoadingState />
+            }
+            else if (_alias.Count == 0)
+            {
+                <p class="muted sorg-desc">@L["Sorg_AliasNone"]</p>
+            }
+            else
+            {
+                <table class="res-table sorg-alias">
+                    <thead><tr><th class="c-pfx">@L["Sorg_AliasColPrefix"]</th><th class="c-fix">@L["Sorg_AliasColFix"]</th><th class="c-act"></th></tr></thead>
+                    <tbody>
+                        @foreach (var a in _alias)
+                        {
+                            var ignoto = NavaidCheck.IsUnknown(a.FixName, _navaids);
+                            <tr>
+                                <td class="c-pfx"><b>@a.Prefix</b></td>
+                                <td class="c-fix">
+                                    @* Il segno e' lo stesso dei CoP fuori catalogo: un nome che non risulta si
+                                       sottolinea e si spiega nel suggerimento. Qui vale doppio, perche' l'alias
+                                       e' autoritativo — vince sull'espansione del prefisso — quindi un bersaglio
+                                       morto continuerebbe a essere scritto negli import senza che nulla protesti. *@
+                                    @if (ignoto)
+                                    {
+                                        <span class="nav-unknown-txt" title="@L["Sorg_AliasUnknown"]">@a.FixName</span>
+                                        <Icon Name="warning" Size="12" />
+                                    }
+                                    else { @a.FixName }
+                                </td>
+                                <td class="c-act">
+                                    <InlineConfirm TriggerClass="btn ghost" Disabled="@_busy" Danger="true"
+                                                   Prompt="@L["Sorg_AliasDeletePrompt", a.Prefix, a.FixName].Value"
+                                                   ConfirmLabel="@L["Common_Remove"]"
+                                                   TriggerTitle="@L["Sorg_AliasDeleteTitle"]"
+                                                   AriaLabel="@L["Sorg_AliasDeleteTitle"]"
+                                                   OnConfirm="() => EliminaAlias(a)">
+                                        <Trigger>✕</Trigger>
+                                    </InlineConfirm>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
             </div>
         </div>
     }
@@ -177,6 +243,14 @@
     private ImportPolicySnapshot _salvata = ImportPolicySnapshot.AllImported;
     private ImportPolicyInfo? _info;
     private IReadOnlyList<ImportOverviewRow>? _righe;
+
+    /// <summary>Gli alias fix, o null finché non sono letti. Vivono qui perché questa è la pagina della
+    /// sorgente, e un alias è la deroga manuale a ciò che la sorgente dice.</summary>
+    private IReadOnlyList<SidFixAliasRow>? _alias;
+
+    /// <summary>Il catalogo dei punti: serve a dire quali alias puntano a un nome che non esiste più. Vuoto
+    /// finché non arriva (e per sempre, se la sorgente tace): in quel caso non si segnala nulla.</summary>
+    private NavaidCatalog _navaids = NavaidCatalog.Empty;
     private string? _autore;
     private bool _busy;
     private string? _msg, _ok;
@@ -190,6 +264,20 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!Authz.IsAdmin) return;
+
+        // Il catalogo DOPO il primo disegno e non in apertura: è una discesa da GitHub con quindici secondi di
+        // timeout, e in `OnInitializedAsync` significherebbe una pagina che non compare quando la sorgente è
+        // lenta. Serve solo a marcare gli alias, quindi può arrivare un istante dopo.
+        if (firstRender)
+        {
+            try
+            {
+                _navaids = await Navaids.GetAsync();
+                if (_navaids.Entries.Count > 0) StateHasChanged();
+            }
+            catch (Exception) { }
+        }
+
         // A OGNI render: il «?» aperto, la conferma in linea e la fascia di stato cambiano ciò che sta sopra,
         // e «schermo meno ciò che sta sopra» in CSS non è esprimibile.
         try { await JS.InvokeVoidAsync("vipiCapViewport", ".sorg-pane", 900); } catch (Exception) { }
@@ -200,6 +288,7 @@
         _info = await Policy.GetInfoAsync();
         _p = _salvata = _info.Policy;
         _righe = await Overview.ListAsync();
+        _alias = await SidAliases.ListAsync();
 
         // Un VID non è un nome: il roster ce l'ha già (come su Audit, Versioni e Permessi).
         _autore = null;
@@ -267,6 +356,41 @@
             await LoadAsync();       // stato e provenienze si rileggono insieme: sono la stessa riga
         }
         catch (EditNotAllowedException) { _msg = L["Common_OpAdminOnly"]; }
+        catch (Exception ex) { _msg = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task RicaricaCatalogo()
+    {
+        if (!Authz.IsAdmin) return;
+        _busy = true; _msg = _ok = null;
+        try
+        {
+            var catalogo = await Navaids.RefreshAsync();
+            _navaids = catalogo;   // i segni sugli alias devono raccontare il catalogo APPENA riletto
+            // Il conteggio e non un «fatto»: e' l'unica cosa che dice se la sorgente ha risposto davvero. Zero
+            // voci con la sorgente configurata significa file spostati, ed e' esattamente cio' che si vuole vedere.
+            _ok = L["Sorg_ReloadNavaidsOk", catalogo.Entries.Count];
+        }
+        catch (Exception ex) { _msg = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    /// <summary>
+    /// Toglie un alias. Non tocca le SID già importate: la risoluzione cambia al prossimo import, e questo è
+    /// voluto — un alias sbagliato ha scritto un fix sbagliato su righe che possono avere sopra del lavoro
+    /// editoriale, e cancellarlo qui vorrebbe dire deciderlo per conto di chi quel lavoro l'ha fatto.
+    /// </summary>
+    private async Task EliminaAlias(SidFixAliasRow a)
+    {
+        if (!Authz.IsAdmin) return;
+        _busy = true; _msg = _ok = null;
+        try
+        {
+            await SidAliases.DeleteAsync(a.Id);
+            _alias = await SidAliases.ListAsync();
+            _ok = L["Sorg_AliasDeleted", a.Prefix];
+        }
         catch (Exception ex) { _msg = ex.Message; }
         finally { _busy = false; }
     }

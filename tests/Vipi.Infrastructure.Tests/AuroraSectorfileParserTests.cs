@@ -1,4 +1,4 @@
-using Vipi.Infrastructure.Sectorfile;
+﻿using Vipi.Infrastructure.Sectorfile;
 using Xunit;
 
 namespace Vipi.Infrastructure.Tests;
@@ -23,7 +23,7 @@ public class AuroraSectorfileParserTests
         IReadOnlyDictionary<string, string>? alias = null)
     {
         var nav = AuroraSectorfileParser.ParseNavaids(Fix, Vor);
-        return AuroraSectorfileParser.ParseSids("LIRN", sid, nav, alias ?? NoAlias);
+        return AuroraSectorfileParser.ParseSids("LIRN", sid, nav.Names, alias ?? NoAlias);
     }
 
     [Fact]
@@ -89,5 +89,52 @@ public class AuroraSectorfileParserTests
         Assert.Contains(rows, r => r.Runway == "16L");
         Assert.Contains(rows, r => r.Runway == "16R");
         Assert.NotEqual(rows[0].StableKey, rows[1].StableKey);   // la pista fa parte dell'identità
+    }
+
+    // --- Catalogo dei punti (itvor/itndb/itfix) -------------------------------------------------------
+
+    [Fact]
+    public void Catalogo_Distingue_Fix_Vor_E_Ndb()
+    {
+        const string Ndb = "AVI;390.0;N045.55.27.600;E012.25.42.600;";
+        var c = AuroraSectorfileParser.ParseNavaids(Fix, Vor, Ndb);
+
+        Assert.Equal(Application.Abstractions.NavaidKind.Vor, c.Entries.Single(e => e.Name == "OST").Kind);
+        Assert.Equal(Application.Abstractions.NavaidKind.Ndb, c.Entries.Single(e => e.Name == "AVI").Kind);
+        Assert.Equal(Application.Abstractions.NavaidKind.Fix, c.Entries.Single(e => e.Name == "ALAXI").Kind);
+        Assert.Equal(6, c.Entries.Count);   // 4 fix + 1 VOR + 1 NDB
+    }
+
+    [Fact]
+    public void Catalogo_Ignora_Righe_Vuote_E_File_Assenti()
+    {
+        // Un file 404 arriva qui come null (SectorfileRaw), e le righe vuote in coda sono la norma nei file veri.
+        var c = AuroraSectorfileParser.ParseNavaids("ALAXI;N040.00.00.000;E010.00.00.000;0;1;\n\n\n", null, null);
+        Assert.Equal("ALAXI", Assert.Single(c.Entries).Name);
+    }
+
+    [Fact]
+    public void Catalogo_E_Le_Stesse_Voci_Che_Completano_Le_SID()
+    {
+        // L'invariante che tiene insieme le due funzioni: l'editor non deve poter segnalare come sbagliato un
+        // nome che l'import considera buono. Vale finché i due leggono lo STESSO catalogo.
+        var c = AuroraSectorfileParser.ParseNavaids(Fix, Vor);
+        var rows = AuroraSectorfileParser.ParseSids("LIRN", "LIRN;06;ALAX7G;;;;;1;", c.Names, NoAlias);
+
+        Assert.Contains(rows.Single().Fix, c.Names);
+    }
+
+    [Fact]
+    public void Catalogo_Scarta_Le_Righe_Di_Commento()
+    {
+        // Righe vere di itvor.vor e itndb.ndb: senza il filtro finivano nel catalogo come nomi di punto, e
+        // comparivano in cima all'elenco a discesa dell'editor. Una porta anche un nome appiccicato in coda
+        // ("...++++GEBNI"), che NON e' una voce: e' un refuso di chi ha scritto il commento.
+        const string Vor2 = "//+++++++++++++++++++++++++++++++++++++++++++\n//++++VOR ESTERNI(servono per le AEROVIE)++++GEBNI\nAJO;114.80;N041.46.13.900;E008.46.28.800;1;0;";
+
+        var c = AuroraSectorfileParser.ParseNavaids(null, Vor2, "//ESTERNI");
+
+        Assert.Equal("AJO", Assert.Single(c.Entries).Name);
+        Assert.DoesNotContain(c.Names, n => n.StartsWith("//", StringComparison.Ordinal));
     }
 }

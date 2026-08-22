@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -43,6 +43,31 @@ public static class CopList
 
     /// <summary>Quanti punti porta l'elenco, contando il caso vuoto come uno (vedi <see cref="Parse"/>).</summary>
     public static int Count(string? raw) => Parse(raw).Count;
+
+    /// <summary>
+    /// Il token che si sta <b>scrivendo</b>: quello dopo l'ultima virgola, ripulito. Serve a chi propone —
+    /// dentro «VALMA, EL» il nome da completare è «EL», non tutta la riga.
+    /// </summary>
+    public static string LastToken(string? raw)
+    {
+        var t = raw ?? "";
+        var cut = t.LastIndexOf(Separator);
+        return (cut < 0 ? t : t[(cut + 1)..]).Trim();
+    }
+
+    /// <summary>
+    /// L'elenco con l'ultimo token sostituito dal punto scelto. È l'altra metà di <see cref="LastToken"/>: chi
+    /// sceglie da un elenco a discesa sta completando UNA voce, non riscrivendo la riga.
+    /// </summary>
+    /// <remarks>Non aggiunge la virgola in coda. La stringa che esce di qui è quella che si SALVA, e una virgola
+    /// finale finirebbe nel dato — <see cref="Parse"/> la ignorerebbe, ma chi rilegge la colonna no.</remarks>
+    public static string ReplaceLastToken(string? raw, string? picked)
+    {
+        var t = raw ?? "";
+        var cut = t.LastIndexOf(Separator);
+        var head = cut < 0 ? "" : t[..(cut + 1)] + " ";
+        return head + (picked ?? "").Trim();
+    }
 
     /// <summary>Vero se i due elenchi contengono gli stessi punti nello stesso ordine. Serve all'invariante del
     /// gruppo di varianti: le clausole di un gruppo condividono i punti, perché sono lo stesso accordo detto a
