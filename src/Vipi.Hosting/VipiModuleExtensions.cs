@@ -149,6 +149,10 @@ public static class VipiModuleExtensions
             .SetDefaultCulture(SupportedCultures[0])
             .AddSupportedCultures(SupportedCultures)
             .AddSupportedUICultures(SupportedCultures));
+        // ⚠️ DOPO la localizzazione, e non è un dettaglio d'ordine: legge la lingua già risolta e la ricorda,
+        // o il circuito Blazor — che è una seconda richiesta, senza `?culture=` — ricadrebbe su Accept-Language
+        // e ridisegnerebbe in inglese una pagina chiesta in italiano. Vedi CultureCookieMiddleware.
+        app.UseMiddleware<CultureCookieMiddleware>();
         app.UseMiddleware<StaffLoginTrackingMiddleware>();
         return app;
     }

@@ -269,6 +269,53 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
             "wwwroot e si citano con AssetVersion.Url(...).\n  " + string.Join("\n  ", inline));
     }
 
+    /// <summary>
+    /// La lingua chiesta con <c>?culture=</c> sopravvive alla richiesta successiva. È il difetto vero che
+    /// questo test blocca: in Blazor Server le richieste sono <b>due</b> — il documento e la connessione
+    /// <c>/_blazor</c> che apre il circuito — e la seconda non porta la stringa di query. Senza il cookie
+    /// ricadeva su <c>Accept-Language</c>, e una pagina chiesta in italiano si ridisegnava in inglese da sola.
+    /// </summary>
+    [Fact]
+    public async Task La_lingua_chiesta_nell_indirizzo_resta_per_la_richiesta_dopo()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
+
+        var conQuery = await client.GetAsync("/services/vsop?culture=it");
+        var cookie = conQuery.Headers.TryGetValues("Set-Cookie", out var valori)
+            ? valori.FirstOrDefault(v => v.StartsWith(".AspNetCore.Culture=", StringComparison.Ordinal))
+            : null;
+        Assert.NotNull(cookie);
+        Assert.Contains("c%3Dit%7Cuic%3Dit", cookie);   // «c=it|uic=it», url-encoded
+
+        // La richiesta successiva (qui il cookie, nel browser anche /_blazor) risolve la stessa lingua,
+        // benché il browser continui a dichiararsi inglese e la stringa di query non ci sia più.
+        var dopo = _factory.CreateClient();
+        dopo.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
+        dopo.DefaultRequestHeaders.Add("Cookie", cookie.Split(';')[0]);
+        var html = await dopo.GetStringAsync("/services/vsop");
+        Assert.Contains("Documentazione operativa", html);
+    }
+
+    /// <summary>
+    /// Il rovescio, e il motivo per cui il cookie si scrive <b>solo</b> su richiesta esplicita: se lo
+    /// scrivessimo anche quando la lingua arriva da <c>Accept-Language</c>, congeleremmo per un anno una
+    /// scelta che l'utente non ha mai fatto — e cambiare lingua al browser non avrebbe più effetto.
+    /// </summary>
+    [Fact]
+    public async Task Senza_richiesta_esplicita_nessun_cookie_di_lingua()
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
+
+        var res = await client.GetAsync("/services/vsop");
+
+        var cookie = res.Headers.TryGetValues("Set-Cookie", out var valori)
+            ? valori.FirstOrDefault(v => v.StartsWith(".AspNetCore.Culture=", StringComparison.Ordinal))
+            : null;
+        Assert.Null(cookie);
+    }
+
     /// <summary>Fabbrica gemella con il bridge acceso: il default resta spento per tutti gli altri test.</summary>
     public sealed class BridgeOnAppFactory : WebApplicationFactory<Program>
     {
