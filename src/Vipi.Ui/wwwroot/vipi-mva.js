@@ -86,10 +86,12 @@
                 : L.polyline(pts, { color: '#fff', weight: 5, opacity: 0.9, interactive: false });
             // Chiuso = area, aperto = linea. La distinzione viene dal file e NON si corregge qui: i tracciati
             // aperti del sectorfile sono archi e confini, e chiuderli disegnerebbe una figura inesistente.
+            // interactive:false e NESSUN tooltip: il nome del gruppo (`ZONA1`, `RR US0`, l'ICAO…) è un dettaglio
+            // interno del file, e appariva come un riquadro appiccicato al puntatore su ogni tracciato — rumore
+            // sopra la cosa che si sta guardando.
             var layer = s.c
-                ? L.polygon(pts, { color: MVA_COLOR, weight: 2.5, fillColor: MVA_COLOR, fillOpacity: 0.05 })
-                : L.polyline(pts, { color: MVA_COLOR, weight: 2.5 });
-            if (s.n) layer.bindTooltip(s.n, { sticky: true });
+                ? L.polygon(pts, { color: MVA_COLOR, weight: 2.5, fillColor: MVA_COLOR, fillOpacity: 0.05, interactive: false })
+                : L.polyline(pts, { color: MVA_COLOR, weight: 2.5, interactive: false });
             casing.addTo(map);
             layer.addTo(map);
             layers.push(layer);
@@ -140,10 +142,11 @@
         var bounds = boundsOf();
         if (bounds) { fitBox(bounds); map.fitBounds(bounds, { padding: [18, 18] }); }
 
-        // La SCATOLA si adatta ai dati, non viceversa. Senza, una carta alta e stretta (LIBB: 5,5° di latitudine
-        // per 3,1° di longitudine) in un contenitore largo e basso viene inquadrata sull'altezza — corretto, ma
-        // il resto della larghezza è mare, e i tracciati restano minuscoli. Si sceglie quindi un'altezza che
-        // avvicini l'aspetto del contenitore a quello del dato, e si limita la larghezza di conseguenza.
+        // La carta tiene la LARGHEZZA PIENA, come la mappa dell'AoR: è la misura a cui l'occhio è abituato nel
+        // resto del documento, e restringerla per far quadrare l'aspetto — come si faceva prima — rendeva le due
+        // mappe della stessa pagina di formato diverso. Si adatta quindi la sola ALTEZZA: su dati alti e stretti
+        // (LIBB: 5,5° di latitudine per 3,1° di longitudine) l'inquadratura lavora sull'altezza, e darne di più
+        // è l'unico modo di ingrandire il disegno senza toccare la larghezza.
         function fitBox(b) {
             var latSpan = b.getNorth() - b.getSouth();
             var lonSpan = (b.getEast() - b.getWest()) * Math.cos((b.getNorth() + b.getSouth()) / 2 * Math.PI / 180);
@@ -151,15 +154,8 @@
             var aspect = lonSpan / latSpan;                      // >1 larga, <1 alta
             var avail = el.parentElement ? el.parentElement.clientWidth : el.clientWidth;
             if (!avail) return;
-            var h = Math.round(Math.min(620, Math.max(320, avail / aspect)));
-            // Un po' di margine oltre l'aspetto esatto (×1.35): incorniciare al millimetro toglie il contesto
-            // geografico, che qui serve — è il motivo per cui sotto c'è il rilievo.
-            // Il minimo tiene conto del pannello dei livelli, che sta aperto in alto a destra e occupa ~150px:
-            // sotto questa larghezza coprirebbe la carta invece di affiancarla.
-            var w = Math.round(Math.min(avail, Math.max(430, h * aspect * 1.35)));
+            var h = Math.round(Math.min(620, Math.max(360, avail / aspect)));
             el.style.height = h + 'px';
-            el.style.width = w + 'px';
-            el.style.margin = '0 auto';
             map.invalidateSize();
         }
         // Stesso contratto dell'AoR (vedi wirePrint in vipi-ui.js): la stampa riduce il contenitore e deve

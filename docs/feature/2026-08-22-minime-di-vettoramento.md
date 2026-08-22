@@ -56,6 +56,8 @@ mappa stradale colorata. Quattro correzioni, tutte dal riscontro del committente
   sopra. Su un fondo che passa dal verde al marrone al blu una linea sola cambia contrasto a ogni valle.
 - **Etichette a pastiglia** invece dell'alone: il contorno bianco reggeva sul mare e cedeva sui bruni della
   montagna, cioè dove le quote contano.
+- **Larghezza piena**, uguale a quella della mappa AoR (misurato: 729px per entrambe sulla stessa pagina);
+  si adatta la sola altezza, 360–620px secondo la forma del dato.
 - **AoR accendibile.** I settori della sezione `aor` **della stessa parte di documento** si accendono dal
   controllo dei livelli, spenti all'apertura: servono a vedere come le minime si rapportano ai confini.
   Solo contorno tratteggiato — accesi in più d'uno i riempimenti annacquavano le minime — e **fuori
@@ -79,7 +81,12 @@ Il rilievo sotto non è decorazione: sulla carta di Milano si legge a colpo d'oc
   silenzio. Il testo va dentro l'icona.
 - **Il fit giusto può essere illeggibile.** LIBB è 5,5° di latitudine per 3,1° di longitudine: in un
   contenitore largo e basso l'inquadratura lavora sull'altezza ed è corretta, ma i tracciati restano grandi un
-  ventesimo della mappa. È la **scatola** ad adattarsi ai dati, non l'inquadratura ai pixel.
+  ventesimo della mappa. Si adatta quindi la **sola altezza** (360–620px): la larghezza resta piena, uguale a
+  quella della mappa AoR. Restringerla — come si è provato in mezzo — faceva due mappe di formato diverso
+  nella stessa pagina, ed è stato il committente a farlo notare.
+- **Un tooltip su ogni tracciato è rumore.** Il nome del gruppo (`ZONA1`, `RR US0`, l'ICAO…) è un dettaglio
+  interno del file, e appariva come un riquadro appiccicato al puntatore sopra la cosa che si sta guardando.
+  Via il tooltip, e tracciati `interactive: false`.
 - **Le tile sono chiare in entrambi i temi.** L'etichetta con token di tema diventava bianca su fondo chiaro:
   colori letterali, unica eccezione voluta, col perché scritto accanto nel CSS.
 - **`<text>` in un blocco di codice Razor è la parola chiave di escape**, non l'elemento SVG: va annidato.
