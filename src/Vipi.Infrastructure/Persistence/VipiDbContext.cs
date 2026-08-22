@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
@@ -79,8 +79,6 @@ public class VipiDbContext : DbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<NavReference> NavReferences => Set<NavReference>();
     public DbSet<CoordinationPoint> CoordinationPoints => Set<CoordinationPoint>();
-    public DbSet<VectoringMinimaSet> VectoringMinimaSets => Set<VectoringMinimaSet>();
-    public DbSet<VectoringMinimaRow> VectoringMinimaRows => Set<VectoringMinimaRow>();
     public DbSet<CoordinationAgreement> CoordinationAgreements => Set<CoordinationAgreement>();
     public DbSet<AgreementSection> AgreementSections => Set<AgreementSection>();
     public DbSet<AgreementAirport> AgreementAirports => Set<AgreementAirport>();
@@ -261,11 +259,6 @@ public class VipiDbContext : DbContext
 
         b.Entity<NavReference>().HasIndex(x => new { x.Type, x.Ident, x.AiracCycle });
         b.Entity<CoordinationPoint>().HasIndex(x => x.Ident);
-
-        b.Entity<VectoringMinimaSet>(e =>
-            e.HasOne(x => x.ScopeSector).WithMany().HasForeignKey(x => x.ScopeSectorId).OnDelete(DeleteBehavior.Restrict));
-        b.Entity<VectoringMinimaRow>(e =>
-            e.HasOne(x => x.Set).WithMany(s => s.Rows).HasForeignKey(x => x.SetId).OnDelete(DeleteBehavior.Cascade));
 
         // ─── Accordi di coordinamento ──────────────────────────────────────────────────────────────────
         // Unica scrittura dei coordinamenti (carta: docs/feature/2026-08-16-accordi-di-coordinamento.md).

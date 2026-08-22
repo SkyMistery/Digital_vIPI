@@ -1675,62 +1675,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("UnificationRules");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.VectoringMinimaRow", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("AreaName")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("MinimaFt")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Note")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("SetId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SetId");
-
-                    b.ToTable("VectoringMinimaRows");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.VectoringMinimaSet", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("ImportedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("ScopeSectorId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Source")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("SourceAiracCycle")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("SourceCommit")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ScopeSectorId");
-
-                    b.ToTable("VectoringMinimaSets");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.AccSector", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
@@ -2100,27 +2044,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Acc");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.VectoringMinimaRow", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.VectoringMinimaSet", "Set")
-                        .WithMany("Rows")
-                        .HasForeignKey("SetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Set");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.VectoringMinimaSet", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.Sector", "ScopeSector")
-                        .WithMany()
-                        .HasForeignKey("ScopeSectorId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("ScopeSector");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.Acc", b =>
                 {
                     b.Navigation("AccSectors");
@@ -2194,11 +2117,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Vipi.Domain.Entities.SpecialArea", b =>
                 {
                     b.Navigation("Centers");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.VectoringMinimaSet", b =>
-                {
-                    b.Navigation("Rows");
                 });
 #pragma warning restore 612, 618
         }

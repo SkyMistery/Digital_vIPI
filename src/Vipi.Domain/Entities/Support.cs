@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 
 namespace Vipi.Domain.Entities;
 
@@ -95,29 +95,4 @@ public class CoordinationPoint
     public string Ident { get; set; } = default!;      // es. "BAVOM", "J1"
     public CopKind Kind { get; set; }
     public string? AiracCycle { get; set; }            // per i Fix
-}
-
-/// <summary>Insieme di minime di vettoramento importate dal sectorfile GitHub. IMPLEMENTAZIONE FUTURE. SPEC §7.5.</summary>
-public class VectoringMinimaSet
-{
-    public int Id { get; set; }
-    public int? ScopeSectorId { get; set; }
-    public Sector? ScopeSector { get; set; }
-    public string Source { get; set; } = "SectorfileGitHub";
-    public string SourceAiracCycle { get; set; } = default!;
-    public string? SourceCommit { get; set; }
-    public DateTime? ImportedAtUtc { get; set; }
-
-    public ICollection<VectoringMinimaRow> Rows { get; set; } = new List<VectoringMinimaRow>();
-}
-
-/// <summary>Riga di una tabella di minime di vettoramento. IMPLEMENTAZIONE FUTURE. SPEC §7.5.</summary>
-public class VectoringMinimaRow
-{
-    public int Id { get; set; }
-    public int SetId { get; set; }
-    public VectoringMinimaSet? Set { get; set; }
-    public string AreaName { get; set; } = default!;
-    public int MinimaFt { get; set; }
-    public string? Note { get; set; }
 }

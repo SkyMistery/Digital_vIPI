@@ -369,26 +369,24 @@ Vincoli: `Depth ≤ 3`; nessun ciclo; `(DocumentVersionId, ParentSectionId, Orde
 - **`Format = AorMap`**: blocco mappa AoR. `BodyJson` contiene la lista dei settori/geometrie da disegnare e le opzioni di resa (overlap, stati Covered/Online). Permette **N sezioni AoR per documento** (una ACC + una per ogni APP remotizzato).
 - **`Format = Callout`**: riquadro informativo colorato, piazzabile in qualsiasi sezione/profondità. Variante in `CalloutKind`.
 
-### 7.5 `VectoringMinima` / `VectoringMinimaSet` — **implementazione FUTURE**
+### 7.5 Minime di vettoramento (MRVA) — **nessuna entità**
 
-> ⚠️ Documentato ora, **non** nella prima release.
+Le minime di vettoramento **non hanno tabelle**. `VectoringMinimaSet` e `VectoringMinimaRow`, documentate qui
+come «implementazione FUTURE» e mai popolate, sono state **droppate il 22 agosto 2026** insieme al giro che ha
+implementato la sezione davvero.
 
-Le minime di vettoramento si importano dal **sectorfile della divisione su GitHub** (file EuroScope/Aurora), non dalle API IVAO né a mano.
+Descrivevano la strada sbagliata: una tabella `area → MinimaFt` legata a un `ScopeSectorId`. Il formato `.mva`
+del sectorfile **non permette di ricostruirla**. L'etichetta di quota è un testo piazzato a una coordinata sua,
+indipendente dai poligoni (in `liph.mva` le dieci `L;` stanno tutte in cima al file, prima di qualsiasi vertice);
+il legame etichetta↔area non è dichiarato e va indovinato geometricamente, con 70 casi ambigui su 345; il testo
+non è un numero (`TRL`, `NO MINIMA`, `80/TRL`, `*30/40`) e nessun campo dice le unità (`110` sono centinaia di
+piedi, `1500` sono piedi); e 92 tracciati su 315 sono **aperti**, quindi non sono aree.
 
-`VectoringMinimaSet`:
-
-| Campo | Tipo | Note |
-|---|---|---|
-| `Id` | int PK | |
-| `ScopeSectorId` | int? FK→Sector | settore/area di riferimento |
-| `Source` | enum | `SectorfileGitHub` |
-| `SourceAiracCycle` | string(6) | AIRAC del sectorfile (mostrato per verificare l'allineamento col documento) |
-| `SourceCommit` | string(40)? | commit del repo |
-| `ImportedAtUtc` | datetime? | |
-
-`VectoringMinimaRow`: `{ Id, SetId FK, AreaName, MinimaFt, Note }`.
-
-Servizio `SectorfileImportService` (Infrastructure): legge il file dal repo GitHub, lo parsa, popola minime; ri-eseguibile a ogni cambio AIRAC (lega `AiracService`). **Stessa fonte** alimenta la whitelist fix per la validazione CoP (§7.6).
+Quello che il formato dichiara è un'altra cosa, e basta: **il proprietario del file**. `ENRMVA/{acc}.mva` è
+l'enroute di un ACC, `{icao}.mva` è un aeroporto. Perciò la sezione `minima` è **derivata e non memorizzata**:
+si legge dal sectorfile a view-time (`IVectoringMinimaSource` → `AuroraMvaProvider`), si compone come **una
+carta per file** (`MinimaCharts`) e si disegna verbatim, tracciati aperti compresi. Il congelamento avviene come
+per le altre derivate, nello **snapshot di release** (doc 10), non in una tabella propria.
 
 ### 7.6 `CoordinationPoint` (whitelist per validazione CoP)
 
@@ -414,7 +412,7 @@ enum CopKind      { Fix, Conventional }
 enum BlockFormat  { Table, Prose, Image, List, AorMap, Callout }
 ```
 
-> `BlockSection` resta come elenco di valori semantici, ma ora vive su `DocumentSection.SectionKind` invece che su `ContentBlock.Section`. Valutare l'aggiunta di `VectoringMinima` come valore quando si implementeranno le minime.
+> `BlockSection` resta come elenco di valori semantici, ma ora vive su `DocumentSection.SectionKind` invece che su `ContentBlock.Section`. Le minime non vi aggiungono nulla: sono una sezione derivata senza storage (§7.5).
 
 ---
 
@@ -505,7 +503,7 @@ La tabella **`Frequency`** (§3.8) è stata **rimossa** (migrazione **`DropFrequ
 - **`Airport.AtisFrequency` ELIMINATA** (round 16): l'ATIS è un `AirportSector` come gli altri.
 
 ### 9.5 Geometria — `SectorGeometry` ELIMINATA (round 16)
-Rimossi `SectorGeometry` (§3.4), `Sector.GeometryId/Geometry`, enum `GeometryFormat`: mai usati. La geometria futura vive come `RegionMapPolygon` sui cataloghi `AccSector`/`AirportSector` (oggi JSON grezzo, non ancora su mappa). `VectoringMinima` (§7.5) resta **dormiente**.
+Rimossi `SectorGeometry` (§3.4), `Sector.GeometryId/Geometry`, enum `GeometryFormat`: mai usati. La geometria futura vive come `RegionMapPolygon` sui cataloghi `AccSector`/`AirportSector` (oggi JSON grezzo, non ancora su mappa). `VectoringMinima` (§7.5) è stata **droppata** il 22 agosto 2026: le minime sono derivate dal sectorfile, senza storage.
 
 ### 9.6 `ImportPolicy` — categoria **ATIS rimossa** (round 16)
 `enum ImportCategory { TransitionAltitude, Runways, Sectors }` (niente più `Atis`). L'entità `ImportPolicy` ha quindi `ImportTransitionAltitude`/`ImportRunways`/`ImportSectors` (+ `UpdatedUtc`/`UpdatedByUserId`); rimosso `ImportAtis`. Migrazione `SimplifyDataModel`. Vedi §8.3 (superata su questo punto).
