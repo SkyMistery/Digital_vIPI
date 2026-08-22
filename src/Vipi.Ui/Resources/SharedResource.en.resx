@@ -874,7 +874,7 @@
   <data name="Sorg_AccLabel" xml:space="preserve"><value>ACCs (directory)</value></data>
   <data name="Sorg_AccDesc" xml:space="preserve"><value>ACC and subcenter list: no checkbox, always from the source</value></data>
   <data name="Sorg_AptLabel" xml:space="preserve"><value>Airports (directory)</value></data>
-  <data name="Sorg_AptDesc" xml:space="preserve"><value>Assigns new division airports to their ACC, with their sector catalogue: it creates, so a person decides it</value></data>
+  <data name="Sorg_AptDesc" xml:space="preserve"><value>Assigns new division airports to their ACC, with their sector catalogue. ⚠️ The only run that creates: it adds, never removes</value></data>
   <data name="Sorg_LastAndNext" xml:space="preserve"><value>{0} · next {1}</value></data>
   <data name="Sorg_LastData" xml:space="preserve"><value>last data {0}</value></data>
   <data name="Sorg_LastAndMissed" xml:space="preserve"><value>{0} · due {1}, never arrived</value></data>

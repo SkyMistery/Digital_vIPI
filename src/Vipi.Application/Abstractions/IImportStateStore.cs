@@ -25,6 +25,14 @@ public static class ImportCategories
     public const string AirportSector = "AirportSector";
 
     /// <summary>
+    /// L'anagrafica aeroporti: assegnazione degli scali nuovi alla loro ACC (dal 22 agosto 2026 è un giro,
+    /// prima solo il bottone «Assegna aeroporti noti»).
+    ///
+    /// <para>⚠️ È l'<b>unico</b> giro che <b>crea</b> entità. Additivo: non rimuove e non riassegna.</para>
+    /// </summary>
+    public const string AirportDirectory = "AirportDirectory";
+
+    /// <summary>
     /// Il giro di <b>TA e piste</b> (dal 22 agosto 2026; prima arrivavano solo su richiesta).
     ///
     /// <para>⚠️ Una chiave sola per <b>due</b> categorie di policy, ed è voluto: il gate sta dentro

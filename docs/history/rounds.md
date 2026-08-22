@@ -1599,3 +1599,16 @@ aeroporti, in silenzio e senza che nessun test se ne accorgesse. E i tre `switch
 Cadenza in `Ivao:AirportDataImportHours` (default 24). Il giro **non** rigenera i documenti: import e
 generazione restano scollegati (doc 03 §4.3), quindi il dato nuovo entra nel sito al prossimo «Genera
 documenti».
+
+**Coda, deciso dal committente lo stesso giorno.** La carta aveva messo l'anagrafica aeroporti fra le cose
+che **non** si automatizzano — crea entità, quindi atto di una persona. La richiesta è stata l'opposto:
+«ogni 24 ore come il resto, così siamo sempre sicuri che in un giorno sia tutto up to date». Fatto:
+`AirportDirectoryImportHostedService` gira lo **stesso** `IAirportImportUseCase` del bottone, chiave
+`AirportDirectory`, cadenza `Ivao:AirportDirectoryImportHours` (24). `bootDelay` **25 s** — subito dopo gli
+ACC e **prima** di SID, settori e TA/piste, perché quei tre iterano gli aeroporti che questo crea:
+nell'ordine sbagliato uno scalo nuovo resterebbe senza settori e senza piste fino al giorno dopo.
+
+⚠️ Resta l'**unico giro che crea**, e la riga lo dichiara a video. È **additivo** (misurato in
+`AutoAssignAirportsAsync`: salta gli ICAO già presenti, non rimuove e non riassegna), quindi uno scalo tolto
+dall'anagrafica della sorgente resta in archivio e si toglie a mano — sopra ci può stare del lavoro
+editoriale. Da qui in poi **nessuna** delle sette righe resta «su richiesta», e un test lo pretende.

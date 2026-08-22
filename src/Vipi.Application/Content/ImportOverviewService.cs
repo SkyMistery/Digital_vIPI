@@ -103,11 +103,11 @@ public sealed class ImportOverviewService : IImportOverviewService
     private static readonly (ImportCategory? Categoria, ImportAnagrafica? Anagrafica, string StateKey)[] Righe =
     {
         (null, ImportAnagrafica.Acc, ImportCategories.Acc),
-        // ⚠️ L'anagrafica aeroporti NON ha un giro automatico, e la chiave vuota lo dice: assegnare un
-        // aeroporto nuovo alla sua ACC crea entità (aeroporto + catalogo settori) e resta un atto di una
-        // persona. Ma la pagina deve nominarla: era l'unico modo in cui un aeroporto della divisione entra
-        // nel sito, e questo elenco non la citava affatto.
-        (null, ImportAnagrafica.Aeroporti, ""),
+        // ⚠️ L'anagrafica aeroporti è l'UNICO giro che crea entità (aeroporto + catalogo settori). Fino al
+        // 22 agosto 2026 era di proposito un atto di una persona; è diventata un giro su richiesta esplicita
+        // — che in un giorno tutto sia aggiornato senza dipendere da chi si ricorda di premere. Per questo la
+        // sua descrizione dice «crea», che è ciò che la distingue da tutte le altre righe.
+        (null, ImportAnagrafica.Aeroporti, ImportCategories.AirportDirectory),
         // ⚠️ Stessa chiave per due righe, e non è una svista: è lo STESSO giro sugli STESSI aeroporti
         // (AirportDataImportUseCase), e il gate della policy sta per categoria dentro SourceMergeInputs —
         // quindi la categoria esclusa dice «Esclusa» da sé e ciò che resta (ultimo successo, errore della

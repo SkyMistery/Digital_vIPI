@@ -70,6 +70,12 @@ public sealed class IvaoOptions
     public int AirportSectorImportHours { get; set; } = 24;
 
     /// <summary>
+    /// Ogni quante ore riassegnare alla loro ACC gli aeroporti nuovi dell'anagrafica (default giornaliero).
+    /// ⚠️ È il solo giro che <b>crea</b> entità (aeroporto + catalogo settori); additivo, non rimuove nulla.
+    /// </summary>
+    public int AirportDirectoryImportHours { get; set; } = 24;
+
+    /// <summary>
     /// Ogni quante ore rileggere <b>TA e piste</b> di tutti gli aeroporti dalla sorgente (default giornaliero).
     /// Costo di un giro misurato sui 92 aeroporti in archivio: <b>1</b> chiamata per la TA (anagrafica
     /// paginata, già in cache di processo per <see cref="AirportsCacheHours"/>) più <b>una per aeroporto</b>

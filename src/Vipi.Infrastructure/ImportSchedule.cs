@@ -33,6 +33,7 @@ public sealed class ImportSchedule : IImportSchedule
         ImportCategories.Acc => Ore(_ivao.AccImportHours),
         ImportCategories.SpecialArea => Ore(_ivao.AccImportHours),
         ImportCategories.AirportSector => Ore(_ivao.AirportSectorImportHours),
+        ImportCategories.AirportDirectory => Ore(_ivao.AirportDirectoryImportHours),
         ImportCategories.AirportData => Ore(_ivao.AirportDataImportHours),
         ImportCategories.Sid => string.IsNullOrWhiteSpace(_sectorfile.RawBaseUrl) ? null : Ore(_sectorfile.ImportHours),
         _ => null,   // chiavi che non sono import periodici (segnaposti di riconciliazioni one-shot).

@@ -50,19 +50,39 @@ public class ImportOverviewTests
     }
 
     /// <summary>
-    /// L'anagrafica aeroporti non ha un giro automatico e non deve fingerlo: assegnare un aeroporto crea
-    /// entità, e resta un atto di una persona. Ma la pagina deve nominarla — era l'unico import che non
-    /// compariva affatto in un elenco che si intitola «cosa arriva da fuori».
+    /// ⚠️ L'anagrafica aeroporti gira anche lei ogni giorno, ed è l'<b>unico</b> giro che <b>crea</b>
+    /// entità: assegna gli scali nuovi alla loro ACC e ne importa il catalogo settori. Restò a mano fino al
+    /// 22 agosto 2026 proprio per questo — poi la richiesta è stata «in un giorno tutto aggiornato», e la
+    /// riga deve dirlo invece di dire «su richiesta», che da allora sarebbe falso.
     /// </summary>
     [Fact]
-    public async Task L_anagrafica_aeroporti_dice_su_richiesta()
+    public async Task L_anagrafica_aeroporti_dichiara_il_suo_giro()
     {
-        var riga = (await Servizio(ImportPolicySnapshot.AllImported).ListAsync())
+        var quando = DateTime.UtcNow.AddHours(-5);
+        var riga = (await Servizio(ImportPolicySnapshot.AllImported,
+                Stato(ImportCategories.AirportDirectory, quando)).ListAsync())
             .Single(r => r.Anagrafica == ImportAnagrafica.Aeroporti);
 
-        Assert.Equal(ImportHealth.SuRichiesta, riga.Stato);
-        Assert.Null(riga.Cadenza);
-        Assert.Null(riga.ProssimoUtc);
+        Assert.Equal(ImportHealth.Aggiornata, riga.Stato);
+        Assert.Equal(TimeSpan.FromHours(24), riga.Cadenza);
+        Assert.Equal(quando.AddHours(24), riga.ProssimoUtc);
+    }
+
+    /// <summary>
+    /// ⚠️ Nessuna riga resta «su richiesta»: era la domanda del committente — «così siamo sempre sicuri che
+    /// in un giorno sia tutto aggiornato». Tutte e sette hanno una cadenza, e questo test è il posto in cui
+    /// una riga aggiunta domani senza giro si fa notare subito.
+    ///
+    /// <para>L'unica eccezione legittima resta la sorgente <b>sconfigurata</b> (SID senza
+    /// <c>Sectorfile:RawBaseUrl</c>), che è la <see cref="SenzaCadenza"/> degli altri test.</para>
+    /// </summary>
+    [Fact]
+    public async Task Con_le_sorgenti_configurate_nessuna_riga_resta_su_richiesta()
+    {
+        var righe = await Servizio(ImportPolicySnapshot.AllImported).ListAsync();
+
+        Assert.All(righe, r => Assert.NotNull(r.Cadenza));
+        Assert.DoesNotContain(righe, r => r.Stato == ImportHealth.SuRichiesta);
     }
 
     /// <summary>⚠️ Il segnaposto della riconciliazione delle aree estere non è un import e non si mostra.</summary>
@@ -226,7 +246,8 @@ public class ImportOverviewTests
         public TimeSpan? PeriodOf(string category) => category switch
         {
             ImportCategories.Acc or ImportCategories.AirportSector or ImportCategories.SpecialArea
-                or ImportCategories.Sid or ImportCategories.AirportData => TimeSpan.FromHours(24),
+                or ImportCategories.Sid or ImportCategories.AirportData
+                or ImportCategories.AirportDirectory => TimeSpan.FromHours(24),
             _ => null,
         };
     }

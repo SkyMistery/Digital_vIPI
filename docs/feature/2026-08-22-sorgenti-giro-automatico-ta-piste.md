@@ -6,12 +6,15 @@
 > discute se debbano smettere di esserlo.
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 
-## Le due domande
+## Le domande
 
 1. TA e Piste sono **su richiesta**: non sarebbe meglio un giro ogni 24 ore come le altre?
 2. La pagina è **l'elenco di tutto ciò che viene importato**?
 
 Risposta breve: **(1) sì, e costa poco**; **(2) no — mancano tre cose, due delle quali girano già da sole.**
+
+> **Terza domanda, arrivata dopo la carta**: «fai anche per gli aeroporti la stessa cosa, ogni 24 ore come il
+> resto». Risposta in **§C5**: fatto — e da lì in poi **nessuna** riga della pagina resta «su richiesta».
 
 ## Parte A — com'è fatta oggi la macchina degli import (misurato, non stimato)
 
@@ -89,6 +92,10 @@ Le sei righe sono «le categorie con una policy» + l'anagrafica ACC. Non sono �
 
 ### B1. Anagrafica aeroporti — importata, **solo su richiesta**, e non nominata
 
+> ⚠️ **Deciso diversamente, stesso giorno.** Sotto (in «Cosa NON faccio») era scritto di lasciarla a mano
+> perché crea entità. Il committente ha chiesto l'opposto — *«ogni 24 ore come il resto, così siamo sempre
+> sicuri che in un giorno sia tutto up to date»* — ed è stata automatizzata: vedi **§C5**.
+
 `AirportImportUseCase.RunAsync` (bottone «Assegna aeroporti noti» su `/services/vsop/admin/airports`) legge
 `/v2/airports`, assegna alla ACC gli aeroporti nuovi e **importa subito il catalogo settori** di ognuno.
 È l'unico modo in cui un aeroporto nuovo della divisione entra nel sito — e la pagina delle sorgenti non lo
@@ -118,7 +125,7 @@ rinfresca **di fatto ogni 24h**, perché `SidImportHostedService` invalida `Sect
 
 ## Parte C — cosa propongo di fare
 
-Quattro slice, un commit ciascuna, `dotnet build Vipi.slnx -c Release --no-incremental` (0 avvisi) +
+Cinque slice, un commit ciascuna, `dotnet build Vipi.slnx -c Release --no-incremental` (0 avvisi) +
 `dotnet test` su entrambi i TFM a ogni commit.
 
 ### C1. Il giro giornaliero di TA e Piste
@@ -178,13 +185,39 @@ che non esiste — è già scritto nel commento di `ImportSchedule` e va rispett
 - `docs/index.md` + `docs/history/rounds.md` secondo la convenzione del giro.
 - Memoria: aggiornare/creare la voce sulle sorgenti con la cadenza nuova e la chiave `AirportData`.
 
+### C5. L'anagrafica aeroporti diventa un giro (aggiunta su richiesta del committente)
+
+`AirportDirectoryImportHostedService` gira `IAirportImportUseCase` — lo **stesso** core del bottone «Assegna
+aeroporti noti» — con `GatedImportLoop`, chiave `ImportCategories.AirportDirectory` e cadenza
+`Ivao:AirportDirectoryImportHours` (default 24).
+
+**Ordine, non estetica**: `bootDelay` **25 s**, subito dopo gli ACC (15 s) e **prima** di SID (30 s), settori
+(40 s) e TA/piste (50 s). Un aeroporto si assegna a una ACC che deve già esistere, e i tre giri che vengono
+dopo iterano gli aeroporti che questo ha creato: nell'ordine sbagliato uno scalo nuovo resterebbe senza
+settori e senza piste fino al giorno seguente.
+
+**Perché è sicuro**, misurato in `EfStructureEditingRepository.AutoAssignAirportsAsync`: è **additivo** —
+salta gli ICAO già in archivio, non rimuove e non riassegna. Un aeroporto tolto dall'anagrafica della sorgente
+resta dov'è (e deve: sopra ci può stare del lavoro editoriale), e si toglie a mano.
+
+⚠️ **Resta l'unico giro che crea**, ed è l'unica cosa che lo distingue dalle altre sei righe: la sua
+descrizione a video lo dice (*«è l'unico giro che crea: aggiunge, non toglie mai»*), perché un giro che crea
+non deve essere una sorpresa per chi guarda la pagina fra sei mesi.
+
+Il fallimento dell'import settori di un aeroporto **appena assegnato** è un warning, non un errore del giro:
+quell'aeroporto è comunque nato, e il giro dei settori ci ripassa quindici minuti dopo.
+
+Test: la riga non dice più «su richiesta» ma dichiara cadenza e prossimo giro; e un test nuovo pretende che
+**nessuna** delle sette righe resti senza cadenza — è il posto in cui una riga aggiunta domani senza giro si
+fa notare subito.
+
 ## Cosa NON faccio, e perché
 
 - **Non rigenero i documenti in automatico.** Import e generazione sono scollegati per scelta (doc 03 §4.3);
   legarli qui vorrebbe dire far muovere lo snapshot pubblico senza che nessuno lo rilasci.
-- **Non rendo automatica l'assegnazione degli aeroporti.** Creerebbe entità (aeroporti + cataloghi settori)
-  senza che una persona lo decida; oggi è un atto amministrativo e resta tale. La pagina lo **dichiara**,
-  la decisione è del committente.
+- ~~**Non rendo automatica l'assegnazione degli aeroporti.**~~ **Ribaltato dal committente lo stesso giorno**
+  (vedi §C5): la decisione era sua, e la richiesta è che in un giorno tutto sia aggiornato. Resta vero il
+  motivo per cui era stata messa da parte — **crea** entità — e per questo la riga lo dichiara a video.
 - **Non aggiungo un «importa adesso» su questa pagina.** I trigger stanno dove l'oggetto vive; la riga porta
   già il link.
 - **Non tocco `GatedImportLoop`.** Marcare il successo con la categoria esclusa è corretto per il gate: è il

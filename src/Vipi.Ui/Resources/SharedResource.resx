@@ -877,7 +877,7 @@
   <data name="Sorg_AccLabel" xml:space="preserve"><value>ACC (anagrafica)</value></data>
   <data name="Sorg_AccDesc" xml:space="preserve"><value>Elenco ACC e subcenter: non ha una spunta, è sempre di sorgente</value></data>
   <data name="Sorg_AptLabel" xml:space="preserve"><value>Aeroporti (anagrafica)</value></data>
-  <data name="Sorg_AptDesc" xml:space="preserve"><value>Assegna alla ACC gli aeroporti nuovi della divisione, col loro catalogo settori: crea, quindi lo decide una persona</value></data>
+  <data name="Sorg_AptDesc" xml:space="preserve"><value>Assegna alla ACC gli aeroporti nuovi della divisione, col loro catalogo settori. ⚠️ È l'unico giro che crea: aggiunge, non toglie mai</value></data>
   <data name="Sorg_LastAndNext" xml:space="preserve"><value>{0} · prossimo {1}</value></data>
   <data name="Sorg_LastData" xml:space="preserve"><value>ultimo dato {0}</value></data>
   <data name="Sorg_LastAndMissed" xml:space="preserve"><value>{0} · atteso {1}, non arrivato</value></data>
