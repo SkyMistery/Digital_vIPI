@@ -15,7 +15,7 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 > stesso identificativo**, una per ramo, e al secondo merge si è tenuta quella che porta dentro il modello
 > coi trasferimenti (l'altra ne aveva uno più povero, e lo `ModelSnapshot` deve descrivere il modello fuso).
 >
-> Resta fuori da `main` un solo ramo: **`refactor/13-tre-documenti`** (B5), che è una decisione, non lavoro.
+> Restano fuori da `main`: **`refactor/13-tre-documenti`** (B5), che è una decisione e non lavoro; il ramo chiuso e mai fuso **`brand-atmosphere`**; e — dal **22 agosto** — **`feature/services-hub-profile-swapper`**, che è lavoro **finito e verificato** in attesa di merge: hub `/services`, il prefisso delle pagine a `/services/vsop` con le rotte italiane tradotte, e il primo strumento integrato (Aurora Profile Swapper). Carta in [`feature/2026-08-22-servizi-atc-e-profile-swapper.md`](feature/2026-08-22-servizi-atc-e-profile-swapper.md).
 >
 > - **11 agosto — audit full-stack, eseguito** (sta in B5). 34 voci, 23 chiuse, 3 ribaltate dalla misura.
 >   Tre regole di build che cambiano: `TreatWarningsAsErrors` in `Directory.Build.props`, i test che
