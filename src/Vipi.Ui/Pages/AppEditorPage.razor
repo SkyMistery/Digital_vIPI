@@ -162,6 +162,7 @@ else
     private List<int> _linkIds = new();
     private AppCoordination _coord = AppCoordination.Empty;
     private AccAorView _aorView = AccAorView.Empty;   // AoR multi-settore (primario + figli del dominio), come il viewer
+    private MinimaView _minima = MinimaView.Empty;    // carta MRVA dell'aeroporto, dal sectorfile (sola lettura)
 
     // Configurazioni (APP multi-settore, es. LIPE_APP con LIPE_W/LIPE_E). Pool + salvate + accorpamento derivato.
     private IReadOnlyList<AccSectorPick> _sectorPool = Array.Empty<AccSectorPick>();
@@ -246,6 +247,7 @@ else
         _aorExtras = aorCustom.Callsigns.ToList();
         _aorColors = new Dictionary<string, string>(aorCustom.Colors, StringComparer.OrdinalIgnoreCase);
         _aorView = await AppDoc.GetAorViewAsync(_app);
+        _minima = await AppDoc.DeriveMinimaAsync(_app);
         _configs = (await AppDoc.GetConfigurationsAsync(_app)).ToList();
         _configTable = await AppDoc.DeriveConfigTableAsync(_app);
     }
@@ -454,6 +456,11 @@ else
                 break;
             case "vfr":
                 <AppVfr Content="_vfr" Editing="_editing" ContentChanged="SaveVfr" />
+                break;
+            case "minima":
+                @* Sola lettura anche in modifica: la carta viene dal sectorfile. Qui si decide solo se resti Live
+                   o venga congelata alla release (toggle del pannello sezione). *@
+                <MinimaSection View="_minima" />
                 break;
             case "coordination":
                 <AppCoordinationView Coord="_coord" LeadSentence="s.LeadSentence" />

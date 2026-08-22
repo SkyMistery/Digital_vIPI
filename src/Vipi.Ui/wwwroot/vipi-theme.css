@@ -1786,7 +1786,16 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .app-sep-vals .app-in{min-width:120px}
 .app-sec-hidden .block{opacity:.55;background:repeating-linear-gradient(45deg,var(--on-brand),var(--on-brand) 10px,var(--surface-muted) 10px,var(--surface-muted) 20px)}
 /* Stacking context isolato: confina gli z-index interni di Leaflet (pane/control ~200-1000) sotto la topbar (z-index:45). */
-.aor-leaflet{position:relative;z-index:0;isolation:isolate}
+.aor-leaflet,.mva-leaflet{position:relative;z-index:0;isolation:isolate}
+
+/* Carta MRVA: una per file .mva. Il titolo dice di quale ente è la carta, perché in un gruppo-APP ce n'è più d'una. */
+.mva-chart{margin:0 0 14px}
+.mva-title{margin:0 0 6px;font-size:14px;font-weight:700;color:var(--ink)}
+/* Etichetta di quota: testo verbatim del sectorfile su un fondo topografico, che è fitto — serve l'alone chiaro
+   per restare leggibile sopra le curve di livello. divIcon di Leaflet: niente sfondo né bordo di default. */
+.mva-label{background:none;border:0}
+.mva-label span{display:inline-block;transform:translate(-50%,-50%);white-space:nowrap;font-size:12px;font-weight:800;
+  color:var(--ink);text-shadow:0 0 3px var(--surface),0 0 3px var(--surface),0 0 3px var(--surface),0 0 3px var(--surface)}
 
 /* Picker a chip (settori aperti, membri, aree): pill coerenti col resto della UI. */
 .sector-pick{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0}

@@ -1,0 +1,78 @@
+@* Sezione «Minime di vettoramento»: UNA MAPPA PER FILE .mva, come in Aurora, dove accendere le MRVA di un ente
+   mostra tutto il suo file. Il contenuto è riportato verbatim dal sectorfile — tracciati aperti compresi — e le
+   etichette sono il testo originale, senza unità aggiunte. L'interattività è client-side (vipi-mva.js);
+   l'SVG dentro il contenitore è il fallback per la stampa e per chi non ha JavaScript. *@
+@using System.Text.Json
+@using Vipi.Application.Abstractions
+@using Vipi.Application.Aor
+@inject IStringLocalizer<SharedResource> L
+
+@if (View.IsEmpty)
+{
+    <div class="callout info" style="margin:0">
+        <span class="cic"><Icon Name="map" Size="18" /></span>
+        <div>
+            <p class="ct">@L["Minima_NoneTitle"]</p>
+            @L["Minima_NoneBody"]
+        </div>
+    </div>
+}
+else
+{
+    @foreach (var c in View.Charts)
+    {
+        var svg = MinimaChartProjector.Project(c.Chart);
+        <div class="mva-chart">
+            <h4 class="mva-title">@c.Title</h4>
+            <div @key="c.Owner" class="mva-leaflet" data-mva="@ChartJson(c.Chart)"
+                 style="height:360px;border:1px solid var(--line);border-radius:11px;overflow:hidden">
+                @if (svg is not null)
+                {
+                    <svg viewBox="@svg.ViewBox" width="100%" height="100%" style="background:var(--surface-soft)">
+                        @foreach (var p in svg.Paths)
+                        {
+                            <path d="@p.Path" fill="@(p.IsClosed ? "var(--ivao-color-product-artifice-dark)" : "none")"
+                                  fill-opacity="0.07" stroke="var(--ivao-color-product-artifice-dark)"
+                                  stroke-width="1.5" stroke-linejoin="round" />
+                        }
+                        @foreach (var lb in svg.Labels)
+                        {
+                            @* Il <g> non è decorativo: in un blocco di codice Razor un <text> in apertura è la
+                               PAROLA CHIAVE di escape, non l'elemento SVG, e la compilazione si ferma. *@
+                            <g>
+                                <text x="@Num(lb.X)" y="@Num(lb.Y)" text-anchor="middle" font-family="Nunito Sans"
+                                      font-size="9" font-weight="700" fill="var(--text)">@lb.Text</text>
+                            </g>
+                        }
+                    </svg>
+                }
+            </div>
+        </div>
+    }
+    <p class="muted noprint" style="font-size:12.5px;margin:6px 0 0">@L["Minima_Hint"]</p>
+    <p class="muted" style="font-size:12px;margin:2px 0 0">@L["Minima_Source"]</p>
+}
+
+@code {
+    [Parameter, EditorRequired] public MinimaView View { get; set; } = MinimaView.Empty;
+
+    private static string Num(double v) => v.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    // Payload compatto per vipi-mva.js: p = vertici [lat,lon] (ordine Leaflet), c = tracciato chiuso.
+    // Nomi brevi perché limm.mva porta 1348 vertici e l'attributo finisce nell'HTML della pagina.
+    private static string ChartJson(MvaChart chart) => JsonSerializer.Serialize(new
+    {
+        shapes = chart.Shapes.Select(s => new
+        {
+            n = s.Name,
+            c = s.IsClosed,
+            p = s.Points.Select(p => new[] { Math.Round(p.Lat, 6), Math.Round(p.Lon, 6) }),
+        }),
+        labels = chart.Labels.Select(l => new
+        {
+            t = l.Text,
+            lat = Math.Round(l.Lat, 6),
+            lon = Math.Round(l.Lon, 6),
+        }),
+    });
+}

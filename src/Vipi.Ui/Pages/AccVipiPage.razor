@@ -1,4 +1,4 @@
-@page "/services/vsop/{Acc}/vipi"
+﻿@page "/services/vsop/{Acc}/vipi"
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IAccDerivationService Profile
@@ -78,6 +78,7 @@ else
                                                 Coord="_coord.GetValueOrDefault(block.Key)"
                                                 Aor="_aors.GetValueOrDefault(block.Key)"
                                                 Areas="_areas.GetValueOrDefault(block.Key)"
+                                                Minima="_minima.GetValueOrDefault(block.Key)"
                                                 ConfigTables="_configTables.GetValueOrDefault(block.Key)" />
                             </ChildContent>
                         </CollapsibleBlock>
@@ -134,6 +135,7 @@ else
     private readonly Dictionary<string, List<AppFreqRow>> _freqs = new();
     private readonly Dictionary<string, AccCoordination> _coord = new();
     private readonly Dictionary<string, AccAorView> _aors = new();
+    private readonly Dictionary<string, MinimaView> _minima = new();
     private readonly Dictionary<string, IReadOnlyList<AccSpecialAreaView>> _areas = new();
     private readonly Dictionary<string, IReadOnlyList<AccConfigTableView>> _configTables = new();
 
@@ -186,6 +188,7 @@ else
                 _freqs[b.Key] = derived.Freqs.GetValueOrDefault(b.Key)?.ToList() ?? new();
                 _coord[b.Key] = derived.Coord.GetValueOrDefault(b.Key) ?? AccCoordination.Empty;
                 _aors[b.Key] = derived.Aor.GetValueOrDefault(b.Key) ?? AccAorView.Empty;
+                _minima[b.Key] = derived.Minima.GetValueOrDefault(b.Key) ?? MinimaView.Empty;
                 _areas[b.Key] = await Profile.GetAttachedSpecialAreasAsync(Acc, b);
                 _configTables[b.Key] = await Profile.DeriveConfigTableAsync(Acc, b, _root);
             }
@@ -198,6 +201,7 @@ else
                 _freqs[b.Key] = (await Profile.DeriveFrequenciesAsync(Acc, b, _root)).ToList();
                 _coord[b.Key] = await Profile.DeriveCoordinationAsync(Acc, b, _root);
                 _aors[b.Key] = await Profile.DeriveAorViewAsync(Acc, b, _root);
+                _minima[b.Key] = await Profile.DeriveMinimaAsync(Acc, b, _root);
                 _areas[b.Key] = await Profile.GetAttachedSpecialAreasAsync(Acc, b);
                 _configTables[b.Key] = await Profile.DeriveConfigTableAsync(Acc, b, _root);
             }

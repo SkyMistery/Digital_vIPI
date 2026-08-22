@@ -263,6 +263,7 @@ else
     private readonly Dictionary<int, List<AppFreqRow>> _freqs = new();
     private readonly Dictionary<int, AccCoordination> _coord = new();
     private readonly Dictionary<int, AccAorView> _aors = new();
+    private readonly Dictionary<int, MinimaView> _minima = new();
     private readonly Dictionary<int, IReadOnlyList<AccConfigTableView>> _configTables = new();
 
     private IReadOnlyList<AccSectorPick> _ctrSectors = Array.Empty<AccSectorPick>();
@@ -308,7 +309,7 @@ else
             if (_doc is null || _model is null) { _denied = true; return; }
             _editing = _editing && _doc.IsEditable;
 
-            _freqs.Clear(); _coord.Clear(); _aors.Clear(); _configTables.Clear();
+            _freqs.Clear(); _coord.Clear(); _aors.Clear(); _configTables.Clear(); _minima.Clear();
             foreach (var b in _model.Blocks) await RefreshBlockDerived(b);
         }
         catch (EditNotAllowedException) { _denied = true; }
@@ -319,6 +320,7 @@ else
         _freqs[b.BlockSectionId] = (await Profile.DeriveFrequenciesAsync(Acc, b.Block, _root)).ToList();
         _coord[b.BlockSectionId] = await Profile.DeriveCoordinationAsync(Acc, b.Block, _root);
         _aors[b.BlockSectionId] = await Profile.DeriveAorViewAsync(Acc, b.Block, _root);
+        _minima[b.BlockSectionId] = await Profile.DeriveMinimaAsync(Acc, b.Block, _root);
         _configTables[b.BlockSectionId] = await Profile.DeriveConfigTableAsync(Acc, b.Block, _root);
     }
 
@@ -589,6 +591,11 @@ else
                 break;
             case "vfr":
                 <AppVfr Content="ParseVfr(blk.Block.VfrJson)" Editing="_editing" ContentChanged="c => SaveVfr(blk, c)" />
+                break;
+            case "minima":
+                @* Sola lettura anche in modifica: la carta viene dal sectorfile, non si scrive da qui. Ciò che
+                   l'editor decide è se resti Live o venga congelata alla release (toggle del pannello sezione). *@
+                <MinimaSection @key="@($"mva-{bsId}")" View="_minima.GetValueOrDefault(bsId) ?? MinimaView.Empty" />
                 break;
             case "coordination":
                 <AccCoordinationView Coord="_coord.GetValueOrDefault(bsId) ?? AccCoordination.Empty" />

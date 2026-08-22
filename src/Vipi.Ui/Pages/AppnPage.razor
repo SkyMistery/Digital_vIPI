@@ -1,4 +1,4 @@
-@page "/services/vsop/{Acc}/apps/vipi"
+﻿@page "/services/vsop/{Acc}/apps/vipi"
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IAppDocumentService AppDoc
@@ -85,6 +85,7 @@ else
                                     case "configurations": <AppConfigurations Configs="Array.Empty<AccConfiguration>()" Tables="_configTable" MapScope="@($"app-aor-{_app}")" />; break;
                                     case "aor": <AccAor View="_aorView" Id="@($"app-aor-{_app}")" />; break;
                                     case "frequencies": <AppFrequencies Rows="_freqs" />; break;
+                                    case "minima": <MinimaSection View="_minima" />; break;
                                     case "vfr": <AppVfr Content="ReadVfr(s)" />; break;
                                     case "coordination": <AppCoordinationView Coord="_coord" LeadSentence="s.LeadSentence" />; break;
                                     case "regulated": <RegulatedAreas Areas="_areas" />; break;
@@ -167,6 +168,7 @@ else
     private AccAorView _aorView = AccAorView.Empty;
     private IReadOnlyList<AccConfigTableView> _configTable = Array.Empty<AccConfigTableView>();
     private IReadOnlyList<AccSpecialAreaView> _areas = Array.Empty<AccSpecialAreaView>();
+    private MinimaView _minima = MinimaView.Empty;
 
     // Sezioni il cui corpo lo rende questa pagina (derivate + editoriali-strutturate); le altre via SectionNode.
     // Chi siano lo dice il catalogo, per profilo (doc 13 §3a): qui stava una delle sei copie dell'insieme.
@@ -253,6 +255,7 @@ else
         _coord = derived.Coord;
         _aorView = derived.Aor;
         _configTable = derived.ConfigTable;
+        _minima = derived.Minima;
 
         // Aree regolamentate: gli id li porta il documento mostrato (pubblico/bozza/release), i dettagli e le shape
         // vengono dai cataloghi correnti — come nella vIPI ACC.

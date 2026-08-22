@@ -1,4 +1,4 @@
-@* Corpo di una sezione della vIPI ACC (data-driven). Estratto da AccVipiPage per riuso in AccOperativaPage.
+﻿@* Corpo di una sezione della vIPI ACC (data-driven). Estratto da AccVipiPage per riuso in AccOperativaPage.
    Riceve il blocco + la chiave sezione + i valori già derivati per quel blocco. *@
 
 @* Sotto-sezioni «prima» del corpo (doc 11 §3g). Per le sezioni libere le rende SectionBody insieme ai blocchi. *@
@@ -22,6 +22,8 @@
         <AccAor @key="@(Block.Key + ":" + Root)" View="Aor ?? AccAorView.Empty" Id="@Block.Key" />
         break;
     case "frequencies": <AppFrequencies Rows="Freqs ?? Array.Empty<AppFreqRow>()" /> break;
+    @* Una mappa per file .mva: @key sull'albero come per l'AoR, così al cambio root il JS re-inizializza. *@
+    case "minima": <MinimaSection @key="@(Block.Key + ":minima:" + Root)" View="Minima ?? MinimaView.Empty" /> break;
     case "vfr": <AppVfr Content="ParseVfr(Block.VfrJson)" /> break;
     case "coordination": <AccCoordinationView Coord="Coord ?? AccCoordination.Empty" LeadSentence="@(Editorial?.LeadSentence ?? false)" /> break;
     case "regulated": <RegulatedAreas Areas="Areas ?? Array.Empty<AccSpecialAreaView>()" /> break;
@@ -56,6 +58,7 @@
     [Parameter] public AccCoordination? Coord { get; set; }
     [Parameter] public AccAorView? Aor { get; set; }
     [Parameter] public IReadOnlyList<AccSpecialAreaView>? Areas { get; set; }
+    [Parameter] public MinimaView? Minima { get; set; }
     [Parameter] public IReadOnlyList<AccConfigTableView>? ConfigTables { get; set; }
 
     private static AppVfrContent ParseVfr(string? json)

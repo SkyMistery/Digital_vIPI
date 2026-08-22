@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 using Xunit;
 
 namespace Vipi.Application.Tests;
@@ -13,7 +13,7 @@ public class SectionCatalogTests
     [InlineData("aor", SectionKind.Derived)]
     [InlineData("frequencies", SectionKind.Derived)]
     [InlineData("coordination", SectionKind.Derived)]
-    [InlineData("minima", SectionKind.Editorial)]   // doc 13 §3b: le MVA si scrivono a mano
+    [InlineData("minima", SectionKind.Derived)]   // la carta MRVA viene dal sectorfile (una per file .mva)
     [InlineData("separations", SectionKind.Editorial)]
     [InlineData("regulated", SectionKind.Editorial)]
     [InlineData("qualcosa-custom", SectionKind.Editorial)]   // sconosciuta = custom editoriale
@@ -26,7 +26,7 @@ public class SectionCatalogTests
     [InlineData("aor", true)]
     [InlineData("frequencies", true)]
     [InlineData("coordination", true)]
-    [InlineData("minima", false)]   // doc 13 §3b: editoriale, niente da congelare
+    [InlineData("minima", true)]   // derivata dal sectorfile: si può congelare alla release
     [InlineData("sids", true)]
     [InlineData("separations", false)]
     [InlineData("vfr", false)]
@@ -56,13 +56,13 @@ public class SectionCatalogTests
             .Where(d => d.BodySource == SectionBodySource.Host).Select(d => d.Key).OrderBy(k => k).ToArray();
 
         Assert.Equal(
-            new[] { "aor", "configurations", "coordination", "frequencies", "regulated", "separations", "vfr" },
+            new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations", "vfr" },
             Host(SectionProfile.App));
         Assert.Equal(
-            new[] { "aor", "configurations", "coordination", "frequencies", "regulated", "separations" },
+            new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations" },
             Host(SectionProfile.AccAerovia));   // l'Aerovia non ha il VFR
         Assert.Equal(
-            new[] { "aor", "configurations", "coordination", "frequencies", "regulated", "separations", "vfr" },
+            new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations", "vfr" },
             Host(SectionProfile.AccAppBlock));
         Assert.Equal(
             new[] { "aor", "coordination", "frequencies" },

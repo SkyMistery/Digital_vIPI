@@ -1,4 +1,4 @@
-@using System.Globalization
+﻿@using System.Globalization
 <!DOCTYPE html>
 @* La lingua della pagina è quella risolta da UseRequestLocalization, non «it» fisso: il modulo è
    localizzato in it/en, e con lang sbagliato uno screen reader pronuncia l'inglese con le regole
@@ -53,6 +53,7 @@
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-time.js")"></script>
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-live.js")"></script>
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-aor.js")"></script>
+    <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-mva.js")"></script>
     <!-- Three.js (viewer 3D AoR) — vendorizzato localmente (r128 UMD, espone THREE globale). NON caricato qui:
          sono 592 KB che servono al solo tab 3D, mentre questo <head> vale per ogni pagina. L'URL (con l'impronta
          di MapStaticAssets) passa a vipi-aor3d.js, che lo carica alla prima apertura di uno stage 3D. -->
