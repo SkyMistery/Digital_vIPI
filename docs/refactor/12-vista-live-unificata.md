@@ -17,7 +17,7 @@ Conseguenze concrete che si pagavano:
 
 - **Le torri non avevano vista live.** Nessuna delle due pagine le contemplava, e aggiungerle avrebbe voluto
   dire una terza pagina gemella.
-- **La chiave era sbagliata.** Le rotte erano `/services/vsop/{acc}/live` e `/services/vsop/{acc}/live-app?app=`: l'ACC nel path
+- **La chiave era sbagliata.** Le rotte erano `/vsop/{acc}/live` e `/vsop/{acc}/live-app?app=`: l'ACC nel path
   più il callsign nella query, cioè due fonti per la stessa informazione, libere di contraddirsi.
 - Un fix a una pagina non arrivava all'altra se non lo si ricordava a mano.
 
@@ -95,9 +95,9 @@ una catena di redirect si paga a ogni apertura:
 
 | URL storico | Destinazione |
 |---|---|
-| `/services/vsop/{acc}/operativa`, `/services/vsop/{acc}/live` | `/services/vsop/live` |
+| `/vsop/{acc}/operativa`, `/vsop/{acc}/live` | `/services/vsop/live` |
 | `…?p=LIRR_NE_CTR` | `/services/vsop/live/lirr_ne_ctr` |
-| `/services/vsop/{acc}/operativa-app?app=X`, `/services/vsop/{acc}/live-app?app=X` | `/services/vsop/live/x` |
+| `/vsop/{acc}/operativa-app?app=X`, `/vsop/{acc}/live-app?app=X` | `/services/vsop/live/x` |
 
 > **Trappola di routing, bloccata da un test.** `/services/vsop/live/{callsign}` è una rotta a parametro che ricade sul
 > prefisso dello stream SSE `/vsop/live/atc`. La precedenza del routing ASP.NET (segmento **letterale** >

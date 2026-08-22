@@ -22,14 +22,14 @@ ripristinare gli eventuali link in `SopHome`/`AccLanding`/`ScreensIndex`, ricomp
 > `VipiDocument.razor` (sostituita da `AccVipiPage` su `/vipi`) e `EditorPage.razor` (dispatcher generico orfano;
 > l'editor vLOA dedicato sarà realizzato con le vLOA). Rimosso anche il CSS `.aor3d-*`.
 
-> 🗑️ **`VloaPage.razor` ELIMINATA** (ridisegno route vLOA): la view per-documento è stata **assorbita in `VloaListPage.razor`**. Ora `/services/vsop/{acc}/vloa` senza `?acc` è l'elenco, con `?acc=YYYY` è il documento della coppia acc↔YYYY (chiave = codice ACC vicino, non più docId). Rimosse anche le route `/services/vsop/{acc}/editor-vloa` (stub) e l'host `apps/editor?vloa=`: l'editor vLOA vive ora su `/services/vsop/{acc}/vloa/editor?acc=YYYY` (`VloaEditorPage.razor`). Vedi `mappa-pagine.md`.
+> 🗑️ **`VloaPage.razor` ELIMINATA** (ridisegno route vLOA): la view per-documento è stata **assorbita in `VloaListPage.razor`**. Ora `/services/vsop/{acc}/vloa` senza `?acc` è l'elenco, con `?acc=YYYY` è il documento della coppia acc↔YYYY (chiave = codice ACC vicino, non più docId). Rimosse anche le route `/vsop/{acc}/editor-vloa` (stub) e l'host `apps/editor?vloa=`: l'editor vLOA vive ora su `/services/vsop/{acc}/vloa/editor?acc=YYYY` (`VloaEditorPage.razor`). Vedi `mappa-pagine.md`.
 
 ## Note / link residui da sapere
 - **Ricerca e "Cosa è cambiato":** i documenti **vLOA** ora linkano `/services/vsop/{acc}/vloa?acc=YYYY`
   (in `EfSearchRepository`/`EfChangesRepository`, con `YYYY` = codice ACC vicino) → view per-documento.
 - Gli **editor** (vIPI, trasferimenti, vLOA, profilo aeroporto) **restano attivi**.
-- **Rimossa** `/services/vsop/{acc}/topologia` (`TopologiaPage`): la gerarchia si gestisce da `/services/vsop/admin/sector-structure`
+- **Rimossa** `/vsop/{acc}/topologia` (`TopologiaPage`): la gerarchia si gestisce da `/services/vsop/admin/sector-structure`
   (per callsign, round 20); regole di unificazione + simulatore AoR erano legacy e non hanno più UI (il motore
   `IAorService` + `UnificationRule` e i test S1–S10 restano).
-- La rotta APP è passata da `/services/vsop/{acc}/app` a **`/services/vsop/{acc}/apps/vipi`** (più la nuova `/apps` elenco).
-- La rotta viewer aeroporto è passata da `/services/vsop/{acc}/airports` a **`/services/vsop/{acc}/airports?icao=`**.
+- La rotta APP è passata da `/vsop/{acc}/app` a **`/services/vsop/{acc}/apps/vipi`** (più la nuova `/apps` elenco).
+- La rotta viewer aeroporto è passata da `/vsop/{acc}/aeroporto` a **`/services/vsop/{acc}/airports?icao=`**.

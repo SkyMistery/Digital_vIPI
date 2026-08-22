@@ -28,6 +28,7 @@
                         <a class="@(IsActiveAcc(acc.Code) ? "active" : null)" href="/services/vsop/@acc.Code.ToLowerInvariant()">@acc.Code</a>
                     }
                 </nav>
+                <a href="/services"><Icon Name="grid" /> @L["Chrome_Services"]</a>
                 <a href="/services/vsop/guide"><Icon Name="help-circle" /> @L["Chrome_Guide"]</a>
                 <a href="/services/vsop/live"><Icon Name="radio" /> @L["Chrome_OpenLive"]</a>
                 @if (_canEdit)
@@ -64,6 +65,7 @@
             <input name="q" placeholder="@L["Chrome_SearchPh"]" aria-label="@L["Chrome_Search"]" />
         </form>
         <div class="right">
+            <a class="editor-btn icon-only" href="/services" title="@L["Chrome_Services"]" aria-label="@L["Chrome_Services"]"><Icon Name="grid" /></a>
             <a class="editor-btn icon-only" href="/services/vsop/guide" title="@L["Chrome_Guide"]" aria-label="@L["Chrome_Guide"]"><Icon Name="help-circle" /></a>
             @if (_staff is { Length: > 0 })
             {

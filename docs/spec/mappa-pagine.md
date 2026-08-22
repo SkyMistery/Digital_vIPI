@@ -1,12 +1,23 @@
-# MAPPA PAGINE — vIPI (prefisso `/services/vsop`)
+# MAPPA PAGINE — servizi ATC (hub `/services`)
 
 > Documento di **rapida lettura**: la gerarchia delle pagine del sito e dove vive ciascuna.
-> Aggiornato al **rebuild Round 12** (rename `/sop` → `/services/vsop` + nuova struttura ACC).
+> Aggiornato al **22 agosto 2026**: il sito è il contenitore dei **servizi**, la documentazione operativa
+> è il primo di essi e vive sotto `/services/vsop`; le rotte rimaste in italiano sono passate all'inglese.
+> Tabella di conversione e ragioni in
+> [`../feature/2026-08-22-servizi-atc-e-profile-swapper.md`](../feature/2026-08-22-servizi-atc-e-profile-swapper.md) §2.
+> (Prima di allora: **rebuild Round 12**, che rinominò `/sop` → `/vsop` e rifece la struttura ACC.)
 > Per le pagine spente vedi **`pagine-disabilitate.md`**.
 
 ## Gerarchia (cosa vede l'utente)
 
 ```
+/                                       → 301 a /services
+/services                               Hub dei servizi  ............. ServicesHome.razor
+├─ vSOP — documentazione operativa                 → /services/vsop
+└─ Aurora Profile Swapper                          → /services/profile-swapper
+
+/services/profile-swapper               Copia sezioni fra profili Aurora .cpr  ... ProfileSwapperPage.razor
+
 /services/vsop                                   Home  ........................ SopHome.razor
 ├─ Ricerca: titolo + AIRAC + barra
 ├─ Card ACC (codice, nome, n° ATC online)        → /services/vsop/{acc}
@@ -47,6 +58,8 @@
 
 | Rotta | File | Ruolo | Accesso |
 |---|---|---|---|
+| `/services` | `ServicesHome.razor` | **Hub dei servizi** (SSR statico: è un elenco di collegamenti). Vive nella RCL e non nell'host, perché quando il modulo sarà montato dentro Ivao.It `/` non sarà nostro | tutti |
+| `/services/profile-swapper` | `ProfileSwapperPage.razor` | **Aurora Profile Swapper**: copia sezioni intere fra profili `.cpr`. Motore in `Vipi.AuroraProfiles`. I file passano dal server ed elaborati in memoria — la pagina lo dichiara | tutti |
 | `/services/vsop` | `SopHome.razor` | Home | tutti |
 | `/services/vsop/{acc}` | `AccLanding.razor` | Landing ACC | tutti |
 | `/services/vsop/{acc}/vipi` | `AccVipiPage.razor` | vIPI ACC (data-driven). **Una sola per ACC**: la pagina usa sempre il CTR radice primario e **ignora** `?tree=` (nessun selettore d'albero) | tutti (edit: AOD/DIR) |
@@ -61,7 +74,7 @@
 | `/services/vsop/guide` | `GuidaPage.razor` | **Guida in-app bilingue IT/EN** (toggle `?lang=it\|en`, default = cultura negoziata; contenuto data-driven, TOC derivato) — consultare + modificare: pagina statica cercabile (Ctrl+F) a sezioni collassabili con ancore deep-link (`#editor-release`, `#editor-lock`, …). Vi rimandano i `?` contestuali (`Components/HelpHint.razor`) agganciati ai controlli editor (ReleasePanel, EditLockBar, DocumentBlocksEditor, link Anteprima, Salva-tutto). Link nella topbar (icona `help-circle`, tutti). Le sezioni emergono anche nella **ricerca globale** (`GuideSearchCatalog` → `SearchService`, solo scope Tutti). **Tour onboarding** editor: `wwwroot/vipi-tour.js` (step su `data-tour`, auto 1×/utente, `?tour=1` per rivederlo) | tutti |
 | `/services/vsop/screens` | `ScreensIndex.razor` | Indice schermate | staff |
 | `/services/vsop/release/{id}` | `ReleasePreviewPage.razor` | **Redirect** (compat): risolve la release e reindirizza al viewer tipizzato con `?as=rel:{id}`. Le anteprime sono rese dentro i viewer, non più qui | staff/editori |
-| `/services/vsop/versions`, `/services/vsop/{acc}/versions` | `VersioniPage.razor` | **Hub documenti unificato** (ex `/services/vsop/editor` assorbito): elenco completo doc (vIPI ACC/APP/aeroporto/vLOA) + ricerca/filtri, «Apri editor» per riga, tasto «Nuovo documento», storico versioni + release AIRAC. Azioni hide/elimina/annulla-release solo admin. `Apri editor` gated server-side | staff/editori (admin o grant) |
+| `/services/vsop/versions`, `/services/vsop/{acc}/versions` | `VersioniPage.razor` | **Hub documenti unificato** (ex `/vsop/editor` assorbito): elenco completo doc (vIPI ACC/APP/aeroporto/vLOA) + ricerca/filtri, «Apri editor» per riga, tasto «Nuovo documento», storico versioni + release AIRAC. Azioni hide/elimina/annulla-release solo admin. `Apri editor` gated server-side | staff/editori (admin o grant) |
 | `/services/vsop/editor/new-document` | `NewDocumentPage.razor` | Creazione documenti. **vIPI ACC**: si scelgono i **root** degli alberi (ogni root porta lo scope dell'intero sottoalbero d'area = CTR + APP di ACC, **cross-ACC**; più alberi per doc). **vIPI APP**: solo APP non remotizzati (`App`+`Standalone`). **vLOA**: solo tra ACC **italiano** (Home) e **estero** (Neighbour), es. Roma↔Marsiglia. Lavora su una vista globale dei settori (`IStructureEditingService.ListSectorNodesAsync`) | admin |
 | `/services/vsop/{acc}/editor` | `AccEditorPage.razor` | Editor vIPI ACC (data-driven, a **blocchi**: Aerovia + gruppi APP) | admin/grant ACC |
 | `/services/vsop/{acc}/vloa/editor` | `VloaEditorPage.razor` | Editor vLOA (con `ReleasePanel`, come ACC/APP/aeroporto — doc 11 §3f). Con `?acc=YYYY` apre la coppia acc↔YYYY (host del componente `VloaEditor`); senza `?acc` mostra un **chooser** delle vLOA della ACC. Ex `/services/vsop/{acc}/editor-vloa` (stub) ed ex host `apps/editor?vloa=` (rimossi) | admin/grant ACC |

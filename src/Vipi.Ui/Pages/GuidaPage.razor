@@ -144,6 +144,35 @@
               </ul>
               <p>A coloured banner at the top flags when you are <b>not</b> looking at the public version. If you are
                not authorized, the view <b>degrades to public</b> without revealing the draft.</p>"),
+        new Sec("profile-swapper", "copy", "Aurora Profile Swapper", "Aurora Profile Swapper",
+            @"<p>Copia <b>sezioni intere</b> da un profilo Aurora <code>.cpr</code> a uno o piu' profili, senza
+               copia-incolla a mano. Sta in <code>/services/profile-swapper</code>, ed e' aperto a tutti.</p>
+              <ul>
+                <li>Carichi il profilo <b>sorgente</b> (quello da cui copiare) e uno o piu' <b>destinazione</b>.</li>
+                <li>Spunti le sezioni: <code>TRAFFICLISTS</code>, per esempio. L'<b>anteprima</b> mostra riga per
+                    riga cosa cambia in ciascun profilo, prima di toccare qualcosa.</li>
+                <li>Esce un unico <b>.zip</b> con i profili aggiornati. Quello che non hai selezionato resta
+                    identico <b>byte per byte</b>: il file torna in Aurora come ne e' uscito.</li>
+              </ul>
+              <p>Una sezione presente nel sorgente ma <b>assente</b> nel destinazione viene <b>aggiunta in fondo</b>,
+               e la pagina te lo dice con un avviso giallo. Una sezione che manca nel <b>sorgente</b> ferma tutto:
+               non si copia niente a meta'.</p>
+              <p>I profili arrivano al server, dove vengono elaborati <b>in memoria</b>: non vengono mai scritti su
+               disco ne' conservati.</p>",
+            @"<p>Copy <b>whole sections</b> from one Aurora <code>.cpr</code> profile into one or more profiles, with
+               no manual copy-paste. It lives at <code>/services/profile-swapper</code> and is open to everyone.</p>
+              <ul>
+                <li>Load the <b>source</b> profile (the one to copy from) and one or more <b>destinations</b>.</li>
+                <li>Tick the sections: <code>TRAFFICLISTS</code>, for example. The <b>preview</b> shows line by line
+                    what changes in each profile, before anything is touched.</li>
+                <li>You get a single <b>.zip</b> with the updated profiles. Whatever you did not select stays
+                    <b>byte-for-byte</b> identical: the file goes back into Aurora as it came out.</li>
+              </ul>
+              <p>A section present in the source but <b>missing</b> in a destination is <b>appended at the end</b>,
+               and the page says so with a yellow warning. A section missing from the <b>source</b> stops
+               everything: nothing is copied halfway.</p>
+              <p>Profiles reach the server, where they are processed <b>in memory</b>: they are never written to
+               disk nor kept.</p>"),
     };
 
     private static readonly List<Sec> _modify = new()

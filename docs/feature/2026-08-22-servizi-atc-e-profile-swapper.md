@@ -1,6 +1,6 @@
 # Feature — Servizi ATC: l'hub `/services` e il primo strumento integrato
 
-Data: 2026-08-22 · Stato: **IN CORSO** — slice 0 e **1 fatte**, slice 2→5 da eseguire.
+Data: 2026-08-22 · Stato: **IN CORSO** — slice 0→4 **fatte**, resta la 5 (verifica live).
 Ramo: `feature/services-hub-profile-swapper`, da `main`.
 
 > **Slice 1 chiusa** (rename): 177 file, 759 righe, 35 rotte, i due alias cancellati perché *collassati* sulla
@@ -96,6 +96,24 @@ Più le traduzioni e le sillabazioni, nello stesso giro:
 
 **Non si toccano** i termini che sono nomi propri e non parole: `vsop`, `vipi`, `vloa`, `acc`, `apps`,
 `aor3d`, `airports`, `editor`, `live`, `tasks`, `screens`, `search`, `changed`, `release`, `audit`.
+
+### 2-bis. Il danno che un rename meccanico fa ai documenti, e la regola che lo ripara
+
+Escludere `docs/history/` non è bastato. Un rename a tappeto riscrive anche le frasi che **raccontano un
+passaggio già avvenuto**, e lì il punto di partenza *deve* restare quello di allora. Dopo la slice 1,
+`pagine-disabilitate.md` diceva:
+
+> «La rotta viewer aeroporto è passata da `/services/vsop/{acc}/airports` a `/services/vsop/{acc}/airports?icao=`»
+
+cioè **è passata da sé stessa a sé stessa**: l'originale diceva `da /vsop/{acc}/aeroporto`, e la traduzione
+`aeroporto → airports` ha cancellato la differenza che la frase esisteva per raccontare. Casi come questo:
+**dieci**, in quattro documenti (rotte rimosse — `topologia`, `editor-vloa`, `/vsop/editor` — e le due
+colonne «URL storico» delle tabelle di migrazione).
+
+**Regola, d'ora in poi:** *un indirizzo morto resta nella forma che aveva; uno vivo si aggiorna.* Nessuno
+strumento può applicarla da solo, perché la differenza non sta nella stringa — sta nel **tempo del verbo che
+le sta accanto**. Dopo un rename a tappeto va fatta una passata cercando «è passata da», «ex», «rimossa»,
+«prima era».
 
 ### 3. Regola: si sposta ciò che è una pagina, gli endpoint macchina restano
 

@@ -1,0 +1,32 @@
+@page "/services"
+@layout SopLayout
+@inject IStringLocalizer<SharedResource> L
+
+@* La porta d'ingresso: da qui si raggiungono gli strumenti, di cui la documentazione operativa è il primo.
+
+   Vive nella RCL e non nell'host, e non è un dettaglio di collocazione: quando il modulo verrà montato
+   dentro il sito di Ivao.It, «/» non sarà nostro e l'hub deve esistere lo stesso. L'host tiene solo il
+   reindirizzamento da «/».
+
+   Nessun @rendermode: è un elenco di collegamenti, quindi SSR statico come il resto del chrome. Le isole
+   interattive della barra (il badge live) dichiarano il proprio, e continuano a funzionare. *@
+
+<PageTitle>@L["Services_Title"] · vIPI IVAO Italia</PageTitle>
+
+<div class="wrap" style="max-width:1100px">
+    <div class="hero">
+        <h1>@L["Services_Title"]</h1>
+        <p>@L["Services_Intro"]</p>
+    </div>
+
+    <div class="choice-grid" style="margin-top:22px">
+        <a class="choice" href="/services/vsop">
+            <h4><span class="ic"><Icon Name="book-open" Size="18" /></span> @L["Services_VsopTitle"]</h4>
+            <p class="muted">@L["Services_VsopDesc"]</p>
+        </a>
+        <a class="choice" href="/services/profile-swapper">
+            <h4><span class="ic"><Icon Name="copy" Size="18" /></span> @L["Swap_Heading"]</h4>
+            <p class="muted">@L["Services_SwapperDesc"]</p>
+        </a>
+    </div>
+</div>
