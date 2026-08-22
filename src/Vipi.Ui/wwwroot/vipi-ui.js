@@ -559,6 +559,102 @@
         fitTargets.forEach(function (t) { fitOne(t.sel, t.below, t.cap, t.res); });
     });
 
+    // ---- La topbar sceglie il suo scaglione MISURANDOSI ----
+    //
+    // Fino al 22 agosto 2026 lo sceglievano tre media query (1500/1300/900). Non ha funzionato, e la ragione
+    // e' di metodo: ⚠️ una media query misura la FINESTRA, mentre il problema e' la larghezza della BARRA. Le
+    // due cose non sono la stessa, perche' quanto la barra pretende dipende da sei cose che una `@media` non
+    // vede — login si'/no, lunghezza della stringa staff (chi ha quattro incarichi pesa il doppio di chi ne
+    // ha due), numero di ACC, lingua, ZOOM di pagina (che arriva a 1.8) e stato della ricerca. Tarate su una
+    // configurazione sola, le soglie erano giuste soltanto li': la barra si rompeva gia' a 1940, cioe' 440px
+    // sopra la prima soglia. Carta: docs/feature/2026-08-22-topbar-misurata.md.
+    //
+    // Le regole di ogni scaglione sono le stesse di prima e stanno dov'erano, in vipi-theme.css: qui si
+    // decide solo QUANDO valgono. Le classi sono cumulative (tb-3 implica tb-1 e tb-2).
+    var TB_MAX = 3;      // oltre tb-3 non c'e' piu' niente da togliere: la barra e' gia' logo + ricerca + «☰»
+    // Isteresi, e serve solo nel verso che MOSTRA di piu': salire di scaglione si fa appena serve, scendere
+    // solo con margine. Senza, la barra sbatte fra due assetti sul pixel di confine mentre si trascina il bordo.
+    var TB_SLACK = 40;
+    var tbLevel = 0;
+    var tbSettledAt = 0;
+    var tbQueued = false;
+    var tbObserved = null;
+
+    function tbApply(bar, lvl) {
+        for (var i = 1; i <= TB_MAX; i++) bar.classList.toggle('tb-' + i, i <= lvl);
+    }
+
+    // Quanto MANCA perche' la barra stia, a questo scaglione. Due addendi, e il secondo non e' un di piu':
+    // ⚠️ `scrollWidth == clientWidth` da solo MENTE. La ricerca ha `flex-shrink:1`, quindi cede fino al suo
+    // minimo PRIMA che la barra sfori: a quel punto la barra «sta» e il segnaposto dice «Cerca Co…». Il
+    // difetto si e' solo spostato, ed e' lo stesso inganno che in fase di taratura aveva fatto leggere 306px
+    // liberi a 1280 — misurati con la ricerca chiusa.
+    function tbDeficit(bar, lvl) {
+        // ⚠️ `scrollWidth`/`clientWidth` parlano in unita' di LAYOUT: lo zoom di pagina non li tocca, al
+        // contrario di `getBoundingClientRect` (vedi rootZoom). Qui e' proprio quel che serve, e non c'e'
+        // niente da convertire.
+        var d = bar.scrollWidth - bar.clientWidth;
+        if (lvl >= 2) return d;      // da tb-2 la ricerca e' un'icona: non ha un minimo da difendere
+        var search = bar.querySelector('.top-search');
+        if (!search) return d;
+        var min = parseFloat(getComputedStyle(bar).getPropertyValue('--tb-search-min'));
+        if (!min || isNaN(min)) return d;
+        return d + Math.max(0, min - search.clientWidth);
+    }
+
+    function tbFit() {
+        var bar = document.querySelector('.topbar');
+        if (!bar) return;
+        // ⚠️ Mai rimisurare mentre la ricerca ha il fuoco: da tb-2 il campo aperto e' `position:fixed`, esce
+        // dal flusso, e la barra sembra piu' stretta di quanto sara' quando si richiude. Rifare i conti li'
+        // vorrebbe dire far saltare il campo sotto le dita di chi sta scrivendo.
+        var a = document.activeElement;
+        if (a && a.closest && a.closest('.topbar .top-search')) return;
+
+        var w = document.documentElement.clientWidth;
+        // ⚠️ Si riparte SEMPRE dal livello 0 e si sale. Misurare lo scaglione corrente e indovinare il
+        // prossimo e' lo stesso errore di prima con un altro vestito: l'unico stato di cui si puo' dire
+        // qualcosa di vero e' quello applicato. Costa tre riflow, una volta per ridimensionamento.
+        var lvl = 0;
+        for (; lvl < TB_MAX; lvl++) {
+            tbApply(bar, lvl);
+            if (tbDeficit(bar, lvl) <= 0) break;
+        }
+        if (lvl >= TB_MAX) { lvl = TB_MAX; tbApply(bar, lvl); }
+
+        if (lvl < tbLevel && w < tbSettledAt + TB_SLACK) {
+            lvl = tbLevel;               // troppo poco margine per rimostrare: si resta dov'eravamo
+            tbApply(bar, lvl);
+        } else {
+            tbSettledAt = w;
+        }
+        tbLevel = lvl;
+    }
+
+    function tbSchedule() {
+        if (tbQueued) return;
+        tbQueued = true;
+        requestAnimationFrame(function () { tbQueued = false; tbFit(); });
+    }
+
+    // Il badge live e' un'isola interattiva: quando ti colleghi in frequenza il suo testo cambia, la barra si
+    // allarga e ⚠️ NESSUN `resize` viene emesso. Da qui l'osservatore.
+    // ⚠️ Solo `childList`/`characterData`: gli ATTRIBUTI restano fuori dall'osservazione, o le classi che
+    // scriviamo noi rientrerebbero da sole e il giro non finirebbe piu'.
+    function tbWatch() {
+        var bar = document.querySelector('.topbar');
+        if (!bar || bar === tbObserved) return;
+        tbObserved = bar;
+        new MutationObserver(tbSchedule).observe(bar, { childList: true, characterData: true, subtree: true });
+        bar.addEventListener('focusout', tbSchedule);
+    }
+
+    window.vipiFitTopbar = function () { tbWatch(); tbFit(); };
+
+    window.addEventListener('resize', tbSchedule);   // e lo zoom ne emette uno apposta (vipi-zoom.js)
+    // I font web cambiano le misure: al primo giro `scrollWidth` e' quello del ripiego, non quello vero.
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(tbSchedule);
+
     window.vipiRevealPanel = function (id) {
         var el = document.getElementById(id);
         if (!el) return;
@@ -640,12 +736,19 @@
         wireSearchKey();
         wirePrint();
         wireHashLanding();   // deep-link "#id" verso sezioni collassate (Guida) → apri + scorri
+        window.vipiFitTopbar();
     };
 
     document.addEventListener('DOMContentLoaded', function () {
         window.vipiApplyZoom && window.vipiApplyZoom();
         window.vipiWireUi();
     });
+
+    // ⚠️ E anche SUBITO, senza aspettare DOMContentLoaded: questo file e' caricato in fondo al <body>, quindi
+    // qui la topbar c'e' gia' — e da quando gli scaglioni non sono piu' media query, fra il primo disegno e
+    // la prima misura la barra sta al livello 0. Misurare adesso e' ciò che tiene quel divario dentro un
+    // fotogramma invece di regalarlo alla rete.
+    window.vipiFitTopbar();
 })();
 
 // Consegna un file al browser a partire da uno stream .NET (Aurora Profile Swapper).
