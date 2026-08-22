@@ -16,7 +16,7 @@
 > vLOA** ([carte](../feature/2026-08-22-editori-app-vloa-cosa-fanno.md) e
 > [densità](../feature/2026-08-22-editori-app-vloa-densita-ui.md), §27, regole 183-192), che chiudono la
 > ricognizione; poi il **chrome** — topbar, pannello release e il menu «+ Blocco»
-> ([carte](../feature/2026-08-22-topbar-larghezza-e-lingua.md) e
+> ([carte](../feature/2026-08-22-topbar-larghezza-e-lingua.md) — poi [rifatta a misura](../feature/2026-08-22-topbar-misurata.md) — e
 > [release](../feature/2026-08-22-pannello-release.md), §28, regole 193-204); e infine il **telefono** sulle
 > pagine pubbliche ([carta](../feature/2026-08-22-telefono-pagine-pubbliche.md), §29, regole 205-212)
 > — e ogni giro ha lasciato una regola pagata a caro prezzo,
@@ -1026,6 +1026,37 @@ mosso di un pixel. La regola resta (evita lo zoom al fuoco su iOS), ma la causa 
 una guarigione alla cura sbagliata è il modo migliore per ripetere l'errore.
 
 
+## 30. Quello che ha lasciato la topbar misurata (22 agosto 2026)
+
+Carta: [topbar misurata](../feature/2026-08-22-topbar-misurata.md). Il giro precedente aveva dato alla barra
+tre media query; questo le ha tolte, e le cinque regole qui sotto valgono ben oltre la barra.
+
+213. ⚠️ **Una media query misura la FINESTRA, non il pezzo che deve starci.** Sono cose diverse ogni volta che
+     la larghezza del pezzo dipende da qualcosa che la finestra non conosce: login, lunghezza di una stringa
+     che viene dai dati, numero di elementi di un catalogo, lingua, **zoom di pagina**. La topbar dipendeva da
+     tutte e cinque: tarata su una configurazione, era giusta soltanto in quella — il committente la vedeva
+     rotta a 1940 dove la misura di taratura diceva 1385. Dove la larghezza è **contenuto-dipendente**, la
+     soglia va misurata a ogni giro, non scritta nel foglio.
+214. ⚠️ **La misura del fit e quella dell'isteresi devono stare nella stessa unità.** Sotto zoom
+     `bar.clientWidth` (unità di layout) e `documentElement.clientWidth` (px di finestra) **divergono**: a
+     1920 con zoom 1.4 la barra ha 1371 e `documentElement` dice ancora 1920. Confrontandoli fra loro
+     l'isteresi era diventata un **cricchetto** — saliva di scaglione e non scendeva più.
+215. **Un'isteresi frena ciò che si trascina, non ciò che cambia da solo.** Frenare sempre è un difetto: a
+     larghezza ferma, allungare una stringa faceva salire lo scaglione e nulla lo faceva più tornare giù,
+     perché il margine si misura sulla larghezza e la larghezza non cambiava. Un calo dovuto al **contenuto**
+     non ha nessun bordo da frenare.
+216. ⚠️ **Se un gradino è più alto di quanto serva, non è una scaletta.** «La ricerca si chiude» e «le
+     etichette spariscono» stavano nello stesso scaglione: 500px in un colpo, e a 1440 la barra passava dallo
+     sfondare all'essere mezza vuota, con un buco di 700px in mezzo — verde alla misura e brutta a vedersi.
+     Separati, la ricerca resta aperta a 1366 e 1440. **Il numero dice se sta; solo lo screenshot dice se va
+     bene.**
+217. ⚠️ **Un attrezzo di misura sbagliato denuncia, e sembra il prodotto.** Contare le righe di una barra
+     confrontando i `top` dei figli è sbagliato — `align-items:center` dà `top` diversi a pezzi di altezza
+     diversa **stando in riga** — e `getBoundingClientRect()` dice «visibile» dentro un `<details>` chiuso,
+     dove Chrome usa `content-visibility` e `innerText` torna vuoto (11 link «senza etichetta» che le avevano
+     tutte). Prima di credere a un difetto trovato da uno script, provare lo script su un caso sano.
+
+
 ## Dove sta la roba
 
 | Cosa | Dove |
@@ -1035,8 +1066,8 @@ una guarigione alla cura sbagliata è il modo migliore per ripetere l'errore.
 | Altezza misurata, contenuto corto e fisso | `vipiCapViewport(sel, collapseBelow)` — scrive `max-height`: alto quanto il contenuto, scorre solo se non ci sta (regola 150) |
 | Riserva per ciò che sta SOTTO il riquadro misurato | terzo argomento `reserveSel` di `vipiFitViewport`/`vipiCapViewport` — facoltativo (regola 179) |
 | Aggiungere un blocco a una sezione (tutti gli editor) | `details.blk-add` in `DocumentSectionsEditor` + delega `wireBlockMenu` in `vipi-ui.js` (regole 187 e 193 — si apre IN LINEA, mai in `position:absolute`) |
-| Scaglioni di compressione della topbar | `@media (max-width: 1500px / 1300px)` in coda a `vipi-theme.css` — spazio, badge staff, marchio, nomi dei comandi, ricerca (regola 198) |
-| Telefono e tablet verticale (pagine pubbliche) | `@media (max-width: 900px)` in coda — menù `.tb-menu`, tabelle che scorrono, testo che va a capo (§29) |
+| Scaglioni di compressione della topbar | classi `.topbar.tb-1…tb-4` in coda a `vipi-theme.css`, messe da `vipiFitTopbar` in `vipi-ui.js` — ⚠️ **non** sono media query, e non devono tornare a esserlo (regola 213) |
+| Telefono e tablet verticale (pagine pubbliche) | la barra: `tb-4`, scelto dalla misura. Il resto: `@media (max-width: 900px)` in coda — tabelle che scorrono, testo che va a capo (§29) |
 | Riga della storia release | `#p-release .rel-row` — ⚠️ l'id serve: `.rel-row` nuda perde contro `.ver-row` |
 | Servizio facoltativo in un componente condiviso | `IServiceProvider` + `GetService` (regola 200), mai `@inject` |
 | Riga-titolo di una sezione negli editor | `.dse-head` — il titolo tronca, i comandi no (regola 184) |

@@ -62,11 +62,16 @@ a mano: li sceglie il confronto fra quanto la barra **pretende** e quanto **ha**
 | Livello | Cosa cede | Chi lo decideva prima | Chi lo decide adesso |
 |---|---|---|---|
 | `tb-1` | spazi più stretti, badge staff a icona | `@media (max-width:1500px)` | la misura |
-| `tb-2` | marchio senza sottotitolo, «Editor»/«Incarichi» a icone, badge live a pallino, ricerca a icona | `@media (max-width:1300px)` | la misura |
-| `tb-3` | forma telefono: ACC e comandi dentro il «☰» | `@media (max-width:900px)` | la misura |
+| `tb-2` | marchio senza sottotitolo, «Editor»/«Incarichi» a icone, badge live a pallino | `@media (max-width:1300px)` | la misura |
+| `tb-3` | la ricerca si chiude in un'icona e si riapre a piena riga | idem, **nello stesso scaglione** | la misura |
+| `tb-4` | forma telefono: ACC e comandi dentro il «☰» | `@media (max-width:900px)` | la misura |
 
-Le classi sono **cumulative** (`tb-3` implica `tb-1 tb-2`): così ogni blocco di regole resta scritto **una
-volta sola**, e il foglio non cresce.
+Le classi sono **cumulative** (`tb-4` implica `tb-1 tb-2 tb-3`): così ogni blocco di regole resta scritto
+**una volta sola**, e il foglio non cresce.
+
+⚠️ `tb-3` **non era in questa carta**: l'ha aggiunto la verifica, ed è la lezione principale del giro — vedi
+«Com'è andata». Le etichette e la ricerca stavano nello stesso scaglione, e insieme facevano un gradino da
+500px.
 
 ### Cosa vuol dire «ci sta», esattamente
 
@@ -172,8 +177,58 @@ Quindi la griglia ha una dimensione in più rispetto al 22 agosto: **lo zoom**.
 ## Slice
 
 1. Questa carta.
-2. Le tre media query della topbar diventano tre classi cumulative; rete di sicurezza (`overflow`, popup
+2. Le tre media query della topbar diventano classi cumulative; rete di sicurezza (`overflow`, popup
    `fixed`, `--tb-h`, `--tb-search-min`).
 3. La misura in `vipi-ui.js`: `vipiFitTopbar`, agganciata a resize/enhancedload/fonts/fuoco/mutazioni.
 4. Il marchio: «Servizi ATC» verso `/services`, il tasto duplicato via, chiavi IT+EN.
 5. Verifica guidata sulla griglia, e chiusura della voce in `lavori-aperti.md`.
+
+## Com'è andata
+
+**256 combinazioni** (8 larghezze × 4 zoom × 4 famiglie di pagina × 2 lingue), guidate con Edge+puppeteer.
+`scrollWidth == clientWidth` sulla barra in **256 su 256**, barra a 62px e su una riga ovunque, **nessun
+comando perso** a nessun assetto, nessun errore JavaScript. Andata e ritorno simmetrici sia stringendo la
+finestra (0→2→4→4→4→2→0) sia sullo zoom (1→3→4→3→1→0→1).
+
+Gli scaglioni sono diventati **quattro**, e non tre come diceva la carta. Il quarto è nato da uno screenshot,
+non da un numero: a 1440 la barra **stava** — misura verde — ed era **mezza vuota**, con un buco di 700px in
+mezzo e tutti i comandi ridotti a icone. ⚠️ Tenere «la ricerca si chiude» insieme a «le etichette spariscono»
+faceva un gradino da 500px: la barra passava dallo sfondare all'essere spoglia senza niente in mezzo. **Se un
+gradino è più alto di quanto serva, non è una scaletta.** Separati, la ricerca resta **aperta e intera a
+1366 e a 1440** — cioè proprio le due larghezze che `lavori-aperti` dava per perdute («alzare la soglia a
+1410 richiude la ricerca su tutti i portatili 1366: è esattamente ciò che quella taratura voleva evitare»).
+La terza strada non era un compromesso migliore fra i due: era non doverlo fare.
+
+Dove cade oggi la scaletta a zoom 1: **1920** livello 0 · **1600** livello 1 · **1440/1366/1280** livello 2
+(ricerca aperta) · **1024 e sotto** livello 4. A 1024 il livello 3 non basta e si va direttamente alla forma
+«☰»: prima lì la barra sforava di 137px.
+
+### Tre difetti presi dalla verifica, due miei
+
+1. ⚠️ **Il cricchetto dello zoom.** L'isteresi confrontava `documentElement.clientWidth` con una misura di
+   fit presa su `bar.clientWidth`: sotto zoom i due numeri **divergono** (a 1920 con zoom 1.4 la barra ha
+   1371 unità di layout mentre `documentElement` continua a dire 1920), e il confronto fra unità diverse
+   faceva salire di scaglione senza mai far scendere — a 1440 la barra era già in forma telefono. **La misura
+   del fit e quella dell'isteresi devono stare nella stessa unità.**
+2. ⚠️ **L'isteresi frenava anche ciò che non si stava trascinando.** Allungata la stringa staff a larghezza
+   ferma, la barra saliva a `tb-1` e non tornava più giù: la larghezza non era cambiata, quindi il margine
+   non poteva maturare. Un calo dovuto al **contenuto** non ha nessun bordo da frenare. Ora l'isteresi vale
+   solo quando la barra si sta allargando *di poco*.
+3. E uno che era del **driver**, non del prodotto: contavo le «righe» confrontando i `top` dei figli, ma la
+   barra è `align-items:center` e pezzi di altezza diversa hanno `top` diversi **stando perfettamente in
+   riga** — 3 righe su una barra sana. E contavo 11 link «muti» che erano solo dentro il `<details>` chiuso,
+   dove Chrome usa `content-visibility` e `innerText` torna vuoto mentre il rettangolo non è nullo.
+   ⚠️ Un attrezzo di misura sbagliato **denuncia**, e per mezz'ora sembra che il prodotto sia rotto.
+
+### Due cose trovate guardando, che non sono di questo giro
+
+- **La tabella SID sfora a zoom alto.** A 1280 con zoom 1.4 (cioè 914 unità di layout) il viewer aeroporto
+  sfora di 58px, e il colpevole è `table.sid-table` col suo `min-width:720px`. **Non è il chrome**: tolta la
+  topbar dal DOM lo sforo resta identico, 58px. La regola che fa scorrere le tabelle dentro di sé è
+  `@media (max-width:900px)` — ⚠️ **la stessa malattia che questo giro ha curato sulla barra**: una soglia
+  di viewport che non vede lo zoom. 914 > 900, quindi non scatta.
+- **La cultura non arriva al circuito.** Su `/services/vsop?culture=it` il *prerender* scrive «‹ Servizi
+  ATC» e subito dopo il circuito `InteractiveServer` ri-renderizza **«ATC Services»**, in pagina italiana.
+  Il chrome resta giusto perché è SSR statico — ed è per questo che non se n'era accorto nessuno: sbaglia
+  solo la parte interattiva. Preesistente e trasversale a ogni pagina `InteractiveServer`; merita una carta
+  sua, non una riga in questa.

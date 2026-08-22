@@ -40,6 +40,23 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 > (rename delle rotte), quindi la causa resta la contesa, non una regressione. Il candidato ora ha un indirizzo:
 > il client Aurora è a **porta/socket condivisa**, e in corsa parallela è l'altro progetto a occuparla.
 
+> ### ✅ 22 agosto 2026 — CHIUSA: la topbar non sfonda più, perché non indovina più
+> Chiusa lo stesso giorno, e **non** con nessuna delle due strade che questa voce proponeva. Il committente
+> l'ha riaperta da un'altra parte: vedeva la barra rotta già a **1940**, cioè 530px sopra il numero misurato
+> qui — perché la sua configurazione (zoom di pagina, stringa staff, login) non era quella su cui le soglie
+> erano state tarate. Il difetto non era la soglia: **una media query misura la finestra, mentre il problema
+> è la larghezza della barra**, che dipende da sei cose che una `@media` non vede.
+>
+> Adesso la barra si **misura** e sceglie da sé lo scaglione (`vipiFitTopbar` in `vipi-ui.js`, classi
+> `tb-1…tb-4` in `vipi-theme.css`). Verificato su **256 combinazioni** — 8 larghezze × 4 zoom × 4 famiglie
+> di pagina × 2 lingue — con `scrollWidth == clientWidth` su tutte e nessun comando perso.
+>
+> ⚠️ E il compromesso che questa voce dava per obbligato **non c'è stato**: a 1366 e 1440 la ricerca resta
+> **aperta e intera**, perché separando «la ricerca si chiude» da «le etichette spariscono» il gradino da
+> 500px è diventato due. Carta: [`feature/2026-08-22-topbar-misurata.md`](feature/2026-08-22-topbar-misurata.md).
+>
+> <details><summary>La misura di allora, per memoria</summary>
+
 > ### 🆕 22 agosto 2026 — la topbar sfonda fra 1301 e ~1410px (**preesistente**, misurato)
 > Trovato guidando la verifica live dei servizi ATC, e **non e' del giro nuovo**: si misura identico con e
 > senza il tasto aggiunto quel giorno. Lo scaglione 2 della barra (`vipi-theme.css`, `@media (max-width:1300px)`
@@ -64,6 +81,26 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 > portatili 1366: e' esattamente la cosa che quella taratura voleva evitare. Le due strade sono alzare la
 > soglia, oppure recuperare ~110px dentro la fascia (il candidato piu' grasso e' la ricerca, che a barra
 > piena vale piu' di 200px).
+>
+> </details>
+
+> ### 🆕 22 agosto 2026 — due difetti trovati guardando, mentre si chiudeva la topbar
+> Nessuno dei due e' del chrome, e nessuno dei due e' stato toccato: sono qui perche' li ha visti la verifica
+> della barra, e perche' il primo e' **la stessa malattia appena curata**.
+>
+> **1. La tabella SID sfora a zoom alto** (🟢 si puo' fare subito). Sul viewer aeroporto a 1280 con zoom 1.4
+> — cioe' **914 unita' di layout** — la pagina sfora di 58px, e il colpevole e' `table.sid-table` col suo
+> `min-width:720px`. Misurato che **non e' il chrome**: tolta la topbar dal DOM lo sforo resta identico.
+> ⚠️ La regola che fa scorrere le tabelle dentro di se' e' `@media (max-width:900px)`, e 914 > 900: **una
+> soglia di viewport che non vede lo zoom**, esattamente il difetto che la barra aveva. La cura e' la stessa
+> in spirito: legare quella regola alla larghezza in unita' di layout, non a quella della finestra.
+>
+> **2. La cultura non arriva al circuito** (🟡 merita una carta sua). Su `/services/vsop?culture=it` il
+> prerender scrive «‹ Servizi ATC» e subito dopo il circuito `InteractiveServer` ri-renderizza
+> **«ATC Services»** — inglese in pagina italiana. Vale per **ogni** pagina `InteractiveServer`: il chrome
+> resta giusto perche' e' SSR statico, ed e' per questo che non se n'era accorto nessuno. Si vede quando la
+> lingua e' scelta dalla query (o dal cookie) e non coincide con quella del browser, quindi un utente
+> italiano con browser italiano non lo incontra mai — ma un pilota straniero che sceglie l'italiano si'.
 
 ## Dove siamo, in cinque righe
 Il **cutover MariaDB è in `main`** e verificato (A1–A8). Le sezioni **B** (branch), **C** (debito, tranne C3
