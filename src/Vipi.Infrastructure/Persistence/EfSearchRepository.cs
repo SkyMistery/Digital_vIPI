@@ -39,7 +39,7 @@ public sealed class EfSearchRepository : ISearchRepository
         // Tipo, ACC e ROTTA di ogni documento vengono dai descrittori (doc 13 §3e): la stessa attribuzione
         // dell'elenco unificato, e le URL dal registry delle rotte. Qui ce n'era una copia scritta a mano che
         // distingueva solo «aeroporto» da «tutto il resto» → OGNI documento di APP standalone finiva su
-        // /vsop/{acc}/vipi, cioè sulla vIPI di ACC, invece che sulla propria pagina.
+        // /services/vsop/{acc}/vipi, cioè sulla vIPI di ACC, invece che sulla propria pagina.
         var described = docs
             .Select(d => (Doc: d, Managed: Describe(d)))
             .Where(x => x.Managed is not null && InScope(scope, x.Managed!.Kind) && !string.IsNullOrEmpty(x.Managed!.AccCode))

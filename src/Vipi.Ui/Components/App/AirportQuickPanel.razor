@@ -1,5 +1,5 @@
 ﻿@* Vista rapida aeroporto (inline nella vista live ACC/APP). Mostra ESATTAMENTE ciò che è nel
-   documento pubblico dell'aeroporto (release-aware), coerente con /vsop/{acc}/airports?icao=:
+   documento pubblico dell'aeroporto (release-aware), coerente con /services/vsop/{acc}/airports?icao=:
    - TA / TL·QNH → dal DocumentView pubblico (BuildAirportVipiAsync live:false, rispetta la release del ciclo)
    - Piste suggerite + SID → dal profilo strutturato (come /airports)
    METAR live solo per la pista consigliata e l'evidenza della riga TL col QNH corrente. *@
@@ -20,7 +20,7 @@
     <div class="block">
         <div class="rap-h" style="justify-content:space-between">
             <span><b>@Icao</b> <span class="muted">vista rapida</span></span>
-            <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@Icao">Apri vIPI completa →</a>
+            <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@Icao">Apri vIPI completa →</a>
         </div>
         <p class="muted" style="margin:0">Nessun documento pubblicato per @Icao.</p>
     </div>
@@ -30,7 +30,7 @@ else
     <div class="block">
         <div class="rap-h" style="justify-content:space-between">
             <span><b>@Icao</b> <span class="muted">vista rapida</span></span>
-            <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@Icao">Apri vIPI completa →</a>
+            <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@Icao">Apri vIPI completa →</a>
         </div>
 
         <div class="rap-quick">

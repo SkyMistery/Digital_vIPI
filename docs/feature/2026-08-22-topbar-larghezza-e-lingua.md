@@ -118,7 +118,7 @@ cedere; è il **testo** che si accorcia.
 
 ## Come si verifica
 
-⚠️ La topbar sta su **ogni** pagina: si guida un campione che copra le famiglie — una pubblica (`/vsop`), un
+⚠️ La topbar sta su **ogni** pagina: si guida un campione che copra le famiglie — una pubblica (`/services/vsop`), un
 viewer, un editor, una admin — a **1600 / 1440 / 1280 / 1024**, **IT ed EN**, e si controlla:
 
 - `scrollWidth == clientWidth` a ogni assetto (è **questa** la misura del giro, non un'altezza);

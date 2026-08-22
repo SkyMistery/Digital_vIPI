@@ -133,7 +133,7 @@ public class AuditTrailTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// Togliere il lock a un'altra persona è un atto d'autorità — esposto in /vsop/versioni dal 21 agosto 2026 —
+    /// Togliere il lock a un'altra persona è un atto d'autorità — esposto in /services/vsop/versions dal 21 agosto 2026 —
     /// e la riga serve solo se dice <b>a chi</b> è stato tolto.
     /// </summary>
     [Fact]

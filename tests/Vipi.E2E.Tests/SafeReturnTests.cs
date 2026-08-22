@@ -15,26 +15,26 @@ public sealed class SafeReturnTests
 {
     [Theory]
     // Percorsi legittimi: si conservano tali e quali, query e frammento compresi.
-    [InlineData("/vsop", "/vsop")]
+    [InlineData("/services/vsop", "/services/vsop")]
     [InlineData("/", "/")]
-    [InlineData("/vsop/lirr/airports?icao=LIRF", "/vsop/lirr/airports?icao=LIRF")]
-    [InlineData("/vsop/live/lirr_ctr#now", "/vsop/live/lirr_ctr#now")]
+    [InlineData("/services/vsop/lirr/airports?icao=LIRF", "/services/vsop/lirr/airports?icao=LIRF")]
+    [InlineData("/services/vsop/live/lirr_ctr#now", "/services/vsop/live/lirr_ctr#now")]
     // Assente o vuoto: ripiego.
-    [InlineData(null, "/vsop")]
-    [InlineData("", "/vsop")]
+    [InlineData(null, "/services/vsop")]
+    [InlineData("", "/services/vsop")]
     // Fuori sito, nelle sue forme.
-    [InlineData("//evil.example", "/vsop")]
-    [InlineData("/\\evil.example", "/vsop")]          // ← il caso che passava
-    [InlineData("\\\\evil.example", "/vsop")]
-    [InlineData("https://evil.example", "/vsop")]
-    [InlineData("http://evil.example", "/vsop")]
-    [InlineData("//evil.example/vsop", "/vsop")]
+    [InlineData("//evil.example", "/services/vsop")]
+    [InlineData("/\\evil.example", "/services/vsop")]          // ← il caso che passava
+    [InlineData("\\\\evil.example", "/services/vsop")]
+    [InlineData("https://evil.example", "/services/vsop")]
+    [InlineData("http://evil.example", "/services/vsop")]
+    [InlineData("//evil.example/services/vsop", "/services/vsop")]
     // Schemi che non sono navigazione.
-    [InlineData("javascript:alert(1)", "/vsop")]
-    [InlineData("data:text/html,<script>alert(1)</script>", "/vsop")]
+    [InlineData("javascript:alert(1)", "/services/vsop")]
+    [InlineData("data:text/html,<script>alert(1)</script>", "/services/vsop")]
     // Response splitting: un a-capo dentro un header Location.
-    [InlineData("/vsop\r\nSet-Cookie: a=b", "/vsop")]
-    [InlineData("/vsop\nLocation: https://evil.example", "/vsop")]
+    [InlineData("/services/vsop\r\nSet-Cookie: a=b", "/services/vsop")]
+    [InlineData("/services/vsop\nLocation: https://evil.example", "/services/vsop")]
     public void Solo_i_percorsi_di_questo_sito_sopravvivono(string? ingresso, string atteso) =>
         Assert.Equal(atteso, VipiStandaloneAuthExtensions.SafeReturn(ingresso));
 }

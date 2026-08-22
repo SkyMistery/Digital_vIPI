@@ -25,7 +25,7 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     /// Opzionale: se c'è, al report si aggiunge il drift fra modello EF e schema fisico. Sta qui e non in
     /// <see cref="Analyze"/> perché non è un'incongruenza di <i>dati</i> ma di <i>schema</i>, e perché Analyze deve
     /// restare una funzione pura sul dataset di dominio. Agganciandolo in questo punto — l'unico consumato sia da
-    /// <c>/vsop/admin/diagnostica</c> sia dall'health check — entrambi lo mostrano senza modifiche a valle.
+    /// <c>/services/vsop/admin/diagnostics</c> sia dall'health check — entrambi lo mostrano senza modifiche a valle.
     /// </param>
     /// <param name="admin">
     /// Opzionale, come <paramref name="schema"/> e per la stessa ragione: non è un'incongruenza di <i>dati</i>
@@ -65,8 +65,8 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     /// Dove si va a riparare, per famiglia di rilievo. Sta qui e non nella pagina perché è chi produce il
     /// rilievo a sapere dove si ripara — vedi <see cref="ConsistencyFinding.Where"/>.
     /// </summary>
-    private const string DoveAccordi = "/vsop/admin/trasferimenti";
-    private const string DoveStruttura = "/vsop/admin/sectorstructure";
+    private const string DoveAccordi = "/services/vsop/admin/transfers";
+    private const string DoveStruttura = "/services/vsop/admin/sector-structure";
 
     /// <summary>
     /// L'elenco dei documenti, non l'editor del singolo. ⚠️ Scelta dichiarata: la riga porta il <i>titolo</i>
@@ -74,7 +74,7 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     /// vorrebbe dire portarsi dietro il registro delle rotte per documento (<c>IDocKindRoutes</c>) dentro
     /// l'analisi pura. Meglio un link vero a un passo di distanza che uno preciso e sbagliato.
     /// </summary>
-    private const string DoveDocumenti = "/vsop/versioni";
+    private const string DoveDocumenti = "/services/vsop/versions";
 
     public async Task<IReadOnlyList<ConsistencyFinding>> RunAsync(CancellationToken ct = default)
     {

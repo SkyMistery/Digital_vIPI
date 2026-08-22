@@ -1,4 +1,4 @@
-﻿@page "/vsop/editor/newdoc"
+﻿@page "/services/vsop/editor/new-document"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject INewDocumentOptionsService Options
@@ -25,12 +25,12 @@
     @* ---- Testata in UNA riga: titolo · «?» · Documenti ---- *@
     <div class="doc-head st-head">
         <h2 class="st-h2">@L["Nd_Title"]</h2>
-        <HelpHint Href="/vsop/guida#nuovo-documento" AriaLabel="@L["Nd_HelpAria"]" ExtraClass="wide">
+        <HelpHint Href="/services/vsop/guide#nuovo-documento" AriaLabel="@L["Nd_HelpAria"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@L["Nd_Subtitle"]</p>
             @((MarkupString)L["Nd_Intro"].Value)
         </HelpHint>
         <nav class="struct-nav">
-            <a class="btn ghost" href="/vsop/versioni"><Icon Name="file" Size="14" /> @L["Nd_Drafts"]</a>
+            <a class="btn ghost" href="/services/vsop/versions"><Icon Name="file" Size="14" /> @L["Nd_Drafts"]</a>
         </nav>
     </div>
 
@@ -44,7 +44,7 @@
            I servizi che chiama autorizzano con EnsureCanEditAccAsync, quindi il responsabile di un ACC — che
            può creare e pubblicare i documenti di quell'ACC — trovava la porta chiusa pur avendo la chiave:
            bastava che arrivasse all'URL dell'editor per creare lo stesso il documento. È lo stesso difetto
-           chiuso su /vsop/versioni il 21 agosto. *@
+           chiuso su /services/vsop/versions il 21 agosto. *@
         <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div>@L["Nd_StaffRequired"]</div></div>
     }
     else
@@ -274,7 +274,7 @@
     }
 
     private static string VloaUrl(string homeAcc, string esteroAcc) =>
-        $"/vsop/{homeAcc.ToLowerInvariant()}/vloa/editor?acc={esteroAcc.ToUpperInvariant()}";
+        $"/services/vsop/{homeAcc.ToLowerInvariant()}/vloa/editor?acc={esteroAcc.ToUpperInvariant()}";
 
     private async Task CreateVloa()
     {

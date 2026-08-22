@@ -10,10 +10,10 @@ public sealed class AccVipiDocRoutes : IDocKindRoutes
     public ReleaseTargetType Target => ReleaseTargetType.AccVipi;
 
     public string? ViewerUrl(string acc, string key, string? neighbourCode, int releaseId) =>
-        $"/vsop/{acc}/vipi?as=rel:{releaseId}";
+        $"/services/vsop/{acc}/vipi?as=rel:{releaseId}";
 
-    public string? PublicUrl(string acc, string key, string? neighbourCode) => $"/vsop/{acc}/vipi";
+    public string? PublicUrl(string acc, string key, string? neighbourCode) => $"/services/vsop/{acc}/vipi";
 
     public string? EditorUrl(string acc, string key, string? neighbourCode, int? documentId) =>
-        $"/vsop/{acc}/editor";
+        $"/services/vsop/{acc}/editor";
 }

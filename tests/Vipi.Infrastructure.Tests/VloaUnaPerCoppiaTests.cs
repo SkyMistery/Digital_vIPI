@@ -16,8 +16,8 @@ namespace Vipi.Infrastructure.Tests;
 /// Una coppia, una vLOA.
 ///
 /// <para>Il contratto di <c>FindVloaIdByPairAsync</c> lo dichiarava dal primo giorno — «una sola vLOA per
-/// coppia ACC↔ACC» — e nessuno lo imponeva. La generazione da <c>/vsop/admin/confinanti</c> è idempotente
-/// per parti; <c>/vsop/editor/newdoc</c>, che crea la stessa cosa, non lo era: due porte con due
+/// coppia ACC↔ACC» — e nessuno lo imponeva. La generazione da <c>/services/vsop/admin/neighbours</c> è idempotente
+/// per parti; <c>/services/vsop/editor/new-document</c>, che crea la stessa cosa, non lo era: due porte con due
 /// politiche.</para>
 ///
 /// <para>⚠️ E il resto dell'applicazione non sa gestirne due: <c>FindVloaIdByPairAsync</c> fa
@@ -102,7 +102,7 @@ public class VloaUnaPerCoppiaTests : IAsyncLifetime
     /// <summary>
     /// ⚠️ Una vLOA nasce con la struttura del <b>catalogo</b>, da qualunque porta la si crei.
     ///
-    /// <para>Prima da <c>/vsop/editor/newdoc</c> nasceva con una sezione sola — «Scopo e validità», per
+    /// <para>Prima da <c>/services/vsop/editor/new-document</c> nasceva con una sezione sola — «Scopo e validità», per
     /// giunta con una chiave <i>libera</i> che non è nessuna delle sette del profilo — mentre la stessa vLOA
     /// generata da «ACC confinanti» nasceva con le canoniche. Due porte, due risultati, e da questa usciva
     /// un documento fuori catalogo.</para>

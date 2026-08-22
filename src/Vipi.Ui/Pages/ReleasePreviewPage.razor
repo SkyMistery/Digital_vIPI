@@ -1,4 +1,4 @@
-@page "/vsop/release/{Id:int}"
+@page "/services/vsop/release/{Id:int}"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IReleaseService Releases
@@ -11,7 +11,7 @@
 
 <PageTitle>Anteprima release · IVAO Italia</PageTitle>
 <div class="wrap">
-    <div class="breadcrumb"><a href="/vsop/versioni">Bozze &amp; versioni</a> › <b>Anteprima release</b></div>
+    <div class="breadcrumb"><a href="/services/vsop/versions">Bozze &amp; versioni</a> › <b>Anteprima release</b></div>
     @if (_denied)
     {
         <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">Accesso riservato</p>Non hai i permessi per vedere questa anteprima.</div></div>
@@ -47,7 +47,7 @@
         var acc = loc.AccCode.ToLowerInvariant();
         // vLOA: la chiave release è il docId → risolvo il vicino (foreign) dal catalogo; gli altri tipi non usano il vicino.
         var neighbour = loc.Type == ReleaseTargetType.Vloa ? await VloaNeighbourAsync(loc.TargetKey) : null;
-        var url = DocRoutes.For(loc.Type).ViewerUrl(acc, loc.TargetKey, neighbour, Id) ?? "/vsop/versioni";
+        var url = DocRoutes.For(loc.Type).ViewerUrl(acc, loc.TargetKey, neighbour, Id) ?? "/services/vsop/versions";
         Nav.NavigateTo(url, replace: true);
     }
 

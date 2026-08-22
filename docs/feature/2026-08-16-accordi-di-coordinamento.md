@@ -58,10 +58,10 @@ ricevente). Nessun `switch` per-tipo si aggiunge alle viste: `CoordTable` contin
 presenza di dati**, mai per tipo di ente.
 
 **3. Ingressi + verifica — come ci arriva l'utente e come lo verifico?**
-Ingresso invariato: `/vsop/admin/trasferimenti` (la rotta è citata in guida, aiuto in-app e memorie). Nessun
+Ingresso invariato: `/services/vsop/admin/transfers` (la rotta è citata in guida, aiuto in-app e memorie). Nessun
 catch-22: il navigatore mostra gli accordi esistenti e il tasto «nuovo accordo» non dipende da nessun elenco
 precompilato. Verifica: la rete di §3 più la guida live sulla copia del `vipi.db` (skill `verifica-live`) su
-vIPI ACC LIBB, vIPI APP LIBD, vLOA LIBB↔LGGG in inglese, `/vsop/live` e stampa.
+vIPI ACC LIBB, vIPI APP LIBD, vLOA LIBB↔LGGG in inglese, `/services/vsop/live` e stampa.
 
 **4. Propagazione — rimuove o rinomina qualcosa?**
 Sì, ed è la domanda che pesa di più: spariscono due entità e la loro tabella. Nello **stesso giro** vanno
@@ -213,7 +213,7 @@ frase di coordinamento vive nel template.
 ### Esito dello scambio (16 agosto, verificato live su copia del `vipi.db` reale)
 
 - Il travaso ha prodotto **41 accordi** dai 37 flussi / 78 punti, e al secondo avvio **non è ripartito**.
-- `/vsop/admin/trasferimenti` apre **40 accordi / 63 clausole** per LIBB (il quarantunesimo è di LIRR e si vede
+- `/services/vsop/admin/transfers` apre **40 accordi / 63 clausole** per LIBB (il quarantunesimo è di LIRR e si vede
   da lì), l'albero è per **controparte**, e l'accordo `LIBB_ES_CTR → LIBD_CS0_APP` mostra i due versi «(3)» e «(0)».
 - La sua prima clausola porta i punti **«EKMUR, PISIP»**, e nel documento vIPI ACC quella clausola torna a essere
   **due righe** con le frasi di sempre. È l'invariante vista a schermo, non asserita.

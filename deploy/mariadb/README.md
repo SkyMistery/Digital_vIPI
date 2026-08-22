@@ -156,7 +156,7 @@ dopo il merge di B1 (voce A3).
 ⚠️ **Prima di far partire la catena, guardare la sorgente, non il tool.** Il 7 agosto il dump è uscito
 pulito da un archivio incompleto: dopo il deploy le aree avevano un solo legame ciascuna, perché l'import
 automatico è **gated a 24h** (`ImportState`) e al boot viene saltato. Si preme «Importa da sorgente» in
-`/vsop/admin/acc` — al singolare, e serve prima prendere il lock dalla barra in cima — e si ricontrolla che
+`/services/vsop/admin/acc` — al singolare, e serve prima prendere il lock dalla barra in cima — e si ricontrolla che
 `SpecialAreaCenters` sia **maggiore** di `SpecialAreas`: se i due numeri coincidono, l'import non è girato.
 Il `--dry-run` di `Vipi.DbSeed` basta per leggerli.
 
@@ -225,7 +225,7 @@ Get-Content <file>.sql -Raw | & "<bin>\mariadb.exe" -u itivao_atc -p'<password>'
 
 Poi si avvia l'host su quel database: se il `.sql` è buono, le pagine si aprono coi dati veri e **nessuna
 migrazione viene riapplicata**. Esito del 6 agosto: 38 tabelle, 4808 righe, conteggi **identici** all'origine,
-`/vsop` 200 con LIRR/LIMM/LIBB a schermo, zero `Applying migration`.
+`/services/vsop` 200 con LIRR/LIMM/LIBB a schermo, zero `Applying migration`.
 
 ## 7. Fermare e ripartire da zero
 

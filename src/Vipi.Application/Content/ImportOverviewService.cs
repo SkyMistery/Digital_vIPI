@@ -41,7 +41,7 @@ public sealed record ImportOverviewRow(
 }
 
 /// <summary>
-/// Ciò che la pagina <c>/vsop/admin/sorgenti</c> mostra, in <b>un</b> elenco.
+/// Ciò che la pagina <c>/services/vsop/admin/sources</c> mostra, in <b>un</b> elenco.
 ///
 /// <para><b>Perché un servizio e non due letture nella pagina.</b> Fino al 22 agosto 2026 la pagina aveva due
 /// tabelle che parlavano delle stesse cinque cose con due vocabolari — sopra «Settori», sotto

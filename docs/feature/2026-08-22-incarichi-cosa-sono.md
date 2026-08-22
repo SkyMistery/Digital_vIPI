@@ -1,6 +1,6 @@
 # Incarichi — cosa sono davvero (carta, 22 agosto 2026)
 
-> Ramo `ui-trasferimenti-densita`, pagine `/vsop/admin/tasks` e `/vsop/tasks`. Prima carta del giro: **la
+> Ramo `ui-trasferimenti-densita`, pagine `/services/vsop/admin/tasks` e `/services/vsop/tasks`. Prima carta del giro: **la
 > sostanza**. La forma sta nella gemella [`2026-08-22-incarichi-densita-ui.md`](2026-08-22-incarichi-densita-ui.md).
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md); regole: [regole-ui-pagine-admin](../design/regole-ui-pagine-admin.md).
 
@@ -41,7 +41,7 @@ pagina admin, sull'incarico scelto.
 ### ⚠️ N3 — «Apri documento» non apre il documento, per 3 tipi su 4
 
 `TaskDocLink.LinkFor` costruisce il link vero **solo** per `AccVipi`; per `Airport`, `App` e `Vloa`
-restituisce `/vsop/versioni`. Il tasto dice «Apri documento» e porta a un elenco.
+restituisce `/services/vsop/versions`. Il tasto dice «Apri documento» e porta a un elenco.
 
 La ragione è che la chiave di release non porta l'ACC — ma l'ACC l'applicazione lo sa già:
 `IReleaseRepository.GetAuthAccCodeAsync(type, key)` è **la stessa domanda** che il service fa in
@@ -116,7 +116,7 @@ incarichi.»): in pagina inglese si leggono in italiano. È la localizzazione a 
 (regola 160), qui su tutte le vie d'errore.
 
 E in `SopLayout` la voce di topbar è **scritta a mano in italiano** —
-`<a href="/vsop/tasks" title="I miei incarichi">… Incarichi</a>` — unica accanto a `L["Chrome_Editor"]`.
+`<a href="/services/vsop/tasks" title="I miei incarichi">… Incarichi</a>` — unica accanto a `L["Chrome_Editor"]`.
 Chiavi nuove sempre IT+EN, nello stesso giro (regola 43).
 
 ### N9 — Zero test
@@ -148,7 +148,7 @@ una barra, col «root primario» lasciato vuoto. La chiave vera, quella che scri
 `{acc}|{callsign del settore primario}`: **verificato sui dati veri**, `LIBB|LIBB_ES_CTR`, non `LIBB|`.
 
 Finché il link si costruiva a mano (N3) il difetto era invisibile: `TaskDocLink` non consultava nessun elenco,
-spezzava la stringa sulla barra, prendeva l'ACC e componeva `/vsop/{acc}/editor`. Funzionava **per caso**.
+spezzava la stringa sulla barra, prendeva l'ACC e componeva `/services/vsop/{acc}/editor`. Funzionava **per caso**.
 Appena il link ha cominciato a risolversi contro l'elenco vero, la chiave non ha più combaciato con niente.
 
 ⚠️ La cura non è correggere la formula: è **togliere la formula**. Le chiavi vengono da chi le possiede
@@ -195,5 +195,5 @@ traduce (terzo narratore della famiglia, dopo quello degli eventi e quello dei r
 gli altri service la prendono quando qualcuno li tocca. Non è un cantiere aperto, è un posto pronto.
 
 ⚠️ **L'audit ha una famiglia nuova, ed è la più prolifica che abbia mai avuto**: un incarico attraversa
-quattro stati e ogni passaggio è una riga. La misura di `/vsop/admin/audit` va rifatta con gli incarichi
+quattro stati e ogni passaggio è una riga. La misura di `/services/vsop/admin/audit` va rifatta con gli incarichi
 dentro — il chip di famiglia esiste proprio per poterla mettere da parte.

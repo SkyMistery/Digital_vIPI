@@ -46,7 +46,7 @@ public sealed class TopologyBuilder : ITopologyProvider
     public async Task<Topology> BuildAsync(int accId, CancellationToken ct = default)
     {
         // Settore == posizione: callsign + padre (contenimento ad albero). Solo settori ATTIVI: un settore nascosto
-        // in /vsop/admin/acc viene disattivato dalla proiezione (IsActive=false) e deve sparire da AoR/coordinamenti/
+        // in /services/vsop/admin/acc viene disattivato dalla proiezione (IsActive=false) e deve sparire da AoR/coordinamenti/
         // config del documento ACC (coerente con BuildGlobalAsync e con le query di EfAccDerivationRepository).
         var sectors = await _db.Sectors.Where(s => s.AccId == accId && s.IsActive)
             .Select(s => new { s.Id, s.Callsign, s.ParentSectorId }).ToListAsync(ct);

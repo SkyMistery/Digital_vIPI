@@ -53,7 +53,7 @@ public static class VipiStandaloneAuthExtensions
                 o.Cookie.Name = "vipi.auth";
                 o.ExpireTimeSpan = TimeSpan.FromDays(7);
                 o.SlidingExpiration = true;
-                o.LoginPath = "/vsop/auth/login";
+                o.LoginPath = "/services/vsop/auth/login";
 
                 // Scritte invece che ereditate. HttpOnly e SameSite=Lax sono già i default, ma un default
                 // è una cosa che cambia con la versione del framework e questo cookie è l'unica credenziale
@@ -193,8 +193,8 @@ public static class VipiStandaloneAuthExtensions
     /// <summary>Endpoint minimi di login/logout dello scenario standalone. Montati solo se l'auth è attiva.</summary>
     public static WebApplication MapVipiStandaloneAuth(this WebApplication app)
     {
-        // Avvia il flusso IVAO; al ritorno il cookie è impostato e si torna a returnUrl (default /vsop).
-        app.MapGet("/vsop/auth/login", (string? returnUrl) =>
+        // Avvia il flusso IVAO; al ritorno il cookie è impostato e si torna a returnUrl (default /services/vsop).
+        app.MapGet("/services/vsop/auth/login", (string? returnUrl) =>
             Results.Challenge(
                 // IsPersistent=true ⇒ cookie sopravvive a chiusura browser; scadenza = ExpireTimeSpan (7gg,
                 // sliding). Le props del challenge fanno round-trip via OIDC e finiscono sul sign-in del cookie.
@@ -202,9 +202,9 @@ public static class VipiStandaloneAuthExtensions
                 new[] { IvaoScheme }));
 
         // Logout: cancella il cookie locale e la sessione IVAO (redirect end-session).
-        app.MapGet("/vsop/auth/logout", () =>
+        app.MapGet("/services/vsop/auth/logout", () =>
             Results.SignOut(
-                new AuthenticationProperties { RedirectUri = "/vsop" },
+                new AuthenticationProperties { RedirectUri = "/services/vsop" },
                 new[] { CookieAuthenticationDefaults.AuthenticationScheme, IvaoScheme }));
 
         return app;
@@ -281,7 +281,7 @@ public static class VipiStandaloneAuthExtensions
     }
 
     /// <summary>
-    /// Consente solo redirect locali (anti open-redirect); ripiego su <c>/vsop</c>.
+    /// Consente solo redirect locali (anti open-redirect); ripiego su <c>/services/vsop</c>.
     ///
     /// <para>⚠️ Il controllo «comincia per <c>/</c> e non per <c>//</c>» NON basta, ed è quello che c'era
     /// prima: i browser normalizzano la barra rovescia in barra <b>prima</b> di risolvere l'URL, quindi
@@ -293,7 +293,7 @@ public static class VipiStandaloneAuthExtensions
     /// </summary>
     internal static string SafeReturn(string? returnUrl)
     {
-        const string ripiego = "/vsop";
+        const string ripiego = "/services/vsop";
         if (string.IsNullOrEmpty(returnUrl)) return ripiego;
 
         // Un URL assoluto o uno schema (http:, javascript:, data:) non comincia per '/': cade da sé.

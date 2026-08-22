@@ -127,7 +127,7 @@ schermo, **non fa scorrere**: allarga il layout viewport e **rimpicciolisce tutt
 
 **Cercare «chi sfora» dopo che il viewport si è allargato non trova niente.** Una volta allargato, tutti gli
 elementi ci stanno dentro: sulla ricerca l'elenco degli elementi oltre il bordo era **vuoto** mentre il
-layout era 569. Il colpevole si trova **confrontando la pagina con e senza contenuto** — `/vsop/search` da
+layout era 569. Il colpevole si trova **confrontando la pagina con e senza contenuto** — `/services/vsop/search` da
 solo misura 375, con i risultati 569 — non cercando chi sborda.
 
 ⚠️ E una cosa che **non** ha risolto niente, detta perché non se ne prenda il merito: i **16px sui campi**.

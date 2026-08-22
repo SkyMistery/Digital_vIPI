@@ -193,13 +193,13 @@ public class SearchAndChangesTests : IAsyncLifetime
     public async Task An_App_document_points_at_its_own_page_not_at_the_Acc_vipi()
     {
         // Il difetto: la risoluzione scritta a mano distingueva solo «aeroporto» da «tutto il resto», quindi ogni
-        // documento di APP standalone puntava a /vsop/{acc}/vipi — la vIPI di ACC, un altro documento.
+        // documento di APP standalone puntava a /services/vsop/{acc}/vipi — la vIPI di ACC, un altro documento.
         await SeedPublishedAppDocumentAsync();
 
         var hits = await _search.SearchAsync("PISATOKEN", SearchScope.All, 50);
 
         var hit = Assert.Single(hits);
-        Assert.Equal("/vsop/lirr/apps/vipi?app=LIRP_APP", hit.Url.Split('#')[0]);
+        Assert.Equal("/services/vsop/lirr/apps/vipi?app=LIRP_APP", hit.Url.Split('#')[0]);
     }
 
     [Fact]
@@ -224,7 +224,7 @@ public class SearchAndChangesTests : IAsyncLifetime
         var rows = await _changes.ListChangedAsync(new AiracService().GetCycle(DateTime.UtcNow));
 
         var row = Assert.Single(rows, r => r.DocTitle.Contains("Pisa"));
-        Assert.Equal("/vsop/lirr/apps/vipi?app=LIRP_APP", row.Url);
+        Assert.Equal("/services/vsop/lirr/apps/vipi?app=LIRP_APP", row.Url);
     }
 
     // ---- doc 13 §3f: l'indice vede quello che vede la pagina ----

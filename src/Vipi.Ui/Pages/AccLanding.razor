@@ -1,4 +1,4 @@
-@page "/vsop/{Acc}"
+@page "/services/vsop/{Acc}"
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IAiracService Airac
@@ -16,7 +16,7 @@ else
     <PageTitle>@_acc.Name · vIPI IVAO Italia</PageTitle>
 
     <div class="wrap reading-cap">
-        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <b>@_acc.Code</b></div>
+        <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <b>@_acc.Code</b></div>
         <div class="doc-head">
             <div>
                 <h2 style="margin:0">@_acc.Code — @_acc.Name</h2>
@@ -32,7 +32,7 @@ else
                rotta dell'editor, come nell'elenco degli APP. *@
             @if (_vipiPublished)
             {
-                <a class="big-choice nav-card c-vipi" href="/vsop/@a/vipi">
+                <a class="big-choice nav-card c-vipi" href="/services/vsop/@a/vipi">
                     <div class="bc-body">
                         <span class="eyebrow">@L["AccLanding_MainDoc"]</span>
                         <h4>@L["AccLanding_VipiOf", _acc.Name]</h4>
@@ -43,7 +43,7 @@ else
             }
             else if (_canEdit)
             {
-                <a class="big-choice nav-card c-vipi" href="/vsop/@a/editor">
+                <a class="big-choice nav-card c-vipi" href="/services/vsop/@a/editor">
                     <div class="bc-body">
                         <span class="eyebrow">@L["AccLanding_MainDoc"]</span>
                         <h4>@L["AccLanding_VipiOf", _acc.Name]</h4>
@@ -54,7 +54,7 @@ else
             }
 
             <div class="choice nav-card c-air">
-                <a class="nav-head" href="/vsop/@a/airports"><h4>@L["AccLanding_Airports"]</h4><span class="count">@_airportsTotal</span></a>
+                <a class="nav-head" href="/services/vsop/@a/airports"><h4>@L["AccLanding_Airports"]</h4><span class="count">@_airportsTotal</span></a>
                 <p class="muted">@L["AccLanding_AirportsDesc"]</p>
                 <ul class="linklist">
                     @if (_airports.Count == 0)
@@ -65,15 +65,15 @@ else
                     {
                         @foreach (var ap in _airports)
                         {
-                            <li onclick="location.href='/vsop/@a/airports?icao=@ap.Icao'"><span class="tag">@ap.Icao</span><span>@ap.Name</span></li>
+                            <li onclick="location.href='/services/vsop/@a/airports?icao=@ap.Icao'"><span class="tag">@ap.Icao</span><span>@ap.Name</span></li>
                         }
                     }
                 </ul>
-                <a class="see-all" href="/vsop/@a/airports">@L["Common_SeeAll"]</a>
+                <a class="see-all" href="/services/vsop/@a/airports">@L["Common_SeeAll"]</a>
             </div>
 
             <div class="choice nav-card c-app">
-                <a class="nav-head" href="/vsop/@a/apps"><h4>@L["AccLanding_Apps"]</h4><span class="count">@_appsTotal</span></a>
+                <a class="nav-head" href="/services/vsop/@a/apps"><h4>@L["AccLanding_Apps"]</h4><span class="count">@_appsTotal</span></a>
                 <p class="muted">@L["AccLanding_AppsDesc"]</p>
                 <ul class="linklist">
                     @if (_apps.Count == 0)
@@ -84,15 +84,15 @@ else
                     {
                         @foreach (var ap in _apps)
                         {
-                            <li onclick="location.href='/vsop/@a/apps/vipi?app=@ap.Callsign'"><span class="tag">@ap.Callsign</span><span>@ap.Name</span></li>
+                            <li onclick="location.href='/services/vsop/@a/apps/vipi?app=@ap.Callsign'"><span class="tag">@ap.Callsign</span><span>@ap.Name</span></li>
                         }
                     }
                 </ul>
-                <a class="see-all" href="/vsop/@a/apps">@L["Common_SeeAll"]</a>
+                <a class="see-all" href="/services/vsop/@a/apps">@L["Common_SeeAll"]</a>
             </div>
 
             <div class="choice nav-card c-vloa">
-                <a class="nav-head" href="/vsop/@a/vloa"><h4>vLoA</h4><span class="count">@_vloasTotal</span></a>
+                <a class="nav-head" href="/services/vsop/@a/vloa"><h4>vLoA</h4><span class="count">@_vloasTotal</span></a>
                 <p class="muted">@L["AccLanding_VloaDesc"]</p>
                 <ul class="linklist">
                     @if (_vloas.Count == 0)
@@ -103,17 +103,17 @@ else
                     {
                         @foreach (var v in _vloas)
                         {
-                            <li onclick="location.href='/vsop/@a/vloa?acc=@v.NeighbourCode'">@if (v.Neighbour is not null){<span class="tag">@v.Neighbour</span>}<span>@v.Title</span></li>
+                            <li onclick="location.href='/services/vsop/@a/vloa?acc=@v.NeighbourCode'">@if (v.Neighbour is not null){<span class="tag">@v.Neighbour</span>}<span>@v.Title</span></li>
                         }
                     }
                 </ul>
-                <a class="see-all" href="/vsop/@a/vloa">@L["Common_SeeAllF"]</a>
+                <a class="see-all" href="/services/vsop/@a/vloa">@L["Common_SeeAllF"]</a>
             </div>
         </div>
 
         <div class="section-title"><h3>@L["AccLanding_OpsView"]</h3><span class="ln"></span></div>
         <div class="choice-grid">
-            <a class="big-choice nav-card c-vipi" href="/vsop/live">
+            <a class="big-choice nav-card c-vipi" href="/services/vsop/live">
                 <div class="bc-body">
                     <span class="eyebrow">⚡ Live</span>
                     <h4>@L["AccLanding_OpsViewOf", _acc.Name]</h4>
@@ -127,7 +127,7 @@ else
         {
             <div class="section-title"><h3>Admin</h3><span class="ln"></span></div>
             <div class="choice-grid">
-                <a class="choice nav-card c-admin" href="/vsop/admin/trasferimenti"><div class="nav-head"><h4>@L["Home_TransfersTitle"]</h4></div><p class="muted">@L["AccLanding_TransfersAdminDesc"]</p></a>
+                <a class="choice nav-card c-admin" href="/services/vsop/admin/transfers"><div class="nav-head"><h4>@L["Home_TransfersTitle"]</h4></div><p class="muted">@L["AccLanding_TransfersAdminDesc"]</p></a>
             </div>
         }
     </div>

@@ -11,12 +11,12 @@ using Xunit;
 namespace Vipi.Infrastructure.Tests;
 
 /// <summary>
-/// Che cosa <c>/vsop/editor/newdoc</c> offre a <b>questa</b> persona.
+/// Che cosa <c>/services/vsop/editor/new-document</c> offre a <b>questa</b> persona.
 ///
 /// <para>La pagina era dietro <c>IsAdmin</c> mentre i servizi che chiama autorizzano per <b>grant di
 /// ACC</b>: il responsabile di LIRR trovava la porta chiusa pur avendo la chiave — bastava che arrivasse
 /// all'URL dell'editor per creare lo stesso il documento. È lo stesso difetto chiuso su
-/// <c>/vsop/versioni</c> il 21 agosto.</para>
+/// <c>/services/vsop/versions</c> il 21 agosto.</para>
 ///
 /// <para>⚠️ Il servizio <b>filtra, non autorizza</b>: chi crea davvero passa comunque da
 /// <c>EnsureCanEditAccAsync</c>. Una tendina è una comodità, non una guardia.</para>

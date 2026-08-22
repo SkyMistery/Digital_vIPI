@@ -2,22 +2,22 @@
    usa CollapsibleBlock (<details> nativo) → nessun circuito, cercabile con Ctrl+F, ancore deep-link.
    La lingua è scelta dal parametro di query ?lang=it|en (toggle in cima); default = cultura corrente del browser.
    Contenuto DATA-DRIVEN (liste _consult/_modify): un'unica sorgente per corpo pagina e indice. *@
-@page "/vsop/guida"
+@page "/services/vsop/guide"
 @layout SopLayout
 @using System.Globalization
 
 <PageTitle>@T("Guida","Guide") · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap" style="max-width:1000px">
-    <div class="breadcrumb"><a href="/vsop">Home</a> › <b>@T("Guida","Guide")</b></div>
+    <div class="breadcrumb"><a href="/services/vsop">Home</a> › <b>@T("Guida","Guide")</b></div>
     <div class="doc-head">
         <div>
             <h2 style="margin-bottom:2px"><Icon Name="book-open" /> @T("Guida a vIPI / vLOA","vIPI / vLOA Guide")</h2>
             <span class="muted">@T("Come consultare le procedure e come usare gli strumenti di modifica","How to consult the procedures and how to use the editing tools")</span>
         </div>
         <div class="apt-quick" style="margin:0" role="group" aria-label="@T("Lingua","Language")">
-            <a class="ch @(_en ? "" : "on")" href="/vsop/guida?lang=it">IT</a>
-            <a class="ch @(_en ? "on" : "")" href="/vsop/guida?lang=en">EN</a>
+            <a class="ch @(_en ? "" : "on")" href="/services/vsop/guide?lang=it">IT</a>
+            <a class="ch @(_en ? "on" : "")" href="/services/vsop/guide?lang=en">EN</a>
         </div>
     </div>
     <p class="guida-lead">@T("Questa pagina è il riferimento completo. Dentro l'app trovi anche piccoli","This page is the complete reference. Inside the app you'll also find small")
@@ -86,28 +86,28 @@
     private static readonly List<Sec> _consult = new()
     {
         new Sec("nav", "map", "Navigare tra le pagine", "Navigating the pages",
-            @"<p>Tutto vive sotto <code>/vsop</code>. La barra in alto ha i codici <b>ACC</b> (LIRR, LIMM, …),
+            @"<p>Tutto vive sotto <code>/services/vsop</code>. La barra in alto ha i codici <b>ACC</b> (LIRR, LIMM, …),
                la ricerca e, se sei ATC/staff, i tasti Editor e Incarichi.</p>
               <ul>
-                <li><b>Home</b> (<code>/vsop</code>) → card degli ACC con quanti controllori sono online.</li>
-                <li><b>Landing ACC</b> (<code>/vsop/{acc}</code>) → il <b>vIPI di ACC</b>, gli <b>aeroporti</b>,
+                <li><b>Home</b> (<code>/services/vsop</code>) → card degli ACC con quanti controllori sono online.</li>
+                <li><b>Landing ACC</b> (<code>/services/vsop/{acc}</code>) → il <b>vIPI di ACC</b>, gli <b>aeroporti</b>,
                     gli <b>APP non remotizzati</b> e le <b>vLOA</b> in evidenza.</li>
                 <li>Da lì apri il documento specifico: vIPI ACC, vIPI aeroporto (con le SID), APP, o vLOA verso un vicino.</li>
               </ul>",
-            @"<p>Everything lives under <code>/vsop</code>. The top bar has the <b>ACC</b> codes (LIRR, LIMM, …),
+            @"<p>Everything lives under <code>/services/vsop</code>. The top bar has the <b>ACC</b> codes (LIRR, LIMM, …),
                search and, if you are ATC/staff, the Editor and Tasks buttons.</p>
               <ul>
-                <li><b>Home</b> (<code>/vsop</code>) → ACC cards with how many controllers are online.</li>
-                <li><b>ACC landing</b> (<code>/vsop/{acc}</code>) → the <b>ACC vIPI</b>, the <b>airports</b>,
+                <li><b>Home</b> (<code>/services/vsop</code>) → ACC cards with how many controllers are online.</li>
+                <li><b>ACC landing</b> (<code>/services/vsop/{acc}</code>) → the <b>ACC vIPI</b>, the <b>airports</b>,
                     the <b>non-remoted APPs</b> and the featured <b>vLOAs</b>.</li>
                 <li>From there open the specific document: ACC vIPI, airport vIPI (with SIDs), APP, or a vLOA to a neighbour.</li>
               </ul>"),
 
         new Sec("ricerca", "search", "Cercare", "Searching",
-            @"<p>La barra di ricerca in alto (o <code>/vsop/search</code>) è full-text: cerca <b>CoP, FIX, callsign,
+            @"<p>La barra di ricerca in alto (o <code>/services/vsop/search</code>) è full-text: cerca <b>CoP, FIX, callsign,
                frequenze</b> e testo dei documenti. Servono almeno 2 caratteri. I filtri (chip) restringono l'ambito;
                ogni risultato porta al punto esatto del documento. Anche le sezioni di questa Guida compaiono nei risultati.</p>",
-            @"<p>The search bar at the top (or <code>/vsop/search</code>) is full-text: it searches <b>CoPs, FIXes,
+            @"<p>The search bar at the top (or <code>/services/vsop/search</code>) is full-text: it searches <b>CoPs, FIXes,
                callsigns, frequencies</b> and document text. At least 2 characters are needed. The chips narrow the scope;
                each result jumps to the exact point in the document. Sections of this Guide appear in the results too.</p>"),
 
@@ -120,10 +120,10 @@
                <b>in real time</b> who is connected, climbing the sector hierarchy up to UNICOM.</p>"),
 
         new Sec("changed", "activity", "Cosa è cambiato", "What changed",
-            @"<p><code>/vsop/changed</code> elenca i documenti <b>nuovi</b> o <b>aggiornati</b> nel ciclo AIRAC corrente,
+            @"<p><code>/services/vsop/changed</code> elenca i documenti <b>nuovi</b> o <b>aggiornati</b> nel ciclo AIRAC corrente,
                con quante sezioni/blocchi sono cambiati e chi ha pubblicato. Filtra per ACC. È il primo posto da
                guardare quando entra in vigore un nuovo ciclo.</p>",
-            @"<p><code>/vsop/changed</code> lists the <b>new</b> or <b>updated</b> documents in the current AIRAC cycle,
+            @"<p><code>/services/vsop/changed</code> lists the <b>new</b> or <b>updated</b> documents in the current AIRAC cycle,
                with how many sections/blocks changed and who published. Filter by ACC. It's the first place to
                check when a new cycle comes into effect.</p>"),
 
@@ -152,10 +152,10 @@
             @"<p>Puoi modificare se sei <b>admin</b> o hai un <b>permesso (grant)</b> su un ACC. In quel caso in alto
                a destra compaiono due tasti:</p>
               <ul>
-                <li><b>Editor</b> → <code>/vsop/versioni</code>, l'<b>hub documenti</b>: elenco di tutti i documenti
+                <li><b>Editor</b> → <code>/services/vsop/versions</code>, l'<b>hub documenti</b>: elenco di tutti i documenti
                     (vIPI ACC/APP, aeroporti, vLOA) con ricerca/filtri, «Apri editor» per riga, «Nuovo documento»,
                     storico versioni e release.</li>
-                <li><b>Incarichi</b> → <code>/vsop/tasks</code>, i lavori assegnati a te.</li>
+                <li><b>Incarichi</b> → <code>/services/vsop/tasks</code>, i lavori assegnati a te.</li>
               </ul>
               <p>Puoi anche aprire l'editor direttamente dal documento che stai guardando, col tasto <b>✎ Editor</b>
                (compare solo se sei autorizzato su quell'ACC).</p>
@@ -165,10 +165,10 @@
             @"<p>You can edit if you are an <b>admin</b> or hold a <b>grant</b> on an ACC. In that case two buttons
                appear at the top right:</p>
               <ul>
-                <li><b>Editor</b> → <code>/vsop/versioni</code>, the <b>documents hub</b>: a list of all documents
+                <li><b>Editor</b> → <code>/services/vsop/versions</code>, the <b>documents hub</b>: a list of all documents
                     (ACC/APP vIPI, airports, vLOA) with search/filters, ""Open editor"" per row, ""New document"",
                     version history and releases.</li>
-                <li><b>Tasks</b> → <code>/vsop/tasks</code>, the jobs assigned to you.</li>
+                <li><b>Tasks</b> → <code>/services/vsop/tasks</code>, the jobs assigned to you.</li>
               </ul>
               <p>You can also open the editor straight from the document you're viewing, with the <b>✎ Editor</b> button
                (it appears only if you are authorized on that ACC).</p>
@@ -177,7 +177,7 @@
                to the editor URL.</p>"),
 
         new Sec("versioni", "clipboard", "Elenco documenti, versioni e release", "Documents list, versions and releases",
-            @"<p>L'<b>hub documenti</b> (<code>/vsop/versioni</code>) è l'elenco di tutto ciò che si pubblica:
+            @"<p>L'<b>hub documenti</b> (<code>/services/vsop/versions</code>) è l'elenco di tutto ciò che si pubblica:
                vIPI ACC, aeroporti, APP non remotizzati e vLOA. A sinistra le righe, a destra il documento
                <b>scelto</b>.</p>
               <ul>
@@ -197,7 +197,7 @@
               <p>Nascondi ed elimina sono <b>sospesi</b> quando un'altra persona ha il documento in modifica.
                Il lock del documento dura <b>30 minuti</b> e non ha battito: si rinnova salvando e si libera
                con «Fine modifica». Un <b>admin</b> può forzarne lo sblocco (🔓).</p>",
-            @"<p>The <b>documents hub</b> (<code>/vsop/versioni</code>) lists everything that gets published:
+            @"<p>The <b>documents hub</b> (<code>/services/vsop/versions</code>) lists everything that gets published:
                ACC vIPIs, airports, non-remoted APPs and vLOAs. Rows on the left, the <b>selected</b> document
                on the right.</p>
               <ul>
@@ -416,7 +416,7 @@
               <p>As with the others, you save to the draft and publish with the release panel.</p>"),
 
         new Sec("editor-app", "radio", "Editor APP: come si scrive", "APP editor: how to write it",
-            @"<p>L''editor (<code>/vsop/{acc}/apps/editor?app=…</code>) scrive il documento di un
+            @"<p>L''editor (<code>/services/vsop/{acc}/apps/editor?app=…</code>) scrive il documento di un
                <b>avvicinamento non remotizzato</b>: un APP che ha una vIPI propria invece di stare dentro
                quella dell''ACC.</p>
               <ul>
@@ -434,7 +434,7 @@
               </ul>
               <p>Le modifiche vanno in &lt;b&gt;bozza&lt;/b&gt; e diventano pubbliche solo con una &lt;b&gt;release AIRAC&lt;/b&gt;,
                in fondo alla pagina. L''&lt;b&gt;anteprima bozza&lt;/b&gt; la apre in una scheda nuova, come sarà.</p>",
-            @"<p>The editor (<code>/vsop/{acc}/apps/editor?app=…</code>) writes the document of a
+            @"<p>The editor (<code>/services/vsop/{acc}/apps/editor?app=…</code>) writes the document of a
                <b>non-remoted approach</b>: an APP with its own vIPI instead of living inside the ACC''s one.</p>
               <ul>
                 <li>&lt;b&gt;Derived&lt;/b&gt; sections — AOR, frequencies, coordination, configurations — are not written
@@ -453,7 +453,7 @@
                bottom of the page. The &lt;b&gt;draft preview&lt;/b&gt; opens it in a new tab, as it will look.</p>"),
 
         new Sec("editor-vloa", "globe", "Editor vLOA: come si scrive", "vLOA editor: how to write it",
-            @"<p>L''editor (<code>/vsop/{acc}/vloa/editor?acc=…</code>) scrive la vLOA di una &lt;b&gt;coppia&lt;/b&gt;
+            @"<p>L''editor (<code>/services/vsop/{acc}/vloa/editor?acc=…</code>) scrive la vLOA di una &lt;b&gt;coppia&lt;/b&gt;
                ACC italiano ↔ ACC estero. Il documento è in &lt;b&gt;inglese&lt;/b&gt;: è la lingua delle vLOA.</p>
               <ul>
                 <li>⚠️ Solo la parte &lt;b&gt;Home&lt;/b&gt; (l''ACC italiano) si modifica qui. La parte del &lt;b&gt;vicino&lt;/b&gt;
@@ -469,7 +469,7 @@
               </ul>
               <p>Le modifiche vanno in &lt;b&gt;bozza&lt;/b&gt; e diventano pubbliche solo con una &lt;b&gt;release AIRAC&lt;/b&gt;.
                Le coppie da cui nascono le vLOA si gestiscono in &lt;a href=""#admin-confinanti""&gt;Confinanti&lt;/a&gt;.</p>",
-            @"<p>The editor (<code>/vsop/{acc}/vloa/editor?acc=…</code>) writes the vLOA of a &lt;b&gt;pair&lt;/b&gt;
+            @"<p>The editor (<code>/services/vsop/{acc}/vloa/editor?acc=…</code>) writes the vLOA of a &lt;b&gt;pair&lt;/b&gt;
                Italian ACC ↔ foreign ACC. The document is in &lt;b&gt;English&lt;/b&gt;: it is the language of vLOAs.</p>
               <ul>
                 <li>⚠️ Only the &lt;b&gt;Home&lt;/b&gt; side (the Italian ACC) is edited here. The &lt;b&gt;neighbour&lt;/b&gt; side is
@@ -488,7 +488,7 @@
                vLOAs are born from live in &lt;a href=""#admin-confinanti""&gt;Neighbours&lt;/a&gt;.</p>"),
 
         new Sec("editor-acc", "map", "Editor vIPI ACC", "ACC vIPI editor",
-            @"<p>L'editor del vIPI di ACC (<code>/vsop/{acc}/editor</code>) è fatto di <b>blocchi</b>: i
+            @"<p>L'editor del vIPI di ACC (<code>/services/vsop/{acc}/editor</code>) è fatto di <b>blocchi</b>: i
                <b>settori di aerovia</b> e un blocco per ogni <b>gruppo APP</b>. Ogni blocco copre il suo albero di
                settori, anche cross-ACC.</p>
               <ul>
@@ -500,7 +500,7 @@
                     Lo stato del documento e il lock stanno nella riga del titolo.</li>
                 <li><b>⤢ Larghezza piena</b> toglie indice e rail quando serve spazio alle tabelle.</li>
               </ul>",
-            @"<p>The ACC vIPI editor (<code>/vsop/{acc}/editor</code>) is made of <b>blocks</b>: the
+            @"<p>The ACC vIPI editor (<code>/services/vsop/{acc}/editor</code>) is made of <b>blocks</b>: the
                <b>airway sectors</b> and one block per <b>APP group</b>. Each block covers its own sector tree, even
                across ACCs.</p>
               <ul>
@@ -608,7 +608,7 @@
                  <b>lead</b> (one sentence introducing the table, as in real LoAs).</p>"),
 
         new Sec("struttura", "link", "Struttura: la gerarchia di copertura", "Structure: the coverage hierarchy",
-            @"<p>La pagina <b>Struttura</b> (<code>/vsop/admin/sectorstructure</code>) tiene l'<b>albero di fallback
+            @"<p>La pagina <b>Struttura</b> (<code>/services/vsop/admin/sector-structure</code>) tiene l'<b>albero di fallback
                unico</b> di tutta la divisione, anche fra ACC diversi: <b>Aeroporto → APP → settore ACC</b>.
                L'aeroporto è la <b>foglia</b> (DEL/GND/TWR condividono la sua vista rapida): quando un ente è
                chiuso, la vista live risale questa catena fino al primo online, altrimenti UNICOM.</p>
@@ -627,7 +627,7 @@
               </ul>
               <p>Il <b>lock</b> è quello condiviso delle pagine di struttura: una persona alla volta, Accordi di
                coordinamento compresi.</p>",
-            @"<p>The <b>Structure</b> page (<code>/vsop/admin/sectorstructure</code>) holds the <b>single fallback
+            @"<p>The <b>Structure</b> page (<code>/services/vsop/admin/sector-structure</code>) holds the <b>single fallback
                tree</b> for the whole division, across ACCs too: <b>Airport → APP → ACC sector</b>. The airport is
                the <b>leaf</b> (DEL/GND/TWR share its quick view): when a unit is closed, the live view climbs this
                chain up to the first online one, otherwise UNICOM.</p>
@@ -648,7 +648,7 @@
                agreements included.</p>"),
 
         new Sec("admin-aeroporti", "plane-takeoff", "Aeroporti: assegnazione alle ACC", "Airports: assignment to ACCs",
-            @"<p>La pagina <b>Aeroporti</b> (<code>/vsop/admin/airports</code>) decide la <b>ACC di competenza</b>
+            @"<p>La pagina <b>Aeroporti</b> (<code>/services/vsop/admin/airports</code>) decide la <b>ACC di competenza</b>
                di ogni aeroporto: da lì discendono la gerarchia di settori, il documento e la pagina pubblica.
                A sinistra gli aeroporti già assegnati, a destra l'<b>anagrafica IVAO</b> da cui si pescano.</p>
               <ul>
@@ -659,7 +659,7 @@
                     «già assegnati» riporta gli altri, in verde e non selezionabili.</li>
                 <li><b>Re-importa tutti</b> ripreleva piste e Transition Altitude per tutti gli assegnati:
                     sono decine di chiamate in fila, l'<b>avanzamento</b> si vede in testata e si può
-                    <b>interrompere</b>. Rispetta la policy di <code>/vsop/admin/sorgenti</code>.</li>
+                    <b>interrompere</b>. Rispetta la policy di <code>/services/vsop/admin/sources</code>.</li>
                 <li>Le azioni di gruppo (sposta, genera documenti, elimina, assegna) lavorano sulle righe
                     spuntate, proseguono oltre i fallimenti e lasciano <b>selezionato chi è fallito</b>: quello
                     che resta nel contatore è quello che non è passato.</li>
@@ -669,7 +669,7 @@
                     l'occhio barrato di ogni riga lo nasconde o lo mostra a mano.</li>
               </ul>
               <p>Il <b>lock</b> è quello condiviso delle pagine di struttura: una persona alla volta.</p>",
-            @"<p>The <b>Airports</b> page (<code>/vsop/admin/airports</code>) decides each airport's
+            @"<p>The <b>Airports</b> page (<code>/services/vsop/admin/airports</code>) decides each airport's
                <b>owning ACC</b>: the sector hierarchy, the document and the public page follow from it.
                On the left the already assigned airports, on the right the <b>IVAO directory</b> to pick from.</p>
               <ul>
@@ -680,7 +680,7 @@
                     ""already assigned"" chip brings the others back, in green and not selectable.</li>
                 <li><b>Re-import all</b> re-fetches runways and Transition Altitude for every assigned airport:
                     dozens of calls in a row, <b>progress</b> is shown in the header and can be <b>stopped</b>.
-                    It respects the <code>/vsop/admin/sorgenti</code> policy.</li>
+                    It respects the <code>/services/vsop/admin/sources</code> policy.</li>
                 <li>Group actions (move, generate documents, delete, assign) work on the ticked rows, carry on
                     past failures and leave <b>whatever failed still selected</b>: what stays in the counter is
                     what did not go through.</li>
@@ -692,7 +692,7 @@
               <p>The <b>lock</b> is the shared one of the structure pages: one person at a time.</p>"),
 
         new Sec("admin-confinanti", "globe", "Confinanti: coppie e vLOA", "Neighbours: pairs and vLOAs",
-            @"<p>La pagina <b>Confinanti</b> (<code>/vsop/admin/confinanti</code>) tiene le <b>coppie</b>
+            @"<p>La pagina <b>Confinanti</b> (<code>/services/vsop/admin/neighbours</code>) tiene le <b>coppie</b>
                ACC italiano ↔ ACC estero da cui nascono le <b>vLOA</b>. I paesi da cui pescare stanno in
                <code>Neighbours:CountryIds</code>; confinano i settori la cui distanza minima fra i bordi sta
                sotto <code>AdjacencyThresholdNm</code>. Le coppie non confinanti non vengono salvate.</p>
@@ -714,7 +714,7 @@
                 <li><b>Coppia a mano</b> serve quando IVAO non fornisce affatto l'ACC estero.</li>
               </ul>
               <p>Il <b>lock</b> è quello condiviso delle pagine di struttura: una persona alla volta.</p>",
-            @"<p>The <b>Neighbours</b> page (<code>/vsop/admin/confinanti</code>) holds the <b>pairs</b>
+            @"<p>The <b>Neighbours</b> page (<code>/services/vsop/admin/neighbours</code>) holds the <b>pairs</b>
                Italian ACC ↔ foreign ACC the <b>vLOAs</b> are born from. The countries to draw from live in
                <code>Neighbours:CountryIds</code>; sectors are neighbours when the minimum distance between
                their edges is below <code>AdjacencyThresholdNm</code>. Non-adjacent pairs are not saved.</p>
@@ -738,7 +738,7 @@
               <p>The <b>lock</b> is the shared one of the structure pages: one person at a time.</p>"),
 
         new Sec("admin-audit", "clock", "Audit: chi ha fatto cosa", "Audit: who did what",
-            @"<p>Il <b>registro</b> (<code>/vsop/admin/audit</code>) elenca gli <b>atti amministrativi</b>:
+            @"<p>Il <b>registro</b> (<code>/services/vsop/admin/audit</code>) elenca gli <b>atti amministrativi</b>:
                pubblicazioni, bozze scartate, documenti eliminati o nascosti, permessi concessi e revocati,
                cambi di gerarchia, e i <b>lock tolti</b> a un'altra persona. Non si modifica e non si
                cancella: è la memoria di chi ha fatto cosa, e resta vera anche quando il documento di cui
@@ -754,7 +754,7 @@
               </ul>
               <p>Le <b>modifiche al contenuto</b> di un documento non stanno qui: la storia di un documento si
                legge dalle sue <b>versioni</b>, in Documenti.</p>",
-            @"<p>The <b>log</b> (<code>/vsop/admin/audit</code>) lists <b>administrative acts</b>: publications,
+            @"<p>The <b>log</b> (<code>/services/vsop/admin/audit</code>) lists <b>administrative acts</b>: publications,
                discarded drafts, documents deleted or hidden, permissions granted and revoked, hierarchy
                changes, and <b>locks forced off</b> someone else. It cannot be edited or cleared: it is the
                memory of who did what, and it stays true even when the document it talks about is gone —
@@ -771,7 +771,7 @@
                in Documents.</p>"),
 
         new Sec("admin-sorgenti", "plug", "Sorgenti: cosa arriva da fuori", "Sources: what comes from outside",
-            @"<p>La pagina (<code>/vsop/admin/sorgenti</code>) decide, per ogni <b>categoria</b> di dati, se
+            @"<p>La pagina (<code>/services/vsop/admin/sources</code>) decide, per ogni <b>categoria</b> di dati, se
                arriva dalla <b>sorgente</b> (oggi IVAO) o se la gestiamo <b>a mano</b>. È una scelta globale,
                non per aeroporto, e vale per tutti gli import: quelli automatici e i bottoni.</p>
               <ul>
@@ -796,7 +796,7 @@
               </ul>
               <p>Chi ha deciso la policy, e quando, è scritto in fondo alla tabella. Ogni cambio finisce anche
                nel <b>registro</b> (Audit), con le sole categorie toccate.</p>",
-            @"<p>This page (<code>/vsop/admin/sorgenti</code>) decides, for each <b>category</b> of data, whether
+            @"<p>This page (<code>/services/vsop/admin/sources</code>) decides, for each <b>category</b> of data, whether
                it comes from the <b>source</b> (today IVAO) or is managed <b>by hand</b>. It is a global choice,
                not per airport, and it applies to every import: the automatic ones and the buttons.</p>
               <ul>
@@ -823,7 +823,7 @@
                <b>log</b> (Audit), with the touched categories only.</p>"),
 
         new Sec("nuovo-documento", "plus", "Nuovo documento: cosa crea e cosa apre", "New document: what it creates and what it opens",
-            @"<p>Da <code>/vsop/editor/newdoc</code> nasce un documento nuovo. ⚠️ <b>Il nome dice meno di
+            @"<p>Da <code>/services/vsop/editor/new-document</code> nasce un documento nuovo. ⚠️ <b>Il nome dice meno di
                quello che succede</b>: la <b>vLOA</b> la crei qui davvero; le tre <b>vIPI</b> — ACC, APP,
                Aeroporto — le crea il loro <b>editor</b>, alla prima apertura, e se il documento c’è già lo
                apre e basta. Per questo il tasto dice «Apri» invece di «Crea» quando esiste.</p>
@@ -841,12 +841,12 @@
                     pagina non ne crea una seconda e ti offre di aprire quella che c’è.</li>
               </ul>
               <p>La vLOA nasce con le sue <b>sezioni obbligatorie</b> già dentro — le stesse, da qui e da
-               <a href=""/vsop/admin/confinanti"">Confinanti</a>, che le genera <b>in blocco</b> per tutte le coppie
+               <a href=""/services/vsop/admin/neighbours"">Confinanti</a>, che le genera <b>in blocco</b> per tutte le coppie
                confinanti confermate. Se le coppie sono molte, conviene quella strada.</p>
               <p>Serve il <b>permesso</b> sull’ACC: si vedono solo gli ACC su cui si può lavorare, e chi non ne
                ha nessuno non apre la pagina. Per la vLOA serve anche <b>«Inizia modifica»</b>: la creazione è
                serializzata, così due persone non creano lo stesso documento nello stesso momento.</p>",
-            @"<p><code>/vsop/editor/newdoc</code> is where a new document is born. ⚠️ <b>The name says less than
+            @"<p><code>/services/vsop/editor/new-document</code> is where a new document is born. ⚠️ <b>The name says less than
                what happens</b>: you really do create the <b>vLOA</b> here; the three <b>vIPI</b> documents —
                ACC, APP, Airport — are created by their own <b>editor</b> on first opening, and if the document
                already exists it simply opens. That is why the button reads «Open» instead of «Create».</p>
@@ -864,14 +864,14 @@
                     page will not create a second and offers to open the existing one.</li>
               </ul>
               <p>A vLOA is born with its <b>mandatory sections</b> already in place — the same ones, from here
-               and from <a href=""/vsop/admin/confinanti"">Neighbours</a>, which generates them <b>in bulk</b> for
+               and from <a href=""/services/vsop/admin/neighbours"">Neighbours</a>, which generates them <b>in bulk</b> for
                every confirmed neighbouring pair. With many pairs, that is the better route.</p>
               <p>You need <b>permission</b> on the ACC: only the ACCs you can work on are listed, and someone
                with none does not get the page at all. The vLOA also needs <b>«Start editing»</b>: creation is
                serialized, so two people cannot create the same document at the same moment.</p>"),
 
         new Sec("admin-diagnostica", "activity", "Diagnostica: cosa non torna", "Diagnostics: what does not add up",
-            @"<p>La <b>diagnostica</b> (<code>/vsop/admin/diagnostica</code>) risponde a una domanda sola:
+            @"<p>La <b>diagnostica</b> (<code>/services/vsop/admin/diagnostics</code>) risponde a una domanda sola:
                <b>qualcosa non torna?</b> Ogni riga dice anche <b>di chi è il problema</b>, perché le cinque
                aree si riparano in cinque posti diversi — e i chip in cima le contano.</p>
               <ul>
@@ -899,7 +899,7 @@
                all’apertura — dopo aver corretto qualcosa, <b>Aggiorna</b>. A destra, chi può editare (i pattern
                dei codici staff a confronto con quelli visti ai login) e le <b>immagini</b> che nessun documento
                cita più, che si eliminano in due tempi: prima si guarda l’elenco, poi si cancella.</p>",
-            @"<p>The <b>diagnostics</b> page (<code>/vsop/admin/diagnostica</code>) answers one question:
+            @"<p>The <b>diagnostics</b> page (<code>/services/vsop/admin/diagnostics</code>) answers one question:
                <b>does anything not add up?</b> Every row also says <b>whose problem it is</b>, because the five
                areas are fixed in five different places — and the chips at the top count them.</p>
               <ul>
@@ -927,7 +927,7 @@
                document cites any more, deleted in two steps: first look at the list, then delete.</p>"),
 
         new Sec("incarichi", "clipboard", "I miei incarichi", "My tasks",
-            @"<p>La pagina (<code>/vsop/tasks</code>) elenca gli <b>incarichi assegnati a te</b>, più quelli
+            @"<p>La pagina (<code>/services/vsop/tasks</code>) elenca gli <b>incarichi assegnati a te</b>, più quelli
                che ti aggiungi da solo. Le tre colonne — <b>Da fare</b>, <b>In corso</b>, <b>In revisione</b> —
                sono il lavoro in corso; <b>Bloccato</b> e <b>Fatto</b> stanno in fondo, chiusi, col loro
                conteggio.</p>
@@ -946,7 +946,7 @@
               </ul>
               <p>Ogni cambio di stato lascia una riga nel <b>registro</b>: serve a chi coordina per sapere a che
                punto è il lavoro, non a controllare le persone.</p>",
-            @"<p>This page (<code>/vsop/tasks</code>) lists the <b>tasks assigned to you</b>, plus the ones you
+            @"<p>This page (<code>/services/vsop/tasks</code>) lists the <b>tasks assigned to you</b>, plus the ones you
                add yourself. The three columns — <b>To do</b>, <b>In progress</b>, <b>In review</b> — are work
                in progress; <b>Blocked</b> and <b>Done</b> sit at the bottom, collapsed, with their count.</p>
               <ul>
@@ -965,7 +965,7 @@
                knows how the work is going, not to keep an eye on people.</p>"),
 
         new Sec("admin-incarichi", "clipboard", "Incarichi: chi sta facendo cosa", "Tasks: who is doing what",
-            @"<p>La pagina (<code>/vsop/admin/tasks</code>) assegna il <b>lavoro editoriale</b> e ne segue
+            @"<p>La pagina (<code>/services/vsop/admin/tasks</code>) assegna il <b>lavoro editoriale</b> e ne segue
                l''avanzamento. Ogni incarico ha una <b>persona</b>, una priorità, e se serve una <b>scadenza</b>
                espressa in ciclo AIRAC: è in ritardo quando quel ciclo è già cominciato e l''incarico non è
                concluso.</p>
@@ -985,7 +985,7 @@
               </ul>
               <p>Creazione, cambio di stato, riassegnazione ed eliminazione finiscono nel <b>registro</b>
                (Audit), sotto la famiglia «Incarico».</p>",
-            @"<p>This page (<code>/vsop/admin/tasks</code>) assigns <b>editorial work</b> and follows its
+            @"<p>This page (<code>/services/vsop/admin/tasks</code>) assigns <b>editorial work</b> and follows its
                progress. Every task has a <b>person</b>, a priority, and when needed a <b>due date</b> expressed
                as an AIRAC cycle: it is late when that cycle has already started and the task is not done.</p>
               <ul>
@@ -1006,7 +1006,7 @@
                «Task» family.</p>"),
 
         new Sec("admin-permessi", "key", "Permessi: chi può modificare cosa", "Permissions: who can edit what",
-            @"<p>Un <b>permesso</b> (<code>/vsop/admin/permessi</code>) lega una persona — il suo <b>VID</b> —
+            @"<p>Un <b>permesso</b> (<code>/services/vsop/admin/permissions</code>) lega una persona — il suo <b>VID</b> —
                a un <b>ACC</b>. Da quel momento può aprire l'editor dei documenti di quell'ACC, pubblicarne le
                release e nasconderne o eliminarne i documenti.</p>
               <ul>
@@ -1022,7 +1022,7 @@
               <p>Gli <b>admin</b> non hanno bisogno di permessi: possono già tutto in forza del loro codice
                staff, e non compaiono in questo elenco. Le altre pagine admin si raggiungono dalla <b>barra</b>
                in cima alla pagina.</p>",
-            @"<p>A <b>permission</b> (<code>/vsop/admin/permessi</code>) ties a person — their <b>VID</b> — to an
+            @"<p>A <b>permission</b> (<code>/services/vsop/admin/permissions</code>) ties a person — their <b>VID</b> — to an
                <b>ACC</b>. From then on they can open the editor for that ACC's documents, publish its releases
                and hide or delete its documents.</p>
               <ul>
@@ -1040,7 +1040,7 @@
                page.</p>"),
 
         new Sec("admin", "grid", "Aree admin", "Admin areas",
-            @"<p>Solo per gli admin, sotto <code>/vsop/admin</code>:</p>
+            @"<p>Solo per gli admin, sotto <code>/services/vsop/admin</code>:</p>
               <ul>
                 <li><b>Gerarchia settori</b> (<code>/sectorstructure</code>) — catena di copertura per callsign, cross-ACC.</li>
                 <li><b>Trasferimenti</b> (<code>/trasferimenti</code>) — gli <b>accordi di coordinamento</b> fra due enti: punti, quote e condizioni, per ACC controparte ▸ relazione (noi ⇄ loro) ▸ accordo. Un accordo vale per più mittenti e più aeroporti, e mostra sempre i suoi due versi.</li>
@@ -1050,7 +1050,7 @@
                 <li><b>Audit</b> (<code>/audit</code>) — registro delle operazioni.</li>
               </ul>
               <p>Le pagine di struttura condividono un <b>lock unico</b>: una persona alla volta.</p>",
-            @"<p>Admins only, under <code>/vsop/admin</code>:</p>
+            @"<p>Admins only, under <code>/services/vsop/admin</code>:</p>
               <ul>
                 <li><b>Sector hierarchy</b> (<code>/sectorstructure</code>) — the coverage chain per callsign, cross-ACC.</li>
                 <li><b>Transfers</b> (<code>/trasferimenti</code>) — the <b>coordination agreements</b> between two units: points, levels and conditions, per counterpart ACC ▸ relation (us ⇄ them) ▸ agreement. One agreement covers several transferring units and several airports, and always shows both of its directions.</li>

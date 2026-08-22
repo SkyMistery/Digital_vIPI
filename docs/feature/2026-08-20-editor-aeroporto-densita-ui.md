@@ -2,7 +2,7 @@
 
 Quinto giro della famiglia, dopo [accordi](2026-08-19-accordi-densita-ui.md),
 [struttura](2026-08-19-struttura-densita-ui.md), [ACC](2026-08-19-acc-admin-densita-ui.md) e
-[aeroporti](2026-08-19-aeroporti-densita-ui.md): `/vsop/{acc}/airports/editor`. Le
+[aeroporti](2026-08-19-aeroporti-densita-ui.md): `/services/vsop/{acc}/airports/editor`. Le
 [regole](../design/regole-ui-pagine-admin.md) la davano a 10 059px; misurata su un aeroporto vero è molto
 peggio, e per una ragione sola.
 

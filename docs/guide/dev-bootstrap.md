@@ -14,20 +14,20 @@
 ## Avvio
 ```bash
 cd "vIPI Ivao Italy"
-dotnet run --project src/Vipi.Host --urls http://localhost:5034   # crea/migra vipi.db, poi apri /vsop
+dotnet run --project src/Vipi.Host --urls http://localhost:5034   # crea/migra vipi.db, poi apri /services/vsop
 ```
 Il DB SQLite viene creato e migrato all'avvio. Gli import periodici sono **gated** (`ImportState`): al primo
 avvio popolano da zero, ai riavvii successivi **saltano** i fetch finché non scadono le 24h (o via bottoni
-manuali). Lo stato/errore di ogni import è visibile in **`/vsop/admin/sorgenti`**.
+manuali). Lo stato/errore di ogni import è visibile in **`/services/vsop/admin/sources`**.
 
 ## Sequenza di popolamento (ordine obbligatorio)
-1. **ACC + settori** — `/vsop/admin/acc` → «Importa da sorgente». La sync proietta i `Sector` dai cataloghi
+1. **ACC + settori** — `/services/vsop/admin/acc` → «Importa da sorgente». La sync proietta i `Sector` dai cataloghi
    (`AccSector`/`AirportSector`). I settori **non si creano a mano** (sono proiezione, Round 20).
 2. **Aeroporti** — piste + Transition Altitude si importano da IVAO; bottone «Re-importa da IVAO (tutti)» su
-   `/vsop/admin/airports`. Le shape tonde 5 NM delle TWR vuote si generano al job d'avvio (~30s).
+   `/services/vsop/admin/airports`. Le shape tonde 5 NM delle TWR vuote si generano al job d'avvio (~30s).
 3. **SID** — dal sectorfile Aurora GitHub (config `Sectorfile`); pubbliche solo dal ciclo AIRAC successivo.
-4. **Gerarchia di copertura** — `/vsop/admin/sectorstructure`: imposta i padri per callsign (cross-ACC).
-   Verificabile a valle in **`/vsop/admin/diagnostica`** (nessuna gerarchia dangling).
+4. **Gerarchia di copertura** — `/services/vsop/admin/sector-structure`: imposta i padri per callsign (cross-ACC).
+   Verificabile a valle in **`/services/vsop/admin/diagnostics`** (nessuna gerarchia dangling).
 5. **Documenti** — «Crea nuovo documento» (vIPI ACC = N settori di scope, uno primario) → editor.
 
 ## Reset pulito

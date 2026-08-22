@@ -258,23 +258,23 @@ messi come striscia sopra il contenuto; «tabelle» = righe di corpo, `*` = inte
 
 | Pagina | Rotta | Altezza | Note |
 |---|---|---:|---|
-| Accordi di coordinamento | `/vsop/admin/trasferimenti` | 900 | testata in riga, altezza misurata, colonne fisse |
-| Struttura | `/vsop/admin/sectorstructure` | 900 | testata in riga, due pannelli con il solo corpo che scorre |
-| ACC | `/vsop/admin/acc` | 8714 | testata appiccicata, `thead` fermo su entrambe le tabelle (28 e 152 righe) |
-| Aeroporti | `/vsop/admin/airports` | 900 | **da 13 745**: due pannelli misurati, `thead` fermo dentro lo scroller, azioni di gruppo con avanzamento ([carta](../feature/2026-08-19-aeroporti-densita-ui.md)) |
-| Editor aeroporto | `/vsop/{acc}/airports/editor` | 4 913 | **da 31 286** su LIRF (206 SID): riquadro col tetto e `thead` fermo, riga 128→45px, larghezza piena, modificata≠scelta ([carta](../feature/2026-08-20-editor-aeroporto-densita-ui.md)). L'altezza non dipende più dai dati |
-| Editor ACC | `/vsop/{acc}/editor` | 5 595 | **da 9 690 in MODIFICA** (in lettura erano 6 466): blocchi collassabili con fisarmonica, testata in riga, prosa nei «?», riga frequenze 60→43px ([carta](../feature/2026-08-20-editor-acc-densita-ui.md)). Tutto compresso: 1 468 |
-| Confinanti (vLOA) | `/vsop/admin/confinanti` | 900 | **da 2 515 chiusa** (aperta era molto peggio: il dettaglio srotolava tabella + due mappe dentro la riga): due pannelli misurati, dettaglio a destra, una mappa sola, colonne misurate col font, import con avanzamento e Interrompi ([carta](../feature/2026-08-20-confinanti-densita-ui.md)) |
-| Versioni | `/vsop/versioni` | 900 | **da 1 664**: due pannelli misurati col dettaglio a destra (era dentro l'elenco), chip dei filtri che **contano** al posto della fascia di riepilogo, azioni nel pannello, riga 118→63px ([carta](../feature/2026-08-21-versioni-densita-ui.md) — la parte lock e azioni è la [sua](../feature/2026-08-21-versioni-lock-e-azioni.md)) |
-| Permessi | `/vsop/admin/permessi` | 900 | **da 2 449** (misurata con 16 grant: a tabella vuota diceva 1 346): barra admin al posto delle sei card, una riga per persona, concessione e revoca nel pannello ([carta](../feature/2026-08-22-permessi-densita-ui.md)) |
-| Audit | `/vsop/admin/audit` | 900 | **da 13 293** misurata con 248 righe (la ricognizione diceva 1 556 con 28, ed era il numero **col tetto**): un pannello misurato col `thead` fermo, ogni riga una frase al posto del JSON, periodo al posto del tetto muto ([carte](../feature/2026-08-22-audit-cosa-registra.md) e [densità](../feature/2026-08-22-audit-densita-ui.md)). Resta 900 con 500 righe e da zoom 0.8 a 1.5 |
-| Sorgenti | `/vsop/admin/sorgenti` | 900 | **da 1 252**, ma il numero non era il problema: la pagina prometteva «l'import non la tocca più» ed era **falso per Settori, TA e Piste** (gate assenti o solo in un chiamante). Una tabella al posto di due, chi ha deciso la policy, il cambio nel registro ([carte](../feature/2026-08-22-sorgenti-cosa-fa-la-policy.md) e [densità](../feature/2026-08-22-sorgenti-densita-ui.md)). `max-height` e non `height`: il contenuto è corto e fisso |
-| Diagnostica | `/vsop/admin/diagnostica` | 900 | **da 1 349** misurata con otto rilievi (la ricognizione diceva 900 col report **vuoto**), e resta 900 con **76**: due colonne, riquadro misurato col `thead` fermo, chip per **area**, «Dove si ripara» ([carte](../feature/2026-08-22-diagnostica-cosa-afferma.md) e [densità](../feature/2026-08-22-diagnostica-densita-ui.md)). ⚠️ Qui `height` e non `max-height`: il contenuto è più alto dello schermo per mestiere |
-| Nuovo documento | `/vsop/editor/newdoc` | 900 | **da 957** sulla scheda vLOA (le altre tre erano già 900 — ⚠️ su una pagina a schede si misura **ogni scheda**): campi in griglia, tasto **sotto** i campi che gli servono, schede riordinate, barra admin **senza** voce nell'elenco ([carte](../feature/2026-08-22-newdoc-cosa-crea.md) e [densità](../feature/2026-08-22-newdoc-densita-ui.md)). `max-height`: corto e fisso a zoom 1, non a 1.25 |
-| Incarichi admin | `/vsop/admin/tasks` | 900 | **da 1 813 con 12 incarichi e 4 764 con 60** (la ricognizione diceva 900: `EditorTasks` è **vuota** nel DB di sviluppo — terza volta): elenco+dettaglio con le azioni nel pannello, `thead` fermo, chip che contano col **default «non conclusi»** al posto di un'archiviazione, avanzamento per editore da parete di card a chip che filtrano ([carte](../feature/2026-08-22-incarichi-cosa-sono.md) e [densità](../feature/2026-08-22-incarichi-densita-ui.md)). Resta il viewport con 60 |
-| Incarichi (utente) | `/vsop/tasks` | 900 | **da 1 562 con 12 propri** (a 1280×800 scorreva con **quattro**): tre colonne a schermo e due chiuse col conteggio, card con un avanzamento invece di quattro tasti, `vipiCapViewport` **con riserva** per le colonne chiuse. La briciola resta: è una pagina d'utente |
-| Editor APP | `/vsop/{acc}/apps/editor` | 3 350 **in modifica**, 1 654 compresso | **da 3 540** (la ricognizione diceva 900: era una misura in LETTURA sui dati di sviluppo): testata in riga col lock, «?», espandi/comprimi, larghezza piena, «+ Blocco» al posto di quattro tasti per sezione ([carte](../feature/2026-08-22-editori-app-vloa-cosa-fanno.md) e [densità](../feature/2026-08-22-editori-app-vloa-densita-ui.md)) |
-| Editor vLOA | `/vsop/{acc}/vloa/editor` | 4 242 **in modifica**, 1 359 compresso | **da 4 351**, con 177px di fasce in testa: il callout bilaterale nel «?», e ⚠️ i chip che SCRIVEVANO nel documento diventati un elenco, perché stavano sopra i chip che non scrivono (stesse carte) |
+| Accordi di coordinamento | `/services/vsop/admin/transfers` | 900 | testata in riga, altezza misurata, colonne fisse |
+| Struttura | `/services/vsop/admin/sector-structure` | 900 | testata in riga, due pannelli con il solo corpo che scorre |
+| ACC | `/services/vsop/admin/acc` | 8714 | testata appiccicata, `thead` fermo su entrambe le tabelle (28 e 152 righe) |
+| Aeroporti | `/services/vsop/admin/airports` | 900 | **da 13 745**: due pannelli misurati, `thead` fermo dentro lo scroller, azioni di gruppo con avanzamento ([carta](../feature/2026-08-19-aeroporti-densita-ui.md)) |
+| Editor aeroporto | `/services/vsop/{acc}/airports/editor` | 4 913 | **da 31 286** su LIRF (206 SID): riquadro col tetto e `thead` fermo, riga 128→45px, larghezza piena, modificata≠scelta ([carta](../feature/2026-08-20-editor-aeroporto-densita-ui.md)). L'altezza non dipende più dai dati |
+| Editor ACC | `/services/vsop/{acc}/editor` | 5 595 | **da 9 690 in MODIFICA** (in lettura erano 6 466): blocchi collassabili con fisarmonica, testata in riga, prosa nei «?», riga frequenze 60→43px ([carta](../feature/2026-08-20-editor-acc-densita-ui.md)). Tutto compresso: 1 468 |
+| Confinanti (vLOA) | `/services/vsop/admin/neighbours` | 900 | **da 2 515 chiusa** (aperta era molto peggio: il dettaglio srotolava tabella + due mappe dentro la riga): due pannelli misurati, dettaglio a destra, una mappa sola, colonne misurate col font, import con avanzamento e Interrompi ([carta](../feature/2026-08-20-confinanti-densita-ui.md)) |
+| Versioni | `/services/vsop/versions` | 900 | **da 1 664**: due pannelli misurati col dettaglio a destra (era dentro l'elenco), chip dei filtri che **contano** al posto della fascia di riepilogo, azioni nel pannello, riga 118→63px ([carta](../feature/2026-08-21-versioni-densita-ui.md) — la parte lock e azioni è la [sua](../feature/2026-08-21-versioni-lock-e-azioni.md)) |
+| Permessi | `/services/vsop/admin/permissions` | 900 | **da 2 449** (misurata con 16 grant: a tabella vuota diceva 1 346): barra admin al posto delle sei card, una riga per persona, concessione e revoca nel pannello ([carta](../feature/2026-08-22-permessi-densita-ui.md)) |
+| Audit | `/services/vsop/admin/audit` | 900 | **da 13 293** misurata con 248 righe (la ricognizione diceva 1 556 con 28, ed era il numero **col tetto**): un pannello misurato col `thead` fermo, ogni riga una frase al posto del JSON, periodo al posto del tetto muto ([carte](../feature/2026-08-22-audit-cosa-registra.md) e [densità](../feature/2026-08-22-audit-densita-ui.md)). Resta 900 con 500 righe e da zoom 0.8 a 1.5 |
+| Sorgenti | `/services/vsop/admin/sources` | 900 | **da 1 252**, ma il numero non era il problema: la pagina prometteva «l'import non la tocca più» ed era **falso per Settori, TA e Piste** (gate assenti o solo in un chiamante). Una tabella al posto di due, chi ha deciso la policy, il cambio nel registro ([carte](../feature/2026-08-22-sorgenti-cosa-fa-la-policy.md) e [densità](../feature/2026-08-22-sorgenti-densita-ui.md)). `max-height` e non `height`: il contenuto è corto e fisso |
+| Diagnostica | `/services/vsop/admin/diagnostics` | 900 | **da 1 349** misurata con otto rilievi (la ricognizione diceva 900 col report **vuoto**), e resta 900 con **76**: due colonne, riquadro misurato col `thead` fermo, chip per **area**, «Dove si ripara» ([carte](../feature/2026-08-22-diagnostica-cosa-afferma.md) e [densità](../feature/2026-08-22-diagnostica-densita-ui.md)). ⚠️ Qui `height` e non `max-height`: il contenuto è più alto dello schermo per mestiere |
+| Nuovo documento | `/services/vsop/editor/new-document` | 900 | **da 957** sulla scheda vLOA (le altre tre erano già 900 — ⚠️ su una pagina a schede si misura **ogni scheda**): campi in griglia, tasto **sotto** i campi che gli servono, schede riordinate, barra admin **senza** voce nell'elenco ([carte](../feature/2026-08-22-newdoc-cosa-crea.md) e [densità](../feature/2026-08-22-newdoc-densita-ui.md)). `max-height`: corto e fisso a zoom 1, non a 1.25 |
+| Incarichi admin | `/services/vsop/admin/tasks` | 900 | **da 1 813 con 12 incarichi e 4 764 con 60** (la ricognizione diceva 900: `EditorTasks` è **vuota** nel DB di sviluppo — terza volta): elenco+dettaglio con le azioni nel pannello, `thead` fermo, chip che contano col **default «non conclusi»** al posto di un'archiviazione, avanzamento per editore da parete di card a chip che filtrano ([carte](../feature/2026-08-22-incarichi-cosa-sono.md) e [densità](../feature/2026-08-22-incarichi-densita-ui.md)). Resta il viewport con 60 |
+| Incarichi (utente) | `/services/vsop/tasks` | 900 | **da 1 562 con 12 propri** (a 1280×800 scorreva con **quattro**): tre colonne a schermo e due chiuse col conteggio, card con un avanzamento invece di quattro tasti, `vipiCapViewport` **con riserva** per le colonne chiuse. La briciola resta: è una pagina d'utente |
+| Editor APP | `/services/vsop/{acc}/apps/editor` | 3 350 **in modifica**, 1 654 compresso | **da 3 540** (la ricognizione diceva 900: era una misura in LETTURA sui dati di sviluppo): testata in riga col lock, «?», espandi/comprimi, larghezza piena, «+ Blocco» al posto di quattro tasti per sezione ([carte](../feature/2026-08-22-editori-app-vloa-cosa-fanno.md) e [densità](../feature/2026-08-22-editori-app-vloa-densita-ui.md)) |
+| Editor vLOA | `/services/vsop/{acc}/vloa/editor` | 4 242 **in modifica**, 1 359 compresso | **da 4 351**, con 177px di fasce in testa: il callout bilaterale nel «?», e ⚠️ i chip che SCRIVEVANO nel documento diventati un elenco, perché stavano sopra i chip che non scrivono (stesse carte) |
 
 L'altezza 900 delle prime due **è** il viewport: la pagina non scorre, il riquadro sì.
 
@@ -298,8 +298,8 @@ contano bene (`.help-hint`), i sottotitoli si guardano.
 
 ### Fuori ambito: le viste pubbliche
 
-`/vsop`, `/vsop/{acc}`, i viewer (vIPI ACC, aeroporto, APP, vLOA), gli elenchi pubblici, `/vsop/changed`,
-`/vsop/search`, `/vsop/live`, `/vsop/guida`, l'anteprima release, l'AoR 3D. Lì il contenuto **è** la pagina e si
+`/services/vsop`, `/services/vsop/{acc}`, i viewer (vIPI ACC, aeroporto, APP, vLOA), gli elenchi pubblici, `/services/vsop/changed`,
+`/services/vsop/search`, `/services/vsop/live`, `/services/vsop/guide`, l'anteprima release, l'AoR 3D. Lì il contenuto **è** la pagina e si
 legge scorrendo: la densità non è un problema da risolvere. Di queste regole valgono solo due:
 - le **emoji che sono comandi** diventano `Icon` (quelle che sono **contenuto** — 🌦 🌧 🛫 nel viewer aeroporto —
   restano: sono la cosa, non un pulsante);
@@ -556,11 +556,11 @@ da cui si conferma), poi ciò che libera spazio (prosa nei «?», fasce), poi la
      ⚠️ ogni suo anello portava dove porta la barra (o il logo in topbar, per «Home»); segnava la pagina
      corrente in grassetto come la barra la segna in blu; **inventava una gerarchia** — «Home › Staff Area ›
      Structure › Airports», ma Aeroporti sotto Struttura non ci sta, sono pagine sorelle; ed era già
-     divergente da sé, con «Admin» che puntava a `/vsop` in tre pagine e a `/vsop/admin/permessi` in una
+     divergente da sé, con «Admin» che puntava a `/services/vsop` in tre pagine e a `/services/vsop/admin/permissions` in una
      quarta, e profondità da due a quattro anelli per pagine dello stesso rango. Costava 38px misurati su
      tutte e undici, che sulle sei pagine ad altezza misurata erano righe e nodi.
 132. ⚠️ **Una briciola di pane si toglie solo dove qualcos'altro la sostituisce.** Sulle pagine pubbliche
-     (`/vsop/{acc}/airports?icao=…` e sorelle) resta, e deve restare: lì non c'è nessuna barra, e
+     (`/services/vsop/{acc}/airports?icao=…` e sorelle) resta, e deve restare: lì non c'è nessuna barra, e
      «Home › LIBB › Airports › LIBD» è l'unico modo di risalire. La regola non è «le briciole sono rumore»,
      è «due elenchi della stessa cosa divergono» (regola 123) — e senza il secondo elenco non c'è niente da
      togliere.
@@ -586,7 +586,7 @@ Non è il giro di **una** pagina: cambia la testa di **tutte e undici**. Regole 
 
 ## 22. Quello che ha lasciato il giro Audit (22 agosto)
 
-Decima pagina, e come su Versioni la **sostanza è venuta prima della forma**: aprendo `/vsop/admin/audit`
+Decima pagina, e come su Versioni la **sostanza è venuta prima della forma**: aprendo `/services/vsop/admin/audit`
 per il `thead` appiccicato si è scoperto che il registro non registrava l'eliminazione di un documento,
 attribuiva la revoca di un permesso alla persona sbagliata, e prometteva nel sottotitolo una categoria di
 eventi che nessuno aveva mai scritto. Carte:
@@ -639,7 +639,7 @@ eventi che nessuno aveva mai scritto. Carte:
 ## 23. Quello che ha lasciato il giro Sorgenti (22 agosto)
 
 Undicesima pagina, e la terza di fila in cui **la sostanza è venuta prima della forma**: aprendo
-`/vsop/admin/sorgenti` per la densità è saltato fuori che la promessa scritta nella pagina — «escludi una
+`/services/vsop/admin/sources` per la densità è saltato fuori che la promessa scritta nella pagina — «escludi una
 categoria e l'import non la tocca più» — era falsa per **due categorie su cinque**. Carte:
 [cosa fa la policy](../feature/2026-08-22-sorgenti-cosa-fa-la-policy.md) e
 [densità](../feature/2026-08-22-sorgenti-densita-ui.md). Regole **143-152**.
@@ -996,7 +996,7 @@ IT ed EN, in tutti i giri di questo ramo. Carta:
 206. ⚠️ **Cercare «chi sfora» dopo che il viewport si è allargato non trova NIENTE.** Una volta allargato,
      tutti gli elementi ci stanno dentro: sulla pagina di ricerca l'elenco degli elementi oltre il bordo era
      **vuoto** mentre il layout era 569. Il colpevole si trova **confrontando la pagina con e senza
-     contenuto** (`/vsop/search` da solo: 375; con i risultati: 569), non cercando chi sborda.
+     contenuto** (`/services/vsop/search` da solo: 375; con i risultati: 569), non cercando chi sborda.
 207. ⚠️ **Una traccia `1fr` ha `min-width:auto`, cioè il min-content del suo contenuto.** Il collasso a una
      colonna dei layout documento usava `grid-template-columns:1fr`, e la colonna **non scendeva sotto 592px
      nemmeno imponendo `width:340px` al layout**. Serve `minmax(0,1fr)` più `min-width:0` sui figli. È la

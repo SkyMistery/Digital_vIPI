@@ -19,7 +19,7 @@ public sealed record EditorTaskTargetOption(ReleaseTargetType Type, string Key, 
 /// <para><b>Perché un servizio e non una funzione statica.</b> Fino al 22 agosto 2026 il link lo costruiva
 /// <c>TaskDocLink</c>, che dalla sola chiave di release sapeva fare l'URL <b>solo</b> per la vIPI ACC —
 /// perché è l'unico tipo la cui chiave contiene il codice ACC. Per aeroporti, APP e vLOA rimandava a
-/// <c>/vsop/versioni</c>: un tasto che dice «Apri documento» e porta a un elenco, in tre casi su quattro.
+/// <c>/services/vsop/versions</c>: un tasto che dice «Apri documento» e porta a un elenco, in tre casi su quattro.
 /// L'ACC (e per la vLOA il codice del vicino) sono un <b>dato</b>, non qualcosa che si deduce da una
 /// stringa: si leggono, e poi l'URL lo fa <see cref="IDocRoutesRegistry"/>, che è già l'unico posto dove
 /// stanno le rotte dei documenti (regola 139: un formattatore per tipo di dato, non uno per pagina).</para>

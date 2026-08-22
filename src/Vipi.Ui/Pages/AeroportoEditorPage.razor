@@ -1,5 +1,4 @@
-﻿@page "/vsop/{Acc}/airports/editor"
-@page "/vsop/{Acc}/aeroporto/editor"
+﻿@page "/services/vsop/{Acc}/airports/editor"
 @layout SopLayout
 @rendermode InteractiveServer
 @using Vipi.Application.Content
@@ -32,8 +31,8 @@ else
     <PageTitle>@L["Ape_EditorTitle"] @_icao · vIPI</PageTitle>
     <div class="wrap struct">
         <div class="breadcrumb">
-            <a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> ›
-            <a href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao">@_icao</a> › <b>@L["Common_Editor"]</b>
+            <a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> ›
+            <a href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao">@_icao</a> › <b>@L["Common_Editor"]</b>
         </div>
 
         @* ---- Testata in UNA riga: titolo · «?» · stato ----
@@ -43,7 +42,7 @@ else
         <div class="editor-bar">
             <div class="doc-head st-head" style="margin:0">
                 <h2 class="st-h2">✎ @L["Ape_EditorTitle"] @_icao</h2>
-                <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_HelpAria"]" ExtraClass="wide">
+                <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_HelpAria"]" ExtraClass="wide">
                     @((MarkupString)L["Ape_HelpBody"].Value)
                 </HelpHint>
                 @if (_data is not null)
@@ -88,7 +87,7 @@ else
                        testo riusato IDENTICO, stesse chiavi. *@
                     <div class="ed-h3">
                         <h3>@L["Ape_RwRulesTitle"]</h3>
-                        <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_RwRulesHelpAria"]" ExtraClass="wide">
+                        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_RwRulesHelpAria"]" ExtraClass="wide">
                             @((MarkupString)L["Ape_RwRulesHelp"].Value)
                             <p>@L["Ape_RwRulesHelp2"]</p>
                         </HelpHint>
@@ -162,7 +161,7 @@ else
                                     </label>
                                 </div>
                                 <div class="ed-h3 ed-h3-mini">
-                                    <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_SeasonalHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_SeasonalHelp"].Value)</HelpHint>
+                                    <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SeasonalHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_SeasonalHelp"].Value)</HelpHint>
                                     <span class="muted">@L["Ape_SeasonalShort"]</span>
                                 </div>
                                 <div class="rule-days">
@@ -219,13 +218,13 @@ else
                 <div class="block" @onchange='() => MarkDirty("Quote transizione")'>
                     <div class="ed-h3">
                         <h3>@L["Ape_TlTitle"]</h3>
-                        <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_TlHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_TlHelp"].Value)</HelpHint>
+                        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_TlHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_TlHelp"].Value)</HelpHint>
                         @if (_policy.TransitionAltitude)
                         {
                             @* Il chip resta a schermo (è uno STATO: questo dato non si tocca), la spiegazione
                                del perché va nel «?» accanto. *@
                             <span class="pill neutral" title="@L["Ape_TaFromSourceTitle"]"><Icon Name="key" Size="11" /> @L["Ape_FromSource"]</span>
-                            <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_TaFromSourceAria"]" ExtraClass="wide">@L["Ape_TaFromSource"]</HelpHint>
+                            <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_TaFromSourceAria"]" ExtraClass="wide">@L["Ape_TaFromSource"]</HelpHint>
                         }
                     </div>
                     @{ var tlIssues = TlIssues(); }
@@ -265,7 +264,7 @@ else
                 <div class="block" @onchange='() => MarkDirty("Frequenze")'>
                     <div class="ed-h3">
                         <h3>@L["Common_Frequencies"]</h3>
-                        <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_FreqHelpAria"]" ExtraClass="wide">@L["Ape_FreqHelp"]</HelpHint>
+                        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_FreqHelpAria"]" ExtraClass="wide">@L["Ape_FreqHelp"]</HelpHint>
                     </div>
                     <table class="res-table freq-table">
                         <thead><tr><th>Callsign</th><th>Position</th><th>@L["Vle_Frequency"]</th><th>@L["Ape_Origin"]</th><th></th></tr></thead>
@@ -324,11 +323,11 @@ else
                         @if (_policy.Runways)
                         {
                             <span class="pill neutral" title="@L["Ape_RwFromSourceTitle"]"><Icon Name="key" Size="11" /> @L["Ape_FromSource"]</span>
-                            <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_RwFromSourceAria"]" ExtraClass="wide">@L["Ape_RwFromSource"]</HelpHint>
+                            <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_RwFromSourceAria"]" ExtraClass="wide">@L["Ape_RwFromSource"]</HelpHint>
                         }
                         else
                         {
-                            <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_RwEditorialAria"]" ExtraClass="wide">@L["Ape_RwEditorial"]</HelpHint>
+                            <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_RwEditorialAria"]" ExtraClass="wide">@L["Ape_RwEditorial"]</HelpHint>
                         }
                     </div>
                     @{ var rwIssues = RwIssues(); }
@@ -369,7 +368,7 @@ else
                         <h3 style="margin:0">@L["Ape_SidRenderTitle"]</h3>
                         @* 🔴/🧊 restano: sono VOCABOLARIO DI STATO (come 🕒🟢 in Versioni), non comandi. *@
                         <span class="pill @(_sidsLive ? "green" : "grey")">@(_sidsLive ? "🔴 " + L["Dse_Live"] : "🧊 " + L["Dse_Frozen"])</span>
-                        <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_SidRenderHelpAria"]" ExtraClass="wide">
+                        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SidRenderHelpAria"]" ExtraClass="wide">
                             @((MarkupString)L["Ape_SidRenderHelp"].Value)
                         </HelpHint>
                         <span class="ln" style="flex:1"></span>
@@ -386,7 +385,7 @@ else
                         @{ var nReview = _imported.Count(e => e.NeedsReview); var iview = ImportedView(); }
                         <div class="ed-h3">
                             <h3>@L["Ape_SidImportedTitle"] <span class="pill blue" title="@L["Ape_SidImportedCountTitle"]">@CountLabel(iview.Count, _imported.Count)</span></h3>
-                            <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_SidImportedHelpAria"]" ExtraClass="wide">
+                            <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SidImportedHelpAria"]" ExtraClass="wide">
                                 @((MarkupString)L["Ape_SidImportedHelp"].Value)
                                 <p>@L["Ape_SidSelectHint"]</p>
                             </HelpHint>
@@ -520,7 +519,7 @@ else
                 <div class="block" @onchange='() => MarkDirty("SID")'>
                     <div class="ed-h3">
                         <h3>@L["Ape_SidManualTitle"] <span class="pill blue">@CountLabel(ManualView().Count(), _sids.Count)</span></h3>
-                        <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_SidManualHelpAria"]" ExtraClass="wide">
+                        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SidManualHelpAria"]" ExtraClass="wide">
                             @L["Ape_SidManualHelp"]
                         </HelpHint>
                     </div>
@@ -633,7 +632,7 @@ else
                 <div class="block" @onchange='() => MarkDirty("Sezioni extra")'>
                     <div class="ed-h3">
                         <h3>@L["Ape_ExtraTitle"]</h3>
-                        <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_ExtraHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_ExtraHelp"].Value)</HelpHint>
+                        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_ExtraHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_ExtraHelp"].Value)</HelpHint>
                     </div>
                     @foreach (var (s, idx) in _extras.Select((s, i) => (s, i)))
                     {
@@ -662,7 +661,7 @@ else
                 <div class="block" @onchange='() => MarkDirty("Settori")'>
                     <div class="section-title" style="margin-top:0">
                         <h3 style="margin:0">@L["Ape_AtcSectors"] <span class="pill blue">@_sectors.Count</span></h3>
-                        <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_SectorsNoteAria"]" ExtraClass="wide">@L["Ape_SectorsNote"]</HelpHint><span class="ln"></span>
+                        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SectorsNoteAria"]" ExtraClass="wide">@L["Ape_SectorsNote"]</HelpHint><span class="ln"></span>
                         @if (LastImport() is DateTime lastImp)
                         {
                             @* La "Z": il timbro è UTC. Senza, chi importa alle 17 locali legge 15:11 e crede
@@ -755,7 +754,7 @@ else
                        il pannello non li ripete. *@
                     <div class="ed-h3">
                         <h3>@L["Rel_SectionTitle"]</h3>
-                        <HelpHint Href="/vsop/guida#editor-aeroporto" AriaLabel="@L["Ape_VersionsHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_VersionsHelp"].Value)</HelpHint>
+                        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_VersionsHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_VersionsHelp"].Value)</HelpHint>
                     </div>
 
                     @if (!_canEdit)
@@ -786,12 +785,12 @@ else
                     <button class="btn primary" data-tour="save" disabled="@(_busy || _dirtySections.Count == 0)" @onclick="SaveAllClicked" title="@L["Ape_SaveAllTitle"]">
                         <Icon Name="check-circle" Size="14" /> @L["Ape_SaveAllN", _dirtySections.Count]
                     </button>
-                    <HelpHint Href="/vsop/guida#editor-salva" AriaLabel="@L["Ape_SaveHelpAria"]">
+                    <HelpHint Href="/services/vsop/guide#editor-salva" AriaLabel="@L["Ape_SaveHelpAria"]">
                         @((MarkupString)L["Ape_SaveHelpBody"].Value)
                     </HelpHint>
                 }
-                <a class="btn ghost" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao&as=draft" target="_blank" rel="noopener" title="@L["Ed_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
-                <HelpHint Href="/vsop/guida#editor-anteprima" AriaLabel="@L["Ape_PreviewHelpAria"]">
+                <a class="btn ghost" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao&as=draft" target="_blank" rel="noopener" title="@L["Ed_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
+                <HelpHint Href="/services/vsop/guide#editor-anteprima" AriaLabel="@L["Ape_PreviewHelpAria"]">
                     @((MarkupString)L["Ape_PreviewHelpBody"].Value)
                 </HelpHint>
                 <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="Reimport" title="@L["Ape_ReimportIvaoTitle"]"><Icon Name="refresh" Size="14" /> @L["Ape_ReimportIvao"]</button>
@@ -1702,7 +1701,7 @@ else
     }
 
     private string ReleasePreviewUrl(int releaseId) =>
-        $"/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}&as=rel:{releaseId}";
+        $"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}&as=rel:{releaseId}";
 
     // --- Settori ATC importati (catalogo): import + limiti + mostra/nascondi ---
     private Task ImportSectors() => Guarded(async () =>

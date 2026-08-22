@@ -6,7 +6,7 @@
 > 2026-07-30. Il drag-and-drop e la toolbar di sezione vivono ora dentro i singoli editor.
 
 ## Context
-Gli APP non remotizzati hanno una vIPI propria. Oggi `AppnPage.razor` (`/vsop/{acc}/apps/vipi`) è un **mockup statico hardcoded** (LIRP) e non esiste un editor dedicato: gli APPn ricadrebbero nell'editor generico per blocchi. Serve un **editor dedicato** (sul modello di `AeroportoEditorPage`) che produca esattamente la schermata 3c del mockup v2 (file eliminato il 2026-08-01, vedi HANDOFF §8), con 6 sezioni fisse (sempre presenti, riordinabili) + sezioni custom libere. Alcune sezioni sono **derivate live** (si aggiornano da sole quando cambia l'albero/i transfer), altre editoriali.
+Gli APP non remotizzati hanno una vIPI propria. Oggi `AppnPage.razor` (`/services/vsop/{acc}/apps/vipi`) è un **mockup statico hardcoded** (LIRP) e non esiste un editor dedicato: gli APPn ricadrebbero nell'editor generico per blocchi. Serve un **editor dedicato** (sul modello di `AeroportoEditorPage`) che produca esattamente la schermata 3c del mockup v2 (file eliminato il 2026-08-01, vedi HANDOFF §8), con 6 sezioni fisse (sempre presenti, riordinabili) + sezioni custom libere. Alcune sezioni sono **derivate live** (si aggiornano da sole quando cambia l'albero/i transfer), altre editoriali.
 
 Decisioni prese: **shape AoR reale** (parsing `RegionMapPolygon` IVAO ora) · **editor dedicato + sezioni derivate live** (no snapshot) · custom sezioni riusano il modello sezioni/blocchi generico · **editor in stile WYSIWYG** (sezioni rese come nel documento) · **riordino drag-and-drop + tasti** · **sezioni fisse definite via codice** (registry, facile aggiungerne di nuove obbligatorie).
 
@@ -21,7 +21,7 @@ Decisioni prese: **shape AoR reale** (parsing `RegionMapPolygon` IVAO ora) · **
 Inoltre: **sezioni custom** (riordinabili) con sottosezioni custom contenenti paragrafi o tabelle custom → riuso del modello generico `DocumentSection`/`ContentBlock` (3 livelli) già editato da `EditorPage`.
 
 ## Approccio
-Editor dedicato `/vsop/{acc}/apps/editor?app={APP_CALLSIGN}`. Parti **editoriali** salvate in un nuovo profilo APPn; parti **derivate** calcolate live da hierarchy/transfers/polygon; **custom** sul modello sezioni/blocchi generico ancorato al Document dell'APPn.
+Editor dedicato `/services/vsop/{acc}/apps/editor?app={APP_CALLSIGN}`. Parti **editoriali** salvate in un nuovo profilo APPn; parti **derivate** calcolate live da hierarchy/transfers/polygon; **custom** sul modello sezioni/blocchi generico ancorato al Document dell'APPn.
 
 **UX editor = WYSIWYG.** Ogni sezione è resa con gli **stessi componenti del viewer** (riuso `AppnPage`/`SectionNode`/`BlockRenderer`) racchiusa in un wrapper con toolbar per-sezione (modifica / ↑ / ↓ / drag-handle / elimina-se-custom). Niente doppia resa: editor e documento condividono i componenti di rendering.
 
@@ -46,14 +46,14 @@ Procedere **una fase alla volta**: a fine di ogni fase build+test verdi e fermar
 - Componenti Blazor di sezione (`Separations`, `Aor`, `Frequencies`, `Vfr`, `Minima`, `Coordination`) usati **sia** dal viewer **sia** dall'editor; nell'editor avvolti da un `SectionShell` (toolbar + drag-handle).
 
 **Fase 4 — Editor page `AppEditorPage.razor`**
-- Route `/vsop/{acc}/apps/editor?app=`, `@rendermode InteractiveServer`, breadcrumb + guardia come `AeroportoEditorPage`.
+- Route `/services/vsop/{acc}/apps/editor?app=`, `@rendermode InteractiveServer`, breadcrumb + guardia come `AeroportoEditorPage`.
 - Resa **WYSIWYG**: le sezioni (fisse nell'ordine salvato + custom) renderizzate coi componenti condivisi, ciascuna in `SectionShell` con modifica inline + riordino **drag-and-drop e tasti ↑/↓**.
 - Editoriali: Separazioni (righe), VFR (prosa+tabella). Derivate: AoR (SVG Fase 2), Frequenze (derivate + riordino per riga + add-link, UI `sector-pick`), Coordinamenti (2 sottosezioni derivate), Minime (placeholder).
 - **Custom sections**: aggiunta/modifica via modello generico (`IEditingService` section/block, Prose/Table) ancorato al Document dell'APPn; ordinate insieme alle fisse.
 
 **Fase 5 — Viewer data-driven + instradamento**
 - `AppnPage.razor` (viewer) reso dai dati reali (stesse sezioni/ordine, frequenze/coordinamenti/AoR live), non più hardcoded.
-- Instradare gli APPn al nuovo editor (come fatto per gli aeroporti): da `VersioniPage`/`EditorHubPage`, se il doc è APPn → link a `/vsop/{acc}/apps/editor?app=`; `EditorPage` generico reindirizza se gli arriva un doc APPn (riuso del pattern `IsAirport`/redirect già introdotto → aggiungere flag `IsAppn`/`IsStandaloneApp`).
+- Instradare gli APPn al nuovo editor (come fatto per gli aeroporti): da `VersioniPage`/`EditorHubPage`, se il doc è APPn → link a `/services/vsop/{acc}/apps/editor?app=`; `EditorPage` generico reindirizza se gli arriva un doc APPn (riuso del pattern `IsAirport`/redirect già introdotto → aggiungere flag `IsAppn`/`IsStandaloneApp`).
 
 ## File principali
 - NUOVO `src/Vipi.Domain/Entities/` → `AppProfile` (+ eventuale `AppFrequencyLink`).
@@ -79,13 +79,13 @@ Procedere **una fase alla volta**: a fine di ogni fase build+test verdi e fermar
 ## Verifica
 1. `dotnet test Vipi.slnx` verde a ogni fase; nuovi test: `AorPolygonProjector` (poligono campione → path) e derivazione coordinamenti per settore APP.
 2. Stop Host, `dotnet run --project src/Vipi.Host --urls http://localhost:5034`.
-3. `/vsop/{acc}/apps/editor?app=LIRP_APP`: le 6 sezioni rese **come nel documento** (preview WYSIWYG); separazioni editabili; AoR disegna il poligono; frequenze derivate nell'ordine ATIS·DEL·GND·TWR·APP con ★; cambiando l'albero (`/vsop/admin/sectorstructure`) cambiano; coordinamenti derivati dai transfer (verso ACC partenze/arrivi, verso torre arrivi); **riordino sia drag-and-drop sia tasti ↑/↓** (persistito); aggiunta sezione custom con tabella.
+3. `/services/vsop/{acc}/apps/editor?app=LIRP_APP`: le 6 sezioni rese **come nel documento** (preview WYSIWYG); separazioni editabili; AoR disegna il poligono; frequenze derivate nell'ordine ATIS·DEL·GND·TWR·APP con ★; cambiando l'albero (`/services/vsop/admin/sector-structure`) cambiano; coordinamenti derivati dai transfer (verso ACC partenze/arrivi, verso torre arrivi); **riordino sia drag-and-drop sia tasti ↑/↓** (persistito); aggiunta sezione custom con tabella.
 4. Registry: aggiungendo un descrittore in `AppSections.All`, la nuova sezione compare in tutti i profili esistenti senza migrazione (riconciliazione al load).
-5. Da `/vsop/versioni` «Apri editor» su un doc APPn → apre il nuovo editor, non il generico.
-6. Viewer `/vsop/{acc}/apps/vipi` riflette i dati reali.
+5. Da `/services/vsop/versions` «Apri editor» su un doc APPn → apre il nuovo editor, non il generico.
+6. Viewer `/services/vsop/{acc}/apps/vipi` riflette i dati reali.
 
 ## Stato implementazione — COMPLETATO (sessione 29 giu 2026)
-Tutte le **5 fasi** implementate, **151 test verdi**. Entità `AppProfile`/`AppFrequencyLink` + migrazioni `AddAppProfile`, `AddAppCustomSections`, `AddAppHiddenSections` (additive). Editor `AppEditorPage` (`/vsop/{acc}/apps/editor?app=`), viewer `AppnPage` data-driven, componenti condivisi in `Components/App/`.
+Tutte le **5 fasi** implementate, **151 test verdi**. Entità `AppProfile`/`AppFrequencyLink` + migrazioni `AddAppProfile`, `AddAppCustomSections`, `AddAppHiddenSections` (additive). Editor `AppEditorPage` (`/services/vsop/{acc}/apps/editor?app=`), viewer `AppnPage` data-driven, componenti condivisi in `Components/App/`.
 
 **Scostamenti dal piano (deliberati) e dettagli emersi:**
 - **Frequenze**: NON derivate da `DomainOf` dei `Sector` — nella proiezione Round 20 le posizioni DEL/GND/TWR hanno `ParentCallsign=null` → proiettate come **radici**, non figlie del Sector APP. Derivazione reale: aeroporti con `Airport.ParentCallsign ∈ DomainOf(appCallsign)` → tutte le posizioni dal **catalogo `AirportSector`** (ATIS·DEL·GND·TWR·APP★). In **coda** i **genitori** di copertura (`Topology.Ancestors`, es. `LIRR_NE_CTR` e CTR superiori). Riordino per riga (override) + link extra restano.

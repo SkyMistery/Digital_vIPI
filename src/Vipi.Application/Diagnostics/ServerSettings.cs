@@ -23,7 +23,7 @@ namespace Vipi.Application.Diagnostics;
 /// <c>sql_mode</c> lo cambia un aggiornamento del pacchetto, e nessuno riscriverebbe la mail. Una sonda dice
 /// com'è <b>adesso</b>, e continua a dirlo.</para>
 ///
-/// <para>Confluisce nel report di consistenza, quindi si legge da <c>/vsop/admin/diagnostica</c> e da
+/// <para>Confluisce nel report di consistenza, quindi si legge da <c>/services/vsop/admin/diagnostics</c> e da
 /// <c>/vsop/health</c> (→ Degraded). <b>Non</b> dalla sonda <c>ready</c>: quella dev'essere economica, e
 /// queste sono condizioni che non cambiano da un secondo all'altro.</para>
 /// </summary>

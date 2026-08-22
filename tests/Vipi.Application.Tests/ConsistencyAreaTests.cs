@@ -66,12 +66,12 @@ public class ConsistencyAreaTests
 
         Assert.All(findings, f => Assert.False(string.IsNullOrWhiteSpace(f.Where),
             $"«{f.Category}» non dice dove si ripara."));
-        Assert.All(findings, f => Assert.StartsWith("/vsop/", f.Where!));
+        Assert.All(findings, f => Assert.StartsWith("/services/vsop/", f.Where!));
     }
 
     /// <summary>
     /// ⚠️ E chi <b>non</b> si ripara da dentro non deve fingere di sì: «nessuno può editare» si corregge nella
-    /// configurazione, e un link a `/vsop/admin/permessi` manderebbe a una porta chiusa — proprio quella che
+    /// configurazione, e un link a `/services/vsop/admin/permissions` manderebbe a una porta chiusa — proprio quella che
     /// il rilievo dice essere chiusa. `null` è una risposta, non una dimenticanza.
     /// </summary>
     [Fact]

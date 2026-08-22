@@ -38,7 +38,7 @@ Centralizza tutto ciò che cambia passando divisione (es. IT → DE). Mappata su
 > ### Come si verifica che i pattern siano quelli giusti
 > IVAO **non** espone l'elenco degli staffisti di divisione (`/v2/divisions/{id}/members` → 404 col token
 > app), quindi la verifica è empirica: il roster si popola dai login, e la scheda **«Chi può editare»** in
-> `/vsop/admin/diagnostica` mette i pattern in vigore accanto ai codici staff **realmente osservati**. Se
+> `/services/vsop/admin/diagnostics` mette i pattern in vigore accanto ai codici staff **realmente osservati**. Se
 > nessuno degli staffisti conosciuti risulta admin scatta un rilievo grave (e `/vsop/health` va a Degraded);
 > a roster vuoto invece tace, perché su un'installazione nuova nessuno ha ancora fatto login.
 >
@@ -193,7 +193,7 @@ Su Render si cambiano i limiti dalla dashboard con le variabili `Media__MaxUploa
 **Ciclo di vita di un'immagine.** Togliere il blocco che la mostrava la cancella **subito**, ma solo se non la
 cita piu' nessuno: un altro blocco, un'altra versione, una sezione extra o una **release pubblicata** la tengono
 in vita (una vIPI dell'AIRAC scorso deve continuare a mostrarla). Lo stesso controllo governa la pulizia manuale
-in `/vsop/admin/diagnostica`, che serve per le foto rimaste indietro da prima o liberate dalla retention.
+in `/services/vsop/admin/diagnostics`, che serve per le foto rimaste indietro da prima o liberate dalla retention.
 
 ---
 

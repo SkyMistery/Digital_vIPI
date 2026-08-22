@@ -9,7 +9,7 @@ namespace Vipi.Infrastructure.Persistence;
 /// (<see cref="SchemaDriftAnalyzer"/>). No-op fuori da Npgsql: dove le migrazioni EF girano davvero — SQLite in
 /// sviluppo — il drift non si accumula, perché lo schema lo costruisce la cronologia delle migrazioni.
 /// <para>
-/// Solo lettura, una query. Sta nel report di consistenza (quindi <c>/vsop/admin/diagnostica</c> e
+/// Solo lettura, una query. Sta nel report di consistenza (quindi <c>/services/vsop/admin/diagnostics</c> e
 /// <c>/vsop/health</c>), non nella sonda <c>/vsop/health/ready</c> che l'orchestratore ripete di continuo.
 /// </para>
 /// </summary>

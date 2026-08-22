@@ -25,8 +25,8 @@
 >   `🚫🙈👁` toggle nascondi / `🛫🛬` pista-in-uso. Minori lasciati: `ScreensIndex` (indice dev),
 >   `⠿` drag-handle, `🔇` (una occorrenza demo ridotta).
 >
-> **Verify live (2026-07-22):** Host avviato, `/vsop`, `/vsop/lirr`, `/vsop/admin/tasks`,
-> `/vsop/versioni`, `/vsop/search` → HTTP 200, 0 errori; icone SVG rese (`data-icon`), **0 emoji**
+> **Verify live (2026-07-22):** Host avviato, `/services/vsop`, `/services/vsop/lirr`, `/services/vsop/admin/tasks`,
+> `/services/vsop/versions`, `/services/vsop/search` → HTTP 200, 0 errori; icone SVG rese (`data-icon`), **0 emoji**
 > nel markup; zoom `aria-live` presente. Baseline test `Vipi.Ui.Tests` 13 verde mantenuta.
 
 ## 1. Stato attuale (2026-07-22)
@@ -193,10 +193,10 @@ Giro «pulizia tema» completato, salvo U4 (decisione owner):
    con `L["Key", arg]` e `{0}` nel valore; **niente localizer annidato** dentro `$"..."` (rompe il
    parse C#) → calcolare i suffissi in `@code` (vedi `ChangedPage.AccSuffix()`).
    **Convertite (verify live EN 2026-07-22, entrambe le direzioni):** fronte pubblico di navigazione
-   `SopHome` (/vsop), `AccLanding` (/vsop/{acc}), `ChangedPage` (/vsop/changed), `SearchPage`
-   (/vsop/search) + viewer `AccVipiPage` (/vsop/{acc}/vipi), `AppnPage` (/vsop/{acc}/apps/vipi),
-   `AccOperativaPage` (/vsop/{acc}/operativa), `AppOperativaPage` (/vsop/{acc}/operativa-app)
-   — *dal 2026-07-31 sono `AccLivePage` (/vsop/{acc}/live) e `AppLivePage` (/vsop/{acc}/live-app),
+   `SopHome` (/services/vsop), `AccLanding` (/services/vsop/{acc}), `ChangedPage` (/services/vsop/changed), `SearchPage`
+   (/services/vsop/search) + viewer `AccVipiPage` (/services/vsop/{acc}/vipi), `AppnPage` (/services/vsop/{acc}/apps/vipi),
+   `AccOperativaPage` (/services/vsop/{acc}/operativa), `AppOperativaPage` (/services/vsop/{acc}/operativa-app)
+   — *dal 2026-07-31 sono `AccLivePage` (/services/vsop/{acc}/live) e `AppLivePage` (/services/vsop/{acc}/live-app),
    chiavi resx `Live_*`/`AppLive_*`; i nomi qui sopra restano come record storico della sessione*.
    **8 pagine, ~145 chiavi IT+EN.** Test 13/13 verdi. `RidottaPage`/`RidottaAppPage` **saltate**:
    disabilitate (nessun `@page`, rotta rimossa Round 12 — `spec/pagine-disabilitate.md`), non user-facing.

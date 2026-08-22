@@ -10,7 +10,7 @@
 
 Il 16-17 agosto lo **storage** è passato da «flusso di un settore» ad **accordo fra due parti a due versi**.
 L'editor è stato riadattato, ma ha conservato due assi del modello vecchio, e si vedono appena si apre
-`/vsop/admin/trasferimenti?acc=LIBB`:
+`/services/vsop/admin/transfers?acc=LIBB`:
 
 1. l'albero è indicizzato sul **lato B** dell'accordo, non su «l'altro capo rispetto alla ACC che sto guardando»;
 2. il verso è un **interruttore**: si vede una tabella per volta, e l'altra va cercata con un clic.
@@ -271,7 +271,7 @@ gli `if` sul verso diminuiscono, non aumentano. Il reciproco di I2(a) è **uno**
 un posto solo (`XferLabels`), accanto a quello che già rende l'etichetta.
 
 **3. Ingressi + verifica — come ci arriva l'utente e come lo verifico?**
-Rotta invariata `/vsop/admin/trasferimenti?acc=LIBB`. Nessun catch-22: «+ accordo» resta fuori dal corpo che
+Rotta invariata `/services/vsop/admin/transfers?acc=LIBB`. Nessun catch-22: «+ accordo» resta fuori dal corpo che
 scorre, e l'albero vuoto non blocca la creazione del primo. Verifica: bUnit su navigatore e orientamento
 (oggi non c'è nessun test sui componenti `Xfer*` — è la prima rete di questa famiglia), più guida live sulla
 copia del `vipi.db` reale, su **LIRR** prima che su LIBB, perché è lì che l'orientamento sbagliato si vede su

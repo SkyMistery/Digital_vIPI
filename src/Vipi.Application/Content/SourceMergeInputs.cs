@@ -10,7 +10,7 @@ namespace Vipi.Application.Content;
 ///
 /// <para><b>Perché un punto solo.</b> Lo stesso merge lo chiamano due percorsi: il reimport dell'editor
 /// aeroporto (<see cref="AirportEditingService.ReimportFromSourceAsync"/>) e la generazione del documento
-/// (<see cref="StructureEditingService"/>, «Genera documenti» e il massivo di <c>/vsop/admin/airports</c>).
+/// (<see cref="StructureEditingService"/>, «Genera documenti» e il massivo di <c>/services/vsop/admin/airports</c>).
 /// Fino al 22 agosto 2026 il primo leggeva la policy e il secondo no: con «Piste» o «Transition Altitude»
 /// escluse in Sorgenti, generare il documento sovrascriveva la TA scritta a mano, riportava lunghezza e
 /// bearing della sorgente sulle piste e faceva rientrare le piste che l'utente aveva tolto (il merge

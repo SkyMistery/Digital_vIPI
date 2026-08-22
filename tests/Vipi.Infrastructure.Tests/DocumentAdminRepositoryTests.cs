@@ -178,7 +178,7 @@ public class DocumentAdminRepositoryTests : IAsyncLifetime
 
     /// <summary>
     /// Il lock di editing esce dalla query dell'elenco (il <c>Document</c> è caricato intero): serve a
-    /// /vsop/versioni per dire chi sta lavorando a cosa, e al servizio per rifiutare hide/delete.
+    /// /services/vsop/versions per dire chi sta lavorando a cosa, e al servizio per rifiutare hide/delete.
     /// ⚠️ Un lock SCADUTO non è un lock: si normalizza qui, non nei chiamanti.
     /// </summary>
     [Fact]

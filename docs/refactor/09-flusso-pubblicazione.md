@@ -54,7 +54,7 @@ Airport=`icao`; AccVipi=`{acc}|{root}`.
 | `Vipi.Domain/Services/AiracService.cs` | `AiracService` | Matematica AIRAC. |
 | `Vipi.Application/Content/ReleaseService.cs:66` | `ReleaseService` | Core generico (publish/cancel/diff/preview/list/summaries). |
 | `Vipi.Application/Content/ReleasePayload.cs` | `DocReleasePayload`, `VloaOverlaySnapshot` | Shape snapshot unificato. |
-| `Vipi.Application/Content/ManagedDoc.cs` | `ManagedDoc`, `ManagedDocKind`, `ManagedDocRef`, `ReleaseSummary` | Astrazione lista `/vsop/versioni`. |
+| `Vipi.Application/Content/ManagedDoc.cs` | `ManagedDoc`, `ManagedDocKind`, `ManagedDocRef`, `ReleaseSummary` | Astrazione lista `/services/vsop/versions`. |
 | `Vipi.Infrastructure/.../EfReleaseRepository.cs` | `EfReleaseRepository` | Save/List/Effective/Cancel/Summaries generici + i residui 1b. |
 | `Vipi.Ui/Shared/PreviewMode.cs` | `PreviewMode`/`PreviewKind` | Parser `?as=` uniforme (già generico). |
 | `Vipi.Ui/Components/ReleasePanel.razor` | `ReleasePanel` | Timeline+publish riusabile (param `Target`+`Key`, già generico). |
@@ -104,7 +104,7 @@ Copre il routing viewer/editor. `VersioniPage` e `ReleasePreviewPage` la consult
 public interface IDocKindRoutes
 {
     ManagedDocKind Kind { get; }
-    string ViewerUrl(string acc, ManagedDoc d, int releaseId);  // → "/vsop/.../?as=rel:{id}"
+    string ViewerUrl(string acc, ManagedDoc d, int releaseId);  // → "/services/vsop/.../?as=rel:{id}"
     string EditorUrl(string acc, ManagedDoc d);                 // → editor del tipo
 }
 ```
@@ -157,7 +157,7 @@ Ordine: meccanico → registry DB-side → registry UI-side → verifica tipo fi
   registrando SOLO un descrittore, zero modifiche ai motori (§5). Baseline test = **264**.
 - **Fase 3 live ✅** (2026-07-10, CDP su DB reale ACC+APP): EditorLink ACC/APP aprono la pagina giusta;
   publish-now ACC → release 2607; `ViewerUrl(?as=rel:1)` rende lo snapshot congelato (banner AIRAC 2607);
-  redirect `/vsop/release/1`→`/vsop/libb/vipi?as=rel:1` (ReleasePreviewPage via registry); SetHidden
+  redirect `/services/vsop/release/1`→`/services/vsop/libb/vipi?as=rel:1` (ReleasePreviewPage via registry); SetHidden
   hide+unhide (Document.IsHidden, verificato in DB). Airport/vLOA non in DB ma coperti dai char test
   (DocumentAdminRepositoryTests semina tutti e 4); delete non guidato (distruttivo) ma ramo unico coperto
   dal fake-type test. Release di test rimossa a fine verifica.

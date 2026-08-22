@@ -124,8 +124,8 @@ La vIPI ACC **non** ha il difetto: là il config-table si deriva dal blocco asse
 
 **C3 ⛔ La ricerca manda gli APP sulla pagina sbagliata.** In `EfSearchRepository` il ramo non-vLOA
 distingue solo *aeroporto* da *tutto il resto* → ogni Document di APP standalone ottiene
-`urlBase = "vipi"`, cioè **`/vsop/{acc}/vipi`** (la vIPI di ACC) invece di
-`/vsop/{acc}/apps/vipi?app={callsign}`. Inoltre `SearchScope` non ha una voce APP: gli APP finiscono nel
+`urlBase = "vipi"`, cioè **`/services/vsop/{acc}/vipi`** (la vIPI di ACC) invece di
+`/services/vsop/{acc}/apps/vipi?app={callsign}`. Inoltre `SearchScope` non ha una voce APP: gli APP finiscono nel
 filtro «vIPI» insieme alle ACC.
 
 **C4 ⚠️ Le ancore dei risultati non esistono.** La ricerca costruisce `#s-{sectionId}`, che è l'ancora di
@@ -156,7 +156,7 @@ In lettura, `GetFrozenByKeyAsync` prende la **prima corrispondenza**: funziona p
 per primo nella visita), non per costruzione.
 
 **C9 🔸 Fallback di rotta rotto.** `VloaDocRoutes.EditorUrl`, senza `neighbourCode`, ripiega su
-`/vsop/{acc}/editor?doc={id}`, che è l'**editor della vIPI ACC** e ignora `?doc`.
+`/services/vsop/{acc}/editor?doc={id}`, che è l'**editor della vIPI ACC** e ignora `?doc`.
 
 ### D — Il catalogo delle sezioni non governa tutte e tre le famiglie
 
@@ -356,7 +356,7 @@ riscrivono — con il commento che ne spiega il perché.
 `IDocRoutesRegistry` (doc 09 §3b) diventa l'**unico** posto che sa come si raggiunge un documento.
 Le due copie in Infrastructure (ricerca, «Cosa è cambiato») spariscono a favore di una porta Application
 che risolve *tipo → URL pubblico + ancora*. Con essa:
-- gli APP standalone puntano a `/vsop/{acc}/apps/vipi?app={callsign}` invece che alla vIPI di ACC;
+- gli APP standalone puntano a `/services/vsop/{acc}/apps/vipi?app={callsign}` invece che alla vIPI di ACC;
 - l'ancora di sezione la fornisce il descrittore per-tipo, così i deep-link cadono dove devono anche
   sulla vIPI ACC (`p-{blockKey}-{sectionKey}`) e sulle sezioni host dell'APP (`p-{sectionKey}`);
 - `SearchScope` guadagna la voce **App**;
@@ -491,7 +491,7 @@ Un passo = un commit (o più, se il passo è grosso), build verde e suite verde 
   puppeteer-core). Al boot: **15 sezioni vLOA** riconciliate sulle chiavi del catalogo e **18 blocchi
   placeholder** rimossi dalle sezioni `minima`. Osservato sui documenti veri: ancore `#s-{id}` uniformi
   nelle tre famiglie; ciclo AIRAC **2607**, quello della release e non quello di oggi; ricerca col filtro
-  APP che porta a `/vsop/lirr/apps/vipi?app=LIBP_APP#s-56`; «Minime» con i propri pulsanti di blocco e
+  APP che porta a `/services/vsop/lirr/apps/vipi?app=LIBP_APP#s-56`; «Minime» con i propri pulsanti di blocco e
   **senza** toggle Live/Congelata, mentre AoR/Frequenze/Coordinamenti lo mantengono; pannello release con
   «Differenze» e «Annulla» anche negli editor ACC e vLOA; paesi confinanti e liste tradotti. DB di
   progetto intatto a fine giro.

@@ -1,4 +1,4 @@
-﻿@page "/vsop/admin/sorgenti"
+﻿@page "/services/vsop/admin/sources"
 @layout SopLayout
 @rendermode InteractiveServer
 @using Vipi.Application.Abstractions
@@ -29,7 +29,7 @@
                 <span>&nbsp;</span><span class="pill amber" title="@L["Sorg_DirtyTitle"]">@L["Sorg_Dirty", Cambiate.Count]</span>
             }
         </h2>
-        <HelpHint Href="/vsop/guida#admin-sorgenti" AriaLabel="@L["Sorg_HelpAria"]" ExtraClass="wide">
+        <HelpHint Href="/services/vsop/guide#admin-sorgenti" AriaLabel="@L["Sorg_HelpAria"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@L["Sorg_Subtitle"]</p>
             @((MarkupString)L["Sorg_Intro"].Value)
         </HelpHint>
@@ -334,12 +334,12 @@
     private IEnumerable<(string Testo, string Href)> Dove(ImportOverviewRow r) => r.Categoria switch
     {
         ImportCategory.TransitionAltitude or ImportCategory.Runways or ImportCategory.Sids =>
-            new[] { (L["Struct_NavAirports"].Value, "/vsop/admin/airports") },
+            new[] { (L["Struct_NavAirports"].Value, "/services/vsop/admin/airports") },
         ImportCategory.Sectors => new[]
         {
-            (L["Struct_Title"].Value, "/vsop/admin/sectorstructure"),
-            (L["Struct_NavAirports"].Value, "/vsop/admin/airports"),
+            (L["Struct_Title"].Value, "/services/vsop/admin/sector-structure"),
+            (L["Struct_NavAirports"].Value, "/services/vsop/admin/airports"),
         },
-        _ => new[] { (L["Struct_NavAcc"].Value, "/vsop/admin/acc") },
+        _ => new[] { (L["Struct_NavAcc"].Value, "/services/vsop/admin/acc") },
     };
 }

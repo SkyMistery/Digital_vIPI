@@ -210,30 +210,22 @@ app.UseAntiforgery();
 // Middleware del modulo (registrazione login staff nel roster).
 app.UseVipiModule();
 
-// Compat: i vecchi URL /sop* (pre-rebuild Round 12) redirigono al nuovo prefisso /vsop*,
-// preservando la query string (es. ?icao=LIRF). Tutti gli endpoint reali sono ora su /vsop.
-app.MapGet("/sop", (HttpContext ctx) => Results.Redirect($"/vsop{ctx.Request.QueryString}", permanent: true));
-app.MapGet("/sop/{*rest}", (HttpContext ctx, string rest) => Results.Redirect($"/vsop/{rest}{ctx.Request.QueryString}", permanent: true));
-
-// Compat: la pagina struttura è stata rinominata in /vsop/admin/sectorstructure.
-app.MapGet("/vsop/admin/struttura", (HttpContext ctx) => Results.Redirect($"/vsop/admin/sectorstructure{ctx.Request.QueryString}", permanent: true));
-
-// Compat: le due viste operative per-ACC sono diventate UNA vista per callsign (doc refactor 12).
-//   /vsop/{acc}/operativa · /vsop/{acc}/live               → /vsop/live            (o /vsop/live/{p} se c'era ?p=)
-//   /vsop/{acc}/operativa-app · /vsop/{acc}/live-app?app=X → /vsop/live/x
-// Un solo salto per ciascun URL storico: sono pagine che finiscono nei preferiti di chi controlla, e una
-// catena di redirect si paga a ogni apertura.
-static IResult LiveRedirect(HttpContext ctx, string? callsign)
+// Compat: TUTTI gli URL storici passano da qui, e ne escono con l'indirizzo di oggi — quello finale, in UN
+// salto solo. La tabella e il perché stanno in LegacyRoutes: qui resta il collegamento.
+//   /sop*  (pre-Round 12)             → /services/vsop/*
+//   /vsop* (pre-22 agosto 2026)       → /services/vsop/*, coi segmenti tradotti (guida → guide, …)
+//   /vsop/{acc}/operativa|live[-app]  → /services/vsop/live[/{callsign}]  (il callsign stava in query)
+//   /vsop/admin/struttura             → /services/vsop/admin/sector-structure
+// ⚠️ Gli endpoint macchina (health, api, media, live/atc) NON passano di qui: hanno segmenti letterali, che
+// nel routing battono queste catch-all, e LegacyRoutes.Resolve li rifiuta comunque.
+static IResult RedirectLegacy(HttpContext ctx)
 {
-    var cs = (callsign ?? "").Trim().ToLowerInvariant();
-    return Results.Redirect(cs.Length > 0 ? $"/vsop/live/{Uri.EscapeDataString(cs)}" : "/vsop/live", permanent: true);
+    var destinazione = LegacyRoutes.Resolve(ctx.Request);
+    return destinazione is null ? Results.NotFound() : Results.Redirect(destinazione, permanent: true);
 }
 
-foreach (var legacy in new[] { "operativa", "live" })
-    app.MapGet($"/vsop/{{acc}}/{legacy}", (HttpContext ctx) => LiveRedirect(ctx, ctx.Request.Query["p"]));
-
-foreach (var legacy in new[] { "operativa-app", "live-app" })
-    app.MapGet($"/vsop/{{acc}}/{legacy}", (HttpContext ctx) => LiveRedirect(ctx, ctx.Request.Query["app"]));
+foreach (var storica in new[] { "/sop", "/sop/{*rest}", "/vsop", "/vsop/{*rest}" })
+    app.MapGet(storica, RedirectLegacy);
 
 // (I file statici li serve UseStaticFiles, più in alto: su net8 non esistono né MapStaticAssets né
 //  WithStaticAssets, che sono .NET 9+.)

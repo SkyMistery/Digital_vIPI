@@ -1,5 +1,5 @@
-﻿@page "/vsop/versioni"
-@page "/vsop/{Acc}/versioni"
+﻿@page "/services/vsop/versions"
+@page "/services/vsop/{Acc}/versions"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IEditingService Editing
@@ -40,7 +40,7 @@
         @* Il ciclo corrente stava dentro la fascia di riepilogo, ed è l'unica cosa di quella fascia che non
            fosse un doppione dei chip dei filtri: sale qui, dove costa una pill. *@
         <span class="pill grey" title="@L["Ver_CycleTitle"]">AIRAC @_currentCycle</span>
-        <HelpHint Href="/vsop/guida#versioni" AriaLabel="@L["Ver_HelpAria"]" ExtraClass="wide">
+        <HelpHint Href="/services/vsop/guide#versioni" AriaLabel="@L["Ver_HelpAria"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@(string.Format(L["Ver_Subtitle"].Value, _currentCycle))</p>
             @((MarkupString)L["Ver_Intro"].Value)
         </HelpHint>
@@ -51,7 +51,7 @@
             @* L'elenco è una fotografia: i lock si prendono e si lasciano mentre la pagina sta aperta. Un tasto,
                non un poll: il dato cambia poche volte al giorno e il giro costa una query su tutti i documenti. *@
             <button type="button" class="btn ghost" disabled="@_busy" title="@L["Ver_RefreshTitle"]" @onclick="ReloadAsync">↻ @L["Ver_Refresh"]</button>
-            <a class="btn primary" href="/vsop/editor/newdoc"><Icon Name="plus" /> @L["Nd_Title"]</a>
+            <a class="btn primary" href="/services/vsop/editor/new-document"><Icon Name="plus" /> @L["Nd_Title"]</a>
         </nav>
         @* L'esito è un chip in testata, fra i comandi che l'hanno provocato e il contenuto: da fascia sopra
            l'elenco spingeva in giù proprio le righe su cui si stava lavorando (regola 5).
@@ -109,7 +109,7 @@
                             <option value="@(k?.ToString() ?? "")" selected="@(_kindFilter == k)">@lab</option>
                         }
                     </select>
-                    @* Il menu ACC compare solo se c'è più di una ACC da distinguere: con la rotta /vsop/{acc}/versioni
+                    @* Il menu ACC compare solo se c'è più di una ACC da distinguere: con la rotta /services/vsop/{acc}/versions
                        l'elenco è già ristretto, e un filtro con una scelta sola è arredamento. *@
                     @if (AccFilters.Count > 1)
                     {
@@ -333,7 +333,7 @@
         try
         {
             _docs = await DocAdmin.ListAsync();
-            // Pre-filtro per ACC dal route /vsop/{acc}/versioni.
+            // Pre-filtro per ACC dal route /services/vsop/{acc}/versioni.
             if (!string.IsNullOrWhiteSpace(Acc))
             {
                 var acc = Acc.Trim().ToUpperInvariant();
@@ -670,7 +670,7 @@
                     <b>🕓 @L["Ver_HistoryTitle"]</b>
                     @* La riga di prosa che spiegava la storia stava SEMPRE a schermo, dentro il pannello dove
                        lo spazio e' quello che e': stesso testo, stessa chiave, si legge al clic (regola 7). *@
-                    <HelpHint Href="/vsop/guida#versioni" AriaLabel="@L["Ver_HistoryTitle"]">@L["Ver_HistorySubtitle"]</HelpHint>
+                    <HelpHint Href="/services/vsop/guide#versioni" AriaLabel="@L["Ver_HistoryTitle"]">@L["Ver_HistorySubtitle"]</HelpHint>
                 </div>
                 @if (_history.TryGetValue(key, out var hist) && hist.Count > 0)
                 {
@@ -696,7 +696,7 @@
         <div class="block ver-sec">
             <div class="ver-sec-h">
                 <b><Icon Name="calendar" /> @L["Rel_AiracRelease"]</b>
-                <HelpHint Href="/vsop/guida#versioni" AriaLabel="@L["Rel_AiracRelease"]">@(string.Format(L["Ver_ReleaseSubtitle"].Value, _currentCycle))</HelpHint>
+                <HelpHint Href="/services/vsop/guide#versioni" AriaLabel="@L["Rel_AiracRelease"]">@(string.Format(L["Ver_ReleaseSubtitle"].Value, _currentCycle))</HelpHint>
             </div>
             @if (_releases.TryGetValue(key, out var rels) && rels.Count > 0)
             {
@@ -827,12 +827,12 @@
         }
     }
 
-    // Anteprima release nel viewer tipizzato (?as=rel:{id}). No hop via /vsop/release: costruiamo l'URL diretto.
+    // Anteprima release nel viewer tipizzato (?as=rel:{id}). No hop via /services/vsop/release: costruiamo l'URL diretto.
     private string PreviewLink(ManagedDoc d, int releaseId)
     {
         var acc = (d.AccCode ?? Acc ?? "lirr").ToLowerInvariant();
         return DocRoutes.For(d.Kind).ViewerUrl(acc, d.ReleaseKey, d.NeighbourCode, releaseId)
-            ?? $"/vsop/release/{releaseId}";
+            ?? $"/services/vsop/release/{releaseId}";
     }
 
     private async Task ToggleHidden(ManagedDoc d)
@@ -895,6 +895,6 @@
     {
         var acc = (d.AccCode ?? Acc ?? "lirr").ToLowerInvariant();
         return DocRoutes.For(d.Kind).EditorUrl(acc, d.ReleaseKey, d.NeighbourCode, d.DocumentId)
-            ?? "/vsop/versioni";
+            ?? "/services/vsop/versions";
     }
 }

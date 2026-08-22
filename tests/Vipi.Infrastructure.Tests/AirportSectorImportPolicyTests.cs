@@ -13,7 +13,7 @@ namespace Vipi.Infrastructure.Tests;
 ///
 /// <para>Il gate sta nel corpo condiviso (<see cref="AirportSectorImporter"/>) e non nei chiamanti: gli
 /// import dei settori partono da quattro posti (job 24h, bottone dell'editor aeroporto, massivo di
-/// <c>/vsop/admin/airports</c>, «Genera documenti»). Fino al 22 agosto 2026 la pagina Sorgenti prometteva
+/// <c>/services/vsop/admin/airports</c>, «Genera documenti»). Fino al 22 agosto 2026 la pagina Sorgenti prometteva
 /// «l'import non la tocca più» e nessuno dei quattro leggeva la policy: escludere «Settori» permetteva di
 /// aggiungerli a mano e poi il giro successivo ci ripassava sopra.</para>
 /// </summary>

@@ -1,4 +1,4 @@
-﻿@page "/vsop/admin/tasks"
+﻿@page "/services/vsop/admin/tasks"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IEditorTaskService Tasks
@@ -28,7 +28,7 @@
                 <span>&nbsp;</span><span class="pill blue" title="@L["AdminTasks_CountTitle"]">@Filtrate.Count / @_tasks.Count</span>
             }
         </h2>
-        <HelpHint Href="/vsop/guida#admin-incarichi" AriaLabel="@L["AdminTasks_HelpAria"]" ExtraClass="wide">
+        <HelpHint Href="/services/vsop/guide#admin-incarichi" AriaLabel="@L["AdminTasks_HelpAria"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@string.Format(L["AdminTasks_Subtitle"].Value, _currentCycle)</p>
             @((MarkupString)L["AdminTasks_Intro"].Value)
         </HelpHint>

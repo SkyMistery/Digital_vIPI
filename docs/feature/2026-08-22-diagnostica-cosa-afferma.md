@@ -1,6 +1,6 @@
 # Diagnostica — cosa afferma, e cosa succede quando è lei a rompersi (carta, 22 agosto 2026)
 
-> Ramo `ui-trasferimenti-densita`, pagina `/vsop/admin/diagnostica`. Prima carta del giro: **la sostanza**.
+> Ramo `ui-trasferimenti-densita`, pagina `/services/vsop/admin/diagnostics`. Prima carta del giro: **la sostanza**.
 > La forma sta nella gemella [`2026-08-22-diagnostica-densita-ui.md`](2026-08-22-diagnostica-densita-ui.md).
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md); regole: [regole-ui-pagine-admin](../design/regole-ui-pagine-admin.md).
 

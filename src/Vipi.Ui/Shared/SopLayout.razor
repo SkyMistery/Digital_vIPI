@@ -25,46 +25,46 @@
                 <nav class="tb-menu-acc" aria-label="@L["Chrome_AccNav"]">
                     @foreach (var acc in Stations.Accs)
                     {
-                        <a class="@(IsActiveAcc(acc.Code) ? "active" : null)" href="/vsop/@acc.Code.ToLowerInvariant()">@acc.Code</a>
+                        <a class="@(IsActiveAcc(acc.Code) ? "active" : null)" href="/services/vsop/@acc.Code.ToLowerInvariant()">@acc.Code</a>
                     }
                 </nav>
-                <a href="/vsop/guida"><Icon Name="help-circle" /> @L["Chrome_Guide"]</a>
-                <a href="/vsop/live"><Icon Name="radio" /> @L["Chrome_OpenLive"]</a>
+                <a href="/services/vsop/guide"><Icon Name="help-circle" /> @L["Chrome_Guide"]</a>
+                <a href="/services/vsop/live"><Icon Name="radio" /> @L["Chrome_OpenLive"]</a>
                 @if (_canEdit)
                 {
-                    <a href="/vsop/versioni"><Icon Name="pencil" /> @L["Chrome_Editor"]</a>
-                    <a href="/vsop/tasks"><Icon Name="clipboard" /> @L["Nav_Tasks"]</a>
+                    <a href="/services/vsop/versions"><Icon Name="pencil" /> @L["Chrome_Editor"]</a>
+                    <a href="/services/vsop/tasks"><Icon Name="clipboard" /> @L["Nav_Tasks"]</a>
                 }
                 @if (_isAdmin)
                 {
-                    <a href="/vsop/admin/permessi"><Icon Name="key" /> @L["Chrome_Permissions"]</a>
+                    <a href="/services/vsop/admin/permissions"><Icon Name="key" /> @L["Chrome_Permissions"]</a>
                 }
                 @if (_user is null)
                 {
-                    <a href="/vsop/auth/login?returnUrl=/vsop"><Icon Name="log-in" /> @L["Chrome_Login"]</a>
+                    <a href="/services/vsop/auth/login?returnUrl=/services/vsop"><Icon Name="log-in" /> @L["Chrome_Login"]</a>
                 }
                 else
                 {
-                    <a href="/vsop/auth/logout"><Icon Name="log-out" /> @L["Chrome_Logout"]</a>
+                    <a href="/services/vsop/auth/logout"><Icon Name="log-out" /> @L["Chrome_Logout"]</a>
                 }
             </div>
         </details>
-        <a class="brand" href="/vsop" aria-label="@L["Chrome_BrandHome"]">
+        <a class="brand" href="/services/vsop" aria-label="@L["Chrome_BrandHome"]">
             <span class="logo">vIPI</span>
             <div>vIPI <small>@L["Chrome_BrandSubtitle"]</small></div>
         </a>
         <nav class="acc-nav" aria-label="@L["Chrome_AccNav"]">
             @foreach (var acc in Stations.Accs)
             {
-                <a class="@(IsActiveAcc(acc.Code) ? "active" : null)" href="/vsop/@acc.Code.ToLowerInvariant()" aria-current="@(IsActiveAcc(acc.Code) ? "page" : null)">@acc.Code</a>
+                <a class="@(IsActiveAcc(acc.Code) ? "active" : null)" href="/services/vsop/@acc.Code.ToLowerInvariant()" aria-current="@(IsActiveAcc(acc.Code) ? "page" : null)">@acc.Code</a>
             }
         </nav>
-        <form class="top-search" action="/vsop/search" method="get" role="search">
+        <form class="top-search" action="/services/vsop/search" method="get" role="search">
             <span class="ico"><Icon Name="search" /></span>
             <input name="q" placeholder="@L["Chrome_SearchPh"]" aria-label="@L["Chrome_Search"]" />
         </form>
         <div class="right">
-            <a class="editor-btn icon-only" href="/vsop/guida" title="@L["Chrome_Guide"]" aria-label="@L["Chrome_Guide"]"><Icon Name="help-circle" /></a>
+            <a class="editor-btn icon-only" href="/services/vsop/guide" title="@L["Chrome_Guide"]" aria-label="@L["Chrome_Guide"]"><Icon Name="help-circle" /></a>
             @if (_staff is { Length: > 0 })
             {
                 <div class="staff-badge" title="@L["Chrome_StaffPosition"]"><Icon Name="award" /> <span class="sb-t">@_staff</span></div>
@@ -74,32 +74,32 @@
                 <span id="vipiZoomPct" role="status" aria-live="polite" aria-label="@L["Chrome_ZoomPage"]" onclick="vipiZoomReset()" title="@L["Chrome_ZoomReset"]">100%</span>
                 <button type="button" onclick="vipiZoom(0.1)" title="@L["Chrome_ZoomIn"]" aria-label="@L["Chrome_ZoomIn"]">+</button>
             </div>
-            @* Toggle Estesa/Ridotta rimosso: la vista Ridotta è disabilitata (rebuild /vsop, Round 12). *@
+            @* Toggle Estesa/Ridotta rimosso: la vista Ridotta è disabilitata (rebuild /services/vsop, Round 12). *@
             @* Isola interattiva: il layout è SSR statico e il badge dev'essere l'unica cosa che si aggiorna
                da sola quando ti colleghi in frequenza. Il VID glielo passa il layout, che l'HttpContext ce l'ha. *@
             <LiveBadge UserId="_user?.UserId" />
             @if (_canEdit)
             {
-                <a class="editor-btn" href="/vsop/versioni" title="@L["Chrome_OpenEditor"]" aria-label="@L["Chrome_OpenEditor"]"><Icon Name="pencil" /> <span class="eb-t">@L["Chrome_Editor"]</span></a>
+                <a class="editor-btn" href="/services/vsop/versions" title="@L["Chrome_OpenEditor"]" aria-label="@L["Chrome_OpenEditor"]"><Icon Name="pencil" /> <span class="eb-t">@L["Chrome_Editor"]</span></a>
                 @* ⚠️ Era l'unica voce della topbar scritta a mano in italiano, accanto a una tradotta:
                    in pagina inglese diceva «Incarichi». L'etichetta e' la stessa della barra admin. *@
-                <a class="editor-btn" href="/vsop/tasks" title="@L["Chrome_MyTasks"]" aria-label="@L["Chrome_MyTasks"]"><Icon Name="clipboard" /> <span class="eb-t">@L["Nav_Tasks"]</span></a>
+                <a class="editor-btn" href="/services/vsop/tasks" title="@L["Chrome_MyTasks"]" aria-label="@L["Chrome_MyTasks"]"><Icon Name="clipboard" /> <span class="eb-t">@L["Nav_Tasks"]</span></a>
             }
             @if (_isAdmin)
             {
-                <a class="editor-btn icon-only" href="/vsop/admin/permessi" title="@L["Chrome_Permissions"]" aria-label="@L["Chrome_Permissions"]"><Icon Name="key" /></a>
+                <a class="editor-btn icon-only" href="/services/vsop/admin/permissions" title="@L["Chrome_Permissions"]" aria-label="@L["Chrome_Permissions"]"><Icon Name="key" /></a>
             }
             @if (_user is { } u)
             {
                 <div class="user-chip">
                     <span class="avatar" title="@u.Name">@Initials(u.Name)</span>
                     @* Logout standalone: no-op se l'endpoint non è montato (embedded). *@
-                    <a class="editor-btn icon-only" href="/vsop/auth/logout" title="@L["Chrome_Logout"]" aria-label="@L["Chrome_Logout"]"><Icon Name="log-out" /></a>
+                    <a class="editor-btn icon-only" href="/services/vsop/auth/logout" title="@L["Chrome_Logout"]" aria-label="@L["Chrome_Logout"]"><Icon Name="log-out" /></a>
                 </div>
             }
             else
             {
-                <a class="editor-btn" href="/vsop/auth/login?returnUrl=/vsop" title="@L["Chrome_LoginTitle"]"><Icon Name="log-in" /> <span class="eb-t">@L["Chrome_Login"]</span></a>
+                <a class="editor-btn" href="/services/vsop/auth/login?returnUrl=/services/vsop" title="@L["Chrome_LoginTitle"]"><Icon Name="log-in" /> <span class="eb-t">@L["Chrome_Login"]</span></a>
             }
         </div>
     </header>
@@ -122,7 +122,7 @@
 
         var uri = Nav.ToAbsoluteUri(Nav.Uri);
         var segments = uri.AbsolutePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-        // /vsop/{acc}/{vipi?}
+        // /services/vsop/{acc}/{vipi?}
         _acc = segments.Length >= 2 && segments[0].Equals("vsop", StringComparison.OrdinalIgnoreCase)
             ? segments[1] : null;
 

@@ -114,12 +114,12 @@ pagina vera non c'e'. E «la pagina scorre?» sotto zoom si chiede con `clientHe
 | Cosa provare | Rotta | Note |
 |---|---|---|
 | Salute | `/vsop/health` | `Healthy` in una riga |
-| Viewer aeroporto | `/vsop/libb/airports?icao=LIBD` | SID (19 righe, tutti i casi di initial climb), livelli di transizione con `≤`/`–`/`≥`, frequenze, Remarks |
-| Elenco aeroporti | `/vsop/libb/airports` | esercita `AirportQuickPanel` + METAR live NOAA |
-| Editor aeroporto | `/vsop/libb/airports/editor?icao=LIBD` | `#sec-versioni`: **unico** che monta `ReleasePanel` con `ShowDiff`+`AllowCancel` **e** ha release in timeline → è qui che si prova diff/annulla |
-| Editor APP | `/vsop/libb/apps/editor?app=LIBD_CS0_APP` | `#p-release`; senza bozza il publish risponde con un callout, non un crash |
-| Versioni (admin) | `/vsop/libb/versioni` | multi-documento |
-| Cosa è cambiato | `/vsop/changed` | **non** `/vsop/{acc}/cambiato` |
+| Viewer aeroporto | `/services/vsop/libb/airports?icao=LIBD` | SID (19 righe, tutti i casi di initial climb), livelli di transizione con `≤`/`–`/`≥`, frequenze, Remarks |
+| Elenco aeroporti | `/services/vsop/libb/airports` | esercita `AirportQuickPanel` + METAR live NOAA |
+| Editor aeroporto | `/services/vsop/libb/airports/editor?icao=LIBD` | `#sec-versioni`: **unico** che monta `ReleasePanel` con `ShowDiff`+`AllowCancel` **e** ha release in timeline → è qui che si prova diff/annulla |
+| Editor APP | `/services/vsop/libb/apps/editor?app=LIBD_CS0_APP` | `#p-release`; senza bozza il publish risponde con un callout, non un crash |
+| Versioni (admin) | `/services/vsop/libb/versions` | multi-documento |
+| Cosa è cambiato | `/services/vsop/changed` | **non** `/services/vsop/{acc}/cambiato` |
 
 Selettori: `#p-release`, `#sec-versioni`, `.ver-row`, `table.cfg-table`, `.vmeta`, `.vb`, `.callout`,
 `.rail-card`, `.extra-inline`, `.doc-layout`, `[data-tour=release]`.

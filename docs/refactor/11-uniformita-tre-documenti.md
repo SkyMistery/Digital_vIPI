@@ -59,7 +59,7 @@ Stessa classe: `AppnPage` chiama `DeriveConfigTableAsync` → `GetSectionBlockJs
 
 ### P-A5 — `?as=rel:` non valida degrada a «pubblica» ma con derivate LIVE
 `_useFrozen` è inizializzato `false` e messo `true` **solo** nel ramo `default:`; i fallback dei rami
-Draft/Release non lo impostano (`AppnPage` ×2, `VloaListPage`). **Prova:** `/vsop/libb/vloa?acc=LDZO`
+Draft/Release non lo impostano (`AppnPage` ×2, `VloaListPage`). **Prova:** `/services/vsop/libb/vloa?acc=LDZO`
 → 3 tabelle/11 righe (frozen); `…&as=rel:22` (release di un'altra vLOA) → **9 tabelle/31 righe**,
 contenuto identico alla bozza, nessun banner. Il congelamento AIRAC è bypassabile dall'URL.
 
@@ -67,7 +67,7 @@ contenuto identico alla bozza, nessun banner. Il congelamento AIRAC è bypassabi
 `EfAppDerivationRepository.ResolveForDocumentAsync` matcha qualunque `Type == App`;
 `EfContentRepository.LoadAppVipiAsync` pretende `IsPrimary && ApproachKind == Standalone`.
 **Prova:** `LIBD_CS0_APP` è **Remotized**, ha `DocumentId = 16`, l'editor si apre e salva, ma
-`/vsop/libb/apps/vipi?app=LIBD_CS0_APP` risponde «APP not found» in pubblica **e** in bozza — dove
+`/services/vsop/libb/apps/vipi?app=LIBD_CS0_APP` risponde «APP not found» in pubblica **e** in bozza — dove
 punta il tasto «Anteprima bozza» dell'editor.
 Collaterale: `AppDocumentService.EnsureAsync` fa l'early-return sui documenti già migrati **prima**
 di `EnsureCanEditAccAsync`.
@@ -83,9 +83,9 @@ silenziosamente di aggiornarsi. Trovato leggendo il codice per P4; lo stesso pun
 - **B2** marcatura «nascosta» in bozza: tre comportamenti diversi (tabella §1).
 - **B3** vLOA: i blocchi editoriali della sezione padre «Coordination» non arrivano mai al viewer.
 - **B4** vLOA: nascondi per **titolo** → una rinomina perde lo stato, titoli uguali collidono.
-- **B5** editor vLOA senza `ReleasePanel`: la release AIRAC si fa solo da `/vsop/versioni`; ed è l'unico
+- **B5** editor vLOA senza `ReleasePanel`: la release AIRAC si fa solo da `/services/vsop/versions`; ed è l'unico
   editor con un «Pubblica» di versione.
-- **B6** doppia rotta viewer vLOA: `/vsop/{acc}/vloa?acc=` (documentata) e `/vsop/{acc}/apps/vipi?vloa=`
+- **B6** doppia rotta viewer vLOA: `/services/vsop/{acc}/vloa?acc=` (documentata) e `/services/vsop/{acc}/apps/vipi?vloa=`
   (non in `mappa-pagine.md`), che è quella linkata dall'editor.
 - **B7** elenco APP e pagina APP con gate diversi: elenco su `Document.Status`, pagina su release
   effettiva (prova: `LICC_APP` pubblicamente navigabile, in elenco marcato bozza).
@@ -162,8 +162,8 @@ dell'early-return.
   qui e corretta a valle della verifica live (l'albero «Zagreb Radar» compariva fuori *e* dentro «LDZO → LIBB»).
   Nel **viewer** la sequenza è opposta: è il padre a rendere entrambe le direzioni e le figlie non si rendono.
 - `ReleasePanel` (target `Vloa`, chiave = `docId`) entra in `VloaEditor`, come negli altri due editor.
-- La rotta `/vsop/{acc}/apps/vipi?vloa=` viene **rimossa**: la vLOA ha una rotta sola,
-  `/vsop/{acc}/vloa?acc=`. Link dell'editor e `PreviewBanner` puntano lì.
+- La rotta `/services/vsop/{acc}/apps/vipi?vloa=` viene **rimossa**: la vLOA ha una rotta sola,
+  `/services/vsop/{acc}/vloa?acc=`. Link dell'editor e `PreviewBanner` puntano lì.
 
 ### 3i. Sezioni che nascono collassate (richiesta owner, verifica live 2026-07-30)
 «Aree regolamentate» su una ACC sono **decine di aree, ognuna con la sua mappa** (65 su LIBB): aperta, la sezione
@@ -268,7 +268,7 @@ Le migrazioni al boot sui dati veri: 18 sezioni libere ri-chiavate (0 `"custom"`
 3. ✅ vLOA: «Purpose» nascosta appare in bozza con la pill; la pubblica resta invariata; dopo «Pubblica ora»
    dal nuovo pannello release sparisce dalla pubblica.
 4. ✅ `?as=rel:22` (release di un'altra vLOA) → 3 tabelle / 11 righe, identiche alla pubblica (prima 9/31).
-5. ✅ `/vsop/libb/apps/editor?app=LIBD_CS0_APP` (remotizzato) → «APP non trovato», nessun documento creato.
+5. ✅ `/services/vsop/libb/apps/editor?app=LIBD_CS0_APP` (remotizzato) → «APP non trovato», nessun documento creato.
 6. ✅ Editor vLOA: `#p-release` con Differenze / Pubblica ora / Programma al ciclo; nessun pulsante di blocco
    sulla sezione padre «Coordination»; la vecchia rotta `apps/vipi?vloa=` non serve più il documento.
 9. ✅ **P9** (§3i): scan di **11 contesti** — viewer ACC (2 blocchi) pubblica e bozza, viewer APP pubblica e

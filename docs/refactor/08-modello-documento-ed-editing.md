@@ -53,7 +53,7 @@
 | `Vipi.Domain/Entities/Documents.cs:4` | `Document` | Classic doc: Type, Title, Language, Status, versioni, edit lock (`:22-25`). |
 | `Vipi.Domain/Entities/Anagrafica.cs:439,378` | `AccProfile`, `AppProfile` | Profile ACC/APP (blocchi JSON). |
 | `Vipi.Application/Content/EditingService.cs:28` | `IEditingService.CreateDocumentAsync` | Entry creazione classic Document (vIPI o vLOA Home/Neighbour); impl `:103`. |
-| `Vipi.Ui/Pages/NewDocumentPage.razor:1` | route `/vsop/editor/newdoc` | Entry principale; 3 kind `AccVipi`/`AppVipi`/`Vloa` (`:165`); `CreateDocumentAsync` (`:337`). |
+| `Vipi.Ui/Pages/NewDocumentPage.razor:1` | route `/services/vsop/editor/new-document` | Entry principale; 3 kind `AccVipi`/`AppVipi`/`Vloa` (`:165`); `CreateDocumentAsync` (`:337`). |
 | `StructureEditingService.cs:193-245` | `GenerateAirportDocumentAsync` / `EnsureAirportDocumentSystemAsync` | Airport doc **generato da sorgente**, non da NewDocumentPage. |
 
 ### Editing e definizioni di sezione (punto 12)
@@ -68,8 +68,8 @@
 | `Vipi.Application/Content/AccProfileModels.cs:7,38,110-131` | `AccBlockKind`, `AccBlock`, `AccAorView`/`AccSectorAor`/`AccConfigAor` | Modello blocco ACC + custom section + view AoR; multi-classe. |
 | `Vipi.Application/Content/AppProfileModels.cs:10,68,73` | `AppSeparationRow`, `AppCustomBlock`, `AppCustomSection` | Righe editoriali + custom section (condivisi APP/ACC). |
 | `Vipi.Ui/Components/App/SectionShell.razor:17,53` | `SectionShell`, `Kind` | Chrome sezione condiviso (Editorial vs Derived), reorder/hide/delete — usato da ACC & APP. |
-| `Vipi.Ui/Pages/AppEditorPage.razor:1,80,512` | route `/vsop/{Acc}/apps/editor` | Editor APP; kind da `AppSections.Find`; "Nuova sezione" → `AppCustomSection`. |
-| `Vipi.Ui/Pages/AccEditorPage.razor:1,101,357` | route `/vsop/{Acc}/editor` | Editor ACC; `AccSections.For(b.Kind)`; render via `SectionShell`; "Nuova sezione". |
+| `Vipi.Ui/Pages/AppEditorPage.razor:1,80,512` | route `/services/vsop/{Acc}/apps/editor` | Editor APP; kind da `AppSections.Find`; "Nuova sezione" → `AppCustomSection`. |
+| `Vipi.Ui/Pages/AccEditorPage.razor:1,101,357` | route `/services/vsop/{Acc}/editor` | Editor ACC; `AccSections.For(b.Kind)`; render via `SectionShell`; "Nuova sezione". |
 | `Vipi.Ui/Components/VloaEditor.razor:199` | `AddSection` → `BlockSection.Other` | Editor vLOA; lock sezioni mandatory; AoR/Freq/Coord derivati per `SectionKind`. |
 
 > ⚠️ **Inventario storico (stato al 2026-07-10), non mappa del codice attuale.** Alcuni simboli citati qui
@@ -99,7 +99,7 @@ key `"aor"`, `BlockSection.Aor` per vLOA). Derivazione/render: `Vipi.Application
 5. **Airport doc creato in modo diverso** (da sorgente, dentro `StructureEditingService`)
    vs gli altri (da `NewDocumentPage`) → percorso di creazione non uniforme.
 6. **Link orfano** (memoria `vloa-editor-routing-todo`): `NewDocumentPage` naviga a
-   `/vsop/{acc}/editor?doc={id}` ma `AccEditorPage` edita l'`AccProfile` per codice e
+   `/services/vsop/{acc}/editor?doc={id}` ma `AccEditorPage` edita l'`AccProfile` per codice e
    ignora `?doc` → i due sistemi non sono giuntati.
 
 ## 3. Architettura target

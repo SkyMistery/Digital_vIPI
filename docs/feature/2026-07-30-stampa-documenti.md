@@ -10,7 +10,7 @@ e separazioni compatte → tabelle dei coordinamenti (fix di **tema**, vale anch
 seguono quest'ordine; l'esito in pagine A4 è cumulativo: aeroporto **3 → 2**, vIPI ACC **36 → 28/29**.
 
 ## Obiettivo
-Rendere stampabili i documenti pubblici (`/vsop`) con la sola stampa del browser — nessun endpoint di export
+Rendere stampabili i documenti pubblici (`/services/vsop`) con la sola stampa del browser — nessun endpoint di export
 server-side. La resa in PDF è quella di «Salva come PDF» del browser.
 
 ## Stato di partenza (rilevato)
@@ -35,7 +35,7 @@ Vincoli del contesto già presenti:
 - **Foglio dedicato** `src/Vipi.Ui/wwwroot/vipi-print.css` (registrato in `App.razor` con cache-busting e in
   `VersionedAssets`), non un blocco in coda al tema da 1150 righe.
 - **Nascondi il chrome, lascia il contenuto nel flusso**: nessun opt-in per pagina (`.printable` non esiste
-  più), quindi *ogni* pagina `/vsop` è stampabile e la paginazione è quella naturale del browser.
+  più), quindi *ogni* pagina `/services/vsop` è stampabile e la paginazione è quella naturale del browser.
 - Regole confinate in `.vipi-root`; globali solo `@page` e il reset dello zoom, che per natura non sono
   scopabili.
 - **A4 verticale** con tabelle a corpo 8,5pt e `overflow-wrap`: SID (9 colonne) e Piste (8) stanno nei 186 mm

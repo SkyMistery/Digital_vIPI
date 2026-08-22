@@ -35,7 +35,7 @@
 | `Vipi.Application/Abstractions/ITransferRepository.cs` | `ITransferRepository` | Porta persistenza. |
 | `Vipi.Infrastructure/Persistence/EfTransferRepository.cs` | `EfTransferRepository` | CRUD EF + ordinamento flussi/punti. |
 | `Vipi.Infrastructure/Persistence/Seed/RomaTransferSeed.cs` | `RomaTransferSeed` | Trasferimenti demo. |
-| `Vipi.Ui/Pages/AdminTrasferimentiPage.razor` | route `/vsop/admin/trasferimenti` | Editor; inietta `ITransferService`, `IStationResolver`, `INeighbourImportService`. |
+| `Vipi.Ui/Pages/AdminTrasferimentiPage.razor` | route `/services/vsop/admin/transfers` | Editor; inietta `ITransferService`, `IStationResolver`, `INeighbourImportService`. |
 | `Vipi.Ui/Components/App/TransfersLive.razor` | `TransfersLive` | Vista live risolta. |
 
 I trasferimenti compaiono come sezione **Coordinamenti** nei documenti ACC/APP/vLOA —

@@ -1,4 +1,4 @@
-@page "/vsop/{Acc}/airports"
+@page "/services/vsop/{Acc}/airports"
 @layout SopLayout
 @rendermode InteractiveServer
 @using System.Text.Json
@@ -27,7 +27,7 @@ else if (_listMode)
 {
     <PageTitle>@L["AccLanding_Airports"] @_acc.Code · vIPI IVAO Italia</PageTitle>
     <div class="wrap reading-cap">
-        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@L["AccLanding_Airports"]</b></div>
+        <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@L["AccLanding_Airports"]</b></div>
         <div class="doc-head">
             <div><h2 style="margin-bottom:2px">@L["AccLanding_Airports"] — @_acc.Name - @_acc.Code</h2></div>
         </div>
@@ -41,7 +41,7 @@ else if (_listMode)
                 @foreach (var ap in _allAirports)
                 {
                     var n = OnlineAt(ap.Icao);
-                    <a class="choice apt-card" href="/vsop/@Acc.ToLowerInvariant()/airports?icao=@ap.Icao">
+                    <a class="choice apt-card" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@ap.Icao">
                         <div class="apt-top">
                             <h4>@ap.Icao</h4>
                             <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? L["Common_OnlineN", n] : L["Common_Offline"])</span>
@@ -72,7 +72,7 @@ else if (_listMode)
 else if (_view is null)
 {
     <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@_icao</b></div>
+        <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@_icao</b></div>
         <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Airport_DocNotAvailTitle"]</p>@string.Format(L["Airport_DocNotAvailBody"], _icao)</div></div>
     </div>
 }
@@ -81,7 +81,7 @@ else
     <PageTitle>@PreviewTitlePrefix()@_view.Title · vIPI IVAO Italia</PageTitle>
 
     <div class="wrap">
-        <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/vsop/@Acc.ToLowerInvariant()/airports">@L["AccLanding_Airports"]</a> › <b>@_view.Title</b></div>
+        <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/airports">@L["AccLanding_Airports"]</a> › <b>@_view.Title</b></div>
 
         <div class="doc-layout">
             <aside class="toc">
@@ -103,7 +103,7 @@ else
                         <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
                         @if (_canEdit)
                         {
-                            <a class="btn primary" href="/vsop/@Acc.ToLowerInvariant()/airports/editor?icao=@_icao">@L["Common_Editor"]</a>
+                            <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/airports/editor?icao=@_icao">@L["Common_Editor"]</a>
                         }
                     </div>
                 </div>
@@ -111,8 +111,8 @@ else
                 @if (_mode.IsPreview)
                 {
                     <PreviewBanner Kind="_mode.Kind" Cycle="@_relCycle"
-                                   PublicHref="@($"/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}")"
-                                   DraftHref="@($"/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}&as=draft")" />
+                                   PublicHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}")"
+                                   DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}&as=draft")" />
                 }
 
                 @* ---------- METAR / TAF live + parse ----------
@@ -398,9 +398,9 @@ else
                 <div class="rail-card">
                     <h5><Icon Name="link" /> @L["Common_Links"]</h5>
                     <ul class="rail-links">
-                        <li><a href="/vsop">@L["Common_Home"]</a></li>
-                        <li><a href="/vsop/@Acc.ToLowerInvariant()">ACC @_acc.Code</a></li>
-                        <li><a href="/vsop/@Acc.ToLowerInvariant()/airports">@L["AccLanding_Airports"]</a></li>
+                        <li><a href="/services/vsop">@L["Common_Home"]</a></li>
+                        <li><a href="/services/vsop/@Acc.ToLowerInvariant()">ACC @_acc.Code</a></li>
+                        <li><a href="/services/vsop/@Acc.ToLowerInvariant()/airports">@L["AccLanding_Airports"]</a></li>
                     </ul>
                 </div>
             </aside>

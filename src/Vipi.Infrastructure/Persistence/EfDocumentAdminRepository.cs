@@ -53,7 +53,7 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
                 }
 
         // Stato release del bersaglio (doc 10 §3f): una sola query batch. Porta i cicli, non un bool —
-        // HasEffectiveRelease è calcolato da EffectiveCycle, e /vsop/versioni mostra gli stessi cicli senza
+        // HasEffectiveRelease è calcolato da EffectiveCycle, e /services/vsop/versions mostra gli stessi cicli senza
         // rifare la query per conto proprio (fino al 21 agosto 2026 la faceva due volte).
         var summaries = await _releases.SummariesAsync(
             result.Select(m => (m.ReleaseTarget, m.ReleaseKey)).Distinct().ToList(), ct);

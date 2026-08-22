@@ -343,7 +343,7 @@
 .acc-card .onl{position:absolute;top:18px;right:18px;font-size:11.5px;display:flex;align-items:center;gap:5px;color:var(--ok-ink);font-weight:600}
 .acc-card .onl .dot{width:8px;height:8px;border-radius:50%;background:var(--ivao-green)}
 .acc-card.off .onl{color:#9a9fb0}.acc-card.off .onl .dot{background:#c3c7d4}
-/* Card aeroporto (elenco /vsop/{acc}/airports): titolo ICAO + badge ATC online */
+/* Card aeroporto (elenco /services/vsop/{acc}/airports): titolo ICAO + badge ATC online */
 .apt-card{border-radius:18px;transition:transform .15s,border-color .15s,box-shadow .15s}
 .apt-card:hover{transform:translateY(-2px);border-color:var(--ivao-lightblue);box-shadow:0 10px 26px rgba(13,44,153,.10)}
 .apt-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -2222,7 +2222,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    a 1305px e la pagina scorreva di lato. Chiuso non esiste; all'apertura torna e placeHelpPop lo ribalta. */
 .help-hint:not([open]) .help-pop{display:none}
 
-/* ⚠️ La riga documento di /vsop/versioni si SFASCIAVA quando si apriva una conferma in linea. Trovato
+/* ⚠️ La riga documento di /services/vsop/versions si SFASCIAVA quando si apriva una conferma in linea. Trovato
    guardando lo screenshot, non da un numero: la pagina non sforava e non era piu' alta, ma la conferma
    («Eliminare definitivamente «...»? L'operazione e' irreversibile») entra NELLA riga flex e si prende
    ~500px, e senza un pavimento il titolo col suo `flex:1` si comprimeva finche' «vLOA — LIBB ↔ LAAA» non
@@ -2436,7 +2436,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    puntatore proprio mentre ci si sta mirando (regola 31). */
 .struct .task-layout .tk-states .btn.on{background:#e8ecff;border-color:var(--ivao-blue);color:var(--ivao-blue)}
 
-/* ---- I miei incarichi (/vsop/tasks): tabellone corto, due colonne chiuse in fondo ----
+/* ---- I miei incarichi (/services/vsop/tasks): tabellone corto, due colonne chiuse in fondo ----
    Cinque colonne da 230px a 1280 sono quattro incarichi e la pagina scorreva (854 su 800). Il tabellone e'
    misurato con vipiCapViewport (max-height): il contenuto e' corto — gli incarichi di UNA persona — quindi
    si stira solo fin dove serve, ma misurato lo e' comunque, o a 1024x768 e da zoom 1.25 si torna a scorrere. */
@@ -2730,7 +2730,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
   .wrap .acc-block-h,.wrap h2,.wrap h3{overflow-wrap:anywhere}
   /* ⚠️ E i risultati di ricerca: gli estratti riportano testo del documento, dove capitano sequenze senza
      spazi (coordinate, elenchi di fix) che con `overflow-wrap` normale NON si spezzano e allargano tutto.
-     Misurato: `/vsop/search` senza risultati stava in 375, con i risultati saltava a 569 — e nell'elenco di
+     Misurato: `/services/vsop/search` senza risultati stava in 375, con i risultati saltava a 569 — e nell'elenco di
      «chi sfora» non compariva NESSUNO, perche' una volta allargato il viewport le righe ci stanno dentro.
      Il colpevole si trova confrontando la pagina con e senza contenuto, non cercando chi sborda. */
   .wrap .res-snip,.wrap .res-where,.wrap .prose,.wrap td,.wrap .vmeta{overflow-wrap:anywhere}
@@ -2741,7 +2741,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
      peso, e una regola scritta prima perde in silenzio. */
   .toc{max-height:34vh;overflow:auto}
 
-  /* ⚠️ La riga «titolo · tasti» e' un flex che non andava a capo: su /vsop/{acc}/vipi i tre tasti sono 277px
+  /* ⚠️ La riga «titolo · tasti» e' un flex che non andava a capo: su /services/vsop/{acc}/vipi i tre tasti sono 277px
      e col titolo superavano lo schermo. Qui a cedere e' la RIGA, che va a capo. */
   .doc-head{flex-wrap:wrap}
   .doc-head>*{min-width:0}

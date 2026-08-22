@@ -9,7 +9,7 @@ un **albero a padre singolo** (`Sector.ParentSectorId`) ed è la base della logi
 > `IsProjected=false`, mai toccati dalla sync). **In produzione** i `Sector` sono una **proiezione** dei cataloghi
 > importati (`AccSector`/`AirportSector`): `Type`/`Kind`/frequenza/`AirportId` e il **`ParentSectorId`** sono
 > derivati automaticamente da `SyncFromCatalogsAsync`, e il padre arriva dal **`ParentCallsign`** del catalogo
-> (gerarchia per callsign, cross-ACC, editabile in `/vsop/admin/sectorstructure`). Vedi `../spec/modello-dati.md` §9.12.
+> (gerarchia per callsign, cross-ACC, editabile in `/services/vsop/admin/sector-structure`). Vedi `../spec/modello-dati.md` §9.12.
 > Non si editano più i settori a mano. La struttura logica qui sotto (contenimento → AoR top-down) resta valida.
 
 > ⚠️ Dato **strutturale di esempio** per F1b/F2 (validazione modello + logica). I valori reali (frequenze,

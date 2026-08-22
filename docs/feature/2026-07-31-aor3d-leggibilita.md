@@ -26,7 +26,7 @@ sprite. Entrambe propagate nello stesso giro — parametri, call site, commenti,
 
 ### 1. Link «Apri pagina» rimosso (temporaneo)
 
-La pagina dedicata `/vsop/aor3d/{Kind}/{Key}` va rilavorata, quindi il suo unico ingresso UI sparisce. Non è bastato
+La pagina dedicata `/services/vsop/aor3d/{Kind}/{Key}` va rilavorata, quindi il suo unico ingresso UI sparisce. Non è bastato
 togliere l'`<a>`: sarebbero restati `AccAor3d.FullPageUrl`, `AccAor.Aor3dPageUrl`, `AccSectionBody.Aor3dPageUrl` e
 quattro call site a puntare a un link che non esiste più (domanda 4 del gate). Via tutti.
 
@@ -85,7 +85,7 @@ assenza del link alla pagina). Suite completa verde.
 
 ## Verifica live
 
-`/vsop/libb/vipi` (tab 3D) e `/vsop/aor3d/acc/LIBB`, Edge headless, screenshot letti:
+`/services/vsop/libb/vipi` (tab 3D) e `/services/vsop/aor3d/acc/LIBB`, Edge headless, screenshot letti:
 
 - chip → prismi, legenda ed etichette si spengono insieme; «Nessuno»/«Tutti» coerenti;
 - click su etichetta spegne il settore, click su riga di legenda lo riaccende;

@@ -1,4 +1,4 @@
-﻿@page "/vsop/tasks"
+﻿@page "/services/vsop/tasks"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IEditorTaskService Tasks
@@ -12,7 +12,7 @@
 <div class="wrap struct tasks-mine">
     @* ⚠️ La briciola RESTA: questa è una pagina d'utente, non ha la barra admin, e senza di lei non c'è
        nessun modo di risalire (regola 132). *@
-    <div class="breadcrumb"><a href="/vsop">@L["Common_Home"]</a> › <b>@L["Tasks_MyTasks"]</b></div>
+    <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <b>@L["Tasks_MyTasks"]</b></div>
 
     @* ---- Testata in UNA riga: titolo · conteggio · «?» · comandi ----
        Il sottotitolo era una fascia sempre a schermo, e ⚠️ diceva una cosa falsa: «trascina lo stato per
@@ -26,7 +26,7 @@
                 <span>&nbsp;</span><span class="pill blue" title="@L["Tasks_CountTitle"]">@Aperti / @_tasks.Count</span>
             }
         </h2>
-        <HelpHint Href="/vsop/guida#incarichi" AriaLabel="@L["Tasks_HelpAria"]" ExtraClass="wide">
+        <HelpHint Href="/services/vsop/guide#incarichi" AriaLabel="@L["Tasks_HelpAria"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@string.Format(L["Tasks_Subtitle"].Value, _currentCycle)</p>
             @((MarkupString)L["Tasks_Intro"].Value)
         </HelpHint>

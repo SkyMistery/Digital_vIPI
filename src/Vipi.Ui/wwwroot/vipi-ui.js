@@ -133,7 +133,7 @@
         return el;
     }
 
-    // Al caricamento con un hash (es. arrivo da un "?" HelpHint in nuova scheda su /vsop/guida#editor-release):
+    // Al caricamento con un hash (es. arrivo da un "?" HelpHint in nuova scheda su /services/vsop/guide#editor-release):
     // apre la sezione target e scorre con l'offset della top-bar. Anche su hashchange nella stessa pagina.
     var hashLandingWired = false;
     function wireHashLanding() {
@@ -500,7 +500,7 @@
     var fitMin = 320;          // sotto questa altezza il riquadro è inutilizzabile: meglio far scorrere la pagina
     var fitTargets = [];
 
-    // ⚠️ La misura vale fin dove arriva il RIQUADRO: quello che gli sta sotto non lo vede. Su /vsop/admin/audit
+    // ⚠️ La misura vale fin dove arriva il RIQUADRO: quello che gli sta sotto non lo vede. Su /services/vsop/admin/audit
     // erano i 18px di padding del `.wrap` e si sono chiusi nel foglio di stile; dove sotto c'è invece
     // CONTENUTO — le due colonne chiuse in fondo a «I miei incarichi» — il foglio non basta, perché
     // quell'altezza dipende da quante colonne chiuse ci sono. `reserveSel` è la risposta: gli elementi che
@@ -546,7 +546,7 @@
     // ⚠️ Quale delle due serve dipende da cosa c'è dentro, e la differenza si vede a occhio. `height` è giusto
     // dove il contenuto è più alto dello schermo per mestiere (il registro di audit, l'elenco aeroporti): lì
     // stirare il riquadro E far scorrere l'interno è tutto guadagno. È sbagliato dove il contenuto è corto e
-    // FISSO: su /vsop/admin/sorgenti le sei righe lasciavano mezzo riquadro di bianco perché il riquadro era
+    // FISSO: su /services/vsop/admin/sources le sei righe lasciavano mezzo riquadro di bianco perché il riquadro era
     // stato stirato a tutto lo schermo. «La pagina non scorre» non è l'obiettivo: l'obiettivo è che ciò che si
     // guarda stia a schermo, e con `max-height` lo si ottiene senza inventare vuoto.
     window.vipiCapViewport = function (selector, collapseBelow, reserveSel) {

@@ -1,4 +1,4 @@
-﻿@page "/vsop/{Acc}/apps/editor"
+﻿@page "/services/vsop/{Acc}/apps/editor"
 @layout SopLayout
 @rendermode InteractiveServer
 @implements IDisposable
@@ -22,9 +22,9 @@ else
     <PageTitle>@L["App_EditorTitle"] @_app · vIPI</PageTitle>
     <div class="wrap struct">
         <div class="breadcrumb">
-            <a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> ›
-            <a href="/vsop/@Acc.ToLowerInvariant()/apps">@L["App_NonRemotized"]</a> ›
-            <a href="/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app">@_app</a> › <b>@L["Common_Editor"]</b>
+            <a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> ›
+            <a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@L["App_NonRemotized"]</a> ›
+            <a href="/services/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app">@_app</a> › <b>@L["Common_Editor"]</b>
         </div>
 
         @if (_notFound)
@@ -49,7 +49,7 @@ else
             <div class="editor-bar">
                 <div class="doc-head st-head" style="margin:0">
                     <h2 class="st-h2">✎ @L["App_EditorTitle"] @_displayName</h2>
-                    <HelpHint Href="/vsop/guida#editor-app" AriaLabel="@L["App_HelpAria"]" ExtraClass="wide">
+                    <HelpHint Href="/services/vsop/guide#editor-app" AriaLabel="@L["App_HelpAria"]" ExtraClass="wide">
                         <p>@_app · @_acc.Name</p>
                         @((MarkupString)L["App_HelpBody"].Value)
                     </HelpHint>
@@ -92,7 +92,7 @@ else
                 <RightRail>
                     @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
                     else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
-                    <DraftPreviewLink Href="@($"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=draft")" />
+                    <DraftPreviewLink Href="@($"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=draft")" />
                     @* Il lock e' salito in testata: qui restano i COMANDI, che e' quello per cui il rail
                        esiste. Prima lo stato del lock stava scritto in tre punti (callout, rail, e nulla in
                        testata) e nessuno dei tre era accanto al titolo del documento. *@
@@ -493,6 +493,6 @@ else
 
     // ---- release AIRAC (target App) ----
     private string ReleasePreviewUrl(int releaseId) =>
-        $"/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=rel:{releaseId}";
+        $"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=rel:{releaseId}";
 
 }

@@ -15,14 +15,14 @@ public class HelpHintTests : TestContext
     public void HelpHint_renders_details_popover_with_body_and_guide_link()
     {
         var cut = RenderComponent<HelpHint>(p => p
-            .Add(x => x.Href, "/vsop/guida#editor-release")
+            .Add(x => x.Href, "/services/vsop/guide#editor-release")
             .AddChildContent("<b>Pubblicare</b> rende la bozza pubblica."));
 
         Assert.NotNull(cut.Find("details.help-hint"));
         Assert.Contains("data-icon=\"help-circle\"", cut.Markup);   // "?" = icona help-circle
         Assert.Contains("Pubblicare", cut.Markup);                   // testo breve reso
         var link = cut.Find("a.help-more");
-        Assert.Equal("/vsop/guida#editor-release", link.GetAttribute("href")); // Href propagato, non letterale
+        Assert.Equal("/services/vsop/guide#editor-release", link.GetAttribute("href")); // Href propagato, non letterale
     }
 
     [Fact]

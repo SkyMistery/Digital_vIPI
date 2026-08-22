@@ -1,7 +1,14 @@
 # Feature — Servizi ATC: l'hub `/services` e il primo strumento integrato
 
-Data: 2026-08-22 · Stato: **IN CORSO** — slice 0 (questo documento) fatta, slice 1→5 da eseguire.
+Data: 2026-08-22 · Stato: **IN CORSO** — slice 0 e **1 fatte**, slice 2→5 da eseguire.
 Ramo: `feature/services-hub-profile-swapper`, da `main`.
+
+> **Slice 1 chiusa** (rename): 177 file, 759 righe, 35 rotte, i due alias cancellati perché *collassati* sulla
+> canonica — a rename fatto erano due `@page` identiche sullo stesso componente, cioè rotte ambigue a runtime.
+> `dotnet build Vipi.slnx -c Release` verde sui due TFM, **zero avvisi**; suite verde salvo l'intermittente
+> noto del bridge Aurora, di cui questa corsa ha finalmente preso il **nome** (annotato in `lavori-aperti.md`).
+> **44 test nuovi** sulla tabella dei reindirizzamenti, fra cui la proprietà «l'arrivo non è a sua volta un
+> indirizzo storico», che è il modo generale di dire *un salto solo*.
 
 Il sito smette di essere «la documentazione operativa» e diventa **il contenitore degli strumenti per gli
 ATC di IVAO Italia**, di cui la documentazione è il primo. Il secondo è l'**Aurora Profile Swapper**, che
@@ -92,10 +99,16 @@ Più le traduzioni e le sillabazioni, nello stesso giro:
 
 ### 3. Regola: si sposta ciò che è una pagina, gli endpoint macchina restano
 
-`/vsop/health`, `/vsop/health/ready`, `/vsop/api/v1/*` e `/vsop/live/atc` **non si spostano**, e accanto a
-ognuno va scritto il perché (la tabella degli accoppiamenti esterni, sopra). Nessuno li digita: li conoscono
-un file di deploy, una dashboard, una CI e dei binari già consegnati. Un URL che nessun essere umano legge
-non guadagna nulla a essere bello, e perde tutto a cambiare.
+`/vsop/health`, `/vsop/health/ready`, `/vsop/api/v1/*`, `/vsop/live/atc` e `/vsop/media/*` **non si
+spostano**, e accanto a ognuno va scritto il perché (la tabella degli accoppiamenti esterni, sopra). Nessuno
+li digita: li conoscono un file di deploy, una dashboard, una CI e dei binari già consegnati. Un URL che
+nessun essere umano legge non guadagna nulla a essere bello, e perde tutto a cambiare.
+
+**`/vsop/media/` è entrata in questo elenco durante l'esecuzione**, dopo averla guardata: è la rotta che serve
+i byte delle immagini nei documenti. Il primo sospetto — che gli URL fossero **scritti nel database**, e che
+spostarli rompesse le immagini già pubblicate — è **rientrato**: in `BodyJson` finisce lo **sha**, e l'URL lo
+compone `MediaRef.Url` a render time da una costante sola. Nessun dato da migrare, quindi. Resta comunque
+ferma, per la ragione di sempre più una in più: l'HTML in cache dei browser cita gli URL vecchi.
 
 Conseguenza accettata: il prefisso `/vsop` sopravvive per quattro endpoint. È scritto qui perché fra sei
 mesi sembrerà una dimenticanza, e non lo è.
@@ -168,7 +181,12 @@ Il logo della topbar resta puntato a `/services/vsop` — è l'abitudine di chi 
 2. **Dispatch** — nessuno `switch` per tipo, in nessun punto. L'elenco dei servizi nell'hub è dato, non
    dispatch: se un giorno i servizi avranno comportamenti propri, allora sarà un registry, non prima.
 3. **Ingressi + verifica** — §7 per gli ingressi; §10 per la verifica.
-4. **Propagazione** — ⚠️ **questa modifica rinomina**, quindi la domanda 4 è viva e vale per tutto il giro:
+4. **Propagazione** — ⚠️ **questa modifica rinomina**, quindi la domanda 4 è viva e vale per tutto il giro.
+   **Due esclusioni volute**: `docs/history/` e `HANDOFF.md` non si riscrivono — sono **resoconti di quel che è
+   successo quel giorno**, e cambiargli gli URL sotto li farebbe dire una cosa che allora non era vera. Chi
+   riparte a freddo da lì trova il rimando alla tabella §2. Non si rinominano nemmeno i **tipi e i file**
+   (`GuidaPage.razor`, `AdminTrasferimentiPage.razor`, …): sono nomi di concetti, non di URL, e questo giro
+   cambia gli indirizzi, non il modello. Il resto va aggiornato nello stesso giro, non «dopo»:
    `docs/spec/mappa-pagine.md`, `docs/spec/pagine-disabilitate.md`, i deep-link della Guida, i `data-tour`,
    i due `.js`, i test E2E, `deploy/atc-ivao/LEGGIMI-DEPLOY.md`, `deploy/mariadb/README.md`,
    `deploy/render/README.md`, le 451 citazioni in `docs/` e **le memorie** che citano rotte italiane

@@ -1,5 +1,4 @@
-﻿@page "/vsop/admin/airports"
-@page "/vsop/admin/aeroporti"
+﻿@page "/services/vsop/admin/airports"
 @layout SopLayout
 @rendermode InteractiveServer
 @using Microsoft.Extensions.Logging
@@ -32,7 +31,7 @@
        due pannelli ad avere l'altezza misurata e a scorrere per conto loro. *@
     <div class="doc-head st-head">
         <h2 class="st-h2">@L["Apt_Title"]</h2>
-        <HelpHint Href="/vsop/guida#admin-aeroporti" AriaLabel="@L["Apt_HelpAria"]" ExtraClass="wide">
+        <HelpHint Href="/services/vsop/guide#admin-aeroporti" AriaLabel="@L["Apt_HelpAria"]" ExtraClass="wide">
             @((MarkupString)L["Apt_HelpBody"].Value)
         </HelpHint>
         @if (Authz.IsAdmin)
@@ -159,7 +158,7 @@
                                 {
                                     <tr class="@(_selAssigned.Contains(a.Id) ? "row-sel" : null)">
                                         <td class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectRow", a.Icao]" checked="@_selAssigned.Contains(a.Id)" @onchange="e => ToggleAssigned(a.Id, (bool)e.Value!)" /></td>
-                                        <td class="col-icao"><a href="/vsop/@a.AccCode.ToLowerInvariant()/airports/editor?icao=@a.Icao" title="@(string.Format(L["Apt_OpenEditorTitle"].Value, a.Icao))"><b>@a.Icao</b></a><br /><span class="muted apt-sub">@a.Name</span></td>
+                                        <td class="col-icao"><a href="/services/vsop/@a.AccCode.ToLowerInvariant()/airports/editor?icao=@a.Icao" title="@(string.Format(L["Apt_OpenEditorTitle"].Value, a.Icao))"><b>@a.Icao</b></a><br /><span class="muted apt-sub">@a.Name</span></td>
                                         <td>
                                             <select disabled="@(_busy || !_canEdit)" @onchange="e => ChangeAcc(a.Id, a.AccCode, e.Value?.ToString())">
                                                 @foreach (var f in _accs)
@@ -196,7 +195,7 @@
                                             }
                                         </td>
                                         <td class="col-act">
-                                            <a class="btn ghost" href="/vsop/@a.AccCode.ToLowerInvariant()/airports/editor?icao=@a.Icao" title="@L["Apt_EditorProfileTitle"]">✎</a>
+                                            <a class="btn ghost" href="/services/vsop/@a.AccCode.ToLowerInvariant()/airports/editor?icao=@a.Icao" title="@L["Apt_EditorProfileTitle"]">✎</a>
                                             @if (a.Sectors > 0)
                                             {
                                                 @* Icona sola come le altre due della colonna: con l'etichetta la
@@ -224,7 +223,7 @@
                 <div class="section-title">
                     <h3>@L["Apt_IvaoDirTitle"] <span class="pill blue">@(_ivao is null ? "…" : CountLabel(shownIvao.Count, ivaoTotal))</span></h3>
                     @* La nota che stava qui sotto in prosa: la dice il «?» al clic, con la stessa chiave. *@
-                    <HelpHint Href="/vsop/guida#admin-aeroporti" AriaLabel="@L["Apt_IvaoHelpAria"]" ExtraClass="wide">
+                    <HelpHint Href="/services/vsop/guide#admin-aeroporti" AriaLabel="@L["Apt_IvaoHelpAria"]" ExtraClass="wide">
                         @((MarkupString)L["Apt_IvaoIntro"].Value)
                     </HelpHint>
                     <span class="ln"></span>

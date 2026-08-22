@@ -203,7 +203,7 @@ public class ReleasePanelTests : TestContext
     {
         // «Pubblica ora» promuove la bozza a versione pubblicata, ma il pannello ricarica solo le PROPRIE release:
         // senza questo avviso l'editor ospitante continuava a mostrare «Bozza vN» a pubblicazione avvenuta
-        // (visto su /vsop/libb/editor).
+        // (visto su /services/vsop/libb/editor).
         var avvisi = 0;
         Arrange();
         var cut = Render(onPublished: () => avvisi++);
@@ -302,9 +302,9 @@ public class ReleasePanelTests : TestContext
     {
         Arrange(Rel(42));
 
-        var cut = Render(previewUrl: id => $"/vsop/lirr/apps/vipi?app=LIRP_APP&as=rel:{id}");
+        var cut = Render(previewUrl: id => $"/services/vsop/lirr/apps/vipi?app=LIRP_APP&as=rel:{id}");
 
-        Assert.Equal("/vsop/lirr/apps/vipi?app=LIRP_APP&as=rel:42", cut.Find("a.btn").GetAttribute("href"));
+        Assert.Equal("/services/vsop/lirr/apps/vipi?app=LIRP_APP&as=rel:42", cut.Find("a.btn").GetAttribute("href"));
     }
 
     [Fact]

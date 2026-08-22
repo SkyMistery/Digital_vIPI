@@ -7,8 +7,8 @@ using Xunit;
 namespace Vipi.Ui.Tests;
 
 /// <summary>
-/// Il formattatore che trasforma una riga di audit in una frase, condiviso fra <c>/vsop/admin/audit</c> e il
-/// pannello «storia» di <c>/vsop/versioni</c>.
+/// Il formattatore che trasforma una riga di audit in una frase, condiviso fra <c>/services/vsop/admin/audit</c> e il
+/// pannello «storia» di <c>/services/vsop/versions</c>.
 ///
 /// <para>Presidia due cose che una regressione renderebbe mute: che il registro sappia ancora leggere il
 /// <b>vocabolario vecchio</b> (<c>Archive</c> per la revoca di un permesso, la chiave <c>acc</c> minuscola),

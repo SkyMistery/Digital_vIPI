@@ -1,6 +1,6 @@
 # Nuovo documento — densità UI (carta, 22 agosto 2026)
 
-> Ramo `ui-trasferimenti-densita`, pagina `/vsop/editor/newdoc`. Seconda carta del giro: **la forma**.
+> Ramo `ui-trasferimenti-densita`, pagina `/services/vsop/editor/new-document`. Seconda carta del giro: **la forma**.
 > La sostanza sta nella gemella [`2026-08-22-newdoc-cosa-crea.md`](2026-08-22-newdoc-cosa-crea.md).
 > Tredicesima pagina del giro. Regole: [regole-ui-pagine-admin](../design/regole-ui-pagine-admin.md).
 
@@ -100,7 +100,7 @@ del comportamento la chiude il tasto che cambia etichetta.
 
 ## Prosa: «?» e Guida
 
-- `HelpHint Href="/vsop/guida#nuovo-documento"` in testata con: cosa fa davvero la pagina (crea la vLOA,
+- `HelpHint Href="/services/vsop/guide#nuovo-documento"` in testata con: cosa fa davvero la pagina (crea la vLOA,
   apre gli altri), e che i tre vIPI sono **uno per bersaglio**.
 - Un «?» per scheda, con la prosa che oggi sta nel blocco: cos'è una vLOA e che per le confinanti c'è
   Confinanti; che la vIPI ACC è **una per ACC**; che gli APP sono solo i **non remotizzati** e da dove viene
@@ -144,7 +144,7 @@ dei campi, non a occhio).
 
 | Stato | Come si è costruito | Cosa ha detto |
 |---|---|---|
-| coppia vLOA **già esistente** | c'era già: LIBB ↔ LGGG nel DB di sviluppo | il **service** rifiuta, e la pagina offre il link: «Esiste già una vLOA LIBB ↔ LGGG (documento #8)» + «Apri quella che c'è →» verso `/vsop/libb/vloa/editor?acc=LGGG` |
+| coppia vLOA **già esistente** | c'era già: LIBB ↔ LGGG nel DB di sviluppo | il **service** rifiuta, e la pagina offre il link: «Esiste già una vLOA LIBB ↔ LGGG (documento #8)» + «Apri quella che c'è →» verso `/services/vsop/libb/vloa/editor?acc=LGGG` |
 | utente con **grant ma non admin** | un `EditGrant` scritto nella copia + i pattern admin ristretti a `^IT-DIR$` con `Auth__AdminStaffCodes__0` | la pagina **si apre** (prima no) e la tendina ha **solo LIBB** |
 
 ⚠️ Il secondo stato ha fatto emergere una conseguenza della decisione sulla barra: per un utente con un solo

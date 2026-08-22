@@ -1,4 +1,4 @@
-﻿@page "/vsop/{Acc}/editor"
+﻿@page "/services/vsop/{Acc}/editor"
 @layout SopLayout
 @rendermode InteractiveServer
 @implements IDisposable
@@ -21,8 +21,8 @@ else
     <PageTitle>@L["Acc_EditorTitle"] @_accName</PageTitle>
     <div class="wrap struct">
         <div class="breadcrumb">
-            <a href="/vsop">@L["Common_Home"]</a> › <a href="/vsop/@Acc.ToLowerInvariant()">@_accName</a> ›
-            <a href="/vsop/@Acc.ToLowerInvariant()/vipi">vIPI</a> › <b>@L["Common_Editor"]</b>
+            <a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_accName</a> ›
+            <a href="/services/vsop/@Acc.ToLowerInvariant()/vipi">vIPI</a> › <b>@L["Common_Editor"]</b>
         </div>
 
         @if (_denied)
@@ -42,7 +42,7 @@ else
             <div class="editor-bar">
                 <div class="doc-head st-head" style="margin:0">
                     <h2 class="st-h2">✎ @L["Acc_EditorTitle"] @_accName</h2>
-                    <HelpHint Href="/vsop/guida#editor-acc" AriaLabel="@L["Acc_HelpAria"]" ExtraClass="wide">
+                    <HelpHint Href="/services/vsop/guide#editor-acc" AriaLabel="@L["Acc_HelpAria"]" ExtraClass="wide">
                         <p>@L["Acc_Subtitle"]</p>
                         @((MarkupString)L["Acc_HelpBody"].Value)
                     </HelpHint>
@@ -168,7 +168,7 @@ else
                    scrive locale — la stessa scadenza compariva a due ore diverse. *@
                 @if (_save == SaveState.Saving) { <span class="save-badge saving"><span class="spin"></span> @L["Ed_Saving"]</span> }
                 else if (_save == SaveState.Saved) { <span class="save-badge saved"><Icon Name="check-circle" Size="13" /> @L["Ed_Saved"]</span> }
-                <DraftPreviewLink Href="@($"/vsop/{Acc.ToLowerInvariant()}/vipi?as=draft")" />
+                <DraftPreviewLink Href="@($"/services/vsop/{Acc.ToLowerInvariant()}/vipi?as=draft")" />
                 @if (_editing)
                 {
                     <button class="btn ghost" @onclick="FinishEditing">✓ @L["Lock_FinishEdit"]</button>
@@ -242,7 +242,7 @@ else
         return items;
     }
 
-    private string ReleasePreviewUrl(int releaseId) => $"/vsop/{Acc.ToLowerInvariant()}/vipi?as=rel:{releaseId}";
+    private string ReleasePreviewUrl(int releaseId) => $"/services/vsop/{Acc.ToLowerInvariant()}/vipi?as=rel:{releaseId}";
 
     // Espandi/comprimi tutto: lo fa il JS sui <details> (blocchi e sezioni), non un flag Blazor — il collasso
     // è nativo e vive fuori dal circuito. Prima del primo render interattivo l'interop non è lecita.
@@ -561,7 +561,7 @@ else
                     <div class="block" style="margin-top:10px">
                         <div class="ed-h3">
                             <h4 style="margin:0">@L["Aor_ExtraShapesTitle"]</h4>
-                            <HelpHint Href="/vsop/guida#editor-aor" AriaLabel="@L["Aor_ExtraShapesAria"]" ExtraClass="wide">
+                            <HelpHint Href="/services/vsop/guide#editor-aor" AriaLabel="@L["Aor_ExtraShapesAria"]" ExtraClass="wide">
                                 @L["Aor_ExtraShapesHelp"]
                             </HelpHint>
                         </div>
@@ -571,7 +571,7 @@ else
                     <div class="block" style="margin-top:10px">
                         <div class="ed-h3">
                             <h4 style="margin:0">@L["Aor_ColorsTitle"]</h4>
-                            <HelpHint Href="/vsop/guida#editor-aor" AriaLabel="@L["Aor_ColorsAria"]" ExtraClass="wide">
+                            <HelpHint Href="/services/vsop/guide#editor-aor" AriaLabel="@L["Aor_ColorsAria"]" ExtraClass="wide">
                                 @L["Aor_ColorsHelp"]
                             </HelpHint>
                         </div>

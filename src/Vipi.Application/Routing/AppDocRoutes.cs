@@ -10,10 +10,10 @@ public sealed class AppDocRoutes : IDocKindRoutes
     public ReleaseTargetType Target => ReleaseTargetType.App;
 
     public string? ViewerUrl(string acc, string key, string? neighbourCode, int releaseId) =>
-        $"/vsop/{acc}/apps/vipi?app={key}&as=rel:{releaseId}";
+        $"/services/vsop/{acc}/apps/vipi?app={key}&as=rel:{releaseId}";
 
-    public string? PublicUrl(string acc, string key, string? neighbourCode) => $"/vsop/{acc}/apps/vipi?app={key}";
+    public string? PublicUrl(string acc, string key, string? neighbourCode) => $"/services/vsop/{acc}/apps/vipi?app={key}";
 
     public string? EditorUrl(string acc, string key, string? neighbourCode, int? documentId) =>
-        $"/vsop/{acc}/apps/editor?app={key}";
+        $"/services/vsop/{acc}/apps/editor?app={key}";
 }

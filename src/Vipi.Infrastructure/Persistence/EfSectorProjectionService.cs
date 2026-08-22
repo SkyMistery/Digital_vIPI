@@ -39,7 +39,7 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
                 AtcCallsign: s.AtcCallsign, Position: s.Position);
         }
 
-        // Padre impostato sul nodo AEROPORTO in /vsop/admin/sectorstructure (`Airport.ParentCallsign`): è il
+        // Padre impostato sul nodo AEROPORTO in /services/vsop/admin/sector-structure (`Airport.ParentCallsign`): è il
         // legame che l'admin vede e compila, e vale per TUTTE le posizioni di quell'aeroporto.
         var airportParentByIcao = await _db.Airports
             .Where(a => a.ParentCallsign != null)

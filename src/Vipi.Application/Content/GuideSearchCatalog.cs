@@ -3,7 +3,7 @@
 namespace Vipi.Application.Content;
 
 /// <summary>
-/// Catalogo statico delle sezioni della pagina Guida (<c>/vsop/guida</c>), per farle emergere nella ricerca
+/// Catalogo statico delle sezioni della pagina Guida (<c>/services/vsop/guide</c>), per farle emergere nella ricerca
 /// globale: cercare "come pubblico" / "lock" deve portare alla sezione giusta della guida, non solo ai documenti.
 /// NON è un documento (nessuna entità/tabella): è un piccolo indice in-memory che <see cref="SearchService"/>
 /// fonde con i risultati del repo. Tenere gli <c>Anchor</c> allineati agli <c>Id</c> di <c>GuidaPage.razor</c>.
@@ -83,6 +83,6 @@ public static class GuideSearchCatalog
         DocType = DocumentType.Vipi,   // campo non usato in rendering/filtri: gli hit Guida vivono solo in scope All
         Where = "Guida › " + e.Title,
         Snippet = e.Snippet,
-        Url = "/vsop/guida#" + e.Anchor,
+        Url = "/services/vsop/guide#" + e.Anchor,
     };
 }

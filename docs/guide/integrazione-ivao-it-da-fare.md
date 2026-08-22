@@ -71,7 +71,7 @@ Abbiamo **compilato**, mai **avviato**. Build verde non dice nulla su:
 - rendering dei componenti della RCL sotto **ASP.NET Core 8** (differenze di render mode, streaming
   rendering, `enhancedload`);
 - lo **stream SSE** `/vsop/live/atc` dietro la loro pipeline;
-- la collisione di rotta nota: `/vsop/live/{callsign}` contro il prefisso SSE `/vsop/live/atc` — vince
+- la collisione di rotta nota: `/services/vsop/live/{callsign}` contro il prefisso SSE `/vsop/live/atc` — vince
   il segmento letterale, ma è una proprietà del routing, e la pipeline dell'host è diversa dalla nostra.
 
 **Come chiuderlo senza aspettare loro:** montare un host net8 minimo di prova (o riusare l'albero di
@@ -84,8 +84,8 @@ Il modulo registra **`AddLocalization` + `UseRequestLocalization`** (culture `it
 con un cookie di cultura scritto in `App.razor`. Nella pipeline patchata ci sono quindi **due middleware
 di request localization**, e `UseIvaoItLocalization()` gira **dopo** `UseVipiModule()`.
 
-Chi vince decide la lingua delle pagine `/vsop`. Sintomo atteso se va storto: il modulo ignora la
-lingua scelta col loro `CultureSelector`, o viceversa il sito cambia lingua entrando in `/vsop`.
+Chi vince decide la lingua delle pagine `/services/vsop`. Sintomo atteso se va storto: il modulo ignora la
+lingua scelta col loro `CultureSelector`, o viceversa il sito cambia lingua entrando in `/services/vsop`.
 **Da provare a runtime**, ed è probabile che serva un flag per non registrare la localizzazione del
 modulo quando l'host ne ha già una.
 
@@ -105,7 +105,7 @@ non il contrario. Mai verificato visivamente. **Da guardare con gli occhi**, non
 
 ### 3.1 Punto d'ingresso nel sito
 Con `Vipi:RenderTopbar=false` il modulo non ha una propria barra: **serve una voce nel menu del sito**
-che porti a `/vsop`. Il loro menu è dati nel CMS (tabella menu items), non codice — quindi è una riga
+che porti a `/services/vsop`. Il loro menu è dati nel CMS (tabella menu items), non codice — quindi è una riga
 da inserire a DB, non nella patch. Senza, le pagine esistono ma **non sono raggiungibili**.
 
 ### 3.2 Dove vivono i dati veri

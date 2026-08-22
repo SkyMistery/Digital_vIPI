@@ -8,7 +8,7 @@ namespace Vipi.Infrastructure.Tests;
 
 /// <summary>
 /// Gerarchia delle posizioni d'aeroporto (2026-07-31). L'admin imposta il padre sul nodo AEROPORTO in
-/// `/vsop/admin/sectorstructure` (<c>Airport.ParentCallsign</c>), ma la proiezione leggeva solo
+/// `/services/vsop/admin/sector-structure` (<c>Airport.ParentCallsign</c>), ma la proiezione leggeva solo
 /// <c>AirportSector.ParentCallsign</c>, popolato per i soli APP: torri, ground e delivery restavano orfani
 /// nonostante il padre fosse configurato. Qui si fissa la regola scelta: scaletta interna
 /// <b>DEL → GND → TWR → APP</b>, e in cima si esce sul padre dell'aeroporto.
@@ -141,7 +141,7 @@ public class AirportLadderProjectionTests : IAsyncLifetime
     {
         await _proj.SyncFromCatalogsAsync();
 
-        // La gerarchia fra le APP è scritta dall'admin in /vsop/admin/sectorstructure: la torre segue quella,
+        // La gerarchia fra le APP è scritta dall'admin in /services/vsop/admin/sectorstructure: la torre segue quella,
         // non l'ordine alfabetico (che avrebbe dato LIMC_AEM_APP).
         Assert.Equal("LIMC_TW1_APP", await ParentOf("LIMC_TWR"));
         Assert.Equal("LIMC_TW1_APP", await ParentOf("LIMC_E_TWR"));

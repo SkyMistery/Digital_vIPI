@@ -342,7 +342,7 @@ irrevisionabile.
    perde, `AgreementParty` sparisce. Chi cerca «dove si salva un coordinamento» continua a trovare **un** posto.
 2. **Dispatch** — nessuno switch nuovo per tipo. `TransferFlowKind` si consulta dove già si consultava (frasi,
    etichette), e resta uno solo: la sezione lo porta invece dell'accordo.
-3. **Ingressi + verifica** — rotta invariata `/vsop/admin/trasferimenti?acc=LIBB`; si crea un accordo dai due
+3. **Ingressi + verifica** — rotta invariata `/services/vsop/admin/transfers?acc=LIBB`; si crea un accordo dai due
    enti e una sezione dal suo tipo, nessun catch-22. Verifica **guidando l'editor** su porta 5035 con la skill
    `.claude/skills/verifica-live/`, più la rete di caratterizzazione come cancello sui dati veri.
 4. **Propagazione** — è la sezione «cosa muore»: sei tipi/campi rimossi, sei documenti e una memoria da

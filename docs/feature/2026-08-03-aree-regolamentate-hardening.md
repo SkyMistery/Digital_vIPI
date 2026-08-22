@@ -33,8 +33,8 @@ soft-ref del progetto sono soft (audit 22 lug, Fase 2).
 comportamenti diversi (l'assembler ACC leggeva anche l'array legacy, l'APP no) e diventano uno,
 `RegulatedSelectionJson`.
 
-**3. Ingressi + verifica.** Ingressi già esistenti: `/vsop/admin/sorgenti` per l'interruttore,
-`/vsop/admin/diagnostica` (e health check) per il nuovo rilievo, l'editor del documento per le aree sparite.
+**3. Ingressi + verifica.** Ingressi già esistenti: `/services/vsop/admin/sources` per l'interruttore,
+`/services/vsop/admin/diagnostics` (e health check) per il nuovo rilievo, l'editor del documento per le aree sparite.
 Nessun catch-22: non si crea niente di nuovo da raggiungere. Verifica: test sui casi elencati sotto + giro reale
 sull'editor e sulla pagina sorgenti.
 
@@ -50,7 +50,7 @@ ADR-0006 (elenco categorie), `rounds.md`.
 `ImportCategory.SpecialAreas` + `ImportPolicy.ImportSpecialAreas` (default `true`, opt-out come le altre).
 
 Il gate sta in **`SpecialAreaImportUseCase.RunAsync`**, non nell'hosted service: quel use-case è il corpo condiviso
-fra job automatico e bottone «Importa da sorgente» di `/vsop/admin/accs` (decisione D2 del doc refactor 02, «manual
+fra job automatico e bottone «Importa da sorgente» di `/services/vsop/admin/accs` (decisione D2 del doc refactor 02, «manual
 = auto, stesso stato DB»). Nell'hosted service il bottone lo scavalcherebbe.
 
 Esce **prima della fetch e prima del prune** — è il punto che conta: categoria esclusa significa *congelamento*,
@@ -73,7 +73,7 @@ La migration nuova gli rimette il default corretto per il futuro.
 
 > ⚠ **Da controllare in produzione**: se la riga `ImportPolicies` esisteva prima dell'8 luglio, `ImportSids` può
 > essere rimasto a `false` — cioè l'import SID è fermo da allora. Non lo si può ribaltare da codice: `false` è
-> indistinguibile da una scelta deliberata dell'admin. Si guarda in `/vsop/admin/sorgenti`.
+> indistinguibile da una scelta deliberata dell'admin. Si guarda in `/services/vsop/admin/sources`.
 
 ### 2. Import incrementale della shape
 
@@ -119,7 +119,7 @@ nomina significa servire dato morto. La linea del progetto sui soft-ref è *rile
 
 ## Passi
 
-1. Policy: enum + colonna + migration + store + gate nel use-case + riga in `/vsop/admin/sorgenti` (+ it/en).
+1. Policy: enum + colonna + migration + store + gate nel use-case + riga in `/services/vsop/admin/sources` (+ it/en).
    Default nel modello e `BackfillLiteral` nel reconciler.
 2. Import incrementale: firma della porta, client, metodo di repository, use-case; fake dei test allineati.
 3. Dangling: `RegulatedSelectionJson` condiviso, dataset + `Analyze`, caricamento EF della versione di lavoro,
@@ -189,7 +189,7 @@ materializzano le vLOA (`Acc.IsForeign`), e l'import ciclava su tutti — LFZZ 3
 ri-scaricandole ogni 24h per servire quasi nulla.
 
 **`Acc.SpecialAreasEnabled`** (default `true`): il giro periodico tocca solo gli ACC abilitati. Per un ente spento
-c'è **«Importa aree»** nella sua riga di `/vsop/admin/accs`: scarica subito (`RunForAccAsync` ignora il flag — è
+c'è **«Importa aree»** nella sua riga di `/services/vsop/admin/accs`: scarica subito (`RunForAccAsync` ignora il flag — è
 l'atto con cui lo accendi) e, se trova qualcosa, lo abilita. Da lì in poi si aggiorna ogni 24h come gli italiani.
 
 L'abilitazione avviene **solo se la fetch ha prodotto qualcosa**: un ACC acceso con la fetch fallita entrerebbe nel
@@ -212,7 +212,7 @@ LIPP 24, LIZZ 15), 763 legami liberati, nessuna area orfana, seconda esecuzione 
 
 | Passo | Esito |
 |---|---|
-| §1 Interruttore di categoria | fatto — riga in `/vsop/admin/sorgenti`, gate nel use-case |
+| §1 Interruttore di categoria | fatto — riga in `/services/vsop/admin/sources`, gate nel use-case |
 | §2 Shape incrementale | fatto — dettaglio saltato se la shape è in archivio da meno di 30 giorni |
 | §3 Riferimenti dangling | fatto — rilievo in diagnostica + marcatura nell'editor |
 | §4 Picker scopribile | fatto — filtro per ACC, conteggio, elenco scorrevole (forma singolare compresa) |
@@ -231,7 +231,7 @@ esattamente quanto previsto qui sopra, ma su un'esecuzione vera dell'app e non s
 | # | Cosa | Esito |
 |---|---|---|
 | 1 | Categoria spenta ⇒ le aree restano | ✅ import lanciato con la spunta tolta: ACC e settori aggiornati, aree **immutate** (230 aree, 247 legami, conteggi per ACC identici). Provenienza a video «❄ Congelate: restano quelle già in archivio»; rimessa la spunta, torna «🔒 da sorgente». L'import spento dura 24s contro i minuti di quello pieno — la fetch non parte davvero |
-| 2 | Riferimento dangling | ✅ cancellata a mano l'area `1131` citata dalla vIPI Brindisi: l'editor mostra «⚠ **1131** non più disponibile» accanto alle tre sorelle sane, e `/vsop/admin/diagnostica` riporta «AVVISO · Area regolamentata dangling · vIPI Brindisi · Aree selezionate non più presenti: 1131». `/vsop/health` passa a **Degraded** |
+| 2 | Riferimento dangling | ✅ cancellata a mano l'area `1131` citata dalla vIPI Brindisi: l'editor mostra «⚠ **1131** non più disponibile» accanto alle tre sorelle sane, e `/services/vsop/admin/diagnostics` riporta «AVVISO · Area regolamentata dangling · vIPI Brindisi · Aree selezionate non più presenti: 1131». `/vsop/health` passa a **Degraded** |
 | 3 | R49 «Zita» propria di due ACC | ⚠️ **la meccanica funziona, l'esempio è invecchiato** — vedi sotto |
 | 4 | Aree estere su richiesta | ✅ «Importa aree» su **LFMM**: 158 create + 4 aggiornate → la riga passa da «non importate» a «162 aree». «Escludi aree»: «162 legami rimossi», torna «non importate», `SpecialAreasEnabled=0`, archivio di nuovo a 230 aree / 247 legami e **zero orfane** — le 4 aree condivise con ACC italiani sono rimaste, come da progetto |
 

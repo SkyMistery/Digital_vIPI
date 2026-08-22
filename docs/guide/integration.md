@@ -85,8 +85,8 @@ app.MapRazorComponents<App>()
 
 app.MapVipiModule();               // endpoint del modulo: SSE /vsop/live/atc, /vsop/health
 ```
-Il modulo vive sotto il prefisso di rotta **`/vsop`**. Per montarlo su un path diverso usare un
-**reverse proxy** che rimappi (es. `/vipi` → `/vsop`); il prefisso è fisso nelle direttive `@page`.
+Il modulo vive sotto il prefisso di rotta **`/services/vsop`**. Per montarlo su un path diverso usare un
+**reverse proxy** che rimappi (es. `/vipi` → `/services/vsop`); il prefisso è fisso nelle direttive `@page`.
 
 ### Sorgente dati esterna (decoupling)
 L'app non dipende da IVAO direttamente: i dati esterni passano per **interfacce neutre**
@@ -112,8 +112,8 @@ DB interno si registra un nuovo adapter e si cambia quel valore, senza toccare A
 ## Permessi
 - **Admin** = staff position che matcha i ruoli divisione (`^{Division.Code}-{ruolo}$`, es. `IT-DIR`).
   Se l'host usa codici diversi, elencarli come pattern in `Auth:AdminStaffCodes`.
-- **Grant per-ACC** = concessi dagli admin in `/vsop/admin/permessi` (lista dagli staffisti che si sono
-  loggati almeno una volta). Audit in `/vsop/admin/audit`.
+- **Grant per-ACC** = concessi dagli admin in `/services/vsop/admin/permissions` (lista dagli staffisti che si sono
+  loggati almeno una volta). Audit in `/services/vsop/admin/audit`.
 
 ## Configurazione divisione e segreti
 ```json
@@ -165,13 +165,13 @@ anche qui.
 
 ## Verifica rapida
 - `GET /vsop/health` → `Healthy` (DB ok; `Degraded` se la cache ATC non è fresca).
-- Login sull'host, poi `/vsop`: in alto compare l'utente; se admin, i tasti **Editor**/**Permessi**.
-- `/vsop/admin/permessi`: gli staffisti IT loggati compaiono nel dropdown.
+- Login sull'host, poi `/services/vsop`: in alto compare l'utente; se admin, i tasti **Editor**/**Permessi**.
+- `/services/vsop/admin/permissions`: gli staffisti IT loggati compaiono nel dropdown.
 
 ## Troubleshooting
 - **Dropdown staff vuoto**: gli staffisti compaiono dopo il primo login; la verifica giornaliera rimuove
   chi non è più staff IT. Credenziali IVAO necessarie per la verifica.
-- **`/vsop` non autenticato**: l'host deve applicare l'autenticazione prima delle rotte del modulo;
+- **`/services/vsop` non autenticato**: l'host deve applicare l'autenticazione prima delle rotte del modulo;
   l'autorizzazione di editing è comunque sempre verificata server-side.
 - **Doppia barra in alto**: impostare `Vipi:RenderTopbar=false`.
 - **Stili che “sbavano”**: verificare che il contenuto del modulo sia sotto `.vipi-root` (lo è di default

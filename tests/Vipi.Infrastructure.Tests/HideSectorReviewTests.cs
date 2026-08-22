@@ -9,7 +9,7 @@ using Xunit;
 namespace Vipi.Infrastructure.Tests;
 
 /// <summary>
-/// Occultamento settore in /vsop/admin/acc: contesto gerarchico per la Regola 1 (blocco radice con figli visibili)
+/// Occultamento settore in /services/vsop/admin/acc: contesto gerarchico per la Regola 1 (blocco radice con figli visibili)
 /// e reverse-lookup + flag di revisione per la Regola 3 (segnala i documenti ACC/APP/vLOA impattati).
 /// </summary>
 public class HideSectorReviewTests : IAsyncLifetime

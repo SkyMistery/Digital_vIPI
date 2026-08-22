@@ -1,7 +1,7 @@
 # Versioni — chi ci sta lavorando, e le azioni delicate (21 agosto 2026)
 
 > Ottava pagina del ramo `ui-trasferimenti-densita`, ma **questa carta non è (ancora) di densità**: l'analisi
-> del 21 agosto ha trovato in `/vsop/versioni` tre buchi di **sostanza** che vengono prima della forma —
+> del 21 agosto ha trovato in `/services/vsop/versions` tre buchi di **sostanza** che vengono prima della forma —
 > si può **eliminare un documento che un'altra persona sta editando**, «nascondi» non chiede niente,
 > «elimina» chiede **due volte**. La densità è la parte B, dopo.
 
@@ -16,7 +16,7 @@
 2. **Dispatch** — nessuno `switch(tipo)` nuovo. Il permesso per riga si risolve sull'`AccCode` del
    `ManagedDoc`, che nei quattro descrittori **è già** l'ACC usato da `AuthAccCodeAsync` (verificato in tutti
    e quattro): non si duplica la risoluzione per-tipo.
-3. **Ingressi + verifica** — la pagina si raggiunge da `/vsop` e dal breadcrumb; nessuna rotta nuova.
+3. **Ingressi + verifica** — la pagina si raggiunge da `/services/vsop` e dal breadcrumb; nessuna rotta nuova.
    Verifica: test (Application + Infrastructure) **più** guida live del flusso vero, con **due sessioni**:
    una tiene il lock su un documento dall'editor, l'altra guarda l'elenco.
 4. **Propagazione** — `HasEffectiveRelease` cambia da parametro posizionale a proprietà calcolata: i 10 punti
@@ -34,7 +34,7 @@
 | 6 | «Pubblica ora» **non chiede niente** e scavalca il ciclo AIRAC | `VersioniPage.razor:492` |
 | 7 | **Gate dei permessi divergente**: il markup mostra hide/delete solo a `IsAdmin`, il servizio autorizza per **grant ACC** → chi ha il grant può farlo, ma non vede il tasto | `VersioniPage.razor:100` |
 | 8 | **Doppia query di release**: `ListAsync` calcola già i riepiloghi, la pagina li richiede **di nuovo** in `LoadSummariesAsync` | `VersioniPage.razor:189` |
-| 9 | Nessun modo di filtrare per **ACC** (la rotta `/vsop/{acc}/versioni` esiste) né di vedere **cosa è in modifica adesso** | — |
+| 9 | Nessun modo di filtrare per **ACC** (la rotta `/services/vsop/{acc}/versions` esiste) né di vedere **cosa è in modifica adesso** | — |
 
 ## Le decisioni
 
