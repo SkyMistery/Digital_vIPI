@@ -154,7 +154,7 @@ public static class AuroraSectorfileParser
         var labels = new List<MvaLabel>();
         var shapes = new List<MvaShape>();
         string? name = null;
-        List<(double Lat, double Lon)>? points = null;
+        List<MvaPoint>? points = null;
 
         void Flush()
         {
@@ -194,14 +194,14 @@ public static class AuroraSectorfileParser
                 if (group.Equals("DUMMY", StringComparison.OrdinalIgnoreCase)) { Flush(); continue; }
                 if (!TryParseMvaCoordinate(f[2], out var lat) || !TryParseMvaCoordinate(f[3], out var lon)) continue;
 
-                if (points is null) { name = group; points = new List<(double, double)>(); }
+                if (points is null) { name = group; points = new List<MvaPoint>(); }
                 else if (!string.Equals(group, name, StringComparison.OrdinalIgnoreCase))
                 {
                     // Gruppi consecutivi senza separatore (lirs.mva, libn.mva): li distingue solo il nome.
                     Flush();
-                    name = group; points = new List<(double, double)>();
+                    name = group; points = new List<MvaPoint>();
                 }
-                points.Add((lat, lon));
+                points.Add(new MvaPoint(lat, lon));
             }
         }
         Flush();

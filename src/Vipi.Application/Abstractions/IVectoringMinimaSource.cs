@@ -19,8 +19,18 @@ public sealed record MvaLabel(string Text, double Lat, double Lon, string? Color
 /// </summary>
 /// <param name="Name">Nome del gruppo (campo 2): <c>ZONA1</c>, <c>CERCHIO-PA</c>, <c>RR US0</c>, l'ICAO… non normalizzato.</param>
 /// <param name="IsClosed">Vero se il primo e l'ultimo vertice coincidono: solo allora è un'area.</param>
-/// <param name="Points">Vertici in ordine di disegno, gradi decimali con segno.</param>
-public sealed record MvaShape(string Name, bool IsClosed, IReadOnlyList<(double Lat, double Lon)> Points);
+/// <param name="Points">Vertici in ordine di disegno.</param>
+public sealed record MvaShape(string Name, bool IsClosed, IReadOnlyList<MvaPoint> Points);
+
+/// <summary>
+/// Un vertice, in gradi decimali con segno (latitudine <c>+</c> = N e <c>-</c> = S; longitudine <c>+</c> = E e
+/// <c>-</c> = W).
+/// </summary>
+/// <remarks>⚠️ È un tipo suo e non una <c>(double, double)</c>: la carta viene <b>congelata nella release</b> e la
+/// cattura serializza con <c>System.Text.Json</c>, che di una <c>ValueTuple</c> scrive <c>{}</c> — i campi
+/// <c>Item1</c>/<c>Item2</c> sono campi, non proprietà. Il guasto sarebbe invisibile fino a un documento
+/// pubblicato con la mappa vuota.</remarks>
+public readonly record struct MvaPoint(double Lat, double Lon);
 
 /// <summary>
 /// Il contenuto di UN file <c>.mva</c>: tracciati ed etichette, indipendenti fra loro. L'associazione

@@ -1,3 +1,4 @@
+using Vipi.Application.Abstractions;
 using Vipi.Infrastructure.Sectorfile;
 using Xunit;
 
@@ -92,7 +93,7 @@ public class AuroraMvaParserTests
         Assert.Equal(2, chart.Shapes.Count);
         Assert.Equal(3, chart.Shapes[0].Points.Count);   // il DUMMY non entra fra i vertici
         Assert.Equal(2, chart.Shapes[1].Points.Count);
-        Assert.DoesNotContain(chart.Shapes.SelectMany(s => s.Points), p => p is { Lat: 0, Lon: 0 });
+        Assert.DoesNotContain(chart.Shapes.SelectMany(s => s.Points), p => p == new MvaPoint(0, 0));
     }
 
     [Fact]
@@ -170,6 +171,23 @@ public class AuroraMvaParserTests
         Assert.Equal(-10.25, plain.Labels[0].Lon, 5);
         Assert.Equal(lettered.Labels[0].Lat, plain.Labels[0].Lat, 5);
         Assert.Equal(lettered.Labels[0].Lon, plain.Labels[0].Lon, 5);
+    }
+
+    [Fact]
+    public void Chart_Survives_The_Json_Round_Trip_Used_By_The_Release_Snapshot()
+    {
+        // La carta viene CONGELATA nella release e la cattura serializza con System.Text.Json. Con una
+        // ValueTuple al posto di MvaPoint i vertici tornerebbero come "{}" — mappa vuota su un documento
+        // pubblicato, e nient'altro che lo segnali.
+        var chart = AuroraSectorfileParser.ParseMva(Interleaved);
+        var json = System.Text.Json.JsonSerializer.Serialize(chart);
+        var back = System.Text.Json.JsonSerializer.Deserialize<MvaChart>(json)!;
+
+        Assert.Equal(chart.Shapes.Count, back.Shapes.Count);
+        Assert.Equal(chart.Labels.Count, back.Labels.Count);
+        Assert.Equal(chart.Shapes[0].Points, back.Shapes[0].Points);
+        Assert.Equal(chart.Shapes[0].IsClosed, back.Shapes[0].IsClosed);
+        Assert.Equal(chart.Labels[0].Text, back.Labels[0].Text);
     }
 
     [Fact]
