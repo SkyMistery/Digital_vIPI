@@ -1,13 +1,13 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 22 agosto 2026 (sera) — **catalogo dei punti**, sul ramo
-`catalogo-punti-suggerimenti`, **non ancora in `main`**.
+**Ultimo aggiornamento:** 22 agosto 2026 (sera) — **catalogo dei punti**, **fuso in `main`**.
+**Non c'è nessun ramo con lavoro fuori.**
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
 > ## 🧭 SI RIPARTE DA QUI (22 agosto 2026, sera)
 >
-> **Il lavoro vivo è sul ramo `catalogo-punti-suggerimenti`**, allineato col remoto e **non fuso**. È l'**unico**
-> ramo con roba dentro: tutto il resto è in `main` (vedi il blocco successivo). Per riprendere da freddo si
+> **L'ultimo lavoro è in `main`**: il ramo `catalogo-punti-suggerimenti` è stato fuso e cancellato la sera del
+> 22 agosto (merge `2b4480d`). **Non resta nessun ramo con lavoro fuori.** Per riprendere da freddo si
 > legge **un** file:
 > [`docs/feature/2026-08-22-catalogo-punti-suggerimenti.md`](docs/feature/2026-08-22-catalogo-punti-suggerimenti.md).
 >

@@ -1,7 +1,7 @@
 # Catalogo dei punti — suggerire i fix e vedere i typo (22 agosto 2026)
 
-> **Stato: ✅ chiusa, verifica live eseguita** — ramo `catalogo-punti-suggerimenti`, spinto e **non fuso**
-> (`docs/lavori-aperti.md` §B7). Suite **1 677** verde su net8, `Release --no-incremental` **0 avvisi**.
+> **Stato: ✅ chiusa, verifica live eseguita, FUSA IN `main`** la sera del 22 agosto 2026 (merge `2b4480d`,
+> ramo cancellato — `docs/lavori-aperti.md` §B7). Suite **1 677** verde su net8, `Release --no-incremental` **0 avvisi**.
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 > Tocca l'editor aeroporto (`/services/vsop/{acc}/airports/editor`), gli accordi di coordinamento
 > (`/services/vsop/admin/transfers`) e le sorgenti (`/services/vsop/admin/sources`).

@@ -28,8 +28,8 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 > ⚠️ Cancellandoli è saltata fuori una cosa: **`refactor/13-tre-documenti` (B5) non aspettava nessun ok**, era
 > in `main` dal 15 agosto, portato dentro dal merge dei trasferimenti. Vedi B5.
 >
-> ⚠️ **Quella frase è durata fino alla sera del 22 agosto**: c'è di nuovo **un** ramo con lavoro fuori,
-> `catalogo-punti-suggerimenti`, pronto e non fuso — vedi **B7**.
+> ⚠️ La frase ha vacillato per mezza giornata — la sera del 22 agosto è nato `catalogo-punti-suggerimenti` —
+> ma è di nuovo vera: quel ramo è **fuso e cancellato** (vedi **B7**).
 > Carte: [servizi ATC](feature/2026-08-22-servizi-atc-e-profile-swapper.md),
 > [brand](feature/2026-08-22-brand-atmosphere.md), [topbar misurata](feature/2026-08-22-topbar-misurata.md).
 >
@@ -465,8 +465,8 @@ flusso funziona senza, in modalità client pubblico con PKCE (verificato il 5 ag
 
 ## B. Branch non fusi — decisioni, non lavoro
 
-### B7 🟢 `catalogo-punti-suggerimenti` — pronto, aspetta solo l'ok a fondersi
-**Unico ramo con roba dentro** (22 agosto 2026, sera). Cinque commit, spinto, allineato col remoto.
+### B7 ✅ FUSO — `catalogo-punti-suggerimenti`, fuso in `main` la sera del 22 agosto 2026
+Sette commit più il merge `2b4480d`, ramo cancellato (locale e origin). **Non resta nessun ramo con lavoro fuori.**
 Suite **1 677** verde su net8, `Release --no-incremental` **0 avvisi**, verifica live guidata con Edge su
 editor aeroporto (LIBD, LIRF), accordi (LIBB) e sorgenti.
 
@@ -474,11 +474,11 @@ Contenuto e decisioni: [`feature/2026-08-22-catalogo-punti-suggerimenti.md`](fea
 In breve: il catalogo di fix/VOR/NDB diventa una porta (`INavaidSource`), i campi punto suggeriscono e segnano
 i nomi inesistenti, gli alias dei fix diventano visibili e cancellabili.
 
-**Si può fondere quando si vuole, e non tocca la coda del cutover:** niente entità nuove, **niente migrazioni**
+**Non ha toccato la coda del cutover:** niente entità nuove, **niente migrazioni**
 — il catalogo vive in memoria. È la ragione per cui è stato progettato così: il deploy è fermo in attesa della
 conversione MariaDB (§A) e una tabella in più avrebbe allungato quella coda.
 
-⚠️ Modifiche fuori dal proprio perimetro, da sapere prima di fondere: la classe CSS `.cop-unknown` è stata
+⚠️ Modifiche fuori dal proprio perimetro, da sapere leggendo codice più vecchio: la classe CSS `.cop-unknown` è stata
 **rinominata** in `.nav-unknown-txt` (serve a due cose ora), e `AuroraSectorfileParser.ParseNavaids` ha
 **cambiato firma** (restituisce `NavaidCatalog`, prende anche il file NDB). Entrambe propagate nello stesso
 giro — nessun chiamante resta indietro.
