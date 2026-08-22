@@ -46,8 +46,12 @@
 /* ---------- Product top bar ---------- */
 /* ⚠️ `--tb-h` e' l'altezza della barra, e prima era il numero 62 ripetuto in tre punti che parlavano tutti
    della stessa cosa (la barra, il pannello del menu, il popup della ricerca). `--tb-search-min` e' la
-   larghezza sotto la quale il segnaposto della ricerca si tronca: la LEGGE la misura in vipi-ui.js, ma vive
-   qui perche' e' una decisione di forma e sta accanto alla regola che la usa.
+   larghezza sotto la quale il campo di ricerca non merita piu' di restare aperto: la LEGGE la misura in
+   vipi-ui.js, ma vive qui perche' e' una decisione di forma e sta accanto alla regola che la usa.
+   ⚠️ 210 e' misurato, non scelto a occhio: il segnaposto intero («Cerca CoP, FIX…» / «Search CoP, FIX…»)
+   vuole 159px di scatola — 107 di testo piu' icona, gap, imbottitura e bordi — e i 51 che restano sono lo
+   spazio per vedere cio' che si digita. Sotto quella soglia il campo mente due volte: tronca l'invito e
+   nasconde la risposta, e allora tanto vale che si chiuda in un'icona e si riapra a piena riga.
    ⚠️ L'`overflow` e' la rete di sicurezza, non il meccanismo: quando la barra ci sta — cioe' sempre, se la
    misura fa il suo mestiere — non si vede. Serve al caso che nessuno scaglione copre (zoom 1.8 su 375px, che
    in unita' di layout e' meno di quanto pesa la barra al suo minimo): li' scorre DENTRO di se' invece di
@@ -2599,7 +2603,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    prima soglia. Carta: docs/feature/2026-08-22-topbar-misurata.md.
 
    Adesso gli scaglioni sono CLASSI, e a metterle e' `vipiFitTopbar` in vipi-ui.js confrontando quanto la
-   barra pretende con quanto ha. Sono CUMULATIVE (`tb-3` implica `tb-1 tb-2`): ogni blocco resta scritto una
+   barra pretende con quanto ha. Sono CUMULATIVE (`tb-4` implica `tb-1 tb-2 tb-3`): ogni blocco resta scritto una
    volta sola.
 
    Quello che NON cambia e' la scaletta: ogni scaglione toglie cio' che serve MENO, e niente sparisce —
@@ -2651,16 +2655,21 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .topbar.tb-2 .live-badge .lb-t{display:none}
 .topbar.tb-2 .live-badge{padding:6px 9px}
 
-.topbar.tb-2 .top-search{flex:none;min-width:0;max-width:none;width:38px;padding:7px 10px;
+/* Scaglione 3: la ricerca si chiude in un'icona e si riapre a piena riga sotto la barra.
+   ⚠️ E' uno scaglione SUO, e non insieme alle etichette, perche' chiudere la ricerca costa molto piu' che
+   accorciare un nome: e' misurato, vale 212px in un colpo. Tenendoli insieme il gradino era di 500px e a
+   1440 la barra passava da sfondare a essere mezza vuota — funzionante e brutta, con un buco di 700px in
+   mezzo. La scaletta serve a cedere UN pezzo alla volta: se il gradino e' troppo alto, non e' una scaletta. */
+.topbar.tb-3 .top-search{flex:none;min-width:0;max-width:none;width:38px;padding:7px 10px;
   transition:width .15s}
-.topbar.tb-2 .top-search input{width:0;min-width:0;padding:0;opacity:0;transition:opacity .1s}
+.topbar.tb-3 .top-search input{width:0;min-width:0;padding:0;opacity:0;transition:opacity .1s}
 /* ⚠️ `fixed` e non `absolute`, ed e' obbligatorio da quando la barra ha un `overflow` di sicurezza: un
    discendente assoluto ci verrebbe TAGLIATO dentro, e il campo di ricerca aperto si vedrebbe a meta'. Da
    `fixed` la quota non puo' piu' essere `100%` (non c'e' piu' un padre a cui riferirla): e' l'altezza della
    barra, che ora ha un nome. */
-.topbar.tb-2 .top-search:focus-within{position:fixed;left:12px;right:12px;top:calc(var(--tb-h) + 6px);
+.topbar.tb-3 .top-search:focus-within{position:fixed;left:12px;right:12px;top:calc(var(--tb-h) + 6px);
   width:auto;z-index:46;padding:9px 14px;box-shadow:0 8px 24px rgba(13,44,153,.28)}
-.topbar.tb-2 .top-search:focus-within input{width:auto;flex:1;opacity:1}
+.topbar.tb-3 .top-search:focus-within input{width:auto;flex:1;opacity:1}
 
 /* ---- Pannello release: la riga sta in UNA riga ----
    Erano due — titolo sopra, meta sotto — cioe' 68px l'una: su dieci release 680px per una storia che si
@@ -2703,38 +2712,38 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .tb-menu>summary::marker{content:""}
 .tb-menu[open]>summary{background:#fff;color:var(--ivao-blue)}
 
-/* ⚠️ Viene DOPO lo scaglione 1 nel foglio, e non per caso: `.topbar.tb-1` e `.topbar.tb-3` hanno la stessa
+/* ⚠️ Viene DOPO lo scaglione 1 nel foglio, e non per caso: `.topbar.tb-1` e `.topbar.tb-4` hanno la stessa
    specificita', quindi su `gap` e `padding` — le uniche due dichiarazioni che si contendono — vince chi e'
    scritto per ultimo. Spostare questo blocco piu' in alto rimetterebbe la barra a 16px di padding sul
    telefono, in silenzio. */
-.topbar.tb-3{gap:10px;padding:0 12px}
-.topbar.tb-3 .tb-menu{display:block}
+.topbar.tb-4{gap:10px;padding:0 12px}
+.topbar.tb-4 .tb-menu{display:block}
 /* Quello che esce dalla riga vive nel menu: non sparisce, cambia posto. */
-.topbar.tb-3 .acc-nav,.topbar.tb-3 .staff-badge,.topbar.tb-3 .zoom-ctrl,.topbar.tb-3 .live-badge,
-.topbar.tb-3 .right>.editor-btn,.topbar.tb-3 .right>.user-chip{display:none}
-.topbar.tb-3 .right{margin-left:auto;gap:8px}
+.topbar.tb-4 .acc-nav,.topbar.tb-4 .staff-badge,.topbar.tb-4 .zoom-ctrl,.topbar.tb-4 .live-badge,
+.topbar.tb-4 .right>.editor-btn,.topbar.tb-4 .right>.user-chip{display:none}
+.topbar.tb-4 .right{margin-left:auto;gap:8px}
 /* Il marchio resta, ma solo il logo: il nome per esteso e' 202px su 375 di schermo. */
-.topbar.tb-3 .brand div{display:none}
+.topbar.tb-4 .brand div{display:none}
 /* La ricerca resta in riga, chiusa in un'icona: e' il gesto piu' probabile da telefono. */
-.topbar.tb-3 .top-search{flex:none;width:38px;min-width:0;max-width:none;padding:7px 10px;margin-left:0}
-.topbar.tb-3 .top-search input{width:0;min-width:0;padding:0;opacity:0}
-.topbar.tb-3 .top-search:focus-within{position:fixed;left:10px;right:10px;top:calc(var(--tb-h) + 6px);
+.topbar.tb-4 .top-search{flex:none;width:38px;min-width:0;max-width:none;padding:7px 10px;margin-left:0}
+.topbar.tb-4 .top-search input{width:0;min-width:0;padding:0;opacity:0}
+.topbar.tb-4 .top-search:focus-within{position:fixed;left:10px;right:10px;top:calc(var(--tb-h) + 6px);
   width:auto;z-index:46;padding:9px 14px;box-shadow:0 8px 24px rgba(13,44,153,.28)}
-.topbar.tb-3 .top-search:focus-within input{width:auto;flex:1;opacity:1}
+.topbar.tb-4 .top-search:focus-within input{width:auto;flex:1;opacity:1}
 
 /* Il pannello del menu: a piena larghezza sotto la barra, e scorre se non ci sta in altezza. */
-.topbar.tb-3 .tb-menu-pan{position:fixed;left:0;right:0;top:var(--tb-h);z-index:44;background:var(--ivao-blue);
+.topbar.tb-4 .tb-menu-pan{position:fixed;left:0;right:0;top:var(--tb-h);z-index:44;background:var(--ivao-blue);
   padding:10px 12px 14px;box-shadow:0 10px 26px rgba(13,44,153,.3);
   max-height:calc(100vh - var(--tb-h));overflow:auto;display:flex;flex-direction:column;gap:2px}
-.topbar.tb-3 .tb-menu-pan>a{display:flex;align-items:center;gap:10px;color:#dfe5ff;padding:11px 10px;
+.topbar.tb-4 .tb-menu-pan>a{display:flex;align-items:center;gap:10px;color:#dfe5ff;padding:11px 10px;
   border-radius:9px;font-size:15px}
-.topbar.tb-3 .tb-menu-pan>a:hover{background:rgba(255,255,255,.12);color:#fff}
+.topbar.tb-4 .tb-menu-pan>a:hover{background:rgba(255,255,255,.12);color:#fff}
 /* Gli ACC in fila dentro il menu: sono la navigazione primaria, e da telefono restano la prima cosa. */
-.topbar.tb-3 .tb-menu-acc{display:flex;flex-wrap:wrap;gap:6px;padding:2px 2px 10px;margin-bottom:6px;
+.topbar.tb-4 .tb-menu-acc{display:flex;flex-wrap:wrap;gap:6px;padding:2px 2px 10px;margin-bottom:6px;
   border-bottom:1px solid rgba(255,255,255,.18)}
-.topbar.tb-3 .tb-menu-acc a{color:#cdd6ff;padding:9px 15px;border-radius:9px;font-family:var(--font-head);
+.topbar.tb-4 .tb-menu-acc a{color:#cdd6ff;padding:9px 15px;border-radius:9px;font-family:var(--font-head);
   font-weight:600;background:rgba(255,255,255,.1)}
-.topbar.tb-3 .tb-menu-acc a.active{background:#fff;color:var(--ivao-blue);font-weight:700}
+.topbar.tb-4 .tb-menu-acc a.active{background:#fff;color:var(--ivao-blue);font-weight:700}
 
 /* ---- Telefono e tablet verticale: una tabella larga scorre DENTRO di se' ----
    ⚠️ Misurato: a 390px il `.wrap` del viewer aeroporto pretendeva 894px, e il colpevole non era l'indice

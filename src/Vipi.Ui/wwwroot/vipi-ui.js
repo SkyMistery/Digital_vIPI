@@ -571,7 +571,12 @@
     //
     // Le regole di ogni scaglione sono le stesse di prima e stanno dov'erano, in vipi-theme.css: qui si
     // decide solo QUANDO valgono. Le classi sono cumulative (tb-3 implica tb-1 e tb-2).
-    var TB_MAX = 3;      // oltre tb-3 non c'e' piu' niente da togliere: la barra e' gia' logo + ricerca + «☰»
+    // tb-1 spazi + badge staff a icona · tb-2 sottotitolo e nomi dei comandi via · tb-3 la ricerca si chiude
+    // · tb-4 forma telefono. Oltre tb-4 non c'e' piu' niente da togliere: la barra e' gia' logo + ricerca + «☰».
+    // ⚠️ Sono QUATTRO e non tre perche' il gradino contava: tenendo «la ricerca si chiude» insieme alle
+    // etichette, un solo scaglione buttava via 500px e a 1440 la barra passava da sfondare a essere mezza
+    // vuota. Se un gradino e' piu' alto di quanto serva, non e' una scaletta.
+    var TB_MAX = 4;
     // Isteresi, e serve solo nel verso che MOSTRA di piu': salire di scaglione si fa appena serve, scendere
     // solo con margine. Senza, la barra sbatte fra due assetti sul pixel di confine mentre si trascina il bordo.
     var TB_SLACK = 40;
@@ -594,7 +599,7 @@
         // contrario di `getBoundingClientRect` (vedi rootZoom). Qui e' proprio quel che serve, e non c'e'
         // niente da convertire.
         var d = bar.scrollWidth - bar.clientWidth;
-        if (lvl >= 2) return d;      // da tb-2 la ricerca e' un'icona: non ha un minimo da difendere
+        if (lvl >= 3) return d;      // da tb-3 la ricerca e' un'icona: non ha un minimo da difendere
         var search = bar.querySelector('.top-search');
         if (!search) return d;
         var min = parseFloat(getComputedStyle(bar).getPropertyValue('--tb-search-min'));
@@ -611,18 +616,30 @@
         var a = document.activeElement;
         if (a && a.closest && a.closest('.topbar .top-search')) return;
 
-        var w = document.documentElement.clientWidth;
         // ⚠️ Si riparte SEMPRE dal livello 0 e si sale. Misurare lo scaglione corrente e indovinare il
         // prossimo e' lo stesso errore di prima con un altro vestito: l'unico stato di cui si puo' dire
         // qualcosa di vero e' quello applicato. Costa tre riflow, una volta per ridimensionamento.
         var lvl = 0;
+        tbApply(bar, 0);
+        // ⚠️ Lo spazio disponibile e' `bar.clientWidth`, NON `documentElement.clientWidth`, e sbagliarlo e'
+        // costato un difetto che la griglia ha preso: sotto zoom i due numeri divergono — a 1920 con zoom 1.4
+        // la barra ha 1371 unita' di layout mentre `documentElement` continua a dire 1920 — e l'isteresi,
+        // confrontando l'uno con l'altro, diventava un CRICCHETTO: saliva di scaglione allo zoom e non
+        // scendeva piu', tanto che a 1440 la barra era gia' in forma telefono. La misura del fit e quella
+        // dell'isteresi devono stare nella stessa unita', che e' quella della barra.
+        var w = bar.clientWidth;
         for (; lvl < TB_MAX; lvl++) {
-            tbApply(bar, lvl);
+            if (lvl > 0) tbApply(bar, lvl);
             if (tbDeficit(bar, lvl) <= 0) break;
         }
         if (lvl >= TB_MAX) { lvl = TB_MAX; tbApply(bar, lvl); }
 
-        if (lvl < tbLevel && w < tbSettledAt + TB_SLACK) {
+        // ⚠️ L'isteresi frena SOLO la barra che si allarga di poco, e il «di poco» va misurato dall'ultimo
+        // assestamento. Frenare sempre e' un difetto che la verifica ha preso: allungando la stringa staff a
+        // larghezza ferma la barra saliva a tb-1 e, rimessa la stringa corta, NON tornava a tb-0 — perche' la
+        // larghezza non era cambiata e il margine non poteva maturare. Un calo dovuto al CONTENUTO non ha
+        // niente da frenare: non c'e' nessun bordo che si sta trascinando.
+        if (lvl < tbLevel && w > tbSettledAt && w - tbSettledAt < TB_SLACK) {
             lvl = tbLevel;               // troppo poco margine per rimostrare: si resta dov'eravamo
             tbApply(bar, lvl);
         } else {
