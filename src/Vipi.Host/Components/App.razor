@@ -27,6 +27,11 @@
     <!-- Reset di pagina dell'host standalone: il modulo non tocca più body/html (stili confinati in .vipi-root). -->
     <style>html,body{height:100%;margin:0;background:var(--bg)}</style>
     <link rel="icon" type="image/png" href="favicon.png" />
+    @* Tema scelto dall'utente (automatico/chiaro/scuro). Come lo zoom: in un FILE e non inline (la CSP),
+       nel <head> e senza `defer`. Qui l'urgenza è maggiore che per lo zoom — senza, chi ha scelto il tema
+       scuro vede un lampo BIANCO a ogni caricamento, cioè tutta la pagina e non la sua dimensione.
+       Va prima dello zoom: è quello che si vede di più se arriva tardi. *@
+    <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-theme-mode.js")"></script>
     @* Zoom persistente: in un FILE e non inline, perché uno <script> inline obbliga a tenere
        `script-src 'unsafe-inline'` nella CSP — cioè la clausola che la rende quasi inutile.
        Qui nel <head> e senza `defer`: deve girare prima del primo disegno, o la pagina compare alla

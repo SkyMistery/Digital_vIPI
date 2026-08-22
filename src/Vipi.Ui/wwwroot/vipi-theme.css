@@ -231,7 +231,11 @@
 .brand .logo{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--on-brand),var(--on-dark-soft));display:grid;place-items:center;color:var(--ivao-blue);font-weight:800;font-size:13px}
 .brand small{font-weight:400;opacity:.7;font-family:var(--font-body);font-size:12px}
 .acc-nav{display:flex;gap:6px;margin-left:8px}
-.acc-nav a{color:var(--on-dark-soft);padding:8px 15px;border-radius:9px;font-size:14px;font-weight:500;transition:.15s;font-family:var(--font-head)}
+/* ⚠️ 13px e non 15: col tasto del tema la barra a etichette intere misurava 1447px, cioe' sforava di 7 a
+   1440 — che e' una larghezza comunissima. Quattro pastiglie ACC x 2px x 2 lati = 16px recuperati, che
+   bastano. L'alternativa era far scattare a 1460 la soglia dei 1300 che toglie le etichette a «Editor» e
+   «Incarichi»: costava di piu' (un degrado visibile a 1440) per risparmiare meno. */
+.acc-nav a{color:var(--on-dark-soft);padding:8px 13px;border-radius:9px;font-size:14px;font-weight:500;transition:.15s;font-family:var(--font-head)}
 .acc-nav a:hover{background:rgba(255,255,255,.1);color:var(--on-brand)}
 .acc-nav a.active{background:var(--on-brand);color:var(--ivao-blue);font-weight:700}
 /* ⚠️ `flex-basis` e non solo `flex:1`: in flexbox i margini `auto` assorbono lo spazio libero PRIMA che
@@ -1629,6 +1633,19 @@ button.sh-chip.warn:hover{background:var(--tint-gold)}
 .zoom-ctrl button:hover{background:rgba(255,255,255,.18);color:var(--on-brand)}
 .zoom-ctrl span{color:var(--on-dark-soft);font-size:12.5px;min-width:42px;text-align:center;cursor:pointer;font-family:var(--font-body);user-select:none}
 .zoom-ctrl span:hover{color:var(--on-brand)}
+/* ---------- Scelta del tema (automatico / chiaro / scuro) ----------
+   Un tasto solo nella barra, che gira fra i tre stati: la barra ha un minimo incomprimibile noto e tre
+   tasti costerebbero ~90px. Le tre scelte esplicite stanno nel menu a scomparsa, dove lo spazio c'e'.
+   ⚠️ L'icona giusta la sceglie QUESTO FOGLIO sullo stato di :root, non il JS: il chrome e' SSR statico
+   e non si ridisegna da se', quindi si rendono tutte e tre e se ne mostra una. Se dipendesse dal JS,
+   l'icona sarebbe giusta solo dopo il primo render — cioe' sbagliata proprio al primo disegno.
+   ⚠️ `.theme-ctrl .ti` deve battere `.ic-svg{display:inline-block}`: due classi contro una. Da
+   verificare col valore CALCOLATO, non a occhio (vedi la trappola di specificita' in .struct). */
+.theme-ctrl{cursor:pointer}
+.theme-ctrl .ti{display:none}
+:root:not([data-theme]) .theme-ctrl .ti-auto,
+:root[data-theme="light"] .theme-ctrl .ti-light,
+:root[data-theme="dark"] .theme-ctrl .ti-dark{display:inline-block}
 
 /* Le regole di stampa (@media print) stanno nel foglio dedicato vipi-print.css. */
 
@@ -2882,6 +2899,15 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
   .tb-menu-acc a{color:var(--on-dark-soft);padding:9px 15px;border-radius:9px;font-family:var(--font-head);font-weight:600;
     background:rgba(255,255,255,.1)}
   .tb-menu-acc a.active{background:var(--on-brand);color:var(--ivao-blue);font-weight:700}
+  /* Le tre scelte del tema, esplicite: sotto i 900 il tasto della barra non c'e' piu' e questo e' il
+     solo posto dove il tema si sceglie. Lo stato attivo lo segna vipiApplyTema() con la classe `on`. */
+  .tb-menu-tema{display:flex;gap:6px;padding:2px 2px 10px;margin-bottom:6px;
+    border-bottom:1px solid rgba(255,255,255,.18)}
+  .tb-menu-tema button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;
+    border:0;cursor:pointer;color:var(--on-dark-soft);background:rgba(255,255,255,.1);
+    padding:9px 8px;border-radius:9px;font-family:var(--font-head);font-weight:600;font-size:13px}
+  .tb-menu-tema button:hover{background:rgba(255,255,255,.18);color:var(--on-brand)}
+  .tb-menu-tema button.on{background:var(--on-brand);color:var(--ivao-blue);font-weight:700}
 }
 
 /* ---- Telefono e tablet verticale: una tabella larga scorre DENTRO di se' ----

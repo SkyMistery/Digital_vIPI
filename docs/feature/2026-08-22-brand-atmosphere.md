@@ -179,6 +179,66 @@ finiscono in un `<input type=color>` e nel DB: un token lì non sarebbe né sele
   **6.06:1 e 8.12:1**.
 - Stampa col sistema in tema scuro: `--surface` torna `#fff`. ✅
 
+## Il comando per scegliere il tema
+
+Il tema scuro nasceva **solo** automatico (`prefers-color-scheme`). Ora l'utente sceglie fra tre stati:
+**automatico / chiaro / scuro**, con la scelta salvata in `localStorage` e valida per quel browser.
+
+⚠️ Tre stati e non due: togliere «automatico» vorrebbe dire togliere il comportamento che va bene alla
+maggior parte delle persone. In automatico l'attributo `data-theme` **non c'è**: il foglio tratta l'assenza
+come «segui il sistema», e scrivere `data-theme="auto"` significherebbe aggiungere un caso al CSS per dire
+la stessa cosa.
+
+**Dove sta.** Un tasto solo nella barra, che gira fra i tre stati; e le tre scelte **esplicite** nel menù a
+scomparsa, che sotto i 900px è l'unico posto dove il tema si sceglie (la barra lì nasconde zoom e tasti —
+«quello che esce dalla riga vive nel menù»). Un tasto e non tre in barra perché la barra ha un minimo
+incomprimibile noto e tre ne costerebbero una novantina di px.
+
+**Come è fatto.** `vipi-theme-mode.js`, sul modello di `vipi-zoom.js`: in un **file** e non inline (uno
+script inline obbliga a `script-src 'unsafe-inline'` nella CSP), nel `<head>` e **senza `defer`**, prima di
+quello dello zoom.
+
+### Le trappole di questo pezzo
+
+⚠️ **Il lampo bianco.** È la ragione per cui lo script sta nel `<head>` senza `defer`. Se arriva tardi, chi
+ha scelto il tema scuro vede l'intera pagina bianca per un istante a ogni caricamento — peggio del lampo
+dello zoom, che riguarda solo la dimensione. **Misurato**: l'attributo è già presente al **primo frame**
+(sonda registrata a `document_start`, che legge dentro il primo `requestAnimationFrame`).
+
+⚠️ **L'icona la sceglie il CSS, non il JS.** Il chrome è SSR statico e non si ridisegna da sé: se l'icona
+dipendesse dal JS sarebbe giusta solo *dopo* il primo render, cioè sbagliata proprio al primo disegno. Si
+rendono tutte e tre e se ne mostra una con `:root[data-theme=…] .theme-ctrl .ti-…`. Al JS resta la sola
+**etichetta**, che in CSS non è esprimibile, e le stringhe gli arrivano dai `data-lbl-*` perché stanno nel
+resx e non dentro un `.js`.
+
+⚠️ **`localStorage` può LANCIARE, non solo tornare `null`**: in navigazione privata o coi dati di sito
+bloccati il solo accesso è un'eccezione. Un tema che non si ricorda è un fastidio; una pagina che non si
+disegna è un guasto. Letture e scritture sono in `try/catch`.
+
+⚠️ **Il tasto costa 38px, e la barra non li aveva.** Misurato: con etichette intere la barra passava da
+1409 a **1447px**, cioè sforava di 7px a **1440** — una larghezza comunissima. Recuperati accorciando le
+pastiglie ACC da `15px` a `13px` di padding (4 × 2 × 2 = 16px). L'alternativa era far scattare a 1460 la
+soglia dei 1300 che toglie le etichette a «Editor» e «Incarichi»: costava di più (un degrado visibile a
+1440) per risparmiare meno. Ora l'eccesso è **0 a 1600, 1440, 1280, 1024, 900 e 375**.
+
+### Un difetto trovato di rimbalzo, in `vipi-zoom.js`
+
+Lo script dello zoom gira nel `<head>`, quando `#vipiZoomPct` non esiste ancora: applicava lo zoom ma non
+aggiornava la percentuale scritta in barra. Chi aveva lo zoom al 120% **leggeva «100%»** fino alla prima
+navigazione «enhanced». Una riga (`DOMContentLoaded`), e non si ripete nel tema.
+
+### Verifica
+
+| cosa | esito |
+|---|---|
+| giro automatico → chiaro → scuro → automatico | ✅ attributo, `localStorage`, icona ed etichetta seguono |
+| persistenza dopo `reload` | ✅ |
+| lampo bianco | ✅ attributo già presente al primo frame |
+| scelta esplicita contro il sistema, nei due versi | ✅ sistema scuro + scelta chiara → `--surface` `#fff` |
+| sopravvivenza alla navigazione «enhanced» | ✅ |
+| tre scelte nel menù a 390px, con lo stato attivo | ✅ `aria-pressed` incluso |
+| sforo della barra a 6 larghezze | ✅ 0px ovunque |
+
 ## Cosa resta aperto
 
 - **Il logo.** Atmosphere ha un componente `IVAOLogo` (SVG, varianti orizzontale/icona, `white`/`atmos`).
@@ -191,3 +251,8 @@ finiscono in un `<input type=color>` e nel DB: un token lì non sarebbe né sele
 - **Il tema scuro non è stato guardato su tutte le pagine.** Verificate a schermo: landing, vIPI ACC,
   elenco aeroporti, struttura admin, guida. Gli editor, la vista live e i blocchi mappa hanno il tema
   applicato per costruzione (non contengono più colori propri) ma **non sono stati guardati uno per uno**.
+- **Il canvas del visore 3D non si ridipinge al cambio di tema.** Il suo fondo legge `--surface-muted`, che
+  si gira, ma un canvas già disegnato resta com'è finché non lo si ridisegna. `vipiSetTema` emette
+  `vipi:tema` e un `resize` apposta perché ci si possa agganciare: nessuno lo fa ancora.
+- **La scelta è per browser**, non per utente: sta in `localStorage`, non nel profilo. Se un domani si
+  vorrà seguire l'utente fra dispositivi, va nel DB.

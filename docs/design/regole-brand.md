@@ -63,6 +63,23 @@ Il tema scuro ridefinisce **solo i token**, mai le regole. Perché continui a fu
 4. Un colore che finisce in **Leaflet, in un attributo SVG o in `ctx.fillStyle`** dev'essere risolto prima:
    `aorColor()` in `vipi-aor.js` accetta sia un esadecimale sia il nome di un token.
 
+## Il tema lo sceglie l'utente
+
+Tre stati: **automatico** (segue il sistema), **chiaro**, **scuro**. La scelta sta in `localStorage`
+(`vipiTheme`) ed è **per browser**, non per utente.
+
+- In **automatico** l'attributo `data-theme` **non c'è**. L'assenza *è* «segui il sistema»: non scrivere
+  `data-theme="auto"`, vorrebbe dire aggiungere al CSS un caso per dire la stessa cosa.
+- Il comando sta in `vipi-theme-mode.js` (`vipiSetTema`, `vipiCicloTema`, `vipiApplyTema`), caricato nel
+  `<head>` **senza `defer`**. ⚠️ Non spostarlo e non aggiungergli `defer`: se arriva dopo il primo disegno,
+  chi ha scelto il tema scuro vede un lampo bianco a ogni caricamento.
+- ⚠️ Non è inline, ed è deliberato: uno `<script>` inline obbliga a `script-src 'unsafe-inline'` nella CSP.
+- Un comando nuovo che dipende dallo stato del tema sceglie l'aspetto **in CSS** (`:root[data-theme=…] …`),
+  non in JS: il chrome è SSR statico e non si ridisegna da sé. Al JS si lascia solo ciò che in CSS non è
+  esprimibile — le etichette, che arrivano dal resx tramite attributi `data-*`.
+- Chi **disegna** invece di dichiarare (un canvas, Leaflet) non si ridipinge da solo: `vipiSetTema` emette
+  `vipi:tema` e un `resize` apposta.
+
 ## Come si verifica
 
 Non basta compilare: i test sono verdi anche con un tema rotto.

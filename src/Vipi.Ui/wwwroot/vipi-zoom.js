@@ -1,4 +1,4 @@
-﻿// Zoom globale persistente (localStorage), applicato PRIMA che la pagina si disegni.
+// Zoom globale persistente (localStorage), applicato PRIMA che la pagina si disegni.
 //
 // Perché è un file e non uno <script> in fondo alla pagina: serve nel <head>, prima del primo disegno,
 // o si vede la pagina alla dimensione sbagliata per un istante e poi saltare a quella giusta.
@@ -33,4 +33,13 @@
     window.vipiZoomReset = function () { window.vipiSetZoom(1); };
 
     window.vipiApplyZoom();
+
+    // ⚠️ La chiamata qui sopra gira nel <head>, quando #vipiZoomPct non esiste ancora: applica lo zoom
+    // (l'urgenza) ma non aggiorna la percentuale scritta nella barra. Senza questa seconda passata, chi
+    // ha lo zoom al 120% leggeva «100%» fino alla prima navigazione «enhanced».
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { window.vipiApplyZoom(); });
+    } else {
+        window.vipiApplyZoom();
+    }
 })();
