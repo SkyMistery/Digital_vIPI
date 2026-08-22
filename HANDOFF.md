@@ -1,13 +1,59 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 22 agosto 2026 (sera) — **catalogo dei punti**, **fuso in `main`**.
+**Ultimo aggiornamento:** 22 agosto 2026 (sera) — **gli import girano tutti**, **fuso in `main`**.
 **Non c'è nessun ramo con lavoro fuori.**
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
 > ## 🧭 SI RIPARTE DA QUI (22 agosto 2026, sera)
 >
-> **L'ultimo lavoro è in `main`**: il ramo `catalogo-punti-suggerimenti` è stato fuso e cancellato la sera del
-> 22 agosto (merge `2b4480d`). **Non resta nessun ramo con lavoro fuori.** Per riprendere da freddo si
+> **L'ultimo lavoro è in `main`**: il ramo `sorgenti-giro-ta-piste` è stato fuso e cancellato (merge
+> `9be2200`). **Non resta nessun ramo con lavoro fuori.** Per riprendere da freddo si legge **un** file:
+> [`docs/feature/2026-08-22-sorgenti-giro-automatico-ta-piste.md`](docs/feature/2026-08-22-sorgenti-giro-automatico-ta-piste.md).
+>
+> In due righe: delle sei righe di `/services/vsop/admin/sources` quattro giravano da sole ogni giorno e due
+> no — **Transition Altitude** e **Piste** arrivavano solo premendo un bottone, quindi una TA cambiata in
+> AIRAC poteva restare vecchia a tempo indefinito mentre la pill diceva «su richiesta», che è vero e non dice
+> **quanto** è vecchio il dato. Ora girano **tutte**, e con loro l'**anagrafica aeroporti**, che nell'elenco
+> non compariva affatto. **Nessuna riga resta «su richiesta»**, e un test lo pretende.
+>
+> I due motori nuovi passano per lo **stesso** corpo dei bottoni (`SourceMergeInputs` + `MergeFromSourceAsync`
+> per TA/piste, `IAirportImportUseCase` per l'anagrafica): niente secondo percorso che possa divergere sulla
+> policy. Nessuna entità nuova e **nessuna migrazione**: non allunga la coda ferma per il cutover MariaDB.
+>
+> ⚠️ **L'anagrafica aeroporti è l'unico giro che CREA entità** (aeroporto + catalogo settori). Era stata
+> lasciata a mano di proposito; è stata automatizzata su decisione del committente. È **additiva**: uno scalo
+> tolto dalla sorgente resta in archivio e si toglie a mano.
+>
+> ⚠️ **L'ordine dei `bootDelay` non è estetica**: ACC 15s → aeroporti 25s → SID 30s → settori 40s → TA/piste
+> 50s. I tre giri in coda iterano gli aeroporti che il secondo crea; invertirli lascerebbe uno scalo nuovo
+> senza settori e senza piste fino al giorno dopo. Verificato live: il giro ha assegnato **LIDS (Parco
+> Livenza)**, che IVAO aveva aggiunto, e quello dopo ha aggiornato **93** aeroporti, non 92.
+>
+> ⚠️ **Due cose che il deploy deve sapere** (anche in [`docs/lavori-aperti.md`](docs/lavori-aperti.md) §B9):
+> in produzione comparirà **LIDS** al primo giro; e i **21 aeroporti senza TA** si popoleranno da soli,
+> ricalcolando i TL delle fasce *default*. La policy vera va guardata **prima** in
+> `/services/vsop/admin/sources`: in sviluppo `ImportPolicies` è **vuota**, quindi i valori a video vengono dai
+> default delle colonne e non da una decisione di qualcuno.
+>
+> ⚠️ **Nessun giro rigenera i documenti**: import e generazione restano scollegati (doc 03 §4.3), quindi il
+> dato nuovo entra nel sito al prossimo «Genera documenti».
+>
+> ⚠️ **Trappola di verifica pagata qui**: la pagina sembrava non aggiornata perché l'app girava da un
+> `dotnet run` avviato **dodici minuti prima** del commit che accendeva il giro. Il `.dll` in `bin/Debug`
+> portava una data più recente (l'avevano riscritto i `dotnet test`), ma il processo tiene in memoria quello
+> caricato all'avvio. Prima di dare la colpa al codice: **guardare l'ora di avvio del processo**, non la data
+> del file.
+>
+> Cancello: `dotnet build Vipi.slnx -c Release --no-incremental` (**0 avvisi**); test **591 + 450 + 255 + 57**
+> verdi su net8 **e** net10 (E2E non eseguiti: i `bin/` erano bloccati dall'app in esecuzione).
+
+> ## 🧭 ⚪ STORIA — catalogo dei punti (22 agosto 2026), **FUSO IN `main`**
+>
+> ⚠️ Questo blocco diceva «si riparte da qui»: **non è più l'ultimo lavoro** — dopo è arrivato il giro degli
+> import (blocco sopra). Resta perché quanto racconta è tutto ancora vero.
+>
+> Il ramo `catalogo-punti-suggerimenti` è stato fuso e cancellato la sera del
+> 22 agosto (merge `2b4480d`). Per riprendere da freddo si
 > legge **un** file:
 > [`docs/feature/2026-08-22-catalogo-punti-suggerimenti.md`](docs/feature/2026-08-22-catalogo-punti-suggerimenti.md).
 >

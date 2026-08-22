@@ -488,6 +488,12 @@ non compariva affatto nell'elenco e ora è un giro (`AirportDirectoryImportHoste
 
 Nessuna entità nuova e nessuna migrazione: non allunga la coda del cutover MariaDB.
 
+⚠️ **Trappola di verifica pagata qui, e riutilizzabile.** La pagina sembrava non aggiornata: l'app girava da
+un `dotnet run` avviato **dodici minuti prima** del commit che accendeva il giro. Il `.dll` in `bin/Debug`
+aveva una data *più recente* (l'avevano riscritto i `dotnet test`), ma il processo tiene in memoria
+l'assembly caricata all'avvio. Prima di dare la colpa al codice si guarda l'**ora di avvio del processo**,
+non la data del file.
+
 ### B8 ✅ FUSO — `coordinamenti-lettura`, fuso in `main` il 22 agosto 2026
 
 Cinque commit più il merge `1d74246`, ramo cancellato (locale e origin). Nessun conflitto: il ramo era nato
