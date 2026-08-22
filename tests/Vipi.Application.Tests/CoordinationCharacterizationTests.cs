@@ -57,7 +57,7 @@ public class CoordinationCharacterizationTests
 
     private static IReadOnlySet<string> OwnersOfAcc(RealCoordinationFixture.Maps maps, string accName) =>
         new HashSet<string>(
-            maps.AccNames.Where(kv => string.Equals(kv.Value, accName, StringComparison.OrdinalIgnoreCase))
+            maps.AccRefs.Where(kv => string.Equals(kv.Value.Name, accName, StringComparison.OrdinalIgnoreCase))
                 .Select(kv => kv.Key),
             StringComparer.OrdinalIgnoreCase);
 
@@ -97,7 +97,7 @@ public class CoordinationCharacterizationTests
 
         sb.AppendLine("--- albero ---");
         foreach (var s in CoordinationDerivation.BuildAccTree(entries, maps.Codes, maps.Atc, maps.Airports,
-                     maps.AccNames, kindLabel))
+                     maps.AccRefs, kindLabel))
         {
             sb.Append("  settore ").AppendLine(s.SectorLabel);
             foreach (var acc in s.Accs)

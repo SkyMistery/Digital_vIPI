@@ -274,13 +274,13 @@ public sealed class EfAccDerivationRepository : IAccDerivationRepository
     public async Task<IReadOnlyDictionary<string, string>> GetSectorAtcNameMapAsync(CancellationToken ct = default) =>
         await EfAccDerivationRepository.BuildAtcNameMapAsync(_db, ct);
 
-    public async Task<IReadOnlyDictionary<string, string>> GetSectorAccNameMapAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyDictionary<string, AccRef>> GetSectorAccRefMapAsync(CancellationToken ct = default)
     {
-        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var map = new Dictionary<string, AccRef>(StringComparer.OrdinalIgnoreCase);
         foreach (var s in await _db.Sectors.AsNoTracking()
                      .Where(s => s.Acc != null)
-                     .Select(s => new { s.Callsign, AccName = s.Acc!.Name }).ToListAsync(ct))
-            map[s.Callsign] = s.AccName;
+                     .Select(s => new { s.Callsign, s.Acc!.Name, s.Acc!.Code, s.Acc!.IsForeign }).ToListAsync(ct))
+            map[s.Callsign] = new AccRef(s.Name, s.Code, s.IsForeign);
         return map;
     }
 

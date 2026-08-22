@@ -163,4 +163,61 @@ public class CoordTableTests : TestContext
         Assert.Contains("Level", headers);
         Assert.DoesNotContain(headers, h => h.StartsWith("Coord_") || h.StartsWith("AppCoord_"));
     }
+
+    // ---- prosa: nasce chiusa, sopra la tabella ----
+
+    private static AppCoordRow Said(string cop, int clauseId, string sentence, string? lead = null) =>
+        new(cop, "FL200", "LIRR_CTR", TransferFlowKind.Arrival) { ClauseId = clauseId, Sentence = sentence, LeadSentence = lead };
+
+    [Fact]
+    public void Prose_is_collapsed_and_holds_one_paragraph_per_clause()
+    {
+        // Chi consulta il documento in cuffia legge la TABELLA: la prosa distesa lo obbligava a scorrere oltre
+        // decine di paragrafi per arrivarci. Resta a un clic, e il riassunto dice quanta ce n'e'.
+        var cut = Render(Said("VALMA", 1, "Prima frase."), Said("PISIP", 2, "Seconda frase."));
+
+        var prosa = cut.Find("details.coord-prose");
+        Assert.Null(prosa.GetAttribute("open"));
+        Assert.Equal(new[] { "Prima frase.", "Seconda frase." },
+                     cut.FindAll("details.coord-prose p.coord-sentence").Select(x => x.TextContent));
+        Assert.Contains("Coord_Prose", prosa.QuerySelector("summary")!.TextContent);
+    }
+
+    [Fact]
+    public void One_sentence_asks_for_the_singular_key()
+    {
+        // ⚠️ Una sola forma plurale sbaglia sempre sull'uno, in tutte e due le lingue.
+        var cut = Render(Said("VALMA", 1, "Frase sola."));
+        Assert.Contains("Coord_Prose_One", cut.Find("details.coord-prose summary").TextContent);
+    }
+
+    [Fact]
+    public void A_table_without_sentences_has_no_prose_block()
+    {
+        // Nessuna frase = nessun blocco: un riassunto che apre il vuoto e' un invito a un clic sprecato.
+        Assert.Empty(Render(Plain()).FindAll("details.coord-prose"));
+    }
+
+    [Fact]
+    public void Lead_mode_collapses_the_single_leading_sentence()
+    {
+        // In modo capofila la prosa e' una frase sola: il blocco e' lo stesso, cosi' i due modi non divergono.
+        var cut = RenderComponent<CoordTable>(p => p
+            .Add(x => x.Rows, new[] { Said("VALMA", 1, "Distesa.", "Capofila."), Said("PISIP", 2, "Distesa due.", "Capofila.") })
+            .Add(x => x.LeadSentence, true));
+
+        var frasi = cut.FindAll("details.coord-prose p.coord-sentence");
+        Assert.Equal("Capofila.", Assert.Single(frasi).TextContent);
+    }
+
+    [Fact]
+    public void English_prose_summary_never_falls_back_to_the_ui_culture()
+    {
+        // Nelle vLOA l'intestazione e' inglese a prescindere dalla cultura: il riassunto non fa eccezione.
+        var cut = RenderComponent<CoordTable>(p => p
+            .Add(x => x.Rows, new[] { Said("VALMA", 1, "Una."), Said("PISIP", 2, "Due.") })
+            .Add(x => x.English, true));
+
+        Assert.Equal("Full text (2 sentences)", cut.Find("details.coord-prose summary").TextContent.Trim('▸', ' '));
+    }
 }

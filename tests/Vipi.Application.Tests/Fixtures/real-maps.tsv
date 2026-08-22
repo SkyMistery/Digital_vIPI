@@ -1,24 +1,26 @@
 # Mappe di risoluzione estratte dal vipi.db reale (16 agosto 2026), ridotte ai soli enti citati
 # dai flussi in real-flows.tsv. Name = Sector.Name (fallback: vince AtcCallsign quando c'e').
-S	Callsign	Type	Code	AtcCallsign	Name	AccName
-S	LAAA_CTR	Ctr		Tirana Control	Tirana Control	Tirana
-S	LATI_APP	App		Tirana Approach	Tirana Approach	Tirana
-S	LDDU_APP	App		Dubrovnik Radar	Dubrovnik Radar	Zagreb
-S	LDSP_APP	App		Split Radar	Split Radar	Zagreb
-S	LDZO_CTR	Ctr		Zagreb Radar	Zagreb Radar	Zagreb
-S	LGGG_W_CTR	Ctr	W	Athinai Radar West	Athinai Radar West	Greece
-S	LGKR_APP	App		Kerkira Approach	Kerkira Approach	Greece
-S	LIBB_ES_CTR	Ctr	ES	Brindisi Radar	Brindisi Radar	Brindisi
-S	LIBD_CS0_APP	App	CS0	Brindisi Radar	Brindisi Radar	Brindisi
-S	LICA_ES0_APP	App	ES0	Roma Radar	Roma Radar	Roma
-S	LIRN_US0_APP	App	US0	Roma Radar	Roma Radar	Roma
-S	LIRR_ES_CTR	Ctr	ES	Roma Radar	Roma Radar	Roma
-S	LIRR_NC_CTR	Ctr	NC	Roma Radar	Roma Radar	Roma
-S	LIRR_NE_CTR	Ctr	NE	Roma Radar	Roma Radar	Roma
-S	LIRR_TS_CTR	Ctr	TS	Roma Radar	Roma Radar	Roma
-S	LIRR_US_CTR	Ctr	US	Roma Radar	Roma Radar	Roma
-S	LYBA_CTR	Ctr		Beograd Radar	Beograd Radar	Beograd
-S	LYTV_APP	App		Tivat Approach	Tivat Approach	Beograd
+# AccCode/AccForeign = Acc.Code e Acc.IsForeign dell'ACC di appartenenza: fanno l'etichetta
+# «Nome-ICAO» dell'albero e lo scaglione casa/Italia/estero con cui gli ACC si ordinano.
+S	Callsign	Type	Code	AtcCallsign	Name	AccName	AccCode	AccForeign
+S	LAAA_CTR	Ctr		Tirana Control	Tirana Control	Tirana	LAAA	1
+S	LATI_APP	App		Tirana Approach	Tirana Approach	Tirana	LAAA	1
+S	LDDU_APP	App		Dubrovnik Radar	Dubrovnik Radar	Zagreb	LDZO	1
+S	LDSP_APP	App		Split Radar	Split Radar	Zagreb	LDZO	1
+S	LDZO_CTR	Ctr		Zagreb Radar	Zagreb Radar	Zagreb	LDZO	1
+S	LGGG_W_CTR	Ctr	W	Athinai Radar West	Athinai Radar West	Greece	LGGG	1
+S	LGKR_APP	App		Kerkira Approach	Kerkira Approach	Greece	LGGG	1
+S	LIBB_ES_CTR	Ctr	ES	Brindisi Radar	Brindisi Radar	Brindisi	LIBB	0
+S	LIBD_CS0_APP	App	CS0	Brindisi Radar	Brindisi Radar	Brindisi	LIBB	0
+S	LICA_ES0_APP	App	ES0	Roma Radar	Roma Radar	Roma	LIRR	0
+S	LIRN_US0_APP	App	US0	Roma Radar	Roma Radar	Roma	LIRR	0
+S	LIRR_ES_CTR	Ctr	ES	Roma Radar	Roma Radar	Roma	LIRR	0
+S	LIRR_NC_CTR	Ctr	NC	Roma Radar	Roma Radar	Roma	LIRR	0
+S	LIRR_NE_CTR	Ctr	NE	Roma Radar	Roma Radar	Roma	LIRR	0
+S	LIRR_TS_CTR	Ctr	TS	Roma Radar	Roma Radar	Roma	LIRR	0
+S	LIRR_US_CTR	Ctr	US	Roma Radar	Roma Radar	Roma	LIRR	0
+S	LYBA_CTR	Ctr		Beograd Radar	Beograd Radar	Beograd	LYBA	1
+S	LYTV_APP	App		Tivat Approach	Tivat Approach	Beograd	LYBA	1
 A	Icao	Name
 A	LIBD	Bari Palese
 A	LIBG	Taranto Grottaglie

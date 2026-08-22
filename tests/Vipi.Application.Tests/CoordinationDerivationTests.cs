@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Xunit;
@@ -295,5 +296,76 @@ public class CoordinationDerivationTests
         Assert.Equal(new[] { "07" }, CoordinationDerivation.ConditionChain(pts, a).Select(x => x.Runway));
         Assert.Equal(new[] { "07", "25" }, CoordinationDerivation.ConditionChain(pts, b).Select(x => x.Runway));
         Assert.Equal(new[] { "07", "25", "34" }, CoordinationDerivation.ConditionChain(pts, c).Select(x => x.Runway));
+    }
+
+    // ---- albero: etichetta della FIR e ordine degli ACC ----
+
+    private static readonly IReadOnlyDictionary<string, AccRef> AccRefs = new Dictionary<string, AccRef>(System.StringComparer.OrdinalIgnoreCase)
+    {
+        ["LIBB_ES_CTR"] = new AccRef("Brindisi", "LIBB", false),
+        ["LIRR_TS_CTR"] = new AccRef("Roma", "LIRR", false),
+        ["LIRR_NE_CTR"] = new AccRef("Roma", "LIRR", false),
+        ["LIRN_US0_APP"] = new AccRef("Roma", "LIRR", false),
+        ["LIBB_CS_CTR"] = new AccRef("Brindisi", "LIBB", false),
+        ["LGGG_W_CTR"] = new AccRef("Greece", "LGGG", true),
+        ["LYBA_CTR"] = new AccRef("Beograd", "LYBA", true),
+    };
+
+    private static IReadOnlyList<AccSectorApps> Tree(IReadOnlyList<CoordinationEntry> entries) =>
+        CoordinationDerivation.BuildAccTree(entries, Codes, Atc, Airports, AccRefs, TransferFlowKindLabels.Label);
+
+    private static CoordinationEntry Entry(string ours, string counterpart) =>
+        new(ours, counterpart, SectorType.Ctr, "LIRN", TransferFlowKind.Arrival, IsIncoming: false,
+            new AppCoordRow("PIGOL", "FL200", counterpart, TransferFlowKind.Arrival));
+
+    [Fact]
+    public void AccLabel_Carries_The_Icao_Next_To_The_Fir_Name()
+    {
+        // «Beograd» e «Zagreb» sono LYBA e LDZO solo per chi le ha gia' in testa: il codice sta accanto al nome.
+        var acc = Assert.Single(Assert.Single(Tree(new[] { Entry("LIBB_ES_CTR", "LYBA_CTR") })).Accs);
+        Assert.Equal("Beograd-LYBA", acc.AccLabel);
+    }
+
+    [Fact]
+    public void Acc_Without_A_Resolved_Reference_Keeps_The_Neutral_Label()
+    {
+        // Un counterpart che nessuna ACC rivendica non deve far sparire la riga dall'albero.
+        var acc = Assert.Single(Assert.Single(Tree(new[] { Entry("LIBB_ES_CTR", "SCONOSCIUTO_CTR") })).Accs);
+        Assert.Equal("ACC", acc.AccLabel);
+    }
+
+    [Fact]
+    public void Accs_Are_Ordered_Home_Then_Italy_Then_Abroad()
+    {
+        // Dentro un settore l'ordine e' la distanza da chi legge, non l'alfabeto: alfabeticamente la propria ACC
+        // — quella che si coordina a ogni volo — finiva in mezzo agli esteri.
+        var tree = Tree(new[]
+        {
+            Entry("LIBB_ES_CTR", "LYBA_CTR"),      // estero
+            Entry("LIBB_ES_CTR", "LIRR_TS_CTR"),   // altro italiano
+            Entry("LIBB_ES_CTR", "LGGG_W_CTR"),    // estero
+            Entry("LIBB_ES_CTR", "LIBB_CS_CTR"),   // casa
+        });
+
+        Assert.Equal(new[] { "Brindisi-LIBB", "Roma-LIRR", "Beograd-LYBA", "Greece-LGGG" },
+                     Assert.Single(tree).Accs.Select(a => a.AccLabel));
+    }
+
+    [Fact]
+    public void Home_Is_Read_From_Our_Own_Sector_Not_From_The_Document()
+    {
+        // Lo stesso albero visto da due settori di ACC diverse: «casa» cambia con il settore, non col documento.
+        var tree = Tree(new[]
+        {
+            Entry("LIBB_ES_CTR", "LIRR_TS_CTR"),
+            Entry("LIBB_ES_CTR", "LIBB_CS_CTR"),
+            Entry("LIRR_NE_CTR", "LIRR_TS_CTR"),
+            Entry("LIRR_NE_CTR", "LIBB_CS_CTR"),
+        });
+
+        var es = tree.Single(s => s.SectorLabel == "ES");
+        var ne = tree.Single(s => s.SectorLabel == "NE");
+        Assert.Equal(new[] { "Brindisi-LIBB", "Roma-LIRR" }, es.Accs.Select(a => a.AccLabel));
+        Assert.Equal(new[] { "Roma-LIRR", "Brindisi-LIBB" }, ne.Accs.Select(a => a.AccLabel));
     }
 }

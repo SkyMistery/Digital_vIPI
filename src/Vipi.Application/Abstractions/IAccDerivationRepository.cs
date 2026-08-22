@@ -8,6 +8,14 @@ namespace Vipi.Application.Abstractions;
 /// migrato. Analogo ACC di <see cref="AppDocumentIdentity"/>.</summary>
 public sealed record AccDocumentIdentity(int SectorId, string RootCallsign, string AccCode, string AccName, int? DocumentId);
 
+/// <summary>L'ACC di appartenenza di un settore, per l'albero dei coordinamenti: come si chiama, com'è
+/// identificato e se è di casa.
+/// <para>I tre campi viaggiano insieme perché servono insieme e alla stessa domanda — «sotto quale FIR va letta
+/// questa riga, e in che ordine sta fra le altre»: il nome e il codice fanno l'etichetta («Greece-LGGG»),
+/// <see cref="IsForeign"/> separa gli italiani dagli esteri. Tre mappe parallele sullo stesso callsign sarebbero
+/// tre letture da tenere d'accordo a mano.</para></summary>
+public sealed record AccRef(string Name, string Code, bool IsForeign);
+
 /// <summary>
 /// Persistenza della vIPI ACC (documento a blocchi, 1:1 con l'Acc) + primitive di derivazione live
 /// (poligoni AoR, frequenze dei membri, mappa tipi settore). Mirror in chiave ACC di <see cref="IAppDerivationRepository"/>.
@@ -56,8 +64,9 @@ public interface IAccDerivationRepository
     /// <summary>Mappa callsign → nome IVAO del settore (AtcCallsign, es. «Roma Radar»), senza il codice. Per il mittente.</summary>
     Task<IReadOnlyDictionary<string, string>> GetSectorAtcNameMapAsync(CancellationToken ct = default);
 
-    /// <summary>Mappa callsign → nome dell'ACC di appartenenza del settore. Per raggruppare gli avvicinamenti per ACC.</summary>
-    Task<IReadOnlyDictionary<string, string>> GetSectorAccNameMapAsync(CancellationToken ct = default);
+    /// <summary>Mappa callsign → ACC di appartenenza del settore (nome, codice, estero). Per raggruppare i
+    /// coordinamenti per ACC, etichettarli «Nome-ICAO» e ordinarli casa/italiani/esteri.</summary>
+    Task<IReadOnlyDictionary<string, AccRef>> GetSectorAccRefMapAsync(CancellationToken ct = default);
 
     /// <summary>Tutte le frequenze linkabili (per il picker dei link extra).</summary>
     Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default);

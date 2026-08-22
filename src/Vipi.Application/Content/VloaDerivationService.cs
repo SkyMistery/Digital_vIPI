@@ -179,7 +179,7 @@ public sealed class VloaDerivationService : IVloaDerivationService
         var types = await _accRepo.GetSectorTypeMapAsync(ct);
         var codeMap = await _accRepo.GetSectorCodeMapAsync(ct);
         var atcMap = await _accRepo.GetSectorAtcNameMapAsync(ct);
-        var accNameMap = await _accRepo.GetSectorAccNameMapAsync(ct);
+        var accRefMap = await _accRepo.GetSectorAccRefMapAsync(ct);
         // Le vLOA sono documenti bilaterali in INGLESE: frasi di coordinamento col template EN.
         var tpl = CoordinationSentenceTemplate.English;
 
@@ -228,7 +228,7 @@ public sealed class VloaDerivationService : IVloaDerivationService
 
         AccCoordination Tree(List<CoordinationEntry> es) => new()
         {
-            Sectors = CoordinationDerivation.BuildAccTree(es, codeMap, atcMap, airportMap, accNameMap, TransferFlowKindLabels.LabelEn),
+            Sectors = CoordinationDerivation.BuildAccTree(es, codeMap, atcMap, airportMap, accRefMap, TransferFlowKindLabels.LabelEn),
         };
 
         return new VloaCoordination(pair.HomeAcc, pair.ForeignAcc, Tree(h2f), Tree(f2h));
