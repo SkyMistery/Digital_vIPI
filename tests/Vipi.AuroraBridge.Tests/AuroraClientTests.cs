@@ -186,4 +186,58 @@ public class AuroraClientTests
         Assert.Equal("A", a.Fields[0]);
         Assert.Equal("B", b.Fields[0]);
     }
+
+    /// <summary>
+    /// Due invii concorrenti su un client <b>ancora da connettere</b> aprono <b>una</b> connessione, non due.
+    ///
+    /// <para>È la causa del fallimento a intermittenza inseguito dall'11 al 22 agosto 2026 come se fosse un
+    /// problema di tempi: <c>SendAsync</c> si connetteva <i>prima</i> di prendere il turno, quindi due
+    /// chiamate lanciate insieme trovavano entrambe «non connesso» — l'assegnazione avviene dopo il
+    /// <c>ConnectAsync</c>, che cede il controllo — e aprivano un socket a testa. Il secondo, nascendo,
+    /// chiudeva il primo. L'esito peggiore non era un errore ma il <b>silenzio</b>: comando scritto su un
+    /// socket e risposta attesa sul canale dell'altro, fino alla scadenza del tempo — cioè esattamente
+    /// «Nessuna risposta a #TRPOS entro 15000 ms», che sembrava lentezza e non lo era.</para>
+    ///
+    /// <para>Il test sopra vede il <i>sintomo</i> e solo quando la corsa va male; questo vede la
+    /// <b>causa</b>. ⚠️ E la vede solo se i due invii partono <b>davvero insieme</b>: chiamati uno dopo
+    /// l'altro sullo stesso thread, su loopback la prima connessione fa in tempo a chiudersi e il secondo
+    /// invio la trova già pronta — il test passa anche col difetto. Servono due thread e un cancelletto che
+    /// li rilascia insieme. Misurato così sul client di prima: <b>200 giri su 200</b> aprivano due
+    /// connessioni, e la suite ci metteva 3 minuti e 10 invece di 133 ms, perché ogni giro pagava una
+    /// scadenza intera.</para>
+    /// </summary>
+    [Fact]
+    public async Task Due_invii_insieme_aprono_una_connessione_sola()
+    {
+        await using var server = new FakeAuroraServer()
+            .Reply("#TRPOS;A", "#TRPOS;A;1;1;1000;100;40.0;9.0;2000;;;;;;;0;0;0;;1;;0;;")
+            .Reply("#TRPOS;B", "#TRPOS;B;2;2;2000;200;41.0;10.0;2000;;;;;;;0;0;0;;1;;0;;");
+        await using var client = Connect(server);
+
+        // Nessuno ha ancora connesso: è il momento in cui i due invii facevano a gara.
+        Assert.False(client.IsConnected);
+
+        var pronti = new SemaphoreSlim(0, 2);
+        var via = new TaskCompletionSource();
+        async Task<AuroraResponse> Invia(string arg)
+        {
+            pronti.Release();                 // «sono sul mio thread e sono pronto»
+            await via.Task;                   // ...e parto solo insieme all'altro
+            return await client.SendAsync("#TRPOS", CancellationToken.None, arg);
+        }
+
+        var a = Task.Run(() => Invia("A"));
+        var b = Task.Run(() => Invia("B"));
+        await pronti.WaitAsync();
+        await pronti.WaitAsync();
+        via.SetResult();
+
+        var risposte = await Task.WhenAll(a, b);
+
+        Assert.Equal(1, server.Connessioni);
+        Assert.True(risposte[0].Ok, $"la richiesta A non ha avuto risposta: {risposte[0].Error}");
+        Assert.True(risposte[1].Ok, $"la richiesta B non ha avuto risposta: {risposte[1].Error}");
+        Assert.Equal("A", risposte[0].Fields[0]);
+        Assert.Equal("B", risposte[1].Fields[0]);
+    }
 }

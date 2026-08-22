@@ -26,6 +26,14 @@ public sealed class FakeAuroraServer : IAsyncDisposable
 
     public int Port { get; }
 
+    /// <summary>
+    /// Quante connessioni sono state accettate. Un client ne apre <b>una</b>: se ne conta due, due invii
+    /// concorrenti si sono connessi ciascuno per conto proprio — ed è il guasto in cui il secondo socket
+    /// chiude quello che il primo sta usando.
+    /// </summary>
+    public int Connessioni => _connessioni;
+    private int _connessioni;
+
     /// <summary>Comandi ricevuti, in ordine: serve a verificare che il client non chieda più del necessario.</summary>
     public List<string> Received { get; } = new();
 
@@ -49,6 +57,7 @@ public sealed class FakeAuroraServer : IAsyncDisposable
             while (!_cts.IsCancellationRequested)
             {
                 var client = await _listener.AcceptTcpClientAsync(_cts.Token);
+                Interlocked.Increment(ref _connessioni);
                 _ = Task.Run(() => ServeAsync(client));
             }
         }

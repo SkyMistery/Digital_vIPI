@@ -29,27 +29,51 @@ public sealed record AuroraResponse(bool Ok, string Command, IReadOnlyList<strin
 /// </summary>
 public sealed class AuroraClient : IAsyncDisposable
 {
+    /// <summary>
+    /// Una connessione, tutta intera: socket, flusso, canale delle righe e ciclo di lettura nascono e muoiono
+    /// insieme. È un oggetto solo perché <b>si legge in un colpo solo</b>: quando erano quattro campi, due
+    /// invii concorrenti potevano leggerne due appartenenti a connessioni diverse — scrivere su un socket e
+    /// aspettare la risposta sul canale dell'altro. Vedi <see cref="SendAsync"/>.
+    /// </summary>
+    private sealed record Connessione(
+        TcpClient Tcp, NetworkStream Stream, Channel<string> Lines, CancellationTokenSource ReaderCts);
+
     private readonly AuroraClientOptions _options;
     private readonly SemaphoreSlim _turn = new(1, 1);
-    private TcpClient? _tcp;
-    private NetworkStream? _stream;
-    private Channel<string>? _lines;
-    private CancellationTokenSource? _readerCts;
+    private Connessione? _conn;
 
     public AuroraClient(AuroraClientOptions? options = null) => _options = options ?? new AuroraClientOptions();
 
     /// <summary>Messaggi arrivati senza essere stati chiesti (es. <c>#INTERCOMPHONESTATUS</c>).</summary>
     public event Action<string>? Unsolicited;
 
-    public bool IsConnected => _tcp?.Connected == true;
+    public bool IsConnected => _conn?.Tcp.Connected == true;
 
     /// <summary>Si connette se serve. L'errore tipico è <c>ConnectionRefused</c>: Aurora chiusa, oppure
     /// «3rd Party Software Access» non attivo NELLA SESSIONE IN CORSO (il flag sul profilo non basta).</summary>
     public async Task<bool> EnsureConnectedAsync(CancellationToken ct = default)
     {
-        if (IsConnected) return true;
+        // Il turno copre ANCHE la connessione, non solo lo scambio: vedi ConnettiAsync.
+        await _turn.WaitAsync(ct).ConfigureAwait(false);
+        try { return await ConnettiAsync(ct).ConfigureAwait(false) is not null; }
+        finally { _turn.Release(); }
+    }
 
-        await DisconnectAsync().ConfigureAwait(false);
+    /// <summary>
+    /// La connessione viva, aprendola se serve. <b>Si chiama col turno in mano.</b>
+    ///
+    /// <para>⚠️ <b>Perché la connessione sta dentro il turno.</b> Prima <c>SendAsync</c> si connetteva
+    /// <i>prima</i> di prendere il turno, e due invii concorrenti sullo stesso client — il caso normale
+    /// quando la UI chiede due cose insieme — aprivano due socket: il secondo chiudeva il primo mentre il
+    /// primo lo stava usando. L'esito peggiore non era l'errore ma il <b>silenzio</b>: comando scritto su un
+    /// socket, risposta attesa sul canale dell'altro, e nessuna delle due arrivava mai a destinazione fino
+    /// alla scadenza del tempo. Serializzare anche l'apertura toglie il caso alla radice.</para>
+    /// </summary>
+    private async Task<Connessione?> ConnettiAsync(CancellationToken ct)
+    {
+        if (_conn is { } viva && viva.Tcp.Connected) return viva;
+
+        await ChiudiAsync().ConfigureAwait(false);
         try
         {
             var tcp = new TcpClient();
@@ -62,17 +86,19 @@ public sealed class AuroraClient : IAsyncDisposable
             connectTimeout.CancelAfter(_options.TimeoutMs);
             await tcp.ConnectAsync(_options.Host, _options.Port, connectTimeout.Token).ConfigureAwait(false);
 
-            _tcp = tcp;
-            _stream = tcp.GetStream();
-            _lines = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = true });
-            _readerCts = new CancellationTokenSource();
-            _ = Task.Run(() => ReadLoopAsync(_stream, _lines.Writer, _readerCts.Token), CancellationToken.None);
-            return true;
+            var conn = new Connessione(
+                tcp,
+                tcp.GetStream(),
+                Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = true }),
+                new CancellationTokenSource());
+            _ = Task.Run(() => ReadLoopAsync(conn.Stream, conn.Lines.Writer, conn.ReaderCts.Token), CancellationToken.None);
+            _conn = conn;
+            return conn;
         }
         catch (Exception)
         {
-            await DisconnectAsync().ConfigureAwait(false);
-            return false;
+            await ChiudiAsync().ConfigureAwait(false);
+            return null;
         }
     }
 
@@ -86,18 +112,20 @@ public sealed class AuroraClient : IAsyncDisposable
                 return AuroraResponse.Failed(command, "Argomento con «;»: il protocollo lo userebbe come separatore.");
         }
 
-        if (!await EnsureConnectedAsync(ct).ConfigureAwait(false))
-            return AuroraResponse.Failed(command, $"Aurora non raggiungibile su {_options.Host}:{_options.Port}.");
-
         var payload = args.Length == 0 ? command : command + ";" + string.Join(";", args.Select(a => a ?? ""));
 
         await _turn.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            var stream = _stream;
-            var reader = _lines?.Reader;
-            if (stream is null || reader is null)
-                return AuroraResponse.Failed(command, "Connessione non pronta.");
+            // ⚠️ La connessione si apre QUI DENTRO, non prima del turno: due invii concorrenti aprivano due
+            // socket, e il secondo chiudeva quello che il primo stava usando. Vedi ConnettiAsync.
+            var conn = await ConnettiAsync(ct).ConfigureAwait(false);
+            if (conn is null)
+                return AuroraResponse.Failed(command, $"Aurora non raggiungibile su {_options.Host}:{_options.Port}.");
+
+            // Socket e canale vengono dallo STESSO oggetto: non possono appartenere a connessioni diverse.
+            var stream = conn.Stream;
+            var reader = conn.Lines.Reader;
 
             // Scarta l'eventuale arretrato: appartiene a uno scambio precedente, non a questo.
             while (reader.TryRead(out var stale)) Dispatch(stale, command, out _);
@@ -124,12 +152,12 @@ public sealed class AuroraClient : IAsyncDisposable
                 return AuroraResponse.Failed(command, $"Nessuna risposta a {command} entro {_options.TimeoutMs} ms.");
             }
 
-            await DisconnectAsync().ConfigureAwait(false);
+            await ChiudiAsync().ConfigureAwait(false);
             return AuroraResponse.Failed(command, "Aurora ha chiuso la connessione.");
         }
         catch (IOException ex)
         {
-            await DisconnectAsync().ConfigureAwait(false);
+            await ChiudiAsync().ConfigureAwait(false);
             return AuroraResponse.Failed(command, ex.Message);
         }
         finally
@@ -198,23 +226,26 @@ public sealed class AuroraClient : IAsyncDisposable
         finally { writer.TryComplete(); }
     }
 
-    private async Task DisconnectAsync()
+    /// <summary>
+    /// Chiude la connessione corrente, se c'è. <b>Si chiama col turno in mano</b> (o da
+    /// <see cref="DisposeAsync"/>, dove per contratto non c'è concorrenza): chiudere mentre un altro invio
+    /// sta usando quel socket è esattamente il guasto che il turno esiste per impedire.
+    /// </summary>
+    private async Task ChiudiAsync()
     {
-        try { _readerCts?.Cancel(); } catch { /* già chiuso */ }
-        _readerCts?.Dispose();
-        _readerCts = null;
+        var conn = _conn;
+        _conn = null;
+        if (conn is null) return;
 
-        if (_stream is not null) await _stream.DisposeAsync().ConfigureAwait(false);
-        _stream = null;
-
-        _tcp?.Dispose();
-        _tcp = null;
-        _lines = null;
+        try { conn.ReaderCts.Cancel(); } catch { /* già chiuso */ }
+        conn.ReaderCts.Dispose();
+        await conn.Stream.DisposeAsync().ConfigureAwait(false);
+        conn.Tcp.Dispose();
     }
 
     public async ValueTask DisposeAsync()
     {
-        await DisconnectAsync().ConfigureAwait(false);
+        await ChiudiAsync().ConfigureAwait(false);
         _turn.Dispose();
     }
 }
