@@ -1,0 +1,531 @@
+@page "/services/profile-swapper"
+@layout SopLayout
+@rendermode InteractiveServer
+@using System.IO.Compression
+@inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
+
+@* Aurora Profile Swapper: copia sezioni intere fra profili .cpr. Il motore è Vipi.AuroraProfiles, che di
+   questa pagina non sa nulla — qui c'è solo la conversazione con chi la usa.
+
+   ⚠️ Fuori di qui, nel repo d'origine, questo strumento era WebAssembly e i file non lasciavano il browser.
+   Dentro vIPI è Blazor Server: i profili arrivano al server, si elaborano in MEMORIA e non toccano mai il
+   disco. La frase in cima lo dice, perché prima diceva l'opposto ed era vera per costruzione, non per scelta.
+
+   Conseguenza meno ovvia dello stesso cambio: l'anteprima del diff non è più gratis. In WebAssembly disegnare
+   quattrocento righe per N destinazioni costava lavoro locale; qui è markup che attraversa il circuito, e per
+   questo si ferma a MaxRigheDiff con un «mostra tutte le righe» a richiesta. *@
+
+<PageTitle>@L["Swap_PageTitle"]</PageTitle>
+
+<div class="wrap" style="max-width:1100px">
+    <div class="breadcrumb"><a href="/services">@L["Services_Title"]</a> › <b>@L["Swap_Heading"]</b></div>
+
+    <div class="doc-head">
+        <div>
+            <h2 style="margin-bottom:2px">@L["Swap_Heading"]</h2>
+            <span class="muted">@L["Swap_Intro"]</span>
+        </div>
+    </div>
+
+    <div class="callout info">
+        <span class="cic"><Icon Name="info" Size="18" /></span>
+        <div>@L["Swap_Privacy"]</div>
+    </div>
+
+    <div class="swap-cols">
+        @* ---- Sorgente ---- *@
+        <section class="swap-card">
+            <h4>@L["Swap_SourceTitle"]</h4>
+            <p class="muted swap-hint">@L["Swap_SourceHint"]</p>
+
+            @if (_source is not null)
+            {
+                <div class="swap-file">
+                    <span class="swap-ok"><Icon Name="check-circle" Size="16" /></span>
+                    <div class="swap-file-info">
+                        <span class="swap-file-name">@_sourceName</span>
+                        <span class="muted">@L["Swap_SecCount", _sourceSectionNames.Count]</span>
+                    </div>
+                    <button type="button" class="btn ghost swap-mini" title="@L["Swap_ChangeTitle"]"
+                            @onclick="ResetSource">@L["Swap_Change"]</button>
+                </div>
+            }
+            else
+            {
+                <label class="swap-drop @(_sourceDragOver ? "over" : null)"
+                       @ondragenter="() => _sourceDragOver = true"
+                       @ondragleave="() => _sourceDragOver = false"
+                       @ondrop="() => _sourceDragOver = false">
+                    <InputFile OnChange="LoadSource" accept=".cpr" aria-label="@L["Swap_ChooseAria"]" />
+                    <span class="swap-drop-t">@L["Swap_DropSource"]</span>
+                    <span class="swap-drop-s">@L["Swap_PickFromDisk"]</span>
+                </label>
+            }
+        </section>
+
+        @* ---- Destinazioni ---- *@
+        <section class="swap-card">
+            <div class="swap-card-head">
+                <h4>@L["Swap_DestTitle"]@(_dests.Count > 0 ? $" ({_dests.Count})" : "")</h4>
+                @if (_dests.Count > 1)
+                {
+                    <button type="button" class="btn ghost swap-mini" @onclick="ClearAllDests">@L["Swap_ClearAllDests"]</button>
+                }
+            </div>
+            <p class="muted swap-hint">@L["Swap_DestHint"]</p>
+
+            @if (_dests.Count > 0)
+            {
+                <ul class="swap-dests">
+                    @foreach (var d in _dests)
+                    {
+                        <li class="swap-file" @key="d.Id">
+                            <span class="swap-ok"><Icon Name="check-circle" Size="16" /></span>
+                            <div class="swap-file-info">
+                                <span class="swap-file-name">@d.Name</span>
+                                <span class="muted">@L["Swap_SecCount", d.Profile.SectionNames.Count()]</span>
+                            </div>
+                            <button type="button" class="btn ghost swap-mini" title="@L["Swap_RemoveTitle"]"
+                                    @onclick="@(() => RemoveDest(d.Id))">@L["Swap_Remove"]</button>
+                        </li>
+                    }
+                </ul>
+            }
+
+            @* @key sull'input: senza, Blazor riusa lo stesso <input> e il secondo trascinamento dello stesso
+               file non scatena OnChange — l'elemento ha ancora quel file dentro. Trappola ereditata dalla
+               pagina d'origine, dove era già stata pagata una volta. *@
+            <label class="swap-drop @(_destDragOver ? "over" : null)"
+                   @ondragenter="() => _destDragOver = true"
+                   @ondragleave="() => _destDragOver = false"
+                   @ondrop="() => _destDragOver = false">
+                <InputFile @key="_destInputKey" OnChange="LoadDests" accept=".cpr" multiple
+                           aria-label="@L["Swap_ChooseAria"]" />
+                <span class="swap-drop-t">@L["Swap_DropDest"]</span>
+                <span class="swap-drop-s">@L["Swap_PickFromDisk"]</span>
+            </label>
+        </section>
+    </div>
+
+    @if (_source is not null && _dests.Count > 0)
+    {
+        var avvisi = BuildWarnings();
+        @if (avvisi.Count > 0)
+        {
+            <div class="callout warning">
+                <span class="cic"><Icon Name="warning" Size="18" /></span>
+                <div>
+                    <p class="ct">@L["Swap_WarningsTitle"]</p>
+                    <ul class="swap-warn">
+                        @foreach (var a in avvisi)
+                        {
+                            <li>@a</li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+
+        <div class="section-title"><h3>@L["Swap_SectionsTitle"]</h3><span class="ln"></span></div>
+
+        <div class="swap-tools">
+            <input class="swap-filter" type="search" placeholder="@L["Swap_SearchPh"]"
+                   value="@_sectionFilter" @oninput="OnFilterInput" />
+            <button type="button" class="btn ghost swap-mini" @onclick="SelectAll">@L["Swap_SelectAll"]</button>
+            <button type="button" class="btn ghost swap-mini" @onclick="ClearAll">@L["Swap_ClearAll"]</button>
+            <span class="muted">@L["Swap_SelectedCount", _selected.Count]</span>
+        </div>
+
+        <div class="swap-grid">
+            @foreach (var nome in VisibleSectionNames())
+            {
+                var sezione = _source.FindSection(nome)!;
+                var nuovaOvunque = _dests.All(d => d.Profile.FindSection(nome) is null);
+                var identicaOvunque = IsIdenticalInAll(nome);
+                <label class="swap-sec @(_selected.Contains(nome) ? "on" : null)" title="@nome">
+                    <input type="checkbox" checked="@_selected.Contains(nome)"
+                           @onchange="@(e => Toggle(nome, (bool)e.Value!))" />
+                    <span class="swap-sec-n">@nome</span>
+                    <span class="swap-sec-tags">
+                        @if (nuovaOvunque)
+                        {
+                            <span class="pill blue" title="@L["Swap_BadgeNewTitle"]">@L["Swap_BadgeNew"]</span>
+                        }
+                        else if (identicaOvunque)
+                        {
+                            <span class="pill grey" title="@L["Swap_BadgeSameTitle"]">@L["Swap_BadgeSame"]</span>
+                        }
+                        <span class="muted">@L["Swap_SecMeta", RigheDi(sezione)]</span>
+                    </span>
+                </label>
+            }
+            @if (!VisibleSectionNames().Any())
+            {
+                <span class="muted">@L["Swap_NoMatch"]</span>
+            }
+        </div>
+
+        @if (_selected.Count > 0)
+        {
+            <div class="section-title"><h3>@L["Swap_PreviewTitle"]</h3><span class="ln"></span></div>
+            <p class="muted">@L["Swap_PreviewHint", _dests.Count]</p>
+
+            @foreach (var nome in _sourceSectionNames.Where(_selected.Contains))
+            {
+                var sorgente = _source.FindSection(nome)!;
+                <div class="swap-prev">
+                    <div class="swap-prev-h">[@nome]</div>
+                    @foreach (var d in _dests)
+                    {
+                        var destinazione = d.Profile.FindSection(nome);
+                        var identica = destinazione is not null && destinazione.RawText == sorgente.RawText;
+                        <details class="swap-diff" open="@(_dests.Count == 1)">
+                            <summary>
+                                <span class="swap-file-name">@d.Name</span>
+                                @if (destinazione is null)
+                                {
+                                    <span class="pill blue">@L["Swap_BadgeNew"]</span>
+                                }
+                                else if (identica)
+                                {
+                                    <span class="pill grey">@L["Swap_BadgeSame"]</span>
+                                }
+                            </summary>
+                            @if (identica)
+                            {
+                                <div class="muted swap-diff-same">@L["Swap_IdenticalNoChange"]</div>
+                            }
+                            else
+                            {
+                                var da = destinazione is null ? Array.Empty<string>() : (IEnumerable<string>)destinazione.Lines;
+                                var righe = LineDiff.Diff(da, sorgente.Lines);
+                                var chiave = $"{nome}|{d.Id}";
+                                var tutte = _espansi.Contains(chiave);
+                                var mostrate = tutte ? righe.Count : Math.Min(righe.Count, MaxRigheDiff);
+                                <div class="swap-diff-body">
+                                    @for (var i = 0; i < mostrate; i++)
+                                    {
+                                        var r = righe[i];
+                                        <div class="swap-diff-l @ClasseDiff(r.Kind)">@SegnoDiff(r.Kind)@r.Text</div>
+                                    }
+                                </div>
+                                @if (mostrate < righe.Count)
+                                {
+                                    <div class="swap-diff-more">
+                                        <span class="muted">@L["Swap_DiffTruncated", mostrate, righe.Count]</span>
+                                        <button type="button" class="btn ghost swap-mini"
+                                                @onclick="@(() => _espansi.Add(chiave))">@L["Swap_DiffShowAll"]</button>
+                                    </div>
+                                }
+                            }
+                        </details>
+                    }
+                </div>
+            }
+        }
+
+        <div class="swap-actions">
+            <button type="button" class="btn primary" disabled="@(_selected.Count == 0 || _busy)" @onclick="DoSwap">
+                @if (_busy)
+                {
+                    <span>@L["Swap_Busy"]</span>
+                }
+                else
+                {
+                    <span>@L["Swap_Btn", _dests.Count]</span>
+                }
+            </button>
+            <span class="muted">@L["Swap_OutputInfo", _dests.Count]</span>
+        </div>
+    }
+
+    @if (_status is not null)
+    {
+        <div class="callout @_statusKind">
+            <span class="cic"><Icon Name="@(_statusKind == "danger" ? "octagon" : "check-circle")" Size="18" /></span>
+            <div>
+                @_status
+                @if (_dettagli.Count > 0)
+                {
+                    <ul class="swap-warn">
+                        @foreach (var d in _dettagli)
+                        {
+                            <li>@d</li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    }
+
+    <p class="muted swap-note">@L["Swap_Note"]</p>
+</div>
+
+@code {
+    private sealed class Destinazione
+    {
+        public Guid Id { get; } = Guid.NewGuid();
+        public required CprProfile Profile { get; init; }
+        public required string Name { get; init; }
+    }
+
+    // Un .cpr reale sta sotto i 60 KB: 4 MB è già una misura generosa, e serve a fermare l'errore di
+    // trascinamento (un sectorfile al posto di un profilo) prima che arrivi tutto al server.
+    private const long MaxByteFile = 4 * 1024 * 1024;
+
+    // Oltre questa soglia il diff si taglia: su un circuito Server ogni riga è markup che passa dalla rete.
+    private const int MaxRigheDiff = 200;
+
+    private CprProfile? _source;
+    private string? _sourceName;
+    private List<string> _sourceSectionNames = new();
+    private readonly List<Destinazione> _dests = new();
+
+    private bool _sourceDragOver, _destDragOver, _busy;
+    private int _destInputKey;
+    private string _sectionFilter = "";
+    private readonly HashSet<string> _selected = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _espansi = new(StringComparer.Ordinal);
+
+    private string? _status;
+    private string _statusKind = "success";
+    private readonly List<string> _dettagli = new();
+
+    // --- sezioni ---------------------------------------------------------
+
+    private IEnumerable<string> VisibleSectionNames() =>
+        string.IsNullOrWhiteSpace(_sectionFilter)
+            ? _sourceSectionNames
+            : _sourceSectionNames.Where(n => n.Contains(_sectionFilter, StringComparison.OrdinalIgnoreCase));
+
+    // Righe della sezione senza contare la sua intestazione «[NOME]».
+    private static int RigheDi(CprSection s) => s.Lines.Count - (s.Name is null ? 0 : 1);
+
+    private bool IsIdenticalInAll(string nome)
+    {
+        var src = _source!.FindSection(nome);
+        if (src is null) return false;
+        return _dests.All(d => d.Profile.FindSection(nome) is { } dst && dst.RawText == src.RawText);
+    }
+
+    private static string ClasseDiff(DiffKind k) => k switch
+    {
+        DiffKind.Added => "add",
+        DiffKind.Removed => "del",
+        _ => "eq",
+    };
+
+    private static string SegnoDiff(DiffKind k) => k switch
+    {
+        DiffKind.Added => "+ ",
+        DiffKind.Removed => "- ",
+        _ => "  ",
+    };
+
+    private List<string> BuildWarnings()
+    {
+        var elenco = new List<string>();
+        if (_source is null) return elenco;
+
+        var testoSorgente = _source.Serialize();
+        foreach (var d in _dests)
+        {
+            if (string.Equals(d.Name, _sourceName, StringComparison.OrdinalIgnoreCase))
+                elenco.Add(L["Swap_WarnSameName", d.Name]);
+            if (d.Profile.Serialize() == testoSorgente)
+                elenco.Add(L["Swap_WarnSameContent", d.Name]);
+        }
+
+        foreach (var gruppo in _dests.GroupBy(d => (d.Name, d.Profile.Serialize())).Where(g => g.Count() > 1))
+            elenco.Add(L["Swap_WarnDuplicate", gruppo.Key.Name]);
+
+        return elenco;
+    }
+
+    // --- caricamento -----------------------------------------------------
+
+    private async Task LoadSource(InputFileChangeEventArgs e)
+    {
+        ResetStatus();
+        var file = e.File;
+        try
+        {
+            _source = await LeggiProfilo(file);
+            _sourceName = file.Name;
+            _sourceSectionNames = _source.SectionNames.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            _selected.RemoveWhere(s => !_sourceSectionNames.Contains(s, StringComparer.OrdinalIgnoreCase));
+            _espansi.Clear();
+        }
+        catch (IOException)
+        {
+            SetStatus("danger", L["Swap_ErrTooBig", file.Name, MaxByteFile / (1024 * 1024)]);
+        }
+        catch (Exception ex)
+        {
+            SetStatus("danger", L["Swap_ErrRead", file.Name, ex.Message]);
+        }
+    }
+
+    private async Task LoadDests(InputFileChangeEventArgs e)
+    {
+        ResetStatus();
+        foreach (var file in e.GetMultipleFiles(maximumFileCount: 50))
+        {
+            try
+            {
+                _dests.Add(new Destinazione { Profile = await LeggiProfilo(file), Name = file.Name });
+            }
+            catch (IOException)
+            {
+                SetStatus("danger", L["Swap_ErrTooBig", file.Name, MaxByteFile / (1024 * 1024)]);
+            }
+            catch (Exception ex)
+            {
+                SetStatus("danger", L["Swap_ErrRead", file.Name, ex.Message]);
+            }
+        }
+        _destInputKey++;
+        _espansi.Clear();
+    }
+
+    private static async Task<CprProfile> LeggiProfilo(IBrowserFile file)
+    {
+        await using var stream = file.OpenReadStream(MaxByteFile);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        return CprProfile.Load(ms.ToArray());
+    }
+
+    private void ResetSource()
+    {
+        ResetStatus();
+        _source = null;
+        _sourceName = null;
+        _sourceSectionNames.Clear();
+        _selected.Clear();
+        _espansi.Clear();
+        _sectionFilter = "";
+    }
+
+    private void RemoveDest(Guid id)
+    {
+        ResetStatus();
+        _dests.RemoveAll(d => d.Id == id);
+        _destInputKey++;
+        _espansi.Clear();
+    }
+
+    private void ClearAllDests()
+    {
+        ResetStatus();
+        _dests.Clear();
+        _destInputKey++;
+        _espansi.Clear();
+    }
+
+    private void OnFilterInput(ChangeEventArgs e) => _sectionFilter = e.Value?.ToString() ?? "";
+
+    private void Toggle(string nome, bool acceso)
+    {
+        if (acceso) _selected.Add(nome); else _selected.Remove(nome);
+    }
+
+    // Seleziona quelle VISIBILI: con un filtro attivo, «seleziona tutto» che prendesse anche le nascoste
+    // sarebbe una copia a sorpresa.
+    private void SelectAll()
+    {
+        foreach (var n in VisibleSectionNames()) _selected.Add(n);
+    }
+
+    private void ClearAll() => _selected.Clear();
+
+    // --- la copia --------------------------------------------------------
+
+    private async Task DoSwap()
+    {
+        ResetStatus();
+        if (_source is null || _dests.Count == 0 || _selected.Count == 0) return;
+
+        var nomi = _sourceSectionNames.Where(_selected.Contains).ToList();
+
+        _busy = true;
+        try
+        {
+            var usati = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var aggiunteInFondo = 0;
+            using var zipMs = new MemoryStream();
+
+            using (var zip = new ZipArchive(zipMs, ZipArchiveMode.Create, leaveOpen: true))
+            {
+                foreach (var d in _dests)
+                {
+                    var risultato = ProfileSwapper.SwapSections(d.Profile, _source, nomi, out var esiti);
+
+                    // Due destinazioni possono chiamarsi uguale: senza questo, la seconda voce dello zip
+                    // sovrascriverebbe la prima e si scaricherebbe un file in meno di quelli caricati.
+                    var voce = NomeVoceUnico(d.Name, usati);
+                    var entry = zip.CreateEntry(voce, CompressionLevel.Optimal);
+                    await using (var es = entry.Open())
+                    {
+                        var bytes = risultato.ToBytes();
+                        await es.WriteAsync(bytes, 0, bytes.Length);
+                    }
+
+                    var sostituite = esiti.Count(o => o.WasReplaced);
+                    var appese = esiti.Count - sostituite;
+                    aggiunteInFondo += appese;
+                    _dettagli.Add(L["Swap_Detail", voce, esiti.Count, sostituite, appese]);
+                }
+            }
+
+            var nomeZip = $"profili-aggiornati-{DateTime.Now:yyyyMMdd-HHmmss}.zip";
+            zipMs.Position = 0;
+            using var streamRef = new DotNetStreamReference(zipMs, leaveOpen: true);
+            await JS.InvokeVoidAsync("vipiScaricaFile", nomeZip, streamRef);
+
+            // Giallo se qualcosa è stato APPESO invece che sostituito: è il caso in cui il profilo di
+            // destinazione non aveva quella sezione, e chi copia farebbe bene a saperlo prima di volare.
+            SetStatus(aggiunteInFondo > 0 ? "warning" : "success",
+                      L["Swap_Done", nomi.Count, _dests.Count, nomeZip]);
+        }
+        catch (SectionNotFoundException ex)
+        {
+            SetStatus("danger", L["Swap_ErrSectionMissing", ex.SectionName]);
+        }
+        catch (Exception ex)
+        {
+            SetStatus("danger", L["Swap_ErrSwap", ex.Message]);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // Nome di voce zip non ripetuto: « (2)», « (3)»… come farebbe un gestore file.
+    private static string NomeVoceUnico(string nome, HashSet<string> usati)
+    {
+        if (usati.Add(nome)) return nome;
+        var est = Path.GetExtension(nome);
+        var radice = Path.GetFileNameWithoutExtension(nome);
+        for (var i = 2; ; i++)
+        {
+            var tentativo = $"{radice} ({i}){est}";
+            if (usati.Add(tentativo)) return tentativo;
+        }
+    }
+
+    private void SetStatus(string tipo, string messaggio)
+    {
+        _statusKind = tipo;
+        _status = messaggio;
+    }
+
+    private void ResetStatus()
+    {
+        _status = null;
+        _statusKind = "success";
+        _dettagli.Clear();
+    }
+}

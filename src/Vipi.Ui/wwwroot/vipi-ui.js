@@ -647,3 +647,20 @@
         window.vipiWireUi();
     });
 })();
+
+// Consegna un file al browser a partire da uno stream .NET (Aurora Profile Swapper).
+// Perche' non base64: lo zip dei profili aggiornati passerebbe come UNA stringa dentro un messaggio di
+// interoperabilita', gonfiata di un terzo e tenuta in memoria tre volte (stringa, decodifica, blob). Con
+// DotNetStreamReference i byte arrivano come sono. L'URL si revoca, o il blob resta appeso alla pagina
+// finche' non si cambia scheda.
+window.vipiScaricaFile = async function (nome, streamRef) {
+    const buffer = await streamRef.arrayBuffer();
+    const url = URL.createObjectURL(new Blob([buffer], { type: 'application/zip' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nome;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+};

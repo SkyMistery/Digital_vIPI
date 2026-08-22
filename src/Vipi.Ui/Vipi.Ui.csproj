@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Vipi.Application\Vipi.Application.csproj" />
+    <ProjectReference Include="..\Vipi.AuroraProfiles\Vipi.AuroraProfiles.csproj" />
     <ProjectReference Include="..\Vipi.Domain\Vipi.Domain.csproj" />
   </ItemGroup>
 

@@ -763,6 +763,9 @@
       "vipi.aurorabridge.contracts": {
         "type": "Project"
       },
+      "vipi.auroraprofiles": {
+        "type": "Project"
+      },
       "vipi.domain": {
         "type": "Project"
       },
@@ -815,6 +818,7 @@
           "Microsoft.AspNetCore.Components.Web": "[8.0.*, )",
           "Microsoft.Extensions.Localization.Abstractions": "[8.0.*, )",
           "Vipi.Application": "[1.0.0, )",
+          "Vipi.AuroraProfiles": "[1.0.0, )",
           "Vipi.Domain": "[1.0.0, )"
         }
       }
