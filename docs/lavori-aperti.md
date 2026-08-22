@@ -1,6 +1,6 @@
 # Lavori aperti — elenco unico
 
-**Aggiornato:** 22 agosto 2026 (sera, dopo `coordinamenti-lettura`) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+**Aggiornato:** 22 agosto 2026 (sera, dopo il merge di `coordinamenti-lettura`) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -28,9 +28,8 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 > ⚠️ Cancellandoli è saltata fuori una cosa: **`refactor/13-tre-documenti` (B5) non aspettava nessun ok**, era
 > in `main` dal 15 agosto, portato dentro dal merge dei trasferimenti. Vedi B5.
 >
-> ⚠️ La frase ha vacillato per mezza giornata — la sera del 22 agosto è nato `catalogo-punti-suggerimenti` —
-> ed è tornata vera quando quel ramo è stato **fuso e cancellato** (vedi **B7**). ⚠️ **Adesso è di nuovo falsa**:
-> `coordinamenti-lettura` è aperto e ha dentro lavoro finito che aspetta l'ok al merge (vedi **B8**).
+> ⚠️ La frase ha vacillato due volte nella stessa giornata — `catalogo-punti-suggerimenti` (**B7**) e
+> `coordinamenti-lettura` (**B8**) — ed è di nuovo vera: **tutti e due fusi e cancellati**, locale e origin.
 > Carte: [servizi ATC](feature/2026-08-22-servizi-atc-e-profile-swapper.md),
 > [brand](feature/2026-08-22-brand-atmosphere.md), [topbar misurata](feature/2026-08-22-topbar-misurata.md).
 >
@@ -466,10 +465,10 @@ flusso funziona senza, in modalità client pubblico con PKCE (verificato il 5 ag
 
 ## B. Branch non fusi — decisioni, non lavoro
 
-### B8 🟢 DA FONDERE — `coordinamenti-lettura`, aperto il 22 agosto 2026
+### B8 ✅ FUSO — `coordinamenti-lettura`, fuso in `main` il 22 agosto 2026
 
-Quattro commit, spinto su `origin`, **non fuso**: come tutti i rami di quest'area aspetta un ok esplicito.
-Lavoro **finito e verificato**, non a metà.
+Cinque commit più il merge `1d74246`, ramo cancellato (locale e origin). Nessun conflitto: il ramo era nato
+dopo l'ultimo merge e nessun altro ha toccato quei file.
 
 Contenuto e decisioni: [`feature/2026-08-22-coordinamenti-lettura.md`](feature/2026-08-22-coordinamenti-lettura.md).
 In breve, la **lettura** della sezione Coordinamenti: la prosa nasce chiusa in un blocco per tabella, con
@@ -478,8 +477,13 @@ un documento ACC si stringono (`10345 → 8423 px` sul blocco Aerovia di LIBB, *
 ICAO (`Greece-LGGG`); e dentro un settore gli ACC si ordinano per **distanza da chi legge** — casa, italiani,
 esteri — invece che per alfabeto.
 
-Suite **1 695** verde su net8, `Release --no-incremental` **0 avvisi** su due TFM, verifica live guidata con
-Edge sulla bozza LIBB.
+Suite **1 695** verde su net8 **anche dopo il merge**, `Release --no-incremental` **0 avvisi** su due TFM,
+verifica live guidata con Edge sulla bozza LIBB.
+
+⚠️ **`dotnet test --artifacts-path` non si usa alla leggera**: sposta l'output, e i progetti che leggono
+**fixture accanto all'assembly** ne scoprono di meno — `Vipi.AuroraProfiles.Tests` è passata da 63 casi a 13,
+con 11 rossi che sembravano una regressione del merge e non lo erano. Serve solo dove i `bin` sono davvero
+bloccati (il progetto E2E, che referenzia `Vipi.Host`); gli altri si lanciano normalmente.
 
 **Non tocca la coda del cutover:** nessuna entità nuova, **nessuna migrazione**. L'unico cambio di forma è la
 sostituzione di `GetSectorAccNameMapAsync` con `GetSectorAccRefMapAsync` (→ `AccRef`), propagata nello stesso
@@ -492,7 +496,7 @@ né LIRR, né LIMM hanno in bozza un coordinamento interno alla propria ACC): è
 **non** dallo schermo.
 
 ### B7 ✅ FUSO — `catalogo-punti-suggerimenti`, fuso in `main` la sera del 22 agosto 2026
-Sette commit più il merge `2b4480d`, ramo cancellato (locale e origin). (Lo era fino a `coordinamenti-lettura`, **B8**.)
+Sette commit più il merge `2b4480d`, ramo cancellato (locale e origin).
 Suite **1 677** verde su net8, `Release --no-incremental` **0 avvisi**, verifica live guidata con Edge su
 editor aeroporto (LIBD, LIRF), accordi (LIBB) e sorgenti.
 
