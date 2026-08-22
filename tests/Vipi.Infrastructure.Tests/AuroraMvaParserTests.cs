@@ -159,6 +159,20 @@ public class AuroraMvaParserTests
     }
 
     [Fact]
+    public void Without_Hemisphere_The_Sign_Says_The_Hemisphere()
+    {
+        // Convenzione standard: latitudine + = N / − = S, longitudine + = E / − = W. È la stessa uscita della
+        // forma con la lettera, dove S e W sono già negativi — così a valle le tre forme sono indistinguibili.
+        var plain = AuroraSectorfileParser.ParseMva("L;X;-45.5;-10.25;60;8;\n");
+        var lettered = AuroraSectorfileParser.ParseMva("L;X;S045.30.00.000;W010.15.00.000;60;8;\n");
+
+        Assert.Equal(-45.5, plain.Labels[0].Lat, 5);
+        Assert.Equal(-10.25, plain.Labels[0].Lon, 5);
+        Assert.Equal(lettered.Labels[0].Lat, plain.Labels[0].Lat, 5);
+        Assert.Equal(lettered.Labels[0].Lon, plain.Labels[0].Lon, 5);
+    }
+
+    [Fact]
     public void Single_Point_Blocks_Are_Dropped()
     {
         // Un vertice solo non è né linea né area: non c'è niente da disegnare.

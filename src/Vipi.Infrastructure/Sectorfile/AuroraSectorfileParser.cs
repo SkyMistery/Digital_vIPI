@@ -213,6 +213,11 @@ public static class AuroraSectorfileParser
     /// Coordinata di un file <c>.mva</c>: le due forme DMS di <see cref="TryParseDms"/> più i <b>gradi decimali
     /// puri</b> senza emisfero (<c>45.55756591</c>), che nel sectorfile compaiono in una riga sola —
     /// <c>lipx.mva</c> riga 14. È un'anomalia del dato, ma scartarla farebbe sparire un'etichetta in silenzio.
+    /// <para>
+    /// Senza la lettera, l'emisfero lo dice il <b>segno</b>, con la convenzione standard: sulla latitudine
+    /// <c>+</c> = N e <c>-</c> = S, sulla longitudine <c>+</c> = E e <c>-</c> = W. È la stessa uscita che dà la
+    /// forma con la lettera (dove <c>S</c> e <c>W</c> diventano negativi), quindi a valle non c'è differenza.
+    /// </para>
     /// </summary>
     /// <remarks>Il ripiego vive qui e NON in <see cref="TryParseDms"/>: <see cref="ParseTowerShapes"/> usa il
     /// rifiuto di quel metodo per distinguere un vertice da un'intestazione di blocco, e accettare numeri nudi
