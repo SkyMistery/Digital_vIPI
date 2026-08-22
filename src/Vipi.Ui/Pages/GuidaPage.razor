@@ -813,11 +813,13 @@
                 <li>Le <b>aree regolamentate</b> fanno eccezione: non sono modificabili da nessuna pagina,
                     quindi escluderle non le rende manuali ma le <b>congela</b> — restano quelle già in
                     archivio. Serve quando la sorgente restituisce dati sbagliati.</li>
-                <li><b>Transition Altitude</b> e <b>Piste</b> non hanno un giro automatico: arrivano solo
-                    quando qualcuno le chiede, dal <b>reimport</b> nell''editor aeroporto o generando il
-                    documento. Le altre girano da sole ogni giorno.</li>
-                <li>L''<b>anagrafica ACC</b> è sempre di sorgente e non ha una spunta: è l''elenco su cui tutto
-                    il resto si appoggia.</li>
+                <li>Le cinque categorie girano da sole <b>ogni giorno</b>. Il giro non rigenera i documenti:
+                    import e generazione sono scollegati, quindi il dato nuovo si vede sul sito al prossimo
+                    <b>Genera documenti</b> — e i bottoni «Reimporta» restano dove sono sempre stati.</li>
+                <li>Le <b>due anagrafiche</b> non hanno una spunta perché sono sempre di sorgente. Quella
+                    <b>ACC</b> gira ogni giorno ed è l''elenco su cui tutto il resto si appoggia; quella
+                    <b>aeroporti</b> resta <b>su richiesta</b>: assegnare uno scalo nuovo alla sua ACC crea
+                    roba, e chi lo fa deve saperlo — si lancia da <b>Aeroporti</b>.</li>
                 <li>La colonna <b>Ultimo aggiornamento</b> dice com''è andato l''ultimo giro e quando è atteso
                     il prossimo. <b>Ferma</b> significa che sono passati più di due giri dall''ultimo successo;
                     <b>errore</b> mostra il messaggio della sorgente. Una categoria <b>esclusa</b> non è né
@@ -838,11 +840,13 @@
                 <li><b>Regulated areas</b> are the exception: no page can edit them, so excluding them does not
                     make them manual but <b>freezes</b> them — the ones already stored are kept. Useful when the
                     source returns bad data.</li>
-                <li><b>Transition Altitude</b> and <b>Runways</b> have no automatic run: they only arrive when
-                    someone asks, from the <b>re-import</b> in the airport editor or by generating the document.
-                    The others run daily on their own.</li>
-                <li>The <b>ACC directory</b> is always from the source and has no checkbox: it is the list
-                    everything else leans on.</li>
+                <li>All five categories run <b>daily</b> on their own. The run does not rebuild documents:
+                    import and generation are decoupled, so new data shows up on the site at the next
+                    <b>Generate documents</b> — and the «Re-import» buttons stay where they have always been.</li>
+                <li>The <b>two directories</b> have no checkbox because they are always from the source. The
+                    <b>ACC</b> one runs daily and is the list everything else leans on; the <b>airports</b> one
+                    stays <b>on demand</b>: assigning a new airport to its ACC creates things, and whoever does
+                    it must know — it is launched from <b>Airports</b>.</li>
                 <li>The <b>Last update</b> column says how the last run went and when the next one is due.
                     <b>Stalled</b> means more than two runs have passed since the last success; <b>error</b>
                     shows the source's message. An <b>excluded</b> category is neither green nor red: it is not

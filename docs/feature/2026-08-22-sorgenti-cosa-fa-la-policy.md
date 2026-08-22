@@ -1,4 +1,4 @@
-# Sorgenti — cosa promette la policy e cosa fanno davvero gli import (carta, 22 agosto 2026)
+﻿# Sorgenti — cosa promette la policy e cosa fanno davvero gli import (carta, 22 agosto 2026)
 
 > Ramo `ui-trasferimenti-densita`, pagina `/services/vsop/admin/sources`. Prima carta del giro: **la sostanza**.
 > La forma sta nella gemella [`2026-08-22-sorgenti-densita-ui.md`](2026-08-22-sorgenti-densita-ui.md).
@@ -78,6 +78,12 @@ periodici» è una riga che mente. E le categorie sono scritte col nome in codic
 tabella sopra le chiama «Settori»: **due vocabolari per le stesse cinque cose, nella stessa schermata**.
 
 ### S6 — TA e Piste non hanno un import periodico, e la pagina non lo dice
+
+> ⚠️ **Superato lo stesso giorno.** Questa slice si è limitata a *dichiarare* «su richiesta», che era
+> la verità del momento. La domanda successiva — «non sarebbe meglio ogni 24 ore?» — è stata risposta
+> in [`2026-08-22-sorgenti-giro-automatico-ta-piste.md`](2026-08-22-sorgenti-giro-automatico-ta-piste.md):
+> TA e Piste hanno ora il loro giro giornaliero (`AirportData`), e la riga mancante dell'anagrafica
+> **aeroporti** — che qui non era stata vista — è stata aggiunta lì.
 
 Le tre righe di stato reali sono `Acc`, `AirportSector`, `SpecialArea`, `Sid`. TA e Piste arrivano **solo su
 richiesta** (reimport nell'editor aeroporto, generazione documento): non c'è nessun giro automatico, e la

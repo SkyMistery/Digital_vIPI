@@ -1555,3 +1555,47 @@ scatta **chi chiama** — è lui a sapere quali righe stava mostrando, e farla s
 fidarsi che le due cose coincidano. Meno superficie e una garanzia in più.
 
 Suite **2403** verde su entrambi i TFM (nove test nuovi nel repository), `Release --no-incremental` **0 warning**.
+
+## Feature: TA e piste smettono di aspettare che qualcuno prema un bottone (22 ago 2026)
+
+**Carta**: [`feature/2026-08-22-sorgenti-giro-automatico-ta-piste.md`](../feature/2026-08-22-sorgenti-giro-automatico-ta-piste.md).
+Seguito diretto di [`sorgenti-cosa-fa-la-policy`](../feature/2026-08-22-sorgenti-cosa-fa-la-policy.md), di cui
+**ribalta la slice 6**: quella si era limitata a *dichiarare* «su richiesta», che era la verità del momento.
+
+Delle sei righe di `/services/vsop/admin/sources`, quattro giravano da sole ogni giorno e due no: Transition
+Altitude e Piste arrivavano **solo** dal reimport nell'editor aeroporto, dal massivo su
+`/services/vsop/admin/airports` o da «Genera documenti». Una TA cambiata in AIRAC poteva restare vecchia a
+tempo indefinito, e la pill «su richiesta» era vera e inutile — non diceva **quanto** fosse vecchio il dato.
+
+**Misurato prima di decidere**, sul `vipi.db` reale: 92 aeroporti, 21 senza TA, 210 piste. Un giro costa **1**
+chiamata per la TA (anagrafica paginata, già in cache di processo) più **una per aeroporto** per le piste: il
+giro dei Settori ne fa già `1 + N_postazioni` per ognuno dei 92, quindi l'aggiunta è **+15/20%** su un giro
+che esiste, una volta al giorno.
+
+`AirportDataImportUseCase` passa per lo **stesso** `SourceMergeInputs` + `MergeFromSourceAsync` del bottone:
+nessun secondo percorso, quindi nessun modo per l'automatico e il manuale di divergere sulla policy. Con
+entrambe le categorie escluse si esce **prima** della fetch, come già fanno Settori e Aree. Un fallimento
+per-aeroporto si annota e il giro prosegue; se falliscono **tutti**, l'eccezione risale **col suo tipo** —
+altrimenti `GatedImportLoop` marcherebbe il successo e la pagina mostrerebbe verde e data di oggi per un giro
+che non ha importato niente, che è il difetto chiuso il 22 agosto, spostato di una cella.
+
+**Una chiave di stato sola** (`AirportData`) per due categorie, e regge perché il gate della policy sta nel
+merge: la riga esclusa dice «Esclusa» da sé, e ciò che resta — ultimo successo, errore della sorgente — è per
+definizione comune, perché è lo stesso giro sugli stessi aeroporti.
+
+Nello stesso giro, **due cose che la pagina non elencava**:
+
+- l'**anagrafica aeroporti** — l'unico modo in cui uno scalo nuovo della divisione entra nel sito — non
+  compariva affatto. Ora è una riga «su richiesta» col link: automatica non diventa, perché crea entità e
+  resta un atto di una persona;
+- le **shape TWR da GitHub** e il **cerchio sintetico di 5 NM** girano dentro il giro Settori da sempre, da
+  una sorgente diversa da IVAO, e la descrizione parlava solo di callsign e frequenze.
+
+⚠️ L'anagrafica non si riconosce più dal fatto che la categoria sia `null`: c'è `ImportAnagrafica`, perché con
+**due** anagrafiche il ramo di scarto dei tre `switch` della pagina avrebbe chiamato «ACC» anche gli
+aeroporti, in silenzio e senza che nessun test se ne accorgesse. E i tre `switch` diventano **uno**
+(`ImportCategoryLabels.Riga`): aggiungere una riga adesso è aggiungere un caso.
+
+Cadenza in `Ivao:AirportDataImportHours` (default 24). Il giro **non** rigenera i documenti: import e
+generazione restano scollegati (doc 03 §4.3), quindi il dato nuovo entra nel sito al prossimo «Genera
+documenti».
