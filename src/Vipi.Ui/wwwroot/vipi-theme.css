@@ -1395,7 +1395,14 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
 .sid-search input{border:0;outline:0;flex:1;font-family:var(--font-body);font-size:13.5px;background:transparent}
 .pref-tag{font-size:10px;font-weight:700;background:var(--tint-yellow);color:var(--warn-ink);border-radius:10px;padding:1px 7px;margin-left:6px;font-family:var(--font-head);vertical-align:middle}
 /* aeroporto: quote transizione (sx) + frequenze (dx) affiancate */
-.apt-2col{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+/* ⚠️ `minmax(0,1fr)` e `min-width:0`, non `1fr` nudo: con `1fr` il minimo della colonna e' il MIN-CONTENT
+   del blocco che ci sta dentro, quindi le due colonne non scendono sotto il titolo piu' lungo e la tabella
+   frequenze — misurato a zoom 1.4 su LIBD: 230+375+20 = 626 unita' pretese dentro 547, e la riga sfondava.
+   Azzerato il minimo, le colonne cedono e la tabella scorre dentro la sua `.cb-body` (regola in fondo al
+   foglio). Sopra i 900 le colonne restano larghe come prima: il minimo automatico non era mai quello che
+   decideva la larghezza, solo il pavimento. */
+.apt-2col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
+.apt-2col>*{min-width:0}
 .apt-2col .block{margin-bottom:0}
 @media(max-width:820px){.apt-2col{grid-template-columns:1fr}}
 /* editor: dato unico -> due viste */
@@ -3095,6 +3102,27 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .topbar.tb-4 .tb-menu-tema button:hover{background:rgba(255,255,255,.18);color:var(--on-brand)}
 .topbar.tb-4 .tb-menu-tema button.on{background:var(--on-brand);color:var(--ivao-blue);font-weight:700}
 
+/* ---- Una tabella del viewer scorre DENTRO il suo blocco, a QUALUNQUE larghezza ----
+   ⚠️ Misurato il 22 agosto sul viewer aeroporto (LIBD): finestra 1280 con zoom 1.4 — cioe' **914 unita' di
+   layout** — la pagina sforava di 35 unita' (48px a schermo). Il colpevole NON era `.sid-table`, che sta
+   gia' in un `div` che scorre: era `.rwy-table`, che non dichiara nessun minimo e ne pretende **570** per il
+   suo contenuto, dentro una `.cb-body` che ne ha 497.
+   ⚠️ E il rimedio non poteva essere abbassare o alzare la soglia dei 900: lo zoom di questa applicazione e'
+   `zoom` sul `<html>` (`vipi-zoom.js`), e **le media query non lo vedono** — misurano la finestra (1280)
+   mentre il layout ne ha 914. E' la stessa malattia della topbar, e la cura e' la stessa: **togliere la
+   soglia**. Il contenitore diretto di una tabella scorre sempre; quando la tabella ci sta — cioe' quasi
+   sempre — non cambia niente e non compare nessuna barra.
+   ⚠️ `min-width:0` insieme all'overflow: se quel contenitore e' una cella di griglia (`.apt-2col`), senza
+   azzerare il minimo automatico si allarga sul contenuto e la barra non compare mai.
+   ⚠️ Fuori dagli scroller degli editor (`.st-scroll`): la' la tabella sta gia' in un contenitore che scorre,
+   e due barre annidate sono peggio di una pagina che scorre. */
+.wrap *:has(> table):not(.st-scroll){overflow-x:auto;min-width:0}
+/* Stessa ragione, altro pavimento: il minimo di un titolo e' la sua PAROLA piu' lunga, che in unita' di
+   layout non si accorcia mai — a zoom 1.8 «Livelli di transizione» ne pretende 177 in una colonna che ne ha
+   82, e la riga a due colonne tornava a sfondare. `anywhere` spezza SOLO quando altrimenti si sfora: a
+   larghezza piena non si vede. Stava dentro la media query a 900, dove lo zoom non arriva. */
+.wrap .acc-block-h,.wrap h2,.wrap h3{overflow-wrap:anywhere}
+
 /* ---- Telefono e tablet verticale: una tabella larga scorre DENTRO di se' ----
    ⚠️ Misurato: a 390px il `.wrap` del viewer aeroporto pretendeva 894px, e il colpevole non era l'indice
    laterale (che si adeguava) ma le TABELLE. Due cause diverse, e la prima cura ne ha coperta una sola:
@@ -3117,8 +3145,9 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
   /* ⚠️ Dentro gli scroller degli editor si RIPRISTINA: la' la tabella sta gia' in un contenitore che scorre,
      e due barre annidate sono peggio di una pagina che scorre (regola 15). */
   .st-scroll table,.ed-layout .st-scroll table{display:table;overflow-x:visible}
-  /* Un titolo lungo va a capo invece di allargare la card: «Settori di aerovia» pretendeva 411px su 390. */
-  .wrap .acc-block-h,.wrap h2,.wrap h3{overflow-wrap:anywhere}
+  /* Un titolo lungo va a capo invece di allargare la card: «Settori di aerovia» pretendeva 411px su 390.
+     ⚠️ Spostata FUORI da questa media query (vedi sopra): serviva anche a larghezza piena con lo zoom alto,
+     dove una `@media` non arriva. Qui resta solo il ricordo del perche' nacque. */
   /* ⚠️ E i risultati di ricerca: gli estratti riportano testo del documento, dove capitano sequenze senza
      spazi (coordinate, elenchi di fix) che con `overflow-wrap` normale NON si spezzano e allargano tutto.
      Misurato: `/services/vsop/search` senza risultati stava in 375, con i risultati saltava a 569 — e nell'elenco di
