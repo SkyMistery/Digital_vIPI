@@ -1,6 +1,6 @@
 # Lavori aperti — elenco unico
 
-**Aggiornato:** 22 agosto 2026 (sera) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+**Aggiornato:** 22 agosto 2026 (sera, dopo `coordinamenti-lettura`) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -29,7 +29,8 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 > in `main` dal 15 agosto, portato dentro dal merge dei trasferimenti. Vedi B5.
 >
 > ⚠️ La frase ha vacillato per mezza giornata — la sera del 22 agosto è nato `catalogo-punti-suggerimenti` —
-> ma è di nuovo vera: quel ramo è **fuso e cancellato** (vedi **B7**).
+> ed è tornata vera quando quel ramo è stato **fuso e cancellato** (vedi **B7**). ⚠️ **Adesso è di nuovo falsa**:
+> `coordinamenti-lettura` è aperto e ha dentro lavoro finito che aspetta l'ok al merge (vedi **B8**).
 > Carte: [servizi ATC](feature/2026-08-22-servizi-atc-e-profile-swapper.md),
 > [brand](feature/2026-08-22-brand-atmosphere.md), [topbar misurata](feature/2026-08-22-topbar-misurata.md).
 >
@@ -465,8 +466,33 @@ flusso funziona senza, in modalità client pubblico con PKCE (verificato il 5 ag
 
 ## B. Branch non fusi — decisioni, non lavoro
 
+### B8 🟢 DA FONDERE — `coordinamenti-lettura`, aperto il 22 agosto 2026
+
+Quattro commit, spinto su `origin`, **non fuso**: come tutti i rami di quest'area aspetta un ok esplicito.
+Lavoro **finito e verificato**, non a metà.
+
+Contenuto e decisioni: [`feature/2026-08-22-coordinamenti-lettura.md`](feature/2026-08-22-coordinamenti-lettura.md).
+In breve, la **lettura** della sezione Coordinamenti: la prosa nasce chiusa in un blocco per tabella, con
+l'invito ad aprirla sulla stessa riga del titolo («Arrivi · Testo esteso (2 frasi)»); le decine di tabelle di
+un documento ACC si stringono (`10345 → 8423 px` sul blocco Aerovia di LIBB, **−18,6%**); la FIR porta il suo
+ICAO (`Greece-LGGG`); e dentro un settore gli ACC si ordinano per **distanza da chi legge** — casa, italiani,
+esteri — invece che per alfabeto.
+
+Suite **1 695** verde su net8, `Release --no-incremental` **0 avvisi** su due TFM, verifica live guidata con
+Edge sulla bozza LIBB.
+
+**Non tocca la coda del cutover:** nessuna entità nuova, **nessuna migrazione**. L'unico cambio di forma è la
+sostituzione di `GetSectorAccNameMapAsync` con `GetSectorAccRefMapAsync` (→ `AccRef`), propagata nello stesso
+giro ai due chiamanti (vIPI ACC e vLOA) — nessuno resta indietro.
+
+⚠️ **Due cose da sapere prima di fondere.** I punti «ICAO» e «ordine» cambiano il **derivato**, e le pagine
+pubbliche leggono lo snapshot congelato: sui documenti già pubblicati compaiono alla **prossima release**, non
+al merge. E lo scaglione **«casa»** dell'ordinamento non è riproducibile sui dati di sviluppo di oggi (né LIBB,
+né LIRR, né LIMM hanno in bozza un coordinamento interno alla propria ACC): è coperto da due test unitari,
+**non** dallo schermo.
+
 ### B7 ✅ FUSO — `catalogo-punti-suggerimenti`, fuso in `main` la sera del 22 agosto 2026
-Sette commit più il merge `2b4480d`, ramo cancellato (locale e origin). **Non resta nessun ramo con lavoro fuori.**
+Sette commit più il merge `2b4480d`, ramo cancellato (locale e origin). (Lo era fino a `coordinamenti-lettura`, **B8**.)
 Suite **1 677** verde su net8, `Release --no-incremental` **0 avvisi**, verifica live guidata con Edge su
 editor aeroporto (LIBD, LIRF), accordi (LIBB) e sorgenti.
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Vipi.Application.Abstractions;
 using Vipi.Domain;
 
 namespace Vipi.Application.Content;
@@ -170,7 +171,7 @@ public static class CoordinationDerivation
         IReadOnlyDictionary<string, string> codeMap,
         IReadOnlyDictionary<string, string> atcMap,
         IReadOnlyDictionary<string, string> airportMap,
-        IReadOnlyDictionary<string, string> accNameMap,
+        IReadOnlyDictionary<string, AccRef> accRefMap,
         Func<TransferFlowKind, string> kindLabel)
     {
         // Etichetta breve del settore (es. «NE»): codice (MiddleIdentifier), poi nome IVAO, poi callsign.
@@ -186,17 +187,44 @@ public static class CoordinationDerivation
             : (airportMap.TryGetValue(icao!, out var n) ? $"{n} {icao}" : icao!);
 
         // ACC del nodo = quello del counterpart (ricevente per gli uscenti, CTR vicino per gli entranti).
-        string AccOf(CoordinationEntry e) => accNameMap.GetValueOrDefault(e.CounterpartCallsign, "ACC");
+        AccRef? AccOf(CoordinationEntry e) => accRefMap.GetValueOrDefault(e.CounterpartCallsign);
+
+        // «Greece-LGGG»: il nome della FIR e il codice con cui la si chiama in radio e nei piani di volo. Il nome
+        // da solo non basta a chi legge — «Beograd» e «Zagreb» sono LYBA e LDZO solo per chi le ha già in testa —
+        // e il codice da solo perde la lingua del documento. I nomi sono quelli della sorgente IVAO (inglesi):
+        // tradurli qui vorrebbe dire una tabella di nomi FIR che il progetto non ha.
+        static string AccLabel(AccRef? a) =>
+            a is null ? "ACC" : string.IsNullOrWhiteSpace(a.Code) ? a.Name : $"{a.Name}-{a.Code}";
+
+        // L'ordine degli ACC dentro un settore NON è alfabetico: è la distanza da chi legge.
+        //   0 = casa    — l'altro capo sta nella nostra stessa ACC (fra settori confinanti dello stesso centro:
+        //                 è il coordinamento che si usa a ogni volo, e alfabeticamente finiva in mezzo agli altri);
+        //   1 = Italia  — le altre ACC della divisione, alfabetiche fra loro;
+        //   2 = estero  — alfabetiche fra loro.
+        // `IsForeign` è il flag di dominio (lo mette l'import confinanti), non il prefisso del codice: un ACC
+        // italiano che l'import materializzasse col prefisso sbagliato resterebbe comunque di casa.
+        static int AccRank(AccRef? a, AccRef? ours) =>
+            a is null ? 3
+            : ours is not null && string.Equals(a.Code, ours.Code, StringComparison.OrdinalIgnoreCase) ? 0
+            : a.IsForeign ? 2 : 1;
+
         static bool IsAirportKind(TransferFlowKind k) => k is TransferFlowKind.Arrival or TransferFlowKind.Departure;
 
         return entries.GroupBy(e => e.OurSectorCallsign, StringComparer.OrdinalIgnoreCase)
             .OrderBy(sg => SectorLabel(sg.Key), StringComparer.OrdinalIgnoreCase)
-            .Select(sg => new AccSectorApps(
+            .Select(sg =>
+            {
+                // La nostra ACC, letta dal settore del blocco: è il metro dello scaglione «casa».
+                var ours = accRefMap.GetValueOrDefault(sg.Key);
+                return new AccSectorApps(
                 SectorLabel(sg.Key),
-                sg.GroupBy(AccOf, StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(ag => ag.Key, StringComparer.OrdinalIgnoreCase)
+                // Raggruppati per ACC e non per etichetta: due settori della stessa ACC danno lo stesso
+                // riferimento (record, uguaglianza per valore) anche se l'etichetta la si cambia.
+                sg.GroupBy(AccOf)
+                    .OrderBy(ag => AccRank(ag.Key, ours))
+                    .ThenBy(ag => AccLabel(ag.Key), StringComparer.OrdinalIgnoreCase)
                     .Select(ag => new AccAccAirports(
-                        ag.Key,
+                        AccLabel(ag.Key),
                         // Aeroporti: solo arrivi/partenze (richiedono un aeroporto).
                         ag.Where(e => IsAirportKind(e.Kind))
                             .GroupBy(e => e.AirportIcao ?? "", StringComparer.OrdinalIgnoreCase)
@@ -217,7 +245,8 @@ public static class CoordinationDerivation
                             .OrderBy(kg => kg.Key)
                             .Select(kg => new AccExtraFlows(kindLabel(kg.Key), kg.Select(e => e.Row).ToList()))
                             .ToList()))
-                    .ToList()))
+                    .ToList());
+            })
             .ToList();
     }
 }

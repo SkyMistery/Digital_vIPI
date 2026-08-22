@@ -325,6 +325,8 @@
   <data name="Coord_HandoffLevel" xml:space="preserve"><value>Livello trasf.</value></data>
   <data name="Coord_Comms" xml:space="preserve"><value>Comunicazioni</value></data>
   <data name="Coord_Speed" xml:space="preserve"><value>Velocità</value></data>
+  <data name="Coord_Prose" xml:space="preserve"><value>Testo esteso ({0} frasi)</value></data>
+  <data name="Coord_Prose_One" xml:space="preserve"><value>Testo esteso ({0} frase)</value></data>
   <data name="Xfer_Handoff" xml:space="preserve"><value>Dove passa il controllo</value></data>
   <data name="Xfer_HandoffTitle" xml:space="preserve"><value>Dove passa il controllo, quando non coincide col punto d'ingresso (accordi ACC→APP)</value></data>
   <data name="Xfer_HandoffNone" xml:space="preserve"><value>come l'ingresso</value></data>

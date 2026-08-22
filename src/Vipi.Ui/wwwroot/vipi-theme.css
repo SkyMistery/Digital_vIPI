@@ -772,6 +772,22 @@
 /* frase di coordinamento (una per riga CoP), sopra la tabella */
 .coord-sentence{font-size:14px;line-height:1.45;margin:0 0 8px;color:var(--ink)}
 .coord-sentence+table{margin-top:4px}
+.coord-prose>.prose-body>.coord-sentence:last-child{margin-bottom:0}
+/* Blocco della PROSA (CoordTable): nasce chiuso e si apre a richiesta. Si legge come un comando discreto, non
+   come un quarto livello dell'albero — settore, ACC e aeroporto sono già tre scatole annidate, e una quarta
+   con bordo e fondo proprio farebbe sembrare il testo un ramo invece che una lettura alternativa della
+   tabella che segue. Quindi: niente bordo, niente fondo, solo la riga cliccabile. */
+.coord-prose{margin:0 0 7px}
+/* Il titolo della tabella e l'invito ad aprire la prosa stanno sulla STESSA riga: allineati alla base, perché
+   hanno corpi diversi (14px il titolo, 12.5 l'invito) e allineati al centro il più piccolo galleggerebbe. */
+.coord-prose>summary{cursor:pointer;display:flex;align-items:baseline;gap:10px;list-style:none}
+.coord-prose>summary::-webkit-details-marker{display:none}
+.coord-prose .prose-cue{display:inline-flex;align-items:center;gap:5px;
+  font-family:var(--font-body);font-size:12.5px;font-weight:500;color:var(--brand-ink-2)}
+.coord-prose>summary:hover .prose-cue{text-decoration:underline}
+.coord-prose .prose-cue .chev{transition:.2s;font-size:11px}
+.coord-prose[open]>summary .prose-cue .chev{transform:rotate(90deg)}
+.coord-prose>.prose-body{padding:7px 0 0}
 /* Tabelle dei coordinamenti: sono decine (una per aeroporto/flusso) e con set di colonne variabile — «Flusso» e
    «Condizione» compaiono solo se ci sono dati. Con table-layout:auto ognuna si dimensionava sul proprio
    contenuto, quindi le stesse colonne uscivano larghe in modo diverso da una tabella all'altra (a schermo e in
@@ -791,6 +807,26 @@
    cui la riga si legge. */
 .coord-table th.c-apts{width:15%}
 .coord-table th,.coord-table td{overflow-wrap:break-word}
+
+/* ── DENSITÀ dei coordinamenti (a schermo) ──────────────────────────────────────
+   Un documento ACC porta DECINE di tabelle, una per aeroporto e per verso: con l'imbottitura generale — pensata
+   per la tabella singola di una pagina admin — lo spazio fra una tabella e l'altra superava l'altezza delle
+   righe che separava, e per confrontare due tabelle vicine bisognava scorrere.
+   ⚠️ Tutto sotto `.coord-wrap`: `.coord-sub`/`.coord-sub2` le usano anche l'editor struttura, le aree
+   regolamentate e SectionNode, che qui non c'entrano e non devono muoversi. E `>` sul `.body`, perché
+   `.coord-sub2 .body` è discendente e prenderebbe pure il corpo della prosa annidata.
+   La STAMPA ha già le sue misure (`3px 5px` in vipi-print.css, più strette di queste): non passa di qui. */
+.coord-wrap .coord-table th,.coord-wrap .coord-table td{padding:6px 10px}
+.coord-wrap .coord-sub{margin:10px 0}
+.coord-wrap .coord-sub>.body{padding:10px 12px}
+.coord-wrap .coord-sub2{margin:8px 0}
+.coord-wrap .coord-sub2>.body{padding:9px 12px}
+.coord-wrap .coord-tools{margin:0 0 6px}
+/* Etichetta «Arrivi»/«Partenze» della tabella: era uno stile in linea ripetuto due volte nella vista ACC,
+   quindi due numeri da tenere d'accordo a mano per una cosa sola. Porta il colore da sé (prima veniva da
+   `.muted`): la rende CoordTable, dentro il cartiglio della prosa, dove un `<p class="muted">` non sta. */
+.coord-kind{margin:2px 0 3px;font-weight:600;color:var(--ink-soft)}
+.coord-prose>summary>.coord-kind{margin:0}
 
 /* Tabelle con la faccetta TRASFERIMENTO (accordi ACC→APP): fino a otto colonne invece di quattro. Le larghezze
    fisse qui sopra sommano già 78% con quattro colonne, quindi non c'è spazio da spartire fra le altre quattro

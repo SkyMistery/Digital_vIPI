@@ -32,23 +32,46 @@
     var levelHeader = hasHandoffLevel ? T("Coord_Cleared", "Cleared") : T("AppCoord_Level", "Level");
 }
 
-@* Prosa CAPOFILA: una frase sola che introduce la tabella, come i documenti veri. È una scelta della SEZIONE
-   (DocumentSection.LeadSentence), non del componente: dove le righe sono tante la prosa distesa si legge due
-   volte per scoprire che dice la stessa cosa, e dove sono due la capofila toglie informazione. *@
-@if (LeadSentence)
-{
-    var lead = Lead();
-    if (!string.IsNullOrWhiteSpace(lead)) { <p class="coord-sentence">@lead</p> }
+@* La prosa nasce CHIUSA, sopra la sua tabella. Un nodo aeroporto porta la stessa cosa detta due volte — in
+   frasi e in tabella — e chi consulta il documento in cuffia legge la tabella: la prosa distesa lo obbligava a
+   scorrere oltre decine di paragrafi per arrivarci. Chiusa resta a un clic, e la STAMPA la apre da sé
+   (`beforeprint` in vipi-ui.js), perché sulla carta il testo esteso è il documento.
+   ⚠️ Un blocco per TABELLA, non per aeroporto: arrivi e partenze sono due tabelle, e la frase che introduce
+   una non introduce l'altra. Sta qui e non nelle viste perché così vale per vIPI ACC, vIPI APP e vLOA insieme. *@
+@{
+    // Le frasi si raccolgono PRIMA: il riassunto del blocco chiuso ne dice il numero, e contarle dopo averle
+    // rese vorrebbe dire percorrere due volte la stessa sequenza.
+    var frasi = Prose();
 }
-else
+@if (frasi.Count > 0)
 {
-@* Una frase per CLAUSOLA, non per riga espansa. Le righe di una stessa clausola producono frasi identiche
-   tranne il punto — «… su EKMUR», «… su PISIP» — e in un documento sono paragrafi che si leggono due volte
-   per scoprire che dicono la stessa cosa. La tabella sotto porta l'elenco completo dei punti. *@
-@foreach (var r in Sentences())
-{
-    <p class="coord-sentence">@r.Sentence</p>
+    <details class="coord-prose">
+        @* Il TITOLO della tabella sta dentro il summary, così l'invito ad aprire la prosa non si prende una
+           riga per sé: «Arrivi ▸ Testo esteso (2 frasi)» è una riga sola dove prima ce n'erano due, e in un
+           documento con decine di tabelle le righe risparmiate sono decine.
+           Conseguenza voluta: il clic sul titolo apre la prosa. È un bersaglio più grande per la stessa cosa,
+           e il titolo non aveva altro da fare.
+           ⚠️ In STAMPA si nasconde `prose-cue`, non il summary: nascondere il summary porterebbe via anche il
+           titolo, e sulla carta «Arrivi» e «Partenze» devono restare.
+           ⚠️ `prose-body` e non `body`: `.coord-sub2 .body` è un selettore DISCENDENTE e prenderebbe anche
+           questo, con l'imbottitura del livello sopra. *@
+        <summary>
+            @if (!string.IsNullOrWhiteSpace(Title)) { <span class="coord-kind">@Title</span> }
+            <span class="prose-cue"><span class="chev">▸</span>@ProseSummary(frasi.Count)</span>
+        </summary>
+        <div class="prose-body">
+            @foreach (var f in frasi)
+            {
+                <p class="coord-sentence">@f</p>
+            }
+        </div>
+    </details>
 }
+else if (!string.IsNullOrWhiteSpace(Title))
+{
+    @* Senza frasi non c'è niente da aprire, ma il titolo resta: una tabella che perde l'intestazione perché
+       la sua prosa è vuota sarebbe un effetto collaterale, non una scelta. *@
+    <p class="coord-kind">@Title</p>
 }
 
 @* Le classi c-* fissano la larghezza PER COLONNA SEMANTICA (vedi .coord-table nel tema): le colonne opzionali
@@ -122,6 +145,13 @@ else
     /// <summary>Intestazione dell'ultima colonna: «Prossimo» per ciò che esce, «Da» per ciò che entra.</summary>
     [Parameter] public string? LastColHeader { get; set; }
 
+    /// <summary>Titolo della tabella («Arrivi», «Partenze»), reso sulla stessa riga dell'invito ad aprire la
+    /// prosa. Lo passa chi ha DUE tabelle sotto lo stesso nodo e deve dire quale è quale.
+    /// <para>Chi invece ha una tabella sola per nodo non lo passa: lì il titolo è già il cartiglio del
+    /// <c>&lt;details&gt;</c> che la contiene, e ripeterlo sarebbe la stessa parola due volte a due centimetri di
+    /// distanza.</para></summary>
+    [Parameter] public string? Title { get; set; }
+
     private string T(string key, string en) => English ? en : L[key];
 
     private static string Dash(string? s) => string.IsNullOrWhiteSpace(s) ? "—" : s;
@@ -136,6 +166,29 @@ else
     /// già fatta in <see cref="AppCoordRow.LeadSentence"/>.</para>
     /// </summary>
     private string? Lead() => Rows.Select(r => r.LeadSentence).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
+
+    /// <summary>
+    /// La prosa della tabella, nell'ordine in cui si legge: una frase sola in modo capofila, una per clausola
+    /// altrimenti. Le due strade producevano già lo stesso paragrafo — qui producono la stessa LISTA, così il
+    /// blocco che le contiene è uno solo e non due rami di markup che possono divergere.
+    /// </summary>
+    private IReadOnlyList<string> Prose()
+    {
+        if (LeadSentence)
+        {
+            var lead = Lead();
+            return string.IsNullOrWhiteSpace(lead) ? Array.Empty<string>() : new[] { lead! };
+        }
+        return Sentences().Select(r => r.Sentence!).ToList();
+    }
+
+    /// <summary>Il riassunto del blocco chiuso: dice quanta prosa c'è sotto, al numero grammaticale giusto.
+    /// <para>⚠️ Due chiavi e non una: la sola forma plurale dà «1 frasi» / «1 sentences» in entrambe le lingue
+    /// (stessa ragione di <c>XferLabels</c>, che il progetto ha già pagato). L'overload <c>L[chiave, n]</c>
+    /// interpola; <c>string.Format(L[chiave].Value, n)</c> no.</para></summary>
+    private string ProseSummary(int n) => English
+        ? (n == 1 ? "Full text (1 sentence)" : $"Full text ({n} sentences)")
+        : L[n == 1 ? "Coord_Prose_One" : "Coord_Prose", n];
 
     /// <summary>
     /// Le righe di cui si rende la frase: una per clausola, la prima che la porta.

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
 
@@ -30,7 +31,7 @@ internal static class RealCoordinationFixture
         IReadOnlyDictionary<string, string> Codes,
         IReadOnlyDictionary<string, string> Airports,
         IReadOnlyDictionary<string, string> Atc,
-        IReadOnlyDictionary<string, string> AccNames);
+        IReadOnlyDictionary<string, AccRef> AccRefs);
 
     internal static IReadOnlyList<TransferFlowRow> LoadFlows()
     {
@@ -129,7 +130,7 @@ internal static class RealCoordinationFixture
         var names = New<string>();
         var codes = New<string>();
         var atc = New<string>();
-        var accNames = New<string>();
+        var accRefs = New<AccRef>();
         var airports = New<string>();
 
         foreach (var r in Rows(Path.Combine(Dir, "real-maps.tsv")))
@@ -141,7 +142,7 @@ internal static class RealCoordinationFixture
                 if (r[3].Length > 0) codes[cs] = r[3];
                 if (r[4].Length > 0) atc[cs] = r[4];
                 if (r[5].Length > 0) names[cs] = r[5];
-                if (r[6].Length > 0) accNames[cs] = r[6];
+                if (r[6].Length > 0) accRefs[cs] = new AccRef(r[6], r[7], r[8] == "1");
             }
             else if (r[0] == "A")
             {
@@ -151,7 +152,7 @@ internal static class RealCoordinationFixture
 
         // Stessa fusione della derivazione vera: il catalogo vince, i nomi liberi sui flussi riempiono i buchi.
         return new Maps(types, names, codes,
-            CoordinationDerivation.MergeAirportNames(airports, flows), atc, accNames);
+            CoordinationDerivation.MergeAirportNames(airports, flows), atc, accRefs);
 
         static Dictionary<string, T> New<T>() => new(StringComparer.OrdinalIgnoreCase);
     }

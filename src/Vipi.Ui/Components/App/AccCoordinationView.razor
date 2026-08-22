@@ -32,15 +32,16 @@
                             <details class="coord-sub2">
                                 <summary><span>@ap.AirportLabel</span><span class="chev">▸</span></summary>
                                 <div class="body">
+                                    @* Il titolo lo rende CoordTable, sulla stessa riga dell'invito ad aprire la
+                                       prosa: qui era un paragrafo per sé, e con due tabelle per aeroporto erano
+                                       due righe buttate per nodo. *@
                                     @if (ap.Arrivals.Count > 0)
                                     {
-                                        <p class="muted" style="margin:.4em 0 .1em;font-weight:600">@ArrivalsLabel</p>
-                                        @RenderTable(ap.Arrivals)
+                                        @RenderTable(ap.Arrivals, ArrivalsLabel)
                                     }
                                     @if (ap.Departures.Count > 0)
                                     {
-                                        <p class="muted" style="margin:.4em 0 .1em;font-weight:600">@DeparturesLabel</p>
-                                        @RenderTable(ap.Departures)
+                                        @RenderTable(ap.Departures, DeparturesLabel)
                                     }
                                 </div>
                             </details>
@@ -91,11 +92,11 @@
 
     // La tabella è la stessa della vIPI APP e della vLOA: sta in CoordTable, che sa anche quali colonne
     // mostrare (per presenza di dati) e come rendere i gruppi di varianti.
-    private RenderFragment RenderTable(IReadOnlyList<AppCoordRow> rows) => __builder =>
+    private RenderFragment RenderTable(IReadOnlyList<AppCoordRow> rows, string? title = null) => __builder =>
     {
         @* Nessun LastColHeader: lo decide CoordTable, che in italiano lo prende dalle risorse e in inglese lo
            scrive in inglese. Qui c'era «Prossimo» scritto a mano, e con l'interfaccia in inglese usciva una
            testata mezza tradotta: VIA · CLEARED · TRANSFER · TRANSFER LEVEL · **PROSSIMO** · CONDITION. *@
-        <CoordTable Rows="rows" English="English" LeadSentence="LeadSentence" />
+        <CoordTable Rows="rows" English="English" LeadSentence="LeadSentence" Title="@title" />
     };
 }

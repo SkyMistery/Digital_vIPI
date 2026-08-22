@@ -127,14 +127,14 @@ public sealed class AccDerivationService : IAccDerivationService
         var codeMap = await _repo.GetSectorCodeMapAsync(ct);
         var airportMap = CoordinationDerivation.MergeAirportNames(await _repo.GetAirportNameMapAsync(ct), flows);
         var atcMap = await _repo.GetSectorAtcNameMapAsync(ct);
-        var accNameMap = await _repo.GetSectorAccNameMapAsync(ct);
+        var accRefMap = await _repo.GetSectorAccRefMapAsync(ct);
         var tpl = _sentence.Current;
 
         // Cuore condiviso (owned + entranti, direzione owner→next senza invert, frase composta).
         var entries = CoordinationDerivation.Build(flows, owners, types, nameMap, codeMap, airportMap, atcMap, tpl);
 
         // Un'unica gerarchia (condivisa con la vLOA): Settore → ACC → Aeroporto(arrivi/partenze) + Sorvoli/VFR/altro.
-        var sectors = CoordinationDerivation.BuildAccTree(entries, codeMap, atcMap, airportMap, accNameMap, TransferFlowKindLabels.Label);
+        var sectors = CoordinationDerivation.BuildAccTree(entries, codeMap, atcMap, airportMap, accRefMap, TransferFlowKindLabels.Label);
         return new AccCoordination { Sectors = sectors };
     }
 

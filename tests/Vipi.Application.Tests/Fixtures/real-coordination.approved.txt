@@ -233,26 +233,14 @@
    «Tirana Control trasferisce a Brindisi Radar ES il traffico con destinazione Bari Palese LIBD stabile a livello 280 su PAPIZ.»
 --- albero ---
   settore CS0
-    acc Zagreb
+    acc Zagreb-LDZO
       aeroporto Bari Palese LIBD · arrivi 1 · partenze 0
       aeroporto Brindisi Casale LIBR · arrivi 1 · partenze 0
   settore ES
-    acc Beograd
-      aeroporto Bari Palese LIBD · arrivi 1 · partenze 0
-      aeroporto Brindisi Casale LIBR · arrivi 1 · partenze 0
-      aeroporto Tivat LYTV · arrivi 1 · partenze 0
-      extra Sorvoli · righe 2
-    acc Brindisi
+    acc Brindisi-LIBB
       aeroporto Bari Palese LIBD · arrivi 7 · partenze 0
       aeroporto Pescara LIBP · arrivi 2 · partenze 0
-    acc Greece
-      aeroporto Bari Palese LIBD · arrivi 1 · partenze 1
-      aeroporto Brindisi Casale LIBR · arrivi 1 · partenze 1
-      aeroporto Corfu LGKR · arrivi 1 · partenze 0
-      aeroporto Kefallinia LGKF · arrivi 1 · partenze 0
-      aeroporto Taranto Grottaglie LIBG · arrivi 1 · partenze 0
-      extra Sorvoli · righe 14
-    acc Roma
+    acc Roma-LIRR
       aeroporto Bari Palese LIBD · arrivi 0 · partenze 1
       aeroporto Lamezia Terme LICA · arrivi 3 · partenze 0
       aeroporto Napoli Capodichino LIRN · arrivi 4 · partenze 0
@@ -262,13 +250,25 @@
       aeroporto Roma Fiumicino LIRF · arrivi 1 · partenze 0
       aeroporto Roma Urbe LIRU · arrivi 1 · partenze 0
       aeroporto Salerno Pontecagnano LIRI · arrivi 3 · partenze 0
-    acc Tirana
+    acc Beograd-LYBA
+      aeroporto Bari Palese LIBD · arrivi 1 · partenze 0
+      aeroporto Brindisi Casale LIBR · arrivi 1 · partenze 0
+      aeroporto Tivat LYTV · arrivi 1 · partenze 0
+      extra Sorvoli · righe 2
+    acc Greece-LGGG
+      aeroporto Bari Palese LIBD · arrivi 1 · partenze 1
+      aeroporto Brindisi Casale LIBR · arrivi 1 · partenze 1
+      aeroporto Corfu LGKR · arrivi 1 · partenze 0
+      aeroporto Kefallinia LGKF · arrivi 1 · partenze 0
+      aeroporto Taranto Grottaglie LIBG · arrivi 1 · partenze 0
+      extra Sorvoli · righe 14
+    acc Tirana-LAAA
       aeroporto Bari Palese LIBD · arrivi 1 · partenze 0
       aeroporto Brindisi Casale LIBR · arrivi 1 · partenze 0
       aeroporto Kukës Airport LAKU · arrivi 1 · partenze 0
       aeroporto Rinas LATI · arrivi 1 · partenze 0
       extra Sorvoli · righe 2
-    acc Zagreb
+    acc Zagreb-LDZO
       aeroporto Bari Palese LIBD · arrivi 1 · partenze 0
       aeroporto Brindisi Casale LIBR · arrivi 1 · partenze 0
       aeroporto Rudjer Boskovic LDDU · arrivi 1 · partenze 0
@@ -327,27 +327,27 @@
    «Brindisi Radar ES trasferisce a Roma Radar ES0 il traffico con destinazione Lamezia Terme LICA stabile a livello 200 su EKPAR.»
 --- albero ---
   settore ES
-    acc Brindisi
+    acc Brindisi-LIBB
       aeroporto Lamezia Terme LICA · arrivi 1 · partenze 0
   settore ES0
-    acc Brindisi
+    acc Brindisi-LIBB
       aeroporto Lamezia Terme LICA · arrivi 2 · partenze 0
   settore NC
-    acc Brindisi
+    acc Brindisi-LIBB
       aeroporto Bari Palese LIBD · arrivi 0 · partenze 1
       aeroporto Pescara LIBP · arrivi 1 · partenze 0
   settore TS
-    acc Brindisi
+    acc Brindisi-LIBB
       aeroporto Napoli Capodichino LIRN · arrivi 2 · partenze 0
       aeroporto Salerno Pontecagnano LIRI · arrivi 1 · partenze 0
   settore US
-    acc Brindisi
+    acc Brindisi-LIBB
       aeroporto Pratica Di Mare LIRE · arrivi 1 · partenze 0
       aeroporto Roma Ciampino LIRA · arrivi 1 · partenze 0
       aeroporto Roma Fiumicino LIRF · arrivi 1 · partenze 0
       aeroporto Roma Urbe LIRU · arrivi 1 · partenze 0
   settore US0
-    acc Brindisi
+    acc Brindisi-LIBB
       aeroporto Napoli Capodichino LIRN · arrivi 2 · partenze 0
       aeroporto Salerno Pontecagnano LIRI · arrivi 2 · partenze 0
 
@@ -586,26 +586,14 @@
    «Tirana Control transfers to Brindisi Radar ES the traffic inbound to Bari Palese LIBD level at level 280 over PAPIZ.»
 --- albero ---
   settore CS0
-    acc Zagreb
+    acc Zagreb-LDZO
       aeroporto Bari Palese LIBD · arrivi 1 · partenze 0
       aeroporto Brindisi Casale LIBR · arrivi 1 · partenze 0
   settore ES
-    acc Beograd
-      aeroporto Bari Palese LIBD · arrivi 1 · partenze 0
-      aeroporto Brindisi Casale LIBR · arrivi 1 · partenze 0
-      aeroporto Tivat LYTV · arrivi 1 · partenze 0
-      extra Overflights · righe 2
-    acc Brindisi
+    acc Brindisi-LIBB
       aeroporto Bari Palese LIBD · arrivi 7 · partenze 0
       aeroporto Pescara LIBP · arrivi 2 · partenze 0
-    acc Greece
-      aeroporto Bari Palese LIBD · arrivi 1 · partenze 1
-      aeroporto Brindisi Casale LIBR · arrivi 1 · partenze 1
-      aeroporto Corfu LGKR · arrivi 1 · partenze 0
-      aeroporto Kefallinia LGKF · arrivi 1 · partenze 0
-      aeroporto Taranto Grottaglie LIBG · arrivi 1 · partenze 0
-      extra Overflights · righe 14
-    acc Roma
+    acc Roma-LIRR
       aeroporto Bari Palese LIBD · arrivi 0 · partenze 1
       aeroporto Lamezia Terme LICA · arrivi 3 · partenze 0
       aeroporto Napoli Capodichino LIRN · arrivi 4 · partenze 0
@@ -615,13 +603,25 @@
       aeroporto Roma Fiumicino LIRF · arrivi 1 · partenze 0
       aeroporto Roma Urbe LIRU · arrivi 1 · partenze 0
       aeroporto Salerno Pontecagnano LIRI · arrivi 3 · partenze 0
-    acc Tirana
+    acc Beograd-LYBA
+      aeroporto Bari Palese LIBD · arrivi 1 · partenze 0
+      aeroporto Brindisi Casale LIBR · arrivi 1 · partenze 0
+      aeroporto Tivat LYTV · arrivi 1 · partenze 0
+      extra Overflights · righe 2
+    acc Greece-LGGG
+      aeroporto Bari Palese LIBD · arrivi 1 · partenze 1
+      aeroporto Brindisi Casale LIBR · arrivi 1 · partenze 1
+      aeroporto Corfu LGKR · arrivi 1 · partenze 0
+      aeroporto Kefallinia LGKF · arrivi 1 · partenze 0
+      aeroporto Taranto Grottaglie LIBG · arrivi 1 · partenze 0
+      extra Overflights · righe 14
+    acc Tirana-LAAA
       aeroporto Bari Palese LIBD · arrivi 1 · partenze 0
       aeroporto Brindisi Casale LIBR · arrivi 1 · partenze 0
       aeroporto Kukës Airport LAKU · arrivi 1 · partenze 0
       aeroporto Rinas LATI · arrivi 1 · partenze 0
       extra Overflights · righe 2
-    acc Zagreb
+    acc Zagreb-LDZO
       aeroporto Bari Palese LIBD · arrivi 1 · partenze 0
       aeroporto Brindisi Casale LIBR · arrivi 1 · partenze 0
       aeroporto Rudjer Boskovic LDDU · arrivi 1 · partenze 0
