@@ -465,6 +465,29 @@ flusso funziona senza, in modalità client pubblico con PKCE (verificato il 5 ag
 
 ## B. Branch non fusi — decisioni, non lavoro
 
+### B9 ✅ FUSO — `sorgenti-giro-ta-piste`, fuso in `main` il 22 agosto 2026
+
+Cinque commit più il merge `9be2200`, ramo cancellato. Nessun conflitto: il ramo era nato dopo l'ultimo merge.
+
+Contenuto e decisioni: [`feature/2026-08-22-sorgenti-giro-automatico-ta-piste.md`](feature/2026-08-22-sorgenti-giro-automatico-ta-piste.md).
+In breve: **tutti** gli import di `/services/vsop/admin/sources` girano ogni 24 ore. **Transition Altitude** e
+**Piste** avevano solo i bottoni (`AirportDataImportUseCase`, chiave `AirportData`); l'**anagrafica aeroporti**
+non compariva affatto nell'elenco e ora è un giro (`AirportDirectoryImportHostedService`, chiave
+`AirportDirectory`). Da qui **nessuna riga resta «su richiesta»**, e un test lo pretende.
+
+⚠️ **Due cose da tenere a mente per la produzione.**
+
+1. L'anagrafica aeroporti è l'**unico giro che crea entità** — era stata lasciata a mano proprio per questo, ed
+   è stata automatizzata su decisione del committente. È **additiva**: uno scalo tolto dalla sorgente resta in
+   archivio e si toglie a mano. Al primo giro dopo il deploy comparirà **LIDS (Parco Livenza)**, che IVAO ha
+   aggiunto e che il `vipi.db` non aveva.
+2. I 21 aeroporti senza `TransitionAltitudeFt` si popoleranno da soli, e `RecomputeDefaultBandLevels`
+   ricalcolerà i TL delle fasce **default**. Prima del deploy conviene guardare la policy vera in
+   `/services/vsop/admin/sources`: in sviluppo la tabella `ImportPolicies` è **vuota**, quindi i valori a video
+   vengono dai default delle colonne e non da una decisione.
+
+Nessuna entità nuova e nessuna migrazione: non allunga la coda del cutover MariaDB.
+
 ### B8 ✅ FUSO — `coordinamenti-lettura`, fuso in `main` il 22 agosto 2026
 
 Cinque commit più il merge `1d74246`, ramo cancellato (locale e origin). Nessun conflitto: il ramo era nato
