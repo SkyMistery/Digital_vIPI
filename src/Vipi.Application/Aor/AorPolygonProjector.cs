@@ -7,8 +7,13 @@ namespace Vipi.Application.Aor;
 /// Proiezione PURA (no I/O, deterministica, testabile) del poligono shape IVAO (<c>RegionMapPolygon</c>, JSON grezzo)
 /// in un <see cref="AppAorPolygon"/> SVG: parsing difensivo → proiezione equirettangolare (longitudine scalata per
 /// cos(lat medio)) → normalizzazione a un viewBox fisso. JSON non parsabile / poligono degenere → null (la UI mostra
-/// il placeholder). Accetta più forme: <c>[[lat,lon],…]</c>, <c>[{"lat":..,"lon":..},…]</c> ed eventuale annidamento
-/// di un livello (es. GeoJSON-like <c>[[[lat,lon],…]]</c>).
+/// il placeholder). Accetta più forme: <c>[[lng,lat],…]</c>, <c>[{"lat":..,"lng":..},…]</c> ed eventuale annidamento
+/// di un livello (es. GeoJSON-like <c>[[[lng,lat],…]]</c>).
+///
+/// <para>⚠️ <b>Nelle coppie la longitudine viene PRIMA</b> — formato IVAO <c>regionMapPolygon</c>, stile
+/// GeoJSON. Questo commento diceva il contrario fino al 23 agosto 2026: chi ne avesse ricavato una fixture
+/// avrebbe scritto un poligono ruotato di 90°, e la proiezione non se ne lamenta — disegna. L'ordine si
+/// decide in un posto solo, <see cref="PolygonGeometry.ParsePoints"/>, ed è quella la verità.</para>
 /// </summary>
 public static class AorPolygonProjector
 {

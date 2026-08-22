@@ -14,6 +14,11 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="10.0.1" />
+    <!-- Property-based: genera i casi invece di elencarli, e quando ne trova uno rotto lo RIMPICCIOLISCE
+         fino al minimo che ancora fallisce. Serve alla geometria dell'AoR, che è l'unico punto del prodotto
+         dove il dominio è continuo e gli esempi scelti a mano coprono una fetta arbitraria. Pacchetto senza
+         dipendenze, MIT. -->
+    <PackageReference Include="CsCheck" Version="4.8.0" />
     <!-- Stesso pin di Vipi.Infrastructure (CVE-2025-6965): qui SQLite arriva per conto suo, non via
          ProjectReference, quindi la 2.1.11 rientrerebbe dalla finestra. -->
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.12" />
