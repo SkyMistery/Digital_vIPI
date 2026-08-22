@@ -60,18 +60,38 @@ public class ImportOverviewTests
         Assert.Equal(ImportHealth.Esclusa, aree.Stato);
     }
 
-    /// <summary>TA e Piste non hanno un giro automatico: dirlo è diverso dal non dire niente.</summary>
+    /// <summary>
+    /// Dal 22 agosto 2026 TA e Piste hanno il loro giro (<c>AirportDataImportUseCase</c>): la riga deve
+    /// raccontarlo, cadenza e prossimo compresi. Prima questo stesso test asseriva il contrario — la
+    /// pagina diceva «su richiesta», che era vero e non diceva quanto fosse vecchio il dato.
+    /// </summary>
     [Theory]
     [InlineData(ImportCategory.TransitionAltitude)]
     [InlineData(ImportCategory.Runways)]
-    public async Task Le_categorie_senza_giro_automatico_lo_dichiarano(ImportCategory categoria)
+    public async Task TA_e_Piste_dichiarano_il_loro_giro(ImportCategory categoria)
     {
-        var riga = (await Servizio(ImportPolicySnapshot.AllImported).ListAsync())
+        var quando = DateTime.UtcNow.AddHours(-3);
+        var riga = (await Servizio(ImportPolicySnapshot.AllImported, Stato(ImportCategories.AirportData, quando)).ListAsync())
             .Single(r => r.Categoria == categoria);
 
-        Assert.Equal(ImportHealth.SuRichiesta, riga.Stato);
-        Assert.Null(riga.Cadenza);
-        Assert.Null(riga.ProssimoUtc);
+        Assert.Equal(ImportHealth.Aggiornata, riga.Stato);
+        Assert.Equal(TimeSpan.FromHours(24), riga.Cadenza);
+        Assert.Equal(quando.AddHours(24), riga.ProssimoUtc);
+    }
+
+    /// <summary>
+    /// ⚠️ L'invariante della chiave condivisa: TA e Piste leggono la <b>stessa</b> riga di stato, ma la
+    /// policy resta per categoria. Escludere le Piste non deve spegnere il racconto della TA — se un giorno
+    /// il gate scivolasse dal merge al loop, è questo test a cadere.
+    /// </summary>
+    [Fact]
+    public async Task Con_una_chiave_sola_la_categoria_esclusa_resta_l_unica_esclusa()
+    {
+        var righe = await Servizio(new ImportPolicySnapshot(TransitionAltitude: true, Runways: false, true, true, true),
+            Stato(ImportCategories.AirportData, DateTime.UtcNow.AddHours(-3))).ListAsync();
+
+        Assert.Equal(ImportHealth.Esclusa, righe.Single(r => r.Categoria == ImportCategory.Runways).Stato);
+        Assert.Equal(ImportHealth.Aggiornata, righe.Single(r => r.Categoria == ImportCategory.TransitionAltitude).Stato);
     }
 
     [Fact]
@@ -176,7 +196,7 @@ public class ImportOverviewTests
         public TimeSpan? PeriodOf(string category) => category switch
         {
             ImportCategories.Acc or ImportCategories.AirportSector or ImportCategories.SpecialArea
-                or ImportCategories.Sid => TimeSpan.FromHours(24),
+                or ImportCategories.Sid or ImportCategories.AirportData => TimeSpan.FromHours(24),
             _ => null,
         };
     }

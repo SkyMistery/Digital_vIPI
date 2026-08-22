@@ -82,8 +82,12 @@ public sealed class ImportOverviewService : IImportOverviewService
     private static readonly (ImportCategory? Categoria, string StateKey)[] Righe =
     {
         (null, ImportCategories.Acc),                                    // anagrafica: sempre di sorgente
-        (ImportCategory.TransitionAltitude, ""),                         // su richiesta: nessun giro automatico
-        (ImportCategory.Runways, ""),
+        // ⚠️ Stessa chiave per due righe, e non è una svista: è lo STESSO giro sugli STESSI aeroporti
+        // (AirportDataImportUseCase), e il gate della policy sta per categoria dentro SourceMergeInputs —
+        // quindi la categoria esclusa dice «Esclusa» da sé e ciò che resta (ultimo successo, errore della
+        // sorgente) è comune a entrambe. Vedi ImportCategories.AirportData.
+        (ImportCategory.TransitionAltitude, ImportCategories.AirportData),
+        (ImportCategory.Runways, ImportCategories.AirportData),
         (ImportCategory.Sectors, ImportCategories.AirportSector),
         (ImportCategory.Sids, ImportCategories.Sid),
         (ImportCategory.SpecialAreas, ImportCategories.SpecialArea),

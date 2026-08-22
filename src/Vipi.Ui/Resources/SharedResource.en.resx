@@ -873,7 +873,6 @@
   <data name="Sorg_ProvSourceAlways" xml:space="preserve"><value>always from source</value></data>
   <data name="Sorg_AccLabel" xml:space="preserve"><value>ACCs (directory)</value></data>
   <data name="Sorg_AccDesc" xml:space="preserve"><value>ACC and subcenter list: no checkbox, always from the source</value></data>
-  <data name="Sorg_OnDemand" xml:space="preserve"><value>on demand: no automatic run</value></data>
   <data name="Sorg_LastAndNext" xml:space="preserve"><value>{0} · next {1}</value></data>
   <data name="Sorg_LastData" xml:space="preserve"><value>last data {0}</value></data>
   <data name="Sorg_LastAndMissed" xml:space="preserve"><value>{0} · due {1}, never arrived</value></data>
