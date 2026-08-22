@@ -32,6 +32,13 @@
         return r || fallback;
     }
 
+    // L'etichetta è testo che arriva dal sectorfile, cioè da un repository esterno: va scritta come DATO, mai
+    // interpretata come marcatura. Serve l'escape perché Leaflet accetta solo una stringa HTML per l'icona.
+    var ENTITIES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ENTITIES[c]; });
+    }
+
     function initOne(el) {
         if (el.dataset.init === '1') return;
         var data;
@@ -70,12 +77,14 @@
             if (typeof lb.lat !== 'number' || typeof lb.lon !== 'number') return;
             // Il testo è VERBATIM dal sectorfile ("110", "1500", "TRL", "NO MINIMA", "80/TRL"): niente unità
             // aggiunte, niente conversioni — il formato non dice quali siano.
-            var icon = L.divIcon({ className: 'mva-label', html: '<span></span>' });
+            //
+            // ⚠️ Il testo va DENTRO l'icona, non scritto dopo su marker.getElement(): finché la mappa non ha una
+            // vista Leaflet rimanda onAdd, quindi subito dopo addTo() l'elemento è ancora null — e il fitBounds
+            // qui sotto viene dopo. Scritto così si perdeva ogni etichetta, in silenzio.
+            // iconSize null = la dimensione la dà il CSS, che è quel che serve a un testo di lunghezza varia.
+            var icon = L.divIcon({ className: 'mva-label', html: '<span>' + esc(lb.t) + '</span>', iconSize: null });
             var marker = L.marker([lb.lat, lb.lon], { icon: icon, interactive: false, keyboard: false });
             marker.addTo(map);
-            // textContent e non html: l'etichetta è dato esterno, non marcatura.
-            var span = marker.getElement() && marker.getElement().querySelector('span');
-            if (span) span.textContent = lb.t || '';
             layers.push(marker);
         });
 
@@ -89,7 +98,28 @@
         }
 
         var bounds = boundsOf();
-        if (bounds) map.fitBounds(bounds, { padding: [18, 18] });
+        if (bounds) { fitBox(bounds); map.fitBounds(bounds, { padding: [18, 18] }); }
+
+        // La SCATOLA si adatta ai dati, non viceversa. Senza, una carta alta e stretta (LIBB: 5,5° di latitudine
+        // per 3,1° di longitudine) in un contenitore largo e basso viene inquadrata sull'altezza — corretto, ma
+        // il resto della larghezza è mare, e i tracciati restano minuscoli. Si sceglie quindi un'altezza che
+        // avvicini l'aspetto del contenitore a quello del dato, e si limita la larghezza di conseguenza.
+        function fitBox(b) {
+            var latSpan = b.getNorth() - b.getSouth();
+            var lonSpan = (b.getEast() - b.getWest()) * Math.cos((b.getNorth() + b.getSouth()) / 2 * Math.PI / 180);
+            if (latSpan <= 0 || lonSpan <= 0) return;
+            var aspect = lonSpan / latSpan;                      // >1 larga, <1 alta
+            var avail = el.parentElement ? el.parentElement.clientWidth : el.clientWidth;
+            if (!avail) return;
+            var h = Math.round(Math.min(620, Math.max(320, avail / aspect)));
+            // Un po' di margine oltre l'aspetto esatto (×1.35): incorniciare al millimetro toglie il contesto
+            // geografico, che qui serve — è il motivo per cui sotto c'è il rilievo.
+            var w = Math.round(Math.min(avail, Math.max(340, h * aspect * 1.35)));
+            el.style.height = h + 'px';
+            el.style.width = w + 'px';
+            el.style.margin = '0 auto';
+            map.invalidateSize();
+        }
         // Stesso contratto dell'AoR (vedi wirePrint in vipi-ui.js): la stampa riduce il contenitore e deve
         // riadattare l'inquadratura invece di ritagliarla.
         el._aorBounds = bounds;
