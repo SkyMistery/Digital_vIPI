@@ -860,6 +860,15 @@
   <data name="Sorg_ReloadNavaids" xml:space="preserve"><value>Ricarica i punti</value></data>
   <data name="Sorg_ReloadNavaidsTitle" xml:space="preserve"><value>Riscarica subito dal sectorfile il catalogo di fix, VOR e NDB usato per suggerire i punti negli editor. Senza questo tasto si aggiorna da sé una volta al giorno.</value></data>
   <data name="Sorg_ReloadNavaidsOk" xml:space="preserve"><value>Catalogo dei punti ricaricato: {0} voci.</value></data>
+  <data name="Sorg_AliasTitle" xml:space="preserve"><value>Alias dei fix</value></data>
+  <data name="Sorg_AliasHelp" xml:space="preserve"><value>Un alias corregge a mano un fix che il sectorfile lascia troncato dentro il codice di una SID (per esempio SIV → SOSIV). Vale per tutti gli aeroporti e vince sull'espansione automatica: finché c'è, l'import scrive quel nome. Si creano dalla casella «alias» nell'editor aeroporto; qui si vedono e si tolgono.</value></data>
+  <data name="Sorg_AliasColPrefix" xml:space="preserve"><value>Prefisso</value></data>
+  <data name="Sorg_AliasColFix" xml:space="preserve"><value>Fix</value></data>
+  <data name="Sorg_AliasNone" xml:space="preserve"><value>Nessun alias: tutti i fix si risolvono da sé.</value></data>
+  <data name="Sorg_AliasUnknown" xml:space="preserve"><value>Questo alias punta a un punto che non risulta nel catalogo del sectorfile. Siccome l'alias vince sull'espansione automatica, l'import continuerà a scrivere questo nome finché l'alias resta.</value></data>
+  <data name="Sorg_AliasDeleteTitle" xml:space="preserve"><value>Togli questo alias</value></data>
+  <data name="Sorg_AliasDeletePrompt" xml:space="preserve"><value>Tolgo l'alias {0} → {1}? Al prossimo import quel prefisso tornerà a risolversi da sé, e se non ci riesce la SID sarà segnata come «fix da verificare». Le SID già importate non vengono toccate ora.</value></data>
+  <data name="Sorg_AliasDeleted" xml:space="preserve"><value>Alias {0} rimosso.</value></data>
   <data name="Sorg_ColLastUpdate" xml:space="preserve"><value>Ultimo aggiornamento</value></data>
   <data name="Sorg_ColWhere" xml:space="preserve"><value>Dove si modifica</value></data>
   <data name="Sorg_ProvSourceAlways" xml:space="preserve"><value>sempre da sorgente</value></data>

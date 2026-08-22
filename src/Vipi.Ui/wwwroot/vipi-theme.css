@@ -2104,11 +2104,13 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-foot{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .xt-subform{margin:0 0 8px;background:var(--tint-atmos-soft);border-radius:6px;padding:8px}
 .xt-warn{margin:0 0 6px;font-size:12.5px}
-/* CoP che il catalogo non conosce: si SOTTOLINEA, non si tinge. La cella dei punti e' gia' in grassetto
-   (e' l'identita' della clausola dentro il gruppo di varianti) e un colore le toglierebbe quel ruolo; la
-   sottolineatura ondulata e' il segno che ovunque vuol dire «controlla come l'hai scritto». Il nome del
-   colpevole sta nel suggerimento: la colonna e' larga quanto il valore, non quanto una spiegazione. */
-.cop-unknown{text-decoration:underline wavy var(--line-yellow);text-underline-offset:3px;cursor:help}
+/* Un NOME che il catalogo non conosce, dentro un testo: si SOTTOLINEA, non si tinge. Vale per i CoP di una
+   clausola e per il bersaglio di un alias fix. La cella dei punti e' gia' in grassetto (e' l'identita' della
+   clausola dentro il gruppo di varianti) e un colore le toglierebbe quel ruolo; la sottolineatura ondulata e'
+   il segno che ovunque vuol dire «controlla come l'hai scritto». Il nome del colpevole sta nel suggerimento:
+   la colonna e' larga quanto il valore, non quanto una spiegazione.
+   Coppia con `.nav-unknown`, che e' lo stesso fatto detto su un CAMPO invece che su un testo. */
+.nav-unknown-txt{text-decoration:underline wavy var(--line-yellow);text-underline-offset:3px;cursor:help}
 
 /* ---- I due versi, uno sotto l'altro (Annex D.2: D.2.1 e D.2.2 sono DUE tabelle) ----
    ⚠️ I tasti stanno IN TESTA al blocco e non a piede. Il piede-che-tiene-i-tasti vale per UN corpo che scorre;
@@ -2543,6 +2545,18 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 /* ⚠️ «Nessuno l'ha mai salvata» diventa un avviso solo se qualche categoria e' gia' esclusa: e' il caso in
    cui un import puo' essere fermo da mesi senza che nessuno l'abbia deciso (ImportSids, luglio 2026). */
 .struct .sorg-pane .sorg-never{color:var(--warn-ink);font-weight:600}
+/* Alias dei fix: seconda tabella dentro lo STESSO riquadro misurato, non un pannello in piu' sotto (che
+   avrebbe rimesso a scorrere la pagina). Il titoletto si stacca da cio' che sta sopra, e la tabella e'
+   stretta: due nomi corti e un tasto. */
+.struct .sorg-pane .sorg-h3{margin:22px 0 4px;font-size:14px}
+/* La riga d'aiuto NON corre per tutta la larghezza del pannello: a 1580px sono due righe che l'occhio
+   non riesce a riagganciare a capo. 70ch e' la misura gia' scelta altrove (`.guida-lead`). */
+.struct .sorg-pane .sorg-aliashelp{max-width:70ch}
+.struct .sorg-alias{table-layout:fixed;min-width:320px;max-width:520px;margin-top:8px}
+.struct .sorg-alias td{padding:7px 10px;vertical-align:middle}
+.struct .sorg-alias .c-pfx{width:120px}
+.struct .sorg-alias .c-fix{width:auto}
+.struct .sorg-alias .c-act{width:64px;text-align:right}
 
 
 /* ---- Diagnostica: tre domande, due colonne (22 agosto 2026) ----

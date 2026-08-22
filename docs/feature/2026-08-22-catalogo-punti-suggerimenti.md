@@ -97,6 +97,9 @@ Provato guidando Edge:
 - editor `LIBD`: elenco presente, **1385 voci**, le tre nature; nel campo FIX di una SID manuale «BESIV»
   prende il bordo giallo e il suggerimento, «BEKIV» resta pulito;
 - editor `LIRF`: **146** campi di correzione fix, tutti agganciati all'elenco;
+- sorgenti: la sezione alias elenca i due alias di prova, marca **solo** quello che punta a un nome
+  inesistente, la conferma in linea riporta prefisso e bersaglio, e la cancellazione aggiorna elenco e
+  conteggio senza ricaricare la pagina;
 - accordi `LIBB`: la riga «AIOSA, GISAM, BESIV» è sottolineata, e il suggerimento nomina BESIV; nel pannello
   la scrittura di «, BEK» propone BEKAN · BEKIV · BIBEK · OLBEK · UMBEK, e la scelta scrive
   «AIOSA, GISAM, BESIV, BEKAN» — **completa la voce, non riscrive la riga**.
@@ -122,6 +125,38 @@ contro 69) avevano già l'elenco, quindi erano **già tagliate in `main`**. Alla
 Provato a schermo — la stessa regola senza `!important` lascia il taglio a 71px con **qualunque** selettore
 (corto, con l'attributo, o con `.struct .res-table.sid-edit` davanti). Non è la specificità a decidere, quindi
 alzarla non serve a niente. È l'eccezione alla regola di specificità scritta in `regole-ui-pagine-admin`.
+
+## Coda: gli alias escono allo scoperto
+
+La domanda che ha aperto questo pezzo è stata «e i punti **rimossi** dal sectorfile?». La risposta ha tre
+strade, e una era un buco.
+
+Per i dati scritti a mano non c'è niente da fare: il controllo gira al disegno della pagina contro il catalogo
+di quel momento, quindi una rimozione si vede da sola. Per le SID importate dipende da come il fix era stato
+risolto — la `StableKey` contiene il fix, quindi se la risoluzione cambia la riga sembra nuova e perde gli
+arricchimenti editoriali. Comportamento preesistente, discutibile ma coerente.
+
+Il buco era il terzo caso. **Un alias è autoritativo**: `ResolveFix` lo consulta prima dell'espansione del
+prefisso. Se il suo bersaglio sparisce dal sectorfile, l'import continua a scrivere quel nome, la riga **non**
+risulta nemmeno «fix da verificare», e non protesta nessuno. Peggio: gli alias si potevano solo **creare** (la
+casella «alias» nell'editor aeroporto). `ListAsync` e `DeleteAsync` esistevano nel repository e **non li
+chiamava nessuno** — un alias sbagliato era leggibile solo aprendo il database.
+
+Ora:
+
+- **Si vedono e si tolgono** da `/services/vsop/admin/sources`, in una sezione dentro lo stesso riquadro che si
+  misura da solo — non un pannello in più sotto, che avrebbe rimesso a scorrere una pagina messa a misura
+  apposta. Cancellazione con la conferma in linea che la pagina usa già (mai `confirm` nativo: blocca il
+  circuito Blazor), e la frase dice cosa succede davvero: al prossimo import quel prefisso torna a risolversi
+  da sé, le SID già importate non si toccano adesso.
+- **Il bersaglio si controlla** con lo stesso `NavaidCheck` dei CoP, e si segna con lo stesso segno — che per
+  questo ha cambiato nome da `.cop-unknown` a `.nav-unknown-txt`: ora serve a due cose, e «cop» avrebbe
+  mentito su una delle due.
+- **Lo dicono anche i log.** Un alias obsoleto visibile solo a chi apre la pagina è quasi invisibile: alla fine
+  di ogni ciclo d'import, `SidImportHostedService` conta gli alias che puntano a nomi inesistenti e li elenca
+  a `LogWarning`. Best-effort: un problema lì non fa fallire un import riuscito.
+
+Con la sorgente muta non si accusa nessun alias, per la stessa ragione di sempre.
 
 ## Cosa NON è entrato, e perché
 

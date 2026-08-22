@@ -283,7 +283,7 @@
     {
         var unknown = NavaidCheck.UnknownCops(value, Navaids);
         if (unknown.Count == 0) { <b>@shown</b> }
-        else { <b class="cop-unknown" title="@L["Xfer_CopUnknown", string.Join(", ", unknown)]">@shown</b> }
+        else { <b class="nav-unknown-txt" title="@L["Xfer_CopUnknown", string.Join(", ", unknown)]">@shown</b> }
     };
 
     /// <summary>La cella: il valore, oppure l'editor se è questa la cella aperta.</summary>
