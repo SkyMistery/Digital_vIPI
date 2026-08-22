@@ -23,6 +23,18 @@ public static class ImportCategories
 {
     public const string Acc = "Acc";
     public const string AirportSector = "AirportSector";
+
+    /// <summary>
+    /// Il giro di <b>TA e piste</b> (dal 22 agosto 2026; prima arrivavano solo su richiesta).
+    ///
+    /// <para>⚠️ Una chiave sola per <b>due</b> categorie di policy, ed è voluto: il gate sta dentro
+    /// <c>SourceMergeInputs</c>, quindi la categoria esclusa si racconta da sé («Esclusa» vince sullo stato,
+    /// <see cref="Vipi.Application.Content.ImportOverviewService"/>) e ciò che resta da dire — l'ultimo giro
+    /// riuscito, l'errore della sorgente — è per definizione comune a entrambe: è lo <b>stesso</b> giro sugli
+    /// <b>stessi</b> aeroporti. Due chiavi sarebbero due letture della stessa cosa, cioè il modo in cui due
+    /// racconti divergono.</para>
+    /// </summary>
+    public const string AirportData = "AirportData";
     public const string SpecialArea = "SpecialArea";
     public const string Sid = "Sid";
 

@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -122,6 +122,7 @@ public static class IvaoServiceCollectionExtensions
         services.AddHostedService<StaffRosterVerificationService>();
         services.AddHostedService<AccImportHostedService>();
         services.AddHostedService<AirportSectorImportHostedService>();
+        services.AddHostedService<AirportDataImportHostedService>();
         services.AddHostedService<SpecialAreaImportHostedService>();
         return services;
     }

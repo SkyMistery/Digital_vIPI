@@ -33,8 +33,9 @@ public sealed class ImportSchedule : IImportSchedule
         ImportCategories.Acc => Ore(_ivao.AccImportHours),
         ImportCategories.SpecialArea => Ore(_ivao.AccImportHours),
         ImportCategories.AirportSector => Ore(_ivao.AirportSectorImportHours),
+        ImportCategories.AirportData => Ore(_ivao.AirportDataImportHours),
         ImportCategories.Sid => string.IsNullOrWhiteSpace(_sectorfile.RawBaseUrl) ? null : Ore(_sectorfile.ImportHours),
-        _ => null,   // TA e Piste non hanno un giro automatico: arrivano solo su richiesta.
+        _ => null,   // chiavi che non sono import periodici (segnaposti di riconciliazioni one-shot).
     };
 
     private static TimeSpan Ore(int h) => TimeSpan.FromHours(Math.Max(1, h));
