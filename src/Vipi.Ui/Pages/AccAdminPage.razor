@@ -1,4 +1,4 @@
-﻿@page "/vsop/admin/acc"
+@page "/vsop/admin/acc"
 @layout SopLayout
 @rendermode InteractiveServer
 @using Microsoft.Extensions.Logging
@@ -118,7 +118,7 @@
                                     }
                                     else
                                     {
-                                        <span class="pill" style="background:#dafbe7;color:#1a7f37">@L["AccAdmin_Active"]</span>
+                                        <span class="pill green">@L["AccAdmin_Active"]</span>
                                     }
                                 </td>
                                 @* Aree regolamentate: gli ACC esteri nascono spenti (sono centinaia di aree che
@@ -126,7 +126,7 @@
                                 <td style="white-space:nowrap">
                                     @if (a.SpecialAreasEnabled)
                                     {
-                                        <span class="pill" style="background:#dafbe7;color:#1a7f37" title="@L["AccAdmin_AreasOnHint"]">@(a.SpecialAreaCount == 1 ? L["AccAdmin_AreasOne"].Value : L["AccAdmin_AreasOn", a.SpecialAreaCount].Value)</span>
+                                        <span class="pill green" title="@L["AccAdmin_AreasOnHint"]">@(a.SpecialAreaCount == 1 ? L["AccAdmin_AreasOne"].Value : L["AccAdmin_AreasOn", a.SpecialAreaCount].Value)</span>
                                     }
                                     else
                                     {
@@ -232,7 +232,7 @@
                                     }
                                     else
                                     {
-                                        <span class="pill" style="background:#dafbe7;color:#1a7f37">@L["AccAdmin_Active"]</span>
+                                        <span class="pill green">@L["AccAdmin_Active"]</span>
                                     }
                                 </td>
                                 <td style="white-space:nowrap">

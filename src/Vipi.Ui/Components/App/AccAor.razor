@@ -1,4 +1,4 @@
-﻿@* AoR di ACC: UNA mappa con anelli per-settore toggleabili (chip sopra) + selettore configurazione (chip sotto).
+@* AoR di ACC: UNA mappa con anelli per-settore toggleabili (chip sopra) + selettore configurazione (chip sotto).
    data-sectors = [{sec,name,color,rings:[[[lat,lng],…]]}]; l'interattività è client-side (vipi-aor.js). SVG di fallback. *@
 @using System.Text.Json
 @inject IStringLocalizer<SharedResource> L
@@ -21,7 +21,7 @@
         </div>
 
         <div @key="MapSignature()" class="aor-leaflet" data-sectors="@SectorsJson()" style="height:340px;border:1px solid var(--line);border-radius:11px;overflow:hidden">
-            <svg viewBox="@View.Sectors[0].Polygons[0].ViewBox" width="100%" height="100%" style="background:#f7f9ff">
+            <svg viewBox="@View.Sectors[0].Polygons[0].ViewBox" width="100%" height="100%" style="background:var(--surface-soft)">
                 @foreach (var s in View.Sectors)
                 {
                     @foreach (var p in s.Polygons)

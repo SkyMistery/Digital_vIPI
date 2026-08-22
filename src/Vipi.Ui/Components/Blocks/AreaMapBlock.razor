@@ -18,6 +18,9 @@
 @code {
     [Parameter, EditorRequired] public BlockView Block { get; set; } = default!;
 
+    // ⚠️ `_color` e' un colore SCELTO DALL'UTENTE con un <input type=color> e salvato nel documento:
+    // deve restare una stringa esadecimale vera, non un token. Il valore di partenza e' il blu di brand
+    // (atmos-700) scritto per esteso perche' un var() qui non sarebbe ne' selezionabile ne' salvabile.
     private string _label = "", _color = "#0D2C99", _points = "", _from = "", _to = "", _desc = "";
     private double _fill = 0.14;
 

@@ -1,4 +1,4 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 @inject NavigationManager Nav
 @inject IStationResolver Stations
 @inject ICurrentUserProvider Users
@@ -28,6 +28,14 @@
                         <a class="@(IsActiveAcc(acc.Code) ? "active" : null)" href="/vsop/@acc.Code.ToLowerInvariant()">@acc.Code</a>
                     }
                 </nav>
+                @* Sotto i 900px la barra nasconde zoom e tasti: «quello che esce dalla riga vive nel menù».
+                   Qui le tre scelte sono esplicite, che è più chiaro di un giro a tre stati. Lo stato attivo
+                   lo segna vipiApplyTema() su `data-theme-set`. *@
+                <div class="tb-menu-tema" role="group" aria-label="@L["Chrome_Theme"]">
+                    <button type="button" data-theme-set="auto" onclick="vipiSetTema('auto')"><Icon Name="monitor" /> @L["Chrome_ThemeAutoShort"]</button>
+                    <button type="button" data-theme-set="light" onclick="vipiSetTema('light')"><Icon Name="sun" /> @L["Chrome_ThemeLightShort"]</button>
+                    <button type="button" data-theme-set="dark" onclick="vipiSetTema('dark')"><Icon Name="moon" /> @L["Chrome_ThemeDarkShort"]</button>
+                </div>
                 <a href="/vsop/guida"><Icon Name="help-circle" /> @L["Chrome_Guide"]</a>
                 <a href="/vsop/live"><Icon Name="radio" /> @L["Chrome_OpenLive"]</a>
                 @if (_canEdit)
@@ -74,6 +82,23 @@
                 <span id="vipiZoomPct" role="status" aria-live="polite" aria-label="@L["Chrome_ZoomPage"]" onclick="vipiZoomReset()" title="@L["Chrome_ZoomReset"]">100%</span>
                 <button type="button" onclick="vipiZoom(0.1)" title="@L["Chrome_ZoomIn"]" aria-label="@L["Chrome_ZoomIn"]">+</button>
             </div>
+            @* Tema: un solo tasto che gira automatico → chiaro → scuro. È un tasto e non tre perché la barra
+               ha un minimo incomprimibile noto (vedi 2026-08-22-topbar-larghezza-e-lingua) e tre ne costerebbero
+               una novantina di px; le tre scelte esplicite stanno nel menù, dove lo spazio c'è.
+               ⚠️ L'ICONA la sceglie il CSS sullo stato di :root, non il JS: il chrome è SSR statico e non si
+               ridisegna da sé, quindi le tre icone si rendono tutte e se ne mostra una. Al JS resta la sola
+               etichetta, che in CSS non è esprimibile — e le stringhe gli arrivano dai `data-lbl-*`, perché
+               stanno nel resx e non dentro un file .js. *@
+            <button type="button" class="editor-btn icon-only theme-ctrl" data-theme-ctrl
+                    onclick="vipiCicloTema()"
+                    title="@L["Chrome_ThemeAuto"]" aria-label="@L["Chrome_ThemeAuto"]"
+                    data-lbl-auto="@L["Chrome_ThemeAuto"]"
+                    data-lbl-light="@L["Chrome_ThemeLight"]"
+                    data-lbl-dark="@L["Chrome_ThemeDark"]">
+                <Icon Name="monitor" Class="ti ti-auto" />
+                <Icon Name="sun" Class="ti ti-light" />
+                <Icon Name="moon" Class="ti ti-dark" />
+            </button>
             @* Toggle Estesa/Ridotta rimosso: la vista Ridotta è disabilitata (rebuild /vsop, Round 12). *@
             @* Isola interattiva: il layout è SSR statico e il badge dev'essere l'unica cosa che si aggiorna
                da sola quando ti colleghi in frequenza. Il VID glielo passa il layout, che l'HttpContext ce l'ha. *@

@@ -1,4 +1,4 @@
-﻿@page "/vsop/{Acc}/airports/editor"
+@page "/vsop/{Acc}/airports/editor"
 @page "/vsop/{Acc}/aeroporto/editor"
 @layout SopLayout
 @rendermode InteractiveServer
@@ -107,7 +107,7 @@ else
                     @foreach (var (r, idx) in _rules.Select((r, i) => (r, i)))
                     {
                         <div class="rule-card" @key="r"
-                             style="@(_testRan && _testHit?.RuleIndex == idx ? "outline:2px solid var(--brand,#0D2C99);outline-offset:2px" : null)"
+                             style="@(_testRan && _testHit?.RuleIndex == idx ? "outline:2px solid var(--ivao-blue);outline-offset:2px" : null)"
                              @ondragover:preventDefault="true" @ondragenter="() => RuleDragEnter(idx)" @ondrop="RuleDrop" @ondragend="() => _ruleDrag = null">
                             <div class="rule-head">
                                 <span class="app-drag" draggable="true" @ondragstart="() => _ruleDrag = idx" title="@L["Ape_DragToReorder"]">⠿</span>
@@ -183,7 +183,7 @@ else
                     </div>
 
                     @* --- Tester: prova le regole con un vento arbitrario (non salva nulla) --- *@
-                    <div class="block" style="margin-top:12px;background:#f6f8fc">
+                    <div class="block" style="margin-top:12px;background:var(--surface-soft)">
                         <div class="se-row" style="flex-wrap:wrap;align-items:end;gap:10px">
                             <label style="display:flex;flex-direction:column;font-size:12px">Vento da (°)
                                 <input type="number" min="0" max="360" style="width:90px" @bind="_testDir" placeholder="calmo" /></label>
@@ -713,7 +713,7 @@ else
                                         {
                                             <td>
                                                 <input style="width:70px" value="@FmtLower(_secLower.GetValueOrDefault(s.Id))" @onchange="e => _secLower[s.Id] = ParseLower(e.Value)" title="@L["AccAdmin_LowerHint"]" disabled="@(!_canEdit || s.LimitsFromSource)" />
-                                                @if (s.LimitsFromSource) { <span class="pill" style="background:#eef1f6;color:#5b6470;margin-left:4px" title="@L["Ape_LimitsFromSourceTitle"]">🔒</span> }
+                                                @if (s.LimitsFromSource) { <span class="pill" style="background:var(--surface-muted);color:var(--ink-soft);margin-left:4px" title="@L["Ape_LimitsFromSourceTitle"]">🔒</span> }
                                             </td>
                                             <td><input style="width:70px" value="@FmtUpper(_secUpper.GetValueOrDefault(s.Id))" @onchange="e => _secUpper[s.Id] = ParseUpper(e.Value)" title="@L["AccAdmin_UpperHint"]" disabled="@(!_canEdit || s.LimitsFromSource)" /></td>
                                         }
@@ -1846,11 +1846,11 @@ else
 
     private async Task Toggle(HashSet<string> set, string id) { if (!set.Remove(id)) set.Add(id); await MarkDirty("Regole piste"); }
     private static string RwChip(HashSet<string> set, string id) => set.Contains(id)
-        ? "background:var(--brand,#0D2C99);color:#fff;border-color:var(--brand,#0D2C99)" : "opacity:.6";
+        ? "background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)" : "opacity:.6";
 
     private async Task ToggleDay(RuleEdit r, int bit) { r.DaysMask ^= (1 << bit); await MarkDirty("Regole piste"); }
     private static string DayChip(RuleEdit r, int bit) => (r.DaysMask & (1 << bit)) != 0
-        ? "background:var(--brand,#0D2C99);color:#fff;border-color:var(--brand,#0D2C99)" : "opacity:.6";
+        ? "background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)" : "opacity:.6";
 
     private async Task Move(int idx, int dir)
     {

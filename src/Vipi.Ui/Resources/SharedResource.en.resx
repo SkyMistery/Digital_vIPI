@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -95,9 +95,17 @@
   <data name="Country_LI" xml:space="preserve"><value>Italy</value></data>
   <data name="Chrome_BrandSubtitle" xml:space="preserve"><value>/ vLOA · IVAO Italy</value></data>
   <data name="Chrome_BrandHome" xml:space="preserve"><value>vIPI / vLOA home</value></data>
-  <data name="Chrome_Guide" xml:space="preserve"><value>Guide</value></data>
+  <data name="Chrome_Guide" xml:space="preserve"><value>Guide</value></data>
+
   <data name="Chrome_Menu" xml:space="preserve"><value>Menu</value></data>
   <data name="Chrome_StaffPosition" xml:space="preserve"><value>Staff position</value></data>
+  <data name="Chrome_Theme" xml:space="preserve"><value>Theme</value></data>
+  <data name="Chrome_ThemeAuto" xml:space="preserve"><value>Theme: automatic (follows the system)</value></data>
+  <data name="Chrome_ThemeLight" xml:space="preserve"><value>Theme: light</value></data>
+  <data name="Chrome_ThemeDark" xml:space="preserve"><value>Theme: dark</value></data>
+  <data name="Chrome_ThemeAutoShort" xml:space="preserve"><value>Automatic</value></data>
+  <data name="Chrome_ThemeLightShort" xml:space="preserve"><value>Light</value></data>
+  <data name="Chrome_ThemeDarkShort" xml:space="preserve"><value>Dark</value></data>
   <data name="Chrome_ZoomOut" xml:space="preserve"><value>Zoom out</value></data>
   <data name="Chrome_ZoomIn" xml:space="preserve"><value>Zoom in</value></data>
   <data name="Chrome_ZoomReset" xml:space="preserve"><value>Reset to 100%</value></data>

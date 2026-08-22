@@ -1,5 +1,9 @@
-﻿# Regole di densità e uso per le pagine admin (19-22 agosto 2026) — 212 voci in 29 gruppi
+# Regole di densità e uso per le pagine admin (19-22 agosto 2026) — 212 voci in 29 gruppi
 
+> ⚠️ **I colori e i font non stanno qui: stanno in [regole-brand](regole-brand.md).** Dal 22 agosto il
+> foglio non contiene piu' colori letterali fuori dalla scala di brand, e c'e' un tema scuro: una
+> regola nuova che scrive un `#rrggbb` lo rompe in silenzio.
+>
 > **A cosa serve.** Fra il 16 e il 20 agosto sette pagine admin sono state rifatte nella forma —
 > [accordi](../feature/2026-08-19-accordi-densita-ui.md), [struttura](../feature/2026-08-19-struttura-densita-ui.md),
 > [ACC](../feature/2026-08-19-acc-admin-densita-ui.md), [aeroporti](../feature/2026-08-19-aeroporti-densita-ui.md),

@@ -8,6 +8,13 @@ namespace Vipi.Application.Aor;
 /// </summary>
 public static class AorColorScheme
 {
+    // ⚠️ Questi colori NON seguono la palette di brand IVAO, ed è voluto (verificato il 2026-08-22 contro
+    // ivaoaero/atmosphere). Sono colori CARTOGRAFICI, non chrome: gli anelli AoR si sovrappongono e si
+    // riempiono al 16%, e i passi del brand a piena saturazione a quell'opacità diventano indistinguibili
+    // fra loro. In più finiscono in un <input type=color> come override manuale, quindi devono restare
+    // stringhe esadecimali vere: un var(--token) qui non sarebbe né selezionabile né disegnabile
+    // (Leaflet li scrive in attributi SVG, che non sostituiscono var()).
+    // Tre combaciano già col brand: CTR = atmos-700, APP/Fallback = ocean-600, ATIS = semantic-blue-500.
     /// <summary>Colore usato quando il suffisso non è riconosciuto.</summary>
     public const string Fallback = "#3C55AC";
 

@@ -357,8 +357,14 @@ Il portale **deve** rispettare le linee guida brand IVAO ([font](https://brand.i
 
 ### 15.2 Tipografia
 
-- **Nunito Sans** → titoli/header (tono serio e ordinato).
-- **Poppins** → testo lungo/prosa procedurale (leggibile e amichevole).
+- ⚠️ **CORRETTO il 2026-08-22 — questa carta diceva l'opposto del brand.** I ruoli veri, da
+  `ivaoaero/atmosphere` → `brand/src/tokens.json` (`font.head` / `font.sans`), sono:
+  - **Poppins** → titoli/header.
+  - **Nunito Sans** → testo lungo/prosa procedurale.
+  - **IBM Plex Mono** → monospaziato (`font.mono`), che questa carta non prevedeva affatto.
+  Quello scritto qui prima (Nunito Sans ai titoli, Poppins alla prosa) era una scelta nostra ragionata ma
+  **opposta al token del brand**, ed è stata la fonte dell'errore: vedi
+  [2026-08-22-brand-atmosphere](../feature/2026-08-22-brand-atmosphere.md).
 - Allineamento **a sinistra** (no center align, salvo header brevi su banner/bottoni).
 - Sizing **Bootstrap 5** (1rem = 16px): h1 40px, h2 32px, h3 28px, h4 24px, h5 20px, h6 16px; body 16px.
 - Header in colore primario; sotto-header in light blue; su sfondi scuri header bianco e sotto-header in colore secondario.

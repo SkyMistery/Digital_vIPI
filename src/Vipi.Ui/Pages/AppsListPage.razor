@@ -47,11 +47,11 @@ else
                         <span class="apt-tag">@ap.Callsign</span>
                         @if (st == AppState.None)
                         {
-                            <span class="apt-tag" style="background:var(--ivao-blue);color:#fff;margin-left:6px">＋ @L["Apps_CreateDoc"]</span>
+                            <span class="apt-tag" style="background:var(--ivao-blue);color:var(--on-brand);margin-left:6px">＋ @L["Apps_CreateDoc"]</span>
                         }
                         else if (st == AppState.Draft)
                         {
-                            <span class="apt-tag" style="background:#b8860b;color:#fff;margin-left:6px">@L["Apps_Draft"]</span>
+                            <span class="apt-tag" style="background:var(--warn-ink);color:var(--on-brand);margin-left:6px">@L["Apps_Draft"]</span>
                         }
                         else if (st == AppState.Hidden)
                         {

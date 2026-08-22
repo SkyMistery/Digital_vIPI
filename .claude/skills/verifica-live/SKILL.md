@@ -1,4 +1,4 @@
-﻿---
+---
 name: verifica-live
 description: Lancia la vIPI in locale (dotnet run su una copia del DB) e la guida in un browser reale con Edge+puppeteer-core, per verificare a schermo una modifica UI. Usare quando serve provare l'app davvero — non i test — su viewer, editor, pannello release.
 ---
@@ -58,6 +58,28 @@ node driver.js
 
 `driver.js` accanto a questo file è il punto di partenza: adattarne la sezione dei passi.
 Edge sta in `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`.
+
+Accanto a `driver.js` ci sono altri **due** script, che non si adattano: si lanciano così com'è.
+
+| script | cosa prende | quando |
+|---|---|---|
+| `sweep.js` | fondi che **non si sono girati** nel tema scuro (12 pagine) | dopo ogni modifica a un foglio di stile |
+| `probe.js` | testo sotto **4.5:1** su una pagina, in un tema | quando si cambia un colore di testo |
+
+```powershell
+node sweep.js
+node probe.js dark  http://localhost:5034/vsop/lirr
+node probe.js light http://localhost:5034/vsop/lirr
+```
+
+⚠️ **Perché esistono.** Il 22 agosto `vipi-aor3d.css` è **sfuggito** alla passata sui token: la legenda del
+visore 3D è rimasta col fondo bianco scritto a mano e, nel tema scuro, aveva le scritte quasi bianche
+sopra — illeggibile. **Nessun test lo ha visto**, e nel tema chiaro non si vedeva. `driver.js` non l'ha
+preso perché guardava solo cinque pagine, e quella non era fra loro. `sweep.js` lo prende.
+
+⚠️ Tutt'e due hanno **falsi positivi noti e attesi**, scritti in testa ai file: il velo semitrasparente
+della barra blu (`probe.js` non compone l'alfa) e la pastiglia ACC attiva (`sweep.js` non riesce a
+riconoscerla come voluta). Leggere quelle righe prima di «correggere» qualcosa che non è rotto.
 
 ## 4. Attendi il circuito, non il DOM
 

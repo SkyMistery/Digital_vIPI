@@ -1,6 +1,19 @@
 // Mappa AOR: disegna il poligono shape reale su una basemap minimal (CartoDB Positron) via Leaflet.
 // Idempotente: ogni contenitore .aor-leaflet[data-poly] è inizializzato una sola volta (data-init).
 (function () {
+    // Un colore che arriva dal DOM puo' essere un hex vero (override manuale dell'utente, che esce da
+    // un <input type=color>) oppure il NOME di un token del tema (es. "--ivao-red"). Leaflet vuole un
+    // colore vero: qui il token viene risolto una volta sola sul :root.
+    // ⚠️ Restituire il token com'e' non funziona: Leaflet lo scrive in un attributo SVG `fill`, che
+    // non fa la sostituzione di var() come farebbe una proprieta' CSS.
+    function aorColor(v, fallback) {
+        v = (v || '').trim();
+        if (!v) v = fallback;
+        if (v.indexOf('--') !== 0) return v;
+        var r = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+        return r || fallback;
+    }
+
     // Basemap CartoDB Positron condivisa.
     function addBasemap(map) {
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -25,7 +38,10 @@
         var secMap = {};
         sectors.forEach(function (s) {
             var layers = (s.rings || []).filter(function (r) { return r && r.length >= 3; }).map(function (r) {
-                return L.polygon(r, { color: s.color, weight: 2, fillColor: s.color, fillOpacity: 0.16 });
+                // ⚠️ anche qui il colore puo' essere il NOME di un token (lo manda ConfinantiAdminPage):
+                // va risolto, perche' Leaflet lo scrive in un attributo SVG che non sostituisce var().
+                var sc = aorColor(s.color, '--ivao-lightblue');
+                return L.polygon(r, { color: sc, weight: 2, fillColor: sc, fillOpacity: 0.16 });
             });
             secMap[(s.sec || '').toUpperCase()] = { layers: layers, on: false };
         });
@@ -169,7 +185,7 @@
             attribution: '© OpenStreetMap, © CARTO'
         }).addTo(map);
 
-        var color = el.dataset.color || '#3C55AC';
+        var color = aorColor(el.dataset.color, '--ivao-lightblue');
         var mainPolys = rings.map(function (r) {
             return L.polygon(r, { color: color, weight: 2, fillColor: color, fillOpacity: 0.16 }).addTo(map);
         });
@@ -183,7 +199,8 @@
             var rings = [];
             towers.forEach(function (ring) {
                 if (ring && ring.length >= 3)
-                    rings.push(L.polygon(ring, { color: '#C2410C', weight: 2, dashArray: '5,4', fillColor: '#F97316', fillOpacity: 0.12 }));
+                    rings.push(L.polygon(ring, { color: aorColor('--ivao-color-product-artifice-dark', '#e26e17'), weight: 2, dashArray: '5,4',
+                                          fillColor: aorColor('--ivao-color-product-artifice-light', '#ea984e'), fillOpacity: 0.12 }));
             });
             if (rings.length) {
                 twrGroup = L.layerGroup(rings).addTo(map);   // visibile di default

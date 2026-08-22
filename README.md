@@ -1,4 +1,4 @@
-﻿# vIPI / vLOA Interactive
+# vIPI / vLOA Interactive
 
 Portale web interattivo per la documentazione operativa ATC (vIPI e vLOA) della divisione **IVAO Italia**.
 Trasforma i Word statici in contenuto strutturato con due livelli (Estesa/Ridotta), logica di visibilità
@@ -74,6 +74,6 @@ e prossimi passi in **`HANDOFF.md`**; storia in **`docs/history/rounds.md`**.
 **Apache License 2.0** — vedi `LICENSE` e `NOTICE`. Stessa licenza del sito `Ivao.It`, così il prodotto
 combinato resta sotto un regime unico quando il modulo viene embeddato (vedi `docs/guide/integration.md`).
 
-I componenti di terzi ridistribuiti nel repository (three.js, i font Nunito Sans e Poppins) restano sotto la
+I componenti di terzi ridistribuiti nel repository (three.js, i font Poppins, Nunito Sans e IBM Plex Mono) restano sotto la
 propria licenza: elenco e testi in **`THIRD-PARTY-NOTICES.md`**. «IVAO» e il logo IVAO sono marchi
 dell'International Virtual Aviation Organisation e la licenza non ne concede l'uso (§6 Apache 2.0).

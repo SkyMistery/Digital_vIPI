@@ -79,7 +79,9 @@ Il portale è una RCL Blazor montata dal sito host .NET; la logica vive in proge
 
 ### D10 — Brand IVAO obbligatorio
 
-Palette e tipografia ufficiali (Nunito Sans / Poppins), colori come CSS custom properties, font self-hosted. I colori semantici sono estesi deliberatamente anche ai blocchi `Callout` (da annotare nella guida di stile).
+Palette e tipografia ufficiali, colori come CSS custom properties, font self-hosted. I colori semantici sono estesi deliberatamente anche ai blocchi `Callout` (da annotare nella guida di stile).
+
+**Aggiornato il 2026-08-22:** la fonte del brand è [ivaoaero/atmosphere](https://github.com/ivaoaero/atmosphere) → `brand/src/tokens.json`, che copre **solo colori e font**. I font sono **Poppins** (titoli), **Nunito Sans** (corpo) e **IBM Plex Mono**; fino a quella data i primi due erano scambiati. Il tema vive su tre livelli (scala di brand copiata alla lettera → ruoli → tinte derivate) e non contiene più colori letterali fuori dal primo livello: vedi [2026-08-22-brand-atmosphere](../feature/2026-08-22-brand-atmosphere.md).
 
 **Perché:** coerenza con l'identità della divisione; self-hosting per leggerezza e indipendenza da CDN.
 

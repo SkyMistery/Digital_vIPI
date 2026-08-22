@@ -34,6 +34,34 @@
     var ZDEF = 0.5;         // fattore «Altezza» iniziale: i prismi a piena scala erano torri illeggibili
     var clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
     var hex = function (c) { return (c && c[0] === '#') ? c : ('#' + String(c || '3C55AC')); };
+
+    // Il tema si legge dalla SUPERFICIE, non da `data-theme`: cosi' vale per tutti e tre gli stati
+    // (automatico compreso) senza doverli conoscere, e resta giusto se domani gli stati cambiano.
+    // ⚠️ getComputedStyle su un token puo' rendere `#rrggbb`, `rgb(...)` oppure `color(srgb 0-1)`:
+    // quest'ultimo ha i canali fra 0 e 1, e leggerli come 0-255 da luminanza ~0 e risposta sempre "scuro".
+    function temaScuro() {
+        var v = (getComputedStyle(document.documentElement).getPropertyValue('--surface') || '').trim();
+        if (!v) return false;
+        var ch;
+        if (v[0] === '#') {
+            var h = v.slice(1);
+            if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+            ch = [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+        } else {
+            var m = v.match(/-?[\d.]+/g);
+            if (!m || m.length < 3) return false;
+            var srgb = /^color\(/.test(v);
+            ch = m.slice(0, 3).map(function (x) { return srgb ? parseFloat(x) * 255 : parseFloat(x); });
+        }
+        return (0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2]) < 128;
+    }
+
+    // Inchiostro di un settore: sul chiaro si SCURISCE (stacco sulla mappa chiara), sul buio si SCHIARISCE.
+    // Scurire anche al buio era il difetto: le etichette diventavano blu notte su fondo blu notte.
+    function inkSettore(THREE, col, scuro) {
+        return scuro ? col.clone().lerp(new THREE.Color(1, 1, 1), 0.45)
+                     : col.clone().multiplyScalar(0.72);
+    }
     // Nomi/callsign finiscono in innerHTML (legenda): arrivano dal DB, quindi passano da qui.
     var esc = function (t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
 
@@ -81,7 +109,10 @@
         var cols = tx1 - tx0 + 1, rows = ty1 - ty0 + 1;
         var canvas = document.createElement('canvas'); canvas.width = cols * 256; canvas.height = rows * 256;
         var g = canvas.getContext('2d');
-        g.fillStyle = '#eef1f7'; g.fillRect(0, 0, canvas.width, canvas.height);
+        // Fondo della texture quando le tessere non arrivano. Un canvas 2D vuole un colore vero:
+        // si legge il token dal :root, cosi' segue il tema invece di restare chiaro sul buio.
+        g.fillStyle = (getComputedStyle(document.documentElement).getPropertyValue('--surface-muted') || '').trim() || '#eeeff5';
+        g.fillRect(0, 0, canvas.width, canvas.height);
 
         var texture = new THREE.CanvasTexture(canvas);
         // Estensione geografica della griglia di tile → angoli in XY (stessa proiezione dei poligoni). Il piano vi si adatta.
@@ -157,7 +188,8 @@
             var bottom = band[0] || 0, top = band[1] || 660;
             var depth = Math.max(1, (top - bottom)) * flz;
             var col = new THREE.Color(hex(s.color));
-            var edgeCol = col.clone().multiplyScalar(0.72);   // spigolo più scuro = stacco netto sulla mappa chiara
+            var edgeCol = inkSettore(THREE, col, temaScuro());
+            s._col = col; s._edges = [];   // conservati per ricolorare al cambio di tema, senza ricostruire la scena
             var secGroup = new THREE.Group(); secGroup.position.z = bottom * flz;
 
             var cxSum = 0, cySum = 0, n = 0;
@@ -170,7 +202,7 @@
                 var geo = new THREE.ExtrudeGeometry(shape, { depth: depth, bevelEnabled: false });
                 var mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: col, transparent: true, opacity: 0.16, depthWrite: false }));
                 var edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: edgeCol, transparent: true, opacity: 0.9 }));
-                secGroup.add(mesh); secGroup.add(edges);
+                secGroup.add(mesh); secGroup.add(edges); s._edges.push(edges);
                 pts.forEach(function (p) { cxSum += p[0]; cySum += p[1]; n++; });
             });
             if (n === 0) return;
@@ -275,7 +307,11 @@
             });
         }
 
-        return { layout: layout };
+        // Ricolora le etichette senza ricostruirle: al cambio di tema la scena resta com'e' — e con essa
+        // l'orbita che l'utente si e' scelto, che ricostruire azzererebbe.
+        function setInk() { items.forEach(function (it) { it.el.style.color = it.s._ink || ''; }); }
+
+        return { layout: layout, setInk: setInk };
     }
 
     /// Punto d'ingresso: garantisce three.js, poi costruisce. Tutti i chiamanti (tab 3D, <details>, initAll,
@@ -364,6 +400,20 @@
             var w = stage.clientWidth, h = stage.clientHeight;
             if (w && h) { ctx.camera.aspect = w / h; ctx.camera.updateProjectionMatrix(); ctx.renderer.setSize(w, h); render(); }
         }
+        // Cambio di tema: three.js ha gia' DISEGNATO, e un disegno non si aggiorna da se' come farebbe una
+        // regola CSS. Qui si ricalcolano solo i colori e si ridisegna: niente ricostruzione, niente orbita persa.
+        function restyle() {
+            var scuro = temaScuro();
+            sectors.forEach(function (s) {
+                if (!s._col) return;
+                var ink = inkSettore(window.THREE, s._col, scuro);
+                s._ink = '#' + ink.getHexString();
+                (s._edges || []).forEach(function (e) { e.material.color.copy(ink); });
+            });
+            labels.setInk();
+            render();
+        }
+        stage._aor3dRestyle = restyle;
         stage._aor3dResize = resize;
         updateCam();
 
@@ -473,6 +523,14 @@
         // al primo click sul tab (onViewTab). offsetParent === null ⇒ un antenato ha display:none.
         document.querySelectorAll('.aor3d-stage').forEach(function (el) { if (el.offsetParent !== null) initOne(el); });
     }
+    // Un solo ascoltatore per tutta la pagina: gli stage si registrano da se' con _aor3dRestyle.
+    // L'evento lo emette vipiSetTema (vipi-theme-mode.js).
+    window.addEventListener('vipi:tema', function () {
+        document.querySelectorAll('.aor3d-stage').forEach(function (st) {
+            if (st._aor3dRestyle) { try { st._aor3dRestyle(); } catch (e) { } }
+        });
+    });
+
     window.vipiInitAor3d = initAll;
     document.addEventListener('DOMContentLoaded', initAll);
 

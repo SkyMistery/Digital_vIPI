@@ -6,6 +6,7 @@
 //
 // `Blazor` esiste perché blazor.web.js viene caricato prima di questo file: l'ordine nel <body> conta.
 Blazor.addEventListener('enhancedload', function () {
+    window.vipiApplyTema && window.vipiApplyTema();
     window.vipiApplyZoom && window.vipiApplyZoom();
     window.vipiWireUi && window.vipiWireUi();
     window.vipiInitScreens && window.vipiInitScreens();

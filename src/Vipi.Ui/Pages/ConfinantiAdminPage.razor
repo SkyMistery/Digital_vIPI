@@ -1,4 +1,4 @@
-﻿@page "/vsop/admin/confinanti"
+@page "/vsop/admin/confinanti"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject INeighbourImportService Neighbours
@@ -678,8 +678,8 @@
     // data-sectors per vipi-aor.js: [{sec,name,color,rings:[[[lat,lng],…]]}]. Home blu, estero azzurro.
     private static string GeoSectorsJson(NeighbourPairDetail det)
     {
-        var list = det.HomeShapes.Select(s => new { sec = s.Sector, name = s.Sector, color = "#0D2C99", rings = new[] { s.Points } })
-            .Concat(det.ForeignShapes.Select(s => new { sec = s.Sector, name = s.Sector, color = "#7EA2D6", rings = new[] { s.Points } }))
+        var list = det.HomeShapes.Select(s => new { sec = s.Sector, name = s.Sector, color = "--ivao-blue", rings = new[] { s.Points } })
+            .Concat(det.ForeignShapes.Select(s => new { sec = s.Sector, name = s.Sector, color = "--ivao-info", rings = new[] { s.Points } }))
             .ToList();
         return System.Text.Json.JsonSerializer.Serialize(list);
     }
