@@ -40,6 +40,9 @@ il **login OIDC IVAO reale** e l'identità di sviluppo non si attiva: non entri.
 
 `Sectorfile__RawBaseUrl=""` evita che il job d'avvio richiami GitHub: la verifica non deve dipendere dalla rete.
 
+⚠️ **Deroga**: se è proprio il sectorfile che si sta verificando (catalogo dei punti, import SID, shape TWR),
+`Sectorfile__RawBaseUrl` va lasciato **acceso** — spento, il catalogo arriva vuoto e non si verifica niente.
+
 ⚠️ **Se invece di `dotnet run` si avvia un exe PUBBLICATO** (quando i `bin/` sono bloccati dall'app di chi
 lavora), lanciarlo **dalla sua cartella**: la content root e' la directory corrente. Avviato da altrove l'app
 parte e risponde 200, ma serve la pagina **senza CSS ne' JS** (`_content/...` in 404, «MIME type ""») — e una
@@ -147,6 +150,20 @@ Selettori: `#p-release`, `#sec-versioni`, `.ver-row`, `table.cfg-table`, `.vmeta
 `.rail-card`, `.extra-inline`, `.doc-layout`, `[data-tour=release]`.
 
 Altri ICAO con release Airport: `LIBC`, `LIBR`, `LIRN`. ACC con release: `LIBB`, `LIMM`.
+
+⚠️ **Pagine con lock: prima si prende il lock, o non si prova niente.** Su `/services/vsop/admin/transfers`
+(e sulle altre pagine con `EditLockBar`) i tasti di riga nascono **spenti**: `_canEdit` è vero solo se la
+sessione tiene il lock di struttura. Un clic su un tasto disabilitato non fa niente e non dice niente — il
+pannello resta su «nessuna clausola aperta» e sembra un difetto della pagina. Si prende così, prima di tutto:
+
+```js
+await page.evaluate(() => document.querySelector('.lockbar.free .btn.primary')?.click());
+```
+
+Nel dubbio, la diagnosi è una riga: `[...row.querySelectorAll('button')].map(b => b.innerText + ' ' + b.disabled)`.
+
+⚠️ **Le sezioni degli accordi nascono chiuse** (`▸`): si aprono cliccando i cartigli `button.xt-dirtoggle`,
+non c'è un «apri tutto» che le prenda. Senza, `tbody tr` è vuoto e sembra che l'accordo non abbia clausole.
 
 ## 6. Guarda gli screenshot
 
