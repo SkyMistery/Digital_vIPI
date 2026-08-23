@@ -471,6 +471,16 @@ Messaggio pronto in appendice al piano, **da aggiornare** perché parla ancora d
   ⚠️⚠️ **Dal 23 agosto è la domanda più urgente delle sei**, perché la procedura di aggiornamento (A11)
   comincia con un `DROP DATABASE`: il passo 1 del foglio è un dump fatto da loro, ed è l'unica rete sotto a
   quel comando. Se non sono in grado di farlo, l'aggiornamento non va cominciato.
+  🟡 **23 agosto, sera — una mezza risposta**: il committente riferisce che **il backup lo fanno loro**
+  (Ivao.It), «a quanto ho capito». È la prima notizia in nove giorni ed è verosimile — un hosting Plesk
+  gestito di norma fa backup di vhost e database. Ma resta **riferita, non confermata**, e la regola scritta
+  qui sopra vale ancora: finché non è confermata si pianifica come se non ci fosse. **Tre domande la
+  chiudono**, e sono corte: (1) con che **frequenza** e quanta **retention**; (2) copre anche i **file del
+  vhost** — cioè la cartella `public_atc/vipi-keys`, che **non sta nel database** e che un backup del solo
+  MySQL non prenderebbe (perderla slogga tutti); (3) è mai stato provato un **ripristino**, o è solo
+  configurato. La terza è quella che di solito sorprende.
+  ℹ️ Da oggi la posta è più alta: fino a ieri in produzione c'erano i contenuti del 14 agosto, che erano una
+  copia. Dal 23 c'è il contenuto **vero e corrente**, e la copia di sviluppo (`vipi.db`) diverge da lì in poi.
 - ⚠️ **`itivao_atc` può fare `DROP DATABASE`?** `GRANT ALL ON itivao_atc.*` lo comprende, ma su Plesk
   l'utente lo crea il pannello e nessuno ha verificato la lista vera. Se non può, si svuota tabella per
   tabella o si consegna un `.sql` con i `DROP TABLE` in testa — è scritto nel foglio, ma è meglio saperlo
