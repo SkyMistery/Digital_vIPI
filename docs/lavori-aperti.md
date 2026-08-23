@@ -501,7 +501,7 @@ agosto non sa leggere l'archivio del 15, perché in mezzo c'è il modello degli 
 
 | | Cosa | Dove | sha256 |
 |---|---|---|---|
-| **Sito** | `vipi-linux-x64-mariadb-20260823.zip` — 48,7 MB, 421 file (418 da caricare: `deploy/` è riferimento), self-contained net8 | `artifacts/publish/` | `40D81C37…FA8230E5` |
+| **Sito** | `vipi-linux-x64-mariadb-20260823.zip` — 48,7 MB, 421 file (418 da caricare: `deploy/` è riferimento), self-contained net8 | `artifacts/publish/` | `FE7F9FC8…E3FC4025` |
 | **Database** | `vipi-atc-it-ivao-aero-2026-08-23.sql` — 3,1 MB, schema + dati + `__EFMigrationsHistory` | `_mariadb/dump/` (**fuori dal repo**) | `0861BE6A…C20969A` |
 
 **La strategia è la sostituzione, non la migrazione**, ed è ciò che scioglie il blocco di E6-bis §9: il
@@ -558,6 +558,15 @@ RID ha toccato **nove** `packages.lock.json`, che vanno rimessi a posto prima di
 
 ⚠️ **Non verificato, come sempre**: il pacchetto non è mai stato eseguito su Linux (compilazione
 incrociata da Windows). Il `.sql` invece sì, contro una MariaDB 11.4.10 vera.
+
+⚠️ **Rifatto la sera del 23** per portare dentro la correzione di **H4** (l'intestazione della tabella ACC
+che non si appiccicava). Il committente aveva già finito di caricare la versione precedente: fra i due
+pacchetti differiscono **21 file**, ma **19 sono DLL ricompilate** — stessa funzione, identità di build
+diversa. Quelli che cambiano davvero sono **due**: `wwwroot/_content/Vipi.Ui/vipi-theme.css` e
+`Vipi.Host.staticwebassets.endpoints.json`, che porta impronta e `integrity` dell'asset e **va aggiornato
+insieme al CSS** — da solo, il vecchio manifesto continuerebbe a chiedere la versione di prima.
+ℹ️ Il confronto si fa a **sha256 file per file** contro una copia del pacchetto già caricato, non a occhio:
+è ciò che ha distinto i 2 file veri dai 19 rumorosi.
 
 ℹ️ **Il contenuto consegnato non è quello del 18 agosto**: gli accordi sono 16 come allora, ma le sezioni
 sono **34** e le clausole **50** (erano 38 e 60 il giorno della conversione). È lavoro editoriale fatto in
