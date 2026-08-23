@@ -163,8 +163,11 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
             .OrderBy(a => a.Acc!.Code).ThenBy(a => a.Icao)
             .Select(a => new AirportAdminRow(a.Id, a.Icao, a.Name, a.Acc!.Code, a.Sectors.Count,
                 a.Sectors.Any(s => s.Type == SectorType.Twr || s.Type == SectorType.ITwr), a.IsHidden,
-                // Il documento dell'aeroporto lo tiene uno dei suoi settori (come GetDocumentIdAsync).
-                a.Sectors.Where(s => s.DocumentId != null).Select(s => s.DocumentId).FirstOrDefault()))
+                // Il documento dell'aeroporto lo tiene uno dei suoi settori (come GetDocumentIdAsync), escluso
+                // l'APP non remotizzato che ha documento proprio (regola SectorDocumentRules.IsAirportDocSector).
+                a.Sectors.Where(s => s.DocumentId != null && s.Kind == SectorKind.Airport
+                        && !(s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone))
+                    .Select(s => s.DocumentId).FirstOrDefault()))
             .ToListAsync(ct);
 
     public async Task SetAirportHiddenAsync(string accCode, int airportId, bool hidden, CancellationToken ct = default)

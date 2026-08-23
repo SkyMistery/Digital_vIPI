@@ -26,7 +26,10 @@ public sealed class EfContentRepository : IContentRepository
         return LoadVipiAsync(
             d => d.Type == DocumentType.Vipi
                  && (preferWorking || ignoreRelease || !d.IsHidden)
-                 && d.Sectors.Any(s => s.Kind == SectorKind.Airport && s.AirportIcao == icao)
+                 // Regola SectorDocumentRules.IsAirportDocSector: l'APP non remotizzato è anch'esso Kind=Airport
+                 // con questo ICAO, ma ha un documento suo → va escluso o la pagina aeroporto mostra l'APP.
+                 && d.Sectors.Any(s => s.Kind == SectorKind.Airport && s.AirportIcao == icao
+                        && !(s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone))
                  // Aeroporto nascosto dall'admin ⇒ pagina pubblica inaccessibile (ma visibile in anteprima bozza).
                  && (preferWorking || ignoreRelease || !_db.Airports.Any(a => a.Icao == icao && a.IsHidden)),
             ignoreRelease, preferWorking, ct);
@@ -177,8 +180,8 @@ public sealed class EfContentRepository : IContentRepository
             .Select(s => s.Callsign).FirstOrDefaultAsync(ct);
         if (appCallsign is not null) return (ReleaseTargetType.App, appCallsign);
 
-        var icao = await _db.Sectors.AsNoTracking()
-            .Where(s => s.DocumentId == doc.Id && s.Kind == SectorKind.Airport && s.AirportIcao != null)
+        var icao = await _db.Sectors.AsNoTracking().AirportDocSectors()
+            .Where(s => s.DocumentId == doc.Id && s.AirportIcao != null)
             .Select(s => s.AirportIcao).FirstOrDefaultAsync(ct);
         return icao is not null ? (ReleaseTargetType.Airport, icao) : (null, null);
     }

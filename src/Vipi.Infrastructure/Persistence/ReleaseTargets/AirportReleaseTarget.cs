@@ -17,9 +17,11 @@ public sealed class AirportReleaseTarget : IReleaseTarget
     public ManagedDocKind ManagedKind => ManagedDocKind.AirportVipi;
     public int DescribeOrder => 3;
 
+    // ⚠️ Gli APP non remotizzati (LIBA_APP…) sono settori Kind=Airport con l'ICAO dell'aeroporto, ma hanno un
+    // documento proprio: senza il filtro di SectorDocumentRules la release dell'AEROPORTO fotografava l'APP.
     public async Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default) =>
-        await _db.Sectors.AsNoTracking()
-            .Where(s => s.AirportIcao == key && s.Kind == SectorKind.Airport && s.DocumentId != null)
+        await _db.Sectors.AsNoTracking().AirportDocSectors()
+            .Where(s => s.AirportIcao == key && s.DocumentId != null)
             .Select(s => s.DocumentId).FirstOrDefaultAsync(ct);
 
     public async Task<string?> AuthAccCodeAsync(string key, CancellationToken ct = default) =>
@@ -31,7 +33,7 @@ public sealed class AirportReleaseTarget : IReleaseTarget
         managed = default!;
         if (doc.Type != DocumentType.Vipi) return false;
         // Catch-all: Document vIPI non APP/ACC → aeroporto. ICAO dal settore aeroporto (vuoto se assente, come pre-refactor).
-        var airSec = doc.Sectors.FirstOrDefault(s => s.Kind == SectorKind.Airport && s.AirportIcao != null);
+        var airSec = doc.Sectors.FirstOrDefault(s => s.AirportIcao != null && SectorDocumentRules.IsAirportDocSectorOf(s));
         var icao = airSec?.AirportIcao ?? "";
         managed = new ManagedDoc(ManagedDocKind.AirportVipi, doc.Title, icao, airSec?.Acc?.Code,
             doc.Status == DocumentStatus.Published, hasDraft, doc.IsHidden,

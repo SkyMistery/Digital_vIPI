@@ -548,7 +548,8 @@ public sealed class EfAirportRepository : IAirportRepository
     public async Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default)
     {
         icao = (icao ?? "").Trim().ToUpperInvariant();
-        return await _db.Sectors.AsNoTracking()
+        // Solo settori che identificano il documento d'AEROPORTO: l'APP standalone dello stesso ICAO ha il suo.
+        return await _db.Sectors.AsNoTracking().AirportDocSectors()
             .Where(s => s.AirportIcao == icao && s.DocumentId != null)
             .Select(s => s.DocumentId)
             .FirstOrDefaultAsync(ct);
@@ -558,7 +559,7 @@ public sealed class EfAirportRepository : IAirportRepository
     private async Task<DocumentSection?> CurrentSidsSectionAsync(string icao, CancellationToken ct)
     {
         icao = (icao ?? "").Trim().ToUpperInvariant();
-        var verId = await _db.Sectors
+        var verId = await _db.Sectors.AirportDocSectors()
             .Where(s => s.AirportIcao == icao && s.DocumentId != null)
             .Select(s => s.Document!.CurrentVersionId)
             .FirstOrDefaultAsync(ct);
