@@ -2061,4 +2061,20 @@
   <data name="Services_SwapperDesc" xml:space="preserve"><value>Copia sezioni intere fra profili Aurora .cpr, senza copia-incolla a mano.</value></data>
   <data name="Services_Open" xml:space="preserve"><value>Apri</value></data>
   <data name="Chrome_Services" xml:space="preserve"><value>Servizi</value></data>
+  <data name="Aor3d_ResetView" xml:space="preserve"><value>Reset vista</value></data>
+  <data name="Aor3d_Basemap" xml:space="preserve"><value>Mappa base</value></data>
+  <data name="Aor3d_Fullscreen" xml:space="preserve"><value>Schermo intero</value></data>
+  <data name="Aor3d_HeightLabel" xml:space="preserve"><value>Altezza</value></data>
+  <data name="Aor3d_HeightTitle" xml:space="preserve"><value>Esagerazione verticale della vista (non cambia i livelli)</value></data>
+  <data name="Aor3d_Sectors" xml:space="preserve"><value>Settori</value></data>
+  <data name="Aor3d_DragHint" xml:space="preserve"><value>trascina = ruota · rotellina = zoom</value></data>
+  <data name="Aor3d_PageTitle" xml:space="preserve"><value>Area di responsabilità — 3D</value></data>
+  <data name="Aor3d_Crumb" xml:space="preserve"><value>AoR 3D</value></data>
+  <data name="AorExtra_NoShapes" xml:space="preserve"><value>Nessuna shape extra. Cerca un ente qui sotto per aggiungerne.</value></data>
+  <data name="AorExtra_SearchPh" xml:space="preserve"><value>Cerca ente (callsign o nome IVAO)…</value></data>
+  <data name="AorColor_ColorOf" xml:space="preserve"><value>Colore di {0}</value></data>
+  <data name="AorColor_ResetTitle" xml:space="preserve"><value>Ripristina il colore di default per tipo-ente</value></data>
+  <data name="Xfer_ConditionTitle" xml:space="preserve"><value>Condizione operativa</value></data>
+  <data name="Struct_CrossAcc" xml:space="preserve"><value>cross-ACC</value></data>
+  <data name="Ape_WindCalm" xml:space="preserve"><value>calmo</value></data>
 </root>

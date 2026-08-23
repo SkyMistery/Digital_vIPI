@@ -14,17 +14,13 @@
     <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-fonts.css")" />
     <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-theme.css")" />
     <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-aor3d.css")" />
-    <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-print.css")" />
+    @* ⚠️ `media="print"`: il browser lo scarica ma NON aspetta questo foglio per disegnare la pagina. Sono
+       13 KB che stavano sul percorso critico di ogni schermata per servire la stampa. Si è potuto mettere
+       solo dopo aver spostato l'unica regola del file che valeva anche a schermo (`.print-only`) dentro
+       vipi-theme.css: finché stava là, `media="print"` l'avrebbe spenta. *@
+    <link rel="stylesheet" media="print" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-print.css")" />
     <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-swapper.css")" />
     <link rel="stylesheet" href="@AssetVersion.Url("Vipi.Host.styles.css")" />
-    <!-- Leaflet 1.9.4 (mappa AOR minimal), VENDORIZZATO come three.js e i font. Prima arrivava da
-         unpkg.com: l'SRI copriva la manomissione, non la disponibilità — CDN irraggiungibile = tutte le
-         mappe vuote, senza ripiego — né la coerenza con il resto, che è tutto self-hosted apposta.
-         I byte sono gli stessi: lo sha256 dei file in vendor/leaflet combacia con l'integrity che stava
-         qui (js 20nQCchB9co0…, css p4NxAoJBhIIN…), verificato scaricandoli.
-         ⚠️ Le TESSERE della mappa restano esterne (basemaps.cartocdn.com): quelle non si vendorizzano.
-         Senza rete i poligoni — cioè il dato nostro — si disegnano lo stesso, su sfondo vuoto. -->
-    <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vendor/leaflet/leaflet.css")" />
     <!-- Reset di pagina dell'host standalone: il modulo non tocca più body/html (stili confinati in .vipi-root). -->
     <style>html,body{height:100%;margin:0;background:var(--bg)}</style>
     <link rel="icon" type="image/png" href="favicon.png" />
@@ -44,7 +40,6 @@
 <body>
     <Routes />
     <script src="_framework/blazor.web.js"></script>
-    <script src="@AssetVersion.Url("_content/Vipi.Ui/vendor/leaflet/leaflet.js")"></script>
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-ui.js")"></script>
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-screens.js")"></script>
     @* Ora locale del lettore accanto agli orari UTC. Non serve riagganciarlo da vipi-boot.js: si tiene
@@ -52,7 +47,20 @@
        di Blazor (l'heartbeat del lock riscrive la barra ogni 60 secondi). *@
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-time.js")"></script>
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-live.js")"></script>
-    <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-aor.js")"></script>
+    <!-- Leaflet 1.9.4 (mappa AOR minimal), VENDORIZZATO come three.js e i font. Prima arrivava da
+         unpkg.com: l'SRI copriva la manomissione, non la disponibilità — CDN irraggiungibile = tutte le
+         mappe vuote, senza ripiego — né la coerenza con il resto, che è tutto self-hosted apposta.
+         I byte sono gli stessi: lo sha256 dei file in vendor/leaflet combacia con l'integrity che stava
+         qui (js 20nQCchB9co0…, css p4NxAoJBhIIN…), verificato scaricandoli.
+         ⚠️ NON caricato qui, per la stessa ragione di three.js: sono 162 KB (js + css) che servono alle sole
+         pagine con una mappa, mentre questo <body> vale per ricerca, incarichi, elenchi admin, guida, login
+         e hub. Gli URL (con l'impronta di MapStaticAssets) passano a vipi-aor.js, che li carica alla prima
+         `.aor-leaflet` incontrata; prima di allora si vede il ripiego SVG, che disegna già il dato nostro.
+         ⚠️ Le TESSERE della mappa restano esterne (basemaps.cartocdn.com): quelle non si vendorizzano.
+         Senza rete i poligoni — cioè il dato nostro — si disegnano lo stesso, su sfondo vuoto. -->
+    <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-aor.js")"
+            data-leaflet-src="@AssetVersion.Url("_content/Vipi.Ui/vendor/leaflet/leaflet.js")"
+            data-leaflet-css="@AssetVersion.Url("_content/Vipi.Ui/vendor/leaflet/leaflet.css")"></script>
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-mva.js")"></script>
     <!-- Three.js (viewer 3D AoR) — vendorizzato localmente (r128 UMD, espone THREE globale). NON caricato qui:
          sono 592 KB che servono al solo tab 3D, mentre questo <head> vale per ogni pagina. L'URL (con l'impronta

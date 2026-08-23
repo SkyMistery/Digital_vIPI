@@ -1,4 +1,4 @@
-@* Editor della sezione «Aree regolamentate»: aree dell'ACC di appartenenza + aree di altri ACC (extra).
+﻿@* Editor della sezione «Aree regolamentate»: aree dell'ACC di appartenenza + aree di altri ACC (extra).
    Condiviso fra la vIPI ACC (blocchi Aerovia/gruppi APP) e la vIPI APP non remotizzata.
    `AllowAuto` accende il modo automatico «tutte le aree dell'ACC» (solo blocco Aerovia): senza, non esistono aree
    di default e si scelgono tutte a mano. `ShowExtra` mostra il pannello delle aree di altri ACC.
@@ -48,7 +48,7 @@
                 }
                 else if (Editing)
                 {
-                    <button type="button" class="sp-item on" title="Rimuovi" @onclick="() => ToggleOwnArea(areaId)">✓ <b>@name</b> ✕</button>
+                    <button type="button" class="sp-item on" title="@L["Common_Remove"]" @onclick="() => ToggleOwnArea(areaId)">✓ <b>@name</b> ✕</button>
                 }
                 else { <span class="sp-item on">✓ <b>@name</b></span> }
             }
@@ -111,7 +111,7 @@
                     }
                     else if (Editing)
                     {
-                        <button type="button" class="sp-item on" title="Rimuovi" @onclick="() => ToggleExtraArea(areaId)">✓ <b>@name</b> <span class="muted">@pk?.CentersText</span> ✕</button>
+                        <button type="button" class="sp-item on" title="@L["Common_Remove"]" @onclick="() => ToggleExtraArea(areaId)">✓ <b>@name</b> <span class="muted">@pk?.CentersText</span> ✕</button>
                     }
                     else { <span class="sp-item on">✓ <b>@name</b> <span class="muted">@pk?.CentersText</span></span> }
                 }

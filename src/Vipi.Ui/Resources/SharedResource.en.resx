@@ -2055,4 +2055,20 @@
   <data name="Services_SwapperDesc" xml:space="preserve"><value>Copy whole sections between Aurora .cpr profiles, with no manual copy-paste.</value></data>
   <data name="Services_Open" xml:space="preserve"><value>Open</value></data>
   <data name="Chrome_Services" xml:space="preserve"><value>Services</value></data>
+  <data name="Aor3d_ResetView" xml:space="preserve"><value>Reset view</value></data>
+  <data name="Aor3d_Basemap" xml:space="preserve"><value>Base map</value></data>
+  <data name="Aor3d_Fullscreen" xml:space="preserve"><value>Full screen</value></data>
+  <data name="Aor3d_HeightLabel" xml:space="preserve"><value>Height</value></data>
+  <data name="Aor3d_HeightTitle" xml:space="preserve"><value>Vertical exaggeration of the view (flight levels are unchanged)</value></data>
+  <data name="Aor3d_Sectors" xml:space="preserve"><value>Sectors</value></data>
+  <data name="Aor3d_DragHint" xml:space="preserve"><value>drag = rotate · wheel = zoom</value></data>
+  <data name="Aor3d_PageTitle" xml:space="preserve"><value>Area of responsibility — 3D</value></data>
+  <data name="Aor3d_Crumb" xml:space="preserve"><value>AoR 3D</value></data>
+  <data name="AorExtra_NoShapes" xml:space="preserve"><value>No extra shapes. Search for a station below to add one.</value></data>
+  <data name="AorExtra_SearchPh" xml:space="preserve"><value>Search station (callsign or IVAO name)…</value></data>
+  <data name="AorColor_ColorOf" xml:space="preserve"><value>Colour of {0}</value></data>
+  <data name="AorColor_ResetTitle" xml:space="preserve"><value>Restore the default colour for this station type</value></data>
+  <data name="Xfer_ConditionTitle" xml:space="preserve"><value>Operational condition</value></data>
+  <data name="Struct_CrossAcc" xml:space="preserve"><value>cross-ACC</value></data>
+  <data name="Ape_WindCalm" xml:space="preserve"><value>calm</value></data>
 </root>

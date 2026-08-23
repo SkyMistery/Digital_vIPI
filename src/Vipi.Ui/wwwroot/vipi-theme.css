@@ -215,6 +215,10 @@
 /* Fuori campo per l'occhio, presente per tutto il resto. ⚠️ NON `display:none` ne' `visibility:hidden`:
    quelli tolgono l'elemento anche dall'albero di accessibilita', che e' il contrario di cio' che serve.
    Il ritaglio a 1px e' il modo che funziona ovunque. */
+/* Il rovescio di `.sr-only`: c'è solo sulla CARTA (l'intestazione di PrintMeta). Sta qui e non nel
+   foglio di stampa perché è l'unica regola che serve a SCHERMO, e finché stava là obbligava a caricare
+   13 KB di regole di stampa sul percorso critico di ogni pagina (vedi App.razor, `media="print"`). */
+.vipi-root .print-only{display:none}
 .vipi-root .sr-only,.vipi-root .skip-link{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .vipi-root .skip-link:focus{position:fixed;left:8px;top:8px;width:auto;height:auto;margin:0;clip:auto;overflow:visible;z-index:100;background:var(--ivao-blue);color:var(--on-brand);padding:10px 16px;border-radius:8px}
 :where(.vipi-root) h1,:where(.vipi-root) h2,:where(.vipi-root) h3,:where(.vipi-root) h4,:where(.vipi-root) h5,:where(.vipi-root) h6{font-family:var(--font-head);color:var(--brand-ink);margin:0 0 .4em;line-height:1.2;font-weight:800}

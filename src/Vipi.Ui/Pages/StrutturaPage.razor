@@ -170,7 +170,7 @@
                                     @if (n.Callsign is not null && _online.Contains(n.Callsign)) { <span class="onl-dot" title="@L["Struct_OnlineNow"]"></span> }
                                     <span class="node-badge @FacilityClass(n.Kind, n.Callsign)">@FacilityBadge(n.Kind, n.Callsign)</span>
                                     <span class="acc-row-label">@n.Label</span>
-                                    @if (n.AccCode != g.Code) { <span class="acc-tag" title="cross-ACC">@n.AccCode</span> }
+                                    @if (n.AccCode != g.Code) { <span class="acc-tag" title="@L["Struct_CrossAcc"]">@n.AccCode</span> }
                                     @if (n.IsHidden) { <span class="muted" style="font-size:11px">@L["Struct_Hidden"]</span> }
                                     @if (n.HasChildren && _collapsed.Contains(n.Callsign!) && !_filtering)
                                     {
@@ -207,7 +207,7 @@
             else
             {
                 <p style="margin:0 0 4px">
-                    @if (sel.Callsign is not null && _online.Contains(sel.Callsign)) { <span class="onl-dot" title="online adesso"></span> }
+                    @if (sel.Callsign is not null && _online.Contains(sel.Callsign)) { <span class="onl-dot" title="@L["Struct_OnlineNow"]"></span> }
                     <b>@sel.Label</b> <span class="node-badge @FacilityClass(sel.Kind, sel.Callsign)">@FacilityBadge(sel.Kind, sel.Callsign)</span> <span class="acc-tag">@sel.AccCode</span>
                 </p>
                 @if (sel.Kind == HierarchyNodeKind.Airport)

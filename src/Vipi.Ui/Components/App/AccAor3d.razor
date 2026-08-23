@@ -20,12 +20,12 @@
             <span class="aor-chip-actions"><button type="button" class="aor-all" data-act="all">@L["Common_All"]</button> · <button type="button" class="aor-all" data-act="none">@L["Common_None"]</button></span>
         </div>
         <div class="aor3d-bar">
-            <button class="btn ghost aor3d-reset" type="button">↺ Reset vista</button>
-            <button class="btn ghost aor3d-basemap on" type="button">🗺 Mappa base</button>
-            <button class="btn ghost aor3d-full" type="button">⛶ Schermo intero</button>
+            <button class="btn ghost aor3d-reset" type="button">↺ @L["Aor3d_ResetView"]</button>
+            <button class="btn ghost aor3d-basemap on" type="button">🗺 @L["Aor3d_Basemap"]</button>
+            <button class="btn ghost aor3d-full" type="button">⛶ @L["Aor3d_Fullscreen"]</button>
             @* Esagerazione verticale: scala solo la vista (group.scale.z in vipi-aor3d.js), i dati FL non cambiano. *@
-            <span class="aor3d-zsel" title="Esagerazione verticale della vista (non cambia i livelli)">
-                <span class="zlab">Altezza</span>
+            <span class="aor3d-zsel" title="@L["Aor3d_HeightTitle"]">
+                <span class="zlab">@L["Aor3d_HeightLabel"]</span>
                 @foreach (var z in ZSteps)
                 {
                     <button class="btn ghost aor3d-z @(z == ZDefault ? "on" : null)" type="button" data-z="@z.ToString(Inv)">×@z.ToString("0.##", Inv)</button>
@@ -33,8 +33,8 @@
             </span>
         </div>
         <div @key="Signature()" class="aor3d-stage" data-sectors3d="@SectorsJson()" style="@StageStyle">
-            <div class="aor3d-legend"><div class="lgt">Settori</div><div class="aor3d-legrows"></div></div>
-            <div class="aor3d-hint">🖱️ trascina = ruota · rotellina = zoom</div>
+            <div class="aor3d-legend"><div class="lgt">@L["Aor3d_Sectors"]</div><div class="aor3d-legrows"></div></div>
+            <div class="aor3d-hint">🖱️ @L["Aor3d_DragHint"]</div>
             <div class="aor3d-fallback">@L["Aor_3dUnavailable"]</div>
         </div>
     </div>

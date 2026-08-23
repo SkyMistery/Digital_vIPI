@@ -1,4 +1,4 @@
-@page "/services/vsop/aor3d/{Kind}/{Key}"
+﻿@page "/services/vsop/aor3d/{Kind}/{Key}"
 @layout SopLayout
 @using Vipi.Ui.Shared
 @inject IAccDocumentService AccDoc
@@ -6,6 +6,7 @@
 @inject IAppDocumentService AppDoc
 @inject IVloaDerivationService VloaDeriv
 @inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> L
 
 @* Pagina 3D dedicata dell'AoR (schermo quasi intero). Sorgente-neutra: risolve l'AccAorView dal discriminatore Kind
    (acc = intera ACC unendo i blocchi · app = APP standalone · vloa = coppia vLOA) e la rende con AccAor3d.
@@ -16,11 +17,13 @@
    Per rimettere il link: revert del commit «AoR 3D: rimosso il link Apri pagina». *@
 
 <div class="wrap">
-    <div class="breadcrumb"><a href="/services/vsop">Home</a> › <b>AoR 3D</b> › @_title</div>
+    <PageTitle>@L["Aor3d_PageTitle"] · @_title · IVAO Italia</PageTitle>
+
+    <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <b>@L["Aor3d_Crumb"]</b> › @_title</div>
 
     @if (_view.Sectors is { Count: > 0 })
     {
-        <h1 style="margin:8px 0 14px">Area di responsabilità — 3D · @_title</h1>
+        <h1 style="margin:8px 0 14px">@L["Aor3d_PageTitle"] · @_title</h1>
         <AccAor3d View="_view" Id="@($"page-{Kind}-{Key}")" StageStyle="height:calc(100vh - 190px);min-height:420px" />
     }
     else

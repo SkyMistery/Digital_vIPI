@@ -1,4 +1,4 @@
-@* Resa live dei trasferimenti risolti (vista live) — masonry come mockup #reduced.
+﻿@* Resa live dei trasferimenti risolti (vista live) — masonry come mockup #reduced.
    Un riquadro (.xpair) per mittente EFFETTIVO: se un settore è chiuso, i suoi trasferimenti compaiono
    sotto il primo antenato online che lo assorbe (già risolto in ResolvedOwnerCallsign). Dentro: per tipo
    di flusso (Arrivi/Partenze/…) → una card per aeroporto coi suoi CoP, livello e ricevente risolto. *@
@@ -65,7 +65,7 @@ else
                                             }
                                             @if (!string.IsNullOrWhiteSpace(p.Point.ConditionLabel))
                                             {
-                                                <span class="xt-cond" title="Condizione operativa" style="font-size:10.5px;background:var(--surface-muted);color:var(--ink-mid);border-radius:4px;padding:1px 5px;margin-left:4px">@p.Point.ConditionLabel</span>
+                                                <span class="xt-cond" title="@L["Xfer_ConditionTitle"]" style="font-size:10.5px;background:var(--surface-muted);color:var(--ink-mid);border-radius:4px;padding:1px 5px;margin-left:4px">@p.Point.ConditionLabel</span>
                                             }
                                             <span class="xt-next @(p.IsOnline ? "" : "tieni")">→ <b>@p.ResolvedHandler</b></span>
                                         </div>

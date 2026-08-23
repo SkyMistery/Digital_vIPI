@@ -10,8 +10,11 @@
    eccezione `@page` e il reset dello zoom, che per natura sono globali. Le classi `.vt-*` (tour) vivono fuori
    da `.vipi-root` perché l'overlay è agganciato al body. */
 
-/* Elementi di sola stampa (intestazione PrintMeta): invisibili a schermo, non serve @media screen. */
-.print-only { display: none; }
+/* ⚠️ Qui NON ci sono regole fuori da `@media print`, ed è la condizione che permette a questo foglio di
+   essere caricato con `media="print"`: così il browser lo scarica ma non ci aspetta per disegnare la pagina.
+   `.print-only { display:none }` viveva qui e valeva anche a schermo — una regola sola che teneva 13 KB sul
+   percorso critico di ogni pagina. È passata in vipi-theme.css, accanto a `.sr-only`, che è il suo posto:
+   sono due modi di dire «questo elemento non è per questo mezzo». */
 
 @media print {
   @page { size: A4 portrait; margin: 14mm 12mm; }
