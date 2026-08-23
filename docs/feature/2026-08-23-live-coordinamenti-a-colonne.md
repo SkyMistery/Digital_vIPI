@@ -187,7 +187,7 @@ a `.sid-pill`, `.wx-tab`, `#sidSearch`, `#windDir` e `#windKt`, che esistono tut
 `AeroportoPage` / `AirportQuickPanel` / `AeroportoEditorPage`. Stessa forma del difetto che invece stava
 già sparando: una pistola carica gentilmente puntata altrove.
 
-Con lui se ne sono andate 45 righe di foglio di stile che nessun `.razor` nominava più
+Con lui se ne sono andate **39 righe di regola** che nessun `.razor` nominava più
 (`.xfer-switch/.xfer-tab/.xfer-view/.xfer-grid`, `.xcard*`, `.xrow`, `.xtable*`, `.xdyn/.rtag/.target-cell`,
 `.xtab*` con la sua `@keyframes xpop`, `.xstyle*`) più `.transfers`, l'elenco del mockup.
 
