@@ -1,4 +1,4 @@
-namespace Vipi.Infrastructure.Ivao;
+﻿namespace Vipi.Infrastructure.Ivao;
 
 /// <summary>
 /// Config del polling IVAO (sezione "Ivao" di appsettings + user-secrets). PIANO §7.
@@ -59,6 +59,17 @@ public sealed class IvaoOptions
 
     /// <summary>Intervallo di polling in secondi (una sola chiamata/minuto, RNF-1/RNF-4).</summary>
     public int PollSeconds { get; set; } = 60;
+
+    /// <summary>
+    /// <b>Strumento di verifica live, non prodotto.</b> Elenco di callsign separati da virgola pubblicati
+    /// come «online» al posto della chiamata al tracker IVAO. Vuoto = polling reale.
+    /// <para>⚠️ Onorato <b>solo in Development</b>: <c>AtcPollingHostedService</c> lo rifiuta altrove e logga
+    /// un errore, perché una configurazione dimenticata in produzione mostrerebbe traffico inesistente.</para>
+    /// <para>Serve perché senza vicini online ogni punto di trasferimento risolve a UNICOM, che la vista live
+    /// nasconde per default: la pagina si prova vuota. Carta:
+    /// <c>docs/feature/2026-08-23-live-coordinamenti-a-colonne.md</c>.</para>
+    /// </summary>
+    public string FakeOnlineCallsigns { get; set; } = "";
 
     /// <summary>Ogni quante ore ri-verificare il roster staffisti via API (disattiva chi non è più staff IT).</summary>
     public int StaffVerifyHours { get; set; } = 24;
