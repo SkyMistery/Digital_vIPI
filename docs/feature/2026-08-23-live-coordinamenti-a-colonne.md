@@ -177,8 +177,31 @@ ordine alfabetico.
 `/services/vsop/admin/transfers` occupa già `.xt-bar` e `.xt-apt`. Due blocchi che si contendono lo stesso
 nome si scoprono solo a schermo, quindi le classi nuove sono tutte `xl-` (x-live).
 
-## Debito dichiarato, non nascosto
+## Coda: il mockup se n'è andato tutto, e cosa resta davvero
 
-- La famiglia `.xtab` / `.xdyn` / `.xstyle` / `.xtable` in `vipi-theme.css` non risulta usata da nessun
-  `.razor`. Non è stata toccata: non nasce da questo giro e va guardata con calma.
-- `vipi-screens.js` resta caricato in `App.razor` per la sola sezione «Aeroporto», che nessuna pagina monta.
+Chiesto dal committente subito dopo. `vipi-screens.js` è stato **rimosso**, insieme al suo `<script>` in
+`App.razor` (e alla riga nell'elenco di `docs/guide/integration.md`, che è la copia autorevole per l'host
+di Ivao.It). La sezione «Aeroporto» rimasta era guardata su `#sid-body`, che nessuna pagina ha, quindi non
+faceva niente — ma **non era innocua**: se quell'id fosse ricomparso, avrebbe agganciato i suoi `onclick`
+a `.sid-pill`, `.wx-tab`, `#sidSearch`, `#windDir` e `#windKt`, che esistono tutti, veri, su
+`AeroportoPage` / `AirportQuickPanel` / `AeroportoEditorPage`. Stessa forma del difetto che invece stava
+già sparando: una pistola carica gentilmente puntata altrove.
+
+Con lui se ne sono andate 45 righe di foglio di stile che nessun `.razor` nominava più
+(`.xfer-switch/.xfer-tab/.xfer-view/.xfer-grid`, `.xcard*`, `.xrow`, `.xtable*`, `.xdyn/.rtag/.target-cell`,
+`.xtab*` con la sua `@keyframes xpop`, `.xstyle*`) più `.transfers`, l'elenco del mockup.
+
+⚠️ **Due misure che non arrivavano a schermo.** `.cop` dichiarava 12,5px e `.fl` 22px, ma il loro unico
+utente — la riga dei coordinamenti — le riscriveva subito dopo con 11,5 e 14. Ora i valori stanno in un
+posto solo, accanto a chi li usa; `.xo-chip` è passata accanto alla catena di copertura, che è l'unica a
+renderla (nel mockup era un interruttore cliccabile, qui è uno stato).
+
+**Quel che NON si è toccato, ed è la parte importante.** Una passata su tutto il foglio dice **178 classi
+su 944** che nessuna sorgente nomina. Il numero **non va preso per buono**: il metodo (cercare il nome nudo
+in `.razor`/`.cs`/`.js`) non vede i nomi composti a pezzi, e infatti fra i «morti» ci sono `.xt-ind1…4` e
+`.k-danger/.k-info/.k-success/.k-warning`, che hanno tutta l'aria di nascere da `"xt-ind" + n` e
+`"k-" + tipo`. Va guardata famiglia per famiglia, con la sorgente accanto, e non è questo giro: qui si è
+tolto solo ciò che *questo* lavoro ha reso orfano, verificato uno per uno.
+
+La passata è ripetibile: `.claude/skills/verifica-live/classi-morte.py`, da lanciare con la radice del
+repo come argomento. Serve a **aprire** la domanda, non a chiuderla.

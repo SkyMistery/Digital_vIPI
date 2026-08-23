@@ -75,6 +75,23 @@ node probe.js dark  http://localhost:5034/vsop/lirr
 node probe.js light http://localhost:5034/vsop/lirr
 ```
 
+⚠️ **`probe.js` non compone l'alfa**, e il 23 agosto 2026 è costato due giri: su una zebra fatta con
+`color-mix(..., transparent)` ha risposto 2,63:1 e 1,39:1, numeri peggiori dei veri e tutti falsi. E lo
+script scritto per rimediare ha letto `color(srgb 0.894 0.916 0.991)` con una regex da `rgb()`, prendendo
+`0.894` per un valore su 255: accusava `.cop`, cioè una classe che tutta l'applicazione usa da mesi.
+**Quando un numero accusa qualcosa che sta lì da mesi, il sospetto va prima allo strumento.** Il contrasto
+vero si misura risalendo i fondi e componendo le alfa, e il `color()` moderno va convertito.
+
+C'è anche `classi-morte.py`, che elenca le classi del foglio che nessuna sorgente nomina:
+
+```powershell
+python .claude/skills/verifica-live/classi-morte.py "<radice del repo>"
+```
+
+⚠️ Il suo elenco **apre** la domanda, non la chiude: cerca il nome nudo nelle sorgenti, quindi i nomi
+composti a pezzi (`"xt-ind" + n`, `"k-" + tipo`) risultano morti e non lo sono. Al 23 agosto 2026: 178 su
+944, da guardare famiglia per famiglia.
+
 ⚠️ **Perché esistono.** Il 22 agosto `vipi-aor3d.css` è **sfuggito** alla passata sui token: la legenda del
 visore 3D è rimasta col fondo bianco scritto a mano e, nel tema scuro, aveva le scritte quasi bianche
 sopra — illeggibile. **Nessun test lo ha visto**, e nel tema chiaro non si vedeva. `driver.js` non l'ha

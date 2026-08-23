@@ -806,9 +806,6 @@
 .coord-sub .body{padding:14px 16px}
 .apt-block{margin:10px 0 14px}
 .apt-block h6{margin:0 0 6px;color:var(--brand-ink-2)}
-.transfers{list-style:none;margin:0 0 10px;padding:0;font-size:13.5px}
-.transfers li{padding:5px 0;border-bottom:1px dashed var(--line);display:flex;gap:8px;align-items:baseline}
-.transfers .cop{font-family:var(--font-head);font-weight:700;color:var(--brand-ink);background:var(--line-atmos-soft);border-radius:5px;padding:1px 7px;font-size:12.5px}
 /* coordinamenti: intestazione di gruppo */
 .blk-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
 .exp-ctrl{display:flex;gap:6px}
@@ -999,6 +996,13 @@
 .live-chain{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 16px;font-size:13px}
 .live-chain .lc-lab{font-family:var(--font-head);font-weight:700;font-size:12px;text-transform:uppercase;
   letter-spacing:.04em;color:var(--ink-soft)}
+/* La pastiglia «ente online» della catena: era l'interruttore del mockup («chi è online», cliccabile), qui
+   è uno stato reso. Le è rimasto il `cursor:pointer` perché in `.live-chain` è davvero un link. */
+.xo-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:20px;padding:6px 13px;font-size:13px;cursor:pointer;font-weight:600;user-select:none;color:var(--ink-soft);transition:.12s}
+.xo-chip::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--grey-mid)}
+.xo-chip.on{border-color:var(--line-green);background:var(--tint-green);color:var(--ok-ink)}
+.xo-chip.on::before{background:var(--ivao-green)}
+.xo-hint{font-size:12px}
 .live-chain .xo-chip{text-decoration:none}
 .live-chain.lead{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-soft)}
 .live-chain.lead .lc-lab{color:var(--brand-ink)}
@@ -1055,9 +1059,13 @@
 .xl-line.xl-first{border-top:1px solid var(--line)}
 .xl-line:first-child{border-top:0}
 .xl-apt{font-family:var(--font-head);font-weight:800;color:var(--brand-ink);font-size:13px}
-.xl-line .cop{justify-self:start;font-size:11.5px;padding:0 6px}
+/* ⚠️ `.cop` e `.fl` sono globali per ragioni storiche (venivano dal mockup «vista ridotta») ma il loro
+   UNICO utente è questa riga: i valori stanno qui, con quello che li usa. Dichiaravano 22px e 12.5px,
+   misure che non arrivavano a schermo perché l'utente le riscriveva subito dopo. */
+.cop{font-family:var(--font-head);font-weight:700;color:var(--brand-ink);background:var(--line-atmos-soft);border-radius:5px;padding:0 6px;font-size:11.5px}
+.fl{font-family:var(--font-head);font-weight:800;font-size:14px;color:var(--brand-ink);white-space:nowrap}
+.xl-line .cop{justify-self:start}
 .xl-mid{display:flex;align-items:baseline;gap:6px;min-width:0;flex-wrap:wrap}
-.xl-line .fl{font-size:14px;font-family:var(--font-head);font-weight:800;white-space:nowrap}
 .xl-line .fl.xl-hand{opacity:.85}
 .xl-spd{font-size:10.5px;color:var(--ink-mid)}
 .xl-cond{font-size:10.5px;background:var(--surface-muted);color:var(--ink-mid);border-radius:4px;padding:1px 5px}
@@ -1137,55 +1145,6 @@
 .acc-item .tag-state{font-size:11px;font-weight:600;padding:2px 8px;border-radius:12px}
 .tag-online{background:var(--tint-green);color:var(--ok-ink)}
 .tag-covered{background:var(--line-atmos-soft);color:var(--brand-ink)}
-/* ---- Trasferimenti (vista ridotta) ---- */
-.xfer-switch{display:inline-flex;background:var(--tint-atmos);border-radius:9px;padding:3px;margin-bottom:14px}
-.xfer-tab{border:0;background:transparent;color:var(--brand-ink-2);padding:6px 14px;border-radius:7px;cursor:pointer;font-family:var(--font-body);font-size:13px;font-weight:500}
-.xfer-tab.on{background:var(--surface);color:var(--brand-ink);font-weight:600;box-shadow:0 1px 3px color-mix(in srgb,var(--ivao-blue) 12%,transparent)}
-.xfer-view[hidden]{display:none}
-.xfer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
-.xcard{border:1px solid var(--line-atmos);border-radius:12px;overflow:hidden;background:var(--surface)}
-.xcard-h{background:var(--ivao-blue);color:var(--on-brand);padding:9px 14px;font-family:var(--font-head);font-weight:700;font-size:14px}
-.xcard-h.alt{background:var(--ivao-lightblue)}
-.xcard-h.app{background:var(--info-ink)}
-.xrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px dashed var(--line)}
-.xrow:last-child{border-bottom:0}
-.cop{font-family:var(--font-head);font-weight:700;color:var(--brand-ink);background:var(--line-atmos-soft);border-radius:5px;padding:1px 7px;font-size:12.5px}
-.fl{font-family:var(--font-head);font-weight:800;font-size:22px;color:var(--brand-ink);white-space:nowrap}
-.fl.down{color:var(--ok-ink)}
-/* tabella densa con FL gigante */
-.xtable td,.xtable th{padding:8px 12px;vertical-align:middle}
-.xtable .fl{font-size:20px}
-.xtable tbody tr:hover td{background:var(--surface-soft)}
-/* toggle "chi è online" */
-.xo-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:20px;padding:6px 13px;font-size:13px;cursor:pointer;font-weight:600;user-select:none;color:var(--ink-soft);transition:.12s}
-.xo-chip::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--grey-mid)}
-.xo-chip.on{border-color:var(--line-green);background:var(--tint-green);color:var(--ok-ink)}
-.xo-chip.on::before{background:var(--ivao-green)}
-.xo-hint{font-size:12px}
-/* stati riga tabella dinamica */
-.xdyn .target{font-family:var(--font-head);font-weight:700}
-.xdyn .rtag{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:11px;margin-left:7px;font-family:var(--font-head);vertical-align:middle}
-.rtag.online{background:var(--tint-green);color:var(--ok-ink)}
-.rtag.standard{background:var(--tint-yellow);color:var(--warn-ink)}
-.rtag.delegato{background:var(--line-atmos-soft);color:var(--brand-ink)}
-.xdyn tr.delegato td:not(.target-cell){opacity:.5}
-.xdyn tr.standard .target{color:var(--warn-ink)}
-/* card-tabella per ente confinante */
-.xtab{border:1px solid var(--line-atmos);border-radius:12px;overflow:hidden;margin-bottom:14px}
-.xtab-h{background:var(--ivao-blue);color:var(--on-brand);padding:9px 14px;font-family:var(--font-head);font-weight:700;font-size:14px}
-.xtab-h .muted{color:rgba(255,255,255,.75);font-weight:400;font-size:12.5px}
-.xtab .xtable{font-size:13px}
-.xtab .xtable td,.xtab .xtable th{padding:7px 14px}
-.xtab.is-new{box-shadow:0 0 0 2px var(--ivao-green) inset;animation:xpop .3s ease}
-.xtab.is-new .xtab-h{background:var(--ok-ink)}
-@keyframes xpop{from{opacity:.2;transform:translateY(-4px)}to{opacity:1;transform:none}}
-.xtab .help{padding:0 14px 10px}
-.xtab.collapsed{opacity:.6;margin-top:10px}
-.xtab-body{padding:6px}
-/* selettore stile */
-.xstyle{display:flex;align-items:center;gap:6px;margin-bottom:12px}
-.xstyle-tab{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 12px;font-size:12.5px;cursor:pointer;font-family:var(--font-body);color:var(--ink-soft);font-weight:500}
-.xstyle-tab.on{background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)}
 
 /* ---------- Screen 5: editor ---------- */
 .ed-layout{display:grid;grid-template-columns:300px 1fr 280px;gap:22px;align-items:start}

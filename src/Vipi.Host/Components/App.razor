@@ -41,7 +41,6 @@
     <Routes />
     <script src="_framework/blazor.web.js"></script>
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-ui.js")"></script>
-    <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-screens.js")"></script>
     @* Ora locale del lettore accanto agli orari UTC. Non serve riagganciarlo da vipi-boot.js: si tiene
        aggiornato da solo con un MutationObserver, che copre sia la navigazione «enhanced» sia i redisegni
        di Blazor (l'heartbeat del lock riscrive la barra ogni 60 secondi). *@
