@@ -1,4 +1,4 @@
-# HANDOFF — Accordi di coordinamento (16-18 agosto 2026)
+﻿# HANDOFF — Accordi di coordinamento (16-18 agosto 2026)
 
 > Contesto minimo per riprendere **dopo un `/clear`**. ✅ **In `main` dal 18 agosto 2026**
 > (`06798a9`, merge non-fast-forward dal ramo `feature/accordi-coordinamento`).
@@ -21,7 +21,20 @@
 > [`../refactor/07-trasferimenti.md`](../refactor/07-trasferimenti.md) §11 · Voci aperte:
 > [`../lavori-aperti.md`](../lavori-aperti.md)
 
-> ## ⚠️ IL DEPLOY IN PRODUZIONE RICHIEDE PRIMA LA CONVERSIONE
+> ## ✅ 23 AGOSTO 2026 — IL BLOCCO È STATO AGGIRATO, NON RISOLTO
+>
+> La consegna del 23 agosto **sostituisce** il database di produzione invece di migrarlo: il `.sql` porta con
+> sé schema convertito e `__EFMigrationsHistory`, quindi all'avvio non resta niente da applicare e
+> `AgreementSectionsFinalize` non ha modo di fallire. Il prezzo è che si perde ciò che è stato scritto in
+> produzione dal 16 agosto (confermato: non c'era niente). Foglio della consegna:
+> [`../../deploy/atc-ivao/LEGGIMI-AGGIORNAMENTO.md`](../../deploy/atc-ivao/LEGGIMI-AGGIORNAMENTO.md), voce
+> **A11** di [`../lavori-aperti.md`](../lavori-aperti.md).
+>
+> ⚠️ **Quel che segue resta valido e torna necessario** il giorno in cui l'archivio di produzione conterrà
+> qualcosa che non si può ributtare via — cioè la prima volta che i colleghi scrivono sul sito e la consegna
+> successiva non può essere una sostituzione.
+
+> ## ⚠️ LA CONVERSIONE IN POSTO — quando il database non si può sostituire
 >
 > Il codice è in `main`, ma la **MariaDB di produzione non è convertita** — e le migrazioni girano **all'avvio**
 > (`Vipi.Host/Program.cs`). Su un archivio non convertito `AgreementSectionsFinalize` **fallisce**: `NOT NULL`

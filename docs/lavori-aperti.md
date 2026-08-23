@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 23 agosto 2026 (E4 decisa il 22 sera; E5 property-based, E6-ter e i due difetti della topbar chiusi il 23; **audit frontend/UI chiuso il 23 sera** — §H) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+**Aggiornato:** 23 agosto 2026, sera (E4 decisa il 22 sera; E5 property-based, E6-ter e i due difetti della topbar chiusi il 23; **audit frontend/UI chiuso e fuso in `main`** — §H; **consegna del 23 agosto prodotta, pacchetto e database** — A11) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -33,9 +33,10 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 > Carte: [servizi ATC](feature/2026-08-22-servizi-atc-e-profile-swapper.md),
 > [brand](feature/2026-08-22-brand-atmosphere.md), [topbar misurata](feature/2026-08-22-topbar-misurata.md).
 >
-> ⚠️ **Fuso non vuol dire consegnabile**: il blocco al deploy resta dov'era — sezione E, punto 9: le migrazioni degli
-> accordi girano all'avvio e `AgreementSectionsFinalize` fallisce finché la MariaDB di produzione non è convertita. Il merge non
-> lo tocca e non lo risolve.
+> ⚠️ **Fuso non vuol dire consegnabile** — lo è diventato il **23 agosto**. Il blocco (sezione E, punto 9: le
+> migrazioni degli accordi girano all'avvio e `AgreementSectionsFinalize` fallisce finché la MariaDB di
+> produzione non è convertita) non è stato risolto ma **aggirato**: la consegna sostituisce il database
+> invece di migrarlo. Vedi **A11**.
 >
 > - **11 agosto — audit full-stack, eseguito** (sta in B5). 34 voci, 23 chiuse, 3 ribaltate dalla misura.
 >   Tre regole di build che cambiano: `TreatWarningsAsErrors` in `Directory.Build.props`, i test che
@@ -149,12 +150,14 @@ debba scrivere audit.
 ✅ **Non resta più nessuna decisione di merge**: B6 fu presa il 15 agosto, e B5 si è rivelata già presa — il doc
 13 era in `main` da allora senza che l'elenco lo sapesse.
 
-⚠️ **Tranne una, dal 23 agosto**: il ramo **`audit-frontend-ui`** è **14 commit avanti** a `main` e `main`
-non ha niente che lui non abbia. Ci stanno l'audit frontend/UI (§H) e, sopra, i coordinamenti della vista
-live a colonne con la potatura del foglio di stile
+✅ **Fusa il 23 agosto, sera**: il ramo **`audit-frontend-ui`** (15 commit) è in `main`. Ci stavano l'audit
+frontend/UI (§H) e, sopra, i coordinamenti della vista live a colonne con la potatura del foglio di stile
 ([feature/2026-08-23-live-coordinamenti-a-colonne.md](feature/2026-08-23-live-coordinamenti-a-colonne.md)).
-Tutto verificato — Release verde su entrambi i TFM, suite verde, 29 pagine guidate — e **in attesa della
-decisione di fondere**.
+Dopo il merge: Release **0 avvisi** su entrambi i TFM, **3595 test verdi**. Da lì è stata prodotta la
+consegna del 23 agosto — **A11**.
+
+✅ **E il deploy non è più bloccato.** La conversione degli accordi sulla MariaDB di produzione (E6-bis §9)
+non va più fatta: la consegna del 23 agosto **sostituisce il database** invece di migrarlo. Vedi A11.
 
 ---
 
@@ -480,6 +483,58 @@ Messaggio pronto in appendice al piano, **da aggiornare** perché parla ancora d
 flusso funziona senza, in modalità client pubblico con PKCE (verificato il 5 agosto).
 
 ---
+
+### A11 ✅ Consegna del 23 agosto 2026 — pacchetto **e** database, prodotti insieme
+Il pacchetto e il `.sql` sono **due metà della stessa consegna** e non sono separabili: il codice del 23
+agosto non sa leggere l'archivio del 15, perché in mezzo c'è il modello degli accordi a sezioni.
+
+| | Cosa | Dove | sha256 |
+|---|---|---|---|
+| **Sito** | `vipi-linux-x64-mariadb-20260823.zip` — 48,7 MB, 415 file, self-contained net8 | `artifacts/publish/` | `A027975F…521E6438` |
+| **Database** | `vipi-atc-it-ivao-aero-2026-08-23.sql` — 3,1 MB, schema + dati + `__EFMigrationsHistory` | `_mariadb/dump/` (**fuori dal repo**) | `0861BE6A…C20969A` |
+
+**La strategia è la sostituzione, non la migrazione**, ed è ciò che scioglie il blocco di E6-bis §9: il
+`.sql` porta con sé lo schema già convertito e la storia delle migrazioni, quindi all'avvio l'applicazione
+**non applica niente** e `AgreementSectionsFinalize` non ha modo di fallire. Il prezzo è dichiarato in testa
+al foglio di aggiornamento: **si perde ciò che è stato scritto in produzione dal 16 agosto in poi**, e il
+committente ha confermato che non c'è.
+
+**Il foglio nuovo è [`../deploy/atc-ivao/LEGGIMI-AGGIORNAMENTO.md`](../deploy/atc-ivao/LEGGIMI-AGGIORNAMENTO.md)**:
+finora esisteva solo la procedura di **prima installazione**, e per systemd. Questo è per un sito **già in
+piedi** su Plesk+Passenger, e mette per iscritto le tre cose che l'FTP cancellerebbe senza chiedere —
+`appsettings.Production.json`, `vipi-keys/`, `tmp/` — più l'ordine dei passi: **prima i file, poi il
+database, poi `tmp/restart.txt`**, perché Passenger serve la versione vecchia finché non gli si dice di
+ripartire e così la finestra di disallineamento dura secondi.
+
+⚠️ Per la stessa ragione nel pacchetto **non c'è** `appsettings.Production.json`, ma
+`appsettings.Production.json.esempio`: un file con quel nome, caricato via FTP, cancellerebbe la password
+del database e le credenziali IVAO che stanno solo sul loro server — e il sito ripartirebbe **su SQLite
+vuoto**, che è il modo peggiore di sbagliare (sembra che i dati siano spariti).
+
+**Cosa è stato verificato, e come:**
+- catena `vipi.db → Vipi.DbSeed → MariaDB 11.4.10 locale → mariadb-dump → .sql`, **38 tabelle su 38
+  riconciliate** dal tool, 4151 righe lette;
+- il `.sql` **reimportato in un database vuoto** e confrontato **tabella per tabella**: 39/39, 4162 righe,
+  **zero differenze**;
+- l'host avviato su quel database: `/services/vsop` **200** con LIRR/LIMM/LIBB a schermo e **zero**
+  `Applying migration`;
+- collation `utf8mb4_uca1400_as_cs` su **168 colonne** (le 2 rimanenti sono `__EFMigrationsHistory`), e la
+  prova che conta — `ZZZZ` e `zzzz` convivono nell'indice unico e il `WHERE` li distingue;
+- primi quattro byte `2f 2a 4d 21` (`/*M!`) e **nessun CRLF**: la trappola del BOM di A3 non si è ripetuta.
+
+⚠️ **Due trappole ripagate, entrambe già scritte e comunque incontrate.** `Vipi.DbSeed` non è in
+`Vipi.slnx`, quindi il suo `packages.lock.json` era rimasto a EF 8.0.29 mentre `Vipi.Infrastructure` è a
+8.0.30: `CS1705` **il giorno del travaso**, cioè l'unico giorno in cui il tool si usa. E il `publish` con
+RID ha toccato **nove** `packages.lock.json`, che vanno rimessi a posto prima di committare — è la nota di
+[[stato-9-agosto-2026]], e vale ancora.
+
+⚠️ **Non verificato, come sempre**: il pacchetto non è mai stato eseguito su Linux (compilazione
+incrociata da Windows). Il `.sql` invece sì, contro una MariaDB 11.4.10 vera.
+
+ℹ️ **Il contenuto consegnato non è quello del 18 agosto**: gli accordi sono 16 come allora, ma le sezioni
+sono **34** e le clausole **50** (erano 38 e 60 il giorno della conversione). È lavoro editoriale fatto in
+mezzo, non una perdita del travaso — il tool riconcilia riga per riga ed esce in errore se una tabella non
+combacia.
 
 ## B. Branch non fusi — decisioni, non lavoro
 
@@ -1100,9 +1155,13 @@ Conversione in tre passi — migrazione additiva → `tools/Vipi.AgreementsToSec
    punti. Un conteggio è la cosa che si legge più spesso nella pagina.
 8. ✅ **Merge in `main` fatto** il 18 agosto (`06798a9`), autorizzato dal committente; main verificato dopo il
    merge (build Release 0 warning su due TFM, 2569 test verdi).
-9. ⚠️ **Il deploy in produzione è BLOCCATO finché la MariaDB non è convertita**: le migrazioni girano all'avvio
-   e `AgreementSectionsFinalize` fallisce su un archivio non convertito. È la protezione voluta, ma va saputa
-   **prima** di pubblicare — non dopo.
+9. ✅ **Il blocco al deploy è sciolto — aggirandolo, non risolvendolo** (23 agosto). Resta vero che le
+   migrazioni girano all'avvio e che `AgreementSectionsFinalize` fallisce su un archivio non convertito; la
+   consegna del 23 agosto (**A11**) però **sostituisce** il database invece di migrarlo, e un `.sql` che
+   porta con sé la storia delle migrazioni non lascia niente da applicare. La conversione in posto — backup
+   → additiva → `tools/Vipi.AgreementsToSections --mysql` → finale — resta scritta in
+   [`history/handoff-accordi-coordinamento.md`](history/handoff-accordi-coordinamento.md) e **torna
+   necessaria** il giorno in cui l'archivio di produzione conterrà qualcosa che non si può ributtare via.
 
 ⚠️ **Due difetti trovati eseguendo, e che nessun test vedeva** — valgono fuori da quest'area: fra le due
 migrazioni lo schema è **misto**, e cancellare un guscio si portava via clausole già riappese correttamente (60
@@ -1180,7 +1239,8 @@ aggiornabile.
 
 Carta ed esito per esteso in [history/audit-2026-08-23-frontend-ui.md](history/audit-2026-08-23-frontend-ui.md).
 Quindici voci, tredici chiuse in giornata sul ramo `audit-frontend-ui` (sei commit, 3.595 test verdi,
-verifica live fatta). Qui restano le due che **non** sono state chiuse, e il perché — più **H3**, che
+verifica live fatta). ✅ **Il ramo è stato fuso in `main` la sera del 23 agosto**, ed è il codice della
+consegna (**A11**). Qui restano le due che **non** sono state chiuse, e il perché — più **H3**, che
 dell'audit non fa parte: è saltata fuori verificando il lavoro sui coordinamenti live dello stesso giorno
 ([feature/2026-08-23-live-coordinamenti-a-colonne.md](feature/2026-08-23-live-coordinamenti-a-colonne.md)),
 ed è un difetto che stava lì da prima.

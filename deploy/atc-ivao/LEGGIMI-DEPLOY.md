@@ -1,6 +1,14 @@
 ﻿# vIPI — build self-contained linux-x64
 
-Build del **15 agosto 2026**, da `main`. Self-contained: **non serve installare .NET**, il runtime è nel
+> ## 📌 Se il sito è già in piedi, questo non è il foglio giusto
+>
+> Questo documento descrive la **prima installazione**. Per **aggiornare** un sito già in produzione — che
+> dal 16 agosto 2026 è il caso di `atc.it.ivao.aero` — si segue
+> [`LEGGIMI-AGGIORNAMENTO.md`](LEGGIMI-AGGIORNAMENTO.md), che dice l'ordine dei passi e soprattutto le tre
+> cose che l'FTP cancellerebbe senza chiedere. Da qui restano utili le impostazioni di MariaDB, la tabella
+> dei guasti e i redirect IVAO.
+
+Build del **23 agosto 2026**, da `main`. Self-contained: **non serve installare .NET**, il runtime è nel
 pacchetto (113 MB scompattato in 407 file, ~48 MB compresso).
 
 Il database di destinazione è **MariaDB** — quella del vostro server, 11.4.10 — e l'applicazione ci parla
@@ -123,9 +131,12 @@ lo stesso su SQLite**, con un database vuoto. Mettetelo nel backup.
 
 ### 3. Carica i contenuti (consigliato) — oppure parti da vuoto
 
-Insieme a questo pacchetto vi consegniamo un file **`.sql`** (~4 MB) con i contenuti veri: ACC, settori,
+Insieme a questo pacchetto vi consegniamo un file **`.sql`** (~3 MB) con i contenuti veri: ACC, settori,
 aeroporti, aree regolamentate, documenti e loro pubblicazioni. **È la strada consigliata**: importatelo nel
 database `itivao_atc` **prima** del primo avvio.
+
+⚠️ **Il database dev'essere VUOTO.** Il file contiene i `CREATE TABLE`: caricato sopra tabelle che esistono
+già si ferma alla prima con «table already exists» e lascia l'archivio a metà.
 
 ```sh
 mysql -u itivao_atc -p itivao_atc < vipi-atc-it-ivao-aero-<data>.sql
@@ -135,12 +146,12 @@ Il file porta con sé anche lo **schema** e la tabella di storia delle migrazion
 primo avvio non riapplica nulla e trova tutto pronto. Non contiene le chiavi di sessione, che l'app si
 ricrea da sé.
 
-ℹ️ **Se avete importato il `.sql` datato 9 agosto**, questa build ne è più recente: al primo avvio applica
-da sé **una** migrazione (`20260814092329_EnumLengthsAndDropUnusedTokens`), che porta 48 colonne enum da
-`longtext` a `varchar(32)` e toglie quattro colonne `RowVersion` mai valorizzate. Sono `ALTER TABLE` su
-tabelle di poche righe — il database intero sta sotto le 5000 — ma **servono i permessi ALTER e DROP** sul
-database, che `GRANT ALL ON itivao_atc.*` comprende. Non c'è niente da lanciare a mano: la storia delle
-migrazioni nel `.sql` dice all'applicazione a che punto è, e lei fa il resto.
+ℹ️ **Se avete importato un `.sql` più vecchio** (9 o 14 agosto), non basta caricare i file nuovi: fra
+allora e oggi è cambiato il modello dei **coordinamenti**, e la migrazione che lo chiude si **rifiuta** di
+girare su un archivio non convertito. La strada è quella di
+[`LEGGIMI-AGGIORNAMENTO.md`](LEGGIMI-AGGIORNAMENTO.md): si sostituisce il database con il `.sql` del 23
+agosto. Il file porta con sé la storia delle migrazioni, quindi al primo avvio l'applicazione **non applica
+niente**.
 
 Se invece partite da un database vuoto, l'applicazione crea lo schema da sé al primo avvio (38 tabelle) —
 ma il sito sarà **vuoto**: gli ACC e i settori si importano poi dalle pagine di amministrazione, e i
@@ -244,9 +255,7 @@ proprio database — le stesse condizioni del vostro server):
   primo avvio da voi è anche la prima prova su quel sistema;
 - il login IVAO completo fino al ritorno sul dominio definitivo: manca la registrazione dei redirect.
 
-ℹ️ **Che cosa c'è dentro rispetto alla build del 9 agosto.** Questa viene da `main` con tutto il lavoro
-fuso: i **trasferimenti ACC↔APP** (autorizzazione e trasferimento come due eventi distinti, con livello,
-velocità e punto propri; editor rifatto) e l'**audit di database del 14 agosto** (colonne enum
-dimensionate, chiavi di sessione fuori dal vostro database, `MaximumPoolSize=20` con ritentativo sui
-guasti transitori, e una sonda che all'avvio verifica `max_allowed_packet` e `sql_mode` invece di darli per
-buoni). Compilata con avvisi trattati come errori: **0 avvisi**, e **2465 test verdi** su net8 e net10.
+ℹ️ **Che cosa c'è dentro.** Questa build viene da `main` del 23 agosto 2026. L'elenco di ciò che è
+cambiato rispetto al pacchetto del 15 agosto sta in fondo a
+[`LEGGIMI-AGGIORNAMENTO.md`](LEGGIMI-AGGIORNAMENTO.md). Compilata con gli avvisi trattati come errori:
+**0 avvisi**, e **3595 test verdi** su net8 e net10.

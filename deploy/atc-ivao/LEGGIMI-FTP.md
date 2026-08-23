@@ -1,4 +1,4 @@
-# Caricare vIPI via FTP/SFTP (FileZilla)
+﻿# Caricare vIPI via FTP/SFTP (FileZilla)
 
 Questa pagina serve **solo** se i file arrivano sul server con FileZilla invece che come zip scompattato da
 console. Il resto della procedura — configurazione, database, servizio, proxy — resta quello di
@@ -21,6 +21,11 @@ serve solo quando quella strada non c'è.
 **Se il sito è già in piedi** (aggiornamento, non prima installazione): **fermate il servizio prima**
 (`sudo systemctl stop vipi`). Sovrascrivere l'eseguibile di un processo vivo dà `ETXTBSY` e il file caricato
 resta a metà.
+
+⚠️ **Su `atc.it.ivao.aero` non c'è systemd**: il sito gira con Plesk + Phusion Passenger, si ferma dal
+pannello e si riavvia toccando `tmp/restart.txt`. La procedura di aggiornamento buona per quel server è
+[`LEGGIMI-AGGIORNAMENTO.md`](LEGGIMI-AGGIORNAMENTO.md); di questo foglio restano validi i due punti che
+contano davvero, il **trasferimento binario** e il **bit di esecuzione**.
 
 ---
 

@@ -1,4 +1,4 @@
-# MariaDB locale per provare il ramo di produzione
+﻿# MariaDB locale per provare il ramo di produzione
 
 Il server di `atc.it.ivao.aero` è **MariaDB 11.4.10-deb11**, non MySQL. Questa è la ricetta per averne una
 identica in locale, che serve a tre cose: applicare davvero le migrazioni, travasare i dati da Neon (A2/A3),
@@ -149,9 +149,24 @@ nei metadati EF anche quando nella DDL non c'era affatto (vedi `MySqlCollation`)
 
 ## 6. Il travaso dei dati veri e il `.sql` da consegnare
 
-La catena è `Neon → Vipi.DbSeed → MariaDB locale → mariadb-dump → .sql`, perché il 3306 loro è su
-`localhost` e da qui non ci si scrive. Eseguita per intero il **6 agosto 2026** e **rifatta il 9 agosto**
-dopo il merge di B1 (voce A3).
+La catena è `<sorgente> → Vipi.DbSeed → MariaDB locale → mariadb-dump → .sql`, perché il 3306 loro è su
+`localhost` e da qui non ci si scrive. Eseguita per intero il **6 agosto 2026**, **rifatta il 9 agosto**
+dopo il merge di B1 (voce A3) e **rifatta il 23 agosto** per la consegna (voce A11).
+
+⚠️ **Dal 23 agosto la sorgente è il `vipi.db` di sviluppo, non più Neon** — `--from-sqlite <percorso
+assoluto>` invece di `--from-postgres`. Il motivo non è una preferenza: la conversione degli accordi a
+sezioni (18 agosto) è stata eseguita **su quel file**, e Neon è rimasta al modello vecchio. Chi ripesca la
+riga `--from-postgres` qui sotto senza leggere questa nota consegna un archivio che il codice non sa più
+leggere.
+
+⚠️ **`Vipi.DbSeed` non è in `Vipi.slnx`**, quindi la build della soluzione non lo tocca e il suo
+`packages.lock.json` invecchia da solo: il 23 agosto era fermo a EF 8.0.29 mentre `Vipi.Infrastructure` era
+passata a 8.0.30, e il tool non compilava (`CS1705`) **proprio il giorno in cui serviva**. Si rimette in
+riga con `dotnet restore tools/Vipi.DbSeed --force-evaluate`.
+
+⚠️ **Lo schema di destinazione va portato alla testa PRIMA del travaso** (`dotnet ef database update`, §4):
+il tool non crea schema su MariaDB — controlla che le tabelle del modello ci siano tutte e, se manca
+qualcosa, si ferma.
 
 ⚠️ **Prima di far partire la catena, guardare la sorgente, non il tool.** Il 7 agosto il dump è uscito
 pulito da un archivio incompleto: dopo il deploy le aree avevano un solo legame ciascuna, perché l'import
@@ -161,10 +176,12 @@ automatico è **gated a 24h** (`ImportState`) e al boot viene saltato. Si preme 
 Il `--dry-run` di `Vipi.DbSeed` basta per leggerli.
 
 ```sh
-# 1. Neon → MariaDB locale. Il tool riconcilia da sé riga per riga ed esce in errore se una tabella
+# 0. la sorgente, senza toccare niente: si guardano i conteggi PRIMA di far partire il travaso
+dotnet run --project tools/Vipi.DbSeed -c Release -- --from-sqlite "<percorso ASSOLUTO di vipi.db>" --dry-run
+
+# 1. sorgente → MariaDB locale. Il tool riconcilia da sé riga per riga ed esce in errore se una tabella
 #    non combacia (vedi tools/Vipi.DbSeed/README.md).
-dotnet run --project tools/Vipi.DbSeed -- --from-postgres "<connstring Neon>" \
-  --to-mysql "Server=127.0.0.1;Port=3399;Database=itivao_atc;User Id=itivao_atc;Password=<password>"
+dotnet run --project tools/Vipi.DbSeed -c Release -- --from-sqlite "<percorso ASSOLUTO di vipi.db>"   --to-mysql "Server=127.0.0.1;Port=3399;Database=itivao_atc;User Id=itivao_atc;Password=<password>"
 ```
 
 ⚠️ **Il dump NON si scrive con la redirezione di PowerShell.** `>` e `Out-File` in Windows PowerShell 5.1
@@ -226,6 +243,16 @@ Get-Content <file>.sql -Raw | & "<bin>\mariadb.exe" -u itivao_atc -p'<password>'
 Poi si avvia l'host su quel database: se il `.sql` è buono, le pagine si aprono coi dati veri e **nessuna
 migrazione viene riapplicata**. Esito del 6 agosto: 38 tabelle, 4808 righe, conteggi **identici** all'origine,
 `/services/vsop` 200 con LIRR/LIMM/LIBB a schermo, zero `Applying migration`.
+
+**Esito del 23 agosto** (`vipi-atc-it-ivao-aero-2026-08-23.sql`, 3,1 MB, sha256 `0861BE6A…C20969A`):
+39 tabelle su 39 con **zero differenze** di conteggio (4162 righe da una parte e dall'altra), collation
+`utf8mb4_uca1400_as_cs` su 168 colonne, `ZZZZ`/`zzzz` che convivono nell'indice unico, host avviato sul
+database riletto con `/services/vsop` **200** e **zero** `Applying migration`. Primi quattro byte
+`2f 2a 4d 21`, nessun CRLF.
+
+ℹ️ Il confronto tabella per tabella non si fa a occhio: si costruisce **una** query che mette in fila i due
+conteggi per ogni tabella e si guarda solo dove differiscono. Quattromila righe con una tabella vuota in
+mezzo hanno lo stesso aspetto di quattromila righe giuste.
 
 ## 7. Fermare e ripartire da zero
 
