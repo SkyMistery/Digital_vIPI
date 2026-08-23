@@ -205,3 +205,60 @@ tolto solo ciò che *questo* lavoro ha reso orfano, verificato uno per uno.
 
 La passata è ripetibile: `.claude/skills/verifica-live/classi-morte.py`, da lanciare con la radice del
 repo come argomento. Serve a **aprire** la domanda, non a chiuderla.
+
+## Coda 2: la passata famiglia per famiglia (chiesta subito dopo)
+
+**249 selettori tolti, 268 righe.** Il foglio passa da 919 classi a 751; quelle senza alcuna citazione
+scendono da 157 a **sette**, e sono sette che restano apposta (vedi sotto).
+
+Il metodo, in tre setacci sempre più stretti — e ognuno ha ripescato qualcosa che il precedente dava per
+morto:
+
+1. **Il nome nudo nelle sorgenti.** Primo setaccio. ⚠️ Non basta: non vede i `.resx`, e due stringhe di
+   risorsa portano HTML con classi (`guida-kbd`, `rwy-key`) che finiscono a schermo via `MarkupString`.
+   Aggiunti i `.resx`, 162 → 159.
+2. **Il prefisso dentro una stringa.** Secondo setaccio, per i nomi composti: `$"xt-ind{Depth}"`,
+   `$"blk-{k}"`, `$"extra-{k}"`, `class="lvl@(it.Level)"`. Sette classi salvate, e sono le sette che
+   restano nell'elenco — ora con un commento accanto che spiega perché non vanno tolte.
+3. **La regola può mai applicarsi?** Non si ragiona per classe ma per REGOLA: una regola muore solo se
+   *ogni* parte del suo selettore (le virgole contano) nomina almeno una classe che nessuno rende. Dieci
+   regole avevano una parte viva e una morta: si è riscritto il selettore, non cancellata la regola.
+
+### ⚠️ E poi il setaccio che conta: `nessun-bersaglio.js`
+
+I tre setacci sopra guardano il TESTO. Non possono vedere una classe costruita **interamente** da una
+variabile. Così è passata `.node-badge.fss`, che nasce da `FacilityBadge(...)` — un `switch` che restituisce
+`"FSS"` — più un `.ToLowerInvariant()`: la stringa `fss` non esiste in nessun file del repo.
+
+L'ha ripescata la prova finale: prendere i selettori che il `git diff` dice rimossi e chiedere al DOM VERO,
+su 29 pagine con tutti i `<details>` aperti, se ne trovano ancora qualcuno. Su 249, **uno**. Rimesso, con
+il commento che dice da dove viene.
+
+Da lì anche una correzione allo strumento: `classi-morte.py` ora confronta **in minuscolo**. Costa qualche
+falso negativo, evita un falso positivo che a schermo si vede.
+
+### Cosa se n'è andato
+
+Residui di prototipo mai montati (`.rap`/`.rap-t`/`.rap-rwy`/`.rap-pill` della vista rapida, `.sim*` del
+simulatore, `.online-list`, `.rail-jump`, `.paper`, `.states-grid`, `.prev-*`, `.chain-build`); le minime di
+vettoramento nella forma vecchia (`.mva-grid`/`.mva-card`/`.mva-title`, superate da `.mva-chart` e
+`.mva-leaflet`); ventuno `.xt-*` dell'editor trasferimenti mai resi; otto `.app-sec*` — ⚠️ **ma non**
+`.app-sec-drag`, che è viva e sta a due righe di distanza; `.editor-toc` orizzontale (resta
+`.editor-toc-side`, che è un'altra cosa); `.htree` nuda (restano `.htree-search`/`.htree-select`/`.htree-toggle`);
+`.k-info/.k-success/.k-warning/.k-danger`; `.save-badge.lock-badge` e `.lock-mine`, che quel badge non ha
+mai portato — porta solo `saving` e `saved`.
+
+E **dodici commenti** che descrivevano regole non più esistenti: un commento rimasto vero a metà è il debito
+peggiore di tutti.
+
+### Cosa NON se n'è andato
+
+- ⚠️ **`/services/vsop/admin/acc` sfora di 24px in orizzontale.** Trovato durante la verifica, ma **non è
+  di questo giro**: misurato col foglio di prima e con quello di dopo, il numero è lo stesso (1624 su 1600).
+  Sta in [`lavori-aperti.md` §H3](../lavori-aperti.md).
+- Le sette classi composte, ora marcate nel foglio.
+
+### Verifica
+
+Release verde su entrambi i TFM · `dotnet test` verde · 29 pagine guidate senza una riga di errore in
+console · `sweep.js` invariato (i due falsi positivi noti) · vista live invariata (900px su 900, 36 righe).

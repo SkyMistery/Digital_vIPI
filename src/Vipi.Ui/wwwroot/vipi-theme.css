@@ -312,9 +312,6 @@
 .top-search:focus-within input::placeholder{color:var(--ink-dim)}
 .staff-badge{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;background:color-mix(in srgb,var(--ivao-yellow) 18%,transparent);color:var(--on-dark-yellow);padding:6px 12px;border-radius:20px;border:1px solid color-mix(in srgb,var(--ivao-yellow) 45%,transparent);white-space:nowrap;letter-spacing:.02em}
 .topbar .right{margin-left:auto;display:flex;align-items:center;gap:14px}
-.tier-toggle{display:flex;background:rgba(255,255,255,.12);border-radius:9px;padding:3px}
-.tier-toggle button{border:0;background:transparent;color:var(--on-dark-soft);padding:6px 13px;border-radius:7px;cursor:pointer;font-family:var(--font-body);font-size:13px}
-.tier-toggle button.on{background:var(--on-brand);color:var(--ivao-blue);font-weight:600}
 /* È un link alla vista live: il colore del testo lo tiene .live-badge, che batte la regola generica sugli
    <a> (quella sta in :where(), specificità zero). Serve solo l'affordance al passaggio del mouse. */
 .live-badge{display:flex;align-items:center;gap:7px;font-size:13px;background:color-mix(in srgb,var(--ivao-green) 16%,transparent);color:var(--on-dark-green);padding:6px 12px;border-radius:20px;border:1px solid color-mix(in srgb,var(--ivao-green) 40%,transparent);cursor:pointer;transition:.15s}
@@ -332,17 +329,9 @@
 .avatar{width:32px;height:32px;border-radius:50%;background:var(--ivao-lightblue);display:grid;place-items:center;font-family:var(--font-head);font-weight:700;font-size:13px}
 
 /* ---------- Pagina Struttura (admin) ---------- */
-.struct .fir-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
 .struct .inline-form{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;border-top:1px solid var(--line);padding-top:14px;margin-top:14px}
 .struct .inline-form .field{margin-bottom:0;min-width:150px;flex:1}
 .struct .inline-form .field.narrow{min-width:90px;max-width:130px;flex:0 0 auto}
-.struct .add-form{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}
-.struct .add-form .field{margin-bottom:8px}
-.struct .add-form .row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
-.struct .add-form .row .field{flex:1;margin-bottom:8px;min-width:120px}
-.struct .add-form .check{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:500;margin:2px 0 12px}
-.struct .add-form .check input{width:auto}
-/* Editor struttura: griglia a due colonne che può restringersi (fix overflow label/tabelle nel pannello stretto). */
 /* ---- Aeroporti: i due pannelli sono alti quanto lo schermo meno ciò che sta sopra ----
    Il `calc` è il valore di PARTENZA prima che `vipiFitViewport` misuri (la testata cambia altezza da sola:
    lock, chip d'esito, chip di avanzamento), non la verità. ⚠️ `min-height` allineata al `fitMin` del JS
@@ -358,7 +347,7 @@
 .wrap.struct:has(.topo-layout){padding-bottom:18px}
 .struct .res-table td{word-break:break-word}
 /* Font dei label dell'editor allineato a quello della pagina (Poppins) invece di Nunito Sans maiuscolo. */
-.struct .add-form .field label,.struct .inline-form .field label{font-family:var(--font-body);text-transform:none;letter-spacing:normal;font-size:12.5px}
+.struct .inline-form .field label{font-family:var(--font-body);text-transform:none;letter-spacing:normal;font-size:12.5px}
 /* Sotto i 900 resta una colonna sola e l'altezza fissa SPARISCE (il JS la toglie da sé con collapseBelow):
    un riquadro alto quanto lo schermo dentro una pagina che scorre sono due barre annidate. */
 @media(max-width:900px){.struct .topo-layout{grid-template-columns:1fr;height:auto;min-height:0}}
@@ -539,19 +528,16 @@
 .screen.active{display:block}
 .wrap{width:100%;max-width:1640px;margin:0 auto;padding:30px clamp(24px,3.5vw,64px) 70px}
 /* pagine di lavoro (admin struttura/aeroporti/acc): usano tutta la larghezza disponibile */
+.wrap.struct{max-width:none;padding-left:clamp(16px,2vw,32px);padding-right:clamp(16px,2vw,32px)}
 /* Vista live: il contenuto sono colonne affiancate, non prosa — il cap a 1640px lasciava vuoto lo
-   schermo. Il tetto resta perché oltre i ~2100px le righe si allungano senza dire niente di più. */
-/* ⚠️ E il fondo pagina si accorcia: `vipiCapInner` misura fin dove arriva il RIQUADRO e non vede cosa
-   gli sta sotto — i 70px di `padding-bottom` del `.wrap` diventavano 107px di scorrimento a 1440x900
-   su una pagina che per il resto stava dentro. */
+   schermo. Il tetto resta perché oltre i ~2100px le righe si allungano senza dire niente di più.
+   ⚠️ E il fondo pagina si azzera, perché `vipiCapInner` misura fin dove arriva il RIQUADRO e non vede
+   cosa gli sta sotto: i 70px di `padding-bottom` del `.wrap`, i 16 del corpo del blocco e i 12 di
+   margine erano 35px di scorrimento a 1440x900 su una pagina che per il resto stava dentro. Restano i
+   18px di respiro che la funzione si tiene da sé — che sono anche il bianco sotto le colonne. */
 .wrap.live{max-width:2100px;padding-bottom:18px}
-/* ⚠️ E qui sotto si fa il conto, perché `vipiCapInner` misura fin dove arriva il RIQUADRO e non vede cosa
-   gli sta sotto: i 70px di `padding-bottom` del `.wrap`, i 16 del corpo del blocco e i 12 di margine
-   erano 35px di scorrimento a 1440x900 su una pagina che per il resto stava dentro. Restano i 18px di
-   respiro che la funzione si tiene da sé — che sono anche il bianco sotto le colonne. */
 .wrap.live .acc-item:last-of-type{margin-bottom:0}
 .wrap.live .acc-item:last-of-type>.body{padding-bottom:0}
-.wrap.struct{max-width:none;padding-left:clamp(16px,2vw,32px);padding-right:clamp(16px,2vw,32px)}
 /* su schermi molto larghi il contenuto di sola lettura resta leggibile, non stirato */
 .reading-cap{max-width:1180px}
 /* documenti (vIPI ACC/APP, vLOA, aeroporto): usano tutta la larghezza disponibile sul desktop */
@@ -603,7 +589,6 @@
 .acc-card:hover{transform:translateY(-3px);border-color:var(--ivao-lightblue);box-shadow:0 12px 30px color-mix(in srgb,var(--ivao-blue) 12%,transparent)}
 .acc-card .code{font-family:var(--font-head);font-weight:800;font-size:30px;color:var(--brand-ink)}
 .acc-card .name{font-weight:500;margin:2px 0 14px}
-.acc-card .stat{font-size:12.5px;color:var(--ink-soft);display:flex;justify-content:space-between;padding:5px 0;border-top:1px dashed var(--line)}
 .acc-card .onl{position:absolute;top:18px;right:18px;font-size:11.5px;display:flex;align-items:center;gap:5px;color:var(--ok-ink);font-weight:600}
 .acc-card .onl .dot{width:8px;height:8px;border-radius:50%;background:var(--ivao-green)}
 .acc-card.off .onl{color:var(--ink-dim)}.acc-card.off .onl .dot{background:var(--grey-mid)}
@@ -697,23 +682,14 @@
 .rail-links a{color:var(--brand-ink-2);font-size:13.5px;font-weight:600}
 .rail-links a:hover{text-decoration:underline}
 .rail-card .onl-badge{padding:3px 9px;font-size:11px}
-.online-list{list-style:none;margin:0;padding:0;font-size:13px}
-.online-list li{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px dashed var(--line)}
-.online-list li:last-child{border-bottom:0}
-.online-list .dot{width:8px;height:8px;border-radius:50%;background:var(--ivao-green);flex:none}
-.online-list .dot.me{box-shadow:0 0 0 3px color-mix(in srgb,var(--ivao-green) 25%,transparent)}
-.online-list .cs{font-family:var(--font-head);font-weight:700;color:var(--ink)}
-.online-list .fq{margin-left:auto;color:var(--ink-soft);font-size:12px}
-.rail-jump{list-style:none;margin:0;padding:0;font-size:13px}
-.rail-jump li{padding:6px 8px;border-radius:7px;color:var(--ink-soft);cursor:pointer}
-.rail-jump li:hover{background:var(--tint-atmos-soft);color:var(--brand-ink)}
-.rail-mini svg{width:100%;background:var(--surface-soft);border:1px solid var(--line);border-radius:9px}
 .toc{position:sticky;top:84px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 14px;box-shadow:var(--shadow);font-size:13.5px;max-height:calc(100vh - 110px);overflow:auto}
 .toc .toc-h{font-family:var(--font-head);font-weight:800;color:var(--brand-ink);font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 10px;padding-left:8px}
 .toc ul{list-style:none;margin:0;padding:0}
 .toc a{display:block;color:var(--ink-soft);padding:6px 8px;border-radius:7px;border-left:2px solid transparent}
 .toc a:hover{background:var(--tint-atmos-soft);color:var(--brand-ink)}
 .toc a.active{background:var(--tint-atmos);color:var(--brand-ink);font-weight:600;border-left-color:var(--ivao-blue)}
+/* ⚠️ Il nome di questa classe NON compare in nessuna sorgente: si compone a pezzi (`class="lvl@(it.Level)"` in `EditorToc.razor`).
+   Una passata «classi mai citate» la dà per morta: non lo è. */
 .toc .lvl2{padding-left:14px}.toc .lvl3{padding-left:26px;font-size:12.5px}
 .toc .toc-grp{margin:12px 0 4px;padding-left:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft)}
 .toc .toc-grp:first-of-type{margin-top:2px}
@@ -756,6 +732,8 @@
 .editor-toast .callout{margin:0;box-shadow:0 6px 24px color-mix(in srgb,var(--ink) 18%,transparent);animation:xpop .18s ease-out}
 /* Badge "modifiche non salvate" sul tab attivo. */
 .wx-tab .dirt{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ivao-yellow,var(--line-yellow));margin-left:6px;vertical-align:middle}
+/* ⚠️ Il nome di questa classe NON compare in nessuna sorgente: si compone a pezzi (`$"extra-{...}"`).
+   Una passata «classi mai citate» la dà per morta: non lo è. */
 .extra-preview{border:1px dashed var(--line,var(--line));border-radius:8px;padding:10px 12px;margin-top:4px;background:var(--surface-soft);font-size:13px;color:var(--ink-deep);word-break:break-word}
 .extra-preview :first-child{margin-top:0}
 .extra-preview :last-child{margin-bottom:0}
@@ -782,11 +760,6 @@
 /* riga evidenziata nella tabella configurazioni */
 .cfg-table tr.cfg-hl td{background:var(--tint-yellow) !important;box-shadow:inset 0 0 0 9999px color-mix(in srgb,var(--ivao-yellow) 18%,transparent)}
 .cfg-table tr.cfg-hl td:nth-child(2){box-shadow:inset 4px 0 0 var(--ivao-yellow)}
-/* minime: galleria mappe MVA */
-.mva-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
-.mva-card{margin:0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--surface)}
-.mva-card svg{width:100%;display:block}
-.mva-card figcaption{padding:9px 12px;font-family:var(--font-head);font-weight:700;color:var(--brand-ink);font-size:13px;border-top:1px solid var(--line)}
 /* AoR map */
 .aor-chip.on{border-color:var(--ivao-lightblue);background:var(--surface-soft);color:var(--ink)}
 .aor-chip.on .sw{opacity:1}
@@ -804,9 +777,9 @@
 .coord-sub>summary .chev{transition:.2s}
 .coord-sub[open]>summary .chev{transform:rotate(90deg)}
 .coord-sub .body{padding:14px 16px}
-.apt-block{margin:10px 0 14px}
-.apt-block h6{margin:0 0 6px;color:var(--brand-ink-2)}
 /* coordinamenti: intestazione di gruppo */
+/* ⚠️ Il nome di questa classe NON compare in nessuna sorgente: si compone a pezzi (`$"blk-{...}"`).
+   Una passata «classi mai citate» la dà per morta: non lo è. */
 .blk-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
 .exp-ctrl{display:flex;gap:6px}
 .coord-tools{display:flex;gap:6px;margin:0 0 10px}
@@ -941,6 +914,8 @@
    Le misure partono dai 10 px di padding della cella: a 20 il rientro valeva dieci pixel e a schermo non si
    vedeva — provato guardando, non calcolato. Il selettore porta anche `.res-table td` perché `.res-table
    td{padding:7px 10px}` batte una classe sola: è la stessa trappola già annotata per `.sid-view`. */
+/* ⚠️ Il nome di questa classe NON compare in nessuna sorgente: si compone a pezzi (`$"xt-ind{Depth}"` in `XferRowsTable.razor`).
+   Una passata «classi mai citate» la dà per morta: non lo è. */
 .res-table td.xt-ind1{padding-left:30px}
 .res-table td.xt-ind2{padding-left:48px}
 .res-table td.xt-ind3{padding-left:66px}
@@ -977,7 +952,6 @@
 @media(max-width:600px){.area-wrap{grid-template-columns:1fr}}
 
 /* ---------- Screen 4: ridotta ---------- */
-/* la vista ridotta sfrutta tutta la larghezza; sezioni piccole affiancate */
 /* Vista live: cambi di stato ATC dall'ultimo tick. Restano scritti finché non li scarti — un handoff che
    cambia destinatario non deve poter passare inosservato mentre guardi un'altra parte della pagina. */
 .live-changes{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;padding:8px 12px;
@@ -1124,19 +1098,12 @@
 .apt-quick .ch-deleg{background:var(--bg);color:var(--ink-soft);border-style:dashed;font-size:12px}
 .apt-quick .ch-deleg.on{background:var(--ivao-lightblue);color:var(--on-brand);border-style:solid;border-color:var(--ivao-lightblue)}
 /* pannello vista rapida aeroporto */
-.rap{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px}
 .rap-h{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .rap-h b{font-family:var(--font-head);font-size:24px;color:var(--brand-ink);font-weight:800}
 .rap-quick{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .rap-box{display:flex;flex-direction:column;background:var(--surface-soft);border:1px solid var(--line);border-radius:9px;padding:8px 14px;min-width:120px}
 .rap-box .muted{font-size:11px;text-transform:uppercase;letter-spacing:.03em}
 .rap-box b{font-family:var(--font-head);color:var(--brand-ink);font-size:16px}
-.rap-t{margin:16px 0 6px;color:var(--brand-ink-2);text-transform:uppercase;letter-spacing:.04em;font-size:12px}
-.rap-rwy{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:14px 0 12px}
-.rap-rwy .muted{font-size:12px;text-transform:uppercase;letter-spacing:.03em;font-family:var(--font-head);font-weight:600;margin-right:4px}
-.rap-pill{border:1px solid var(--line);background:var(--surface);border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;font-weight:600;color:var(--ink-soft);transition:.12s}
-.rap-pill:hover{border-color:var(--ivao-lightblue)}
-.rap-pill.on{background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)}
 .acc-item{border:1px solid var(--line);border-radius:11px;margin-bottom:12px;background:var(--surface);overflow:hidden}
 .acc-item>summary{cursor:pointer;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;list-style:none;font-family:var(--font-head);font-weight:700;color:var(--brand-ink)}
 .acc-item>summary::-webkit-details-marker{display:none}
@@ -1154,20 +1121,8 @@
 .tree li{padding:6px 8px;border-radius:7px;display:flex;align-items:center;gap:7px;cursor:pointer}
 .tree li:hover{background:var(--tint-atmos-soft)}
 .tree li.sel{background:var(--tint-atmos);color:var(--brand-ink);font-weight:600}
-.tree .l2{padding-left:20px}.tree .l3{padding-left:36px}.tree .l4{padding-left:52px;font-size:12.5px}
 .tree .ty{font-size:10.5px;background:var(--surface-muted);color:var(--ink-mid);border-radius:4px;padding:1px 6px;margin-left:auto;font-family:var(--font-head)}
 /* interruttore attiva/disattiva nodo */
-.tg{width:30px;height:17px;border-radius:10px;background:var(--ivao-grey);position:relative;flex:none;cursor:pointer;transition:.15s}
-.tg::after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:var(--surface);transition:.15s}
-.tg.on{background:var(--ivao-green)}
-.tg.on::after{left:15px}
-.tg.locked{opacity:.4;cursor:not-allowed}
-.tree li.off .lbl-txt{opacity:.45;text-decoration:line-through}
-.lbl-txt{transition:.15s}
-.para-list{list-style:none;margin:6px 0 0;padding:0;font-size:13px}
-.para-list li{display:flex;align-items:center;gap:9px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;background:var(--surface)}
-.para-list li.off .lbl-txt{opacity:.45;text-decoration:line-through}
-.addbtn{width:100%;border:1px dashed var(--ivao-lightblue);background:var(--surface-soft);color:var(--brand-ink-2);border-radius:9px;padding:9px;cursor:pointer;font-family:var(--font-body);font-size:13px;margin-top:10px}
 .field{margin-bottom:14px}
 .field label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:5px;font-family:var(--font-head);text-transform:uppercase;letter-spacing:.03em}
 .field select,.field input{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-family:var(--font-body);font-size:13.5px;background:var(--surface)}
@@ -1175,27 +1130,6 @@
 .seg{display:flex;gap:6px;flex-wrap:wrap}
 .seg button{flex:1;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px;cursor:pointer;font-size:12.5px;font-family:var(--font-body)}
 .seg button.on{background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)}
-.kind-row{display:flex;gap:7px;flex-wrap:wrap}
-.kind-row button{flex:1;border-radius:8px;border:2px solid transparent;padding:8px 4px;cursor:pointer;font-size:11.5px;font-weight:600;font-family:var(--font-head)}
-/* selettore tipo blocco */
-.seg-x{flex:1;min-width:74px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px;font-size:12px;cursor:pointer;font-family:var(--font-body)}
-.seg-x.on{background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)}
-/* canvas editor: intestazione nodo + CTA */
-.ed-nodehead{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line)}
-.ed-nodehead .nh-ico{font-size:22px}
-.ed-nodehead .nh-t{font-family:var(--font-head);font-weight:800;color:var(--brand-ink);font-size:18px;line-height:1.1}
-.ed-nodehead .nh-sub{font-size:12px;color:var(--ink-soft)}
-.ed-cta{display:flex;align-items:center;gap:10px;background:var(--surface-soft);border:1px solid var(--line-atmos);border-radius:11px;padding:12px 14px;margin:12px 0}
-.ed-cta .ec-ic{font-size:20px}
-.ed-cta .ec-t{font-family:var(--font-head);font-weight:700;color:var(--brand-ink);font-size:13.5px}
-.ed-cta .ec-d{font-size:12.5px;color:var(--ink-soft)}
-.ed-cta .btn{margin-left:auto;white-space:nowrap}
-.rowmini{width:100%;font-size:13px;margin:8px 0}
-.rowmini th{font-size:11px}
-.childrow{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;margin-bottom:7px;background:var(--surface);font-size:13.5px}
-.childrow .ci{font-size:15px}
-.childrow .ctag{margin-left:auto;font-size:10.5px;background:var(--surface-muted);color:var(--ink-mid);border-radius:5px;padding:1px 7px;font-family:var(--font-head)}
-.childrow .drag{color:var(--grey-mid);cursor:grab}
 /* editor trasferimenti (5c) */
 /* Tre colonne: si sceglie · si lavora · si scrive. Ognuna scorre PER CONTO PROPRIO dentro l'altezza dello
    schermo — è la differenza che toglie l'attrito più caro della pagina a due colonne: lì lista e pannello
@@ -1281,34 +1215,10 @@
    giro che una regola di questa pagina perde in silenzio contro una piu' generica scritta dopo. */
 .struct .xfe-table td{padding:3px 9px;vertical-align:middle}
 .xfe-table input{width:100%;border:1px solid var(--line);border-radius:7px;padding:5px 8px;font-family:var(--font-body);font-size:12.5px;background:var(--surface)}
-.xfe-table .pair-row td{background:var(--tint-atmos);font-family:var(--font-head);font-weight:700;color:var(--brand-ink);font-size:12px;text-transform:uppercase;letter-spacing:.03em}
 .chain{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
-.chain .ch-h{background:var(--line-atmos-soft);color:var(--brand-ink);border-radius:6px;padding:2px 7px;font-family:var(--font-head);font-weight:700;font-size:11.5px}
-.chain .ch-ar{color:var(--ink-dim);font-size:11px}
-.chain .ch-std{background:var(--tint-yellow);color:var(--warn-ink);border-radius:6px;padding:2px 7px;font-family:var(--font-head);font-weight:700;font-size:11.5px}
-.rowdel{border:0;background:var(--tint-red);color:var(--danger-ink);border-radius:6px;width:32px;height:32px;cursor:pointer;font-size:13px}
-.xfe-form .field{margin-bottom:11px}
-.chain-build{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.chain-build .cb{display:inline-flex;align-items:center;gap:5px;background:var(--line-atmos-soft);color:var(--brand-ink);border-radius:7px;padding:4px 9px;font-family:var(--font-head);font-weight:700;font-size:12.5px}
-.chain-build .cb b{font-size:10px;opacity:.6}
-.chain-build .cb .x{cursor:pointer;color:var(--ink-soft)}
-.prev-box{background:var(--surface-soft);border:1px solid var(--line-atmos);border-radius:11px;padding:12px 14px;margin-top:10px}
-.prev-box .ph{font-family:var(--font-head);font-weight:700;color:var(--brand-ink);font-size:12px;text-transform:uppercase;letter-spacing:.03em;margin-bottom:8px}
-.prev-onl{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-.prev-onl .po{border:1px solid var(--line);background:var(--surface);border-radius:20px;padding:4px 10px;font-size:12px;cursor:pointer;font-weight:600;color:var(--ink-soft)}
-.prev-onl .po.on{background:var(--tint-green);border-color:var(--line-green);color:var(--ok-ink)}
-.prev-res{font-size:13px;line-height:1.7}
 /* schermate aggiuntive (vLOA editor, versioni, stati, export) */
-.states-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
-.state-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:16px}
-.state-card h5{margin:0 0 10px;color:var(--brand-ink)}
 .empty-ph{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;color:var(--ink-soft);padding:22px 10px;border:1.5px dashed var(--line-ocean);border-radius:11px;background:var(--surface-soft)}
 .empty-ph .ei{font-size:30px}
-.paper{background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 30px color-mix(in srgb,var(--ivao-blue) 10%,transparent);max-width:720px;margin:0 auto;padding:40px 48px}
-.paper h1{font-size:26px;margin-bottom:2px}
-.paper .ph-sub{color:var(--ink-soft);font-size:13px;margin:0 0 18px;border-bottom:2px solid var(--ivao-blue);padding-bottom:10px;display:flex;justify-content:space-between}
-.paper h3{font-size:17px;margin:18px 0 6px}
-.export-opts{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
 .ver-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:11px 14px;margin-bottom:8px;box-shadow:var(--shadow)}
 .ver-row .vb{font-family:var(--font-head);font-weight:800;color:var(--brand-ink);min-width:46px}
 .ver-row .vmeta{font-size:12.5px;color:var(--ink-soft)}
@@ -1316,13 +1226,6 @@
 .ver-row.current{border-color:var(--ivao-green);box-shadow:0 0 0 2px color-mix(in srgb,var(--ivao-green) 15%,transparent)}
 .doc-rowi{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:11px 14px;margin-bottom:8px;box-shadow:var(--shadow)}
 .doc-rowi .di{font-size:18px}
-.doc-rowi .dmeta{margin-left:auto;font-size:12px;color:var(--ink-soft)}
-.k-info{background:var(--tint-blue);color:var(--info-ink)}.k-info.on{border-color:var(--ivao-info)}
-.k-success{background:var(--tint-green-soft);color:var(--ok-ink)}.k-success.on{border-color:var(--ivao-green)}
-.k-warning{background:var(--tint-red);color:var(--warn-ink)}.k-warning.on{border-color:var(--ivao-yellow)}
-.k-danger{background:var(--tint-red);color:var(--danger-ink)}.k-danger.on{border-color:var(--ivao-red)}
-.ed-canvas{min-height:300px}
-.ed-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
 .btn{border:0;border-radius:9px;padding:9px 16px;font-family:var(--font-body);font-size:13.5px;cursor:pointer;font-weight:500}
 .btn.primary{background:var(--ivao-blue);color:var(--on-brand)}
 .btn.ghost{background:var(--tint-atmos);color:var(--brand-ink)}
@@ -1339,18 +1242,11 @@
 .loading-state{display:flex;align-items:center;gap:8px}
 .loading-state .spin{display:inline-block;width:13px;height:13px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;flex:none}
 @keyframes spin{to{transform:rotate(360deg)}}
-.preview-note{font-size:12px;color:var(--ink-soft);background:var(--tint-red);border:1px solid var(--line-gold);border-radius:8px;padding:8px 11px;margin-bottom:12px}
-.toc-preview{font-size:13px}
-.toc-preview ul{list-style:none;margin:0;padding:0}
-.toc-preview .l2{padding-left:14px}.toc-preview .l3{padding-left:28px}
-.toc-preview li{padding:4px 6px;color:var(--ink-soft)}
 .help{font-size:12.5px;color:var(--ink-soft);font-style:italic;margin-top:6px}
 /* ---------- Screen 3b: aeroporto ---------- */
 .metar{font-family:var(--font-mono);background:var(--ivao-blue-deep);color:var(--on-dark-soft);border-radius:11px;padding:14px 16px;font-size:14px;line-height:1.6;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .metar-live{display:inline-flex;align-items:center;gap:6px;background:color-mix(in srgb,var(--ivao-green) 18%,transparent);color:var(--on-dark-green);border:1px solid color-mix(in srgb,var(--ivao-green) 40%,transparent);border-radius:20px;padding:2px 9px;font-size:11px;font-family:var(--font-head);font-weight:700}
 .metar-live .dot{width:8px;height:8px;border-radius:50%;background:var(--ivao-green)}
-.metar-wind{color:var(--on-dark-yellow)}
-.metar-q{color:var(--on-dark-cyan)}
 .metar-parse{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 .mp{display:flex;flex-direction:column;background:var(--surface-soft);border:1px solid var(--line);border-radius:9px;padding:8px 14px;font-size:14px;min-width:110px}
 .mp .muted{font-size:11.5px;text-transform:uppercase;letter-spacing:.03em}
@@ -1361,9 +1257,6 @@
 .wx-tab.on{background:var(--ivao-blue);color:var(--on-brand);font-weight:600}
 .wx-view[hidden]{display:none}
 /* Editor aeroporto (scroll unico): mini-nav a chip-àncora + sezioni. */
-.editor-nav{display:flex;flex-wrap:wrap;gap:5px;background:var(--tint-atmos);border-radius:10px;padding:5px;margin:4px 0 16px}
-.editor-nav .wx-tab{text-decoration:none;padding:6px 12px}
-.editor-nav .wx-tab:hover{background:var(--line-atmos)}
 .ed-sec{scroll-margin-top:76px}          /* l'àncora non finisce sotto l'header sticky */
 .ed-sec + .ed-sec{margin-top:6px}
 /* Sezioni collassabili (<details>): header cliccabile con freccia, contenuto = card .block. */
@@ -1374,7 +1267,6 @@ details.ed-sec > summary::-webkit-details-marker{display:none}
 details.ed-sec > summary::before{content:"▸";font-size:11px;color:var(--brand-ink-2);transition:transform .15s}
 details.ed-sec[open] > summary::before{transform:rotate(90deg)}
 details.ed-sec > summary:hover{color:var(--brand-ink-2)}
-.metar-taf{color:var(--line-gold)}
 .taf-valid{display:inline-flex;align-items:center;gap:8px;background:var(--tint-atmos);border:1px solid var(--on-dark-soft);border-radius:9px;padding:7px 13px;font-size:13px;margin:12px 0 6px;font-family:var(--font-head);color:var(--brand-ink);font-weight:600}
 .taf-tl{position:relative;margin-top:8px;padding-left:18px}
 .taf-tl::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:2px;background:var(--on-dark-soft)}
@@ -1398,16 +1290,6 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
 .ta-badge b{font-family:var(--font-head);color:var(--brand-ink);font-size:20px;font-weight:800}
 .tl-table{max-width:420px}
 .tl-table tr.tl-now td{background:var(--tint-green);font-weight:700}
-.rwy-sugg{border:2px solid var(--ivao-lightblue);border-radius:12px;padding:14px 16px;background:var(--surface-soft);margin-bottom:16px}
-.rs-head{font-family:var(--font-head);font-weight:700;color:var(--brand-ink);margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.rs-head input{border:1px solid var(--line);border-radius:7px;padding:4px 7px;font-family:var(--font-body);font-size:13px}
-.rs-out{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.rs-card{display:flex;flex-direction:column;border-radius:10px;padding:10px 20px;min-width:120px;text-align:center;color:var(--on-brand)}
-.rs-card.dep{background:var(--ivao-blue)}
-.rs-card.arr{background:var(--ivao-green)}
-.rs-card .muted{color:rgba(255,255,255,.8);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
-.rs-card b{font-family:var(--font-head);font-size:17px;font-weight:800}
-.rs-note{font-size:13px;flex:1;min-width:160px}
 .rwy-table .yes{color:var(--ok-ink);font-weight:600}
 .rwy-table .no{color:var(--danger-ink)}
 /* Tabella più larga del suo contenitore: scorre da sé, la pagina no. */
@@ -1450,18 +1332,10 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
 .sid-quick .col-cat{width:8%}
 .sid-quick .col-wtc{width:8%}
 .sid-table .star{color:var(--ivao-yellow);font-size:14px}
-.sid-table tr.sid-pref td{background:var(--tint-yellow-soft)}
-.sid-table tr.sid-pref td:nth-child(2){box-shadow:inset 3px 0 0 var(--ivao-yellow)}
-.sid-bar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
-.sid-rwy{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.sid-lab{font-size:12px;font-weight:600;color:var(--ink-soft);font-family:var(--font-head);text-transform:uppercase;letter-spacing:.03em;margin-right:2px}
 .sid-pill{border:1px solid var(--line);background:var(--surface);border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;font-weight:600;color:var(--ink-soft);transition:.12s}
 .sid-pill:hover{border-color:var(--ivao-lightblue)}
 .sid-pill.on{background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)}
-.sid-search{display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:6px 12px;min-width:260px;flex:1;max-width:360px}
-.sid-search input{border:0;outline:0;flex:1;font-family:var(--font-body);font-size:13.5px;background:transparent}
 /* Come `.searchbar`: il campo azzera l'outline, l'anello lo porta il contenitore. */
-.sid-search:focus-within{outline:2px solid var(--ivao-blue);outline-offset:2px}
 .pref-tag{font-size:10px;font-weight:700;background:var(--tint-yellow);color:var(--warn-ink);border-radius:10px;padding:1px 7px;margin-left:6px;font-family:var(--font-head);vertical-align:middle}
 /* aeroporto: quote transizione (sx) + frequenze (dx) affiancate */
 /* ⚠️ `minmax(0,1fr)` e `min-width:0`, non `1fr` nudo: con `1fr` il minimo della colonna e' il MIN-CONTENT
@@ -1475,7 +1349,6 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
 .apt-2col .block{margin-bottom:0}
 @media(max-width:820px){.apt-2col{grid-template-columns:1fr}}
 /* editor: dato unico -> due viste */
-.src-edit{background:var(--surface-soft);border:1px solid var(--line-atmos);border-radius:10px;padding:12px 14px;margin-bottom:12px}
 .se-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
 .se-row:last-child{margin-bottom:0}
 .se-row label{font-size:11.5px;font-weight:600;color:var(--ink-soft);font-family:var(--font-head);text-transform:uppercase;letter-spacing:.03em;min-width:92px}
@@ -1483,20 +1356,10 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
 .se-row select{border:1px solid var(--line);border-radius:7px;padding:6px 28px 6px 10px;font-family:var(--font-body);font-size:13px;background:var(--surface) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235b6470' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 9px center;color:var(--ink);cursor:pointer;-webkit-appearance:none;appearance:none;transition:.12s}
 .se-row select:hover{border-color:var(--line-ocean)}
 .se-row select:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px var(--line-atmos-soft)}
-.dual-tabs{display:inline-flex;background:var(--tint-atmos);border-radius:9px;padding:3px;margin-bottom:10px}
-.dual-tab{border:0;background:transparent;color:var(--brand-ink-2);padding:6px 12px;border-radius:7px;cursor:pointer;font-family:var(--font-body);font-size:12.5px}
-.dual-tab.on{background:var(--surface);color:var(--brand-ink);font-weight:600;box-shadow:0 1px 3px color-mix(in srgb,var(--ivao-blue) 12%,transparent)}
-.dual-view[hidden]{display:none}
 /* box comportamento derivato (read-only) */
 .derived{background:var(--tint-atmos-soft);border:1px solid var(--on-dark-soft);border-left:4px solid var(--ivao-lightblue);border-radius:9px;padding:11px 14px;margin:12px 0}
-.derived-h{font-family:var(--font-head);font-weight:700;color:var(--brand-ink);font-size:13px;margin-bottom:7px}
-.derived-list{margin:0;padding-left:18px;font-size:13px;line-height:1.6}
 /* topologia settori */
 .topo{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.topo-block{border:1px solid var(--line);border-radius:11px;padding:12px 14px;background:var(--surface)}
-.topo-t{font-family:var(--font-head);font-weight:700;color:var(--brand-ink);font-size:12.5px;text-transform:uppercase;letter-spacing:.03em;margin-bottom:10px}
-.topo-rule{font-size:13.5px;padding:7px 0;border-bottom:1px dashed var(--line)}
-.topo-rule .muted{font-size:12px}
 @media(max-width:900px){.topo{grid-template-columns:1fr}}
 /* Cosa è cambiato */
 .chg{display:flex;flex-direction:column;gap:10px}
@@ -1507,8 +1370,6 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
 .chg-tag.del{background:var(--tint-red);color:var(--danger-ink)}
 .chg-row .chg-link{margin-left:auto;color:var(--brand-ink-2);font-size:13px;white-space:nowrap}
 .diff{font-family:var(--font-mono);font-size:13px;margin-top:4px}
-.d-del{background:var(--tint-red);color:var(--danger-ink);text-decoration:line-through;padding:0 5px;border-radius:4px}
-.d-add{background:var(--tint-green);color:var(--ok-ink);padding:0 5px;border-radius:4px}
 /* Ricerca */
 .res{display:flex;flex-direction:column;gap:10px}
 .res-row{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:12px 14px;box-shadow:var(--shadow);cursor:pointer}
@@ -1561,22 +1422,6 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
 .topo-layout{display:grid;grid-template-columns:330px 1fr 360px;gap:22px;align-items:start}
 .topo-layout .panel{padding:18px}
 /* albero gerarchia/copertura */
-.htree{list-style:none;margin:0;padding:0;font-size:13.5px}
-.htree li{padding:7px 9px;border-radius:8px;display:flex;align-items:center;gap:8px;cursor:default;position:relative}
-.htree li .pos{font-family:var(--font-head);font-weight:700;color:var(--ink)}
-.htree li .sct{font-size:11px;background:var(--line-atmos-soft);color:var(--brand-ink);border-radius:5px;padding:1px 7px;font-family:var(--font-head);font-weight:700}
-.htree li .kindp{font-size:10px;background:var(--surface-muted);color:var(--ink-mid);border-radius:5px;padding:1px 6px;margin-left:auto;font-family:var(--font-head);text-transform:uppercase;letter-spacing:.03em}
-.htree li .kindp.app{background:var(--tint-blue);color:var(--info-ink)}
-.htree li .kindp.twr{background:var(--tint-red);color:var(--warn-ink)}
-.htree li .kindp.nbr{background:var(--tint-purple);color:var(--nbr-ink)}
-.htree .h2{padding-left:22px}.htree .h3{padding-left:42px}.htree .h4{padding-left:62px}
-.htree li::before{content:"";position:absolute;left:0;top:0;bottom:0;width:0}
-.htree .h2::before,.htree .h3::before,.htree .h4::before{content:"└";color:var(--grey-mid);position:absolute;font-size:13px;top:6px}
-.htree .h2::before{left:9px}.htree .h3::before{left:29px}.htree .h4::before{left:49px}
-.htree li:hover{background:var(--tint-atmos-soft)}
-.htree li.live-online{background:var(--tint-green-soft);box-shadow:inset 3px 0 0 var(--ivao-green)}
-.htree li.live-covered{background:var(--tint-atmos);box-shadow:inset 3px 0 0 var(--ivao-lightblue)}
-.htree li.live-out{opacity:.35}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-soft);margin-top:12px}
 
 /* ---- editor gerarchia settori (albero + dettaglio) ----
@@ -1657,6 +1502,9 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
 .node-badge.app{background:var(--tint-blue);color:var(--info-ink)}
 .node-badge.acc{background:var(--line-atmos-soft);color:var(--brand-ink)}
 .node-badge.ctr{background:var(--line-atmos-soft);color:var(--brand-ink)}
+/* ⚠️ `fss` non compare in nessuna sorgente: nasce da `FacilityBadge(...)` che restituisce «FSS» e da
+   `.ToLowerInvariant()`. Tolta il 23 agosto 2026 da una passata sulle classi mai citate, e rimessa
+   subito: il nome di una classe puo' non esistere da nessuna parte finche' non gira il programma. */
 .node-badge.fss{background:var(--tint-purple);color:var(--nbr-ink)}
 .node-badge.apt{background:var(--tint-green);color:var(--ok-ink)}
 /* 10px: deve leggersi, quindi --ink-soft e non il tono spento. */
@@ -1691,31 +1539,10 @@ button.sh-chip.warn:hover{background:var(--tint-gold)}
 .fallback-chain>div{padding:1px 0}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
-.legend i.on{background:var(--ivao-green)}.legend i.cov{background:var(--ivao-lightblue)}.legend i.out{background:var(--ivao-grey)}
-.arrow{color:var(--ink-soft);margin:0 4px}
+.legend i.on{background:var(--ivao-green)}.legend i.out{background:var(--ivao-grey)}
 .sub-h{font-family:var(--font-head);font-weight:800;color:var(--brand-ink);font-size:13px;text-transform:uppercase;letter-spacing:.04em;margin:4px 0 12px;display:flex;align-items:center;gap:8px}
 .sub-h .hint{font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink-soft);font-size:12px;font-family:var(--font-body)}
 /* simulatore */
-.sim{position:sticky;top:78px}
-.sim h5{display:flex;align-items:center;gap:8px}
-.sim .live-dot{width:9px;height:9px;border-radius:50%;background:var(--ivao-green);animation:pulse 2s infinite}
-.sim-presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
-.sim-presets button{border:1px solid var(--line);background:var(--surface);border-radius:20px;padding:5px 11px;font-size:12px;cursor:pointer;font-family:var(--font-head);font-weight:700;color:var(--ink-soft);transition:.12s}
-.sim-presets button:hover{border-color:var(--ivao-lightblue)}
-.sim-presets button.on{background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)}
-.sim-p{display:flex;align-items:center;gap:8px;margin-bottom:12px}
-.sim-p label{font-size:11.5px;font-weight:700;color:var(--ink-soft);font-family:var(--font-head);text-transform:uppercase;letter-spacing:.03em}
-.sim-p select{flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-family:var(--font-body);font-size:13.5px;background:var(--surface)}
-.sim-online{list-style:none;margin:0 0 14px;padding:0}
-.sim-online li{display:flex;align-items:center;gap:9px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;font-size:13px;cursor:pointer;transition:.12s}
-.sim-online li:hover{background:var(--surface-soft)}
-.sim-online li.on{background:var(--tint-green-soft);border-color:var(--line-green)}
-.sim-online .chk{width:18px;height:18px;border-radius:5px;border:2px solid var(--ivao-grey);flex:none;display:grid;place-items:center;font-size:12px;color:var(--on-brand)}
-.sim-online li.on .chk{background:var(--ivao-green);border-color:var(--ivao-green)}
-.sim-online li.is-p{background:var(--tint-atmos);border-color:var(--line-ocean-soft)}
-.sim-online .cs{font-family:var(--font-head);font-weight:700}
-.sim-online .ptag{margin-left:auto;font-size:10px;font-weight:700;font-family:var(--font-head);background:var(--ivao-blue);color:var(--on-brand);border-radius:10px;padding:2px 8px}
-.sim-online .nbrtag{margin-left:auto;font-size:10px;font-weight:700;font-family:var(--font-head);background:var(--tint-purple);color:var(--nbr-ink);border-radius:10px;padding:2px 8px}
 .res-table{width:100%;font-size:13px;margin-bottom:6px}
 /* ---- Intestazioni che restano (tabelle lunghe in una pagina che scorre) ----
    `top:62px` è l'altezza della topbar, che è appiccicata anche lei; lo `z-index` sta SOTTO il suo (45) e sopra
@@ -1750,9 +1577,6 @@ button.sh-chip.warn:hover{background:var(--tint-gold)}
 /* Colonna ICAO: codice + un po' di spazio (nome lungo va a capo). */
 .struct .res-table th.col-icao,.struct .res-table td.col-icao{width:1%;min-width:96px;white-space:nowrap}
 .struct .res-table td.col-icao span{display:block;white-space:normal;word-break:break-word;max-width:150px}
-/* Cella «Assegnazione»: il chip FIR riempie lo spazio, il bottone «assegna» resta a destra. */
-.struct .res-table td .assign-cell{display:flex;align-items:center;gap:6px}
-.struct .res-table td .assign-cell select{flex:1;max-width:none}
 /* Selezione multipla: colonna checkbox stretta + barra azioni bulk. */
 .struct .res-table th.col-chk,.struct .res-table td.col-chk{width:1%;white-space:nowrap;text-align:center;padding-left:6px;padding-right:6px}
 .struct .res-table td.col-chk input,.struct .res-table th.col-chk input{cursor:pointer;margin:0}
@@ -1775,16 +1599,7 @@ button.sh-chip.warn:hover{background:var(--tint-gold)}
 .struct .res-table td.sel-cell{cursor:pointer;user-select:none}
 .struct .res-table tbody tr:hover td.sel-cell{background:var(--tint-atmos-soft)}
 .struct .res-table tbody tr.row-sel td{background:var(--line-atmos-soft) !important}
-.st-pill{font-size:11px;font-weight:700;font-family:var(--font-head);padding:2px 9px;border-radius:11px}
-.st-online{background:var(--tint-green);color:var(--ok-ink)}
-.st-covered{background:var(--line-atmos-soft);color:var(--brand-ink)}
-.derived2{background:var(--surface-soft);border:1px solid var(--line-atmos);border-radius:10px;padding:11px 13px;margin-top:14px}
-.derived2 .dh{font-family:var(--font-head);font-weight:700;color:var(--brand-ink);font-size:12px;text-transform:uppercase;letter-spacing:.03em;margin-bottom:8px}
-.derived2 ul{margin:0;padding-left:16px;font-size:12.5px;line-height:1.6}
-.derived2 ul li{margin-bottom:4px}
-.derived2 .none{font-size:12.5px;color:var(--ink-soft);font-style:italic}
-.eff-op{color:var(--warn-ink)}.eff-ho{color:var(--ok-ink)}.eff-col{color:var(--danger-ink)}
-@media(max-width:1180px){.topo-layout{grid-template-columns:1fr}.sim{position:static}}
+@media(max-width:1180px){.topo-layout{grid-template-columns:1fr}}
 
 
 /* ---- Aggiunte vIPI (non nel mockup) ---- */
@@ -1792,9 +1607,6 @@ button.sh-chip.warn:hover{background:var(--tint-gold)}
 .collapsed-strip[open]>summary{margin-bottom:8px}
 .prose p{margin:.5em 0}.prose p:first-child{margin-top:0}
 .block{scroll-margin-top:78px}
-/* toggle Estesa/Ridotta reso con <a> (nel mockup erano <button>): replico lo stato attivo */
-.tier-toggle a{display:inline-block;border:0;background:transparent;color:var(--on-dark-soft);padding:6px 13px;border-radius:7px;cursor:pointer;font-family:var(--font-body);font-size:13px;text-decoration:none}
-.tier-toggle a.on{background:var(--on-brand);color:var(--ivao-blue);font-weight:600}
 /* controllo zoom nella topbar */
 .zoom-ctrl{display:flex;align-items:center;gap:2px;background:rgba(255,255,255,.12);border-radius:9px;padding:3px}
 .zoom-ctrl button{border:0;background:transparent;color:var(--on-dark-soft);width:32px;height:32px;border-radius:7px;cursor:pointer;font-size:16px;line-height:1;font-family:var(--font-body)}
@@ -1823,12 +1635,12 @@ button.sh-chip.warn:hover{background:var(--tint-gold)}
 .rule-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
 .rule-ord { font-family: var(--font-head); font-weight: 700; font-size: 13px; letter-spacing: .03em;color:var(--brand-ink); }
 .rule-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px 14px; }
-.rule-grid label, .rule-note { display: flex; flex-direction: column; gap: 4px; }
-.rule-grid > label, .rule-rwys > div > .muted, .rule-days > .muted, .rule-note {
+.rule-grid label { display: flex; flex-direction: column; gap: 4px; }
+.rule-grid > label, .rule-rwys > div > .muted, .rule-days > .muted {
   font-family: var(--font-head); font-size: 11px; font-weight: 600; text-transform: uppercase;
   letter-spacing: .03em; color: var(--ink-soft);
 }
-.rule-grid input, .rule-grid select, .rule-note input {
+.rule-grid input, .rule-grid select {
   border: 1px solid var(--line); border-radius: 7px; padding: 6px 9px;
   font-family: var(--font-body); font-size: 13px; text-transform: none; color: var(--ink);
   background: var(--on-brand); transition: .12s;
@@ -1838,12 +1650,11 @@ button.sh-chip.warn:hover{background:var(--tint-gold)}
   background: var(--on-brand) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235b6470' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 9px center;
 }
 .rule-grid input:hover, .rule-grid select:hover { border-color: var(--line-ocean); }
-.rule-grid input:focus, .rule-grid select:focus, .rule-note input:focus { outline: 0; border-color: var(--ivao-blue); box-shadow: 0 0 0 2px var(--line-atmos-soft); }
+.rule-grid input:focus, .rule-grid select:focus { outline: 0; border-color: var(--ivao-blue); box-shadow: 0 0 0 2px var(--line-atmos-soft); }
 .rule-days, .rule-rwys { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; }
 .rule-rwys { flex-direction: column; align-items: stretch; gap: 10px; }
 .rule-rwys > div { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .rule-days .pill, .rule-rwys .pill { cursor: pointer; user-select: none; }
-.rule-note { margin-top: 12px; }
 
 /* «Avanzate» collassabile dentro la card regola */
 .rule-adv { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 10px; }
@@ -1867,17 +1678,11 @@ button.sh-chip.warn:hover{background:var(--tint-gold)}
 .rwy-key.dep{background:var(--line-atmos);color:var(--brand-ink)}
 
 /* ---- Editor/viewer APP non remotizzato (sezioni condivise) ---- */
-.app-sec{margin:0 0 18px}
 .app-sec-drag{opacity:.6;outline:2px dashed var(--ivao-lightblue);border-radius:11px}
-.app-sec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
-.app-sec-titlewrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.app-sec-titlewrap :is(h2,h3){margin:0}
-.app-sec-tools{display:flex;gap:4px}
 .app-drag{cursor:grab;color:var(--ink-soft,var(--ink-soft));font-size:18px;user-select:none}
 .app-in{width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font:inherit}
 .app-ta{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;resize:vertical}
 .app-lbl{display:block;font-size:13px;color:var(--ink-soft,var(--ink-mid));margin:8px 0}
-.app-sep-edit{display:grid;grid-template-columns:1fr 1fr auto;gap:6px;margin-bottom:6px;align-items:center}
 .app-block-edit{display:flex;gap:6px;align-items:flex-start;margin-bottom:6px}
 .app-block-edit .app-ta{flex:1}
 .app-linkpick{position:relative;margin-top:10px;max-width:420px}
@@ -1885,8 +1690,6 @@ button.sh-chip.warn:hover{background:var(--tint-gold)}
 .app-linkpick .sp-item{display:flex;gap:8px;align-items:center;width:100%;text-align:left;padding:8px 11px;background:none;border:0;border-bottom:1px solid var(--line);cursor:pointer}
 .app-linkpick .sp-item:last-child{border-bottom:0}
 .app-linkpick .sp-item:hover{background:var(--tint-atmos-soft)}
-.app-col-edit{display:flex;gap:4px;align-items:center;min-width:120px}
-.app-col-edit .app-in{min-width:80px}
 a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .app-sep-item{margin-bottom:14px}
 .app-sep-appl{width:100%;margin-bottom:6px;font-weight:600}
@@ -1895,13 +1698,11 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .app-sep-vals{display:flex;gap:10px;align-items:flex-end}
 .app-sep-vals label{display:flex;flex-direction:column;font-size:12.5px;color:var(--ink-soft,var(--ink-mid));gap:3px}
 .app-sep-vals .app-in{min-width:120px}
-.app-sec-hidden .block{opacity:.55;background:repeating-linear-gradient(45deg,var(--on-brand),var(--on-brand) 10px,var(--surface-muted) 10px,var(--surface-muted) 20px)}
 /* Stacking context isolato: confina gli z-index interni di Leaflet (pane/control ~200-1000) sotto la topbar (z-index:45). */
 .aor-leaflet,.mva-leaflet{position:relative;z-index:0;isolation:isolate}
 
 /* Carta MRVA: una per file .mva. Il titolo dice di quale ente è la carta, perché in un gruppo-APP ce n'è più d'una. */
 .mva-chart{margin:0 0 14px}
-.mva-title{margin:0 0 6px;font-size:14px;font-weight:700;color:var(--ink)}
 /* Etichetta di quota: testo verbatim del sectorfile su fondo topografico, che è fitto — serve l'alone chiaro per
    restare leggibile sopra curve di livello e rilievo. divIcon di Leaflet: niente sfondo né bordo di default.
    ⚠️ Colori LETTERALI e non token, unica eccezione voluta in questo foglio: il substrato è una tile
@@ -1941,27 +1742,13 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .aor-color-reset{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:2px 10px;font-size:12px;cursor:pointer;color:var(--ink-strong)}
 .aor-color-reset:hover{background:var(--tint-atmos-soft);border-color:var(--ivao-lightblue)}
 
-/* Selettore albero (tab) — classi separate dall'AoR per evitare collisioni JS. */
-.tree-sel{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.tree-chip{padding:4px 12px;border:1px solid var(--line);border-radius:999px;font-size:13px;cursor:pointer;background:var(--surface);text-decoration:none;color:var(--ink)}
-.tree-chip.on{background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)}
 
 /* Editor ACC: barra sticky (header + albero + indice sezioni) */
 /* Non piu sticky: le azioni vivono nel rail a destra, la barra tiene solo il titolo (niente doppio header che copre il TOC). */
 .editor-bar{background:var(--bg,var(--on-brand));padding:10px 0 8px;margin-bottom:12px;border-bottom:1px solid var(--line)}
-.editor-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .save-badge{font-size:12.5px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
 .save-badge.saving{background:var(--tint-yellow);color:var(--warn-ink)}
 .save-badge.saved{background:var(--tint-green-soft);color:var(--ok-ink)}
-.save-badge.lock-badge{background:var(--tint-red);color:var(--danger-ink);font-weight:700}
-.save-badge.lock-mine{background:var(--tint-green-soft);color:var(--ok-ink);font-weight:700}
-.editor-toc{display:flex;flex-wrap:nowrap;gap:6px;align-items:center;margin-top:8px;overflow-x:auto;scrollbar-width:thin;padding-bottom:4px}
-.editor-toc::-webkit-scrollbar{height:6px}
-.editor-toc::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
-.editor-toc .toc-jump{flex:0 0 auto;white-space:nowrap;font-family:inherit;font-size:12px;line-height:1.4;padding:3px 9px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink-soft,var(--ink-mid));text-decoration:none;cursor:pointer}
-.editor-toc .toc-jump:hover{border-color:var(--ivao-lightblue);color:var(--brand-ink)}
-.editor-toc .toc-sep{flex:0 0 auto;width:1px;height:18px;background:var(--line);margin:0 2px}
-.editor-toc .toc-lab{flex:0 0 auto;white-space:nowrap;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--brand-ink);padding:0 2px}
 /* Editor: menu-sezioni laterale (TOC) sticky, griglia 2 colonne (toc | contenuto). Vedi EditorToc.razor. */
 .ed-layout{display:grid;grid-template-columns:248px minmax(0,1fr);gap:30px;align-items:start}
 /* ⚠️ `min-width:0` sui figli della griglia e' obbligatorio quanto il `min-height:0` nei flex: senza, la
@@ -1980,9 +1767,6 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .editor-toc-side .dirt{margin-left:6px}
 .ed-layout .block[id],.ed-layout .ed-sec[id],.ed-layout .acc-block[id]{scroll-margin-top:84px}
 .toc-foot{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
-.app-collapse{background:none;border:none;cursor:pointer;font-size:14px;color:var(--brand-ink);padding:0 4px;line-height:1}
-/* salto d'ancora: lascia spazio sotto la barra sticky così il titolo sezione non finisce coperto */
-.struct .app-sec .block[id]{scroll-margin-top:180px}
 
 /* AoR ACC: chip settori (sopra la mappa) + selettore configurazione (sotto). */
 .aor-toggles{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
@@ -2033,13 +1817,11 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .guida-sec .cb-body ul{margin:8px 0;padding-left:20px}
 .guida-sec .cb-body li{margin:5px 0}
 .guida-sec .cb-body h4{margin:16px 0 4px;font-size:14.5px}
-.guida-sec code,.guida-body code{background:var(--surface-muted);border-radius:4px;padding:1px 6px;font-size:12.5px}
+.guida-sec code{background:var(--surface-muted);border-radius:4px;padding:1px 6px;font-size:12.5px}
 .guida-kbd{display:inline-block;padding:1px 7px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;background:var(--surface-soft);font-size:12px;font-weight:600}
 .guida-lead{font-size:15px;color:var(--ink-soft);margin:2px 0 18px;max-width:70ch}
 .guida-part{margin:26px 0 10px;display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--brand-ink)}
 .guida-part .ln{flex:1;height:1px;background:var(--line)}
-.guida-step{display:flex;gap:12px;margin:10px 0}
-.guida-step .n{flex:none;width:24px;height:24px;border-radius:999px;background:var(--ivao-blue);color:var(--on-brand);font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
 
 /* ── Tour guidato editor (vipi-tour.js) ───────────────────────────────────────── */
 .vt-overlay{position:fixed;inset:0;z-index:2000;background:transparent;pointer-events:none}
@@ -2122,8 +1904,6 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-nav-relfar{font-weight:700;color:var(--ink)}
 .xt-nav-count{margin-left:auto;font-size:11px;color:var(--ink-soft);background:var(--tint-atmos);border-radius:20px;
   padding:0 7px;flex:none}
-/* Bilaterale davvero: clausole nei due versi. «3 ⇄ 0» resta neutro, perché è un lavoro da fare, non un pregio. */
-.xt-nav-bi{background:var(--tint-green);color:var(--ok-ink)}
 /* Il pallino risale: un avviso che si vede solo dopo aver aperto il ramo giusto non è un avviso. */
 .xt-nav-warn{color:var(--warn-ink);font-size:11px;flex:none}
 /* La foglia è un bottone vero: si sceglie, e la scelta si vede. */
@@ -2133,15 +1913,12 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
   font-family:var(--font-body);font-size:11.5px;color:var(--ink)}
 .xt-nav-flow:hover{background:var(--tint-atmos-soft)}
 .xt-nav-flow.on{background:var(--tint-blue);box-shadow:inset 3px 0 0 var(--ivao-blue);font-weight:600}
-.xt-nav-kind{flex:none}
 /* La nota dell'accordo: riga sua, sotto la coppia. Occupa tutta la larghezza (flex-basis:100%) così non
    contende lo spazio ai callsign né al conteggio — e le foglie senza nota restano di una riga sola. */
 .xt-nav-desc{flex-basis:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-soft);
   font-size:11px}
 /* Il gruppo di aeroporti: sotto una coppia è il discriminante fra le foglie, non una nota a margine — quindi si
    legge come dato. È anche ciò che rende visibile una relazione spezzata: due foglie identiche di fila. */
-.xt-nav-apts{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-size:11.5px;
-  font-weight:600}
 
 /* ---- Colonna 2: il riquadro di lavoro ----
    Stessa forma del pannello — testata ferma, corpo che scorre — e per la stessa ragione: le azioni in fondo
@@ -2219,11 +1996,6 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 /* «Azioni sulla riga» come menù del piede: in fondo al corpo restavano fuori dallo schermo su ogni schermo
    (corpo 1324 px, visibili 781 · 501 · 401), perché una riga vera apre il pannello con faccetta e condizione
    già piene. Il menù si apre VERSO L'ALTO e resta dentro il riquadro, che ha overflow:hidden. */
-.xt-actwrap{position:relative;margin-left:auto}
-.xt-actmenu{position:absolute;right:0;bottom:calc(100% + 6px);z-index:30;display:flex;flex-direction:column;
-  gap:4px;min-width:210px;padding:6px;background:var(--surface);border:1px solid var(--line);border-radius:10px;
-  box-shadow:0 8px 26px color-mix(in srgb,var(--ivao-blue-deep) 16%,transparent)}
-.xt-actmenu .btn{justify-content:flex-start;text-align:left;width:100%}
 /* A schermo largo il tetto lo dà la griglia (le tre colonne hanno un'altezza definita e il pannello la
    riempie). Sotto le soglie la griglia lascia perdere l'altezza fissa e il pannello scende: lì il tetto lo
    rimette .xfe-layout3 nelle sue media query, così il piede resta agganciato; ad arrivarci ci pensa
@@ -2235,7 +2007,6 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-panel-h b{font-family:var(--font-head);color:var(--brand-ink)}
 .xt-panel-h .muted{font-size:12px}
 .xt-panel-x{margin-left:auto;padding:2px 8px}
-.xt-panel-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 /* Intestazione di gruppo dentro il pannello: dice a cosa serve il blocco di campi che segue, e — quando la
    sezione è richiudibile — apre e chiude. Il riassunto accanto al titolo è la ragione per cui una sezione può
    partire chiusa senza nascondere niente. */
@@ -2246,14 +2017,8 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-grp.xt-clickable{cursor:pointer;user-select:none}
 .xt-grp.xt-clickable:hover>span{color:var(--brand-ink)}
 .xt-grp .xt-chev{font-size:10px;color:var(--ink-soft)}
-.xt-secsum{font-family:var(--font-body)!important;font-weight:600!important;font-size:11.5px!important;
-  text-transform:none!important;letter-spacing:0!important;color:var(--brand-ink)!important;
-  background:var(--tint-atmos);border-radius:20px;padding:2px 9px;max-width:230px;overflow:hidden;text-overflow:ellipsis;
-  white-space:nowrap}
 .xt-row2{display:flex;gap:8px;flex-wrap:wrap}
 .xt-row2 .field{flex:1;min-width:90px}
-.xt-preview{margin-top:12px;padding:8px 10px;background:var(--surface-soft);border:1px solid var(--line);border-radius:8px;font-size:11.5px}
-.xt-preview b{font-family:var(--font-head);color:var(--brand-ink)}
 /* ⚠️ L'anteprima era 55px, PIU' ALTA della riga di dati che commenta (43): una riga di corsivo pagata piu'
    del dato. Sta sotto la sua clausola e non ha bisogno di respiro sopra — quello lo da' gia' la riga. */
 .res-table tr.xfer-prev>td{padding:1px 9px 5px}
@@ -2277,7 +2042,6 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 /* Un tasto spento in barra resta LEGGIBILE: dice «qui non c'è niente da rivedere», che è un'informazione, non
    un comando disattivato per sbaglio. Senza, a 0 sbiadiva fino a sembrare un guasto. */
 .xt-bar .btn:disabled{opacity:.55;cursor:default}
-.xt-count{font-size:12px;white-space:nowrap}
 .xt-grow{flex:1}
 .xt-check{font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap;cursor:pointer}
 .xt-foot{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
@@ -2315,7 +2079,6 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
   letter-spacing:.04em;color:var(--brand-ink);white-space:nowrap}
 .xt-dirpair{font-size:12.5px;color:var(--ink)}
 /* L'asterisco dice «calcolato»: senza, il tipo del verso opposto passa per una scelta di chi ha scritto. */
-.xt-dirkind{font-size:11px}
 .xt-dirempty{margin:6px 0 0;font-size:12px}
 
 /* Utilità nate dagli stili inline della pagina. */
@@ -2382,7 +2145,6 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-lbl-soft{font-weight:400}
 .xt-hint{font-size:11.5px}
 .xt-nowrap{white-space:nowrap}
-.xt-btnrow{display:flex;gap:6px}
 /* ---- form della SEZIONE: il verso si preme, gli scali si digitano ----
    ⚠️ Il campo del verso NON è `.narrow` (max 130 px): due callsign interi non ci stanno, e tagliarli è
    inaccettabile per la stessa ragione per cui non si tagliano nel navigatore — un callsign troncato è un altro
@@ -2420,19 +2182,12 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-aptpick-narrow .sp-item{white-space:nowrap}
 .xt-selfc{align-self:center}
 .xt-mt0{margin-top:0}
-.xt-m0{margin:0}
-.xt-my{margin:6px 0}
-.xt-mb{margin:0 0 8px}
 .xt-flat{border-top:0;padding-top:0;margin-top:0}
 .xt-clickable{cursor:pointer}
 .xt-chev{display:inline-block;width:1em}
 .xt-desc{font-size:12.5px;font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   max-width:38ch;display:inline-block;vertical-align:bottom}
 .xt-warnpill{background:var(--fill-gold);color:var(--warn-ink-strong);border:0;cursor:pointer}
-.xt-w56{width:56px}
-.xt-w70{width:70px}
-.xt-w96{width:96px}
-.xt-w130{width:130px}
 
 /* Picker a digitazione (ricevente, area): erano in un <style> dentro la pagina.
    ⚠️ Il contenitore `.sector-pick-wrap` DAVANTI non e' decorazione (regola 44). `.sector-pick` senza
@@ -2460,7 +2215,6 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-bulkbody{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .xt-bulkpick{margin:0;min-width:200px}
 .xt-bulkpick input{margin:0}
-.xt-groupwide{margin-top:6px}
 
 /* ---- Aeroporti dell'accordo, dalla testata ----
    Il gruppo di aeroporti è ciò che si mette a punto più spesso («vale anche per Brindisi»): prima si toccava solo
@@ -2472,11 +2226,6 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .xt-aptpick input{margin-bottom:0}
 /* L'asterisco del campo obbligatorio: si vede, non urla. */
 .xt-req{color:var(--warn-ink);font-weight:700}
-/* Il tipo di traffico, scelto dalla testata: ha il peso di una pill, non di un campo di form. */
-.xt-kindsel{margin:0;padding:1px 6px;height:auto;font-size:11.5px;border-radius:20px;
-  border:1px solid var(--ivao-blue);background:var(--tint-blue);color:var(--brand-ink);font-weight:600}
-/* «Altro» è il tipo con cui un accordo NASCE: si legge come da fare, non come scelto. */
-.xt-kindsel.xt-unset{border-style:dashed;background:var(--surface);color:var(--ink-soft)}
 
 /* ---------- Editor aeroporto: riga-titolo, riquadro delle SID, colonne ----------
    La riga-titolo tiene insieme titolo, «?», chip e comandi della sezione: i paragrafi d'aiuto che stavano
@@ -3252,7 +3001,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    ⚠️ Solo dentro `.doc-layout`: negli editor le tabelle stanno gia' in `.st-scroll`, e un secondo
    contenitore scorrevole darebbe due barre annidate. */
 @media (max-width: 900px) {
-  .wrap .block,.wrap .cb-body,.wrap .doc-main{min-width:0;max-width:100%}
+  .wrap .block,.wrap .cb-body{min-width:0;max-width:100%}
   /* ⚠️ `.wrap table` e non `.doc-layout table`: la prima versione copriva solo il viewer, e la pagina di
      RICERCA — che mostra le stesse tabelle fuori da quel layout — restava a 569px su uno schermo da 375.
      Un elenco di contenitori si dimentica sempre il prossimo: si prende tutto il contenuto e si ESCLUDE

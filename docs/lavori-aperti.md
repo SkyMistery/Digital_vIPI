@@ -1213,3 +1213,14 @@ un'informazione che si perde se non la si scrive.
 
 **Come si riprende.** Al prossimo rosso, catturare il nome — `dotnet test … 2>&1 | grep "\[FAIL\]"` — invece
 di filtrare sul solo riepilogo, che è l'errore che è stato fatto qui.
+
+### H3 🟢 `/services/vsop/admin/acc` sfora di 24px in orizzontale
+
+**Cos'è.** A 1600px di finestra la pagina ACC chiede 1624: la testata appiccicata
+(`.doc-head.st-head.sticky`) misura **1648** dentro un contenuto da 1536. Non c'entra la potatura del foglio
+di stile del 23 agosto: ⚠️ **misurato con il foglio di PRIMA e con quello di DOPO, il numero è lo stesso**
+(1624 in tutt'e due), quindi il difetto stava lì da prima e nessuno l'aveva visto.
+
+**Perché non è stato chiuso subito.** Perché è un difetto a sé, e sistemarlo dentro un giro di pulizia
+avrebbe mescolato due cose. Il colpevole è uno solo e si trova in una riga
+(`node sfora.js http://localhost:5099/services/vsop/admin/acc` nella skill `verifica-live`).

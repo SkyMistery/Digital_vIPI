@@ -89,8 +89,24 @@ python .claude/skills/verifica-live/classi-morte.py "<radice del repo>"
 ```
 
 ⚠️ Il suo elenco **apre** la domanda, non la chiude: cerca il nome nudo nelle sorgenti, quindi i nomi
-composti a pezzi (`"xt-ind" + n`, `"k-" + tipo`) risultano morti e non lo sono. Al 23 agosto 2026: 178 su
-944, da guardare famiglia per famiglia.
+composti a pezzi (`$"xt-ind{n}"`, `$"blk-{k}"`, `class="lvl@(livello)"`) risultano morti e non lo sono.
+
+⚠️ E **il confronto è in minuscolo, apposta**: `.node-badge.fss` nasce da un `"FSS"` più un
+`.ToLowerInvariant()`, e in minuscolo quel nome non compare in nessun file. Tolta il 23 agosto, e rimessa
+un'ora dopo perché la prova qui sotto l'ha ripescata.
+
+**La prova che chiude la domanda è `nessun-bersaglio.js`**: prende i selettori che il `git diff` dice
+rimossi e verifica, su una trentina di pagine reali (con tutti i `<details>` aperti), che **nessuno trovi
+più niente nel DOM**. È l'unico controllo che vede le classi costruite interamente da una variabile — che
+nessuna passata sul testo può vedere.
+
+```powershell
+git diff src/Vipi.Ui/wwwroot/vipi-theme.css | ... > selettori-tolti.txt   # vedi la carta del 23 agosto
+node nessun-bersaglio.js
+```
+
+C'è anche `sfora.js <url>`, che dice **quale elemento** fa scorrere una pagina in orizzontale (salta chi ha
+`overflow-x:auto`, che scorre per costruzione e non sfora).
 
 ⚠️ **Perché esistono.** Il 22 agosto `vipi-aor3d.css` è **sfuggito** alla passata sui token: la legenda del
 visore 3D è rimasta col fondo bianco scritto a mano e, nel tema scuro, aveva le scritte quasi bianche
