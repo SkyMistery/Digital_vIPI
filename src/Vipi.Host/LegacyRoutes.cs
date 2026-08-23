@@ -22,8 +22,12 @@ namespace Vipi.Host;
 /// </summary>
 public static class LegacyRoutes
 {
-    /// <summary>Il prefisso di oggi. Un posto solo: lo citano anche i test.</summary>
-    public const string Prefix = "/services/vsop";
+    /// <summary>
+    /// Il prefisso di oggi. Un posto solo: lo citano anche i test. Il valore vive in
+    /// <see cref="Vipi.Ui.VsopRoutes.Prefix"/> — cioè accanto al layout che deve leggerlo — perché
+    /// <c>Vipi.Ui</c> non può guardare qui, mentre da qui si vede benissimo lui.
+    /// </summary>
+    public const string Prefix = Vipi.Ui.VsopRoutes.Prefix;
 
     /// <summary>I due prefissi storici, in ordine di lunghezza decrescente (<c>/vsop</c> prima di <c>/sop</c>).</summary>
     private static readonly string[] OldPrefixes = { "/vsop", "/sop" };

@@ -25,7 +25,7 @@
                 <nav class="tb-menu-acc" aria-label="@L["Chrome_AccNav"]">
                     @foreach (var acc in Stations.Accs)
                     {
-                        <a class="@(IsActiveAcc(acc.Code) ? "active" : null)" href="/services/vsop/@acc.Code.ToLowerInvariant()">@acc.Code</a>
+                        <a class="@(IsActiveAcc(acc.Code) ? "active" : null)" href="/services/vsop/@acc.Code.ToLowerInvariant()" aria-current="@(IsActiveAcc(acc.Code) ? "page" : null)">@acc.Code</a>
                     }
                 </nav>
                 @* Sotto lo scaglione tb-4 la barra nasconde zoom e tasti: «quello che esce dalla riga vive
@@ -155,11 +155,10 @@
         _user = Users.Get();
         _staff = _user is { StaffPositions.Count: > 0 } su ? string.Join(" · ", su.StaffPositions) : null;
 
-        var uri = Nav.ToAbsoluteUri(Nav.Uri);
-        var segments = uri.AbsolutePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-        // /services/vsop/{acc}/{vipi?}
-        _acc = segments.Length >= 2 && segments[0].Equals("vsop", StringComparison.OrdinalIgnoreCase)
-            ? segments[1] : null;
+        // /services/vsop/{acc}/{vipi?}. ⚠️ Il conto dei segmenti NON si rifà qui: era scritto a mano e
+        // contava dal primo, che dal 22 agosto 2026 è «services» e non più «vsop» — da allora nessun ACC
+        // è più stato evidenziato. Ora il prefisso sta in un posto solo (VsopRoutes).
+        _acc = VsopRoutes.AccFrom(Nav.ToAbsoluteUri(Nav.Uri).AbsolutePath);
 
         // Tasto Editor: visibile solo a chi può editare almeno un documento (admin o grant).
         _isAdmin = Authz.IsAdmin;
