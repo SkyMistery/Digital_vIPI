@@ -16,7 +16,7 @@
 
 <PageTitle>@(_view?.Title ?? L["Live_Tab"].Value) — @L["Live_Tab"] · vIPI IVAO Italia</PageTitle>
 
-<div class="wrap">
+<div class="wrap live">
     <div class="breadcrumb">
         <a href="/services/vsop">@L["Common_Home"]</a>
         @if (_view is not null)
@@ -181,19 +181,14 @@
                 }
             </div>
 
+            @* Il conteggio è in PUNTI, non in flussi: è il numero di righe che si trovano aprendo.
+               ⚠️ Nessuna fascia «online nel tuo intorno»: ripeteva, in 77px, ciò che ogni riga già dice nella
+               pastiglia del ricevente. La regola che spiegava («interni solo se c'è qualcuno») è il «?»
+               accanto al filtro. *@
             <details class="acc-item" data-persist="live-xfer">
-                <summary><span><Icon Name="refresh" /> @L["Live_TransfersTitle"]</span><span class="tag-state tag-covered">@_view.Transfers.Count</span></summary>
+                <summary><span><Icon Name="refresh" /> @L["Live_TransfersTitle"]</span><span class="tag-state tag-covered">@_view.Transfers.Sum(t => t.Points.Count)</span></summary>
                 <div class="body">
-                    <div class="xfer-online">
-                        <span class="xo-label">@L["Live_OnlineAround"]</span>
-                        @if (OnlineAround().Count > 0)
-                        {
-                            @foreach (var cs in OnlineAround()) { <span class="xo-chip on">@cs</span> }
-                        }
-                        else { <span class="muted xo-hint">@L["Live_NoNeighbourOnline"]</span> }
-                        <span class="muted xo-hint">@L["Live_TransfersHint"]</span>
-                    </div>
-                    <TransfersLive Flows="_view.Transfers" EmptyText="@L["Live_NoCoord"]" Changed="ChangedCallsigns()" />
+                    <TransfersLive Flows="_view.Transfers" EmptyText="@L["Live_NoCoord"]" Changed="ChangedCallsigns()" Online="_snapshot.Callsigns" />
                 </div>
             </details>
         }
@@ -333,15 +328,6 @@
     private IReadOnlySet<string> ChangedCallsigns() =>
         _changes.Select(c => c.Callsign).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-    private IReadOnlyList<string> OnlineAround() => _view is null
-        ? Array.Empty<string>()
-        : _view.Transfers
-            .SelectMany(r => r.Points.Where(p => p.IsOnline).Select(p => p.ResolvedHandler)
-                .Append(r.OwnerOnline ? r.ResolvedOwnerCallsign : null))
-            .Where(cs => !string.IsNullOrWhiteSpace(cs)).Select(cs => cs!)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase).ToList();
-
     /// <summary>La rotta del documento esteso la sa il registry per-tipo (doc 09), non questa pagina.</summary>
     private string? ExtendedDocHref() => _view?.ExtendedDoc is { } d
         ? DocRoutes.For(d.Kind).PublicUrl(d.AccCode.ToLowerInvariant(), d.Scope ?? "", null)
@@ -366,6 +352,7 @@
 
         // A ogni render: i <details> ricreati a un tick live perderebbero la persistenza del collasso.
         try { await JS.InvokeVoidAsync("vipiWireCollapse"); } catch (JSDisconnectedException) { /* circuito chiuso */ }
+
     }
 
     /// <summary>Chiamato dal browser (SSE) a ogni cambio della cache ATC. Qui la vista si aggancia da sola

@@ -539,6 +539,18 @@
 .screen.active{display:block}
 .wrap{width:100%;max-width:1640px;margin:0 auto;padding:30px clamp(24px,3.5vw,64px) 70px}
 /* pagine di lavoro (admin struttura/aeroporti/acc): usano tutta la larghezza disponibile */
+/* Vista live: il contenuto sono colonne affiancate, non prosa — il cap a 1640px lasciava vuoto lo
+   schermo. Il tetto resta perché oltre i ~2100px le righe si allungano senza dire niente di più. */
+/* ⚠️ E il fondo pagina si accorcia: `vipiCapInner` misura fin dove arriva il RIQUADRO e non vede cosa
+   gli sta sotto — i 70px di `padding-bottom` del `.wrap` diventavano 107px di scorrimento a 1440x900
+   su una pagina che per il resto stava dentro. */
+.wrap.live{max-width:2100px;padding-bottom:18px}
+/* ⚠️ E qui sotto si fa il conto, perché `vipiCapInner` misura fin dove arriva il RIQUADRO e non vede cosa
+   gli sta sotto: i 70px di `padding-bottom` del `.wrap`, i 16 del corpo del blocco e i 12 di margine
+   erano 35px di scorrimento a 1440x900 su una pagina che per il resto stava dentro. Restano i 18px di
+   respiro che la funzione si tiene da sé — che sono anche il bianco sotto le colonne. */
+.wrap.live .acc-item:last-of-type{margin-bottom:0}
+.wrap.live .acc-item:last-of-type>.body{padding-bottom:0}
 .wrap.struct{max-width:none;padding-left:clamp(16px,2vw,32px);padding-right:clamp(16px,2vw,32px)}
 /* su schermi molto larghi il contenuto di sola lettura resta leggibile, non stirato */
 .reading-cap{max-width:1180px}
@@ -982,8 +994,6 @@
 .live-changes .lc-clear{margin-left:auto;background:none;border:0;cursor:pointer;font-size:12.5px;
   color:var(--ink-soft);text-decoration:underline;padding:0}
 .live-changes .lc-clear:hover{color:var(--brand-ink)}
-/* Riga/riquadro trasferimento toccato da un cambio: evidenza che sopravvive al re-render (non un lampo). */
-.xt-changed{box-shadow:inset 3px 0 0 var(--ivao-yellow);background:var(--tint-yellow-soft)}
 /* Catena di copertura: chi ti assorbe se chiudi, e a chi passi salendo. Per ground e delivery — che di
    trasferimenti propri non ne hanno — è l'informazione principale, quindi `lead` la rende più marcata. */
 .live-chain{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 16px;font-size:13px}
@@ -993,8 +1003,72 @@
 .live-chain.lead{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-soft)}
 .live-chain.lead .lc-lab{color:var(--brand-ink)}
 
-.xt-unicom-bar{margin:0 0 10px}
-.xt-unicom-bar .btn{padding:3px 10px;font-size:12.5px}
+/* ---------- Coordinamenti della vista live ---------- */
+/* Una colonna per tipo di traffico, una riga per punto (`TransfersLive.razor`).
+   Carta: docs/feature/2026-08-23-live-coordinamenti-a-colonne.md.
+   ⚠️ Prefisso `xl-` e NON `xt-`: l'editor dei trasferimenti (/services/vsop/admin/transfers) occupa già
+   `.xt-bar` e `.xt-apt`, e due blocchi che si contendono lo stesso nome si scoprono solo a schermo. */
+
+/* barra: filtro aeroporto · UNICOM · «?» */
+.xl-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+.xl-filter{position:relative;display:flex;align-items:center}
+.xl-filter .xl-fic{position:absolute;left:9px;display:flex;color:var(--ink-mid);pointer-events:none}
+.xl-filter input{width:210px;padding:4px 26px 4px 28px;border:1px solid var(--line);border-radius:8px;
+  background:var(--surface);color:var(--ink);font-family:var(--font-body);font-size:12.5px}
+.xl-filter input:focus{outline:2px solid var(--ivao-lightblue);outline-offset:-1px}
+/* ⚠️ La freccina del datalist costa ~16px DENTRO il campo: senza toglierla il segnaposto si taglia. */
+.xl-filter input::-webkit-calendar-picker-indicator{display:none !important}
+.xl-fclear{position:absolute;right:5px;display:flex;border:0;background:none;cursor:pointer;color:var(--ink-mid);padding:2px}
+.xl-fclear:hover{color:var(--brand-ink)}
+.xl-bar .xl-unicom{padding:3px 10px;font-size:12.5px}
+.xl-bar .xl-help{margin-left:auto}
+
+/* le colonne */
+#xl-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;align-items:stretch}
+.xl-kcol{display:flex;flex-direction:column;min-height:0;border:1px solid var(--line);border-radius:11px;overflow:hidden;
+  max-height:var(--vipi-inner-h,none)}
+.xl-kcol-h{flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0;
+  background:var(--ivao-blue);color:var(--on-brand);font-family:var(--font-head);font-weight:800;
+  font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;padding:5px 11px}
+.xl-kcol-h .n{font-weight:600;opacity:.8;font-variant-numeric:tabular-nums}
+/* ⚠️ `--vipi-inner-h` la scrive `vipiCapInner` su `#xl-cols`, misurando lo spazio che resta sotto e
+   dividendolo per le righe della griglia. Il tetto va sulla COLONNA, non sull'elenco: così la testata,
+   che cambia altezza col tasto «Compatta», si sottrae da sola. E non si può scrivere `height:100%` né
+   mettere il tetto sulla griglia — i figli di una griglia non si accorciano per il `max-height` del
+   padre, il riquadro RITAGLIA invece di far scorrere. Senza la variabile — telefono, o schermo troppo
+   basso — resta `none` e scorre la pagina, com'è giusto. */
+.xl-krows{flex:1 1 auto;overflow:auto;min-height:0;scrollbar-width:thin;scrollbar-gutter:stable}
+/* La barra si VEDE, e il posto se lo tiene sempre (`scrollbar-gutter`): una colonna che scorre e una che
+   no devono restare larghe uguale, e chi guarda deve capire che sotto c'è dell'altro — il numero in
+   testata dice quanti punti ci sono, la barra dice che non li stai vedendo tutti. */
+.xl-krows::-webkit-scrollbar{width:8px}
+.xl-krows::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
+.xl-krows::-webkit-scrollbar-thumb:hover{background:var(--ink-soft)}
+
+/* la riga: ICAO (solo il primo del gruppo) · CoP · livelli+condizione · ricevente */
+.xl-line{display:grid;grid-template-columns:52px 70px minmax(0,1fr) auto;align-items:center;gap:7px;
+  padding:2px 10px;font-size:12.5px;line-height:1.45}
+/* ⚠️ La zebra è un VELO, non `--surface-muted`: nel tema scuro quel fondo (#3d3f54) porta `--brand-ink`
+   da 5,81:1 a 3,77:1, cioè sotto la soglia, e sono proprio ICAO e livelli — il testo per cui si guarda la
+   riga. Misurato con `probe.js dark`. Un velo di inchiostro al 6% si vede e non sposta il contrasto. */
+.xl-line:nth-child(odd){background:color-mix(in srgb,var(--ink) 6%,transparent)}
+.xl-line.xl-first{border-top:1px solid var(--line)}
+.xl-line:first-child{border-top:0}
+.xl-apt{font-family:var(--font-head);font-weight:800;color:var(--brand-ink);font-size:13px}
+.xl-line .cop{justify-self:start;font-size:11.5px;padding:0 6px}
+.xl-mid{display:flex;align-items:baseline;gap:6px;min-width:0;flex-wrap:wrap}
+.xl-line .fl{font-size:14px;font-family:var(--font-head);font-weight:800;white-space:nowrap}
+.xl-line .fl.xl-hand{opacity:.85}
+.xl-spd{font-size:10.5px;color:var(--ink-mid)}
+.xl-cond{font-size:10.5px;background:var(--surface-muted);color:var(--ink-mid);border-radius:4px;padding:1px 5px}
+.xl-next{justify-self:end;font-family:var(--font-head);font-weight:600;font-size:11.5px;color:var(--brand-ink);
+  background:var(--line-atmos-soft);border-radius:5px;padding:1px 7px;white-space:nowrap}
+.xl-next b{font-weight:800;font-size:12px}
+.xl-next.tieni{background:var(--surface-muted);color:var(--ink-mid)}
+/* Riga toccata da un cambio di destinatario: evidenza che sopravvive al re-render (non un lampo).
+   ⚠️ Scritta `.xl-line.xl-changed` e DOPO la zebra: a pari specificità vince l'ultima, e con la sola
+   `.xl-changed` (0,1,0) lo sfondo a righe alterne (0,2,0) se la mangiava una volta su due. */
+.xl-line.xl-changed{box-shadow:inset 3px 0 0 var(--ivao-yellow);background:var(--tint-yellow-soft)}
 
 .red-top-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px;align-items:start;margin-bottom:12px}
 .red-top-grid .acc-item{margin-bottom:0}
@@ -1021,6 +1095,16 @@
 .vipi-dense .reduced-top{gap:10px;padding:7px 0;margin-bottom:12px}
 .vipi-dense .callout{padding:8px 12px}
 .vipi-dense .apt-quick{margin-bottom:12px !important}
+/* Coordinamenti live: prima di oggi la densità non toccava niente qui dentro, e «Compatta» valeva il 2%. */
+.vipi-dense .xl-bar{margin-bottom:7px}
+.vipi-dense .xl-filter input{width:170px;padding-top:2px;padding-bottom:2px}
+.vipi-dense #xl-cols{gap:8px}
+.vipi-dense .xl-kcol-h{padding:3px 9px;font-size:11px}
+.vipi-dense .xl-line{grid-template-columns:46px 62px minmax(0,1fr) auto;gap:6px;padding:0 8px;font-size:11.5px;line-height:1.42}
+.vipi-dense .xl-apt{font-size:12px}
+.vipi-dense .xl-line .fl{font-size:12.5px}
+.vipi-dense .xl-next{font-size:10.5px;padding:0 6px}
+.vipi-dense .xl-next b{font-size:11px}
 .apt-quick{display:flex;gap:8px;flex-wrap:wrap}
 .apt-quick .ch{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:7px 14px;font-size:13px;cursor:pointer;font-weight:500;transition:.12s}
 .apt-quick .ch:hover{border-color:var(--ivao-lightblue);color:var(--brand-ink)}
@@ -1070,8 +1154,6 @@
 .xtable .fl{font-size:20px}
 .xtable tbody tr:hover td{background:var(--surface-soft)}
 /* toggle "chi è online" */
-.xfer-online{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:14px}
-.xo-label{font-size:12.5px;font-weight:600;color:var(--ink-soft);font-family:var(--font-head);text-transform:uppercase;letter-spacing:.03em}
 .xo-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:20px;padding:6px 13px;font-size:13px;cursor:pointer;font-weight:600;user-select:none;color:var(--ink-soft);transition:.12s}
 .xo-chip::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--grey-mid)}
 .xo-chip.on{border-color:var(--line-green);background:var(--tint-green);color:var(--ok-ink)}
@@ -1097,41 +1179,10 @@
 .xtab .help{padding:0 14px 10px}
 .xtab.collapsed{opacity:.6;margin-top:10px}
 .xtab-body{padding:6px}
-.xt-sub+.xt-sub{border-top:1px solid var(--line);margin-top:2px}
-.xt-sub-h{font-family:var(--font-head);font-weight:700;color:var(--ink-soft);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;padding:8px 12px 2px}
 /* selettore stile */
 .xstyle{display:flex;align-items:center;gap:6px;margin-bottom:12px}
 .xstyle-tab{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 12px;font-size:12.5px;cursor:pointer;font-family:var(--font-body);color:var(--ink-soft);font-weight:500}
 .xstyle-tab.on{background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)}
-/* comune: dest e freccia livello */
-.xt-dest{font-family:var(--font-head);color:var(--brand-ink);font-weight:800}
-.fl.up{color:var(--brand-ink)}
-/* stile RIGA */
-.xt-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px dashed var(--line)}
-.xt-row:last-child{border-bottom:0}
-.xt-row .xt-dest{font-size:16px;min-width:58px}
-.xt-row .fl{margin-left:auto;font-size:20px;font-family:var(--font-head);font-weight:800;white-space:nowrap}
-/* stile CARD — una card per aeroporto, dentro i punti+FL */
-.xt-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;padding:8px}
-.xt-card{border:1px solid var(--line);border-radius:11px;overflow:hidden}
-.xt-card-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;background:var(--tint-atmos);padding:5px 11px}
-.xt-card-h .xt-dest{font-size:16px}
-.xt-pt{display:flex;align-items:center;gap:8px;padding:5px 11px;border-top:1px solid var(--line)}
-.xt-pt .cop{flex:none}
-.xt-pt .fl{font-size:15px;font-family:var(--font-head);font-weight:800;white-space:nowrap}
-.xt-next{margin-left:auto;font-family:var(--font-head);font-weight:600;font-size:12px;color:var(--brand-ink);background:var(--line-atmos-soft);border-radius:6px;padding:2px 9px;white-space:nowrap}
-.xt-next b{font-weight:800;font-size:13px}
-.xt-next.std{background:var(--tint-yellow);color:var(--warn-ink)}
-.xt-next.tieni{background:var(--surface-muted);color:var(--ink-mid)}
-/* maxi-sezione FIR ↔ FIR — masonry: relazioni con poche card affiancate */
-#xfer-pairs{columns:360px;column-gap:14px}
-.xpair{break-inside:avoid;margin:0 0 14px}
-.xpair-h{font-family:var(--font-head);font-weight:800;color:var(--on-brand);background:var(--ivao-blue);border-radius:10px 10px 0 0;padding:8px 13px;font-size:14px}
-.xpair-body{border:1px solid var(--line-atmos);border-top:0;border-radius:0 0 11px 11px;padding:8px}
-.xpair-body .xt-cards{padding:0;grid-template-columns:1fr;gap:8px}
-.xfer-foot{margin-top:8px}
-.xfer-more{border:1px dashed var(--line);background:var(--tint-atmos-soft);color:var(--ink-soft);border-radius:8px;padding:7px 13px;cursor:pointer;font-family:var(--font-body);font-size:12.5px;width:100%;text-align:left}
-.xfer-more:hover{border-color:var(--ivao-lightblue);color:var(--brand-ink)}
 
 /* ---------- Screen 5: editor ---------- */
 .ed-layout{display:grid;grid-template-columns:300px 1fr 280px;gap:22px;align-items:start}

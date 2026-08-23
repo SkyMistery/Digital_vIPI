@@ -544,9 +544,32 @@ window.vipiScorrimento = function () {
         return tot;
     }
 
-    function fitOne(sel, collapseBelow, cap, reserveSel) {
+    function fitOne(sel, collapseBelow, cap, reserveSel, cssVar) {
         var el = document.querySelector(sel);
         if (!el) return;
+        if (cssVar) {
+            if (window.innerWidth <= collapseBelow) { el.style.removeProperty(cssVar); return; }
+            var topV = el.getBoundingClientRect().top + window.pageYOffset - document.documentElement.scrollTop;
+            // ⚠️ Lo spazio si divide per le RIGHE della griglia, e le righe si contano — non si sanno.
+            // `repeat(auto-fit, minmax(...))` manda i figli a capo quando la finestra si stringe: dando a
+            // ognuno l'altezza piena, due righe di colonne ne occuperebbero il doppio e la promessa «sta in
+            // una schermata» salterebbe proprio dove serve di piu'. Le righe si riconoscono dall'offsetTop.
+            var cime = [], k;
+            for (k = 0; k < el.children.length; k++) {
+                var t = Math.round(el.children[k].offsetTop);
+                if (cime.indexOf(t) < 0) cime.push(t);
+            }
+            var righe = Math.max(1, cime.length);
+            var gapV = parseFloat(getComputedStyle(el).rowGap) || 0;
+            var liberoV = (window.innerHeight - topV - riserva(reserveSel)) / rootZoom() - 18;
+            // floor e non round: arrotondando per eccesso il riquadro sfora di 1px, e 1px di scorrimento
+            // e' comunque una barra di scorrimento.
+            var hV = Math.floor((liberoV - (righe - 1) * gapV) / righe);
+            // fitMin vale per RIGA: sotto quella soglia il riquadro e' inutilizzabile e si lascia scorrere
+            // la pagina, che e' il comportamento giusto su schermo basso o con molte righe di colonne.
+            if (hV >= fitMin) el.style.setProperty(cssVar, hV + 'px'); else el.style.removeProperty(cssVar);
+            return;
+        }
         var prop = cap ? 'maxHeight' : 'height';
         var altra = cap ? 'height' : 'maxHeight';
         el.style[altra] = '';
@@ -580,9 +603,28 @@ window.vipiScorrimento = function () {
         fitOne(selector, below, true, reserveSel);
     };
 
-    window.addEventListener('resize', function () {
-        fitTargets.forEach(function (t) { fitOne(t.sel, t.below, t.cap, t.res); });
-    });
+    // Come vipiCapViewport, ma scrive lo spazio disponibile in una CUSTOM PROPERTY (`--vipi-inner-h`) invece
+    // che sull'elemento.
+    //
+    // ⚠️ Serve perché le altre due non sanno fare questo caso: un contenitore a GRIGLIA con `max-height` non
+    // rimpicciolisce i suoi figli — le colonne restano alte quanto il loro contenuto e il riquadro ritaglia
+    // invece di far scorrere. La misura va presa sul contenitore (che sa dov'è la sua cima) e APPLICATA ai
+    // figli, e in CSS l'unico modo di passarla è una variabile. La usano le colonne dei coordinamenti live:
+    // `#xl-cols` riceve la variabile, `.xl-krows` ci mette il proprio `max-height`.
+    window.vipiCapInner = function (selector, collapseBelow, reserveSel) {
+        var below = collapseBelow || 0;
+        var v = '--vipi-inner-h';
+        if (!fitTargets.some(function (t) { return t.sel === selector && t.cssVar === v; }))
+            fitTargets.push({ sel: selector, below: below, res: reserveSel, cssVar: v });
+        fitOne(selector, below, false, reserveSel, v);
+    };
+
+    function fitAll() { fitTargets.forEach(function (t) { fitOne(t.sel, t.below, t.cap, t.res, t.cssVar); }); }
+
+    window.addEventListener('resize', fitAll);
+    // ⚠️ Aprire o chiudere un <details> sposta ciò che sta SOTTO senza passare da un resize: chi si misura
+    // dallo spazio che resta va rifatto. `toggle` non fa bolla, quindi si ascolta in cattura.
+    document.addEventListener('toggle', function () { requestAnimationFrame(fitAll); }, true);
 
     // ---- La topbar sceglie il suo scaglione MISURANDOSI ----
     //

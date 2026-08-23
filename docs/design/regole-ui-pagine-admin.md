@@ -1136,6 +1136,7 @@ per **tutte** le pagine, non solo per le admin.
 | Altezza misurata, contenuto più alto dello schermo | `vipiFitViewport(sel, collapseBelow)` — scrive `height`: il riquadro si stira e dentro scorre |
 | Altezza misurata, contenuto corto e fisso | `vipiCapViewport(sel, collapseBelow)` — scrive `max-height`: alto quanto il contenuto, scorre solo se non ci sta (regola 150) |
 | Riserva per ciò che sta SOTTO il riquadro misurato | terzo argomento `reserveSel` di `vipiFitViewport`/`vipiCapViewport` — facoltativo (regola 179) |
+| Altezza misurata per una **griglia di colonne** | `vipiCapInner(sel, collapseBelow)` — scrive `--vipi-inner-h` sul contenitore, dividendo lo spazio per le RIGHE della griglia; il tetto lo mette il CSS sui figli. ⚠️ Le altre due non servono: un figlio di griglia non si accorcia per il `max-height` del padre — ritaglia. Uso: colonne dei coordinamenti live (`#xl-cols` / `.xl-kcol`) |
 | Aggiungere un blocco a una sezione (tutti gli editor) | `details.blk-add` in `DocumentSectionsEditor` + delega `wireBlockMenu` in `vipi-ui.js` (regole 187 e 193 — si apre IN LINEA, mai in `position:absolute`) |
 | Scaglioni di compressione della topbar | classi `.topbar.tb-1…tb-4` in coda a `vipi-theme.css`, messe da `vipiFitTopbar` in `vipi-ui.js` — ⚠️ **non** sono media query, e non devono tornare a esserlo (regola 213) |
 | Telefono e tablet verticale (pagine pubbliche) | la barra: `tb-4`, scelto dalla misura. Il resto: `@media (max-width: 900px)` in coda — tabelle che scorrono, testo che va a capo (§29) |
