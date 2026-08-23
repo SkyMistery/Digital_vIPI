@@ -1,4 +1,4 @@
-﻿# Regole di densità e uso per le pagine admin (19-22 agosto 2026) — 212 voci in 29 gruppi
+﻿# Regole di densità e uso per le pagine admin (19-23 agosto 2026) — 224 voci in 31 gruppi
 
 > ⚠️ **I colori e i font non stanno qui: stanno in [regole-brand](regole-brand.md).** Dal 22 agosto il
 > foglio non contiene piu' colori letterali fuori dalla scala di brand, e c'e' un tema scuro: una
@@ -1088,6 +1088,45 @@ tre media query; questo le ha tolte, e le cinque regole qui sotto valgono ben ol
      dove Chrome usa `content-visibility` e `innerText` torna vuoto (11 link «senza etichetta» che le avevano
      tutte). Prima di credere a un difetto trovato da uno script, provare lo script su un caso sano.
 
+
+## 31. Quello che ha lasciato l'audit frontend/UI (23 agosto 2026)
+
+Carta: [audit frontend/UI](../history/audit-2026-08-23-frontend-ui.md). Sette regole, e le prime tre valgono
+per **tutte** le pagine, non solo per le admin.
+
+218. ⚠️ **Il tag di un titolo dice la STRUTTURA, non la misura.** È la causa di venti pagine che
+     saltavano un gradino: un titolo di sezione era `<h3>` perché 28px è la misura giusta, non perché stesse
+     al terzo livello. Le due cose si separano — il tag per la gerarchia, la misura a una classe
+     (`.page-h1` 32px, `.h-sect` 28px, `.h-card` 24px) o al selettore di contesto che già c'era. La testata
+     di pagina è **sempre** `<h1 class="page-h1">`, e `GerarchiaTitoliTests` lo pretende.
+219. ⚠️ **Una regola legata al TAG si spegne in silenzio quando il tag cambia.** Il foglio ne aveva venti
+     (`.apt-card h4`, `.nav-head h4`, `.section-title h3`, `.guida-toc h3`, `.swap-card h4`…). Quelle che un
+     ritaggio può toccare vanno scritte **indifferenti al tag** — `.apt-card :is(h2,h3,h4)` — che a
+     specificità identica costa zero e toglie il problema anche al prossimo giro.
+220. ⚠️ **Un comando dev'essere un `<button>`, anche quando l'interattività non passa da Blazor.** La
+     regola era già scritta in `Chip.razor`, ma il blocco AoR le è sfuggito per un anno perché le sue chip le
+     piloterà `vipi-aor.js` e non il circuito: markup a mano, quindi nessuno l'ha ricollegato. Con
+     `aria-pressed` scritto **insieme** alla classe `.on`, da un posto solo — il tag porta i tasti e il ruolo,
+     `aria-pressed` porta lo stato, che altrimenti resta solo il colore.
+221. ⚠️ **Una live region va resa PRIMA del messaggio che deve annunciare.**
+     `@if (_msg is not null) { <span role="status"> }` non viene letto: uno screen reader annuncia i
+     cambiamenti *dentro* una regione che stava già lì. Si usa `LiveRegion.razor`, che è sempre reso e ha
+     `display:contents` — le testate sono flex con `gap:10px`, e un elemento in più, anche largo zero, ci
+     lascerebbe un vuoto permanente.
+222. **L'opacità di uno stato «spento» va sulla GRAFICA, non sull'elemento intero.** Le chip AoR spente
+     applicavano `opacity:.45` a tutto, testo compreso: `--ink` al 45% su fondo chiaro fa **3,3:1**, sotto il
+     4,5:1 che un testo da 13px pretende. Ora l'opacità resta sullo swatch e il testo spento prende
+     `--ink-soft`, che il foglio ha già misurato a 5,89:1.
+223. **Un campo che azzera il proprio `outline` deve dare l'anello al CONTENITORE.** `.searchbar` e
+     `.sid-search` lo azzeravano apposta — la cornice che si vede è il riquadro attorno — ma senza
+     sostituto, cioè il fuoco da tastiera lì era invisibile. C'è anche un pavimento `:focus-visible` per
+     tutto il modulo, a specificità zero così le regole puntuali continuano a vincere.
+224. ⚠️ **Quando si ritagga in massa, la prova che il disegno non cambia si MISURA.** 216 titoli su 15
+     pagine, in chiaro e in compatta, fotografati prima e dopo (misura, peso, colore, famiglia, margini). Il
+     primo giro ha trovato **sei regressioni vere** che sarebbero passate: un colore scivolato su 19 titoli,
+     la compatta che rimpiccioliva chi non doveva, il peso da 700 a 800, e una pagina promossa **due volte**
+     perché compariva in due liste di lavoro. Lo script sta nello scratchpad della verifica live (`titoli.js`,
+     due fasi `prima`/`dopo` con la differenza stampata).
 
 ## Dove sta la roba
 

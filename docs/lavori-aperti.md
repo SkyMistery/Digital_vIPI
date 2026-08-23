@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 23 agosto 2026 (E4 decisa il 22 sera; E5 property-based, E6-ter e i due difetti della topbar chiusi il 23) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+**Aggiornato:** 23 agosto 2026 (E4 decisa il 22 sera; E5 property-based, E6-ter e i due difetti della topbar chiusi il 23; **audit frontend/UI chiuso il 23 sera** — §H) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -1166,3 +1166,50 @@ scartate apposta, così non vengono riscoperte come idee nuove.
 sul mondo, non sul repository*. La carta proponeva di rigenerare `InitialCreate` MySQL perché nessun database
 l'aveva vista; la MariaDB locale ce l'aveva già in `__EFMigrationsHistory`, e rigenerarla l'avrebbe resa non
 aggiornabile.
+
+---
+
+## H. Audit frontend/UI — 23 agosto 2026, chiuso salvo due voci
+
+Carta ed esito per esteso in [history/audit-2026-08-23-frontend-ui.md](history/audit-2026-08-23-frontend-ui.md).
+Quindici voci, tredici chiuse in giornata sul ramo `audit-frontend-ui` (sei commit, 3.595 test verdi,
+verifica live fatta). Qui restano solo le due che **non** sono state chiuse, e il perché.
+
+### H1 🟢 `.ed-layout` e le altre dieci `@media` degli editor
+
+**Cos'è.** La stessa malattia curata sul viewer (A3 della carta): una `@media` misura la **finestra**, mentre
+lo zoom di questa applicazione è `zoom` sull'`<html>` e la finestra non lo vede. Sul viewer pubblico il
+danno era misurato e grave — il documento scendeva a **161px a zoom 1.8** fra due barre laterali a larghezza
+fissa — ed è stato chiuso con una `@container`.
+
+Restano **`.ed-layout`** più **dieci regole `.struct`**, tutte sulle pagine di editor e admin.
+
+**Perché non è stata fatta insieme.** Le pagine admin hanno un perimetro d'uso **dichiarato** da 1024px in su
+(`design/regole-ui-pagine-admin.md`): lì l'assetto attuale è quello voluto, non un incidente. E ogni regola va
+decisa e **vista a schermo** una per una — non è un travaso meccanico come lo era per il viewer, dove il
+layout è uno solo e ripetuto su quattro pagine.
+
+**Come si riprende.** Gli attrezzi ci sono già, nello scratchpad della verifica live: `zoom2.js` interroga
+`matchMedia` a cinque livelli di zoom e stampa le colonne effettive, `zoom3.js` fa la controprova a finestra
+stretta e verifica che il contenimento non tocchi chi non deve.
+
+> ⚠️ **La trappola da conoscere prima di misurare.** In **Edge 151** `documentElement.clientWidth` **non è
+> più in unità di layout** sotto `zoom`: restituisce i px di finestra. Una misura dedotta da lì dice che non
+> succede niente. Si chiede a `matchMedia`, che è ciò che decide davvero se la regola vale.
+
+> ⚠️ **E la trappola del rimedio.** `container-type:inline-size` porta con sé `contain:layout`, che rende
+> l'elemento contenitore anche per i discendenti `position:fixed`. Le pagine di editor hanno un
+> `.editor-toast` fisso **dentro** il `.wrap`: mettere il contenimento sul `.wrap` glielo incolla dentro. Sul
+> viewer è stato aggirato con `.wrap:has(> .doc-layout)`; per gli editor servirà una soluzione propria.
+
+### H2 🟢 Un rosso non riproducibile in `Vipi.Application.Tests`
+
+In uno dei giri completi la suite ha segnato **1 fallimento su 625**, e il nome non è stato catturato. In sei
+esecuzioni successive (tre mirate, tre complete) non si è più presentato.
+
+Non sembra legato all'audit: lì è stato toccato solo `AorColorScheme`, che ha test deterministici. È
+registrato perché «era tutto verde» non sarebbe vero, e perché un rosso intermittente **visto una volta** è
+un'informazione che si perde se non la si scrive.
+
+**Come si riprende.** Al prossimo rosso, catturare il nome — `dotnet test … 2>&1 | grep "\[FAIL\]"` — invece
+di filtrare sul solo riepilogo, che è l'errore che è stato fatto qui.

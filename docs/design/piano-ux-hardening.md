@@ -1,10 +1,11 @@
-# UX Hardening — carta 🟢
+﻿# UX Hardening — carta 🟢
 
 > Refactor trasversale UI (non tocca dominio/dati). Segue il ciclo di
 > [REFACTOR-PROCESS](../refactor/REFACTOR-PROCESS.md) (Fase 0→4, «carta prima di codice»).
 > Asse **separato** da quello dati/import (`refactor/01→10`): qui l'area è la UI Blazor.
 >
-> **Stato: approvata dall'owner 2026-07-22; esecuzione in corso.**
+> **Stato: approvata dall'owner 2026-07-22; U1/U2/U3 eseguite, P2 chiusa il 23 agosto 2026
+> dall'[audit frontend/UI](../history/audit-2026-08-23-frontend-ui.md).**
 > Origine: audit UX 2026-07-22 (3 criticità 🔴 + 9 follow-up 🟡).
 > Repo non-git → nessun branch; lavoro diretto. Baseline: `Vipi.Ui.Tests` 13 verde.
 >
@@ -57,11 +58,28 @@ Cancellazioni immediate, alcune **irreversibili**:
 Incoerenza collaterale: lessico (Elimina/Rimuovi/Rifiuta/Scarta), icona (`✕` vs `🗑`),
 stile bottone (`btn ghost` vs `btn ghost danger` vs `btn danger`) per pari gravità.
 
-### P2 — Accessibilità sotto soglia (🔴)
+### P2 — Accessibilità sotto soglia (🔴 → ✅ chiusa il 23 agosto 2026)
 - Emoji decorative lette dagli screen reader come testo casuale; rese diverse per OS/browser.
 - Bottoni icon-only (`✕`, `🗑` in tabelle) senza nome accessibile affidabile (`title` ≠ nome).
 - SVG/mappe (`AorBlock`, `AreaMapBlock`, gallerie MVA) senza `role="img"`/`aria-label`.
 - Copertura `aria` quasi nulla fuori dal chrome.
+
+> ✅ **Chiusa dall'[audit frontend/UI del 23 agosto](../history/audit-2026-08-23-frontend-ui.md).** U2 aveva
+> già preso le emoji e i nomi accessibili; l'audit ha trovato **quello che questa carta non aveva visto**, e
+> vale la pena dire *cosa* le era sfuggito, perché è sempre la stessa cosa:
+>
+> - **I comandi del blocco AoR non esistevano per la tastiera** — chip `<span>`, «Tutti/Nessuno/Azzera» `<a>`
+>   senza href, e per giunta sulle pagine **pubbliche**. La regola era già scritta in `Chip.razor`; il blocco
+>   AoR le è sfuggito perché la sua interattività è **JS puro**, non Blazor, quindi nessun giro sui
+>   componenti lo toccava.
+> - **Nessuna pagina aveva un `<h1>`**, e sulle vIPI titolo e blocchi stavano allo stesso livello. Una carta
+>   che cerca «copertura aria» non guarda i tag di intestazione.
+> - **`prefers-reduced-motion` non era nominato da nessuna parte** (42 transizioni, un'animazione infinita).
+> - **Il fuoco da tastiera era invisibile in tre campi**, dove `outline:0` era voluto ma senza sostituto.
+> - **Le live region non venivano annunciate**, perché nascevano insieme al messaggio.
+>
+> ⚠️ Il filo comune: sono tutte cose che **non si vedono leggendo i componenti uno per uno**. Si vedono
+> guardando il documento reso, la tastiera e il foglio di stile — cioè misurando, non ispezionando.
 
 ### P3 — Zoom custom senza a11y, possibile ridondanza (🔴)
 - La % di zoom non è annunciata (nessun `aria-live`).

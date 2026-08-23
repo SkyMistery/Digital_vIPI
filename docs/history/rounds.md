@@ -1675,3 +1675,52 @@ modo di ingrandire il disegno senza toccare la larghezza.
 
 ⚠️ Da ricordare per chi torna sull'editor: il **velo grigio al primo accesso è il tour di onboarding**
 (`vt-overlay` di `vipi-tour.js`), non un guasto della pagina. Fa sembrare tutto disabilitato.
+
+---
+
+## 23 agosto 2026 — audit frontend/UI (`audit-frontend-ui`)
+
+Revisione di tutta l'interfaccia, con l'esito per esteso in
+[audit-2026-08-23-frontend-ui.md](audit-2026-08-23-frontend-ui.md). Quindici voci, tutte chiuse in giornata,
+sei commit. Suite: 3.595 test verdi su 14 assiemi, build a zero avvisi.
+
+Il filo che le lega non era previsto e vale più del singolo difetto: **tre su tredici nascono da regole che
+il progetto aveva già scritto, applicate a metà**. La regola sui `<span>` cliccabili è in `Chip.razor` per
+esteso; quella sui 592 KB da non caricare ovunque è in `App.razor` per three.js; quella sul fuoco visibile è
+nel foglio. Ognuna aveva un punto che le sfuggiva, e sfuggiva perché era arrivato da un'altra strada — JS
+puro invece di Blazor, un `<link>` invece di uno `<script>`, un campo che azzera l'outline apposta.
+
+**Il difetto funzionale.** Dal rename del 22 agosto **nessun ACC era più evidenziato in topbar**: `SopLayout`
+contava i segmenti a mano e confrontava il primo con `"vsop"`, che da quel giorno vale `"services"`. Il
+commento sopra la riga diceva già l'indirizzo nuovo — era il codice a essere rimasto indietro. Una stringa
+sbagliata compila, e nessun test guardava l'HTML servito. Il conto sta ora in `VsopRoutes` e il prefisso in
+un posto solo.
+
+**Accessibilità, e tre voci sono sulle pagine pubbliche.** I comandi del blocco AoR erano `<span>` e `<a>`
+senza href: mouse-only, su documenti che si aprono senza login. Nessuna pagina aveva un `<h1>`, e sulle vIPI
+titolo e blocchi stavano allo stesso livello. `prefers-reduced-motion` non era nominato da nessuna parte (42
+transizioni, una animazione infinita). Il fuoco era invisibile in tre campi. Le live region nascevano
+insieme al messaggio, quindi non venivano annunciate.
+
+**La terza ricaduta della stessa malattia.** Dopo la topbar e le tabelle del viewer: una `@media` misura la
+FINESTRA, e lo zoom qui è `zoom` sull'`<html>`. Sul viewer la soglia dei 1080 non scattava a nessuno zoom
+mentre le barre laterali restavano fisse, e il documento scendeva a **161px a zoom 1.8** fra due barre da 248
+e 308 — cioè il rimedio peggiorava il caso che doveva servire, perché chi zooma a 1.8 è chi ha bisogno di
+leggere meglio. Curato con una `@container`, che misura in unità di layout. ⚠️ Il contenimento sta su
+`.wrap:has(> .doc-layout)`: `container-type` porta `contain:layout`, e gli editor hanno un `.editor-toast`
+fisso dentro il `.wrap`.
+
+⚠️ **Due lezioni di metodo, tutt'e due costate tempo.**
+
+La prima: **la prova che ritaggare venti pagine non cambia il disegno va MISURATA.** 216 titoli su 15 pagine,
+in chiaro e in compatta, fotografati prima e dopo. Il primo giro ha trovato **sei regressioni vere** che
+sarebbero passate — un colore scivolato su 19 titoli, la compatta che rimpiccioliva chi non doveva, il peso
+da 700 a 800, e una pagina promossa due volte perché compariva in due liste di lavoro.
+
+La seconda: in **Edge 151** `documentElement.clientWidth` **non è più in unità di layout** sotto `zoom` —
+restituisce i px di finestra. La prima passata di misure, che deduceva da lì, diceva che non succedeva
+niente. La domanda va fatta a `matchMedia`, che è ciò che decide se la regola vale.
+
+**In coda, due correzioni all'analisi**, registrate perché in tutti e due i casi mentiva la grep e non il
+codice: le «decine di righe non localizzate» di `AdminTrasferimentiPage` erano commenti XML nel blocco
+`@code`, e le «131 stringhe» di `GuidaPage` erano le due metà di un contenuto bilingue per costruzione.
