@@ -1100,7 +1100,10 @@
 .vipi-dense .xl-filter input{width:170px;padding-top:2px;padding-bottom:2px}
 .vipi-dense #xl-cols{gap:8px}
 .vipi-dense .xl-kcol-h{padding:3px 9px;font-size:11px}
-.vipi-dense .xl-line{grid-template-columns:46px 62px minmax(0,1fr) auto;gap:6px;padding:0 8px;font-size:11.5px;line-height:1.42}
+/* ⚠️ La colonna del CoP resta 70px anche in densa: a 62 «ALL to GR» andava a capo e la riga diventava
+   alta il doppio: si perdeva più di quanto si guadagnasse. Il risparmio della densa sta nell'interlinea
+   e nel padding, non nella larghezza. */
+.vipi-dense .xl-line{grid-template-columns:46px 70px minmax(0,1fr) auto;gap:6px;padding:0 8px;font-size:11.5px;line-height:1.42}
 .vipi-dense .xl-apt{font-size:12px}
 .vipi-dense .xl-line .fl{font-size:12.5px}
 .vipi-dense .xl-next{font-size:10.5px;padding:0 6px}
