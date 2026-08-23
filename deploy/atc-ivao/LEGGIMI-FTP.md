@@ -18,14 +18,24 @@ caricate **solo il file `.zip`** e scompattatelo là. È un trasferimento invece
 di trasferimento da sbagliare, e i permessi dentro l'archivio si conservano. Tutto il resto di questa pagina
 serve solo quando quella strada non c'è.
 
-**Se il sito è già in piedi** (aggiornamento, non prima installazione): **fermate il servizio prima**
-(`sudo systemctl stop vipi`). Sovrascrivere l'eseguibile di un processo vivo dà `ETXTBSY` e il file caricato
-resta a metà.
+**Se il sito è già in piedi** (aggiornamento, non prima installazione), la regola è una sola:
+**non si sovrascrive un file mentre l'applicazione gira.**
 
-⚠️ **Su `atc.it.ivao.aero` non c'è systemd**: il sito gira con Plesk + Phusion Passenger, si ferma dal
-pannello e si riavvia toccando `tmp/restart.txt`. La procedura di aggiornamento buona per quel server è
-[`LEGGIMI-AGGIORNAMENTO.md`](LEGGIMI-AGGIORNAMENTO.md); di questo foglio restano validi i due punti che
-contano davvero, il **trasferimento binario** e il **bit di esecuzione**.
+Dove c'è una shell, si ferma il servizio prima (`sudo systemctl stop vipi`). Dove non c'è, si carica col
+nome finto e si rinomina: è la procedura di
+[`LEGGIMI-AGGIORNARE-VIA-FTP.md`](LEGGIMI-AGGIORNARE-VIA-FTP.md), e funziona ad applicazione accesa.
+
+⚠️ **Su `atc.it.ivao.aero` non c'è né systemd né l'accesso al pannello Plesk**: il sito gira con Plesk +
+Phusion Passenger, e chi lo aggiorna ha **soltanto l'FTP**. La procedura buona per quel server è quindi
+[`LEGGIMI-AGGIORNARE-VIA-FTP.md`](LEGGIMI-AGGIORNARE-VIA-FTP.md) — non `LEGGIMI-AGGIORNAMENTO.md`, che
+descrive la consegna del 23 agosto e dice «fermate l'applicazione dal pannello», cosa che lì **non si può
+fare**. Di questo foglio restano validi i due punti che contano davvero, il **trasferimento binario** e il
+**bit di esecuzione**.
+
+⚠️ **Sovrascrivere una `.dll` di un processo vivo non dà nessun errore, e butta giù il sito.** `ETXTBSY`
+protegge solo l'eseguibile in esecuzione; le librerie si lasciano troncare in silenzio, e il processo che le
+ha mappate in memoria muore all'istante. È successo il 23→24 agosto 2026: il perché esteso sta nel foglio
+qui sopra.
 
 ---
 
@@ -115,6 +125,7 @@ e per i guasti tipici di un caricamento via FTP, questi sono i sintomi:
 
 | Sintomo | Causa quasi certa |
 |---|---|
+| **Il sito va giù durante o subito dopo l'upload, e `diagnostica/` non dice niente di nuovo** | una `.dll` è stata **sovrascritta ad applicazione viva**: il processo è morto senza poter scrivere. Vedi [`LEGGIMI-AGGIORNARE-VIA-FTP.md`](LEGGIMI-AGGIORNARE-VIA-FTP.md) |
 | `Permission denied` all'avvio del servizio | manca il bit di esecuzione su `Vipi.Host` (§4) |
 | `Exec format error` / `cannot execute binary file` | trasferimento avvenuto in ASCII (§2) |
 | `An assembly specified in the application dependencies manifest was not found` | un file non è arrivato, o è arrivato troncato (§5) |

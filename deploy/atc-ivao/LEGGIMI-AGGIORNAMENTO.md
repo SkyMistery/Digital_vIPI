@@ -1,5 +1,20 @@
 ﻿# vIPI — aggiornamento del 23 agosto 2026
 
+> ## ⛔ Questo foglio è STORIA: la consegna del 23 agosto è già stata fatta
+>
+> Se state installando il pacchetto **«b»**, la procedura buona è
+> [`LEGGIMI-CORREZIONE-20260823b.md`](LEGGIMI-CORREZIONE-20260823b.md): sono **soli file**, il database
+> **non si tocca**.
+>
+> ⚠️ I passi qui sotto cominciano con un `DROP DATABASE`. Rieseguirli oggi **cancella l'archivio**.
+>
+> ⚠️ **Anche il modo di caricare i file, qui sotto, non va più seguito.** Dice di sovrascrivere il
+> contenuto della cartella e, se un file si rifiuta, di fermare l'applicazione dal pannello Plesk. La prima
+> cosa ha buttato giù il sito la notte del 23→24 agosto 2026 — sovrascrivere una `.dll` mentre
+> l'applicazione gira la tronca sotto il processo, che muore all'istante; la seconda non è eseguibile,
+> perché su questo server non c'è accesso al pannello. La procedura buona è
+> [`LEGGIMI-AGGIORNARE-VIA-FTP.md`](LEGGIMI-AGGIORNARE-VIA-FTP.md): si carica col nome finto e si rinomina.
+
 Il sito è **già in produzione** su `https://atc.it.ivao.aero` dal 16 agosto. Questo foglio è per
 **aggiornarlo**, non per installarlo da capo: la prima installazione è in
 [`LEGGIMI-DEPLOY.md`](LEGGIMI-DEPLOY.md), che resta valido per tutto il resto (configurazione, redirect

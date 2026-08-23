@@ -491,3 +491,6 @@ src/Vipi.Host/vipi.db
 vipi.db
 # Artefatti stray
 src/Vipi.Host/r.html
+
+# Copie di sicurezza del DB di sviluppo (vipi.db.bak-...): restano in locale, non nel repo.
+vipi.db.bak-*
