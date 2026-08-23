@@ -148,7 +148,11 @@
   <data name="Aor_NoShapeBody" xml:space="preserve"><value>No polygon for the block sectors (not imported yet, or not readable).</value></data>
   <data name="Minima_NoneTitle" xml:space="preserve"><value>No vectoring minima chart</value></data>
   <data name="Minima_NoneBody" xml:space="preserve"><value>The sectorfile has no MRVA file for this unit. In the Italian division 24 airports and the four ACCs have one: where it is missing, that is not an error.</value></data>
-  <data name="Minima_Hint" xml:space="preserve"><value>Chart reproduced from the Aurora sectorfile as it is: altitudes are the original labels, unconverted. Switch the base map with the control at the top right — the terrain layer shows why the minimum is what it is there.</value></data>
+  <data name="Minima_Hint" xml:space="preserve"><value>Chart reproduced from the Aurora sectorfile as it is: altitudes are the original labels, unconverted. Pick the base map below the chart — the terrain layer shows why the minimum is what it is there.</value></data>
+  <data name="Minima_AorHint" xml:space="preserve"><value>Toggle the AoR sectors above the map to see how the minima relate to the boundaries.</value></data>
+  <data name="Minima_BaseLabel" xml:space="preserve"><value>Base map:</value></data>
+  <data name="Minima_BaseRelief" xml:space="preserve"><value>Terrain</value></data>
+  <data name="Minima_BaseContour" xml:space="preserve"><value>Contour lines</value></data>
   <data name="Minima_Source" xml:space="preserve"><value>Source: Aurora IT sectorfile</value></data>
   <data name="Common_OpenArrow" xml:space="preserve"><value>Open →</value></data>
   <!-- What changed (/vsop/changed) -->

@@ -148,7 +148,11 @@
   <data name="Aor_NoShapeBody" xml:space="preserve"><value>Nessun poligono per i settori del blocco (non ancora importati o non leggibili).</value></data>
   <data name="Minima_NoneTitle" xml:space="preserve"><value>Nessuna carta delle minime</value></data>
   <data name="Minima_NoneBody" xml:space="preserve"><value>Il sectorfile non ha un file MRVA per questo ente. Nella divisione italiana ce l'hanno 24 aeroporti e i quattro ACC: dove manca, non è un errore.</value></data>
-  <data name="Minima_Hint" xml:space="preserve"><value>Carta riportata dal sectorfile Aurora così com'è: le quote sono le etichette originali, senza conversioni. Cambia fondo mappa col controllo in alto a destra — il rilievo mostra perché in quella zona la minima è quella.</value></data>
+  <data name="Minima_Hint" xml:space="preserve"><value>Carta riportata dal sectorfile Aurora così com'è: le quote sono le etichette originali, senza conversioni. Scegli il fondo sotto la carta — il rilievo mostra perché in quella zona la minima è quella.</value></data>
+  <data name="Minima_AorHint" xml:space="preserve"><value>Accendi i settori AoR sopra la mappa per vedere come le minime si rapportano ai confini.</value></data>
+  <data name="Minima_BaseLabel" xml:space="preserve"><value>Fondo mappa:</value></data>
+  <data name="Minima_BaseRelief" xml:space="preserve"><value>Rilievo</value></data>
+  <data name="Minima_BaseContour" xml:space="preserve"><value>Curve di livello</value></data>
   <data name="Minima_Source" xml:space="preserve"><value>Sorgente: sectorfile Aurora IT</value></data>
   <data name="Common_OpenArrow" xml:space="preserve"><value>Apri →</value></data>
   <!-- Cosa è cambiato (/vsop/changed) -->

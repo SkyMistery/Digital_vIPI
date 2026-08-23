@@ -5,7 +5,8 @@
 // dall'orografia, e col terreno sotto i poligoni si legge PERCHÉ in quel punto la minima è quella. La rete
 // stradale, invece, non c'entra nulla e toglie contrasto ai tracciati.
 (function () {
-    // I fondi. Il primo è quello che si vede all'apertura ed è SENZA STRADE: qui la rete stradale non aggiunge
+    // I fondi. Le chiavi (`relief`/`contour`) sono IDENTIFICATORI, non nomi da mostrare: il nome visibile lo
+    // scrive MinimaSection.razor sulle chip, localizzato. Il primo è quello che si vede all'apertura ed è SENZA STRADE: qui la rete stradale non aggiunge
     // niente e ruba leggibilità ai tracciati, mentre il rilievo è il motivo per cui la carta sta su una mappa.
     // Positron è sparito per la stessa ragione: neutro sì, ma è una mappa di strade senza rilievo.
     function basemaps() {
@@ -14,7 +15,7 @@
             // dà terra, mare e vegetazione ma a questi zoom le montagne quasi non si vedono; «World Hillshade»
             // dà il rilievo ma su fondo grigio uniforme, dove costa e mare spariscono. Insieme si leggono
             // entrambi, e nessuna delle due porta strade.
-            'Rilievo': L.layerGroup([
+            relief: L.layerGroup([
                 L.tileLayer('https://server.arcgisonline.com/arcgis/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}', {
                     maxZoom: 13, attribution: '© Esri — World Terrain Base'
                 }),
@@ -24,7 +25,7 @@
             ]),
             // Unico fondo con le strade, e l'unico con le QUOTE scritte sulle curve di livello: resta come scelta
             // esplicita per chi vuole leggere l'altitudine del suolo, non come partenza.
-            'Curve di livello': L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            contour: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
                 maxZoom: 17, subdomains: 'abc',
                 attribution: '© OpenStreetMap, SRTM | © OpenTopoMap (CC-BY-SA)'
             })
@@ -69,8 +70,15 @@
         var map = L.map(el, { scrollWheelZoom: false, zoomControl: true, attributionControl: true });
         el._leafletMap = map;
 
-        var maps = basemaps();
-        maps['Rilievo'].addTo(map);
+        // Fondo mappa: uno alla volta, pilotato dalle chip `.mva-base` (vedi onMvaClick).
+        var maps = basemaps(), baseKey = 'relief';
+        maps[baseKey].addTo(map);
+        el._mvaSetBase = function (key) {
+            if (!maps[key] || key === baseKey) return;
+            map.removeLayer(maps[baseKey]);
+            baseKey = key;
+            maps[key].addTo(map);
+        };
 
         var layers = [];
 
@@ -123,21 +131,30 @@
 
         // AoR della stessa parte di documento: contesto accendibile, spento all'apertura. Non entra nei bounds —
         // l'inquadratura resta quella delle minime, che sono il contenuto della sezione.
-        var overlays = {};
+        //
+        // Stessa interfaccia di vipi-aor.js (`_secMap` + `_aorSetSec`): è quella che le chip conoscono, e tenerla
+        // uguale è il motivo per cui il gestore qui sotto è la copia corta di `onAorClick`.
+        var secMap = {};
         aor.forEach(function (s) {
             var rings = (s.rings || []).filter(function (r) { return r && r.length >= 3; });
             if (!rings.length) return;
             var col = color(s.color, '--ivao-lightblue');
-            overlays['AoR ' + (s.sec || '')] = L.layerGroup(rings.map(function (r) {
-                // Solo contorno tratteggiato: accesi in più d'uno, i riempimenti si sommavano e annacquavano
-                // le minime, che sono il contenuto della sezione — l'AoR qui è un riferimento, non un dato.
-                return L.polygon(r, { color: col, weight: 2, dashArray: '7,5', fill: false, interactive: false });
-            }));
+            secMap[(s.sec || '').toUpperCase()] = {
+                on: false,
+                layers: rings.map(function (r) {
+                    // Solo contorno tratteggiato: accesi in più d'uno, i riempimenti si sommavano e annacquavano
+                    // le minime, che sono il contenuto della sezione — l'AoR qui è un riferimento, non un dato.
+                    return L.polygon(r, { color: col, weight: 2, dashArray: '7,5', fill: false, interactive: false });
+                })
+            };
         });
-        // Pannello APERTO, non l'iconcina: chiuso, gli AoR accendibili non li trovava nessuno — è successo alla
-        // prima persona che ha guardato l'editor. Stessa scelta di vipi-aor.js per le shape torre. Le voci sono
-        // poche: misurate sui documenti veri, al massimo 2 fondi + 7 settori.
-        L.control.layers(maps, Object.keys(overlays).length ? overlays : null, { collapsed: false }).addTo(map);
+        el._secMap = secMap;
+        el._aorSetSec = function (sec, on) {
+            var e = secMap[(sec || '').toUpperCase()];
+            if (!e) return;
+            e.on = !!on;
+            e.layers.forEach(function (l) { on ? l.addTo(map) : map.removeLayer(l); });
+        };
 
         var bounds = boundsOf();
         if (bounds) { fitBox(bounds); map.fitBounds(bounds, { padding: [18, 18] }); }
@@ -164,6 +181,52 @@
         el._aorRefit = function () { if (bounds) map.fitBounds(bounds, { padding: [18, 18] }); };
         setTimeout(function () { map.invalidateSize(); if (bounds) map.fitBounds(bounds, { padding: [18, 18] }); }, 60);
     }
+
+    // Stato acceso/spento di una chip: classe `.on` per l'occhio, `aria-pressed` per tutto il resto — le due
+    // cose si scrivono INSIEME, da qui (stessa `segna` di vipi-aor.js, stesso motivo).
+    function segna(el, on) {
+        if (!el) return;
+        el.classList.toggle('on', !!on);
+        el.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+
+    // Interazione chip via EVENT DELEGATION (installata una volta): robusta a qualsiasi re-render di Blazor,
+    // niente listener per-elemento da riattaccare. Le chip vivono nel `.mva-block` genitore.
+    //
+    // Non tocca `.aor-chip`/`.cfg-btn` di vipi-aor.js e viceversa: là il gestore esce se non trova un
+    // `.aor-block` sopra, qui se non trova un `.mva-block`.
+    function onMvaClick(ev) {
+        var t = ev.target && ev.target.closest ? ev.target.closest('.mva-chip,.mva-all,.mva-base') : null;
+        if (!t) return;
+        var block = t.closest('.mva-block');
+        if (!block) return;
+        var lf = block.querySelector('.mva-leaflet');
+
+        function setSec(sec, on) { if (lf && lf._aorSetSec) lf._aorSetSec(sec, on); }
+        // Verità = stato del layer (secMap), non la classe, che un re-render può desincronizzare.
+        function isOn(sec) {
+            var e = lf && lf._secMap && lf._secMap[(sec || '').toUpperCase()];
+            return e ? !!e.on : t.classList.contains('on');
+        }
+
+        if (t.classList.contains('mva-chip')) {
+            var nn = !isOn(t.dataset.sec);
+            segna(t, nn);
+            setSec(t.dataset.sec, nn);
+            // Nessun refit: l'inquadratura è quella delle minime e non insegue l'AoR (vedi sopra).
+        } else if (t.classList.contains('mva-all')) {
+            var allOn = t.dataset.act === 'all';
+            block.querySelectorAll('.mva-chip').forEach(function (ch) {
+                segna(ch, allOn);
+                setSec(ch.dataset.sec, allOn);
+            });
+        } else if (t.classList.contains('mva-base')) {
+            // Scelta singola: acceso solo quello premuto.
+            block.querySelectorAll('.mva-base').forEach(function (b) { segna(b, b === t); });
+            if (lf && lf._mvaSetBase) lf._mvaSetBase(t.dataset.base || 'relief');
+        }
+    }
+    document.addEventListener('click', onMvaClick);
 
     function initAll() {
         if (window.L) document.querySelectorAll('.mva-leaflet').forEach(initOne);

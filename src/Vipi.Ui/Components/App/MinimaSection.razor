@@ -1,7 +1,11 @@
 ﻿@* Sezione «Minime di vettoramento»: UNA MAPPA PER FILE .mva, come in Aurora, dove accendere le MRVA di un ente
    mostra tutto il suo file. Il contenuto è riportato verbatim dal sectorfile — tracciati aperti compresi — e le
    etichette sono il testo originale, senza unità aggiunte. L'interattività è client-side (vipi-mva.js);
-   l'SVG dentro il contenitore è il fallback per la stampa e per chi non ha JavaScript. *@
+   l'SVG dentro il contenitore è il fallback per la stampa e per chi non ha JavaScript.
+
+   Le selezioni sono le CHIP dell'AoR, non il pannello di Leaflet: settori sopra la mappa, fondo mappa sotto,
+   stesse classi (`.aor-toggles`/`.aor-chip`, `.cfg-sel`/`.cfg-btn`) e stesso gesto. Le due sezioni stanno una
+   sotto l'altra nello stesso documento e mostravano due comandi diversi per la stessa cosa. *@
 @using System.Text.Json
 @using Vipi.Application.Abstractions
 @using Vipi.Application.Aor
@@ -22,10 +26,27 @@ else
     @foreach (var c in View.Charts)
     {
         var svg = MinimaChartProjector.Project(c.Chart);
-        <div class="mva-chart">
+        @* `.mva-block` è lo scope delle chip, come `.aor-block` per l'AoR: il gestore delegato di vipi-mva.js
+           risale da qui alla mappa, quindi le chip non hanno bisogno di id. *@
+        <div class="mva-chart mva-block">
+            @if (AorSectors.Count > 0)
+            {
+                @* Spente all'apertura: sono contesto, non il contenuto della sezione. `.noprint` perché su carta
+                   una fila di chip tutte spente non è una legenda, è rumore (nell'AoR restano perché lì dicono
+                   quali settori sono disegnati). *@
+                <div class="aor-toggles noprint">
+                    @foreach (var s in AorSectors)
+                    {
+                        <button type="button" class="mva-chip aor-chip" data-sec="@s.Callsign" title="@s.Name" aria-pressed="false">
+                            <span class="sw" style="background:color-mix(in srgb,@Colore(s.Color) 20%,transparent);border-color:@Colore(s.Color)"></span> @s.Callsign
+                        </button>
+                    }
+                    <span class="aor-chip-actions"><button type="button" class="mva-all" data-act="all">@L["Common_All"]</button> · <button type="button" class="mva-all" data-act="none">@L["Common_None"]</button></span>
+                </div>
+            }
             @* Nessuna didascalia: il file .mva copre un'area che spesso va oltre lo scalo che gli dà il nome,
                e scriverci sopra «LIBD — Bari Palese» diceva una cosa più stretta del vero. *@
-            <div @key="c.Owner" class="mva-leaflet" data-mva="@ChartJson(c.Chart)" data-aor="@AorJson()"
+            <div @key="c.Owner" class="mva-leaflet" data-mva="@ChartJson(c.Chart)" data-aor="@_aorJson"
                  style="height:360px;border:1px solid var(--line);border-radius:11px;overflow:hidden">
                 @if (svg is not null)
                 {
@@ -48,9 +69,16 @@ else
                     </svg>
                 }
             </div>
+            @* Fondo mappa: scelta singola, stessa fila delle configurazioni AoR. I valori di `data-base` sono
+               le CHIAVI di vipi-mva.js — il nome visibile è localizzato, la chiave no. *@
+            <div class="cfg-sel">
+                <span class="cfg-sel-lab">@L["Minima_BaseLabel"]</span>
+                <button type="button" class="mva-base cfg-btn on" data-base="relief" aria-pressed="true">@L["Minima_BaseRelief"]</button>
+                <button type="button" class="mva-base cfg-btn" data-base="contour" aria-pressed="false">@L["Minima_BaseContour"]</button>
+            </div>
         </div>
     }
-    <p class="muted noprint" style="font-size:12.5px;margin:6px 0 0">@L["Minima_Hint"]</p>
+    <p class="muted noprint" style="font-size:12.5px;margin:6px 0 0">@L["Minima_Hint"]@(AorSectors.Count > 0 ? " " + L["Minima_AorHint"].Value : "")</p>
     <p class="muted" style="font-size:12px;margin:2px 0 0">@L["Minima_Source"]</p>
 }
 
@@ -64,11 +92,29 @@ else
 
     private static string Num(double v) => v.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-    // Settori AoR per l'overlay: stessa forma che AccAor manda a vipi-aor.js (anelli [lat,lng]).
-    private string AorJson() => JsonSerializer.Serialize(
-        (Aor?.Sectors ?? Array.Empty<AccSectorAor>())
-            .Where(s => s.Polygons.Count > 0)
-            .Select(s => new { sec = s.Callsign, color = s.Color, rings = s.Polygons.Select(p => p.Points) }));
+    /// <summary>Settori accendibili: gli stessi che finiscono in <see cref="_aorJson"/>, con lo stesso filtro —
+    /// una chip senza layer sotto sarebbe un comando che non fa niente. Calcolati una volta per render: la
+    /// sezione li legge una volta per carta, e i .mva di un ACC sono più d'uno.</summary>
+    private IReadOnlyList<AccSectorAor> AorSectors { get; set; } = Array.Empty<AccSectorAor>();
+
+    private string _aorJson = "[]";
+
+    protected override void OnParametersSet()
+    {
+        AorSectors = (Aor?.Sectors ?? Array.Empty<AccSectorAor>())
+            .Where(s => s.Polygons.Any(p => p.Points.Count >= 3))
+            .ToList();
+        // Stessa forma che AccAor manda a vipi-aor.js (anelli [lat,lng]).
+        _aorJson = JsonSerializer.Serialize(
+            AorSectors.Select(s => new { sec = s.Callsign, color = s.Color, rings = s.Polygons.Select(p => p.Points) }));
+    }
+
+    /// <summary>Il colore può essere un hex vero o il NOME di un token del tema (es. <c>--ivao-red</c>): in CSS
+    /// il token va avvolto in <c>var()</c>, altrimenti la pastiglia resta senza colore. (In JS la stessa cosa la
+    /// fa <c>color()</c> in vipi-mva.js, perché lì il valore finisce in un attributo SVG.)</summary>
+    private static string Colore(string? c) =>
+        string.IsNullOrWhiteSpace(c) ? "var(--ivao-lightblue)"
+        : c.StartsWith("--", StringComparison.Ordinal) ? $"var({c})" : c;
 
     // Payload compatto per vipi-mva.js: p = vertici [lat,lon] (ordine Leaflet), c = tracciato chiuso.
     // Nomi brevi perché limm.mva porta 1348 vertici e l'attributo finisce nell'HTML della pagina.
