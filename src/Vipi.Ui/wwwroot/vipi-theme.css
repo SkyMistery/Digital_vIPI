@@ -2982,8 +2982,16 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    ⚠️ `min-width:0` insieme all'overflow: se quel contenitore e' una cella di griglia (`.apt-2col`), senza
    azzerare il minimo automatico si allarga sul contenuto e la barra non compare mai.
    ⚠️ Fuori dagli scroller degli editor (`.st-scroll`): la' la tabella sta gia' in un contenitore che scorre,
-   e due barre annidate sono peggio di una pagina che scorre. */
-.wrap *:has(> table):not(.st-scroll){overflow-x:auto;min-width:0}
+   e due barre annidate sono peggio di una pagina che scorre.
+   ⚠️⚠️ E fuori dalle tabelle a intestazione appiccicata (`table.sticky-head`): un `overflow` diverso da
+   `visible` rende quel contenitore il RIFERIMENTO dello `position:sticky` che sta dentro, e l'intestazione
+   smette di appiccicarsi alla finestra — scorre via come una riga qualunque. Non e' aggirabile con
+   `overflow-y:visible`: per specifica, se un asse non e' `visible` l'altro calcola `auto`. Le due cose si
+   escludono, e vince l'intestazione: misurate a 1024÷1600, quelle tabelle stanno SEMPRE nel loro
+   contenitore (1486 in 1534, 933 in 981), quindi la barra orizzontale non sarebbe mai comparsa e il costo
+   era solo il difetto. Dove una tabella appiccicata deve davvero scorrere, il posto e' `.st-scroll`, che
+   scorre in verticale e ci fa stare l'intestazione a `top:0`. */
+.wrap *:has(> table):not(.st-scroll):not(:has(> table.sticky-head)){overflow-x:auto;min-width:0}
 /* Stessa ragione, altro pavimento: il minimo di un titolo e' la sua PAROLA piu' lunga, che in unita' di
    layout non si accorcia mai — a zoom 1.8 «Livelli di transizione» ne pretende 177 in una colonna che ne ha
    82, e la riga a due colonne tornava a sfondare. `anywhere` spezza SOLO quando altrimenti si sfora: a

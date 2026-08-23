@@ -1312,10 +1312,45 @@ un'informazione che si perde se non la si scrive.
 **Come si riprende.** Al prossimo rosso, catturare il nome — `dotnet test … 2>&1 | grep "\[FAIL\]"` — invece
 di filtrare sul solo riepilogo, che è l'errore che è stato fatto qui.
 
-### H3 🟢 `/services/vsop/admin/acc` sfora di 24px in orizzontale
+### H4 ✅ CHIUSA il 23 agosto — l'intestazione della tabella ACC non si appiccicava affatto
+Segnalata dal committente («l'header appare come una colonna normale») mentre preparava il deploy, e non era
+un difetto di aspetto: **la `thead` non era sticky per niente**. Misurato: dopo 1200px di scorrimento
+l'intestazione stava a `y = -812`, cioè fuori dallo schermo come una riga qualunque.
+
+**La causa.** `.wrap *:has(> table):not(.st-scroll){overflow-x:auto}` (commit `a3b60d5`, la mattina del 23:
+«le tabelle scorrono a qualunque zoom») dava `overflow-x:auto` a **ogni** contenitore diretto di una
+tabella dentro `.wrap` — compreso il `<div class="block">` della pagina ACC. E un `overflow` diverso da
+`visible` rende quel contenitore il **riferimento** dello `position:sticky` che sta dentro: l'intestazione
+si appiccicava a un contenitore che non scorre, cioè a niente.
+
+⚠️ **Non è aggirabile con `overflow-y:visible`**: per specifica, se un asse non è `visible` l'altro calcola
+`auto`. Le due cose — «questo contenitore scorre in orizzontale» e «l'intestazione si appiccica alla
+finestra» — **si escludono per costruzione**, e la scelta va fatta.
+
+**Cos'ha deciso la misura.** Quelle tabelle non sfiorano il loro contenitore a nessuna larghezza:
+1486 in 1534 (a 1600px), 1261 in 1309, 1179 in 1227, 933 in 981 (a 1024px). La barra orizzontale **non
+sarebbe mai comparsa**, quindi la regola su quella pagina non comprava niente e costava il difetto.
+Aggiunto `:not(:has(> table.sticky-head))`. Dopo: `y = 133` dopo 1200px di scorrimento — esattamente il
+`top` calcolato — e nessun contenitore che scorra fra l'intestazione e la finestra.
+
+**Raggio, misurato e non dedotto.** Delle sei pagine admin con tabelle, solo ACC era rotta: Aeroporti e
+Registro tengono le loro in `.st-scroll`, che è il contenitore che scorre **apposta** e dove l'intestazione
+sta a `top:0`; le altre tre non rendono tabelle appiccicate. Build Release 0 avvisi su due TFM, 3595 test
+verdi.
+
+ℹ️ **La regola diceva «del viewer» nel commento e `.wrap *` nel selettore.** È lì che è passata: il commento
+descriveva l'intenzione, il selettore ha preso anche le pagine admin. Vale come promemoria — quando una
+regola nasce per una famiglia di pagine, il perimetro va **nel selettore**, non nella prosa accanto.
+
+### H3 🟢 `/services/vsop/admin/acc` sfora di 24px in orizzontale — ed è a OGNI larghezza, non solo a 1600
 
 **Cos'è.** A 1600px di finestra la pagina ACC chiede 1624: la testata appiccicata
-(`.doc-head.st-head.sticky`) misura **1648** dentro un contenuto da 1536. Non c'entra la potatura del foglio
+(`.doc-head.st-head.sticky`) misura **1648** dentro un contenuto da 1536.
+
+⚠️ **23 agosto, sera — misurato più largo di com'era scritto**: non è un difetto dei 1600px, c'è a **ogni**
+larghezza provata. Testata contro contenuto: **1648/1600** · **1407/1366** · **1318/1280** · **1055/1024**;
+lo sforo di pagina vale 24 · 20 · 19 · 15 px. Cioè la testata è sistematicamente ~30÷48px più larga del
+contenuto che la ospita, e la larghezza della finestra non c'entra. Trovato misurando la pagina per H4. Non c'entra la potatura del foglio
 di stile del 23 agosto: ⚠️ **misurato con il foglio di PRIMA e con quello di DOPO, il numero è lo stesso**
 (1624 in tutt'e due), quindi il difetto stava lì da prima e nessuno l'aveva visto.
 
