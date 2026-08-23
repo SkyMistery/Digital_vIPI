@@ -212,11 +212,34 @@
 /* Selettori di elemento via :where(.vipi-root) → specificità zero aggiunta: confina al modulo SENZA
    superare le regole basate su classe (es. .editor-btn, .btn), che devono continuare a vincere. */
 :where(.vipi-root) *{box-sizing:border-box}
-.vipi-root .skip-link{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+/* Fuori campo per l'occhio, presente per tutto il resto. ⚠️ NON `display:none` ne' `visibility:hidden`:
+   quelli tolgono l'elemento anche dall'albero di accessibilita', che e' il contrario di cio' che serve.
+   Il ritaglio a 1px e' il modo che funziona ovunque. */
+.vipi-root .sr-only,.vipi-root .skip-link{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .vipi-root .skip-link:focus{position:fixed;left:8px;top:8px;width:auto;height:auto;margin:0;clip:auto;overflow:visible;z-index:100;background:var(--ivao-blue);color:var(--on-brand);padding:10px 16px;border-radius:8px}
 :where(.vipi-root) h1,:where(.vipi-root) h2,:where(.vipi-root) h3,:where(.vipi-root) h4,:where(.vipi-root) h5,:where(.vipi-root) h6{font-family:var(--font-head);color:var(--brand-ink);margin:0 0 .4em;line-height:1.2;font-weight:800}
-:where(.vipi-root) h1{font-size:40px}:where(.vipi-root) h2{font-size:32px}:where(.vipi-root) h3{font-size:28px;font-weight:700}:where(.vipi-root) h4{font-size:24px;font-weight:700;color:var(--brand-ink-2)}:where(.vipi-root) h5{font-size:20px;font-weight:700;color:var(--brand-ink-2)}:where(.vipi-root) h6{font-size:16px;font-weight:700}
+:where(.vipi-root) h1{font-size:40px}:where(.vipi-root) h2{font-size:32px}
+/* ---- La testata di pagina e' un <h1>, e resta della misura di prima ----
+   ⚠️ Fino al 23 agosto 2026 NESSUNA pagina aveva un <h1>: la testata era un <h2>, e sulle vIPI lo erano
+   anche i blocchi — titolo e sezioni allo stesso livello, cioe' un documento senza gerarchia per chi lo
+   naviga per intestazioni. Promuovendo il tag la testata sarebbe passata da 32 a 40px su una cinquantina
+   di pagine: questa classe e' il modo di cambiare la SEMANTICA senza cambiare il disegno.
+   Il gradino 40px resta a chi lo usa davvero (l'hub, la home, la pagina AoR 3D a schermo intero).
+   ⚠️ Gli altri tre posti dove h1 e h2 divergono sono chiusi accanto alla loro regola: la modalita'
+   compatta piu' avanti in questo foglio, le due di stampa in vipi-print.css. */
+:where(.vipi-root) .page-h1{font-size:32px}:where(.vipi-root) h3{font-size:28px;font-weight:700}:where(.vipi-root) h4{font-size:24px;font-weight:700;color:var(--brand-ink-2)}:where(.vipi-root) h5{font-size:20px;font-weight:700;color:var(--brand-ink-2)}:where(.vipi-root) h6{font-size:16px;font-weight:700}
 :where(.vipi-root) a{color:var(--brand-ink-2);text-decoration:none}
+/* ---- Il fuoco da tastiera si vede SEMPRE ----
+   La regola era scritta (vedi .htree-toggle piu' avanti) ma valeva per otto selettori: tutto il resto si
+   affidava all'anello predefinito del browser, che sul blu di brand della barra e sulle superfici scure
+   sparisce. Qui c'e' il PAVIMENTO, per ogni comando del modulo.
+   ⚠️ `:where(.vipi-root)` non aggiunge specificita': le otto regole puntuali continuano a vincere, e chi
+   ne scrive una nona non deve combattere con questa.
+   ⚠️ `:focus-visible` e non `:focus`: l'anello non deve comparire quando si clicca col mouse. */
+:where(.vipi-root) :focus-visible{outline:2px solid var(--ivao-blue);outline-offset:2px}
+/* Sul fondo di brand il blu non si vede: li' l'anello e' chiaro. La barra e' l'unico posto in cui il fondo
+   e' di brand anche a tema scuro (vedi --on-brand). */
+:where(.topbar) :focus-visible{outline-color:var(--on-brand)}
 :where(.vipi-root) table{border-collapse:collapse;width:100%;font-size:14px}
 :where(.vipi-root) th,:where(.vipi-root) td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
 :where(.vipi-root) th{background:var(--tint-atmos);color:var(--brand-ink);font-family:var(--font-head);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.03em}
@@ -263,7 +286,10 @@
    80-104px. Il campo DEVE poter cedere quando serve — il segnaposto si accorcia, non si blinda la larghezza:
    una barra che sfora e' un difetto, un segnaposto piu' corto no. */
 .top-search{flex:1 1 250px;min-width:140px;max-width:360px;margin-left:8px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:10px;display:flex;align-items:center;gap:8px;padding:7px 13px;transition:.15s}
-.top-search:focus-within{background:rgba(255,255,255,.95)}
+/* Il fondo che schiarisce dice «sto scrivendo qui», ma non e' un anello di fuoco: su una barra blu il
+   contrasto fra i due stati e' un cambio di tinta, che chi ha una vista debole non coglie. L'anello
+   chiaro (il fondo della barra e' di brand, quindi blu anche a tema scuro) lo rende inequivocabile. */
+.top-search:focus-within{background:rgba(255,255,255,.95);outline:2px solid var(--on-brand);outline-offset:2px}
 .top-search .ico{opacity:.85;font-size:13px}
 .top-search:focus-within .ico{opacity:1}
 .top-search input{border:0;outline:0;flex:1;min-width:0;font-family:var(--font-body);font-size:13px;background:transparent;color:var(--on-brand)}
@@ -537,6 +563,14 @@
 .hero .airac{background:rgba(255,255,255,.16);color:var(--on-brand);border-color:rgba(255,255,255,.25);position:absolute;top:26px;right:30px}
 .searchbar{margin-top:22px;background:rgba(255,255,255,.95);border-radius:11px;display:flex;align-items:center;gap:10px;padding:11px 16px;max-width:480px}
 .searchbar input{border:0;outline:0;flex:1;font-family:var(--font-body);font-size:14px;background:transparent}
+/* ⚠️ Il campo azzera il proprio outline APPOSTA: la cornice che si vede e' il contenitore, e un anello
+   disegnato dentro un riquadro gia' disegnato si legge come un difetto. L'anello va quindi sul
+   contenitore — che e' cio' che l'occhio prende per «il campo» — e non toglierlo del tutto, che e' quello
+   che succedeva: qui il fuoco da tastiera era semplicemente invisibile. */
+.searchbar:focus-within{outline:2px solid var(--ivao-blue);outline-offset:2px}
+/* Nel riquadro blu della testata l'anello blu non si vedrebbe. Il `.searchbar` vive in due posti: qui e
+   sulla pagina di ricerca, dove il fondo e' chiaro e vale la regola sopra. */
+.hero .searchbar:focus-within{outline-color:var(--on-brand)}
 .searchbar .ico{color:var(--brand-ink-2)}
 .acc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
 .acc-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);cursor:pointer;transition:.18s;position:relative}
@@ -728,7 +762,8 @@
 .mva-card svg{width:100%;display:block}
 .mva-card figcaption{padding:9px 12px;font-family:var(--font-head);font-weight:700;color:var(--brand-ink);font-size:13px;border-top:1px solid var(--line)}
 /* AoR map */
-.aor-chip.on{opacity:1;border-color:var(--ivao-lightblue);background:var(--surface-soft)}
+.aor-chip.on{border-color:var(--ivao-lightblue);background:var(--surface-soft);color:var(--ink)}
+.aor-chip.on .sw{opacity:1}
 .sec{transition:.18s;cursor:pointer}
 .sec.hidden{opacity:0;pointer-events:none}
 .lbl{transition:.18s}
@@ -958,7 +993,9 @@
 /* Modalità compatta (persistita): la vista live vive spesso su un secondo monitor piccolo, dove servono
    più righe a schermo che aria. Tocca solo densità, mai contenuto. */
 .vipi-dense .vipi-root{font-size:14px}
-.vipi-dense .vipi-root h2{font-size:23px}
+/* ⚠️ `.page-h1` accanto a `h2` e non per conto suo: e' la stessa testata, che ha solo cambiato tag
+   (vedi il commento alla classe, in cima al foglio). Senza, in compatta restava a 32px. */
+.vipi-dense .vipi-root h2,.vipi-dense .vipi-root .page-h1{font-size:23px}
 .vipi-dense .vipi-root table{font-size:12.5px}
 .vipi-dense .vipi-root th,.vipi-dense .vipi-root td{padding:4px 7px}
 .vipi-dense .acc-item>summary{padding:8px 12px}
@@ -1393,6 +1430,8 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
 .sid-pill.on{background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)}
 .sid-search{display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:6px 12px;min-width:260px;flex:1;max-width:360px}
 .sid-search input{border:0;outline:0;flex:1;font-family:var(--font-body);font-size:13.5px;background:transparent}
+/* Come `.searchbar`: il campo azzera l'outline, l'anello lo porta il contenitore. */
+.sid-search:focus-within{outline:2px solid var(--ivao-blue);outline-offset:2px}
 .pref-tag{font-size:10px;font-weight:700;background:var(--tint-yellow);color:var(--warn-ink);border-radius:10px;padding:1px 7px;margin-left:6px;font-family:var(--font-head);vertical-align:middle}
 /* aeroporto: quote transizione (sx) + frequenze (dx) affiancate */
 /* ⚠️ `minmax(0,1fr)` e `min-width:0`, non `1fr` nudo: con `1fr` il minimo della colonna e' il MIN-CONTENT
@@ -1882,8 +1921,17 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 
 /* AoR ACC: chip settori (sopra la mappa) + selettore configurazione (sotto). */
 .aor-toggles{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
-.aor-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border:1px solid var(--line);border-radius:999px;font-size:13px;cursor:pointer;user-select:none;opacity:.45;transition:.18s;background:var(--surface)}
-.aor-chip .sw{width:13px;height:13px;border-radius:3px;border:1.5px solid var(--ivao-lightblue);display:inline-block}
+/* ⚠️ Le chip sono <button> dal 23 agosto 2026, non piu' <span>: erano comandi che esistevano solo per il
+   mouse — non entravano nel giro del tabulatore e non rispondevano a Invio/Spazio — e stanno sulle pagine
+   PUBBLICHE, cioe' quelle che si aprono senza login. La regola e' scritta per esteso in Chip.razor.
+   Li' si era scelto lo <span> per non pagare il reset di un <button>; qui il reset si paga una volta sola,
+   in queste tre righe, ed e' il prezzo giusto per un comando che tutti possono usare.
+   ⚠️ `font:inherit` e non solo `font-size`: un <button> porta con se' anche famiglia e peso propri. */
+.aor-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border:1px solid var(--line);border-radius:999px;font:inherit;font-size:13px;text-align:inherit;margin:0;cursor:pointer;user-select:none;transition:.18s;background:var(--surface);color:var(--ink-soft)}
+/* ⚠️ Lo spento e' l'OPACITA' dello swatch, non dell'intera chip: applicandola a tutto scendeva anche il
+   testo, e --ink al 45% su fondo chiaro fa 3,3:1 — sotto il 4,5:1 che un testo da 13px pretende. Il colore
+   spento e' --ink-soft, che il foglio ha gia' misurato a 5,89:1 (vedi il blocco dei token). */
+.aor-chip .sw{width:13px;height:13px;border-radius:3px;border:1.5px solid var(--ivao-lightblue);display:inline-block;opacity:.45;transition:.18s}
 
 /* ── HelpHint: "?" contestuale (popover nativo <details>) ─────────────────────── */
 .help-hint{display:inline-block;position:relative;vertical-align:middle}
@@ -1945,11 +1993,13 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .vt-card .vt-skip{background:none;border:none;cursor:pointer;color:var(--ink-soft);font-size:12.5px;padding:0}
 .vt-card .vt-skip:hover{color:var(--brand-ink);text-decoration:underline}
 .aor-chip-actions{font-size:12.5px;color:var(--ink-soft,var(--ink-mid))}
-.aor-chip-actions .aor-all{cursor:pointer;text-decoration:underline}
+/* «Tutti / Nessuno» e «Azzera» sono <button> travestiti da collegamento: erano <a> SENZA href, che per il
+   browser non e' un collegamento e per la tastiera non e' niente. Il travestimento e' questo reset. */
+.aor-chip-actions .aor-all,.cfg-clear{background:none;border:0;padding:0;font:inherit;cursor:pointer;text-decoration:underline;color:inherit}
 .cfg-sel{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 0}
 .cfg-sel-lab{font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft,var(--ink-mid))}
-.cfg-btn{padding:4px 12px;border:1px solid var(--line);border-radius:999px;font-size:13px;cursor:pointer;user-select:none;background:var(--surface)}
-.cfg-clear{cursor:pointer;text-decoration:underline;font-size:12.5px;color:var(--ink-soft,var(--ink-mid))}
+.cfg-btn{padding:4px 12px;border:1px solid var(--line);border-radius:999px;font:inherit;font-size:13px;text-align:inherit;margin:0;cursor:pointer;user-select:none;background:var(--surface);color:inherit}
+.cfg-clear{font-size:12.5px;color:var(--ink-soft,var(--ink-mid))}
 /* Tabella Configurazioni operative: cella "settore unificato" (rowspan) + separatore di gruppo. */
 .cfg-table td.uni{background:var(--tint-atmos);color:var(--brand-ink);font-family:var(--font-head);font-weight:800;text-align:center;vertical-align:middle;border-right:2px solid var(--on-dark-soft)}
 /* Riga tabella Configurazioni operative evidenziata dalla config scelta. */
@@ -3121,7 +3171,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    layout non si accorcia mai — a zoom 1.8 «Livelli di transizione» ne pretende 177 in una colonna che ne ha
    82, e la riga a due colonne tornava a sfondare. `anywhere` spezza SOLO quando altrimenti si sfora: a
    larghezza piena non si vede. Stava dentro la media query a 900, dove lo zoom non arriva. */
-.wrap .acc-block-h,.wrap h2,.wrap h3{overflow-wrap:anywhere}
+.wrap .acc-block-h,.wrap h1,.wrap h2,.wrap h3{overflow-wrap:anywhere}
 
 /* ---- Telefono e tablet verticale: una tabella larga scorre DENTRO di se' ----
    ⚠️ Misurato: a 390px il `.wrap` del viewer aeroporto pretendeva 894px, e il colpevole non era l'indice
@@ -3356,4 +3406,34 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
      il browser non deduce il tema dai colori che gli diamo, glielo si deve dire. */
   color-scheme:dark;
 }
+}
+
+/* ============================================================================================
+   MOVIMENTO RIDOTTO. Ultimo blocco del foglio, e lo e' di proposito: deve vincere su tutto.
+
+   ⚠️ Non e' una rifinitura. Chi chiede al sistema di ridurre le animazioni lo fa per un motivo: per una
+   parte delle persone un contenuto che si muove da solo da' nausea, capogiro o innesca un'emicrania
+   (WCAG 2.3.3). Il foglio ne aveva 42 transizioni e tre animazioni, di cui una INFINITA — la pulsazione
+   del badge live, che batte finche' la pagina resta aperta — e non nominava questa preferenza da nessuna
+   parte.
+
+   ⚠️ Le durate si azzerano, gli effetti no: `transition:none` toglierebbe anche i cambi di stato
+   che si vedono lo stesso (un fondo che cambia resta un fondo che cambia). Un centesimo di secondo e non
+   zero perche' cosi' gli eventi `transitionend`, se qualcuno li ascolta, continuano ad arrivare.
+   `animation-iteration-count:1` invece di `none`: un'animazione che porta l'elemento al suo stato finale
+   deve poterci arrivare, una volta.
+
+   ⚠️ Il pendant JS e' `vipiScorrimento()` in vipi-ui.js: `behavior:'smooth'` e' una stringa
+   scritta nel codice, e nessuna media query la spegne.
+   ============================================================================================ */
+@media (prefers-reduced-motion: reduce){
+  /* Le `.vt-*` del tour stanno FUORI da `.vipi-root`: l'overlay e' agganciato al body (stessa eccezione
+     che fa notare vipi-print.css). */
+  .vipi-root *,.vipi-root *::before,.vipi-root *::after,
+  .vt-overlay,.vt-overlay *,.vt-card,.vt-card *{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+    scroll-behavior:auto!important;
+  }
 }

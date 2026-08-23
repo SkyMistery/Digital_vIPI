@@ -1,9 +1,34 @@
 ﻿// Interattività di consultazione (pagine SSR statiche): toggle settori AoR + selettore configurazioni.
 // Ricollegato a ogni navigazione via 'enhancedload' (vedi App.razor).
+
+// Il verso dello scorrimento, secondo chi guarda: 'smooth' o 'auto'.
+//
+// ⚠️ Non è una rifinitura. Chi ha chiesto al sistema di ridurre le animazioni lo ha fatto per un motivo —
+// per una parte delle persone un contenuto che scorre da solo dà nausea o innesca un'emicrania — e il
+// foglio di stile da solo non ci arriva: `behavior:'smooth'` è una stringa scritta nel JS, e nessuna
+// media query la spegne. Il pendant CSS sta in fondo a vipi-theme.css.
+//
+// Fuori dall'IIFE e in cima al file: la chiamano anche vipi-aor.js e vipi-editor.js. Si rilegge a ogni
+// chiamata invece di ricordarsela: la preferenza si può cambiare mentre la pagina è aperta.
+window.vipiScorrimento = function () {
+    try {
+        return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            ? 'auto' : 'smooth';
+    } catch (e) { return 'smooth'; }
+};
+
 (function () {
+    // Stato acceso/spento di una chip: la classe `.on` per l'occhio, `aria-pressed` per tutto il resto.
+    // Gemella di quella in vipi-aor.js — le chip sono le stesse, le pilotano due file diversi a seconda che
+    // dietro ci sia una mappa Leaflet o l'SVG di ripiego.
+    function segna(el, on) {
+        if (!el) return;
+        el.classList.toggle('on', !!on);
+        el.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+
     function setSector(scope, key, on) {
-        var chip = scope.querySelector('.aor-chip[data-sec="' + key + '"]');
-        if (chip) chip.classList.toggle('on', on);
+        segna(scope.querySelector('.aor-chip[data-sec="' + key + '"]'), on);
         scope.querySelectorAll('.sec[data-sec="' + key + '"], .lbl[data-sec="' + key + '"]').forEach(function (el) {
             el.classList.toggle('hidden', !on);
         });
@@ -28,14 +53,14 @@
         // selettore configurazioni → evidenzia righe nella tabella configurazioni + setta i settori
         scope.querySelectorAll('.cfg-btn').forEach(function (btn) {
             btn.onclick = function () {
-                scope.querySelectorAll('.cfg-btn').forEach(function (b) { b.classList.remove('on'); });
-                btn.classList.add('on');
+                scope.querySelectorAll('.cfg-btn').forEach(function (b) { segna(b, false); });
+                segna(btn, true);
                 applyConfig(btn.getAttribute('data-rows'), btn.getAttribute('data-secs'));
             };
         });
         var clr = scope.querySelector('.cfg-clear');
         if (clr) clr.onclick = function () {
-            scope.querySelectorAll('.cfg-btn').forEach(function (b) { b.classList.remove('on'); });
+            scope.querySelectorAll('.cfg-btn').forEach(function (b) { segna(b, false); });
             applyConfig('', null);
         };
     }
@@ -169,7 +194,7 @@
             e.preventDefault();
             e.stopImmediatePropagation();
             openDetailsFor(el);   // se il target è una sezione collassata (Guida), aprila prima di scorrere
-            scrollAfterLayout(el, 'smooth');
+            scrollAfterLayout(el, vipiScorrimento());
             var toc = a.closest('.toc');
             if (toc) { toc.querySelectorAll('a').forEach(function (x) { x.classList.remove('active'); }); a.classList.add('active'); }
             history.replaceState(null, '', location.pathname + location.search + '#' + id);
@@ -461,7 +486,7 @@
     window.vipiScrollToId = function (id) {
         var el = document.getElementById(id);
         if (!el) return;
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.scrollIntoView({ behavior: vipiScorrimento(), block: 'center' });
     };
 
     // Porta in vista un pannello di editing quando il suo PIEDE non lo è. Il bersaglio è il piede e non il

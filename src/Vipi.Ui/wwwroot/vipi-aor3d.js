@@ -374,8 +374,12 @@
                 if (row) row.classList.toggle('off', !on);
             });
             var blk = stage.closest('.aor-block');
+            // Classe per l'occhio, `aria-pressed` per tutto il resto: le chip sono <button> e le due cose si
+            // scrivono insieme (vedi `segna` in vipi-aor.js, che fa lo stesso dall'altro capo).
             if (blk) blk.querySelectorAll('.aor-chip').forEach(function (c) {
-                if ((c.dataset.sec || '').toUpperCase() === key) c.classList.toggle('on', on);
+                if ((c.dataset.sec || '').toUpperCase() !== key) return;
+                c.classList.toggle('on', on);
+                c.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
             render();
         }

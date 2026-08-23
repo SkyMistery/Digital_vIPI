@@ -21,13 +21,13 @@
        dice a chi lo chiede (regola 7). Qui vale doppio: ogni pixel tolto in testa è una riga di registro in
        più, e questa è l'unica pagina la cui altezza cresce da sola per sempre. *@
     <div class="doc-head st-head">
-        <h2 class="st-h2">
+        <h1 class="st-h2 page-h1">
             @L["Audit_Title"]
             @if (_rows is not null)
             {
                 <span>&nbsp;</span><span class="pill blue" title="@L["Audit_CountTitle"]">@Filtrate.Count / @_totale</span>
             }
-        </h2>
+        </h1>
         <HelpHint Href="/services/vsop/guide#admin-audit" AriaLabel="@L["Audit_HelpAria"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@L["Audit_Subtitle"]</p>
             @((MarkupString)L["Audit_Intro"].Value)

@@ -13,11 +13,11 @@
         <div class="aor-toggles">
             @foreach (var s in View.Sectors)
             {
-                <span class="aor-chip on" data-sec="@s.Callsign" title="@s.Name">
+                <button type="button" class="aor-chip on" data-sec="@s.Callsign" title="@s.Name" aria-pressed="true">
                     <span class="sw" style="background:@(s.Color)33;border-color:@s.Color"></span> @s.Callsign
-                </span>
+                </button>
             }
-            <span class="aor-chip-actions"><a class="aor-all" data-act="all">@L["Common_All"]</a> · <a class="aor-all" data-act="none">@L["Common_None"]</a></span>
+            <span class="aor-chip-actions"><button type="button" class="aor-all" data-act="all">@L["Common_All"]</button> · <button type="button" class="aor-all" data-act="none">@L["Common_None"]</button></span>
         </div>
         <div class="aor3d-bar">
             <button class="btn ghost aor3d-reset" type="button">↺ Reset vista</button>

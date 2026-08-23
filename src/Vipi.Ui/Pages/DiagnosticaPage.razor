@@ -22,7 +22,7 @@
        chiede (regola 7) — ed era anche FALSO: prometteva i soli soft-ref mentre la tabella ospita cinque
        aree. La fascia «sono solo diagnosi, nessun dato è stato modificato» era prosa: sta nel «?». *@
     <div class="doc-head st-head">
-        <h2 class="st-h2">
+        <h1 class="st-h2 page-h1">
             @L["Diag_Title"]
             @if (Authz.IsAdmin && !_loading && _errore is null)
             {
@@ -34,7 +34,7 @@
                     @(_findings.Count == 0 ? L["Diag_CountNone"].Value : L["Diag_Count", _findings.Count, Gravi].Value)
                 </span>
             }
-        </h2>
+        </h1>
         <HelpHint Href="/services/vsop/guide#admin-diagnostica" AriaLabel="@L["Diag_HelpAria"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@L["Diag_Subtitle"]</p>
             @((MarkupString)L["Diag_Intro"].Value)

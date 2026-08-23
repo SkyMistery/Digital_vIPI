@@ -13,11 +13,11 @@
         <div class="aor-toggles">
             @foreach (var s in View.Sectors)
             {
-                <span class="aor-chip on" data-sec="@s.Callsign" title="@s.Name">
+                <button type="button" class="aor-chip on" data-sec="@s.Callsign" title="@s.Name" aria-pressed="true">
                     <span class="sw" style="background:@(s.Color)33;border-color:@s.Color"></span> @s.Callsign
-                </span>
+                </button>
             }
-            <span class="aor-chip-actions"><a class="aor-all" data-act="all">@L["Common_All"]</a> · <a class="aor-all" data-act="none">@L["Common_None"]</a></span>
+            <span class="aor-chip-actions"><button type="button" class="aor-all" data-act="all">@L["Common_All"]</button> · <button type="button" class="aor-all" data-act="none">@L["Common_None"]</button></span>
         </div>
 
         <div @key="MapSignature()" class="aor-leaflet" data-sectors="@SectorsJson()" style="height:340px;border:1px solid var(--line);border-radius:11px;overflow:hidden">
@@ -38,9 +38,9 @@
                 <span class="cfg-sel-lab">@L["Aor_ConfigLabel"]</span>
                 @foreach (var c in View.Configs)
                 {
-                    <span class="cfg-btn" data-secs="@string.Join(",", c.OpenCallsigns)" data-cfgkey="@c.Key">@c.Name</span>
+                    <button type="button" class="cfg-btn" data-secs="@string.Join(",", c.OpenCallsigns)" data-cfgkey="@c.Key" aria-pressed="false">@c.Name</button>
                 }
-                <a class="cfg-clear" data-rows="">@L["Aor_Clear"]</a>
+                <button type="button" class="cfg-clear" data-rows="">@L["Aor_Clear"]</button>
             </div>
         }
         <p class="muted noprint" style="font-size:12.5px;margin:6px 0 0">@L["Aor_MapHint"]</p>

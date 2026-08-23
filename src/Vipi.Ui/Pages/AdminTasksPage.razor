@@ -21,13 +21,13 @@
        Il sottotitolo era una fascia sempre a schermo che diceva a chiunque, ogni volta, quello che il «?»
        dice a chi lo chiede (regola 7). *@
     <div class="doc-head st-head">
-        <h2 class="st-h2">
+        <h1 class="st-h2 page-h1">
             @L["Grants_TasksTitle"]
             @if (_tasks is not null)
             {
                 <span>&nbsp;</span><span class="pill blue" title="@L["AdminTasks_CountTitle"]">@Filtrate.Count / @_tasks.Count</span>
             }
-        </h2>
+        </h1>
         <HelpHint Href="/services/vsop/guide#admin-incarichi" AriaLabel="@L["AdminTasks_HelpAria"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@string.Format(L["AdminTasks_Subtitle"].Value, _currentCycle)</p>
             @((MarkupString)L["AdminTasks_Intro"].Value)

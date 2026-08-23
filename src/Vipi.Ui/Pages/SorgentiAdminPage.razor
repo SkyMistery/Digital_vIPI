@@ -24,13 +24,13 @@
        che il «?» dice a chi lo chiede (regola 7). La pill compare solo quando c'è una differenza rispetto al
        DB: «Salva» non è mai un tasto di cui non si sa se serve. *@
     <div class="doc-head st-head">
-        <h2 class="st-h2">
+        <h1 class="st-h2 page-h1">
             @L["Sorg_Title"]
             @if (Authz.IsAdmin && Cambiate.Count > 0)
             {
                 <span>&nbsp;</span><span class="pill amber" title="@L["Sorg_DirtyTitle"]">@L["Sorg_Dirty", Cambiate.Count]</span>
             }
-        </h2>
+        </h1>
         <HelpHint Href="/services/vsop/guide#admin-sorgenti" AriaLabel="@L["Sorg_HelpAria"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@L["Sorg_Subtitle"]</p>
             @((MarkupString)L["Sorg_Intro"].Value)

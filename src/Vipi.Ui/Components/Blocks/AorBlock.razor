@@ -7,11 +7,11 @@
     <div class="aor-toggles">
         @foreach (var s in _sectors)
         {
-            <span class="aor-chip on" data-sec="@s.Key">
+            <button type="button" class="aor-chip on" data-sec="@s.Key" aria-pressed="true">
                 <span class="sw" style="background:@(s.Color)33;border-color:@s.Color"></span> @s.Label
-            </span>
+            </button>
         }
-        <span class="aor-chip-actions"><a class="aor-all" data-act="all">@L["AorBlock_All"]</a> · <a class="aor-all" data-act="none">@L["AorBlock_None"]</a></span>
+        <span class="aor-chip-actions"><button type="button" class="aor-all" data-act="all">@L["AorBlock_All"]</button> · <button type="button" class="aor-all" data-act="none">@L["AorBlock_None"]</button></span>
     </div>
 
     <div class="aor-wrap">
@@ -29,9 +29,9 @@
             <span class="cfg-sel-lab">@L["AorBlock_ConfigLabel"]</span>
             @foreach (var c in _configs)
             {
-                <span class="cfg-btn" data-rows="@c.Rows" data-secs="@c.Secs">@c.Name</span>
+                <button type="button" class="cfg-btn" data-rows="@c.Rows" data-secs="@c.Secs" aria-pressed="false">@c.Name</button>
             }
-            <a class="cfg-clear">@L["AorBlock_ConfigClear"]</a>
+            <button type="button" class="cfg-clear">@L["AorBlock_ConfigClear"]</button>
         </div>
         <p class="help noprint" style="margin:8px 0 0">@L["AorBlock_ConfigHelp"]</p>
     }

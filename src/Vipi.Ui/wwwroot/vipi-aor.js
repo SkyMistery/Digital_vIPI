@@ -14,6 +14,18 @@
         return r || fallback;
     }
 
+    // Stato acceso/spento di una chip: la classe `.on` per l'occhio, `aria-pressed` per tutto il resto.
+    //
+    // ⚠️ Le due cose si scrivono INSIEME, da qui, e non ognuna dove capita: fino al 23 agosto 2026 esisteva
+    // solo la classe, e chi non vede la barra colorata non aveva modo di sapere quali settori fossero accesi.
+    // I comandi sono passati da <span>/<a> a <button> (Chip.razor spiega perche' un comando che esiste solo
+    // per il mouse non e' un comando); `aria-pressed` e' la meta' che il <button> non porta da solo.
+    function segna(el, on) {
+        if (!el) return;
+        el.classList.toggle('on', !!on);
+        el.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+
     // Basemap CartoDB Positron condivisa.
     function addBasemap(map) {
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -105,42 +117,42 @@
 
         if (t.classList.contains('aor-chip')) {
             var nn = !isOn(t.dataset.sec);
-            t.classList.toggle('on', nn);
+            segna(t, nn);
             setSec(t.dataset.sec, nn);
             refit();
         } else if (t.classList.contains('aor-all')) {
             var allOn = t.dataset.act === 'all';
             block.querySelectorAll('.aor-chip').forEach(function (ch) {
-                ch.classList.toggle('on', allOn);
+                segna(ch, allOn);
                 setSec(ch.dataset.sec, allOn);
             });
             refit();
         } else if (t.classList.contains('cfg-btn')) {
             // Verità selezione = proprietà JS sul block (la classe si desincronizza). Riclick sulla stessa = deseleziona → mostra tutti.
             var wasSel = block.__selCfgNode === t;
-            block.querySelectorAll('.cfg-btn').forEach(function (x) { x.classList.remove('on'); });
+            block.querySelectorAll('.cfg-btn').forEach(function (x) { segna(x, false); });
             if (wasSel) {
                 block.__selCfgNode = null;
-                block.querySelectorAll('.aor-chip').forEach(function (ch) { ch.classList.add('on'); setSec(ch.dataset.sec, true); });
+                block.querySelectorAll('.aor-chip').forEach(function (ch) { segna(ch, true); setSec(ch.dataset.sec, true); });
                 syncCfgDetails(null);   // deseleziona → collassa tutte
             } else {
                 block.__selCfgNode = t;
-                t.classList.add('on');
+                segna(t, true);
                 var set = (t.dataset.secs || '').split(',').map(function (s) { return s.toUpperCase(); }).filter(Boolean);
                 block.querySelectorAll('.aor-chip').forEach(function (ch) {
                     var on = set.indexOf((ch.dataset.sec || '').toUpperCase()) >= 0;
-                    ch.classList.toggle('on', on);
+                    segna(ch, on);
                     setSec(ch.dataset.sec, on);
                 });
                 syncCfgDetails(t.dataset.cfgkey || '');   // apre solo questa, collassa le altre
             }
             refit();
             // Tiene l'AoR al centro schermo: aprire i details config sposta il layout.
-            if (lf) setTimeout(function () { lf.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 90);
+            if (lf) setTimeout(function () { lf.scrollIntoView({ behavior: vipiScorrimento(), block: 'center' }); }, 90);
         } else if (t.classList.contains('cfg-clear')) {
             block.__selCfgNode = null;
-            block.querySelectorAll('.cfg-btn').forEach(function (x) { x.classList.remove('on'); });
-            block.querySelectorAll('.aor-chip').forEach(function (ch) { ch.classList.add('on'); setSec(ch.dataset.sec, true); });
+            block.querySelectorAll('.cfg-btn').forEach(function (x) { segna(x, false); });
+            block.querySelectorAll('.aor-chip').forEach(function (ch) { segna(ch, true); setSec(ch.dataset.sec, true); });
             syncCfgDetails(null);
             refit();
         }

@@ -29,9 +29,9 @@
     <div class="doc-head st-head">
         @* ⚠️ Lo spazio fra un'espressione e un `@if` Razor lo mangia: misurato, il titolo usciva «…vLOA33»
            attaccato. Serve un carattere vero, non uno spazio nel sorgente. *@
-        <h2 class="st-h2">
+        <h1 class="st-h2 page-h1">
             @L["Conf_Heading"]&nbsp;@if (Authz.IsAdmin) { <span class="pill blue">@CountLabel()</span> }
-        </h2>
+        </h1>
         <HelpHint Href="/services/vsop/guide#admin-confinanti" AriaLabel="@L["Conf_HelpAria"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@L["Conf_Subtitle"]</p>
             @((MarkupString)L["Conf_Intro"].Value)
@@ -381,13 +381,13 @@
                                     <div class="aor-toggles">
                                         @foreach (var s in det.HomeShapes)
                                         {
-                                            <span class="aor-chip on" data-sec="@s.Sector"><span class="sw sw-home"></span> @s.Sector</span>
+                                            <button type="button" class="aor-chip on" data-sec="@s.Sector" aria-pressed="true"><span class="sw sw-home"></span> @s.Sector</button>
                                         }
                                         @foreach (var s in det.ForeignShapes)
                                         {
-                                            <span class="aor-chip on" data-sec="@s.Sector"><span class="sw sw-foreign"></span> @s.Sector</span>
+                                            <button type="button" class="aor-chip on" data-sec="@s.Sector" aria-pressed="true"><span class="sw sw-foreign"></span> @s.Sector</button>
                                         }
-                                        <span class="aor-chip-actions"><a class="aor-all" data-act="all">@L["Conf_AllShapes"]</a> · <a class="aor-all" data-act="none">@L["Conf_NoneShapes"]</a></span>
+                                        <span class="aor-chip-actions"><button type="button" class="aor-all" data-act="all">@L["Conf_AllShapes"]</button> · <button type="button" class="aor-all" data-act="none">@L["Conf_NoneShapes"]</button></span>
                                     </div>
                                     <div class="aor-leaflet conf-map" data-sectors="@GeoSectorsJson(det)"></div>
                                     <HelpHint AriaLabel="@L["Conf_GeoMapHint"]">@L["Conf_GeoMapHint"]</HelpHint>

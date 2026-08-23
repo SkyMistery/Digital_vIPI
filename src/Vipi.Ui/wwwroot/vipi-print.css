@@ -1,4 +1,4 @@
-/* Foglio di STAMPA del modulo vIPI (RNF-6: consultazione offline in cabina; piano §10 e §22.7 — stampa via
+﻿/* Foglio di STAMPA del modulo vIPI (RNF-6: consultazione offline in cabina; piano §10 e §22.7 — stampa via
    CSS, nessun endpoint export server-side).
 
    Strategia: NASCONDI IL CHROME e lascia il contenuto nel flusso normale. Il precedente blocco @media print
@@ -81,7 +81,10 @@
   .print-only { display: block !important; }
   .vipi-root .print-meta + .doc-head { display: none !important; }
   .vipi-root .print-meta { border-bottom: 2px solid var(--ivao-blue); padding-bottom: 5px; margin-bottom: 12px; }
-  .vipi-root .print-meta .pm-title { margin: 0; font-size: 13pt; color: var(--ivao-blue); }
+  /* ⚠️ Famiglia e peso sono ESPLICITI: la riga era un <h1> e li prendeva dalla regola dei titoli.
+     Ora è un <p> (la pagina ha il suo <h1> vero e si stampa), quindi se li porta da sé. */
+  .vipi-root .print-meta .pm-title { margin: 0; font-size: 13pt; color: var(--ivao-blue);
+    font-family: var(--font-head); font-weight: 800; line-height: 1.2; }
   .vipi-root .print-meta .pm-sub { margin: 2px 0 0; font-size: 9pt; color: var(--ink-strong); }
   .vipi-root .print-meta .pm-line { display: flex; flex-wrap: wrap; gap: 3mm; margin: 4px 0 0; font-size: 8.5pt; color: var(--ink-mid); }
   .vipi-root .print-meta .pm-url { word-break: break-all; }
@@ -115,7 +118,7 @@
      browser finirebbe per lasciare mezza pagina bianca. Teniamo unite le unità piccole e i titoli col
      proprio contenuto. */
   .vipi-root .cb-head,
-  .vipi-root h2, .vipi-root h3, .vipi-root h4 { break-after: avoid; }
+  .vipi-root h1, .vipi-root h2, .vipi-root h3, .vipi-root h4 { break-after: avoid; }
   .vipi-root .callout,
   .vipi-root .rail-card,
   .vipi-root .rule-card,
@@ -141,6 +144,9 @@
   .vipi-root { font-size: 9.5pt; line-height: 1.42; }
   .vipi-root h1 { font-size: 15pt; }
   .vipi-root h2 { font-size: 13pt; }
+  /* La testata di pagina e' un <h1> dal 23 agosto 2026 ma sul foglio deve restare la misura di
+     prima: e' la stessa riga, ha solo cambiato tag (vedi `.page-h1` in vipi-theme.css). */
+  .vipi-root .page-h1 { font-size: 13pt; }
   .vipi-root h3 { font-size: 11.5pt; }
   .vipi-root h4 { font-size: 10pt; }
   .vipi-root h5, .vipi-root h6 { font-size: 9.5pt; }

@@ -1,4 +1,4 @@
-@page "/services/vsop/{Acc}"
+﻿@page "/services/vsop/{Acc}"
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IAiracService Airac
@@ -19,7 +19,7 @@ else
         <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <b>@_acc.Code</b></div>
         <div class="doc-head">
             <div>
-                <h2 style="margin:0">@_acc.Code — @_acc.Name</h2>
+                <h1 class="page-h1" style="margin:0">@_acc.Code — @_acc.Name</h1>
             </div>
             <span class="airac"><Icon Name="calendar" /> AIRAC @Airac.GetCycle(DateTime.UtcNow)</span>
         </div>

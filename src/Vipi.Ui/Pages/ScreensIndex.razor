@@ -1,4 +1,4 @@
-@page "/services/vsop/screens"
+﻿@page "/services/vsop/screens"
 @layout SopLayout
 @inject IStringLocalizer<SharedResource> L
 
@@ -6,7 +6,7 @@
 
 <div class="wrap" style="max-width:1100px">
     <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <b>@L["Home_ScreensTitle"]</b></div>
-    <div class="doc-head"><div><h2 style="margin-bottom:2px">@L["Home_ScreensTitle"]</h2><span class="muted">@L["Screens_Subtitle"]</span></div></div>
+    <div class="doc-head"><div><h1 class="page-h1" style="margin-bottom:2px">@L["Home_ScreensTitle"]</h1><span class="muted">@L["Screens_Subtitle"]</span></div></div>
 
     @foreach (var g in Groups)
     {

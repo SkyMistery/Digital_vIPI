@@ -10,6 +10,11 @@
 
 <div class="wrap" style="max-width:1000px">
     <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <b>@L["Search_Title"]</b></div>
+    @* ⚠️ Fuori campo e non a schermo: qui il titolo lo dice già la briciola di pane, e stamparne uno vero
+       sopra il campo di ricerca vorrebbe dire ripetere la stessa parola due volte a 20px di distanza. Ma una
+       pagina senza <h1> non ha un titolo per chi la naviga per intestazioni, ed è una pagina di RISULTATI:
+       sapere dove si è atterrati è metà del mestiere. *@
+    <h1 class="sr-only">@L["Search_Title"]</h1>
 
     <div class="searchbar" style="background:var(--surface);border:1px solid var(--line);max-width:none;margin:6px 0 16px">
         <span class="ico"><Icon Name="search" /></span>
