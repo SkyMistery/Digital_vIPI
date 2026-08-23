@@ -1291,6 +1291,39 @@ problema di tempi. Un rosso a intermittenza merita di essere letto nel codice pr
 
 ---
 
+### E7 🟢 Login: manca `OnRemoteFailure`, e il cookie della build vecchia fa fallire il primo accesso
+Trovato in produzione la sera del 23 agosto, segnalato dal committente: dopo il login compare la pagina
+`Error.` generica, ma **al refresh risulta loggato**.
+
+**Cosa succede davvero.** L'URL della pagina d'errore è il **callback** (`/signin-oidc?state=…&code=…`),
+quindi su quella richiesta l'accesso **non si è completato**. Sembrava riuscito perché il cookie `vipi.auth`
+è **persistente, 7 giorni, sliding**: era già loggato da prima.
+
+**La causa, e si consuma da sé.** In **incognito il login fila liscio** — quindi i login nuovi non sono
+rotti, e la differenza fra le due finestre è solo il cookie. La build in produzione fino a quella sera
+(15 agosto) usava `oidc.ClaimActions.MapAll()`: nel cookie finiva l'**intero profilo IVAO** — `hours[]`,
+`rating{}`, `groups`, `userStaffDetails`, `userStaffPositions` (~1,5 kB) — cioè un cookie che ASP.NET spezza
+in più pezzi (`vipi.authC1`, `C2`, …). La build del 23 ne mappa **sei campi**. Chi era loggato da prima si
+porta dietro il cookie grasso, e il callback fallisce; chi entra per la prima volta no. **Rimedio per
+l'utente: uscire e rientrare** (o cancellare i cookie del sito). Colpisce solo chi era loggato prima del
+23 agosto, e sparisce da sé al primo logout o alla scadenza dei 7 giorni.
+
+**Il difetto da chiudere, che è un altro.** In tutta la storia del repo **non è mai esistito un
+`OnRemoteFailure`** (`git log -S` su tutti i commit: zero). Qualunque guasto dentro il flusso IVAO —
+correlazione fallita, cookie del `nonce` mancante, errore restituito dal portale — esce come **eccezione non
+gestita** e finisce su `UseExceptionHandler("/Error")`: una pagina che non dice niente all'utente e non
+lascia niente a noi. Il costo è stato pagato: la causa è stata ricostruita **dagli `scope` dentro il `code`
+OIDC**, non da un log.
+
+**Cosa fare:** registrare `OnRemoteFailure` — logga la ragione, e se l'utente è già autenticato reindirizza
+al `returnUrl` invece di lanciare; altrimenti rimanda al login con un messaggio leggibile. ⚠️ Tocca
+`Vipi.Host.dll`, quindi vuole un giro di ripacchettamento: da fare **fuori** da un deploy a metà.
+
+ℹ️ Sospettato secondario, non escluso: il `nonce` è stato **acceso il 22 agosto** e la sera del 23 è la
+**prima volta che gira in produzione**. Se il cookie del nonce manca al ritorno, `base.ValidateNonce` lancia
+— e lancia esattamente così. Il `OnRemoteFailure` è anche ciò che renderebbe distinguibili i due casi,
+perché oggi la ragione non la vede nessuno.
+
 ## F. Rimandato, non cancellato
 
 **Embedding nel sito `Ivao.It.Website`.** Il sito definitivo è il nostro host standalone, ma le cinque
