@@ -1507,7 +1507,42 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
    contenuto — e non scende sotto. E' la regola del `min-width:0` sui figli di griglia, che il progetto ha
    gia' scritta per gli editor e che qui, nel collasso a una colonna, non era applicata: misurato, a 375px il
    viewer aeroporto teneva una colonna da 592 e imporre `width:340px` al layout non la faceva cedere. */
-@media(max-width:1080px){.doc-layout,.ed-layout,.ed-layout.with-rail{grid-template-columns:minmax(0,1fr)}.doc-layout>*,.ed-layout>*{min-width:0}.toc{position:static;max-height:none}.ed-rail{position:static;max-height:none}.acc-grid{grid-template-columns:repeat(2,1fr)}.aor-wrap{grid-template-columns:1fr}}
+/* ---- Il viewer si impila quando lo SPAZIO finisce, non quando la finestra si stringe ----
+
+   ⚠️ Questa soglia era una `@media`, e una `@media` misura la FINESTRA. Lo zoom di pagina di questa
+   applicazione e' `zoom` sull'`<html>` (vipi-zoom.js) e la finestra non lo vede: misurato il 23 agosto 2026
+   su /services/vsop/libb/vipi, a 1600px di finestra la soglia non scattava a NESSUNO zoom, mentre le due
+   barre laterali restavano larghe fisse (248 e 308) e tutto il costo cadeva sulla colonna del documento:
+
+       zoom 1.0 -> 872px    1.2 -> 605    1.4 -> 415    1.6 -> 272    1.8 -> 161
+
+   Centosessantun pixel di documento fra due barre da 248 e 308. E chi zooma a 1.8 e' esattamente chi ha
+   bisogno di leggere meglio: il rimedio peggiorava il caso che doveva servire. E' la stessa malattia della
+   topbar (2026-08-22-topbar-misurata.md) e delle tabelle del viewer, terza ricaduta.
+
+   La cura qui e' una `@container`, che misura il CONTENITORE in unita' di layout — cioe' proprio la
+   quantita' che lo zoom cambia. Sotto zoom 1.8 su 1600px il `.wrap` ne ha ~840: la soglia scatta come deve.
+
+   ⚠️ Il contenimento sta su `.wrap:has(> .doc-layout)` e non su `.wrap`, e non e' pignoleria:
+   `container-type:inline-size` porta con se' `contain:layout`, che rende l'elemento contenitore anche per i
+   discendenti `position:fixed`. Le pagine di EDITOR hanno un `.editor-toast` fisso dentro il `.wrap`, e
+   glielo avremmo incollato dentro. Col `:has()` il contenimento vale solo per le quattro pagine di lettura,
+   che un elemento fisso non ce l'hanno.
+
+   ⚠️ `.ed-layout` resta sulla `@media`: stessa malattia, ma le pagine di editor hanno un perimetro
+   d'uso dichiarato da 1024px in su (docs/design/regole-ui-pagine-admin.md) e vanno verificate a mano una
+   per una. E' un giro a se'. */
+.wrap:has(> .doc-layout){container-type:inline-size}
+@container (max-width:1080px){
+  .doc-layout{grid-template-columns:minmax(0,1fr)}
+  .doc-layout>*{min-width:0}
+  .doc-layout .toc{position:static;max-height:none}
+  .doc-layout .doc-rail{position:static}
+}
+@media(max-width:1080px){.ed-layout,.ed-layout.with-rail{grid-template-columns:minmax(0,1fr)}
+.ed-layout>*{min-width:0}.toc{position:static;max-height:none}
+.ed-rail{position:static;max-height:none}.acc-grid{grid-template-columns:repeat(2,1fr)}
+.aor-wrap{grid-template-columns:1fr}}
 
 /* ---------- Screen 5b: Topologia settori ---------- */
 .topo-layout{display:grid;grid-template-columns:330px 1fr 360px;gap:22px;align-items:start}
