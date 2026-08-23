@@ -501,7 +501,7 @@ agosto non sa leggere l'archivio del 15, perché in mezzo c'è il modello degli 
 
 | | Cosa | Dove | sha256 |
 |---|---|---|---|
-| **Sito** | `vipi-linux-x64-mariadb-20260823.zip` — 48,7 MB, 421 file, self-contained net8 | `artifacts/publish/` | `75E95BED…F6ADAC6E` |
+| **Sito** | `vipi-linux-x64-mariadb-20260823.zip` — 48,7 MB, 421 file (418 da caricare: `deploy/` è riferimento), self-contained net8 | `artifacts/publish/` | `40D81C37…FA8230E5` |
 | **Database** | `vipi-atc-it-ivao-aero-2026-08-23.sql` — 3,1 MB, schema + dati + `__EFMigrationsHistory` | `_mariadb/dump/` (**fuori dal repo**) | `0861BE6A…C20969A` |
 
 **La strategia è la sostituzione, non la migrazione**, ed è ciò che scioglie il blocco di E6-bis §9: il
@@ -527,6 +527,17 @@ Ma `LEGGIMI-AGGIORNAMENTO.md` sta **dentro lo zip**, che a loro non arriva. Per 
 `appsettings.Production.json.esempio`: un file con quel nome, caricato via FTP, cancellerebbe la password
 del database e le credenziali IVAO che stanno solo sul loro server — e il sito ripartirebbe **su SQLite
 vuoto**, che è il modo peggiore di sbagliare (sembra che i dati siano spariti).
+
+⚠️ **Ma il `.esempio` non va in produzione, e la domanda l'ha fatta il committente.** Rinominando per non
+sovrascrivere si era prodotto un file che **non finisce più per `.json`**, quindi la regola che nega
+`appsettings*.json` — quella che fa rispondere 403 a `/appsettings.json` — **non lo copre**. Non contiene
+segreti, ma descrive nome del database, nome dell'utente e percorso del key-ring. Spostato in `deploy/`
+insieme all'unit systemd e alla conf nginx, cioè fra le cose che **non si caricano**: sono tutti file di
+riferimento, e su Passenger nessuno dei tre serve a qualcosa.
+
+ℹ️ La regola generale che ne resta: **rinominare un file per proteggerlo da una sovrascrittura non lo
+protegge da tutto il resto** — cambiando estensione si esce anche dalle deny list scritte su quella. Se un
+file non è di runtime, la risposta giusta non è rinominarlo ma **non metterlo lì**.
 
 **Cosa è stato verificato, e come:**
 - catena `vipi.db → Vipi.DbSeed → MariaDB 11.4.10 locale → mariadb-dump → .sql`, **38 tabelle su 38

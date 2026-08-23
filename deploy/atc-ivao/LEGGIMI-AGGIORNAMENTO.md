@@ -32,7 +32,8 @@ vengono da noi e che, se spariscono, non si recuperano:
 | **`tmp/`** | `…/public_atc/tmp` | è la cartella con cui si riavvia Passenger (`restart.txt`) |
 
 ℹ️ Nel pacchetto **non c'è** `appsettings.Production.json`, apposta: c'è
-`appsettings.Production.json.esempio`, che serve solo da riferimento. Il vostro resta dov'è e non va
+`deploy/appsettings.Production.json.esempio`, che serve solo da riferimento — ed è **nella cartella
+`deploy/`**, cioè fra le cose che non vanno caricate (vedi il passo 2). Il vostro resta dov'è e non va
 toccato — con **una** eccezione, qui sotto.
 
 ⚠️ **L'unica riga da controllare nel vostro `appsettings.Production.json`** è `KeyRingPath`: deve puntare
@@ -75,9 +76,16 @@ qui sopra: svuotandola sparirebbero configurazione e chiavi).
 tiene. Fermatela dal pannello Plesk (impostazioni .NET/Passenger del dominio), caricate, e ripartite col
 passo 5.
 
-ℹ️ I file sono **421**, in quattro cartelle (`wwwroot`, `content`, `en`, `deploy`) più la radice. Se il
-pannello sa scompattare uno `.zip`, caricate quello: è un trasferimento invece di 421, e non ci sono
-modalità di trasferimento da sbagliare.
+⚠️ **La cartella `deploy/` NON va caricata.** Sono tre file di riferimento — l'unit systemd, la conf
+nginx e `appsettings.Production.json.esempio` — che su Plesk+Passenger non servono a niente e che sul
+server sarebbero solo superficie in più: il `.esempio` non contiene segreti, ma descrive nome del database,
+nome dell'utente e percorso delle chiavi, e **non finisce per `.json`**, quindi la regola che nega
+`appsettings*.json` non lo copre. Se dall'installazione di agosto c'è già una `deploy/` sul server,
+si può cancellare.
+
+ℹ️ Da caricare sono quindi **418 file**, in tre cartelle (`wwwroot`, `content`, `en`) più la radice. Se il
+pannello sa scompattare uno `.zip`, caricate quello e poi togliete `deploy/`: è un trasferimento invece di
+418, e non ci sono modalità di trasferimento da sbagliare.
 
 ### 3. Sostituire il database
 
