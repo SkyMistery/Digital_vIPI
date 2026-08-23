@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -137,13 +137,17 @@ if (mysql)
     // fallisce, quindi si spengono i controlli per la durata del wipe e si tronca una tabella alla volta.
     // Si riaccendono SUBITO dopo: gli INSERT che seguono devono essere verificati davvero, o una FK rotta
     // nei dati di partenza entrerebbe in produzione senza che nessuno se ne accorga.
+#pragma warning disable EF1002 // nomi di tabella dal modello EF, citati: non input utente → nessuna SQL injection
     dst.Database.ExecuteSqlRaw("SET FOREIGN_KEY_CHECKS = 0;");
     foreach (var t in tabelle) dst.Database.ExecuteSqlRaw($"TRUNCATE TABLE {CitaMySql(t)};");
     dst.Database.ExecuteSqlRaw("SET FOREIGN_KEY_CHECKS = 1;");
+#pragma warning restore EF1002
 }
 else
 {
+#pragma warning disable EF1002 // idem: identificatori dal modello EF, non input utente
     dst.Database.ExecuteSqlRaw($"TRUNCATE {string.Join(", ", tabelle.Select(CitaPostgres))} RESTART IDENTITY CASCADE;");
+#pragma warning restore EF1002
 }
 
 // ---- 4) Inserimento ---------------------------------------------------------------------------
@@ -268,7 +272,9 @@ static void RisincronizzaAutoIncrement(DbContext dst)
         }
         // AUTO_INCREMENT non accetta parametri: è un'opzione di tabella, non un valore. Il numero viene da
         // un COUNT/MAX sul database stesso, non dall'esterno.
+#pragma warning disable EF1002 // tabella dal modello EF e numero letto dal database stesso, non input utente
         dst.Database.ExecuteSqlRaw($"ALTER TABLE `{tabella}` AUTO_INCREMENT = {prossimo};");
+#pragma warning restore EF1002
     }
     Console.WriteLine($"  {colonne.Count} contatori AUTO_INCREMENT riportati oltre il massimo.");
 }
@@ -290,6 +296,7 @@ static void RisincronizzaSequencePostgres(DbContext dst, List<IEntityType> entit
         var qt = CitaPostgres(table);
         var qc = CitaPostgres(column);
         // pg_get_serial_sequence è null per PK non-identità (StaffMember.UserId, ImportState.Category): no-op.
+#pragma warning disable EF1002 // identificatori dal modello EF (tabella/colonna), non input utente
         dst.Database.ExecuteSqlRaw($@"
 DO $$
 DECLARE s text;
@@ -299,6 +306,7 @@ BEGIN
     PERFORM setval(s, GREATEST((SELECT COALESCE(MAX({qc}), 0) FROM {qt}), 1), (SELECT COUNT(*) > 0 FROM {qt}));
   END IF;
 END $$;");
+#pragma warning restore EF1002
     }
 }
 
