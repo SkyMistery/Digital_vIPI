@@ -468,6 +468,13 @@ Messaggio pronto in appendice al piano, **da aggiornare** perché parla ancora d
   passa — verificato in locale il 6 agosto — ma con una lista ritagliata è la prima riga che si pianta.
 - ⚠️ **Chi fa il backup di `itivao_atc`, e con che frequenza.** Non è una conferma di cortesia: al 14 agosto
   2026 **nessuno sa rispondere**, e finché la risposta è «non lo so» va trattato come «il backup non esiste».
+  ⚠️⚠️ **Dal 23 agosto è la domanda più urgente delle sei**, perché la procedura di aggiornamento (A11)
+  comincia con un `DROP DATABASE`: il passo 1 del foglio è un dump fatto da loro, ed è l'unica rete sotto a
+  quel comando. Se non sono in grado di farlo, l'aggiornamento non va cominciato.
+- ⚠️ **`itivao_atc` può fare `DROP DATABASE`?** `GRANT ALL ON itivao_atc.*` lo comprende, ma su Plesk
+  l'utente lo crea il pannello e nessuno ha verificato la lista vera. Se non può, si svuota tabella per
+  tabella o si consegna un `.sql` con i `DROP TABLE` in testa — è scritto nel foglio, ma è meglio saperlo
+  prima che scoprirlo a metà.
   Il database tiene **tutto** lo stato dell'app, immagini comprese (ADR-0007): non c'è una seconda copia
   altrove da cui ricostruire. La `ReleaseRetention` **non** è un backup — pota di proposito. Se la risposta
   tarda, il paracadute è uno script `mariadb-dump` in cron, da concordare con loro.
@@ -477,10 +484,14 @@ Messaggio pronto in appendice al piano, **da aggiornare** perché parla ancora d
   header inoltrati, supervisione del processo, e il **percorso persistente** per il key-ring (che dal 14
   agosto non sta più sul database: §G).
 
-### A10 🔴 Redirect OIDC sul portale IVAO
-`https://atc.it.ivao.aero/signin-oidc` e `/signout-callback-oidc`, esatti. E recuperare
-**`VipiAuth:ClientSecret`**, l'unico dei quattro segreti che non è nei user-secrets locali — anche se il
-flusso funziona senza, in modalità client pubblico con PKCE (verificato il 5 agosto).
+### A10 ✅ Redirect OIDC sul portale IVAO — chiusa dai fatti il 16 agosto 2026
+`https://atc.it.ivao.aero/signin-oidc` e `/signout-callback-oidc` **sono registrati**: non perché qualcuno
+l'abbia confermato, ma perché **il login in produzione funziona** dal 16 agosto — e senza quei due redirect
+non tornerebbe indietro affatto. Stessa cosa per `VipiAuth:ClientSecret`, che nel file di produzione c'è.
+
+ℹ️ La voce è rimasta 🔴 per una settimana dopo essere diventata vera: **una domanda in sospeso non si chiude
+da sola quando la risposta arriva sotto forma di fatto** invece che di messaggio. Vale la pena rileggere le
+🔴 dopo ogni deploy riuscito, e chiedersi quali abbia già risposto l'esercizio.
 
 ---
 
