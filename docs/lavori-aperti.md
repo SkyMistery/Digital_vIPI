@@ -1291,6 +1291,40 @@ problema di tempi. Un rosso a intermittenza merita di essere letto nel codice pr
 
 ---
 
+### E7 ✅ Login — **chiusa il 24 agosto 2026**: `OnRemoteFailure` c'è, e il guasto ora si vede
+
+**Cosa è stato fatto.** `oidc.Events.OnRemoteFailure` è registrato in `VipiStandaloneAuthExtensions`:
+logga la ragione sotto la categoria fissa **`Vipi.Auth.Ivao`** (motivo, errore del portale, se lo stato del
+giro si è recuperato, se c'era già una sessione, dove si stava andando — mai il `code` né i token), poi
+decide invece di rilanciare. Due esiti: **sessione già attiva ⇒ si torna al `returnUrl`** (è il caso del
+23 agosto, dove l'utente vedeva `Error.` ed era dentro); **nessuna sessione ⇒
+`/services/vsop/auth/accesso-non-riuscito`**, una pagina che dice cosa è successo e offre un «riprova».
+
+⚠️ **La pagina non rimanda da sola al login, ed è una scelta.** Se il guasto è stabile — il portale che
+risponde `access_denied` — il rimbalzo automatico diventa un anello infinito, perché IVAO ha già la sessione
+aperta e rispedisce indietro subito. Il secondo tentativo lo chiede l'utente, con un clic.
+
+⚠️ **`context.HttpContext.User` è vuoto dentro `OnRemoteFailure`**, e crederci sarebbe stato un errore
+silenzioso: il gestore del callback gira dentro `UseAuthentication` **prima** che il middleware monti
+l'utente dello schema di default. La sessione esistente va chiesta a mano con
+`AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme)`.
+
+**Il motivo è un insieme chiuso** — `portale`, `correlazione`, `nonce`, `sconosciuto` — perché serve a due
+padroni: finisce nel log **e** sceglie la frase in pagina. Niente testo di provenienza esterna arriva allo
+schermo; il `returnUrl` passa comunque da `SafeReturn` ed è codificato per attributo.
+
+ℹ️ **`Unable to unprotect the message.State.` sta in `correlazione`, e vale la pena saperlo**: è il messaggio
+misurato sul flusso vero, ed è anche il sintomo di un **key-ring perso** (`public_atc/vipi-keys`, una delle
+tre cose che un FTP distratto cancella). Se *ogni* login esce con quel motivo, si guarda lì prima che ai
+browser degli utenti.
+
+**Verificato**: 20 test nuovi (`tests/Vipi.E2E.Tests/LoginFailureTests.cs`), e soprattutto un guasto **vero**
+provocato in locale — `GET /signin-oidc?state=abc&code=def` senza cookie di stato — che prima finiva su
+`/Error` e ora esce **302** verso la pagina, lasciandosi dietro la riga di log che il 23 agosto non c'era.
+Suite intera: **3621 verdi**, 0 avvisi.
+
+<details><summary>Il testo originale della voce, com'era prima della chiusura</summary>
+
 ### E7 🟢 Login: manca `OnRemoteFailure`, e il cookie della build vecchia fa fallire il primo accesso
 Trovato in produzione la sera del 23 agosto, segnalato dal committente: dopo il login compare la pagina
 `Error.` generica, ma **al refresh risulta loggato**.
@@ -1323,6 +1357,8 @@ al `returnUrl` invece di lanciare; altrimenti rimanda al login con un messaggio 
 **prima volta che gira in produzione**. Se il cookie del nonce manca al ritorno, `base.ValidateNonce` lancia
 — e lancia esattamente così. Il `OnRemoteFailure` è anche ciò che renderebbe distinguibili i due casi,
 perché oggi la ragione non la vede nessuno.
+
+</details>
 
 ## F. Rimandato, non cancellato
 

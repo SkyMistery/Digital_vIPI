@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 
 namespace Vipi.Host;
 
@@ -34,6 +34,14 @@ public static class StartupDiagnostics
             if (e.ExceptionObject is Exception ex) Write(CrashFileName, Describe(ex));
         };
     }
+
+    /// <summary>
+    /// Scrive l'eccezione che ha impedito l'avvio. Da chiamare dal <c>catch</c> attorno al corpo dell'avvio
+    /// in <c>Program.cs</c>: il gancio di <see cref="HookFatalErrors"/> copre i guasti sugli altri thread,
+    /// questo copre quelli sul thread principale — <b>compreso il caricamento tipi</b>, che avviene alla
+    /// preparazione del metodo e che il gancio non vede mai. Vedi <c>VipiStartup</c>.
+    /// </summary>
+    public static void WriteFatal(Exception ex) => Write(CrashFileName, Describe(ex));
 
     /// <summary>
     /// Riepilogo della configurazione, senza segreti. Va chiamato appena il builder esiste: se l'avvio

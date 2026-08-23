@@ -26,6 +26,15 @@ public static class VipiStandaloneAuthExtensions
     /// <summary>Nome dello schema di challenge OIDC IVAO.</summary>
     public const string IvaoScheme = "IVAO";
 
+    /// <summary>Pagina mostrata quando il giro IVAO non si chiude. Non è il login: da lì si RIPROVA a mano.
+    /// ⚠️ Non rimandare automaticamente al login — se il guasto è stabile (il portale che risponde
+    /// <c>access_denied</c>, per esempio) il rimbalzo diventa un anello infinito, perché IVAO ha già la
+    /// sessione aperta e rispedisce subito indietro.</summary>
+    internal const string LoginFailedPath = "/services/vsop/auth/accesso-non-riuscito";
+
+    /// <summary>Categoria di log dei guasti del login. Nome fisso: è la stringa da cercare nei log del server.</summary>
+    private const string AuthLogCategory = "Vipi.Auth.Ivao";
+
     /// <summary>
     /// Se <c>VipiAuth:Enabled=true</c>, registra cookie + OpenID Connect IVAO e rimappa i nomi dei claim IVAO
     /// sul modello neutro (<see cref="HostIdentityOptions"/>). Ritorna <c>true</c> se l'auth standalone è attiva.
@@ -174,6 +183,13 @@ public static class VipiStandaloneAuthExtensions
                     }
                     return Task.CompletedTask;
                 };
+
+                // Ogni guasto del giro IVAO passa di qui. Senza questo gestore l'handler RILANCIA, e il
+                // guasto esce come eccezione non gestita su UseExceptionHandler("/Error"): una pagina che
+                // non dice niente all'utente e non lascia niente a noi. È successo in produzione il 23
+                // agosto 2026, e la causa si è dovuta ricostruire dagli `scope` dentro il `code` OIDC
+                // perché di quel login non era rimasta una riga da nessuna parte.
+                oidc.Events.OnRemoteFailure = HandleIvaoRemoteFailure;
             });
 
         // I nomi-claim IVAO combaciano con i default di HostIdentityOptions (UserIdClaim="id",
@@ -207,8 +223,131 @@ public static class VipiStandaloneAuthExtensions
                 new AuthenticationProperties { RedirectUri = "/services/vsop" },
                 new[] { CookieAuthenticationDefaults.AuthenticationScheme, IvaoScheme }));
 
+        // Dove finisce chi il login non l'ha chiuso. Ci arriva solo per redirect da OnRemoteFailure, ma è
+        // un URL come un altro: entrambi i parametri si trattano come se li avesse scritti un estraneo —
+        // il motivo passa da un insieme chiuso, il ritorno da SafeReturn.
+        app.MapGet(LoginFailedPath, (string? motivo, string? returnUrl) =>
+            Results.Content(
+                IvaoLoginFailurePage.Build(NormalizeReason(motivo), SafeReturn(returnUrl)),
+                "text/html; charset=utf-8"));
+
         return app;
     }
+
+    /// <summary>
+    /// Guasto del giro IVAO: lo registra e decide dove mandare l'utente, invece di lasciarlo rilanciare.
+    ///
+    /// <para>Due esiti, e la differenza sta tutta nel fatto che il callback fallito <b>non</b> significa
+    /// «non sei loggato»: il cookie <c>vipi.auth</c> dura 7 giorni. Se una sessione c'è già, si torna dove
+    /// si stava andando — è il caso del 23 agosto, dove l'utente vedeva <c>Error.</c> ed era dentro. Se non
+    /// c'è, si va alla pagina di [<see cref="LoginFailedPath"/>], che spiega e offre un «riprova» a mano.</para>
+    ///
+    /// <para>⚠️ Qui dentro non deve poter fallire niente: un'eccezione in questo gestore riporterebbe
+    /// esattamente alla pagina muta che si sta togliendo di mezzo. Per questo il corpo è in un
+    /// <c>try</c> e l'ultima parola è comunque un redirect.</para>
+    /// </summary>
+    private static async Task HandleIvaoRemoteFailure(RemoteFailureContext context)
+    {
+        var reason = ClassifyRemoteFailure(context.Failure, context.Request.Query["error"]);
+        var returnUrl = SafeReturn(context.Properties?.RedirectUri);
+
+        // Da qui in poi la risposta la scriviamo noi: senza questo, l'handler rilancia comunque.
+        context.HandleResponse();
+
+        try
+        {
+            var logger = context.HttpContext.RequestServices
+                .GetRequiredService<ILoggerFactory>().CreateLogger(AuthLogCategory);
+
+            // ⚠️ `context.HttpContext.User` è VUOTO qui, e chiederglielo sarebbe un errore silenzioso: il
+            // gestore del callback gira dentro UseAuthentication PRIMA che il middleware monti l'utente
+            // dello schema di default. La sessione esistente va chiesta allo schema cookie a mano.
+            var existing = await context.HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+            // Tutto ciò che serviva il 23 agosto e non c'era. Niente `code`, niente token: sono credenziali.
+            logger.LogWarning(context.Failure,
+                "Login IVAO non riuscito — motivo {Motivo}. Errore dal portale: {ErrorePortale}. " +
+                "Stato del giro recuperato: {StatoRecuperato}. Sessione già attiva: {GiaDentro}. Ritorno: {Ritorno}.",
+                reason,
+                Describe(context.Request.Query["error"], context.Request.Query["error_description"]),
+                context.Properties is not null,
+                existing.Succeeded,
+                returnUrl);
+
+            if (existing.Succeeded)
+            {
+                // Era già dentro: il login nuovo non si è chiuso, ma sbatterlo su una pagina d'errore
+                // sarebbe peggio del vero. Ci si accorge del guasto dal log, non dalla faccia dell'utente.
+                context.Response.Redirect(returnUrl);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Ultima rete: se anche il logger o l'authenticate cadono, resta il redirect. Meglio una pagina
+            // che spiega senza una riga di log che la pagina muta di prima.
+            try
+            {
+                context.HttpContext.RequestServices.GetService<ILoggerFactory>()?.CreateLogger(AuthLogCategory)
+                    .LogError(ex, "Login IVAO: anche la gestione del guasto è fallita.");
+            }
+            catch { /* non c'è un piano C, e non deve esserci: sotto si risponde comunque */ }
+        }
+
+        context.Response.Redirect(
+            $"{LoginFailedPath}?motivo={reason}&returnUrl={Uri.EscapeDataString(returnUrl)}");
+    }
+
+    /// <summary>
+    /// Da che parte è andato storto il giro, in una parola sola. Serve a due cose: finisce nel log, e
+    /// sceglie la frase mostrata all'utente — quindi è un insieme CHIUSO di valori, mai testo di
+    /// provenienza esterna riflesso in pagina.
+    /// <para>La classificazione si legge dal messaggio dell'eccezione perché è l'unica cosa che l'handler
+    /// espone: ASP.NET Core non tipizza «correlazione fallita» diversamente da «token scaduto».</para>
+    /// </summary>
+    internal static string ClassifyRemoteFailure(Exception? failure, string? portalError)
+    {
+        // Il portale ha detto no (consenso negato, app non abilitata): non è un guasto nostro, e riprovare
+        // da soli non lo aggiusta. Va distinto per primo, prima di guardare il messaggio.
+        if (!string.IsNullOrWhiteSpace(portalError)) return "portale";
+
+        var message = failure?.ToString() ?? "";
+
+        // Lo stato del giro non è tornato indietro leggibile. Tre modi di dirlo, stessa famiglia:
+        //   • «Correlation failed.» — il cookie di correlazione manca (scheda aperta da troppo, cookie
+        //     cancellati a metà giro, o il cookie di sessione spezzato in troppi pezzi);
+        //   • «The oauth state was missing or invalid.» — non è tornato il parametro `state`;
+        //   • «Unable to unprotect the message.State.» — è tornato, ma non si decifra. ⚠️ È anche il
+        //     sintomo di un KEY-RING PERSO: su atc.it.ivao.aero le chiavi stanno in `public_atc/vipi-keys`,
+        //     ed è una delle tre cose che un FTP distratto cancella. Se ogni login del server esce con
+        //     questo motivo, si guarda lì prima che ai browser degli utenti.
+        if (message.Contains("Correlation failed", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("oauth state was missing", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Unable to unprotect", StringComparison.OrdinalIgnoreCase)) return "correlazione";
+
+        // IDX21323/IDX21320: il nonce manca o non combacia. Acceso il 22 agosto 2026, quindi è il
+        // sospettato giovane — ed è la ragione per cui questa distinzione esiste.
+        if (message.Contains("IDX21323", StringComparison.Ordinal)
+            || message.Contains("IDX21320", StringComparison.Ordinal)
+            || message.Contains("nonce", StringComparison.OrdinalIgnoreCase)) return "nonce";
+
+        return "sconosciuto";
+    }
+
+    /// <summary>I soli motivi che la pagina sa rendere. Tutto il resto — compreso ciò che arriva
+    /// dall'URL — diventa <c>sconosciuto</c>: così in pagina non finisce mai una stringa altrui.</summary>
+    internal static string NormalizeReason(string? reason) => reason switch
+    {
+        "portale" or "correlazione" or "nonce" => reason,
+        _ => "sconosciuto",
+    };
+
+    /// <summary>Coppia <c>error</c>/<c>error_description</c> del portale in una riga di log; «nessuno» se non c'è.
+    /// ⚠️ Va nel LOG, mai in pagina: è testo che arriva da fuori.</summary>
+    private static string Describe(string? error, string? description) =>
+        string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(description)
+            ? "nessuno"
+            : $"{(string.IsNullOrWhiteSpace(error) ? "—" : error)} / {(string.IsNullOrWhiteSpace(description) ? "—" : description)}";
 
     /// <summary>
     /// Nome da mostrare, dalla userinfo IVAO (<c>/v2/users/me</c>). In ordine:
