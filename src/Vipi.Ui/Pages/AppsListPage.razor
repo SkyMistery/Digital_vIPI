@@ -40,7 +40,7 @@ else
                         : $"/services/vsop/{Acc.ToLowerInvariant()}/apps/editor?app={ap.Callsign}";
                     <a class="choice apt-card" href="@href">
                         <div class="apt-top">
-                            <h4>@(ap.AirportIcao ?? ap.Callsign)</h4>
+                            <h2 class="h-card">@(ap.AirportIcao ?? ap.Callsign)</h2>
                             <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? L["Common_NOnline", n].Value : L["Common_Offline"].Value)</span>
                         </div>
                         <p class="muted">@ap.Name</p>

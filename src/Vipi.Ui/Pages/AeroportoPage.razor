@@ -43,7 +43,7 @@ else if (_listMode)
                     var n = OnlineAt(ap.Icao);
                     <a class="choice apt-card" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@ap.Icao">
                         <div class="apt-top">
-                            <h4>@ap.Icao</h4>
+                            <h2 class="h-card">@ap.Icao</h2>
                             <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? L["Common_OnlineN", n] : L["Common_Offline"])</span>
                         </div>
                         <p class="muted">@ap.Name</p>
@@ -84,7 +84,7 @@ else
         <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/airports">@L["AccLanding_Airports"]</a> › <b>@_view.Title</b></div>
 
         <div class="doc-layout">
-            <aside class="toc">
+            <aside class="toc" aria-label="@L["Doc_TocAria"]">
                 <p class="toc-h">@L["Common_Contents"]</p>
                 <ul>
                     @foreach (var (id, title) in TocEntries())
@@ -384,7 +384,7 @@ else
             </div>
 
             @* Colonna destra sticky (desktop ≥1500px): riepilogo + link + eventuali sezioni extra del profilo. *@
-            <aside class="doc-rail">
+            <aside class="doc-rail" aria-label="@L["Doc_RailAria"]">
                 <div class="rail-card">
                     <h5><Icon Name="clipboard" /> @L["Common_Summary"]</h5>
                     <div class="rail-line"><span class="muted">@L["Common_AiracCycle"]</span><b>@_view.AiracCycle</b></div>

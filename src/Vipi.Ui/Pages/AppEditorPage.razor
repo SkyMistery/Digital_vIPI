@@ -439,12 +439,12 @@ else
                 @if (_editing)
                 {
                     <div class="block" style="margin-top:10px">
-                        <h4 style="margin:0 0 6px">@L["Aor_ExtraShapesTitle"]</h4>
+                        <h2 class="h-card" style="margin:0 0 6px">@L["Aor_ExtraShapesTitle"]</h2>
                         <p class="help" style="margin:0 0 8px">@L["Aor_ExtraShapesHelp"]</p>
                         <AorExtraShapePicker Selected="_aorExtras" Catalog="_shapeCatalog" Editing="_editing" SelectedChanged="SaveAorExtras" />
                     </div>
                     <div class="block" style="margin-top:10px">
-                        <h4 style="margin:0 0 6px">@L["Aor_ColorsTitle"]</h4>
+                        <h2 class="h-card" style="margin:0 0 6px">@L["Aor_ColorsTitle"]</h2>
                         <p class="help" style="margin:0 0 8px">@L["Aor_ColorsHelp"]</p>
                         <AorColorEditor Sectors="_aorView.Sectors" Editing="_editing" ColorChanged="SaveAorColor" />
                     </div>

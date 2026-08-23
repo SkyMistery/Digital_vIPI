@@ -58,7 +58,7 @@ else
             var homeOnline = HomeOnline();
             @foreach (var g in _visibleVloas.GroupBy(v => Prefix(v.NeighbourCode)).OrderBy(g => Country(g.Key)))
             {
-                <div class="section-title" style="margin-top:22px"><h3>@Country(g.Key)</h3><span class="ln"></span></div>
+                <div class="section-title" style="margin-top:22px"><h2 class="h-sect">@Country(g.Key)</h2><span class="ln"></span></div>
                 <div class="choice-grid">
                     @foreach (var v in g)
                     {
@@ -66,7 +66,7 @@ else
                         var neighOnline = NeighOnline(v.NeighbourCode);
                         <a class="choice apt-card" href="/services/vsop/@Acc.ToLowerInvariant()/vloa?acc=@v.NeighbourCode">
                             <div class="apt-top">
-                                <h4>@neigh</h4>
+                                <h3 class="h-card">@neigh</h3>
                                 <span class="country-tag">@g.Key</span>
                             </div>
                             <p class="muted">@(v.Neighbour ?? L["Vloa_BilateralDefault"].Value)</p>

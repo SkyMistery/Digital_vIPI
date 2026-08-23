@@ -150,6 +150,10 @@
   /* La testata di pagina e' un <h1> dal 23 agosto 2026 ma sul foglio deve restare la misura di
      prima: e' la stessa riga, ha solo cambiato tag (vedi `.page-h1` in vipi-theme.css). */
   .vipi-root .page-h1 { font-size: 13pt; }
+  /* Stessa ragione: titoli di sezione e di scheda hanno preso il tag <h2>, ma sul foglio devono
+     restare le misure di quando erano <h3> e <h4>. */
+  .vipi-root .h-sect { font-size: 11.5pt; }
+  .vipi-root .h-card { font-size: 10pt; }
   .vipi-root h3 { font-size: 11.5pt; }
   .vipi-root h4 { font-size: 10pt; }
   .vipi-root h5, .vipi-root h6 { font-size: 9.5pt; }

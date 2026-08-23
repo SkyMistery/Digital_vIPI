@@ -231,7 +231,17 @@
    Il gradino 40px resta a chi lo usa davvero (l'hub, la home, la pagina AoR 3D a schermo intero).
    ⚠️ Gli altri tre posti dove h1 e h2 divergono sono chiusi accanto alla loro regola: la modalita'
    compatta piu' avanti in questo foglio, le due di stampa in vipi-print.css. */
-:where(.vipi-root) .page-h1{font-size:32px}:where(.vipi-root) h3{font-size:28px;font-weight:700}:where(.vipi-root) h4{font-size:24px;font-weight:700;color:var(--brand-ink-2)}:where(.vipi-root) h5{font-size:20px;font-weight:700;color:var(--brand-ink-2)}:where(.vipi-root) h6{font-size:16px;font-weight:700}
+:where(.vipi-root) .page-h1{font-size:32px}
+/* ---- E le due misure sotto, per la stessa ragione ----
+   I titoli di SEZIONE e di SCHEDA erano <h3> e <h4> perche' quella era la misura giusta, non perche'
+   quello fosse il loro posto nella gerarchia: sotto un <h1> saltavano un gradino, e chi naviga per
+   intestazioni si trovava dei buchi. Il tag e' salito, la misura sta qui.
+   ⚠️ Valgono SOLO dove la misura veniva dalla regola base del tag. Dove invece la dava un selettore di
+   contesto (`.apt-card h4` a 22px, `.nav-head h4` a 19px, `.guida-toc h3` a 13px) non serve nessuna
+   classe: si e' allargato quel selettore ai tag vicini, che e' meglio — cosi' il prossimo che ritagga
+   non rompe niente e non deve sapere di questa riga. */
+:where(.vipi-root) .h-sect{font-size:28px;font-weight:700}
+:where(.vipi-root) .h-card{font-size:24px;font-weight:700;color:var(--brand-ink-2)}:where(.vipi-root) h3{font-size:28px;font-weight:700}:where(.vipi-root) h4{font-size:24px;font-weight:700;color:var(--brand-ink-2)}:where(.vipi-root) h5{font-size:20px;font-weight:700;color:var(--brand-ink-2)}:where(.vipi-root) h6{font-size:16px;font-weight:700}
 :where(.vipi-root) a{color:var(--brand-ink-2);text-decoration:none}
 /* ---- Il fuoco da tastiera si vede SEMPRE ----
    La regola era scritta (vedi .htree-toggle piu' avanti) ma valeva per otto selettori: tutto il resto si
@@ -589,7 +599,7 @@
 .apt-card{border-radius:18px;transition:transform .15s,border-color .15s,box-shadow .15s}
 .apt-card:hover{transform:translateY(-2px);border-color:var(--ivao-lightblue);box-shadow:0 10px 26px color-mix(in srgb,var(--ivao-blue) 10%,transparent)}
 .apt-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.apt-card h4{margin:0;font-size:22px;font-family:var(--font-head);font-weight:800;color:var(--brand-ink)}
+.apt-card :is(h2,h3,h4){margin:0;font-size:22px;font-family:var(--font-head);font-weight:800;color:var(--brand-ink)}
 .apt-card p.muted{margin:4px 0 0}
 .apt-tag{display:inline-block;margin-top:10px;padding:3px 11px;border-radius:999px;background:var(--surface-muted);color:var(--ink-soft);font-size:12px;font-weight:700;letter-spacing:.02em}
 .country-tag{flex:none;padding:3px 10px;border-radius:999px;background:var(--surface-muted);color:var(--ink-soft);font-size:12px;font-weight:700;letter-spacing:.03em}
@@ -604,19 +614,19 @@
 .apt-wx .wx-k{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft)}
 .apt-wx b{color:var(--ink)}
 .section-title{display:flex;align-items:center;gap:12px;margin:34px 0 16px}
-.section-title h3{margin:0}
+.section-title :is(h2,h3){margin:0}
 .section-title .ln{flex:1;height:1px;background:var(--line)}
 .staff-sec>summary{cursor:pointer;list-style:none;user-select:none}
 .staff-sec>summary::-webkit-details-marker{display:none}
 .staff-sec>summary .chev{display:inline-block;font-size:14px;color:var(--muted);transition:.2s}
 .staff-sec[open]>summary .chev{transform:rotate(90deg)}
-.staff-sec>summary:hover h3{color:var(--brand-ink)}
+.staff-sec>summary:hover :is(h2,h3){color:var(--brand-ink)}
 
 /* ---------- Screen 2: ACC landing ---------- */
 .choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px}
 /* .choice è sempre un link-card (<a>): reset link centralizzato (U8, prima era inline su ogni <a>). */
 .choice{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);text-decoration:none;color:inherit}
-.choice h4{margin:0 0 4px;display:flex;align-items:center;gap:9px}
+.choice :is(h2,h3,h4){margin:0 0 4px;display:flex;align-items:center;gap:9px}
 .choice .ic{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--tint-atmos);color:var(--brand-ink);font-size:17px}
 .choice p.muted{font-size:13px;margin:0 0 14px}
 .linklist{list-style:none;margin:0;padding:0}
@@ -638,8 +648,8 @@
 .nav-card.c-vipi{--accent:var(--ivao-blue);--accent-ink:var(--brand-ink)}
 .nav-card:hover{border-color:var(--accent);box-shadow:0 8px 22px color-mix(in srgb,var(--ivao-blue) 10%,transparent);transform:translateY(-1px)}
 .nav-head{display:flex;align-items:center;justify-content:space-between;gap:10px;text-decoration:none;color:inherit}
-.nav-head h4{margin:0 0 4px;font-size:19px;position:relative}
-.nav-head:hover h4{color:var(--accent-ink)}
+.nav-head :is(h2,h3,h4){margin:0 0 4px;font-size:19px;position:relative}
+.nav-head:hover :is(h2,h3,h4){color:var(--accent-ink)}
 .nav-head .count{flex:none;min-width:26px;height:26px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:var(--surface-muted);color:var(--ink-soft);font-size:13px;font-weight:700;line-height:1}
 .nav-card .linklist{flex:1}
 .linklist li .tag{display:inline-block;min-width:54px;padding:3px 10px;margin-right:11px;border-radius:999px;background:var(--surface-muted);color:var(--ink-soft);font-size:12px;font-weight:700;text-align:center;letter-spacing:.02em}
@@ -653,7 +663,7 @@
 .big-choice.nav-card{background:linear-gradient(110deg,var(--tint-atmos),var(--surface-soft));align-items:center;padding:22px 24px}
 .big-choice .bc-body{display:flex;flex-direction:column;gap:3px}
 .big-choice .eyebrow{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink)}
-.big-choice .bc-body h4{margin:0;font-size:19px}
+.big-choice .bc-body :is(h2,h3,h4){margin:0;font-size:19px}
 .big-choice .bc-body .muted{font-size:13.5px}
 .big-choice .bc-open{margin-left:auto;flex:none;padding:10px 24px;border-radius:999px;background:var(--ivao-blue);color:var(--on-brand);font-weight:700;font-size:14px}
 .big-choice.nav-card:hover .bc-open{background:var(--ivao-lightblue)}
@@ -999,7 +1009,10 @@
 .vipi-dense .vipi-root{font-size:14px}
 /* ⚠️ `.page-h1` accanto a `h2` e non per conto suo: e' la stessa testata, che ha solo cambiato tag
    (vedi il commento alla classe, in cima al foglio). Senza, in compatta restava a 32px. */
-.vipi-dense .vipi-root h2,.vipi-dense .vipi-root .page-h1{font-size:23px}
+/* ⚠️ `:not()` sulle due classi: sono titoli di sezione e di scheda che hanno preso il tag <h2> per la
+   gerarchia, non per l'aspetto. Prima erano <h3>/<h4>, che la compatta non tocca — e non deve toccarli
+   nemmeno adesso, o si rimpicciolirebbero solo perche' e' cambiato il tag. */
+.vipi-dense .vipi-root h2:not(.h-sect):not(.h-card),.vipi-dense .vipi-root .page-h1{font-size:23px}
 .vipi-dense .vipi-root table{font-size:12.5px}
 .vipi-dense .vipi-root th,.vipi-dense .vipi-root td{padding:4px 7px}
 .vipi-dense .acc-item>summary{padding:8px 12px}
@@ -1810,7 +1823,7 @@ button.sh-chip.warn:hover{background:var(--tint-gold)}
 .app-sec-drag{opacity:.6;outline:2px dashed var(--ivao-lightblue);border-radius:11px}
 .app-sec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
 .app-sec-titlewrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.app-sec-titlewrap h3{margin:0}
+.app-sec-titlewrap :is(h2,h3){margin:0}
 .app-sec-tools{display:flex;gap:4px}
 .app-drag{cursor:grab;color:var(--ink-soft,var(--ink-soft));font-size:18px;user-select:none}
 .app-in{width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font:inherit}
@@ -1963,7 +1976,7 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 /* ── Pagina Guida ─────────────────────────────────────────────────────────────── */
 .guida-toc{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px 18px;margin:6px 0 24px;
   padding:16px 18px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
-.guida-toc h3{margin:0 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);grid-column:1/-1}
+.guida-toc :is(h2,h3){margin:0 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);grid-column:1/-1}
 .guida-toc a{display:block;padding:3px 0;text-decoration:none;color:var(--ink);font-size:13.5px}
 .guida-toc a:hover{color:var(--brand-ink)}
 .guida-sec{margin-bottom:14px}

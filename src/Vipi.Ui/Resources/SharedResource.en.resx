@@ -2071,4 +2071,6 @@
   <data name="Xfer_ConditionTitle" xml:space="preserve"><value>Operational condition</value></data>
   <data name="Struct_CrossAcc" xml:space="preserve"><value>cross-ACC</value></data>
   <data name="Ape_WindCalm" xml:space="preserve"><value>calm</value></data>
+  <data name="Doc_RailAria" xml:space="preserve"><value>Document information</value></data>
+  <data name="Doc_TocAria" xml:space="preserve"><value>Document index</value></data>
 </root>

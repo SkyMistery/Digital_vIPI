@@ -38,7 +38,7 @@ else
                 @foreach (var v in _vloas)
                 {
                     <a class="choice" href="/services/vsop/@Acc.ToLowerInvariant()/vloa/editor?acc=@v.NeighbourCode">
-                        <h4><span class="ic">🤝</span> @v.Title</h4>
+                        <h2 class="h-card"><span class="ic">🤝</span> @v.Title</h2>
                         <p class="muted">@(v.Neighbour ?? v.NeighbourCode ?? L["Vle_BilateralLoa"].Value)</p>
                     </a>
                 }

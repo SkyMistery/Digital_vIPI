@@ -36,7 +36,7 @@
     <div class="swap-cols">
         @* ---- Sorgente ---- *@
         <section class="swap-card">
-            <h4>@L["Swap_SourceTitle"]</h4>
+            <h2 class="h-card">@L["Swap_SourceTitle"]</h2>
             <p class="muted swap-hint">@L["Swap_SourceHint"]</p>
 
             @if (_source is not null)
@@ -67,7 +67,7 @@
         @* ---- Destinazioni ---- *@
         <section class="swap-card">
             <div class="swap-card-head">
-                <h4>@L["Swap_DestTitle"]@(_dests.Count > 0 ? $" ({_dests.Count})" : "")</h4>
+                <h2 class="h-card">@L["Swap_DestTitle"]@(_dests.Count > 0 ? $" ({_dests.Count})" : "")</h2>
                 @if (_dests.Count > 1)
                 {
                     <button type="button" class="btn ghost swap-mini" @onclick="ClearAllDests">@L["Swap_ClearAllDests"]</button>
@@ -127,7 +127,7 @@
             </div>
         }
 
-        <div class="section-title"><h3>@L["Swap_SectionsTitle"]</h3><span class="ln"></span></div>
+        <div class="section-title"><h2 class="h-sect">@L["Swap_SectionsTitle"]</h2><span class="ln"></span></div>
 
         <div class="swap-tools">
             <input class="swap-filter" type="search" placeholder="@L["Swap_SearchPh"]"
@@ -168,7 +168,7 @@
 
         @if (_selected.Count > 0)
         {
-            <div class="section-title"><h3>@L["Swap_PreviewTitle"]</h3><span class="ln"></span></div>
+            <div class="section-title"><h2 class="h-sect">@L["Swap_PreviewTitle"]</h2><span class="ln"></span></div>
             <p class="muted">@L["Swap_PreviewHint", _dests.Count]</p>
 
             @foreach (var nome in _sourceSectionNames.Where(_selected.Contains))

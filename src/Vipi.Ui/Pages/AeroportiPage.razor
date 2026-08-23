@@ -88,7 +88,7 @@
             <div class="panel st-pane">
                 @{ var shownAssigned = ShownAssigned(); var baseAssigned = BaseAssigned(); }
                 <div class="section-title">
-                    <h3>@L["Apt_AssignedTitle"] <span class="pill blue">@CountLabel(shownAssigned.Count, _assigned.Count)</span></h3>
+                    <h2 class="h-sect">@L["Apt_AssignedTitle"] <span class="pill blue">@CountLabel(shownAssigned.Count, _assigned.Count)</span></h2>
                     <span class="ln"></span>
                 </div>
                 @* Stessi campi di Struttura e ACC: la lente è disegnata nel campo, non scritta nel segnaposto.
@@ -223,7 +223,7 @@
             <div class="panel st-pane">
                 @{ var shownIvao = ShownIvao(); var ivaoTotal = _ivao?.Count ?? 0; var nAssignedIvao = AssignedInDirectory(); }
                 <div class="section-title">
-                    <h3>@L["Apt_IvaoDirTitle"] <span class="pill blue">@(_ivao is null ? "…" : CountLabel(shownIvao.Count, ivaoTotal))</span></h3>
+                    <h2 class="h-sect">@L["Apt_IvaoDirTitle"] <span class="pill blue">@(_ivao is null ? "…" : CountLabel(shownIvao.Count, ivaoTotal))</span></h2>
                     @* La nota che stava qui sotto in prosa: la dice il «?» al clic, con la stessa chiave. *@
                     <HelpHint Href="/services/vsop/guide#admin-aeroporti" AriaLabel="@L["Apt_IvaoHelpAria"]" ExtraClass="wide">
                         @((MarkupString)L["Apt_IvaoIntro"].Value)

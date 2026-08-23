@@ -90,7 +90,7 @@ else
                     @* La prosa che stava sempre a schermo (due paragrafi, 97px) la dice il «?» al clic:
                        testo riusato IDENTICO, stesse chiavi. *@
                     <div class="ed-h3">
-                        <h3>@L["Ape_RwRulesTitle"]</h3>
+                        <h2 class="h-sect">@L["Ape_RwRulesTitle"]</h2>
                         <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_RwRulesHelpAria"]" ExtraClass="wide">
                             @((MarkupString)L["Ape_RwRulesHelp"].Value)
                             <p>@L["Ape_RwRulesHelp2"]</p>
@@ -221,7 +221,7 @@ else
                 <summary class="ed-sec-head">@PanelLabel("Quote transizione")@if (_dirtySections.Contains("Quote transizione")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
                 <div class="block" @onchange='() => MarkDirty("Quote transizione")'>
                     <div class="ed-h3">
-                        <h3>@L["Ape_TlTitle"]</h3>
+                        <h2 class="h-sect">@L["Ape_TlTitle"]</h2>
                         <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_TlHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_TlHelp"].Value)</HelpHint>
                         @if (_policy.TransitionAltitude)
                         {
@@ -267,7 +267,7 @@ else
                 <summary class="ed-sec-head">@PanelLabel("Frequenze")@if (_dirtySections.Contains("Frequenze")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
                 <div class="block" @onchange='() => MarkDirty("Frequenze")'>
                     <div class="ed-h3">
-                        <h3>@L["Common_Frequencies"]</h3>
+                        <h2 class="h-sect">@L["Common_Frequencies"]</h2>
                         <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_FreqHelpAria"]" ExtraClass="wide">@L["Ape_FreqHelp"]</HelpHint>
                     </div>
                     <table class="res-table freq-table">
@@ -323,7 +323,7 @@ else
                 <summary class="ed-sec-head">@PanelLabel("Piste")@if (_dirtySections.Contains("Piste")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
                 <div class="block" @onchange='() => MarkDirty("Piste")'>
                     <div class="ed-h3">
-                        <h3>@L["Sorg_RunwaysLabel"]</h3>
+                        <h2 class="h-sect">@L["Sorg_RunwaysLabel"]</h2>
                         @if (_policy.Runways)
                         {
                             <span class="pill neutral" title="@L["Ape_RwFromSourceTitle"]"><Icon Name="key" Size="11" /> @L["Ape_FromSource"]</span>
@@ -369,7 +369,7 @@ else
                 <summary class="ed-sec-head">@PanelLabel("SID")@if (_dirtySections.Contains("SID")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
                 <div class="block">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-                        <h3 style="margin:0">@L["Ape_SidRenderTitle"]</h3>
+                        <h2 class="h-sect" style="margin:0">@L["Ape_SidRenderTitle"]</h2>
                         @* 🔴/🧊 restano: sono VOCABOLARIO DI STATO (come 🕒🟢 in Versioni), non comandi. *@
                         <span class="pill @(_sidsLive ? "green" : "grey")">@(_sidsLive ? "🔴 " + L["Dse_Live"] : "🧊 " + L["Dse_Frozen"])</span>
                         <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SidRenderHelpAria"]" ExtraClass="wide">
@@ -388,7 +388,7 @@ else
                     <div class="block">
                         @{ var nReview = _imported.Count(e => e.NeedsReview); var iview = ImportedView(); }
                         <div class="ed-h3">
-                            <h3>@L["Ape_SidImportedTitle"] <span class="pill blue" title="@L["Ape_SidImportedCountTitle"]">@CountLabel(iview.Count, _imported.Count)</span></h3>
+                            <h2 class="h-sect">@L["Ape_SidImportedTitle"] <span class="pill blue" title="@L["Ape_SidImportedCountTitle"]">@CountLabel(iview.Count, _imported.Count)</span></h2>
                             <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SidImportedHelpAria"]" ExtraClass="wide">
                                 @((MarkupString)L["Ape_SidImportedHelp"].Value)
                                 <p>@L["Ape_SidSelectHint"]</p>
@@ -522,7 +522,7 @@ else
 
                 <div class="block" @onchange='() => MarkDirty("SID")'>
                     <div class="ed-h3">
-                        <h3>@L["Ape_SidManualTitle"] <span class="pill blue">@CountLabel(ManualView().Count(), _sids.Count)</span></h3>
+                        <h2 class="h-sect">@L["Ape_SidManualTitle"] <span class="pill blue">@CountLabel(ManualView().Count(), _sids.Count)</span></h2>
                         <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SidManualHelpAria"]" ExtraClass="wide">
                             @L["Ape_SidManualHelp"]
                         </HelpHint>
@@ -635,7 +635,7 @@ else
                 <summary class="ed-sec-head">@PanelLabel("Sezioni extra")@if (_dirtySections.Contains("Sezioni extra")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
                 <div class="block" @onchange='() => MarkDirty("Sezioni extra")'>
                     <div class="ed-h3">
-                        <h3>@L["Ape_ExtraTitle"]</h3>
+                        <h2 class="h-sect">@L["Ape_ExtraTitle"]</h2>
                         <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_ExtraHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_ExtraHelp"].Value)</HelpHint>
                     </div>
                     @foreach (var (s, idx) in _extras.Select((s, i) => (s, i)))
@@ -664,7 +664,7 @@ else
                 <summary class="ed-sec-head">@PanelLabel("Settori")@if (_dirtySections.Contains("Settori")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
                 <div class="block" @onchange='() => MarkDirty("Settori")'>
                     <div class="section-title" style="margin-top:0">
-                        <h3 style="margin:0">@L["Ape_AtcSectors"] <span class="pill blue">@_sectors.Count</span></h3>
+                        <h2 class="h-sect" style="margin:0">@L["Ape_AtcSectors"] <span class="pill blue">@_sectors.Count</span></h2>
                         <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SectorsNoteAria"]" ExtraClass="wide">@L["Ape_SectorsNote"]</HelpHint><span class="ln"></span>
                         @if (LastImport() is DateTime lastImp)
                         {
@@ -757,7 +757,7 @@ else
                     @* Titolo e aiuto sono già qui dentro (questa pagina ha il proprio <details> di sezione):
                        il pannello non li ripete. *@
                     <div class="ed-h3">
-                        <h3>@L["Rel_SectionTitle"]</h3>
+                        <h2 class="h-sect">@L["Rel_SectionTitle"]</h2>
                         <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_VersionsHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_VersionsHelp"].Value)</HelpHint>
                     </div>
 

@@ -27,7 +27,7 @@ else
     <div class="wrap">
         <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@L["AccLanding_Apps"]</a> › <b>@_app</b></div>
         <div class="doc-layout">
-            <aside class="toc">
+            <aside class="toc" aria-label="@L["Doc_TocAria"]">
                 <p class="toc-h">@L["Common_Contents"]</p>
                 <ul>
                     @foreach (var s in VisibleSections())
@@ -72,7 +72,7 @@ else
                            nasceva aperta sull'APP e chiusa su vIPI ACC e vLOA. *@
                         <CollapsibleBlock Id="@AnchorOf(s)" Style="@(hidden ? "opacity:.65" : null)"
                                           InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
-                            <Header><h3 style="margin-top:0">@s.Title @if (hidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }</h3></Header>
+                            <Header><h2 class="h-sect" style="margin-top:0">@s.Title @if (hidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }</h2></Header>
                             <ChildContent>
                                 @* Sotto-sezioni «prima» del corpo derivato (doc 11 §3g). *@
                                 @if (SectionBody.HasChildren(s, SectionSlot.Before))
@@ -105,7 +105,7 @@ else
                            da SectionNode senza pill né opacità, e non si capiva che era fuori dal pubblico). *@
                         <CollapsibleBlock Id="@AnchorOf(s)" Style="opacity:.65"
                                           InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
-                            <Header><h3 style="margin-top:0">@s.Title <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span></h3></Header>
+                            <Header><h2 class="h-sect" style="margin-top:0">@s.Title <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span></h2></Header>
                             <ChildContent><SectionBody Section="s" /></ChildContent>
                         </CollapsibleBlock>
                     }
@@ -116,7 +116,7 @@ else
                 }
             </div>
 
-            <aside class="doc-rail">
+            <aside class="doc-rail" aria-label="@L["Doc_RailAria"]">
                 <div class="rail-card">
                     <h5><Icon Name="clipboard" /> @L["Common_Summary"]</h5>
                     @* Il ciclo del DOCUMENTO che si sta guardando, non quello di oggi (doc 13 §3h): lo snapshot

@@ -1,4 +1,4 @@
-@page "/services"
+﻿@page "/services"
 @layout SopLayout
 @inject IStringLocalizer<SharedResource> L
 
@@ -21,11 +21,11 @@
 
     <div class="choice-grid" style="margin-top:22px">
         <a class="choice" href="/services/vsop">
-            <h4><span class="ic"><Icon Name="book-open" Size="18" /></span> @L["Services_VsopTitle"]</h4>
+            <h2 class="h-card"><span class="ic"><Icon Name="book-open" Size="18" /></span> @L["Services_VsopTitle"]</h2>
             <p class="muted">@L["Services_VsopDesc"]</p>
         </a>
         <a class="choice" href="/services/profile-swapper">
-            <h4><span class="ic"><Icon Name="copy" Size="18" /></span> @L["Swap_Heading"]</h4>
+            <h2 class="h-card"><span class="ic"><Icon Name="copy" Size="18" /></span> @L["Swap_Heading"]</h2>
             <p class="muted">@L["Services_SwapperDesc"]</p>
         </a>
     </div>
