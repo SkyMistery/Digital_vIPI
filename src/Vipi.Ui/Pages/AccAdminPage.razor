@@ -33,7 +33,7 @@
        salvare i limiti si risaliva tutta la tabella. L'altezza della fascia la misura vipiStickyOffset, perché
        il `thead` delle tabelle deve appiccicarsi SOTTO di lei e quell'altezza cambia da sola. *@
     <div class="doc-head st-head sticky">
-        <h2 class="st-h2">ACC <span class="pill blue">@CountLabel(ShownAccs().Count(), _accs.Count)</span></h2>
+        <h1 class="st-h2 page-h1">ACC <span class="pill blue">@CountLabel(ShownAccs().Count(), _accs.Count)</span></h1>
         <HelpHint Href="/services/vsop/guide#struttura" AriaLabel="@L["AccAdmin_HelpAria"]" ExtraClass="wide">
             @((MarkupString)L["AccAdmin_HelpBody"].Value)
         </HelpHint>
@@ -54,14 +54,16 @@
             @* L'esito dell'ultima operazione sta QUI, fra i comandi che l'hanno provocata e il lock: era una
                fascia sotto la testata, e comparendo spingeva in giù tutta la pagina — tabella compresa, mentre
                ci si stava lavorando. Si chiude a mano e sparisce da sé alla prima operazione successiva. *@
-            @if (_msg is not null || _ok is not null)
-            {
-                <span class="st-msg @(_msg is not null ? "warn" : "ok")" role="status">
-                    <Icon Name="@(_msg is not null ? "warning" : "check-circle")" Size="14" />
-                    <span class="st-msg-t">@(_msg ?? _ok)</span>
-                    <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
-                </span>
-            }
+            <LiveRegion>
+                @if (_msg is not null || _ok is not null)
+                {
+                    <span class="st-msg @(_msg is not null ? "warn" : "ok")">
+                        <Icon Name="@(_msg is not null ? "warning" : "check-circle")" Size="14" />
+                        <span class="st-msg-t">@(_msg ?? _ok)</span>
+                        <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
+                    </span>
+                }
+            </LiveRegion>
             @* ⚠️ I margini di fascia della .lockbar si azzerano nel CSS di .st-head, non nel componente. *@
             <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
         }
@@ -169,7 +171,7 @@
         </div>
 
         <div class="section-title" id="settori-acc">
-            <h3>@L["AccAdmin_SubsTitle"] <span class="pill blue">@CountLabel(ShownSubs().Count(), _subs.Count)</span></h3>
+            <h2 class="h-sect">@L["AccAdmin_SubsTitle"] <span class="pill blue">@CountLabel(ShownSubs().Count(), _subs.Count)</span></h2>
             @* La nota che stava qui sotto in prosa: la dice il «?» al clic, identica. *@
             <HelpHint Href="/services/vsop/guide#struttura" AriaLabel="@L["AccAdmin_SubsHelpAria"]" ExtraClass="wide">
                 @L["AccAdmin_SubsNote"]

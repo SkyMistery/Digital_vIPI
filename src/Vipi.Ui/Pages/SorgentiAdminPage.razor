@@ -24,13 +24,13 @@
        che il «?» dice a chi lo chiede (regola 7). La pill compare solo quando c'è una differenza rispetto al
        DB: «Salva» non è mai un tasto di cui non si sa se serve. *@
     <div class="doc-head st-head">
-        <h2 class="st-h2">
+        <h1 class="st-h2 page-h1">
             @L["Sorg_Title"]
             @if (Authz.IsAdmin && Cambiate.Count > 0)
             {
                 <span>&nbsp;</span><span class="pill amber" title="@L["Sorg_DirtyTitle"]">@L["Sorg_Dirty", Cambiate.Count]</span>
             }
-        </h2>
+        </h1>
         <HelpHint Href="/services/vsop/guide#admin-sorgenti" AriaLabel="@L["Sorg_HelpAria"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@L["Sorg_Subtitle"]</p>
             @((MarkupString)L["Sorg_Intro"].Value)
@@ -61,14 +61,16 @@
                 <button class="btn ghost" disabled="@_busy" @onclick="RicaricaCatalogo"
                         title="@L["Sorg_ReloadNavaidsTitle"]"><Icon Name="refresh" Size="14" /> @L["Sorg_ReloadNavaids"]</button>
             </nav>
-            @if (_msg is not null || _ok is not null)
-            {
-                <span class="st-msg @(_msg is not null ? "warn" : "ok")" role="status" aria-live="polite">
-                    <Icon Name="@(_msg is not null ? "warning" : "check-circle")" Size="14" />
-                    <span class="st-msg-t">@(_msg ?? _ok)</span>
-                    <button class="tclose" title="@L["Common_Close"]" @onclick="() => { _msg = _ok = null; }">✕</button>
-                </span>
-            }
+            <LiveRegion>
+                @if (_msg is not null || _ok is not null)
+                {
+                    <span class="st-msg @(_msg is not null ? "warn" : "ok")">
+                        <Icon Name="@(_msg is not null ? "warning" : "check-circle")" Size="14" />
+                        <span class="st-msg-t">@(_msg ?? _ok)</span>
+                        <button class="tclose" title="@L["Common_Close"]" @onclick="() => { _msg = _ok = null; }">✕</button>
+                    </span>
+                }
+            </LiveRegion>
         }
     </div>
 
@@ -190,7 +192,7 @@
                vedevano da nessuna parte: `ListAsync` e `DeleteAsync` esistevano nel repository e non li
                chiamava nessuno. Un alias sbagliato — o diventato sbagliato perche' il punto e' sparito dal
                sectorfile — restava a risolvere per sempre, in silenzio, leggibile solo nel database. *@
-            <h3 class="sorg-h3">@L["Sorg_AliasTitle"] <span class="pill blue">@(_alias?.Count ?? 0)</span></h3>
+            <h2 class="h-sect sorg-h3">@L["Sorg_AliasTitle"] <span class="pill blue">@(_alias?.Count ?? 0)</span></h2>
             <p class="help sorg-aliashelp">@L["Sorg_AliasHelp"]</p>
 
             @if (_alias is null)

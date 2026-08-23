@@ -16,17 +16,20 @@ public sealed class AtcPollingHostedService : BackgroundService
     private readonly IServiceScopeFactory _scopes;
     private readonly OnlineAtcCache _cache;
     private readonly IvaoOptions _opt;
+    private readonly IHostEnvironment _env;
     private readonly ILogger<AtcPollingHostedService> _log;
 
     public AtcPollingHostedService(
         IServiceScopeFactory scopes,
         OnlineAtcCache cache,
         IOptions<IvaoOptions> opt,
+        IHostEnvironment env,
         ILogger<AtcPollingHostedService> log)
     {
         _scopes = scopes;
         _cache = cache;
         _opt = opt.Value;
+        _env = env;
         _log = log;
     }
 
@@ -45,6 +48,34 @@ public sealed class AtcPollingHostedService : BackgroundService
 
     private async Task PollOnceAsync(CancellationToken ct)
     {
+        // Verifica live (vedi docs/feature/2026-08-23-live-coordinamenti-a-colonne.md): elenco finto da
+        // config, nessuna chiamata di rete. Serve perche' senza vicini online OGNI punto di trasferimento
+        // risolve a UNICOM, che la vista nasconde per default: la pagina si prova vuota.
+        if (!string.IsNullOrWhiteSpace(_opt.FakeOnlineCallsigns))
+        {
+            // ⚠️ Strumento, non prodotto. Fuori da Development si RIFIUTA e si continua col poll vero: una
+            // configurazione dimenticata in produzione mostrerebbe a tutti un traffico che non esiste.
+            if (!_env.IsDevelopment())
+            {
+                _log.LogError("Ivao:FakeOnlineCallsigns e' valorizzato in ambiente {Env}: IGNORATO. " +
+                              "E' uno strumento di verifica, va usato solo in Development.", _env.EnvironmentName);
+            }
+            else
+            {
+                var finti = _opt.FakeOnlineCallsigns
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(c => c.ToUpperInvariant()).ToList();
+                _cache.Set(new OnlineAtcSnapshot
+                {
+                    Callsigns = new HashSet<string>(finti, StringComparer.OrdinalIgnoreCase),
+                    Details = finti.Select((c, i) => new OnlineAtc(c, 704798 + i, "Finto " + c, 5)).ToList(),
+                    AsOf = DateTimeOffset.UtcNow,
+                });
+                _log.LogWarning("ATC online FINTO da config: {Lista}", string.Join(", ", finti));
+                return;
+            }
+        }
+
         try
         {
             // Scope per-poll: il client (via IvaoHttp, typed HttpClient) viene risolto fresco => handler ruotato

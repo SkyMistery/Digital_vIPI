@@ -28,7 +28,7 @@
        l'altezza del riquadro la MISURA vipiFitViewport a ogni render. La barra del lock sale sulla stessa
        riga per la stessa ragione: è uno stato, non una sezione. *@
     <div class="doc-head st-head">
-        <h2 class="st-h2">@L["Struct_Title"]</h2>
+        <h1 class="st-h2 page-h1">@L["Struct_Title"]</h1>
         <HelpHint Href="/services/vsop/guide#struttura" AriaLabel="@L["Struct_HelpAria"]" ExtraClass="wide">
             @((MarkupString)L["Struct_HelpBody"].Value)
         </HelpHint>
@@ -42,14 +42,16 @@
             @* L'esito sta prima del lock, come nella pagina ACC: da fascia sotto la testata spingeva
                in giù l'albero mentre ci si lavorava — e qui l'altezza del riquadro è misurata, quindi una
                fascia in più sono nodi in meno. *@
-            @if (_msg is not null)
-            {
-                <span class="st-msg warn" role="status">
-                    <Icon Name="warning" Size="14" />
-                    <span class="st-msg-t">@_msg</span>
-                    <button class="tclose" title="@L["Common_Close"]" @onclick="() => _msg = null">✕</button>
-                </span>
-            }
+            <LiveRegion>
+                @if (_msg is not null)
+                {
+                    <span class="st-msg warn">
+                        <Icon Name="warning" Size="14" />
+                        <span class="st-msg-t">@_msg</span>
+                        <button class="tclose" title="@L["Common_Close"]" @onclick="() => _msg = null">✕</button>
+                    </span>
+                }
+            </LiveRegion>
             @* ⚠️ La EditLockBar sta QUI, in testata, e non come fascia a sé: i suoi margini di fascia si
                azzerano nel CSS di .st-head, non nel componente — newdoc la usa ancora come fascia. *@
             <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
@@ -59,7 +61,7 @@
     @* Il testo dell'albero di fallback è lo stesso di prima, parola per parola: cambia solo dove si legge —
        dal clic sul «?» invece che da tre righe di prosa sempre a schermo. *@
     <div class="section-title">
-        <h3>@L["Struct_CoverageHierarchy"] <span class="pill blue">@L["Struct_Division"]</span></h3>
+        <h2 class="h-sect">@L["Struct_CoverageHierarchy"] <span class="pill blue">@L["Struct_Division"]</span></h2>
         <HelpHint Href="/services/vsop/guide#struttura" AriaLabel="@L["Struct_HierarchyHelpAria"]" ExtraClass="wide">
             @((MarkupString)L["Struct_HierarchyHelp"].Value)
         </HelpHint>
@@ -168,7 +170,7 @@
                                     @if (n.Callsign is not null && _online.Contains(n.Callsign)) { <span class="onl-dot" title="@L["Struct_OnlineNow"]"></span> }
                                     <span class="node-badge @FacilityClass(n.Kind, n.Callsign)">@FacilityBadge(n.Kind, n.Callsign)</span>
                                     <span class="acc-row-label">@n.Label</span>
-                                    @if (n.AccCode != g.Code) { <span class="acc-tag" title="cross-ACC">@n.AccCode</span> }
+                                    @if (n.AccCode != g.Code) { <span class="acc-tag" title="@L["Struct_CrossAcc"]">@n.AccCode</span> }
                                     @if (n.IsHidden) { <span class="muted" style="font-size:11px">@L["Struct_Hidden"]</span> }
                                     @if (n.HasChildren && _collapsed.Contains(n.Callsign!) && !_filtering)
                                     {
@@ -205,7 +207,7 @@
             else
             {
                 <p style="margin:0 0 4px">
-                    @if (sel.Callsign is not null && _online.Contains(sel.Callsign)) { <span class="onl-dot" title="online adesso"></span> }
+                    @if (sel.Callsign is not null && _online.Contains(sel.Callsign)) { <span class="onl-dot" title="@L["Struct_OnlineNow"]"></span> }
                     <b>@sel.Label</b> <span class="node-badge @FacilityClass(sel.Kind, sel.Callsign)">@FacilityBadge(sel.Kind, sel.Callsign)</span> <span class="acc-tag">@sel.AccCode</span>
                 </p>
                 @if (sel.Kind == HierarchyNodeKind.Airport)

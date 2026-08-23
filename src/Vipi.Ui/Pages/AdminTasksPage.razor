@@ -21,13 +21,13 @@
        Il sottotitolo era una fascia sempre a schermo che diceva a chiunque, ogni volta, quello che il «?»
        dice a chi lo chiede (regola 7). *@
     <div class="doc-head st-head">
-        <h2 class="st-h2">
+        <h1 class="st-h2 page-h1">
             @L["Grants_TasksTitle"]
             @if (_tasks is not null)
             {
                 <span>&nbsp;</span><span class="pill blue" title="@L["AdminTasks_CountTitle"]">@Filtrate.Count / @_tasks.Count</span>
             }
-        </h2>
+        </h1>
         <HelpHint Href="/services/vsop/guide#admin-incarichi" AriaLabel="@L["AdminTasks_HelpAria"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@string.Format(L["AdminTasks_Subtitle"].Value, _currentCycle)</p>
             @((MarkupString)L["AdminTasks_Intro"].Value)
@@ -44,14 +44,16 @@
                     <Icon Name="refresh" Size="14" /> @L["Audit_Refresh"]
                 </button>
             </nav>
-            @if (_error is not null || _status is not null)
-            {
-                <span class="st-msg @(_error is not null ? "warn" : "ok")" role="status" aria-live="polite">
-                    <Icon Name="@(_error is not null ? "warning" : "check-circle")" Size="14" />
-                    <span class="st-msg-t">@(_error ?? _status)</span>
-                    <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
-                </span>
-            }
+            <LiveRegion>
+                @if (_error is not null || _status is not null)
+                {
+                    <span class="st-msg @(_error is not null ? "warn" : "ok")">
+                        <Icon Name="@(_error is not null ? "warning" : "check-circle")" Size="14" />
+                        <span class="st-msg-t">@(_error ?? _status)</span>
+                        <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
+                    </span>
+                }
+            </LiveRegion>
         }
     </div>
 

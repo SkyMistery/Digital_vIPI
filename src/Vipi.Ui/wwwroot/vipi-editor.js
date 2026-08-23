@@ -1,4 +1,4 @@
-// Scorciatoie da tastiera dell'editor vIPI. Registrato per-pagina con un riferimento DotNet (vipiEditorInit).
+﻿// Scorciatoie da tastiera dell'editor vIPI. Registrato per-pagina con un riferimento DotNet (vipiEditorInit).
 // Ctrl/Cmd+E alterna la modalità Modifica. Ignorato quando il focus è in un campo di testo.
 (function () {
     var current = null;   // DotNetObjectReference della pagina editor attiva
@@ -110,6 +110,6 @@
         var bar = document.querySelector('.editor-bar');
         var off = (bar ? bar.offsetHeight : 0) + 12;
         var y = el.getBoundingClientRect().top + window.pageYOffset - off;
-        window.scrollTo({ top: y, behavior: 'smooth' });
+        window.scrollTo({ top: y, behavior: vipiScorrimento() });
     };
 })();

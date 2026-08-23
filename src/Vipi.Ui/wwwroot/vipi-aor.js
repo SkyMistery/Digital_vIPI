@@ -1,6 +1,47 @@
-// Mappa AOR: disegna il poligono shape reale su una basemap minimal (CartoDB Positron) via Leaflet.
+﻿// Mappa AOR: disegna il poligono shape reale su una basemap minimal (CartoDB Positron) via Leaflet.
 // Idempotente: ogni contenitore .aor-leaflet[data-poly] è inizializzato una sola volta (data-init).
+//
+// ⚠️ Leaflet NON è nel <body> di ogni pagina: sono 162 KB (js + css) che servono alle sole pagine con una
+// mappa, mentre quel <body> vale per ricerca, incarichi, elenchi admin, guida, login e hub. È la stessa
+// regola che App.razor scriveva già per three.js e che a Leaflet non era stata applicata. Lo carica
+// caricaLeaflet() alla prima `.aor-leaflet` incontrata; fino ad allora si vede il ripiego SVG, che è già
+// in piedi e disegna il dato nostro.
 (function () {
+    // URL (con l'impronta di MapStaticAssets) dai data attribute sul nostro <script>. `document.currentScript`
+    // va letto QUI: dentro una funzione chiamata dopo varrebbe null.
+    var SELF = document.currentScript;
+    var LEAFLET_SRC = (SELF && SELF.getAttribute('data-leaflet-src')) || '';
+    var LEAFLET_CSS = (SELF && SELF.getAttribute('data-leaflet-css')) || '';
+    var leafletPromise = null;
+
+    /// Carica Leaflet una sola volta. La promise è memorizzata anche se fallisce: niente tempeste di retry,
+    /// e il ripiego SVG resta quello che si vede — che è il comportamento di prima quando la CDN non
+    /// rispondeva, salvo che ora i byte sono nostri e il caso non dovrebbe capitare.
+    function caricaLeaflet() {
+        if (window.L) return Promise.resolve();
+        if (leafletPromise) return leafletPromise;
+        leafletPromise = new Promise(function (resolve, reject) {
+            if (!LEAFLET_SRC) { reject(new Error('data-leaflet-src assente sul tag di vipi-aor.js')); return; }
+            // Il foglio prima dello script: Leaflet misura il contenitore appena parte, e senza le sue
+            // regole quel contenitore ha l'altezza sbagliata.
+            if (LEAFLET_CSS && !document.querySelector('link[data-leaflet-css]')) {
+                var l = document.createElement('link');
+                l.rel = 'stylesheet';
+                l.href = LEAFLET_CSS;
+                l.setAttribute('data-leaflet-css', '');
+                document.head.appendChild(l);
+            }
+            var s = document.createElement('script');
+            s.src = LEAFLET_SRC;
+            s.onload = function () {
+                if (window.L) resolve();
+                else reject(new Error('Leaflet caricato ma L non è globale'));
+            };
+            s.onerror = function () { reject(new Error('Leaflet non caricato: ' + LEAFLET_SRC)); };
+            document.head.appendChild(s);
+        });
+        return leafletPromise;
+    }
     // Un colore che arriva dal DOM puo' essere un hex vero (override manuale dell'utente, che esce da
     // un <input type=color>) oppure il NOME di un token del tema (es. "--ivao-red"). Leaflet vuole un
     // colore vero: qui il token viene risolto una volta sola sul :root.
@@ -12,6 +53,18 @@
         if (v.indexOf('--') !== 0) return v;
         var r = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
         return r || fallback;
+    }
+
+    // Stato acceso/spento di una chip: la classe `.on` per l'occhio, `aria-pressed` per tutto il resto.
+    //
+    // ⚠️ Le due cose si scrivono INSIEME, da qui, e non ognuna dove capita: fino al 23 agosto 2026 esisteva
+    // solo la classe, e chi non vede la barra colorata non aveva modo di sapere quali settori fossero accesi.
+    // I comandi sono passati da <span>/<a> a <button> (Chip.razor spiega perche' un comando che esiste solo
+    // per il mouse non e' un comando); `aria-pressed` e' la meta' che il <button> non porta da solo.
+    function segna(el, on) {
+        if (!el) return;
+        el.classList.toggle('on', !!on);
+        el.setAttribute('aria-pressed', on ? 'true' : 'false');
     }
 
     // Basemap CartoDB Positron condivisa.
@@ -105,42 +158,42 @@
 
         if (t.classList.contains('aor-chip')) {
             var nn = !isOn(t.dataset.sec);
-            t.classList.toggle('on', nn);
+            segna(t, nn);
             setSec(t.dataset.sec, nn);
             refit();
         } else if (t.classList.contains('aor-all')) {
             var allOn = t.dataset.act === 'all';
             block.querySelectorAll('.aor-chip').forEach(function (ch) {
-                ch.classList.toggle('on', allOn);
+                segna(ch, allOn);
                 setSec(ch.dataset.sec, allOn);
             });
             refit();
         } else if (t.classList.contains('cfg-btn')) {
             // Verità selezione = proprietà JS sul block (la classe si desincronizza). Riclick sulla stessa = deseleziona → mostra tutti.
             var wasSel = block.__selCfgNode === t;
-            block.querySelectorAll('.cfg-btn').forEach(function (x) { x.classList.remove('on'); });
+            block.querySelectorAll('.cfg-btn').forEach(function (x) { segna(x, false); });
             if (wasSel) {
                 block.__selCfgNode = null;
-                block.querySelectorAll('.aor-chip').forEach(function (ch) { ch.classList.add('on'); setSec(ch.dataset.sec, true); });
+                block.querySelectorAll('.aor-chip').forEach(function (ch) { segna(ch, true); setSec(ch.dataset.sec, true); });
                 syncCfgDetails(null);   // deseleziona → collassa tutte
             } else {
                 block.__selCfgNode = t;
-                t.classList.add('on');
+                segna(t, true);
                 var set = (t.dataset.secs || '').split(',').map(function (s) { return s.toUpperCase(); }).filter(Boolean);
                 block.querySelectorAll('.aor-chip').forEach(function (ch) {
                     var on = set.indexOf((ch.dataset.sec || '').toUpperCase()) >= 0;
-                    ch.classList.toggle('on', on);
+                    segna(ch, on);
                     setSec(ch.dataset.sec, on);
                 });
                 syncCfgDetails(t.dataset.cfgkey || '');   // apre solo questa, collassa le altre
             }
             refit();
             // Tiene l'AoR al centro schermo: aprire i details config sposta il layout.
-            if (lf) setTimeout(function () { lf.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 90);
+            if (lf) setTimeout(function () { lf.scrollIntoView({ behavior: vipiScorrimento(), block: 'center' }); }, 90);
         } else if (t.classList.contains('cfg-clear')) {
             block.__selCfgNode = null;
-            block.querySelectorAll('.cfg-btn').forEach(function (x) { x.classList.remove('on'); });
-            block.querySelectorAll('.aor-chip').forEach(function (ch) { ch.classList.add('on'); setSec(ch.dataset.sec, true); });
+            block.querySelectorAll('.cfg-btn').forEach(function (x) { segna(x, false); });
+            block.querySelectorAll('.aor-chip').forEach(function (ch) { segna(ch, true); setSec(ch.dataset.sec, true); });
             syncCfgDetails(null);
             refit();
         }
@@ -222,8 +275,17 @@
     }
 
     function initAll() {
-        if (window.L) document.querySelectorAll('.aor-leaflet').forEach(initOne);
         // Le chip AoR usano event delegation (onAorClick), nessun wiring per-elemento.
+        if (window.L) { document.querySelectorAll('.aor-leaflet').forEach(initOne); return; }
+        // ⚠️ Si chiede Leaflet solo se in pagina c'è davvero una mappa: questa funzione gira a ogni render
+        // di Blazor e a ogni navigazione, cioè anche sulle pagine che una mappa non ce l'hanno.
+        if (!document.querySelector('.aor-leaflet')) return;
+        caricaLeaflet().then(function () {
+            document.querySelectorAll('.aor-leaflet').forEach(initOne);
+        }).catch(function (e) {
+            // Resta il ripiego SVG: il dato nostro si disegna lo stesso, senza la basemap.
+            console.warn('[vipi] mappa AoR senza Leaflet, resta il ripiego SVG', e);
+        });
     }
     window.vipiInitAor = initAll;
 

@@ -1,9 +1,34 @@
 ﻿// Interattività di consultazione (pagine SSR statiche): toggle settori AoR + selettore configurazioni.
 // Ricollegato a ogni navigazione via 'enhancedload' (vedi App.razor).
+
+// Il verso dello scorrimento, secondo chi guarda: 'smooth' o 'auto'.
+//
+// ⚠️ Non è una rifinitura. Chi ha chiesto al sistema di ridurre le animazioni lo ha fatto per un motivo —
+// per una parte delle persone un contenuto che scorre da solo dà nausea o innesca un'emicrania — e il
+// foglio di stile da solo non ci arriva: `behavior:'smooth'` è una stringa scritta nel JS, e nessuna
+// media query la spegne. Il pendant CSS sta in fondo a vipi-theme.css.
+//
+// Fuori dall'IIFE e in cima al file: la chiamano anche vipi-aor.js e vipi-editor.js. Si rilegge a ogni
+// chiamata invece di ricordarsela: la preferenza si può cambiare mentre la pagina è aperta.
+window.vipiScorrimento = function () {
+    try {
+        return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            ? 'auto' : 'smooth';
+    } catch (e) { return 'smooth'; }
+};
+
 (function () {
+    // Stato acceso/spento di una chip: la classe `.on` per l'occhio, `aria-pressed` per tutto il resto.
+    // Gemella di quella in vipi-aor.js — le chip sono le stesse, le pilotano due file diversi a seconda che
+    // dietro ci sia una mappa Leaflet o l'SVG di ripiego.
+    function segna(el, on) {
+        if (!el) return;
+        el.classList.toggle('on', !!on);
+        el.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+
     function setSector(scope, key, on) {
-        var chip = scope.querySelector('.aor-chip[data-sec="' + key + '"]');
-        if (chip) chip.classList.toggle('on', on);
+        segna(scope.querySelector('.aor-chip[data-sec="' + key + '"]'), on);
         scope.querySelectorAll('.sec[data-sec="' + key + '"], .lbl[data-sec="' + key + '"]').forEach(function (el) {
             el.classList.toggle('hidden', !on);
         });
@@ -28,14 +53,14 @@
         // selettore configurazioni → evidenzia righe nella tabella configurazioni + setta i settori
         scope.querySelectorAll('.cfg-btn').forEach(function (btn) {
             btn.onclick = function () {
-                scope.querySelectorAll('.cfg-btn').forEach(function (b) { b.classList.remove('on'); });
-                btn.classList.add('on');
+                scope.querySelectorAll('.cfg-btn').forEach(function (b) { segna(b, false); });
+                segna(btn, true);
                 applyConfig(btn.getAttribute('data-rows'), btn.getAttribute('data-secs'));
             };
         });
         var clr = scope.querySelector('.cfg-clear');
         if (clr) clr.onclick = function () {
-            scope.querySelectorAll('.cfg-btn').forEach(function (b) { b.classList.remove('on'); });
+            scope.querySelectorAll('.cfg-btn').forEach(function (b) { segna(b, false); });
             applyConfig('', null);
         };
     }
@@ -169,7 +194,7 @@
             e.preventDefault();
             e.stopImmediatePropagation();
             openDetailsFor(el);   // se il target è una sezione collassata (Guida), aprila prima di scorrere
-            scrollAfterLayout(el, 'smooth');
+            scrollAfterLayout(el, vipiScorrimento());
             var toc = a.closest('.toc');
             if (toc) { toc.querySelectorAll('a').forEach(function (x) { x.classList.remove('active'); }); a.classList.add('active'); }
             history.replaceState(null, '', location.pathname + location.search + '#' + id);
@@ -461,7 +486,7 @@
     window.vipiScrollToId = function (id) {
         var el = document.getElementById(id);
         if (!el) return;
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.scrollIntoView({ behavior: vipiScorrimento(), block: 'center' });
     };
 
     // Porta in vista un pannello di editing quando il suo PIEDE non lo è. Il bersaglio è il piede e non il
@@ -519,9 +544,32 @@
         return tot;
     }
 
-    function fitOne(sel, collapseBelow, cap, reserveSel) {
+    function fitOne(sel, collapseBelow, cap, reserveSel, cssVar) {
         var el = document.querySelector(sel);
         if (!el) return;
+        if (cssVar) {
+            if (window.innerWidth <= collapseBelow) { el.style.removeProperty(cssVar); return; }
+            var topV = el.getBoundingClientRect().top + window.pageYOffset - document.documentElement.scrollTop;
+            // ⚠️ Lo spazio si divide per le RIGHE della griglia, e le righe si contano — non si sanno.
+            // `repeat(auto-fit, minmax(...))` manda i figli a capo quando la finestra si stringe: dando a
+            // ognuno l'altezza piena, due righe di colonne ne occuperebbero il doppio e la promessa «sta in
+            // una schermata» salterebbe proprio dove serve di piu'. Le righe si riconoscono dall'offsetTop.
+            var cime = [], k;
+            for (k = 0; k < el.children.length; k++) {
+                var t = Math.round(el.children[k].offsetTop);
+                if (cime.indexOf(t) < 0) cime.push(t);
+            }
+            var righe = Math.max(1, cime.length);
+            var gapV = parseFloat(getComputedStyle(el).rowGap) || 0;
+            var liberoV = (window.innerHeight - topV - riserva(reserveSel)) / rootZoom() - 18;
+            // floor e non round: arrotondando per eccesso il riquadro sfora di 1px, e 1px di scorrimento
+            // e' comunque una barra di scorrimento.
+            var hV = Math.floor((liberoV - (righe - 1) * gapV) / righe);
+            // fitMin vale per RIGA: sotto quella soglia il riquadro e' inutilizzabile e si lascia scorrere
+            // la pagina, che e' il comportamento giusto su schermo basso o con molte righe di colonne.
+            if (hV >= fitMin) el.style.setProperty(cssVar, hV + 'px'); else el.style.removeProperty(cssVar);
+            return;
+        }
         var prop = cap ? 'maxHeight' : 'height';
         var altra = cap ? 'height' : 'maxHeight';
         el.style[altra] = '';
@@ -555,9 +603,28 @@
         fitOne(selector, below, true, reserveSel);
     };
 
-    window.addEventListener('resize', function () {
-        fitTargets.forEach(function (t) { fitOne(t.sel, t.below, t.cap, t.res); });
-    });
+    // Come vipiCapViewport, ma scrive lo spazio disponibile in una CUSTOM PROPERTY (`--vipi-inner-h`) invece
+    // che sull'elemento.
+    //
+    // ⚠️ Serve perché le altre due non sanno fare questo caso: un contenitore a GRIGLIA con `max-height` non
+    // rimpicciolisce i suoi figli — le colonne restano alte quanto il loro contenuto e il riquadro ritaglia
+    // invece di far scorrere. La misura va presa sul contenitore (che sa dov'è la sua cima) e APPLICATA ai
+    // figli, e in CSS l'unico modo di passarla è una variabile. La usano le colonne dei coordinamenti live:
+    // `#xl-cols` riceve la variabile, `.xl-krows` ci mette il proprio `max-height`.
+    window.vipiCapInner = function (selector, collapseBelow, reserveSel) {
+        var below = collapseBelow || 0;
+        var v = '--vipi-inner-h';
+        if (!fitTargets.some(function (t) { return t.sel === selector && t.cssVar === v; }))
+            fitTargets.push({ sel: selector, below: below, res: reserveSel, cssVar: v });
+        fitOne(selector, below, false, reserveSel, v);
+    };
+
+    function fitAll() { fitTargets.forEach(function (t) { fitOne(t.sel, t.below, t.cap, t.res, t.cssVar); }); }
+
+    window.addEventListener('resize', fitAll);
+    // ⚠️ Aprire o chiudere un <details> sposta ciò che sta SOTTO senza passare da un resize: chi si misura
+    // dallo spazio che resta va rifatto. `toggle` non fa bolla, quindi si ascolta in cattura.
+    document.addEventListener('toggle', function () { requestAnimationFrame(fitAll); }, true);
 
     // ---- La topbar sceglie il suo scaglione MISURANDOSI ----
     //

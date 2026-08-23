@@ -1675,3 +1675,100 @@ modo di ingrandire il disegno senza toccare la larghezza.
 
 ⚠️ Da ricordare per chi torna sull'editor: il **velo grigio al primo accesso è il tour di onboarding**
 (`vt-overlay` di `vipi-tour.js`), non un guasto della pagina. Fa sembrare tutto disabilitato.
+
+---
+
+## 23 agosto 2026 — audit frontend/UI (`audit-frontend-ui`)
+
+Revisione di tutta l'interfaccia, con l'esito per esteso in
+[audit-2026-08-23-frontend-ui.md](audit-2026-08-23-frontend-ui.md). Quindici voci, tutte chiuse in giornata,
+sei commit. Suite: 3.595 test verdi su 14 assiemi, build a zero avvisi.
+
+Il filo che le lega non era previsto e vale più del singolo difetto: **tre su tredici nascono da regole che
+il progetto aveva già scritto, applicate a metà**. La regola sui `<span>` cliccabili è in `Chip.razor` per
+esteso; quella sui 592 KB da non caricare ovunque è in `App.razor` per three.js; quella sul fuoco visibile è
+nel foglio. Ognuna aveva un punto che le sfuggiva, e sfuggiva perché era arrivato da un'altra strada — JS
+puro invece di Blazor, un `<link>` invece di uno `<script>`, un campo che azzera l'outline apposta.
+
+**Il difetto funzionale.** Dal rename del 22 agosto **nessun ACC era più evidenziato in topbar**: `SopLayout`
+contava i segmenti a mano e confrontava il primo con `"vsop"`, che da quel giorno vale `"services"`. Il
+commento sopra la riga diceva già l'indirizzo nuovo — era il codice a essere rimasto indietro. Una stringa
+sbagliata compila, e nessun test guardava l'HTML servito. Il conto sta ora in `VsopRoutes` e il prefisso in
+un posto solo.
+
+**Accessibilità, e tre voci sono sulle pagine pubbliche.** I comandi del blocco AoR erano `<span>` e `<a>`
+senza href: mouse-only, su documenti che si aprono senza login. Nessuna pagina aveva un `<h1>`, e sulle vIPI
+titolo e blocchi stavano allo stesso livello. `prefers-reduced-motion` non era nominato da nessuna parte (42
+transizioni, una animazione infinita). Il fuoco era invisibile in tre campi. Le live region nascevano
+insieme al messaggio, quindi non venivano annunciate.
+
+**La terza ricaduta della stessa malattia.** Dopo la topbar e le tabelle del viewer: una `@media` misura la
+FINESTRA, e lo zoom qui è `zoom` sull'`<html>`. Sul viewer la soglia dei 1080 non scattava a nessuno zoom
+mentre le barre laterali restavano fisse, e il documento scendeva a **161px a zoom 1.8** fra due barre da 248
+e 308 — cioè il rimedio peggiorava il caso che doveva servire, perché chi zooma a 1.8 è chi ha bisogno di
+leggere meglio. Curato con una `@container`, che misura in unità di layout. ⚠️ Il contenimento sta su
+`.wrap:has(> .doc-layout)`: `container-type` porta `contain:layout`, e gli editor hanno un `.editor-toast`
+fisso dentro il `.wrap`.
+
+⚠️ **Due lezioni di metodo, tutt'e due costate tempo.**
+
+La prima: **la prova che ritaggare venti pagine non cambia il disegno va MISURATA.** 216 titoli su 15 pagine,
+in chiaro e in compatta, fotografati prima e dopo. Il primo giro ha trovato **sei regressioni vere** che
+sarebbero passate — un colore scivolato su 19 titoli, la compatta che rimpiccioliva chi non doveva, il peso
+da 700 a 800, e una pagina promossa due volte perché compariva in due liste di lavoro.
+
+La seconda: in **Edge 151** `documentElement.clientWidth` **non è più in unità di layout** sotto `zoom` —
+restituisce i px di finestra. La prima passata di misure, che deduceva da lì, diceva che non succedeva
+niente. La domanda va fatta a `matchMedia`, che è ciò che decide se la regola vale.
+
+**In coda, due correzioni all'analisi**, registrate perché in tutti e due i casi mentiva la grep e non il
+codice: le «decine di righe non localizzate» di `AdminTrasferimentiPage` erano commenti XML nel blocco
+`@code`, e le «131 stringhe» di `GuidaPage` erano le due metà di un contenuto bilingue per costruzione.
+
+## 23 agosto 2026 — i coordinamenti della vista live, e la potatura del foglio (`audit-frontend-ui`)
+
+Carta per esteso in
+[../feature/2026-08-23-live-coordinamenti-a-colonne.md](../feature/2026-08-23-live-coordinamenti-a-colonne.md).
+Sei commit, suite verde su 14 assiemi, build a zero avvisi su entrambi i TFM.
+
+Il committente ha riferito che con `LIBB_ES_CTR` connesso «si legge tutto su una riga e devo scorrere per
+vedere». Riprodotto e misurato: **2835px di pagina — 2,6 schermate — per 36 punti, in una colonna larga
+483px su 1478 disponibili**. Ora sta in una schermata a 1920×1080, a 1440×900 e a 1280×800.
+
+**La diagnosi è un presupposto caduto, non un bug.** `TransfersLive` raggruppava per mittente e impaginava i
+gruppi a masonry, ma `LiveStationParts.TransfersAsync` filtra `ResolvedOwnerCallsign == callsign`: nella
+vista live il mittente è **sempre uno solo**. La masonry impaginava un elenco di uno, e `break-inside:avoid`
+le vietava pure di spezzarlo. Veniva dal mockup #reduced, dove i mittenti erano davvero più d'uno. ⚠️ **Un
+componente portato da un contesto a un altro può restare corretto e diventare inutile**: qui il difetto non
+si vedeva finché i coordinamenti erano pochi.
+
+**Tre forme misurate nel browser vero prima di scegliere** (2835 → 1739 / 1080 / 1080), e la scelta è caduta
+sulle colonne per tipo di traffico: la più densa si legge a serpentina, e questa è una pagina che si guarda
+*mentre* si lavora in frequenza.
+
+⚠️ **Cinque trappole pagate, tutte di metodo.**
+
+1. **Il tetto lo misura chi RENDE l'elemento.** Con la chiamata in `LivePage.OnAfterRenderAsync`, togliere il
+   filtro riportava 48px di scorrimento: il filtro è stato del componente figlio, e Blazor ridisegna solo lui.
+2. **Un figlio di griglia non si accorcia per il `max-height` del padre** — ritaglia. Da qui `vipiCapInner`,
+   che passa la misura al CSS in una custom property e la **divide per le righe della griglia, contate**.
+3. **`probe.js` non compone l'alfa**, e uno script scritto per rimediare ha letto `color(srgb 0.894 …)` con
+   una regex da `rgb()`. Accusava `.cop`, una classe che tutta l'applicazione usa da mesi: **quando un numero
+   accusa qualcosa che sta lì da mesi, il sospetto va prima allo strumento.**
+4. **`vipi-screens.js` cancellava i coordinamenti veri.** Il mockup v2 era caricato in ogni pagina e faceva
+   `innerHTML=''` su `#xfer-pairs` — un id che esisteva davvero, nella vista live. La sezione «Aeroporto»
+   rimasta non era innocua: guardata su un id inesistente, ma pronta ad agganciare i suoi handler a
+   `.sid-pill`, `.wx-tab`, `#sidSearch`, `#windDir`, `#windKt`, che esistono tutti sulle pagine vere.
+5. **Il confronto «prima/dopo» iniettando un foglio vecchio con `<style>` mente**: cambia l'ordine di
+   cascata, e la pagina si allunga anche iniettando il foglio ATTUALE (controllo fatto, stesso scarto).
+
+**In coda, la potatura del foglio**: 249 selettori, 268 righe, 919 classi → 751. Tre setacci sempre più
+stretti — il nome nudo (⚠️ i `.resx` contano: portano HTML con classi via `MarkupString`), il prefisso per i
+nomi composti (`$"xt-ind{n}"`), e il ragionamento per REGOLA e non per classe. ⚠️ **Ma nessuno dei tre vede
+una classe costruita interamente da una variabile**: `.node-badge.fss` nasce da un `switch` che ritorna
+`"FSS"` più un `.ToLowerInvariant()`, e in minuscolo quel nome non esiste in nessun file. L'ha ripescata
+`nessun-bersaglio.js`, che chiede al DOM vero su 29 pagine coi `<details>` aperti — **su 249, uno**.
+
+Tre attrezzi nuovi nella skill `verifica-live` (`classi-morte.py`, `nessun-bersaglio.js`, `sfora.js`) e
+un'opzione di sola verifica, `Ivao:FakeOnlineCallsigns`, **onorata solo in Development**: senza vicini
+online ogni punto risolve a UNICOM, che la vista nasconde, e la pagina si prova vuota.

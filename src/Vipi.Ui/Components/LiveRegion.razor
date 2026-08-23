@@ -1,0 +1,30 @@
+@* Il posto dove compaiono gli esiti, ANNUNCIATO.
+
+   ⚠️ Il difetto che chiude, e che si vede solo provando con uno screen reader. Il modo naturale di
+   scrivere un messaggio d'esito in Blazor è questo:
+
+       @@if (_msg is not null) { <span role="status">@@_msg</span> }
+
+   e non funziona. Uno screen reader annuncia i cambiamenti che avvengono DENTRO una live region che
+   stava già lì: una regione che entra nel DOM nello stesso istante in cui compare il testo, in genere
+   non viene letta affatto. Il risultato era che l'esito di un salvataggio si vedeva e non si sentiva —
+   cioè mancava proprio nel caso in cui serve, perché chi non vede lo schermo non ha altro modo di
+   sapere se il salvataggio è andato.
+
+   La cura è tenere la regione SEMPRE resa, vuota quando non c'è niente da dire, e far cambiare solo il
+   suo contenuto. Questo componente è quella regione.
+
+   ⚠️ `display:contents` (classe `.live-region` nel foglio) e non un contenitore vero: le testate sono
+   `flex` con `gap`, e un elemento in più — anche largo zero — vi aggiungerebbe un vuoto di 10px sempre
+   presente. Con `display:contents` il riquadro non esiste per il layout: il figlio resta l'elemento
+   flex, esattamente come prima. Il nodo però resta nel DOM e col suo ruolo, che è ciò che conta.
+
+   ⚠️ `polite` e non `assertive`, anche per gli errori: `assertive` interrompe a metà parola quello che
+   si sta ascoltando, e qui si annuncia l'esito di un'azione appena chiesta — chi la sta aspettando la
+   sente comunque, un istante dopo. *@
+
+<span class="live-region" role="status" aria-live="polite">@ChildContent</span>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

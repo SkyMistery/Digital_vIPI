@@ -75,6 +75,39 @@ node probe.js dark  http://localhost:5034/vsop/lirr
 node probe.js light http://localhost:5034/vsop/lirr
 ```
 
+⚠️ **`probe.js` non compone l'alfa**, e il 23 agosto 2026 è costato due giri: su una zebra fatta con
+`color-mix(..., transparent)` ha risposto 2,63:1 e 1,39:1, numeri peggiori dei veri e tutti falsi. E lo
+script scritto per rimediare ha letto `color(srgb 0.894 0.916 0.991)` con una regex da `rgb()`, prendendo
+`0.894` per un valore su 255: accusava `.cop`, cioè una classe che tutta l'applicazione usa da mesi.
+**Quando un numero accusa qualcosa che sta lì da mesi, il sospetto va prima allo strumento.** Il contrasto
+vero si misura risalendo i fondi e componendo le alfa, e il `color()` moderno va convertito.
+
+C'è anche `classi-morte.py`, che elenca le classi del foglio che nessuna sorgente nomina:
+
+```powershell
+python .claude/skills/verifica-live/classi-morte.py "<radice del repo>"
+```
+
+⚠️ Il suo elenco **apre** la domanda, non la chiude: cerca il nome nudo nelle sorgenti, quindi i nomi
+composti a pezzi (`$"xt-ind{n}"`, `$"blk-{k}"`, `class="lvl@(livello)"`) risultano morti e non lo sono.
+
+⚠️ E **il confronto è in minuscolo, apposta**: `.node-badge.fss` nasce da un `"FSS"` più un
+`.ToLowerInvariant()`, e in minuscolo quel nome non compare in nessun file. Tolta il 23 agosto, e rimessa
+un'ora dopo perché la prova qui sotto l'ha ripescata.
+
+**La prova che chiude la domanda è `nessun-bersaglio.js`**: prende i selettori che il `git diff` dice
+rimossi e verifica, su una trentina di pagine reali (con tutti i `<details>` aperti), che **nessuno trovi
+più niente nel DOM**. È l'unico controllo che vede le classi costruite interamente da una variabile — che
+nessuna passata sul testo può vedere.
+
+```powershell
+git diff src/Vipi.Ui/wwwroot/vipi-theme.css | ... > selettori-tolti.txt   # vedi la carta del 23 agosto
+node nessun-bersaglio.js
+```
+
+C'è anche `sfora.js <url>`, che dice **quale elemento** fa scorrere una pagina in orizzontale (salta chi ha
+`overflow-x:auto`, che scorre per costruzione e non sfora).
+
 ⚠️ **Perché esistono.** Il 22 agosto `vipi-aor3d.css` è **sfuggito** alla passata sui token: la legenda del
 visore 3D è rimasta col fondo bianco scritto a mano e, nel tema scuro, aveva le scritte quasi bianche
 sopra — illeggibile. **Nessun test lo ha visto**, e nel tema chiaro non si vedeva. `driver.js` non l'ha

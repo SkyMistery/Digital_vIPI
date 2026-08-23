@@ -19,13 +19,13 @@
        aggiornare l'avanzamento», mentre il trascinamento non è mai esistito — lo stato si è sempre cambiato
        coi tasti della card. La prosa che descrive un gesto che non c'è manda a cercarlo. *@
     <div class="doc-head st-head">
-        <h2 class="st-h2">
+        <h1 class="st-h2 page-h1">
             @L["Tasks_MyTasks"]
             @if (_tasks is { Count: > 0 })
             {
                 <span>&nbsp;</span><span class="pill blue" title="@L["Tasks_CountTitle"]">@Aperti / @_tasks.Count</span>
             }
-        </h2>
+        </h1>
         <HelpHint Href="/services/vsop/guide#incarichi" AriaLabel="@L["Tasks_HelpAria"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@string.Format(L["Tasks_Subtitle"].Value, _currentCycle)</p>
             @((MarkupString)L["Tasks_Intro"].Value)
@@ -38,14 +38,16 @@
                 <button class="btn primary @(_newOpen ? "on" : "")" disabled="@_busy" @onclick="() => _newOpen = !_newOpen"
                         title="@L["Tasks_NewPersonal"]"><Icon Name="plus" Size="14" /> @L["Tasks_NewPersonal"]</button>
             </nav>
-            @if (_error is not null || _status is not null)
-            {
-                <span class="st-msg @(_error is not null ? "warn" : "ok")" role="status" aria-live="polite">
-                    <Icon Name="@(_error is not null ? "warning" : "check-circle")" Size="14" />
-                    <span class="st-msg-t">@(_error ?? _status)</span>
-                    <button class="tclose" title="@L["Common_Close"]" @onclick="() => { _status = _error = null; }">✕</button>
-                </span>
-            }
+            <LiveRegion>
+                @if (_error is not null || _status is not null)
+                {
+                    <span class="st-msg @(_error is not null ? "warn" : "ok")">
+                        <Icon Name="@(_error is not null ? "warning" : "check-circle")" Size="14" />
+                        <span class="st-msg-t">@(_error ?? _status)</span>
+                        <button class="tclose" title="@L["Common_Close"]" @onclick="() => { _status = _error = null; }">✕</button>
+                    </span>
+                }
+            </LiveRegion>
         }
     </div>
 

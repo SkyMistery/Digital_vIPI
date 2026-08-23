@@ -11,7 +11,10 @@
 @inject IStringLocalizer<SharedResource> L
 
 <div class="print-only print-meta">
-    <h1 class="pm-title">@Title</h1>
+    @* ⚠️ Un <p> e non un <h1>: dal 23 agosto 2026 la testata di pagina È un <h1> vero, e si stampa insieme
+       al resto. Due <h1> sullo stesso foglio direbbero che il documento ha due titoli. Qui l'aspetto lo fa
+       `.pm-title` — che era già una classe propria — e la gerarchia la porta la pagina. *@
+    <p class="pm-title">@Title</p>
     @if (!string.IsNullOrWhiteSpace(Subtitle))
     {
         <p class="pm-sub">@Subtitle</p>

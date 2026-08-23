@@ -27,7 +27,7 @@ else
     <div class="wrap">
         <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_data.AccCode</a> › <b>vIPI</b></div>
         <div class="doc-layout">
-            <aside class="toc">
+            <aside class="toc" aria-label="@L["Doc_TocAria"]">
                 <p class="toc-h">@L["Common_Navigation"]</p>
                 @foreach (var block in _data.Blocks)
                 {
@@ -45,7 +45,7 @@ else
                 <PrintMeta Title="@($"vIPI — {_data.AccName}")" Subtitle="@L["AccVipi_Subtitle"]"
                            AiracCycle="@Cycle()" />
                 <div class="doc-head">
-                    <div><h2 style="margin-bottom:2px">vIPI — @_data.AccName</h2><span class="muted">@L["AccVipi_Subtitle"]</span></div>
+                    <div><h1 class="page-h1" style="margin-bottom:2px">vIPI — @_data.AccName</h1><span class="muted">@L["AccVipi_Subtitle"]</span></div>
                     <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
                         <a class="btn ghost" href="/services/vsop/live">@L["Common_Operational"]</a>
@@ -86,7 +86,7 @@ else
                 }
             </div>
 
-            <aside class="doc-rail">
+            <aside class="doc-rail" aria-label="@L["Doc_RailAria"]">
                 <div class="rail-card">
                     <h5><Icon Name="clipboard" /> @L["Common_Summary"]</h5>
                     @* Il ciclo del DOCUMENTO che si sta guardando, non quello di oggi (doc 13 §3h): il corpo è lo

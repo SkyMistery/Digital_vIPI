@@ -12,7 +12,7 @@
     <div class="breadcrumb"><a href="/services/vsop">Home</a> › <b>@T("Guida","Guide")</b></div>
     <div class="doc-head">
         <div>
-            <h2 style="margin-bottom:2px"><Icon Name="book-open" /> @T("Guida a vIPI / vLOA","vIPI / vLOA Guide")</h2>
+            <h1 class="page-h1" style="margin-bottom:2px"><Icon Name="book-open" /> @T("Guida a vIPI / vLOA","vIPI / vLOA Guide")</h1>
             <span class="muted">@T("Come consultare le procedure e come usare gli strumenti di modifica","How to consult the procedures and how to use the editing tools")</span>
         </div>
         <div class="apt-quick" style="margin:0" role="group" aria-label="@T("Lingua","Language")">
@@ -26,12 +26,12 @@
 
     @* ── Indice (derivato dalle stesse liste) ──────────────────────────────── *@
     <nav class="guida-toc" aria-label="@T("Indice guida","Guide index")">
-        <h3>@T("Consultare","Reading")</h3>
+        <h2 class="h-sect">@T("Consultare","Reading")</h2>
         @foreach (var s in _consult)
         {
             <a href="#@s.Anchor">@T(s.TitleIt, s.TitleEn)</a>
         }
-        <h3>@T("Modificare","Editing")</h3>
+        <h2 class="h-sect">@T("Modificare","Editing")</h2>
         @foreach (var s in _modify)
         {
             <a href="#@s.Anchor">@T(s.TitleIt, s.TitleEn)</a>

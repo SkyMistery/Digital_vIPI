@@ -142,7 +142,6 @@ con path nudi sotto `UseStaticFiles()`, rinunciando al cache-busting per impront
 <link rel="stylesheet" href="_content/Vipi.Ui/vipi-aor3d.css" />
 <link rel="stylesheet" href="_content/Vipi.Ui/vipi-print.css" />
 <script src="_content/Vipi.Ui/vipi-ui.js"></script>
-<script src="_content/Vipi.Ui/vipi-screens.js"></script>
 <script src="_content/Vipi.Ui/vipi-live.js"></script>
 <script src="_content/Vipi.Ui/vipi-aor.js"></script>
 <script src="_content/Vipi.Ui/vipi-aor3d.js"

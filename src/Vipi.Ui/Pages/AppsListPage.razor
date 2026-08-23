@@ -1,4 +1,4 @@
-@page "/services/vsop/{Acc}/apps"
+﻿@page "/services/vsop/{Acc}/apps"
 @layout SopLayout
 @inject IStringLocalizer<SharedResource> L
 @inject IStationResolver Stations
@@ -17,7 +17,7 @@ else
     <div class="wrap reading-cap">
         <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@L["Apps_Title"]</b></div>
         <div class="doc-head">
-            <div><h2 style="margin-bottom:2px">@L["Apps_Title"] — @_acc.Name - @_acc.Code</h2></div>
+            <div><h1 class="page-h1" style="margin-bottom:2px">@L["Apps_Title"] — @_acc.Name - @_acc.Code</h1></div>
         </div>
         @if (_canEdit)
         {
@@ -40,7 +40,7 @@ else
                         : $"/services/vsop/{Acc.ToLowerInvariant()}/apps/editor?app={ap.Callsign}";
                     <a class="choice apt-card" href="@href">
                         <div class="apt-top">
-                            <h4>@(ap.AirportIcao ?? ap.Callsign)</h4>
+                            <h2 class="h-card">@(ap.AirportIcao ?? ap.Callsign)</h2>
                             <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? L["Common_NOnline", n].Value : L["Common_Offline"].Value)</span>
                         </div>
                         <p class="muted">@ap.Name</p>

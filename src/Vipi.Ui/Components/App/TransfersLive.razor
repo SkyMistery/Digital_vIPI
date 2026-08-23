@@ -1,81 +1,121 @@
-@* Resa live dei trasferimenti risolti (vista live) — masonry come mockup #reduced.
-   Un riquadro (.xpair) per mittente EFFETTIVO: se un settore è chiuso, i suoi trasferimenti compaiono
-   sotto il primo antenato online che lo assorbe (già risolto in ResolvedOwnerCallsign). Dentro: per tipo
-   di flusso (Arrivi/Partenze/…) → una card per aeroporto coi suoi CoP, livello e ricevente risolto. *@
+﻿@* Resa live dei coordinamenti risolti: UNA COLONNA PER TIPO DI TRAFFICO (arrivi · partenze · sorvoli · …),
+   UNA RIGA PER PUNTO. Carta: docs/feature/2026-08-23-live-coordinamenti-a-colonne.md.
+
+   ⚠️ Qui NON si raggruppa per mittente. `LiveStationParts.TransfersAsync` filtra
+   `ResolvedOwnerCallsign == callsign`: in questa vista il mittente è sempre uno solo, chi guarda. La forma
+   precedente (masonry di riquadri per mittente, ereditata dal mockup #reduced) impaginava quindi un elenco
+   di UNO: il suo unico riquadro, che `break-inside:avoid` vietava di spezzare, restava nella prima colonna
+   e le altre due nascevano vuote — 483px usati su 1478, e 2230px di scorrimento per 36 punti.
+   Se un giorno la vista dovrà mostrare i coordinamenti di PIÙ enti, il posto dove rimetterlo è
+   `LiveStationParts`, non questo componente.
+
+   L'ICAO si scrive solo sulla PRIMA riga del suo gruppo (il nome dell'aeroporto sta nel `title`), e il totale
+   dei punti sta nella testata di colonna: erano una testata di card per aeroporto, cioè metà dell'altezza
+   spesa in cornice per righe che spesso erano una sola. *@
 
 @inject IStringLocalizer<SharedResource> L
+@inject Microsoft.JSInterop.IJSRuntime JS
 
 @{
-    var shown = Shown();
-    var hidden = UnicomCount();
+    var tutte = Righe();
+    var nascosti = UnicomCount();
+    var filtro = _filtro.Trim();
+    var mostrate = filtro.Length == 0 ? tutte : tutte.Where(r => Combacia(r, filtro)).ToList();
 }
 
-@if (hidden > 0)
-{
-    @* Un rilascio a UNICOM non è un handoff: sotto non c'è nessuno. Di default sta fuori dai piedi, ma resta
-       a un click — serve quando devi dire al pilota a chi (non) passarlo. *@
-    <div class="xt-unicom-bar">
-        <button type="button" class="btn ghost" @onclick="() => _showUnicom = !_showUnicom">
-            @(_showUnicom ? L["Live_HideUnicom"] : L["Live_ShowUnicom", hidden])
-        </button>
+<div class="xl-bar">
+    <div class="xl-filter">
+        <span class="xl-fic"><Icon Name="search" Size="14" /></span>
+        <input type="text" list="xl-apt-list" value="@_filtro" @oninput="AlFiltro"
+               placeholder="@L["Live_FilterApt"]" aria-label="@L["Live_FilterApt"]" />
+        @if (filtro.Length > 0)
+        {
+            <button type="button" class="xl-fclear" @onclick="PuliscFiltro" aria-label="@L["Live_FilterClear"]">
+                <Icon Name="x" Size="13" />
+            </button>
+        }
     </div>
-}
+    @* ⚠️ Le opzioni vanno in quest'ordine: gli aeroporti su cui c'è un ENTE APERTO stanno in cima, col
+       pallino. Un elenco alfabetico costringerebbe a sapere già cosa cercare, e chi guarda questa pagina
+       sta cercando proprio ciò che è vivo adesso.
+       ⚠️ E «aperto» vuol dire una posizione DI QUELL'AEROPORTO online — non «il ricevente è online», che
+       sembra la stessa cosa e non lo è: il ricevente risolto è per costruzione online oppure UNICOM, e
+       UNICOM la vista lo nasconde. Marcare quello avrebbe segnato col pallino tutte le voci, sempre. *@
+    <datalist id="xl-apt-list">
+        @foreach (var s in Suggerimenti(tutte))
+        {
+            <option value="@s.Icao" label="@s.Etichetta"></option>
+        }
+    </datalist>
 
-@if (shown.Count == 0)
+    @if (nascosti > 0)
+    {
+        @* Un rilascio a UNICOM non è un handoff: sotto non c'è nessuno. Di default sta fuori dai piedi, ma resta
+           a un click — serve quando devi dire al pilota a chi (non) passarlo. *@
+        <button type="button" class="btn ghost xl-unicom" @onclick="() => _showUnicom = !_showUnicom">
+            @(_showUnicom ? L["Live_HideUnicom"] : L["Live_ShowUnicom", nascosti])
+        </button>
+    }
+
+    <HelpHint ExtraClass="xl-help" AriaLabel="@L["Live_TransfersTitle"]">@L["Live_TransfersHint"]</HelpHint>
+</div>
+
+@if (tutte.Count == 0)
 {
     <p class="help">@(Flows.Count == 0 ? EmptyText : L["Live_OnlyUnicom"])</p>
 }
+else if (mostrate.Count == 0)
+{
+    <p class="help">@L["Live_FilterEmpty", filtro]</p>
+}
 else
 {
-    <div id="xfer-pairs">
-        @foreach (var owner in shown.GroupBy(r => r.ResolvedOwnerCallsign).OrderBy(g => g.Key))
+    @* Le colonne nascono dai dati: filtrando, quelle che restano senza righe non compaiono. *@
+    <div id="xl-cols">
+        @foreach (var tipo in mostrate.GroupBy(r => r.Kind).OrderBy(g => g.Key))
         {
-            <div class="xpair @(IsChanged(owner.Key) ? "xt-changed" : "")">
-                <div class="xpair-h">@owner.Key @(owner.First().OwnerOnline ? "" : "· offline")</div>
-                <div class="xpair-body">
-                    @foreach (var kind in owner.GroupBy(r => r.Flow.Kind).OrderBy(g => g.Key))
+            <section class="xl-kcol">
+                <h3 class="xl-kcol-h">
+                    <span>@TransferFlowKindLabels.Label(tipo.Key)</span>
+                    <span class="n">@tipo.Count()</span>
+                </h3>
+                <div class="xl-krows">
+                    @foreach (var apt in tipo.GroupBy(r => r.Icao ?? "").OrderBy(g => g.Key.Length == 0 ? "~" : g.Key, StringComparer.OrdinalIgnoreCase))
                     {
-                        <div class="xt-sub-h">@TransferFlowKindLabels.Label(kind.Key)</div>
-                        <div class="xt-cards">
-                            @foreach (var apt in kind.GroupBy(r => r.Flow.AirportIcao).OrderBy(g => g.Key ?? "~"))
-                            {
-                                var points = apt.SelectMany(r => r.Points).ToList();
-                                var aptName = apt.Select(r => r.Flow.AirportName).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n));
-                                <div class="xt-card">
-                                    <div class="xt-card-h">
-                                        <b class="xt-dest">@(string.IsNullOrWhiteSpace(apt.Key) ? "—" : apt.Key)</b>
-                                        @if (!string.IsNullOrWhiteSpace(aptName)) { <span class="muted" style="font-size:11px">@aptName</span> }
-                                        <span class="muted" style="font-size:11px">@points.Count pt</span>
-                                    </div>
-                                    @foreach (var p in points)
+                        var nome = apt.Select(r => r.Nome).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n));
+                        var primo = true;
+                        @foreach (var r in apt)
+                        {
+                            var p = r.Punto;
+                            var testa = primo;
+                            primo = false;
+                            <div class="xl-line @(testa ? "xl-first" : "") @(IsChanged(p.ResolvedHandler) ? "xl-changed" : "")">
+                                <span class="xl-apt" title="@(testa ? nome : null)">@(testa ? (apt.Key.Length == 0 ? "—" : apt.Key) : "")</span>
+                                <span class="cop">@(string.IsNullOrWhiteSpace(p.Point.Cop) ? "—" : p.Point.Cop)</span>
+                                <span class="xl-mid">
+                                    @* In frequenza servono ENTRAMBI i livelli, e in quest'ordine: quello a cui
+                                       autorizzi e quello a cui trasferisci. Mostrarne uno solo significherebbe
+                                       scegliere per il controllore quale delle due istruzioni dimenticare. *@
+                                    <b class="fl">@p.Point.LevelText</b>
+                                    @if (p.Point.HandoffLevelText.Length > 0)
                                     {
-                                        <div class="xt-pt @(IsChanged(p.ResolvedHandler) ? "xt-changed" : "")">
-                                            <span class="cop">@(string.IsNullOrWhiteSpace(p.Point.Cop) ? "—" : p.Point.Cop)</span>
-                                            @* In frequenza servono ENTRAMBI i livelli, e in quest'ordine: quello a cui
-                                               autorizzi e quello a cui trasferisci. Mostrarne uno solo significherebbe
-                                               scegliere per il controllore quale delle due istruzioni dimenticare. *@
-                                            <b class="fl">@p.Point.LevelText</b>
-                                            @if (p.Point.HandoffLevelText.Length > 0)
-                                            {
-                                                <b class="fl" style="opacity:.85">→ @p.Point.HandoffLevelText</b>
-                                            }
-                                            @if (p.Point.SpeedText.Length > 0)
-                                            {
-                                                <span class="muted" style="font-size:10.5px;margin-left:4px">@p.Point.SpeedText</span>
-                                            }
-                                            @if (!string.IsNullOrWhiteSpace(p.Point.ConditionLabel))
-                                            {
-                                                <span class="xt-cond" title="Condizione operativa" style="font-size:10.5px;background:var(--surface-muted);color:var(--ink-mid);border-radius:4px;padding:1px 5px;margin-left:4px">@p.Point.ConditionLabel</span>
-                                            }
-                                            <span class="xt-next @(p.IsOnline ? "" : "tieni")">→ <b>@p.ResolvedHandler</b></span>
-                                        </div>
+                                        <b class="fl xl-hand">→ @p.Point.HandoffLevelText</b>
                                     }
-                                </div>
-                            }
-                        </div>
+                                    @if (p.Point.SpeedText.Length > 0)
+                                    {
+                                        <span class="xl-spd">@p.Point.SpeedText</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(p.Point.ConditionLabel))
+                                    {
+                                        <span class="xl-cond" title="@L["Xfer_ConditionTitle"]">@p.Point.ConditionLabel</span>
+                                    }
+                                </span>
+                                <span class="xl-next @(p.IsOnline ? "" : "tieni")"><b>@p.ResolvedHandler</b></span>
+                            </div>
+                        }
                     }
                 </div>
-            </div>
+            </section>
         }
     </div>
 }
@@ -88,31 +128,82 @@ else
     /// cambio di destinatario non passa inosservato mentre stai guardando altrove.</summary>
     [Parameter] public IReadOnlySet<string>? Changed { get; set; }
 
+    /// <summary>ATC online adesso. Serve ai suggerimenti del filtro: un aeroporto con una sua posizione
+    /// aperta va in cima all'elenco.</summary>
+    [Parameter] public IReadOnlySet<string>? Online { get; set; }
+
+    /// <summary>Una riga a schermo: il punto, più il contesto che prima stava nella testata della card.</summary>
+    private sealed record Riga(TransferFlowKind Kind, string? Icao, string? Nome, ResolvedTransferPoint Punto);
+
+    /// <summary>Un aeroporto nell'elenco dei suggerimenti. <c>Aperto</c> = una sua posizione è online.</summary>
+    private sealed record Sugg(string Icao, string? Nome, bool Aperto)
+    {
+        public string Etichetta => (Aperto ? "● " : "") + (string.IsNullOrWhiteSpace(Nome) ? Icao : Nome);
+    }
+
     private bool IsChanged(string? callsign) =>
         Changed is { Count: > 0 } && !string.IsNullOrWhiteSpace(callsign) && Changed.Contains(callsign);
 
     private const string Unicom = "UNICOM";
     private bool _showUnicom;
+    private string _filtro = "";
+
+    private void AlFiltro(ChangeEventArgs e) => _filtro = e.Value?.ToString() ?? "";
+    private void PuliscFiltro() => _filtro = "";
+
+    /// <summary>
+    /// Le colonne stanno alte quanto lo spazio che resta e scorrono DENTRO: con molti punti la pagina non
+    /// cresce e le testate di colonna non se ne vanno.
+    ///
+    /// <para>⚠️ La misura sta QUI e non nella pagina. Il filtro cambia lo stato di <b>questo</b> componente,
+    /// e allora Blazor ridisegna solo lui: <c>OnAfterRenderAsync</c> della pagina non viene chiamato, e il
+    /// tetto restava quello di prima. Misurato: togliendo il filtro la pagina tornava a scorrere di 48px
+    /// perché le colonne rinascevano senza tetto. Chi RENDE l'elemento è chi lo misura.</para>
+    ///
+    /// <para>La soglia è 900 e non 1024 perché a decidere è l'altezza che ne esce, non la larghezza: se le
+    /// colonne vanno a capo su due righe, o se lo schermo è basso, <c>vipiCapInner</c> si tira indietro da
+    /// sé e la pagina torna a scorrere. Sotto i 900 (telefono) non si prova nemmeno.</para>
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try { await JS.InvokeVoidAsync("vipiCapInner", "#xl-cols", 900); }
+        catch (JSDisconnectedException) { /* circuito chiuso */ }
+    }
 
     private static bool IsUnicom(ResolvedTransferPoint p) =>
         string.Equals(p.ResolvedHandler, Unicom, StringComparison.OrdinalIgnoreCase);
 
     private int UnicomCount() => Flows.Sum(f => f.Points.Count(IsUnicom));
 
-    /// <summary>Flussi da rendere: filtrati dei punti che finiscono a UNICOM, salvo richiesta esplicita.
-    /// Si filtra qui, una volta, così tutti i raggruppamenti a valle restano invariati.</summary>
-    private IReadOnlyList<ResolvedTransferFlow> Shown()
-    {
-        if (_showUnicom) return Flows;
-        return Flows
-            .Select(f => new ResolvedTransferFlow
-            {
-                Flow = f.Flow,
-                ResolvedOwnerCallsign = f.ResolvedOwnerCallsign,
-                OwnerOnline = f.OwnerOnline,
-                Points = f.Points.Where(p => !IsUnicom(p)).ToList(),
-            })
-            .Where(f => f.Points.Count > 0)
-            .ToList();
-    }
+    /// <summary>Righe da rendere: i punti di tutti i flussi, appiattiti, senza quelli che finiscono a UNICOM
+    /// salvo richiesta esplicita. Si filtra qui, una volta, così tutto ciò che sta a valle resta invariato.</summary>
+    private IReadOnlyList<Riga> Righe() => Flows
+        .SelectMany(f => f.Points
+            .Where(p => _showUnicom || !IsUnicom(p))
+            .Select(p => new Riga(f.Flow.Kind, f.Flow.AirportIcao, f.Flow.AirportName, p)))
+        .ToList();
+
+    /// <summary>Il filtro guarda l'aeroporto — ICAO e nome. Le righe senza aeroporto (i sorvoli) restano
+    /// fuori appena si filtra: è la risposta giusta a «fammi vedere LIRF».</summary>
+    private static bool Combacia(Riga r, string filtro) =>
+        (r.Icao?.Contains(filtro, StringComparison.OrdinalIgnoreCase) ?? false)
+        || (r.Nome?.Contains(filtro, StringComparison.OrdinalIgnoreCase) ?? false);
+
+    /// <summary>Qualcuno lavora quell'aeroporto adesso: una posizione il cui callsign comincia per l'ICAO
+    /// (<c>LIBD_TWR</c>, <c>LIBD_CS0_APP</c>, …) è online.</summary>
+    private bool Aperto(string icao) =>
+        Online is { Count: > 0 } && Online.Any(cs => cs.StartsWith(icao + "_", StringComparison.OrdinalIgnoreCase));
+
+    private IReadOnlyList<Sugg> Suggerimenti(IReadOnlyList<Riga> righe) => righe
+        .Where(r => !string.IsNullOrWhiteSpace(r.Icao))
+        .GroupBy(r => r.Icao!, StringComparer.OrdinalIgnoreCase)
+        .Select(g => g.Key.ToUpperInvariant())
+        .Select(icao => new Sugg(
+            icao,
+            righe.Where(r => string.Equals(r.Icao, icao, StringComparison.OrdinalIgnoreCase))
+                 .Select(r => r.Nome).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n)),
+            Aperto(icao)))
+        .OrderByDescending(s => s.Aperto)
+        .ThenBy(s => s.Icao, StringComparer.OrdinalIgnoreCase)
+        .ToList();
 }

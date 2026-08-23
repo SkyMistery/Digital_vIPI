@@ -1,5 +1,7 @@
-@* Picker delle shape AoR extra: settori DB (anche esteri/torri) aggiunti a mano come anelli toggleabili sulla mappa.
+﻿@* Picker delle shape AoR extra: settori DB (anche esteri/torri) aggiunti a mano come anelli toggleabili sulla mappa.
    Chip dei selezionati + campo cerca (ente/callsign) + lista filtrata. Emette l'intera lista aggiornata (l'host salva). *@
+@inject IStringLocalizer<SharedResource> L
+
 
 <div class="aor-extra">
     @if (Selected.Count > 0)
@@ -12,7 +14,7 @@
                     <b>@cs</b>
                     @if (Editing)
                     {
-                        <button type="button" class="x" title="Rimuovi" @onclick="() => Remove(cs)">✕</button>
+                        <button type="button" class="x" title="@L["Common_Remove"]" @onclick="() => Remove(cs)">✕</button>
                     }
                 </span>
             }
@@ -20,13 +22,13 @@
     }
     else
     {
-        <p class="muted" style="font-size:12.5px;margin:0 0 6px">Nessuna shape extra. Cerca un ente qui sotto per aggiungerne.</p>
+        <p class="muted" style="font-size:12.5px;margin:0 0 6px">@L["AorExtra_NoShapes"]</p>
     }
 
     @if (Editing)
     {
         <div class="app-linkpick">
-            <input class="app-in" placeholder="Cerca ente (callsign o nome IVAO)…" value="@_search"
+            <input class="app-in" placeholder="@L["AorExtra_SearchPh"]" value="@_search"
                    @oninput="e => _search = (e.Value as string ?? string.Empty)" />
             @if (!string.IsNullOrWhiteSpace(_search))
             {

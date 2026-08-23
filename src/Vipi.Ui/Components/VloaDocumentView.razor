@@ -1,4 +1,4 @@
-@* Resa condivisa di una vLOA (Letter of Agreement) nello stile del mockup 3d: TOC + doc-head + callout bilaterale
+﻿@* Resa condivisa di una vLOA (Letter of Agreement) nello stile del mockup 3d: TOC + doc-head + callout bilaterale
    + sezioni (stessa struttura documentale della vIPI, via SectionNode). Le sezioni AoR/Frequenze/Coordinamenti sono
    DERIVATE (data-driven) quando è fornito DocId. La pagina ospitante fornisce wrap/breadcrumb. *@
 @using Microsoft.Extensions.DependencyInjection
@@ -9,7 +9,7 @@
 @* Vloa e VloaView risolti dallo scope DI proprio (VipiDbContext isolato dal circuito). Vedi [[EditLockBar]]. *@
 
 <div class="doc-layout">
-    <aside class="toc">
+    <aside class="toc" aria-label="@L["Doc_TocAria"]">
         <p class="toc-h">@L["Common_Contents"]</p>
         <ul>
             @foreach (var s in View.Sections)
@@ -92,7 +92,7 @@
         }
     </div>
 
-    <aside class="doc-rail">
+    <aside class="doc-rail" aria-label="@L["Doc_RailAria"]">
         <div class="rail-card">
             <h5><Icon Name="clipboard" /> @L["Common_Summary"]</h5>
             <div class="rail-line"><span class="muted">@L["Common_AiracCycle"]</span><b>@View.AiracCycle</b></div>

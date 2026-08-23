@@ -238,9 +238,10 @@
   <data name="Live_Delegated" xml:space="preserve"><value>delegati</value></data>
   <data name="Live_CollapsedBody" xml:space="preserve"><value>Compresso perché un settore di &lt;b&gt;{0}&lt;/b&gt; è online (collasso morbido). Sotto restano le frequenze per l'handoff.</value></data>
   <data name="Live_TransfersTitle" xml:space="preserve"><value>Trasferimenti · dove passo il traffico</value></data>
-  <data name="Live_OnlineAround" xml:space="preserve"><value>Online nel tuo intorno:</value></data>
-  <data name="Live_NoNeighbourOnline" xml:space="preserve"><value>nessun ente adiacente online</value></data>
-  <data name="Live_TransfersHint" xml:space="preserve"><value>— interni solo se c'è qualcuno; esterni sempre (rilascio al livello giusto)</value></data>
+  <data name="Live_TransfersHint" xml:space="preserve"><value>Un ente interno compare solo se c'è qualcuno online; verso l'esterno si trasferisce sempre, rilasciando al livello concordato. Chi non è online è scritto in grigio: quel traffico resta a te.</value></data>
+  <data name="Live_FilterApt" xml:space="preserve"><value>Filtra per aeroporto</value></data>
+  <data name="Live_FilterClear" xml:space="preserve"><value>Togli il filtro</value></data>
+  <data name="Live_FilterEmpty" xml:space="preserve"><value>Nessun coordinamento per «{0}».</value></data>
   <data name="Live_NoCoord" xml:space="preserve"><value>Nessun coordinamento per questa ACC.</value></data>
   <data name="Live_NoDocTitle" xml:space="preserve"><value>Nessuna vIPI pubblicata per {0}</value></data>
   <data name="Live_NoDocBody" xml:space="preserve"><value>Trasferimenti, aree di responsabilità e frequenze qui sotto vengono dai cataloghi e restano validi. Dal documento manca solo il raggruppamento editoriale delle frequenze: &lt;a href="{0}"&gt;apri la vIPI&lt;/a&gt; e pubblicala.</value></data>
@@ -2061,4 +2062,22 @@
   <data name="Services_SwapperDesc" xml:space="preserve"><value>Copia sezioni intere fra profili Aurora .cpr, senza copia-incolla a mano.</value></data>
   <data name="Services_Open" xml:space="preserve"><value>Apri</value></data>
   <data name="Chrome_Services" xml:space="preserve"><value>Servizi</value></data>
+  <data name="Aor3d_ResetView" xml:space="preserve"><value>Reset vista</value></data>
+  <data name="Aor3d_Basemap" xml:space="preserve"><value>Mappa base</value></data>
+  <data name="Aor3d_Fullscreen" xml:space="preserve"><value>Schermo intero</value></data>
+  <data name="Aor3d_HeightLabel" xml:space="preserve"><value>Altezza</value></data>
+  <data name="Aor3d_HeightTitle" xml:space="preserve"><value>Esagerazione verticale della vista (non cambia i livelli)</value></data>
+  <data name="Aor3d_Sectors" xml:space="preserve"><value>Settori</value></data>
+  <data name="Aor3d_DragHint" xml:space="preserve"><value>trascina = ruota · rotellina = zoom</value></data>
+  <data name="Aor3d_PageTitle" xml:space="preserve"><value>Area di responsabilità — 3D</value></data>
+  <data name="Aor3d_Crumb" xml:space="preserve"><value>AoR 3D</value></data>
+  <data name="AorExtra_NoShapes" xml:space="preserve"><value>Nessuna shape extra. Cerca un ente qui sotto per aggiungerne.</value></data>
+  <data name="AorExtra_SearchPh" xml:space="preserve"><value>Cerca ente (callsign o nome IVAO)…</value></data>
+  <data name="AorColor_ColorOf" xml:space="preserve"><value>Colore di {0}</value></data>
+  <data name="AorColor_ResetTitle" xml:space="preserve"><value>Ripristina il colore di default per tipo-ente</value></data>
+  <data name="Xfer_ConditionTitle" xml:space="preserve"><value>Condizione operativa</value></data>
+  <data name="Struct_CrossAcc" xml:space="preserve"><value>cross-ACC</value></data>
+  <data name="Ape_WindCalm" xml:space="preserve"><value>calmo</value></data>
+  <data name="Doc_RailAria" xml:space="preserve"><value>Informazioni sul documento</value></data>
+  <data name="Doc_TocAria" xml:space="preserve"><value>Indice del documento</value></data>
 </root>

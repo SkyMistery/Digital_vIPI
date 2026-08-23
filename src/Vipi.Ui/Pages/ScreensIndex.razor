@@ -1,4 +1,4 @@
-@page "/services/vsop/screens"
+﻿@page "/services/vsop/screens"
 @layout SopLayout
 @inject IStringLocalizer<SharedResource> L
 
@@ -6,15 +6,15 @@
 
 <div class="wrap" style="max-width:1100px">
     <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <b>@L["Home_ScreensTitle"]</b></div>
-    <div class="doc-head"><div><h2 style="margin-bottom:2px">@L["Home_ScreensTitle"]</h2><span class="muted">@L["Screens_Subtitle"]</span></div></div>
+    <div class="doc-head"><div><h1 class="page-h1" style="margin-bottom:2px">@L["Home_ScreensTitle"]</h1><span class="muted">@L["Screens_Subtitle"]</span></div></div>
 
     @foreach (var g in Groups)
     {
-        <div class="section-title"><h3>@g.Title</h3><span class="ln"></span></div>
+        <div class="section-title"><h2 class="h-sect">@g.Title</h2><span class="ln"></span></div>
         <div class="choice-grid">
             @foreach (var (label, href) in g.Links)
             {
-                <a class="choice" href="@href"><h4 style="font-size:1rem">@label</h4><p class="muted" style="font-size:12px;margin:0">@href</p></a>
+                <a class="choice" href="@href"><h3 class="h-card" style="font-size:1rem">@label</h3><p class="muted" style="font-size:12px;margin:0">@href</p></a>
             }
         </div>
     }

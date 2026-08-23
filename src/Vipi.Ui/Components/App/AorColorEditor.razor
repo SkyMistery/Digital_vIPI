@@ -1,5 +1,7 @@
-@* Editor dei colori degli anelli AoR: una riga per settore (primari + extra) con selettore colore e reset al default
+﻿@* Editor dei colori degli anelli AoR: una riga per settore (primari + extra) con selettore colore e reset al default
    per tipo-ente. Emette (callsign, hex) sul cambio; hex null = torna al default. *@
+@inject IStringLocalizer<SharedResource> L
+
 
 @if (Sectors.Count > 0)
 {
@@ -10,11 +12,11 @@
             var isDefault = string.Equals(sec.Color, AorColorScheme.DefaultForCallsign(sec.Callsign), StringComparison.OrdinalIgnoreCase);
             <div class="aor-color-row">
                 <input type="color" class="aor-color-in" value="@sec.Color" disabled="@(!Editing)"
-                       @onchange="e => OnPick(sec.Callsign, e.Value as string)" title="Colore di @sec.Callsign" />
+                       @onchange="e => OnPick(sec.Callsign, e.Value as string)" title="@L["AorColor_ColorOf", sec.Callsign]" />
                 <span class="aor-color-lab"><b>@sec.Callsign</b> <span class="muted">@sec.Name</span></span>
                 @if (Editing && !isDefault)
                 {
-                    <button type="button" class="aor-color-reset" title="Ripristina il colore di default per tipo-ente"
+                    <button type="button" class="aor-color-reset" title="@L["AorColor_ResetTitle"]"
                             @onclick="() => OnPick(sec.Callsign, null)">default</button>
                 }
             </div>

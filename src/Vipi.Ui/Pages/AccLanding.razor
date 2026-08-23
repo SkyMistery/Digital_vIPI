@@ -1,4 +1,4 @@
-@page "/services/vsop/{Acc}"
+﻿@page "/services/vsop/{Acc}"
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IAiracService Airac
@@ -19,13 +19,13 @@ else
         <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <b>@_acc.Code</b></div>
         <div class="doc-head">
             <div>
-                <h2 style="margin:0">@_acc.Code — @_acc.Name</h2>
+                <h1 class="page-h1" style="margin:0">@_acc.Code — @_acc.Name</h1>
             </div>
             <span class="airac"><Icon Name="calendar" /> AIRAC @Airac.GetCycle(DateTime.UtcNow)</span>
         </div>
 
         @{ var a = Acc.ToLowerInvariant(); }
-        <div class="section-title" style="margin-top:18px"><h3>@L["AccLanding_Documents"]</h3><span class="ln"></span></div>
+        <div class="section-title" style="margin-top:18px"><h2 class="h-sect">@L["AccLanding_Documents"]</h2><span class="ln"></span></div>
         <div class="choice-grid">
             @* Stesso gate di aeroporti/APP/vLOA (doc 13 §3j): senza release AIRAC effettiva la vIPI non è
                pubblica, e la card portava a «vIPI non disponibile». Allo staff resta, con la sua etichetta e la
@@ -35,7 +35,7 @@ else
                 <a class="big-choice nav-card c-vipi" href="/services/vsop/@a/vipi">
                     <div class="bc-body">
                         <span class="eyebrow">@L["AccLanding_MainDoc"]</span>
-                        <h4>@L["AccLanding_VipiOf", _acc.Name]</h4>
+                        <h3 class="h-card">@L["AccLanding_VipiOf", _acc.Name]</h3>
                         <span class="muted">@L["AccLanding_VipiDesc"]</span>
                     </div>
                     <span class="bc-open">@L["Common_Open"]</span>
@@ -46,7 +46,7 @@ else
                 <a class="big-choice nav-card c-vipi" href="/services/vsop/@a/editor">
                     <div class="bc-body">
                         <span class="eyebrow">@L["AccLanding_MainDoc"]</span>
-                        <h4>@L["AccLanding_VipiOf", _acc.Name]</h4>
+                        <h3 class="h-card">@L["AccLanding_VipiOf", _acc.Name]</h3>
                         <span class="muted">@L["AccLanding_VipiUnpublished"]</span>
                     </div>
                     <span class="bc-open">@L["Common_Editor"]</span>
@@ -54,7 +54,7 @@ else
             }
 
             <div class="choice nav-card c-air">
-                <a class="nav-head" href="/services/vsop/@a/airports"><h4>@L["AccLanding_Airports"]</h4><span class="count">@_airportsTotal</span></a>
+                <a class="nav-head" href="/services/vsop/@a/airports"><h3 class="h-card">@L["AccLanding_Airports"]</h3><span class="count">@_airportsTotal</span></a>
                 <p class="muted">@L["AccLanding_AirportsDesc"]</p>
                 <ul class="linklist">
                     @if (_airports.Count == 0)
@@ -73,7 +73,7 @@ else
             </div>
 
             <div class="choice nav-card c-app">
-                <a class="nav-head" href="/services/vsop/@a/apps"><h4>@L["AccLanding_Apps"]</h4><span class="count">@_appsTotal</span></a>
+                <a class="nav-head" href="/services/vsop/@a/apps"><h3 class="h-card">@L["AccLanding_Apps"]</h3><span class="count">@_appsTotal</span></a>
                 <p class="muted">@L["AccLanding_AppsDesc"]</p>
                 <ul class="linklist">
                     @if (_apps.Count == 0)
@@ -92,7 +92,7 @@ else
             </div>
 
             <div class="choice nav-card c-vloa">
-                <a class="nav-head" href="/services/vsop/@a/vloa"><h4>vLoA</h4><span class="count">@_vloasTotal</span></a>
+                <a class="nav-head" href="/services/vsop/@a/vloa"><h3 class="h-card">vLoA</h3><span class="count">@_vloasTotal</span></a>
                 <p class="muted">@L["AccLanding_VloaDesc"]</p>
                 <ul class="linklist">
                     @if (_vloas.Count == 0)
@@ -111,12 +111,12 @@ else
             </div>
         </div>
 
-        <div class="section-title"><h3>@L["AccLanding_OpsView"]</h3><span class="ln"></span></div>
+        <div class="section-title"><h2 class="h-sect">@L["AccLanding_OpsView"]</h2><span class="ln"></span></div>
         <div class="choice-grid">
             <a class="big-choice nav-card c-vipi" href="/services/vsop/live">
                 <div class="bc-body">
                     <span class="eyebrow">⚡ Live</span>
-                    <h4>@L["AccLanding_OpsViewOf", _acc.Name]</h4>
+                    <h3 class="h-card">@L["AccLanding_OpsViewOf", _acc.Name]</h3>
                     <span class="muted">@L["AccLanding_OpsViewDesc"]</span>
                 </div>
                 <span class="bc-open">@L["Common_Open"]</span>
@@ -125,9 +125,9 @@ else
 
         @if (_canEdit)
         {
-            <div class="section-title"><h3>Admin</h3><span class="ln"></span></div>
+            <div class="section-title"><h2 class="h-sect">Admin</h2><span class="ln"></span></div>
             <div class="choice-grid">
-                <a class="choice nav-card c-admin" href="/services/vsop/admin/transfers"><div class="nav-head"><h4>@L["Home_TransfersTitle"]</h4></div><p class="muted">@L["AccLanding_TransfersAdminDesc"]</p></a>
+                <a class="choice nav-card c-admin" href="/services/vsop/admin/transfers"><div class="nav-head"><h3 class="h-card">@L["Home_TransfersTitle"]</h3></div><p class="muted">@L["AccLanding_TransfersAdminDesc"]</p></a>
             </div>
         }
     </div>

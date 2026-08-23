@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -222,6 +222,38 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
             "la pagina carica codice o fogli di stile da host esterni: il sito deve funzionare anche quando " +
             "quegli host non rispondono, e ogni host in più è una voce da aprire nella CSP.\n  " +
             string.Join("\n  ", esterni));
+    }
+
+    /// <summary>
+    /// Le librerie pesanti si caricano dove servono, non ovunque.
+    ///
+    /// <para>Leaflet sono 162 KB fra script e foglio, e servono alle sole pagine con una mappa AoR. Fino al
+    /// 23 agosto 2026 stavano nel &lt;body&gt; di <b>ogni</b> pagina — ricerca, incarichi, elenchi admin,
+    /// guida, login, hub — mentre poche righe sotto, nella stessa pagina, era scritta la regola opposta per
+    /// three.js. Ora gli URL passano a <c>vipi-aor.js</c> come <c>data-leaflet-*</c> e li carica lui alla
+    /// prima <c>.aor-leaflet</c> incontrata.</para>
+    ///
+    /// <para>⚠️ Il test guarda gli attributi che ESEGUONO (<c>src</c>, <c>href</c>): un <c>data-*</c> che
+    /// porta lo stesso URL è una consegna, non un caricamento, ed è esattamente ciò che deve restare.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("/services/vsop")]
+    [InlineData("/services")]
+    public async Task Leaflet_non_si_carica_sulle_pagine_senza_mappa(string percorso)
+    {
+        var html = await _factory.CreateClient().GetStringAsync(percorso);
+
+        var carica = Regex.Matches(html, @"<(?:script|link)[^>]*(?:src|href)\s*=\s*[""'](?<url>[^""']+)[""']")
+            .Select(m => m.Groups["url"].Value)
+            .Where(u => u.Contains("leaflet", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        Assert.True(carica.Count == 0,
+            $"{percorso} carica Leaflet pur non avendo mappe: sono 162 KB su ogni schermata.\n  " +
+            string.Join("\n  ", carica));
+
+        // …ma l'URL dev'esserci come consegna, o le mappe non si caricherebbero da nessuna parte.
+        Assert.Contains("data-leaflet-src", html);
     }
 
     /// <summary>

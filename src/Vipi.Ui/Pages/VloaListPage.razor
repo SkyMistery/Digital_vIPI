@@ -1,4 +1,4 @@
-@page "/services/vsop/{Acc}/vloa"
+﻿@page "/services/vsop/{Acc}/vloa"
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IStructureEditingService Structure
@@ -47,7 +47,7 @@ else
     <div class="wrap reading-cap">
         <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@L["Vloa_Title"]</b></div>
         <div class="doc-head">
-            <div><h2 style="margin-bottom:2px">@L["Vloa_Title"] — @_acc.Name - @_acc.Code</h2></div>
+            <div><h1 class="page-h1" style="margin-bottom:2px">@L["Vloa_Title"] — @_acc.Name - @_acc.Code</h1></div>
         </div>
         @if (_visibleVloas.Count == 0)
         {
@@ -58,7 +58,7 @@ else
             var homeOnline = HomeOnline();
             @foreach (var g in _visibleVloas.GroupBy(v => Prefix(v.NeighbourCode)).OrderBy(g => Country(g.Key)))
             {
-                <div class="section-title" style="margin-top:22px"><h3>@Country(g.Key)</h3><span class="ln"></span></div>
+                <div class="section-title" style="margin-top:22px"><h2 class="h-sect">@Country(g.Key)</h2><span class="ln"></span></div>
                 <div class="choice-grid">
                     @foreach (var v in g)
                     {
@@ -66,7 +66,7 @@ else
                         var neighOnline = NeighOnline(v.NeighbourCode);
                         <a class="choice apt-card" href="/services/vsop/@Acc.ToLowerInvariant()/vloa?acc=@v.NeighbourCode">
                             <div class="apt-top">
-                                <h4>@neigh</h4>
+                                <h3 class="h-card">@neigh</h3>
                                 <span class="country-tag">@g.Key</span>
                             </div>
                             <p class="muted">@(v.Neighbour ?? L["Vloa_BilateralDefault"].Value)</p>
