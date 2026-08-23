@@ -149,6 +149,13 @@ debba scrivere audit.
 ✅ **Non resta più nessuna decisione di merge**: B6 fu presa il 15 agosto, e B5 si è rivelata già presa — il doc
 13 era in `main` da allora senza che l'elenco lo sapesse.
 
+⚠️ **Tranne una, dal 23 agosto**: il ramo **`audit-frontend-ui`** è **14 commit avanti** a `main` e `main`
+non ha niente che lui non abbia. Ci stanno l'audit frontend/UI (§H) e, sopra, i coordinamenti della vista
+live a colonne con la potatura del foglio di stile
+([feature/2026-08-23-live-coordinamenti-a-colonne.md](feature/2026-08-23-live-coordinamenti-a-colonne.md)).
+Tutto verificato — Release verde su entrambi i TFM, suite verde, 29 pagine guidate — e **in attesa della
+decisione di fondere**.
+
 ---
 
 ## A. Cutover su `atc.it.ivao.aero` — la strada critica
@@ -1169,11 +1176,14 @@ aggiornabile.
 
 ---
 
-## H. Audit frontend/UI — 23 agosto 2026, chiuso salvo due voci
+## H. Audit frontend/UI — 23 agosto 2026, chiuso salvo due voci (più una trovata dopo)
 
 Carta ed esito per esteso in [history/audit-2026-08-23-frontend-ui.md](history/audit-2026-08-23-frontend-ui.md).
 Quindici voci, tredici chiuse in giornata sul ramo `audit-frontend-ui` (sei commit, 3.595 test verdi,
-verifica live fatta). Qui restano solo le due che **non** sono state chiuse, e il perché.
+verifica live fatta). Qui restano le due che **non** sono state chiuse, e il perché — più **H3**, che
+dell'audit non fa parte: è saltata fuori verificando il lavoro sui coordinamenti live dello stesso giorno
+([feature/2026-08-23-live-coordinamenti-a-colonne.md](feature/2026-08-23-live-coordinamenti-a-colonne.md)),
+ed è un difetto che stava lì da prima.
 
 ### H1 🟢 `.ed-layout` e le altre dieci `@media` degli editor
 

@@ -1724,3 +1724,51 @@ niente. La domanda va fatta a `matchMedia`, che è ciò che decide se la regola 
 **In coda, due correzioni all'analisi**, registrate perché in tutti e due i casi mentiva la grep e non il
 codice: le «decine di righe non localizzate» di `AdminTrasferimentiPage` erano commenti XML nel blocco
 `@code`, e le «131 stringhe» di `GuidaPage` erano le due metà di un contenuto bilingue per costruzione.
+
+## 23 agosto 2026 — i coordinamenti della vista live, e la potatura del foglio (`audit-frontend-ui`)
+
+Carta per esteso in
+[../feature/2026-08-23-live-coordinamenti-a-colonne.md](../feature/2026-08-23-live-coordinamenti-a-colonne.md).
+Sei commit, suite verde su 14 assiemi, build a zero avvisi su entrambi i TFM.
+
+Il committente ha riferito che con `LIBB_ES_CTR` connesso «si legge tutto su una riga e devo scorrere per
+vedere». Riprodotto e misurato: **2835px di pagina — 2,6 schermate — per 36 punti, in una colonna larga
+483px su 1478 disponibili**. Ora sta in una schermata a 1920×1080, a 1440×900 e a 1280×800.
+
+**La diagnosi è un presupposto caduto, non un bug.** `TransfersLive` raggruppava per mittente e impaginava i
+gruppi a masonry, ma `LiveStationParts.TransfersAsync` filtra `ResolvedOwnerCallsign == callsign`: nella
+vista live il mittente è **sempre uno solo**. La masonry impaginava un elenco di uno, e `break-inside:avoid`
+le vietava pure di spezzarlo. Veniva dal mockup #reduced, dove i mittenti erano davvero più d'uno. ⚠️ **Un
+componente portato da un contesto a un altro può restare corretto e diventare inutile**: qui il difetto non
+si vedeva finché i coordinamenti erano pochi.
+
+**Tre forme misurate nel browser vero prima di scegliere** (2835 → 1739 / 1080 / 1080), e la scelta è caduta
+sulle colonne per tipo di traffico: la più densa si legge a serpentina, e questa è una pagina che si guarda
+*mentre* si lavora in frequenza.
+
+⚠️ **Cinque trappole pagate, tutte di metodo.**
+
+1. **Il tetto lo misura chi RENDE l'elemento.** Con la chiamata in `LivePage.OnAfterRenderAsync`, togliere il
+   filtro riportava 48px di scorrimento: il filtro è stato del componente figlio, e Blazor ridisegna solo lui.
+2. **Un figlio di griglia non si accorcia per il `max-height` del padre** — ritaglia. Da qui `vipiCapInner`,
+   che passa la misura al CSS in una custom property e la **divide per le righe della griglia, contate**.
+3. **`probe.js` non compone l'alfa**, e uno script scritto per rimediare ha letto `color(srgb 0.894 …)` con
+   una regex da `rgb()`. Accusava `.cop`, una classe che tutta l'applicazione usa da mesi: **quando un numero
+   accusa qualcosa che sta lì da mesi, il sospetto va prima allo strumento.**
+4. **`vipi-screens.js` cancellava i coordinamenti veri.** Il mockup v2 era caricato in ogni pagina e faceva
+   `innerHTML=''` su `#xfer-pairs` — un id che esisteva davvero, nella vista live. La sezione «Aeroporto»
+   rimasta non era innocua: guardata su un id inesistente, ma pronta ad agganciare i suoi handler a
+   `.sid-pill`, `.wx-tab`, `#sidSearch`, `#windDir`, `#windKt`, che esistono tutti sulle pagine vere.
+5. **Il confronto «prima/dopo» iniettando un foglio vecchio con `<style>` mente**: cambia l'ordine di
+   cascata, e la pagina si allunga anche iniettando il foglio ATTUALE (controllo fatto, stesso scarto).
+
+**In coda, la potatura del foglio**: 249 selettori, 268 righe, 919 classi → 751. Tre setacci sempre più
+stretti — il nome nudo (⚠️ i `.resx` contano: portano HTML con classi via `MarkupString`), il prefisso per i
+nomi composti (`$"xt-ind{n}"`), e il ragionamento per REGOLA e non per classe. ⚠️ **Ma nessuno dei tre vede
+una classe costruita interamente da una variabile**: `.node-badge.fss` nasce da un `switch` che ritorna
+`"FSS"` più un `.ToLowerInvariant()`, e in minuscolo quel nome non esiste in nessun file. L'ha ripescata
+`nessun-bersaglio.js`, che chiede al DOM vero su 29 pagine coi `<details>` aperti — **su 249, uno**.
+
+Tre attrezzi nuovi nella skill `verifica-live` (`classi-morte.py`, `nessun-bersaglio.js`, `sfora.js`) e
+un'opzione di sola verifica, `Ivao:FakeOnlineCallsigns`, **onorata solo in Development**: senza vicini
+online ogni punto risolve a UNICOM, che la vista nasconde, e la pagina si prova vuota.
