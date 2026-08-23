@@ -54,14 +54,16 @@
             @* L'esito dell'ultima operazione sta QUI, fra i comandi che l'hanno provocata e il lock: era una
                fascia sotto la testata, e comparendo spingeva in giù tutta la pagina — tabella compresa, mentre
                ci si stava lavorando. Si chiude a mano e sparisce da sé alla prima operazione successiva. *@
-            @if (_msg is not null || _ok is not null)
-            {
-                <span class="st-msg @(_msg is not null ? "warn" : "ok")" role="status">
-                    <Icon Name="@(_msg is not null ? "warning" : "check-circle")" Size="14" />
-                    <span class="st-msg-t">@(_msg ?? _ok)</span>
-                    <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
-                </span>
-            }
+            <LiveRegion>
+                @if (_msg is not null || _ok is not null)
+                {
+                    <span class="st-msg @(_msg is not null ? "warn" : "ok")">
+                        <Icon Name="@(_msg is not null ? "warning" : "check-circle")" Size="14" />
+                        <span class="st-msg-t">@(_msg ?? _ok)</span>
+                        <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
+                    </span>
+                }
+            </LiveRegion>
             @* ⚠️ I margini di fascia della .lockbar si azzerano nel CSS di .st-head, non nel componente. *@
             <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
         }

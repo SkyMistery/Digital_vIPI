@@ -42,14 +42,16 @@
             @* L'esito sta prima del lock, come nella pagina ACC: da fascia sotto la testata spingeva
                in giù l'albero mentre ci si lavorava — e qui l'altezza del riquadro è misurata, quindi una
                fascia in più sono nodi in meno. *@
-            @if (_msg is not null)
-            {
-                <span class="st-msg warn" role="status">
-                    <Icon Name="warning" Size="14" />
-                    <span class="st-msg-t">@_msg</span>
-                    <button class="tclose" title="@L["Common_Close"]" @onclick="() => _msg = null">✕</button>
-                </span>
-            }
+            <LiveRegion>
+                @if (_msg is not null)
+                {
+                    <span class="st-msg warn">
+                        <Icon Name="warning" Size="14" />
+                        <span class="st-msg-t">@_msg</span>
+                        <button class="tclose" title="@L["Common_Close"]" @onclick="() => _msg = null">✕</button>
+                    </span>
+                }
+            </LiveRegion>
             @* ⚠️ La EditLockBar sta QUI, in testata, e non come fascia a sé: i suoi margini di fascia si
                azzerano nel CSS di .st-head, non nel componente — newdoc la usa ancora come fascia. *@
             <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />

@@ -61,14 +61,16 @@
                 <button class="btn ghost" disabled="@_busy" @onclick="RicaricaCatalogo"
                         title="@L["Sorg_ReloadNavaidsTitle"]"><Icon Name="refresh" Size="14" /> @L["Sorg_ReloadNavaids"]</button>
             </nav>
-            @if (_msg is not null || _ok is not null)
-            {
-                <span class="st-msg @(_msg is not null ? "warn" : "ok")" role="status" aria-live="polite">
-                    <Icon Name="@(_msg is not null ? "warning" : "check-circle")" Size="14" />
-                    <span class="st-msg-t">@(_msg ?? _ok)</span>
-                    <button class="tclose" title="@L["Common_Close"]" @onclick="() => { _msg = _ok = null; }">✕</button>
-                </span>
-            }
+            <LiveRegion>
+                @if (_msg is not null || _ok is not null)
+                {
+                    <span class="st-msg @(_msg is not null ? "warn" : "ok")">
+                        <Icon Name="@(_msg is not null ? "warning" : "check-circle")" Size="14" />
+                        <span class="st-msg-t">@(_msg ?? _ok)</span>
+                        <button class="tclose" title="@L["Common_Close"]" @onclick="() => { _msg = _ok = null; }">✕</button>
+                    </span>
+                }
+            </LiveRegion>
         }
     </div>
 

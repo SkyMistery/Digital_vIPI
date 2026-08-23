@@ -2278,6 +2278,9 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .st-head.sticky{position:sticky;top:62px;z-index:30;background:var(--bg);border-bottom:1px solid var(--line);
   margin-left:calc(clamp(24px,3.5vw,64px) * -1);margin-right:calc(clamp(24px,3.5vw,64px) * -1);
   padding:10px clamp(24px,3.5vw,64px)}
+/* La regione annunciata di LiveRegion.razor: presente nel DOM, invisibile al layout. Le testate sono flex
+   con `gap:10px`, e un elemento in piu' — anche largo zero — ci lascerebbe un vuoto permanente. */
+.live-region{display:contents}
 .st-head .st-h2{margin:0}
 .st-head .struct-nav{max-width:none;justify-content:flex-start;gap:6px}
 .st-head .struct-nav .btn{padding:5px 9px;font-size:12px}

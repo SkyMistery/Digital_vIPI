@@ -51,22 +51,24 @@
                e prima si vedeva solo girare lo spinner. Il chip dice a che punto è, quanti sono falliti, e
                porta l'interruzione — chi si accorge che la sorgente risponde male non aspetta le altre
                ottanta. Occupa lo stesso posto del chip d'esito: i due non convivono mai. *@
-            @if (_prog is not null)
-            {
-                <span class="st-msg prog" role="status" aria-live="polite">
-                    <span class="spin"></span>
-                    <span class="st-msg-t">@ProgressLabel()</span>
-                    <button class="lnk-mini" title="@L["Apt_StopTitle"]" @onclick="() => _stopRequested = true" disabled="@_stopRequested">@L["Apt_Stop"]</button>
-                </span>
-            }
-            else if (_msg is not null || _ok is not null)
-            {
-                <span class="st-msg @(_msg is not null ? "warn" : "ok")" role="status">
-                    <Icon Name="@(_msg is not null ? "warning" : "check-circle")" Size="14" />
-                    <span class="st-msg-t">@(_msg ?? _ok)</span>
-                    <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
-                </span>
-            }
+            <LiveRegion>
+                @if (_prog is not null)
+                {
+                    <span class="st-msg prog">
+                        <span class="spin"></span>
+                        <span class="st-msg-t">@ProgressLabel()</span>
+                        <button class="lnk-mini" title="@L["Apt_StopTitle"]" @onclick="() => _stopRequested = true" disabled="@_stopRequested">@L["Apt_Stop"]</button>
+                    </span>
+                }
+                else if (_msg is not null || _ok is not null)
+                {
+                    <span class="st-msg @(_msg is not null ? "warn" : "ok")">
+                        <Icon Name="@(_msg is not null ? "warning" : "check-circle")" Size="14" />
+                        <span class="st-msg-t">@(_msg ?? _ok)</span>
+                        <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
+                    </span>
+                }
+            </LiveRegion>
             @* ⚠️ I margini di fascia della .lockbar si azzerano nel CSS di .st-head, non nel componente. *@
             <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
         }

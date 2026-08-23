@@ -44,14 +44,16 @@
                     <Icon Name="refresh" Size="14" /> @L["Audit_Refresh"]
                 </button>
             </nav>
-            @if (_error is not null || _status is not null)
-            {
-                <span class="st-msg @(_error is not null ? "warn" : "ok")" role="status" aria-live="polite">
-                    <Icon Name="@(_error is not null ? "warning" : "check-circle")" Size="14" />
-                    <span class="st-msg-t">@(_error ?? _status)</span>
-                    <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
-                </span>
-            }
+            <LiveRegion>
+                @if (_error is not null || _status is not null)
+                {
+                    <span class="st-msg @(_error is not null ? "warn" : "ok")">
+                        <Icon Name="@(_error is not null ? "warning" : "check-circle")" Size="14" />
+                        <span class="st-msg-t">@(_error ?? _status)</span>
+                        <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
+                    </span>
+                }
+            </LiveRegion>
         }
     </div>
 

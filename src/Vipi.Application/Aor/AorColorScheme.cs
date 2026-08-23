@@ -36,11 +36,35 @@ public static class AorColorScheme
     public static string DefaultForCallsign(string? callsign) =>
         Defaults.TryGetValue(SuffixOf(callsign), out var c) ? c : Fallback;
 
-    /// <summary>Colore risolto: override manuale (se presente e valido) altrimenti default per tipo.</summary>
+    /// <summary>Colore risolto: override manuale (se presente e <b>valido</b>) altrimenti default per tipo.</summary>
     public static string Resolve(string callsign, IReadOnlyDictionary<string, string>? overrides) =>
-        overrides is not null && overrides.TryGetValue(callsign, out var hex) && !string.IsNullOrWhiteSpace(hex)
+        overrides is not null && overrides.TryGetValue(callsign, out var hex) && IsHex(hex)
             ? hex
             : DefaultForCallsign(callsign);
+
+    /// <summary>
+    /// Un esadecimale CSS scritto per intero: <c>#rgb</c>, <c>#rrggbb</c> e le due forme con l'alfa.
+    ///
+    /// <para><b>Perché serve.</b> Fino al 23 agosto 2026 <see cref="Resolve"/> prometteva «se presente e
+    /// valido» nel commento e restituiva la stringa <b>verbatim</b>. Quel valore finisce dritto in
+    /// <c>style="background:{colore}33;border-color:{colore}"</c> e nell'attributo <c>fill</c> di un SVG:
+    /// Blazor codifica l'attributo, quindi non si esce dalle virgolette, ma dentro il valore un <c>;</c>
+    /// apre un'altra dichiarazione CSS. Oggi l'unica sorgente è un <c>&lt;input type="color"&gt;</c>, che il
+    /// browser vincola — ma non lo sono un import, una migrazione o una riga corretta a mano nel DB.</para>
+    ///
+    /// <para>⚠️ Non accetta i nomi CSS (<c>red</c>) né <c>rgb(...)</c>: gli override nascono tutti dal
+    /// selettore di colore, che emette solo <c>#rrggbb</c>. Un elenco più largo sarebbe superficie in più
+    /// per nessun caso d'uso reale. Chi ne avesse bisogno lo allarga qui, in un posto solo.</para>
+    /// </summary>
+    private static bool IsHex(string? v)
+    {
+        if (string.IsNullOrWhiteSpace(v)) return false;
+        var s = v.Trim();
+        if (s.Length is not (4 or 7 or 5 or 9) || s[0] != '#') return false;
+        for (var i = 1; i < s.Length; i++)
+            if (!Uri.IsHexDigit(s[i])) return false;
+        return true;
+    }
 
     /// <summary>Suffisso di tipo del callsign (ultimo token dopo <c>_</c>), maiuscolo. Vuoto se assente.</summary>
     public static string SuffixOf(string? callsign)

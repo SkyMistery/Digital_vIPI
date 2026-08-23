@@ -1,4 +1,4 @@
-// Zoom globale persistente (localStorage), applicato PRIMA che la pagina si disegni.
+﻿// Zoom globale persistente (localStorage), applicato PRIMA che la pagina si disegni.
 //
 // Perché è un file e non uno <script> in fondo alla pagina: serve nel <head>, prima del primo disegno,
 // o si vede la pagina alla dimensione sbagliata per un istante e poi saltare a quella giusta.
@@ -8,8 +8,16 @@
 //
 // Va caricato con l'attributo `defer` ASSENTE e prima del <body>: deve girare subito.
 (function () {
+    // ⚠️ localStorage puo' LANCIARE, non solo tornare null: in navigazione privata e con i dati di sito
+    // bloccati il solo accesso e' un'eccezione. Il gemello vipi-theme-mode.js lo sapeva gia'; qui mancava, e
+    // il prezzo non era lo zoom. `vipiApplyZoom` e' la PRIMA riga di vipi-boot.js: un'eccezione qui spegneva
+    // tutto il riaggancio dopo ogni navigazione «enhanced» — chip AoR, mappe, persistenza del collasso,
+    // misura della topbar. Uno zoom che non si ricorda e' un fastidio; meta' applicazione ferma e' un guasto.
     var read = function () {
-        var z = parseFloat(localStorage.getItem('vipiZoom') || '1');
+        var g;
+        try { g = localStorage.getItem('vipiZoom'); }
+        catch (e) { return window.__vipiZoom || 1; }
+        var z = parseFloat(g || '1');
         return isNaN(z) ? 1 : z;
     };
 
@@ -25,7 +33,10 @@
 
     window.vipiSetZoom = function (v) {
         v = Math.min(1.8, Math.max(0.7, Math.round(v * 100) / 100));
-        localStorage.setItem('vipiZoom', v);
+        // Se la preferenza non si puo' memorizzare, lo zoom vale comunque per questa pagina: e' la stessa
+        // scelta che fa vipi-theme-mode.js col tema.
+        try { localStorage.setItem('vipiZoom', v); } catch (e) { }
+        window.__vipiZoom = v;   // memoria di sessione, per quando localStorage non c'e'
         window.vipiApplyZoom();
     };
 

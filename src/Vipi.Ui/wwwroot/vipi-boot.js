@@ -5,12 +5,33 @@
 // uno script inline obbliga a `script-src 'unsafe-inline'` nella CSP.
 //
 // `Blazor` esiste perché blazor.web.js viene caricato prima di questo file: l'ordine nel <body> conta.
-Blazor.addEventListener('enhancedload', function () {
-    window.vipiApplyTema && window.vipiApplyTema();
-    window.vipiApplyZoom && window.vipiApplyZoom();
-    window.vipiWireUi && window.vipiWireUi();
-    window.vipiInitScreens && window.vipiInitScreens();
-    window.vipiInitAor && window.vipiInitAor();
-    window.vipiInitAor3d && window.vipiInitAor3d();
-    window.vipiMaybeTour && window.vipiMaybeTour();
-});
+//
+// ⚠️ Ogni riaggancio nel proprio try/catch, e non sette chiamate in fila. Una catena nuda ha un difetto di
+// forma che non dipende da cosa contiene: la PRIMA che lancia spegne tutte quelle dopo, per tutta la vita
+// della pagina. Il caso vero era `vipiApplyZoom` in navigazione privata (localStorage che lancia sul solo
+// accesso, vedi vipi-zoom.js) e portava via con sé chip AoR, mappe, persistenza del collasso e misura della
+// topbar — cioè quattro cose che non c'entrano niente con lo zoom. Il rimedio a quel caso sta nel suo file;
+// questo toglie di mezzo l'intera classe, compresa la prossima.
+(function () {
+    var passi = [
+        ['vipiApplyTema', 'tema'],
+        ['vipiApplyZoom', 'zoom'],
+        ['vipiWireUi', 'interattività'],
+        ['vipiInitScreens', 'schermate'],
+        ['vipiInitAor', 'mappe AoR'],
+        ['vipiInitAor3d', 'AoR 3D'],
+        ['vipiMaybeTour', 'tour']
+    ];
+
+    Blazor.addEventListener('enhancedload', function () {
+        for (var i = 0; i < passi.length; i++) {
+            var nome = passi[i][0];
+            try {
+                if (window[nome]) window[nome]();
+            } catch (e) {
+                // Si registra e si tira avanti: il resto della pagina non ha colpe.
+                console.warn('[vipi] riaggancio «' + passi[i][1] + '» fallito dopo la navigazione', e);
+            }
+        }
+    });
+})();

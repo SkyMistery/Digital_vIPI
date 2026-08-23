@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Vipi.Application.Aor;
 using Xunit;
 
@@ -46,5 +46,38 @@ public class AorColorSchemeTests
     {
         var overrides = new Dictionary<string, string> { ["LIRP_TWR"] = "  " };
         Assert.Equal(AorColorScheme.Defaults["TWR"], AorColorScheme.Resolve("LIRP_TWR", overrides));
+    }
+
+    /// <summary>
+    /// L'override che non e' un colore si scarta. Il commento di <c>Resolve</c> prometteva «sse presente e
+    /// valido» dal primo giorno, ma il corpo restituiva la stringa verbatim — e quella stringa finisce
+    /// dentro un <c>style="background:…"</c> e nel <c>fill</c> di un SVG, dove un <c>;</c> apre una
+    /// dichiarazione CSS in piu'. L'unica sorgente di oggi (un <c>&lt;input type="color"&gt;</c>) e' vincolata
+    /// dal browser; un import o una riga corretta a mano nel DB no.
+    /// </summary>
+    [Theory]
+    [InlineData("red")]                              // nome CSS: non lo accettiamo, non ci arriva nessuno
+    [InlineData("rgb(255,0,0)")]                     // funzione: idem
+    [InlineData("#ab")]                              // troppo corto
+    [InlineData("#abcdefgh")]                        // cifre non esadecimali
+    [InlineData("abcdef")]                           // manca il cancelletto
+    [InlineData("#0d2c99;background-image:url(x)")]  // il caso vero: una seconda dichiarazione in coda
+    public void Resolve_Scarta_Un_Override_Che_Non_E_Un_Colore(string sporco)
+    {
+        var overrides = new Dictionary<string, string> { ["LIRP_TWR"] = sporco };
+        Assert.Equal(AorColorScheme.Defaults["TWR"], AorColorScheme.Resolve("LIRP_TWR", overrides));
+    }
+
+    [Theory]
+    [InlineData("#abc")]
+    [InlineData("#abcdef")]
+    [InlineData("#ABCDEF")]
+    [InlineData("#abcd")]        // con alfa, forma corta
+    [InlineData("#abcdef80")]    // con alfa, forma lunga
+    [InlineData("  #abcdef  ")]  // spazi attorno: il valore e' buono
+    public void Resolve_Accetta_Gli_Esadecimali_Veri(string pulito)
+    {
+        var overrides = new Dictionary<string, string> { ["LIRP_TWR"] = pulito };
+        Assert.Equal(pulito, AorColorScheme.Resolve("LIRP_TWR", overrides));
     }
 }

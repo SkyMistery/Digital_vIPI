@@ -57,24 +57,26 @@
            l'elenco spingeva in giù proprio le righe su cui si stava lavorando (regola 5).
            ⚠️ Il titolo non e' sempre «Operazione non consentita»: un documento occupato non e' un permesso
            negato, ed e' un'altra reazione (aspetto un minuto, non chiedo un grant). *@
-        @if (_error is not null || _status is not null)
-        {
-            <span class="st-msg @(_error is not null ? "warn" : "ok")" role="status" aria-live="polite">
-                <Icon Name="@(_error is not null ? "warning" : "check-circle")" Size="14" />
-                <span class="st-msg-t">
-                    @if (_error is not null)
-                    {
-                        <b>@(_errorTitle ?? L["Ver_NotAllowed"].Value)</b>
-                        <text> </text>@_error
-                    }
-                    else
-                    {
-                        @_status
-                    }
+        <LiveRegion>
+            @if (_error is not null || _status is not null)
+            {
+                <span class="st-msg @(_error is not null ? "warn" : "ok")">
+                    <Icon Name="@(_error is not null ? "warning" : "check-circle")" Size="14" />
+                    <span class="st-msg-t">
+                        @if (_error is not null)
+                        {
+                            <b>@(_errorTitle ?? L["Ver_NotAllowed"].Value)</b>
+                            <text> </text>@_error
+                        }
+                        else
+                        {
+                            @_status
+                        }
+                    </span>
+                    <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
                 </span>
-                <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
-            </span>
-        }
+            }
+        </LiveRegion>
     </div>
 
     @if (_docs is null)

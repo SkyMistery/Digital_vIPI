@@ -56,25 +56,27 @@
                girare uno spinner — indistinguibile da un'applicazione bloccata. Il chip dice a che punto è,
                quanti sono falliti, e porta l'interruzione. Occupa lo stesso posto del chip d'esito: i due
                non convivono mai. *@
-            @if (_busy)
-            {
-                <span class="st-msg prog" role="status" aria-live="polite">
-                    <span class="spin"></span>
-                    <span class="st-msg-t">@WorkLabel()</span>
-                    @if (_importCts is not null)
-                    {
-                        <button class="lnk-mini" title="@L["Conf_StopTitle"]" @onclick="CancelImport" disabled="@_stopAsked">@L["Conf_Stop"]</button>
-                    }
-                </span>
-            }
-            else if (_msg is not null || _ok is not null)
-            {
-                <span class="st-msg @(_msg is not null ? "warn" : "ok")" role="status">
-                    <Icon Name="@(_msg is not null ? "warning" : "check-circle")" Size="14" />
-                    <span class="st-msg-t">@(_msg ?? _ok)</span>
-                    <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
-                </span>
-            }
+            <LiveRegion>
+                @if (_busy)
+                {
+                    <span class="st-msg prog">
+                        <span class="spin"></span>
+                        <span class="st-msg-t">@WorkLabel()</span>
+                        @if (_importCts is not null)
+                        {
+                            <button class="lnk-mini" title="@L["Conf_StopTitle"]" @onclick="CancelImport" disabled="@_stopAsked">@L["Conf_Stop"]</button>
+                        }
+                    </span>
+                }
+                else if (_msg is not null || _ok is not null)
+                {
+                    <span class="st-msg @(_msg is not null ? "warn" : "ok")">
+                        <Icon Name="@(_msg is not null ? "warning" : "check-circle")" Size="14" />
+                        <span class="st-msg-t">@(_msg ?? _ok)</span>
+                        <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
+                    </span>
+                }
+            </LiveRegion>
             @* Gli avvisi dell'import erano un callout in fascia con dentro un elenco: alto quanto gli avvisi
                che porta, e sopra la tabella. Qui sono un chip che li conta e li apre al clic. *@
             @if (_warnings.Count > 0)
@@ -327,15 +329,20 @@
                            un gesto esplicito — scegliere una riga non deve bombardare IVAO — e si interrompe.
                            Il CancellationToken era in firma dal primo giorno e non era mai stato cablato. *@
                         <div class="conf-acts" style="margin-top:12px">
-                            @if (_detailBusy)
-                            {
-                                <span class="st-msg prog" role="status" aria-live="polite">
-                                    <span class="spin"></span>
-                                    <span class="st-msg-t">@L["Conf_ComputingAdj"]</span>
-                                    <button class="lnk-mini" @onclick="CancelVerify">@L["Conf_Stop"]</button>
-                                </span>
-                            }
-                            else
+                            @* ⚠️ Qui la regione avvolge SOLO l'avanzamento, e il tasto sta fuori: dentro una
+                               live region ogni ridisegno del suo contenuto viene annunciato, e un tasto che
+                               non ha niente da dire finirebbe per parlare a ogni giro. *@
+                            <LiveRegion>
+                                @if (_detailBusy)
+                                {
+                                    <span class="st-msg prog">
+                                        <span class="spin"></span>
+                                        <span class="st-msg-t">@L["Conf_ComputingAdj"]</span>
+                                        <button class="lnk-mini" @onclick="CancelVerify">@L["Conf_Stop"]</button>
+                                    </span>
+                                }
+                            </LiveRegion>
+                            @if (!_detailBusy)
                             {
                                 <button class="btn ghost" disabled="@_busy" @onclick="() => VerifyAsync(sel.Id)" title="@L["Conf_VerifyTitle"]">
                                     <Icon Name="search" /> @L["Conf_VerifyAdj"]
