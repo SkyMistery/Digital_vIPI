@@ -573,7 +573,22 @@ sono **34** e le clausole **50** (erano 38 e 60 il giorno della conversione). È
 mezzo, non una perdita del travaso — il tool riconcilia riga per riga ed esce in errore se una tabella non
 combacia.
 
-### A12 ⚠️ 23 agosto, sera — la produzione si è aggiornata DA SOLA, e ha perso i coordinamenti
+### A12 ✅ 23 agosto, sera — la produzione si è aggiornata da sola, e il `.sql` è stato importato
+> ⚠️ **Correzione, e vale più della voce.** Questa voce ha sostenuto per un'ora che i coordinamenti di
+> produzione fossero **perduti**. **Non lo sono**: il committente ha guardato `/services/vsop/admin/trasferimenti`
+> e gli accordi ci sono. Ivao.It ha importato il `.sql`, e la consegna è **completa** — sito e database.
+>
+> L'errore non è stato nella misura ma nell'**inferenza**: dal fatto che le migrazioni fossero girate ho
+> concluso che *nient'altro* fosse successo, e da lì che il `DROP` fosse l'ultima parola sui dati. Era una
+> deduzione su una cosa che non potevo vedere — lo stato del loro database — spacciata per constatazione.
+> ⚠️ **Il committente aveva l'unica prova che contava** («c'è la quota corretta da 90 a 9000, e nell'ultima
+> release del DB non c'era») e io ho continuato a cercarla da fuori, dove non era raggiungibile. Quando
+> qualcuno che *guarda il sistema da dentro* riferisce un fatto, quello è un dato, non un'impressione da
+> verificare prima di crederci.
+
+<details><summary>Quel che resta vero, e serve al prossimo giro di migrazioni</summary>
+
+
 Il committente ha caricato i file via FTP e **Passenger ha rigenerato il processo** senza che nessuno
 toccasse `tmp/restart.txt`. Misurato dall'esterno, non dedotto: `/services/vsop` risponde **200** (quella
 rotta nella build del 15 agosto non esiste), `/vsop` dà **301**, `/vsop/health/ready` dice **Healthy**, e
@@ -590,16 +605,20 @@ stessa), mentre `AddCoordinationAgreements` non travasa niente — **zero** `Ins
 `migrationBuilder.Sql`. La conversione flussi→accordi non è mai stata una migrazione: è stata un passo a
 parte, eseguito **solo in sviluppo**.
 
-**Risultato: i coordinamenti di produzione non ci sono più, e le tabelle nuove sono vuote.** Nessun errore,
-nessun avviso: esattamente la modalità di guasto che il handoff degli accordi chiama la peggiore.
+**Quindi un archivio ancora sul modello legacy che sale alla testa perde i coordinamenti in silenzio**, e le
+tabelle nuove restano vuote: nessun errore, nessun avviso. In produzione **non è successo** — l'import del
+`.sql` ha rimesso tutto — ma la proprietà della catena di migrazioni è questa, ed è verificata nel codice.
 
 ⚠️ **La protezione su cui contavamo non copriva questo caso, e va detto per esteso.** `AgreementSectionsFinalize`
 fallisce rumorosamente su un archivio che **ha già gli accordi** in forma vecchia — quello era il caso previsto.
 Un archivio ancora sul modello **legacy** non lo incontra mai: passa dal `DROP`, e arriva in fondo pulito e
 vuoto. Avevamo scritto «un deploy fatto adesso non parte»; il vero rischio era «parte, e non dice niente».
 
-**Cosa ne consegue, e non è opinabile:** la sostituzione del database (**A11**) non è più un miglioramento
-di contenuto, è la **riparazione**. Finché non è fatta, la produzione è un sito senza coordinamenti.
+**Cosa ne consegue:** la sostituzione del database (**A11**) è stata **fatta**, e ha portato in produzione sia
+i contenuti aggiornati sia gli accordi. Se non fosse stata fatta, quella catena avrebbe lasciato un sito senza
+coordinamenti — motivo per cui la regola qui sotto resta.
+
+</details>
 
 ℹ️ Da qui una regola per il prossimo set di migrazioni: quando una migrazione **droppa** una tabella che
 altrove è stata *convertita* da un passo esterno, la migrazione deve o portarsi dentro la conversione, o
