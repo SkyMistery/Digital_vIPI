@@ -75,8 +75,9 @@ qui sopra: svuotandola sparirebbero configurazione e chiavi).
 tiene. Fermatela dal pannello Plesk (impostazioni .NET/Passenger del dominio), caricate, e ripartite col
 passo 5.
 
-ℹ️ I file sono **415**. Se il pannello sa scompattare uno `.zip`, caricate quello: è un trasferimento invece
-di 415, e non ci sono modalità di trasferimento da sbagliare.
+ℹ️ I file sono **421**, in quattro cartelle (`wwwroot`, `content`, `en`, `deploy`) più la radice. Se il
+pannello sa scompattare uno `.zip`, caricate quello: è un trasferimento invece di 421, e non ci sono
+modalità di trasferimento da sbagliare.
 
 ### 3. Sostituire il database
 

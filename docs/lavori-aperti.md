@@ -501,7 +501,7 @@ agosto non sa leggere l'archivio del 15, perché in mezzo c'è il modello degli 
 
 | | Cosa | Dove | sha256 |
 |---|---|---|---|
-| **Sito** | `vipi-linux-x64-mariadb-20260823.zip` — 48,7 MB, 415 file, self-contained net8 | `artifacts/publish/` | `A027975F…521E6438` |
+| **Sito** | `vipi-linux-x64-mariadb-20260823.zip` — 48,7 MB, 421 file, self-contained net8 | `artifacts/publish/` | `75E95BED…F6ADAC6E` |
 | **Database** | `vipi-atc-it-ivao-aero-2026-08-23.sql` — 3,1 MB, schema + dati + `__EFMigrationsHistory` | `_mariadb/dump/` (**fuori dal repo**) | `0861BE6A…C20969A` |
 
 **La strategia è la sostituzione, non la migrazione**, ed è ciò che scioglie il blocco di E6-bis §9: il
@@ -516,6 +516,12 @@ piedi** su Plesk+Passenger, e mette per iscritto le tre cose che l'FTP canceller
 `appsettings.Production.json`, `vipi-keys/`, `tmp/` — più l'ordine dei passi: **prima i file, poi il
 database, poi `tmp/restart.txt`**, perché Passenger serve la versione vecchia finché non gli si dice di
 ripartire e così la finestra di disallineamento dura secondi.
+
+⚠️ **La consegna si divide in due canali, e il foglio di istruzioni sta nel canale sbagliato.** I file
+dell'applicazione li carica il committente via FTP; il `.sql` va a chi in Ivao.It ha accesso al database.
+Ma `LEGGIMI-AGGIORNAMENTO.md` sta **dentro lo zip**, che a loro non arriva. Per questo c'è
+`artifacts/CONSEGNA-DB-20260823.md`: la sola parte del database, che si manda insieme al `.sql` — backup,
+`DROP DATABASE`, import, e le due domande mai risposte (chi fa il backup, `max_allowed_packet`).
 
 ⚠️ Per la stessa ragione nel pacchetto **non c'è** `appsettings.Production.json`, ma
 `appsettings.Production.json.esempio`: un file con quel nome, caricato via FTP, cancellerebbe la password
