@@ -188,6 +188,17 @@ Come avete chiesto, i file hanno il **nome vero**: si sovrascrivono quelli sul s
 
 ---
 
+> ### ⚠️ Due cose che ingannano, viste sul campo il 24 agosto 2026
+>
+> **1. `restart.txt` non riavvia da solo.** Passenger se ne accorge alla **richiesta successiva**: dopo
+> averlo caricato, **aprite il sito una volta**, altrimenti l'applicazione resta quella di prima e sembra
+> che il riavvio non abbia funzionato.
+>
+> **2. Il browser vi mostra la diagnostica di prima.** È un file di testo e viene messo in cache: ricaricate
+> con **Ctrl+F5**, o aggiungete qualcosa in fondo all'indirizzo (`…/avvio-diagnostica.txt?x=1`). Il modo
+> sicuro di leggerlo è guardare **l'ora nella prima riga**: se non è cambiata, state leggendo la copia
+> vecchia — non c'è nessun guasto da cercare.
+
 ## Come si vede che è andata
 
 | Controllo | Cosa deve succedere |

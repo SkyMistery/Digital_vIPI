@@ -68,3 +68,14 @@ gira, e se pensate che sia trapelato, cambiate nome al file: costa un rinomina v
 `diagnostica/` (che dal 24 agosto contengono anche gli stack trace delle richieste fallite e il VID di chi
 le ha subite). Non ci sono credenziali, ma è una mappa del server. Chiudere davvero la faccenda resta un
 lavoro di hosting: `docs/lavori-aperti.md` §A13.
+
+> ### ⚠️ Due cose che ingannano, viste sul campo il 24 agosto 2026
+>
+> **1. `restart.txt` non riavvia da solo.** Passenger se ne accorge alla **richiesta successiva**: dopo
+> averlo caricato, **aprite il sito una volta**, altrimenti l'applicazione resta quella di prima e sembra
+> che il riavvio non abbia funzionato.
+>
+> **2. Il browser vi mostra la diagnostica di prima.** È un file di testo e viene messo in cache: ricaricate
+> con **Ctrl+F5**, o aggiungete qualcosa in fondo all'indirizzo (`…/avvio-diagnostica.txt?x=1`). Il modo
+> sicuro di leggerlo è guardare **l'ora nella prima riga**: se non è cambiata, state leggendo la copia
+> vecchia — non c'è nessun guasto da cercare.
