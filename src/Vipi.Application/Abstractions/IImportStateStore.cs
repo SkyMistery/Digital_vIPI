@@ -47,6 +47,13 @@ public static class ImportCategories
     public const string Sid = "Sid";
 
     /// <summary>
+    /// Lo storico delle connessioni ATC per le statistiche (dal 24 agosto 2026). Il primo giro recupera i
+    /// dodici mesi che la sorgente conserva; i successivi ripassano gli ultimi giorni per mettere la fine
+    /// vera alle sessioni che il poller ha chiuso a occhio e recuperare quel che non ha visto.
+    /// </summary>
+    public const string AtcHistory = "AtcHistory";
+
+    /// <summary>
     /// NON è un import periodico: è il segnaposto della riconciliazione one-shot che ha spento le aree degli ACC
     /// esteri (<c>ISpecialAreaMaintenance.OptOutForeignAreasAsync</c>). Sta qui perché serve un registro «già fatto»
     /// persistente, e questa è la tabella che ce l'ha: senza, la riconciliazione ricancellerebbe a ogni riavvio le

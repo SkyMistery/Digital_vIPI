@@ -17,4 +17,23 @@ public interface IAtcSessionStore
 
     /// <summary>Applica il piano: crea/aggiorna le sessioni viste e chiude quelle sparite. Ritorna quante righe ha toccato.</summary>
     Task<int> ApplyAsync(AtcSessionPlan plan, CancellationToken ct = default);
+
+    /// <summary>
+    /// Scrive le sessioni arrivate dallo <b>storico</b>. Ritorna (create, aggiornate).
+    ///
+    /// <para>⚠️ Sulle righe che il poller ha già scritto, lo storico è verità <b>solo per la coda</b>: fine e
+    /// durata definitive. Non tocca i campi che il poller conosce meglio (posizione e frequenza, che nella
+    /// lista dello storico non ci sono affatto) e non declassa a <c>Backfill</c> una riga vista dal vivo.</para>
+    /// </summary>
+    Task<(int Created, int Updated)> UpsertHistoryAsync(
+        IReadOnlyList<SourceAtcSessionHistory> sessions, CancellationToken ct = default);
+
+    /// <summary>
+    /// Ricalcola i turni nella finestra data e scrive quelli cambiati; ritorna quante righe ha corretto.
+    ///
+    /// <para>Serve dopo il backfill: le sessioni storiche arrivano alla rinfusa, e il turno si riconosce solo
+    /// guardando la sequenza completa di un controllore su una postazione. Usa lo stesso raggruppatore puro
+    /// del poller, così i due percorsi non possono dare risposte diverse.</para>
+    /// </summary>
+    Task<int> RecomputeShiftsAsync(DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default);
 }

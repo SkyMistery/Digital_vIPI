@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 using Vipi.Infrastructure.Ivao;
 using Vipi.Infrastructure.Sectorfile;
@@ -36,6 +36,7 @@ public sealed class ImportSchedule : IImportSchedule
         ImportCategories.AirportDirectory => Ore(_ivao.AirportDirectoryImportHours),
         ImportCategories.AirportData => Ore(_ivao.AirportDataImportHours),
         ImportCategories.Sid => string.IsNullOrWhiteSpace(_sectorfile.RawBaseUrl) ? null : Ore(_sectorfile.ImportHours),
+        ImportCategories.AtcHistory => Ore(_ivao.AtcHistoryImportHours),
         _ => null,   // chiavi che non sono import periodici (segnaposti di riconciliazioni one-shot).
     };
 

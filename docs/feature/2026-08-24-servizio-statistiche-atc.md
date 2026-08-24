@@ -488,8 +488,29 @@ sessioni»** — sarebbe un buco silenzioso nello storico.
    statistiche di una sessione **in corso** vede l'ultimo checkpoint (≤10 minuti), non l'istante. Allo
    spegnimento il poller versa tutto (`StopAsync`), verificato su un arresto vero: quattro giri, quattro
    minuti in archivio.
-5. Backfill storico: **23 query a prefisso** (`LIA`…`LIZ`) × pagine da 100 ≈ 220 chiamate una tantum
-   (§8.1), con **ritenti sui 503** (§8.4) + riga nella policy sorgenti + audit.
+5. ✅ **Motore fatto** (24 agosto); resta la riga nella policy sorgenti + audit, che è un passo suo perché
+   tocca il modello della policy. `IAtcHistorySource` + `IvaoAtcHistoryClient` (paginato, 23 prefissi),
+   `AtcHistoryImportUseCase`, `AtcHistoryImportHostedService` (giro giornaliero, bootDelay 70s: ultimo della
+   fila), e due metodi nuovi sull'archivio: `UpsertHistoryAsync` e `RecomputeShiftsAsync`. 7 test nuovi.
+
+   **Un corpo solo per due usi**: il primo giro recupera i dodici mesi che la sorgente conserva; i successivi
+   ripassano due giorni, per due ragioni — mettere la fine **vera** alle sessioni che il poller ha chiuso a
+   occhio («non c'era più al giro delle 21:03»), e recuperare quel che non ha visto perché l'applicazione era
+   giù.
+
+   ⚠️ **Sulle righe già viste dal vivo lo storico corregge solo la coda** (fine e durata): non declassa la
+   riga a `Backfill`, non tocca frequenza e posizione — che nella *lista* dello storico non ci sono affatto —
+   e non tocca il traffico già attribuito.
+
+   ⚠️ **I turni si ricalcolano dopo**, non riga per riga: lo storico arriva alla rinfusa e il turno si vede
+   solo sulla sequenza completa. Stesso `AtcShiftGrouper` del poller, così i due percorsi non possono dare
+   risposte diverse.
+
+   **Verifica live contro IVAO vero** (finestra di 7 giorni per non aspettare i 12 mesi — stesso codice):
+   «334 sessioni lette da 23 prefissi, 311 create, 23 aggiornate, 113 turni corretti». In archivio:
+   334 sessioni → **221 turni**, 312 chiuse, e le prime statistiche vere della divisione — `LIPZ_TWR` 24,0 ore
+   su 23 sessioni, `LIRF_TW1_APP` 22,9 ore su 10, il controllore più attivo con 33,9 ore in 15 turni. Il 24%
+   delle sessioni sta sotto i cinque minuti, coerente col 31,8% misurato sull'API su trenta giorni.
 6. Riempimento retroattivo del traffico d'aeroporto (`/airports/{icao}/traffics`).
 7. UI: `/services/stats` (mia) → dettaglio sessione → vista staff + interruttore classifiche.
 8. Ingressi: card hub, menù, guida, ricerca. Verifica live guidando il flusso reale.

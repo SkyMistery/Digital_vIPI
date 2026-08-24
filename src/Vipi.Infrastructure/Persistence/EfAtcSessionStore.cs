@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Stats;
 using Vipi.Domain.Entities;
@@ -93,5 +93,85 @@ public sealed class EfAtcSessionStore : IAtcSessionStore
 
         await _db.SaveChangesAsync(ct);
         return toccate;
+    }
+
+    public async Task<(int Created, int Updated)> UpsertHistoryAsync(
+        IReadOnlyList<SourceAtcSessionHistory> sessions, CancellationToken ct = default)
+    {
+        if (sessions.Count == 0) return (0, 0);
+
+        var ids = sessions.Select(s => s.SessionId).ToList();
+        var esistenti = await _db.AtcSessions.Where(s => ids.Contains(s.SessionId)).ToDictionaryAsync(s => s.SessionId, ct);
+
+        int creati = 0, aggiornati = 0;
+
+        foreach (var s in sessions)
+        {
+            if (esistenti.TryGetValue(s.SessionId, out var riga))
+            {
+                // La coda è verità della sorgente: quando lei dice che è finita, la nostra chiusura
+                // «all'ultimo giro in cui non c'era più» viene sostituita da quella vera.
+                if (s.EndUtc is { } fine) riga.EndUtc = fine.UtcDateTime;
+                if (s.ConnectedSeconds > riga.DurationSeconds) riga.DurationSeconds = s.ConnectedSeconds;
+                riga.UpdatedAtUtc = DateTime.UtcNow;
+                aggiornati++;
+            }
+            else
+            {
+                _db.AtcSessions.Add(new AtcSession
+                {
+                    SessionId = s.SessionId,
+                    UserId = s.UserId,
+                    Callsign = s.Callsign,
+                    // ⚠️ La LISTA dello storico non porta posizione e frequenza (stanno solo sul dettaglio
+                    // per-sessione): la posizione si ricava dal callsign, la frequenza resta vuota.
+                    Position = PosizioneDaCallsign(s.Callsign),
+                    Rating = s.Rating,
+                    StartUtc = s.StartUtc.UtcDateTime,
+                    EndUtc = s.EndUtc?.UtcDateTime,
+                    DurationSeconds = s.ConnectedSeconds,
+                    Source = AtcSessionSource.Backfill,
+                    ShiftKey = s.SessionId,          // provvisorio: lo sistema RecomputeShiftsAsync
+                    UpdatedAtUtc = DateTime.UtcNow,
+                });
+                creati++;
+            }
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return (creati, aggiornati);
+    }
+
+    public async Task<int> RecomputeShiftsAsync(
+        DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default)
+    {
+        var da = from.UtcDateTime;
+        var a = to.UtcDateTime;
+
+        var righe = await _db.AtcSessions.Where(s => s.StartUtc >= da && s.StartUtc <= a).ToListAsync(ct);
+        if (righe.Count == 0) return 0;
+
+        var chiavi = AtcShiftGrouper.Group(righe.Select(s => new ShiftInput(
+            s.SessionId, s.UserId, s.Callsign,
+            new DateTimeOffset(DateTime.SpecifyKind(s.StartUtc, DateTimeKind.Utc)),
+            s.EndUtc is { } f ? new DateTimeOffset(DateTime.SpecifyKind(f, DateTimeKind.Utc)) : null)));
+
+        var corrette = 0;
+        foreach (var riga in righe)
+        {
+            if (!chiavi.TryGetValue(riga.SessionId, out var chiave) || chiave == riga.ShiftKey) continue;
+            riga.ShiftKey = chiave;
+            corrette++;
+        }
+
+        if (corrette > 0) await _db.SaveChangesAsync(ct);
+        return corrette;
+    }
+
+    /// <summary>Suffisso di posizione dal callsign: <c>LIRN_US0_APP</c> → <c>APP</c>.</summary>
+    private static string? PosizioneDaCallsign(string callsign)
+    {
+        var pezzi = callsign.Split('_', StringSplitOptions.RemoveEmptyEntries);
+        return pezzi.Length >= 2 ? pezzi[^1].ToUpperInvariant() : null;
     }
 }

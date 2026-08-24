@@ -242,6 +242,11 @@ public static class IvaoServiceCollectionExtensions
         services.AddScoped<IvaoWhazzupClient>();
         services.AddScoped<IAtcActivitySource>(sp => sp.GetRequiredService<IvaoWhazzupClient>());
 
+        // Storico connessioni ATC (token app, scope tracker): backfill dei dodici mesi e ripasso quotidiano.
+        services.AddScoped<IvaoAtcHistoryClient>();
+        services.AddScoped<IAtcHistorySource>(sp => sp.GetRequiredService<IvaoAtcHistoryClient>());
+        services.AddScoped<Vipi.Application.Stats.AtcHistoryImportUseCase>();
+
         // Attribuzione del traffico: SINGLETON, perche' il registro delle tratte in corso vive in memoria fra
         // un giro e l'altro (e' quello che evita di riscrivere ogni riga ogni minuto). Lo usa il solo poller.
         services.AddSingleton<AtcTrafficRecorder>(sp => new AtcTrafficRecorder(
@@ -268,6 +273,7 @@ public static class IvaoServiceCollectionExtensions
         services.AddHostedService<AirportDirectoryImportHostedService>();
         services.AddHostedService<AirportSectorImportHostedService>();
         services.AddHostedService<AirportDataImportHostedService>();
+        services.AddHostedService<AtcHistoryImportHostedService>();
         services.AddHostedService<SpecialAreaImportHostedService>();
         return services;
     }

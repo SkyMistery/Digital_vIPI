@@ -79,6 +79,24 @@ public sealed class IvaoOptions
     /// </summary>
     public string FakeOnlineCallsigns { get; set; } = "";
 
+    /// <summary>Path dello storico connessioni (relativo a BaseUrl). Richiede il token app, scope <c>tracker</c>.</summary>
+    public string AtcSessionsPath { get; set; } = "/v2/tracker/sessions";
+
+    /// <summary>Ogni quante ore ripassare lo storico delle connessioni ATC (statistiche).</summary>
+    public int AtcHistoryImportHours { get; set; } = 24;
+
+    /// <summary>
+    /// Quanti giorni recupera il <b>primo</b> giro dello storico. 365 non è un numero tondo scelto a caso:
+    /// la retention della sorgente è di ~366 giorni (misurato), quindi oltre non esiste niente da prendere.
+    /// </summary>
+    public int AtcHistoryBackfillDays { get; set; } = 365;
+
+    /// <summary>
+    /// Quanti giorni ripassa ogni giro successivo. Due giorni coprono un'applicazione rimasta giù una notte
+    /// e costano una manciata di chiamate.
+    /// </summary>
+    public int AtcHistoryRefreshDays { get; set; } = 2;
+
     /// <summary>Ogni quante ore ri-verificare il roster staffisti via API (disattiva chi non è più staff IT).</summary>
     public int StaffVerifyHours { get; set; } = 24;
 
