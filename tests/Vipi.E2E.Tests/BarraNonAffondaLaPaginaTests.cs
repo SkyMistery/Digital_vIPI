@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
+using Vipi.Application.Content;
 using Xunit;
 
 namespace Vipi.E2E.Tests;
@@ -72,6 +73,76 @@ public sealed class BarraNonAffondaLaPaginaTests
         Assert.DoesNotContain("ver-chip", html);
     }
 
+    /// <summary>
+    /// ⚠️ Il difetto vero del 24 agosto 2026, letto nello stack trace di 78 richieste fallite in produzione:
+    /// il catalogo delle ACC veniva chiesto <b>dentro</b> <c>BuildRenderTree</c>. Blazor disegna l'albero
+    /// mentre <c>OnParametersSetAsync</c> è ancora in volo, quindi quella query partiva sullo stesso
+    /// <c>DbContext</c> su cui era già in corso quella di <c>_canEdit</c> — «A second operation was started
+    /// on this context instance».
+    ///
+    /// <para>Il test non riproduce la corsa (dipenderebbe da un tempo), ma l'<b>invariante</b> che la
+    /// esclude: quando il render chiede il catalogo, qualcuno l'ha già scaldato fuori dal render. Se
+    /// qualcuno rimette <c>Stations.Accs</c> nel markup, qui si vede.</para>
+    /// </summary>
+    [Fact]
+    public async Task Il_catalogo_si_scalda_fuori_dal_render()
+    {
+        var catalogo = new CatalogoCheRicordaLOrdine();
+        using var fabbrica = new FabbricaSocio(concessioniRotte: false, catalogo: catalogo);
+
+        var res = await fabbrica.CreateClient().GetAsync("/services");
+
+        await Assert200("/services", res);
+        Assert.True(catalogo.Prewarmed, "nessuno ha chiamato Prewarm(): il catalogo lo sta caricando il "
+                                      + "render, ed è la corsa sul DbContext che ha buttato giù /services.");
+        Assert.False(catalogo.LettoPrimaDelPrewarm,
+            "il catalogo è stato letto PRIMA di essere scaldato: se la lettura avviene dentro il render, "
+            + "cade sullo stesso DbContext della domanda che il layout sta ancora aspettando.");
+    }
+
+    /// <summary>Catalogo illeggibile: la barra perde i collegamenti alle ACC, la pagina no.</summary>
+    [Fact]
+    public async Task Se_il_catalogo_non_si_legge_la_pagina_esce_senza_i_collegamenti()
+    {
+        using var fabbrica = new FabbricaSocio(concessioniRotte: false, catalogo: new CatalogoRotto());
+
+        var res = await fabbrica.CreateClient().GetAsync("/services");
+
+        await Assert200("/services", res);
+        var html = await res.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("acc-nav\"><a", html);   // nessun collegamento ACC, ma la pagina c'è
+    }
+
+    /// <summary>Registra l'ordine: chi chiede il catalogo, e se qualcuno l'ha scaldato prima.</summary>
+    private sealed class CatalogoCheRicordaLOrdine : IStationResolver
+    {
+        public bool Prewarmed { get; private set; }
+        public bool LettoPrimaDelPrewarm { get; private set; }
+
+        public IReadOnlyList<AccInfo> Accs
+        {
+            get
+            {
+                if (!Prewarmed) LettoPrimaDelPrewarm = true;
+                return Array.Empty<AccInfo>();
+            }
+        }
+
+        public void Prewarm() => Prewarmed = true;
+        public AccInfo? Resolve(string accCode) => null;
+        public AccInfo? ResolveByCallsign(string callsign) => null;
+    }
+
+    /// <summary>Il catalogo non si legge: è il database che non risponde.</summary>
+    private sealed class CatalogoRotto : IStationResolver
+    {
+        private static Exception Giu() => new InvalidOperationException("catalogo non leggibile (simulato)");
+        public IReadOnlyList<AccInfo> Accs => throw Giu();
+        public void Prewarm() => throw Giu();
+        public AccInfo? Resolve(string accCode) => throw Giu();
+        public AccInfo? ResolveByCallsign(string callsign) => throw Giu();
+    }
+
     private static async Task Assert200(string percorso, HttpResponseMessage res)
     {
         var corpo = await res.Content.ReadAsStringAsync();
@@ -101,9 +172,14 @@ public sealed class BarraNonAffondaLaPaginaTests
     private sealed class FabbricaSocio : WebApplicationFactory<Program>
     {
         private readonly bool _concessioniRotte;
+        private readonly IStationResolver? _catalogo;
         private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"vipi-socio-{Guid.NewGuid():N}.db");
 
-        public FabbricaSocio(bool concessioniRotte) => _concessioniRotte = concessioniRotte;
+        public FabbricaSocio(bool concessioniRotte, IStationResolver? catalogo = null)
+        {
+            _concessioniRotte = concessioniRotte;
+            _catalogo = catalogo;
+        }
 
         protected override IHost CreateHost(IHostBuilder builder)
         {
@@ -120,6 +196,11 @@ public sealed class BarraNonAffondaLaPaginaTests
                 {
                     s.RemoveAll<IEditGrantRepository>();
                     s.AddScoped<IEditGrantRepository, ConcessioniRotte>();
+                }
+                if (_catalogo is not null)
+                {
+                    s.RemoveAll<IStationResolver>();
+                    s.AddSingleton(_catalogo);
                 }
             });
             // Come le altre fabbriche E2E: niente OIDC reale in CI (vedi SmokeTests.VipiAppFactory).
