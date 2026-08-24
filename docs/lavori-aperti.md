@@ -696,6 +696,19 @@ la ripara**.
 
 ## B. Branch non fusi — decisioni, non lavoro
 
+### B11 ✅ FUSO — `login-utente-nuovo`, fuso in `main` il 24 agosto 2026
+
+Undici commit più il merge `1d43767`. Nessun conflitto: il ramo era nato da `main` a `1883446` e nessuno
+l'ha toccata nel frattempo. Dopo il merge: **Release verde su entrambi i TFM (0 avvisi)**, **1952 test
+verdi** su net8.
+
+⚠️ **Il merge è arrivato DOPO la verifica sul campo, non prima**: il codice era già in produzione dalle
+16:19 UTC (pacchetto «g», commit `e8fc4a2`) e la cartella `segreti/` in opera dalle 16:43. Fondere prima
+avrebbe voluto dire scrivere in `main` una cosa che nessuno aveva ancora visto funzionare sul server vero.
+
+Contenuto: **E8** (la barra che non affonda la pagina, la pagina d'errore e il registro degli errori, la
+versione in barra) e **A13** (i segreti fuori dal file che si scarica).
+
 ### B10 ✅ FUSO — `coordinamenti-lato-ricevente`, fuso in `main` il 24 agosto 2026
 
 Sei commit più il merge `84f741b`, ramo cancellato (locale e origin). **Nessun conflitto**: il ramo era nato
@@ -733,12 +746,32 @@ nella stessa tabella due righe dello stesso accordo si aprivano in due modi dive
 ⚠️ **Nessuna entità nuova e nessuna migrazione**: non allunga la coda del cutover MariaDB. `IsIncoming` è un
 campo **additivo** sul DTO serializzato dentro le release congelate, che lo deserializzano `false`.
 
-### 🔴 B10-bis — resta da fare: RIPUBBLICARE i documenti
+### 🔴 B10-bis — resta da fare: ripubblicare **un** documento
 
 `Sentence` e `LeadSentence` sono **stringhe già scritte** dentro la release: i documenti pubblicati
 continueranno a dire «Zagreb Radar trasferisce a…» finché non esce una release nuova. Misurato fianco a
 fianco sulla stessa vIPI ACC di Brindisi: **viewer pubblico 33 tabelle, tutte «PROSSIMO», zero «riceve da»**;
 **editor (derivato live) 39 tabelle, 13 «DA», 4 nodi tagliati**. La differenza è tutta la ripubblicazione.
+
+**Quanti documenti sono davvero, misurato in produzione la sera del 24 agosto 2026: uno.** Sono stati
+interrogati **tutti** i documenti pubblici del sito, contando le occorrenze delle due frasi:
+
+| Documento | tabelle | «riceve» | «trasferisce» |
+|---|---|---|---|
+| `/services/vsop/libb/vipi` | 39 | **0** | **55** |
+| `limm/vipi` | 4 | 0 | 0 |
+| 5 aeroporti (LIBC, LIBD, LIBR, LIBA, LIRN) | 4 ciascuno | 0 | 0 |
+| 2 APP non remotizzati (LIBP, LICC) | 1 ciascuno | 0 | 0 |
+| 3 vLoA di LIBB (LYBA, LDZO, LGGG) | 8÷9 | 0 | 0 |
+
+Solo la **vIPI ACC di Brindisi** porta la prosa dei coordinamenti; gli altri documenti pubblicati non ne
+hanno affatto, quindi per loro la ripubblicazione non cambierebbe una parola. ⚠️ La voce diceva
+«ripubblicare i documenti», al plurale e senza numero, e per questo sembrava un lavoro: **è un documento,
+e sono due clic**. Il modo di saperlo era interrogare il sito, non ricordare.
+
+⚠️ **Non è un lavoro che si può fare da qui**: pubblicare significa scrivere nel database di produzione, e
+si fa dall'editor con un'identità admin. Chi lo esegue: il committente. La verifica dopo, invece, si fa da
+fuori in dieci secondi — la pagina pubblica deve smettere di dire zero «riceve».
 
 
 ### B9 ✅ FUSO — `sorgenti-giro-ta-piste`, fuso in `main` il 22 agosto 2026
