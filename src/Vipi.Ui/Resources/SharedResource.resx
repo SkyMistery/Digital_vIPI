@@ -889,7 +889,7 @@
   <data name="Stats_PublicLeaderboard" xml:space="preserve"><value>Classifica visibile a tutti i loggati</value></data>
   <data name="Stats_PublicLeaderboardHint" xml:space="preserve"><value>Spenta, la classifica la vede solo lo staff. Accesa, mostra ore e movimenti di tutti a chiunque abbia fatto login.</value></data>
   <data name="Stats_DecidedBy" xml:space="preserve"><value>deciso da {0} il {1}</value></data>
-  <data name="Stats_Disclaimer" xml:space="preserve"><value>Il traffico e una misura, non un registro: dipende dai poligoni e dai limiti di quota dei settori.</value></data>
+  <data name="Stats_Disclaimer" xml:space="preserve"><value>Il traffico e una misura, non un registro: i settori senza poligono non attribuiscono, e per alcune torri la forma e un cerchio di 5 NM.</value></data>
   <data name="Sorg_AtcStatsLabel" xml:space="preserve"><value>Statistiche ATC</value></data>
   <data name="Sorg_AtcStatsDesc" xml:space="preserve"><value>Connessioni ATC dei callsign italiani e traffico gestito, raccolti dal vivo e dallo storico della sorgente. Escluderla non rende nulla manuale: spegne la raccolta.</value></data>
   <data name="Sorg_SidLabel" xml:space="preserve"><value>SID</value></data>

@@ -886,7 +886,7 @@
   <data name="Stats_PublicLeaderboard" xml:space="preserve"><value>Ranking visible to all signed-in users</value></data>
   <data name="Stats_PublicLeaderboardHint" xml:space="preserve"><value>When off, only staff can see the ranking. When on, it shows everyone's hours and movements to any signed-in user.</value></data>
   <data name="Stats_DecidedBy" xml:space="preserve"><value>decided by {0} on {1}</value></data>
-  <data name="Stats_Disclaimer" xml:space="preserve"><value>Traffic is a measurement, not a log: it depends on sector polygons and vertical limits.</value></data>
+  <data name="Stats_Disclaimer" xml:space="preserve"><value>Traffic is a measurement, not a log: sectors without a polygon attribute nothing, and some towers use a 5 NM circle as their shape.</value></data>
   <data name="Sorg_AtcStatsLabel" xml:space="preserve"><value>ATC statistics</value></data>
   <data name="Sorg_AtcStatsDesc" xml:space="preserve"><value>ATC connections on Italian callsigns and the traffic handled, collected live and from the source's history. Excluding it makes nothing manual: it turns collection off.</value></data>
   <data name="Sorg_SidLabel" xml:space="preserve"><value>SID</value></data>

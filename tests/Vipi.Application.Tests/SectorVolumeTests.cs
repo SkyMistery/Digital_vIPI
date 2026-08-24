@@ -48,6 +48,24 @@ public class SectorVolumeTests
     }
 
     [Fact]
+    public void Un_limite_vuoto_vale_0_ft_sotto_e_66000_ft_sopra()
+    {
+        // ⚠️ Regola del committente (24 agosto): il campo vuoto NON è un dato mancante, è il valore —
+        // inferiore vuoto = suolo, superiore vuoto = 66 000 ft, che è poi UNL. 138 settori ACC su 153 stanno
+        // così ed è giusto: chi un domani li «completasse» a mano restringerebbe volumi corretti.
+        var v = Volume(null, null);
+
+        Assert.True(v.Contains(42.0, 12.0, altitudeFt: 0));          // al suolo
+        Assert.True(v.Contains(42.0, 12.0, altitudeFt: 41_000));
+        Assert.True(v.Contains(42.0, 12.0, altitudeFt: 66_000));     // il tetto è compreso
+        Assert.False(v.Contains(42.0, 12.0, altitudeFt: 67_000));    // sopra no
+
+        // Scriverlo a mano come UNL dà lo stesso volume: sono due modi di dire la stessa cosa.
+        var esplicito = Volume(0, 66_000);
+        Assert.Equal((v.BottomFl, v.TopFl), (esplicito.BottomFl, esplicito.TopFl));
+    }
+
+    [Fact]
     public void Tetto_nullo_significa_senza_limite_non_zero()
     {
         var v = Volume(0, null);                           // il caso reale di LIBB_ES_CTR

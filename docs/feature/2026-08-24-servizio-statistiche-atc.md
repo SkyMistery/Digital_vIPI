@@ -181,21 +181,27 @@ Il turno **non è** una tabella nuova: è una colonna sulla sessione (`ShiftKey`
 gruppo). La sessione resta l'unità di scrittura, perché è la chiave che IVAO ci dà; il turno è l'unità con
 cui si raccontano i numeri.
 
-### 4.5 ⚠️ I limiti verticali oggi in archivio sono quasi tutti nominali
+### 4.5 I limiti vuoti NON sono un buco: sono 0 ft e 66 000 ft
 
-La regola del committente («FL260 sopra uno spazio che finisce a FL195 non è gestito») è nel motore, ma sui
-dati di oggi **non morde quasi mai**:
+⚠️ **Correzione (committente, 24 agosto sera).** Questa sezione diceva il contrario, ed era un errore mio di
+lettura del dato: avevo contato i campi vuoti come «limiti non compilati» e messo in conto un lavoro
+editoriale sui settori ACC. Non esiste. **Il vuoto è il valore, e vuol dire una cosa precisa**: inferiore
+vuoto = **0 ft** (suolo), superiore vuoto = **66 000 ft**, che è poi lo stesso che scrivere UNL.
 
-| | tetto = UNL (null) | pavimento = 0/null |
+| | tetto vuoto (= 66 000 ft) | pavimento vuoto (= 0 ft) |
 |---|---|---|
-| `AccSectors` (153) | **138** | 151 |
+| `AccSectors` (153) | 138 | 151 |
 | `AirportSectors` (193) | 50 | 193 |
 
-Cioè: 138 settori ACC su 153 arrivano «senza limite» e partono da terra. Finché restano così, un aereo a
-FL390 sopra Fiumicino risulta dentro il volume di `LIRR_NE1_CTR` — che *può* anche essere giusto, ma non
-perché qualcuno l'abbia deciso: perché il campo è vuoto. **Il motore è pronto, i dati no.** Compilare i
-limiti dei settori ACC è un lavoro editoriale da mettere in conto (già possibile dall'editor struttura), e
-la pagina deve dire che l'attribuzione verticale vale quanto i limiti inseriti.
+Quei 138 settori ACC che «arrivano senza limite e partono da terra» sono **corretti così**, non incompleti.
+E il motore li legge già esattamente in questo modo: `AorFlBand` normalizza il pavimento vuoto a `Ground`
+(FL 0) e il tetto vuoto a `Unlimited` (FL 660 = 66 000 ft) — la stessa convenzione, scritta prima e per
+un'altra ragione, dell'estrusione 3D dell'AoR.
+
+Quindi l'aereo a FL390 sopra Fiumicino **è** di `LIRR_NE1_CTR`, e lo è per una decisione presa, non per un
+campo lasciato in bianco. La regola del committente («FL260 sopra uno spazio che finisce a FL195 non è
+gestito») morde dove i limiti sono scritti — le TWR a 3000 ft (§4.5-bis), gli ACC che dichiarano un tetto
+come `LIMM_WS2_CTR` a FL325 — e negli altri casi non deve mordere, perché non c'è niente da tagliare.
 
 ### 4.4-quater Rilettura della slice 1: altri quattro difetti di conteggio
 
