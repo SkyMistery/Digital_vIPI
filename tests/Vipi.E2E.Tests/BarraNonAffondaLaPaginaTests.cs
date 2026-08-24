@@ -58,6 +58,20 @@ public sealed class BarraNonAffondaLaPaginaTests
         Assert.DoesNotContain("/services/vsop/versions", html);   // il tasto «Modifica» resta spento
     }
 
+    /// <summary>
+    /// La versione è una spia per chi amministra: a un socio non dice niente, e a chiunque passi di qui
+    /// direbbe con quale build precisa sta parlando — informazione da regalare solo a chi serve.
+    /// </summary>
+    [Fact]
+    public async Task Al_socio_la_versione_non_si_mostra()
+    {
+        using var fabbrica = new FabbricaSocio(concessioniRotte: false);
+
+        var html = await fabbrica.CreateClient().GetStringAsync("/services");
+
+        Assert.DoesNotContain("ver-chip", html);
+    }
+
     private static async Task Assert200(string percorso, HttpResponseMessage res)
     {
         var corpo = await res.Content.ReadAsStringAsync();

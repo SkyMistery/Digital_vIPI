@@ -317,6 +317,14 @@
 .live-badge:hover{background:color-mix(in srgb,var(--ivao-green) 30%,transparent);border-color:color-mix(in srgb,var(--ivao-green) 75%,transparent)}
 .live-badge.off:hover{background:var(--line);border-color:var(--ink-dim)}
 .live-badge .dot{width:9px;height:9px;border-radius:50%;background:var(--ivao-green);box-shadow:0 0 0 0 color-mix(in srgb,var(--ivao-green) 60%,transparent);animation:pulse 2s infinite}
+/* La spia della versione (soli admin). Deliberatamente SPENTA: e' una spia, non un comando, e nella barra
+   non deve competere con niente. Monospazio perche' quello che porta e' un codice, e i codici si leggono a
+   colpo d'occhio solo se le cifre stanno in colonna. `user-select` resta libero: serve poterlo copiare
+   dentro una segnalazione. */
+.ver-chip{font:12px/1 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--ink-dim);
+          background:var(--surface-muted);border:1px solid var(--line);border-radius:6px;
+          padding:5px 8px;white-space:nowrap;cursor:default}
+
 /* variante "disconnesso" (U7): prima era override inline nel SopLayout */
 .live-badge.off{background:var(--surface-muted);color:var(--ink-soft);border-color:var(--ivao-grey)}
 .live-badge.off .dot{background:var(--grey-mid);box-shadow:none;animation:none}
@@ -2822,6 +2830,10 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    al primo uso e il `title` lo ridà. −120px. */
 .topbar.tb-2 .editor-btn .eb-t{display:none}
 .topbar.tb-2 .editor-btn{padding:7px 10px}
+
+/* La spia della versione se ne va per PRIMA, e per intero: e' l'unica cosa in barra che non serve a fare
+   niente — la stessa riga sta in diagnostica/avvio-diagnostica.txt e nel `title` finche' si vede. −86px. */
+.topbar.tb-2 .ver-chip{display:none}
 
 /* Il badge live e' uno STATO, non un comando: il pallino lo dice quanto la frase, e il `title` la ridà
 

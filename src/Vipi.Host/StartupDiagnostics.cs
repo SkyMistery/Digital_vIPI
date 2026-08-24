@@ -54,6 +54,10 @@ public static class StartupDiagnostics
 
         sb.AppendLine($"vIPI — diagnostica di avvio, {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
         sb.AppendLine(new string('-', 70));
+        // ⚠️ QUALE codice è ripartito, non solo QUANDO: la data qui sopra si rinfresca a ogni riavvio —
+        // e Passenger ne fa da solo, per inattività — quindi da sola non prova che sia arrivata la
+        // versione nuova. Vedi VersioneBuild.
+        sb.AppendLine($"Versione ..................... {VersioneBuild.Leggi().Dettaglio}");
         sb.AppendLine($"Ambiente ..................... {builder.Environment.EnvironmentName}");
         sb.AppendLine($"Cartella dell'applicazione ... {AppContext.BaseDirectory}");
         sb.AppendLine();

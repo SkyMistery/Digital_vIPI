@@ -102,6 +102,15 @@ internal static class VipiStartup
         // default). Vedi VipiDataProtection.cs.
         builder.AddVipiDataProtection();
 
+        // La versione in barra, per i soli admin: la passa l'HOST al modulo, che non ha modo di sapere da
+        // quale pacchetto è stato costruito. Vedi VersioneBuild.
+        var versione = VersioneBuild.Leggi();
+        builder.Services.PostConfigure<Vipi.Application.VipiChromeOptions>(o =>
+        {
+            o.Versione = versione.Etichetta;
+            o.VersioneDettaglio = versione.Dettaglio;
+        });
+
         // Modulo vIPI: un'unica chiamata registra Application, Infrastructure/EF, polling IVAO, opzioni e identità.
         // In sviluppo usa l'utente CH fittizio; in produzione l'identità è letta dal login del sito ospitante.
         // Se il login IVAO standalone è attivo, esso vince sul dev identity anche in sviluppo (si prova il login vero).

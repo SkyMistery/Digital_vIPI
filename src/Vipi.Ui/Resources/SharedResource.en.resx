@@ -98,6 +98,7 @@
   <data name="Chrome_Guide" xml:space="preserve"><value>Guide</value></data>
   <data name="Chrome_Menu" xml:space="preserve"><value>Menu</value></data>
   <data name="Chrome_Theme" xml:space="preserve"><value>Theme</value></data>
+  <data name="Chrome_Version" xml:space="preserve"><value>Site version</value></data>
   <data name="Chrome_ThemeAuto" xml:space="preserve"><value>Theme: automatic (follows the system)</value></data>
   <data name="Chrome_ThemeLight" xml:space="preserve"><value>Theme: light</value></data>
   <data name="Chrome_ThemeDark" xml:space="preserve"><value>Theme: dark</value></data>

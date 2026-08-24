@@ -106,6 +106,16 @@
                 <Icon Name="moon" Class="ti ti-dark" />
             </button>
             @* Toggle Estesa/Ridotta rimosso: la vista Ridotta è disabilitata (rebuild /services/vsop, Round 12). *@
+            @* La versione, ai SOLI admin. Risponde a una domanda che si è posta di continuo — «che versione
+               è online?» — e che finora si rispondeva scaricando un file via FTP.
+               ⚠️ Non è per tutti: a un socio non dice niente, e a chi passa di qui direbbe con quale build
+               precisa sta parlando, che è informazione da regalare solo se serve a qualcuno.
+               ⚠️ È la PRIMA cosa che esce dalla barra quando lo spazio manca (CSS, scaglione tb-2): è una
+               spia, non un comando, e la stessa riga sta in diagnostica/avvio-diagnostica.txt. *@
+            @if (_isAdmin && Chrome.Value.Versione is { Length: > 0 } ver)
+            {
+                <span class="ver-chip" title="@Chrome.Value.VersioneDettaglio" aria-label="@(L["Chrome_Version"].Value + ": " + ver)">@ver</span>
+            }
             @* Isola interattiva: il layout è SSR statico e il badge dev'essere l'unica cosa che si aggiorna
                da sola quando ti colleghi in frequenza. Il VID glielo passa il layout, che l'HttpContext ce l'ha. *@
             <LiveBadge UserId="_user?.UserId" />
