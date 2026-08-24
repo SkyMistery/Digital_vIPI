@@ -85,6 +85,18 @@
     /// **venti secondi** coperti. Misurato: con tre tentativi ravvicinati, un'interruzione di dodici secondi
     /// se li mangiava tutti e restavano 31 mappe bucate su 77 — i ritenti finivano prima del guasto.
     var RITENTI_MAX = 5;
+
+    /// Rimette in coda UNA tessera. La classe va aggiunta a mano (vedi sopra): Leaflet la mette solo quando
+    /// il caricamento gli riesce, e senza di quella la tessera arriva ma resta trasparente.
+    function richiedi(img, url) {
+        if (!img.parentNode || !url) return;         // tessera già potata da Leaflet: non la si resuscita
+        img.addEventListener('load', function () {
+            img.classList.add('leaflet-tile-loaded');
+            img.style.opacity = 1;
+        }, { once: true });
+        img.src = url;
+    }
+
     function ritentaTessere(layer) {
         layer.on('tileerror', function (e) {
             var img = e.tile;
@@ -95,17 +107,68 @@
             var url;
             try { url = e.coords ? layer.getTileUrl(e.coords) : img.src; } catch (err) { url = img.src; }
             if (!url) return;
-            setTimeout(function () {
-                if (!img.parentNode) return;        // tessera già potata da Leaflet: non la si resuscita
-                img.addEventListener('load', function () {
-                    img.classList.add('leaflet-tile-loaded');
-                    img.style.opacity = 1;
-                }, { once: true });
-                img.src = url;
-            }, 600 * Math.pow(2, fatti) + Math.round(Math.random() * 400));
+            setTimeout(function () { richiedi(img, url); },
+                       600 * Math.pow(2, fatti) + Math.round(Math.random() * 400));
         });
+        avviaSpazzino();
         return layer;
     }
+
+    /// Lo SPAZZINO: ripassa a intervalli e ripesca le tessere che la scala qui sopra ha abbandonato.
+    ///
+    /// Perché serve, misurato: la scala è cinque tentativi da 0,6s a 9,6s, cioè copre ~19 secondi. Un
+    /// guasto più lungo se li mangia TUTTI mentre è ancora in corso, e dopo non riprova più nessuno:
+    /// con un'interruzione di **30 secondi** restavano **25 tessere su 9 mappe** nere per sempre, immutate
+    /// anche 35 secondi dopo la fine del guasto. L'unico rimedio era ricaricare la pagina — cioè di nuovo
+    /// il sintomo che il ritentatore doveva togliere, solo con la soglia spostata più in là.
+    ///
+    /// Non è un doppione della scala: quella serve ai cali brevi e recupera in un secondo, questo copre le
+    /// interruzioni lunghe senza tenere un timer per tessera. Guarda TUTTE le mappe in pagina (AoR e minime
+    /// insieme), perché il guasto non distingue.
+    ///
+    /// ⚠️ Si guarda `naturalWidth`, non la classe: una tessera fallita resta `complete` con larghezza
+    /// zero, e `complete` da solo direbbe che è a posto. Le tessere ancora IN VOLO (`complete` falso) non si
+    /// toccano, o si raddoppierebbero le richieste proprio mentre la rete arranca.
+    var SPAZZA_OGNI = 8000, SPAZZA_MAX = 20, SPAZZA_PER_TESSERA = 8;
+    var spazzinoTimer = null, spazzate = 0, pulitiDiFila = 0;
+
+    function unGiro() {
+        var rotte = [].slice.call(document.querySelectorAll('img.leaflet-tile')).filter(function (i) {
+            if (!i.parentNode || !i.complete) return false;
+            if (i.naturalWidth > 0) return false;
+            return Number(i.getAttribute('data-vipi-spazzata') || 0) < SPAZZA_PER_TESSERA;
+        });
+        spazzate++;
+        if (!rotte.length) {
+            // Due giri puliti di fila: il guasto è finito. Si riparte da soli se la pagina torna in primo
+            // piano o se la rete rientra (vedi sotto), quindi fermarsi qui non è una resa.
+            if (++pulitiDiFila >= 2) { fermaSpazzino(); return; }
+        } else {
+            pulitiDiFila = 0;
+            rotte.forEach(function (img, k) {
+                img.setAttribute('data-vipi-spazzata', Number(img.getAttribute('data-vipi-spazzata') || 0) + 1);
+                var url = img.src;
+                // Sfalsate: rimetterle in coda tutte insieme rifarebbe la raffica che gli scaglioni evitano.
+                setTimeout(function () { richiedi(img, url); }, k * 60 + Math.round(Math.random() * 200));
+            });
+        }
+        if (spazzate >= SPAZZA_MAX) fermaSpazzino();
+    }
+
+    function avviaSpazzino() {
+        if (spazzinoTimer) return;
+        spazzate = 0; pulitiDiFila = 0;
+        spazzinoTimer = setInterval(unGiro, SPAZZA_OGNI);
+    }
+    function fermaSpazzino() {
+        if (spazzinoTimer) { clearInterval(spazzinoTimer); spazzinoTimer = null; }
+    }
+    // Due momenti in cui vale la pena riprovare comunque: la rete che rientra, e la scheda che torna davanti
+    // (un guasto durato tutto il tempo in cui la pagina era in secondo piano si vede solo adesso).
+    window.addEventListener('online', avviaSpazzino);
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) avviaSpazzino();
+    });
     // Serve anche a vipi-mva.js, che ha i suoi fondi (Esri, OpenTopoMap) e lo stesso problema.
     window.vipiRitentaTessere = ritentaTessere;
 
