@@ -85,6 +85,18 @@ public sealed record AppCoordRow(string Cop, string Level, string Next, Transfer
     /// tabella seguente:». Arriva composta perche' la lingua vive nel template — che esiste anche in inglese per
     /// le vLOA — e una vista che la mettesse insieme da se' rifarebbe quel lavoro in italiano.</summary>
     public string? LeadSentence { get; init; }
+
+    /// <summary>
+    /// La riga è ciò che <b>entra</b> nell'ente del documento: <see cref="Next"/> è chi <b>consegna</b>, non chi
+    /// riceve, e la frase è dalla parte di chi riceve («X riceve da Y…»).
+    /// <para>Sta sulla RIGA e non sulla tabella perché le tabelle sono <b>miste</b>: l'albero dei coordinamenti
+    /// raggruppa per settore → ACC → aeroporto/tipo, e la direzione non è una chiave di raggruppamento. Il
+    /// nodo «Sorvoli · Zagabria» del blocco LIBB, misurato, porta 8 righe entranti e 6 uscenti.</para>
+    /// <para><c>false</c> = riga uscente: il comportamento storico, ed è anche il valore che una release
+    /// congelata <b>prima del 24 agosto 2026</b> assume quando la si deserializza — quei documenti restano
+    /// identici a com'erano stati pubblicati.</para>
+    /// </summary>
+    public bool IsIncoming { get; init; }
 }
 
 /// <summary>Gruppo di coordinamenti: la chiave è un callsign ente (ACC/torre) o un'etichetta di tipo (sorvoli).</summary>

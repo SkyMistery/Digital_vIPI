@@ -32,6 +32,37 @@ public sealed class CoordinationSentenceTemplate
     /// </summary>
     public string TemplateCleared { get; init; } =
         "{owner} autorizza il traffico {airport} via {point} {fl} e lo trasferisce a {target} {handoff} {handoffLevel} {stato}.";
+
+    // ---- Il verso ENTRANTE (24 agosto 2026) ----
+    //
+    // Un accordo si scrive UNA volta sola, dal lato di chi cede; il documento di chi riceve mostrava quelle
+    // stesse parole, cioè leggeva come il documento dell'altro («Zagreb Radar trasferisce a Brindisi Radar CS0
+    // il traffico…» dentro la vIPI di Brindisi).
+    //
+    // ⚠️ Gli SLOT NON CAMBIANO DI SIGNIFICATO: {owner} resta chi cede, {target} resta chi riceve. Qui cambia
+    // solo l'ORDINE DELLE PAROLE. Scambiare gli argomenti al chiamante avrebbe cambiato in silenzio la regola
+    // dei codici di posizione, che fra i due slot è asimmetrica (OmitTargetCode, in BuildData).
+    //
+    // La coda — aeroporto, stato, livello, punto, e poi condizione/velocità/comunicazioni appese dal composer —
+    // è VERBATIM quella del verso uscente: cambia la testa della frase, non il modo di dire l'accordo.
+
+    /// <summary>Frase distesa quando la riga ENTRA nell'ente del documento. Stessi placeholder di
+    /// <see cref="Template"/>, testa rovesciata: «{target} riceve da {owner} …».</summary>
+    public string TemplateReceive { get; init; } =
+        "{target} riceve da {owner} il traffico {airport} {stato} {fl} su {point}.";
+
+    /// <summary>Capofila del verso entrante: gemella di <see cref="TemplateLead"/>, senza livello né punto.</summary>
+    public string TemplateLeadReceive { get; init; } =
+        "{target} riceve da {owner} il traffico {airport} secondo la tabella seguente:";
+
+    /// <summary>
+    /// Verso entrante con la faccetta trasferimento (autorizzazione e trasferimento sono due eventi): gemella
+    /// di <see cref="TemplateCleared"/>. Chi riceve non autorizza — subisce l'autorizzazione dell'altro — quindi
+    /// il participio («autorizzato … trasferito …») e non il verbo attivo.
+    /// </summary>
+    public string TemplateClearedReceive { get; init; } =
+        "{target} riceve da {owner} il traffico {airport} autorizzato via {point} {fl}, trasferito {handoff} {handoffLevel} {stato}.";
+
     public string TargetWithCode { get; init; } = "{name} {code}";
     public string TargetNoCode { get; init; } = "{name}";
     /// <summary>Aeroporto neutro (senza relazione): fallback per flussi non arrivo/partenza. Placeholder {name} {icao}.</summary>
@@ -80,6 +111,13 @@ public sealed class CoordinationSentenceTemplate
     {
         Template = "{owner} transfers to {target} the traffic {airport} {stato} {fl} over {point}.",
         TemplateLead = "{owner} transfers to {target} the traffic {airport} as per the table below:",
+        // Il verso entrante non lo usa nessuna vLOA di oggi (due alberi separati, entrambi resi dalla parte di
+        // chi cede) — ma il template inglese è UNO SOLO, e lasciarlo monco vorrebbe dire una frase italiana
+        // dentro un documento bilaterale il giorno in cui una vLOA userà il verso entrante.
+        TemplateReceive = "{target} receives from {owner} the traffic {airport} {stato} {fl} over {point}.",
+        TemplateLeadReceive = "{target} receives from {owner} the traffic {airport} as per the table below:",
+        TemplateClearedReceive =
+            "{target} receives from {owner} the traffic {airport} cleared via {point} {fl}, transferred {handoff} {handoffLevel} {stato}.",
         AirportArrival = "inbound to {name} {icao}",
         AirportDeparture = "departing from {name} {icao}",
         Stato = new CoordinationSentenceState

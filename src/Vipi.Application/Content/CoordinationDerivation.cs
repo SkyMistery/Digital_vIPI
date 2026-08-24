@@ -51,7 +51,11 @@ public static class CoordinationDerivation
     /// </summary>
     public static AppCoordRow ToRow(
         CoordinationSentenceTemplate tpl, TransferPointRow p, TransferFlowRow flow,
-        string next, TransferFlowKind kind, string ownerCallsign, string? sentence, string? lead = null) =>
+        string next, TransferFlowKind kind, string ownerCallsign, string? sentence, string? lead = null,
+        // In coda e facoltativo: la vLOA costruisce le proprie righe da sé e sono tutte uscenti (due alberi
+        // separati, ognuno reso dalla parte di chi cede). Una posizione obbligatoria l'avrebbe costretta a
+        // dichiarare un verso che nel suo modello non esiste.
+        bool isIncoming = false) =>
         // ⚠️ Il livello dal TEMPLATE come tutto il resto della riga, non da `p.LevelText`: quello è cablato in
         // italiano, e in una vLOA inglese usciva «FL260 (pari)».
         new(p.Cop, TransferHandoffText.ClearedLevel(tpl, p), next, kind)
@@ -82,6 +86,7 @@ public static class CoordinationDerivation
             VariantGroup = p.VariantGroup,
             VariantDepth = p.VariantDepth,
             IsGroupWide = p.IsGroupWide,
+            IsIncoming = isIncoming,
         };
 
     /// <summary>
@@ -111,23 +116,27 @@ public static class CoordinationDerivation
         var entries = new List<CoordinationEntry>();
 
         // La catena si costruisce dal flusso a cui la riga appartiene: gli antenati si risalgono per posizione.
-        string? Compose(string sender, string receiver, TransferFlowRow flow, TransferPointRow p, TransferFlowKind kind)
+        // ⚠️ `sender`/`receiver` restano CHI CEDE e CHI RICEVE anche per le righe entranti: `isIncoming` cambia
+        // solo il template — cioè l'ordine delle parole — non chi sta in quale slot. Scambiare gli argomenti
+        // avrebbe cambiato in silenzio la regola dei codici di posizione, che fra i due slot è asimmetrica
+        // (vedi OmitTargetCode in CoordinationSentences.BuildData).
+        string? Compose(string sender, string receiver, TransferFlowRow flow, TransferPointRow p, TransferFlowKind kind, bool isIncoming)
             => CoordinationSentences.Compose(tpl, types, nameMap, codeMap, airportMap, atcMap, sender, receiver,
                 flow.AirportIcao,
                 p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.Cop, kind,
-                ConditionChain(flow.Points, p), p.VerticalState, TransferHandoffFacet.From(p));
+                ConditionChain(flow.Points, p), p.VerticalState, TransferHandoffFacet.From(p), isIncoming);
 
         // La frase CAPOFILA: chi trasferisce a chi e che traffico, senza livello ne' punto — quelli sono cio' che
         // la tabella dice riga per riga. Si compone qui, dove ci sono le mappe, perche' la lingua vive nel
         // template e la vista non deve rimetterla insieme da se'.
-        string? Lead(string sender, string receiver, TransferFlowRow flow, TransferFlowKind kind)
+        string? Lead(string sender, string receiver, TransferFlowRow flow, TransferFlowKind kind, bool isIncoming)
             => CoordinationSentences.ComposeLead(tpl, types, nameMap, codeMap, airportMap, atcMap,
-                sender, receiver, flow.AirportIcao, kind);
+                sender, receiver, flow.AirportIcao, kind, isIncoming);
 
         AppCoordRow Row(TransferPointRow p, string next, TransferFlowRow flow, string sentenceOwner, string sentenceTarget,
-            TransferFlowKind kind) =>
-            ToRow(tpl, p, flow, next, kind, sentenceOwner, Compose(sentenceOwner, sentenceTarget, flow, p, kind),
-                  Lead(sentenceOwner, sentenceTarget, flow, kind));
+            TransferFlowKind kind, bool isIncoming) =>
+            ToRow(tpl, p, flow, next, kind, sentenceOwner, Compose(sentenceOwner, sentenceTarget, flow, p, kind, isIncoming),
+                  Lead(sentenceOwner, sentenceTarget, flow, kind, isIncoming), isIncoming);
 
         // 1) Flussi POSSEDUTI dai settori del blocco/dominio (qualsiasi Next: ACC/APP/torre; qualsiasi tipo).
         foreach (var flow in flows.Where(f => owners.Contains(f.OwningSectorCallsign)))
@@ -135,7 +144,7 @@ public static class CoordinationDerivation
             {
                 var next = p.NextSectorCallsign;
                 if (string.IsNullOrWhiteSpace(next) || !types.TryGetValue(next!, out var nextType)) continue;
-                var row = Row(p, next!, flow, flow.OwningSectorCallsign, next!, flow.Kind);
+                var row = Row(p, next!, flow, flow.OwningSectorCallsign, next!, flow.Kind, isIncoming: false);
                 entries.Add(new CoordinationEntry(flow.OwningSectorCallsign, next!, nextType, flow.AirportIcao, flow.Kind, IsIncoming: false, row));
             }
 
@@ -155,7 +164,9 @@ public static class CoordinationDerivation
                 var recv = p.NextSectorCallsign;
                 if (string.IsNullOrWhiteSpace(recv) || !owners.Contains(recv!)) continue;
                 // Mittente = ente vicino (owner), destinatario = nostro settore del blocco (recv).
-                var row = Row(p, owner, flow, owner, recv!, flow.Kind);
+                // La riga ENTRA: la colonna della controparte porta chi consegna, e la frase si dice dalla
+                // parte di chi riceve — che è l'ente di questo documento.
+                var row = Row(p, owner, flow, owner, recv!, flow.Kind, isIncoming: true);
                 entries.Add(new CoordinationEntry(recv!, owner, ownerType, flow.AirportIcao, flow.Kind, IsIncoming: true, row));
             }
         }
