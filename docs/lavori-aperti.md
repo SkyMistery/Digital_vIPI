@@ -1652,14 +1652,26 @@ qualcun altro), o la finestra si apre solo sotto condizioni che il locale non ri
 asincrono **prima** di far disegnare l'albero, così non può essere lui la prima operazione. È corretto in
 sé e toglie una fonte possibile — **ma non è provato che sia LA causa**, e va scritto così finché non lo è.
 
-**Il passo che chiuderebbe la classe intera, indipendentemente da chi sia l'altra operazione**: dare alle
-pagine che interrogano nel proprio ciclo di vita uno **scope proprio** (`OwningComponentBase`), che è già il
-rimedio adottato da sei componenti di questo repository (vedi l'audit del 30 luglio). Riguarda `AccLanding`
-e `AeroportoPage`, cioè le due che compaiono nel registro.
+**Fatto entrambi, pacchetto «i»:**
 
-ℹ️ La prossima volta il registro può dire di più: oggi scrive solo l'eccezione. Aggiungere alla voce
-**quali altre operazioni erano aperte sul contesto** — o anche solo l'ora di inizio della richiesta —
-trasformerebbe «non so chi fosse l'altra» in un fatto.
+1. **Scope proprio** (`OwningComponentBase`) per `AccLanding` e `AeroportoPage`, le due che compaiono nel
+   registro — il rimedio già adottato da sei componenti dopo l'audit del 30 luglio. Chiude la **classe** del
+   guasto senza dipendere da chi sia l'altra operazione, che è il punto: quello non si è capito.
+   ⚠️ `IStationResolver` NON si sposta: il layout l'ha già scaldato, e riprenderlo dallo scope nuovo
+   vorrebbe dire ripagare la stessa query a freddo.
+2. **Il registro dirà chi c'era già**: un intercettore EF annota inizio e fine di ogni comando col
+   chiamante, e all'istante del lancio (`FirstChanceException`) si fotografa che cosa è aperto.
+
+⚠️ **Tre cose imparate costruendo il punto 2, tutte contro-intuitive:**
+- il **rilevatore di concorrenza di EF scatta prima dell'esecuzione**, quindi la seconda query non arriva
+  mai all'intercettore: cercare lì la collisione non avrebbe mai visto niente;
+- **aspettare il gestore d'errore è tardi**: mentre l'eccezione risale, la prima operazione fa in tempo a
+  chiudersi e la lista torna vuota. `FirstChanceException` è l'unico istante in cui la scena è intatta;
+- il rilevatore **non copre i comandi grezzi** (`ExecuteSqlRawAsync`): il modo ovvio di provocare una corsa
+  in un test non fa scattare niente, ed è per questo che il test costruisce la scena a mano.
+
+**Resta da chiudere la voce**: serve un socio senza incarichi che apra `/services/vsop/{acc}` e la pagina di
+un aeroporto dopo il caricamento di «i». ⚠️ Da admin non prova niente.
 
 ## F. Rimandato, non cancellato
 
