@@ -1617,6 +1617,62 @@ sull'HTML servito (l'admin vede la targhetta, il socio no); senza la guardia i d
 500, cioè lo screenshot. Propagata `CanEditAnythingAsync` ai 12 finti
 `IEditAuthorizationService` dei test. Suite intera verde su entrambi i TFM.
 
+### E9 🔴 APERTA — la corsa sul `DbContext` c'è ancora, e non so ancora chi sia l'altra operazione
+
+**Misurato in produzione alle 17:44 del 24 agosto 2026**, con il pacchetto «h» già online (quindi con la
+correzione del catalogo dentro): il registro, che il committente aveva appena azzerato, si è riempito di
+nuovo. **Sette richieste**, tutte dello stesso VID **non-admin**, tutte «A second operation was started on
+this context instance», ma questa volta **dentro le pagine**:
+
+| Percorso | Dove muore |
+|---|---|
+| `/services/vsop/libb`, `/lirr` (×3) | `AccLanding.OnParametersSetAsync` → `EditAuthorizationService.CanEditAccAsync` |
+| `/services/vsop/libb/airports` (×2) | `AeroportoPage.OnParametersSetAsync` → `AirportPresidencyService.ResolveAsync` |
+| `/services/vsop/limm/airports` (×2) | `AeroportoPage.OnParametersSetAsync` → `EfStructureEditingRepository.LoadAsync` |
+
+**Quello che si sa**: la seconda operazione è quella della pagina. **Quello che NON si sa**: quale sia la
+prima, cioè chi tenesse occupato il contesto in quel momento. Lo stack dell'eccezione mostra solo chi è
+morto, non chi stava già correndo.
+
+⚠️ **L'ipotesi naturale — il layout che lascia `_canEdit` in volo mentre il `@Body` viene disegnato — NON è
+stata riprodotta.** Tentativi fatti, tutti falliti nel senso che il test resta verde anche col difetto
+dentro:
+
+1. intercettore EF che rallenta ogni comando ⇒ **non scatta**: gli `IInterceptor` registrati in DI non
+   arrivano al contesto in questo assetto (da capire perché);
+2. `HasAnyGrantAsync` sostituita con una query **lenta davvero** (ricorsiva SQLite da tre milioni di giri)
+   sullo stesso `DbContext` ⇒ la pagina non si è mai sovrapposta;
+3. ⚠️ e il primo tentativo era sbagliato in modo istruttivo: avevo sostituito **tutto** il repository, così
+   anche la query della pagina diventava finta e non toccava il contesto. Un test che non può fallire.
+
+Quindi: o in SSR il render del corpo aspetta davvero il task del layout (e allora l'altra operazione è
+qualcun altro), o la finestra si apre solo sotto condizioni che il locale non riproduce.
+
+**Cosa è stato fatto comunque** (`SopLayout.SetParametersAsync`): il layout conclude il proprio lavoro
+asincrono **prima** di far disegnare l'albero, così non può essere lui la prima operazione. È corretto in
+sé e toglie una fonte possibile — **ma non è provato che sia LA causa**, e va scritto così finché non lo è.
+
+**Fatto entrambi, pacchetto «i»:**
+
+1. **Scope proprio** (`OwningComponentBase`) per `AccLanding` e `AeroportoPage`, le due che compaiono nel
+   registro — il rimedio già adottato da sei componenti dopo l'audit del 30 luglio. Chiude la **classe** del
+   guasto senza dipendere da chi sia l'altra operazione, che è il punto: quello non si è capito.
+   ⚠️ `IStationResolver` NON si sposta: il layout l'ha già scaldato, e riprenderlo dallo scope nuovo
+   vorrebbe dire ripagare la stessa query a freddo.
+2. **Il registro dirà chi c'era già**: un intercettore EF annota inizio e fine di ogni comando col
+   chiamante, e all'istante del lancio (`FirstChanceException`) si fotografa che cosa è aperto.
+
+⚠️ **Tre cose imparate costruendo il punto 2, tutte contro-intuitive:**
+- il **rilevatore di concorrenza di EF scatta prima dell'esecuzione**, quindi la seconda query non arriva
+  mai all'intercettore: cercare lì la collisione non avrebbe mai visto niente;
+- **aspettare il gestore d'errore è tardi**: mentre l'eccezione risale, la prima operazione fa in tempo a
+  chiudersi e la lista torna vuota. `FirstChanceException` è l'unico istante in cui la scena è intatta;
+- il rilevatore **non copre i comandi grezzi** (`ExecuteSqlRawAsync`): il modo ovvio di provocare una corsa
+  in un test non fa scattare niente, ed è per questo che il test costruisce la scena a mano.
+
+**Resta da chiudere la voce**: serve un socio senza incarichi che apra `/services/vsop/{acc}` e la pagina di
+un aeroporto dopo il caricamento di «i». ⚠️ Da admin non prova niente.
+
 ## F. Rimandato, non cancellato
 
 **Embedding nel sito `Ivao.It.Website`.** Il sito definitivo è il nostro host standalone, ma le cinque

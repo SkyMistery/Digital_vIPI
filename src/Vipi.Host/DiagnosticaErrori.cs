@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Diagnostics;
+using Vipi.Application.Diagnostica;
 
 namespace Vipi.Host;
 
@@ -53,14 +54,25 @@ public static class DiagnosticaErrori
     {
         try
         {
-            var voce = new StringBuilder()
+            var sb = new StringBuilder()
                 .AppendLine()
                 .AppendLine(new string('-', 78))
                 .AppendLine($"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC · codice {codice ?? "(nessuno)"}")
                 .AppendLine($"{metodo} {percorso} · utente {utente ?? "non collegato"}")
                 .AppendLine()
-                .AppendLine(ex.ToString())
-                .ToString();
+                .AppendLine(ex.ToString());
+
+            // ⚠️ L'altra metà della storia. Lo stack dell'eccezione dice chi è MORTO; queste righe dicono chi
+            // stava GIÀ CORRENDO sullo stesso DbContext. Senza, «A second operation was started» resta una
+            // domanda — è successo il 24 agosto 2026, ed è costato un giro di deploy su un sospettato
+            // sbagliato. Si stampano solo se ce ne sono.
+            if (CollisioniDbContext.Scatti_() is { Count: > 0 } collisioni)
+            {
+                sb.AppendLine().AppendLine("Che cosa era aperto sul DbContext quando è successo (il più recente per ultimo):");
+                foreach (var c in collisioni) sb.AppendLine(c);
+            }
+
+            var voce = sb.ToString();
 
             lock (Serratura) Scrivi(voce);
         }

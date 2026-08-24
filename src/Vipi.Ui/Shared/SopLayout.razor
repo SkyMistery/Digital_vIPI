@@ -161,7 +161,36 @@
     private bool _isAdmin;
     private bool _canEdit;
 
-    protected override async Task OnParametersSetAsync()
+    /// <summary>
+    /// ⚠️ IL LAVORO ASINCRONO DEL LAYOUT SI COMPIE PRIMA CHE L'ALBERO VENGA DISEGNATO, e non è una
+    /// raffinatezza: è la seconda metà del difetto del 24 agosto 2026, che la prima correzione non aveva
+    /// visto.
+    ///
+    /// <para><b>Il meccanismo.</b> `ComponentBase` disegna <b>subito</b> dopo `OnParametersSetAsync`, e
+    /// aspetta il task solo se non è già completato. Un layout che lascia una query in volo la lascia in
+    /// volo mentre viene disegnato il suo <c>@Body</c> — cioè mentre la PAGINA esegue il proprio
+    /// `OnParametersSetAsync`. Le due query cadono sullo stesso `DbContext` dello scope, e la seconda muore
+    /// con «A second operation was started on this context instance».</para>
+    ///
+    /// <para><b>Misurato, non temuto:</b> alle 17:44 del 24 agosto, con la prima correzione già in
+    /// produzione, sette richieste sono morte così — <c>AccLanding</c> su <c>CanEditAccAsync</c>,
+    /// <c>AeroportoPage</c> su <c>AirportPresidencyService</c>. Il layout aveva smesso di litigare con sé
+    /// stesso e aveva cominciato a litigare con le pagine.</para>
+    ///
+    /// <para>Sovrascrivendo <c>SetParametersAsync</c> il lavoro si conclude <b>prima</b> di
+    /// <c>base.SetParametersAsync</c>, che è ciò che innesca il disegno: quando la pagina parte, il layout
+    /// non ha più niente in volo. ⚠️ Chi rimettesse un `await` dentro `OnParametersSetAsync` riaprirebbe la
+    /// finestra per OGNI pagina del sito — c'è un test che lo impedisce.</para>
+    /// </summary>
+    public override async Task SetParametersAsync(ParameterView parameters)
+    {
+        parameters.SetParameterProperties(this);
+        await CaricaAsync();
+        // ParameterView.Empty: i parametri sono già stati applicati sopra. È il modo documentato.
+        await base.SetParametersAsync(ParameterView.Empty);
+    }
+
+    private async Task CaricaAsync()
     {
         _user = Users.Get();
 

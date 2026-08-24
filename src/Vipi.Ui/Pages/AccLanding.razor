@@ -1,10 +1,22 @@
 ﻿@page "/services/vsop/{Acc}"
 @layout SopLayout
+@inherits OwningComponentBase
+@using Microsoft.Extensions.DependencyInjection
+
+@* ⚠️ SCOPE PROPRIO (OwningComponentBase), come già sei componenti di questo repository dopo l'audit del
+   30 luglio 2026. Il motivo è misurato, non teorico: alle 17:44 del 24 agosto questa pagina è morta sette
+   volte con «A second operation was started on this context instance» — la sua query trovava il DbContext
+   della richiesta già occupato da qualcun altro.
+
+   Con uno scope proprio la pagina lavora su un DbContext SUO: nessuno può passarle davanti, e non serve
+   sapere chi fosse l'altro — che è il punto, perché quello non si è ancora capito (voce E9).
+
+   ⚠️ NON tutto si sposta nello scope proprio. `IStationResolver` resta quello della richiesta perché il
+   layout l'ha già scaldato (`Prewarm`): riprendendolo dallo scope nuovo si ripagherebbe la stessa query,
+   a freddo. Restano fuori anche le cose che il database non lo toccano: localizzazione, AIRAC, meteo,
+   cache degli ATC online. *@
 @inject IStationResolver Stations
 @inject IAiracService Airac
-@inject IEditAuthorizationService Authz
-@inject IStructureEditingService Structure
-@inject IDocumentAdminService Docs
 @inject IStringLocalizer<SharedResource> L
 
 @if (_acc is null)
@@ -142,6 +154,19 @@ else
     private IReadOnlyList<VloaRow> _vloas = Array.Empty<VloaRow>();
     private int _airportsTotal, _appsTotal, _vloasTotal;
     private bool _vipiPublished;
+
+    // I servizi che interrogano il database: presi dallo SCOPE DI QUESTA PAGINA, non da quello
+    // della richiesta. Vedi il commento in testa al file.
+    private IEditAuthorizationService Authz = default!;
+    private IStructureEditingService Structure = default!;
+    private IDocumentAdminService Docs = default!;
+
+    protected override void OnInitialized()
+    {
+        Authz = ScopedServices.GetRequiredService<IEditAuthorizationService>();
+        Structure = ScopedServices.GetRequiredService<IStructureEditingService>();
+        Docs = ScopedServices.GetRequiredService<IDocumentAdminService>();
+    }
 
     protected override async Task OnParametersSetAsync()
     {
