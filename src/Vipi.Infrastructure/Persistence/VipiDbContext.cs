@@ -106,6 +106,7 @@ public class VipiDbContext : DbContext
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
     public DbSet<AtcSession> AtcSessions => Set<AtcSession>();
     public DbSet<AtcSessionTraffic> AtcSessionTraffic => Set<AtcSessionTraffic>();
+    public DbSet<StatsSettings> StatsSettings => Set<StatsSettings>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {

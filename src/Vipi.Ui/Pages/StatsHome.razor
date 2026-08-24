@@ -1,0 +1,128 @@
+@page "/services/stats"
+@layout SopLayout
+@using Vipi.Application.Abstractions
+@using Vipi.Application.Auth
+@inject IAtcStatsQueries Stats
+@inject IStatsSettingsStore Impostazioni
+@inject ICurrentUserProvider Utenti
+@inject IEditAuthorizationService Authz
+@inject IStringLocalizer<SharedResource> L
+
+@* Le mie statistiche ATC. SSR statico: è un elenco di numeri, non c'è niente da aggiornare da solo — come
+   l'hub dei servizi. Gli orari si scrivono in UTC col suffisso Z e l'ora locale la aggiunge il browser. *@
+
+<PageTitle>@L["Stats_Title"] · vIPI IVAO Italia</PageTitle>
+
+<div class="wrap" style="max-width:1100px">
+    <div class="doc-head">
+        <h1 class="page-h1">@L["Stats_Title"]</h1>
+        @if (_utente is not null)
+        {
+            <p class="muted">@L["Stats_Subtitle", _utente.Name, _utente.UserId]</p>
+        }
+    </div>
+
+    @if (_utente is null)
+    {
+        <p class="muted">@L["Stats_LoginNeeded"]</p>
+    }
+    else if (_totali is null || _totali.Sessions == 0)
+    {
+        <p class="muted">@L["Stats_Empty"]</p>
+    }
+    else
+    {
+        <div class="choice-grid" style="margin:18px 0">
+            <div class="choice"><h2 class="h-card">@Ore(_totali.Seconds)</h2><p class="muted">@L["Stats_Hours"]</p></div>
+            <div class="choice"><h2 class="h-card">@_totali.Shifts</h2><p class="muted">@L["Stats_Shifts"]</p></div>
+            <div class="choice"><h2 class="h-card">@_totali.Movements</h2><p class="muted">@L["Stats_Movements"]</p></div>
+            <div class="choice"><h2 class="h-card">@_totali.Presences</h2><p class="muted">@L["Stats_Presences"]</p></div>
+        </div>
+
+        <h2 class="h-sect">@L["Stats_ByPosition"]</h2>
+        <table class="res-table">
+            <thead><tr><th>@L["Stats_Position"]</th><th>@L["Stats_Sessions"]</th><th>@L["Stats_Hours"]</th><th>@L["Stats_Movements"]</th></tr></thead>
+            <tbody>
+                @foreach (var r in _perPostazione)
+                {
+                    <tr><td>@r.Key</td><td>@r.Sessions</td><td>@Ore(r.Seconds)</td><td>@r.Movements</td></tr>
+                }
+            </tbody>
+        </table>
+
+        <h2 class="h-sect">@L["Stats_ByMonth"]</h2>
+        <table class="res-table">
+            <thead><tr><th>@L["Stats_Month"]</th><th>@L["Stats_Sessions"]</th><th>@L["Stats_Hours"]</th><th>@L["Stats_Movements"]</th></tr></thead>
+            <tbody>
+                @foreach (var r in _perMese)
+                {
+                    <tr><td>@r.Key</td><td>@r.Sessions</td><td>@Ore(r.Seconds)</td><td>@r.Movements</td></tr>
+                }
+            </tbody>
+        </table>
+
+        <h2 class="h-sect">@L["Stats_Sessions"]</h2>
+        <table class="res-table">
+            <thead>
+                <tr>
+                    <th>@L["Stats_Start"]</th><th>@L["Stats_Position"]</th><th>@L["Stats_Duration"]</th>
+                    <th>@L["Stats_Movements"]</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in _sessioni)
+                {
+                    <tr>
+                        <td>@s.StartUtc.ToString("yyyy-MM-dd HH:mm")Z</td>
+                        <td>@s.Callsign</td>
+                        <td>@Durata(s.DurationSeconds)</td>
+                        <td>@s.MovementCount</td>
+                        <td><a href="/services/stats/session/@s.SessionId">@L["Stats_Detail"]</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <p class="muted" style="margin-top:22px">
+        @L["Stats_Disclaimer"]
+        @if (Authz.IsAdmin || _classificaPubblica)
+        {
+            <text> · </text><a href="/services/stats/division">@L["Stats_DivisionLink"]</a>
+        }
+    </p>
+</div>
+
+@code {
+    private CurrentUser? _utente;
+    private StatsTotals? _totali;
+    private IReadOnlyList<StatsByKey> _perPostazione = Array.Empty<StatsByKey>();
+    private IReadOnlyList<StatsByKey> _perMese = Array.Empty<StatsByKey>();
+    private IReadOnlyList<StatsSessionRow> _sessioni = Array.Empty<StatsSessionRow>();
+    private bool _classificaPubblica;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _utente = Utenti.Get();
+        _classificaPubblica = (await Impostazioni.GetAsync()).PublicLeaderboard;
+        if (_utente is null) return;
+
+        // La finestra è quella che la sorgente conserva: oltre l'anno non esiste niente da mostrare.
+        var a = DateTimeOffset.UtcNow;
+        var da = a.AddDays(-366);
+        var vid = _utente.UserId;
+
+        _totali = await Stats.TotalsAsync(vid, da, a);
+        _perPostazione = await Stats.ByPositionAsync(vid, da, a);
+        _perMese = await Stats.ByMonthAsync(vid, da, a);
+        _sessioni = await Stats.SessionsAsync(vid, da, a);
+    }
+
+    // ⚠️ «0,0 ore» per una sessione vera di venti minuti sembra «niente»: sotto il decimo d'ora si scrive
+    // che è poco, non che è zero.
+    private static string Ore(long secondi) =>
+        secondi > 0 && secondi < 360 ? "<0,1" : (secondi / 3600.0).ToString("0.0");
+
+    private static string Durata(int secondi) =>
+        secondi >= 3600 ? $"{secondi / 3600}h {(secondi % 3600) / 60:00}m" : $"{secondi / 60}m";
+}

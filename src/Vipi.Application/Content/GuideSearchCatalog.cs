@@ -47,6 +47,7 @@ public static class GuideSearchCatalog
         new Entry("admin-incarichi", "Incarichi: chi sta facendo cosa", "incarichi incarico assegna assegnare assegnatario riassegna riassegnazione priorita scadenza airac ritardo stato avanzamento editor staffista elimina lavoro editoriale chi sta facendo cosa non conclusi", "La pagina Incarichi admin: assegnare il lavoro, seguirlo per persona e per stato, riassegnare."),
         new Entry("admin-audit", "Audit: chi ha fatto cosa", "audit registro log chi ha fatto cosa tracciamento traccia eliminato eliminazione nascosto permesso revoca gerarchia lock forzato sbloccato pubblicazione storico cronologia", "Il registro degli atti amministrativi: pubblicazioni, eliminazioni, permessi, gerarchia, lock forzati."),
         new Entry("profile-swapper", "Aurora Profile Swapper", "aurora profilo profili cpr swapper scambia scambio copia copiare sezione sezioni trafficlists zip destinazione sorgente incolla configurazione radar", "Copiare sezioni intere fra profili Aurora .cpr: sorgente, destinazioni, anteprima e zip."),
+        new Entry("statistiche", "Statistiche ATC", "statistiche statistica ore movimenti traffico gestito turni sessioni connessioni classifica divisione quanto ho controllato aerei presenze mie personali", "Le mie ore e il traffico gestito, il dettaglio di una sessione, la classifica di divisione."),
         new Entry("admin", "Aree admin", "admin gerarchia settori trasferimenti sorgenti permessi audit import", "Le pagine admin: gerarchia, trasferimenti, sorgenti, permessi, audit."),
     };
 

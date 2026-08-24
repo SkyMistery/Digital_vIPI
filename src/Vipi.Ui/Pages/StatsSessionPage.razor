@@ -1,0 +1,118 @@
+@page "/services/stats/session/{SessionId:long}"
+@layout SopLayout
+@using Vipi.Application.Abstractions
+@using Vipi.Application.Auth
+@using Vipi.Domain.Entities
+@inject IAtcStatsQueries Stats
+@inject ICurrentUserProvider Utenti
+@inject IEditAuthorizationService Authz
+@inject IStringLocalizer<SharedResource> L
+
+@* Il dettaglio di una sessione: quanto è durata e quali aeroplani sono passati. Si vede la propria; lo staff
+   vede tutte. SSR statico. *@
+
+<PageTitle>@L["Stats_SessionTitle"] · vIPI IVAO Italia</PageTitle>
+
+<div class="wrap" style="max-width:1100px">
+    @if (_dettaglio is null)
+    {
+        <div class="doc-head"><h1 class="page-h1">@L["Stats_SessionTitle"]</h1></div>
+        <p class="muted">@(_vietato ? L["Stats_NotYours"] : L["Stats_SessionMissing"])</p>
+    }
+    else
+    {
+        var s = _dettaglio.Session;
+        <div class="doc-head">
+            <h1 class="page-h1">@s.Callsign</h1>
+            <p class="muted">
+                @s.StartUtc.ToString("yyyy-MM-dd HH:mm")Z
+                @if (s.EndUtc is { } fine) { <text> → @fine.ToString("HH:mm")Z</text> }
+                · @Durata(s.DurationSeconds)
+                @if (!string.IsNullOrWhiteSpace(s.Frequency)) { <text> · @s.Frequency</text> }
+            </p>
+        </div>
+
+        <div class="choice-grid" style="margin:18px 0">
+            <div class="choice"><h2 class="h-card">@s.MovementCount</h2><p class="muted">@L["Stats_Movements"]</p></div>
+            <div class="choice"><h2 class="h-card">@s.TrafficCount</h2><p class="muted">@L["Stats_Presences"]</p></div>
+            <div class="choice"><h2 class="h-card">@s.TrafficMinutes</h2><p class="muted">@L["Stats_BusyMinutes"]</p></div>
+        </div>
+
+        @if (_dettaglio.Traffic.Count == 0)
+        {
+            <p class="muted">@L["Stats_NoTraffic"]</p>
+        }
+        else
+        {
+            <h2 class="h-sect">@L["Stats_HandledTraffic"]</h2>
+            <table class="res-table">
+                <thead>
+                    <tr>
+                        <th>@L["Stats_Flight"]</th><th>@L["Stats_Route"]</th><th>@L["Stats_Aircraft"]</th>
+                        <th>@L["Stats_InArea"]</th><th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in _dettaglio.Traffic)
+                    {
+                        <tr>
+                            <td>@t.PilotCallsign@(t.LegOrdinal > 1 ? $" ({t.LegOrdinal})" : "")</td>
+                            <td>@(t.DepIcao ?? "—") → @(t.ArrIcao ?? "—")</td>
+                            <td>@(t.AircraftIcao ?? "—")</td>
+                            <td>
+                                @* ⚠️ Le righe ricostruite dai movimenti d'aeroporto non hanno minuti: la sorgente
+                                   dice CHE il volo c'è stato, non per quanto. Un trattino è più onesto di uno zero. *@
+                                @(t.Origin == TrafficOrigin.AirportApi ? "—" : $"{t.SeenMinutes} min")
+                            </td>
+                            <td>
+                                @if (t.HasObservationGap)
+                                {
+                                    <span class="pill" title="@L["Stats_GapHint"]">@L["Stats_Gap"]</span>
+                                }
+                                @if (!t.SawMovement)
+                                {
+                                    <span class="pill" title="@L["Stats_ParkedHint"]">@L["Stats_Parked"]</span>
+                                }
+                                @if (t.Origin == TrafficOrigin.AirportApi)
+                                {
+                                    <span class="pill" title="@L["Stats_RebuiltHint"]">@L["Stats_Rebuilt"]</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <p class="muted" style="margin-top:22px">
+            <a href="/services/stats">@L["Stats_BackToMine"]</a>
+            @if (s.EndUtc is null) { <text> · </text><span class="pill">@L["Stats_StillOpen"]</span> }
+        </p>
+    }
+</div>
+
+@code {
+    [Parameter] public long SessionId { get; set; }
+
+    private StatsSessionDetail? _dettaglio;
+    private bool _vietato;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var dettaglio = await Stats.SessionAsync(SessionId);
+        if (dettaglio is null) return;
+
+        // Le proprie a chi è loggato, tutte allo staff: la sessione di un altro non si apre indovinando l'id.
+        var utente = Utenti.Get();
+        if (!Authz.IsAdmin && (utente is null || utente.UserId != dettaglio.Session.UserId))
+        {
+            _vietato = true;
+            return;
+        }
+
+        _dettaglio = dettaglio;
+    }
+
+    private static string Durata(int secondi) =>
+        secondi >= 3600 ? $"{secondi / 3600}h {(secondi % 3600) / 60:00}m" : $"{secondi / 60}m";
+}

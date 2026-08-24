@@ -842,6 +842,51 @@
   <data name="Sorg_ImportFromSource" xml:space="preserve"><value>import from source</value></data>
   <data name="Sorg_TaDesc" xml:space="preserve"><value>Airport transition altitude</value></data>
   <data name="Sorg_TaLabel" xml:space="preserve"><value>Transition Altitude</value></data>
+  <data name="Services_StatsDesc" xml:space="preserve"><value>Your hours online and the traffic you handled, session by session.</value></data>
+  <data name="Stats_Title" xml:space="preserve"><value>My ATC statistics</value></data>
+  <data name="Stats_Subtitle" xml:space="preserve"><value>{0} · VID {1}</value></data>
+  <data name="Stats_LoginNeeded" xml:space="preserve"><value>Sign in with your IVAO account to see your statistics.</value></data>
+  <data name="Stats_Empty" xml:space="preserve"><value>No ATC connections under your name yet. They show up here shortly after the first one.</value></data>
+  <data name="Stats_Hours" xml:space="preserve"><value>Hours</value></data>
+  <data name="Stats_Shifts" xml:space="preserve"><value>Shifts</value></data>
+  <data name="Stats_Movements" xml:space="preserve"><value>Movements</value></data>
+  <data name="Stats_Presences" xml:space="preserve"><value>Aircraft seen</value></data>
+  <data name="Stats_BusyMinutes" xml:space="preserve"><value>Minutes with traffic</value></data>
+  <data name="Stats_ByPosition" xml:space="preserve"><value>By position</value></data>
+  <data name="Stats_ByMonth" xml:space="preserve"><value>By month</value></data>
+  <data name="Stats_Position" xml:space="preserve"><value>Position</value></data>
+  <data name="Stats_Month" xml:space="preserve"><value>Month</value></data>
+  <data name="Stats_Sessions" xml:space="preserve"><value>Sessions</value></data>
+  <data name="Stats_Start" xml:space="preserve"><value>Start</value></data>
+  <data name="Stats_Duration" xml:space="preserve"><value>Duration</value></data>
+  <data name="Stats_Detail" xml:space="preserve"><value>Details</value></data>
+  <data name="Stats_SessionTitle" xml:space="preserve"><value>Session</value></data>
+  <data name="Stats_SessionMissing" xml:space="preserve"><value>This session is not in the archive.</value></data>
+  <data name="Stats_NotYours" xml:space="preserve"><value>This session belongs to another controller.</value></data>
+  <data name="Stats_NoTraffic" xml:space="preserve"><value>No traffic recorded for this session.</value></data>
+  <data name="Stats_HandledTraffic" xml:space="preserve"><value>Traffic handled</value></data>
+  <data name="Stats_Flight" xml:space="preserve"><value>Flight</value></data>
+  <data name="Stats_Route" xml:space="preserve"><value>Route</value></data>
+  <data name="Stats_Aircraft" xml:space="preserve"><value>Aircraft</value></data>
+  <data name="Stats_InArea" xml:space="preserve"><value>In your area</value></data>
+  <data name="Stats_Gap" xml:space="preserve"><value>incomplete</value></data>
+  <data name="Stats_GapHint" xml:space="preserve"><value>There is a gap between two sightings of this flight: its minutes are an undercount.</value></data>
+  <data name="Stats_Parked" xml:space="preserve"><value>parked</value></data>
+  <data name="Stats_ParkedHint" xml:space="preserve"><value>It never moved while you were online: it counts as an aircraft seen, not as a movement.</value></data>
+  <data name="Stats_Rebuilt" xml:space="preserve"><value>reconstructed</value></data>
+  <data name="Stats_RebuiltHint" xml:space="preserve"><value>Reconstructed from the airport's movements: we know the flight happened, not for how many minutes.</value></data>
+  <data name="Stats_StillOpen" xml:space="preserve"><value>in progress</value></data>
+  <data name="Stats_BackToMine" xml:space="preserve"><value>My statistics</value></data>
+  <data name="Stats_DivisionLink" xml:space="preserve"><value>Division statistics</value></data>
+  <data name="Stats_DivisionTitle" xml:space="preserve"><value>Division statistics</value></data>
+  <data name="Stats_DivisionSubtitle" xml:space="preserve"><value>Last twelve months: beyond that, the source does not keep connections.</value></data>
+  <data name="Stats_TopControllers" xml:space="preserve"><value>Ranking by hours</value></data>
+  <data name="Stats_LeaderboardOff" xml:space="preserve"><value>The division ranking is not public. Staff can make it visible.</value></data>
+  <data name="Stats_Visibility" xml:space="preserve"><value>Visibility</value></data>
+  <data name="Stats_PublicLeaderboard" xml:space="preserve"><value>Ranking visible to all signed-in users</value></data>
+  <data name="Stats_PublicLeaderboardHint" xml:space="preserve"><value>When off, only staff can see the ranking. When on, it shows everyone's hours and movements to any signed-in user.</value></data>
+  <data name="Stats_DecidedBy" xml:space="preserve"><value>decided by {0} on {1}</value></data>
+  <data name="Stats_Disclaimer" xml:space="preserve"><value>Traffic is a measurement, not a log: it depends on sector polygons and vertical limits.</value></data>
   <data name="Sorg_AtcStatsLabel" xml:space="preserve"><value>ATC statistics</value></data>
   <data name="Sorg_AtcStatsDesc" xml:space="preserve"><value>ATC connections on Italian callsigns and the traffic handled, collected live and from the source's history. Excluding it makes nothing manual: it turns collection off.</value></data>
   <data name="Sorg_SidLabel" xml:space="preserve"><value>SID</value></data>

@@ -1,0 +1,125 @@
+@page "/services/stats/division"
+@layout SopLayout
+@rendermode InteractiveServer
+@using Vipi.Application.Abstractions
+@using Vipi.Application.Auth
+@inject IAtcStatsQueries Stats
+@inject IStatsSettingsStore Impostazioni
+@inject ICurrentUserProvider Utenti
+@inject IEditAuthorizationService Authz
+@inject IStringLocalizer<SharedResource> L
+
+@* La divisione: copertura e classifica. Interattiva perché lo staff accende e spegne la classifica pubblica
+   da qui — il resto sarebbe stato SSR statico. *@
+
+<PageTitle>@L["Stats_DivisionTitle"] · vIPI IVAO Italia</PageTitle>
+
+<div class="wrap" style="max-width:1100px">
+    <div class="doc-head">
+        <h1 class="page-h1">@L["Stats_DivisionTitle"]</h1>
+        <p class="muted">@L["Stats_DivisionSubtitle"]</p>
+    </div>
+
+    @if (!_puoVedere)
+    {
+        @* Default spento: finché lo staff non decide, le ore degli altri non si mostrano a nessuno. *@
+        <p class="muted">@L["Stats_LeaderboardOff"]</p>
+    }
+    else
+    {
+        <div class="choice-grid" style="margin:18px 0">
+            <div class="choice"><h2 class="h-card">@Ore(_totali?.Seconds ?? 0)</h2><p class="muted">@L["Stats_Hours"]</p></div>
+            <div class="choice"><h2 class="h-card">@(_totali?.Shifts ?? 0)</h2><p class="muted">@L["Stats_Shifts"]</p></div>
+            <div class="choice"><h2 class="h-card">@(_totali?.Movements ?? 0)</h2><p class="muted">@L["Stats_Movements"]</p></div>
+        </div>
+
+        <h2 class="h-sect">@L["Stats_TopControllers"]</h2>
+        <table class="res-table">
+            <thead><tr><th>#</th><th>VID</th><th>@L["Stats_Hours"]</th><th>@L["Stats_Shifts"]</th><th>@L["Stats_Movements"]</th></tr></thead>
+            <tbody>
+                @{ var pos = 0; }
+                @foreach (var c in _classifica)
+                {
+                    pos++;
+                    <tr><td>@pos</td><td>@c.UserId</td><td>@Ore(c.Seconds)</td><td>@c.Shifts</td><td>@c.Movements</td></tr>
+                }
+            </tbody>
+        </table>
+
+        <h2 class="h-sect">@L["Stats_ByPosition"]</h2>
+        <table class="res-table">
+            <thead><tr><th>@L["Stats_Position"]</th><th>@L["Stats_Sessions"]</th><th>@L["Stats_Hours"]</th><th>@L["Stats_Movements"]</th></tr></thead>
+            <tbody>
+                @foreach (var r in _perPostazione)
+                {
+                    <tr><td>@r.Key</td><td>@r.Sessions</td><td>@Ore(r.Seconds)</td><td>@r.Movements</td></tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @if (Authz.IsAdmin)
+    {
+        <h2 class="h-sect">@L["Stats_Visibility"]</h2>
+        <label class="inline-form">
+            <input type="checkbox" checked="@_pubblica" @onchange="CambiaVisibilita" />
+            <span>@L["Stats_PublicLeaderboard"]</span>
+        </label>
+        <p class="muted">
+            @L["Stats_PublicLeaderboardHint"]
+            @if (_deciso is { } quando)
+            {
+                <text> · @L["Stats_DecidedBy", _decisoDa, quando.ToString("yyyy-MM-dd HH:mm")]Z</text>
+            }
+        </p>
+    }
+
+    <p class="muted" style="margin-top:22px">
+        @L["Stats_Disclaimer"] · <a href="/services/stats">@L["Stats_BackToMine"]</a>
+    </p>
+</div>
+
+@code {
+    private StatsTotals? _totali;
+    private IReadOnlyList<ControllerRanking> _classifica = Array.Empty<ControllerRanking>();
+    private IReadOnlyList<StatsByKey> _perPostazione = Array.Empty<StatsByKey>();
+    private bool _pubblica;
+    private bool _puoVedere;
+    private DateTime? _deciso;
+    private int _decisoDa;
+
+    protected override async Task OnInitializedAsync() => await CaricaAsync();
+
+    private async Task CaricaAsync()
+    {
+        var impostazioni = await Impostazioni.GetAsync();
+        _pubblica = impostazioni.PublicLeaderboard;
+        _deciso = impostazioni.UpdatedUtc;
+        _decisoDa = impostazioni.UpdatedByUserId;
+
+        // Lo staff vede sempre; gli altri solo se la classifica è stata resa pubblica.
+        _puoVedere = Authz.IsAdmin || (_pubblica && Utenti.Get() is not null);
+        if (!_puoVedere) return;
+
+        var a = DateTimeOffset.UtcNow;
+        var da = a.AddDays(-366);
+
+        _totali = await Stats.TotalsAsync(null, da, a);
+        _classifica = await Stats.TopControllersAsync(da, a);
+        _perPostazione = await Stats.ByPositionAsync(null, da, a);
+    }
+
+    private async Task CambiaVisibilita(ChangeEventArgs e)
+    {
+        if (!Authz.IsAdmin) return;                       // la guardia sta anche qui, non solo nel markup
+
+        var acceso = e.Value is true;
+        await Impostazioni.SaveAsync(acceso, Utenti.Get()?.UserId ?? 0);
+        await CaricaAsync();
+    }
+
+    // ⚠️ «0,0 ore» per una sessione vera di venti minuti sembra «niente»: sotto il decimo d'ora si scrive
+    // che è poco, non che è zero.
+    private static string Ore(long secondi) =>
+        secondi > 0 && secondi < 360 ? "<0,1" : (secondi / 3600.0).ToString("0.0");
+}

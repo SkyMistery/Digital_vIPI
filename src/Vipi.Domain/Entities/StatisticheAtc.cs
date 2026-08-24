@@ -141,3 +141,21 @@ public class AtcSessionTraffic
 
     public TrafficOrigin Origin { get; set; }
 }
+
+/// <summary>
+/// Le scelte della divisione sulle statistiche: riga singola (<c>Id = 1</c>), come <c>ImportPolicy</c>.
+/// </summary>
+public class StatsSettings
+{
+    public int Id { get; set; }
+
+    /// <summary>
+    /// Classifica di divisione visibile a tutti i loggati. ⚠️ Default <b>false</b>, e qui è il valore giusto:
+    /// esporre nome e ore degli altri è una scelta politica che deve essere presa, non ereditata da un
+    /// default di colonna.
+    /// </summary>
+    public bool PublicLeaderboard { get; set; }
+
+    public DateTime UpdatedUtc { get; set; }
+    public int UpdatedByUserId { get; set; }
+}

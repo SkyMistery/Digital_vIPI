@@ -1770,6 +1770,26 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("StaffMembers");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.StatsSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("PublicLeaderboard")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("UpdatedByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("StatsSettings");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.UnificationRule", b =>
                 {
                     b.Property<int>("Id")

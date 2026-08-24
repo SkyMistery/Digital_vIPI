@@ -538,8 +538,37 @@ sessioni»** — sarebbe un buco silenzioso nello storico.
    riconnessione il pilota ne deposita uno nuovo — dal vivo il caso lo copre la finestra temporale, qui non
    c'è. Ora la tratta la identificano **rotta e verso**: 76 movimenti sono diventati 70, e i doppioni sono
    zero.
-7. UI: `/services/stats` (mia) → dettaglio sessione → vista staff + interruttore classifiche.
-8. Ingressi: card hub, menù, guida, ricerca. Verifica live guidando il flusso reale.
+7. ✅ **FATTA** (24 agosto). `IAtcStatsQueries`/`EfAtcStatsQueries` (letture), `IStatsSettingsStore` +
+   entità a riga singola con audit e migrazione doppia, e le tre pagine: `StatsHome`, `StatsSessionPage`,
+   `StatsDivisionPage`. 14 test nuovi.
+
+   Le prime due sono **SSR statico** (sono elenchi di numeri, non c'è niente da aggiornare da solo); la terza
+   è interattiva solo perché ospita l'interruttore delle classifiche.
+
+   **Verifica live guidando le pagine vere**, con l'archivio delle 334 sessioni reali:
+   - da **anonimo** le tre guardie tengono: «entra col tuo account», «la classifica non è pubblica», e il
+     dettaglio di una sessione altrui risponde «è di un altro controllore» — l'id indovinato non apre niente;
+   - da **loggato** (identità di sviluppo, VID 704798, che in archivio ha cinque sessioni vere): «7,1 ore,
+     4 turni, 24 movimenti», per postazione `LIRR_NE1_CTR` 3 sessioni / 7,0 ore / 24 movimenti;
+   - **divisione**: 365,3 ore, 214 turni, 172 movimenti, classifica guidata da 727049 con 34,8 ore in 15 turni.
+
+   ⚠️ **Difetto trovato aprendo la pagina, non dai test — perché i test non c'erano**: `ByPositionAsync`
+   proiettava il `GroupBy` dentro un `record`, che EF non sa tradurre. Errore a runtime, 500 in faccia.
+   Ora la proiezione passa da un tipo anonimo **e** la classe ha dieci test contro un database vero. La
+   lezione, scritta perché non si ripeta: *una query non provata contro un database vero è una query non
+   scritta.*
+
+   Due dettagli di onestà nella resa: le righe ricostruite (`Origin = AirportApi`) mostrano «—» al posto dei
+   minuti, non «0»; e una sessione di venti minuti scrive «<0,1» invece di «0,0 ore», che sembrava «niente».
+
+8. ✅ **FATTA** (24 agosto). Card nell'hub `/services` (terzo servizio, allo stesso livello degli altri due),
+   card nella home della documentazione, voce nel menù ☰, voce nella ricerca globale/guida
+   (`GuideSearchCatalog`). Verificato servendo le pagine: la card compare nell'hub, la ricerca di
+   «statistiche» trova la voce.
+
+   ⚠️ Nel file di lingua **italiano** era finita la frase **inglese** della card: visto solo guardando la
+   pagina resa, perché a compilare non dà nessun errore. Corretto, e passato in rassegna tutto il blocco
+   nuovo di stringhe per lo stesso scambio (nessun altro caso).
 
 ## 10. Trappole già note da non ripetere
 

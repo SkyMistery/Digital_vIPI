@@ -845,6 +845,51 @@
   <data name="Sorg_ImportFromSource" xml:space="preserve"><value>importa dalla sorgente</value></data>
   <data name="Sorg_TaDesc" xml:space="preserve"><value>Quota di transizione dell'aeroporto</value></data>
   <data name="Sorg_TaLabel" xml:space="preserve"><value>Transition Altitude</value></data>
+  <data name="Services_StatsDesc" xml:space="preserve"><value>Le tue ore in frequenza e il traffico che hai gestito, sessione per sessione.</value></data>
+  <data name="Stats_Title" xml:space="preserve"><value>Le mie statistiche ATC</value></data>
+  <data name="Stats_Subtitle" xml:space="preserve"><value>{0} · VID {1}</value></data>
+  <data name="Stats_LoginNeeded" xml:space="preserve"><value>Entra con il tuo account IVAO per vedere le tue statistiche.</value></data>
+  <data name="Stats_Empty" xml:space="preserve"><value>Non risultano ancora connessioni ATC a tuo nome. Compaiono qui poco dopo la prima.</value></data>
+  <data name="Stats_Hours" xml:space="preserve"><value>Ore</value></data>
+  <data name="Stats_Shifts" xml:space="preserve"><value>Turni</value></data>
+  <data name="Stats_Movements" xml:space="preserve"><value>Movimenti</value></data>
+  <data name="Stats_Presences" xml:space="preserve"><value>Presenze</value></data>
+  <data name="Stats_BusyMinutes" xml:space="preserve"><value>Minuti con traffico</value></data>
+  <data name="Stats_ByPosition" xml:space="preserve"><value>Per postazione</value></data>
+  <data name="Stats_ByMonth" xml:space="preserve"><value>Per mese</value></data>
+  <data name="Stats_Position" xml:space="preserve"><value>Postazione</value></data>
+  <data name="Stats_Month" xml:space="preserve"><value>Mese</value></data>
+  <data name="Stats_Sessions" xml:space="preserve"><value>Sessioni</value></data>
+  <data name="Stats_Start" xml:space="preserve"><value>Inizio</value></data>
+  <data name="Stats_Duration" xml:space="preserve"><value>Durata</value></data>
+  <data name="Stats_Detail" xml:space="preserve"><value>Dettaglio</value></data>
+  <data name="Stats_SessionTitle" xml:space="preserve"><value>Sessione</value></data>
+  <data name="Stats_SessionMissing" xml:space="preserve"><value>Questa sessione non risulta in archivio.</value></data>
+  <data name="Stats_NotYours" xml:space="preserve"><value>Questa sessione e di un altro controllore.</value></data>
+  <data name="Stats_NoTraffic" xml:space="preserve"><value>Nessun traffico registrato per questa sessione.</value></data>
+  <data name="Stats_HandledTraffic" xml:space="preserve"><value>Traffico gestito</value></data>
+  <data name="Stats_Flight" xml:space="preserve"><value>Volo</value></data>
+  <data name="Stats_Route" xml:space="preserve"><value>Rotta</value></data>
+  <data name="Stats_Aircraft" xml:space="preserve"><value>Aeromobile</value></data>
+  <data name="Stats_InArea" xml:space="preserve"><value>Nell'area</value></data>
+  <data name="Stats_Gap" xml:space="preserve"><value>dati incompleti</value></data>
+  <data name="Stats_GapHint" xml:space="preserve"><value>Fra due avvistamenti di questo volo c'e un buco: i suoi minuti sono per difetto.</value></data>
+  <data name="Stats_Parked" xml:space="preserve"><value>fermo</value></data>
+  <data name="Stats_ParkedHint" xml:space="preserve"><value>Non si e mai mosso mentre eri in frequenza: conta come presenza, non come movimento.</value></data>
+  <data name="Stats_Rebuilt" xml:space="preserve"><value>ricostruito</value></data>
+  <data name="Stats_RebuiltHint" xml:space="preserve"><value>Ricostruito dai movimenti dell'aeroporto: si sa che il volo c'e stato, non per quanti minuti.</value></data>
+  <data name="Stats_StillOpen" xml:space="preserve"><value>in corso</value></data>
+  <data name="Stats_BackToMine" xml:space="preserve"><value>Le mie statistiche</value></data>
+  <data name="Stats_DivisionLink" xml:space="preserve"><value>Statistiche di divisione</value></data>
+  <data name="Stats_DivisionTitle" xml:space="preserve"><value>Statistiche di divisione</value></data>
+  <data name="Stats_DivisionSubtitle" xml:space="preserve"><value>Ultimi dodici mesi: oltre, la sorgente non conserva le connessioni.</value></data>
+  <data name="Stats_TopControllers" xml:space="preserve"><value>Classifica per ore</value></data>
+  <data name="Stats_LeaderboardOff" xml:space="preserve"><value>La classifica di divisione non e pubblica. Puo renderla visibile lo staff.</value></data>
+  <data name="Stats_Visibility" xml:space="preserve"><value>Visibilita</value></data>
+  <data name="Stats_PublicLeaderboard" xml:space="preserve"><value>Classifica visibile a tutti i loggati</value></data>
+  <data name="Stats_PublicLeaderboardHint" xml:space="preserve"><value>Spenta, la classifica la vede solo lo staff. Accesa, mostra ore e movimenti di tutti a chiunque abbia fatto login.</value></data>
+  <data name="Stats_DecidedBy" xml:space="preserve"><value>deciso da {0} il {1}</value></data>
+  <data name="Stats_Disclaimer" xml:space="preserve"><value>Il traffico e una misura, non un registro: dipende dai poligoni e dai limiti di quota dei settori.</value></data>
   <data name="Sorg_AtcStatsLabel" xml:space="preserve"><value>Statistiche ATC</value></data>
   <data name="Sorg_AtcStatsDesc" xml:space="preserve"><value>Connessioni ATC dei callsign italiani e traffico gestito, raccolti dal vivo e dallo storico della sorgente. Escluderla non rende nulla manuale: spegne la raccolta.</value></data>
   <data name="Sorg_SidLabel" xml:space="preserve"><value>SID</value></data>
