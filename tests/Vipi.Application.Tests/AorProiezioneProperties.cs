@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.RegularExpressions;
 using CsCheck;
 using Vipi.Application.Aor;
@@ -97,7 +97,17 @@ public class AorProiezioneProperties
 
             if (originale is null) { Assert.Null(spostato); return; }
             Assert.NotNull(spostato);
-            Assert.Equal(originale.ViewBox, spostato!.ViewBox);
+
+            // ⚠️ Il viewBox si confronta a NUMERI con la tolleranza di UN passo di arrotondamento, non a
+            // stringhe — esattamente per la ragione scritta sul path qui sotto, che qui era stata dimenticata.
+            // `R()` arrotonda a un decimale, e una traslazione in longitudine cambia il risultato negli ultimi
+            // bit: in virgola mobile `(a+d)-(b+d)` non è `(a-b)`. Quando il valore vero cade sul mezzo
+            // decimale i due lati dell'arrotondamento diventano `283,2` e `283,3`, e il confronto testuale
+            // chiama difetto una differenza di 1e-13. Misurato: seed `bryagYjiWP_m`, larghezza 283,25.
+            var (wOrig, hOrig) = ViewBox(originale.ViewBox);
+            var (wSpost, hSpost) = ViewBox(spostato!.ViewBox);
+            Assert.Equal(wOrig, wSpost, 0.11);
+            Assert.Equal(hOrig, hSpost, 0.11);
 
             // Il path si confronta a numeri, non a stringhe: l'arrotondamento può far cadere una coordinata
             // dall'altra parte del mezzo decimale, e un confronto testuale lo chiamerebbe difetto.
