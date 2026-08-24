@@ -466,7 +466,28 @@ sessioni»** — sarebbe un buco silenzioso nello storico.
    sporcherebbe l'archivio con connessioni mai esistite; (b) la registrazione ha un `try` suo, perché un
    archivio che non risponde non deve spegnere il pallino «in frequenza» di tutte le pagine; (c) la
    decompressione **Brotli** va accesa sull'`HttpClient` o si scaricano 705 KB invece di 119, ogni minuto.
-4. Attribuzione del traffico nel poller (usa il punto 1).
+4. ✅ **FATTA** (24 agosto). `SectorVolumeMap` (da «chi è online» a «quali volumi rivendica», copertura
+   top-down + volumi dai cataloghi), `TrafficLedger` (registro delle tratte in memoria), `AtcTrafficRecorder`
+   (il giro), `ISectorVolumeCatalog`/`IAtcTrafficStore` con le loro implementazioni EF. 28 test nuovi.
+
+   **Verifica live contro IVAO vero**: «25 ATC divisione online, 536 piloti» → **40 aerei attribuiti a 25
+   sessioni**. Esempi veri: `THY5ZV` (LTFM→LFPG) finito a `LIPP_CE1_CTR`, cioè un sorvolo che taglia
+   l'Italia; `AFR7316` fermo a Torino contato come **presenza ma non movimento**; `LICJ_GND` con 4 presenze
+   e 2 movimenti. Nessun aereo attribuito a due sessioni nello stesso istante.
+
+   **La bufferizzazione si vede nei numeri**: primo giro 40 righe scritte, giri successivi **1-3**. Non è il
+   ×10 stimato nella carta, è di più — perché in un minuto cambia quasi nulla.
+
+   ⚠️ **Due difetti trovati scrivendo i test, non dopo**: (a) il giro usciva prima di salvare le sessioni
+   sparite quando gli unici online erano settori senza poligono — l'ultimo tratto di chi aveva appena
+   staccato restava in memoria; (b) `TakeAll` segnava «salvate» anche le sessioni ancora in frequenza, che
+   così perdevano il proprio checkpoint. Ora la chiusura prende **solo** le sessioni che sta scrivendo
+   (`TakeOnly`).
+
+   ⚠️ **Il patto della bufferizzazione, da ricordare quando si scriveranno le pagine**: chi legge le
+   statistiche di una sessione **in corso** vede l'ultimo checkpoint (≤10 minuti), non l'istante. Allo
+   spegnimento il poller versa tutto (`StopAsync`), verificato su un arresto vero: quattro giri, quattro
+   minuti in archivio.
 5. Backfill storico: **23 query a prefisso** (`LIA`…`LIZ`) × pagine da 100 ≈ 220 chiamate una tantum
    (§8.1), con **ritenti sui 503** (§8.4) + riga nella policy sorgenti + audit.
 6. Riempimento retroattivo del traffico d'aeroporto (`/airports/{icao}/traffics`).

@@ -15,6 +15,7 @@ namespace Vipi.Infrastructure.Ivao;
 public sealed class AtcPollingHostedService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopes;
+    private readonly AtcTrafficRecorder _traffico;
     private readonly OnlineAtcCache _cache;
     private readonly IvaoOptions _opt;
     private readonly IHostEnvironment _env;
@@ -22,12 +23,14 @@ public sealed class AtcPollingHostedService : BackgroundService
 
     public AtcPollingHostedService(
         IServiceScopeFactory scopes,
+        AtcTrafficRecorder traffico,
         OnlineAtcCache cache,
         IOptions<IvaoOptions> opt,
         IHostEnvironment env,
         ILogger<AtcPollingHostedService> log)
     {
         _scopes = scopes;
+        _traffico = traffico;
         _cache = cache;
         _opt = opt.Value;
         _env = env;
@@ -104,6 +107,7 @@ public sealed class AtcPollingHostedService : BackgroundService
                 atcs.Count, snapshot.Pilots.Count);
 
             await RegistraSessioniAsync(scope, snapshot, ct);
+            await RegistraTrafficoAsync(scope, snapshot, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -112,6 +116,56 @@ public sealed class AtcPollingHostedService : BackgroundService
         catch (Exception ex)
         {
             _log.LogWarning(ex, "Poll IVAO fallito; mantengo l'ultima fotografia.");
+        }
+    }
+
+    /// <summary>
+    /// Allo spegnimento salva quel che è rimasto in memoria: senza, l'ultimo tratto fra un checkpoint e
+    /// l'arresto (fino a dieci minuti di traffico per ogni sessione in corso) andrebbe perso a ogni deploy.
+    /// </summary>
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var scope = _scopes.CreateScope();
+            await _traffico.FlushAsync(
+                scope.ServiceProvider.GetRequiredService<IAtcTrafficStore>(), DateTimeOffset.UtcNow, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Statistiche ATC: salvataggio finale del traffico fallito.");
+        }
+
+        await base.StopAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Attribuisce i piloti della fotografia alle sessioni in frequenza e tiene aggiornate le tratte
+    /// (carta §4.1). Come per le sessioni, un <c>try</c> suo: le statistiche non devono poter spegnere la
+    /// vista live.
+    ///
+    /// <para>Gira <b>dopo</b> le sessioni, e non è un dettaglio d'ordine: una riga di traffico ha una chiave
+    /// esterna verso la sua sessione, che dev'essere già in archivio.</para>
+    /// </summary>
+    private async Task RegistraTrafficoAsync(IServiceScope scope, NetworkSnapshot snapshot, CancellationToken ct)
+    {
+        try
+        {
+            var store = scope.ServiceProvider.GetRequiredService<IAtcTrafficStore>();
+            var esito = await _traffico.RecordAsync(snapshot, store, ct);
+            if (esito.Attributed == 0 && esito.WrittenLegs == 0) return;
+
+            _log.LogInformation(
+                "Statistiche ATC: {Attribuiti} aerei attribuiti a {Sessioni} sessioni ({Nuove} tratte nuove, {Scritte} righe scritte).",
+                esito.Attributed, esito.Sessions, esito.NewLegs, esito.WrittenLegs);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // shutdown: ignora
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Statistiche ATC: attribuzione del traffico fallita; la vista live non ne risente.");
         }
     }
 
@@ -187,6 +241,11 @@ public static class IvaoServiceCollectionExtensions
         // agosto 2026, e quella su cui poggiano le statistiche ATC.
         services.AddScoped<IvaoWhazzupClient>();
         services.AddScoped<IAtcActivitySource>(sp => sp.GetRequiredService<IvaoWhazzupClient>());
+
+        // Attribuzione del traffico: SINGLETON, perche' il registro delle tratte in corso vive in memoria fra
+        // un giro e l'altro (e' quello che evita di riscrivere ogni riga ogni minuto). Lo usa il solo poller.
+        services.AddSingleton<AtcTrafficRecorder>(sp => new AtcTrafficRecorder(
+            new Persistence.ScopedSectorVolumeCatalog(sp.GetRequiredService<IServiceScopeFactory>())));
 
         // Profilo del singolo utente (il roster staff si popola dai login, non dall'elenco membri divisione).
         services.AddScoped<IvaoUserClient>();
