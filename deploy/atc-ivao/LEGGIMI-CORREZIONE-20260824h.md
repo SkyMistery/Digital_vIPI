@@ -30,10 +30,17 @@ disegnata**. Nello stesso momento la barra stava già aspettando un'altra rispos
 decide se accendere il tasto «Modifica» — e le due domande finivano **insieme sulla stessa connessione**.
 Il database ne accetta una per volta: la seconda muore, e con lei la pagina.
 
-Perché **solo a chi è collegato**: chi non ha fatto l'accesso non fa la prima domanda, quindi le due non si
-incontrano mai. Perché **solo a volte**: l'elenco delle ACC viene ricordato dopo la prima lettura, quindi la
-corsa esiste solo finché la memoria è **fredda** — cioè **dopo ogni riavvio**. E il vostro server riavvia vIPI
-da solo quando resta inattivo, quindi succede spesso.
+**A chi capitava, esattamente.** Non era casuale: dipendeva da chi eravate.
+
+| Chi | Cosa succedeva |
+|---|---|
+| Visitatore non collegato | la barra non fa quella domanda → **mai** |
+| **Voi, da admin** | la risposta arriva subito, senza database → **mai** |
+| **Un socio senza incarichi** | la risposta richiede il database → **ogni volta** |
+
+Ed è la conferma nei numeri: delle 78 righe della corsa, **tutte** vengono dallo stesso socio; l'utenza
+admin che navigava nella stessa finestra non ne ha prodotta **nessuna**. Ecco perché il difetto lo vedeva
+lui e a voi non capitava mai — e perché «riprova» non avrebbe mai risolto niente.
 
 ⚠️ **È la spiegazione vera del difetto che aveva visto il socio stamattina, e corregge quella che vi avevo
 dato.** Avevo attribuito il guasto alla domanda sul tasto «Modifica». Non è lei a rompersi: è lei ad
@@ -98,7 +105,7 @@ Come «g»: nomi veri, si sovrascrive.
 | `…/diagnostica/avvio-diagnostica.txt` (**Ctrl+F5**) | `Pacchetto «h»`, con l'ora di adesso |
 | `…/diagnostica/avvio-errore.txt` | **404** |
 | La barra, da admin | targhetta `h · ca4da81` |
-| **La prova vera** | subito dopo il riavvio, **fate l'accesso e aprite `/services`**: è il momento esatto in cui prima si rompeva — memoria fredda e utente collegato |
+| **La prova vera** | serve un **socio SENZA incarichi** che faccia l'accesso e apra `/services`. ⚠️ **Provarlo da admin non prova niente**: l'admin non incappava nel difetto nemmeno prima (vedi la tabella «a chi capitava») |
 | `…/diagnostica/errori-richieste.txt` | non deve crescere. ⚠️ Le 92 righe di stasera **restano** nel file: guardate l'ora, non la presenza |
 
 ℹ️ Se volete ripartire da un registro pulito, cancellate `diagnostica/errori-richieste.txt` via FTP: si

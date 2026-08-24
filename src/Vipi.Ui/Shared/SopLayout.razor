@@ -178,8 +178,16 @@
         // c'è nessun await in volo e le due query non si incontrano mai. Ed è la stessa asimmetria che aveva
         // fatto sospettare `_canEdit`: la corsa la innesca lui, ma a morire è il catalogo.
         //
-        // Perché solo a volte: la cache del catalogo dura quanto il circuito, quindi la corsa esiste solo
-        // finché è FREDDA — cioè dopo ogni riavvio, che con Passenger sono tanti.
+        // ⚠️ E NON era «a volte»: era SISTEMATICA per una classe di utenti, e i numeri lo dicono. Delle 92
+        // righe, le 78 della corsa vengono TUTTE dallo stesso VID non-admin; l'admin che navigava nella
+        // stessa finestra non ne ha prodotta nessuna. Il motivo sta in `ComponentBase`: dopo
+        // `OnParametersSetAsync` il render parte SEMPRE, ma se il task è già completato non c'è niente in
+        // volo. Per un admin `CanEditAnythingAsync` risponde dai claim senza toccare il database — task
+        // completato, nessuna corsa. Per un socio qualunque è una query vera — task in volo, corsa certa.
+        //   anonimo    → niente domanda      → niente corsa
+        //   admin      → risposta immediata  → niente corsa
+        //   socio      → query vera in volo  → CORSA, ogni volta
+        // Ecco perché lo vedeva solo chi non ha incarichi, e perché a noi non capitava mai.
         //
         // `Prewarm()` era già scritto apposta («chiamata dal ciclo di vita async, context libero e
         // sequenziale») e non lo chiamava nessuno.

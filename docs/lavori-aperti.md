@@ -1559,10 +1559,22 @@ anonima continuava a dire che il sito era su.
 > `_canEdit` **non fallisce**: apre la finestra. La guardia messa al mattino non poteva prenderlo, ed è
 > esattamente per questo che è ricapitato.
 >
-> L'asimmetria «solo da collegati» resta vera e resta la stessa: l'anonimo non ha nessun `await` in volo,
-> quindi le due query non si incontrano mai. Ed è a intermittenza perché la cache del catalogo dura quanto
-> il circuito: la corsa esiste solo finché è **fredda**, cioè dopo ogni riavvio — e con Passenger, che
-> rilancia il processo per inattività, i riavvii sono tanti.
+> ⚠️ **Non era «a intermittenza»: era sistematica per una classe di utenti**, e la prima stesura di questa
+> voce sbagliava a dire «solo a freddo, dopo ogni riavvio». Il catalogo è **Scoped**, quindi per una pagina
+> SSR la sua cache è fredda a **ogni** richiesta: non è lì la variabile. La variabile è se c'è un `await`
+> **in volo** quando parte il render — e `ComponentBase` il render lo fa comunque, subito dopo
+> `OnParametersSetAsync`, aspettando il task solo se non è già completato.
+>
+> | Chi | `_canEdit` | Task | Esito |
+> |---|---|---|---|
+> | anonimo | non chiesto | — | nessuna corsa |
+> | **admin** | risposto dai claim (`IsAdmin`) | **già completato** | nessuna corsa |
+> | **socio senza incarichi** | query vera sul database | **in volo** | **corsa, ogni volta** |
+>
+> **I numeri lo confermano**: delle 92 righe, le **78 della corsa vengono tutte dallo stesso VID
+> non-admin**; l'admin che navigava nella stessa finestra ne ha prodotte **zero** (le sue 4 sono della
+> Fase 2, i timeout). Ecco perché il difetto lo vedeva un socio e a noi non capitava mai — e perché
+> «riprova, a me funziona» non l'avrebbe mai smentito.
 >
 > **Chiuso** chiamando `Prewarm()` prima di qualunque `await` e facendo leggere al markup un campo: il
 > render non tocca più il database. `Prewarm()` era già scritto per questo — «chiamata dal ciclo di vita

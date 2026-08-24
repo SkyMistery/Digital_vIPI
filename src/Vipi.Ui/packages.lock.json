@@ -185,7 +185,6 @@
         "type": "Project"
       }
     },
-    "net10.0/linux-x64": {},
     "net8.0": {
       "Microsoft.AspNetCore.Components.Web": {
         "type": "Direct",
@@ -307,7 +306,6 @@
       "vipi.domain": {
         "type": "Project"
       }
-    },
-    "net8.0/linux-x64": {}
+    }
   }
 }
