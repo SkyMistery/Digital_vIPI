@@ -147,6 +147,28 @@ public class PolygonContainsTests
     }
 
     [Fact]
+    public void I_punti_ripetuti_di_fila_spariscono_ma_la_forma_resta_quella()
+    {
+        // Lati di lunghezza zero: innocui per il punto-in-poligono, veleno per la triangolazione 3D.
+        // Li ha il 29% dei poligoni veri, con punte di 489 su un solo settore.
+        var pulito = Ring("[[11,41],[13,41],[13,43],[11,43]]");
+        var gemelli = Ring("[[11,41],[11,41],[13,41],[13,43],[13,43],[13,43],[11,43]]");
+
+        Assert.Equal(4, gemelli.Points.Count);
+        Assert.True(PolygonGeometry.Contains(gemelli, 42, 12));
+        Assert.False(PolygonGeometry.Contains(gemelli, 42, 14));
+        Assert.Equal(pulito.Points.Count, gemelli.Points.Count);
+    }
+
+    [Fact]
+    public void Il_punto_di_chiusura_finale_resta_dov_e()
+    {
+        // Uguale al primo ma NON di fila: è la chiusura esplicita, legittima, e i consumatori la gestiscono.
+        var r = Ring("[[11,41],[13,41],[13,43],[11,43],[11,41]]");
+        Assert.Equal(5, r.Points.Count);
+    }
+
+    [Fact]
     public void Un_anello_normale_non_viene_toccato_dalla_correzione()
     {
         // Un contorno che per caso ha lo stesso numero pari di punti non deve perderne la metà.

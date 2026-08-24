@@ -28,7 +28,7 @@ public static class PolygonGeometry
         try
         {
             using var doc = JsonDocument.Parse(rawJson);
-            return SenzaAnelliRipetuti(ExtractPoints(doc.RootElement));
+            return SenzaPuntiGemelli(SenzaAnelliRipetuti(ExtractPoints(doc.RootElement)));
         }
         catch (JsonException) { return new(); }
     }
@@ -63,6 +63,31 @@ public static class PolygonGeometry
             if (uguali) return punti.GetRange(0, lunghezza);
         }
         return punti;
+    }
+
+    /// <summary>
+    /// Toglie i punti ripetuti <b>di fila</b>, cioè i lati di lunghezza zero.
+    ///
+    /// <para>Per il test punto-in-poligono sono innocui (un lato orizzontale-degenere non attraversa mai il
+    /// raggio), ma per la <b>triangolazione</b> dell'estrusione 3D no: un vertice doppio produce facce
+    /// degeneri, ed è il sospetto numero uno quando una shape a schermo «si vede strana».</para>
+    ///
+    /// <para>Misura sul <c>vipi.db</c> reale (25 agosto 2026): li ha il <b>29% dei poligoni</b> — 81 su 283,
+    /// per 1547 lati a lunghezza zero in tutto, con punte di 489 su un solo settore (<c>DTTC_FSS</c>).</para>
+    ///
+    /// <para>Il punto di chiusura finale (uguale al primo) <b>si conserva</b>: è legittimo e i consumatori
+    /// lo gestiscono già.</para>
+    /// </summary>
+    private static List<(double Lat, double Lon)> SenzaPuntiGemelli(List<(double Lat, double Lon)> punti)
+    {
+        if (punti.Count < 3) return punti;
+
+        var puliti = new List<(double Lat, double Lon)>(punti.Count) { punti[0] };
+        for (var i = 1; i < punti.Count; i++)
+            if (punti[i] != punti[i - 1])
+                puliti.Add(punti[i]);
+
+        return puliti.Count >= 3 ? puliti : punti;
     }
 
     /// <summary>Costruisce un <see cref="Ring"/> (punti + bbox) dal JSON grezzo; null se poligono degenere (&lt;3 punti).</summary>

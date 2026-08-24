@@ -314,6 +314,33 @@ sarebbe visto niente**, perché un contorno disegnato due volte è identico a un
 La correzione sta in `PolygonGeometry.ParsePoints`, cioè dove la geometria nasce: la ripetizione si toglie
 una volta per tutti i consumatori (attribuzione, adiacenza, proiezione SVG, visore 3D).
 
+**Di chi è il difetto? Della sorgente.** Chiesto direttamente a IVAO il 25 agosto col token app:
+
+| endpoint | punti | anello |
+|---|---|---|
+| `/v2/subcenters/LIRR_TS_CTR` | 66 | **ripetuto ×2** |
+| `/v2/subcenters/LIRR_NE_CTR` | 56 | normale |
+| `/v2/ATCPositions/LATI_APP` | 18 | **ripetuto ×2** |
+
+Arriva doppio da lì, in **tutt'e due** i campi (`regionMap` e `regionMapPolygon`), e noi lo memorizziamo
+verbatim — che è la cosa giusta per un dato di sorgente. Quindi la correzione va dove sta: in lettura, non
+riscrivendo l'archivio.
+
+### 4.8 La seconda anomalia della stessa famiglia: i punti gemelli
+
+Cercando la prima è saltata fuori una compagna, molto più diffusa: **punti ripetuti di fila**, cioè lati di
+lunghezza zero. Li ha il **29% dei poligoni** (81 su 283), per **1547 lati** in tutto, con punte di 489 su un
+solo settore (`DTTC_FSS`).
+
+Per il punto-in-poligono sono innocui — un lato degenere non attraversa mai il raggio — ma per la
+**triangolazione** dell'estrusione 3D no: un vertice doppio produce facce degeneri, ed è il sospetto numero
+uno quando una shape «si vede strana» a schermo. Tolti nello stesso punto, conservando il punto di chiusura
+finale (che è legittimo).
+
+⚠️ **E hanno fregato me prima ancora che il codice**: il mio primo controllo di auto-intersezione denunciava
+un incrocio su `LIRR_TS_CTR` e `LIRR_NE_CTR`. Non c'era: i due lati «incrociati» condividevano un estremo,
+perché quel punto era ripetuto. Il difetto era nello strumento, non nel dato — la regola di sempre.
+
 ## 5. Modello dati — due tabelle, non tre
 
 ```
