@@ -133,10 +133,53 @@ La copertura del §4.3 risolve gran parte del problema — ogni settore ha **un 
 non tutto: due sessioni con settori sovrapposti (il caso `MIL`/`FSS` contro i civili, tutte radici) possono
 rivendicare lo stesso aereo. Regola di scelta, in `TrafficAttribution`, dalla più forte alla più debole:
 
-1. **profondità maggiore** nell'albero (la TWR batte il CTR);
-2. **banda verticale più stretta**;
-3. **poligono più piccolo** (area del bounding box);
-4. **callsign alfabetico** — non è una preferenza, è la garanzia che due giri diano lo stesso esito.
+1. **la posizione dichiara la fase del volo** (§4.4-bis);
+2. **profondità maggiore** nell'albero (la TWR batte il CTR);
+3. **banda verticale più stretta**;
+4. **poligono più piccolo** (area del bounding box);
+5. **callsign alfabetico** — non è una preferenza, è la garanzia che due giri diano lo stesso esito.
+
+### 4.4-bis DEL e GND non si distinguono con la geometria: si distinguono con la fase del volo
+
+Osservazione del committente, e ha ragione: **la DEL gestisce solo le partenze ancora ferme, la GND tutto ciò
+che è a terra.** Con la sola regola «vince il più profondo», una DEL in frequenza si prenderebbe l'intero
+aeroporto perché è l'ultimo gradino della scaletta.
+
+E la geometria non può aiutare, perché non c'è: misurato sul `vipi.db` reale, **DEL 0 poligoni su 5, GND 0 su
+20** (APP 59/59, TWR 84/84 di cui 16 col cerchio sintetico). Le due posizioni esistono solo nella scaletta.
+⚠️ Conseguenza per la slice 4: il volume di DEL e GND è quello della **TWR dello stesso aeroporto** — senza,
+non rivendicherebbero mai niente.
+
+La distinzione la portano i dati del tracciato. Fasi (`FlightPhases.Of`): **Parked** = a terra, fermo, stato
+`Boarding`, entro 3 NM dal campo di partenza; **Ground** = a terra, tutto il resto; **Airborne** = in volo.
+Competenze dichiarate: DEL `{Parked}`, GND `{Parked, Ground}`, TWR/ITWR `{Ground, Airborne}`, APP/CTR
+`{Airborne}`. Non è un divieto ma una preferenza: se nessuno dei presenti dichiara la fase (una DEL sola in
+frequenza e un aereo che rulla), vince la copertura — c'è lei sola, è sua.
+
+⚠️ **Il controllo della distanza dalla partenza non è pedanteria**: `On Blocks` e `Boarding` sono entrambi
+«fermo a terra», ma il primo di solito è un **arrivo**. Verificato sui quattro aerei fermi a Fiumicino nello
+snapshot reale del 24 agosto:
+
+| callsign | stato | rotta | dist. dalla partenza | fase |
+|---|---|---|---|---|
+| ITY081 | `On Blocks` | LEPA→**LIRF** | 453 NM | a terra (è arrivato) |
+| AZA006 | `Boarding` | **LIRF**→LIRI | 1,1 NM | parcheggiato → DEL |
+| HBIAX | `Boarding` | **LIRF**→LFTZ | 1,0 NM | parcheggiato → DEL |
+| AZA9N5 | `Boarding` | **LIRF**→UUEE | 0,3 NM | parcheggiato → DEL |
+
+### 4.4-ter Le disconnessioni: tre casi, e due erano buchi
+
+Domanda del committente. Rispondere ha cambiato il modello dati **prima** che venisse scritto.
+
+| caso | col solo callsign | rimedio |
+|---|---|---|
+| **il pilota cade e rientra nello stesso volo** | ✅ già corretto: la riga è per callsign, non per id di sessione del pilota (che alla riconnessione cambia) | nessuno — ma è un effetto della chiave, non una guardia: va scritto o il prossimo che «ottimizza» la chiave lo rompe |
+| **il pilota fa più voli senza disconnettersi** | ❌ due movimenti contati come uno | `FlightLegResolver`: la **tratta** entra nella chiave — cambia `dep`/`arr` → tratta nuova; stessa rotta che riappare dopo 30 minuti di buco (navette, circuiti) → tratta nuova |
+| **l'ATC cade e rientra** | ❌ IVAO apre una sessione nuova, lo stesso aereo compare in tutt'e due e sommando si conta doppio | `AtcShiftGrouper`: il **turno** raccoglie le sessioni consecutive dello stesso VID sullo stesso callsign entro 15 minuti; i traffici si contano distinti per turno |
+
+Il turno **non è** una tabella nuova: è una colonna sulla sessione (`ShiftKey` = id della prima sessione del
+gruppo). La sessione resta l'unità di scrittura, perché è la chiave che IVAO ci dà; il turno è l'unità con
+cui si raccontano i numeri.
 
 ### 4.5 ⚠️ I limiti verticali oggi in archivio sono quasi tutti nominali
 
@@ -159,8 +202,11 @@ la pagina deve dire che l'attribuzione verticale vale quanto i limiti inseriti.
 ```
 AtcSession         SessionId (PK, id IVAO)  UserId  Callsign  Position  Frequency
                    StartUtc  EndUtc  DurationSec  Rating  Source (Live|Backfill)
+                   ShiftKey            -- id della prima sessione del turno (§4.4-ter)
+                   TrafficCount  DistinctAircraft  TrafficMinutes   -- contatori (§5.1 punto 2)
 
-AtcSessionTraffic  SessionId  PilotCallsign  PilotUserId  DepIcao  ArrIcao  AircraftIcao
+AtcSessionTraffic  PK (SessionId, PilotCallsign, LegOrdinal)        -- la tratta, non il solo callsign
+                   PilotUserId  DepIcao  ArrIcao  AircraftIcao
                    FirstSeenUtc  LastSeenUtc  SeenMinutes  Origin (Aor|AirportApi)
 ```
 
@@ -311,8 +357,9 @@ sessioni»** — sarebbe un buco silenzioso nello storico.
 1. ✅ **FATTA** (24 agosto). Cuore puro, test-first, in `Vipi.Application` accanto a ciò che c'è già:
    `PolygonGeometry.Contains` (punto-in-poligono, ray casting con prefiltro bbox), `Stats/SectorVolume`
    (poligono + banda di `AorFlBand`), `Stats/CoverageResolver` (discesa sull'albero `Sector`),
-   `Stats/TrafficAttribution` (§4.4, nata dalla prova sul dato vero). **32 test nuovi**, suite a 1829 verdi
-   (era 1797), `dotnet build Vipi.slnx -c Release --no-incremental` = 0 warning 0 errori.
+   `Stats/TrafficAttribution` (§4.4, nata dalla prova sul dato vero), `Stats/FlightPhase` (§4.4-bis),
+   `Stats/FlightLegResolver` e `Stats/AtcShiftGrouper` (§4.4-ter). **58 test nuovi**,
+   `dotnet build Vipi.slnx -c Release --no-incremental` = 0 warning 0 errori.
    Prova sul dato reale: whazzup del 24 agosto contro i 171 poligoni italiani → l'ITA a terra a Fiumicino
    finisce in `LIRF_TWR`, i voli in crociera nei settori `LIRR_*`, il traffico su Milano nei `LIMM_*`.
 2. Entità + migrazione (**doppia emissione**: SQLite e `Vipi.Infrastructure.MySqlMigrations`).
