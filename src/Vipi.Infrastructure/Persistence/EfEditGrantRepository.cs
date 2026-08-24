@@ -73,6 +73,9 @@ public sealed class EfEditGrantRepository : IEditGrantRepository
     public Task<bool> HasGrantAsync(int UserId, string accCode, CancellationToken ct = default) =>
         _db.EditGrants.AnyAsync(g => g.UserId == UserId && g.Acc!.Code == accCode, ct);
 
+    public Task<bool> HasAnyGrantAsync(int UserId, CancellationToken ct = default) =>
+        _db.EditGrants.AnyAsync(g => g.UserId == UserId, ct);
+
     public async Task<string?> GetDocumentAccCodeAsync(int documentId, CancellationToken ct = default)
     {
         // vIPI: ACC da un settore di scope.
