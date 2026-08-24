@@ -14,7 +14,7 @@
 
 <PageTitle>@L["Stats_DivisionTitle"] · vIPI IVAO Italia</PageTitle>
 
-<div class="wrap" style="max-width:1100px">
+<div class="wrap stats">
     <div class="doc-head">
         <h1 class="page-h1">@L["Stats_DivisionTitle"]</h1>
         <p class="muted">@L["Stats_DivisionSubtitle"]</p>
@@ -33,7 +33,9 @@
             <div class="choice"><h2 class="h-card">@(_totali?.Movements ?? 0)</h2><p class="muted">@L["Stats_Movements"]</p></div>
         </div>
 
-        <h2 class="h-sect">@L["Stats_TopControllers"]</h2>
+        <div class="stats-cols">
+            <section>
+                <h2 class="h-sect">@L["Stats_TopControllers"]</h2>
         <table class="res-table">
             <thead><tr><th>#</th><th>VID</th><th>@L["Stats_Hours"]</th><th>@L["Stats_Shifts"]</th><th>@L["Stats_Movements"]</th></tr></thead>
             <tbody>
@@ -46,7 +48,9 @@
             </tbody>
         </table>
 
-        <h2 class="h-sect">@L["Stats_ByPosition"]</h2>
+            </section>
+            <section>
+                <h2 class="h-sect">@L["Stats_ByPosition"]</h2>
         <table class="res-table">
             <thead><tr><th>@L["Stats_Position"]</th><th>@L["Stats_Sessions"]</th><th>@L["Stats_Hours"]</th><th>@L["Stats_Movements"]</th></tr></thead>
             <tbody>
@@ -56,6 +60,8 @@
                 }
             </tbody>
         </table>
+            </section>
+        </div>
     }
 
     @if (Authz.IsAdmin)

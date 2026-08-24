@@ -548,6 +548,18 @@
    margine erano 35px di scorrimento a 1440x900 su una pagina che per il resto stava dentro. Restano i
    18px di respiro che la funzione si tiene da sé — che sono anche il bianco sotto le colonne. */
 .wrap.live{max-width:2100px;padding-bottom:18px}
+/* Statistiche: come la vista live, il contenuto sono tabelle e riquadri di numeri, non prosa — il cap a
+   1640px lasciava lo schermo vuoto ai lati su un monitor largo. Niente tetto: `.res-table` è già a
+   larghezza piena e `.choice-grid` si adatta da sé (auto-fit, 340px minimi), quindi i riquadri passano da
+   quattro in fila a sei senza toccare altro. Il respiro laterale è quello delle pagine di lavoro. */
+.wrap.stats{max-width:none;padding-left:clamp(16px,2vw,32px);padding-right:clamp(16px,2vw,32px)}
+/* ⚠️ Larghezza piena NON vuol dire tabelle stirate. Con quattro colonne su 2560px il numero finisce a mezzo
+   metro dalla sua etichetta e l'occhio deve viaggiare: lo schermo largo deve mostrare PIÙ COSE, non le
+   stesse allargate. Le tabelle corte (per postazione, per mese, classifica) si affiancano; quella lunga
+   delle sessioni resta sotto, a tutta larghezza. Sotto i ~900px tornano in colonna da sole. */
+.stats-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:0 28px;align-items:start}
+.stats-cols>section{min-width:0}
+.stats-cols>section>h2{margin-top:0}
 .wrap.live .acc-item:last-of-type{margin-bottom:0}
 .wrap.live .acc-item:last-of-type>.body{padding-bottom:0}
 /* su schermi molto larghi il contenuto di sola lettura resta leggibile, non stirato */

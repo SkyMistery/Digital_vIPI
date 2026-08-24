@@ -567,6 +567,18 @@ sessioni»** — sarebbe un buco silenzioso nello storico.
    Due dettagli di onestà nella resa: le righe ricostruite (`Origin = AirportApi`) mostrano «—» al posto dei
    minuti, non «0»; e una sessione di venti minuti scrive «<0,1» invece di «0,0 ore», che sembrava «niente».
 
+   **Larghezza (24 agosto sera, su richiesta del committente).** Le pagine avevano un `max-width:1100px`
+   copiato dall'hub — su tabelle di dati è spazio buttato. Ora usano `.wrap.stats` (nessun tetto), come le
+   pagine di lavoro.
+
+   ⚠️ **Ma larghezza piena non vuol dire tabelle stirate**, e si è visto solo guardando la foto: con quattro
+   colonne su 2560px il numero finisce lontanissimo dalla sua etichetta e l'occhio deve viaggiare. Uno
+   schermo largo deve mostrare **più cose**, non le stesse allargate. Le tabelle corte (per postazione, per
+   mese, classifica) si affiancano in `.stats-cols`; quella lunga delle sessioni resta sotto a tutta
+   larghezza. Misurato con Edge su tre viewport: a 2560 la pagina di divisione mostra classifica e postazioni
+   **fianco a fianco, 40 righe in una schermata**; a 1366 le due tabelle stanno ancora affiancate (642px
+   ciascuna) e i riquadri dei totali vanno a capo da soli; **nessuno sforamento orizzontale** a nessuna misura.
+
 8. ✅ **FATTA** (24 agosto). Card nell'hub `/services` (terzo servizio, allo stesso livello degli altri due),
    card nella home della documentazione, voce nel menù ☰, voce nella ricerca globale/guida
    (`GuideSearchCatalog`). Verificato servendo le pagine: la card compare nell'hub, la ricerca di
