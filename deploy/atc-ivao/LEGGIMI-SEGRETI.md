@@ -26,7 +26,8 @@ nessuno conosce». È la stessa protezione che regge oggi il key-ring, `vipi-key
 ## Che cosa fare, in cinque minuti
 
 **1. Create la cartella `segreti` accanto a `Vipi.Host`** (dentro `public_atc`, allo stesso livello di
-`appsettings.Production.json`).
+`appsettings.Production.json`). ⚠️ **Tutto minuscolo**: su Linux `Segreti` e `segreti` sono due cartelle
+diverse. Va bene anche `secrets` — sono i due soli nomi che l'applicazione cerca.
 
 **2. Dentro, mettete UN file `.json` con un nome scelto da voi.** Il nome è la protezione: non deve essere
 indovinabile e non va scritto da nessuna parte che finisca sul server.

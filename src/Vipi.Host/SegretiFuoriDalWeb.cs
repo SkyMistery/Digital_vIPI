@@ -29,6 +29,15 @@ internal static class SegretiFuoriDalWeb
     /// <summary>Sottocartella accanto all'eseguibile. Il NOME DELLA CARTELLA è pubblico — quello dei file no.</summary>
     internal const string Cartella = "segreti";
 
+    /// <summary>
+    /// I nomi accettati, in ordine di precedenza. <c>secrets</c> non è un capriccio: la <b>prima persona</b>
+    /// che ha seguito il foglio, il 24 agosto 2026, ha chiamato così la cartella — e l'applicazione le ha
+    /// risposto «nessun file», che è vero e non aiuta. ⚠️ Su Linux il nome è anche <b>sensibile alle
+    /// maiuscole</b>, quindi il modo di sbagliare non è raro: costa tre righe accettarlo, e chi installa
+    /// non è detto che parli italiano.
+    /// </summary>
+    private static readonly string[] Cartelle = { Cartella, "secrets" };
+
     /// <summary>Il segnaposto del foglio di configurazione: se arriva fin qui, nessuno l'ha sostituito.</summary>
     internal const string Segnaposto = "METTI-QUI-LA-PASSWORD";
 
@@ -38,16 +47,19 @@ internal static class SegretiFuoriDalWeb
     /// </summary>
     internal static int Carica(IConfigurationBuilder configurazione)
     {
-        var cartella = Path.Combine(AppContext.BaseDirectory, Cartella);
-        if (!Directory.Exists(cartella)) return 0;
-
         var letti = 0;
-        // Ordine per nome: con due file che dicono la stessa chiave, deve vincere sempre lo stesso — e
-        // «l'ordine in cui il filesystem li elenca» non è un criterio, è il caso.
-        foreach (var file in Directory.EnumerateFiles(cartella, "*.json").OrderBy(f => f, StringComparer.Ordinal))
+        foreach (var nome in Cartelle)
         {
-            configurazione.AddJsonFile(file, optional: true, reloadOnChange: false);
-            letti++;
+            var cartella = Path.Combine(AppContext.BaseDirectory, nome);
+            if (!Directory.Exists(cartella)) continue;
+
+            // Ordine per nome: con due file che dicono la stessa chiave, deve vincere sempre lo stesso — e
+            // «l'ordine in cui il filesystem li elenca» non è un criterio, è il caso.
+            foreach (var file in Directory.EnumerateFiles(cartella, "*.json").OrderBy(f => f, StringComparer.Ordinal))
+            {
+                configurazione.AddJsonFile(file, optional: true, reloadOnChange: false);
+                letti++;
+            }
         }
         return letti;
     }
@@ -69,7 +81,7 @@ internal static class SegretiFuoriDalWeb
             return "Persistence:Provider è MySql ma non c'è nessuna connection string «Vipi». Partendo così "
                  + "l'applicazione ripiegherebbe su un file SQLite vuoto, e il sito sembrerebbe aver perso "
                  + "tutti i dati. Il valore va in un file .json dentro la cartella «" + Cartella + "» "
-                 + "accanto all'eseguibile (vedi il foglio di correzione).";
+                 + "(o «secrets») accanto all'eseguibile (vedi il foglio di correzione).";
 
         if (connectionString.Contains(Segnaposto, StringComparison.OrdinalIgnoreCase))
             return $"La connection string «Vipi» contiene ancora il segnaposto «{Segnaposto}»: la password "

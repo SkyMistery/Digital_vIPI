@@ -95,6 +95,8 @@ pacchetto porta il rimedio che si può fare **solo con l'FTP**: *se il file non 
 ### I cinque passi (dieci minuti, si fanno una volta sola)
 
 1. **Create la cartella `segreti`** dentro `public_atc`, allo stesso livello di `appsettings.Production.json`.
+   ⚠️ **Tutto minuscolo**: su Linux `Segreti` e `segreti` sono due cartelle diverse. Va bene anche
+   `secrets`, se vi viene più naturale — quelli sono i due nomi che l'applicazione cerca, e nessun altro.
 2. **Dentro, un file `.json` con un nome scelto da voi.** ⚠️ *Il nome è la protezione*: dev'essere
    impossibile da indovinare, e non va scritto in nessun posto che finisca sul server.
    - ✅ `k7f3a91c4e8b2.json` — ❌ `segreti.json`, `password.json`, `config.json` (sono i primi che si provano)

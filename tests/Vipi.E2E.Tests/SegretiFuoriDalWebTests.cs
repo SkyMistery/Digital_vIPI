@@ -31,6 +31,25 @@ public sealed class SegretiFuoriDalWebTests
         Assert.Equal("Server=localhost;Password=quella-vera", cfg.Build().GetConnectionString("Vipi"));
     }
 
+    /// <summary>
+    /// ⚠️ Anche «secrets», e non per gusto: la prima persona che ha seguito il foglio ha chiamato così la
+    /// cartella, e si è presa un «nessun file» che era vero e non aiutava. Su Linux il nome è pure sensibile
+    /// alle maiuscole: il modo di sbagliare non è raro, e chi installa non è detto che parli italiano.
+    /// </summary>
+    [Fact]
+    public void Anche_la_cartella_chiamata_secrets_viene_letta()
+    {
+        using var _ = new CartellaSegretiFinta("nome-che-nessuno-indovina-9f3a.json", """
+            { "ConnectionStrings": { "Vipi": "Server=localhost;Password=quella-vera" } }
+            """, nomeCartella: "secrets");
+
+        var cfg = new ConfigurationBuilder();
+        var letti = SegretiFuoriDalWeb.Carica(cfg);
+
+        Assert.Equal(1, letti);
+        Assert.Equal("Server=localhost;Password=quella-vera", cfg.Build().GetConnectionString("Vipi"));
+    }
+
     [Fact]
     public void Senza_la_cartella_non_succede_niente()
     {
@@ -64,10 +83,11 @@ public sealed class SegretiFuoriDalWebTests
     /// <summary>Crea e rimuove la cartella accanto all'assembly dei test, che è ciò che <c>Carica</c> guarda.</summary>
     private sealed class CartellaSegretiFinta : IDisposable
     {
-        private readonly string _cartella = Path.Combine(AppContext.BaseDirectory, SegretiFuoriDalWeb.Cartella);
+        private readonly string _cartella;
 
-        public CartellaSegretiFinta(string nomeFile, string contenuto)
+        public CartellaSegretiFinta(string nomeFile, string contenuto, string? nomeCartella = null)
         {
+            _cartella = Path.Combine(AppContext.BaseDirectory, nomeCartella ?? SegretiFuoriDalWeb.Cartella);
             Directory.CreateDirectory(_cartella);
             File.WriteAllText(Path.Combine(_cartella, nomeFile), contenuto);
         }
