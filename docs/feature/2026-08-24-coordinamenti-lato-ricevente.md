@@ -1,6 +1,7 @@
 # Coordinamenti — il lato di CHI RICEVE ✅
 
-> Stato: **FATTO il 24 agosto 2026** — cinque commit sul ramo `coordinamenti-lato-ricevente`, verificato live.
+> Stato: ✅ **FUSO IN `main` il 24 agosto 2026** (merge `84f741b`, ramo cancellato locale e origin).
+> Sei commit, verificati live prima del merge; dopo il merge, 1925 test verdi e build Release verde sui due TFM.
 > Fratello di [2026-08-23-live-coordinamenti-a-colonne.md](2026-08-23-live-coordinamenti-a-colonne.md) e della
 > memoria `coordinamenti-lettura`.
 >
@@ -16,16 +17,14 @@
 
 Il lavoro è **finito e verificato**, ma vive su un ramo. Se apri questo file in una sessione nuova:
 
-```
-git checkout coordinamenti-lato-ricevente     # 5 commit, 2ed4a52 → 265b882, spinto su origin
-```
+Tutto è **in `main`**: il ramo `coordinamenti-lato-ricevente` (sei commit, `2ed4a52` → `f0a0088`) è stato
+fuso il 24 agosto col merge `84f741b` e **cancellato**, locale e origin. Non c'è niente da recuperare.
 
 | domanda | risposta |
 |---|---|
-| Cosa manca? | **Solo il merge in `main`.** Lo fa il committente, come per gli altri rami. Vedi `lavori-aperti.md` §B10. |
-| Il merge è rischioso? | No: il ramo nasce da `main` a `f14cc25` e nessuno ha toccato quei file dopo. |
-| Migrazioni / entità nuove? | **Nessuna.** Non allunga la coda del cutover MariaDB. |
-| Cosa deve fare il committente dopo il merge? | **Ripubblicare i documenti.** Senza, non cambia niente a schermo — §6.1. |
+| Cosa manca nel codice? | **Niente.** |
+| Cosa manca fuori dal codice? | **Ripubblicare i documenti.** Senza, a schermo non cambia niente — §6.1. Lo fa il committente. |
+| Migrazioni / entità nuove? | **Nessuna.** Non ha allungato la coda del cutover MariaDB. |
 | Cosa resta scoperto? | `AppCoordinationView` non provata su dati veri, e l'accordo `LIBB_ES_CTR ↔ LIBD_CS0_APP` non ha una pagina dove comparire — §9. |
 
 **La cosa da non dimenticare, se un domani si torna sull'albero dei coordinamenti:** le tabelle sono

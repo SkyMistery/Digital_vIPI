@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 24 agosto 2026 (**§B10: `coordinamenti-lato-ricevente` è aperto e va fuso** — è l'unico ramo con lavoro fuori da `main`; il 23 sera: audit frontend/UI chiuso e fuso — §H, consegna prodotta — A11) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+**Aggiornato:** 24 agosto 2026 (**§B10 chiusa: `coordinamenti-lato-ricevente` fuso in `main` e cancellato** — di nuovo nessun ramo con lavoro fuori; il 23 sera: audit frontend/UI chiuso e fuso — §H, consegna prodotta — A11) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -23,8 +23,8 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 > token invece di 937 all'indietro. Otto file in conflitto, risolti con una regola sola — **struttura dal ramo
 > dei servizi, colori dai token del tema**.
 >
-> Da qui **`main` è il posto dove si lavora**, e per due giorni non c'è stato nessun ramo con lavoro fuori:
-> ⚠️ **dal 24 agosto ce n'è di nuovo uno, `coordinamenti-lato-ricevente` — vedi B10.** Gli altri undici sono
+> Da qui **`main` è il posto dove si lavora, e non c'è nessun ramo con lavoro fuori**: la frase ha vacillato
+> il 24 agosto con `coordinamenti-lato-ricevente`, fuso e cancellato in giornata (**B10**). Gli altri undici sono
 > tutti a zero commit di distanza — e il 22 agosto sono stati **cancellati tutti e undici**, locale e origin.
 > ⚠️ Cancellandoli è saltata fuori una cosa: **`refactor/13-tre-documenti` (B5) non aspettava nessun ok**, era
 > in `main` dal 15 agosto, portato dentro dal merge dei trasferimenti. Vedi B5.
@@ -148,8 +148,7 @@ oggi nessuno sa rispondere — la rotazione della password Neon, e quattro decis
 `BANA8A`, le 33 torri senza padre, **quali staff code valgono admin** (E4) e se pubblicare una *release*
 debba scrivere audit.
 
-⚠️ **Una decisione di merge è tornata aperta il 24 agosto**: **B10**, `coordinamenti-lato-ricevente` (la frase
-dei coordinamenti dal lato di chi riceve). Le vecchie erano tutte chiuse: B6 fu presa il 15 agosto, e B5 si è rivelata già presa — il doc
+✅ **Non resta più nessuna decisione di merge**: l'ultima è stata **B10**, presa il 24 agosto. B6 fu presa il 15 agosto, e B5 si è rivelata già presa — il doc
 13 era in `main` da allora senza che l'elenco lo sapesse.
 
 ✅ **Fusa il 23 agosto, sera**: il ramo **`audit-frontend-ui`** (15 commit) è in `main`. Ci stavano l'audit
@@ -639,12 +638,11 @@ di nulla.
 
 ## B. Branch non fusi — decisioni, non lavoro
 
-### B10 🟢 DA FONDERE — `coordinamenti-lato-ricevente`, 24 agosto 2026
+### B10 ✅ FUSO — `coordinamenti-lato-ricevente`, fuso in `main` il 24 agosto 2026
 
-**Cinque commit, spinto su origin, non fuso.** È l'**unico** ramo con lavoro fuori da `main`: la frase dice
-«non c'è più nessun ramo con lavoro fuori» dal 22 agosto, e da oggi non è più vera finché non si fonde.
-Nato da `main` a `f14cc25` (23 agosto sera): nessun altro l'ha toccato dopo, quindi il merge dovrebbe essere
-pulito.
+Sei commit più il merge `84f741b`, ramo cancellato (locale e origin). **Nessun conflitto**: il ramo era nato
+da `main` a `f03cd57` e nessun altro ha toccato quei file dopo. Dopo il merge: build Release verde su
+entrambi i TFM (0 avvisi), **1925 test verdi** su net8.
 
 Carta con tutto: [`feature/2026-08-24-coordinamenti-lato-ricevente.md`](feature/2026-08-24-coordinamenti-lato-ricevente.md).
 
@@ -655,6 +653,7 @@ Carta con tutto: [`feature/2026-08-24-coordinamenti-lato-ricevente.md`](feature/
 | `8c7b49b` | due tabelle quando il nodo porta i due versi; via `LastColHeader` |
 | `6ad66df` | carta con l'esito e la verifica live |
 | `265b882` | anche la frase **uscente** con faccetta cambia forma (secondo giro, chiesto dal committente) |
+| `f0a0088` | il ramo entra nei lavori aperti e nell'indice |
 
 **In breve.** Un accordo si scrive una volta sola, dal lato di chi cede, e il documento di chi **riceve**
 mostrava quelle stesse parole — «Zagreb Radar trasferisce a Brindisi Radar CS0…» dentro la vIPI di Brindisi —
@@ -676,7 +675,7 @@ nella stessa tabella due righe dello stesso accordo si aprivano in due modi dive
 ⚠️ **Nessuna entità nuova e nessuna migrazione**: non allunga la coda del cutover MariaDB. `IsIncoming` è un
 campo **additivo** sul DTO serializzato dentro le release congelate, che lo deserializzano `false`.
 
-### 🔴 Dopo il merge — il committente deve RIPUBBLICARE
+### 🔴 B10-bis — resta da fare: RIPUBBLICARE i documenti
 
 `Sentence` e `LeadSentence` sono **stringhe già scritte** dentro la release: i documenti pubblicati
 continueranno a dire «Zagreb Radar trasferisce a…» finché non esce una release nuova. Misurato fianco a
