@@ -97,6 +97,20 @@ public sealed class IvaoOptions
     /// </summary>
     public int AtcHistoryRefreshDays { get; set; } = 2;
 
+    /// <summary>Template dei movimenti d'aeroporto: <c>{0}</c> = ICAO. Es. <c>/v2/airports/LIRF/traffics</c>.</summary>
+    public string AirportTrafficsPathFormat { get; set; } = "/v2/airports/{0}/traffics";
+
+    /// <summary>Ogni quante ore girare il riempimento retroattivo del traffico d'aeroporto.</summary>
+    public int AirportTrafficBackfillHours { get; set; } = 24;
+
+    /// <summary>
+    /// Quante sessioni riempire per giro. ⚠️ Non è un numero di comodo: il riempimento costa <b>una chiamata
+    /// per sessione</b> (la finestra è quella della singola connessione), quindi il recupero dell'anno
+    /// arretrato si spalma su più notti invece di fare migliaia di richieste in una volta. Alzarlo accelera
+    /// il recupero e pesa sulla sorgente nella stessa misura.
+    /// </summary>
+    public int AirportTrafficBackfillPerRun { get; set; } = 200;
+
     /// <summary>Ogni quante ore ri-verificare il roster staffisti via API (disattiva chi non è più staff IT).</summary>
     public int StaffVerifyHours { get; set; } = 24;
 

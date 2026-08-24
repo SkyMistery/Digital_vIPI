@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Stats;
 using Vipi.Domain.Entities;
@@ -114,4 +114,115 @@ public sealed class EfAtcTrafficStore : IAtcTrafficStore
         new DateTimeOffset(DateTime.SpecifyKind(t.FirstSeenUtc, DateTimeKind.Utc)),
         new DateTimeOffset(DateTime.SpecifyKind(t.LastSeenUtc, DateTimeKind.Utc)),
         t.SeenMinutes, t.SawMovement, t.HasObservationGap);
+
+    public async Task<(IReadOnlyList<AirportSessionWindow> ToFill, IReadOnlyList<AirportSessionWindow> Concurrent)>
+        GetAirportSessionsToFillAsync(DateTimeOffset notBefore, int max, CancellationToken ct = default)
+    {
+        var soglia = notBefore.UtcDateTime;
+
+        // Solo sessioni CHIUSE: di una ancora in corso la finestra non è nota, e riempirla adesso vorrebbe
+        // dire perdere quel che succede dopo. Solo senza traffico: dove il campionamento dal vivo ha già
+        // lavorato non si mescola una seconda fonte. Solo mai provate: la marca evita di riprovarci ogni notte.
+        var candidate = await _db.AtcSessions.AsNoTracking()
+            .Where(s => s.EndUtc != null && s.StartUtc >= soglia
+                        && s.TrafficCount == 0 && s.TrafficFilledUtc == null
+                        && s.DurationSeconds >= 60)
+            .OrderByDescending(s => s.StartUtc)
+            .Take(Math.Max(1, max))
+            .Select(s => new { s.SessionId, s.Callsign, s.StartUtc, s.EndUtc })
+            .ToListAsync(ct);
+
+        var daRiempire = candidate.Select(Finestra).OfType<AirportSessionWindow>().ToList();
+        if (daRiempire.Count == 0)
+            return (daRiempire, Array.Empty<AirportSessionWindow>());
+
+        // Le concorrenti: stesso aeroporto, tempi che si toccano. Si legge una finestra sola, quella che
+        // copre tutte le candidate, e si filtra in memoria — sono poche righe.
+        var da = daRiempire.Min(s => s.StartUtc).UtcDateTime;
+        var a = daRiempire.Max(s => s.EndUtc).UtcDateTime;
+
+        var vicine = await _db.AtcSessions.AsNoTracking()
+            .Where(s => s.EndUtc != null && s.EndUtc >= da && s.StartUtc <= a)
+            .Select(s => new { s.SessionId, s.Callsign, s.StartUtc, s.EndUtc })
+            .ToListAsync(ct);
+
+        return (daRiempire, vicine.Select(Finestra).OfType<AirportSessionWindow>().ToList());
+
+        static AirportSessionWindow? Finestra(dynamic s)
+        {
+            var parsed = AirportBackfillPlanner.Parse((string)s.Callsign);
+            if (parsed is not { } p) return null;
+            return new AirportSessionWindow(
+                (long)s.SessionId, (string)s.Callsign, p.Icao, p.Type,
+                new DateTimeOffset(DateTime.SpecifyKind((DateTime)s.StartUtc, DateTimeKind.Utc)),
+                new DateTimeOffset(DateTime.SpecifyKind((DateTime)s.EndUtc!, DateTimeKind.Utc)));
+        }
+    }
+
+    public async Task<int> FillAirportMovementsAsync(
+        long sessionId, IReadOnlyList<SourceAirportMovement> movements, DateTimeOffset filledAtUtc,
+        CancellationToken ct = default)
+    {
+        var sessione = await _db.AtcSessions.FirstOrDefaultAsync(s => s.SessionId == sessionId, ct);
+        if (sessione is null) return 0;
+
+        var esistenti = await _db.AtcSessionTraffic
+            .Where(t => t.SessionId == sessionId)
+            .ToDictionaryAsync(t => (t.PilotCallsign, t.LegOrdinal), ct);
+
+        var scritte = 0;
+        foreach (var gruppo in movements.GroupBy(m => m.PilotCallsign, StringComparer.OrdinalIgnoreCase))
+        {
+            // Lo stesso callsign in arrivo E in partenza nella stessa finestra sono due tratte: è atterrato
+            // e poi ripartito. A distinguerle è la ROTTA col verso, non il piano di volo.
+            //
+            // ⚠️ Qui il piano di volo NON serve, e usarlo era un difetto: alla riconnessione il pilota ne
+            // deposita uno nuovo, e sul dato vero `AZA1430 LIRF→LICJ` è finito due volte nella stessa
+            // sessione di `LICJ_TWR` — un solo atterraggio contato per due. Dal vivo il caso è coperto dalla
+            // finestra temporale (FlightLegResolver), che qui non c'è: della finestra sappiamo solo gli
+            // estremi della sessione.
+            var tratte = gruppo
+                .GroupBy(m => (
+                    Dep: (m.DepIcao ?? "").Trim().ToUpperInvariant(),
+                    Arr: (m.ArrIcao ?? "").Trim().ToUpperInvariant(),
+                    m.Kind))
+                .Select((g, i) => (Ordinale: i + 1, Movimento: g.First()))
+                .ToList();
+
+            foreach (var (ordinale, m) in tratte)
+            {
+                if (esistenti.ContainsKey((gruppo.Key, ordinale))) continue;
+
+                _db.AtcSessionTraffic.Add(new AtcSessionTraffic
+                {
+                    SessionId = sessionId,
+                    PilotCallsign = gruppo.Key,
+                    LegOrdinal = ordinale,
+                    PilotUserId = m.PilotUserId,
+                    FlightPlanId = m.FlightPlanId,
+                    DepIcao = m.DepIcao,
+                    ArrIcao = m.ArrIcao,
+                    AircraftIcao = m.AircraftIcao,
+                    // ⚠️ La finestra è tutto quel che sappiamo: la sorgente dice CHE il volo c'è stato, non
+                    // per quanti minuti fosse in frequenza. First/Last sono gli estremi della sessione e
+                    // SeenMinutes resta 0 — un numero inventato sarebbe peggio di un numero assente.
+                    FirstSeenUtc = sessione.StartUtc,
+                    LastSeenUtc = sessione.EndUtc ?? sessione.StartUtc,
+                    SeenMinutes = 0,
+                    SawMovement = true,          // un arrivo, una partenza o un sorvolo si è mosso per definizione
+                    HasObservationGap = false,
+                    Origin = TrafficOrigin.AirportApi,
+                });
+                scritte++;
+            }
+        }
+
+        sessione.TrafficCount += scritte;
+        sessione.MovementCount += scritte;
+        sessione.TrafficFilledUtc = filledAtUtc.UtcDateTime;
+        sessione.UpdatedAtUtc = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+        return scritte;
+    }
 }

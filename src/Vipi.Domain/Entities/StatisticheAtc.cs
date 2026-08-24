@@ -62,6 +62,16 @@ public class AtcSession
     /// <summary>Somma dei minuti in cui c'era del traffico dentro l'area (contati per giro, non per differenza).</summary>
     public int TrafficMinutes { get; set; }
 
+    /// <summary>
+    /// Quando il traffico di questa sessione è stato ricostruito <b>a posteriori</b> dai movimenti
+    /// d'aeroporto della sorgente; <c>null</c> = mai provato.
+    ///
+    /// <para>Serve a non riprovarci all'infinito: una sessione senza traffico e senza questa data è «da
+    /// riempire», una con la data e zero traffico è «riempita, non c'era nessuno» — due cose che senza una
+    /// marca sarebbero indistinguibili.</para>
+    /// </summary>
+    public DateTime? TrafficFilledUtc { get; set; }
+
     /// <summary>Ultima scrittura, per il checkpoint del poller e la diagnostica.</summary>
     public DateTime? UpdatedAtUtc { get; set; }
 

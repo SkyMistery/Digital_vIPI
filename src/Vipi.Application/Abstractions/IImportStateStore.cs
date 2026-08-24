@@ -54,6 +54,13 @@ public static class ImportCategories
     public const string AtcHistory = "AtcHistory";
 
     /// <summary>
+    /// Il riempimento retroattivo del traffico d'aeroporto (dal 24 agosto 2026). Stessa categoria di policy
+    /// dello storico — <c>AtcSessions</c> — ma chiave di stato sua: è un altro giro, con un altro costo e
+    /// un altro arretrato da smaltire.
+    /// </summary>
+    public const string AirportTrafficBackfill = "AirportTrafficBackfill";
+
+    /// <summary>
     /// NON è un import periodico: è il segnaposto della riconciliazione one-shot che ha spento le aree degli ACC
     /// esteri (<c>ISpecialAreaMaintenance.OptOutForeignAreasAsync</c>). Sta qui perché serve un registro «già fatto»
     /// persistente, e questa è la tabella che ce l'ha: senza, la riconciliazione ricancellerebbe a ogni riavvio le

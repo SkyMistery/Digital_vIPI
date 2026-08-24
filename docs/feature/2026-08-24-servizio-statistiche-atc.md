@@ -511,7 +511,33 @@ sessioni»** — sarebbe un buco silenzioso nello storico.
    334 sessioni → **221 turni**, 312 chiuse, e le prime statistiche vere della divisione — `LIPZ_TWR` 24,0 ore
    su 23 sessioni, `LIRF_TW1_APP` 22,9 ore su 10, il controllore più attivo con 33,9 ore in 15 turni. Il 24%
    delle sessioni sta sotto i cinque minuti, coerente col 31,8% misurato sull'API su trenta giorni.
-6. Riempimento retroattivo del traffico d'aeroporto (`/airports/{icao}/traffics`).
+6. ✅ **FATTA** (24 agosto). `IAirportTrafficSource` + `IvaoAirportTrafficClient`,
+   `AirportBackfillPlanner` (puro), `AirportTrafficBackfillUseCase`, giro notturno con bootDelay 90s (dopo lo
+   storico, che gli crea le sessioni da riempire), colonna `AtcSession.TrafficFilledUtc` con migrazione
+   doppia. 20 test nuovi.
+
+   **Il problema che il pianificatore risolve**: la sorgente racconta i movimenti di uno *scalo* in una
+   finestra, non a chi hanno parlato. Se in quella finestra c'erano TWR e GND insieme, darli a tutt'e due
+   raddoppierebbe i numeri della divisione. Vince la posizione più titolata sul movimento — TWR, poi APP,
+   poi GND, poi DEL — e le altre si marcano «provate» senza chiamare la sorgente.
+
+   ⚠️ **`SeenMinutes` resta 0 per queste righe**: la sorgente dice *che* il volo c'è stato, non per quanti
+   minuti fosse in frequenza. Un numero inventato sarebbe peggio di un numero assente — e le pagine dovranno
+   distinguere `Origin = AirportApi` da `Aor` quando mostrano i minuti.
+
+   ⚠️ **Costa una chiamata per sessione** (la finestra è quella della singola connessione), quindi c'è un
+   tetto per giro (200): l'arretrato dell'anno si smaltisce in più notti. Alzarlo accelera e pesa sulla
+   sorgente nella stessa misura.
+
+   **Verifica live contro IVAO vero**: «33 sessioni, 25 riempite con 70 movimenti, 8 lasciate a una posizione
+   più titolata» — otto doppi conteggi evitati davvero. Voli ricostruiti veri: `EZY2FV` LIRP→LICA su
+   `LIRP_APP`, `AZA1430` LIRF→LICJ su `LICJ_TWR`.
+
+   ⚠️ **Difetto trovato guardando il dato vero, non i test**: al primo giro `AZA1430 LIRF→LICJ` compariva
+   **due volte** nella stessa sessione. Avevo identificato la tratta con l'id del piano di volo, ma alla
+   riconnessione il pilota ne deposita uno nuovo — dal vivo il caso lo copre la finestra temporale, qui non
+   c'è. Ora la tratta la identificano **rotta e verso**: 76 movimenti sono diventati 70, e i doppioni sono
+   zero.
 7. UI: `/services/stats` (mia) → dettaglio sessione → vista staff + interruttore classifiche.
 8. Ingressi: card hub, menù, guida, ricerca. Verifica live guidando il flusso reale.
 

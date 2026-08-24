@@ -17,4 +17,20 @@ public interface IAtcTrafficStore
 
     /// <summary>Scrive tratte e contatori (upsert). Ritorna quante righe di tratta ha toccato.</summary>
     Task<int> SaveAsync(TrafficFlush flush, CancellationToken ct = default);
+
+    /// <summary>
+    /// Sessioni d'aeroporto <b>chiuse</b> e senza traffico che non sono ancora state riempite a posteriori,
+    /// dalla più recente, al massimo <paramref name="max"/>. Insieme a loro le sessioni dello stesso
+    /// aeroporto che si sovrappongono nel tempo, che servono a decidere di chi è il movimento.
+    /// </summary>
+    Task<(IReadOnlyList<AirportSessionWindow> ToFill, IReadOnlyList<AirportSessionWindow> Concurrent)>
+        GetAirportSessionsToFillAsync(DateTimeOffset notBefore, int max, CancellationToken ct = default);
+
+    /// <summary>
+    /// Scrive i movimenti ricostruiti di una sessione e la marca come riempita (anche quando i movimenti
+    /// sono zero: «provato, non c'era nessuno» è un fatto, e senza marca si riproverebbe per sempre).
+    /// </summary>
+    Task<int> FillAirportMovementsAsync(
+        long sessionId, IReadOnlyList<SourceAirportMovement> movements, DateTimeOffset filledAtUtc,
+        CancellationToken ct = default);
 }

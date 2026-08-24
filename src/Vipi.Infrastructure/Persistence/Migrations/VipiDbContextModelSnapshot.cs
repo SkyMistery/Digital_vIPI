@@ -711,6 +711,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int>("TrafficCount")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("TrafficFilledUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("TrafficMinutes")
                         .HasColumnType("INTEGER");
 
