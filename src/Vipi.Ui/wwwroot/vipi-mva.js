@@ -22,18 +22,25 @@
             // dà terra, mare e vegetazione ma a questi zoom le montagne quasi non si vedono; «World Hillshade»
             // dà il rilievo ma su fondo grigio uniforme, dove costa e mare spariscono. Insieme si leggono
             // entrambi, e nessuna delle due porta strade.
+            // ⚠️ `maxNativeZoom`, NON `maxZoom`: sono due cose diverse e la differenza si vede a schermo.
+            // `maxZoom` è il livello oltre il quale Leaflet **smette di mostrare il foglio**; `maxNativeZoom`
+            // è l'ultimo livello che il fornitore possiede davvero, oltre il quale Leaflet **ingrandisce**
+            // l'ultima tessera buona. Con `maxZoom: 13` il terreno spariva del tutto appena si ingrandiva a 14
+            // per leggere la carta — misurato: 32 tessere a zoom 13, 16 a zoom 14, cioè il foglio intero
+            // andato — e restava il solo rilievo grigio, senza terra né mare. Sfocato è meglio che assente:
+            // il fondo serve a spiegare PERCHÉ la minima è quella, e a zoom stretto serve ancora di più.
             relief: L.layerGroup([
                 conRitenti(L.tileLayer('https://server.arcgisonline.com/arcgis/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}', {
-                    maxZoom: 13, attribution: '© Esri — World Terrain Base'
+                    maxNativeZoom: 13, maxZoom: 19, attribution: '© Esri — World Terrain Base'
                 })),
                 conRitenti(L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}', {
-                    maxZoom: 16, opacity: 0.55, attribution: '© Esri — Elevation/World Hillshade'
+                    maxNativeZoom: 16, maxZoom: 19, opacity: 0.55, attribution: '© Esri — Elevation/World Hillshade'
                 }))
             ]),
             // Unico fondo con le strade, e l'unico con le QUOTE scritte sulle curve di livello: resta come scelta
             // esplicita per chi vuole leggere l'altitudine del suolo, non come partenza.
             contour: conRitenti(L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-                maxZoom: 17, subdomains: 'abc',
+                maxNativeZoom: 17, maxZoom: 19, subdomains: 'abc',
                 attribution: '© OpenStreetMap, SRTM | © OpenTopoMap (CC-BY-SA)'
             }))
         };
