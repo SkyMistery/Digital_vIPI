@@ -1,4 +1,4 @@
-# Mappe a scacchi alla prima apertura — le tessere che non arrivano (24 agosto 2026)
+﻿# Mappe a scacchi alla prima apertura — le tessere che non arrivano (24 agosto 2026)
 
 **Segnalato dalla produzione**: «a volte, quando apro una vIPI, la mappa si carica male; refresho la pagina
 ed è tutto a posto». La mappa è quella dell'**AOR**, e «male» vuol dire **fondo grigio a scacchi**: la
@@ -66,3 +66,60 @@ Il ripiego SVG **si vede più a lungo** sulle mappine in fondo alla pagina: prim
 un secondo, ora l'ultima si accende intorno al sesto. È il prezzo di non sparare 115 richieste insieme, e
 riguarda mappe che stanno sotto la piega. Chi stampa nei primi secondi stampa quel ripiego — che è il disegno
 nostro, non un buco.
+
+## 6. Seguito, sera del 24 agosto: il soffitto dei ritenti
+
+Il sintomo è rientrato, e stavolta **anche in locale**. Il ritentatore funzionava; aveva un soffitto che
+non era stato misurato, perché la verifica di §4 usava un guasto (12 secondi) più corto della scala stessa.
+
+**La scala copre ~19 secondi** — cinque tentativi da 0,6s a 9,6s. Un'interruzione più lunga se li mangia
+tutti *mentre è ancora in corso*, e dopo non riprova più nessuno: il riquadro resta nero fino al refresh,
+cioè di nuovo il sintomo di §1 con la soglia spostata più in là.
+
+| guasto indotto | prima | dopo |
+|---|---|---|
+| 40% per 12s | rientra in 10s | uguale |
+| **80% per 30s** | **25 tessere / 9 mappe nere per sempre** (immutate a +35s) | **0 in 10s** |
+| **90% per 60s** | — | **0 in 10s** |
+
+Chiuso con lo **spazzino** (`vipi-aor.js`): ogni 8s ripassa tutte le tessere di tutte le mappe in pagina —
+AoR e minime insieme, perché il guasto non distingue — ripesca le rotte sfalsandole, si ferma dopo due giri
+puliti e riparte da solo su `online` e quando la scheda torna davanti. Nel caso sano le richieste restano
+115, identiche.
+
+### La trappola di misura, che è la parte da ricordare
+
+⚠️ **`complete` non dice che la tessera è arrivata.** Una tessera fallita resta `complete` con
+`naturalWidth === 0`. La prima verifica di questo seguito contava `complete && opacity > 0.5` e dichiarava
+«334 su 334 visibili» su una pagina che l'utente vedeva bucata. È il gemello della trappola già scritta in
+§3 (28 marcate contro 30 rotte), ma peggiore: lì i conteggi *non tornavano* e l'errore si vedeva; qui
+tornavano perfetti. **Quando i numeri tornano troppo bene, sospettare il metro prima del codice.**
+
+Corollario operativo: **senza un guasto indotto il ritentatore non viene mai eseguito.** Una verifica su
+rete sana misura gli scaglioni e nient'altro, e non dice niente sui ritenti. `tile-rotte.js <quota>
+<secondi>` esiste per questo e va rifatto girare a ogni modifica del ritentatore, con un guasto **più lungo
+della scala**.
+
+## 7. Difetto separato trovato per strada: `maxZoom` contro `maxNativeZoom`
+
+Nei fondi delle minime (`vipi-mva.js`) i due erano confusi. `maxZoom` è il livello oltre il quale Leaflet
+**smette di mostrare il foglio**; `maxNativeZoom` è l'ultimo livello che il fornitore possiede davvero,
+oltre il quale Leaflet **ingrandisce** l'ultima tessera buona. Con `maxZoom: 13` su «World Terrain Base» il
+terreno spariva del tutto appena si ingrandiva a 14 per leggere la carta — 32 tessere a zoom 13, 16 a zoom
+14 — e restava il solo rilievo grigio, senza terra né mare. Proprio allo zoom in cui il fondo serve di più,
+dato che esiste per spiegare *perché* la minima è quella. Sfocato è meglio che assente.
+
+## 8. Cosa resta aperto
+
+La segnalazione che ha riaperto il caso **non è spiegata da nessuno dei due fix**: stesso `localhost`, profilo
+Edge pulito, 269 tessere e zero cadute a qualunque zoom; profilo reale dell'utente, mappe bucate; finestra
+InPrivate, mappe piene; estensioni disattivate, guasto ancora presente. Le piste già escluse per misura:
+la rete (i tre fornitori reggono 96 richieste in parallelo, tutte 200), il JS vecchio in cache (asset con
+impronta e `no-cache`), lo zoom di pagina applicato come lo applica il sito (`vipiZoom` in `localStorage`
+prima del `<head>`: le mappe grandi restano coperte oltre il 130%), e le mappine con tessere a rect zero
+(stanno tutte in sezioni collassate, `checkVisibility()` false: invisibili all'utente).
+
+Serve un dato dal browser che sbaglia — conteggio richieste, stati HTTP e tessere rotte — per separare i tre
+mondi: fornitore che limita (403/429 → fondo di ripiego su un altro fornitore), blocco locale a livello di
+rete (richieste vuote), oppure tessere **mai chieste** (allora è geometria, e né spazzino né ripiego servono).
+
