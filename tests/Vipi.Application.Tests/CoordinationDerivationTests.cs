@@ -252,7 +252,7 @@ public class CoordinationDerivationTests
         Assert.Equal("passando FL110", e.Row.HandoffLevel);
         Assert.Equal("su AVN", e.Row.CommsHandoff);
         Assert.Equal("a 250 kt o inferiore", e.Row.Speed);
-        Assert.Contains("autorizza il traffico", e.Row.Sentence);
+        Assert.Contains("il traffico con destinazione Napoli Capodichino LIRN autorizzato via CHI", e.Row.Sentence);
     }
 
     [Fact]

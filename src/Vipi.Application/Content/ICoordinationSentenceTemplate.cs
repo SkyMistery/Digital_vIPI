@@ -23,15 +23,21 @@ public sealed class CoordinationSentenceTemplate
 
     /// <summary>
     /// Variante della frase per gli accordi in cui l'AUTORIZZAZIONE e il TRASFERIMENTO sono due eventi distinti
-    /// (tipicamente ACC→APP): «autorizza … via {point} {fl} e lo trasferisce a {target} {handoff} {handoffLevel}».
-    /// Scelta al posto di <see cref="Template"/> quando il punto porta una faccetta trasferimento; senza, non si
-    /// usa mai e le righe storiche restano parola per parola quelle di prima.
+    /// (tipicamente ACC→APP). Scelta al posto di <see cref="Template"/> quando il punto porta una faccetta
+    /// trasferimento; senza, non si usa mai.
     /// <para>Placeholder aggiuntivi: <c>{handoff}</c> (dove passa il controllo) e <c>{handoffLevel}</c> (a che
-    /// livello ci si arriva). È un template a sé e non una coda appesa perché cambia il VERBO della principale,
-    /// e il verbo non si può appendere.</para>
+    /// livello ci si arriva).</para>
+    /// <para><b>La testa è quella di <see cref="Template"/></b> — «{owner} trasferisce a {target} il traffico
+    /// {airport} …» — e l'autorizzazione la dice il PARTICIPIO che segue. Fino al 24 agosto 2026 questa frase
+    /// girava il verbo principale («{owner} autorizza … e lo trasferisce a {target} …»), e nella stessa tabella
+    /// due righe che dicono lo stesso accordo si aprivano in due modi diversi a seconda che portassero o no la
+    /// faccetta. Ora le quattro forme (× direzione, × faccetta) hanno tutte la stessa testa e la stessa coda: a
+    /// cambiare è solo il verbo, che è l'unica cosa che deve cambiare.</para>
+    /// <para>Niente parola prima di <c>{handoff}</c>, a differenza di <see cref="TemplateClearedReceive"/>: qui
+    /// il verbo principale è già «trasferisce», e «trasferisce … trasferito» balbetta.</para>
     /// </summary>
     public string TemplateCleared { get; init; } =
-        "{owner} autorizza il traffico {airport} via {point} {fl} e lo trasferisce a {target} {handoff} {handoffLevel} {stato}.";
+        "{owner} trasferisce a {target} il traffico {airport} autorizzato via {point} {fl}, {handoff} {handoffLevel} {stato}.";
 
     // ---- Il verso ENTRANTE (24 agosto 2026) ----
     //
@@ -57,8 +63,9 @@ public sealed class CoordinationSentenceTemplate
 
     /// <summary>
     /// Verso entrante con la faccetta trasferimento (autorizzazione e trasferimento sono due eventi): gemella
-    /// di <see cref="TemplateCleared"/>. Chi riceve non autorizza — subisce l'autorizzazione dell'altro — quindi
-    /// il participio («autorizzato … trasferito …») e non il verbo attivo.
+    /// di <see cref="TemplateCleared"/>, identica salvo il verbo.
+    /// <para>Qui il luogo del trasferimento porta «trasferito» davanti, che nella gemella uscente non c'è: là il
+    /// verbo principale è già «trasferisce», qui è «riceve» e senza quella parola il luogo resterebbe appeso.</para>
     /// </summary>
     public string TemplateClearedReceive { get; init; } =
         "{target} riceve da {owner} il traffico {airport} autorizzato via {point} {fl}, trasferito {handoff} {handoffLevel} {stato}.";
@@ -166,7 +173,7 @@ public sealed class CoordinationSentenceTemplate
         },
         GroupWide = "in any case",
         TemplateCleared =
-            "{owner} clears the traffic {airport} via {point} {fl} and transfers it to {target} {handoff} {handoffLevel} {stato}.",
+            "{owner} transfers to {target} the traffic {airport} cleared via {point} {fl}, {handoff} {handoffLevel} {stato}.",
         FallbackMissingPoint = "—",
         FallbackAllPoints = "all points",
         FallbackAllToward = "all points toward {dest}",

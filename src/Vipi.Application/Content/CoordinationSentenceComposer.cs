@@ -37,9 +37,10 @@ public sealed record CoordinationSentenceData
     /// frase dice l'intera condizione sotto cui l'accordo vale.</summary>
     public IReadOnlyList<ConditionClause> Conditions { get; init; } = Array.Empty<ConditionClause>();
 
-    /// <summary>Faccetta trasferimento: quando c'è, la frase cambia forma («autorizza … e lo trasferisce»)
-    /// invece di limitarsi ad allungarsi. <see cref="TransferHandoffFacet.None"/> ⇒ frase identica a prima,
-    /// parola per parola.</summary>
+    /// <summary>Faccetta trasferimento: quando c'è, la frase dice l'autorizzazione col participio e aggiunge il
+    /// luogo del trasferimento («… il traffico X autorizzato via P a livello N, al confine dell'AoR passando
+    /// FL110»). Cambia template, non testa: vedi <see cref="CoordinationSentenceTemplate.TemplateCleared"/>.
+    /// <see cref="TransferHandoffFacet.None"/> ⇒ la forma breve.</summary>
     public TransferHandoffFacet Facet { get; init; } = TransferHandoffFacet.None;
 
     /// <summary>
@@ -84,10 +85,12 @@ public static class CoordinationSentenceComposer
         var point = ResolvePoint((d.Point ?? "").Trim(), tpl);
 
         // Due dimensioni indipendenti, quindi quattro template e non due `if` annidati:
-        //   FACCETTA  — con un trasferimento distinto la frase cambia VERBO («autorizza … e lo trasferisce»);
-        //   DIREZIONE — dalla parte di chi riceve la testa si rovescia («{target} riceve da {owner} …»).
-        // La riga senza faccetta e uscente resta la forma storica: è ciò che tiene identiche, parola per parola,
-        // le righe ACC↔ACC già scritte.
+        //   DIREZIONE — chi cede dice «trasferisce a», chi riceve «riceve da». Cambia il VERBO;
+        //   FACCETTA  — col trasferimento distinto l'autorizzazione si dice col participio e si aggiunge il
+        //               luogo («… autorizzato via P a livello N, al confine dell'AoR passando FL110»).
+        // ⚠️ Le quattro forme hanno la STESSA TESTA e la STESSA CODA. Fino al 24 agosto 2026 la faccetta girava
+        // anche il verbo principale («{owner} autorizza … e lo trasferisce a {target}»), e nella stessa tabella
+        // due righe dello stesso accordo si aprivano in due modi diversi a seconda che la portassero o no.
         var hasHandoff = d.Facet.Kind != TransferHandoffKind.Unspecified;
         var template = (hasHandoff, d.IsIncoming) switch
         {

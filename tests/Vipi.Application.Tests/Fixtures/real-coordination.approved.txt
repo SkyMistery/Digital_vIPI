@@ -5,10 +5,10 @@
    «Brindisi Radar ES trasferisce a Roma Radar NC il traffico con destinazione Pescara LIBP in discesa a livello 320 o livello inferiore pari su Y01-Y12.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBP
    cop=TOPNO 3A liv=FL160 next=LIBD_CS0_APP trasf=al confine dell'AoR livTrasf=passando FL140 com= vel= cond=04 gruppo=1/0
-   «Brindisi Radar ES autorizza il traffico con destinazione Pescara LIBP via TOPNO 3A a livello 160 e lo trasferisce a Brindisi Radar CS0 al confine dell'AoR passando FL140 con pista 04 in uso.»
+   «Brindisi Radar ES trasferisce a Brindisi Radar CS0 il traffico con destinazione Pescara LIBP autorizzato via TOPNO 3A a livello 160, al confine dell'AoR passando FL140 con pista 04 in uso.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBP
    cop=TOPNO 3A liv=FL180 next=LIBD_CS0_APP trasf=al confine dell'AoR livTrasf=passando FL140 com= vel= cond=04 · area Donald East gruppo=1/0
-   «Brindisi Radar ES autorizza il traffico con destinazione Pescara LIBP via TOPNO 3A a livello 180 e lo trasferisce a Brindisi Radar CS0 al confine dell'AoR passando FL140 con pista 04 in uso e Donald East attiva.»
+   «Brindisi Radar ES trasferisce a Brindisi Radar CS0 il traffico con destinazione Pescara LIBP autorizzato via TOPNO 3A a livello 180, al confine dell'AoR passando FL140 con pista 04 in uso e Donald East attiva.»
 >> LIBB_ES_CTR | LIRR_NC_CTR (Ctr) | Departure | LIBD
    cop=PISIP liv=FL140 next=LIRR_NC_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
    «Brindisi Radar ES trasferisce a Roma Radar NC il traffico in partenza da Bari Palese LIBD stabile a livello 140 su PISIP.»
@@ -140,13 +140,13 @@
    «Brindisi Radar ES trasferisce a Brindisi Radar CS0 il traffico con destinazione Bari Palese LIBD in discesa a livello 130 o livello inferiore su BIRSU con pista 25 in uso e LI R403B attiva.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBD
    cop=TOPNO liv=FL110 next=LIBD_CS0_APP trasf=al confine dell'AoR livTrasf= com= vel= cond=25 · area Donald West gruppo=1/0
-   «Brindisi Radar ES autorizza il traffico con destinazione Bari Palese LIBD via TOPNO a livello 110 e lo trasferisce a Brindisi Radar CS0 al confine dell'AoR stabile con pista 25 in uso e Donald West attiva.»
+   «Brindisi Radar ES trasferisce a Brindisi Radar CS0 il traffico con destinazione Bari Palese LIBD autorizzato via TOPNO a livello 110, al confine dell'AoR stabile con pista 25 in uso e Donald West attiva.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBD
    cop=TOPNO liv=FL110 next=LIBD_CS0_APP trasf=al confine dell'AoR livTrasf= com= vel= cond=07 gruppo=1/0
-   «Brindisi Radar ES autorizza il traffico con destinazione Bari Palese LIBD via TOPNO a livello 110 e lo trasferisce a Brindisi Radar CS0 al confine dell'AoR stabile con pista 07 in uso.»
+   «Brindisi Radar ES trasferisce a Brindisi Radar CS0 il traffico con destinazione Bari Palese LIBD autorizzato via TOPNO a livello 110, al confine dell'AoR stabile con pista 07 in uso.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBD
    cop=TOPNO liv=FL110 next=LIBD_CS0_APP trasf=al confine dell'AoR livTrasf= com= vel= cond= gruppo=1/0
-   «Brindisi Radar ES autorizza il traffico con destinazione Bari Palese LIBD via TOPNO a livello 110 e lo trasferisce a Brindisi Radar CS0 al confine dell'AoR stabile.»
+   «Brindisi Radar ES trasferisce a Brindisi Radar CS0 il traffico con destinazione Bari Palese LIBD autorizzato via TOPNO a livello 110, al confine dell'AoR stabile.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Overflight | —
    cop=TORPO liv=pari next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
    «Brindisi Radar ES riceve da Zagreb Radar il traffico stabile per un livello pari su TORPO.»
@@ -358,10 +358,10 @@
    «Brindisi Radar ES transfers to Roma Radar NC the traffic inbound to Pescara LIBP descending at level 320 or below (even) over Y01-Y12.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBP
    cop=TOPNO 3A liv=FL160 next=LIBD_CS0_APP trasf=at the AoR boundary livTrasf=passing FL140 com= vel= cond=04 gruppo=1/0
-   «Brindisi Radar ES clears the traffic inbound to Pescara LIBP via TOPNO 3A at level 160 and transfers it to Brindisi Radar CS0 at the AoR boundary passing FL140 with runway 04 in use.»
+   «Brindisi Radar ES transfers to Brindisi Radar CS0 the traffic inbound to Pescara LIBP cleared via TOPNO 3A at level 160, at the AoR boundary passing FL140 with runway 04 in use.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBP
    cop=TOPNO 3A liv=FL180 next=LIBD_CS0_APP trasf=at the AoR boundary livTrasf=passing FL140 com= vel= cond=04 · area Donald East gruppo=1/0
-   «Brindisi Radar ES clears the traffic inbound to Pescara LIBP via TOPNO 3A at level 180 and transfers it to Brindisi Radar CS0 at the AoR boundary passing FL140 with runway 04 in use and Donald East active.»
+   «Brindisi Radar ES transfers to Brindisi Radar CS0 the traffic inbound to Pescara LIBP cleared via TOPNO 3A at level 180, at the AoR boundary passing FL140 with runway 04 in use and Donald East active.»
 >> LIBB_ES_CTR | LIRR_NC_CTR (Ctr) | Departure | LIBD
    cop=PISIP liv=FL140 next=LIRR_NC_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
    «Brindisi Radar ES transfers to Roma Radar NC the traffic departing from Bari Palese LIBD level at level 140 over PISIP.»
@@ -493,13 +493,13 @@
    «Brindisi Radar ES transfers to Brindisi Radar CS0 the traffic inbound to Bari Palese LIBD descending at level 130 or below over BIRSU with runway 25 in use and LI R403B active.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBD
    cop=TOPNO liv=FL110 next=LIBD_CS0_APP trasf=at the AoR boundary livTrasf= com= vel= cond=25 · area Donald West gruppo=1/0
-   «Brindisi Radar ES clears the traffic inbound to Bari Palese LIBD via TOPNO at level 110 and transfers it to Brindisi Radar CS0 at the AoR boundary level with runway 25 in use and Donald West active.»
+   «Brindisi Radar ES transfers to Brindisi Radar CS0 the traffic inbound to Bari Palese LIBD cleared via TOPNO at level 110, at the AoR boundary level with runway 25 in use and Donald West active.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBD
    cop=TOPNO liv=FL110 next=LIBD_CS0_APP trasf=at the AoR boundary livTrasf= com= vel= cond=07 gruppo=1/0
-   «Brindisi Radar ES clears the traffic inbound to Bari Palese LIBD via TOPNO at level 110 and transfers it to Brindisi Radar CS0 at the AoR boundary level with runway 07 in use.»
+   «Brindisi Radar ES transfers to Brindisi Radar CS0 the traffic inbound to Bari Palese LIBD cleared via TOPNO at level 110, at the AoR boundary level with runway 07 in use.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBD
    cop=TOPNO liv=FL110 next=LIBD_CS0_APP trasf=at the AoR boundary livTrasf= com= vel= cond= gruppo=1/0
-   «Brindisi Radar ES clears the traffic inbound to Bari Palese LIBD via TOPNO at level 110 and transfers it to Brindisi Radar CS0 at the AoR boundary level.»
+   «Brindisi Radar ES transfers to Brindisi Radar CS0 the traffic inbound to Bari Palese LIBD cleared via TOPNO at level 110, at the AoR boundary level.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Overflight | —
    cop=TORPO liv=even next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
    «Brindisi Radar ES receives from Zagreb Radar the traffic level for an even level over TORPO.»

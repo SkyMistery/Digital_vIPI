@@ -1,12 +1,12 @@
 # Coordinamenti — il lato di CHI RICEVE ✅
 
-> Stato: **FATTO il 24 agosto 2026** — tre commit sul ramo `coordinamenti-lato-ricevente`, verificato live.
+> Stato: **FATTO il 24 agosto 2026** — cinque commit sul ramo `coordinamenti-lato-ricevente`, verificato live.
 > Fratello di [2026-08-23-live-coordinamenti-a-colonne.md](2026-08-23-live-coordinamenti-a-colonne.md) e della
 > memoria `coordinamenti-lettura`.
 >
 > **Esito.** `dotnet build Vipi.slnx -c Release --no-incremental` verde su entrambi i TFM (0 avvisi);
-> 1924 test verdi su net8 (1805 + 119 E2E). Fixture: 72 righe cambiate su 630, **tutte entranti**, zero righe
-> uscenti toccate. Verifica live sul `vipi.db` di sviluppo (copia), vIPI ACC di Brindisi: **39 tabelle**,
+> 1925 test verdi su net8. Fixture: 72 righe entranti (primo giro) + 10 righe con faccetta trasferimento
+> (secondo giro, §4.3-bis). Verifica live sul `vipi.db` di sviluppo (copia), vIPI ACC di Brindisi: **39 tabelle**,
 > 23 con colonna «PROSSIMO» e 13 con «DA», **zero incoerenze** fra l'intestazione e il verbo della frase;
 > **4 nodi misti** tagliati in due (Zagabria, Grecia, Tirana, Beograd — tutti sotto «Sorvoli»).
 > Il viewer pubblico è rimasto **identico** (33 tabelle, tutte «PROSSIMO», zero «riceve da»): legge lo
@@ -115,6 +115,43 @@ velocità · comunicazioni) resta **parola per parola** quella dei trasferimenti
 | `TemplateReceive` | `{target} riceve da {owner} il traffico {airport} {stato} {fl} su {point}.` |
 | `TemplateLeadReceive` | `{target} riceve da {owner} il traffico {airport} secondo la tabella seguente:` |
 | `TemplateClearedReceive` | `{target} riceve da {owner} il traffico {airport} autorizzato via {point} {fl}, trasferito {handoff} {handoffLevel} {stato}.` |
+
+### 4.3-bis Anche la frase USCENTE con faccetta cambia forma (secondo giro, stesso giorno)
+
+Chiesto dal committente dopo aver letto il primo giro: «*come quella di chi riceve ma con «trasferisce a», così
+hanno lo stesso formato*». Aveva ragione, e il difetto era più vecchio di questo lavoro.
+
+`TemplateCleared` girava il **verbo principale** — «{owner} **autorizza** il traffico {airport} via {point}
+{fl} **e lo trasferisce a** {target} …» — mentre la forma breve dice «{owner} **trasferisce a** {target} il
+traffico {airport} …». Dentro la **stessa tabella**, due righe che dicono lo stesso accordo si aprivano quindi
+in due modi diversi, a seconda che portassero o no la faccetta: il lettore doveva ricostruire da capo chi fosse
+il soggetto.
+
+| campo | prima | ora |
+|---|---|---|
+| `TemplateCleared` | `{owner} autorizza il traffico {airport} via {point} {fl} e lo trasferisce a {target} {handoff} {handoffLevel} {stato}.` | `{owner} trasferisce a {target} il traffico {airport} autorizzato via {point} {fl}, {handoff} {handoffLevel} {stato}.` |
+
+Le **quattro** forme (× direzione, × faccetta) hanno ora la **stessa testa e la stessa coda**: a cambiare è solo
+il verbo, che è l'unica cosa che deve cambiare.
+
+```
+X trasferisce a Y  il traffico …                                     su PUNTO.
+X trasferisce a Y  il traffico … autorizzato via P a livello N,             al confine dell'AoR passando FL50.
+Y riceve da X      il traffico …                                     su PUNTO.
+Y riceve da X      il traffico … autorizzato via P a livello N, trasferito  al confine dell'AoR passando FL50.
+```
+
+⚠️ **«trasferito» c'è solo nel verso entrante.** Là il verbo principale è «riceve» e senza quella parola il
+luogo resterebbe appeso; nel verso uscente il verbo è già «trasferisce», e «trasferisce … trasferito»
+balbetta. È l'unica asimmetria fra le quattro forme, ed è voluta.
+
+⚠️ **Questo giro TOCCA le righe uscenti**, al contrario del primo: 10 frasi nella fixture (5 IT + 5 EN della
+vLOA), tutte e sole quelle con la faccetta. Anche queste si vedono solo **dopo la ripubblicazione** (§6.1).
+
+Reso vero, misurato a schermo sul nodo `ES › Brindisi-LIBB › Bari Palese LIBD`:
+
+> «Brindisi Radar ES trasferisce a Brindisi Radar CS0 il traffico con destinazione Bari Palese LIBD
+> autorizzato via TESTO a livello 120 o livello inferiore, al confine dell'AoR passando FL50.»
 
 Reso atteso sulla riga della fixture:
 
@@ -228,8 +265,9 @@ componente.
 
 Passi 5 e 6 separati apposta: meccanico e comportamento in commit distinti (FEATURE-PROCESS, post-flight).
 
-**Come è andata.** Tre commit: `2ed4a52` (passi 1–4 + fixture), `54b4cc9` (passo 5, meccanico),
-`8c7b49b` (passo 6). Il passo 7 non ha richiesto correzioni.
+**Come è andata.** `2ed4a52` (passi 1–4 + fixture), `54b4cc9` (passo 5, meccanico), `8c7b49b` (passo 6),
+`6ad66df` (carta). Il passo 7 non ha richiesto correzioni. Un quinto commit ha poi riscritto anche la frase
+USCENTE con faccetta, su richiesta del committente: §4.3-bis.
 
 Quello che la verifica live ha reso, sul nodo misto `ES › Zagreb-LDZO › Sorvoli`:
 
