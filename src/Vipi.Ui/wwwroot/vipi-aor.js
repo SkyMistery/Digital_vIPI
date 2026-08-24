@@ -67,11 +67,53 @@
         el.setAttribute('aria-pressed', on ? 'true' : 'false');
     }
 
+    /// Ritenta le tessere che non sono arrivate. **Leaflet non lo fa**: una tessera fallita resta grigia
+    /// per sempre, e l'unico rimedio è ricaricare la pagina — che è esattamente il sintomo riferito dalla
+    /// produzione («apro una vIPI, la mappa è a scacchi; refresho ed è a posto»: al secondo giro le
+    /// tessere arrivano dalla cache del browser).
+    ///
+    /// Perché succede: una vIPI ACC porta **decine di mappe** (misurato su LIBB: 77, quasi tutte le mappine
+    /// delle aree regolamentate) e all'apertura chiedono le tessere tutte insieme — 115 richieste in 19 ms a
+    /// due host. Il browser ne tiene 6 per host, il fornitore di tessere limita la frequenza, e quel che
+    /// cade non lo ripesca nessuno. Qui si ripesca: tre tentativi con attesa crescente e un po' di
+    /// dispersione, così i ritenti non ripartono tutti nello stesso istante.
+    ///
+    /// ⚠️ La classe `leaflet-tile-loaded` la mette Leaflet **solo** quando il caricamento gli riesce: dopo
+    /// un ritento andato bene va aggiunta a mano, o la tessera resta trasparente (la regola di dissolvenza
+    /// del suo foglio parte da `opacity:0`).
+    /// ⚠️ Cinque tentativi, non tre, e l'attesa raddoppia: 0,6s → 1,2 → 2,4 → 4,8 → 9,6, cioè quasi
+    /// **venti secondi** coperti. Misurato: con tre tentativi ravvicinati, un'interruzione di dodici secondi
+    /// se li mangiava tutti e restavano 31 mappe bucate su 77 — i ritenti finivano prima del guasto.
+    var RITENTI_MAX = 5;
+    function ritentaTessere(layer) {
+        layer.on('tileerror', function (e) {
+            var img = e.tile;
+            if (!img || !img.parentNode) return;
+            var fatti = Number(img.getAttribute('data-vipi-ritento') || 0);
+            if (fatti >= RITENTI_MAX) return;
+            img.setAttribute('data-vipi-ritento', fatti + 1);
+            var url;
+            try { url = e.coords ? layer.getTileUrl(e.coords) : img.src; } catch (err) { url = img.src; }
+            if (!url) return;
+            setTimeout(function () {
+                if (!img.parentNode) return;        // tessera già potata da Leaflet: non la si resuscita
+                img.addEventListener('load', function () {
+                    img.classList.add('leaflet-tile-loaded');
+                    img.style.opacity = 1;
+                }, { once: true });
+                img.src = url;
+            }, 600 * Math.pow(2, fatti) + Math.round(Math.random() * 400));
+        });
+        return layer;
+    }
+    // Serve anche a vipi-mva.js, che ha i suoi fondi (Esri, OpenTopoMap) e lo stesso problema.
+    window.vipiRitentaTessere = ritentaTessere;
+
     // Basemap CartoDB Positron condivisa.
     function addBasemap(map) {
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        ritentaTessere(L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             maxZoom: 19, subdomains: 'abcd', attribution: '© OpenStreetMap, © CARTO'
-        }).addTo(map);
+        })).addTo(map);
     }
 
     // ACC: una mappa, anelli per settore toggleabili. data-sectors = [{sec,name,color,rings:[[[lat,lng],…]]}].
@@ -233,10 +275,10 @@
 
         var map = L.map(el, { scrollWheelZoom: false, zoomControl: true, attributionControl: true });
         el._leafletMap = map;
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            maxZoom: 19, subdomains: 'abcd',
-            attribution: '© OpenStreetMap, © CARTO'
-        }).addTo(map);
+        // ⚠️ Passa da addBasemap, che è la funzione con quel nome due schermate più su: qui c'era una
+        // COPIA della stessa tileLayer scritta a mano, e per questo le mappine restavano fuori dal
+        // ritentatore delle tessere — cioè proprio le decine di mappe che fanno la raffica.
+        addBasemap(map);
 
         var color = aorColor(el.dataset.color, '--ivao-lightblue');
         var mainPolys = rings.map(function (r) {
@@ -274,14 +316,50 @@
         setTimeout(function () { map.invalidateSize(); }, 60);
     }
 
+    /// Accende le mappe **a scaglioni**, non tutte insieme.
+    ///
+    /// Una vIPI ACC ne porta decine (misurate su LIBB: 77, quasi tutte mappine di aree regolamentate) e
+    /// accendendole in fila chiedeva 115 tessere in 19 ms a due host: il browser ne serve 6 per host, il
+    /// fornitore limita la frequenza, e quel che cade resta grigio. Prima quelle vicine allo schermo — sono
+    /// le uniche che qualcuno stia guardando — poi le altre a piccoli gruppi.
+    ///
+    /// ⚠️ Le altre si accendono comunque, non «quando si scorre»: la **stampa** prende tutta la pagina, e
+    /// una mappa mai inizializzata stamperebbe il ripiego SVG. Qui cambia il ritmo, non l'esito.
+    var LOTTO = 4, PAUSA = 300, scaglioniInCorso = false;
+
+    function accendiMappe() {
+        var da = [].slice.call(document.querySelectorAll('.aor-leaflet'))
+            .filter(function (el) { return el.dataset.init !== '1'; });
+        if (!da.length) return;
+        var h = window.innerHeight || 900;
+        function vicina(el) {
+            var r = el.getBoundingClientRect();
+            return r.top < h * 2 && r.bottom > -h;        // in vista, o a meno di una schermata da essa
+        }
+        da.filter(vicina).forEach(initOne);
+        var dopo = da.filter(function (el) { return !vicina(el) && el.dataset.init !== '1'; });
+        if (!dopo.length || scaglioniInCorso) return;
+        scaglioniInCorso = true;
+        (function scaglione() {
+            dopo.splice(0, LOTTO).forEach(initOne);
+            if (dopo.length) setTimeout(scaglione, PAUSA);
+            else scaglioniInCorso = false;
+        })();
+    }
+
     function initAll() {
         // Le chip AoR usano event delegation (onAorClick), nessun wiring per-elemento.
-        if (window.L) { document.querySelectorAll('.aor-leaflet').forEach(initOne); return; }
+        if (window.L) { accendiMappe(); if (window.vipiInitMva) window.vipiInitMva(); return; }
         // ⚠️ Si chiede Leaflet solo se in pagina c'è davvero una mappa: questa funzione gira a ogni render
         // di Blazor e a ogni navigazione, cioè anche sulle pagine che una mappa non ce l'hanno.
-        if (!document.querySelector('.aor-leaflet')) return;
+        //
+        // ⚠️ Si guarda **anche** `.mva-leaflet`: le minime di vettoramento non hanno un caricatore proprio,
+        // aspettano `window.L`. Una pagina la cui unica mappa è la carta delle minime (un APP senza shape
+        // AoR) restava per sempre col ripiego SVG, e nessun refresh la salvava.
+        if (!document.querySelector('.aor-leaflet, .mva-leaflet')) return;
         caricaLeaflet().then(function () {
-            document.querySelectorAll('.aor-leaflet').forEach(initOne);
+            accendiMappe();
+            if (window.vipiInitMva) window.vipiInitMva();
         }).catch(function (e) {
             // Resta il ripiego SVG: il dato nostro si disegna lo stesso, senza la basemap.
             console.warn('[vipi] mappa AoR senza Leaflet, resta il ripiego SVG', e);

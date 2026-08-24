@@ -9,6 +9,13 @@
     // scrive MinimaSection.razor sulle chip, localizzato. Il primo è quello che si vede all'apertura ed è SENZA STRADE: qui la rete stradale non aggiunge
     // niente e ruba leggibilità ai tracciati, mentre il rilievo è il motivo per cui la carta sta su una mappa.
     // Positron è sparito per la stessa ragione: neutro sì, ma è una mappa di strade senza rilievo.
+    // Le tessere che non arrivano vanno ripescate: il ritentatore sta in vipi-aor.js (è sempre in pagina) e
+    // qui si usa lo stesso, perché il guasto è lo stesso. Se per qualunque motivo non ci fosse, si prosegue
+    // com'era prima: una mappa senza ritenti, non una pagina rotta.
+    function conRitenti(layer) {
+        return window.vipiRitentaTessere ? window.vipiRitentaTessere(layer) : layer;
+    }
+
     function basemaps() {
         return {
             // Partenza: DUE tile impilate, non una. Provate separatamente non bastavano — «World Terrain Base»
@@ -16,19 +23,19 @@
             // dà il rilievo ma su fondo grigio uniforme, dove costa e mare spariscono. Insieme si leggono
             // entrambi, e nessuna delle due porta strade.
             relief: L.layerGroup([
-                L.tileLayer('https://server.arcgisonline.com/arcgis/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}', {
+                conRitenti(L.tileLayer('https://server.arcgisonline.com/arcgis/rest/services/World_Terrain_Base/MapServer/tile/{z}/{y}/{x}', {
                     maxZoom: 13, attribution: '© Esri — World Terrain Base'
-                }),
-                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}', {
+                })),
+                conRitenti(L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}', {
                     maxZoom: 16, opacity: 0.55, attribution: '© Esri — Elevation/World Hillshade'
-                })
+                }))
             ]),
             // Unico fondo con le strade, e l'unico con le QUOTE scritte sulle curve di livello: resta come scelta
             // esplicita per chi vuole leggere l'altitudine del suolo, non come partenza.
-            contour: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            contour: conRitenti(L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
                 maxZoom: 17, subdomains: 'abc',
                 attribution: '© OpenStreetMap, SRTM | © OpenTopoMap (CC-BY-SA)'
-            })
+            }))
         };
     }
 

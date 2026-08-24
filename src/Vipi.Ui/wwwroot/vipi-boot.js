@@ -1,4 +1,4 @@
-// Ricollega zoom e interattività dopo ogni navigazione «enhanced» di Blazor, che rimpiazza il DOM e
+﻿// Ricollega zoom e interattività dopo ogni navigazione «enhanced» di Blazor, che rimpiazza il DOM e
 // perderebbe lo stile zoom inline e gli handler agganciati a mano.
 //
 // Era uno <script> inline in fondo a App.razor. Sta in un file per la stessa ragione di vipi-zoom.js:
@@ -19,6 +19,9 @@
         ['vipiWireUi', 'interattività'],
         ['vipiInitScreens', 'schermate'],
         ['vipiInitAor', 'mappe AoR'],
+        // Le minime hanno un osservatore di mutazioni che le riprende comunque, ma dipendere da quello
+        // significa dipendere da un ritardo: dopo una navigazione si riagganciano qui, come le altre.
+        ['vipiInitMva', 'carte delle minime'],
         ['vipiInitAor3d', 'AoR 3D'],
         ['vipiMaybeTour', 'tour']
     ];
