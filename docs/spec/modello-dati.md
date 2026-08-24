@@ -682,8 +682,11 @@ averlo.
 
 Migrazione unica **`AddTransferHandoffSpeedAndVariants`** (SQLite e MySQL), additiva, senza backfill.
 
-Frase (`CoordinationSentenceComposer`): con la faccetta cambia il **verbo** della principale, quindi cambia
-template — `TemplateCleared` accanto a `Template`, con i placeholder `{handoff}` e `{handoffLevel}`. Velocità e
+Frase (`CoordinationSentenceComposer`): con la faccetta la frase cambia struttura, quindi cambia template —
+`TemplateCleared` accanto a `Template`, con i placeholder `{handoff}` e `{handoffLevel}`. ⚠️ **Dal 24 agosto
+2026 non cambia più il VERBO** della principale: la testa è quella della forma breve («{owner} trasferisce a
+{target} …») e l'autorizzazione la dice il participio («… autorizzato via {point} {fl}, {handoff} …»). Vedi
+**§9.27**. Velocità e
 comunicazioni sono code separate da virgola. Chiavi IT **e** EN (vLOA). Le parole del trasferimento stanno in
 `TransferHandoffText`, condiviso con la derivazione — le colonne della tabella arrivano alla vista **già a
 parole**, perché la lingua vive nel template.
@@ -901,3 +904,49 @@ stessa ragione: è una scelta editoriale, quindi **versionata** e catturata nell
 
 ⚠️ `defaultValue: false` è corretto qui perché il flag è **opt-in**; su un flag *opt-out* la stessa riga è già
 stata una trappola su questo progetto (vedi `ImportPolicy.ImportSids`).
+
+### 9.27 `AppCoordRow.IsIncoming` — il VERSO della riga (sessione 24 ago 2026) 🟢
+
+**Nessuna colonna e nessuna migrazione**: è un campo del DTO derivato, quindi vive solo dentro lo **snapshot di
+release** serializzato. **Additivo**: una release congelata prima del 24 agosto 2026 lo deserializza `false` e
+resta identica a com'era stata pubblicata.
+
+`false` = la riga **esce** dall'ente del documento (`Next` è chi prende il traffico). `true` = la riga **entra**
+(`Next` è chi **consegna**), e la frase si dice dalla parte di chi riceve.
+
+⚠️ **Perché sta sulla RIGA e non sulla tabella.** `CoordinationDerivation.BuildAccTree` raggruppa per
+`settore → ACC della controparte → aeroporto/tipo`: **la direzione non è una chiave di raggruppamento**, quindi
+un nodo può contenere i due versi insieme — misurato sui flussi veri, `ES › Zagreb-LDZO › Sorvoli` porta 8 righe
+entranti e 6 uscenti. Il verso esisteva già su `CoordinationEntry.IsIncoming` e si perdeva prima di arrivare
+alla riga.
+
+**Quattro forme di frase**, dalle due dimensioni indipendenti (direzione × faccetta), con la **stessa testa e la
+stessa coda** — cambia solo il verbo:
+
+| | senza faccetta | con faccetta |
+|---|---|---|
+| esce | `Template` | `TemplateCleared` |
+| entra | `TemplateReceive` | `TemplateClearedReceive` |
+
+Più `TemplateLead` / `TemplateLeadReceive` per la capofila (§9.26). Tutte in IT **e** EN (vLOA).
+
+⚠️ **Gli slot non si ribaltano**: `{owner}` resta *chi cede* e `{target}` *chi riceve* anche nel verso entrante,
+dove si scrive `{target} riceve da {owner} …`. Scambiare gli argomenti al chiamante cambierebbe **in silenzio**
+la regola dei codici di posizione, che fra i due slot è asimmetrica (`OmitTargetCode` in
+`CoordinationSentences.BuildData`).
+
+⚠️ **«trasferito» compare solo nel verso entrante** (`TemplateClearedReceive`): là il verbo principale è
+«riceve» e senza quella parola il luogo del trasferimento resterebbe appeso; nell'uscente il verbo è già
+«trasferisce». È l'unica asimmetria fra le quattro forme, ed è voluta.
+
+Propagazione: `CoordinationDerivation.ToRow`/`Build`, `CoordinationSentences.Compose`/`ComposeLead`,
+`CoordinationSentenceData`, `CoordinationSentenceOptions` (binding di `TemplateReceive` e
+`TemplateClearedReceive`; **non** di `TemplateLeadReceive`, perché `TemplateLead` non è sovrascrivibile da file
+nemmeno nel verso uscente), `CoordTable.razor` (taglio in due sezioni sui nodi misti, intestazione dell'ultima
+colonna letta dalle righe, via il parametro `LastColHeader`). La vLOA resta **tutta uscente**: costruisce due
+alberi separati H2F/F2H, ognuno reso dalla parte di chi cede.
+
+⚠️ **Le release già pubblicate non cambiano da sole**: `Sentence` e `LeadSentence` sono stringhe già scritte
+dentro lo snapshot. Il testo nuovo si vede alla **prossima ripubblicazione**.
+
+Carta: [`../feature/2026-08-24-coordinamenti-lato-ricevente.md`](../feature/2026-08-24-coordinamenti-lato-ricevente.md).

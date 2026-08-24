@@ -6,6 +6,23 @@ Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md) ·
 Contesto: [refactor 07 — trasferimenti](../refactor/07-trasferimenti.md) (l'area), `docs/spec/modello-dati.md`
 §9.20 e **§9.20-bis** (schema autorevole).
 
+> ⚠️ **LA FRASE QUI DENTRO NON È PIÙ QUELLA DI OGGI (24 agosto 2026).** Il *modello* descritto da questa carta
+> — autorizzazione e trasferimento come due eventi, `templateCleared`, le code — è **intatto e in `main`**. A
+> cambiare sono state le **parole**: `TemplateCleared` non gira più il verbo principale.
+>
+> | | |
+> |---|---|
+> | allora | «{owner} **autorizza** il traffico {airport} via {point} {fl} **e lo trasferisce a** {target} …» |
+> | oggi | «{owner} **trasferisce a** {target} il traffico {airport} **autorizzato via** {point} {fl}, …» |
+>
+> Il motivo: dentro la stessa tabella due righe dello stesso accordo si aprivano in due modi diversi a seconda
+> che portassero o no la faccetta. Ora le quattro forme (× direzione, × faccetta) hanno la stessa testa e la
+> stessa coda, e cambia solo il verbo. Vedi
+> [`2026-08-24-coordinamenti-lato-ricevente.md`](2026-08-24-coordinamenti-lato-ricevente.md) §4.3-bis.
+>
+> **Ogni frase citata qui sotto va letta con quella sostituzione.** Le citazioni restano come sono: dicevano il
+> vero il giorno in cui sono state misurate, ed è quello che una carta con esito deve conservare.
+
 > **Scostamenti dalla carta, decisi in esecuzione.** Sono quattro, tutti annotati anche nel punto in cui
 > capitano:
 > 1. **Una migrazione, non tre.** Le tre migrazioni previste (handoff · velocità · varianti) toccano la stessa
@@ -40,6 +57,10 @@ Frase bersaglio, portata dal committente:
 > trasferisce ad Aviano Approach al confine dell'AoR passando FL110 in discesa, a 250 kt o inferiore.
 
 Oggi **non è esprimibile**. Non è un problema di resa: è il modello.
+
+⚠️ *Dal 24 agosto 2026 la stessa cosa si dice così:* «Padova Military **trasferisce ad** Aviano Approach il
+traffico con destinazione Aviano LIPA **autorizzato via** CHI a FL160 o superiore, al confine dell'AoR passando
+FL110 in discesa, a 250 kt o inferiore.» Il modello è quello di questa carta; cambia la forma delle parole.
 
 Insieme si chiudono altre tre cose emerse discutendo, che vivono sulla stessa riga e non conviene aprire due volte:
 
@@ -238,7 +259,9 @@ Bersaglio, dai pezzi:
 Meccanica: le clausole nuove si **appendono** come già fa `AppendCondition`, non via placeholder, così i
 template personalizzati caricati da `content/coordination-sentence.json` — che quei placeholder non hanno —
 continuano a funzionare. L'unica eccezione è il **verbo iniziale**: «autorizza … e lo trasferisce» non è una
-coda, è una forma diversa del template. Serve una chiave `templateCleared` accanto a `template`, scelta quando
+coda, è una forma diversa del template. (⚠️ Dal 24 agosto 2026 `templateCleared` **non gira più il verbo**: la
+testa è quella della forma breve e l'autorizzazione la dice il participio. La chiave separata resta necessaria
+lo stesso, perché la frase cambia comunque struttura.) Serve una chiave `templateCleared` accanto a `template`, scelta quando
 `HandoffKind != Unspecified`; se un file personalizzato non la porta, si ricade sul `template` classico più la
 coda. Nessun file esistente si rompe.
 
