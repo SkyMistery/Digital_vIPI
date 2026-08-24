@@ -26,6 +26,18 @@ public interface IEditAuthorizationService
     /// <summary>Check non-throwing per la UI: true se l'utente può editare il documento (admin o grant sulla sua ACC).</summary>
     Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Vero se l'utente ha qualcosa da editare: admin, oppure almeno una concessione. È la domanda della
+    /// BARRA, che deve solo decidere se accendere il tasto «Modifica».
+    ///
+    /// <para>⚠️ Non è «può editare almeno un documento», ed è voluto: chi ha una concessione su una ACC
+    /// che non ha ancora documenti vede il tasto e trova un elenco vuoto — che è il posto giusto dove
+    /// scoprirlo. La domanda vecchia (<c>ListEditableDocumentsAsync().Count &gt; 0</c>) costava una query
+    /// per documento <b>a ogni pagina</b>, e la pagava solo l'utente loggato non-admin: cioè il socio
+    /// qualunque, che di quel tasto non se ne fa niente.</para>
+    /// </summary>
+    Task<bool> CanEditAnythingAsync(CancellationToken ct = default);
+
     // Gestione grant (solo admin)
     Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default);
     Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default);
@@ -121,6 +133,12 @@ public sealed class EditAuthorizationService : IEditAuthorizationService
         if (IsAdmin) return true;
         var acc = await _grants.GetDocumentAccCodeAsync(documentId, ct);
         return acc is not null && await CanEditAccAsync(acc, ct);
+    }
+
+    public async Task<bool> CanEditAnythingAsync(CancellationToken ct = default)
+    {
+        if (IsAdmin) return true;
+        return Corrente is { } u && await _grants.HasAnyGrantAsync(u.UserId, ct);
     }
 
     public Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default)

@@ -27,18 +27,6 @@ public sealed class EditingService : IEditingService
         _repo.ListDocumentsAsync(ct);
 
     // Picker editor: filtra i documenti per i permessi del UserId corrente (admin = tutti; altri = grant sulla ACC).
-    public async Task<IReadOnlyList<DocumentSummary>> ListEditableDocumentsAsync(CancellationToken ct = default)
-    {
-        var all = await _repo.ListDocumentsAsync(ct);
-        if (_authz.IsAdmin) return all;
-
-        var editable = new List<DocumentSummary>();
-        foreach (var d in all)
-            if (await _authz.CanEditDocumentAsync(d.Id, ct))
-                editable.Add(d);
-        return editable;
-    }
-
     public Task<IReadOnlyList<VersionInfo>> ListVersionsAsync(int documentId, CancellationToken ct = default) =>
         _repo.ListVersionsAsync(documentId, ct);
 

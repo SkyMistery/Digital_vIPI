@@ -44,9 +44,19 @@ internal static class VipiStartup
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        // I segreti da FUORI del file che si scarica. Prima di tutto il resto, perché AddVipiStandaloneAuth
+        // legge la sezione VipiAuth alla registrazione e deve vedere già i valori buoni.
+        var segreti = SegretiFuoriDalWeb.Carica(builder.Configuration);
+
         // Riepilogo della configurazione vista, riscritto a ogni avvio — anche riuscito. Sta qui, subito dopo il
         // builder, perché serva anche quando l'avvio muore più avanti: dice con QUALE configurazione ci ha provato.
-        StartupDiagnostics.WriteConfigurationSummary(builder);
+        StartupDiagnostics.WriteConfigurationSummary(builder, segreti);
+
+        // La password c'è davvero? Se manca, l'applicazione ripiegherebbe su un file SQLite vuoto e il sito
+        // ripartirebbe con l'aria di aver perso i dati: il modo peggiore di sbagliare. Meglio non partire.
+        SegretiFuoriDalWeb.EnsureConnessioneUsabile(
+            builder.Configuration["Persistence:Provider"],
+            builder.Configuration.GetConnectionString("Vipi"));
 
         // File (default globale) della frase di coordinamento. reloadOnChange:false — il FileSystemWatcher esaurirebbe
         // le istanze inotify su host con limite basso (es. Render); in container il file è comunque immutabile (baked nell'immagine).
@@ -78,6 +88,11 @@ internal static class VipiStartup
             o.MimeTypes = new[] { "text/css", "text/javascript", "application/javascript", "application/json", "image/svg+xml", "text/html" };
         });
 
+        // Ogni richiesta finita in eccezione lascia una riga in diagnostica/errori-richieste.txt, con lo
+        // stesso codice che la pagina d'errore mostra all'utente. Su questo host i log del processo non li
+        // legge nessuno: vedi DiagnosticaErrori.
+        builder.Services.AddExceptionHandler<DiagnosticaErrori.Gancio>();
+
         // Modulo login IVAO standalone (scenario C). STACCABILE: attivo solo se VipiAuth:Enabled=true.
         // Se attivo, il ClaimsPrincipal lo produce questo modulo e HostIdentityCurrentUserProvider lo legge.
         var authEnabled = builder.AddVipiStandaloneAuth();
@@ -86,6 +101,15 @@ internal static class VipiStartup
         // auth e state OIDC sopravvivono a un riavvio su disco effimero. No-op in dev (SQLite → file-store di
         // default). Vedi VipiDataProtection.cs.
         builder.AddVipiDataProtection();
+
+        // La versione in barra, per i soli admin: la passa l'HOST al modulo, che non ha modo di sapere da
+        // quale pacchetto è stato costruito. Vedi VersioneBuild.
+        var versione = VersioneBuild.Leggi();
+        builder.Services.PostConfigure<Vipi.Application.VipiChromeOptions>(o =>
+        {
+            o.Versione = versione.Etichetta;
+            o.VersioneDettaglio = versione.Dettaglio;
+        });
 
         // Modulo vIPI: un'unica chiamata registra Application, Infrastructure/EF, polling IVAO, opzioni e identità.
         // In sviluppo usa l'utente CH fittizio; in produzione l'identità è letta dal login del sito ospitante.
@@ -261,6 +285,14 @@ internal static class VipiStartup
 
         // (I file statici li serve UseStaticFiles, più in alto: su net8 non esistono né MapStaticAssets né
         //  WithStaticAssets, che sono .NET 9+.)
+
+        // La pagina d'errore. E' un endpoint e non un componente perche' deve reggere anche quando a lanciare
+        // e' stato il layout condiviso — successo il 24 agosto 2026: una pagina d'errore che passasse di li'
+        // lancerebbe una seconda volta. Il codice che mostra e' quello scritto in diagnostica/errori-richieste.txt.
+        app.MapGet("/Error", (HttpContext ctx) =>
+            Results.Content(
+                PaginaErrore.Build(System.Diagnostics.Activity.Current?.Id ?? ctx.TraceIdentifier),
+                "text/html; charset=utf-8"));
 
         app.MapRazorComponents<App>()
             .AddInteractiveServerRenderMode()

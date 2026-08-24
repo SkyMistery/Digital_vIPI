@@ -140,6 +140,7 @@ public class AdminCodeTests
         public Task<int> AddAsync(int UserId, string? displayName, string accCode, int GrantedByUserId, CancellationToken ct = default) => throw new NotImplementedException();
         public Task RevokeAsync(int grantId, int actorUserId, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<bool> HasGrantAsync(int UserId, string accCode, CancellationToken ct = default) => Task.FromResult(false);
+        public Task<bool> HasAnyGrantAsync(int UserId, CancellationToken ct = default) => Task.FromResult(false);
         public Task<string?> GetDocumentAccCodeAsync(int documentId, CancellationToken ct = default) => throw new NotImplementedException();
     }
 }

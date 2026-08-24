@@ -352,6 +352,7 @@ public class AccProfileTests : IAsyncLifetime
         public Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.CompletedTask;
         public Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default) => Task.FromResult(true);
         public Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.FromResult(true);
+        public Task<bool> CanEditAnythingAsync(CancellationToken ct = default) => Task.FromResult(true);
         public Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<GrantRow>>(Array.Empty<GrantRow>());
         public Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default) => Task.FromResult(0);

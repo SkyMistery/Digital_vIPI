@@ -3,9 +3,9 @@
 @inject IStationResolver Stations
 @inject ICurrentUserProvider Users
 @inject IEditAuthorizationService Authz
-@inject IEditingService Editing
 @inject IOptions<VipiChromeOptions> Chrome
 @inject IStringLocalizer<SharedResource> L
+@inject ILogger<SopLayout> Log
 
 <div class="vipi-root">
 <a class="skip-link" href="#vipi-main">@L["Chrome_SkipToContent"]</a>
@@ -106,6 +106,16 @@
                 <Icon Name="moon" Class="ti ti-dark" />
             </button>
             @* Toggle Estesa/Ridotta rimosso: la vista Ridotta è disabilitata (rebuild /services/vsop, Round 12). *@
+            @* La versione, ai SOLI admin. Risponde a una domanda che si è posta di continuo — «che versione
+               è online?» — e che finora si rispondeva scaricando un file via FTP.
+               ⚠️ Non è per tutti: a un socio non dice niente, e a chi passa di qui direbbe con quale build
+               precisa sta parlando, che è informazione da regalare solo se serve a qualcuno.
+               ⚠️ È la PRIMA cosa che esce dalla barra quando lo spazio manca (CSS, scaglione tb-2): è una
+               spia, non un comando, e la stessa riga sta in diagnostica/avvio-diagnostica.txt. *@
+            @if (_isAdmin && Chrome.Value.Versione is { Length: > 0 } ver)
+            {
+                <span class="ver-chip" title="@Chrome.Value.VersioneDettaglio" aria-label="@(L["Chrome_Version"].Value + ": " + ver)">@ver</span>
+            }
             @* Isola interattiva: il layout è SSR statico e il badge dev'essere l'unica cosa che si aggiorna
                da sola quando ti colleghi in frequenza. Il VID glielo passa il layout, che l'HttpContext ce l'ha. *@
             <LiveBadge UserId="_user?.UserId" />
@@ -159,9 +169,38 @@
         // è più stato evidenziato. Ora il prefisso sta in un posto solo (VsopRoutes).
         _acc = VsopRoutes.AccFrom(Nav.ToAbsoluteUri(Nav.Uri).AbsolutePath);
 
-        // Tasto Editor: visibile solo a chi può editare almeno un documento (admin o grant).
+        // Tasto Editor: visibile solo a chi ha qualcosa da editare (admin o concessione).
         _isAdmin = Authz.IsAdmin;
-        _canEdit = _user is not null && (_isAdmin || (await Editing.ListEditableDocumentsAsync()).Count > 0);
+        _canEdit = _user is not null && await PuoModificareAsync();
+    }
+
+    /// <summary>
+    /// La sola domanda che la barra fa al database, e l'<b>unica cosa</b> che un utente loggato fa in più
+    /// di un anonimo su qualunque pagina. Per questo qui si degrada invece di lanciare.
+    ///
+    /// <para><b>Perché.</b> Il 24 agosto 2026 un socio senza incarichi ha visto la pagina «Error.» su
+    /// <c>/services</c> — una pagina che non legge niente dal database — mentre per chi non era entrato lo
+    /// stesso indirizzo rispondeva 200. L'asimmetria è tutta qui: l'anonimo esce dalla condizione prima di
+    /// arrivare al database, l'admin esce sul controllo dei codici staff, e resta a pagare il giro proprio
+    /// il socio qualunque. Qualunque intoppo — connessione caduta, pool esaurito, comando scaduto — non
+    /// spegneva un tasto: buttava giù <b>tutta</b> la pagina, per i soli utenti loggati.</para>
+    ///
+    /// <para>⚠️ Ingoiare un errore è di norma proibito in questo progetto, e questa è l'eccezione motivata:
+    /// il tasto è una decorazione del contorno, e il contorno non può decidere se la pagina esiste. Non è
+    /// però un guasto muto — finisce nel log con la sua categoria, e da lì nel file di diagnostica.</para>
+    /// </summary>
+    private async Task<bool> PuoModificareAsync()
+    {
+        try
+        {
+            return await Authz.CanEditAnythingAsync();
+        }
+        catch (Exception ex)
+        {
+            Log.LogWarning(ex, "Barra: non si è potuto stabilire se l'utente può modificare. "
+                             + "Il tasto resta spento e la pagina si serve lo stesso.");
+            return false;
+        }
     }
 
     private bool IsActiveAcc(string code) =>
