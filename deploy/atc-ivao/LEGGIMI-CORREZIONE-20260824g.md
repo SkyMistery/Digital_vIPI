@@ -1,13 +1,9 @@
-# vIPI — aggiornamento del 24 agosto 2026 (pacchetto «f»)
+# vIPI — aggiornamento del 24 agosto 2026 (pacchetto «g»)
 
-> ## ⛔ SUPERATO — non caricate questo
->
-> Il pacchetto «f» non è mai stato caricato: al suo posto c'è
-> [`LEGGIMI-CORREZIONE-20260824g.md`](LEGGIMI-CORREZIONE-20260824g.md), che contiene tutto quello che c'era
-> qui più la versione in barra. Questo foglio resta solo perché il suo racconto del difetto è ancora quello
-> giusto.
+**Va sopra il pacchetto «e»**, che è già sul server. Sono **sette file**, ed è **soli file**.
 
-**Va sopra il pacchetto «e»**, che è già sul server. Sono **quattro file**, ed è **soli file**.
+> ℹ️ **Sostituisce il pacchetto «f»**, che non è stato caricato: «g» contiene tutto quello che c'era in «f»
+> più la versione in barra. Se avete ancora la cartella `solo-4-file-f/`, buttatela — questa è quella buona.
 
 > ## ⛔ Il database NON si tocca
 >
@@ -16,7 +12,7 @@
 
 > ## 🔴 Due cose, e la seconda non è un caricamento
 >
-> **1.** I quattro file (§ *Che cosa caricare*). Chiude l'errore che ha visto il socio.
+> **1.** I sette file (§ *Che cosa caricare*). Chiudono l'errore che ha visto il socio, e portano la versione in barra.
 > **2.** La password fuori dal file che si scarica (§ *La cosa importante*). **Non serve FileZilla per
 > portare file nuovi: serve creare una cartella e modificare un file che è già lì.** È la parte che vale di
 > più, ed è indipendente dalla prima: si può fare anche dopo, ma va fatta.
@@ -53,7 +49,26 @@ invece di *forse*. Oggi quella riga non esisteva, e la causa si è dovuta dedurr
 ℹ️ Nel file non finiscono mai password, cookie, né la parte dell'indirizzo dopo il `?` (sul ritorno del
 login quella parte è una credenziale). Si può spedire così com'è.
 
-### 3. La password può uscire dal file che si scarica
+### 3. In barra c'è scritto quale versione è online (la vedete solo voi)
+
+Chiesta da voi, e nasce da una domanda che finora non aveva risposta: **«che versione del sito è online?»**.
+Il numero di versione è `1.0.0` in ogni pacchetto, e la data dentro `avvio-diagnostica.txt` dice quando il
+sito è **ripartito**, non **che cosa** è ripartito — per giunta si rinfresca da sola, perché il server
+riavvia vIPI quando resta inattivo.
+
+Adesso in alto a destra, **solo per chi è admin**, compare una targhetta grigia tipo `g · 758776f`: la
+lettera del pacchetto e il codice preciso del codice sorgente da cui è stato costruito. **Passandoci sopra
+il mouse** esce la frase intera — pacchetto, data, e *da quando è in servizio*, che è la parte che dice se
+il riavvio è andato.
+
+ℹ️ La stessa riga apre ora `diagnostica/avvio-diagnostica.txt`: se la barra non è a portata di mano
+(o siete su un telefono, dove la targhetta si nasconde per far posto), la risposta è lì.
+
+ℹ️ **Non la vedono i soci**: a loro non direbbe niente, e a chi passa di lì direbbe con quale versione
+esatta sta parlando. È anche la prima cosa che esce dalla barra quando lo schermo è stretto: è una spia,
+non un comando.
+
+### 4. La password può uscire dal file che si scarica
 
 Vedi la sezione qui sotto: è la parte che conta di più.
 
@@ -115,21 +130,28 @@ pacchetti sono anch'essi sul server e si possono **cancellare**, non servono a f
 
 ## Che cosa caricare
 
-**Quattro file**, tutti nella **radice** dell'applicazione (nessuna sottocartella), nella cartella
-`solo-4-file-f/`:
+**Sette file**, nella cartella `solo-7-file-g/`, **rispettando le sottocartelle** (`en/`,
+`wwwroot/_content/Vipi.Ui/`):
 
 | File | Dimensione attesa |
 |---|---|
-| `Vipi.Application.dll` | **1.299.968 byte** |
-| `Vipi.Host.dll` | **73.216 byte** |
+| `Vipi.Application.dll` | **1.300.480 byte** |
+| `Vipi.Host.dll` | **75.776 byte** |
+| `Vipi.Host.staticwebassets.endpoints.json` | **55.108 byte** |
 | `Vipi.Infrastructure.dll` | **2.929.664 byte** |
-| `Vipi.Ui.dll` | **1.868.288 byte** |
+| `Vipi.Ui.dll` | **1.868.800 byte** |
+| `en/Vipi.Ui.resources.dll` | **169.984 byte** |
+| `wwwroot/_content/Vipi.Ui/vipi-theme.css` | **263.900 byte** |
 
-Totale **6.171.136 byte**. Tutto il resto è identico a quello che è già sul server.
+Totale **6.663.712 byte**. Tutto il resto è identico a quello che è già sul server.
 
-ℹ️ **Niente `wwwroot`, niente indice `staticwebassets` questa volta**: nessun file di `wwwroot` è cambiato,
-quindi la trappola del pacchetto «e» — l'indice e i `.js` da scambiare insieme — qui non si presenta.
-I `.pdb` non servono a far girare niente; se li volete stanno nel pacchetto intero `linux-x64-20260824-f/`.
+⚠️ **Il foglio di stile e l'indice `staticwebassets` vanno insieme**: l'indice dice all'applicazione quanto
+è lungo ogni file di `wwwroot`, quindi caricarne uno solo lascia due cose che si raccontano in modo diverso.
+È la stessa avvertenza del pacchetto «e»; qui riguarda due soli file.
+
+ℹ️ `en/Vipi.Ui.resources.dll` sono le scritte in inglese: c'è una parola nuova (la targhetta della versione).
+
+I `.pdb` non servono a far girare niente; se li volete stanno nel pacchetto intero `linux-x64-20260824-g/`.
 
 ---
 
@@ -145,17 +167,18 @@ Come avete chiesto, i file hanno il **nome vero**: si sovrascrivono quelli sul s
 > ha salvato. Si riprende da solo appena il caricamento è finito e l'applicazione riparte.
 >
 > Quindi: **fatelo in un momento tranquillo**, non durante un evento, e non fermatevi a metà. Sono sei
-> megabyte: dura meno di un minuto.
+> megabyte e mezzo: dura meno di un minuto.
 >
 > Se preferite la strada che non fa cadere il sito nemmeno per un secondo, è in
 > [`LEGGIMI-AGGIORNARE-VIA-FTP.md`](LEGGIMI-AGGIORNARE-VIA-FTP.md): si carica col nome finto e si rinomina
-> alla fine. Con soli quattro file sono otto rinomine.
+> alla fine. Con sette file sono quattordici rinomine.
 
 1. FileZilla in **binario** (Trasferimento → Tipo di trasferimento → **Binario**, non «Auto»).
-2. **Prima, il salvagente**: rinominate sul server i quattro file attuali aggiungendo `.vecchio`
-   (`Vipi.Host.dll` → `Vipi.Host.dll.vecchio`, e così per gli altri tre). Le rinomine sono istantanee e vi
-   lasciano il rollback pronto: al contrario, si torna a prima senza ricaricare niente.
-3. Caricate i quattro file di `solo-4-file-f/` nella radice dell'applicazione.
+2. **Prima, il salvagente**: rinominate sul server i sette file attuali aggiungendo `.vecchio`
+   (`Vipi.Host.dll` → `Vipi.Host.dll.vecchio`, e così per gli altri sei, ognuno nella sua cartella). Le
+   rinomine sono istantanee e vi lasciano il rollback pronto: al contrario, si torna a prima senza
+   ricaricare niente.
+3. Caricate il contenuto di `solo-7-file-g/` nella radice dell'applicazione, **rispettando le sottocartelle**.
 4. **Misurate**: F5 nel riquadro remoto e confrontate i byte con la tabella qui sopra. Se anche uno solo non
    corrisponde, ricaricate quello prima di riavviare.
 5. Riavvio: file `restart.txt` vuoto dentro `tmp/`.
@@ -167,11 +190,12 @@ Come avete chiesto, i file hanno il **nome vero**: si sovrascrivono quelli sul s
 
 | Controllo | Cosa deve succedere |
 |---|---|
-| `diagnostica/avvio-diagnostica.txt` | la prima riga porta **data e ora di adesso**: è l'unica prova che sia ripartita la versione nuova |
+| `diagnostica/avvio-diagnostica.txt` | la riga **Versione** dice `pacchetto «g»`: è la prova che sia ripartita proprio questa, non solo che il sito sia ripartito |
 | `diagnostica/avvio-errore.txt` | **non deve esistere**. Se c'è con la data di adesso, leggetelo: dice esattamente che cosa manca |
 | `https://atc.it.ivao.aero/services` | si apre, sia da collegati sia da non collegati |
 | Un socio **senza incarichi** che entra | vede l'elenco dei servizi, non la pagina d'errore |
-| Voi, da admin | in barra c'è ancora il tasto **Modifica** |
+| Voi, da admin | in barra c'è ancora il tasto **Modifica**, e accanto la targhetta `g · …` |
+| La targhetta, col mouse sopra | dice «pacchetto «g» … in servizio dal …», con l'ora del riavvio di adesso |
 | Dopo il passo 4 dei segreti | `https://atc.it.ivao.aero/appsettings.Production.json` si scarica ancora, ma **non contiene più la password** |
 
 ⚠️ **Restano da ripubblicare i documenti** per le frasi dei coordinamenti: è il punto rimasto in sospeso dal
@@ -179,7 +203,7 @@ pacchetto «e», e non c'entra con questo caricamento.
 
 ---
 
-Compilato con gli avvisi trattati come errori: **0 avvisi**, **1943 test verdi** su net8 — quello che gira sul vostro server (3661 contando anche il giro su net10).
+Compilato con gli avvisi trattati come errori: **0 avvisi**, **1951 test verdi** su net8 — quello che gira sul vostro server (3669 contando anche il giro su net10).
 
 ⚠️ Come i precedenti, questo pacchetto **non è mai stato eseguito su Linux**: è compilato in modo incrociato
 da Windows.

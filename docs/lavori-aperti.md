@@ -1515,8 +1515,23 @@ giornata: il pacchetto «e» era stato caricato quel pomeriggio, e Passenger ria
 inattività — i **riavvii a freddo sono frequenti**, ed è la finestra in cui un intoppo del database è più
 probabile.
 
-**Verificato**: `BarraNonAffondaLaPaginaTests` (6) e `PaginaErroreTests` (2); senza la guardia i due casi
-del guasto tornano 500, cioè lo screenshot. Propagata `CanEditAnythingAsync` ai 12 finti
+**Chiesto dal committente mentre si preparava il pacchetto, e sta bene qui**: la **versione in barra**, ai
+soli admin. La domanda era «che versione del sito è online?», e non aveva risposta — `AssemblyVersion` è
+`1.0.0` in ogni pacchetto, e la data in `avvio-diagnostica.txt` dice quando è *ripartito*, non *che cosa*:
+per giunta si rinfresca da sé, perché Passenger riavvia il processo per inattività. Ora la build si timbra
+col **commit** (non con l'ora di compilazione: ricompilare lo stesso codice deve dare la stessa versione) e
+con la **lettera del pacchetto**, passata al publish come `-p:VipiPacchetto=g`. In barra `g · 758776f`, il
+resto nel `title`; la stessa riga apre `avvio-diagnostica.txt`.
+
+⚠️ Tre scelte, tutte a difesa di qualcosa: **solo admin** (a un socio non dice niente, a chi passa dice con
+quale build sta parlando); **prima cosa a uscire** dalla barra quando lo spazio manca, che è già a corto;
+e senza timbro si scrive **«sviluppo»** invece di inventare un numero — a una versione si crede.
+⚠️ Niente marcatore «albero sporco»: `git status` in forma breve elenca anche i file che differiscono per i
+soli fine riga, e un allarme che suona sempre non è un allarme.
+
+**Verificato**: `BarraNonAffondaLaPaginaTests` (7), `PaginaErroreTests` (2), `VersioneBuildTests` (6) e due
+sull'HTML servito (l'admin vede la targhetta, il socio no); senza la guardia i due casi del guasto tornano
+500, cioè lo screenshot. Propagata `CanEditAnythingAsync` ai 12 finti
 `IEditAuthorizationService` dei test. Suite intera verde su entrambi i TFM.
 
 ## F. Rimandato, non cancellato
