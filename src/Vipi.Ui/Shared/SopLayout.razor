@@ -23,7 +23,7 @@
             <summary aria-label="@L["Chrome_Menu"]" title="@L["Chrome_Menu"]"><span aria-hidden="true">☰</span></summary>
             <div class="tb-menu-pan">
                 <nav class="tb-menu-acc" aria-label="@L["Chrome_AccNav"]">
-                    @foreach (var acc in Stations.Accs)
+                    @foreach (var acc in _accs)
                     {
                         <a class="@(IsActiveAcc(acc.Code) ? "active" : null)" href="/services/vsop/@acc.Code.ToLowerInvariant()" aria-current="@(IsActiveAcc(acc.Code) ? "page" : null)">@acc.Code</a>
                     }
@@ -67,7 +67,7 @@
             <div>@L["Services_Title"] <small>@L["Chrome_BrandSubtitle"]</small></div>
         </a>
         <nav class="acc-nav" aria-label="@L["Chrome_AccNav"]">
-            @foreach (var acc in Stations.Accs)
+            @foreach (var acc in _accs)
             {
                 <a class="@(IsActiveAcc(acc.Code) ? "active" : null)" href="/services/vsop/@acc.Code.ToLowerInvariant()" aria-current="@(IsActiveAcc(acc.Code) ? "page" : null)">@acc.Code</a>
             }
@@ -156,6 +156,7 @@
 
 @code {
     private string? _acc;
+    private IReadOnlyList<AccInfo> _accs = Array.Empty<AccInfo>();
     private CurrentUser? _user;
     private bool _isAdmin;
     private bool _canEdit;
@@ -163,6 +164,34 @@
     protected override async Task OnParametersSetAsync()
     {
         _user = Users.Get();
+
+        // ⚠️ IL CATALOGO SI LEGGE QUI, E PRIMA DI QUALUNQUE `await`. Non è pignoleria: è il difetto del
+        // 24 agosto 2026, letto nello stack trace di 78 richieste fallite.
+        //
+        // `Stations.Accs` è a caricamento pigro, e il markup lo leggeva DENTRO `BuildRenderTree`. Ma Blazor
+        // disegna l'albero mentre `OnParametersSetAsync` è ancora in volo — se il metodo restituisce un task
+        // non completato, il primo render parte subito — e in quel momento la query del catalogo partiva
+        // sullo STESSO `DbContext` dello scope su cui era già in corso quella di `_canEdit`. Due operazioni
+        // insieme sullo stesso context: «A second operation was started on this context instance».
+        //
+        // Perché si vedeva solo da collegati: l'anonimo esce da `_canEdit` prima del database, quindi non
+        // c'è nessun await in volo e le due query non si incontrano mai. Ed è la stessa asimmetria che aveva
+        // fatto sospettare `_canEdit`: la corsa la innesca lui, ma a morire è il catalogo.
+        //
+        // ⚠️ E NON era «a volte»: era SISTEMATICA per una classe di utenti, e i numeri lo dicono. Delle 92
+        // righe, le 78 della corsa vengono TUTTE dallo stesso VID non-admin; l'admin che navigava nella
+        // stessa finestra non ne ha prodotta nessuna. Il motivo sta in `ComponentBase`: dopo
+        // `OnParametersSetAsync` il render parte SEMPRE, ma se il task è già completato non c'è niente in
+        // volo. Per un admin `CanEditAnythingAsync` risponde dai claim senza toccare il database — task
+        // completato, nessuna corsa. Per un socio qualunque è una query vera — task in volo, corsa certa.
+        //   anonimo    → niente domanda      → niente corsa
+        //   admin      → risposta immediata  → niente corsa
+        //   socio      → query vera in volo  → CORSA, ogni volta
+        // Ecco perché lo vedeva solo chi non ha incarichi, e perché a noi non capitava mai.
+        //
+        // `Prewarm()` era già scritto apposta («chiamata dal ciclo di vita async, context libero e
+        // sequenziale») e non lo chiamava nessuno.
+        _accs = LeggiCatalogo();
 
         // /services/vsop/{acc}/{vipi?}. ⚠️ Il conto dei segmenti NON si rifà qui: era scritto a mano e
         // contava dal primo, che dal 22 agosto 2026 è «services» e non più «vsop» — da allora nessun ACC
@@ -172,6 +201,26 @@
         // Tasto Editor: visibile solo a chi ha qualcosa da editare (admin o concessione).
         _isAdmin = Authz.IsAdmin;
         _canEdit = _user is not null && await PuoModificareAsync();
+    }
+
+    /// <summary>
+    /// Il catalogo delle ACC, scaldato FUORI dal render. Degrada come il tasto «Modifica» e per la stessa
+    /// ragione: senza elenco la barra perde i collegamenti alle ACC, ma la pagina — la guida, l'hub, un
+    /// documento già in cache — si apre lo stesso. Prima, un catalogo illeggibile era una pagina morta.
+    /// </summary>
+    private IReadOnlyList<AccInfo> LeggiCatalogo()
+    {
+        try
+        {
+            Stations.Prewarm();
+            return Stations.Accs;
+        }
+        catch (Exception ex)
+        {
+            Log.LogWarning(ex, "Barra: il catalogo delle ACC non si è potuto leggere. "
+                             + "La barra esce senza i collegamenti alle ACC e la pagina si serve lo stesso.");
+            return Array.Empty<AccInfo>();
+        }
     }
 
     /// <summary>

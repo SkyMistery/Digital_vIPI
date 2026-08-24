@@ -59,11 +59,21 @@ public sealed class StaffLoginTrackingMiddleware
         StaffLoginThrottle throttle,
         ILogger<StaffLoginTrackingMiddleware> log)
     {
-        var user = users.Get();
-        if (user is not null && throttle.ShouldRecord(user.UserId))
+        // ⚠️ TUTTO il corpo è protetto, non solo la scrittura. Questo middleware annota una statistica: se
+        // fallisce, la richiesta deve proseguire come se non ci fosse. Il `try` copriva solo
+        // `RecordLoginAsync`, e `users.Get()` restava scoperto — misurato il 24 agosto 2026 provocando un
+        // guasto lì: l'eccezione usciva, il gestore d'errore rieseguiva «/Error», questo middleware girava
+        // di nuovo sulla richiesta rieseguita e lanciava una seconda volta. Risultato: nemmeno la pagina
+        // d'errore riusciva a uscire. Un pezzo che gira PRIMA del routing gira anche sulla via di fuga.
+        try
         {
-            try { await roster.RecordLoginAsync(user, ctx.RequestAborted); }
-            catch (Exception ex) { log.LogWarning(ex, "Registrazione login staff fallita per UserId {UserId}.", user.UserId); }
+            var user = users.Get();
+            if (user is not null && throttle.ShouldRecord(user.UserId))
+                await roster.RecordLoginAsync(user, ctx.RequestAborted);
+        }
+        catch (Exception ex)
+        {
+            log.LogWarning(ex, "Registrazione login staff non riuscita: la richiesta prosegue lo stesso.");
         }
 
         await _next(ctx);
