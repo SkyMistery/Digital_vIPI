@@ -108,6 +108,19 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
             .OrderBy(t => t.FirstSeenUtc).ThenBy(t => t.PilotCallsign)
             .ToListAsync(ct);
 
+        // I callsign delle consegne: due id sulla riga, e un giro solo per tradurli. ⚠️ Non è una join
+        // sulla tratta perché la sessione dall'altra parte può non esistere più (potatura del dettaglio):
+        // quel che manca resta `null`, e la targhetta lo dice senza collegamento.
+        var idConsegne = traffico
+            .SelectMany(t => new[] { t.HandoffToSessionId, t.HandoffFromSessionId })
+            .OfType<long>().Distinct().ToList();
+
+        var callsignConsegne = idConsegne.Count == 0
+            ? new Dictionary<long, string>()
+            : await _db.AtcSessions.AsNoTracking()
+                .Where(x => idConsegne.Contains(x.SessionId))
+                .ToDictionaryAsync(x => x.SessionId, x => x.Callsign, ct);
+
         var piste = await _db.AtcSessionRunways.AsNoTracking()
             .Where(r => r.SessionId == sessionId)
             .OrderBy(r => r.FromUtc)
@@ -119,7 +132,11 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
             traffico.Select(t => new StatsTrafficRow(
                 t.PilotCallsign, t.LegOrdinal, t.DepIcao, t.ArrIcao, t.AircraftIcao,
                 Utc(t.FirstSeenUtc), Utc(t.LastSeenUtc), t.SeenMinutes,
-                t.SawMovement, t.HasObservationGap, t.Origin)).ToList(),
+                t.SawMovement, t.HasObservationGap, t.Origin,
+                t.FirstPhase, t.LastPhase, t.SawAirborne,
+                t.EntryAltitudeFt, t.ExitAltitudeFt, t.MaxAltitudeFt,
+                Consegna(callsignConsegne, t.HandoffToSessionId),
+                Consegna(callsignConsegne, t.HandoffFromSessionId))).ToList(),
             piste.Select(r => new StatsRunwayRow(Utc(r.FromUtc), r.Arrival, r.Departure)).ToList());
     }
 
@@ -212,6 +229,47 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
             .Take(Math.Max(1, limit))
             .ToList();
     }
+
+    public async Task<StatsStreak> StreakAsync(
+        int userId, DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default)
+    {
+        var inizi = await Contate(userId, from, to).Select(s => s.StartUtc).ToListAsync(ct);
+        return ControllerStreak.Build(inizi.Select(Utc), to);
+    }
+
+    public async Task<StatsRank> RankAsync(
+        int userId, DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default)
+    {
+        // ⚠️ Tutta la classifica, non i primi venti: la posizione di chi è 47° esiste solo se si contano
+        // anche gli altri 46. Sono le sessioni di un anno di una divisione — poche migliaia di righe, e la
+        // proiezione porta due colonne.
+        var righe = await Contate(null, from, to)
+            .Select(s => new { s.UserId, s.DurationSeconds })
+            .ToListAsync(ct);
+
+        var perVid = righe
+            .GroupBy(r => r.UserId)
+            .Select(g => new { Vid = g.Key, Secondi = g.Sum(r => (long)r.DurationSeconds) })
+            .OrderByDescending(r => r.Secondi)
+            .ToList();
+
+        var posizione = perVid.FindIndex(r => r.Vid == userId) + 1;   // FindIndex dà -1 se non c'è: 0 va bene
+        return new StatsRank(posizione, perVid.Count);
+    }
+
+    public async Task<DateTimeOffset?> ArchiveStartAsync(int? userId, CancellationToken ct = default)
+    {
+        var q = _db.AtcSessions.AsNoTracking();
+        if (userId is { } vid) q = q.Where(s => s.UserId == vid);
+
+        // ⚠️ Senza soglia sulla durata: qui la domanda è «da quando esiste l'archivio», e una connessione
+        // lampo è comunque un giorno in cui il poller stava registrando.
+        var prima = await q.OrderBy(s => s.StartUtc).Select(s => (DateTime?)s.StartUtc).FirstOrDefaultAsync(ct);
+        return prima is { } t ? Utc(t) : null;
+    }
+
+    private static string? Consegna(IReadOnlyDictionary<long, string> callsign, long? sessionId) =>
+        sessionId is { } id && callsign.TryGetValue(id, out var c) ? c : null;
 
     private static StatsSessionRow Riga(AtcSession s) => new(
         s.SessionId, s.UserId, s.Callsign, s.Position, s.Frequency,

@@ -1,4 +1,5 @@
-using Vipi.Application.Stats;
+﻿using Vipi.Application.Stats;
+using Vipi.Domain;
 using Vipi.Domain.Entities;
 
 namespace Vipi.Application.Abstractions;
@@ -19,10 +20,26 @@ public sealed record StatsSessionRow(
     int TrafficCount, int MovementCount, int TrafficMinutes, long ShiftKey);
 
 /// <summary>Un aeroplano gestito, come si legge nel dettaglio di una sessione.</summary>
+/// <param name="HandoffTo">Callsign di chi l'ha preso dopo di noi; <c>null</c> = nessuno, o sessione potata.</param>
+/// <param name="HandoffFrom">Callsign di chi ce l'ha passato.</param>
 public sealed record StatsTrafficRow(
     string PilotCallsign, int LegOrdinal, string? DepIcao, string? ArrIcao, string? AircraftIcao,
     DateTimeOffset FirstSeenUtc, DateTimeOffset LastSeenUtc, int SeenMinutes,
-    bool SawMovement, bool HasObservationGap, TrafficOrigin Origin);
+    bool SawMovement, bool HasObservationGap, TrafficOrigin Origin,
+    FlightPhase? FirstPhase = null, FlightPhase? LastPhase = null, bool SawAirborne = false,
+    int? EntryAltitudeFt = null, int? ExitAltitudeFt = null, int? MaxAltitudeFt = null,
+    string? HandoffTo = null, string? HandoffFrom = null);
+
+/// <summary>
+/// Dove sta una persona nella classifica di divisione, senza mostrarle la classifica.
+/// </summary>
+/// <param name="Position">1 = prima. Zero se in questo periodo non ha turni.</param>
+/// <param name="Total">Quanti controllori hanno almeno un turno nel periodo.</param>
+public sealed record StatsRank(int Position, int Total)
+{
+    /// <summary>Percentuale di controllori che stanno sotto o insieme a te; 0 se non sei in classifica.</summary>
+    public int TopPercent => Position <= 0 || Total <= 0 ? 0 : (int)Math.Ceiling(Position * 100.0 / Total);
+}
 
 /// <summary>Una configurazione di pista, con l'istante da cui vale.</summary>
 public sealed record StatsRunwayRow(DateTimeOffset FromUtc, string Arrival, string Departure);
@@ -85,4 +102,22 @@ public interface IAtcStatsQueries
     /// <summary>I tipi di aeromobile gestiti, dal più frequente.</summary>
     Task<IReadOnlyList<StatsByKey>> TopAircraftAsync(int? userId, DateTimeOffset from, DateTimeOffset to,
         int limit = 15, CancellationToken ct = default);
+
+    /// <summary>Settimane consecutive con almeno un turno (<see cref="Vipi.Application.Stats.ControllerStreak"/>).</summary>
+    Task<StatsStreak> StreakAsync(int userId, DateTimeOffset from, DateTimeOffset to,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Posizione in classifica di una persona. ⚠️ Si legge <b>anche a classifica spenta</b>: dire «sei nel
+    /// primo 12%» non svela le ore di nessun altro, ed è l'unico confronto che la pagina personale può
+    /// mostrare finché lo staff non ha deciso di aprire l'elenco.
+    /// </summary>
+    Task<StatsRank> RankAsync(int userId, DateTimeOffset from, DateTimeOffset to,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// La prima connessione in archivio (di tutti, o di una persona); <c>null</c> se non ce n'è nessuna.
+    /// Serve a non promettere periodi che l'archivio non ha.
+    /// </summary>
+    Task<DateTimeOffset?> ArchiveStartAsync(int? userId, CancellationToken ct = default);
 }

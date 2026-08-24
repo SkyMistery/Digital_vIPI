@@ -1,6 +1,7 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
+using Vipi.Domain;
 using Vipi.Domain.Entities;
 using Vipi.Infrastructure.Persistence;
 
@@ -226,5 +227,108 @@ public class AtcStatsQueriesTests : IAsyncLifetime
 
         var tipi = await _q.TopAircraftAsync(704798, Anno.Da, Anno.A);
         Assert.Equal("B38M", Assert.Single(tipi).Key);
+    }
+
+    [Fact]
+    public async Task La_striscia_conta_le_settimane_con_almeno_un_turno()
+    {
+        await Sessione(100, 704798, "LIRF_TWR", 3600);
+        await Sessione(101, 704798, "LIRF_TWR", 3600, giorniFa: 7);
+        await Sessione(102, 704798, "LIRF_TWR", 3600, giorniFa: 14);
+        await Sessione(103, 704798, "LIRF_TWR", 3600, giorniFa: 60);      // vecchia: spezza
+
+        var s = await _q.StreakAsync(704798, Anno.Da, Anno.A);
+
+        Assert.Equal(3, s.CurrentWeeks);
+        Assert.NotNull(s.LastSessionUtc);
+    }
+
+    [Fact]
+    public async Task La_posizione_in_classifica_si_legge_anche_per_chi_e_in_fondo()
+    {
+        await Sessione(100, 111, "LIRF_TWR", 10_000);
+        await Sessione(101, 222, "LIMC_TWR", 5_000);
+        await Sessione(102, 333, "LIPZ_TWR", 1_000);
+
+        var r = await _q.RankAsync(333, Anno.Da, Anno.A);
+
+        Assert.Equal(3, r.Position);
+        Assert.Equal(3, r.Total);
+        Assert.Equal(100, r.TopPercent);
+
+        var primo = await _q.RankAsync(111, Anno.Da, Anno.A);
+        Assert.Equal(1, primo.Position);
+        Assert.Equal(34, primo.TopPercent);
+    }
+
+    [Fact]
+    public async Task Chi_non_ha_turni_nel_periodo_non_ha_posizione()
+    {
+        await Sessione(100, 111, "LIRF_TWR", 10_000);
+
+        var r = await _q.RankAsync(999, Anno.Da, Anno.A);
+
+        Assert.Equal(0, r.Position);
+        Assert.Equal(0, r.TopPercent);
+    }
+
+    [Fact]
+    public async Task L_inizio_dell_archivio_e_la_connessione_piu_vecchia()
+    {
+        await Sessione(100, 704798, "LIRF_TWR", 3600, giorniFa: 3);
+        await Sessione(101, 704798, "LIRF_TWR", 3600, giorniFa: 40);
+
+        var inizio = await _q.ArchiveStartAsync(704798);
+
+        Assert.Equal(T0.AddDays(-40), inizio);
+        Assert.Null(await _q.ArchiveStartAsync(999));
+    }
+
+    [Fact]
+    public async Task Il_dettaglio_traduce_le_consegne_nei_callsign()
+    {
+        await Sessione(100, 704798, "LIRF_TWR", 3600);
+        await Sessione(200, 704799, "LIRR_NE1_CTR", 3600);
+
+        _db.AtcSessionTraffic.Add(new AtcSessionTraffic
+        {
+            SessionId = 100, PilotCallsign = "AZA123", LegOrdinal = 1, PilotUserId = 785031,
+            DepIcao = "LIRF", ArrIcao = "LIMC", AircraftIcao = "A320",
+            FirstSeenUtc = T0.UtcDateTime, LastSeenUtc = T0.AddMinutes(12).UtcDateTime, SeenMinutes = 12,
+            SawMovement = true, SawAirborne = true, Origin = TrafficOrigin.Aor,
+            FirstPhase = FlightPhase.Parked, LastPhase = FlightPhase.Airborne,
+            EntryAltitudeFt = 0, ExitAltitudeFt = 12_000, MaxAltitudeFt = 12_000,
+            HandoffToSessionId = 200,
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        var d = await _q.SessionAsync(100);
+        var riga = Assert.Single(d!.Traffic);
+
+        Assert.Equal("LIRR_NE1_CTR", riga.HandoffTo);
+        Assert.Null(riga.HandoffFrom);
+        Assert.Equal(FlightPhase.Parked, riga.FirstPhase);
+        Assert.True(riga.SawAirborne);
+        Assert.Equal(12_000, riga.MaxAltitudeFt);
+    }
+
+    [Fact]
+    public async Task Una_consegna_verso_una_sessione_potata_non_rompe_il_dettaglio()
+    {
+        // La potatura del dettaglio cancellera' righe vecchie: l'id resta, il callsign no.
+        await Sessione(100, 704798, "LIRF_TWR", 3600);
+
+        _db.AtcSessionTraffic.Add(new AtcSessionTraffic
+        {
+            SessionId = 100, PilotCallsign = "AZA123", LegOrdinal = 1, PilotUserId = 785031,
+            FirstSeenUtc = T0.UtcDateTime, LastSeenUtc = T0.AddMinutes(3).UtcDateTime, SeenMinutes = 3,
+            SawMovement = true, Origin = TrafficOrigin.Aor, HandoffToSessionId = 9_999,
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        var d = await _q.SessionAsync(100);
+        Assert.Null(Assert.Single(d!.Traffic).HandoffTo);
     }
 }
