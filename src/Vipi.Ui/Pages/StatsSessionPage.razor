@@ -38,6 +38,25 @@
             <div class="choice"><h2 class="h-card">@s.TrafficMinutes</h2><p class="muted">@L["Stats_BusyMinutes"]</p></div>
         </div>
 
+        @if (_dettaglio.Runways.Count > 0)
+        {
+            @* ⚠️ È una sequenza: se la configurazione è cambiata a turno in corso si vedono tutte, con l'ora
+               da cui valgono. Una riga sola vuol dire che non è mai cambiata. *@
+            <p class="muted">
+                <b>@L["Stats_Runways"]:</b>
+                @for (var i = 0; i < _dettaglio.Runways.Count; i++)
+                {
+                    var r = _dettaglio.Runways[i];
+                    @(i > 0 ? " · " : " ")
+                    <span>@Piste(r)</span>
+                    @if (_dettaglio.Runways.Count > 1)
+                    {
+                        <text> (@L["Stats_RunwaysFrom"] @r.FromUtc.ToString("HH:mm")Z)</text>
+                    }
+                }
+            </p>
+        }
+
         @if (_dettaglio.Traffic.Count == 0)
         {
             <p class="muted">@L["Stats_NoTraffic"]</p>
@@ -112,6 +131,9 @@
 
         _dettaglio = dettaglio;
     }
+
+    private static string Piste(StatsRunwayRow r) =>
+        string.IsNullOrEmpty(r.Departure) || r.Arrival == r.Departure ? r.Arrival : $"{r.Arrival} → {r.Departure}";
 
     private static string Durata(int secondi) =>
         secondi >= 3600 ? $"{secondi / 3600}h {(secondi % 3600) / 60:00}m" : $"{secondi / 60}m";

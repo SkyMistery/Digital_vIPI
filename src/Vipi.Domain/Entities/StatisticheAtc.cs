@@ -76,6 +76,37 @@ public class AtcSession
     public DateTime? UpdatedAtUtc { get; set; }
 
     public ICollection<AtcSessionTraffic> Traffic { get; set; } = new List<AtcSessionTraffic>();
+
+    /// <summary>Le configurazioni di pista che si sono succedute durante la sessione.</summary>
+    public ICollection<AtcSessionRunway> Runways { get; set; } = new List<AtcSessionRunway>();
+}
+
+/// <summary>
+/// Una configurazione di pista durante una sessione, con l'istante da cui vale.
+///
+/// <para>⚠️ È una <b>sequenza</b>, non un valore: le piste cambiano durante il turno, e scrivere quella del
+/// primo giro come «la pista della sessione» sarebbe falso per metà turno (nota del committente, 25 agosto
+/// 2026). Una riga nuova nasce solo <b>quando la configurazione cambia</b>: un turno normale ne ha una.</para>
+///
+/// <para>Il testo viene dall'ATIS, che la fotografia della rete porta già per ogni ATC: nessuna chiamata in
+/// più. La <b>lettera</b> dell'ATIS non si conserva — cambia a ogni aggiornamento del bollettino e non dice
+/// niente sul lavoro fatto.</para>
+/// </summary>
+public class AtcSessionRunway
+{
+    public int Id { get; set; }
+
+    public long SessionId { get; set; }
+    public AtcSession? Session { get; set; }
+
+    /// <summary>Da quando vale questa configurazione (primo giro in cui l'abbiamo vista).</summary>
+    public DateTime FromUtc { get; set; }
+
+    /// <summary>Piste d'arrivo, es. <c>16L/16R</c>.</summary>
+    public string Arrival { get; set; } = "";
+
+    /// <summary>Piste di partenza, es. <c>25</c>.</summary>
+    public string Departure { get; set; } = "";
 }
 
 /// <summary>

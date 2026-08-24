@@ -168,6 +168,33 @@ public sealed class EfAtcSessionStore : IAtcSessionStore
         return corrette;
     }
 
+    public async Task<bool> AppendRunwayAsync(
+        long sessionId, string arrival, string departure, DateTimeOffset atUtc, CancellationToken ct = default)
+    {
+        // Una riga senza la sua sessione violerebbe la chiave esterna: capita quando il poller vede l'ATIS
+        // nel giro in cui la sessione nasce e la scrittura della sessione non è ancora passata.
+        if (!await _db.AtcSessions.AnyAsync(s => s.SessionId == sessionId, ct)) return false;
+
+        var ultima = await _db.AtcSessionRunways.AsNoTracking()
+            .Where(r => r.SessionId == sessionId)
+            .OrderByDescending(r => r.FromUtc)
+            .FirstOrDefaultAsync(ct);
+
+        // ⚠️ Il confronto è con l'ULTIMA, non con «esiste una riga uguale»: una configurazione che torna
+        // (16L → 34R → 16L) è un cambio, e la sequenza deve raccontarlo.
+        if (ultima is not null && ultima.Arrival == arrival && ultima.Departure == departure) return false;
+
+        _db.AtcSessionRunways.Add(new AtcSessionRunway
+        {
+            SessionId = sessionId,
+            FromUtc = atUtc.UtcDateTime,
+            Arrival = arrival,
+            Departure = departure,
+        });
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
     /// <summary>Suffisso di posizione dal callsign: <c>LIRN_US0_APP</c> → <c>APP</c>.</summary>
     private static string? PosizioneDaCallsign(string callsign)
     {

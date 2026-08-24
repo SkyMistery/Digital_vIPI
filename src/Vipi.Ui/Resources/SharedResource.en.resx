@@ -850,6 +850,16 @@
   <data name="Sorg_TaDesc" xml:space="preserve"><value>Airport transition altitude</value></data>
   <data name="Sorg_TaLabel" xml:space="preserve"><value>Transition Altitude</value></data>
   <data name="Services_StatsDesc" xml:space="preserve"><value>Your hours online and the traffic you handled, session by session.</value></data>
+  <data name="Stats_WhenYouControl" xml:space="preserve"><value>When you control</value></data>
+  <data name="Stats_Coverage" xml:space="preserve"><value>When there is coverage</value></data>
+  <data name="Stats_CoverageHint" xml:space="preserve"><value>Share of time with at least one Italian controller online, by UTC hour and weekday. The empty cells are the gaps.</value></data>
+  <data name="Stats_TopAirports" xml:space="preserve"><value>Your airports</value></data>
+  <data name="Stats_TopAircraft" xml:space="preserve"><value>The types you see most</value></data>
+  <data name="Stats_Airport" xml:space="preserve"><value>Airport</value></data>
+  <data name="Stats_Flights" xml:space="preserve"><value>Flights</value></data>
+  <data name="Stats_Export" xml:space="preserve"><value>Download my sessions (CSV)</value></data>
+  <data name="Stats_Runways" xml:space="preserve"><value>Runways in use</value></data>
+  <data name="Stats_RunwaysFrom" xml:space="preserve"><value>from</value></data>
   <data name="Stats_Title" xml:space="preserve"><value>My ATC statistics</value></data>
   <data name="Stats_Subtitle" xml:space="preserve"><value>{0} · VID {1}</value></data>
   <data name="Stats_LoginNeeded" xml:space="preserve"><value>Sign in with your IVAO account to see your statistics.</value></data>

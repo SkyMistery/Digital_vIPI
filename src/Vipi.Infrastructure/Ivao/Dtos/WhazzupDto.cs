@@ -19,7 +19,11 @@ internal sealed record WhazzupAtcDto(
     [property: JsonPropertyName("rating")] int Rating,
     [property: JsonPropertyName("createdAt")] DateTimeOffset CreatedAt,
     [property: JsonPropertyName("time")] int Time,
-    [property: JsonPropertyName("atcSession")] WhazzupAtcSessionDto? AtcSession);
+    [property: JsonPropertyName("atcSession")] WhazzupAtcSessionDto? AtcSession,
+    [property: JsonPropertyName("atis")] WhazzupAtisDto? Atis);
+
+internal sealed record WhazzupAtisDto(
+    [property: JsonPropertyName("lines")] List<string>? Lines);
 
 internal sealed record WhazzupAtcSessionDto(
     [property: JsonPropertyName("position")] string? Position,

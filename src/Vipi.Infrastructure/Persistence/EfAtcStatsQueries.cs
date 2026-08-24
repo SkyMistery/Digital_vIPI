@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Stats;
 using Vipi.Domain.Entities;
@@ -108,10 +108,19 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
             .OrderBy(t => t.FirstSeenUtc).ThenBy(t => t.PilotCallsign)
             .ToListAsync(ct);
 
-        return new StatsSessionDetail(Riga(sessione), traffico.Select(t => new StatsTrafficRow(
-            t.PilotCallsign, t.LegOrdinal, t.DepIcao, t.ArrIcao, t.AircraftIcao,
-            Utc(t.FirstSeenUtc), Utc(t.LastSeenUtc), t.SeenMinutes,
-            t.SawMovement, t.HasObservationGap, t.Origin)).ToList());
+        var piste = await _db.AtcSessionRunways.AsNoTracking()
+            .Where(r => r.SessionId == sessionId)
+            .OrderBy(r => r.FromUtc)
+            .Select(r => new { r.FromUtc, r.Arrival, r.Departure })
+            .ToListAsync(ct);
+
+        return new StatsSessionDetail(
+            Riga(sessione),
+            traffico.Select(t => new StatsTrafficRow(
+                t.PilotCallsign, t.LegOrdinal, t.DepIcao, t.ArrIcao, t.AircraftIcao,
+                Utc(t.FirstSeenUtc), Utc(t.LastSeenUtc), t.SeenMinutes,
+                t.SawMovement, t.HasObservationGap, t.Origin)).ToList(),
+            piste.Select(r => new StatsRunwayRow(Utc(r.FromUtc), r.Arrival, r.Departure)).ToList());
     }
 
     public async Task<IReadOnlyList<ControllerRanking>> TopControllersAsync(
@@ -129,6 +138,77 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
                 g.Sum(r => (long)r.DurationSeconds),
                 g.Sum(r => r.MovementCount)))
             .OrderByDescending(r => r.Seconds)
+            .Take(Math.Max(1, limit))
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<CoverageCell>> CoverageAsync(
+        int? userId, DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default)
+    {
+        var righe = await Contate(userId, from, to)
+            .Select(s => new { s.StartUtc, s.EndUtc, s.DurationSeconds })
+            .ToListAsync(ct);
+
+        if (righe.Count == 0) return CoverageGrid.Build(Array.Empty<OnlineSpan>(), from, to);
+
+        // ⚠️ La fine si prende da EndUtc quando c'è; per una sessione ancora aperta si usa la DURATA
+        // dichiarata dalla sorgente — che è il dato autorevole — invece di tirarla fino ad adesso.
+        var spans = righe
+            .Select(r => new OnlineSpan(
+                Utc(r.StartUtc),
+                r.EndUtc is { } fine ? Utc(fine) : Utc(r.StartUtc).AddSeconds(r.DurationSeconds)))
+            .ToList();
+
+        // ⚠️ La finestra si stringe al periodo di cui abbiamo DAVVERO dati, e non è un dettaglio: chiedere
+        // dodici mesi a un archivio che ne contiene una settimana dà una griglia di «2%» in ogni casella —
+        // vera, inutile e scoraggiante. Con l'inizio vero, il lunedì sera si vede che è coperto.
+        var primo = spans.Min(s => s.StartUtc);
+        var inizio = primo > from ? primo : from;
+
+        return CoverageGrid.Build(spans, inizio, to);
+    }
+
+    public Task<IReadOnlyList<StatsByKey>> TopAirportsAsync(
+        int? userId, DateTimeOffset from, DateTimeOffset to, int limit = 15, CancellationToken ct = default) =>
+        PerChiave(userId, from, to, limit, aeroporti: true, ct);
+
+    public Task<IReadOnlyList<StatsByKey>> TopAircraftAsync(
+        int? userId, DateTimeOffset from, DateTimeOffset to, int limit = 15, CancellationToken ct = default) =>
+        PerChiave(userId, from, to, limit, aeroporti: false, ct);
+
+    /// <summary>
+    /// Aeroporti o tipi del traffico gestito. Un volo LIRF→LIRN conta per <b>tutti e due</b> gli scali:
+    /// la domanda è «quali aeroporti ti passano davanti», non «da dove partivano».
+    /// </summary>
+    private async Task<IReadOnlyList<StatsByKey>> PerChiave(
+        int? userId, DateTimeOffset from, DateTimeOffset to, int limit, bool aeroporti, CancellationToken ct)
+    {
+        var sessioni = Contate(userId, from, to).Select(s => s.SessionId);
+
+        var righe = await _db.AtcSessionTraffic.AsNoTracking()
+            .Where(t => sessioni.Contains(t.SessionId))
+            .Select(t => new { t.DepIcao, t.ArrIcao, t.AircraftIcao, t.SawMovement })
+            .ToListAsync(ct);
+
+        var conteggi = new Dictionary<string, (int Tratte, int Movimenti)>(StringComparer.OrdinalIgnoreCase);
+        void Conta(string? chiave, bool movimento)
+        {
+            if (string.IsNullOrWhiteSpace(chiave)) return;
+            var k = chiave.Trim().ToUpperInvariant();
+            var v = conteggi.GetValueOrDefault(k);
+            conteggi[k] = (v.Tratte + 1, v.Movimenti + (movimento ? 1 : 0));
+        }
+
+        foreach (var t in righe)
+        {
+            if (aeroporti) { Conta(t.DepIcao, t.SawMovement); Conta(t.ArrIcao, t.SawMovement); }
+            else Conta(t.AircraftIcao, t.SawMovement);
+        }
+
+        return conteggi
+            .Select(kv => new StatsByKey(kv.Key, kv.Value.Tratte, 0, kv.Value.Movimenti))
+            .OrderByDescending(r => r.Sessions)
+            .ThenBy(r => r.Key, StringComparer.Ordinal)
             .Take(Math.Max(1, limit))
             .ToList();
     }

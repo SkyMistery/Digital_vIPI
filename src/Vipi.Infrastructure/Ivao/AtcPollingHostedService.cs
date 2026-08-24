@@ -140,6 +140,38 @@ public sealed class AtcPollingHostedService : BackgroundService
     }
 
     /// <summary>
+    /// Registra le piste in uso quando <b>cambiano</b> durante la sessione.
+    ///
+    /// <para>⚠️ Non è un valore, è una sequenza: le configurazioni cambiano a turno in corso, e scrivere
+    /// quella del primo giro come «la pista della sessione» sarebbe falso per metà turno.</para>
+    ///
+    /// <para>Lo stato in memoria evita di interrogare l'archivio quando non è cambiato niente — cioè quasi
+    /// sempre: in un'ora di turno la configurazione cambia zero o una volta, non sessanta.</para>
+    /// </summary>
+    private async Task RegistraPisteAsync(IAtcSessionStore store, NetworkSnapshot snapshot, CancellationToken ct)
+    {
+        foreach (var atc in snapshot.Atc)
+        {
+            var piste = AtisRunways.Leggi(atc.AtisLines);
+            if (piste.Vuoto) continue;
+
+            if (_pisteViste.TryGetValue(atc.SessionId, out var ultima) && ultima == piste) continue;
+
+            if (await store.AppendRunwayAsync(atc.SessionId, piste.Arrival, piste.Departure, snapshot.AsOf, ct))
+                _log.LogDebug("Piste {Callsign}: {Piste}", atc.Callsign, piste);
+
+            _pisteViste[atc.SessionId] = piste;
+        }
+
+        // Le sessioni finite escono dalla memoria: il dizionario non deve crescere per sempre.
+        foreach (var id in _pisteViste.Keys.Where(k => snapshot.Atc.All(a => a.SessionId != k)).ToList())
+            _pisteViste.Remove(id);
+    }
+
+    /// <summary>Ultima configurazione vista per sessione: serve a non chiedere all'archivio a ogni giro.</summary>
+    private readonly Dictionary<long, RunwaysInUse> _pisteViste = new();
+
+    /// <summary>
     /// Attribuisce i piloti della fotografia alle sessioni in frequenza e tiene aggiornate le tratte
     /// (carta §4.1). Come per le sessioni, un <c>try</c> suo: le statistiche non devono poter spegnere la
     /// vista live.
@@ -195,6 +227,7 @@ public sealed class AtcPollingHostedService : BackgroundService
             if (plan.Nothing) return;
 
             var toccate = await store.ApplyAsync(plan, ct);
+            await RegistraPisteAsync(store, snapshot, ct);
             _log.LogDebug("Statistiche ATC: {Righe} righe di sessione ({Nuove} nuove, {Chiuse} chiuse).",
                 toccate, plan.Upserts.Count(u => u.IsNew), plan.Closures.Count);
         }

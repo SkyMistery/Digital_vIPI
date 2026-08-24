@@ -184,4 +184,47 @@ public class AtcStatsQueriesTests : IAsyncLifetime
         Assert.Empty(await _q.ByMonthAsync(704798, Anno.Da, Anno.A));
         Assert.Empty(await _q.TopControllersAsync(Anno.Da, Anno.A));
     }
+
+    [Fact]
+    public async Task La_copertura_si_misura_sul_periodo_di_cui_abbiamo_dati()
+    {
+        // ⚠️ Chiedere dodici mesi a un archivio che ne contiene uno darebbe «2%» in ogni casella: vero,
+        // inutile e scoraggiante. La finestra si stringe alla prima sessione in archivio.
+        await Sessione(100, 704798, "LIRF_TWR", 3600, giorniFa: 0);   // un'ora sola, in tutto l'archivio
+
+        var g = await _q.CoverageAsync(null, Anno.Da, Anno.A);
+
+        var piena = g.Where(c => c.CoveredMinutes > 0).ToList();
+        Assert.NotEmpty(piena);
+        Assert.All(piena, c => Assert.True(c.Ratio > 0.5, $"casella {c.DayOfWeek}/{c.Hour} al {c.Ratio:P0}"));
+    }
+
+    [Fact]
+    public async Task Senza_sessioni_la_griglia_c_e_lo_stesso_ed_e_vuota()
+    {
+        var g = await _q.CoverageAsync(704798, Anno.Da, Anno.A);
+
+        Assert.Equal(168, g.Count);
+        Assert.All(g, c => Assert.Equal(0, c.CoveredMinutes));
+    }
+
+    [Fact]
+    public async Task Gli_aeroporti_contano_partenza_E_arrivo_di_ogni_volo()
+    {
+        await Sessione(100, 704798, "LIRR_NE1_CTR", 3600);
+        _db.AtcSessionTraffic.Add(new AtcSessionTraffic
+        {
+            SessionId = 100, PilotCallsign = "AZA123", LegOrdinal = 1, PilotUserId = 1,
+            DepIcao = "LIRF", ArrIcao = "LIRN", AircraftIcao = "B38M",
+            FirstSeenUtc = T0.UtcDateTime, LastSeenUtc = T0.UtcDateTime, SawMovement = true,
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        var aeroporti = await _q.TopAirportsAsync(704798, Anno.Da, Anno.A);
+        Assert.Equal(new[] { "LIRF", "LIRN" }, aeroporti.Select(a => a.Key).OrderBy(x => x));
+
+        var tipi = await _q.TopAircraftAsync(704798, Anno.Da, Anno.A);
+        Assert.Equal("B38M", Assert.Single(tipi).Key);
+    }
 }

@@ -853,6 +853,16 @@
   <data name="Sorg_TaDesc" xml:space="preserve"><value>Quota di transizione dell'aeroporto</value></data>
   <data name="Sorg_TaLabel" xml:space="preserve"><value>Transition Altitude</value></data>
   <data name="Services_StatsDesc" xml:space="preserve"><value>Le tue ore in frequenza e il traffico che hai gestito, sessione per sessione.</value></data>
+  <data name="Stats_WhenYouControl" xml:space="preserve"><value>Quando controlli</value></data>
+  <data name="Stats_Coverage" xml:space="preserve"><value>Quando c'e copertura</value></data>
+  <data name="Stats_CoverageHint" xml:space="preserve"><value>Percentuale di tempo con almeno un controllore italiano in frequenza, per ora UTC e giorno della settimana. Le caselle vuote sono i buchi.</value></data>
+  <data name="Stats_TopAirports" xml:space="preserve"><value>I tuoi aeroporti</value></data>
+  <data name="Stats_TopAircraft" xml:space="preserve"><value>I tipi che vedi di piu</value></data>
+  <data name="Stats_Airport" xml:space="preserve"><value>Aeroporto</value></data>
+  <data name="Stats_Flights" xml:space="preserve"><value>Voli</value></data>
+  <data name="Stats_Export" xml:space="preserve"><value>Scarica le mie sessioni (CSV)</value></data>
+  <data name="Stats_Runways" xml:space="preserve"><value>Piste in uso</value></data>
+  <data name="Stats_RunwaysFrom" xml:space="preserve"><value>dalle</value></data>
   <data name="Stats_Title" xml:space="preserve"><value>Le mie statistiche ATC</value></data>
   <data name="Stats_Subtitle" xml:space="preserve"><value>{0} · VID {1}</value></data>
   <data name="Stats_LoginNeeded" xml:space="preserve"><value>Entra con il tuo account IVAO per vedere le tue statistiche.</value></data>

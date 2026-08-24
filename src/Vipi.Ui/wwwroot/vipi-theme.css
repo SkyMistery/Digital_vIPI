@@ -552,6 +552,22 @@
    1640px lasciava lo schermo vuoto ai lati su un monitor largo. Niente tetto: `.res-table` è già a
    larghezza piena e `.choice-grid` si adatta da sé (auto-fit, 340px minimi), quindi i riquadri passano da
    quattro in fila a sei senza toccare altro. Il respiro laterale è quello delle pagine di lavoro. */
+/* Griglia ora x giorno delle statistiche: 7x24 caselle. Scorre da sé sotto i ~900px invece di stringere le
+   caselle fino a renderle illeggibili (regola: il contenuto largo scorre nel suo contenitore, non sfonda la
+   pagina). L'intensità è un token di superficie con alfa crescente, così vale in chiaro e in scuro. */
+.cov-wrap{overflow-x:auto;margin-bottom:10px}
+.cov-grid{border-collapse:collapse;font-size:11px;min-width:640px;width:100%}
+.cov-grid th{font-weight:600;color:var(--muted);padding:2px 4px;text-align:center}
+.cov-grid th[scope=row]{text-align:right;padding-right:8px;white-space:nowrap}
+.cov-c{text-align:center;padding:4px 2px;border:1px solid var(--line);color:var(--muted)}
+/* ⚠️ Gli scaglioni sono stati alzati dopo averli guardati: col 12/28/48/70% su fondo scuro le caselle si
+   distinguevano appena, e una scala che non si vede è decorazione. `--brand-ink-2` è la variante che regge
+   su tutti e due i temi (l'altra al buio si spegne). */
+.cov-q0{background:transparent}
+.cov-q1{background:color-mix(in srgb,var(--brand-ink-2) 22%,transparent)}
+.cov-q2{background:color-mix(in srgb,var(--brand-ink-2) 45%,transparent)}
+.cov-q3{background:color-mix(in srgb,var(--brand-ink-2) 70%,transparent);color:var(--surface)}
+.cov-q4{background:var(--brand-ink-2);color:var(--surface);font-weight:600}
 .wrap.stats{max-width:none;padding-left:clamp(16px,2vw,32px);padding-right:clamp(16px,2vw,32px)}
 /* ⚠️ Larghezza piena NON vuol dire tabelle stirate. Con quattro colonne su 2560px il numero finisce a mezzo
    metro dalla sua etichetta e l'occhio deve viaggiare: lo schermo largo deve mostrare PIÙ COSE, non le

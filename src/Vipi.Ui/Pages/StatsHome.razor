@@ -68,6 +68,36 @@
             </section>
         </div>
 
+        <h2 class="h-sect">@L["Stats_WhenYouControl"]</h2>
+        <CoverageHeatmap Celle="_griglia" Copertura="false" Titolo="@L["Stats_WhenYouControl"].Value" />
+
+        <div class="stats-cols">
+            <section>
+                <h2 class="h-sect">@L["Stats_TopAirports"]</h2>
+                <table class="res-table">
+                    <thead><tr><th>@L["Stats_Airport"]</th><th>@L["Stats_Flights"]</th><th>@L["Stats_Movements"]</th></tr></thead>
+                    <tbody>
+                        @foreach (var r in _aeroporti)
+                        {
+                            <tr><td>@r.Key</td><td>@r.Sessions</td><td>@r.Movements</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+            <section>
+                <h2 class="h-sect">@L["Stats_TopAircraft"]</h2>
+                <table class="res-table">
+                    <thead><tr><th>@L["Stats_Aircraft"]</th><th>@L["Stats_Flights"]</th><th>@L["Stats_Movements"]</th></tr></thead>
+                    <tbody>
+                        @foreach (var r in _tipi)
+                        {
+                            <tr><td>@r.Key</td><td>@r.Sessions</td><td>@r.Movements</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+        </div>
+
         <h2 class="h-sect">@L["Stats_Sessions"]</h2>
         <table class="res-table">
             <thead>
@@ -92,6 +122,10 @@
     }
 
     <p class="muted" style="margin-top:22px">
+        @if (_utente is not null)
+        {
+            <a href="/services/stats/export.csv">@L["Stats_Export"]</a><text> · </text>
+        }
         @L["Stats_Disclaimer"]
         @if (Authz.IsAdmin || _classificaPubblica)
         {
@@ -106,6 +140,9 @@
     private IReadOnlyList<StatsByKey> _perPostazione = Array.Empty<StatsByKey>();
     private IReadOnlyList<StatsByKey> _perMese = Array.Empty<StatsByKey>();
     private IReadOnlyList<StatsSessionRow> _sessioni = Array.Empty<StatsSessionRow>();
+    private IReadOnlyList<Vipi.Application.Stats.CoverageCell> _griglia = Array.Empty<Vipi.Application.Stats.CoverageCell>();
+    private IReadOnlyList<StatsByKey> _aeroporti = Array.Empty<StatsByKey>();
+    private IReadOnlyList<StatsByKey> _tipi = Array.Empty<StatsByKey>();
     private bool _classificaPubblica;
 
     protected override async Task OnInitializedAsync()
@@ -123,6 +160,9 @@
         _perPostazione = await Stats.ByPositionAsync(vid, da, a);
         _perMese = await Stats.ByMonthAsync(vid, da, a);
         _sessioni = await Stats.SessionsAsync(vid, da, a);
+        _griglia = await Stats.CoverageAsync(vid, da, a);
+        _aeroporti = await Stats.TopAirportsAsync(vid, da, a);
+        _tipi = await Stats.TopAircraftAsync(vid, da, a);
     }
 
     // ⚠️ «0,0 ore» per una sessione vera di venti minuti sembra «niente»: sotto il decimo d'ora si scrive

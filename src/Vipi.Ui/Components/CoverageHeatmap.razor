@@ -1,0 +1,66 @@
+@using Vipi.Application.Stats
+
+@* Griglia ora × giorno: 7 righe, 24 colonne, e l'intensità del colore dice quanto è coperta la casella.
+
+   ⚠️ Numeri E colore, non solo colore: una scala di intensità da sola non si legge a chi ha una visione dei
+   colori diversa, e non si legge affatto in stampa. Il titolo di ogni casella dice la percentuale per esteso. *@
+
+<div class="cov-wrap">
+    <table class="cov-grid" aria-label="@Titolo">
+        <thead>
+            <tr>
+                <th scope="col"></th>
+                @for (var h = 0; h < 24; h++)
+                {
+                    <th scope="col">@h</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @for (var g = 1; g <= 7; g++)
+            {
+                var giorno = g;
+                <tr>
+                    <th scope="row">@Giorni[giorno - 1]</th>
+                    @for (var h = 0; h < 24; h++)
+                    {
+                        var c = Cella(giorno, h);
+                        var q = Quinto(c.Ratio);
+                        <td class="cov-c cov-q@q" title="@Descrizione(giorno, h, c)">@Etichetta(c)</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<CoverageCell> Celle { get; set; } = Array.Empty<CoverageCell>();
+
+    /// <summary>Vero se la griglia racconta una copertura (divisione), falso se sono ore di una persona.</summary>
+    [Parameter] public bool Copertura { get; set; } = true;
+
+    [Parameter] public string Titolo { get; set; } = "";
+
+    private static readonly string[] Giorni = { "lun", "mar", "mer", "gio", "ven", "sab", "dom" };
+
+    private CoverageCell Cella(int giorno, int ora) =>
+        Celle.FirstOrDefault(c => c.DayOfWeek == giorno && c.Hour == ora) ?? new CoverageCell(giorno, ora, 0, 0);
+
+    // Cinque scaglioni: sotto questa granularità il colore smette di dire qualcosa e diventa decorazione.
+    private static int Quinto(double r) => r <= 0 ? 0 : r < 0.2 ? 1 : r < 0.45 ? 2 : r < 0.75 ? 3 : 4;
+
+    private string Etichetta(CoverageCell c) =>
+        c.PossibleMinutes <= 0 || c.CoveredMinutes == 0 ? "" : Math.Round(c.Ratio * 100).ToString("0");
+
+    private string Descrizione(int giorno, int ora, CoverageCell c)
+    {
+        var quando = $"{Giorni[giorno - 1]} {ora:00}:00–{(ora + 1) % 24:00}:00Z";
+        if (c.PossibleMinutes <= 0) return $"{quando}: fuori dalla finestra";
+
+        var perc = Math.Round(c.Ratio * 100);
+        return Copertura
+            ? $"{quando}: coperta al {perc}% ({c.CoveredMinutes} minuti su {c.PossibleMinutes})"
+            : $"{quando}: {c.CoveredMinutes} minuti in frequenza su {c.PossibleMinutes} possibili ({perc}%)";
+    }
+}

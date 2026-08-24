@@ -53,7 +53,8 @@ public sealed class IvaoWhazzupClient : IAtcActivitySource
                 Frequency: a.AtcSession?.Frequency?.ToString("0.000", CultureInfo.InvariantCulture),
                 Rating: a.Rating,
                 StartUtc: a.CreatedAt,
-                ConnectedSeconds: a.Time))
+                ConnectedSeconds: a.Time,
+                AtisLines: a.Atis?.Lines))
             .ToList();
 
         var pilots = (clients?.Pilots ?? new List<WhazzupPilotDto>())

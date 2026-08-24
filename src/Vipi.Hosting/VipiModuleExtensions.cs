@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
@@ -170,6 +170,47 @@ public static class VipiModuleExtensions
         endpoints.MapHealthChecks("/vsop/health/ready", new HealthCheckOptions
         {
             Predicate = r => r.Tags.Contains(ReadinessTag),
+        });
+
+        // Esportazione delle proprie sessioni ATC. ⚠️ Solo le PROPRIE, e solo per chi è entrato: l'endpoint
+        // legge il VID dall'identità, non da un parametro — un parametro qui vorrebbe dire «le statistiche di
+        // chiunque a chi ne indovina il numero», che è esattamente ciò che le pagine impediscono.
+        endpoints.MapGet("/services/stats/export.csv", async (
+            HttpContext ctx,
+            Vipi.Application.Abstractions.ICurrentUserProvider utenti,
+            Vipi.Application.Abstractions.IAtcStatsQueries stats,
+            CancellationToken ct) =>
+        {
+            var utente = utenti.Get();
+            if (utente is null)
+            {
+                ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return;
+            }
+
+            var a = DateTimeOffset.UtcNow;
+            var righe = await stats.SessionsAsync(utente.UserId, a.AddDays(-366), a, limit: 5000, ct);
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("inizio_utc;fine_utc;callsign;posizione;frequenza;durata_secondi;turno;movimenti;presenze;minuti_con_traffico");
+            foreach (var r in righe)
+                sb.AppendLine(string.Join(';', new[]
+                {
+                    r.StartUtc.ToString("yyyy-MM-dd HH:mm:ss"),
+                    r.EndUtc?.ToString("yyyy-MM-dd HH:mm:ss") ?? "",
+                    r.Callsign, r.Position ?? "", r.Frequency ?? "",
+                    r.DurationSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    r.ShiftKey.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    r.MovementCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    r.TrafficCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    r.TrafficMinutes.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                }));
+
+            ctx.Response.ContentType = "text/csv; charset=utf-8";
+            ctx.Response.Headers.ContentDisposition = $"attachment; filename=statistiche-atc-{utente.UserId}.csv";
+            // Il BOM non è un vezzo: senza, Excel apre un CSV UTF-8 con gli accenti rotti.
+            await ctx.Response.Body.WriteAsync(System.Text.Encoding.UTF8.GetPreamble(), ct);
+            await ctx.Response.WriteAsync(sb.ToString(), System.Text.Encoding.UTF8, ct);
         });
 
         // F3: transport live SSE. Emette un evento a ogni cambio della cache ATC (+ heartbeat anti-timeout).

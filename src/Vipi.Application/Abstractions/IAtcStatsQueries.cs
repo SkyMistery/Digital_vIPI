@@ -1,3 +1,4 @@
+using Vipi.Application.Stats;
 using Vipi.Domain.Entities;
 
 namespace Vipi.Application.Abstractions;
@@ -23,8 +24,14 @@ public sealed record StatsTrafficRow(
     DateTimeOffset FirstSeenUtc, DateTimeOffset LastSeenUtc, int SeenMinutes,
     bool SawMovement, bool HasObservationGap, TrafficOrigin Origin);
 
-/// <summary>Il dettaglio di una sessione: la riga e i suoi aeroplani.</summary>
-public sealed record StatsSessionDetail(StatsSessionRow Session, IReadOnlyList<StatsTrafficRow> Traffic);
+/// <summary>Una configurazione di pista, con l'istante da cui vale.</summary>
+public sealed record StatsRunwayRow(DateTimeOffset FromUtc, string Arrival, string Departure);
+
+/// <summary>Il dettaglio di una sessione: la riga, i suoi aeroplani e le piste che si sono succedute.</summary>
+public sealed record StatsSessionDetail(
+    StatsSessionRow Session,
+    IReadOnlyList<StatsTrafficRow> Traffic,
+    IReadOnlyList<StatsRunwayRow> Runways);
 
 /// <summary>Una riga di classifica.</summary>
 public sealed record ControllerRanking(int UserId, int Shifts, long Seconds, int Movements);
@@ -60,4 +67,22 @@ public interface IAtcStatsQueries
     /// <summary>Classifica per ore, dalla più alta.</summary>
     Task<IReadOnlyList<ControllerRanking>> TopControllersAsync(DateTimeOffset from, DateTimeOffset to,
         int limit = 20, CancellationToken ct = default);
+
+    /// <summary>
+    /// La griglia ora × giorno. <paramref name="userId"/> null = copertura della <b>divisione</b> (quando
+    /// c'era qualcuno), valorizzato = quando controlla quella persona.
+    ///
+    /// <para>⚠️ Gli intervalli si <b>uniscono</b> prima di contare (<see cref="Vipi.Application.Stats.CoverageGrid"/>):
+    /// tre controllori insieme fanno un'ora coperta, non tre.</para>
+    /// </summary>
+    Task<IReadOnlyList<CoverageCell>> CoverageAsync(int? userId, DateTimeOffset from, DateTimeOffset to,
+        CancellationToken ct = default);
+
+    /// <summary>Gli aeroporti del traffico gestito (partenze e arrivi insieme), dal più frequente.</summary>
+    Task<IReadOnlyList<StatsByKey>> TopAirportsAsync(int? userId, DateTimeOffset from, DateTimeOffset to,
+        int limit = 15, CancellationToken ct = default);
+
+    /// <summary>I tipi di aeromobile gestiti, dal più frequente.</summary>
+    Task<IReadOnlyList<StatsByKey>> TopAircraftAsync(int? userId, DateTimeOffset from, DateTimeOffset to,
+        int limit = 15, CancellationToken ct = default);
 }

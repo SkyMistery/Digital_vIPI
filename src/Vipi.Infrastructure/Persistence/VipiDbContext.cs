@@ -107,6 +107,7 @@ public class VipiDbContext : DbContext
     public DbSet<AtcSession> AtcSessions => Set<AtcSession>();
     public DbSet<AtcSessionTraffic> AtcSessionTraffic => Set<AtcSessionTraffic>();
     public DbSet<StatsSettings> StatsSettings => Set<StatsSettings>();
+    public DbSet<AtcSessionRunway> AtcSessionRunways => Set<AtcSessionRunway>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -478,6 +479,20 @@ public class VipiDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);   // potando le sessioni sparisce anche il loro traffico
 
             e.HasIndex(x => x.PilotCallsign);        // «dove ho volato io», e i controlli di doppio conteggio
+        });
+
+        b.Entity<AtcSessionRunway>(e =>
+        {
+            e.HasOne(x => x.Session).WithMany(x => x.Runways)
+                .HasForeignKey(x => x.SessionId).OnDelete(DeleteBehavior.Cascade);
+
+            // Si legge sempre «le configurazioni di QUESTA sessione, in ordine»: l'indice è quello.
+            e.HasIndex(x => new { x.SessionId, x.FromUtc });
+
+            // Corte per definizione: «16L/16R» è il caso lungo. Dichiarate per tutti i provider, come il
+            // resto delle statistiche: la tabella nasce adesso e non c'è nessun `text` da convertire.
+            e.Property(x => x.Arrival).HasMaxLength(32);
+            e.Property(x => x.Departure).HasMaxLength(32);
         });
 
         // --- Aree speciali/regolamentate importate dalla sorgente. L'appartenenza agli ACC è molti-a-molti

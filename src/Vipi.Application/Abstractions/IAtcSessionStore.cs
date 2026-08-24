@@ -36,4 +36,11 @@ public interface IAtcSessionStore
     /// del poller, così i due percorsi non possono dare risposte diverse.</para>
     /// </summary>
     Task<int> RecomputeShiftsAsync(DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default);
+
+    /// <summary>
+    /// Registra la configurazione di pista di una sessione, <b>solo se è cambiata</b> rispetto all'ultima.
+    /// Ritorna vero se ha scritto una riga.
+    /// </summary>
+    Task<bool> AppendRunwayAsync(long sessionId, string arrival, string departure, DateTimeOffset atUtc,
+        CancellationToken ct = default);
 }

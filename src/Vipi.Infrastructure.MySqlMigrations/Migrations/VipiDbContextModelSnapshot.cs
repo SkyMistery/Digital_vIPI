@@ -866,6 +866,39 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("AtcSessions");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcSessionRunway", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Arrival")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Departure")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime>("FromUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<long>("SessionId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionId", "FromUtc");
+
+                    b.ToTable("AtcSessionRunways");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AtcSessionTraffic", b =>
                 {
                     b.Property<long>("SessionId")
@@ -2291,6 +2324,17 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Navigation("Airport");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcSessionRunway", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.AtcSession", "Session")
+                        .WithMany("Runways")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AtcSessionTraffic", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.AtcSession", "Session")
@@ -2559,6 +2603,8 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
 
             modelBuilder.Entity("Vipi.Domain.Entities.AtcSession", b =>
                 {
+                    b.Navigation("Runways");
+
                     b.Navigation("Traffic");
                 });
 

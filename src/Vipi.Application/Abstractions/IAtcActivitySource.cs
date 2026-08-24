@@ -14,6 +14,8 @@ namespace Vipi.Application.Abstractions;
 /// <param name="StartUtc">Inizio della connessione.</param>
 /// <param name="ConnectedSeconds">Secondi di connessione dichiarati dalla sorgente: è la durata
 /// autorevole, più affidabile di una differenza calcolata da noi fra due istanti.</param>
+/// <param name="AtisLines">Righe dell'ATIS trasmesso, se ce n'è uno: da lì si leggono le piste in uso
+/// (misurato: la fotografia le porta per ogni ATC, e 48 su 71 nominano una pista).</param>
 public sealed record SourceAtcConnection(
     long SessionId,
     int UserId,
@@ -22,7 +24,8 @@ public sealed record SourceAtcConnection(
     string? Frequency,
     int Rating,
     DateTimeOffset StartUtc,
-    int ConnectedSeconds);
+    int ConnectedSeconds,
+    IReadOnlyList<string>? AtisLines = null);
 
 /// <summary>
 /// La posizione di un aeroplano in un istante, più quel che serve a capire <b>chi</b> è e <b>cosa</b> sta

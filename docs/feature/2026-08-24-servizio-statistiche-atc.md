@@ -677,6 +677,27 @@ Ordinato per **quanto costa il dato**, non per quanto è bella l'idea.
   ieri: un settore che non attribuisce traffico ora lo dice, invece di aspettare un occhio umano su una
   vista 3D.
 
+### ✅ Fatto (seguito, 25 agosto)
+
+- **La griglia ora × giorno**, per la divisione (copertura) e per la persona (quando controlli).
+  ⚠️ Due cose che sembrano dettagli: gli intervalli si **uniscono** prima di contare (tre controllori insieme
+  fanno un'ora coperta, non tre) e una sessione **occupa tutte le ore che attraversa** (20:40→23:10 non è
+  «alle 20»). E ⚠️ **la finestra si stringe al periodo di cui abbiamo davvero dati**: chiedere dodici mesi a
+  un archivio che ne contiene uno dava «2%» in ogni casella — vero, inutile e scoraggiante. Sul dato reale la
+  griglia dice quel che deve: coperto quasi al 100% dalle 9 alle 22 UTC, **vuoto dalle 0 alle 7**.
+- **I tuoi aeroporti e i tuoi aeroplani**: sul dato vero LIRF 6 · LIRN 5 · LICJ 4 · LIMF 4 · LFLL 3, e
+  A320 8 · B738 5. Un volo conta per **tutti e due** gli scali: la domanda è «quali aeroporti ti passano
+  davanti», non «da dove partivano».
+- **Esportazione CSV** (`/services/stats/export.csv`): solo le **proprie** sessioni, e il VID lo legge
+  dall'identità — un parametro qui vorrebbe dire «le statistiche di chiunque a chi ne indovina il numero».
+  Col BOM, o Excel apre gli accenti rotti.
+- **Le piste in uso, come sequenza.** `AtisRunways` legge la frase dell'ATIS che la fotografia già porta
+  («*Arrival runway 16L 16R departure runway 25*», «*Runway in use 04R*»); `AtcSessionRunway` conserva **una
+  riga per cambio**, non un valore. Una configurazione che torna (16 → 34 → 16) sono tre righe: la sequenza
+  racconta il turno. La **lettera** ATIS non si conserva: cambia a ogni bollettino e non dice niente sul
+  lavoro fatto. ⚠️ Verificato con i test contro il database vero e **non** dal vivo: a quell'ora non c'era
+  **nessun** ATC italiano online (0 su 444 piloti nella fotografia), quindi non c'era niente da registrare.
+
 ### Scelte dal committente, da fare
 
 - **Quando c'è il buco**: griglia ora × giorno della settimana per la divisione (dove manca copertura) e per

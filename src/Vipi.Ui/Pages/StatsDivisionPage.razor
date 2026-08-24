@@ -33,6 +33,10 @@
             <div class="choice"><h2 class="h-card">@(_totali?.Movements ?? 0)</h2><p class="muted">@L["Stats_Movements"]</p></div>
         </div>
 
+        <h2 class="h-sect">@L["Stats_Coverage"]</h2>
+        <p class="muted">@L["Stats_CoverageHint"]</p>
+        <CoverageHeatmap Celle="_griglia" Copertura="true" Titolo="@L["Stats_Coverage"].Value" />
+
         <div class="stats-cols">
             <section>
                 <h2 class="h-sect">@L["Stats_TopControllers"]</h2>
@@ -89,6 +93,7 @@
     private StatsTotals? _totali;
     private IReadOnlyList<ControllerRanking> _classifica = Array.Empty<ControllerRanking>();
     private IReadOnlyList<StatsByKey> _perPostazione = Array.Empty<StatsByKey>();
+    private IReadOnlyList<Vipi.Application.Stats.CoverageCell> _griglia = Array.Empty<Vipi.Application.Stats.CoverageCell>();
     private bool _pubblica;
     private bool _puoVedere;
     private DateTime? _deciso;
@@ -113,6 +118,7 @@
         _totali = await Stats.TotalsAsync(null, da, a);
         _classifica = await Stats.TopControllersAsync(da, a);
         _perPostazione = await Stats.ByPositionAsync(null, da, a);
+        _griglia = await Stats.CoverageAsync(null, da, a);
     }
 
     private async Task CambiaVisibilita(ChangeEventArgs e)
