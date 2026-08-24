@@ -23,15 +23,53 @@ public sealed class CoordinationSentenceTemplate
 
     /// <summary>
     /// Variante della frase per gli accordi in cui l'AUTORIZZAZIONE e il TRASFERIMENTO sono due eventi distinti
-    /// (tipicamente ACC→APP): «autorizza … via {point} {fl} e lo trasferisce a {target} {handoff} {handoffLevel}».
-    /// Scelta al posto di <see cref="Template"/> quando il punto porta una faccetta trasferimento; senza, non si
-    /// usa mai e le righe storiche restano parola per parola quelle di prima.
+    /// (tipicamente ACC→APP). Scelta al posto di <see cref="Template"/> quando il punto porta una faccetta
+    /// trasferimento; senza, non si usa mai.
     /// <para>Placeholder aggiuntivi: <c>{handoff}</c> (dove passa il controllo) e <c>{handoffLevel}</c> (a che
-    /// livello ci si arriva). È un template a sé e non una coda appesa perché cambia il VERBO della principale,
-    /// e il verbo non si può appendere.</para>
+    /// livello ci si arriva).</para>
+    /// <para><b>La testa è quella di <see cref="Template"/></b> — «{owner} trasferisce a {target} il traffico
+    /// {airport} …» — e l'autorizzazione la dice il PARTICIPIO che segue. Fino al 24 agosto 2026 questa frase
+    /// girava il verbo principale («{owner} autorizza … e lo trasferisce a {target} …»), e nella stessa tabella
+    /// due righe che dicono lo stesso accordo si aprivano in due modi diversi a seconda che portassero o no la
+    /// faccetta. Ora le quattro forme (× direzione, × faccetta) hanno tutte la stessa testa e la stessa coda: a
+    /// cambiare è solo il verbo, che è l'unica cosa che deve cambiare.</para>
+    /// <para>Niente parola prima di <c>{handoff}</c>, a differenza di <see cref="TemplateClearedReceive"/>: qui
+    /// il verbo principale è già «trasferisce», e «trasferisce … trasferito» balbetta.</para>
     /// </summary>
     public string TemplateCleared { get; init; } =
-        "{owner} autorizza il traffico {airport} via {point} {fl} e lo trasferisce a {target} {handoff} {handoffLevel} {stato}.";
+        "{owner} trasferisce a {target} il traffico {airport} autorizzato via {point} {fl}, {handoff} {handoffLevel} {stato}.";
+
+    // ---- Il verso ENTRANTE (24 agosto 2026) ----
+    //
+    // Un accordo si scrive UNA volta sola, dal lato di chi cede; il documento di chi riceve mostrava quelle
+    // stesse parole, cioè leggeva come il documento dell'altro («Zagreb Radar trasferisce a Brindisi Radar CS0
+    // il traffico…» dentro la vIPI di Brindisi).
+    //
+    // ⚠️ Gli SLOT NON CAMBIANO DI SIGNIFICATO: {owner} resta chi cede, {target} resta chi riceve. Qui cambia
+    // solo l'ORDINE DELLE PAROLE. Scambiare gli argomenti al chiamante avrebbe cambiato in silenzio la regola
+    // dei codici di posizione, che fra i due slot è asimmetrica (OmitTargetCode, in BuildData).
+    //
+    // La coda — aeroporto, stato, livello, punto, e poi condizione/velocità/comunicazioni appese dal composer —
+    // è VERBATIM quella del verso uscente: cambia la testa della frase, non il modo di dire l'accordo.
+
+    /// <summary>Frase distesa quando la riga ENTRA nell'ente del documento. Stessi placeholder di
+    /// <see cref="Template"/>, testa rovesciata: «{target} riceve da {owner} …».</summary>
+    public string TemplateReceive { get; init; } =
+        "{target} riceve da {owner} il traffico {airport} {stato} {fl} su {point}.";
+
+    /// <summary>Capofila del verso entrante: gemella di <see cref="TemplateLead"/>, senza livello né punto.</summary>
+    public string TemplateLeadReceive { get; init; } =
+        "{target} riceve da {owner} il traffico {airport} secondo la tabella seguente:";
+
+    /// <summary>
+    /// Verso entrante con la faccetta trasferimento (autorizzazione e trasferimento sono due eventi): gemella
+    /// di <see cref="TemplateCleared"/>, identica salvo il verbo.
+    /// <para>Qui il luogo del trasferimento porta «trasferito» davanti, che nella gemella uscente non c'è: là il
+    /// verbo principale è già «trasferisce», qui è «riceve» e senza quella parola il luogo resterebbe appeso.</para>
+    /// </summary>
+    public string TemplateClearedReceive { get; init; } =
+        "{target} riceve da {owner} il traffico {airport} autorizzato via {point} {fl}, trasferito {handoff} {handoffLevel} {stato}.";
+
     public string TargetWithCode { get; init; } = "{name} {code}";
     public string TargetNoCode { get; init; } = "{name}";
     /// <summary>Aeroporto neutro (senza relazione): fallback per flussi non arrivo/partenza. Placeholder {name} {icao}.</summary>
@@ -80,6 +118,13 @@ public sealed class CoordinationSentenceTemplate
     {
         Template = "{owner} transfers to {target} the traffic {airport} {stato} {fl} over {point}.",
         TemplateLead = "{owner} transfers to {target} the traffic {airport} as per the table below:",
+        // Il verso entrante non lo usa nessuna vLOA di oggi (due alberi separati, entrambi resi dalla parte di
+        // chi cede) — ma il template inglese è UNO SOLO, e lasciarlo monco vorrebbe dire una frase italiana
+        // dentro un documento bilaterale il giorno in cui una vLOA userà il verso entrante.
+        TemplateReceive = "{target} receives from {owner} the traffic {airport} {stato} {fl} over {point}.",
+        TemplateLeadReceive = "{target} receives from {owner} the traffic {airport} as per the table below:",
+        TemplateClearedReceive =
+            "{target} receives from {owner} the traffic {airport} cleared via {point} {fl}, transferred {handoff} {handoffLevel} {stato}.",
         AirportArrival = "inbound to {name} {icao}",
         AirportDeparture = "departing from {name} {icao}",
         Stato = new CoordinationSentenceState
@@ -128,7 +173,7 @@ public sealed class CoordinationSentenceTemplate
         },
         GroupWide = "in any case",
         TemplateCleared =
-            "{owner} clears the traffic {airport} via {point} {fl} and transfers it to {target} {handoff} {handoffLevel} {stato}.",
+            "{owner} transfers to {target} the traffic {airport} cleared via {point} {fl}, {handoff} {handoffLevel} {stato}.",
         FallbackMissingPoint = "—",
         FallbackAllPoints = "all points",
         FallbackAllToward = "all points toward {dest}",

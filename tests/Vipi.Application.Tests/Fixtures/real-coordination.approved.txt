@@ -5,10 +5,10 @@
    «Brindisi Radar ES trasferisce a Roma Radar NC il traffico con destinazione Pescara LIBP in discesa a livello 320 o livello inferiore pari su Y01-Y12.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBP
    cop=TOPNO 3A liv=FL160 next=LIBD_CS0_APP trasf=al confine dell'AoR livTrasf=passando FL140 com= vel= cond=04 gruppo=1/0
-   «Brindisi Radar ES autorizza il traffico con destinazione Pescara LIBP via TOPNO 3A a livello 160 e lo trasferisce a Brindisi Radar CS0 al confine dell'AoR passando FL140 con pista 04 in uso.»
+   «Brindisi Radar ES trasferisce a Brindisi Radar CS0 il traffico con destinazione Pescara LIBP autorizzato via TOPNO 3A a livello 160, al confine dell'AoR passando FL140 con pista 04 in uso.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBP
    cop=TOPNO 3A liv=FL180 next=LIBD_CS0_APP trasf=al confine dell'AoR livTrasf=passando FL140 com= vel= cond=04 · area Donald East gruppo=1/0
-   «Brindisi Radar ES autorizza il traffico con destinazione Pescara LIBP via TOPNO 3A a livello 180 e lo trasferisce a Brindisi Radar CS0 al confine dell'AoR passando FL140 con pista 04 in uso e Donald East attiva.»
+   «Brindisi Radar ES trasferisce a Brindisi Radar CS0 il traffico con destinazione Pescara LIBP autorizzato via TOPNO 3A a livello 180, al confine dell'AoR passando FL140 con pista 04 in uso e Donald East attiva.»
 >> LIBB_ES_CTR | LIRR_NC_CTR (Ctr) | Departure | LIBD
    cop=PISIP liv=FL140 next=LIRR_NC_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
    «Brindisi Radar ES trasferisce a Roma Radar NC il traffico in partenza da Bari Palese LIBD stabile a livello 140 su PISIP.»
@@ -140,97 +140,97 @@
    «Brindisi Radar ES trasferisce a Brindisi Radar CS0 il traffico con destinazione Bari Palese LIBD in discesa a livello 130 o livello inferiore su BIRSU con pista 25 in uso e LI R403B attiva.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBD
    cop=TOPNO liv=FL110 next=LIBD_CS0_APP trasf=al confine dell'AoR livTrasf= com= vel= cond=25 · area Donald West gruppo=1/0
-   «Brindisi Radar ES autorizza il traffico con destinazione Bari Palese LIBD via TOPNO a livello 110 e lo trasferisce a Brindisi Radar CS0 al confine dell'AoR stabile con pista 25 in uso e Donald West attiva.»
+   «Brindisi Radar ES trasferisce a Brindisi Radar CS0 il traffico con destinazione Bari Palese LIBD autorizzato via TOPNO a livello 110, al confine dell'AoR stabile con pista 25 in uso e Donald West attiva.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBD
    cop=TOPNO liv=FL110 next=LIBD_CS0_APP trasf=al confine dell'AoR livTrasf= com= vel= cond=07 gruppo=1/0
-   «Brindisi Radar ES autorizza il traffico con destinazione Bari Palese LIBD via TOPNO a livello 110 e lo trasferisce a Brindisi Radar CS0 al confine dell'AoR stabile con pista 07 in uso.»
+   «Brindisi Radar ES trasferisce a Brindisi Radar CS0 il traffico con destinazione Bari Palese LIBD autorizzato via TOPNO a livello 110, al confine dell'AoR stabile con pista 07 in uso.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBD
    cop=TOPNO liv=FL110 next=LIBD_CS0_APP trasf=al confine dell'AoR livTrasf= com= vel= cond= gruppo=1/0
-   «Brindisi Radar ES autorizza il traffico con destinazione Bari Palese LIBD via TOPNO a livello 110 e lo trasferisce a Brindisi Radar CS0 al confine dell'AoR stabile.»
+   «Brindisi Radar ES trasferisce a Brindisi Radar CS0 il traffico con destinazione Bari Palese LIBD autorizzato via TOPNO a livello 110, al confine dell'AoR stabile.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Overflight | —
    cop=TORPO liv=pari next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar trasferisce a Brindisi Radar ES il traffico stabile per un livello pari su TORPO.»
+   «Brindisi Radar ES riceve da Zagreb Radar il traffico stabile per un livello pari su TORPO.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Overflight | —
    cop=XAMIT liv=dispari next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar trasferisce a Brindisi Radar ES il traffico stabile per un livello dispari su XAMIT.»
+   «Brindisi Radar ES riceve da Zagreb Radar il traffico stabile per un livello dispari su XAMIT.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Overflight | —
    cop=VELUG liv=pari next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar trasferisce a Brindisi Radar ES il traffico stabile per un livello pari su VELUG.»
+   «Brindisi Radar ES riceve da Zagreb Radar il traffico stabile per un livello pari su VELUG.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Overflight | —
    cop=XOLTA liv=dispari next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar trasferisce a Brindisi Radar ES il traffico stabile per un livello dispari su XOLTA.»
+   «Brindisi Radar ES riceve da Zagreb Radar il traffico stabile per un livello dispari su XOLTA.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Overflight | —
    cop=KATTI liv=pari next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar trasferisce a Brindisi Radar ES il traffico stabile per un livello pari su KATTI.»
+   «Brindisi Radar ES riceve da Zagreb Radar il traffico stabile per un livello pari su KATTI.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Overflight | —
    cop=AIOSA liv=dispari next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar trasferisce a Brindisi Radar ES il traffico stabile per un livello dispari su AIOSA.»
+   «Brindisi Radar ES riceve da Zagreb Radar il traffico stabile per un livello dispari su AIOSA.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Overflight | —
    cop=GISAM liv=dispari next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar trasferisce a Brindisi Radar ES il traffico stabile per un livello dispari su GISAM.»
+   «Brindisi Radar ES riceve da Zagreb Radar il traffico stabile per un livello dispari su GISAM.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Overflight | —
    cop=BESIV liv=dispari next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar trasferisce a Brindisi Radar ES il traffico stabile per un livello dispari su BESIV.»
+   «Brindisi Radar ES riceve da Zagreb Radar il traffico stabile per un livello dispari su BESIV.»
 << LIBD_CS0_APP | LDZO_CTR (Ctr) | Arrival | LIBD
    cop=AIOSA liv=FL230 next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar trasferisce a Brindisi Radar CS0 il traffico con destinazione Bari Palese LIBD stabile a livello 230 su AIOSA.»
+   «Brindisi Radar CS0 riceve da Zagreb Radar il traffico con destinazione Bari Palese LIBD stabile a livello 230 su AIOSA.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Arrival | LIBD
    cop=BEVIS liv=dispari next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar trasferisce a Brindisi Radar ES il traffico con destinazione Bari Palese LIBD stabile per un livello dispari su BEVIS.»
+   «Brindisi Radar ES riceve da Zagreb Radar il traffico con destinazione Bari Palese LIBD stabile per un livello dispari su BEVIS.»
 << LIBD_CS0_APP | LDZO_CTR (Ctr) | Arrival | LIBR
    cop=AIOSA liv=FL250 next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar trasferisce a Brindisi Radar CS0 il traffico con destinazione Brindisi Casale LIBR stabile a livello 250 su AIOSA.»
+   «Brindisi Radar CS0 riceve da Zagreb Radar il traffico con destinazione Brindisi Casale LIBR stabile a livello 250 su AIOSA.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Arrival | LIBR
    cop=BEVIS liv=dispari next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar trasferisce a Brindisi Radar ES il traffico con destinazione Brindisi Casale LIBR stabile per un livello dispari su BEVIS.»
+   «Brindisi Radar ES riceve da Zagreb Radar il traffico con destinazione Brindisi Casale LIBR stabile per un livello dispari su BEVIS.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=OLGAT liv=pari next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West trasferisce a Brindisi Radar ES il traffico stabile per un livello pari su OLGAT.»
+   «Brindisi Radar ES riceve da Athinai Radar West il traffico stabile per un livello pari su OLGAT.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=TIGRA liv=pari next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West trasferisce a Brindisi Radar ES il traffico stabile per un livello pari su TIGRA.»
+   «Brindisi Radar ES riceve da Athinai Radar West il traffico stabile per un livello pari su TIGRA.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=NOSTO liv=pari next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West trasferisce a Brindisi Radar ES il traffico stabile per un livello pari su NOSTO.»
+   «Brindisi Radar ES riceve da Athinai Radar West il traffico stabile per un livello pari su NOSTO.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=LATAN liv=Pari (Nord) - Dispari (Sud) next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West trasferisce a Brindisi Radar ES il traffico stabile Pari (Nord) - Dispari (Sud) su LATAN.»
+   «Brindisi Radar ES riceve da Athinai Radar West il traffico stabile Pari (Nord) - Dispari (Sud) su LATAN.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=DINOB liv=dispari next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West trasferisce a Brindisi Radar ES il traffico stabile per un livello dispari su DINOB.»
+   «Brindisi Radar ES riceve da Athinai Radar West il traffico stabile per un livello dispari su DINOB.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=RUTOM liv=pari next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West trasferisce a Brindisi Radar ES il traffico stabile per un livello pari su RUTOM.»
+   «Brindisi Radar ES riceve da Athinai Radar West il traffico stabile per un livello pari su RUTOM.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=LORNO liv=pari next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West trasferisce a Brindisi Radar ES il traffico stabile per un livello pari su LORNO.»
+   «Brindisi Radar ES riceve da Athinai Radar West il traffico stabile per un livello pari su LORNO.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Arrival | LIBD
    cop=ALL liv=FL250 next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West trasferisce a Brindisi Radar ES il traffico con destinazione Bari Palese LIBD stabile a livello 250 su tutti i punti.»
+   «Brindisi Radar ES riceve da Athinai Radar West il traffico con destinazione Bari Palese LIBD stabile a livello 250 su tutti i punti.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Arrival | LIBR
    cop=ALL liv=FL230 next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West trasferisce a Brindisi Radar ES il traffico con destinazione Brindisi Casale LIBR stabile a livello 230 su tutti i punti.»
+   «Brindisi Radar ES riceve da Athinai Radar West il traffico con destinazione Brindisi Casale LIBR stabile a livello 230 su tutti i punti.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Arrival | LIBG
    cop=ALL liv=FL310 next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West trasferisce a Brindisi Radar ES il traffico con destinazione Taranto Grottaglie LIBG stabile a livello 310 su tutti i punti.»
+   «Brindisi Radar ES riceve da Athinai Radar West il traffico con destinazione Taranto Grottaglie LIBG stabile a livello 310 su tutti i punti.»
 << LIBB_ES_CTR | LYTV_APP (App) | Overflight | —
    cop=CRAYE liv=Nord(pari) - Sud (dispari) next=LYTV_APP trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Tivat Approach trasferisce a Brindisi Radar ES il traffico stabile Nord(pari) - Sud (dispari) su CRAYE.»
+   «Brindisi Radar ES riceve da Tivat Approach il traffico stabile Nord(pari) - Sud (dispari) su CRAYE.»
 << LIBB_ES_CTR | LYTV_APP (App) | Arrival | LIBD
    cop=CRAYE liv=FL190 next=LYTV_APP trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Tivat Approach trasferisce a Brindisi Radar ES il traffico con destinazione Bari Palese LIBD stabile a livello 190 su CRAYE.»
+   «Brindisi Radar ES riceve da Tivat Approach il traffico con destinazione Bari Palese LIBD stabile a livello 190 su CRAYE.»
 << LIBB_ES_CTR | LYTV_APP (App) | Arrival | LIBR
    cop=CRAYE liv=FL190 next=LYTV_APP trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Tivat Approach trasferisce a Brindisi Radar ES il traffico con destinazione Brindisi Casale LIBR stabile a livello 190 su CRAYE.»
+   «Brindisi Radar ES riceve da Tivat Approach il traffico con destinazione Brindisi Casale LIBR stabile a livello 190 su CRAYE.»
 << LIBB_ES_CTR | LAAA_CTR (Ctr) | Overflight | —
    cop=PAPIZ liv=Pari (Nord) -Dispari (Sud) next=LAAA_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Tirana Control trasferisce a Brindisi Radar ES il traffico Pari (Nord) -Dispari (Sud) su PAPIZ.»
+   «Brindisi Radar ES riceve da Tirana Control il traffico Pari (Nord) -Dispari (Sud) su PAPIZ.»
 << LIBB_ES_CTR | LAAA_CTR (Ctr) | Arrival | LIBR
    cop=PAPIZ liv=FL240 next=LAAA_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Tirana Control trasferisce a Brindisi Radar ES il traffico con destinazione Brindisi Casale LIBR stabile a livello 240 su PAPIZ.»
+   «Brindisi Radar ES riceve da Tirana Control il traffico con destinazione Brindisi Casale LIBR stabile a livello 240 su PAPIZ.»
 << LIBB_ES_CTR | LAAA_CTR (Ctr) | Arrival | LIBD
    cop=PAPIZ liv=FL280 next=LAAA_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Tirana Control trasferisce a Brindisi Radar ES il traffico con destinazione Bari Palese LIBD stabile a livello 280 su PAPIZ.»
+   «Brindisi Radar ES riceve da Tirana Control il traffico con destinazione Bari Palese LIBD stabile a livello 280 su PAPIZ.»
 --- albero ---
   settore CS0
     acc Zagreb-LDZO
@@ -279,52 +279,52 @@
 --- righe (16) ---
 << LIRR_NC_CTR | LIBB_ES_CTR (Ctr) | Arrival | LIBP
    cop=Y01-Y12 liv=FL320- ↓ (pari) next=LIBB_ES_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES trasferisce a Roma Radar NC il traffico con destinazione Pescara LIBP in discesa a livello 320 o livello inferiore pari su Y01-Y12.»
+   «Roma Radar NC riceve da Brindisi Radar ES il traffico con destinazione Pescara LIBP in discesa a livello 320 o livello inferiore pari su Y01-Y12.»
 << LIRR_NC_CTR | LIBB_ES_CTR (Ctr) | Departure | LIBD
    cop=PISIP liv=FL140 next=LIBB_ES_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES trasferisce a Roma Radar NC il traffico in partenza da Bari Palese LIBD stabile a livello 140 su PISIP.»
+   «Roma Radar NC riceve da Brindisi Radar ES il traffico in partenza da Bari Palese LIBD stabile a livello 140 su PISIP.»
 << LIRR_US_CTR | LIBB_ES_CTR (Ctr) | Arrival | LIRF
    cop=ASPIR liv=FL210- ↓ (dispari) next=LIBB_ES_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES trasferisce a Roma Radar US il traffico con destinazione Roma Fiumicino LIRF in discesa a livello 210 o livello inferiore dispari su ASPIR.»
+   «Roma Radar US riceve da Brindisi Radar ES il traffico con destinazione Roma Fiumicino LIRF in discesa a livello 210 o livello inferiore dispari su ASPIR.»
 << LIRR_US_CTR | LIBB_ES_CTR (Ctr) | Arrival | LIRA
    cop=ASPIR liv=FL210- ↓ (pari) next=LIBB_ES_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES trasferisce a Roma Radar US il traffico con destinazione Roma Ciampino LIRA in discesa a livello 210 o livello inferiore pari su ASPIR.»
+   «Roma Radar US riceve da Brindisi Radar ES il traffico con destinazione Roma Ciampino LIRA in discesa a livello 210 o livello inferiore pari su ASPIR.»
 << LIRR_US_CTR | LIBB_ES_CTR (Ctr) | Arrival | LIRU
    cop=ASPIR liv=FL210- ↓ (pari) next=LIBB_ES_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES trasferisce a Roma Radar US il traffico con destinazione Roma Urbe LIRU in discesa a livello 210 o livello inferiore pari su ASPIR.»
+   «Roma Radar US riceve da Brindisi Radar ES il traffico con destinazione Roma Urbe LIRU in discesa a livello 210 o livello inferiore pari su ASPIR.»
 << LIRR_US_CTR | LIBB_ES_CTR (Ctr) | Arrival | LIRE
    cop=ASPIR liv=FL210- ↓ (dispari) next=LIBB_ES_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES trasferisce a Roma Radar US il traffico con destinazione Pratica Di Mare LIRE in discesa a livello 210 o livello inferiore dispari su ASPIR.»
+   «Roma Radar US riceve da Brindisi Radar ES il traffico con destinazione Pratica Di Mare LIRE in discesa a livello 210 o livello inferiore dispari su ASPIR.»
 << LIRN_US0_APP | LIBB_ES_CTR (Ctr) | Arrival | LIRN
    cop=AMSOR liv=FL200- ↓ (pari) next=LIBB_ES_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES trasferisce a Roma Radar US0 il traffico con destinazione Napoli Capodichino LIRN in discesa a livello 200 o livello inferiore pari su AMSOR.»
+   «Roma Radar US0 riceve da Brindisi Radar ES il traffico con destinazione Napoli Capodichino LIRN in discesa a livello 200 o livello inferiore pari su AMSOR.»
 << LIRN_US0_APP | LIBB_ES_CTR (Ctr) | Arrival | LIRN
    cop=LUNAR liv=FL210- ↓ (dispari) next=LIBB_ES_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES trasferisce a Roma Radar US0 il traffico con destinazione Napoli Capodichino LIRN in discesa a livello 210 o livello inferiore dispari su LUNAR.»
+   «Roma Radar US0 riceve da Brindisi Radar ES il traffico con destinazione Napoli Capodichino LIRN in discesa a livello 210 o livello inferiore dispari su LUNAR.»
 << LIRR_TS_CTR | LIBB_ES_CTR (Ctr) | Arrival | LIRN
    cop=VEGAN liv=FL210- ↓ (dispari) next=LIBB_ES_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES trasferisce a Roma Radar TS il traffico con destinazione Napoli Capodichino LIRN in discesa a livello 210 o livello inferiore dispari su VEGAN.»
+   «Roma Radar TS riceve da Brindisi Radar ES il traffico con destinazione Napoli Capodichino LIRN in discesa a livello 210 o livello inferiore dispari su VEGAN.»
 << LIRR_TS_CTR | LIBB_ES_CTR (Ctr) | Arrival | LIRN
    cop=NILTO liv=FL260- ↓ (pari) next=LIBB_ES_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES trasferisce a Roma Radar TS il traffico con destinazione Napoli Capodichino LIRN in discesa a livello 260 o livello inferiore pari su NILTO.»
+   «Roma Radar TS riceve da Brindisi Radar ES il traffico con destinazione Napoli Capodichino LIRN in discesa a livello 260 o livello inferiore pari su NILTO.»
 << LIRN_US0_APP | LIBB_ES_CTR (Ctr) | Arrival | LIRI
    cop=LUNAR liv=FL210- ↓ (dispari) next=LIBB_ES_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES trasferisce a Roma Radar US0 il traffico con destinazione Salerno Pontecagnano LIRI in discesa a livello 210 o livello inferiore dispari su LUNAR.»
+   «Roma Radar US0 riceve da Brindisi Radar ES il traffico con destinazione Salerno Pontecagnano LIRI in discesa a livello 210 o livello inferiore dispari su LUNAR.»
 << LIRN_US0_APP | LIBB_ES_CTR (Ctr) | Arrival | LIRI
    cop=VEGAN liv=FL210- ↓ (pari) next=LIBB_ES_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES trasferisce a Roma Radar US0 il traffico con destinazione Salerno Pontecagnano LIRI in discesa a livello 210 o livello inferiore pari su VEGAN.»
+   «Roma Radar US0 riceve da Brindisi Radar ES il traffico con destinazione Salerno Pontecagnano LIRI in discesa a livello 210 o livello inferiore pari su VEGAN.»
 << LIRR_TS_CTR | LIBB_ES_CTR (Ctr) | Arrival | LIRI
    cop=NILTO liv=FL260- ↓ (dispari) next=LIBB_ES_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES trasferisce a Roma Radar TS il traffico con destinazione Salerno Pontecagnano LIRI in discesa a livello 260 o livello inferiore dispari su NILTO.»
+   «Roma Radar TS riceve da Brindisi Radar ES il traffico con destinazione Salerno Pontecagnano LIRI in discesa a livello 260 o livello inferiore dispari su NILTO.»
 << LIRR_ES_CTR | LIBB_ES_CTR (Ctr) | Arrival | LICA
    cop=LODPA liv=FL260- ↓ (dispari) next=LIBB_ES_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES trasferisce a Roma Radar ES il traffico con destinazione Lamezia Terme LICA in discesa a livello 260 o livello inferiore dispari su LODPA.»
+   «Roma Radar ES riceve da Brindisi Radar ES il traffico con destinazione Lamezia Terme LICA in discesa a livello 260 o livello inferiore dispari su LODPA.»
 << LICA_ES0_APP | LIBB_ES_CTR (Ctr) | Arrival | LICA
    cop=KOGEB liv=FL170- ↓ (dispari) next=LIBB_ES_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES trasferisce a Roma Radar ES0 il traffico con destinazione Lamezia Terme LICA in discesa a livello 170 o livello inferiore dispari su KOGEB.»
+   «Roma Radar ES0 riceve da Brindisi Radar ES il traffico con destinazione Lamezia Terme LICA in discesa a livello 170 o livello inferiore dispari su KOGEB.»
 << LICA_ES0_APP | LIBB_ES_CTR (Ctr) | Arrival | LICA
    cop=EKPAR liv=FL200 next=LIBB_ES_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Brindisi Radar ES trasferisce a Roma Radar ES0 il traffico con destinazione Lamezia Terme LICA stabile a livello 200 su EKPAR.»
+   «Roma Radar ES0 riceve da Brindisi Radar ES il traffico con destinazione Lamezia Terme LICA stabile a livello 200 su EKPAR.»
 --- albero ---
   settore ES
     acc Brindisi-LIBB
@@ -358,10 +358,10 @@
    «Brindisi Radar ES transfers to Roma Radar NC the traffic inbound to Pescara LIBP descending at level 320 or below (even) over Y01-Y12.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBP
    cop=TOPNO 3A liv=FL160 next=LIBD_CS0_APP trasf=at the AoR boundary livTrasf=passing FL140 com= vel= cond=04 gruppo=1/0
-   «Brindisi Radar ES clears the traffic inbound to Pescara LIBP via TOPNO 3A at level 160 and transfers it to Brindisi Radar CS0 at the AoR boundary passing FL140 with runway 04 in use.»
+   «Brindisi Radar ES transfers to Brindisi Radar CS0 the traffic inbound to Pescara LIBP cleared via TOPNO 3A at level 160, at the AoR boundary passing FL140 with runway 04 in use.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBP
    cop=TOPNO 3A liv=FL180 next=LIBD_CS0_APP trasf=at the AoR boundary livTrasf=passing FL140 com= vel= cond=04 · area Donald East gruppo=1/0
-   «Brindisi Radar ES clears the traffic inbound to Pescara LIBP via TOPNO 3A at level 180 and transfers it to Brindisi Radar CS0 at the AoR boundary passing FL140 with runway 04 in use and Donald East active.»
+   «Brindisi Radar ES transfers to Brindisi Radar CS0 the traffic inbound to Pescara LIBP cleared via TOPNO 3A at level 180, at the AoR boundary passing FL140 with runway 04 in use and Donald East active.»
 >> LIBB_ES_CTR | LIRR_NC_CTR (Ctr) | Departure | LIBD
    cop=PISIP liv=FL140 next=LIRR_NC_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
    «Brindisi Radar ES transfers to Roma Radar NC the traffic departing from Bari Palese LIBD level at level 140 over PISIP.»
@@ -493,97 +493,97 @@
    «Brindisi Radar ES transfers to Brindisi Radar CS0 the traffic inbound to Bari Palese LIBD descending at level 130 or below over BIRSU with runway 25 in use and LI R403B active.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBD
    cop=TOPNO liv=FL110 next=LIBD_CS0_APP trasf=at the AoR boundary livTrasf= com= vel= cond=25 · area Donald West gruppo=1/0
-   «Brindisi Radar ES clears the traffic inbound to Bari Palese LIBD via TOPNO at level 110 and transfers it to Brindisi Radar CS0 at the AoR boundary level with runway 25 in use and Donald West active.»
+   «Brindisi Radar ES transfers to Brindisi Radar CS0 the traffic inbound to Bari Palese LIBD cleared via TOPNO at level 110, at the AoR boundary level with runway 25 in use and Donald West active.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBD
    cop=TOPNO liv=FL110 next=LIBD_CS0_APP trasf=at the AoR boundary livTrasf= com= vel= cond=07 gruppo=1/0
-   «Brindisi Radar ES clears the traffic inbound to Bari Palese LIBD via TOPNO at level 110 and transfers it to Brindisi Radar CS0 at the AoR boundary level with runway 07 in use.»
+   «Brindisi Radar ES transfers to Brindisi Radar CS0 the traffic inbound to Bari Palese LIBD cleared via TOPNO at level 110, at the AoR boundary level with runway 07 in use.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBD
    cop=TOPNO liv=FL110 next=LIBD_CS0_APP trasf=at the AoR boundary livTrasf= com= vel= cond= gruppo=1/0
-   «Brindisi Radar ES clears the traffic inbound to Bari Palese LIBD via TOPNO at level 110 and transfers it to Brindisi Radar CS0 at the AoR boundary level.»
+   «Brindisi Radar ES transfers to Brindisi Radar CS0 the traffic inbound to Bari Palese LIBD cleared via TOPNO at level 110, at the AoR boundary level.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Overflight | —
    cop=TORPO liv=even next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar transfers to Brindisi Radar ES the traffic level for an even level over TORPO.»
+   «Brindisi Radar ES receives from Zagreb Radar the traffic level for an even level over TORPO.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Overflight | —
    cop=XAMIT liv=odd next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar transfers to Brindisi Radar ES the traffic level for an odd level over XAMIT.»
+   «Brindisi Radar ES receives from Zagreb Radar the traffic level for an odd level over XAMIT.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Overflight | —
    cop=VELUG liv=even next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar transfers to Brindisi Radar ES the traffic level for an even level over VELUG.»
+   «Brindisi Radar ES receives from Zagreb Radar the traffic level for an even level over VELUG.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Overflight | —
    cop=XOLTA liv=odd next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar transfers to Brindisi Radar ES the traffic level for an odd level over XOLTA.»
+   «Brindisi Radar ES receives from Zagreb Radar the traffic level for an odd level over XOLTA.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Overflight | —
    cop=KATTI liv=even next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar transfers to Brindisi Radar ES the traffic level for an even level over KATTI.»
+   «Brindisi Radar ES receives from Zagreb Radar the traffic level for an even level over KATTI.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Overflight | —
    cop=AIOSA liv=odd next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar transfers to Brindisi Radar ES the traffic level for an odd level over AIOSA.»
+   «Brindisi Radar ES receives from Zagreb Radar the traffic level for an odd level over AIOSA.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Overflight | —
    cop=GISAM liv=odd next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar transfers to Brindisi Radar ES the traffic level for an odd level over GISAM.»
+   «Brindisi Radar ES receives from Zagreb Radar the traffic level for an odd level over GISAM.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Overflight | —
    cop=BESIV liv=odd next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar transfers to Brindisi Radar ES the traffic level for an odd level over BESIV.»
+   «Brindisi Radar ES receives from Zagreb Radar the traffic level for an odd level over BESIV.»
 << LIBD_CS0_APP | LDZO_CTR (Ctr) | Arrival | LIBD
    cop=AIOSA liv=FL230 next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar transfers to Brindisi Radar CS0 the traffic inbound to Bari Palese LIBD level at level 230 over AIOSA.»
+   «Brindisi Radar CS0 receives from Zagreb Radar the traffic inbound to Bari Palese LIBD level at level 230 over AIOSA.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Arrival | LIBD
    cop=BEVIS liv=odd next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar transfers to Brindisi Radar ES the traffic inbound to Bari Palese LIBD level for an odd level over BEVIS.»
+   «Brindisi Radar ES receives from Zagreb Radar the traffic inbound to Bari Palese LIBD level for an odd level over BEVIS.»
 << LIBD_CS0_APP | LDZO_CTR (Ctr) | Arrival | LIBR
    cop=AIOSA liv=FL250 next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar transfers to Brindisi Radar CS0 the traffic inbound to Brindisi Casale LIBR level at level 250 over AIOSA.»
+   «Brindisi Radar CS0 receives from Zagreb Radar the traffic inbound to Brindisi Casale LIBR level at level 250 over AIOSA.»
 << LIBB_ES_CTR | LDZO_CTR (Ctr) | Arrival | LIBR
    cop=BEVIS liv=odd next=LDZO_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Zagreb Radar transfers to Brindisi Radar ES the traffic inbound to Brindisi Casale LIBR level for an odd level over BEVIS.»
+   «Brindisi Radar ES receives from Zagreb Radar the traffic inbound to Brindisi Casale LIBR level for an odd level over BEVIS.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=OLGAT liv=even next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West transfers to Brindisi Radar ES the traffic level for an even level over OLGAT.»
+   «Brindisi Radar ES receives from Athinai Radar West the traffic level for an even level over OLGAT.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=TIGRA liv=even next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West transfers to Brindisi Radar ES the traffic level for an even level over TIGRA.»
+   «Brindisi Radar ES receives from Athinai Radar West the traffic level for an even level over TIGRA.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=NOSTO liv=even next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West transfers to Brindisi Radar ES the traffic level for an even level over NOSTO.»
+   «Brindisi Radar ES receives from Athinai Radar West the traffic level for an even level over NOSTO.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=LATAN liv=Pari (Nord) - Dispari (Sud) next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West transfers to Brindisi Radar ES the traffic level Pari (Nord) - Dispari (Sud) over LATAN.»
+   «Brindisi Radar ES receives from Athinai Radar West the traffic level Pari (Nord) - Dispari (Sud) over LATAN.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=DINOB liv=odd next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West transfers to Brindisi Radar ES the traffic level for an odd level over DINOB.»
+   «Brindisi Radar ES receives from Athinai Radar West the traffic level for an odd level over DINOB.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=RUTOM liv=even next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West transfers to Brindisi Radar ES the traffic level for an even level over RUTOM.»
+   «Brindisi Radar ES receives from Athinai Radar West the traffic level for an even level over RUTOM.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Overflight | —
    cop=LORNO liv=even next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West transfers to Brindisi Radar ES the traffic level for an even level over LORNO.»
+   «Brindisi Radar ES receives from Athinai Radar West the traffic level for an even level over LORNO.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Arrival | LIBD
    cop=ALL liv=FL250 next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West transfers to Brindisi Radar ES the traffic inbound to Bari Palese LIBD level at level 250 over all points.»
+   «Brindisi Radar ES receives from Athinai Radar West the traffic inbound to Bari Palese LIBD level at level 250 over all points.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Arrival | LIBR
    cop=ALL liv=FL230 next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West transfers to Brindisi Radar ES the traffic inbound to Brindisi Casale LIBR level at level 230 over all points.»
+   «Brindisi Radar ES receives from Athinai Radar West the traffic inbound to Brindisi Casale LIBR level at level 230 over all points.»
 << LIBB_ES_CTR | LGGG_W_CTR (Ctr) | Arrival | LIBG
    cop=ALL liv=FL310 next=LGGG_W_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Athinai Radar West transfers to Brindisi Radar ES the traffic inbound to Taranto Grottaglie LIBG level at level 310 over all points.»
+   «Brindisi Radar ES receives from Athinai Radar West the traffic inbound to Taranto Grottaglie LIBG level at level 310 over all points.»
 << LIBB_ES_CTR | LYTV_APP (App) | Overflight | —
    cop=CRAYE liv=Nord(pari) - Sud (dispari) next=LYTV_APP trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Tivat Approach transfers to Brindisi Radar ES the traffic level Nord(pari) - Sud (dispari) over CRAYE.»
+   «Brindisi Radar ES receives from Tivat Approach the traffic level Nord(pari) - Sud (dispari) over CRAYE.»
 << LIBB_ES_CTR | LYTV_APP (App) | Arrival | LIBD
    cop=CRAYE liv=FL190 next=LYTV_APP trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Tivat Approach transfers to Brindisi Radar ES the traffic inbound to Bari Palese LIBD level at level 190 over CRAYE.»
+   «Brindisi Radar ES receives from Tivat Approach the traffic inbound to Bari Palese LIBD level at level 190 over CRAYE.»
 << LIBB_ES_CTR | LYTV_APP (App) | Arrival | LIBR
    cop=CRAYE liv=FL190 next=LYTV_APP trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Tivat Approach transfers to Brindisi Radar ES the traffic inbound to Brindisi Casale LIBR level at level 190 over CRAYE.»
+   «Brindisi Radar ES receives from Tivat Approach the traffic inbound to Brindisi Casale LIBR level at level 190 over CRAYE.»
 << LIBB_ES_CTR | LAAA_CTR (Ctr) | Overflight | —
    cop=PAPIZ liv=Pari (Nord) -Dispari (Sud) next=LAAA_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Tirana Control transfers to Brindisi Radar ES the traffic Pari (Nord) -Dispari (Sud) over PAPIZ.»
+   «Brindisi Radar ES receives from Tirana Control the traffic Pari (Nord) -Dispari (Sud) over PAPIZ.»
 << LIBB_ES_CTR | LAAA_CTR (Ctr) | Arrival | LIBR
    cop=PAPIZ liv=FL240 next=LAAA_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Tirana Control transfers to Brindisi Radar ES the traffic inbound to Brindisi Casale LIBR level at level 240 over PAPIZ.»
+   «Brindisi Radar ES receives from Tirana Control the traffic inbound to Brindisi Casale LIBR level at level 240 over PAPIZ.»
 << LIBB_ES_CTR | LAAA_CTR (Ctr) | Arrival | LIBD
    cop=PAPIZ liv=FL280 next=LAAA_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
-   «Tirana Control transfers to Brindisi Radar ES the traffic inbound to Bari Palese LIBD level at level 280 over PAPIZ.»
+   «Brindisi Radar ES receives from Tirana Control the traffic inbound to Bari Palese LIBD level at level 280 over PAPIZ.»
 --- albero ---
   settore CS0
     acc Zagreb-LDZO

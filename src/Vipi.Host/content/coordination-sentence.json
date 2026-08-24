@@ -1,6 +1,7 @@
 {
   "CoordinationSentence": {
     "template": "{owner} trasferisce a {target} il traffico {airport} {stato} {fl} su {point}.",
+    "templateReceive": "{target} riceve da {owner} il traffico {airport} {stato} {fl} su {point}.",
     "targetWithCode": "{name} {code}",
     "targetNoCode": "{name}",
     "airport": "{name} {icao}",

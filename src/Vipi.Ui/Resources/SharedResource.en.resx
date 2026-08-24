@@ -333,6 +333,8 @@
   <data name="Coord_Speed" xml:space="preserve"><value>Speed</value></data>
   <data name="Coord_Prose" xml:space="preserve"><value>Full text ({0} sentences)</value></data>
   <data name="Coord_Prose_One" xml:space="preserve"><value>Full text ({0} sentence)</value></data>
+  <data name="Coord_WeHandOver" xml:space="preserve"><value>we hand over</value></data>
+  <data name="Coord_WeReceive" xml:space="preserve"><value>we receive</value></data>
   <data name="Xfer_Handoff" xml:space="preserve"><value>Where control passes</value></data>
   <data name="Xfer_HandoffTitle" xml:space="preserve"><value>Where control passes, when it is not the entry point (ACC→APP agreements)</value></data>
   <data name="Xfer_HandoffNone" xml:space="preserve"><value>same as entry</value></data>

@@ -155,8 +155,7 @@ public class CoordTableTests : TestContext
         // Le vLOA sono in inglese a prescindere dalla cultura della pagina: il localizer qui non deve entrarci.
         var t = RenderComponent<CoordTable>(p => p
             .Add(x => x.Rows, new[] { Plain() with { Speed = "at 250 kt or less" } })
-            .Add(x => x.English, true)
-            .Add(x => x.LastColHeader, "Next"));
+            .Add(x => x.English, true));
 
         var headers = t.FindAll("thead th").Select(th => th.TextContent).ToList();
         Assert.Contains("Speed", headers);
@@ -246,5 +245,108 @@ public class CoordTableTests : TestContext
 
         Assert.Empty(cut.FindAll("details.coord-prose"));
         Assert.Equal("Partenze", cut.Find("p.coord-kind").TextContent);
+    }
+
+    // ---- il verso: chi cede e chi riceve (24 agosto 2026) ----
+    //
+    // L'albero dei coordinamenti raggruppa per settore → ACC → aeroporto/tipo, e la direzione non è una chiave
+    // di raggruppamento: un nodo può portare i due versi insieme. Misurato sui flussi veri: «Sorvoli · Zagabria»
+    // del blocco LIBB porta 8 righe entranti e 6 uscenti.
+
+    private static AppCoordRow Incoming(string cop = "AIOSA") =>
+        Plain(cop) with { IsIncoming = true };
+
+    [Fact]
+    public void An_outgoing_only_table_is_untouched()
+    {
+        // L'invariante che protegge le tabelle già pubblicate: dove il verso è uno solo non cambia niente,
+        // intestazione compresa.
+        var cut = Render(Plain("VALMA"), Plain("PISIP"));
+
+        Assert.Single(cut.FindAll("table.coord-table"));
+        Assert.Equal("AppCoord_Next", cut.FindAll("thead th").Last().TextContent);
+    }
+
+    [Fact]
+    public void An_incoming_only_table_says_who_hands_the_traffic_over()
+    {
+        // La cella porta chi CONSEGNA: sotto «Prossimo» diceva il contrario di quello che c'è scritto.
+        var cut = Render(Incoming("AIOSA"), Incoming("BEVIS"));
+
+        Assert.Single(cut.FindAll("table.coord-table"));
+        Assert.Equal("AppCoord_From", cut.FindAll("thead th").Last().TextContent);
+    }
+
+    [Fact]
+    public void A_mixed_node_splits_into_two_tables_one_per_direction()
+    {
+        var cut = Render(Plain("VALMA"), Incoming("AIOSA"), Plain("PISIP"));
+
+        var tabelle = cut.FindAll("table.coord-table").ToList();
+        Assert.Equal(2, tabelle.Count);
+
+        // Prima ciò che cediamo, poi ciò che riceviamo, ognuna con la propria intestazione.
+        Assert.Equal("AppCoord_Next", tabelle[0].QuerySelectorAll("thead th").Last().TextContent);
+        Assert.Equal("AppCoord_From", tabelle[1].QuerySelectorAll("thead th").Last().TextContent);
+
+        // Le righe non si mescolano: due uscenti nella prima, una entrante nella seconda.
+        Assert.Equal(2, tabelle[0].QuerySelectorAll("tbody tr").Length);
+        Assert.Single(tabelle[1].QuerySelectorAll("tbody tr"));
+    }
+
+    [Fact]
+    public void A_split_node_names_the_two_directions_in_the_existing_title_row()
+    {
+        // Il titolo sta già dentro il cartiglio della prosa: la parola del verso non si prende una riga per sé,
+        // e il taglio costa UNA riga in tutto — il secondo <summary>.
+        var cut = RenderComponent<CoordTable>(p => p
+            .Add(x => x.Rows, new[] { Said("VALMA", 1, "Cediamo."), Said("AIOSA", 2, "Riceviamo.") with { IsIncoming = true } })
+            .Add(x => x.Title, "Arrivi"));
+
+        var titoli = cut.FindAll("details.coord-prose > summary .coord-kind").Select(x => x.TextContent).ToList();
+        Assert.Equal(new[] { "Arrivi · Coord_WeHandOver", "Arrivi · Coord_WeReceive" }, titoli);
+        Assert.Empty(cut.FindAll("p.coord-kind"));   // nessun paragrafo di titolo in più
+    }
+
+    [Fact]
+    public void Without_a_title_the_direction_word_stands_alone_capitalised()
+    {
+        // I nodi «Sorvoli» hanno già il nome nel proprio <summary> e non passano un titolo: lì la parola del
+        // verso è tutto il titolo, e deve leggersi come tale.
+        var cut = RenderComponent<CoordTable>(p => p
+            .Add(x => x.Rows, new[] { Said("VALMA", 1, "Cediamo."), Said("AIOSA", 2, "Riceviamo.") with { IsIncoming = true } })
+            .Add(x => x.English, true));
+
+        var titoli = cut.FindAll("details.coord-prose > summary .coord-kind").Select(x => x.TextContent).ToList();
+        Assert.Equal(new[] { "We hand over", "We receive" }, titoli);
+    }
+
+    [Fact]
+    public void Each_direction_computes_its_own_optional_columns()
+    {
+        // Le colonne si mostrano per presenza di dati, e la presenza è quella della SEZIONE: una colonna che
+        // riempiono solo le righe entranti comparirebbe vuota in tutta la tabella delle uscenti.
+        var cut = Render(Plain("VALMA"), Incoming("AIOSA") with { Speed = "a 250 kt o inferiore" });
+
+        var tabelle = cut.FindAll("table.coord-table").ToList();
+        Assert.DoesNotContain("Coord_Speed", tabelle[0].QuerySelectorAll("thead th").Select(th => th.TextContent));
+        Assert.Contains("Coord_Speed", tabelle[1].QuerySelectorAll("thead th").Select(th => th.TextContent));
+    }
+
+    [Fact]
+    public void Each_direction_gets_its_own_lead_sentence()
+    {
+        // La capofila introduce la tabella: una sola per un nodo misto ne annuncerebbe un verso e mentirebbe
+        // sull'altro.
+        var cut = RenderComponent<CoordTable>(p => p
+            .Add(x => x.Rows, new[]
+            {
+                Said("VALMA", 1, "Distesa uscente.", "TS trasferisce a ES."),
+                Said("AIOSA", 2, "Distesa entrante.", "TS riceve da ES.") with { IsIncoming = true },
+            })
+            .Add(x => x.LeadSentence, true));
+
+        Assert.Equal(new[] { "TS trasferisce a ES.", "TS riceve da ES." },
+                     cut.FindAll("p.coord-sentence").Select(x => x.TextContent));
     }
 }

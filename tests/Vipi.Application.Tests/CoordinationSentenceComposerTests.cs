@@ -363,16 +363,35 @@ public class CoordinationSentenceComposerTests
     }
 
     [Fact]
-    public void Handoff_switches_the_verb_and_says_both_levels()
+    public void Handoff_says_both_levels_without_changing_the_head()
     {
         // Il caso portato dal committente: autorizzato a un livello, trasferito passandone un altro.
         var s = Compose("LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.AtOrAbove, 160, "CHI",
             vstate: TransferVerticalState.Descending,
             facet: Facet(TransferHandoffKind.AorBoundary, level: 110));
 
+        // ⚠️ La TESTA è quella della frase breve — «X trasferisce a Y il traffico Z …» — e l'autorizzazione la
+        // dice il participio. Fino al 24 agosto 2026 la faccetta girava anche il verbo principale, e nella
+        // stessa tabella due righe dello stesso accordo si aprivano in due modi diversi.
         Assert.Equal(
-            "Roma Radar NE autorizza il traffico con destinazione Pisa - San Giusto LIRP via CHI a livello 160 " +
-            "o livello superiore e lo trasferisce a Pisa Approach US0 al confine dell'AoR passando FL110 in discesa.", s);
+            "Roma Radar NE trasferisce a Pisa Approach US0 il traffico con destinazione Pisa - San Giusto LIRP " +
+            "autorizzato via CHI a livello 160 o livello superiore, al confine dell'AoR passando FL110 in discesa.", s);
+    }
+
+    [Fact]
+    public void The_two_directions_differ_only_by_the_verb()
+    {
+        // La ragione per cui la forma con faccetta è stata riscritta: chi cede e chi riceve devono leggere la
+        // STESSA frase col verbo girato, non due frasi costruite in modo diverso.
+        string? S(bool incoming) => CoordinationSentences.Compose(Tpl, Types, Names, Codes, Airports, Atc,
+            "LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.AtOrBelow, 120, LevelUnit.Fl, null, LevelParity.Any,
+            "CHI", TransferFlowKind.Arrival, facet: Facet(TransferHandoffKind.AorBoundary, level: 50),
+            isIncoming: incoming);
+
+        const string coda = "il traffico con destinazione Pisa - San Giusto LIRP autorizzato via CHI "
+                          + "a livello 120 o livello inferiore, ";
+        Assert.Equal($"Roma Radar NE trasferisce a Pisa Approach US0 {coda}al confine dell'AoR passando FL50.", S(false));
+        Assert.Equal($"Pisa Approach US0 riceve da Roma Radar NE {coda}trasferito al confine dell'AoR passando FL50.", S(true));
     }
 
     [Fact]
@@ -380,7 +399,8 @@ public class CoordinationSentenceComposerTests
     {
         var s = Compose("LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.Exact, 160, "CHI",
             facet: Facet(TransferHandoffKind.Point, label: "AVN", level: 110));
-        Assert.Contains("e lo trasferisce a Pisa Approach US0 su AVN passando FL110.", s);
+        Assert.Contains("Roma Radar NE trasferisce a Pisa Approach US0 il traffico", s);
+        Assert.EndsWith("su AVN passando FL110.", s);
     }
 
     [Fact]
@@ -418,7 +438,8 @@ public class CoordinationSentenceComposerTests
     {
         var s = Compose("LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.Exact, 160, "CHI",
             facet: Facet(TransferHandoffKind.Point, label: null, level: 110));
-        Assert.Contains("e lo trasferisce a Pisa Approach US0 passando FL110.", s);
+        // Il luogo sparisce, la virgola che lo precedeva regge il livello: «… a livello 160, passando FL110.»
+        Assert.EndsWith("il traffico con destinazione Pisa - San Giusto LIRP autorizzato via CHI a livello 160, passando FL110.", s);
     }
 
     [Fact]
@@ -446,8 +467,8 @@ public class CoordinationSentenceComposerTests
                 speed: 250, speedConstraint: SpeedConstraint.AtOrBelow));
 
         Assert.Equal(
-            "Roma Radar NE clears the traffic inbound to Pisa - San Giusto LIRP via CHI at level 160 or above " +
-            "and transfers it to Pisa Approach US0 at the AoR boundary passing FL110 descending, " +
+            "Roma Radar NE transfers to Pisa Approach US0 the traffic inbound to Pisa - San Giusto LIRP " +
+            "cleared via CHI at level 160 or above, at the AoR boundary passing FL110 descending, " +
             "at 250 kt or less, communications over AVN.", s);
     }
 }

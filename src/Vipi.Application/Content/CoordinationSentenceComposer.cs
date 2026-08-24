@@ -37,10 +37,18 @@ public sealed record CoordinationSentenceData
     /// frase dice l'intera condizione sotto cui l'accordo vale.</summary>
     public IReadOnlyList<ConditionClause> Conditions { get; init; } = Array.Empty<ConditionClause>();
 
-    /// <summary>Faccetta trasferimento: quando c'è, la frase cambia forma («autorizza … e lo trasferisce»)
-    /// invece di limitarsi ad allungarsi. <see cref="TransferHandoffFacet.None"/> ⇒ frase identica a prima,
-    /// parola per parola.</summary>
+    /// <summary>Faccetta trasferimento: quando c'è, la frase dice l'autorizzazione col participio e aggiunge il
+    /// luogo del trasferimento («… il traffico X autorizzato via P a livello N, al confine dell'AoR passando
+    /// FL110»). Cambia template, non testa: vedi <see cref="CoordinationSentenceTemplate.TemplateCleared"/>.
+    /// <see cref="TransferHandoffFacet.None"/> ⇒ la forma breve.</summary>
     public TransferHandoffFacet Facet { get; init; } = TransferHandoffFacet.None;
+
+    /// <summary>
+    /// La frase si dice dalla parte di CHI RICEVE («{target} riceve da {owner} …») invece che di chi cede.
+    /// <para>⚠️ Non ribalta gli slot: <see cref="OwnerName"/> resta chi cede e <see cref="TargetName"/> chi
+    /// riceve. Sceglie solo un altro template, cioè un altro ordine delle parole.</para>
+    /// </summary>
+    public bool IsIncoming { get; init; }
 }
 
 /// <summary>Compone la frase di coordinamento sostituendo i placeholder del template. Funzione pura.</summary>
@@ -54,7 +62,7 @@ public static class CoordinationSentenceComposer
     /// quindi la lingua resta una sola e le vLOA la ottengono in inglese senza codice dedicato.</para>
     /// </summary>
     public static string ComposeLead(CoordinationSentenceTemplate tpl, CoordinationSentenceData d) =>
-        Normalize(tpl.TemplateLead
+        Normalize((d.IsIncoming ? tpl.TemplateLeadReceive : tpl.TemplateLead)
             .Replace("{owner}", d.OwnerName)
             .Replace("{target}", Target(tpl, d))
             .Replace("{airport}", Airport(tpl, d)));
@@ -76,10 +84,22 @@ public static class CoordinationSentenceComposer
         var airport = Airport(tpl, d);
         var point = ResolvePoint((d.Point ?? "").Trim(), tpl);
 
-        // Con una faccetta trasferimento la frase cambia VERBO («autorizza … e lo trasferisce»), quindi cambia
-        // template. Senza, resta la forma storica: è ciò che tiene identiche le righe ACC↔ACC già scritte.
+        // Due dimensioni indipendenti, quindi quattro template e non due `if` annidati:
+        //   DIREZIONE — chi cede dice «trasferisce a», chi riceve «riceve da». Cambia il VERBO;
+        //   FACCETTA  — col trasferimento distinto l'autorizzazione si dice col participio e si aggiunge il
+        //               luogo («… autorizzato via P a livello N, al confine dell'AoR passando FL110»).
+        // ⚠️ Le quattro forme hanno la STESSA TESTA e la STESSA CODA. Fino al 24 agosto 2026 la faccetta girava
+        // anche il verbo principale («{owner} autorizza … e lo trasferisce a {target}»), e nella stessa tabella
+        // due righe dello stesso accordo si aprivano in due modi diversi a seconda che la portassero o no.
         var hasHandoff = d.Facet.Kind != TransferHandoffKind.Unspecified;
-        var s = (hasHandoff ? tpl.TemplateCleared : tpl.Template)
+        var template = (hasHandoff, d.IsIncoming) switch
+        {
+            (true, true) => tpl.TemplateClearedReceive,
+            (true, false) => tpl.TemplateCleared,
+            (false, true) => tpl.TemplateReceive,
+            (false, false) => tpl.Template,
+        };
+        var s = template
             .Replace("{owner}", d.OwnerName)
             .Replace("{target}", target)
             .Replace("{airport}", airport)
@@ -313,7 +333,10 @@ public static class CoordinationSentences
         // della riga che la ospita, o la frase perde metà del proprio significato.
         IReadOnlyList<ConditionClause>? conditions = null,
         TransferVerticalState verticalState = TransferVerticalState.Unspecified,
-        TransferHandoffFacet? facet = null)
+        TransferHandoffFacet? facet = null,
+        // In coda e facoltativo: l'anteprima dell'editor e la vLOA compongono sempre dal lato di chi cede —
+        // nell'editor si sta scrivendo l'accordo da quel lato, e la vLOA ha due alberi separati per verso.
+        bool isIncoming = false)
     {
         facet ??= TransferHandoffFacet.None;
         // Chi trasferisce, a chi, su quale aeroporto: la parte che non dipende dalla riga. null = dati
@@ -333,6 +356,7 @@ public static class CoordinationSentences
             Point = cop,
             Conditions = conditions ?? Array.Empty<ConditionClause>(),
             Facet = facet,
+            IsIncoming = isIncoming,
         });
     }
 
@@ -405,11 +429,11 @@ public static class CoordinationSentences
         IReadOnlyDictionary<string, string> airportMap,
         IReadOnlyDictionary<string, string> atcMap,
         string ownerCallsign, string targetCallsign, string? airportIcao,
-        TransferFlowKind kind)
+        TransferFlowKind kind, bool isIncoming = false)
     {
         var d = BuildData(tpl, types, nameMap, codeMap, airportMap, atcMap,
             ownerCallsign, targetCallsign, airportIcao, kind);
-        return d is null ? null : CoordinationSentenceComposer.ComposeLead(tpl, d);
+        return d is null ? null : CoordinationSentenceComposer.ComposeLead(tpl, d with { IsIncoming = isIncoming });
     }
 
     // Nome base: AtcCallsign IVAO (es. «Pisa Approach»), altrimenti Sector.Name se risolto (≠ callsign),

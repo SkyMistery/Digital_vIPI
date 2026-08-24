@@ -8,125 +8,129 @@
    due livelli deve poterli avere.
 
    Varianti: le righe dello stesso gruppo (stesso flusso + stesso numero) sono alternative dello stesso accordo.
-   Si rendono insieme, con CoP e ricevente scritti una volta sola in rowspan: quello che resta per riga È il
+   Si rendono insieme, con CoP e controparte scritti una volta sola in rowspan: quello che resta per riga È il
    delta, ed è quello che il lettore deve confrontare. La riga «negli altri casi» va sempre in fondo al gruppo.
 
    ⚠️ RICHIUSURA DEI PUNTI (16 agosto 2026). Una clausola può valere su più punti, e l'espansione la apre in
    una riga per punto — perché è la lettura giusta per il matcher Aurora e per la vista live, dove ogni punto è
    un candidato a sé. In tabella no: sette righe identiche tranne il fix sono sette righe da confrontare per
    scoprire che non c'è niente da confrontare. Le righe che vengono dalla stessa clausola tornano UNA, con i
-   punti in elenco. *@
+   punti in elenco.
+
+   SEZIONI (24 agosto 2026). Il componente rende UNA SEZIONE PER VERSO: vedi Sections(). Tutto ciò che segue è
+   scritto per la sezione corrente (`sec`), non per l'intero `Rows`. *@
 @inject IStringLocalizer<SharedResource> L
 
-@{
-    var blocks = Blocks();
-    var hasCond = Rows.Any(x => !string.IsNullOrWhiteSpace(x.ConditionLabel));
-    // Un accordo su piu' aeroporti si legge sotto ognuno di essi: la colonna dice che e' UN accordo, non
-    // quattro coincidenze. Compare solo dove qualcuno la compila, come tutte le altre.
-    var hasAirports = Rows.Any(x => !string.IsNullOrWhiteSpace(x.AgreementAirports));
-    var hasHandoff = Rows.Any(x => !string.IsNullOrWhiteSpace(x.Handoff));
-    var hasHandoffLevel = Rows.Any(x => !string.IsNullOrWhiteSpace(x.HandoffLevel));
-    var hasComms = Rows.Any(x => !string.IsNullOrWhiteSpace(x.CommsHandoff));
-    var hasSpeed = Rows.Any(x => !string.IsNullOrWhiteSpace(x.Speed));
-    // Con due livelli in tabella «Livello» non basta più a dire quale: diventa «Autorizzato».
+@foreach (var sec in Sections())
+{
+    var rows = sec.Rows;
+    var blocks = Blocks(rows);
+    var hasCond = rows.Any(x => !string.IsNullOrWhiteSpace(x.ConditionLabel));
+    @* Un accordo su piu' aeroporti si legge sotto ognuno di essi: la colonna dice che e' UN accordo, non
+       quattro coincidenze. Compare solo dove qualcuno la compila, come tutte le altre. *@
+    var hasAirports = rows.Any(x => !string.IsNullOrWhiteSpace(x.AgreementAirports));
+    var hasHandoff = rows.Any(x => !string.IsNullOrWhiteSpace(x.Handoff));
+    var hasHandoffLevel = rows.Any(x => !string.IsNullOrWhiteSpace(x.HandoffLevel));
+    var hasComms = rows.Any(x => !string.IsNullOrWhiteSpace(x.CommsHandoff));
+    var hasSpeed = rows.Any(x => !string.IsNullOrWhiteSpace(x.Speed));
+    @* Con due livelli in tabella «Livello» non basta più a dire quale: diventa «Autorizzato». *@
     var levelHeader = hasHandoffLevel ? T("Coord_Cleared", "Cleared") : T("AppCoord_Level", "Level");
-}
 
-@* La prosa nasce CHIUSA, sopra la sua tabella. Un nodo aeroporto porta la stessa cosa detta due volte — in
-   frasi e in tabella — e chi consulta il documento in cuffia legge la tabella: la prosa distesa lo obbligava a
-   scorrere oltre decine di paragrafi per arrivarci. Chiusa resta a un clic, e la STAMPA la apre da sé
-   (`beforeprint` in vipi-ui.js), perché sulla carta il testo esteso è il documento.
-   ⚠️ Un blocco per TABELLA, non per aeroporto: arrivi e partenze sono due tabelle, e la frase che introduce
-   una non introduce l'altra. Sta qui e non nelle viste perché così vale per vIPI ACC, vIPI APP e vLOA insieme. *@
-@{
-    // Le frasi si raccolgono PRIMA: il riassunto del blocco chiuso ne dice il numero, e contarle dopo averle
-    // rese vorrebbe dire percorrere due volte la stessa sequenza.
-    var frasi = Prose();
-}
-@if (frasi.Count > 0)
-{
-    <details class="coord-prose">
-        @* Il TITOLO della tabella sta dentro il summary, così l'invito ad aprire la prosa non si prende una
-           riga per sé: «Arrivi ▸ Testo esteso (2 frasi)» è una riga sola dove prima ce n'erano due, e in un
-           documento con decine di tabelle le righe risparmiate sono decine.
-           Conseguenza voluta: il clic sul titolo apre la prosa. È un bersaglio più grande per la stessa cosa,
-           e il titolo non aveva altro da fare.
-           ⚠️ In STAMPA si nasconde `prose-cue`, non il summary: nascondere il summary porterebbe via anche il
-           titolo, e sulla carta «Arrivi» e «Partenze» devono restare.
-           ⚠️ `prose-body` e non `body`: `.coord-sub2 .body` è un selettore DISCENDENTE e prenderebbe anche
-           questo, con l'imbottitura del livello sopra. *@
-        <summary>
-            @if (!string.IsNullOrWhiteSpace(Title)) { <span class="coord-kind">@Title</span> }
-            <span class="prose-cue"><span class="chev">▸</span>@ProseSummary(frasi.Count)</span>
-        </summary>
-        <div class="prose-body">
-            @foreach (var f in frasi)
-            {
-                <p class="coord-sentence">@f</p>
-            }
-        </div>
-    </details>
-}
-else if (!string.IsNullOrWhiteSpace(Title))
-{
-    @* Senza frasi non c'è niente da aprire, ma il titolo resta: una tabella che perde l'intestazione perché
-       la sua prosa è vuota sarebbe un effetto collaterale, non una scelta. *@
-    <p class="coord-kind">@Title</p>
-}
+    @* La prosa nasce CHIUSA, sopra la sua tabella. Un nodo aeroporto porta la stessa cosa detta due volte — in
+       frasi e in tabella — e chi consulta il documento in cuffia legge la tabella: la prosa distesa lo obbligava a
+       scorrere oltre decine di paragrafi per arrivarci. Chiusa resta a un clic, e la STAMPA la apre da sé
+       (`beforeprint` in vipi-ui.js), perché sulla carta il testo esteso è il documento.
+       ⚠️ Un blocco per TABELLA, non per aeroporto: arrivi e partenze sono due tabelle, e la frase che introduce
+       una non introduce l'altra. Sta qui e non nelle viste perché così vale per vIPI ACC, vIPI APP e vLOA insieme. *@
+    @* Le frasi si raccolgono PRIMA: il riassunto del blocco chiuso ne dice il numero, e contarle dopo averle
+       rese vorrebbe dire percorrere due volte la stessa sequenza. *@
+    var frasi = Prose(rows);
 
-@* Le classi c-* fissano la larghezza PER COLONNA SEMANTICA (vedi .coord-table nel tema): le colonne opzionali
-   cadono in posizioni diverse da una tabella all'altra, e larghezze per posizione non allineerebbero niente. *@
-<table class="coord-table">
-    <thead>
-        <tr>
-            @if (ShowKind) { <th class="c-flow">@T("AppCoord_Flow", "Flow")</th> }
-            <th class="c-cop">@(hasHandoff ? T("Coord_Via", "Via") : "CoP")</th>
-            <th class="c-level">@levelHeader</th>
-            @if (hasHandoff) { <th class="c-handoff">@T("Coord_Handoff", "Transfer")</th> }
-            @if (hasHandoffLevel) { <th class="c-hlevel">@T("Coord_HandoffLevel", "Transfer level")</th> }
-            @if (hasComms) { <th class="c-comms">@T("Coord_Comms", "Communications")</th> }
-            @if (hasSpeed) { <th class="c-speed">@T("Coord_Speed", "Speed")</th> }
-            <th class="c-next">@(LastColHeader ?? T("AppCoord_Next", "Next"))</th>
-            @if (hasAirports) { <th class="c-apts">@T("Coord_AlsoFor", "Also for")</th> }
-            @if (hasCond) { <th class="c-cond">@T("AppCoord_Condition", "Condition")</th> }
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var block in blocks)
-        {
-            var grouped = block.Count > 1;
-            // rowspan solo quando serve davvero: su una riga singola sarebbe un attributo "1" che non dice niente.
-            int? span = grouped ? block.Count : null;
-            @for (var i = 0; i < block.Count; i++)
+    @if (frasi.Count > 0)
+    {
+        <details class="coord-prose">
+            @* Il TITOLO della tabella sta dentro il summary, così l'invito ad aprire la prosa non si prende una
+               riga per sé: «Arrivi ▸ Testo esteso (2 frasi)» è una riga sola dove prima ce n'erano due, e in un
+               documento con decine di tabelle le righe risparmiate sono decine.
+               Conseguenza voluta: il clic sul titolo apre la prosa. È un bersaglio più grande per la stessa cosa,
+               e il titolo non aveva altro da fare.
+               ⚠️ In STAMPA si nasconde `prose-cue`, non il summary: nascondere il summary porterebbe via anche il
+               titolo, e sulla carta «Arrivi» e «Partenze» devono restare.
+               ⚠️ `prose-body` e non `body`: `.coord-sub2 .body` è un selettore DISCENDENTE e prenderebbe anche
+               questo, con l'imbottitura del livello sopra. *@
+            <summary>
+                @if (!string.IsNullOrWhiteSpace(sec.Title)) { <span class="coord-kind">@sec.Title</span> }
+                <span class="prose-cue"><span class="chev">▸</span>@ProseSummary(frasi.Count)</span>
+            </summary>
+            <div class="prose-body">
+                @foreach (var f in frasi)
+                {
+                    <p class="coord-sentence">@f</p>
+                }
+            </div>
+        </details>
+    }
+    else if (!string.IsNullOrWhiteSpace(sec.Title))
+    {
+        @* Senza frasi non c'è niente da aprire, ma il titolo resta: una tabella che perde l'intestazione perché
+           la sua prosa è vuota sarebbe un effetto collaterale, non una scelta. *@
+        <p class="coord-kind">@sec.Title</p>
+    }
+
+    @* Le classi c-* fissano la larghezza PER COLONNA SEMANTICA (vedi .coord-table nel tema): le colonne opzionali
+       cadono in posizioni diverse da una tabella all'altra, e larghezze per posizione non allineerebbero niente. *@
+    <table class="coord-table">
+        <thead>
+            <tr>
+                @if (ShowKind) { <th class="c-flow">@T("AppCoord_Flow", "Flow")</th> }
+                <th class="c-cop">@(hasHandoff ? T("Coord_Via", "Via") : "CoP")</th>
+                <th class="c-level">@levelHeader</th>
+                @if (hasHandoff) { <th class="c-handoff">@T("Coord_Handoff", "Transfer")</th> }
+                @if (hasHandoffLevel) { <th class="c-hlevel">@T("Coord_HandoffLevel", "Transfer level")</th> }
+                @if (hasComms) { <th class="c-comms">@T("Coord_Comms", "Communications")</th> }
+                @if (hasSpeed) { <th class="c-speed">@T("Coord_Speed", "Speed")</th> }
+                <th class="c-next">@LastColHeader(rows)</th>
+                @if (hasAirports) { <th class="c-apts">@T("Coord_AlsoFor", "Also for")</th> }
+                @if (hasCond) { <th class="c-cond">@T("AppCoord_Condition", "Condition")</th> }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var block in blocks)
             {
-                var r = block[i];
-                var first = i == 0;
-                @* Il rientro dice l'annidamento: una riga a profondità 1 è un'eccezione della riga meno
-                   profonda che la precede. Le alternative (profondità 0) restano allineate fra loro, perché
-                   sono pari-grado — nessuna è lo standard dell'altra. *@
-                <tr class="@RowClass(grouped, first, r)">
-                    @if (ShowKind && first) { <td rowspan="@span">@TransferFlowKindLabels.Label(r.Kind)</td> }
-                    @* CoP e ricevente sono l'identità dell'accordo, uguali per tutto il gruppo: scritti una volta. *@
-                    @if (first) { <td rowspan="@span">@Dash(r.Cop)</td> }
-                    <td>@Dash(r.Level)</td>
-                    @if (hasHandoff) { <td>@Dash(r.Handoff)</td> }
-                    @if (hasHandoffLevel) { <td>@Dash(r.HandoffLevel)</td> }
-                    @if (hasComms) { <td>@Dash(r.CommsHandoff)</td> }
-                    @if (hasSpeed) { <td>@Dash(r.Speed)</td> }
-                    @if (first) { <td rowspan="@span">@Dash(r.Next)</td> }
-                    @if (hasAirports) { <td>@Dash(r.AgreementAirports)</td> }
-                    @* Il marcatore della riga trasversale arriva già dentro ConditionLabel, nella lingua del
-                       template (italiana nelle vIPI, inglese nelle vLOA): deve concordare con la frase, non con
-                       il chrome della pagina. Qui la riga non ha nulla di speciale da rendere. *@
-                    @if (hasCond)
-                    {
-                        <td style="@Indent(r)">@Dash(r.ConditionLabel)</td>
-                    }
-                </tr>
+                var grouped = block.Count > 1;
+                @* rowspan solo quando serve davvero: su una riga singola sarebbe un attributo "1" che non dice niente. *@
+                int? span = grouped ? block.Count : null;
+                @for (var i = 0; i < block.Count; i++)
+                {
+                    var r = block[i];
+                    var first = i == 0;
+                    @* Il rientro dice l'annidamento: una riga a profondità 1 è un'eccezione della riga meno
+                       profonda che la precede. Le alternative (profondità 0) restano allineate fra loro, perché
+                       sono pari-grado — nessuna è lo standard dell'altra. *@
+                    <tr class="@RowClass(grouped, first, r)">
+                        @if (ShowKind && first) { <td rowspan="@span">@TransferFlowKindLabels.Label(r.Kind)</td> }
+                        @* CoP e controparte sono l'identità dell'accordo, uguali per tutto il gruppo: scritti una volta. *@
+                        @if (first) { <td rowspan="@span">@Dash(r.Cop)</td> }
+                        <td>@Dash(r.Level)</td>
+                        @if (hasHandoff) { <td>@Dash(r.Handoff)</td> }
+                        @if (hasHandoffLevel) { <td>@Dash(r.HandoffLevel)</td> }
+                        @if (hasComms) { <td>@Dash(r.CommsHandoff)</td> }
+                        @if (hasSpeed) { <td>@Dash(r.Speed)</td> }
+                        @if (first) { <td rowspan="@span">@Dash(r.Next)</td> }
+                        @if (hasAirports) { <td>@Dash(r.AgreementAirports)</td> }
+                        @* Il marcatore della riga trasversale arriva già dentro ConditionLabel, nella lingua del
+                           template (italiana nelle vIPI, inglese nelle vLOA): deve concordare con la frase, non con
+                           il chrome della pagina. Qui la riga non ha nulla di speciale da rendere. *@
+                        @if (hasCond)
+                        {
+                            <td style="@Indent(r)">@Dash(r.ConditionLabel)</td>
+                        }
+                    </tr>
+                }
             }
-        }
-    </tbody>
-</table>
+        </tbody>
+    </table>
+}
 
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<AppCoordRow> Rows { get; set; } = Array.Empty<AppCoordRow>();
@@ -142,15 +146,60 @@ else if (!string.IsNullOrWhiteSpace(Title))
     /// dalla SEZIONE (<c>DocumentSection.LeadSentence</c>), perché è una scelta editoriale e va versionata.</summary>
     [Parameter] public bool LeadSentence { get; set; }
 
-    /// <summary>Intestazione dell'ultima colonna: «Prossimo» per ciò che esce, «Da» per ciò che entra.</summary>
-    [Parameter] public string? LastColHeader { get; set; }
-
     /// <summary>Titolo della tabella («Arrivi», «Partenze»), reso sulla stessa riga dell'invito ad aprire la
     /// prosa. Lo passa chi ha DUE tabelle sotto lo stesso nodo e deve dire quale è quale.
     /// <para>Chi invece ha una tabella sola per nodo non lo passa: lì il titolo è già il cartiglio del
     /// <c>&lt;details&gt;</c> che la contiene, e ripeterlo sarebbe la stessa parola due volte a due centimetri di
     /// distanza.</para></summary>
     [Parameter] public string? Title { get; set; }
+
+    /// <summary>Un blocco «prosa + tabella» da rendere. Vedi <see cref="Sections"/>.</summary>
+    private sealed record CoordSection(IReadOnlyList<AppCoordRow> Rows, string? Title);
+
+    /// <summary>
+    /// Le sezioni da rendere, nell'ordine di lettura: prima ciò che cediamo, poi ciò che riceviamo.
+    /// <para><b>Il taglio scatta solo se il nodo porta davvero i due versi.</b> Un nodo omogeneo — la grande
+    /// maggioranza — resta una tabella sola, identica a com'era prima del 24 agosto 2026: cambia al più la
+    /// parola dell'ultima intestazione.</para>
+    /// <para>Il taglio vive QUI e non nell'albero (<c>CoordinationDerivation.BuildAccTree</c>) perché lì la
+    /// direzione dovrebbe diventare una chiave di raggruppamento, cioè un livello di <c>&lt;details&gt;</c> in
+    /// più su TUTTI i nodi; qui costa una riga di <c>&lt;summary&gt;</c> sui soli nodi misti. E vive nel
+    /// componente e non nelle tre viste che lo usano, perché la tabella era stata unificata proprio per non
+    /// tenere d'accordo a mano tre copie della stessa regola.</para>
+    /// </summary>
+    private IReadOnlyList<CoordSection> Sections()
+    {
+        var uscenti = Rows.Where(r => !r.IsIncoming).ToList();
+        var entranti = Rows.Where(r => r.IsIncoming).ToList();
+        if (uscenti.Count == 0 || entranti.Count == 0) return new[] { new CoordSection(Rows, Title) };
+
+        return new[]
+        {
+            new CoordSection(uscenti, WithDirection(false)),
+            new CoordSection(entranti, WithDirection(true)),
+        };
+    }
+
+    /// <summary>
+    /// Il titolo di una sezione quando il nodo è misto: quello che c'era più la parola del verso.
+    /// <para>«che cediamo» / «che riceviamo» sono INVARIABILI apposta: «ceduti/cedute» concorderebbe col genere
+    /// e darebbe «Partenze · cedute» accanto ad «Arrivi · ceduti», cioè due parole per la stessa cosa.</para>
+    /// <para>Dove il titolo manca (i nodi «Sorvoli», che lo hanno già nel proprio <c>&lt;summary&gt;</c>) la
+    /// parola sta da sola e prende la maiuscola.</para>
+    /// </summary>
+    private string WithDirection(bool incoming)
+    {
+        var word = incoming ? T("Coord_WeReceive", "we receive") : T("Coord_WeHandOver", "we hand over");
+        return string.IsNullOrWhiteSpace(Title)
+            ? string.Concat(word[..1].ToUpperInvariant(), word[1..])
+            : $"{Title} · {word}";
+    }
+
+    /// <summary>Intestazione dell'ultima colonna, letta dalle righe della sezione: «Prossimo» dice chi prende il
+    /// traffico, «Da» chi lo consegna. Ogni sezione è omogenea per costruzione (vedi <see cref="Sections"/>),
+    /// quindi la prima riga basta a deciderlo — ed è il motivo per cui non serve nessun marcatore per riga.</summary>
+    private string LastColHeader(IReadOnlyList<AppCoordRow> rows) =>
+        rows.Count > 0 && rows[0].IsIncoming ? T("AppCoord_From", "From") : T("AppCoord_Next", "Next");
 
     private string T(string key, string en) => English ? en : L[key];
 
@@ -165,21 +214,22 @@ else if (!string.IsNullOrWhiteSpace(Title))
     /// già scritto. La frase capofila la compone <c>CoordinationSentenceComposer.ComposeLead</c>, e arriva qui
     /// già fatta in <see cref="AppCoordRow.LeadSentence"/>.</para>
     /// </summary>
-    private string? Lead() => Rows.Select(r => r.LeadSentence).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
+    private static string? Lead(IReadOnlyList<AppCoordRow> rows) =>
+        rows.Select(r => r.LeadSentence).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
 
     /// <summary>
     /// La prosa della tabella, nell'ordine in cui si legge: una frase sola in modo capofila, una per clausola
     /// altrimenti. Le due strade producevano già lo stesso paragrafo — qui producono la stessa LISTA, così il
     /// blocco che le contiene è uno solo e non due rami di markup che possono divergere.
     /// </summary>
-    private IReadOnlyList<string> Prose()
+    private IReadOnlyList<string> Prose(IReadOnlyList<AppCoordRow> rows)
     {
         if (LeadSentence)
         {
-            var lead = Lead();
+            var lead = Lead(rows);
             return string.IsNullOrWhiteSpace(lead) ? Array.Empty<string>() : new[] { lead! };
         }
-        return Sentences().Select(r => r.Sentence!).ToList();
+        return Sentences(rows).Select(r => r.Sentence!).ToList();
     }
 
     /// <summary>Il riassunto del blocco chiuso: dice quanta prosa c'è sotto, al numero grammaticale giusto.
@@ -195,10 +245,10 @@ else if (!string.IsNullOrWhiteSpace(Title))
     /// <para>Le righe senza clausola — una release congelata prima del 16 agosto 2026 — passano tutte, com'erano
     /// quando sono state pubblicate.</para>
     /// </summary>
-    private IEnumerable<AppCoordRow> Sentences()
+    private static IEnumerable<AppCoordRow> Sentences(IReadOnlyList<AppCoordRow> rows)
     {
         var viste = new HashSet<int>();
-        foreach (var r in Rows)
+        foreach (var r in rows)
         {
             if (string.IsNullOrWhiteSpace(r.Sentence)) continue;
             if (r.ClauseId is int id && !viste.Add(id)) continue;
@@ -230,12 +280,12 @@ else if (!string.IsNullOrWhiteSpace(Title))
     /// <para>Le righe senza clausola passano di qui <b>intatte</b>: è il caso di una release congelata prima del
     /// 16 agosto 2026, e un documento pubblicato non deve cambiare aspetto perché il codice è andato avanti.</para>
     /// </summary>
-    private IReadOnlyList<AppCoordRow> Collapsed()
+    private static IReadOnlyList<AppCoordRow> Collapsed(IReadOnlyList<AppCoordRow> rows)
     {
-        var result = new List<AppCoordRow>(Rows.Count);
+        var result = new List<AppCoordRow>(rows.Count);
         var seen = new Dictionary<int, int>();   // ClauseId → posizione della riga già emessa
 
-        foreach (var r in Rows)
+        foreach (var r in rows)
         {
             if (r.ClauseId is not int id)
             {
@@ -266,12 +316,12 @@ else if (!string.IsNullOrWhiteSpace(Title))
     /// <para>Il raggruppamento NON richiede che le righe siano contigue: se qualcuno sposta una riga fuori dal
     /// blocco, il gruppo resta intero e si rende dov'è la sua prima riga, invece di spezzarsi in due.</para>
     /// </summary>
-    private IReadOnlyList<List<AppCoordRow>> Blocks()
+    private static IReadOnlyList<List<AppCoordRow>> Blocks(IReadOnlyList<AppCoordRow> rows)
     {
         var blocks = new List<List<AppCoordRow>>();
         var byGroup = new Dictionary<(int Flow, int Group), List<AppCoordRow>>();
 
-        foreach (var r in Collapsed())
+        foreach (var r in Collapsed(rows))
         {
             if (r.VariantGroup is not int g)
             {

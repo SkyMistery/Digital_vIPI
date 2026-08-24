@@ -35,10 +35,12 @@
             }
             @if (arrivi.Count > 0)
             {
-                @* Negli arrivi l'ultima colonna è il mittente, non il ricevente: «Da», non «Prossimo». *@
+                @* L'intestazione dell'ultima colonna la sceglie CoordTable, riga per riga: qui c'era «Da»
+                   cablato sugli arrivi, che indovinava giusto solo perché fra APP e ACC gli arrivi entrano
+                   quasi sempre. Verso le torri e verso gli APP confinanti sbagliava. *@
                 <details class="coord-sub2">
                     <summary><span>@L["Airport_Arrivals"]</span><span class="chev">▸</span></summary>
-                    <div class="body">@RenderTable(arrivi, showKind: false, lastCol: L["AppCoord_From"])</div>
+                    <div class="body">@RenderTable(arrivi, showKind: false)</div>
                 </details>
             }
         </div>
@@ -116,9 +118,10 @@
         </div>
     };
 
-    // Stessa tabella della vIPI ACC e della vLOA: vedi CoordTable (colonne per presenza dati, gruppi varianti).
-    private RenderFragment RenderTable(IReadOnlyList<AppCoordRow> rows, bool showKind, string? lastCol = null) => __builder =>
+    // Stessa tabella della vIPI ACC e della vLOA: vedi CoordTable (colonne per presenza dati, gruppi varianti,
+    // taglio per verso e intestazione dell'ultima colonna).
+    private RenderFragment RenderTable(IReadOnlyList<AppCoordRow> rows, bool showKind) => __builder =>
     {
-        <CoordTable LeadSentence="LeadSentence" Rows="rows" ShowKind="showKind" LastColHeader="@(lastCol ?? L["AppCoord_Next"])" />
+        <CoordTable LeadSentence="LeadSentence" Rows="rows" ShowKind="showKind" />
     };
 }

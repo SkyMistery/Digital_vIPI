@@ -22,6 +22,14 @@ public sealed class CoordinationSentenceOptions
 
     /// <summary>Forma della frase quando autorizzazione e trasferimento sono due eventi (ACC→APP).</summary>
     public string? TemplateCleared { get; set; }
+
+    // Verso ENTRANTE: chi sovrascrive `Template` vuole quasi sempre sovrascrivere anche la sua gemella, e una
+    // sola delle due nel file darebbe un documento che cambia forma a metà nodo.
+    // ⚠️ Niente `TemplateLeadReceive` qui: la capofila `TemplateLead` non è sovrascrivibile da file nemmeno nel
+    // verso uscente, e aggiungere la sola gemella entrante darebbe una coppia sbilanciata — si sovrascriverebbe
+    // metà della prosa capofila e l'altra metà no.
+    public string? TemplateReceive { get; set; }
+    public string? TemplateClearedReceive { get; set; }
     public HandoffWords? Handoff { get; set; }
     public SpeedWords? Speed { get; set; }
     /// <summary>Testo della riga «negli altri casi» di un gruppo di varianti.</summary>
@@ -86,6 +94,8 @@ public sealed class CoordinationSentenceTemplateProvider : ICoordinationSentence
                     Level = Fallback(o.Stato?.Level, d.Stato.Level),
                 },
                 TemplateCleared = Fallback(o.TemplateCleared, d.TemplateCleared),
+                TemplateReceive = Fallback(o.TemplateReceive, d.TemplateReceive),
+                TemplateClearedReceive = Fallback(o.TemplateClearedReceive, d.TemplateClearedReceive),
                 GroupWide = Fallback(o.GroupWide, d.GroupWide),
                 Handoff = new CoordinationSentenceHandoff
                 {

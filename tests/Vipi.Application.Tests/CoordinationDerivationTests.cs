@@ -128,7 +128,7 @@ public class CoordinationDerivationTests
     }
 
     [Fact]
-    public void Incoming_arrival_from_neighbour_ctr_reads_neighbour_as_sender()
+    public void Incoming_arrival_from_neighbour_ctr_reads_from_the_receiver_side()
     {
         // Flusso posseduto da un CTR vicino (non membro) che consegna a un nostro settore del blocco.
         var flows = new[] { Flow("LIBB_ES_CTR", TransferFlowKind.Arrival, "LIRN", Point("NILTO", 260, LevelConstraint.AtOrBelow, "LIRR_TS_CTR")) };
@@ -136,7 +136,61 @@ public class CoordinationDerivationTests
         Assert.True(e.IsIncoming);
         Assert.Equal("LIRR_TS_CTR", e.OurSectorCallsign);
         Assert.Equal("LIBB_ES_CTR", e.CounterpartCallsign);
-        Assert.StartsWith("Brindisi Radar ES trasferisce a Roma Radar TS", e.Row.Sentence);
+        // ⚠️ Il documento è di TS: il soggetto della frase è TS, non il vicino che consegna. Fino al 24 agosto
+        // 2026 diceva «Brindisi Radar ES trasferisce a Roma Radar TS», cioè leggeva come il documento dell'altro.
+        Assert.StartsWith("Roma Radar TS riceve da Brindisi Radar ES", e.Row.Sentence);
+        // La direzione arriva fino alla RIGA: è da lì che la tabella sceglie l'intestazione dell'ultima colonna.
+        Assert.True(e.Row.IsIncoming);
+    }
+
+    [Fact]
+    public void Incoming_sentence_keeps_the_outgoing_tail_verbatim()
+    {
+        // Del verso entrante cambia la TESTA. Aeroporto, stato, livello e punto restano parola per parola
+        // quelli del verso uscente: è un accordo solo, detto da due parti.
+        var pt = Point("EKMUR", 130, LevelConstraint.AtOrBelow, "LIRR_TS_CTR");
+        var flows = new[] { Flow("LIBB_ES_CTR", TransferFlowKind.Arrival, "LIRN", pt) };
+
+        var uscente = Assert.Single(Build(flows, "LIBB_ES_CTR")).Row.Sentence;
+        var entrante = Assert.Single(Build(flows, "LIRR_TS_CTR")).Row.Sentence;
+
+        const string coda = "il traffico con destinazione Napoli Capodichino LIRN a livello 130 o livello inferiore su EKMUR.";
+        Assert.Equal($"Brindisi Radar ES trasferisce a Roma Radar TS {coda}", uscente);
+        Assert.Equal($"Roma Radar TS riceve da Brindisi Radar ES {coda}", entrante);
+    }
+
+    [Fact]
+    public void Incoming_lead_sentence_reads_from_the_receiver_side_too()
+    {
+        // La capofila introduce la tabella: se restasse dal lato di chi cede, il paragrafo e le righe sotto
+        // direbbero la stessa cosa da due punti di vista diversi.
+        var flows = new[] { Flow("LIBB_ES_CTR", TransferFlowKind.Arrival, "LIRN", Point("NILTO", 260, LevelConstraint.AtOrBelow, "LIRR_TS_CTR")) };
+        var e = Assert.Single(Build(flows, "LIRR_TS_CTR"));
+        Assert.Equal(
+            "Roma Radar TS riceve da Brindisi Radar ES il traffico con destinazione Napoli Capodichino LIRN secondo la tabella seguente:",
+            e.Row.LeadSentence);
+    }
+
+    [Fact]
+    public void Incoming_sentence_with_a_handoff_facet_uses_the_participle_form()
+    {
+        // Chi riceve non autorizza: subisce l'autorizzazione dell'altro. Col verbo attivo la frase avrebbe
+        // detto che è il ricevente ad autorizzare, che è il contrario dell'accordo.
+        var pt = new TransferPointRow
+        {
+            Id = 0, Cop = "CHI", LevelValue = 160, LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.Exact,
+            LevelText = "FL160", NextSectorCallsign = "LIRN_US0_APP", Order = 1,
+            HandoffKind = TransferHandoffKind.AorBoundary,
+            HandoffLevelValue = 110, HandoffLevelConstraint = LevelConstraint.Exact,
+        };
+        var flows = new[] { Flow("LIBB_ES_CTR", TransferFlowKind.Arrival, "LIRN", pt) };
+
+        var e = Assert.Single(Build(flows, "LIRN_US0_APP"));
+        Assert.True(e.IsIncoming);
+        Assert.Equal(
+            "Roma Radar US0 riceve da Brindisi Radar ES il traffico con destinazione Napoli Capodichino LIRN "
+            + "autorizzato via CHI a livello 160, trasferito al confine dell'AoR passando FL110.",
+            e.Row.Sentence);
     }
 
     // ---- La sezione estesa porta tutto ciò che entra o esce (11 agosto 2026) ----
@@ -156,7 +210,7 @@ public class CoordinationDerivationTests
         Assert.Equal("LIRN_US0_APP", e.CounterpartCallsign);
         Assert.Equal(SectorType.App, e.CounterpartType);
         Assert.Equal(TransferFlowKind.Departure, e.Kind);
-        Assert.StartsWith("Roma Radar US0 trasferisce a Roma Radar TS", e.Row.Sentence);
+        Assert.StartsWith("Roma Radar TS riceve da Roma Radar US0", e.Row.Sentence);
     }
 
     [Fact]
@@ -198,7 +252,7 @@ public class CoordinationDerivationTests
         Assert.Equal("passando FL110", e.Row.HandoffLevel);
         Assert.Equal("su AVN", e.Row.CommsHandoff);
         Assert.Equal("a 250 kt o inferiore", e.Row.Speed);
-        Assert.Contains("autorizza il traffico", e.Row.Sentence);
+        Assert.Contains("il traffico con destinazione Napoli Capodichino LIRN autorizzato via CHI", e.Row.Sentence);
     }
 
     [Fact]
