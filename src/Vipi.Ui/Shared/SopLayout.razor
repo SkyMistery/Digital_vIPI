@@ -167,11 +167,19 @@
     private bool IsActiveAcc(string code) =>
         _acc is not null && code.Equals(_acc, StringComparison.OrdinalIgnoreCase);
 
+    /// ⚠️ Si tengono solo le parole che COMINCIANO PER LETTERA. Il nome che arriva non è sempre
+    /// «nome cognome»: l'identità di sviluppo è «Carmine (704798)», e prendendo alla lettera «la prima
+    /// lettera della seconda parola» l'avatar scriveva «C(». Vale anche in produzione, dove un secondo
+    /// nome puntato o un titolo fra parentesi non sono ipotesi peregrine.
+    /// Il ripiego a una parola sola parte dalla PAROLA, non dal nome intero, o si tornerebbe a pescare
+    /// la parentesi per un altro giro.
     private static string Initials(string name)
     {
-        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length >= 2
-            ? $"{char.ToUpper(parts[0][0])}{char.ToUpper(parts[1][0])}"
-            : (name.Length >= 2 ? name[..2].ToUpper() : name.ToUpper());
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                        .Where(p => char.IsLetter(p[0]))
+                        .ToArray();
+        if (parts.Length >= 2) return $"{char.ToUpper(parts[0][0])}{char.ToUpper(parts[1][0])}";
+        var sola = parts.Length == 1 ? parts[0] : name.Trim();
+        return sola.Length >= 2 ? sola[..2].ToUpper() : sola.ToUpper();
     }
 }

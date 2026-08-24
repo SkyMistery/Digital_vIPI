@@ -36,6 +36,38 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
     /// La sonda economica per l'orchestratore (healthCheckPath di Render). Deve esistere ed essere Healthy: a
     /// differenza di /vsop/health non guarda la cache ATC, che nei test è vuota e degraderebbe l'esito.
     /// </summary>
+    /// <summary>
+    /// Le iniziali nel cerchio dell'avatar sono <b>lettere</b>, sempre.
+    ///
+    /// <para>Il nome che arriva non è sempre «nome cognome». <c>Initials</c> prendeva alla lettera «la prima
+    /// lettera della seconda parola», e l'identità di sviluppo si chiama «Carmine (704798)»: la seconda parola
+    /// è una parentesi, e l'avatar scriveva «C(». In produzione non si vedeva — il nome IVAO è nome e cognome —
+    /// ed è esattamente il motivo per cui è passato inosservato: il caso rotto è quello che vedono solo gli
+    /// sviluppatori.</para>
+    ///
+    /// <para>⚠️ Si asserisce sull'INVARIANTE (sono lettere), non sul valore «CA»: quello dipende dal nome
+    /// dell'identità di sviluppo, che è una fixture e può cambiare senza che niente sia rotto. Un test che
+    /// fissa il valore si romperebbe al primo cambio di fixture, dicendo «difetto» dove non ce n'è.</para>
+    ///
+    /// <para>Sta fra gli E2E e non fra i test di componente per la stessa ragione di <c>TopbarAccNavTests</c>:
+    /// serve l'HTML davvero servito, con l'identità vera che il layout riceve.</para>
+    /// </summary>
+    [Fact]
+    public async Task Le_iniziali_dell_avatar_sono_solo_lettere()
+    {
+        var html = await _factory.CreateClient().GetStringAsync("/services/vsop");
+
+        var m = Regex.Match(html, @"class=""avatar""[^>]*>([^<]*)<");
+        Assert.True(m.Success, "avatar non trovato nella barra: se il cerchio con le iniziali è stato tolto o "
+                             + "rinominato, questo test va spostato, non cancellato.");
+
+        var iniziali = WebUtility.HtmlDecode(m.Groups[1].Value).Trim();
+        Assert.NotEmpty(iniziali);
+        Assert.All(iniziali, c => Assert.True(char.IsLetter(c),
+            $"iniziali «{iniziali}»: «{c}» non è una lettera. Il nome porta qualcosa che una parola non è "
+            + "(una parentesi, un numero) e Initials l'ha preso per un cognome."));
+    }
+
     [Fact]
     public async Task Readiness_endpoint_is_healthy()
     {
