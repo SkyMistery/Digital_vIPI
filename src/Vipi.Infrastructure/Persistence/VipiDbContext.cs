@@ -104,6 +104,8 @@ public class VipiDbContext : DbContext
     public DbSet<EditorTask> EditorTasks => Set<EditorTask>();
     public DbSet<EditResourceLock> EditResourceLocks => Set<EditResourceLock>();
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
+    public DbSet<AtcSession> AtcSessions => Set<AtcSession>();
+    public DbSet<AtcSessionTraffic> AtcSessionTraffic => Set<AtcSessionTraffic>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -429,6 +431,51 @@ public class VipiDbContext : DbContext
             e.Property(x => x.Sha256).HasMaxLength(64);
             e.Property(x => x.ContentType).HasMaxLength(100);
             e.Property(x => x.OriginalFileName).HasMaxLength(200);
+        });
+
+        // --- Statistiche ATC (servizio /services/stats, carta del 24 agosto 2026) -----------------------
+        b.Entity<AtcSession>(e =>
+        {
+            // La chiave è l'id di sessione IVAO: lo stesso numero nel whazzup e nello storico, quindi il
+            // poller e il backfill scrivono sulla stessa riga. Non è generato da noi.
+            e.HasKey(x => x.SessionId);
+            e.Property(x => x.SessionId).ValueGeneratedNever();
+
+            // Lunghezze dichiarate per TUTTI i provider, non nella mappa MySQL: la tabella nasce ora, quindi
+            // su Postgres non c'è nessun `text` da convertire (il caso che il reconciler non sa fare) e su
+            // MySQL non nasce `longtext`, che poi non si indicizzerebbe senza riscrivere mezzo milione di
+            // righe. Stessa scelta di MediaAsset.Sha256. Misure: callsign più lungo osservato `LIMM_WS2_CTR`
+            // (12), posizione `FSS`/`TWR` (3), frequenza `118.700` (7).
+            e.Property(x => x.Callsign).HasMaxLength(32);
+            e.Property(x => x.Position).HasMaxLength(16);
+            e.Property(x => x.Frequency).HasMaxLength(16);
+
+            e.HasIndex(x => new { x.UserId, x.StartUtc });    // «le mie sessioni», ordinate
+            e.HasIndex(x => new { x.Callsign, x.StartUtc });  // «chi ha tenuto questa postazione»
+            e.HasIndex(x => x.StartUtc);                      // finestre temporali (mese, anno, copertura)
+            e.HasIndex(x => x.ShiftKey);                      // raccolta degli spezzoni in turni
+        });
+
+        b.Entity<AtcSessionTraffic>(e =>
+        {
+            // Chiave composita, senza Id surrogato: su ~500 000 righe l'anno sarebbe una colonna e un
+            // secondo albero d'indice per niente. LegOrdinal distingue le tratte dello stesso callsign.
+            e.HasKey(x => new { x.SessionId, x.PilotCallsign, x.LegOrdinal });
+
+            // Il callsign pilota sta nella chiave: senza lunghezza, su MySQL è `longtext` e InnoDB rifiuta
+            // l'indice. Misurato sullo snapshot whazzup del 24 agosto (467 piloti): massimo 7 caratteri
+            // (`SIC0054`, `AFR94YB`), il formato IVAO ne ammette 10. Gli ICAO seguono Airport.Icao.
+            e.Property(x => x.PilotCallsign).HasMaxLength(16);
+            e.Property(x => x.DepIcao).HasMaxLength(8);
+            e.Property(x => x.ArrIcao).HasMaxLength(8);
+            e.Property(x => x.AircraftIcao).HasMaxLength(8);   // misurato 4 (`B38M`, `C700`)
+
+            e.HasOne(x => x.Session)
+                .WithMany(x => x.Traffic)
+                .HasForeignKey(x => x.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);   // potando le sessioni sparisce anche il loro traffico
+
+            e.HasIndex(x => x.PilotCallsign);        // «dove ho volato io», e i controlli di doppio conteggio
         });
 
         // --- Aree speciali/regolamentate importate dalla sorgente. L'appartenenza agli ACC è molti-a-molti

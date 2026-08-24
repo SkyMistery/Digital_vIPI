@@ -435,7 +435,22 @@ sessioni»** — sarebbe un buco silenzioso nello storico.
    `dotnet build Vipi.slnx -c Release --no-incremental` = 0 warning 0 errori.
    Prova sul dato reale: whazzup del 24 agosto contro i 171 poligoni italiani → l'ITA a terra a Fiumicino
    finisce in `LIRF_TWR`, i voli in crociera nei settori `LIRR_*`, il traffico su Milano nei `LIMM_*`.
-2. Entità + migrazione (**doppia emissione**: SQLite e `Vipi.Infrastructure.MySqlMigrations`).
+2. ✅ **FATTA** (24 agosto). Entità `AtcSession`/`AtcSessionTraffic` in `Vipi.Domain/Entities/StatisticheAtc.cs`,
+   configurazione in `VipiDbContext`, migrazione `StatisticheAtc` emessa **due volte** (SQLite e
+   `Vipi.Infrastructure.MySqlMigrations`) e **applicata a una copia del `vipi.db` reale**: tabelle e cinque
+   indici creati, 153 `AccSectors` e 193 `AirportSectors` intatti. 6 test di schema nuovi.
+
+   ⚠️ **Le lunghezze stanno nel modello, non in `MySqlStringLengths.Map`.** La mappa esiste perché su
+   Postgres una lunghezza sarebbe un cambio di tipo su colonne già popolate; qui le tabelle **nascono
+   adesso**, quindi la lunghezza si dichiara una volta per tutti i provider (come `MediaAsset.Sha256`) e
+   non c'è niente da convertire da nessuna parte. Il primo tentativo le aveva messe nella mappa e il test
+   `La_mappa_non_contiene_colonne_che_non_esistono_o_non_sono_indicizzate` l'ha respinto: la mappa accetta
+   solo colonne indicizzate o con un DEFAULT, e `DepIcao`/`ArrIcao`/`AircraftIcao` non sono né l'una né
+   l'altra. La guardia aveva ragione.
+
+   ⚠️ `dotnet ef migrations remove` sul progetto MySQL **prova a connettersi al database** e fallisce dove
+   MySQL non c'è: per rifare una migrazione si cancellano i due file e si ripristina
+   `VipiDbContextModelSnapshot.cs` da git.
 3. Porta neutra `IAtcActivitySource` + adapter whazzup; il poller esistente passa al whazzup completo e scrive le sessioni.
 4. Attribuzione del traffico nel poller (usa il punto 1).
 5. Backfill storico: **23 query a prefisso** (`LIA`…`LIZ`) × pagine da 100 ≈ 220 chiamate una tantum

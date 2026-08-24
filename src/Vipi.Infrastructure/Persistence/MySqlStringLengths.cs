@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
 namespace Vipi.Infrastructure.Persistence;
 
@@ -90,6 +90,9 @@ public static class MySqlStringLengths
             [("AccSector", "ParentCallsign")] = 32,
             [("AirportSector", "ParentCallsign")] = 32,
             [("Airport", "ParentCallsign")] = 32,
+            // ⚠️ Le colonne delle statistiche ATC NON stanno qui: le loro tabelle nascono adesso, quindi le
+            // lunghezze sono dichiarate nel modello per TUTTI i provider (come MediaAsset.Sha256) e su
+            // Postgres non c'è nessun `text` da convertire. Vedi VipiDbContext, sezione «Statistiche ATC».
 
             // --- Enum salvati come stringa -------------------------------------------------------------
             // OnModelCreating li mappa con SetProviderClrType(typeof(string)): sono colonne stringa

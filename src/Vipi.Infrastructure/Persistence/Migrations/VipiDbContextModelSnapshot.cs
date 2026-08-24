@@ -668,6 +668,127 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("AirportTransitionLevels");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcSession", b =>
+                {
+                    b.Property<long>("SessionId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Callsign")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DurationSeconds")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("EndUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Frequency")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("MovementCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Position")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("Rating")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("ShiftKey")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("StartUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("TrafficCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TrafficMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("SessionId");
+
+                    b.HasIndex("ShiftKey");
+
+                    b.HasIndex("StartUtc");
+
+                    b.HasIndex("Callsign", "StartUtc");
+
+                    b.HasIndex("UserId", "StartUtc");
+
+                    b.ToTable("AtcSessions");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcSessionTraffic", b =>
+                {
+                    b.Property<long>("SessionId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PilotCallsign")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("LegOrdinal")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AircraftIcao")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ArrIcao")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DepIcao")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("FirstSeenUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("FlightPlanId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("HasObservationGap")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("LastSeenUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PilotUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("SawMovement")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SeenMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("SessionId", "PilotCallsign", "LegOrdinal");
+
+                    b.HasIndex("PilotCallsign");
+
+                    b.ToTable("AtcSessionTraffic");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<long>("Id")
@@ -1826,6 +1947,17 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Airport");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcSessionTraffic", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.AtcSession", "Session")
+                        .WithMany("Traffic")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.ContentBlock", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.DocumentVersion", "DocumentVersion")
@@ -2079,6 +2211,11 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Sids");
 
                     b.Navigation("TransitionLevels");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcSession", b =>
+                {
+                    b.Navigation("Traffic");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.CoordinationAgreement", b =>
