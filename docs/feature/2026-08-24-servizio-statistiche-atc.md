@@ -4,8 +4,12 @@
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Regola d'ingaggio con la sorgente:
 > [sorgenti](2026-08-22-sorgenti-giro-automatico-ta-piste.md) — interfaccia neutra in Application,
 > adapter `Ivao*` in Infrastructure, riga nella policy di import.
-> **Stato: carta approvata e le tre verifiche aperte sono state fatte sul campo il 24 agosto (§8): tutte
-> passate, con due sorprese che cambiano il piano (prefisso callsign, nomi). Via libera alla slice 1.**
+> **Stato al 25 agosto 2026: SERVIZIO COMPLETO sul ramo `statistiche-atc`, non ancora fuso in `main`.**
+> Tutte e otto le slice di §9 sono chiuse, più le aggiunte di §11. Suite verde e Release pulita su entrambi
+> i TFM: **2176 test su net8, 1938 su net10** — la differenza non è un buco, `Vipi.E2E.Tests` e
+> `Vipi.AuroraBridge.Tests` girano **solo su net8** (⚠️ un solo numero, come si scriveva prima, fa sembrare
+> che su net8 manchi qualcosa). Il ramo parte da `bda3294` e arriva a `d523037` (19 commit).
+> Cosa resta prima e dopo la fusione: **§12**.
 
 ## 1. Perché
 
@@ -404,7 +408,10 @@ per sempre** (sono poche, pesano nulla, e sono il dato di valore — vedi §8.3:
 ## 7. Rotte e ingressi
 
 - `/services/stats` — la mia pagina (ore totali, per posizione, per mese, elenco sessioni);
-- `/services/stats/session/{id}` — dettaglio: durata, frequenza, aerei gestiti, mappa AoR con le tracce;
+- `/services/stats/session/{id}` — dettaglio: durata, frequenza, aerei gestiti, **sequenza delle piste in
+  uso**. ⚠️ La *mappa* delle tracce era in questa riga fin dalla prima stesura: il committente l'ha **rinviata**
+  il 25 agosto (§11, «da ragionare»). Qui resta scritto che non c'è, o la prossima lettura la dà per fatta;
+- `/services/stats/export.csv` — le proprie sessioni in CSV (VID dall'identità, mai da parametro);
 - `/services/stats/division` — vista staff: copertura per aeroporto/ACC, buchi orari, classifica mensile;
 - ingressi obbligatori (lezione dell'hub): **card in `ServicesHome.razor`**, voce nel menù ☰, sezione nella
   Guida, voce nella ricerca globale (`GuideSearchCatalog`).
@@ -663,6 +670,23 @@ sessioni»** — sarebbe un buco silenzioso nello storico.
   in `OnInitializedAsync` usano `OwningComponentBase`.
 - Attributo componente di tipo `string` senza `@` è un **letterale**: `Key="x"` ≠ `Key="@x"`.
 - Se si aggiunge un pacchetto: `packages.lock.json` rigenerato e committato, o la CI si ferma.
+- **Un `FirstOrDefault` su una tabella «a riga singola» va ORDINATO** (25 agosto, commit `d523037`). EF lo
+  segnala da solo — `Microsoft.EntityFrameworkCore.Query[10103]`, evento
+  `CoreEventId.FirstWithoutOrderByAndFilterWarning` — e ha ragione: la riga singola è una **convenzione, non
+  un vincolo**, e «la prima riga» senza ordine la sceglie il motore, con MariaDB libera di cambiare idea fra
+  una chiamata e l'altra. Nel caso di `ImportPolicies` quella riga decide il **regime di scrittura di tutta
+  l'applicazione**. ⚠️ Si ordina per `Id`, **non** si filtra `Id == 1`: una riga nata in produzione con un Id
+  diverso sparirebbe, e l'app tornerebbe ai default senza dirlo a nessuno. (`EfStatsSettingsStore` non ha mai
+  stampato l'avviso perché lì il filtro c'è: è il confronto che ha identificato il colpevole nel log.)
+- **Un test che non diventa rosso quando si rimette il difetto non è una prova.** Stesso giro: il test scritto
+  per inchiodare l'avviso puntava `RowLimitingOperationWithoutOrderByWarning` — che parla di `Skip`/`Take` —
+  e passava verde anche col `FirstOrDefault` nudo rimesso apposta. Il nome giusto è
+  `FirstWithoutOrderByAndFilterWarning`. **Rimettere il difetto e vedere il rosso** è l'unico modo di sapere
+  che il test guarda dove crede.
+- ⚠️ **`Vipi.Application.Tests` su net10 ha segnato un rosso irriproducibile** il 25 agosto (763/764) al primo
+  di quattro giri pieni; i tre successivi e il progetto lanciato da solo sono verdi. Il nome del test è
+  **perso**, perché il filtro sull'output teneva solo le righe di riepilogo. Se ricapita: lanciare la suite
+  salvando l'output intero (`> giro.log 2>&1`), non filtrandolo al volo.
 
 ## 11. Dopo la consegna: cosa aggiungere (elenco vivo)
 
@@ -691,23 +715,13 @@ Ordinato per **quanto costa il dato**, non per quanto è bella l'idea.
 - **Esportazione CSV** (`/services/stats/export.csv`): solo le **proprie** sessioni, e il VID lo legge
   dall'identità — un parametro qui vorrebbe dire «le statistiche di chiunque a chi ne indovina il numero».
   Col BOM, o Excel apre gli accenti rotti.
-- **Le piste in uso, come sequenza.** `AtisRunways` legge la frase dell'ATIS che la fotografia già porta
+- **Le piste in uso, come sequenza.** 48 ATC su 71 la nominano nel testo dell'ATIS, che la fotografia già
+  porta: nessuna chiamata in più. `AtisRunways` legge la frase
   («*Arrival runway 16L 16R departure runway 25*», «*Runway in use 04R*»); `AtcSessionRunway` conserva **una
   riga per cambio**, non un valore. Una configurazione che torna (16 → 34 → 16) sono tre righe: la sequenza
   racconta il turno. La **lettera** ATIS non si conserva: cambia a ogni bollettino e non dice niente sul
   lavoro fatto. ⚠️ Verificato con i test contro il database vero e **non** dal vivo: a quell'ora non c'era
   **nessun** ATC italiano online (0 su 444 piloti nella fotografia), quindi non c'era niente da registrare.
-
-### Scelte dal committente, da fare
-
-- **Quando c'è il buco**: griglia ora × giorno della settimana per la divisione (dove manca copertura) e per
-  la persona (a che ora controlli davvero). Query su dati già in archivio.
-- **I tuoi aeroporti, i tuoi aeroplani, esportazione CSV**: `DepIcao`/`ArrIcao`/`AircraftIcao` sono già
-  salvati su ogni tratta.
-- **Le piste in uso della sessione**, lette dall'ATIS che la fotografia già porta (48 ATC su 71 la nominano
-  nel testo: «*Arrival runway 16L 16R departure runway 25*»). ⚠️ **Cambiano durante la sessione** — nota
-  esplicita del committente: si registra la **sequenza dei cambi**, non un valore solo, o si scrive una cosa
-  falsa per metà turno. La **lettera** ATIS invece non serve.
 
 ### Segnato, da ragionare (non ora)
 
@@ -720,3 +734,44 @@ Ordinato per **quanto costa il dato**, non per quanto è bella l'idea.
 - **I nomi nelle classifiche** restano il VID finché la gente non fa login da noi (§8.2).
 - **«Chi non controlla da tre mesi»**: già calcolabile, utile al tutoraggio, ma è una lista di persone e la
   decisione è del committente.
+
+## 12. Cosa resta (stato al 25 agosto 2026)
+
+Il servizio funziona e i numeri sono veri. Quel che segue è **tutto** ciò che non è chiuso, verificato riga
+per riga il 25 agosto: se un giorno questa sezione risulta vuota, il servizio è finito davvero.
+
+### Prima di fondere in `main`
+
+- **Niente lo blocca sul piano tecnico**: suite verde (2176 net8 / 1938 net10) e `dotnet build Vipi.slnx
+  -c Release --no-incremental` pulita su entrambi i TFM. La fusione è una decisione del committente, non un passo
+  tecnico rimasto indietro.
+- ⚠️ **Manca la Guida, e §7 la dichiara obbligatoria.** Verificato il 25 agosto: la card in `ServicesHome` e
+  in `SopHome` c'è, la voce nel menù ☰ (`SopLayout`) c'è, ma **`GuidaPage.razor` non ha un capitolo sulle
+  statistiche e `GuideSearchCatalog.Entries` non ha la sua voce** — cioè chi cerca «statistiche» nella
+  ricerca globale non trova niente. È la lezione dell'hub `/services`, ed è l'unico pezzo di §7 non fatto.
+
+### Al primo deploy in produzione (MariaDB)
+
+- ⚠️ **La `UPDATE` dei tetti TWR** (§4.5-bis) è stata eseguita **solo sul `vipi.db` di sviluppo**. La stessa,
+  con la stessa guardia (`Position='TWR' AND LimitsFromSource=0 AND UpperLimit=19500`), va data là: senza,
+  in produzione le torri continuano a rivendicare fino a FL195 e il traffico in crociera finisce a loro.
+- Le **cinque migrazioni** del servizio, tutte a doppia emissione: `StatisticheAtc`, `PolicyStatisticheAtc`,
+  `TrafficoRiempitoAPosteriori`, `ImpostazioniStatistiche`, `PisteInUso`.
+
+### Non ancora provato dal vivo
+
+- **La sequenza delle piste in uso.** Coperta dai test contro un database vero, ma **mai vista girare su un
+  ATIS reale**: in tutt'e due i momenti in cui si poteva provare non c'era **nessun** ATC italiano collegato
+  (0 su 444 piloti, poi 0 su 422). Si riempie da sé al primo turno vero; la verifica è aprire
+  `/services/stats/session/{id}` di una sessione con ATIS e vedere le righe in ordine di orario.
+
+### Deciso sulla carta, non ancora scritto nel codice
+
+- ⚠️ **La potatura del dettaglio traffico.** §5.1 decide «dettaglio 12 mesi, sessioni per sempre» e i
+  contatori denormalizzati sulla riga sessione esistono **apposta** perché la potatura non azzeri le ore di
+  un anno fa — ma **il lavoro che pota non c'è** (verificato il 25 agosto: nessun servizio su
+  `AtcSessionTraffic` che cancelli per data). Finché non c'è, il dettaglio cresce senza limite: ~500 000
+  righe l'anno, misurate. Non è urgente — l'archivio nasce adesso e lo spazio è 1 GB — ma la decisione oggi
+  vive solo in questo documento, ed è esattamente il modo in cui la retention di pubblicazione si era
+  accumulata la prima volta.
+
