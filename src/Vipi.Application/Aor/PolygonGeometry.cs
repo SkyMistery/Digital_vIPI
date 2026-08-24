@@ -28,9 +28,41 @@ public static class PolygonGeometry
         try
         {
             using var doc = JsonDocument.Parse(rawJson);
-            return ExtractPoints(doc.RootElement);
+            return SenzaAnelliRipetuti(ExtractPoints(doc.RootElement));
         }
         catch (JsonException) { return new(); }
+    }
+
+    /// <summary>
+    /// Toglie le ripetizioni dell'<b>identico</b> anello: certe shape della sorgente contengono lo stesso
+    /// contorno due volte di fila.
+    ///
+    /// <para>⚠️ Non è cosmesi. Col test pari/dispari un anello doppio <b>si annulla</b>: ogni attraversamento
+    /// è contato due volte, la parità torna sempre pari, e il poligono non contiene <b>niente</b>. Misurato
+    /// sul <c>vipi.db</c> reale (24 agosto 2026): 2 poligoni su 283, ma uno è <c>LIRR_TS_CTR</c> — un settore
+    /// vero di Roma che nell'attribuzione del traffico non compariva mai, e nessuno se ne sarebbe accorto
+    /// guardando la mappa, dove il contorno doppio si disegna identico a uno solo.</para>
+    ///
+    /// <para>Riconosce qualunque molteplicità (×2, ×3…), anche quando ogni copia si chiude ripetendo il
+    /// primo punto. Un anello normale non viene toccato.</para>
+    /// </summary>
+    private static List<(double Lat, double Lon)> SenzaAnelliRipetuti(List<(double Lat, double Lon)> punti)
+    {
+        var n = punti.Count;
+        if (n < 6) return punti;
+
+        for (var copie = 2; copie <= 6; copie++)
+        {
+            if (n % copie != 0) continue;
+
+            var lunghezza = n / copie;
+            var uguali = true;
+            for (var i = lunghezza; i < n && uguali; i++)
+                uguali = punti[i] == punti[i % lunghezza];
+
+            if (uguali) return punti.GetRange(0, lunghezza);
+        }
+        return punti;
     }
 
     /// <summary>Costruisce un <see cref="Ring"/> (punti + bbox) dal JSON grezzo; null se poligono degenere (&lt;3 punti).</summary>

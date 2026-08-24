@@ -276,6 +276,44 @@ Il re-import non le rovina: preserva i limiti già scritti (`row.UpperLimit ??= 
 ⚠️ **La produzione è un altro database** (MariaDB): la stessa `UPDATE`, con la stessa guardia, va eseguita là
 come passo di dati della slice 2 — non è coperta da questa correzione.
 
+### 4.6 Padre e figlio insieme in frequenza: chi conta il traffico
+
+Domanda del committente (24 agosto sera): con `LIRR_NE_CTR` e il suo figlio `LIRR_TS_CTR` tutti e due in
+frequenza, e la shape del padre che copre anche quella del figlio, un aereo che sta solo dentro TS viene
+contato **a tutti e due**?
+
+**No.** `TrafficAttribution` sceglie **una** sessione per aeroplano, e dopo la fase di volo il criterio più
+forte è la **profondità nell'albero**: il figlio vince. Verificato sul dato reale — nel `vipi.db`
+l'annidamento c'è davvero (`LIRR_TS_CTR` è figlio di `LIRR_NE_CTR`, e `LIRR_OV_CTR`/`LIRR_US_CTR` lo sono di
+TS) e l'area di TS è **al 100% dentro** quella di NE, cioè il caso peggiore possibile.
+
+**Vale identico per gli avvicinamenti**: 21 APP su 64 pendono da un altro APP (`LIMC_ANW_APP` e
+`LIMC_ASW_APP` da `LIMC_ANE_APP`; le sei APP di Fiumicino da `LIRF_TW1_APP`, e `LIRF_PS1_APP` da
+`LIRF_PN1_APP`). Stesso meccanismo, stesso esito.
+
+⚠️ E se un domani la gerarchia **non** fosse compilata, i due settori sarebbero due radici: la scelta scende
+al criterio successivo — banda più stretta, poi **poligono più piccolo** — e il figlio vince lo stesso. C'è
+un test che tiene ferma anche questa rete di sicurezza.
+
+### 4.7 ⚠️ Il difetto che quella domanda ha scoperto: un anello ripetuto annulla il poligono
+
+Andando a verificare, `LIRR_TS_CTR` non attribuiva **mai** niente. Non per la gerarchia: perché la sua shape
+contiene **lo stesso anello due volte** (i 66 punti sono 33 ripetuti). Col test pari/dispari un contorno
+doppio si annulla — ogni attraversamento è contato due volte, la parità torna sempre pari — e il settore non
+contiene nulla, mai.
+
+| | poligono vero di `LIRR_TS_CTR` |
+|---|---|
+| punti campionati dentro, **prima** | **0** su 4000 |
+| punti campionati dentro, **dopo** | **1860** su 4000 |
+
+Nel `vipi.db` reale succede a **2 poligoni su 283** (`LIRR_TS_CTR` e `LATI_APP`), ma il primo è un settore di
+Roma: senza questa correzione le sue ore avrebbero avuto traffico zero per sempre, e **sulla mappa non si
+sarebbe visto niente**, perché un contorno disegnato due volte è identico a uno solo.
+
+La correzione sta in `PolygonGeometry.ParsePoints`, cioè dove la geometria nasce: la ripetizione si toglie
+una volta per tutti i consumatori (attribuzione, adiacenza, proiezione SVG, visore 3D).
+
 ## 5. Modello dati — due tabelle, non tre
 
 ```

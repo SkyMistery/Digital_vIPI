@@ -131,6 +131,31 @@ public class PolygonContainsTests
     }
 
     [Fact]
+    public void Un_anello_ripetuto_due_volte_contiene_lo_stesso_di_uno_solo()
+    {
+        // ⚠️ Difetto vero, trovato da una domanda del committente sui settori annidati: certe shape della
+        // sorgente ripetono l'identico contorno. Col test pari/dispari l'anello doppio SI ANNULLA — ogni
+        // attraversamento contato due volte, parità sempre pari — e il settore non contiene più niente.
+        // Nel vipi.db reale capita a `LIRR_TS_CTR`, che infatti nell'attribuzione non compariva mai.
+        var singolo = Ring("[[11,41],[13,41],[13,43],[11,43],[11,41]]");
+        var doppio = Ring("[[11,41],[13,41],[13,43],[11,43],[11,41],[11,41],[13,41],[13,43],[11,43],[11,41]]");
+
+        Assert.True(PolygonGeometry.Contains(singolo, 42, 12));
+        Assert.True(PolygonGeometry.Contains(doppio, 42, 12));      // senza la correzione: false
+        Assert.False(PolygonGeometry.Contains(doppio, 42, 14));
+        Assert.Equal(singolo.Points.Count, doppio.Points.Count);
+    }
+
+    [Fact]
+    public void Un_anello_normale_non_viene_toccato_dalla_correzione()
+    {
+        // Un contorno che per caso ha lo stesso numero pari di punti non deve perderne la metà.
+        var r = Ring("[[11,41],[12,40.5],[13,41],[13,43],[12,43.5],[11,43]]");
+        Assert.Equal(6, r.Points.Count);
+        Assert.True(PolygonGeometry.Contains(r, 42, 12));
+    }
+
+    [Fact]
     public void Un_anello_nullo_non_contiene_niente()
     {
         Assert.False(PolygonGeometry.Contains(null, 42, 12));
