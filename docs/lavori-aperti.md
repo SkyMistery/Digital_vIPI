@@ -636,6 +636,43 @@ altrove è stata *convertita* da un passo esterno, la migrazione deve o portarsi
 **rifiutarsi di girare** se trova righe. Un `DROP` silenzioso su dati veri non è reversibile e non si accorge
 di nulla.
 
+### A13 🔴 URGENTE — la cartella dell'applicazione è servita dal web
+
+**Trovato il 24 agosto 2026** mentre si indagava il 500 di E8, con `curl -I` sulla produzione. Il front
+server serve i file **direttamente dalla cartella dell'applicazione**: `public_atc` non è solo la radice
+dell'app, è anche il **document root** del sito.
+
+| URL | esito misurato |
+|---|---|
+| `/appsettings.Production.json` | **200**, `application/json` — dentro ci sono **password del database** e **ClientSecret IVAO** |
+| `/appsettings.json`, `/appsettings.Development.json` | 200 |
+| `/diagnostica/avvio-diagnostica.txt` | 200 — configurazione vista all'avvio, percorsi, quali segreti sono valorizzati |
+| `/Vipi.Host`, `/Vipi.Host.dll`, `/Vipi.Host.pdb`, `/Vipi.Infrastructure.dll` | 200 — l'applicazione intera, coi simboli di debug |
+| `/web.config`, `/vipi.db.bak` | 403 — Plesk nega **alcuni nomi**, non la cartella |
+| `/vipi-keys/`, `/diagnostica/`, `/deploy/` | 404 — **niente elenco cartelle**: i file si prendono solo per nome esatto |
+
+⚠️ **Il commento dentro `deploy/atc-ivao/appsettings.Production.json` dice «Che non sia scaricabile via HTTP
+è stato verificato: /appsettings.json risponde 403». Oggi non è più vero.** Quella misura è del 16 agosto,
+prima del passaggio a Plesk+Passenger, ed è invecchiata **in silenzio**: è il caso da tenere a mente ogni
+volta che si scrive «verificato» accanto a un fatto che dipende dall'hosting.
+
+⚠️ **`deploy/atc-ivao/nginx-vipi.conf` nega `^/diagnostica/`, ma su quel server non è la nostra conf a
+girare**: è un file di riferimento per un deploy systemd+nginx che lì non esiste. Una regola scritta in un
+file che nessuno carica non protegge niente.
+
+**Il key-ring si salva per il rotto della cuffia.** `public_atc/vipi-keys/key-<guid>.xml` non è elencabile e
+il nome è un GUID; ma è sicurezza per oscurità, e chi lo indovina **fabbrica un cookie di autenticazione
+valido per qualunque VID, admin compresi** — è scritto nel commento `DataProtection` di appsettings.
+
+**Cosa fare, in ordine.** Non è lavoro di codice: nessuna riga dell'applicazione può intercettare una
+richiesta che il front server soddisfa da sé, prima del proxy.
+1. **Ruotare i segreti**: password di `itivao_atc`, `Ivao:ClientSecret` e `VipiAuth:ClientSecret`. Vanno
+   considerati pubblici dal 16 agosto.
+2. Chiedere a chi ha il pannello: document root diverso dalla radice dell'app, oppure deny su
+   `appsettings*`, `*.dll`, `*.pdb`, `*.json` di configurazione, `diagnostica/`, `vipi-keys/`.
+3. Finché non è chiuso, `diagnostica/errori-richieste.txt` (E8) è scaricabile da chi ne indovina il nome —
+   e il nome sta nel repo. Non contiene credenziali; contiene stack trace e VID.
+
 ## B. Branch non fusi — decisioni, non lavoro
 
 ### B10 ✅ FUSO — `coordinamenti-lato-ricevente`, fuso in `main` il 24 agosto 2026
@@ -1405,6 +1442,61 @@ al `returnUrl` invece di lanciare; altrimenti rimanda al login con un messaggio 
 perché oggi la ragione non la vede nessuno.
 
 </details>
+
+### E8 ✅ «Error.» a chi entra per la prima volta — chiusa il 24 agosto 2026, ramo `login-utente-nuovo`
+
+**Segnalato dal committente** il 24 agosto: un socio **senza incarichi** vede la pagina `Error.` su
+`/services` — l'elenco degli strumenti, che non legge una riga di database — mentre lo stesso indirizzo,
+**da non collegato, risponde 200** (verificato con curl sulla produzione, mentre la segnalazione arrivava).
+
+**La deduzione, che vale più della causa.** Su quella pagina l'unica cosa che un utente **loggato** fa in
+più di un anonimo era, in `SopLayout`:
+
+```csharp
+_canEdit = _user is not null && (_isAdmin || (await Editing.ListEditableDocumentsAsync()).Count > 0);
+```
+
+L'anonimo esce dalla condizione **prima** del database; l'admin esce su `IsAdmin`, che guarda codici staff
+in memoria; **paga il giro solo il socio qualunque**. E il giro era **N+1**: tutti i documenti, più due
+query di autorizzazione per ognuno, a **ogni** pagina, per accendere un tasto. Conseguenza: qualunque
+intoppo del database — connessione caduta, pool esaurito, comando scaduto, riavvio a freddo di Passenger —
+non spegneva un tasto, **buttava giù tutta la pagina, per i soli utenti collegati**, mentre ogni sonda
+anonima continuava a dire che il sito era su.
+
+**Chiuso così:**
+- `IEditAuthorizationService.CanEditAnythingAsync` — **una query sola** (admin, oppure almeno una
+  concessione). `ListEditableDocumentsAsync` non aveva altri chiamanti ed è stato rimosso.
+  ⚠️ La semantica si sposta di un filo: chi ha una concessione su una ACC **senza documenti** ora vede il
+  tasto e trova un elenco vuoto. È scritto nel contratto.
+- Se quella domanda **fallisce**, il tasto resta spento e la pagina esce. È l'eccezione motivata alla regola
+  «non si ingoiano gli errori»: il **contorno non decide se la pagina esiste**. Non è muta — va nel log.
+- `PaginaErrore` prende il posto della `Error.razor` del modello: HTML scritto a mano, come
+  `IvaoLoginFailurePage` e per lo stesso motivo — deve reggere anche quando a lanciare è stato il **layout
+  condiviso**, che è esattamente il caso di oggi.
+- `DiagnosticaErrori` scrive ogni richiesta fallita in `diagnostica/errori-richieste.txt` con **lo stesso
+  codice mostrato in pagina**, il percorso vero, il **VID** e lo stack trace: dalla fotografia che arriva
+  su WhatsApp si risale all'eccezione. Niente query string (su `/signin-oidc` è una credenziale), niente
+  cookie, niente intestazioni. Lo stato resta **500**.
+
+⚠️ **Tre trappole trovate scrivendolo:**
+1. Dentro un `IExceptionHandler`, `ctx.Request.Path` vale **già** `/Error`: il middleware riscrive il
+   percorso prima di chiamare i gestori. Il percorso vero sta in `IExceptionHandlerPathFeature.Path`, e
+   senza quello il registro direbbe sempre «/Error» — inutile, e in modo silenzioso.
+2. Il **VID** nel registro è ciò che rende leggibile un guasto «che si vede solo da loggati». Si legge dai
+   claim e non da `ICurrentUserProvider`: dentro la gestione di un guasto, risolvere un servizio è un modo
+   in più di fallire.
+3. I test stanno in ambiente **Staging**: `UseExceptionHandler` è montato solo fuori da Development.
+
+**Non è provato che fosse questa la causa di quel preciso 500** — sul server non c'era una riga da leggere,
+ed è il motivo per cui la seconda metà della voce esiste. È provato il **meccanismo**: era l'unica strada
+per cui una pagina senza dati potesse morire per un utente collegato e non per un anonimo. Contesto della
+giornata: il pacchetto «e» era stato caricato quel pomeriggio, e Passenger riavvia il processo per
+inattività — i **riavvii a freddo sono frequenti**, ed è la finestra in cui un intoppo del database è più
+probabile.
+
+**Verificato**: `BarraNonAffondaLaPaginaTests` (6) e `PaginaErroreTests` (2); senza la guardia i due casi
+del guasto tornano 500, cioè lo screenshot. Propagata `CanEditAnythingAsync` ai 12 finti
+`IEditAuthorizationService` dei test. Suite intera verde su entrambi i TFM.
 
 ## F. Rimandato, non cancellato
 
