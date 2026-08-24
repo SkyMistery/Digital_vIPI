@@ -56,7 +56,7 @@ Il numero di versione è `1.0.0` in ogni pacchetto, e la data dentro `avvio-diag
 sito è **ripartito**, non **che cosa** è ripartito — per giunta si rinfresca da sola, perché il server
 riavvia vIPI quando resta inattivo.
 
-Adesso in alto a destra, **solo per chi è admin**, compare una targhetta grigia tipo `g · 758776f`: la
+Adesso in alto a destra, **solo per chi è admin**, compare una targhetta grigia tipo `g · e8fc4a2`: la
 lettera del pacchetto e il codice preciso del codice sorgente da cui è stato costruito. **Passandoci sopra
 il mouse** esce la frase intera — pacchetto, data, e *da quando è in servizio*, che è la parte che dice se
 il riavvio è andato.
@@ -141,9 +141,9 @@ pacchetti sono anch'essi sul server e si possono **cancellare**, non servono a f
 | `Vipi.Infrastructure.dll` | **2.929.664 byte** |
 | `Vipi.Ui.dll` | **1.868.800 byte** |
 | `en/Vipi.Ui.resources.dll` | **169.984 byte** |
-| `wwwroot/_content/Vipi.Ui/vipi-theme.css` | **263.900 byte** |
+| `wwwroot/_content/Vipi.Ui/vipi-theme.css` | **264.071 byte** |
 
-Totale **6.663.712 byte**. Tutto il resto è identico a quello che è già sul server.
+Totale **6.663.883 byte**. Tutto il resto è identico a quello che è già sul server.
 
 ⚠️ **Il foglio di stile e l'indice `staticwebassets` vanno insieme**: l'indice dice all'applicazione quanto
 è lungo ogni file di `wwwroot`, quindi caricarne uno solo lascia due cose che si raccontano in modo diverso.

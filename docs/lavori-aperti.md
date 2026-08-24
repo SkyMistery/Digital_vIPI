@@ -1520,7 +1520,7 @@ soli admin. La domanda era «che versione del sito è online?», e non aveva ris
 `1.0.0` in ogni pacchetto, e la data in `avvio-diagnostica.txt` dice quando è *ripartito*, non *che cosa*:
 per giunta si rinfresca da sé, perché Passenger riavvia il processo per inattività. Ora la build si timbra
 col **commit** (non con l'ora di compilazione: ricompilare lo stesso codice deve dare la stessa versione) e
-con la **lettera del pacchetto**, passata al publish come `-p:VipiPacchetto=g`. In barra `g · 758776f`, il
+con la **lettera del pacchetto**, passata al publish come `-p:VipiPacchetto=g`. In barra `g · e8fc4a2`, il
 resto nel `title`; la stessa riga apre `avvio-diagnostica.txt`.
 
 ⚠️ Tre scelte, tutte a difesa di qualcosa: **solo admin** (a un socio non dice niente, a chi passa dice con
