@@ -5,7 +5,17 @@ using Vipi.Domain.Entities;
 
 namespace Vipi.Infrastructure.Persistence;
 
-/// <summary>EF: policy di import globale come riga singola (Id=1), creata col default opt-out se assente.</summary>
+/// <summary>
+/// EF: policy di import globale come riga singola (Id=1), creata col default opt-out se assente.
+///
+/// <para>⚠️ L'<c>OrderBy(Id)</c> non e' decorativo: senza, EF alza <c>FirstWithoutOrderByAndFilterWarning</c>
+/// al primo giro del poller, e ha ragione — «la prima riga» di una tabella senza ordine e' quella che il motore decide,
+/// e su MariaDB puo' cambiare fra una chiamata e l'altra. Qui la riga e' una sola per convenzione, non per
+/// vincolo: se un giorno ne comparissero due, questa query sceglierebbe a caso il <b>regime di scrittura di
+/// tutta l'applicazione</b>. Si ordina per Id invece di filtrare <c>Id == 1</c> apposta: una riga salvata in
+/// produzione con un Id diverso sparirebbe, e l'app tornerebbe ai default senza dirlo a nessuno. (E' anche il
+/// motivo per cui <see cref="EfStatsSettingsStore"/> non ha mai stampato l'avviso: li' il filtro c'e'.)</para>
+/// </summary>
 public sealed class EfImportPolicyStore : IImportPolicyStore
 {
     private readonly VipiDbContext _db;
@@ -13,7 +23,7 @@ public sealed class EfImportPolicyStore : IImportPolicyStore
 
     public async Task<ImportPolicySnapshot> GetAsync(CancellationToken ct = default)
     {
-        var row = await _db.ImportPolicies.AsNoTracking().FirstOrDefaultAsync(ct);
+        var row = await _db.ImportPolicies.AsNoTracking().OrderBy(p => p.Id).FirstOrDefaultAsync(ct);
         return row is null
             ? ImportPolicySnapshot.AllImported
             : new ImportPolicySnapshot(row.ImportTransitionAltitude, row.ImportRunways, row.ImportSectors,
@@ -22,7 +32,7 @@ public sealed class EfImportPolicyStore : IImportPolicyStore
 
     public async Task<ImportPolicyInfo> GetInfoAsync(CancellationToken ct = default)
     {
-        var row = await _db.ImportPolicies.AsNoTracking().FirstOrDefaultAsync(ct);
+        var row = await _db.ImportPolicies.AsNoTracking().OrderBy(p => p.Id).FirstOrDefaultAsync(ct);
         return row is null
             // Riga assente: la policy in vigore è il default, e non l'ha decisa nessuno.
             ? new ImportPolicyInfo(ImportPolicySnapshot.AllImported, null, 0)
@@ -34,7 +44,7 @@ public sealed class EfImportPolicyStore : IImportPolicyStore
 
     public async Task SaveAsync(ImportPolicySnapshot policy, int updatedByUserId, CancellationToken ct = default)
     {
-        var row = await _db.ImportPolicies.FirstOrDefaultAsync(ct);
+        var row = await _db.ImportPolicies.OrderBy(p => p.Id).FirstOrDefaultAsync(ct);
 
         // Lo stato di partenza: la riga se c'è, altrimenti il default (è quello che GetAsync restituisce, e
         // quindi quello che l'applicazione stava usando davvero).

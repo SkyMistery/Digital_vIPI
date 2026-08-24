@@ -1,5 +1,6 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Options;
 using Vipi.Application;
 using Vipi.Application.Abstractions;
@@ -187,5 +188,32 @@ public class ImportPolicyTests : IAsyncLifetime
 
         Assert.Equal(704798, (await _db.ImportPolicies.AsNoTracking().SingleAsync()).UpdatedByUserId);
         Assert.Equal(0, await _db.AuditLogs.CountAsync());         // nessuna categoria è cambiata
+    }
+
+    /// <summary>
+    /// Le tre letture della riga singola sono ORDINATE.
+    ///
+    /// <para>⚠️ Questo test esiste per un avviso vero, letto nel log del 25 agosto 2026:
+    /// <c>FirstWithoutOrderByAndFilterWarning</c> (EF Query 10103). Innocuo com'era — la tabella ha una riga sola per
+    /// convenzione — ma «la prima riga senza ordine» e' quella che sceglie il motore, e quella riga decide
+    /// il regime di scrittura di tutta l'applicazione. Qui l'avviso e' alzato a ECCEZIONE: chi rimettesse un
+    /// <c>FirstOrDefault</c> nudo trova il rosso qui, non un avviso in mezzo a mille righe di log.</para>
+    /// </summary>
+    [Fact]
+    public async Task Le_letture_della_riga_singola_non_alzano_l_avviso_di_EF()
+    {
+        var opzioni = new DbContextOptionsBuilder<VipiDbContext>()
+            .UseSqlite(_conn)
+            .ConfigureWarnings(w => w.Throw(CoreEventId.FirstWithoutOrderByAndFilterWarning))
+            .Options;
+
+        await using var severo = new VipiDbContext(opzioni);
+        var store = new EfImportPolicyStore(severo);
+
+        // A tabella vuota e con la riga scritta: sono due query compilate diverse.
+        await store.GetAsync();
+        await store.GetInfoAsync();
+        await store.SaveAsync(ImportPolicySnapshot.AllImported, 704798);
+        await store.GetAsync();
     }
 }
