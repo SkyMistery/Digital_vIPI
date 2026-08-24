@@ -89,7 +89,7 @@
                 @if (hasHandoffLevel) { <th class="c-hlevel">@T("Coord_HandoffLevel", "Transfer level")</th> }
                 @if (hasComms) { <th class="c-comms">@T("Coord_Comms", "Communications")</th> }
                 @if (hasSpeed) { <th class="c-speed">@T("Coord_Speed", "Speed")</th> }
-                <th class="c-next">@(LastColHeader ?? T("AppCoord_Next", "Next"))</th>
+                <th class="c-next">@LastColHeader(rows)</th>
                 @if (hasAirports) { <th class="c-apts">@T("Coord_AlsoFor", "Also for")</th> }
                 @if (hasCond) { <th class="c-cond">@T("AppCoord_Condition", "Condition")</th> }
             </tr>
@@ -146,9 +146,6 @@
     /// dalla SEZIONE (<c>DocumentSection.LeadSentence</c>), perché è una scelta editoriale e va versionata.</summary>
     [Parameter] public bool LeadSentence { get; set; }
 
-    /// <summary>Intestazione dell'ultima colonna: «Prossimo» per ciò che esce, «Da» per ciò che entra.</summary>
-    [Parameter] public string? LastColHeader { get; set; }
-
     /// <summary>Titolo della tabella («Arrivi», «Partenze»), reso sulla stessa riga dell'invito ad aprire la
     /// prosa. Lo passa chi ha DUE tabelle sotto lo stesso nodo e deve dire quale è quale.
     /// <para>Chi invece ha una tabella sola per nodo non lo passa: lì il titolo è già il cartiglio del
@@ -159,8 +156,50 @@
     /// <summary>Un blocco «prosa + tabella» da rendere. Vedi <see cref="Sections"/>.</summary>
     private sealed record CoordSection(IReadOnlyList<AppCoordRow> Rows, string? Title);
 
-    /// <summary>Le sezioni da rendere, nell'ordine di lettura. Per ora una sola: l'intero <see cref="Rows"/>.</summary>
-    private IReadOnlyList<CoordSection> Sections() => new[] { new CoordSection(Rows, Title) };
+    /// <summary>
+    /// Le sezioni da rendere, nell'ordine di lettura: prima ciò che cediamo, poi ciò che riceviamo.
+    /// <para><b>Il taglio scatta solo se il nodo porta davvero i due versi.</b> Un nodo omogeneo — la grande
+    /// maggioranza — resta una tabella sola, identica a com'era prima del 24 agosto 2026: cambia al più la
+    /// parola dell'ultima intestazione.</para>
+    /// <para>Il taglio vive QUI e non nell'albero (<c>CoordinationDerivation.BuildAccTree</c>) perché lì la
+    /// direzione dovrebbe diventare una chiave di raggruppamento, cioè un livello di <c>&lt;details&gt;</c> in
+    /// più su TUTTI i nodi; qui costa una riga di <c>&lt;summary&gt;</c> sui soli nodi misti. E vive nel
+    /// componente e non nelle tre viste che lo usano, perché la tabella era stata unificata proprio per non
+    /// tenere d'accordo a mano tre copie della stessa regola.</para>
+    /// </summary>
+    private IReadOnlyList<CoordSection> Sections()
+    {
+        var uscenti = Rows.Where(r => !r.IsIncoming).ToList();
+        var entranti = Rows.Where(r => r.IsIncoming).ToList();
+        if (uscenti.Count == 0 || entranti.Count == 0) return new[] { new CoordSection(Rows, Title) };
+
+        return new[]
+        {
+            new CoordSection(uscenti, WithDirection(false)),
+            new CoordSection(entranti, WithDirection(true)),
+        };
+    }
+
+    /// <summary>
+    /// Il titolo di una sezione quando il nodo è misto: quello che c'era più la parola del verso.
+    /// <para>«che cediamo» / «che riceviamo» sono INVARIABILI apposta: «ceduti/cedute» concorderebbe col genere
+    /// e darebbe «Partenze · cedute» accanto ad «Arrivi · ceduti», cioè due parole per la stessa cosa.</para>
+    /// <para>Dove il titolo manca (i nodi «Sorvoli», che lo hanno già nel proprio <c>&lt;summary&gt;</c>) la
+    /// parola sta da sola e prende la maiuscola.</para>
+    /// </summary>
+    private string WithDirection(bool incoming)
+    {
+        var word = incoming ? T("Coord_WeReceive", "we receive") : T("Coord_WeHandOver", "we hand over");
+        return string.IsNullOrWhiteSpace(Title)
+            ? string.Concat(word[..1].ToUpperInvariant(), word[1..])
+            : $"{Title} · {word}";
+    }
+
+    /// <summary>Intestazione dell'ultima colonna, letta dalle righe della sezione: «Prossimo» dice chi prende il
+    /// traffico, «Da» chi lo consegna. Ogni sezione è omogenea per costruzione (vedi <see cref="Sections"/>),
+    /// quindi la prima riga basta a deciderlo — ed è il motivo per cui non serve nessun marcatore per riga.</summary>
+    private string LastColHeader(IReadOnlyList<AppCoordRow> rows) =>
+        rows.Count > 0 && rows[0].IsIncoming ? T("AppCoord_From", "From") : T("AppCoord_Next", "Next");
 
     private string T(string key, string en) => English ? en : L[key];
 

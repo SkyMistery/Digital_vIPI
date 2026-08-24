@@ -91,12 +91,14 @@
     };
 
     // La tabella è la stessa della vIPI APP e della vLOA: sta in CoordTable, che sa anche quali colonne
-    // mostrare (per presenza di dati) e come rendere i gruppi di varianti.
+    // mostrare (per presenza di dati), come rendere i gruppi di varianti, e come tagliare il nodo quando porta
+    // i due versi insieme — cosa che qui succede spesso, perché l'albero raggruppa per ACC della controparte
+    // e non per direzione (il nodo «Sorvoli · Zagabria» del blocco LIBB porta 8 righe entranti e 6 uscenti).
     private RenderFragment RenderTable(IReadOnlyList<AppCoordRow> rows, string? title = null) => __builder =>
     {
-        @* Nessun LastColHeader: lo decide CoordTable, che in italiano lo prende dalle risorse e in inglese lo
-           scrive in inglese. Qui c'era «Prossimo» scritto a mano, e con l'interfaccia in inglese usciva una
-           testata mezza tradotta: VIA · CLEARED · TRANSFER · TRANSFER LEVEL · **PROSSIMO** · CONDITION. *@
+        @* L'intestazione dell'ultima colonna la decide CoordTable dalle righe, e in inglese la scrive in
+           inglese. Qui c'era «Prossimo» scritto a mano, e con l'interfaccia in inglese usciva una testata mezza
+           tradotta: VIA · CLEARED · TRANSFER · TRANSFER LEVEL · **PROSSIMO** · CONDITION. *@
         <CoordTable Rows="rows" English="English" LeadSentence="LeadSentence" Title="@title" />
     };
 }
