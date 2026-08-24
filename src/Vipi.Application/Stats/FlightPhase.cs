@@ -71,22 +71,18 @@ public static class FlightPhases
     };
 
     /// <summary>
-    /// Vero se questa posizione <b>non deve mai</b> ricevere traffico in questa fase, nemmeno per eredità
-    /// quando è l'unica in frequenza.
+    /// Vero se in questa fase l'aeroplano si è mosso: distingue un <b>movimento</b> vero da un aereo che è
+    /// rimasto parcheggiato per tutta la sessione senza volare.
     ///
-    /// <para>⚠️ Esiste per un difetto misurato: i volumi ACC partono da terra (138 settori su 153 hanno
-    /// pavimento 0 e tetto UNL), quindi contengono <b>tutti gli aerei parcheggiati di tutti gli aeroporti
-    /// della FIR</b>. Nello snapshot reale del 24 agosto i settori di Roma contenevano cinque aerei a terra,
-    /// tre dei quali fermi al gate di Fiumicino: senza questo divieto un ACC che sta in frequenza tre ore si
-    /// vedrebbe accreditare, come «traffico gestito», ogni aereo posteggiato nella sua area.</para>
+    /// <para>⚠️ Non è un filtro sull'attribuzione, ed è importante che non lo diventi. In top-down
+    /// <b>APP e CTR gestiscono anche il traffico a terra quando sotto non c'è nessuno</b> (regola di
+    /// divisione, committente 24-ago-2026): quell'aereo è loro e la riga si scrive. Ma i volumi ACC partono
+    /// da terra e contengono ogni aereo posteggiato della FIR — misurati cinque a terra nei settori di Roma,
+    /// tre fermi al gate di Fiumicino — quindi un ACC in frequenza tre ore si vedrebbe accreditare tutto il
+    /// piazzale se «traffico gestito» e «aerei visti» fossero lo stesso numero.</para>
     ///
-    /// <para>Un aereo fermo o in rullaggio è traffico d'aeroporto: se nessuna posizione dell'aeroporto è
-    /// online, non l'ha gestito nessuno — che è la verità, non una perdita di dato.</para>
+    /// <para>Da qui i due numeri distinti: <b>movimenti</b> (tratte che si sono mosse almeno una volta) e
+    /// <b>presenze</b> (tutte le tratte viste). Il primo è quello che si mette in evidenza.</para>
     /// </summary>
-    public static bool Excludes(SectorType type, FlightPhase phase) =>
-        type == SectorType.Ctr && phase is FlightPhase.Parked or FlightPhase.Ground;
-
-    /// <summary>Vero se in questa fase l'aeroplano si è mosso: distingue un movimento vero da un aereo che
-    /// è rimasto parcheggiato per tutta la sessione senza volare.</summary>
     public static bool IsMovement(FlightPhase phase) => phase != FlightPhase.Parked;
 }

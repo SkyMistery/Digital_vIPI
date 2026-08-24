@@ -147,14 +147,12 @@ public class TrafficAttributionTests
     }
 
     [Fact]
-    public void Un_ACC_non_si_prende_gli_aerei_parcheggiati_dentro_la_sua_area()
+    public void Senza_nessuno_sotto_l_ACC_gestisce_anche_il_traffico_a_terra()
     {
-        // Difetto misurato: i volumi ACC partono da terra, quindi contengono ogni aereo posteggiato della FIR
-        // (nello snapshot reale, cinque a terra dentro i settori di Roma). Nessuno online all'aeroporto =
-        // nessuno l'ha gestito.
+        // Top-down: se all'aeroporto non c'è nessuno, l'aereo a terra è dell'ACC (regola di divisione).
         var solo_acc = new List<SectorClaim> { Claim("LIRR_NE1_CTR", "LIRR_NE1_CTR", Grande, null, null, 0) };
-        Assert.Null(Chi(solo_acc, 42.0, 12.0, 0, FlightPhase.Parked));
-        Assert.Null(Chi(solo_acc, 42.0, 12.0, 0, FlightPhase.Ground));
+        Assert.Equal("LIRR_NE1_CTR", Chi(solo_acc, 42.0, 12.0, 0, FlightPhase.Parked));
+        Assert.Equal("LIRR_NE1_CTR", Chi(solo_acc, 42.0, 12.0, 0, FlightPhase.Ground));
         Assert.Equal("LIRR_NE1_CTR", Chi(solo_acc, 42.0, 12.0, 30_000, FlightPhase.Airborne));
     }
 
@@ -224,21 +222,10 @@ public class FlightPhaseTests
     }
 
     [Fact]
-    public void Un_ACC_e_escluso_dal_traffico_a_terra_anche_se_e_l_unico_online()
+    public void Un_aereo_parcheggiato_e_una_presenza_non_un_movimento()
     {
-        Assert.True(FlightPhases.Excludes(SectorType.Ctr, FlightPhase.Parked));
-        Assert.True(FlightPhases.Excludes(SectorType.Ctr, FlightPhase.Ground));
-        Assert.False(FlightPhases.Excludes(SectorType.Ctr, FlightPhase.Airborne));
-
-        // Le posizioni d'aeroporto non hanno divieti: per loro vale la preferenza, e in mancanza l'eredità.
-        foreach (var t in new[] { SectorType.Del, SectorType.Gnd, SectorType.Twr, SectorType.ITwr, SectorType.App })
-            foreach (var f in new[] { FlightPhase.Parked, FlightPhase.Ground, FlightPhase.Airborne })
-                Assert.False(FlightPhases.Excludes(t, f));
-    }
-
-    [Fact]
-    public void Un_aereo_parcheggiato_non_e_un_movimento()
-    {
+        // L'ACC senza nessuno sotto se lo prende (vedi attribuzione), ma un aereo che non si è mai mosso non
+        // è un movimento gestito: i due numeri restano distinti.
         Assert.False(FlightPhases.IsMovement(FlightPhase.Parked));
         Assert.True(FlightPhases.IsMovement(FlightPhase.Ground));
         Assert.True(FlightPhases.IsMovement(FlightPhase.Airborne));

@@ -86,6 +86,35 @@ public class FlightLegResolverTests
         var aperte = Aperte(new OpenLeg("AZA123", 900, "LIRF", "LIRN", 1, T0));
         Assert.Null(FlightLegResolver.Match(aperte, "AZA123", 901, "LIRN", "LIRF", T0.AddMinutes(1)));
     }
+
+    [Fact]
+    public void Il_buco_di_osservazione_si_segna_sulla_riga_di_QUEL_volo()
+    {
+        // La tratta non si spezza, ma i suoi minuti sono incompleti: chi legge deve vederlo accanto al volo.
+        var leg = new OpenLeg("AZA123", 900, "LIRF", "LIRN", 1, T0);
+        Assert.True(FlightLegResolver.HasObservationGap(leg, T0.AddHours(1)));
+        Assert.False(FlightLegResolver.HasObservationGap(leg, T0.AddMinutes(2)));
+    }
+}
+
+/// <summary>Le soglie del conteggio: cosa fa numero e cosa resta solo in archivio.</summary>
+public class StatsCountingTests
+{
+    [Fact]
+    public void Sotto_il_minuto_una_connessione_non_fa_numero()
+    {
+        // 231 delle 1316 sessioni italiane di 30 giorni stanno qui sotto: entrate e uscite.
+        Assert.False(StatsCounting.CountsAsSession(0));
+        Assert.False(StatsCounting.CountsAsSession(3));     // sessione reale misurata: LIRF_TWR, 3 secondi
+        Assert.False(StatsCounting.CountsAsSession(59));
+    }
+
+    [Fact]
+    public void Dal_minuto_in_su_conta()
+    {
+        Assert.True(StatsCounting.CountsAsSession(60));
+        Assert.True(StatsCounting.CountsAsSession(TimeSpan.FromHours(3)));
+    }
 }
 
 /// <summary>

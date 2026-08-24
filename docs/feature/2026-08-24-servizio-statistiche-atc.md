@@ -202,12 +202,21 @@ la pagina deve dire che l'attribuzione verticale vale quanto i limiti inseriti.
 Riletto il conteggio a mente fredda su richiesta del committente, **misurando** su 1316 sessioni ATC italiane
 vere degli ultimi 30 giorni e sullo snapshot whazzup del 24 agosto.
 
-**1. ⚠️ Gli ACC si prendevano gli aerei parcheggiati.** I volumi ACC partono da terra (138 su 153 con
-pavimento 0), quindi contengono ogni aereo posteggiato di ogni aeroporto della FIR. Misura: cinque aerei a
-terra dentro i settori di Roma, **tre fermi al gate di Fiumicino**. Un ACC in frequenza tre ore si sarebbe
-visto accreditare come «traffico gestito» tutto il piazzale. Rimedio: `FlightPhases.Excludes` — un CTR non
-riceve traffico fermo o in rullaggio **nemmeno per eredità**, quando è l'unico online. Se all'aeroporto non
-c'è nessuno, quell'aereo non l'ha gestito nessuno: è la verità, non un dato perso.
+**1. Gli aerei a terra dentro i volumi ACC** (misurati: cinque nei settori di Roma, **tre fermi al gate di
+Fiumicino**, perché 138 settori su 153 hanno il pavimento a terra).
+
+⚠️ **Qui avevo sbagliato la cura, e il committente ha corretto**: avevo messo un divieto secco — un CTR non
+riceve traffico fermo o in rullaggio nemmeno se è l'unico online. È falso operativamente: **in top-down APP e
+CTR gestiscono anche il traffico a terra quando sotto non c'è nessuno**. Divieto rimosso, torna a valere
+l'eredità del §4.3: quell'aereo è dell'ACC, e la riga si scrive.
+
+Il conteggio resta onesto in un altro modo — **due numeri distinti invece di uno**:
+- **movimenti gestiti**: tratte che si sono mosse almeno una volta (`FlightPhases.IsMovement`). È il numero
+  in evidenza;
+- **presenze**: tutte le tratte viste, parcheggiati compresi.
+
+Così un ACC che sta tre ore in frequenza non si vede accreditare come «movimenti» il piazzale di Fiumicino,
+ma il traffico che ha davvero seguito resta suo.
 
 **2. ⚠️ Un fermo del poller spezzava un volo in due.** Riavvio, deploy o rete giù per più di 30 minuti, e al
 ritorno lo stesso aeroplano nello stesso volo apriva una tratta nuova: **un deploy contava doppio ogni aereo
@@ -216,10 +225,15 @@ di volo** quando c'è (uguale = stessa tratta anche dopo ore; diverso = tratta n
 che è il caso di chi rifila per la gamba successiva). La regola dei 30 minuti resta solo come ripiego per
 chi vola senza piano di volo.
 
+⚠️ **E il buco si dichiara accanto a quel volo** (richiesta del committente): `FlightLegResolver.HasObservationGap`
+marca la riga della tratta, e il dettaglio sessione mostra il segnale **sulla riga di quel volo** — non in una
+nota generale a fondo pagina. I minuti e la traccia di quella tratta sono incompleti e chi legge lo deve
+sapere lì.
+
 **3. Il 32% delle connessioni dura meno di cinque minuti.** Su 1316 sessioni italiane in 30 giorni: **419
 sotto i 5 minuti, di cui 231 sotto il minuto** (in tutto 10 ore). Contare «quante sessioni» senza soglia
 gonfia di un terzo. Le sessioni-lampo si **memorizzano** (sono il dato che IVAO dà) ma vanno tenute fuori dai
-conteggi: soglia da fissare — proposta 60 secondi, decisione del committente.
+conteggi. **Soglia fissata dal committente: 60 secondi** (`StatsCounting.MinCountedSession`).
 
 **4. I minuti gestiti non sono `ultimo − primo` avvistamento.** Se un aereo esce dal settore e rientra nella
 stessa tratta, la differenza fra primo e ultimo conta anche il tempo in cui non c'era. I minuti si
@@ -239,10 +253,22 @@ a FL195 e che, stando più in basso nella scaletta, batteva l'APP sul traffico i
 committente ha fissato la regola vera: **le torri arrivano a 3000 ft**. Cambiato in
 `EfAirportSectorRepository.DefaultUpperFor` (TWR → 3000, APP/DEP/CTR/FSS → 19500).
 
-⚠️ **Resta il dato già in archivio**: 140 posizioni d'aeroporto hanno tetto 19500. Non si può distinguere dal
-DB chi l'ha scelto da chi si è tenuto il default. Correzione proposta per la slice 2, con guardia stretta:
-solo righe `Position = 'TWR'`, `LimitsFromSource = false`, `UpperLimit = 19500`. **Da autorizzare prima di
-eseguirla**, perché tocca dati veri.
+✅ **Dato in archivio corretto il 24 agosto**, su autorizzazione del committente, con guardia stretta —
+`Position = 'TWR'` **e** `LimitsFromSource = 0` **e** `UpperLimit = 19500`:
+
+| | |
+|---|---|
+| righe aggiornate | **81** |
+| tetti TWR prima | 19500 ×81, 3000 ×1, 2000 ×2 |
+| tetti TWR dopo | **3000 ×82**, 2000 ×2 |
+| posizioni non-TWR toccate | 0 |
+
+Le tre torri con un tetto scelto a mano (`LIBC_I_TWR` e `LIBD_TWR` a 2000, `LIBR_TWR` a 3000) sono rimaste
+come stavano: la guardia serviva a questo. Copia di sicurezza in `src/Vipi.Host/vipi.db.bak-pre-tetti-twr-20260824`.
+Il re-import non le rovina: preserva i limiti già scritti (`row.UpperLimit ??= default`).
+
+⚠️ **La produzione è un altro database** (MariaDB): la stessa `UPDATE`, con la stessa guardia, va eseguita là
+come passo di dati della slice 2 — non è coperta da questa correzione.
 
 ## 5. Modello dati — due tabelle, non tre
 

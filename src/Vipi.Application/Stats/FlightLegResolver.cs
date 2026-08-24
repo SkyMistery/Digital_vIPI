@@ -74,6 +74,18 @@ public static class FlightLegResolver
         return atUtc - leg.LastSeenUtc <= gap;
     }
 
+    /// <summary>
+    /// Vero se fra l'ultimo avvistamento della tratta e questo c'è un <b>buco di osservazione</b>: il volo
+    /// prosegue (lo dice il piano di volo) ma noi non l'abbiamo visto per un pezzo — poller fermo, deploy,
+    /// rete giù.
+    ///
+    /// <para>Va segnato sulla riga del volo e mostrato <b>accanto a quel volo</b> nel dettaglio sessione:
+    /// i minuti e la traccia di quella tratta sono incompleti, e chi legge deve saperlo lì, non in una nota
+    /// generale a fondo pagina.</para>
+    /// </summary>
+    public static bool HasObservationGap(OpenLeg leg, DateTimeOffset atUtc, TimeSpan? gap = null) =>
+        atUtc - leg.LastSeenUtc > (gap ?? DefaultGap);
+
     /// <summary>Progressivo della prossima tratta di quel pilota dentro la sessione (parte da 1).</summary>
     public static int NextOrdinal(IReadOnlyList<OpenLeg> open, string pilotCallsign)
     {

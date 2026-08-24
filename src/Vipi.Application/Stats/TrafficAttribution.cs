@@ -50,7 +50,6 @@ public static class TrafficAttribution
 
         foreach (var c in claims)
         {
-            if (FlightPhases.Excludes(c.Type, phase)) continue;
             if (!c.Volume.Contains(lat, lon, altitudeFt)) continue;
 
             var handles = FlightPhases.Handles(c.Type, phase);
