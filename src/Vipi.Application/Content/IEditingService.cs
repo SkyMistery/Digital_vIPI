@@ -10,9 +10,6 @@ public interface IEditingService
 {
     Task<IReadOnlyList<DocumentSummary>> ListDocumentsAsync(CancellationToken ct = default);
 
-    /// <summary>Solo i documenti che l'utente corrente può editare (admin = tutti; altri = filtrati per grant sulla ACC).</summary>
-    Task<IReadOnlyList<DocumentSummary>> ListEditableDocumentsAsync(CancellationToken ct = default);
-
     Task<EditableDocument?> LoadForEditAsync(int documentId, CancellationToken ct = default);
     Task<int> CreateDraftAsync(int documentId, CancellationToken ct = default);
 

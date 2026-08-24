@@ -14,6 +14,12 @@ public interface IEditGrantRepository
     /// <summary>Vero se il UserId ha una concessione attiva per la ACC indicata.</summary>
     Task<bool> HasGrantAsync(int UserId, string accCode, CancellationToken ct = default);
 
+    /// <summary>
+    /// Vero se il UserId ha <b>almeno una</b> concessione, su qualunque ACC. Serve alla barra, che deve solo
+    /// decidere se accendere il tasto «Modifica»: una domanda sola invece di una per documento.
+    /// </summary>
+    Task<bool> HasAnyGrantAsync(int UserId, CancellationToken ct = default);
+
     /// <summary>Codice ACC a cui appartiene un documento (vIPI via settori di scope, vLOA via parte Home). Null se non risolvibile.</summary>
     Task<string?> GetDocumentAccCodeAsync(int documentId, CancellationToken ct = default);
 }

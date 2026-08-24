@@ -43,4 +43,40 @@
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="8.0.*" />
   </ItemGroup>
 
+  <!--
+    Il TIMBRO DELLA BUILD: quale codice è quello che gira.
+
+    Nasce da una domanda pratica del 24 agosto 2026 — «che versione del sito è online?» — che fino a quel
+    giorno non aveva risposta: `AssemblyVersion` è 1.0.0 in ogni pacchetto, e l'unica prova che il server
+    avesse ripreso la versione nuova era la data dentro `diagnostica/avvio-diagnostica.txt`, che dice
+    quando è RIPARTITO, non che cosa è ripartito.
+
+    Si timbra il COMMIT e non l'ora di compilazione: ricompilare lo stesso commit deve dare la stessa
+    versione, o il numero racconta la macchina di chi compila invece del codice. La lettera del pacchetto
+    («e», «f», …) è l'etichetta con cui il committente lo chiama e si passa al publish:
+        dotnet publish … -p:VipiPacchetto=g
+
+    ⚠️ Niente marcatore «albero sporco»: `git status` in forma breve elenca anche i file che differiscono
+    per i soli fine riga (un worktree nuovo li checkouta in CRLF), e un allarme che suona sempre non è un
+    allarme. Il commit basta a dire quale codice è dentro.
+
+    ⚠️ Se `git` non c'è — build da uno zip, macchina senza git — il timbro resta vuoto e il sito dice
+    «sviluppo»: mai un errore di build per una cosa che serve a raccontare.
+  -->
+  <Target Name="VipiTimbroVersione" BeforeTargets="GetAssemblyAttributes" Condition="'$(DesignTimeBuild)' != 'true'">
+    <Exec Command="git rev-parse --short=7 HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low"
+          ContinueOnError="true" IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="VipiCommit" />
+    </Exec>
+    <Exec Command="git show -s --format=%%cs HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low"
+          ContinueOnError="true" IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="VipiDataCommit" />
+    </Exec>
+    <ItemGroup>
+      <AssemblyMetadata Include="VipiCommit" Value="$(VipiCommit.Trim())" Condition="'$(VipiCommit)' != ''" />
+      <AssemblyMetadata Include="VipiDataCommit" Value="$(VipiDataCommit.Trim())" Condition="'$(VipiDataCommit)' != ''" />
+      <AssemblyMetadata Include="VipiPacchetto" Value="$(VipiPacchetto)" Condition="'$(VipiPacchetto)' != ''" />
+    </ItemGroup>
+  </Target>
+
 </Project>

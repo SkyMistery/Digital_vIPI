@@ -1,21 +1,27 @@
 ﻿@page "/services/vsop/{Acc}/airports"
 @layout SopLayout
+@inherits OwningComponentBase
+@using Microsoft.Extensions.DependencyInjection
+
+@* ⚠️ SCOPE PROPRIO (OwningComponentBase), come già sei componenti di questo repository dopo l'audit del
+   30 luglio 2026. Il motivo è misurato, non teorico: alle 17:44 del 24 agosto questa pagina è morta sette
+   volte con «A second operation was started on this context instance» — la sua query trovava il DbContext
+   della richiesta già occupato da qualcun altro.
+
+   Con uno scope proprio la pagina lavora su un DbContext SUO: nessuno può passarle davanti, e non serve
+   sapere chi fosse l'altro — che è il punto, perché quello non si è ancora capito (voce E9).
+
+   ⚠️ NON tutto si sposta nello scope proprio. `IStationResolver` resta quello della richiesta perché il
+   layout l'ha già scaldato (`Prewarm`): riprendendolo dallo scope nuovo si ripagherebbe la stessa query,
+   a freddo. Restano fuori anche le cose che il database non lo toccano: localizzazione, AIRAC, meteo,
+   cache degli ATC online. *@
 @rendermode InteractiveServer
 @using System.Text.Json
 @using Vipi.Application.Content
 @using Vipi.Application.Weather
-@inject IVipiViewService ViewService
 @inject IStationResolver Stations
-@inject IStructureEditingService Structure
 @inject Vipi.Application.Abstractions.IWeatherProvider Weather
-@inject IAirportEditingService Profile
-@inject IAirportViewDerivationService AirportView
-@inject IAirportSectorService AirportSectors
-@inject IDocumentAdminService Docs
 @inject IOnlineAtcProvider Online
-@inject Vipi.Application.Live.IAirportPresidencyService Presidency
-@inject IEditAuthorizationService Authz
-@inject IReleaseService Releases
 @using Vipi.Ui.Shared
 @inject IStringLocalizer<SharedResource> L
 
@@ -457,6 +463,31 @@ else
     /// <summary>Chi presiede l'aeroporto: risolto nel ciclo di vita, MAI nel render (regola del progetto:
     /// nessuna I/O sul database mentre si disegna, o il circuito muore con «second operation»).</summary>
     private Vipi.Application.Live.AirportPresidency? _presidency;
+
+    // I servizi che interrogano il database: presi dallo SCOPE DI QUESTA PAGINA, non da quello
+    // della richiesta. Vedi il commento in testa al file.
+    private IVipiViewService ViewService = default!;
+    private IStructureEditingService Structure = default!;
+    private IAirportEditingService Profile = default!;
+    private IAirportViewDerivationService AirportView = default!;
+    private IAirportSectorService AirportSectors = default!;
+    private IDocumentAdminService Docs = default!;
+    private Vipi.Application.Live.IAirportPresidencyService Presidency = default!;
+    private IEditAuthorizationService Authz = default!;
+    private IReleaseService Releases = default!;
+
+    protected override void OnInitialized()
+    {
+        ViewService = ScopedServices.GetRequiredService<IVipiViewService>();
+        Structure = ScopedServices.GetRequiredService<IStructureEditingService>();
+        Profile = ScopedServices.GetRequiredService<IAirportEditingService>();
+        AirportView = ScopedServices.GetRequiredService<IAirportViewDerivationService>();
+        AirportSectors = ScopedServices.GetRequiredService<IAirportSectorService>();
+        Docs = ScopedServices.GetRequiredService<IDocumentAdminService>();
+        Presidency = ScopedServices.GetRequiredService<Vipi.Application.Live.IAirportPresidencyService>();
+        Authz = ScopedServices.GetRequiredService<IEditAuthorizationService>();
+        Releases = ScopedServices.GetRequiredService<IReleaseService>();
+    }
 
     protected override async Task OnParametersSetAsync()
     {

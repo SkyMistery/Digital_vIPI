@@ -68,6 +68,28 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
             + "(una parentesi, un numero) e Initials l'ha preso per un cognome."));
     }
 
+    /// <summary>
+    /// La spia della versione in barra, ai soli admin. Risponde a «che versione del sito è online?», che
+    /// prima si poteva sapere solo scaricando un file via FTP — e nemmeno: la data lì dentro dice quando è
+    /// RIPARTITO, e con Passenger che riavvia per inattività quella data si rinfresca da sola.
+    ///
+    /// <para>⚠️ Sta fra gli E2E come <c>TopbarAccNavTests</c>: serve l'HTML davvero servito, con l'identità
+    /// vera che il layout riceve — e serve una build timbrata, che è quella che i test compilano.</para>
+    /// </summary>
+    [Fact]
+    public async Task La_barra_dice_all_admin_quale_versione_e_online()
+    {
+        var html = await _factory.CreateClient().GetStringAsync("/services");
+
+        var m = Regex.Match(html, @"class=""ver-chip""[^>]*>([^<]+)<");
+        Assert.True(m.Success, "la spia della versione non è in barra: senza, «che versione è online?» torna "
+                             + "a essere una domanda da FTP.\n" + html[..Math.Min(1200, html.Length)]);
+        Assert.NotEmpty(m.Groups[1].Value.Trim());
+
+        // Il dettaglio nel `title` porta l'ora di avvio: è la metà che dice se il riavvio è avvenuto.
+        Assert.Contains("in servizio dal", html);
+    }
+
     [Fact]
     public async Task Readiness_endpoint_is_healthy()
     {

@@ -3,9 +3,9 @@
 @inject IStationResolver Stations
 @inject ICurrentUserProvider Users
 @inject IEditAuthorizationService Authz
-@inject IEditingService Editing
 @inject IOptions<VipiChromeOptions> Chrome
 @inject IStringLocalizer<SharedResource> L
+@inject ILogger<SopLayout> Log
 
 <div class="vipi-root">
 <a class="skip-link" href="#vipi-main">@L["Chrome_SkipToContent"]</a>
@@ -23,7 +23,7 @@
             <summary aria-label="@L["Chrome_Menu"]" title="@L["Chrome_Menu"]"><span aria-hidden="true">☰</span></summary>
             <div class="tb-menu-pan">
                 <nav class="tb-menu-acc" aria-label="@L["Chrome_AccNav"]">
-                    @foreach (var acc in Stations.Accs)
+                    @foreach (var acc in _accs)
                     {
                         <a class="@(IsActiveAcc(acc.Code) ? "active" : null)" href="/services/vsop/@acc.Code.ToLowerInvariant()" aria-current="@(IsActiveAcc(acc.Code) ? "page" : null)">@acc.Code</a>
                     }
@@ -67,7 +67,7 @@
             <div>@L["Services_Title"] <small>@L["Chrome_BrandSubtitle"]</small></div>
         </a>
         <nav class="acc-nav" aria-label="@L["Chrome_AccNav"]">
-            @foreach (var acc in Stations.Accs)
+            @foreach (var acc in _accs)
             {
                 <a class="@(IsActiveAcc(acc.Code) ? "active" : null)" href="/services/vsop/@acc.Code.ToLowerInvariant()" aria-current="@(IsActiveAcc(acc.Code) ? "page" : null)">@acc.Code</a>
             }
@@ -106,6 +106,16 @@
                 <Icon Name="moon" Class="ti ti-dark" />
             </button>
             @* Toggle Estesa/Ridotta rimosso: la vista Ridotta è disabilitata (rebuild /services/vsop, Round 12). *@
+            @* La versione, ai SOLI admin. Risponde a una domanda che si è posta di continuo — «che versione
+               è online?» — e che finora si rispondeva scaricando un file via FTP.
+               ⚠️ Non è per tutti: a un socio non dice niente, e a chi passa di qui direbbe con quale build
+               precisa sta parlando, che è informazione da regalare solo se serve a qualcuno.
+               ⚠️ È la PRIMA cosa che esce dalla barra quando lo spazio manca (CSS, scaglione tb-2): è una
+               spia, non un comando, e la stessa riga sta in diagnostica/avvio-diagnostica.txt. *@
+            @if (_isAdmin && Chrome.Value.Versione is { Length: > 0 } ver)
+            {
+                <span class="ver-chip" title="@Chrome.Value.VersioneDettaglio" aria-label="@(L["Chrome_Version"].Value + ": " + ver)">@ver</span>
+            }
             @* Isola interattiva: il layout è SSR statico e il badge dev'essere l'unica cosa che si aggiorna
                da sola quando ti colleghi in frequenza. Il VID glielo passa il layout, che l'HttpContext ce l'ha. *@
             <LiveBadge UserId="_user?.UserId" />
@@ -146,22 +156,129 @@
 
 @code {
     private string? _acc;
+    private IReadOnlyList<AccInfo> _accs = Array.Empty<AccInfo>();
     private CurrentUser? _user;
     private bool _isAdmin;
     private bool _canEdit;
 
-    protected override async Task OnParametersSetAsync()
+    /// <summary>
+    /// ⚠️ IL LAVORO ASINCRONO DEL LAYOUT SI COMPIE PRIMA CHE L'ALBERO VENGA DISEGNATO, e non è una
+    /// raffinatezza: è la seconda metà del difetto del 24 agosto 2026, che la prima correzione non aveva
+    /// visto.
+    ///
+    /// <para><b>Il meccanismo.</b> `ComponentBase` disegna <b>subito</b> dopo `OnParametersSetAsync`, e
+    /// aspetta il task solo se non è già completato. Un layout che lascia una query in volo la lascia in
+    /// volo mentre viene disegnato il suo <c>@Body</c> — cioè mentre la PAGINA esegue il proprio
+    /// `OnParametersSetAsync`. Le due query cadono sullo stesso `DbContext` dello scope, e la seconda muore
+    /// con «A second operation was started on this context instance».</para>
+    ///
+    /// <para><b>Misurato, non temuto:</b> alle 17:44 del 24 agosto, con la prima correzione già in
+    /// produzione, sette richieste sono morte così — <c>AccLanding</c> su <c>CanEditAccAsync</c>,
+    /// <c>AeroportoPage</c> su <c>AirportPresidencyService</c>. Il layout aveva smesso di litigare con sé
+    /// stesso e aveva cominciato a litigare con le pagine.</para>
+    ///
+    /// <para>Sovrascrivendo <c>SetParametersAsync</c> il lavoro si conclude <b>prima</b> di
+    /// <c>base.SetParametersAsync</c>, che è ciò che innesca il disegno: quando la pagina parte, il layout
+    /// non ha più niente in volo. ⚠️ Chi rimettesse un `await` dentro `OnParametersSetAsync` riaprirebbe la
+    /// finestra per OGNI pagina del sito — c'è un test che lo impedisce.</para>
+    /// </summary>
+    public override async Task SetParametersAsync(ParameterView parameters)
+    {
+        parameters.SetParameterProperties(this);
+        await CaricaAsync();
+        // ParameterView.Empty: i parametri sono già stati applicati sopra. È il modo documentato.
+        await base.SetParametersAsync(ParameterView.Empty);
+    }
+
+    private async Task CaricaAsync()
     {
         _user = Users.Get();
+
+        // ⚠️ IL CATALOGO SI LEGGE QUI, E PRIMA DI QUALUNQUE `await`. Non è pignoleria: è il difetto del
+        // 24 agosto 2026, letto nello stack trace di 78 richieste fallite.
+        //
+        // `Stations.Accs` è a caricamento pigro, e il markup lo leggeva DENTRO `BuildRenderTree`. Ma Blazor
+        // disegna l'albero mentre `OnParametersSetAsync` è ancora in volo — se il metodo restituisce un task
+        // non completato, il primo render parte subito — e in quel momento la query del catalogo partiva
+        // sullo STESSO `DbContext` dello scope su cui era già in corso quella di `_canEdit`. Due operazioni
+        // insieme sullo stesso context: «A second operation was started on this context instance».
+        //
+        // Perché si vedeva solo da collegati: l'anonimo esce da `_canEdit` prima del database, quindi non
+        // c'è nessun await in volo e le due query non si incontrano mai. Ed è la stessa asimmetria che aveva
+        // fatto sospettare `_canEdit`: la corsa la innesca lui, ma a morire è il catalogo.
+        //
+        // ⚠️ E NON era «a volte»: era SISTEMATICA per una classe di utenti, e i numeri lo dicono. Delle 92
+        // righe, le 78 della corsa vengono TUTTE dallo stesso VID non-admin; l'admin che navigava nella
+        // stessa finestra non ne ha prodotta nessuna. Il motivo sta in `ComponentBase`: dopo
+        // `OnParametersSetAsync` il render parte SEMPRE, ma se il task è già completato non c'è niente in
+        // volo. Per un admin `CanEditAnythingAsync` risponde dai claim senza toccare il database — task
+        // completato, nessuna corsa. Per un socio qualunque è una query vera — task in volo, corsa certa.
+        //   anonimo    → niente domanda      → niente corsa
+        //   admin      → risposta immediata  → niente corsa
+        //   socio      → query vera in volo  → CORSA, ogni volta
+        // Ecco perché lo vedeva solo chi non ha incarichi, e perché a noi non capitava mai.
+        //
+        // `Prewarm()` era già scritto apposta («chiamata dal ciclo di vita async, context libero e
+        // sequenziale») e non lo chiamava nessuno.
+        _accs = LeggiCatalogo();
 
         // /services/vsop/{acc}/{vipi?}. ⚠️ Il conto dei segmenti NON si rifà qui: era scritto a mano e
         // contava dal primo, che dal 22 agosto 2026 è «services» e non più «vsop» — da allora nessun ACC
         // è più stato evidenziato. Ora il prefisso sta in un posto solo (VsopRoutes).
         _acc = VsopRoutes.AccFrom(Nav.ToAbsoluteUri(Nav.Uri).AbsolutePath);
 
-        // Tasto Editor: visibile solo a chi può editare almeno un documento (admin o grant).
+        // Tasto Editor: visibile solo a chi ha qualcosa da editare (admin o concessione).
         _isAdmin = Authz.IsAdmin;
-        _canEdit = _user is not null && (_isAdmin || (await Editing.ListEditableDocumentsAsync()).Count > 0);
+        _canEdit = _user is not null && await PuoModificareAsync();
+    }
+
+    /// <summary>
+    /// Il catalogo delle ACC, scaldato FUORI dal render. Degrada come il tasto «Modifica» e per la stessa
+    /// ragione: senza elenco la barra perde i collegamenti alle ACC, ma la pagina — la guida, l'hub, un
+    /// documento già in cache — si apre lo stesso. Prima, un catalogo illeggibile era una pagina morta.
+    /// </summary>
+    private IReadOnlyList<AccInfo> LeggiCatalogo()
+    {
+        try
+        {
+            Stations.Prewarm();
+            return Stations.Accs;
+        }
+        catch (Exception ex)
+        {
+            Log.LogWarning(ex, "Barra: il catalogo delle ACC non si è potuto leggere. "
+                             + "La barra esce senza i collegamenti alle ACC e la pagina si serve lo stesso.");
+            return Array.Empty<AccInfo>();
+        }
+    }
+
+    /// <summary>
+    /// La sola domanda che la barra fa al database, e l'<b>unica cosa</b> che un utente loggato fa in più
+    /// di un anonimo su qualunque pagina. Per questo qui si degrada invece di lanciare.
+    ///
+    /// <para><b>Perché.</b> Il 24 agosto 2026 un socio senza incarichi ha visto la pagina «Error.» su
+    /// <c>/services</c> — una pagina che non legge niente dal database — mentre per chi non era entrato lo
+    /// stesso indirizzo rispondeva 200. L'asimmetria è tutta qui: l'anonimo esce dalla condizione prima di
+    /// arrivare al database, l'admin esce sul controllo dei codici staff, e resta a pagare il giro proprio
+    /// il socio qualunque. Qualunque intoppo — connessione caduta, pool esaurito, comando scaduto — non
+    /// spegneva un tasto: buttava giù <b>tutta</b> la pagina, per i soli utenti loggati.</para>
+    ///
+    /// <para>⚠️ Ingoiare un errore è di norma proibito in questo progetto, e questa è l'eccezione motivata:
+    /// il tasto è una decorazione del contorno, e il contorno non può decidere se la pagina esiste. Non è
+    /// però un guasto muto — finisce nel log con la sua categoria, e da lì nel file di diagnostica.</para>
+    /// </summary>
+    private async Task<bool> PuoModificareAsync()
+    {
+        try
+        {
+            return await Authz.CanEditAnythingAsync();
+        }
+        catch (Exception ex)
+        {
+            Log.LogWarning(ex, "Barra: non si è potuto stabilire se l'utente può modificare. "
+                             + "Il tasto resta spento e la pagina si serve lo stesso.");
+            return false;
+        }
     }
 
     private bool IsActiveAcc(string code) =>

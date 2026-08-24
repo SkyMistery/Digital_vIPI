@@ -47,13 +47,17 @@ public static class StartupDiagnostics
     /// Riepilogo della configurazione, senza segreti. Va chiamato appena il builder esiste: se l'avvio
     /// morisse dopo, questo file racconta comunque con quale configurazione ci ha provato.
     /// </summary>
-    public static void WriteConfigurationSummary(WebApplicationBuilder builder)
+    public static void WriteConfigurationSummary(WebApplicationBuilder builder, int fileSegretiLetti = 0)
     {
         var cfg = builder.Configuration;
         var sb = new StringBuilder();
 
         sb.AppendLine($"vIPI — diagnostica di avvio, {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
         sb.AppendLine(new string('-', 70));
+        // ⚠️ QUALE codice è ripartito, non solo QUANDO: la data qui sopra si rinfresca a ogni riavvio —
+        // e Passenger ne fa da solo, per inattività — quindi da sola non prova che sia arrivata la
+        // versione nuova. Vedi VersioneBuild.
+        sb.AppendLine($"Versione ..................... {VersioneBuild.Leggi().Dettaglio}");
         sb.AppendLine($"Ambiente ..................... {builder.Environment.EnvironmentName}");
         sb.AppendLine($"Cartella dell'applicazione ... {AppContext.BaseDirectory}");
         sb.AppendLine();
@@ -66,6 +70,13 @@ public static class StartupDiagnostics
 
         var fileProduzione = Path.Combine(AppContext.BaseDirectory, "appsettings.Production.json");
         sb.AppendLine($"appsettings.Production.json .. {(File.Exists(fileProduzione) ? "presente" : "ASSENTE")}");
+        sb.AppendLine();
+
+        // ⚠️ Si scrive QUANTI file, mai QUALI: questo riepilogo è a sua volta scaricabile dal web sul
+        // server vero (docs/lavori-aperti.md §A13), e il nome di quei file è l'unica cosa che li protegge.
+        sb.AppendLine(fileSegretiLetti > 0
+            ? $"Cartella «{SegretiFuoriDalWeb.Cartella}» ....... {fileSegretiLetti} file letti (i nomi non si riportano)"
+            : $"Cartella «{SegretiFuoriDalWeb.Cartella}» ....... nessun file: i valori qui sotto vengono tutti da appsettings*");
         sb.AppendLine();
 
         sb.AppendLine("Configurazione letta (i valori segreti non vengono riportati):");
@@ -134,24 +145,50 @@ public static class StartupDiagnostics
     /// </summary>
     private static void Write(string nomeFile, string contenuto)
     {
+        if (Percorso(nomeFile) is not { } percorso)
+        {
+            Console.WriteLine($"[vIPI] impossibile scrivere {nomeFile}: nessuna cartella scrivibile.");
+            Console.WriteLine(contenuto);
+            return;
+        }
+
+        try
+        {
+            File.WriteAllText(percorso, contenuto, Codifica);
+            Console.WriteLine($"[vIPI] diagnostica scritta in {percorso}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[vIPI] impossibile scrivere {percorso}: {ex.Message}");
+            Console.WriteLine(contenuto);
+        }
+    }
+
+    /// <summary>
+    /// UTF-8 <b>CON BOM</b>: questi file finiscono per email e vengono aperti col Blocco note su Windows,
+    /// che senza BOM li interpreta in ANSI e sfregia ogni accento. Il BOM non dà fastidio agli editor seri
+    /// né a <c>cat</c>.
+    /// </summary>
+    internal static readonly UTF8Encoding Codifica = new(encoderShouldEmitUTF8Identifier: true);
+
+    /// <summary>
+    /// Percorso di un file dentro <see cref="CartellaDiagnostica"/>, creando la cartella; <c>null</c> se non
+    /// c'è nessuna radice scrivibile. Accanto all'eseguibile se si può — è la cartella che si raggiunge via
+    /// FTP, l'unico accesso che c'è su <c>atc.it.ivao.aero</c> — altrimenti la temporanea, dove almeno una
+    /// shell la trova. Condiviso con <see cref="DiagnosticaErrori"/>: un solo posto dove guardare.
+    /// </summary>
+    internal static string? Percorso(string nomeFile)
+    {
         foreach (var radice in new[] { AppContext.BaseDirectory, Path.GetTempPath() })
         {
             try
             {
                 var cartella = Path.Combine(radice, CartellaDiagnostica);
                 Directory.CreateDirectory(cartella);
-                var percorso = Path.Combine(cartella, nomeFile);
-                // UTF-8 CON BOM: questi file finiscono per email e vengono aperti col Blocco note su
-                // Windows, che senza BOM li interpreta in ANSI e sfregia ogni accento. Il BOM non dà
-                // fastidio agli editor seri né a `cat`.
-                File.WriteAllText(percorso, contenuto, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
-                Console.WriteLine($"[vIPI] diagnostica scritta in {percorso}");
-                return;
+                return Path.Combine(cartella, nomeFile);
             }
             catch { /* cartella non scrivibile: si prova la prossima */ }
         }
-
-        Console.WriteLine($"[vIPI] impossibile scrivere {nomeFile}: nessuna cartella scrivibile.");
-        Console.WriteLine(contenuto);
+        return null;
     }
 }
