@@ -18,6 +18,11 @@ public static class DependencyInjection
         var provider = Persistence.PersistenceProviderResolver.Resolve(
             configuration?[Persistence.PersistenceProviderResolver.ProviderConfigKey]);
 
+        // Annota chi c'era già quando una seconda operazione trova il contesto occupato: è la metà della
+        // storia che lo stack dell'eccezione non contiene (docs/lavori-aperti.md §E9). Senza stato proprio,
+        // quindi una sola istanza per tutti e tre i provider.
+        var Tracciante = new Persistence.TracciaCollisioniInterceptor();
+
         switch (provider)
         {
             case Persistence.PersistenceProvider.Sqlite:
@@ -26,7 +31,7 @@ public static class DependencyInjection
                     // Query con >1 Include di collection: split in più SELECT (default consigliato MS) invece del
                     // JOIN cartesiano di SingleQuery. Toglie il warning EF 20504 e migliora la perf su tali query.
                     .UseSqlite(connectionString, sql => sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
-                    .AddInterceptors(new Persistence.SqliteTuningInterceptor()));
+                    .AddInterceptors(new Persistence.SqliteTuningInterceptor(), Tracciante));
                 break;
 
             case Persistence.PersistenceProvider.Postgres:
@@ -40,7 +45,8 @@ public static class DependencyInjection
                         // dopo l'inattività fallisce "transient". Ritenta in automatico (execution strategy).
                         // Retry-safe: EfUnitOfWork avvolge le transazioni in CreateExecutionStrategy() E azzera il
                         // change-tracker a ogni tentativo (il rollback non lo ripulisce). Vedi EfUnitOfWork.
-                        .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null)));
+                        .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null))
+                    .AddInterceptors(Tracciante));
                 break;
 
             case Persistence.PersistenceProvider.MySql:
@@ -75,7 +81,8 @@ public static class DependencyInjection
                         // transazioni esplicite è EfUnitOfWork, che le avvolge in CreateExecutionStrategy()
                         // e azzera il change-tracker a ogni tentativo. Prima di aprire una transazione
                         // altrove, rileggere quel file.
-                        .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null)));
+                        .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null))
+                    .AddInterceptors(Tracciante));
                 break;
 #else
                 // Su net10 il provider non esiste: Pomelo non ha una build per EF Core 10 e non l'avrà a
