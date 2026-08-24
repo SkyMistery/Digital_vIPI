@@ -1704,6 +1704,12 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .app-sep-vals .app-in{min-width:120px}
 /* Stacking context isolato: confina gli z-index interni di Leaflet (pane/control ~200-1000) sotto la topbar (z-index:45). */
 .aor-leaflet,.mva-leaflet{position:relative;z-index:0;isolation:isolate}
+/* Mappa a cui e' stato tolto il fondo perche' le tessere non arrivavano (vedi `rinunciaAlFondo` in
+   vipi-aor.js): stesso `--surface-soft` del ripiego SVG che si vede prima che Leaflet carichi, cosi'
+   una mappa senza basemap si legge come una scelta e non come un guasto. Serve anche su
+   `.leaflet-container`, che di suo porta un grigio proprio. */
+.aor-leaflet.senza-fondo,.mva-leaflet.senza-fondo,
+.aor-leaflet.senza-fondo.leaflet-container,.mva-leaflet.senza-fondo.leaflet-container{background:var(--surface-soft)}
 
 /* Carta MRVA: una per file .mva. Il titolo dice di quale ente è la carta, perché in un gruppo-APP ce n'è più d'una. */
 .mva-chart{margin:0 0 14px}

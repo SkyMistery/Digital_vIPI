@@ -132,8 +132,115 @@
     var SPAZZA_OGNI = 8000, SPAZZA_MAX = 20, SPAZZA_PER_TESSERA = 8;
     var spazzinoTimer = null, spazzate = 0, pulitiDiFila = 0;
 
+    /// RINUNCIA AL FONDO: quando la basemap non arriva e non arriverà, si toglie invece di lasciarla a pezzi.
+    ///
+    /// Il ritentatore e lo spazzino coprono i guasti che passano. Contro un blocco STABILE — un'estensione
+    /// che filtra `basemaps.cartocdn.com`, un DNS che non risolve, un fornitore che ci ha chiuso fuori — non
+    /// esiste ritento che tenga: si riprova e si resta col riquadro a scacchi. Lì la cosa giusta non è
+    /// insistere ma **smettere**: via il fondo, restano lo sfondo neutro e i nostri poligoni, che sono il
+    /// dato che la mappa esiste per mostrare.
+    ///
+    /// È deliberatamente la STESSA FACCIA del ripiego SVG che si vede prima che Leaflet carichi
+    /// (`background: var(--surface-soft)` + i poligoni), e per la stessa ragione: una mappa senza fondo si
+    /// legge come una scelta, una mappa a scacchi si legge come un guasto. Nessuna etichetta, come là.
+    /// Togliendo il foglio sparisce anche la sua attribuzione, ed è corretto: non stiamo più mostrando le
+    /// tessere di nessuno.
+    ///
+    /// ⚠️ **Il conto sta sui giri dello SPAZZINO, non su `data-vipi-ritento`.** Quell'attributo si
+    /// incrementa quando il ritento viene *programmato*, non quando fallisce: arriva a 5 già al nono secondo
+    /// mentre l'ultimo tentativo è in volo fino al diciannovesimo. Contando quello, un guasto passeggero di
+    /// 30 secondi — cioè il caso che lo spazzino recupera per intero — verrebbe scambiato per blocco
+    /// permanente e perderebbe il fondo per niente. `data-vipi-spazzata` invece si alza solo DOPO che la
+    /// scala veloce ha finito, ed è il segnale onesto.
+    ///
+    /// ⚠️ **E si può tornare indietro.** Rinunciare non è definitivo: una sonda leggera — UNA richiesta,
+    /// non la raffica di tutte le mappe — riprova ogni mezzo minuto, e se la tessera arriva il fondo torna
+    /// dove stava. Così un'interruzione lunga costa una mappa pulita per un po', non fino al prossimo
+    /// ricaricamento.
+    /// ⚠️ **QUATTRO giri, non tre, e la differenza è misurata.** Con tre si rinuncia al 32° secondo, che
+    /// cade dentro la coda di un guasto passeggero di 30: il giro delle 32s vede ancora rotto quel che la
+    /// sua stessa richiesta sta per riparare, e **38 mappe su 75 perdevano il fondo per una quarantina di
+    /// secondi** — mappe che prima di questa aggiunta lo spazzino recuperava senza spegnere niente. Col
+    /// quarto giro il guasto di 30s si ripara da sé e il conto si azzera; il blocco vero costa otto secondi
+    /// in più di attesa, che è il prezzo giusto da pagare in quella direzione.
+    var RINUNCIA_DOPO = 4, idMappa = 0;
+    var senzaFondo = [], urlSonda = null, sondaTimer = null, sondeFatte = 0, SONDE_MAX = 20;
+
+    function rinunciaAlFondo(el, campione) {
+        if (!el || el.dataset.senzaFondo === '1') return;
+        var map = el._leafletMap;
+        if (!map || !window.L) return;
+        el.dataset.senzaFondo = '1';
+        // Si raccoglie PRIMA e si rimuove poi: `eachLayer` itera la collezione che `removeLayer` modifica.
+        var fogli = [];
+        map.eachLayer(function (l) { if (l instanceof L.TileLayer) fogli.push(l); });
+        fogli.forEach(function (l) { map.removeLayer(l); });
+        el._fondiRimossi = fogli;
+        el.classList.add('senza-fondo');
+        senzaFondo.push(el);
+        if (campione && !urlSonda) urlSonda = campione;
+        avviaSonda();
+    }
+
+    function riprendiIlFondo() {
+        senzaFondo.splice(0).forEach(function (el) {
+            var map = el._leafletMap, fogli = el._fondiRimossi || [];
+            el.dataset.senzaFondo = '';
+            el.dataset.vipiGiriPersi = 0;
+            el.classList.remove('senza-fondo');
+            if (map) fogli.forEach(function (l) { l.addTo(map); });
+            el._fondiRimossi = null;
+        });
+        fermaSonda();
+        avviaSpazzino();   // se ricadono, si ricomincia da capo: ritenti, spazzino, e in ultimo la rinuncia
+    }
+
+    /// UNA richiesta ogni 30s, non un nuovo giro di mappe: se ci hanno bloccati, ripetere la raffica intera
+    /// per scoprirlo sarebbe il modo peggiore di chiederlo.
+    function unaSonda() {
+        if (!urlSonda) { fermaSonda(); return; }
+        if (++sondeFatte > SONDE_MAX) { fermaSonda(); return; }
+        var img = new Image();
+        img.onload = function () { riprendiIlFondo(); };
+        // `cache-bust`: senza, il browser risponderebbe con lo stesso fallimento memorizzato.
+        img.src = urlSonda + (urlSonda.indexOf('?') < 0 ? '?' : '&') + 'vipisonda=' + Date.now();
+    }
+    function avviaSonda() { if (!sondaTimer) { sondeFatte = 0; sondaTimer = setInterval(unaSonda, 30000); } }
+    function fermaSonda() { if (sondaTimer) { clearInterval(sondaTimer); sondaTimer = null; } }
+
+    /// Il contenitore di mappa a cui una tessera appartiene.
+    function mappaDi(img) {
+        return img.closest ? img.closest('.aor-leaflet, .mva-leaflet') : null;
+    }
+
     function unGiro() {
-        var rotte = [].slice.call(document.querySelectorAll('img.leaflet-tile')).filter(function (i) {
+        var tutte = [].slice.call(document.querySelectorAll('img.leaflet-tile'));
+
+        // Chi è rotto AVENDO già finito la scala veloce: sono questi a far maturare la rinuncia.
+        var perse = {};
+        tutte.forEach(function (i) {
+            if (!i.parentNode || !i.complete || i.naturalWidth > 0) return;
+            // Almeno un giro di spazzino già fallito su questa tessera: la scala veloce ha finito davvero.
+            if (Number(i.getAttribute('data-vipi-spazzata') || 0) < 1) return;
+            var el = mappaDi(i);
+            if (!el || el.dataset.senzaFondo === '1') return;
+            var k = el.dataset.vipiMappaId || (el.dataset.vipiMappaId = 'm' + (++idMappa));
+            var v = (perse[k] = perse[k] || { el: el, n: 0, url: i.src });
+            v.n++;
+        });
+        // Un giro senza perdite azzera il conto: il guasto era passeggero e si è ripreso.
+        [].slice.call(document.querySelectorAll('.aor-leaflet, .mva-leaflet')).forEach(function (el) {
+            var k = el.dataset.vipiMappaId;
+            if (!k || !perse[k]) el.dataset.vipiGiriPersi = 0;
+        });
+        Object.keys(perse).forEach(function (k) {
+            var el = perse[k].el;
+            var g = Number(el.dataset.vipiGiriPersi || 0) + 1;
+            el.dataset.vipiGiriPersi = g;
+            if (g >= RINUNCIA_DOPO) rinunciaAlFondo(el, perse[k].url);
+        });
+
+        var rotte = tutte.filter(function (i) {
             if (!i.parentNode || !i.complete) return false;
             if (i.naturalWidth > 0) return false;
             return Number(i.getAttribute('data-vipi-spazzata') || 0) < SPAZZA_PER_TESSERA;
