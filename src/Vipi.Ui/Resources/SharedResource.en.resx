@@ -464,7 +464,14 @@
   <data name="Audit_VidN" xml:space="preserve"><value>VID {0}</value></data>
   <!-- Diagnostics (/vsop/admin/diagnostica) -->
   <data name="Diag_Title" xml:space="preserve"><value>Data diagnostics</value></data>
-  <data name="Diag_Subtitle" xml:space="preserve"><value>What does not add up, in five areas: data, schema, server, startup, configuration</value></data>
+  <data name="Diag_Subtitle" xml:space="preserve"><value>What does not add up, in six areas: data, schema, server, startup, configuration, source</value></data>
+  <data name="Diag_Area_Sorgente" xml:space="preserve"><value>Source</value></data>
+  <data name="Diag_Cat_ShapeAssente" xml:space="preserve"><value>Sector without a polygon</value></data>
+  <data name="Diag_Msg_ShapeAssente" xml:space="preserve"><value>The source exposes no shape for this sector: it does not appear on maps and cannot be attributed traffic. Its hours still count; its movements will always be zero.</value></data>
+  <data name="Diag_Cat_ContornoRipetuto" xml:space="preserve"><value>Repeated outline</value></data>
+  <data name="Diag_Msg_ContornoRipetuto" xml:space="preserve"><value>The source shape contains the same ring {0} times ({1} points). The application repairs it on read; without that fix the sector would contain nothing and its traffic would always be zero.</value></data>
+  <data name="Diag_Cat_ShapeSintetica" xml:space="preserve"><value>Synthetic shape</value></data>
+  <data name="Diag_Msg_ShapeSintetica" xml:space="preserve"><value>The source gives no polygon for this tower: a 5 NM circle is used instead. Traffic attributed here is an estimate, not a measurement.</value></data>
   <data name="Diag_Area_Dati" xml:space="preserve"><value>Data</value></data>
   <data name="Diag_Area_Schema" xml:space="preserve"><value>Schema</value></data>
   <data name="Diag_Area_Server" xml:space="preserve"><value>Server</value></data>
@@ -502,7 +509,7 @@
   <data name="Diag_Analyzing" xml:space="preserve"><value>Analysis in progress…</value></data>
   <data name="Diag_Failed" xml:space="preserve"><value>The report did not run.</value></data>
   <data name="Diag_HelpAria" xml:space="preserve"><value>How to read the diagnostics</value></data>
-  <data name="Diag_Intro" xml:space="preserve"><value>Every row says &lt;b&gt;whose problem it is&lt;/b&gt;. &lt;b&gt;Data&lt;/b&gt;: references between entities that no longer resolve — fixed by opening an editor, and the row says which one. &lt;b&gt;Schema&lt;/b&gt;: the database does not have the columns the code expects. &lt;b&gt;Server&lt;/b&gt;: database server settings the application assumes and cannot enforce. &lt;b&gt;Startup&lt;/b&gt;: a startup maintenance pass failed — the instance is running but did not start whole. &lt;b&gt;Configuration&lt;/b&gt;: fixed outside the application.&lt;br /&gt;&lt;br /&gt;These are &lt;b&gt;diagnoses only&lt;/b&gt;: this page changes no data. And ⚠️ if a check did not run, the absence of findings in its area does &lt;b&gt;not&lt;/b&gt; mean all is well: a row says so explicitly.</value></data>
+  <data name="Diag_Intro" xml:space="preserve"><value>Every row says &lt;b&gt;whose problem it is&lt;/b&gt;. &lt;b&gt;Data&lt;/b&gt;: references between entities that no longer resolve — fixed by opening an editor, and the row says which one. &lt;b&gt;Schema&lt;/b&gt;: the database does not have the columns the code expects. &lt;b&gt;Server&lt;/b&gt;: database server settings the application assumes and cannot enforce. &lt;b&gt;Startup&lt;/b&gt;: a startup maintenance pass failed — the instance is running but did not start whole. &lt;b&gt;Configuration&lt;/b&gt;: fixed outside the application. &lt;b&gt;Source&lt;/b&gt;: the data arrives like this from IVAO — it cannot be fixed from here; it is known and watched, because it changes how much the resulting numbers can be trusted.&lt;br /&gt;&lt;br /&gt;These are &lt;b&gt;diagnoses only&lt;/b&gt;: this page changes no data. And ⚠️ if a check did not run, the absence of findings in its area does &lt;b&gt;not&lt;/b&gt; mean all is well: a row says so explicitly.</value></data>
   <data name="Diag_Count" xml:space="preserve"><value>{0} · {1} severe</value></data>
   <data name="Diag_CountNone" xml:space="preserve"><value>no findings</value></data>
   <data name="Diag_CountTitle" xml:space="preserve"><value>Findings, and how many are severe</value></data>

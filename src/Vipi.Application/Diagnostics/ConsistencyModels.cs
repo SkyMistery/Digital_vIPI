@@ -27,6 +27,17 @@ public enum ConsistencyArea
     Avvio,
     /// <summary>Configurazione dell'applicazione (pattern admin, sezione Division): si ripara fuori dall'app.</summary>
     Configurazione,
+
+    /// <summary>
+    /// Il dato arriva così <b>dalla sorgente esterna</b>: da qui non si ripara, si sa e si tiene d'occhio.
+    ///
+    /// <para>Serve un'area sua perché la risposta è diversa da tutte le altre: non «apri l'editor», non
+    /// «lancia una migrazione», ma «l'applicazione ci convive, ed ecco cosa ne consegue». Nasce il 25 agosto
+    /// 2026 dopo <c>LIRR_TS_CTR</c>, la cui shape arriva da IVAO col contorno ripetuto due volte: senza una
+    /// riga che lo dica, un settore che non attribuisce traffico resta invisibile finché non se ne accorge
+    /// un occhio umano su una vista 3D.</para>
+    /// </summary>
+    Sorgente,
 }
 
 /// <summary>
@@ -123,4 +134,18 @@ public sealed class ConsistencyDataset
 
     /// <summary>IvaoId delle aree speciali esistenti, per validare gli id salvati nelle selezioni.</summary>
     public IReadOnlySet<string> SpecialAreaIds { get; init; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Le shape dei settori come stanno in archivio, per i controlli sulla geometria di sorgente.</summary>
+    public IReadOnlyList<SectorShapeRow> SectorShapes { get; init; } = Array.Empty<SectorShapeRow>();
 }
+
+/// <summary>
+/// La shape di un settore come arriva dalla sorgente, <b>grezza</b>.
+///
+/// <para>⚠️ Grezza e non già interpretata, ed è il punto: <c>PolygonGeometry.ParsePoints</c> ripara al volo
+/// il contorno ripetuto, quindi chi guarda i punti già letti <b>non vede più l'anomalia</b>. Per raccontarla
+/// bisogna leggere la stringa com'è.</para>
+/// </summary>
+/// <param name="Kind">«Settore ACC» o «Postazione d'aeroporto», per la riga a video.</param>
+/// <param name="Position">Suffisso (CTR/FSS/TWR/APP/GND/DEL/ATIS): dice se una shape è attesa o no.</param>
+public sealed record SectorShapeRow(string Kind, string Callsign, string? Position, string? RawPolygon, bool IsSynthetic);

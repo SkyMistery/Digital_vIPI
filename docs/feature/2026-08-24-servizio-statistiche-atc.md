@@ -663,3 +663,39 @@ sessioni»** — sarebbe un buco silenzioso nello storico.
   in `OnInitializedAsync` usano `OwningComponentBase`.
 - Attributo componente di tipo `string` senza `@` è un **letterale**: `Key="x"` ≠ `Key="@x"`.
 - Se si aggiunge un pacchetto: `packages.lock.json` rigenerato e committato, o la CI si ferma.
+
+## 11. Dopo la consegna: cosa aggiungere (elenco vivo)
+
+Elenco tenuto qui perché la domanda «cosa manca?» torna, e la risposta cambia con quel che si impara.
+Ordinato per **quanto costa il dato**, non per quanto è bella l'idea.
+
+### ✅ Fatto
+
+- **La diagnostica delle shape** (25 agosto). Tre rilievi nell'area nuova `Sorgente`: contorno ripetuto,
+  settore senza poligono, cerchio sintetico. Sul `vipi.db` reale accende **29 righe** — 16 shape sintetiche,
+  11 settori senza poligono, 2 contorni ripetuti (`LIRR_TS_CTR` e `LATI_APP`). È la riga che sarebbe servita
+  ieri: un settore che non attribuisce traffico ora lo dice, invece di aspettare un occhio umano su una
+  vista 3D.
+
+### Scelte dal committente, da fare
+
+- **Quando c'è il buco**: griglia ora × giorno della settimana per la divisione (dove manca copertura) e per
+  la persona (a che ora controlli davvero). Query su dati già in archivio.
+- **I tuoi aeroporti, i tuoi aeroplani, esportazione CSV**: `DepIcao`/`ArrIcao`/`AircraftIcao` sono già
+  salvati su ogni tratta.
+- **Le piste in uso della sessione**, lette dall'ATIS che la fotografia già porta (48 ATC su 71 la nominano
+  nel testo: «*Arrival runway 16L 16R departure runway 25*»). ⚠️ **Cambiano durante la sessione** — nota
+  esplicita del committente: si registra la **sequenza dei cambi**, non un valore solo, o si scrive una cosa
+  falsa per metà turno. La **lettera** ATIS invece non serve.
+
+### Segnato, da ragionare (non ora)
+
+- **La mappa del traffico gestito** nel dettaglio sessione: `/v2/tracker/sessions/{id}/tracks` dà la traccia
+  completa di un volo, da mettere sopra il poligono del settore. Una chiamata per volo, quindi su richiesta e
+  con cache. Deciso il 25 agosto di **non** farla adesso.
+
+### Aperte, ma non tecniche
+
+- **I nomi nelle classifiche** restano il VID finché la gente non fa login da noi (§8.2).
+- **«Chi non controlla da tre mesi»**: già calcolabile, utile al tutoraggio, ma è una lista di persone e la
+  decisione è del committente.

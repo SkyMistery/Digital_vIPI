@@ -467,7 +467,14 @@
   <data name="Audit_VidN" xml:space="preserve"><value>VID {0}</value></data>
   <!-- Diagnostica (/vsop/admin/diagnostica) -->
   <data name="Diag_Title" xml:space="preserve"><value>Diagnostica dati</value></data>
-  <data name="Diag_Subtitle" xml:space="preserve"><value>Quello che non torna, in cinque aree: dati, schema, server, avvio, configurazione</value></data>
+  <data name="Diag_Subtitle" xml:space="preserve"><value>Quello che non torna, in sei aree: dati, schema, server, avvio, configurazione, sorgente</value></data>
+  <data name="Diag_Area_Sorgente" xml:space="preserve"><value>Sorgente</value></data>
+  <data name="Diag_Cat_ShapeAssente" xml:space="preserve"><value>Settore senza poligono</value></data>
+  <data name="Diag_Msg_ShapeAssente" xml:space="preserve"><value>La sorgente non espone una shape per questo settore: non compare nelle mappe e non puo attribuire traffico. Le sue ore restano contate, i suoi movimenti saranno sempre zero.</value></data>
+  <data name="Diag_Cat_ContornoRipetuto" xml:space="preserve"><value>Contorno ripetuto</value></data>
+  <data name="Diag_Msg_ContornoRipetuto" xml:space="preserve"><value>La shape di sorgente contiene lo stesso anello {0} volte ({1} punti). L'applicazione lo ripara in lettura; senza quella correzione il settore non conterrebbe nulla e il suo traffico sarebbe sempre zero.</value></data>
+  <data name="Diag_Cat_ShapeSintetica" xml:space="preserve"><value>Shape sintetica</value></data>
+  <data name="Diag_Msg_ShapeSintetica" xml:space="preserve"><value>La sorgente non da il poligono di questa torre: si usa un cerchio di 5 NM. Il traffico attribuito qui e una stima, non una misura.</value></data>
   <data name="Diag_Area_Dati" xml:space="preserve"><value>Dati</value></data>
   <data name="Diag_Area_Schema" xml:space="preserve"><value>Schema</value></data>
   <data name="Diag_Area_Server" xml:space="preserve"><value>Server</value></data>
@@ -505,7 +512,7 @@
   <data name="Diag_Analyzing" xml:space="preserve"><value>Analisi in corso…</value></data>
   <data name="Diag_Failed" xml:space="preserve"><value>Il report non è stato eseguito.</value></data>
   <data name="Diag_HelpAria" xml:space="preserve"><value>Come si legge la diagnostica</value></data>
-  <data name="Diag_Intro" xml:space="preserve"><value>Ogni riga dice &lt;b&gt;di chi è il problema&lt;/b&gt;. &lt;b&gt;Dati&lt;/b&gt;: riferimenti fra entità che non risolvono più — si riparano aprendo un editor, e la riga dice quale. &lt;b&gt;Schema&lt;/b&gt;: il database non ha le colonne che il codice si aspetta. &lt;b&gt;Server&lt;/b&gt;: impostazioni del server di database che l’applicazione assume e non può imporre. &lt;b&gt;Avvio&lt;/b&gt;: una manutenzione dell’avvio è fallita, l’istanza gira ma non è partita intera. &lt;b&gt;Configurazione&lt;/b&gt;: si corregge fuori dall’applicazione.&lt;br /&gt;&lt;br /&gt;Sono &lt;b&gt;solo diagnosi&lt;/b&gt;: nessun dato viene modificato da questa pagina. E ⚠️ se un controllo non è riuscito, l’assenza di rilievi nella sua area &lt;b&gt;non&lt;/b&gt; vuol dire che vada tutto bene: lo dice una riga apposta.</value></data>
+  <data name="Diag_Intro" xml:space="preserve"><value>Ogni riga dice &lt;b&gt;di chi è il problema&lt;/b&gt;. &lt;b&gt;Dati&lt;/b&gt;: riferimenti fra entità che non risolvono più — si riparano aprendo un editor, e la riga dice quale. &lt;b&gt;Schema&lt;/b&gt;: il database non ha le colonne che il codice si aspetta. &lt;b&gt;Server&lt;/b&gt;: impostazioni del server di database che l’applicazione assume e non può imporre. &lt;b&gt;Avvio&lt;/b&gt;: una manutenzione dell’avvio è fallita, l’istanza gira ma non è partita intera. &lt;b&gt;Configurazione&lt;/b&gt;: si corregge fuori dall’applicazione. &lt;b&gt;Sorgente&lt;/b&gt;: il dato arriva così da IVAO — da qui non si ripara, si sa e si tiene d’occhio, perché cambia quanto ci si può fidare dei numeri che ne discendono.&lt;br /&gt;&lt;br /&gt;Sono &lt;b&gt;solo diagnosi&lt;/b&gt;: nessun dato viene modificato da questa pagina. E ⚠️ se un controllo non è riuscito, l’assenza di rilievi nella sua area &lt;b&gt;non&lt;/b&gt; vuol dire che vada tutto bene: lo dice una riga apposta.</value></data>
   <data name="Diag_Count" xml:space="preserve"><value>{0} · {1} gravi</value></data>
   <data name="Diag_CountNone" xml:space="preserve"><value>nessun rilievo</value></data>
   <data name="Diag_CountTitle" xml:space="preserve"><value>Rilievi trovati, e quanti sono gravi</value></data>

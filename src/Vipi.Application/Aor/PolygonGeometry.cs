@@ -48,21 +48,8 @@ public static class PolygonGeometry
     /// </summary>
     private static List<(double Lat, double Lon)> SenzaAnelliRipetuti(List<(double Lat, double Lon)> punti)
     {
-        var n = punti.Count;
-        if (n < 6) return punti;
-
-        for (var copie = 2; copie <= 6; copie++)
-        {
-            if (n % copie != 0) continue;
-
-            var lunghezza = n / copie;
-            var uguali = true;
-            for (var i = lunghezza; i < n && uguali; i++)
-                uguali = punti[i] == punti[i % lunghezza];
-
-            if (uguali) return punti.GetRange(0, lunghezza);
-        }
-        return punti;
+        var copie = CopieDellAnello(punti);
+        return copie > 1 ? punti.GetRange(0, punti.Count / copie) : punti;
     }
 
     /// <summary>
@@ -88,6 +75,42 @@ public static class PolygonGeometry
                 puliti.Add(punti[i]);
 
         return puliti.Count >= 3 ? puliti : punti;
+    }
+
+    /// <summary>
+    /// I punti <b>senza nessuna riparazione</b>: servono a chi deve <i>raccontare</i> l'anomalia invece di
+    /// conviverci — la diagnostica. <see cref="ParsePoints"/> ripara, quindi guardando il suo risultato
+    /// l'anomalia non c'è più.
+    /// </summary>
+    public static List<(double Lat, double Lon)> PuntiGrezzi(string? rawJson)
+    {
+        if (string.IsNullOrWhiteSpace(rawJson)) return new();
+        try
+        {
+            using var doc = JsonDocument.Parse(rawJson);
+            return ExtractPoints(doc.RootElement);
+        }
+        catch (JsonException) { return new(); }
+    }
+
+    /// <summary>Quante volte l'identico anello si ripete dentro l'elenco di punti; 1 = normale.</summary>
+    public static int CopieDellAnello(IReadOnlyList<(double Lat, double Lon)> punti)
+    {
+        var n = punti.Count;
+        if (n < 6) return 1;
+
+        for (var copie = 2; copie <= 6; copie++)
+        {
+            if (n % copie != 0) continue;
+
+            var lunghezza = n / copie;
+            var uguali = true;
+            for (var i = lunghezza; i < n && uguali; i++)
+                uguali = punti[i] == punti[i % lunghezza];
+
+            if (uguali) return copie;
+        }
+        return 1;
     }
 
     /// <summary>Costruisce un <see cref="Ring"/> (punti + bbox) dal JSON grezzo; null se poligono degenere (&lt;3 punti).</summary>

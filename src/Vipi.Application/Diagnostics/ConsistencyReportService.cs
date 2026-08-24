@@ -227,7 +227,71 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         }
 
         findings.AddRange(CallsignAmbigui(d.ValidCallsigns));
+        findings.AddRange(ShapeDiSorgente(d.SectorShapes));
         return findings;
+    }
+
+    /// <summary>Suffissi che un volume di spazio aereo ce l'hanno: per gli altri la shape non è attesa.</summary>
+    private static readonly HashSet<string> ConVolume =
+        new(StringComparer.OrdinalIgnoreCase) { "CTR", "FSS", "TWR", "APP", "DEP" };
+
+    /// <summary>
+    /// Quel che non va nelle shape che arrivano dalla sorgente. Tre cose, tutte con la stessa conseguenza —
+    /// <b>il traffico non si attribuisce</b> — e nessuna riparabile da dentro l'applicazione.
+    ///
+    /// <para><b>Perché questo controllo esiste.</b> Il 24 agosto 2026 <c>LIRR_TS_CTR</c> è risultato non
+    /// attribuire <b>mai</b> niente: la sua shape arriva da IVAO col contorno ripetuto due volte, e col test
+    /// pari/dispari un anello doppio si annulla. Se n'è accorto un occhio umano guardando una vista 3D. Senza
+    /// una riga che lo dica, un settore muto resta muto per mesi: le sue ore ci sono, il suo traffico è zero,
+    /// e zero somiglia molto a «non è passato nessuno».</para>
+    ///
+    /// <para>⚠️ Si legge il JSON <b>grezzo</b>, non i punti già interpretati: <c>ParsePoints</c> ripara al
+    /// volo, quindi chi guarda il risultato non vede più l'anomalia che deve raccontare.</para>
+    /// </summary>
+    private static IEnumerable<ConsistencyFinding> ShapeDiSorgente(IReadOnlyList<SectorShapeRow> shapes)
+    {
+        foreach (var s in shapes)
+        {
+            var grezzi = Aor.PolygonGeometry.PuntiGrezzi(s.RawPolygon);
+
+            if (grezzi.Count == 0)
+            {
+                // DEL/GND/ATIS non hanno un volume: per loro l'assenza è la normalità, non un rilievo.
+                if (s.Position is null || !ConVolume.Contains(s.Position.Trim())) continue;
+
+                yield return new ConsistencyFinding("Settore senza poligono", ConsistencySeverity.Warning,
+                    $"{s.Kind} {s.Callsign}",
+                    "La sorgente non espone una shape per questo settore: non compare nelle mappe e non può " +
+                    "attribuire traffico. Le sue ore restano contate, i suoi movimenti saranno sempre zero.",
+                    ConsistencyArea.Sorgente, DoveStruttura,
+                    CategoryKey: "Diag_Cat_ShapeAssente", DetailKey: "Diag_Msg_ShapeAssente");
+                continue;
+            }
+
+            var copie = Aor.PolygonGeometry.CopieDellAnello(grezzi);
+            if (copie > 1)
+            {
+                yield return new ConsistencyFinding("Contorno ripetuto", ConsistencySeverity.Warning,
+                    $"{s.Kind} {s.Callsign}",
+                    $"La shape di sorgente contiene lo stesso anello {copie} volte ({grezzi.Count} punti). " +
+                    "L'applicazione lo ripara in lettura; senza quella correzione il settore non conterrebbe " +
+                    "nulla e il suo traffico sarebbe sempre zero.",
+                    ConsistencyArea.Sorgente, DoveStruttura,
+                    CategoryKey: "Diag_Cat_ContornoRipetuto", DetailKey: "Diag_Msg_ContornoRipetuto",
+                    DetailArgs: new object[] { copie, grezzi.Count });
+                continue;
+            }
+
+            if (s.IsSynthetic)
+            {
+                yield return new ConsistencyFinding("Shape sintetica", ConsistencySeverity.Warning,
+                    $"{s.Kind} {s.Callsign}",
+                    "La sorgente non dà il poligono di questa torre: si usa un cerchio di 5 NM. Il traffico " +
+                    "attribuito qui è una stima, non una misura.",
+                    ConsistencyArea.Sorgente, DoveStruttura,
+                    CategoryKey: "Diag_Cat_ShapeSintetica", DetailKey: "Diag_Msg_ShapeSintetica");
+            }
+        }
     }
 
     /// <summary>

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Diagnostics;
 using Vipi.Domain;
@@ -49,8 +49,21 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
             .Concat(await _db.AirportSectors.AsNoTracking().Select(s => s.ComposePosition).ToListAsync(ct))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+        // Shape dei settori, GREZZE: la diagnostica deve poter raccontare l'anomalia che il parsing ripara.
+        // ⚠️ Solo i settori visibili: uno nascosto dall'admin non è un problema da segnalare tutti i giorni.
+        var shapes = (await _db.AccSectors.AsNoTracking()
+                .Where(x => !x.IsHidden)
+                .Select(x => new SectorShapeRow("Settore ACC", x.ComposePosition, x.Position, x.RegionMapPolygon, false))
+                .ToListAsync(ct))
+            .Concat(await _db.AirportSectors.AsNoTracking()
+                .Where(x => !x.IsHidden)
+                .Select(x => new SectorShapeRow("Postazione", x.ComposePosition, x.Position, x.RegionMapPolygon, x.IsShapeSynthetic))
+                .ToListAsync(ct))
+            .ToList();
+
         return new ConsistencyDataset
         {
+            SectorShapes = shapes,
             TransferConditions = conditions,
             RunwayIdents = runwayIdents,
             AreaNames = areaNames,
