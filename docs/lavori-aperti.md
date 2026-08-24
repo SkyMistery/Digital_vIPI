@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 23 agosto 2026, sera (E4 decisa il 22 sera; E5 property-based, E6-ter e i due difetti della topbar chiusi il 23; **audit frontend/UI chiuso e fuso in `main`** — §H; **consegna del 23 agosto prodotta, pacchetto e database** — A11) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+**Aggiornato:** 24 agosto 2026 (**§B10: `coordinamenti-lato-ricevente` è aperto e va fuso** — è l'unico ramo con lavoro fuori da `main`; il 23 sera: audit frontend/UI chiuso e fuso — §H, consegna prodotta — A11) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -23,7 +23,8 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 > token invece di 937 all'indietro. Otto file in conflitto, risolti con una regola sola — **struttura dal ramo
 > dei servizi, colori dai token del tema**.
 >
-> Da qui **`main` è il posto dove si lavora, e non c'è più nessun ramo con lavoro fuori**: gli altri undici sono
+> Da qui **`main` è il posto dove si lavora**, e per due giorni non c'è stato nessun ramo con lavoro fuori:
+> ⚠️ **dal 24 agosto ce n'è di nuovo uno, `coordinamenti-lato-ricevente` — vedi B10.** Gli altri undici sono
 > tutti a zero commit di distanza — e il 22 agosto sono stati **cancellati tutti e undici**, locale e origin.
 > ⚠️ Cancellandoli è saltata fuori una cosa: **`refactor/13-tre-documenti` (B5) non aspettava nessun ok**, era
 > in `main` dal 15 agosto, portato dentro dal merge dei trasferimenti. Vedi B5.
@@ -147,7 +148,8 @@ oggi nessuno sa rispondere — la rotazione della password Neon, e quattro decis
 `BANA8A`, le 33 torri senza padre, **quali staff code valgono admin** (E4) e se pubblicare una *release*
 debba scrivere audit.
 
-✅ **Non resta più nessuna decisione di merge**: B6 fu presa il 15 agosto, e B5 si è rivelata già presa — il doc
+⚠️ **Una decisione di merge è tornata aperta il 24 agosto**: **B10**, `coordinamenti-lato-ricevente` (la frase
+dei coordinamenti dal lato di chi riceve). Le vecchie erano tutte chiuse: B6 fu presa il 15 agosto, e B5 si è rivelata già presa — il doc
 13 era in `main` da allora senza che l'elenco lo sapesse.
 
 ✅ **Fusa il 23 agosto, sera**: il ramo **`audit-frontend-ui`** (15 commit) è in `main`. Ci stavano l'audit
@@ -636,6 +638,51 @@ altrove è stata *convertita* da un passo esterno, la migrazione deve o portarsi
 di nulla.
 
 ## B. Branch non fusi — decisioni, non lavoro
+
+### B10 🟢 DA FONDERE — `coordinamenti-lato-ricevente`, 24 agosto 2026
+
+**Cinque commit, spinto su origin, non fuso.** È l'**unico** ramo con lavoro fuori da `main`: la frase dice
+«non c'è più nessun ramo con lavoro fuori» dal 22 agosto, e da oggi non è più vera finché non si fonde.
+Nato da `main` a `f14cc25` (23 agosto sera): nessun altro l'ha toccato dopo, quindi il merge dovrebbe essere
+pulito.
+
+Carta con tutto: [`feature/2026-08-24-coordinamenti-lato-ricevente.md`](feature/2026-08-24-coordinamenti-lato-ricevente.md).
+
+| commit | cosa |
+|---|---|
+| `2ed4a52` | la frase dal lato di chi riceve (`AppCoordRow.IsIncoming` + 3 template nuovi) + fixture |
+| `54b4cc9` | `CoordTable`: il corpo diventa una sezione — **meccanico**, nessun cambio di reso |
+| `8c7b49b` | due tabelle quando il nodo porta i due versi; via `LastColHeader` |
+| `6ad66df` | carta con l'esito e la verifica live |
+| `265b882` | anche la frase **uscente** con faccetta cambia forma (secondo giro, chiesto dal committente) |
+
+**In breve.** Un accordo si scrive una volta sola, dal lato di chi cede, e il documento di chi **riceve**
+mostrava quelle stesse parole — «Zagreb Radar trasferisce a Brindisi Radar CS0…» dentro la vIPI di Brindisi —
+con la colonna della controparte intestata «Prossimo» mentre porta chi **consegna**. Ora la riga porta il
+verso, la frase si gira («X **riceve da** Y…») e un nodo che contiene i due versi si **spezza in due tabelle**
+(«Arrivi · che cediamo» / «Arrivi · che riceviamo»).
+
+⚠️ **Il fatto che decide qualunque lavoro futuro lì dentro: le tabelle dei coordinamenti sono MISTE.**
+`BuildAccTree` raggruppa per `settore → ACC della controparte → aeroporto/tipo` e **la direzione non è una
+chiave di raggruppamento**: il nodo `ES › Zagreb-LDZO › Sorvoli` porta **8 righe entranti e 6 uscenti**.
+Qualunque disegno che metta la direzione sulla tabella — o la deduca dal tipo di flusso — è sbagliato e sembra
+giusto.
+
+⚠️ **Il secondo giro tocca anche le righe USCENTI.** `TemplateCleared` girava il verbo principale («{owner}
+autorizza … e lo trasferisce a {target}») mentre la forma breve dice «{owner} trasferisce a {target} …»:
+nella stessa tabella due righe dello stesso accordo si aprivano in due modi diversi. Ora le quattro forme
+(× direzione, × faccetta) hanno la stessa testa e la stessa coda.
+
+⚠️ **Nessuna entità nuova e nessuna migrazione**: non allunga la coda del cutover MariaDB. `IsIncoming` è un
+campo **additivo** sul DTO serializzato dentro le release congelate, che lo deserializzano `false`.
+
+### 🔴 Dopo il merge — il committente deve RIPUBBLICARE
+
+`Sentence` e `LeadSentence` sono **stringhe già scritte** dentro la release: i documenti pubblicati
+continueranno a dire «Zagreb Radar trasferisce a…» finché non esce una release nuova. Misurato fianco a
+fianco sulla stessa vIPI ACC di Brindisi: **viewer pubblico 33 tabelle, tutte «PROSSIMO», zero «riceve da»**;
+**editor (derivato live) 39 tabelle, 13 «DA», 4 nodi tagliati**. La differenza è tutta la ripubblicazione.
+
 
 ### B9 ✅ FUSO — `sorgenti-giro-ta-piste`, fuso in `main` il 22 agosto 2026
 

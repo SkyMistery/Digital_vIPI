@@ -12,6 +12,25 @@
 > Il viewer pubblico è rimasto **identico** (33 tabelle, tutte «PROSSIMO», zero «riceve da»): legge lo
 > snapshot, vedi §6.1.
 
+## 0. Ripartenza a freddo — leggi questo per primo
+
+Il lavoro è **finito e verificato**, ma vive su un ramo. Se apri questo file in una sessione nuova:
+
+```
+git checkout coordinamenti-lato-ricevente     # 5 commit, 2ed4a52 → 265b882, spinto su origin
+```
+
+| domanda | risposta |
+|---|---|
+| Cosa manca? | **Solo il merge in `main`.** Lo fa il committente, come per gli altri rami. Vedi `lavori-aperti.md` §B10. |
+| Il merge è rischioso? | No: il ramo nasce da `main` a `f14cc25` e nessuno ha toccato quei file dopo. |
+| Migrazioni / entità nuove? | **Nessuna.** Non allunga la coda del cutover MariaDB. |
+| Cosa deve fare il committente dopo il merge? | **Ripubblicare i documenti.** Senza, non cambia niente a schermo — §6.1. |
+| Cosa resta scoperto? | `AppCoordinationView` non provata su dati veri, e l'accordo `LIBB_ES_CTR ↔ LIBD_CS0_APP` non ha una pagina dove comparire — §9. |
+
+**La cosa da non dimenticare, se un domani si torna sull'albero dei coordinamenti:** le tabelle sono
+**MISTE** (§2). È il vincolo che ha deciso ogni scelta qui, e non si vede leggendo il codice.
+
 ## 1. Il difetto, in una frase
 
 Un accordo si scrive **una volta sola**, dal lato di chi cede. Il documento di chi **riceve** lo mostra con le
