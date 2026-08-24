@@ -83,6 +83,37 @@ public static class PolygonGeometry
         return false;
     }
 
+    /// <summary>
+    /// Vero se il punto <paramref name="lat"/>/<paramref name="lon"/> cade dentro l'anello. Ray casting
+    /// orizzontale (regola pari/dispari) sull'anello considerato CHIUSO: il catalogo IVAO non ripete il punto
+    /// di chiusura, quindi il lato ultimo→primo va contato. Prefiltro con il bounding box, che sui poligoni
+    /// densi (migliaia di punti) scarta a costo O(1) la quasi totalità dei piloti del mondo.
+    /// <para>Il piano è (lon, lat) senza riscalare la longitudine: per l'appartenenza non serve isotropia —
+    /// il test è topologico, non metrico — e riscalare cambierebbe solo la lunghezza dei lati, non da che
+    /// parte del bordo sta il punto.</para>
+    /// </summary>
+    public static bool Contains(Ring? ring, double lat, double lon)
+    {
+        if (ring is null || ring.Points.Count < 3) return false;
+        if (lat < ring.MinLat || lat > ring.MaxLat || lon < ring.MinLon || lon > ring.MaxLon) return false;
+
+        var pts = ring.Points;
+        var inside = false;
+        for (int i = 0, j = pts.Count - 1; i < pts.Count; j = i++)
+        {
+            double yi = pts[i].Lat, xi = pts[i].Lon;
+            double yj = pts[j].Lat, xj = pts[j].Lon;
+
+            // Il lato attraversa la latitudine del punto? (un solo estremo incluso: niente doppio conteggio
+            // quando il raggio passa esattamente per un vertice)
+            if ((yi > lat) == (yj > lat)) continue;
+
+            var xCross = xi + (lat - yi) / (yj - yi) * (xj - xi);
+            if (lon < xCross) inside = !inside;
+        }
+        return inside;
+    }
+
     /// <summary>Distanza minima (NM) tra i bordi di due anelli chiusi (ogni lato di A contro ogni lato di B).</summary>
     public static double MinEdgeDistanceNm(IReadOnlyList<(double Lat, double Lon)> a, IReadOnlyList<(double Lat, double Lon)> b)
     {
