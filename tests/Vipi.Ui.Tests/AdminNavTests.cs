@@ -42,6 +42,7 @@ public class AdminNavTests : TestContext
         public Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.CompletedTask;
         public Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default) => Task.FromResult(IsAdmin);
         public Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.FromResult(IsAdmin);
+        public Task<bool> CanEditAnythingAsync(CancellationToken ct = default) => Task.FromResult(IsAdmin);
         public Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<GrantRow>>(Array.Empty<GrantRow>());
         public Task<int> AddGrantAsync(int userId, string? displayName, string accCode, CancellationToken ct = default) => Task.FromResult(0);

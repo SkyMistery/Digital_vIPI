@@ -183,6 +183,7 @@ public class VloaUnaPerCoppiaTests : IAsyncLifetime
         public Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.CompletedTask;
         public Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default) => Task.FromResult(true);
         public Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.FromResult(true);
+        public Task<bool> CanEditAnythingAsync(CancellationToken ct = default) => Task.FromResult(true);
         public Task<IReadOnlyList<Vipi.Application.Auth.GrantRow>> ListGrantsAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<Vipi.Application.Auth.GrantRow>>(Array.Empty<Vipi.Application.Auth.GrantRow>());
         public Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default) => Task.FromResult(0);

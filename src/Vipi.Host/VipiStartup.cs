@@ -78,6 +78,11 @@ internal static class VipiStartup
             o.MimeTypes = new[] { "text/css", "text/javascript", "application/javascript", "application/json", "image/svg+xml", "text/html" };
         });
 
+        // Ogni richiesta finita in eccezione lascia una riga in diagnostica/errori-richieste.txt, con lo
+        // stesso codice che la pagina d'errore mostra all'utente. Su questo host i log del processo non li
+        // legge nessuno: vedi DiagnosticaErrori.
+        builder.Services.AddExceptionHandler<DiagnosticaErrori.Gancio>();
+
         // Modulo login IVAO standalone (scenario C). STACCABILE: attivo solo se VipiAuth:Enabled=true.
         // Se attivo, il ClaimsPrincipal lo produce questo modulo e HostIdentityCurrentUserProvider lo legge.
         var authEnabled = builder.AddVipiStandaloneAuth();
@@ -261,6 +266,14 @@ internal static class VipiStartup
 
         // (I file statici li serve UseStaticFiles, più in alto: su net8 non esistono né MapStaticAssets né
         //  WithStaticAssets, che sono .NET 9+.)
+
+        // La pagina d'errore. E' un endpoint e non un componente perche' deve reggere anche quando a lanciare
+        // e' stato il layout condiviso — successo il 24 agosto 2026: una pagina d'errore che passasse di li'
+        // lancerebbe una seconda volta. Il codice che mostra e' quello scritto in diagnostica/errori-richieste.txt.
+        app.MapGet("/Error", (HttpContext ctx) =>
+            Results.Content(
+                PaginaErrore.Build(System.Diagnostics.Activity.Current?.Id ?? ctx.TraceIdentifier),
+                "text/html; charset=utf-8"));
 
         app.MapRazorComponents<App>()
             .AddInteractiveServerRenderMode()

@@ -134,24 +134,50 @@ public static class StartupDiagnostics
     /// </summary>
     private static void Write(string nomeFile, string contenuto)
     {
+        if (Percorso(nomeFile) is not { } percorso)
+        {
+            Console.WriteLine($"[vIPI] impossibile scrivere {nomeFile}: nessuna cartella scrivibile.");
+            Console.WriteLine(contenuto);
+            return;
+        }
+
+        try
+        {
+            File.WriteAllText(percorso, contenuto, Codifica);
+            Console.WriteLine($"[vIPI] diagnostica scritta in {percorso}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[vIPI] impossibile scrivere {percorso}: {ex.Message}");
+            Console.WriteLine(contenuto);
+        }
+    }
+
+    /// <summary>
+    /// UTF-8 <b>CON BOM</b>: questi file finiscono per email e vengono aperti col Blocco note su Windows,
+    /// che senza BOM li interpreta in ANSI e sfregia ogni accento. Il BOM non dà fastidio agli editor seri
+    /// né a <c>cat</c>.
+    /// </summary>
+    internal static readonly UTF8Encoding Codifica = new(encoderShouldEmitUTF8Identifier: true);
+
+    /// <summary>
+    /// Percorso di un file dentro <see cref="CartellaDiagnostica"/>, creando la cartella; <c>null</c> se non
+    /// c'è nessuna radice scrivibile. Accanto all'eseguibile se si può — è la cartella che si raggiunge via
+    /// FTP, l'unico accesso che c'è su <c>atc.it.ivao.aero</c> — altrimenti la temporanea, dove almeno una
+    /// shell la trova. Condiviso con <see cref="DiagnosticaErrori"/>: un solo posto dove guardare.
+    /// </summary>
+    internal static string? Percorso(string nomeFile)
+    {
         foreach (var radice in new[] { AppContext.BaseDirectory, Path.GetTempPath() })
         {
             try
             {
                 var cartella = Path.Combine(radice, CartellaDiagnostica);
                 Directory.CreateDirectory(cartella);
-                var percorso = Path.Combine(cartella, nomeFile);
-                // UTF-8 CON BOM: questi file finiscono per email e vengono aperti col Blocco note su
-                // Windows, che senza BOM li interpreta in ANSI e sfregia ogni accento. Il BOM non dà
-                // fastidio agli editor seri né a `cat`.
-                File.WriteAllText(percorso, contenuto, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
-                Console.WriteLine($"[vIPI] diagnostica scritta in {percorso}");
-                return;
+                return Path.Combine(cartella, nomeFile);
             }
             catch { /* cartella non scrivibile: si prova la prossima */ }
         }
-
-        Console.WriteLine($"[vIPI] impossibile scrivere {nomeFile}: nessuna cartella scrivibile.");
-        Console.WriteLine(contenuto);
+        return null;
     }
 }
