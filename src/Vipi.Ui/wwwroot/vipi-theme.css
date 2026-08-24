@@ -2832,7 +2832,9 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .topbar.tb-2 .editor-btn{padding:7px 10px}
 
 /* La spia della versione se ne va per PRIMA, e per intero: e' l'unica cosa in barra che non serve a fare
-   niente — la stessa riga sta in diagnostica/avvio-diagnostica.txt e nel `title` finche' si vede. −86px. */
+   niente — la stessa riga sta in diagnostica/avvio-diagnostica.txt e nel `title` finche' si vede.
+   ⚠️ Qui NON c'e' un numero di pixel come nelle regole vicine: quelli sono misurati, questo non lo e'
+   ancora. Chi passa di qui con un browser aperto lo misuri e lo scriva. */
 .topbar.tb-2 .ver-chip{display:none}
 
 /* Il badge live e' uno STATO, non un comando: il pallino lo dice quanto la frase, e il `title` la ridà
