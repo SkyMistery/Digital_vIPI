@@ -1541,7 +1541,45 @@ anonima continuava a dire che il sito era su.
    in più di fallire.
 3. I test stanno in ambiente **Staging**: `UseExceptionHandler` è montato solo fuori da Development.
 
-**Non è provato che fosse questa la causa di quel preciso 500** — sul server non c'era una riga da leggere,
+> ### ⚠️ CORREZIONE del 24 agosto sera — la causa era un'altra, e l'ha detta il registro
+>
+> Poche ore dopo il deploy il difetto è **ricapitato**, e questa volta ha lasciato le sue righe:
+> **92 richieste fallite fra le 16:55 e le 17:07**, tutte con lo stesso stack.
+>
+> ```
+> System.InvalidOperationException: A second operation was started on this context instance
+>    at Vipi.Infrastructure.Persistence.EfStationDirectory.ListAccs()
+>    at Vipi.Application.Content.StationResolver.get_Accs()
+>    at Vipi.Ui.Shared.SopLayout.BuildRenderTree()
+> ```
+>
+> **Il colpevole è il CATALOGO, non `_canEdit`.** `Stations.Accs` è a caricamento pigro e il markup lo
+> leggeva **dentro** `BuildRenderTree`; Blazor disegna l'albero mentre `OnParametersSetAsync` è ancora in
+> volo, quindi quella query partiva sullo stesso `DbContext` su cui era già in corso quella di `_canEdit`.
+> `_canEdit` **non fallisce**: apre la finestra. La guardia messa al mattino non poteva prenderlo, ed è
+> esattamente per questo che è ricapitato.
+>
+> L'asimmetria «solo da collegati» resta vera e resta la stessa: l'anonimo non ha nessun `await` in volo,
+> quindi le due query non si incontrano mai. Ed è a intermittenza perché la cache del catalogo dura quanto
+> il circuito: la corsa esiste solo finché è **fredda**, cioè dopo ogni riavvio — e con Passenger, che
+> rilancia il processo per inattività, i riavvii sono tanti.
+>
+> **Chiuso** chiamando `Prewarm()` prima di qualunque `await` e facendo leggere al markup un campo: il
+> render non tocca più il database. `Prewarm()` era già scritto per questo — «chiamata dal ciclo di vita
+> async, context libero e sequenziale» — e non lo chiamava nessuno.
+>
+> ℹ️ **La seconda metà di quella finestra è un'altra cosa**: dalle 16:59 alle 17:07 le 11 righe rimaste sono
+> `RetryLimitExceededException`/Timeout, e colpiscono **anche gli anonimi**. Lì il database non rispondeva
+> più. Le due fasi sono consecutive e la prima è una causa plausibile della seconda — 78 richieste fallite
+> in due minuti e mezzo, ognuna con una query abbandonata a metà — ma **plausibile non è misurato**, e senza
+> i log del server MariaDB resta un'ipotesi.
+>
+> ℹ️ Trovato scrivendo i test: `StaffLoginTrackingMiddleware` proteggeva solo la scrittura, non
+> `users.Get()`. Un guasto lì usciva, il gestore rieseguiva `/Error`, il middleware girava **di nuovo**
+> sulla richiesta rieseguita e lanciava una seconda volta: non usciva nemmeno la pagina d'errore. Un pezzo
+> che gira prima del routing gira anche sulla via di fuga. Ora è protetto per intero.
+
+**Non era provato che fosse questa la causa di quel preciso 500** — e infatti non lo era. — sul server non c'era una riga da leggere,
 ed è il motivo per cui la seconda metà della voce esiste. È provato il **meccanismo**: era l'unica strada
 per cui una pagina senza dati potesse morire per un utente collegato e non per un anonimo. Contesto della
 giornata: il pacchetto «e» era stato caricato quel pomeriggio, e Passenger riavvia il processo per
