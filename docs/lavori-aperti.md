@@ -1617,6 +1617,50 @@ sull'HTML servito (l'admin vede la targhetta, il socio no); senza la guardia i d
 500, cioè lo screenshot. Propagata `CanEditAnythingAsync` ai 12 finti
 `IEditAuthorizationService` dei test. Suite intera verde su entrambi i TFM.
 
+### E9 🔴 APERTA — la corsa sul `DbContext` c'è ancora, e non so ancora chi sia l'altra operazione
+
+**Misurato in produzione alle 17:44 del 24 agosto 2026**, con il pacchetto «h» già online (quindi con la
+correzione del catalogo dentro): il registro, che il committente aveva appena azzerato, si è riempito di
+nuovo. **Sette richieste**, tutte dello stesso VID **non-admin**, tutte «A second operation was started on
+this context instance», ma questa volta **dentro le pagine**:
+
+| Percorso | Dove muore |
+|---|---|
+| `/services/vsop/libb`, `/lirr` (×3) | `AccLanding.OnParametersSetAsync` → `EditAuthorizationService.CanEditAccAsync` |
+| `/services/vsop/libb/airports` (×2) | `AeroportoPage.OnParametersSetAsync` → `AirportPresidencyService.ResolveAsync` |
+| `/services/vsop/limm/airports` (×2) | `AeroportoPage.OnParametersSetAsync` → `EfStructureEditingRepository.LoadAsync` |
+
+**Quello che si sa**: la seconda operazione è quella della pagina. **Quello che NON si sa**: quale sia la
+prima, cioè chi tenesse occupato il contesto in quel momento. Lo stack dell'eccezione mostra solo chi è
+morto, non chi stava già correndo.
+
+⚠️ **L'ipotesi naturale — il layout che lascia `_canEdit` in volo mentre il `@Body` viene disegnato — NON è
+stata riprodotta.** Tentativi fatti, tutti falliti nel senso che il test resta verde anche col difetto
+dentro:
+
+1. intercettore EF che rallenta ogni comando ⇒ **non scatta**: gli `IInterceptor` registrati in DI non
+   arrivano al contesto in questo assetto (da capire perché);
+2. `HasAnyGrantAsync` sostituita con una query **lenta davvero** (ricorsiva SQLite da tre milioni di giri)
+   sullo stesso `DbContext` ⇒ la pagina non si è mai sovrapposta;
+3. ⚠️ e il primo tentativo era sbagliato in modo istruttivo: avevo sostituito **tutto** il repository, così
+   anche la query della pagina diventava finta e non toccava il contesto. Un test che non può fallire.
+
+Quindi: o in SSR il render del corpo aspetta davvero il task del layout (e allora l'altra operazione è
+qualcun altro), o la finestra si apre solo sotto condizioni che il locale non riproduce.
+
+**Cosa è stato fatto comunque** (`SopLayout.SetParametersAsync`): il layout conclude il proprio lavoro
+asincrono **prima** di far disegnare l'albero, così non può essere lui la prima operazione. È corretto in
+sé e toglie una fonte possibile — **ma non è provato che sia LA causa**, e va scritto così finché non lo è.
+
+**Il passo che chiuderebbe la classe intera, indipendentemente da chi sia l'altra operazione**: dare alle
+pagine che interrogano nel proprio ciclo di vita uno **scope proprio** (`OwningComponentBase`), che è già il
+rimedio adottato da sei componenti di questo repository (vedi l'audit del 30 luglio). Riguarda `AccLanding`
+e `AeroportoPage`, cioè le due che compaiono nel registro.
+
+ℹ️ La prossima volta il registro può dire di più: oggi scrive solo l'eccezione. Aggiungere alla voce
+**quali altre operazioni erano aperte sul contesto** — o anche solo l'ora di inizio della richiesta —
+trasformerebbe «non so chi fosse l'altra» in un fatto.
+
 ## F. Rimandato, non cancellato
 
 **Embedding nel sito `Ivao.It.Website`.** Il sito definitivo è il nostro host standalone, ma le cinque
