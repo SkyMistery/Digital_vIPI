@@ -135,6 +135,29 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 > scelta che l'utente non ha mai fatto, e cambiare lingua al browser non avrebbe più effetto. Due test E2E,
 > uno per verso; verificato anche guidando Edge con `Accept-Language: en-US`.
 
+## Dove siamo — aggiornato alla sera del 24 agosto 2026
+
+**In produzione gira il pacchetto «i»** (commit `73172a0`), dalle 18:28 UTC. **`main` e la produzione
+coincidono**: fra i due ci sono solo fogli di consegna e carte, nessuna riga di codice.
+
+La giornata è partita da uno screenshot — un socio senza incarichi che vede `Error.` su `/services` — ed è
+finita con quattro pacchetti («f» mai uscito, «g», «h», «i»), tre voci nuove qui dentro (**A13**, **E8**,
+**E9**) e una lezione che vale più delle correzioni: **finché un guasto non lascia una riga, ogni diagnosi è
+un'ipotesi che sembra un fatto.** Due volte in un giorno la spiegazione «ovvia» era sbagliata, e a
+smentirla è stato il registro degli errori — nato quella mattina proprio perché non c'era.
+
+### Le cinque cose che aspettano qualcuno che non siamo noi
+
+| | Chi | Dove sta scritto |
+|---|---|---|
+| nginx a solo reverse proxy + permessi | l'amministratore Plesk (messaggio già consegnato) | **A13** qui sotto |
+| Conferma di «i» da un **socio senza incarichi** | il committente | **E9** |
+| Ripubblicare `libb/vipi` (due clic) | il committente | **B10-bis** |
+| Ruotare password DB e ClientSecret IVAO | Ivao.It, quando si potrà | **A13** |
+| Chi fa il backup di `itivao_atc` | Ivao.It, domanda ancora senza risposta | **A9**, **G** |
+
+---
+
 ## Dove siamo, in cinque righe
 Il **cutover MariaDB è in `main`** e verificato (A1–A8). Le sezioni **B** (branch), **C** (debito, tranne C3
 tenuta aperta con la ragione scritta) e **D** (verifiche live arretrate) sono **chiuse**. La **E** è stata
@@ -675,6 +698,45 @@ all'eseguibile, **dopo** tutto il resto, quindi quei valori vincono su `appsetti
 **nome del file lo sceglie chi installa** e non è scritto da nessuna parte: il server non elenca le
 cartelle, quindi un file si prende solo indovinandone il nome esatto. Istruzioni in
 [`../deploy/atc-ivao/LEGGIMI-SEGRETI.md`](../deploy/atc-ivao/LEGGIMI-SEGRETI.md).
+
+### A13-bis 🔴 Consegnato all'amministratore Plesk la sera del 24 agosto — in attesa
+
+L'amministratore ha risposto che **non esiste nessuna cartella `public`** da usare come document root, e che
+la strada è **configurare nginx come solo reverse proxy verso Kestrel**, più una stretta ai permessi.
+Concordato; il messaggio è stato consegnato. Qui resta ciò che serve a chi riprende il filo.
+
+**Misurato prima di chiederlo** (ed è la ragione per cui la modifica è meno rischiosa di quanto sembri): gli
+asset del sito (`/_content/Vipi.Ui/*`, i font) rispondono **già oggi con gli header di cache
+dell'applicazione**, non con quelli di nginx — cioè li serve già lei. nginx serve soltanto ciò che sta nella
+**radice** della cartella, che è esattamente l'elenco da chiudere.
+
+⚠️ **Quattro cose che oggi funzionano e che una riscrittura della configurazione può portarsi via:**
+
+| | Se si perde |
+|---|---|
+| `X-Forwarded-Proto: https` | l'handler OIDC costruisce da lì il `redirect_uri`: **il login IVAO smette di funzionare** |
+| L'`Host` originale | `AllowedHosts=atc.it.ivao.aero`: con un Host diverso l'app rifiuta la richiesta |
+| WebSocket su `/_blazor` | l'interfaccia è Blazor Server: serve `Upgrade`/`Connection: upgrade` |
+| SSE su `/vsop/live/atc` | stream a lungo termine, **non bufferizzabile**: la vista live si blocca |
+
+**Permessi — i requisiti, non i numeri** (i numeri dipendono da come Plesk ha messo utente e gruppo):
+lettura su tutto per l'utente dell'app; **scrittura** su `vipi-keys/` (senza, **ogni login fallisce**),
+`diagnostica/` (senza, si torna ciechi) e `tmp/` (senza, non si riavvia); `700`/`600` su `segreti` e
+`vipi-keys`; il bit di esecuzione dove c'è già.
+⚠️ Due trappole: **non passare tutto a `600`** (l'app non parte, e l'errore non parla di permessi), e **il
+proprietario deve restare l'utente FTP** (altrimenti chi aggiorna diventa «altri» e non carica più niente).
+ℹ️ L'FTP ricrea i file coi **permessi predefiniti**: ogni caricamento riallenta ciò che si è stretto —
+compreso, un domani, il file dentro `segreti/`. Chiesto se si può portare il default a `640`.
+
+**Come si verifica**: devono diventare **403/404** `/appsettings.Production.json`, `/appsettings.json`,
+`/Vipi.Host.dll`, `/Vipi.Host.pdb`, `/diagnostica/avvio-diagnostica.txt`; devono restare **200**
+`/services`, `/services/vsop`, `/_content/Vipi.Ui/vipi-theme.css`; e un **accesso IVAO completo**, che è
+l'unico test che prova insieme il key-ring scrivibile e gli header del proxy.
+
+⚠️ **Da quel momento la diagnostica non si legge più dal browser** — è il punto, ma è anche il modo in cui
+tutto è stato verificato il 24 agosto. Da lì in poi: FTP. Proposta al committente, non ancora fatta: una
+**pagina admin** che mostri le ultime righe del registro dentro il sito, che restituisce la comodità senza
+riaprire il buco.
 
 ⚠️ **È sicurezza per oscurità, ed è giusto chiamarla col suo nome.** Non chiude il buco: sposta i segreti da
 «scaricabili con un indirizzo scritto nel nostro repository» a «scaricabili da chi indovina un nome che
