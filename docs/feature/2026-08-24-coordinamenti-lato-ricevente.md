@@ -1,8 +1,16 @@
-# Coordinamenti — il lato di CHI RICEVE 🟢
+# Coordinamenti — il lato di CHI RICEVE ✅
 
-> Stato: **carta approvata il 24 agosto 2026** · nessuna riga di codice scritta.
+> Stato: **FATTO il 24 agosto 2026** — tre commit sul ramo `coordinamenti-lato-ricevente`, verificato live.
 > Fratello di [2026-08-23-live-coordinamenti-a-colonne.md](2026-08-23-live-coordinamenti-a-colonne.md) e della
 > memoria `coordinamenti-lettura`.
+>
+> **Esito.** `dotnet build Vipi.slnx -c Release --no-incremental` verde su entrambi i TFM (0 avvisi);
+> 1924 test verdi su net8 (1805 + 119 E2E). Fixture: 72 righe cambiate su 630, **tutte entranti**, zero righe
+> uscenti toccate. Verifica live sul `vipi.db` di sviluppo (copia), vIPI ACC di Brindisi: **39 tabelle**,
+> 23 con colonna «PROSSIMO» e 13 con «DA», **zero incoerenze** fra l'intestazione e il verbo della frase;
+> **4 nodi misti** tagliati in due (Zagabria, Grecia, Tirana, Beograd — tutti sotto «Sorvoli»).
+> Il viewer pubblico è rimasto **identico** (33 tabelle, tutte «PROSSIMO», zero «riceve da»): legge lo
+> snapshot, vedi §6.1.
 
 ## 1. Il difetto, in una frase
 
@@ -220,7 +228,43 @@ componente.
 
 Passi 5 e 6 separati apposta: meccanico e comportamento in commit distinti (FEATURE-PROCESS, post-flight).
 
+**Come è andata.** Tre commit: `2ed4a52` (passi 1–4 + fixture), `54b4cc9` (passo 5, meccanico),
+`8c7b49b` (passo 6). Il passo 7 non ha richiesto correzioni.
+
+Quello che la verifica live ha reso, sul nodo misto `ES › Zagreb-LDZO › Sorvoli`:
+
+```
+Che cediamo    · Testo esteso (5 frasi)
+  «Brindisi Radar ES trasferisce a Zagreb Radar il traffico stabile per un livello dispari su TORPO.»
+  COP     LIVELLO    PROSSIMO
+  TORPO   dispari    LDZO_CTR      … 5 righe
+
+Che riceviamo  · Testo esteso (6 frasi)
+  «Brindisi Radar ES riceve da Zagreb Radar il traffico stabile per un livello pari su TORPO.»
+  COP     LIVELLO    DA
+  TORPO   pari       LDZO_CTR      … 6 righe
+```
+
+TORPO compare in tutt'e due, con livelli complementari (dispari in uscita, pari in entrata): è il caso che
+sotto un'unica intestazione «Prossimo» si leggeva come una contraddizione invece che come un accordo.
+
+### Due attrezzi da rifare, se si torna qui
+
+La verifica live è costata due giri per colpa della sonda, non del codice — vale la pena scriverlo:
+
+- **L'ultima `<th>` NON è la colonna della controparte.** Con «Anche per» o «Condizione» accese, quelle le
+  stanno dopo, e la sonda riportava `ALSO FOR` dove la colonna diceva `DA`. Si legge `thead th.c-next`, che è
+  una classe semantica proprio per questo.
+- **Nell'editor lo scroll della finestra non porta il nodo dove il `clip` se lo aspetta**: il documento scorre
+  dentro un pannello di altezza misurata (`vipiFitViewport`). Lo scatto si fa sull'**elemento**
+  (`elementHandle.screenshot()`), che se ne occupa da sé.
+- E `details.help-hint` sono `<details>` anche loro: `document.querySelectorAll('details').open = true` apre
+  pure i «?», e il loro pannello copre la pagina. Si richiudono **solo quelli** — chiudere ogni `details`
+  non-coord nasconde l'albero, e su un elemento nascosto `innerText` torna vuoto: il nodo non si trova più.
+
 ## 6. ⚠️ Le tre trappole di questo giro
+
+### 6.1 ✅ Confermata a schermo
 
 1. **Le release congelate non cambiano da sole.** La pagina pubblica legge lo snapshot: `Sentence` e
    `LeadSentence` sono **stringhe già scritte** dentro la release, e `IsIncoming` si deserializza `false`. I
@@ -228,6 +272,9 @@ Passi 5 e 6 separati apposta: meccanico e comportamento in commit distinti (FEAT
    Da mettere in chiaro col committente prima di dichiarare chiuso il lavoro. (Stessa trappola già pagata:
    memoria `coordinamenti-lettura`, e `app-standalone-ombra-aeroporto` — «le release già scritte vanno
    RIPUBBLICATE».)
+   **Misurato il 24 agosto**: aperte fianco a fianco le due pagine della stessa vIPI ACC di Brindisi, il
+   viewer pubblico rende 33 tabelle **tutte** con «PROSSIMO» e **zero** frasi «riceve da»; l'editor, che
+   deriva live, ne rende 39 con 13 «DA» e 4 nodi tagliati in due. **La differenza è tutta la ripubblicazione.**
 2. **`dotnet test --artifacts-path` fa sparire le fixture** (63 casi → 13): la ri-approvazione del passo 7 va
    fatta **senza** quel flag, o si approva il vuoto. (memoria `coordinamenti-lettura`)
 3. **`dotnet build` verde su ENTRAMBI i TFM**: gli avvisi sono errori e `dotnet test` non usa quel flag →
@@ -245,3 +292,17 @@ Passi 5 e 6 separati apposta: meccanico e comportamento in commit distinti (FEAT
 - La struttura dell'albero `BuildAccTree`: la direzione **non** diventa una chiave di raggruppamento. Il taglio
   vive in `CoordTable`, dove costa un `<summary>` sui soli nodi misti; nell'albero costerebbe un livello di
   `<details>` su **tutti** i nodi.
+
+## 9. Quello che la verifica live NON ha potuto provare
+
+`AppCoordinationView` — la vista dei coordinamenti degli **APP non remotizzati** — è stata toccata (via il
+parametro `LastColHeader`, rimosso) ma **non esercitata su dati veri**: nel `vipi.db` di sviluppo gli unici
+documenti APP sono Amendola (`LIBA_APP`) e Pescara (`LIBP_APP`), e **nessuno dei due ha accordi**. Le loro
+pagine si aprono senza errori e senza tabelle. La regola che quel parametro nascondeva ora sta in `CoordTable`
+ed è coperta dai test bUnit; ma a schermo, con dati veri, l'ha vista solo la vista ACC.
+
+Nota sul caso citato dal committente (`LIBD_CS0_APP riceve i traffici da LIBB_ES_CTR`): l'accordo c'è
+(`CoordinationAgreements` #2), ma **oggi non ha una pagina dove comparire** — `LIBD_CS0_APP` è
+`Kind=Airport`, `IsPrimary=0`, `DocumentId=NULL`, quindi non è né un blocco della vIPI ACC (che porta il solo
+`LIBB_ES_CTR`) né il primario del documento LIBD, che è `LIBD_TWR`. È una questione di **struttura dei
+settori**, indipendente da questo giro, e va guardata a parte.
