@@ -451,7 +451,21 @@ sessioni»** — sarebbe un buco silenzioso nello storico.
    ⚠️ `dotnet ef migrations remove` sul progetto MySQL **prova a connettersi al database** e fallisce dove
    MySQL non c'è: per rifare una migrazione si cancellano i due file e si ripristina
    `VipiDbContextModelSnapshot.cs` da git.
-3. Porta neutra `IAtcActivitySource` + adapter whazzup; il poller esistente passa al whazzup completo e scrive le sessioni.
+3. ✅ **FATTA** (24 agosto). Porta neutra `IAtcActivitySource` (+ DTO `SourceAtcConnection`/`SourcePilotFix`/
+   `NetworkSnapshot`), adapter `IvaoWhazzupClient`, archivio `IAtcSessionStore`/`EfAtcSessionStore`, e il
+   cuore puro `AtcSessionSync` che decide cosa aprire, aggiornare e chiudere (11 test) — turno assegnato
+   alla nascita della sessione. Il poller che c'era già passa al whazzup completo: **stessa cadenza, stesso
+   numero di chiamate**, in più i piloti.
+
+   **Verifica live, 24 agosto ore 19:00Z**: host avviato in Release su porta libera contro IVAO vero, con
+   una copia del `vipi.db`. Due giri: «26 ATC divisione online, 537 piloti nella fotografia», **26 sessioni
+   scritte** con posizione, frequenza e durata (`LIMF_TWR` 171 min, `LIMM_WS2_CTR` 108 min, `LIRF_TWR`
+   64 min…), 26 turni distinti, zero traffico (è la slice 4). Migrazione applicata da sola all'avvio.
+
+   ⚠️ Tre scelte da ricordare: (a) il ramo dei **callsign finti** non scrive statistiche — un id inventato
+   sporcherebbe l'archivio con connessioni mai esistite; (b) la registrazione ha un `try` suo, perché un
+   archivio che non risponde non deve spegnere il pallino «in frequenza» di tutte le pagine; (c) la
+   decompressione **Brotli** va accesa sull'`HttpClient` o si scaricano 705 KB invece di 119, ogni minuto.
 4. Attribuzione del traffico nel poller (usa il punto 1).
 5. Backfill storico: **23 query a prefisso** (`LIA`…`LIZ`) × pagine da 100 ≈ 220 chiamate una tantum
    (§8.1), con **ritenti sui 503** (§8.4) + riga nella policy sorgenti + audit.

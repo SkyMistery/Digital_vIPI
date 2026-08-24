@@ -14,6 +14,14 @@ public sealed class IvaoOptions
     /// <summary>Path del riepilogo ATC online (relativo a BaseUrl). PIANO §7.1.</summary>
     public string AtcSummaryPath { get; set; } = "/v2/tracker/now/atc/summary";
 
+    /// <summary>
+    /// Path della fotografia completa della rete (ATC + piloti), relativo a BaseUrl. <b>Endpoint pubblico</b>:
+    /// non richiede token. Dal 24 agosto 2026 è questo che alimenta il poller — stessa cadenza e stesso numero
+    /// di chiamate di <see cref="AtcSummaryPath"/>, ma porta anche i piloti, che servono ad attribuire il
+    /// traffico gestito. Misurato: 119 KB sul filo con Brotli, 0,21 s.
+    /// </summary>
+    public string WhazzupPath { get; set; } = "/v2/tracker/whazzup";
+
     /// <summary>Endpoint token OpenID (client_credentials). PIANO §7.3.</summary>
     public string TokenEndpoint { get; set; } = "https://api.ivao.aero/v2/oauth/token";
 

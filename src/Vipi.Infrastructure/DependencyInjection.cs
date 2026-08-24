@@ -150,6 +150,8 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IDocumentReviewRepository, EfDocumentReviewRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IDocumentAdminRepository, EfDocumentAdminRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAirportSectorRepository, EfAirportSectorRepository>();
+        // Statistiche ATC: archivio delle sessioni scritte dal poller (carta del 24 agosto 2026).
+        services.AddScoped<Vipi.Application.Abstractions.IAtcSessionStore, EfAtcSessionStore>();
         // Proiezione settori operativi dai cataloghi (fonte autoritativa unica, Round 20).
         services.AddScoped<Vipi.Application.Abstractions.ISectorProjectionService, EfSectorProjectionService>();
         services.AddScoped<Vipi.Application.Abstractions.IHierarchyEditingService, EfHierarchyEditingService>();
