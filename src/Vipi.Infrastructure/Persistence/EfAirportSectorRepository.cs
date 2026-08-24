@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain.Entities;
@@ -16,7 +16,18 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
     public EfAirportSectorRepository(VipiDbContext db) => _db = db;
 
     private const int DefaultLowerFt = 0;        // GND
-    private const int DefaultUpperFt = 19500;    // limite superiore di default dei settori d'aeroporto
+    private const int DefaultUpperFt = 19500;    // limite superiore di default (APP/DEP)
+    private const int DefaultTowerUpperFt = 3000;  // le TORRI arrivano a 3000 ft, non a FL195
+
+    /// <summary>
+    /// Tetto di default per una posizione priva di limiti dalla sorgente. Le <b>torri</b> valgono 3000 ft
+    /// (regola di divisione, committente 24-ago-2026): col vecchio default unico a 19500 ft una TWR
+    /// rivendicava fino a FL195 e, essendo più in basso nella scaletta, si prendeva il traffico che stava
+    /// lavorando l'APP. Rilevante da quando l'attribuzione del traffico usa questi limiti sul serio
+    /// (docs/feature/2026-08-24-servizio-statistiche-atc.md §4.5).
+    /// </summary>
+    private static int DefaultUpperFor(string? position) =>
+        (position ?? "").Trim().ToUpperInvariant() is "TWR" ? DefaultTowerUpperFt : DefaultUpperFt;
 
     /// <summary>
     /// Solo le postazioni con un volume di spazio aereo hanno limiti (inferiore/superiore) e shape:
@@ -175,7 +186,7 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
                     if (p.LowerLimit is not null) row.LowerLimit = p.LowerLimit;
                     else row.LowerLimit ??= DefaultLowerFt;
                     if (p.UpperLimit is not null) row.UpperLimit = p.UpperLimit;
-                    else row.UpperLimit ??= DefaultUpperFt;
+                    else row.UpperLimit ??= DefaultUpperFor(position);
                     row.LimitsFromSource = p.LowerLimit is not null || p.UpperLimit is not null;
                 }
                 else
@@ -202,7 +213,7 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
                     Frequency = p.Frequency,
                     RegionMapPolygon = hasLimits ? p.RegionMapPolygon : null,
                     LowerLimit = hasLimits ? (p.LowerLimit ?? DefaultLowerFt) : null,
-                    UpperLimit = hasLimits ? (p.UpperLimit ?? DefaultUpperFt) : null,
+                    UpperLimit = hasLimits ? (p.UpperLimit ?? DefaultUpperFor(position)) : null,
                     LimitsFromSource = hasLimits && (p.LowerLimit is not null || p.UpperLimit is not null),
                     IsHidden = false,
                     IsAccApp = DefaultIsAccApp(compose, position),   // 3 pezzi (LIRN_UN0_APP) = di ACC; 2 pezzi (LIRP_APP) = no

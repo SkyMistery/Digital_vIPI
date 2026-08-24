@@ -96,7 +96,7 @@ public class AirportSector
 
     /// <summary>Limite inferiore (ft/FL). Impostato dall'admin; default GND (0).</summary>
     public int? LowerLimit { get; set; }
-    /// <summary>Limite superiore (ft/FL). Impostato dall'admin; default 19500.</summary>
+    /// <summary>Limite superiore (ft/FL). Impostato dall'admin; sui nuovi: 3000 ft per le TWR, 19500 per le altre.</summary>
     public int? UpperLimit { get; set; }
 
     /// <summary>Vero se i limiti (Lower/Upper) provengono dalla SORGENTE (IVAO li ha esposti all'ultimo import):

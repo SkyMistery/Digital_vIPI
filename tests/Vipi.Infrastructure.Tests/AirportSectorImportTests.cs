@@ -65,10 +65,10 @@ public class AirportSectorImportTests : IAsyncLifetime
         // ACC ereditato dall'aeroporto
         Assert.All(sectors, s => Assert.Equal("LIRR", s.AccCode));
 
-        // TWR/APP: limiti GND(0)→19500 + shape per TWR
+        // TWR: GND(0)→3000 ft (le torri arrivano a 3000, non a FL195) + shape; APP: GND(0)→19500
         var twr = sectors.Single(s => s.ComposePosition == "LIRN_TWR");
         Assert.Equal(0, twr.LowerLimit);
-        Assert.Equal(19500, twr.UpperLimit);
+        Assert.Equal(3000, twr.UpperLimit);
         Assert.True(twr.HasPolygon);
         Assert.Equal(0, app.LowerLimit);
         Assert.Equal(19500, app.UpperLimit);

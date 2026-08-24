@@ -11,7 +11,8 @@ public interface IAirportSectorRepository
 {
     /// <summary>
     /// Upsert dei settori ATC di un aeroporto dalla sorgente. Risolve l'ACC dall'aeroporto e lo scrive
-    /// su ogni settore; preserva IsHidden e i limiti admin (default inf=0/GND, sup=19500 sui nuovi).
+    /// su ogni settore; preserva IsHidden e i limiti admin (sui nuovi: inf=0/GND; sup=3000 ft per le TWR,
+    /// 19500 per le altre posizioni con volume).
     /// Ritorna (creati, aggiornati). Se l'aeroporto non esiste, ritorna (0,0).
     /// </summary>
     Task<(int Created, int Updated)> ImportForAirportAsync(string icao, IReadOnlyList<SourceAtcPosition> positions, CancellationToken ct = default);

@@ -59,6 +59,7 @@ public static class FlightPhases
     /// Vero se questo tipo di posizione gestisce quella fase. È una dichiarazione di competenza, non un
     /// divieto: se nessuna posizione online dichiara la fase, il traffico resta a chi copre il settore
     /// (una DEL sola in frequenza si prende anche chi rulla, perché non c'è nessun altro).
+    /// Il divieto vero è <see cref="Excludes"/>.
     /// </summary>
     public static bool Handles(SectorType type, FlightPhase phase) => type switch
     {
@@ -68,4 +69,24 @@ public static class FlightPhases
         SectorType.App or SectorType.Ctr => phase == FlightPhase.Airborne,
         _ => false,
     };
+
+    /// <summary>
+    /// Vero se questa posizione <b>non deve mai</b> ricevere traffico in questa fase, nemmeno per eredità
+    /// quando è l'unica in frequenza.
+    ///
+    /// <para>⚠️ Esiste per un difetto misurato: i volumi ACC partono da terra (138 settori su 153 hanno
+    /// pavimento 0 e tetto UNL), quindi contengono <b>tutti gli aerei parcheggiati di tutti gli aeroporti
+    /// della FIR</b>. Nello snapshot reale del 24 agosto i settori di Roma contenevano cinque aerei a terra,
+    /// tre dei quali fermi al gate di Fiumicino: senza questo divieto un ACC che sta in frequenza tre ore si
+    /// vedrebbe accreditare, come «traffico gestito», ogni aereo posteggiato nella sua area.</para>
+    ///
+    /// <para>Un aereo fermo o in rullaggio è traffico d'aeroporto: se nessuna posizione dell'aeroporto è
+    /// online, non l'ha gestito nessuno — che è la verità, non una perdita di dato.</para>
+    /// </summary>
+    public static bool Excludes(SectorType type, FlightPhase phase) =>
+        type == SectorType.Ctr && phase is FlightPhase.Parked or FlightPhase.Ground;
+
+    /// <summary>Vero se in questa fase l'aeroplano si è mosso: distingue un movimento vero da un aereo che
+    /// è rimasto parcheggiato per tutta la sessione senza volare.</summary>
+    public static bool IsMovement(FlightPhase phase) => phase != FlightPhase.Parked;
 }

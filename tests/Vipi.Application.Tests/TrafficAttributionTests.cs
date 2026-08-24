@@ -147,6 +147,29 @@ public class TrafficAttributionTests
     }
 
     [Fact]
+    public void Un_ACC_non_si_prende_gli_aerei_parcheggiati_dentro_la_sua_area()
+    {
+        // Difetto misurato: i volumi ACC partono da terra, quindi contengono ogni aereo posteggiato della FIR
+        // (nello snapshot reale, cinque a terra dentro i settori di Roma). Nessuno online all'aeroporto =
+        // nessuno l'ha gestito.
+        var solo_acc = new List<SectorClaim> { Claim("LIRR_NE1_CTR", "LIRR_NE1_CTR", Grande, null, null, 0) };
+        Assert.Null(Chi(solo_acc, 42.0, 12.0, 0, FlightPhase.Parked));
+        Assert.Null(Chi(solo_acc, 42.0, 12.0, 0, FlightPhase.Ground));
+        Assert.Equal("LIRR_NE1_CTR", Chi(solo_acc, 42.0, 12.0, 30_000, FlightPhase.Airborne));
+    }
+
+    [Fact]
+    public void Con_la_torre_online_l_aereo_a_terra_e_suo_e_l_ACC_resta_fuori()
+    {
+        var claims = new List<SectorClaim>
+        {
+            Claim("LIRR_NE1_CTR", "LIRR_NE1_CTR", Grande, null, null, 0),
+            Claim("LIRF_GND", "LIRF_GND", Piccolo, null, 3000, 4, SectorType.Gnd),
+        };
+        Assert.Equal("LIRF_GND", Chi(claims, 42.0, 12.0, 0, FlightPhase.Ground));
+    }
+
+    [Fact]
     public void La_DEL_non_ruba_il_traffico_in_volo_alla_TWR()
     {
         var claims = new List<SectorClaim>
@@ -198,6 +221,27 @@ public class FlightPhaseTests
     public void Senza_distanza_dalla_partenza_ci_si_fida_dello_stato()
     {
         Assert.Equal(FlightPhase.Parked, FlightPhases.Of(true, 0, "Boarding", null));
+    }
+
+    [Fact]
+    public void Un_ACC_e_escluso_dal_traffico_a_terra_anche_se_e_l_unico_online()
+    {
+        Assert.True(FlightPhases.Excludes(SectorType.Ctr, FlightPhase.Parked));
+        Assert.True(FlightPhases.Excludes(SectorType.Ctr, FlightPhase.Ground));
+        Assert.False(FlightPhases.Excludes(SectorType.Ctr, FlightPhase.Airborne));
+
+        // Le posizioni d'aeroporto non hanno divieti: per loro vale la preferenza, e in mancanza l'eredità.
+        foreach (var t in new[] { SectorType.Del, SectorType.Gnd, SectorType.Twr, SectorType.ITwr, SectorType.App })
+            foreach (var f in new[] { FlightPhase.Parked, FlightPhase.Ground, FlightPhase.Airborne })
+                Assert.False(FlightPhases.Excludes(t, f));
+    }
+
+    [Fact]
+    public void Un_aereo_parcheggiato_non_e_un_movimento()
+    {
+        Assert.False(FlightPhases.IsMovement(FlightPhase.Parked));
+        Assert.True(FlightPhases.IsMovement(FlightPhase.Ground));
+        Assert.True(FlightPhases.IsMovement(FlightPhase.Airborne));
     }
 
     [Fact]

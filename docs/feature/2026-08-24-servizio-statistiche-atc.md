@@ -197,6 +197,53 @@ perché qualcuno l'abbia deciso: perché il campo è vuoto. **Il motore è pront
 limiti dei settori ACC è un lavoro editoriale da mettere in conto (già possibile dall'editor struttura), e
 la pagina deve dire che l'attribuzione verticale vale quanto i limiti inseriti.
 
+### 4.4-quater Rilettura della slice 1: altri quattro difetti di conteggio
+
+Riletto il conteggio a mente fredda su richiesta del committente, **misurando** su 1316 sessioni ATC italiane
+vere degli ultimi 30 giorni e sullo snapshot whazzup del 24 agosto.
+
+**1. ⚠️ Gli ACC si prendevano gli aerei parcheggiati.** I volumi ACC partono da terra (138 su 153 con
+pavimento 0), quindi contengono ogni aereo posteggiato di ogni aeroporto della FIR. Misura: cinque aerei a
+terra dentro i settori di Roma, **tre fermi al gate di Fiumicino**. Un ACC in frequenza tre ore si sarebbe
+visto accreditare come «traffico gestito» tutto il piazzale. Rimedio: `FlightPhases.Excludes` — un CTR non
+riceve traffico fermo o in rullaggio **nemmeno per eredità**, quando è l'unico online. Se all'aeroporto non
+c'è nessuno, quell'aereo non l'ha gestito nessuno: è la verità, non un dato perso.
+
+**2. ⚠️ Un fermo del poller spezzava un volo in due.** Riavvio, deploy o rete giù per più di 30 minuti, e al
+ritorno lo stesso aeroplano nello stesso volo apriva una tratta nuova: **un deploy contava doppio ogni aereo
+in volo in quel momento**. Il buco è nostro, non suo. Rimedio: l'identità della tratta ora è l'**id del piano
+di volo** quando c'è (uguale = stessa tratta anche dopo ore; diverso = tratta nuova anche dopo un minuto,
+che è il caso di chi rifila per la gamba successiva). La regola dei 30 minuti resta solo come ripiego per
+chi vola senza piano di volo.
+
+**3. Il 32% delle connessioni dura meno di cinque minuti.** Su 1316 sessioni italiane in 30 giorni: **419
+sotto i 5 minuti, di cui 231 sotto il minuto** (in tutto 10 ore). Contare «quante sessioni» senza soglia
+gonfia di un terzo. Le sessioni-lampo si **memorizzano** (sono il dato che IVAO dà) ma vanno tenute fuori dai
+conteggi: soglia da fissare — proposta 60 secondi, decisione del committente.
+
+**4. I minuti gestiti non sono `ultimo − primo` avvistamento.** Se un aereo esce dal settore e rientra nella
+stessa tratta, la differenza fra primo e ultimo conta anche il tempo in cui non c'era. I minuti si
+**accumulano contando i giri** in cui l'aeroplano risulta dentro (`SeenMinutes` += 1 per giro), non si
+sottraggono.
+
+**Verificato e NON problematico**: le connessioni ATIS non compaiono fra le sessioni ATC (0 su 1316 in 30
+giorni, e nel whazzup le posizioni sono solo TWR/APP/GND/CTR/DEL) — non serve nessun filtro.
+
+**Numero che giustifica il turno da solo**: **501 sessioni su 1316 (38%) riprendono entro 15 minuti dalla
+precedente**. Senza `ShiftKey` i due quinti delle righe sarebbero doppioni.
+
+### 4.5-bis Il tetto delle torri: 3000 ft, non FL195
+
+Il default di sistema era **19500 ft per tutte** le posizioni con volume — cioè una TWR che rivendicava fino
+a FL195 e che, stando più in basso nella scaletta, batteva l'APP sul traffico in avvicinamento. Il
+committente ha fissato la regola vera: **le torri arrivano a 3000 ft**. Cambiato in
+`EfAirportSectorRepository.DefaultUpperFor` (TWR → 3000, APP/DEP/CTR/FSS → 19500).
+
+⚠️ **Resta il dato già in archivio**: 140 posizioni d'aeroporto hanno tetto 19500. Non si può distinguere dal
+DB chi l'ha scelto da chi si è tenuto il default. Correzione proposta per la slice 2, con guardia stretta:
+solo righe `Position = 'TWR'`, `LimitsFromSource = false`, `UpperLimit = 19500`. **Da autorizzare prima di
+eseguirla**, perché tocca dati veri.
+
 ## 5. Modello dati — due tabelle, non tre
 
 ```
