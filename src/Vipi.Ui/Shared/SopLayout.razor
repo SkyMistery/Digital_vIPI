@@ -81,10 +81,6 @@
                portare all'hub, e due link identici a 100px di distanza sono ingombro, non ridondanza. Nel
                «☰» la voce resta, perche' li' il marchio e' ridotto al solo logo. *@
             <a class="editor-btn icon-only" href="/services/vsop/guide" title="@L["Chrome_Guide"]" aria-label="@L["Chrome_Guide"]"><Icon Name="help-circle" /></a>
-            @if (_staff is { Length: > 0 })
-            {
-                <div class="staff-badge" title="@L["Chrome_StaffPosition"]"><Icon Name="award" /> <span class="sb-t">@_staff</span></div>
-            }
             <div class="zoom-ctrl" role="group" aria-label="@L["Chrome_ZoomPage"]">
                 <button type="button" onclick="vipiZoom(-0.1)" title="@L["Chrome_ZoomOut"]" aria-label="@L["Chrome_ZoomOut"]">−</button>
                 <span id="vipiZoomPct" role="status" aria-live="polite" aria-label="@L["Chrome_ZoomPage"]" onclick="vipiZoomReset()" title="@L["Chrome_ZoomReset"]">100%</span>
@@ -116,9 +112,6 @@
             @if (_canEdit)
             {
                 <a class="editor-btn" href="/services/vsop/versions" title="@L["Chrome_OpenEditor"]" aria-label="@L["Chrome_OpenEditor"]"><Icon Name="pencil" /> <span class="eb-t">@L["Chrome_Editor"]</span></a>
-                @* ⚠️ Era l'unica voce della topbar scritta a mano in italiano, accanto a una tradotta:
-                   in pagina inglese diceva «Incarichi». L'etichetta e' la stessa della barra admin. *@
-                <a class="editor-btn" href="/services/vsop/tasks" title="@L["Chrome_MyTasks"]" aria-label="@L["Chrome_MyTasks"]"><Icon Name="clipboard" /> <span class="eb-t">@L["Nav_Tasks"]</span></a>
             }
             @if (_isAdmin)
             {
@@ -126,8 +119,16 @@
             }
             @if (_user is { } u)
             {
+                @* L'AVATAR è la porta agli incarichi: il tasto dedicato è stato tolto perché la barra è a
+                   corto di spazio e la pagina ha già un posto naturale dove stare, cioè sotto la propria
+                   identità. ⚠️ Serve `aria-label`: il nome accessibile sarebbero altrimenti le sole
+                   INIZIALI, che non dicono niente a chi non vede il cerchio. Il nome per esteso resta nel
+                   `title`, dove stava.
+                   ⚠️ La voce nel menù «☰» NON si tocca: allo scaglione tb-4 la barra nasconde
+                   `.user-chip`, quindi lì il menù è l'unica strada rimasta per gli incarichi. *@
                 <div class="user-chip">
-                    <span class="avatar" title="@u.Name">@Initials(u.Name)</span>
+                    <a class="avatar" href="/services/vsop/tasks"
+                       title="@u.Name · @L["Chrome_MyTasks"]" aria-label="@L["Chrome_MyTasks"]">@Initials(u.Name)</a>
                     @* Logout standalone: no-op se l'endpoint non è montato (embedded). *@
                     <a class="editor-btn icon-only" href="/services/vsop/auth/logout" title="@L["Chrome_Logout"]" aria-label="@L["Chrome_Logout"]"><Icon Name="log-out" /></a>
                 </div>
@@ -148,12 +149,10 @@
     private CurrentUser? _user;
     private bool _isAdmin;
     private bool _canEdit;
-    private string? _staff;
 
     protected override async Task OnParametersSetAsync()
     {
         _user = Users.Get();
-        _staff = _user is { StaffPositions.Count: > 0 } su ? string.Join(" · ", su.StaffPositions) : null;
 
         // /services/vsop/{acc}/{vipi?}. ⚠️ Il conto dei segmenti NON si rifà qui: era scritto a mano e
         // contava dal primo, che dal 22 agosto 2026 è «services» e non più «vsop» — da allora nessun ACC
