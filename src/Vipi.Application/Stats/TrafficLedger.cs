@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Vipi.Domain;
 
 namespace Vipi.Application.Stats;
 
@@ -18,7 +19,32 @@ public sealed record TrafficLegRow(
     DateTimeOffset LastSeenUtc,
     int SeenMinutes,
     bool SawMovement,
-    bool HasObservationGap);
+    bool HasObservationGap,
+    FlightPhase? FirstPhase = null,
+    FlightPhase? LastPhase = null,
+    bool SawAirborne = false,
+    int? EntryAltitudeFt = null,
+    int? ExitAltitudeFt = null,
+    int? MaxAltitudeFt = null,
+    long? HandoffToSessionId = null,
+    long? HandoffFromSessionId = null);
+
+/// <summary>
+/// Un aeroplano visto in un giro, come lo passa il poller: chi è, cosa dice il suo piano di volo, in che
+/// fase si trova e a che quota.
+///
+/// <para>È un record e non otto parametri perché <see cref="TrafficLedger.Observe"/> ne aveva già sette:
+/// l'ottavo e il nono (fase e quota) l'avrebbero reso una firma che si sbaglia a leggere.</para>
+/// </summary>
+public sealed record LegObservation(
+    string PilotCallsign,
+    int PilotUserId,
+    long? FlightPlanId,
+    string? DepIcao,
+    string? ArrIcao,
+    string? AircraftIcao,
+    FlightPhase Phase,
+    double AltitudeFt);
 
 /// <summary>Contatori di una sessione, ricalcolati dalle sue tratte.</summary>
 public sealed record SessionCounters(long SessionId, int TrafficCount, int MovementCount, int TrafficMinutes);
@@ -70,6 +96,14 @@ public sealed class TrafficLedger
         public int SeenMinutes { get; set; }
         public bool SawMovement { get; set; }
         public bool HasObservationGap { get; set; }
+        public FlightPhase? FirstPhase { get; set; }
+        public FlightPhase? LastPhase { get; set; }
+        public bool SawAirborne { get; set; }
+        public int? EntryAltitudeFt { get; set; }
+        public int? ExitAltitudeFt { get; set; }
+        public int? MaxAltitudeFt { get; set; }
+        public long? HandoffToSessionId { get; set; }
+        public long? HandoffFromSessionId { get; set; }
     }
 
     /// <summary>Sessioni di cui il registro sa già qualcosa: il chiamante non deve rileggerle dall'archivio.</summary>
@@ -99,6 +133,14 @@ public sealed class TrafficLedger
                 SeenMinutes = l.SeenMinutes,
                 SawMovement = l.SawMovement,
                 HasObservationGap = l.HasObservationGap,
+                FirstPhase = l.FirstPhase,
+                LastPhase = l.LastPhase,
+                SawAirborne = l.SawAirborne,
+                EntryAltitudeFt = l.EntryAltitudeFt,
+                ExitAltitudeFt = l.ExitAltitudeFt,
+                MaxAltitudeFt = l.MaxAltitudeFt,
+                HandoffToSessionId = l.HandoffToSessionId,
+                HandoffFromSessionId = l.HandoffFromSessionId,
             });
         _sessioni[sessionId] = s;
     }
@@ -107,10 +149,10 @@ public sealed class TrafficLedger
     /// Registra un aeroplano visto dentro l'area di una sessione. Ritorna <c>true</c> se ha aperto una
     /// <b>tratta nuova</b> — il caso in cui vale la pena scrivere subito, invece di aspettare il checkpoint.
     /// </summary>
-    public bool Observe(
-        long sessionId, string pilotCallsign, int pilotUserId, long? flightPlanId,
-        string? depIcao, string? arrIcao, string? aircraftIcao, FlightPhase phase, DateTimeOffset now)
+    public bool Observe(long sessionId, LegObservation obs, DateTimeOffset now)
     {
+        var (pilotCallsign, pilotUserId, flightPlanId, depIcao, arrIcao, aircraftIcao, phase, altitudeFt) = obs;
+
         if (!_sessioni.TryGetValue(sessionId, out var s))
             _sessioni[sessionId] = s = new Sessione { UltimaScrittura = now };
 
@@ -136,6 +178,8 @@ public sealed class TrafficLedger
                 FirstSeenUtc = now,
                 LastSeenUtc = now,
                 SeenMinutes = 0,
+                FirstPhase = phase,
+                EntryAltitudeFt = Piedi(altitudeFt),
             };
             s.Legs.Add(leg);
             nuova = true;
@@ -159,9 +203,57 @@ public sealed class TrafficLedger
         leg.SeenMinutes++;
         if (FlightPhases.IsMovement(phase)) leg.SawMovement = true;
 
+        // La fase dell'ULTIMO avvistamento, non «la fase del volo»: insieme alla prima è ciò che distingue
+        // una partenza da un arrivo da un sorvolo. ⚠️ `SawAirborne` è cumulativo apposta: senza, di un volo con
+        // prima fase Airborne e ultima Parked non si saprebbe se in mezzo l'abbiamo visto volare o se è
+        // rientrato al parcheggio rullando.
+        leg.LastPhase = phase;
+        if (phase == FlightPhase.Airborne) leg.SawAirborne = true;
+
+        var quota = Piedi(altitudeFt);
+        leg.EntryAltitudeFt ??= quota;
+        leg.ExitAltitudeFt = quota;
+        if (quota is { } q && (leg.MaxAltitudeFt is null || q > leg.MaxAltitudeFt)) leg.MaxAltitudeFt = q;
+
         s.Sporca = true;
         return nuova;
     }
+
+    /// <summary>
+    /// Segna che <paramref name="pilotCallsign"/> è passato dalla sessione <paramref name="fromSessionId"/>
+    /// alla sessione <paramref name="toSessionId"/>: una <b>consegna</b>.
+    ///
+    /// <para>⚠️ Si scrive sulla tratta <b>aperta più di recente</b> di ciascuna delle due sessioni, non su
+    /// tutte: chi ha fatto due tratte nello stesso turno (LIRF→LIRN, poi LIRN→LIRF) consegna quella in corso.
+    /// Se una delle due sessioni non è più in memoria non si scrive niente — meglio una consegna mancante
+    /// che una attribuita a caso.</para>
+    /// </summary>
+    public void NoteHandoff(long fromSessionId, long toSessionId, string pilotCallsign)
+    {
+        if (fromSessionId == toSessionId) return;
+
+        var uscente = Ultima(fromSessionId, pilotCallsign);
+        var entrante = Ultima(toSessionId, pilotCallsign);
+        if (uscente is null || entrante is null) return;
+
+        uscente.HandoffToSessionId = toSessionId;
+        entrante.HandoffFromSessionId = fromSessionId;
+        _sessioni[fromSessionId].Sporca = true;
+        _sessioni[toSessionId].Sporca = true;
+    }
+
+    private Leg? Ultima(long sessionId, string pilotCallsign) =>
+        _sessioni.TryGetValue(sessionId, out var s)
+            ? s.Legs.Where(l => string.Equals(l.PilotCallsign, pilotCallsign, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(l => l.LegOrdinal).FirstOrDefault()
+            : null;
+
+    /// <summary>
+    /// Quota in piedi interi. ⚠️ Sotto zero non si scrive: la sorgente dà quote negative per gli aerei al
+    /// suolo sotto la pressione standard, e «−200 ft» in una scheda di volo sembra un errore nostro.
+    /// </summary>
+    private static int? Piedi(double altitudeFt) =>
+        double.IsFinite(altitudeFt) && altitudeFt >= 0 ? (int)Math.Round(altitudeFt) : null;
 
     /// <summary>Chiude il giro: la sessione ha avuto traffico in questo minuto (per i minuti «occupato»).</summary>
     public void EndPoll(long sessionId, bool hadTraffic)
@@ -226,7 +318,9 @@ public sealed class TrafficLedger
 
     private static TrafficLegRow Row(long sessionId, Leg l) => new(
         sessionId, l.PilotCallsign, l.LegOrdinal, l.PilotUserId, l.FlightPlanId, l.DepIcao, l.ArrIcao,
-        l.AircraftIcao, l.FirstSeenUtc, l.LastSeenUtc, l.SeenMinutes, l.SawMovement, l.HasObservationGap);
+        l.AircraftIcao, l.FirstSeenUtc, l.LastSeenUtc, l.SeenMinutes, l.SawMovement, l.HasObservationGap,
+        l.FirstPhase, l.LastPhase, l.SawAirborne, l.EntryAltitudeFt, l.ExitAltitudeFt, l.MaxAltitudeFt,
+        l.HandoffToSessionId, l.HandoffFromSessionId);
 
     private static SessionCounters Counters(long sessionId, Sessione s) => new(
         sessionId,

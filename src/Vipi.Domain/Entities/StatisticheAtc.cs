@@ -1,4 +1,4 @@
-namespace Vipi.Domain.Entities;
+﻿namespace Vipi.Domain.Entities;
 
 /// <summary>Da dove è arrivata la riga di sessione: dal poller (dal vivo) o dallo storico IVAO (backfill).</summary>
 public enum AtcSessionSource { Live, Backfill }
@@ -162,6 +162,53 @@ public class AtcSessionTraffic
     /// a terra — e quindi la riga si scrive — ma il piazzale fermo non è traffico gestito.
     /// </summary>
     public bool SawMovement { get; set; }
+
+    /// <summary>
+    /// Fase del volo al <b>primo</b> avvistamento dentro l'area; <c>null</c> = mai osservata dal vivo
+    /// (riga ricostruita dai movimenti d'aeroporto, che dicono CHE il volo c'è stato e nient'altro).
+    ///
+    /// <para>⚠️ Prima e ultima fase esistono per una domanda sola, e sono l'unico modo onesto di
+    /// risponderle: <b>l'ho visto decollare? l'ho visto atterrare?</b> La fase la calcola già il recorder a
+    /// ogni giro (<c>FlightPhases.Of</c>) e prima si buttava: quel che restava sulla riga era il solo
+    /// <see cref="SawMovement"/>, cioè «si è mosso», che non distingue una partenza da un arrivo da un
+    /// sorvolo.</para>
+    /// </summary>
+    public FlightPhase? FirstPhase { get; set; }
+
+    /// <summary>Fase del volo all'<b>ultimo</b> avvistamento; <c>null</c> come <see cref="FirstPhase"/>.</summary>
+    public FlightPhase? LastPhase { get; set; }
+
+    /// <summary>
+    /// Vero se almeno una volta l'abbiamo visto <b>in volo</b> dentro l'area. Serve a non spacciare per
+    /// atterraggio un aeroplano che è solo rientrato al parcheggio rullando.
+    /// </summary>
+    public bool SawAirborne { get; set; }
+
+    /// <summary>Quota (ft) al primo avvistamento; <c>null</c> se la riga non viene dal campionamento dal vivo.</summary>
+    public int? EntryAltitudeFt { get; set; }
+
+    /// <summary>Quota (ft) all'ultimo avvistamento.</summary>
+    public int? ExitAltitudeFt { get; set; }
+
+    /// <summary>Quota (ft) massima vista dentro l'area: per un CTR è il numero che racconta il volo.</summary>
+    public int? MaxAltitudeFt { get; set; }
+
+    /// <summary>
+    /// Sessione ATC che ha preso in carico questo volo <b>subito dopo</b> di noi; <c>null</c> = nessuno
+    /// (è uscito dalla rete, o non c'era nessun altro in frequenza).
+    ///
+    /// <para>Il dato è gratis: l'attribuzione sa già, al giro dopo, a chi va l'aeroplano. Si scrive solo se
+    /// il passaggio avviene fra <b>due giri consecutivi</b> — a poller fermo per un'ora, «prima era mio e ora
+    /// è suo» non è una consegna, è un buco.</para>
+    ///
+    /// <para>⚠️ Nessuna chiave esterna: la potatura del dettaglio (§5.1 della carta) cancellerà le righe
+    /// vecchie a scaglioni, e una FK farebbe cadere la consegna insieme alla riga dell'altro. Un id che non
+    /// risolve più si mostra senza collegamento.</para>
+    /// </summary>
+    public long? HandoffToSessionId { get; set; }
+
+    /// <summary>Sessione ATC da cui abbiamo <b>ricevuto</b> questo volo; stesse regole di <see cref="HandoffToSessionId"/>.</summary>
+    public long? HandoffFromSessionId { get; set; }
 
     /// <summary>
     /// Vero se fra due avvistamenti di questa tratta c'è stato un <b>buco di osservazione</b> (poller fermo,

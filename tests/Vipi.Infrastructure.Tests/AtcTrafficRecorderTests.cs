@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Stats;
@@ -254,5 +254,58 @@ public class AtcTrafficRecorderTests : IAsyncLifetime
         var riga = await _db.AtcSessionTraffic.SingleAsync();
         Assert.Equal(13, riga.SeenMinutes);     // 12 + il giro dopo il riavvio, non 1
         Assert.Equal(1, riga.LegOrdinal);       // e non ha aperto una seconda tratta
+    }
+
+    [Fact]
+    public async Task Chi_sale_dalla_torre_all_ACC_lascia_una_consegna_su_tutte_e_due()
+    {
+        var atc = new[] { Atc(100, "LIRR_NE1_CTR"), Atc(101, "LIRF_TWR") };
+
+        // Primo giro: basso sul campo, è della torre. Secondo giro: salito, è dell'ACC.
+        await Giro(T0, atc, new[] { Volo("AZA123", 41.8, 12.2, 2_000, gs: 160, stato: "Initial Climb") });
+        await Giro(T0.AddMinutes(1), atc, new[] { Volo("AZA123", 42.0, 12.4, 10_000) });
+        _db.ChangeTracker.Clear();
+
+        var righe = await _db.AtcSessionTraffic.ToListAsync();
+        Assert.Equal(100, righe.Single(r => r.SessionId == 101).HandoffToSessionId);
+        Assert.Equal(101, righe.Single(r => r.SessionId == 100).HandoffFromSessionId);
+    }
+
+    [Fact]
+    public async Task Un_poller_fermo_a_lungo_non_inventa_una_consegna()
+    {
+        // ⚠️ Fra i due giri passa mezz'ora: il passaggio non l'abbiamo visto, e «prima era tuo e adesso è
+        // suo» non è una consegna.
+        var atc = new[] { Atc(100, "LIRR_NE1_CTR"), Atc(101, "LIRF_TWR") };
+
+        await Giro(T0, atc, new[] { Volo("AZA123", 41.8, 12.2, 2_000, gs: 160, stato: "Initial Climb") });
+        await Giro(T0.AddMinutes(30), atc, new[] { Volo("AZA123", 42.0, 12.4, 10_000) });
+        _db.ChangeTracker.Clear();
+
+        var righe = await _db.AtcSessionTraffic.ToListAsync();
+        Assert.All(righe, r => Assert.Null(r.HandoffToSessionId));
+        Assert.All(righe, r => Assert.Null(r.HandoffFromSessionId));
+    }
+
+    [Fact]
+    public async Task Le_fasi_e_le_quote_arrivano_fino_all_archivio()
+    {
+        var atc = new[] { Atc(100, "LIRR_NE1_CTR") };
+
+        await Giro(T0, atc, new[] { Volo("AZA123", 42.0, 12.0, 35_000) });
+        await Giro(T0.AddMinutes(1), atc, new[] { Volo("AZA123", 42.0, 12.0, 24_000) });
+
+        // ⚠️ Senza il flush l'archivio si ferma alla prima scrittura: il secondo giro cambia solo minuti e
+        // quote, e quelli aspettano il checkpoint (dieci minuti) o lo spegnimento.
+        await _recorder.FlushAsync(_traffico, T0.AddMinutes(1));
+        _db.ChangeTracker.Clear();
+
+        var riga = await _db.AtcSessionTraffic.SingleAsync();
+        Assert.Equal(FlightPhase.Airborne, riga.FirstPhase);
+        Assert.Equal(FlightPhase.Airborne, riga.LastPhase);
+        Assert.True(riga.SawAirborne);
+        Assert.Equal(35_000, riga.EntryAltitudeFt);
+        Assert.Equal(24_000, riga.ExitAltitudeFt);
+        Assert.Equal(35_000, riga.MaxAltitudeFt);
     }
 }

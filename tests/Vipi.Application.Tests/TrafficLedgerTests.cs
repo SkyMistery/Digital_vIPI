@@ -1,7 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Vipi.Application.Stats;
+using Vipi.Domain;
 using Xunit;
 
 namespace Vipi.Application.Tests;
@@ -17,8 +18,8 @@ public class TrafficLedgerTests
 
     private static bool Vedi(TrafficLedger l, DateTimeOffset quando, string pilota = "AZA123",
         string? dep = "LIRF", string? arr = "LIRN", long? fp = 900, FlightPhase fase = FlightPhase.Airborne,
-        long sessione = 100) =>
-        l.Observe(sessione, pilota, 785031, fp, dep, arr, "B38M", fase, quando);
+        long sessione = 100, double quota = 24000) =>
+        l.Observe(sessione, new LegObservation(pilota, 785031, fp, dep, arr, "B38M", fase, quota), quando);
 
     [Fact]
     public void Un_aereo_nuovo_apre_una_tratta_e_chiede_di_scrivere_subito()
@@ -163,5 +164,99 @@ public class TrafficLedgerTests
         l.Forget(100);
         Assert.False(l.Knows(100));
         Assert.True(l.TakeAll(T0).Nothing);
+    }
+
+    [Fact]
+    public void Prima_e_ultima_fase_raccontano_l_arrivo()
+    {
+        var l = new TrafficLedger();
+        Vedi(l, T0, fase: FlightPhase.Airborne);
+        Vedi(l, T0.AddMinutes(1), fase: FlightPhase.Ground);
+        Vedi(l, T0.AddMinutes(2), fase: FlightPhase.Parked);
+
+        var riga = Assert.Single(l.TakeAll(T0.AddMinutes(2)).Legs);
+        Assert.Equal(FlightPhase.Airborne, riga.FirstPhase);
+        Assert.Equal(FlightPhase.Parked, riga.LastPhase);
+        Assert.True(riga.SawAirborne);          // in mezzo l'abbiamo visto volare: è un arrivo, non un rullaggio
+    }
+
+    [Fact]
+    public void Chi_non_ha_mai_volato_non_risulta_atterrato()
+    {
+        var l = new TrafficLedger();
+        Vedi(l, T0, fase: FlightPhase.Parked);
+        Vedi(l, T0.AddMinutes(1), fase: FlightPhase.Ground);
+
+        var riga = Assert.Single(l.TakeAll(T0.AddMinutes(1)).Legs);
+        Assert.False(riga.SawAirborne);
+        Assert.Equal(FlightPhase.Ground, riga.LastPhase);
+    }
+
+    [Fact]
+    public void Le_quote_dicono_ingresso_uscita_e_massimo()
+    {
+        var l = new TrafficLedger();
+        Vedi(l, T0, quota: 12000);
+        Vedi(l, T0.AddMinutes(1), quota: 24000);
+        Vedi(l, T0.AddMinutes(2), quota: 18000);
+
+        var riga = Assert.Single(l.TakeAll(T0.AddMinutes(2)).Legs);
+        Assert.Equal(12000, riga.EntryAltitudeFt);
+        Assert.Equal(18000, riga.ExitAltitudeFt);
+        Assert.Equal(24000, riga.MaxAltitudeFt);
+    }
+
+    [Fact]
+    public void Una_quota_negativa_non_si_scrive()
+    {
+        // La sorgente dà quote sotto zero agli aerei al suolo con pressione bassa: «−200 ft» in una scheda
+        // di volo sembra un errore nostro.
+        var l = new TrafficLedger();
+        Vedi(l, T0, quota: -200, fase: FlightPhase.Parked);
+
+        var riga = Assert.Single(l.TakeAll(T0).Legs);
+        Assert.Null(riga.EntryAltitudeFt);
+        Assert.Null(riga.MaxAltitudeFt);
+    }
+
+    [Fact]
+    public void La_consegna_si_scrive_su_tutte_e_due_le_sessioni()
+    {
+        var l = new TrafficLedger();
+        Vedi(l, T0, sessione: 100);
+        Vedi(l, T0.AddMinutes(1), sessione: 200);
+        l.NoteHandoff(100, 200, "AZA123");
+
+        var righe = l.TakeAll(T0.AddMinutes(1)).Legs.ToDictionary(r => r.SessionId);
+        Assert.Equal(200, righe[100].HandoffToSessionId);
+        Assert.Equal(100, righe[200].HandoffFromSessionId);
+        Assert.Null(righe[100].HandoffFromSessionId);
+    }
+
+    [Fact]
+    public void Una_consegna_verso_una_sessione_sconosciuta_non_scrive_niente()
+    {
+        // Meglio una consegna mancante che una attribuita a caso.
+        var l = new TrafficLedger();
+        Vedi(l, T0, sessione: 100);
+        l.NoteHandoff(100, 999, "AZA123");
+
+        var riga = Assert.Single(l.TakeAll(T0).Legs);
+        Assert.Null(riga.HandoffToSessionId);
+    }
+
+    [Fact]
+    public void La_consegna_va_sulla_tratta_in_corso_non_sulla_prima_del_turno()
+    {
+        var l = new TrafficLedger();
+        Vedi(l, T0, sessione: 100, dep: "LIRF", arr: "LIRN", fp: 900);
+        Vedi(l, T0.AddMinutes(1), sessione: 100, dep: "LIRN", arr: "LIRF", fp: 901);   // seconda tratta
+        Vedi(l, T0.AddMinutes(2), sessione: 200, dep: "LIRN", arr: "LIRF", fp: 901);
+        l.NoteHandoff(100, 200, "AZA123");
+
+        var uscenti = l.TakeAll(T0.AddMinutes(2)).Legs.Where(r => r.SessionId == 100).ToList();
+        Assert.Equal(2, uscenti.Count);
+        Assert.Null(uscenti.Single(r => r.LegOrdinal == 1).HandoffToSessionId);
+        Assert.Equal(200, uscenti.Single(r => r.LegOrdinal == 2).HandoffToSessionId);
     }
 }

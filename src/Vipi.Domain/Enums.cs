@@ -137,3 +137,19 @@ public enum ImportCategory { TransitionAltitude, Runways, Sectors, Sids, Special
 /// <summary>Stato di una coppia ACC confinante candidata a diventare una vLOA: proposta dal calcolo di
 /// adiacenza, confermata dall'admin (→ vLOA generabile), o rifiutata (falso positivo, non riproporre).</summary>
 public enum NeighbourCandidateStatus { Pending, Confirmed, Rejected }
+
+/// <summary>
+/// In che fase è un aeroplano, dal punto di vista di chi lo controlla. Tre gradini, perché tre sono le
+/// posizioni che se li dividono.
+/// </summary>
+public enum FlightPhase
+{
+    /// <summary>Fermo al parcheggio con una partenza da fare: è il traffico della DEL.</summary>
+    Parked,
+
+    /// <summary>A terra e in movimento (rullaggio, decollo iniziato, appena atterrato): traffico della GND.</summary>
+    Ground,
+
+    /// <summary>In volo.</summary>
+    Airborne,
+}

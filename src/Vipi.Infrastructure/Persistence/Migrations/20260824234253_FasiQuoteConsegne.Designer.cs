@@ -2,65 +2,57 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vipi.Infrastructure.Persistence;
 
 #nullable disable
 
-namespace Vipi.Infrastructure.MySqlMigrations.Migrations
+namespace Vipi.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(VipiDbContext))]
-    partial class VipiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260824234253_FasiQuoteConsegne")]
+    partial class FasiQuoteConsegne
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.30")
-                .HasAnnotation("Relational:MaxIdentifierLength", 64);
-
-            MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
+            modelBuilder.HasAnnotation("ProductVersion", "8.0.30");
 
             modelBuilder.Entity("Vipi.Domain.Entities.Acc", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Code")
                         .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("varchar(16)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("CountryPrefix")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("ImportedAtUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("IsForeign")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsHidden")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsMilitary")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("SpecialAreasEnabled")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("INTEGER")
                         .HasDefaultValue(true);
 
                     b.HasKey("Id");
@@ -75,58 +67,45 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("AtcCallsign")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("CenterId")
                         .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("varchar(16)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ComposePosition")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Frequency")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("ImportedAtUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("IsHidden")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("LowerLimit")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("MiddleIdentifier")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ParentCallsign")
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Position")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("RegionMapPolygon")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("UpperLimit")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -144,24 +123,20 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Icao")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Order")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("SectionId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -174,135 +149,108 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("CommsHandoffKind")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .HasDefaultValue("Unspecified")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Unspecified");
 
                     b.Property<string>("CommsHandoffLabel")
                         .HasMaxLength(80)
-                        .HasColumnType("varchar(80)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ConditionAreaLabel")
                         .HasMaxLength(80)
-                        .HasColumnType("varchar(80)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ConditionCustomLabel")
                         .HasMaxLength(80)
-                        .HasColumnType("varchar(80)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ConditionLabel")
                         .HasMaxLength(80)
-                        .HasColumnType("varchar(80)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("ConditionRefId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Cops")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("HandoffKind")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .HasDefaultValue("Unspecified")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Unspecified");
 
                     b.Property<string>("HandoffLabel")
                         .HasMaxLength(80)
-                        .HasColumnType("varchar(80)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("HandoffLevelConstraint")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .HasDefaultValue("AtOrAbove")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("AtOrAbove");
 
                     b.Property<string>("HandoffLevelUnit")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .HasDefaultValue("Fl")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Fl");
 
                     b.Property<int?>("HandoffLevelValue")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsGroupWide")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("LevelConstraint")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("LevelSpecial")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("LevelUnit")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("LevelValue")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("Order")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Parity")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("SectionId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("SpeedConstraint")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .HasDefaultValue("Unspecified")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Unspecified");
 
                     b.Property<int?>("SpeedValue")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("VariantDepth")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("VariantGroup")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("VerticalState")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -317,31 +265,24 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("AgreementId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Description")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Direction")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Kind")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Order")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -356,43 +297,36 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("AccId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("FeaturedRank")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Icao")
                         .IsRequired()
-                        .HasMaxLength(8)
-                        .HasColumnType("varchar(8)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("IsHidden")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<double?>("Latitude")
-                        .HasColumnType("double");
+                        .HasColumnType("REAL");
 
                     b.Property<double?>("Longitude")
-                        .HasColumnType("double");
+                        .HasColumnType("REAL");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ParentCallsign")
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("TransitionAltitudeFt")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -410,24 +344,20 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("AirportId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Body")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Order")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -440,22 +370,19 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("AirportId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("LabelOverride")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Order")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("SourceSectorId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -470,46 +397,38 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("AirportId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("AppProcedures")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("Bearing")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Circling")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Ident")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("LdaM")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("LengthM")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("Order")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Patterns")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ToraM")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -522,66 +441,56 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("AirportId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("ArrRunways")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("DateFromMonthDay")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("DateParity")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("DateToMonthDay")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("DaysOfWeekMask")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("DepRunways")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("MaxCrosswindKt")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("MaxTailwindKt")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Note")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Order")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Surface")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("TimeFromLocalMin")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("TimeToLocalMin")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -594,76 +503,61 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("AccCode")
                         .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("varchar(16)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("AirportIcao")
                         .IsRequired()
-                        .HasMaxLength(8)
-                        .HasColumnType("varchar(8)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("AtcCallsign")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ComposePosition")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Frequency")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("ImportedAtUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("IsAccApp")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsHidden")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsPrimary")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsShapeSynthetic")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("LimitsFromSource")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("LowerLimit")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("MiddleIdentifier")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ParentCallsign")
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Position")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("RegionMapPolygon")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("UpperLimit")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -683,76 +577,63 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("AirportId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Cat")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Condition")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Fix")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("ForcePublished")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("InitialClimb")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("InitialClimbByApp")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsImported")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("NeedsFixReview")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("Order")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("Priority")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Runway")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("SourceAiracCycle")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("StableKey")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Transition")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Type")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Wtc")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -765,26 +646,23 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("AirportId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Level")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Order")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("QnhFrom")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("QnhTo")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -796,62 +674,57 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
             modelBuilder.Entity("Vipi.Domain.Entities.AtcSession", b =>
                 {
                     b.Property<long>("SessionId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Callsign")
                         .IsRequired()
                         .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("DurationSeconds")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("EndUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Frequency")
                         .HasMaxLength(16)
-                        .HasColumnType("varchar(16)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("MovementCount")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Position")
                         .HasMaxLength(16)
-                        .HasColumnType("varchar(16)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("Rating")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<long>("ShiftKey")
-                        .HasColumnType("bigint");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Source")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("StartUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("TrafficCount")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("TrafficFilledUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("TrafficMinutes")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("UserId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("SessionId");
 
@@ -870,27 +743,23 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Arrival")
                         .IsRequired()
                         .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Departure")
                         .IsRequired()
                         .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("FromUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<long>("SessionId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -902,85 +771,75 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
             modelBuilder.Entity("Vipi.Domain.Entities.AtcSessionTraffic", b =>
                 {
                     b.Property<long>("SessionId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("PilotCallsign")
                         .HasMaxLength(16)
-                        .HasColumnType("varchar(16)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("LegOrdinal")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("AircraftIcao")
                         .HasMaxLength(8)
-                        .HasColumnType("varchar(8)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ArrIcao")
                         .HasMaxLength(8)
-                        .HasColumnType("varchar(8)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("DepIcao")
                         .HasMaxLength(8)
-                        .HasColumnType("varchar(8)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("EntryAltitudeFt")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("ExitAltitudeFt")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("FirstPhase")
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("FirstSeenUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<long?>("FlightPlanId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("INTEGER");
 
                     b.Property<long?>("HandoffFromSessionId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("INTEGER");
 
                     b.Property<long?>("HandoffToSessionId")
-                        .HasColumnType("bigint");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("HasObservationGap")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("LastPhase")
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("LastSeenUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("MaxAltitudeFt")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Origin")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("PilotUserId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("SawAirborne")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("SawMovement")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("SeenMinutes")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("SessionId", "PilotCallsign", "LegOrdinal");
 
@@ -993,35 +852,28 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Action")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("DetailsJson")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("EntityId")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("EntityType")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("TimestampUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("UserId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -1032,68 +884,56 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Body")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("BodyJson")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("CalloutKind")
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("CollapsedByDefault")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("DocumentVersionId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Format")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("FromSectorId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("Order")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
-                        .HasColumnType("longblob");
+                        .HasColumnType("BLOB");
 
                     b.Property<int?>("ScopeSectorId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("SectionId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("SharedBlockId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Tier")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("ToSectorId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Visibility")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1116,25 +956,22 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Note")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Order")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("OwnerAccId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("SideASectorId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("SideBSectorId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -1152,25 +989,18 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("AiracCycle")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Ident")
                         .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("varchar(16)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Kind")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1183,53 +1013,42 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("CreatedByUserId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Note")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("PayloadJson")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ReleaseAiracCycle")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("ReleaseEffectiveUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("TargetKey")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("TargetType")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("VersionNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -1244,73 +1063,61 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("CurrentVersionId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("FeaturedRank")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsHidden")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Language")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("LastUpdatedAiracCycle")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("LastUpdatedUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("LockExpiresUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("LockedAtUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("LockedByName")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("LockedByUserId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("NeedsReviewUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ReviewReason")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
-                        .HasColumnType("longblob");
+                        .HasColumnType("BLOB");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1325,21 +1132,17 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("DocumentId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Role")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("SectorId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -1354,32 +1157,25 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("DocumentId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("FreqLinksJson")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("FreqOrderJson")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("HiddenAorSectorsJson")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("HiddenFrequenciesJson")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("HiddenSectionsJson")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1393,52 +1189,46 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("BeforeParentBody")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("Depth")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("DocumentVersionId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsHidden")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("LeadSentence")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("Order")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("ParentSectionId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("RenderMode")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .HasDefaultValue("Frozen")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Frozen");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
-                        .HasColumnType("longblob");
+                        .HasColumnType("BLOB");
 
                     b.Property<string>("SectionKey")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1453,36 +1243,30 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("AiracCycle")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("CreatedByUserId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("DocumentId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Note")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("VersionNumber")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -1496,25 +1280,22 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("AccId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("DisplayName")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("GrantedAtUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("GrantedByUserId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("UserId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -1530,28 +1311,23 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("LockExpiresUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("LockedAtUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("LockedByName")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("LockedByUserId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("ResourceKey")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1565,66 +1341,52 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("AssigneeName")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("AssigneeUserId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("CompletedUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("CreatedByUserId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("DueAiracCycle")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Priority")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("TargetKey")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("TargetLabel")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("TargetType")
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("UpdatedUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1639,39 +1401,37 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("ImportAtcSessions")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("INTEGER")
                         .HasDefaultValue(true);
 
                     b.Property<bool>("ImportRunways")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("ImportSectors")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("ImportSids")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("INTEGER")
                         .HasDefaultValue(true);
 
                     b.Property<bool>("ImportSpecialAreas")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("INTEGER")
                         .HasDefaultValue(true);
 
                     b.Property<bool>("ImportTransitionAltitude")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("UpdatedByUserId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("UpdatedUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1681,19 +1441,16 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
             modelBuilder.Entity("Vipi.Domain.Entities.ImportState", b =>
                 {
                     b.Property<string>("Category")
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("LastAttemptUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("LastError")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("LastSuccessUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Category");
 
@@ -1704,45 +1461,40 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("ByteSize")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<byte[]>("Bytes")
                         .IsRequired()
-                        .HasColumnType("longblob");
+                        .HasColumnType("BLOB");
 
                     b.Property<string>("ContentType")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("CreatedByUserId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Height")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("OriginalFileName")
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Sha256")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("varchar(64)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Width")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -1756,27 +1508,19 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("AiracCycle")
                         .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("varchar(16)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Ident")
                         .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("varchar(16)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("varchar(16)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1789,69 +1533,55 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("AdjacentForeignCallsigns")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("AdjacentHomeCallsigns")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("AdjacentSectorCount")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("CountryId")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ForeignAccCode")
                         .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("varchar(16)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ForeignAccName")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ForeignRootCallsign")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("HomeAccCode")
                         .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("varchar(16)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<double?>("MinDistanceNm")
-                        .HasColumnType("double");
+                        .HasColumnType("REAL");
 
                     b.Property<string>("RegionMapPolygon")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("UpdatedUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("VloaDocumentId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -1865,82 +1595,68 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("AccId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("AirportIcao")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("AirportId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("ApproachKind")
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Callsign")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("CoverageOrder")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("DefaultFrequency")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("DocumentId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("FacilityId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("FeaturedRank")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("ImportedAtUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsPrimary")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsProjected")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Kind")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("ParentSectorId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1962,34 +1678,25 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Body")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("BodyJson")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Format")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Key")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -2003,20 +1710,15 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("FixName")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Prefix")
                         .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("varchar(16)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -2030,48 +1732,39 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("ActivationDetails")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("ImportedAtUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("IvaoId")
                         .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("varchar(64)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("MaximumAlt")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("MinimumAlt")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Range")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("RegionMapPolygon")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Type")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -2084,17 +1777,13 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
             modelBuilder.Entity("Vipi.Domain.Entities.SpecialAreaCenter", b =>
                 {
                     b.Property<string>("IvaoId")
-                        .HasMaxLength(64)
-                        .HasColumnType("varchar(64)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("CenterId")
-                        .HasMaxLength(16)
-                        .HasColumnType("varchar(16)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("ImportedAtUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("IvaoId", "CenterId");
 
@@ -2106,32 +1795,29 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
             modelBuilder.Entity("Vipi.Domain.Entities.StaffMember", b =>
                 {
                     b.Property<int>("UserId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("AtcRating")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("DisplayName")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("FirstSeenUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("LastLoginUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("LastVerifiedUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("StaffPositionsCsv")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("UserId");
 
@@ -2144,18 +1830,16 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("PublicLeaderboard")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("UpdatedByUserId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("UpdatedUtc")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -2166,33 +1850,28 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("AccId")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("AssignmentJson")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ConditionJson")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Priority")
-                        .HasColumnType("int");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 

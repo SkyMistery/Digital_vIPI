@@ -92,6 +92,18 @@ public sealed class EfAtcTrafficStore : IAtcTrafficStore
             riga.SeenMinutes = l.SeenMinutes;
             riga.SawMovement = l.SawMovement;
             riga.HasObservationGap = l.HasObservationGap;
+            riga.FirstPhase = l.FirstPhase;
+            riga.LastPhase = l.LastPhase;
+            riga.SawAirborne = l.SawAirborne;
+            riga.EntryAltitudeFt = l.EntryAltitudeFt;
+            riga.ExitAltitudeFt = l.ExitAltitudeFt;
+            riga.MaxAltitudeFt = l.MaxAltitudeFt;
+
+            // ⚠️ La consegna si scrive solo quando c'è: il registro la conosce dal giro in cui è avvenuta e
+            // la ripete nei flush successivi, ma una riga riletta dall'archivio dopo un riavvio la riporta
+            // com'era. Assegnare `null` sopra un valore già scritto la cancellerebbe.
+            riga.HandoffToSessionId = l.HandoffToSessionId ?? riga.HandoffToSessionId;
+            riga.HandoffFromSessionId = l.HandoffFromSessionId ?? riga.HandoffFromSessionId;
             toccate++;
         }
 
@@ -113,7 +125,9 @@ public sealed class EfAtcTrafficStore : IAtcTrafficStore
         t.AircraftIcao,
         new DateTimeOffset(DateTime.SpecifyKind(t.FirstSeenUtc, DateTimeKind.Utc)),
         new DateTimeOffset(DateTime.SpecifyKind(t.LastSeenUtc, DateTimeKind.Utc)),
-        t.SeenMinutes, t.SawMovement, t.HasObservationGap);
+        t.SeenMinutes, t.SawMovement, t.HasObservationGap,
+        t.FirstPhase, t.LastPhase, t.SawAirborne, t.EntryAltitudeFt, t.ExitAltitudeFt, t.MaxAltitudeFt,
+        t.HandoffToSessionId, t.HandoffFromSessionId);
 
     public async Task<(IReadOnlyList<AirportSessionWindow> ToFill, IReadOnlyList<AirportSessionWindow> Concurrent)>
         GetAirportSessionsToFillAsync(DateTimeOffset notBefore, int max, CancellationToken ct = default)

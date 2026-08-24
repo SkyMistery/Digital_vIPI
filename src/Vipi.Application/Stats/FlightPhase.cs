@@ -4,22 +4,6 @@ using Vipi.Domain;
 namespace Vipi.Application.Stats;
 
 /// <summary>
-/// In che fase è un aeroplano, dal punto di vista di chi lo controlla. Tre gradini, perché tre sono le
-/// posizioni che se li dividono.
-/// </summary>
-public enum FlightPhase
-{
-    /// <summary>Fermo al parcheggio con una partenza da fare: è il traffico della DEL.</summary>
-    Parked,
-
-    /// <summary>A terra e in movimento (rullaggio, decollo iniziato, appena atterrato): traffico della GND.</summary>
-    Ground,
-
-    /// <summary>In volo.</summary>
-    Airborne,
-}
-
-/// <summary>
 /// Ricava la fase dal tracciato IVAO (<c>lastTrack</c>) e dice quali fasi gestisce ogni tipo di posizione.
 ///
 /// <para><b>Perché serve</b>: DEL e GND non hanno poligono — misurato sul <c>vipi.db</c> reale, 0 su 5 e 0

@@ -789,23 +789,47 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasMaxLength(8)
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("EntryAltitudeFt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ExitAltitudeFt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FirstPhase")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("FirstSeenUtc")
                         .HasColumnType("TEXT");
 
                     b.Property<long?>("FlightPlanId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<long?>("HandoffFromSessionId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("HandoffToSessionId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("HasObservationGap")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("LastPhase")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("LastSeenUtc")
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("MaxAltitudeFt")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Origin")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<int>("PilotUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("SawAirborne")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("SawMovement")

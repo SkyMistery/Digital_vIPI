@@ -1,8 +1,9 @@
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Stats;
+using Vipi.Domain;
 using Vipi.Infrastructure.Ivao;
 
 namespace Vipi.Infrastructure.Tests;

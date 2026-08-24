@@ -473,6 +473,11 @@ public class VipiDbContext : DbContext
             e.Property(x => x.ArrIcao).HasMaxLength(8);
             e.Property(x => x.AircraftIcao).HasMaxLength(8);   // misurato 4 (`B38M`, `C700`)
 
+            // ⚠️ Niente `HasMaxLength` per FirstPhase/LastPhase: sono enum, e la lunghezza degli enum su
+            // MySQL la mette `MySqlStringLengths.Apply` (32 caratteri per tutti). Dichiararla qui non
+            // eviterebbe il `longtext` — ci pensa già quella regola — e lascerebbe due misure diverse nei
+            // due provider per la stessa colonna.
+
             e.HasOne(x => x.Session)
                 .WithMany(x => x.Traffic)
                 .HasForeignKey(x => x.SessionId)

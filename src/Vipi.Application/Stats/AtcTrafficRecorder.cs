@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Vipi.Application.Abstractions;
+using Vipi.Domain;
 
 namespace Vipi.Application.Stats;
 
@@ -23,6 +24,10 @@ public sealed class AtcTrafficRecorder
     private readonly ISectorVolumeCatalog _catalogo;
     private readonly TrafficLedger _registro = new();
 
+    /// <summary>A chi era attribuito ogni pilota nel giro precedente: serve a riconoscere le consegne.</summary>
+    private readonly Dictionary<string, (long SessionId, DateTimeOffset When)> _giroPrecedente =
+        new(StringComparer.OrdinalIgnoreCase);
+
     private IReadOnlyList<SectorVolumeRow>? _settori;
     private DateTimeOffset _settoriLetti = DateTimeOffset.MinValue;
 
@@ -31,6 +36,16 @@ public sealed class AtcTrafficRecorder
 
     /// <summary>Ogni quanto salvare le tratte che stanno solo cambiando minuti e ultimo avvistamento.</summary>
     public static readonly TimeSpan Checkpoint = TimeSpan.FromMinutes(10);
+
+    /// <summary>
+    /// Quanto può distare l'avvistamento precedente perché un cambio di sessione sia una <b>consegna</b>.
+    ///
+    /// <para>⚠️ La finestra non è un margine di comodo: il poll gira ogni 60 secondi, e senza limite un
+    /// poller fermo un'ora scriverebbe «consegnato a…» ogni volta che, tornato su, un aeroplano si trova
+    /// sotto un altro controllore. Due giri e mezzo di tolleranza coprono un giro perso; oltre, il passaggio
+    /// non l'abbiamo visto e non si scrive.</para>
+    /// </summary>
+    public static readonly TimeSpan HandoffWindow = TimeSpan.FromMinutes(2.5);
 
     public AtcTrafficRecorder(ISectorVolumeCatalog catalogo) => _catalogo = catalogo;
 
@@ -61,6 +76,8 @@ public sealed class AtcTrafficRecorder
         var attribuiti = 0;
         var nuove = 0;
 
+        var visti = new Dictionary<string, (long, DateTimeOffset)>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var p in snapshot.Pilots)
         {
             var fase = FlightPhases.Of(p.OnGround, p.GroundSpeed, p.State, p.DepartureDistanceNm);
@@ -70,13 +87,35 @@ public sealed class AtcTrafficRecorder
             attribuiti++;
             conTraffico.Add(sessionId);
 
-            if (_registro.Observe(sessionId, p.Callsign, p.UserId, p.FlightPlanId,
-                    p.DepIcao, p.ArrIcao, p.AircraftIcao, fase, snapshot.AsOf))
+            var obs = new LegObservation(
+                p.Callsign, p.UserId, p.FlightPlanId, p.DepIcao, p.ArrIcao, p.AircraftIcao, fase, p.AltitudeFt);
+
+            if (_registro.Observe(sessionId, obs, snapshot.AsOf))
             {
                 nuove++;
                 subito.Add(sessionId);   // un aereo nuovo si scrive senza aspettare il checkpoint
             }
+
+            // La consegna: al giro scorso era di un altro, e il giro scorso è appena stato. L'ordine conta —
+            // `Observe` deve aver già aperto la tratta nella sessione che riceve, o non ci sarebbe niente
+            // su cui scrivere «ricevuto da».
+            if (_giroPrecedente.TryGetValue(p.Callsign, out var prima)
+                && prima.SessionId != sessionId
+                && snapshot.AsOf - prima.When <= HandoffWindow)
+            {
+                _registro.NoteHandoff(prima.SessionId, sessionId, p.Callsign);
+                subito.Add(sessionId);
+                subito.Add(prima.SessionId);
+            }
+
+            visti[p.Callsign] = (sessionId, snapshot.AsOf);
         }
+
+        // Il registro dei piloti visti si riscrive a ogni giro invece di accumularsi: le voci che restano
+        // fuori sono quelle uscite da ogni area, e tenerle vorrebbe dire far crescere un dizionario per
+        // sempre — con dentro consegne che, passata la finestra, non varrebbero comunque più.
+        _giroPrecedente.Clear();
+        foreach (var (k, v) in visti) _giroPrecedente[k] = v;
 
         foreach (var id in perCallsign.Values)
             _registro.EndPoll(id, conTraffico.Contains(id));
