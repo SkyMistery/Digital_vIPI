@@ -47,7 +47,7 @@ public static class StartupDiagnostics
     /// Riepilogo della configurazione, senza segreti. Va chiamato appena il builder esiste: se l'avvio
     /// morisse dopo, questo file racconta comunque con quale configurazione ci ha provato.
     /// </summary>
-    public static void WriteConfigurationSummary(WebApplicationBuilder builder)
+    public static void WriteConfigurationSummary(WebApplicationBuilder builder, int fileSegretiLetti = 0)
     {
         var cfg = builder.Configuration;
         var sb = new StringBuilder();
@@ -66,6 +66,13 @@ public static class StartupDiagnostics
 
         var fileProduzione = Path.Combine(AppContext.BaseDirectory, "appsettings.Production.json");
         sb.AppendLine($"appsettings.Production.json .. {(File.Exists(fileProduzione) ? "presente" : "ASSENTE")}");
+        sb.AppendLine();
+
+        // ⚠️ Si scrive QUANTI file, mai QUALI: questo riepilogo è a sua volta scaricabile dal web sul
+        // server vero (docs/lavori-aperti.md §A13), e il nome di quei file è l'unica cosa che li protegge.
+        sb.AppendLine(fileSegretiLetti > 0
+            ? $"Cartella «{SegretiFuoriDalWeb.Cartella}» ....... {fileSegretiLetti} file letti (i nomi non si riportano)"
+            : $"Cartella «{SegretiFuoriDalWeb.Cartella}» ....... nessun file: i valori qui sotto vengono tutti da appsettings*");
         sb.AppendLine();
 
         sb.AppendLine("Configurazione letta (i valori segreti non vengono riportati):");

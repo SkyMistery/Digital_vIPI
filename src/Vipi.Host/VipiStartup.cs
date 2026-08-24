@@ -44,9 +44,19 @@ internal static class VipiStartup
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        // I segreti da FUORI del file che si scarica. Prima di tutto il resto, perché AddVipiStandaloneAuth
+        // legge la sezione VipiAuth alla registrazione e deve vedere già i valori buoni.
+        var segreti = SegretiFuoriDalWeb.Carica(builder.Configuration);
+
         // Riepilogo della configurazione vista, riscritto a ogni avvio — anche riuscito. Sta qui, subito dopo il
         // builder, perché serva anche quando l'avvio muore più avanti: dice con QUALE configurazione ci ha provato.
-        StartupDiagnostics.WriteConfigurationSummary(builder);
+        StartupDiagnostics.WriteConfigurationSummary(builder, segreti);
+
+        // La password c'è davvero? Se manca, l'applicazione ripiegherebbe su un file SQLite vuoto e il sito
+        // ripartirebbe con l'aria di aver perso i dati: il modo peggiore di sbagliare. Meglio non partire.
+        SegretiFuoriDalWeb.EnsureConnessioneUsabile(
+            builder.Configuration["Persistence:Provider"],
+            builder.Configuration.GetConnectionString("Vipi"));
 
         // File (default globale) della frase di coordinamento. reloadOnChange:false — il FileSystemWatcher esaurirebbe
         // le istanze inotify su host con limite basso (es. Render); in container il file è comunque immutabile (baked nell'immagine).

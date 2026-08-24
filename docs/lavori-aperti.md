@@ -664,14 +664,35 @@ file che nessuno carica non protegge niente.
 il nome è un GUID; ma è sicurezza per oscurità, e chi lo indovina **fabbrica un cookie di autenticazione
 valido per qualunque VID, admin compresi** — è scritto nel commento `DataProtection` di appsettings.
 
-**Cosa fare, in ordine.** Non è lavoro di codice: nessuna riga dell'applicazione può intercettare una
-richiesta che il front server soddisfa da sé, prima del proxy.
-1. **Ruotare i segreti**: password di `itivao_atc`, `Ivao:ClientSecret` e `VipiAuth:ClientSecret`. Vanno
-   considerati pubblici dal 16 agosto.
-2. Chiedere a chi ha il pannello: document root diverso dalla radice dell'app, oppure deny su
-   `appsettings*`, `*.dll`, `*.pdb`, `*.json` di configurazione, `diagnostica/`, `vipi-keys/`.
-3. Finché non è chiuso, `diagnostica/errori-richieste.txt` (E8) è scaricabile da chi ne indovina il nome —
-   e il nome sta nel repo. Non contiene credenziali; contiene stack trace e VID.
+**Le due strade giuste sono chiuse**, confermato dal committente il 24 agosto:
+1. ~~Ruotare i segreti~~ — **non si può fare**: la password del database la tiene Ivao.It, e le credenziali
+   dell'app IVAO non sono nostre da cambiare.
+2. ~~Chiedere a chi ha il pannello~~ — **non c'è una via alternativa**: chi aggiorna il sito ha solo l'FTP.
+
+**Il rimedio che resta, ed è quello messo in opera (pacchetto «f»).** Se il file non si può nascondere, si
+svuota: `SegretiFuoriDalWeb` unisce alla configurazione ogni `*.json` dentro la cartella `segreti/` accanto
+all'eseguibile, **dopo** tutto il resto, quindi quei valori vincono su `appsettings.Production.json`. Il
+**nome del file lo sceglie chi installa** e non è scritto da nessuna parte: il server non elenca le
+cartelle, quindi un file si prende solo indovinandone il nome esatto. Istruzioni in
+[`../deploy/atc-ivao/LEGGIMI-SEGRETI.md`](../deploy/atc-ivao/LEGGIMI-SEGRETI.md).
+
+⚠️ **È sicurezza per oscurità, ed è giusto chiamarla col suo nome.** Non chiude il buco: sposta i segreti da
+«scaricabili con un indirizzo scritto nel nostro repository» a «scaricabili da chi indovina un nome che
+nessuno conosce». È esattamente la protezione che regge oggi il key-ring, e che il progetto ha già
+accettato per quello. La riparazione vera resta la 2, quando ci sarà un canale per chiederla.
+
+⚠️ **Il passo che chiude davvero è il quarto del foglio: togliere i valori da `appsettings.Production.json`.**
+Finché la password sta anche là, spostarla non è servito a niente. Per questo l'avvio **si ferma** se la
+connection string è vuota o porta ancora il segnaposto: senza quella guardia, la configurazione a metà
+ripiegherebbe su uno SQLite vuoto e il sito tornerebbe su con l'aria di aver perso tutti i dati.
+
+⚠️ **Il nome dei file di `segreti/` non entra in `avvio-diagnostica.txt`** — quel riepilogo è a sua volta
+scaricabile, e scriverci il nome vanificherebbe l'unica protezione che c'è. Si riporta quanti, mai quali.
+
+**Quel che resta esposto, e non si può chiudere da qui:** `*.dll`, `*.pdb`, `appsettings.json`, i file di
+`diagnostica/` (che da E8 contengono stack trace e VID). Nessuna credenziale, ma una mappa del server.
+E i segreti già scaricati nelle settimane scorse restano scaricati: **questo rimedio ferma l'emorragia, non
+la ripara**.
 
 ## B. Branch non fusi — decisioni, non lavoro
 
