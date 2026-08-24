@@ -48,6 +48,7 @@ public static class ImportCategoryLabels
             ImportCategory.Sectors => new(L["Sorg_SectorsLabel"].Value, L["Sorg_SectorsDesc"].Value, new[] { struttura, aeroporti }),
             ImportCategory.Sids => new(L["Sorg_SidLabel"].Value, L["Sorg_SidDesc"].Value, new[] { aeroporti }),
             ImportCategory.SpecialAreas => new(L["Sorg_SpecialAreasLabel"].Value, L["Sorg_SpecialAreasDesc"].Value, new[] { acc }),
+            ImportCategory.AtcSessions => new(L["Sorg_AtcStatsLabel"].Value, L["Sorg_AtcStatsDesc"].Value, Array.Empty<(string, string)>()),
             _ => r.Anagrafica switch
             {
                 ImportAnagrafica.Aeroporti => new(L["Sorg_AptLabel"].Value, L["Sorg_AptDesc"].Value, new[] { aeroporti }),
@@ -76,6 +77,7 @@ public static class ImportCategoryLabels
         "sectors" or "airportsector" => ImportCategory.Sectors,
         "sids" or "sid" => ImportCategory.Sids,
         "specialareas" or "specialarea" => ImportCategory.SpecialAreas,
+        "atcsessions" or "atchistory" => ImportCategory.AtcSessions,
         _ => null,
     };
 

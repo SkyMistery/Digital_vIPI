@@ -77,7 +77,7 @@ public sealed record ImportOverviewRow(
 /// </summary>
 public interface IImportOverviewService
 {
-    /// <summary>Le sette righe (le due anagrafiche + le cinque categorie), nell'ordine in cui si leggono.</summary>
+    /// <summary>Le otto righe (le due anagrafiche + le sei categorie), nell'ordine in cui si leggono.</summary>
     Task<IReadOnlyList<ImportOverviewRow>> ListAsync(CancellationToken ct = default);
 }
 
@@ -117,6 +117,7 @@ public sealed class ImportOverviewService : IImportOverviewService
         (ImportCategory.Sectors, null, ImportCategories.AirportSector),
         (ImportCategory.Sids, null, ImportCategories.Sid),
         (ImportCategory.SpecialAreas, null, ImportCategories.SpecialArea),
+        (ImportCategory.AtcSessions, null, ImportCategories.AtcHistory),
     };
 
     public async Task<IReadOnlyList<ImportOverviewRow>> ListAsync(CancellationToken ct = default)

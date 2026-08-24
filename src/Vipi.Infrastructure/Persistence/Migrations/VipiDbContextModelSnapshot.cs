@@ -1344,6 +1344,11 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("ImportAtcSessions")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
+
                     b.Property<bool>("ImportRunways")
                         .HasColumnType("INTEGER");
 

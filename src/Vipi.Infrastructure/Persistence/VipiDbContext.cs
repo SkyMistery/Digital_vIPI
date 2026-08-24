@@ -139,6 +139,7 @@ public class VipiDbContext : DbContext
         {
             e.Property(x => x.ImportSids).HasDefaultValue(true);
             e.Property(x => x.ImportSpecialAreas).HasDefaultValue(true);
+            e.Property(x => x.ImportAtcSessions).HasDefaultValue(true);
         });
 
         b.Entity<AccSector>(e =>

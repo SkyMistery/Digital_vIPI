@@ -57,7 +57,8 @@ public class AtcHistoryImportTests : IAsyncLifetime
     }
 
     private AtcHistoryImportUseCase UseCase(params (string Prefisso, SourceAtcSessionHistory[] Sessioni)[] dati) =>
-        new(new SorgenteFinta(dati.ToDictionary(d => d.Prefisso, d => d.Sessioni.ToList())), _store);
+        new(new SorgenteFinta(dati.ToDictionary(d => d.Prefisso, d => d.Sessioni.ToList())), _store,
+            new EfImportPolicyStore(_db));
 
     [Fact]
     public async Task Le_sessioni_storiche_arrivano_in_archivio_con_la_loro_fine()
@@ -142,7 +143,7 @@ public class AtcHistoryImportTests : IAsyncLifetime
     public async Task Il_giro_interroga_tutti_i_prefissi_italiani_e_non_il_mondo()
     {
         var sorgente = new SorgenteFinta(new Dictionary<string, List<SourceAtcSessionHistory>>());
-        await new AtcHistoryImportUseCase(sorgente, _store).RunAsync(T0.AddDays(-30), T0);
+        await new AtcHistoryImportUseCase(sorgente, _store, new EfImportPolicyStore(_db)).RunAsync(T0.AddDays(-30), T0);
 
         Assert.Equal(23, sorgente.Chiamate);                       // LIA…LIZ
         Assert.Contains("LIR", AtcHistoryImportUseCase.ItalianPrefixes);
@@ -168,6 +169,27 @@ public class AtcHistoryImportTests : IAsyncLifetime
         var uc = UseCase(("LIR", new[] { Storica(100, T0.AddDays(-400), 3600) }));   // oltre la retention
         var esito = await uc.RunAsync(T0.AddDays(-365), T0);
 
+        Assert.Equal(0, esito.Fetched);
+        Assert.Equal(0, await _db.AtcSessions.CountAsync());
+    }
+
+    [Fact]
+    public async Task Escludendo_le_statistiche_dalla_policy_non_si_chiama_nemmeno_la_sorgente()
+    {
+        // «Un gate per categoria, non uno per chiamante»: sta nel corpo condiviso e PRIMA della fetch.
+        await new EfImportPolicyStore(_db).SaveAsync(
+            ImportPolicySnapshot.AllImported with { AtcSessions = false }, updatedByUserId: 704798);
+        _db.ChangeTracker.Clear();
+
+        var sorgente = new SorgenteFinta(new Dictionary<string, List<SourceAtcSessionHistory>>
+        {
+            ["LIR"] = new() { Storica(100, T0, 3600) },
+        });
+
+        var esito = await new AtcHistoryImportUseCase(sorgente, _store, new EfImportPolicyStore(_db))
+            .RunAsync(T0.AddDays(-1), T0.AddDays(1));
+
+        Assert.Equal(0, sorgente.Chiamate);      // nemmeno una richiesta alla sorgente
         Assert.Equal(0, esito.Fetched);
         Assert.Equal(0, await _db.AtcSessions.CountAsync());
     }

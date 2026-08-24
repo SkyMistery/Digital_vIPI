@@ -126,7 +126,13 @@ public enum DateParity { Any, Even, Odd }
 public enum RunwaySurface { Any, Dry, Wet }
 
 /// <summary>Categoria di dati che la sorgente esterna può fornire (governata dalla ImportPolicy globale).</summary>
-public enum ImportCategory { TransitionAltitude, Runways, Sectors, Sids, SpecialAreas }
+/// <summary>
+/// Le categorie che la policy di import può escludere. ⚠️ <c>AtcSessions</c> (dal 24 agosto 2026) è diversa
+/// dalle altre: non rende «manuale» nulla — nessuno scrive a mano una connessione ATC — ma <b>spegne la
+/// raccolta</b> delle statistiche, dal vivo e dallo storico. È l'interruttore per una divisione che non
+/// volesse conservare l'attività dei propri controllori.
+/// </summary>
+public enum ImportCategory { TransitionAltitude, Runways, Sectors, Sids, SpecialAreas, AtcSessions }
 
 /// <summary>Stato di una coppia ACC confinante candidata a diventare una vLOA: proposta dal calcolo di
 /// adiacenza, confermata dall'admin (→ vLOA generabile), o rifiutata (falso positivo, non riproporre).</summary>

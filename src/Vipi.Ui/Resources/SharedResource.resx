@@ -845,6 +845,8 @@
   <data name="Sorg_ImportFromSource" xml:space="preserve"><value>importa dalla sorgente</value></data>
   <data name="Sorg_TaDesc" xml:space="preserve"><value>Quota di transizione dell'aeroporto</value></data>
   <data name="Sorg_TaLabel" xml:space="preserve"><value>Transition Altitude</value></data>
+  <data name="Sorg_AtcStatsLabel" xml:space="preserve"><value>Statistiche ATC</value></data>
+  <data name="Sorg_AtcStatsDesc" xml:space="preserve"><value>Connessioni ATC dei callsign italiani e traffico gestito, raccolti dal vivo e dallo storico della sorgente. Escluderla non rende nulla manuale: spegne la raccolta.</value></data>
   <data name="Sorg_SidLabel" xml:space="preserve"><value>SID</value></data>
   <data name="Sorg_RunwaysLabel" xml:space="preserve"><value>Piste</value></data>
   <data name="Sorg_RunwaysDesc" xml:space="preserve"><value>Ident, lunghezza e bearing delle piste</value></data>

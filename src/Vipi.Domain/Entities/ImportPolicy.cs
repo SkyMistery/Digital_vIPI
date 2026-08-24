@@ -19,6 +19,14 @@ public class ImportPolicy
     public bool ImportSectors { get; set; } = true;               // Sector.Callsign/Type/DefaultFrequency
     public bool ImportSids { get; set; } = true;                  // AirportSid dal sectorfile Aurora (GitHub)
     public bool ImportSpecialAreas { get; set; } = true;          // SpecialArea (aree regolamentate per ACC)
+
+    /// <summary>
+    /// Raccolta delle statistiche ATC: sessioni dal vivo e storico. ⚠️ Default <c>true</c> nel MODELLO e
+    /// nella migrazione, non solo qui: un <c>bool NOT NULL</c> nuovo nasce <c>false</c> su ogni riga già
+    /// esistente, e per un flag opt-out significa nascere <b>spento</b> — cioè spegnere la raccolta a chi
+    /// non ha chiesto niente. È già successo una volta con <c>ImportSids</c>.
+    /// </summary>
+    public bool ImportAtcSessions { get; set; } = true;
     public DateTime UpdatedUtc { get; set; }
     public int UpdatedByUserId { get; set; }
 }

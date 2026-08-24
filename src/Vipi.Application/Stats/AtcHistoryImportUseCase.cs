@@ -34,17 +34,26 @@ public sealed class AtcHistoryImportUseCase
 
     private readonly IAtcHistorySource _sorgente;
     private readonly IAtcSessionStore _archivio;
+    private readonly IImportPolicyStore _policy;
 
-    public AtcHistoryImportUseCase(IAtcHistorySource sorgente, IAtcSessionStore archivio)
+    public AtcHistoryImportUseCase(IAtcHistorySource sorgente, IAtcSessionStore archivio, IImportPolicyStore policy)
     {
         _sorgente = sorgente;
         _archivio = archivio;
+        _policy = policy;
     }
 
     /// <param name="prefixes">Prefissi da interrogare; <c>null</c> = tutti quelli italiani.</param>
     public async Task<AtcHistoryImportResult> RunAsync(
         DateTimeOffset from, DateTimeOffset to, IReadOnlyList<string>? prefixes = null, CancellationToken ct = default)
     {
+        // ⚠️ Il gate sta QUI, prima della fetch, e non nel loop dell'hosted service: è il corpo condiviso
+        // fra giro automatico e chiamata manuale, e la regola del giro sorgenti è «un gate per categoria,
+        // non uno per chiamante» — altrimenti il percorso manuale lo scavalca senza che nessuno se ne accorga.
+        var policy = await _policy.GetAsync(ct);
+        if (!policy.IsImported(Domain.ImportCategory.AtcSessions))
+            return new AtcHistoryImportResult(0, 0, 0, 0, 0);
+
         var elenco = prefixes ?? ItalianPrefixes;
         var tutte = new List<SourceAtcSessionHistory>();
 

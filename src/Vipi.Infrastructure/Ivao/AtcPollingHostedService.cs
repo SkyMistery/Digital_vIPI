@@ -151,6 +151,9 @@ public sealed class AtcPollingHostedService : BackgroundService
     {
         try
         {
+            var policy = await scope.ServiceProvider.GetRequiredService<IImportPolicyStore>().GetAsync(ct);
+            if (!policy.IsImported(Vipi.Domain.ImportCategory.AtcSessions)) return;
+
             var store = scope.ServiceProvider.GetRequiredService<IAtcTrafficStore>();
             var esito = await _traffico.RecordAsync(snapshot, store, ct);
             if (esito.Attributed == 0 && esito.WrittenLegs == 0) return;
@@ -181,6 +184,11 @@ public sealed class AtcPollingHostedService : BackgroundService
     {
         try
         {
+            // Stessa categoria di policy dello storico: spegnere le statistiche le spegne davvero, non solo
+            // il giro notturno. La lettura è una riga sola, e questo giro ne fa già altre.
+            var policy = await scope.ServiceProvider.GetRequiredService<IImportPolicyStore>().GetAsync(ct);
+            if (!policy.IsImported(Vipi.Domain.ImportCategory.AtcSessions)) return;
+
             var store = scope.ServiceProvider.GetRequiredService<IAtcSessionStore>();
             var known = await store.GetOpenOrRecentAsync(snapshot.AsOf - AtcSessionSync.ShiftGap, ct);
             var plan = AtcSessionSync.Plan(snapshot.Atc, known, snapshot.AsOf);

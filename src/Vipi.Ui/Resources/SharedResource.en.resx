@@ -842,6 +842,8 @@
   <data name="Sorg_ImportFromSource" xml:space="preserve"><value>import from source</value></data>
   <data name="Sorg_TaDesc" xml:space="preserve"><value>Airport transition altitude</value></data>
   <data name="Sorg_TaLabel" xml:space="preserve"><value>Transition Altitude</value></data>
+  <data name="Sorg_AtcStatsLabel" xml:space="preserve"><value>ATC statistics</value></data>
+  <data name="Sorg_AtcStatsDesc" xml:space="preserve"><value>ATC connections on Italian callsigns and the traffic handled, collected live and from the source's history. Excluding it makes nothing manual: it turns collection off.</value></data>
   <data name="Sorg_SidLabel" xml:space="preserve"><value>SID</value></data>
   <data name="Sorg_RunwaysLabel" xml:space="preserve"><value>Runways</value></data>
   <data name="Sorg_RunwaysDesc" xml:space="preserve"><value>Runway ident, length and bearing</value></data>

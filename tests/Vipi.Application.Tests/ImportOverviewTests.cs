@@ -20,11 +20,11 @@ public class ImportOverviewTests
         new(new PolicyFinta(policy), new StatiFinti(stati), new CadenzaFinta());
 
     [Fact]
-    public async Task Ci_sono_sette_righe_e_le_due_anagrafiche_stanno_in_testa()
+    public async Task Ci_sono_otto_righe_e_le_due_anagrafiche_stanno_in_testa()
     {
         var righe = await Servizio(ImportPolicySnapshot.AllImported).ListAsync();
 
-        Assert.Equal(7, righe.Count);
+        Assert.Equal(8, righe.Count);
         Assert.Equal(new[] { ImportAnagrafica.Acc, ImportAnagrafica.Aeroporti },
             righe.Take(2).Select(r => r.Anagrafica!.Value));
         Assert.Equal(ImportCategories.Acc, righe[0].StateKey);
@@ -32,7 +32,7 @@ public class ImportOverviewTests
         Assert.Equal(new[]
         {
             ImportCategory.TransitionAltitude, ImportCategory.Runways, ImportCategory.Sectors,
-            ImportCategory.Sids, ImportCategory.SpecialAreas,
+            ImportCategory.Sids, ImportCategory.SpecialAreas, ImportCategory.AtcSessions,
         }, righe.Skip(2).Select(r => r.Categoria!.Value));
     }
 
@@ -247,7 +247,7 @@ public class ImportOverviewTests
         {
             ImportCategories.Acc or ImportCategories.AirportSector or ImportCategories.SpecialArea
                 or ImportCategories.Sid or ImportCategories.AirportData
-                or ImportCategories.AirportDirectory => TimeSpan.FromHours(24),
+                or ImportCategories.AirportDirectory or ImportCategories.AtcHistory => TimeSpan.FromHours(24),
             _ => null,
         };
     }

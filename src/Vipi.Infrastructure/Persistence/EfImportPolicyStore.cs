@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
@@ -17,7 +17,7 @@ public sealed class EfImportPolicyStore : IImportPolicyStore
         return row is null
             ? ImportPolicySnapshot.AllImported
             : new ImportPolicySnapshot(row.ImportTransitionAltitude, row.ImportRunways, row.ImportSectors,
-                row.ImportSids, row.ImportSpecialAreas);
+                row.ImportSids, row.ImportSpecialAreas, row.ImportAtcSessions);
     }
 
     public async Task<ImportPolicyInfo> GetInfoAsync(CancellationToken ct = default)
@@ -28,7 +28,7 @@ public sealed class EfImportPolicyStore : IImportPolicyStore
             ? new ImportPolicyInfo(ImportPolicySnapshot.AllImported, null, 0)
             : new ImportPolicyInfo(
                 new ImportPolicySnapshot(row.ImportTransitionAltitude, row.ImportRunways, row.ImportSectors,
-                    row.ImportSids, row.ImportSpecialAreas),
+                    row.ImportSids, row.ImportSpecialAreas, row.ImportAtcSessions),
                 row.UpdatedUtc == default ? null : row.UpdatedUtc, row.UpdatedByUserId);
     }
 
@@ -41,7 +41,7 @@ public sealed class EfImportPolicyStore : IImportPolicyStore
         var prima = row is null
             ? ImportPolicySnapshot.AllImported
             : new ImportPolicySnapshot(row.ImportTransitionAltitude, row.ImportRunways, row.ImportSectors,
-                row.ImportSids, row.ImportSpecialAreas);
+                row.ImportSids, row.ImportSpecialAreas, row.ImportAtcSessions);
 
         // ⚠️ Il non-evento non si scrive (regola del giro Audit): un salvataggio che non cambia niente non
         // è un atto, e riscriverebbe «deciso da X il <oggi>» su una decisione presa da qualcun altro mesi fa.
@@ -60,6 +60,7 @@ public sealed class EfImportPolicyStore : IImportPolicyStore
         row.ImportSectors = policy.Sectors;
         row.ImportSids = policy.Sids;
         row.ImportSpecialAreas = policy.SpecialAreas;
+        row.ImportAtcSessions = policy.AtcSessions;
         row.UpdatedUtc = DateTime.UtcNow;
         row.UpdatedByUserId = updatedByUserId;
 

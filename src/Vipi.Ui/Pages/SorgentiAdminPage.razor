@@ -318,6 +318,7 @@
             ImportCategory.Runways => _p with { Runways = daSorgente },
             ImportCategory.Sectors => _p with { Sectors = daSorgente },
             ImportCategory.Sids => _p with { Sids = daSorgente },
+            ImportCategory.AtcSessions => _p with { AtcSessions = daSorgente },
             _ => _p with { SpecialAreas = daSorgente },
         };
         _msg = _ok = null;
