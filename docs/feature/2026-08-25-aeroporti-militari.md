@@ -93,6 +93,37 @@ Poi la misura, invece del giudizio a occhio: lo sforo orizzontale che resta è *
 **identico** su righe militari e civili, con la tabella larga 750px in entrambi i casi. Non è di questo lavoro:
 è lo sforo già aperto in **§H3** dell'audit del 23 agosto.
 
+## 5-bis. Di traverso: il Registro moriva per due righe
+
+Non era in programma. Aperto `/services/vsop/admin/audit` su `main`, la pagina moriva:
+
+```
+System.InvalidOperationException: Cannot convert string value 'View' from the database
+to any value in the mapped 'AuditAction' enum.
+```
+
+Due righe con `Action='View'`, scritte quel giorno dal ramo `statistiche-atc` (visite al profilo statistiche di
+un altro controllore, §14). Su `main` quella parola nell'enum non c'era, e **due righe su diciotto portavano via
+la pagina intera** — proprio quella che si va a leggere quando qualcosa è andato storto. Un rollback in
+produzione avrebbe fatto lo stesso.
+
+Il registro è **append-only e attraversa le versioni**: ci finiscono righe scritte da codice più nuovo di quello
+che le rilegge. Ora la sua colonna si legge tollerante — l'ignoto diventa `Unknown`, che il narratore mostra
+nella famiglia «Altro» — mentre **gli altri enum restano severi**, e non è una svista: un `SectorType`
+sconosciuto è una corruzione e deve fermare tutto.
+
+⚠️ **Due sotto-trappole, trovate misurando e non a mente.**
+
+1. Un test ha smentito la prima versione del rimedio: `Enum.TryParse` accetta anche la forma **numerica**, e
+   `Enum.IsDefined` sul *valore* non la ferma — un `'3'` in colonna passava come `Archive`, cioè un'azione
+   **sbagliata**, che è peggio di un'azione ignota. Si controlla il **nome**.
+2. La sola aggiunta di un `HasConversion` ha fatto uscire quella colonna da **due** regole del modello MySQL
+   insieme: la lunghezza degli enum (`varchar(32)` diventato `longtext`) e la collation case-sensitive (sparita).
+   Nessuna delle due aveva torto — chiedevano il tipo a `GetProviderClrType`, che una conversione propria lascia
+   a `null`. Ora la domanda si fa in un posto solo (`TipoColonna`), così la terza regola che nascerà non ripeterà
+   l'errore. Con questo **il modello torna identico e nessuna migrazione serve**: quella che lo scaffolding
+   proponeva era un peggioramento, ed è stata buttata.
+
 ## 6. Verificato
 
 Guidando l'applicazione vera su una copia del `vipi.db` (Edge + puppeteer-core, porta 5099):
@@ -109,7 +140,17 @@ Guidando l'applicazione vera su una copia del `vipi.db` (Edge + puppeteer-core, 
 ⚠️ **Il lock di modifica**: lo stesso bottone prende E rilascia. Cliccarlo quando dice «Finish editing» lo molla
 e tutti i comandi tornano disabilitati — costato un giro intero prima di accorgersene.
 
-## 7. Cosa resta
+## 7. Dove vive
+
+Nato sul ramo `aeroporti-militari` (da `main`), **fuso in `statistiche-atc` il 25 agosto** (merge `8b76352`):
+i due lavori finiranno in `main` insieme, e tenerli separati lasciava in sospeso un conflitto annunciato
+sull'enum del registro — meglio risolverlo con in testa il perché delle due parti. Punto di ritorno:
+`statistiche-atc-prima-del-merge-20260825`.
+
+⚠️ La storia del §5-bis si rovescia da sé: le due righe `View` che uccidevano il Registro su `main` le scriveva
+proprio il ramo in cui questo lavoro è ora confluito. Sullo stesso ramo il problema non poteva vedersi.
+
+## 8. Cosa resta
 
 - La produzione riempirà i campi **al primo giro dell'anagrafica** dopo il deploy. Nessun backfill in
   migrazione: il dato è di sorgente e la sorgente lo dà ogni volta.
