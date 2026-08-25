@@ -182,14 +182,20 @@ public sealed class EfReleaseRepository : IReleaseRepository
 
     public async Task<int> PruneReleasesAsync(ReleaseTargetType type, string key, DateTime keepFromUtc, CancellationToken ct = default)
     {
-        // Solo le Superseded oltre soglia: l'Effective e le Scheduled hanno stato diverso → escluse per costruzione.
-        var stale = await _db.DocReleases
-            .Where(r => r.TargetType == type && r.TargetKey == key
-                        && r.Status == ReleaseStatus.Superseded && r.ReleaseEffectiveUtc < keepFromUtc)
+        // Gli stati si ricalcolano PRIMA di potare: fra un salvataggio e l'altro invecchiano da soli — una
+        // schedulata che entra in vigore col passare del tempo lascia la vecchia riga marcata Effective — e
+        // lo sweep di boot (PruneAllAsync), che non passa da SaveReleaseAsync, potava solo ciò che un
+        // salvataggio precedente aveva già marcato. Il ricalcolo qui rende la potatura vera a ogni giro.
+        var all = await _db.DocReleases
+            .Where(r => r.TargetType == type && r.TargetKey == key)
             .ToListAsync(ct);
-        if (stale.Count == 0) return 0;
+        if (all.Count == 0) return 0;
+        RecomputeStatuses(all, DateTime.UtcNow);
+
+        // Solo le Superseded oltre soglia: l'Effective e le Scheduled hanno stato diverso → escluse per costruzione.
+        var stale = all.Where(r => r.Status == ReleaseStatus.Superseded && r.ReleaseEffectiveUtc < keepFromUtc).ToList();
         _db.DocReleases.RemoveRange(stale);
-        await _db.SaveChangesAsync(ct);
+        await _db.SaveChangesAsync(ct);   // salva anche gli stati ricalcolati delle righe rimaste
         return stale.Count;
     }
 

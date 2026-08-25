@@ -49,8 +49,9 @@ public interface IReleaseRepository
     Task<string?> GetAuthAccCodeAsync(ReleaseTargetType type, string key, CancellationToken ct = default);
 
     /// <summary>Pota (elimina) le release <c>Superseded</c> del bersaglio con <c>ReleaseEffectiveUtc</c> &lt;
-    /// <paramref name="keepFromUtc"/> (retention). Effective e Scheduled non vengono mai toccate (non sono Superseded).
-    /// Ritorna il numero di release rimosse.</summary>
+    /// <paramref name="keepFromUtc"/> (retention), dopo aver RICALCOLATO gli stati a oggi — fra un salvataggio e
+    /// l'altro invecchiano da soli (una schedulata entra in vigore col passare del tempo) e lo sweep di boot non
+    /// passa da SaveReleaseAsync. Effective e Scheduled non vengono mai toccate. Ritorna il numero di release rimosse.</summary>
     Task<int> PruneReleasesAsync(ReleaseTargetType type, string key, DateTime keepFromUtc, CancellationToken ct = default);
 
     /// <summary>Riepilogo release (in vigore / prossima schedulata) per un insieme di bersagli, in un'unica query.

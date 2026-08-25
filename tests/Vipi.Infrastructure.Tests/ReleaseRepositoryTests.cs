@@ -298,4 +298,41 @@ public class ReleaseRepositoryTests : IAsyncLifetime
         // Idempotente: seconda passata non rimuove nulla.
         Assert.Equal(0, await _repo.PruneReleasesAsync(ReleaseTargetType.Vloa, key, cutoff));
     }
+
+    /// <summary>
+    /// Gli stati in DB invecchiano da soli: una schedulata entra in vigore col passare del tempo e la vecchia
+    /// riga resta marcata Effective finché qualcuno non risalva. Lo sweep di boot (PruneAllAsync) non passa da
+    /// SaveReleaseAsync: prima potava solo ciò che un salvataggio passato aveva già marcato Superseded, e la
+    /// riga superata-per-tempo gli sfuggiva a ogni giro. Ora la potatura ricalcola prima di guardare.
+    /// </summary>
+    [Fact]
+    public async Task Prune_Recomputes_Stale_Statuses_Before_Pruning()
+    {
+        var key = _docId.ToString();
+        var now = DateTime.UtcNow;
+
+        // La storia com'era all'ULTIMO salvataggio: A in vigore, B schedulata. Poi il tempo è passato —
+        // B è entrata in vigore da sola — e nessun salvataggio ha ricalcolato gli stati.
+        _db.DocReleases.Add(new DocRelease
+        {
+            TargetType = ReleaseTargetType.Vloa, TargetKey = key, VersionNumber = 1, ReleaseAiracCycle = "2501",
+            ReleaseEffectiveUtc = now.AddDays(-500), Status = ReleaseStatus.Effective, PayloadJson = "{}",
+            CreatedByUserId = 1, CreatedUtc = now.AddDays(-500),
+        });
+        _db.DocReleases.Add(new DocRelease
+        {
+            TargetType = ReleaseTargetType.Vloa, TargetKey = key, VersionNumber = 2, ReleaseAiracCycle = "2502",
+            ReleaseEffectiveUtc = now.AddDays(-1), Status = ReleaseStatus.Scheduled, PayloadJson = "{}",
+            CreatedByUserId = 1, CreatedUtc = now.AddDays(-30),
+        });
+        await _db.SaveChangesAsync();
+
+        var removed = await _repo.PruneReleasesAsync(ReleaseTargetType.Vloa, key, keepFromUtc: now.AddDays(-365));
+
+        Assert.Equal(1, removed);   // A: superata per tempo e oltre soglia — con gli stati stantii sfuggiva
+        var rest = Assert.Single(await _db.DocReleases.AsNoTracking()
+            .Where(r => r.TargetType == ReleaseTargetType.Vloa && r.TargetKey == key).ToListAsync());
+        Assert.Equal(2, rest.VersionNumber);
+        Assert.Equal(ReleaseStatus.Effective, rest.Status);   // e lo stato di B è riallineato al fatto
+    }
 }
