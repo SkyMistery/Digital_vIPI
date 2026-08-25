@@ -105,6 +105,7 @@
                         var nHidden = baseAssigned.Count(a => a.Sectors > 0 && a.IsHidden);
                         var nNoSec = baseAssigned.Count(a => a.Sectors == 0);
                         var nNoTwr = baseAssigned.Count(a => !a.HasTower);
+                        var nMil = baseAssigned.Count(a => a.HasMilitaryPresence);
                     }
                     <span class="sb-chips">
                         <button class="sh-chip @(_stateFilter == StateFilter.Hidden ? "on" : "")" disabled="@(nHidden == 0)"
@@ -113,6 +114,11 @@
                                 title="@L["Apt_ChipNoSectorsTitle"]" @onclick="() => ToggleState(StateFilter.NoSectors)">@L["Apt_ChipNoSectors", nNoSec]</button>
                         <button class="sh-chip @(nNoTwr > 0 ? "warn" : "") @(_stateFilter == StateFilter.NoTwr ? "on" : "")" disabled="@(nNoTwr == 0)"
                                 title="@L["Apt_ChipNoTwrTitle"]" @onclick="() => ToggleState(StateFilter.NoTwr)">@L["Apt_ChipNoTwr", nNoTwr]</button>
+                        @* «Militari» conta la PRESENZA militare, non gli scali soli militari: sono 34 contro una
+                           dozzina, e chi cerca «dove c'è il militare» vuole i 34. Il taglio più stretto lo dà la
+                           pill di riga, che distingue le due cose. *@
+                        <button class="sh-chip @(_stateFilter == StateFilter.Military ? "on" : "")" disabled="@(nMil == 0)"
+                                title="@L["Apt_ChipMilitaryTitle"]" @onclick="() => ToggleState(StateFilter.Military)">@L["Apt_ChipMilitary", nMil]</button>
                     </span>
                 </div>
                 @* La barra delle azioni c'è SEMPRE ed è FUORI dal corpo che scorre: prima compariva alla prima
@@ -160,7 +166,10 @@
                                 {
                                     <tr class="@(_selAssigned.Contains(a.Id) ? "row-sel" : null)">
                                         <td class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectRow", a.Icao]" checked="@_selAssigned.Contains(a.Id)" @onchange="e => ToggleAssigned(a.Id, (bool)e.Value!)" /></td>
-                                        <td class="col-icao"><a href="/services/vsop/@a.AccCode.ToLowerInvariant()/airports/editor?icao=@a.Icao" title="@(string.Format(L["Apt_OpenEditorTitle"].Value, a.Icao))"><b>@a.Icao</b></a><br /><span class="muted apt-sub">@a.Name</span></td>
+                                        <td class="col-icao">
+                                            <a href="/services/vsop/@a.AccCode.ToLowerInvariant()/airports/editor?icao=@a.Icao" title="@(string.Format(L["Apt_OpenEditorTitle"].Value, a.Icao))"><b>@a.Icao</b></a><br />
+                                            <span class="muted apt-sub">@a.Name</span>
+                                        </td>
                                         <td>
                                             <select disabled="@(_busy || !_canEdit)" @onchange="e => ChangeAcc(a.Id, a.AccCode, e.Value?.ToString())">
                                                 @foreach (var f in _accs)
@@ -194,6 +203,21 @@
                                             else
                                             {
                                                 <span class="pill green" title="@L["Apt_VisibleTitle"]"><Icon Name="eye" Size="11" /> @L["Apt_Visible"]</span>
+                                            }
+                                            @* Due etichette per due cose diverse: la sorgente dice solo «c'è una base», e scrivere
+                                               «Militare» su Linate, Pisa o Ciampino sarebbe falso — sono sette dei trentaquattro.
+                                               ⚠️ La pill È il comando, non ne ha uno accanto: un quinto tasto nella colonna azioni
+                                               spingeva il cestino OLTRE il bordo del pannello, dove non lo si poteva più premere
+                                               (misurato a 1600px). E nella cella ICAO la pill andava a capo su due righe, alzando
+                                               la riga di quaranta pixel. Qui sta su una riga sola e cambia ciò che dice. *@
+                                            @if (a.HasMilitaryPresence)
+                                            {
+                                                <button class="pill apt-mil @(a.IsMilitaryOnly ? "amber" : "neutral")" disabled="@(_busy || !_canEdit)"
+                                                        @onclick="() => ToggleMilitaryOnly(a)"
+                                                        aria-label="@(a.IsMilitaryOnly ? L["Apt_MilitaryOnlyOffAria"] : L["Apt_MilitaryOnlyOnAria"])"
+                                                        title="@(a.IsMilitaryOnly ? L["Apt_MilitaryOnlyOffTitle"] : L["Apt_MilitaryOnlyOnTitle"])">
+                                                    <Icon Name="shield" Size="11" /> @(a.IsMilitaryOnly ? L["Apt_MilitaryOnly"] : L["Apt_MilitaryPresence"])
+                                                </button>
                                             }
                                         </td>
                                         <td class="col-act">
@@ -326,7 +350,7 @@
 
     // Filtro di stato dell'elenco assegnati: i tre chip della barra. Uno alla volta (sono tre tagli diversi
     // dello stesso elenco, non tre spunte da sommare); ricliccato, torna a «tutti».
-    private enum StateFilter { All, Hidden, NoSectors, NoTwr }
+    private enum StateFilter { All, Hidden, NoSectors, NoTwr, Military }
     private StateFilter _stateFilter = StateFilter.All;
     // L'anagrafica IVAO mostra i NON assegnati: i già assegnati si vedono nel pannello di sinistra.
     private bool _showAssignedIvao;
@@ -369,6 +393,7 @@
         StateFilter.Hidden => a.Sectors > 0 && a.IsHidden,
         StateFilter.NoSectors => a.Sectors == 0,
         StateFilter.NoTwr => !a.HasTower,
+        StateFilter.Military => a.HasMilitaryPresence,
         _ => true
     };
 
@@ -485,6 +510,9 @@
 
     private Task ToggleHidden(AirportAdminRow a) =>
         Guarded(() => Struct.SetAirportHiddenAsync(a.AccCode, a.Id, !a.IsHidden));
+
+    private Task ToggleMilitaryOnly(AirportAdminRow a) =>
+        Guarded(() => Struct.SetAirportMilitaryOnlyAsync(a.AccCode, a.Id, !a.IsMilitaryOnly));
 
     // --- Azioni di gruppo -------------------------------------------------------------------------------
     // Un ciclo solo per tutte: prosegue oltre i fallimenti per-riga, mostra l'avanzamento, si lascia fermare

@@ -1141,6 +1141,19 @@
   <data name="Apt_ChipNoSectorsTitle" xml:space="preserve"><value>Show only the airports with no sector at all: they stay hidden until they generate their documents</value></data>
   <data name="Apt_ChipNoTwr" xml:space="preserve"><value>no TWR {0}</value></data>
   <data name="Apt_ChipNoTwrTitle" xml:space="preserve"><value>Show only the airports without a tower (TWR or I_TWR)</value></data>
+  <data name="Apt_ChipMilitary" xml:space="preserve"><value>military {0}</value></data>
+  <data name="Airport_ChipCivil" xml:space="preserve"><value>civil {0}</value></data>
+  <data name="Airport_ChipMilitaryTitle" xml:space="preserve"><value>Show only the airports with a military base on the field</value></data>
+  <data name="Airport_ChipCivilTitle" xml:space="preserve"><value>Show only the airports without a military base</value></data>
+  <data name="Apt_ChipMilitaryTitle" xml:space="preserve"><value>Show only the airports with a military base on the field, according to the source</value></data>
+  <data name="Apt_MilitaryPresence" xml:space="preserve"><value>military presence</value></data>
+  <data name="Apt_MilitaryPresenceTitle" xml:space="preserve"><value>The source reports a military base on the airport. It does not mean the airport is a military one: many civil airports share the field with the Air Force</value></data>
+  <data name="Apt_MilitaryOnly" xml:space="preserve"><value>military only</value></data>
+  <data name="Apt_MilitaryOnlyTitle" xml:space="preserve"><value>Airport with no civil traffic. An administrator decides this: the source only tells whether a military base is there</value></data>
+  <data name="Apt_MilitaryOnlyOnAria" xml:space="preserve"><value>Mark as military only</value></data>
+  <data name="Apt_MilitaryOnlyOffAria" xml:space="preserve"><value>Clear «military only»</value></data>
+  <data name="Apt_MilitaryOnlyOnTitle" xml:space="preserve"><value>Mark as military only: no civil traffic</value></data>
+  <data name="Apt_MilitaryOnlyOffTitle" xml:space="preserve"><value>Clear «military only»: the airport also has civil traffic</value></data>
   <data name="Apt_ChipAssigned" xml:space="preserve"><value>already assigned {0}</value></data>
   <data name="Apt_ChipAssignedTitle" xml:space="preserve"><value>Also show the airports already assigned to an ACC (hidden by default: they are in the list on the left)</value></data>
   <data name="Apt_Stop" xml:space="preserve"><value>Stop</value></data>

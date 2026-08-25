@@ -183,10 +183,14 @@ public static class MySqlStringLengths
     /// Un enum che finisce in una colonna testuale. Il tipo CLR non basta a riconoscerlo — la conversione la
     /// fa <c>SetProviderClrType</c> in <c>OnModelCreating</c> — quindi si guardano entrambi: enum di là,
     /// stringa di qua.
+    ///
+    /// <para>⚠️ Il tipo di colonna si chiede a <see cref="TipoColonna"/>, che guarda <b>entrambe</b> le strade:
+    /// chiedendolo solo a <c>GetProviderClrType</c>, una proprietà con un <c>HasConversion</c> suo usciva da
+    /// questa regola in silenzio e da <c>varchar(32)</c> diventava un <c>longtext</c>.</para>
     /// </summary>
     private static bool EUnEnumSalvatoComeStringa(Microsoft.EntityFrameworkCore.Metadata.IMutableProperty prop)
     {
         var tipoClr = Nullable.GetUnderlyingType(prop.ClrType) ?? prop.ClrType;
-        return tipoClr.IsEnum && prop.GetProviderClrType() == typeof(string);
+        return tipoClr.IsEnum && TipoColonna.Provider(prop) == typeof(string);
     }
 }

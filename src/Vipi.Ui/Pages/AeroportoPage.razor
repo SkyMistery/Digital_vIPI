@@ -43,8 +43,21 @@ else if (_listMode)
         }
         else
         {
+            @* Il chip c'è solo dove c'è qualcosa da filtrare: su una ACC di soli scali civili sarebbe un
+               comando che non fa niente. Ricliccato torna a «tutti», come i chip della pagina Aeroporti. *@
+            @if (MilitaryCount() > 0 && MilitaryCount() < _allAirports.Count)
+            {
+                <div class="struct-bar" style="margin-top:14px">
+                    <span class="sb-chips">
+                        <button class="sh-chip @(_milFilter == MilFilter.Military ? "on" : "")"
+                                title="@L["Airport_ChipMilitaryTitle"]" @onclick="() => ToggleMil(MilFilter.Military)">@L["Apt_ChipMilitary", MilitaryCount()]</button>
+                        <button class="sh-chip @(_milFilter == MilFilter.Civil ? "on" : "")"
+                                title="@L["Airport_ChipCivilTitle"]" @onclick="() => ToggleMil(MilFilter.Civil)">@L["Airport_ChipCivil", _allAirports.Count - MilitaryCount()]</button>
+                    </span>
+                </div>
+            }
             <div class="choice-grid" style="margin-top:14px">
-                @foreach (var ap in _allAirports)
+                @foreach (var ap in ShownAirports())
                 {
                     var n = OnlineAt(ap.Icao);
                     <a class="choice apt-card" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@ap.Icao">
@@ -53,6 +66,16 @@ else if (_listMode)
                             <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? L["Common_OnlineN", n] : L["Common_Offline"])</span>
                         </div>
                         <p class="muted">@ap.Name</p>
+                        @* Due etichette diverse: la sorgente sa dire solo «c'è una base», e scrivere «militare»
+                           su Linate o Pisa sarebbe falso. *@
+                        @if (ap.IsMilitaryOnly)
+                        {
+                            <p class="apt-mil"><span class="pill amber"><Icon Name="shield" Size="11" /> @L["Apt_MilitaryOnly"]</span></p>
+                        }
+                        else if (ap.HasMilitaryPresence)
+                        {
+                            <p class="apt-mil"><span class="pill neutral"><Icon Name="shield" Size="11" /> @L["Apt_MilitaryPresence"]</span></p>
+                        }
                         @if (_wxMini.TryGetValue(ap.Icao, out var wx))
                         {
                             <div class="apt-wx">
@@ -104,7 +127,20 @@ else
                 <PrintMeta Title="@_view.Title" Subtitle="@($"{L["Airport_SubtitlePrefix"]} · {_acc.Name}")"
                            AiracCycle="@(_relCycle ?? _view.AiracCycle)" />
                 <div class="doc-head">
-                    <div><h2 style="margin-bottom:2px">@_view.Title</h2><span class="muted">@L["Airport_SubtitlePrefix"] · @_acc.Name</span></div>
+                    <div>
+                        <h2 style="margin-bottom:2px">
+                            @_view.Title
+                            @if (_militaryOnly)
+                            {
+                                <span class="pill amber" title="@L["Apt_MilitaryOnlyTitle"]"><Icon Name="shield" Size="11" /> @L["Apt_MilitaryOnly"]</span>
+                            }
+                            else if (_militaryPresence)
+                            {
+                                <span class="pill neutral" title="@L["Apt_MilitaryPresenceTitle"]"><Icon Name="shield" Size="11" /> @L["Apt_MilitaryPresence"]</span>
+                            }
+                        </h2>
+                        <span class="muted">@L["Airport_SubtitlePrefix"] · @_acc.Name</span>
+                    </div>
                     <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
                         @if (_canEdit)
@@ -426,6 +462,14 @@ else
     private bool _listMode;
     private bool _canEdit;
     private IReadOnlyList<AirportRow> _allAirports = Array.Empty<AirportRow>();
+    // Taglio militare/civile dell'elenco: uno alla volta, ricliccato torna a «tutti».
+    private enum MilFilter { All, Military, Civil }
+    private MilFilter _milFilter = MilFilter.All;
+    // Anagrafica militare dell'aeroporto aperto. Campi a parte e non letti da `_profile`, che in anteprima di
+    // release viene azzerato di proposito: la presenza di una base non è un dato di release, e sparire dalla
+    // testata solo perché si guarda un ciclo passato sarebbe un'informazione persa senza motivo.
+    private bool _militaryPresence;
+    private bool _militaryOnly;
     // Meteo mini per card (elenco): ICAO → (vento, QNH, piste suggerite decolli/atterraggi) dal METAR live.
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, (string? Wind, int? Qnh, string? Dep, string? Arr)> _wxMini = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, AirportData?> _profiles = new(StringComparer.OrdinalIgnoreCase);
@@ -549,6 +593,8 @@ else
         _taf = string.IsNullOrWhiteSpace(_wx?.Taf) ? null : MetarParser.ParseTaf(_wx!.Taf!);
 
         _profile = await Profile.LoadForViewAsync(_icao);
+        _militaryPresence = _profile?.HasMilitaryPresence ?? false;
+        _militaryOnly = _profile?.IsMilitaryOnly ?? false;
         // Anteprima RELEASE: il profilo strutturato è sempre live (non congelato nello snapshot) → in release lo
         // ignoriamo e mostriamo piste/TA/TL dal DocumentView CONGELATO del ciclo, coerente col resto del documento.
         if (_mode.Kind == PreviewKind.Release) _profile = null;
@@ -569,6 +615,17 @@ else
         _windKt = _metar?.Wind?.SpeedKt ?? 0;
         Recompute();
     }
+
+    private int MilitaryCount() => _allAirports.Count(x => x.HasMilitaryPresence);
+
+    private List<AirportRow> ShownAirports() => _milFilter switch
+    {
+        MilFilter.Military => _allAirports.Where(x => x.HasMilitaryPresence).ToList(),
+        MilFilter.Civil => _allAirports.Where(x => !x.HasMilitaryPresence).ToList(),
+        _ => _allAirports.ToList(),
+    };
+
+    private void ToggleMil(MilFilter f) => _milFilter = _milFilter == f ? MilFilter.All : f;
 
     private string PreviewTitlePrefix() => _mode.Kind switch
     {

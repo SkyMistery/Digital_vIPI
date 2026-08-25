@@ -31,6 +31,13 @@ public interface IStructureEditingRepository
 
     /// <summary>Nasconde/mostra un aeroporto: la sua pagina pubblica e l'elenco non lo mostrano più (resta nel DB).</summary>
     Task SetAirportHiddenAsync(string accCode, int airportId, bool hidden, CancellationToken ct = default);
+
+    /// <summary>
+    /// Segna un aeroporto come <b>solo militare</b> (o toglie il segno): nessun traffico civile. È l'unica metà
+    /// editoriale della faccenda — la presenza militare la dice la sorgente e si riscrive da sé a ogni giro.
+    /// Errore se l'aeroporto non ha presenza militare: «solo militare» ne è un sottoinsieme.
+    /// </summary>
+    Task SetAirportMilitaryOnlyAsync(string accCode, int airportId, bool militaryOnly, CancellationToken ct = default);
     /// <summary>Tutti i settori (id+callsign+ACC), per i menu della gestione aeroporti.</summary>
     Task<IReadOnlyList<SectorBriefRow>> ListAllSectorsAsync(CancellationToken ct = default);
 
@@ -43,6 +50,21 @@ public interface IStructureEditingRepository
     /// </summary>
     Task<IReadOnlyList<string>> AutoAssignAirportsAsync(
         IReadOnlyList<(string AccCode, string Icao, string Name)> candidates, CancellationToken ct = default);
+
+    /// <summary>
+    /// Riallinea alla sorgente i campi <b>anagrafici</b> degli aeroporti gia' in archivio: presenza militare, IATA,
+    /// quota, variazione magnetica. Ritorna quanti ne ha cambiati.
+    ///
+    /// <para>Serve perche' <see cref="AutoAssignAirportsAsync"/> e' <b>additiva</b> — salta gli ICAO gia' presenti.
+    /// Senza questo passo un campo nuovo nascerebbe al suo default su tutti i 93 aeroporti esistenti e non lo
+    /// riempirebbe mai nessuno: e' la stessa trappola del flag opt-out di ImportSids.</para>
+    ///
+    /// <para>⚠️ Tocca solo cio' che dice la sorgente. Restano fuori il nome, la ACC di competenza e
+    /// <c>IsMilitaryOnly</c>, che sono scelte di una persona: un giro notturno che le riscrivesse le
+    /// cancellerebbe in silenzio. L'unica eccezione e' la coerenza — se la sorgente toglie la presenza militare,
+    /// «solo militare» non puo' restare vero.</para>
+    /// </summary>
+    Task<int> SyncAirportSourceFieldsAsync(IReadOnlyList<SourceAirport> source, CancellationToken ct = default);
 
     /// <summary>
     /// Crea i settori d'aeroporto mancanti (DEL/GND/TWR con contenimento top-down) dalle <paramref name="positions"/>

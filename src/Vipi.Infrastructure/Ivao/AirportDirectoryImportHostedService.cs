@@ -21,6 +21,11 @@ namespace Vipi.Infrastructure.Ivao;
 /// non rimuove né riassegna niente. Un aeroporto tolto dall'anagrafica della sorgente resta dov'è, e va
 /// tolto a mano — come deve essere, perché sopra ci può stare del lavoro editoriale.</para>
 ///
+/// <para>Additiva sulle <b>entità</b>, però: dal 25 agosto 2026 lo stesso giro riallinea anche i campi
+/// <b>anagrafici</b> degli aeroporti già dentro (presenza militare, IATA, quota, variazione magnetica) —
+/// altrimenti un campo aggiunto al modello resterebbe al suo default su tutto l'archivio per sempre. Ciò che
+/// decide una persona (nome, ACC di competenza, «solo militare») non viene toccato.</para>
+///
 /// <para>Job di sistema: nessuna authz utente, delega al core condiviso col manual
 /// (<see cref="IAirportImportUseCase"/>; il guard admin lo mette
 /// <c>StructureEditingService.AutoAssignKnownAirportsAsync</c>, che è l'altro chiamante).</para>
@@ -59,8 +64,8 @@ public sealed class AirportDirectoryImportHostedService : BackgroundService
 
             // Il conteggio si logga SEMPRE, anche a zero: «nessun aeroporto nuovo» è la risposta normale di
             // questo giro, e distinguerla da «non è girato» serve a chi legge i log dopo un'assenza.
-            _log.LogInformation("Anagrafica aeroporti automatica: {Assigned} aeroporti assegnati, {Failed} senza catalogo settori.",
-                r.Assigned, r.Failures.Count);
+            _log.LogInformation("Anagrafica aeroporti automatica: {Assigned} aeroporti assegnati, {Refreshed} aggiornati dalla sorgente, {Failed} senza catalogo settori.",
+                r.Assigned, r.Refreshed, r.Failures.Count);
             return true;
         }
         catch (InvalidOperationException ex)

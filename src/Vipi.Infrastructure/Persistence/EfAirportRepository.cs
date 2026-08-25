@@ -84,6 +84,7 @@ public sealed class EfAirportRepository : IAirportRepository
         {
             AirportId = airport.Id, Icao = airport.Icao, Name = airport.Name, AccCode = airport.Acc!.Code,
             TransitionAltitudeFt = airport.TransitionAltitudeFt,
+            HasMilitaryPresence = airport.HasMilitaryPresence, IsMilitaryOnly = airport.IsMilitaryOnly,
             TransitionLevels = tls, Runways = rwys, Rules = rules, Sids = sids, Links = links, ExtraSections = extras,
         };
     }

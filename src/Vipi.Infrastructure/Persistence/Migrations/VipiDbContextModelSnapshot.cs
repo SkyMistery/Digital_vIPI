@@ -299,8 +299,18 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int>("AccId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("ElevationFt")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int?>("FeaturedRank")
                         .HasColumnType("INTEGER");
+
+                    b.Property<bool>("HasMilitaryPresence")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Iata")
+                        .HasMaxLength(4)
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Icao")
                         .IsRequired()
@@ -309,10 +319,16 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsHidden")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("IsMilitaryOnly")
+                        .HasColumnType("INTEGER");
+
                     b.Property<double?>("Latitude")
                         .HasColumnType("REAL");
 
                     b.Property<double?>("Longitude")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("MagneticVariation")
                         .HasColumnType("REAL");
 
                     b.Property<string>("Name")

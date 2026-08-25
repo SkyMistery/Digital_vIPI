@@ -69,7 +69,16 @@ public enum BlockSection
 // View è l'unica LETTURA registrata, e c'è per un motivo solo: lo staff può aprire le statistiche personali
 // di un altro controllore, e un accesso ai dati di qualcun altro che non lascia traccia non è un accesso
 // controllato. Non si registrano le altre letture — il registro non è un log di navigazione.
-public enum AuditAction { Create, Update, Publish, Archive, HierarchyChange, Discard, Delete, ForceUnlock, View }
+/// <summary>
+/// Azione registrata nel registro. ⚠️ Il registro è <b>append-only e attraversa le versioni</b>: contiene righe
+/// scritte da codice più nuovo di quello che le rilegge — un ramo non ancora fuso, o un rollback in produzione.
+/// Per questo l'ultimo membro è <see cref="Unknown"/> e la colonna ha una conversione tollerante
+/// (<c>VipiDbContext</c>): un'azione che questa versione non conosce si <b>legge</b>, non abbatte la pagina.
+/// <para>Nessuno scrive mai <see cref="Unknown"/>: esiste solo come esito di lettura. Non è un'ipotesi — è
+/// successo: due righe <see cref="View"/> scritte da questo ramo uccidevano la pagina del Registro su
+/// <c>main</c>, dove quella parola non esisteva ancora.</para>
+/// </summary>
+public enum AuditAction { Create, Update, Publish, Archive, HierarchyChange, Discard, Delete, ForceUnlock, View, Unknown }
 
 /// <summary>Tipo di riferimento nav per la validazione semantica.</summary>
 public enum NavRefType { Fix, Airway, Navaid }
