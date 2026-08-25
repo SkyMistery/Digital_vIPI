@@ -1810,9 +1810,13 @@ button.sh-chip.warn:hover{background:var(--tint-gold)}
 .struct .res-table td.col-state,.struct .res-table td.col-act{white-space:nowrap}
 .struct .res-table td .apt-flag{margin-left:6px}
 /* Pill militare della pagina Aeroporti: è un BOTTONE (segna/desegna «solo militare»), non un'etichetta.
-   `nowrap` perché su due parole andava a capo dentro la cella e alzava la riga di quaranta pixel. */
-.struct .res-table td button.apt-mil{margin-left:6px;white-space:nowrap;border:0;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600;font-family:var(--font-head)}
-.struct .res-table td button.apt-mil:disabled{cursor:default;opacity:.65}
+   `nowrap` perché su due parole andava a capo dentro la cella e alzava la riga di quaranta pixel.
+   ⚠️ Il bordo TRATTEGGIATO non è decorazione: senza, la pastiglia era indistinguibile dalle pill statiche
+   che le stanno accanto («visibile», «nascosto») e nessuno capiva di poterci cliccare — segnalato guardando
+   la pagina vera. Il tratteggio dice «questo si cambia», il pieno all'hover conferma. */
+.struct .res-table td button.apt-mil{margin-left:6px;white-space:nowrap;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600;font-family:var(--font-head);border:1px dashed color-mix(in srgb, currentColor 45%, transparent);padding:2px 8px}
+.struct .res-table td button.apt-mil:hover:not(:disabled){border-style:solid;border-color:currentColor}
+.struct .res-table td button.apt-mil:disabled{cursor:default;opacity:.65;border-style:solid;border-color:transparent}
 .struct .res-table td .apt-sub{font-size:11px}
 /* Riga dell'anagrafica già assegnata: si vede col chip, non si può scegliere. */
 .struct .res-table tbody tr.row-done>td{background:var(--tint-green-soft)}

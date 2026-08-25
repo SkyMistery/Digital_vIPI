@@ -1104,7 +1104,7 @@
   <data name="Apt_DeleteAria" xml:space="preserve"><value>Delete airport</value></data>
   <data name="Apt_DeleteTriggerTitle" xml:space="preserve"><value>Only if without sectors</value></data>
   <data name="Apt_IvaoDirTitle" xml:space="preserve"><value>IVAO directory</value></data>
-  <data name="Apt_AutoAssignTitle" xml:space="preserve"><value>Assign IVAO airports to the already existing owning ACC and import their sectors from the source</value></data>
+  <data name="Apt_AutoAssignTitle" xml:space="preserve"><value>Assign IVAO airports to the already existing owning ACC and import their sectors from the source. Also refreshes the data of those already in the archive: military presence, IATA, elevation, magnetic variation</value></data>
   <data name="Apt_AutoAssignBtn" xml:space="preserve"><value>Auto-assign</value></data>
   <data name="Apt_IvaoUnavailable" xml:space="preserve"><value>IVAO directory unavailable:</value></data>
   <data name="Apt_LoadingIvao" xml:space="preserve"><value>Loading the airport directory from IVAO…</value></data>
@@ -1117,6 +1117,9 @@
   <data name="Apt_AutoAssignNone" xml:space="preserve"><value>No airport to assign (all already present or ACCs not created).</value></data>
   <data name="Apt_AutoAssignOk" xml:space="preserve"><value>Assigned {0} airports to the owning ACC (sectors imported from the source).</value></data>
   <data name="Apt_AutoAssignSkipped" xml:space="preserve"><value> {0} airports skipped (details in logs).</value></data>
+  <data name="Apt_RefreshedOk" xml:space="preserve"><value>Refreshed {0} airports already in the archive from the source.</value></data>
+  <data name="Apt_RefreshedOkOne" xml:space="preserve"><value>Refreshed 1 airport already in the archive from the source.</value></data>
+  <data name="Apt_AutoAssignNothing" xml:space="preserve"><value>Nothing new from the source: no airport to assign and no data to refresh.</value></data>
   <data name="Apt_ChooseTargetAcc" xml:space="preserve"><value>Choose the target ACC.</value></data>
   <data name="Apt_MovedOk" xml:space="preserve"><value>Moved {0} airports to {1}</value></data>
   <data name="Apt_MovedFail" xml:space="preserve"><value>, {0} not moved.</value></data>

@@ -496,10 +496,16 @@
         var r = await Struct.AutoAssignKnownAirportsAsync();
         foreach (var f in r.Failures)
             Logger.LogWarning(f.Error, "Import settori aeroporto {Icao} saltato in auto-assegnazione.", f.Icao);
-        _ok = r.Assigned == 0
-            ? L["Apt_AutoAssignNone"].Value
-            : Plural(r.Assigned, "Apt_AutoAssignOk", r.Assigned)
-              + (r.Failures.Count > 0 ? Plural(r.Failures.Count, "Apt_AutoAssignSkipped", r.Failures.Count) : "");
+        // ⚠️ Il giro fa DUE cose e l'esito deve dirle tutt'e due. Diceva solo la prima, e a regime la prima è
+        // sempre zero: la pagina rispondeva «nessun aeroporto da assegnare» avendone appena RIALLINEATI 34.
+        // Un messaggio che tace il lavoro fatto è peggio di nessun messaggio — chi legge conclude che il
+        // comando non serve, e non lo preme più.
+        var parti = new List<string>();
+        if (r.Assigned > 0) parti.Add(Plural(r.Assigned, "Apt_AutoAssignOk", r.Assigned));
+        if (r.Refreshed > 0) parti.Add(Plural(r.Refreshed, "Apt_RefreshedOk", r.Refreshed));
+        if (parti.Count == 0) parti.Add(L["Apt_AutoAssignNothing"].Value);
+        if (r.Failures.Count > 0) parti.Add(Plural(r.Failures.Count, "Apt_AutoAssignSkipped", r.Failures.Count));
+        _ok = string.Join(" ", parti.Select(p => p.Trim()));
     });
 
     private Task ChangeAcc(int id, string fromAcc, string? toAcc) =>

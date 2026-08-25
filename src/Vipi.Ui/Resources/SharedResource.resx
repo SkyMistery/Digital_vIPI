@@ -1120,6 +1120,9 @@
   <data name="Apt_AutoAssignNone" xml:space="preserve"><value>Nessun aeroporto da assegnare (già tutti presenti o ACC non create).</value></data>
   <data name="Apt_AutoAssignOk" xml:space="preserve"><value>Assegnati {0} aeroporti alla ACC di competenza (settori importati dalla sorgente).</value></data>
   <data name="Apt_AutoAssignSkipped" xml:space="preserve"><value> {0} aeroporti saltati (dettaglio nei log).</value></data>
+  <data name="Apt_RefreshedOk" xml:space="preserve"><value>Riallineati alla sorgente {0} aeroporti già in archivio.</value></data>
+  <data name="Apt_RefreshedOkOne" xml:space="preserve"><value>Riallineato alla sorgente 1 aeroporto già in archivio.</value></data>
+  <data name="Apt_AutoAssignNothing" xml:space="preserve"><value>Nessuna novità dalla sorgente: nessun aeroporto da assegnare e nessun dato da aggiornare.</value></data>
   <data name="Apt_ChooseTargetAcc" xml:space="preserve"><value>Scegli la ACC di destinazione.</value></data>
   <data name="Apt_MovedOk" xml:space="preserve"><value>Spostati {0} aeroporti in {1}</value></data>
   <data name="Apt_MovedFail" xml:space="preserve"><value>, {0} non spostati.</value></data>
