@@ -274,13 +274,32 @@
                     <tr>
                         <td><b>@o.Callsign</b><br /><span class="muted">@o.AccCode</span></td>
                         <td>
-                            @if (o.StillInCatalog)
+                            @switch (o.Reason)
                             {
-                                <span class="pill neutral">@L["Orph_Hidden"]</span>
+                                case OrphanReason.Hidden:
+                                    <span class="pill neutral">@L["Orph_Hidden"]</span>
+                                    break;
+                                case OrphanReason.Gone:
+                                    <span class="pill red">@L["Orph_Gone"]</span>
+                                    break;
+                                default:
+                                    @* ⚠️ Questo è ATTIVO: la sorgente ha smesso di mandarlo, ma per tutto il
+                                       resto del sistema esiste ancora. È il caso della rinomina. *@
+                                    <span class="pill amber" title="@L["Orph_NotListedTitle"]">@L["Orph_NotListed"]</span>
+                                    @if (o.LastSeenUtc is { } visto)
+                                    {
+                                        <br />
+                                        @* Solo la DATA, e quindi niente data-utc: l'attributo fa accodare a
+                                           vipi-time.js l'ora del lettore, e accanto a un giorno senza orario
+                                           sarebbe un'ora appiccicata al nulla (regola presidiata da un test). *@
+                                        <span class="muted">@VipiTime.Day(visto)</span>
+                                    }
+                                    break;
                             }
-                            else
+                            @if (o.RenameCandidate is { } nuovoNome)
                             {
-                                <span class="pill red">@L["Orph_Gone"]</span>
+                                <br />
+                                <span class="muted">@L["Orph_MaybeRenamed", nuovoNome]</span>
                             }
                         </td>
                         <td>
@@ -305,7 +324,8 @@
                                     <option value="">@L["Orph_PickTarget"]</option>
                                     @foreach (var tgt in Bersagli(o.SectorId))
                                     {
-                                        <option value="@tgt.SectorId">@tgt.Callsign</option>
+                                        @* Il sospetto sostituto in cima e segnato: resta una scelta di chi guarda. *@
+                                        <option value="@tgt.SectorId">@tgt.Callsign@(string.Equals(tgt.Callsign, o.RenameCandidate, StringComparison.OrdinalIgnoreCase) ? " ←" : "")</option>
                                     }
                                 </select>
                                 <button class="btn ghost" disabled="@(_busy || !_canEdit || !_reattachTo.TryGetValue(o.SectorId, out var sel2) || sel2 == 0)"

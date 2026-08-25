@@ -5,7 +5,7 @@ using Vipi.Domain.Services;
 namespace Vipi.Application.Content;
 
 /// <summary>Esito di un giro di deriva, per il log e per la diagnostica.</summary>
-public sealed record ImpactDriftResult(int Esaminati, int Aperti, int Chiusi, int Potati);
+public sealed record ImpactDriftResult(int Esaminati, int Aperti, int Chiusi, int Potati, int Stantii = 0);
 
 /// <summary>
 /// Il <b>rivelatore calcolato</b> della casella: confronta quel che la copia pubblicata dice con quel che
@@ -36,10 +36,16 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
     private readonly IDocumentImpactService _impacts;
     private readonly IAiracService _airac;
     private readonly IReleaseTargetRegistry _targets;
+    private readonly IOrphanSectorRepository? _cataloghi;
+    private readonly IImportStateStore? _stati;
 
+    /// <param name="cataloghi">Porta di lettura delle righe di catalogo stantìe. Opzionale: senza, il giro fa
+    /// solo la deriva delle pubblicazioni.</param>
+    /// <param name="stati">Ultimo giro riuscito degli import: è il metro contro cui un timbro è «vecchio».</param>
     public ImpactDriftUseCase(IDocumentAdminRepository admin, IReleaseService releases,
         IReleaseRepository releaseRepo, IDocumentImpactService impacts, IAiracService airac,
-        IReleaseTargetRegistry targets)
+        IReleaseTargetRegistry targets, IOrphanSectorRepository? cataloghi = null,
+        IImportStateStore? stati = null)
     {
         _admin = admin;
         _releases = releases;
@@ -47,7 +53,16 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
         _impacts = impacts;
         _airac = airac;
         _targets = targets;
+        _cataloghi = cataloghi;
+        _stati = stati;
     }
+
+    /// <summary>
+    /// Quanto margine si dà a un timbro prima di chiamarlo vecchio. Un giorno: gli import girano ogni 24 ore e
+    /// un giro può slittare (retry, riavvio, sorgente lenta) — senza margine la prima notte storta produrrebbe
+    /// una segnalazione per ogni riga di catalogo.
+    /// </summary>
+    private static readonly TimeSpan MargineDelTimbro = TimeSpan.FromDays(1);
 
     /// <summary>Per quanti cicli AIRAC si tengono le righe già chiuse. Due: il tempo di accorgersi che una
     /// cosa era stata segnalata, non tanto da far diventare la tabella un archivio storico.</summary>
@@ -113,13 +128,73 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
         var (apertiChiavi, chiusiChiavi) = await _impacts.ReconcileAsync(ImpactKind.ReleaseKeyMoved, chiaviSpostate, ct);
         var (apertiRotti, chiusiRotti) = await _impacts.ReconcileAsync(ImpactKind.BrokenTarget, bersagliRotti, ct);
 
+        // 3) I cataloghi che la sorgente non manda più: è il caso della RINOMINA, che nessun altro vede.
+        var (apertiStantii, chiusiStantii, quantiStantii) = await CataloghiStantiiAsync(ct);
+
         var potati = await _impacts.PruneClearedBeforeAsync(SogliaRitenzione(), ct);
 
         return new ImpactDriftResult(
             candidati.Count,
-            apertiDeriva + apertiChiavi + apertiRotti,
-            chiusiDeriva + chiusiChiavi + chiusiRotti,
-            potati);
+            apertiDeriva + apertiChiavi + apertiRotti + apertiStantii,
+            chiusiDeriva + chiusiChiavi + chiusiRotti + chiusiStantii,
+            potati,
+            quantiStantii);
+    }
+
+
+    /// <summary>
+    /// Le righe di catalogo che la sorgente ha smesso di elencare, riconosciute dal <b>timbro</b>
+    /// <c>ImportedAtUtc</c> rimasto indietro rispetto all'ultimo giro riuscito.
+    ///
+    /// <para><b>Perché serve un rivelatore apposta.</b> I cataloghi non potano mai, quindi quando la sorgente
+    /// rinomina una posizione — <c>LIRN_US0_APP</c> → <c>LIRN_US1_APP</c> — <b>non sparisce niente</b>: la
+    /// riga vecchia resta, il settore resta attivo, e la proiezione non ha nulla da segnalare. Il fantasma
+    /// continua a rivendicare la sua area, a portarsi dietro il documento e a comparire nelle mappe, mentre
+    /// chi controlla davvero si connette col nome nuovo. Misurato sull'archivio reale: <c>LIED_G_APP</c> era
+    /// fermo al 5 agosto contro il 24 delle altre tre posizioni dello stesso scalo.</para>
+    ///
+    /// <para>⚠️ <b>Due guardie.</b> Se manca l'ultimo giro riuscito di una delle due famiglie non si dice
+    /// niente — «non lo sappiamo» non è «sono spariti tutti», la stessa regola dell'avvio a freddo. E le
+    /// righe <b>aggiunte a mano</b> sono escluse a monte: la sorgente non le ha mai mandate, quindi il loro
+    /// timbro è vecchio per costruzione.</para>
+    /// </summary>
+    private async Task<(int Aperti, int Chiusi, int Quanti)> CataloghiStantiiAsync(CancellationToken ct)
+    {
+        if (_cataloghi is null || _stati is null) return (0, 0, 0);
+
+        var aeroporti = await _stati.GetLastSuccessAsync(ImportCategories.AirportSector, ct);
+        var acc = await _stati.GetLastSuccessAsync(ImportCategories.Acc, ct);
+        if (aeroporti is null || acc is null) return (0, 0, 0);
+
+        // Il metro è il giro più VECCHIO fra i due: usare il più recente segnalerebbe le righe dell'altra
+        // famiglia solo perché il suo giro è slittato di qualche ora.
+        var soglia = (aeroporti < acc ? aeroporti.Value : acc.Value) - MargineDelTimbro;
+
+        var stantie = await _cataloghi.ListStaleCatalogRowsAsync(soglia, ct);
+
+        // ⚠️ Guardia di massa: vedi SogliaTimbro.TroppiPerEssereVeri. Si riconcilia comunque con l'insieme
+        // VUOTO, così le righe aperte ieri si richiudono invece di restare appese a un sospetto.
+        if (SogliaTimbro.TroppiPerEssereVeri(stantie.Count, await _cataloghi.CountCatalogRowsAsync(ct)))
+        {
+            var (_, richiusi) = await _impacts.ReconcileAsync(
+                ImpactKind.SectorStale, Array.Empty<RaiseImpactInput>(), ct);
+            return (0, richiusi, 0);
+        }
+
+        var attuali = new List<RaiseImpactInput>();
+        var adesso = DateTime.UtcNow;
+
+        foreach (var r in stantie)
+        {
+            ct.ThrowIfCancellationRequested();
+            var giorni = Math.Max(1, r.GiorniDiSilenzio(adesso));
+            attuali.AddRange(await _impacts.PrepareForSectorAsync(
+                ImpactKind.SectorStale, r.Callsign, r.AccCode,
+                new[] { r.Callsign, giorni.ToString() }, ct));
+        }
+
+        var (aperti, chiusi) = await _impacts.ReconcileAsync(ImpactKind.SectorStale, attuali, ct);
+        return (aperti, chiusi, stantie.Count);
     }
 
     /// <summary>

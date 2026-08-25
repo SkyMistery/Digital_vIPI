@@ -1358,6 +1358,11 @@
   <data name="Impact_ReleaseKeyMoved" xml:space="preserve"><value>Le release di questo documento sono archiviate sotto un bersaglio che non è più il suo ({0}): il pubblico non le trova.</value></data>
   <data name="Impact_BrokenTarget" xml:space="preserve"><value>Il bersaglio di pubblicazione di questo documento non risolve più: la pagina pubblica non lo raggiunge.</value></data>
   <data name="Impact_Err_Calcolato" xml:space="preserve"><value>Questa segnalazione la richiude da sé il controllo che l'ha aperta: si chiude risolvendo la causa.</value></data>
+  <data name="Orph_NotListed" xml:space="preserve"><value>non più elencato</value></data>
+  <data name="Orph_NotListedTitle" xml:space="preserve"><value>La riga di catalogo c'è e il settore è attivo, ma la sorgente ha smesso di mandarlo: è quel che succede quando una posizione viene RINOMINATA.</value></data>
+  <data name="Orph_MaybeRenamed" xml:space="preserve"><value>forse rinominato in {0}?</value></data>
+  <data name="Impact_SectorStale" xml:space="preserve"><value>La sorgente non elenca più il settore {0} da {1} giorni: se è stato rinominato, il documento è rimasto sul nome vecchio.</value></data>
+  <data name="ImpactKind_SectorStale" xml:space="preserve"><value>Settore non più elencato</value></data>
   <data name="Orph_Title" xml:space="preserve"><value>Settori orfani</value></data>
   <data name="Orph_Intro" xml:space="preserve"><value>Settori che i cataloghi non confermano più: restano in archivio, disattivati, col loro documento ancora agganciato. Riagganciane il documento a un altro settore, oppure rimuovili. ⚠️ Se la sorgente rimanda quel callsign, il prossimo import lo ricrea.</value></data>
   <data name="Orph_Callsign" xml:space="preserve"><value>Settore</value></data>

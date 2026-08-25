@@ -462,6 +462,14 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Ricostruiti {Count} legami area regolamentata→ACC dalla colonna storica.", links);
 
+        // Righe di catalogo aggiunte a mano: vanno marcate PRIMA che il controllo del timbro giri, o le
+        // scambia per «sparite dalla sorgente» (una persona le ha messe, e la sorgente non le ristampa mai).
+        var catalogo = scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.ISectorCatalogMaintenance>();
+        var manuali = catalogo.MarkManualCatalogRowsAsync().GetAwaiter().GetResult();
+        if (manuali > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Cataloghi: marcate {Count} righe come aggiunte a mano (mai arrivate dalla sorgente).", manuali);
+
         // DOPO il backfill: la potatura degli esteri lavora sui legami, che prima non esistevano.
         var dropped = areas.OptOutForeignAreasAsync().GetAwaiter().GetResult();
         if (dropped > 0 && log is not null)

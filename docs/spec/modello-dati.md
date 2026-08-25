@@ -1056,7 +1056,7 @@ pubblicata rimasta indietro. Sostituisce le due colonne `Document.NeedsReviewUtc
 |---|---|---|
 | `Id` | int PK | |
 | `DocumentId` | int FK→Document **Cascade** | l'ancora. Non il bersaglio di release: vedi sotto |
-| `Kind` | enum `ImpactKind` (varchar 32) | SectorGone/Hidden/Reparented, AreaGone/Changed, ReleaseDrift, ReleaseKeyMoved, BrokenTarget |
+| `Kind` | enum `ImpactKind` (varchar 32) | SectorGone/Hidden/Reparented/**Stale**, AreaGone/Changed, ReleaseDrift, ReleaseKeyMoved, BrokenTarget |
 | `SourceKey` | string(64) | callsign, `area:{idIvao}`, o vuoto per il documento nel suo insieme |
 | `ReasonKey` | string | chiave di localizzazione; la frase **non** si salva |
 | `ReasonArgsJson` | string? | argomenti della frase |
@@ -1082,3 +1082,24 @@ Indici: **unico** `(DocumentId, Kind, SourceKey, ClearedUtc)` + `(ClearedUtc, Ra
 
 Migrazioni a doppia emissione: `AddDocumentImpact` (SQLite + MySQL).
 Carta: [`../feature/2026-08-25-documenti-da-rivedere.md`](../feature/2026-08-25-documenti-da-rivedere.md).
+
+### 9.30 `IsManual` sui cataloghi — e il timbro come rilevatore di rinomine (25 ago 2026) 🟢
+
+Due colonne additive, `AccSector.IsManual` e `AirportSector.IsManual` (default false, migrazioni
+`SettoriAggiuntiAMano` ×2), che dicono una cosa sola: **questa riga la sorgente non l'ha mai mandata**.
+
+**Perché servono.** I cataloghi non potano mai, quindi quando la sorgente **rinomina** una posizione
+(`LIRN_US0_APP` → `LIRN_US1_APP`) non sparisce niente: nascono due righe, due settori attivi con la stessa
+shape, e il documento resta sul nome vecchio. L'unico segnale è `ImportedAtUtc`, che sulla riga vecchia
+smette di essere riscritto — ma per una riga **aggiunta a mano** quel timbro è vecchio per costruzione, e
+senza il flag il controllo nascerebbe pieno di falsi (misurati: cinque righe su sei).
+
+Backfill una tantum in `ISectorCatalogMaintenance.MarkManualCatalogRowsAsync` (chiave di stato
+`ManualCatalogRows`): riconosce le manuali dal prefisso del callsign diverso dal codice dell'ACC — un
+subcenter di LGGG si chiama `LGGG_*`, un APP d'aeroporto catalogato lì sotto no.
+
+⚠️ Tre guardie, e la terza l'ha imposta la prova sui dati veri: righe manuali escluse, nessuna segnalazione
+se manca l'ultimo giro riuscito di **entrambe** le famiglie, e silenzio totale se gli stantìi superano un
+quarto del catalogo (un giro che riesce ma torna vuoto per un ente lascerebbe trenta righe senza timbro).
+
+Carta §16 della [feature](../feature/2026-08-25-documenti-da-rivedere.md).

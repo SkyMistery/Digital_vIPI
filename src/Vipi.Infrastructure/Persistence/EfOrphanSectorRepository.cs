@@ -30,42 +30,78 @@ public sealed class EfOrphanSectorRepository : IOrphanSectorRepository
         _impacts = impacts;
     }
 
-    public async Task<IReadOnlyList<OrphanSectorRow>> ListOrphansAsync(string? accCode, CancellationToken ct = default)
+    public async Task<IReadOnlyList<OrphanSectorRow>> ListOrphansAsync(
+        string? accCode, DateTime? sogliaTimbro, CancellationToken ct = default)
     {
         var q = _db.Sectors.AsNoTracking().Where(s => s.IsProjected && !s.IsActive);
         if (!string.IsNullOrWhiteSpace(accCode)) q = q.Where(s => s.Acc!.Code == accCode);
 
-        var orfani = await q
+        var spenti = await q
             .OrderBy(s => s.Acc!.Code).ThenBy(s => s.Callsign)
             .Select(s => new { s.Id, s.Callsign, s.Name, AccCode = s.Acc!.Code, s.DocumentId, Titolo = s.Document!.Title })
             .ToListAsync(ct);
-        if (orfani.Count == 0) return Array.Empty<OrphanSectorRow>();
 
-        var righe = new List<OrphanSectorRow>(orfani.Count);
-        foreach (var o in orfani)
+        var righe = new List<OrphanSectorRow>();
+        foreach (var o in spenti)
+            righe.Add(await RigaAsync(o.Id, o.Callsign, o.Name, o.AccCode, o.DocumentId, o.Titolo,
+                await InCatalogoAsync(o.Callsign, ct) ? OrphanReason.Hidden : OrphanReason.Gone, null, null, ct));
+
+        // Gli STANTÌI: attivi, in catalogo, ma la sorgente non li manda più. Sono l'unico modo per vedere una
+        // rinomina — lì non sparisce niente, e senza questo passo l'elenco direbbe «tutto a posto».
+        if (sogliaTimbro is { } soglia)
         {
-            var inCatalogo = await InCatalogoAsync(o.Callsign, ct);
-            righe.Add(new OrphanSectorRow(
-                o.Id, o.Callsign, o.Name, o.AccCode, inCatalogo, o.DocumentId, o.Titolo,
-                await _impacts.FindDocumentsForSectorAsync(o.Callsign, o.AccCode, ct),
-                await BloccantiAsync(o.Id, o.Callsign, ct)));
+            var giaVisti = righe.Select(r => r.Callsign).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var st in await ListStaleCatalogRowsAsync(soglia, ct))
+            {
+                if (giaVisti.Contains(st.Callsign)) continue;
+                if (!string.IsNullOrWhiteSpace(accCode)
+                    && !string.Equals(st.AccCode, accCode, StringComparison.OrdinalIgnoreCase)) continue;
+
+                var sec = await _db.Sectors.AsNoTracking()
+                    .Where(x => x.Callsign == st.Callsign)
+                    .Select(x => new { x.Id, x.Name, x.DocumentId, Titolo = x.Document!.Title })
+                    .FirstOrDefaultAsync(ct);
+                if (sec is null) continue;   // in catalogo ma mai proiettato: non è roba di questa pagina
+
+                righe.Add(await RigaAsync(sec.Id, st.Callsign, sec.Name, st.AccCode, sec.DocumentId, sec.Titolo,
+                    OrphanReason.NotListed, st.LastSeenUtc,
+                    await FindRenameCandidateAsync(st, soglia, ct), ct));
+            }
         }
-        return righe;
+
+        return righe.OrderBy(r => r.AccCode).ThenBy(r => r.Callsign).ToList();
     }
 
-    public async Task<OrphanSectorRow?> GetOrphanAsync(int sectorId, CancellationToken ct = default)
+    public async Task<OrphanSectorRow?> GetOrphanAsync(int sectorId, DateTime? sogliaTimbro, CancellationToken ct = default)
     {
         var s = await _db.Sectors.AsNoTracking()
-            .Where(x => x.Id == sectorId && x.IsProjected && !x.IsActive)
-            .Select(x => new { x.Id, x.Callsign, x.Name, AccCode = x.Acc!.Code, x.DocumentId, Titolo = x.Document!.Title })
+            .Where(x => x.Id == sectorId && x.IsProjected)
+            .Select(x => new { x.Id, x.Callsign, x.Name, AccCode = x.Acc!.Code, x.DocumentId, x.IsActive, Titolo = x.Document!.Title })
             .FirstOrDefaultAsync(ct);
         if (s is null) return null;
 
-        return new OrphanSectorRow(
-            s.Id, s.Callsign, s.Name, s.AccCode, await InCatalogoAsync(s.Callsign, ct), s.DocumentId, s.Titolo,
-            await _impacts.FindDocumentsForSectorAsync(s.Callsign, s.AccCode, ct),
-            await BloccantiAsync(s.Id, s.Callsign, ct));
+        if (!s.IsActive)
+            return await RigaAsync(s.Id, s.Callsign, s.Name, s.AccCode, s.DocumentId, s.Titolo,
+                await InCatalogoAsync(s.Callsign, ct) ? OrphanReason.Hidden : OrphanReason.Gone, null, null, ct);
+
+        // Attivo: è di questa pagina solo se la sorgente ha smesso di mandarlo.
+        if (sogliaTimbro is not { } soglia) return null;
+        var st = (await ListStaleCatalogRowsAsync(soglia, ct))
+            .FirstOrDefault(x => string.Equals(x.Callsign, s.Callsign, StringComparison.OrdinalIgnoreCase));
+        if (st is null) return null;
+
+        return await RigaAsync(s.Id, s.Callsign, s.Name, s.AccCode, s.DocumentId, s.Titolo,
+            OrphanReason.NotListed, st.LastSeenUtc, await FindRenameCandidateAsync(st, soglia, ct), ct);
     }
+
+    /// <summary>Una riga completa: i documenti che la raccontano e chi ne impedisce la rimozione.</summary>
+    private async Task<OrphanSectorRow> RigaAsync(
+        int id, string callsign, string nome, string accCode, int? docId, string? titolo,
+        OrphanReason motivo, DateTime? ultimoTimbro, string? candidato, CancellationToken ct) =>
+        new(id, callsign, nome, accCode, motivo, docId, titolo,
+            await _impacts.FindDocumentsForSectorAsync(callsign, accCode, ct),
+            await BloccantiAsync(id, callsign, ct),
+            ultimoTimbro, candidato);
 
     private async Task<bool> InCatalogoAsync(string callsign, CancellationToken ct) =>
         await _db.AccSectors.AsNoTracking().AnyAsync(x => x.ComposePosition == callsign, ct)
@@ -148,6 +184,58 @@ public sealed class EfOrphanSectorRepository : IOrphanSectorRepository
 
         _db.Sectors.Remove(s);
         await _db.SaveChangesAsync(ct);
+    }
+
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<StaleCatalogRow>> ListStaleCatalogRowsAsync(
+        DateTime sogliaUtc, CancellationToken ct = default)
+    {
+        var righe = new List<StaleCatalogRow>();
+
+        righe.AddRange(await _db.AccSectors.AsNoTracking()
+            .Where(x => !x.IsManual && !x.IsHidden && x.ImportedAtUtc != null && x.ImportedAtUtc < sogliaUtc)
+            .Select(x => new StaleCatalogRow(x.ComposePosition, x.CenterId, x.Position, x.CenterId, x.ImportedAtUtc!.Value))
+            .ToListAsync(ct));
+
+        righe.AddRange(await _db.AirportSectors.AsNoTracking()
+            .Where(x => !x.IsManual && !x.IsHidden && x.ImportedAtUtc != null && x.ImportedAtUtc < sogliaUtc)
+            .Select(x => new StaleCatalogRow(x.ComposePosition, x.AccCode, x.Position, x.AirportIcao, x.ImportedAtUtc!.Value))
+            .ToListAsync(ct));
+
+        return righe;
+    }
+
+    /// <inheritdoc />
+    public async Task<int> CountCatalogRowsAsync(CancellationToken ct = default) =>
+        await _db.AccSectors.AsNoTracking().CountAsync(x => !x.IsManual && !x.IsHidden, ct)
+        + await _db.AirportSectors.AsNoTracking().CountAsync(x => !x.IsManual && !x.IsHidden, ct);
+
+    /// <inheritdoc />
+    public async Task<string?> FindRenameCandidateAsync(
+        StaleCatalogRow stantia, DateTime sogliaUtc, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(stantia.Position)) return null;
+
+        // Stesso perimetro, stessa posizione, timbro RECENTE (cioè: la sorgente lo manda), e non è lei stessa.
+        var candidati = await _db.AirportSectors.AsNoTracking()
+            .Where(x => x.AirportIcao == stantia.Scope && x.Position == stantia.Position
+                        && x.ComposePosition != stantia.Callsign
+                        && x.ImportedAtUtc != null && x.ImportedAtUtc >= sogliaUtc)
+            .Select(x => x.ComposePosition)
+            .ToListAsync(ct);
+
+        candidati.AddRange(await _db.AccSectors.AsNoTracking()
+            .Where(x => x.CenterId == stantia.Scope && x.Position == stantia.Position
+                        && x.ComposePosition != stantia.Callsign
+                        && x.ImportedAtUtc != null && x.ImportedAtUtc >= sogliaUtc)
+            .Select(x => x.ComposePosition)
+            .ToListAsync(ct));
+
+        // ⚠️ Uno solo, o niente. Con due candidati non è una rinomina ma uno sdoppiamento — che è proprio
+        // quel che vuol dire la cifra in US0/US1 — e indovinare vorrebbe dire spostare un documento sul
+        // settore sbagliato.
+        return candidati.Count == 1 ? candidati[0] : null;
     }
 
     public async Task<string?> GetAccCodeAsync(int sectorId, CancellationToken ct = default) =>

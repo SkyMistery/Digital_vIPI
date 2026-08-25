@@ -66,6 +66,16 @@ public class AccSector
     /// <summary>Nascosto dall'admin (resta nel DB, fuori dalla navigazione pubblica). Default false = attivo.</summary>
     public bool IsHidden { get; set; }
     public DateTime? ImportedAtUtc { get; set; }
+
+    /// <summary>
+    /// Riga <b>aggiunta a mano</b>, non arrivata dalla sorgente (es. un APP estero catalogato dall'admin nella
+    /// pagina Confinanti). Serve a un controllo solo, ma serve davvero: il timbro
+    /// <see cref="ImportedAtUtc"/> dice «la sorgente non lo elenca più» quando resta indietro rispetto
+    /// all'ultimo giro riuscito — e per una riga che la sorgente non ha <b>mai</b> mandato quel timbro è
+    /// vecchio per costruzione. Senza questo flag il controllo aprirebbe una segnalazione falsa su ognuna
+    /// di esse, il primo giorno.
+    /// </summary>
+    public bool IsManual { get; set; }
 }
 
 /// <summary>
@@ -106,6 +116,16 @@ public class AirportSector
 
     /// <summary>Nascosto dall'admin (resta nel DB). Default false = attivo.</summary>
     public bool IsHidden { get; set; }
+
+    /// <summary>
+    /// Riga <b>aggiunta a mano</b>, non arrivata dalla sorgente (es. un APP estero catalogato dall'admin nella
+    /// pagina Confinanti). Serve a un controllo solo, ma serve davvero: il timbro
+    /// <see cref="ImportedAtUtc"/> dice «la sorgente non lo elenca più» quando resta indietro rispetto
+    /// all'ultimo giro riuscito — e per una riga che la sorgente non ha <b>mai</b> mandato quel timbro è
+    /// vecchio per costruzione. Senza questo flag il controllo aprirebbe una segnalazione falsa su ognuna
+    /// di esse, il primo giorno.
+    /// </summary>
+    public bool IsManual { get; set; }
 
     /// <summary>Frequenza principale dell'aeroporto (★). Unica per aeroporto; scelta nell'editor (default: TWR→GND→APP).</summary>
     public bool IsPrimary { get; set; }

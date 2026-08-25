@@ -105,6 +105,9 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<bool>("IsHidden")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<bool>("IsManual")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<int?>("LowerLimit")
                         .HasColumnType("int");
 
@@ -689,6 +692,9 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsHidden")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsManual")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsPrimary")

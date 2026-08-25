@@ -53,6 +53,15 @@ public interface IDocumentImpactService
     Task<int> RaiseForSectorAsync(ImpactKind kind, string composePosition, string accCode,
         CancellationToken ct = default);
 
+    /// <summary>
+    /// Come <see cref="RaiseForSectorAsync"/>, ma <b>senza aprire</b>: prepara le righe che il chiamante
+    /// passerà a <see cref="ReconcileAsync"/>. Serve ai rivelatori calcolati, che devono poter anche
+    /// <b>chiudere</b> quel che non trovano più — e per farlo hanno bisogno dell'insieme completo, non di
+    /// una riga per volta.
+    /// </summary>
+    Task<IReadOnlyList<RaiseImpactInput>> PrepareForSectorAsync(ImpactKind kind, string composePosition,
+        string accCode, IReadOnlyList<string> args, CancellationToken ct = default);
+
     /// <summary>Apre l'impatto su tutti i documenti che citano l'area regolamentata.</summary>
     Task<int> RaiseForAreaAsync(ImpactKind kind, string ivaoId, string areaName, CancellationToken ct = default);
 
@@ -101,6 +110,7 @@ public sealed class DocumentImpactService : IDocumentImpactService
     public static class Reasons
     {
         public const string SectorGone = "Impact_SectorGone";
+        public const string SectorStale = "Impact_SectorStale";
         public const string SectorHidden = "Impact_SectorHidden";
         public const string SectorReparented = "Impact_SectorReparented";
         public const string AreaGone = "Impact_AreaGone";
@@ -112,6 +122,7 @@ public sealed class DocumentImpactService : IDocumentImpactService
         public static string For(ImpactKind kind) => kind switch
         {
             ImpactKind.SectorGone => SectorGone,
+            ImpactKind.SectorStale => SectorStale,
             ImpactKind.SectorHidden => SectorHidden,
             ImpactKind.SectorReparented => SectorReparented,
             ImpactKind.AreaGone => AreaGone,
@@ -141,6 +152,21 @@ public sealed class DocumentImpactService : IDocumentImpactService
             aperti++;
         }
         return aperti;
+    }
+
+    public async Task<IReadOnlyList<RaiseImpactInput>> PrepareForSectorAsync(ImpactKind kind,
+        string composePosition, string accCode, IReadOnlyList<string> args, CancellationToken ct = default)
+    {
+        var cs = (composePosition ?? "").Trim();
+        if (cs.Length == 0) return Array.Empty<RaiseImpactInput>();
+
+        var docs = await _repo.FindDocumentsForSectorAsync(cs, accCode ?? "", ct);
+        if (docs.Count == 0) return Array.Empty<RaiseImpactInput>();
+
+        var live = await _repo.WithLiveSectionAsync(docs.Select(d => d.Id).ToList(), ImpactFamily.Sector, ct);
+
+        return docs.Select(d => new RaiseImpactInput(
+            d.Id, kind, cs, Reasons.For(kind), args, live.Contains(d.Id))).ToList();
     }
 
     public async Task<int> RaiseForAreaAsync(ImpactKind kind, string ivaoId, string areaName,

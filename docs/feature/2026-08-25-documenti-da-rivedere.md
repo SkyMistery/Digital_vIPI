@@ -494,3 +494,87 @@ dietro il lock di modifica e una conferma in linea, e il primo bersaglio libero 
 documenti** (nasconderlo ha prodotto, correttamente, **zero** segnalazioni: la prova del non-rumore). Quel
 percorso resta coperto dal test d'integrazione `Un_Callsign_Nascosto_Apre_SectorHidden_Non_SectorGone` e
 dalla prova sui dati veri del §14, dove la distinzione sparito/nascosto è verificata sull'archivio reale.
+
+
+## §16 — La rinomina: `LIRN_US0_APP` → `LIRN_US1_APP` (25 agosto, sera)
+
+Domanda del committente dopo la consegna: *«se cambia il nome, che succede?»*. Misurato riproducendo
+l'import vero su `LIBD_CS0_APP` — e il caso è **peggiore** di quello chiuso in §0.
+
+### Che cosa succedeva
+
+| | |
+|---|---|
+| L'import fa upsert del nome nuovo | crea `CS1` |
+| La riga vecchia | **resta**: i cataloghi non potano mai |
+| La proiezione | **due settori attivi**, stessa shape, stessi limiti, stessa frequenza |
+| La casella (§0→§15) | **nessuna segnalazione**: niente è sparito, e il nuovo è «nuovo», non «riparentato» |
+| Documento, primario, `FeaturedRank` | restano sul **fantasma** |
+| I figli con `ParentCallsign` sul vecchio | continuano a puntargli: il callsign *esiste*, quindi nemmeno «gerarchia dangling» se ne accorge |
+| Chi controlla davvero | si connette col nome nuovo: vista live e statistiche vanno sul settore **senza documentazione** |
+| Per un APP non remotizzato | la chiave di release **è** il callsign, e resta la vecchia: il documento funziona *descrivendo una posizione che non esiste* |
+
+⚠️ **E non era teoria**: `LIED_G_APP` — l'APP primario di Decimomannu — aveva il timbro d'import del **5
+agosto** contro il **24** delle altre tre posizioni dello stesso scalo. Diciannove giorni da fantasma, attivo,
+disegnato nelle mappe e con un volume che rivendica traffico. Nessuno lo sapeva.
+
+### Perché il meccanismo del giorno prima non lo vede
+
+Guarda la proiezione; la proiezione guarda il catalogo; e per il catalogo non è successo niente. Il buco è a
+monte, e nessuna delle otto famiglie di impatto lo copre.
+
+### La decisione: il timbro, non la potatura
+
+Il segnale c'era già e non lo usava nessuno: `ImportedAtUtc` sta su ogni riga di catalogo, viene riscritto a
+**ogni** upsert, e il giro giornaliero passa su **tutti** gli aeroporti e tutti gli ACC. Quindi «la sorgente
+non lo elenca più» è calcolabile **senza cancellare niente**.
+
+Scartata **A — potare i cataloghi**: renderebbe la sparizione visibile col meccanismo di §0, ma butta le
+impostazioni dell'admin (limiti, nascosto, shape sintetica, `IsAccApp`) e una fetch parziale cancella a
+valanga. È la porta che avevamo appena chiuso dall'altro lato.
+
+Fatto **B + C**:
+
+- **B — stantìo, non cancellato.** `ImpactKind.SectorStale` sui documenti che raccontano quel settore, e una
+  riga in «Orfani» con il motivo **«non più elencato»** e la data dell'ultimo timbro. ⚠️ È l'unico caso in cui
+  la riga elencata è **attiva**: per tutto il resto del sistema quel settore esiste ancora.
+- **C — il suggerimento di rinomina.** Se nello stesso perimetro compare **un solo** callsign con la stessa
+  `Position` e il timbro fresco, la riga propone *«forse rinominato in …»* e lo segna nel picker di
+  riaggancio. ⚠️ **Proposta, mai automatismo**: la cifra in `US0`/`US1` di solito significa **sdoppiamento**,
+  non rinomina, e i due casi sono indistinguibili guardando i dati — identici per shape, limiti e frequenza.
+  Con **due** candidati la riga tace, perché indovinare vorrebbe dire spostare un documento sul settore
+  sbagliato. E il suggerimento arriva **un giro dopo** la rinomina, non lo stesso giorno.
+
+### Le tre guardie, e la terza l'ha imposta la prova
+
+1. **Righe aggiunte a mano**: la sorgente non le ha mai mandate, quindi il loro timbro è vecchio per
+   costruzione. Serve un flag esplicito (`AccSector.IsManual`, `AirportSector.IsManual`) — messo da chi le
+   crea, più un backfill una tantum che le riconosce dal prefisso del callsign diverso dal codice dell'ACC
+   (misurato: cinque righe, cinque manuali, nessun falso).
+2. **Stato mancante**: senza l'ultimo giro riuscito di **entrambe** le famiglie non si dice niente, e il metro
+   è il giro più **vecchio** dei due.
+3. ⚠️ **Guardia di massa** — non era nel piano, l'ha trovata la prova sui dati veri: un giro che **riesce** ma
+   torna vuoto per un ente lascia tutte le sue righe senza timbro nuovo, e il giorno dopo sarebbero trenta
+   segnalazioni in blocco. Nella prima esecuzione ne sono comparse **una trentina** di settori esteri tutti
+   insieme. Sopra un quarto delle righe di catalogo il controllo tace: quel numero non parla delle righe,
+   parla di un guasto a monte.
+
+### La prova sui dati veri
+
+Simulando un giro d'import completo sull'archivio di sviluppo (che ri-timbra tutto tranne il rinominato):
+**una sola riga** segnalata — `LIBD_CS0_APP`, ultimo timbro 24 agosto, **«forse rinominato in
+LIBD_CS1_APP»**. Nessun falso positivo.
+
+### Quel che resta scoperto, dichiarato
+
+- Il gesto «sposta i legami» sposta **documento, primario e rilievo**; le citazioni **per Id** (accordi, parti
+  di vLOA, blocchi con scope/da/a) restano sul vecchio e compaiono come **bloccanti** della rimozione. È una
+  scelta: spostarle vorrebbe dire riscrivere accordi in silenzio.
+- I `ParentCallsign` dei figli non vengono ripuntati: se il padre è stato rinominato, la catena va sistemata a
+  mano dalla Struttura.
+- Le **sessioni storiche** restano sul callsign vecchio (319 su `LIBD_CS0_APP`, nell'archivio di prova). È
+  giusto così — quelle ore sono state fatte con quel nome — ma le statistiche per callsign vanno lette
+  sapendolo.
+- La domanda a monte resta aperta: **il callsign non è un'identità stabile**, e la sorgente non ne espone
+  un'altra (`SourceAtcPosition` non porta nessun id, e perfino il dettaglio si interroga per
+  `composePosition`). La colonna `Sector.FacilityId` esiste dal primo giorno e **non la scrive nessuno**.

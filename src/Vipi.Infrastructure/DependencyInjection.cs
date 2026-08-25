@@ -149,6 +149,7 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IEditorTaskRepository, EfEditorTaskRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IDocumentImpactRepository, EfDocumentImpactRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IOrphanSectorRepository, EfOrphanSectorRepository>();
+        services.AddScoped<Vipi.Application.Content.ISectorCatalogMaintenance, EfSectorCatalogMaintenance>();
         services.AddScoped<Vipi.Application.Abstractions.IDocumentAdminRepository, EfDocumentAdminRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAirportSectorRepository, EfAirportSectorRepository>();
         // Statistiche ATC: archivio delle sessioni e delle tratte scritte dal poller, più la mappa dei

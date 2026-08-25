@@ -3,14 +3,38 @@ using Vipi.Application.Auth;
 
 namespace Vipi.Application.Content;
 
-/// <summary>Un settore proiettato che i cataloghi non confermano più: disattivato, ma ancora in archivio.</summary>
+/// <summary>Perché un settore è finito in questo elenco. Tre fatti diversi, tre rimedi diversi.</summary>
+public enum OrphanReason
+{
+    /// <summary>L'ha nascosto un admin: il callsign è ancora in catalogo, il settore è spento.</summary>
+    Hidden,
+
+    /// <summary>Il callsign non è più in catalogo: qualcuno ha tolto la riga, e il settore è spento.</summary>
+    Gone,
+
+    /// <summary>
+    /// ⚠️ Il caso della <b>rinomina</b>, e l'unico in cui il settore è ancora <b>attivo</b>: la riga di
+    /// catalogo c'è, ma la sorgente ha smesso di mandarla (timbro d'import rimasto indietro). Nessuno
+    /// sparisce, quindi nient'altro se ne accorge: il fantasma continua a rivendicare la sua area e a
+    /// portarsi dietro il documento mentre chi controlla si connette col nome nuovo.
+    /// </summary>
+    NotListed,
+}
+
+/// <summary>Un settore proiettato che i cataloghi non confermano più.</summary>
 /// <param name="Documents">I documenti che lo raccontano: chi resta scoperto se lo si toglie.</param>
 /// <param name="Blockers">Chi lo referenzia con un vincolo che <b>impedisce</b> la cancellazione, già in
 /// frasi leggibili. Vuoto = si può rimuovere.</param>
+/// <param name="LastSeenUtc">Ultimo timbro d'import (solo per <see cref="OrphanReason.NotListed"/>).</param>
+/// <param name="RenameCandidate">
+/// Il possibile nome nuovo della stessa posizione, quando ce n'è <b>uno solo</b>. È un suggerimento, non una
+/// conclusione: con due candidati non è una rinomina ma uno sdoppiamento — che è proprio quel che significa
+/// la cifra in <c>US0</c>/<c>US1</c> — e la macchina non sa distinguerli.
+/// </param>
 public sealed record OrphanSectorRow(
-    int SectorId, string Callsign, string Name, string AccCode, bool StillInCatalog,
+    int SectorId, string Callsign, string Name, string AccCode, OrphanReason Reason,
     int? DocumentId, string? DocumentTitle, IReadOnlyList<AffectedDoc> Documents,
-    IReadOnlyList<string> Blockers);
+    IReadOnlyList<string> Blockers, DateTime? LastSeenUtc = null, string? RenameCandidate = null);
 
 /// <summary>Un settore attivo a cui si può riappendere il documento di un orfano.</summary>
 public sealed record ReattachTargetRow(int SectorId, string Callsign, string Name);
@@ -48,17 +72,37 @@ public sealed class OrphanSectorService : IOrphanSectorService
 {
     private readonly IOrphanSectorRepository _repo;
     private readonly IEditAuthorizationService _authz;
+    private readonly IImportStateStore _stati;
 
-    public OrphanSectorService(IOrphanSectorRepository repo, IEditAuthorizationService authz)
+    public OrphanSectorService(IOrphanSectorRepository repo, IEditAuthorizationService authz,
+        IImportStateStore stati)
     {
         _repo = repo;
         _authz = authz;
+        _stati = stati;
     }
 
-    public Task<IReadOnlyList<OrphanSectorRow>> ListAsync(string? accCode = null, CancellationToken ct = default)
+    /// <summary>La stessa soglia che usa il giro notturno: due letture diverse dello stesso metro sono il
+    /// modo in cui due racconti divergono.</summary>
+    private async Task<DateTime?> SogliaTimbroAsync(CancellationToken ct) =>
+        SogliaTimbro.Calcola(
+            await _stati.GetLastSuccessAsync(ImportCategories.AirportSector, ct),
+            await _stati.GetLastSuccessAsync(ImportCategories.Acc, ct));
+
+    public async Task<IReadOnlyList<OrphanSectorRow>> ListAsync(string? accCode = null, CancellationToken ct = default)
     {
         _authz.EnsureAdmin();
-        return _repo.ListOrphansAsync(string.IsNullOrWhiteSpace(accCode) ? null : accCode!.Trim(), ct);
+        var soglia = await SogliaTimbroAsync(ct);
+
+        // La stessa guardia del giro notturno: se gli stantìi sono troppi il guasto è a monte, e l'elenco
+        // mostra solo gli orfani veri invece di trenta righe che non vogliono dire niente.
+        if (soglia is { } s
+            && SogliaTimbro.TroppiPerEssereVeri(
+                (await _repo.ListStaleCatalogRowsAsync(s, ct)).Count, await _repo.CountCatalogRowsAsync(ct)))
+            soglia = null;
+
+        return await _repo.ListOrphansAsync(
+            string.IsNullOrWhiteSpace(accCode) ? null : accCode!.Trim(), soglia, ct);
     }
 
     public async Task<IReadOnlyList<ReattachTargetRow>> ReattachTargetsAsync(int orphanSectorId, CancellationToken ct = default)
@@ -79,7 +123,7 @@ public sealed class OrphanSectorService : IOrphanSectorService
         // e basta poter editare l'ACC.
         _authz.EnsureAdmin();
 
-        var riga = await _repo.GetOrphanAsync(orphanSectorId, ct)
+        var riga = await _repo.GetOrphanAsync(orphanSectorId, await SogliaTimbroAsync(ct), ct)
                    ?? throw new Aor.ValidationException("Settore orfano inesistente o tornato attivo.");
         if (riga.Blockers.Count > 0)
             throw new Aor.ValidationException(

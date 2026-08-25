@@ -1355,6 +1355,11 @@
   <data name="Impact_ReleaseKeyMoved" xml:space="preserve"><value>This document's releases are stored under a target that is no longer its own ({0}): the public cannot find them.</value></data>
   <data name="Impact_BrokenTarget" xml:space="preserve"><value>This document's publication target no longer resolves: the public page cannot reach it.</value></data>
   <data name="Impact_Err_Calcolato" xml:space="preserve"><value>This item is closed by the check that raised it: fix the cause instead.</value></data>
+  <data name="Orph_NotListed" xml:space="preserve"><value>no longer listed</value></data>
+  <data name="Orph_NotListedTitle" xml:space="preserve"><value>The catalogue row is there and the sector is active, but the source stopped sending it: that is what a RENAMED position looks like.</value></data>
+  <data name="Orph_MaybeRenamed" xml:space="preserve"><value>renamed to {0}?</value></data>
+  <data name="Impact_SectorStale" xml:space="preserve"><value>The source has not listed sector {0} for {1} days: if it was renamed, the document stayed on the old name.</value></data>
+  <data name="ImpactKind_SectorStale" xml:space="preserve"><value>Sector no longer listed</value></data>
   <data name="Orph_Title" xml:space="preserve"><value>Orphan sectors</value></data>
   <data name="Orph_Intro" xml:space="preserve"><value>Sectors the catalogues no longer confirm: they stay in the archive, deactivated, with their document still attached. Reattach the document to another sector, or remove them. ⚠️ If the source sends that callsign back, the next import recreates it.</value></data>
   <data name="Orph_Callsign" xml:space="preserve"><value>Sector</value></data>

@@ -26,7 +26,7 @@ public sealed class EfNeighbourRepository : INeighbourRepository
     public async Task<IReadOnlyList<string>> ListDomesticAccCodesAsync(CancellationToken ct = default) =>
         await _db.Accs.AsNoTracking().Where(a => !a.IsForeign).Select(a => a.Code).ToListAsync(ct);
 
-    public async Task PersistForeignCatalogAsync(IReadOnlyList<ForeignAccImport> accs, CancellationToken ct = default)
+    public async Task PersistForeignCatalogAsync(IReadOnlyList<ForeignAccImport> accs, bool manuale = false, CancellationToken ct = default)
     {
         if (accs.Count == 0) return;
         var now = DateTime.UtcNow;
@@ -97,6 +97,7 @@ public sealed class EfNeighbourRepository : INeighbourRepository
                         UpperLimit = sub.UpperLimit,
                         IsHidden = false,
                         ImportedAtUtc = now,
+                        IsManual = manuale,
                     };
                     _db.AccSectors.Add(added);
                     existingSubs[compose] = added;

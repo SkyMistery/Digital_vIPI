@@ -33,7 +33,12 @@ public interface INeighbourRepository
 
     /// <summary>Persiste il catalogo degli ACC esteri confinanti: upsert <c>Acc</c> (IsForeign=true) + i loro subcenter
     /// come <c>AccSector</c> (preservando ParentCallsign/IsHidden impostati dall'admin). Idempotente per chiave naturale.</summary>
-    Task PersistForeignCatalogAsync(IReadOnlyList<ForeignAccImport> accs, CancellationToken ct = default);
+    /// <param name="manuale">
+    /// Vero quando le righe le sta aggiungendo una <b>persona</b> (pagina Confinanti) e non il giro
+    /// automatico. Marca le righe nuove come tali: sono le uniche che la sorgente non ristampa mai, e senza
+    /// quel segno il controllo del timbro le prenderebbe per «sparite dalla sorgente» già il primo giorno.
+    /// </param>
+    Task PersistForeignCatalogAsync(IReadOnlyList<ForeignAccImport> accs, bool manuale = false, CancellationToken ct = default);
 
     /// <summary>Fa upsert dei candidati calcolati. Aggiorna solo le righe in stato Pending (non tocca
     /// Confirmed/Rejected né i poligoni impostati a mano). Ritorna (creati, aggiornati).</summary>

@@ -121,7 +121,7 @@ public sealed class NeighbourImportService : INeighbourImportService
             var projection = dbScope.ServiceProvider.GetRequiredService<ISectorProjectionService>();
             await uow.ExecuteInTransactionAsync(async c =>
             {
-                await repo.PersistForeignCatalogAsync(computed.ForeignCatalog, c);
+                await repo.PersistForeignCatalogAsync(computed.ForeignCatalog, manuale: false, c);
                 await projection.SyncFromCatalogsAsync(c);
             }, ct);
             NeighbourDebugLog.Log($"Foreign catalog persisted: {computed.ForeignCatalog.Count} ACC, {computed.ForeignCatalog.Sum(f => f.Subcenters.Count)} subcenters. Projected.");
@@ -256,7 +256,10 @@ public sealed class NeighbourImportService : INeighbourImportService
         var import = new ForeignAccImport(foreignAcc, cand.ForeignAccName, new[] { sub });
         await uow.ExecuteInTransactionAsync(async c =>
         {
-            await repo.PersistForeignCatalogAsync(new[] { import }, c);
+            // ⚠️ manuale: true — questa riga la sta mettendo una persona, e la sorgente non la ristamperà
+            // mai (un APP d'aeroporto non compare fra i subcenter dell'ACC estero che lo ospita). Senza il
+            // segno, il controllo del timbro la segnalerebbe come sparita al primo giro.
+            await repo.PersistForeignCatalogAsync(new[] { import }, manuale: true, c);
             await projection.SyncFromCatalogsAsync(c);
         }, ct);
 

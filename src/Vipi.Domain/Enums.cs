@@ -187,6 +187,14 @@ public enum ImpactKind
     /// <summary>Il settore ha cambiato padre nella catena di copertura: le consegne raccontate cambiano.</summary>
     SectorReparented,
 
+    /// <summary>
+    /// La sorgente non elenca più quel callsign, ma la riga di catalogo è ancora lì — perché i cataloghi non
+    /// potano mai. È il caso della <b>rinomina</b> (LIRN_US0_APP → LIRN_US1_APP): nessuno sparisce, il
+    /// vecchio resta attivo come un fantasma e il nuovo nasce senza documentazione. Si riconosce dal timbro
+    /// <c>ImportedAtUtc</c> rimasto indietro rispetto all'ultimo giro riuscito. <b>Calcolato.</b>
+    /// </summary>
+    SectorStale,
+
     /// <summary>Un'area regolamentata citata dal documento non è più nei cataloghi (potata dall'import).</summary>
     AreaGone,
 
@@ -209,7 +217,8 @@ public static class ImpactKinds
 {
     /// <summary>Prodotto da un calcolo che lo riapre da solo finché la causa c'è: <b>non</b> chiudibile a mano.</summary>
     public static bool IsCalcolato(this ImpactKind kind) =>
-        kind is ImpactKind.ReleaseDrift or ImpactKind.ReleaseKeyMoved or ImpactKind.BrokenTarget;
+        kind is ImpactKind.ReleaseDrift or ImpactKind.ReleaseKeyMoved or ImpactKind.BrokenTarget
+             or ImpactKind.SectorStale;
 
     /// <summary>Vero se l'impatto dice «la copia pubblicata è indietro» invece di «rileggi il testo».</summary>
     public static bool IsDaRipubblicare(this ImpactKind kind) => kind is ImpactKind.ReleaseDrift;

@@ -88,6 +88,14 @@ public static class ImportCategories
     public const string ImpactDrift = "ImpactDrift";
 
     /// <summary>
+    /// NON è un import: è il segnaposto della riconciliazione one-shot che ha marcato le righe di catalogo
+    /// <b>aggiunte a mano</b> (<c>ISectorCatalogMaintenance.MarkManualCatalogRowsAsync</c>). Senza un
+    /// registro «già fatto» persistente rifarebbe il giro a ogni riavvio, e marcherebbe a mano anche righe
+    /// che nel frattempo la sorgente ha cominciato a mandare.
+    /// </summary>
+    public const string ManualCatalogRows = "ManualCatalogRows";
+
+    /// <summary>
     /// NON è un import periodico: è il segnaposto della riconciliazione one-shot che ha spento le aree degli ACC
     /// esteri (<c>ISpecialAreaMaintenance.OptOutForeignAreasAsync</c>). Sta qui perché serve un registro «già fatto»
     /// persistente, e questa è la tabella che ce l'ha: senza, la riconciliazione ricancellerebbe a ogni riavvio le

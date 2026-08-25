@@ -1971,10 +1971,37 @@ cambiata → 5 documenti avvisati; aeroporto scollegato → `BrokenTarget`; rimo
 `DATETIME` di MariaDB parte dal 1000 e in `sql_mode` stretto lo rifiuta, mentre SQLite lo accetta: suite
 verde e produzione rotta. È l'epoca Unix. Vedi §13.1 della carta.
 
+**⚠️ 25 agosto, sera — la RINOMINA** (carta §16). Domanda del committente: «se `LIRN_US0_APP` diventa
+`LIRN_US1_APP`, che succede?». Misurato: **peggio** della cancellazione. L'import fa upsert del nome nuovo, la
+riga vecchia **resta** (i cataloghi non potano mai), e quindi restano **due settori attivi** con la stessa
+shape: il documento è sul fantasma, chi controlla si connette col nome nuovo che non ha documentazione, e
+**nessuna** delle otto famiglie di impatto se ne accorge — non è sparito niente.
+
+Non era teoria: `LIED_G_APP`, l'APP primario di Decimomannu, aveva il timbro del **5 agosto** contro il **24**
+delle altre tre posizioni dello stesso scalo. Diciannove giorni da fantasma.
+
+Fatto, senza potare i cataloghi: il segnale è il **timbro** `ImportedAtUtc`, che il giro giornaliero riscrive
+su tutto ciò che la sorgente elenca ancora. Nasce `ImpactKind.SectorStale`, la sezione «Orfani» mostra il
+motivo **«non più elencato»** con la data, e — quando il candidato è **uno solo** — propone *«forse rinominato
+in …»*. ⚠️ Proposta e mai automatismo: la cifra in `US0`/`US1` di solito vuol dire **sdoppiamento**, e i due
+casi sono indistinguibili dai dati.
+
+Tre guardie: righe **aggiunte a mano** escluse (colonne `IsManual` nuove + backfill one-shot che le riconosce
+dal prefisso), niente segnalazioni senza l'ultimo giro riuscito di entrambe le famiglie, e **silenzio se gli
+stantìi superano un quarto del catalogo** — quest'ultima l'ha imposta la prova sui dati veri, dove una
+simulazione storta ha fatto comparire trenta settori esteri in blocco.
+
+Verificato sull'archivio vero simulando un giro d'import completo: **una sola riga**, `LIBD_CS0_APP`, con
+«forse rinominato in `LIBD_CS1_APP`».
+
 **Restano fuori, dichiarati**: policy di import cancellata → «tutto importato» muto; ACC estero nuovo che
 nasce con le aree accese; **audit delle cancellazioni strutturali**; notifiche (la casella è passiva) e il
 legame con la scadenza AIRAC; famiglie oltre settori e aree (TA, piste, SID, shape); **watermark** delle
-sezioni Live, con la soglia scritta in §3b.
+sezioni Live, con la soglia scritta in §3b. E dal giro della rinomina: il gesto «sposta i legami» **non**
+sposta le citazioni per Id (accordi, parti di vLOA, blocchi) né ripunta i `ParentCallsign` dei figli — le
+prime restano come bloccanti della rimozione, i secondi si sistemano a mano dalla Struttura. Sotto tutto
+questo resta la domanda vera: **il callsign non è un'identità stabile** e la sorgente non ne espone un'altra
+(`Sector.FacilityId` esiste dal primo giorno e non lo scrive nessuno).
 
 ## F. Rimandato, non cancellato
 
