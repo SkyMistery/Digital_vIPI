@@ -1,9 +1,18 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 25 agosto 2026, sera — **statistiche ATC complete sul ramo `statistiche-atc`**,
-e sullo stesso ramo **il VID è diventato un link al profilo IVAO**.
-⚠️ **C'è un ramo con lavoro fuori da `main`, ed è quello.** Fonderlo è una decisione del committente
-(`docs/lavori-aperti.md` **§B12**), non un passo tecnico rimasto indietro.
+**Ultimo aggiornamento:** 25 agosto 2026 — sul ramo `statistiche-atc` sono confluiti **tre lavori**: le
+statistiche ATC, gli **aeroporti militari** e la **vIPI d'aeroporto legata allo scalo**.
+⚠️ **C'è un ramo solo con lavoro fuori da `main`, ed è quello.** Fonderlo è una decisione del committente
+(`docs/lavori-aperti.md` **§B12**), non un passo tecnico rimasto indietro. ⚠️ Dal 25 agosto porta **otto**
+migrazioni, non sei, e **un passo d'avvio nuovo** (`LinkAirportDocumentsAsync`).
+
+> **Il giro del 25 agosto pomeriggio, in due righe.** La sorgente IVAO sapeva già quali aeroporti hanno una base
+> militare e lo scartavamo (34 su 221) — ⚠️ ma `military` **non** vuol dire «aeroporto militare»: Linate, Pisa e
+> Ciampino sono nell'elenco. E provando a pubblicare LIBG è venuto fuori che la **vIPI d'aeroporto era legata a
+> un suo settore** invece che allo scalo: chi non ha una torre — LIBG ha solo un APP non remotizzato — produceva
+> un documento orfano a ogni apertura dell'editor, e non si pubblicava.
+> Carte: [`docs/feature/2026-08-25-aeroporti-militari.md`](docs/feature/2026-08-25-aeroporti-militari.md) e
+> [`docs/feature/2026-08-25-vipi-aeroporto-legata-allo-scalo.md`](docs/feature/2026-08-25-vipi-aeroporto-legata-allo-scalo.md).
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
 > ## 🧭 SI RIPARTE DA QUI (25 agosto 2026)

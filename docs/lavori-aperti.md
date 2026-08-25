@@ -149,11 +149,25 @@ oggi nessuno sa rispondere — la rotazione della password Neon, e quattro decis
 debba scrivere audit.
 
 🟡 **C'è di nuovo una decisione di merge sul tavolo, ed è l'unica: B12.** Il ramo **`statistiche-atc`**
-(**37 commit**, il **terzo servizio**) è completo, verificato a schermo e verde su net8, ma **non è in
-`main`**: fonderlo è una scelta del committente. ⚠️ La cifra si conta:
-`git rev-list --count main..statistiche-atc`. ⚠️ È il primo ramo dopo mesi che **allunga la coda del
-cutover MariaDB** — porta sei migrazioni. Prima: B10 e B11 il 24 agosto, B6 il 15, e B5 si è rivelata già
-presa — il doc 13 era in `main` da allora senza che l'elenco lo sapesse.
+(**50 commit**) è completo, verificato a schermo e verde su entrambi i TFM, ma **non è in `main`**: fonderlo è
+una scelta del committente. ⚠️ La cifra si conta: `git rev-list --count main..statistiche-atc`.
+
+⚠️ **Dal 25 agosto quel ramo non porta più solo il terzo servizio.** Vi è stato fuso `aeroporti-militari`
+(merge `8b76352`, punto di ritorno locale `statistiche-atc-prima-del-merge-20260825`), per chiudere subito un
+conflitto annunciato sull'enum del Registro invece di lasciarlo maturare. Dentro ci sono ora **tre lavori**: il
+servizio statistiche, gli **aeroporti militari**
+([feature/2026-08-25-aeroporti-militari.md](feature/2026-08-25-aeroporti-militari.md)) e la **vIPI d'aeroporto
+legata allo scalo**
+([feature/2026-08-25-vipi-aeroporto-legata-allo-scalo.md](feature/2026-08-25-vipi-aeroporto-legata-allo-scalo.md)).
+
+⚠️ È il primo ramo dopo mesi che **allunga la coda del cutover MariaDB** — e le migrazioni sono passate da sei a
+**otto**: `AeroportiMilitari` e `DocumentoDellAeroporto` si aggiungono alle sei delle statistiche. Prima: B10 e
+B11 il 24 agosto, B6 il 15, e B5 si è rivelata già presa — il doc 13 era in `main` da allora senza che l'elenco
+lo sapesse.
+
+⚠️ E c'è **un passo d'avvio in più** da conoscere prima del deploy: `LinkAirportDocumentsAsync` collega gli
+aeroporti alla loro vIPI al primo avvio (idempotente, lo scrive nei log). Senza, i documenti d'aeroporto già
+pubblicati risulterebbero inesistenti alla strada nuova.
 
 ✅ **Fusa il 23 agosto, sera**: il ramo **`audit-frontend-ui`** (15 commit) è in `main`. Ci stavano l'audit
 frontend/UI (§H) e, sopra, i coordinamenti della vista live a colonne con la potatura del foglio di stile

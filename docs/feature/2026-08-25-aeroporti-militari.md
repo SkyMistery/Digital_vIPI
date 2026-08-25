@@ -74,6 +74,23 @@ militare» vuole i trentaquattro), e il comando per segnare «solo militare».
 **Elenco pubblico** e **testata del documento**: le stesse due etichette, più due chip militari/civili che
 compaiono solo dove c'è davvero qualcosa da filtrare.
 
+**In TUTTI i documenti dello scalo**, accanto al nome, in alto — chiesto dal committente: la vIPI
+dell'aeroporto e quella del **suo APP**, in vista e in editor. Chi legge sta guardando quel campo, e
+l'informazione non deve dipendere da quale dei due documenti ha aperto.
+
+Un componente solo (`MilitaryTag`) invece di quattro copie, e **puro**: riceve i due booleani, non li va a
+cercare. Una testata non deve interrogare il database mentre si disegna.
+
+I flag arrivano da `IStationResolver`, dove la mappa degli aeroporti è **già in cache** e la scalda il layout:
+zero query nuove. Per l'APP l'aeroporto è la **testa del callsign** (`LIBG_APP` → LIBG), regola scritta una
+volta nel resolver e non due volte nelle pagine; per gli APP di ACC la testa è un centro e non uno scalo, quindi
+nessuna etichetta — ed è corretto.
+
+⚠️ **Quella cache è `scoped`, e in Blazor Server lo scope è il circuito**: l'intera sessione. Senza una spinta,
+un cambio di «solo militare» sarebbe rimasto invisibile **per ore** a chi ha la pagina aperta, senza modo di
+capire perché. Ora il toggle e il giro dell'anagrafica chiamano `IStationCatalogVersion.Bump()`, che invalida la
+cache di **tutte** le sessioni.
+
 ⚠️ Nella testata i due flag **non si leggono da `_profile`**: in anteprima di release quello viene azzerato di
 proposito, e la presenza di una base non è un dato di release — sparire dalla testata solo perché si guarda un
 ciclo passato sarebbe un'informazione persa per sbaglio.
@@ -124,6 +141,27 @@ sconosciuto è una corruzione e deve fermare tutto.
    l'errore. Con questo **il modello torna identico e nessuna migrazione serve**: quella che lo scaffolding
    proponeva era un peggioramento, ed è stata buttata.
 
+## 5-ter. Il comando che taceva, e la pastiglia che non sembrava un comando
+
+Aperta la pagina vera, degli aeroporti militari **non c'era traccia**. Due cause, tutte e due di questo lavoro.
+
+**L'esito mentiva per omissione.** Il giro dell'anagrafica fa due cose — assegna e riallinea — e il messaggio ne
+diceva una sola. A regime la prima è sempre zero: la pagina rispondeva «**Nessun aeroporto da assegnare**»
+avendone appena riallineati 93. Chi legge conclude che il comando non serve e non lo preme più. Ora dice
+tutt'e due, e il titolo del tasto promette anche ciò che mantiene.
+
+ⓘ Quella riga era **nel report della verifica del giorno prima**, letta e non collegata: il bottone aveva scritto
+34 aeroporti e la pagina diceva «nessuno». Un dato misurato non serve a niente se non lo si guarda.
+
+**La pastiglia non sembrava un comando.** Era identica alle pill statiche accanto — «visibile», «nascosto» — e
+nessuno poteva indovinare di poterci cliccare per segnare «solo militare». Ora ha il bordo **tratteggiato**, che
+diventa pieno sotto il puntatore. ⚠️ Il padding scende di 1px per fare posto al bordo: misurata, la pastiglia era
+26px contro i 24 della vicina e le due non si allineavano (`box-sizing:border-box` non aiuta dove l'altezza è
+automatica).
+
+**Resta vero che i dati non c'erano ancora** — il giro è gated a 24h ed era passato la sera prima. Ma un comando
+che tace il lavoro fatto rendeva l'attesa indistinguibile da un guasto.
+
 ## 6. Verificato
 
 Guidando l'applicazione vera su una copia del `vipi.db` (Edge + puppeteer-core, porta 5099):
@@ -157,3 +195,5 @@ proprio il ramo in cui questo lavoro è ora confluito. Sullo stesso ramo il prob
 - `IsMilitaryOnly` nasce **falso per tutti**, anche su Aviano e Ghedi: è un giudizio, e va dato una volta a mano
   sui trentaquattro. Un'ora di lavoro di un amministratore, non del codice.
 - `faaCode`, `state`, `time_zone`, `status` restano scartati: nessuno li ha chiesti.
+- Il **viewer** dell'APP di LIBG non mostra ancora l'etichetta perché quel documento non esiste: l'editor sì, e
+  il viewer la mostrerà appena il documento c'è.
