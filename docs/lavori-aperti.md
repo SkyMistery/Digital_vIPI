@@ -150,10 +150,10 @@ smentirla è stato il registro degli errori — nato quella mattina proprio perc
 
 | | Chi | Dove sta scritto |
 |---|---|---|
-| nginx a solo reverse proxy + permessi | l'amministratore Plesk (messaggio già consegnato) | **A13** qui sotto |
+| ~~nginx a solo reverse proxy + permessi~~ ✅ **FATTO 25-ago**: i file non si scaricano più | — | **A13** qui sotto |
 | Conferma di «i» da un **socio senza incarichi** | il committente | **E9** |
 | Ripubblicare `libb/vipi` (due clic) | il committente | **B10-bis** |
-| Ruotare password DB e ClientSecret IVAO | Ivao.It, quando si potrà | **A13** |
+| **Ruotare password DB e ClientSecret IVAO** — 🔴 IN CORSO (credenziali nuove chieste il 25-ago) | il committente ↔ Ivao.It | **A13** |
 | Chi fa il backup di `itivao_atc` | Ivao.It, domanda ancora senza risposta | **A9**, **G** |
 
 ---
@@ -659,11 +659,39 @@ altrove è stata *convertita* da un passo esterno, la migrazione deve o portarsi
 **rifiutarsi di girare** se trova righe. Un `DROP` silenzioso su dati veri non è reversibile e non si accorge
 di nulla.
 
-### A13 🔴 URGENTE — la cartella dell'applicazione è servita dal web
+### A13 ✅ CHIUSO DALL'ESTERNO il 25 agosto 2026 (sera) — resta solo la rotazione
 
-**Trovato il 24 agosto 2026** mentre si indagava il 500 di E8, con `curl -I` sulla produzione. Il front
-server serve i file **direttamente dalla cartella dell'applicazione**: `public_atc` non è solo la radice
-dell'app, è anche il **document root** del sito.
+> **Aggiornamento 25 agosto 2026 (sera).** Il committente ha riferito che **l'hosting ha cambiato le
+> impostazioni di accesso**. Rimisurato dal vivo con `curl` (solo status code, non i corpi dei file
+> segreti):
+>
+> | URL | esito ORA |
+> |---|---|
+> | `/appsettings.Production.json`, `/appsettings.json`, `/appsettings.Development.json` | **404** |
+> | `/Vipi.Host.dll`, `/Vipi.Host.pdb` | **404** |
+> | `/diagnostica/avvio-diagnostica.txt`, `/diagnostica/errori-richieste.txt` | **404** |
+> | 7 varianti di aggiramento (`.JSON`, `//`, `/./`, `?x=1`, `%61`, maiuscole, `…/.`) | **404 tutte** |
+> | `/services/vsop` (GET reale) | **200** `text/html` |
+> | `/_content/Vipi.Ui/vipi-theme.css` | **200** — gli asset dell'app si servono ancora |
+>
+> **Il 404 nasce dall'ORIGINE, non dal CDN** (`cf-cache-status: DYNAMIC`, nessuna block-page Cloudflare):
+> è l'applicazione a rispondere «non esiste». Firma del fix: `/_content/…` dà 200 mentre i file alla radice
+> danno 404 ⇒ **ora tutte le richieste passano all'applicazione** invece di essere servite dal filesystem —
+> è la **strada n.1** («document root ≠ cartella app»), quella giusta, non il cerotto per oscurità. Novità:
+> davanti al sito ora c'è **Cloudflare** (`Server: cloudflare`), prima assente.
+>
+> ⚠️ **RESTA APERTO — rotazione dei segreti, IN CORSO.** Chiudere l'accesso oggi non annulla l'esposizione
+> 24→25 agosto: password DB e `ClientId`/`ClientSecret` IVAO sono stati pubblicamente scaricabili (e il repo
+> GitHub è pubblico). Il committente **ha chiesto le credenziali nuove il 25 agosto**; vanno considerati
+> compromessi finché non arrivano e non sono in opera. Vedi la riga «Ruotare…» nella tabella dei blocchi.
+>
+> ⚠️ **Igiene con la nuova architettura**: ora che c'è un CDN davanti, restringere l'ORIGINE ad accettare
+> solo il traffico Cloudflare (Authenticated Origin Pulls o whitelist IP CF), o chi conosce l'IP origine
+> aggira il WAF andando diretto. Oggi non sfruttabile (il 404 nasce dall'app), ma è la mossa corretta.
+
+**Storia — trovato il 24 agosto 2026** mentre si indagava il 500 di E8, con `curl -I` sulla produzione. Il
+front server serviva i file **direttamente dalla cartella dell'applicazione**: `public_atc` non era solo la
+radice dell'app, era anche il **document root** del sito. *(Non è più così dal 25 agosto — vedi sopra.)*
 
 | URL | esito misurato |
 |---|---|
@@ -687,10 +715,13 @@ file che nessuno carica non protegge niente.
 il nome è un GUID; ma è sicurezza per oscurità, e chi lo indovina **fabbrica un cookie di autenticazione
 valido per qualunque VID, admin compresi** — è scritto nel commento `DataProtection` di appsettings.
 
-**Le due strade giuste sono chiuse**, confermato dal committente il 24 agosto:
-1. ~~Ruotare i segreti~~ — **non si può fare**: la password del database la tiene Ivao.It, e le credenziali
-   dell'app IVAO non sono nostre da cambiare.
-2. ~~Chiedere a chi ha il pannello~~ — **non c'è una via alternativa**: chi aggiorna il sito ha solo l'FTP.
+**Le due strade giuste erano chiuse** al 24 agosto — **ENTRAMBE si sono riaperte** con la segnalazione a chi
+supervisiona it.ivao.aero (25 agosto):
+1. ~~Ruotare i segreti~~ → **IN CORSO**: il committente ha chiesto le credenziali nuove il 25 agosto (prima
+   «non si può fare», perché la password DB e l'app IVAO non erano nostre da cambiare — ora c'è un
+   interlocutore).
+2. ~~Chiedere a chi ha il pannello~~ → **FATTO**: chi ha segnalato il problema supervisiona il dominio e ha
+   cambiato le impostazioni di accesso (i file non si scaricano più — vedi l'aggiornamento in testa).
 
 **Il rimedio che resta, ed è quello messo in opera (pacchetto «f»).** Se il file non si può nascondere, si
 svuota: `SegretiFuoriDalWeb` unisce alla configurazione ogni `*.json` dentro la cartella `segreti/` accanto
@@ -699,11 +730,17 @@ all'eseguibile, **dopo** tutto il resto, quindi quei valori vincono su `appsetti
 cartelle, quindi un file si prende solo indovinandone il nome esatto. Istruzioni in
 [`../deploy/atc-ivao/LEGGIMI-SEGRETI.md`](../deploy/atc-ivao/LEGGIMI-SEGRETI.md).
 
-### A13-bis 🔴 Consegnato all'amministratore Plesk la sera del 24 agosto — in attesa
+### A13-bis ✅ RISOLTO il 25 agosto 2026 — l'accesso ai file è chiuso
 
-L'amministratore ha risposto che **non esiste nessuna cartella `public`** da usare come document root, e che
-la strada è **configurare nginx come solo reverse proxy verso Kestrel**, più una stretta ai permessi.
-Concordato; il messaggio è stato consegnato. Qui resta ciò che serve a chi riprende il filo.
+> **Esito.** Il criterio di verifica scritto più in basso («devono diventare 403/404 …») **è soddisfatto**:
+> misurato dall'esterno, i file sensibili danno 404 e il sito funziona (vedi la tabella in testa ad A13). La
+> soluzione adottata è quella giusta — le richieste passano tutte all'applicazione, il filesystem non è più
+> servito dalla radice — e non il cerotto per oscurità. Resta solo la **rotazione** dei segreti (A13, in corso).
+
+**Storia — consegnato all'amministratore la sera del 24 agosto.** Aveva risposto che **non esisteva nessuna
+cartella `public`** da usare come document root, e che la strada era **configurare nginx come solo reverse
+proxy verso Kestrel**, più una stretta ai permessi. Concordato e consegnato; risolto il 25 agosto. Qui resta
+ciò che è servito a chi ha ripreso il filo.
 
 **Misurato prima di chiederlo** (ed è la ragione per cui la modifica è meno rischiosa di quanto sembri): gli
 asset del sito (`/_content/Vipi.Ui/*`, i font) rispondono **già oggi con gli header di cache

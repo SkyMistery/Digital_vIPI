@@ -3,12 +3,18 @@ namespace Vipi.Host;
 /// <summary>
 /// Configurazione riservata letta da file che <b>non hanno un nome indovinabile</b>.
 ///
-/// <para><b>Perché esiste — misurato il 24 agosto 2026.</b> Su <c>atc.it.ivao.aero</c> la cartella
-/// dell'applicazione <b>è</b> il document root del sito: il server davanti serve i file da sé, prima del
-/// proxy, e <c>/appsettings.Production.json</c> risponde <b>200</b>. Dentro quel file stanno la password del
-/// database e le credenziali IVAO. Non è un difetto dell'applicazione — nessuna riga può intercettare una
-/// richiesta che non le arriva mai — e non si può chiudere né ruotando i segreti né dal pannello, che non
-/// c'è. Resta una sola strada: <b>far sì che il file scaricabile non contenga più niente di segreto</b>.</para>
+/// <para>✅ <b>Aggiornamento 25 agosto 2026:</b> l'hosting ha chiuso l'accesso ai file — la cartella dell'app
+/// non è più servita dal filesystem, le richieste passano tutte all'applicazione e i file alla radice
+/// rispondono 404 (verificato dall'esterno). Questo meccanismo <b>resta</b> lo stesso: tenere i segreti fuori
+/// da <c>appsettings.Production.json</c> è difesa in profondità, e l'assetto dell'hosting è già cambiato due
+/// volte — se cambia di nuovo, questo file non deve tornare a essere una miniera.</para>
+///
+/// <para><b>Perché esiste — misurato il 24 agosto 2026.</b> All'epoca, su <c>atc.it.ivao.aero</c> la cartella
+/// dell'applicazione <b>era</b> il document root del sito: il server davanti serviva i file da sé, prima del
+/// proxy, e <c>/appsettings.Production.json</c> rispondeva <b>200</b>. Dentro quel file stanno la password del
+/// database e le credenziali IVAO. Non era un difetto dell'applicazione — nessuna riga può intercettare una
+/// richiesta che non le arriva mai. La strada messa in opera: <b>far sì che il file scaricabile non contenga
+/// più niente di segreto</b>. ⚠️ I segreti esposti fino al 25 agosto vanno comunque ruotati.</para>
 ///
 /// <para><b>Come.</b> Ogni <c>*.json</c> dentro <see cref="Cartella"/> viene unito alla configurazione,
 /// <b>dopo</b> tutto il resto: quindi vince su <c>appsettings.Production.json</c>. Il nome del file lo
@@ -86,7 +92,7 @@ internal static class SegretiFuoriDalWeb
         if (connectionString.Contains(Segnaposto, StringComparison.OrdinalIgnoreCase))
             return $"La connection string «Vipi» contiene ancora il segnaposto «{Segnaposto}»: la password "
                  + $"vera va messa in un file .json dentro la cartella «{Cartella}» accanto all'eseguibile, "
-                 + "NON in appsettings.Production.json — quel file è scaricabile dal web.";
+                 + "NON in appsettings.Production.json — i segreti vanno tenuti fuori da quel file per principio.";
 
         return null;
     }
