@@ -467,3 +467,30 @@ catalogo, 230 aree, 37 release) — non su un database di comodo. ⚠️ Il file
 ⚠️ **Una cosa che la prova ha mostrato e nessun test avrebbe detto**: in quell'archivio ci sono già **4
 documenti** che nessun settore attivo raggiunge. Non li ha creati questo lavoro — c'erano — ma da oggi hanno
 un posto dove comparire.
+
+
+## §15 — La verifica live (Edge + puppeteer, skill `verifica-live`)
+
+App avviata su una copia del `vipi.db` di sviluppo e guidata in un browser vero. ⚠️ Le regressioni Blazor
+sono silenziose coi test verdi: qui si guarda quel che compare a schermo.
+
+| Superficie | Che cosa ha mostrato |
+|---|---|
+| `/services/vsop/admin/sector-structure` | sezione **«Orphan sectors 8»**, tabella con Sector/Why/Documents/Actions e il tasto **Remove** per riga. `LIBB_EU_CTR` porta in colonna i **tre** documenti che tocca — vIPI Brindisi e due vLOA: è il reverse-lookup nuovo, a schermo |
+| editor vIPI ACC di Brindisi | banner **«⚠️ Needs review (1) · republish · The published copy is behind the draft: Brindisi CS0 / Minime di vettoramento, … (+1) · closes by itself»**, e **nessun ✓** — è una riga calcolata |
+| `/services/vsop/versions` | pill **«republish (1)»** sulle due vLOA di Brindisi, accanto alle pill di release |
+| `/services/vsop/admin/diagnostics` | riquadro **Documents needing review**: «Published copy behind — 4», più «Last drift check: 25 Aug 2026 · 21:05Z» |
+| guardie di pagina | nessun letterale Razor non valutato, nessun errore in pagina, su tutte |
+
+**Il giro notturno ha girato davvero**, 100 secondi dopo l'avvio, e ha trovato **quattro derive vere** su
+documenti veri — non rumore: coordinamenti sulle due vLOA di Brindisi, minime/configurazioni sulla vIPI ACC,
+AoR/separazioni sull'APP di Pescara. Sono documenti pubblicati il cui contenuto è cambiato dopo l'ultima
+release: esattamente la cosa che questo progetto continua a scoprire a mano («⚠️ resta da RIPUBBLICARE i
+documenti» ricorre nelle note da mesi).
+
+⚠️ **Quel che la verifica live NON ha coperto, dichiarato**: il gesto «nascondi un subcenter **domestico**
+descritto da un documento» non è stato guidato fino in fondo dal browser — i tasti della pagina ACC sono
+dietro il lock di modifica e una conferma in linea, e il primo bersaglio libero era un ACC **estero senza
+documenti** (nasconderlo ha prodotto, correttamente, **zero** segnalazioni: la prova del non-rumore). Quel
+percorso resta coperto dal test d'integrazione `Un_Callsign_Nascosto_Apre_SectorHidden_Non_SectorGone` e
+dalla prova sui dati veri del §14, dove la distinzione sparito/nascosto è verificata sull'archivio reale.
