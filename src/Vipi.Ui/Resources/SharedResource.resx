@@ -858,8 +858,8 @@
   <data name="Stats_CoverageHint" xml:space="preserve"><value>Percentuale di tempo con almeno un controllore italiano in frequenza, per ora UTC e giorno della settimana. Le caselle vuote sono i buchi.</value></data>
   <data name="Stats_TopAirports" xml:space="preserve"><value>Aeroporti visti</value></data>
   <data name="Stats_ManagedAirports" xml:space="preserve"><value>Aeroporti gestiti</value></data>
-  <data name="Stats_ManagedAirportsHint" xml:space="preserve"><value>Voli in partenza o in arrivo dal campo che stavi coprendo. I sorvoli vettorati non compaiono qui, ma restano nei totali.</value></data>
-  <data name="Stats_ManagedAirportsNone" xml:space="preserve"><value>Nessuno: in questo periodo hai coperto solo posizioni d’area, che non dichiarano un aeroporto.</value></data>
+  <data name="Stats_ManagedAirportsHint" xml:space="preserve"><value>Voli in partenza o in arrivo dagli aeroporti che coprivi: quello scritto nel callsign per torre e avvicinamento, quelli dentro il poligono per i settori d’area. I sorvoli non compaiono qui, ma restano nei totali.</value></data>
+  <data name="Stats_ManagedAirportsNone" xml:space="preserve"><value>Nessuno in questo periodo: il traffico che hai gestito non risulta partito da o diretto a un aeroporto dei settori che coprivi.</value></data>
   <data name="Stats_SeenAirportsHint" xml:space="preserve"><value>I due capi del piano di volo di ogni traffico gestito, anche fuori Italia: da dove viene e dove va chi ti passa davanti.</value></data>
   <data name="Stats_TopAircraft" xml:space="preserve"><value>I tipi che vedi di più</value></data>
   <data name="Stats_Airport" xml:space="preserve"><value>Aeroporto</value></data>

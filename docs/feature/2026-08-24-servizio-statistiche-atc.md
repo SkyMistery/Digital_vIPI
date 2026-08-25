@@ -1032,7 +1032,7 @@ un'altra — e che tutt'e due servono.
 
 | | Chiave | Risposta a |
 |---|---|---|
-| **Aeroporti gestiti** | l'ICAO del **proprio callsign** | «quanto traffico ho fatto sui campi che coprivo» |
+| **Aeroporti gestiti** | l'ICAO del **proprio callsign** (torre/avvicinamento) o gli aeroporti **dentro il poligono** (area) | «quanto traffico ho fatto sui campi che coprivo» |
 | **Aeroporti visti** | i **due capi** del piano di volo di ogni traffico attribuito | «quali campi mi passano davanti» |
 
 Stanno **affiancate**, non su due righe della pagina: separate sarebbero state lette come «la stessa tabella
@@ -1054,22 +1054,52 @@ somma della colonna «Voli» degli aeroporti gestiti **non** è il totale dei vo
 ⚠️ Un **LIRF→LIRF** (circuito, rientro) conta **una** volta: il controllo è uno per tratta, non uno per capo.
 Nella tabella degli aeroporti visti la stessa tratta conta invece due volte, una per capo — ed è voluto lì.
 
-### 15.3 Perché un ACC non ha aeroporti gestiti
+### 15.3 Il campo di un settore d’area lo dice la geometria
 
-Il campo lo dichiara il **callsign**, via `TrafficStory.StationIcao`: solo `_TWR`, `_GND`, `_DEL`, `_APP`,
-`_DEP`, `_AFIS`. `LIRR_NE1_CTR` comincia per `LIRR`, che è una **FIR** — prenderla per un aeroporto farebbe
-nascere «arrivi a LIRR» che non esistono (è la stessa trappola già segnata al §13.1).
+Per le postazioni d’aeroporto il campo sta nel **callsign**, via `TrafficStory.StationIcao`: solo `_TWR`,
+`_GND`, `_DEL`, `_APP`, `_DEP`, `_AFIS`. `LIRR_NE1_CTR` comincia per `LIRR`, che è una **FIR** — prenderla
+per un aeroporto farebbe nascere «arrivi a LIRR» che non esistono (stessa trappola del §13.1).
 
-⚠️ E quali campi un settore d'area stesse **davvero** coprendo **non è registrato**: la copertura si calcola
-al momento del poll dall'albero dei settori online, e nelle righe di traffico non ne resta traccia. Chi
-volesse dare gli aeroporti gestiti anche ai CTR deve prima **scrivere** quel dato al poll, non dedurlo dopo.
+Per i settori d’area la risposta è **quali aeroporti cadono dentro il loro poligono**, con
+`PolygonGeometry.Contains` — la stessa funzione che usa l’attribuzione del traffico, non una seconda regola
+che si scollerebbe dalla prima.
 
-Quindi chi in un periodo ha fatto solo area vede l'elenco **vuoto, con una frase che dice perché**. Vuoto per
-un motivo, non per un buco: senza quella frase sembrerebbe un dato mancante.
+#### Perché la geometria e non l’albero dei settori
+
+L’alternativa era la catena `Airport.ParentCallsign` → `Sector.ParentSectorId`. È stata **misurata sul
+`vipi.db` vero**, non stimata, il 25 agosto 2026:
+
+| | Albero | Geometria |
+|---|---|---|
+| copertura | **31 aeroporti su 93** hanno un padre | **84 su 93** hanno le coordinate |
+| | **12 CTR su 140** hanno qualcosa sotto | **153 poligoni ACC su 153** |
+
+`Airport.ParentCallsign` è un campo che l’admin compila **a mano** in `/services/vsop/admin/sector-structure`,
+e a oggi è compilato per un terzo degli aeroporti: avrebbe dato un elenco vuoto a quasi tutte le sessioni
+d’area, cioè uno **zero che sembra un dato**. I nove aeroporti senza coordinate non sono invece una perdita:
+tre sono voci di FIR/TMA («Roma TMA», «Milano TMA», «Apulia») che aeroporti non sono, e i sei restanti sono
+campi minuscoli (Volterra, Piacenza, Classe, Casarsa, Tortolì, Parco Livenza).
+
+#### ⚠️ Il prezzo: i numeri passati possono cambiare
+
+Il poligono è quello di **oggi**. Una risettorizzazione sposta un confine e un turno di marzo guadagna o
+perde aeroporti. La tabella è quindi **stabile per torre e avvicinamento** (l’ICAO sta nel callsign, che è
+storia) e **rivedibile per l’area**.
+
+L’alternativa — due colonne su `AtcSessionTraffic` scritte al poll, che congelano il fatto — è stata
+**scartata dal committente il 25 agosto 2026**: vale solo da lì in avanti, lascia vuoto tutto lo storico già
+raccolto, e chiede una migrazione per un dato che cambia una volta ogni risettorizzazione. Chi la volesse in
+futuro trova qui il perché non c’è.
+
+#### Quando l’elenco resta vuoto
+
+Un settore d’area **senza poligono** non porta aeroporti, e non se li inventa dal prefisso. Stessa cosa se
+nessun capo del traffico gestito cade in area. In tutt’e due i casi la pagina lo **dice a parole**: un vuoto
+muto sembrerebbe un dato mancante.
 
 ### 15.4 Una nota sul costo
 
-`ManagedAirportsAsync` legge **prima le sessioni** e ricava il campo dal callsign, poi chiede all'archivio le
-sole righe di traffico delle sessioni che un campo ce l'hanno. Non è pignoleria: una notte di CTR altrimenti
-tirava su tutto il traffico del periodo per buttarlo riga per riga. `TopAirportsAsync` non può fare
-altrettanto — a lei servono tutte.
+`ManagedAirportsAsync` legge **prima le sessioni**, poi il traffico. Il punto-nel-poligono si calcola una
+volta per **settore** e non per tratta: sono un centinaio di aeroporti per una manciata di callsign, mentre
+le tratte di un anno sono decine di migliaia. Con l’ordine sbagliato — un `Contains` dentro il ciclo delle
+tratte — la stessa risposta costerebbe due ordini di grandezza in più.

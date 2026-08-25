@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Aor;
 using Vipi.Application.Stats;
 using Vipi.Domain.Entities;
 
@@ -194,12 +195,20 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
         PerChiave(userId, from, to, limit, aeroporti: false, ct);
 
     /// <summary>
-    /// Gli aeroporti del proprio callsign, col traffico da e per quel campo.
+    /// Gli aeroporti gestiti, col traffico da e per ciascuno. Il campo lo dice il <b>callsign</b> per le
+    /// postazioni d’aeroporto e la <b>geometria</b> per i settori d’area.
     ///
-    /// <para>⚠️ Le sessioni si leggono <b>prima</b> del traffico, e non per pigrizia: il campo lo dichiara il
-    /// callsign, e un settore d'area non ne dichiara nessuno. Ricavarlo qui permette di chiedere all'archivio
-    /// le sole righe che possono contare — chi ha fatto una notte di CTR non tira su niente invece di tirare
-    /// su tutto e buttarlo.</para>
+    /// <para>⚠️ Le due strade non sono un doppione: <c>LIRF_TWR</c> porta l’ICAO scritto nel nome, e quello
+    /// è storia — non cambierà mai più. <c>LIRR_NE_CTR</c> no, e per lui l’unica risposta possibile è
+    /// «quali aeroporti stanno dentro il mio poligono», che è il poligono di <b>oggi</b>: una risettorizzazione
+    /// cambia i numeri dei turni passati. Scelta consapevole del committente il 25 agosto 2026, contro
+    /// l’alternativa di congelare il dato al poll (§15 della carta).</para>
+    ///
+    /// <para>⚠️ Non si usa l’albero dei settori (<c>Airport.ParentCallsign</c>): è un campo che l’admin
+    /// compila a mano, e il 25 agosto 2026 lo avevano <b>31 aeroporti su 93</b>, con <b>12 CTR su 140</b>
+    /// che avessero qualcosa sotto. I poligoni invece ci sono tutti (153 su 153) e le coordinate le hanno
+    /// 84 aeroporti su 93 — i 9 che mancano sono voci di FIR/TMA («Roma TMA», «Milano TMA») e sei campi
+    /// minuscoli. Un elenco vuoto per metà della divisione sarebbe stato uno zero che sembra un dato.</para>
     /// </summary>
     public async Task<IReadOnlyList<StatsByKey>> ManagedAirportsAsync(
         int? userId, DateTimeOffset from, DateTimeOffset to, int limit = 15, CancellationToken ct = default)
@@ -207,32 +216,54 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
         var sessioni = await Contate(userId, from, to)
             .Select(s => new { s.SessionId, s.Callsign })
             .ToListAsync(ct);
+        if (sessioni.Count == 0) return Array.Empty<StatsByKey>();
 
-        var campi = new Dictionary<long, string>();
+        // Due famiglie di sessioni, due modi di sapere qual è il campo. Chi non ricade in nessuna delle due
+        // (un FSS senza poligono, un callsign storto) semplicemente non porta aeroporti.
+        var campoPerSessione = new Dictionary<long, string>();
+        var areaPerSessione = new Dictionary<long, string>();
         foreach (var s in sessioni)
-            if (TrafficStory.StationIcao(s.Callsign) is { } icao)
-                campi[s.SessionId] = icao;
+        {
+            if (TrafficStory.StationIcao(s.Callsign) is { } icao) campoPerSessione[s.SessionId] = icao;
+            else areaPerSessione[s.SessionId] = s.Callsign.Trim().ToUpperInvariant();
+        }
 
-        // Chi copre solo settori d'area non ha aeroporti gestiti: è una risposta, non un buco.
-        if (campi.Count == 0) return Array.Empty<StatsByKey>();
+        var dentroPerSettore = await AeroportiPerSettoreAsync(areaPerSessione.Values.ToHashSet(StringComparer.OrdinalIgnoreCase), ct);
 
-        var ids = campi.Keys.ToList();
+        var ids = campoPerSessione.Keys.Concat(areaPerSessione.Keys).Distinct().ToList();
         var righe = await _db.AtcSessionTraffic.AsNoTracking()
             .Where(t => ids.Contains(t.SessionId))
             .Select(t => new { t.SessionId, t.DepIcao, t.ArrIcao, t.SawMovement })
             .ToListAsync(ct);
 
         var conteggi = new Dictionary<string, (int Tratte, int Movimenti)>(StringComparer.OrdinalIgnoreCase);
+        var daAccreditare = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var t in righe)
         {
-            var campo = campi[t.SessionId];
+            // ⚠️ Un insieme, non due contatori: un LIRF→LIRF (circuito, rientro) è UNA tratta per LIRF, e
+            // lo stesso vale per un settore d’area che ha tutti e due i capi in casa.
+            daAccreditare.Clear();
 
-            // ⚠️ Da O per: un sorvolo vettorato mentre si copriva LIRF non è traffico «di» LIRF. E il
-            // controllo è UNO per tratta, non uno per capo: un LIRF→LIRF conta una volta sola.
-            if (!Uguale(t.DepIcao, campo) && !Uguale(t.ArrIcao, campo)) continue;
+            if (campoPerSessione.TryGetValue(t.SessionId, out var campo))
+            {
+                // Da O per: un sorvolo vettorato mentre si copriva LIRF non è traffico «di» LIRF.
+                if (Uguale(t.DepIcao, campo) || Uguale(t.ArrIcao, campo)) daAccreditare.Add(campo);
+            }
+            else if (areaPerSessione.TryGetValue(t.SessionId, out var settore)
+                     && dentroPerSettore.TryGetValue(settore, out var dentro))
+            {
+                // Stessa regola, ma «tuo» lo decide il poligono. I capi fuori area (EGLL, EDDF) restano fuori:
+                // sono traffico gestito, non traffico DI un tuo aeroporto.
+                if (Normale(t.DepIcao) is { } dep && dentro.Contains(dep)) daAccreditare.Add(dep);
+                if (Normale(t.ArrIcao) is { } arr && dentro.Contains(arr)) daAccreditare.Add(arr);
+            }
 
-            var v = conteggi.GetValueOrDefault(campo);
-            conteggi[campo] = (v.Tratte + 1, v.Movimenti + (t.SawMovement ? 1 : 0));
+            foreach (var k in daAccreditare)
+            {
+                var v = conteggi.GetValueOrDefault(k);
+                conteggi[k] = (v.Tratte + 1, v.Movimenti + (t.SawMovement ? 1 : 0));
+            }
         }
 
         return conteggi
@@ -242,6 +273,54 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
             .Take(Math.Max(1, limit))
             .ToList();
     }
+
+    /// <summary>
+    /// Per ogni callsign d’area chiesto, gli ICAO degli aeroporti che cadono dentro il suo poligono.
+    ///
+    /// <para>Il punto-nel-poligono è lo stesso di <c>PolygonGeometry</c> che usa l’attribuzione del traffico:
+    /// una seconda regola qui si scollerebbe dalla prima al primo cambiamento.</para>
+    ///
+    /// <para>⚠️ Si calcola una volta per <b>settore</b>, non per tratta: sono un centinaio di aeroporti per
+    /// una manciata di callsign, mentre le tratte di un anno sono decine di migliaia.</para>
+    /// </summary>
+    private async Task<IReadOnlyDictionary<string, HashSet<string>>> AeroportiPerSettoreAsync(
+        IReadOnlySet<string> callsigns, CancellationToken ct)
+    {
+        var vuoto = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+        if (callsigns.Count == 0) return vuoto;
+
+        var poligoni = await _db.AccSectors.AsNoTracking()
+            .Where(a => callsigns.Contains(a.ComposePosition) && a.RegionMapPolygon != null)
+            .Select(a => new { a.ComposePosition, a.RegionMapPolygon })
+            .ToListAsync(ct);
+        if (poligoni.Count == 0) return vuoto;
+
+        // ⚠️ Nove aeroporti su 93 non hanno coordinate, e non è un difetto da aggirare: tre sono voci di
+        // FIR/TMA («Roma TMA», «Milano TMA», «Apulia») che un aeroporto non lo sono, gli altri sei sono campi
+        // minuscoli. Restano fuori, e va bene così.
+        var aeroporti = await _db.Airports.AsNoTracking()
+            .Where(a => a.Latitude != null && a.Longitude != null)
+            .Select(a => new { a.Icao, Lat = a.Latitude!.Value, Lon = a.Longitude!.Value })
+            .ToListAsync(ct);
+
+        foreach (var p in poligoni)
+        {
+            var anello = PolygonGeometry.ToRing(p.RegionMapPolygon);
+            if (anello is null) continue;
+
+            var dentro = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var a in aeroporti)
+                if (PolygonGeometry.Contains(anello, a.Lat, a.Lon))
+                    dentro.Add(a.Icao.Trim().ToUpperInvariant());
+
+            if (dentro.Count > 0) vuoto[p.ComposePosition.Trim().ToUpperInvariant()] = dentro;
+        }
+
+        return vuoto;
+    }
+
+    private static string? Normale(string? icao) =>
+        string.IsNullOrWhiteSpace(icao) ? null : icao.Trim().ToUpperInvariant();
 
     private static bool Uguale(string? a, string b) =>
         !string.IsNullOrWhiteSpace(a) && string.Equals(a.Trim(), b, StringComparison.OrdinalIgnoreCase);

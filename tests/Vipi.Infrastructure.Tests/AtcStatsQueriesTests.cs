@@ -293,17 +293,133 @@ public class AtcStatsQueriesTests : IAsyncLifetime
         Assert.Equal(1, Assert.Single(await _q.ManagedAirportsAsync(704798, Anno.Da, Anno.A)).Sessions);
     }
 
+    /// <summary>⚠️ <c>AccSector.CenterId</c> è una FK verso <c>Acc.Code</c>: senza l’ACC il settore non entra.</summary>
+    private async Task<Acc> AccRoma()
+    {
+        var acc = await _db.Accs.FirstOrDefaultAsync(a => a.Code == "LIRR");
+        if (acc is not null) return acc;
+
+        acc = new Acc { Code = "LIRR", Name = "Roma", CountryPrefix = "LI" };
+        _db.Accs.Add(acc);
+        await _db.SaveChangesAsync();
+        return acc;
+    }
+
+    /// <summary>Un settore d’area, col suo poligono: è lui a dire quali aeroporti sono «suoi».</summary>
+    private async Task Area(string callsign, string poligono)
+    {
+        var acc = await AccRoma();
+        _db.AccSectors.Add(new AccSector
+        {
+            ComposePosition = callsign, CenterId = acc.Code, Position = "CTR",
+            RegionMapPolygon = poligono, LowerLimit = 0, UpperLimit = null,
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+    }
+
+    private async Task Aeroporto(string icao, double? lat, double? lon)
+    {
+        var acc = await AccRoma();
+        _db.Airports.Add(new Airport { Icao = icao, Name = icao, AccId = acc.Id, Latitude = lat, Longitude = lon });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+    }
+
     /// <summary>
-    /// ⚠️ <c>LIRR_NE1_CTR</c> è una FIR, non un aeroporto. Chi fa solo area non ha aeroporti gestiti, e
-    /// l’elenco vuoto è la risposta giusta — non un «LIRR» inventato dal prefisso.
+    /// Un quadratone 9–16°E × 39–46°N: dentro ci sta l’Italia centro-meridionale, fuori Londra.
+    /// ⚠️ Il JSON grezzo è <c>[lon,lat]</c> e <c>PolygonGeometry.ParsePoints</c> lo gira: leggerlo al
+    /// contrario fa un riquadro in mezzo all’oceano Indiano, e il test passa a vuoto.
+    /// </summary>
+    private const string Riquadro = "[[9,39],[16,39],[16,46],[9,46]]";
+
+    /// <summary>
+    /// ⚠️ <c>LIRR_NE1_CTR</c> è una FIR, non un aeroporto: il campo non può uscire dal callsign. Per un
+    /// settore d’area lo dice la GEOMETRIA — gli aeroporti dentro il suo poligono — e i capi fuori area
+    /// restano fuori dal conto.
     /// </summary>
     [Fact]
-    public async Task Un_settore_d_area_non_dichiara_nessun_aeroporto()
+    public async Task Un_settore_d_area_prende_gli_aeroporti_dentro_il_suo_poligono()
     {
+        await Area("LIRR_NE1_CTR", Riquadro);
+        await Aeroporto("LIRF", 41.8, 12.25);        // dentro
+        await Aeroporto("LIRN", 40.9, 14.29);        // dentro
+        await Aeroporto("EGLL", 51.47, -0.45);       // fuori: Londra
+
+        await Sessione(100, 704798, "LIRR_NE1_CTR", 3600);
+        await Tratta(100, "AZA123", "LIRF", "LIRN");
+        await Tratta(100, "BAW789", "LIRF", "EGLL", ordinale: 2);
+
+        var gestiti = await _q.ManagedAirportsAsync(704798, Anno.Da, Anno.A);
+
+        Assert.Equal(new[] { "LIRF", "LIRN" }, gestiti.Select(a => a.Key).OrderBy(x => x));
+        Assert.Equal(2, gestiti.Single(a => a.Key == "LIRF").Sessions);   // tutt’e due i voli partono da lì
+        Assert.Equal(1, gestiti.Single(a => a.Key == "LIRN").Sessions);
+    }
+
+    /// <summary>Come per la torre: due capi in casa sono UNA tratta, non due.</summary>
+    [Fact]
+    public async Task Per_un_settore_d_area_un_volo_interno_conta_una_volta_per_ciascun_capo()
+    {
+        await Area("LIRR_NE1_CTR", Riquadro);
+        await Aeroporto("LIRF", 41.8, 12.25);
+
+        await Sessione(100, 704798, "LIRR_NE1_CTR", 3600);
+        await Tratta(100, "IGAAA", "LIRF", "LIRF");      // circuito: stesso campo ai due capi
+
+        Assert.Equal(1, Assert.Single(await _q.ManagedAirportsAsync(704798, Anno.Da, Anno.A)).Sessions);
+    }
+
+    /// <summary>
+    /// ⚠️ Un settore senza poligono non può dire quali aeroporti copre, e non se li inventa dal prefisso:
+    /// «LIRR» sarebbe una FIR spacciata per aeroporto.
+    /// </summary>
+    [Fact]
+    public async Task Un_settore_d_area_senza_poligono_non_porta_aeroporti()
+    {
+        await Aeroporto("LIRF", 41.8, 12.25);
         await Sessione(100, 704798, "LIRR_NE1_CTR", 3600);
         await Tratta(100, "AZA123", "LIRF", "LIRN");
 
         Assert.Empty(await _q.ManagedAirportsAsync(704798, Anno.Da, Anno.A));
+    }
+
+    /// <summary>
+    /// ⚠️ Nove aeroporti su 93 non hanno coordinate, e tre di quelli sono voci di FIR/TMA («Roma TMA»).
+    /// Senza coordinate non si sa se stanno dentro: restano fuori, non entrano per difetto.
+    /// </summary>
+    [Fact]
+    public async Task Un_aeroporto_senza_coordinate_non_entra_in_nessun_settore()
+    {
+        await Area("LIRR_NE1_CTR", Riquadro);
+        await Aeroporto("LIRF", 41.8, 12.25);
+        await Aeroporto("LIRR", null, null);            // «Roma TMA»: non è un aeroporto
+
+        await Sessione(100, 704798, "LIRR_NE1_CTR", 3600);
+        await Tratta(100, "AZA123", "LIRF", "LIRR");
+
+        Assert.Equal("LIRF", Assert.Single(await _q.ManagedAirportsAsync(704798, Anno.Da, Anno.A)).Key);
+    }
+
+    /// <summary>Le due strade convivono nello stesso periodo: una torre e un’area, sommate per aeroporto.</summary>
+    [Fact]
+    public async Task Torre_e_area_finiscono_nella_stessa_tabella()
+    {
+        await Area("LIRR_NE1_CTR", Riquadro);
+        await Aeroporto("LIRF", 41.8, 12.25);
+        await Aeroporto("LIRN", 40.9, 14.29);
+
+        await Sessione(100, 704798, "LIRF_TWR", 3600);
+        await Tratta(100, "AZA123", "LIRF", "LIRN");
+
+        await Sessione(200, 704798, "LIRR_NE1_CTR", 3600, giorniFa: 1);
+        await Tratta(200, "AZA456", "LIRF", "LIRN");
+
+        var gestiti = await _q.ManagedAirportsAsync(704798, Anno.Da, Anno.A);
+
+        // LIRF: una tratta dalla torre + una dall’area. LIRN: solo quella dell’area (la torre è di LIRF).
+        Assert.Equal(2, gestiti.Single(a => a.Key == "LIRF").Sessions);
+        Assert.Equal(1, gestiti.Single(a => a.Key == "LIRN").Sessions);
     }
 
     /// <summary>Le posizioni che un campo lo dichiarano davvero, tutte e sei.</summary>
