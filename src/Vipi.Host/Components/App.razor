@@ -23,7 +23,13 @@
     <link rel="stylesheet" href="@AssetVersion.Url("Vipi.Host.styles.css")" />
     <!-- Reset di pagina dell'host standalone: il modulo non tocca più body/html (stili confinati in .vipi-root). -->
     <style>html,body{height:100%;margin:0;background:var(--bg)}</style>
-    <link rel="icon" type="image/png" href="favicon.png" />
+    @* Il simbolo di IVAO Italia. ⚠️ Sta nel wwwroot dell'HOST e non nella RCL: la favicon è del SITO, non
+       del modulo — quando la vIPI viene inserita in ivao.it è il loro <head> a portare la propria (si vede
+       in docs/guide/ivao-it-wiring.patch), e una favicon dentro `_content/Vipi.Ui/` non servirebbe a
+       nessuno dei due.
+       ⚠️ Passa da `AssetVersion` come ogni altro asset: le favicon restano in cache per giorni, e senza
+       impronta chi ha già visitato il sito continuerebbe a vedere quella di prima anche dopo il deploy. *@
+    <link rel="icon" type="image/x-icon" href="@AssetVersion.Url("favicon.ico")" />
     @* Tema scelto dall'utente (automatico/chiaro/scuro). Come lo zoom: in un FILE e non inline (la CSP),
        nel <head> e senza `defer`. Qui l'urgenza è maggiore che per lo zoom — senza, chi ha scelto il tema
        scuro vede un lampo BIANCO a ogni caricamento, cioè tutta la pagina e non la sua dimensione.
