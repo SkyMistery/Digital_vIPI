@@ -40,7 +40,10 @@ else
                 <PrintMeta Title="@_displayName" Subtitle="@($"{_app} · {L["Appn_Subtitle"]}")"
                            AiracCycle="@Cycle()" />
                 <div class="doc-head">
-                    <div><h1 class="page-h1" style="margin-bottom:2px">@_displayName</h1><span class="muted">@_app · @L["Appn_Subtitle"]</span></div>
+                    @* L'APP di uno scalo militare porta la stessa etichetta del suo aeroporto: chi legge questo
+                       documento sta guardando quel campo, e l'informazione non deve dipendere da quale dei due
+                       documenti ha aperto. *@
+                    <div><h1 class="page-h1" style="margin-bottom:2px">@_displayName <MilitaryTag HasMilitaryPresence="_mil?.HasMilitaryPresence ?? false" IsMilitaryOnly="_mil?.IsMilitaryOnly ?? false" /></h1><span class="muted">@_app · @L["Appn_Subtitle"]</span></div>
                     <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
                         <a class="btn ghost" href="/services/vsop/live/@_app.ToLowerInvariant()">@L["Common_Operational"]</a>
@@ -156,6 +159,9 @@ else
     private AccInfo? _acc;
     private string _app = "";
     private string _displayName = "";
+    // L'aeroporto di questo APP (dalla testa del callsign) con la sua anagrafica militare: null per gli APP
+    // di ACC, che non descrivono uno scalo.
+    private Vipi.Application.Content.AirportStation? _mil;
     private bool _canEdit;
 
     // Storage APP su Document (doc 08e): struttura + editoriale dal DocumentView; derivate frozen (release effettiva) o
@@ -227,6 +233,7 @@ else
         var identity = await AppDoc.GetIdentityAsync(_app);
         if (identity is null) return;   // callsign non è un APP standalone
         _displayName = string.IsNullOrWhiteSpace(identity.Title) ? _app : identity.Title;
+        _mil = Stations.AirportOfCallsign(_app);
         _canEdit = await Authz.CanEditAccAsync(identity.AccCode);
 
         // Vista documentale (struttura + editoriale). Le derivate restano vuote nel view → rese live sotto.

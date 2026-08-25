@@ -32,6 +32,6 @@ public sealed class EfStationDirectory : IStationDirectory
     // Tutti gli aeroporti col codice ACC di competenza (per il conteggio ATC online d'aeroporto).
     public IReadOnlyList<AirportStation> ListAirports() =>
         _db.Airports.AsNoTracking()
-            .Select(a => new AirportStation(a.Icao, a.Acc!.Code))
+            .Select(a => new AirportStation(a.Icao, a.Acc!.Code, a.HasMilitaryPresence, a.IsMilitaryOnly))
             .ToList();
 }

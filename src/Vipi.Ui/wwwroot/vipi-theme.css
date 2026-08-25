@@ -825,6 +825,9 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .onl-badge.off{background:var(--surface-muted);color:var(--ink-dim)}.onl-badge.off .dot{background:var(--grey-mid)}
 /* Riga della pill militare sulla card d'aeroporto: sta fra il nome e il meteo, e non deve toccarli. */
 .apt-mil{margin:6px 0 0}
+/* L'etichetta militare accanto al titolo di un documento: staccata dal nome e allineata al suo mezzo, o
+   appoggiata alla linea di base sembrerebbe caduta. */
+.mil-tag{margin-left:8px;vertical-align:middle}
 .apt-wx{display:flex;flex-wrap:wrap;gap:10px 14px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}
 .apt-wx>span{flex:1 1 40%;display:flex;flex-direction:column;gap:2px;font-size:13.5px}
 .apt-wx .wx-k{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft)}

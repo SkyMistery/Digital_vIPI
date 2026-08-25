@@ -56,14 +56,6 @@ public sealed class AirportData
     public required string Name { get; init; }
     public required string AccCode { get; init; }
     public int? TransitionAltitudeFt { get; init; }
-
-    /// <summary>Dalla sorgente: c'è una base militare sull'aeroporto. ⚠️ Non vuol dire «aeroporto militare» —
-    /// è vero anche per Linate, Pisa, Ciampino, Catania, Elmas, Lamezia e Rimini. Anagrafica, non profilo
-    /// editoriale: non entra nello snapshot di release e non si edita da qui.</summary>
-    public bool HasMilitaryPresence { get; init; }
-
-    /// <summary>Scelta di un amministratore: nessun traffico civile. Vedi <see cref="HasMilitaryPresence"/>.</summary>
-    public bool IsMilitaryOnly { get; init; }
     public required IReadOnlyList<TlRow> TransitionLevels { get; init; }
     public required IReadOnlyList<RunwayRow> Runways { get; init; }
     public required IReadOnlyList<RunwayRuleRow> Rules { get; init; }

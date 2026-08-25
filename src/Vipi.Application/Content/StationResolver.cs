@@ -6,7 +6,11 @@ namespace Vipi.Application.Content;
 public sealed record AccInfo(string Code, string Name);
 
 /// <summary>Aeroporto con l'ACC di competenza (per mappare i callsign d'aeroporto al loro ACC).</summary>
-public sealed record AirportStation(string Icao, string AccCode);
+/// <param name="HasMilitaryPresence">Dalla sorgente: c'è una base militare sul campo. ⚠️ Non vuol dire
+/// «aeroporto militare» — è vero anche per Linate, Pisa, Ciampino.</param>
+/// <param name="IsMilitaryOnly">Scelta di un amministratore: nessun traffico civile.</param>
+public sealed record AirportStation(string Icao, string AccCode,
+    bool HasMilitaryPresence = false, bool IsMilitaryOnly = false);
 
 /// <summary>
 /// Contatore di processo del CATALOGO delle stazioni: sale di uno ogni volta che l'elenco degli ACC
@@ -49,6 +53,21 @@ public interface IStationResolver
     /// oppure per testa = ICAO di un aeroporto (es. LIRP_TWR → l'ACC di LIRP). Null se non riconosciuto.</summary>
     AccInfo? ResolveByCallsign(string callsign);
 
+    /// <summary>
+    /// Anagrafica militare di un aeroporto, per le testate dei documenti che lo riguardano. Null se l'ICAO non è
+    /// un aeroporto in archivio.
+    /// <para>Sta qui e non su un servizio a parte perché la mappa degli aeroporti è <b>già</b> in cache e la
+    /// scalda il layout: una testata non deve interrogare il database mentre si disegna.</para>
+    /// </summary>
+    AirportStation? Airport(string? icao);
+
+    /// <summary>
+    /// L'aeroporto di un callsign, dalla sua testa: <c>LIBG_APP</c> → LIBG, <c>LIPE_W_APP</c> → LIPE. Null se la
+    /// testa non è un aeroporto in archivio — ed è il caso normale per gli APP di ACC (<c>LIRR_APP</c>: la testa
+    /// è un centro, non uno scalo), che infatti non descrivono nessun aeroporto.
+    /// </summary>
+    AirportStation? AirportOfCallsign(string? callsign);
+
     /// <summary>Forza il caricamento delle cache (ACC + mappa aeroporti→ACC) FUORI dal render. Va chiamato dal
     /// ciclo di vita async della pagina prima di usare <see cref="ResolveByCallsign"/> nel render: evita che il
     /// lazy-load colpisca il DbContext condiviso durante il render (crash "second operation" su Postgres).</summary>
@@ -61,7 +80,7 @@ public sealed class StationResolver : IStationResolver
     private readonly IStationDirectory _dir;
     private readonly IStationCatalogVersion _version;
     private IReadOnlyList<AccInfo>? _cache;
-    private Dictionary<string, string>? _airportToAcc;   // ICAO → codice ACC
+    private Dictionary<string, AirportStation>? _airports;   // ICAO → aeroporto (ACC + anagrafica militare)
     private int _cachedAt = -1;                          // versione del catalogo con cui le cache furono riempite
 
     public StationResolver(IStationDirectory dir, IStationCatalogVersion version)
@@ -81,7 +100,7 @@ public sealed class StationResolver : IStationResolver
         var v = _version.Current;
         if (v == _cachedAt) return;
         _cache = null;
-        _airportToAcc = null;
+        _airports = null;
         _cachedAt = v;
     }
 
@@ -90,22 +109,33 @@ public sealed class StationResolver : IStationResolver
         get { ScadiSeVecchia(); return _cache ??= _dir.ListAccs(); }
     }
 
-    private Dictionary<string, string> AirportToAcc
+    private Dictionary<string, AirportStation> Airports
     {
         get
         {
             ScadiSeVecchia();
-            return _airportToAcc ??= _dir.ListAirports()
+            return _airports ??= _dir.ListAirports()
                 .GroupBy(a => a.Icao, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(g => g.Key, g => g.First().AccCode, StringComparer.OrdinalIgnoreCase);
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
         }
+    }
+
+    public AirportStation? Airport(string? icao) =>
+        string.IsNullOrWhiteSpace(icao) ? null : Airports.GetValueOrDefault(icao.Trim().ToUpperInvariant());
+
+    public AirportStation? AirportOfCallsign(string? callsign)
+    {
+        var c = (callsign ?? "").Trim();
+        if (c.Length == 0) return null;
+        var testa = c.Contains('_') ? c[..c.IndexOf('_')] : c;
+        return Airport(testa);
     }
 
     public AccInfo? Resolve(string accCode) =>
         Accs.FirstOrDefault(a => a.Code.Equals(accCode, StringComparison.OrdinalIgnoreCase));
 
     // Scalda entrambe le cache in una volta (chiamata dal ciclo di vita async, context libero e sequenziale).
-    public void Prewarm() { _ = Accs; _ = AirportToAcc; }
+    public void Prewarm() { _ = Accs; _ = Airports; }
 
     public AccInfo? ResolveByCallsign(string callsign)
     {
@@ -113,6 +143,6 @@ public sealed class StationResolver : IStationResolver
         var i = callsign.IndexOf('_');
         var head = i > 0 ? callsign[..i] : callsign;
         return Resolve(head)                                                   // testa = codice ACC
-            ?? (AirportToAcc.TryGetValue(head, out var acc) ? Resolve(acc) : null);   // testa = ICAO aeroporto → suo ACC
+            ?? (Airports.TryGetValue(head, out var apt) ? Resolve(apt.AccCode) : null);   // testa = ICAO aeroporto → suo ACC
     }
 }

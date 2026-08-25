@@ -45,7 +45,7 @@ else
            col nome dell'ACC è sparito: lo dice il pangrattato due righe sopra. *@
         <div class="editor-bar">
             <div class="doc-head st-head" style="margin:0">
-                <h1 class="st-h2 page-h1">✎ @L["Ape_EditorTitle"] @_icao</h1>
+                <h1 class="st-h2 page-h1">✎ @L["Ape_EditorTitle"] @_icao <MilitaryTag HasMilitaryPresence="_mil?.HasMilitaryPresence ?? false" IsMilitaryOnly="_mil?.IsMilitaryOnly ?? false" /></h1>
                 <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_HelpAria"]" ExtraClass="wide">
                     @((MarkupString)L["Ape_HelpBody"].Value)
                 </HelpHint>
@@ -825,6 +825,9 @@ else
     [SupplyParameterFromQuery] public string? Icao { get; set; }
     private AccInfo? _acc;
     private string _icao = "LIRF";
+    // Anagrafica militare dello scalo, per l'etichetta in testata. Dal resolver, la cui mappa è già in cache
+    // e scaldata dal layout: una testata non deve interrogare il database mentre si disegna.
+    private Vipi.Application.Content.AirportStation? _mil;
     private string? _loadedIcao;
     private readonly HashSet<string> _dirtySections = new();   // sezioni con modifiche non salvate (scroll unico)
     private DotNetObjectReference<AeroportoEditorPage>? _selfRef;
@@ -938,6 +941,7 @@ else
         _acc = Stations.Resolve(Acc);
         if (_acc is null) return;
         _icao = string.IsNullOrWhiteSpace(Icao) ? "LIRF" : Icao.ToUpperInvariant();
+        _mil = Stations.Airport(_icao);
 
         // Ricarica i buffer solo quando cambia l'aeroporto.
         if (_loadedIcao != _icao)

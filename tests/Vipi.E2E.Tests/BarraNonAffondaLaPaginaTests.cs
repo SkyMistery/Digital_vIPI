@@ -131,6 +131,9 @@ public sealed class BarraNonAffondaLaPaginaTests
         public void Prewarm() => Prewarmed = true;
         public AccInfo? Resolve(string accCode) => null;
         public AccInfo? ResolveByCallsign(string callsign) => null;
+        // Questo finto catalogo esiste per registrare l'ORDINE delle chiamate, non per risolvere aeroporti.
+        public AirportStation? Airport(string? icao) => null;
+        public AirportStation? AirportOfCallsign(string? callsign) => null;
     }
 
     /// <summary>Il catalogo non si legge: è il database che non risponde.</summary>
@@ -141,6 +144,10 @@ public sealed class BarraNonAffondaLaPaginaTests
         public void Prewarm() => throw Giu();
         public AccInfo? Resolve(string accCode) => throw Giu();
         public AccInfo? ResolveByCallsign(string callsign) => throw Giu();
+        // Anche queste cadono: il punto del test è che la pagina regga un catalogo che NON risponde, e
+        // un'eccezione in meno qui sarebbe una prova più debole.
+        public AirportStation? Airport(string? icao) => throw Giu();
+        public AirportStation? AirportOfCallsign(string? callsign) => throw Giu();
     }
 
     private static async Task Assert200(string percorso, HttpResponseMessage res)

@@ -66,15 +66,9 @@ else if (_listMode)
                             <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? L["Common_OnlineN", n] : L["Common_Offline"])</span>
                         </div>
                         <p class="muted">@ap.Name</p>
-                        @* Due etichette diverse: la sorgente sa dire solo «c'è una base», e scrivere «militare»
-                           su Linate o Pisa sarebbe falso. *@
-                        @if (ap.IsMilitaryOnly)
+                        @if (ap.HasMilitaryPresence)
                         {
-                            <p class="apt-mil"><span class="pill amber"><Icon Name="shield" Size="11" /> @L["Apt_MilitaryOnly"]</span></p>
-                        }
-                        else if (ap.HasMilitaryPresence)
-                        {
-                            <p class="apt-mil"><span class="pill neutral"><Icon Name="shield" Size="11" /> @L["Apt_MilitaryPresence"]</span></p>
+                            <p class="apt-mil"><MilitaryTag HasMilitaryPresence="ap.HasMilitaryPresence" IsMilitaryOnly="ap.IsMilitaryOnly" /></p>
                         }
                         @if (_wxMini.TryGetValue(ap.Icao, out var wx))
                         {
@@ -130,14 +124,7 @@ else
                     <div>
                         <h2 style="margin-bottom:2px">
                             @_view.Title
-                            @if (_militaryOnly)
-                            {
-                                <span class="pill amber" title="@L["Apt_MilitaryOnlyTitle"]"><Icon Name="shield" Size="11" /> @L["Apt_MilitaryOnly"]</span>
-                            }
-                            else if (_militaryPresence)
-                            {
-                                <span class="pill neutral" title="@L["Apt_MilitaryPresenceTitle"]"><Icon Name="shield" Size="11" /> @L["Apt_MilitaryPresence"]</span>
-                            }
+                            <MilitaryTag HasMilitaryPresence="_militaryPresence" IsMilitaryOnly="_militaryOnly" />
                         </h2>
                         <span class="muted">@L["Airport_SubtitlePrefix"] · @_acc.Name</span>
                     </div>
@@ -593,8 +580,9 @@ else
         _taf = string.IsNullOrWhiteSpace(_wx?.Taf) ? null : MetarParser.ParseTaf(_wx!.Taf!);
 
         _profile = await Profile.LoadForViewAsync(_icao);
-        _militaryPresence = _profile?.HasMilitaryPresence ?? false;
-        _militaryOnly = _profile?.IsMilitaryOnly ?? false;
+        var anagrafica = Stations.Airport(_icao);
+        _militaryPresence = anagrafica?.HasMilitaryPresence ?? false;
+        _militaryOnly = anagrafica?.IsMilitaryOnly ?? false;
         // Anteprima RELEASE: il profilo strutturato è sempre live (non congelato nello snapshot) → in release lo
         // ignoriamo e mostriamo piste/TA/TL dal DocumentView CONGELATO del ciclo, coerente col resto del documento.
         if (_mode.Kind == PreviewKind.Release) _profile = null;
