@@ -335,4 +335,81 @@ public class ReleaseRepositoryTests : IAsyncLifetime
         Assert.Equal(2, rest.VersionNumber);
         Assert.Equal(ReleaseStatus.Effective, rest.Status);   // e lo stato di B è riallineato al fatto
     }
+
+    /// <summary>
+    /// L'anello mancante della pulizia immagini: la potatura e l'annullo di una release non passavano da
+    /// <c>DeleteOrphansAsync</c>, quindi una foto citata SOLO da release rimosse restava nel deposito per
+    /// sempre (la scoprivi soltanto dall'analisi manuale in admin). La liberazione resta prudente: decide
+    /// <c>DeleteOrphansAsync</c>, che ricontrolla tutte le sorgenti — qui il blocco bozza cita ancora
+    /// la SECONDA foto, che infatti sopravvive.
+    /// </summary>
+    [Fact]
+    public async Task Prune_And_Cancel_Free_Images_Cited_Only_By_Removed_Releases()
+    {
+        const string shaSoloRelease = "1111111111111111111111111111111111111111111111111111111111111111";
+        const string shaAncheInBozza = "2222222222222222222222222222222222222222222222222222222222222222";
+        _db.MediaAssets.Add(new MediaAsset { Sha256 = shaSoloRelease, ContentType = "image/png", ByteSize = 1, Bytes = new byte[] { 1 }, CreatedUtc = DateTime.UtcNow });
+        _db.MediaAssets.Add(new MediaAsset { Sha256 = shaAncheInBozza, ContentType = "image/png", ByteSize = 1, Bytes = new byte[] { 2 }, CreatedUtc = DateTime.UtcNow });
+        var sec = await _db.DocumentSections.FirstAsync();
+        _db.ContentBlocks.Add(new ContentBlock
+        {
+            DocumentVersionId = sec.DocumentVersionId, SectionId = sec.Id, Order = 8,
+            Format = BlockFormat.Image, Tier = BlockTier.Extended, Visibility = BlockVisibility.Always,
+            BodyJson = Vipi.Application.Content.MediaRef.Serialize(new Vipi.Application.Content.MediaRef(shaAncheInBozza, "Ancora usata", 10, 10)),
+            RowVersion = Guid.NewGuid().ToByteArray(),
+        });
+        await _db.SaveChangesAsync();
+
+        var key = _docId.ToString();
+        var now = DateTime.UtcNow;
+        var payload = $"{{\"foto\":[\"{shaSoloRelease}\",\"{shaAncheInBozza}\"]}}";
+
+        // Due release vecchie col payload che cita le foto + una attuale pulita: la potatura toglie le vecchie.
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2401", now.AddDays(-400), payload, 1, "vecchia");
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2606", now.AddDays(-1),
+            (await _repo.SnapshotWorkingAsync(ReleaseTargetType.Vloa, key, "2606"))!, 1, "attuale");
+        Assert.Equal(1, await _repo.PruneReleasesAsync(ReleaseTargetType.Vloa, key, now.AddDays(-100)));
+
+        Assert.Null(await _db.MediaAssets.AsNoTracking().FirstOrDefaultAsync(m => m.Sha256 == shaSoloRelease));   // liberata
+        Assert.NotNull(await _db.MediaAssets.AsNoTracking().FirstOrDefaultAsync(m => m.Sha256 == shaAncheInBozza)); // ancora citata dal blocco
+
+        // Annullo dell'attuale: il suo payload (lo snapshot vero) cita shaAncheInBozza? No — quindi qui si
+        // verifica solo che l'annullo passi dallo stesso anello senza rompere nulla di citato altrove.
+        var relId = await _db.DocReleases.Where(r => r.TargetKey == key).Select(r => r.Id).FirstAsync();
+        await _repo.CancelAsync(relId);
+        Assert.NotNull(await _db.MediaAssets.AsNoTracking().FirstOrDefaultAsync(m => m.Sha256 == shaAncheInBozza));
+    }
+
+    /// <summary>
+    /// Eliminare un documento cancella versioni e blocchi via cascade EF — senza passare da
+    /// EliminaVersioneAsync, quindi senza la sua scansione sha — e porta via anche le release del bersaglio:
+    /// prima nessuno liberava le foto citate solo lì. Ora DeleteAsync raccoglie gli sha PRIMA (blocchi di
+    /// tutte le versioni + payload delle release) e in coda lascia decidere a DeleteOrphansAsync.
+    /// </summary>
+    [Fact]
+    public async Task DeleteDocument_Frees_Images_Cited_Only_By_It()
+    {
+        const string sha = "3333333333333333333333333333333333333333333333333333333333333333";
+        _db.MediaAssets.Add(new MediaAsset { Sha256 = sha, ContentType = "image/png", ByteSize = 1, Bytes = new byte[] { 3 }, CreatedUtc = DateTime.UtcNow });
+        var sec = await _db.DocumentSections.FirstAsync();
+        _db.ContentBlocks.Add(new ContentBlock
+        {
+            DocumentVersionId = sec.DocumentVersionId, SectionId = sec.Id, Order = 7,
+            Format = BlockFormat.Image, Tier = BlockTier.Extended, Visibility = BlockVisibility.Always,
+            BodyJson = Vipi.Application.Content.MediaRef.Serialize(new Vipi.Application.Content.MediaRef(sha, "Solo qui", 10, 10)),
+            RowVersion = Guid.NewGuid().ToByteArray(),
+        });
+        await _db.SaveChangesAsync();
+
+        var key = _docId.ToString();
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "2606", DateTime.UtcNow.AddDays(-1),
+            (await _repo.SnapshotWorkingAsync(ReleaseTargetType.Vloa, key, "2606"))!, 1, null);
+
+        var admin = TestReleaseTargets.AdminRepo(_db);
+        await admin.DeleteAsync(new Vipi.Application.Content.ManagedDocRef(Vipi.Application.Content.ManagedDocKind.Vloa, key, _docId), actorUserId: 1);
+
+        Assert.Empty(await _db.DocReleases.AsNoTracking().Where(r => r.TargetKey == key).ToListAsync());
+        Assert.Null(await _db.Documents.AsNoTracking().FirstOrDefaultAsync(d => d.Id == _docId));
+        Assert.Null(await _db.MediaAssets.AsNoTracking().FirstOrDefaultAsync(m => m.Sha256 == sha));   // liberata
+    }
 }

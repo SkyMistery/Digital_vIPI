@@ -87,11 +87,11 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     [Fact]
     public async Task PublishNow_Non_Lascia_Release_Se_La_Promozione_Fallisce()
     {
-        var vero = new EfReleaseRepository(_db, Registry());
+        var vero = new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db));
         var svc = new ReleaseService(new RepoCheRompeAllaPromozione(vero), new AllowAuthz(),
             new Vipi.Domain.Services.AiracService(),
             new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()),
-            new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
+            new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
             new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
             Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()),
             new EfUnitOfWork(_db));
@@ -107,7 +107,7 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     [Fact]
     public async Task Engine_Snapshots_And_Authorizes_UnknownType_ViaDescriptorOnly()
     {
-        var repo = new EfReleaseRepository(_db, Registry());
+        var repo = new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db));
 
         var json = await repo.SnapshotWorkingAsync(FakeType, "qualsiasi-chiave", "2606");
         Assert.NotNull(json);
@@ -119,7 +119,7 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     [Fact]
     public async Task AdminList_Describes_UnknownType_ViaDescriptorOnly()
     {
-        var admin = new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry()));
+        var admin = new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db));
 
         var all = await admin.ListAsync();
         var m = Assert.Single(all);
@@ -131,9 +131,9 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     [Fact]
     public async Task ReleaseService_PublishPreviewDiff_UnknownType_ViaDescriptorOnly()
     {
-        var repo = new EfReleaseRepository(_db, Registry());
+        var repo = new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db));
         var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
-            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
+            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
             new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
             Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()), new EfUnitOfWork(_db));
 
@@ -163,9 +163,9 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     [Fact]
     public async Task Backfill_Creates_Effective_Release_For_Published_Without_One_And_Is_Idempotent()
     {
-        var repo = new EfReleaseRepository(_db, Registry());
+        var repo = new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db));
         var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
-            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
+            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
             new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
             Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()), new EfUnitOfWork(_db));
 
@@ -187,8 +187,8 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         // Retention versioni con cap=1: dopo ogni PublishNow (che archivia la versione precedente) le Archived
         // devono restare esattamente 1, NON 2. Regressione off-by-one: se il prune Archived gira prima della
         // promozione della bozza, conta una versione in meno e ne lascia N+1.
-        var svc = new ReleaseService(new EfReleaseRepository(_db, Registry()), new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
-            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
+        var svc = new ReleaseService(new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
+            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
             new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
             Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions { KeepArchivedVersionsPerDocument = 1 }), new EfUnitOfWork(_db));
 
@@ -212,9 +212,9 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     [Fact]
     public async Task Publish_Rifiutato_Se_Il_Documento_E_In_Modifica_Da_Un_Altro()
     {
-        var repo = new EfReleaseRepository(_db, Registry());
+        var repo = new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db));
         var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
-            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
+            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
             new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
             Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()), new EfUnitOfWork(_db));
 

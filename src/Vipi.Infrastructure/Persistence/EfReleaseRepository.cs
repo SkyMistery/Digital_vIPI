@@ -15,10 +15,25 @@ public sealed class EfReleaseRepository : IReleaseRepository
 {
     private readonly VipiDbContext _db;
     private readonly IReleaseTargetRegistry _targets;
-    public EfReleaseRepository(VipiDbContext db, IReleaseTargetRegistry targets)
+    private readonly Vipi.Application.Media.IMediaMaintenance _media;
+    public EfReleaseRepository(VipiDbContext db, IReleaseTargetRegistry targets, Vipi.Application.Media.IMediaMaintenance media)
     {
         _db = db;
         _targets = targets;
+        _media = media;
+    }
+
+    /// <summary>
+    /// Libera le immagini rimaste senza padroni dopo che dei payload di release sono spariti (annullo o
+    /// potatura). Gli sha vanno letti dai payload PRIMA della cancellazione; la decisione finale la prende
+    /// <c>DeleteOrphansAsync</c>, che ricontrolla TUTTE le sorgenti — una foto citata anche da una bozza, da
+    /// un'altra release o da una sezione extra resta dov'è. Stesso anello di EfEditingRepository: senza,
+    /// una foto usata SOLO in release rimosse restava nel deposito per sempre.
+    /// </summary>
+    private async Task LiberaImmaginiDeiPayloadAsync(IEnumerable<string> payloads, CancellationToken ct)
+    {
+        var sha = Vipi.Application.Media.MediaReferenceScanner.ScanAll(payloads).ToList();
+        if (sha.Count > 0) await _media.DeleteOrphansAsync(sha, ct);
     }
 
     public async Task<string?> SnapshotWorkingAsync(ReleaseTargetType type, string key, string airacCycle, CancellationToken ct = default)
@@ -137,12 +152,15 @@ public sealed class EfReleaseRepository : IReleaseRepository
         var rel = await _db.DocReleases.FirstOrDefaultAsync(r => r.Id == releaseId, ct);
         if (rel is null) return null;
         var (type, key) = (rel.TargetType, rel.TargetKey);
+        var payload = rel.PayloadJson;   // letto PRIMA della cancellazione, per liberare le foto
         _db.DocReleases.Remove(rel);
         await _db.SaveChangesAsync(ct);
 
         // Ricalcola gli stati delle rimanenti dello stesso bersaglio (una potrebbe tornare effettiva).
         var rest = await _db.DocReleases.Where(r => r.TargetType == type && r.TargetKey == key).ToListAsync(ct);
         if (rest.Count > 0) { RecomputeStatuses(rest, DateTime.UtcNow); await _db.SaveChangesAsync(ct); }
+
+        await LiberaImmaginiDeiPayloadAsync(new[] { payload }, ct);
         return (type, key);
     }
 
@@ -194,8 +212,11 @@ public sealed class EfReleaseRepository : IReleaseRepository
 
         // Solo le Superseded oltre soglia: l'Effective e le Scheduled hanno stato diverso → escluse per costruzione.
         var stale = all.Where(r => r.Status == ReleaseStatus.Superseded && r.ReleaseEffectiveUtc < keepFromUtc).ToList();
+        var payloads = stale.Select(r => r.PayloadJson).ToList();   // PRIMA della cancellazione
         _db.DocReleases.RemoveRange(stale);
         await _db.SaveChangesAsync(ct);   // salva anche gli stati ricalcolati delle righe rimaste
+
+        if (stale.Count > 0) await LiberaImmaginiDeiPayloadAsync(payloads, ct);
         return stale.Count;
     }
 
