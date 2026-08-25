@@ -1,6 +1,7 @@
 ﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
+using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -12,19 +13,17 @@ public sealed class AccAdminService : IAccAdminService
     private readonly ISpecialAreaImportUseCase _specialAreas;
     private readonly IEditAuthorizationService _authz;
     private readonly ISectorProjectionService _projection;
-    private readonly IDocumentReviewService _review;
     private readonly IStationCatalogVersion _catalog;
 
     public AccAdminService(IAccAdminRepository repo, IAccImportUseCase import,
         ISpecialAreaImportUseCase specialAreas, IEditAuthorizationService authz, ISectorProjectionService projection,
-        IDocumentReviewService review, IStationCatalogVersion catalog)
+        IStationCatalogVersion catalog)
     {
         _repo = repo;
         _import = import;
         _specialAreas = specialAreas;
         _authz = authz;
         _projection = projection;
-        _review = review;
         _catalog = catalog;
     }
 
@@ -96,9 +95,12 @@ public sealed class AccAdminService : IAccAdminService
         await _repo.SetSubcenterHiddenAsync(id, hidden, ct);
         await _projection.SyncFromCatalogsAsync(ct);   // nascondere un settore lo disattiva nella proiezione
 
-        // Regola 3: segnala la revisione ai documenti (ACC/APP/vLOA) dove il settore compariva.
-        if (hidden && ctx is not null)
-            await _review.FlagForHiddenSectorAsync(ctx.ComposePosition, ctx.CenterId, ct);
+        // Regola 3 — la segnalazione ai documenti impattati NON si apre più da qui. La apre la PROIEZIONE,
+        // che è il passaggio obbligato di ogni mutazione di catalogo (tredici chiamanti) e che vede da sé un
+        // callsign uscito dall'insieme visibile. Aprirla anche qui non era sbagliato, era PARZIALE: nascondere
+        // una postazione d'AEROPORTO (AirportSectorService.SetHiddenAsync) passa dalla stessa proiezione e non
+        // segnalava niente. Stessa azione, due comportamenti — è la lezione «un gate per categoria, non uno per
+        // chiamante», applicata alla segnalazione invece che alla policy.
     }
 
     public async Task SetSubcenterLimitsAsync(int id, int? lower, int? upper, CancellationToken ct = default)

@@ -1323,6 +1323,54 @@
   <data name="Review_DefaultReason" xml:space="preserve"><value>Derived content potentially stale.</value></data>
   <data name="Review_MarkTitle" xml:space="preserve"><value>Mark the document as reviewed</value></data>
   <data name="Review_MarkReviewed" xml:space="preserve"><value>Mark as reviewed</value></data>
+  <data name="Diag_ImpactsTitle" xml:space="preserve"><value>Documents needing review</value></data>
+  <data name="Diag_ImpactsHint" xml:space="preserve"><value>What changed upstream of the documents: sectors gone or hidden, areas changed, published copies left behind. Computed rows close themselves when the cause disappears; the others are closed by whoever re-read the document.</value></data>
+  <data name="Diag_ImpactsNone" xml:space="preserve"><value>No open items.</value></data>
+  <data name="Diag_ImpactsKind" xml:space="preserve"><value>Kind</value></data>
+  <data name="Diag_ImpactsOpen" xml:space="preserve"><value>Open</value></data>
+  <data name="Diag_ImpactsLastRun" xml:space="preserve"><value>Last drift check: </value></data>
+  <data name="Diag_ImpactsNeverRun" xml:space="preserve"><value>The drift check has not run yet.</value></data>
+  <data name="ImpactKind_SectorGone" xml:space="preserve"><value>Sector gone</value></data>
+  <data name="ImpactKind_SectorHidden" xml:space="preserve"><value>Sector hidden</value></data>
+  <data name="ImpactKind_SectorReparented" xml:space="preserve"><value>Sector reparented</value></data>
+  <data name="ImpactKind_AreaGone" xml:space="preserve"><value>Area gone</value></data>
+  <data name="ImpactKind_AreaChanged" xml:space="preserve"><value>Area changed</value></data>
+  <data name="ImpactKind_ReleaseDrift" xml:space="preserve"><value>Published copy behind</value></data>
+  <data name="ImpactKind_ReleaseKeyMoved" xml:space="preserve"><value>Target moved</value></data>
+  <data name="ImpactKind_BrokenTarget" xml:space="preserve"><value>Broken target</value></data>
+  <data name="Impact_ToReview" xml:space="preserve"><value>needs review</value></data>
+  <data name="Impact_Title" xml:space="preserve"><value>Needs review ({0})</value></data>
+  <data name="Impact_PublicNow" xml:space="preserve"><value>already public</value></data>
+  <data name="Impact_PublicNowTitle" xml:space="preserve"><value>This section is live: the change is already on the site, no republish needed.</value></data>
+  <data name="Impact_Republish" xml:space="preserve"><value>republish</value></data>
+  <data name="Impact_RepublishTitle" xml:space="preserve"><value>The published copy no longer says what it would say today.</value></data>
+  <data name="Impact_Broken" xml:space="preserve"><value>broken</value></data>
+  <data name="Impact_AutoClose" xml:space="preserve"><value>closes by itself</value></data>
+  <data name="Impact_SectorGone" xml:space="preserve"><value>Sector {0} is no longer in the catalogues: check frequencies, AoR and coordination.</value></data>
+  <data name="Impact_SectorHidden" xml:space="preserve"><value>Sector {0} has been hidden: check frequencies, AoR and coordination.</value></data>
+  <data name="Impact_SectorReparented" xml:space="preserve"><value>Sector {0} changed parent in the coverage chain: check the handoffs.</value></data>
+  <data name="Impact_AreaGone" xml:space="preserve"><value>Regulated area {0} is no longer in the catalogues: the document cites it but it is not shown.</value></data>
+  <data name="Impact_AreaChanged" xml:space="preserve"><value>Regulated area {0} has changed: re-read what the document says about it.</value></data>
+  <data name="Impact_ReleaseDrift" xml:space="preserve"><value>The published copy is behind the draft: {0}.</value></data>
+  <data name="Impact_ReleaseKeyMoved" xml:space="preserve"><value>This document's releases are stored under a target that is no longer its own ({0}): the public cannot find them.</value></data>
+  <data name="Impact_BrokenTarget" xml:space="preserve"><value>This document's publication target no longer resolves: the public page cannot reach it.</value></data>
+  <data name="Impact_Err_Calcolato" xml:space="preserve"><value>This item is closed by the check that raised it: fix the cause instead.</value></data>
+  <data name="Orph_Title" xml:space="preserve"><value>Orphan sectors</value></data>
+  <data name="Orph_Intro" xml:space="preserve"><value>Sectors the catalogues no longer confirm: they stay in the archive, deactivated, with their document still attached. Reattach the document to another sector, or remove them. ⚠️ If the source sends that callsign back, the next import recreates it.</value></data>
+  <data name="Orph_Callsign" xml:space="preserve"><value>Sector</value></data>
+  <data name="Orph_Why" xml:space="preserve"><value>Why</value></data>
+  <data name="Orph_Documents" xml:space="preserve"><value>Documents</value></data>
+  <data name="Orph_Actions" xml:space="preserve"><value>Actions</value></data>
+  <data name="Orph_Hidden" xml:space="preserve"><value>hidden</value></data>
+  <data name="Orph_Gone" xml:space="preserve"><value>gone from source</value></data>
+  <data name="Orph_CarriesDoc" xml:space="preserve"><value>carries the document</value></data>
+  <data name="Orph_NoDocs" xml:space="preserve"><value>no document</value></data>
+  <data name="Orph_PickTarget" xml:space="preserve"><value>Reattach to…</value></data>
+  <data name="Orph_Reattach" xml:space="preserve"><value>Reattach</value></data>
+  <data name="Orph_Remove" xml:space="preserve"><value>Remove</value></data>
+  <data name="Orph_RemoveTitle" xml:space="preserve"><value>Removes the sector from the archive (it returns if the source sends it back)</value></data>
+  <data name="Orph_RemovePrompt" xml:space="preserve"><value>Remove {0} from the archive? If the source sends it back, the next import recreates it.</value></data>
+  <data name="Orph_Blocked" xml:space="preserve"><value>cannot be removed</value></data>
   <data name="Rel_AiracRelease" xml:space="preserve"><value>AIRAC release</value></data>
   <data name="Rel_HelpAria" xml:space="preserve"><value>Help on publishing</value></data>
   <data name="Rel_HelpBody" xml:space="preserve"><value>&lt;b&gt;Publishing&lt;/b&gt; makes the draft visible to everyone, tied to an &lt;b&gt;AIRAC&lt;/b&gt; cycle. &lt;b&gt;Publish now&lt;/b&gt; = right away; &lt;b&gt;Schedule at cycle&lt;/b&gt; = on the date of the chosen cycle. Check the draft &lt;b&gt;preview&lt;/b&gt; first.</value></data>

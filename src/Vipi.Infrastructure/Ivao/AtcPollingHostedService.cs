@@ -342,6 +342,9 @@ public static class IvaoServiceCollectionExtensions
         services.AddHostedService<AirportTrafficRollupHostedService>();
         services.AddHostedService<TrafficRetentionHostedService>();
         services.AddHostedService<SpecialAreaImportHostedService>();
+        // ⚠️ Non è un import — non interroga nessuna sorgente — ma vive nella stessa lista perché è un giro
+        // gestito uguale agli altri, e parte per ultimo: guarda il mondo DOPO che gli import l'hanno aggiornato.
+        services.AddHostedService<ImpactDriftHostedService>();
         return services;
     }
 }

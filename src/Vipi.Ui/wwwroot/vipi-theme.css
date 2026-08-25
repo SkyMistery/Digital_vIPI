@@ -980,6 +980,12 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .block.cb .cb-body{margin-top:2px}
 .block>h3{margin-top:0;scroll-margin-top:84px}
 .block>h4{scroll-margin-top:84px}
+/* Casella degli impatti: una riga per fatto, dentro il callout. Il pulsante di chiusura sta sulla riga
+   della frase perche la domanda e per-riga («questa l ho vista»), non per-documento. */
+.impact-list{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.impact-list>li{display:flex;flex-wrap:wrap;align-items:center;gap:8px;line-height:1.45}
+.impact-list>li>.btn{padding:2px 9px;font-size:12px}
+.impact-list>li>.muted{font-size:12px}
 .callout{border-radius:11px;padding:14px 16px 14px 16px;margin:16px 0;border-left:5px solid;font-size:14px;display:flex;gap:12px}
 .callout .cic{font-size:18px;line-height:1.3}
 .callout .ct{font-family:var(--font-head);font-weight:700;margin:0 0 2px;font-size:14px}

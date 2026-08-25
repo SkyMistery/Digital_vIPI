@@ -1326,6 +1326,54 @@
   <data name="Review_DefaultReason" xml:space="preserve"><value>Contenuti derivati potenzialmente stantii.</value></data>
   <data name="Review_MarkTitle" xml:space="preserve"><value>Segna il documento come rivisto</value></data>
   <data name="Review_MarkReviewed" xml:space="preserve"><value>Segna come rivista</value></data>
+  <data name="Diag_ImpactsTitle" xml:space="preserve"><value>Documenti da rivedere</value></data>
+  <data name="Diag_ImpactsHint" xml:space="preserve"><value>Che cosa, a monte, ha toccato i documenti: settori spariti o nascosti, aree cambiate, copie pubblicate rimaste indietro. Le righe calcolate si richiudono da sé quando la causa sparisce; le altre le chiude chi ha riletto il documento.</value></data>
+  <data name="Diag_ImpactsNone" xml:space="preserve"><value>Nessuna segnalazione aperta.</value></data>
+  <data name="Diag_ImpactsKind" xml:space="preserve"><value>Tipo</value></data>
+  <data name="Diag_ImpactsOpen" xml:space="preserve"><value>Aperte</value></data>
+  <data name="Diag_ImpactsLastRun" xml:space="preserve"><value>Ultimo controllo della deriva: </value></data>
+  <data name="Diag_ImpactsNeverRun" xml:space="preserve"><value>Il controllo della deriva non ha ancora girato.</value></data>
+  <data name="ImpactKind_SectorGone" xml:space="preserve"><value>Settore sparito</value></data>
+  <data name="ImpactKind_SectorHidden" xml:space="preserve"><value>Settore nascosto</value></data>
+  <data name="ImpactKind_SectorReparented" xml:space="preserve"><value>Settore riparentato</value></data>
+  <data name="ImpactKind_AreaGone" xml:space="preserve"><value>Area sparita</value></data>
+  <data name="ImpactKind_AreaChanged" xml:space="preserve"><value>Area cambiata</value></data>
+  <data name="ImpactKind_ReleaseDrift" xml:space="preserve"><value>Copia pubblicata indietro</value></data>
+  <data name="ImpactKind_ReleaseKeyMoved" xml:space="preserve"><value>Bersaglio spostato</value></data>
+  <data name="ImpactKind_BrokenTarget" xml:space="preserve"><value>Bersaglio rotto</value></data>
+  <data name="Impact_ToReview" xml:space="preserve"><value>da rivedere</value></data>
+  <data name="Impact_Title" xml:space="preserve"><value>Da rivedere ({0})</value></data>
+  <data name="Impact_PublicNow" xml:space="preserve"><value>già in pubblico</value></data>
+  <data name="Impact_PublicNowTitle" xml:space="preserve"><value>Questa sezione è viva: il cambio si vede già sul sito, senza ripubblicare.</value></data>
+  <data name="Impact_Republish" xml:space="preserve"><value>da ripubblicare</value></data>
+  <data name="Impact_RepublishTitle" xml:space="preserve"><value>La copia pubblicata non dice più quel che direbbe oggi.</value></data>
+  <data name="Impact_Broken" xml:space="preserve"><value>rotto</value></data>
+  <data name="Impact_AutoClose" xml:space="preserve"><value>si chiude da sé</value></data>
+  <data name="Impact_SectorGone" xml:space="preserve"><value>Il settore {0} non è più nei cataloghi: verifica frequenze, AoR e coordinamenti.</value></data>
+  <data name="Impact_SectorHidden" xml:space="preserve"><value>Il settore {0} è stato nascosto: verifica frequenze, AoR e coordinamenti.</value></data>
+  <data name="Impact_SectorReparented" xml:space="preserve"><value>Il settore {0} ha cambiato padre nella catena di copertura: verifica le consegne.</value></data>
+  <data name="Impact_AreaGone" xml:space="preserve"><value>L'area regolamentata {0} non è più nei cataloghi: il documento la cita ma non viene mostrata.</value></data>
+  <data name="Impact_AreaChanged" xml:space="preserve"><value>L'area regolamentata {0} è cambiata: rileggi quel che il documento ne dice.</value></data>
+  <data name="Impact_ReleaseDrift" xml:space="preserve"><value>La copia pubblicata è indietro rispetto alla bozza: {0}.</value></data>
+  <data name="Impact_ReleaseKeyMoved" xml:space="preserve"><value>Le release di questo documento sono archiviate sotto un bersaglio che non è più il suo ({0}): il pubblico non le trova.</value></data>
+  <data name="Impact_BrokenTarget" xml:space="preserve"><value>Il bersaglio di pubblicazione di questo documento non risolve più: la pagina pubblica non lo raggiunge.</value></data>
+  <data name="Impact_Err_Calcolato" xml:space="preserve"><value>Questa segnalazione la richiude da sé il controllo che l'ha aperta: si chiude risolvendo la causa.</value></data>
+  <data name="Orph_Title" xml:space="preserve"><value>Settori orfani</value></data>
+  <data name="Orph_Intro" xml:space="preserve"><value>Settori che i cataloghi non confermano più: restano in archivio, disattivati, col loro documento ancora agganciato. Riagganciane il documento a un altro settore, oppure rimuovili. ⚠️ Se la sorgente rimanda quel callsign, il prossimo import lo ricrea.</value></data>
+  <data name="Orph_Callsign" xml:space="preserve"><value>Settore</value></data>
+  <data name="Orph_Why" xml:space="preserve"><value>Perché</value></data>
+  <data name="Orph_Documents" xml:space="preserve"><value>Documenti</value></data>
+  <data name="Orph_Actions" xml:space="preserve"><value>Azioni</value></data>
+  <data name="Orph_Hidden" xml:space="preserve"><value>nascosto</value></data>
+  <data name="Orph_Gone" xml:space="preserve"><value>sparito dalla sorgente</value></data>
+  <data name="Orph_CarriesDoc" xml:space="preserve"><value>porta il documento</value></data>
+  <data name="Orph_NoDocs" xml:space="preserve"><value>nessun documento</value></data>
+  <data name="Orph_PickTarget" xml:space="preserve"><value>Riaggancia a…</value></data>
+  <data name="Orph_Reattach" xml:space="preserve"><value>Riaggancia</value></data>
+  <data name="Orph_Remove" xml:space="preserve"><value>Rimuovi</value></data>
+  <data name="Orph_RemoveTitle" xml:space="preserve"><value>Toglie il settore dall'archivio (torna se la sorgente lo rimanda)</value></data>
+  <data name="Orph_RemovePrompt" xml:space="preserve"><value>Rimuovere {0} dall'archivio? Se la sorgente lo rimanda, il prossimo import lo ricrea.</value></data>
+  <data name="Orph_Blocked" xml:space="preserve"><value>non rimovibile</value></data>
   <data name="Rel_AiracRelease" xml:space="preserve"><value>Release AIRAC</value></data>
   <data name="Rel_HelpAria" xml:space="preserve"><value>Aiuto sulla pubblicazione</value></data>
   <data name="Rel_HelpBody" xml:space="preserve"><value>&lt;b&gt;Pubblicare&lt;/b&gt; rende la bozza visibile a tutti, legata a un ciclo &lt;b&gt;AIRAC&lt;/b&gt;. &lt;b&gt;Pubblica ora&lt;/b&gt; = subito; &lt;b&gt;Programma al ciclo&lt;/b&gt; = alla data del ciclo scelto. Prima controlla l&#39;&lt;b&gt;anteprima&lt;/b&gt; della bozza.</value></data>

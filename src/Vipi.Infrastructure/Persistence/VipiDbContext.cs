@@ -103,6 +103,7 @@ public class VipiDbContext : DbContext
     public DbSet<DocRelease> DocReleases => Set<DocRelease>();
     public DbSet<EditorTask> EditorTasks => Set<EditorTask>();
     public DbSet<EditResourceLock> EditResourceLocks => Set<EditResourceLock>();
+    public DbSet<DocumentImpact> DocumentImpacts => Set<DocumentImpact>();
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
     public DbSet<AtcSession> AtcSessions => Set<AtcSession>();
     public DbSet<AtcSessionTraffic> AtcSessionTraffic => Set<AtcSessionTraffic>();
@@ -451,6 +452,19 @@ public class VipiDbContext : DbContext
 
         // --- Lock di editing esclusivo su risorse nominate (pagine admin di struttura, wizard nuovo doc). ---
         b.Entity<EditResourceLock>().HasIndex(x => x.ResourceKey).IsUnique();
+
+        // --- Casella degli impatti: che cosa, a monte, ha toccato un documento (carta 25-ago-2026). ---
+        b.Entity<DocumentImpact>(e =>
+        {
+            // ⚠️ L'unicità deve valere SOLO fra le righe aperte, e MariaDB non ha indici unici parziali: per
+            // questo ClearedUtc è NOT NULL con la sentinella DocumentImpact.Aperto ed entra nella chiave.
+            // Senza, due giri concorrenti della proiezione (tredici chiamanti, alcuni in parallelo col giro
+            // notturno) scrivono la stessa segnalazione due volte, e la casella comincia a raddoppiare.
+            e.HasIndex(x => new { x.DocumentId, x.Kind, x.SourceKey, x.ClearedUtc }).IsUnique();
+            // L'elenco «cosa c'è di aperto», che è la query della pagina e del banner.
+            e.HasIndex(x => new { x.ClearedUtc, x.RaisedUtc });
+            e.HasOne(x => x.Document).WithMany().HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
+        });
 
         // --- Stato editoriale data-driven generico di un documento vIPI (1:1 col Document). Doc refactor 08e. ---
         b.Entity<DocumentProfile>(e =>

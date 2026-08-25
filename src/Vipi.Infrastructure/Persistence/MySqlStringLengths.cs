@@ -90,6 +90,14 @@ public static class MySqlStringLengths
             [("AccSector", "ParentCallsign")] = 32,
             [("AirportSector", "ParentCallsign")] = 32,
             [("Airport", "ParentCallsign")] = 32,
+            // Origine di un impatto: un callsign, oppure `area:{idIvao}` — l'id IVAO più lungo misurato è di
+            // 5 cifre, quindi 64 copre entrambe le forme con margine. Entra nell'indice unico che impedisce i
+            // doppioni fra le righe aperte, quindi senza lunghezza il CREATE TABLE di MySQL si ferma.
+            [("DocumentImpact", "SourceKey")] = 64,
+            // Il tipo di impatto è un enum-stringa e sta nello STESSO indice unico: la regola generale sugli
+            // enum (EnumChars) non basta a soddisfare il presidio, che pretende una voce esplicita per ogni
+            // colonna indicizzata. Il valore più lungo è `SectorReparented` (16).
+            [("DocumentImpact", "Kind")] = EnumChars,
             // ⚠️ Le colonne delle statistiche ATC NON stanno qui: le loro tabelle nascono adesso, quindi le
             // lunghezze sono dichiarate nel modello per TUTTI i provider (come MediaAsset.Sha256) e su
             // Postgres non c'è nessun `text` da convertire. Vedi VipiDbContext, sezione «Statistiche ATC».

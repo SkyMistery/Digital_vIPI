@@ -79,6 +79,15 @@ public static class ImportCategories
     public const string TrafficRetention = "TrafficRetention";
 
     /// <summary>
+    /// Il giro che confronta la copia pubblicata con quel che direbbe oggi (<c>IImpactDriftUseCase</c>, dal
+    /// 25 agosto 2026). ⚠️ <b>Non è un import</b> e non compare nella pagina Sorgenti: quell'elenco si
+    /// intitola «stato degli import», e una riga che non interroga nessuna sorgente lì dentro mentirebbe —
+    /// è la stessa ragione per cui ne resta fuori <see cref="SpecialAreaForeignOptOut"/>. Si legge in
+    /// Diagnostica. Ha una chiave sua perché il giro gestito (periodo, ultimo esito, errore) è quello.
+    /// </summary>
+    public const string ImpactDrift = "ImpactDrift";
+
+    /// <summary>
     /// NON è un import periodico: è il segnaposto della riconciliazione one-shot che ha spento le aree degli ACC
     /// esteri (<c>ISpecialAreaMaintenance.OptOutForeignAreasAsync</c>). Sta qui perché serve un registro «già fatto»
     /// persistente, e questa è la tabella che ce l'ha: senza, la riconciliazione ricancellerebbe a ogni riavvio le

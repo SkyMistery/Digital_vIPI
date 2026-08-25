@@ -187,9 +187,11 @@ Un documento vIPI o vLOA. I contenuti vivono nelle **versioni**.
 | `LastUpdatedUtc` | datetime | |
 | `LastUpdatedAiracCycle` | string(6) | calcolato da `AiracService` (es. `2606`) |
 | `IsHidden` | bool | nascosto dai loader pubblici (reversibile) |
-| `NeedsReviewUtc` | datetime? | revisione pendente: valorizzato quando un evento a monte (es. settore nascosto) può aver reso stantii FREQUENZE/AoR/CONFIGURAZIONI. Banner nell'editor (`DocReviewBar`); sciolto da `IDocumentReviewService.ClearReviewAsync`. Migrazione **`AddDocumentReviewSignal`** |
-| `ReviewReason` | string? | motivo leggibile della revisione pendente (mostrato in banner) |
 | `RowVersion` | rowversion | |
+
+> ⚠️ **`NeedsReviewUtc` e `ReviewReason` non ci sono più** (migrazione `AddDocumentImpact`, 25 ago 2026). Erano
+> **un** motivo solo: il secondo evento a monte sovrascriveva il primo, che spariva senza traccia. La
+> segnalazione vive ora in `DocumentImpact` (§9.29), una riga per fatto.
 
 ### 3.10 `DocumentParty` (per le vLOA)
 Le parti di una vLOA (bilaterale). Per le vIPI non si usa.
@@ -1043,3 +1045,40 @@ Migrazioni dell'area, tutte a doppia emissione: `StatisticheAtc`, `PolicyStatist
 
 Carta: [`../feature/2026-08-24-servizio-statistiche-atc.md`](../feature/2026-08-24-servizio-statistiche-atc.md)
 (§5 modello, §5.1 bilancio in byte, §13 la veste e le targhette).
+
+
+### 9.29 `DocumentImpact` — la casella delle segnalazioni (25 ago 2026) 🟢
+
+Che cosa, a monte, ha toccato un documento: un settore sparito o nascosto, un'area cambiata, la copia
+pubblicata rimasta indietro. Sostituisce le due colonne `Document.NeedsReviewUtc`/`ReviewReason`.
+
+| Campo | Tipo | Note |
+|---|---|---|
+| `Id` | int PK | |
+| `DocumentId` | int FK→Document **Cascade** | l'ancora. Non il bersaglio di release: vedi sotto |
+| `Kind` | enum `ImpactKind` (varchar 32) | SectorGone/Hidden/Reparented, AreaGone/Changed, ReleaseDrift, ReleaseKeyMoved, BrokenTarget |
+| `SourceKey` | string(64) | callsign, `area:{idIvao}`, o vuoto per il documento nel suo insieme |
+| `ReasonKey` | string | chiave di localizzazione; la frase **non** si salva |
+| `ReasonArgsJson` | string? | argomenti della frase |
+| `IsPublicNow` | bool | il documento ha una sezione **Live** alimentata da quella famiglia → il cambio è già in pubblico |
+| `RaisedUtc` | datetime | |
+| `ClearedUtc` | datetime **NOT NULL** | sentinella `1970-01-01` = aperta |
+| `ClearedByUserId` | int | 0 = l'ha chiusa il calcolo, non una persona |
+
+Indici: **unico** `(DocumentId, Kind, SourceKey, ClearedUtc)` + `(ClearedUtc, RaisedUtc)`.
+
+⚠️ **Tre scelte che non si deducono dallo schema:**
+
+1. **L'ancora è il documento, non il bersaglio di release.** La chiave di una vIPI ACC è
+   `{acc}|{callsign del primario}` e quella di un APP **è** il callsign: le spostano un settore riparentato o
+   una rinomina in sorgente — cioè proprio gli eventi che questa tabella registra. Il conto aperto sul
+   bersaglio instabile è **C6** in `lavori-aperti.md`.
+2. **`ClearedUtc` è NOT NULL con una sentinella**, perché l'unicità deve valere *solo fra le righe aperte* e
+   MariaDB non ha indici unici parziali. La sentinella è l'**epoca Unix** e non `DateTime.MinValue`: il
+   `DATETIME` di MariaDB parte dal 1000, quindi `0001-01-01` in `sql_mode` stretto viene rifiutato (errore
+   1292) — e su SQLite passerebbe, cioè suite verde e produzione rotta.
+3. **La frase non si salva.** `ReasonKey` + argomenti, come `ConsistencyFinding`: una riga scritta in italiano
+   si ripresenterebbe in italiano a chi legge in inglese, e il circuito Blazor cambia lingua senza ricaricare.
+
+Migrazioni a doppia emissione: `AddDocumentImpact` (SQLite + MySQL).
+Carta: [`../feature/2026-08-25-documenti-da-rivedere.md`](../feature/2026-08-25-documenti-da-rivedere.md).

@@ -165,3 +165,56 @@ public enum FlightPhase
     /// <summary>In volo.</summary>
     Airborne,
 }
+
+/// <summary>
+/// Che cosa è successo a monte di un documento (<c>DocumentImpact</c>). Ogni voce risponde a due domande:
+/// <b>in che stato mette il documento</b> — da rivedere, da ripubblicare, rotto (carta «documenti da
+/// rivedere» §2) — e <b>chi la richiude</b>.
+///
+/// <para>⚠️ La differenza non è cosmetica: quelle prodotte da un <b>calcolo</b> (le ultime tre) si
+/// riaprono da sole al giro successivo se la causa è ancora lì, quindi <b>non si chiudono a mano</b> —
+/// un ✓ sarebbe un ping-pong fra l'utente e il giro notturno. Le altre le chiude una persona, perché la
+/// domanda che pongono («questo testo dice ancora il vero?») nessun calcolo la sa.</para>
+/// </summary>
+public enum ImpactKind
+{
+    /// <summary>Il callsign non è più nei cataloghi visibili: sparito dalla sorgente o nascosto in blocco.</summary>
+    SectorGone,
+
+    /// <summary>Un admin ha nascosto il settore: non sparisce dall'archivio ma esce dalla proiezione.</summary>
+    SectorHidden,
+
+    /// <summary>Il settore ha cambiato padre nella catena di copertura: le consegne raccontate cambiano.</summary>
+    SectorReparented,
+
+    /// <summary>Un'area regolamentata citata dal documento non è più nei cataloghi (potata dall'import).</summary>
+    AreaGone,
+
+    /// <summary>Un'area regolamentata citata dal documento è cambiata in qualcosa che il documento mostra.</summary>
+    AreaChanged,
+
+    /// <summary>La copia pubblicata non dice più quel che direbbe oggi: c'è da ripubblicare. <b>Calcolato.</b></summary>
+    ReleaseDrift,
+
+    /// <summary>Le release del documento sono scritte sotto una chiave di bersaglio che non è più la sua:
+    /// il pubblico non le trova. <b>Calcolato.</b> Vedi lavori-aperti C6.</summary>
+    ReleaseKeyMoved,
+
+    /// <summary>Il documento è gestito ma il suo bersaglio di release non risolve più. <b>Calcolato.</b></summary>
+    BrokenTarget,
+}
+
+/// <summary>Regole trasversali su <see cref="ImpactKind"/>: stanno qui e non in tre <c>switch</c> sparsi.</summary>
+public static class ImpactKinds
+{
+    /// <summary>Prodotto da un calcolo che lo riapre da solo finché la causa c'è: <b>non</b> chiudibile a mano.</summary>
+    public static bool IsCalcolato(this ImpactKind kind) =>
+        kind is ImpactKind.ReleaseDrift or ImpactKind.ReleaseKeyMoved or ImpactKind.BrokenTarget;
+
+    /// <summary>Vero se l'impatto dice «la copia pubblicata è indietro» invece di «rileggi il testo».</summary>
+    public static bool IsDaRipubblicare(this ImpactKind kind) => kind is ImpactKind.ReleaseDrift;
+
+    /// <summary>Vero se l'impatto segnala qualcosa di rotto, non solo da rileggere.</summary>
+    public static bool IsRotto(this ImpactKind kind) =>
+        kind is ImpactKind.ReleaseKeyMoved or ImpactKind.BrokenTarget;
+}

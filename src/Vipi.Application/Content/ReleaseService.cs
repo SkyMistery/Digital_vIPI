@@ -55,6 +55,17 @@ public interface IReleaseService
     Task<IReadOnlyDictionary<(ReleaseTargetType Type, string Key), ReleaseSummary>> SummariesAsync(
         IReadOnlyList<(ReleaseTargetType Type, string Key)> targets, CancellationToken ct = default);
 
+    /// <summary>
+    /// <b>Deriva</b>: che cosa direbbe oggi la copia pubblicata se la si rifacesse adesso, confrontato con
+    /// quella in vigore. Vuoto = la release dice ancora il vero (o non c'è una release in vigore, e allora
+    /// non c'è niente da cui derivare). Operazione di sistema: nessuna autorizzazione, la chiama un giro.
+    ///
+    /// <para>⚠️ Il confronto è quello del <c>Diff</c> fra release — voce (sezione/blocco) → conteggio degli
+    /// elementi — quindi vede una sezione che cambia numero di righe, <b>non</b> un testo riscritto dentro
+    /// una riga esistente. È un limite dichiarato: la casella deve promettere quel che misura.</para>
+    /// </summary>
+    Task<IReadOnlyList<ReleaseDiffRow>> DriftFromEffectiveAsync(ReleaseTargetType type, string key, CancellationToken ct = default);
+
     /// <summary>Sweep di retention su tutti i documenti gestiti (system op, come <see cref="BackfillMissingReleasesAsync"/>):
     /// pota release Superseded oltre soglia e versioni Archived oltre N per ciascun bersaglio. Idempotente. Ritorna il
     /// numero di versioni archiviate rimosse.</summary>
@@ -199,6 +210,36 @@ public sealed class ReleaseService : IReleaseService
 
         // Niente frasi in Application: il ciclo di confronto (o la sua assenza) lo formatta la UI.
         return new ReleaseDiff(baseline is not null, baseline?.ReleaseAiracCycle, rows);
+    }
+
+    public async Task<IReadOnlyList<ReleaseDiffRow>> DriftFromEffectiveAsync(
+        ReleaseTargetType type, string key, CancellationToken ct = default)
+    {
+        var effettiva = await _repo.GetEffectiveAsync(type, key, DateTime.UtcNow, ct);
+        if (effettiva is null) return Array.Empty<ReleaseDiffRow>();
+
+        // Lo snapshot che si otterrebbe pubblicando ADESSO. Stesso identico percorso della pubblicazione
+        // vera (§3d): se divergessero, la deriva segnalerebbe differenze che al momento di pubblicare non
+        // esistono — o, peggio, tacerebbe su quelle che esistono.
+        var oggiJson = await BuildSnapshotJsonAsync(type, key, _airac.GetCycle(DateTime.UtcNow), ct);
+        if (oggiJson is null) return Array.Empty<ReleaseDiffRow>();
+
+        var oggi = Signature(oggiJson);
+        var pubblicata = Signature(effettiva.PayloadJson);
+
+        var righe = new List<ReleaseDiffRow>();
+        foreach (var kv in oggi.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            if (!pubblicata.TryGetValue(kv.Key, out var p))
+                righe.Add(new ReleaseDiffRow(kv.Key, ReleaseChangeKind.Added, null, kv.Value));
+            else if (p != kv.Value)
+                righe.Add(new ReleaseDiffRow(kv.Key, ReleaseChangeKind.Modified, p, kv.Value));
+        }
+        foreach (var kv in pubblicata.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
+            if (!oggi.ContainsKey(kv.Key))
+                righe.Add(new ReleaseDiffRow(kv.Key, ReleaseChangeKind.Removed, kv.Value, null));
+
+        return righe;
     }
 
     public async Task<ReleasePreview?> GetPreviewAsync(int releaseId, CancellationToken ct = default)

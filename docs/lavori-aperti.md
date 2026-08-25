@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 25 agosto 2026, tarda sera (**§B12: il ramo `statistiche-atc` porta anche le otto richieste
+**Aggiornato:** 25 agosto 2026, notte (**§E11 FATTA: la casella degli impatti — i documenti da rivedere — è in piedi, con la sezione Orfani, il giro notturno della deriva e la prova sui dati veri; nasce §C6, un difetto che c'era già: la chiave di release ACC/APP è derivata da un callsign, e se il callsign si sposta il documento pubblicato va muto**) · **Aggiornato:** 25 agosto 2026, tarda sera (**§B12: il ramo `statistiche-atc` porta anche le otto richieste
 del committente sul servizio statistiche — §16 della carta — fra cui la sezione Aeroporti, la potatura e il
 capitolo di Guida che mancava; restano aperte le stesse due voci UI**) · vecchia testata: (**§B12 aperta: il ramo `statistiche-atc` è completo e NON fuso** — la fusione è una decisione del committente, non un passo tecnico; il 24: §B10 e §B11 fuse e cancellate. La sera del 25 si chiudono **§H5** — il VID è un link al profilo IVAO, verifica live fatta — e **§H2**, il «rosso intermittente», che erano due difetti. Della sezione UI restano aperte **H1** e **H3**) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
@@ -1254,6 +1254,31 @@ Development, con test sul percorso di produzione). Quel che resta — montare i 
 reali** — vive già come **A9/A10** (segreti e redirect) ed **E4** (conferma dei codici staff): tenerlo anche
 qui era contarlo due volte.
 
+### C6 🟢 La chiave di release ACC/APP è **derivata da un callsign**, e se il callsign si sposta il documento pubblicato va muto
+
+Trovato il **25 agosto 2026** scrivendo la carta [documenti da
+rivedere](feature/2026-08-25-documenti-da-rivedere.md) §3a. **Non** è un difetto introdotto da quel lavoro:
+c'è oggi, in produzione.
+
+`AccVipiReleaseTarget.TryDescribe` compone la chiave di release come `{acc}|{callsign del settore primario}`
+(`AccVipiReleaseTarget.cs:57`); per l'APP non remotizzato la chiave **è** il callsign. Quelle chiavi non sono
+stabili: le cambiano un settore riparentato, un primario che cambia, una rinomina in sorgente.
+
+**Cosa succede quando si sposta.** Le `DocRelease` restano scritte sotto la chiave **vecchia**; `ManagedDoc`
+descrive il documento con quella **nuova**; `PublicDocumentGate` chiede le release della nuova, non ne trova,
+e il documento — pubblicato, con release valide in archivio — **sparisce dal pubblico**. Nessun errore,
+nessun rilievo: la stessa famiglia di guasto del §0 di quella carta.
+
+⚠️ **Latente, non manifesto**: nel `vipi.db` del 18 agosto le chiavi in archivio (`LIBB|LIBB_ES_CTR`,
+`LIMM|LIMM_WS2_CTR`) **combaciano** con quelle vive. Va aperto perché è a un rename di distanza, non perché
+stia bruciando.
+
+**Rilevatore, già previsto**: il giro di deriva della casella impatti apre `ReleaseKeyMoved` quando il
+bersaglio di oggi non ha release ma il documento ne ha sotto un'altra chiave (E11, slice 6). **Rilevare non
+è riparare**: la riparazione — migrare le release alla chiave nuova, oppure rendere la chiave stabile — è
+una decisione a sé, e va presa sapendo che una chiave stabile per l'ACC vorrebbe dire un identificativo
+proprio del documento al posto del callsign.
+
 ---
 
 ## D. ✅ Verifiche live arretrate — **sezione chiusa il 9 agosto 2026**
@@ -1890,6 +1915,66 @@ che il gate vieta. **Alla terza volta si apre.**
 
 **Fuori perimetro, deciso**: `RealDOCS/IPI Roma ACC.pdf` (**180 MB**) e gli altri monoliti — sono i documenti
 che il sito **sostituisce**, non allegati.
+
+### E11 ✅ FATTA il 25 agosto 2026 — Documenti da rivedere: la casella degli impatti
+
+Chiesto dal committente il **25 agosto 2026**, dopo l'analisi su *cosa succede se un dato importato viene
+eliminato dal DB*. Carta (v2, rivista dopo revisione avversariale):
+`docs/feature/2026-08-25-documenti-da-rivedere.md`.
+
+**La domanda**: quando un settore sparisce, un'area cambia o un admin nasconde una postazione, **quali
+documenti vanno rivisti o ripubblicati?** Oggi la risposta esiste per **un** caso su venti — `AccAdminService.cs:101`,
+subcenter ACC nascosto — e per gli altri diciannove il sistema tace.
+
+**Sei decisioni** (§3 della carta): tabella `DocumentImpact` a molte righe aperte per documento; rivelatore
+per **deriva** calcolata (giro notturno, non solo eventi); il legame al documento **si tiene** finché
+l'admin conferma; perimetro settori + aree; ancora sul **`DocumentId`** e non sul bersaglio di release
+(la chiave è instabile, vedi **C6**); sezioni `Live` gestite alzando la **severità**, non con un watermark.
+
+⚠️ **Tre cose che la revisione ha ribaltato** rispetto alla prima stesura, e che vale la pena non riscoprire:
+
+- il reverse-lookup esistente (`EfDocumentReviewRepository.cs:31-37`) **sovra-segnala** — `IsPrimary || Type == App`
+  dentro l'ACC significa *ogni* documento primario e *ogni* APP dell'ACC — e **sotto-segnala**: non guarda
+  `Airport.DocumentId`, quindi uno scalo come LIBG non produce nessuna riga. Va riscritto **prima** di tutto (slice 0);
+- `ProjectVipiSectors` gira a **ogni avvio** (`VipiModuleExtensions.cs:480`): con un catalogo vuoto o
+  parziale — DB appena sostituito, import fallito — ogni settore proiettato risulta orfano. Serve la guardia
+  «catalogo vuoto → nessun impatto» + soglia di massa, come già fa l'import aree;
+- `ImportSpecialAreasAsync` fa `updated++` **senza confrontare niente** (`EfAccAdminRepository.cs:128-137`):
+  «aggiornata» ≠ «cambiata», e senza confronto campo per campo la casella si riempie ogni notte.
+
+**Misure che hanno deciso** (`vipi.db` del 18 agosto): 15 documenti, 34 release, **5** sezioni `Live` in
+tutto — quattro `sids` (default, e il loro cambio è cadenzato dall'AIRAC via `SidRow.IsPublicAt`) e **una**
+`coordination` manuale. È il dato che ha tolto di mezzo il watermark.
+
+**Assorbe** due dei sette fix dell'analisi: il **documento senza bersaglio** (ora è l'impatto `BrokenTarget`)
+e il **pre-check dei `Restrict`** (la rimozione di un orfano rifiuta con una frase invece di far esplodere il
+vincolo). ⚠️ Il terzo — l'**audit delle cancellazioni strutturali** — **NON** è stato fatto: è rimasto fuori
+per tenere il giro dentro il perimetro, e resta aperto.
+
+**Che cosa c'è adesso**
+
+| | Dove si vede |
+|---|---|
+| Banner **multi-riga** nell'editor, un rigo per fatto, col ✓ solo sulle righe non calcolate | i 4 editor |
+| Pill di riepilogo | `/services/vsop/versions` |
+| Sezione **«Orfani»**: elenco, documenti toccati, **riaggancia** e **rimuovi** | `/services/vsop/admin/sector-structure` |
+| Conteggio per tipo + ultimo giro della deriva | `/services/vsop/admin/diagnostics` |
+| Giro notturno (`ImpactDriftHostedService`, 24h, parte 100s dopo il boot) | — |
+
+**Verificato sui dati veri** (copia del `vipi.db` di sviluppo, §14 della carta): settore cancellato → legame
+al documento **conservato** + 2 segnalazioni; callsign che torna → righe **chiuse dal calcolo**; area
+cambiata → 5 documenti avvisati; aeroporto scollegato → `BrokenTarget`; rimozione di un orfano bloccato →
+**rifiutata con la frase**. ⚠️ Per copiare quel DB servono anche i file `-wal` e `-shm`, o SQLite lo dichiara
+*malformed*.
+
+**Trovato eseguendo, e non era nel piano**: la sentinella «riga aperta» **non può essere `0001-01-01`** — il
+`DATETIME` di MariaDB parte dal 1000 e in `sql_mode` stretto lo rifiuta, mentre SQLite lo accetta: suite
+verde e produzione rotta. È l'epoca Unix. Vedi §13.1 della carta.
+
+**Restano fuori, dichiarati**: policy di import cancellata → «tutto importato» muto; ACC estero nuovo che
+nasce con le aree accese; **audit delle cancellazioni strutturali**; notifiche (la casella è passiva) e il
+legame con la scadenza AIRAC; famiglie oltre settori e aree (TA, piste, SID, shape); **watermark** delle
+sezioni Live, con la soglia scritta in §3b.
 
 ## F. Rimandato, non cancellato
 

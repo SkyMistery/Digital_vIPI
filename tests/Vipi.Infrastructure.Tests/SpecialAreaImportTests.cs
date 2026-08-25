@@ -131,7 +131,8 @@ public class SpecialAreaImportTests : IAsyncLifetime
         // LIRR non la elenca più; LIZZ sì.
         var removed = await _repo.PruneSpecialAreasNotInAsync("LIRR", Array.Empty<string>());
 
-        Assert.Equal(1, removed);                                   // un legame, non l'area
+        Assert.Equal(1, removed.Removed);                           // un legame, non l'area
+        Assert.Equal("8870", Assert.Single(removed.Gone).IvaoId);   // e il nome per la segnalazione ai documenti
         Assert.Equal(1, await _db.SpecialAreas.CountAsync());
         var areas = new EfSpecialAreaRepository(_db);
         Assert.Empty(await areas.ListSpecialAreasByAccAsync("LIRR"));
@@ -206,6 +207,119 @@ public class SpecialAreaImportTests : IAsyncLifetime
 
         Assert.Equal("LIRR", Assert.Single(r.Failures).AccCode);
         Assert.Equal(1, await _db.SpecialAreas.CountAsync());   // fetch fallita ⇒ nessuna cancellazione
+    }
+
+
+    // ---- Che cosa finisce nella casella degli impatti ------------------------------------------------
+
+    /// <summary>
+    /// ⚠️ Il caso che ha imposto il confronto campo per campo: l'upsert riassegna TUTTI i campi a ogni giro e
+    /// contava una «aggiornata» ogni volta. Segnalare su quel contatore avrebbe aperto una riga per ogni area
+    /// e per ogni documento che la cita, ogni notte, senza che fosse successo niente.
+    /// </summary>
+    [Fact]
+    public async Task Un_Import_Che_Non_Cambia_Niente_Non_Segnala_Niente()
+    {
+        var doc = await DocumentoCheCitaAsync("77");
+        var dir = new FakeAccDirectory { Areas = { ["LIRR"] = new() { Area("77") } } };
+        var impatti = new EfDocumentImpactRepository(_db);
+        var uc = new SpecialAreaImportUseCase(_repo, dir, _policy,
+            new DocumentImpactService(impatti, new SempreSi()));
+
+        await uc.RunAsync();
+        await uc.RunAsync();   // secondo giro, stessi dati
+
+        Assert.Empty(await impatti.ListOpenAsync(doc));
+    }
+
+    [Fact]
+    public async Task Un_Area_Che_Cambia_Nome_Segnala_I_Documenti_Che_La_Citano()
+    {
+        var doc = await DocumentoCheCitaAsync("77");
+        var dir = new FakeAccDirectory { Areas = { ["LIRR"] = new() { Area("77") } } };
+        var impatti = new EfDocumentImpactRepository(_db);
+        var uc = new SpecialAreaImportUseCase(_repo, dir, _policy,
+            new DocumentImpactService(impatti, new SempreSi()));
+        await uc.RunAsync();
+
+        dir.Areas["LIRR"] = new() { Area("77", "LI R14A (rivista)") };
+        await uc.RunAsync();
+
+        var riga = Assert.Single(await impatti.ListOpenAsync(doc));
+        Assert.Equal(Vipi.Domain.ImpactKind.AreaChanged, riga.Kind);
+        Assert.Equal("area:77", riga.SourceKey);
+        // Le aree regolamentate non le congela nessuna release: il cambio e' gia' sotto gli occhi del pubblico.
+        Assert.True(riga.IsPublicNow);
+    }
+
+    [Fact]
+    public async Task Un_Area_Potata_Segnala_I_Documenti_Che_La_Citano()
+    {
+        var doc = await DocumentoCheCitaAsync("77");
+        var dir = new FakeAccDirectory { Areas = { ["LIRR"] = new() { Area("77") } } };
+        var impatti = new EfDocumentImpactRepository(_db);
+        var uc = new SpecialAreaImportUseCase(_repo, dir, _policy,
+            new DocumentImpactService(impatti, new SempreSi()));
+        await uc.RunAsync();
+
+        dir.Areas["LIRR"] = new();   // la sorgente non la elenca piu'
+        await uc.RunAsync();
+
+        var riga = Assert.Single(await impatti.ListOpenAsync(doc));
+        Assert.Equal(Vipi.Domain.ImpactKind.AreaGone, riga.Kind);
+    }
+
+    /// <summary>Un documento con una sezione «regulated» che cita l'area per id: la forma con cui la
+    /// selezione viene salvata davvero dall'editor.</summary>
+    private async Task<int> DocumentoCheCitaAsync(string ivaoId)
+    {
+        var doc = new Vipi.Domain.Entities.Document
+        {
+            Type = Vipi.Domain.DocumentType.Vipi, Title = "vIPI Roma ACC",
+            Language = Vipi.Domain.Language.It, LastUpdatedAiracCycle = "2608",
+        };
+        _db.Documents.Add(doc);
+        await _db.SaveChangesAsync();
+
+        var ver = new Vipi.Domain.Entities.DocumentVersion
+        {
+            DocumentId = doc.Id, VersionNumber = 1, Status = Vipi.Domain.DocumentStatus.Draft,
+            CreatedUtc = DateTime.UtcNow, AiracCycle = "2608",
+        };
+        _db.DocumentVersions.Add(ver);
+        await _db.SaveChangesAsync();
+
+        var sec = new Vipi.Domain.Entities.DocumentSection
+        {
+            DocumentVersionId = ver.Id, SectionKey = "regulated", Title = "Aree regolamentate", Order = 1,
+        };
+        _db.DocumentSections.Add(sec);
+        await _db.SaveChangesAsync();
+
+        _db.ContentBlocks.Add(new Vipi.Domain.Entities.ContentBlock
+        {
+            DocumentVersionId = ver.Id, SectionId = sec.Id, Order = 0,
+            BodyJson = "{\"OwnAuto\":false,\"OwnIds\":[\"" + ivaoId + "\"],\"ExtraIds\":[]}",
+        });
+        await _db.SaveChangesAsync();
+        return doc.Id;
+    }
+
+    private sealed class SempreSi : Vipi.Application.Auth.IEditAuthorizationService
+    {
+        public bool IsAdmin => true;
+        public int? CurrentUserId => 1;
+        public string? CurrentName => "test";
+        public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => Task.CompletedTask;
+        public Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.CompletedTask;
+        public Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default) => Task.FromResult(true);
+        public Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.FromResult(true);
+        public Task<bool> CanEditAnythingAsync(CancellationToken ct = default) => Task.FromResult(true);
+        public Task<IReadOnlyList<Vipi.Application.Auth.GrantRow>> ListGrantsAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Vipi.Application.Auth.GrantRow>>(Array.Empty<Vipi.Application.Auth.GrantRow>());
+        public Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default) => Task.FromResult(0);
+        public Task RevokeGrantAsync(int grantId, CancellationToken ct = default) => Task.CompletedTask;
+        public void EnsureAdmin() { }
     }
 
     private sealed class FakeAccDirectory : IAccDirectory

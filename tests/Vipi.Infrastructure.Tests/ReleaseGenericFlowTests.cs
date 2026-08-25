@@ -54,6 +54,9 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     /// </summary>
     private sealed class RepoCheRompeAllaPromozione : IReleaseRepository
     {
+        public Task<IReadOnlyList<string>> ListKeysWithReleasesAsync(ReleaseTargetType type, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+
         private readonly IReleaseRepository _vero;
         public RepoCheRompeAllaPromozione(IReleaseRepository vero) => _vero = vero;
 

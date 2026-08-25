@@ -1,55 +1,98 @@
-@* Banner di revisione pendente di un documento. Un evento a monte (es. un settore nascosto in /services/vsop/admin/acc) può
-   aver reso stantii FREQUENZE/AoR/CONFIGURAZIONI: si mostra il motivo e un pulsante per sciogliere la revisione una
-   volta rivisto. Componente autonomo: passa il DocumentId, interroga lo stato e lo scioglie da sé. *@
+@* Le segnalazioni aperte su un documento — la «casella degli impatti» (carta 2026-08-25). Una riga per fatto:
+   un settore sparito, un'area cambiata, la copia pubblicata rimasta indietro. Fino al 25 agosto 2026 era UN
+   motivo solo, e il secondo evento cancellava il primo.
+   ⚠️ Il ✓ non c'è su tutte: le righe CALCOLATE (deriva, bersaglio di release) le richiude il controllo che le
+   ha aperte, e un ✓ sarebbe un ping-pong con il giro notturno.
+   Componente autonomo: passa il DocumentId, interroga lo stato e chiude da sé. *@
 @using Vipi.Application.Content
+@using Vipi.Domain
 @using Microsoft.Extensions.DependencyInjection
 @inherits OwningComponentBase
 @inject IStringLocalizer<SharedResource> L
-@* Review risolto dallo scope DI proprio (VipiDbContext isolato dal circuito): evita il crash "second operation"
-   quando questo sidecar carica mentre la pagina genitore ha ancora una query in volo. Vedi [[EditLockBar]]. *@
+@* Servizio risolto dallo scope DI proprio (VipiDbContext isolato dal circuito): evita il crash "second
+   operation" quando questo sidecar carica mentre la pagina genitore ha ancora una query in volo. [[EditLockBar]] *@
 
-@if (_state?.NeedsReviewUtc is not null)
+@if (_righe.Count > 0)
 {
-    <div class="callout warning" style="align-items:center">
+    <div class="callout warning">
         <span class="cic">⚠️</span>
         <div style="flex:1">
-            <p class="ct">@L["Review_Recommended"]</p>
-            @(_state.ReviewReason ?? L["Review_DefaultReason"].Value)
+            <p class="ct">@L["Impact_Title", _righe.Count]</p>
+            <ul class="impact-list">
+                @foreach (var r in _righe)
+                {
+                    <li>
+                        @if (r.IsPublicNow)
+                        {
+                            <span class="pill red" title="@L["Impact_PublicNowTitle"]">@L["Impact_PublicNow"]</span>
+                        }
+                        else if (r.Kind.IsDaRipubblicare())
+                        {
+                            <span class="pill blue" title="@L["Impact_RepublishTitle"]">@L["Impact_Republish"]</span>
+                        }
+                        else if (r.Kind.IsRotto())
+                        {
+                            <span class="pill amber">@L["Impact_Broken"]</span>
+                        }
+                        <span>@Frase(r)</span>
+                        @if (r.CanClear)
+                        {
+                            <button class="btn ghost" disabled="@_busy" @onclick="() => Chiudi(r.Id)"
+                                    title="@L["Review_MarkTitle"]">✓ @L["Review_MarkReviewed"]</button>
+                        }
+                        else
+                        {
+                            <span class="muted">@L["Impact_AutoClose"]</span>
+                        }
+                    </li>
+                }
+            </ul>
         </div>
-        <button class="btn ghost" disabled="@_busy" @onclick="Resolve" title="@L["Review_MarkTitle"]">✓ @L["Review_MarkReviewed"]</button>
     </div>
 }
 
 @code {
-    /// <summary>Documento di cui mostrare lo stato di revisione. null = niente banner.</summary>
+    /// <summary>Documento di cui mostrare le segnalazioni aperte. null = niente banner.</summary>
     [Parameter] public int? DocumentId { get; set; }
-    /// <summary>Notifica opzionale alla pagina quando la revisione viene sciolta.</summary>
+    /// <summary>Notifica opzionale alla pagina quando una segnalazione viene chiusa.</summary>
     [Parameter] public EventCallback OnResolved { get; set; }
 
-    private DocumentReviewState? _state;
+    private IReadOnlyList<DocumentImpactRow> _righe = Array.Empty<DocumentImpactRow>();
     private int? _loadedFor;
     private bool _busy;
 
-    // Risolto dallo scope proprio (OwningComponentBase): context isolato dal circuito.
-    private IDocumentReviewService Review = default!;
+    private IDocumentImpactService Impacts = default!;
     protected override void OnInitialized()
-        => Review = ScopedServices.GetRequiredService<IDocumentReviewService>();
+        => Impacts = ScopedServices.GetRequiredService<IDocumentImpactService>();
 
     protected override async Task OnParametersSetAsync()
     {
         if (DocumentId == _loadedFor) return;   // evita ricariche a ogni render
         _loadedFor = DocumentId;
-        _state = DocumentId is int id ? await Review.GetAsync(id) : null;
+        await RicaricaAsync();
     }
 
-    private async Task Resolve()
+    private async Task RicaricaAsync() =>
+        _righe = DocumentId is int id
+            ? await Impacts.ListOpenAsync(id)
+            : Array.Empty<DocumentImpactRow>();
+
+    /// <summary>La frase la compone la UI dalla chiave e dagli argomenti: in archivio non c'è testo, quindi la
+    /// stessa riga si legge in italiano o in inglese secondo chi guarda.</summary>
+    private string Frase(DocumentImpactRow r) => r.ReasonArgs.Count switch
     {
-        if (DocumentId is not int id) return;
+        0 => L[r.ReasonKey].Value,
+        1 => L[r.ReasonKey, r.ReasonArgs[0]].Value,
+        _ => L[r.ReasonKey, r.ReasonArgs[0], r.ReasonArgs[1]].Value,
+    };
+
+    private async Task Chiudi(int impactId)
+    {
         _busy = true;
         try
         {
-            await Review.ClearReviewAsync(id);
-            _state = null;
+            await Impacts.ClearAsync(impactId);
+            await RicaricaAsync();
             await OnResolved.InvokeAsync();
         }
         finally { _busy = false; }

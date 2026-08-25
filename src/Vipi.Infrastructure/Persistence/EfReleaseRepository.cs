@@ -179,6 +179,14 @@ public sealed class EfReleaseRepository : IReleaseRepository
         return result;
     }
 
+    public async Task<IReadOnlyList<string>> ListKeysWithReleasesAsync(
+        ReleaseTargetType type, CancellationToken ct = default) =>
+        await _db.DocReleases.AsNoTracking()
+            .Where(r => r.TargetType == type)
+            .Select(r => r.TargetKey)
+            .Distinct()
+            .ToListAsync(ct);
+
     public async Task<int> PruneReleasesAsync(ReleaseTargetType type, string key, DateTime keepFromUtc, CancellationToken ct = default)
     {
         // Solo le Superseded oltre soglia: l'Effective e le Scheduled hanno stato diverso → escluse per costruzione.

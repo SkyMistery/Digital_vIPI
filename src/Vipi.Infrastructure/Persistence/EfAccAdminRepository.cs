@@ -37,7 +37,7 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
 
         // Spegnere significa anche liberare l'archivio: senza questo le aree resterebbero lì per sempre, ferme e
         // selezionabili. Chi le condivide con un altro ente abilitato le conserva (si toglie solo il legame).
-        return enabled ? 0 : await PruneSpecialAreasNotInAsync(acc.Code, Array.Empty<string>(), ct);
+        return enabled ? 0 : (await PruneSpecialAreasNotInAsync(acc.Code, Array.Empty<string>(), ct)).Removed;
     }
 
     public async Task<IReadOnlyList<AccSectorRow>> ListSubcentersAsync(CancellationToken ct = default) =>
@@ -93,10 +93,17 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<(int Created, int Updated)> ImportSpecialAreasAsync(IReadOnlyList<SourceSpecialArea> areas, CancellationToken ct = default)
+    /// <summary>
+    /// Upsert delle aree. ⚠️ Oltre a creare e aggiornare, dice <b>che cosa è cambiato davvero</b>: fino al
+    /// 25 agosto 2026 il contatore <c>updated</c> saliva per ogni riga toccata, senza confrontare niente —
+    /// «aggiornata» ogni notte per tutte. Chi lo usasse per segnalare qualcosa segnalerebbe il nulla, in
+    /// continuazione. Il confronto guarda solo i campi che un documento <b>mostra</b>.
+    /// </summary>
+    public async Task<SpecialAreaUpsertOutcome> ImportSpecialAreasAsync(IReadOnlyList<SourceSpecialArea> areas, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
         int created = 0, updated = 0;
+        var cambiate = new List<SpecialAreaRef>();
 
         var accCodes = (await _db.Accs.Select(a => a.Code).ToListAsync(ct))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -126,6 +133,11 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
 
             if (existing.TryGetValue(ivaoId, out var row))
             {
+                // La fotografia di PRIMA, sui soli campi che finiscono sotto gli occhi di un lettore: nome,
+                // tipo, quote, raggio e testi dell'attivazione. La shape no — un poligono che si sposta di
+                // qualche metro non è una cosa che il documento «dice».
+                var prima = (row.Type, row.Name, row.Description, row.ActivationDetails,
+                             row.MinimumAlt, row.MaximumAlt, row.Range);
                 row.Type = a.Type;
                 row.Name = a.Name;
                 row.Description = a.Description;
@@ -136,6 +148,9 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
                 if (a.RegionMapPolygon is not null) row.RegionMapPolygon = a.RegionMapPolygon;   // preserva shape se il dettaglio manca
                 row.ImportedAtUtc = now;
                 updated++;
+                if (prima != (row.Type, row.Name, row.Description, row.ActivationDetails,
+                              row.MinimumAlt, row.MaximumAlt, row.Range))
+                    cambiate.Add(new SpecialAreaRef(ivaoId, row.Name ?? ivaoId));
             }
             else
             {
@@ -157,7 +172,7 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
         }
 
         await _db.SaveChangesAsync(ct);
-        return (created, updated);
+        return new SpecialAreaUpsertOutcome(created, updated, cambiate);
     }
 
     public async Task<IReadOnlySet<string>> ListAreasWithFreshShapeAsync(string accCode, DateTime importedAfterUtc, CancellationToken ct = default)
@@ -171,7 +186,7 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
         return ids.ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
-    public async Task<int> PruneSpecialAreasNotInAsync(string accCode, IReadOnlyCollection<string> keepIvaoIds, CancellationToken ct = default)
+    public async Task<SpecialAreaPruneOutcome> PruneSpecialAreasNotInAsync(string accCode, IReadOnlyCollection<string> keepIvaoIds, CancellationToken ct = default)
     {
         accCode = accCode.Trim().ToUpperInvariant();
         var keep = keepIvaoIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -180,7 +195,7 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
         // può restare del militare. L'area si cancella solo quando resta senza nessun ente che la elenchi.
         var links = await _db.SpecialAreaCenters.Where(l => l.CenterId == accCode).ToListAsync(ct);
         var remove = links.Where(l => !keep.Contains(l.IvaoId)).ToList();
-        if (remove.Count == 0) return 0;
+        if (remove.Count == 0) return SpecialAreaPruneOutcome.Empty;
 
         // Le due rimozioni — legami e aree rimaste orfane — stanno in UN SOLO SaveChanges, quindi in una
         // sola transazione implicita. Prima erano due: fra l'una e l'altra un guasto (rete, riavvio del
@@ -204,11 +219,18 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
             .Where(a => idsToccati.Contains(a.IvaoId) && !conAltriEnti.Contains(a.IvaoId))
             .ToListAsync(ct);
 
+        // I nomi PRIMA di cancellare: dopo, di quelle righe non resta niente da leggere — ed è il nome, non
+        // l'id numerico di IVAO, quello che un editore riconosce nel proprio documento.
+        var nomi = await _db.SpecialAreas.AsNoTracking()
+            .Where(a => idsToccati.Contains(a.IvaoId))
+            .Select(a => new SpecialAreaRef(a.IvaoId, a.Name ?? a.IvaoId))
+            .ToListAsync(ct);
+
         _db.SpecialAreaCenters.RemoveRange(remove);
         if (orfane.Count > 0) _db.SpecialAreas.RemoveRange(orfane);
         await _db.SaveChangesAsync(ct);
 
-        return remove.Count;
+        return new SpecialAreaPruneOutcome(remove.Count, nomi);
     }
 
     // Chiave del legame area↔ACC in memoria (l'id IVAO è numerico, il codice ACC già normalizzato maiuscolo).

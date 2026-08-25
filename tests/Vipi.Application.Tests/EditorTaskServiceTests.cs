@@ -396,6 +396,9 @@ public class EditorTaskServiceTests
     /// Il resto non lo chiama nessuno da qui, e se lo chiamasse il test deve dirlo forte.</summary>
     private sealed class ReleasesFinte : IReleaseRepository
     {
+        public Task<IReadOnlyList<string>> ListKeysWithReleasesAsync(ReleaseTargetType type, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+
         private readonly string? _acc;
         public ReleasesFinte(string? acc) => _acc = acc;
 

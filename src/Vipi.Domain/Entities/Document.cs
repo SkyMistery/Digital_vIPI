@@ -25,11 +25,10 @@ public class Document
     /// <summary>Nascosto dal pubblico (reversibile): il documento resta con la sua storia ma i loader pubblici lo escludono.</summary>
     public bool IsHidden { get; set; }
 
-    /// <summary>Revisione pendente: valorizzato quando un evento a monte (es. un settore nascosto) può aver reso stantii
-    /// FREQUENZE/AoR/CONFIGURAZIONI di questo documento. null = nessuna revisione richiesta.</summary>
-    public DateTime? NeedsReviewUtc { get; set; }
-    /// <summary>Motivo leggibile della revisione pendente, mostrato in banner nell'editor. null = nessuna.</summary>
-    public string? ReviewReason { get; set; }
+    // ⚠️ Le segnalazioni di revisione NON stanno più qui. Fino al 25 agosto 2026 erano due colonne —
+    // NeedsReviewUtc + ReviewReason — cioè UN motivo solo: il secondo evento sovrascriveva il primo, che
+    // spariva senza traccia. Ora vivono in DocumentImpact, una riga per fatto, con la loro chiusura.
+    // Carta docs/feature/2026-08-25-documenti-da-rivedere.md §4.
 
     public byte[]? RowVersion { get; set; }
 

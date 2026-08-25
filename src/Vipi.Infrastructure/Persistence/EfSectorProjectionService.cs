@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
 using Vipi.Domain.Services;
@@ -10,7 +11,31 @@ namespace Vipi.Infrastructure.Persistence;
 public sealed class EfSectorProjectionService : ISectorProjectionService
 {
     private readonly VipiDbContext _db;
-    public EfSectorProjectionService(VipiDbContext db) => _db = db;
+    private readonly IDocumentImpactService? _impacts;
+
+    /// <param name="impacts">
+    /// Dove finiscono le segnalazioni quando un settore sparisce, viene nascosto o cambia padre. È
+    /// <b>opzionale</b> di proposito: la proiezione deve restare usabile da sola (i test di proiezione non
+    /// hanno niente a che vedere con la casella), e un giro senza casella è un giro che proietta e basta,
+    /// non un giro che fallisce.
+    /// </param>
+    public EfSectorProjectionService(VipiDbContext db, IDocumentImpactService? impacts = null)
+    {
+        _db = db;
+        _impacts = impacts;
+    }
+
+    /// <summary>
+    /// Quota di settori proiettati che possono sparire in un giro <b>senza</b> che la cosa venga presa per
+    /// buona. Oltre questa, il catalogo è sospetto — un import a metà, un database appena sostituito, un ACC
+    /// nascosto in blocco — e aprire una segnalazione per ognuno vorrebbe dire seppellire la casella la
+    /// prima volta che qualcosa va storto a monte.
+    /// </summary>
+    private const double QuotaSparizioniSospetta = 0.25;
+
+    /// <summary>Sotto questo numero di sparizioni la quota non si applica: su tre settori in archivio, uno
+    /// solo che se ne va supera il 25% ed è un fatto del tutto normale.</summary>
+    private const int SparizioniMinimePerLaQuota = 5;
 
     public async Task<int> SyncFromCatalogsAsync(CancellationToken ct = default)
     {
@@ -75,7 +100,24 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
             .ToListAsync(ct);
         var byCallsign = existing.ToDictionary(s => s.Callsign, s => s, StringComparer.OrdinalIgnoreCase);
 
+        // Contesto per le segnalazioni (§6). Il catalogo INTERO, nascosti compresi: serve a distinguere «il
+        // callsign non c'è più» da «il callsign c'è ma qualcuno l'ha nascosto», che per chi legge sono due
+        // fatti diversi — il primo lo decide la sorgente, il secondo una persona.
+        var tuttiICallsignInCatalogo = accSectors.Select(x => x.ComposePosition)
+            .Concat(airportSectors.Select(x => x.ComposePosition))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var accDiCallsign = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var x in accSectors) accDiCallsign[x.ComposePosition] = x.CenterId;
+        foreach (var x in airportSectors) accDiCallsign[x.ComposePosition] = x.AccCode;
+        var primaAttivi = existing.Count(s => s.IsProjected && s.IsActive);
+        // ⚠️ Il codice ACC per Id, e non solo quello del catalogo: quando un callsign SPARISCE la sua riga di
+        // catalogo non c'è più, quindi l'ACC glielo può dire solo il settore proiettato (AccId), che invece
+        // resta. Senza questa mappa la segnalazione di sparizione partiva con l'ACC vuoto — e senza ACC il
+        // reverse-lookup non trova la vIPI ACC, cioè proprio il documento che deve avvisare.
+        var accCodeById = accIdByCode.ToDictionary(kv => kv.Value, kv => kv.Key);
+
         var changed = 0;
+        var tornati = new List<Sector>();
 
         // 3. Upsert per callsign (preserva Id e i legami editoriali DocumentId/IsPrimary/FeaturedRank).
         foreach (var d in desired.Values)
@@ -104,6 +146,9 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
                 || string.Equals(sector.Name, sector.Callsign, StringComparison.OrdinalIgnoreCase))
                 sector.Name = friendly;
             sector.IsProjected = true;
+            // Tornato: era disattivato e il catalogo lo rimette in circolazione. La segnalazione aperta quando
+            // sparì non ha più causa, e sara' questa lista a farla chiudere (§6).
+            if (sector.Id != 0 && !sector.IsActive) tornati.Add(sector);
             sector.IsActive = true;
             sector.ImportedAtUtc = DateTime.UtcNow;
             changed++;
@@ -119,6 +164,11 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
         // verso un antenato visibile ripartirebbe da null proprio per le posizioni che il fix aggancia.
         foreach (var s in airportSectors)
             parentOf[s.ComposePosition] = s.ParentCallsign ?? LadderParent(s, visibleByIcao, airportParentByIcao);
+
+        // Il padre di PRIMA, letto adesso che nessuno l'ha ancora toccato: serve a distinguere «riparentato»
+        // da «era già così». Solo per i settori che esistevano (i nuovi non hanno un prima).
+        var padrePrima = existing.Where(s => s.Id != 0)
+            .ToDictionary(s => s.Callsign, s => s.ParentSectorId, StringComparer.OrdinalIgnoreCase);
 
         foreach (var d in desired.Values)
         {
@@ -137,23 +187,45 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
             }
         }
 
+        // Chi ha cambiato padre davvero. ⚠️ Si guarda DOPO l'assegnazione ma PRIMA del salvataggio, e si
+        // confronta con la fotografia di prima: un settore appena creato non è «riparentato», è nato.
+        var riparentati = new List<Sector>();
+        foreach (var d in desired.Values)
+        {
+            var child = byCallsign[d.Callsign];
+            if (!padrePrima.TryGetValue(d.Callsign, out var prima)) continue;   // nuovo: non è un cambio
+            var dopo = child.ParentSector?.Id ?? child.ParentSectorId;
+            if (prima != dopo) riparentati.Add(child);
+        }
+
         // 5. Orfani: settori PROIETTATI il cui callsign non è più nel catalogo visibile → disattiva (non cancella).
-        //    Recide anche i legami editoriali (DocumentId/IsPrimary/FeaturedRank): un settore che non esiste più
-        //    nella sorgente non deve restare agganciato a un Document (FK dangling → artefatti doppio-documento
-        //    in rigenerazione, e "primario" fantasma). Se il callsign riappare, il sync lo re-upserta pulito.
+        //
+        //    ⚠️ **Dal 25 agosto 2026 il legame al documento NON si recide più.** Prima si azzeravano anche
+        //    DocumentId/IsPrimary/FeaturedRank, per una ragione vera — un settore che non esiste più non deve
+        //    restare agganciato a un Document, o in rigenerazione nascono artefatti doppio-documento e
+        //    «primari» fantasma. Il prezzo era però più alto del rimedio: la riga tornava al giro successivo,
+        //    il legame no, e il documento restava sganciato per sempre — con la pagina pubblica muta, perché
+        //    i bersagli di release cercano un settore ATTIVO col documento. Ora il legame resta e la
+        //    segnalazione avvisa; a recidere sarà l'admin, dalla sezione «Orfani» della Struttura, quando avrà
+        //    deciso. Il motivo originale resta coperto: chi risolve un documento filtra su IsActive
+        //    (EfAccDerivationRepository) o parte dall'aeroporto, e la rigenerazione riallinea solo gli attivi.
+        var spariti = new List<Sector>();
         foreach (var s in existing)
         {
             if (s.IsProjected && !desired.ContainsKey(s.Callsign) && s.IsActive)
             {
                 s.IsActive = false;
-                s.DocumentId = null;
-                s.IsPrimary = false;
-                s.FeaturedRank = null;
+                spariti.Add(s);
                 changed++;
             }
         }
 
         await _db.SaveChangesAsync(ct);
+
+        // 6. La casella: che cosa raccontare ai documenti. Dopo il salvataggio, perché una segnalazione su uno
+        //    stato non ancora scritto sarebbe una bugia se il salvataggio fallisse.
+        await SegnalaAsync(spariti, riparentati, tornati, tuttiICallsignInCatalogo, primaAttivi, accDiCallsign,
+            accCodeById, ct);
 
         // I poligoni/visibilità dei settori appena riproiettati possono aver cambiato i confini esteri: invalida la
         // cache del set confinanti (altrimenti resta stantia fino al TTL di 5 min). Questo è il choke point comune di
@@ -257,4 +329,57 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
 
     /// <summary>Posto nella scaletta d'aeroporto (condiviso con l'editor gerarchia): più basso = più in alto.</summary>
     private static int CoverageFor(SectorType type) => AirportPositionLadder.Rung(type);
+
+    /// <summary>
+    /// Racconta alla casella che cosa è cambiato: settori spariti, nascosti, riparentati — e chiude da sé le
+    /// segnalazioni la cui causa non c'è più (un callsign che torna).
+    ///
+    /// <para>⚠️ <b>La guardia dell'avvio a freddo.</b> Questa proiezione gira a OGNI avvio
+    /// (<c>ProjectVipiSectors</c>), prima e indipendentemente dagli import. Con un catalogo vuoto o a metà —
+    /// database appena sostituito, import fallito, ACC nascosti in blocco — <b>ogni</b> settore proiettato
+    /// risulterebbe sparito, e la casella si riempirebbe di centinaia di righe false proprio nel momento in
+    /// cui qualcosa è già andato storto. È lo stesso pericolo che l'import delle aree disinnesca da mesi («se
+    /// la fetch fallisce non si pota»), applicato qui. Due soglie: catalogo vuoto, e sparizioni oltre un
+    /// quarto dei settori attivi.</para>
+    /// </summary>
+    private async Task SegnalaAsync(
+        IReadOnlyList<Sector> spariti, IReadOnlyList<Sector> riparentati, IReadOnlyList<Sector> tornati,
+        IReadOnlySet<string> callsignInCatalogo, int primaAttivi,
+        IReadOnlyDictionary<string, string> accDiCallsign, IReadOnlyDictionary<int, string> accCodeById,
+        CancellationToken ct)
+    {
+        if (_impacts is null) return;
+
+        // Un callsign TORNATO: la causa non c'è più, e la riga aperta non deve restare a fare rumore. Si
+        // chiude col calcolo (utente 0), non con una persona: non l'ha risolta nessuno, si è risolta da sé.
+        foreach (var s in tornati)
+            await _impacts.ClearBySourceAsync(
+                new[] { ImpactKind.SectorGone, ImpactKind.SectorHidden }, s.Callsign, ct);
+
+        if (callsignInCatalogo.Count == 0)
+            return;   // catalogo vuoto: non è «sono spariti tutti», è «non lo sappiamo».
+
+        if (spariti.Count >= SparizioniMinimePerLaQuota
+            && primaAttivi > 0
+            && (double)spariti.Count / primaAttivi > QuotaSparizioniSospetta)
+            return;   // sparizione di massa: catalogo sospetto, si proietta ma non si segnala.
+
+        foreach (var s in spariti)
+        {
+            var acc = AccDi(s);
+            // Il callsign è ancora in catalogo? Allora non è sparito: l'ha nascosto qualcuno.
+            var kind = callsignInCatalogo.Contains(s.Callsign) ? ImpactKind.SectorHidden : ImpactKind.SectorGone;
+            await _impacts.RaiseForSectorAsync(kind, s.Callsign, acc, ct);
+        }
+
+        foreach (var s in riparentati)
+            await _impacts.RaiseForSectorAsync(ImpactKind.SectorReparented, s.Callsign, AccDi(s), ct);
+
+        // Il codice ACC del settore: prima il catalogo (è la verità corrente), poi la riga proiettata — che
+        // per un callsign sparito è l'unica cosa rimasta a saperlo.
+        string AccDi(Sector s) =>
+            accDiCallsign.TryGetValue(s.Callsign, out var a) ? a
+            : accCodeById.TryGetValue(s.AccId, out var c) ? c
+            : s.Acc?.Code ?? "";
+    }
 }

@@ -72,7 +72,9 @@ public static class DependencyInjection
         services.AddScoped<IReleaseService, ReleaseService>();
         services.AddScoped<IEditorTaskService, EditorTaskService>();
         services.AddScoped<IEditorTaskLinksService, EditorTaskLinksService>();
-        services.AddScoped<IDocumentReviewService, DocumentReviewService>();
+        services.AddScoped<IDocumentImpactService, DocumentImpactService>();
+        services.AddScoped<IOrphanSectorService, OrphanSectorService>();
+        services.AddScoped<IImpactDriftUseCase, ImpactDriftUseCase>();
         services.AddScoped<IDocumentAdminService, DocumentAdminService>();
         services.AddScoped<IAirportSectorImporter, AirportSectorImporter>();
         services.AddScoped<IAirportImportUseCase, AirportImportUseCase>();

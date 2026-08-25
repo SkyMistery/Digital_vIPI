@@ -154,12 +154,19 @@ public class SectorProjectionTests : IAsyncLifetime
         Assert.False(sector.IsActive);   // disattivato, non cancellato
     }
 
+    /// <summary>
+    /// ⚠️ Questo test diceva il contrario fino al 25 agosto 2026 — si chiamava
+    /// <c>Sync_Clears_Editorial_Links_When_Projected_Sector_Becomes_Orphan</c> e pretendeva che il legame al
+    /// documento venisse <b>reciso</b>. Era la decisione di allora, e costava cara: la riga tornava al giro
+    /// successivo, il legame no, e il documento restava sganciato per sempre — pagina pubblica muta compresa,
+    /// perché i bersagli di release cercano un settore attivo col documento. Ora il legame RESTA e a decidere
+    /// è una persona, dalla sezione «Orfani». Il test non è stato cancellato: è stato girato.
+    /// </summary>
     [Fact]
-    public async Task Sync_Clears_Editorial_Links_When_Projected_Sector_Becomes_Orphan()
+    public async Task Sync_Keeps_Link_And_Deactivates_When_Projected_Sector_Becomes_Orphan()
     {
         await _proj.SyncFromCatalogsAsync();
 
-        // Aggancio manualmente il settore proiettato TS a un documento (come farebbe la generazione doc).
         var doc = new Document { Type = DocumentType.Vipi, Title = "Doc TS", Language = Language.It,
             LastUpdatedAiracCycle = "2606" };
         _db.Documents.Add(doc);
@@ -174,10 +181,10 @@ public class SectorProjectionTests : IAsyncLifetime
         await _proj.SyncFromCatalogsAsync();
 
         var after = await _db.Sectors.AsNoTracking().FirstAsync(s => s.Callsign == "LIRR_TS_CTR");
-        Assert.False(after.IsActive);          // disattivato
-        Assert.Null(after.DocumentId);         // legame editoriale reciso (niente FK dangling)
-        Assert.False(after.IsPrimary);
-        Assert.Null(after.FeaturedRank);
+        Assert.False(after.IsActive);           // disattivato: questo non cambia
+        Assert.Equal(doc.Id, after.DocumentId); // ma il documento resta agganciato
+        Assert.True(after.IsPrimary);
+        Assert.Equal(2, after.FeaturedRank);
     }
 
     [Fact]

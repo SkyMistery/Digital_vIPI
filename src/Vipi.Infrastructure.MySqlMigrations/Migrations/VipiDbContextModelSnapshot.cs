@@ -1342,13 +1342,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<int?>("LockedByUserId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("NeedsReviewUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("ReviewReason")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .HasColumnType("longblob");
@@ -1377,6 +1370,60 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.HasIndex("Type", "Status");
 
                     b.ToTable("Documents");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.DocumentImpact", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClearedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ClearedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("DocumentId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsPublicNow")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime>("RaisedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("ReasonArgsJson")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("ReasonKey")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClearedUtc", "RaisedUtc");
+
+                    b.HasIndex("DocumentId", "Kind", "SourceKey", "ClearedUtc")
+                        .IsUnique();
+
+                    b.ToTable("DocumentImpacts");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.DocumentParty", b =>
@@ -2521,6 +2568,17 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("CurrentVersion");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.DocumentImpact", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Document", "Document")
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Document");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.DocumentParty", b =>

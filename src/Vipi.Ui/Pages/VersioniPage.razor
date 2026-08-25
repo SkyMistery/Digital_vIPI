@@ -5,6 +5,7 @@
 @inject IEditingService Editing
 @inject IReleaseService Releases
 @inject IDocumentAdminService DocAdmin
+@inject IDocumentImpactService Impacts
 @inject IEditAuthorizationService Authz
 @inject Vipi.Application.Abstractions.IStaffRosterRepository StaffRoster
 @inject Vipi.Application.Abstractions.IAuditLogReader Audit
@@ -183,6 +184,28 @@
                                 {
                                     <span class="pill grey" title="@L["Ver_NoReleaseTitle"]">⚠️ @L["Ver_NoReleaseBadge"]</span>
                                 }
+                                @* La casella degli impatti, riassunta in una pill. L'ordine delle tre non è
+                                   alfabetico: dice quel che è più urgente. «Già in pubblico» batte tutto — il
+                                   cambio è sotto gli occhi dei lettori senza che nessuno l'abbia approvato. *@
+                                @if (Badge(d) is { } b)
+                                {
+                                    @if (b.GiaInPubblico > 0)
+                                    {
+                                        <span class="pill red" title="@L["Impact_PublicNowTitle"]">@L["Impact_PublicNow"] (@b.GiaInPubblico)</span>
+                                    }
+                                    else if (b.Rotti > 0)
+                                    {
+                                        <span class="pill amber">@L["Impact_Broken"] (@b.Rotti)</span>
+                                    }
+                                    else if (b.DaRipubblicare > 0)
+                                    {
+                                        <span class="pill blue" title="@L["Impact_RepublishTitle"]">@L["Impact_Republish"] (@b.DaRipubblicare)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="pill amber">@L["Impact_ToReview"] (@b.Total)</span>
+                                    }
+                                }
                                 @* Chi sta lavorando a cosa. Il nome e l'ORA sono entrambi necessari: il lock del
                                    documento dura 30 minuti e non ha battito, quindi «bloccato» senza scadenza non
                                    direbbe se aspettare o no. *@
@@ -271,6 +294,7 @@
     [Parameter] public string? Acc { get; set; }
 
     private IReadOnlyList<ManagedDoc>? _docs;
+    private IReadOnlyDictionary<int, ImpactBadge> _impatti = new Dictionary<int, ImpactBadge>();
     // La riga scelta (chiave RowKey), e le chiavi il cui dettaglio si sta caricando.
     private string? _selKey;
     private readonly HashSet<string> _loadingKeys = new();
@@ -341,10 +365,18 @@
                 var acc = Acc.Trim().ToUpperInvariant();
                 _docs = _docs.Where(d => string.Equals(d.AccCode, acc, StringComparison.OrdinalIgnoreCase)).ToList();
             }
+            // Le segnalazioni aperte, in UNA query per tutto l'elenco: una per riga sarebbe una query per
+            // documento a ogni caricamento della pagina.
+            _impatti = await Impacts.CountOpenAsync(_docs.Where(x => x.DocumentId is not null)
+                .Select(x => x.DocumentId!.Value).ToList());
             await LoadPermessiAsync();
         }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
     }
+
+    /// <summary>Il riassunto delle segnalazioni aperte del documento, se ne ha.</summary>
+    private ImpactBadge? Badge(ManagedDoc d) =>
+        d.DocumentId is int id && _impatti.TryGetValue(id, out var b) ? b : null;
 
     // Lo stato release arriva già con l'elenco (ManagedDoc.EffectiveCycle/NextScheduledCycle): fino al 21 agosto
     // 2026 questa pagina rifaceva la stessa SummariesAsync che il repository aveva appena eseguito.

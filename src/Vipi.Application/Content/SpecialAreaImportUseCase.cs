@@ -1,4 +1,5 @@
 using Vipi.Application.Abstractions;
+using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -8,12 +9,16 @@ public sealed class SpecialAreaImportUseCase : ISpecialAreaImportUseCase
     private readonly IAccAdminRepository _repo;
     private readonly IAccDirectory _directory;
     private readonly IImportPolicyStore _policy;
+    private readonly IDocumentImpactService? _impacts;
 
-    public SpecialAreaImportUseCase(IAccAdminRepository repo, IAccDirectory directory, IImportPolicyStore policy)
+    /// <param name="impacts">Opzionale, come nella proiezione: un import senza casella importa e basta.</param>
+    public SpecialAreaImportUseCase(IAccAdminRepository repo, IAccDirectory directory, IImportPolicyStore policy,
+        IDocumentImpactService? impacts = null)
     {
         _repo = repo;
         _directory = directory;
         _policy = policy;
+        _impacts = impacts;
     }
 
     /// <summary>
@@ -82,8 +87,20 @@ public sealed class SpecialAreaImportUseCase : ISpecialAreaImportUseCase
         // Aree la cui shape è già in archivio e recente: alla sorgente si chiede solo l'elenco, non il dettaglio.
         var fresh = await _repo.ListAreasWithFreshShapeAsync(accCode, shapeCutoff, ct);
         var areas = await _directory.GetSpecialAreasAsync(accCode, fresh, ct);
-        var (c, u) = await _repo.ImportSpecialAreasAsync(areas, ct);
-        var r = await _repo.PruneSpecialAreasNotInAsync(accCode, areas.Select(x => x.IvaoId).ToList(), ct);
-        return (c, u, r);
+        var upsert = await _repo.ImportSpecialAreasAsync(areas, ct);
+        var prune = await _repo.PruneSpecialAreasNotInAsync(accCode, areas.Select(x => x.IvaoId).ToList(), ct);
+
+        // La casella: solo le aree CAMBIATE (non le «aggiornate») e quelle sparite. ⚠️ Un'area sparisce dalla
+        // vista di un ACC anche quando resta in archivio per un altro ente: per i documenti di QUESTO ACC il
+        // fatto è lo stesso — non la vedono più — e va detto lo stesso.
+        if (_impacts is not null)
+        {
+            foreach (var a in upsert.Changed)
+                await _impacts.RaiseForAreaAsync(ImpactKind.AreaChanged, a.IvaoId, a.Name, ct);
+            foreach (var a in prune.Gone)
+                await _impacts.RaiseForAreaAsync(ImpactKind.AreaGone, a.IvaoId, a.Name, ct);
+        }
+
+        return (upsert.Created, upsert.Updated, prune.Removed);
     }
 }

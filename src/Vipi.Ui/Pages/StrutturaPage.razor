@@ -2,6 +2,7 @@
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IStructureEditingService Struct
+@inject IOrphanSectorService Orphans
 @inject IHierarchyEditingService Hierarchy
 @inject IEditAuthorizationService Authz
 @inject IOnlineAtcProvider Online
@@ -243,6 +244,94 @@
             </div>
         </div>
     </div>
+
+    @* ---- Orfani: i settori che i cataloghi non confermano più ------------------------------------------
+       Prima del 25 agosto 2026 non esisteva nessun posto dove vederli: la proiezione li disattivava, recideva
+       il loro legame al documento e non lo diceva a nessuno. Ora il legame resta e la decisione è di una
+       persona. La sezione compare SOLO se ce ne sono: una sezione vuota permanente è rumore.
+       ⚠️ La frase «se la sorgente lo rimanda, torna» è a schermo di proposito — senza, una riga che riappare
+       dopo la rimozione sembra un guasto. *@
+    @if (Authz.IsAdmin && _orfani.Count > 0)
+    {
+        <div class="section-title">
+            <h2 class="h-sect">@L["Orph_Title"] <span class="pill amber">@_orfani.Count</span></h2>
+            <span class="ln"></span>
+        </div>
+        <div class="panel">
+            <p class="muted" style="margin:0 0 10px">@L["Orph_Intro"]</p>
+            <table class="res-table">
+                <thead>
+                    <tr>
+                        <th>@L["Orph_Callsign"]</th>
+                        <th>@L["Orph_Why"]</th>
+                        <th>@L["Orph_Documents"]</th>
+                        <th>@L["Orph_Actions"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var o in _orfani)
+                {
+                    <tr>
+                        <td><b>@o.Callsign</b><br /><span class="muted">@o.AccCode</span></td>
+                        <td>
+                            @if (o.StillInCatalog)
+                            {
+                                <span class="pill neutral">@L["Orph_Hidden"]</span>
+                            }
+                            else
+                            {
+                                <span class="pill red">@L["Orph_Gone"]</span>
+                            }
+                        </td>
+                        <td>
+                            @if (o.DocumentTitle is not null)
+                            {
+                                <span class="pill blue">@L["Orph_CarriesDoc"]</span> <span>@o.DocumentTitle</span>
+                            }
+                            else if (o.Documents.Count > 0)
+                            {
+                                <span class="muted">@string.Join(", ", o.Documents.Select(d => d.Title))</span>
+                            }
+                            else
+                            {
+                                <span class="muted">@L["Orph_NoDocs"]</span>
+                            }
+                        </td>
+                        <td>
+                            @if (o.DocumentId is not null)
+                            {
+                                <select class="inp" value="@(_reattachTo.TryGetValue(o.SectorId, out var t) ? t.ToString() : "")"
+                                        @onchange="e => _reattachTo[o.SectorId] = int.TryParse(e.Value?.ToString(), out var v) ? v : 0">
+                                    <option value="">@L["Orph_PickTarget"]</option>
+                                    @foreach (var tgt in Bersagli(o.SectorId))
+                                    {
+                                        <option value="@tgt.SectorId">@tgt.Callsign</option>
+                                    }
+                                </select>
+                                <button class="btn ghost" disabled="@(_busy || !_canEdit || !_reattachTo.TryGetValue(o.SectorId, out var sel2) || sel2 == 0)"
+                                        @onclick="() => Riaggancia(o.SectorId)">@L["Orph_Reattach"]</button>
+                            }
+                            @if (o.Blockers.Count == 0)
+                            {
+                                <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Orph_RemoveTitle"]"
+                                               AriaLabel="@L["Orph_Remove"]" Disabled="@(_busy || !_canEdit)"
+                                               Prompt="@L["Orph_RemovePrompt", o.Callsign]"
+                                               ConfirmLabel="@L["Orph_Remove"]" CancelLabel="@L["Common_Cancel"]"
+                                               OnConfirm="() => Rimuovi(o.SectorId)">
+                                    <Trigger>@L["Orph_Remove"]</Trigger>
+                                </InlineConfirm>
+                            }
+                            else
+                            {
+                                <span class="muted" title="@string.Join("; ", o.Blockers)">@L["Orph_Blocked"]</span>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
 </div>
 
 @code {
@@ -267,6 +356,11 @@
     // Torri, ground e delivery sono ~110 nodi su ~250: spenti di default, così chi lavora sulla struttura d'area
     // non se li trova fra i piedi. Chi deve sistemare uno scalo sdoppiato li accende.
     private bool _showAirportPositions;
+
+    // Orfani: settori proiettati che i cataloghi non confermano più (sezione in fondo alla pagina).
+    private IReadOnlyList<OrphanSectorRow> _orfani = Array.Empty<OrphanSectorRow>();
+    private readonly Dictionary<int, IReadOnlyList<ReattachTargetRow>> _bersagli = new();
+    private readonly Dictionary<int, int> _reattachTo = new();
 
     // Drag&drop re-parent: nodo trascinato + target correntemente sotto il cursore.
     private HierarchyNodeKind? _dragKind;
@@ -293,6 +387,7 @@
         _confining = await Hierarchy.ListConfiningForeignCallsignsAsync();
         _online = new HashSet<string>(Online.GetCurrent().Callsigns, StringComparer.OrdinalIgnoreCase);
         await ReloadTreeAsync();
+        await RicaricaOrfaniAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -311,6 +406,32 @@
         // va TOLTA: un riquadro alto quanto lo schermo dentro una pagina che scorre sono due barre annidate.
         try { await JS.InvokeVoidAsync("vipiFitViewport", ".gerarchia-2col", 900); } catch (Exception) { }
     }
+
+    /// <summary>Gli orfani e, per ognuno, i settori a cui si può riappendere il documento. I bersagli si
+    /// caricano QUI e non durante il render: la lista serve dentro un @foreach, che non può attendere.</summary>
+    private async Task RicaricaOrfaniAsync()
+    {
+        if (!Authz.IsAdmin) return;
+        _orfani = await Orphans.ListAsync();
+        _bersagli.Clear();
+        foreach (var o in _orfani.Where(x => x.DocumentId is not null))
+            _bersagli[o.SectorId] = await Orphans.ReattachTargetsAsync(o.SectorId);
+    }
+
+    private IReadOnlyList<ReattachTargetRow> Bersagli(int sectorId) =>
+        _bersagli.TryGetValue(sectorId, out var l) ? l : Array.Empty<ReattachTargetRow>();
+
+    private Task Riaggancia(int orphanId) => Guarded(async () =>
+    {
+        await Orphans.ReattachAsync(orphanId, _reattachTo[orphanId]);
+        await RicaricaOrfaniAsync();
+    });
+
+    private Task Rimuovi(int orphanId) => Guarded(async () =>
+    {
+        await Orphans.RemoveAsync(orphanId);
+        await RicaricaOrfaniAsync();
+    });
 
     private async Task ReloadTreeAsync()
     {

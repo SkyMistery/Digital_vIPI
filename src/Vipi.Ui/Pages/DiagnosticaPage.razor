@@ -4,6 +4,8 @@
 @using Vipi.Application.Diagnostics
 @using Vipi.Application.Auth
 @inject IConsistencyReportService Consistency
+@inject Vipi.Application.Content.IDocumentImpactService Impacts
+@inject Vipi.Application.Abstractions.IImportStateStore ImportStates
 @inject IAdminCoverageService AdminCoverage
 @inject IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
@@ -223,6 +225,55 @@
                     </div>
                 }
 
+                @* La casella degli impatti: che cosa, a monte, ha toccato i documenti. Sta QUI e non nella
+                   pagina Sorgenti perché il giro che la alimenta non interroga nessuna sorgente — quell'elenco
+                   si intitola «stato degli import», e una riga che non importa niente lì dentro mentirebbe
+                   (è la stessa ragione per cui ne resta fuori la riconciliazione delle aree estere). *@
+                <div class="panel diag-card">
+                    <div class="doc-head st-head diag-card-head">
+                        <h2 class="h-sect st-h2"><Icon Name="warning" Size="15" /> @L["Diag_ImpactsTitle"]</h2>
+                        <HelpHint AriaLabel="@L["Diag_ImpactsTitle"]" ExtraClass="wide">
+                            <p style="margin:0">@L["Diag_ImpactsHint"]</p>
+                        </HelpHint>
+                    </div>
+
+                    @if (_impatti.Count == 0)
+                    {
+                        <p class="help">@L["Diag_ImpactsNone"]</p>
+                    }
+                    else
+                    {
+                        <table class="res-table">
+                            <thead><tr><th>@L["Diag_ImpactsKind"]</th><th>@L["Diag_ImpactsOpen"]</th></tr></thead>
+                            <tbody>
+                                @foreach (var r in _impatti.OrderByDescending(x => x.Value))
+                                {
+                                    <tr><td>@L["ImpactKind_" + r.Key.ToString()]</td><td>@r.Value</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+
+                    @* L'ultimo giro: senza questa riga, «zero segnalazioni» e «il controllo non gira da tre
+                       giorni» si leggono allo stesso modo. *@
+                    <p class="help" style="margin-top:10px">
+                        @if (_ultimaDeriva is { } q)
+                        {
+                            @L["Diag_ImpactsLastRun"]
+                            <b data-utc="@VipiTime.Iso(q)">@VipiTime.DayZ(q)</b>
+                        }
+                        else
+                        {
+                            @L["Diag_ImpactsNeverRun"]
+                        }
+                        @if (_erroreDeriva is { } e)
+                        {
+                            <br />
+                            <span class="warn">@e</span>
+                        }
+                    </p>
+                </div>
+
                 @* Manutenzione del deposito immagini: sta qui perché è la pagina delle azioni di manutenzione
                    ed è già riservata agli admin. Il quadro di consistenza può essere pulito e lo spazio da
                    recuperare esserci lo stesso. *@
@@ -235,6 +286,11 @@
 @code {
     private IReadOnlyList<ConsistencyFinding> _findings = Array.Empty<ConsistencyFinding>();
     private AdminCoverage? _admin;
+
+    // La casella degli impatti: quante righe aperte per tipo, e quando ha girato l'ultima volta il controllo.
+    private IReadOnlyDictionary<Vipi.Domain.ImpactKind, int> _impatti = new Dictionary<Vipi.Domain.ImpactKind, int>();
+    private DateTime? _ultimaDeriva;
+    private string? _erroreDeriva;
     private bool _loading = true;
     private string? _errore;
     private DateTime? _quando;
@@ -277,6 +333,19 @@
             var all = await Consistency.RunAsync();
             _findings = all.OrderByDescending(f => f.Severity).ThenBy(f => f.Category).ToList();
             _admin = await AdminCoverage.DescribeAsync();
+
+            var aperti = new Dictionary<Vipi.Domain.ImpactKind, int>();
+            foreach (var k in Enum.GetValues<Vipi.Domain.ImpactKind>())
+            {
+                var n = (await Impacts.ListOpenByKindCountAsync(k)) ;
+                if (n > 0) aperti[k] = n;
+            }
+            _impatti = aperti;
+
+            var stato = (await ImportStates.GetAllAsync())
+                .FirstOrDefault(x => x.Category == Vipi.Application.Abstractions.ImportCategories.ImpactDrift);
+            _ultimaDeriva = stato?.LastSuccessUtc == default ? null : stato?.LastSuccessUtc;
+            _erroreDeriva = string.IsNullOrWhiteSpace(stato?.LastError) ? null : stato!.LastError;
             _quando = DateTime.UtcNow;
         }
         catch (Exception ex) { _errore = ex.Message; }

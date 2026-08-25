@@ -37,6 +37,10 @@ public interface IReleaseRepository
     /// <summary>La release effettiva a <paramref name="atUtc"/> (ReleaseEffectiveUtc &lt;= atUtc, più recente), o null.</summary>
     Task<DocRelease?> GetEffectiveAsync(ReleaseTargetType type, string key, DateTime atUtc, CancellationToken ct = default);
 
+    /// <summary>Le chiavi di bersaglio che hanno almeno una release, per tipo. Serve a scoprire le release
+    /// rimaste scritte sotto una chiave che il documento non usa più (lavori-aperti C6).</summary>
+    Task<IReadOnlyList<string>> ListKeysWithReleasesAsync(ReleaseTargetType type, CancellationToken ct = default);
+
     /// <summary>Una release per Id (col payload), per anteprima/diff. null se inesistente.</summary>
     Task<DocRelease?> GetByIdAsync(int releaseId, CancellationToken ct = default);
 

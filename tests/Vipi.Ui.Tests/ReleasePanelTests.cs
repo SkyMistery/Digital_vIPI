@@ -27,6 +27,9 @@ public class ReleasePanelTests : TestContext
 
     private sealed class FakeReleases : IReleaseService
     {
+        public Task<IReadOnlyList<ReleaseDiffRow>> DriftFromEffectiveAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<ReleaseDiffRow>>(Array.Empty<ReleaseDiffRow>());
+
         public List<ReleaseInfo> Releases { get; } = new();
         public ReleaseDiff Diff { get; set; } =
             new(true, "2607", new[] { new ReleaseDiffRow("Separazioni", ReleaseChangeKind.Modified, 3, 5) });
