@@ -750,7 +750,7 @@ la ripara**.
 
 ### B12 🟡 NON FUSO — `statistiche-atc`: la decisione è del committente
 
-**59 commit** oltre `main`, spinti su `origin/statistiche-atc`. ⚠️ **La cifra si conta, non si legge**: qui
+**60 commit** oltre `main`, spinti su `origin/statistiche-atc`. ⚠️ **La cifra si conta, non si legge**: qui
 c'è stata scritta «24» per due giri di fila mentre il ramo era già a 27, ed è il motivo per cui accanto c'è
 il comando — `git rev-list --count main..statistiche-atc`.
 **Niente lo blocca sul piano tecnico**: build a **0 avvisi** e suite **tutta verde** su tutti e due i TFM —
