@@ -143,8 +143,12 @@
                        finestrella di sistema invece che accanto al tasto che l'ha aperta. E' la stessa cura
                        gia' pagata dal giro Versioni il 21 agosto, e qui pesa di piu': annullare una release
                        e' irreversibile e tocca un documento gia' pubblicato. *@
-                    <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Rel_CancelTitle"]" AriaLabel="@L["Rel_CancelTitle"]"
-                                   Prompt="@L["Rel_CancelPrompt", r.ReleaseAiracCycle]" Disabled="@_busy"
+                    @* Due domande diverse per due atti diversi: annullare una release in vigore/programmata
+                       cambia cio' che il pubblico vede (o vedra'); eliminarne una SUPERATA cancella solo
+                       storia — dirle con la stessa frase («il pubblico tornera' alla precedente») era falso
+                       nel secondo caso. *@
+                    <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@CancelTitle(r)" AriaLabel="@CancelTitle(r)"
+                                   Prompt="@CancelPrompt(r)" Disabled="@_busy"
                                    ConfirmLabel="@L["Rel_CancelYes"]" CancelLabel="@L["Common_Close"]"
                                    OnConfirm="() => CancelRelease(r.Id)">
                         <Trigger>✕ @L["Common_Cancel"]</Trigger>
@@ -165,7 +169,15 @@
     }
 
     private string Chi(int userId) =>
-        _nomi.TryGetValue(userId, out var n) && !string.IsNullOrWhiteSpace(n) ? n : L["Audit_VidN", userId].Value;
+        userId <= 0 ? L["Common_SystemAuthor"].Value   // release di sistema (backfill di boot): «VID 0» non è nessuno
+        : _nomi.TryGetValue(userId, out var n) && !string.IsNullOrWhiteSpace(n) ? n : L["Audit_VidN", userId].Value;
+
+    /// <summary>Superata = né in vigore né programmata: annullarla è cancellare storia, non cambiare il pubblico.</summary>
+    private static bool Superata(ReleaseInfo r) => !r.IsEffectiveNow && r.Status != ReleaseStatus.Scheduled;
+    private string CancelPrompt(ReleaseInfo r) =>
+        Superata(r) ? L["Rel_CancelPromptOld", r.ReleaseAiracCycle] : L["Rel_CancelPrompt", r.ReleaseAiracCycle];
+    private string CancelTitle(ReleaseInfo r) =>
+        Superata(r) ? L["Rel_CancelTitleOld"] : L["Rel_CancelTitle"];
 
     private IReadOnlyDictionary<int, string> _nomi = new Dictionary<int, string>();
 

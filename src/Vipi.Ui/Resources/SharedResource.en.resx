@@ -1260,8 +1260,10 @@
   <data name="Rel_ScheduleAtCycle" xml:space="preserve"><value>Schedule at cycle</value></data>
   <data name="Rel_PublishedAtCycle" xml:space="preserve"><value>Release published at AIRAC cycle {0}.</value></data>
   <data name="Rel_PublishedNow" xml:space="preserve"><value>Release published now (review).</value></data>
-  <data name="Rel_CancelConfirm" xml:space="preserve"><value>Cancel this release? The public goes back to the previous effective one.</value></data>
-  <data name="Rel_CancelPrompt" xml:space="preserve"><value>Cancel the AIRAC {0} release? The public goes back to the previous effective one.</value></data>
+    <data name="Rel_CancelPrompt" xml:space="preserve"><value>Cancel the AIRAC {0} release? The public goes back to the previous effective one.</value></data>
+  <data name="Rel_CancelPromptOld" xml:space="preserve"><value>Remove the superseded AIRAC {0} release from the history? The public sees no difference.</value></data>
+  <data name="Rel_CancelTitleOld" xml:space="preserve"><value>Remove this superseded release from the history</value></data>
+  <data name="Common_SystemAuthor" xml:space="preserve"><value>system</value></data>
   <data name="Rel_CancelYes" xml:space="preserve"><value>Cancel the release</value></data>
   <data name="Rel_OlderN" xml:space="preserve"><value>{0} more superseded releases</value></data>
   <data name="Rel_Canceled" xml:space="preserve"><value>Release canceled.</value></data>
@@ -1332,7 +1334,7 @@
   <data name="Ver_HelpAria" xml:space="preserve"><value>Help on the documents list</value></data>
   <data name="Ver_CountTitle" xml:space="preserve"><value>Documents shown out of the total</value></data>
   <data name="Ver_CycleTitle" xml:space="preserve"><value>AIRAC cycle effective right now</value></data>
-  <data name="Ver_PublicChipTitle" xml:space="preserve"><value>Visible to the public, with no open draft</value></data>
+  <data name="Ver_PublicChipTitle" xml:space="preserve"><value>Published, not hidden, with no open draft — public visibility is decided by the effective release</value></data>
   <data name="Ver_DraftChipTitle" xml:space="preserve"><value>With an open draft, not published yet</value></data>
   <data name="Ver_HiddenChipTitle" xml:space="preserve"><value>Hidden from the public lists</value></data>
   <data name="Ver_Clear" xml:space="preserve"><value>Clear filters</value></data>
@@ -1379,7 +1381,7 @@
   <data name="Ver_PublishNowReview" xml:space="preserve"><value>Publish now (review)</value></data>
   <data name="Ver_FilterAll_M" xml:space="preserve"><value>All</value></data>
   <data name="Ver_FilterAll_F" xml:space="preserve"><value>All</value></data>
-  <data name="Ver_FilterPublic" xml:space="preserve"><value>Public</value></data>
+  <data name="Ver_FilterPublic" xml:space="preserve"><value>Published</value></data>
   <data name="Ver_FilterDraft" xml:space="preserve"><value>Draft only</value></data>
   <data name="Ver_FilterHidden" xml:space="preserve"><value>Hidden</value></data>
   <data name="Ver_FilterScheduled" xml:space="preserve"><value>Scheduled</value></data>
