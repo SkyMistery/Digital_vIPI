@@ -750,7 +750,7 @@ la ripara**.
 
 ### B12 🟡 NON FUSO — `statistiche-atc`: la decisione è del committente
 
-**54 commit** oltre `main`, spinti su `origin/statistiche-atc`. ⚠️ **La cifra si conta, non si legge**: qui
+**59 commit** oltre `main`, spinti su `origin/statistiche-atc`. ⚠️ **La cifra si conta, non si legge**: qui
 c'è stata scritta «24» per due giri di fila mentre il ramo era già a 27, ed è il motivo per cui accanto c'è
 il comando — `git rev-list --count main..statistiche-atc`.
 **Niente lo blocca sul piano tecnico**: build a **0 avvisi** e suite **tutta verde** su tutti e due i TFM —
@@ -841,7 +841,7 @@ scollerebbe dalla prima al primo cambiamento.
 
 Verifica per tutt'e due: aprire `/services/stats/session/{id}` di una sessione registrata **dopo** il deploy.
 
-⚠️ **Sette migrazioni**, tutte a doppia emissione: `StatisticheAtc`, `PolicyStatisticheAtc`,
+⚠️ **Sette migrazioni** del servizio statistiche (più le due del giro aeroporti = **nove** in tutto sul ramo), tutte a doppia emissione: `StatisticheAtc`, `PolicyStatisticheAtc`,
 `TrafficoRiempitoAPosteriori`, `ImpostazioniStatistiche`, `PisteInUso`, `FasiQuoteConsegne` e
 `TrafficoAeroportoGiornaliero` (25 sera, §16.3). Il ramo
 **allunga la coda del cutover MariaDB** — a differenza di B10, che non aveva migrazioni.

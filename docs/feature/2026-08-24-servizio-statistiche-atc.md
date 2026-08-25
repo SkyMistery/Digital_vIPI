@@ -1265,7 +1265,7 @@ Domanda del committente: sono i VID distinti visti controllare in Italia nell'ul
 2. **«in Italia»** vuol dire **callsign `LI*`, visitor inclusi** — non «i membri della divisione IT»;
 3. le **connessioni sotto il minuto non contano** (il 32% del totale vero: entrate e uscite).
 
-### 16.9 Le chip della divisione non facevano niente (segnalato subito dopo)
+### 16.8 Le chip della divisione non facevano niente (segnalato subito dopo)
 
 Il committente ha premuto le chip del periodo sulla pagina di divisione e **non succedeva nulla** — né quelle
 del periodo né quelle del gruppo. Riprodotto dal vivo: **l'indirizzo cambiava, la chip si accendeva, i numeri
@@ -1288,10 +1288,33 @@ Nello stesso giro, chiesto dal committente: la sezione **Aeroporti è salita** s
 riquadri. È la domanda per cui uno staffista apre quella pagina, e in coda a una classifica da cinquanta
 righe non la trovava nessuno.
 
-### 16.8 Conti
+### 16.9 Fuori tema, nello stesso giro: la linguetta
+
+Chiesto dal committente subito dopo: l'icona nella linguetta del browser era ancora la **«@» viola di
+Blazor** (`favicon.png` del template). Ora è il simbolo di IVAO Italia,
+`src/Vipi.Host/wwwroot/favicon.ico`, multi-misura 16/32/48.
+
+⚠️ **Sta nel wwwroot dell'HOST e non nella RCL**: la favicon è del **sito**, non del modulo — quando la vIPI
+viene inserita in ivao.it è il loro `<head>` a portare la propria (`docs/guide/ivao-it-wiring.patch`), e
+dentro `_content/Vipi.Ui/` non servirebbe a nessuno dei due. Si chiama `favicon.ico` e non col nome
+originale del file perché è il percorso che browser e crawler chiedono **da soli** quando nessun tag
+corrisponde, e passa da `AssetVersion` come ogni altro asset — senza impronta, chi ha già visitato il sito
+continuerebbe a vedere quella di prima per giorni.
+
+⚠️ Sul browser di chi guarda la linguetta può restare quella vecchia comunque: Chrome ed Edge tengono una
+cache di favicon loro che l'impronta nell'URL non sempre scavalca. Si sblocca con un ricaricamento forzato o
+in InPrivate. Non è il sito.
+
+### 16.10 Conti
 
 `dotnet build Vipi.slnx -c Release --no-incremental` pulita, suite verde su tutti e due i TFM:
 **2368 su net8, 2130 su net10** (la differenza sono `Vipi.E2E.Tests` e `Vipi.AuroraBridge.Tests`, che
 girano solo su net8). ⚠️ Prima di credere a un conteggio: `grep "error MSB"` — con `Vipi.Host` acceso i suoi
 DLL sono bloccati e mezzo albero non compila senza diventare rosso in modo visibile. È successo anche
 stavolta, a metà verifica live.
+
+⚠️ **E una trappola nuova della verifica live**, che è costata un giro a vuoto: un `Vipi.Host` di un lancio
+precedente può sopravvivere al suo `dotnet run`. Il nuovo lancio esce con **codice 82** («address already in
+use»), ma `until curl … :5034` si accontenta del **vecchio** processo e il browser viene guidato contro il
+binario di prima — il difetto «non si riproduce». Si aspetta la riga `Now listening` **nel log**, non la
+porta; e prima di lanciare si controlla che la 5034 sia libera. Scritto nella skill `verifica-live`.

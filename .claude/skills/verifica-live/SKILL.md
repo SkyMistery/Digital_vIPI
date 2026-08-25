@@ -30,7 +30,26 @@ $env:Sectorfile__RawBaseUrl = ""                             # spegne l'import S
 dotnet run --project src/Vipi.Host --no-launch-profile
 ```
 
-Lanciare in background e attendere la riga `Now listening on`.
+Lanciare in background e attendere la riga **`Now listening on`** — quella riga, non una sonda HTTP.
+
+⚠️ **Aspettare che la porta risponda NON prova che sia partita la TUA build**, ed è costato un giro a vuoto
+il 25 agosto 2026. Un `Vipi.Host` di un lancio precedente può essere sopravvissuto (il `dotnet run` che lo
+aveva avviato muore, il processo figlio no): il nuovo lancio esce con **codice 82** — «address already in
+use», che nel fiume di log passa inosservato — mentre `until curl … 5034` si accontenta del **vecchio**
+processo e risponde subito. Risultato: si guida il browser contro il binario di prima e il difetto «non si
+riproduce», oppure «è già corretto». Prima di lanciare:
+
+```powershell
+Get-Process Vipi.Host -EA SilentlyContinue | Stop-Process -Force
+Start-Sleep -Seconds 3
+if (Get-NetTCPConnection -LocalPort 5034 -State Listen -EA SilentlyContinue) { "OCCUPATA" } else { "libera" }
+```
+
+E per attendere, guardare il **log** e non la porta:
+`until grep -q "Now listening" <file di log>; do sleep 3; done`.
+
+⚠️ Lo stesso processo sopravvissuto è anche quello che fa fallire la build con `MSB3021`/`MSB3027` sui DLL
+bloccati: se una compilazione si lamenta di file in uso, non è mai un caso.
 
 **Perché `VipiAuth__Enabled=false`**: `appsettings.Development.json` porta `VipiAuth:Enabled=true`, e
 `Program.cs` calcola `useDevIdentity = IsDevelopment && !authEnabled`. Con la config di default l'app pretende
