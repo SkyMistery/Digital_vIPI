@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 25 agosto 2026, notte (**§E11 FATTA: la casella degli impatti — i documenti da rivedere — è in piedi, con la sezione Orfani, il giro notturno della deriva e la prova sui dati veri; nasce §C6, un difetto che c'era già: la chiave di release ACC/APP è derivata da un callsign, e se il callsign si sposta il documento pubblicato va muto**) · **Aggiornato:** 25 agosto 2026, tarda sera (**§B12: il ramo `statistiche-atc` porta anche le otto richieste
+**Aggiornato:** 26 agosto 2026, notte (**§E11 chiusa: la casella degli impatti, la sezione Orfani, il giro notturno della deriva e il rilevatore delle RINOMINE dal timbro d'import; nascono §C6 (chiave di release derivata da un callsign) e §C7 (i tre resti dell'analisi sulla cancellazione dei dati importati)**) · **Aggiornato:** 25 agosto 2026, tarda sera (**§B12: il ramo `statistiche-atc` porta anche le otto richieste
 del committente sul servizio statistiche — §16 della carta — fra cui la sezione Aeroporti, la potatura e il
 capitolo di Guida che mancava; restano aperte le stesse due voci UI**) · vecchia testata: (**§B12 aperta: il ramo `statistiche-atc` è completo e NON fuso** — la fusione è una decisione del committente, non un passo tecnico; il 24: §B10 e §B11 fuse e cancellate. La sera del 25 si chiudono **§H5** — il VID è un link al profilo IVAO, verifica live fatta — e **§H2**, il «rosso intermittente», che erano due difetti. Della sezione UI restano aperte **H1** e **H3**) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
@@ -1279,6 +1279,34 @@ bersaglio di oggi non ha release ma il documento ne ha sotto un'altra chiave (E1
 una decisione a sé, e va presa sapendo che una chiave stabile per l'ACC vorrebbe dire un identificativo
 proprio del documento al posto del callsign.
 
+### C7 🟢 I tre resti dell'analisi del 25 agosto sulla cancellazione dei dati importati
+
+Analisi completa in
+[`history/audit-2026-08-25-cancellazione-dati-importati.md`](history/audit-2026-08-25-cancellazione-dati-importati.md).
+Sette rilievi: quattro chiusi con **E11**, uno è diventato **C6**, questi tre restano. Sono piccoli,
+indipendenti fra loro, e ognuno ha il suo punto esatto nel codice.
+
+**C7a — la policy di import cancellata torna «tutto importato» in silenzio.**
+`EfImportPolicyStore.GetAsync` (riga 28) su riga assente ritorna `ImportPolicySnapshot.AllImported`: una
+`DELETE` sulla tabella riporta il regime a «la sorgente può scrivere tutto», e il primo giro dopo
+**sovrascrive TA e piste messe a mano**. Il dato per accorgersene c'è già — `GetInfoAsync` distingue «decisa
+da qualcuno» da «nata dai default» (`UpdatedUtc == null`) — quindi basta un rilievo di diagnostica quando
+almeno una categoria risulta manuale e nessuno l'ha decisa. ⚠️ Non è teorico: la riga è **una sola** in tutto
+il database.
+
+**C7b — le cancellazioni strutturali non lasciano traccia.**
+`StructureEditingService.cs:127` (ACC), `:144` (aeroporto), `:297` (settore) non scrivono nel registro,
+mentre l'eliminazione di un **documento** ci finisce dal 22 agosto. Serve `AuditAction.Delete` con
+ICAO/callsign nei dettagli, scritto **prima** della cancellazione (dopo, il nome non è più leggibile — è la
+lezione già pagata su `EliminaBozzaAsync`). È il **buco 5** dell'audit del 22 agosto, chiuso solo per
+`SetParentAsync`. ⚠️ Da fare **dopo** E11, così riusa le stesse chiavi di frase.
+
+**C7c — un ACC estero nuovo nasce con le aree accese.**
+`EfNeighbourRepository.cs:53` e `:258` creano l'`Acc` estero senza toccare `SpecialAreasEnabled`, il cui
+default d'entità è **`true`**: il giro delle 24h si porta dentro tutte le sue aree regolamentate. Il tappo
+del 3 agosto (`OptOutForeignAreasAsync`) è **one-shot** e vale solo per gli esteri che c'erano allora. Una
+riga: `SpecialAreasEnabled = false` alla creazione.
+
 ---
 
 ## D. ✅ Verifiche live arretrate — **sezione chiusa il 9 agosto 2026**
@@ -1946,10 +1974,11 @@ l'admin conferma; perimetro settori + aree; ancora sul **`DocumentId`** e non su
 tutto — quattro `sids` (default, e il loro cambio è cadenzato dall'AIRAC via `SidRow.IsPublicAt`) e **una**
 `coordination` manuale. È il dato che ha tolto di mezzo il watermark.
 
-**Assorbe** due dei sette fix dell'analisi: il **documento senza bersaglio** (ora è l'impatto `BrokenTarget`)
-e il **pre-check dei `Restrict`** (la rimozione di un orfano rifiuta con una frase invece di far esplodere il
-vincolo). ⚠️ Il terzo — l'**audit delle cancellazioni strutturali** — **NON** è stato fatto: è rimasto fuori
-per tenere il giro dentro il perimetro, e resta aperto.
+**Da dove nasce**: l'analisi
+[«cosa succede se un dato importato viene eliminato dal DB»](history/audit-2026-08-25-cancellazione-dati-importati.md),
+sette rilievi. Questo giro ne chiude **quattro** (documento sganciato, `BrokenTarget`, pre-check dei
+`Restrict`, e la rinomina di §16); uno è diventato **C6**; gli altri due, più il terzo lasciato fuori dal
+perimetro, stanno in **C7** — con il loro punto esatto nel codice, pronti da prendere.
 
 **Che cosa c'è adesso**
 

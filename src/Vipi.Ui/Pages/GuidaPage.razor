@@ -706,6 +706,19 @@
                 <li>Torri, ground e delivery sono spenti di default (sono ~110 nodi su ~250): si accendono col
                     chip <b>Posizioni aeroporto</b>.</li>
               </ul>
+              <p>In fondo alla pagina, quando ce ne sono, compaiono i <b>settori orfani</b>: quelli che i
+               cataloghi non confermano più. La colonna «perché» distingue tre casi — <b>nascosto</b> da un
+               admin, <b>sparito</b> dalla sorgente, o <b>non più elencato</b> (la riga c'è e il settore è
+               ancora attivo, ma la sorgente ha smesso di mandarlo: è quel che succede quando una posizione
+               viene <b>rinominata</b>). Ogni riga dice quali <b>documenti</b> ne parlano, e offre due gesti:
+               <b>riaggancia</b> il documento a un altro settore, oppure <b>rimuovi</b>. Se qualcosa lo
+               trattiene — sotto-settori, accordi, parti di vLOA, blocchi che lo citano — la rimozione lo dice
+               invece di fallire. ⚠️ «Rimuovi» non è per sempre: se la sorgente rimanda quel callsign, il
+               prossimo import lo ricrea.</p>
+              <p>Quando il sospetto è una rinomina e il sostituto è <b>uno solo</b>, la riga lo propone
+               («forse rinominato in…»). Con due candidati tace di proposito: due posizioni dello stesso tipo
+               sullo stesso scalo di solito vogliono dire uno <b>sdoppiamento</b>, non un cambio di nome, e
+               spostare il documento sul settore sbagliato è peggio che non spostarlo.</p>
               <p>Il <b>lock</b> è quello condiviso delle pagine di struttura: una persona alla volta, Accordi di
                coordinamento compresi.</p>",
             @"<p>The <b>Structure</b> page (<code>/services/vsop/admin/sector-structure</code>) holds the <b>single fallback
@@ -725,6 +738,18 @@
                 <li>Towers, ground and delivery are off by default (~110 nodes out of ~250): the <b>Airport
                     positions</b> chip turns them on.</li>
               </ul>
+              <p>At the bottom of the page, when there are any, you get the <b>orphan sectors</b>: the ones the
+               catalogues no longer confirm. The ""why"" column tells three cases apart — <b>hidden</b> by an
+               admin, <b>gone</b> from the source, or <b>no longer listed</b> (the row is there and the sector is
+               still active, but the source stopped sending it: that is what a <b>renamed</b> position looks
+               like). Each row shows which <b>documents</b> talk about it, and offers two moves: <b>reattach</b>
+               the document to another sector, or <b>remove</b>. If something holds it back — child sectors,
+               agreements, vLOA parties, blocks citing it — removal says so instead of failing. ⚠️ ""Remove"" is
+               not forever: if the source sends that callsign back, the next import recreates it.</p>
+              <p>When a rename is suspected and there is <b>exactly one</b> replacement, the row suggests it
+               (""renamed to…""). With two candidates it stays quiet on purpose: two positions of the same kind at
+               the same airport usually mean a <b>split</b>, not a new name, and moving the document onto the
+               wrong sector is worse than not moving it.</p>
               <p>The <b>lock</b> is the shared one of the structure pages: one person at a time, coordination
                agreements included.</p>"),
 
@@ -958,6 +983,51 @@
               <p>You need <b>permission</b> on the ACC: only the ACCs you can work on are listed, and someone
                with none does not get the page at all. The vLOA also needs <b>«Start editing»</b>: creation is
                serialized, so two people cannot create the same document at the same moment.</p>"),
+
+        new Sec("revisioni", "warning", "Documenti da rivedere", "Documents needing review",
+            @"<p>Quando cambia qualcosa <b>a monte</b> di un documento — un settore sparisce dai cataloghi o
+               viene nascosto, un'area regolamentata cambia, la copia pubblicata resta indietro — il documento
+               se lo sente dire. Le segnalazioni compaiono in tre posti, e sono la stessa cosa vista da tre
+               distanze: il <b>banner</b> in cima all'editor, una <b>pastiglia</b> nell'elenco
+               <a href=""/services/vsop/versions"">Bozze e versioni</a>, e il conteggio per tipo in
+               <a href=""/services/vsop/admin/diagnostics"">Diagnostica</a>.</p>
+              <p>Una riga per <b>fatto</b>: se cambiano tre cose, le righe sono tre. Le pastiglie dicono quanto
+               è urgente:</p>
+              <ul>
+                <li><b>già in pubblico</b> — la sezione è <i>viva</i>, quindi il cambio si vede <b>subito</b> sul
+                    sito, senza ripubblicare. È il caso delle aree regolamentate;</li>
+                <li><b>da ripubblicare</b> — la copia pubblicata non dice più quel che direbbe oggi;</li>
+                <li><b>rotto</b> — il documento non è più raggiungibile dal suo bersaglio di pubblicazione;</li>
+                <li>senza pastiglia — da rileggere, quando serve un occhio.</li>
+              </ul>
+              <p>Il <b>✓ «Segna come rivista»</b> non c'è su tutte, e non è una dimenticanza: le righe
+               <b>calcolate</b> (deriva, bersaglio) le richiude da sé il controllo che le ha aperte — un ✓ le
+               farebbe tornare la notte dopo. Quelle si chiudono <b>risolvendo la causa</b>: ripubblicando, o
+               sistemando il legame.</p>
+              <p>Il controllo della deriva gira <b>una volta al giorno</b>, dopo gli import; l'ultima volta che
+               ha girato è scritta in Diagnostica — perché «nessuna segnalazione» e «il controllo è fermo da tre
+               giorni» a schermo si somigliano troppo.</p>",
+            @"<p>When something changes <b>upstream</b> of a document — a sector disappears from the catalogues
+               or is hidden, a regulated area changes, the published copy falls behind — the document gets told.
+               The items show up in three places, the same thing seen from three distances: the <b>banner</b> at
+               the top of the editor, a <b>pill</b> in the <a href=""/services/vsop/versions"">Drafts and versions</a>
+               list, and the per-kind count in
+               <a href=""/services/vsop/admin/diagnostics"">Diagnostics</a>.</p>
+              <p>One row per <b>fact</b>: three changes, three rows. The pills say how urgent it is:</p>
+              <ul>
+                <li><b>already public</b> — the section is <i>live</i>, so the change is <b>already</b> on the
+                    site, no republish needed. That is the case for regulated areas;</li>
+                <li><b>republish</b> — the published copy no longer says what it would say today;</li>
+                <li><b>broken</b> — the document can no longer be reached from its publication target;</li>
+                <li>no pill — to be re-read, when a human eye is needed.</li>
+              </ul>
+              <p>The <b>✓ ""Mark as reviewed""</b> is not on every row, and that is not an oversight:
+               <b>computed</b> rows (drift, target) are closed by the check that raised them — a ✓ would just
+               bring them back the next night. Those close by <b>fixing the cause</b>: republishing, or mending
+               the link.</p>
+              <p>The drift check runs <b>once a day</b>, after the imports; when it last ran is written in
+               Diagnostics — because ""nothing to report"" and ""the check has been stuck for three days"" look
+               far too alike on screen.</p>"),
 
         new Sec("admin-diagnostica", "activity", "Diagnostica: cosa non torna", "Diagnostics: what does not add up",
             @"<p>La <b>diagnostica</b> (<code>/services/vsop/admin/diagnostics</code>) risponde a una domanda sola:

@@ -1772,3 +1772,48 @@ una classe costruita interamente da una variabile**: `.node-badge.fss` nasce da 
 Tre attrezzi nuovi nella skill `verifica-live` (`classi-morte.py`, `nessun-bersaglio.js`, `sfora.js`) e
 un'opzione di sola verifica, `Ivao:FakeOnlineCallsigns`, **onorata solo in Development**: senza vicini
 online ogni punto risolve a UNICOM, che la vista nasconde, e la pagina si prova vuota.
+
+---
+
+## 25→26 agosto 2026 — «Documenti da rivedere»: la casella degli impatti
+
+Nato da una domanda sola del committente — *cosa succede se un dato importato viene eliminato dal DB?* — e
+finito con un meccanismo che quella domanda la rende inutile: adesso è il sistema a dirlo.
+[Analisi](audit-2026-08-25-cancellazione-dati-importati.md) · [carta](../feature/2026-08-25-documenti-da-rivedere.md) ·
+voci `E11`, `C6`, `C7`.
+
+**Il guasto d'origine, in una riga**: la riga cancellata **torna** al giro dopo, il **legame** no. La
+proiezione disattivava il settore sparito *e recideva* il suo `DocumentId`, quindi il documento restava in
+archivio senza che nessuna pagina lo raggiungesse — e al ritorno del callsign il legame non tornava.
+
+**Quel che si è imparato, e vale oltre questa feature:**
+
+1. ⚠️ **La sentinella «riga aperta» non può essere `DateTime.MinValue`.** Il `DATETIME` di MariaDB parte dal
+   **1000**: `0001-01-01` in `sql_mode` stretto viene **rifiutato** (1292), mentre SQLite lo accetta. Suite
+   verde e produzione rotta. È l'epoca Unix.
+2. **Un gate per famiglia, non per chiamante** — di nuovo. La segnalazione «settore nascosto» stava in
+   `AccAdminService` e copriva solo i subcenter ACC: le postazioni d'**aeroporto** non segnalavano niente.
+   Spostata dentro la proiezione (13 chiamanti), il buco si è chiuso da sé.
+3. ⚠️ **«Aggiornata» non è «cambiata».** `ImportSpecialAreasAsync` riassegnava tutti i campi e contava un
+   `updated++` a ogni giro: segnalare su quel contatore avrebbe aperto una riga per ogni area, ogni notte.
+   Serve il confronto sui campi che un documento **mostra**.
+4. **Chi calcola, riconcilia; chi osserva un evento, apre e basta.** E il corollario che salva il
+   meccanismo: le righe calcolate **non hanno il ✓**, o l'utente le spunta e il giro notturno le riapre.
+5. ⚠️ **Le guardie di massa non sono paranoia, sono misura.** Alla prima esecuzione del rilevatore di
+   rinomine sono comparsi **trenta settori esteri in blocco**: un import che *riesce* ma torna vuoto per un
+   ente lascia le sue righe senza timbro. Sopra un quarto del catalogo il controllo tace — quel numero parla
+   di un guasto a monte, non delle righe. Stessa forma della guardia dell'avvio a freddo della proiezione.
+6. **Il segnale c'era già.** La rinomina si vede da `ImportedAtUtc`, una colonna scritta da mesi e mai letta
+   per questo. Prima di aggiungere un identificatore nuovo conviene guardare che cosa il sistema già scrive.
+7. ⚠️ **La revisione avversariale del proprio piano paga.** Riletto da avversario, il piano v1 aveva
+   quattordici problemi, tre dei quali nella prima slice: dava per buono un reverse-lookup che sovra- e
+   sotto-segnalava insieme, non proteggeva l'avvio a freddo, e prometteva sulle sezioni `Live` una
+   rilevazione che il disegno non faceva.
+
+**Misurato invece che supposto**: 5 sezioni `Live` su ~200 (e il watermark è caduto lì); 34 release con le
+chiavi ancora allineate (C6 latente, non incendio); `LIED_G_APP` fermo da 19 giorni; 4 derive vere trovate
+dal primo giro notturno su documenti veri.
+
+⚠️ **Per provare qualcosa sul `vipi.db` reale servono tre file** — `.db`, `-wal`, `-shm` — o SQLite lo
+dichiara *malformed*. E un `Vipi.Host` sopravvissuto a un `dotnet run` blocca i `bin/`: se una build si
+lamenta di file in uso, non è mai un caso.
