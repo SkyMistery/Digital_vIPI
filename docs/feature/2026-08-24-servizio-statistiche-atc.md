@@ -414,6 +414,8 @@ per sempre** (sono poche, pesano nulla, e sono il dato di valore — vedi §8.3:
 ## 7. Rotte e ingressi
 
 - `/services/stats` — la mia pagina (ore totali, per posizione, per mese, elenco sessioni);
+- `/services/stats/user/{vid}` — **la stessa pagina**, coi numeri di un altro. Solo staff, con fascia e
+  audit (§14, 25 agosto);
 - `/services/stats/session/{id}` — dettaglio: durata, frequenza, aerei gestiti, **sequenza delle piste in
   uso**. ⚠️ La *mappa* delle tracce era in questa riga fin dalla prima stesura: il committente l'ha **rinviata**
   il 25 agosto (§11, «da ragionare»). Qui resta scritto che non c'è, o la prossima lettura la dà per fatta;
@@ -931,3 +933,86 @@ nuove: due soli sospetti, quelli noti e attesi.
 Le stringhe italiane del servizio erano state scritte **senza accenti** («non e pubblica», «Visibilita»,
 «c'e un buco»): nove valori corretti in `SharedResource.resx`. Non è cosmesi di contorno — era italiano
 sbagliato a schermo, nella stessa pagina che si stava rifacendo.
+
+### 13.8 L'ottavo, e l'ha detto il committente
+
+Il numero nel **buco della ciambella** finiva **sopra l'anello** — ma solo su `/division`, e per questo la
+verifica live non l'aveva preso: si erano guardate le pagine con le ore di **una persona**.
+
+Il buco è largo **69 unità** del viewBox (r 42 meno mezza traccia da 15 per parte) e il corpo era **fisso a
+19**: cinque cifre ci stanno («1234,5»), sei no. Le ore di una persona sono sempre corte; quelle di una
+divisione no — «12345,6» misura circa 80 unità. `StatsDonut.FontCentro` ora ricava il corpo dalla lunghezza
+del testo (mai oltre 19, mai sotto 11), con i casi limite fissati in un `[Theory]`.
+
+⚠️ La lezione non è «rimpicciolire il testo»: è che un componente provato **solo coi numeri di una persona**
+non è provato per la divisione, e che i due usi vivevano nello stesso file senza che nulla lo dicesse.
+
+## 14. Le statistiche di un altro (25 agosto 2026)
+
+Chiesto dal committente: «può lo staff accedere alle statistiche personali di una persona?». Sì, e **tutto
+lo staff IT-** — cioè `Authz.IsAdmin`, che col jolly `^IT-[A-Z0-9]+$` è l'intera struttura di divisione, non
+un sottoinsieme di cariche.
+
+### 14.1 Perché non era «solo una pagina in più»
+
+Il §6 aveva già deciso che le classifiche sono un **interruttore**, spento finché lo staff non decide: le ore
+degli altri non si mostrano a nessuno per default. La pagina personale è però **più** della classifica, e la
+differenza va detta perché non si vede dall'elenco delle rotte:
+
+| La classifica dà | La pagina personale aggiunge |
+|---|---|
+| ore, turni, movimenti | la **griglia ora × giorno**: *quando* quella persona è di solito online |
+| | la costanza (settimane di fila), la postazione preferita |
+| | l'elenco dei singoli turni con gli orari |
+
+La classifica dice quanto una persona ha controllato; questa dice **le sue abitudini**. Da qui le tre cose
+che accompagnano il permesso, e senza le quali non sarebbe stato fatto.
+
+### 14.2 Le tre cose che accompagnano il permesso
+
+1. **La guardia sta prima di ogni query.** ⚠️ Non davanti al markup: una guardia messa dopo le letture
+   nasconde i numeri a schermo e li ha comunque **già tirati fuori dal database**. Il test lo verifica con
+   un `IAtcStatsQueries` che **esplode a ogni metodo** — se la guardia scivola in basso, il test scoppia.
+   Vale anche per l'anonimo, per cui il divieto è la risposta giusta: «entra e poi vedrai» prometterebbe a
+   chiunque una pagina che quasi nessuno può aprire.
+2. **La fascia in testa** (`callout info`, icona `eye`) dice a chi guarda che sta guardando un altro, e che
+   l'accesso è registrato. Non è cortesia: è la sola cosa che rende la regola visibile a chi la applica.
+3. **Una riga di audit per consultazione.** `AuditAction.View` — l'unico valore dell'enum che descrive una
+   **lettura** — su `EntityType = "StatsProfile"`, con `EntityId` = il VID **guardato** e l'attore nel campo
+   `UserId`. Porta `IStatsAccessLog`, impl. `EfStatsAccessLog`.
+   ⚠️ **Accorpata per trenta minuti.** La pagina è SSR statica e si ricarica a ogni chip di periodo e a ogni
+   F5: senza finestra, una consultazione diventava venti righe identiche a mezzo minuto l'una dall'altra, e
+   un registro così non si legge — che è come non averlo. L'accorpamento è per **coppia** attore→soggetto:
+   due staffisti che guardano la stessa persona restano due accessi da spiegare.
+
+Nell'enum `AuditAction` il valore è **additivo e senza migrazione**: gli enum sono salvati come stringa
+(§SPEC 6), quindi «View» non sposta nessun numero già scritto.
+
+### 14.3 Una pagina sola per due indirizzi
+
+`StatsHome.razor` porta due `@page`. Due pagine gemelle si sarebbero **scollate al primo grafico** aggiunto a
+una sola delle due — che è esattamente il modo in cui il pannello «storia» e la pagina Audit erano finiti a
+raccontare lo stesso evento in due modi (§AuditNarrator). Qui cambia il **VID di partenza**, non il
+contenuto; a cambiare sono solo le frasi in prima persona («Quando controlli» → «Quando controlla») e il
+titolo.
+
+⚠️ I **chip del periodo** devono ripartire dalla persona guardata: con l'indirizzo fisso `/services/stats`
+il primo chip premuto riportava lo staffista sulle **proprie** statistiche, in silenzio. C'è un test.
+
+### 14.4 Quel che è rimasto fuori, e perché
+
+- **L'esportazione CSV resta la sola propria.** L'endpoint legge il VID dall'identità e non prende parametri
+  (§7): là non ci sarebbero né la guardia né l'audit. Chi vorrà l'esportazione altrui deve portarsi dietro
+  entrambe, non aggiungere un parametro. Sulle statistiche di un altro il link **sparisce**.
+- **Il nome del soggetto.** Lo sa solo il roster staff, popolato ai login: di un controllore qualunque
+  abbiamo il **solo VID** — che è già un link al profilo IVAO, dove il nome c'è. Nessun ripiego inventato,
+  come dice il §6.
+- **Avvisare chi viene guardato.** Non deciso. Oggi l'unica traccia è l'audit; se un giorno il committente
+  vorrà dirlo agli interessati, il posto è la pagina delle proprie statistiche.
+
+### 14.5 Come ci si arriva
+
+Dalla classifica di divisione: una lente (`StatsPeekLink`, icona `activity`) accanto al VID, nel podio e in
+tabella, **visibile solo agli admin**. Il numero continua a portare al profilo IVAO — due destinazioni
+diverse per due domande diverse. La lente non è una guardia: la guardia è nella pagina di destinazione, e
+scrivere l'indirizzo a mano non la aggira.
