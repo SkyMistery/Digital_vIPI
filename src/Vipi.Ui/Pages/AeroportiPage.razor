@@ -105,6 +105,7 @@
                         var nHidden = baseAssigned.Count(a => a.Sectors > 0 && a.IsHidden);
                         var nNoSec = baseAssigned.Count(a => a.Sectors == 0);
                         var nNoTwr = baseAssigned.Count(a => !a.HasTower);
+                        var nMil = baseAssigned.Count(a => a.HasMilitaryPresence);
                     }
                     <span class="sb-chips">
                         <button class="sh-chip @(_stateFilter == StateFilter.Hidden ? "on" : "")" disabled="@(nHidden == 0)"
@@ -113,6 +114,11 @@
                                 title="@L["Apt_ChipNoSectorsTitle"]" @onclick="() => ToggleState(StateFilter.NoSectors)">@L["Apt_ChipNoSectors", nNoSec]</button>
                         <button class="sh-chip @(nNoTwr > 0 ? "warn" : "") @(_stateFilter == StateFilter.NoTwr ? "on" : "")" disabled="@(nNoTwr == 0)"
                                 title="@L["Apt_ChipNoTwrTitle"]" @onclick="() => ToggleState(StateFilter.NoTwr)">@L["Apt_ChipNoTwr", nNoTwr]</button>
+                        @* «Militari» conta la PRESENZA militare, non gli scali soli militari: sono 34 contro una
+                           dozzina, e chi cerca «dove c'è il militare» vuole i 34. Il taglio più stretto lo dà la
+                           pill di riga, che distingue le due cose. *@
+                        <button class="sh-chip @(_stateFilter == StateFilter.Military ? "on" : "")" disabled="@(nMil == 0)"
+                                title="@L["Apt_ChipMilitaryTitle"]" @onclick="() => ToggleState(StateFilter.Military)">@L["Apt_ChipMilitary", nMil]</button>
                     </span>
                 </div>
                 @* La barra delle azioni c'è SEMPRE ed è FUORI dal corpo che scorre: prima compariva alla prima
@@ -195,9 +201,28 @@
                                             {
                                                 <span class="pill green" title="@L["Apt_VisibleTitle"]"><Icon Name="eye" Size="11" /> @L["Apt_Visible"]</span>
                                             }
+                                            @* Due etichette diverse per due cose diverse. La sorgente dice solo
+                                               «c'è una base»: scriverlo «Militare» su Linate, Pisa o Ciampino
+                                               sarebbe falso, e sono sette dei trentaquattro. *@
+                                            @if (a.IsMilitaryOnly)
+                                            {
+                                                <span class="pill amber apt-flag" title="@L["Apt_MilitaryOnlyTitle"]"><Icon Name="shield" Size="11" /> @L["Apt_MilitaryOnly"]</span>
+                                            }
+                                            else if (a.HasMilitaryPresence)
+                                            {
+                                                <span class="pill neutral apt-flag" title="@L["Apt_MilitaryPresenceTitle"]"><Icon Name="shield" Size="11" /> @L["Apt_MilitaryPresence"]</span>
+                                            }
                                         </td>
                                         <td class="col-act">
                                             <a class="btn ghost" href="/services/vsop/@a.AccCode.ToLowerInvariant()/airports/editor?icao=@a.Icao" title="@L["Apt_EditorProfileTitle"]">✎</a>
+                                            @* Il comando c'è solo dove la domanda ha senso: senza presenza militare
+                                               «solo militare» non è una scelta, e il servizio la rifiuta comunque. *@
+                                            @if (a.HasMilitaryPresence)
+                                            {
+                                                <button class="btn ghost @(a.IsMilitaryOnly ? "on" : "")" disabled="@(_busy || !_canEdit)" @onclick="() => ToggleMilitaryOnly(a)"
+                                                        aria-label="@(a.IsMilitaryOnly ? L["Apt_MilitaryOnlyOffAria"] : L["Apt_MilitaryOnlyOnAria"])"
+                                                        title="@(a.IsMilitaryOnly ? L["Apt_MilitaryOnlyOffTitle"] : L["Apt_MilitaryOnlyOnTitle"])"><Icon Name="shield" /></button>
+                                            }
                                             @if (a.Sectors > 0)
                                             {
                                                 @* Icona sola come le altre due della colonna: con l'etichetta la
@@ -326,7 +351,7 @@
 
     // Filtro di stato dell'elenco assegnati: i tre chip della barra. Uno alla volta (sono tre tagli diversi
     // dello stesso elenco, non tre spunte da sommare); ricliccato, torna a «tutti».
-    private enum StateFilter { All, Hidden, NoSectors, NoTwr }
+    private enum StateFilter { All, Hidden, NoSectors, NoTwr, Military }
     private StateFilter _stateFilter = StateFilter.All;
     // L'anagrafica IVAO mostra i NON assegnati: i già assegnati si vedono nel pannello di sinistra.
     private bool _showAssignedIvao;
@@ -369,6 +394,7 @@
         StateFilter.Hidden => a.Sectors > 0 && a.IsHidden,
         StateFilter.NoSectors => a.Sectors == 0,
         StateFilter.NoTwr => !a.HasTower,
+        StateFilter.Military => a.HasMilitaryPresence,
         _ => true
     };
 
@@ -485,6 +511,9 @@
 
     private Task ToggleHidden(AirportAdminRow a) =>
         Guarded(() => Struct.SetAirportHiddenAsync(a.AccCode, a.Id, !a.IsHidden));
+
+    private Task ToggleMilitaryOnly(AirportAdminRow a) =>
+        Guarded(() => Struct.SetAirportMilitaryOnlyAsync(a.AccCode, a.Id, !a.IsMilitaryOnly));
 
     // --- Azioni di gruppo -------------------------------------------------------------------------------
     // Un ciclo solo per tutte: prosegue oltre i fallimenti per-riga, mostra l'avanzamento, si lascia fermare

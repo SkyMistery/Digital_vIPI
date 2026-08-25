@@ -31,6 +31,9 @@ public interface IStructureEditingService
 
     /// <summary>Nasconde/mostra un aeroporto (ACC-gated): la pagina pubblica e gli elenchi non lo mostrano più.</summary>
     Task SetAirportHiddenAsync(string accCode, int airportId, bool hidden, CancellationToken ct = default);
+
+    /// <summary>Segna/desegna un aeroporto come «solo militare» (nessun traffico civile). Vedi la porta omonima.</summary>
+    Task SetAirportMilitaryOnlyAsync(string accCode, int airportId, bool militaryOnly, CancellationToken ct = default);
     Task<IReadOnlyList<SectorBriefRow>> ListAllSectorsAsync(CancellationToken ct = default);
 
     /// <summary>Vista globale (cross-ACC) dei settori attivi col prefisso nazione e l'albero, per il picker di «Nuovo documento».</summary>
@@ -164,6 +167,12 @@ public sealed class StructureEditingService : IStructureEditingService
     {
         await _authz.EnsureCanEditAccAsync(accCode, ct);
         await _repo.SetAirportHiddenAsync(accCode, airportId, hidden, ct);
+    }
+
+    public async Task SetAirportMilitaryOnlyAsync(string accCode, int airportId, bool militaryOnly, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        await _repo.SetAirportMilitaryOnlyAsync(accCode, airportId, militaryOnly, ct);
     }
 
     public Task<IReadOnlyList<SectorBriefRow>> ListAllSectorsAsync(CancellationToken ct = default)

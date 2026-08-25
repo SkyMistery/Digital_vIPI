@@ -50,7 +50,8 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
 
         var airports = await _db.Airports.AsNoTracking().Where(a => a.AccId == acc.Id)
             .OrderBy(a => a.Icao)
-            .Select(a => new AirportRow(a.Id, a.Icao, a.Name, a.Sectors.Count, a.FeaturedRank, a.IsHidden, a.ParentCallsign))
+            .Select(a => new AirportRow(a.Id, a.Icao, a.Name, a.Sectors.Count, a.FeaturedRank, a.IsHidden, a.ParentCallsign,
+                a.HasMilitaryPresence, a.IsMilitaryOnly))
             .ToListAsync(ct);
 
         var sectors = await _db.Sectors.AsNoTracking().Where(s => s.AccId == acc.Id)
@@ -167,8 +168,24 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
                 // l'APP non remotizzato che ha documento proprio (regola SectorDocumentRules.IsAirportDocSector).
                 a.Sectors.Where(s => s.DocumentId != null && s.Kind == SectorKind.Airport
                         && !(s.Type == SectorType.App && s.ApproachKind == ApproachKind.Standalone))
-                    .Select(s => s.DocumentId).FirstOrDefault()))
+                    .Select(s => s.DocumentId).FirstOrDefault(),
+                a.HasMilitaryPresence, a.IsMilitaryOnly))
             .ToListAsync(ct);
+
+    public async Task SetAirportMilitaryOnlyAsync(string accCode, int airportId, bool militaryOnly, CancellationToken ct = default)
+    {
+        var fid = await AccIdAsync(accCode, ct) ?? throw new InvalidOperationException($"ACC {accCode} inesistente.");
+        var airport = await _db.Airports.FirstOrDefaultAsync(a => a.Id == airportId && a.AccId == fid, ct)
+            ?? throw new InvalidOperationException("Aeroporto inesistente nella ACC indicata.");
+        // Senza presenza militare la distinzione non ha senso: «solo militare» ne è un sottoinsieme, non un flag
+        // indipendente. Tacere e uscire lascerebbe la spunta accesa a schermo e spenta in archivio.
+        if (militaryOnly && !airport.HasMilitaryPresence)
+            throw new InvalidOperationException(
+                $"{airport.Icao} non ha presenza militare secondo la sorgente: non può essere «solo militare».");
+        if (airport.IsMilitaryOnly == militaryOnly) return;
+        airport.IsMilitaryOnly = militaryOnly;
+        await _db.SaveChangesAsync(ct);
+    }
 
     public async Task SetAirportHiddenAsync(string accCode, int airportId, bool hidden, CancellationToken ct = default)
     {

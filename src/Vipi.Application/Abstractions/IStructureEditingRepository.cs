@@ -31,6 +31,13 @@ public interface IStructureEditingRepository
 
     /// <summary>Nasconde/mostra un aeroporto: la sua pagina pubblica e l'elenco non lo mostrano più (resta nel DB).</summary>
     Task SetAirportHiddenAsync(string accCode, int airportId, bool hidden, CancellationToken ct = default);
+
+    /// <summary>
+    /// Segna un aeroporto come <b>solo militare</b> (o toglie il segno): nessun traffico civile. È l'unica metà
+    /// editoriale della faccenda — la presenza militare la dice la sorgente e si riscrive da sé a ogni giro.
+    /// Errore se l'aeroporto non ha presenza militare: «solo militare» ne è un sottoinsieme.
+    /// </summary>
+    Task SetAirportMilitaryOnlyAsync(string accCode, int airportId, bool militaryOnly, CancellationToken ct = default);
     /// <summary>Tutti i settori (id+callsign+ACC), per i menu della gestione aeroporti.</summary>
     Task<IReadOnlyList<SectorBriefRow>> ListAllSectorsAsync(CancellationToken ct = default);
 

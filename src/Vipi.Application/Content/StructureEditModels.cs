@@ -12,7 +12,7 @@ public sealed record ExternalAirportInfo(string Icao, string Name, string? City,
 /// <summary>Aeroporto di una ACC per l'editor struttura.
 /// <paramref name="IsHidden"/> = nascosto dall'admin; la visibilità pubblica effettiva richiede anche almeno un settore (vedi <see cref="IsPublic"/>).</summary>
 public sealed record AirportRow(int Id, string Icao, string Name, int Sectors, int? FeaturedRank = null, bool IsHidden = false,
-    string? ParentCallsign = null)
+    string? ParentCallsign = null, bool HasMilitaryPresence = false, bool IsMilitaryOnly = false)
 {
     /// <summary>Vero se l'aeroporto è visibile al pubblico: non nascosto dall'admin e con almeno un settore.</summary>
     public bool IsPublic => !IsHidden && Sectors > 0;
@@ -25,8 +25,11 @@ public sealed record AirportRow(int Id, string Icao, string Name, int Sectors, i
 /// </summary>
 /// <param name="DocumentId">Il documento vIPI dell'aeroporto, se già esiste. Serve a chi deve distinguere
 /// «crea» da «apri»: la pagina «Nuovo documento» si chiama così e per l'aeroporto apre quasi sempre.</param>
+/// <param name="HasMilitaryPresence">Dalla sorgente: c'è una base militare sull'aeroporto. ⚠️ Non vuol dire
+/// «aeroporto militare» — è vero anche per Linate, Pisa, Ciampino, Catania, Elmas, Lamezia e Rimini.</param>
+/// <param name="IsMilitaryOnly">Scelta di un amministratore: nessun traffico civile. La sorgente non lo dice.</param>
 public sealed record AirportAdminRow(int Id, string Icao, string Name, string AccCode, int Sectors, bool HasTower,
-    bool IsHidden = false, int? DocumentId = null)
+    bool IsHidden = false, int? DocumentId = null, bool HasMilitaryPresence = false, bool IsMilitaryOnly = false)
 {
     /// <summary>Vero se l'aeroporto è visibile al pubblico: non nascosto dall'admin e con almeno un settore.</summary>
     public bool IsPublic => !IsHidden && Sectors > 0;
