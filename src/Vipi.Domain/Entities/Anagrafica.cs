@@ -148,6 +148,32 @@ public class Airport
     /// <summary>Ordine "in evidenza" (1..3) nella card Aeroporti della landing ACC; null = non in evidenza.</summary>
     public int? FeaturedRank { get; set; }
 
+    /// <summary>Codice IATA (es. "FCO"), dalla sorgente. null = la sorgente non ne ha uno (73 aeroporti italiani su 221).</summary>
+    public string? Iata { get; set; }
+
+    /// <summary>Quota del riferimento aeroporto in piedi, dalla sorgente. null = non nota.</summary>
+    public int? ElevationFt { get; set; }
+
+    /// <summary>Variazione magnetica in gradi, dalla sorgente. null = non nota. Decimale perche' la sorgente
+    /// la manda anche con la virgola.</summary>
+    public double? MagneticVariation { get; set; }
+
+    /// <summary>
+    /// <b>Presenza militare</b> sull'aeroporto, dalla sorgente (campo <c>military</c> di IVAO). ⚠️ Non vuol dire
+    /// «aeroporto militare»: la sorgente lo mette a vero anche su Linate, Pisa, Ciampino, Catania, Elmas, Lamezia
+    /// e Rimini, che sono scali civili con sedime militare. Chi lo mostra deve dirlo cosi' — «presenza militare»,
+    /// non «militare» — o mente al lettore. Riscritto a ogni giro dell'anagrafica: non editabile a mano.
+    /// </summary>
+    public bool HasMilitaryPresence { get; set; }
+
+    /// <summary>
+    /// <b>Solo militare</b>: aeroporto senza traffico civile (Aviano, Ghedi, Decimomannu…). La sorgente non lo
+    /// dice — e' un giudizio, e lo da' un amministratore dalla pagina Aeroporti. Vale solo dove
+    /// <see cref="HasMilitaryPresence"/> e' vero; l'import non lo tocca mai, altrimenti il giro notturno
+    /// cancellerebbe la scelta di una persona.
+    /// </summary>
+    public bool IsMilitaryOnly { get; set; }
+
     /// <summary>Nascosto dall'admin: l'aeroporto resta nel DB ma la sua pagina e l'elenco pubblico non lo mostrano. Default false = visibile.
     /// La visibilità pubblica effettiva è inoltre negata quando l'aeroporto non ha nemmeno un settore.</summary>
     public bool IsHidden { get; set; }

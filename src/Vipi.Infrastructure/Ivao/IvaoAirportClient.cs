@@ -52,7 +52,7 @@ public sealed class IvaoAirportClient : IAirportDirectory
             var pageDto = await res.Content.ReadFromJsonAsync<AirportsPageDto>(cancellationToken: ct);
             foreach (var a in pageDto?.Items ?? new List<AirportDto>())
                 if (!string.IsNullOrWhiteSpace(a.Icao))
-                    all.Add(new SourceAirport(a.Icao!, a.Name ?? a.Icao!, a.CenterId, a.City, a.TransitionAltitude));
+                    all.Add(ToSource(a));
 
             if (pageDto is null || page >= pageDto.Pages) break;
         }
@@ -74,8 +74,22 @@ public sealed class IvaoAirportClient : IAirportDirectory
         var dto = await _http.GetJsonAsync<AirportDto>($"{_opt.AirportsPath}/{Uri.EscapeDataString(icao)}", ct);
         if (dto is null || string.IsNullOrWhiteSpace(dto.Icao)) return null;
 
-        var result = new SourceAirport(dto.Icao!, dto.Name ?? dto.Icao!, dto.CenterId, dto.City, dto.TransitionAltitude);
+        var result = ToSource(dto);
         _airportCache.PutSingle(icao, result);
         return result;
     }
+
+    /// <summary>
+    /// Traduzione unica DTO -> porta: la lista paginata e il dettaglio per ICAO portano gli stessi campi
+    /// (verificato sul filo il 25 agosto 2026), quindi la conversione sta in un posto solo — due copie
+    /// divergerebbero al primo campo aggiunto da una parte sola.
+    /// </summary>
+    private static SourceAirport ToSource(AirportDto dto) => new(
+        dto.Icao!, dto.Name ?? dto.Icao!, dto.CenterId, dto.City, dto.TransitionAltitude,
+        HasMilitaryPresence: dto.Military ?? false,
+        // La sorgente manda stringa vuota, non null, per gli aeroporti senza IATA (73 su 221): senza questa
+        // normalizzazione in archivio finirebbero due modi diversi di dire «non ce l'ha».
+        Iata: string.IsNullOrWhiteSpace(dto.Iata) ? null : dto.Iata.Trim().ToUpperInvariant(),
+        ElevationFt: dto.Elevation,
+        MagneticVariation: dto.Magnetic);
 }

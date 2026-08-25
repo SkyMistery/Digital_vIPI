@@ -173,6 +173,8 @@ public class VipiDbContext : DbContext
             // Gerarchia di copertura per callsign (Round 20): l'aeroporto è foglia, il padre è un callsign APP/CTR
             // (cross-ACC ammesso). Nessuna FK: ParentCallsign attraversa i cataloghi (AccSector/AirportSector).
             e.HasIndex(x => x.ParentCallsign);
+            // Tre lettere piu' margine: senza misura Pomelo la renderebbe un longtext per un codice IATA.
+            e.Property(x => x.Iata).HasMaxLength(4);
             e.HasOne(x => x.Acc).WithMany(f => f.Airports).HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Restrict);
         });
 
