@@ -2188,6 +2188,16 @@
   <data name="Stats_FilterNone" xml:space="preserve"><value>No flight matches this filter.</value></data>
   <data name="Stats_Showing" xml:space="preserve"><value>{0} of {1} flights</value></data>
   <data name="Stats_EmptyTitle" xml:space="preserve"><value>Nothing to show yet</value></data>
+  <data name="Stats_UserTitle" xml:space="preserve"><value>ATC statistics</value></data>
+  <data name="Stats_WhenControls" xml:space="preserve"><value>When they control</value></data>
+  <data name="Stats_UserEmpty" xml:space="preserve"><value>No session for this VID in the selected period.</value></data>
+  <data name="Stats_ProfileForbidden" xml:space="preserve"><value>Another controller's personal statistics can only be opened by division staff.</value></data>
+  <data name="Stats_StaffViewingTitle" xml:space="preserve"><value>Another controller's statistics</value></data>
+  <data name="Stats_StaffViewingBody" xml:space="preserve"><value>You can see them because you are division staff. The access is recorded in the audit log.</value></data>
+  <data name="Stats_BackToDivision" xml:space="preserve"><value>Back to the leaderboard</value></data>
+  <data name="Stats_OpenProfileTitle" xml:space="preserve"><value>Open the statistics of VID {0}</value></data>
+  <data name="Audit_Cat_Statistiche" xml:space="preserve"><value>Statistics</value></data>
+  <data name="Audit_Fr_StatsView" xml:space="preserve"><value>personal statistics viewed</value></data>
   <data name="Stats_EmptyPeriod" xml:space="preserve"><value>No session in the selected period.</value></data>
   <data name="Stats_Tag_Departure" xml:space="preserve"><value>departing</value></data>
   <data name="Stats_Tag_Arrival" xml:space="preserve"><value>arriving</value></data>

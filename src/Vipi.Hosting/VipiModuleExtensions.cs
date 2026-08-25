@@ -174,7 +174,10 @@ public static class VipiModuleExtensions
 
         // Esportazione delle proprie sessioni ATC. ⚠️ Solo le PROPRIE, e solo per chi è entrato: l'endpoint
         // legge il VID dall'identità, non da un parametro — un parametro qui vorrebbe dire «le statistiche di
-        // chiunque a chi ne indovina il numero», che è esattamente ciò che le pagine impediscono.
+        // chiunque a chi ne indovina il numero».
+        // ⚠️ E resta così anche dopo che /services/stats/user/{vid} ha aperto allo staff le statistiche
+        // altrui: là c'è una guardia (`Authz.IsAdmin`) e una riga di audit, qui non ci sarebbe nessuna delle
+        // due. Chi volesse l'esportazione altrui deve portarsi dietro entrambe, non aggiungere un parametro.
         endpoints.MapGet("/services/stats/export.csv", async (
             HttpContext ctx,
             Vipi.Application.Abstractions.ICurrentUserProvider utenti,

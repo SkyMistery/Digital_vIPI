@@ -649,6 +649,8 @@
 .bar-lab{font-size:10.5px;color:var(--ink-soft);margin-top:6px;font-family:var(--font-head);white-space:nowrap}
 
 /* Ciambella + legenda: la ripartizione per postazione. Il buco al centro porta il totale. */
+.stat-peek{display:inline-flex;align-items:center;margin-left:7px;color:var(--ink-soft);vertical-align:middle}
+.stat-peek:hover{color:var(--ivao-info)}
 .donut-wrap{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
 .donut{width:150px;height:150px;flex:none;transform:rotate(-90deg)}
 .donut circle{fill:none;stroke-width:15}

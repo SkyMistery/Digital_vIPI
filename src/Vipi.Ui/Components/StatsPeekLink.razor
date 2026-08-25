@@ -1,0 +1,22 @@
+@inject IStringLocalizer<SharedResource> L
+
+@* La lente accanto a un VID: porta alle statistiche personali di quella persona, dentro l'app.
+
+   Perché un componente e non un `<a>` scritto due volte. Il link compare nel podio e nella tabella della
+   classifica, e comparirà dove si aggiungeranno elenchi di controllori: l'indirizzo della pagina e il
+   `title` che spiega dove si va stanno in UN posto solo.
+
+   ⚠️ NON è `target="_blank"`, al contrario di <VidLink>: quella è un'uscita verso ivao.aero, questa resta
+   dentro il modulo e il tasto «indietro» deve riportare alla classifica.
+
+   ⚠️ Chi lo rende deve già aver controllato `Authz.IsAdmin`. Qui non c'è nessuna guardia perché la guardia
+   vera sta nella PAGINA di destinazione, dove non si aggira scrivendo l'indirizzo a mano; questo è solo il
+   modo di arrivarci senza copiare un VID a mano. *@
+
+<a class="stat-peek" href="/services/stats/user/@Vid" title="@L["Stats_OpenProfileTitle", Vid]">
+    <Icon Name="activity" Size="14" />
+</a>
+
+@code {
+    [Parameter, EditorRequired] public int Vid { get; set; }
+}

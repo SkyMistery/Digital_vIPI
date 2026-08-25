@@ -57,7 +57,10 @@
                     <div class="pod @(i == 0 ? "p1" : "")">
                         <span class="pos">@(i + 1)</span>
                         <div>
-                            <div class="who"><VidLink Vid="c.UserId" SoloNumero="true" /></div>
+                            <div class="who">
+                            <VidLink Vid="c.UserId" SoloNumero="true" />
+                            @if (Authz.IsAdmin) { <StatsPeekLink Vid="c.UserId" /> }
+                        </div>
                             <div class="what">@StatsView.Ore(c.Seconds) h · @c.Shifts @L["Stats_Shifts"]</div>
                         </div>
                     </div>
@@ -82,7 +85,12 @@
                             @* La propria riga si trova senza cercarla, anche quando è la quarantasettesima. *@
                             <tr class="@(c.UserId == _io ? "rank-me" : "")">
                                 <td data-l="#">@pos</td>
-                                <td data-l="VID"><VidLink Vid="c.UserId" SoloNumero="true" /></td>
+                                @* Allo staff il VID porta in DUE posti: il numero al profilo IVAO (come
+                                   ovunque nell'app), la lente alle statistiche personali qui dentro. *@
+                                <td data-l="VID">
+                                    <VidLink Vid="c.UserId" SoloNumero="true" />
+                                    @if (Authz.IsAdmin) { <StatsPeekLink Vid="c.UserId" /> }
+                                </td>
                                 <td class="cb" data-l="@L["Stats_Hours"]"
                                     style="--cb:@StatsView.Quota(c.Seconds, _maxOre)">@StatsView.Ore(c.Seconds)</td>
                                 <td data-l="@L["Stats_Shifts"]">@c.Shifts</td>

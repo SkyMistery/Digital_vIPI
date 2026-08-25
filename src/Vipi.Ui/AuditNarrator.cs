@@ -23,7 +23,7 @@ public static class AuditNarrator
 {
     /// <summary>Famiglia dell'evento: è ciò su cui filtrano i chip della pagina, e non coincide con
     /// <see cref="AuditAction"/> (una eliminazione di documento e una revoca di permesso sono due famiglie).</summary>
-    public enum Categoria { Pubblicazione, Bozza, Documento, Permesso, Gerarchia, Lock, Sorgenti, Incarico, Altro }
+    public enum Categoria { Pubblicazione, Bozza, Documento, Permesso, Gerarchia, Lock, Sorgenti, Incarico, Statistiche, Altro }
 
     public static Categoria CategoriaDi(AuditEntry e) => (e.EntityType, e.Action) switch
     {
@@ -34,6 +34,8 @@ public static class AuditNarrator
         // ⚠️ È la famiglia più prolifica del registro: un incarico attraversa quattro stati, e ogni passaggio
         // è una riga. Il chip di famiglia serve proprio a poterla mettere da parte quando si cerca altro.
         ("EditorTask", _) => Categoria.Incarico,
+        // L'unica famiglia che descrive una LETTURA: lo staff ha aperto le statistiche personali di qualcuno.
+        ("StatsProfile", _) => Categoria.Statistiche,
         (_, AuditAction.HierarchyChange) => Categoria.Gerarchia,
         (_, AuditAction.ForceUnlock) => Categoria.Lock,
         ("Document", _) => Categoria.Documento,
@@ -51,6 +53,9 @@ public static class AuditNarrator
         // Ambra come il lock, e per la stessa ragione: non è una perdita di dati, è un cambio di regime che
         // qualcuno dovrà spiegare se i dati smettono di aggiornarsi.
         (Categoria.Sorgenti, _) => "amber",
+        // Ambra per la stessa ragione delle altre due: non si è perso niente, ma è un atto che chi l'ha
+        // fatto potrebbe dover spiegare.
+        (Categoria.Statistiche, _) => "amber",
         (_, AuditAction.Delete) => "red",
         (_, AuditAction.Archive) => "red",
         (_, AuditAction.Discard) => "red",
@@ -95,6 +100,8 @@ public static class AuditNarrator
         if (e.EntityType == "ImportPolicy") return L["Sorg_Title"].Value;
         if (e.EntityType == "EditResourceLock") return e.EntityId;
         if (e.EntityType == "EditGrant") return L["Audit_GrantN", e.EntityId].Value;
+        // Il bersaglio è la PERSONA guardata, non una pagina: l'EntityId è il suo VID.
+        if (e.EntityType == "StatsProfile") return L["Audit_VidN", e.EntityId].Value;
         return $"{e.EntityType} {e.EntityId}";
     }
 
@@ -145,6 +152,8 @@ public static class AuditNarrator
                                                Str(d, "A") ?? L["Audit_NoParent"].Value].Value;
             case Categoria.Lock:
                 return L["Audit_Fr_ForceUnlock", Str(d, "HeldByName") ?? Int(d, "HeldByUserId")?.ToString() ?? "—"].Value;
+            case Categoria.Statistiche:
+                return L["Audit_Fr_StatsView"].Value;
             case Categoria.Sorgenti:
                 // Le sole categorie CAMBIATE, e nelle due direzioni separate: «manuale → da sorgente» è
                 // l'unica che, al prossimo import, sovrascrive il lavoro fatto a mano.

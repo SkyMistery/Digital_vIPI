@@ -22,7 +22,7 @@
                 <title>@f.Title</title>
             </circle>
         }
-        <text class="donut-hole" x="60" y="58" font-size="19" font-weight="700">@Centro</text>
+        <text class="donut-hole" x="60" y="58" font-size="@StatsView.Svg(FontCentro)" font-weight="700">@Centro</text>
         <text class="donut-hole" x="60" y="73" font-size="9" fill="currentColor" opacity=".7">@CentroLabel</text>
     </svg>
 
@@ -52,6 +52,23 @@
     private const double Circonferenza = 2 * Math.PI * 42;
 
     private double Totale => Fette.Sum(f => f.Value);
+
+    /// <summary>
+    /// Corpo del numero nel buco. ⚠️ Non è fisso: il buco è largo 69 unità (r 42 meno mezza traccia da 15
+    /// per parte) e a corpo 19 ci stanno cinque cifre. Le ore di UNA persona ci stanno sempre; quelle
+    /// dell'intera divisione no — «12345,6» a corpo 19 misura ~80 unità e finisce SOPRA la ciambella.
+    /// Il corpo si stringe quel tanto che serve, e non cresce mai oltre 19.
+    /// </summary>
+    private double FontCentro
+    {
+        get
+        {
+            var n = Centro?.Length ?? 0;
+            if (n <= 5) return 19;
+            // 64 = larghezza utile del buco; 0,6 em = larghezza di una cifra in Poppins.
+            return Math.Max(11, 64.0 / (n * 0.6));
+        }
+    }
 
     private string Percento(double v) => Totale <= 0 ? "" : Math.Round(v / Totale * 100) + "%";
 }

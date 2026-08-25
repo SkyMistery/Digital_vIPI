@@ -66,7 +66,10 @@ public enum BlockSection
 // del modello significa «tolto di mezzo ma conservato»: per un atto irreversibile sarebbe una bugia gentile.
 // ForceUnlock è un valore suo e non un Update perché la domanda a cui il registro deve rispondere è «chi ha
 // tolto il lock a chi», e la risposta sta nei dettagli della riga.
-public enum AuditAction { Create, Update, Publish, Archive, HierarchyChange, Discard, Delete, ForceUnlock }
+// View è l'unica LETTURA registrata, e c'è per un motivo solo: lo staff può aprire le statistiche personali
+// di un altro controllore, e un accesso ai dati di qualcun altro che non lascia traccia non è un accesso
+// controllato. Non si registrano le altre letture — il registro non è un log di navigazione.
+public enum AuditAction { Create, Update, Publish, Archive, HierarchyChange, Discard, Delete, ForceUnlock, View }
 
 /// <summary>Tipo di riferimento nav per la validazione semantica.</summary>
 public enum NavRefType { Fix, Airway, Navaid }

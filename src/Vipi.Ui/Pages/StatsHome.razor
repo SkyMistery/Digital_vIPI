@@ -1,4 +1,5 @@
 @page "/services/stats"
+@page "/services/stats/user/{Vid:int}"
 @layout SopLayout
 @using Vipi.Application.Abstractions
 @using Vipi.Application.Auth
@@ -7,11 +8,19 @@
 @inject IStatsSettingsStore Impostazioni
 @inject ICurrentUserProvider Utenti
 @inject IEditAuthorizationService Authz
+@inject IStaffRosterRepository Roster
+@inject IStatsAccessLog RegistroAccessi
 @inject IStringLocalizer<SharedResource> L
 
-@* Le mie statistiche ATC. SSR statico: è un elenco di numeri, non c'è niente da aggiornare da solo — come
-   l'hub dei servizi. Il periodo sta nell'INDIRIZZO (?p=30) e non in un componente interattivo: così la
-   pagina resta statica, il tasto «indietro» funziona e un periodo si può mandare a qualcuno.
+@* Le statistiche ATC di una persona. SSR statico: è un elenco di numeri, non c'è niente da aggiornare da
+   solo — come l'hub dei servizi. Il periodo sta nell'INDIRIZZO (?p=30) e non in un componente interattivo:
+   così la pagina resta statica, il tasto «indietro» funziona e un periodo si può mandare a qualcuno.
+
+   ⚠️ DUE indirizzi, una pagina sola. «/services/stats» sono le PROPRIE; «/services/stats/user/{vid}» sono
+   quelle di un altro e le apre solo lo staff (`Authz.IsAdmin`) — con la fascia in testa che lo dice e una
+   riga nel registro di audit, perché la griglia ora×giorno racconta QUANDO una persona è online e un dato
+   così non si guarda in silenzio. Due pagine gemelle si sarebbero scollate al primo grafico aggiunto a una
+   sola delle due: qui cambia il VID di partenza, non il contenuto.
 
    Gli orari si scrivono in UTC col suffisso Z e l'ora locale la aggiunge il browser. *@
 
@@ -20,13 +29,25 @@
 <div class="wrap stats">
     <div class="doc-head stat-hero">
         <div class="sh-main">
-            <h1 class="page-h1">@L["Stats_Title"]</h1>
-            @if (_utente is not null)
+            @* Anche il divieto porta il titolo neutro: «Le mie statistiche ATC» sopra un «non ti è
+               permesso» direbbe che sono le PROPRIE a essere negate, che è il contrario. *@
+            <h1 class="page-h1">@(_altrui || _vietato ? L["Stats_UserTitle"] : L["Stats_Title"])</h1>
+            @* Nome e VID di chi è guardato. Il VID è staccato dal resto — prima era il «{1}» dentro la
+               chiave Stats_Subtitle («{0} · VID {1}») — perché è un link al profilo IVAO: dentro una
+               frase già formattata non c'era modo di renderlo premibile. Il «·» è punteggiatura, non
+               testo da tradurre, e la parola «VID» resta tradotta una volta sola in Audit_VidN. *@
+            @if (_altrui)
             {
-                @* Nome e VID di chi guarda. Il VID è staccato dal resto — prima era il «{1}» dentro la
-                   chiave Stats_Subtitle («{0} · VID {1}») — perché è un link al profilo IVAO: dentro una
-                   frase già formattata non c'era modo di renderlo premibile. Il «·» è punteggiatura, non
-                   testo da tradurre, e la parola «VID» resta tradotta una volta sola in Audit_VidN. *@
+                @* ⚠️ Il nome lo sa solo il roster, che raccoglie gli STAFFISTI ai login: di un controllore
+                   qualunque abbiamo il VID e basta. Nessun ripiego inventato — il VID è già un link al
+                   profilo IVAO, dove il nome c'è. *@
+                <p class="muted">
+                    @if (!string.IsNullOrWhiteSpace(_nomeSoggetto)) { <text>@_nomeSoggetto · </text> }
+                    <VidLink Vid="_soggetto" />
+                </p>
+            }
+            else if (_utente is not null && !_vietato)
+            {
                 <p class="muted">@_utente.Name · <VidLink Vid="_utente.UserId" /></p>
             }
         </div>
@@ -57,7 +78,23 @@
         }
     </div>
 
-    @if (_utente is null)
+    @if (_altrui)
+    {
+        <div class="callout info" style="margin:10px 0 16px">
+            <span class="cic"><Icon Name="eye" Size="18" /></span>
+            <div>
+                <p class="ct">@L["Stats_StaffViewingTitle"]</p>
+                @L["Stats_StaffViewingBody"] ·
+                <a href="/services/stats/division">@L["Stats_BackToDivision"]</a>
+            </div>
+        </div>
+    }
+
+    @if (_vietato)
+    {
+        <p class="muted">@L["Stats_ProfileForbidden"]</p>
+    }
+    else if (_utente is null)
     {
         <p class="muted">@L["Stats_LoginNeeded"]</p>
     }
@@ -69,7 +106,10 @@
         {
             <div class="stat-empty">
                 <b>@L["Stats_EmptyTitle"]</b>
-                <p>@(_inizioArchivio is null ? L["Stats_Empty"] : L["Stats_EmptyPeriod"])</p>
+                <p>
+                    @if (_altrui) { <text>@L["Stats_UserEmpty"]</text> }
+                    else { <text>@(_inizioArchivio is null ? L["Stats_Empty"] : L["Stats_EmptyPeriod"])</text> }
+                </p>
                 @if (_inizioArchivio is { } inizio)
                 {
                     <p class="muted">@L["Stats_ArchiveFrom", inizio.ToString("yyyy-MM-dd")]</p>
@@ -100,8 +140,8 @@
                 </section>
             </div>
 
-            <h2 class="h-sect">@L["Stats_WhenYouControl"]</h2>
-            <CoverageHeatmap Celle="_griglia" Copertura="false" Titolo="@L["Stats_WhenYouControl"].Value" />
+            <h2 class="h-sect">@_titoloGriglia</h2>
+            <CoverageHeatmap Celle="_griglia" Copertura="false" Titolo="@_titoloGriglia" />
             <div class="cov-legend">
                 <span>@L["Stats_CovLegend"]</span>
                 <span>@L["Stats_CovNone"]</span>
@@ -251,7 +291,9 @@
     }
 
     <p class="muted" style="margin-top:22px">
-        @if (_utente is not null)
+        @* L'esportazione è solo la PROPRIA anche per lo staff: l'endpoint legge il VID dall'identità e non
+           prende parametri, di proposito (vedi il commento in VipiModuleExtensions). *@
+        @if (_utente is not null && !_altrui)
         {
             <a href="/services/stats/export.csv">@L["Stats_Export"]</a><text> · </text>
         }
@@ -267,11 +309,26 @@
     /// <summary>Periodo scelto dall'indirizzo (<c>?p=30</c>). Vuoto = dodici mesi.</summary>
     [SupplyParameterFromQuery(Name = "p")] public string? P { get; set; }
 
+    /// <summary>VID guardato, dalla rotta <c>/services/stats/user/{vid}</c>. Zero sulle proprie.</summary>
+    [Parameter] public int Vid { get; set; }
+
     /// <summary>Un turno: gli spezzoni della stessa seduta, già sommati.</summary>
     private sealed record Turno(
         DateTimeOffset Inizio, string Callsign, int Secondi, int Movimenti, IReadOnlyList<StatsSessionRow> Pezzi);
 
     private CurrentUser? _utente;
+
+    /// <summary>Di CHI sono i numeri in pagina: il VID della rotta, oppure il proprio.</summary>
+    private int _soggetto;
+
+    /// <summary>Vero quando il soggetto non è chi guarda: cambia le frasi, accende la fascia, scrive l'audit.</summary>
+    private bool _altrui;
+
+    /// <summary>Ha chiesto le statistiche di un altro senza essere staff.</summary>
+    private bool _vietato;
+
+    private string? _nomeSoggetto;
+    private string _titoloGriglia = "";
     private StatsTotals? _totali;
     private StatsRank? _posizione;
     private StatsStreak _striscia = new(0, 0, null);
@@ -299,16 +356,43 @@
         _utente = Utenti.Get();
         _classificaPubblica = (await Impostazioni.GetAsync()).PublicLeaderboard;
 
+        // Chiedere il PROPRIO vid per indirizzo non è «guardare un altro»: niente fascia e niente audit.
+        _soggetto = Vid > 0 ? Vid : _utente?.UserId ?? 0;
+        var chiesteAltrui = Vid > 0 && Vid != _utente?.UserId;
+
+        // La guardia sta QUI, prima di ogni query: le statistiche di un altro non si aprono indovinando il
+        // VID. ⚠️ Vale anche per l'anonimo — che non è staff — e per lui il divieto è la risposta giusta:
+        // «entra e poi vedrai» prometterebbe a chiunque una pagina che quasi nessuno può aprire.
+        if (chiesteAltrui && !Authz.IsAdmin)
+        {
+            _vietato = true;
+            return;
+        }
+
+        _altrui = chiesteAltrui;
+
+        _titoloGriglia = (_altrui ? L["Stats_WhenControls"] : L["Stats_WhenYouControl"]).Value;
+
         var periodo = StatsView.Period(P);
+        // ⚠️ I chip del periodo devono tornare sulla pagina che si sta guardando: con l'indirizzo fisso
+        // «/services/stats» il primo chip premuto riportava lo staff sulle PROPRIE statistiche.
+        var baseUrl = _altrui ? $"/services/stats/user/{_soggetto}" : "/services/stats";
         _periodi = StatsView.Periods
-            .Select(p => new StatsChipBar.Voce(L[p.LabelKey], $"/services/stats?p={p.Key}", p.Key == periodo.Key))
+            .Select(p => new StatsChipBar.Voce(L[p.LabelKey], $"{baseUrl}?p={p.Key}", p.Key == periodo.Key))
             .ToList();
 
         if (_utente is null) return;
 
+        if (_altrui)
+        {
+            _nomeSoggetto = (await Roster.GetDisplayNamesAsync(new[] { _soggetto }))
+                .TryGetValue(_soggetto, out var nome) ? nome : null;
+            await RegistroAccessi.RecordProfileViewAsync(_utente.UserId, _soggetto);
+        }
+
         var a = DateTimeOffset.UtcNow;
         var da = a.AddDays(-periodo.Days);
-        var vid = _utente.UserId;
+        var vid = _soggetto;
 
         _inizioArchivio = await Stats.ArchiveStartAsync(vid);
         _totali = await Stats.TotalsAsync(vid, da, a);

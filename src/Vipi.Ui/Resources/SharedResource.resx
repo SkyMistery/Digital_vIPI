@@ -2194,6 +2194,16 @@
   <data name="Stats_FilterNone" xml:space="preserve"><value>Nessun volo con questo filtro.</value></data>
   <data name="Stats_Showing" xml:space="preserve"><value>{0} voli su {1}</value></data>
   <data name="Stats_EmptyTitle" xml:space="preserve"><value>Ancora niente da mostrare</value></data>
+  <data name="Stats_UserTitle" xml:space="preserve"><value>Statistiche ATC</value></data>
+  <data name="Stats_WhenControls" xml:space="preserve"><value>Quando controlla</value></data>
+  <data name="Stats_UserEmpty" xml:space="preserve"><value>Nessun turno per questo VID nel periodo scelto.</value></data>
+  <data name="Stats_ProfileForbidden" xml:space="preserve"><value>Le statistiche personali di un altro controllore le può aprire solo lo staff di divisione.</value></data>
+  <data name="Stats_StaffViewingTitle" xml:space="preserve"><value>Statistiche di un altro controllore</value></data>
+  <data name="Stats_StaffViewingBody" xml:space="preserve"><value>Le stai vedendo perché sei staff di divisione. L'accesso resta scritto nel registro di audit.</value></data>
+  <data name="Stats_BackToDivision" xml:space="preserve"><value>Torna alla classifica</value></data>
+  <data name="Stats_OpenProfileTitle" xml:space="preserve"><value>Apri le statistiche del VID {0}</value></data>
+  <data name="Audit_Cat_Statistiche" xml:space="preserve"><value>Statistiche</value></data>
+  <data name="Audit_Fr_StatsView" xml:space="preserve"><value>statistiche personali consultate</value></data>
   <data name="Stats_EmptyPeriod" xml:space="preserve"><value>Nessun turno nel periodo scelto.</value></data>
   <data name="Stats_Tag_Departure" xml:space="preserve"><value>in partenza</value></data>
   <data name="Stats_Tag_Arrival" xml:space="preserve"><value>in arrivo</value></data>

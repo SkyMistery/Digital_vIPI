@@ -40,8 +40,25 @@ public class AuditNarratorTests
     [InlineData(AuditAction.Create, "EditGrant", AuditNarrator.Categoria.Permesso)]
     [InlineData(AuditAction.ForceUnlock, "EditResourceLock", AuditNarrator.Categoria.Lock)]
     [InlineData(AuditAction.HierarchyChange, "AirportPosition", AuditNarrator.Categoria.Gerarchia)]
+    [InlineData(AuditAction.View, "StatsProfile", AuditNarrator.Categoria.Statistiche)]
     public void Ogni_evento_cade_nella_sua_famiglia(AuditAction azione, string tipo, AuditNarrator.Categoria attesa) =>
         Assert.Equal(attesa, AuditNarrator.CategoriaDi(Riga(azione, tipo, "1", null)));
+
+    /// <summary>
+    /// La sola LETTURA nel registro: lo staff ha aperto le statistiche personali di qualcuno. ⚠️ Il
+    /// bersaglio dev'essere la PERSONA guardata — un registro che dice «StatsProfile 555003» non risponde
+    /// alla domanda per cui la riga esiste, cioè «chi è stato guardato».
+    /// </summary>
+    [Fact]
+    public void L_apertura_delle_statistiche_altrui_nomina_la_persona_guardata()
+    {
+        var riga = Riga(AuditAction.View, "StatsProfile", "555003", "{\"Vid\":555003}");
+
+        Assert.Equal(AuditNarrator.Categoria.Statistiche, AuditNarrator.CategoriaDi(riga));
+        Assert.Contains("Audit_Fr_StatsView", AuditNarrator.Frase(riga, L));
+        Assert.Contains("555003", AuditNarrator.Bersaglio(riga, L));
+        Assert.Equal("amber", AuditNarrator.ClassePill(riga));
+    }
 
     /// <summary>
     /// ⚠️ La revoca di un permesso è stata <c>Archive</c> fino al 22 agosto 2026 e <c>Delete</c> dopo, e la

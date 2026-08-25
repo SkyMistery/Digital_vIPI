@@ -102,6 +102,44 @@ public class StatsGraficiTests : TestContext
         Assert.Equal(new[] { "75%", "25%" }, quote);
     }
 
+    /// <summary>
+    /// ⚠️ Il numero nel buco della ciambella deve STARE nel buco. Il buco è largo 69 unità del viewBox
+    /// (r 42 meno mezza traccia da 15 per parte): le ore di una persona ci stanno sempre, quelle della
+    /// DIVISIONE no — «12345,6» a corpo fisso 19 misura ~80 unità e finiva sopra l'anello.
+    /// </summary>
+    [Theory]
+    [InlineData("123,4", 19)]        // le ore di una persona: corpo pieno
+    [InlineData("1234,5", 19)]       // cinque cifre: l'ultimo caso che ci sta com'è
+    [InlineData("12345,6", 18)]      // le ore di una divisione: si stringe
+    [InlineData("123456,7", 15)]     // e si stringe ancora
+    public void Il_numero_nel_buco_non_esce_dal_buco(string centro, int corpoMassimo)
+    {
+        var f = RenderComponent<StatsDonut>(p => p
+            .Add(c => c.Fette, new[] { new StatsSlice("CTR", 10, "p-ctr", "ctr") })
+            .Add(c => c.Centro, centro));
+
+        var corpo = double.Parse(
+            f.Find("text.donut-hole").GetAttribute("font-size")!, CultureInfo.InvariantCulture);
+
+        Assert.True(corpo <= corpoMassimo, $"«{centro}» reso a corpo {corpo}");
+        // Larghezza stimata come nel componente: una cifra Poppins occupa ~0,6 em.
+        Assert.True(centro.Length * 0.6 * corpo <= 69, $"«{centro}» misura più del buco");
+    }
+
+    /// <summary>Il corpo è un numero SVG: a cultura italiana una virgola qui spegne il testo.</summary>
+    [Fact]
+    public void Il_corpo_del_numero_nel_buco_si_scrive_col_punto_decimale()
+    {
+        InItaliano(() =>
+        {
+            var f = RenderComponent<StatsDonut>(p => p
+                .Add(c => c.Fette, new[] { new StatsSlice("CTR", 10, "p-ctr", "ctr") })
+                .Add(c => c.Centro, "1234567,8"));
+
+            Assert.DoesNotContain(",", f.Find("text.donut-hole").GetAttribute("font-size")!);
+        });
+    }
+
     private static StatsTrafficRow Volo(int daMin, int aMin, string callsign,
         TrafficOrigin origine = TrafficOrigin.Aor, FlightPhase ultima = FlightPhase.Airborne)
     {
