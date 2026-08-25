@@ -1604,6 +1604,10 @@ button.sh-chip.warn:hover{background:var(--tint-gold)}
 .struct .res-table .pill{display:inline-flex;align-items:center;gap:4px;vertical-align:middle}
 .struct .res-table td.col-state,.struct .res-table td.col-act{white-space:nowrap}
 .struct .res-table td .apt-flag{margin-left:6px}
+/* Pill militare della pagina Aeroporti: è un BOTTONE (segna/desegna «solo militare»), non un'etichetta.
+   `nowrap` perché su due parole andava a capo dentro la cella e alzava la riga di quaranta pixel. */
+.struct .res-table td button.apt-mil{margin-left:6px;white-space:nowrap;border:0;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600;font-family:var(--font-head)}
+.struct .res-table td button.apt-mil:disabled{cursor:default;opacity:.65}
 .struct .res-table td .apt-sub{font-size:11px}
 /* Riga dell'anagrafica già assegnata: si vede col chip, non si può scegliere. */
 .struct .res-table tbody tr.row-done>td{background:var(--tint-green-soft)}
