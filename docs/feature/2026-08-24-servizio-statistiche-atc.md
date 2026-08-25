@@ -1007,8 +1007,12 @@ il primo chip premuto riportava lo staffista sulle **proprie** statistiche, in s
 - **Il nome del soggetto.** Lo sa solo il roster staff, popolato ai login: di un controllore qualunque
   abbiamo il **solo VID** — che è già un link al profilo IVAO, dove il nome c'è. Nessun ripiego inventato,
   come dice il §6.
-- **Avvisare chi viene guardato.** Non deciso. Oggi l'unica traccia è l'audit; se un giorno il committente
-  vorrà dirlo agli interessati, il posto è la pagina delle proprie statistiche.
+- **Avvisare chi viene guardato: NO, e non è un rinvio.** Deciso dal committente il 25 agosto: su IVAO lo
+  staff guarda le statistiche dei soci senza doverlo annunciare, e questo servizio non introduce una regola
+  che altrove non c'è. Nessun avviso all'interessato, né in pagina né altrove.
+  ⚠️ **La riga di audit resta**, e non è in contraddizione: serve alla divisione — «chi ha guardato chi e
+  quando» davanti a una contestazione — non a informare il guardato. Chi un giorno volesse togliere anche
+  quella starebbe togliendo una cosa diversa da quella che è stata decisa qui.
 
 ### 14.5 Come ci si arriva
 
