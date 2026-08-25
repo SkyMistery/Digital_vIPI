@@ -1,6 +1,8 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 25 agosto 2026, sera (**§B12 aperta: il ramo `statistiche-atc` è completo e NON fuso** — la fusione è una decisione del committente, non un passo tecnico; il 24: §B10 e §B11 fuse e cancellate. La sera del 25 si chiudono **§H5** — il VID è un link al profilo IVAO, verifica live fatta — e **§H2**, il «rosso intermittente», che erano due difetti. Della sezione UI restano aperte **H1** e **H3**) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+**Aggiornato:** 25 agosto 2026, tarda sera (**§B12: il ramo `statistiche-atc` porta anche le otto richieste
+del committente sul servizio statistiche — §16 della carta — fra cui la sezione Aeroporti, la potatura e il
+capitolo di Guida che mancava; restano aperte le stesse due voci UI**) · vecchia testata: (**§B12 aperta: il ramo `statistiche-atc` è completo e NON fuso** — la fusione è una decisione del committente, non un passo tecnico; il 24: §B10 e §B11 fuse e cancellate. La sera del 25 si chiudono **§H5** — il VID è un link al profilo IVAO, verifica live fatta — e **§H2**, il «rosso intermittente», che erano due difetti. Della sezione UI restano aperte **H1** e **H3**) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -748,13 +750,15 @@ la ripara**.
 
 ### B12 🟡 NON FUSO — `statistiche-atc`: la decisione è del committente
 
-**37 commit** oltre `main`, spinti su `origin/statistiche-atc`. ⚠️ **La cifra si conta, non si legge**: qui
+**54 commit** oltre `main`, spinti su `origin/statistiche-atc`. ⚠️ **La cifra si conta, non si legge**: qui
 c'è stata scritta «24» per due giri di fila mentre il ramo era già a 27, ed è il motivo per cui accanto c'è
 il comando — `git rev-list --count main..statistiche-atc`.
-**Niente lo blocca sul piano tecnico**: build a **0 avvisi** e suite **tutta verde**, **2291 su net8**
-(25 agosto sera, gli otto progetti contati uno per uno). ⚠️ **net10 non è stata rimisurata** dopo le
-aggiunte del 25 sera: l'ultima cifra buona è 2016 di prima. Fondere è una decisione, non un passo rimasto
-indietro.
+**Niente lo blocca sul piano tecnico**: build a **0 avvisi** e suite **tutta verde** su tutti e due i TFM —
+**2366 su net8, 2128 su net10**, rimisurati il 25 agosto a tarda sera dopo le otto richieste (§16 della
+carta). Fondere è una decisione, non un passo rimasto indietro.
+⚠️ Prima di credere a un conteggio: `grep "error MSB"`. Con `Vipi.Host` acceso (la verifica live) i suoi DLL
+sono bloccati, mezzo albero non compila e il totale cala di centinaia senza che il comando diventi rosso in
+modo visibile.
 
 ℹ️ Per qualche ora del 25 sera su net10 c'era **un rosso**, ed era del ramo: due difetti nelle proprietà
 CsCheck dell'AoR, chiusi in giornata. La storia sta in **§H2**, e vale la pena leggerla prima di rilanciare
@@ -770,7 +774,21 @@ Carta con tutto: [`feature/2026-08-24-servizio-statistiche-atc.md`](feature/2026
 — **§12** è l'elenco vivo di cosa resta, **§13** la veste del 25 agosto, **§14** le statistiche di un altro,
 **§15** i due modi di leggere gli aeroporti.
 
-**Le quattro cose chieste dal committente la sera del 25**, tutte già dentro:
+**Le otto cose chieste dal committente a tarda sera del 25** stanno in **§16** della carta, e sono tutte
+dentro. La sola davvero nuova: **Aeroporti: traffico e copertura** — quanto traffico c'è stato su ogni campo
+italiano e quanto ha trovato un controllore acceso — dentro `/services/stats/division`, **solo staff**,
+raggruppabile per ACC (`?g=LIRR`).
+
+⚠️ **La carta diceva una cosa falsa**, e chi legge §3 la deve leggere corretta:
+`/v2/airports/{icao}/stats` **non** dà conteggi giornalieri di movimenti — è una fotografia al minuto dello
+stato corrente, con `limit` sotto 100. Quel che serve lo dà `/traffics`, che **regge trenta giorni in una
+chiamata** (LIRF: 981 KB, 1,3 s) e porta gli **istanti** che il nostro client buttava. Zero endpoint nuovi.
+
+ℹ️ Provato con **dati veri**: durante la verifica live il consolidamento ha girato contro IVAO e ha misurato
+**3 525 giorni-aeroporto** su 75 campi. Il totale di quella finestra: **16 374 movimenti, 3 307 con ATC — il
+20%**. Estremi misurati: LIEO 52%, LIRP 0%.
+
+**Le quattro cose chieste dal committente la prima parte della sera del 25**, tutte già dentro:
 
 1. **Il numero nel buco della ciambella non ci stava** (§13.8). Il buco è largo 69 unità del viewBox e il
    corpo era fisso a 19: cinque cifre ci stanno, sei no. Si vedeva **solo su `/division`** perché il
@@ -809,9 +827,9 @@ scollerebbe dalla prima al primo cambiamento.
 
 | | cosa | quando |
 |---|---|---|
-| 🟢 | **La Guida**: `GuidaPage.razor` non ha un capitolo sulle statistiche e `GuideSearchCatalog.Entries` non ha la sua voce — chi cerca «statistiche» non trova niente. §7 della carta la dichiara **obbligatoria**: è l'unico pezzo di §7 non fatto. ⚠️ Dal 25 sera il capitolo deve spiegare anche **le due tabelle degli aeroporti** (è la distinzione che il committente non ha colto da solo leggendo la pagina, ed è il motivo per cui la seconda tabella esiste) e la **pagina di un altro** vista dallo staff. | prima di fondere |
+| ✅ | ~~**La Guida**~~ — **fatta** il 25 sera: capitolo `statistiche` in `GuidaPage.razor`, IT ed EN. ⚠️ La diagnosi qui scritta era **sbagliata a metà**: la voce in `GuideSearchCatalog` c'**era già**, e puntava a un'ancora che nella Guida non esisteva — chi cercava «statistiche» trovava un risultato, lo apriva e finiva su una pagina senza quel capitolo. Un collegamento morto è peggio di nessun collegamento, perché nessuno lo denuncia. Ora c'è `GuidaAncoreTests`, che verifica che **ogni** voce del catalogo abbia il suo capitolo. | fatto |
 | 🔴 | **La `UPDATE` dei tetti TWR** (§4.5-bis) è stata eseguita **solo sul `vipi.db` di sviluppo**. Senza, in produzione le torri rivendicano fino a FL195 e il traffico in crociera finisce a loro. Stessa guardia: `Position='TWR' AND LimitsFromSource=0 AND UpperLimit=19500`. | al primo deploy |
-| 🟡 | **La potatura del dettaglio traffico.** §5.1 decide «dettaglio 12 mesi, sessioni per sempre» e i contatori denormalizzati esistono **apposta** perché la potatura non azzeri le ore di un anno fa — ma **il lavoro che pota non c'è**. ~500 000 righe l'anno, misurate. Non urgente (l'archivio nasce adesso, la quota è 1 GB), ma è esattamente il modo in cui la retention di pubblicazione si era accumulata la prima volta. | prima o poi, e scritto |
+| ✅ | ~~**La potatura del dettaglio traffico**~~ — **scritta** il 25 sera: `TrafficRetentionUseCase` + `TrafficRetentionHostedService`, a scaglioni e con tetto per giro. ⚠️ Tocca **solo** `AtcSessionTraffic`: le sessioni e i loro contatori denormalizzati restano, ed è precisamente il motivo per cui quei contatori esistono (c'è un test che lo verifica). ⚠️ `RemoveRange`, **non** `ExecuteDelete`. | fatto |
 
 ⚠️ **Due cose non ancora viste dal vivo**, e sono l'una il seguito dell'altra:
 
@@ -823,8 +841,9 @@ scollerebbe dalla prima al primo cambiamento.
 
 Verifica per tutt'e due: aprire `/services/stats/session/{id}` di una sessione registrata **dopo** il deploy.
 
-⚠️ **Sei migrazioni**, tutte a doppia emissione: `StatisticheAtc`, `PolicyStatisticheAtc`,
-`TrafficoRiempitoAPosteriori`, `ImpostazioniStatistiche`, `PisteInUso`, `FasiQuoteConsegne`. Il ramo
+⚠️ **Sette migrazioni**, tutte a doppia emissione: `StatisticheAtc`, `PolicyStatisticheAtc`,
+`TrafficoRiempitoAPosteriori`, `ImpostazioniStatistiche`, `PisteInUso`, `FasiQuoteConsegne` e
+`TrafficoAeroportoGiornaliero` (25 sera, §16.3). Il ramo
 **allunga la coda del cutover MariaDB** — a differenza di B10, che non aveva migrazioni.
 
 ### B11 ✅ FUSO — `login-utente-nuovo`, fuso in `main` il 24 agosto 2026
@@ -1803,6 +1822,72 @@ sé e toglie una fonte possibile — **ma non è provato che sia LA causa**, e v
 
 **Resta da chiudere la voce**: serve un socio senza incarichi che apra `/services/vsop/{acc}` e la pagina di
 un aeroporto dopo il caricamento di «i». ⚠️ Da admin non prova niente.
+
+### E10 📋 CARTA — Biblioteca allegati: i PDF su Drive, linkati dai documenti
+
+Chiesto dal committente il **25 agosto 2026**. Carta scritta e approvata nelle decisioni,
+**nessuna slice avviata**, nessuna riga di codice: `docs/feature/2026-08-25-biblioteca-allegati.md`.
+
+**Il vincolo che ha deciso il deposito.** I byte **non stanno da noi**: il piano di hosting **non ammette il
+formato PDF** — ⚠️ vincolo **contrattuale**, quindi *non* si aggira mettendoli in MariaDB come blob, sarebbe
+elusione — e IVAO HQ indica di tenere i documenti sul **Drive di divisione**. Il deposito è quindi Drive;
+noi teniamo metadati, organizzazione, versioni e registro dei link.
+
+⚠️ **Conseguenza**: il file Drive è «chiunque abbia il link», quindi **tutto ciò che entra in biblioteca è
+pubblico**. Allegati riservati allo staff **non sono supportati** — un controllo di accesso davanti a un URL
+Drive pubblico sarebbe teatro. Confermato dal committente che non servono.
+
+**Le sette decisioni prese** (tutte approvate):
+
+1. modello a **due livelli**: `Allegato`(slug stabile) → `AllegatoVersione` → file Drive. I documenti citano
+   lo **slug**, mai il file: altrimenti sostituire un PDF vuol dire riaprire tutti i documenti che lo citano;
+2. **l'identità del link è nostra**: `/vsop/files/{slug}` → 302 verso Drive. Cambiare deposito domani (o
+   riportarli in casa, se l'hosting cambia) non tocca **un solo documento** — è una colonna in una tabella;
+3. il registro «usato in N» si **ricava** dalle quattro fonti che `EfMediaMaintenance.ReferencedShasAsync`
+   già scansiona, **mai** una tabella di join: quella si desincronizza e mente proprio quando serve;
+4. il link segue **sempre la versione corrente**, release comprese. La regola di casa è già in
+   `DocRelease.cs` (la release congela le *scelte editoriali*, non i cataloghi esterni), e congelare avrebbe
+   un difetto pratico grave: una scansione sbagliata già pubblicata si correggerebbe solo **ripubblicando
+   tutti** i documenti che la citano;
+5. biblioteca a **due assi** (tipo × ambito) + ricerca, non cartelle: un albero a 50+ file si riempie di roba
+   archiviata male;
+6. **due** modi di linkare: blocco «Allegato» e `[testo](allegato:slug)` inline, con **un token solo** in
+   entrambi → una sola regex per lo scanner;
+7. v1 = caricamento **a mano** su Drive; l'API Drive (service account sul drive condiviso) è rimandata.
+
+**Le due trappole trovate leggendo il codice:**
+
+- ⚠️ **`MarkdownLite.cs` non ha link di NESSUN tipo.** Il link inline va aperto **solo** allo schema
+  `allegato:`: il renderer fa HTML-encode e poi regex, quindi aprirlo a `[testo](url)` qualunque farebbe
+  entrare `javascript:` e link esterni arbitrari nel contenuto editoriale.
+- ⚠️ `/vsop/files/{slug}` **non può essere `immutable`** come `/vsop/media/{sha}`: sostituisci il PDF e il
+  browser tiene il vecchio per un anno. Va `no-cache`. È ciò che renderebbe la sostituzione «non
+  funzionante» in modo intermittente e inspiegabile.
+
+**Debito annotato, non aperto**: i punti di dispatch su `BlockFormat` sono **9 file**, e questa è la
+**seconda** feature che vi aggiunge un `case` (la prima furono le immagini). La regola del 2 del gate è
+superata da un pezzo, ma aprire il registry dei formati dentro una feature sarebbe il refactor trasversale
+che il gate vieta. **Alla terza volta si apre.**
+
+**Verifiche fatte il 25 agosto, prima di sospendere:**
+
+- ✅ **Il reconciler Postgres crea le tabelle**: R3 della carta era copiato dal doc immagini del 31 luglio ed
+  **era già chiuso** dal commit `eac14fd`. `CreateTableStatements` genera la DDL dal diff del modello EF, con
+  tre test in `PostgresSchemaReconcilerTests`. Le tabelle nuove nascono da sole. Riguarda comunque solo
+  Render/Neon: SQLite e MariaDB vanno di migrazioni versionate.
+- ✅ **Revisioni Drive**: le purgabili durano **~30 giorni**, o meno con 100 revisioni non marcate; fino a
+  **200** si marcano «Keep Forever» e occupano quota. ⚠️ Ma **la revisione di testa non è mai purgata**: la
+  versione *corrente* — l'unica che i documenti servono — è al sicuro senza spuntare niente. A scadere sono
+  solo i byte delle versioni passate, già fuori perimetro (`AllegatoVersione` registra **chi, quando e
+  perché**, non promette di riscaricare la v1).
+
+**Resta da chiedere a Ivao.It**: il drive condiviso ha politiche di **pulizia periodica**?
+
+**Da dove si riparte**: slice 1 della carta — entità `Allegato` + `AllegatoVersione` e migrazioni **×2**
+(SQLite + MySQL). ⚠️ Additive: una colonna nuova non la riempie nessuno da sola.
+
+**Fuori perimetro, deciso**: `RealDOCS/IPI Roma ACC.pdf` (**180 MB**) e gli altri monoliti — sono i documenti
+che il sito **sostituisce**, non allegati.
 
 ## F. Rimandato, non cancellato
 
