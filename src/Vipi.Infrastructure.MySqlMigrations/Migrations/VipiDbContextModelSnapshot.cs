@@ -1039,7 +1039,8 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
 
                     b.HasIndex("TargetType", "TargetKey", "ReleaseEffectiveUtc");
 
-                    b.HasIndex("TargetType", "TargetKey", "VersionNumber");
+                    b.HasIndex("TargetType", "TargetKey", "VersionNumber")
+                        .IsUnique();
 
                     b.ToTable("DocReleases");
                 });
