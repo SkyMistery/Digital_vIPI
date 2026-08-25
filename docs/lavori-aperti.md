@@ -149,8 +149,9 @@ oggi nessuno sa rispondere — la rotazione della password Neon, e quattro decis
 debba scrivere audit.
 
 🟡 **C'è di nuovo una decisione di merge sul tavolo, ed è l'unica: B12.** Il ramo **`statistiche-atc`**
-(24 commit, il **terzo servizio**) è completo, verificato a schermo e verde su entrambi i TFM, ma **non è in
-`main`**: fonderlo è una scelta del committente. ⚠️ È il primo ramo dopo mesi che **allunga la coda del
+(**37 commit**, il **terzo servizio**) è completo, verificato a schermo e verde su net8, ma **non è in
+`main`**: fonderlo è una scelta del committente. ⚠️ La cifra si conta:
+`git rev-list --count main..statistiche-atc`. ⚠️ È il primo ramo dopo mesi che **allunga la coda del
 cutover MariaDB** — porta sei migrazioni. Prima: B10 e B11 il 24 agosto, B6 il 15, e B5 si è rivelata già
 presa — il doc 13 era in `main` da allora senza che l'elenco lo sapesse.
 
@@ -701,12 +702,13 @@ la ripara**.
 
 ### B12 🟡 NON FUSO — `statistiche-atc`: la decisione è del committente
 
-Una **trentina di commit** oltre `main`, spinti su `origin/statistiche-atc`. ⚠️ **La cifra si conta, non si
-legge**: qui c'è stata scritta «24» per due giri di fila mentre il ramo era già a 27, ed è il motivo per cui
-adesso al suo posto c'è il comando — `git rev-list --count main..statistiche-atc`.
-**Niente lo blocca sul piano tecnico**: `dotnet build Vipi.slnx -c Release --no-incremental` **a 0 avvisi** e
-suite **tutta verde**, **2254 net8 / 2016 net10** (25 agosto sera). Fondere è una decisione, non un passo
-rimasto indietro.
+**37 commit** oltre `main`, spinti su `origin/statistiche-atc`. ⚠️ **La cifra si conta, non si legge**: qui
+c'è stata scritta «24» per due giri di fila mentre il ramo era già a 27, ed è il motivo per cui accanto c'è
+il comando — `git rev-list --count main..statistiche-atc`.
+**Niente lo blocca sul piano tecnico**: build a **0 avvisi** e suite **tutta verde**, **2291 su net8**
+(25 agosto sera, gli otto progetti contati uno per uno). ⚠️ **net10 non è stata rimisurata** dopo le
+aggiunte del 25 sera: l'ultima cifra buona è 2016 di prima. Fondere è una decisione, non un passo rimasto
+indietro.
 
 ℹ️ Per qualche ora del 25 sera su net10 c'era **un rosso**, ed era del ramo: due difetti nelle proprietà
 CsCheck dell'AoR, chiusi in giornata. La storia sta in **§H2**, e vale la pena leggerla prima di rilanciare
@@ -719,7 +721,31 @@ punti (`StatsHome`, `StatsDivisionPage`) sono file che **esistono solo su questo
 migrazioni e non tocca il modello. Cosa gli resta: **§H5**.
 
 Carta con tutto: [`feature/2026-08-24-servizio-statistiche-atc.md`](feature/2026-08-24-servizio-statistiche-atc.md)
-— **§12** è l'elenco vivo di cosa resta, **§13** la veste del 25 agosto.
+— **§12** è l'elenco vivo di cosa resta, **§13** la veste del 25 agosto, **§14** le statistiche di un altro,
+**§15** i due modi di leggere gli aeroporti.
+
+**Le quattro cose chieste dal committente la sera del 25**, tutte già dentro:
+
+1. **Il numero nel buco della ciambella non ci stava** (§13.8). Il buco è largo 69 unità del viewBox e il
+   corpo era fisso a 19: cinque cifre ci stanno, sei no. Si vedeva **solo su `/division`** perché il
+   componente era stato provato con le ore di **una persona**, mai con quelle di una divisione.
+2. **Lo staff può aprire le statistiche di un altro** (§14): `/services/stats/user/{vid}`, tutto lo staff
+   `IT-`. ⚠️ La guardia sta **prima di ogni query**, e un test lo verifica con un `IAtcStatsQueries` che
+   esplode a ogni metodo. L'accesso lascia **una riga di audit** (`AuditAction.View`, valore nuovo e
+   additivo: gli enum sono stringhe, nessuna migrazione), accorpata a mezz'ora perché i chip di periodo
+   ricaricano la pagina. **Chi viene guardato non viene avvisato** — deciso, non rinviato.
+3. **Aeroporti gestiti accanto ad aeroporti visti** (§15). Sono due domande opposte: i campi che coprivi,
+   e i capi del piano di volo che ti passano davanti. ⚠️ **Un sorvolo vettorato non è traffico «di» un
+   aeroporto** ma resta nei totali — quindi la somma della colonna dei gestiti **non** è il totale dei voli.
+   Per i settori d'area il campo lo dice la **geometria** (`PolygonGeometry.Contains` sul poligono del
+   settore), non l'albero: `Airport.ParentCallsign` è compilato a mano e ce l'hanno **31 aeroporti su 93**,
+   con **12 CTR su 140** che abbiano qualcosa sotto. ⚠️ Il poligono è quello di **oggi**: una
+   risettorizzazione cambia i numeri dei turni **passati**, ed è stato accettato sapendolo.
+4. **Il salvataggio finale del poller non usava il gettone giusto.** Allo spegnimento il log diceva
+   «salvataggio finale del traffico fallito» con una `TaskCanceledException` e **sembrava un guasto del
+   database**: non lo era, `StopAsync` passava alla scrittura il proprio gettone di arresto. E `FlushAsync`
+   chiama `TakeAll`, che **svuota** il registro prima di salvare — quei minuti non erano più né su disco né
+   in RAM. Ora la scrittura ha un gettone suo con cinque secondi di tetto.
 
 **Cosa porta.** Il **terzo servizio** dell'hub, `/services/stats`: ore, turni, traffico gestito, copertura
 della divisione. ⚠️ IVAO dà le **connessioni**, non il traffico: chi hai gestito lo costruiamo campionando
@@ -737,7 +763,7 @@ scollerebbe dalla prima al primo cambiamento.
 
 | | cosa | quando |
 |---|---|---|
-| 🟢 | **La Guida**: `GuidaPage.razor` non ha un capitolo sulle statistiche e `GuideSearchCatalog.Entries` non ha la sua voce — chi cerca «statistiche» non trova niente. §7 della carta la dichiara **obbligatoria**: è l'unico pezzo di §7 non fatto. | prima di fondere |
+| 🟢 | **La Guida**: `GuidaPage.razor` non ha un capitolo sulle statistiche e `GuideSearchCatalog.Entries` non ha la sua voce — chi cerca «statistiche» non trova niente. §7 della carta la dichiara **obbligatoria**: è l'unico pezzo di §7 non fatto. ⚠️ Dal 25 sera il capitolo deve spiegare anche **le due tabelle degli aeroporti** (è la distinzione che il committente non ha colto da solo leggendo la pagina, ed è il motivo per cui la seconda tabella esiste) e la **pagina di un altro** vista dallo staff. | prima di fondere |
 | 🔴 | **La `UPDATE` dei tetti TWR** (§4.5-bis) è stata eseguita **solo sul `vipi.db` di sviluppo**. Senza, in produzione le torri rivendicano fino a FL195 e il traffico in crociera finisce a loro. Stessa guardia: `Position='TWR' AND LimitsFromSource=0 AND UpperLimit=19500`. | al primo deploy |
 | 🟡 | **La potatura del dettaglio traffico.** §5.1 decide «dettaglio 12 mesi, sessioni per sempre» e i contatori denormalizzati esistono **apposta** perché la potatura non azzeri le ore di un anno fa — ma **il lavoro che pota non c'è**. ~500 000 righe l'anno, misurate. Non urgente (l'archivio nasce adesso, la quota è 1 GB), ma è esattamente il modo in cui la retention di pubblicazione si era accumulata la prima volta. | prima o poi, e scritto |
 
@@ -1788,8 +1814,25 @@ ed è un difetto che stava lì da prima.
 **La sezione è diventata il posto dove finisce l'UI aperta**, non solo l'audit di quel giorno. Stato al 25
 agosto, sera: **H1** e **H3** aperte come allora · **H2** ✅ **chiusa** — erano due difetti, non uno, e il
 secondo l'ha trovato il martello a 2 milioni di giri · **H4** chiusa · **H5** ✅ **chiusa** — il VID è un
-link, verifica live fatta, e il buco che ha trovato (nove VID muti nel Registro) è chiuso anche quello.
+link, verifica live fatta, e il buco che ha trovato (nove VID muti nel Registro) è chiuso anche quello ·
+**H6** ✅ **chiusa** — il numero che sbordava dalla ciambella.
 **Aperte: H1 e H3.**
+
+### H6 ✅ CHIUSA — il totale sbordava dalla ciambella, e si vedeva solo su una pagina
+
+Segnalata dal committente il 25 agosto sera su `/services/stats/division`.
+
+Il buco della ciambella è largo **69 unità** del viewBox (r 42 meno mezza traccia da 15 per parte) e il corpo
+del numero era **fisso a 19**: cinque cifre ci stanno («1234,5»), sei no — «12345,6» misura circa 80 unità e
+finisce **sopra l’anello**. `StatsDonut.FontCentro` ora ricava il corpo dalla lunghezza (mai oltre 19, mai
+sotto 11), coi casi limite fissati in un `[Theory]`.
+
+⚠️ **La lezione non è «rimpicciolire il testo».** Il componente era stato provato — anche dalla verifica
+live — solo con le ore di **una persona**, che sono sempre corte. Le ore di una **divisione** non lo sono, e
+i due usi vivevano nello stesso file senza che niente lo dicesse. Un componente provato su un solo ordine di
+grandezza non è provato.
+
+Dettaglio in §13.8 della carta delle statistiche.
 
 ### H1 🟢 `.ed-layout` e le altre dieci `@media` degli editor
 
