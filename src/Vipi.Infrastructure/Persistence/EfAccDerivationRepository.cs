@@ -24,10 +24,10 @@ public sealed class EfAccDerivationRepository : IAccDerivationRepository
         var root = await _db.Sectors.AsNoTracking()
             .Where(s => s.Acc!.Code == accCode && s.Type == SectorType.Ctr && s.ParentSectorId == null && s.IsActive)
             .OrderBy(s => s.CoverageOrder).ThenBy(s => s.Callsign)
-            .Select(s => new { s.Id, s.Callsign, s.DocumentId })
+            .Select(s => new { s.Id, s.Callsign, s.DocumentId, DocumentHidden = s.Document != null && s.Document.IsHidden })
             .FirstOrDefaultAsync(ct);
         if (root is null) return null;
-        return new AccDocumentIdentity(root.Id, root.Callsign, accCode, accName, root.DocumentId);
+        return new AccDocumentIdentity(root.Id, root.Callsign, accCode, accName, root.DocumentId, root.DocumentHidden);
     }
 
     public async Task<IReadOnlyList<AccTreeRoot>> ListTreeRootsAsync(string accCode, CancellationToken ct = default) =>

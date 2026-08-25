@@ -143,6 +143,25 @@ public class AccDocumentServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task LoadForView_HiddenDocument_IsNotServedToPublic()
+    {
+        // Stesso gate degli altri tipi (HiddenApp_WithEffectiveRelease_StaysHidden): «nascosto» vale anche
+        // all'URL diretto, non solo in landing/ricerca. Qui l'ACC lo saltava: release effettiva → pagina servita.
+        var docId = await _service.EnsureAsync(Acc);
+        var releases = TestReleaseTargets.ReleaseRepo(_db);
+        var key = $"{Acc}|{(await _service.GetIdentityAsync(Acc))!.RootCallsign}";
+        var snap = await releases.SnapshotWorkingAsync(ReleaseTargetType.AccVipi, key, "2607");
+        await releases.SaveReleaseAsync(ReleaseTargetType.AccVipi, key, "2607", DateTime.UtcNow.AddMinutes(-1), snap!, createdByUserId: 1, note: null);
+        Assert.NotNull(await _service.LoadForViewAsync(Acc));
+
+        var doc = await _db.Documents.FirstAsync(d => d.Id == docId);
+        doc.IsHidden = true;
+        await _db.SaveChangesAsync();
+
+        Assert.Null(await _service.LoadForViewAsync(Acc));
+    }
+
+    [Fact]
     public async Task Release_Snapshot_Is_Frozen_Then_Served_By_View()
     {
         var releases = TestReleaseTargets.ReleaseRepo(_db);

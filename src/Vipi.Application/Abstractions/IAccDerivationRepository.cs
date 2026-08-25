@@ -5,8 +5,12 @@ namespace Vipi.Application.Abstractions;
 
 /// <summary>Identità del Document della vIPI ACC (doc refactor 08e-acc): il settore CTR radice primario che lo chiavizza
 /// (<see cref="SectorId"/>/<see cref="RootCallsign"/>), il codice/nome ACC e l'eventuale <see cref="DocumentId"/> se già
-/// migrato. Analogo ACC di <see cref="AppDocumentIdentity"/>.</summary>
-public sealed record AccDocumentIdentity(int SectorId, string RootCallsign, string AccCode, string AccName, int? DocumentId);
+/// migrato. <see cref="IsDocumentHidden"/> viaggia con l'identità perché il gate «nascosto» della vista pubblica va
+/// deciso PRIMA di leggere la release: gli altri tipi lo applicano nel predicato di caricamento
+/// (<c>EfContentRepository.LoadVipiAsync</c>), l'ACC non ha quel predicato e lo legge da qui.
+/// Analogo ACC di <see cref="AppDocumentIdentity"/>.</summary>
+public sealed record AccDocumentIdentity(int SectorId, string RootCallsign, string AccCode, string AccName, int? DocumentId,
+    bool IsDocumentHidden = false);
 
 /// <summary>L'ACC di appartenenza di un settore, per l'albero dei coordinamenti: come si chiama, com'è
 /// identificato e se è di casa.
