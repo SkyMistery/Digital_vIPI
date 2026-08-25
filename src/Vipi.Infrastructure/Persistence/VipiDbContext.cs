@@ -204,6 +204,14 @@ public class VipiDbContext : DbContext
             e.HasIndex(x => x.ParentCallsign);
             // Tre lettere piu' margine: senza misura Pomelo la renderebbe un longtext per un codice IATA.
             e.Property(x => x.Iata).HasMaxLength(4);
+            // UNICO, e non è pignoleria: un documento d'aeroporto descrive UN aeroporto, e due scali che
+            // puntano allo stesso documento sono un difetto che si vedrebbe solo mesi dopo, a schermo, come un
+            // aeroporto che mostra le piste di un altro. I NULL restano molti (gli scali senza documento):
+            // tutti e tre i provider ammettono più NULL in un indice unico.
+            e.HasIndex(x => x.DocumentId).IsUnique();
+            // Cancellare il documento non cancella l'aeroporto: come per Sector.Document, il legame si recide.
+            e.HasOne(x => x.Document).WithOne(d => d.Airport).HasForeignKey<Airport>(x => x.DocumentId)
+                .OnDelete(DeleteBehavior.SetNull);
             e.HasOne(x => x.Acc).WithMany(f => f.Airports).HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Restrict);
         });
 

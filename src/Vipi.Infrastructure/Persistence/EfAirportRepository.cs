@@ -374,8 +374,9 @@ public sealed class EfAirportRepository : IAirportRepository
         var now = DateTime.UtcNow;
         var cycle = new AiracService().GetCycle(now);
 
-        // Documento esistente (via settori) o nuovo documento pubblicato.
-        var docId = sectors.Where(s => s.DocumentId != null).Select(s => s.DocumentId).FirstOrDefault();
+        // Documento esistente: lo dice l'AEROPORTO. Chiedendolo ai settori — com'era fino al 25 agosto 2026 —
+        // uno scalo senza torre non lo ritrovava mai e se ne creava uno nuovo a ogni apertura dell'editor.
+        var docId = airport.DocumentId;
         Document doc;
         DocumentVersion ver;
         // RenderMode editoriale della sezione SID (doc 10 §3e/§S4c): preservato tra i rebuild (la sezione è rigenerata,
@@ -413,8 +414,22 @@ public sealed class EfAirportRepository : IAirportRepository
             _db.Documents.Add(doc);
             await _db.SaveChangesAsync(ct);
             doc.CurrentVersionId = ver.Id;
+            // Il legame che conta: il documento è dell'AEROPORTO. Vale anche per uno scalo senza nemmeno un
+            // settore proprio — LIBG ha in IVAO solo un APP non remotizzato, e la sua vIPI d'aeroporto ora esiste.
+            airport.DocumentId = doc.Id;
+            // I settori restano legati allo stesso documento: serve a chi parte da un callsign (vista live,
+            // ricerca). È una proiezione del legame di sopra, non una seconda verità.
             var primary = sectors.FirstOrDefault(s => IsTower(s.Type)) ?? sectors.FirstOrDefault();
             foreach (var s in sectors) { s.DocumentId = doc.Id; s.IsPrimary = s == primary; }
+        }
+
+        // Riallineamento dei settori al documento dell'aeroporto: un settore comparso DOPO la prima generazione
+        // (una torre che IVAO aggiunge più tardi) resterebbe altrimenti scollegato per sempre, e chi parte dal
+        // suo callsign non troverebbe il documento che pure esiste.
+        if (sectors.Count > 0)
+        {
+            var primario = sectors.FirstOrDefault(s => IsTower(s.Type)) ?? sectors[0];
+            foreach (var s in sectors) { s.DocumentId = doc.Id; s.IsPrimary = s == primario; }
         }
 
         // Correzione/idempotenza: sgancia eventuali APP di questo aeroporto erroneamente legati a questa vIPI
@@ -549,20 +564,19 @@ public sealed class EfAirportRepository : IAirportRepository
     public async Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default)
     {
         icao = (icao ?? "").Trim().ToUpperInvariant();
-        // Solo settori che identificano il documento d'AEROPORTO: l'APP standalone dello stesso ICAO ha il suo.
-        return await _db.Sectors.AsNoTracking().AirportDocSectors()
-            .Where(s => s.AirportIcao == icao && s.DocumentId != null)
-            .Select(s => s.DocumentId)
-            .FirstOrDefaultAsync(ct);
+        // Dall'AEROPORTO, non dai suoi settori: è il legame autoritativo (vedi Airport.Document). Passando dai
+        // settori, uno scalo con il solo APP non remotizzato — LIBG — non trovava mai il proprio documento.
+        return await _db.Airports.AsNoTracking()
+            .Where(a => a.Icao == icao).Select(a => a.DocumentId).FirstOrDefaultAsync(ct);
     }
 
     // Sezione "sids" della versione CORRENTE del documento dell'aeroporto (tracciata: settabile). Null se assente.
     private async Task<DocumentSection?> CurrentSidsSectionAsync(string icao, CancellationToken ct)
     {
         icao = (icao ?? "").Trim().ToUpperInvariant();
-        var verId = await _db.Sectors.AirportDocSectors()
-            .Where(s => s.AirportIcao == icao && s.DocumentId != null)
-            .Select(s => s.Document!.CurrentVersionId)
+        var verId = await _db.Airports
+            .Where(a => a.Icao == icao && a.DocumentId != null)
+            .Select(a => a.Document!.CurrentVersionId)
             .FirstOrDefaultAsync(ct);
         if (verId is not int vid) return null;
         return await _db.DocumentSections

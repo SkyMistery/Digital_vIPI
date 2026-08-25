@@ -187,7 +187,8 @@ public class ReleaseRepositoryTests : IAsyncLifetime
     {
         var acc = await _db.Accs.FirstAsync();
         var docId = await SeedVipiDocAsync("vIPI LIRA", "airportextra");
-        _db.Airports.Add(new Airport { Icao = "LIRA", Name = "Ciampino", Acc = acc });
+        // Il documento è dell'AEROPORTO: è da lì che la release lo risolve.
+        _db.Airports.Add(new Airport { Icao = "LIRA", Name = "Ciampino", Acc = acc, DocumentId = docId });
         _db.Sectors.Add(new Sector { Acc = acc, Callsign = "LIRA_TWR", Name = "Ciampino TWR", Type = SectorType.Twr, Kind = SectorKind.Airport, AirportIcao = "LIRA", IsActive = true, DocumentId = docId });
         await _db.SaveChangesAsync();
 

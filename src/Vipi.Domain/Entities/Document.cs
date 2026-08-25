@@ -12,7 +12,15 @@ public class Document
     public DocumentVersion? CurrentVersion { get; set; }
     public DateTime LastUpdatedUtc { get; set; }
     public string LastUpdatedAiracCycle { get; set; } = default!; // calcolato da AiracService, es. "2606"
-    public int? FeaturedRank { get; set; }             // ordine "in evidenza" (1..3) nella card vLOA della landing ACC; null = non in evidenza
+    public int? FeaturedRank { get; set; }
+
+    /// <summary>
+    /// L'aeroporto che questo documento descrive, se è una vIPI d'aeroporto. null per ACC, APP e vLOA, che
+    /// descrivono un SETTORE (<see cref="Sectors"/>/<see cref="Parties"/>) e non uno scalo.
+    /// <para>Uno a uno: un documento d'aeroporto non può descriverne due, e l'indice unico su
+    /// <c>Airports.DocumentId</c> è lì per impedirlo invece di sperarlo.</para>
+    /// </summary>
+    public Airport? Airport { get; set; }             // ordine "in evidenza" (1..3) nella card vLOA della landing ACC; null = non in evidenza
 
     /// <summary>Nascosto dal pubblico (reversibile): il documento resta con la sua storia ma i loader pubblici lo escludono.</summary>
     public bool IsHidden { get; set; }

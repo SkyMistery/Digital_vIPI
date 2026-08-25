@@ -111,6 +111,35 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         return touched;
     }
 
+    public async Task<int> LinkAirportDocumentsAsync(CancellationToken ct = default)
+    {
+        // Solo quelli ancora scollegati: il giro è idempotente e non tocca chi è già a posto.
+        var airports = await _db.Airports.Where(a => a.DocumentId == null).ToListAsync(ct);
+        if (airports.Count == 0) return 0;
+
+        var ids = airports.Select(a => a.Id).ToList();
+        // Il documento dove viveva prima: su un settore d'aeroporto che NON sia un APP non remotizzato — quello
+        // ha un documento suo, e prenderlo qui farebbe descrivere l'aeroporto dal documento dell'APP.
+        var perAeroporto = await _db.Sectors.AsNoTracking()
+            .Where(s => s.AirportId != null && ids.Contains(s.AirportId!.Value) && s.DocumentId != null)
+            .AirportDocSectors()
+            // Il primario per primo: dove i settori sono più d'uno è quello che il rebuild aveva eletto.
+            .OrderByDescending(s => s.IsPrimary).ThenBy(s => s.Id)
+            .Select(s => new { AirportId = s.AirportId!.Value, DocumentId = s.DocumentId!.Value })
+            .ToListAsync(ct);
+
+        var mappa = perAeroporto
+            .GroupBy(x => x.AirportId)
+            .ToDictionary(g => g.Key, g => g.First().DocumentId);
+
+        var collegati = 0;
+        foreach (var a in airports)
+            if (mappa.TryGetValue(a.Id, out var docId)) { a.DocumentId = docId; collegati++; }
+
+        if (collegati > 0) await _db.SaveChangesAsync(ct);
+        return collegati;
+    }
+
     public async Task<int> ClearMinimaPlaceholderBlocksAsync(CancellationToken ct = default)
     {
         // Solo i placeholder: blocco senza testo E senza JSON. Un blocco con contenuto è roba di un editore e resta.

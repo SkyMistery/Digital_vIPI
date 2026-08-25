@@ -40,4 +40,18 @@ public interface IDocumentMaintenance
     /// creati. Tocca la versione di lavoro più recente; è idempotente. Ritorna il numero di sezioni aggiunte.
     /// </summary>
     Task<int> AddMissingCatalogSectionsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Scrive su ogni aeroporto il documento che lo descrive (<c>Airport.DocumentId</c>), leggendolo dove viveva
+    /// prima: sui suoi settori d'aeroporto. Ritorna quanti aeroporti sono stati collegati.
+    ///
+    /// <para>Serve perché dal 25 agosto 2026 la vIPI d'aeroporto è legata all'AEROPORTO e non più a un suo
+    /// settore. Senza questo passo, i documenti già scritti resterebbero raggiungibili solo per la vecchia
+    /// strada, e la nuova li vedrebbe come inesistenti — cioè l'editor ne creerebbe di nuovi accanto a quelli
+    /// buoni.</para>
+    ///
+    /// <para>⚠️ Sta qui e non in una migrazione EF per la ragione di sempre in questo file: le migrazioni del
+    /// repo sono SQLite-flavored e il deploy hostato crea lo schema col <c>PostgresSchemaReconciler</c>.</para>
+    /// </summary>
+    Task<int> LinkAirportDocumentsAsync(CancellationToken ct = default);
 }

@@ -33,6 +33,8 @@ public sealed class EfSearchRepository : ISearchRepository
         var docs = await _db.Documents
             .Where(d => d.CurrentVersionId != null)
             .Include(d => d.Sectors).ThenInclude(s => s.Acc)
+            // L'aeroporto descritto: da qui il descrittore prende ICAO e ACC (vedi AirportReleaseTarget).
+            .Include(d => d.Airport).ThenInclude(a => a!.Acc)
             .Include(d => d.Parties).ThenInclude(p => p.Sector).ThenInclude(s => s!.Acc)
             .AsNoTracking().ToListAsync(ct);
 

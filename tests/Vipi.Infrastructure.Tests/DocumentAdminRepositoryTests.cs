@@ -51,7 +51,8 @@ public class DocumentAdminRepositoryTests : IAsyncLifetime
 
         // Aeroporto: Document(Vipi) col settore aeroporto (ICAO).
         var airDoc = await NewVipiDocAsync("vIPI LIRA");
-        _db.Airports.Add(new Airport { Icao = "LIRA", Name = "Ciampino", Acc = lirr });
+        // Il legame che il descrittore legge: la vIPI d'aeroporto è dell'AEROPORTO (ICAO e ACC vengono da lì).
+        _db.Airports.Add(new Airport { Icao = "LIRA", Name = "Ciampino", Acc = lirr, DocumentId = airDoc });
         _db.Sectors.Add(new Sector { Acc = lirr, Callsign = "LIRA_TWR", Name = "Ciampino TWR", Type = SectorType.Twr, Kind = SectorKind.Airport, AirportIcao = "LIRA", IsActive = true, DocumentId = airDoc, IsPrimary = true });
 
         await _db.SaveChangesAsync();

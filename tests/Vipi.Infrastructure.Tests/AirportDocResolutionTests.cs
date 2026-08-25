@@ -33,9 +33,10 @@ public class AirportDocResolutionTests : IAsyncLifetime
         await _db.Database.EnsureCreatedAsync();
         await RomaStructureSeed.SeedAsync(_db);
 
-        // Ordine voluto: l'APP nasce PRIMA, così senza il filtro è lui il primo che il database restituisce.
-        _appDocId = await AttachDocAsync("LIRP_APP", "Pisa Approach");
-        _airportDocId = await AttachDocAsync("LIRP_TWR", "vIPI — LIRP Pisa");
+        // Ordine voluto: l'APP nasce PRIMA, così una risoluzione che tornasse a passare dai settori
+        // pescherebbe lui — che è esattamente il difetto che questi test presidiano.
+        _appDocId = await AttachDocAsync("LIRP_APP", "Pisa Approach", airportIcao: null);
+        _airportDocId = await AttachDocAsync("LIRP_TWR", "vIPI — LIRP Pisa", airportIcao: "LIRP");
     }
 
     public async Task DisposeAsync()
@@ -44,8 +45,12 @@ public class AirportDocResolutionTests : IAsyncLifetime
         await _conn.DisposeAsync();
     }
 
-    /// <summary>Crea un documento pubblicato con una sezione e lo lega al settore indicato come primario.</summary>
-    private async Task<int> AttachDocAsync(string callsign, string title)
+    /// <summary>
+    /// Crea un documento pubblicato con una sezione e lo lega al settore indicato come primario. Con
+    /// <paramref name="airportIcao"/> valorizzato lo lega anche all'AEROPORTO, che dal 25 agosto 2026 è il
+    /// legame autoritativo per la vIPI d'aeroporto (l'APP resta legato al solo settore: descrive quello).
+    /// </summary>
+    private async Task<int> AttachDocAsync(string callsign, string title, string? airportIcao)
     {
         var doc = new Document
         {
@@ -72,6 +77,11 @@ public class AirportDocResolutionTests : IAsyncLifetime
         var sec = await _db.Sectors.FirstAsync(s => s.Callsign == callsign);
         sec.DocumentId = doc.Id;
         sec.IsPrimary = true;
+        if (airportIcao is not null)
+        {
+            var apt = await _db.Airports.FirstAsync(a => a.Icao == airportIcao);
+            apt.DocumentId = doc.Id;
+        }
         await _db.SaveChangesAsync();
         return doc.Id;
     }

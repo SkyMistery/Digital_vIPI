@@ -299,6 +299,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int>("AccId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("DocumentId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int?>("ElevationFt")
                         .HasColumnType("INTEGER");
 
@@ -344,6 +347,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AccId");
+
+                    b.HasIndex("DocumentId")
+                        .IsUnique();
 
                     b.HasIndex("Icao")
                         .IsUnique();
@@ -1946,7 +1952,14 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Vipi.Domain.Entities.Document", "Document")
+                        .WithOne("Airport")
+                        .HasForeignKey("Vipi.Domain.Entities.Airport", "DocumentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Acc");
+
+                    b.Navigation("Document");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.AirportExtraSection", b =>
@@ -2335,6 +2348,8 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Vipi.Domain.Entities.Document", b =>
                 {
+                    b.Navigation("Airport");
+
                     b.Navigation("Parties");
 
                     b.Navigation("Sectors");

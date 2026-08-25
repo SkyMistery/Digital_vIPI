@@ -183,6 +183,24 @@ public class Airport
     /// null = aeroporto non ancora collocato nell'albero. SPEC §9.12 (Round 20, sostituisce ParentSectorId di Round 19).</summary>
     public string? ParentCallsign { get; set; }
 
+    /// <summary>
+    /// La <b>vIPI di questo aeroporto</b>. È il legame autoritativo: un documento d'aeroporto descrive un
+    /// AEROPORTO, non un suo settore.
+    ///
+    /// <para>⚠️ Prima del 25 agosto 2026 il documento si trovava passando dai settori (<c>Sector.DocumentId</c> su
+    /// una TWR/GND/DEL), e per gli APP e le vLOA è ancora così — quelli descrivono davvero un settore. Per
+    /// l'aeroporto era una supposizione che regge finché lo scalo ha una torre: <b>LIBG (Taranto Grottaglie) su
+    /// IVAO ha solo un APP non remotizzato</b>, che ha un documento suo e non può portare quello dell'aeroporto.
+    /// Risultato misurato: il documento nasceva legato a nessuno, alla riapertura non lo ritrovava più nessuno e
+    /// ne nasceva un altro — quattro bozze orfane in un minuto — e la pubblicazione rispondeva «crea prima il
+    /// documento» a chi l'aveva appena creato quattro volte.</para>
+    ///
+    /// <para>I settori d'aeroporto <b>restano</b> legati allo stesso documento (<c>Sector.DocumentId</c>): serve a
+    /// chi parte da un callsign. Ma la verità è qui, e il rebuild li riallinea a questo.</para>
+    /// </summary>
+    public int? DocumentId { get; set; }
+    public Document? Document { get; set; }
+
     /// <summary>Settori che puntano a questo aeroporto (Sector.AirportId). La gerarchia si ricostruisce da qui.</summary>
     public ICollection<Sector> Sectors { get; set; } = new List<Sector>();
 

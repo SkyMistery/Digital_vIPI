@@ -25,6 +25,8 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
         // che lo riconosce (doc 09 §3a). Aggiungere un tipo = registrare un IReleaseTarget, niente switch qui.
         var docs = await _db.Documents.AsNoTracking()
             .Include(d => d.Sectors).ThenInclude(s => s.Acc)
+            // L'aeroporto descritto: da qui il descrittore prende ICAO e ACC (vedi AirportReleaseTarget).
+            .Include(d => d.Airport).ThenInclude(a => a!.Acc)
             .Include(d => d.Parties).ThenInclude(p => p.Sector).ThenInclude(s => s!.Acc)
             .ToListAsync(ct);
         var draftDocIds = (await _db.DocumentVersions.AsNoTracking()

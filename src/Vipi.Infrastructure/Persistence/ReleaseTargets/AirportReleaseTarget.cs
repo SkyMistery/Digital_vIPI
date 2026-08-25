@@ -17,12 +17,11 @@ public sealed class AirportReleaseTarget : IReleaseTarget
     public ManagedDocKind ManagedKind => ManagedDocKind.AirportVipi;
     public int DescribeOrder => 3;
 
-    // ⚠️ Gli APP non remotizzati (LIBA_APP…) sono settori Kind=Airport con l'ICAO dell'aeroporto, ma hanno un
-    // documento proprio: senza il filtro di SectorDocumentRules la release dell'AEROPORTO fotografava l'APP.
+    // Dall'aeroporto: è il legame autoritativo. Prima si passava dai settori, e serviva un filtro per non
+    // fotografare l'APP non remotizzato dello stesso ICAO, che ha un documento suo.
     public async Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default) =>
-        await _db.Sectors.AsNoTracking().AirportDocSectors()
-            .Where(s => s.AirportIcao == key && s.DocumentId != null)
-            .Select(s => s.DocumentId).FirstOrDefaultAsync(ct);
+        await _db.Airports.AsNoTracking()
+            .Where(a => a.Icao == key).Select(a => a.DocumentId).FirstOrDefaultAsync(ct);
 
     public async Task<string?> AuthAccCodeAsync(string key, CancellationToken ct = default) =>
         await _db.Airports.AsNoTracking()
@@ -32,10 +31,12 @@ public sealed class AirportReleaseTarget : IReleaseTarget
     {
         managed = default!;
         if (doc.Type != DocumentType.Vipi) return false;
-        // Catch-all: Document vIPI non APP/ACC → aeroporto. ICAO dal settore aeroporto (vuoto se assente, come pre-refactor).
-        var airSec = doc.Sectors.FirstOrDefault(s => s.AirportIcao != null && SectorDocumentRules.IsAirportDocSectorOf(s));
-        var icao = airSec?.AirportIcao ?? "";
-        managed = new ManagedDoc(ManagedDocKind.AirportVipi, doc.Title, icao, airSec?.Acc?.Code,
+        // Catch-all: Document vIPI non APP/ACC → aeroporto. L'ICAO viene dall'AEROPORTO collegato; l'ACC pure,
+        // e non più dal settore — uno scalo col solo APP non remotizzato non ha un settore da cui prenderla.
+        // ⚠️ Richiede `.Include(d => d.Airport).ThenInclude(a => a.Acc)` a monte: senza, l'ICAO esce vuoto e il
+        // documento diventa irraggiungibile invece di dare errore.
+        var icao = doc.Airport?.Icao ?? "";
+        managed = new ManagedDoc(ManagedDocKind.AirportVipi, doc.Title, icao, doc.Airport?.Acc?.Code,
             doc.Status == DocumentStatus.Published, hasDraft, doc.IsHidden,
             ReleaseTargetType.Airport, icao, doc.Id);
         return true;

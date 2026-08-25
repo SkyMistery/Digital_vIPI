@@ -462,6 +462,13 @@ public static class VipiModuleExtensions
         var log = scope.ServiceProvider.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()
             ?.CreateLogger("Vipi.DocumentMaintenance");
 
+        // PRIMA di tutto il resto: è il legame che tutte le letture del documento d'aeroporto useranno da qui in
+        // avanti. Un passo che lo presupponesse, girando prima, lavorerebbe su aeroporti ancora scollegati.
+        var collegati = maintenance.LinkAirportDocumentsAsync().GetAwaiter().GetResult();
+        if (collegati > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Collegati {Count} aeroporti alla loro vIPI (il legame passa dall'aeroporto, non piu' dai settori).", collegati);
+
         var keys = maintenance.ReconcileCustomSectionKeysAsync().GetAwaiter().GetResult();
         if (keys > 0 && log is not null)
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
