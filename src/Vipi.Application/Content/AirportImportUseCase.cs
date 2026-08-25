@@ -28,6 +28,11 @@ public sealed class AirportImportUseCase : IAirportImportUseCase
             .ToList();
         var assigned = await _repo.AutoAssignAirportsAsync(candidates, ct);
 
+        // Subito dopo l'assegnazione, e sull'elenco INTERO: l'assegnazione e' additiva (salta gli ICAO gia' in
+        // archivio), quindi senza questo passo i campi anagrafici resterebbero al loro default su tutti gli
+        // aeroporti gia' presenti — e su nessuno di quelli il giro passerebbe mai piu'.
+        var refreshed = await _repo.SyncAirportSourceFieldsAsync(ivao, ct);
+
         // Per ogni aeroporto appena assegnato: importa il catalogo settori (DEL/GND/TWR/APP) dalla sorgente, così
         // compaiono subito i settori. La documentazione vIPI resta un passo a parte («Genera documenti»).
         var failures = new List<AirportImportFailure>();
@@ -40,6 +45,6 @@ public sealed class AirportImportUseCase : IAirportImportUseCase
         // Proietta i cataloghi aggiornati nei Sector operativi (fonte autoritativa unica, Round 20).
         if (assigned.Count > 0) await _projection.SyncFromCatalogsAsync(ct);
 
-        return new AirportImportResult(assigned.Count, failures);
+        return new AirportImportResult(assigned.Count, failures, refreshed);
     }
 }

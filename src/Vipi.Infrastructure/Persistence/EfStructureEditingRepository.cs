@@ -221,6 +221,36 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         return created;
     }
 
+    public async Task<int> SyncAirportSourceFieldsAsync(IReadOnlyList<SourceAirport> source, CancellationToken ct = default)
+    {
+        if (source.Count == 0) return 0;
+
+        // Ultimo vince sui doppioni della sorgente, come fa gia' l'assegnazione: un ICAO ripetuto e' un difetto
+        // della sorgente, non un motivo per far fallire il giro.
+        var byIcao = new Dictionary<string, SourceAirport>(StringComparer.OrdinalIgnoreCase);
+        foreach (var a in source) byIcao[a.Icao.Trim()] = a;
+
+        var airports = await _db.Airports.ToListAsync(ct);
+        var changed = 0;
+        foreach (var apt in airports)
+        {
+            if (!byIcao.TryGetValue(apt.Icao, out var src)) continue;   // fuori dal paese configurato: non lo sappiamo
+
+            var before = (apt.HasMilitaryPresence, apt.IsMilitaryOnly, apt.Iata, apt.ElevationFt, apt.MagneticVariation);
+            apt.HasMilitaryPresence = src.HasMilitaryPresence;
+            // Coerenza: «solo militare» non puo' sopravvivere alla presenza militare che l'ha reso possibile.
+            if (!apt.HasMilitaryPresence) apt.IsMilitaryOnly = false;
+            apt.Iata = src.Iata;
+            apt.ElevationFt = src.ElevationFt;
+            apt.MagneticVariation = src.MagneticVariation;
+            if (before != (apt.HasMilitaryPresence, apt.IsMilitaryOnly, apt.Iata, apt.ElevationFt, apt.MagneticVariation))
+                changed++;
+        }
+
+        if (changed > 0) await _db.SaveChangesAsync(ct);
+        return changed;
+    }
+
     public async Task<(int Created, bool AirportFound)> EnsureAirportSectorsAsync(
         string icao,
         IReadOnlyList<(SectorType Type, string Callsign, string? Frequency)> positions,

@@ -45,6 +45,21 @@ public interface IStructureEditingRepository
         IReadOnlyList<(string AccCode, string Icao, string Name)> candidates, CancellationToken ct = default);
 
     /// <summary>
+    /// Riallinea alla sorgente i campi <b>anagrafici</b> degli aeroporti gia' in archivio: presenza militare, IATA,
+    /// quota, variazione magnetica. Ritorna quanti ne ha cambiati.
+    ///
+    /// <para>Serve perche' <see cref="AutoAssignAirportsAsync"/> e' <b>additiva</b> — salta gli ICAO gia' presenti.
+    /// Senza questo passo un campo nuovo nascerebbe al suo default su tutti i 93 aeroporti esistenti e non lo
+    /// riempirebbe mai nessuno: e' la stessa trappola del flag opt-out di ImportSids.</para>
+    ///
+    /// <para>⚠️ Tocca solo cio' che dice la sorgente. Restano fuori il nome, la ACC di competenza e
+    /// <c>IsMilitaryOnly</c>, che sono scelte di una persona: un giro notturno che le riscrivesse le
+    /// cancellerebbe in silenzio. L'unica eccezione e' la coerenza — se la sorgente toglie la presenza militare,
+    /// «solo militare» non puo' restare vero.</para>
+    /// </summary>
+    Task<int> SyncAirportSourceFieldsAsync(IReadOnlyList<SourceAirport> source, CancellationToken ct = default);
+
+    /// <summary>
     /// Crea i settori d'aeroporto mancanti (DEL/GND/TWR con contenimento top-down) dalle <paramref name="positions"/>
     /// per un aeroporto già assegnato a una ACC. Idempotente sui settori esistenti. Ritorna (creati, aeroporto trovato).
     /// La generazione del documento e del profilo è demandata a <see cref="IAirportRepository"/>.
