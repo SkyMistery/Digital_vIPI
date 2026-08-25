@@ -1078,6 +1078,9 @@
   <data name="Apt_ChipNoTwr" xml:space="preserve"><value>no TWR {0}</value></data>
   <data name="Apt_ChipNoTwrTitle" xml:space="preserve"><value>Mostra solo gli aeroporti senza torre (TWR o I_TWR)</value></data>
   <data name="Apt_ChipMilitary" xml:space="preserve"><value>militari {0}</value></data>
+  <data name="Airport_ChipCivil" xml:space="preserve"><value>civili {0}</value></data>
+  <data name="Airport_ChipMilitaryTitle" xml:space="preserve"><value>Mostra solo gli aeroporti con una base militare sul sedime</value></data>
+  <data name="Airport_ChipCivilTitle" xml:space="preserve"><value>Mostra solo gli aeroporti senza base militare</value></data>
   <data name="Apt_ChipMilitaryTitle" xml:space="preserve"><value>Mostra solo gli aeroporti su cui c&#39;è una base militare, secondo la sorgente</value></data>
   <data name="Apt_MilitaryPresence" xml:space="preserve"><value>presenza militare</value></data>
   <data name="Apt_MilitaryPresenceTitle" xml:space="preserve"><value>La sorgente segnala una base militare sull&#39;aeroporto. Non vuol dire che sia un aeroporto militare: molti scali civili condividono il sedime con l&#39;Aeronautica</value></data>

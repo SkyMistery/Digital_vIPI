@@ -1075,6 +1075,9 @@
   <data name="Apt_ChipNoTwr" xml:space="preserve"><value>no TWR {0}</value></data>
   <data name="Apt_ChipNoTwrTitle" xml:space="preserve"><value>Show only the airports without a tower (TWR or I_TWR)</value></data>
   <data name="Apt_ChipMilitary" xml:space="preserve"><value>military {0}</value></data>
+  <data name="Airport_ChipCivil" xml:space="preserve"><value>civil {0}</value></data>
+  <data name="Airport_ChipMilitaryTitle" xml:space="preserve"><value>Show only the airports with a military base on the field</value></data>
+  <data name="Airport_ChipCivilTitle" xml:space="preserve"><value>Show only the airports without a military base</value></data>
   <data name="Apt_ChipMilitaryTitle" xml:space="preserve"><value>Show only the airports with a military base on the field, according to the source</value></data>
   <data name="Apt_MilitaryPresence" xml:space="preserve"><value>military presence</value></data>
   <data name="Apt_MilitaryPresenceTitle" xml:space="preserve"><value>The source reports a military base on the airport. It does not mean the airport is a military one: many civil airports share the field with the Air Force</value></data>
