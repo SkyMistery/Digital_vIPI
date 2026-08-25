@@ -147,8 +147,17 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         Assert.NotNull(preview);
         Assert.Contains(preview!.Doc!.Roots, s => s.Title == "Sezione Fittizia");
 
-        var diff = await svc.DiffAsync(rel.Id);   // nessuna baseline in vigore → tutte "Aggiunta"
+        var diff = await svc.DiffAsync(rel.Id);   // prima release: nessuna precedente → tutte "Aggiunta"
+        Assert.False(diff.HasBaseline);
         Assert.Contains(diff.Rows, r => r.Label == "Sezione Fittizia");
+
+        // Seconda pubblicazione identica: la baseline è la release PRECEDENTE (non «l'effettiva ora», che
+        // per la release in vigore era se stessa → null → il diff fingeva una prima pubblicazione).
+        await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", "bis");
+        var rel2 = (await svc.ListAsync(FakeType, "qualsiasi-chiave")).First(r => r.IsEffectiveNow);
+        var diff2 = await svc.DiffAsync(rel2.Id);
+        Assert.True(diff2.HasBaseline);
+        Assert.Empty(diff2.Rows);   // contenuto identico → nessuna differenza, non «tutto aggiunto»
     }
 
     [Fact]

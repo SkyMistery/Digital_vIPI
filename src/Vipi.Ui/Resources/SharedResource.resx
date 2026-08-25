@@ -1252,7 +1252,7 @@
   <data name="Rel_EffectiveFrom" xml:space="preserve"><value>in vigore dal</value></data>
   <data name="Rel_PreviewTitle" xml:space="preserve"><value>Anteprima del documento come sarà a questo ciclo</value></data>
   <data name="Rel_Preview" xml:space="preserve"><value>Anteprima</value></data>
-  <data name="Rel_DiffTitle" xml:space="preserve"><value>Cosa cambia rispetto a quella in vigore</value></data>
+  <data name="Rel_DiffTitle" xml:space="preserve"><value>Cosa ha cambiato questa pubblicazione rispetto alla precedente</value></data>
   <data name="Rel_Diff" xml:space="preserve"><value>Differenze</value></data>
   <data name="Rel_CancelTitle" xml:space="preserve"><value>Annulla questa release</value></data>
   <data name="Rel_From" xml:space="preserve"><value>dal</value></data>
@@ -1277,7 +1277,7 @@
   <data name="Rel_DiffItems" xml:space="preserve"><value>{0} elementi</value></data>
   <data name="Rel_DiffItemsFromTo" xml:space="preserve"><value>{0} → {1} elementi</value></data>
   <data name="Rel_BaselineCycle" xml:space="preserve"><value>AIRAC {0}</value></data>
-  <data name="Rel_BaselineNone" xml:space="preserve"><value>stato attuale (nessuna release in vigore)</value></data>
+  <data name="Rel_BaselineNone" xml:space="preserve"><value>prima pubblicazione (nessuna release precedente)</value></data>
   <data name="Rel_ComparedWith" xml:space="preserve"><value>Confronto con:</value></data>
   <data name="Rel_NoDiff" xml:space="preserve"><value>Nessuna differenza strutturale rilevata.</value></data>
   <data name="Rel_ColItem" xml:space="preserve"><value>Voce</value></data>

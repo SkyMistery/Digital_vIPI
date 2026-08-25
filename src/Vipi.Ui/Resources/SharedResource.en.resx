@@ -1249,7 +1249,7 @@
   <data name="Rel_EffectiveFrom" xml:space="preserve"><value>effective from</value></data>
   <data name="Rel_PreviewTitle" xml:space="preserve"><value>Preview of the document as it will be at this cycle</value></data>
   <data name="Rel_Preview" xml:space="preserve"><value>Preview</value></data>
-  <data name="Rel_DiffTitle" xml:space="preserve"><value>What changes compared to the effective one</value></data>
+  <data name="Rel_DiffTitle" xml:space="preserve"><value>What this publication changed compared to the previous one</value></data>
   <data name="Rel_Diff" xml:space="preserve"><value>Differences</value></data>
   <data name="Rel_CancelTitle" xml:space="preserve"><value>Cancel this release</value></data>
   <data name="Rel_From" xml:space="preserve"><value>from</value></data>
@@ -1274,7 +1274,7 @@
   <data name="Rel_DiffItems" xml:space="preserve"><value>{0} items</value></data>
   <data name="Rel_DiffItemsFromTo" xml:space="preserve"><value>{0} → {1} items</value></data>
   <data name="Rel_BaselineCycle" xml:space="preserve"><value>AIRAC {0}</value></data>
-  <data name="Rel_BaselineNone" xml:space="preserve"><value>current state (no release in force)</value></data>
+  <data name="Rel_BaselineNone" xml:space="preserve"><value>first publication (no earlier release)</value></data>
   <data name="Rel_ComparedWith" xml:space="preserve"><value>Compared with:</value></data>
   <data name="Rel_NoDiff" xml:space="preserve"><value>No structural difference detected.</value></data>
   <data name="Rel_ColItem" xml:space="preserve"><value>Item</value></data>

@@ -34,7 +34,9 @@ public interface IReleaseService
     /// <summary>Annulla una release (per Id). Authz sull'ACC del bersaglio.</summary>
     Task CancelReleaseAsync(int releaseId, CancellationToken ct = default);
 
-    /// <summary>Riepilogo differenze di una release rispetto a quella in vigore (o allo stato pubblicato/live).</summary>
+    /// <summary>Riepilogo differenze di una release rispetto a quella immediatamente PRECEDENTE nella storia del
+    /// bersaglio (ordine: data efficace, poi progressivo) — «cosa ha cambiato questa pubblicazione». Nessuna
+    /// precedente = prima pubblicazione (tutte le voci «Aggiunta»). Authz ACC, come Preview/Location.</summary>
     Task<ReleaseDiff> DiffAsync(int releaseId, CancellationToken ct = default);
 
     /// <summary>Anteprima di una release: metadati + <see cref="RawDocument"/> del payload. Vale per TUTTI i tipi —
@@ -187,10 +189,23 @@ public sealed class ReleaseService : IReleaseService
     {
         var rel = await _repo.GetByIdAsync(releaseId, ct);
         if (rel is null) return ReleaseDiff.Empty;
+        // Stessa authz delle altre letture di release (Preview/Location): il diff espone titoli e struttura.
+        // ReleasePanel e VersioniPage catturavano già EditNotAllowedException attorno a questa chiamata —
+        // una cattura che non poteva scattare, perché il gate qui mancava.
+        await EnsureCanEditAsync(rel.TargetType, rel.TargetKey, ct);
 
-        // Baseline = release in vigore ORA per lo stesso bersaglio, escludendo quella in esame.
-        var eff = await _repo.GetEffectiveAsync(rel.TargetType, rel.TargetKey, DateTime.UtcNow, ct);
-        var baseline = (eff is not null && eff.Id != rel.Id) ? eff : null;
+        // Baseline = la release immediatamente PRECEDENTE nella storia del bersaglio (data efficace, poi
+        // progressivo): il diff risponde «cosa ha cambiato QUESTA pubblicazione». Prima la baseline era
+        // «l'effettiva ORA, esclusa quella in esame»: proprio per la release in vigore — il diff più
+        // richiesto — diventava null, e la UI diceva «nessuna release in vigore» con tutte le sezioni
+        // «Aggiunta» anche alla decima pubblicazione.
+        var storia = await _repo.ListAsync(rel.TargetType, rel.TargetKey, ct);
+        var precedente = storia
+            .Where(r => r.ReleaseEffectiveUtc < rel.ReleaseEffectiveUtc
+                        || (r.ReleaseEffectiveUtc == rel.ReleaseEffectiveUtc && r.VersionNumber < rel.VersionNumber))
+            .OrderByDescending(r => r.ReleaseEffectiveUtc).ThenByDescending(r => r.VersionNumber)
+            .FirstOrDefault();
+        var baseline = precedente is null ? null : await _repo.GetByIdAsync(precedente.Id, ct);
 
         var cur = Signature(rel.PayloadJson);
         var prev = baseline is null ? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
