@@ -4,11 +4,16 @@
    ⚠️ L'altezza è relativa al MASSIMO della serie, non a un fondo scala inventato: un mese da 12 ore accanto
    a uno da 11 deve vedersi diverso di un dodicesimo, non del doppio. *@
 
-<div class="bars" role="img" aria-label="@Titolo">
+<div class="bars @(Densa ? "dense" : "")" role="img" aria-label="@Titolo">
     @foreach (var b in Barre)
     {
         <div class="bar-col @(b.Highlight ? "on" : "")" title="@b.Title">
-            <span class="bar-val">@(b.Value > 0 ? Formato(b.Value) : "")</span>
+            @* In modalità densa il numero non ci sta (ventiquattro colonne su mezza pagina): resta nel
+               titolo della colonna, e l'altezza continua a dire il confronto senza bisogno di leggerlo. *@
+            @if (!Densa)
+            {
+                <span class="bar-val">@(b.Value > 0 ? Formato(b.Value) : "")</span>
+            }
             <div class="bar-fill" style="height:@Altezza(b.Value)"></div>
             <span class="bar-lab">@b.Label</span>
         </div>
@@ -20,13 +25,20 @@
 
     [Parameter] public string Titolo { get; set; } = "";
 
+    /// <summary>
+    /// Colonne strette e senza il numero sopra: serve alle ventiquattro ore del giorno, che altrimenti
+    /// escono dal riquadro e si mettono a scorrere di lato dentro una colonna della pagina.
+    /// </summary>
+    [Parameter] public bool Densa { get; set; }
+
     /// <summary>Come si scrive il numero sopra la barra. Di serie: un decimale.</summary>
     [Parameter] public Func<double, string> Formato { get; set; } = v => v.ToString("0.#");
 
     private double Massimo => Barre.Count == 0 ? 0 : Barre.Max(b => b.Value);
 
     // Il fondo è l'area della barra meno lo spazio del numero e dell'etichetta: 100% qui dentro sarebbe
-    // il numero fuori dal riquadro.
+    // il numero fuori dal riquadro. ⚠️ In modalità densa il numero non c'è, e riservargli lo spazio lasciava
+    // un quinto del riquadro vuoto in cima con le barre schiacciate in fondo.
     private string Altezza(double v) =>
-        Massimo <= 0 ? "2px" : StatsView.Svg(Math.Max(2, v / Massimo * 82)) + "%";
+        Massimo <= 0 ? "2px" : StatsView.Svg(Math.Max(2, v / Massimo * (Densa ? 94 : 82))) + "%";
 }

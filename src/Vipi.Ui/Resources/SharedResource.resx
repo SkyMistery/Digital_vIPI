@@ -864,7 +864,6 @@
   <data name="Stats_TopAircraft" xml:space="preserve"><value>I tipi che vedi di più</value></data>
   <data name="Stats_Airport" xml:space="preserve"><value>Aeroporto</value></data>
   <data name="Stats_Flights" xml:space="preserve"><value>Voli</value></data>
-  <data name="Stats_Export" xml:space="preserve"><value>Scarica le mie sessioni (CSV)</value></data>
   <data name="Stats_Runways" xml:space="preserve"><value>Piste in uso</value></data>
   <data name="Stats_RunwaysFrom" xml:space="preserve"><value>dalle</value></data>
   <data name="Stats_Title" xml:space="preserve"><value>Le mie statistiche ATC</value></data>
@@ -2184,6 +2183,47 @@
   <data name="Stats_StreakNone" xml:space="preserve"><value>nessuna in corso</value></data>
   <data name="Stats_LastSession" xml:space="preserve"><value>Ultimo turno</value></data>
   <data name="Stats_FavPosition" xml:space="preserve"><value>Postazione preferita</value></data>
+  <data name="Stats_PerMonth" xml:space="preserve"><value>per mese</value></data>
+  <data name="Stats_FindVid" xml:space="preserve"><value>Cerca un controllore</value></data>
+  <data name="Stats_FindVidPlaceholder" xml:space="preserve"><value>VID, o l'indirizzo del profilo</value></data>
+  <data name="Stats_FindVidGo" xml:space="preserve"><value>Apri</value></data>
+  <data name="Stats_FindVidHint" xml:space="preserve"><value>Si può incollare il numero, «VID 123456» o l'indirizzo del profilo IVAO. L'accesso resta registrato.</value></data>
+  <data name="Stats_FindVidBad" xml:space="preserve"><value>Qui dentro non c'è nessun VID: servono da cinque a otto cifre.</value></data>
+  <data name="Day_1" xml:space="preserve"><value>lun</value></data>
+  <data name="Day_2" xml:space="preserve"><value>mar</value></data>
+  <data name="Day_3" xml:space="preserve"><value>mer</value></data>
+  <data name="Day_4" xml:space="preserve"><value>gio</value></data>
+  <data name="Day_5" xml:space="preserve"><value>ven</value></data>
+  <data name="Day_6" xml:space="preserve"><value>sab</value></data>
+  <data name="Day_7" xml:space="preserve"><value>dom</value></data>
+  <data name="Day_1_Full" xml:space="preserve"><value>lunedì</value></data>
+  <data name="Day_2_Full" xml:space="preserve"><value>martedì</value></data>
+  <data name="Day_3_Full" xml:space="preserve"><value>mercoledì</value></data>
+  <data name="Day_4_Full" xml:space="preserve"><value>giovedì</value></data>
+  <data name="Day_5_Full" xml:space="preserve"><value>venerdì</value></data>
+  <data name="Day_6_Full" xml:space="preserve"><value>sabato</value></data>
+  <data name="Day_7_Full" xml:space="preserve"><value>domenica</value></data>
+  <data name="Stats_WhenByHour" xml:space="preserve"><value>A che ora</value></data>
+  <data name="Stats_WhenByDay" xml:space="preserve"><value>Che giorno</value></data>
+  <data name="Stats_WhenByHourHint" xml:space="preserve"><value>Ore in frequenza per ora del giorno (UTC).</value></data>
+  <data name="Stats_WhenByDayHint" xml:space="preserve"><value>Ore in frequenza per giorno della settimana.</value></data>
+  <data name="Stats_HourTitle" xml:space="preserve"><value>{0}:00–{1}:00Z: {2} h</value></data>
+  <data name="Stats_DayTitle" xml:space="preserve"><value>{0}: {1} h</value></data>
+  <data name="Stats_TypicalYou" xml:space="preserve"><value>Metà del tuo tempo sta fra le {0}:00 e le {1}:00Z, e il giorno più tuo è il {2}.</value></data>
+  <data name="Stats_TypicalOther" xml:space="preserve"><value>Metà del suo tempo sta fra le {0}:00 e le {1}:00Z, e il suo giorno è il {2}.</value></data>
+  <data name="Stats_Airports" xml:space="preserve"><value>Aeroporti: traffico e copertura</value></data>
+  <data name="Stats_AirportsHint" xml:space="preserve"><value>Quanto traffico c'è stato su ogni campo, e quanto ha trovato un controllore acceso.</value></data>
+  <data name="Stats_AirportsGroup" xml:space="preserve"><value>Gruppo</value></data>
+  <data name="Stats_AirportsAll" xml:space="preserve"><value>Tutti</value></data>
+  <data name="Stats_AirportMovements" xml:space="preserve"><value>Movimenti</value></data>
+  <data name="Stats_AirportCovered" xml:space="preserve"><value>Con ATC</value></data>
+  <data name="Stats_AirportOpenHours" xml:space="preserve"><value>Ore aperto</value></data>
+  <data name="Stats_AirportOpenShare" xml:space="preserve"><value>Quota aperto</value></data>
+  <data name="Stats_AirportsTotal" xml:space="preserve"><value>Totale</value></data>
+  <data name="Stats_AirportsPartial" xml:space="preserve"><value>Il consolidamento è ancora in corso: {0} giorni su {1}. I numeri cresceranno.</value></data>
+  <data name="Stats_AirportsEmpty" xml:space="preserve"><value>Non c'è ancora niente di consolidato: il traffico dei campi si raccoglie di notte, un blocco per volta.</value></data>
+  <data name="Stats_AirportsMeasure" xml:space="preserve"><value>Come si legge. «Movimenti» sono arrivi e partenze contati dalla rete, sorvoli esclusi. «Con ATC» vuol dire che in quell'istante una posizione di quel campo era aperta — l'arrivo conta all'ultimo avvistamento, la partenza al collegamento del pilota — non che quel volo sia stato lavorato: la sorgente non dà modo di saperlo.</value></data>
+  <data name="Stats_AirportRowTitle" xml:space="preserve"><value>{0}: {1} movimenti, {2} con ATC, {3} h aperto</value></data>
   <data name="Stats_MonthChart" xml:space="preserve"><value>Ore per mese</value></data>
   <data name="Stats_PositionShare" xml:space="preserve"><value>Come si divide il tuo tempo</value></data>
   <data name="Stats_PositionShareDivision" xml:space="preserve"><value>Come si divide il tempo della divisione</value></data>

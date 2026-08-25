@@ -8,6 +8,9 @@
 @inject IStatsSettingsStore Impostazioni
 @inject ICurrentUserProvider Utenti
 @inject IEditAuthorizationService Authz
+@inject IStaffRosterRepository Roster
+@inject IAirportCoverageQueries Aeroporti
+@inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
 
 @* La divisione: copertura e classifica. Interattiva perché lo staff accende e spegne la classifica pubblica
@@ -17,7 +20,13 @@
 
 <div class="wrap stats">
     <div class="doc-head">
-        <h1 class="page-h1">@L["Stats_DivisionTitle"]</h1>
+        @* Il tasto gemello di quello sulla pagina personale: si va e si torna dalla riga del titolo. *@
+        <div class="sh-title">
+            <h1 class="page-h1">@L["Stats_DivisionTitle"]</h1>
+            <a class="btn ghost sh-go" href="/services/stats">
+                <Icon Name="activity" Size="15" /> @L["Stats_BackToMine"]
+            </a>
+        </div>
         <p class="muted">@L["Stats_DivisionSubtitle"]</p>
     </div>
 
@@ -37,6 +46,11 @@
             <StatsKpi Valore="@_controllori.ToString()" Etichetta="@L["Stats_Controllers"].Value" />
         </div>
 
+        @* La divisione non aveva NESSUN grafico nel tempo: i quattro riquadri dicono «quanto», non «se
+           stiamo crescendo». Le stesse barre della pagina personale, sullo stesso conto per mese. *@
+        <h2 class="h-sect">@L["Stats_MonthChart"]</h2>
+        <StatsBars Barre="_barreMesi" Titolo="@L["Stats_MonthChart"].Value" />
+
         <h2 class="h-sect">@L["Stats_Coverage"]</h2>
         <p class="muted">@L["Stats_CoverageHint"]</p>
         <CoverageHeatmap Celle="_griglia" Copertura="true" Titolo="@L["Stats_Coverage"].Value" />
@@ -46,6 +60,41 @@
             <i class="cov-q0"></i><i class="cov-q1"></i><i class="cov-q2"></i><i class="cov-q3"></i><i class="cov-q4"></i>
             <span>@L["Stats_CovFull"]</span>
         </div>
+
+        @* ⚠️ Solo allo staff, perché solo lo staff può APRIRE quel che questo campo trova: mostrarlo a tutti
+           vorrebbe dire offrire una porta che si chiude in faccia. Non è comunque una guardia — la guardia
+           sta nella pagina di destinazione, insieme alla riga di audit — è il modo di arrivarci senza
+           scorrere una classifica di cinquanta righe cercando un numero. *@
+        @if (Authz.IsAdmin)
+        {
+            <h2 class="h-sect">@L["Stats_FindVid"]</h2>
+            <div class="vid-find">
+                <input type="search" inputmode="numeric" list="vid-noti"
+                       placeholder="@L["Stats_FindVidPlaceholder"]" aria-label="@L["Stats_FindVid"]"
+                       value="@_cercato" @oninput="ScriveIlVid" @onkeydown="TastoNelCampo" />
+                @* I nomi li sa il roster, che raccoglie chi ha fatto login da NOI: è un aiuto per gli
+                   staffisti, non un elenco di controllori — degli altri abbiamo il solo VID. *@
+                <datalist id="vid-noti">
+                    @foreach (var v in _noti)
+                    {
+                        <option value="@v.Key">@v.Value</option>
+                    }
+                </datalist>
+                <button class="btn primary" disabled="@(_vidValido is null)" @onclick="ApriIlProfilo">
+                    <Icon Name="search" Size="15" /> @L["Stats_FindVidGo"]
+                </button>
+            </div>
+            <p class="muted">
+                @if (_cercato.Length > 0 && _vidValido is null)
+                {
+                    <text>@L["Stats_FindVidBad"]</text>
+                }
+                else
+                {
+                    <text>@L["Stats_FindVidHint"]</text>
+                }
+            </p>
+        }
 
         <h2 class="h-sect">@L["Stats_TopControllers"]</h2>
         @if (_classifica.Count > 0)
@@ -132,8 +181,78 @@
         </div>
     }
 
+    @* ⚠️ Guardia PROPRIA, e non basta essere dentro il ramo «_puoVedere»: questa pagina la aprono anche i
+       soci quando la classifica è pubblica, e il traffico coperto/scoperto di ogni scalo è uno strumento di
+       pianificazione dello staff — deciso dal committente il 25 agosto 2026. *@
     @if (Authz.IsAdmin)
     {
+        <h2 class="h-sect">@L["Stats_Airports"]</h2>
+        <p class="muted">@L["Stats_AirportsHint"]</p>
+
+        <StatsChipBar Voci="_gruppi" Titolo="@L["Stats_AirportsGroup"].Value" />
+
+        @if (_aeroporti is null || _aeroporti.DaysCovered == 0)
+        {
+            @* Vuoto per un motivo, non per un buco: il consolidamento non ha ancora girato. *@
+            <p class="muted">@L["Stats_AirportsEmpty"]</p>
+        }
+        else
+        {
+            @if (_aeroporti.DaysCovered < _aeroporti.DaysAsked)
+            {
+                @* ⚠️ Un periodo non ancora recuperato NON è «zero traffico»: senza questa riga i numeri
+                   bassi dei primi giorni sembrerebbero un dato, e sono un lavoro a metà. *@
+                <p class="muted">@L["Stats_AirportsPartial", _aeroporti.DaysCovered, _aeroporti.DaysAsked]</p>
+            }
+
+            <table class="res-table tbl-cards">
+                <thead>
+                    <tr>
+                        <th>@L["Stats_Airport"]</th>
+                        <th>@L["Stats_AirportMovements"]</th>
+                        <th>@L["Stats_AirportCovered"]</th>
+                        <th>@L["Stats_AirportOpenHours"]</th>
+                        <th>@L["Stats_AirportOpenShare"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in _aeroporti.Rows)
+                    {
+                        <tr title="@L["Stats_AirportRowTitle", r.Icao, r.Movements, r.Covered, StatsView.Ore(r.AtcMinutes * 60L)]">
+                            <td data-l="@L["Stats_Airport"]">@r.Icao <span class="muted">@r.Name</span></td>
+                            <td data-l="@L["Stats_AirportMovements"]">@r.Movements</td>
+                            @* La barra dice la QUOTA coperta, non il numero: fra due campi da mille e da
+                               dieci movimenti la domanda è quale dei due è più scoperto. *@
+                            <td class="cb" data-l="@L["Stats_AirportCovered"]"
+                                style="--cb:@(r.CoveredPercent is { } q ? q + "%" : "0%")">
+                                @if (r.CoveredPercent is { } p2) { <text>@r.Covered · @p2%</text> }
+                                else { <text>—</text> }
+                            </td>
+                            <td data-l="@L["Stats_AirportOpenHours"]">@StatsView.Ore(r.AtcMinutes * 60L)</td>
+                            <td data-l="@L["Stats_AirportOpenShare"]">
+                                @(r.OpenPercent is { } o ? o + "%" : "—")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    @* ⚠️ Celle `td` con `data-l` anche qui: sul piccolo la tabella diventa una pila di
+                       schede, e una riga di totali fatta di `th` nudi resterebbe senza etichette. *@
+                    <tr class="tot">
+                        <td data-l="">@L["Stats_AirportsTotal"]</td>
+                        <td data-l="@L["Stats_AirportMovements"]">@_aeroporti.Movements</td>
+                        <td data-l="@L["Stats_AirportCovered"]">@_aeroporti.Covered@(_quotaTotale is { } t ? $" · {t}%" : "")</td>
+                        <td data-l="@L["Stats_AirportOpenHours"]">@StatsView.Ore(_aeroporti.AtcMinutes * 60L)</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            @* ⚠️ La misura si dichiara, non si lascia intuire: «con ATC» è un'approssimazione dichiarata,
+               e senza questa riga un numero preciso sembrerebbe un registro. *@
+            <p class="muted">@L["Stats_AirportsMeasure"]</p>
+        }
+
         <h2 class="h-sect">@L["Stats_Visibility"]</h2>
         <label class="inline-form">
             <input type="checkbox" checked="@_pubblica" @onchange="CambiaVisibilita" />
@@ -148,13 +267,14 @@
         </p>
     }
 
-    <p class="muted" style="margin-top:22px">
-        @L["Stats_Disclaimer"] · <a href="/services/stats">@L["Stats_BackToMine"]</a>
-    </p>
+    <p class="muted" style="margin-top:22px">@L["Stats_Disclaimer"]</p>
 </div>
 
 @code {
     [SupplyParameterFromQuery(Name = "p")] public string? P { get; set; }
+
+    /// <summary>Gruppo di aeroporti scelto dall'indirizzo (<c>?g=LIRR</c>). Vuoto = tutti.</summary>
+    [SupplyParameterFromQuery(Name = "g")] public string? G { get; set; }
 
     private StatsTotals? _totali;
     private IReadOnlyList<ControllerRanking> _classifica = Array.Empty<ControllerRanking>();
@@ -162,7 +282,11 @@
     private IReadOnlyList<StatsByKey> _tuttePostazioni = Array.Empty<StatsByKey>();
     private IReadOnlyList<CoverageCell> _griglia = Array.Empty<CoverageCell>();
     private IReadOnlyList<StatsChipBar.Voce> _periodi = Array.Empty<StatsChipBar.Voce>();
+    private IReadOnlyList<StatsChipBar.Voce> _gruppi = Array.Empty<StatsChipBar.Voce>();
+    private AirportCoverageSummary? _aeroporti;
+    private int? _quotaTotale;
     private IReadOnlyList<StatsSlice> _fette = Array.Empty<StatsSlice>();
+    private IReadOnlyList<StatsBar> _barreMesi = Array.Empty<StatsBar>();
     private bool _pubblica;
     private bool _puoVedere;
     private DateTime? _deciso;
@@ -186,9 +310,12 @@
         if (!_puoVedere) return;
 
         var periodo = StatsView.Period(P);
+        // Le due file di chip si tengono a vicenda: cambiare il periodo non deve far perdere il gruppo
+        // scelto, e viceversa. Sono link, e la pagina resta leggibile dall'indirizzo.
+        var gruppo = string.IsNullOrWhiteSpace(G) ? null : G.Trim().ToUpperInvariant();
         _periodi = StatsView.Periods
             .Select(p => new StatsChipBar.Voce(
-                L[p.LabelKey], $"/services/stats/division?p={p.Key}", p.Key == periodo.Key))
+                L[p.LabelKey], Indirizzo(p.Key, gruppo), p.Key == periodo.Key))
             .ToList();
 
         var a = DateTimeOffset.UtcNow;
@@ -204,6 +331,13 @@
         _controllori = (await Stats.RankAsync(_io ?? 0, da, a)).Total;
         _griglia = await Stats.CoverageAsync(null, da, a);
 
+        var perMese = await Stats.ByMonthAsync(null, da, a);
+        _barreMesi = perMese
+            .Select(m => new StatsBar(
+                StatsView.Mese(m.Key), m.Seconds / 3600.0,
+                L["Stats_MonthTitle", m.Key, StatsView.Ore(m.Seconds), m.Movements]))
+            .ToList();
+
         _fette = _tuttePostazioni
             .GroupBy(p => StatsView.Tipo(p.Key))
             .Select(g => new StatsSlice(
@@ -212,8 +346,60 @@
             .OrderByDescending(f => f.Value)
             .ToList();
 
+        // I nomi per i suggerimenti: solo di chi è in classifica, e solo di chi il roster conosce.
+        _noti = await Roster.GetDisplayNamesAsync(_classifica.Select(c => c.UserId).ToList());
+
         _maxOre = _classifica.Count == 0 ? 0 : _classifica.Max(c => c.Seconds);
         _maxOrePostazione = _perPostazione.Count == 0 ? 0 : _perPostazione.Max(r => r.Seconds);
+
+        // ⚠️ Il traffico dei campi si legge SOLO per lo staff, e la guardia sta qui — prima della query —
+        // non davanti al markup: una guardia messa dopo nasconde i numeri a schermo e li ha comunque già
+        // tirati fuori dal database. È la stessa regola della pagina personale di un altro.
+        if (!Authz.IsAdmin) return;
+
+        var elenco = await Aeroporti.GroupsAsync();
+        _gruppi = new[] { new StatsChipBar.Voce(L["Stats_AirportsAll"], Indirizzo(periodo.Key, null), gruppo is null) }
+            .Concat(elenco.Select(x => new StatsChipBar.Voce(
+                $"{x.Code} ({x.Airports})", Indirizzo(periodo.Key, x.Code), x.Code == gruppo)))
+            .ToList();
+
+        _aeroporti = await Aeroporti.ByAirportAsync(da, a, gruppo);
+        _quotaTotale = _aeroporti.Movements <= 0
+            ? null
+            : (int)Math.Round(_aeroporti.Covered * 100.0 / _aeroporti.Movements);
+    }
+
+    /// <summary>L'indirizzo della pagina con periodo e gruppo insieme: le chip non si cancellano a vicenda.</summary>
+    private static string Indirizzo(string periodo, string? gruppo) =>
+        gruppo is null
+            ? $"/services/stats/division?p={periodo}"
+            : $"/services/stats/division?p={periodo}&g={gruppo}";
+
+    /// <summary>Quel che è stato scritto nel campo, com'è stato scritto.</summary>
+    private string _cercato = "";
+
+    /// <summary>Il VID che si ricava da quel che è stato scritto; <c>null</c> = niente di riconoscibile.</summary>
+    private int? _vidValido;
+
+    /// <summary>I VID di cui sappiamo anche il nome (roster degli staffisti), per i suggerimenti.</summary>
+    private IReadOnlyDictionary<int, string> _noti = new Dictionary<int, string>();
+
+    private void ScriveIlVid(ChangeEventArgs e)
+    {
+        _cercato = e.Value?.ToString() ?? "";
+        _vidValido = VidInput.Parse(_cercato);
+    }
+
+    // Cercare un numero e dover poi prendere il mouse è il modo di far scrivere il VID due volte.
+    private void TastoNelCampo(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") ApriIlProfilo();
+    }
+
+    private void ApriIlProfilo()
+    {
+        if (_vidValido is not { } vid) return;
+        Nav.NavigateTo($"/services/stats/user/{vid}");
     }
 
     private async Task CambiaVisibilita(ChangeEventArgs e)

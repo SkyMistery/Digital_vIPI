@@ -1,4 +1,4 @@
-using Vipi.Domain.Entities;
+﻿using Vipi.Domain.Entities;
 
 namespace Vipi.Application.Abstractions;
 
@@ -59,6 +59,24 @@ public static class ImportCategories
     /// un altro arretrato da smaltire.
     /// </summary>
     public const string AirportTrafficBackfill = "AirportTrafficBackfill";
+
+    /// <summary>
+    /// Il consolidamento del <b>traffico di ogni aeroporto</b>, giorno per giorno (dal 25 agosto 2026):
+    /// quanti movimenti c'erano su un campo e quanti hanno trovato un controllore acceso.
+    ///
+    /// <para>⚠️ Non è il gemello di <see cref="AirportTrafficBackfill"/>. Quello riempie il traffico delle
+    /// <b>nostre sessioni</b> passate; questo misura il traffico che c'era <b>anche quando non c'era
+    /// nessuno</b> — che è l'unica metà da cui si ricava «quanto dell'Italia copriamo». Stessa categoria di
+    /// policy (<c>AtcSessions</c>), chiave di stato sua: altro giro, altro arretrato.</para>
+    /// </summary>
+    public const string AirportTrafficRollup = "AirportTrafficRollup";
+
+    /// <summary>
+    /// La potatura del dettaglio traffico oltre i dodici mesi (dal 25 agosto 2026). ⚠️ Non è un import: non
+    /// chiama nessuna sorgente. Sta fra queste chiavi perché usa lo stesso giro gestito — periodo, stato,
+    /// ultimo esito — e senza una chiave sua non si saprebbe quando ha girato l'ultima volta.
+    /// </summary>
+    public const string TrafficRetention = "TrafficRetention";
 
     /// <summary>
     /// NON è un import periodico: è il segnaposto della riconciliazione one-shot che ha spento le aree degli ACC

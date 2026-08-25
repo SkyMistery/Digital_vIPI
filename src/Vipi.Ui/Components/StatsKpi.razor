@@ -17,7 +17,7 @@
     <div class="kpi-l">@Etichetta</div>
     @if (Serie is { Count: > 1 })
     {
-        <div class="kpi-spark"><StatsSpark Valori="Serie" Titolo="@Etichetta" /></div>
+        <div class="kpi-spark"><StatsSpark Punti="Serie" Titolo="@Etichetta" Didascalia="@SerieDidascalia" /></div>
     }
 </div>
 
@@ -36,5 +36,8 @@
     [Parameter] public string? DeltaHint { get; set; }
 
     /// <summary>Serie per la sparkline (dal più vecchio). Sotto i due punti non compare.</summary>
-    [Parameter] public IReadOnlyList<double>? Serie { get; set; }
+    [Parameter] public IReadOnlyList<StatsPoint>? Serie { get; set; }
+
+    /// <summary>Che cosa misura l'asse della sparkline («per mese»): senza, il disegno non si sa leggere.</summary>
+    [Parameter] public string? SerieDidascalia { get; set; }
 }

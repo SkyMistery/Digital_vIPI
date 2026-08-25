@@ -237,3 +237,59 @@ public class StatsSettings
     public DateTime UpdatedUtc { get; set; }
     public int UpdatedByUserId { get; set; }
 }
+
+/// <summary>
+/// Il traffico di un aeroporto in un giorno, e quanto di quel traffico ha trovato un controllore acceso.
+///
+/// <para><b>Perché una tabella e non un conto al volo.</b> Il traffico di un campo lo sa solo la sorgente
+/// (<c>/v2/airports/{icao}/traffics</c>), una chiamata per aeroporto e per finestra: misurato il 25 agosto
+/// 2026, LIRF su trenta giorni sono 981 KB e 1,3 s. Novantatré aeroporti per dodici mesi non si possono
+/// chiedere mentre qualcuno guarda una pagina — si consolidano di notte e si leggono da qui.</para>
+///
+/// <para><b>Che cosa NON è.</b> Non è il «modello gemello» vietato dal pre-flight: <see cref="AtcSession"/>
+/// dice quanto abbiamo controllato <i>noi</i>, questa dice quanto traffico <b>c'era</b> — che è un fatto
+/// della rete, e nessuna nostra tabella lo contiene.</para>
+///
+/// <para>⚠️ Il conto di un giorno può <b>cambiare</b> finché quel giorno non è finito e non è stato
+/// ripassato: <see cref="FetchedUtc"/> dice quando è stato preso, ed è ciò che permette di ripassare i
+/// giorni freschi senza riscaricare l'anno.</para>
+///
+/// <para>Volume: ~93 aeroporti × 365 giorni = ~34 000 righe l'anno, poche decine di byte l'una.</para>
+/// </summary>
+public class AirportDayTraffic
+{
+    /// <summary>ICAO del campo. Prima metà della chiave.</summary>
+    public string Icao { get; set; } = default!;
+
+    /// <summary>Il giorno UTC a mezzanotte. Seconda metà della chiave.</summary>
+    public DateTime Day { get; set; }
+
+    /// <summary>Arrivi su quel campo.</summary>
+    public int Inbound { get; set; }
+
+    /// <summary>Partenze da quel campo.</summary>
+    public int Outbound { get; set; }
+
+    /// <summary>
+    /// Sorvoli. ⚠️ Conservati ma <b>fuori dai movimenti</b>: un sorvolo non è traffico <i>di</i> quel campo
+    /// (§15.2 della carta). Sta qui perché è un dato che arriva insieme e buttarlo vorrebbe dire richiamare
+    /// la sorgente il giorno in cui servisse.
+    /// </summary>
+    public int Overflight { get; set; }
+
+    /// <summary>
+    /// Arrivi e partenze caduti in un istante in cui una posizione <b>di quel campo</b> era aperta.
+    /// La regola dell'istante sta in <c>AirportCoverage</c> ed è dichiarata anche in pagina: non è
+    /// «quel volo è stato lavorato», che non è misurabile.
+    /// </summary>
+    public int CoveredMovements { get; set; }
+
+    /// <summary>
+    /// Minuti di apertura ATC del campo in quel giorno, a intervalli <b>uniti</b>: torre e terra insieme
+    /// fanno un'apertura sola, non due.
+    /// </summary>
+    public int AtcMinutes { get; set; }
+
+    /// <summary>Quando questa riga è stata presa dalla sorgente.</summary>
+    public DateTime FetchedUtc { get; set; }
+}

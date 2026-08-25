@@ -239,4 +239,27 @@ public sealed class EfAtcTrafficStore : IAtcTrafficStore
         await _db.SaveChangesAsync(ct);
         return scritte;
     }
+
+    public async Task<int> PruneTrafficAsync(
+        DateTimeOffset notAfter, int batch, CancellationToken ct = default)
+    {
+        if (batch <= 0) return 0;
+
+        var limite = notAfter.UtcDateTime;
+
+        // ⚠️ `RemoveRange` e non `ExecuteDelete`: il change-tracker di questo contesto è condiviso col
+        // resto del giro, e una cancellazione fuori dal tracker lo lascerebbe a raccontare righe che non
+        // esistono più. È una lezione già pagata (audit del 30 luglio).
+        var righe = await _db.AtcSessionTraffic
+            .Where(t => t.LastSeenUtc < limite)
+            .OrderBy(t => t.LastSeenUtc)
+            .Take(batch)
+            .ToListAsync(ct);
+
+        if (righe.Count == 0) return 0;
+
+        _db.AtcSessionTraffic.RemoveRange(righe);
+        await _db.SaveChangesAsync(ct);
+        return righe.Count;
+    }
 }

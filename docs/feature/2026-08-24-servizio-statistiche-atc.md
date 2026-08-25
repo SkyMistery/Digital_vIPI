@@ -4,7 +4,10 @@
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Regola d'ingaggio con la sorgente:
 > [sorgenti](2026-08-22-sorgenti-giro-automatico-ta-piste.md) — interfaccia neutra in Application,
 > adapter `Ivao*` in Infrastructure, riga nella policy di import.
-> **Stato al 25 agosto 2026: SERVIZIO COMPLETO sul ramo `statistiche-atc`, non ancora fuso in `main`.**
+> **Stato al 25 agosto 2026 (sera): SERVIZIO COMPLETO sul ramo `statistiche-atc`, non ancora fuso in `main`.**
+> Le otto richieste del committente del 25 agosto sera stanno in **§16**, e con loro la sezione
+> **Aeroporti** (traffico di ogni campo e quanto ne copriamo), la potatura del dettaglio e il capitolo di
+> Guida che mancava. ⚠️ §3 conteneva un'affermazione **falsa** su `/airports/{icao}/stats`, corretta lì.
 > Tutte e otto le slice di §9 sono chiuse, più le aggiunte di §11. Suite verde e Release pulita su entrambi
 > i TFM: **2176 test su net8, 1938 su net10** — la differenza non è un buco, `Vipi.E2E.Tests` e
 > `Vipi.AuroraBridge.Tests` girano **solo su net8** (⚠️ un solo numero, come si scriveva prima, fa sembrare
@@ -45,8 +48,8 @@ user-agent di urllib: serve un UA da browser, come già annotato per le altre so
 | `/v2/tracker/sessions?connectionType=ATC&userId=&callsign=&now=&from=&to=&page=&perPage=` | **storico connessioni**, paginato (max 100/pagina). Item: `callsign`, `userId`, `time`, `createdAt`, `completedAt`, `softwareType`, `user{firstName,lastName,divisionId,rating}` | token app, scope `tracker` ✅ **verificato 200** |
 | `/v2/tracker/sessions/{id}` | come sopra **+ `atcSession{position,frequency}`** (la lista non ce l'ha: lì la posizione si ricava dal callsign) | idem |
 | `/v2/users/{vid}` | `hours[] = {type: pilot\|atc\|staff, hours: secondi}` → totale di carriera, e `rating` | app ✅ (già usato) |
-| `/v2/airports/{icao}/traffics?from&to` | movimenti dell'aeroporto nella finestra: **inbound / outbound / flightover**, ciascuno con callsign, `flightPlan` e `lastTrack` | app |
-| `/v2/airports/{icao}/stats?from&to&limit` | conteggi giornalieri `{in, out, total, timestamp}` | app |
+| `/v2/airports/{icao}/traffics?from&to` | movimenti dell'aeroporto nella finestra: **inbound / outbound / flightover**, ciascuno con callsign, `flightPlan` e `lastTrack`. ⚠️ Porta anche **gli istanti** (`createdAt`, `lastTrack.timestamp`) e regge finestre lunghe: misurato su LIRF il 25 agosto, **30 giorni = 863 in / 926 out / 3 sorvoli in 981 KB e 1,3 s** (7 gg: 254 KB; 1 gg: 60 KB) | app |
+| ~~`/v2/airports/{icao}/stats?from&to&limit`~~ | ⚠️ **NON è quello che questa riga diceva.** Rimisurato il 25 agosto 2026 col token vero: è una **fotografia al minuto** dello stato corrente (`{icao, in, out, total, timestamp}` ripetuto ogni ~60 s), non un contatore di movimenti; `limit` deve stare **sotto 100** (`limit=400` → `400 Should be lower than 100`), cioè al massimo un'ora e mezza di storia. Chi cerca i movimenti di un campo usa `traffics` | app |
 | `/v2/tracker/sessions/{id}/tracks` | traccia completa di un volo (per la mappa del dettaglio sessione) | app |
 
 **La chiave di giunzione**: l'`id` della sessione ATC in whazzup **è lo stesso** id dello storico
@@ -420,7 +423,9 @@ per sempre** (sono poche, pesano nulla, e sono il dato di valore — vedi §8.3:
 - `/services/stats/session/{id}` — dettaglio: durata, frequenza, aerei gestiti, **sequenza delle piste in
   uso**. ⚠️ La *mappa* delle tracce era in questa riga fin dalla prima stesura: il committente l'ha **rinviata**
   il 25 agosto (§11, «da ragionare»). Qui resta scritto che non c'è, o la prossima lettura la dà per fatta;
-- `/services/stats/export.csv` — le proprie sessioni in CSV (VID dall'identità, mai da parametro);
+- ⚠️ `/services/stats/export.csv` — **non esiste più**: tolto il 25 agosto 2026 su richiesta del committente,
+  tasto *e* meccanismo. Resta scritto qui perché tre punti di questa carta lo davano per fatto, e una carta
+  che promette un endpoint che non c'è è il modo in cui qualcuno lo rimette fra due mesi;
 - `/services/stats/division` — vista staff: copertura per aeroporto/ACC, buchi orari, classifica mensile;
 - ingressi obbligatori (lezione dell'hub): **card in `ServicesHome.razor`**, voce nel menù ☰, sezione nella
   Guida, voce nella ricerca globale (`GuideSearchCatalog`).
@@ -721,9 +726,9 @@ Ordinato per **quanto costa il dato**, non per quanto è bella l'idea.
 - **I tuoi aeroporti e i tuoi aeroplani**: sul dato vero LIRF 6 · LIRN 5 · LICJ 4 · LIMF 4 · LFLL 3, e
   A320 8 · B738 5. Un volo conta per **tutti e due** gli scali: la domanda è «quali aeroporti ti passano
   davanti», non «da dove partivano».
-- **Esportazione CSV** (`/services/stats/export.csv`): solo le **proprie** sessioni, e il VID lo legge
-  dall'identità — un parametro qui vorrebbe dire «le statistiche di chiunque a chi ne indovina il numero».
-  Col BOM, o Excel apre gli accenti rotti.
+- ~~**Esportazione CSV**~~ — ⚠️ **RIMOSSA il 25 agosto 2026** (richiesta del committente): tasto, endpoint,
+  chiavi di risorsa e riga della mappa delle pagine. Il test che sorvegliava «niente esportazione altrui»
+  è rimasto e ora sorveglia «niente esportazione, punto».
 - **Le piste in uso, come sequenza.** 48 ATC su 71 la nominano nel testo dell'ATIS, che la fotografia già
   porta: nessuna chiamata in più. `AtisRunways` legge la frase
   («*Arrival runway 16L 16R departure runway 25*», «*Runway in use 04R*»); `AtcSessionRunway` conserva **una
@@ -768,10 +773,15 @@ per riga il 25 agosto: se un giorno questa sezione risulta vuota, il servizio è
   `MSB3021`/`MSB3027`, e il totale risulta più basso di qualche centinaio senza che manchi un test.
   Prima di credere a un conteggio: `grep "error MSB"`. I numeri della prima consegna (2176/1938) sono di un
   altro giro e non tornano con questi: non inseguirli.
-- ⚠️ **Manca la Guida, e §7 la dichiara obbligatoria.** Verificato il 25 agosto: la card in `ServicesHome` e
-  in `SopHome` c'è, la voce nel menù ☰ (`SopLayout`) c'è, ma **`GuidaPage.razor` non ha un capitolo sulle
-  statistiche e `GuideSearchCatalog.Entries` non ha la sua voce** — cioè chi cerca «statistiche» nella
-  ricerca globale non trova niente. È la lezione dell'hub `/services`, ed è l'unico pezzo di §7 non fatto.
+- ✅ **La Guida c'è** (25 agosto sera, §16). Il capitolo `statistiche` in `GuidaPage.razor`, IT ed EN.
+  ⚠️ E la diagnosi di prima era **sbagliata a metà**: la voce in `GuideSearchCatalog` c'**era** già, e
+  puntava a un'ancora che nella Guida non esisteva — chi cercava «statistiche» trovava un risultato, lo
+  apriva e finiva su una pagina senza quel capitolo. Un collegamento morto è peggio di nessun collegamento,
+  perché nessuno lo denuncia. C'è ora un test (`GuidaAncoreTests`) che verifica che **ogni** voce del
+  catalogo abbia il suo capitolo.
+
+- ✅ **La potatura del dettaglio traffico è scritta** (§16): `TrafficRetentionUseCase` +
+  `TrafficRetentionHostedService`, a scaglioni e con tetto per giro.
 
 ### Al primo deploy in produzione (MariaDB)
 
@@ -797,13 +807,7 @@ per riga il 25 agosto: se un giorno questa sezione risulta vuota, il servizio è
 
 ### Deciso sulla carta, non ancora scritto nel codice
 
-- ⚠️ **La potatura del dettaglio traffico.** §5.1 decide «dettaglio 12 mesi, sessioni per sempre» e i
-  contatori denormalizzati sulla riga sessione esistono **apposta** perché la potatura non azzeri le ore di
-  un anno fa — ma **il lavoro che pota non c'è** (verificato il 25 agosto: nessun servizio su
-  `AtcSessionTraffic` che cancelli per data). Finché non c'è, il dettaglio cresce senza limite: ~500 000
-  righe l'anno, misurate. Non è urgente — l'archivio nasce adesso e lo spazio è 1 GB — ma la decisione oggi
-  vive solo in questo documento, ed è esattamente il modo in cui la retention di pubblicazione si era
-  accumulata la prima volta.
+- ~~La potatura del dettaglio traffico~~ — ✅ **scritta il 25 agosto sera**, vedi §16.4.
 
 ## 13. La veste (25 agosto 2026)
 
@@ -1103,3 +1107,168 @@ muto sembrerebbe un dato mancante.
 volta per **settore** e non per tratta: sono un centinaio di aeroporti per una manciata di callsign, mentre
 le tratte di un anno sono decine di migliaia. Con l’ordine sbagliato — un `Contains` dentro il ciclo delle
 tratte — la stessa risposta costerebbe due ordini di grandezza in più.
+
+## 16. Otto richieste del committente (25 agosto 2026, sera)
+
+Il committente ha guardato il servizio a schermo e ha chiesto otto cose. Sei sono ritocchi, una è una
+funzione nuova (§16.3) e una era una domanda a cui bastava rispondere (§16.7). Più quattro aggiunte
+proposte da qui e approvate.
+
+### 16.1 La sparkline non diceva di che cosa fosse la forma
+
+«Sulle ore in alto a sinistra, dove c'è il grafico, non si capisce cosa indichi.» Era vero: dodici punti
+senza asse, senza etichette e senza un titolo per punto. Ora `StatsSpark` porta una **linea di base**, una
+**tacca per punto**, le **due estremità scritte sotto** («08/25 … 08/26») e una didascalia che dice che cosa
+misura («per mese»). Ogni punto ha una fascia invisibile col suo titolo, che è il solo bersaglio che il
+mouse possa prendere.
+
+⚠️ **Le etichette sono HTML, non testo SVG**, e i punti sono **trattini verticali, non pallini**: il disegno
+è stirato (`preserveAspectRatio=none`) perché deve riempire la card, e lì dentro un cerchio diventa
+un'ellisse e le lettere si allargano. Per la stessa ragione il tratto vuole `vector-effect`.
+
+⚠️ Metà di questa modifica è stata **invisibile fino allo schermo**: le tacche erano disegnate con
+`--line`, che sul tema scuro è a un soffio dal fondo della card. Disegnate e invisibili.
+
+⚠️ Il modello dei punti è **un elenco solo** (`StatsPoint(Value, Label, Title)`) e non tre paralleli: tre
+liste da tenere allineate a mano si scollano al primo filtro applicato a una sola.
+
+### 16.2 «Quando controlli»: via la griglia, due grafici
+
+La griglia 7×24 con le percentuali dentro non piaceva. Fra quattro alternative il committente ha scelto le
+**due domande separate**: «a che ora» (24 barre) e «che giorno» (7 barre), più una frase in testa che dice
+l'orario tipico. `HourDayProfileBuilder` è puro e ricava tutto dalle stesse 168 celle.
+
+⚠️ **Si perde l'incrocio** — «il giovedì sera» non si legge più — e per questo la griglia **resta sulla
+pagina della divisione**, dove la domanda vera è proprio quella incrociata: dove manca qualcuno.
+
+⚠️ La **fascia tipica è circolare**: chi controlla dalle 22 all'una ha un'abitudine sola, e una finestra non
+circolare gliela spezzerebbe ai due bordi del giorno facendo scrivere «di solito fra le 00 e le 23» — vero e
+inutile. Si contano i **minuti**, non le caselle accese.
+
+⚠️ Due difetti che solo lo schermo ha detto, tutti e due nella modalità densa a 24 colonne:
+
+1. l'etichetta c'è solo ogni tre colonne, e una `<span>` vuota è **alta zero**: le colonne senza etichetta
+   scendevano tredici pixel più in basso delle altre e **le barre non erano più confrontabili**;
+2. lo spazio riservato al numero sopra la barra (il 18% dell'altezza) restava vuoto, perché in modalità
+   densa il numero non si scrive: un quinto del riquadro sprecato e le barre schiacciate in fondo.
+
+### 16.3 Aeroporti: traffico e copertura (la funzione nuova)
+
+«È possibile vedere per aeroporto, o per gruppo di aeroporti, il traffico e quanto di questo sia stato
+coperto da ATC?» Sì, ed è la sezione **Aeroporti** dentro `/services/stats/division`, **solo staff**.
+
+#### ⚠️ La carta diceva una cosa falsa sulla sorgente
+
+§3 dava `/v2/airports/{icao}/stats` per «conteggi giornalieri di movimenti». **Rimisurato il 25 agosto col
+token vero: non lo è.** È una fotografia al minuto dello stato corrente, e `limit` deve stare **sotto 100**
+(`limit=400` → `400 Should be lower than 100`): al massimo un'ora e mezza di storia.
+
+Quel che serve ce l'aveva già `/traffics`, che usiamo dal 24 agosto e **regge finestre lunghe**:
+
+| finestra su LIRF | esito |
+|---|---|
+| 1 giorno | 41 in · 69 out · 0 sorvoli — 60 KB, 0,5 s |
+| 7 giorni | 216 · 248 · 1 — 254 KB, 0,6 s |
+| **30 giorni** | **863 · 926 · 3 — 981 KB, 1,3 s** |
+
+E ogni volo porta gli **istanti** (`createdAt`, `lastTrack.timestamp`) che il nostro client **buttava**.
+Quindi la funzione non ha voluto **nessun endpoint nuovo**: si è smesso di scartare due campi.
+
+#### La regola dell'istante, che va detta e non nascosta
+
+La sorgente non dichiara l'istante del movimento. Quindi: **arrivo → l'ultimo avvistamento** (era su quel
+campo); **partenza → il collegamento del pilota** (l'istante più vicino al decollo che esista). È
+un'**approssimazione**, e la pagina la scrive: «con ATC» vuol dire *c'era un controllore su quel campo in
+quell'istante*, non *quel volo è stato lavorato* — la seconda non è misurabile senza campionare ogni volo
+ogni minuto, cioè mezzo milione di righe l'anno che ne diventerebbero trenta.
+
+#### Come è fatto
+
+- `AirportCoverage` (puro): conta i movimenti e quanti cadono in un'apertura. Ricerca binaria sugli
+  intervalli — con una scansione lineare per ognuno di decine di migliaia di movimenti costerebbe due ordini
+  di grandezza in più. Il **sorvolo non è un movimento del campo**; un LIRF→LIRF conta **due volte** (una
+  partenza e un arrivo), e il verso fa parte dell'identità.
+- `AirportRollupPlanner` (puro): che cosa chiedere stanotte. **A blocchi di trenta giorni** — giorno per
+  giorno il recupero di dodici mesi sarebbe **34 000** chiamate invece di ~1 100 — e **dal più recente**,
+  perché l'arretrato si smaltisce in settimane e ieri interessa oggi. ⚠️ L'ordinamento è **globale**: dentro
+  ogni aeroporto, il tetto per giro si sarebbe speso tutto sui primi in ordine alfabetico e LIRF non sarebbe
+  mai arrivato.
+- `AirportDayTraffic` (una riga per campo e giorno) + due migrazioni a doppia emissione. ~34 000 righe
+  l'anno, poche decine di byte l'una.
+- `AirportTrafficRollupUseCase` + servizio notturno col tetto (`Ivao:AirportTrafficRollupPerRun`, 120).
+- ⚠️ **Gate condiviso** con le sessioni (`ImportCategory.AtcSessions`) e **non** una categoria nuova: una
+  categoria nuova avrebbe voluto un `bool NOT NULL` in più, che nasce `false` su ogni riga esistente — cioè
+  spento a chi non ha chiesto niente. È la trappola che ha già morso con `ImportSids`.
+
+#### Il difetto che i test hanno preso, e non lo schermo
+
+La finestra delle aperture ATC era quella chiesta dal chiamante e non quella dei **giorni interi**: con
+`from == to` restava un intervallo di ampiezza zero e **ogni campo risultava chiuso**. Il piano consolida da
+mezzanotte a mezzanotte, e le aperture vanno chieste sullo stesso arco.
+
+#### La prova, con dati veri
+
+Durante la verifica live il consolidamento **ha girato davvero contro IVAO**: **3 525 giorni-aeroporto**
+misurati su 75 campi, dal 28 maggio al 25 luglio. Nessun vincolo violato (coperti ≤ movimenti, minuti ≤
+1440). Il totale della divisione su quella finestra: **16 374 movimenti, 3 307 con ATC — il 20%**, 1 272 ore
+di posizioni aperte. I due estremi: **LIEO 52%** (263 ore aperte) e **LIRP 0%** (0,9 ore).
+
+⚠️ E un falso allarme da ricordare: la riga «il consolidamento è ancora in corso: 30 giorni su 31» sembrava
+un errore di conto sul `+1`. **Non lo era**: mancava davvero la data più vecchia. Chi togliesse quel `+1`
+per far sparire il messaggio nasconderebbe un giorno mancante invece di riempirlo.
+
+### 16.4 Le quattro aggiunte proposte, e approvate
+
+- **Guida e ricerca globale.** ⚠️ La diagnosi di §12 era sbagliata a metà: la voce nel catalogo di ricerca
+  c'**era**, e puntava a un'ancora che nella Guida **non esisteva**. Un collegamento morto è peggio di
+  nessun collegamento, perché nessuno lo denuncia. Ora c'è il capitolo (IT/EN) e un test che verifica che
+  **ogni** voce del catalogo abbia il suo.
+- **I nomi dei giorni tradotti.** Erano scritti a mano in italiano (`lun`, `mar`…) dentro
+  `CoverageHeatmap`, e restavano italiani con l'applicazione in inglese. Ora vengono dalle risorse, e le
+  **stesse chiavi** le usa il grafico «che giorno» — o i due disegni chiamerebbero lo stesso giorno in due
+  modi.
+- **La potatura del dettaglio traffico.** `TrafficRetentionUseCase`, a scaglioni, con tetto per giro.
+  ⚠️ Tocca **solo** `AtcSessionTraffic`: le sessioni e i loro contatori denormalizzati restano, ed è
+  esattamente il motivo per cui quei contatori esistono. C'è un test che lo verifica.
+  ⚠️ `RemoveRange` e **non** `ExecuteDelete`: desincronizzerebbe il change-tracker (audit del 30 luglio).
+- **L'andamento della divisione**: le barre per mese, che la pagina non aveva. ⚠️ Difetto visto solo a
+  schermo: con **due** mesi in elenco (periodo di 30 giorni) due colonne che si dividono la pagina diventano
+  due **lastre larghe mezzo schermo**. `max-width` sulla colonna; il caso normale non se ne accorge.
+
+### 16.5 Le tre cose piccole
+
+- **Il tasto per la divisione sta sulla riga del titolo** (`.sh-title`, `.btn.ghost` con l'icona), e il link
+  grigio in coda al disclaimer è **sparito**: due strade per lo stesso posto erano una di troppo. Gemello
+  «torna alle mie» sulla pagina di divisione. Il gate è quello della pagina di destinazione — staff sempre,
+  gli altri a classifica accesa — e **non è una guardia**: la guardia sta là.
+- **L'esportazione CSV non c'è più**: tasto, endpoint, chiavi di risorsa e riga della mappa delle pagine. Il
+  test che sorvegliava «niente esportazione altrui» è rimasto e ora sorveglia «niente esportazione, punto».
+- **Cerca un controllore per VID**, solo staff, sulla pagina di divisione. `VidInput.Parse` è puro e accetta
+  quel che la gente **incolla**: il numero nudo, «VID 704798», l'indirizzo del profilo, il nickname IVAO
+  («Carmine (704798)»), il numero con lo spazio delle migliaia. ⚠️ Prende la prima sequenza di cifre **lunga
+  abbastanza** (5-8): in `Member.aspx?p=3&Id=704798` la prima sequenza qualunque aprirebbe il profilo di un
+  altro, e nessuno se ne accorgerebbe perché una pagina si aprirebbe lo stesso.
+
+### 16.6 La sezione «Aeroporti» ha una guardia sua
+
+La pagina di divisione la aprono **anche i soci** quando la classifica è pubblica. Il traffico coperto e
+scoperto di ogni scalo è uno strumento di pianificazione dello staff, quindi ha una guardia **propria**, e
+sta **prima della query** — non davanti al markup, o i numeri sarebbero già usciti dal database. C'è un test
+con un `IAirportCoverageQueries` che **esplode a ogni metodo**.
+
+### 16.7 «Controllers» in divisione: sì, con tre precisazioni
+
+Domanda del committente: sono i VID distinti visti controllare in Italia nell'ultimo anno? **Sì**
+(`RankAsync().Total`), ma:
+
+1. **«ultimo anno»** solo se è attiva la chip *12 mesi*, che è il default: il numero segue il periodo;
+2. **«in Italia»** vuol dire **callsign `LI*`, visitor inclusi** — non «i membri della divisione IT»;
+3. le **connessioni sotto il minuto non contano** (il 32% del totale vero: entrate e uscite).
+
+### 16.8 Conti
+
+`dotnet build Vipi.slnx -c Release --no-incremental` pulita, suite verde su tutti e due i TFM:
+**2366 su net8, 2128 su net10** (la differenza sono `Vipi.E2E.Tests` e `Vipi.AuroraBridge.Tests`, che
+girano solo su net8). ⚠️ Prima di credere a un conteggio: `grep "error MSB"` — con `Vipi.Host` acceso i suoi
+DLL sono bloccati e mezzo albero non compila senza diventare rosso in modo visibile. È successo anche
+stavolta, a metà verifica live.

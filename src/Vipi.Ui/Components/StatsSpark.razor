@@ -1,5 +1,14 @@
-@* Sparkline: la FORMA di una serie, non i suoi numeri. Sta dentro un riquadro KPI e non ha assi, griglia
-   né etichette — se servissero quelli, servirebbe un grafico vero (le barre per mese).
+@* Sparkline: la forma di una serie, con l'asse che dice DI CHE COSA è la forma.
+
+   ⚠️ Prima non aveva niente — né asse né etichette — e a schermo era un disegno che non si sapeva leggere:
+   dodici punti di che cosa, da quando a quando? Ora porta una linea di base, un trattino per punto e le due
+   estremità scritte sotto. Resta una sparkline e non diventa un grafico: la griglia e i valori stanno nel
+   grafico vero (le barre per mese).
+
+   ⚠️ Le etichette sono HTML, non testo SVG. Il disegno è stirato (`preserveAspectRatio=none`) perché deve
+   riempire la card: dentro l'SVG un testo verrebbe stirato con lui e le lettere si allargherebbero.
+   Per la stessa ragione i punti sono TRATTINI VERTICALI e non pallini — un cerchio, stirato, è un'ellisse —
+   e il tratto si tiene con `vector-effect`.
 
    ⚠️ SVG inline e nessuna libreria: la CSP del prodotto non ammette script esterni, e dodici punti non
    giustificano una dipendenza. I numeri vanno scritti con `StatsView.Svg` — a cultura italiana una virgola
@@ -7,40 +16,83 @@
 
 @if (_linea is not null)
 {
-    <svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-label="@Titolo">
-        <polygon class="spark-area" points="@_area" />
-        <polyline class="spark-line" points="@_linea" />
-    </svg>
+    <div class="spark-wrap">
+        <svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-label="@Titolo">
+            <polygon class="spark-area" points="@_area" />
+            <polyline class="spark-line" points="@_linea" />
+            <line class="spark-axis" x1="0" y1="30" x2="100" y2="30" />
+            @foreach (var t in _tacche)
+            {
+                <line class="spark-tick" x1="@t.X" y1="30" x2="@t.X" y2="27" />
+            }
+            @* Fascia invisibile per punto: è la sola che dia un bersaglio vero al passaggio del mouse.
+               Deformata lo è, ma non si vede — e il titolo dice il mese e il valore. *@
+            @foreach (var t in _tacche)
+            {
+                <rect class="spark-hit" x="@t.Da" y="0" width="@t.Larghezza" height="30"><title>@t.Titolo</title></rect>
+            }
+        </svg>
+        <div class="spark-ax">
+            <span>@_primo</span>
+            @if (!string.IsNullOrWhiteSpace(Didascalia)) { <span class="sx-cap">@Didascalia</span> }
+            <span>@_ultimo</span>
+        </div>
+    </div>
 }
 
 @code {
-    /// <summary>La serie, dal più vecchio al più recente. Sotto i due punti non si disegna niente.</summary>
-    [Parameter, EditorRequired] public IReadOnlyList<double> Valori { get; set; } = Array.Empty<double>();
+    /// <summary>I punti, dal più vecchio al più recente. Sotto i due non si disegna niente.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<StatsPoint> Punti { get; set; } = Array.Empty<StatsPoint>();
 
     /// <summary>Descrizione per chi non vede il disegno.</summary>
     [Parameter] public string Titolo { get; set; } = "";
 
+    /// <summary>Che cosa misura l'asse («per mese»); sta in mezzo alle due estremità. Facoltativa.</summary>
+    [Parameter] public string? Didascalia { get; set; }
+
+    /// <summary>Una tacca sull'asse: dov'è, che fascia occupa e che cosa dice.</summary>
+    private sealed record Tacca(string X, string Da, string Larghezza, string Titolo);
+
     private string? _linea;
     private string? _area;
+    private string _primo = "";
+    private string _ultimo = "";
+    private IReadOnlyList<Tacca> _tacche = Array.Empty<Tacca>();
 
     protected override void OnParametersSet()
     {
-        if (Valori.Count < 2) { _linea = null; _area = null; return; }
+        if (Punti.Count < 2)
+        {
+            _linea = null;
+            _area = null;
+            _tacche = Array.Empty<Tacca>();
+            return;
+        }
 
-        var max = Valori.Max();
-        var min = Valori.Min();
+        var max = Punti.Max(p => p.Value);
+        var min = Punti.Min(p => p.Value);
         var span = max - min;
 
         // Serie piatta: la linea sta a metà altezza. Dividere per zero darebbe NaN, che l'SVG non disegna
         // e nessuno segnala.
-        var punti = Valori.Select((v, i) =>
+        var coord = Punti.Select((p, i) =>
         {
-            var x = Valori.Count == 1 ? 0 : i * 100.0 / (Valori.Count - 1);
-            var y = span <= 0 ? 15.0 : 28 - (v - min) / span * 26;
-            return $"{StatsView.Svg(x)},{StatsView.Svg(y)}";
+            var x = i * 100.0 / (Punti.Count - 1);
+            var y = span <= 0 ? 15.0 : 28 - (p.Value - min) / span * 26;
+            return (X: x, Y: y);
         }).ToList();
 
-        _linea = string.Join(' ', punti);
+        _linea = string.Join(' ', coord.Select(c => $"{StatsView.Svg(c.X)},{StatsView.Svg(c.Y)}"));
         _area = $"0,30 {_linea} 100,30";
+
+        var larghezza = 100.0 / Punti.Count;
+        _tacche = coord.Select((c, i) => new Tacca(
+            StatsView.Svg(c.X),
+            StatsView.Svg(Math.Max(0, c.X - larghezza / 2)),
+            StatsView.Svg(larghezza),
+            Punti[i].Title)).ToList();
+
+        _primo = Punti[0].Label;
+        _ultimo = Punti[^1].Label;
     }
 }

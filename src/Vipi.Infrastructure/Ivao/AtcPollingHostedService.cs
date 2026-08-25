@@ -305,6 +305,8 @@ public static class IvaoServiceCollectionExtensions
         services.AddScoped<IvaoAirportTrafficClient>();
         services.AddScoped<IAirportTrafficSource>(sp => sp.GetRequiredService<IvaoAirportTrafficClient>());
         services.AddScoped<Vipi.Application.Stats.AirportTrafficBackfillUseCase>();
+        services.AddScoped<Vipi.Application.Stats.AirportTrafficRollupUseCase>();
+        services.AddScoped<Vipi.Application.Stats.TrafficRetentionUseCase>();
         services.AddScoped<IvaoAtcHistoryClient>();
         services.AddScoped<IAtcHistorySource>(sp => sp.GetRequiredService<IvaoAtcHistoryClient>());
         services.AddScoped<Vipi.Application.Stats.AtcHistoryImportUseCase>();
@@ -337,6 +339,8 @@ public static class IvaoServiceCollectionExtensions
         services.AddHostedService<AirportDataImportHostedService>();
         services.AddHostedService<AtcHistoryImportHostedService>();
         services.AddHostedService<AirportTrafficBackfillHostedService>();
+        services.AddHostedService<AirportTrafficRollupHostedService>();
+        services.AddHostedService<TrafficRetentionHostedService>();
         services.AddHostedService<SpecialAreaImportHostedService>();
         return services;
     }

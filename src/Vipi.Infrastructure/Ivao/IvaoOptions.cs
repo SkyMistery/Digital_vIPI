@@ -111,6 +111,29 @@ public sealed class IvaoOptions
     /// </summary>
     public int AirportTrafficBackfillPerRun { get; set; } = 200;
 
+    /// <summary>Ogni quante ore si consolida il traffico d'aeroporto (movimenti totali e quota coperta).</summary>
+    public int AirportTrafficRollupHours { get; set; } = 24;
+
+    /// <summary>
+    /// Quanti blocchi (fino a trenta giorni di un aeroporto l'uno) si chiedono per giro.
+    ///
+    /// <para>⚠️ Il conto: 93 aeroporti × 12 blocchi = ~1 100 chiamate per recuperare i dodici mesi. Con
+    /// questo valore l'arretrato si smaltisce in una decina di notti, e a regime ne bastano una manciata
+    /// per i giorni nuovi. Alzarlo accorcia il recupero e pesa sulla sorgente nella stessa misura: una
+    /// chiamata da ~1 MB e ~1,3 s l'una sul campo più trafficato (misurato su LIRF il 25 agosto 2026).</para>
+    /// </summary>
+    public int AirportTrafficRollupPerRun { get; set; } = 120;
+
+    /// <summary>Ogni quante ore si pota il dettaglio delle tratte oltre i dodici mesi.</summary>
+    public int TrafficRetentionHours { get; set; } = 24;
+
+    /// <summary>
+    /// Quante righe di dettaglio si cancellano al massimo per giro. ⚠️ La prima potatura di un archivio
+    /// maturo ne ha centinaia di migliaia da smaltire: il tetto le spalma su più notti invece di tenere il
+    /// lock sulla tabella mentre l'applicazione serve pagine.
+    /// </summary>
+    public int TrafficRetentionPerRun { get; set; } = 20000;
+
     /// <summary>Ogni quante ore ri-verificare il roster staffisti via API (disattiva chi non è più staff IT).</summary>
     public int StaffVerifyHours { get; set; } = 24;
 

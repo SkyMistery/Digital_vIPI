@@ -359,6 +359,40 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("Airports");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AirportDayTraffic", b =>
+                {
+                    b.Property<string>("Icao")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("Day")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("AtcMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CoveredMovements")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("FetchedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Inbound")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Outbound")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Overflight")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Icao", "Day");
+
+                    b.HasIndex("Day");
+
+                    b.ToTable("AirportDayTraffic");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AirportExtraSection", b =>
                 {
                     b.Property<int>("Id")

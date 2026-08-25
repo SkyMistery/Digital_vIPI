@@ -40,12 +40,16 @@ public class StatsGraficiTests : TestContext
         finally { CultureInfo.CurrentCulture = prima; }
     }
 
+    /// <summary>Una serie con etichette finte: al disegno servono i valori, ai test bastano quelli.</summary>
+    private static IReadOnlyList<StatsPoint> Serie(params double[] valori) =>
+        valori.Select((v, i) => new StatsPoint(v, $"m{i}", $"mese {i}: {v}")).ToList();
+
     [Fact]
     public void La_sparkline_scrive_i_punti_col_punto_decimale_anche_in_italiano()
     {
         InItaliano(() =>
         {
-            var f = RenderComponent<StatsSpark>(p => p.Add(c => c.Valori, new[] { 1.0, 7.0, 3.0 }));
+            var f = RenderComponent<StatsSpark>(p => p.Add(c => c.Punti, Serie(1.0, 7.0, 3.0)));
             var punti = f.Find(".spark-line").GetAttribute("points")!;
 
             Assert.DoesNotContain(",,", punti);                       // «1,5,20,3» = coordinate perse
@@ -56,15 +60,49 @@ public class StatsGraficiTests : TestContext
     [Fact]
     public void Una_serie_piatta_non_produce_NaN()
     {
-        var f = RenderComponent<StatsSpark>(p => p.Add(c => c.Valori, new[] { 4.0, 4.0, 4.0 }));
+        var f = RenderComponent<StatsSpark>(p => p.Add(c => c.Punti, Serie(4.0, 4.0, 4.0)));
         Assert.DoesNotContain("NaN", f.Find(".spark-line").GetAttribute("points"));
     }
 
     [Fact]
     public void Sotto_i_due_punti_la_sparkline_non_disegna_niente()
     {
-        var f = RenderComponent<StatsSpark>(p => p.Add(c => c.Valori, new[] { 9.0 }));
+        var f = RenderComponent<StatsSpark>(p => p.Add(c => c.Punti, Serie(9.0)));
         Assert.Empty(f.FindAll("svg"));
+    }
+
+    /// <summary>
+    /// L'asse è la ragione per cui questo componente è stato rifatto: senza, il disegno non diceva di che
+    /// cosa fosse la forma. Se un giorno sparisce, il difetto segnalato dal committente torna.
+    /// </summary>
+    [Fact]
+    public void La_sparkline_porta_l_asse_le_estremita_e_una_tacca_per_punto()
+    {
+        var f = RenderComponent<StatsSpark>(p => p
+            .Add(c => c.Punti, Serie(1.0, 7.0, 3.0))
+            .Add(c => c.Didascalia, "per mese"));
+
+        Assert.Single(f.FindAll(".spark-axis"));
+        Assert.Equal(3, f.FindAll(".spark-tick").Count);
+        Assert.Contains("m0", f.Find(".spark-ax").TextContent);          // la prima estremità
+        Assert.Contains("m2", f.Find(".spark-ax").TextContent);          // l'ultima
+        Assert.Contains("per mese", f.Find(".spark-ax").TextContent);
+    }
+
+    /// <summary>Ogni punto ha una fascia con il suo titolo: è il solo bersaglio che il mouse possa prendere.</summary>
+    [Fact]
+    public void Ogni_punto_ha_una_fascia_col_suo_titolo()
+    {
+        var f = RenderComponent<StatsSpark>(p => p.Add(c => c.Punti, Serie(1.0, 7.0, 3.0)));
+
+        // ⚠️ `.ToList()`: indicizzare direttamente la raccolta di bUnit esplode con un
+        // MissingMethodException su AngleSharp — è un difetto di versione, non del componente.
+        var fasce = f.FindAll(".spark-hit").ToList();
+        Assert.Equal(3, fasce.Count);
+        Assert.Equal("mese 1: 7", fasce[1].QuerySelector("title")!.TextContent);
+        // ⚠️ La fascia è dentro un SVG stirato: se le coordinate uscissero con la virgola decimale
+        // (cultura italiana) il rettangolo non nascerebbe e il titolo non sarebbe raggiungibile.
+        Assert.All(fasce, r => Assert.DoesNotContain(",", r.GetAttribute("width")));
     }
 
     [Fact]

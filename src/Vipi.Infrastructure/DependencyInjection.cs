@@ -158,6 +158,9 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IAtcStatsQueries, EfAtcStatsQueries>();
         services.AddScoped<Vipi.Application.Abstractions.IStatsSettingsStore, EfStatsSettingsStore>();
         services.AddScoped<Vipi.Application.Abstractions.IStatsAccessLog, EfStatsAccessLog>();
+        // Traffico d'aeroporto consolidato: quanto ce n'era e quanto ha trovato un controllore acceso.
+        services.AddScoped<Vipi.Application.Abstractions.IAirportTrafficRollupStore, EfAirportTrafficRollupStore>();
+        services.AddScoped<Vipi.Application.Abstractions.IAirportCoverageQueries, EfAirportCoverageQueries>();
         // Proiezione settori operativi dai cataloghi (fonte autoritativa unica, Round 20).
         services.AddScoped<Vipi.Application.Abstractions.ISectorProjectionService, EfSectorProjectionService>();
         services.AddScoped<Vipi.Application.Abstractions.IHierarchyEditingService, EfHierarchyEditingService>();

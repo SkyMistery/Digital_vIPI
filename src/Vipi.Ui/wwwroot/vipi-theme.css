@@ -610,6 +610,13 @@
    ============================================================================================ */
 .wrap.stats{container-type:inline-size}
 
+/* Il titolo e il tasto che porta all'altra pagina, sulla stessa riga. Il tasto NON deve stirarsi con il
+   titolo (`flex:none`) e su schermo stretto scende sotto invece di schiacciarlo. */
+.sh-title{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px}
+.sh-title>h1{margin:0;min-width:0}
+.sh-go{flex:none;display:inline-flex;align-items:center;gap:7px;padding:6px 13px;font-size:12.5px;font-family:var(--font-head);font-weight:600}
+.sh-go:hover{background:var(--line-atmos-soft)}
+
 /* Testata: chi sei, quanto hai fatto, e le due cose che valgono più di un numero (posizione e costanza). */
 .stat-hero{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 26px;margin-bottom:6px}
 .stat-hero .sh-main{min-width:0}
@@ -631,22 +638,49 @@
 .kpi-d.up{color:var(--ok-ink)}
 .kpi-d.down{color:var(--ink-soft)}
 .kpi-d.flat{color:var(--ink-faint)}
-.kpi-spark{margin-top:9px;height:30px}
+.kpi-spark{margin-top:9px}
 
 /* Sparkline. Il tratto NON si deforma con la scala orizzontale: `vector-effect` è quel che lo tiene
    spesso uguale quando l'SVG viene stirato (`preserveAspectRatio=none`), altrimenti su una card larga
-   la linea diventa un filo e su una stretta una salsiccia. */
+   la linea diventa un filo e su una stretta una salsiccia. Vale per la linea, per l'asse e per i trattini
+   dei punti — sono tutti disegnati dentro lo stesso SVG stirato. */
 .spark{display:block;width:100%;height:30px;overflow:visible}
 .spark-line{fill:none;stroke:var(--brand-ink-2);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
 .spark-area{fill:color-mix(in srgb,var(--brand-ink-2) 14%,transparent);stroke:none}
+/* L'asse e i suoi trattini: tenui, perché il protagonista resta la linea. Senza di loro il disegno non
+   diceva DI CHE COSA fosse la forma — ed era il difetto segnalato dal committente. */
+.spark-axis{stroke:var(--line-strong);stroke-width:1;vector-effect:non-scaling-stroke}
+/* ⚠️ `--line` qui NON si vede: sul tema scuro è a un soffio dal fondo della card, e le tacche erano
+   disegnate ma invisibili (visto a schermo il 25 agosto). Stesso inchiostro dell'asse, e tre unità in più
+   di altezza: una tacca che non si vede è un elemento che costa e non dice niente. */
+.spark-tick{stroke:var(--line-strong);stroke-width:1;vector-effect:non-scaling-stroke}
+.spark-hit{fill:transparent}
+/* Le estremità dell'asse e che cosa misura. HTML e non testo SVG: dentro un SVG stirato le lettere si
+   allargherebbero con il disegno. */
+.spark-ax{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:2px;font-size:10.5px;font-family:var(--font-head);color:var(--ink-faint);white-space:nowrap}
+.spark-ax .sx-cap{color:var(--ink-soft);min-width:0;overflow:hidden;text-overflow:ellipsis}
 
 /* Barre per mese: HTML e non SVG, così le etichette restano testo vero (ricerca, lettori di schermo). */
 .bars{display:flex;align-items:flex-end;gap:6px;height:150px;overflow-x:auto;padding:14px 2px 0}
-.bar-col{flex:1 0 34px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:34px}
+/* ⚠️ `max-width`: con DUE mesi in elenco (periodo di 30 giorni sulla divisione) due colonne che si
+   dividono la pagina diventano due lastre larghe mezzo schermo — visto a schermo il 25 agosto. Il tetto non
+   tocca il caso normale: dodici mesi su una colonna stanno già sotto i 96px. */
+.bar-col{flex:1 0 34px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:34px;max-width:96px}
 .bar-val{font-size:10.5px;color:var(--ink-soft);font-family:var(--font-head);margin-bottom:3px}
 .bar-fill{width:100%;background:linear-gradient(180deg,var(--brand-ink-2),color-mix(in srgb,var(--brand-ink-2) 55%,var(--surface)));border-radius:5px 5px 0 0;min-height:2px}
 .bar-col.on .bar-fill{background:linear-gradient(180deg,var(--ivao-blue),var(--brand-ink-2))}
 .bar-lab{font-size:10.5px;color:var(--ink-soft);margin-top:6px;font-family:var(--font-head);white-space:nowrap}
+/* Ventiquattro colonne dentro mezza pagina: strette, senza il numero sopra e con l'etichetta ogni tre.
+   Senza `dense`, le 24 ore facevano scorrere il riquadro di lato — e un grafico che scorre non si legge
+   a colpo d'occhio, che era tutto il punto di sostituire la griglia. */
+.bars.dense{height:132px;gap:3px;overflow-x:visible}
+.bars.dense .bar-col{flex:1 1 0;min-width:0;max-width:none}
+/* ⚠️ `min-height`, e non è cosmesi: in modalità densa l'etichetta c'è solo ogni tre colonne, e una `<span>`
+   vuota è alta zero — le colonne senza etichetta scendevano tredici pixel più in basso delle altre e le
+   barre non erano più confrontabili fra loro (visto a schermo il 25 agosto). Lo spazio si riserva sempre. */
+.bars.dense .bar-lab{font-size:10px;margin-top:5px;min-height:12px}
+/* La frase che riassume l'abitudine: è la sola cosa che una griglia non sapeva dire. */
+.stat-lead{margin:0 0 12px;font-size:14px;color:var(--ink-mid)}
 
 /* Ciambella + legenda: la ripartizione per postazione. Il buco al centro porta il totale. */
 .stat-peek{display:inline-flex;align-items:center;margin-left:7px;color:var(--ink-soft);vertical-align:middle}
@@ -716,6 +750,21 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .chip-link:hover{border-color:var(--line-atmos-strong);color:var(--brand-ink)}
 .chip-link.on{background:var(--ivao-blue);border-color:var(--ivao-blue);color:var(--on-brand)}
 
+/* La riga dei totali di una tabella: si stacca dalle righe, non si travesta da intestazione. */
+.res-table tfoot tr.tot td{border-top:2px solid var(--line-strong);font-weight:600;font-family:var(--font-head)}
+
+/* Cerca un controllore per VID (solo staff). Il campo non si stira su uno schermo largo: un numero di sei
+   cifre in un campo lungo mezzo metro sembra un campo di ricerca a testo libero, che non è. */
+.vid-find{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:6px}
+.vid-find input{width:min(280px,100%);border:1px solid var(--line);border-radius:8px;padding:8px 10px;
+  font-family:var(--font-body);font-size:13.5px;background:var(--surface);color:var(--ink)}
+.vid-find input:focus{outline:2px solid var(--ivao-lightblue);outline-offset:-1px}
+.vid-find .btn{display:inline-flex;align-items:center;gap:7px;flex:none}
+/* ⚠️ La freccia del datalist ruba 11px DENTRO il campo e copre le ultime cifre: si toglie, e ci vuole
+   `!important` perché la regola del browser vince su una normale. Stessa trappola già pagata sui campi
+   punto del catalogo. */
+.vid-find input::-webkit-calendar-picker-indicator{display:none !important}
+
 /* Podio della classifica: i primi tre grandi, il resto in tabella. */
 .podium{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:16px}
 .pod{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px}
@@ -741,7 +790,7 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
    una scheda sarebbe una colonna di numeri senza nome. */
 @container (max-width:700px){
   .tbl-cards thead{display:none}
-  .tbl-cards,.tbl-cards tbody,.tbl-cards tr,.tbl-cards td{display:block;width:auto}
+  .tbl-cards,.tbl-cards tbody,.tbl-cards tfoot,.tbl-cards tr,.tbl-cards td{display:block;width:auto}
   .tbl-cards tr{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:9px 12px;margin-bottom:8px;box-shadow:var(--shadow)}
   .tbl-cards td{border:0;padding:3px 0;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
   /* Il contenuto della cella è UNO: senza, un callsign con la riga «ricevuto da» sotto diventava due

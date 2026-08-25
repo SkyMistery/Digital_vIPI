@@ -1,4 +1,4 @@
-using Vipi.Application.Stats;
+﻿using Vipi.Application.Stats;
 
 namespace Vipi.Application.Abstractions;
 
@@ -33,4 +33,18 @@ public interface IAtcTrafficStore
     Task<int> FillAirportMovementsAsync(
         long sessionId, IReadOnlyList<SourceAirportMovement> movements, DateTimeOffset filledAtUtc,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Cancella il <b>dettaglio</b> delle tratte più vecchio di <paramref name="notAfter"/>, a scaglioni di
+    /// <paramref name="batch"/> righe. Ritorna quante ne ha tolte.
+    ///
+    /// <para>⚠️ Tocca <b>solo</b> <c>AtcSessionTraffic</c>: le sessioni restano per sempre, e con loro i
+    /// contatori denormalizzati che le riassumono. Quei contatori esistono esattamente perché la potatura
+    /// non azzeri le ore di un anno fa — cancellare anche le sessioni farebbe sparire le statistiche
+    /// insieme al dettaglio.</para>
+    ///
+    /// <para>⚠️ A scaglioni e non in un colpo: una <c>DELETE</c> da mezzo milione di righe tiene il lock
+    /// sulla tabella per il tempo che ci mette, e questa gira mentre l'applicazione serve pagine.</para>
+    /// </summary>
+    Task<int> PruneTrafficAsync(DateTimeOffset notAfter, int batch, CancellationToken ct = default);
 }

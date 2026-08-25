@@ -173,6 +173,46 @@
                everything: nothing is copied halfway.</p>
               <p>Profiles reach the server, where they are processed <b>in memory</b>: they are never written to
                disk nor kept.</p>"),
+
+        new Sec("statistiche", "activity", "Statistiche ATC", "ATC statistics",
+            @"<p><code>/services/stats</code> raccoglie quanto e cosa hai controllato: <b>ore</b>, <b>turni</b>,
+               <b>movimenti</b> e <b>presenze</b>, con il confronto rispetto al periodo precedente. Le chip in alto
+               scelgono il periodo e stanno nell'<b>indirizzo</b>: un periodo si può mandare a qualcuno.</p>
+              <ul>
+                <li>Un <b>turno</b> non è una connessione: gli spezzoni lasciati da una caduta di linea stanno
+                    insieme, aperti da chi li vuole vedere. Le connessioni sotto il minuto non fanno numero.</li>
+                <li><b>Quando controlli</b> sono due grafici: a che ora del giorno, e che giorno della settimana.
+                    Gli orari sono sempre in <b>UTC</b>.</li>
+                <li><b>Aeroporti gestiti</b> e <b>aeroporti visti</b> rispondono a due domande opposte: quanto
+                    traffico hai fatto sui campi che coprivi, e quali campi ti passano davanti.</li>
+                <li>Il dettaglio di un turno (<code>/services/stats/session/{id}</code>) ha la <b>striscia</b> dei voli,
+                    le <b>targhette</b> di quel che è successo a ognuno e la sequenza delle <b>piste in uso</b>.</li>
+              </ul>
+              <p>Il conteggio del traffico è una <b>misura</b>, non un registro: un settore senza poligono non
+               attribuisce niente, e le torri hanno un cerchio di 5 NM che è una stima.</p>
+              <p><b>Divisione</b> (<code>/services/stats/division</code>): copertura ora per giorno, andamento per
+               mese, classifica. La classifica è visibile a tutti solo se lo staff l'ha accesa; la propria
+               <b>posizione</b> si vede comunque. Lo staff ha in più la ricerca per VID e la tabella
+               <b>Aeroporti</b> — quanto traffico c'è stato su ogni campo e quanto ha trovato un controllore.</p>",
+            @"<p><code>/services/stats</code> collects how much and what you controlled: <b>hours</b>, <b>shifts</b>,
+               <b>movements</b> and <b>presences</b>, compared with the previous period. The chips at the top pick the
+               period and live in the <b>address</b>: a period can be sent to someone.</p>
+              <ul>
+                <li>A <b>shift</b> is not a connection: the pieces left by a dropped link stay together, expandable
+                    by whoever wants them. Connections under a minute do not count.</li>
+                <li><b>When you control</b> is two charts: what time of day, and what day of the week.
+                    Times are always <b>UTC</b>.</li>
+                <li><b>Airports managed</b> and <b>airports seen</b> answer opposite questions: how much traffic you
+                    worked on the fields you were covering, and which fields go past you.</li>
+                <li>A shift's detail (<code>/services/stats/session/{id}</code>) has the flight <b>timeline</b>, the
+                    <b>tags</b> for what happened to each one, and the sequence of <b>runways in use</b>.</li>
+              </ul>
+              <p>The traffic count is a <b>measurement</b>, not a register: a sector without a polygon attributes
+               nothing, and towers have a 5 NM circle that is an estimate.</p>
+              <p><b>Division</b> (<code>/services/stats/division</code>): coverage hour by day, monthly trend,
+               leaderboard. The leaderboard is visible to everyone only if staff turned it on; your own
+               <b>rank</b> shows either way. Staff also get the VID search and the <b>Airports</b> table — how much
+               traffic each field had and how much of it found a controller.</p>"),
     };
 
     private static readonly List<Sec> _modify = new()

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 
 namespace Vipi.Ui;
 
@@ -10,6 +10,15 @@ public sealed record StatsPeriod(string Key, int Days, string LabelKey);
 
 /// <summary>Una barra del grafico per mese.</summary>
 public sealed record StatsBar(string Label, double Value, string Title, bool Highlight = false);
+
+/// <summary>
+/// Un punto di una sparkline: il valore che decide l'altezza, l'etichetta corta dell'asse e la frase
+/// per esteso che compare passandoci sopra.
+///
+/// <para>⚠️ Un solo elenco e non tre paralleli: valore, etichetta e descrizione di un punto devono
+/// restare allineati, e due liste separate si scollano al primo filtro applicato a una sola.</para>
+/// </summary>
+public sealed record StatsPoint(double Value, string Label, string Title);
 
 /// <summary>Una fetta della ciambella.</summary>
 public sealed record StatsSlice(string Label, double Value, string CssClass, string Title);
@@ -84,6 +93,16 @@ public static class StatsView
         var s = callsignOrPosition.Trim().ToUpperInvariant();
         return s.Contains('_') ? s.Split('_')[^1] : s;
     }
+
+    /// <summary>
+    /// «2026-08» → «08/26»: l'etichetta di una barra deve stare in trentaquattro pixel.
+    ///
+    /// <para>⚠️ Sta qui e non nelle pagine perché lo usano in due (personale e divisione), e la stessa
+    /// abbreviazione scritta in due posti è due posti dove un giorno sarà diversa — la stessa ragione per
+    /// cui ci sono già <see cref="Ore"/> e <see cref="Durata"/>.</para>
+    /// </summary>
+    public static string Mese(string chiave) =>
+        chiave.Length == 7 ? $"{chiave[5..]}/{chiave[2..4]}" : chiave;
 
     /// <summary>Un numero dentro un attributo SVG: sempre col punto decimale, mai con la virgola.</summary>
     public static string Svg(double v) => v.ToString("0.###", CultureInfo.InvariantCulture);

@@ -861,7 +861,6 @@
   <data name="Stats_TopAircraft" xml:space="preserve"><value>The types you see most</value></data>
   <data name="Stats_Airport" xml:space="preserve"><value>Airport</value></data>
   <data name="Stats_Flights" xml:space="preserve"><value>Flights</value></data>
-  <data name="Stats_Export" xml:space="preserve"><value>Download my sessions (CSV)</value></data>
   <data name="Stats_Runways" xml:space="preserve"><value>Runways in use</value></data>
   <data name="Stats_RunwaysFrom" xml:space="preserve"><value>from</value></data>
   <data name="Stats_Title" xml:space="preserve"><value>My ATC statistics</value></data>
@@ -2178,6 +2177,47 @@
   <data name="Stats_StreakNone" xml:space="preserve"><value>none running</value></data>
   <data name="Stats_LastSession" xml:space="preserve"><value>Last session</value></data>
   <data name="Stats_FavPosition" xml:space="preserve"><value>Favourite position</value></data>
+  <data name="Stats_PerMonth" xml:space="preserve"><value>per month</value></data>
+  <data name="Stats_FindVid" xml:space="preserve"><value>Find a controller</value></data>
+  <data name="Stats_FindVidPlaceholder" xml:space="preserve"><value>VID, or the profile address</value></data>
+  <data name="Stats_FindVidGo" xml:space="preserve"><value>Open</value></data>
+  <data name="Stats_FindVidHint" xml:space="preserve"><value>You can paste the number, "VID 123456" or the IVAO profile address. The access is still recorded.</value></data>
+  <data name="Stats_FindVidBad" xml:space="preserve"><value>There is no VID in there: five to eight digits are needed.</value></data>
+  <data name="Day_1" xml:space="preserve"><value>Mon</value></data>
+  <data name="Day_2" xml:space="preserve"><value>Tue</value></data>
+  <data name="Day_3" xml:space="preserve"><value>Wed</value></data>
+  <data name="Day_4" xml:space="preserve"><value>Thu</value></data>
+  <data name="Day_5" xml:space="preserve"><value>Fri</value></data>
+  <data name="Day_6" xml:space="preserve"><value>Sat</value></data>
+  <data name="Day_7" xml:space="preserve"><value>Sun</value></data>
+  <data name="Day_1_Full" xml:space="preserve"><value>Monday</value></data>
+  <data name="Day_2_Full" xml:space="preserve"><value>Tuesday</value></data>
+  <data name="Day_3_Full" xml:space="preserve"><value>Wednesday</value></data>
+  <data name="Day_4_Full" xml:space="preserve"><value>Thursday</value></data>
+  <data name="Day_5_Full" xml:space="preserve"><value>Friday</value></data>
+  <data name="Day_6_Full" xml:space="preserve"><value>Saturday</value></data>
+  <data name="Day_7_Full" xml:space="preserve"><value>Sunday</value></data>
+  <data name="Stats_WhenByHour" xml:space="preserve"><value>What time</value></data>
+  <data name="Stats_WhenByDay" xml:space="preserve"><value>What day</value></data>
+  <data name="Stats_WhenByHourHint" xml:space="preserve"><value>Hours on frequency by hour of the day (UTC).</value></data>
+  <data name="Stats_WhenByDayHint" xml:space="preserve"><value>Hours on frequency by day of the week.</value></data>
+  <data name="Stats_HourTitle" xml:space="preserve"><value>{0}:00–{1}:00Z: {2} h</value></data>
+  <data name="Stats_DayTitle" xml:space="preserve"><value>{0}: {1} h</value></data>
+  <data name="Stats_TypicalYou" xml:space="preserve"><value>Half of your time sits between {0}:00 and {1}:00Z, and your day is {2}.</value></data>
+  <data name="Stats_TypicalOther" xml:space="preserve"><value>Half of their time sits between {0}:00 and {1}:00Z, and their day is {2}.</value></data>
+  <data name="Stats_Airports" xml:space="preserve"><value>Airports: traffic and coverage</value></data>
+  <data name="Stats_AirportsHint" xml:space="preserve"><value>How much traffic each field had, and how much of it found a controller online.</value></data>
+  <data name="Stats_AirportsGroup" xml:space="preserve"><value>Group</value></data>
+  <data name="Stats_AirportsAll" xml:space="preserve"><value>All</value></data>
+  <data name="Stats_AirportMovements" xml:space="preserve"><value>Movements</value></data>
+  <data name="Stats_AirportCovered" xml:space="preserve"><value>With ATC</value></data>
+  <data name="Stats_AirportOpenHours" xml:space="preserve"><value>Hours open</value></data>
+  <data name="Stats_AirportOpenShare" xml:space="preserve"><value>Open share</value></data>
+  <data name="Stats_AirportsTotal" xml:space="preserve"><value>Total</value></data>
+  <data name="Stats_AirportsPartial" xml:space="preserve"><value>The roll-up is still running: {0} days out of {1}. These numbers will grow.</value></data>
+  <data name="Stats_AirportsEmpty" xml:space="preserve"><value>Nothing has been rolled up yet: field traffic is collected overnight, one block at a time.</value></data>
+  <data name="Stats_AirportsMeasure" xml:space="preserve"><value>How to read this. "Movements" are arrivals and departures counted by the network, overflights excluded. "With ATC" means a position of that field was open at that instant — an arrival counts at its last sighting, a departure at the pilot's connection — not that the flight was actually worked: the source gives no way to know that.</value></data>
+  <data name="Stats_AirportRowTitle" xml:space="preserve"><value>{0}: {1} movements, {2} with ATC, {3} h open</value></data>
   <data name="Stats_MonthChart" xml:space="preserve"><value>Hours per month</value></data>
   <data name="Stats_PositionShare" xml:space="preserve"><value>How your time splits</value></data>
   <data name="Stats_PositionShareDivision" xml:space="preserve"><value>How the division's time splits</value></data>

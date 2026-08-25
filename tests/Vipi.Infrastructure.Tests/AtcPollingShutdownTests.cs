@@ -65,6 +65,10 @@ public class AtcPollingShutdownTests
 
         public Task<int> FillAirportMovementsAsync(long sessionId, IReadOnlyList<SourceAirportMovement> movements,
             DateTimeOffset filledAtUtc, CancellationToken ct = default) => Task.FromResult(0);
+
+        // La potatura non c'entra con lo spegnimento del poller: qui basta che esista.
+        public Task<int> PruneTrafficAsync(DateTimeOffset notAfter, int batch, CancellationToken ct = default) =>
+            Task.FromResult(0);
     }
 
     private sealed class AmbienteFinto : IHostEnvironment

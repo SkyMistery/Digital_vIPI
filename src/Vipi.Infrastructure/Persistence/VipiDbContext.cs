@@ -108,6 +108,7 @@ public class VipiDbContext : DbContext
     public DbSet<AtcSessionTraffic> AtcSessionTraffic => Set<AtcSessionTraffic>();
     public DbSet<StatsSettings> StatsSettings => Set<StatsSettings>();
     public DbSet<AtcSessionRunway> AtcSessionRunways => Set<AtcSessionRunway>();
+    public DbSet<AirportDayTraffic> AirportDayTraffic => Set<AirportDayTraffic>();
 
     /// <summary>
     /// Lettura tollerante dell'azione di registro: un valore che questa versione non conosce diventa
@@ -532,6 +533,20 @@ public class VipiDbContext : DbContext
             // resto delle statistiche: la tabella nasce adesso e non c'è nessun `text` da convertire.
             e.Property(x => x.Arrival).HasMaxLength(32);
             e.Property(x => x.Departure).HasMaxLength(32);
+        });
+
+        b.Entity<AirportDayTraffic>(e =>
+        {
+            // Chiave naturale composita: un aeroporto, un giorno. Niente Id surrogato — sarebbe un secondo
+            // albero d'indice su decine di migliaia di righe che si leggono sempre per (campo, periodo).
+            e.HasKey(x => new { x.Icao, x.Day });
+
+            // L'ICAO sta nella chiave: senza lunghezza, su MySQL è `longtext` e InnoDB rifiuta l'indice.
+            // Otto caratteri come ogni altro ICAO delle statistiche.
+            e.Property(x => x.Icao).HasMaxLength(8);
+
+            // «Il traffico italiano del mese scorso»: si legge per giorno, su tutti i campi insieme.
+            e.HasIndex(x => x.Day);
         });
 
         // --- Aree speciali/regolamentate importate dalla sorgente. L'appartenenza agli ACC è molti-a-molti

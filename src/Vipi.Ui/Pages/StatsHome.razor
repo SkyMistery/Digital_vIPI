@@ -31,7 +31,20 @@
         <div class="sh-main">
             @* Anche il divieto porta il titolo neutro: «Le mie statistiche ATC» sopra un «non ti è
                permesso» direbbe che sono le PROPRIE a essere negate, che è il contrario. *@
-            <h1 class="page-h1">@(_altrui || _vietato ? L["Stats_UserTitle"] : L["Stats_Title"])</h1>
+            @* ⚠️ Il tasto sta sulla RIGA del titolo, non in fondo alla pagina: era un link grigio in coda
+               al disclaimer, e chi poteva entrare non sapeva di poterlo. Una strada sola per un posto solo:
+               il link in fondo è stato tolto insieme a questo.
+               Il gate è lo stesso della pagina di destinazione — staff sempre, gli altri se la classifica è
+               stata resa pubblica — e non è una guardia: la guardia è là, come per la lente del podio. *@
+            <div class="sh-title">
+                <h1 class="page-h1">@(_altrui || _vietato ? L["Stats_UserTitle"] : L["Stats_Title"])</h1>
+                @if (_utente is not null && !_vietato && (Authz.IsAdmin || _classificaPubblica))
+                {
+                    <a class="btn ghost sh-go" href="/services/stats/division">
+                        <Icon Name="grid" Size="15" /> @L["Stats_DivisionLink"]
+                    </a>
+                }
+            </div>
             @* Nome e VID di chi è guardato. Il VID è staccato dal resto — prima era il «{1}» dentro la
                chiave Stats_Subtitle («{0} · VID {1}») — perché è un link al profilo IVAO: dentro una
                frase già formattata non c'era modo di renderlo premibile. Il «·» è punteggiatura, non
@@ -120,11 +133,13 @@
         {
             <div class="kpi-grid">
                 <StatsKpi Valore="@StatsView.Ore(_totali.Seconds)" Unita="h" Etichetta="@L["Stats_Hours"].Value"
-                          Delta="_dOre" DeltaHint="@_confronto" Serie="_serieOre" />
+                          Delta="_dOre" DeltaHint="@_confronto" Serie="_serieOre"
+                          SerieDidascalia="@L["Stats_PerMonth"].Value" />
                 <StatsKpi Valore="@_totali.Shifts.ToString()" Etichetta="@L["Stats_Shifts"].Value"
                           Delta="_dTurni" DeltaHint="@_confronto" />
                 <StatsKpi Valore="@_totali.Movements.ToString()" Etichetta="@L["Stats_Movements"].Value"
-                          Delta="_dMovimenti" DeltaHint="@_confronto" Serie="_serieMovimenti" />
+                          Delta="_dMovimenti" DeltaHint="@_confronto" Serie="_serieMovimenti"
+                          SerieDidascalia="@L["Stats_PerMonth"].Value" />
                 <StatsKpi Valore="@_totali.Presences.ToString()" Etichetta="@L["Stats_Presences"].Value" />
             </div>
 
@@ -140,13 +155,31 @@
                 </section>
             </div>
 
+            @* ⚠️ Qui c'era la griglia 7×24 con le percentuali dentro. Il committente non la trovava
+               leggibile (25 agosto 2026) e ha scelto le due domande separate: «a che ora» e «che giorno».
+               Si perde l'incrocio — «il giovedì sera» non si legge più — e per questo la griglia RESTA
+               sulla pagina della divisione, dove l'incrocio serve a decidere dove mettere qualcuno.
+               La frase in testa è il riassunto che una griglia non sapeva dare. *@
             <h2 class="h-sect">@_titoloGriglia</h2>
-            <CoverageHeatmap Celle="_griglia" Copertura="false" Titolo="@_titoloGriglia" />
-            <div class="cov-legend">
-                <span>@L["Stats_CovLegend"]</span>
-                <span>@L["Stats_CovNone"]</span>
-                <i class="cov-q0"></i><i class="cov-q1"></i><i class="cov-q2"></i><i class="cov-q3"></i><i class="cov-q4"></i>
-                <span>@L["Stats_CovFull"]</span>
+            @if (_profilo.HasPeak)
+            {
+                <p class="stat-lead">
+                    @(_altrui
+                        ? L["Stats_TypicalOther", _profilo.PeakFromHour, _profilo.PeakToHour, _nomeGiornoPieno]
+                        : L["Stats_TypicalYou", _profilo.PeakFromHour, _profilo.PeakToHour, _nomeGiornoPieno])
+                </p>
+            }
+            <div class="stats-cols">
+                <section>
+                    <h3 class="h-card">@L["Stats_WhenByHour"]</h3>
+                    <p class="muted">@L["Stats_WhenByHourHint"]</p>
+                    <StatsBars Barre="_barreOre" Titolo="@L["Stats_WhenByHour"].Value" Densa="true" />
+                </section>
+                <section>
+                    <h3 class="h-card">@L["Stats_WhenByDay"]</h3>
+                    <p class="muted">@L["Stats_WhenByDayHint"]</p>
+                    <StatsBars Barre="_barreGiorni" Titolo="@L["Stats_WhenByDay"].Value" />
+                </section>
             </div>
 
             @* ⚠️ Le due domande sugli aeroporti sono OPPOSTE e stanno affiancate apposta: a sinistra i campi
@@ -325,19 +358,10 @@
         }
     }
 
-    <p class="muted" style="margin-top:22px">
-        @* L'esportazione è solo la PROPRIA anche per lo staff: l'endpoint legge il VID dall'identità e non
-           prende parametri, di proposito (vedi il commento in VipiModuleExtensions). *@
-        @if (_utente is not null && !_altrui)
-        {
-            <a href="/services/stats/export.csv">@L["Stats_Export"]</a><text> · </text>
-        }
-        @L["Stats_Disclaimer"]
-        @if (Authz.IsAdmin || _classificaPubblica)
-        {
-            <text> · </text><a href="/services/stats/division">@L["Stats_DivisionLink"]</a>
-        }
-    </p>
+    @* ⚠️ Qui c'era l'esportazione CSV delle proprie sessioni, tolta il 25 agosto 2026 su richiesta del
+       committente — tasto E meccanismo (l'endpoint `/services/stats/export.csv` non esiste più). Il link
+       alla divisione è salito accanto al titolo: due strade per lo stesso posto erano una di troppo. *@
+    <p class="muted" style="margin-top:22px">@L["Stats_Disclaimer"]</p>
 </div>
 
 @code {
@@ -375,11 +399,15 @@
     private IReadOnlyList<StatsByKey> _tipi = Array.Empty<StatsByKey>();
     private IReadOnlyList<Turno> _turni = Array.Empty<Turno>();
     private IReadOnlyList<Vipi.Application.Stats.CoverageCell> _griglia = Array.Empty<Vipi.Application.Stats.CoverageCell>();
+    private HourDayProfile _profilo = new(Array.Empty<int>(), Array.Empty<int>(), -1, -1, 0, 0);
+    private string _nomeGiornoPieno = "";
+    private IReadOnlyList<StatsBar> _barreOre = Array.Empty<StatsBar>();
+    private IReadOnlyList<StatsBar> _barreGiorni = Array.Empty<StatsBar>();
     private IReadOnlyList<StatsChipBar.Voce> _periodi = Array.Empty<StatsChipBar.Voce>();
     private IReadOnlyList<StatsBar> _barreMesi = Array.Empty<StatsBar>();
     private IReadOnlyList<StatsSlice> _fette = Array.Empty<StatsSlice>();
-    private IReadOnlyList<double> _serieOre = Array.Empty<double>();
-    private IReadOnlyList<double> _serieMovimenti = Array.Empty<double>();
+    private IReadOnlyList<StatsPoint> _serieOre = Array.Empty<StatsPoint>();
+    private IReadOnlyList<StatsPoint> _serieMovimenti = Array.Empty<StatsPoint>();
     private DateTimeOffset? _inizioArchivio;
     private bool _classificaPubblica;
     private int? _dOre, _dTurni, _dMovimenti;
@@ -443,6 +471,24 @@
         _aeroportiGestiti = await Stats.ManagedAirportsAsync(vid, da, a);
         _tipi = await Stats.TopAircraftAsync(vid, da, a);
         _griglia = await Stats.CoverageAsync(vid, da, a);
+        _profilo = HourDayProfileBuilder.Build(_griglia);
+        _nomeGiornoPieno = _profilo.BusiestDay > 0 ? L[$"Day_{_profilo.BusiestDay}_Full"].Value : "";
+        // ⚠️ L'etichetta dell'ora si scrive solo ogni tre colonne: ventiquattro numeri in fila su mezza
+        // pagina si sovrappongono, e un'etichetta illeggibile è peggio di nessuna etichetta.
+        _barreOre = Enumerable.Range(0, 24)
+            .Select(h => new StatsBar(
+                h % 3 == 0 ? h.ToString("00") : "",
+                _profilo.PerHour[h] / 60.0,
+                L["Stats_HourTitle", h.ToString("00"), ((h + 1) % 24).ToString("00"),
+                  StatsView.Ore(_profilo.PerHour[h] * 60L)]))
+            .ToList();
+        _barreGiorni = Enumerable.Range(1, 7)
+            .Select(g => new StatsBar(
+                L[$"Day_{g}"].Value,
+                _profilo.PerDay[g - 1] / 60.0,
+                L["Stats_DayTitle", L[$"Day_{g}_Full"].Value, StatsView.Ore(_profilo.PerDay[g - 1] * 60L)],
+                Highlight: g == _profilo.BusiestDay))
+            .ToList();
         _striscia = await Stats.StreakAsync(vid, da, a);
         _posizione = await Stats.RankAsync(vid, da, a);
 
@@ -459,7 +505,7 @@
 
         _barreMesi = _perMese
             .Select(m => new StatsBar(
-                Mese(m.Key), m.Seconds / 3600.0,
+                StatsView.Mese(m.Key), m.Seconds / 3600.0,
                 L["Stats_MonthTitle", m.Key, StatsView.Ore(m.Seconds), m.Movements]))
             .ToList();
 
@@ -471,8 +517,16 @@
             .OrderByDescending(f => f.Value)
             .ToList();
 
-        _serieOre = _perMese.Select(m => m.Seconds / 3600.0).ToList();
-        _serieMovimenti = _perMese.Select(m => (double)m.Movements).ToList();
+        // ⚠️ Etichetta e frase stanno sul PUNTO, non in un elenco a parte: la sparkline deve poter dire
+        // «08/26: 12,4 h» senza che due liste debbano restare allineate a mano.
+        _serieOre = _perMese
+            .Select(m => new StatsPoint(m.Seconds / 3600.0, StatsView.Mese(m.Key),
+                L["Stats_MonthTitle", m.Key, StatsView.Ore(m.Seconds), m.Movements]))
+            .ToList();
+        _serieMovimenti = _perMese
+            .Select(m => new StatsPoint(m.Movements, StatsView.Mese(m.Key),
+                L["Stats_MonthTitle", m.Key, StatsView.Ore(m.Seconds), m.Movements]))
+            .ToList();
 
         _maxOrePostazione = _perPostazione.Count == 0 ? 0 : _perPostazione.Max(r => r.Seconds);
         _maxOreMese = _perMese.Count == 0 ? 0 : _perMese.Max(r => r.Seconds);
@@ -497,8 +551,4 @@
                 g.OrderBy(s => s.StartUtc).ToList()))
             .OrderByDescending(t => t.Inizio)
             .ToList();
-
-    /// <summary>«2026-08» → «08/26»: l'etichetta di una barra deve stare in trentaquattro pixel.</summary>
-    private static string Mese(string chiave) =>
-        chiave.Length == 7 ? $"{chiave[5..]}/{chiave[2..4]}" : chiave;
 }

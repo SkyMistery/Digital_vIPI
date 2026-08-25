@@ -228,11 +228,42 @@ public class StatsProfileAccessTests : TestContext
         Assert.All(indirizzi, h => Assert.StartsWith("/services/stats/user/555003?p=", h));
     }
 
-    /// <summary>L'esportazione CSV è solo la propria: l'endpoint non prende il VID, e il link non lo promette.</summary>
+    /// <summary>
+    /// ⚠️ Il tasto sta sulla riga del titolo e non in fondo alla pagina, ed è il difetto che il committente
+    /// ha segnalato il 25 agosto 2026: chi poteva entrare non sapeva di poterlo. Se torna in coda al
+    /// disclaimer, questo test non se ne accorge — ma se sparisce del tutto, sì.
+    /// </summary>
     [Fact]
-    public void Sulle_statistiche_di_un_altro_non_si_offre_l_esportazione()
+    public void Lo_staff_trova_il_tasto_della_divisione_sulla_riga_del_titolo()
     {
-        var cut = Render(staff: true, vidGuardato: 555003, new ArchivioVuoto());
+        var cut = Render(staff: true, vidGuardato: null, new ArchivioVuoto());
+
+        var tasto = cut.Find(".sh-title a.sh-go");
+        Assert.Equal("/services/stats/division", tasto.GetAttribute("href"));
+    }
+
+    /// <summary>
+    /// A classifica spenta un socio qualunque non ha niente da aprire: il tasto non c'è. Offrirlo e poi
+    /// negare la pagina è la promessa che il §6 vieta.
+    /// </summary>
+    [Fact]
+    public void Senza_permesso_e_a_classifica_spenta_il_tasto_non_c_e()
+    {
+        var cut = Render(staff: false, vidGuardato: null, new ArchivioVuoto());
+        Assert.Empty(cut.FindAll(".sh-title a.sh-go"));
+    }
+
+    /// <summary>
+    /// L'esportazione CSV è stata tolta il 25 agosto 2026 su richiesta del committente: tasto <b>e</b>
+    /// meccanismo. Il test resta e cambia mestiere — prima sorvegliava che non si offrisse l'esportazione
+    /// <i>altrui</i>, ora che non se ne offra <b>nessuna</b>, da nessuna delle due pagine.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData(555003)]
+    public void L_esportazione_csv_non_si_offre_piu(int? vidGuardato)
+    {
+        var cut = Render(staff: true, vidGuardato: vidGuardato, new ArchivioVuoto());
         Assert.DoesNotContain("export.csv", cut.Markup);
     }
 }

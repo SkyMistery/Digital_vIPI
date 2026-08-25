@@ -1,6 +1,17 @@
 @using Vipi.Application.Stats
+@inject IStringLocalizer<SharedResource> L
 
 @* Griglia ora × giorno: 7 righe, 24 colonne, e l'intensità del colore dice quanto è coperta la casella.
+
+   ⚠️ I nomi dei giorni erano scritti a mano in italiano («lun», «mar»…) e restavano italiani anche con
+   l'applicazione in inglese: sette parole in mezzo a una pagina tradotta. Ora vengono dalle risorse come
+   tutto il resto — e le stesse chiavi le usa il grafico «che giorno» della pagina personale, o i due
+   disegni chiamerebbero lo stesso giorno in due modi.
+
+   ⚠️ Dal 25 agosto 2026 questa griglia vive SOLO nella pagina della divisione: sulla pagina personale l'ha
+   sostituita la coppia di grafici (a che ora / che giorno). Qui resta perché la domanda della divisione è
+   davvero quella incrociata — «dove manca qualcuno il giovedì sera» — e due grafici separati non la
+   sanno dire.
 
    ⚠️ Numeri E colore, non solo colore: una scala di intensità da sola non si legge a chi ha una visione dei
    colori diversa, e non si legge affatto in stampa. Il titolo di ogni casella dice la percentuale per esteso. *@
@@ -21,7 +32,7 @@
             {
                 var giorno = g;
                 <tr>
-                    <th scope="row">@Giorni[giorno - 1]</th>
+                    <th scope="row">@L[$"Day_{giorno}"]</th>
                     @for (var h = 0; h < 24; h++)
                     {
                         var c = Cella(giorno, h);
@@ -42,8 +53,6 @@
 
     [Parameter] public string Titolo { get; set; } = "";
 
-    private static readonly string[] Giorni = { "lun", "mar", "mer", "gio", "ven", "sab", "dom" };
-
     private CoverageCell Cella(int giorno, int ora) =>
         Celle.FirstOrDefault(c => c.DayOfWeek == giorno && c.Hour == ora) ?? new CoverageCell(giorno, ora, 0, 0);
 
@@ -55,7 +64,7 @@
 
     private string Descrizione(int giorno, int ora, CoverageCell c)
     {
-        var quando = $"{Giorni[giorno - 1]} {ora:00}:00–{(ora + 1) % 24:00}:00Z";
+        var quando = $"{L[$"Day_{giorno}"].Value} {ora:00}:00–{(ora + 1) % 24:00}:00Z";
         if (c.PossibleMinutes <= 0) return $"{quando}: fuori dalla finestra";
 
         var perc = Math.Round(c.Ratio * 100);
