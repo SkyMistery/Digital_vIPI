@@ -66,7 +66,16 @@ public enum BlockSection
 // del modello significa «tolto di mezzo ma conservato»: per un atto irreversibile sarebbe una bugia gentile.
 // ForceUnlock è un valore suo e non un Update perché la domanda a cui il registro deve rispondere è «chi ha
 // tolto il lock a chi», e la risposta sta nei dettagli della riga.
-public enum AuditAction { Create, Update, Publish, Archive, HierarchyChange, Discard, Delete, ForceUnlock }
+/// <summary>
+/// Azione registrata nel registro. ⚠️ Il registro è <b>append-only e attraversa le versioni</b>: contiene righe
+/// scritte da codice più nuovo di quello che le rilegge — un ramo non ancora fuso, o un rollback in produzione.
+/// Per questo l'ultimo membro è <see cref="Unknown"/> e la colonna ha una conversione tollerante
+/// (<c>VipiDbContext</c>): un'azione che questa versione non conosce si <b>legge</b>, non abbatte la pagina.
+/// <para>Nessuno scrive mai <see cref="Unknown"/>: esiste solo come esito di lettura.</para>
+/// <para><see cref="View"/> è la visita al profilo statistiche di un'altra persona: la scrive il servizio
+/// statistiche ATC. Sta qui anche dove quel servizio non c'è ancora, perché le sue righe arrivano lo stesso.</para>
+/// </summary>
+public enum AuditAction { Create, Update, Publish, Archive, HierarchyChange, Discard, Delete, ForceUnlock, View, Unknown }
 
 /// <summary>Tipo di riferimento nav per la validazione semantica.</summary>
 public enum NavRefType { Fix, Airway, Navaid }

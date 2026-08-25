@@ -105,6 +105,19 @@ public class VipiDbContext : DbContext
     public DbSet<EditResourceLock> EditResourceLocks => Set<EditResourceLock>();
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
 
+    /// <summary>
+    /// Lettura tollerante dell'azione di registro: un valore che questa versione non conosce diventa
+    /// <see cref="AuditAction.Unknown"/> invece di far esplodere la query. Metodo e non lambda in linea perché
+    /// l'albero di espressione di <c>HasConversion</c> non ammette un <c>out</c>.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ Si controlla il <b>NOME</b>, non il valore. <c>Enum.TryParse</c> accetta anche la forma numerica, e
+    /// <c>Enum.IsDefined(valore)</c> non la ferma: un <c>'3'</c> in colonna passava come <c>Archive</c> — un'azione
+    /// SBAGLIATA, che è peggio di un'azione ignota. Trovato da un test, non a mente.
+    /// </remarks>
+    private static AuditAction LeggiAzione(string? s) =>
+        s is not null && Enum.IsDefined(typeof(AuditAction), s) ? Enum.Parse<AuditAction>(s) : AuditAction.Unknown;
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         base.OnModelCreating(b);
@@ -125,6 +138,17 @@ public class VipiDbContext : DbContext
             // Senza, gli ACC già in tabella — italiani compresi — nascerebbero con le aree spente.
             e.Property(x => x.SpecialAreasEnabled).HasDefaultValue(true);
         });
+
+        // ⚠️ Il registro è l'unico enum che si legge TOLLERANTE, e non è una svista che gli altri non lo siano.
+        // Un `SectorType` sconosciuto è una corruzione e deve fermare tutto; una riga di registro con un'azione
+        // sconosciuta è invece la normalità di un archivio append-only che attraversa le versioni — codice più
+        // nuovo che l'ha scritta (un ramo non ancora fuso, un rollback in produzione), codice più vecchio che la
+        // rilegge. Senza questa conversione la pagina del Registro moriva INTERA per una riga sola: misurato il
+        // 25 agosto 2026, due righe `View` scritte dal ramo `statistiche-atc` uccidevano `/services/vsop/admin/audit`
+        // su `main`. Ed è proprio il registro che si va a leggere quando qualcosa è andato storto.
+        // La stringa originale si perde nella conversione, ma la riga resta leggibile: EntityType, DetailsJson,
+        // autore e ora sono intatti, e il narratore la mostra nella famiglia «Altro».
+        b.Entity<AuditLog>().Property(x => x.Action).HasConversion(v => v.ToString(), s => LeggiAzione(s));
 
         b.Entity<SidFixAlias>().HasIndex(x => x.Prefix).IsUnique();   // un solo alias per prefisso
         b.Entity<ImportState>().HasKey(x => x.Category);               // una riga per categoria di import

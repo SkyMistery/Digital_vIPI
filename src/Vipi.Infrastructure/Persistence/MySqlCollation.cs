@@ -65,8 +65,10 @@ public static class MySqlCollation
             foreach (var prop in entity.GetProperties())
             {
                 // Vale anche per gli enum: OnModelCreating li salva come stringa via SetProviderClrType,
-                // quindi sono colonne stringa che non sembrano tali guardando il tipo CLR.
-                var tipoClr = prop.GetProviderClrType() ?? Nullable.GetUnderlyingType(prop.ClrType) ?? prop.ClrType;
+                // quindi sono colonne stringa che non sembrano tali guardando il tipo CLR. ⚠️ Il tipo si chiede a
+                // TipoColonna e non a GetProviderClrType: una proprietà con un HasConversion suo lo porta nel
+                // convertitore, e chiedendolo di là usciva da questa regola in silenzio (vedi TipoColonna).
+                var tipoClr = TipoColonna.Provider(prop) ?? Nullable.GetUnderlyingType(prop.ClrType) ?? prop.ClrType;
                 if (tipoClr == typeof(string)) prop.SetCollation(Name);
             }
     }
