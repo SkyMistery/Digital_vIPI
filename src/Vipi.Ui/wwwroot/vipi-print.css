@@ -195,7 +195,10 @@
   /* La mappa AoR (Leaflet, o l'SVG di fallback) ha altezza fissa in px: la teniamo, ma intera su una pagina.
      L'attribuzione delle tile resta visibile (licenza della sorgente cartografica). */
   .vipi-root .aor-leaflet { break-inside: avoid; }
-  .vipi-root a { color: inherit; text-decoration: none; }
+  /* ⚠️ `.vid-link` va nominato a parte: `.vipi-root .vid-link` (due classi) batte `.vipi-root a` (una
+     classe e un tag), e su carta il VID si sarebbe portato dietro la sua sottolineatura punteggiata —
+     un invito a premere, stampato. */
+  .vipi-root a, .vipi-root .vid-link { color: inherit; text-decoration: none; }
 
   /* ── Sezioni collassate ────────────────────────────────────────────────────────
      CollapsibleBlock è un <details> nativo col collasso persistito (localStorage, data-persist): quel che

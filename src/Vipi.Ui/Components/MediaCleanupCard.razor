@@ -67,7 +67,7 @@
                             <td>@(string.IsNullOrWhiteSpace(o.FileName) ? o.Sha256[..12] + "…" : o.FileName)</td>
                             <td>@Human(o.ByteSize)</td>
                             <td class="muted">@o.CreatedUtc.ToString("dd/MM/yyyy")</td>
-                            <td class="muted">@(o.CreatedByUserId > 0 ? o.CreatedByUserId.ToString() : "—")</td>
+                            <td class="muted">@if (o.CreatedByUserId > 0) { <VidLink Vid="o.CreatedByUserId" SoloNumero="true" /> } else { <text>—</text> }</td>
                         </tr>
                     }
                 </tbody>

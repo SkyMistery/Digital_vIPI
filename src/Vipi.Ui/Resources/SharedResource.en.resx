@@ -861,7 +861,6 @@
   <data name="Stats_Runways" xml:space="preserve"><value>Runways in use</value></data>
   <data name="Stats_RunwaysFrom" xml:space="preserve"><value>from</value></data>
   <data name="Stats_Title" xml:space="preserve"><value>My ATC statistics</value></data>
-  <data name="Stats_Subtitle" xml:space="preserve"><value>{0} · VID {1}</value></data>
   <data name="Stats_LoginNeeded" xml:space="preserve"><value>Sign in with your IVAO account to see your statistics.</value></data>
   <data name="Stats_Empty" xml:space="preserve"><value>No ATC connections under your name yet. They show up here shortly after the first one.</value></data>
   <data name="Stats_Hours" xml:space="preserve"><value>Hours</value></data>
@@ -2220,4 +2219,5 @@
   <data name="Stats_TagHint_Gap" xml:space="preserve"><value>There is a gap between two sightings: the minutes are an undercount.</value></data>
   <data name="Stats_TagHint_Rebuilt" xml:space="preserve"><value>Rebuilt from airport movements: no phase observed.</value></data>
   <data name="Stats_Controllers" xml:space="preserve"><value>Controllers</value></data>
+  <data name="Vid_ProfileTitle" xml:space="preserve"><value>Open the IVAO profile — VID {0}</value></data>
 </root>

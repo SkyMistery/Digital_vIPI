@@ -43,7 +43,7 @@
                         <div class="diff">
                             <span>@L["Changed_Sections"] @r.PrevSections → <b>@r.CurrSections</b></span> ·
                             <span>@L["Changed_Blocks"] @r.PrevBlocks → <b>@r.CurrBlocks</b></span> ·
-                            <span class="muted">VID @r.PublishedByUserId · @r.PublishedUtc.ToString("dd MMM HH:mm")</span>
+                            <span class="muted"><VidLink Vid="r.PublishedByUserId" /> · @r.PublishedUtc.ToString("dd MMM HH:mm")</span>
                         </div>
                     </div>
                     <a class="chg-link" href="@r.Url">@L["Common_OpenArrow"]</a>

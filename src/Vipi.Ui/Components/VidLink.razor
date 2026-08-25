@@ -1,0 +1,61 @@
+@inject IStringLocalizer<SharedResource> L
+
+@* Il VID è una porta sul profilo IVAO di quella persona.
+
+   Perché è un componente e non un `<a>` scritto a mano dove serve. Il VID compare in una dozzina di punti
+   dell'app — Permessi, Registro, Versioni, Incarichi, Statistiche, Diagnostica, Cambiati — e in tre forme:
+   nudo dentro la colonna di una tabella che ha già «VID» scritto in intestazione, con l'etichetta davanti
+   («VID 123456»), oppure dietro a un nome («Mario Rossi (VID 123456)»). Scritto a mano dodici volte
+   sarebbero dodici occasioni di sbagliare l'indirizzo e dodici `title` da tradurre due volte; qui
+   l'indirizzo del profilo sta in UN posto solo.
+
+   ⚠️ È un `<a>` e basta, senza render mode: metà dei punti in cui il VID compare sono resi in SSR statico
+   (la classifica di divisione, Cambiati, il sottotitolo delle statistiche) e un link lì funziona
+   esattamente come dentro un circuito interattivo. Fosse stato un `@onclick` non avrebbe fatto niente.
+
+   ⚠️ `target="_blank"`: il profilo sta su un altro sito. Portarci via chi stava editando una vIPI — con il
+   lock aperto e una bozza non salvata — sarebbe un modo di far perdere lavoro. Stessa scelta di tutte le
+   altre uscite dal modulo (anteprima della release, Guida), quindi anche lo stesso `rel="noopener"`.
+
+   ⚠️ `@onclick:stopPropagation`: in Permessi il VID sta DENTRO una riga che è essa stessa un comando
+   (`role="button"`, sceglie la persona). Senza fermare la risalita, aprire un profilo cambierebbe anche la
+   selezione della pagina alle spalle di chi ha cliccato. *@
+
+@if (Nome is not null)
+{
+    <text>@Nome (</text>
+}
+@if (Vid > 0)
+{
+    <a class="vid-link" href="@Href" target="_blank" rel="noopener"
+       title="@L["Vid_ProfileTitle", Vid]" @onclick:stopPropagation>@Testo</a>
+}
+else
+{
+    @* Zero non è un VID: è la riga scritta dal sistema (import, migrazione, seed). Niente link — non c'è
+       nessun profilo dall'altra parte — ma il testo resta quello di prima. *@
+    <span>@Testo</span>
+}
+@if (Nome is not null)
+{
+    <text>)</text>
+}
+
+@code {
+    /// <summary>Il VID. Zero o negativo = nessuna persona: si scrive, non si linka.</summary>
+    [Parameter] public int Vid { get; set; }
+
+    /// <summary>Il nome, quando lo si conosce: esce «Nome (VID 123456)», che è la forma già usata in
+    /// Versioni e Permessi. A essere premibile è il solo VID — il nome non porta da nessuna parte.</summary>
+    [Parameter] public string? Nome { get; set; }
+
+    /// <summary>Solo il numero, senza la parola «VID» davanti: per le colonne di tabella che quella parola
+    /// ce l'hanno già scritta nell'intestazione, dove ripeterla su ogni riga è rumore.</summary>
+    [Parameter] public bool SoloNumero { get; set; }
+
+    /// <summary>⚠️ L'indirizzo del profilo pubblico IVAO. È `ivao.aero`, non `api.ivao.aero`: quello è
+    /// l'IdP con cui si fa il login (vedi IvaoOptions), questo è il sito che si apre a un essere umano.</summary>
+    private string Href => $"https://ivao.aero/Member.aspx?Id={Vid}";
+
+    private string Testo => SoloNumero ? Vid.ToString() : L["Audit_VidN", Vid].Value;
+}

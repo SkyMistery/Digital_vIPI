@@ -618,8 +618,9 @@
         foreach (var kv in names) _authorNames[kv.Key] = kv.Value;
     }
 
-    private string Author(int vid) =>
-        _authorNames.TryGetValue(vid, out var n) ? $"{n} (VID {vid})" : $"VID {vid}";
+    /// <summary>Il nome che il roster conosce, o <c>null</c>. Prima questo metodo componeva da sé la stringa
+    /// «Nome (VID 123456)»; la compone <c>VidLink</c>, che di quel VID fa anche un link al profilo.</summary>
+    private string? NomeAutore(int vid) => _authorNames.TryGetValue(vid, out var n) ? n : null;
 
     // ⚠️ Qui c'era un parser che leggeva {"Areas":[...],"Saves":N} dal DetailsJson: chiavi che NESSUNO
     // scrive, quindi ritornava sempre stringa vuota — un riepilogo che non ha mai riepilogato niente.
@@ -644,7 +645,7 @@
                     <div>
                         <b>@StatusLabel(v.Status)</b>
                         @if (v.IsCurrent) { <span class="pill green">@L["Ver_Current"]</span> }
-                        <div class="vmeta" title="@L["Ver_AuthorDraftTitle"]">@Author(v.CreatedByUserId) · @v.CreatedUtc.ToString("dd MMM yyyy HH:mm") · AIRAC @v.AiracCycle@(string.IsNullOrWhiteSpace(v.Note) ? "" : $" — \"{v.Note}\"")</div>
+                        <div class="vmeta" title="@L["Ver_AuthorDraftTitle"]"><VidLink Vid="v.CreatedByUserId" Nome="@NomeAutore(v.CreatedByUserId)" /> · @v.CreatedUtc.ToString("dd MMM yyyy HH:mm") · AIRAC @v.AiracCycle@(string.IsNullOrWhiteSpace(v.Note) ? "" : $" — \"{v.Note}\"")</div>
                     </div>
                     <span class="vact">
                         @if (v.Status == DocumentStatus.Draft)
@@ -682,7 +683,7 @@
                         <div class="ver-row">
                             <span class="vb">✎</span>
                             <div>
-                                <b>@Author(e.UserId)</b>
+                                <b><VidLink Vid="e.UserId" Nome="@NomeAutore(e.UserId)" /></b>
                                 <div class="vmeta">@e.TimestampUtc.ToString("dd MMM yyyy HH:mm")@(string.IsNullOrEmpty(detail) ? "" : $" · {detail}")</div>
                             </div>
                         </div>
@@ -709,7 +710,7 @@
                         <div>
                             <b>@ReleaseLabel(r)</b>
                             @* «rilascio #N» = progressivo della release, non la versione del documento (vedi ReleasePanel). *@
-                            <div class="vmeta" title="@L["Ver_AuthorReleaseTitle"]">@L["Rel_VersionLabel", r.VersionNumber] · @Author(r.CreatedByUserId) · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · @L["Rel_EffectiveFrom"] @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
+                            <div class="vmeta" title="@L["Ver_AuthorReleaseTitle"]">@L["Rel_VersionLabel", r.VersionNumber] · <VidLink Vid="r.CreatedByUserId" Nome="@NomeAutore(r.CreatedByUserId)" /> · @r.CreatedUtc.ToString("dd MMM yyyy HH:mm") · @L["Rel_EffectiveFrom"] @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")@(string.IsNullOrWhiteSpace(r.Note) ? "" : $" — \"{r.Note}\"")</div>
                         </div>
                         <span class="vact">
                             <a class="btn ghost" href="@PreviewLink(d, r.Id)" target="_blank" rel="noopener" title="@L["Rel_PreviewTitle"]"><Icon Name="eye" /> @L["Rel_Preview"]</a>

@@ -119,7 +119,7 @@
                                     <td class="c-when" title="@r.TimestampUtc.ToString("dd MMMM yyyy HH:mm:ss") UTC">
                                         @r.TimestampUtc.ToString("dd MMM yy · HH:mm")
                                     </td>
-                                    <td class="c-who">@Chi(r.UserId)</td>
+                                    <td class="c-who">@ChiMarkup(r.UserId)</td>
                                     <td class="c-ev"><span class="pill @AuditNarrator.ClassePill(r)">@AuditNarrator.Etichetta(cat, L)</span></td>
                                     <td class="c-target"><b>@AuditNarrator.Bersaglio(r, L, _titoli)</b>@AccSuffisso(r)</td>
                                     @* Il JSON grezzo non sparisce — è la verità della riga — ma sta nel
@@ -214,6 +214,22 @@
     }
 
     private string Chi(int vid) => _nomi.TryGetValue(vid, out var n) ? n : L["Audit_VidN", vid].Value;
+
+    /// <summary>Lo stesso «chi», ma per la colonna: quando il roster il nome NON ce l'ha, il ripiego «VID
+    /// 123456» diventa un link al profilo IVAO. Dove il nome c'è resta il nome e basta — la colonna è
+    /// larga quanto un nome (`.c-who`), e appenderci «(VID …)» su 500 righe la farebbe tagliare.
+    /// ⚠️ <c>Chi</c> resta una stringa perché la ricerca cerca su ciò che la pagina MOSTRA.</summary>
+    private RenderFragment ChiMarkup(int vid) => __builder =>
+    {
+        @if (_nomi.TryGetValue(vid, out var n))
+        {
+            @n
+        }
+        else
+        {
+            <VidLink Vid="vid" />
+        }
+    };
 
     private string AccSuffisso(AuditEntry e) => AuditNarrator.Acc(e) is { } acc ? $" · {acc}" : "";
 

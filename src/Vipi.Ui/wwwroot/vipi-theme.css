@@ -253,6 +253,18 @@
 :where(.vipi-root) .h-sect{font-size:28px;font-weight:700}
 :where(.vipi-root) .h-card{font-size:24px;font-weight:700;color:var(--brand-ink-2)}:where(.vipi-root) h3{font-size:28px;font-weight:700}:where(.vipi-root) h4{font-size:24px;font-weight:700;color:var(--brand-ink-2)}:where(.vipi-root) h5{font-size:20px;font-weight:700;color:var(--brand-ink-2)}:where(.vipi-root) h6{font-size:16px;font-weight:700}
 :where(.vipi-root) a{color:var(--brand-ink-2);text-decoration:none}
+/* ---- Il VID è una porta sul profilo IVAO (componente VidLink) ----
+   ⚠️ `color:inherit`, e non il blu dei link. Il VID non sta mai da solo: sta dentro la `.dr-sub` grigia dei
+   Permessi, dentro la `.vmeta` delle Versioni, dentro una colonna di tabella che ne mostra quaranta di fila.
+   Con la regola qui sopra ogni riga di quegli elenchi avrebbe acceso un numero blu, e a quel punto il colore
+   non segnala piu' niente: segnala solo che li' c'e' un VID, cosa che si vedeva gia'.
+   Il segnale che si puo' premere lo da' la sottolineatura punteggiata — si nota da vicino, sparisce da
+   lontano — e il colore arriva al passaggio e col fuoco, dove il gesto e' gia' cominciato.
+   ⚠️ `text-decoration-color` in `color-mix` su `currentColor` e non un token: questo link vive in contesti
+   di colore diverso (testo normale, grigio spento, intestazione) e in due temi. Legato a currentColor la
+   punteggiatura resta leggibile ovunque senza una riga per contesto. */
+.vipi-root .vid-link{color:inherit;text-decoration:underline dotted;text-decoration-color:color-mix(in srgb,currentColor 45%,transparent);text-underline-offset:2px}
+.vipi-root .vid-link:hover,.vipi-root .vid-link:focus-visible{color:var(--brand-ink-2);text-decoration-style:solid;text-decoration-color:currentColor}
 /* ---- Il fuoco da tastiera si vede SEMPRE ----
    La regola era scritta (vedi .htree-toggle piu' avanti) ma valeva per otto selettori: tutto il resto si
    affidava all'anello predefinito del browser, che sul blu di brand della barra e sulle superfici scure

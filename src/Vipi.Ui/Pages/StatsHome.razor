@@ -23,7 +23,11 @@
             <h1 class="page-h1">@L["Stats_Title"]</h1>
             @if (_utente is not null)
             {
-                <p class="muted">@L["Stats_Subtitle", _utente.Name, _utente.UserId]</p>
+                @* Nome e VID di chi guarda. Il VID è staccato dal resto — prima era il «{1}» dentro la
+                   chiave Stats_Subtitle («{0} · VID {1}») — perché è un link al profilo IVAO: dentro una
+                   frase già formattata non c'era modo di renderlo premibile. Il «·» è punteggiatura, non
+                   testo da tradurre, e la parola «VID» resta tradotta una volta sola in Audit_VidN. *@
+                <p class="muted">@_utente.Name · <VidLink Vid="_utente.UserId" /></p>
             }
         </div>
 

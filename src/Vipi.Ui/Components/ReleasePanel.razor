@@ -125,7 +125,7 @@
             <b class="rel-lbl">@Label(r)</b>
             @* «rilascio #N»: N e' il progressivo della RELEASE per questo bersaglio (SaveReleaseAsync: max+1),
                non la versione del documento. Scritto «rel. vN» si confondeva con la pill «Bozza vN» dell'editor. *@
-            <span class="vmeta rel-meta">@L["Rel_VersionLabel", r.VersionNumber] · @Chi(r.CreatedByUserId) · @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")</span>
+            <span class="vmeta rel-meta">@L["Rel_VersionLabel", r.VersionNumber] · @ChiMarkup(r.CreatedByUserId) · @r.ReleaseEffectiveUtc.ToString("dd MMM yyyy")</span>
             <span class="vact">
                 @{ var previewUrl = PreviewFor(r.Id); }
                 @if (previewUrl is not null)
@@ -166,6 +166,21 @@
 
     private string Chi(int userId) =>
         _nomi.TryGetValue(userId, out var n) && !string.IsNullOrWhiteSpace(n) ? n : L["Audit_VidN", userId].Value;
+
+    /// <summary>Lo stesso «chi» per la riga: quando il roster il nome non ce l'ha, il ripiego «VID 123456»
+    /// diventa un link al profilo IVAO. ⚠️ <c>Chi</c> resta una stringa perché serve anche a
+    /// <c>Dettaglio</c>, che compone il `title` della riga — e dentro un attributo il markup non entra.</summary>
+    private RenderFragment ChiMarkup(int userId) => __builder =>
+    {
+        @if (_nomi.TryGetValue(userId, out var n) && !string.IsNullOrWhiteSpace(n))
+        {
+            @n
+        }
+        else
+        {
+            <VidLink Vid="userId" />
+        }
+    };
 
     private IReadOnlyDictionary<int, string> _nomi = new Dictionary<int, string>();
 

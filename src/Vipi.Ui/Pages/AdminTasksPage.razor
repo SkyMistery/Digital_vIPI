@@ -234,7 +234,7 @@
                     <div class="ver-detail-head">
                         <div class="dr-main">
                             <b>@sel.Title</b>
-                            <div class="dr-sub">@Chi(sel) · @(sel.DueAiracCycle is null ? L["AdminTasks_NoDue"].Value : $"AIRAC {sel.DueAiracCycle}")</div>
+                            <div class="dr-sub">@ChiMarkup(sel) · @(sel.DueAiracCycle is null ? L["AdminTasks_NoDue"].Value : $"AIRAC {sel.DueAiracCycle}")</div>
                         </div>
                         <span class="pill @(inRitardo ? "future" : StatoPill(sel.Status))">@(inRitardo ? L["Tasks_Late"].Value : ColLabel(sel.Status))</span>
                     </div>
@@ -538,14 +538,34 @@
 
     /// <summary>Un VID non è un nome (regola 124): il nome è quello scritto sull'incarico e, se manca, quello
     /// del roster — che è già in casa. Solo se non c'è nemmeno lì resta il VID.</summary>
-    private string Nome(int userId, string? scritto = null)
+    private string Nome(int userId, string? scritto = null) =>
+        NomeNoto(userId, scritto) ?? L["Audit_VidN", userId].Value;
+
+    /// <summary>Lo stesso nome, ma <c>null</c> quando non lo si conosce: è ciò che serve per decidere se a
+    /// video ci va un nome o un VID — e un VID è un link al profilo IVAO, un nome no.</summary>
+    private string? NomeNoto(int userId, string? scritto = null)
     {
-        if (!string.IsNullOrWhiteSpace(scritto)) return scritto!;
+        if (!string.IsNullOrWhiteSpace(scritto)) return scritto;
         var m = _members?.FirstOrDefault(x => x.UserId == userId);
-        return string.IsNullOrWhiteSpace(m?.DisplayName) ? L["Audit_VidN", userId].Value : m!.DisplayName!;
+        return string.IsNullOrWhiteSpace(m?.DisplayName) ? null : m!.DisplayName;
     }
 
     private string Chi(EditorTask t) => Nome(t.AssigneeUserId, t.AssigneeName);
+
+    /// <summary>Lo stesso «chi» per la testata del pannello: senza nome resta il VID, e quel VID porta al
+    /// profilo IVAO. ⚠️ <c>Chi</c> resta una stringa: la usano le chip (un link dentro un &lt;button&gt; non
+    /// è markup valido) e le voci di tendina, dove un &lt;option&gt; può contenere solo testo.</summary>
+    private RenderFragment ChiMarkup(EditorTask t) => __builder =>
+    {
+        @if (NomeNoto(t.AssigneeUserId, t.AssigneeName) is { } n)
+        {
+            @n
+        }
+        else
+        {
+            <VidLink Vid="t.AssigneeUserId" />
+        }
+    };
 
     private static string NomeRoster(StaffRosterEntry m) =>
         string.IsNullOrWhiteSpace(m.DisplayName) ? $"VID {m.UserId}" : $"{m.DisplayName} · {m.UserId}";

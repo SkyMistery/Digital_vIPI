@@ -198,7 +198,7 @@
                                             @* I codici osservati sono nel `title`: la colonna era la più
                                                larga e ripeteva dati che servono solo quando NON combaciano. *@
                                             <tr title="@L["Diag_AdminCodes"]: @(r.Codes.Count == 0 ? "—" : string.Join(", ", r.Codes))">
-                                                <td>@r.UserId</td>
+                                                <td><VidLink Vid="r.UserId" SoloNumero="true" /></td>
                                                 <td>@(r.DisplayName ?? "—")</td>
                                                 <td>
                                                     @if (r.Matched.Count > 0)

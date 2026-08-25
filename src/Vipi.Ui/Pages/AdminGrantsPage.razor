@@ -101,7 +101,7 @@
                                 <span class="di"><Icon Name="key" Size="16" /></span>
                                 <div class="dr-main">
                                     <b>@Nome(p)</b>
-                                    <div class="dr-sub">VID @p.UserId@(p.Staff.Count == 0 ? "" : " · " + string.Join(" ", p.Staff))</div>
+                                    <div class="dr-sub"><VidLink Vid="p.UserId" />@(p.Staff.Count == 0 ? "" : " · " + string.Join(" ", p.Staff))</div>
                                 </div>
                                 @foreach (var g in p.Grants)
                                 {
@@ -157,7 +157,7 @@
                     <div class="ver-detail-head">
                         <div class="dr-main">
                             <b>@Nome(sel)</b>
-                            <div class="dr-sub">VID @sel.UserId@(sel.Staff.Count == 0 ? "" : " · " + string.Join(" ", sel.Staff))</div>
+                            <div class="dr-sub"><VidLink Vid="sel.UserId" />@(sel.Staff.Count == 0 ? "" : " · " + string.Join(" ", sel.Staff))</div>
                         </div>
                         <span class="pill grey" title="@L["Grants_NAccTitle"]">@L["Grants_NAcc", sel.Grants.Count]</span>
                     </div>
@@ -168,7 +168,7 @@
                                 <span class="vb">@g.AccCode</span>
                                 <div>
                                     <b>@L["Grants_GrantedOn", VipiTime.Day(g.GrantedAtUtc)]</b>
-                                    <div class="vmeta">@L["Grants_GrantedBy"]: @Autore(g.GrantedByUserId)</div>
+                                    <div class="vmeta">@L["Grants_GrantedBy"]: <VidLink Vid="g.GrantedByUserId" Nome="@NomeNoto(g.GrantedByUserId)" /></div>
                                 </div>
                                 <span class="vact">
                                     @* Revocare non distrugge un documento, ma toglie l'accesso a una persona
@@ -283,7 +283,9 @@
         foreach (var kv in await StaffRoster.GetDisplayNamesAsync(mancanti)) _nomi[kv.Key] = kv.Value;
     }
 
-    private string Autore(int vid) => _nomi.TryGetValue(vid, out var n) ? $"{n} (VID {vid})" : $"VID {vid}";
+    /// <summary>Il nome che il roster conosce, o <c>null</c>. Prima questo metodo componeva da sé la stringa
+    /// «Nome (VID 123456)»; la compone <c>VidLink</c>, che di quel VID fa anche un link al profilo.</summary>
+    private string? NomeNoto(int vid) => _nomi.TryGetValue(vid, out var n) ? n : null;
 
     // ---- le persone: un raggruppamento in PAGINA, non un modello gemello ----
     // La revoca continua a viaggiare per Id del grant; qui si risponde alla domanda della pagina, che è
