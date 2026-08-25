@@ -120,16 +120,34 @@ public sealed class AtcPollingHostedService : BackgroundService
     }
 
     /// <summary>
+    /// Tempo che il salvataggio finale ha per scrivere. ⚠️ Un tetto ci vuole — uno spegnimento non può
+    /// appendersi al database — ma è un tetto SUO: cinque secondi bastano per una manciata di righe, e non
+    /// dipendono da quanto il gettone di arresto sia già scaduto.
+    /// </summary>
+    private static readonly TimeSpan TempoPerSalvare = TimeSpan.FromSeconds(5);
+
+    /// <summary>
     /// Allo spegnimento salva quel che è rimasto in memoria: senza, l'ultimo tratto fra un checkpoint e
     /// l'arresto (fino a dieci minuti di traffico per ogni sessione in corso) andrebbe perso a ogni deploy.
+    ///
+    /// <para>⚠️ <b>Non si usa <paramref name="cancellationToken"/> per scrivere.</b> Quel gettone significa
+    /// «fermati», e questo salvataggio esiste proprio per non fermarsi prima di aver scritto: quando arriva
+    /// già annullato — un secondo Ctrl+C, un arresto forzato, il tempo di shutdown scaduto — la scrittura
+    /// moriva sull'<b>apertura della connessione</b> con una <c>TaskCanceledException</c>, e il messaggio
+    /// «salvataggio finale del traffico fallito» sembrava un guasto del database. Non lo era.</para>
+    ///
+    /// <para>⚠️ E il danno non era solo «non scritto»: <c>FlushAsync</c> chiama <c>TakeAll</c>, che
+    /// <b>svuota</b> il registro in memoria prima di salvare. Fallita la scrittura, quei minuti non erano
+    /// più né su disco né in RAM.</para>
     /// </summary>
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         try
         {
+            using var tempo = new CancellationTokenSource(TempoPerSalvare);
             using var scope = _scopes.CreateScope();
             await _traffico.FlushAsync(
-                scope.ServiceProvider.GetRequiredService<IAtcTrafficStore>(), DateTimeOffset.UtcNow, cancellationToken);
+                scope.ServiceProvider.GetRequiredService<IAtcTrafficStore>(), DateTimeOffset.UtcNow, tempo.Token);
         }
         catch (Exception ex)
         {
