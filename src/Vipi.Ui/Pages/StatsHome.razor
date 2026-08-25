@@ -149,6 +149,60 @@
                 <span>@L["Stats_CovFull"]</span>
             </div>
 
+            @* ⚠️ Le due domande sugli aeroporti sono OPPOSTE e stanno affiancate apposta: a sinistra i campi
+               che si coprivano, a destra quelli che passano davanti. Separate su due righe della pagina
+               sarebbero state lette come «la stessa tabella, due volte, con numeri diversi». *@
+            <div class="stats-cols">
+                <section>
+                    <h2 class="h-sect">@L["Stats_ManagedAirports"]</h2>
+                    <p class="muted">@L["Stats_ManagedAirportsHint"]</p>
+                    @if (_aeroportiGestiti.Count == 0)
+                    {
+                        @* Vuoto per un motivo, non per un buco: un settore d'area non dichiara un campo. *@
+                        <p class="muted">@L["Stats_ManagedAirportsNone"]</p>
+                    }
+                    else
+                    {
+                        <table class="res-table tbl-cards">
+                            <thead>
+                                <tr><th>@L["Stats_Airport"]</th><th>@L["Stats_Flights"]</th><th>@L["Stats_Movements"]</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var r in _aeroportiGestiti)
+                                {
+                                    <tr>
+                                        <td data-l="@L["Stats_Airport"]">@r.Key</td>
+                                        <td class="cb" data-l="@L["Stats_Flights"]"
+                                            style="--cb:@StatsView.Quota(r.Sessions, _maxVoliGestiti)">@r.Sessions</td>
+                                        <td data-l="@L["Stats_Movements"]">@r.Movements</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </section>
+                <section>
+                    <h2 class="h-sect">@L["Stats_TopAirports"]</h2>
+                    <p class="muted">@L["Stats_SeenAirportsHint"]</p>
+                    <table class="res-table tbl-cards">
+                        <thead>
+                            <tr><th>@L["Stats_Airport"]</th><th>@L["Stats_Flights"]</th><th>@L["Stats_Movements"]</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in _aeroporti)
+                            {
+                                <tr>
+                                    <td data-l="@L["Stats_Airport"]">@r.Key</td>
+                                    <td class="cb" data-l="@L["Stats_Flights"]"
+                                        style="--cb:@StatsView.Quota(r.Sessions, _maxVoliAeroporto)">@r.Sessions</td>
+                                    <td data-l="@L["Stats_Movements"]">@r.Movements</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </section>
+            </div>
+
             <div class="stats-cols">
                 <section>
                     <h2 class="h-sect">@L["Stats_ByPosition"]</h2>
@@ -176,28 +230,6 @@
                     </table>
                 </section>
                 <section>
-                    <h2 class="h-sect">@L["Stats_TopAirports"]</h2>
-                    <table class="res-table tbl-cards">
-                        <thead>
-                            <tr><th>@L["Stats_Airport"]</th><th>@L["Stats_Flights"]</th><th>@L["Stats_Movements"]</th></tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var r in _aeroporti)
-                            {
-                                <tr>
-                                    <td data-l="@L["Stats_Airport"]">@r.Key</td>
-                                    <td class="cb" data-l="@L["Stats_Flights"]"
-                                        style="--cb:@StatsView.Quota(r.Sessions, _maxVoliAeroporto)">@r.Sessions</td>
-                                    <td data-l="@L["Stats_Movements"]">@r.Movements</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </section>
-            </div>
-
-            <div class="stats-cols">
-                <section>
                     <h2 class="h-sect">@L["Stats_TopAircraft"]</h2>
                     <table class="res-table tbl-cards">
                         <thead>
@@ -216,6 +248,9 @@
                         </tbody>
                     </table>
                 </section>
+            </div>
+
+            <div class="stats-cols">
                 <section>
                     <h2 class="h-sect">@L["Stats_ByMonth"]</h2>
                     <table class="res-table tbl-cards">
@@ -336,6 +371,7 @@
     private IReadOnlyList<StatsByKey> _tuttePostazioni = Array.Empty<StatsByKey>();
     private IReadOnlyList<StatsByKey> _perMese = Array.Empty<StatsByKey>();
     private IReadOnlyList<StatsByKey> _aeroporti = Array.Empty<StatsByKey>();
+    private IReadOnlyList<StatsByKey> _aeroportiGestiti = Array.Empty<StatsByKey>();
     private IReadOnlyList<StatsByKey> _tipi = Array.Empty<StatsByKey>();
     private IReadOnlyList<Turno> _turni = Array.Empty<Turno>();
     private IReadOnlyList<Vipi.Application.Stats.CoverageCell> _griglia = Array.Empty<Vipi.Application.Stats.CoverageCell>();
@@ -349,7 +385,7 @@
     private int? _dOre, _dTurni, _dMovimenti;
     private string _confronto = "";
 
-    private double _maxOrePostazione, _maxOreMese, _maxVoliAeroporto, _maxVoliTipo, _maxDurataTurno;
+    private double _maxOrePostazione, _maxOreMese, _maxVoliAeroporto, _maxVoliGestiti, _maxVoliTipo, _maxDurataTurno;
 
     protected override async Task OnInitializedAsync()
     {
@@ -404,6 +440,7 @@
         _perPostazione = _tuttePostazioni.Take(20).ToList();
         _perMese = await Stats.ByMonthAsync(vid, da, a);
         _aeroporti = await Stats.TopAirportsAsync(vid, da, a);
+        _aeroportiGestiti = await Stats.ManagedAirportsAsync(vid, da, a);
         _tipi = await Stats.TopAircraftAsync(vid, da, a);
         _griglia = await Stats.CoverageAsync(vid, da, a);
         _striscia = await Stats.StreakAsync(vid, da, a);
@@ -440,6 +477,7 @@
         _maxOrePostazione = _perPostazione.Count == 0 ? 0 : _perPostazione.Max(r => r.Seconds);
         _maxOreMese = _perMese.Count == 0 ? 0 : _perMese.Max(r => r.Seconds);
         _maxVoliAeroporto = _aeroporti.Count == 0 ? 0 : _aeroporti.Max(r => r.Sessions);
+        _maxVoliGestiti = _aeroportiGestiti.Count == 0 ? 0 : _aeroportiGestiti.Max(r => r.Sessions);
         _maxVoliTipo = _tipi.Count == 0 ? 0 : _tipi.Max(r => r.Sessions);
         _maxDurataTurno = _turni.Count == 0 ? 0 : _turni.Max(t => t.Secondi);
     }

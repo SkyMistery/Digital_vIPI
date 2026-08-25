@@ -77,6 +77,7 @@ public class StatsProfileAccessTests : TestContext
         public Task<IReadOnlyList<ControllerRanking>> TopControllersAsync(DateTimeOffset f, DateTimeOffset t, int l = 20, CancellationToken ct = default) => Boom<Task<IReadOnlyList<ControllerRanking>>>();
         public Task<IReadOnlyList<CoverageCell>> CoverageAsync(int? u, DateTimeOffset f, DateTimeOffset t, CancellationToken ct = default) => Boom<Task<IReadOnlyList<CoverageCell>>>();
         public Task<IReadOnlyList<StatsByKey>> TopAirportsAsync(int? u, DateTimeOffset f, DateTimeOffset t, int l = 15, CancellationToken ct = default) => Boom<Task<IReadOnlyList<StatsByKey>>>();
+        public Task<IReadOnlyList<StatsByKey>> ManagedAirportsAsync(int? u, DateTimeOffset f, DateTimeOffset t, int l = 15, CancellationToken ct = default) => Boom<Task<IReadOnlyList<StatsByKey>>>();
         public Task<IReadOnlyList<StatsByKey>> TopAircraftAsync(int? u, DateTimeOffset f, DateTimeOffset t, int l = 15, CancellationToken ct = default) => Boom<Task<IReadOnlyList<StatsByKey>>>();
         public Task<StatsStreak> StreakAsync(int u, DateTimeOffset f, DateTimeOffset t, CancellationToken ct = default) => Boom<Task<StatsStreak>>();
         public Task<StatsRank> RankAsync(int u, DateTimeOffset f, DateTimeOffset t, CancellationToken ct = default) => Boom<Task<StatsRank>>();
@@ -100,6 +101,7 @@ public class StatsProfileAccessTests : TestContext
         public Task<IReadOnlyList<ControllerRanking>> TopControllersAsync(DateTimeOffset f, DateTimeOffset t, int l = 20, CancellationToken ct = default) => Vuoto<ControllerRanking>();
         public Task<IReadOnlyList<CoverageCell>> CoverageAsync(int? u, DateTimeOffset f, DateTimeOffset t, CancellationToken ct = default) => Vuoto<CoverageCell>();
         public Task<IReadOnlyList<StatsByKey>> TopAirportsAsync(int? u, DateTimeOffset f, DateTimeOffset t, int l = 15, CancellationToken ct = default) => Vuoto<StatsByKey>();
+        public Task<IReadOnlyList<StatsByKey>> ManagedAirportsAsync(int? u, DateTimeOffset f, DateTimeOffset t, int l = 15, CancellationToken ct = default) => Vuoto<StatsByKey>();
         public Task<IReadOnlyList<StatsByKey>> TopAircraftAsync(int? u, DateTimeOffset f, DateTimeOffset t, int l = 15, CancellationToken ct = default) => Vuoto<StatsByKey>();
         public Task<StatsStreak> StreakAsync(int u, DateTimeOffset f, DateTimeOffset t, CancellationToken ct = default) => Task.FromResult(new StatsStreak(0, 0, null));
         public Task<StatsRank> RankAsync(int u, DateTimeOffset f, DateTimeOffset t, CancellationToken ct = default) => Task.FromResult(new StatsRank(0, 0));

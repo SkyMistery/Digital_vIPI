@@ -95,8 +95,31 @@ public interface IAtcStatsQueries
     Task<IReadOnlyList<CoverageCell>> CoverageAsync(int? userId, DateTimeOffset from, DateTimeOffset to,
         CancellationToken ct = default);
 
-    /// <summary>Gli aeroporti del traffico gestito (partenze e arrivi insieme), dal più frequente.</summary>
+    /// <summary>
+    /// Gli aeroporti <b>visti</b>: i due capi del piano di volo di ogni traffico gestito, dal più frequente.
+    /// Un LIRF→EGLL conta per tutti e due, e EGLL ci finisce anche se non lo si coprirà mai — la domanda è
+    /// «quali aeroporti ti passano davanti».
+    /// </summary>
     Task<IReadOnlyList<StatsByKey>> TopAirportsAsync(int? userId, DateTimeOffset from, DateTimeOffset to,
+        int limit = 15, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gli aeroporti <b>gestiti</b>: quelli del proprio callsign, col traffico da e per quel campo.
+    ///
+    /// <para>È la domanda opposta a <see cref="TopAirportsAsync"/> — «quanto traffico ho fatto sui campi che
+    /// coprivo», non «quali campi mi sono passati davanti» — e le due risposte vanno lette insieme.</para>
+    ///
+    /// <para>⚠️ Solo le postazioni che <b>dichiarano un campo</b> nel callsign (TWR/GND/DEL/APP/DEP/AFIS,
+    /// vedi <c>TrafficStory.StationIcao</c>): <c>LIRR_NE1_CTR</c> è una FIR, non un aeroporto. Quali campi un
+    /// settore d'area stesse coprendo <b>non è registrato</b> — la copertura si calcola dall'albero dei
+    /// settori online al momento del poll e nelle righe di traffico non resta — quindi chi fa solo area non
+    /// ha aeroporti gestiti, e l'elenco è vuoto per un motivo, non per un buco.</para>
+    ///
+    /// <para>⚠️ Contano le tratte <b>da o per</b> quel campo, non tutte quelle attribuite: un sorvolo
+    /// vettorato mentre si copriva LIRF non è traffico «di» LIRF. Resta però nei totali e nei movimenti —
+    /// gestito lo è stato. Una tratta LIRF→LIRF (circuito, rientro) conta <b>una</b> volta.</para>
+    /// </summary>
+    Task<IReadOnlyList<StatsByKey>> ManagedAirportsAsync(int? userId, DateTimeOffset from, DateTimeOffset to,
         int limit = 15, CancellationToken ct = default);
 
     /// <summary>I tipi di aeromobile gestiti, dal più frequente.</summary>

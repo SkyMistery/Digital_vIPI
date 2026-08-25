@@ -229,6 +229,109 @@ public class AtcStatsQueriesTests : IAsyncLifetime
         Assert.Equal("B38M", Assert.Single(tipi).Key);
     }
 
+    /// <summary>Una tratta nell’archivio del traffico, già attribuita a una sessione.</summary>
+    private async Task Tratta(long sessione, string callsign, string? dep, string? arr,
+        bool movimento = true, int ordinale = 1)
+    {
+        _db.AtcSessionTraffic.Add(new AtcSessionTraffic
+        {
+            SessionId = sessione, PilotCallsign = callsign, LegOrdinal = ordinale, PilotUserId = 1,
+            DepIcao = dep, ArrIcao = arr, AircraftIcao = "B38M",
+            FirstSeenUtc = T0.UtcDateTime, LastSeenUtc = T0.UtcDateTime, SawMovement = movimento,
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+    }
+
+    /// <summary>
+    /// «Aeroporti gestiti» risponde a una domanda diversa da «aeroporti visti»: il campo è quello del
+    /// PROPRIO callsign, e contano le tratte da o per lì.
+    /// </summary>
+    [Fact]
+    public async Task Gli_aeroporti_gestiti_sono_quelli_del_proprio_callsign()
+    {
+        await Sessione(100, 704798, "LIRF_TWR", 3600);
+        await Tratta(100, "AZA123", "LIRF", "LIRN");           // partita da casa
+        await Tratta(100, "RYR456", "EGKK", "LIRF", ordinale: 2);   // arrivata a casa
+
+        var gestiti = await _q.ManagedAirportsAsync(704798, Anno.Da, Anno.A);
+
+        var solo = Assert.Single(gestiti);
+        Assert.Equal("LIRF", solo.Key);
+        Assert.Equal(2, solo.Sessions);
+
+        // ⚠️ L’altra tabella dice ancora tutt’altro, ed è giusto così: lì i capi contano tutti e due.
+        var visti = await _q.TopAirportsAsync(704798, Anno.Da, Anno.A);
+        Assert.Equal(new[] { "EGKK", "LIRF", "LIRN" }, visti.Select(a => a.Key).OrderBy(x => x));
+    }
+
+    /// <summary>
+    /// ⚠️ Un sorvolo vettorato mentre si copriva LIRF non è traffico «di» LIRF: fuori dall’elenco. Resta
+    /// però fra gli aeroporti VISTI, perché gestito lo è stato.
+    /// </summary>
+    [Fact]
+    public async Task Un_sorvolo_non_conta_per_il_campo_che_si_copriva()
+    {
+        await Sessione(100, 704798, "LIRF_APP", 3600);
+        await Tratta(100, "AZA123", "LIRF", "LIRN");
+        await Tratta(100, "DLH900", "EDDF", "LMML", ordinale: 2);   // passa e va
+
+        var gestiti = await _q.ManagedAirportsAsync(704798, Anno.Da, Anno.A);
+        Assert.Equal(1, Assert.Single(gestiti).Sessions);
+
+        var visti = await _q.TopAirportsAsync(704798, Anno.Da, Anno.A);
+        Assert.Contains("EDDF", visti.Select(a => a.Key));
+    }
+
+    /// <summary>Un circuito LIRF→LIRF è UNA tratta, non due: il campo sta a tutti e due i capi.</summary>
+    [Fact]
+    public async Task Un_volo_che_parte_e_torna_conta_una_volta_sola()
+    {
+        await Sessione(100, 704798, "LIRF_TWR", 3600);
+        await Tratta(100, "IGAAA", "LIRF", "LIRF");
+
+        Assert.Equal(1, Assert.Single(await _q.ManagedAirportsAsync(704798, Anno.Da, Anno.A)).Sessions);
+    }
+
+    /// <summary>
+    /// ⚠️ <c>LIRR_NE1_CTR</c> è una FIR, non un aeroporto. Chi fa solo area non ha aeroporti gestiti, e
+    /// l’elenco vuoto è la risposta giusta — non un «LIRR» inventato dal prefisso.
+    /// </summary>
+    [Fact]
+    public async Task Un_settore_d_area_non_dichiara_nessun_aeroporto()
+    {
+        await Sessione(100, 704798, "LIRR_NE1_CTR", 3600);
+        await Tratta(100, "AZA123", "LIRF", "LIRN");
+
+        Assert.Empty(await _q.ManagedAirportsAsync(704798, Anno.Da, Anno.A));
+    }
+
+    /// <summary>Le posizioni che un campo lo dichiarano davvero, tutte e sei.</summary>
+    [Theory]
+    [InlineData("LIRF_TWR")]
+    [InlineData("LIRF_GND")]
+    [InlineData("LIRF_DEL")]
+    [InlineData("LIRF_APP")]
+    [InlineData("LIRF_W_DEP")]
+    [InlineData("LIRF_AFIS")]
+    public async Task Ogni_postazione_col_campo_nel_callsign_conta(string callsign)
+    {
+        await Sessione(100, 704798, callsign, 3600);
+        await Tratta(100, "AZA123", "LIRF", "LIRN");
+
+        Assert.Equal("LIRF", Assert.Single(await _q.ManagedAirportsAsync(704798, Anno.Da, Anno.A)).Key);
+    }
+
+    /// <summary>Il filtro delle connessioni-lampo vale anche qui: passa da <c>Contate</c> come le altre.</summary>
+    [Fact]
+    public async Task Una_connessione_lampo_non_porta_il_suo_aeroporto()
+    {
+        await Sessione(100, 704798, "LIRF_TWR", 45);
+        await Tratta(100, "AZA123", "LIRF", "LIRN");
+
+        Assert.Empty(await _q.ManagedAirportsAsync(704798, Anno.Da, Anno.A));
+    }
+
     [Fact]
     public async Task La_striscia_conta_le_settimane_con_almeno_un_turno()
     {

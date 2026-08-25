@@ -413,7 +413,8 @@ per sempre** (sono poche, pesano nulla, e sono il dato di valore — vedi §8.3:
 
 ## 7. Rotte e ingressi
 
-- `/services/stats` — la mia pagina (ore totali, per posizione, per mese, elenco sessioni);
+- `/services/stats` — la mia pagina (ore totali, per posizione, per mese, elenco sessioni, e le DUE tabelle
+  degli aeroporti: gestiti e visti, §15);
 - `/services/stats/user/{vid}` — **la stessa pagina**, coi numeri di un altro. Solo staff, con fascia e
   audit (§14, 25 agosto);
 - `/services/stats/session/{id}` — dettaglio: durata, frequenza, aerei gestiti, **sequenza delle piste in
@@ -1020,3 +1021,55 @@ Dalla classifica di divisione: una lente (`StatsPeekLink`, icona `activity`) acc
 tabella, **visibile solo agli admin**. Il numero continua a portare al profilo IVAO — due destinazioni
 diverse per due domande diverse. La lente non è una guardia: la guardia è nella pagina di destinazione, e
 scrivere l'indirizzo a mano non la aggira.
+
+## 15. Aeroporti gestiti e aeroporti visti (25 agosto 2026)
+
+Il committente ha letto «I tuoi aeroporti» e ha chiesto: non dovrebbero essere **quelli che copri**, per
+capire quanto traffico si è fatto sui campi gestiti? La domanda ha scoperto che il pannello ne rispondeva
+un'altra — e che tutt'e due servono.
+
+### 15.1 Due domande opposte, due tabelle affiancate
+
+| | Chiave | Risposta a |
+|---|---|---|
+| **Aeroporti gestiti** | l'ICAO del **proprio callsign** | «quanto traffico ho fatto sui campi che coprivo» |
+| **Aeroporti visti** | i **due capi** del piano di volo di ogni traffico attribuito | «quali campi mi passano davanti» |
+
+Stanno **affiancate**, non su due righe della pagina: separate sarebbero state lette come «la stessa tabella
+due volte, con numeri diversi». Ognuna porta la sua riga di spiegazione sotto il titolo, perché due tabelle
+gemelle con le stesse tre colonne non si distinguono dal solo titolo.
+
+Il vecchio titolo «I tuoi aeroporti» è diventato **«Aeroporti visti»**: con la tabella nuova accanto,
+«tuoi» non diceva più quale delle due.
+
+### 15.2 Cosa conta come traffico «di» un campo
+
+Le tratte **da o per** quel campo, non tutte quelle attribuite alla sessione.
+
+⚠️ Un **sorvolo vettorato** mentre si copriva LIRF non è traffico *di* LIRF, e fuori di lì non lo è per
+nessuno: resta però nei **totali** in cima alla pagina e nei movimenti della sessione, perché gestito lo è
+stato. È la distinzione chiesta esplicitamente dal committente, e le due letture non vanno riconciliate: la
+somma della colonna «Voli» degli aeroporti gestiti **non** è il totale dei voli gestiti, e non deve esserlo.
+
+⚠️ Un **LIRF→LIRF** (circuito, rientro) conta **una** volta: il controllo è uno per tratta, non uno per capo.
+Nella tabella degli aeroporti visti la stessa tratta conta invece due volte, una per capo — ed è voluto lì.
+
+### 15.3 Perché un ACC non ha aeroporti gestiti
+
+Il campo lo dichiara il **callsign**, via `TrafficStory.StationIcao`: solo `_TWR`, `_GND`, `_DEL`, `_APP`,
+`_DEP`, `_AFIS`. `LIRR_NE1_CTR` comincia per `LIRR`, che è una **FIR** — prenderla per un aeroporto farebbe
+nascere «arrivi a LIRR» che non esistono (è la stessa trappola già segnata al §13.1).
+
+⚠️ E quali campi un settore d'area stesse **davvero** coprendo **non è registrato**: la copertura si calcola
+al momento del poll dall'albero dei settori online, e nelle righe di traffico non ne resta traccia. Chi
+volesse dare gli aeroporti gestiti anche ai CTR deve prima **scrivere** quel dato al poll, non dedurlo dopo.
+
+Quindi chi in un periodo ha fatto solo area vede l'elenco **vuoto, con una frase che dice perché**. Vuoto per
+un motivo, non per un buco: senza quella frase sembrerebbe un dato mancante.
+
+### 15.4 Una nota sul costo
+
+`ManagedAirportsAsync` legge **prima le sessioni** e ricava il campo dal callsign, poi chiede all'archivio le
+sole righe di traffico delle sessioni che un campo ce l'hanno. Non è pignoleria: una notte di CTR altrimenti
+tirava su tutto il traffico del periodo per buttarlo riga per riga. `TopAirportsAsync` non può fare
+altrettanto — a lei servono tutte.

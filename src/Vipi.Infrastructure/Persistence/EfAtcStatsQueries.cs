@@ -194,6 +194,59 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
         PerChiave(userId, from, to, limit, aeroporti: false, ct);
 
     /// <summary>
+    /// Gli aeroporti del proprio callsign, col traffico da e per quel campo.
+    ///
+    /// <para>⚠️ Le sessioni si leggono <b>prima</b> del traffico, e non per pigrizia: il campo lo dichiara il
+    /// callsign, e un settore d'area non ne dichiara nessuno. Ricavarlo qui permette di chiedere all'archivio
+    /// le sole righe che possono contare — chi ha fatto una notte di CTR non tira su niente invece di tirare
+    /// su tutto e buttarlo.</para>
+    /// </summary>
+    public async Task<IReadOnlyList<StatsByKey>> ManagedAirportsAsync(
+        int? userId, DateTimeOffset from, DateTimeOffset to, int limit = 15, CancellationToken ct = default)
+    {
+        var sessioni = await Contate(userId, from, to)
+            .Select(s => new { s.SessionId, s.Callsign })
+            .ToListAsync(ct);
+
+        var campi = new Dictionary<long, string>();
+        foreach (var s in sessioni)
+            if (TrafficStory.StationIcao(s.Callsign) is { } icao)
+                campi[s.SessionId] = icao;
+
+        // Chi copre solo settori d'area non ha aeroporti gestiti: è una risposta, non un buco.
+        if (campi.Count == 0) return Array.Empty<StatsByKey>();
+
+        var ids = campi.Keys.ToList();
+        var righe = await _db.AtcSessionTraffic.AsNoTracking()
+            .Where(t => ids.Contains(t.SessionId))
+            .Select(t => new { t.SessionId, t.DepIcao, t.ArrIcao, t.SawMovement })
+            .ToListAsync(ct);
+
+        var conteggi = new Dictionary<string, (int Tratte, int Movimenti)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var t in righe)
+        {
+            var campo = campi[t.SessionId];
+
+            // ⚠️ Da O per: un sorvolo vettorato mentre si copriva LIRF non è traffico «di» LIRF. E il
+            // controllo è UNO per tratta, non uno per capo: un LIRF→LIRF conta una volta sola.
+            if (!Uguale(t.DepIcao, campo) && !Uguale(t.ArrIcao, campo)) continue;
+
+            var v = conteggi.GetValueOrDefault(campo);
+            conteggi[campo] = (v.Tratte + 1, v.Movimenti + (t.SawMovement ? 1 : 0));
+        }
+
+        return conteggi
+            .Select(kv => new StatsByKey(kv.Key, kv.Value.Tratte, 0, kv.Value.Movimenti))
+            .OrderByDescending(r => r.Sessions)
+            .ThenBy(r => r.Key, StringComparer.Ordinal)
+            .Take(Math.Max(1, limit))
+            .ToList();
+    }
+
+    private static bool Uguale(string? a, string b) =>
+        !string.IsNullOrWhiteSpace(a) && string.Equals(a.Trim(), b, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Aeroporti o tipi del traffico gestito. Un volo LIRF→LIRN conta per <b>tutti e due</b> gli scali:
     /// la domanda è «quali aeroporti ti passano davanti», non «da dove partivano».
     /// </summary>

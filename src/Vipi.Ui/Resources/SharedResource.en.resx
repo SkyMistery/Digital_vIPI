@@ -853,7 +853,11 @@
   <data name="Stats_WhenYouControl" xml:space="preserve"><value>When you control</value></data>
   <data name="Stats_Coverage" xml:space="preserve"><value>When there is coverage</value></data>
   <data name="Stats_CoverageHint" xml:space="preserve"><value>Share of time with at least one Italian controller online, by UTC hour and weekday. The empty cells are the gaps.</value></data>
-  <data name="Stats_TopAirports" xml:space="preserve"><value>Your airports</value></data>
+  <data name="Stats_TopAirports" xml:space="preserve"><value>Airports you saw</value></data>
+  <data name="Stats_ManagedAirports" xml:space="preserve"><value>Airports you worked</value></data>
+  <data name="Stats_ManagedAirportsHint" xml:space="preserve"><value>Flights departing from or arriving at the field you were covering. Overflights you vectored are not listed here, but still count in the totals.</value></data>
+  <data name="Stats_ManagedAirportsNone" xml:space="preserve"><value>None: in this period you only covered area positions, which declare no airport.</value></data>
+  <data name="Stats_SeenAirportsHint" xml:space="preserve"><value>Both ends of the flight plan of every traffic you handled, foreign fields included: where the traffic passing you comes from and goes to.</value></data>
   <data name="Stats_TopAircraft" xml:space="preserve"><value>The types you see most</value></data>
   <data name="Stats_Airport" xml:space="preserve"><value>Airport</value></data>
   <data name="Stats_Flights" xml:space="preserve"><value>Flights</value></data>
