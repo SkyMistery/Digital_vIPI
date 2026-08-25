@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 25 agosto 2026, sera (**§B12 aperta: il ramo `statistiche-atc` è completo e NON fuso** — la fusione è una decisione del committente, non un passo tecnico; il 24: §B10 e §B11 fuse e cancellate. La sera del 25: il **VID diventa un link** al profilo IVAO — §H5 — e **§H2 smette di essere un mistero**: nome, seme e causa) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+**Aggiornato:** 25 agosto 2026, sera (**§B12 aperta: il ramo `statistiche-atc` è completo e NON fuso** — la fusione è una decisione del committente, non un passo tecnico; il 24: §B10 e §B11 fuse e cancellate. La sera del 25: il **VID diventa un link** al profilo IVAO — §H5 — e **§H2 è CHIUSA**: il «rosso intermittente» erano due difetti, e la suite è di nuovo verde su tutt'e due i TFM) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -704,13 +704,13 @@ la ripara**.
 Una **trentina di commit** oltre `main`, spinti su `origin/statistiche-atc`. ⚠️ **La cifra si conta, non si
 legge**: qui c'è stata scritta «24» per due giri di fila mentre il ramo era già a 27, ed è il motivo per cui
 adesso al suo posto c'è il comando — `git rev-list --count main..statistiche-atc`.
-**Niente lo blocca sul piano tecnico**: `dotnet build Vipi.slnx -c Release --no-incremental` **a 0 avvisi**
-e **2242 test verdi su net8**. Fondere è una decisione, non un passo rimasto indietro.
+**Niente lo blocca sul piano tecnico**: `dotnet build Vipi.slnx -c Release --no-incremental` **a 0 avvisi** e
+suite **tutta verde**, **2243 net8 / 2005 net10** (25 agosto sera). Fondere è una decisione, non un passo
+rimasto indietro.
 
-⚠️ **Su net10 la suite ha un rosso, ed è del ramo**: 2003 verdi su 2004, il rosso è la proprietà
-`AorProiezioneProperties.Il_rapporto_fra_i_lati_e_quello_vero`. **Non è un difetto del proiettore, è la
-proprietà che modella il proiettore con i punti sbagliati** — causa trovata e aritmetica alla virgola in
-**§H2**, si chiude in una riga. Su net8 passa: dipende dal sorteggio, non dal TFM.
+ℹ️ Per qualche ora del 25 sera su net10 c'era **un rosso**, ed era del ramo: due difetti nelle proprietà
+CsCheck dell'AoR, chiusi in giornata. La storia sta in **§H2**, e vale la pena leggerla prima di rilanciare
+una proprietà che cade.
 
 ℹ️ **L'ultimo commit non è delle statistiche.** È
 [il VID che diventa un link al profilo IVAO](feature/2026-08-25-vid-porta-sul-profilo-ivao.md) (`03463bf`),
@@ -1786,8 +1786,9 @@ dell'audit non fa parte: è saltata fuori verificando il lavoro sui coordinament
 ed è un difetto che stava lì da prima.
 
 **La sezione è diventata il posto dove finisce l'UI aperta**, non solo l'audit di quel giorno. Stato al 25
-agosto, sera: **H1** e **H3** aperte come allora · **H2** non è più un mistero — nome, seme e causa, si
-chiude in una riga · **H4** chiusa · **H5** nuova, il VID che diventa un link e la sua verifica live.
+agosto, sera: **H1** e **H3** aperte come allora · **H2** ✅ **chiusa** — erano due difetti, non uno, e il
+secondo l'ha trovato il martello a 2 milioni di giri · **H4** chiusa · **H5** il VID, fatto: resta la
+verifica live.
 
 ### H1 🟢 `.ed-layout` e le altre dieci `@media` degli editor
 
@@ -1816,7 +1817,7 @@ stretta e verifica che il contenimento non tocchi chi non deve.
 > `.editor-toast` fisso **dentro** il `.wrap`: mettere il contenimento sul `.wrap` glielo incolla dentro. Sul
 > viewer è stato aggirato con `.wrap:has(> .doc-layout)`; per gli editor servirà una soluzione propria.
 
-### H2 🟢 PRESO — il rosso di `Vipi.Application.Tests` ha nome, seme e causa (25 agosto 2026, sera)
+### H2 ✅ CHIUSA — il rosso di `Vipi.Application.Tests` era **due** difetti, non uno (25 agosto 2026, sera)
 
 **Come stava scritto** (23 agosto): «in uno dei giri completi la suite ha segnato **1 fallimento su 625**, e
 il nome non è stato catturato; in sei esecuzioni successive non si è più presentato». La voce diceva anche
@@ -1857,15 +1858,42 @@ nasce lì, il 25. Se il rosso di due giorni prima fosse stato lo stesso test la 
 — la famiglia però è quella, «una proprietà che cade solo per certi sorteggi», ed è il motivo per cui in
 sei giri non si era più vista.
 
-**Come si chiude — una riga.** La proprietà deve modellare il proiettore con **gli stessi punti che il
-proiettore vede**: `PolygonGeometry.ParsePoints(Json(punti))` invece di `punti` per calcolare `k` e le
-estensioni (`tests/Vipi.Application.Tests/AorProiezioneProperties.cs`, il metodo a riga 131).
-⚠️ Prima di toccarla, controllare le **altre cinque** proprietà dello stesso file: chiunque parta dai punti
-generati invece che da quelli parsati ha lo stesso difetto latente, e finora l'ha nascosto il sorteggio.
+**Il primo difetto, chiuso.** La proprietà ora modella il proiettore con **gli stessi punti che il
+proiettore vede**: `PolygonGeometry.ParsePoints(json)` invece di `punti`. Col seme `bxKC4K6PiVz6` passa.
 
-⚠️ **Non è stata chiusa nella sessione che l'ha trovata** perché quella sessione stava facendo un'altra cosa
-(il VID, §H5) e cambiare un'asserzione di proprietà non è un gesto da infilare in coda a un giro diverso: va
-deciso guardando tutt'e sei.
+**Le altre cinque, guardate una per una** — perché «chi parte dai punti generati ha lo stesso difetto» era
+un sospetto, non una misura. Esito: **nessun'altra rifà il conto**. Le altre cinque confrontano fra loro due
+*uscite* del proiettore (o due proiezioni dello stesso ingresso), e per costruzione il parsing lo attraversano
+tutt'e due allo stesso modo.
+
+**Il secondo difetto, trovato col martello e chiuso anche quello.** Non bastava guardarle: sono state
+rilanciate a **200 000** giri invece dei 100 di default, ed è caduta subito una proprietà diversa —
+`Spostare_la_longitudine_non_cambia_il_disegno`, sui **punti del path**. Nulla a che vedere con i gemelli:
+è il **mezzo decimale**. Il proiettore emette valori già arrotondati a un decimale (`R()`), e
+`Assert.Equal(a, b, 0)` — «uguali arrotondati a **zero** decimali» — non è una tolleranza, è un **secondo**
+arrotondamento con un **secondo** mezzo su cui cadere: 223,5 e 223,4 distano un passo di `R()` e diventano
+224 e 223.
+
+⚠️ Ed è un difetto che il file **aveva già curato una volta**, sul viewBox, dimenticando il path: il
+commento a fianco cita il seme `bryagYjiWP_m` e mette tolleranza `0,11`. Le due righe del path erano rimaste
+a `0`. ⚠️ **È il candidato più probabile per il rosso visto il 23 agosto**, che invece NON poteva essere il
+conto della latitudine media: `SenzaPuntiGemelli` è nato due giorni dopo.
+
+ℹ️ La correzione **stringe**, non allenta: `0,11` è una tolleranza assoluta, mentre «arrotondati a zero
+decimali» tollerava fino a quasi un'unità intera nei casi non di confine.
+
+**Il controesempio è congelato**, come prescrive il commento della classe:
+`AorPolygonProjectorTests.Un_Punto_Ripetuto_Di_Fila_Non_Cambia_La_Proiezione` — un poligono con un gemello
+consecutivo disegna **identico** a quello senza, viewBox compreso.
+
+**Come è stata verificata.** `CsCheck_Iter=2000000` su **entrambi** i TFM, cioè ventimila volte la copertura
+di un giro normale: verdi. Poi Release `--no-incremental` **0 avvisi** e suite completa **tutta verde** —
+2243 net8 / 2005 net10.
+
+⚠️ **La lezione, ed è generale.** «Rosso intermittente» era una diagnosi sbagliata due volte: una proprietà
+CsCheck non è ballerina, cade **per certi sorteggi** — e il modo di trovarli non è rilanciare finché passa,
+è **alzare le iterazioni**. Cento giri al giorno non sono una rete: sono un campione. Se un giorno una di
+queste torna rossa, il primo gesto è `CsCheck_Iter=2000000`, non `dotnet test` un'altra volta.
 
 ### H4 ✅ CHIUSA il 23 agosto — l'intestazione della tabella ACC non si appiccicava affatto
 Segnalata dal committente («l'header appare come una colonna normale») mentre preparava il deploy, e non era

@@ -1,4 +1,4 @@
-using Vipi.Application.Aor;
+﻿using Vipi.Application.Aor;
 using Xunit;
 
 namespace Vipi.Application.Tests;
@@ -66,6 +66,36 @@ public class AorPolygonProjectorTests
         var poly = AorPolygonProjector.Project(json);
         Assert.NotNull(poly);
         Assert.Equal(3, poly!.Path.Count(c => c is 'M' or 'L'));
+    }
+
+    /// <summary>
+    /// Un punto ripetuto <b>di fila</b> non entra nella proiezione: <see cref="PolygonGeometry.ParsePoints"/>
+    /// lo toglie — è un lato a lunghezza zero, veleno per la triangolazione dell'estrusione 3D — e il
+    /// proiettore vede l'elenco già ripulito. Quindi il disegno è identico a quello del poligono senza il
+    /// doppione, <b>viewBox compreso</b>: il riquadro dipende dalla latitudine <i>media</i>, cioè da quanti
+    /// punti ci sono, non solo da dove stanno.
+    ///
+    /// <para>⚠️ Congelato da un controesempio vero (CsCheck, seed <c>bxKC4K6PiVz6</c>, 25 agosto 2026), come
+    /// prescrive il commento di <c>AorProiezioneProperties</c>: la proprietà sul rapporto fra i lati rifaceva
+    /// il conto sui punti <b>generati</b> mentre il proiettore lavora su quelli <b>parsati</b>, e i due
+    /// <c>cos(lat media)</c> divergevano — 374,0 contro 371,7 di larghezza. Sembrava un rosso intermittente
+    /// per due giorni; era un elenco di punti diverso.</para>
+    /// </summary>
+    [Fact]
+    public void Un_Punto_Ripetuto_Di_Fila_Non_Cambia_La_Proiezione()
+    {
+        // ⚠️ Formato IVAO: coppie [lng, lat], LONGITUDINE PRIMA.
+        var conGemello = "[[13,36],[13,36],[10,46],[18,42]]";
+        var senzaGemello = "[[13,36],[10,46],[18,42]]";
+
+        var a = AorPolygonProjector.Project(conGemello);
+        var b = AorPolygonProjector.Project(senzaGemello);
+
+        Assert.NotNull(a);
+        Assert.NotNull(b);
+        Assert.Equal(b!.ViewBox, a!.ViewBox);
+        Assert.Equal(b.Path, a.Path);
+        Assert.Equal(3, a.Path.Count(c => c is 'M' or 'L'));   // tre punti disegnati, non quattro
     }
 
     [Theory]

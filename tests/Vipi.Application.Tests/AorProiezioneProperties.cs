@@ -20,6 +20,14 @@ namespace Vipi.Application.Tests;
 /// (<c>-e CsCheck_Seed=…</c>) riproduce esattamente quel caso, che va poi congelato in un test a esempio
 /// accanto agli altri in <c>AorPolygonProjectorTests</c>.</para>
 ///
+/// <para>⚠️ <b>Una proprietà che rifà il conto deve partire dagli ingressi che la funzione VEDE</b>, non da
+/// quelli che il generatore ha prodotto: in mezzo c'è <see cref="PolygonGeometry.ParsePoints"/>, che
+/// <b>ripara</b> — toglie i punti ripetuti di fila e le ripetizioni dell'anello intero. Dimenticarlo è
+/// costato due giorni di «rosso intermittente» (seed <c>bxKC4K6PiVz6</c>): il conto della proprietà e quello
+/// del proiettore partivano da due elenchi diversi, e bastava un gemello a spostare la latitudine media.
+/// Delle sei proprietà qui dentro solo <c>Il_rapporto_fra_i_lati_e_quello_vero</c> rifà il conto; le altre
+/// cinque confrontano fra loro due uscite del proiettore, e per costruzione non hanno questo rischio.</para>
+///
 /// <para>⚠️ Le tolleranze non sono generiche: il proiettore arrotonda a un decimale
 /// (<c>Math.Round(v, 1)</c>), quindi due valori che devono coincidere possono distare fino a 0,1 per
 /// estremo. Dove si confrontano differenze fra due coordinate la tolleranza è 0,2.</para>
@@ -111,13 +119,20 @@ public class AorProiezioneProperties
 
             // Il path si confronta a numeri, non a stringhe: l'arrotondamento può far cadere una coordinata
             // dall'altra parte del mezzo decimale, e un confronto testuale lo chiamerebbe difetto.
+            // ⚠️ …e per la STESSA ragione la tolleranza è quella del viewBox qui sopra (0,11 = un passo di
+            // `R()` più un margine), non `Assert.Equal(…, 0)`. «Uguali arrotondati a zero decimali» non è una
+            // tolleranza: è un altro arrotondamento, con un altro mezzo su cui cadere. Visto cadere a 200 000
+            // giri il 25 agosto 2026 — 223,5 contro 223,4, cioè un passo di `R()`, che diventano 224 e 223.
+            // È il difetto che il commento qui sopra aveva già curato sul viewBox dimenticando il path, ed è
+            // il candidato più probabile per il rosso di §H2 visto il 23 agosto: quello NON poteva essere il
+            // conto della latitudine media, perché `SenzaPuntiGemelli` è nato due giorni dopo.
             var a = PuntiDelPath(originale.Path);
             var b = PuntiDelPath(spostato.Path);
             Assert.Equal(a.Count, b.Count);
             for (var i = 0; i < a.Count; i++)
             {
-                Assert.Equal(a[i].X, b[i].X, 0);
-                Assert.Equal(a[i].Y, b[i].Y, 0);
+                Assert.Equal(a[i].X, b[i].X, 0.11);
+                Assert.Equal(a[i].Y, b[i].Y, 0.11);
             }
         });
     }
@@ -132,13 +147,23 @@ public class AorProiezioneProperties
     {
         PoligoniItaliani.Sample(punti =>
         {
-            var p = AorPolygonProjector.Project(Json(punti));
+            var json = Json(punti);
+            var p = AorPolygonProjector.Project(json);
             if (p is null) return;
 
+            // ⚠️ I punti VISTI, non quelli generati — e sono due elenchi diversi. `ParsePoints` ripara
+            // l'ingresso prima che il proiettore lo veda: toglie i punti ripetuti di fila (`SenzaPuntiGemelli`,
+            // 25 agosto 2026) e le ripetizioni dell'intero anello. Il generatore i gemelli li produce, e con un
+            // gemello in meno cambia la latitudine MEDIA, quindi `k`, quindi la larghezza del riquadro.
+            // Costo di averlo dimenticato: un rosso che sembrava intermittente per due giorni (§H2 di
+            // lavori-aperti). Il controesempio è congelato in `AorPolygonProjectorTests`, e la regola generale
+            // sta sul commento della classe.
+            var visti = PolygonGeometry.ParsePoints(json);
+
             // Estensione nello spazio proiettato: x = lon·cos(lat medio), y = -lat.
-            var k = Math.Cos(punti.Average(q => q.Lat) * Math.PI / 180.0);
-            var spanX = punti.Max(q => q.Lon * k) - punti.Min(q => q.Lon * k);
-            var spanY = punti.Max(q => q.Lat) - punti.Min(q => q.Lat);
+            var k = Math.Cos(visti.Average(q => q.Lat) * Math.PI / 180.0);
+            var spanX = visti.Max(q => q.Lon * k) - visti.Min(q => q.Lon * k);
+            var spanY = visti.Max(q => q.Lat) - visti.Min(q => q.Lat);
             var span = Math.Max(spanX, spanY);
             if (span <= 0) return;
 

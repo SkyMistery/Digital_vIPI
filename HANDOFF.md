@@ -14,8 +14,8 @@ e sullo stesso ramo **il VID è diventato un link al profilo IVAO**.
 >
 > **Dove sta il lavoro:** ramo **`statistiche-atc`**, una trentina di commit oltre `main`, spinto su origin
 > (⚠️ la cifra si **conta** — `git rev-list --count main..statistiche-atc` — perché qui era rimasta «24»
-> per due giri mentre il ramo era già a 27). Release **0 avvisi** su entrambi i TFM; **2242 test verdi su
-> net8**, e su net10 **un rosso su 2004** che è del ramo — vedi il blocco qui sotto e §H2. **Non è fuso**:
+> per due giri mentre il ramo era già a 27). Release **0 avvisi** su entrambi i TFM; **2243 test verdi su
+> net8** e **2005 su net10**, tutti verdi (il rosso di §H2 è stato chiuso la sera del 25). **Non è fuso**:
 > vedi §B12.
 >
 > **Cos'è.** Il **terzo servizio** dell'hub `/services`: le statistiche da ATC. ⚠️ Il fatto che decide tutto
@@ -65,17 +65,23 @@ e sullo stesso ramo **il VID è diventato un link al profilo IVAO**.
 > non dove lo si potrebbe ricavare. Dove a schermo c'è il nome (Registro, `ReleasePanel`, Incarichi) resta
 > il nome: la colonna `.c-who` è larga quanto un nome, e «(VID 123456)» su 500 righe la taglia.
 >
-> **2. Il rosso intermittente di `Vipi.Application.Tests` ha preso nome, seme e causa** (§H2, aperta dal 23
-> agosto). È `AorProiezioneProperties.Il_rapporto_fra_i_lati_e_quello_vero`, si riproduce con
-> `CsCheck_Seed=bxKC4K6PiVz6`, e **non è un difetto del proiettore**: è la proprietà che ricalcola
-> `cos(latitudine media)` sui punti **generati** mentre il proiettore lo calcola su quelli **parsati** — e
-> dal 25 agosto `ParsePoints` toglie i punti gemelli consecutivi. I due conti rifatti a mano danno
-> 374,008 contro 371,701, cioè esattamente i due numeri dell'asserzione.
-> ⚠️ **Non è stata chiusa**: si chiude in una riga, ma prima vanno guardate le **altre cinque** proprietà
-> dello stesso file, che possono avere lo stesso difetto latente nascosto dal sorteggio. Vedi **§H2**.
+> **2. ✅ Il rosso «intermittente» di `Vipi.Application.Tests` è chiuso** (§H2, aperta dal 23 agosto) — ed
+> erano **due** difetti, non uno.
+> Il primo: `Il_rapporto_fra_i_lati_e_quello_vero` ricalcolava `cos(latitudine media)` sui punti
+> **generati** mentre il proiettore lo calcola su quelli **parsati**, e dal 25 agosto `ParsePoints` toglie i
+> gemelli consecutivi (374,008 contro 371,701: esattamente i due numeri dell'asserzione).
+> Il secondo l'ha trovato il **martello**: rilanciate a 200 000 giri invece dei 100 di default, è caduta
+> subito un'altra proprietà — i punti del path confrontati con `Assert.Equal(…, 0)`, che non è una
+> tolleranza ma un secondo arrotondamento con un secondo mezzo su cui cadere. Il file quel difetto lo aveva
+> già curato sul **viewBox** dimenticando il **path**.
 >
-> ⚠️ Quindi **su net10 la suite ha un rosso** (2003 su 2004); su net8 è verde (2242). Release
-> `--no-incremental`: **0 avvisi** su entrambi i TFM.
+> ⚠️ **La lezione, generale:** una proprietà CsCheck non è ballerina — cade **per certi sorteggi**, e il modo
+> di trovarli è **alzare le iterazioni**, non rilanciare finché passa. Se una di queste torna rossa, il primo
+> gesto è `CsCheck_Iter=2000000`.
+>
+> Verificato a **2 milioni di giri su entrambi i TFM**, controesempio congelato in
+> `AorPolygonProjectorTests`, e suite completa di nuovo **tutta verde**: **2243 net8 / 2005 net10**, Release
+> `--no-incremental` **0 avvisi**.
 
 > ## ⚪ STORIA — quattro difetti chiusi (23 agosto 2026)
 >
