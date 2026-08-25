@@ -12,10 +12,11 @@ e sullo stesso ramo **il VID è diventato un link al profilo IVAO**.
 > [`docs/feature/2026-08-24-servizio-statistiche-atc.md`](docs/feature/2026-08-24-servizio-statistiche-atc.md)
 > — **§12** dice cosa resta, **§13** cosa è stato fatto il 25.
 >
-> **Dove sta il lavoro:** ramo **`statistiche-atc`**, **27 commit** oltre `main` (contati il 25 sera; la
-> cifra scritta qui prima, 24, era vecchia di due giri), spinto su origin. Release **0 avvisi** su entrambi
-> i TFM; **2242 test verdi su net8**, e su net10 **un rosso su 2004** che è del ramo — vedi il blocco qui
-> sotto e §H2. **Non è fuso**: vedi §B12.
+> **Dove sta il lavoro:** ramo **`statistiche-atc`**, una trentina di commit oltre `main`, spinto su origin
+> (⚠️ la cifra si **conta** — `git rev-list --count main..statistiche-atc` — perché qui era rimasta «24»
+> per due giri mentre il ramo era già a 27). Release **0 avvisi** su entrambi i TFM; **2242 test verdi su
+> net8**, e su net10 **un rosso su 2004** che è del ramo — vedi il blocco qui sotto e §H2. **Non è fuso**:
+> vedi §B12.
 >
 > **Cos'è.** Il **terzo servizio** dell'hub `/services`: le statistiche da ATC. ⚠️ Il fatto che decide tutto
 > il resto — **IVAO dà le connessioni, non il traffico**: chi hai gestito lo costruiamo noi campionando l'AoR

@@ -701,8 +701,9 @@ la ripara**.
 
 ### B12 🟡 NON FUSO — `statistiche-atc`: la decisione è del committente
 
-**27 commit** oltre `main`, spinti su `origin/statistiche-atc` — contati il 25 sera con
-`git rev-list --count main..statistiche-atc`; la cifra scritta qui prima, 24, era vecchia di due giri.
+Una **trentina di commit** oltre `main`, spinti su `origin/statistiche-atc`. ⚠️ **La cifra si conta, non si
+legge**: qui c'è stata scritta «24» per due giri di fila mentre il ramo era già a 27, ed è il motivo per cui
+adesso al suo posto c'è il comando — `git rev-list --count main..statistiche-atc`.
 **Niente lo blocca sul piano tecnico**: `dotnet build Vipi.slnx -c Release --no-incremental` **a 0 avvisi**
 e **2242 test verdi su net8**. Fondere è una decisione, non un passo rimasto indietro.
 
