@@ -1305,6 +1305,34 @@ continuerebbe a vedere quella di prima per giorni.
 cache di favicon loro che l'impronta nell'URL non sempre scavalca. Si sblocca con un ricaricamento forzato o
 in InPrivate. Non è il sito.
 
+#### E poi «si può fare più grande?»
+
+Sì, ma **non era il quadrato a essere piccolo: era il disegno dentro il quadrato**. Misurato con una soglia
+sull'opacità (il bordo antialiasato non conta):
+
+| | 16×16 | 32×32 | 48×48 |
+|---|---|---|---|
+| come stava | **31%** | 50% | 50% |
+| `it.ivao.aero`, il metro chiesto dal committente | 81% | 81% | — |
+| come sta adesso | **88%** | **94%** | **92%** |
+
+Metà dell'icona era margine trasparente, ed è un margine che viene **dall'SVG**: dentro il suo viewBox
+`0 0 1991 1993` il simbolo occupa il 52%. Quindi non bastava riesportare — bisognava **ritagliare al
+contenuto e ricomporre**.
+
+Come è stata rifatta, che serve se un giorno cambia il simbolo:
+
+1. l'SVG si rasterizza a **2048×2048** con Edge headless (`puppeteer-core`, `omitBackground`) — ⚠️ né PIL né
+   il resto di quel che c'è su questa macchina sa leggere un SVG, il browser sì;
+2. si ritaglia al riquadro dell'alfa (1054×1056 su 2048);
+3. per ogni misura si compone una tela **8× più grande**, ci si mette il disegno al **92%**, e si riduce
+   **una volta sola** con LANCZOS: meno passaggi, bordi più puliti;
+4. ⚠️ `Image.thumbnail` **non ingrandisce**, quindi le misure grandi restavano piccole. Ci vuole `resize`
+   con la scala calcolata — è il primo tentativo, ed era sbagliato.
+
+L'icona ha ora **quattro** misure, 16/32/48 e **64** (la linguetta su schermo ad alta densità disegna 32
+logici = 64 fisici).
+
 ### 16.10 Conti
 
 `dotnet build Vipi.slnx -c Release --no-incremental` pulita, suite verde su tutti e due i TFM:
