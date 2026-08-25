@@ -194,6 +194,41 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         Assert.Equal(1, await ArchivedCountAsync());
     }
 
+    /// <summary>
+    /// Il lock di editing vale anche per il pannello release: lo snapshot fotografa la BOZZA e «Pubblica ora»
+    /// la promuove pure. Fino a questo giro il publish-versione dell'editor pretendeva il lock
+    /// (EditingService.EnsureLockAsync) ma le release lo ignoravano: un secondo editor poteva congelare e
+    /// promuovere il lavoro a metà di chi stava scrivendo, rompendogli la sessione senza errore.
+    /// </summary>
+    [Fact]
+    public async Task Publish_Rifiutato_Se_Il_Documento_E_In_Modifica_Da_Un_Altro()
+    {
+        var repo = new EfReleaseRepository(_db, Registry());
+        var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
+            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
+            new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
+            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()), new EfUnitOfWork(_db));
+
+        // Un ALTRO editor (VID 999 ≠ 1 di AllowAuthz) detiene il lock, non scaduto.
+        var doc = await _db.Documents.FirstAsync(d => d.Id == _docId);
+        doc.LockedByUserId = 999; doc.LockedByName = "Altro Editor";
+        doc.LockedAtUtc = DateTime.UtcNow; doc.LockExpiresUtc = DateTime.UtcNow.AddMinutes(3);
+        await _db.SaveChangesAsync();
+
+        // Né immediata né schedulata: entrambe fotografano la sua bozza.
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => svc.PublishNowAsync(FakeType, "fake-key", null));
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => svc.PublishAsync(FakeType, "fake-key", "2613", null));
+        Assert.Empty(await repo.ListAsync(FakeType, "fake-key"));
+
+        // Il lock MIO non blocca; a pubblicazione avvenuta il documento resta libero (come dal publish dell'editor).
+        doc.LockedByUserId = 1; doc.LockedByName = "test"; doc.LockExpiresUtc = DateTime.UtcNow.AddMinutes(3);
+        await _db.SaveChangesAsync();
+        await svc.PublishNowAsync(FakeType, "fake-key", null);
+        Assert.Single(await repo.ListAsync(FakeType, "fake-key"));
+        var after = await _db.Documents.AsNoTracking().FirstAsync(d => d.Id == _docId);
+        Assert.Null(after.LockedByUserId);
+    }
+
     private async Task AddDraftAsync(int versionNumber)
     {
         var draft = new DocumentVersion { DocumentId = _docId, VersionNumber = versionNumber, Status = DocumentStatus.Draft, AiracCycle = "2606", CreatedUtc = DateTime.UtcNow };
