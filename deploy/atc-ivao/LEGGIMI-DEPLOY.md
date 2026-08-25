@@ -61,8 +61,10 @@ da riempire solo i valori segreti.
 > cartella dell'applicazione, e da lì una cartella sopra non è creabile. Il rischio che ne resta è uno solo
 > — sparire se un aggiornamento cancella e ricarica — e si governa non cancellandola: l'avviso è in
 > [`LEGGIMI-FTP.md`](LEGGIMI-FTP.md), che è il foglio che si ha davanti mentre si aggiorna. L'altro rischio,
-> essere scaricabile via HTTP, **è stato verificato e non c'è**: `/appsettings.json` risponde `403`, quindi
-> nginx non serve i file di quella cartella.
+> essere scaricabile via HTTP: ✅ dal **25 agosto 2026** i file di quella cartella **non si scaricano più**
+> (l'hosting ha chiuso l'accesso: `/appsettings.json` e gli altri rispondono 404, verificato dall'esterno).
+> ⚠️ Storia da non confondere: il «403 verificato» del 16 agosto era invecchiato in silenzio e dal 24 al 25
+> agosto i file rispondevano **200** — rimisurare, non ricordare, quando dipende dall'hosting.
 >
 > Se un domani l'accesso al server fosse meno ristretto, il posto giusto torna a essere
 > `/var/www/vhosts/it.ivao.aero/vipi-keys`, accanto a `public_atc`.

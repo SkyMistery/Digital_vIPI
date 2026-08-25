@@ -1,5 +1,10 @@
 # vIPI — aggiornamento del 24 agosto 2026 (pacchetto «g»)
 
+> ✅ **Nota di stato, 25 agosto 2026:** la sezione «`appsettings.Production.json` è scaricabile da chiunque»
+> qui sotto descrive un problema **poi risolto lato hosting il 25 agosto** — i file alla radice ora
+> rispondono 404 (verificato). Questo foglio resta come storia del pacchetto «g». ⚠️ I segreti esposti fino
+> al 25 agosto vanno **ruotati** comunque (in corso).
+
 **Va sopra il pacchetto «e»**, che è già sul server. Sono **sette file**, ed è **soli file**.
 
 > ℹ️ **Sostituisce il pacchetto «f»**, che non è stato caricato: «g» contiene tutto quello che c'era in «f»

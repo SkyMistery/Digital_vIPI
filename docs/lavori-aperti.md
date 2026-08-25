@@ -654,11 +654,40 @@ altrove è stata *convertita* da un passo esterno, la migrazione deve o portarsi
 **rifiutarsi di girare** se trova righe. Un `DROP` silenzioso su dati veri non è reversibile e non si accorge
 di nulla.
 
-### A13 🔴 URGENTE — la cartella dell'applicazione è servita dal web
+### A13 ✅ CHIUSO DALL'ESTERNO il 25 agosto 2026 (sera) — resta solo la rotazione
 
-**Trovato il 24 agosto 2026** mentre si indagava il 500 di E8, con `curl -I` sulla produzione. Il front
-server serve i file **direttamente dalla cartella dell'applicazione**: `public_atc` non è solo la radice
-dell'app, è anche il **document root** del sito.
+> **Aggiornamento 25 agosto 2026 (sera).** Il committente ha riferito che **l'hosting ha cambiato le
+> impostazioni di accesso**. Rimisurato dal vivo con `curl` (solo status code, non i corpi dei file
+> segreti):
+>
+> | URL | esito ORA |
+> |---|---|
+> | `/appsettings.Production.json`, `/appsettings.json`, `/appsettings.Development.json` | **404** |
+> | `/Vipi.Host.dll`, `/Vipi.Host.pdb` | **404** |
+> | `/diagnostica/avvio-diagnostica.txt`, `/diagnostica/errori-richieste.txt` | **404** |
+> | 7 varianti di aggiramento (`.JSON`, `//`, `/./`, `?x=1`, `%61`, maiuscole, `…/.`) | **404 tutte** |
+> | `/services/vsop` (GET reale) | **200** `text/html` |
+> | `/_content/Vipi.Ui/vipi-theme.css` | **200** — gli asset dell'app si servono ancora |
+>
+> **Il 404 nasce dall'ORIGINE, non dal CDN** (`cf-cache-status: DYNAMIC`, nessuna block-page Cloudflare):
+> è l'applicazione a rispondere «non esiste». Firma del fix: `/_content/…` dà 200 mentre i file alla radice
+> danno 404 ⇒ **ora tutte le richieste passano all'applicazione** invece di essere servite dal filesystem —
+> è la strada giusta («document root ≠ cartella app»), non il cerotto per oscurità. Novità: davanti al sito
+> ora c'è **Cloudflare** (`Server: cloudflare`), prima assente. (Questo chiude anche la vecchia **A13-bis**:
+> il criterio «devono diventare 403/404 …» è soddisfatto.)
+>
+> ⚠️ **RESTA APERTO — rotazione dei segreti, IN CORSO.** Chiudere l'accesso oggi non annulla l'esposizione
+> 24→25 agosto: password DB e `ClientId`/`ClientSecret` IVAO sono stati pubblicamente scaricabili (e il repo
+> GitHub è pubblico). Il committente **ha chiesto le credenziali nuove il 25 agosto**; vanno considerati
+> compromessi finché non arrivano e non sono in opera.
+>
+> ⚠️ **Igiene con la nuova architettura**: ora che c'è un CDN davanti, restringere l'ORIGINE ad accettare
+> solo il traffico Cloudflare (Authenticated Origin Pulls o whitelist IP CF), o chi conosce l'IP origine
+> aggira il WAF andando diretto. Oggi non sfruttabile (il 404 nasce dall'app), ma è la mossa corretta.
+
+**Storia — trovato il 24 agosto 2026** mentre si indagava il 500 di E8, con `curl -I` sulla produzione. Il
+front server serviva i file **direttamente dalla cartella dell'applicazione**: `public_atc` non era solo la
+radice dell'app, era anche il **document root** del sito. *(Non è più così dal 25 agosto — vedi sopra.)*
 
 | URL | esito misurato |
 |---|---|
@@ -682,10 +711,13 @@ file che nessuno carica non protegge niente.
 il nome è un GUID; ma è sicurezza per oscurità, e chi lo indovina **fabbrica un cookie di autenticazione
 valido per qualunque VID, admin compresi** — è scritto nel commento `DataProtection` di appsettings.
 
-**Le due strade giuste sono chiuse**, confermato dal committente il 24 agosto:
-1. ~~Ruotare i segreti~~ — **non si può fare**: la password del database la tiene Ivao.It, e le credenziali
-   dell'app IVAO non sono nostre da cambiare.
-2. ~~Chiedere a chi ha il pannello~~ — **non c'è una via alternativa**: chi aggiorna il sito ha solo l'FTP.
+**Le due strade giuste erano chiuse** al 24 agosto — **ENTRAMBE si sono riaperte** con la segnalazione a chi
+supervisiona it.ivao.aero (25 agosto):
+1. ~~Ruotare i segreti~~ → **IN CORSO**: il committente ha chiesto le credenziali nuove il 25 agosto (prima
+   «non si può fare», perché la password DB e l'app IVAO non erano nostre da cambiare — ora c'è un
+   interlocutore).
+2. ~~Chiedere a chi ha il pannello~~ → **FATTO**: chi ha segnalato il problema supervisiona il dominio e ha
+   cambiato le impostazioni di accesso (i file non si scaricano più — vedi l'aggiornamento in testa).
 
 **Il rimedio che resta, ed è quello messo in opera (pacchetto «f»).** Se il file non si può nascondere, si
 svuota: `SegretiFuoriDalWeb` unisce alla configurazione ogni `*.json` dentro la cartella `segreti/` accanto

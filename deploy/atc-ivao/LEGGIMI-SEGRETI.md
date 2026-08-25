@@ -1,11 +1,17 @@
 # I segreti fuori dal file che si scarica
 
+> ✅ **Aggiornamento 25 agosto 2026:** l'hosting ha chiuso l'accesso — `appsettings.Production.json` e gli
+> altri file alla radice **non si scaricano più** (rispondono 404, verificato dall'esterno). Questo foglio
+> resta valido come **pratica**: tenere i segreti nella cartella `segreti/` invece che in `appsettings` è
+> difesa in profondità, e l'assetto dell'hosting è già cambiato due volte. ⚠️ **I segreti esposti dal 24 al
+> 25 agosto vanno RUOTATI comunque** (in corso) — chiudere l'accesso non annulla ciò che è già uscito.
+
 > Vale **solo** per `atc.it.ivao.aero`. In sviluppo e su Render non serve: là la cartella
 > dell'applicazione non è il document root, e `appsettings` non è scaricabile.
 
-## Il fatto, misurato il 24 agosto 2026
+## Il fatto, com'era il 24 agosto 2026 *(risolto il 25 — vedi la nota in testa)*
 
-Sul server la cartella dell'applicazione **è anche il document root del sito**: il server davanti serve i
+All'epoca la cartella dell'applicazione **era anche il document root del sito**: il server davanti serviva i
 file da sé, prima di passare la richiesta all'applicazione. Misurato con `curl -I`:
 
 | URL | esito |
