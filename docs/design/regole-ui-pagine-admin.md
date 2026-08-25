@@ -171,6 +171,15 @@ pieno di righe.
 42. **Quando un meccanismo sparisce, sparisce anche il nome.** `.detail-sticky` è morta insieme allo sticky che
     descriveva: un nome che racconta un meccanismo che non c'è più mente a chi legge fra sei mesi.
 43. Chiavi nuove **sempre IT+EN**, nello stesso giro.
+46. **Un VID che si vede è un link al profilo IVAO** — mai un numero nudo. Si scrive col componente
+    `VidLink` (`Vid`, più `Nome` se lo si conosce, più `SoloNumero` nelle colonne che hanno già «VID» in
+    intestazione), che è **l'unico posto** dove sta l'indirizzo `ivao.aero/Member.aspx?Id=<VID>`.
+    ⚠️ Il perimetro è **dove il VID si VEDE**, non dove lo si potrebbe ricavare: dove a schermo c'è il nome
+    (Registro, `ReleasePanel`, Incarichi) resta il nome, perché la colonna è larga quanto un nome e
+    appenderci «(VID 123456)» su cinquecento righe la taglia. Lì il link compare solo sul ripiego «VID …»,
+    quello che scatta quando il roster il nome non ce l'ha.
+    ⚠️ Non è premibile dentro un `<button>` (una chip) né dentro un `<option>`: lì il markup non entra, e
+    il numero resta testo. Carta: [VID → profilo](../feature/2026-08-25-vid-porta-sul-profilo-ivao.md).
 
 ## 9. CSS: tre trappole che si ripagano
 
@@ -1211,3 +1220,8 @@ per **tutte** le pagine, non solo per le admin.
   segnano i nomi inesistenti; il segno **tinge il campo** invece di aggiungergli un'icona, perché un'icona
   costerebbe 14 dei 76px della colonna — cioè la quinta lettera. E la freccia dell'elenco nativo si prendeva
   quegli stessi pixel da un'altra parte (regola 45-bis), tagliando anche RWY e TYPE, che erano già rotte.
+- [Il VID è una porta sul profilo IVAO](../feature/2026-08-25-vid-porta-sul-profilo-ivao.md): un componente
+  solo per quindici punti, le tre forme in cui un VID compare a schermo, e le tre trappole che il componente
+  chiude una volta per tutte — la risalita del clic dentro una riga che è già un comando, il render mode che
+  su metà di quelle pagine **non c'è** (SSR statico: un `@onclick` non farebbe nulla, in silenzio) e la
+  specificità che in stampa fa vincere `.vid-link` su `.vipi-root a`.

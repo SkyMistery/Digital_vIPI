@@ -1,6 +1,7 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 25 agosto 2026 — **statistiche ATC complete sul ramo `statistiche-atc`**.
+**Ultimo aggiornamento:** 25 agosto 2026, sera — **statistiche ATC complete sul ramo `statistiche-atc`**,
+e sullo stesso ramo **il VID è diventato un link al profilo IVAO**.
 ⚠️ **C'è un ramo con lavoro fuori da `main`, ed è quello.** Fonderlo è una decisione del committente
 (`docs/lavori-aperti.md` **§B12**), non un passo tecnico rimasto indietro.
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
@@ -11,8 +12,10 @@
 > [`docs/feature/2026-08-24-servizio-statistiche-atc.md`](docs/feature/2026-08-24-servizio-statistiche-atc.md)
 > — **§12** dice cosa resta, **§13** cosa è stato fatto il 25.
 >
-> **Dove sta il lavoro:** ramo **`statistiche-atc`**, 24 commit oltre `main`, spinto su origin. Suite verde
-> (2237 net8 / 1999 net10), Release **0 avvisi** su entrambi i TFM. **Non è fuso**: vedi §B12.
+> **Dove sta il lavoro:** ramo **`statistiche-atc`**, **27 commit** oltre `main` (contati il 25 sera; la
+> cifra scritta qui prima, 24, era vecchia di due giri), spinto su origin. Release **0 avvisi** su entrambi
+> i TFM; **2242 test verdi su net8**, e su net10 **un rosso su 2004** che è del ramo — vedi il blocco qui
+> sotto e §H2. **Non è fuso**: vedi §B12.
 >
 > **Cos'è.** Il **terzo servizio** dell'hub `/services`: le statistiche da ATC. ⚠️ Il fatto che decide tutto
 > il resto — **IVAO dà le connessioni, non il traffico**: chi hai gestito lo costruiamo noi campionando l'AoR
@@ -45,6 +48,33 @@
 > ⚠️ **Non ancora visto dal vivo**: le targhette di fase e le consegne. Le colonne nascono adesso e si
 > riempiono dal **primo turno campionato dopo il deploy**; sulle righe già in archivio restano vuote, e in
 > quel caso la pagina non scrive targhette di fase.
+
+> ## 🆕 ANCHE, la sera del 25 agosto — due cose fuori dalle statistiche
+>
+> Stesso ramo, perché è dove si stava lavorando. Nessuna delle due tocca il modello o le migrazioni.
+>
+> **1. Il VID è una porta sul profilo IVAO** — chiesto dal committente: cliccando un VID, in qualsiasi
+> pagina, si apre `https://ivao.aero/Member.aspx?Id=<VID>`. Quindici punti in dieci file, **un componente
+> solo** (`Components/VidLink.razor`), che è anche l'unico posto dove quell'indirizzo è scritto.
+> Carta: [`docs/feature/2026-08-25-vid-porta-sul-profilo-ivao.md`](docs/feature/2026-08-25-vid-porta-sul-profilo-ivao.md).
+> ⚠️ **Non è stato visto dal vivo**: `Vipi.Host` era acceso e teneva bloccati i `.dll`, quindi il browser
+> serviva la build vecchia. Cosa guardare e in che ordine: **§H5** di `docs/lavori-aperti.md`.
+>
+> ⚠️ La regola che ne esce, per chi ci aggancia il prossimo punto: **il link sta dove il VID si vede già**,
+> non dove lo si potrebbe ricavare. Dove a schermo c'è il nome (Registro, `ReleasePanel`, Incarichi) resta
+> il nome: la colonna `.c-who` è larga quanto un nome, e «(VID 123456)» su 500 righe la taglia.
+>
+> **2. Il rosso intermittente di `Vipi.Application.Tests` ha preso nome, seme e causa** (§H2, aperta dal 23
+> agosto). È `AorProiezioneProperties.Il_rapporto_fra_i_lati_e_quello_vero`, si riproduce con
+> `CsCheck_Seed=bxKC4K6PiVz6`, e **non è un difetto del proiettore**: è la proprietà che ricalcola
+> `cos(latitudine media)` sui punti **generati** mentre il proiettore lo calcola su quelli **parsati** — e
+> dal 25 agosto `ParsePoints` toglie i punti gemelli consecutivi. I due conti rifatti a mano danno
+> 374,008 contro 371,701, cioè esattamente i due numeri dell'asserzione.
+> ⚠️ **Non è stata chiusa**: si chiude in una riga, ma prima vanno guardate le **altre cinque** proprietà
+> dello stesso file, che possono avere lo stesso difetto latente nascosto dal sorteggio. Vedi **§H2**.
+>
+> ⚠️ Quindi **su net10 la suite ha un rosso** (2003 su 2004); su net8 è verde (2242). Release
+> `--no-incremental`: **0 avvisi** su entrambi i TFM.
 
 > ## ⚪ STORIA — quattro difetti chiusi (23 agosto 2026)
 >

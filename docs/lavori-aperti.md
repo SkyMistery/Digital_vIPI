@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 25 agosto 2026 (**§B12 aperta: il ramo `statistiche-atc` è completo e NON fuso** — la fusione è una decisione del committente, non un passo tecnico; il 24: §B10 e §B11 fuse e cancellate) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+**Aggiornato:** 25 agosto 2026, sera (**§B12 aperta: il ramo `statistiche-atc` è completo e NON fuso** — la fusione è una decisione del committente, non un passo tecnico; il 24: §B10 e §B11 fuse e cancellate. La sera del 25: il **VID diventa un link** al profilo IVAO — §H5 — e **§H2 smette di essere un mistero**: nome, seme e causa) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -701,9 +701,21 @@ la ripara**.
 
 ### B12 🟡 NON FUSO — `statistiche-atc`: la decisione è del committente
 
-**24 commit** oltre `main`, spinti su `origin/statistiche-atc`. **Niente lo blocca sul piano tecnico**:
-suite verde su entrambi i TFM (2237 net8 / 1999 net10) e `dotnet build Vipi.slnx -c Release
---no-incremental` **a 0 avvisi**. Fondere è una decisione, non un passo rimasto indietro.
+**27 commit** oltre `main`, spinti su `origin/statistiche-atc` — contati il 25 sera con
+`git rev-list --count main..statistiche-atc`; la cifra scritta qui prima, 24, era vecchia di due giri.
+**Niente lo blocca sul piano tecnico**: `dotnet build Vipi.slnx -c Release --no-incremental` **a 0 avvisi**
+e **2242 test verdi su net8**. Fondere è una decisione, non un passo rimasto indietro.
+
+⚠️ **Su net10 la suite ha un rosso, ed è del ramo**: 2003 verdi su 2004, il rosso è la proprietà
+`AorProiezioneProperties.Il_rapporto_fra_i_lati_e_quello_vero`. **Non è un difetto del proiettore, è la
+proprietà che modella il proiettore con i punti sbagliati** — causa trovata e aritmetica alla virgola in
+**§H2**, si chiude in una riga. Su net8 passa: dipende dal sorteggio, non dal TFM.
+
+ℹ️ **L'ultimo commit non è delle statistiche.** È
+[il VID che diventa un link al profilo IVAO](feature/2026-08-25-vid-porta-sul-profilo-ivao.md) (`03463bf`),
+chiesto dal committente il 25 sera: è finito qui perché qui si stava lavorando, e due dei suoi quindici
+punti (`StatsHome`, `StatsDivisionPage`) sono file che **esistono solo su questo ramo**. Non aggiunge
+migrazioni e non tocca il modello. Cosa gli resta: **§H5**.
 
 Carta con tutto: [`feature/2026-08-24-servizio-statistiche-atc.md`](feature/2026-08-24-servizio-statistiche-atc.md)
 — **§12** è l'elenco vivo di cosa resta, **§13** la veste del 25 agosto.
@@ -1762,7 +1774,7 @@ aggiornabile.
 
 ---
 
-## H. Audit frontend/UI — 23 agosto 2026, chiuso salvo due voci (più una trovata dopo)
+## H. Frontend/UI — l'audit del 23 agosto, e ciò che è arrivato dopo
 
 Carta ed esito per esteso in [history/audit-2026-08-23-frontend-ui.md](history/audit-2026-08-23-frontend-ui.md).
 Quindici voci, tredici chiuse in giornata sul ramo `audit-frontend-ui` (sei commit, 3.595 test verdi,
@@ -1771,6 +1783,10 @@ consegna (**A11**). Qui restano le due che **non** sono state chiuse, e il perch
 dell'audit non fa parte: è saltata fuori verificando il lavoro sui coordinamenti live dello stesso giorno
 ([feature/2026-08-23-live-coordinamenti-a-colonne.md](feature/2026-08-23-live-coordinamenti-a-colonne.md)),
 ed è un difetto che stava lì da prima.
+
+**La sezione è diventata il posto dove finisce l'UI aperta**, non solo l'audit di quel giorno. Stato al 25
+agosto, sera: **H1** e **H3** aperte come allora · **H2** non è più un mistero — nome, seme e causa, si
+chiude in una riga · **H4** chiusa · **H5** nuova, il VID che diventa un link e la sua verifica live.
 
 ### H1 🟢 `.ed-layout` e le altre dieci `@media` degli editor
 
@@ -1799,17 +1815,56 @@ stretta e verifica che il contenimento non tocchi chi non deve.
 > `.editor-toast` fisso **dentro** il `.wrap`: mettere il contenimento sul `.wrap` glielo incolla dentro. Sul
 > viewer è stato aggirato con `.wrap:has(> .doc-layout)`; per gli editor servirà una soluzione propria.
 
-### H2 🟢 Un rosso non riproducibile in `Vipi.Application.Tests`
+### H2 🟢 PRESO — il rosso di `Vipi.Application.Tests` ha nome, seme e causa (25 agosto 2026, sera)
 
-In uno dei giri completi la suite ha segnato **1 fallimento su 625**, e il nome non è stato catturato. In sei
-esecuzioni successive (tre mirate, tre complete) non si è più presentato.
+**Come stava scritto** (23 agosto): «in uno dei giri completi la suite ha segnato **1 fallimento su 625**, e
+il nome non è stato catturato; in sei esecuzioni successive non si è più presentato». La voce diceva anche
+come riprenderla — catturare il nome con `grep "\[FAIL\]"` invece di filtrare il riepilogo. È bastato farlo.
 
-Non sembra legato all'audit: lì è stato toccato solo `AorColorScheme`, che ha test deterministici. È
-registrato perché «era tutto verde» non sarebbe vero, e perché un rosso intermittente **visto una volta** è
-un'informazione che si perde se non la si scrive.
+**Il nome.** `Vipi.Application.Tests.AorProiezioneProperties.Il_rapporto_fra_i_lati_e_quello_vero`, caduto
+nella corsa completa in Release del 25 sera **su net10 e non su net8**. ⚠️ Il TFM non c'entra: è una
+proprietà **CsCheck**, e i due TFM sorteggiano poligoni diversi.
 
-**Come si riprende.** Al prossimo rosso, catturare il nome — `dotnet test … 2>&1 | grep "\[FAIL\]"` — invece
-di filtrare sul solo riepilogo, che è l'errore che è stato fatto qui.
+**Il seme, che la rende riproducibile a comando:**
+
+```
+CsCheck_Seed=bxKC4K6PiVz6 dotnet test tests/Vipi.Application.Tests -c Release -f net10.0 --filter "FullyQualifiedName~Il_rapporto_fra_i_lati_e_quello_vero"
+```
+
+Fallisce sempre, in 21 ms: `Expected 374.00806170184399, Actual 371.7`.
+
+**La causa, e non è nel proiettore.** La proprietà ricalcola per conto suo la proiezione per confrontarla
+con quella vera, e per farlo prende `k = cos(latitudine media)` dai punti **generati**. Ma
+`AorPolygonProjector` lavora sui punti **parsati**, e dal 25 agosto `PolygonGeometry.ParsePoints` passa per
+`SenzaPuntiGemelli`, che **toglie i punti ripetuti di fila** (i lati a lunghezza zero: li ha il 29% dei
+poligoni reali, ed erano il sospetto numero uno sulle facce degeneri dell'estrusione 3D).
+
+Il campione che fallisce comincia con `(36, 13), (36, 13)` — due gemelli. Tolto il doppione, la media delle
+latitudini sale da 40,3296 a 40,7626, `k` scende da 0,76245 a 0,75758, e la larghezza del viewBox scende di
+2,3 unità. Rifatto il conto a mano fuori dal test:
+
+| conto | larghezza |
+|---|---|
+| con i gemelli (quel che si aspetta la proprietà) | **374,00806170184** |
+| senza i gemelli (quel che fa il proiettore) | **371,70117732413** → arrotondato `371.7` |
+
+Sono esattamente i due numeri dell'asserzione, all'ultima cifra. Non è tolleranza in virgola mobile: lo
+scarto è 2,3 su una soglia di 0,1.
+
+⚠️ **Quindi il rosso è del ramo `statistiche-atc`**, non un fantasma del 23 agosto: `SenzaPuntiGemelli`
+nasce lì, il 25. Se il rosso di due giorni prima fosse stato lo stesso test la causa era per forza un'altra
+— la famiglia però è quella, «una proprietà che cade solo per certi sorteggi», ed è il motivo per cui in
+sei giri non si era più vista.
+
+**Come si chiude — una riga.** La proprietà deve modellare il proiettore con **gli stessi punti che il
+proiettore vede**: `PolygonGeometry.ParsePoints(Json(punti))` invece di `punti` per calcolare `k` e le
+estensioni (`tests/Vipi.Application.Tests/AorProiezioneProperties.cs`, il metodo a riga 131).
+⚠️ Prima di toccarla, controllare le **altre cinque** proprietà dello stesso file: chiunque parta dai punti
+generati invece che da quelli parsati ha lo stesso difetto latente, e finora l'ha nascosto il sorteggio.
+
+⚠️ **Non è stata chiusa nella sessione che l'ha trovata** perché quella sessione stava facendo un'altra cosa
+(il VID, §H5) e cambiare un'asserzione di proprietà non è un gesto da infilare in coda a un giro diverso: va
+deciso guardando tutt'e sei.
 
 ### H4 ✅ CHIUSA il 23 agosto — l'intestazione della tabella ACC non si appiccicava affatto
 Segnalata dal committente («l'header appare come una colonna normale») mentre preparava il deploy, e non era
@@ -1856,3 +1911,33 @@ di stile del 23 agosto: ⚠️ **misurato con il foglio di PRIMA e con quello di
 **Perché non è stato chiuso subito.** Perché è un difetto a sé, e sistemarlo dentro un giro di pulizia
 avrebbe mescolato due cose. Il colpevole è uno solo e si trova in una riga
 (`node sfora.js http://localhost:5099/services/vsop/admin/acc` nella skill `verifica-live`).
+
+### H5 🟢 Il VID è un link al profilo IVAO — resta da vederlo dal vivo (25 agosto 2026, sera)
+
+Chiesto dal committente e **fatto**: cliccando un VID, in qualsiasi pagina, si apre
+`https://ivao.aero/Member.aspx?Id=<VID>`. Quindici punti in dieci file, un componente solo
+(`Components/VidLink.razor`), sul ramo `statistiche-atc` (`03463bf`). Carta con tutto:
+[`feature/2026-08-25-vid-porta-sul-profilo-ivao.md`](feature/2026-08-25-vid-porta-sul-profilo-ivao.md).
+
+**Cosa resta, ed è tutto UI.**
+
+🟢 **1. La verifica live, non fatta.** `Vipi.Host` era acceso e teneva bloccati i `.dll` di `bin/Debug`: le
+pagine servite erano quelle della build vecchia, quindi il gesto non è mai stato provato in un browser.
+Quattro cose da guardare, in ordine di rischio:
+
+| | dove | cosa deve succedere |
+|---|---|---|
+| 1 | `/services/vsop/admin/permissions` | cliccare il VID **non** deve spostare la selezione della riga. È l'unico punto in cui `@onclick:stopPropagation` si può vedere fallire: il VID sta dentro una riga che è essa stessa un comando |
+| 2 | `/services/stats/division` e `/services/vsop/changed` | sono **SSR statiche**: il link deve funzionare senza circuito |
+| 3 | tema chiaro **e** scuro | la sottolineatura punteggiata (`color-mix` su `currentColor`) è l'unica cosa che nessun test guarda |
+| 4 | stampa di una pagina con VID | `.vid-link` deve appiattirsi come gli altri link (riga aggiunta a `vipi-print.css`) |
+
+🟢 **2. Tre posti dove il VID resta muto**, e in tutt'e tre è il ripiego che compare solo quando il roster
+non conosce il nome: le **chip** di Incarichi (un `<a>` dentro un `<button>` non è HTML valido), le
+**tendine** di assegnazione (un `<option>` è solo testo) e il **«Deciso da …»** di Sorgenti (frase già
+formattata: andrebbe spezzata la chiave `Sorg_DecidedBy`, come si è fatto per `Stats_Subtitle`). I primi due
+sono limiti del formato; il terzo si chiude se qualcuno lo vuole.
+
+🟢 **3. La Guida non nomina il gesto.** `GuidaPage` parla di VID nella sezione Permessi ma non dice che il
+numero si può premere. Da mettere insieme al capitolo sulle statistiche, che è già una voce aperta di **B12**
+— così la Guida si tocca una volta sola.
