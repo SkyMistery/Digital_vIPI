@@ -1,0 +1,46 @@
+@* Sparkline: la FORMA di una serie, non i suoi numeri. Sta dentro un riquadro KPI e non ha assi, griglia
+   né etichette — se servissero quelli, servirebbe un grafico vero (le barre per mese).
+
+   ⚠️ SVG inline e nessuna libreria: la CSP del prodotto non ammette script esterni, e dodici punti non
+   giustificano una dipendenza. I numeri vanno scritti con `StatsView.Svg` — a cultura italiana una virgola
+   decimale dentro `points` spezza il disegno in silenzio. *@
+
+@if (_linea is not null)
+{
+    <svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-label="@Titolo">
+        <polygon class="spark-area" points="@_area" />
+        <polyline class="spark-line" points="@_linea" />
+    </svg>
+}
+
+@code {
+    /// <summary>La serie, dal più vecchio al più recente. Sotto i due punti non si disegna niente.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<double> Valori { get; set; } = Array.Empty<double>();
+
+    /// <summary>Descrizione per chi non vede il disegno.</summary>
+    [Parameter] public string Titolo { get; set; } = "";
+
+    private string? _linea;
+    private string? _area;
+
+    protected override void OnParametersSet()
+    {
+        if (Valori.Count < 2) { _linea = null; _area = null; return; }
+
+        var max = Valori.Max();
+        var min = Valori.Min();
+        var span = max - min;
+
+        // Serie piatta: la linea sta a metà altezza. Dividere per zero darebbe NaN, che l'SVG non disegna
+        // e nessuno segnala.
+        var punti = Valori.Select((v, i) =>
+        {
+            var x = Valori.Count == 1 ? 0 : i * 100.0 / (Valori.Count - 1);
+            var y = span <= 0 ? 15.0 : 28 - (v - min) / span * 26;
+            return $"{StatsView.Svg(x)},{StatsView.Svg(y)}";
+        }).ToList();
+
+        _linea = string.Join(' ', punti);
+        _area = $"0,30 {_linea} 100,30";
+    }
+}

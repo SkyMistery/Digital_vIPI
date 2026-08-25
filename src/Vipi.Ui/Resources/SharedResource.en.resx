@@ -2144,4 +2144,79 @@
   <data name="Ape_WindCalm" xml:space="preserve"><value>calm</value></data>
   <data name="Doc_RailAria" xml:space="preserve"><value>Document information</value></data>
   <data name="Doc_TocAria" xml:space="preserve"><value>Document index</value></data>
+  <data name="Stats_Period" xml:space="preserve"><value>Period</value></data>
+  <data name="Stats_P30" xml:space="preserve"><value>30 days</value></data>
+  <data name="Stats_P90" xml:space="preserve"><value>90 days</value></data>
+  <data name="Stats_P365" xml:space="preserve"><value>12 months</value></data>
+  <data name="Stats_PAll" xml:space="preserve"><value>All</value></data>
+  <data name="Stats_ArchiveFrom" xml:space="preserve"><value>The archive starts on {0}.</value></data>
+  <data name="Stats_VsPrev" xml:space="preserve"><value>compared with the previous {0} days</value></data>
+  <data name="Stats_YourRank" xml:space="preserve"><value>{0} of {1}</value></data>
+  <data name="Stats_YourRankLabel" xml:space="preserve"><value>In the division</value></data>
+  <data name="Stats_TopPercent" xml:space="preserve"><value>top {0}%</value></data>
+  <data name="Stats_StreakLabel" xml:space="preserve"><value>Weeks in a row</value></data>
+  <data name="Stats_StreakBest" xml:space="preserve"><value>best {0}</value></data>
+  <data name="Stats_StreakNone" xml:space="preserve"><value>none running</value></data>
+  <data name="Stats_LastSession" xml:space="preserve"><value>Last session</value></data>
+  <data name="Stats_FavPosition" xml:space="preserve"><value>Favourite position</value></data>
+  <data name="Stats_MonthChart" xml:space="preserve"><value>Hours per month</value></data>
+  <data name="Stats_PositionShare" xml:space="preserve"><value>How your time splits</value></data>
+  <data name="Stats_PositionShareDivision" xml:space="preserve"><value>How the division's time splits</value></data>
+  <data name="Stats_SliceTitle" xml:space="preserve"><value>{0}: {1} hours over {2} sessions</value></data>
+  <data name="Stats_MonthTitle" xml:space="preserve"><value>{0}: {1} hours, {2} movements</value></data>
+  <data name="Stats_CovLegend" xml:space="preserve"><value>Coverage:</value></data>
+  <data name="Stats_CovNone" xml:space="preserve"><value>none</value></data>
+  <data name="Stats_CovFull" xml:space="preserve"><value>full</value></data>
+  <data name="Stats_CovTotalRow" xml:space="preserve"><value>tot.</value></data>
+  <data name="Stats_ShiftPieces" xml:space="preserve"><value>{0} pieces</value></data>
+  <data name="Stats_ShiftPiece" xml:space="preserve"><value>1 piece</value></data>
+  <data name="Stats_ShiftHint" xml:space="preserve"><value>A dropped connection splits a session in two: here they count as one shift.</value></data>
+  <data name="Stats_Timeline" xml:space="preserve"><value>The session strip</value></data>
+  <data name="Stats_PeakTraffic" xml:space="preserve"><value>Peak of {0} aircraft at once, around {1}Z.</value></data>
+  <data name="Stats_PeakEstimated" xml:space="preserve"><value>estimated from the window</value></data>
+  <data name="Stats_PeakEstimatedHint" xml:space="preserve"><value>The bar spans first to last sighting: an aircraft that leaves the area and returns still looks present in between.</value></data>
+  <data name="Stats_Altitudes" xml:space="preserve"><value>Levels</value></data>
+  <data name="Stats_AltEntry" xml:space="preserve"><value>entry</value></data>
+  <data name="Stats_AltExit" xml:space="preserve"><value>exit</value></data>
+  <data name="Stats_AltMax" xml:space="preserve"><value>max</value></data>
+  <data name="Stats_ReceivedFrom" xml:space="preserve"><value>received from {0}</value></data>
+  <data name="Stats_Level" xml:space="preserve"><value>Level</value></data>
+  <data name="Stats_FilterAll" xml:space="preserve"><value>All</value></data>
+  <data name="Stats_FilterDep" xml:space="preserve"><value>Departures</value></data>
+  <data name="Stats_FilterArr" xml:space="preserve"><value>Arrivals</value></data>
+  <data name="Stats_FilterOvf" xml:space="preserve"><value>Overflights</value></data>
+  <data name="Stats_FilterAirborne" xml:space="preserve"><value>Left airborne</value></data>
+  <data name="Stats_FilterNone" xml:space="preserve"><value>No flight matches this filter.</value></data>
+  <data name="Stats_Showing" xml:space="preserve"><value>{0} of {1} flights</value></data>
+  <data name="Stats_EmptyTitle" xml:space="preserve"><value>Nothing to show yet</value></data>
+  <data name="Stats_EmptyPeriod" xml:space="preserve"><value>No session in the selected period.</value></data>
+  <data name="Stats_Tag_Departure" xml:space="preserve"><value>departing</value></data>
+  <data name="Stats_Tag_Arrival" xml:space="preserve"><value>arriving</value></data>
+  <data name="Stats_Tag_Overflight" xml:space="preserve"><value>overflight</value></data>
+  <data name="Stats_Tag_TookOff" xml:space="preserve"><value>took off</value></data>
+  <data name="Stats_Tag_Landed" xml:space="preserve"><value>landed</value></data>
+  <data name="Stats_Tag_AtGate" xml:space="preserve"><value>at the gate</value></data>
+  <data name="Stats_Tag_HandedOff" xml:space="preserve"><value>handed off</value></data>
+  <data name="Stats_Tag_HandedOffTo" xml:space="preserve"><value>handed off to {0}</value></data>
+  <data name="Stats_Tag_LeftAirborne" xml:space="preserve"><value>left airborne</value></data>
+  <data name="Stats_Tag_TaxiOnly" xml:space="preserve"><value>taxi only</value></data>
+  <data name="Stats_Tag_Parked" xml:space="preserve"><value>parked</value></data>
+  <data name="Stats_Tag_NoFlightPlan" xml:space="preserve"><value>no flight plan</value></data>
+  <data name="Stats_Tag_SecondLeg" xml:space="preserve"><value>2nd leg</value></data>
+  <data name="Stats_Tag_Gap" xml:space="preserve"><value>incomplete data</value></data>
+  <data name="Stats_Tag_Rebuilt" xml:space="preserve"><value>rebuilt</value></data>
+  <data name="Stats_TagHint_Departure" xml:space="preserve"><value>The flight plan departs from your field.</value></data>
+  <data name="Stats_TagHint_Arrival" xml:space="preserve"><value>The flight plan arrives at your field.</value></data>
+  <data name="Stats_TagHint_Overflight" xml:space="preserve"><value>Neither departs nor arrives in the division: it was passing through.</value></data>
+  <data name="Stats_TagHint_TookOff" xml:space="preserve"><value>You saw it get airborne: on the ground first, flying after.</value></data>
+  <data name="Stats_TagHint_Landed" xml:space="preserve"><value>You saw it touch down: airborne first, on the ground after.</value></data>
+  <data name="Stats_TagHint_AtGate" xml:space="preserve"><value>It flew and ended up parked: on blocks.</value></data>
+  <data name="Stats_TagHint_HandedOff" xml:space="preserve"><value>It left your area still airborne, and another position took it.</value></data>
+  <data name="Stats_TagHint_LeftAirborne" xml:space="preserve"><value>It left your area still airborne, and nobody took it after you.</value></data>
+  <data name="Stats_TagHint_TaxiOnly" xml:space="preserve"><value>It moved but you never saw it airborne.</value></data>
+  <data name="Stats_TagHint_Parked" xml:space="preserve"><value>It never moved: it counts as a presence, not a movement.</value></data>
+  <data name="Stats_TagHint_NoFlightPlan" xml:space="preserve"><value>No flight plan while it was with you.</value></data>
+  <data name="Stats_TagHint_SecondLeg" xml:space="preserve"><value>Second flight by the same callsign during your session.</value></data>
+  <data name="Stats_TagHint_Gap" xml:space="preserve"><value>There is a gap between two sightings: the minutes are an undercount.</value></data>
+  <data name="Stats_TagHint_Rebuilt" xml:space="preserve"><value>Rebuilt from airport movements: no phase observed.</value></data>
 </root>

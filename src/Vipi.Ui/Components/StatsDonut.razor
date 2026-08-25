@@ -1,0 +1,57 @@
+@* Ciambella + legenda: come si divide il tempo fra le postazioni.
+
+   ⚠️ Colore E testo, come la griglia ora×giorno: la legenda porta l'etichetta e la quota in cifre, perché
+   una ripartizione affidata al solo colore non si legge a chi vede i colori in modo diverso e non si legge
+   affatto in stampa. Il disegno è decorazione della legenda, non il contrario. *@
+
+<div class="donut-wrap">
+    <svg class="donut" viewBox="0 0 120 120" role="img" aria-label="@Titolo">
+        <circle cx="60" cy="60" r="42" class="don-bg" />
+        @{
+            var offset = 0.0;
+        }
+        @foreach (var f in Fette.Where(f => f.Value > 0))
+        {
+            var lunghezza = Totale <= 0 ? 0 : f.Value / Totale * Circonferenza;
+            var dash = $"{StatsView.Svg(lunghezza)} {StatsView.Svg(Circonferenza - lunghezza)}";
+            var off = StatsView.Svg(-offset);
+            offset += lunghezza;
+
+            <circle cx="60" cy="60" r="42" class="@f.CssClass"
+                    stroke-dasharray="@dash" stroke-dashoffset="@off">
+                <title>@f.Title</title>
+            </circle>
+        }
+        <text class="donut-hole" x="60" y="58" font-size="19" font-weight="700">@Centro</text>
+        <text class="donut-hole" x="60" y="73" font-size="9" fill="currentColor" opacity=".7">@CentroLabel</text>
+    </svg>
+
+    <div class="donut-legend">
+        @foreach (var f in Fette.Where(f => f.Value > 0))
+        {
+            <div class="lg">
+                <i class="dot @f.CssClass"></i>
+                <b>@f.Label</b>
+                <span class="q">@Percento(f.Value)</span>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<StatsSlice> Fette { get; set; } = Array.Empty<StatsSlice>();
+
+    [Parameter] public string Titolo { get; set; } = "";
+
+    /// <summary>Che cosa scrivere nel buco: di solito il totale.</summary>
+    [Parameter] public string Centro { get; set; } = "";
+
+    [Parameter] public string CentroLabel { get; set; } = "";
+
+    /// <summary>2πr con r = 42: il raggio del disegno, che è fisso perché fisso è il viewBox.</summary>
+    private const double Circonferenza = 2 * Math.PI * 42;
+
+    private double Totale => Fette.Sum(f => f.Value);
+
+    private string Percento(double v) => Totale <= 0 ? "" : Math.Round(v / Totale * 100) + "%";
+}

@@ -1,0 +1,40 @@
+@* Un riquadro di numero: valore, etichetta, variazione rispetto al periodo prima, e la forma dell'anno.
+
+   La variazione è un FATTO, non un voto: la freccia dice il verso, il colore accompagna. «Hai controllato
+   meno del mese scorso» non è un errore e non si scrive in rosso. *@
+
+<div class="kpi">
+    <div class="kpi-top">
+        <span class="kpi-v">@Valore</span>
+        @if (!string.IsNullOrEmpty(Unita)) { <span class="kpi-u">@Unita</span> }
+        @if (Delta is { } d)
+        {
+            <span class="kpi-d @(d > 0 ? "up" : d < 0 ? "down" : "flat")" title="@DeltaHint">
+                @(d > 0 ? "▲" : d < 0 ? "▼" : "•") @Math.Abs(d)%
+            </span>
+        }
+    </div>
+    <div class="kpi-l">@Etichetta</div>
+    @if (Serie is { Count: > 1 })
+    {
+        <div class="kpi-spark"><StatsSpark Valori="Serie" Titolo="@Etichetta" /></div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Valore { get; set; } = "";
+
+    /// <summary>Unità accanto al numero (h, voli…). Facoltativa.</summary>
+    [Parameter] public string? Unita { get; set; }
+
+    [Parameter, EditorRequired] public string Etichetta { get; set; } = "";
+
+    /// <summary>Variazione percentuale; <c>null</c> quando non c'è un periodo prima con cui confrontarsi.</summary>
+    [Parameter] public int? Delta { get; set; }
+
+    /// <summary>Che cosa dice quella variazione, per esteso: finisce nel titolo del segno.</summary>
+    [Parameter] public string? DeltaHint { get; set; }
+
+    /// <summary>Serie per la sparkline (dal più vecchio). Sotto i due punti non compare.</summary>
+    [Parameter] public IReadOnlyList<double>? Serie { get; set; }
+}

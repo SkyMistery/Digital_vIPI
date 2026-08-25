@@ -1,0 +1,62 @@
+@using Vipi.Application.Abstractions
+@using Vipi.Application.Stats
+@using Vipi.Domain.Entities
+@inject IStringLocalizer<SharedResource> L
+
+@* Le targhette di un volo: che cos'era (partenza, arrivo, sorvolo), che cosa ne abbiamo VISTO (decollato,
+   atterrato, al gate, consegnato…) e che cosa c'è da sapere sul dato (buco, ricostruito).
+
+   ⚠️ La regola sta in `TrafficStory`, non qui: «l'ho visto atterrare?» è una decisione, e una decisione
+   scritta nel markup non ha test. Questo componente traduce e colora, nient'altro. *@
+
+<span class="chips">
+    @foreach (var t in _tag)
+    {
+        <span class="pill @Colore(t)" title="@Spiegazione(t)">@Etichetta(t)</span>
+    }
+</span>
+
+@code {
+    [Parameter, EditorRequired] public StatsTrafficRow Riga { get; set; } = default!;
+
+    /// <summary>ICAO del campo della postazione, se ne ha uno: decide «in partenza»/«in arrivo».</summary>
+    [Parameter] public string? StationIcao { get; set; }
+
+    /// <summary>Prefissi ICAO della divisione, per riconoscere un sorvolo vero.</summary>
+    [Parameter] public IReadOnlyList<string>? Prefissi { get; set; }
+
+    private IReadOnlyList<TrafficTag> _tag = Array.Empty<TrafficTag>();
+
+    protected override void OnParametersSet() =>
+        _tag = TrafficStory.Tags(
+            new TrafficFacts(
+                Riga.DepIcao, Riga.ArrIcao, Riga.LegOrdinal, Riga.SawMovement, Riga.SawAirborne,
+                Riga.HasObservationGap, Riga.Origin == TrafficOrigin.AirportApi,
+                Riga.FirstPhase, Riga.LastPhase, Riga.HandoffTo is not null),
+            StationIcao, Prefissi);
+
+    private string Etichetta(TrafficTag t) => t switch
+    {
+        TrafficTag.HandedOff when Riga.HandoffTo is { } a => L["Stats_Tag_HandedOffTo", a],
+        _ => L["Stats_Tag_" + t],
+    };
+
+    private string Spiegazione(TrafficTag t) => L["Stats_TagHint_" + t];
+
+    /// <summary>
+    /// Verde = si è concluso da noi, blu = è nostro ma è ancora per aria, grigio = fatto del dato.
+    /// </summary>
+    private static string Colore(TrafficTag t) => t switch
+    {
+        TrafficTag.Departure => "dep",
+        TrafficTag.Arrival => "arr",
+        TrafficTag.Overflight => "ovf",
+        TrafficTag.Landed => "landed",
+        TrafficTag.AtGate => "gate",
+        TrafficTag.TookOff => "tookoff",
+        TrafficTag.HandedOff => "handoff",
+        TrafficTag.LeftAirborne => "blue",
+        TrafficTag.Gap => "amber",
+        _ => "grey",
+    };
+}

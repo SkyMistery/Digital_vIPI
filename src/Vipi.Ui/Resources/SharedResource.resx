@@ -854,10 +854,10 @@
   <data name="Sorg_TaLabel" xml:space="preserve"><value>Transition Altitude</value></data>
   <data name="Services_StatsDesc" xml:space="preserve"><value>Le tue ore in frequenza e il traffico che hai gestito, sessione per sessione.</value></data>
   <data name="Stats_WhenYouControl" xml:space="preserve"><value>Quando controlli</value></data>
-  <data name="Stats_Coverage" xml:space="preserve"><value>Quando c'e copertura</value></data>
+  <data name="Stats_Coverage" xml:space="preserve"><value>Quando c'è copertura</value></data>
   <data name="Stats_CoverageHint" xml:space="preserve"><value>Percentuale di tempo con almeno un controllore italiano in frequenza, per ora UTC e giorno della settimana. Le caselle vuote sono i buchi.</value></data>
   <data name="Stats_TopAirports" xml:space="preserve"><value>I tuoi aeroporti</value></data>
-  <data name="Stats_TopAircraft" xml:space="preserve"><value>I tipi che vedi di piu</value></data>
+  <data name="Stats_TopAircraft" xml:space="preserve"><value>I tipi che vedi di più</value></data>
   <data name="Stats_Airport" xml:space="preserve"><value>Aeroporto</value></data>
   <data name="Stats_Flights" xml:space="preserve"><value>Voli</value></data>
   <data name="Stats_Export" xml:space="preserve"><value>Scarica le mie sessioni (CSV)</value></data>
@@ -882,7 +882,7 @@
   <data name="Stats_Detail" xml:space="preserve"><value>Dettaglio</value></data>
   <data name="Stats_SessionTitle" xml:space="preserve"><value>Sessione</value></data>
   <data name="Stats_SessionMissing" xml:space="preserve"><value>Questa sessione non risulta in archivio.</value></data>
-  <data name="Stats_NotYours" xml:space="preserve"><value>Questa sessione e di un altro controllore.</value></data>
+  <data name="Stats_NotYours" xml:space="preserve"><value>Questa sessione è di un altro controllore.</value></data>
   <data name="Stats_NoTraffic" xml:space="preserve"><value>Nessun traffico registrato per questa sessione.</value></data>
   <data name="Stats_HandledTraffic" xml:space="preserve"><value>Traffico gestito</value></data>
   <data name="Stats_Flight" xml:space="preserve"><value>Volo</value></data>
@@ -890,23 +890,23 @@
   <data name="Stats_Aircraft" xml:space="preserve"><value>Aeromobile</value></data>
   <data name="Stats_InArea" xml:space="preserve"><value>Nell'area</value></data>
   <data name="Stats_Gap" xml:space="preserve"><value>dati incompleti</value></data>
-  <data name="Stats_GapHint" xml:space="preserve"><value>Fra due avvistamenti di questo volo c'e un buco: i suoi minuti sono per difetto.</value></data>
+  <data name="Stats_GapHint" xml:space="preserve"><value>Fra due avvistamenti di questo volo c'è un buco: i suoi minuti sono per difetto.</value></data>
   <data name="Stats_Parked" xml:space="preserve"><value>fermo</value></data>
-  <data name="Stats_ParkedHint" xml:space="preserve"><value>Non si e mai mosso mentre eri in frequenza: conta come presenza, non come movimento.</value></data>
+  <data name="Stats_ParkedHint" xml:space="preserve"><value>Non si è mai mosso mentre eri in frequenza: conta come presenza, non come movimento.</value></data>
   <data name="Stats_Rebuilt" xml:space="preserve"><value>ricostruito</value></data>
-  <data name="Stats_RebuiltHint" xml:space="preserve"><value>Ricostruito dai movimenti dell'aeroporto: si sa che il volo c'e stato, non per quanti minuti.</value></data>
+  <data name="Stats_RebuiltHint" xml:space="preserve"><value>Ricostruito dai movimenti dell'aeroporto: si sa che il volo c'è stato, non per quanti minuti.</value></data>
   <data name="Stats_StillOpen" xml:space="preserve"><value>in corso</value></data>
   <data name="Stats_BackToMine" xml:space="preserve"><value>Le mie statistiche</value></data>
   <data name="Stats_DivisionLink" xml:space="preserve"><value>Statistiche di divisione</value></data>
   <data name="Stats_DivisionTitle" xml:space="preserve"><value>Statistiche di divisione</value></data>
   <data name="Stats_DivisionSubtitle" xml:space="preserve"><value>Ultimi dodici mesi: oltre, la sorgente non conserva le connessioni.</value></data>
   <data name="Stats_TopControllers" xml:space="preserve"><value>Classifica per ore</value></data>
-  <data name="Stats_LeaderboardOff" xml:space="preserve"><value>La classifica di divisione non e pubblica. Puo renderla visibile lo staff.</value></data>
-  <data name="Stats_Visibility" xml:space="preserve"><value>Visibilita</value></data>
+  <data name="Stats_LeaderboardOff" xml:space="preserve"><value>La classifica di divisione non è pubblica. Può renderla visibile lo staff.</value></data>
+  <data name="Stats_Visibility" xml:space="preserve"><value>Visibilità</value></data>
   <data name="Stats_PublicLeaderboard" xml:space="preserve"><value>Classifica visibile a tutti i loggati</value></data>
   <data name="Stats_PublicLeaderboardHint" xml:space="preserve"><value>Spenta, la classifica la vede solo lo staff. Accesa, mostra ore e movimenti di tutti a chiunque abbia fatto login.</value></data>
   <data name="Stats_DecidedBy" xml:space="preserve"><value>deciso da {0} il {1}</value></data>
-  <data name="Stats_Disclaimer" xml:space="preserve"><value>Il traffico e una misura, non un registro: i settori senza poligono non attribuiscono, e per alcune torri la forma e un cerchio di 5 NM.</value></data>
+  <data name="Stats_Disclaimer" xml:space="preserve"><value>Il traffico è una misura, non un registro: i settori senza poligono non attribuiscono, e per alcune torri la forma è un cerchio di 5 NM.</value></data>
   <data name="Sorg_AtcStatsLabel" xml:space="preserve"><value>Statistiche ATC</value></data>
   <data name="Sorg_AtcStatsDesc" xml:space="preserve"><value>Connessioni ATC dei callsign italiani e traffico gestito, raccolti dal vivo e dallo storico della sorgente. Escluderla non rende nulla manuale: spegne la raccolta.</value></data>
   <data name="Sorg_SidLabel" xml:space="preserve"><value>SID</value></data>
@@ -2150,4 +2150,79 @@
   <data name="Ape_WindCalm" xml:space="preserve"><value>calmo</value></data>
   <data name="Doc_RailAria" xml:space="preserve"><value>Informazioni sul documento</value></data>
   <data name="Doc_TocAria" xml:space="preserve"><value>Indice del documento</value></data>
+  <data name="Stats_Period" xml:space="preserve"><value>Periodo</value></data>
+  <data name="Stats_P30" xml:space="preserve"><value>30 giorni</value></data>
+  <data name="Stats_P90" xml:space="preserve"><value>90 giorni</value></data>
+  <data name="Stats_P365" xml:space="preserve"><value>12 mesi</value></data>
+  <data name="Stats_PAll" xml:space="preserve"><value>Tutto</value></data>
+  <data name="Stats_ArchiveFrom" xml:space="preserve"><value>L'archivio comincia il {0}.</value></data>
+  <data name="Stats_VsPrev" xml:space="preserve"><value>rispetto ai {0} giorni precedenti</value></data>
+  <data name="Stats_YourRank" xml:space="preserve"><value>{0}° su {1}</value></data>
+  <data name="Stats_YourRankLabel" xml:space="preserve"><value>In divisione</value></data>
+  <data name="Stats_TopPercent" xml:space="preserve"><value>primo {0}%</value></data>
+  <data name="Stats_StreakLabel" xml:space="preserve"><value>Settimane di fila</value></data>
+  <data name="Stats_StreakBest" xml:space="preserve"><value>record {0}</value></data>
+  <data name="Stats_StreakNone" xml:space="preserve"><value>nessuna in corso</value></data>
+  <data name="Stats_LastSession" xml:space="preserve"><value>Ultimo turno</value></data>
+  <data name="Stats_FavPosition" xml:space="preserve"><value>Postazione preferita</value></data>
+  <data name="Stats_MonthChart" xml:space="preserve"><value>Ore per mese</value></data>
+  <data name="Stats_PositionShare" xml:space="preserve"><value>Come si divide il tuo tempo</value></data>
+  <data name="Stats_PositionShareDivision" xml:space="preserve"><value>Come si divide il tempo della divisione</value></data>
+  <data name="Stats_SliceTitle" xml:space="preserve"><value>{0}: {1} ore su {2} sessioni</value></data>
+  <data name="Stats_MonthTitle" xml:space="preserve"><value>{0}: {1} ore, {2} movimenti</value></data>
+  <data name="Stats_CovLegend" xml:space="preserve"><value>Copertura:</value></data>
+  <data name="Stats_CovNone" xml:space="preserve"><value>nessuna</value></data>
+  <data name="Stats_CovFull" xml:space="preserve"><value>piena</value></data>
+  <data name="Stats_CovTotalRow" xml:space="preserve"><value>tot.</value></data>
+  <data name="Stats_ShiftPieces" xml:space="preserve"><value>{0} spezzoni</value></data>
+  <data name="Stats_ShiftPiece" xml:space="preserve"><value>1 spezzone</value></data>
+  <data name="Stats_ShiftHint" xml:space="preserve"><value>Una caduta di linea spezza una connessione in due: qui contano per un turno solo.</value></data>
+  <data name="Stats_Timeline" xml:space="preserve"><value>La striscia del turno</value></data>
+  <data name="Stats_PeakTraffic" xml:space="preserve"><value>Punta di {0} aeroplani insieme, verso le {1}Z.</value></data>
+  <data name="Stats_PeakEstimated" xml:space="preserve"><value>stimato dalla finestra</value></data>
+  <data name="Stats_PeakEstimatedHint" xml:space="preserve"><value>La barra va dal primo all'ultimo avvistamento: chi esce dall'area e rientra risulta presente anche in mezzo.</value></data>
+  <data name="Stats_Altitudes" xml:space="preserve"><value>Quote</value></data>
+  <data name="Stats_AltEntry" xml:space="preserve"><value>ingresso</value></data>
+  <data name="Stats_AltExit" xml:space="preserve"><value>uscita</value></data>
+  <data name="Stats_AltMax" xml:space="preserve"><value>massima</value></data>
+  <data name="Stats_ReceivedFrom" xml:space="preserve"><value>ricevuto da {0}</value></data>
+  <data name="Stats_Level" xml:space="preserve"><value>Quota</value></data>
+  <data name="Stats_FilterAll" xml:space="preserve"><value>Tutti</value></data>
+  <data name="Stats_FilterDep" xml:space="preserve"><value>Partenze</value></data>
+  <data name="Stats_FilterArr" xml:space="preserve"><value>Arrivi</value></data>
+  <data name="Stats_FilterOvf" xml:space="preserve"><value>Sorvoli</value></data>
+  <data name="Stats_FilterAirborne" xml:space="preserve"><value>Usciti in volo</value></data>
+  <data name="Stats_FilterNone" xml:space="preserve"><value>Nessun volo con questo filtro.</value></data>
+  <data name="Stats_Showing" xml:space="preserve"><value>{0} voli su {1}</value></data>
+  <data name="Stats_EmptyTitle" xml:space="preserve"><value>Ancora niente da mostrare</value></data>
+  <data name="Stats_EmptyPeriod" xml:space="preserve"><value>Nessun turno nel periodo scelto.</value></data>
+  <data name="Stats_Tag_Departure" xml:space="preserve"><value>in partenza</value></data>
+  <data name="Stats_Tag_Arrival" xml:space="preserve"><value>in arrivo</value></data>
+  <data name="Stats_Tag_Overflight" xml:space="preserve"><value>sorvolo</value></data>
+  <data name="Stats_Tag_TookOff" xml:space="preserve"><value>decollato</value></data>
+  <data name="Stats_Tag_Landed" xml:space="preserve"><value>atterrato</value></data>
+  <data name="Stats_Tag_AtGate" xml:space="preserve"><value>al parcheggio</value></data>
+  <data name="Stats_Tag_HandedOff" xml:space="preserve"><value>consegnato</value></data>
+  <data name="Stats_Tag_HandedOffTo" xml:space="preserve"><value>consegnato a {0}</value></data>
+  <data name="Stats_Tag_LeftAirborne" xml:space="preserve"><value>uscito in volo</value></data>
+  <data name="Stats_Tag_TaxiOnly" xml:space="preserve"><value>solo rullaggio</value></data>
+  <data name="Stats_Tag_Parked" xml:space="preserve"><value>fermo</value></data>
+  <data name="Stats_Tag_NoFlightPlan" xml:space="preserve"><value>senza piano</value></data>
+  <data name="Stats_Tag_SecondLeg" xml:space="preserve"><value>2ª tratta</value></data>
+  <data name="Stats_Tag_Gap" xml:space="preserve"><value>dati incompleti</value></data>
+  <data name="Stats_Tag_Rebuilt" xml:space="preserve"><value>ricostruito</value></data>
+  <data name="Stats_TagHint_Departure" xml:space="preserve"><value>Il piano di volo parte dal tuo campo.</value></data>
+  <data name="Stats_TagHint_Arrival" xml:space="preserve"><value>Il piano di volo arriva al tuo campo.</value></data>
+  <data name="Stats_TagHint_Overflight" xml:space="preserve"><value>Né parte né arriva in divisione: stava attraversando.</value></data>
+  <data name="Stats_TagHint_TookOff" xml:space="preserve"><value>L'hai visto staccare: era a terra e poi in volo.</value></data>
+  <data name="Stats_TagHint_Landed" xml:space="preserve"><value>L'hai visto toccare terra: era in volo e poi al suolo.</value></data>
+  <data name="Stats_TagHint_AtGate" xml:space="preserve"><value>Ha volato ed è finito fermo al parcheggio: arrivato ai blocchi.</value></data>
+  <data name="Stats_TagHint_HandedOff" xml:space="preserve"><value>È uscito dalla tua area ancora in volo, e l'ha preso un'altra postazione.</value></data>
+  <data name="Stats_TagHint_LeftAirborne" xml:space="preserve"><value>È uscito dalla tua area ancora in volo, e dopo di te non l'ha preso nessuno.</value></data>
+  <data name="Stats_TagHint_TaxiOnly" xml:space="preserve"><value>Si è mosso ma non l'hai mai visto in volo.</value></data>
+  <data name="Stats_TagHint_Parked" xml:space="preserve"><value>Non si è mai mosso: conta come presenza, non come movimento.</value></data>
+  <data name="Stats_TagHint_NoFlightPlan" xml:space="preserve"><value>Nessun piano di volo mentre era da te.</value></data>
+  <data name="Stats_TagHint_SecondLeg" xml:space="preserve"><value>Secondo volo dello stesso callsign durante la tua sessione.</value></data>
+  <data name="Stats_TagHint_Gap" xml:space="preserve"><value>Fra due avvistamenti c'è un buco: i minuti sono per difetto.</value></data>
+  <data name="Stats_TagHint_Rebuilt" xml:space="preserve"><value>Ricostruito dai movimenti dell'aeroporto: nessuna fase osservata.</value></data>
 </root>

@@ -1,0 +1,122 @@
+@using Vipi.Application.Abstractions
+@using Vipi.Application.Stats
+@using Vipi.Domain
+@inject IStringLocalizer<SharedResource> L
+
+@* La striscia del turno: il tempo scorre da sinistra a destra, ogni volo è una barra, i cambi di pista sono
+   linee verticali. Una corsia per riga, e le corsie sono poche perché un volo che finisce lascia la sua
+   libera (è l'algoritmo dei binari di stazione, in `TrafficTimeline`).
+
+   ⚠️ La barra è la FINESTRA fra primo e ultimo avvistamento, non la presenza: chi esce dal settore e
+   rientra ha una barra continua e minuti contati per giro. Perciò la punta di traffico si presenta come
+   stimata, e la frase lo dice. *@
+
+@if (_barre.Bars.Count > 0)
+{
+    <div class="tl">
+        <div class="tl-lanes">
+            @for (var corsia = 0; corsia < _barre.Lanes; corsia++)
+            {
+                var c = corsia;
+                <div class="tl-row">
+                    @foreach (var b in _barre.Bars.Where(x => x.Lane == c))
+                    {
+                        var r = Voli[b.Index];
+                        <span class="tl-bar @Colore(r)"
+                              style="left:@Percento(b.From);width:@Larghezza(b.From, b.To)"
+                              title="@Titolo(r)">@r.PilotCallsign</span>
+                    }
+                </div>
+            }
+
+            @foreach (var p in CambiPista)
+            {
+                <span class="tl-rwy" style="left:@Percento(p.FromUtc)"></span>
+                <span class="tl-rwy-lab" style="left:calc(@Percento(p.FromUtc) + 4px)">@Piste(p)</span>
+            }
+        </div>
+
+        <div class="tl-axis">
+            @foreach (var t in _tacche)
+            {
+                <span class="tl-tick" style="left:@Percento(t)">@t.ToString("HH:mm")Z</span>
+            }
+        </div>
+    </div>
+
+    <p class="muted" style="margin-top:8px">
+        @L["Stats_PeakTraffic", _barre.PeakConcurrent, (_barre.PeakAtUtc ?? Inizio).ToString("HH:mm")]
+        · <span title="@L["Stats_PeakEstimatedHint"]">@L["Stats_PeakEstimated"]</span>
+    </p>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<StatsTrafficRow> Voli { get; set; } = Array.Empty<StatsTrafficRow>();
+
+    [Parameter, EditorRequired] public DateTimeOffset Inizio { get; set; }
+
+    [Parameter, EditorRequired] public DateTimeOffset Fine { get; set; }
+
+    [Parameter] public IReadOnlyList<StatsRunwayRow> CambiPista { get; set; } = Array.Empty<StatsRunwayRow>();
+
+    private TrafficTimelineResult _barre = new(Array.Empty<TimelineBar>(), 0, 0, null);
+    private IReadOnlyList<DateTimeOffset> _tacche = Array.Empty<DateTimeOffset>();
+
+    private double _durata = 1;
+
+    protected override void OnParametersSet()
+    {
+        // ⚠️ Le righe ricostruite a posteriori non hanno una finestra vera (primo = ultimo avvistamento):
+        // sulla striscia sarebbero puntini a caso, e la striscia racconta il turno campionato dal vivo.
+        var vivi = Voli.Select((v, i) => (v, i))
+            .Where(x => x.v.Origin == Vipi.Domain.Entities.TrafficOrigin.Aor)
+            .ToList();
+
+        _barre = TrafficTimeline.Build(vivi.Select(x => (x.v.FirstSeenUtc, x.v.LastSeenUtc)).ToList());
+
+        // `Build` numera in base alla lista che riceve: qui si rimappa sugli indici veri di `Voli`.
+        _barre = _barre with { Bars = _barre.Bars.Select(b => b with { Index = vivi[b.Index].i }).ToList() };
+
+        var fine = Fine > Inizio ? Fine : Inizio.AddMinutes(1);
+        _durata = (fine - Inizio).TotalSeconds;
+        _tacche = Tacche(Inizio, fine);
+    }
+
+    /// <summary>Al massimo otto tacche: mezz'ora, un'ora, due, tre, sei. Oltre, l'asse diventa un pettine.</summary>
+    private static IReadOnlyList<DateTimeOffset> Tacche(DateTimeOffset da, DateTimeOffset a)
+    {
+        var minuti = (a - da).TotalMinutes;
+        var passo = new[] { 30, 60, 120, 180, 360 }.FirstOrDefault(p => minuti / p <= 8, 720);
+
+        var primo = new DateTimeOffset(
+            da.UtcDateTime.Date.AddMinutes(Math.Ceiling(da.UtcDateTime.TimeOfDay.TotalMinutes / passo) * passo),
+            TimeSpan.Zero);
+
+        var esito = new List<DateTimeOffset>();
+        for (var t = primo; t < a; t = t.AddMinutes(passo)) esito.Add(t);
+        return esito;
+    }
+
+    private string Percento(DateTimeOffset quando) =>
+        StatsView.Svg(Math.Clamp((quando - Inizio).TotalSeconds / _durata * 100, 0, 100)) + "%";
+
+    private string Larghezza(DateTimeOffset da, DateTimeOffset a) =>
+        StatsView.Svg(Math.Clamp((a - da).TotalSeconds / _durata * 100, 0.4, 100)) + "%";
+
+    private static string Colore(StatsTrafficRow r) => r.LastPhase switch
+    {
+        FlightPhase.Airborne => "b-air",
+        FlightPhase.Ground when r.SawAirborne => "b-landed",
+        _ => "b-ground",
+    };
+
+    private string Titolo(StatsTrafficRow r)
+    {
+        var rotta = $"{r.DepIcao ?? "—"} → {r.ArrIcao ?? "—"}";
+        var quando = $"{r.FirstSeenUtc:HH:mm}–{r.LastSeenUtc:HH:mm}Z";
+        return $"{r.PilotCallsign} · {rotta} · {quando} · {r.SeenMinutes} min";
+    }
+
+    private static string Piste(StatsRunwayRow r) =>
+        string.IsNullOrEmpty(r.Departure) || r.Arrival == r.Departure ? r.Arrival : $"{r.Arrival} → {r.Departure}";
+}

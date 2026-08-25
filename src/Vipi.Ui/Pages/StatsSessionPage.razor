@@ -1,15 +1,21 @@
 @page "/services/stats/session/{SessionId:long}"
 @layout SopLayout
+@using Microsoft.Extensions.Options
+@using Vipi.Application
 @using Vipi.Application.Abstractions
 @using Vipi.Application.Auth
+@using Vipi.Application.Stats
+@using Vipi.Domain
 @using Vipi.Domain.Entities
 @inject IAtcStatsQueries Stats
 @inject ICurrentUserProvider Utenti
 @inject IEditAuthorizationService Authz
+@inject IOptions<DivisionOptions> Divisione
 @inject IStringLocalizer<SharedResource> L
 
-@* Il dettaglio di una sessione: quanto è durata e quali aeroplani sono passati. Si vede la propria; lo staff
-   vede tutte. SSR statico. *@
+@* Il dettaglio di una sessione: quanto è durata, com'è andato il turno (la striscia) e quali aeroplani sono
+   passati — con quel che ne abbiamo VISTO fare. Si vede la propria; lo staff vede tutte. SSR statico, e il
+   filtro del traffico sta nell'indirizzo (?f=arr) per non trasformare la pagina in un circuito. *@
 
 <PageTitle>@L["Stats_SessionTitle"] · vIPI IVAO Italia</PageTitle>
 
@@ -22,40 +28,35 @@
     else
     {
         var s = _dettaglio.Session;
-        <div class="doc-head">
-            <h1 class="page-h1">@s.Callsign</h1>
-            <p class="muted">
-                @s.StartUtc.ToString("yyyy-MM-dd HH:mm")Z
-                @if (s.EndUtc is { } fine) { <text> → @fine.ToString("HH:mm")Z</text> }
-                · @Durata(s.DurationSeconds)
-                @if (!string.IsNullOrWhiteSpace(s.Frequency)) { <text> · @s.Frequency</text> }
-            </p>
+        <div class="doc-head stat-hero">
+            <div class="sh-main">
+                <h1 class="page-h1">
+                    <i class="dot @StatsView.PosClass(s.Callsign)"></i> @s.Callsign
+                </h1>
+                <p class="muted">
+                    @s.StartUtc.ToString("yyyy-MM-dd HH:mm")Z
+                    @if (s.EndUtc is { } fine) { <text> → @fine.ToString("HH:mm")Z</text> }
+                    · @StatsView.Durata(s.DurationSeconds)
+                    @if (!string.IsNullOrWhiteSpace(s.Frequency)) { <text> · @s.Frequency</text> }
+                    @if (s.EndUtc is null) { <text> · </text><span class="pill blue">@L["Stats_StillOpen"]</span> }
+                </p>
+            </div>
+            @if (_dettaglio.Runways.Count > 0)
+            {
+                <div class="sh-side">
+                    <div class="sh-fact">
+                        <b>@Piste(_dettaglio.Runways[^1])</b>
+                        @L["Stats_Runways"]
+                    </div>
+                </div>
+            }
         </div>
 
-        <div class="choice-grid" style="margin:18px 0">
-            <div class="choice"><h2 class="h-card">@s.MovementCount</h2><p class="muted">@L["Stats_Movements"]</p></div>
-            <div class="choice"><h2 class="h-card">@s.TrafficCount</h2><p class="muted">@L["Stats_Presences"]</p></div>
-            <div class="choice"><h2 class="h-card">@s.TrafficMinutes</h2><p class="muted">@L["Stats_BusyMinutes"]</p></div>
+        <div class="kpi-grid">
+            <StatsKpi Valore="@s.MovementCount.ToString()" Etichetta="@L["Stats_Movements"].Value" />
+            <StatsKpi Valore="@s.TrafficCount.ToString()" Etichetta="@L["Stats_Presences"].Value" />
+            <StatsKpi Valore="@s.TrafficMinutes.ToString()" Etichetta="@L["Stats_BusyMinutes"].Value" />
         </div>
-
-        @if (_dettaglio.Runways.Count > 0)
-        {
-            @* ⚠️ È una sequenza: se la configurazione è cambiata a turno in corso si vedono tutte, con l'ora
-               da cui valgono. Una riga sola vuol dire che non è mai cambiata. *@
-            <p class="muted">
-                <b>@L["Stats_Runways"]:</b>
-                @for (var i = 0; i < _dettaglio.Runways.Count; i++)
-                {
-                    var r = _dettaglio.Runways[i];
-                    @(i > 0 ? " · " : " ")
-                    <span>@Piste(r)</span>
-                    @if (_dettaglio.Runways.Count > 1)
-                    {
-                        <text> (@L["Stats_RunwaysFrom"] @r.FromUtc.ToString("HH:mm")Z)</text>
-                    }
-                }
-            </p>
-        }
 
         @if (_dettaglio.Traffic.Count == 0)
         {
@@ -63,49 +64,79 @@
         }
         else
         {
+            <h2 class="h-sect">@L["Stats_Timeline"]</h2>
+            <SessionTimeline Voli="_dettaglio.Traffic" Inizio="s.StartUtc"
+                             Fine="@(s.EndUtc ?? s.StartUtc.AddSeconds(s.DurationSeconds))"
+                             CambiPista="_dettaglio.Runways" />
+
             <h2 class="h-sect">@L["Stats_HandledTraffic"]</h2>
-            <table class="res-table">
-                <thead>
-                    <tr>
-                        <th>@L["Stats_Flight"]</th><th>@L["Stats_Route"]</th><th>@L["Stats_Aircraft"]</th>
-                        <th>@L["Stats_InArea"]</th><th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var t in _dettaglio.Traffic)
-                    {
+            <StatsChipBar Voci="_filtri" Titolo="@L["Stats_HandledTraffic"].Value" />
+
+            @if (_visibili.Count == 0)
+            {
+                <p class="muted">@L["Stats_FilterNone"]</p>
+            }
+            else
+            {
+                <table class="res-table tbl-cards">
+                    <thead>
                         <tr>
-                            <td>@t.PilotCallsign@(t.LegOrdinal > 1 ? $" ({t.LegOrdinal})" : "")</td>
-                            <td>@(t.DepIcao ?? "—") → @(t.ArrIcao ?? "—")</td>
-                            <td>@(t.AircraftIcao ?? "—")</td>
-                            <td>
-                                @* ⚠️ Le righe ricostruite dai movimenti d'aeroporto non hanno minuti: la sorgente
-                                   dice CHE il volo c'è stato, non per quanto. Un trattino è più onesto di uno zero. *@
-                                @(t.Origin == TrafficOrigin.AirportApi ? "—" : $"{t.SeenMinutes} min")
-                            </td>
-                            <td>
-                                @if (t.HasObservationGap)
-                                {
-                                    <span class="pill" title="@L["Stats_GapHint"]">@L["Stats_Gap"]</span>
-                                }
-                                @if (!t.SawMovement)
-                                {
-                                    <span class="pill" title="@L["Stats_ParkedHint"]">@L["Stats_Parked"]</span>
-                                }
-                                @if (t.Origin == TrafficOrigin.AirportApi)
-                                {
-                                    <span class="pill" title="@L["Stats_RebuiltHint"]">@L["Stats_Rebuilt"]</span>
-                                }
-                            </td>
+                            <th>@L["Stats_Flight"]</th><th>@L["Stats_Route"]</th><th>@L["Stats_Aircraft"]</th>
+                            <th>@L["Stats_InArea"]</th><th>@L["Stats_Level"]</th><th></th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach (var t in _visibili)
+                        {
+                            <tr>
+                                <td data-l="@L["Stats_Flight"]">
+                                    @t.PilotCallsign@(t.LegOrdinal > 1 ? $" ({t.LegOrdinal})" : "")
+                                    @if (t.HandoffFrom is { } da)
+                                    {
+                                        <div class="muted" style="font-size:11.5px">@L["Stats_ReceivedFrom", da]</div>
+                                    }
+                                </td>
+                                <td data-l="@L["Stats_Route"]">@(t.DepIcao ?? "—") → @(t.ArrIcao ?? "—")</td>
+                                <td data-l="@L["Stats_Aircraft"]">@(t.AircraftIcao ?? "—")</td>
+                                <td class="cb" data-l="@L["Stats_InArea"]"
+                                    style="--cb:@StatsView.Quota(t.SeenMinutes, _maxMinuti)">
+                                    @* ⚠️ Le righe ricostruite dai movimenti d'aeroporto non hanno minuti: la sorgente
+                                       dice CHE il volo c'è stato, non per quanto. Un trattino è più onesto di uno zero. *@
+                                    @(t.Origin == TrafficOrigin.AirportApi ? "—" : $"{t.SeenMinutes} min")
+                                </td>
+                                <td data-l="@L["Stats_Level"]" title="@Quote(t)">@Livello(t)</td>
+                                <td>
+                                    <TrafficTags Riga="t" StationIcao="@_icaoPostazione" Prefissi="_prefissi" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <p class="muted" style="margin-top:8px">
+                    @L["Stats_Showing", _visibili.Count, _dettaglio.Traffic.Count]
+                </p>
+            }
+        }
+
+        @if (_dettaglio.Runways.Count > 1)
+        {
+            @* Una riga per cambio: se la configurazione è cambiata a turno in corso si vedono tutte, con
+               l'ora da cui valgono. Sulla striscia sono le linee tratteggiate. *@
+            <p class="muted">
+                <b>@L["Stats_Runways"]:</b>
+                @for (var i = 0; i < _dettaglio.Runways.Count; i++)
+                {
+                    var r = _dettaglio.Runways[i];
+                    @(i > 0 ? " · " : " ")
+                    <span>@Piste(r)</span>
+                    <text> (@L["Stats_RunwaysFrom"] @r.FromUtc.ToString("HH:mm")Z)</text>
+                }
+            </p>
         }
 
         <p class="muted" style="margin-top:22px">
             <a href="/services/stats">@L["Stats_BackToMine"]</a>
-            @if (s.EndUtc is null) { <text> · </text><span class="pill">@L["Stats_StillOpen"]</span> }
         </p>
     }
 </div>
@@ -113,8 +144,16 @@
 @code {
     [Parameter] public long SessionId { get; set; }
 
+    /// <summary>Filtro del traffico dall'indirizzo: <c>dep</c>, <c>arr</c>, <c>ovf</c>, <c>air</c>.</summary>
+    [SupplyParameterFromQuery(Name = "f")] public string? F { get; set; }
+
     private StatsSessionDetail? _dettaglio;
     private bool _vietato;
+    private string? _icaoPostazione;
+    private IReadOnlyList<string> _prefissi = Array.Empty<string>();
+    private IReadOnlyList<StatsTrafficRow> _visibili = Array.Empty<StatsTrafficRow>();
+    private IReadOnlyList<StatsChipBar.Voce> _filtri = Array.Empty<StatsChipBar.Voce>();
+    private double _maxMinuti;
 
     protected override async Task OnInitializedAsync()
     {
@@ -130,11 +169,70 @@
         }
 
         _dettaglio = dettaglio;
+        _prefissi = Divisione.Value.IcaoPrefixes;
+        _icaoPostazione = TrafficStory.StationIcao(dettaglio.Session.Callsign);
+        _maxMinuti = dettaglio.Traffic.Count == 0 ? 0 : dettaglio.Traffic.Max(t => t.SeenMinutes);
+
+        _visibili = dettaglio.Traffic.Where(Passa).ToList();
+        _filtri = Filtri();
     }
+
+    /// <summary>
+    /// Il filtro guarda le stesse targhette che si vedono in riga: se una riga porta «in arrivo», il filtro
+    /// «arrivi» la tiene. Una seconda regola qui si scollerebbe dalla prima al primo cambiamento.
+    /// </summary>
+    private bool Passa(StatsTrafficRow r)
+    {
+        if (string.IsNullOrEmpty(F)) return true;
+
+        var tag = TrafficStory.Tags(Fatti(r), _icaoPostazione, _prefissi);
+        return F.ToLowerInvariant() switch
+        {
+            "dep" => tag.Contains(TrafficTag.Departure),
+            "arr" => tag.Contains(TrafficTag.Arrival),
+            "ovf" => tag.Contains(TrafficTag.Overflight),
+            "air" => tag.Contains(TrafficTag.LeftAirborne) || tag.Contains(TrafficTag.HandedOff),
+            _ => true,
+        };
+    }
+
+    private static TrafficFacts Fatti(StatsTrafficRow r) => new(
+        r.DepIcao, r.ArrIcao, r.LegOrdinal, r.SawMovement, r.SawAirborne, r.HasObservationGap,
+        r.Origin == TrafficOrigin.AirportApi, r.FirstPhase, r.LastPhase, r.HandoffTo is not null);
+
+    private IReadOnlyList<StatsChipBar.Voce> Filtri()
+    {
+        var voci = new List<(string Chiave, string Etichetta)>
+        {
+            ("", L["Stats_FilterAll"]),
+            ("dep", L["Stats_FilterDep"]),
+            ("arr", L["Stats_FilterArr"]),
+            ("ovf", L["Stats_FilterOvf"]),
+            ("air", L["Stats_FilterAirborne"]),
+        };
+
+        var attuale = F?.ToLowerInvariant() ?? "";
+        return voci.Select(v => new StatsChipBar.Voce(
+            v.Etichetta,
+            v.Chiave.Length == 0
+                ? $"/services/stats/session/{SessionId}"
+                : $"/services/stats/session/{SessionId}?f={v.Chiave}",
+            v.Chiave == attuale)).ToList();
+    }
+
+    /// <summary>La quota che racconta il volo: la massima vista. Senza campionamento dal vivo, un trattino.</summary>
+    private static string Livello(StatsTrafficRow r) =>
+        r.MaxAltitudeFt is { } q ? StatsView.Livello(q) : "—";
+
+    private string Quote(StatsTrafficRow r) =>
+        r.EntryAltitudeFt is null && r.ExitAltitudeFt is null
+            ? ""
+            : $"{L["Stats_AltEntry"]} {Facoltativa(r.EntryAltitudeFt)} · " +
+              $"{L["Stats_AltExit"]} {Facoltativa(r.ExitAltitudeFt)} · " +
+              $"{L["Stats_AltMax"]} {Facoltativa(r.MaxAltitudeFt)}";
+
+    private static string Facoltativa(int? piedi) => piedi is { } q ? StatsView.Livello(q) : "—";
 
     private static string Piste(StatsRunwayRow r) =>
         string.IsNullOrEmpty(r.Departure) || r.Arrival == r.Departure ? r.Arrival : $"{r.Arrival} → {r.Departure}";
-
-    private static string Durata(int secondi) =>
-        secondi >= 3600 ? $"{secondi / 3600}h {(secondi % 3600) / 60:00}m" : $"{secondi / 60}m";
 }

@@ -1,4 +1,4 @@
-# Statistiche ATC: il terzo servizio (carta, 24 agosto 2026)
+﻿# Statistiche ATC: il terzo servizio (carta, 24 agosto 2026)
 
 > Nuovo figlio dell'hub `/services`, accanto a `vsop` (documentazione) e `profile-swapper` (strumento).
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Regola d'ingaggio con la sorgente:
@@ -386,6 +386,12 @@ regole qui sotto restano, perché è il momento in cui costano zero.
    ~10× scritture in meno; il rischio massimo di un riavvio è 10 minuti di `LastSeenUtc`.
 4. **Zero campioni grezzi**: nessuna tabella di snapshot whazzup. Si consuma al volo e si butta.
 
+⚠️ **Aggiornamento del 25 agosto**: le targhette del traffico (§13) hanno aggiunto otto colonne alla riga —
+due fasi (enum→stringa, 32 caratteri di dichiarazione ma valori da 6-8), un `bool`, tre `int` di quota e due
+`bigint` di consegna. Misura a occhio sulla riga InnoDB: **~50 B in più**, cioè da ~75 a ~125 B/riga e dal
+~4% al **~6-7% della quota** a regime. È una crescita nota e accettata: quel che comprano è l'unica risposta
+onesta a «l'ho visto atterrare?», e nessuna di quelle colonne costa una chiamata in più alla sorgente.
+
 Volume **misurato** (§8.1), non stimato: **21 231 sessioni ATC italiane negli ultimi 12 mesi**. Con ~25 aerei
 per sessione fanno ~500 000 righe di traffico l'anno. MariaDB regge senza pensarci; la retention si decide
 comunque adesso, non dopo (lezione della retention di pubblicazione): **dettaglio traffico 12 mesi, sessioni
@@ -723,6 +729,11 @@ Ordinato per **quanto costa il dato**, non per quanto è bella l'idea.
   lavoro fatto. ⚠️ Verificato con i test contro il database vero e **non** dal vivo: a quell'ora non c'era
   **nessun** ATC italiano online (0 su 444 piloti nella fotografia), quindi non c'era niente da registrare.
 
+### ✅ Fatto (la veste, 25 agosto — vedi §13)
+
+- **Le targhette del traffico**, la costanza, la striscia del turno, i grafici, il periodo scelto
+  dall'indirizzo, il podio, le tabelle che diventano schede sul piccolo. Tutto in §13.
+
 ### Segnato, da ragionare (non ora)
 
 - **La mappa del traffico gestito** nel dettaglio sessione: `/v2/tracker/sessions/{id}/tracks` dà la traccia
@@ -742,9 +753,15 @@ per riga il 25 agosto: se un giorno questa sezione risulta vuota, il servizio è
 
 ### Prima di fondere in `main`
 
-- **Niente lo blocca sul piano tecnico**: suite verde (2176 net8 / 1938 net10) e `dotnet build Vipi.slnx
-  -c Release --no-incremental` pulita su entrambi i TFM. La fusione è una decisione del committente, non un passo
+- **Niente lo blocca sul piano tecnico**: suite verde e `dotnet build Vipi.slnx -c Release
+  --no-incremental` pulita su entrambi i TFM. La fusione è una decisione del committente, non un passo
   tecnico rimasto indietro.
+
+  ⚠️ Conteggi misurati il **25 agosto, dopo §13**: **2222 su net8, 1984 su net10**. E una nota che serve a
+  chi li rimisura: `dotnet test Vipi.slnx` in quel giro **non ha eseguito** `Vipi.Domain.Tests` (117) né
+  `Vipi.AuroraProfiles.Tests` (63) — lanciati a mano sono verdi, ma un totale letto da quel comando può
+  essere più basso di 180 senza che manchi niente. I numeri della prima consegna (2176/1938) erano contati
+  in un altro giro e non tornano con questi: non inseguirli.
 - ⚠️ **Manca la Guida, e §7 la dichiara obbligatoria.** Verificato il 25 agosto: la card in `ServicesHome` e
   in `SopHome` c'è, la voce nel menù ☰ (`SopLayout`) c'è, ma **`GuidaPage.razor` non ha un capitolo sulle
   statistiche e `GuideSearchCatalog.Entries` non ha la sua voce** — cioè chi cerca «statistiche» nella
@@ -755,10 +772,17 @@ per riga il 25 agosto: se un giorno questa sezione risulta vuota, il servizio è
 - ⚠️ **La `UPDATE` dei tetti TWR** (§4.5-bis) è stata eseguita **solo sul `vipi.db` di sviluppo**. La stessa,
   con la stessa guardia (`Position='TWR' AND LimitsFromSource=0 AND UpperLimit=19500`), va data là: senza,
   in produzione le torri continuano a rivendicare fino a FL195 e il traffico in crociera finisce a loro.
-- Le **cinque migrazioni** del servizio, tutte a doppia emissione: `StatisticheAtc`, `PolicyStatisticheAtc`,
-  `TrafficoRiempitoAPosteriori`, `ImpostazioniStatistiche`, `PisteInUso`.
+- Le **sei migrazioni** del servizio, tutte a doppia emissione: `StatisticheAtc`, `PolicyStatisticheAtc`,
+  `TrafficoRiempitoAPosteriori`, `ImpostazioniStatistiche`, `PisteInUso`, `FasiQuoteConsegne` (§13).
 
 ### Non ancora provato dal vivo
+
+- **Le targhette di fase e le consegne** (§13). Il motore è coperto da test contro un database vero — fasi e
+  quote fino all'archivio, consegna scritta su tutt'e due le sessioni, poller fermo che non la inventa — ma
+  **nessuna riga vera le ha ancora**: le colonne nascono adesso e si riempiono dal primo turno campionato dal
+  vivo. Sulle righe già in archivio restano vuote, e la pagina in quel caso non scrive targhette di fase (è
+  la stessa regola delle righe ricostruite: se non l'abbiamo visto, non si dice). Verifica: aprire una
+  sessione registrata dopo il deploy e controllare che i voli portino «decollato»/«atterrato»/«consegnato a».
 
 - **La sequenza delle piste in uso.** Coperta dai test contro un database vero, ma **mai vista girare su un
   ATIS reale**: in tutt'e due i momenti in cui si poteva provare non c'era **nessun** ATC italiano collegato
@@ -775,3 +799,112 @@ per riga il 25 agosto: se un giorno questa sezione risulta vuota, il servizio è
   vive solo in questo documento, ed è esattamente il modo in cui la retention di pubblicazione si era
   accumulata la prima volta.
 
+## 13. La veste (25 agosto 2026)
+
+La prima consegna aveva l'aspetto di quel che era: quattro riquadri di numeri e sei tabelle. Il committente
+ha chiesto di renderla presentabile e, nello stesso giro, «una targhetta che dica chi è atterrato e chi no».
+La seconda richiesta ha cambiato anche il modello dati; la prima no.
+
+### 13.1 La regola che governa tutte le targhette
+
+**Una targhetta dice quel che abbiamo VISTO, non quel che doveva succedere.** Un volo con arrivo `LIRF` che
+esce dalla nostra area ancora in volo **non è «atterrato»**: è «uscito in volo», o «consegnato a LIRR_NE1_CTR»
+se sappiamo chi l'ha preso. È la stessa regola dei minuti contati per giro e del trattino al posto dello zero
+sulle righe ricostruite: il servizio misura, non racconta.
+
+Le voci, e come si ricavano (`TrafficStory`, puro e con 13 test):
+
+| targhetta | condizione |
+|---|---|
+| in partenza / in arrivo | il piano di volo tocca il campo della postazione (`LIRF_TWR` → `LIRF`) |
+| sorvolo | né partenza né arrivo dentro i prefissi di divisione |
+| decollato | prima fase a terra, poi visto in volo |
+| **atterrato** | visto **in volo** e poi **al suolo** |
+| al parcheggio | ha volato ed è finito fermo (arrivato ai blocchi) |
+| consegnato a X | uscito in volo, e al giro dopo era di X |
+| uscito in volo | uscito in volo, e dopo di noi nessuno |
+| solo rullaggio | si è mosso ma non l'abbiamo mai visto volare |
+| fermo | non si è mai mosso (era già lì) |
+
+⚠️ **Il prefisso di un ACC non è un aeroporto.** `LIRR_NE1_CTR` comincia per `LIRR`, che è un codice di FIR:
+se lo si trattasse come ICAO nascerebbero «arrivi a LIRR» che non esistono. `TrafficStory.StationIcao`
+riconosce solo TWR/GND/DEL/APP/AFIS.
+
+### 13.2 Che cosa è servito nel dato (e che cosa no)
+
+Niente di tutto questo era derivabile da quel che c'era: sulla riga restava il solo `SawMovement`, che non
+distingue una partenza da un arrivo da un sorvolo. La fase, però, il recorder **la calcolava già a ogni
+giro** e la buttava. Quindi:
+
+- `FirstPhase`, `LastPhase`, `SawAirborne` — la fase vista, non dedotta;
+- `EntryAltitudeFt`, `ExitAltitudeFt`, `MaxAltitudeFt` — per un CTR è il numero che racconta il volo;
+- `HandoffToSessionId`, `HandoffFromSessionId` — chi l'ha preso dopo di noi, e da chi l'abbiamo avuto.
+
+**Zero chiamate in più alla sorgente**: erano tutti dati già in memoria al momento del giro.
+
+⚠️ **La consegna si scrive solo fra due giri consecutivi** (finestra 2,5 minuti, `AtcTrafficRecorder.HandoffWindow`).
+Senza quella finestra, un poller fermo un'ora scriverebbe «consegnato a…» ogni volta che, tornando su, un
+aeroplano si trova sotto un altro controllore: «prima era tuo e ora è suo» è un buco di osservazione, non un
+passaggio. ⚠️ E **nessuna chiave esterna** sui due id: la potatura del dettaglio (§5.1) cancellerà righe
+vecchie, e una FK farebbe cadere la consegna insieme alla riga dell'altro. Un id che non risolve più si
+mostra senza collegamento — c'è un test apposta.
+
+### 13.3 La striscia del turno, e perché la punta è «stimata»
+
+Il dettaglio sessione ora apre con una **striscia**: il tempo da sinistra a destra, un volo per barra, i
+cambi di pista come linee tratteggiate. Le corsie le assegna `TrafficTimeline` con l'algoritmo dei binari di
+stazione (la prima libera), quindi una TWR da quaranta voli in tre ore occupa una manciata di righe, non
+quaranta.
+
+⚠️ **La barra è la finestra fra primo e ultimo avvistamento, non la presenza.** Chi esce dal settore e
+rientra ha una barra continua e minuti contati per giro: la punta di traffico simultaneo che ne esce è
+**stimata**, e la pagina lo scrive accanto al numero invece di lasciarlo credere esatto. Contare la presenza
+vera vorrebbe dire conservare un campione al minuto per volo — mezzo milione di righe l'anno che ne
+diventerebbero trenta.
+
+⚠️ Le righe **ricostruite** dai movimenti d'aeroporto non entrano nella striscia: non hanno una finestra
+vera (primo = ultimo avvistamento) e sarebbero puntini a caso su un disegno che racconta il campionamento
+dal vivo.
+
+### 13.4 La costanza (settimane di fila)
+
+`ControllerStreak`, puro. Settimana = giorni dal lunedì dell'epoca, non settimana ISO: due settimane
+consecutive differiscono di uno e il capodanno non spezza niente (la settimana 1 dopo la 52 di un altro anno
+è una trappola classica, e c'è un test che ci passa sopra).
+
+⚠️ **La striscia resta viva anche se in questa settimana non si è ancora controllato.** Senza quella regola
+ogni lunedì mattina la striscia di tutti tornerebbe a zero — falso, e per giunta scoraggiante.
+
+### 13.5 Le scelte visive che non sono gusto
+
+- **Il periodo sta nell'indirizzo** (`?p=30`), non in un componente interattivo. È ciò che tiene la pagina
+  personale **SSR statica**: un filtro con `@rendermode` vorrebbe un circuito Blazor per ogni lettore di una
+  pagina che è un elenco di numeri fermi. In più il tasto «indietro» funziona e un periodo si può mandare a
+  qualcuno. Stessa scelta per il filtro del traffico (`?f=arr`).
+- **Il confronto è con un periodo lungo uguale**, che finisce dove comincia quello mostrato. Confrontare
+  trenta giorni con dodici mesi darebbe un «−96%» che non vuol dire niente. Quando il periodo prima è vuoto
+  la variazione **non si mostra**: chi comincia adesso non ha un «prima», e «+100%» sarebbe inventato.
+- **La variazione non è un voto.** Freccia per il verso, colore che accompagna, nessun rosso: «hai
+  controllato meno del mese scorso» non è un errore.
+- **Un turno per riga, non una connessione.** Il 38% delle connessioni sono spezzoni di una caduta di linea
+  (§ modello dati): in elenco sembravano turni distinti. Ora la riga è il turno e gli spezzoni stanno dentro,
+  aperti da chi li vuole.
+- **Colore E testo, sempre.** La ciambella ha la legenda con le percentuali in cifre, la griglia ora×giorno
+  ha ora anche la **legenda della scala** (senza, l'intensità era decorazione).
+- ⚠️ **`@container`, non `@media`.** Sotto i 700px le tabelle diventano schede — ma la soglia guarda la
+  larghezza del **contenitore**, non della finestra: lo zoom di questo prodotto è `zoom` sull'`<html>`, e una
+  media query non lo vede (a zoom 1.8 su 1280px il documento sta in 711px e la media query legge ancora
+  1280). È la stessa trappola già pagata sul viewer.
+- **Nessuna libreria di grafici.** Sparkline e ciambella sono SVG inline, le barre per mese sono HTML (così
+  le etichette restano testo vero: ricerca nella pagina, lettori di schermo, stampa). Una dipendenza esterna
+  non passerebbe la CSP, e dodici punti non la meritano.
+- ⚠️ **I numeri dentro un attributo SVG si scrivono con `StatsView.Svg`**: a cultura italiana una virgola
+  decimale dentro `points` spezza il disegno in silenzio.
+- **Un colore per tipo di postazione** (`--pos-del/gnd/twr/app/ctr`), come le categorie di navigazione: sono
+  un insieme categoriale, il loro mestiere è distinguersi fra loro.
+
+### 13.6 Il ritocco che non c'entrava con la grafica
+
+Le stringhe italiane del servizio erano state scritte **senza accenti** («non e pubblica», «Visibilita»,
+«c'e un buco»): nove valori corretti in `SharedResource.resx`. Non è cosmesi di contorno — era italiano
+sbagliato a schermo, nella stessa pagina che si stava rifacendo.

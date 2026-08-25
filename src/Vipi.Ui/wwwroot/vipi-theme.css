@@ -193,6 +193,16 @@
   --cat-air-ink:var(--ivao-color-atmos-700);
   --cat-vloa-ink:var(--ivao-color-semantic-green-700);
   --cat-admin-ink:color-mix(in srgb,var(--cat-admin) 70%,#000);
+  /* Un colore per TIPO DI POSTAZIONE (statistiche: ciambella, pallini, striscia del turno). Come le
+     categorie qui sopra sono un insieme CATEGORIALE — devono distinguersi fra loro — e scendono la
+     scaletta DEL→GND→TWR→APP→CTR seguendo la stessa famiglia dei badge `.node-badge`: il grigio in basso,
+     il blu di brand in cima. Sono fondi pieni, non inchiostri: il testo che ci sta sopra è `--on-brand`. */
+  --pos-del:var(--ivao-color-fuselage-400);
+  --pos-gnd:var(--ivao-color-semantic-green-600);
+  --pos-twr:var(--ivao-color-ocean-500);
+  --pos-app:var(--cat-app);
+  --pos-ctr:var(--ivao-color-atmos-500);
+  --pos-other:var(--ivao-color-fuselage-500);
   --rail-a:var(--ivao-color-ocean-500);
   --rail-b:#1f9d8f;
   /* Accenti su fondo scuro (barra blu, tooltip, METAR): chiari per costruzione. */
@@ -576,6 +586,150 @@
 .stats-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:0 28px;align-items:start}
 .stats-cols>section{min-width:0}
 .stats-cols>section>h2{margin-top:0}
+
+/* ============================================================================================
+   STATISTICHE — la parte visiva (agosto 2026). Nessun colore letterale: solo token del blocco in
+   cima. Nessuna libreria di grafici: i tre disegni qui sotto sono SVG inline o barre CSS, perché
+   una dipendenza esterna non passerebbe la CSP e un grafico di dodici punti non la merita.
+
+   ⚠️ `container-type` e non `@media`: lo zoom di questo prodotto è `zoom` sull'<html>, e una media
+   query NON lo vede (a zoom 1.8 su 1280px il documento sta in 711px e la media query legge ancora
+   1280). Le soglie qui sotto guardano la larghezza VERA del contenitore.
+   ============================================================================================ */
+.wrap.stats{container-type:inline-size}
+
+/* Testata: chi sei, quanto hai fatto, e le due cose che valgono più di un numero (posizione e costanza). */
+.stat-hero{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 26px;margin-bottom:6px}
+.stat-hero .sh-main{min-width:0}
+.stat-hero .sh-side{margin-left:auto;display:flex;flex-wrap:wrap;gap:10px}
+.sh-fact{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:8px 14px;box-shadow:var(--shadow);font-size:13px;color:var(--ink-mid);white-space:nowrap}
+.sh-fact b{display:block;font-family:var(--font-head);font-size:17px;color:var(--ink);font-weight:700;line-height:1.25}
+.sh-fact.gold{background:var(--tint-yellow-soft);border-color:var(--line-yellow)}
+
+/* Riquadri dei numeri: valore grande, etichetta, variazione e la forma dell'anno. */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin:18px 0}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:15px 17px 12px;box-shadow:var(--shadow);min-width:0}
+.kpi-top{display:flex;align-items:baseline;gap:9px}
+.kpi-v{font-family:var(--font-head);font-size:29px;font-weight:700;line-height:1.05;color:var(--ink);letter-spacing:-.01em}
+.kpi-u{font-size:13px;color:var(--ink-soft)}
+.kpi-l{font-size:12.5px;color:var(--ink-soft);margin-top:3px;font-family:var(--font-head);letter-spacing:.02em;text-transform:uppercase}
+/* La variazione è un FATTO, non un giudizio: il verso lo dice la freccia, il colore lo accompagna e basta.
+   Nessun rosso allarme per «hai controllato meno del mese scorso» — non è un errore. */
+.kpi-d{font-size:12px;font-weight:600;font-family:var(--font-head);white-space:nowrap}
+.kpi-d.up{color:var(--ok-ink)}
+.kpi-d.down{color:var(--ink-soft)}
+.kpi-d.flat{color:var(--ink-faint)}
+.kpi-spark{margin-top:9px;height:30px}
+
+/* Sparkline. Il tratto NON si deforma con la scala orizzontale: `vector-effect` è quel che lo tiene
+   spesso uguale quando l'SVG viene stirato (`preserveAspectRatio=none`), altrimenti su una card larga
+   la linea diventa un filo e su una stretta una salsiccia. */
+.spark{display:block;width:100%;height:30px;overflow:visible}
+.spark-line{fill:none;stroke:var(--brand-ink-2);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.spark-area{fill:color-mix(in srgb,var(--brand-ink-2) 14%,transparent);stroke:none}
+
+/* Barre per mese: HTML e non SVG, così le etichette restano testo vero (ricerca, lettori di schermo). */
+.bars{display:flex;align-items:flex-end;gap:6px;height:150px;overflow-x:auto;padding:14px 2px 0}
+.bar-col{flex:1 0 34px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:34px}
+.bar-val{font-size:10.5px;color:var(--ink-soft);font-family:var(--font-head);margin-bottom:3px}
+.bar-fill{width:100%;background:linear-gradient(180deg,var(--brand-ink-2),color-mix(in srgb,var(--brand-ink-2) 55%,var(--surface)));border-radius:5px 5px 0 0;min-height:2px}
+.bar-col.on .bar-fill{background:linear-gradient(180deg,var(--ivao-blue),var(--brand-ink-2))}
+.bar-lab{font-size:10.5px;color:var(--ink-soft);margin-top:6px;font-family:var(--font-head);white-space:nowrap}
+
+/* Ciambella + legenda: la ripartizione per postazione. Il buco al centro porta il totale. */
+.donut-wrap{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.donut{width:150px;height:150px;flex:none;transform:rotate(-90deg)}
+.donut circle{fill:none;stroke-width:15}
+.donut-hole{transform:rotate(90deg);transform-origin:center;text-anchor:middle;font-family:var(--font-head);fill:var(--ink)}
+.donut-legend{display:grid;gap:5px;font-size:13px;min-width:0}
+.donut-legend .lg{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.donut-legend .lg b{font-family:var(--font-head)}
+.donut-legend .lg span.q{color:var(--ink-soft);margin-left:auto;padding-left:14px}
+.dot{width:10px;height:10px;border-radius:3px;flex:none;background:var(--pos-other)}
+/* Le stesse classi servono a due mestieri: riempire un pallino (fondo) e tingere un arco (tratto).
+   Un <circle> non ha fondo, quindi la variante di tratto è separata e vale solo dentro la ciambella. */
+.p-del{background:var(--pos-del)}.p-gnd{background:var(--pos-gnd)}.p-twr{background:var(--pos-twr)}
+.p-app{background:var(--pos-app)}.p-ctr{background:var(--pos-ctr)}.p-oth{background:var(--pos-other)}
+.donut circle{background:none}
+.donut .don-bg{stroke:var(--surface-muted)}
+.donut circle.p-del{stroke:var(--pos-del)}.donut circle.p-gnd{stroke:var(--pos-gnd)}
+.donut circle.p-twr{stroke:var(--pos-twr)}.donut circle.p-app{stroke:var(--pos-app)}
+.donut circle.p-ctr{stroke:var(--pos-ctr)}.donut circle.p-oth{stroke:var(--pos-other)}
+
+/* Barra dentro la cella: la riga si legge a colpo d'occhio senza smettere di essere una tabella.
+   Sta DIETRO al testo (z-index 0 contro il contenuto, che resta sopra) e non cambia l'altezza di riga. */
+td.cb{position:relative;isolation:isolate}
+td.cb::before{content:"";position:absolute;left:0;top:3px;bottom:3px;width:var(--cb,0%);background:color-mix(in srgb,var(--brand-ink-2) 13%,transparent);border-radius:0 4px 4px 0;z-index:-1}
+
+/* Targhette del traffico. Le tinte seguono il significato: verde = si è concluso da noi (atterrato, al
+   gate), blu = è nostro ma è ancora in aria, grigio = fatto del dato (senza piano, seconda tratta). */
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.pill.dep{background:var(--tint-atmos);color:var(--brand-ink)}
+.pill.arr{background:var(--tint-cyan);color:var(--cat-app-ink)}
+.pill.ovf{background:var(--tint-purple);color:var(--nbr-ink)}
+.pill.landed{background:var(--tint-green);color:var(--ok-ink)}
+.pill.tookoff{background:var(--line-atmos-soft);color:var(--brand-ink)}
+.pill.gate{background:var(--tint-green-soft);color:var(--ok-ink)}
+.pill.handoff{background:var(--tint-blue);color:var(--info-ink)}
+
+/* La striscia del turno: una corsia per riga, una barra per volo. Le corsie sono poche (l'algoritmo dei
+   binari), quindi l'altezza è quella che serve e non una lista di quaranta righe. */
+.tl{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 14px 6px}
+.tl-lanes{position:relative}
+.tl-row{position:relative;height:22px}
+.tl-bar{position:absolute;top:3px;height:16px;border-radius:5px;background:var(--pos-other);color:var(--on-brand);font-size:10.5px;font-family:var(--font-head);line-height:16px;padding:0 6px;overflow:hidden;white-space:nowrap;min-width:8px;text-decoration:none}
+.tl-bar.b-landed{background:var(--pos-gnd)}
+.tl-bar.b-air{background:var(--pos-ctr)}
+.tl-bar.b-ground{background:var(--pos-del)}
+.tl-bar:hover{filter:brightness(1.12)}
+.tl-axis{position:relative;height:20px;margin-top:4px;border-top:1px solid var(--line)}
+.tl-tick{position:absolute;top:0;font-size:10.5px;color:var(--ink-soft);font-family:var(--font-head);transform:translateX(-50%);padding-top:3px}
+.tl-tick::before{content:"";position:absolute;top:0;left:50%;width:1px;height:4px;background:var(--line-strong)}
+/* Il cambio di pista è un fatto istantaneo: una linea verticale su tutta la striscia, non una barra. */
+.tl-rwy{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed var(--line-yellow)}
+.tl-rwy-lab{position:absolute;top:-2px;font-size:10px;font-family:var(--font-head);color:var(--warn-ink);background:var(--surface);padding:0 3px;white-space:nowrap}
+
+/* Periodo e filtri: link, non bottoni. La pagina resta SSR statica e il periodo sta nell'indirizzo —
+   che è anche l'unico modo di mandarlo a qualcuno. */
+.chipbar{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+.chip-link{display:inline-block;padding:5px 13px;border-radius:20px;border:1px solid var(--line);background:var(--surface);color:var(--ink-mid);font-size:12.5px;font-weight:600;font-family:var(--font-head);text-decoration:none}
+.chip-link:hover{border-color:var(--line-atmos-strong);color:var(--brand-ink)}
+.chip-link.on{background:var(--ivao-blue);border-color:var(--ivao-blue);color:var(--on-brand)}
+
+/* Podio della classifica: i primi tre grandi, il resto in tabella. */
+.podium{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:16px}
+.pod{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px}
+.pod .pos{font-family:var(--font-head);font-size:23px;font-weight:700;color:var(--ink-faint);min-width:28px}
+.pod.p1{background:var(--tint-yellow-soft);border-color:var(--line-yellow)}
+.pod.p1 .pos{color:var(--warn-ink)}
+.pod .who{font-family:var(--font-head);font-weight:700}
+.pod .what{font-size:12.5px;color:var(--ink-soft)}
+/* La propria riga si trova senza cercarla, anche quando è la quarantasettesima. */
+.res-table tr.rank-me>td{background:var(--tint-atmos);font-weight:600}
+.res-table tr.rank-me>td:first-child{box-shadow:inset 3px 0 0 var(--ivao-blue)}
+
+/* Legenda della scala della griglia: senza, l'intensità è decorazione. */
+.cov-legend{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-soft);margin-bottom:14px;flex-wrap:wrap}
+.cov-legend i{width:18px;height:12px;border:1px solid var(--line);display:inline-block}
+
+/* Stato vuoto: una scatola che dice da quando esiste l'archivio, non una riga grigia. */
+.stat-empty{background:var(--surface);border:1px dashed var(--line-strong);border-radius:var(--radius);padding:26px 24px;text-align:center;color:var(--ink-mid)}
+.stat-empty b{display:block;font-family:var(--font-head);font-size:17px;color:var(--ink);margin-bottom:6px}
+
+/* Sotto i 700px di CONTENITORE (non di finestra: vedi la nota sullo zoom) le tabelle larghe smettono di
+   essere tabelle e diventano schede. L'etichetta di colonna la porta ogni cella in `data-l`: senza,
+   una scheda sarebbe una colonna di numeri senza nome. */
+@container (max-width:700px){
+  .tbl-cards thead{display:none}
+  .tbl-cards,.tbl-cards tbody,.tbl-cards tr,.tbl-cards td{display:block;width:auto}
+  .tbl-cards tr{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:9px 12px;margin-bottom:8px;box-shadow:var(--shadow)}
+  .tbl-cards td{border:0;padding:3px 0;display:flex;gap:12px;align-items:baseline}
+  .tbl-cards td::before{content:attr(data-l);color:var(--ink-soft);font-size:12px;flex:none;min-width:38%}
+  .tbl-cards td.cb::before{content:attr(data-l);position:static;background:none;width:auto}
+  .tbl-cards td:empty{display:none}
+  .stat-hero .sh-side{margin-left:0}
+  .donut-wrap{gap:14px}
+}
 .wrap.live .acc-item:last-of-type{margin-bottom:0}
 .wrap.live .acc-item:last-of-type>.body{padding-bottom:0}
 /* su schermi molto larghi il contenuto di sola lettura resta leggibile, non stirato */

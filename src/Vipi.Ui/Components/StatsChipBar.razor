@@ -1,0 +1,22 @@
+@* Una fila di chip che sono LINK, non bottoni.
+
+   ⚠️ È la scelta che tiene queste pagine SSR statiche: un filtro interattivo vorrebbe un circuito Blazor
+   per ogni lettore di una pagina che è un elenco di numeri fermi. Con lo stato nell'indirizzo la pagina
+   resta statica, il tasto «indietro» funziona, e un periodo si può mandare a qualcuno. *@
+
+<nav class="chipbar" aria-label="@Titolo">
+    @foreach (var v in Voci)
+    {
+        <a class="chip-link @(v.Attiva ? "on" : "")" href="@v.Href"
+           aria-current="@(v.Attiva ? "page" : null)">@v.Etichetta</a>
+    }
+</nav>
+
+@code {
+    /// <summary>Una chip: etichetta, dove porta, e se è quella in vigore.</summary>
+    public sealed record Voce(string Etichetta, string Href, bool Attiva);
+
+    [Parameter, EditorRequired] public IReadOnlyList<Voce> Voci { get; set; } = Array.Empty<Voce>();
+
+    [Parameter] public string Titolo { get; set; } = "";
+}

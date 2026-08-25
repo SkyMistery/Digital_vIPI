@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 @using Vipi.Application.Abstractions
 @using Vipi.Application.Auth
+@using Vipi.Application.Stats
 @inject IAtcStatsQueries Stats
 @inject IStatsSettingsStore Impostazioni
 @inject ICurrentUserProvider Utenti
@@ -27,43 +28,98 @@
     }
     else
     {
-        <div class="choice-grid" style="margin:18px 0">
-            <div class="choice"><h2 class="h-card">@Ore(_totali?.Seconds ?? 0)</h2><p class="muted">@L["Stats_Hours"]</p></div>
-            <div class="choice"><h2 class="h-card">@(_totali?.Shifts ?? 0)</h2><p class="muted">@L["Stats_Shifts"]</p></div>
-            <div class="choice"><h2 class="h-card">@(_totali?.Movements ?? 0)</h2><p class="muted">@L["Stats_Movements"]</p></div>
+        <StatsChipBar Voci="_periodi" Titolo="@L["Stats_Period"].Value" />
+
+        <div class="kpi-grid">
+            <StatsKpi Valore="@StatsView.Ore(_totali?.Seconds ?? 0)" Unita="h" Etichetta="@L["Stats_Hours"].Value" />
+            <StatsKpi Valore="@((_totali?.Shifts ?? 0).ToString())" Etichetta="@L["Stats_Shifts"].Value" />
+            <StatsKpi Valore="@((_totali?.Movements ?? 0).ToString())" Etichetta="@L["Stats_Movements"].Value" />
+            <StatsKpi Valore="@_classifica.Count.ToString()" Etichetta="@L["Stats_TopControllers"].Value" />
         </div>
 
         <h2 class="h-sect">@L["Stats_Coverage"]</h2>
         <p class="muted">@L["Stats_CoverageHint"]</p>
         <CoverageHeatmap Celle="_griglia" Copertura="true" Titolo="@L["Stats_Coverage"].Value" />
+        <div class="cov-legend">
+            <span>@L["Stats_CovLegend"]</span>
+            <span>@L["Stats_CovNone"]</span>
+            <i class="cov-q0"></i><i class="cov-q1"></i><i class="cov-q2"></i><i class="cov-q3"></i><i class="cov-q4"></i>
+            <span>@L["Stats_CovFull"]</span>
+        </div>
+
+        <h2 class="h-sect">@L["Stats_TopControllers"]</h2>
+        @if (_classifica.Count > 0)
+        {
+            <div class="podium">
+                @for (var i = 0; i < Math.Min(3, _classifica.Count); i++)
+                {
+                    var c = _classifica[i];
+                    <div class="pod @(i == 0 ? "p1" : "")">
+                        <span class="pos">@(i + 1)</span>
+                        <div>
+                            <div class="who">@c.UserId</div>
+                            <div class="what">@StatsView.Ore(c.Seconds) h · @c.Shifts @L["Stats_Shifts"]</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
 
         <div class="stats-cols">
             <section>
-                <h2 class="h-sect">@L["Stats_TopControllers"]</h2>
-        <table class="res-table">
-            <thead><tr><th>#</th><th>VID</th><th>@L["Stats_Hours"]</th><th>@L["Stats_Shifts"]</th><th>@L["Stats_Movements"]</th></tr></thead>
-            <tbody>
-                @{ var pos = 0; }
-                @foreach (var c in _classifica)
-                {
-                    pos++;
-                    <tr><td>@pos</td><td>@c.UserId</td><td>@Ore(c.Seconds)</td><td>@c.Shifts</td><td>@c.Movements</td></tr>
-                }
-            </tbody>
-        </table>
-
+                <table class="res-table tbl-cards">
+                    <thead>
+                        <tr>
+                            <th>#</th><th>VID</th><th>@L["Stats_Hours"]</th>
+                            <th>@L["Stats_Shifts"]</th><th>@L["Stats_Movements"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{ var pos = 0; }
+                        @foreach (var c in _classifica)
+                        {
+                            pos++;
+                            @* La propria riga si trova senza cercarla, anche quando è la quarantasettesima. *@
+                            <tr class="@(c.UserId == _io ? "rank-me" : "")">
+                                <td data-l="#">@pos</td>
+                                <td data-l="VID">@c.UserId</td>
+                                <td class="cb" data-l="@L["Stats_Hours"]"
+                                    style="--cb:@StatsView.Quota(c.Seconds, _maxOre)">@StatsView.Ore(c.Seconds)</td>
+                                <td data-l="@L["Stats_Shifts"]">@c.Shifts</td>
+                                <td data-l="@L["Stats_Movements"]">@c.Movements</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </section>
             <section>
+                <h2 class="h-sect">@L["Stats_PositionShareDivision"]</h2>
+                <StatsDonut Fette="_fette" Titolo="@L["Stats_PositionShareDivision"].Value"
+                            Centro="@StatsView.Ore(_totali?.Seconds ?? 0)" CentroLabel="@L["Stats_Hours"].Value" />
+
                 <h2 class="h-sect">@L["Stats_ByPosition"]</h2>
-        <table class="res-table">
-            <thead><tr><th>@L["Stats_Position"]</th><th>@L["Stats_Sessions"]</th><th>@L["Stats_Hours"]</th><th>@L["Stats_Movements"]</th></tr></thead>
-            <tbody>
-                @foreach (var r in _perPostazione)
-                {
-                    <tr><td>@r.Key</td><td>@r.Sessions</td><td>@Ore(r.Seconds)</td><td>@r.Movements</td></tr>
-                }
-            </tbody>
-        </table>
+                <table class="res-table tbl-cards">
+                    <thead>
+                        <tr>
+                            <th>@L["Stats_Position"]</th><th>@L["Stats_Sessions"]</th>
+                            <th>@L["Stats_Hours"]</th><th>@L["Stats_Movements"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in _perPostazione)
+                        {
+                            <tr>
+                                <td data-l="@L["Stats_Position"]">
+                                    <i class="dot @StatsView.PosClass(r.Key)"></i> @r.Key
+                                </td>
+                                <td data-l="@L["Stats_Sessions"]">@r.Sessions</td>
+                                <td class="cb" data-l="@L["Stats_Hours"]"
+                                    style="--cb:@StatsView.Quota(r.Seconds, _maxOrePostazione)">@StatsView.Ore(r.Seconds)</td>
+                                <td data-l="@L["Stats_Movements"]">@r.Movements</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </section>
         </div>
     }
@@ -90,14 +146,20 @@
 </div>
 
 @code {
+    [SupplyParameterFromQuery(Name = "p")] public string? P { get; set; }
+
     private StatsTotals? _totali;
     private IReadOnlyList<ControllerRanking> _classifica = Array.Empty<ControllerRanking>();
     private IReadOnlyList<StatsByKey> _perPostazione = Array.Empty<StatsByKey>();
-    private IReadOnlyList<Vipi.Application.Stats.CoverageCell> _griglia = Array.Empty<Vipi.Application.Stats.CoverageCell>();
+    private IReadOnlyList<CoverageCell> _griglia = Array.Empty<CoverageCell>();
+    private IReadOnlyList<StatsChipBar.Voce> _periodi = Array.Empty<StatsChipBar.Voce>();
+    private IReadOnlyList<StatsSlice> _fette = Array.Empty<StatsSlice>();
     private bool _pubblica;
     private bool _puoVedere;
     private DateTime? _deciso;
     private int _decisoDa;
+    private int? _io;
+    private double _maxOre, _maxOrePostazione;
 
     protected override async Task OnInitializedAsync() => await CaricaAsync();
 
@@ -107,18 +169,36 @@
         _pubblica = impostazioni.PublicLeaderboard;
         _deciso = impostazioni.UpdatedUtc;
         _decisoDa = impostazioni.UpdatedByUserId;
+        _io = Utenti.Get()?.UserId;
 
         // Lo staff vede sempre; gli altri solo se la classifica è stata resa pubblica.
         _puoVedere = Authz.IsAdmin || (_pubblica && Utenti.Get() is not null);
         if (!_puoVedere) return;
 
+        var periodo = StatsView.Period(P);
+        _periodi = StatsView.Periods
+            .Select(p => new StatsChipBar.Voce(
+                L[p.LabelKey], $"/services/stats/division?p={p.Key}", p.Key == periodo.Key))
+            .ToList();
+
         var a = DateTimeOffset.UtcNow;
-        var da = a.AddDays(-366);
+        var da = a.AddDays(-periodo.Days);
 
         _totali = await Stats.TotalsAsync(null, da, a);
-        _classifica = await Stats.TopControllersAsync(da, a);
+        _classifica = await Stats.TopControllersAsync(da, a, limit: 50);
         _perPostazione = await Stats.ByPositionAsync(null, da, a);
         _griglia = await Stats.CoverageAsync(null, da, a);
+
+        _fette = _perPostazione
+            .GroupBy(p => StatsView.Tipo(p.Key))
+            .Select(g => new StatsSlice(
+                g.Key, g.Sum(x => x.Seconds), StatsView.PosClass(g.Key),
+                L["Stats_SliceTitle", g.Key, StatsView.Ore(g.Sum(x => x.Seconds)), g.Sum(x => x.Sessions)]))
+            .OrderByDescending(f => f.Value)
+            .ToList();
+
+        _maxOre = _classifica.Count == 0 ? 0 : _classifica.Max(c => c.Seconds);
+        _maxOrePostazione = _perPostazione.Count == 0 ? 0 : _perPostazione.Max(r => r.Seconds);
     }
 
     private async Task CambiaVisibilita(ChangeEventArgs e)
@@ -129,9 +209,4 @@
         await Impostazioni.SaveAsync(acceso, Utenti.Get()?.UserId ?? 0);
         await CaricaAsync();
     }
-
-    // ⚠️ «0,0 ore» per una sessione vera di venti minuti sembra «niente»: sotto il decimo d'ora si scrive
-    // che è poco, non che è zero.
-    private static string Ore(long secondi) =>
-        secondi > 0 && secondi < 360 ? "<0,1" : (secondi / 3600.0).ToString("0.0");
 }

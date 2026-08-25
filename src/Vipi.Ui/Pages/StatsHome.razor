@@ -2,6 +2,7 @@
 @layout SopLayout
 @using Vipi.Application.Abstractions
 @using Vipi.Application.Auth
+@using Vipi.Application.Stats
 @inject IAtcStatsQueries Stats
 @inject IStatsSettingsStore Impostazioni
 @inject ICurrentUserProvider Utenti
@@ -9,16 +10,46 @@
 @inject IStringLocalizer<SharedResource> L
 
 @* Le mie statistiche ATC. SSR statico: è un elenco di numeri, non c'è niente da aggiornare da solo — come
-   l'hub dei servizi. Gli orari si scrivono in UTC col suffisso Z e l'ora locale la aggiunge il browser. *@
+   l'hub dei servizi. Il periodo sta nell'INDIRIZZO (?p=30) e non in un componente interattivo: così la
+   pagina resta statica, il tasto «indietro» funziona e un periodo si può mandare a qualcuno.
+
+   Gli orari si scrivono in UTC col suffisso Z e l'ora locale la aggiunge il browser. *@
 
 <PageTitle>@L["Stats_Title"] · vIPI IVAO Italia</PageTitle>
 
 <div class="wrap stats">
-    <div class="doc-head">
-        <h1 class="page-h1">@L["Stats_Title"]</h1>
-        @if (_utente is not null)
+    <div class="doc-head stat-hero">
+        <div class="sh-main">
+            <h1 class="page-h1">@L["Stats_Title"]</h1>
+            @if (_utente is not null)
+            {
+                <p class="muted">@L["Stats_Subtitle", _utente.Name, _utente.UserId]</p>
+            }
+        </div>
+
+        @if (_utente is not null && _totali is { Sessions: > 0 })
         {
-            <p class="muted">@L["Stats_Subtitle", _utente.Name, _utente.UserId]</p>
+            <div class="sh-side">
+                @if (_posizione is { Position: > 0 } r)
+                {
+                    <div class="sh-fact" title="@L["Stats_TopPercent", r.TopPercent]">
+                        <b>@L["Stats_YourRank", r.Position, r.Total]</b>
+                        @L["Stats_YourRankLabel"]
+                    </div>
+                }
+                <div class="sh-fact @(_striscia.CurrentWeeks >= 4 ? "gold" : "")"
+                     title="@L["Stats_StreakBest", _striscia.BestWeeks]">
+                    <b>@(_striscia.CurrentWeeks > 0 ? _striscia.CurrentWeeks.ToString() : "—")</b>
+                    @(_striscia.CurrentWeeks > 0 ? L["Stats_StreakLabel"].Value : L["Stats_StreakNone"].Value)
+                </div>
+                @if (_perPostazione.Count > 0)
+                {
+                    <div class="sh-fact">
+                        <b>@_perPostazione[0].Key</b>
+                        @L["Stats_FavPosition"]
+                    </div>
+                }
+            </div>
         }
     </div>
 
@@ -26,99 +57,193 @@
     {
         <p class="muted">@L["Stats_LoginNeeded"]</p>
     }
-    else if (_totali is null || _totali.Sessions == 0)
-    {
-        <p class="muted">@L["Stats_Empty"]</p>
-    }
     else
     {
-        <div class="choice-grid" style="margin:18px 0">
-            <div class="choice"><h2 class="h-card">@Ore(_totali.Seconds)</h2><p class="muted">@L["Stats_Hours"]</p></div>
-            <div class="choice"><h2 class="h-card">@_totali.Shifts</h2><p class="muted">@L["Stats_Shifts"]</p></div>
-            <div class="choice"><h2 class="h-card">@_totali.Movements</h2><p class="muted">@L["Stats_Movements"]</p></div>
-            <div class="choice"><h2 class="h-card">@_totali.Presences</h2><p class="muted">@L["Stats_Presences"]</p></div>
-        </div>
+        <StatsChipBar Voci="_periodi" Titolo="@L["Stats_Period"].Value" />
 
-        <div class="stats-cols">
-            <section>
-                <h2 class="h-sect">@L["Stats_ByPosition"]</h2>
-        <table class="res-table">
-            <thead><tr><th>@L["Stats_Position"]</th><th>@L["Stats_Sessions"]</th><th>@L["Stats_Hours"]</th><th>@L["Stats_Movements"]</th></tr></thead>
-            <tbody>
-                @foreach (var r in _perPostazione)
+        if (_totali is null || _totali.Sessions == 0)
+        {
+            <div class="stat-empty">
+                <b>@L["Stats_EmptyTitle"]</b>
+                <p>@(_inizioArchivio is null ? L["Stats_Empty"] : L["Stats_EmptyPeriod"])</p>
+                @if (_inizioArchivio is { } inizio)
                 {
-                    <tr><td>@r.Key</td><td>@r.Sessions</td><td>@Ore(r.Seconds)</td><td>@r.Movements</td></tr>
+                    <p class="muted">@L["Stats_ArchiveFrom", inizio.ToString("yyyy-MM-dd")]</p>
                 }
-            </tbody>
-        </table>
+            </div>
+        }
+        else
+        {
+            <div class="kpi-grid">
+                <StatsKpi Valore="@StatsView.Ore(_totali.Seconds)" Unita="h" Etichetta="@L["Stats_Hours"].Value"
+                          Delta="_dOre" DeltaHint="@_confronto" Serie="_serieOre" />
+                <StatsKpi Valore="@_totali.Shifts.ToString()" Etichetta="@L["Stats_Shifts"].Value"
+                          Delta="_dTurni" DeltaHint="@_confronto" />
+                <StatsKpi Valore="@_totali.Movements.ToString()" Etichetta="@L["Stats_Movements"].Value"
+                          Delta="_dMovimenti" DeltaHint="@_confronto" Serie="_serieMovimenti" />
+                <StatsKpi Valore="@_totali.Presences.ToString()" Etichetta="@L["Stats_Presences"].Value" />
+            </div>
 
-            </section>
-            <section>
-                <h2 class="h-sect">@L["Stats_ByMonth"]</h2>
-        <table class="res-table">
-            <thead><tr><th>@L["Stats_Month"]</th><th>@L["Stats_Sessions"]</th><th>@L["Stats_Hours"]</th><th>@L["Stats_Movements"]</th></tr></thead>
-            <tbody>
-                @foreach (var r in _perMese)
-                {
-                    <tr><td>@r.Key</td><td>@r.Sessions</td><td>@Ore(r.Seconds)</td><td>@r.Movements</td></tr>
-                }
-            </tbody>
-        </table>
+            <div class="stats-cols">
+                <section>
+                    <h2 class="h-sect">@L["Stats_MonthChart"]</h2>
+                    <StatsBars Barre="_barreMesi" Titolo="@L["Stats_MonthChart"].Value" />
+                </section>
+                <section>
+                    <h2 class="h-sect">@L["Stats_PositionShare"]</h2>
+                    <StatsDonut Fette="_fette" Titolo="@L["Stats_PositionShare"].Value"
+                                Centro="@StatsView.Ore(_totali.Seconds)" CentroLabel="@L["Stats_Hours"].Value" />
+                </section>
+            </div>
 
-            </section>
-        </div>
+            <h2 class="h-sect">@L["Stats_WhenYouControl"]</h2>
+            <CoverageHeatmap Celle="_griglia" Copertura="false" Titolo="@L["Stats_WhenYouControl"].Value" />
+            <div class="cov-legend">
+                <span>@L["Stats_CovLegend"]</span>
+                <span>@L["Stats_CovNone"]</span>
+                <i class="cov-q0"></i><i class="cov-q1"></i><i class="cov-q2"></i><i class="cov-q3"></i><i class="cov-q4"></i>
+                <span>@L["Stats_CovFull"]</span>
+            </div>
 
-        <h2 class="h-sect">@L["Stats_WhenYouControl"]</h2>
-        <CoverageHeatmap Celle="_griglia" Copertura="false" Titolo="@L["Stats_WhenYouControl"].Value" />
+            <div class="stats-cols">
+                <section>
+                    <h2 class="h-sect">@L["Stats_ByPosition"]</h2>
+                    <table class="res-table tbl-cards">
+                        <thead>
+                            <tr>
+                                <th>@L["Stats_Position"]</th><th>@L["Stats_Sessions"]</th>
+                                <th>@L["Stats_Hours"]</th><th>@L["Stats_Movements"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in _perPostazione)
+                            {
+                                <tr>
+                                    <td data-l="@L["Stats_Position"]">
+                                        <i class="dot @StatsView.PosClass(r.Key)"></i> @r.Key
+                                    </td>
+                                    <td data-l="@L["Stats_Sessions"]">@r.Sessions</td>
+                                    <td class="cb" data-l="@L["Stats_Hours"]"
+                                        style="--cb:@StatsView.Quota(r.Seconds, _maxOrePostazione)">@StatsView.Ore(r.Seconds)</td>
+                                    <td data-l="@L["Stats_Movements"]">@r.Movements</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </section>
+                <section>
+                    <h2 class="h-sect">@L["Stats_TopAirports"]</h2>
+                    <table class="res-table tbl-cards">
+                        <thead>
+                            <tr><th>@L["Stats_Airport"]</th><th>@L["Stats_Flights"]</th><th>@L["Stats_Movements"]</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in _aeroporti)
+                            {
+                                <tr>
+                                    <td data-l="@L["Stats_Airport"]">@r.Key</td>
+                                    <td class="cb" data-l="@L["Stats_Flights"]"
+                                        style="--cb:@StatsView.Quota(r.Sessions, _maxVoliAeroporto)">@r.Sessions</td>
+                                    <td data-l="@L["Stats_Movements"]">@r.Movements</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </section>
+            </div>
 
-        <div class="stats-cols">
-            <section>
-                <h2 class="h-sect">@L["Stats_TopAirports"]</h2>
-                <table class="res-table">
-                    <thead><tr><th>@L["Stats_Airport"]</th><th>@L["Stats_Flights"]</th><th>@L["Stats_Movements"]</th></tr></thead>
-                    <tbody>
-                        @foreach (var r in _aeroporti)
-                        {
-                            <tr><td>@r.Key</td><td>@r.Sessions</td><td>@r.Movements</td></tr>
-                        }
-                    </tbody>
-                </table>
-            </section>
-            <section>
-                <h2 class="h-sect">@L["Stats_TopAircraft"]</h2>
-                <table class="res-table">
-                    <thead><tr><th>@L["Stats_Aircraft"]</th><th>@L["Stats_Flights"]</th><th>@L["Stats_Movements"]</th></tr></thead>
-                    <tbody>
-                        @foreach (var r in _tipi)
-                        {
-                            <tr><td>@r.Key</td><td>@r.Sessions</td><td>@r.Movements</td></tr>
-                        }
-                    </tbody>
-                </table>
-            </section>
-        </div>
+            <div class="stats-cols">
+                <section>
+                    <h2 class="h-sect">@L["Stats_TopAircraft"]</h2>
+                    <table class="res-table tbl-cards">
+                        <thead>
+                            <tr><th>@L["Stats_Aircraft"]</th><th>@L["Stats_Flights"]</th><th>@L["Stats_Movements"]</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in _tipi)
+                            {
+                                <tr>
+                                    <td data-l="@L["Stats_Aircraft"]">@r.Key</td>
+                                    <td class="cb" data-l="@L["Stats_Flights"]"
+                                        style="--cb:@StatsView.Quota(r.Sessions, _maxVoliTipo)">@r.Sessions</td>
+                                    <td data-l="@L["Stats_Movements"]">@r.Movements</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </section>
+                <section>
+                    <h2 class="h-sect">@L["Stats_ByMonth"]</h2>
+                    <table class="res-table tbl-cards">
+                        <thead>
+                            <tr>
+                                <th>@L["Stats_Month"]</th><th>@L["Stats_Sessions"]</th>
+                                <th>@L["Stats_Hours"]</th><th>@L["Stats_Movements"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in _perMese)
+                            {
+                                <tr>
+                                    <td data-l="@L["Stats_Month"]">@r.Key</td>
+                                    <td data-l="@L["Stats_Sessions"]">@r.Sessions</td>
+                                    <td class="cb" data-l="@L["Stats_Hours"]"
+                                        style="--cb:@StatsView.Quota(r.Seconds, _maxOreMese)">@StatsView.Ore(r.Seconds)</td>
+                                    <td data-l="@L["Stats_Movements"]">@r.Movements</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </section>
+            </div>
 
-        <h2 class="h-sect">@L["Stats_Sessions"]</h2>
-        <table class="res-table">
-            <thead>
-                <tr>
-                    <th>@L["Stats_Start"]</th><th>@L["Stats_Position"]</th><th>@L["Stats_Duration"]</th>
-                    <th>@L["Stats_Movements"]</th><th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var s in _sessioni)
-                {
+            @* ⚠️ Un TURNO per riga, non una connessione: sul dato vero il 38% delle connessioni sono
+               spezzoni di una caduta di linea, e in elenco sembravano turni distinti. Gli spezzoni stanno
+               dentro il loro turno, aperti da chi li vuole vedere. *@
+            <h2 class="h-sect">@L["Stats_Shifts"]</h2>
+            <table class="res-table tbl-cards">
+                <thead>
                     <tr>
-                        <td>@s.StartUtc.ToString("yyyy-MM-dd HH:mm")Z</td>
-                        <td>@s.Callsign</td>
-                        <td>@Durata(s.DurationSeconds)</td>
-                        <td>@s.MovementCount</td>
-                        <td><a href="/services/stats/session/@s.SessionId">@L["Stats_Detail"]</a></td>
+                        <th>@L["Stats_Start"]</th><th>@L["Stats_Position"]</th><th>@L["Stats_Duration"]</th>
+                        <th>@L["Stats_Movements"]</th><th></th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach (var t in _turni)
+                    {
+                        <tr>
+                            <td data-l="@L["Stats_Start"]">@t.Inizio.ToString("yyyy-MM-dd HH:mm")Z</td>
+                            <td data-l="@L["Stats_Position"]">
+                                <i class="dot @StatsView.PosClass(t.Callsign)"></i> @t.Callsign
+                            </td>
+                            <td class="cb" data-l="@L["Stats_Duration"]"
+                                style="--cb:@StatsView.Quota(t.Secondi, _maxDurataTurno)">@StatsView.Durata(t.Secondi)</td>
+                            <td data-l="@L["Stats_Movements"]">@t.Movimenti</td>
+                            <td>
+                                @if (t.Pezzi.Count == 1)
+                                {
+                                    <a href="/services/stats/session/@t.Pezzi[0].SessionId">@L["Stats_Detail"]</a>
+                                }
+                                else
+                                {
+                                    <details>
+                                        <summary title="@L["Stats_ShiftHint"]">@L["Stats_ShiftPieces", t.Pezzi.Count]</summary>
+                                        @foreach (var p in t.Pezzi)
+                                        {
+                                            <div>
+                                                <a href="/services/stats/session/@p.SessionId">
+                                                    @p.StartUtc.ToString("HH:mm")Z · @StatsView.Durata(p.DurationSeconds)
+                                                </a>
+                                            </div>
+                                        }
+                                    </details>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
     }
 
     <p class="muted" style="margin-top:22px">
@@ -135,41 +260,115 @@
 </div>
 
 @code {
+    /// <summary>Periodo scelto dall'indirizzo (<c>?p=30</c>). Vuoto = dodici mesi.</summary>
+    [SupplyParameterFromQuery(Name = "p")] public string? P { get; set; }
+
+    /// <summary>Un turno: gli spezzoni della stessa seduta, già sommati.</summary>
+    private sealed record Turno(
+        DateTimeOffset Inizio, string Callsign, int Secondi, int Movimenti, IReadOnlyList<StatsSessionRow> Pezzi);
+
     private CurrentUser? _utente;
     private StatsTotals? _totali;
+    private StatsRank? _posizione;
+    private StatsStreak _striscia = new(0, 0, null);
     private IReadOnlyList<StatsByKey> _perPostazione = Array.Empty<StatsByKey>();
     private IReadOnlyList<StatsByKey> _perMese = Array.Empty<StatsByKey>();
-    private IReadOnlyList<StatsSessionRow> _sessioni = Array.Empty<StatsSessionRow>();
-    private IReadOnlyList<Vipi.Application.Stats.CoverageCell> _griglia = Array.Empty<Vipi.Application.Stats.CoverageCell>();
     private IReadOnlyList<StatsByKey> _aeroporti = Array.Empty<StatsByKey>();
     private IReadOnlyList<StatsByKey> _tipi = Array.Empty<StatsByKey>();
+    private IReadOnlyList<Turno> _turni = Array.Empty<Turno>();
+    private IReadOnlyList<Vipi.Application.Stats.CoverageCell> _griglia = Array.Empty<Vipi.Application.Stats.CoverageCell>();
+    private IReadOnlyList<StatsChipBar.Voce> _periodi = Array.Empty<StatsChipBar.Voce>();
+    private IReadOnlyList<StatsBar> _barreMesi = Array.Empty<StatsBar>();
+    private IReadOnlyList<StatsSlice> _fette = Array.Empty<StatsSlice>();
+    private IReadOnlyList<double> _serieOre = Array.Empty<double>();
+    private IReadOnlyList<double> _serieMovimenti = Array.Empty<double>();
+    private DateTimeOffset? _inizioArchivio;
     private bool _classificaPubblica;
+    private int? _dOre, _dTurni, _dMovimenti;
+    private string _confronto = "";
+
+    private double _maxOrePostazione, _maxOreMese, _maxVoliAeroporto, _maxVoliTipo, _maxDurataTurno;
 
     protected override async Task OnInitializedAsync()
     {
         _utente = Utenti.Get();
         _classificaPubblica = (await Impostazioni.GetAsync()).PublicLeaderboard;
+
+        var periodo = StatsView.Period(P);
+        _periodi = StatsView.Periods
+            .Select(p => new StatsChipBar.Voce(L[p.LabelKey], $"/services/stats?p={p.Key}", p.Key == periodo.Key))
+            .ToList();
+
         if (_utente is null) return;
 
-        // La finestra è quella che la sorgente conserva: oltre l'anno non esiste niente da mostrare.
         var a = DateTimeOffset.UtcNow;
-        var da = a.AddDays(-366);
+        var da = a.AddDays(-periodo.Days);
         var vid = _utente.UserId;
 
+        _inizioArchivio = await Stats.ArchiveStartAsync(vid);
         _totali = await Stats.TotalsAsync(vid, da, a);
+        if (_totali.Sessions == 0) return;
+
         _perPostazione = await Stats.ByPositionAsync(vid, da, a);
         _perMese = await Stats.ByMonthAsync(vid, da, a);
-        _sessioni = await Stats.SessionsAsync(vid, da, a);
-        _griglia = await Stats.CoverageAsync(vid, da, a);
         _aeroporti = await Stats.TopAirportsAsync(vid, da, a);
         _tipi = await Stats.TopAircraftAsync(vid, da, a);
+        _griglia = await Stats.CoverageAsync(vid, da, a);
+        _striscia = await Stats.StreakAsync(vid, da, a);
+        _posizione = await Stats.RankAsync(vid, da, a);
+
+        // ⚠️ Il periodo prima è lungo QUANTO questo, e finisce dove questo comincia: confrontare trenta
+        // giorni con un anno darebbe un «−96%» che non vuol dire niente.
+        var prima = await Stats.TotalsAsync(vid, da.AddDays(-periodo.Days), da);
+        _dOre = StatsView.Delta(_totali.Seconds, prima.Seconds);
+        _dTurni = StatsView.Delta(_totali.Shifts, prima.Shifts);
+        _dMovimenti = StatsView.Delta(_totali.Movements, prima.Movements);
+        _confronto = L["Stats_VsPrev", periodo.Days];
+
+        var sessioni = await Stats.SessionsAsync(vid, da, a, limit: 200);
+        _turni = Turni(sessioni);
+
+        _barreMesi = _perMese
+            .Select(m => new StatsBar(
+                Mese(m.Key), m.Seconds / 3600.0,
+                L["Stats_MonthTitle", m.Key, StatsView.Ore(m.Seconds), m.Movements]))
+            .ToList();
+
+        _fette = _perPostazione
+            .GroupBy(p => StatsView.Tipo(p.Key))
+            .Select(g => new StatsSlice(
+                g.Key, g.Sum(x => x.Seconds), StatsView.PosClass(g.Key),
+                L["Stats_SliceTitle", g.Key, StatsView.Ore(g.Sum(x => x.Seconds)), g.Sum(x => x.Sessions)]))
+            .OrderByDescending(f => f.Value)
+            .ToList();
+
+        _serieOre = _perMese.Select(m => m.Seconds / 3600.0).ToList();
+        _serieMovimenti = _perMese.Select(m => (double)m.Movements).ToList();
+
+        _maxOrePostazione = _perPostazione.Count == 0 ? 0 : _perPostazione.Max(r => r.Seconds);
+        _maxOreMese = _perMese.Count == 0 ? 0 : _perMese.Max(r => r.Seconds);
+        _maxVoliAeroporto = _aeroporti.Count == 0 ? 0 : _aeroporti.Max(r => r.Sessions);
+        _maxVoliTipo = _tipi.Count == 0 ? 0 : _tipi.Max(r => r.Sessions);
+        _maxDurataTurno = _turni.Count == 0 ? 0 : _turni.Max(t => t.Secondi);
     }
 
-    // ⚠️ «0,0 ore» per una sessione vera di venti minuti sembra «niente»: sotto il decimo d'ora si scrive
-    // che è poco, non che è zero.
-    private static string Ore(long secondi) =>
-        secondi > 0 && secondi < 360 ? "<0,1" : (secondi / 3600.0).ToString("0.0");
+    /// <summary>
+    /// Le connessioni raccolte nei loro turni. La chiave la porta già l'archivio (<c>ShiftKey</c>): qui si
+    /// somma, si prende il callsign dello spezzone più lungo e si tiene l'ordine dal più recente.
+    /// </summary>
+    private static IReadOnlyList<Turno> Turni(IReadOnlyList<StatsSessionRow> sessioni) =>
+        sessioni
+            .GroupBy(s => s.ShiftKey)
+            .Select(g => new Turno(
+                g.Min(s => s.StartUtc),
+                g.OrderByDescending(s => s.DurationSeconds).First().Callsign,
+                g.Sum(s => s.DurationSeconds),
+                g.Sum(s => s.MovementCount),
+                g.OrderBy(s => s.StartUtc).ToList()))
+            .OrderByDescending(t => t.Inizio)
+            .ToList();
 
-    private static string Durata(int secondi) =>
-        secondi >= 3600 ? $"{secondi / 3600}h {(secondi % 3600) / 60:00}m" : $"{secondi / 60}m";
+    /// <summary>«2026-08» → «08/26»: l'etichetta di una barra deve stare in trentaquattro pixel.</summary>
+    private static string Mese(string chiave) =>
+        chiave.Length == 7 ? $"{chiave[5..]}/{chiave[2..4]}" : chiave;
 }
