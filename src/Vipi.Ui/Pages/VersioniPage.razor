@@ -684,7 +684,7 @@
                             <span class="vb">✎</span>
                             <div>
                                 <b><VidLink Vid="e.UserId" Nome="@NomeAutore(e.UserId)" /></b>
-                                <div class="vmeta">@e.TimestampUtc.ToString("dd MMM yyyy HH:mm")@(string.IsNullOrEmpty(detail) ? "" : $" · {detail}")</div>
+                                <div class="vmeta">@e.TimestampUtc.ToString("dd MMM yyyy HH:mm")@(string.IsNullOrEmpty(detail) ? "" : " · ")<VidText Testo="@detail" /></div>
                             </div>
                         </div>
                     }

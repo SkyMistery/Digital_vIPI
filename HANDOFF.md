@@ -14,8 +14,8 @@ e sullo stesso ramo **il VID è diventato un link al profilo IVAO**.
 >
 > **Dove sta il lavoro:** ramo **`statistiche-atc`**, una trentina di commit oltre `main`, spinto su origin
 > (⚠️ la cifra si **conta** — `git rev-list --count main..statistiche-atc` — perché qui era rimasta «24»
-> per due giri mentre il ramo era già a 27). Release **0 avvisi** su entrambi i TFM; **2243 test verdi su
-> net8** e **2005 su net10**, tutti verdi (il rosso di §H2 è stato chiuso la sera del 25). **Non è fuso**:
+> per due giri mentre il ramo era già a 27). Release **0 avvisi** su entrambi i TFM; **2254 test verdi su
+> net8** e **2016 su net10**, tutti verdi (il rosso di §H2 è stato chiuso la sera del 25). **Non è fuso**:
 > vedi §B12.
 >
 > **Cos'è.** Il **terzo servizio** dell'hub `/services`: le statistiche da ATC. ⚠️ Il fatto che decide tutto
@@ -58,8 +58,12 @@ e sullo stesso ramo **il VID è diventato un link al profilo IVAO**.
 > pagina, si apre `https://ivao.aero/Member.aspx?Id=<VID>`. Quindici punti in dieci file, **un componente
 > solo** (`Components/VidLink.razor`), che è anche l'unico posto dove quell'indirizzo è scritto.
 > Carta: [`docs/feature/2026-08-25-vid-porta-sul-profilo-ivao.md`](docs/feature/2026-08-25-vid-porta-sul-profilo-ivao.md).
-> ⚠️ **Non è stato visto dal vivo**: `Vipi.Host` era acceso e teneva bloccati i `.dll`, quindi il browser
-> serviva la build vecchia. Cosa guardare e in che ordine: **§H5** di `docs/lavori-aperti.md`.
+> ✅ **Verificato dal vivo**, e la verifica ha trovato **un buco vero**: nel Registro nove VID erano a
+> schermo e **zero** erano link, perché lì il VID sta dentro le frasi del narratore — non è un campo, è una
+> **parola**. ⚠️ Nessuna prova sbagliava: nessuna guardava quella colonna. Chiuso con un secondo componente,
+> **`VidText`**, che taglia la frase già composta sulla forma «VID 1234567» ed emette il resto come testo
+> (niente `MarkupString`: quelle frasi portano dentro titoli e note scritti da persone). Aggancia anche il
+> «Deciso da …» di Sorgenti e l'«Assegnato da …» di Incarichi, che erano dati per irrisolvibili.
 >
 > ⚠️ La regola che ne esce, per chi ci aggancia il prossimo punto: **il link sta dove il VID si vede già**,
 > non dove lo si potrebbe ricavare. Dove a schermo c'è il nome (Registro, `ReleasePanel`, Incarichi) resta
@@ -80,7 +84,7 @@ e sullo stesso ramo **il VID è diventato un link al profilo IVAO**.
 > gesto è `CsCheck_Iter=2000000`.
 >
 > Verificato a **2 milioni di giri su entrambi i TFM**, controesempio congelato in
-> `AorPolygonProjectorTests`, e suite completa di nuovo **tutta verde**: **2243 net8 / 2005 net10**, Release
+> `AorPolygonProjectorTests`, e suite completa di nuovo **tutta verde**: **2254 net8 / 2016 net10**, Release
 > `--no-incremental` **0 avvisi**.
 
 > ## ⚪ STORIA — quattro difetti chiusi (23 agosto 2026)

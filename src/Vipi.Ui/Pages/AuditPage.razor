@@ -124,7 +124,7 @@
                                     <td class="c-target"><b>@AuditNarrator.Bersaglio(r, L, _titoli)</b>@AccSuffisso(r)</td>
                                     @* Il JSON grezzo non sparisce — è la verità della riga — ma sta nel
                                        title: non è quello che si legge scorrendo un registro. *@
-                                    <td class="c-what" title="@(r.DetailsJson ?? L["Audit_RawTitle"].Value)">@AuditNarrator.Frase(r, L)</td>
+                                    <td class="c-what" title="@(r.DetailsJson ?? L["Audit_RawTitle"].Value)"><VidText Testo="@AuditNarrator.Frase(r, L)" /></td>
                                 </tr>
                             }
                         </tbody>

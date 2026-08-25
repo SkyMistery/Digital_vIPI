@@ -1,0 +1,66 @@
+@* Una frase già composta, con dentro i VID resi premibili.
+
+   Perché esiste, e non è una comodità. `VidLink` risolve il caso in cui il VID è un CAMPO: sta da solo in
+   una colonna, o accanto a un nome, e il markup lo può avvolgere. Ma in tre punti il VID è una PAROLA dentro
+   una frase — «Concesso il permesso a VID 704798 su LIRR» del narratore del Registro, «Deciso da VID 704798
+   il …» di Sorgenti, «Assegnato da VID 704798 il …» di Incarichi — e quelle frasi nascono da template
+   tradotti (`Audit_Fr_*`, `Sorg_DecidedBy`, `AdminTasks_CreatedBy`): spezzarle in markup vorrebbe dire
+   spezzare la traduzione in pezzi che nessun traduttore può rimettere insieme.
+
+   ⚠️ **Misurato, non supposto**: la verifica live del 25 agosto 2026 ha contato **nove** VID così sul solo
+   Registro, tutti muti, mentre le colonne accanto erano già premibili. Era il buco più grosso rimasto.
+
+   Come funziona: si taglia la frase sulla forma che scriviamo NOI — `Audit_VidN`, cioè «VID 1234567» — e i
+   pezzi in mezzo escono come TESTO, non come markup. Niente `MarkupString`: la frase porta dentro titoli di
+   documento e note scritte da persone, e passarla per markup vorrebbe dire fidarsi di quel contenuto.
+
+   ⚠️ La forma riconosciuta è legata alla chiave `Audit_VidN`. Se qualcuno la ritraduce, questo componente
+   smette di trovare niente **in silenzio** — ed è per questo che `VidTextTests` fa fallire la suite se la
+   risorsa non produce più una stringa che il taglio riconosce. *@
+
+@foreach (var pezzo in Spezza(Testo))
+{
+    @if (pezzo.Vid is { } vid)
+    {
+        <VidLink Vid="vid" />
+    }
+    else
+    {
+        @pezzo.Testo
+    }
+}
+
+@code {
+    /// <summary>La frase da rendere. Nulla o vuota: non esce niente.</summary>
+    [Parameter] public string? Testo { get; set; }
+
+    /// <summary>Un pezzo di frase: o testo, o un VID.</summary>
+    public readonly record struct Pezzo(string Testo, int? Vid);
+
+    /// <summary>⚠️ Tre cifre di minimo: i VID IVAO ne hanno sei o sette, ma il pavimento serve a non
+    /// trasformare in link «VID 12» se un giorno comparisse. Nove di massimo: oltre non è un int.</summary>
+    private static readonly System.Text.RegularExpressions.Regex Forma =
+        new(@"\bVID\s*(\d{3,9})\b", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    /// <summary>
+    /// Taglia la frase alternando testo e VID. Statica e pubblica perché è la parte che si prova da sola:
+    /// il resto del componente è un <c>foreach</c>.
+    /// </summary>
+    public static IReadOnlyList<Pezzo> Spezza(string? frase)
+    {
+        if (string.IsNullOrEmpty(frase)) return Array.Empty<Pezzo>();
+
+        var pezzi = new List<Pezzo>();
+        var da = 0;
+        foreach (System.Text.RegularExpressions.Match m in Forma.Matches(frase))
+        {
+            // ⚠️ Un numero che non entra in un int non è un VID: resta testo, non diventa un link a zero.
+            if (!int.TryParse(m.Groups[1].Value, out var vid)) continue;
+            if (m.Index > da) pezzi.Add(new Pezzo(frase[da..m.Index], null));
+            pezzi.Add(new Pezzo(m.Value, vid));
+            da = m.Index + m.Length;
+        }
+        if (da < frase.Length) pezzi.Add(new Pezzo(frase[da..], null));
+        return pezzi;
+    }
+}

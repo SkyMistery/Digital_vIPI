@@ -179,7 +179,13 @@ pieno di righe.
     appenderci «(VID 123456)» su cinquecento righe la taglia. Lì il link compare solo sul ripiego «VID …»,
     quello che scatta quando il roster il nome non ce l'ha.
     ⚠️ Non è premibile dentro un `<button>` (una chip) né dentro un `<option>`: lì il markup non entra, e
-    il numero resta testo. Carta: [VID → profilo](../feature/2026-08-25-vid-porta-sul-profilo-ivao.md).
+    il numero resta testo.
+46-bis. **E se il VID sta DENTRO una frase** — le frasi del narratore del Registro, «Deciso da …»,
+    «Assegnato da …» — il componente è `VidText`, che prende la frase **già composta** e taglia sulla forma
+    «VID 1234567». ⚠️ Non si spezza la chiave di traduzione in pezzi, e non si passa per `MarkupString`:
+    quelle frasi portano dentro titoli e note scritti da persone. Trovato dalla verifica live — nove VID
+    muti sul solo Registro, e nessun test li guardava.
+    Carta: [VID → profilo](../feature/2026-08-25-vid-porta-sul-profilo-ivao.md).
 
 ## 9. CSS: tre trappole che si ripagano
 

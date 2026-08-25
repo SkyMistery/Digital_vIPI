@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 25 agosto 2026, sera (**§B12 aperta: il ramo `statistiche-atc` è completo e NON fuso** — la fusione è una decisione del committente, non un passo tecnico; il 24: §B10 e §B11 fuse e cancellate. La sera del 25: il **VID diventa un link** al profilo IVAO — §H5 — e **§H2 è CHIUSA**: il «rosso intermittente» erano due difetti, e la suite è di nuovo verde su tutt'e due i TFM) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+**Aggiornato:** 25 agosto 2026, sera (**§B12 aperta: il ramo `statistiche-atc` è completo e NON fuso** — la fusione è una decisione del committente, non un passo tecnico; il 24: §B10 e §B11 fuse e cancellate. La sera del 25 si chiudono **§H5** — il VID è un link al profilo IVAO, verifica live fatta — e **§H2**, il «rosso intermittente», che erano due difetti. Della sezione UI restano aperte **H1** e **H3**) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -705,7 +705,7 @@ Una **trentina di commit** oltre `main`, spinti su `origin/statistiche-atc`. ⚠
 legge**: qui c'è stata scritta «24» per due giri di fila mentre il ramo era già a 27, ed è il motivo per cui
 adesso al suo posto c'è il comando — `git rev-list --count main..statistiche-atc`.
 **Niente lo blocca sul piano tecnico**: `dotnet build Vipi.slnx -c Release --no-incremental` **a 0 avvisi** e
-suite **tutta verde**, **2243 net8 / 2005 net10** (25 agosto sera). Fondere è una decisione, non un passo
+suite **tutta verde**, **2254 net8 / 2016 net10** (25 agosto sera). Fondere è una decisione, non un passo
 rimasto indietro.
 
 ℹ️ Per qualche ora del 25 sera su net10 c'era **un rosso**, ed era del ramo: due difetti nelle proprietà
@@ -1787,8 +1787,9 @@ ed è un difetto che stava lì da prima.
 
 **La sezione è diventata il posto dove finisce l'UI aperta**, non solo l'audit di quel giorno. Stato al 25
 agosto, sera: **H1** e **H3** aperte come allora · **H2** ✅ **chiusa** — erano due difetti, non uno, e il
-secondo l'ha trovato il martello a 2 milioni di giri · **H4** chiusa · **H5** il VID, fatto: resta la
-verifica live.
+secondo l'ha trovato il martello a 2 milioni di giri · **H4** chiusa · **H5** ✅ **chiusa** — il VID è un
+link, verifica live fatta, e il buco che ha trovato (nove VID muti nel Registro) è chiuso anche quello.
+**Aperte: H1 e H3.**
 
 ### H1 🟢 `.ed-layout` e le altre dieci `@media` degli editor
 
@@ -1941,32 +1942,48 @@ di stile del 23 agosto: ⚠️ **misurato con il foglio di PRIMA e con quello di
 avrebbe mescolato due cose. Il colpevole è uno solo e si trova in una riga
 (`node sfora.js http://localhost:5099/services/vsop/admin/acc` nella skill `verifica-live`).
 
-### H5 🟢 Il VID è un link al profilo IVAO — resta da vederlo dal vivo (25 agosto 2026, sera)
+### H5 ✅ CHIUSA — il VID è un link al profilo IVAO, e la verifica live ha trovato un buco vero
 
 Chiesto dal committente e **fatto**: cliccando un VID, in qualsiasi pagina, si apre
 `https://ivao.aero/Member.aspx?Id=<VID>`. Quindici punti in dieci file, un componente solo
 (`Components/VidLink.razor`), sul ramo `statistiche-atc` (`03463bf`). Carta con tutto:
 [`feature/2026-08-25-vid-porta-sul-profilo-ivao.md`](feature/2026-08-25-vid-porta-sul-profilo-ivao.md).
 
-**Cosa resta, ed è tutto UI.**
+**La verifica live è stata fatta** (Edge + puppeteer-core su una copia del `vipi.db`, nove pagine guidate) e
+ha detto due cose.
 
-🟢 **1. La verifica live, non fatta.** `Vipi.Host` era acceso e teneva bloccati i `.dll` di `bin/Debug`: le
-pagine servite erano quelle della build vecchia, quindi il gesto non è mai stato provato in un browser.
-Quattro cose da guardare, in ordine di rischio:
+**Quel che funziona, misurato.** La **risalita del clic** in Permessi è ferma: il clic arriva all'ancora
+(`clic: 1`) e la selezione non si muove — con la **controprova** che cliccando la riga lontano dal VID la
+selezione cambia, altrimenti «non è successo niente» poteva voler dire «il clic non è arrivato». Le pagine
+**SSR statiche** portano i link senza circuito (53 nella classifica). Nei **due temi** il colore del link è
+identico a quello della cella, e col mouse sopra arriva il blu. In **stampa** la punteggiatura sparisce.
 
-| | dove | cosa deve succedere |
-|---|---|---|
-| 1 | `/services/vsop/admin/permissions` | cliccare il VID **non** deve spostare la selezione della riga. È l'unico punto in cui `@onclick:stopPropagation` si può vedere fallire: il VID sta dentro una riga che è essa stessa un comando |
-| 2 | `/services/stats/division` e `/services/vsop/changed` | sono **SSR statiche**: il link deve funzionare senza circuito |
-| 3 | tema chiaro **e** scuro | la sottolineatura punteggiata (`color-mix` su `currentColor`) è l'unica cosa che nessun test guarda |
-| 4 | stampa di una pagina con VID | `.vid-link` deve appiattirsi come gli altri link (riga aggiunta a `vipi-print.css`) |
+**Il buco, ed era vero.** Nel Registro **nove VID a schermo e zero link**: la colonna «cosa» porta le frasi
+del narratore («Granted VID 704798 permission on LIRR»), e lì il VID non è un campo ma una **parola**.
+⚠️ Nessuna prova sbagliava — nessuna guardava quella colonna, perché quella colonna non era stata toccata.
+**Solo lo schermo poteva dirlo.**
 
-🟢 **2. Tre posti dove il VID resta muto**, e in tutt'e tre è il ripiego che compare solo quando il roster
-non conosce il nome: le **chip** di Incarichi (un `<a>` dentro un `<button>` non è HTML valido), le
-**tendine** di assegnazione (un `<option>` è solo testo) e il **«Deciso da …»** di Sorgenti (frase già
-formattata: andrebbe spezzata la chiave `Sorg_DecidedBy`, come si è fatto per `Stats_Subtitle`). I primi due
-sono limiti del formato; il terzo si chiude se qualcuno lo vuole.
+**Chiuso con un secondo componente**, `VidText`: prende la frase già composta e la taglia sulla forma che
+scriviamo noi (`Audit_VidN`, «VID 1234567»), emettendo i pezzi in mezzo come **testo** — niente
+`MarkupString`, perché quelle frasi portano dentro titoli e note scritti da persone. Aggancia quattro punti:
+Registro, la stessa frase nella riga di storia di Versioni, il «Deciso da …» di Sorgenti e l'«Assegnato da …»
+di Incarichi — cioè **anche i due che questa voce dava per irrisolvibili**. Riverificato: 9 su 9 nel
+Registro; le altre due frasi si sono viste **seminando** un incarico e una policy nella copia, perché su
+questi dati non c'erano.
 
-🟢 **3. La Guida non nomina il gesto.** `GuidaPage` parla di VID nella sezione Permessi ma non dice che il
-numero si può premere. Da mettere insieme al capitolo sulle statistiche, che è già una voce aperta di **B12**
-— così la Guida si tocca una volta sola.
+⚠️ **La forma tagliata dipende da una risorsa tradotta.** Se qualcuno ritraduce `Audit_VidN`, `VidText`
+smette di trovare qualunque cosa **in silenzio**: per questo `VidTextTests` legge i due `.resx` dal disco e
+fa fallire la suite invece.
+
+**Cosa resta davvero, e sono due limiti del formato**: le **chip** di Incarichi (un `<a>` dentro un
+`<button>` non è HTML valido) e le **tendine** di assegnazione (un `<option>` è solo testo). In tutt'e due
+il VID compare solo come ripiego.
+
+🟢 **E una voce aperta, piccola: la Guida non nomina il gesto.** `GuidaPage` parla di VID nella sezione
+Permessi ma non dice che il numero si può premere. Da mettere insieme al capitolo sulle statistiche, che è
+già una voce aperta di **B12** — così la Guida si tocca una volta sola.
+
+ℹ️ **Due cose viste e non toccate**, con il perché nella carta (§8): «Carmine (704798)» nella colonna «chi»
+non è un link perché quel numero sta dentro un **nome** (il `publicNickname` di IVAO), e «VID 0» non è un
+link perché zero non è una persona — è la prima versione dei documenti generati dal profilo aeroporto, e la
+sua esistenza nei dati veri conferma che quel ramo di `VidLink` serviva.

@@ -179,7 +179,10 @@
                 }
                 else if (_info is { UpdatedUtc: DateTime quando })
                 {
-                    @L["Sorg_DecidedBy", _autore ?? _info.UpdatedByUserId.ToString(), quando.ToString("dd MMM yyyy · HH:mm")]
+                    @* Senza nome dal roster resta il VID, e dentro una frase già formattata lo rende
+                       premibile `VidText`. ⚠️ Il ripiego passa da `Audit_VidN` («VID 1234567») e non dal
+                       numero nudo: è la forma che `VidText` sa tagliare. *@
+                    <VidText Testo="@L["Sorg_DecidedBy", _autore ?? L["Audit_VidN", _info.UpdatedByUserId].Value, quando.ToString("dd MMM yyyy · HH:mm")].Value" />
                 }
             </p>
 

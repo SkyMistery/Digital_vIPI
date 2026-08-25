@@ -247,7 +247,7 @@
                         @* Chi l'ha dato e quando: tre date che esistevano dal primo giorno e non le leggeva
                            nessuno (regola 146). *@
                         <div class="tk-meta">
-                            <div>@L["AdminTasks_CreatedBy", Nome(sel.CreatedByUserId), VipiTime.Day(sel.CreatedUtc)]</div>
+                            <div><VidText Testo="@L["AdminTasks_CreatedBy", Nome(sel.CreatedByUserId), VipiTime.Day(sel.CreatedUtc)].Value" /></div>
                             <div data-utc="@VipiTime.Iso(sel.UpdatedUtc)" data-utc-fmt="dhm">@L["AdminTasks_UpdatedAt", VipiTime.DayZ(sel.UpdatedUtc)]</div>
                             @if (sel.CompletedUtc is { } fine)
                             {

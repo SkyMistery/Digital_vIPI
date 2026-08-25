@@ -1,9 +1,10 @@
 # Feature — Il VID è una porta sul profilo IVAO
 
-Data: 2026-08-25 · Stato: **FATTO sul ramo `statistiche-atc`** (commit `03463bf`, spinto su origin) ·
-Cancello: `dotnet build Vipi.slnx -c Release --no-incremental` **0 avvisi**, `Vipi.Ui.Tests` **412 verdi**
-su net8 e net10 (5 nuovi).
-⚠️ **Non ancora visto dal vivo** — vedi §8.
+Data: 2026-08-25 · Stato: ✅ **FATTO e VERIFICATO DAL VIVO** sul ramo `statistiche-atc` ·
+Cancello: `dotnet build Vipi.slnx -c Release --no-incremental` **0 avvisi**, suite completa verde
+(**2254 net8 / 2016 net10**), `Vipi.Ui.Tests` **423** di cui **16 nuovi**.
+⚠️ La verifica live (§8) ha trovato **un buco vero**: nove VID muti sul Registro. Chiuso con `VidText`
+(§6-bis), e la prova è di nuovo a schermo.
 
 ## 1. La richiesta
 Del committente, testuale: «se clicchi sul VID, in qualsiasi pagina, ti rimanda al profilo dell'utente»,
@@ -100,17 +101,43 @@ Nuova chiave: `Vid_ProfileTitle` («Apri il profilo IVAO — VID {0}» / «Open 
 il `title` del link.
 
 ## 6. Cosa resta fuori, e perché
-Tre posti dove il VID compare e **non** è premibile. In tutt'e tre è il ripiego che scatta solo quando il
-roster non conosce il nome, quindi si vedono di rado:
+Due posti, e sono limiti del **formato**, non scelte. In tutt'e due il VID compare solo come ripiego, cioè
+quando il roster non conosce il nome:
 
 | dove | perché no |
 |---|---|
 | chip «avanzamento per editore», Incarichi | un `<a>` dentro un `<button>` non è HTML valido |
 | tendine di assegnazione (Incarichi, Permessi) | un `<option>` può contenere **solo testo** |
-| «Deciso da …» di Sorgenti | `Sorg_DecidedBy` è una frase già formattata: il VID è un `{0}` dentro un `string.Format`, e per renderlo premibile andrebbe spezzata la chiave come si è fatto per `Stats_Subtitle` |
 
-I primi due sono limiti del formato, non scelte: lì il gesto non c'è e basta. Il terzo si può chiudere
-ricalcando §5, se qualcuno lo vuole.
+⚠️ **Un terzo caso c'era, e non era un limite: era un buco.** Il VID scritto *dentro una frase* — «Deciso
+da …» di Sorgenti, «Assegnato da …» di Incarichi, e soprattutto le frasi del narratore del Registro. Stava
+in questa tabella come «si può chiudere se qualcuno lo vuole»; la verifica live ha mostrato che erano
+**nove** VID muti sulla sola pagina del Registro, cioè il posto dove i VID si vedono di più dopo la
+classifica. Chiuso: §6-bis.
+
+## 6-bis. `VidText` — quando il VID è una parola, non un campo
+`src/Vipi.Ui/Components/VidText.razor`.
+
+`VidLink` risolve il caso in cui il VID è un **campo**: sta da solo in una colonna, o accanto a un nome, e
+il markup lo può avvolgere. In tre punti però il VID è una **parola dentro una frase**, e quelle frasi
+nascono da template tradotti (`Audit_Fr_*`, `Sorg_DecidedBy`, `AdminTasks_CreatedBy`): spezzarle in markup
+vuol dire spezzare la traduzione in pezzi che nessun traduttore può rimettere insieme.
+
+`VidText` prende la frase **già composta** e la taglia sulla forma che scriviamo noi — `Audit_VidN`, cioè
+«VID 1234567» — emettendo i pezzi in mezzo come **testo**.
+
+⚠️ **Niente `MarkupString`.** Quelle frasi portano dentro titoli di documento e note scritte da persone:
+passarle per markup vorrebbe dire fidarsi di quel contenuto. C'è una prova apposta
+(`Il_testo_intorno_non_diventa_markup`) perché è la scorciatoia che qualcuno prenderà, un giorno, per
+comodità.
+
+⚠️ **La forma tagliata dipende da una risorsa tradotta**, ed è il modo in cui questa feature potrebbe morire
+in silenzio: se un domani `Audit_VidN` diventasse «ID IVAO {0}», `VidText` non troverebbe più niente e
+nessuno se ne accorgerebbe fino alla prossima verifica live. Perciò `VidTextTests` legge i due `.resx`
+**dal disco** e fa fallire la suite se il formato non è più tagliabile.
+
+I quattro punti agganciati: Registro (frase del narratore), Versioni (la stessa frase nella riga di storia),
+Sorgenti («Deciso da …»), Incarichi («Assegnato da …»).
 
 ## 7. Test
 `tests/Vipi.Ui.Tests/VidLinkTests.cs`, 5 casi:
@@ -126,26 +153,54 @@ ricalcando §5, se qualcuno lo vuole.
 `InlineConfirmTests` avrebbe fatto uscire `Audit_VidN` come testo del link, cioè proprio la cosa da
 guardare.
 
-## 8. Cosa resta da fare
-🟢 **La verifica live.** Non è stata fatta: `Vipi.Host` era acceso durante il lavoro e teneva bloccati i
-`.dll` in `bin/Debug`, quindi le pagine servite erano quelle della build vecchia. Da guardare, in ordine di
-rischio:
+## 8. La verifica live — eseguita, e cos'ha detto
+Edge + puppeteer-core su una copia del `vipi.db` (skill `verifica-live`), nove pagine guidate.
 
-1. **Permessi** — che cliccare il VID **non** sposti la selezione della riga (§3b). È l'unico punto in cui
-   la fermata della risalita si può vedere fallire.
-2. **Classifica di divisione e Cambiati** — sono SSR statiche: il link deve funzionare senza circuito.
-3. **La punteggiatura nei due temi** (§4): è l'unica cosa che nessun test guarda.
-4. **La stampa** di una pagina che porta VID, per la riga di `vipi-print.css`.
+| cosa | esito |
+|---|---|
+| **la risalita del clic** in Permessi | ✅ il clic arriva all'ancora (`clic: 1`) e la selezione **non** si muove: `aria-pressed` a 0 prima e dopo, pannello invariato. ⚠️ Con **controprova**: cliccando la riga lontano dal VID la selezione cambia («Carmine Granato · 1 ACCs») — senza, «non è successo niente» avrebbe potuto voler dire «il clic non è arrivato» |
+| **SSR statico** (classifica, Cambiati) | ✅ 53 link nella classifica, 1 in Cambiati, `href` giusti, senza circuito |
+| **i due temi** | ✅ il `color` del link è identico a quello della cella (`rgb(33,33,46)` chiaro, `rgb(250,250,255)` scuro): `color:inherit` fa il suo lavoro. Punteggiata al 45% in tutt'e due |
+| **col mouse sopra** | ✅ il colore arriva (`rgb(60,85,172)`) e la riga passa a `solid` |
+| **stampa** | ✅ `text-decoration-line: none` sotto `emulateMediaType('print')` |
+| **il censimento** | ✅ Permessi 1/1, Cambiati 1/1, Statistiche 1/1, Diagnostica 1, classifica 53, Versioni 7/7 |
+| **Registro** | ❌ **9 VID a schermo, 0 link.** Vedi sotto |
 
-⚠️ **La Guida in-app non nomina il gesto.** `GuidaPage` parla di VID nella sezione Permessi ma non dice che
+**Il buco, e perché nessun test lo vedeva.** La colonna «cosa» del Registro porta le frasi del narratore —
+«Granted VID 704798 permission on LIRR» — e lì il VID non è un campo ma una parola. Nessuna prova
+sbagliava: nessuna guardava quella colonna, perché quella colonna non era stata toccata. **Solo lo schermo
+poteva dirlo**, e l'ha detto contando: nove su nove. Chiuso con `VidText` (§6-bis) e riverificato: **9 su 9
+premibili**.
+
+⚠️ **Le due frasi di Sorgenti e Incarichi non si vedevano su questi dati** — zero incarichi in archivio e
+nessuna policy mai decisa. Sono state **seminate** nella copia (un incarico e una riga `ImportPolicies`, con
+un VID che il roster **non** conosce apposta, per far scattare il ripiego), e allora si sono viste:
+«Assigned by VID 123456 on 20 Aug 2026» e «Decided by VID 123456 on 20 Aug 2026», tutt'e due premibili.
+
+### Due cose viste e **non** toccate
+
+1. **«Carmine (704798)» nella colonna «chi» del Registro non è un link, e va bene così.** Quel numero è
+   dentro un *nome*: è il `publicNickname` di IVAO, che nel payload reale vale letteralmente
+   «Carmine (704798)» (vedi il commento di `EfStaffRosterRepository.UpdateVerifiedAsync`). Linkarlo vorrebbe
+   dire cercare numeri dentro i nomi delle persone — una regola che sbaglierebbe il giorno che un nickname
+   contiene una cifra qualunque. In produzione, dove il nome vero arriva dal login (`firstName lastName`),
+   il caso sparisce da sé.
+2. **«VID 0» esiste davvero nei dati**, e non è un link: la prima versione di un documento generato dal
+   profilo aeroporto ha `CreatedByUserId = 0`. È il caso che `VidLink` tratta come «nessuna persona», ed è
+   la conferma sul campo che quel ramo serviva. ℹ️ A schermo resta scritto «VID 0», che è com'era prima di
+   questo giro: dirlo meglio («generato dal sistema») è un'altra decisione, e non è di questo giro.
+
+## 8-bis. Cosa resta
+🟢 **La Guida in-app non nomina il gesto.** `GuidaPage` parla di VID nella sezione Permessi ma non dice che
 il numero si può premere. Da aggiungere quando si tocca la Guida per il servizio statistiche — §12 della
-carta delle statistiche ha già quella voce aperta.
+carta delle statistiche ha già quella voce aperta, così la Guida si tocca una volta sola.
 
 ## 9. File toccati
-- **nuovo** `src/Vipi.Ui/Components/VidLink.razor`, **nuovo** `tests/Vipi.Ui.Tests/VidLinkTests.cs`
+- **nuovi** `src/Vipi.Ui/Components/VidLink.razor` e `Components/VidText.razor`, **nuovi**
+  `tests/Vipi.Ui.Tests/VidLinkTests.cs` e `VidTextTests.cs`
 - `Components/ReleasePanel.razor`, `Components/MediaCleanupCard.razor`
 - `Pages/AdminGrantsPage.razor`, `Pages/AdminTasksPage.razor`, `Pages/AuditPage.razor`,
   `Pages/ChangedPage.razor`, `Pages/DiagnosticaPage.razor`, `Pages/StatsDivisionPage.razor`,
-  `Pages/StatsHome.razor`, `Pages/VersioniPage.razor`
+  `Pages/StatsHome.razor`, `Pages/VersioniPage.razor`, `Pages/SorgentiAdminPage.razor`
 - `Resources/SharedResource{,.en}.resx` (+`Vid_ProfileTitle`, −`Stats_Subtitle`)
 - `wwwroot/vipi-theme.css`, `wwwroot/vipi-print.css`
