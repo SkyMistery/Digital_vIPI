@@ -757,11 +757,14 @@ per riga il 25 agosto: se un giorno questa sezione risulta vuota, il servizio è
   --no-incremental` pulita su entrambi i TFM. La fusione è una decisione del committente, non un passo
   tecnico rimasto indietro.
 
-  ⚠️ Conteggi misurati il **25 agosto, dopo §13**: **2222 su net8, 1984 su net10**. E una nota che serve a
-  chi li rimisura: `dotnet test Vipi.slnx` in quel giro **non ha eseguito** `Vipi.Domain.Tests` (117) né
-  `Vipi.AuroraProfiles.Tests` (63) — lanciati a mano sono verdi, ma un totale letto da quel comando può
-  essere più basso di 180 senza che manchi niente. I numeri della prima consegna (2176/1938) erano contati
-  in un altro giro e non tornano con questi: non inseguirli.
+  ⚠️ Conteggi misurati il **25 agosto, dopo §13**: **2237 su net8, 1999 su net10**.
+
+  ⚠️ E la trappola che ci sta dietro, perché costa un quarto d'ora ogni volta: **un progetto che non
+  COMPILA non compare nel totale, e `dotnet test -v q` non diventa rosso in modo visibile.** Con
+  `Vipi.Host` acceso (la verifica live!) i suoi DLL sono bloccati, la build di mezzo albero fallisce con
+  `MSB3021`/`MSB3027`, e il totale risulta più basso di qualche centinaio senza che manchi un test.
+  Prima di credere a un conteggio: `grep "error MSB"`. I numeri della prima consegna (2176/1938) sono di un
+  altro giro e non tornano con questi: non inseguirli.
 - ⚠️ **Manca la Guida, e §7 la dichiara obbligatoria.** Verificato il 25 agosto: la card in `ServicesHome` e
   in `SopHome` c'è, la voce nel menù ☰ (`SopLayout`) c'è, ma **`GuidaPage.razor` non ha un capitolo sulle
   statistiche e `GuideSearchCatalog.Entries` non ha la sua voce** — cioè chi cerca «statistiche» nella
