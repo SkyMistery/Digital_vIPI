@@ -950,3 +950,48 @@ alberi separati H2F/F2H, ognuno reso dalla parte di chi cede.
 dentro lo snapshot. Il testo nuovo si vede alla **prossima ripubblicazione**.
 
 Carta: [`../feature/2026-08-24-coordinamenti-lato-ricevente.md`](../feature/2026-08-24-coordinamenti-lato-ricevente.md).
+
+### 9.28 Statistiche ATC — `AtcSession`, `AtcSessionTraffic`, `AtcSessionRunway`, `StatsSettings` (24–25 ago 2026) 🟢
+
+Quattro tabelle nuove, l'unica area del modello che cresce di **ordini di grandezza**: ~21 000 sessioni e
+~500 000 righe di traffico l'anno, misurate sull'archivio IVAO vero (il resto del `vipi.db` sta in 4246 righe).
+
+| tabella | chiave | note |
+|---|---|---|
+| `AtcSession` | `SessionId` (**id IVAO**, non generato) | lo stesso numero nel whazzup e nello storico: poller e backfill scrivono sulla stessa riga senza accoppiarsi per (callsign, ora) |
+| `AtcSessionTraffic` | `(SessionId, PilotCallsign, LegOrdinal)` | **niente `Id` surrogato**: su mezzo milione di righe l'anno sarebbe una colonna e un albero d'indice in più, per niente |
+| `AtcSessionRunway` | `Id` + indice `(SessionId, FromUtc)` | è una **sequenza di cambi**, non un valore: un turno normale ha una riga |
+| `StatsSettings` | riga singola `Id = 1` | come `ImportPolicy`. `PublicLeaderboard` default **false**: esporre le ore altrui è una scelta politica, non un default di colonna |
+
+⚠️ **`ShiftKey` non è un vezzo.** Misurato su 1316 sessioni italiane vere di 30 giorni, **501 (38%)**
+riprendono entro un quarto d'ora dalla precedente: sono spezzoni della stessa seduta lasciati da una caduta
+di linea. Contando le sessioni invece dei **turni**, due quinti dei numeri sarebbero doppioni e lo stesso
+aereo comparirebbe in ogni spezzone.
+
+⚠️ **`TrafficCount` / `MovementCount` / `TrafficMinutes` sono denormalizzati sulla riga sessione, apposta.**
+Sono la condizione perché la potatura del dettaglio (12 mesi) **non azzeri le ore di un anno fa**. Non è la
+«tabella dei totali» vietata dal §5.
+
+⚠️ **`TrafficFilledUtc`**: una sessione senza traffico e senza quella data è «da riempire», una **con** la
+data e zero traffico è «riempita, non c'era nessuno». Senza la marca i due casi sarebbero indistinguibili e
+il riempimento a posteriori riproverebbe per sempre.
+
+**Aggiunta del 25 agosto** (migrazione `FasiQuoteConsegne`, doppia emissione): otto colonne su
+`AtcSessionTraffic` — `FirstPhase`, `LastPhase`, `SawAirborne`, `EntryAltitudeFt`, `ExitAltitudeFt`,
+`MaxAltitudeFt`, `HandoffToSessionId`, `HandoffFromSessionId`. Sono ~50 B/riga in più (da ~75 a ~125), cioè
+dal ~4% al ~6-7% della quota da 1 GB a regime, e comprano l'unica risposta onesta a «l'ho visto atterrare?».
+La fase la calcolava **già** il recorder a ogni giro e la buttava: nessuna chiamata in più alla sorgente.
+
+⚠️ **Le due colonne di consegna non hanno chiave esterna**, ed è voluto: la potatura del dettaglio cancellerà
+righe vecchie, e una FK farebbe cadere la consegna insieme alla riga dell'altro. Un id che non risolve più si
+mostra senza collegamento (c'è un test).
+
+⚠️ **`FirstPhase`/`LastPhase` sono enum → stringa** come tutti gli altri (SPEC §6), e la lunghezza gliela
+mette `MySqlStringLengths.Apply` (32 caratteri per ogni enum). Dichiararla nel modello **non** serve e
+lascerebbe due misure diverse nei due provider per la stessa colonna.
+
+Migrazioni dell'area, tutte a doppia emissione: `StatisticheAtc`, `PolicyStatisticheAtc`,
+`TrafficoRiempitoAPosteriori`, `ImpostazioniStatistiche`, `PisteInUso`, `FasiQuoteConsegne`.
+
+Carta: [`../feature/2026-08-24-servizio-statistiche-atc.md`](../feature/2026-08-24-servizio-statistiche-atc.md)
+(§5 modello, §5.1 bilancio in byte, §13 la veste e le targhette).

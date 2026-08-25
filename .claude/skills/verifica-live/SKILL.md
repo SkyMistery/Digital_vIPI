@@ -1,4 +1,4 @@
----
+﻿---
 name: verifica-live
 description: Lancia la vIPI in locale (dotnet run su una copia del DB) e la guida in un browser reale con Edge+puppeteer-core, per verificare a schermo una modifica UI. Usare quando serve provare l'app davvero — non i test — su viewer, editor, pannello release.
 ---
@@ -202,6 +202,20 @@ await page.evaluate(() => document.querySelector('.lockbar.free .btn.primary')?.
 
 Nel dubbio, la diagnosi è una riga: `[...row.querySelectorAll('button')].map(b => b.innerText + ' ' + b.disabled)`.
 
+⚠️ **Una pagina che vive di dati non si verifica su un archivio vuoto: i dati si SEMINANO nella copia.**
+Le statistiche (25 agosto 2026) sono il caso limite — l'archivio di sviluppo aveva 21 240 sessioni ma **44
+sole righe di traffico**, e le colonne nuove (fasi, quote, consegne) erano vuote per costruzione: nessuna
+targhetta, striscia vuota, mezza pagina invisibile. Si scrive un `seed.py` che infila **una** sessione ricca
+nella copia — voli con esiti diversi, due cambi pista, una consegna verso un'altra sessione, una riga
+ricostruita — e si guarda quella. ⚠️ Prima si **avvia l'app una volta**, che applica le migrazioni, e poi si
+semina: contro una copia non migrata l'`INSERT` fallisce sulle colonne che non esistono ancora.
+
+| Cosa provare | Rotta | Note |
+|---|---|---|
+| Statistiche personali | `/services/stats` | `?p=30\|90\|365\|all`; l'identità di sviluppo è il VID **704798**, che nel `vipi.db` ha 167 sessioni |
+| Dettaglio turno | `/services/stats/session/{id}` | striscia, targhette, filtro `?f=dep\|arr\|ovf\|air` |
+| Divisione | `/services/stats/division` | l'unica **interattiva** delle tre |
+
 ⚠️ **Le sezioni degli accordi nascono chiuse** (`▸`): si aprono cliccando i cartigli `button.xt-dirtoggle`,
 non c'è un «apri tutto» che le prenda. Senza, `tbody tr` è vuoto e sembra che l'accordo non abbia clausole.
 
@@ -218,6 +232,13 @@ Estrarre dati dal DOM non basta: `page.screenshot()` e **aprire l'immagine**. Il
 - **`Invoke-WebRequest` 200 ≠ pagina funzionante** (vedi §4).
 - **Migration**: provarle su una **copia del `vipi.db` reale**, non solo su un DB vuoto da `EnsureCreated`.
   Un indice unico su `AirportSids(AirportId, StableKey)` passa sui test e **fallisce** sui dati veri.
+- ⚠️ **Il totale dei test MENTE se un progetto non compila, e l'app accesa è il modo più facile di farlo
+  succedere.** Con `Vipi.Host` in esecuzione i suoi DLL sono bloccati: `dotnet test Vipi.slnx` fallisce la
+  build di mezzo albero con `MSB3021`/`MSB3027`, i progetti che non compilano **semplicemente non compaiono**
+  fra i risultati, e chi legge le righe «Passed!» vede un totale più basso di qualche centinaio **senza un
+  solo test rosso**. Costato due giri il 25 agosto 2026 (180 casi «spariti», e una spiegazione sbagliata
+  scritta in carta prima di capirlo). Prima di credere a un conteggio: `grep "error MSB"`, e per i numeri
+  veri si **spegne l'app** (§8).
 - **Dato editoriale noto**: al 23 agosto 2026 `BANA8A` di LIBD (pista 07) è **già corretta a `9000`** nel
   `vipi.db` di sviluppo; quella ancora sbagliata è **`BANA5Z`** (pista 25), con `InitialClimb = "500"` →
   resa «500 ft» mentre le altre BANAV stanno a 5000/9000. È un errore di **contenuto**, non di codice: si

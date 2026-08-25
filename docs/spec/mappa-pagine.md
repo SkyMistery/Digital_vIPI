@@ -1,8 +1,9 @@
-# MAPPA PAGINE — servizi ATC (hub `/services`)
+﻿# MAPPA PAGINE — servizi ATC (hub `/services`)
 
 > Documento di **rapida lettura**: la gerarchia delle pagine del sito e dove vive ciascuna.
-> Aggiornato al **22 agosto 2026**: il sito è il contenitore dei **servizi**, la documentazione operativa
-> è il primo di essi e vive sotto `/services/vsop`; le rotte rimaste in italiano sono passate all'inglese.
+> Aggiornato al **25 agosto 2026** (statistiche ATC, il terzo servizio). Al **22 agosto**: il sito è il
+> contenitore dei **servizi**, la documentazione operativa è il primo di essi e vive sotto `/services/vsop`;
+> le rotte rimaste in italiano sono passate all'inglese.
 > Tabella di conversione e ragioni in
 > [`../feature/2026-08-22-servizi-atc-e-profile-swapper.md`](../feature/2026-08-22-servizi-atc-e-profile-swapper.md) §2.
 > (Prima di allora: **rebuild Round 12**, che rinominò `/sop` → `/vsop` e rifece la struttura ACC.)
@@ -14,9 +15,27 @@
 /                                       → 301 a /services
 /services                               Hub dei servizi  ............. ServicesHome.razor
 ├─ vSOP — documentazione operativa                 → /services/vsop
-└─ Aurora Profile Swapper                          → /services/profile-swapper
+├─ Aurora Profile Swapper                          → /services/profile-swapper
+└─ Statistiche ATC                                 → /services/stats
 
 /services/profile-swapper               Copia sezioni fra profili Aurora .cpr  ... ProfileSwapperPage.razor
+
+/services/stats                         Le mie statistiche ATC  ............... StatsHome.razor
+│                                       (?p=30|90|365|all — il periodo sta nell'INDIRIZZO: la pagina
+│                                        resta SSR statica e un periodo si puo' mandare a qualcuno)
+├─ riga di un turno                              → /services/stats/session/{id}
+├─ Scarica le mie sessioni (CSV)                 → /services/stats/export.csv   [endpoint, non pagina]
+└─ Statistiche di divisione                      → /services/stats/division
+                                                   (solo staff, o tutti i loggati se lo staff
+                                                    ha acceso la classifica pubblica)
+
+/services/stats/session/{id}            Dettaglio di un turno  ................ StatsSessionPage.razor
+│                                       striscia del turno, targhette per volo, quote, consegne
+└─ filtro traffico (?f=dep|arr|ovf|air)          → stessa pagina
+
+/services/stats/division                Copertura e classifica  ............... StatsDivisionPage.razor
+                                        (unica delle tre INTERATTIVA: lo staff accende e spegne
+                                         la classifica pubblica da qui)
 
 /services/vsop                                   Home  ........................ SopHome.razor
 ├─ Ricerca: titolo + AIRAC + barra
@@ -60,6 +79,10 @@
 |---|---|---|---|
 | `/services` | `ServicesHome.razor` | **Hub dei servizi** (SSR statico: è un elenco di collegamenti). Vive nella RCL e non nell'host, perché quando il modulo sarà montato dentro Ivao.It `/` non sarà nostro | tutti |
 | `/services/profile-swapper` | `ProfileSwapperPage.razor` | **Aurora Profile Swapper**: copia sezioni intere fra profili `.cpr`. Motore in `Vipi.AuroraProfiles`. I file passano dal server ed elaborati in memoria — la pagina lo dichiara | tutti |
+| `/services/stats` | `StatsHome.razor` | **Le mie statistiche ATC** (SSR statico). Ore, turni, movimenti, presenze, grafici, griglia ora×giorno, elenco dei **turni** (non delle connessioni). Il periodo sta nell'indirizzo (`?p=30|90|365|all`): è ciò che tiene la pagina statica invece di darle un circuito per un elenco di numeri fermi | chi ha fatto login (vede **solo i propri**) |
+| `/services/stats/session/{id}` | `StatsSessionPage.razor` | **Dettaglio di un turno**: striscia del turno, targhette per volo (in partenza/in arrivo/sorvolo · decollato · atterrato · al parcheggio · consegnato a X · uscito in volo · solo rullaggio · fermo), quote e consegne. Filtro `?f=dep|arr|ovf|air`. ⚠️ La regola delle targhette sta in `TrafficStory`, non nel markup: **si dice quel che si è visto** | il proprietario; **lo staff vede tutte** |
+| `/services/stats/export.csv` | endpoint in `VipiModuleExtensions` (Vipi.Hosting) | Le **proprie** sessioni in CSV (col BOM, o Excel apre gli accenti rotti). ⚠️ Nessun parametro VID: si legge dall'identità, o sarebbe «le statistiche di chiunque a chi ne indovina il numero» | chi ha fatto login |
+| `/services/stats/division` | `StatsDivisionPage.razor` | **Copertura e classifica di divisione**. L'unica delle tre **interattiva**: lo staff accende e spegne la classifica pubblica da qui. ⚠️ Default **spento** — esporre nome e ore degli altri è una scelta politica, non un default di colonna | staff sempre; tutti i loggati se la classifica è pubblica |
 | `/services/vsop` | `SopHome.razor` | Home | tutti |
 | `/services/vsop/{acc}` | `AccLanding.razor` | Landing ACC | tutti |
 | `/services/vsop/{acc}/vipi` | `AccVipiPage.razor` | vIPI ACC (data-driven). **Una sola per ACC**: la pagina usa sempre il CTR radice primario e **ignora** `?tree=` (nessun selettore d'albero) | tutti (edit: AOD/DIR) |

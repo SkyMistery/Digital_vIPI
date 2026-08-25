@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 24 agosto 2026 (**§B10 chiusa: `coordinamenti-lato-ricevente` fuso in `main` e cancellato** — di nuovo nessun ramo con lavoro fuori; il 23 sera: audit frontend/UI chiuso e fuso — §H, consegna prodotta — A11) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
+**Aggiornato:** 25 agosto 2026 (**§B12 aperta: il ramo `statistiche-atc` è completo e NON fuso** — la fusione è una decisione del committente, non un passo tecnico; il 24: §B10 e §B11 fuse e cancellate) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
 Ogni voce è pensata per essere presa da sola in una sessione nuova. Dove serve contesto, il rimando è al
 documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui conviene affrontarle.
@@ -148,8 +148,11 @@ oggi nessuno sa rispondere — la rotazione della password Neon, e quattro decis
 `BANA8A`, le 33 torri senza padre, **quali staff code valgono admin** (E4) e se pubblicare una *release*
 debba scrivere audit.
 
-✅ **Non resta più nessuna decisione di merge**: l'ultima è stata **B10**, presa il 24 agosto. B6 fu presa il 15 agosto, e B5 si è rivelata già presa — il doc
-13 era in `main` da allora senza che l'elenco lo sapesse.
+🟡 **C'è di nuovo una decisione di merge sul tavolo, ed è l'unica: B12.** Il ramo **`statistiche-atc`**
+(24 commit, il **terzo servizio**) è completo, verificato a schermo e verde su entrambi i TFM, ma **non è in
+`main`**: fonderlo è una scelta del committente. ⚠️ È il primo ramo dopo mesi che **allunga la coda del
+cutover MariaDB** — porta sei migrazioni. Prima: B10 e B11 il 24 agosto, B6 il 15, e B5 si è rivelata già
+presa — il doc 13 era in `main` da allora senza che l'elenco lo sapesse.
 
 ✅ **Fusa il 23 agosto, sera**: il ramo **`audit-frontend-ui`** (15 commit) è in `main`. Ci stavano l'audit
 frontend/UI (§H) e, sopra, i coordinamenti della vista live a colonne con la potatura del foglio di stile
@@ -695,6 +698,49 @@ E i segreti già scaricati nelle settimane scorse restano scaricati: **questo ri
 la ripara**.
 
 ## B. Branch non fusi — decisioni, non lavoro
+
+### B12 🟡 NON FUSO — `statistiche-atc`: la decisione è del committente
+
+**24 commit** oltre `main`, spinti su `origin/statistiche-atc`. **Niente lo blocca sul piano tecnico**:
+suite verde su entrambi i TFM (2237 net8 / 1999 net10) e `dotnet build Vipi.slnx -c Release
+--no-incremental` **a 0 avvisi**. Fondere è una decisione, non un passo rimasto indietro.
+
+Carta con tutto: [`feature/2026-08-24-servizio-statistiche-atc.md`](feature/2026-08-24-servizio-statistiche-atc.md)
+— **§12** è l'elenco vivo di cosa resta, **§13** la veste del 25 agosto.
+
+**Cosa porta.** Il **terzo servizio** dell'hub, `/services/stats`: ore, turni, traffico gestito, copertura
+della divisione. ⚠️ IVAO dà le **connessioni**, non il traffico: chi hai gestito lo costruiamo campionando
+l'AoR a ogni giro del poller che esisteva già — **stessa cadenza, stesso numero di chiamate**, in più i
+piloti. Dal 25 agosto ogni volo porta le sue **targhette** (in partenza / in arrivo / sorvolo · decollato ·
+**atterrato** · al parcheggio · consegnato a X · uscito in volo · solo rullaggio · fermo), la sessione ha una
+**striscia del turno**, e c'è la **costanza** in settimane di fila.
+
+⚠️ **La regola che governa le targhette, e va tenuta se qualcuno ci lavora sopra: si dice quel che si è
+VISTO.** Un volo diretto al tuo campo che esce dall'area ancora in volo **non è «atterrato»**. La regola sta
+in `TrafficStory` (puro, con test) e la usa **anche il filtro** della pagina: una seconda copia nel markup si
+scollerebbe dalla prima al primo cambiamento.
+
+**Le tre cose da fare quando si decide di fonderlo** (dettaglio in §12 della carta):
+
+| | cosa | quando |
+|---|---|---|
+| 🟢 | **La Guida**: `GuidaPage.razor` non ha un capitolo sulle statistiche e `GuideSearchCatalog.Entries` non ha la sua voce — chi cerca «statistiche» non trova niente. §7 della carta la dichiara **obbligatoria**: è l'unico pezzo di §7 non fatto. | prima di fondere |
+| 🔴 | **La `UPDATE` dei tetti TWR** (§4.5-bis) è stata eseguita **solo sul `vipi.db` di sviluppo**. Senza, in produzione le torri rivendicano fino a FL195 e il traffico in crociera finisce a loro. Stessa guardia: `Position='TWR' AND LimitsFromSource=0 AND UpperLimit=19500`. | al primo deploy |
+| 🟡 | **La potatura del dettaglio traffico.** §5.1 decide «dettaglio 12 mesi, sessioni per sempre» e i contatori denormalizzati esistono **apposta** perché la potatura non azzeri le ore di un anno fa — ma **il lavoro che pota non c'è**. ~500 000 righe l'anno, misurate. Non urgente (l'archivio nasce adesso, la quota è 1 GB), ma è esattamente il modo in cui la retention di pubblicazione si era accumulata la prima volta. | prima o poi, e scritto |
+
+⚠️ **Due cose non ancora viste dal vivo**, e sono l'una il seguito dell'altra:
+
+- **la sequenza delle piste in uso**: coperta da test contro un database vero, ma in tutt'e due i momenti in
+  cui si poteva provare non c'era **nessun** ATC italiano collegato (0 su 444 piloti, poi 0 su 422);
+- **le targhette di fase e le consegne**: le otto colonne nascono con la migrazione `FasiQuoteConsegne` e si
+  riempiono **dal primo turno campionato dal vivo**. Sulle righe già in archivio restano vuote — e in quel
+  caso la pagina **non scrive** targhette di fase, che è la stessa regola delle righe ricostruite.
+
+Verifica per tutt'e due: aprire `/services/stats/session/{id}` di una sessione registrata **dopo** il deploy.
+
+⚠️ **Sei migrazioni**, tutte a doppia emissione: `StatisticheAtc`, `PolicyStatisticheAtc`,
+`TrafficoRiempitoAPosteriori`, `ImpostazioniStatistiche`, `PisteInUso`, `FasiQuoteConsegne`. Il ramo
+**allunga la coda del cutover MariaDB** — a differenza di B10, che non aveva migrazioni.
 
 ### B11 ✅ FUSO — `login-utente-nuovo`, fuso in `main` il 24 agosto 2026
 

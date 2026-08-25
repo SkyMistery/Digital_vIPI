@@ -1,10 +1,52 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 23 agosto 2026 — **quattro difetti chiusi**, tutti in `main`.
-**Non c'è nessun ramo con lavoro fuori.**
+**Ultimo aggiornamento:** 25 agosto 2026 — **statistiche ATC complete sul ramo `statistiche-atc`**.
+⚠️ **C'è un ramo con lavoro fuori da `main`, ed è quello.** Fonderlo è una decisione del committente
+(`docs/lavori-aperti.md` **§B12**), non un passo tecnico rimasto indietro.
 **Scopo:** dare a una nuova chat tutto il contesto per riprendere senza rileggere l'intera cronologia.
 
-> ## 🧭 SI RIPARTE DA QUI (23 agosto 2026)
+> ## 🧭 SI RIPARTE DA QUI (25 agosto 2026)
+>
+> Per riprendere da freddo si legge **un** file:
+> [`docs/feature/2026-08-24-servizio-statistiche-atc.md`](docs/feature/2026-08-24-servizio-statistiche-atc.md)
+> — **§12** dice cosa resta, **§13** cosa è stato fatto il 25.
+>
+> **Dove sta il lavoro:** ramo **`statistiche-atc`**, 24 commit oltre `main`, spinto su origin. Suite verde
+> (2237 net8 / 1999 net10), Release **0 avvisi** su entrambi i TFM. **Non è fuso**: vedi §B12.
+>
+> **Cos'è.** Il **terzo servizio** dell'hub `/services`: le statistiche da ATC. ⚠️ Il fatto che decide tutto
+> il resto — **IVAO dà le connessioni, non il traffico**: chi hai gestito lo costruiamo noi campionando l'AoR
+> a ogni giro del poller che c'era già (stessa cadenza, stesse chiamate, in più i piloti). L'AoR è
+> **orizzontale E verticale**, un aereo va a **una sessione sola**, e i numeri sono **due** — movimenti e
+> presenze — perché i volumi ACC partono da terra e conterrebbero ogni aereo posteggiato della FIR.
+>
+> **Il 25 agosto (§13), su richiesta del committente:** la veste, e le targhette che dicono **chi hai visto
+> atterrare e chi no**.
+>
+> 1. ⚠️ **La regola, e vale per tutto quel che ci si costruisce sopra: una targhetta dice quel che si è
+>    VISTO.** Un volo diretto al tuo campo che esce dall'area ancora in volo **non è «atterrato»** — è
+>    «uscito in volo», o «consegnato a LIRR_NE1_CTR» se sappiamo chi l'ha preso. Sta in `TrafficStory`
+>    (puro, con test), e la usa **anche il filtro** della pagina: una seconda copia nel markup si
+>    scollerebbe dalla prima al primo cambiamento.
+> 2. **Otto colonne nuove** su `AtcSessionTraffic` (fasi, quote, consegne) e **nessuna chiamata in più**: la
+>    fase la calcolava già il recorder a ogni giro e la buttava. ⚠️ La consegna si scrive solo fra **due giri
+>    consecutivi**: a poller fermo, «prima era tuo e ora è suo» è un buco, non un passaggio.
+> 3. **La striscia del turno** nel dettaglio sessione, con la punta di traffico dichiarata **stimata** — la
+>    barra è la finestra fra primo e ultimo avvistamento, non la presenza.
+> 4. **Periodo e filtro nell'indirizzo** (`?p=30`, `?f=arr`): è ciò che tiene le pagine **SSR statiche**.
+>    E sotto i 700px di **contenitore** (`@container`, non `@media`: lo zoom è `zoom` e le media query non lo
+>    vedono) le tabelle diventano schede.
+>
+> ⚠️ **La lezione del giro**, ed è la stessa di sempre scritta in modo nuovo: suite verde e Release pulita
+> **prima** di guardare le pagine, e poi la verifica live ha trovato **sette difetti** — due dei quali erano
+> **conti sbagliati**, non estetica (la ciambella calcolata sulle prime venti postazioni invece che su tutte;
+> un riquadro che contava le righe della classifica tagliata a cinquanta e le chiamava «controllori»).
+>
+> ⚠️ **Non ancora visto dal vivo**: le targhette di fase e le consegne. Le colonne nascono adesso e si
+> riempiono dal **primo turno campionato dopo il deploy**; sulle righe già in archivio restano vuote, e in
+> quel caso la pagina non scrive targhette di fase.
+
+> ## ⚪ STORIA — quattro difetti chiusi (23 agosto 2026)
 >
 > Per riprendere da freddo si legge **un** file:
 > [`docs/feature/2026-08-23-quattro-difetti-e-le-proprieta.md`](docs/feature/2026-08-23-quattro-difetti-e-le-proprieta.md).
