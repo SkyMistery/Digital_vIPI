@@ -1265,10 +1265,33 @@ Domanda del committente: sono i VID distinti visti controllare in Italia nell'ul
 2. **«in Italia»** vuol dire **callsign `LI*`, visitor inclusi** — non «i membri della divisione IT»;
 3. le **connessioni sotto il minuto non contano** (il 32% del totale vero: entrate e uscite).
 
+### 16.9 Le chip della divisione non facevano niente (segnalato subito dopo)
+
+Il committente ha premuto le chip del periodo sulla pagina di divisione e **non succedeva nulla** — né quelle
+del periodo né quelle del gruppo. Riprodotto dal vivo: **l'indirizzo cambiava, la chip si accendeva, i numeri
+restavano quelli di prima**.
+
+⚠️ **La causa, e vale per ogni pagina interattiva di questo prodotto.** `/services/stats/division` è l'unica
+delle tre **interattiva** (`@rendermode InteractiveServer`, perché l'interruttore della classifica sta lì), e
+su un componente interattivo **`OnInitializedAsync` gira una volta sola**. Le chip sono link che cambiano la
+sola stringa di query: Blazor aggiorna i parametri e ridisegna, ma non reinizializza niente — e il
+caricamento stava nell'inizializzazione. Sulle altre due pagine il difetto non esiste perché sono **SSR
+statiche** e ogni navigazione le ricostruisce da capo. Il caricamento è passato a
+**`OnParametersSetAsync`**, con la chiave dell'ultimo caricamento per non rifare le query a ogni render (la
+pagina ne provoca parecchi quando si tocca l'interruttore).
+
+Il test (`Premere_una_chip_fa_rileggere_i_numeri`) è stato **provato contro il codice vecchio** prima di
+tenerlo: fallisce con `OnInitializedAsync`, passa con `OnParametersSetAsync`. Un test che non sa fallire non
+sorveglia niente.
+
+Nello stesso giro, chiesto dal committente: la sezione **Aeroporti è salita** subito sotto i quattro
+riquadri. È la domanda per cui uno staffista apre quella pagina, e in coda a una classifica da cinquanta
+righe non la trovava nessuno.
+
 ### 16.8 Conti
 
 `dotnet build Vipi.slnx -c Release --no-incremental` pulita, suite verde su tutti e due i TFM:
-**2366 su net8, 2128 su net10** (la differenza sono `Vipi.E2E.Tests` e `Vipi.AuroraBridge.Tests`, che
+**2368 su net8, 2130 su net10** (la differenza sono `Vipi.E2E.Tests` e `Vipi.AuroraBridge.Tests`, che
 girano solo su net8). ⚠️ Prima di credere a un conteggio: `grep "error MSB"` — con `Vipi.Host` acceso i suoi
 DLL sono bloccati e mezzo albero non compila senza diventare rosso in modo visibile. È successo anche
 stavolta, a metà verifica live.

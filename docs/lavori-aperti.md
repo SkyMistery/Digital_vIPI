@@ -754,8 +754,8 @@ la ripara**.
 c'è stata scritta «24» per due giri di fila mentre il ramo era già a 27, ed è il motivo per cui accanto c'è
 il comando — `git rev-list --count main..statistiche-atc`.
 **Niente lo blocca sul piano tecnico**: build a **0 avvisi** e suite **tutta verde** su tutti e due i TFM —
-**2366 su net8, 2128 su net10**, rimisurati il 25 agosto a tarda sera dopo le otto richieste (§16 della
-carta). Fondere è una decisione, non un passo rimasto indietro.
+**2368 su net8, 2130 su net10**, rimisurati il 25 agosto a tarda sera dopo le otto richieste e la
+correzione delle chip (§16 della carta). Fondere è una decisione, non un passo rimasto indietro.
 ⚠️ Prima di credere a un conteggio: `grep "error MSB"`. Con `Vipi.Host` acceso (la verifica live) i suoi DLL
 sono bloccati, mezzo albero non compila e il totale cala di centinaia senza che il comando diventi rosso in
 modo visibile.

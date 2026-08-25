@@ -48,6 +48,83 @@
 
         @* La divisione non aveva NESSUN grafico nel tempo: i quattro riquadri dicono «quanto», non «se
            stiamo crescendo». Le stesse barre della pagina personale, sullo stesso conto per mese. *@
+        @* ⚠️ Guardia PROPRIA, e non basta essere dentro il ramo «_puoVedere»: questa pagina la aprono anche i
+           soci quando la classifica è pubblica, e il traffico coperto/scoperto di ogni scalo è uno strumento
+           di pianificazione dello staff — deciso dal committente il 25 agosto 2026.
+
+           ⚠️ Sta QUI, subito sotto i quattro riquadri, e non in fondo: è la domanda per cui uno staffista
+           apre questa pagina, e in coda alla classifica da cinquanta righe non la trovava nessuno (chiesto
+           dal committente). *@
+        @if (Authz.IsAdmin)
+        {
+            <h2 class="h-sect">@L["Stats_Airports"]</h2>
+            <p class="muted">@L["Stats_AirportsHint"]</p>
+
+            <StatsChipBar Voci="_gruppi" Titolo="@L["Stats_AirportsGroup"].Value" />
+
+            @if (_aeroporti is null || _aeroporti.DaysCovered == 0)
+            {
+                @* Vuoto per un motivo, non per un buco: il consolidamento non ha ancora girato. *@
+                <p class="muted">@L["Stats_AirportsEmpty"]</p>
+            }
+            else
+            {
+                @if (_aeroporti.DaysCovered < _aeroporti.DaysAsked)
+                {
+                    @* ⚠️ Un periodo non ancora recuperato NON è «zero traffico»: senza questa riga i numeri
+                       bassi dei primi giorni sembrerebbero un dato, e sono un lavoro a metà. *@
+                    <p class="muted">@L["Stats_AirportsPartial", _aeroporti.DaysCovered, _aeroporti.DaysAsked]</p>
+                }
+
+                <table class="res-table tbl-cards">
+                    <thead>
+                        <tr>
+                            <th>@L["Stats_Airport"]</th>
+                            <th>@L["Stats_AirportMovements"]</th>
+                            <th>@L["Stats_AirportCovered"]</th>
+                            <th>@L["Stats_AirportOpenHours"]</th>
+                            <th>@L["Stats_AirportOpenShare"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in _aeroporti.Rows)
+                        {
+                            <tr title="@L["Stats_AirportRowTitle", r.Icao, r.Movements, r.Covered, StatsView.Ore(r.AtcMinutes * 60L)]">
+                                <td data-l="@L["Stats_Airport"]">@r.Icao <span class="muted">@r.Name</span></td>
+                                <td data-l="@L["Stats_AirportMovements"]">@r.Movements</td>
+                                @* La barra dice la QUOTA coperta, non il numero: fra due campi da mille e da
+                                   dieci movimenti la domanda è quale dei due è più scoperto. *@
+                                <td class="cb" data-l="@L["Stats_AirportCovered"]"
+                                    style="--cb:@(r.CoveredPercent is { } q ? q + "%" : "0%")">
+                                    @if (r.CoveredPercent is { } p2) { <text>@r.Covered · @p2%</text> }
+                                    else { <text>—</text> }
+                                </td>
+                                <td data-l="@L["Stats_AirportOpenHours"]">@StatsView.Ore(r.AtcMinutes * 60L)</td>
+                                <td data-l="@L["Stats_AirportOpenShare"]">
+                                    @(r.OpenPercent is { } o ? o + "%" : "—")
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        @* ⚠️ Celle `td` con `data-l` anche qui: sul piccolo la tabella diventa una pila di
+                           schede, e una riga di totali fatta di `th` nudi resterebbe senza etichette. *@
+                        <tr class="tot">
+                            <td data-l="">@L["Stats_AirportsTotal"]</td>
+                            <td data-l="@L["Stats_AirportMovements"]">@_aeroporti.Movements</td>
+                            <td data-l="@L["Stats_AirportCovered"]">@_aeroporti.Covered@(_quotaTotale is { } t ? $" · {t}%" : "")</td>
+                            <td data-l="@L["Stats_AirportOpenHours"]">@StatsView.Ore(_aeroporti.AtcMinutes * 60L)</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                @* ⚠️ La misura si dichiara, non si lascia intuire: «con ATC» è un'approssimazione dichiarata,
+                   e senza questa riga un numero preciso sembrerebbe un registro. *@
+                <p class="muted">@L["Stats_AirportsMeasure"]</p>
+            }
+        }
+
         <h2 class="h-sect">@L["Stats_MonthChart"]</h2>
         <StatsBars Barre="_barreMesi" Titolo="@L["Stats_MonthChart"].Value" />
 
@@ -181,78 +258,8 @@
         </div>
     }
 
-    @* ⚠️ Guardia PROPRIA, e non basta essere dentro il ramo «_puoVedere»: questa pagina la aprono anche i
-       soci quando la classifica è pubblica, e il traffico coperto/scoperto di ogni scalo è uno strumento di
-       pianificazione dello staff — deciso dal committente il 25 agosto 2026. *@
     @if (Authz.IsAdmin)
     {
-        <h2 class="h-sect">@L["Stats_Airports"]</h2>
-        <p class="muted">@L["Stats_AirportsHint"]</p>
-
-        <StatsChipBar Voci="_gruppi" Titolo="@L["Stats_AirportsGroup"].Value" />
-
-        @if (_aeroporti is null || _aeroporti.DaysCovered == 0)
-        {
-            @* Vuoto per un motivo, non per un buco: il consolidamento non ha ancora girato. *@
-            <p class="muted">@L["Stats_AirportsEmpty"]</p>
-        }
-        else
-        {
-            @if (_aeroporti.DaysCovered < _aeroporti.DaysAsked)
-            {
-                @* ⚠️ Un periodo non ancora recuperato NON è «zero traffico»: senza questa riga i numeri
-                   bassi dei primi giorni sembrerebbero un dato, e sono un lavoro a metà. *@
-                <p class="muted">@L["Stats_AirportsPartial", _aeroporti.DaysCovered, _aeroporti.DaysAsked]</p>
-            }
-
-            <table class="res-table tbl-cards">
-                <thead>
-                    <tr>
-                        <th>@L["Stats_Airport"]</th>
-                        <th>@L["Stats_AirportMovements"]</th>
-                        <th>@L["Stats_AirportCovered"]</th>
-                        <th>@L["Stats_AirportOpenHours"]</th>
-                        <th>@L["Stats_AirportOpenShare"]</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var r in _aeroporti.Rows)
-                    {
-                        <tr title="@L["Stats_AirportRowTitle", r.Icao, r.Movements, r.Covered, StatsView.Ore(r.AtcMinutes * 60L)]">
-                            <td data-l="@L["Stats_Airport"]">@r.Icao <span class="muted">@r.Name</span></td>
-                            <td data-l="@L["Stats_AirportMovements"]">@r.Movements</td>
-                            @* La barra dice la QUOTA coperta, non il numero: fra due campi da mille e da
-                               dieci movimenti la domanda è quale dei due è più scoperto. *@
-                            <td class="cb" data-l="@L["Stats_AirportCovered"]"
-                                style="--cb:@(r.CoveredPercent is { } q ? q + "%" : "0%")">
-                                @if (r.CoveredPercent is { } p2) { <text>@r.Covered · @p2%</text> }
-                                else { <text>—</text> }
-                            </td>
-                            <td data-l="@L["Stats_AirportOpenHours"]">@StatsView.Ore(r.AtcMinutes * 60L)</td>
-                            <td data-l="@L["Stats_AirportOpenShare"]">
-                                @(r.OpenPercent is { } o ? o + "%" : "—")
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-                <tfoot>
-                    @* ⚠️ Celle `td` con `data-l` anche qui: sul piccolo la tabella diventa una pila di
-                       schede, e una riga di totali fatta di `th` nudi resterebbe senza etichette. *@
-                    <tr class="tot">
-                        <td data-l="">@L["Stats_AirportsTotal"]</td>
-                        <td data-l="@L["Stats_AirportMovements"]">@_aeroporti.Movements</td>
-                        <td data-l="@L["Stats_AirportCovered"]">@_aeroporti.Covered@(_quotaTotale is { } t ? $" · {t}%" : "")</td>
-                        <td data-l="@L["Stats_AirportOpenHours"]">@StatsView.Ore(_aeroporti.AtcMinutes * 60L)</td>
-                        <td></td>
-                    </tr>
-                </tfoot>
-            </table>
-
-            @* ⚠️ La misura si dichiara, non si lascia intuire: «con ATC» è un'approssimazione dichiarata,
-               e senza questa riga un numero preciso sembrerebbe un registro. *@
-            <p class="muted">@L["Stats_AirportsMeasure"]</p>
-        }
-
         <h2 class="h-sect">@L["Stats_Visibility"]</h2>
         <label class="inline-form">
             <input type="checkbox" checked="@_pubblica" @onchange="CambiaVisibilita" />
@@ -295,7 +302,30 @@
     private double _maxOre, _maxOrePostazione;
     private int _controllori;
 
-    protected override async Task OnInitializedAsync() => await CaricaAsync();
+    /// <summary>Periodo e gruppo dell'ultimo caricamento: senza, ogni render rifarebbe tutte le query.</summary>
+    private string? _caricato;
+
+    /// <summary>
+    /// ⚠️ <c>OnParametersSetAsync</c> e <b>non</b> <c>OnInitializedAsync</c>, ed è la differenza fra chip che
+    /// funzionano e chip che non fanno niente.
+    ///
+    /// <para>Questa pagina è l'unica delle tre <b>interattiva</b> (l'interruttore della classifica sta qui),
+    /// e su un componente interattivo l'inizializzazione gira <b>una volta sola</b>. Le chip sono link che
+    /// cambiano la sola stringa di query: l'indirizzo cambiava, la chip si accendeva nell'HTML nuovo… e i
+    /// numeri restavano quelli di prima, perché nessuno li andava a rileggere. Sulle altre due pagine non
+    /// succede — sono SSR statiche e ogni navigazione le ricostruisce da capo.</para>
+    ///
+    /// <para>⚠️ La chiave si segna <b>prima</b> di leggere, non dopo: durante l'<c>await</c> possono arrivare
+    /// altri render, e segnarla dopo vorrebbe dire fare le stesse query due volte.</para>
+    /// </summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        var chiave = $"{P}|{G}";
+        if (_caricato == chiave) return;
+
+        _caricato = chiave;
+        await CaricaAsync();
+    }
 
     private async Task CaricaAsync()
     {

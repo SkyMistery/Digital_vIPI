@@ -62,8 +62,14 @@ public class StatsDivisionPageTests : TestContext
 
     private sealed class ArchivioVuoto : IAtcStatsQueries
     {
-        public Task<StatsTotals> TotalsAsync(int? u, DateTimeOffset f, DateTimeOffset t, CancellationToken ct = default) =>
-            Task.FromResult(new StatsTotals(0, 0, 0, 0, 0));
+        /// <summary>Quante volte sono stati chiesti i totali: dice se la pagina è tornata a leggere.</summary>
+        public int Letture { get; private set; }
+
+        public Task<StatsTotals> TotalsAsync(int? u, DateTimeOffset f, DateTimeOffset t, CancellationToken ct = default)
+        {
+            Letture++;
+            return Task.FromResult(new StatsTotals(0, 0, 0, 0, 0));
+        }
         public Task<IReadOnlyList<StatsByKey>> ByPositionAsync(int? u, DateTimeOffset f, DateTimeOffset t, int l = 20, CancellationToken ct = default) => Vuoto<StatsByKey>();
         public Task<IReadOnlyList<StatsByKey>> ByMonthAsync(int? u, DateTimeOffset f, DateTimeOffset t, CancellationToken ct = default) => Vuoto<StatsByKey>();
         public Task<IReadOnlyList<StatsSessionRow>> SessionsAsync(int? u, DateTimeOffset f, DateTimeOffset t, int l = 50, CancellationToken ct = default) => Vuoto<StatsSessionRow>();
@@ -125,11 +131,13 @@ public class StatsDivisionPageTests : TestContext
             Task.FromResult<IReadOnlyList<(string, string, int)>>(new[] { ("LIRR", "Roma", 42), ("LIMM", "Milano", 25) });
     }
 
+    private readonly ArchivioVuoto _archivio = new();
+
     private IRenderedComponent<StatsDivisionPage> Render(
         bool staff, bool classificaPubblica, IAirportCoverageQueries aeroporti, string? gruppo = null)
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
-        Services.AddSingleton<IAtcStatsQueries>(new ArchivioVuoto());
+        Services.AddSingleton<IAtcStatsQueries>(_archivio);
         Services.AddSingleton<IStatsSettingsStore>(new FakeSettings { Pubblica = classificaPubblica });
         Services.AddSingleton<ICurrentUserProvider>(new FakeUser
         {
@@ -204,6 +212,43 @@ public class StatsDivisionPageTests : TestContext
 
         Assert.NotEmpty(periodi);
         Assert.All(periodi.Take(StatsView.Periods.Count), h => Assert.Contains("g=LIMM", h));
+    }
+
+    /// <summary>
+    /// ⚠️ Il difetto segnalato dal committente il 25 agosto 2026, e la ragione per cui questa pagina carica
+    /// in <c>OnParametersSetAsync</c>: è l'unica delle tre <b>interattiva</b>, e su un componente
+    /// interattivo l'inizializzazione gira <b>una volta sola</b>. Le chip sono link che cambiano la sola
+    /// stringa di query — l'indirizzo cambiava, la chip si accendeva, e i numeri restavano quelli di prima.
+    /// </summary>
+    [Fact]
+    public void Premere_una_chip_fa_rileggere_i_numeri()
+    {
+        var aeroporti = new AeroportiFinti();
+        Render(staff: true, classificaPubblica: false, aeroporti);
+
+        var primeLetture = _archivio.Letture;
+        Assert.True(primeLetture > 0);
+
+        var nav = Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>();
+        nav.NavigateTo("http://localhost/services/stats/division?p=30&g=LIMM");
+
+        Assert.True(_archivio.Letture > primeLetture, "cambiando la stringa di query i numeri non sono stati riletti");
+        Assert.Contains("LIMM", aeroporti.GruppiChiesti);
+    }
+
+    /// <summary>
+    /// ...ma non a ogni render: la chiave dell'ultimo caricamento evita di rifare tutte le query quando i
+    /// parametri non sono cambiati (l'interruttore della classifica ne provoca parecchi).
+    /// </summary>
+    [Fact]
+    public void Un_render_senza_parametri_nuovi_non_rifa_le_query()
+    {
+        var cut = Render(staff: true, classificaPubblica: false, new AeroportiFinti());
+
+        var primeLetture = _archivio.Letture;
+        cut.Render();
+
+        Assert.Equal(primeLetture, _archivio.Letture);
     }
 
     [Fact]
