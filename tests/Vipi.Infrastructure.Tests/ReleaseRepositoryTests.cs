@@ -99,6 +99,32 @@ public class ReleaseRepositoryTests : IAsyncLifetime
         Assert.NotNull(await _repo.GetEffectiveAsync(ReleaseTargetType.Vloa, key, future.AddMinutes(1))); // al ciclo: sì
     }
 
+    /// <summary>
+    /// «Una release per ciclo» vale anche per i cicli FUTURI. Prima la marcatura Superseded di
+    /// SaveReleaseAsync veniva annullata da RecomputeStatuses (data futura → di nuovo Scheduled): due
+    /// ripubblicazioni allo stesso ciclo schedulato lasciavano due «Programmata» gemelle in timeline.
+    /// </summary>
+    [Fact]
+    public async Task Republish_SameFutureCycle_SupersedesTheOlderScheduled()
+    {
+        var key = _docId.ToString();
+        var json = (await _repo.SnapshotWorkingAsync(ReleaseTargetType.Vloa, key, "2606"))!;
+        var future = DateTime.UtcNow.AddDays(28);
+
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "9901", future, json, 1, "prima stesura");
+        await _repo.SaveReleaseAsync(ReleaseTargetType.Vloa, key, "9901", future, json, 1, "correzione");
+
+        var rows = await _db.DocReleases.AsNoTracking()
+            .Where(r => r.TargetType == ReleaseTargetType.Vloa && r.TargetKey == key).ToListAsync();
+        var scheduled = Assert.Single(rows, r => r.Status == ReleaseStatus.Scheduled);
+        Assert.Equal("correzione", scheduled.Note);                       // vince la più recente
+        Assert.Single(rows, r => r.Status == ReleaseStatus.Superseded);   // la prima stesura è storia
+
+        // Al ciclo, l'effettiva è la correzione.
+        var eff = await _repo.GetEffectiveAsync(ReleaseTargetType.Vloa, key, future.AddMinutes(1));
+        Assert.Equal(scheduled.Id, eff!.Id);
+    }
+
     [Fact]
     public async Task Snapshot_AccVipi_Captures_Document_Tree()
     {

@@ -49,9 +49,10 @@ public sealed class EfReleaseRepository : IReleaseRepository
         var existing = await _db.DocReleases
             .Where(r => r.TargetType == type && r.TargetKey == key).ToListAsync(ct);
 
-        // Una release per ciclo: le precedenti non-superate dello stesso ciclo diventano Superseded.
-        foreach (var r in existing.Where(r => r.ReleaseAiracCycle == releaseCycle && r.Status != ReleaseStatus.Superseded))
-            r.Status = ReleaseStatus.Superseded;
+        // «Una release per ciclo» lo impone RecomputeStatuses (vince la più recente del ciclo, le altre
+        // Superseded). Qui c'era anche una marcatura esplicita per-ciclo, ma per i cicli FUTURI il ricalcolo
+        // la annullava subito dopo (rimetteva Scheduled a ogni riga con data futura): ripubblicando allo
+        // stesso ciclo schedulato restavano DUE «Programmata» gemelle in timeline. La regola vive in un posto.
 
         var nextNumber = (existing.Count == 0 ? 0 : existing.Max(r => r.VersionNumber)) + 1;
         var row = new DocRelease
@@ -205,15 +206,25 @@ public sealed class EfReleaseRepository : IReleaseRepository
             .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
     }
 
+    /// <summary>
+    /// Ricalcola gli stati di TUTTE le release di un bersaglio: per ogni ciclo vince la più recente
+    /// (VersionNumber più alto) — «una release per ciclo» —; fra le vincitrici, quella con data efficace
+    /// &lt;= now più recente è Effective, le future Scheduled, tutto il resto Superseded. Senza la regola
+    /// per-ciclo, ripubblicare a un ciclo FUTURO lasciava due Scheduled gemelle (la marcatura esplicita di
+    /// SaveReleaseAsync veniva annullata dal ramo «data futura → Scheduled» di questo stesso metodo).
+    /// </summary>
     private static void RecomputeStatuses(List<DocRelease> all, DateTime now)
     {
-        var effective = all.Where(r => r.ReleaseEffectiveUtc <= now)
+        var winners = all.GroupBy(r => r.ReleaseAiracCycle)
+            .Select(g => g.OrderByDescending(r => r.VersionNumber).First())
+            .ToHashSet();
+        var effective = all.Where(r => winners.Contains(r) && r.ReleaseEffectiveUtc <= now)
             .OrderByDescending(r => r.ReleaseEffectiveUtc).ThenByDescending(r => r.VersionNumber)
             .FirstOrDefault();
         foreach (var r in all)
         {
             if (ReferenceEquals(r, effective)) r.Status = ReleaseStatus.Effective;
-            else if (r.ReleaseEffectiveUtc > now) r.Status = ReleaseStatus.Scheduled;
+            else if (winners.Contains(r) && r.ReleaseEffectiveUtc > now) r.Status = ReleaseStatus.Scheduled;
             else r.Status = ReleaseStatus.Superseded;
         }
     }
