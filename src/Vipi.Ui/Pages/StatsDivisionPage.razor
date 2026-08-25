@@ -34,7 +34,7 @@
             <StatsKpi Valore="@StatsView.Ore(_totali?.Seconds ?? 0)" Unita="h" Etichetta="@L["Stats_Hours"].Value" />
             <StatsKpi Valore="@((_totali?.Shifts ?? 0).ToString())" Etichetta="@L["Stats_Shifts"].Value" />
             <StatsKpi Valore="@((_totali?.Movements ?? 0).ToString())" Etichetta="@L["Stats_Movements"].Value" />
-            <StatsKpi Valore="@_classifica.Count.ToString()" Etichetta="@L["Stats_TopControllers"].Value" />
+            <StatsKpi Valore="@_controllori.ToString()" Etichetta="@L["Stats_Controllers"].Value" />
         </div>
 
         <h2 class="h-sect">@L["Stats_Coverage"]</h2>
@@ -151,6 +151,7 @@
     private StatsTotals? _totali;
     private IReadOnlyList<ControllerRanking> _classifica = Array.Empty<ControllerRanking>();
     private IReadOnlyList<StatsByKey> _perPostazione = Array.Empty<StatsByKey>();
+    private IReadOnlyList<StatsByKey> _tuttePostazioni = Array.Empty<StatsByKey>();
     private IReadOnlyList<CoverageCell> _griglia = Array.Empty<CoverageCell>();
     private IReadOnlyList<StatsChipBar.Voce> _periodi = Array.Empty<StatsChipBar.Voce>();
     private IReadOnlyList<StatsSlice> _fette = Array.Empty<StatsSlice>();
@@ -160,6 +161,7 @@
     private int _decisoDa;
     private int? _io;
     private double _maxOre, _maxOrePostazione;
+    private int _controllori;
 
     protected override async Task OnInitializedAsync() => await CaricaAsync();
 
@@ -186,10 +188,15 @@
 
         _totali = await Stats.TotalsAsync(null, da, a);
         _classifica = await Stats.TopControllersAsync(da, a, limit: 50);
-        _perPostazione = await Stats.ByPositionAsync(null, da, a);
+        // Venti righe in tabella, ma la ciambella sul totale vero (vedi la stessa nota in StatsHome).
+        _tuttePostazioni = await Stats.ByPositionAsync(null, da, a, limit: 500);
+        _perPostazione = _tuttePostazioni.Take(20).ToList();
+
+        // Quanti controllori hanno almeno un turno: la classifica è tagliata ai primi cinquanta e non lo sa.
+        _controllori = (await Stats.RankAsync(_io ?? 0, da, a)).Total;
         _griglia = await Stats.CoverageAsync(null, da, a);
 
-        _fette = _perPostazione
+        _fette = _tuttePostazioni
             .GroupBy(p => StatsView.Tipo(p.Key))
             .Select(g => new StatsSlice(
                 g.Key, g.Sum(x => x.Seconds), StatsView.PosClass(g.Key),

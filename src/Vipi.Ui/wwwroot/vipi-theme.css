@@ -659,7 +659,9 @@
 /* Barra dentro la cella: la riga si legge a colpo d'occhio senza smettere di essere una tabella.
    Sta DIETRO al testo (z-index 0 contro il contenuto, che resta sopra) e non cambia l'altezza di riga. */
 td.cb{position:relative;isolation:isolate}
-td.cb::before{content:"";position:absolute;left:0;top:3px;bottom:3px;width:var(--cb,0%);background:color-mix(in srgb,var(--brand-ink-2) 13%,transparent);border-radius:0 4px 4px 0;z-index:-1}
+/* ⚠️ Tenue e senza angoli tondi: col 13% e il bordo arrotondato sembrava un CAMPO DI TESTO dentro la
+   tabella, non una barra (visto a schermo il 25 agosto). Una barra di lettura deve leggersi come sfondo. */
+td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(--cb,0%);background:color-mix(in srgb,var(--brand-ink-2) 8%,transparent);z-index:-1}
 
 /* Targhette del traffico. Le tinte seguono il significato: verde = si è concluso da noi (atterrato, al
    gate), blu = è nostro ma è ancora in aria, grigio = fatto del dato (senza piano, seconda tratta). */
@@ -669,13 +671,17 @@ td.cb::before{content:"";position:absolute;left:0;top:3px;bottom:3px;width:var(-
 .pill.ovf{background:var(--tint-purple);color:var(--nbr-ink)}
 .pill.landed{background:var(--tint-green);color:var(--ok-ink)}
 .pill.tookoff{background:var(--line-atmos-soft);color:var(--brand-ink)}
-.pill.gate{background:var(--tint-green-soft);color:var(--ok-ink)}
-.pill.handoff{background:var(--tint-blue);color:var(--info-ink)}
+.pill.gate{background:color-mix(in srgb,var(--ok-ink) 13%,var(--surface));color:var(--ok-ink)}
+/* ⚠️ --tint-blue su fondo chiaro non si vedeva: la targhetta "consegnato a X" sembrava testo nudo in mezzo
+   alle altre. La tinta si costruisce dall'inchiostro, cosi' regge in tutti e due i temi. */
+.pill.handoff{background:color-mix(in srgb,var(--info-ink) 14%,var(--surface));color:var(--info-ink)}
 
 /* La striscia del turno: una corsia per riga, una barra per volo. Le corsie sono poche (l'algoritmo dei
    binari), quindi l'altezza è quella che serve e non una lista di quaranta righe. */
 .tl{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 14px 6px}
-.tl-lanes{position:relative}
+/* Lo spazio in cima è per le etichette dei cambi pista: senza, la prima finisce SOPRA la prima barra
+   (visto a schermo il 25 agosto, e non era leggibile né l'una né l'altra). */
+.tl-lanes{position:relative;padding-top:16px}
 .tl-row{position:relative;height:22px}
 .tl-bar{position:absolute;top:3px;height:16px;border-radius:5px;background:var(--pos-other);color:var(--on-brand);font-size:10.5px;font-family:var(--font-head);line-height:16px;padding:0 6px;overflow:hidden;white-space:nowrap;min-width:8px;text-decoration:none}
 .tl-bar.b-landed{background:var(--pos-gnd)}
@@ -687,7 +693,7 @@ td.cb::before{content:"";position:absolute;left:0;top:3px;bottom:3px;width:var(-
 .tl-tick::before{content:"";position:absolute;top:0;left:50%;width:1px;height:4px;background:var(--line-strong)}
 /* Il cambio di pista è un fatto istantaneo: una linea verticale su tutta la striscia, non una barra. */
 .tl-rwy{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed var(--line-yellow)}
-.tl-rwy-lab{position:absolute;top:-2px;font-size:10px;font-family:var(--font-head);color:var(--warn-ink);background:var(--surface);padding:0 3px;white-space:nowrap}
+.tl-rwy-lab{position:absolute;top:0;font-size:10px;font-family:var(--font-head);color:var(--warn-ink);background:var(--surface);padding:0 3px;white-space:nowrap}
 
 /* Periodo e filtri: link, non bottoni. La pagina resta SSR statica e il periodo sta nell'indirizzo —
    che è anche l'unico modo di mandarlo a qualcuno. */
@@ -723,7 +729,10 @@ td.cb::before{content:"";position:absolute;left:0;top:3px;bottom:3px;width:var(-
   .tbl-cards thead{display:none}
   .tbl-cards,.tbl-cards tbody,.tbl-cards tr,.tbl-cards td{display:block;width:auto}
   .tbl-cards tr{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:9px 12px;margin-bottom:8px;box-shadow:var(--shadow)}
-  .tbl-cards td{border:0;padding:3px 0;display:flex;gap:12px;align-items:baseline}
+  .tbl-cards td{border:0;padding:3px 0;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+  /* Il contenuto della cella è UNO: senza, un callsign con la riga «ricevuto da» sotto diventava due
+     colonne strette e il callsign andava a capo a metà parola. */
+  .tbl-cards td>.cellwrap{flex:1 1 50%;min-width:0}
   .tbl-cards td::before{content:attr(data-l);color:var(--ink-soft);font-size:12px;flex:none;min-width:38%}
   .tbl-cards td.cb::before{content:attr(data-l);position:static;background:none;width:auto}
   .tbl-cards td:empty{display:none}

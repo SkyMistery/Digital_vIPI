@@ -90,11 +90,13 @@
                         {
                             <tr>
                                 <td data-l="@L["Stats_Flight"]">
-                                    @t.PilotCallsign@(t.LegOrdinal > 1 ? $" ({t.LegOrdinal})" : "")
-                                    @if (t.HandoffFrom is { } da)
-                                    {
-                                        <div class="muted" style="font-size:11.5px">@L["Stats_ReceivedFrom", da]</div>
-                                    }
+                                    <span class="cellwrap">
+                                        @t.PilotCallsign@(t.LegOrdinal > 1 ? $" ({t.LegOrdinal})" : "")
+                                        @if (t.HandoffFrom is { } da)
+                                        {
+                                            <div class="muted" style="font-size:11.5px">@L["Stats_ReceivedFrom", da]</div>
+                                        }
+                                    </span>
                                 </td>
                                 <td data-l="@L["Stats_Route"]">@(t.DepIcao ?? "—") → @(t.ArrIcao ?? "—")</td>
                                 <td data-l="@L["Stats_Aircraft"]">@(t.AircraftIcao ?? "—")</td>
@@ -220,9 +222,12 @@
             v.Chiave == attuale)).ToList();
     }
 
-    /// <summary>La quota che racconta il volo: la massima vista. Senza campionamento dal vivo, un trattino.</summary>
+    /// <summary>
+    /// La quota che racconta il volo: la massima vista. ⚠️ Un trattino anche per chi non ha mai volato:
+    /// «0 ft» accanto a un aeroplano fermo al piazzale sembrava un dato mancante scritto male.
+    /// </summary>
     private static string Livello(StatsTrafficRow r) =>
-        r.MaxAltitudeFt is { } q ? StatsView.Livello(q) : "—";
+        r is { SawAirborne: true, MaxAltitudeFt: { } q } ? StatsView.Livello(q) : "—";
 
     private string Quote(StatsTrafficRow r) =>
         r.EntryAltitudeFt is null && r.ExitAltitudeFt is null

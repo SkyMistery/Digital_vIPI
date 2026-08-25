@@ -2172,7 +2172,7 @@
   <data name="Stats_ShiftPiece" xml:space="preserve"><value>1 piece</value></data>
   <data name="Stats_ShiftHint" xml:space="preserve"><value>A dropped connection splits a session in two: here they count as one shift.</value></data>
   <data name="Stats_Timeline" xml:space="preserve"><value>The session strip</value></data>
-  <data name="Stats_PeakTraffic" xml:space="preserve"><value>Peak of {0} aircraft at once, around {1}Z.</value></data>
+  <data name="Stats_PeakTraffic" xml:space="preserve"><value>Peak of {0} aircraft at once, around {1}Z</value></data>
   <data name="Stats_PeakEstimated" xml:space="preserve"><value>estimated from the window</value></data>
   <data name="Stats_PeakEstimatedHint" xml:space="preserve"><value>The bar spans first to last sighting: an aircraft that leaves the area and returns still looks present in between.</value></data>
   <data name="Stats_Altitudes" xml:space="preserve"><value>Levels</value></data>
@@ -2219,4 +2219,5 @@
   <data name="Stats_TagHint_SecondLeg" xml:space="preserve"><value>Second flight by the same callsign during your session.</value></data>
   <data name="Stats_TagHint_Gap" xml:space="preserve"><value>There is a gap between two sightings: the minutes are an undercount.</value></data>
   <data name="Stats_TagHint_Rebuilt" xml:space="preserve"><value>Rebuilt from airport movements: no phase observed.</value></data>
+  <data name="Stats_Controllers" xml:space="preserve"><value>Controllers</value></data>
 </root>

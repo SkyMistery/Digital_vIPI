@@ -272,6 +272,7 @@
     private StatsRank? _posizione;
     private StatsStreak _striscia = new(0, 0, null);
     private IReadOnlyList<StatsByKey> _perPostazione = Array.Empty<StatsByKey>();
+    private IReadOnlyList<StatsByKey> _tuttePostazioni = Array.Empty<StatsByKey>();
     private IReadOnlyList<StatsByKey> _perMese = Array.Empty<StatsByKey>();
     private IReadOnlyList<StatsByKey> _aeroporti = Array.Empty<StatsByKey>();
     private IReadOnlyList<StatsByKey> _tipi = Array.Empty<StatsByKey>();
@@ -309,7 +310,10 @@
         _totali = await Stats.TotalsAsync(vid, da, a);
         if (_totali.Sessions == 0) return;
 
-        _perPostazione = await Stats.ByPositionAsync(vid, da, a);
+        // ⚠️ Le prime venti in tabella, ma la CIAMBELLA si calcola su tutte: con la lista tagliata le
+        // percentuali sono la ripartizione delle prime venti, non del tempo — e nessuno se ne accorge.
+        _tuttePostazioni = await Stats.ByPositionAsync(vid, da, a, limit: 500);
+        _perPostazione = _tuttePostazioni.Take(20).ToList();
         _perMese = await Stats.ByMonthAsync(vid, da, a);
         _aeroporti = await Stats.TopAirportsAsync(vid, da, a);
         _tipi = await Stats.TopAircraftAsync(vid, da, a);
@@ -334,7 +338,7 @@
                 L["Stats_MonthTitle", m.Key, StatsView.Ore(m.Seconds), m.Movements]))
             .ToList();
 
-        _fette = _perPostazione
+        _fette = _tuttePostazioni
             .GroupBy(p => StatsView.Tipo(p.Key))
             .Select(g => new StatsSlice(
                 g.Key, g.Sum(x => x.Seconds), StatsView.PosClass(g.Key),

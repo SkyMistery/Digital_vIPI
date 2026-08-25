@@ -70,7 +70,9 @@ public static class StatsView
             "GND" => "p-gnd",
             "TWR" or "AFIS" => "p-twr",
             "APP" or "DEP" => "p-app",
-            "CTR" or "FSS" => "p-ctr",
+            "CTR" => "p-ctr",
+            // ⚠️ FSS col colore del CTR non si distingueva nella legenda della ciambella: due voci, un colore.
+            "FSS" => "p-oth",
             _ => "p-oth",
         };
     }

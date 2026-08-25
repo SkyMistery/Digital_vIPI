@@ -2178,7 +2178,7 @@
   <data name="Stats_ShiftPiece" xml:space="preserve"><value>1 spezzone</value></data>
   <data name="Stats_ShiftHint" xml:space="preserve"><value>Una caduta di linea spezza una connessione in due: qui contano per un turno solo.</value></data>
   <data name="Stats_Timeline" xml:space="preserve"><value>La striscia del turno</value></data>
-  <data name="Stats_PeakTraffic" xml:space="preserve"><value>Punta di {0} aeroplani insieme, verso le {1}Z.</value></data>
+  <data name="Stats_PeakTraffic" xml:space="preserve"><value>Punta di {0} aeroplani insieme, verso le {1}Z</value></data>
   <data name="Stats_PeakEstimated" xml:space="preserve"><value>stimato dalla finestra</value></data>
   <data name="Stats_PeakEstimatedHint" xml:space="preserve"><value>La barra va dal primo all'ultimo avvistamento: chi esce dall'area e rientra risulta presente anche in mezzo.</value></data>
   <data name="Stats_Altitudes" xml:space="preserve"><value>Quote</value></data>
@@ -2225,4 +2225,5 @@
   <data name="Stats_TagHint_SecondLeg" xml:space="preserve"><value>Secondo volo dello stesso callsign durante la tua sessione.</value></data>
   <data name="Stats_TagHint_Gap" xml:space="preserve"><value>Fra due avvistamenti c'è un buco: i minuti sono per difetto.</value></data>
   <data name="Stats_TagHint_Rebuilt" xml:space="preserve"><value>Ricostruito dai movimenti dell'aeroporto: nessuna fase osservata.</value></data>
+  <data name="Stats_Controllers" xml:space="preserve"><value>Controllori</value></data>
 </root>

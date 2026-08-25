@@ -903,7 +903,27 @@ ogni lunedì mattina la striscia di tutti tornerebbe a zero — falso, e per giu
 - **Un colore per tipo di postazione** (`--pos-del/gnd/twr/app/ctr`), come le categorie di navigazione: sono
   un insieme categoriale, il loro mestiere è distinguersi fra loro.
 
-### 13.6 Il ritocco che non c'entrava con la grafica
+### 13.6 Sette difetti che solo lo schermo ha detto
+
+La suite era verde e la Release pulita **prima** di guardare le pagine. Poi la verifica live
+(`.claude/skills/verifica-live/`, con una sessione di prova seminata nella copia del `vipi.db`) ne ha tirati
+fuori sette in un colpo — tutti invisibili ai test, sei su sette di sostanza e non di gusto:
+
+1. l'etichetta del **cambio pista** cadeva **sopra** la prima barra della striscia (illeggibili tutt'e due);
+2. la barra dentro la cella, col 13% e gli angoli tondi, sembrava un **campo di testo** dentro la tabella;
+3. la quota di un aeroplano mai decollato diceva **«0 ft»** invece di un trattino;
+4. **FSS aveva il colore del CTR**: due voci, un colore, nella stessa legenda;
+5. sul piccolo, un callsign con «ricevuto da» sotto si spezzava **a metà parola** (due colonne di flex);
+6. la **ciambella** si calcolava sulle prime venti postazioni invece che su tutte: percentuali di una
+   ripartizione che non era quella del tempo — e nessuno se ne sarebbe accorto;
+7. il quarto riquadro della divisione contava le **righe della classifica** (tagliate a cinquanta) e le
+   chiamava «controllori»; ora è il totale vero.
+
+Più due targhette («consegnato a…», «al parcheggio») che sul **tema chiaro** avevano un fondo così pallido
+da sembrare testo nudo. La battuta sul tema scuro (`sweep.js`) non ha invece trovato niente sulle tre pagine
+nuove: due soli sospetti, quelli noti e attesi.
+
+### 13.7 Il ritocco che non c'entrava con la grafica
 
 Le stringhe italiane del servizio erano state scritte **senza accenti** («non e pubblica», «Visibilita»,
 «c'e un buco»): nove valori corretti in `SharedResource.resx`. Non è cosmesi di contorno — era italiano
