@@ -161,8 +161,12 @@ E il verdetto:
 | `/v2/specialAreas/all?now=true&mapType=regionMapPolygon` | 2309 aree, **0 con poligono** |
 | idem, **senza token**, con `Origin`/`Referer` di webeye — cioè la chiamata *esatta* che fa la loro mappa | 2309 aree, **0 con poligono** |
 
-**Non è una scelta e non è un permesso che ci manca: il dato è vuoto alla sorgente, per tutti.** In questo
-momento anche la mappa ufficiale di IVAO sta disegnando cerchi al posto dei confini.
+**Non è una scelta e non è un permesso che ci manca: il dato è vuoto alla sorgente, per tutti.**
+
+✅ **Confermato da IVAO** (26 agosto 2026, su richiesta del committente): l'assenza dei poligoni è un **guasto
+loro**, e lo sistemeranno. Quindi il ripiego dal sectorfile
+(`2026-08-26-shape-dal-sectorfile.md`) è una rete, non una sostituzione — e la regola «l'anagrafica riprende
+il comando quando torna» smette di essere una precauzione teorica per diventare il prossimo evento.
 
 ⓘ Gli endpoint `/all` restano un guadagno da tenere a mente a prescindere: oggi l'anagrafica costa **una
 chiamata per posizione** (192 per l'Italia, più 37 per i subcenter), e lì stanno tutte in una.
@@ -172,8 +176,12 @@ chiamata per posizione** (192 per l'Italia, più 37 per i subcenter), e lì stan
 Con la correzione applicata il danno non si allarga più, e se le shape tornassero l'upsert le riprenderebbe
 da sé. Nel frattempo restano due strade, indipendenti:
 
-1. **Ripristino dal backup del 25 agosto** — `tools/ripristino-shape/ripristina-poligoni.sql`, 196 poligoni
-   recuperabili (137 ACC + 59 APP), TWR escluse.
+1. ✅ **Ripristino dal backup del 25 agosto** — `tools/ripristino-shape/ripristina-poligoni.sql`,
+   **eseguito il 26 agosto** sul database di lavoro (backup preso prima:
+   `vipi.db.bak-pre-ripristino-shape-20260826`). Esito misurato: `AccSectors` **5 → 142**, `AirportSectors`
+   **83 → 141** (58 APP), righe invariate, TWR intatte 66/17. Verifica successiva: **283 poligoni in
+   archivio, tutti e 283 si proiettano**; dei 211 settori che possono avere un'area ne hanno **200**, contro
+   i 5 di partenza. Restano senza 10 CTR e 1 FSS, che né il backup né il sectorfile coprono.
 2. **Il ripiego permanente dal sectorfile Aurora** — `DYNAMIC_SEC/` sul repo `ivao-italy/it-aurora-sector`
    contiene **112 blocchi** CTR/APP/MIL/FSS nello stesso formato di `twrs.tfl`, che già parsiamo. Due
    ostacoli misurati: **233 righe sono nomi di punto** (`TUFTE;TUFTE;`) da risolvere col catalogo navaid, e

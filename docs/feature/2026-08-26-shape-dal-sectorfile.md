@@ -24,6 +24,10 @@ per definizione. Vedi `2026-08-26-lassenza-non-cancella.md` §5.
 ⚠️ **Il sectorfile è un ripiego, non una sorgente.** Se l'anagrafica ricomincia a rispondere, torna a
 comandare lei — senza che si tocchi niente.
 
+✅ E ricomincerà: **IVAO ha confermato il 26 agosto 2026** che l'assenza dei poligoni è un guasto loro e che
+lo sistemeranno. Il che sposta una riga di codice dal reparto «precauzione» a quello «prossimo evento» —
+vedi §2-ter.
+
 ## 2. Il file: cosa c'è e cosa costa
 
 `DYNAMIC_SEC/` sul repo `ivao-italy/it-aurora-sector` (lo stesso da cui già peschiamo `twrs.tfl`):
@@ -105,6 +109,23 @@ I **96** che restano senza area sono quelli che il sectorfile non copre: 84 CTR 
 enti che il sectorfile non descrive. Il sectorfile ne dà **110**, ma continua a darli anche domani. Conviene
 fare prima il ripristino e poi lasciar lavorare il ripiego: il secondo non tocca quel che il primo ha
 rimesso.
+
+## 2-ter. ⚠️ Il giorno in cui l'anagrafica torna
+
+Trovato provandolo, dopo la conferma di IVAO. Gli import scrivevano la shape nuova ma **non toccavano la
+provenienza**: una riga riempita dal ripiego restava marcata `Sectorfile` per sempre. Conseguenze, in ordine
+di gravità:
+
+- il **gate AIRAC** avrebbe continuato ad applicarsi a una geometria che non ne ha bisogno;
+- e con un **differimento aperto**, la release avrebbe pubblicato la **vecchia shape del sectorfile** al
+  posto di quella vera di IVAO, per settimane — cioè il danno che tutto questo lavoro esiste per evitare.
+
+Ora una shape vera dall'anagrafica riprende il comando **per intero**: `ShapeSource` torna `Source`, il
+differimento si chiude e `RegionMapPolygonInForce` si azzera. Una shape **vuota** invece non toglie niente a
+nessuno — l'assenza non comanda, ed è la regola dell'altra carta.
+
+Due casi di regressione, uno per catalogo, scritti **prima** della correzione: fallivano
+(`Expected: Source · Actual: Sectorfile`).
 
 ## 3. Il ciclo AIRAC: il problema vero
 

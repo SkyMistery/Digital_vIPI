@@ -210,6 +210,16 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
                     {
                         row.RegionMapPolygon = p.RegionMapPolygon;
                         row.IsShapeSynthetic = false;   // shape reale dalla sorgente: non è un ripiego
+                        // ⚠️ E l'anagrafica riprende il comando PER INTERO. IVAO ha confermato il 26 agosto
+                        // 2026 che l'assenza dei poligoni è un guasto loro e che lo sistemeranno, quindi
+                        // questa riga scatterà davvero: senza, la riga resterebbe marcata `Sectorfile` e il
+                        // gate AIRAC continuerebbe ad applicarsi a una geometria che non ne ha bisogno —
+                        // peggio, con un differimento aperto la release pubblicherebbe la vecchia shape del
+                        // sectorfile al posto di quella vera, per settimane.
+                        row.ShapeSource = ShapeSource.Source;
+                        row.RegionMapPolygonInForce = null;
+                        row.ShapeAiracCycle = null;
+                        row.ShapeForcePublished = false;
                     }
                     // Limiti: la SORGENTE è verità primaria. Se li espone → sovrascrive e li blocca (LimitsFromSource);
                     // se null → l'admin comanda (preserva il suo valore, o default) e restano editabili.

@@ -224,4 +224,36 @@ public class AccImportTests : IAsyncLifetime
         Assert.Contains(righe, x => x.ComposePosition == "LIRR_N1_CTR");
         Assert.Empty(await _db.CallsignAliases.AsNoTracking().ToListAsync());
     }
+
+    /// <summary>
+    /// ⚠️ Il gemello del caso sugli aeroporti: quando IVAO torna a mandare i poligoni — guasto loro
+    /// confermato il 26 agosto 2026 — l'anagrafica deve riprendere il comando per intero, o il gate AIRAC
+    /// continuerebbe ad applicarsi a una shape che non ne ha bisogno.
+    /// </summary>
+    [Fact]
+    public async Task Quando_l_anagrafica_torna_a_mandare_la_shape_riprende_il_comando()
+    {
+        await _repo.ImportAsync(Sample());
+        await _repo.ImportSubcentersAsync(SubsConId());
+
+        var riga = await _db.AccSectors.SingleAsync(x => x.ComposePosition == "LIRR_N_CTR");
+        riga.RegionMapPolygon = "[[9.0,45.0],[9.5,45.0],[9.5,45.5]]";
+        riga.RegionMapPolygonInForce = "[[8.0,44.0],[8.5,44.0],[8.5,44.5]]";
+        riga.ShapeAiracCycle = "2610";
+        riga.ShapeSource = ShapeSource.Sectorfile;
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        const string Vero = "[[12.0,42.0],[12.9,42.0],[12.9,42.9]]";
+        await _repo.ImportSubcentersAsync(new[]
+        {
+            new SourceSubcenter("LIRR_N_CTR", "LIRR", "CTR", "N", "124.000", Vero, IvaoId: 1171),
+        });
+
+        var dopo = await _db.AccSectors.AsNoTracking().SingleAsync(x => x.ComposePosition == "LIRR_N_CTR");
+        Assert.Equal(Vero, dopo.RegionMapPolygon);
+        Assert.Equal(ShapeSource.Source, dopo.ShapeSource);
+        Assert.Null(dopo.ShapeAiracCycle);
+        Assert.Null(dopo.RegionMapPolygonInForce);
+    }
 }

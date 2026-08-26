@@ -288,8 +288,18 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
                 row.MiddleIdentifier = s.MiddleIdentifier;
                 row.AtcCallsign = s.AtcCallsign;
                 row.Frequency = s.Frequency;
-                // Solo una shape VERA sovrascrive: l'assenza non è un ordine di cancellare (PolygonGeometry.HasShape).
-                if (!PolygonGeometry.IsEmptyShape(s.RegionMapPolygon)) row.RegionMapPolygon = s.RegionMapPolygon;
+                // Solo una shape VERA sovrascrive: l'assenza non è un ordine di cancellare (PolygonGeometry.IsEmptyShape).
+                if (!PolygonGeometry.IsEmptyShape(s.RegionMapPolygon))
+                {
+                    row.RegionMapPolygon = s.RegionMapPolygon;
+                    // ⚠️ E l'anagrafica riprende il comando per intero: provenienza e differimento tornano a
+                    // zero. Vedi il gemello in EfAirportSectorRepository per il perché — è la riga che
+                    // scatterà quando IVAO sistemerà il guasto dei poligoni.
+                    row.ShapeSource = ShapeSource.Source;
+                    row.RegionMapPolygonInForce = null;
+                    row.ShapeAiracCycle = null;
+                    row.ShapeForcePublished = false;
+                }
                 // Limiti: l'admin comanda; aggiorna solo se la sorgente li espone (oggi null → preserva).
                 if (s.LowerLimit is not null) row.LowerLimit = s.LowerLimit;
                 else row.LowerLimit ??= 0;                 // default inferiore = GND (0)

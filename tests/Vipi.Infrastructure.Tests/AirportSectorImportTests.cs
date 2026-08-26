@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
+using Vipi.Domain;
 using Vipi.Domain.Entities;
 using Vipi.Infrastructure.Persistence;
 using Xunit;
@@ -237,5 +238,66 @@ public class AirportSectorImportTests : IAsyncLifetime
 
         Assert.Null((await _db.AirportSectors.AsNoTracking()
             .SingleAsync(x => x.ComposePosition == "LIRN_TWR")).RegionMapPolygon);
+    }
+
+    // ---- Il giorno in cui IVAO torna a mandare le shape ----------------------------------------------
+
+    /// <summary>
+    /// ⚠️ IVAO ha confermato (26 agosto 2026) che l'assenza dei poligoni è un guasto loro e che lo
+    /// sistemeranno. Quindi questo non è un caso ipotetico ma il prossimo che succederà: una riga riempita
+    /// dal <b>ripiego</b> riceve finalmente la shape dell'<b>anagrafica</b>.
+    ///
+    /// <para>Quando accade, l'anagrafica deve <b>riprendere il comando per intero</b>: la provenienza torna
+    /// <c>Source</c> e un eventuale differimento si chiude. Senza, la riga resterebbe marcata
+    /// <c>Sectorfile</c> e il gate AIRAC continuerebbe ad applicarsi a una geometria che non ne ha bisogno —
+    /// peggio, con un differimento aperto la release pubblicherebbe la <b>vecchia shape del sectorfile</b>
+    /// al posto di quella vera, per settimane.</para>
+    /// </summary>
+    [Fact]
+    public async Task Quando_l_anagrafica_torna_a_mandare_la_shape_riprende_il_comando()
+    {
+        await _repo.ImportForAirportAsync("LIRN", new[] { new SourceAtcPosition("LIRN_TWR", "118.300", "TWR") });
+        var riga = await _db.AirportSectors.SingleAsync(x => x.ComposePosition == "LIRN_TWR");
+
+        // Lo stato lasciato dal ripiego, con un differimento aperto.
+        riga.RegionMapPolygon = "[[9.0,45.0],[9.5,45.0],[9.5,45.5]]";
+        riga.RegionMapPolygonInForce = "[[8.0,44.0],[8.5,44.0],[8.5,44.5]]";
+        riga.ShapeAiracCycle = "2610";
+        riga.ShapeSource = ShapeSource.Sectorfile;
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        await _repo.ImportForAirportAsync("LIRN", new[]
+        {
+            new SourceAtcPosition("LIRN_TWR", "118.300", "TWR", RegionMapPolygon: PoligonoVero),
+        });
+
+        var dopo = await _db.AirportSectors.AsNoTracking().SingleAsync(x => x.ComposePosition == "LIRN_TWR");
+        Assert.Equal(PoligonoVero, dopo.RegionMapPolygon);
+        Assert.Equal(ShapeSource.Source, dopo.ShapeSource);       // il comando torna all'anagrafica
+        Assert.Null(dopo.ShapeAiracCycle);                        // e il differimento si chiude
+        Assert.Null(dopo.RegionMapPolygonInForce);
+    }
+
+    /// <summary>Una shape VUOTA non riprende un bel niente: è l'assenza, e l'assenza non comanda.</summary>
+    [Fact]
+    public async Task Una_shape_vuota_non_toglie_il_comando_al_ripiego()
+    {
+        await _repo.ImportForAirportAsync("LIRN", new[] { new SourceAtcPosition("LIRN_TWR", "118.300", "TWR") });
+        var riga = await _db.AirportSectors.SingleAsync(x => x.ComposePosition == "LIRN_TWR");
+        riga.RegionMapPolygon = PoligonoVero;
+        riga.ShapeAiracCycle = "2610";
+        riga.ShapeSource = ShapeSource.Sectorfile;
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        await _repo.ImportForAirportAsync("LIRN", new[]
+        {
+            new SourceAtcPosition("LIRN_TWR", "118.300", "TWR", RegionMapPolygon: "[]"),
+        });
+
+        var dopo = await _db.AirportSectors.AsNoTracking().SingleAsync(x => x.ComposePosition == "LIRN_TWR");
+        Assert.Equal(ShapeSource.Sectorfile, dopo.ShapeSource);
+        Assert.Equal("2610", dopo.ShapeAiracCycle);
     }
 }
