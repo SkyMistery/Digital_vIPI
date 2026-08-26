@@ -299,7 +299,7 @@ public sealed class EfEditingRepository : IEditingRepository
             var foreign = codici.FirstOrDefault(x => x.Id == coppia.neighbourSectorId);
 
             Seed.VloaStructureSeeder.Seed(_db, version, Vipi.Application.Content.VloaSections.Canonical(
-                home?.AccCode ?? "", foreign?.AccCode ?? "", foreign?.AccName, version.AiracCycle));
+                home?.AccCode ?? "", foreign?.AccCode ?? "", foreign?.AccName));
         }
         else
         {

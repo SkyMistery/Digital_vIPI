@@ -76,4 +76,20 @@ public interface IDocumentMaintenance
     /// <para>Ritorna il numero di sezioni riconciliate.</para>
     /// </summary>
     Task<int> ReconcileAirportSectionKeysAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Toglie dalle vLOA già scritte la riga «Effective from — AIRAC ####» che il seminatore piantava a mano
+    /// (doc 14 §3b). Quel numero era il ciclo del GIORNO DELLA CREAZIONE e non si aggiornava mai, mentre la
+    /// scheda sopra mostra quello della release mostrata: sull'archivio di sviluppo tutte e quattro dicevano
+    /// «AIRAC 2607» e una era pubblicata al 2608.
+    /// <para>
+    /// ⚠️ Idempotente e <b>prudente</b>: tocca solo la riga la cui prima cella è esattamente «Effective from» e
+    /// la cui seconda è «AIRAC » + quattro cifre, dentro un blocco tabella di una sezione <c>validity</c> di un
+    /// documento vLOA. Un testo che l'editore ha riscritto non ha quella forma e resta dov'è — togliere la
+    /// parola di qualcun altro sarebbe peggio del difetto.
+    /// </para>
+    /// <para>Se la tabella resta senza righe il blocco se ne va: una tabella a zero righe è un rettangolo vuoto.</para>
+    /// </summary>
+    /// <returns>Quante righe sono state tolte.</returns>
+    Task<int> ClearVloaSeededAiracRowAsync(CancellationToken ct = default);
 }

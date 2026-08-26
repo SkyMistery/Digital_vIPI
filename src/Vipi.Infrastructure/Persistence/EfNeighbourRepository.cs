@@ -331,7 +331,7 @@ public sealed class EfNeighbourRepository : INeighbourRepository
 
         // Struttura OBBLIGATORIA della vLOA (sezioni mockup 3d): seedata alla generazione (contenuto placeholder).
         Seed.VloaStructureSeeder.Seed(_db, ver,
-            Vipi.Application.Content.VloaSections.Canonical(cand.HomeAccCode, fCode, cand.ForeignAccName, cycle));
+            Vipi.Application.Content.VloaSections.Canonical(cand.HomeAccCode, fCode, cand.ForeignAccName));
 
         await _db.SaveChangesAsync(ct);
 

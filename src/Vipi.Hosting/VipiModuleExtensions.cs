@@ -456,6 +456,14 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Aggiunte {Count} sezioni di catalogo mancanti ai documenti APP/vLOA/aeroporto.", catalog);
 
+        // vLOA: via la riga «Effective from — AIRAC ####» seminata a mano (doc 14 §3b). ⚠️ DOPO
+        // AddMissingCatalogSections: se la sezione «validity» mancasse ancora, non ci sarebbe la tabella da
+        // ripulire e il passo girerebbe a vuoto proprio sui documenti che ne hanno bisogno.
+        var airacRighe = maintenance.ClearVloaSeededAiracRowAsync().GetAwaiter().GetResult();
+        if (airacRighe > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Tolte {Count} righe «Effective from — AIRAC» scritte a mano nelle vLOA: il ciclo lo dice il timbro della release.", airacRighe);
+
         // «Minime di vettoramento» è tornata editoriale (doc 13 §3b): via i blocchi placeholder vuoti che aveva
         // da derivata, o l'editor mostrerebbe una tabella senza colonne.
         var minima = maintenance.ClearMinimaPlaceholderBlocksAsync().GetAwaiter().GetResult();
