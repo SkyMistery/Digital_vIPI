@@ -306,6 +306,9 @@
   <data name="Airport_RuleCondition" xml:space="preserve"><value>Condizione</value></data>
   <data name="Airport_NoRules" xml:space="preserve"><value>Nessuna regola: la pista si sceglie col vento.</value></data>
   <data name="Airport_SectionsPanel" xml:space="preserve"><value>Settori ATC</value></data>
+  <data name="Ape_NoEditPerm" xml:space="preserve"><value>Non hai i permessi per modificare questo aeroporto.</value></data>
+  <data name="Ape_WeatherTitle" xml:space="preserve"><value>Meteo in tempo reale</value></data>
+  <data name="Ape_WeatherBody" xml:space="preserve"><value>Il contenuto è il METAR e il TAF live dal NOAA: non c'è nulla da compilare. È anche l'unica sezione che non si può congelare alla release — un METAR di un ciclo fa non è un documento d'archivio, è meteo scaduto. Si può però nasconderla o spostarla come le altre.</value></data>
   <!-- Common editor/tabelle -->
   <data name="Common_Order" xml:space="preserve"><value>Ordine</value></data>
   <data name="Common_Up" xml:space="preserve"><value>Su</value></data>
@@ -1938,7 +1941,6 @@
   <data name="Ape_RemoveSectionConfirm" xml:space="preserve"><value>Rimuovere questa sezione?</value></data>
   <data name="Ape_ReimportConfirm" xml:space="preserve"><value>Re-importare da IVAO piste, Transition Altitude e settori? I campi importati dalla sorgente verranno sovrascritti.</value></data>
   <data name="Ape_UnsavedPublishConfirm" xml:space="preserve"><value>Modifiche non salvate in: {0}. Non entreranno nella release. Continuare?</value></data>
-  <data name="Ape_RebuildConfirm" xml:space="preserve"><value>Rigenerare il documento dalla bozza corrente prima di pubblicare?</value></data>
   <data name="Ape_Month" xml:space="preserve"><value>mese</value></data>
   <data name="Ape_Mon" xml:space="preserve"><value>Lun</value></data>
   <data name="Ape_Tue" xml:space="preserve"><value>Mar</value></data>

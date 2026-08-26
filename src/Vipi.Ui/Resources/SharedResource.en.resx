@@ -303,6 +303,9 @@
   <data name="Airport_RuleCondition" xml:space="preserve"><value>Condition</value></data>
   <data name="Airport_NoRules" xml:space="preserve"><value>No rule: the runway is chosen from the wind.</value></data>
   <data name="Airport_SectionsPanel" xml:space="preserve"><value>ATC sectors</value></data>
+  <data name="Ape_NoEditPerm" xml:space="preserve"><value>You do not have permission to edit this airport.</value></data>
+  <data name="Ape_WeatherTitle" xml:space="preserve"><value>Live weather</value></data>
+  <data name="Ape_WeatherBody" xml:space="preserve"><value>The content is the live METAR and TAF from NOAA: there is nothing to fill in. It is also the only section that cannot be frozen at release — a METAR from a past cycle is not an archived document, it is stale weather. It can still be hidden or moved like the others.</value></data>
   <!-- Common editor/tables -->
   <data name="Common_Order" xml:space="preserve"><value>Order</value></data>
   <data name="Common_Up" xml:space="preserve"><value>Up</value></data>
@@ -1932,7 +1935,6 @@
   <data name="Ape_RemoveSectionConfirm" xml:space="preserve"><value>Remove this section?</value></data>
   <data name="Ape_ReimportConfirm" xml:space="preserve"><value>Re-import runways, Transition Altitude and sectors from IVAO? The fields imported from the source will be overwritten.</value></data>
   <data name="Ape_UnsavedPublishConfirm" xml:space="preserve"><value>Unsaved changes in: {0}. They will not enter the release. Continue?</value></data>
-  <data name="Ape_RebuildConfirm" xml:space="preserve"><value>Regenerate the document from the current draft before publishing?</value></data>
   <data name="Ape_Month" xml:space="preserve"><value>month</value></data>
   <data name="Ape_Mon" xml:space="preserve"><value>Mon</value></data>
   <data name="Ape_Tue" xml:space="preserve"><value>Tue</value></data>

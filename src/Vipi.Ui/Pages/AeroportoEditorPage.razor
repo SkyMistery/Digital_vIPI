@@ -10,8 +10,8 @@
 @using Vipi.Domain
 @using RenderMode = Vipi.Domain.RenderMode
 @inject IAirportEditingService Profile
+@inject IEditingService Editing
 @inject IAirportSectorService Sectors
-@inject IReleaseService Releases
 @inject IEditAuthorizationService Authz
 @inject IStationResolver Stations
 @inject ISidImporter SidImporter
@@ -39,22 +39,39 @@ else
             <a href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao">@_icao</a> › <b>@L["Common_Editor"]</b>
         </div>
 
-        @* ---- Testata in UNA riga: titolo · «?» · stato ----
-           Adattata, non ricopiata dalle pagine di elenco: qui i comandi stanno nel rail (che è già
-           appiccicato) e la riga porta solo ciò che dice DOVE sei e COME sta il documento. Il sottotitolo
-           col nome dell'ACC è sparito: lo dice il pangrattato due righe sopra. *@
+        @* ---- Testata in UNA riga: titolo · «?» · stato · lock · larghezza piena ----
+           La STESSA degli altri tre editor (regola 8 e regola 1): la pill dice bozza/pubblicata con il numero
+           di versione, il lock è uno STATO in riga e non una voce in fondo al rail. Il sottotitolo col nome
+           dell'ACC non c'è: lo dice il pangrattato due righe sopra. *@
         <div class="editor-bar">
             <div class="doc-head st-head" style="margin:0">
                 <h1 class="st-h2 page-h1">✎ @L["Ape_EditorTitle"] @_icao <MilitaryTag HasMilitaryPresence="_mil?.HasMilitaryPresence ?? false" IsMilitaryOnly="_mil?.IsMilitaryOnly ?? false" /></h1>
                 <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_HelpAria"]" ExtraClass="wide">
                     @((MarkupString)L["Ape_HelpBody"].Value)
                 </HelpHint>
-                @if (_data is not null)
+                @if (_doc is not null)
                 {
-                    <span class="pill @(_hasEffectiveRelease ? "green" : "grey")" title="@(_hasEffectiveRelease ? L["Ape_PublishedTitle"] : L["Ape_DraftTitle"])">
-                        @(_hasEffectiveRelease ? L["Ver_StPubblicata"] : L["Ver_StBozza"])
+                    <span class="pill @(_doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
+                        @(_doc.VersionStatus == DocumentStatus.Draft ? L["Ed_DraftVN", _doc.VersionNumber] : L["Ed_PublishedVN", _doc.VersionNumber])
                     </span>
                 }
+                @if (_editing)
+                {
+                    @* Il chip dice l'ORA, la frase intera sta nel `title`: a 1024 la testata andava a capo. *@
+                    <span class="sh-chip ok" data-utc-title="@VipiTime.Iso(_lock.ExpiresUtc)" title="@(L["Lock_Editing"].Value + (_lock.ExpiresUtc is { } mt ? L["Lock_UntilSuffix", VipiTime.Z(mt)].Value : ""))">
+                        🔒 @(_lock.ExpiresUtc is { } me ? L["Lock_EditingShort", VipiTime.Z(me)].Value : L["Lock_EditingNoTime"].Value)
+                    </span>
+                }
+                else if (_lock is { Locked: true, IsMine: false })
+                {
+                    <span class="sh-chip warn" data-utc-title="@VipiTime.Iso(_lock.ExpiresUtc)" title="@(string.Format(L["Ed_LockedByOtherBody"].Value, _lock.ByName ?? L["Lock_AnotherEditor"].Value, _lock.ExpiresUtc is { } ot ? L["Lock_UntilSuffix", VipiTime.Z(ot)].Value : ""))">
+                        🔒 @(_lock.ByName ?? L["Lock_AnotherEditor"].Value)@(_lock.ExpiresUtc is { } oe ? L["Lock_UntilSuffix", VipiTime.Z(oe)].Value : "")
+                    </span>
+                }
+                @* ⤢ Larghezza piena: serve alle tabelle larghe (SID, settori). Stesse classi e chiavi degli altri. *@
+                <button type="button" class="btn ghost st-head-end" @onclick="() => _wide = !_wide"
+                        aria-pressed="@_wide.ToString().ToLowerInvariant()"
+                        title="@(_wide ? L["Ed_NarrowTitle"] : L["Ed_WideTitle"])">@(_wide ? "⤡" : "⤢") @(_wide ? L["Ed_Narrow"] : L["Ed_Wide"])</button>
             </div>
         </div>
 
@@ -63,9 +80,19 @@ else
             <DocReviewBar DocumentId="_docDbId" OnResolved="LoadAsync" />
         }
 
+        @if (_error is not null)
+        {
+            <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div style="flex:1">@_error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _error = null">✕</button></div>
+        }
+
         @if (_data is null)
         {
             <div class="callout warning"><span class="cic">⚠️</span><div>@L["Ape_NotFound"]</div></div>
+        }
+        else if (_doc is null)
+        {
+            @* Documento non ancora nato e chi guarda non può farlo nascere: l'Ensure è ACC-gated. *@
+            <div class="callout warning"><span class="cic">🔒</span><div>@(string.Format(L["Ape_ReadOnly"].Value, _data.AccCode))</div></div>
         }
         else
         {
@@ -74,595 +101,64 @@ else
                 <div class="callout warning"><span class="cic">🔒</span><div>@(string.Format(L["Ape_ReadOnly"].Value, _data.AccCode))</div></div>
             }
 
-            <div class="ed-layout with-rail @(_sidWide ? "sid-wide" : null)">
-            <EditorToc Items="BuildToc()">
-                <Footer>
-                    <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(true)" title="@L["Ed_ExpandAllTitle"]">@L["Common_ExpandAll"]</button>
-                    <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(false)" title="@L["Ed_CollapseAllTitle"]">@L["Common_CollapseAll"]</button>
-                </Footer>
-            </EditorToc>
-            <div>
+            @* ---- Le sezioni, dal DOCUMENTO ----
+               Fino alla carta 2026-08-26 questo editor montava otto <details> scritti a mano, elencati in un
+               array di stringhe italiane (`_panels`). Non era una scelta di stile: il documento d'aeroporto non
+               AVEVA sezioni proprie — le cuoceva e le riconosceva per titolo — quindi non c'era niente da
+               iterare. Ora c'è, ed è lo stesso motore condiviso degli altri tre editor: riordino con le frecce
+               e col trascinamento nel menu, nascondi, sotto-sezioni, Live/Frozen, sezioni libere ovunque.
 
-            @* ===================== REGOLE PISTE ===================== *@
-            <details id="sec-regole" class="ed-sec" open>
-                <summary class="ed-sec-head">@PanelLabel("Regole piste")@if (_dirtySections.Contains("Regole piste")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
-                <div class="block" @onchange='() => MarkDirty("Regole piste")'>
-                    @* La prosa che stava sempre a schermo (due paragrafi, 97px) la dice il «?» al clic:
-                       testo riusato IDENTICO, stesse chiavi. *@
-                    <div class="ed-h3">
-                        <h2 class="h-sect">@L["Ape_RwRulesTitle"]</h2>
-                        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_RwRulesHelpAria"]" ExtraClass="wide">
-                            @((MarkupString)L["Ape_RwRulesHelp"].Value)
-                            <p>@L["Ape_RwRulesHelp2"]</p>
-                        </HelpHint>
-                    </div>
-
-                    @{ var issues = RuleIssues(); }
-                    @if (issues.Errors.Count > 0)
+               ⚠️ Il corpo delle sezioni FISSE lo rende questa pagina (DerivedContent): sono i sei editor
+               strutturati di sotto. Le sezioni libere passano dai blocchi, come nelle altre famiglie. *@
+            <DocumentSectionsEditor Doc="_doc" IsEditing="_editing" Run="Guard" OnChanged="LoadAsync"
+                                    IsDerivedSection="IsDerived" DerivedContent="DerivedSection"
+                                    IsMandatory="IsMandatory" Profile="SectionProfile.Airport"
+                                    IsRenderModeToggleable="IsRenderModeToggleable"
+                                    IsSectionDirty="IsSectionDirty"
+                                    ShowToc="true" ExtraTocItems="_tocExtra" Wide="_wide"
+                                    TocFooter="@TocCommands">
+                <RightRail>
+                    @if (_save == SaveState.Saving) { <span class="save-badge saving"><span class="spin"></span> @L["Ed_Saving"]</span> }
+                    else if (_save == SaveState.Saved) { <span class="save-badge saved"><Icon Name="check-circle" Size="13" /> @L["Ed_Saved"]</span> }
+                    @if (_canEdit)
                     {
-                        <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@foreach (var m in issues.Errors) { <div>@m</div> }</div></div>
-                    }
-                    @if (issues.Warnings.Count > 0)
-                    {
-                        <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in issues.Warnings) { <div>@m</div> }</div></div>
-                    }
-
-                    @foreach (var (r, idx) in _rules.Select((r, i) => (r, i)))
-                    {
-                        <div class="rule-card" @key="r"
-                             style="@(_testRan && _testHit?.RuleIndex == idx ? "outline:2px solid var(--ivao-blue);outline-offset:2px" : null)"
-                             @ondragover:preventDefault="true" @ondragenter="() => RuleDragEnter(idx)" @ondrop="RuleDrop" @ondragend="() => _ruleDrag = null">
-                            <div class="rule-head">
-                                <span class="app-drag" draggable="true" @ondragstart="() => _ruleDrag = idx" title="@L["Ape_DragToReorder"]">⠿</span>
-                                <span class="rule-ord">#@(idx + 1)@if (_testRan && _testHit?.RuleIndex == idx) { <span title="@L["Ape_TestWinner"]"> ✓</span> }</span>
-                                <div style="display:flex;gap:6px">
-                                    <button class="btn ghost" disabled="@(idx == 0)" @onclick="() => Move(idx, -1)" title="@L["Common_Up"]">↑</button>
-                                    <button class="btn ghost" disabled="@(idx == _rules.Count - 1)" @onclick="() => Move(idx, 1)" title="@L["Common_Down"]">↓</button>
-                                    <button class="btn ghost" @onclick="() => RemoveRule(r)">✕ @L["Common_Remove"]</button>
-                                </div>
-                            </div>
-                            <div class="rule-rwys">
-                                <div><span class="muted">DEP:</span>
-                                    @if (_rwys.Count == 0) { <i class="muted">@L["Ape_NoRwDefined"]</i> }
-                                    @foreach (var ident in RwIdents())
-                                    {
-                                        var id = ident;
-                                        <button type="button" class="pill" style="@RwChip(r.Dep, id)" @onclick="() => Toggle(r.Dep, id)">@id</button>
-                                    }
-                                </div>
-                                <div><span class="muted">ARR:</span>
-                                    @foreach (var ident in RwIdents())
-                                    {
-                                        var id = ident;
-                                        <button type="button" class="pill" style="@RwChip(r.Arr, id)" @onclick="() => Toggle(r.Arr, id)">@id</button>
-                                    }
-                                </div>
-                            </div>
-                            <div class="rule-grid">
-                                <label>@L["Ape_MaxTail"]<input type="number" min="0" max="40" @bind="r.MaxTail" /></label>
-                                <label>@L["Ape_MaxCross"]<input type="number" min="0" max="60" placeholder="—" @bind="r.MaxCross" /></label>
-                                <label>@L["Ape_Surface"]<select @bind="r.Surface"><option value="any">@L["Ape_SurfAny"]</option><option value="dry">@L["Ape_SurfDry"]</option><option value="wet">@L["Ape_SurfWet"]</option></select></label>
-                                <label>@L["Airport_Name"]<input @bind="r.Name" placeholder="@L["Ape_RuleNamePh"]" /></label>
-                                <label>@L["Ape_Notes"]<input @bind="r.Note" placeholder="@L["Ape_FreeText"]" /></label>
-                            </div>
-                            <details class="rule-adv">
-                                <summary>@L["Ape_Advanced"]</summary>
-                                <div class="rule-grid" style="margin-top:8px">
-                                    <label>@L["Ape_TimeFrom"]<input type="time" @bind="r.TimeFrom" /></label>
-                                    <label>@L["Ape_TimeTo"]<input type="time" @bind="r.TimeTo" /></label>
-                                    <label>@L["Ape_DayParity"]<select @bind="r.Parity"><option value="">@L["Ape_SurfAny"]</option><option value="even">@L["Ape_Even"]</option><option value="odd">@L["Ape_Odd"]</option></select></label>
-                                    <label>@L["Ape_ValidFrom"]
-                                        <span style="display:flex;gap:4px">
-                                            <select @bind="r.DateFromDay" style="flex:1">@DayOptions()</select>
-                                            <select @bind="r.DateFromMonth" style="flex:2">@MonthOptions()</select>
-                                        </span>
-                                    </label>
-                                    <label>@L["Ape_ValidTo"]
-                                        <span style="display:flex;gap:4px">
-                                            <select @bind="r.DateToDay" style="flex:1">@DayOptions()</select>
-                                            <select @bind="r.DateToMonth" style="flex:2">@MonthOptions()</select>
-                                        </span>
-                                    </label>
-                                </div>
-                                <div class="ed-h3 ed-h3-mini">
-                                    <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SeasonalHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_SeasonalHelp"].Value)</HelpHint>
-                                    <span class="muted">@L["Ape_SeasonalShort"]</span>
-                                </div>
-                                <div class="rule-days">
-                                    <span class="muted">@L["Ape_Days"]</span>
-                                    @for (var b = 0; b < 7; b++)
-                                    {
-                                        var bit = b;
-                                        <button type="button" class="pill" style="@DayChip(r, bit)" @onclick="() => ToggleDay(r, bit)">@DayNames[bit]</button>
-                                    }
-                                </div>
-                            </details>
-                        </div>
-                    }
-
-                    <div style="margin-top:10px;display:flex;gap:8px">
-                        <button class="btn ghost" @onclick="AddRule">+ @L["Ape_Rule"]</button>
-                        <button class="btn primary" disabled="@(_busy || !_canEdit || issues.Errors.Count > 0)" @onclick="SaveRules">@L["Ape_SaveRules"]</button>
-                    </div>
-
-                    @* --- Tester: prova le regole con un vento arbitrario (non salva nulla) --- *@
-                    <div class="block" style="margin-top:12px;background:var(--surface-soft)">
-                        <div class="se-row" style="flex-wrap:wrap;align-items:end;gap:10px">
-                            <label style="display:flex;flex-direction:column;font-size:12px">Vento da (°)
-                                <input type="number" min="0" max="360" style="width:90px" @bind="_testDir" placeholder="@L["Ape_WindCalm"]" /></label>
-                            <label style="display:flex;flex-direction:column;font-size:12px">Intensità (kt)
-                                <input type="number" min="0" max="99" style="width:80px" @bind="_testKt" /></label>
-                            <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" @bind="_testWet" /> @L["Ape_SurfWet"]</label>
-                            <button type="button" class="btn ghost" @onclick="RunRuleTest">▷ @L["Ape_TestRun"]</button>
-                            @if (_testRan) { <button type="button" class="btn ghost" @onclick="() => _testRan = false">✕ @L["Ape_TestClear"]</button> }
-                        </div>
-                        @if (_testRan)
-                        {
-                            @if (_testHit is not null)
-                            {
-                                <div class="callout success" style="margin-top:8px"><span class="cic">✓</span><div>
-                                    <b>Regola #@(_testHit.RuleIndex + 1)@(string.IsNullOrWhiteSpace(_testHit.RuleName) ? "" : $" · {_testHit.RuleName}")</b> —
-                                    DEP <b>@_testHit.Dep</b> · ARR <b>@_testHit.Arr</b>@if (!string.IsNullOrWhiteSpace(_testHit.Note)) { <text> (@_testHit.Note)</text> }
-                                </div></div>
-                            }
-                            else
-                            {
-                                <div class="callout warning" style="margin-top:8px"><span class="cic">⚠️</span><div>
-                                    Nessuna regola si applica → fallback testa-vento: @(_testFallback?.Note ?? "—")
-                                </div></div>
-                            }
-                        }
-                    </div>
-                </div>
-            </details>
-
-            @* ===================== QUOTE DI TRANSIZIONE ===================== *@
-            <details id="sec-tl" class="ed-sec" open>
-                <summary class="ed-sec-head">@PanelLabel("Quote transizione")@if (_dirtySections.Contains("Quote transizione")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
-                <div class="block" @onchange='() => MarkDirty("Quote transizione")'>
-                    <div class="ed-h3">
-                        <h2 class="h-sect">@L["Ape_TlTitle"]</h2>
-                        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_TlHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_TlHelp"].Value)</HelpHint>
-                        @if (_policy.TransitionAltitude)
-                        {
-                            @* Il chip resta a schermo (è uno STATO: questo dato non si tocca), la spiegazione
-                               del perché va nel «?» accanto. *@
-                            <span class="pill neutral" title="@L["Ape_TaFromSourceTitle"]"><Icon Name="key" Size="11" /> @L["Ape_FromSource"]</span>
-                            <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_TaFromSourceAria"]" ExtraClass="wide">@L["Ape_TaFromSource"]</HelpHint>
-                        }
-                    </div>
-                    @{ var tlIssues = TlIssues(); }
-                    @if (tlIssues.Count > 0)
-                    {
-                        <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in tlIssues) { <div>@m</div> }</div></div>
-                    }
-                    <div class="se-row">
-                        <label><b>@L["Ape_TaLabel"]</b></label>
-                        <input type="number" style="width:100px" @bind="_ta" disabled="@(_policy.TransitionAltitude)" />
-                        <button class="btn primary" disabled="@(_busy || !_canEdit || _policy.TransitionAltitude)" @onclick="SaveTa">@L["Ape_SaveTa"]</button>
-                    </div>
-                    <table class="res-table" style="max-width:460px">
-                        <thead><tr><th>@L["Ape_QnhFrom"]</th><th>@L["Ape_QnhTo"]</th><th>Transition Level</th><th></th></tr></thead>
-                        <tbody>
-                            @foreach (var t in _tls)
-                            {
-                                <tr @key="t">
-                                    <td><input type="number" style="width:90px" @bind="t.From" placeholder="@L["Ape_Open"]" /></td>
-                                    <td><input type="number" style="width:90px" @bind="t.To" placeholder="@L["Ape_Open"]" /></td>
-                                    <td><input style="width:90px" @bind="t.Level" placeholder="FL75" /></td>
-                                    <td><button class="btn ghost" @onclick="() => RemoveTl(t)">✕</button></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                    <div style="margin-top:10px;display:flex;gap:8px">
-                        <button class="btn ghost" @onclick="AddTl">+ @L["Dse_Row"]</button>
-                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveTls">@L["Ape_SaveTable"]</button>
-                    </div>
-                </div>
-            </details>
-
-            @* ===================== FREQUENZE ===================== *@
-            <details id="sec-freq" class="ed-sec" open>
-                <summary class="ed-sec-head">@PanelLabel("Frequenze")@if (_dirtySections.Contains("Frequenze")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
-                <div class="block" @onchange='() => MarkDirty("Frequenze")'>
-                    <div class="ed-h3">
-                        <h2 class="h-sect">@L["Common_Frequencies"]</h2>
-                        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_FreqHelpAria"]" ExtraClass="wide">@L["Ape_FreqHelp"]</HelpHint>
-                    </div>
-                    <table class="res-table freq-table">
-                        <thead><tr><th>Callsign</th><th>Position</th><th>@L["Vle_Frequency"]</th><th>@L["Ape_Origin"]</th><th></th></tr></thead>
-                        <tbody>
-                            @foreach (var f in FreqRows())
-                            {
-                                <tr class="@(f.IsPrimary ? "primary" : null)"><td>@if (f.IsPrimary) { <span class="freq-key">★</span> } @FreqDisplayName(f)</td><td>@f.ComposePosition</td><td>@(f.Frequency ?? "—")</td><td class="muted">@L["Ape_Catalog"]</td><td></td></tr>
-                            }
-                            @foreach (var id in _linkIds)
-                            {
-                                var lf = _linkable.FirstOrDefault(x => x.SectorId == id);
-                                <tr @key="id">
-                                    <td>@(string.IsNullOrWhiteSpace(lf?.AtcCallsign) ? (lf?.Callsign ?? "—") : lf!.AtcCallsign)</td><td>@(lf?.Callsign ?? "—")</td><td>@(lf?.FrequencyMhz ?? "—")</td>
-                                    <td class="muted">@L["Ape_Linked"]</td>
-                                    <td><button class="btn ghost" @onclick="() => RemoveLink(id)">✕</button></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                    <div class="se-row" style="margin-top:10px;align-items:flex-start">
-                        <div style="position:relative;width:320px">
-                            <input style="width:100%" placeholder="@L["Ape_SearchCallsignFreq"]"
-                                   @bind="_freqSearch" @bind:event="oninput"
-                                   @onfocus="() => _freqPickerOpen = true" @onblur="() => _freqPickerOpen = false" />
-                            @if (_freqPickerOpen)
-                            {
-                                var opts = FilteredLinkable().ToList();
-                                <div class="freq-picker-list">
-                                    @if (opts.Count == 0)
-                                    {
-                                        <div class="freq-picker-empty muted">@L["Ape_NoUnitFound"]</div>
-                                    }
-                                    @foreach (var lf in opts)
-                                    {
-                                        var id = lf.SectorId;
-                                        var added = _linkIds.Contains(id);
-                                        <button type="button" class="freq-picker-item" disabled="@added"
-                                                @onmousedown:preventDefault="true" @onmousedown="() => PickLinkable(id)">
-                                            <b>@lf.Callsign</b> · @lf.FrequencyMhz @(lf.Icao is null ? "" : $"({lf.Icao})")@if (added) { <span class="muted"> — @L["Ape_AlreadyAdded"]</span> }
-                                        </button>
-                                    }
-                                </div>
-                            }
-                        </div>
-                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveLinks">@L["Ape_SaveLinks"]</button>
-                    </div>
-                </div>
-            </details>
-
-            @* ===================== PISTE ===================== *@
-            <details id="sec-piste" class="ed-sec" open>
-                <summary class="ed-sec-head">@PanelLabel("Piste")@if (_dirtySections.Contains("Piste")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
-                <div class="block" @onchange='() => MarkDirty("Piste")'>
-                    <div class="ed-h3">
-                        <h2 class="h-sect">@L["Sorg_RunwaysLabel"]</h2>
-                        @if (_policy.Runways)
-                        {
-                            <span class="pill neutral" title="@L["Ape_RwFromSourceTitle"]"><Icon Name="key" Size="11" /> @L["Ape_FromSource"]</span>
-                            <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_RwFromSourceAria"]" ExtraClass="wide">@L["Ape_RwFromSource"]</HelpHint>
-                        }
-                        else
-                        {
-                            <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_RwEditorialAria"]" ExtraClass="wide">@L["Ape_RwEditorial"]</HelpHint>
-                        }
-                    </div>
-                    @{ var rwIssues = RwIssues(); }
-                    @if (rwIssues.Count > 0)
-                    {
-                        <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in rwIssues) { <div>@m</div> }</div></div>
-                    }
-                    <table class="res-table">
-                        <thead><tr><th>@L["Ape_Runway"]</th><th>@L["Ape_LengthM"]</th><th>TORA</th><th>LDA</th><th>APP procedures</th><th>Patterns</th><th>Circling</th><th></th></tr></thead>
-                        <tbody>
-                            @foreach (var r in _rwys)
-                            {
-                                <tr @key="r">
-                                    <td><input style="width:64px" @bind="r.Ident" disabled="@(_policy.Runways)" /></td>
-                                    <td class="muted">@(r.LengthM?.ToString() ?? "—")</td>
-                                    <td><input style="width:80px" @bind="r.Tora" /></td>
-                                    <td><input style="width:80px" @bind="r.Lda" /></td>
-                                    <td><input style="width:150px" @bind="r.App" /></td>
-                                    <td><input style="width:70px" @bind="r.Patterns" /></td>
-                                    <td><input style="width:70px" @bind="r.Circling" /></td>
-                                    <td>@if (!_policy.Runways) { <button class="btn ghost" @onclick="() => RemoveRwy(r)">✕</button> }</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                    <div style="margin-top:10px;display:flex;gap:8px">
-                        @if (!_policy.Runways) { <button class="btn ghost" @onclick="AddRwy">+ @L["Ape_Runway"]</button> }
-                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveRwys">@L["Ape_SaveRunways"]</button>
-                    </div>
-                </div>
-            </details>
-
-            @* ===================== SID ===================== *@
-            <details id="sec-sid" class="ed-sec" open>
-                <summary class="ed-sec-head">@PanelLabel("SID")@if (_dirtySections.Contains("SID")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
-                <div class="block">
-                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-                        <h2 class="h-sect" style="margin:0">@L["Ape_SidRenderTitle"]</h2>
-                        @* 🔴/🧊 restano: sono VOCABOLARIO DI STATO (come 🕒🟢 in Versioni), non comandi. *@
-                        <span class="pill @(_sidsLive ? "green" : "grey")">@(_sidsLive ? "🔴 " + L["Dse_Live"] : "🧊 " + L["Dse_Frozen"])</span>
-                        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SidRenderHelpAria"]" ExtraClass="wide">
-                            @((MarkupString)L["Ape_SidRenderHelp"].Value)
-                        </HelpHint>
-                        <span class="ln" style="flex:1"></span>
-                        <button class="btn ghost" disabled="@(_busy || !_canEdit)"
-                                @onclick="() => SetSidsMode(!_sidsLive)">
-                            @(_sidsLive ? "🧊 " + L["Ape_FreezeAtPublish"] : "🔴 " + L["Ape_MakeAlwaysLive"])
+                        @* Presente sempre, spento a zero: comparendo col contatore spostava in giù tutti i
+                           comandi del rail proprio mentre ci si mirava. *@
+                        <button class="btn primary" data-tour="save" disabled="@(_busy || _dirtySections.Count == 0)" @onclick="SaveAllClicked" title="@L["Ape_SaveAllTitle"]">
+                            <Icon Name="check-circle" Size="14" /> @L["Ape_SaveAllN", _dirtySections.Count]
                         </button>
-                    </div>
-                </div>
-
-                @if (_imported.Count > 0)
-                {
-                    <div class="block">
-                        @{ var nReview = _imported.Count(e => e.NeedsReview); var iview = ImportedView(); }
-                        <div class="ed-h3">
-                            <h2 class="h-sect">@L["Ape_SidImportedTitle"] <span class="pill blue" title="@L["Ape_SidImportedCountTitle"]">@CountLabel(iview.Count, _imported.Count)</span></h2>
-                            <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SidImportedHelpAria"]" ExtraClass="wide">
-                                @((MarkupString)L["Ape_SidImportedHelp"].Value)
-                                <p>@L["Ape_SidSelectHint"]</p>
-                            </HelpHint>
-                            <span class="ln"></span>
-                            @* ⤢ larghezza piena: TOC e rail via mentre si lavora nelle SID. A 1600 la colonna
-                               centrale è 946px per dodici colonne; senza i due lati diventa 1536. *@
-                            <button class="btn ghost" @onclick="() => _sidWide = !_sidWide" title="@(_sidWide ? L["Ed_NarrowTitle"] : L["Ed_WideTitle"])"
-                                    aria-pressed="@_sidWide.ToString().ToLowerInvariant()">@(_sidWide ? "⤡" : "⤢") @(_sidWide ? L["Ed_Narrow"] : L["Ed_Wide"])</button>
-                            <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="ReimportSids" title="@L["Ape_ReimportSidTitle"]"><Icon Name="refresh" Size="14" /> @L["Ape_ReimportSid"]</button>
-                        </div>
-                        @* Barra dei filtri: campi di Struttura (la lente è disegnata nel campo) e chip SEMPRE
-                           presenti, spenti a zero — un chip che compare col contatore accorcia la riga sotto
-                           il puntatore. I chip pista tagliano 206 righe a una quarantina con un clic. *@
-                        <div class="struct-bar">
-                            <input class="htree-search" placeholder="@L["Ape_SidSearchPh"]" @bind="_sidSearch" @bind:event="oninput" />
-                            <span class="sb-chips">
-                                <button class="sh-chip @(nReview > 0 ? "warn" : "") @(_sidOnlyReview ? "on" : "")" disabled="@(nReview == 0)"
-                                        title="@L["Ape_SidReviewChipTitle"]" @onclick="() => _sidOnlyReview = !_sidOnlyReview">@L["Ape_SidReviewChip", nReview]</button>
-                                @foreach (var rw in ImportedRunways())
-                                {
-                                    var id = rw.Ident;
-                                    <button class="sh-chip @(_sidRwFilter == id ? "on" : "")" title="@L["Ape_SidRwChipTitle"]"
-                                            @onclick="() => _sidRwFilter = _sidRwFilter == id ? null : id">@id <span class="chip-n">@rw.Count</span></button>
-                                }
-                            </span>
-                        </div>
-                        @* Barra delle azioni FUORI dal riquadro che scorre: chi compila in fondo alle 206 righe
-                           non deve risalire per confermare. «Salva modificate» conta le righe TOCCATE, che non
-                           sono più le righe SCELTE: due stati diversi, due colori diversi. *@
-                        <div class="bulk-bar">
-                            <b>@L["Ape_SidDirtyN", _dirtySid.Count]</b>
-                            <button class="btn primary" disabled="@(_busy || !_canEdit || _dirtySid.Count == 0)" @onclick="SaveDirtyImported"><Icon Name="check-circle" /> @L["Ape_SidSaveDirty"]</button>
-                            <span class="sb-sep"></span>
-                            <b>@L["Apt_NSelected", _selSid.Count]</b>
-                            <button type="button" class="btn ghost" disabled="@(iview.Count == 0)" @onclick="() => ToggleSelectAll(iview)">@(AllSelected(iview) ? L["Ape_SidUnselectAll"] : L["Ape_SidSelectAll"])</button>
-                            @* Gli stessi due gesti del doppio clic, raggiungibili anche da tastiera: agiscono
-                               sulla riga del campo toccato per ultimo. *@
-                            <button class="btn ghost" disabled="@(_src is null || !_src.Imported)" @onclick="() => PickSameFromBar(true, false)" title="@L["Ape_PickSameFixTitle"]">@L["Ape_PickSameFix"]</button>
-                            <button class="btn ghost" disabled="@(_src is null || !_src.Imported)" @onclick="() => PickSameFromBar(true, true)" title="@L["Ape_PickSameTransTitle"]">@L["Ape_PickSameTrans"]</button>
-                            <button class="btn ghost" disabled="@(_busy || !_canEdit || _selSid.Count == 0)" @onclick="PublishSelectedImported" title="@L["Ape_SidPublishSelTitle"]"><Icon Name="clock" /> @L["Ape_SidPublishSel"]</button>
-                            @* «Applica alle scelte»: dice sempre COSA copierà e DOVE — niente azioni al buio. *@
-                            <button class="btn ghost" disabled="@(!CanApply(true))" @onclick="() => ApplyToSelected(true)" title="@L["Ape_ApplyTitle"]">⤓ @ApplyLabel(true)</button>
-                            <button class="btn ghost" title="@L["Apt_Deselect"]" aria-label="@L["Apt_Deselect"]" disabled="@(_selSid.Count == 0)" @onclick="ClearSidSelection">✕</button>
-                        </div>
-                        @* ⚠️ Prima la tabella stava in un `overflow:auto` SENZA altezza: un contenitore di
-                           scorrimento che non scorre mai in verticale, dove uno `sticky` non si aggancia a
-                           niente. Con l'altezza il corpo scorre davvero e l'intestazione resta. *@
-                        <div class="ed-pane">
-                        @* Larghezze per CLASSE semantica e `table-layout:fixed`, come nella tabella SID del
-                           viewer: con `auto` le colonne dei chip Cat./WTC collassavano e i chip si impilavano
-                           in verticale — misurato, 128px di altezza per riga invece di 44. *@
-                        <table class="res-table sid-table sid-edit sid-imported sticky-head">
-                            <thead><tr><th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@AllSelected(iview)" @onclick:preventDefault="true" @onclick="() => ToggleSelectAll(iview)" /></th><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="Condition">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-pub">@L["Common_State"]</th></tr></thead>
-                            <tbody @onmouseup="SelDragEnd" @onmouseleave="SelDragEnd">
-                                @for (var vi = 0; vi < iview.Count; vi++)
-                                {
-                                    var idx = vi; var e = iview[idx];
-                                    @* Due stati distinti, due segni distinti: `row-sel` = scelta (per pubblicare),
-                                       `row-dirty` = toccata e non ancora salvata. Prima erano la stessa cosa —
-                                       modificare una cella metteva la riga fra le «selezionate». *@
-                                    <tr class="@(_selSid.Contains(e.Id) ? "row-sel" : null) @(_dirtySid.Contains(e.Id) ? "row-dirty" : null)">
-                                        @* La cella di scelta è il comando: da mouse col trascinamento, da
-                                           TASTIERA con Invio/Spazio (prima la casella aveva tabindex -1 e le
-                                           righe non si potevano scegliere senza mouse). *@
-                                        <td class="col-chk sid-pick" role="button" tabindex="0"
-                                            aria-pressed="@_selSid.Contains(e.Id).ToString().ToLowerInvariant()"
-                                            aria-label="@L["Apt_SelectRow", e.Fix + " " + e.Name]"
-                                            title="@L["Ape_SidPickTitle"]"
-                                            @onmousedown="ev => SelDragStart(idx, ev)" @onmouseenter="() => SelDragEnter(idx)"
-                                            @onkeydown="ev => PickSidOnKey(ev, e.Id)"><input type="checkbox" checked="@_selSid.Contains(e.Id)" tabindex="-1" aria-hidden="true" @onclick:preventDefault="true" /></td>
-                                        <td class="col-fix">
-                                            @if (e.NeedsReview)
-                                            {
-                                                <span title="@L["Ape_FixToVerify"]" class="fix-warn"><Icon Name="warning" Size="12" /></span>
-                                                <input class="in-fix" list="@NavaidDatalist.DefaultId" @bind="e.FixOverride" @bind:after="() => TouchImported(e)" placeholder="@e.Fix" aria-label="@L["Ape_FixToVerify"]" />
-                                                <label class="ic-app" title="@(string.Format(L["Ape_AliasTitle"].Value, e.Fix))"><input type="checkbox" @bind="e.CreateAlias" @bind:after="() => TouchImported(e)" /> @L["Ape_Alias"]</label>
-                                            }
-                                            else { <b>@e.Fix</b> }
-                                        </td>
-                                        @* Il doppio clic sta sulle celle NON scrivibili: dentro un campo il
-                                           doppio clic seleziona la parola, ed è il gesto di chi sta scrivendo. *@
-                                        <td class="col-sid dbl-pick" title="@L["Ape_DblSameFixTitle"]" @ondblclick="() => PickSameFix(e)">@e.Name</td>
-                                        <td class="col-rwy dbl-pick" title="@L["Ape_DblSameFixTitle"]" @ondblclick="() => PickSameFix(e)">@(string.IsNullOrWhiteSpace(e.Runway) ? "—" : e.Runway)</td>
-                                        <td class="col-trans dbl-pick" title="@L["Ape_DblSameTransTitle"]" @ondblclick="() => PickSameTrans(e)">@(string.IsNullOrWhiteSpace(e.Transition) ? "—" : e.Transition)</td>
-                                        <td class="col-type dbl-pick" title="@L["Ape_DblSameFixTitle"]" @ondblclick="() => PickSameFix(e)">@(string.IsNullOrWhiteSpace(e.Type) ? "—" : e.Type)</td>
-                                        <td class="col-climb">
-                                            <input type="number" min="0" step="100" class="in-climb" @bind="e.InitialClimb" @bind:after="() => TouchImported(e)" placeholder="ft" title="@L["Ape_ClimbTitle"]" aria-label="@L["Ape_ClimbTitle"]"
-                                                   @onfocus="() => Src(true, e, SidCol.Climb)" @onkeydown="ev => CellKey(ev, true)" />
-                                            <label class="ic-app" title="@L["Ape_ClimbByAppTitle"]"><input type="checkbox" @bind="e.InitialClimbByApp" @bind:after="() => TouchImported(e)" @onfocus="() => Src(true, e, SidCol.Climb)" /> APP</label>
-                                        </td>
-                                        <td class="col-cat">
-                                            <div class="tok-set">
-                                                @foreach (var t in CatTokens)
-                                                {
-                                                    <button type="button" class="tok @(HasTok(e.Cat, t) ? "on" : "")" title="@L["Ape_TokScaleTitle"]"
-                                                            @onclick="ev => TokClick(ev, true, e, t, CatTokens)" @ondblclick="() => TokScale(true, e, t, CatTokens)"
-                                                            @onfocus="() => Src(true, e, SidCol.Cat)">@t</button>
-                                                }
-                                            </div>
-                                        </td>
-                                        <td class="col-wtc">
-                                            <div class="tok-set">
-                                                @foreach (var t in WtcTokens)
-                                                {
-                                                    <button type="button" class="tok @(HasTok(e.Wtc, t) ? "on" : "")" title="@L["Ape_TokScaleTitle"]"
-                                                            @onclick="ev => TokClick(ev, true, e, t, WtcTokens)" @ondblclick="() => TokScale(true, e, t, WtcTokens)"
-                                                            @onfocus="() => Src(true, e, SidCol.Wtc)">@t</button>
-                                                }
-                                            </div>
-                                        </td>
-                                        <td class="col-cond"><input class="in-cond" @bind="e.Condition" @bind:after="() => TouchImported(e)" placeholder="—" aria-label="Condition" title="@e.Condition"
-                                                                     @onfocus="() => Src(true, e, SidCol.Cond)" @onkeydown="ev => CellKey(ev, true)" /></td>
-                                        <td class="col-prio"><input type="number" class="in-prio" @bind="e.Priority" @bind:after="() => TouchImported(e)" aria-label="@L["Ape_Priority"]" title="@L["Ape_PriorityTitle"]"
-                                                                     @onfocus="() => Src(true, e, SidCol.Prio)" @onkeydown="ev => CellKey(ev, true)" /></td>
-                                        <td class="col-pub">
-                                            @if (e.IsPublicNow) { <span class="pill green">@L["Ape_Public"]</span> }
-                                            else { <span class="pill future" title="@(string.Format(L["Ape_AutoPublishTitle"].Value, e.PublishFromCycle))"><Icon Name="clock" Size="11" /> @e.PublishFromCycle</span> }
-                                        </td>
-                                    </tr>
-                                }
-                                @if (iview.Count == 0)
-                                {
-                                    <tr><td colspan="12" class="muted">@L["Ape_SidNoMatch"]</td></tr>
-                                }
-                            </tbody>
-                        </table>
-                        </div>
-                    </div>
-                }
-
-                <div class="block" @onchange='() => MarkDirty("SID")'>
-                    <div class="ed-h3">
-                        <h2 class="h-sect">@L["Ape_SidManualTitle"] <span class="pill blue">@CountLabel(ManualView().Count(), _sids.Count)</span></h2>
-                        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SidManualHelpAria"]" ExtraClass="wide">
-                            @L["Ape_SidManualHelp"]
+                        <HelpHint Href="/services/vsop/guide#editor-salva" AriaLabel="@L["Ape_SaveHelpAria"]">
+                            @((MarkupString)L["Ape_SaveHelpBody"].Value)
                         </HelpHint>
-                    </div>
-                    @{ var sidIssues = SidIssues(); }
-                    @if (sidIssues.Count > 0)
-                    {
-                        <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in sidIssues) { <div>@m</div> }</div></div>
                     }
-                    <div class="struct-bar">
-                        <input class="htree-search" placeholder="@L["Ape_SidManualSearchPh"]" @bind="_sidManualSearch" @bind:event="oninput" />
-                    </div>
-                    @{ var mview = ManualView().ToList(); }
-                    @* Stessa barra delle importate: quello che si può fare di là si può fare anche di qua. *@
-                    <div class="bulk-bar">
-                        <b>@L["Apt_NSelected", _selManual.Count]</b>
-                        <button type="button" class="btn ghost" disabled="@(mview.Count == 0)" @onclick="() => ToggleSelectAllManual(mview)">@(mview.Count > 0 && mview.All(_selManual.Contains) ? L["Ape_SidUnselectAll"] : L["Ape_SidSelectAll"])</button>
-                        <button class="btn ghost" disabled="@(_src is null || _src.Imported)" @onclick="() => PickSameFromBar(false, false)" title="@L["Ape_PickSameFixTitle"]">@L["Ape_PickSameFix"]</button>
-                        <button class="btn ghost" disabled="@(_src is null || _src.Imported)" @onclick="() => PickSameFromBar(false, true)" title="@L["Ape_PickSameTransTitle"]">@L["Ape_PickSameTrans"]</button>
-                        <button class="btn ghost" disabled="@(!CanApply(false))" @onclick="() => ApplyToSelected(false)" title="@L["Ape_ApplyTitle"]">⤓ @ApplyLabel(false)</button>
-                        <button class="btn ghost" title="@L["Apt_Deselect"]" aria-label="@L["Apt_Deselect"]" disabled="@(_selManual.Count == 0)" @onclick="() => _selManual.Clear()">✕</button>
-                    </div>
-                    <datalist id="ape-rwy-idents">@foreach (var id in RwIdents()) { <option value="@id" /> }</datalist>
-                    @* Type: i due valori veri sono CONV e RNAV, ma il campo resta libero — le sorgenti ne
-                       portano altri e non si vuole perdere un valore solo perché non è in elenco. *@
-                    <datalist id="ape-sid-types"><option value="CONV" /><option value="RNAV" /></datalist>
-                    <div class="tbl-scroll">
-                    <table class="res-table sid-table sid-edit sid-manual">
-                        @* Stesso ordine e stessi comandi della tabella importate: chi lavora sulle due
-                           tabelle non deve reimparare dove sta cosa. *@
-                        <thead><tr><th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@(mview.Count > 0 && mview.All(_selManual.Contains))" @onclick:preventDefault="true" @onclick="() => ToggleSelectAllManual(mview)" /></th><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="Condition">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-pub">@L["Common_State"]</th><th class="col-act"></th></tr></thead>
-                        <tbody>
-                            @foreach (var s in mview)
-                            {
-                                <tr @key="s" class="@(_selManual.Contains(s) ? "row-sel" : null)">
-                                    @* Qui tutte le celle sono campi, quindi il doppio clic «stesso punto» vive
-                                       sulla cella di scelta: dentro un campo il doppio clic serve a chi scrive. *@
-                                    <td class="col-chk sid-pick" role="button" tabindex="0"
-                                        aria-pressed="@_selManual.Contains(s).ToString().ToLowerInvariant()"
-                                        aria-label="@L["Apt_SelectRow", (s.Fix ?? "") + " " + (s.Name ?? "")]"
-                                        title="@L["Ape_ManualPickTitle"]"
-                                        @onclick="() => ToggleManual(s)" @onkeydown="ev => ToggleManualOnKey(ev, s)"
-                                        @ondblclick="() => PickSameFixManual(s)"><input type="checkbox" checked="@_selManual.Contains(s)" tabindex="-1" aria-hidden="true" @onclick:preventDefault="true" /></td>
-                                    <td class="col-fix"><input list="@NavaidDatalist.DefaultId" class="@UnknownFixClass(s.Fix)" title="@UnknownFixTitle(s.Fix)" @bind="s.Fix" aria-label="FIX" /></td>
-                                    <td class="col-sid"><input @bind="s.Name" aria-label="SID" /></td>
-                                    <td class="col-rwy"><input list="ape-rwy-idents" @bind="s.Runway" aria-label="@L["Ape_Runway"]" /></td>
-                                    <td class="col-trans"><input list="@NavaidDatalist.DefaultId" class="@UnknownFixClass(s.Transition)" title="@UnknownFixTitle(s.Transition)" @bind="s.Transition" aria-label="Transition" /></td>
-                                    <td class="col-type"><input list="ape-sid-types" @bind="s.Type" placeholder="CONV" aria-label="Type" title="@L["Ape_TypeTitle"]" /></td>
-                                    @* Testo libero e non `type=number` come nelle importate: qui i valori
-                                       storici portano l'unità («5000ft», «FL80») e un campo numerico li
-                                       butterebbe via al primo salvataggio. *@
-                                    <td class="col-climb">
-                                        <input class="in-climb" @bind="s.InitialClimb" placeholder="ft" aria-label="Initial climb"
-                                               @onfocus="() => Src(false, s, SidCol.Climb)" @onkeydown="ev => CellKey(ev, false)" />
-                                        <label class="ic-app" title="@L["Ape_ClimbByAppTitle"]"><input type="checkbox" @bind="s.InitialClimbByApp" @onfocus="() => Src(false, s, SidCol.Climb)" /> APP</label>
-                                    </td>
-                                    <td class="col-cat">
-                                        <div class="tok-set">
-                                            @foreach (var t in CatTokens)
-                                            {
-                                                <button type="button" class="tok @(HasTok(s.Cat, t) ? "on" : "")" title="@L["Ape_TokScaleTitle"]"
-                                                        @onclick="ev => TokClick(ev, false, s, t, CatTokens)" @ondblclick="() => TokScale(false, s, t, CatTokens)"
-                                                        @onfocus="() => Src(false, s, SidCol.Cat)">@t</button>
-                                            }
-                                        </div>
-                                    </td>
-                                    <td class="col-wtc">
-                                        <div class="tok-set">
-                                            @foreach (var t in WtcTokens)
-                                            {
-                                                <button type="button" class="tok @(HasTok(s.Wtc, t) ? "on" : "")" title="@L["Ape_TokScaleTitle"]"
-                                                        @onclick="ev => TokClick(ev, false, s, t, WtcTokens)" @ondblclick="() => TokScale(false, s, t, WtcTokens)"
-                                                        @onfocus="() => Src(false, s, SidCol.Wtc)">@t</button>
-                                            }
-                                        </div>
-                                    </td>
-                                    <td class="col-cond"><input class="in-cond" @bind="s.Condition" aria-label="Condition" title="@s.Condition"
-                                                                 @onfocus="() => Src(false, s, SidCol.Cond)" @onkeydown="ev => CellKey(ev, false)" /></td>
-                                    <td class="col-prio"><input type="number" class="in-prio" @bind="s.Priority" aria-label="@L["Ape_Priority"]" title="@L["Ape_PriorityTitle"]"
-                                                                 @onfocus="() => Src(false, s, SidCol.Prio)" @onkeydown="ev => CellKey(ev, false)" /></td>
-                                    @* Lo stato lo calcola `SidRow.IsPublicAt`, la stessa regola delle importate:
-                                       oggi una riga a mano è pubblica appena si pubblica il documento, e la
-                                       colonna lo dice; se la regola cambia, qui non c'è niente da riscrivere. *@
-                                    <td class="col-pub">
-                                        @if (s.IsPublicNow) { <span class="pill green">@L["Ape_Public"]</span> }
-                                        else { <span class="pill future" title="@(string.Format(L["Ape_AutoPublishTitle"].Value, s.PublishFromCycle))"><Icon Name="clock" Size="11" /> @s.PublishFromCycle</span> }
-                                    </td>
-                                    <td class="col-act">
-                                        <button class="btn ghost" @onclick="() => CloneSid(s)" title="@L["Ape_CloneRow"]" aria-label="@L["Ape_CloneRow"]">⎘</button>
-                                        <button class="btn ghost" @onclick="() => RemoveSid(s)" title="@L["Common_Remove"]" aria-label="@L["Common_Remove"]">✕</button>
-                                    </td>
-                                </tr>
-                            }
-                            @if (mview.Count == 0)
-                            {
-                                <tr><td colspan="13" class="muted">@(_sids.Count == 0 ? L["Ape_SidNoManual"] : L["Ape_SidNoRowMatch"])</td></tr>
-                            }
-                        </tbody>
-                    </table>
-                    </div>
-                    <div style="margin-top:10px;display:flex;gap:8px">
-                        <button class="btn ghost" @onclick="AddSid">+ SID</button>
-                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveSids">@L["Ape_SaveManualSids"]</button>
-                    </div>
-                </div>
-            </details>
-
-            @* ===================== SEZIONI EXTRA ===================== *@
-            <details id="sec-extra" class="ed-sec" open>
-                <summary class="ed-sec-head">@PanelLabel("Sezioni extra")@if (_dirtySections.Contains("Sezioni extra")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
-                <div class="block" @onchange='() => MarkDirty("Sezioni extra")'>
-                    <div class="ed-h3">
-                        <h2 class="h-sect">@L["Ape_ExtraTitle"]</h2>
-                        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_ExtraHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_ExtraHelp"].Value)</HelpHint>
-                    </div>
-                    @foreach (var (s, idx) in _extras.Select((s, i) => (s, i)))
+                    <DraftPreviewLink Href="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}&as=draft")" />
+                    @* ✎ Modifica / ✓ Fine modifica: lo stesso gesto degli altri tre editor. Prende il lock e,
+                       se la versione di lavoro è pubblicata, apre una bozza. *@
+                    @if (_editing)
                     {
-                        <div class="rule-card" @key="s">
-                            <div class="rule-head">
-                                <input class="app-in" style="font-weight:700;flex:1;max-width:420px" @bind="s.Title" placeholder="@L["Ape_ExtraTitlePh"]" />
-                                <div style="display:flex;gap:6px">
-                                    <button class="btn ghost" disabled="@(idx == 0)" @onclick="() => MoveExtra(idx, -1)" title="@L["Common_Up"]">↑</button>
-                                    <button class="btn ghost" disabled="@(idx == _extras.Count - 1)" @onclick="() => MoveExtra(idx, 1)" title="@L["Common_Down"]">↓</button>
-                                    <button class="btn ghost" @onclick="() => RemoveExtra(s)" title="@L["Common_Remove"]"><Icon Name="x" /></button>
-                                </div>
-                            </div>
-                            <DocumentBlocksEditor Blocks="s.Blocks" Editing="_canEdit" DocumentId="_docDbId" OnChanged='() => MarkDirty("Sezioni extra")' />
-                        </div>
+                        <button class="btn ghost" @onclick="FinishEditing">✓ @L["Lock_FinishEdit"]</button>
                     }
-                    <div style="margin-top:10px;display:flex;gap:8px">
-                        <button class="btn ghost" @onclick="AddExtra">+ @L["Ape_Section"]</button>
-                        <button class="btn primary" disabled="@(_busy || !_canEdit || _extras.Any(s => string.IsNullOrWhiteSpace(s.Title)))" @onclick="SaveExtras">@L["Ape_SaveSections"]</button>
-                    </div>
-                </div>
-            </details>
+                    else if (_lock is { Locked: true, IsMine: false })
+                    {
+                        <button class="btn ghost" disabled title="@L["Ed_LockedByOther"]">✎ @L["Ed_Edit"]</button>
+                    }
+                    else
+                    {
+                        <button class="btn ghost" @onclick="StartEditing">✎ @L["Ed_Edit"]</button>
+                    }
+                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="Reimport" title="@L["Ape_ReimportIvaoTitle"]"><Icon Name="refresh" Size="14" /> @L["Ape_ReimportIvao"]</button>
+                    @if (LastImport() is DateTime li)
+                    {
+                        <span class="ed-rail-meta" title="@L["Ape_LastImportTitle"]">↧ @($"{li:dd/MM HH:mm}Z")</span>
+                    }
+                </RightRail>
+            </DocumentSectionsEditor>
 
-            @* ===================== SETTORI ===================== *@
-            <details id="sec-settori" class="ed-sec" open>
-                <summary class="ed-sec-head">@PanelLabel("Settori")@if (_dirtySections.Contains("Settori")) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }</summary>
-                <div class="block" @onchange='() => MarkDirty("Settori")'>
+            @* ===================== SETTORI ATC =====================
+               ⚠️ NON è una sezione del documento: è amministrazione della struttura, non testo pubblicato. Sta
+               fuori da DocumentSectionsEditor e si aggancia all'indice come voce extra — la stessa strada che
+               l'editor APP usa già per il pannello Release. *@
+            <div id="sec-settori" class="block" @onchange='() => MarkDirty("settori")'>
                     <div class="section-title" style="margin-top:0">
                         <h2 class="h-sect" style="margin:0">@L["Ape_AtcSectors"] <span class="pill blue">@_sectors.Count</span></h2>
                         <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SectorsNoteAria"]" ExtraClass="wide">@L["Ape_SectorsNote"]</HelpHint><span class="ln"></span>
@@ -747,62 +243,28 @@ else
                             </tbody>
                         </table>
                     }
-                </div>
-            </details>
-
-            @* ===================== VERSIONI (release AIRAC) ===================== *@
-            <details id="sec-versioni" class="ed-sec" open>
-                <summary class="ed-sec-head">@PanelLabel("Versioni")</summary>
-                <div class="block">
-                    @* Titolo e aiuto sono già qui dentro (questa pagina ha il proprio <details> di sezione):
-                       il pannello non li ripete. *@
-                    <div class="ed-h3">
-                        <h2 class="h-sect">@L["Rel_SectionTitle"]</h2>
-                        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_VersionsHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_VersionsHelp"].Value)</HelpHint>
-                    </div>
-
-                    @if (!_canEdit)
-                    {
-                        <div class="callout warning"><span class="cic">🔒</span><div>@(string.Format(L["Ape_ReadOnlyPublish"].Value, _icao))</div></div>
-                    }
-                    else
-                    {
-                        @* Published: ricarica il profilo dopo la pubblicazione. Qui LoadAsync è un reload totale
-                           (azzera i buffer sporchi), coerente col fatto che BeforePublishAsync ha già avvisato
-                           sulle sezioni non salvate e rigenerato il documento dalla bozza. *@
-                        <ReleasePanel Target="ReleaseTargetType.Airport" Key="@_icao" ShowSectionHeader="false"
-                                      ShowDiff="true" AllowCancel="Authz.IsAdmin"
-                                      BeforePublishAsync="BeforePublishAsync"
-                                      PreviewUrlFactory="ReleasePreviewUrl"
-                                      Published="LoadAsync" />
-                    }
-                </div>
-            </details>
             </div>
-            <aside class="ed-rail">
-                @if (_save == SaveState.Saving) { <span class="save-badge saving"><span class="spin"></span> @L["Ed_Saving"]</span> }
-                else if (_save == SaveState.Saved) { <span class="save-badge saved"><Icon Name="check-circle" Size="13" /> @L["Ed_Saved"]</span> }
-                @if (_canEdit)
+
+            @* ===================== VERSIONI (release AIRAC) =====================
+               ⚠️ L'ancora `sec-versioni` è la stessa nei QUATTRO editor: è dove atterra «Ripubblica» dalla lista
+               «Da fare» (carta 2026-08-26-da-fare-una-lista-sola.md §3). *@
+            <div id="sec-versioni">
+                @if (!_canEdit)
                 {
-                    @* Presente sempre, spento a zero: comparendo col contatore spostava in giù tutti i comandi
-                       del rail proprio mentre ci si mirava. *@
-                    <button class="btn primary" data-tour="save" disabled="@(_busy || _dirtySections.Count == 0)" @onclick="SaveAllClicked" title="@L["Ape_SaveAllTitle"]">
-                        <Icon Name="check-circle" Size="14" /> @L["Ape_SaveAllN", _dirtySections.Count]
-                    </button>
-                    <HelpHint Href="/services/vsop/guide#editor-salva" AriaLabel="@L["Ape_SaveHelpAria"]">
-                        @((MarkupString)L["Ape_SaveHelpBody"].Value)
-                    </HelpHint>
+                    <div class="block"><div class="callout warning" style="margin:0"><span class="cic">🔒</span><div>@(string.Format(L["Ape_ReadOnlyPublish"].Value, _icao))</div></div></div>
                 }
-                <a class="btn ghost" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao&as=draft" target="_blank" rel="noopener" title="@L["Ed_PreviewDraftTitle"]"><Icon Name="eye" /> @L["Ed_PreviewDraft"]</a>
-                <HelpHint Href="/services/vsop/guide#editor-anteprima" AriaLabel="@L["Ape_PreviewHelpAria"]">
-                    @((MarkupString)L["Ape_PreviewHelpBody"].Value)
-                </HelpHint>
-                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="Reimport" title="@L["Ape_ReimportIvaoTitle"]"><Icon Name="refresh" Size="14" /> @L["Ape_ReimportIvao"]</button>
-                @if (LastImport() is DateTime li)
+                else
                 {
-                    <span class="ed-rail-meta" title="@L["Ape_LastImportTitle"]">↧ @($"{li:dd/MM HH:mm}Z")</span>
+                    @* Involucro, titolo, aiuto, diff, annulla e anteprima li porta il pannello condiviso
+                       (doc 13 §3i): prima questa pagina si costruiva il proprio contorno, ed era per questo
+                       che la sezione «Versioni» dell'aeroporto non somigliava a quella degli altri tre.
+                       Published ricarica tutto: BeforePublishAsync ha già avvisato sulle sezioni non salvate. *@
+                    <ReleasePanel Target="ReleaseTargetType.Airport" Key="@_icao"
+                                  ShowDiff="true" AllowCancel="Authz.IsAdmin"
+                                  BeforePublishAsync="BeforePublishAsync"
+                                  PreviewUrlFactory="ReleasePreviewUrl"
+                                  Published="LoadAsync" />
                 }
-            </aside>
             </div>
         }
     </div>
@@ -829,27 +291,31 @@ else
     // e scaldata dal layout: una testata non deve interrogare il database mentre si disegna.
     private Vipi.Application.Content.AirportStation? _mil;
     private string? _loadedIcao;
-    private readonly HashSet<string> _dirtySections = new();   // sezioni con modifiche non salvate (scroll unico)
+    /// <summary>Chiavi di SEZIONE con modifiche non salvate (la pagina è a scroll unico e ogni sezione ha il suo
+    /// «Salva»). Erano nomi italiani di pannello — «Regole piste», «Quote transizione» —: un secondo vocabolario
+    /// accanto a quello del catalogo, per indicare le stesse cose.</summary>
+    private readonly HashSet<string> _dirtySections = new();
     private DotNetObjectReference<AeroportoEditorPage>? _selfRef;
     private bool _jsReady;   // true solo dopo il primo render interattivo (JS interop lecito)
     private AirportData? _data;
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
+
+    // ---- documento, lock, bozza: lo stesso workflow degli altri tre editor (carta 2026-08-26 §1b) ----
+    // Non è una scelta di stile: le mutazioni del motore condiviso passano da IEditingService, che pretende il
+    // lock. ⚠️ Sotto lock c'è il DOCUMENTO — sezioni, ordine, nascondi, Live/Frozen, blocchi. I dati
+    // strutturati (regole, TA/TL, piste, SID, link, limiti settori) restano a salvataggio diretto ACC-gated:
+    // li scrivono anche i servizi d'import che girano in background, e quelli un lock non possono prenderlo.
+    private EditableDocument? _doc;
+    private LockInfo _lock = LockInfo.Free();
+    private bool _editing;
     private bool _canEdit;
     private bool _busy;
     private string? _error;
-    private int? _docDbId;                 // Document proiettato dell'aeroporto (per DocReviewBar); null se non generato
-    private bool _hasEffectiveRelease;     // per la pill di stato in header (Pubblicata/Bozza)
+    private int? _docDbId;                 // Document dell'aeroporto (DocReviewBar, blocchi immagine)
 
     private enum SaveState { Idle, Saving, Saved }
     private SaveState _save = SaveState.Idle;
     private readonly DelayedUiAction _dismissSaved = new();
-
-    // Nomi delle sezioni: chiavi dirty + voci della mini-nav (àncora via Anchor()).
-    private readonly string[] _panels = { "Regole piste", "Quote transizione", "Frequenze", "Piste", "SID", "Sezioni extra", "Settori", "Versioni" };
-
-    // Menu-sezioni laterale (TOC): una voce per pannello, con pallino "non salvato".
-    private IReadOnlyList<EditorTocItem> BuildToc()
-        => _panels.Select(p => new EditorTocItem($"sec-{Anchor(p)}", PanelLabel(p), _dirtySections.Contains(p))).ToList();
 
     private ImportPolicySnapshot _policy = ImportPolicySnapshot.AllImported;
     private int? _ta;
@@ -864,7 +330,6 @@ else
     private NavaidCatalog _navaids = NavaidCatalog.Empty;
 
     private List<SidEdit> _sids = new();
-    private bool _sidsLive = true;   // RenderMode della sezione SID (doc 10 §S4c): true=Live, false=Frozen
     private List<ImportedSidEdit> _imported = new();
     private string _sidSearch = "";           // filtro tabella importate (fix/pista)
     private bool _sidOnlyReview;              // mostra solo le importate col fix da verificare
@@ -879,10 +344,9 @@ else
     // possono fare e di là no». La chiave è l'oggetto stesso (le righe a mano non hanno un id finché non sono
     // salvate); il ricarico ricostruisce la lista e la selezione si azzera da sé.
     private readonly HashSet<SidEdit> _selManual = new();
-    private bool _sidWide;          // ⤢ larghezza piena: TOC e rail nascosti mentre si lavora nelle SID
+    private bool _wide;          // ⤢ larghezza piena: TOC e rail nascosti mentre si lavora nelle SID
     private int? _lastSelIdx;                 // ancora per la selezione a intervallo (Shift/Ctrl+click)
     private const StringComparison OIC = StringComparison.OrdinalIgnoreCase;
-    private List<ExtraEdit> _extras = new();
     private List<int> _linkIds = new();
     private string _freqSearch = "";
     private bool _freqPickerOpen;   // combobox: lista enti collegabili aperta sotto il campo di ricerca
@@ -915,19 +379,36 @@ else
     private readonly Dictionary<int, int?> _secLower = new();
     private readonly Dictionary<int, int?> _secUpper = new();
 
-    // Slug d'àncora per la mini-nav (link #sec-…) e gli id di sezione. Le chiavi restano IT stabili (logica dirty).
-    private static string Anchor(string panel) => panel switch
+    // ---- il motore condiviso: chi rende cosa, cosa è fisso, cosa si può congelare ----
+    // Le tre risposte le dà il CATALOGO, per profilo (doc 13 §3a/§3b): qui non c'è nessun insieme scritto a mano.
+    private static bool IsDerived(EditableSection s) =>
+        s.Depth == 0 && SectionCatalog.IsHostRendered(SectionProfile.Airport, s.SectionKey);
+
+    private static bool IsMandatory(EditableSection s) => SectionCatalog.IsFixed(SectionProfile.Airport, s.SectionKey);
+
+    private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.IsRenderModeToggleable(s.SectionKey);
+
+    /// <summary>Il pallino «non salvato» accanto alla voce d'indice. È dell'aeroporto soltanto: gli altri tre
+    /// editor salvano a ogni gesto e non hanno nulla di sospeso da segnalare.</summary>
+    private bool IsSectionDirty(EditableSection s) => _dirtySections.Contains(s.SectionKey);
+
+    /// <summary>Etichetta leggibile di una chiave sporca, per il riepilogo del salvataggio in blocco.</summary>
+    private string DirtyLabel(string key) =>
+        SectionCatalog.Find(SectionProfile.Airport, key)?.Title ?? (key == "settori" ? L["Ape_PanelSectors"].Value : key);
+
+    // Voci d'indice per i due pannelli che NON sono contenuto del documento: il catalogo dei settori ATC e il
+    // pannello Release. L'editor APP fa lo stesso col solo Release.
+    private IReadOnlyList<EditorTocItem> _tocExtra => new[]
     {
-        "Regole piste" => "regole", "Quote transizione" => "tl", "Frequenze" => "freq", "Piste" => "piste",
-        "SID" => "sid", "Sezioni extra" => "extra", "Settori" => "settori", "Versioni" => "versioni", _ => "",
+        new EditorTocItem("sec-settori", L["Ape_PanelSectors"], _dirtySections.Contains("settori")),
+        new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]),
     };
 
-    // Etichetta localizzata della sezione (chiave interna stabile → display).
-    private string PanelLabel(string panel) => panel switch
+    // Espandi/comprimi tutto, in coda al menu-sezioni: stesse chiavi e stesso gesto degli altri tre editor.
+    private RenderFragment TocCommands => __builder =>
     {
-        "Regole piste" => L["Ape_PanelRules"], "Quote transizione" => L["Ape_PanelTl"], "Frequenze" => L["Common_Frequencies"],
-        "Piste" => L["Sorg_RunwaysLabel"], "SID" => "SID", "Sezioni extra" => L["Ape_PanelExtra"],
-        "Settori" => L["Ape_PanelSectors"], "Versioni" => L["Ape_PanelVersions"], _ => panel,
+        <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(true)" title="@L["Ed_ExpandAllTitle"]">@L["Common_ExpandAll"]</button>
+        <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(false)" title="@L["Ed_CollapseAllTitle"]">@L["Common_CollapseAll"]</button>
     };
 
     // Espande/comprime tutte le sezioni <details> (lato JS: niente stato C# da sincronizzare col toggle del browser).
@@ -1013,9 +494,9 @@ else
     private async Task<bool> Confirm(string message) => await JS.InvokeAsync<bool>("confirm", message);
 
     // --- Aggiunte/rimozioni con marcatura dirty per-sezione (rimozioni con conferma) ---
-    private async Task AddRule() { _rules.Add(new RuleEdit()); await MarkDirty("Regole piste"); }
-    private async Task AddTl() { _tls.Add(new TlEdit()); await MarkDirty("Quote transizione"); }
-    private async Task AddRwy() { _rwys.Add(new RwEdit()); await MarkDirty("Piste"); }
+    private async Task AddRule() { _rules.Add(new RuleEdit()); await MarkDirty("runwayrules"); }
+    private async Task AddTl() { _tls.Add(new TlEdit()); await MarkDirty("transition"); }
+    private async Task AddRwy() { _rwys.Add(new RwEdit()); await MarkDirty("runways"); }
     // Il segno di «punto che il catalogo non conosce»: tinge il CAMPO invece di aggiungergli accanto un'icona.
     // La colonna del fix è larga 76px misurati e un'icona ne prenderebbe quattordici — cioè la quinta lettera
     // dei nomi, che è dove stanno i 5/6 dei fix veri. Sul tabellone delle importate questo segno NON c'è: là il
@@ -1026,15 +507,13 @@ else
     private string? UnknownFixTitle(string? value) =>
         NavaidCheck.IsUnknown(value, _navaids) ? L["Ape_PointUnknown"].Value : null;
 
-    private async Task AddSid() { _sids.Add(new SidEdit()); _sidManualSearch = ""; await MarkDirty("SID"); }
-    private async Task AddExtra() { _extras.Add(new ExtraEdit()); await MarkDirty("Sezioni extra"); }
+    private async Task AddSid() { _sids.Add(new SidEdit()); _sidManualSearch = ""; await MarkDirty("sids"); }
 
-    private async Task RemoveRule(RuleEdit r) { if (await Confirm(L["Ape_RemoveRuleConfirm"].Value)) { _rules.Remove(r); await MarkDirty("Regole piste"); } }
-    private async Task RemoveTl(TlEdit t) { if (await Confirm(L["Ape_RemoveRowConfirm"].Value)) { _tls.Remove(t); await MarkDirty("Quote transizione"); } }
-    private async Task RemoveRwy(RwEdit r) { if (await Confirm(L["Ape_RemoveRwConfirm"].Value)) { _rwys.Remove(r); await MarkDirty("Piste"); } }
-    private async Task RemoveSid(SidEdit s) { if (await Confirm(L["Ape_RemoveSidConfirm"].Value)) { _sids.Remove(s); await MarkDirty("SID"); } }
-    private async Task RemoveExtra(ExtraEdit s) { if (await Confirm(L["Ape_RemoveSectionConfirm"].Value)) { _extras.Remove(s); await MarkDirty("Sezioni extra"); } }
-    private async Task RemoveLink(int id) { _linkIds.Remove(id); await MarkDirty("Frequenze"); }
+    private async Task RemoveRule(RuleEdit r) { if (await Confirm(L["Ape_RemoveRuleConfirm"].Value)) { _rules.Remove(r); await MarkDirty("runwayrules"); } }
+    private async Task RemoveTl(TlEdit t) { if (await Confirm(L["Ape_RemoveRowConfirm"].Value)) { _tls.Remove(t); await MarkDirty("transition"); } }
+    private async Task RemoveRwy(RwEdit r) { if (await Confirm(L["Ape_RemoveRwConfirm"].Value)) { _rwys.Remove(r); await MarkDirty("runways"); } }
+    private async Task RemoveSid(SidEdit s) { if (await Confirm(L["Ape_RemoveSidConfirm"].Value)) { _sids.Remove(s); await MarkDirty("sids"); } }
+    private async Task RemoveLink(int id) { _linkIds.Remove(id); await MarkDirty("frequencies"); }
 
     // Ctrl/Cmd+S da JS o bottone «Salva tutto»: salva TUTTE le sezioni sporche valide (scroll unico).
     // «Settori» salva per riga (fuori dal blocco). Al termine mostra il riepilogo salvate/saltate.
@@ -1049,18 +528,16 @@ else
         foreach (var s in _dirtySections.ToList())
         {
             // Blocchi di validazione: non salvare e segnalare come saltata.
-            if (s == "Regole piste" && RuleIssues().Errors.Count > 0) { skipped.Add(s); continue; }
-            if (s == "Sezioni extra" && _extras.Any(x => string.IsNullOrWhiteSpace(x.Title))) { skipped.Add(s); continue; }
-            if (s == "Settori") continue;   // salvataggio per-riga, non in blocco
+            if (s == "runwayrules" && RuleIssues().Errors.Count > 0) { skipped.Add(s); continue; }
+            if (s == "settori") continue;   // salvataggio per-riga, non in blocco
 
             Func<Task>? save = s switch
             {
-                "Regole piste" => SaveRules,
-                "Quote transizione" => SaveTls,
-                "Frequenze" => SaveLinks,
-                "Piste" => SaveRwys,
-                "SID" => SaveSids,
-                "Sezioni extra" => SaveExtras,
+                "runwayrules" => SaveRules,
+                "transition" => SaveTls,
+                "frequencies" => SaveLinks,
+                "runways" => SaveRwys,
+                "sids" => SaveSids,
                 _ => null,
             };
             if (save is null) continue;
@@ -1075,8 +552,8 @@ else
     {
         if (saved.Count == 0 && skipped.Count == 0) return;
         var parts = new List<string>();
-        if (saved.Count > 0) parts.Add($"Salvate: {string.Join(", ", saved.Select(PanelLabel))}");
-        if (skipped.Count > 0) parts.Add($"non salvate (errori): {string.Join(", ", skipped.Select(PanelLabel))}");
+        if (saved.Count > 0) parts.Add($"Salvate: {string.Join(", ", saved.Select(DirtyLabel))}");
+        if (skipped.Count > 0) parts.Add($"non salvate (errori): {string.Join(", ", skipped.Select(DirtyLabel))}");
         _saveInfo = string.Join(" · ", parts);
         _saveInfoWarn = skipped.Count > 0;
         ProgrammaChiusuraInformativa();
@@ -1115,7 +592,7 @@ else
 
     private async Task RuleDrop()
     {
-        if (_ruleDrag is not null) { _ruleDrag = null; await MarkDirty("Regole piste"); }
+        if (_ruleDrag is not null) { _ruleDrag = null; await MarkDirty("runwayrules"); }
     }
 
     private async Task LoadAsync()
@@ -1179,17 +656,94 @@ else
         _src = null;
         _lastSelIdx = null;
         _linkIds = _data.Links.Select(l => l.SourceSectorId).ToList();
-        _extras = _data.ExtraSections.Select(s => new ExtraEdit { Title = s.Title, Body = s.Body, Blocks = ExtraBlocks.Parse(s.Body) }).ToList();
-        _sidsLive = await Profile.GetSidsRenderModeAsync(_icao) == RenderMode.Live;
 
         _sectors = await Sectors.ListByAirportAsync(_icao);
         _secLower.Clear(); _secUpper.Clear();
         foreach (var s in _sectors) { _secLower[s.Id] = s.LowerLimit; _secUpper[s.Id] = s.UpperLimit; }
 
-        // Document proiettato (per il banner revisione) + stato pubblicazione (pill header). La timeline release
-        // completa è gestita dal componente ReleasePanel nella sezione «Versioni».
-        _docDbId = await Profile.GetDocumentIdAsync(_icao);
-        _hasEffectiveRelease = (await Releases.ListAsync(ReleaseTargetType.Airport, _icao)).Any(r => r.IsEffectiveNow);
+        // ---- il documento ----
+        // ⚠️ Ensure e NON «se manca crealo» scritto qui: garantisce il documento e le sue sezioni di catalogo in
+        // un colpo solo, ed è idempotente. È ACC-gated, quindi solo chi può editare lo fa nascere; a chi guarda
+        // in sola lettura il documento serve già esistente, e se non c'è la pagina lo dice.
+        if (_canEdit) _docDbId = await Profile.EnsureDocumentAsync(_icao);
+        else _docDbId = await Profile.GetDocumentIdAsync(_icao);
+
+        if (_docDbId is int docId)
+        {
+            try
+            {
+                _doc = await Editing.LoadForEditAsync(docId);
+                _lock = await Editing.InspectLockAsync(docId);
+            }
+            catch (EditNotAllowedException) { _doc = null; }
+            // Il lock può essere scaduto o preso da un altro mentre si stava qui: la modifica finisce con lui.
+            _editing = _editing && _doc?.IsEditable == true && _lock.IsMine;
+        }
+    }
+
+    // ---- bozza e lock: lo stesso gesto degli altri tre editor ----
+    private async Task StartEditing()
+    {
+        if (_docDbId is not int id) return;
+        await GuardCore(async () =>
+        {
+            // Una versione pubblicata non si modifica: si apre una BOZZA. È la regola di tutte le famiglie.
+            if (_doc is { IsEditable: false }) await Editing.CreateDraftAsync(id);
+            else await Editing.AcquireLockAsync(id);
+            await LoadAsync();
+            _editing = _doc?.IsEditable == true;
+        }, silent: true);
+    }
+
+    /// <summary>Rilascia il lock subito, così il documento è libero per gli altri senza aspettare il TTL.</summary>
+    private async Task FinishEditing()
+    {
+        _editing = false;
+        if (_docDbId is int id)
+        {
+            await GuardCore(() => Editing.ReleaseLockAsync(id), silent: true);
+            _lock = await Editing.InspectLockAsync(id);
+        }
+    }
+
+    /// <summary>Guardia passata come <c>Run=</c> al motore condiviso: mostra il badge di salvataggio e cattura
+    /// gli errori. Firma a un parametro perché è quella che <c>DocumentSectionsEditor</c> si aspetta.</summary>
+    private Task Guard(Func<Task> action) => GuardCore(action, silent: false);
+
+    private async Task GuardCore(Func<Task> action, bool silent)
+    {
+        _error = null;
+        if (!silent) { _save = SaveState.Saving; StateHasChanged(); }
+        try
+        {
+            await action();
+            if (!silent)
+            {
+                _save = SaveState.Saved;
+                _dismissSaved.Schedule(TimeSpan.FromSeconds(2), () =>
+                {
+                    if (_save != SaveState.Saved) return Task.CompletedTask;
+                    _save = SaveState.Idle;
+                    return InvokeAsync(StateHasChanged);
+                });
+            }
+        }
+        catch (EditNotAllowedException) { _error = L["Ape_NoEditPerm"]; _save = SaveState.Idle; }
+        catch (EditConflictException ex)
+        {
+            _error = ex.Message;
+            _save = SaveState.Idle;
+            if (_docDbId is int id) _lock = await Editing.InspectLockAsync(id);
+        }
+        catch (ValidationException ex) { _error = ex.Message; _save = SaveState.Idle; }
+        // Rete di sicurezza: senza, un'eccezione non prevista abbatte il circuito e lascia il badge inchiodato
+        // su «Salvataggio».
+        catch (Exception ex)
+        {
+            _error = L["Common_UnexpectedError"] + ex.Message;
+            _save = SaveState.Idle;
+            Logger.LogError(ex, "Azione editor aeroporto fallita (documento {DocId}).", _docDbId);
+        }
     }
 
     private IEnumerable<LinkableFrequencyRow> FilteredLinkable()
@@ -1206,34 +760,25 @@ else
     // Combobox enti: click su una voce = aggiunge il link; il campo di ricerca resta pronto per il prossimo.
     private async Task PickLinkable(int id)
     {
-        if (!_linkIds.Contains(id)) { _linkIds.Add(id); await MarkDirty("Frequenze"); }
+        if (!_linkIds.Contains(id)) { _linkIds.Add(id); await MarkDirty("frequencies"); }
         _freqSearch = "";
     }
 
     private Task SaveTa() => Guarded(() => Profile.SetTransitionAltitudeAsync(_icao, _ta));
-    private Task SaveTls() => SaveSection("Quote transizione", () => Profile.SaveTransitionLevelsAsync(_icao,
+    private Task SaveTls() => SaveSection("transition", () => Profile.SaveTransitionLevelsAsync(_icao,
         _tls.Select(t => new TlRow(t.Id, t.From, t.To, t.Level ?? "")).ToList()));
-    private Task SaveRwys() => SaveSection("Piste", () => Profile.SaveRunwaysAsync(_icao,
+    private Task SaveRwys() => SaveSection("runways", () => Profile.SaveRunwaysAsync(_icao,
         _rwys.Select(r => new RunwayRow(r.Id, r.Ident ?? "", r.LengthM, r.Bearing, r.Tora, r.Lda, r.App, r.Patterns, r.Circling)).ToList()));
-    private Task SaveRules() => SaveSection("Regole piste", () => Profile.SaveRunwayRulesAsync(_icao,
+    private Task SaveRules() => SaveSection("runwayrules", () => Profile.SaveRunwayRulesAsync(_icao,
         _rules.Select(r => new RunwayRuleRow(0, JoinCsv(r.Dep), JoinCsv(r.Arr), r.Name,
             r.MaxTail, r.MaxCross, r.Surface switch { "dry" => RunwaySurface.Dry, "wet" => RunwaySurface.Wet, _ => RunwaySurface.Any }, r.Note,
             TimeToMin(r.TimeFrom), TimeToMin(r.TimeTo), r.DaysMask == 0 ? null : r.DaysMask,
             r.Parity switch { "even" => DateParity.Even, "odd" => DateParity.Odd, _ => DateParity.Any },
             CombineMd(r.DateFromMonth, r.DateFromDay), CombineMd(r.DateToMonth, r.DateToDay))).ToList()));
-    private Task SaveSids() => SaveSection("SID", () => Profile.SaveSidsAsync(_icao,
+    private Task SaveSids() => SaveSection("sids", () => Profile.SaveSidsAsync(_icao,
         _sids.Select(s => new SidRow(0, s.Runway, s.Fix ?? "", s.Name ?? "", s.Transition, s.InitialClimb, s.Type,
             s.Cat, s.Wtc, s.Condition, Priority: s.Priority, InitialClimbByApp: s.InitialClimbByApp)).ToList()));
-    // RenderMode della sezione SID (doc 10 §S4c): persistito subito (non serve ripubblicare per cambiare la resa).
-    private Task SetSidsMode(bool live) => Guarded(async () =>
-    {
-        await Profile.SetSidsRenderModeAsync(_icao, live ? RenderMode.Live : RenderMode.Frozen);
-        _sidsLive = live;
-    });
-
-    private Task SaveLinks() => SaveSection("Frequenze", () => Profile.SaveFrequencyLinksAsync(_icao, _linkIds.ToList()));
-    private Task SaveExtras() => SaveSection("Sezioni extra", () => Profile.SaveExtraSectionsAsync(_icao,
-        _extras.Select(s => new ExtraSectionRow(0, s.Title ?? "", ExtraBlocks.Serialize(s.Blocks))).ToList()));
+    private Task SaveLinks() => SaveSection("frequencies", () => Profile.SaveFrequencyLinksAsync(_icao, _linkIds.ToList()));
 
     /// <summary>«Re-import from IVAO»: tutto quello che l'aeroporto prende dalla sorgente, in un colpo —
     /// piste + Transition Altitude (secondo la policy «Sorgenti dati») E catalogo settori. Prima faceva solo
@@ -1373,7 +918,7 @@ else
     private Task TouchRow(bool imported, object row)
     {
         if (imported) { TouchImported((ImportedSidEdit)row); return Task.CompletedTask; }
-        return MarkDirty("SID");
+        return MarkDirty("sids");
     }
 
     // ──────────────────────────────────────────────────────────────────────────────────────────────
@@ -1530,7 +1075,7 @@ else
                 CopyCell(src, m, _src.Col);
                 if (!visible.Contains(m)) { hidden++; }
             }
-            await MarkDirty("SID");
+            await MarkDirty("sids");
         }
         _saveInfo = Plural(n, "Ape_ApplyDone", n) + (hidden > 0 ? L["Ape_ApplyHidden", hidden].Value : "");
         _saveInfoWarn = false;
@@ -1721,7 +1266,7 @@ else
         };
         _sids.Insert(i < 0 ? _sids.Count : i + 1, copy);
         _sidManualSearch = "";   // rendi visibile la nuova riga anche se un filtro era attivo
-        await MarkDirty("SID");
+        await MarkDirty("sids");
     }
 
     // Ciclo di prima pubblicazione automatica = ciclo successivo a quello di prelievo.
@@ -1732,17 +1277,14 @@ else
         catch (ArgumentException) { return "—"; }
     }
 
-    // --- Release AIRAC (sezione «Versioni» via ReleasePanel). Prima di pubblicare rigenera il documento dalla bozza. ---
-    // Callback passato a ReleasePanel: avvisa sulle sezioni non salvate, conferma, poi rigenera. false = annulla il publish.
+    // --- Release AIRAC (pannello «Versioni»). Callback di ReleasePanel: false = annulla il publish. ---
     private async Task<bool> BeforePublishAsync()
     {
-        if (_dirtySections.Count > 0 &&
-            !await Confirm(string.Format(L["Ape_UnsavedPublishConfirm"].Value, string.Join(", ", _dirtySections.Select(PanelLabel)))))
-            return false;
-        if (!await Confirm(L["Ape_RebuildConfirm"].Value))
-            return false;
-        await Profile.EnsureDocumentAsync(_icao);
-        return true;
+        // ⚠️ Resta solo l'avviso sulle sezioni non salvate. La conferma «rigenero il documento?» è caduta con
+        // la cosa che annunciava: non c'è più niente da rigenerare — le sezioni fisse non hanno un corpo cotto
+        // da riscrivere, e la pubblicazione congela la derivazione di adesso.
+        return _dirtySections.Count == 0
+            || await Confirm(string.Format(L["Ape_UnsavedPublishConfirm"].Value, string.Join(", ", _dirtySections.Select(DirtyLabel))));
     }
 
     private string ReleasePreviewUrl(int releaseId) =>
@@ -1888,11 +1430,11 @@ else
     private IReadOnlyList<string> RwIdents() =>
         _rwys.Where(r => !string.IsNullOrWhiteSpace(r.Ident)).Select(r => r.Ident!.Trim()).Distinct().ToList();
 
-    private async Task Toggle(HashSet<string> set, string id) { if (!set.Remove(id)) set.Add(id); await MarkDirty("Regole piste"); }
+    private async Task Toggle(HashSet<string> set, string id) { if (!set.Remove(id)) set.Add(id); await MarkDirty("runwayrules"); }
     private static string RwChip(HashSet<string> set, string id) => set.Contains(id)
         ? "background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)" : "opacity:.6";
 
-    private async Task ToggleDay(RuleEdit r, int bit) { r.DaysMask ^= (1 << bit); await MarkDirty("Regole piste"); }
+    private async Task ToggleDay(RuleEdit r, int bit) { r.DaysMask ^= (1 << bit); await MarkDirty("runwayrules"); }
     private static string DayChip(RuleEdit r, int bit) => (r.DaysMask & (1 << bit)) != 0
         ? "background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)" : "opacity:.6";
 
@@ -1901,15 +1443,7 @@ else
         var j = idx + dir;
         if (j < 0 || j >= _rules.Count) return;
         (_rules[idx], _rules[j]) = (_rules[j], _rules[idx]);
-        await MarkDirty("Regole piste");
-    }
-
-    private async Task MoveExtra(int idx, int dir)
-    {
-        var j = idx + dir;
-        if (j < 0 || j >= _extras.Count) return;
-        (_extras[idx], _extras[j]) = (_extras[j], _extras[idx]);
-        await MarkDirty("Sezioni extra");
+        await MarkDirty("runwayrules");
     }
 
     private static HashSet<string> SplitCsv(string? csv) => (csv ?? "")
@@ -2063,5 +1597,571 @@ else
         // Arricchimenti editoriali sovrapposti alla riga di sorgente (persistiti con la riga, preservati al reimport).
         public string? InitialClimb; public bool InitialClimbByApp; public string? Cat; public string? Wtc; public string? Condition;
     }
-    private sealed class ExtraEdit { public string? Title; public string? Body; public List<ExtraBlock> Blocks = new(); }
+
+    // ---- il corpo delle sezioni FISSE, reso da questa pagina ----
+    // Sono gli stessi sei editor strutturati di prima, spostati dentro il motore condiviso: quel che cambia è
+    // che ora vivono in una SEZIONE del documento — con la sua chiave, il suo ordine e il suo stato — e non in
+    // un <details> scritto a mano dentro un array di nomi italiani.
+    //
+    // ⚠️ Un frammento per sezione, e il dispatch è una `switch` di sola ESPRESSIONE. Mettere la marcatura dentro
+    // i rami di una `switch` non compila: il parser Razor conta le graffe del blocco e un `@{ … }` dentro un
+    // `case` gliele sbilancia («RZ1006: the switch block is missing a closing "}"»). Ogni frammento comincia
+    // invece con un elemento, quindi si legge come marcatura dal primo carattere.
+    private RenderFragment DerivedSection(EditableSection s) => s.SectionKey switch
+    {
+        "weather" => WeatherNote,
+        "runwayrules" => RulesEditor,
+        "transition" => TransitionEditor,
+        "frequencies" => FrequenciesEditor,
+        "runways" => RunwaysEditor,
+        "sids" => SidsEditor,
+        _ => _ => { },
+    };
+
+
+    /// <summary>Meteo: non c'è niente da modificare, e vale la pena dirlo — è anche l'unica sezione che non si
+    /// può congelare alla release, e chi la trova senza comandi si chiederebbe se manca qualcosa.</summary>
+    private RenderFragment WeatherNote => __builder =>
+    {
+        <div class="callout info" style="margin:0">
+            <span class="cic"><Icon Name="cloud" Size="18" /></span>
+            <div><p class="ct">@L["Ape_WeatherTitle"]</p>@L["Ape_WeatherBody"]</div>
+        </div>
+    };
+
+    /// <summary>Regole di scelta pista, con il tester «prova vento» che valuta i buffer correnti senza salvare.</summary>
+    private RenderFragment RulesEditor => __builder =>
+    {
+        <div @onchange='() => MarkDirty("runwayrules")'>
+            @* La prosa che stava sempre a schermo (due paragrafi, 97px) la dice il «?» al clic:
+               testo riusato IDENTICO, stesse chiavi. *@
+            <div class="ed-h3">
+                <h2 class="h-sect">@L["Ape_RwRulesTitle"]</h2>
+                <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_RwRulesHelpAria"]" ExtraClass="wide">
+                    @((MarkupString)L["Ape_RwRulesHelp"].Value)
+                    <p>@L["Ape_RwRulesHelp2"]</p>
+                </HelpHint>
+            </div>
+
+            @{ var issues = RuleIssues(); }
+            @if (issues.Errors.Count > 0)
+            {
+                <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@foreach (var m in issues.Errors) { <div>@m</div> }</div></div>
+            }
+            @if (issues.Warnings.Count > 0)
+            {
+                <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in issues.Warnings) { <div>@m</div> }</div></div>
+            }
+
+            @foreach (var (r, idx) in _rules.Select((r, i) => (r, i)))
+            {
+                <div class="rule-card" @key="r"
+                     style="@(_testRan && _testHit?.RuleIndex == idx ? "outline:2px solid var(--ivao-blue);outline-offset:2px" : null)"
+                     @ondragover:preventDefault="true" @ondragenter="() => RuleDragEnter(idx)" @ondrop="RuleDrop" @ondragend="() => _ruleDrag = null">
+                    <div class="rule-head">
+                        <span class="app-drag" draggable="true" @ondragstart="() => _ruleDrag = idx" title="@L["Ape_DragToReorder"]">⠿</span>
+                        <span class="rule-ord">#@(idx + 1)@if (_testRan && _testHit?.RuleIndex == idx) { <span title="@L["Ape_TestWinner"]"> ✓</span> }</span>
+                        <div style="display:flex;gap:6px">
+                            <button class="btn ghost" disabled="@(idx == 0)" @onclick="() => Move(idx, -1)" title="@L["Common_Up"]">↑</button>
+                            <button class="btn ghost" disabled="@(idx == _rules.Count - 1)" @onclick="() => Move(idx, 1)" title="@L["Common_Down"]">↓</button>
+                            <button class="btn ghost" @onclick="() => RemoveRule(r)">✕ @L["Common_Remove"]</button>
+                        </div>
+                    </div>
+                    <div class="rule-rwys">
+                        <div><span class="muted">DEP:</span>
+                            @if (_rwys.Count == 0) { <i class="muted">@L["Ape_NoRwDefined"]</i> }
+                            @foreach (var ident in RwIdents())
+                            {
+                                var id = ident;
+                                <button type="button" class="pill" style="@RwChip(r.Dep, id)" @onclick="() => Toggle(r.Dep, id)">@id</button>
+                            }
+                        </div>
+                        <div><span class="muted">ARR:</span>
+                            @foreach (var ident in RwIdents())
+                            {
+                                var id = ident;
+                                <button type="button" class="pill" style="@RwChip(r.Arr, id)" @onclick="() => Toggle(r.Arr, id)">@id</button>
+                            }
+                        </div>
+                    </div>
+                    <div class="rule-grid">
+                        <label>@L["Ape_MaxTail"]<input type="number" min="0" max="40" @bind="r.MaxTail" /></label>
+                        <label>@L["Ape_MaxCross"]<input type="number" min="0" max="60" placeholder="—" @bind="r.MaxCross" /></label>
+                        <label>@L["Ape_Surface"]<select @bind="r.Surface"><option value="any">@L["Ape_SurfAny"]</option><option value="dry">@L["Ape_SurfDry"]</option><option value="wet">@L["Ape_SurfWet"]</option></select></label>
+                        <label>@L["Airport_Name"]<input @bind="r.Name" placeholder="@L["Ape_RuleNamePh"]" /></label>
+                        <label>@L["Ape_Notes"]<input @bind="r.Note" placeholder="@L["Ape_FreeText"]" /></label>
+                    </div>
+                    <details class="rule-adv">
+                        <summary>@L["Ape_Advanced"]</summary>
+                        <div class="rule-grid" style="margin-top:8px">
+                            <label>@L["Ape_TimeFrom"]<input type="time" @bind="r.TimeFrom" /></label>
+                            <label>@L["Ape_TimeTo"]<input type="time" @bind="r.TimeTo" /></label>
+                            <label>@L["Ape_DayParity"]<select @bind="r.Parity"><option value="">@L["Ape_SurfAny"]</option><option value="even">@L["Ape_Even"]</option><option value="odd">@L["Ape_Odd"]</option></select></label>
+                            <label>@L["Ape_ValidFrom"]
+                                <span style="display:flex;gap:4px">
+                                    <select @bind="r.DateFromDay" style="flex:1">@DayOptions()</select>
+                                    <select @bind="r.DateFromMonth" style="flex:2">@MonthOptions()</select>
+                                </span>
+                            </label>
+                            <label>@L["Ape_ValidTo"]
+                                <span style="display:flex;gap:4px">
+                                    <select @bind="r.DateToDay" style="flex:1">@DayOptions()</select>
+                                    <select @bind="r.DateToMonth" style="flex:2">@MonthOptions()</select>
+                                </span>
+                            </label>
+                        </div>
+                        <div class="ed-h3 ed-h3-mini">
+                            <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SeasonalHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_SeasonalHelp"].Value)</HelpHint>
+                            <span class="muted">@L["Ape_SeasonalShort"]</span>
+                        </div>
+                        <div class="rule-days">
+                            <span class="muted">@L["Ape_Days"]</span>
+                            @for (var b = 0; b < 7; b++)
+                            {
+                                var bit = b;
+                                <button type="button" class="pill" style="@DayChip(r, bit)" @onclick="() => ToggleDay(r, bit)">@DayNames[bit]</button>
+                            }
+                        </div>
+                    </details>
+                </div>
+            }
+
+            <div style="margin-top:10px;display:flex;gap:8px">
+                <button class="btn ghost" @onclick="AddRule">+ @L["Ape_Rule"]</button>
+                <button class="btn primary" disabled="@(_busy || !_canEdit || issues.Errors.Count > 0)" @onclick="SaveRules">@L["Ape_SaveRules"]</button>
+            </div>
+
+            @* --- Tester: prova le regole con un vento arbitrario (non salva nulla) --- *@
+            <div class="block" style="margin-top:12px;background:var(--surface-soft)">
+                <div class="se-row" style="flex-wrap:wrap;align-items:end;gap:10px">
+                    <label style="display:flex;flex-direction:column;font-size:12px">Vento da (°)
+                        <input type="number" min="0" max="360" style="width:90px" @bind="_testDir" placeholder="@L["Ape_WindCalm"]" /></label>
+                    <label style="display:flex;flex-direction:column;font-size:12px">Intensità (kt)
+                        <input type="number" min="0" max="99" style="width:80px" @bind="_testKt" /></label>
+                    <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" @bind="_testWet" /> @L["Ape_SurfWet"]</label>
+                    <button type="button" class="btn ghost" @onclick="RunRuleTest">▷ @L["Ape_TestRun"]</button>
+                    @if (_testRan) { <button type="button" class="btn ghost" @onclick="() => _testRan = false">✕ @L["Ape_TestClear"]</button> }
+                </div>
+                @if (_testRan)
+                {
+                    @if (_testHit is not null)
+                    {
+                        <div class="callout success" style="margin-top:8px"><span class="cic">✓</span><div>
+                            <b>Regola #@(_testHit.RuleIndex + 1)@(string.IsNullOrWhiteSpace(_testHit.RuleName) ? "" : $" · {_testHit.RuleName}")</b> —
+                            DEP <b>@_testHit.Dep</b> · ARR <b>@_testHit.Arr</b>@if (!string.IsNullOrWhiteSpace(_testHit.Note)) { <text> (@_testHit.Note)</text> }
+                        </div></div>
+                    }
+                    else
+                    {
+                        <div class="callout warning" style="margin-top:8px"><span class="cic">⚠️</span><div>
+                            Nessuna regola si applica → fallback testa-vento: @(_testFallback?.Note ?? "—")
+                        </div></div>
+                    }
+                }
+            </div>
+        </div>
+    };
+
+    /// <summary>Transition Altitude e tabella dei livelli per fascia QNH.</summary>
+    private RenderFragment TransitionEditor => __builder =>
+    {
+        <div @onchange='() => MarkDirty("transition")'>
+            <div class="ed-h3">
+                <h2 class="h-sect">@L["Ape_TlTitle"]</h2>
+                <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_TlHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_TlHelp"].Value)</HelpHint>
+                @if (_policy.TransitionAltitude)
+                {
+                    @* Il chip resta a schermo (è uno STATO: questo dato non si tocca), la spiegazione
+                       del perché va nel «?» accanto. *@
+                    <span class="pill neutral" title="@L["Ape_TaFromSourceTitle"]"><Icon Name="key" Size="11" /> @L["Ape_FromSource"]</span>
+                    <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_TaFromSourceAria"]" ExtraClass="wide">@L["Ape_TaFromSource"]</HelpHint>
+                }
+            </div>
+            @{ var tlIssues = TlIssues(); }
+            @if (tlIssues.Count > 0)
+            {
+                <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in tlIssues) { <div>@m</div> }</div></div>
+            }
+            <div class="se-row">
+                <label><b>@L["Ape_TaLabel"]</b></label>
+                <input type="number" style="width:100px" @bind="_ta" disabled="@(_policy.TransitionAltitude)" />
+                <button class="btn primary" disabled="@(_busy || !_canEdit || _policy.TransitionAltitude)" @onclick="SaveTa">@L["Ape_SaveTa"]</button>
+            </div>
+            <table class="res-table" style="max-width:460px">
+                <thead><tr><th>@L["Ape_QnhFrom"]</th><th>@L["Ape_QnhTo"]</th><th>Transition Level</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var t in _tls)
+                    {
+                        <tr @key="t">
+                            <td><input type="number" style="width:90px" @bind="t.From" placeholder="@L["Ape_Open"]" /></td>
+                            <td><input type="number" style="width:90px" @bind="t.To" placeholder="@L["Ape_Open"]" /></td>
+                            <td><input style="width:90px" @bind="t.Level" placeholder="FL75" /></td>
+                            <td><button class="btn ghost" @onclick="() => RemoveTl(t)">✕</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div style="margin-top:10px;display:flex;gap:8px">
+                <button class="btn ghost" @onclick="AddTl">+ @L["Dse_Row"]</button>
+                <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveTls">@L["Ape_SaveTable"]</button>
+            </div>
+        </div>
+    };
+
+    /// <summary>Frequenze del catalogo (sola lettura) più i link a enti esterni, che si scelgono qui.</summary>
+    private RenderFragment FrequenciesEditor => __builder =>
+    {
+        <div @onchange='() => MarkDirty("frequencies")'>
+            <div class="ed-h3">
+                <h2 class="h-sect">@L["Common_Frequencies"]</h2>
+                <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_FreqHelpAria"]" ExtraClass="wide">@L["Ape_FreqHelp"]</HelpHint>
+            </div>
+            <table class="res-table freq-table">
+                <thead><tr><th>Callsign</th><th>Position</th><th>@L["Vle_Frequency"]</th><th>@L["Ape_Origin"]</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var f in FreqRows())
+                    {
+                        <tr class="@(f.IsPrimary ? "primary" : null)"><td>@if (f.IsPrimary) { <span class="freq-key">★</span> } @FreqDisplayName(f)</td><td>@f.ComposePosition</td><td>@(f.Frequency ?? "—")</td><td class="muted">@L["Ape_Catalog"]</td><td></td></tr>
+                    }
+                    @foreach (var id in _linkIds)
+                    {
+                        var lf = _linkable.FirstOrDefault(x => x.SectorId == id);
+                        <tr @key="id">
+                            <td>@(string.IsNullOrWhiteSpace(lf?.AtcCallsign) ? (lf?.Callsign ?? "—") : lf!.AtcCallsign)</td><td>@(lf?.Callsign ?? "—")</td><td>@(lf?.FrequencyMhz ?? "—")</td>
+                            <td class="muted">@L["Ape_Linked"]</td>
+                            <td><button class="btn ghost" @onclick="() => RemoveLink(id)">✕</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div class="se-row" style="margin-top:10px;align-items:flex-start">
+                <div style="position:relative;width:320px">
+                    <input style="width:100%" placeholder="@L["Ape_SearchCallsignFreq"]"
+                           @bind="_freqSearch" @bind:event="oninput"
+                           @onfocus="() => _freqPickerOpen = true" @onblur="() => _freqPickerOpen = false" />
+                    @if (_freqPickerOpen)
+                    {
+                        var opts = FilteredLinkable().ToList();
+                        <div class="freq-picker-list">
+                            @if (opts.Count == 0)
+                            {
+                                <div class="freq-picker-empty muted">@L["Ape_NoUnitFound"]</div>
+                            }
+                            @foreach (var lf in opts)
+                            {
+                                var id = lf.SectorId;
+                                var added = _linkIds.Contains(id);
+                                <button type="button" class="freq-picker-item" disabled="@added"
+                                        @onmousedown:preventDefault="true" @onmousedown="() => PickLinkable(id)">
+                                    <b>@lf.Callsign</b> · @lf.FrequencyMhz @(lf.Icao is null ? "" : $"({lf.Icao})")@if (added) { <span class="muted"> — @L["Ape_AlreadyAdded"]</span> }
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+                <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveLinks">@L["Ape_SaveLinks"]</button>
+            </div>
+        </div>
+    };
+
+    /// <summary>Piste: i campi di sorgente sono bloccati se la policy d'import le dichiara di sorgente.</summary>
+    private RenderFragment RunwaysEditor => __builder =>
+    {
+        <div @onchange='() => MarkDirty("runways")'>
+            <div class="ed-h3">
+                <h2 class="h-sect">@L["Sorg_RunwaysLabel"]</h2>
+                @if (_policy.Runways)
+                {
+                    <span class="pill neutral" title="@L["Ape_RwFromSourceTitle"]"><Icon Name="key" Size="11" /> @L["Ape_FromSource"]</span>
+                    <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_RwFromSourceAria"]" ExtraClass="wide">@L["Ape_RwFromSource"]</HelpHint>
+                }
+                else
+                {
+                    <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_RwEditorialAria"]" ExtraClass="wide">@L["Ape_RwEditorial"]</HelpHint>
+                }
+            </div>
+            @{ var rwIssues = RwIssues(); }
+            @if (rwIssues.Count > 0)
+            {
+                <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in rwIssues) { <div>@m</div> }</div></div>
+            }
+            <table class="res-table">
+                <thead><tr><th>@L["Ape_Runway"]</th><th>@L["Ape_LengthM"]</th><th>TORA</th><th>LDA</th><th>APP procedures</th><th>Patterns</th><th>Circling</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var r in _rwys)
+                    {
+                        <tr @key="r">
+                            <td><input style="width:64px" @bind="r.Ident" disabled="@(_policy.Runways)" /></td>
+                            <td class="muted">@(r.LengthM?.ToString() ?? "—")</td>
+                            <td><input style="width:80px" @bind="r.Tora" /></td>
+                            <td><input style="width:80px" @bind="r.Lda" /></td>
+                            <td><input style="width:150px" @bind="r.App" /></td>
+                            <td><input style="width:70px" @bind="r.Patterns" /></td>
+                            <td><input style="width:70px" @bind="r.Circling" /></td>
+                            <td>@if (!_policy.Runways) { <button class="btn ghost" @onclick="() => RemoveRwy(r)">✕</button> }</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div style="margin-top:10px;display:flex;gap:8px">
+                @if (!_policy.Runways) { <button class="btn ghost" @onclick="AddRwy">+ @L["Ape_Runway"]</button> }
+                <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveRwys">@L["Ape_SaveRunways"]</button>
+            </div>
+        </div>
+    };
+
+    /// <summary>SID importate dal sectorfile e SID manuali, con selezione multipla e pubblicazione in blocco.</summary>
+    private RenderFragment SidsEditor => __builder =>
+    {
+        @* ⚠️ Il commutatore Live/Congelata NON è più qui: sta nell'intestazione della sezione, dove lo hanno le
+           altre tre famiglie (`IsRenderModeToggleable`). Averne due sarebbe stato lo stesso comando in due
+           posti, e quello locale conosceva solo le SID. *@
+        <div @onchange='() => MarkDirty("sids")'>
+            @if (_imported.Count > 0)
+            {
+                <div class="block">
+                    @{ var nReview = _imported.Count(e => e.NeedsReview); var iview = ImportedView(); }
+                    <div class="ed-h3">
+                        <h2 class="h-sect">@L["Ape_SidImportedTitle"] <span class="pill blue" title="@L["Ape_SidImportedCountTitle"]">@CountLabel(iview.Count, _imported.Count)</span></h2>
+                        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SidImportedHelpAria"]" ExtraClass="wide">
+                            @((MarkupString)L["Ape_SidImportedHelp"].Value)
+                            <p>@L["Ape_SidSelectHint"]</p>
+                        </HelpHint>
+                        <span class="ln"></span>
+                        @* ⤢ larghezza piena: TOC e rail via mentre si lavora nelle SID. A 1600 la colonna
+                           centrale è 946px per dodici colonne; senza i due lati diventa 1536. *@
+                        <button class="btn ghost" @onclick="() => _wide = !_wide" title="@(_wide ? L["Ed_NarrowTitle"] : L["Ed_WideTitle"])"
+                                aria-pressed="@_wide.ToString().ToLowerInvariant()">@(_wide ? "⤡" : "⤢") @(_wide ? L["Ed_Narrow"] : L["Ed_Wide"])</button>
+                        <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="ReimportSids" title="@L["Ape_ReimportSidTitle"]"><Icon Name="refresh" Size="14" /> @L["Ape_ReimportSid"]</button>
+                    </div>
+                    @* Barra dei filtri: campi di Struttura (la lente è disegnata nel campo) e chip SEMPRE
+                       presenti, spenti a zero — un chip che compare col contatore accorcia la riga sotto
+                       il puntatore. I chip pista tagliano 206 righe a una quarantina con un clic. *@
+                    <div class="struct-bar">
+                        <input class="htree-search" placeholder="@L["Ape_SidSearchPh"]" @bind="_sidSearch" @bind:event="oninput" />
+                        <span class="sb-chips">
+                            <button class="sh-chip @(nReview > 0 ? "warn" : "") @(_sidOnlyReview ? "on" : "")" disabled="@(nReview == 0)"
+                                    title="@L["Ape_SidReviewChipTitle"]" @onclick="() => _sidOnlyReview = !_sidOnlyReview">@L["Ape_SidReviewChip", nReview]</button>
+                            @foreach (var rw in ImportedRunways())
+                            {
+                                var id = rw.Ident;
+                                <button class="sh-chip @(_sidRwFilter == id ? "on" : "")" title="@L["Ape_SidRwChipTitle"]"
+                                        @onclick="() => _sidRwFilter = _sidRwFilter == id ? null : id">@id <span class="chip-n">@rw.Count</span></button>
+                            }
+                        </span>
+                    </div>
+                    @* Barra delle azioni FUORI dal riquadro che scorre: chi compila in fondo alle 206 righe
+                       non deve risalire per confermare. «Salva modificate» conta le righe TOCCATE, che non
+                       sono più le righe SCELTE: due stati diversi, due colori diversi. *@
+                    <div class="bulk-bar">
+                        <b>@L["Ape_SidDirtyN", _dirtySid.Count]</b>
+                        <button class="btn primary" disabled="@(_busy || !_canEdit || _dirtySid.Count == 0)" @onclick="SaveDirtyImported"><Icon Name="check-circle" /> @L["Ape_SidSaveDirty"]</button>
+                        <span class="sb-sep"></span>
+                        <b>@L["Apt_NSelected", _selSid.Count]</b>
+                        <button type="button" class="btn ghost" disabled="@(iview.Count == 0)" @onclick="() => ToggleSelectAll(iview)">@(AllSelected(iview) ? L["Ape_SidUnselectAll"] : L["Ape_SidSelectAll"])</button>
+                        @* Gli stessi due gesti del doppio clic, raggiungibili anche da tastiera: agiscono
+                           sulla riga del campo toccato per ultimo. *@
+                        <button class="btn ghost" disabled="@(_src is null || !_src.Imported)" @onclick="() => PickSameFromBar(true, false)" title="@L["Ape_PickSameFixTitle"]">@L["Ape_PickSameFix"]</button>
+                        <button class="btn ghost" disabled="@(_src is null || !_src.Imported)" @onclick="() => PickSameFromBar(true, true)" title="@L["Ape_PickSameTransTitle"]">@L["Ape_PickSameTrans"]</button>
+                        <button class="btn ghost" disabled="@(_busy || !_canEdit || _selSid.Count == 0)" @onclick="PublishSelectedImported" title="@L["Ape_SidPublishSelTitle"]"><Icon Name="clock" /> @L["Ape_SidPublishSel"]</button>
+                        @* «Applica alle scelte»: dice sempre COSA copierà e DOVE — niente azioni al buio. *@
+                        <button class="btn ghost" disabled="@(!CanApply(true))" @onclick="() => ApplyToSelected(true)" title="@L["Ape_ApplyTitle"]">⤓ @ApplyLabel(true)</button>
+                        <button class="btn ghost" title="@L["Apt_Deselect"]" aria-label="@L["Apt_Deselect"]" disabled="@(_selSid.Count == 0)" @onclick="ClearSidSelection">✕</button>
+                    </div>
+                    @* ⚠️ Prima la tabella stava in un `overflow:auto` SENZA altezza: un contenitore di
+                       scorrimento che non scorre mai in verticale, dove uno `sticky` non si aggancia a
+                       niente. Con l'altezza il corpo scorre davvero e l'intestazione resta. *@
+                    <div class="ed-pane">
+                    @* Larghezze per CLASSE semantica e `table-layout:fixed`, come nella tabella SID del
+                       viewer: con `auto` le colonne dei chip Cat./WTC collassavano e i chip si impilavano
+                       in verticale — misurato, 128px di altezza per riga invece di 44. *@
+                    <table class="res-table sid-table sid-edit sid-imported sticky-head">
+                        <thead><tr><th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@AllSelected(iview)" @onclick:preventDefault="true" @onclick="() => ToggleSelectAll(iview)" /></th><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="Condition">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-pub">@L["Common_State"]</th></tr></thead>
+                        <tbody @onmouseup="SelDragEnd" @onmouseleave="SelDragEnd">
+                            @for (var vi = 0; vi < iview.Count; vi++)
+                            {
+                                var idx = vi; var e = iview[idx];
+                                @* Due stati distinti, due segni distinti: `row-sel` = scelta (per pubblicare),
+                                   `row-dirty` = toccata e non ancora salvata. Prima erano la stessa cosa —
+                                   modificare una cella metteva la riga fra le «selezionate». *@
+                                <tr class="@(_selSid.Contains(e.Id) ? "row-sel" : null) @(_dirtySid.Contains(e.Id) ? "row-dirty" : null)">
+                                    @* La cella di scelta è il comando: da mouse col trascinamento, da
+                                       TASTIERA con Invio/Spazio (prima la casella aveva tabindex -1 e le
+                                       righe non si potevano scegliere senza mouse). *@
+                                    <td class="col-chk sid-pick" role="button" tabindex="0"
+                                        aria-pressed="@_selSid.Contains(e.Id).ToString().ToLowerInvariant()"
+                                        aria-label="@L["Apt_SelectRow", e.Fix + " " + e.Name]"
+                                        title="@L["Ape_SidPickTitle"]"
+                                        @onmousedown="ev => SelDragStart(idx, ev)" @onmouseenter="() => SelDragEnter(idx)"
+                                        @onkeydown="ev => PickSidOnKey(ev, e.Id)"><input type="checkbox" checked="@_selSid.Contains(e.Id)" tabindex="-1" aria-hidden="true" @onclick:preventDefault="true" /></td>
+                                    <td class="col-fix">
+                                        @if (e.NeedsReview)
+                                        {
+                                            <span title="@L["Ape_FixToVerify"]" class="fix-warn"><Icon Name="warning" Size="12" /></span>
+                                            <input class="in-fix" list="@NavaidDatalist.DefaultId" @bind="e.FixOverride" @bind:after="() => TouchImported(e)" placeholder="@e.Fix" aria-label="@L["Ape_FixToVerify"]" />
+                                            <label class="ic-app" title="@(string.Format(L["Ape_AliasTitle"].Value, e.Fix))"><input type="checkbox" @bind="e.CreateAlias" @bind:after="() => TouchImported(e)" /> @L["Ape_Alias"]</label>
+                                        }
+                                        else { <b>@e.Fix</b> }
+                                    </td>
+                                    @* Il doppio clic sta sulle celle NON scrivibili: dentro un campo il
+                                       doppio clic seleziona la parola, ed è il gesto di chi sta scrivendo. *@
+                                    <td class="col-sid dbl-pick" title="@L["Ape_DblSameFixTitle"]" @ondblclick="() => PickSameFix(e)">@e.Name</td>
+                                    <td class="col-rwy dbl-pick" title="@L["Ape_DblSameFixTitle"]" @ondblclick="() => PickSameFix(e)">@(string.IsNullOrWhiteSpace(e.Runway) ? "—" : e.Runway)</td>
+                                    <td class="col-trans dbl-pick" title="@L["Ape_DblSameTransTitle"]" @ondblclick="() => PickSameTrans(e)">@(string.IsNullOrWhiteSpace(e.Transition) ? "—" : e.Transition)</td>
+                                    <td class="col-type dbl-pick" title="@L["Ape_DblSameFixTitle"]" @ondblclick="() => PickSameFix(e)">@(string.IsNullOrWhiteSpace(e.Type) ? "—" : e.Type)</td>
+                                    <td class="col-climb">
+                                        <input type="number" min="0" step="100" class="in-climb" @bind="e.InitialClimb" @bind:after="() => TouchImported(e)" placeholder="ft" title="@L["Ape_ClimbTitle"]" aria-label="@L["Ape_ClimbTitle"]"
+                                               @onfocus="() => Src(true, e, SidCol.Climb)" @onkeydown="ev => CellKey(ev, true)" />
+                                        <label class="ic-app" title="@L["Ape_ClimbByAppTitle"]"><input type="checkbox" @bind="e.InitialClimbByApp" @bind:after="() => TouchImported(e)" @onfocus="() => Src(true, e, SidCol.Climb)" /> APP</label>
+                                    </td>
+                                    <td class="col-cat">
+                                        <div class="tok-set">
+                                            @foreach (var t in CatTokens)
+                                            {
+                                                <button type="button" class="tok @(HasTok(e.Cat, t) ? "on" : "")" title="@L["Ape_TokScaleTitle"]"
+                                                        @onclick="ev => TokClick(ev, true, e, t, CatTokens)" @ondblclick="() => TokScale(true, e, t, CatTokens)"
+                                                        @onfocus="() => Src(true, e, SidCol.Cat)">@t</button>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td class="col-wtc">
+                                        <div class="tok-set">
+                                            @foreach (var t in WtcTokens)
+                                            {
+                                                <button type="button" class="tok @(HasTok(e.Wtc, t) ? "on" : "")" title="@L["Ape_TokScaleTitle"]"
+                                                        @onclick="ev => TokClick(ev, true, e, t, WtcTokens)" @ondblclick="() => TokScale(true, e, t, WtcTokens)"
+                                                        @onfocus="() => Src(true, e, SidCol.Wtc)">@t</button>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td class="col-cond"><input class="in-cond" @bind="e.Condition" @bind:after="() => TouchImported(e)" placeholder="—" aria-label="Condition" title="@e.Condition"
+                                                                 @onfocus="() => Src(true, e, SidCol.Cond)" @onkeydown="ev => CellKey(ev, true)" /></td>
+                                    <td class="col-prio"><input type="number" class="in-prio" @bind="e.Priority" @bind:after="() => TouchImported(e)" aria-label="@L["Ape_Priority"]" title="@L["Ape_PriorityTitle"]"
+                                                                 @onfocus="() => Src(true, e, SidCol.Prio)" @onkeydown="ev => CellKey(ev, true)" /></td>
+                                    <td class="col-pub">
+                                        @if (e.IsPublicNow) { <span class="pill green">@L["Ape_Public"]</span> }
+                                        else { <span class="pill future" title="@(string.Format(L["Ape_AutoPublishTitle"].Value, e.PublishFromCycle))"><Icon Name="clock" Size="11" /> @e.PublishFromCycle</span> }
+                                    </td>
+                                </tr>
+                            }
+                            @if (iview.Count == 0)
+                            {
+                                <tr><td colspan="12" class="muted">@L["Ape_SidNoMatch"]</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+            }
+
+            <div class="block" @onchange='() => MarkDirty("SID")'>
+                <div class="ed-h3">
+                    <h2 class="h-sect">@L["Ape_SidManualTitle"] <span class="pill blue">@CountLabel(ManualView().Count(), _sids.Count)</span></h2>
+                    <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SidManualHelpAria"]" ExtraClass="wide">
+                        @L["Ape_SidManualHelp"]
+                    </HelpHint>
+                </div>
+                @{ var sidIssues = SidIssues(); }
+                @if (sidIssues.Count > 0)
+                {
+                    <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in sidIssues) { <div>@m</div> }</div></div>
+                }
+                <div class="struct-bar">
+                    <input class="htree-search" placeholder="@L["Ape_SidManualSearchPh"]" @bind="_sidManualSearch" @bind:event="oninput" />
+                </div>
+                @{ var mview = ManualView().ToList(); }
+                @* Stessa barra delle importate: quello che si può fare di là si può fare anche di qua. *@
+                <div class="bulk-bar">
+                    <b>@L["Apt_NSelected", _selManual.Count]</b>
+                    <button type="button" class="btn ghost" disabled="@(mview.Count == 0)" @onclick="() => ToggleSelectAllManual(mview)">@(mview.Count > 0 && mview.All(_selManual.Contains) ? L["Ape_SidUnselectAll"] : L["Ape_SidSelectAll"])</button>
+                    <button class="btn ghost" disabled="@(_src is null || _src.Imported)" @onclick="() => PickSameFromBar(false, false)" title="@L["Ape_PickSameFixTitle"]">@L["Ape_PickSameFix"]</button>
+                    <button class="btn ghost" disabled="@(_src is null || _src.Imported)" @onclick="() => PickSameFromBar(false, true)" title="@L["Ape_PickSameTransTitle"]">@L["Ape_PickSameTrans"]</button>
+                    <button class="btn ghost" disabled="@(!CanApply(false))" @onclick="() => ApplyToSelected(false)" title="@L["Ape_ApplyTitle"]">⤓ @ApplyLabel(false)</button>
+                    <button class="btn ghost" title="@L["Apt_Deselect"]" aria-label="@L["Apt_Deselect"]" disabled="@(_selManual.Count == 0)" @onclick="() => _selManual.Clear()">✕</button>
+                </div>
+                <datalist id="ape-rwy-idents">@foreach (var id in RwIdents()) { <option value="@id" /> }</datalist>
+                @* Type: i due valori veri sono CONV e RNAV, ma il campo resta libero — le sorgenti ne
+                   portano altri e non si vuole perdere un valore solo perché non è in elenco. *@
+                <datalist id="ape-sid-types"><option value="CONV" /><option value="RNAV" /></datalist>
+                <div class="tbl-scroll">
+                <table class="res-table sid-table sid-edit sid-manual">
+                    @* Stesso ordine e stessi comandi della tabella importate: chi lavora sulle due
+                       tabelle non deve reimparare dove sta cosa. *@
+                    <thead><tr><th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@(mview.Count > 0 && mview.All(_selManual.Contains))" @onclick:preventDefault="true" @onclick="() => ToggleSelectAllManual(mview)" /></th><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="Condition">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-pub">@L["Common_State"]</th><th class="col-act"></th></tr></thead>
+                    <tbody>
+                        @foreach (var s in mview)
+                        {
+                            <tr @key="s" class="@(_selManual.Contains(s) ? "row-sel" : null)">
+                                @* Qui tutte le celle sono campi, quindi il doppio clic «stesso punto» vive
+                                   sulla cella di scelta: dentro un campo il doppio clic serve a chi scrive. *@
+                                <td class="col-chk sid-pick" role="button" tabindex="0"
+                                    aria-pressed="@_selManual.Contains(s).ToString().ToLowerInvariant()"
+                                    aria-label="@L["Apt_SelectRow", (s.Fix ?? "") + " " + (s.Name ?? "")]"
+                                    title="@L["Ape_ManualPickTitle"]"
+                                    @onclick="() => ToggleManual(s)" @onkeydown="ev => ToggleManualOnKey(ev, s)"
+                                    @ondblclick="() => PickSameFixManual(s)"><input type="checkbox" checked="@_selManual.Contains(s)" tabindex="-1" aria-hidden="true" @onclick:preventDefault="true" /></td>
+                                <td class="col-fix"><input list="@NavaidDatalist.DefaultId" class="@UnknownFixClass(s.Fix)" title="@UnknownFixTitle(s.Fix)" @bind="s.Fix" aria-label="FIX" /></td>
+                                <td class="col-sid"><input @bind="s.Name" aria-label="SID" /></td>
+                                <td class="col-rwy"><input list="ape-rwy-idents" @bind="s.Runway" aria-label="@L["Ape_Runway"]" /></td>
+                                <td class="col-trans"><input list="@NavaidDatalist.DefaultId" class="@UnknownFixClass(s.Transition)" title="@UnknownFixTitle(s.Transition)" @bind="s.Transition" aria-label="Transition" /></td>
+                                <td class="col-type"><input list="ape-sid-types" @bind="s.Type" placeholder="CONV" aria-label="Type" title="@L["Ape_TypeTitle"]" /></td>
+                                @* Testo libero e non `type=number` come nelle importate: qui i valori
+                                   storici portano l'unità («5000ft», «FL80») e un campo numerico li
+                                   butterebbe via al primo salvataggio. *@
+                                <td class="col-climb">
+                                    <input class="in-climb" @bind="s.InitialClimb" placeholder="ft" aria-label="Initial climb"
+                                           @onfocus="() => Src(false, s, SidCol.Climb)" @onkeydown="ev => CellKey(ev, false)" />
+                                    <label class="ic-app" title="@L["Ape_ClimbByAppTitle"]"><input type="checkbox" @bind="s.InitialClimbByApp" @onfocus="() => Src(false, s, SidCol.Climb)" /> APP</label>
+                                </td>
+                                <td class="col-cat">
+                                    <div class="tok-set">
+                                        @foreach (var t in CatTokens)
+                                        {
+                                            <button type="button" class="tok @(HasTok(s.Cat, t) ? "on" : "")" title="@L["Ape_TokScaleTitle"]"
+                                                    @onclick="ev => TokClick(ev, false, s, t, CatTokens)" @ondblclick="() => TokScale(false, s, t, CatTokens)"
+                                                    @onfocus="() => Src(false, s, SidCol.Cat)">@t</button>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="col-wtc">
+                                    <div class="tok-set">
+                                        @foreach (var t in WtcTokens)
+                                        {
+                                            <button type="button" class="tok @(HasTok(s.Wtc, t) ? "on" : "")" title="@L["Ape_TokScaleTitle"]"
+                                                    @onclick="ev => TokClick(ev, false, s, t, WtcTokens)" @ondblclick="() => TokScale(false, s, t, WtcTokens)"
+                                                    @onfocus="() => Src(false, s, SidCol.Wtc)">@t</button>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="col-cond"><input class="in-cond" @bind="s.Condition" aria-label="Condition" title="@s.Condition"
+                                                             @onfocus="() => Src(false, s, SidCol.Cond)" @onkeydown="ev => CellKey(ev, false)" /></td>
+                                <td class="col-prio"><input type="number" class="in-prio" @bind="s.Priority" aria-label="@L["Ape_Priority"]" title="@L["Ape_PriorityTitle"]"
+                                                             @onfocus="() => Src(false, s, SidCol.Prio)" @onkeydown="ev => CellKey(ev, false)" /></td>
+                                @* Lo stato lo calcola `SidRow.IsPublicAt`, la stessa regola delle importate:
+                                   oggi una riga a mano è pubblica appena si pubblica il documento, e la
+                                   colonna lo dice; se la regola cambia, qui non c'è niente da riscrivere. *@
+                                <td class="col-pub">
+                                    @if (s.IsPublicNow) { <span class="pill green">@L["Ape_Public"]</span> }
+                                    else { <span class="pill future" title="@(string.Format(L["Ape_AutoPublishTitle"].Value, s.PublishFromCycle))"><Icon Name="clock" Size="11" /> @s.PublishFromCycle</span> }
+                                </td>
+                                <td class="col-act">
+                                    <button class="btn ghost" @onclick="() => CloneSid(s)" title="@L["Ape_CloneRow"]" aria-label="@L["Ape_CloneRow"]">⎘</button>
+                                    <button class="btn ghost" @onclick="() => RemoveSid(s)" title="@L["Common_Remove"]" aria-label="@L["Common_Remove"]">✕</button>
+                                </td>
+                            </tr>
+                        }
+                        @if (mview.Count == 0)
+                        {
+                            <tr><td colspan="13" class="muted">@(_sids.Count == 0 ? L["Ape_SidNoManual"] : L["Ape_SidNoRowMatch"])</td></tr>
+                        }
+                    </tbody>
+                </table>
+                </div>
+                <div style="margin-top:10px;display:flex;gap:8px">
+                    <button class="btn ghost" @onclick="AddSid">+ SID</button>
+                    <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveSids">@L["Ape_SaveManualSids"]</button>
+                </div>
+            </div>
+        </div>
+    };
 }

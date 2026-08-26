@@ -66,6 +66,13 @@ else
     [Parameter] public bool ShowToc { get; set; }
     /// <summary>Voci extra da accodare al TOC (es. il blocco Release reso dall'host fuori da questo editor).</summary>
     [Parameter] public IReadOnlyList<EditorTocItem>? ExtraTocItems { get; set; }
+
+    /// <summary>
+    /// Sezione con modifiche non salvate: la voce d'indice porta il pallino. Opt-in, e lo usa il solo editor
+    /// aeroporto — è l'unico in cui una sezione ha un «Salva» proprio e quindi può restare sospesa. Gli altri
+    /// tre salvano a ogni gesto: non hanno niente da segnalare, e passare <c>null</c> lascia l'indice com'era.
+    /// </summary>
+    [Parameter] public Func<EditableSection, bool>? IsSectionDirty { get; set; }
     /// <summary>Rail azioni a destra (opt-in, richiede <see cref="ShowToc"/>): pulsanti/badge dell'host — Preview, Modifica,
     /// Pubblica, stato salvataggio. Quando presente la griglia diventa 3 colonne (toc | contenuto | azioni).</summary>
     [Parameter] public RenderFragment? RightRail { get; set; }
@@ -88,7 +95,8 @@ else
     {
         var items = new List<EditorTocItem>();
         foreach (var s in (RootSections ?? Doc.Sections))
-            items.Add(new EditorTocItem($"s-{s.Id}", s.Title, SectionId: s.Id, DragGroup: TocGroup));
+            items.Add(new EditorTocItem($"s-{s.Id}", s.Title, IsSectionDirty?.Invoke(s) == true,
+                SectionId: s.Id, DragGroup: TocGroup));
         if (ExtraTocItems is { Count: > 0 }) items.AddRange(ExtraTocItems);
         return items;
     }
