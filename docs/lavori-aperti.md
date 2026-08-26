@@ -2482,8 +2482,11 @@ riconoscendole per chiave. Spostarle nell'editor avrebbe cambiato l'editor e **n
 Ora segue l'ordine delle sotto-sezioni, con l'ordine canonico come ripiego per gli **snapshot storici**, dove
 entrambe portano ancora la chiave del padre e si distinguono solo per posizione.
 
-Nove test nuovi, suite intera verde, Release **0 avvisi** sui due TFM. Verifica live su
-`/services/vsop/libb/editor`: le sezioni «obbligatoria» mostrano `↑ ↓`, *Frequenze* portata sopra *AOR*
+Nove test nuovi, suite intera verde, Release **0 avvisi** sui due TFM. Verifica live sulle **tre famiglie**
+(§7 della carta): vIPI ACC, vIPI APP e vLOA — i due documenti che il database di sviluppo non aveva sono
+stati creati al volo sulla copia. La prova che vale di più è la vLOA: spostata una delle due **direzioni**
+dei coordinamenti, **l'anteprima bozza del documento la rende nell'ordine nuovo**. Sull'editor ACC
+(`/services/vsop/libb/editor`) le sezioni «obbligatoria» mostrano `↑ ↓`, *Frequenze* portata sopra *AOR*
 persiste al ricarico e le due sezioni portano `↑1` e `↓1` anche fuori dalla modifica. Commit `30dad4e`.
 
 ### J7 ✅ CHIUSA — anche i blocchi della vIPI ACC si riordinano, ma l'Aerovia resta in testa

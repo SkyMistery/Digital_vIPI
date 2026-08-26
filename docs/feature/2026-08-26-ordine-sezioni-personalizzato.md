@@ -96,3 +96,21 @@ Seguito immediato, deciso dal committente: si riordinano anche i **blocchi** del
 Rete: due test in `AccDocumentServiceTests` (l'ordine che cambia davvero; l'Aerovia che non si muove e non si
 scavalca). Verifica live: l'Aerovia senza frecce, un gruppo solo con tutt'e due spente, due gruppi che si
 scambiano e il passo in più che non c'è.
+
+## §7 — Verifica live sulle TRE famiglie (26 agosto, notte)
+
+Il primo giro aveva guidato solo la vIPI ACC: nel database di sviluppo LIBB non aveva né una vIPI APP né una
+vLOA su cui provare. Creati i due documenti sulla copia del DB, la verifica copre tutte e tre le famiglie.
+
+| Documento | Cosa si è visto |
+|---|---|
+| vIPI ACC `/services/vsop/libb/editor` | le sezioni «obbligatoria» hanno `↑ ↓`; *Frequenze* sopra *AOR* persiste al ricarico, `↑1` e `↓1` sulle due. I **blocchi**: l'Aerovia senza frecce, un gruppo solo con tutt'e due spente, due gruppi che si scambiano e il passo in più che non c'è |
+| vIPI APP `LIBV_APP` (creata al volo) | dieci sezioni, tutte con `↑ ↓`; *Frequenze* sale sopra *AOR*, pill `↑1`/`↓1`, e **si rilegge dopo il ricarico anche fuori dalla modifica** |
+| vLOA `LIBB ↔ LDZO` | nove intestazioni, comprese le **due direzioni** dei coordinamenti come sotto-sezioni con le loro frecce |
+
+⚠️ **La prova che vale di più è l'ultima**, ed è quella che il doc 11 §8 chiedeva: spostata `LDZO → LIBB`
+sopra l'altra nell'editor (pill `↑1` e `↓1`), **l'anteprima bozza del documento le ha rese nell'ordine
+nuovo**. Prima di questo giro il viewer le avrebbe rese nella sequenza scritta nel codice, e l'editor avrebbe
+detto una cosa che il documento pubblicato non diceva.
+
+Nessun errore di pagina in nessuno dei tre giri.
