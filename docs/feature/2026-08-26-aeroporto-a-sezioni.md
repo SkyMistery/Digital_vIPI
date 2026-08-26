@@ -1,6 +1,8 @@
 ﻿# La vIPI d'aeroporto diventa un documento come gli altri — carta (26 agosto 2026)
 
-> **Stato: in esecuzione**, ramo `aeroporto-a-sezioni` (da `identita-settori`).
+> **Stato: ✅ ESEGUITA il 26 agosto 2026**, ramo `aeroporto-a-sezioni` (da `identita-settori`, **non fuso**).
+> Otto fette, undici commit, suite verde su entrambi i TFM, Release **0 avvisi**. Verifica live su LIBD in §6.
+> **Nessuna migrazione**: non cambia lo schema, cambia chi scrive.
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Chiude l'ultima famiglia rimasta fuori dall'asse
 > 08 → 10 → 11 → 13: il `SectionCatalog` dice ancora, in testa al file, *«L'aeroporto NON partecipa
 > (documento generato a struttura propria)»*.
@@ -183,3 +185,33 @@ Skill `verifica-live` su copia del DB. Le prove che contano:
 5. Aprire una **release già pubblicata** (`?as=rel:N`) di prima della modifica: le tabelle cotte si vedono
    ancora (§3 ⚠️).
 6. Il **lock**: aprire l'editor da due sessioni e vedere il chip 🔒 con il nome dell'altro.
+
+---
+
+## §7 — Com'è andata
+
+**Le otto fette sono state eseguite nell'ordine della tabella.** Quel che la carta non prevedeva:
+
+- **La `switch` con la marcatura dentro non compila.** I sei editor strutturati non si possono mettere nei
+  rami di una `switch` dentro `@code`: il parser Razor conta le graffe del blocco, e un `@{ … }` dentro un
+  `case` gliele sbilancia (`RZ1006: the switch block is missing a closing "}"`). Un **frammento per sezione**
+  e una `switch` di sola **espressione**: ogni frammento comincia con un elemento, quindi è marcatura dal
+  primo carattere.
+- **Il titolo restava a metà in inglese.** La riconciliazione rinominava la sezione solo quando le cambiava
+  anche la chiave — e `frequencies`/`sids` la chiave giusta ce l'avevano già. Trovato **a schermo**, non dai
+  test: «Frequencies» accanto a «Regole piste». Il titolo di una sezione fissa lo decide il catalogo,
+  sempre: tanto `IsMandatory` ne vieta la rinomina a mano.
+- **E i blocchi restavano a metà.** Stessa causa: svuotare i blocchi solo delle rinominate lasciava dentro la
+  tabella cotta di «Frequencies», che avrebbe **raddoppiato** quella derivata.
+- **Ogni sezione mostrava il titolo due volte**, a due righe di distanza: quello dell'intestazione e l'`h2`
+  che il pannello si portava dietro da quando era un `<details>` scritto a mano.
+- **`IsSectionDirty`**, parametro opt-in nuovo su `DocumentSectionsEditor`: il pallino «non salvato» nel menu
+  è dell'aeroporto soltanto, l'unico editor in cui una sezione ha un «Salva» proprio e può restare sospesa.
+
+**La verifica live ha dato la prova che i test non danno** (§6 punto 5, ampliato): pubblicata la release e poi
+cambiato il **TORA** di una pista nel profilo, la pagina **pubblica** continua a dire `3000` e la **bozza**
+dice il valore nuovo. Cioè: la release congela davvero le sezioni derivate — cosa che prima non poteva fare,
+perché il contenuto era cotto nei blocchi e lo snapshot se lo portava dietro senza congelare niente.
+
+E i **cinque Remarks** di LIBD sono passati dalla tabella al documento senza perdere un callout: il trasloco
+regge sui dati veri.

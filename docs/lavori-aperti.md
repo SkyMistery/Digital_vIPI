@@ -1,6 +1,8 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 26 agosto 2026, sera tardi (**§J7 chiusa: anche i blocchi della vIPI ACC si riordinano, con
+**Aggiornato:** 26 agosto 2026, notte (**§K: la vIPI d'aeroporto entra nel catalogo delle sezioni — ramo
+`aeroporto-a-sezioni`, il TERZO in fila. Era l'ultima famiglia con un documento COTTO, e per questo l'unica
+senza riordino, senza «nascondi» e senza sotto-sezioni**) · **Aggiornato:** 26 agosto 2026, sera tardi (**§J7 chiusa: anche i blocchi della vIPI ACC si riordinano, con
 i settori di aerovia fissi in testa; con §J6 la sezione J non ha più voci di UI aperte**) · **Aggiornato:** 26 agosto 2026, sera tardi (**§J6: l'ordine delle sezioni è una scelta editoriale — anche le
 sezioni di catalogo si spostano dentro il loro gruppo e dicono di quanto si sono allontanate dallo standard;
 nasce §J7, i blocchi della vIPI ACC che non si riordinano**) · **Aggiornato:** 26 agosto 2026, notte (**§E11 chiusa: la casella degli impatti, la sezione Orfani, il giro notturno della deriva e il rilevatore delle RINOMINE dal timbro d'import; nascono §C6 (chiave di release derivata da un callsign) e §C7 (i tre resti dell'analisi sulla cancellazione dei dati importati)**) · **Aggiornato:** 25 agosto 2026, tarda sera (**§B12: il ramo `statistiche-atc` porta anche le otto richieste
@@ -150,14 +152,15 @@ e le tre voci C6/C7 aperte il 25-26), **D** (verifiche live arretrate) e **G** (
 codice) sono chiuse o chiuse-con-la-ragione-scritta. La **E** è stata sfoltita: metà delle voci erano già
 fatte o non avevano più senso.
 
-🟡 **La decisione sul tavolo è UNA, ed è B12: fondere.** ⚠️ Ma non è più un ramo solo: sono **DUE, in fila**.
+🟡 **La decisione sul tavolo è UNA, ed è B12: fondere.** ⚠️ Ma non è più un ramo solo: sono **TRE, in fila**.
 
 | Ramo | Commit oltre `main` | Cosa porta |
 |---|---|---|
 | `statistiche-atc` | **82** | il terzo servizio, gli aeroporti militari, la vIPI d'aeroporto legata allo scalo, l'**eliminazione con le protezioni**, «chiedi alla sorgente», la lista «Da fare» |
 | `identita-settori` (sopra il primo) | **110** | l'identità dei settori per **id IVAO**, l'assenza che non cancella, le **shape dal sectorfile** col gate AIRAC, l'ordine delle sezioni, l'avviso a chi pubblica |
+| `aeroporto-a-sezioni` (sopra il secondo) | **11** | la vIPI d'aeroporto entra nel **catalogo delle sezioni**: si riordina, si nasconde, prende sotto-sezioni e sezioni libere ovunque; e la sua release **congela** davvero (§K) |
 
-⚠️ **`identita-settori` va fuso DOPO `statistiche-atc`**: è costruito sopra di lui, non lo sostituisce.
+⚠️ **L'ordine di fusione è quello della tabella**: ognuno è costruito sopra il precedente, non lo sostituisce.
 ⚠️ Le cifre si contano: `git rev-list --count main..<ramo>`.
 ⚠️ Insieme portano **DICIASSETTE** migrazioni — è la coda più lunga da mesi per il cutover MariaDB — e **un
 passo d'avvio nuovo**, `LinkAirportDocumentsAsync`, che collega gli aeroporti alla loro vIPI al primo avvio
@@ -172,7 +175,7 @@ il 24-25 agosto, e le decisioni di contenuto che aspettano il committente.
 (le radici orfane di LIRR) resta **sospesa di proposito**: non si sistema un albero che sta per essere rifatto.
 
 **Sezioni con lavoro aperto, oggi**: **C6** (⚠️ da rileggere: metà del problema è caduta da sé), **C7a/b/c**,
-**H1** e **H3**. Le sezioni **I** (sospesa) e **J** (chiusa tutta) non chiedono niente.
+**H1** e **H3**. Le sezioni **I** (sospesa), **J** e **K** (chiuse tutte) non chiedono niente.
 
 ---
 
@@ -2629,3 +2632,44 @@ identico prima e dopo, e **l'anteprima bozza** della vLOA rende l'ordine nuovo.
 loro riordino ha la regola propria dell'Aerovia in testa (J7); le **sotto-sezioni** nemmeno, il menu mostra
 solo il primo livello.
 
+## K. La vIPI d'aeroporto entra nel catalogo — 26 agosto 2026, ramo `aeroporto-a-sezioni`
+
+Ramo aperto **da `identita-settori`** (non da `main`), **non fuso**. Una voce sola, chiusa. Carta:
+[l'aeroporto entra nel catalogo](feature/2026-08-26-aeroporto-a-sezioni.md).
+
+Richiesta del committente: «rendere la struttura del documento d'aeroporto uguale a quella degli altri,
+compreso il meccanismo di riorganizzazione».
+
+**Non mancava un tasto: mancava il documento.** Il documento d'aeroporto era una **proiezione cotta** —
+`RebuildDocumentAsync` riconosceva le sezioni **per titolo**, le cancellava e le riscriveva a ogni
+rigenerazione, con chiavi **casuali** (`BlockSection.Airport` non ha una chiave di catalogo, e il builder
+ricadeva su `SectionKeys.NewCustom()`). Ordine, «nascondi», sotto-sezioni e Live/Frozen stanno **sulla
+sezione**, e la sezione veniva distrutta: per questo l'aeroporto era l'unica famiglia che non li aveva.
+
+Ora ha un profilo suo nel catalogo (otto chiavi), l'editor monta `DocumentSectionsEditor` e il viewer itera
+`_view.Sections`. Le sezioni fisse sono **ancore senza corpo**: il contenuto si deriva a view-time dalle
+tabelle del profilo e si **congela** alla release, come per l'APP.
+
+⚠️ **Nessuna migrazione**: non cambia lo schema, cambia chi scrive. Le diciassette in coda restano diciassette.
+
+⚠️ **Un passo d'avvio nuovo**: `ReconcileAirportSectionKeysAsync`, che porta i documenti già scritti sulle
+chiavi del catalogo e **trasloca** le sezioni libere dalla tabella `AirportExtraSection` dentro il documento.
+Idempotente, lo scrive nei log («Riconciliate N sezioni d'aeroporto sulle chiavi del catalogo»). Gira **prima**
+di `AddMissingCatalogSectionsAsync`, che ora copre anche gli aeroporti.
+
+⚠️ **`AirportExtraSection` non si droppa in questo giro.** Le migrazioni girano all'avvio **prima** delle
+riconciliazioni: una migrazione che la cancellasse porterebbe via il contenuto un istante prima che il
+trasloco lo sposti. Nessuno ci scrive più; si toglie un rilascio dopo. **È l'unica voce che questa sezione
+lascia in eredità.**
+
+⚠️ **Due conseguenze volute, da dire al committente:**
+1. L'editor aeroporto adotta **bozza + lock** (✎Modifica): obbligato, perché ogni mutazione del motore
+   condiviso passa da `IEditingService`, che pretende il lock. Cade la scelta di luglio.
+2. La pagina pubblica **smette** di mostrare piste, frequenze e sezioni libere prese dal profilo **live**:
+   d'ora in poi vede lo stato **pubblicato**. Il passaggio è morbido — chi ha già una release non ha un
+   payload congelato per le chiavi nuove e continua a leggersi live finché non ripubblica.
+
+Verifica live su LIBD guidando Edge: lock e bozza v2, riordino con le pill `↑1`/`↓1`, «nascondi», sezione
+libera **in mezzo** alle fisse, ordine che tiene al ricarico, anteprima bozza coerente. **La prova che
+conta**: pubblicato e poi cambiato il TORA di una pista, la pagina pubblica resta a 3000 e la bozza dice il
+valore nuovo — la release congela davvero ciò che prima non era congelabile perché era cotto.
