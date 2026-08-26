@@ -77,3 +77,22 @@ La **chiave** resta l'unica cosa che dice quale verso è: cambia solo chi viene 
   libere che non spostano nessuno, la sezione di catalogo assente, il profilo nullo (aeroporto), le
   sotto-sezioni fisse del `ChildRegistry`.
 - `VloaDocumentViewTests`: l'ordine delle figlie decide chi viene prima; senza figlie vale l'ordine canonico.
+
+## §6 — I blocchi (26 agosto, sera tardi)
+
+Seguito immediato, deciso dal committente: si riordinano anche i **blocchi** della vIPI ACC — che sono le
+**sezioni radice** del documento, quindi il motore è di nuovo quello e basta.
+
+- **Le frecce stanno nell'intestazione del blocco**, dentro il `<summary>`, solo in modifica, accanto al campo
+  del titolo e a «✕ Gruppo». La riga si allunga di due tasti; il gesto resta dove sta il nome della cosa che
+  si sposta.
+- ⚠️ **I settori di aerovia restano in testa.** Non si spostano e nessun gruppo APP ci passa sopra. La regola
+  vive in `AccDocumentService.MoveGroupAsync`, che legge i blocchi con `AccDocumentAssembler` — l'Aerovia si
+  riconosce dal **blockmeta**, non dal posto che occupa — e rifiuta in silenzio la mossa illecita.
+- ⚠️ **Due posti apposta**: l'editor **spegne** il tasto (`CanMoveGroup`), il servizio **rifiuta** la mossa.
+  Il primo è quello che si vede, il secondo tiene se qualcuno arriva per un'altra strada o se l'elenco è
+  cambiato sotto mentre la pagina era ferma. Non è una duplicazione da togliere.
+
+Rete: due test in `AccDocumentServiceTests` (l'ordine che cambia davvero; l'Aerovia che non si muove e non si
+scavalca). Verifica live: l'Aerovia senza frecce, un gruppo solo con tutt'e due spente, due gruppi che si
+scambiano e il passo in più che non c'è.

@@ -109,6 +109,14 @@ else
                             <span class="acc-block-edit" @onclick:preventDefault="true" @onclick:stopPropagation="true">
                                 <input class="app-in" style="font-weight:700;max-width:320px" value="@blockSection.Title"
                                        @onchange="e => RenameGroup(blockSection.Id, AsString(e.Value))" />
+                                @* Ordine dei BLOCCHI. ⚠️ I settori di aerovia restano in testa (decisione del
+                                   committente): il primo gruppo non ha la freccia in su, e l'Aerovia non ne ha
+                                   nessuna delle due. La rete vera sta in AccDocumentService.MoveGroupAsync — qui
+                                   si spegne il tasto, là si rifiuta la mossa. *@
+                                <button class="btn ghost" title="@L["Common_Up"]" disabled="@(!CanMoveGroup(blk, -1))"
+                                        @onclick="() => MoveGroup(blockSection.Id, -1)">↑</button>
+                                <button class="btn ghost" title="@L["Common_Down"]" disabled="@(!CanMoveGroup(blk, 1))"
+                                        @onclick="() => MoveGroup(blockSection.Id, 1)">↓</button>
                                 <button class="btn ghost" title="@L["Acc_RemoveGroupTitle"]" @onclick="() => RemoveGroup(blockSection.Id)">✕ @L["Xfer_Group"]</button>
                             </span>
                         }
@@ -360,6 +368,26 @@ else
         await AccDoc.AddGroupAsync(Acc, _doc.VersionId, "Nuovo gruppo APP");
         await LoadAsync();
     });
+
+    private Task MoveGroup(int blockSectionId, int direction) => Guard(async () =>
+    {
+        await AccDoc.MoveGroupAsync(Acc, blockSectionId, direction);
+        await LoadAsync();
+    });
+
+    /// <summary>Vero se il gruppo può muoversi di un posto in quella direzione: l'Aerovia non si sposta e nessuno
+    /// le passa sopra, quindi il primo gruppo non ha la freccia in su. Stessa regola di MoveGroupAsync.</summary>
+    private bool CanMoveGroup(AccAssembledBlock blk, int direction)
+    {
+        if (_model is null || blk.Block.Kind == AccBlockKind.Aerovia) return false;
+        var list = _model.Blocks;
+        var i = -1;
+        for (var k = 0; k < list.Count; k++)
+            if (list[k].BlockSectionId == blk.BlockSectionId) { i = k; break; }
+        if (i < 0) return false;
+        var j = i + Math.Sign(direction);
+        return j >= 0 && j < list.Count && list[j].Block.Kind != AccBlockKind.Aerovia;
+    }
 
     private Task RenameGroup(int blockSectionId, string title) => Guard(async () =>
     {

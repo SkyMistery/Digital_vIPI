@@ -27,7 +27,8 @@ di lui**, `identita-settori`. Il secondo va fuso **dopo** il primo. Fonderli è 
 > tasto. ⚠️ Strada facendo è saltato fuori che il viewer della **vLOA** rendeva le due direzioni dei
 > coordinamenti in una sequenza **scritta nel codice**: spostarle avrebbe cambiato l'editor e non il documento
 > pubblicato. Carta: [l'ordine delle sezioni](docs/feature/2026-08-26-ordine-sezioni-personalizzato.md)
-> (**J6** chiusa, nasce **J7**: i blocchi della vIPI ACC non si riordinano fra loro). **Nessuna migrazione.**
+> (**J6** e **J7** chiuse: si riordinano anche i **blocchi** della vIPI ACC, con i settori di aerovia fissi in
+> testa). **Nessuna migrazione.**
 > Voci aperte: `docs/lavori-aperti.md` **sezione J** — la prima da fare è **J1**, l'avviso a chi pubblica una
 > shape non ancora in vigore.
 >

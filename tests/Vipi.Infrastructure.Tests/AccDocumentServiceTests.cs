@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Auth;
 using Vipi.Application.Content;
@@ -124,6 +124,45 @@ public class AccDocumentServiceTests : IAsyncLifetime
 
         await _service.RemoveGroupAsync(Acc, groupId);
         Assert.Single((await _service.LoadForEditAsync(Acc)).Blocks);
+    }
+
+    [Fact]
+    public async Task MoveGroup_Reorders_The_Groups_But_Aerovia_Stays_First()
+    {
+        var model = await _service.LoadForEditAsync(Acc);   // bozza v1 col solo blocco Aerovia
+        var pisa = await _service.AddGroupAsync(Acc, model.VersionId, "Gruppo Pisa");
+        var bari = await _service.AddGroupAsync(Acc, model.VersionId, "Gruppo Bari");
+
+        async Task<string[]> Titoli() =>
+            (await _service.LoadForEditAsync(Acc)).Blocks.Select(b => b.Block.Title).ToArray();
+
+        Assert.Equal(new[] { "Settori di aerovia", "Gruppo Pisa", "Gruppo Bari" }, await Titoli());
+
+        // Bari sale di un posto: scavalca Pisa, non l'Aerovia.
+        await _service.MoveGroupAsync(Acc, bari, -1);
+        Assert.Equal(new[] { "Settori di aerovia", "Gruppo Bari", "Gruppo Pisa" }, await Titoli());
+
+        // ⚠️ Un altro passo in su non fa NIENTE: l'Aerovia resta in testa (decisione del committente).
+        await _service.MoveGroupAsync(Acc, bari, -1);
+        Assert.Equal(new[] { "Settori di aerovia", "Gruppo Bari", "Gruppo Pisa" }, await Titoli());
+
+        // E in fondo all'elenco la freccia in giù non fa niente.
+        await _service.MoveGroupAsync(Acc, pisa, 1);
+        Assert.Equal(new[] { "Settori di aerovia", "Gruppo Bari", "Gruppo Pisa" }, await Titoli());
+    }
+
+    [Fact]
+    public async Task MoveGroup_Does_Nothing_On_The_Aerovia_Block()
+    {
+        var model = await _service.LoadForEditAsync(Acc);
+        await _service.AddGroupAsync(Acc, model.VersionId, "Gruppo Pisa");
+        var aerovia = (await _service.LoadForEditAsync(Acc)).Blocks[0];
+        Assert.Equal(AccBlockKind.Aerovia, aerovia.Block.Kind);
+
+        await _service.MoveGroupAsync(Acc, aerovia.BlockSectionId, 1);
+
+        Assert.Equal(new[] { "Settori di aerovia", "Gruppo Pisa" },
+            (await _service.LoadForEditAsync(Acc)).Blocks.Select(b => b.Block.Title).ToArray());
     }
 
     [Fact]

@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Domain;
@@ -60,6 +60,16 @@ public interface IAccDocumentService
 
     /// <summary>Elimina un blocco (sezione radice + sottoalbero) dalla versione bozza. ACC-gated.</summary>
     Task RemoveGroupAsync(string accCode, int blockSectionId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Sposta un GRUPPO APP di un posto (direction -1 su, +1 giù) fra i blocchi del documento. ACC-gated.
+    /// <para>
+    /// ⚠️ Il blocco <b>Aerovia resta in testa</b>: non si sposta e nessun gruppo gli passa sopra (decisione del
+    /// committente, 26 agosto). Una mossa che violerebbe la regola — o che uscirebbe dall'elenco — non fa niente:
+    /// l'editor non mostra la freccia, e questa è la rete per chi arrivasse per un'altra strada.
+    /// </para>
+    /// </summary>
+    Task MoveGroupAsync(string accCode, int blockSectionId, int direction, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IAccDocumentService"/>
@@ -231,5 +241,28 @@ public sealed class AccDocumentService : IAccDocumentService
     {
         await _authz.EnsureCanEditAccAsync(Norm(accCode), ct);
         await _editing.DeleteSectionAsync(blockSectionId, ct);
+    }
+
+    public async Task MoveGroupAsync(string accCode, int blockSectionId, int direction, CancellationToken ct = default)
+    {
+        await _authz.EnsureCanEditAccAsync(Norm(accCode), ct);
+
+        var docId = await _editing.GetDocumentIdBySectionAsync(blockSectionId, ct);
+        if (docId is null) return;
+        var doc = await _editing.LoadForEditAsync(docId.Value, ct);
+        if (doc is null) return;
+
+        // I blocchi nell'ordine del documento, con la loro natura: la stessa lettura dell'editor e del viewer
+        // (l'Aerovia si riconosce dal blockmeta, non dal posto che occupa).
+        var blocks = AccDocumentAssembler.Assemble(doc.Sections);
+        var i = -1;
+        for (var k = 0; k < blocks.Count; k++)
+            if (blocks[k].BlockSectionId == blockSectionId) { i = k; break; }
+        if (i < 0 || blocks[i].Block.Kind == AccBlockKind.Aerovia) return;
+
+        var j = i + Math.Sign(direction);
+        if (j < 0 || j >= blocks.Count || blocks[j].Block.Kind == AccBlockKind.Aerovia) return;
+
+        await _editing.MoveSectionAsync(blockSectionId, direction, ct);
     }
 }
