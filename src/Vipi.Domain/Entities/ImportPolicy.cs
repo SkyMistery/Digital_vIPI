@@ -40,6 +40,18 @@ public class ImportState
 {
     public string Category { get; set; } = default!;   // chiave naturale
     public DateTime LastSuccessUtc { get; set; }
+
+    /// <summary>
+    /// Il giro riuscito <b>prima</b> dell'ultimo, o null se ce n'è stato uno solo. È il metro della regola
+    /// «si elimina solo ciò che la sorgente non manda da due giri»: una riga il cui timbro d'import è più
+    /// vecchio di questo istante non è stata confermata né dall'ultimo giro né dal penultimo.
+    ///
+    /// <para>⚠️ Non è «l'ultimo meno il periodo»: i giri slittano, e un intervallo calcolato darebbe per
+    /// mancata una conferma che c'è stata. L'unico istante che vale è quello di un giro <b>davvero</b>
+    /// avvenuto.</para>
+    /// </summary>
+    public DateTime? PrevSuccessUtc { get; set; }
+
     public DateTime? LastAttemptUtc { get; set; }       // ultimo tentativo (riuscito o no); null se mai tentato
     public string? LastError { get; set; }              // messaggio dell'ultimo fallimento; null se l'ultimo tentativo è riuscito
 }

@@ -20,12 +20,17 @@ public sealed class AccImportUseCase : IAccImportUseCase
     private readonly IAccAdminRepository _repo;
     private readonly IAccDirectory _directory;
     private readonly ISectorProjectionService _projection;
+    private readonly IImportStateStore? _stati;
 
-    public AccImportUseCase(IAccAdminRepository repo, IAccDirectory directory, ISectorProjectionService projection)
+    /// <param name="stati">Il registro dei giri riusciti: lo timbra il <b>corpo</b>, così il bottone della
+    /// pagina ACC conta quanto il giro notturno. Vedi <see cref="SogliaEliminazione"/>.</param>
+    public AccImportUseCase(IAccAdminRepository repo, IAccDirectory directory,
+        ISectorProjectionService projection, IImportStateStore? stati = null)
     {
         _repo = repo;
         _directory = directory;
         _projection = projection;
+        _stati = stati;
     }
 
     public async Task<AccImportResult> RunAsync(CancellationToken ct = default)
@@ -44,6 +49,11 @@ public sealed class AccImportUseCase : IAccImportUseCase
 
         // Riproietta i Sector operativi dai cataloghi aggiornati (fonte autoritativa unica, Round 20).
         await _projection.SyncFromCatalogsAsync(ct);
+
+        // Il giro è arrivato in fondo: timbralo (manuale o automatico che sia).
+        if (_stati is not null)
+            await _stati.MarkSuccessAsync(ImportCategories.Acc, DateTime.UtcNow, ct);
+
         return new AccImportResult(accsCreated, accsUpdated, subCreated, subUpdated);
     }
 }

@@ -10,16 +10,26 @@ public sealed class AirportImportUseCase : IAirportImportUseCase
     private readonly IAirportSectorImporter _sectorImporter;
     private readonly ISectorProjectionService _projection;
     private readonly IStationCatalogVersion _catalog;
+    private readonly IImportStateStore? _stati;
 
+    /// <param name="stati">
+    /// Il registro dei giri riusciti. ⚠️ Lo timbra <b>questo</b> caso d'uso e non solo il giro notturno,
+    /// perché il bottone «Assegna aeroporti noti» è l'altro chiamante e fa esattamente lo stesso lavoro: se
+    /// timbrasse solo l'automatico, «due chiamate a mano» non conterebbe mai e la regola di
+    /// <see cref="SogliaEliminazione"/> non scatterebbe per chi lavora a mano. Il doppio timbro del giro
+    /// automatico — questo, e poi quello di <c>GatedImportLoop</c> — è innocuo: arrivano a pochi
+    /// millisecondi l'uno dall'altro e il penultimo non scorre due volte.
+    /// </param>
     public AirportImportUseCase(IAirportDirectory directory, IStructureEditingRepository repo,
         IAirportSectorImporter sectorImporter, ISectorProjectionService projection,
-        IStationCatalogVersion catalog)
+        IStationCatalogVersion catalog, IImportStateStore? stati = null)
     {
         _directory = directory;
         _repo = repo;
         _sectorImporter = sectorImporter;
         _projection = projection;
         _catalog = catalog;
+        _stati = stati;
     }
 
     public async Task<AirportImportResult> RunAsync(CancellationToken ct = default)
@@ -50,6 +60,10 @@ public sealed class AirportImportUseCase : IAirportImportUseCase
         }
         // Proietta i cataloghi aggiornati nei Sector operativi (fonte autoritativa unica, Round 20).
         if (assigned.Count > 0) await _projection.SyncFromCatalogsAsync(ct);
+
+        // Il giro è arrivato in fondo: timbralo. Vale sia per il giro notturno sia per il bottone.
+        if (_stati is not null)
+            await _stati.MarkSuccessAsync(ImportCategories.AirportDirectory, DateTime.UtcNow, ct);
 
         return new AirportImportResult(assigned.Count, failures, refreshed);
     }

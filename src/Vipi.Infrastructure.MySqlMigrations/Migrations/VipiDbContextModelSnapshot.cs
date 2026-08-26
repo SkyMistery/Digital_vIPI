@@ -395,6 +395,9 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<bool>("IsMilitaryOnly")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<DateTime?>("LastSeenAtUtc")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<double?>("Latitude")
                         .HasColumnType("double");
 
@@ -1804,6 +1807,9 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
                     b.Property<DateTime>("LastSuccessUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("PrevSuccessUtc")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Category");

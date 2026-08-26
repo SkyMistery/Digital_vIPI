@@ -198,6 +198,18 @@ public class Airport
     /// La visibilità pubblica effettiva è inoltre negata quando l'aeroporto non ha nemmeno un settore.</summary>
     public bool IsHidden { get; set; }
 
+    /// <summary>
+    /// L'ultima volta che la <b>sorgente ha nominato</b> questo ICAO. È il gemello di
+    /// <c>AccSector.ImportedAtUtc</c> per gli aeroporti, e senza di esso «IVAO non lo elenca più» non è
+    /// un'affermazione che possiamo fare: l'assegnazione è additiva e salta gli ICAO già in archivio, quindi
+    /// nulla distingueva uno scalo confermato stanotte da uno che la sorgente ha smesso di mandare a luglio.
+    ///
+    /// <para>Lo scrive <c>SyncAirportSourceFieldsAsync</c> su <b>tutto</b> l'elenco della sorgente — non solo
+    /// sugli aeroporti appena creati — perché quella è l'unica passata che vede ogni ICAO a ogni giro.
+    /// null = mai visto da quando esiste il timbro.</para>
+    /// </summary>
+    public DateTime? LastSeenAtUtc { get; set; }
+
     /// <summary>Padre nella gerarchia di copertura, per callsign (= ComposePosition del settore APP/CTR di fallback immediato).
     /// L'aeroporto è la FOGLIA dell'albero (DEL/GND/TWR condividono la sua vista rapida). Cross-ACC ammesso.
     /// null = aeroporto non ancora collocato nell'albero. SPEC §9.12 (Round 20, sostituisce ParentSectorId di Round 19).</summary>

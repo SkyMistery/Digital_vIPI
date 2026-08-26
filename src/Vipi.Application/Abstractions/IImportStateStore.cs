@@ -8,7 +8,18 @@ public interface IImportStateStore
     /// <summary>Ultima esecuzione riuscita della categoria, o null se mai eseguita.</summary>
     Task<DateTime?> GetLastSuccessAsync(string category, CancellationToken ct = default);
 
-    /// <summary>Marca la categoria come eseguita con successo all'istante indicato (UTC): azzera l'eventuale errore precedente.</summary>
+    /// <summary>
+    /// Il <b>penultimo</b> giro riuscito della categoria, o null se non ce ne sono ancora due. È il metro
+    /// di <see cref="Vipi.Application.Content.SogliaEliminazione"/>: si elimina solo ciò che la sorgente non
+    /// manda da due giri.
+    /// </summary>
+    Task<DateTime?> GetPrevSuccessAsync(string category, CancellationToken ct = default);
+
+    /// <summary>
+    /// Marca la categoria come eseguita con successo all'istante indicato (UTC): azzera l'eventuale errore
+    /// precedente e fa scorrere il penultimo timbro, salvo che il successo precedente sia troppo recente
+    /// (<see cref="Vipi.Application.Content.SogliaEliminazione.IlPenultimoScorre"/>).
+    /// </summary>
     Task MarkSuccessAsync(string category, DateTime utc, CancellationToken ct = default);
 
     /// <summary>Registra un fallimento del tentativo (aggiorna LastAttemptUtc + LastError, lascia intatto LastSuccessUtc).</summary>

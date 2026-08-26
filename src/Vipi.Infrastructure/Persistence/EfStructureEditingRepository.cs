@@ -248,9 +248,18 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
 
         var airports = await _db.Airports.ToListAsync(ct);
         var changed = 0;
+        var visto = DateTime.UtcNow;
+        var timbrati = 0;
         foreach (var apt in airports)
         {
             if (!byIcao.TryGetValue(apt.Icao, out var src)) continue;   // fuori dal paese configurato: non lo sappiamo
+
+            // Il timbro va messo PRIMA del confronto e su ogni ICAO nominato, anche quando nessun campo
+            // cambia: «la sorgente lo manda ancora» è un fatto per se', ed e' quello che autorizza — o
+            // vieta — l'eliminazione. Non conta fra i `changed`, che dicono quanti campi anagrafici sono
+            // stati riallineati e finiscono in un messaggio a schermo.
+            apt.LastSeenAtUtc = visto;
+            timbrati++;
 
             var before = (apt.HasMilitaryPresence, apt.IsMilitaryOnly, apt.Iata, apt.ElevationFt, apt.MagneticVariation);
             apt.HasMilitaryPresence = src.HasMilitaryPresence;
@@ -263,7 +272,7 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
                 changed++;
         }
 
-        if (changed > 0) await _db.SaveChangesAsync(ct);
+        if (changed > 0 || timbrati > 0) await _db.SaveChangesAsync(ct);
         return changed;
     }
 

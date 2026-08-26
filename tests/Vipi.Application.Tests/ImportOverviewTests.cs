@@ -229,6 +229,8 @@ public class ImportOverviewTests
             Task.FromResult<IReadOnlyList<ImportState>>(_stati);
         public Task<DateTime?> GetLastSuccessAsync(string category, CancellationToken ct = default) =>
             Task.FromResult<DateTime?>(null);
+        public Task<DateTime?> GetPrevSuccessAsync(string category, CancellationToken ct = default) =>
+            Task.FromResult<DateTime?>(null);
         public Task MarkSuccessAsync(string category, DateTime utc, CancellationToken ct = default) => Task.CompletedTask;
         public Task MarkFailureAsync(string category, DateTime utc, string error, CancellationToken ct = default) =>
             Task.CompletedTask;
