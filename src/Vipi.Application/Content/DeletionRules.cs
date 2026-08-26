@@ -169,9 +169,11 @@ public sealed record NeighbourFacts(
 
 /// <summary>Tutto ciò che serve a decidere di un'area regolamentata.</summary>
 /// <param name="Enti">Quanti ACC la elencano: l'area è di tutti, non di chi la sta guardando.</param>
-/// <param name="Documenti">Titoli dei documenti che la citano: resteranno da rivedere.</param>
+/// <param name="Documenti">I documenti che la citano: resteranno da rivedere. ⚠️ Con l'<b>Id</b>, non il solo
+/// titolo — nell'archivio vero due documenti diversi possono chiamarsi allo stesso modo (misurato: due
+/// «vIPI Roma»), e due righe identiche in una finestra sembrano un difetto della finestra.</param>
 public sealed record AreaFacts(
-    string IvaoId, string Nome, int Enti, IReadOnlyList<string> Documenti);
+    string IvaoId, string Nome, int Enti, IReadOnlyList<AffectedDoc> Documenti);
 
 /// <summary>
 /// Le <b>politiche di protezione</b>, in un posto solo e senza IO: dai fatti esce il piano. Le regole sono
@@ -501,7 +503,16 @@ public static class DeletionRules
         if (f.Enti > 0)
             muore.Add(f.Enti == 1 ? "il legame con l'ente che la elenca" : $"i legami con i {f.Enti} enti che la elencano");
 
-        var rivedere = f.Documenti.Select(t => $"«{t}» — cita un'area che non esisterà più").ToList();
+        // Il numero del documento compare SOLO quando il titolo si ripete: sempre sarebbe rumore, mai
+        // renderebbe due righe gemelle indistinguibili.
+        var omonimi = f.Documenti.GroupBy(d => d.Title, StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1).Select(g => g.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var rivedere = f.Documenti
+            .Select(d => omonimi.Contains(d.Title)
+                ? $"«{d.Title}» (documento {d.Id}) — cita un'area che non esisterà più"
+                : $"«{d.Title}» — cita un'area che non esisterà più")
+            .ToList();
 
         var note = new List<string>();
         if (f.Enti > 1)

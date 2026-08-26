@@ -337,3 +337,64 @@ zero, con quel che si sa dai numeri del `vipi.db` reale.
 ⚠️ **Un riferimento debole rimasto**: `EditorTask` punta al documento per `(TargetType, TargetKey)`, senza
 FK. Eliminando il documento l'incarico resta, con la sua etichetta vecchia e **senza collegamento** — non si
 rompe niente, ma nessuno avvisa. L'anteprima dovrebbe dirlo (0 incarichi in archivio oggi).
+
+
+## §16 — Le quattro voci chiuse (26 agosto, sera)
+
+L'inventario di §15 poneva quattro domande al committente. Risposta: tutte e quattro.
+
+### 1. Le sessioni ATC si conservano dodici mesi, poi resta il riassunto
+
+Erano l'unica tabella che cresceva senza fine. Ora `AtcMonthRollup` — **mese, persona, callsign** — raccoglie
+sessioni, secondi, presenze, movimenti e minuti con traffico; le sessioni oltre la finestra spariscono, col
+loro dettaglio in cascata.
+
+**La grana l'ha scelta la misura**, non il gusto: sull'archivio vero (21 275 sessioni) `(mese, vid, callsign)`
+fa **5 848** righe — comprime 3,6× e tiene in piedi «quante ore su LIRF_TWR»; `(mese, vid, posizione)` ne
+farebbe 3 046, ma quella domanda diventerebbe «quante ore in torre», che non è la stessa.
+
+- ⚠️ **Riassumere e cancellare stanno nella stessa transazione.** Separate, un'interruzione fra le due
+  lascerebbe il riassunto già incrementato e le sessioni ancora lì: il giro dopo le conterebbe una seconda
+  volta, e le ore di un mese diventerebbero il doppio senza che nulla lo dica.
+- ⚠️ **Le sessioni ancora APERTE non si potano mai**: senza fine non c'è una durata definitiva. Una
+  connessione aperta da più di un anno è un guasto da guardare, non da cancellare.
+- ⚠️ **«Da quando esiste l'archivio» guarda anche il riassunto**, o si accorcerebbe da sola ogni notte
+  mentre i numeri dei mesi vecchi ci sono ancora.
+- Si perde, dichiarato: l'ora esatta di ogni connessione, la griglia ora×giorno, le strisce di giorni
+  consecutivi, il dettaglio dei voli. Restano ore, sessioni e movimenti per mese, persona e callsign.
+
+### 2. Il candidato confinante si elimina
+
+Si confermava e si rifiutava; un rifiutato restava in elenco a vita. Ora è un bersaglio del motore: blocca
+finché c'è la vLOA nata da lui (stessa regola di D2) e **avvisa** che il settore estero materializzato dalla
+conferma *non* muore con lui — è una riga di catalogo a sé, e si toglie dalla Struttura.
+
+### 3. Il documento dice quali incarichi resteranno appesi
+
+`EditorTask` punta al documento per `(TargetType, TargetKey)`, **senza chiave esterna**: eliminando il
+documento l'incarico non si rompe e nessuno se ne accorge — resta nell'elenco col titolo di prima e con un
+collegamento che non apre più niente. Ora l'anteprima lo dice, **per nome**.
+
+### 4. L'area regolamentata si elimina una alla volta
+
+Si potavano solo dall'import, o si spegnevano per ACC. Ora l'elenco delle aree dell'ACC scelto sta nella
+pagina ACC, con il tasto: l'area se ne va **coi suoi legami**, e i documenti che la citavano si marcano
+`AreaGone` — lo stesso rilievo che alza l'import quando è lui a potarla, non un secondo modo di dirlo.
+
+⚠️ Sparisce **per tutti** gli enti che la elencano, non solo per quello da cui si guarda: sta scritto nel
+piano.
+
+### La sezione «Da sapere»
+
+Le quattro voci hanno portato una cosa che mancava alla finestra: un posto per ciò che **non** muore e
+**non** si sposta, ma va saputo prima di premere. Prima esistevano solo «sparisce», «si sposta», «resta da
+rivedere» e «non si può» — e un avviso non è nessuna delle quattro.
+
+### Due cose che solo i dati veri hanno detto
+
+- **105 aree** su LIRR, e l'anteprima della prima elencava **cinque** documenti da rivedere fra cui «vIPI
+  Roma» **due volte**. Non era un difetto della finestra: nell'archivio ci sono davvero **due documenti
+  diversi** con lo stesso titolo (il 5 e il 16). Ora il numero compare accanto al titolo — ma solo quando il
+  titolo si ripete, altrimenti sarebbe rumore.
+- Il candidato `LIBB ↔ LAAA` è confermato e ha la sua vLOA: la finestra blocca e nomina il documento, poi
+  avvisa del settore `LAAA_CTR` che resta.

@@ -178,7 +178,11 @@ public sealed class EfDeletionRepository : IDeletionRepository
         return new AreaFacts(
             a.IvaoId, a.Name ?? a.IvaoId,
             await _db.SpecialAreaCenters.CountAsync(l => l.IvaoId == ivaoId, ct),
-            (await _impatti.FindDocumentsForSpecialAreaAsync(ivaoId, ct)).Select(d => d.Title).ToList());
+            // Distinti per documento: il reverse-lookup può tornare una riga per ogni posto in cui l'area è
+            // citata. ⚠️ Distinti per ID e non per titolo: nell'archivio vero due documenti DIVERSI portano
+            // lo stesso nome (misurato: «vIPI Roma» è sia il 5 sia il 16), e unirli nasconderebbe un documento.
+            (await _impatti.FindDocumentsForSpecialAreaAsync(ivaoId, ct))
+                .GroupBy(d => d.Id).Select(g => g.First()).ToList());
     }
 
     public Task<int> ReleaseCountAsync(ReleaseTargetType tipo, string chiave, CancellationToken ct = default) =>

@@ -425,7 +425,7 @@ public class DeletionRulesTests
     public void Un_area_dice_chi_la_cita_e_chi_la_elenca()
     {
         var p = DeletionRules.PerArea(new AreaFacts("2731", "LI R14A - S.Severa", 3,
-            new[] { "vIPI Roma", "vIPI Milano" }));
+            new[] { new AffectedDoc(5, "vIPI Roma"), new AffectedDoc(9, "vIPI Milano") }));
 
         Assert.True(p.Eliminabile);
         Assert.Equal("2731", p.Azioni.AreaDaEliminare);
@@ -436,9 +436,23 @@ public class DeletionRulesTests
     }
 
     [Fact]
+    public void Due_documenti_omonimi_si_distinguono_col_numero()
+    {
+        // ⚠️ Misurato sull'archivio vero: «vIPI Roma» è sia il documento 5 sia il 16. Due righe identiche
+        // in una finestra sembrano un difetto della finestra.
+        var p = DeletionRules.PerArea(new AreaFacts("2731", "LI R14A", 1,
+            new[] { new AffectedDoc(5, "vIPI Roma"), new AffectedDoc(16, "vIPI Roma"), new AffectedDoc(9, "vIPI Milano") }));
+
+        Assert.Contains(p.DaRivedere, r => r.Contains("(documento 5)"));
+        Assert.Contains(p.DaRivedere, r => r.Contains("(documento 16)"));
+        // Il titolo unico non porta il numero: sempre sarebbe rumore.
+        Assert.Contains(p.DaRivedere, r => r.Contains("«vIPI Milano» —"));
+    }
+
+    [Fact]
     public void Un_area_di_un_ente_solo_non_avvisa_degli_altri()
     {
-        var p = DeletionRules.PerArea(new AreaFacts("2731", "LI R14A", 1, Array.Empty<string>()));
+        var p = DeletionRules.PerArea(new AreaFacts("2731", "LI R14A", 1, Array.Empty<AffectedDoc>()));
 
         Assert.DoesNotContain(p.Avvisi, a => a.Contains("sparisce per tutti"));
         Assert.Empty(p.DaRivedere);

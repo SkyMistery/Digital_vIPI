@@ -381,6 +381,9 @@ public class DeletionRepositoryTests : IAsyncLifetime
 
         var f = await _repo.AreaFactsAsync("2731");
         Assert.Equal(2, f!.Enti);
+        // Un documento che la cita in due posti resta UN documento (distinti per Id, non per titolo:
+        // sui dati veri due documenti DIVERSI si chiamano entrambi «vIPI Roma»).
+        Assert.Equal(f.Documenti.Count, f.Documenti.Select(d => d.Id).Distinct().Count());
 
         var piano = DeletionRules.PerArea(f);
         await _repo.ApplyAsync(piano.Azioni, actorUserId: 7);
