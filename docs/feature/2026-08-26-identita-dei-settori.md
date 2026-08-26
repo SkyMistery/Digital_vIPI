@@ -77,11 +77,14 @@ Qui il callsign è lo specchio di ciò che IVAO dice. **Non si tocca.**
 **(b) Riferimenti NOSTRI** — dati editoriali, scelte di persone. Devono puntare a un `Id`. Quasi tutti
 già lo fanno (`CoordinationAgreement.SideA/BSectorId`, `DocumentParty.SectorId`,
 `ContentBlock.Scope/From/ToSectorId`, `AirportFrequencyLink.SourceSectorId`, `Sector.ParentSectorId`,
-`Sector.DocumentId`). Restano fuori due:
+`Sector.DocumentId`). Restano fuori, e la spazzata sul database vero (§5) dice quali sono per intero:
 
 - `AccSector.ParentCallsign`, `AirportSector.ParentCallsign`, `Airport.ParentCallsign` — indicizzati,
   **senza FK** perché la catena attraversa i due cataloghi;
-- `DocRelease.TargetKey` — `"{accCode}|{rootCallsign}"`, callsign, o ICAO.
+- `DocRelease.TargetKey` e `EditorTask.TargetKey` — `"{accCode}|{rootCallsign}"`, callsign, o ICAO;
+- `DocumentImpact.SourceKey`, per le righe ancora aperte;
+- i puntatori dentro `ContentBlock.BodyJson` — `Callsigns`, `MemberCallsigns`, `FreqLinkCallsigns`,
+  `OpenCallsigns`: la configurazione dell'AoR e dei gruppi APP, 35 righe sul database vero.
 
 **(c) Riferimenti STORICI** — `AtcSession.Callsign`, `AtcMonthRollup.Callsign`, le release già
 pubblicate, i matcher Aurora. Qui il callsign **è il dato**, non un puntatore: dice «quella sera quel
@@ -111,33 +114,71 @@ Un motore solo, `ICallsignRenameService`, sullo stampo di `IDeletionService`. Qu
 2. riscrive `Sector.Callsign` **tenendo l'`Id`** → accordi, vLOA, blocchi, figli, documento, AoR,
    `FeaturedRank` non si accorgono di niente;
 3. riscrive i tre `ParentCallsign` che puntavano al vecchio;
-4. riscrive `DocRelease.TargetKey` dei bersagli coinvolti;
-5. scrive l'alias;
-6. apre una segnalazione, perché una rinomina silenziosa resta una cosa che una persona deve sapere.
+4. riscrive le chiavi di release e degli incarichi (`DocRelease.TargetKey`, `EditorTask.TargetKey`) nelle
+   due forme, callsign nudo e `{acc}|{callsign}`;
+5. riscrive la `SourceKey` delle segnalazioni **aperte**, e i puntatori dentro `ContentBlock.BodyJson`;
+6. scrive l'alias;
+7. apre una segnalazione (`ImpactKind.SectorRenamed`), perché una rinomina silenziosa resta una cosa che
+   una persona deve sapere: i **collegamenti** sono a posto, il **testo** può ancora nominare il vecchio.
+
+L'inventario dei posti da riscrivere non è a occhio: viene da una spazzata su ogni colonna testuale del
+`vipi.db` vero, ed è nel commento di `EfCallsignRenameService`.
 
 La proiezione **non cambia**: quando gira, il callsign è già allineato ovunque, e il suo upsert per
 callsign ritrova lo stesso `Sector`.
 
-⚠️ **Il caso di collisione.** Se il callsign di destinazione è già occupato da un `Sector` proiettato,
-vince quello con i legami editoriali e l'altro si disattiva — mai il contrario, e mai una cancellazione
-in silenzio. Non può succedere al primo giro (il backfill non rileva rinomine), ma può succedere a un
-archivio che ha già un fantasma da prima di questa carta.
+⚠️ **Il caso di collisione.** Se il nominativo di destinazione è già di un'altra riga di catalogo o di un
+altro `Sector`, la rinomina **non si applica**: si riferisce e basta (`RenameOutcome.Refused`), e le altre
+del giro proseguono. Applicarla violerebbe l'indice unico a metà import, e scegliere chi dei due cede il
+nome vuol dire scegliere quale documento perdere — che è una decisione di una persona, non di un giro
+notturno. Non può capitare al primo giro (il backfill non rileva rinomine); può capitare a un archivio che
+porta già un fantasma da prima di questa carta, o su uno scambio di nominativi fra due settori.
 
-### Strato 3 — Alias e potatura
+### Strato 3 — L'alias, per lo storico
 
 `CallsignAlias` (callsign vecchio → `SectorId`, tipo di catalogo, da quando): serve **solo** allo
 storico del punto (c). Non è un terzo meccanismo di risoluzione: è una tabella che risponde a una
-domanda sola, «di chi era questo nominativo», e ha un lettore solo.
+domanda sola, «di chi era questo nominativo», e ha un lettore solo — `CallsignHistory`, che traduce in
+**lettura**. La usa `ByPositionAsync`, perché una postazione rinominata a giugno non deve comparire come due
+righe che si dividono le ore. ⚠️ Lì il taglio ai primi N esce dal database quando ci sono alias in archivio:
+due metà che si fondono entrano fra le prime solo **dopo** essere state sommate.
 
-Con l'elenco autorevole, «id non elencato» è un fatto esatto e non più un'inferenza sul timbro. Il
-meccanismo dei due giri (`PrevSuccessUtc` + `ImportedAtUtc`) e le pagine «Da sistemare»/«Orfani`
-restano dove sono, ma smettono di dover indovinare le rinomine: gli restano le sparizioni vere.
+Il meccanismo dei due giri (`PrevSuccessUtc` + `ImportedAtUtc`) e le pagine «Da sistemare»/«Orfani»
+restano dove sono, ma smettono di dover indovinare le rinomine: gli restano le **sparizioni vere**, come
+`LIED_G_APP`. Non si è aggiunta nessuna potatura automatica dei cataloghi: eliminare resta di
+`IDeletionService`, con le sue protezioni e una persona che decide.
 
 **Muore l'euristica**: `FindRenameCandidateAsync` e la parte «proponi la rinomina» di
 `StaleCatalogRow` non hanno più ragione di esistere, e vanno via nello stesso giro — il record rimasto
 vero a metà è il debito peggiore.
 
-## 5. Pre-flight (FEATURE-PROCESS)
+## 5. Verifica live (26 agosto 2026)
+
+Eseguita col **codice vero**, sui **payload veri** appena scaricati dall'API, contro una **copia del
+`vipi.db` di produzione** (migrazioni applicate, 9,7 MB). L'unico pezzo non esercitato è il trasporto HTTP,
+verificato a parte interrogando l'API in diretta (§2).
+
+**Backfill** — `37/37` subcenter e `192/192` posizioni prendono l'id al primo giro, e **zero alias**: nessuna
+rinomina inventata, che è l'unico momento in cui questo poteva andare storto per tutti insieme.
+
+**Rinomina** di `LIRR_NE_CTR` → `LIRR_NEZ_CTR`, stesso id 1174:
+
+```
+PRIMA   sectorId=22   figli=6  accordi=1  padri=6  blocchi=5   sessioni=582
+DOPO    sectorId=22   figli=6  accordi=1  padri=6  blocchi=5   ← identità intatta
+alias   LIRR_NE_CTR → LIRR_NEZ_CTR (ivaoId 1174, settore 22)
+righe di catalogo LIRR: 13 (erano 13)      ← nessun fantasma
+settori col vecchio nome: 0
+sessioni ATC col vecchio nome: 582         ← la storia non si tocca
+proiezione dopo: 1 settore col nome nuovo, attivo   ← non si inventa niente
+statistica: col vecchio nome assente, col nuovo 534 sessioni
+```
+
+I **5 blocchi** sono configurazioni AoR vere che nominavano il settore: senza la riscrittura del JSON
+sarebbero rimasti a puntare a un nominativo che non risponde più. Le 534 sessioni contro 582 sono il filtro
+delle connessioni-lampo (&lt; 60 s), che è di `Contate` e non c'entra con la rinomina.
+
+## 6. Pre-flight (FEATURE-PROCESS)
 
 1. **Modello** — `IvaoId` è un attributo dei cataloghi esistenti, non un'entità gemella. `CallsignAlias`
    è nuova, ma non duplica nulla: `StaleCatalogRow` è un read-model calcolato, non uno storico.
@@ -149,7 +190,7 @@ vero a metà è il debito peggiore.
 4. **Propagazione** — muoiono `FindRenameCandidateAsync` e il commento sulla rinomina in
    `StaleCatalogRow`; va aggiornata anche la memoria `documenti-da-rivedere-impatti`.
 
-## 6. Fuori tema, trovato per strada
+## 7. Fuori tema, trovato per strada
 
 `regionMapPolygon` è **`[]` su tutte e 229** le righe live, mentre in archivio ci sono **66 poligoni TWR
 reali** con `IsShapeSynthetic = 0`. L'upsert li assegna senza condizioni
