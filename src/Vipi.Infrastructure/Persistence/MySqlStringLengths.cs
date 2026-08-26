@@ -132,6 +132,10 @@ public static class MySqlStringLengths
             [("DocRelease", "TargetType")] = 32,           // misurato 7 (`AccVipi`)
             [("EditorTask", "Status")] = 32,               // tabella vuota: dimensionato sui nomi dell'enum
             [("ImportState", "Category")] = 32,            // chiave primaria; misurato 13 (`AirportSector`)
+            // Da quale catalogo veniva il nominativo dismesso. Sta nell'indice `(Catalog, IvaoId)` — la
+            // coppia che identifica la riga di sorgente — quindi vale la stessa regola di DocumentImpact.Kind:
+            // il presidio pretende una voce esplicita. Il valore più lungo è `AirportPosition` (15).
+            [("CallsignAlias", "Catalog")] = EnumChars,
 
             // --- Chiavi composte e identificatori ------------------------------------------------------
             // TargetKey è `{acc}|{root}`, cioè codice ACC + separatore + callsign: 16+1+32 = 49 nel caso

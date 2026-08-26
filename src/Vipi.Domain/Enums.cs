@@ -188,6 +188,17 @@ public enum ImpactKind
     SectorReparented,
 
     /// <summary>
+    /// La sorgente ha <b>rinominato</b> il callsign: stesso id alla sorgente, nominativo diverso. Il settore è
+    /// lo stesso — documento, accordi, vLOA, AoR e figli non si sono accorti di niente, perché l'identità non è
+    /// cambiata — ma il <b>testo</b> può ancora nominare il vecchio, e quello nessun calcolo lo sa riscrivere.
+    ///
+    /// <para>Non è <see cref="SectorStale"/>: quello dice «la sorgente non lo elenca più» e nasceva proprio dal
+    /// non saper distinguere una rinomina da una sparizione. Qui la rinomina è un fatto certo, già applicato.
+    /// <b>La chiude una persona</b>, quando ha riletto: è un evento, non uno stato che si riapre da solo.</para>
+    /// </summary>
+    SectorRenamed,
+
+    /// <summary>
     /// La sorgente non elenca più quel callsign, ma la riga di catalogo è ancora lì — perché i cataloghi non
     /// potano mai. È il caso della <b>rinomina</b> (LIRN_US0_APP → LIRN_US1_APP): nessuno sparisce, il
     /// vecchio resta attivo come un fantasma e il nuovo nasce senza documentazione. Si riconosce dal timbro
@@ -237,4 +248,22 @@ public static class ImpactKinds
     /// <summary>Vero se l'impatto segnala qualcosa di rotto, non solo da rileggere.</summary>
     public static bool IsRotto(this ImpactKind kind) =>
         kind is ImpactKind.ReleaseKeyMoved or ImpactKind.BrokenTarget;
+}
+
+/// <summary>
+/// Quale dei due cataloghi di sorgente: i <b>subcenter</b> di un ACC (<c>AccSector</c>) o le <b>postazioni</b>
+/// di un aeroporto (<c>AirportSector</c>).
+///
+/// <para>Serve dove le due famiglie finiscono nello stesso insieme e l'id numerico da solo non basta più a
+/// distinguerle: alla sorgente sono due sequenze diverse, misurate 1171–3916 e 3398–24707, cioè intervalli
+/// che si sovrappongono. Finché ognuna sta nella sua tabella la cosa si regge da sé; quando si mescolano —
+/// <c>CallsignAlias</c> — la chiave è la coppia.</para>
+/// </summary>
+public enum SourceCatalog
+{
+    /// <summary>Subcenter di un ACC (<c>/v2/centers/{ACC}/subcenters</c> → <c>AccSector</c>).</summary>
+    Subcenter,
+
+    /// <summary>Postazione ATC di un aeroporto (<c>/v2/airports/{ICAO}/ATCPositions</c> → <c>AirportSector</c>).</summary>
+    AirportPosition,
 }

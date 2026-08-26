@@ -171,6 +171,7 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
 
             if (existing.TryGetValue(compose, out var row))
             {
+                row.IvaoId ??= p.IvaoId;   // backfill: la riga c'era prima che l'identità esistesse
                 row.AirportIcao = icao;
                 row.AccCode = accCode;
                 row.Position = position;
@@ -204,6 +205,7 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
             {
                 _db.AirportSectors.Add(new AirportSector
                 {
+                    IvaoId = p.IvaoId,
                     ComposePosition = compose,
                     AirportIcao = icao,
                     AccCode = accCode,

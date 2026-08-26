@@ -44,7 +44,26 @@ public class Acc
 public class AccSector
 {
     public int Id { get; set; }
-    public string ComposePosition { get; set; } = default!;   // univoco, es. "LIBB_ES_CTR" (chiave naturale)
+
+    /// <summary>
+    /// L'<b>identità</b> della riga alla sorgente (IVAO: <c>id</c> del subcenter, es. 1174). È questo — non il
+    /// callsign — che dice «questa riga e quella sono la stessa cosa»: IVAO aggiorna le proprie righe in posto
+    /// (misurato il 26 agosto 2026: <c>LIRQ_TWR</c> è lo stesso id dal 2020 al 2026), quindi una rinomina
+    /// arriva come lo stesso id con un <see cref="ComposePosition"/> diverso, e l'upsert la applica invece di
+    /// creare un doppione.
+    ///
+    /// <para>null = riga che la sorgente non ha <b>mai</b> mandato: i settori esteri catalogati a mano dalla
+    /// pagina Confinanti. Per loro l'identità resta il callsign, ed è giusto — non c'è nessun id da conservare.
+    /// È anche il motivo per cui l'indice unico tollera i null: tutti e tre i provider ne ammettono molti.</para>
+    ///
+    /// <para>⚠️ L'id è unico <b>per tipo di catalogo</b>, non in assoluto: subcenter e postazioni d'aeroporto
+    /// sono due sequenze diverse alla sorgente (misurate: 1171–3916 e 3398–24707, che si sovrappongono come
+    /// intervalli). Vivendo in due tabelle diverse la cosa si regge da sé, ma chi li mette insieme in memoria
+    /// deve qualificarli — vedi <c>CallsignAlias.Catalogo</c>.</para>
+    /// </summary>
+    public int? IvaoId { get; set; }
+
+    public string ComposePosition { get; set; } = default!;   // callsign, es. "LIBB_ES_CTR" (univoco, ma NON l'identità: vedi IvaoId)
     public string CenterId { get; set; } = default!;          // FK → Acc.Code, es. "LIBB"
     public Acc? Acc { get; set; }
 
@@ -88,7 +107,11 @@ public class AccSector
 public class AirportSector
 {
     public int Id { get; set; }
-    public string ComposePosition { get; set; } = default!;    // univoco, es. "LIRN_TWR" (chiave naturale)
+
+    /// <inheritdoc cref="AccSector.IvaoId"/>
+    public int? IvaoId { get; set; }
+
+    public string ComposePosition { get; set; } = default!;    // callsign, es. "LIRN_TWR" (univoco, ma NON l'identità: vedi IvaoId)
     public string AirportIcao { get; set; } = default!;        // FK → Airport.Icao
     public Airport? Airport { get; set; }
     public string AccCode { get; set; } = default!;            // ACC di competenza, ereditato da Airport.Acc.Code

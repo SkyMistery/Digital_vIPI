@@ -71,6 +71,7 @@ public sealed class EfNeighbourRepository : INeighbourRepository
                 if (compose.Length == 0) continue;
                 if (existingSubs.TryGetValue(compose, out var row))
                 {
+                    row.IvaoId ??= sub.IvaoId;   // backfill: la riga c'era prima che l'identità esistesse
                     row.CenterId = center;
                     row.Position = sub.Position;
                     row.MiddleIdentifier = sub.MiddleIdentifier;
@@ -86,6 +87,9 @@ public sealed class EfNeighbourRepository : INeighbourRepository
                 {
                     var added = new AccSector
                     {
+                        // Sui confinanti veri l'id c'è (vengono da /v2/centers/{ACC}/subcenters); resta null
+                        // solo sulle righe sintetiche di ForeignSectorResolver, che è il senso del null.
+                        IvaoId = sub.IvaoId,
                         ComposePosition = compose,
                         CenterId = center,
                         Position = sub.Position,

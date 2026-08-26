@@ -255,6 +255,7 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
 
             if (existing.TryGetValue(compose, out var row))
             {
+                row.IvaoId ??= s.IvaoId;   // backfill: la riga c'era prima che l'identità esistesse
                 row.CenterId = center;
                 row.Position = s.Position;
                 row.MiddleIdentifier = s.MiddleIdentifier;
@@ -274,6 +275,7 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
             {
                 _db.AccSectors.Add(new AccSector
                 {
+                    IvaoId = s.IvaoId,
                     ComposePosition = compose,
                     CenterId = center,
                     Position = s.Position,

@@ -89,6 +89,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsManual")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("IvaoId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int?>("LowerLimit")
                         .HasColumnType("INTEGER");
 
@@ -112,6 +115,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.HasIndex("CenterId");
 
                     b.HasIndex("ComposePosition")
+                        .IsUnique();
+
+                    b.HasIndex("IvaoId")
                         .IsUnique();
 
                     b.HasIndex("ParentCallsign");
@@ -600,6 +606,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsShapeSynthetic")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("IvaoId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("LimitsFromSource")
                         .HasColumnType("INTEGER");
 
@@ -628,6 +637,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.HasIndex("AirportIcao");
 
                     b.HasIndex("ComposePosition")
+                        .IsUnique();
+
+                    b.HasIndex("IvaoId")
                         .IsUnique();
 
                     b.HasIndex("ParentCallsign");
@@ -983,6 +995,47 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("AuditLogs");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.CallsignAlias", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Catalog")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("IvaoId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("NewCallsign")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OldCallsign")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("RenamedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("SectorId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OldCallsign")
+                        .IsUnique();
+
+                    b.HasIndex("SectorId");
+
+                    b.HasIndex("Catalog", "IvaoId");
+
+                    b.ToTable("CallsignAliases");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.ContentBlock", b =>
@@ -2209,6 +2262,16 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.CallsignAlias", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Sector", "Sector")
+                        .WithMany()
+                        .HasForeignKey("SectorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Sector");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.ContentBlock", b =>

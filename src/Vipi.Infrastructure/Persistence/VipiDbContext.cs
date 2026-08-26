@@ -96,6 +96,7 @@ public class VipiDbContext : DbContext
     public DbSet<ImportState> ImportStates => Set<ImportState>();
     public DbSet<AccSector> AccSectors => Set<AccSector>();
     public DbSet<AirportSector> AirportSectors => Set<AirportSector>();
+    public DbSet<CallsignAlias> CallsignAliases => Set<CallsignAlias>();
     public DbSet<SpecialArea> SpecialAreas => Set<SpecialArea>();
     public DbSet<SpecialAreaCenter> SpecialAreaCenters => Set<SpecialAreaCenter>();
     public DbSet<NeighbourCandidate> NeighbourCandidates => Set<NeighbourCandidate>();
@@ -173,7 +174,12 @@ public class VipiDbContext : DbContext
 
         b.Entity<AccSector>(e =>
         {
-            e.HasIndex(x => x.ComposePosition).IsUnique();   // chiave naturale
+            // ⚠️ DUE indici unici, e dicono due cose diverse. IvaoId è l'IDENTITÀ (chi è questa riga) e regge
+            // l'upsert; ComposePosition è il CALLSIGN, unico perché due settori non possono rispondere allo
+            // stesso nominativo — ma può cambiare, ed è proprio quel che succede a una rinomina.
+            // I null di IvaoId restano molti (le righe aggiunte a mano): tutti e tre i provider li ammettono.
+            e.HasIndex(x => x.IvaoId).IsUnique();
+            e.HasIndex(x => x.ComposePosition).IsUnique();
             e.HasIndex(x => x.CenterId);
             e.HasIndex(x => x.ParentCallsign);               // gerarchia di copertura per callsign (Round 20)
             // FK su Acc.Code (chiave alternata): il centerId della sorgente è il codice ACC.
@@ -184,7 +190,8 @@ public class VipiDbContext : DbContext
 
         b.Entity<AirportSector>(e =>
         {
-            e.HasIndex(x => x.ComposePosition).IsUnique();   // chiave naturale
+            e.HasIndex(x => x.IvaoId).IsUnique();            // l'identità (vedi il commento su AccSector)
+            e.HasIndex(x => x.ComposePosition).IsUnique();   // il callsign: unico, ma può cambiare
             e.HasIndex(x => x.AirportIcao);
             e.HasIndex(x => x.AccCode);
             e.HasIndex(x => x.ParentCallsign);               // gerarchia di copertura per callsign (Round 20)
@@ -465,6 +472,19 @@ public class VipiDbContext : DbContext
             // L'elenco «cosa c'è di aperto», che è la query della pagina e del banner.
             e.HasIndex(x => new { x.ClearedUtc, x.RaisedUtc });
             e.HasOne(x => x.Document).WithMany().HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // --- Nominativi dismessi: lo storico, non l'identità (vedi CallsignAlias). ---
+        b.Entity<CallsignAlias>(e =>
+        {
+            // Un callsign è stato di uno solo: se ricomparisse su una riga diversa sarebbe una storia da
+            // guardare, non una da scrivere in silenzio.
+            e.HasIndex(x => x.OldCallsign).IsUnique();
+            e.HasIndex(x => new { x.Catalog, x.IvaoId });    // «cos'altro ha chiamato questa riga»: la catena delle rinomine
+            e.Property(x => x.OldCallsign).HasMaxLength(32);
+            e.Property(x => x.NewCallsign).HasMaxLength(32);
+            // Il settore può sparire; l'alias no — deve continuare a spiegare uno storico che è ancora lì.
+            e.HasOne(x => x.Sector).WithMany().HasForeignKey(x => x.SectorId).OnDelete(DeleteBehavior.SetNull);
         });
 
         // --- Stato editoriale data-driven generico di un documento vIPI (1:1 col Document). Doc refactor 08e. ---
