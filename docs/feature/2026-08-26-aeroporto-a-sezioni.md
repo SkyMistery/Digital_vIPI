@@ -215,3 +215,82 @@ perché il contenuto era cotto nei blocchi e lo snapshot se lo portava dietro se
 
 E i **cinque Remarks** di LIBD sono passati dalla tabella al documento senza perdere un callout: il trasloco
 regge sui dati veri.
+
+---
+
+## §8 — Il difetto che la carta aveva creato: il meteo sparito dal pubblico
+
+Segnalato dal committente subito dopo l'esecuzione: **la sezione METAR/TAF c'era nell'editor ma non nella
+pagina pubblica**.
+
+**Perché.** La pagina pubblica non legge il documento di lavoro: legge lo **snapshot di release effettiva**. E
+quello snapshot, per ogni aeroporto non ancora ripubblicato, è stato scritto **prima** di questa carta — quindi
+non ha una sezione `weather`, e non ce l'avrà mai, perché le release pubblicate non si riscrivono (doc 13 §9).
+Prima della carta il riquadro METAR/TAF lo disegnava la **pagina**, fuori dal documento: c'era sempre, per
+costruzione. Diventando una sezione, ha cominciato a dipendere da un documento che non la conosce.
+
+Misurato sull'archivio di sviluppo, guardando i payload delle release:
+
+| Scalo | Sezioni nella release effettiva |
+|---|---|
+| LIBC, LIBD, LIRN, LIPA | `custom«Transition levels»`, `frequencies«Frequencies»`, `custom«Runways»`, `sids«SID»`, `airportextra«Remarks»` — **niente meteo** |
+| LIBR | `weather`, `runwayrules`, `transition`, … — era stato **ripubblicato** |
+
+⚠️ E c'era un secondo danno, più silenzioso: in quegli snapshot `transition` e `runways` hanno **chiavi
+casuali**, quindi non venivano riconosciute come sezioni di catalogo e finivano rese come **tabelle generiche**
+— la pagina pubblica perdeva la tabella dei livelli con la fascia QNH accesa e quella delle piste con 🛫🛬.
+
+**La regola, e dove sta.** `AirportLegacySections` (puro, in Application) tiene **una sola** mappa
+titolo→chiave, con **due lettori**: la riconciliazione d'avvio, che riscrive i documenti di lavoro una volta
+per tutte, e il **viewer**, che deve leggere anche gli snapshot — e quelli non si riscrivono mai. Due copie
+della stessa mappa sarebbero state due verità sullo stesso archivio.
+
+`ForView` fa tre cose sulle sezioni del documento mostrato:
+
+1. riporta le sezioni **cotte** alla loro chiave e al **titolo di catalogo** (anche quando la chiave era già
+   giusta: `frequencies` e `sids` non passano dal riconoscimento per titolo, e senza questo il documento
+   resterebbe metà in italiano e metà in inglese);
+2. **toglie i blocchi** alle sezioni ora rese dalla pagina, o si vedrebbe la tabella due volte;
+3. aggiunge le sezioni **sempre live** che mancano. ⚠️ La regola generale: *una sezione sempre live non è mai
+   parte della verità di uno snapshot* — non si congela, non ha contenuto salvato, e la sua assenza da un
+   documento vecchio dice solo che quel documento è stato scritto prima che esistesse.
+
+Cade con questo il ramo `IsCooked` del §5: non serve più distinguere lo snapshot cotto, perché le sue sezioni
+vengono ricondotte alle chiavi vere e rese dai componenti. Sul contenuto non si perde nulla — per quelle chiavi
+una release anteriore non ha un payload congelato, quindi la derivazione ricade su **live**, che è esattamente
+ciò che la pagina faceva prima (piste, frequenze ed extra li leggeva **dal profilo**).
+
+## §9 — «Identica a com'era prima»: il confronto, e le tre differenze rimaste
+
+Costruito il codice **pre-carta** in un worktree su `identita-settori` e messo in piedi su una copia del DB
+**pre-migrazione** (porta 5035), accanto al codice nuovo sul DB migrato (5034). Stessa pagina, stesso browser,
+stesso momento: `/services/vsop/libb/airports?icao=LIBD`.
+
+| | prima | dopo |
+|---|---|---|
+| intestazione meteo | `🌦️ METAR & TAF · LIBD (live · NOAA)` | **identica** |
+| chip METAR (vento, visibilità, nuvole, QNH, temp) | 5 | **identici** |
+| frequenze | 6 righe, `★ Bari Tower` | **identiche** |
+| livelli di transizione | 4 fasce, riga del QNH accesa | **identiche** |
+| piste | 2 righe con 🛫🛬 | **identiche** |
+| SID | 19 righe | **19** |
+| tabelle generiche | 0 | **0** |
+
+Il titolo di catalogo del meteo è tornato **«METAR & TAF»** (era «METAR e TAF»), e l'intestazione della sezione
+porta di nuovo emoji, ICAO e la nota «live · NOAA» — non sono decorazione: dicono **di chi** è il tempo che si
+sta leggendo e che è vivo, ed è quel che quella sezione ha da dire prima di essere aperta.
+
+**Le tre differenze che restano, tutte volute:**
+
+1. **Le due colonne affiancate non ci sono più.** «Quote di transizione» e «Frequenze» stavano in una griglia a
+   due colonne (`.apt-2col`); ora sono impilate come tutte le altre. È il prezzo del riordino: una griglia di
+   due sezioni fisse non si può riordinare, e la richiesta era proprio poterle spostare. Si può rimettere, ma
+   solo rinunciando a spostare quelle due.
+2. **I titoli sono in italiano** («Quote di transizione», «Frequenze», «Piste») invece che in inglese. Li dà il
+   catalogo, come per le altre tre famiglie, e il documento è `Language.It`: erano inglesi solo perché la
+   cottura li scriveva così.
+3. **I callout dei Remarks portano l'etichetta «Nota».** Prima gli extra passavano da un renderer tutto loro;
+   ora passano da quello condiviso, che etichetta i callout senza titolo come in ogni altro documento.
+
+E due spaziature che Razor si mangiava davanti a un blocco di codice, corrette: «FL60current QNH» e
+«★Bari Tower».

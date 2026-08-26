@@ -150,20 +150,12 @@ else
                    piste → SID → extra) e ritrovava le sezioni con `Title.Contains("transi")`. Per questo
                    riordinare, nascondere o infilare una sezione libera in mezzo non aveva alcun effetto: il
                    documento poteva dire quello che voleva, la pagina disegnava sempre la stessa cosa. *@
-                @foreach (var sec in _view.Sections)
+                @foreach (var sec in _sezioni)
                 {
                     var nascosta = sec.IsHidden;
                     @if (nascosta && _mode.Kind != PreviewKind.Draft)
                     {
                         <text></text>   @* nascosta: fuori dal pubblico e dall'anteprima release *@
-                    }
-                    else if (IsCooked(sec))
-                    {
-                        @* ⚠️ Uno snapshot di release scritto PRIMA della carta 2026-08-26 porta il contenuto COTTO
-                           dentro la sezione. Per quel ciclo la verità è lo snapshot, non la derivazione di oggi:
-                           si rendono i suoi blocchi e basta. Un documento di lavoro non passa mai di qui — le sue
-                           sezioni fisse sono ancore senza corpo. *@
-                        <SectionNode Section="sec" />
                     }
                     else if (IsSpecial(sec.SectionKey))
                     {
@@ -172,7 +164,22 @@ else
                         <CollapsibleBlock Id="@AnchorOf(sec)" ExtraClass="@(sec.SectionKey == "weather" ? "noprint" : null)"
                                           Style="@(nascosta ? "opacity:.65" : null)"
                                           InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(sec.SectionKey))">
-                            <Header><h2 class="h-sect" style="margin-top:0">@SectionHeading(sec) @if (nascosta) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }</h2></Header>
+                            <Header>
+                                <h2 class="h-sect" style="margin-top:0">
+                                    @* ⚠️ Il meteo porta l'intestazione che aveva quando era un riquadro a sé:
+                                       l'emoji, l'ICAO e la nota «live NOAA». Non è decorazione — dice DI CHI è
+                                       il tempo che si sta leggendo e che è vivo, e sono le due cose che questa
+                                       sezione ha da dire prima di essere aperta. *@
+                                    @if (sec.SectionKey == "weather") { <text>🌦️ </text> }
+                                    @SectionHeading(sec)
+                                    @if (sec.SectionKey == "weather")
+                                    {
+                                        <text> · @_icao </text>
+                                        <span class="muted" style="font-weight:400;font-size:13px">@L["Airport_LiveNoaa"]</span>
+                                    }
+                                    @if (nascosta) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }
+                                </h2>
+                            </Header>
                             <ChildContent>
                                 @* Sotto-sezioni «prima» del corpo derivato (doc 11 §3g). *@
                                 @if (SectionBody.HasChildren(sec, SectionSlot.Before))
@@ -382,6 +389,7 @@ else
                 break;
         }
         if (_view is null) return;
+        _sezioni = AirportLegacySections.ForView(_view.Sections);
         _canEdit = await Authz.CanEditAccAsync(_acc.Code);   // tasto Editor solo a chi può editare l'ACC
 
         _wx = await Weather.GetAsync(_icao);
@@ -523,19 +531,19 @@ else
     private static bool IsSpecial(string key) => SectionCatalog.IsHostRendered(SectionProfile.Airport, key);
 
     /// <summary>
-    /// Sezione fissa che si porta dentro dei blocchi: può venire solo da uno snapshot di release anteriore alla
-    /// carta 2026-08-26, quando il contenuto era COTTO nel documento. Nei documenti di lavoro le sezioni fisse
-    /// sono ancore senza corpo — l'editor non sa nemmeno metterci un blocco.
+    /// Le sezioni da rendere: quelle del documento mostrato, con le <b>cotte</b> riportate alla loro chiave di
+    /// catalogo e con il <b>meteo</b> aggiunto se manca (<see cref="AirportLegacySections.ForView"/>).
+    /// <para>⚠️ Serve agli snapshot di release anteriori alla carta 2026-08-26, che non si riscrivono mai: senza,
+    /// la pagina pubblica di ogni aeroporto non ancora ripubblicato perde le tabelle vere e il meteo.</para>
     /// </summary>
-    private static bool IsCooked(SectionView s) =>
-        SectionCatalog.IsFixed(SectionProfile.Airport, s.SectionKey) && s.Blocks.Count > 0;
+    private IReadOnlyList<SectionView> _sezioni = Array.Empty<SectionView>();
 
     // Ancora di sezione: «s-{Id}» per TUTTE, anche per quelle rese dalla pagina (doc 13 §3e), così i deep-link
     // della ricerca — che indicizza per Id — atterrano dove devono e non in cima alla pagina.
     private static string AnchorOf(SectionView s) => s.Id;
 
     private IEnumerable<SectionView> VisibleSections() =>
-        _view!.Sections.Where(s => _mode.Kind == PreviewKind.Draft || !s.IsHidden);
+        _sezioni.Where(s => _mode.Kind == PreviewKind.Draft || !s.IsHidden);
 
     /// <summary>
     /// Titolo mostrato per una sezione di catalogo. ⚠️ Uno snapshot di release scritto PRIMA della carta

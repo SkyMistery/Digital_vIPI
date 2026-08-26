@@ -144,7 +144,7 @@ public static class SectionCatalog
             // scrivevano in inglese, ed è per questo che il viewer aveva un heading inglese cablato.
             [SectionProfile.Airport] = new[]
             {
-                H("weather", "METAR e TAF", 1),
+                H("weather", "METAR & TAF", 1),
                 H("runwayrules", "Regole piste", 2),
                 H("transition", "Quote di transizione", 3),
                 H("frequencies", "Frequenze", 4),

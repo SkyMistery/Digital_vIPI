@@ -18,8 +18,8 @@ public static class SectionOrdering
 {
     /// <summary>
     /// Scostamento per Id sezione: negativo = tanti posti PIÙ IN ALTO dello standard, positivo = più in basso.
-    /// Le sezioni all'ordine standard (e quelle libere, e tutte se il profilo è null — l'aeroporto non ha
-    /// catalogo) non compaiono nel risultato.
+    /// Le sezioni all'ordine standard, quelle libere e tutte quelle di un documento senza profilo (null) non
+    /// compaiono nel risultato.
     /// </summary>
     public static IReadOnlyDictionary<int, int> OffsetsFromStandard(
         SectionProfile? profile, IReadOnlyList<EditableSection> siblings)

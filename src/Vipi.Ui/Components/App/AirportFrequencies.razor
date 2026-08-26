@@ -11,10 +11,9 @@
         @foreach (var f in View.Rows)
         {
             <tr class="@(f.IsPrimary ? "primary" : null)">
-                <td>
-                    @if (f.IsPrimary) { <span class="freq-key">★</span> }
-                    @f.Name
-                </td>
+                @* Lo spazio dopo la stella è scritto come entità: Razor scarta il testo di sola spaziatura
+                   attorno a un blocco di codice, e usciva «★Bari Tower» attaccato. *@
+                <td>@if (f.IsPrimary) { <span class="freq-key">★</span><text>&#32;</text> }@f.Name</td>
                 <td>@f.Callsign</td>
                 <td>@f.Frequency</td>
             </tr>

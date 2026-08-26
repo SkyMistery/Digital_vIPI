@@ -326,26 +326,9 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
     }
 
     // ---- carta 2026-08-26: i documenti d'aeroporto gia' scritti ----
-
-    /// <summary>Titolo cotto → chiave di catalogo. Include i titoli inglesi correnti e quelli italiani legacy,
-    /// perche' fino all'i18n il documento nasceva in italiano. «Frequencies» e «SID» non sono in elenco: quelle due
-    /// una chiave vera ce l'avevano gia' (<c>frequencies</c> e <c>sids</c>), le altre tre no.</summary>
-    private static readonly IReadOnlyDictionary<string, string> AirportCookedTitleToKey =
-        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["Runway rules"] = "runwayrules",
-            ["Regole piste"] = "runwayrules",
-            ["Configurazioni pista"] = "runwayrules",
-            ["Transition levels"] = "transition",
-            ["Quote di transizione"] = "transition",
-            ["Quote transizione"] = "transition",
-            ["Runways"] = "runways",
-            ["Piste"] = "runways",
-        };
-
-    /// <summary>Chiave delle sezioni editoriali libere che il documento cotto emetteva: una sola per TUTTE, quindi
-    /// indistinguibili — «nascondi» ne avrebbe nascosta una a caso.</summary>
-    private const string LegacyAirportExtraKey = "airportextra";
+    // ⚠️ La mappa titolo→chiave NON sta qui: sta in AirportLegacySections, perche' ha DUE lettori. Questo passo
+    // riscrive i documenti di LAVORO una volta per tutte; il viewer deve leggere anche gli snapshot di release,
+    // e quelli non si riscrivono mai. Due copie della stessa mappa sarebbero due verita' sullo stesso archivio.
 
     public async Task<int> ReconcileAirportSectionKeysAsync(CancellationToken ct = default)
     {
@@ -394,7 +377,7 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
             // Passo 1 — la chiave. Solo le sezioni con chiave LIBERA: «Frequencies» e «SID» ce l'avevano gia'
             // giusta, e una chiave di catalogo non si sovrascrive.
             if (SectionKeys.IsCustom(s.SectionKey)
-                && AirportCookedTitleToKey.TryGetValue(titolo, out var key)
+                && AirportLegacySections.KeyForCookedTitle(titolo) is { } key
                 && gia.Add(key))
             {
                 s.SectionKey = key;
@@ -443,7 +426,7 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
     {
         var righe = await _db.AirportExtraSections.Where(x => x.AirportId == airportId)
             .OrderBy(x => x.Order).ToListAsync(ct);
-        var vecchie = roots.Where(x => string.Equals(x.SectionKey, LegacyAirportExtraKey, StringComparison.OrdinalIgnoreCase)).ToList();
+        var vecchie = roots.Where(x => string.Equals(x.SectionKey, AirportLegacySections.ExtraKey, StringComparison.OrdinalIgnoreCase)).ToList();
         if (righe.Count == 0 && vecchie.Count == 0) return 0;
 
         // Via le copie cotte: si riscrivono dalla tabella, che e' la versione vera.
