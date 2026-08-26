@@ -1,6 +1,8 @@
 # Eliminare, con le protezioni — carta (26 agosto 2026)
 
-> **Stato: 📋 CARTA, nessuna slice avviata.** Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
+> **Stato: ✅ ESEGUITA il 26 agosto 2026** (lavori A e B), sul ramo `statistiche-atc`. Build Release pulita
+> sui due TFM, test verdi (net8 **2461**, net10 **2223**) e **provata sui dati veri** — §11.
+> Quel che l'esecuzione ha cambiato rispetto al piano sta in **§12**. Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 > Nasce dall'inventario del 26 agosto su *come si elimina oggi un settore o un aeroporto* — la risposta è
 > «quasi mai, e per vie traverse» — e dalle decisioni del committente della stessa sessione (§2).
 > Il lavoro è **diviso in due**: [A] la verità sulle sorgenti, [B] l'eliminazione vera. B senza A mentirebbe.
@@ -212,10 +214,15 @@ Guidare il flusso vero su copia del `vipi.db`: eliminare un `GND` con documento 
 l'altro da rivedere), un `APP` ultimo di un documento (deve bloccare), uno scalo intero con quattro settori
 e il suo documento, e un settore ancora elencato dalla sorgente (deve rifiutare per D8).
 
-## §9 — Cosa resta da decidere
+## §9 — Le decisioni chiuse in corsa
 
-1. **D4, i blocchi**: due vie (come D2) o tre (sgancia / elimina il blocco / blocca)? La carta è scritta
-   sulla proposta a tre; con due, un blocco che cita il settore costa l'intero documento.
+1. **D4, i blocchi**: confermate le **tre vie** (26 agosto). Un blocco che cita il settore come *estremo* di
+   un da→a muore; uno che lo cita come *ambito* resta, sganciato; se il documento perde l'ultimo aggancio si
+   blocca.
+2. **D6, la torre**: si elimina **solo** insieme all'intero aeroporto. Letta alla lettera, su uno scalo con
+   `TWR` **e** `I_TWR` non se ne toglie nessuna delle due — si esegue così, e si allenta solo se il caso si
+   presenta davvero.
+3. **D7, i settori d'aeroporto**: DEL/GND/APP si eliminano da soli; con lo scalo muoiono tutti.
 
 ## §10 — Pre-flight (FEATURE-PROCESS)
 
@@ -228,3 +235,55 @@ e il suo documento, e un settore ancora elencato dalla sorgente (deve rifiutare 
    l'ingresso al *cosa posso eliminare*. Verifica: §8.
 4. **Propagazione** — questa slice **rimuove** un percorso (orfani → rimuovi): carta degli impatti, guida
    in-app e memorie vanno aggiornate nello stesso giro.
+
+
+## §11 — La prova sui dati veri (26 agosto 2026)
+
+Non i test: l'applicazione avviata su una **copia del `vipi.db` di sviluppo** (321 settori, 93 aeroporti,
+19 documenti) e guidata in Edge con puppeteer-core. Prima le migrazioni sono passate sulla copia senza
+perdere niente; poi si è seminato lo scenario che la regola D8 richiede — due giri riusciti alle spalle,
+`LIMM_FSS` con il timbro di catalogo fermo a cinque giorni prima, `LIQV` (Volterra) non elencato da sei.
+
+| Prova | Esito |
+|---|---|
+| Pagina «Da sistemare» | 17 voci: **1** aeroporto non più elencato, **10** orfani, **6** documenti da rivedere; in cima i tre istanti che fanno da metro |
+| `LIMM_FSS` — piano | «Sparisce: il settore LIMM_FSS (Milano Information)», nessun blocco, conferma attiva |
+| `LIMM_FSS` — eliminazione | eseguita: 321 → **320** settori, riga di catalogo `AccSectors` sparita con lui, audit `Delete/Sector/10` col **nome** dentro, nodo sparito dall'albero |
+| `LIBB_ES_CTR` — piano | **bloccato**, e dice tutto: la sorgente lo manda ancora, **sedici** accordi di coordinamento elencati per nome, e «elimina prima il documento «vIPI Brindisi»: è il suo ultimo aggancio». Sotto, il prezzo: sette figli che diventerebbero radici e **quattro vLOA** da ripubblicare |
+| `LIMM_ES5_CTR` — piano | bloccato dalla sola D8: «la sorgente la manda ancora (vista l'ultima volta il 2026-08-25 22:02Z)» |
+| `LIQV` — eliminazione | eseguita dalla pagina d'insieme: 93 → **92** aeroporti, audit `Delete/Airport/73` con ICAO e nome |
+
+⚠️ **Un difetto trovato solo a schermo**, e non dai test: con un piano lungo — i sedici accordi di un CTR
+vero — la finestra riempiva i suoi 82vh e i tasti **Elimina/Annulla** finivano fuori dallo schermo, dentro
+l'area che scorre. Chi legge si trovava un elenco di ostacoli e nessun modo di chiudere che non fosse il
+velo, che non è un comando che si trovi. I tasti ora sono `sticky` in fondo alla finestra, sopra una riga di
+separazione. Misurato dopo il fix: card 1148px in un viewport da 1400, azioni dentro lo schermo.
+
+⚠️ **La pagina nasce in sola lettura**: il lock di modifica della Struttura si prende a mano, e finché non lo
+si prende **tutti** i comandi sono spenti — «Applica» come «Elimina». Non è un difetto del tasto nuovo, ed è
+costato un giro del driver per capirlo.
+
+## §12 — Cosa l'esecuzione ha cambiato rispetto al piano
+
+- **`SogliaEliminazione` sta in `Application/Content`**, accanto a `SogliaTimbro`, non in `Domain/Services`:
+  è lì che vive la gemella, e separarle sarebbe stato l'inizio della divergenza.
+- **La trappola dei due clic** non era nel piano: due giri a mano ravvicinati consumerebbero entrambe le
+  conferme. Il penultimo timbro non scorre sotto un'ora di distanza.
+- **Gli import per-ICAO non timbrano la categoria**: il re-import dei settori di *un* aeroporto o delle aree
+  di *una* ACC conferma una riga, non il catalogo. Timbrano solo i giri interi (`AccImportUseCase`,
+  `AirportImportUseCase`), che sono gli stessi corpi del bottone e del giro notturno.
+- **Il documento non è mai una cascata**: si elimina prima, a mano. Vale anche per la vIPI dello scalo, che
+  quindi blocca l'eliminazione dell'aeroporto finché c'è. Più prevedibile di un cascade, e reversibile fino
+  all'ultimo passo.
+- **La rimozione degli orfani è confluita nel motore nuovo** e `IOrphanSectorRepository.RemoveAsync` non
+  esiste più. ⚠️ Effetto voluto: un orfano **nascosto** da un admin ora non si elimina finché la sorgente lo
+  manda. Prima si poteva — ed era la stessa regola D8 applicata a metà.
+
+## §13 — Limiti dichiarati
+
+- **Le frasi del piano sono in italiano** anche quando l'interfaccia è in inglese: nascono nel dominio, come
+  già facevano i «bloccanti» della casella degli impatti. La cornice (titolo, intestazioni, tasti) è
+  localizzata. Renderle chiavi di traduzione è un giro a sé, e va fatto per tutte e due le famiglie insieme.
+- **La ACC non cascada** (§2, D-ACC): la politica è «svuotala prima», con l'elenco di quanto manca.
+- **Eliminare non è per sempre**: se la sorgente rimanda quel callsign, l'import lo ricrea. La regola delle
+  due chiamate lo rende raro, non impossibile.
