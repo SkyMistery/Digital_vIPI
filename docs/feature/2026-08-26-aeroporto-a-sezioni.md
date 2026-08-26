@@ -386,6 +386,20 @@ dei permessi due omonimi vanno distinti. Qui il VID lo aggiunge il link, e senza
 | vLOA LDZO | `2608 · 12 Aug 2026 · 13:56Z · Carmine (VID 704798) · IT-AOA1 · IT-T03` | ✅ la tabella scritta a mano |
 | editor aeroporto | scheda + nota «questi tre campi li scrive il documento» | — |
 
+### La scheda è larga quanto la sezione
+
+Era nata sulle classi di `.tl-table` e con loro si portava dietro il **tetto di 420px** — che per la tabella dei
+livelli di transizione ha senso (due colonne di numeri) e qui no: la colonna del valore porta un nome, le
+posizioni staff e un link, e a 420px andava a capo mentre metà della card restava vuota. Ora usa `.res-table`,
+che è la tabella pensata per essere piena.
+
+⚠️ La colonna delle etichette è fissata in `ch`, non in percentuale: le tre etichette sono le stesse in ogni
+documento, e senza un valore fisso la tabella si sarebbe ridisegnata larga diversa a seconda di quanto è lungo
+il nome del revisore. Sotto i 560px il vincolo cade e le colonne tornano automatiche.
+
+Misurato: scheda **822px = corpo della sezione** su vLOA, aeroporto e APP; **946** nell'editor; allineata alla
+tabella scritta a mano che le sta sotto.
+
 **Due cose da sapere, e nessuna delle due è un difetto:**
 
 1. **Sulla vIPI ACC di Brindisi la sezione non si vede in pubblico**: `validity` e `operationaltechnique` sono
