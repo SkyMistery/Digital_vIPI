@@ -2348,3 +2348,25 @@ della pulizia):
 
 ⚠️ Nell'archivio **due documenti diversi possono avere lo stesso titolo**: dove si elencano documenti, il
 numero va accanto al nome quando il nome si ripete.
+
+### I3 🟡 APERTA — gli orfani non sono tutti orfani, e ora si può sapere quali
+
+Provando «chiedi alla sorgente adesso» ([carta](feature/2026-08-26-chiedere-alla-sorgente.md)) contro IVAO
+vero, i **nove** orfani della Struttura si sono divisi così:
+
+| | |
+|---|---|
+| la sorgente li **manda ancora** | LIBB_EU_CTR, LIRO_CRC_CTR, LIVK_CRC_CTR, LIVK_RCC_CTR, LIZZ_AAR_CTR, LIZZ_AEW_CTR, LIZZ_JTA_CTR, LIZZ_NVY_CTR — **otto** |
+| **sparito davvero** | LIED_G_APP (Decimo Precision): `LIED` ne elenca 3 e questo non è fra loro |
+
+⚠️ Otto su nove sono orfani perché qualcuno li ha **nascosti nel nostro catalogo**, non perché IVAO li abbia
+tolti — e la sezione «Orfani» li mostra tutti uguali. Sono due situazioni diverse con due rimedi diversi:
+uno si **rimostra**, l'altro si **elimina**. Da decidere dopo la pulizia, uno per uno; il tasto per
+distinguerli adesso c'è.
+
+### I4 🟡 APERTA — l'azione di gruppo sugli aeroporti non offre la domanda
+
+`AeroportiPage.razor:619` elimina in blocco chiamando `EliminaAsync` senza verifica alla sorgente: chi la usa
+passa dalla regola dei due giri come prima. È **voluto** — una raffica di verifiche puntuali su N scali è
+esattamente ciò che la carta §3/P7 evita — ma il tasto singolo e quello di gruppo si comportano
+diversamente sullo stesso oggetto, e va deciso se dirlo a schermo o dare al gruppo una verifica sola.
