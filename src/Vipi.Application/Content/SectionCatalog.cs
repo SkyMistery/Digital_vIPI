@@ -4,7 +4,8 @@
 /// Catalogo UNIFICATO delle sezioni documentali (doc refactor 08a). Fonte unica per: la natura di ogni sezione
 /// (<see cref="KindOf"/>), la membership per profilo (<see cref="For"/>), chi ne rende il corpo
 /// (<see cref="IsHostRendered"/>, doc 13 §3a) e quali sono obbligatorie (<see cref="IsFixed"/>). Sostituisce i tre
-/// registry per-tipo e l'enum <c>BlockSection</c>. L'aeroporto NON partecipa (documento generato a struttura propria).
+/// registry per-tipo e l'enum <c>BlockSection</c>. Dalla carta 2026-08-26 partecipano <b>tutte e quattro</b> le
+/// famiglie: l'aeroporto era l'ultima fuori, con un documento cotto a ogni rebuild e sezioni riconosciute per titolo.
 /// <para>
 /// Non c'è più una <c>Reconcile</c> d'ordine: dal doc 11 §3b «si itera la lista di sezioni del documento», non un
 /// elenco di chiavi riconciliato a view-time. Il metodo era rimasto senza chiamanti, con il commento che lo
@@ -21,6 +22,12 @@ public static class SectionCatalog
             ["frequencies"] = SectionKind.Derived,
             ["coordination"] = SectionKind.Derived,
             ["sids"] = SectionKind.Derived,   // aeroporto (doc 10 §3e): SID derivata a view-time, non più cotta
+            // Aeroporto (carta 2026-08-26): il contenuto sta nelle tabelle del profilo e si deriva a view-time,
+            // esattamente come «aor»/«frequencies» sull'APP. Prima erano tabelle Markdown cotte nei blocchi.
+            ["weather"] = SectionKind.Derived,        // METAR/TAF live dal NOAA
+            ["runwayrules"] = SectionKind.Derived,    // regole di scelta pista (vento/superficie)
+            ["transition"] = SectionKind.Derived,     // TA + tabella dei livelli di transizione per fascia QNH
+            ["runways"] = SectionKind.Derived,        // piste dell'anagrafica IVAO + arricchimenti editoriali
             // «minima» è tornata Derived: le MRVA si prendono dal sectorfile come CARTA (non come tabella), una
             // per file .mva, e la pagina la disegna. La decisione del 2026-08-09 che le dichiarava non importabili
             // riguardava la tabella area→quota, che il formato davvero non permette di ricostruire; il disegno sì,
@@ -47,12 +54,23 @@ public static class SectionCatalog
     /// <summary>Vero se la sezione si apre COLLASSATA nel documento: si espande a mano (doc 11 §3i).</summary>
     public static bool IsInitiallyCollapsed(string key) => InitiallyCollapsedKeys.Contains(key);
 
+    // Sezioni derivate che NON si possono congelare: la loro derivazione è vera solo adesso. Un METAR catturato
+    // al ciclo AIRAC non è un documento d'archivio, è meteo scaduto spacciato per attuale — quindi la sezione
+    // non espone il toggle e la cattura frozen la salta.
+    private static readonly IReadOnlySet<string> AlwaysLiveKeys =
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "weather" };
+
+    /// <summary>Vero se la sezione si deriva SEMPRE dal vivo e non può essere congelata alla release.</summary>
+    public static bool IsAlwaysLive(string key) => AlwaysLiveKeys.Contains(key);
+
     /// <summary>
-    /// Vero se la sezione espone all'editor il toggle Live/Frozen (doc 10 §3a): solo le sezioni DERIVATE, perché
-    /// per quelle editoriali non esiste una derivazione da congelare. La regola stava ripetuta identica nei tre
-    /// editor (ACC, APP, vLOA) e vive qui, dove è definita la natura delle sezioni.
+    /// Vero se la sezione espone all'editor il toggle Live/Frozen (doc 10 §3a): le sezioni DERIVATE che non siano
+    /// <see cref="IsAlwaysLive"/> — per quelle editoriali non esiste una derivazione da congelare, per quelle
+    /// sempre-live congelarla sarebbe una bugia. La regola stava ripetuta identica nei tre editor (ACC, APP, vLOA)
+    /// e vive qui, dove è definita la natura delle sezioni.
     /// </summary>
-    public static bool IsRenderModeToggleable(string key) => KindOf(key) == SectionKind.Derived;
+    public static bool IsRenderModeToggleable(string key) =>
+        KindOf(key) == SectionKind.Derived && !IsAlwaysLive(key);
 
     // Corpo prodotto dalla PAGINA (doc 13 §3a): derivate + editoriali-strutturate. Scritto per esteso su ogni
     // voce perché non è deducibile dalla natura — «regulated» è un picker sulla vIPI ACC/APP e prosa sulla vLOA.
@@ -118,6 +136,22 @@ public static class SectionCatalog
                 H("coordination", "Coordination", 5),
                 D("regulated", "Military areas coordination and management", 6),
                 D("validity", "Validity and Revision", 7),
+            },
+            // vIPI d'aeroporto (carta 2026-08-26). Le sei sezioni che c'erano già — con le stesse cose dentro —
+            // più le due editoriali universali. Fuori restano «aor», «coordination» e «regulated»: l'aeroporto è un
+            // LUOGO, e area di responsabilità e accordi appartengono alla torre e all'avvicinamento.
+            // ⚠️ Titoli in italiano come App/Acc: il documento nasce `Language.It`. Le cotture di prima li
+            // scrivevano in inglese, ed è per questo che il viewer aveva un heading inglese cablato.
+            [SectionProfile.Airport] = new[]
+            {
+                H("weather", "METAR e TAF", 1),
+                H("runwayrules", "Regole piste", 2),
+                H("transition", "Quote di transizione", 3),
+                H("frequencies", "Frequenze", 4),
+                H("runways", "Piste", 5),
+                H("sids", "SID", 6),
+                D("operationaltechnique", "Procedure generali", 7),
+                D("validity", "Validità e revisione", 8),
             },
         };
 

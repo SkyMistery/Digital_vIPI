@@ -9,6 +9,12 @@ public class SectionCatalogTests
     private static readonly string[] Universal =
         { "aor", "frequencies", "coordination", "regulated", "operationaltechnique", "validity" };
 
+    /// <summary>I profili che descrivono una POSIZIONE DI CONTROLLO. È su questi che vale l'invariante delle
+    /// sezioni universali: <see cref="SectionProfile.Airport"/> descrive un luogo e non ha AoR né coordinamenti
+    /// (carta 2026-08-26 §1a).</summary>
+    private static readonly SectionProfile[] ControlPositions =
+        { SectionProfile.App, SectionProfile.AccAerovia, SectionProfile.AccAppBlock, SectionProfile.Vloa };
+
     [Theory]
     [InlineData("aor", SectionKind.Derived)]
     [InlineData("frequencies", SectionKind.Derived)]
@@ -28,6 +34,9 @@ public class SectionCatalogTests
     [InlineData("coordination", true)]
     [InlineData("minima", true)]   // derivata dal sectorfile: si può congelare alla release
     [InlineData("sids", true)]
+    [InlineData("runways", true)]        // derivata dall'anagrafica: si può congelare alla release
+    [InlineData("transition", true)]
+    [InlineData("weather", false)]       // derivata ma SEMPRE live: un METAR congelato è meteo scaduto
     [InlineData("separations", false)]
     [InlineData("vfr", false)]
     [InlineData("validity", false)]
@@ -41,8 +50,23 @@ public class SectionCatalogTests
         // Invariante di coerenza: le due porte non possono divergere.
         foreach (SectionProfile p in Enum.GetValues<SectionProfile>())
             foreach (var d in SectionCatalog.For(p))
-                Assert.Equal(SectionCatalog.KindOf(d.Key) == SectionKind.Derived,
+                Assert.Equal(
+                    SectionCatalog.KindOf(d.Key) == SectionKind.Derived && !SectionCatalog.IsAlwaysLive(d.Key),
                     SectionCatalog.IsRenderModeToggleable(d.Key));
+    }
+
+    [Fact]
+    public void An_always_live_section_is_derived_and_never_toggleable()
+    {
+        // Una sezione «sempre live» che non fosse derivata sarebbe una contraddizione: non c'è niente da derivare.
+        foreach (SectionProfile p in Enum.GetValues<SectionProfile>())
+            foreach (var d in SectionCatalog.For(p).Where(d => SectionCatalog.IsAlwaysLive(d.Key)))
+            {
+                Assert.Equal(SectionKind.Derived, d.Kind);
+                Assert.False(SectionCatalog.IsRenderModeToggleable(d.Key));
+            }
+        Assert.True(SectionCatalog.IsAlwaysLive("weather"));
+        Assert.False(SectionCatalog.IsAlwaysLive("sids"));
     }
 
     // ---- doc 13 §3a: chi rende il corpo lo dice il catalogo, per profilo ----
@@ -67,6 +91,9 @@ public class SectionCatalogTests
         Assert.Equal(
             new[] { "aor", "coordination", "frequencies" },
             Host(SectionProfile.Vloa));   // sulla vLOA «regulated» è testo bilaterale, non un picker
+        Assert.Equal(
+            new[] { "frequencies", "runwayrules", "runways", "sids", "transition", "weather" },
+            Host(SectionProfile.Airport));   // le due editoriali universali restano a blocchi
     }
 
     [Fact]
@@ -104,14 +131,39 @@ public class SectionCatalogTests
     }
 
     [Fact]
-    public void Universals_present_in_every_profile()
+    public void Universals_present_in_every_control_position_profile()
     {
-        foreach (SectionProfile p in Enum.GetValues<SectionProfile>())
+        foreach (var p in ControlPositions)
         {
             var keys = SectionCatalog.For(p).Select(d => d.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
             foreach (var u in Universal)
                 Assert.True(keys.Contains(u), $"{p} deve contenere «{u}»");
         }
+    }
+
+    [Fact]
+    public void The_airport_has_no_aor_no_coordination_no_regulated()
+    {
+        // Carta 2026-08-26 §1a: l'aeroporto descrive un LUOGO. Area di responsabilità, accordi di coordinamento e
+        // aree regolamentate appartengono alla torre e all'avvicinamento, che hanno documenti loro — scriverle
+        // anche qui vorrebbe dire due verità sulla stessa cosa. Restano le due editoriali universali.
+        var keys = SectionCatalog.For(SectionProfile.Airport).Select(d => d.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        Assert.DoesNotContain("aor", keys);
+        Assert.DoesNotContain("coordination", keys);
+        Assert.DoesNotContain("regulated", keys);
+        Assert.Contains("operationaltechnique", keys);
+        Assert.Contains("validity", keys);
+    }
+
+    [Fact]
+    public void Airport_default_order_is_the_order_of_todays_page()
+    {
+        // Le stesse sezioni che l'aeroporto aveva già, nell'ordine in cui la pagina le mostrava quando quella
+        // sequenza era cablata nel viewer. Da qui in poi è solo l'ordine di NASCITA: si riordina in editor.
+        var keys = SectionCatalog.For(SectionProfile.Airport).OrderBy(d => d.Order).Select(d => d.Key).ToArray();
+        Assert.Equal(
+            new[] { "weather", "runwayrules", "transition", "frequencies", "runways", "sids", "operationaltechnique", "validity" },
+            keys);
     }
 
     [Fact]
