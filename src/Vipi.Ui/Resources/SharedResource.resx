@@ -1400,6 +1400,7 @@
   <data name="Pend_DocNumber" xml:space="preserve"><value>documento {0}</value></data>
   <data name="Impact_SectorHidden" xml:space="preserve"><value>Il settore {0} è stato nascosto: verifica frequenze, AoR e coordinamenti.</value></data>
   <data name="Impact_SectorReparented" xml:space="preserve"><value>Il settore {0} ha cambiato padre nella catena di copertura: verifica le consegne.</value></data>
+  <data name="Impact_SectorRenamed" xml:space="preserve"><value>La sorgente ha rinominato {0} in {1}: è lo stesso settore e i collegamenti sono già aggiornati, ma rileggi il testo dove nomina il vecchio nominativo.</value></data>
   <data name="Impact_AreaGone" xml:space="preserve"><value>L'area regolamentata {0} non è più nei cataloghi: il documento la cita ma non viene mostrata.</value></data>
   <data name="Impact_AreaChanged" xml:space="preserve"><value>L'area regolamentata {0} è cambiata: rileggi quel che il documento ne dice.</value></data>
   <data name="Impact_ReleaseDrift" xml:space="preserve"><value>La copia pubblicata è indietro rispetto alla bozza: {0}.</value></data>

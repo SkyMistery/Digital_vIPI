@@ -125,6 +125,7 @@ public sealed class DocumentImpactService : IDocumentImpactService
         public const string SectorHidden = "Impact_SectorHidden";
         public const string SectorDetached = "Impact_SectorDetached";
         public const string SectorReparented = "Impact_SectorReparented";
+        public const string SectorRenamed = "Impact_SectorRenamed";
         public const string AreaGone = "Impact_AreaGone";
         public const string AreaChanged = "Impact_AreaChanged";
         public const string ReleaseDrift = "Impact_ReleaseDrift";
@@ -138,6 +139,7 @@ public sealed class DocumentImpactService : IDocumentImpactService
             ImpactKind.SectorHidden => SectorHidden,
             ImpactKind.SectorDetached => SectorDetached,
             ImpactKind.SectorReparented => SectorReparented,
+            ImpactKind.SectorRenamed => SectorRenamed,
             ImpactKind.AreaGone => AreaGone,
             ImpactKind.AreaChanged => AreaChanged,
             ImpactKind.ReleaseDrift => ReleaseDrift,

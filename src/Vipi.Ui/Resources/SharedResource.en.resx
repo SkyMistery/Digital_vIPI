@@ -1397,6 +1397,7 @@
   <data name="Pend_DocNumber" xml:space="preserve"><value>document {0}</value></data>
   <data name="Impact_SectorHidden" xml:space="preserve"><value>Sector {0} has been hidden: check frequencies, AoR and coordination.</value></data>
   <data name="Impact_SectorReparented" xml:space="preserve"><value>Sector {0} changed parent in the coverage chain: check the handoffs.</value></data>
+  <data name="Impact_SectorRenamed" xml:space="preserve"><value>The source renamed {0} to {1}: it is the same sector and the links are already updated, but re-read any text that names the old callsign.</value></data>
   <data name="Impact_AreaGone" xml:space="preserve"><value>Regulated area {0} is no longer in the catalogues: the document cites it but it is not shown.</value></data>
   <data name="Impact_AreaChanged" xml:space="preserve"><value>Regulated area {0} has changed: re-read what the document says about it.</value></data>
   <data name="Impact_ReleaseDrift" xml:space="preserve"><value>The published copy is behind the draft: {0}.</value></data>

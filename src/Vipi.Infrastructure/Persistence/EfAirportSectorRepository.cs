@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
+using Vipi.Domain;
 using Vipi.Domain.Entities;
 
 namespace Vipi.Infrastructure.Persistence;
@@ -13,7 +14,14 @@ namespace Vipi.Infrastructure.Persistence;
 public sealed class EfAirportSectorRepository : IAirportSectorRepository
 {
     private readonly VipiDbContext _db;
-    public EfAirportSectorRepository(VipiDbContext db) => _db = db;
+    private readonly ICallsignRenameService _rinomine;
+
+    /// <inheritdoc cref="EfAccAdminRepository(VipiDbContext, ICallsignRenameService?)"/>
+    public EfAirportSectorRepository(VipiDbContext db, ICallsignRenameService? rinomine = null)
+    {
+        _db = db;
+        _rinomine = rinomine ?? new EfCallsignRenameService(db);
+    }
 
     private const int DefaultLowerFt = 0;        // GND
     private const int DefaultUpperFt = 19500;    // limite superiore di default (APP/DEP)
@@ -156,6 +164,18 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
         // Coordinate del riferimento aeroporto dal dettaglio postazione (uguali per tutte): centro della shape TWR.
         var coord = positions.FirstOrDefault(p => p.AirportLatitude is not null && p.AirportLongitude is not null);
         if (coord is not null) { airport.Latitude = coord.AirportLatitude; airport.Longitude = coord.AirportLongitude; }
+
+        // Le rinomine PRIMA di leggere `existing`: applicate qui, l'upsert per callsign ritrova le righe al
+        // loro posto. ⚠️ Le righe che si confrontano sono quelle di QUESTO aeroporto: la sorgente ci ha appena
+        // mandato il suo elenco, e un id che non compare non vuol dire sparito — vuol dire che sta altrove.
+        await _rinomine.ApplyAsync(
+            CallsignRenameDetector.Detect(
+                SourceCatalog.AirportPosition,
+                await _db.AirportSectors.AsNoTracking()
+                    .Where(x => x.AirportIcao == icao && x.IvaoId != null)
+                    .ToDictionaryAsync(x => x.IvaoId!.Value, x => x.ComposePosition, ct),
+                positions.Select(p => (p.IvaoId, p.Callsign))),
+            ct);
 
         var existing = await _db.AirportSectors
             .Where(s => s.AirportIcao == icao)

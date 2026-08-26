@@ -153,6 +153,8 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Content.ISectorCatalogMaintenance, EfSectorCatalogMaintenance>();
         services.AddScoped<Vipi.Application.Abstractions.IDocumentAdminRepository, EfDocumentAdminRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAirportSectorRepository, EfAirportSectorRepository>();
+        // La rinomina: un motore solo, come l'eliminazione. Lo chiamano i due upsert di catalogo, in cima.
+        services.AddScoped<Vipi.Application.Content.ICallsignRenameService, EfCallsignRenameService>();
         // Statistiche ATC: archivio delle sessioni e delle tratte scritte dal poller, più la mappa dei
         // settori (albero proiettato + volumi dai cataloghi) su cui si attribuisce il traffico.
         services.AddScoped<Vipi.Application.Abstractions.IAtcSessionStore, EfAtcSessionStore>();

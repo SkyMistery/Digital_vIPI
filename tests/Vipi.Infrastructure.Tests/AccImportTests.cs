@@ -137,4 +137,91 @@ public class AccImportTests : IAsyncLifetime
         Assert.DoesNotContain(nav, a => a.Code == "LIRM");
         Assert.Contains(nav, a => a.Code == "LIRR");
     }
+
+    // ---- L'identità della sorgente, e la rinomina che ne consegue ------------------------------------
+
+    private static IReadOnlyList<SourceSubcenter> SubsConId() => new[]
+    {
+        new SourceSubcenter("LIRR_N_CTR", "LIRR", "CTR", "N", "124.000", null, IvaoId: 1171),
+        new SourceSubcenter("LIRR_S_CTR", "LIRR", "CTR", "S", "125.000", null, IvaoId: 1172),
+    };
+
+    [Fact]
+    public async Task L_import_registra_l_identita_della_sorgente()
+    {
+        await _repo.ImportAsync(Sample());
+        await _repo.ImportSubcentersAsync(SubsConId());
+
+        var righe = await _db.AccSectors.AsNoTracking().ToDictionaryAsync(x => x.ComposePosition, x => x.IvaoId);
+        Assert.Equal(1171, righe["LIRR_N_CTR"]);
+        Assert.Equal(1172, righe["LIRR_S_CTR"]);
+    }
+
+    /// <summary>
+    /// L'archivio di prima non ha id: il backfill glieli dà senza inventarsi nessuna rinomina. È il primo giro
+    /// dopo il deploy, ed è l'unico momento in cui questo può andare storto per tutti insieme.
+    /// </summary>
+    [Fact]
+    public async Task Il_primo_giro_riempie_gli_id_senza_rinominare_niente()
+    {
+        await _repo.ImportAsync(Sample());
+        await _repo.ImportSubcentersAsync(Subs());                    // senza id: com'era prima
+        Assert.All(await _db.AccSectors.AsNoTracking().ToListAsync(), s => Assert.Null(s.IvaoId));
+
+        await _repo.ImportSubcentersAsync(SubsConId());               // ora la sorgente li manda
+
+        Assert.Equal(1171, (await _db.AccSectors.AsNoTracking()
+            .SingleAsync(x => x.ComposePosition == "LIRR_N_CTR")).IvaoId);
+        Assert.Empty(await _db.CallsignAliases.AsNoTracking().ToListAsync());
+    }
+
+    /// <summary>
+    /// Stesso id, nominativo nuovo: la riga si RINOMINA, non si sdoppia. Prima di questa carta l'archivio
+    /// finiva con due righe e il documento sulla vecchia.
+    /// </summary>
+    [Fact]
+    public async Task Stesso_id_con_nome_nuovo_rinomina_la_riga_invece_di_aggiungerne_una()
+    {
+        await _repo.ImportAsync(Sample());
+        await _repo.ImportSubcentersAsync(SubsConId());
+
+        await _repo.ImportSubcentersAsync(new[]
+        {
+            new SourceSubcenter("LIRR_NE_CTR", "LIRR", "CTR", "NE", "124.000", null, IvaoId: 1171),
+            new SourceSubcenter("LIRR_S_CTR", "LIRR", "CTR", "S", "125.000", null, IvaoId: 1172),
+        });
+
+        var righe = await _db.AccSectors.AsNoTracking().Where(x => x.CenterId == "LIRR").ToListAsync();
+        Assert.Equal(2, righe.Count);                                        // due, non tre
+        Assert.Equal("LIRR_NE_CTR", righe.Single(x => x.IvaoId == 1171).ComposePosition);
+        Assert.DoesNotContain(righe, x => x.ComposePosition == "LIRR_N_CTR");
+
+        var alias = Assert.Single(await _db.CallsignAliases.AsNoTracking().ToListAsync());
+        Assert.Equal("LIRR_N_CTR", alias.OldCallsign);
+        Assert.Equal("LIRR_NE_CTR", alias.NewCallsign);
+    }
+
+    /// <summary>
+    /// Il caso vero del 22 agosto 2026: <c>LIRR_NE1_CTR</c> è nato ACCANTO a <c>LIRR_NE_CTR</c>, con la stessa
+    /// frequenza e lo stesso nome IVAO. È uno sdoppiamento, e le righe devono restare due.
+    /// </summary>
+    [Fact]
+    public async Task Uno_sdoppiamento_aggiunge_una_riga_e_non_ne_rinomina_nessuna()
+    {
+        await _repo.ImportAsync(Sample());
+        await _repo.ImportSubcentersAsync(SubsConId());
+
+        await _repo.ImportSubcentersAsync(new[]
+        {
+            new SourceSubcenter("LIRR_N_CTR", "LIRR", "CTR", "N", "124.000", null, IvaoId: 1171),
+            new SourceSubcenter("LIRR_S_CTR", "LIRR", "CTR", "S", "125.000", null, IvaoId: 1172),
+            new SourceSubcenter("LIRR_N1_CTR", "LIRR", "CTR", "N1", "124.000", null, IvaoId: 3916),
+        });
+
+        var righe = await _db.AccSectors.AsNoTracking().Where(x => x.CenterId == "LIRR").ToListAsync();
+        Assert.Equal(3, righe.Count);
+        Assert.Contains(righe, x => x.ComposePosition == "LIRR_N_CTR");     // il vecchio è ancora lì
+        Assert.Contains(righe, x => x.ComposePosition == "LIRR_N1_CTR");
+        Assert.Empty(await _db.CallsignAliases.AsNoTracking().ToListAsync());
+    }
 }

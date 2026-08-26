@@ -14,7 +14,18 @@ namespace Vipi.Infrastructure.Persistence;
 public sealed class EfAccAdminRepository : IAccAdminRepository
 {
     private readonly VipiDbContext _db;
-    public EfAccAdminRepository(VipiDbContext db) => _db = db;
+    private readonly ICallsignRenameService _rinomine;
+
+    /// <param name="rinomine">
+    /// Il motore delle rinomine. Il default non è «spento» ma il motore sullo <b>stesso</b> contesto: una
+    /// rinomina non applicata non è una funzione in meno, è un fantasma in archivio, e non dev'essere
+    /// possibile costruire questo repository in un modo che la salti.
+    /// </param>
+    public EfAccAdminRepository(VipiDbContext db, ICallsignRenameService? rinomine = null)
+    {
+        _db = db;
+        _rinomine = rinomine ?? new EfCallsignRenameService(db);
+    }
 
     private const int FssUpperFt = 19000;   // limite superiore di default dei settori FSS (GND→19000)
     private static bool IsFss(string? position) =>
@@ -240,6 +251,17 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
     {
         var now = DateTime.UtcNow;
         int created = 0, updated = 0;
+
+        // PRIMA di tutto: le rinomine, riconosciute per identità. Applicate qui — cioè prima che si legga
+        // `existing` — l'upsert per callsign qui sotto ritrova le righe al loro posto e non ha bisogno di
+        // sapere che qualcosa è successo. È il motivo per cui questo blocco sta in cima e non in fondo.
+        await _rinomine.ApplyAsync(
+            CallsignRenameDetector.Detect(
+                SourceCatalog.Subcenter,
+                await _db.AccSectors.AsNoTracking().Where(x => x.IvaoId != null)
+                    .ToDictionaryAsync(x => x.IvaoId!.Value, x => x.ComposePosition, ct),
+                subs.Select(s => (s.IvaoId, s.ComposePosition))),
+            ct);
 
         var accCodes = (await _db.Accs.Select(a => a.Code).ToListAsync(ct))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
