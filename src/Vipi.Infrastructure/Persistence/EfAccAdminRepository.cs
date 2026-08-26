@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Aor;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
@@ -283,7 +284,8 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
                 row.MiddleIdentifier = s.MiddleIdentifier;
                 row.AtcCallsign = s.AtcCallsign;
                 row.Frequency = s.Frequency;
-                row.RegionMapPolygon = s.RegionMapPolygon;
+                // Solo una shape VERA sovrascrive: l'assenza non è un ordine di cancellare (PolygonGeometry.HasShape).
+                if (!PolygonGeometry.IsEmptyShape(s.RegionMapPolygon)) row.RegionMapPolygon = s.RegionMapPolygon;
                 // Limiti: l'admin comanda; aggiorna solo se la sorgente li espone (oggi null → preserva).
                 if (s.LowerLimit is not null) row.LowerLimit = s.LowerLimit;
                 else row.LowerLimit ??= 0;                 // default inferiore = GND (0)
@@ -304,7 +306,7 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
                     MiddleIdentifier = s.MiddleIdentifier,
                     AtcCallsign = s.AtcCallsign,
                     Frequency = s.Frequency,
-                    RegionMapPolygon = s.RegionMapPolygon,
+                    RegionMapPolygon = PolygonGeometry.IsEmptyShape(s.RegionMapPolygon) ? null : s.RegionMapPolygon,
                     LowerLimit = s.LowerLimit ?? 0,        // default GND (0)
                     UpperLimit = s.UpperLimit ?? (IsFss(s.Position) ? FssUpperFt : (int?)null),  // FSS→19000, altri→UNL
                     IsHidden = false,

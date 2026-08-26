@@ -131,8 +131,12 @@ public class GithubTowerShapeServiceTests : IAsyncLifetime
         var svc = new GithubTowerShapeService(_repo, source);
         Assert.Equal(1, await svc.ApplyAsync("LIRN"));
 
+        // Altro aeroporto: intatto, cioè ancora senza shape. ⚠️ Fino al 26 agosto 2026 qui si leggeva
+        // `Assert.Equal("[]", …)`: si presidiava il modo in cui l'assenza era scritta in colonna, non il fatto
+        // che GitHub non l'avesse toccato. Ora una shape vuota dalla sorgente non entra proprio in archivio
+        // (PolygonGeometry.IsEmptyShape), e l'asserzione dice quel che ha sempre voluto dire.
         var lirp = await _db.AirportSectors.AsNoTracking().SingleAsync(s => s.ComposePosition == "LIRP_TWR");
-        Assert.Equal("[]", lirp.RegionMapPolygon);   // altro aeroporto: intatto
+        Assert.Null(lirp.RegionMapPolygon);
     }
 
     [Fact]

@@ -12,6 +12,43 @@ public static class PolygonGeometry
 {
     private const double NmPerDegLat = 60.0;   // 1° di latitudine ≈ 60 NM
 
+    /// <summary>
+    /// La sorgente non ha mandato <b>niente</b>: campo assente, oppure un contenitore vuoto (<c>[]</c>,
+    /// <c>{}</c>, <c>null</c>). Serve agli upsert per non scambiare un'assenza per un ordine di cancellare.
+    ///
+    /// <para><b>Perché è costata cara.</b> Gli upsert dei cataloghi preservavano già la shape quando la sorgente
+    /// non la mandava — ma con un <c>is not null</c>, e dal 26 agosto 2026 IVAO risponde
+    /// <c>regionMapPolygon: []</c> (misurato su <b>tutte e 229</b> le righe italiane), che quel controllo lo
+    /// passa benissimo. Misurato su una copia del database vero: un solo giro d'import portava <b>83 poligoni a
+    /// zero</b> — 66 reali presi da GitHub e 17 cerchi di ripiego — lasciando 142 righe con <c>"[]"</c>.</para>
+    ///
+    /// <para>⚠️ <b>Chiede se è vuoto, non se è valido</b>, e la differenza è voluta. Un <c>ParsePoints(...).Count
+    /// &gt;= 3</c> sarebbe stato un <b>validatore</b>: il giorno in cui la sorgente manda una forma che questo
+    /// parser non sa ancora leggere, un upsert-validatore la butterebbe via in silenzio tenendosi quella vecchia.
+    /// Giudicare se una shape si disegna è compito di chi la disegna — <see cref="AorPolygonProjector.Project"/>
+    /// e i ripieghi TWR — e quelli hanno già il loro ripiego. Qui si risponde solo alla domanda che l'upsert deve
+    /// porsi: «la sorgente mi ha dato qualcosa?».</para>
+    /// </summary>
+    public static bool IsEmptyShape(string? rawJson)
+    {
+        if (string.IsNullOrWhiteSpace(rawJson)) return true;
+        try
+        {
+            using var doc = JsonDocument.Parse(rawJson);
+            return doc.RootElement.ValueKind switch
+            {
+                JsonValueKind.Null or JsonValueKind.Undefined => true,
+                JsonValueKind.Array => doc.RootElement.GetArrayLength() == 0,
+                JsonValueKind.Object => !doc.RootElement.EnumerateObject().Any(),
+                _ => false,
+            };
+        }
+        catch (JsonException)
+        {
+            return false;   // non è JSON: è qualcosa, e non tocca a noi giudicarlo
+        }
+    }
+
     /// <summary>Anello di punti geografici + bounding box, pronto per test di adiacenza.</summary>
     public sealed record Ring(IReadOnlyList<(double Lat, double Lon)> Points,
         double MinLat, double MinLon, double MaxLat, double MaxLon);

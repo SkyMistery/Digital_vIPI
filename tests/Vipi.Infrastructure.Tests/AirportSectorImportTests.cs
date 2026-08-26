@@ -158,4 +158,84 @@ public class AirportSectorImportTests : IAsyncLifetime
         Assert.Null(await _repo.GetAccCodeByIcaoAsync("ZZZZ"));
         Assert.Contains("LIRN", await _repo.ListAirportIcaosAsync());
     }
+
+    // ---- La shape: l'assenza non cancella la presenza ------------------------------------------------
+
+    private const string PoligonoVero = "[[14.29,40.88],[14.31,40.88],[14.31,40.90],[14.29,40.90]]";
+
+    /// <summary>
+    /// ⚠️ Il difetto misurato il 26 agosto 2026: IVAO ha smesso di mandare le shape e risponde
+    /// <c>regionMapPolygon: []</c> su <b>tutte</b> le posizioni. L'upsert assegnava senza guardare, e su una
+    /// copia del database vero un solo giro d'import portava <b>83 poligoni a zero</b> — 66 reali presi da
+    /// GitHub e 17 cerchi di ripiego. Il giro notturno li rimetteva subito dopo, ma gli altri tre chiamanti no.
+    /// </summary>
+    [Fact]
+    public async Task Una_shape_vuota_dalla_sorgente_non_cancella_quella_che_abbiamo()
+    {
+        await _repo.ImportForAirportAsync("LIRN", new[] { new SourceAtcPosition("LIRN_TWR", "118.300", "TWR") });
+        var id = (await _db.AirportSectors.SingleAsync(x => x.ComposePosition == "LIRN_TWR")).Id;
+        await _repo.SetRealShapeAsync(id, PoligonoVero);     // com'è arrivata da GitHub
+        _db.ChangeTracker.Clear();
+
+        await _repo.ImportForAirportAsync("LIRN", new[]
+        {
+            new SourceAtcPosition("LIRN_TWR", "118.300", "TWR", RegionMapPolygon: "[]"),
+        });
+
+        var dopo = await _db.AirportSectors.AsNoTracking().SingleAsync(x => x.ComposePosition == "LIRN_TWR");
+        Assert.Equal(PoligonoVero, dopo.RegionMapPolygon);
+        Assert.False(dopo.IsShapeSynthetic);
+    }
+
+    /// <summary>Nemmeno il cerchio di ripiego si perde: senza di lui la TWR resta senza area fino al prossimo giro.</summary>
+    [Fact]
+    public async Task Nemmeno_un_cerchio_sintetico_si_perde()
+    {
+        await _repo.ImportForAirportAsync("LIRN", new[] { new SourceAtcPosition("LIRN_TWR", "118.300", "TWR") });
+        var id = (await _db.AirportSectors.SingleAsync(x => x.ComposePosition == "LIRN_TWR")).Id;
+        await _repo.SetSyntheticShapeAsync(id, PoligonoVero);
+        _db.ChangeTracker.Clear();
+
+        await _repo.ImportForAirportAsync("LIRN", new[]
+        {
+            new SourceAtcPosition("LIRN_TWR", "118.300", "TWR", RegionMapPolygon: "[]"),
+        });
+
+        var dopo = await _db.AirportSectors.AsNoTracking().SingleAsync(x => x.ComposePosition == "LIRN_TWR");
+        Assert.Equal(PoligonoVero, dopo.RegionMapPolygon);
+        Assert.True(dopo.IsShapeSynthetic);   // resta un ripiego, così GitHub può ancora rimpiazzarlo
+    }
+
+    /// <summary>Il verso opposto: quando la sorgente manda una shape VERA, quella comanda — anche su un ripiego.</summary>
+    [Fact]
+    public async Task Una_shape_vera_dalla_sorgente_sovrascrive_il_ripiego()
+    {
+        await _repo.ImportForAirportAsync("LIRN", new[] { new SourceAtcPosition("LIRN_TWR", "118.300", "TWR") });
+        var id = (await _db.AirportSectors.SingleAsync(x => x.ComposePosition == "LIRN_TWR")).Id;
+        await _repo.SetSyntheticShapeAsync(id, "[[1,1],[2,2],[3,3]]");
+        _db.ChangeTracker.Clear();
+
+        await _repo.ImportForAirportAsync("LIRN", new[]
+        {
+            new SourceAtcPosition("LIRN_TWR", "118.300", "TWR", RegionMapPolygon: PoligonoVero),
+        });
+
+        var dopo = await _db.AirportSectors.AsNoTracking().SingleAsync(x => x.ComposePosition == "LIRN_TWR");
+        Assert.Equal(PoligonoVero, dopo.RegionMapPolygon);
+        Assert.False(dopo.IsShapeSynthetic);   // non è più un ripiego
+    }
+
+    /// <summary>Una riga NUOVA con shape vuota nasce senza shape, non con un `"[]"` che si spaccia per una forma:
+    /// i ripieghi cercano proprio chi non ne ha.</summary>
+    [Fact]
+    public async Task Una_riga_nuova_con_shape_vuota_nasce_senza_shape()
+    {
+        await _repo.ImportForAirportAsync("LIRN", new[]
+        {
+            new SourceAtcPosition("LIRN_TWR", "118.300", "TWR", RegionMapPolygon: "[]"),
+        });
+
+        Assert.Null((await _db.AirportSectors.AsNoTracking()
+            .SingleAsync(x => x.ComposePosition == "LIRN_TWR")).RegionMapPolygon);
+    }
 }

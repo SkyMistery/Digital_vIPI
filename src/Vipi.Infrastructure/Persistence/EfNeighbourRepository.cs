@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Aor;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
 using Vipi.Domain.Services;
@@ -77,7 +78,8 @@ public sealed class EfNeighbourRepository : INeighbourRepository
                     row.MiddleIdentifier = sub.MiddleIdentifier;
                     row.AtcCallsign = sub.AtcCallsign;
                     row.Frequency = sub.Frequency;
-                    row.RegionMapPolygon = sub.RegionMapPolygon;
+                    // Solo una shape VERA sovrascrive: l'assenza non e' un ordine di cancellare.
+                    if (!PolygonGeometry.IsEmptyShape(sub.RegionMapPolygon)) row.RegionMapPolygon = sub.RegionMapPolygon;
                     if (sub.LowerLimit is not null) row.LowerLimit = sub.LowerLimit;
                     if (sub.UpperLimit is not null) row.UpperLimit = sub.UpperLimit;
                     // ParentCallsign / IsHidden: comando dell'admin, NON sovrascritti dall'import.
@@ -96,7 +98,7 @@ public sealed class EfNeighbourRepository : INeighbourRepository
                         MiddleIdentifier = sub.MiddleIdentifier,
                         AtcCallsign = sub.AtcCallsign,
                         Frequency = sub.Frequency,
-                        RegionMapPolygon = sub.RegionMapPolygon,
+                        RegionMapPolygon = PolygonGeometry.IsEmptyShape(sub.RegionMapPolygon) ? null : sub.RegionMapPolygon,
                         LowerLimit = sub.LowerLimit,
                         UpperLimit = sub.UpperLimit,
                         IsHidden = false,

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Aor;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
@@ -200,8 +201,16 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
                 row.Frequency = p.Frequency;
                 if (hasLimits)
                 {
-                    row.RegionMapPolygon = p.RegionMapPolygon;
-                    row.IsShapeSynthetic = false;   // shape (reale o assente) dalla sorgente: non è più sintetica
+                    // ⚠️ Solo una shape VERA sovrascrive: l'assenza non è un ordine di cancellare. Oggi IVAO manda
+                    // `[]` su tutte le posizioni, e l'assegnazione secca portava a zero i poligoni presi da GitHub
+                    // e i cerchi di ripiego — 83 su 83, misurati sul database vero. Il giro notturno li rimetteva
+                    // subito dopo, ma gli altri tre chiamanti (bottone dell'editor, massivo, «Genera documenti»)
+                    // no: lì la TWR restava senza area fino al giorno dopo. Vedi PolygonGeometry.HasShape.
+                    if (!PolygonGeometry.IsEmptyShape(p.RegionMapPolygon))
+                    {
+                        row.RegionMapPolygon = p.RegionMapPolygon;
+                        row.IsShapeSynthetic = false;   // shape reale dalla sorgente: non è un ripiego
+                    }
                     // Limiti: la SORGENTE è verità primaria. Se li espone → sovrascrive e li blocca (LimitsFromSource);
                     // se null → l'admin comanda (preserva il suo valore, o default) e restano editabili.
                     if (p.LowerLimit is not null) row.LowerLimit = p.LowerLimit;
@@ -233,7 +242,9 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
                     MiddleIdentifier = p.MiddleIdentifier,
                     AtcCallsign = p.AtcCallsign,
                     Frequency = p.Frequency,
-                    RegionMapPolygon = hasLimits ? p.RegionMapPolygon : null,
+                    // Riga nuova: si tiene la shape solo se è una shape. Un `"[]"` in colonna direbbe «ho una
+                    // forma, ed è vuota», e i ripieghi cercano proprio chi non ne ha.
+                    RegionMapPolygon = hasLimits && !PolygonGeometry.IsEmptyShape(p.RegionMapPolygon) ? p.RegionMapPolygon : null,
                     LowerLimit = hasLimits ? (p.LowerLimit ?? DefaultLowerFt) : null,
                     UpperLimit = hasLimits ? (p.UpperLimit ?? DefaultUpperFor(position)) : null,
                     LimitsFromSource = hasLimits && (p.LowerLimit is not null || p.UpperLimit is not null),
