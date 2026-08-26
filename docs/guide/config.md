@@ -148,7 +148,7 @@ attivo solo se `RawBaseUrl` è valorizzata. Round 34.
 | Chiave | Tipo | Default | Descrizione |
 |---|---|---|---|
 | `Sectorfile:RawBaseUrl` | string | `""` | Base raw dei file (deve finire con `/`). Prod: `https://raw.githubusercontent.com/ivao-italy/it-aurora-sector/master/SectorFiles/Include/IT/`. **Vuota ⇒ import SID disattivato.** |
-| `Sectorfile:FixPath` | string | `NAVAIDS/itfix.fix` | Path del file fix relativo a `RawBaseUrl`. |
+| `Sectorfile:FixPath` | string | `NAVAIDS/itfix.fix` | ⚠️ **Ripiego.** I file di punti li elenca `ITALY.isc` (**otto**, non tre: ci sono anche `ESTERNI.fix`, `MIL.fix`, `APT.fix`, `VFR_NASCOSTI.fix`, `secsi.fix`). Questi tre percorsi si usano **solo** se l'indice non risponde o non cita file di punti. |
 | `Sectorfile:VorPath` | string | `NAVAIDS/itvor.vor` | Path del file VOR (fallback completion quando il prefisso non è un fix). |
 | `Sectorfile:ImportHours` | int | `24` | Ogni quante ore re-importare le SID (job gated). |
 

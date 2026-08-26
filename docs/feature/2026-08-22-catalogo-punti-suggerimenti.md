@@ -11,6 +11,8 @@
 «Chi scrive un punto a mano — il fix di una SID, un CoP di una clausola — lo batte **a memoria**. Possiamo
 dargli i nomi veri, e dirgli quando ne ha scritto uno che non esiste?»
 
+⚠️ **Aggiornamento del 26 agosto 2026**: i file di punti scaricati **non sono più tre**. Li elenca `ITALY.isc`, che ne cita **otto** — mancavano `ESTERNI.fix` (i punti d'oltreconfine), `MIL.fix`, `APT.fix`, `VFR_NASCOSTI.fix`, `secsi.fix`: **1385 → 3732 nomi**. Chi legge questa carta per capire quali nomi suggerisce l'editor tenga presente che il perimetro è cambiato (`docs/lavori-aperti.md` §J8, e §9 di [le shape dal sectorfile](2026-08-26-shape-dal-sectorfile.md)).
+
 I nomi c'erano già: `AuroraSectorfileParser` scarica `itfix.fix` e `itvor.vor` da GitHub per completare il
 fix troncato dentro un codice SID (`ALAX7G` → `ALAXI`). Erano un `HashSet<string>` sepolto in un adapter di
 Infrastructure. Questo giro li fa uscire.

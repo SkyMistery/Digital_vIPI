@@ -1,6 +1,6 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 26 agosto 2026, sera tardi.
+**Ultimo aggiornamento:** 26 agosto 2026, notte.
 
 ⚠️ **I rami con lavoro fuori da `main` sono DUE, e stanno in fila**: `statistiche-atc` e, costruito **sopra
 di lui**, `identita-settori`. Il secondo va fuso **dopo** il primo. Fonderli è una decisione del committente
@@ -8,7 +8,7 @@ di lui**, `identita-settori`. Il secondo va fuso **dopo** il primo. Fonderli è 
 ⚠️ Insieme portano **diciassette** migrazioni e **un passo d'avvio nuovo** (`LinkAirportDocumentsAsync`).
 
 > **Il ramo `identita-settori`, in tre righe.** Nasce da una domanda del committente — *svincolare il settore
-> dal suo nome* — e porta tre lavori. **(1)** L'identità dei cataloghi passa dal callsign all'**id numerico che
+> dal suo nome* — e porta tre lavori (più le chiusure della notte del 26, qui sotto). **(1)** L'identità dei cataloghi passa dal callsign all'**id numerico che
 > IVAO manda già**: una rinomina diventa un `UPDATE` e `Sector.Id` le sopravvive, con documento, accordi, vLOA
 > e figli. **(2)** Un `regionMapPolygon` vuoto non cancella più la shape che abbiamo: l'assenza non è un ordine
 > di cancellare — misurato, **83 poligoni su 83** azzerati da un solo import. **(3)** Le shape di CTR/APP/MIL/FSS
@@ -29,16 +29,42 @@ di lui**, `identita-settori`. Il secondo va fuso **dopo** il primo. Fonderli è 
 > pubblicato. Carta: [l'ordine delle sezioni](docs/feature/2026-08-26-ordine-sezioni-personalizzato.md)
 > (**J6** e **J7** chiuse: si riordinano anche i **blocchi** della vIPI ACC, con i settori di aerovia fissi in
 > testa). **Nessuna migrazione.**
-> Voci aperte: `docs/lavori-aperti.md` **sezione J** — la prima da fare è **J1**, l'avviso a chi pubblica una
-> shape non ancora in vigore.
+> **E la notte del 26 la sezione J si è chiusa tutta** (`docs/lavori-aperti.md` **§J**, nove voci, **nessuna
+> aperta**). Le tre della notte:
+>
+> - **J1 — l'avviso a chi pubblica una shape non ancora in vigore.** Il gate AIRAC faceva già la cosa giusta,
+>   ma **in silenzio**: chi pubblica vedeva a schermo il confine nuovo e nel documento ne trovava un altro. Ora
+>   il **pannello release** elenca le aree che resterebbero indietro e offre «Pubblica comunque le aree nuove».
+>   ⚠️ Nessuna regola nuova: la domanda la fa `ShapeAiracGate.IsDeferredAt`, la stessa del congelamento.
+>   ⚠️ I cicli guardati sono **due**, perché i tasti sono due — si avvisa per l'unione.
+>   ⚠️ Forzare **non** scrive «è in vigore»: la promozione notturna spegne la forzatura da sé.
+> - **J2 — i ripieghi valgono solo per gli enti della divisione** (decisione del committente): *le aree degli
+>   ATC esteri le dà IVAO, se ce le dà*. Sectorfile, GitHub `twrs.tfl` e cerchio 5 NM guardano solo la
+>   divisione; regola in **un posto solo** (`ShapeFallbackScope`). Vale per i **ripieghi**: quel che IVAO manda
+>   si scrive per tutti.
+> - **J8 — il catalogo dei punti leggeva TRE file su OTTO.** `GODRA` e `GIGUS` non mancavano: stavano in
+>   `NAVAIDS/ESTERNI.fix`, che non scaricavamo perché la configurazione elencava tre file **scritti a mano**
+>   mentre `ITALY.isc` ne cita otto. Ora l'elenco lo dà l'indice, come già per i file di settore: **1385 →
+>   3732** nomi in catalogo, e i blocchi di Milano chiudono l'anello. ⚠️ Gli irrisolti erano **tre**, non due
+>   (c'era anche `GEMLA`): il difetto era la lista scritta a mano, non i nomi. ⚠️ Tocca anche i **suggerimenti
+>   dei CoP** e la completion delle SID, che leggono lo stesso catalogo.
+>
+> **J3 chiusa da una risposta, non da codice**: gli undici settori senza area vanno bene così. Non hanno un
+> volume proprio — sono **postazioni operative in più** sullo stesso cielo di qualcun altro (guidacaccia,
+> planner, coordinamento) — e un poligono per loro sarebbe una finzione. ⚠️ Il dato non manca: **non esiste**.
+> Non trattarlo come un buco da riempire in un giro futuro.
+>
+> ⚠️ Le tre chiusure **non aggiungono migrazioni**: restano diciassette.
 >
 > ✅ **IVAO ha confermato** (26 agosto, su richiesta del committente) che l'assenza dei poligoni dall'API è un
 > **guasto loro** e che lo sistemeranno: il ripiego dal sectorfile è una rete, non una sostituzione, e il
 > rientro dell'anagrafica è già provato.
 >
-> **Dove sta il lavoro:** ramo **`identita-settori`**, **25 commit** oltre `statistiche-atc`, spinto su origin
-> (testa `934436a`). Release **0 avvisi** su entrambi i TFM; contati il 26 agosto a notte: **2733 test su net8**
-> e **2495 su net10**, tutti verdi (⚠️ la cifra si **conta**, non si ricorda).
+> **Dove sta il lavoro:** ramo **`identita-settori`**, **28 commit** oltre `statistiche-atc` (110 oltre `main`),
+> spinto su origin (testa `12c6c93`). Build **0 avvisi** su entrambi i TFM; contati il 26 agosto a notte:
+> **2761 test su net8** e **2523 su net10**, tutti verdi (⚠️ la cifra si **conta**, non si ricorda — e su
+> net10 due progetti di test non girano per costruzione: `Vipi.AuroraBridge.Tests` e `Vipi.E2E.Tests` sono
+> net8 soli).
 
 > **Il giro del 25 agosto pomeriggio, in due righe.** La sorgente IVAO sapeva già quali aeroporti hanno una base
 > militare e lo scartavamo (34 su 221) — ⚠️ ma `military` **non** vuol dire «aeroporto militare»: Linate, Pisa e

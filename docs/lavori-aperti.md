@@ -141,55 +141,38 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 > uno per verso; verificato anche guidando Edge con `Accept-Language: en-US`.
 
 ## Dove siamo, in cinque righe
+
+⚠️ **Questo blocco era rimasto indietro per due giri** (dava «24 commit» e la sezione E in uno stato
+precedente). Riscritto il **26 agosto a notte**, con le cifre **contate**.
+
 Il **cutover MariaDB è in `main`** e verificato (A1–A8). Le sezioni **B** (branch), **C** (debito, tranne C3
-tenuta aperta con la ragione scritta) e **D** (verifiche live arretrate) sono **chiuse**. La **E** è stata
-sfoltita: metà delle voci erano già fatte o non avevano più senso — ricontrollare un elenco prima di
-lavorarci si è rivelato più produttivo che eseguirlo. Dal 14 agosto c'è una sezione **G**: l'audit del
-database, chiuso lato codice.
+e le tre voci C6/C7 aperte il 25-26), **D** (verifiche live arretrate) e **G** (audit del database, lato
+codice) sono chiuse o chiuse-con-la-ragione-scritta. La **E** è stata sfoltita: metà delle voci erano già
+fatte o non avevano più senso.
 
-⚠️ **Quel che resta è quasi tutto fuori dal codice**: rifare e consegnare il `.sql` (i tre dump esistenti
-hanno il BOM) e il pacchetto, le risposte di Ivao.It (A9/A10) — fra cui **chi fa il backup**, domanda a cui
-oggi nessuno sa rispondere — la rotazione della password Neon, e quattro decisioni di contenuto: la SID
-`BANA8A`, le 33 torri senza padre, **quali staff code valgono admin** (E4) e se pubblicare una *release*
-debba scrivere audit.
+🟡 **La decisione sul tavolo è UNA, ed è B12: fondere.** ⚠️ Ma non è più un ramo solo: sono **DUE, in fila**.
 
-🟡 **C'è di nuovo una decisione di merge sul tavolo, ed è l'unica: B12.** Il ramo **`statistiche-atc`**
-(**50 commit**) è completo, verificato a schermo e verde su entrambi i TFM, ma **non è in `main`**: fonderlo è
-una scelta del committente. ⚠️ La cifra si conta: `git rev-list --count main..statistiche-atc`.
+| Ramo | Commit oltre `main` | Cosa porta |
+|---|---|---|
+| `statistiche-atc` | **82** | il terzo servizio, gli aeroporti militari, la vIPI d'aeroporto legata allo scalo, l'**eliminazione con le protezioni**, «chiedi alla sorgente», la lista «Da fare» |
+| `identita-settori` (sopra il primo) | **110** | l'identità dei settori per **id IVAO**, l'assenza che non cancella, le **shape dal sectorfile** col gate AIRAC, l'ordine delle sezioni, l'avviso a chi pubblica |
 
-⚠️ **Dal 25 agosto quel ramo non porta più solo il terzo servizio.** Vi è stato fuso `aeroporti-militari`
-(merge `8b76352`, punto di ritorno locale `statistiche-atc-prima-del-merge-20260825`), per chiudere subito un
-conflitto annunciato sull'enum del Registro invece di lasciarlo maturare. Dentro ci sono ora **tre lavori**: il
-servizio statistiche, gli **aeroporti militari**
-([feature/2026-08-25-aeroporti-militari.md](feature/2026-08-25-aeroporti-militari.md)) e la **vIPI d'aeroporto
-legata allo scalo**
-([feature/2026-08-25-vipi-aeroporto-legata-allo-scalo.md](feature/2026-08-25-vipi-aeroporto-legata-allo-scalo.md)).
+⚠️ **`identita-settori` va fuso DOPO `statistiche-atc`**: è costruito sopra di lui, non lo sostituisce.
+⚠️ Le cifre si contano: `git rev-list --count main..<ramo>`.
+⚠️ Insieme portano **DICIASSETTE** migrazioni — è la coda più lunga da mesi per il cutover MariaDB — e **un
+passo d'avvio nuovo**, `LinkAirportDocumentsAsync`, che collega gli aeroporti alla loro vIPI al primo avvio
+(idempotente, lo scrive nei log). Senza, i documenti d'aeroporto già pubblicati risulterebbero inesistenti
+alla strada nuova.
 
-⚠️ È il primo ramo dopo mesi che **allunga la coda del cutover MariaDB** — e le migrazioni sono passate da sei a
-**otto**: `AeroportiMilitari` e `DocumentoDellAeroporto` si aggiungono alle sei delle statistiche. Prima: B10 e
-B11 il 24 agosto, B6 il 15, e B5 si è rivelata già presa — il doc 13 era in `main` da allora senza che l'elenco
-lo sapesse.
+⚠️ **Quel che resta fuori dai due rami è quasi tutto fuori dal codice**: le risposte di Ivao.It (A9/A13) —
+fra cui **chi fa il backup**, domanda a cui oggi nessuno sa rispondere — la **rotazione** dei segreti esposti
+il 24-25 agosto, e le decisioni di contenuto che aspettano il committente.
 
-⚠️ E c'è **un passo d'avvio in più** da conoscere prima del deploy: `LinkAirportDocumentsAsync` collega gli
-aeroporti alla loro vIPI al primo avvio (idempotente, lo scrive nei log). Senza, i documenti d'aeroporto già
-pubblicati risulterebbero inesistenti alla strada nuova.
+🔵 **Deciso il 26 agosto sera: il database si ripulisce un'ultima volta prima di popolarlo.** Da qui **I1**
+(le radici orfane di LIRR) resta **sospesa di proposito**: non si sistema un albero che sta per essere rifatto.
 
-⚠️ **Dal 26 agosto lo stesso ramo porta anche l'ELIMINAZIONE** — un motore solo con l'anteprima, la pagina
-«Da sistemare», la retention delle sessioni ATC e due colonne nuove ([carta](feature/2026-08-26-eliminare-con-le-protezioni.md)).
-Le migrazioni salgono a **dieci**: `TimbriPerEliminare` e `RiassuntoMensileAtc`.
-
-🔵 **Deciso il 26 agosto sera: il database si ripulisce un'ultima volta prima di popolarlo.** Da qui
-l'unica voce nuova qui sotto — **I1**, le sette radici orfane di LIRR — resta **sospesa di proposito**: non
-si sistema un albero che sta per essere rifatto.
-
-✅ **Fusa il 23 agosto, sera**: il ramo **`audit-frontend-ui`** (15 commit) è in `main`. Ci stavano l'audit
-frontend/UI (§H) e, sopra, i coordinamenti della vista live a colonne con la potatura del foglio di stile
-([feature/2026-08-23-live-coordinamenti-a-colonne.md](feature/2026-08-23-live-coordinamenti-a-colonne.md)).
-Dopo il merge: Release **0 avvisi** su entrambi i TFM, **3595 test verdi**. Da lì è stata prodotta la
-consegna del 23 agosto — **A11**.
-
-✅ **E il deploy non è più bloccato.** La conversione degli accordi sulla MariaDB di produzione (E6-bis §9)
-non va più fatta: la consegna del 23 agosto **sostituisce il database** invece di migrarlo. Vedi A11.
+**Sezioni con lavoro aperto, oggi**: **C6** (⚠️ da rileggere: metà del problema è caduta da sé), **C7a/b/c**,
+**H1** e **H3**. Le sezioni **I** (sospesa) e **J** (chiusa tutta) non chiedono niente.
 
 ---
 
