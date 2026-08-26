@@ -71,6 +71,22 @@ public sealed class AirportSectorImportHostedService : BackgroundService
         }
         catch (Exception ex) { _log.LogDebug(ex, "Shape TWR da GitHub saltate."); }
 
+        // Shape di SETTORE (CTR/APP/MIL/FSS) dai file DYNAMIC_SEC del sectorfile: il ripiego per gli enti che
+        // non sono torri, e che dall'anagrafica IVAO non ricevono più un poligono. Isolato come gli altri.
+        Vipi.Application.Content.SectorShapeFallbackResult? settori = null;
+        try
+        {
+            var sect = sp.GetRequiredService<Vipi.Application.Content.ISectorShapeFallbackService>();
+            settori = await sect.ApplyAsync(ct);
+            // ⚠️ I punti irrisolti si dicono per NOME: ognuno vale uno o più settori rimasti senza area, e
+            // senza questa riga la causa si cercherebbe a schermo, un documento alla volta.
+            foreach (var (punto, callsigns) in settori.UnresolvedPoints)
+                _log.LogWarning(
+                    "Shape settori: il punto {Punto} non è nel catalogo navaid — restano senza area {Callsigns}.",
+                    punto, callsigns);
+        }
+        catch (Exception ex) { _log.LogDebug(ex, "Ripiego shape settori saltato."); }
+
         // Fallback shape tonda 5 NM per le TWR senza poligono (marcata sintetica; mai sovrascrive shape reali).
         int circles = 0;
         try
@@ -80,8 +96,11 @@ public sealed class AirportSectorImportHostedService : BackgroundService
         }
         catch (Exception ex) { _log.LogDebug(ex, "Fallback shape TWR saltato."); }
 
-        _log.LogInformation("Import settori aeroporto automatico: {Airports} aeroporti, settori {Created}/{Updated}, shape TWR GitHub {Github}, cerchi sintetici {Circles}. Documento non generato (scollegato, doc 03).",
-            airports, created, updated, githubShapes, circles);
+        _log.LogInformation(
+            "Import settori aeroporto automatico: {Airports} aeroporti, settori {Created}/{Updated}, shape TWR GitHub {Github}, "
+            + "shape settori dal sectorfile {Sectors} (restano senza area {Without}), cerchi sintetici {Circles}. "
+            + "Documento non generato (scollegato, doc 03).",
+            airports, created, updated, githubShapes, settori?.Applied ?? 0, settori?.StillWithout ?? 0, circles);
         return true;
     }
 }

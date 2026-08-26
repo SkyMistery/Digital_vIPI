@@ -395,6 +395,26 @@ public static class AuroraSectorfileParser
     }
 
     /// <summary>
+    /// Anello (Lat, Lon) → JSON <c>[[lng,lat],…]</c>: <b>longitudine prima</b>, che è la forma di
+    /// <c>RegionMapPolygon</c> di IVAO. Sta qui e non nei due provider perché l'ordine invertito è una
+    /// conoscenza del formato, e scritta in due posti prima o poi diverge in uno solo.
+    /// </summary>
+    public static string RingToPolygonJson(IReadOnlyList<(double Lat, double Lon)> ring)
+    {
+        var sb = new System.Text.StringBuilder("[");
+        for (var i = 0; i < ring.Count; i++)
+        {
+            if (i > 0) sb.Append(',');
+            sb.Append('[')
+              .Append(Math.Round(ring[i].Lon, 6).ToString(CultureInfo.InvariantCulture))
+              .Append(',')
+              .Append(Math.Round(ring[i].Lat, 6).ToString(CultureInfo.InvariantCulture))
+              .Append(']');
+        }
+        return sb.Append(']').ToString();
+    }
+
+    /// <summary>
     /// Converte una coordinata DMS Aurora in gradi decimali con segno (S/W negativi). Accetta <b>entrambe</b> le
     /// forme che convivono nel sectorfile italiano: quella coi punti (<c>N041.37.28.965</c>) e quella
     /// <b>compatta</b> (<c>N0463144000</c> = 046°31'44.000"), usata da <c>liph.mva</c>, <c>itgeo.geo</c> e dai

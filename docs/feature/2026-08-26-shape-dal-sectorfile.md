@@ -86,6 +86,26 @@ con Svizzera e Francia. Si sbloccano aggiungendoli a `itfix.fix` (decisione di d
 elenco di punti-extra da parte nostra. **Non inventato niente**: per ora quei quattro non prendono l'area
 dal sectorfile, e la cosa si vede.
 
+## 2-bis. Il ripiego, in opera (26 agosto, su copia della produzione)
+
+Il servizio (`SectorShapeFallbackService`) applicato al `vipi.db` vero, coi file veri:
+
+```
+PRIMA   candidati 211   con area   5   senza 206
+DOPO                    con area 115   senza  96
+applicate 110 · secondo giro: 0 (idempotente)
+```
+
+I **96** che restano senza area sono quelli che il sectorfile non copre: 84 CTR (in gran parte militari —
+`LIRO_CRC_CTR`, `LIVK_CRC_CTR`, `LIZZ_AEW_CTR` — e di pianificazione, `LIPP_PLN_CTR`), 7 APP e 5 FSS
+(`LOVV_FSS`, `LSAS_EXA_FSS`, `DTTC_FSS`, `LMMM_FSS`: esteri).
+
+ⓘ **Le due strade sono complementari, non alternative.** Il ripristino dal backup del 25 agosto
+(`tools/ripristino-shape/`) ne rimette **196**, perché quelli erano i poligoni di IVAO e coprivano anche gli
+enti che il sectorfile non descrive. Il sectorfile ne dà **110**, ma continua a darli anche domani. Conviene
+fare prima il ripristino e poi lasciar lavorare il ripiego: il secondo non tocca quel che il primo ha
+rimesso.
+
 ## 3. Il ciclo AIRAC: il problema vero
 
 Il sectorfile lo scriviamo noi **prima** che il ciclo esca. Quindi in qualsiasi momento può contenere

@@ -11,6 +11,14 @@ public sealed class SectorfileOptions
     public string VorPath { get; set; } = "NAVAIDS/itvor.vor";
     /// <summary>Path del file NDB relativo a <see cref="RawBaseUrl"/>. Assente = 404 = catalogo senza NDB.</summary>
     public string NdbPath { get; set; } = "NAVAIDS/itndb.ndb";
+    /// <summary>
+    /// URL <b>intero</b> del file maestro Aurora (<c>ITALY.isc</c>), da cui si ricava quali file di settore
+    /// leggere. ⚠️ Non è un path relativo a <see cref="RawBaseUrl"/> perché sta un livello più su, e
+    /// <c>..</c> su raw.githubusercontent non si risolve. Vuoto = niente shape di settore dal sectorfile.
+    /// </summary>
+    public string SectorIndexUrl { get; set; } =
+        "https://raw.githubusercontent.com/ivao-italy/it-aurora-sector/master/SectorFiles/ITALY.isc";
+
     /// <summary>Path del file poligoni TWR (twrs.tfl) relativo a <see cref="RawBaseUrl"/>.</summary>
     public string TwrShapePath { get; set; } = "DYNAMIC_SEC/twrs.tfl";
     /// <summary>Ogni quante ore rilanciare l'import automatico.</summary>

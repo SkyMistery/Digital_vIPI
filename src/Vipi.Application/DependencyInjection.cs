@@ -96,6 +96,8 @@ public static class DependencyInjection
         services.AddScoped<ISidImporter, SidImporter>();
         services.AddScoped<IGithubTowerShapeService, GithubTowerShapeService>();
         services.AddScoped<ITowerShapeFallbackService, TowerShapeFallbackService>();
+        // Il gemello per CTR/APP/MIL/FSS: le TWR hanno GitHub + cerchio, gli altri enti il sectorfile.
+        services.AddScoped<ISectorShapeFallbackService, SectorShapeFallbackService>();
         services.AddScoped<IAirportSectorService, AirportSectorService>();
         services.AddScoped<IAgreementService, AgreementService>();
         services.AddScoped<ISearchService, SearchService>();

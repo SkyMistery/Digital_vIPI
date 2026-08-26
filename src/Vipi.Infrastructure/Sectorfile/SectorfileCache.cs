@@ -5,7 +5,8 @@ namespace Vipi.Infrastructure.Sectorfile;
 
 /// <summary>
 /// Cache di processo (singleton) dei file del sectorfile Aurora indipendenti dall'aeroporto: catalogo dei punti
-/// (<c>itvor</c>+<c>itndb</c>+<c>itfix</c>) e poligoni TWR (<c>twrs.tfl</c>). Sono file grandi e stabili per ciclo
+/// (<c>itvor</c>+<c>itndb</c>+<c>itfix</c>), poligoni TWR (<c>twrs.tfl</c>) e poligoni di settore
+/// (<c>DYNAMIC_SEC/*.tfl</c>). Sono file grandi e stabili per ciclo
 /// di import, richiesti da più percorsi (job periodico SID, bottone import nell'editor, fallback shape TWR,
 /// suggerimenti dei campi punto negli editor).
 /// <para>
@@ -20,10 +21,12 @@ public sealed class SectorfileCache
 {
     private readonly SemaphoreSlim _navGate = new(1, 1);
     private readonly SemaphoreSlim _twrGate = new(1, 1);
+    private readonly SemaphoreSlim _secGate = new(1, 1);
     private readonly SemaphoreSlim _mvaGate = new(1, 1);
 
     private NavaidCatalog? _navaids;
     private IReadOnlyDictionary<string, string>? _towerPolygons;
+    private SectorShapes? _sectorShapes;
 
     // Le carte MRVA sono UNA PER ENTE (ENRMVA/{acc}.mva, {icao}.mva): a differenza delle altre due fette non c'è
     // un file solo da tenere, ma fino a una trentina. ConcurrentDictionary e non Dictionary+lock perché
@@ -63,6 +66,26 @@ public sealed class SectorfileCache
     }
 
     /// <summary>
+    /// Poligoni di SETTORE (CTR/APP/MIL/FSS), caricati una volta sola per processo. Costano di piu' delle
+    /// altre fette — l'indice piu' una ventina di file — ed e' il motivo per cui stanno qui e non nel provider,
+    /// che e' transient.
+    /// </summary>
+    public async Task<SectorShapes> GetSectorPolygonsAsync(
+        Func<CancellationToken, Task<SectorShapes>> load, CancellationToken ct = default)
+    {
+        if (Volatile.Read(ref _sectorShapes) is { } hit) return hit;
+        await _secGate.WaitAsync(ct);
+        try
+        {
+            if (Volatile.Read(ref _sectorShapes) is { } cached) return cached;
+            var loaded = await load(ct);
+            Volatile.Write(ref _sectorShapes, loaded);
+            return loaded;
+        }
+        finally { _secGate.Release(); }
+    }
+
+    /// <summary>
     /// La carta MRVA di un ente (chiave = percorso del file), caricata una volta sola per processo. Un esito
     /// vuoto viene messo in cache come gli altri: i 25 APP su 49 che non hanno il file darebbero altrimenti un
     /// GET a ogni apertura del documento, per un 404 che non cambia fino al prossimo ciclo AIRAC.
@@ -97,6 +120,7 @@ public sealed class SectorfileCache
     {
         InvalidateNavaids();
         Volatile.Write(ref _towerPolygons, null);
+        Volatile.Write(ref _sectorShapes, null);
         _mvaCharts.Clear();
     }
 

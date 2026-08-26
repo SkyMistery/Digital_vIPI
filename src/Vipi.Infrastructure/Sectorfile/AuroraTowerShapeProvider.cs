@@ -45,7 +45,7 @@ public sealed class AuroraTowerShapeProvider : ITowerShapeSource
             var rings = AuroraSectorfileParser.ParseTowerShapes(text);
             var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var (callsign, ring) in rings)
-                map[callsign] = ToPolygonJson(ring);
+                map[callsign] = AuroraSectorfileParser.RingToPolygonJson(ring);
 
             _log.LogInformation("Shape TWR da GitHub: {Count} poligoni parsati da {Path}.", map.Count, _opt.TwrShapePath);
             return map;
@@ -55,19 +55,4 @@ public sealed class AuroraTowerShapeProvider : ITowerShapeSource
     private static readonly IReadOnlyDictionary<string, string> EmptyMap =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Anello (Lat, Lon) → JSON <c>[[lng,lat],…]</c> (longitudine prima, coerente con RegionMapPolygon IVAO).</summary>
-    private static string ToPolygonJson(IReadOnlyList<(double Lat, double Lon)> ring)
-    {
-        var sb = new StringBuilder("[");
-        for (var i = 0; i < ring.Count; i++)
-        {
-            if (i > 0) sb.Append(',');
-            sb.Append('[')
-              .Append(Math.Round(ring[i].Lon, 6).ToString(CultureInfo.InvariantCulture))
-              .Append(',')
-              .Append(Math.Round(ring[i].Lat, 6).ToString(CultureInfo.InvariantCulture))
-              .Append(']');
-        }
-        return sb.Append(']').ToString();
-    }
 }

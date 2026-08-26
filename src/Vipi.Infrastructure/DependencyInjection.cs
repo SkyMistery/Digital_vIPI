@@ -155,6 +155,7 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IAirportSectorRepository, EfAirportSectorRepository>();
         // La rinomina: un motore solo, come l'eliminazione. Lo chiamano i due upsert di catalogo, in cima.
         services.AddScoped<Vipi.Application.Content.ICallsignRenameService, EfCallsignRenameService>();
+        services.AddScoped<Vipi.Application.Content.ISectorShapeRepository, EfSectorShapeRepository>();
         // Statistiche ATC: archivio delle sessioni e delle tratte scritte dal poller, più la mappa dei
         // settori (albero proiettato + volumi dai cataloghi) su cui si attribuisce il traffico.
         services.AddScoped<Vipi.Application.Abstractions.IAtcSessionStore, EfAtcSessionStore>();
@@ -204,6 +205,15 @@ public static class DependencyInjection
         services.AddHttpClient<Vipi.Application.Abstractions.ITowerShapeSource, Sectorfile.AuroraTowerShapeProvider>(c =>
         {
             c.Timeout = TimeSpan.FromSeconds(15);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
+        });
+
+        // Shape di SETTORE (CTR/APP/MIL/FSS) dai file DYNAMIC_SEC/*.tfl: stesso repo, e quali file leggere
+        // lo dice ITALY.isc, l'indice che carica Aurora stessa.
+        services.AddHttpClient<Vipi.Application.Abstractions.ISectorShapeSource, Sectorfile.AuroraSectorShapeProvider>(c =>
+        {
+            // Piu' lungo degli altri: l'indice piu' una ventina di file, in sequenza.
+            c.Timeout = TimeSpan.FromSeconds(60);
             c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
         });
 
