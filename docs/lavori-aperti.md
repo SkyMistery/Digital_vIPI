@@ -2673,3 +2673,12 @@ Verifica live su LIBD guidando Edge: lock e bozza v2, riordino con le pill `↑1
 libera **in mezzo** alle fisse, ordine che tiene al ricarico, anteprima bozza coerente. **La prova che
 conta**: pubblicato e poi cambiato il TORA di una pista, la pagina pubblica resta a 3000 e la bozza dice il
 valore nuovo — la release congela davvero ciò che prima non era congelabile perché era cotto.
+
+⚠️ **Una correzione, subito dopo** (carta §8-§9): la sezione METAR/TAF c'era nell'editor e **non** nella pagina
+pubblica, perché il pubblico legge lo **snapshot di release** e quello — per ogni scalo non ancora ripubblicato
+— è anteriore alla carta e non la conosce. Con lo stesso difetto, `transition` e `runways` uscivano come
+tabelle generiche. Chiuso con `AirportLegacySections`, **una** mappa titolo→chiave con **due** lettori (la
+riconciliazione d'avvio e il viewer), e con la regola generale: *una sezione **sempre live** non è mai parte
+della verità di uno snapshot*. Verificato mettendo in piedi il codice **pre-carta** in un worktree su una copia
+del DB **pre-migrazione**, accanto a quello nuovo: le due pagine coincidono. Restano tre differenze volute —
+niente più due colonne affiancate (una griglia non si riordina), titoli in italiano, «Nota» sui callout.
