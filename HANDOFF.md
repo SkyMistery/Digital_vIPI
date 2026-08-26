@@ -1,6 +1,6 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 26 agosto 2026, notte.
+**Ultimo aggiornamento:** 26 agosto 2026, sera tardi.
 
 ⚠️ **I rami con lavoro fuori da `main` sono DUE, e stanno in fila**: `statistiche-atc` e, costruito **sopra
 di lui**, `identita-settori`. Il secondo va fuso **dopo** il primo. Fonderli è una decisione del committente
@@ -18,6 +18,16 @@ di lui**, `identita-settori`. Il secondo va fuso **dopo** il primo. Fonderli è 
 > Carte: [identità dei settori](docs/feature/2026-08-26-identita-dei-settori.md),
 > [l'assenza non cancella](docs/feature/2026-08-26-lassenza-non-cancella.md),
 > [le shape dal sectorfile](docs/feature/2026-08-26-shape-dal-sectorfile.md).
+>
+> **E un quarto lavoro, che coi settori non c'entra**: arrivato dal committente il 26 sera, mentre il ramo era
+> aperto. **L'ordine delle sezioni è una scelta editoriale** — anche le sezioni di **catalogo** si spostano su e
+> giù dentro il loro gruppo (i fratelli: il blocco per la vIPI ACC, la radice per APP e vLOA), restando non
+> rinominabili e non eliminabili, e ognuna dice di quanti posti si è allontanata dall'ordine standard (`↑2`,
+> `↓1`). Il motore c'era già — `Order` versionato, `MoveSectionAsync` che scambia fra fratelli: mancava il
+> tasto. ⚠️ Strada facendo è saltato fuori che il viewer della **vLOA** rendeva le due direzioni dei
+> coordinamenti in una sequenza **scritta nel codice**: spostarle avrebbe cambiato l'editor e non il documento
+> pubblicato. Carta: [l'ordine delle sezioni](docs/feature/2026-08-26-ordine-sezioni-personalizzato.md)
+> (**J6** chiusa, nasce **J7**: i blocchi della vIPI ACC non si riordinano fra loro). **Nessuna migrazione.**
 > Voci aperte: `docs/lavori-aperti.md` **sezione J** — la prima da fare è **J1**, l'avviso a chi pubblica una
 > shape non ancora in vigore.
 >

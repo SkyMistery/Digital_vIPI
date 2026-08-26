@@ -1,6 +1,8 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 26 agosto 2026, notte (**§E11 chiusa: la casella degli impatti, la sezione Orfani, il giro notturno della deriva e il rilevatore delle RINOMINE dal timbro d'import; nascono §C6 (chiave di release derivata da un callsign) e §C7 (i tre resti dell'analisi sulla cancellazione dei dati importati)**) · **Aggiornato:** 25 agosto 2026, tarda sera (**§B12: il ramo `statistiche-atc` porta anche le otto richieste
+**Aggiornato:** 26 agosto 2026, sera tardi (**§J6: l'ordine delle sezioni è una scelta editoriale — anche le
+sezioni di catalogo si spostano dentro il loro gruppo e dicono di quanto si sono allontanate dallo standard;
+nasce §J7, i blocchi della vIPI ACC che non si riordinano**) · **Aggiornato:** 26 agosto 2026, notte (**§E11 chiusa: la casella degli impatti, la sezione Orfani, il giro notturno della deriva e il rilevatore delle RINOMINE dal timbro d'import; nascono §C6 (chiave di release derivata da un callsign) e §C7 (i tre resti dell'analisi sulla cancellazione dei dati importati)**) · **Aggiornato:** 25 agosto 2026, tarda sera (**§B12: il ramo `statistiche-atc` porta anche le otto richieste
 del committente sul servizio statistiche — §16 della carta — fra cui la sezione Aeroporti, la potatura e il
 capitolo di Guida che mancava; restano aperte le stesse due voci UI**) · vecchia testata: (**§B12 aperta: il ramo `statistiche-atc` è completo e NON fuso** — la fusione è una decisione del committente, non un passo tecnico; il 24: §B10 e §B11 fuse e cancellate. La sera del 25 si chiudono **§H5** — il VID è un link al profilo IVAO, verifica live fatta — e **§H2**, il «rosso intermittente», che erano due difetti. Della sezione UI restano aperte **H1** e **H3**) · **Scopo:** una cosa alla volta, senza rileggere la cronologia.
 
@@ -2375,11 +2377,15 @@ diversamente sullo stesso oggetto, e va deciso se dirlo a schermo o dare al grup
 
 ## J. Identità dei settori e shape — 26 agosto 2026, ramo `identita-settori`
 
-Ramo aperto **da `statistiche-atc`** (non da `main`), **non fuso**, 20 commit, spinto su origin. Porta tre
-lavori chiusi e lascia tre voci aperte. Carte:
+Ramo aperto **da `statistiche-atc`** (non da `main`), **non fuso**, 22 commit, spinto su origin. Porta
+quattro lavori chiusi e lascia quattro voci aperte. Carte:
 [identità dei settori](feature/2026-08-26-identita-dei-settori.md),
 [l'assenza non cancella](feature/2026-08-26-lassenza-non-cancella.md),
-[le shape dal sectorfile](feature/2026-08-26-shape-dal-sectorfile.md).
+[le shape dal sectorfile](feature/2026-08-26-shape-dal-sectorfile.md),
+[l'ordine delle sezioni](feature/2026-08-26-ordine-sezioni-personalizzato.md).
+
+⚠️ Il quarto lavoro (**J6**) non c'entra con i settori: è arrivato dal committente mentre il ramo era aperto,
+e sta qui perché sta qui il ramo. **Non aggiunge migrazioni.**
 
 ⚠️ **Le migrazioni in coda passano da quattordici a DICIASSETTE**: `IdentitaDeiSettori`, `ShapeVuoteANull`,
 `GateAiracShape`. Conta per §B12 e per il cutover MariaDB.
@@ -2449,3 +2455,42 @@ differimento chiuso). Vedi §2-ter della carta.
 porta i poligoni **pieni** annidati in `subcenter`/`atcPosition`, ma solo per gli ATC connessi in quel
 momento. Se il guasto dovesse durare, è la sorgente di riserva — e **non ha bisogno del gate AIRAC**, perché
 è quel che IVAO serve ai controllori adesso.
+
+### J6 ✅ CHIUSA — l'ordine delle sezioni è una scelta editoriale
+
+Richiesta del committente, 26 agosto sera: «le sezioni devono poter essere spostate sopra o sotto all'interno
+dello stesso gruppo, e ognuna deve riportare quante posizioni è sopra o sotto quella standard».
+
+**Il motore c'era già.** `MoveSectionAsync` scambia `DocumentSection.Order` fra **fratelli** — che è già «lo
+stesso gruppo»: il blocco per la vIPI ACC, la radice per APP e vLOA — e l'`Order` è versionato, copiato in
+bozza e catturato nello snapshot di release. Mancava **il tasto**: `DocumentSectionsEditor` legava
+`IsMandatory` a tre divieti insieme (rinomina + elimina + **sposta**). Le prime due restano: **è l'ordine a
+non essere del catalogo, non l'identità della sezione**.
+
+Lo scostamento dall'ordine standard lo calcola `SectionOrdering.OffsetsFromStandard` (funzione pura), e
+l'editor lo scrive come pill accanto al titolo: `↑2`, `↓1`. Si legge **sempre**, non solo in modifica.
+
+⚠️ **Si contano solo le sezioni FISSE, e solo quelle PRESENTI.** Una sezione libera non ha una posizione
+standard: contarla farebbe apparire `↓1` su tutte le fisse che la seguono appena qualcuno ne infila una in
+testa — scostamenti che nessuno ha prodotto. E una sezione di catalogo assente (il VFR su un blocco Aerovia)
+non lascia un buco.
+
+⚠️ **Difetto trovato strada facendo, ed è la trappola del doc 11 §8**: il viewer della vLOA rendeva le due
+**direzioni** dei coordinamenti in una sequenza scritta nel codice (uscente, poi entrante), pur
+riconoscendole per chiave. Spostarle nell'editor avrebbe cambiato l'editor e **non** il documento pubblicato.
+Ora segue l'ordine delle sotto-sezioni, con l'ordine canonico come ripiego per gli **snapshot storici**, dove
+entrambe portano ancora la chiave del padre e si distinguono solo per posizione.
+
+Nove test nuovi, suite intera verde, Release **0 avvisi** sui due TFM. Verifica live su
+`/services/vsop/libb/editor`: le sezioni «obbligatoria» mostrano `↑ ↓`, *Frequenze* portata sopra *AOR*
+persiste al ricarico e le due sezioni portano `↑1` e `↓1` anche fuori dalla modifica. Commit `30dad4e`.
+
+### J7 🟢 APERTA — i blocchi della vIPI ACC non si riordinano
+
+`AccEditorPage` non ha frecce sui **blocchi** (Settori di aerovia, gruppi APP): si riordinano le sezioni
+**dentro** un blocco, non i blocchi fra loro. Non è un difetto di J6 — non era chiesto — ma è la domanda
+successiva ovvia, e il motore è lo stesso: i blocchi sono le sezioni radice del documento, quindi
+`MoveSectionAsync` funziona già così com'è.
+
+Da decidere prima di farlo: dove stanno le frecce (l'intestazione del blocco è già affollata) e se un gruppo
+APP debba poter salire sopra i settori di aerovia.
