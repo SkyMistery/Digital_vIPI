@@ -15,6 +15,9 @@ public enum DeletionTargetKind
 public sealed record DeletionTarget(DeletionTargetKind Kind, int Id = 0, string? Code = null)
 {
     public static DeletionTarget Sector(int id) => new(DeletionTargetKind.Sector, id);
+
+    /// <summary>Il settore per callsign: è così che lo conosce l'albero della Struttura, fatto di righe di catalogo.</summary>
+    public static DeletionTarget SectorByCallsign(string callsign) => new(DeletionTargetKind.Sector, 0, callsign);
     public static DeletionTarget Airport(int id) => new(DeletionTargetKind.Airport, id);
     public static DeletionTarget Document(int id) => new(DeletionTargetKind.Document, id);
     public static DeletionTarget Acc(string code) => new(DeletionTargetKind.Acc, 0, code);

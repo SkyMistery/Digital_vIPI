@@ -1348,6 +1348,18 @@
   <data name="Impact_AutoClose" xml:space="preserve"><value>closes by itself</value></data>
   <data name="Impact_SectorGone" xml:space="preserve"><value>Sector {0} is no longer in the catalogues: check frequencies, AoR and coordination.</value></data>
   <data name="Impact_SectorDetached" xml:space="preserve"><value>Sector {0} was deleted: the text that mentions it needs updating and the document republishing.</value></data>
+  <data name="Del_Title" xml:space="preserve"><value>Delete {0}?</value></data>
+  <data name="Del_Loading" xml:space="preserve"><value>Working out what would happen…</value></data>
+  <data name="Del_Blocked" xml:space="preserve"><value>Cannot be deleted</value></data>
+  <data name="Del_GoThere" xml:space="preserve"><value>go →</value></data>
+  <data name="Del_Dies" xml:space="preserve"><value>Goes away</value></data>
+  <data name="Del_Moves" xml:space="preserve"><value>Moves</value></data>
+  <data name="Del_Review" xml:space="preserve"><value>Left to review and republish</value></data>
+  <data name="Del_Confirm" xml:space="preserve"><value>Delete</value></data>
+  <data name="Del_Sector" xml:space="preserve"><value>Delete the sector</value></data>
+  <data name="Del_Airport" xml:space="preserve"><value>Delete the airport</value></data>
+  <data name="Del_Acc" xml:space="preserve"><value>Delete the ACC</value></data>
+  <data name="Del_Doc" xml:space="preserve"><value>Delete the document</value></data>
   <data name="Impact_SectorHidden" xml:space="preserve"><value>Sector {0} has been hidden: check frequencies, AoR and coordination.</value></data>
   <data name="Impact_SectorReparented" xml:space="preserve"><value>Sector {0} changed parent in the coverage chain: check the handoffs.</value></data>
   <data name="Impact_AreaGone" xml:space="preserve"><value>Regulated area {0} is no longer in the catalogues: the document cites it but it is not shown.</value></data>

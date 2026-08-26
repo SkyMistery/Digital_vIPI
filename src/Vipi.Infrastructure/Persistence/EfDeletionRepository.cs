@@ -54,6 +54,12 @@ public sealed class EfDeletionRepository : IDeletionRepository
             s.IsProjected, manuale, timbro, figli, documenti, accordi);
     }
 
+    public async Task<int?> SectorIdByCallsignAsync(string callsign, CancellationToken ct = default) =>
+        await _db.Sectors.AsNoTracking()
+            .Where(x => x.Callsign == callsign)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(ct);
+
     public async Task<AirportFacts?> AirportFactsAsync(int airportId, CancellationToken ct = default)
     {
         var a = await _db.Airports.AsNoTracking()
@@ -111,6 +117,9 @@ public sealed class EfDeletionRepository : IDeletionRepository
         return new DocumentFacts(d.Id, d.Title, d.Type, d.Status == DocumentStatus.Published,
             Release: 0, settori, aeroporto);
     }
+
+    public Task<int> ReleaseCountAsync(ReleaseTargetType tipo, string chiave, CancellationToken ct = default) =>
+        _db.DocReleases.AsNoTracking().CountAsync(r => r.TargetType == tipo && r.TargetKey == chiave, ct);
 
     /// <summary>
     /// Il timbro della riga di catalogo che porta questo callsign, e se quella riga è stata aggiunta a mano.

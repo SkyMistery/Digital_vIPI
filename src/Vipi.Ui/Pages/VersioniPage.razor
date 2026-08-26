@@ -260,11 +260,27 @@
                             }
                             @* Il testo che spiega la conseguenza sta QUI, non in un confirm del browser: il nativo bloccava
                                il circuito (e la verifica live) e faceva la seconda domanda dopo questa. *@
-                            <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@BlockedTitle(sel, L["Ver_DeletePermTitle"].Value)" AriaLabel="@L["Ver_DeleteDocAria"]"
-                                           Prompt="@L["Ver_DeleteConfirm", sel.Title]" Disabled="@ActionsBlocked(sel)"
-                                           CanOpenAsync="() => RefreshLockAsync(sel)" OnConfirm="() => Delete(sel)">
-                                <Trigger><Icon Name="trash" /> @L["Common_Delete"]</Trigger>
-                            </InlineConfirm>
+                            @* La finestra dice cosa si perde — le pubblicazioni, e chi resta senza pagina —
+                               prima di chiedere. Il documento non ha protezioni che lo blocchino: è nostro,
+                               nessuna sorgente lo rivendica. Il lock di editing resta il solo ostacolo, e lo
+                               si rilegge al clic invece di scoprirlo dopo la conferma. *@
+                            @if (sel.DocumentId is int docId)
+                            {
+                                <DeleteDialog Target="DeletionTarget.Document(docId)" Nome="@sel.Title"
+                                              TriggerClass="btn ghost" TriggerTitle="@BlockedTitle(sel, L["Ver_DeletePermTitle"].Value)"
+                                              AriaLabel="@L["Ver_DeleteDocAria"]" Disabled="@ActionsBlocked(sel)"
+                                              CanOpenAsync="() => RefreshLockAsync(sel)" OnDeleted="DopoEliminazione">
+                                    <Trigger><Icon Name="trash" /> @L["Common_Delete"]</Trigger>
+                                </DeleteDialog>
+                            }
+                            else
+                            {
+                                <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@BlockedTitle(sel, L["Ver_DeletePermTitle"].Value)" AriaLabel="@L["Ver_DeleteDocAria"]"
+                                               Prompt="@L["Ver_DeleteConfirm", sel.Title]" Disabled="@ActionsBlocked(sel)"
+                                               CanOpenAsync="() => RefreshLockAsync(sel)" OnConfirm="() => Delete(sel)">
+                                    <Trigger><Icon Name="trash" /> @L["Common_Delete"]</Trigger>
+                                </InlineConfirm>
+                            }
                         }
                         @if (sel.IsLocked && !IsMyLock(sel) && Authz.IsAdmin)
                         {
@@ -882,6 +898,16 @@
     // La conferma è l'InlineConfirm della riga, e porta il titolo del documento e le conseguenze: prima ce n'erano
     // DUE in fila (quella in linea più un window.confirm), e il testo utile stava nella seconda — che per giunta
     // blocca il circuito Blazor e manda in stallo la verifica live.
+    /// <summary>Dopo l'eliminazione dalla finestra: il documento scelto non esiste più e il pannello si
+    /// svuota. L'eliminazione l'ha già fatta il servizio — qui resta solo da rimettere a posto la pagina.</summary>
+    private async Task DopoEliminazione()
+    {
+        _status = L["Ver_DocDeleted"];
+        _error = _errorTitle = null;
+        _selKey = null;
+        await LoadAsync();
+    }
+
     private async Task Delete(ManagedDoc d)
     {
         await Run(() => DocAdmin.DeleteAsync(new ManagedDocRef(d.Kind, d.ReleaseKey, d.DocumentId)), L["Ver_DocDeleted"]);

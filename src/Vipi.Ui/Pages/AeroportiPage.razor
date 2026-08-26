@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 @using Microsoft.Extensions.Logging
 @inject IStructureEditingService Struct
+@inject IDeletionService Deletion
 @inject IAirportEditingService AptEdit
 @inject IAirportDirectory AirportDir
 @inject IEditAuthorizationService Authz
@@ -232,8 +233,15 @@
                                                         aria-label="@(a.IsHidden ? L["AccAdmin_Show"] : L["AccAdmin_Hide"])"
                                                         title="@(a.IsHidden ? L["Apt_ShowTitle"] : L["Apt_HideTitle"])"><Icon Name="@(a.IsHidden ? "eye" : "eye-off")" /></button>
                                             }
-                                            <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Apt_DeleteAria"]" TriggerTitle="@L["Apt_DeleteTriggerTitle"]"
-                                                           Disabled="@(_busy || !_canEdit)" OnConfirm="() => Remove(a.Id, a.AccCode)"><Trigger><Icon Name="trash" /></Trigger></InlineConfirm>
+                                            @* Non più una conferma cieca: la finestra CALCOLA prima di chiedere.
+                                               Il cestino di qui confermava operazioni che il servizio rifiutava un
+                                               istante dopo — «dei settori vi puntano» si scopriva solo provando. *@
+                                            <DeleteDialog Target="DeletionTarget.Airport(a.Id)" Nome="@a.Icao"
+                                                          TriggerClass="btn ghost" AriaLabel="@L["Apt_DeleteAria"]"
+                                                          TriggerTitle="@L["Apt_DeleteTriggerTitle"]"
+                                                          Disabled="@(_busy || !_canEdit)" OnDeleted="ReloadAsync">
+                                                <Trigger><Icon Name="trash" /></Trigger>
+                                            </DeleteDialog>
                                         </td>
                                     </tr>
                                 }
@@ -512,8 +520,6 @@
         string.IsNullOrEmpty(toAcc) || toAcc == fromAcc ? Task.CompletedTask
             : Guarded(() => Struct.MoveAirportAsync(id, fromAcc, toAcc));
 
-    private Task Remove(int id, string accCode) => Guarded(() => Struct.DeleteAirportAsync(accCode, id));
-
     private Task ToggleHidden(AirportAdminRow a) =>
         Guarded(() => Struct.SetAirportHiddenAsync(a.AccCode, a.Id, !a.IsHidden));
 
@@ -608,7 +614,9 @@
         {
             var a = _assigned.FirstOrDefault(x => x.Id == id);
             if (a is null) return;
-            await Struct.DeleteAirportAsync(a.AccCode, id);
+            // Lo stesso motore della finestra: le protezioni valgono identiche in blocco, e la riga che
+            // blocca resta selezionata col suo motivo invece di sparire dal contatore.
+            await Deletion.EliminaAsync(DeletionTarget.Airport(id));
         });
         var ok = r.Done - r.Failed.Count;
         KeepOnlyFailed(_selAssigned, r.Failed, r.Stopped ? todo.Skip(r.Done) : Enumerable.Empty<int>());

@@ -1,4 +1,5 @@
 using Vipi.Application.Content;
+using Vipi.Domain;
 
 namespace Vipi.Application.Abstractions;
 
@@ -17,6 +18,15 @@ public interface IDeletionRepository
     /// <summary>Tutto ciò che serve a decidere di un settore. <c>null</c> se non esiste.</summary>
     Task<SectorFacts?> SectorFactsAsync(int sectorId, CancellationToken ct = default);
 
+    /// <summary>
+    /// L'Id del settore <b>proiettato</b> che porta quel callsign, o <c>null</c> se non c'è.
+    ///
+    /// <para>⚠️ Serve perché l'albero della Struttura è fatto di righe di <b>catalogo</b>, non di settori: il
+    /// numero che il nodo porta con sé è l'Id della riga di catalogo, e passarlo per un Id di settore
+    /// eliminerebbe un settore a caso — o nessuno. Il callsign è l'unica chiave che i due mondi condividono.</para>
+    /// </summary>
+    Task<int?> SectorIdByCallsignAsync(string callsign, CancellationToken ct = default);
+
     /// <summary>Tutto ciò che serve a decidere di un aeroporto e dei suoi settori. <c>null</c> se non esiste.</summary>
     Task<AirportFacts?> AirportFactsAsync(int airportId, CancellationToken ct = default);
 
@@ -25,6 +35,13 @@ public interface IDeletionRepository
 
     /// <summary>Tutto ciò che serve a mostrare cosa si perde con un documento. <c>null</c> se non esiste.</summary>
     Task<DocumentFacts?> DocumentFactsAsync(int documentId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Quante pubblicazioni ha il bersaglio indicato. ⚠️ Le <c>DocRelease</c> non hanno FK verso il
+    /// documento — si trovano per tipo e chiave — e quindi non compaiono in nessun cascade: se non le si
+    /// conta a mano, la finestra tace proprio sulla cosa che il pubblico vedrebbe sparire.
+    /// </summary>
+    Task<int> ReleaseCountAsync(ReleaseTargetType tipo, string chiave, CancellationToken ct = default);
 
     /// <summary>
     /// Esegue le mosse in <b>una</b> transazione, nell'ordine che i vincoli impongono: i figli al nonno

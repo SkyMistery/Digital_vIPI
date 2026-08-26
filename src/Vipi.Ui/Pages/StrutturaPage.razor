@@ -240,6 +240,25 @@
                         }
                     </div>
                 </div>
+
+                @* ---- Elimina, con le protezioni ------------------------------------------------------
+                   Il tasto che qui non c'e' mai stato: `DeleteSectorAsync` esisteva in tre strati e non
+                   aveva NESSUN chiamante nell'interfaccia. La finestra calcola prima di chiedere — figli al
+                   nonno, documenti da rivedere, chi blocca — e l'esito non e' definitivo se la sorgente
+                   rimanda quel callsign: e' scritto la dentro perche' non sembri un guasto.
+                   ⚠️ L'albero e' fatto di righe di CATALOGO: il numero del nodo non e' un Id di settore, e
+                   il bersaglio va per callsign. *@
+                @if (Authz.IsAdmin)
+                {
+                    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+                        <DeleteDialog Target="@BersaglioDi(sel)" Nome="@(sel.Callsign ?? sel.Label)"
+                                      TriggerClass="btn ghost danger" Disabled="@(!_canEdit || _busy)"
+                                      AriaLabel="@(sel.Kind == HierarchyNodeKind.Airport ? L["Del_Airport"].Value : L["Del_Sector"].Value)"
+                                      OnDeleted="RicaricaDopoEliminazione">
+                            <Trigger><Icon Name="trash" Size="14" /> @(sel.Kind == HierarchyNodeKind.Airport ? L["Del_Airport"] : L["Del_Sector"])</Trigger>
+                        </DeleteDialog>
+                    </div>
+                }
             }
             </div>
         </div>
@@ -452,6 +471,27 @@
         await Orphans.RemoveAsync(orphanId);
         await RicaricaOrfaniAsync();
     });
+
+    /// <summary>
+    /// Il bersaglio dell'eliminazione per il nodo selezionato. ⚠️ I nodi dell'albero sono righe di
+    /// <b>catalogo</b>: il loro <c>Id</c> è quello della riga, non del settore proiettato. Per l'aeroporto
+    /// invece l'Id è proprio quello dell'aeroporto, e si passa così com'è.
+    /// </summary>
+    private DeletionTarget BersaglioDi(HierarchyNode n) =>
+        n.Kind == HierarchyNodeKind.Airport
+            ? DeletionTarget.Airport(n.Id)
+            : DeletionTarget.SectorByCallsign(n.Callsign ?? "");
+
+    /// <summary>Dopo un'eliminazione: l'albero cambia, la selezione non esiste più e gli orfani possono
+    /// essere diminuiti (il settore tolto poteva essere uno di loro).</summary>
+    private async Task RicaricaDopoEliminazione()
+    {
+        _selKind = null;
+        _selId = 0;
+        _pendingParent = null;
+        await ReloadTreeAsync();
+        await RicaricaOrfaniAsync();
+    }
 
     private async Task ReloadTreeAsync()
     {

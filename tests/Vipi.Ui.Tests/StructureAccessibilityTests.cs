@@ -41,6 +41,9 @@ public sealed class StructureAccessibilityTests
              "duplica la checkbox della riga, che è già raggiungibile e ha aria-label"),
             ("AeroportiPage.razor", "ClickIvao",
              "duplica la checkbox della riga, che è già raggiungibile e ha aria-label"),
+            ("DeleteDialog.razor", "del-backdrop",
+             "il velo chiude la finestra come il tasto Annulla che le sta dentro, raggiungibile da tastiera: "
+             + "dargli il fuoco aggiungerebbe una fermata di tabulazione muta prima del contenuto del dialogo"),
         };
 
         var radice = RadiceDelRepo();

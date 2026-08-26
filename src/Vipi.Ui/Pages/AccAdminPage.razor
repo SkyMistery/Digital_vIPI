@@ -162,6 +162,18 @@
                                     <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SetHidden(a.Id, !a.IsHidden)" @onclick:stopPropagation="true">
                                         <Icon Name="@(a.IsHidden ? "eye" : "eye-off")" Size="14" /> @(a.IsHidden ? L["AccAdmin_Show"] : L["AccAdmin_Hide"])
                                     </button>
+                                    @* ⚠️ La ACC non porta via con sé i suoi settori e i suoi aeroporti: sarebbe
+                                       una perdita che nessuna conferma rende reversibile. La finestra dice
+                                       quanti ne restano e dove si svuotano. *@
+                                    @if (Authz.IsAdmin)
+                                    {
+                                        <DeleteDialog Target="DeletionTarget.Acc(a.Code)" Nome="@a.Code"
+                                                      TriggerClass="btn ghost danger" AriaLabel="@L["Del_Acc"]"
+                                                      TriggerTitle="@L["Del_Acc"]" Disabled="@(_busy || !_canEdit)"
+                                                      OnDeleted="ReloadAsync">
+                                            <Trigger><Icon Name="trash" Size="14" /></Trigger>
+                                        </DeleteDialog>
+                                    }
                                 </td>
                             </tr>
                         }

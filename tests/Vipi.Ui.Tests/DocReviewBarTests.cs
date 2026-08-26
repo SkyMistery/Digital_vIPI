@@ -42,6 +42,7 @@ public class DocReviewBarTests : TestContext
 
         public Task<int> RaiseForSectorAsync(ImpactKind kind, string composePosition, string accCode, CancellationToken ct = default) => Task.FromResult(0);
         public Task<int> RaiseForAreaAsync(ImpactKind kind, string ivaoId, string areaName, CancellationToken ct = default) => Task.FromResult(0);
+        public Task<int> RaiseForDocumentsAsync(ImpactKind kind, IReadOnlyCollection<int> documentIds, string sourceKey, IReadOnlyList<string> args, CancellationToken ct = default) => Task.FromResult(0);
         public Task<IReadOnlyList<RaiseImpactInput>> PrepareForSectorAsync(ImpactKind kind, string composePosition, string accCode, IReadOnlyList<string> args, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<RaiseImpactInput>>(Array.Empty<RaiseImpactInput>());
         public Task<int> ClearBySourceAsync(IReadOnlyCollection<ImpactKind> kinds, string sourceKey, CancellationToken ct = default) => Task.FromResult(0);

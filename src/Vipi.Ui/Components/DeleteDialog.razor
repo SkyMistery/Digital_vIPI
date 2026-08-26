@@ -1,0 +1,159 @@
+@* DeleteDialog — il tasto «elimina» di TUTTO il sistema: settori, aeroporti, ACC, documenti.
+
+   ⚠️ Perché non un InlineConfirm. Quello chiede «sei sicuro?» e non sa niente: sul cestino degli aeroporti
+   si confermava un'operazione che il servizio avrebbe rifiutato un istante dopo, e l'unico modo di sapere se
+   era possibile era provarla. Qui la domanda si pone DOPO aver calcolato la risposta: al clic si carica
+   l'anteprima, e la finestra dice cosa sparisce, cosa si sposta, cosa resterà da ripubblicare e chi
+   eventualmente blocca — con il collegamento al posto dove si risolve.
+
+   Carta: docs/feature/2026-08-26-eliminare-con-le-protezioni.md §4 (B5). *@
+@inject IDeletionService Deletion
+@inject IStringLocalizer<SharedResource> L
+
+<span class="inline-confirm">
+    <button type="button" class="@TriggerClass" title="@TriggerTitle" aria-label="@AriaLabel"
+            disabled="@(Disabled || _busy)" @onclick="ApriAsync" @onclick:stopPropagation="true">@Trigger</button>
+</span>
+
+@if (_aperto)
+{
+    <div class="del-backdrop" @onclick="Chiudi" @onclick:stopPropagation="true"></div>
+    <div class="del-card" role="dialog" aria-modal="true" aria-label="@L["Del_Title", Nome]"
+         @onclick:stopPropagation="true">
+        <h3 class="h-card">@L["Del_Title", Nome]</h3>
+
+        @if (_piano is null)
+        {
+            <p class="muted">@L["Del_Loading"]</p>
+        }
+        else
+        {
+            @if (_piano.Blocca.Count > 0)
+            {
+                <div class="callout danger del-sec">
+                    <p class="ct">@L["Del_Blocked"]</p>
+                    <ul>
+                        @foreach (var b in _piano.Blocca)
+                        {
+                            <li>
+                                @b.Testo
+                                @if (b.Href is { } href)
+                                {
+                                    <a class="del-go" href="@href">@L["Del_GoThere"]</a>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            @* Cosa muore si mostra SEMPRE, anche quando qualcosa blocca: chi legge deve poter valutare se
+               valga la pena di rimuovere gli ostacoli, e per farlo deve vedere il prezzo. *@
+            @Elenco(L["Del_Dies"].Value, _piano.Muore, "del-dies")
+            @Elenco(L["Del_Moves"].Value, _piano.SiSposta, "del-moves")
+            @Elenco(L["Del_Review"].Value, _piano.DaRivedere, "del-review")
+        }
+
+        @* Fuori dal ramo: se a fallire è stata l'anteprima stessa non c'è nessun piano, e il messaggio
+           sarebbe rimasto invisibile proprio quando è l'unica cosa da dire. *@
+        @if (_errore is { } err)
+        {
+            <div class="callout danger del-sec"><p class="ct">@err</p></div>
+        }
+
+        <div class="del-actions">
+            <button type="button" class="btn danger"
+                    disabled="@(_busy || _piano is null || !_piano.Eliminabile)"
+                    @onclick="ConfermaAsync">@L["Del_Confirm"]</button>
+            <button type="button" class="btn ghost" disabled="@_busy" @onclick="Chiudi">@L["Common_Cancel"]</button>
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>Un elenco con la sua intestazione, o niente se non c'è niente da dire. Tre volte la stessa
+    /// forma: un frammento locale costa meno di un componente per una lista puntata.</summary>
+    private RenderFragment Elenco(string titolo, IReadOnlyList<string> righe, string classe) => builder =>
+    {
+        if (righe.Count == 0) return;
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", $"del-sec {classe}");
+        builder.OpenElement(2, "p");
+        builder.AddAttribute(3, "class", "del-h");
+        builder.AddContent(4, titolo);
+        builder.CloseElement();
+        builder.OpenElement(5, "ul");
+        var i = 6;
+        foreach (var r in righe)
+        {
+            builder.OpenElement(i++, "li");
+            builder.AddContent(i++, r);
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    /// <summary>Che cosa si elimina. Cambiarlo a finestra aperta non ha effetto: l'anteprima è già stata letta.</summary>
+    [Parameter, EditorRequired] public DeletionTarget Target { get; set; } = default!;
+
+    /// <summary>Il nome per la domanda («Eliminare LIRF_GND?»). Il piano ne porta uno suo, ma la finestra si
+    /// apre prima che l'anteprima arrivi: senza questo, il titolo sarebbe vuoto per un istante.</summary>
+    [Parameter] public string Nome { get; set; } = "";
+
+    [Parameter] public RenderFragment? Trigger { get; set; }
+    [Parameter] public string TriggerClass { get; set; } = "btn ghost";
+    [Parameter] public string? TriggerTitle { get; set; }
+    [Parameter] public string? AriaLabel { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Invocato dopo un'eliminazione riuscita: la pagina ricarica quel che mostra.</summary>
+    [Parameter] public EventCallback OnDeleted { get; set; }
+
+    /// <summary>
+    /// Controllo opzionale eseguito <b>prima</b> di aprire: se torna <c>false</c> la finestra non si apre.
+    /// Stessa forma di <c>InlineConfirm.CanOpenAsync</c>, e per lo stesso motivo — una pagina che elenca è
+    /// una fotografia, e il presupposto dell'azione può essere cambiato dopo il caricamento (il caso vero:
+    /// un documento passato in modifica a qualcun altro mentre l'elenco stava aperto).
+    /// </summary>
+    [Parameter] public Func<Task<bool>>? CanOpenAsync { get; set; }
+
+    private bool _aperto, _busy;
+    private DeletionPlan? _piano;
+    private string? _errore;
+
+    private async Task ApriAsync()
+    {
+        if (CanOpenAsync is not null && !await CanOpenAsync()) return;
+        _aperto = true;
+        _piano = null;
+        _errore = null;
+        _busy = true;
+        try { _piano = await Deletion.AnteprimaAsync(Target); }
+        catch (Exception ex) { _errore = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private void Chiudi()
+    {
+        _aperto = false;
+        _piano = null;
+        _errore = null;
+    }
+
+    private async Task ConfermaAsync()
+    {
+        _busy = true;
+        _errore = null;
+        try
+        {
+            // Il servizio ricalcola il piano e rifiuta se nel frattempo qualcosa è cambiato: il messaggio
+            // che torna è l'elenco dei blocchi, e va mostrato QUI invece che far sparire la finestra.
+            await Deletion.EliminaAsync(Target);
+            _aperto = false;
+            await OnDeleted.InvokeAsync();
+        }
+        catch (Exception ex) { _errore = ex.Message; }
+        finally { _busy = false; }
+    }
+}

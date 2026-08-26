@@ -3557,3 +3557,20 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
     scroll-behavior:auto!important;
   }
 }
+
+/* ── Finestra «elimina, con le protezioni» (DeleteDialog) ──────────────────────
+   Carta: docs/feature/2026-08-26-eliminare-con-le-protezioni.md §4 (B5).
+   ⚠️ La finestra vive DENTRO la riga di una tabella: senza `position:fixed` erediterebbe la larghezza di
+   una cella e il testo del piano — che sono frasi intere, non etichette — uscirebbe dal bordo. Lo z-index
+   sta sopra la barra di modifica (1200) e sotto il tour guidato (2000), che non convivono mai con questa. */
+.vipi-root .del-backdrop{position:fixed;inset:0;z-index:1500;background:color-mix(in srgb,var(--ink) 45%,transparent)}
+.vipi-root .del-card{position:fixed;z-index:1501;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:min(560px,92vw);max-height:82vh;overflow:auto;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;padding:18px 20px;box-shadow:0 12px 40px rgba(0,0,0,.28)}
+.vipi-root .del-card .del-sec{margin:12px 0 0}
+.vipi-root .del-card .del-h{margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--ink-soft)}
+.vipi-root .del-card ul{margin:0;padding-left:18px}
+.vipi-root .del-card li{font-size:13.5px;line-height:1.5}
+.vipi-root .del-card .del-go{margin-left:6px;font-size:12.5px;white-space:nowrap}
+.vipi-root .del-card .del-actions{display:flex;gap:8px;margin-top:18px}

@@ -101,7 +101,12 @@ public sealed class DeletionService : IDeletionService
         {
             case DeletionTargetKind.Sector:
             {
-                var f = await _repo.SectorFactsAsync(b.Id, ct) ?? throw Inesistente("Settore");
+                // Il bersaglio può arrivare per Id o per callsign: l'albero della Struttura conosce i
+                // callsign (le sue righe sono di catalogo), le altre pagine gli Id dei settori.
+                var id = b.Id > 0
+                    ? b.Id
+                    : await _repo.SectorIdByCallsignAsync(b.Code ?? "", ct) ?? throw Inesistente("Settore");
+                var f = await _repo.SectorFactsAsync(id, ct) ?? throw Inesistente("Settore");
                 // Il penultimo giro che conta è quello della sorgente GIUSTA: gli aeroporti per una
                 // postazione di scalo, le ACC altrimenti. Sono due giri con due cadenze, e col timbro
                 // sbagliato si vieta un'eliminazione lecita o se ne permette una prematura.
@@ -123,8 +128,15 @@ public sealed class DeletionService : IDeletionService
                     await _stati.GetPrevSuccessAsync(ImportCategories.Acc, ct));
 
             default:
-                return DeletionRules.PerDocumento(
-                    await _repo.DocumentFactsAsync(b.Id, ct) ?? throw Inesistente("Documento"));
+            {
+                var f = await _repo.DocumentFactsAsync(b.Id, ct) ?? throw Inesistente("Documento");
+                // Le pubblicazioni si contano dal bersaglio di release, non dal documento: le DocRelease
+                // stanno sotto (tipo, chiave) e il documento non le conosce.
+                var gestito = (await _documenti.ListAsync(ct)).FirstOrDefault(d => d.DocumentId == b.Id);
+                if (gestito is not null)
+                    f = f with { Release = await _repo.ReleaseCountAsync(gestito.ReleaseTarget, gestito.ReleaseKey, ct) };
+                return DeletionRules.PerDocumento(f);
+            }
         }
     }
 
