@@ -402,6 +402,16 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
                 toccata = true;
             }
 
+            // Passo 1-bis — il TITOLO di una sezione di catalogo lo decide il catalogo, e vale anche per quelle
+            // che la chiave giusta ce l'avevano già: «Frequencies» e «SID» non passano dal rinomina di sopra, e
+            // senza questo ramo il documento resterebbe metà in italiano e metà in inglese. Una sezione fissa non
+            // si rinomina a mano (IsMandatory lo vieta), quindi non c'è nessuna scelta editoriale da rispettare.
+            if (SectionCatalog.Find(SectionProfile.Airport, s.SectionKey) is { } desc && s.Title != desc.Title)
+            {
+                s.Title = desc.Title;
+                toccata = true;
+            }
+
             // Passo 2 — i blocchi. Vale per OGNI sezione il cui corpo lo produce ora la pagina, non solo per
             // quelle appena rinominate: «Frequencies» aveva la chiave giusta fin dall'inizio e la sua tabella
             // cotta dentro, e senza questo ramo resterebbe li' a raddoppiare la tabella derivata.

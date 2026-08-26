@@ -1633,10 +1633,9 @@ else
     private RenderFragment RulesEditor => __builder =>
     {
         <div @onchange='() => MarkDirty("runwayrules")'>
-            @* La prosa che stava sempre a schermo (due paragrafi, 97px) la dice il «?» al clic:
-               testo riusato IDENTICO, stesse chiavi. *@
-            <div class="ed-h3">
-                <h2 class="h-sect">@L["Ape_RwRulesTitle"]</h2>
+            @* ⚠️ Niente titolo qui dentro: lo dice l'intestazione della SEZIONE. Ripeterlo faceva leggere due
+               volte la stessa cosa a due righe di distanza — «Regole piste» e poi «Runway selection rules». *@
+            <div class="ed-h3 ed-h3-mini">
                 <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_RwRulesHelpAria"]" ExtraClass="wide">
                     @((MarkupString)L["Ape_RwRulesHelp"].Value)
                     <p>@L["Ape_RwRulesHelp2"]</p>
@@ -1766,8 +1765,7 @@ else
     private RenderFragment TransitionEditor => __builder =>
     {
         <div @onchange='() => MarkDirty("transition")'>
-            <div class="ed-h3">
-                <h2 class="h-sect">@L["Ape_TlTitle"]</h2>
+            <div class="ed-h3 ed-h3-mini">
                 <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_TlHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_TlHelp"].Value)</HelpHint>
                 @if (_policy.TransitionAltitude)
                 {
@@ -1812,8 +1810,7 @@ else
     private RenderFragment FrequenciesEditor => __builder =>
     {
         <div @onchange='() => MarkDirty("frequencies")'>
-            <div class="ed-h3">
-                <h2 class="h-sect">@L["Common_Frequencies"]</h2>
+            <div class="ed-h3 ed-h3-mini">
                 <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_FreqHelpAria"]" ExtraClass="wide">@L["Ape_FreqHelp"]</HelpHint>
             </div>
             <table class="res-table freq-table">
@@ -1868,8 +1865,7 @@ else
     private RenderFragment RunwaysEditor => __builder =>
     {
         <div @onchange='() => MarkDirty("runways")'>
-            <div class="ed-h3">
-                <h2 class="h-sect">@L["Sorg_RunwaysLabel"]</h2>
+            <div class="ed-h3 ed-h3-mini">
                 @if (_policy.Runways)
                 {
                     <span class="pill neutral" title="@L["Ape_RwFromSourceTitle"]"><Icon Name="key" Size="11" /> @L["Ape_FromSource"]</span>

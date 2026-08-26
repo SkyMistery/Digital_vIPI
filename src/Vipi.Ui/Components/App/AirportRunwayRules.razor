@@ -13,7 +13,7 @@
         {
             var now = ActivePosition == r.Position;
             <tr class="@(now ? "rwy-both" : null)">
-                <td>@r.Position @if (now) { <span class="pref-tag">@L["Airport_QnhNow"]</span> }</td>
+                <td>@r.Position&#32;@if (now) { <span class="pref-tag">@L["Airport_QnhNow"]</span> }</td>
                 <td>@r.Condition</td>
                 <td>@r.Dep</td>
                 <td>@r.Arr</td>

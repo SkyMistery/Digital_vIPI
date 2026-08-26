@@ -104,9 +104,11 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
             ("Runways", """{"columns":["Runway"],"rows":[]}"""),
             ("SID", null));
 
-        // Quattro toccate: tre rinominate + «Frequencies», che la chiave giusta ce l'aveva già ma la
-        // tabella cotta dentro sì. «SID» non aveva né l'una né l'altra.
+        // Cinque toccate: tre rinominate, «Frequencies» che aveva la chiave giusta ma il titolo inglese e la
+        // tabella cotta dentro, e «SID» — che di suo aveva solo il titolo da allineare... e infatti il titolo
+        // di catalogo È «SID», quindi resta com'è. Quattro, allora: la quinta non ha niente da cambiare.
         Assert.Equal(4, await _manutenzione.ReconcileAirportSectionKeysAsync());
+        Assert.Equal("Frequenze", (await _db.DocumentSections.SingleAsync(x => x.SectionKey == "frequencies")).Title);
 
         var sezioni = await _db.DocumentSections.Include(s => s.Blocks).OrderBy(s => s.Order).ToListAsync();
         Assert.Equal(

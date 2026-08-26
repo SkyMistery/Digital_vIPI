@@ -18,7 +18,9 @@
                 var now = CurrentQnh is int q && QnhRowMatches(r.QnhRange, q);
                 <tr class="@(now ? "tl-now" : "")">
                     <td>@r.QnhRange</td>
-                    <td>@(View.TransitionAltitudeFt is null ? "N/A" : r.Level) @if (now) { <span class="pref-tag">@L["Airport_QnhNow"]</span> }</td>
+                    @* Lo spazio è scritto come entità: Razor scarta il testo di sola spaziatura che precede un
+                       blocco di codice, e usciva «FL60current QNH» attaccato. *@
+                    <td>@(View.TransitionAltitudeFt is null ? "N/A" : r.Level)&#32;@if (now) { <span class="pref-tag">@L["Airport_QnhNow"]</span> }</td>
                 </tr>
             }
         </tbody>
