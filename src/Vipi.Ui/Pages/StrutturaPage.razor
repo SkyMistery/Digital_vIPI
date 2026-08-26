@@ -350,20 +350,16 @@
                                 <button class="btn ghost" disabled="@(_busy || !_canEdit || !_reattachTo.TryGetValue(o.SectorId, out var sel2) || sel2 == 0)"
                                         @onclick="() => Riaggancia(o.SectorId)">@L["Orph_Reattach"]</button>
                             }
-                            @if (o.Blockers.Count == 0)
-                            {
-                                <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Orph_RemoveTitle"]"
-                                               AriaLabel="@L["Orph_Remove"]" Disabled="@(_busy || !_canEdit)"
-                                               Prompt="@L["Orph_RemovePrompt", o.Callsign]"
-                                               ConfirmLabel="@L["Orph_Remove"]" CancelLabel="@L["Common_Cancel"]"
-                                               OnConfirm="() => Rimuovi(o.SectorId)">
-                                    <Trigger>@L["Orph_Remove"]</Trigger>
-                                </InlineConfirm>
-                            }
-                            else
-                            {
-                                <span class="muted" title="@string.Join("; ", o.Blockers)">@L["Orph_Blocked"]</span>
-                            }
+                            @* ⚠️ Nessun elenco di blocchi qui: li calcola e li mostra la finestra, che è lo
+                               stesso motore di tutte le altre eliminazioni. Prima questa riga aveva un
+                               «rimuovi» suo, con una sua idea di cosa fosse lecito — due motori che si
+                               somigliano sono due racconti che iniziano a divergere. *@
+                            <DeleteDialog Target="DeletionTarget.Sector(o.SectorId)" Nome="@o.Callsign"
+                                          TriggerClass="btn ghost" TriggerTitle="@L["Orph_RemoveTitle"]"
+                                          AriaLabel="@L["Orph_Remove"]" Disabled="@(_busy || !_canEdit)"
+                                          OnDeleted="RicaricaDopoEliminazione">
+                                <Trigger>@L["Orph_Remove"]</Trigger>
+                            </DeleteDialog>
                         </td>
                     </tr>
                 }
@@ -463,12 +459,6 @@
     private Task Riaggancia(int orphanId) => Guarded(async () =>
     {
         await Orphans.ReattachAsync(orphanId, _reattachTo[orphanId]);
-        await RicaricaOrfaniAsync();
-    });
-
-    private Task Rimuovi(int orphanId) => Guarded(async () =>
-    {
-        await Orphans.RemoveAsync(orphanId);
         await RicaricaOrfaniAsync();
     });
 

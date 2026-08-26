@@ -1387,8 +1387,6 @@
   <data name="Orph_Reattach" xml:space="preserve"><value>Reattach</value></data>
   <data name="Orph_Remove" xml:space="preserve"><value>Remove</value></data>
   <data name="Orph_RemoveTitle" xml:space="preserve"><value>Removes the sector from the archive (it returns if the source sends it back)</value></data>
-  <data name="Orph_RemovePrompt" xml:space="preserve"><value>Remove {0} from the archive? If the source sends it back, the next import recreates it.</value></data>
-  <data name="Orph_Blocked" xml:space="preserve"><value>cannot be removed</value></data>
   <data name="Rel_AiracRelease" xml:space="preserve"><value>AIRAC release</value></data>
   <data name="Rel_HelpAria" xml:space="preserve"><value>Help on publishing</value></data>
   <data name="Rel_HelpBody" xml:space="preserve"><value>&lt;b&gt;Publishing&lt;/b&gt; makes the draft visible to everyone, tied to an &lt;b&gt;AIRAC&lt;/b&gt; cycle. &lt;b&gt;Publish now&lt;/b&gt; = right away; &lt;b&gt;Schedule at cycle&lt;/b&gt; = on the date of the chosen cycle. Check the draft &lt;b&gt;preview&lt;/b&gt; first.</value></data>

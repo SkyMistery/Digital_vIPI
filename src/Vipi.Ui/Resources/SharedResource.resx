@@ -1390,8 +1390,6 @@
   <data name="Orph_Reattach" xml:space="preserve"><value>Riaggancia</value></data>
   <data name="Orph_Remove" xml:space="preserve"><value>Rimuovi</value></data>
   <data name="Orph_RemoveTitle" xml:space="preserve"><value>Toglie il settore dall'archivio (torna se la sorgente lo rimanda)</value></data>
-  <data name="Orph_RemovePrompt" xml:space="preserve"><value>Rimuovere {0} dall'archivio? Se la sorgente lo rimanda, il prossimo import lo ricrea.</value></data>
-  <data name="Orph_Blocked" xml:space="preserve"><value>non rimovibile</value></data>
   <data name="Rel_AiracRelease" xml:space="preserve"><value>Release AIRAC</value></data>
   <data name="Rel_HelpAria" xml:space="preserve"><value>Aiuto sulla pubblicazione</value></data>
   <data name="Rel_HelpBody" xml:space="preserve"><value>&lt;b&gt;Pubblicare&lt;/b&gt; rende la bozza visibile a tutti, legata a un ciclo &lt;b&gt;AIRAC&lt;/b&gt;. &lt;b&gt;Pubblica ora&lt;/b&gt; = subito; &lt;b&gt;Programma al ciclo&lt;/b&gt; = alla data del ciclo scelto. Prima controlla l&#39;&lt;b&gt;anteprima&lt;/b&gt; della bozza.</value></data>

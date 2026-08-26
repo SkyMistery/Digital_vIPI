@@ -43,10 +43,11 @@ public sealed record ReattachTargetRow(int SectorId, string Callsign, string Nam
 /// I <b>settori orfani</b>: quelli che la proiezione ha disattivato perché i cataloghi non li confermano più.
 /// Fino al 25 agosto 2026 non esisteva nessun posto dove vederli — la proiezione li disattivava, recideva il
 /// loro legame al documento e non lo diceva a nessuno. Ora il legame resta, la casella avvisa, e da qui una
-/// persona decide: <b>riaggancia</b> il documento a un altro settore, oppure <b>rimuovi</b> per sempre.
+/// persona decide: <b>riaggancia</b> il documento a un altro settore, oppure lo <b>elimina</b>.
 ///
-/// <para>⚠️ «Rimuovi» non è definitivo nel senso che ci si aspetta: se la sorgente rimanda quel callsign, il
-/// prossimo import lo ricrea. È scritto nella UI perché non sembri un guasto.</para>
+/// <para>⚠️ L'eliminazione non abita più qui. Dal 26 agosto 2026 la fa <see cref="IDeletionService"/>, che è
+/// il motore unico di tutto il sistema: questo servizio dice <b>chi</b> sono gli orfani, non come si
+/// tolgono. Prima ne aveva uno suo, con una sua idea di cosa fosse lecito.</para>
 /// </summary>
 public interface IOrphanSectorService
 {
@@ -59,12 +60,6 @@ public interface IOrphanSectorService
     /// <summary>Sposta il documento (e il ruolo di primario) dall'orfano al settore indicato.</summary>
     Task ReattachAsync(int orphanSectorId, int targetSectorId, CancellationToken ct = default);
 
-    /// <summary>
-    /// Toglie l'orfano dall'archivio: la riga proiettata e, se ancora presente, quella di catalogo.
-    /// Rifiuta con un messaggio leggibile se qualcosa lo referenzia (sotto-settori, accordi, parti di vLOA,
-    /// blocchi di contenuto) invece di lasciar esplodere il vincolo del database in faccia all'utente.
-    /// </summary>
-    Task RemoveAsync(int orphanSectorId, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IOrphanSectorService"/>
@@ -115,21 +110,6 @@ public sealed class OrphanSectorService : IOrphanSectorService
     {
         await EnsureCanEditAsync(orphanSectorId, ct);
         await _repo.ReattachAsync(orphanSectorId, targetSectorId, ct);
-    }
-
-    public async Task RemoveAsync(int orphanSectorId, CancellationToken ct = default)
-    {
-        // Rimuovere è un atto d'archivio, non di redazione: lo fa un admin. Riagganciare invece è editoriale,
-        // e basta poter editare l'ACC.
-        _authz.EnsureAdmin();
-
-        var riga = await _repo.GetOrphanAsync(orphanSectorId, await SogliaTimbroAsync(ct), ct)
-                   ?? throw new Aor.ValidationException("Settore orfano inesistente o tornato attivo.");
-        if (riga.Blockers.Count > 0)
-            throw new Aor.ValidationException(
-                "Non si può rimuovere: " + string.Join("; ", riga.Blockers) + ".");
-
-        await _repo.RemoveAsync(orphanSectorId, ct);
     }
 
     private async Task EnsureCanEditAsync(int orphanSectorId, CancellationToken ct)

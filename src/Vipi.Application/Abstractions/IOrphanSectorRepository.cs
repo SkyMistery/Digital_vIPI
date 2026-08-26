@@ -19,9 +19,6 @@ public interface IOrphanSectorRepository
     /// <summary>Sposta documento e ruolo di primario dall'orfano al bersaglio.</summary>
     Task ReattachAsync(int orphanSectorId, int targetSectorId, CancellationToken ct = default);
 
-    /// <summary>Cancella la riga proiettata e quella di catalogo, se c'è ancora.</summary>
-    Task RemoveAsync(int orphanSectorId, CancellationToken ct = default);
-
     /// <summary>
     /// Righe di catalogo che la sorgente non manda più: timbro d'import più vecchio di
     /// <paramref name="sogliaUtc"/>, escluse quelle <b>aggiunte a mano</b> (che la sorgente non ha mai

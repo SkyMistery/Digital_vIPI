@@ -170,23 +170,6 @@ public sealed class EfOrphanSectorRepository : IOrphanSectorRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task RemoveAsync(int orphanSectorId, CancellationToken ct = default)
-    {
-        var s = await _db.Sectors.FirstOrDefaultAsync(x => x.Id == orphanSectorId, ct);
-        if (s is null) return;
-
-        // La riga di catalogo, se la sorgente la espone ancora (caso «nascosto»): togliere solo la proiezione
-        // la farebbe tornare al primo sync, e l'utente vedrebbe il settore risorgere senza spiegazione.
-        var acc = await _db.AccSectors.Where(x => x.ComposePosition == s.Callsign).ToListAsync(ct);
-        if (acc.Count > 0) _db.AccSectors.RemoveRange(acc);
-        var apt = await _db.AirportSectors.Where(x => x.ComposePosition == s.Callsign).ToListAsync(ct);
-        if (apt.Count > 0) _db.AirportSectors.RemoveRange(apt);
-
-        _db.Sectors.Remove(s);
-        await _db.SaveChangesAsync(ct);
-    }
-
-
     /// <inheritdoc />
     public async Task<IReadOnlyList<StaleCatalogRow>> ListStaleCatalogRowsAsync(
         DateTime sogliaUtc, CancellationToken ct = default)
