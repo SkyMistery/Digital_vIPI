@@ -138,7 +138,7 @@ else
                     else { _mode = default; await LoadPublicAsync(row.DocId); }
                     break;
                 case PreviewKind.Release:
-                    var pv = await TryPreviewAsync(_mode.ReleaseId, ReleaseTargetType.Vloa, row.DocId.ToString());
+                    var pv = await Releases.GetPreviewAsync(_mode.ReleaseId, ReleaseTargetType.Vloa, row.DocId.ToString());
                     if (pv?.Doc is not null) { _relCycle = pv.AiracCycle; _view = await ViewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended); }
                     else { _mode = default; await LoadPublicAsync(row.DocId); }
                     break;
@@ -159,20 +159,6 @@ else
     {
         _view = await ViewService.BuildVloaByIdAsync(docId, BlockTier.Extended, live: false);
         _useFrozen = true;
-    }
-
-    private async Task<ReleasePreview?> TryPreviewAsync(int releaseId, ReleaseTargetType expectedType, string? expectedKey)
-    {
-        try
-        {
-            var pv = await Releases.GetPreviewAsync(releaseId);
-            if (pv is null || pv.Type != expectedType
-                || (expectedKey is not null && !string.Equals(pv.TargetKey, expectedKey, StringComparison.OrdinalIgnoreCase)))
-                return null;
-            return pv;
-        }
-        catch (EditNotAllowedException) { return null; }
-        catch (Vipi.Application.Aor.ValidationException) { return null; }
     }
 
     // ATC online dell'ACC nazionale (home): stessa regola della home /services/vsop (include gli aeroporti sotto l'ACC).

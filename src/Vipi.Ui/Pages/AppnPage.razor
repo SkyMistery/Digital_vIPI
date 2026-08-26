@@ -214,20 +214,6 @@ else
     }
 
     // Anteprima release gated (authz nel servizio) + verifica identità: null se inesistente/altro bersaglio/non autorizzato.
-    private async Task<ReleasePreview?> TryPreviewAsync(int releaseId, ReleaseTargetType expectedType, string? expectedKey)
-    {
-        try
-        {
-            var pv = await Releases.GetPreviewAsync(releaseId);
-            if (pv is null || pv.Type != expectedType
-                || (expectedKey is not null && !string.Equals(pv.TargetKey, expectedKey, StringComparison.OrdinalIgnoreCase)))
-                return null;
-            return pv;
-        }
-        catch (EditNotAllowedException) { return null; }
-        catch (Vipi.Application.Aor.ValidationException) { return null; }
-    }
-
     protected override async Task OnParametersSetAsync()
     {
         _acc = Stations.Resolve(Acc);
@@ -255,7 +241,7 @@ else
                 else { _mode = default; await LoadAppPublicAsync(); }
                 break;
             case PreviewKind.Release:
-                var pv = await TryPreviewAsync(_mode.ReleaseId, ReleaseTargetType.App, _app);
+                var pv = await Releases.GetPreviewAsync(_mode.ReleaseId, ReleaseTargetType.App, _app);
                 if (pv?.Doc is not null) { _relCycle = pv.AiracCycle; _view = await ViewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended); }
                 else { _mode = default; await LoadAppPublicAsync(); }
                 break;

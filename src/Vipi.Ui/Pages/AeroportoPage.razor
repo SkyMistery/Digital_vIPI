@@ -388,7 +388,7 @@ else
                 else { _mode = default; _view = await ViewService.BuildAirportVipiAsync(_icao, BlockTier.Extended, live: false); }
                 break;
             case PreviewKind.Release:
-                var pv = await TryPreviewAsync(_mode.ReleaseId, ReleaseTargetType.Airport, _icao);
+                var pv = await Releases.GetPreviewAsync(_mode.ReleaseId, ReleaseTargetType.Airport, _icao);
                 if (pv?.Doc is not null) { _relCycle = pv.AiracCycle; _view = await ViewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended); }
                 else { _mode = default; _view = await ViewService.BuildAirportVipiAsync(_icao, BlockTier.Extended, live: false); }
                 break;
@@ -443,20 +443,6 @@ else
         PreviewKind.Release => $"{L["Common_PreviewTag"]} ",
         _ => "",
     };
-
-    private async Task<ReleasePreview?> TryPreviewAsync(int releaseId, ReleaseTargetType expectedType, string? expectedKey)
-    {
-        try
-        {
-            var pv = await Releases.GetPreviewAsync(releaseId);
-            if (pv is null || pv.Type != expectedType
-                || (expectedKey is not null && !string.Equals(pv.TargetKey, expectedKey, StringComparison.OrdinalIgnoreCase)))
-                return null;
-            return pv;
-        }
-        catch (EditNotAllowedException) { return null; }
-        catch (Vipi.Application.Aor.ValidationException) { return null; }
-    }
 
     // Carica il METAR (HTTP, in parallelo) di tutti gli aeroporti dell'elenco e ne deriva vento/QNH/pista.
     // Fuori dal percorso di render: la lista è già visibile, il meteo compare appena pronto.

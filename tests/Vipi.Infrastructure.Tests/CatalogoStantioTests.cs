@@ -253,7 +253,7 @@ public class CatalogoStantioTests : IAsyncLifetime
         public Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default) => Task.FromResult(0);
         public Task CancelReleaseAsync(int releaseId, CancellationToken ct = default) => Task.CompletedTask;
         public Task<ReleaseDiff> DiffAsync(int releaseId, CancellationToken ct = default) => Task.FromResult(ReleaseDiff.Empty);
-        public Task<ReleasePreview?> GetPreviewAsync(int releaseId, CancellationToken ct = default) => Task.FromResult<ReleasePreview?>(null);
+        public Task<ReleasePreview?> GetPreviewAsync(int releaseId, ReleaseTargetType expectedType, string expectedKey, CancellationToken ct = default) => Task.FromResult<ReleasePreview?>(null);
         public Task<ReleaseLocation?> GetLocationAsync(int releaseId, CancellationToken ct = default) => Task.FromResult<ReleaseLocation?>(null);
         public string CurrentCycle() => "2608";
         public IReadOnlyList<Vipi.Domain.Services.AiracCycleInfo> UpcomingCycles(int count) => Array.Empty<Vipi.Domain.Services.AiracCycleInfo>();
