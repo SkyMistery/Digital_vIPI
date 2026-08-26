@@ -5,7 +5,9 @@ public sealed class SectorfileOptions
 {
     /// <summary>Base raw (deve terminare con "/"). Vuota = import SID disabilitato.</summary>
     public string RawBaseUrl { get; set; } = "";
-    /// <summary>Path del file fix relativo a <see cref="RawBaseUrl"/>.</summary>
+    /// <summary>⚠️ <b>Ripiego.</b> I file di punti li elenca <c>ITALY.isc</c> (otto, non tre): questi tre
+    /// percorsi si usano solo se l'indice non è raggiungibile o non cita nessun file di punti.
+    /// Path del file fix relativo a <see cref="RawBaseUrl"/>.</summary>
     public string FixPath { get; set; } = "NAVAIDS/itfix.fix";
     /// <summary>Path del file VOR relativo a <see cref="RawBaseUrl"/>.</summary>
     public string VorPath { get; set; } = "NAVAIDS/itvor.vor";

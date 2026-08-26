@@ -279,3 +279,17 @@ GitHub `twrs.tfl`, cerchio 5 NM — da qui in avanti guardano **solo** gli enti 
 non è l'anagrafica del titolare sarebbe un'area che nessuno di competente ha approvato, pubblicata come vera.
 
 ⚠️ Vale per i **ripieghi**: le shape che IVAO manda continuano a scriversi per tutti.
+
+## 9. ⚠️ Il catalogo punti leggeva tre file su otto (26 agosto)
+
+`GODRA` e `GIGUS` — i due punti che facevano scartare quattro blocchi di Milano — **c'erano**: in
+`NAVAIDS/ESTERNI.fix`, che non scaricavamo. La configurazione elencava tre file a mano; `ITALY.isc` ne cita
+otto. Ora l'elenco lo dà l'indice, **come già per i file di settore**.
+
+```
+nomi in catalogo   1385 → 3732   (+2347)
+LIMM_WS2/WS5/ES2   3 punti irrisolti a testa → ZERO   (il terzo era GEMLA)
+```
+
+⚠️ VOR e NDB si leggono **prima** dei fix: a parità di nome vince la prima occorrenza, e con essa la natura
+del punto. I tre percorsi in configurazione restano come ripiego se l'indice non risponde.

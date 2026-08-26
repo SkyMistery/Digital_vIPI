@@ -2378,8 +2378,8 @@ diversamente sullo stesso oggetto, e va deciso se dirlo a schermo o dare al grup
 
 ## J. Identità dei settori e shape — 26 agosto 2026, ramo `identita-settori`
 
-Ramo aperto **da `statistiche-atc`** (non da `main`), **non fuso**, spinto su origin. Porta sette lavori
-chiusi e lascia **una** voce aperta — che è una decisione, non del lavoro (**J3**). Carte:
+Ramo aperto **da `statistiche-atc`** (non da `main`), **non fuso**, spinto su origin. Porta **nove lavori
+chiusi e nessuna voce aperta**. Carte:
 [identità dei settori](feature/2026-08-26-identita-dei-settori.md),
 [l'assenza non cancella](feature/2026-08-26-lassenza-non-cancella.md),
 [le shape dal sectorfile](feature/2026-08-26-shape-dal-sectorfile.md),
@@ -2450,15 +2450,10 @@ compresi, esattamente come prima.
 gli aeroporti in `AirportSectors` sono **tutti** italiani — la decisione oggi non toglie niente a nessuno, ma
 chiude la porta prima che si apra.
 
-⚠️ **Il caso che aveva aperto questa voce resta aperto altrove**: `LIMM_WS2/WS5/ES2/ES5_CTR` non prendono
-l'area dal sectorfile perché i loro anelli citano `GODRA` e `GIGUS`, **due punti d'oltreconfine che non sono
-in nessuno dei tre cataloghi navaid italiani** (`itfix.fix`, `itvor.vor`, `itndb.ndb`). Quei quattro settori
-sono **italiani**, quindi il perimetro nuovo non li tocca: il parser scarta l'anello intero — di proposito,
-perché saltare un vertice darebbe un poligono che si disegna benissimo e mente. Due strade, entrambe di
-divisione: aggiungere i due punti a `itfix.fix` sul repo sectorfile, oppure un elenco di punti-extra nostro.
-Per ora la cosa si vede nel log del giro (`Shape settori: il punto X non è nel catalogo navaid`).
+⚠️ **Il caso che aveva aperto questa voce non era una decisione di divisione: era un difetto nostro.** I
+punti `GODRA` e `GIGUS` **ci sono** — in `ESTERNI.fix`, un file che non leggevamo. Vedi **J8**.
 
-### J3 🟡 APERTA — undici settori restano senza area: ecco **chi sono**
+### J3 ✅ DECISA il 26 agosto — quei settori **non devono avere** un'area
 
 Contati sul `vipi.db` di lavoro il 26 agosto (non ricordati): **11 righe su 153** in `AccSectors`. In
 `AirportSectors` le 51 senza poligono non contano — sono tutte ATIS/GND/DEL più una TWR (`LIED_TWR`):
@@ -2481,9 +2476,12 @@ posizioni che un'area non ce l'hanno per natura.
 Sette di questi sono **inattivi** in `Sectors` (`IsActive = 0`): i due `LIVK_*`, `LIRO_CRC_CTR` e i quattro
 `LIZZ_*`. Gli altri quattro sono attivi.
 
-Non è un difetto: è un dato che non esiste da nessuna parte — né IVAO li dà, né il sectorfile li descrive. Con
-§J2 i due esteri escono dal conto: **restano nove**, tutti italiani, tutti militari o di pianificazione. Va
-deciso se lasciarli senza area o disegnarli a mano.
+**Decisione del committente**: vanno bene senza area, e non c'è niente da disegnare. Non sono settori con un
+volume proprio: sono **postazioni operative in più** sullo stesso cielo di qualcun altro — guidacaccia,
+planner, coordinamento — e un poligono per loro sarebbe una finzione. Non è un dato mancante: è un dato che
+non esiste perché non ha senso.
+
+Con §J2 i due esteri escono comunque dal conto per conto loro.
 
 ⚠️ L'elenco di questa voce nella stesura precedente era **sbagliato** (citava `LOVV_FSS`, `LSAS_EXA_FSS`,
 `DTTC_FSS`, `LMMM_FSS`): quei quattro l'area ce l'hanno. Contato, non ricordato.
@@ -2573,3 +2571,36 @@ tiene se qualcuno arriva per un'altra strada — o se l'elenco è cambiato sotto
 Due test nuovi in `AccDocumentServiceTests`. Verifica live su `/services/vsop/libb/editor`: l'Aerovia non ha
 frecce, un gruppo solo le ha tutt'e due spente, con due gruppi il primo ha `↑` spenta e il secondo sale
 davvero — e il passo successivo in su non c'è.
+
+### J8 ✅ FATTA il 26 agosto — il catalogo punti leggeva **tre file su otto**
+
+`GODRA` e `GIGUS` non mancavano: stavano in `NAVAIDS/ESTERNI.fix`, che non scaricavamo. La configurazione
+elencava **tre** file a mano (`itfix.fix`, `itvor.vor`, `itndb.ndb`) mentre `ITALY.isc` ne cita **otto** —
+`ESTERNI.fix`, `MIL.fix`, `APT.fix`, `VFR_NASCOSTI.fix`, `secsi.fix` oltre ai tre.
+
+Ora `AuroraNavaidSource` legge l'elenco dall'indice, **stessa regola già usata per i file di settore**
+(`AuroraSectorShapeProvider`): quali file leggere lo dice Aurora, non una lista scritta da noi.
+
+Misurato sui file veri del repo sectorfile:
+
+```
+nomi in catalogo   1385 → 3732   (+2347)
+GODRA / GIGUS      assenti → presenti, con le coordinate
+LIMM_WS2/WS5/ES2   3 punti irrisolti a testa → ZERO
+```
+
+⚠️ Gli irrisolti erano **tre**, non due: c'era anche `GEMLA`. Cercarli a uno a uno avrebbe chiuso metà del
+buco — la lista scritta a mano era il difetto, non i due nomi.
+
+⚠️ **L'ordine di lettura non è estetico**: a parità di nome il catalogo tiene la **prima** occorrenza e con
+essa la natura del punto, quindi VOR e NDB si leggono **prima** dei fix. Seguendo l'ordine dell'indice, un
+omonimo cambierebbe natura ogni volta che qualcuno riordina `ITALY.isc`.
+
+⚠️ I tre percorsi in configurazione restano come **ripiego**, per quando l'indice non risponde: un catalogo
+ridotto è meglio di nessun catalogo (e nessun catalogo vuol dire **nessun poligono di settore**, perché i
+vertici per nome non si risolvono più).
+
+⚠️ Il catalogo dei punti serve anche ai **suggerimenti dei CoP** e alla completion delle SID: da qui in avanti
+quei campi non segnano più come inesistente un punto d'oltreconfine scritto giusto.
+
+Test: `NavaidIndiceTests` (7).

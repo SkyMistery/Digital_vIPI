@@ -21,12 +21,29 @@ public static class AuroraSectorfileParser
     /// posizione»). Ora servono ai poligoni di settore, dove 233 vertici sono nomi di punto. Il costo è
     /// ~2500 conversioni DMS per giro d'import — una volta ogni 24 ore, su un catalogo tenuto in cache.</para>
     /// </remarks>
-    public static NavaidCatalog ParseNavaids(string? fixText, string? vorText, string? ndbText = null)
+    public static NavaidCatalog ParseNavaids(string? fixText, string? vorText, string? ndbText = null) =>
+        ParseNavaids(new[]
+        {
+            (NavaidKind.Vor, vorText),
+            (NavaidKind.Ndb, ndbText),
+            (NavaidKind.Fix, fixText),
+        });
+
+    /// <summary>
+    /// Il catalogo da <b>quanti</b> file servono: i punti della divisione non stanno in tre file, ne stanno in
+    /// otto (<c>ESTERNI.fix</c>, <c>MIL.fix</c>, <c>APT.fix</c>, <c>secsi.fix</c>… oltre ai tre principali), e
+    /// quali siano lo dice <c>ITALY.isc</c>.
+    ///
+    /// <para>⚠️ <b>L'ordine conta</b>: a parità di nome vince la PRIMA occorrenza (regola di
+    /// <see cref="NavaidCatalog"/>), e con essa la natura del punto. Il chiamante accoda VOR e NDB prima dei
+    /// fix perché un omonimo dev'essere la radioassistenza, non il punto di riporto.</para>
+    /// </summary>
+    public static NavaidCatalog ParseNavaids(IEnumerable<(NavaidKind Kind, string? Text)> files)
     {
         var entries = new List<NavaidName>();
-        foreach (var e in ParseNavaidEntries(vorText, NavaidKind.Vor)) entries.Add(e);
-        foreach (var e in ParseNavaidEntries(ndbText, NavaidKind.Ndb)) entries.Add(e);
-        foreach (var e in ParseNavaidEntries(fixText, NavaidKind.Fix)) entries.Add(e);
+        foreach (var (kind, text) in files)
+            foreach (var e in ParseNavaidEntries(text, kind))
+                entries.Add(e);
         return new NavaidCatalog(entries);
     }
 
