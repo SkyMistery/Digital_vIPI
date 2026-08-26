@@ -550,4 +550,65 @@ public class AtcStatsQueriesTests : IAsyncLifetime
         var d = await _q.SessionAsync(100);
         Assert.Null(Assert.Single(d!.Traffic).HandoffTo);
     }
+
+    // ---- I nominativi storici, dopo una rinomina ----------------------------------------------------
+
+    private async Task Alias(string vecchio, string nuovo)
+    {
+        _db.CallsignAliases.Add(new CallsignAlias
+        {
+            OldCallsign = vecchio, NewCallsign = nuovo, Catalog = SourceCatalog.Subcenter,
+            RenamedAtUtc = T0.UtcDateTime,
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+    }
+
+    /// <summary>
+    /// Le sessioni tengono il nominativo di ALLORA — dicono un fatto, e non si riscrivono. Ma per chi legge
+    /// «quali postazioni ho tenuto» è una postazione sola, e le ore vanno sommate, non spezzate in due righe.
+    /// </summary>
+    [Fact]
+    public async Task Le_ore_di_una_postazione_rinominata_si_sommano_in_una_riga_sola()
+    {
+        await Sessione(1, 704798, "LIRR_NE_CTR", 3600, giorniFa: 40);    // col nome di allora
+        await Sessione(2, 704798, "LIRR_NEW_CTR", 1800, giorniFa: 1);    // col nome di adesso
+        await Alias("LIRR_NE_CTR", "LIRR_NEW_CTR");
+
+        var righe = await _q.ByPositionAsync(704798, Anno.Da, Anno.A);
+
+        var riga = Assert.Single(righe);
+        Assert.Equal("LIRR_NEW_CTR", riga.Key);
+        Assert.Equal(2, riga.Sessions);
+        Assert.Equal(5400, riga.Seconds);
+    }
+
+    /// <summary>Le sessioni non si toccano: il fatto storico resta leggibile com'era.</summary>
+    [Fact]
+    public async Task La_sessione_conserva_il_nominativo_di_allora()
+    {
+        await Sessione(1, 704798, "LIRR_NE_CTR", 3600);
+        await Alias("LIRR_NE_CTR", "LIRR_NEW_CTR");
+
+        Assert.Equal("LIRR_NE_CTR", (await _q.SessionsAsync(704798, Anno.Da, Anno.A)).Single().Callsign);
+    }
+
+    /// <summary>
+    /// ⚠️ Il taglio ai primi N non può restare nel database quando c'è una rinomina di mezzo: due righe che
+    /// si fondono possono entrare fra le prime solo DOPO essere state sommate. Qui, con limite 1, la
+    /// postazione rinominata vince solo se le due metà si sommano prima del taglio.
+    /// </summary>
+    [Fact]
+    public async Task Il_taglio_ai_primi_avviene_dopo_aver_fuso_le_meta()
+    {
+        await Sessione(1, 704798, "LIRR_NE_CTR", 3000, giorniFa: 40);
+        await Sessione(2, 704798, "LIRR_NEW_CTR", 3000, giorniFa: 1);
+        await Sessione(3, 704798, "LIRF_TWR", 4000, giorniFa: 2);        // piu' lunga di ognuna delle due meta'
+        await Alias("LIRR_NE_CTR", "LIRR_NEW_CTR");
+
+        var riga = Assert.Single(await _q.ByPositionAsync(704798, Anno.Da, Anno.A, limit: 1));
+
+        Assert.Equal("LIRR_NEW_CTR", riga.Key);
+        Assert.Equal(6000, riga.Seconds);
+    }
 }

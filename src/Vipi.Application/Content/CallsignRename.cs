@@ -85,6 +85,46 @@ public static class CallsignRenameDetector
 }
 
 /// <summary>
+/// Traduce un nominativo <b>dismesso</b> in quello di oggi, seguendo la catena delle rinomine.
+///
+/// <para><b>A cosa serve.</b> Lo storico tiene il callsign come <i>dato</i> e non come puntatore: le sessioni
+/// ATC dicono con che nominativo un controllore era connesso quella sera, e riscriverle sarebbe falsificare un
+/// fatto. Ma chi legge una statistica non vuole vedere la stessa postazione spezzata in due righe perché a
+/// giugno si chiamava in un altro modo. Questa è la traduzione, e si applica in <b>lettura</b>.</para>
+///
+/// <para>⚠️ È l'unico lettore di <c>CallsignAlias</c>, e deve restare tale: chi volesse sapere «come si chiama
+/// questo settore» ha <c>Sector.Callsign</c>, sempre aggiornato. Vedi il commento sull'entità.</para>
+/// </summary>
+public sealed class CallsignHistory
+{
+    private readonly Dictionary<string, string> _successore;
+
+    /// <param name="aliases">Le coppie (dismesso → successivo), nell'ordine che si vuole.</param>
+    public CallsignHistory(IEnumerable<(string Old, string New)> aliases)
+    {
+        _successore = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (vecchio, nuovo) in aliases)
+            _successore[vecchio] = nuovo;
+    }
+
+    /// <summary>Vero se non c'è nessuna rinomina in archivio: il chiamante può saltare del tutto la traduzione,
+    /// che è il caso normale.</summary>
+    public bool IsEmpty => _successore.Count == 0;
+
+    /// <summary>
+    /// Il nominativo di oggi. Segue la catena — un settore può essere stato rinominato più volte — e si ferma
+    /// da sé su un ciclo, che non dovrebbe esistere ma non deve appendere una pagina se esiste.
+    /// </summary>
+    public string Canonical(string callsign)
+    {
+        var visti = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var cur = callsign;
+        while (_successore.TryGetValue(cur, out var next) && visti.Add(cur)) cur = next;
+        return cur;
+    }
+}
+
+/// <summary>
 /// Sostituisce un callsign dentro un JSON di configurazione, e <b>solo</b> dove il callsign è un valore
 /// intero — mai come pezzo di una stringa più lunga.
 ///

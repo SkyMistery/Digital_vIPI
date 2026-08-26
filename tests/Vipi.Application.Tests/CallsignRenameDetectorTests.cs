@@ -89,3 +89,49 @@ public class CallsignRenameDetectorTests
         Assert.Equal(new[] { 1, 3 }, r.Select(x => x.IvaoId).OrderBy(x => x));
     }
 }
+
+/// <summary>
+/// La traduzione dei nominativi storici: quel che serve a non spezzare una postazione in due righe di
+/// statistica solo perché a giugno si chiamava in un altro modo.
+/// </summary>
+public class CallsignHistoryTests
+{
+    private static CallsignHistory Storia(params (string, string)[] alias) => new(alias);
+
+    [Fact]
+    public void Senza_alias_e_vuota_e_non_traduce_niente()
+    {
+        var s = Storia();
+        Assert.True(s.IsEmpty);
+        Assert.Equal("LIRR_NE_CTR", s.Canonical("LIRR_NE_CTR"));
+    }
+
+    [Fact]
+    public void Traduce_un_nominativo_dismesso() =>
+        Assert.Equal("LIRR_NEW_CTR",
+            Storia(("LIRR_NE_CTR", "LIRR_NEW_CTR")).Canonical("LIRR_NE_CTR"));
+
+    [Fact]
+    public void Un_nominativo_vivo_resta_com_e() =>
+        Assert.Equal("LIRR_S_CTR",
+            Storia(("LIRR_NE_CTR", "LIRR_NEW_CTR")).Canonical("LIRR_S_CTR"));
+
+    /// <summary>Un settore può essere rinominato più volte: la catena si segue fino in fondo.</summary>
+    [Fact]
+    public void Segue_la_catena_di_piu_rinomine() =>
+        Assert.Equal("LIRR_C_CTR",
+            Storia(("LIRR_A_CTR", "LIRR_B_CTR"), ("LIRR_B_CTR", "LIRR_C_CTR")).Canonical("LIRR_A_CTR"));
+
+    [Fact]
+    public void Il_confronto_ignora_le_maiuscole() =>
+        Assert.Equal("LIRR_NEW_CTR",
+            Storia(("LIRR_NE_CTR", "LIRR_NEW_CTR")).Canonical("lirr_ne_ctr"));
+
+    /// <summary>Un ciclo non dovrebbe esistere, ma se esiste non deve appendere la pagina che lo incontra.</summary>
+    [Fact]
+    public void Un_ciclo_non_manda_in_loop()
+    {
+        var s = Storia(("A", "B"), ("B", "A"));
+        Assert.Contains(s.Canonical("A"), new[] { "A", "B" });
+    }
+}

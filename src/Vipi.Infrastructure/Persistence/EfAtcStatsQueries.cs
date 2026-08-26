@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
+using Vipi.Application.Content;
 using Vipi.Application.Stats;
 using Vipi.Domain.Entities;
 
@@ -51,10 +52,12 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
     public async Task<IReadOnlyList<StatsByKey>> ByPositionAsync(
         int? userId, DateTimeOffset from, DateTimeOffset to, int limit = 20, CancellationToken ct = default)
     {
+        limit = Math.Max(1, limit);
+
         // ⚠️ La proiezione del raggruppamento va in un tipo ANONIMO, non nel record: EF non sa tradurre un
         // `GroupBy` che costruisce un record, e lancia a runtime — cioè con la pagina già aperta, non in
         // compilazione. Trovato aprendo la pagina davvero, ed è il motivo per cui questa classe ora ha i test.
-        var righe = await Contate(userId, from, to)
+        var gruppi = Contate(userId, from, to)
             .GroupBy(s => s.Callsign)
             .Select(g => new
             {
@@ -63,11 +66,37 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
                 Seconds = g.Sum(s => s.DurationSeconds),
                 Movements = g.Sum(s => s.MovementCount),
             })
-            .OrderByDescending(r => r.Seconds)
-            .Take(Math.Max(1, limit))
-            .ToListAsync(ct);
+            .OrderByDescending(r => r.Seconds);
 
-        return righe.Select(r => new StatsByKey(r.Key, r.Sessions, r.Seconds, r.Movements)).ToList();
+        // Le sessioni portano il nominativo di ALLORA, e giustamente: dicono un fatto. Ma una postazione
+        // rinominata a giugno non deve comparire come due righe che si dividono le ore. Si traduce in lettura.
+        var storia = await StoriaDeiNominativiAsync(ct);
+        if (storia.IsEmpty)
+            return (await gruppi.Take(limit).ToListAsync(ct))
+                .Select(r => new StatsByKey(r.Key, r.Sessions, r.Seconds, r.Movements)).ToList();
+
+        // ⚠️ Con le rinomine in mezzo il `Take` NON può restare nel database: due righe che si fondono possono
+        // entrare fra le prime dopo essere state sommate, e tagliare prima le escluderebbe. Si tronca dopo, e
+        // le righe da fondere sono poche — sul database vero le postazioni distinte sono ~200.
+        return (await gruppi.ToListAsync(ct))
+            .GroupBy(r => storia.Canonical(r.Key), StringComparer.OrdinalIgnoreCase)
+            .Select(g => new StatsByKey(g.Key, g.Sum(r => r.Sessions), g.Sum(r => (long)r.Seconds),
+                g.Sum(r => r.Movements)))
+            .OrderByDescending(r => r.Seconds)
+            .Take(limit)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Le rinomine in archivio, per tradurre i nominativi storici. Normalmente la tabella è vuota e il
+    /// chiamante non fa niente di diverso.
+    /// </summary>
+    private async Task<CallsignHistory> StoriaDeiNominativiAsync(CancellationToken ct)
+    {
+        var coppie = await _db.CallsignAliases.AsNoTracking()
+            .Select(a => new { a.OldCallsign, a.NewCallsign })
+            .ToListAsync(ct);
+        return new CallsignHistory(coppie.Select(a => (a.OldCallsign, a.NewCallsign)));
     }
 
     public async Task<IReadOnlyList<StatsByKey>> ByMonthAsync(
