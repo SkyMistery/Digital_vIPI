@@ -1,10 +1,32 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 25 agosto 2026 — sul ramo `statistiche-atc` sono confluiti **tre lavori**: le
-statistiche ATC, gli **aeroporti militari** e la **vIPI d'aeroporto legata allo scalo**.
-⚠️ **C'è un ramo solo con lavoro fuori da `main`, ed è quello.** Fonderlo è una decisione del committente
-(`docs/lavori-aperti.md` **§B12**), non un passo tecnico rimasto indietro. ⚠️ Dal 25 agosto porta **otto**
-migrazioni, non sei, e **un passo d'avvio nuovo** (`LinkAirportDocumentsAsync`).
+**Ultimo aggiornamento:** 26 agosto 2026, notte.
+
+⚠️ **I rami con lavoro fuori da `main` sono DUE, e stanno in fila**: `statistiche-atc` e, costruito **sopra
+di lui**, `identita-settori`. Il secondo va fuso **dopo** il primo. Fonderli è una decisione del committente
+(`docs/lavori-aperti.md` **§B12**), non un passo tecnico rimasto indietro.
+⚠️ Insieme portano **diciassette** migrazioni e **un passo d'avvio nuovo** (`LinkAirportDocumentsAsync`).
+
+> **Il ramo `identita-settori`, in tre righe.** Nasce da una domanda del committente — *svincolare il settore
+> dal suo nome* — e porta tre lavori. **(1)** L'identità dei cataloghi passa dal callsign all'**id numerico che
+> IVAO manda già**: una rinomina diventa un `UPDATE` e `Sector.Id` le sopravvive, con documento, accordi, vLOA
+> e figli. **(2)** Un `regionMapPolygon` vuoto non cancella più la shape che abbiamo: l'assenza non è un ordine
+> di cancellare — misurato, **83 poligoni su 83** azzerati da un solo import. **(3)** Le shape di CTR/APP/MIL/FSS
+> arrivano dal **sectorfile Aurora** come ripiego, con un **gate AIRAC**, perché quel file lo scriviamo prima
+> che il ciclo esca.
+>
+> Carte: [identità dei settori](docs/feature/2026-08-26-identita-dei-settori.md),
+> [l'assenza non cancella](docs/feature/2026-08-26-lassenza-non-cancella.md),
+> [le shape dal sectorfile](docs/feature/2026-08-26-shape-dal-sectorfile.md).
+> Voci aperte: `docs/lavori-aperti.md` **sezione J** — la prima da fare è **J1**, l'avviso a chi pubblica una
+> shape non ancora in vigore.
+>
+> ✅ **IVAO ha confermato** (26 agosto, su richiesta del committente) che l'assenza dei poligoni dall'API è un
+> **guasto loro** e che lo sistemeranno: il ripiego dal sectorfile è una rete, non una sostituzione, e il
+> rientro dell'anagrafica è già provato.
+>
+> **Dove sta il lavoro:** ramo **`identita-settori`**, spinto su origin. Release **0 avvisi** su entrambi i TFM;
+> **~5100 test verdi** (⚠️ la cifra si **conta**, non si ricorda).
 
 > **Il giro del 25 agosto pomeriggio, in due righe.** La sorgente IVAO sapeva già quali aeroporti hanno una base
 > militare e lo scartavamo (34 su 221) — ⚠️ ma `military` **non** vuol dire «aeroporto militare»: Linate, Pisa e
