@@ -32,15 +32,13 @@ public sealed class VloaViewDerivationService : IVloaViewDerivationService
     {
         var key = docId.ToString();
 
-        var aor = (useFrozen ? await FrozenAsync<VloaAorData>("aor") : null)
-            ?? await _vloa.DeriveAorAsync(docId, ct);
-        var freq = (useFrozen ? await FrozenAsync<VloaFreqData>("frequencies") : null)
-            ?? await _vloa.DeriveFrequenciesAsync(docId, ct);
-        var coord = (useFrozen ? await FrozenAsync<VloaCoordination>("coordination") : null)
-            ?? await _vloa.DeriveCoordinationAsync(docId, ct);
-        return new VloaViewDerived(aor, freq, coord);
+        // Lo snapshot una volta sola (doc 14 §3c): la vLOA piu' grande dell'archivio pesa 221 KB e questo
+        // metodo lo rileggeva tre volte — piu' di mezzo megabyte per apertura di pagina.
+        var frozen = useFrozen ? await _frozen.LoadAsync(ReleaseTargetType.Vloa, key, ct) : FrozenSections.Empty;
 
-        Task<T?> FrozenAsync<T>(string sectionKey) where T : class =>
-            _frozen.GetFrozenByKeyAsync<T>(ReleaseTargetType.Vloa, key, sectionKey, ct);
+        var aor = frozen.Get<VloaAorData>("aor") ?? await _vloa.DeriveAorAsync(docId, ct);
+        var freq = frozen.Get<VloaFreqData>("frequencies") ?? await _vloa.DeriveFrequenciesAsync(docId, ct);
+        var coord = frozen.Get<VloaCoordination>("coordination") ?? await _vloa.DeriveCoordinationAsync(docId, ct);
+        return new VloaViewDerived(aor, freq, coord);
     }
 }

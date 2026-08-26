@@ -46,7 +46,8 @@ public class FrozenSectionReaderTests : IAsyncLifetime
         var json = PayloadWithFrozen((5, new { name = "AOR congelata" }));
         await _releases.SaveReleaseAsync(ReleaseTargetType.Vloa, "1", "2607", DateTime.UtcNow.AddSeconds(-5), json, 1, null);
 
-        var frozen = await _reader.GetFrozenAsync<Dictionary<string, string>>(ReleaseTargetType.Vloa, "1", 5);
+        var lotto = await _reader.LoadAsync(ReleaseTargetType.Vloa, "1");
+        var frozen = lotto.Get<Dictionary<string, string>>(5);
         Assert.NotNull(frozen);
         Assert.Equal("AOR congelata", frozen!["name"]);
     }
@@ -57,7 +58,9 @@ public class FrozenSectionReaderTests : IAsyncLifetime
         var json = PayloadWithFrozen((5, new { name = "solo la 5" }));
         await _releases.SaveReleaseAsync(ReleaseTargetType.Vloa, "1", "2607", DateTime.UtcNow.AddSeconds(-5), json, 1, null);
 
-        Assert.Null(await _reader.GetFrozenJsonAsync(ReleaseTargetType.Vloa, "1", 999));   // sezione non catturata (Live/assente)
+        var lotto = await _reader.LoadAsync(ReleaseTargetType.Vloa, "1");
+        Assert.False(lotto.IsEmpty);                                              // la 5 c'è
+        Assert.Null(lotto.Get<Dictionary<string, string>>(999));                   // la 999 no (Live/assente)
     }
 
     [Fact]
@@ -67,7 +70,9 @@ public class FrozenSectionReaderTests : IAsyncLifetime
         var json = PayloadWithFrozen((5, new { name = "futura" }));
         await _releases.SaveReleaseAsync(ReleaseTargetType.Vloa, "1", "9901", DateTime.UtcNow.AddYears(1), json, 1, null);
 
-        Assert.Null(await _reader.GetFrozenJsonAsync(ReleaseTargetType.Vloa, "1", 5));
+        var lotto = await _reader.LoadAsync(ReleaseTargetType.Vloa, "1");
+        Assert.True(lotto.IsEmpty);
+        Assert.Null(lotto.Get<Dictionary<string, string>>(5));
     }
 
     // --- By-key: risolve l'Id della sezione derivabile+Frozen da payload.Doc (doc a sezione unica App/vLOA) ---
@@ -94,8 +99,10 @@ public class FrozenSectionReaderTests : IAsyncLifetime
         var json = PayloadWithDoc(roots, (7, new { name = "AOR congelata" }), (9, new { name = "freq congelata" }));
         await _releases.SaveReleaseAsync(ReleaseTargetType.App, "LIRP_APP", "2607", DateTime.UtcNow.AddSeconds(-5), json, 1, null);
 
-        var aor = await _reader.GetFrozenByKeyAsync<Dictionary<string, string>>(ReleaseTargetType.App, "LIRP_APP", "aor");
-        Assert.Equal("AOR congelata", aor!["name"]);
+        var lotto = await _reader.LoadAsync(ReleaseTargetType.App, "LIRP_APP");
+        Assert.Equal("AOR congelata", lotto.Get<Dictionary<string, string>>("aor")!["name"]);
+        // ⚠️ Il punto del lotto: le due sezioni escono dalla STESSA lettura, non da due.
+        Assert.Equal("freq congelata", lotto.Get<Dictionary<string, string>>("frequencies")!["name"]);
     }
 
     [Fact]
@@ -106,6 +113,30 @@ public class FrozenSectionReaderTests : IAsyncLifetime
         var json = PayloadWithDoc(roots);
         await _releases.SaveReleaseAsync(ReleaseTargetType.App, "LIRP_APP", "2607", DateTime.UtcNow.AddSeconds(-5), json, 1, null);
 
-        Assert.Null(await _reader.GetFrozenByKeyAsync<Dictionary<string, string>>(ReleaseTargetType.App, "LIRP_APP", "aor"));
+        var lotto = await _reader.LoadAsync(ReleaseTargetType.App, "LIRP_APP");
+        Assert.Null(lotto.Get<Dictionary<string, string>>("aor"));
+    }
+
+    [Fact]
+    public async Task Un_payload_illeggibile_non_fa_cadere_la_pagina()
+    {
+        // Vale la stessa regola di prima: se lo snapshot non si legge, si deriva live. Non si solleva addosso
+        // a un lettore anonimo per un JSON rotto in archivio.
+        await _releases.SaveReleaseAsync(ReleaseTargetType.Vloa, "1", "2607", DateTime.UtcNow.AddSeconds(-5),
+            "{ questo non e' json", 1, null);
+
+        var lotto = await _reader.LoadAsync(ReleaseTargetType.Vloa, "1");
+        Assert.True(lotto.IsEmpty);
+        Assert.Null(lotto.Get<Dictionary<string, string>>("aor"));
+    }
+
+    [Fact]
+    public void Il_lotto_vuoto_risponde_null_a_tutto()
+    {
+        Assert.True(FrozenSections.Empty.IsEmpty);
+        Assert.Null(FrozenSections.Empty.Get<Dictionary<string, string>>(1));
+        Assert.Null(FrozenSections.Empty.Get<Dictionary<string, string>>("aor"));
+        Assert.True(FrozenSections.FromKeys(null).IsEmpty);
+        Assert.True(FrozenSections.FromSnapshot(null, null).IsEmpty);
     }
 }

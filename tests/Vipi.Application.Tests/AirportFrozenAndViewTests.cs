@@ -113,6 +113,11 @@ public class AirportFrozenAndViewTests
         Assert.Equal("16L", Assert.Single(Profilo().Runways).Ident); // ...mentre il profilo dice 16L
         Assert.Equal("ALAXI", Assert.Single(v.Sids.Rows).Fix);      // live
         Assert.Equal(6000, v.Transition.TransitionAltitudeFt);      // live: non c'è payload congelato
+
+        // doc 14 §3c — una lettura sola per TUTTE le sezioni, SID comprese. Erano cinque, e la quinta
+        // arrivava per una strada diversa: ResolveForView chiamava il metodo pubblico delle SID, che
+        // ricominciava da capo.
+        Assert.Equal(1, reader.Letture);
     }
 
     [Fact]
@@ -173,17 +178,18 @@ public class AirportFrozenAndViewTests
     private sealed class FakeReader : IFrozenSectionReader
     {
         public Dictionary<string, object> Frozen { get; } = new(StringComparer.OrdinalIgnoreCase);
-        public bool WasQueried { get; private set; }
 
-        public Task<T?> GetFrozenByKeyAsync<T>(ReleaseTargetType type, string key, string sectionKey, CancellationToken ct = default)
+        /// <summary>Quante volte lo snapshot e' stato chiesto. Deve essere 0 o 1: leggerlo una volta per pagina
+        /// e non una per sezione e' il punto del doc 14 §3c, e questo contatore e' la sua prova.</summary>
+        public int Letture { get; private set; }
+        public bool WasQueried => Letture > 0;
+
+        public Task<FrozenSections> LoadAsync(ReleaseTargetType type, string key, CancellationToken ct = default)
         {
-            WasQueried = true;
-            return Task.FromResult(Frozen.TryGetValue(sectionKey, out var v) && v is T t ? t : default);
+            Letture++;
+            // Si passa per il JSON vero, non per gli oggetti: cosi' la prova copre anche la deserializzazione.
+            return Task.FromResult(FrozenSections.FromKeys(
+                Frozen.ToDictionary(kv => kv.Key, kv => System.Text.Json.JsonSerializer.Serialize(kv.Value, kv.Value.GetType()))));
         }
-
-        public Task<string?> GetFrozenJsonAsync(ReleaseTargetType type, string key, int sectionId, CancellationToken ct = default) =>
-            Task.FromResult<string?>(null);
-        public Task<T?> GetFrozenAsync<T>(ReleaseTargetType type, string key, int sectionId, CancellationToken ct = default) =>
-            Task.FromResult<T?>(default);
     }
 }

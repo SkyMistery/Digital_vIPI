@@ -40,13 +40,16 @@ public sealed class AppViewDerivationService : IAppViewDerivationService
     {
         var app = (appCallsign ?? "").Trim().ToUpperInvariant();
 
-        var freqs = (useFrozen ? await FrozenAsync<List<AppFreqRow>>("frequencies") : null)
+        // Lo snapshot una volta sola (doc 14 §3c): erano quattro letture dello stesso payload.
+        var frozen = useFrozen ? await _frozen.LoadAsync(ReleaseTargetType.App, app, ct) : FrozenSections.Empty;
+
+        var freqs = frozen.Get<List<AppFreqRow>>("frequencies")
             ?? (await _app.DeriveFrequenciesAsync(app, ct)).ToList();
-        var coord = (useFrozen ? await FrozenAsync<AppCoordination>("coordination") : null)
+        var coord = frozen.Get<AppCoordination>("coordination")
             ?? await _app.DeriveCoordinationAsync(app, ct);
-        var aor = (useFrozen ? await FrozenAsync<AccAorView>("aor") : null)
+        var aor = frozen.Get<AccAorView>("aor")
             ?? await _app.GetAorViewAsync(app, ct);
-        var minima = (useFrozen ? await FrozenAsync<MinimaView>("minima") : null)
+        var minima = frozen.Get<MinimaView>("minima")
             ?? await _app.DeriveMinimaAsync(app, ct);
 
         // L'accorpamento non si congela — si ricalcola da input già congelati — ma le CONFIGURAZIONI da cui parte
@@ -55,9 +58,6 @@ public sealed class AppViewDerivationService : IAppViewDerivationService
         var configTable = await _app.DeriveConfigTableAsync(app, ConfigurationsOf(view), ct);
 
         return new AppViewDerived(freqs, coord, aor, configTable, minima);
-
-        Task<T?> FrozenAsync<T>(string key) where T : class =>
-            _frozen.GetFrozenByKeyAsync<T>(ReleaseTargetType.App, app, key, ct);
     }
 
     /// <summary>Configurazioni salvate nella sezione keyed del documento mostrato (vuote se la sezione manca).</summary>
