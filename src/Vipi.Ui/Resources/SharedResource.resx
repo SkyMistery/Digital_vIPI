@@ -1363,6 +1363,13 @@
   <data name="Del_Airport" xml:space="preserve"><value>Elimina l'aeroporto</value></data>
   <data name="Del_Acc" xml:space="preserve"><value>Elimina la ACC</value></data>
   <data name="Del_Doc" xml:space="preserve"><value>Elimina il documento</value></data>
+  <data name="Del_Notes" xml:space="preserve"><value>Da sapere</value></data>
+  <data name="Del_Neighbour" xml:space="preserve"><value>Elimina il candidato</value></data>
+  <data name="Del_Area" xml:space="preserve"><value>Elimina l'area</value></data>
+  <data name="AccAdmin_AreasTitle" xml:space="preserve"><value>Aree regolamentate dell'ACC scelto</value></data>
+  <data name="AccAdmin_NoAreas" xml:space="preserve"><value>Questo ACC non elenca nessuna area regolamentata.</value></data>
+  <data name="AccAdmin_AreaName" xml:space="preserve"><value>Area</value></data>
+  <data name="AccAdmin_AreaCenters" xml:space="preserve"><value>Enti che la elencano</value></data>
   <data name="Pend_Title" xml:space="preserve"><value>Da sistemare</value></data>
   <data name="Pend_HelpAria" xml:space="preserve"><value>Che cos'è questa pagina</value></data>
   <data name="Pend_Intro" xml:space="preserve"><value>&lt;p&gt;Quel che la &lt;b&gt;sorgente non conferma più&lt;/b&gt; e quel che nei documenti è rimasto indietro, in un posto solo.&lt;/p&gt;&lt;p&gt;⚠️ Si elimina soltanto ciò che la sorgente non manda da &lt;b&gt;due giri&lt;/b&gt;: un giro può riuscire e tornare vuoto, e una conferma mancata non è una sparizione. Dove il tasto non c'è, accanto è scritto il perché.&lt;/p&gt;</value></data>

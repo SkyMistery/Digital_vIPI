@@ -47,4 +47,14 @@ public interface IAtcTrafficStore
     /// sulla tabella per il tempo che ci mette, e questa gira mentre l'applicazione serve pagine.</para>
     /// </summary>
     Task<int> PruneTrafficAsync(DateTimeOffset notAfter, int batch, CancellationToken ct = default);
+
+    /// <summary>
+    /// Riassume e poi <b>toglie</b> uno scaglione di sessioni più vecchie della soglia: le righe confluiscono
+    /// nel riassunto mensile (<c>AtcMonthRollup</c>) e poi spariscono. Ritorna quante ne ha tolte.
+    ///
+    /// <para>⚠️ Riassumere e cancellare devono stare nella <b>stessa transazione</b>. Separate, un'interruzione
+    /// fra le due lascerebbe il riassunto già incrementato e le sessioni ancora lì: il giro dopo le
+    /// conterebbe una seconda volta, e le ore di un mese diventerebbero il doppio senza che nulla lo dica.</para>
+    /// </summary>
+    Task<int> RollupAndPruneSessionsAsync(DateTimeOffset notAfter, int batch, CancellationToken ct = default);
 }

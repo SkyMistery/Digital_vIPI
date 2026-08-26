@@ -51,6 +51,17 @@ public sealed class TrafficRetentionHostedService : BackgroundService
                 "Potatura del dettaglio traffico: {Tolte} righe oltre i dodici mesi{Ancora}.",
                 esito.Removed, esito.MoreToGo ? ", altre ne restano" : "");
 
+        // Le SESSIONI, nello stesso giro e con la stessa finestra: prima si riassumono nel mensile, poi si
+        // tolgono. Due giri separati farebbero due categorie di stato e due racconti su una cosa sola.
+        // ⚠️ Scaglioni più piccoli del dettaglio: ogni riga porta con sé il suo traffico in cascata.
+        var sessioni = await sp.GetRequiredService<AtcSessionRetentionUseCase>()
+            .RunAsync(DateTimeOffset.UtcNow, Math.Max(1, _opt.SessionRetentionPerRun), ct: ct);
+
+        if (sessioni.Removed > 0)
+            _log.LogInformation(
+                "Potatura delle sessioni ATC: {Tolte} riassunte nel mensile e tolte{Ancora}.",
+                sessioni.Removed, sessioni.MoreToGo ? ", altre ne restano" : "");
+
         return true;
     }
 }

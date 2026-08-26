@@ -4,6 +4,7 @@
 @using Microsoft.Extensions.Logging
 @inject IAccAdminService Acc
 @inject IEditAuthorizationService Authz
+@inject IAccDerivationService AccDeriv
 @inject ILogger<AccAdminPage> Logger
 @inject IStringLocalizer<SharedResource> L
 @inject IJSRuntime JS
@@ -263,6 +264,52 @@
             }
         </div>
     }
+
+    @* ---- Le aree regolamentate dell'ACC scelto ---------------------------------------------------
+       Erano l'unica anagrafica che si poteva importare e non si poteva correggere: un'area sbagliata o
+       sparita dalla realtà restava finché la sorgente non smetteva di mandarla. Si vede solo con un ACC
+       scelto — sono centinaia in tutto, e un elenco nazionale non risponde a nessuna domanda. *@
+    @if (Authz.IsAdmin && _pickedAcc is not null)
+    {
+        <div class="section-title">
+            <h2 class="h-sect">@L["AccAdmin_AreasTitle"] <span class="pill blue">@_aree.Count</span></h2>
+            <span class="ln"></span>
+        </div>
+        <div class="panel">
+            @if (_aree.Count == 0)
+            {
+                <p class="help">@L["AccAdmin_NoAreas"]</p>
+            }
+            else
+            {
+                <table class="res-table">
+                    <thead>
+                        <tr>
+                            <th>@L["AccAdmin_AreaName"]</th>
+                            <th>@L["AccAdmin_AreaCenters"]</th>
+                            <th>@L["Orph_Actions"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in _aree)
+                        {
+                            <tr>
+                                <td><b>@a.Name</b> <span class="muted">@a.IvaoId</span></td>
+                                <td class="muted">@a.CentersText</td>
+                                <td>
+                                    <DeleteDialog Target="DeletionTarget.Area(a.IvaoId)" Nome="@a.Name"
+                                                  TriggerClass="btn ghost danger" AriaLabel="@L["Del_Area"]"
+                                                  Disabled="@(_busy || !_canEdit)" OnDeleted="CaricaAreeAsync">
+                                        <Trigger><Icon Name="trash" Size="14" /></Trigger>
+                                    </DeleteDialog>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    }
 </div>
 
 @code {
@@ -274,6 +321,8 @@
     // ricarico — ReloadAsync rifà i due dizionari dal DB, e senza questo insieme ogni cella scritta in un'altra
     // riga tornava indietro in silenzio al primo salvataggio.
     private readonly HashSet<int> _dirtyLimits = new();
+    private IReadOnlyList<SpecialAreaPick> _aree = Array.Empty<SpecialAreaPick>();
+
     private string? _pickedAcc;   // ACC scelto nella tabella di sopra: sotto si vedono solo i suoi settori
     private bool _scrollToSubs;   // dopo la scelta: porta in vista la tabella di sotto
     private string _q = "";
@@ -369,16 +418,24 @@
     /// <summary>Clic su una riga ACC: qui sotto restano solo i suoi settori. Ricliccata la stessa riga, tornano
     /// tutti. Uno alla volta — è una scelta, non un insieme di spunte.
     /// Lo scorrimento si programma e si esegue dopo il render: adesso la tabella filtrata non esiste ancora.</summary>
-    private void TogglePick(string accCode)
+    private async Task TogglePick(string accCode)
     {
         var wasPicked = IsPicked(accCode);
         _pickedAcc = wasPicked ? null : accCode;
         _scrollToSubs = !wasPicked;
+        await CaricaAreeAsync();
     }
 
-    private void PickOnKey(KeyboardEventArgs e, string accCode)
+    /// <summary>Le aree dell'ACC scelto. Si caricano al clic e non a ogni render: sono una query, e il
+    /// markup non può attendere.</summary>
+    private async Task CaricaAreeAsync() =>
+        _aree = _pickedAcc is { } acc && Authz.IsAdmin
+            ? await AccDeriv.ListSpecialAreasByAccAsync(acc)
+            : Array.Empty<SpecialAreaPick>();
+
+    private async Task PickOnKey(KeyboardEventArgs e, string accCode)
     {
-        if (e.Key is "Enter" or " ") TogglePick(accCode);
+        if (e.Key is "Enter" or " ") await TogglePick(accCode);
     }
 
     private IEnumerable<AccAdminRow> ShownAccs() =>

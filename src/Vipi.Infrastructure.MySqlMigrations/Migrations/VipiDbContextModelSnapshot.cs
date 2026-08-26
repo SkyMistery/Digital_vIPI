@@ -860,6 +860,51 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("AirportTransitionLevels");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AtcMonthRollup", b =>
+                {
+                    b.Property<DateTime>("Month")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Callsign")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("BusyMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Position")
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<long>("Seconds")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Sessions")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TrafficMoved")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TrafficSeen")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Month", "UserId", "Callsign");
+
+                    b.HasIndex("Month");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AtcMonthRollups");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AtcSession", b =>
                 {
                     b.Property<long>("SessionId")

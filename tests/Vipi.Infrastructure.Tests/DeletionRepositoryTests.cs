@@ -37,7 +37,7 @@ public class DeletionRepositoryTests : IAsyncLifetime
         var options = new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn).Options;
         _db = new VipiDbContext(options);
         await _db.Database.EnsureCreatedAsync();
-        _repo = new EfDeletionRepository(_db, new EfUnitOfWork(_db));
+        _repo = new EfDeletionRepository(_db, new EfUnitOfWork(_db), new EfDocumentImpactRepository(_db));
 
         _lirr = new Acc { Code = "LIRR", Name = "Roma", CountryPrefix = "LI", ImportedAtUtc = Vecchio };
         _db.Accs.Add(_lirr);
@@ -316,6 +316,78 @@ public class DeletionRepositoryTests : IAsyncLifetime
 
         Assert.Equal("vIPI Fiumicino", f!.Titolo);
         Assert.Equal("LIRF", f.AeroportoCheLoPerde);
+    }
+
+    [Fact]
+    public async Task I_fatti_di_un_candidato_confinante_portano_la_vloa_e_il_settore_estero()
+    {
+        var vloa = new Document { Type = DocumentType.Vloa, Title = "vLOA — LIRR ↔ LFMM", LastUpdatedAiracCycle = "2608" };
+        _db.Documents.Add(vloa);
+        _db.Sectors.Add(new Sector
+        {
+            Acc = _lirr, Callsign = "LFMM_CTR", Name = "Marseille", Type = SectorType.Ctr,
+            Kind = SectorKind.Acc, IsProjected = true, IsActive = true,
+        });
+        await _db.SaveChangesAsync();
+
+        _db.NeighbourCandidates.Add(new NeighbourCandidate
+        {
+            HomeAccCode = "LIRR", ForeignAccCode = "LFMM", ForeignAccName = "Marseille ACC",
+            CountryId = "FR", ForeignRootCallsign = "LFMM_CTR",
+            Status = NeighbourCandidateStatus.Confirmed, VloaDocumentId = vloa.Id, CreatedUtc = DateTime.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+        var id = (await _db.NeighbourCandidates.SingleAsync()).Id;
+
+        var f = await _repo.NeighbourFactsAsync(id);
+
+        Assert.Equal("vLOA — LIRR ↔ LFMM", f!.VloaTitolo);
+        Assert.True(f.Confermato);
+        Assert.True(f.SettoreEsteroPresente);
+        Assert.False(DeletionRules.PerConfinante(f).Eliminabile);
+    }
+
+    [Fact]
+    public async Task Un_candidato_senza_vloa_si_elimina_davvero()
+    {
+        _db.NeighbourCandidates.Add(new NeighbourCandidate
+        {
+            HomeAccCode = "LIRR", ForeignAccCode = "LDZO", ForeignAccName = "Zagreb ACC",
+            CountryId = "HR", ForeignRootCallsign = "LDZO_CTR",
+            Status = NeighbourCandidateStatus.Rejected, CreatedUtc = DateTime.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+        var id = (await _db.NeighbourCandidates.SingleAsync()).Id;
+
+        var piano = DeletionRules.PerConfinante((await _repo.NeighbourFactsAsync(id))!);
+        Assert.True(piano.Eliminabile);
+        await _repo.ApplyAsync(piano.Azioni, actorUserId: 7);
+
+        Assert.Empty(await _db.NeighbourCandidates.ToListAsync());
+        Assert.Contains("LDZO", await _db.AuditLogs.AsNoTracking()
+            .Where(a => a.EntityType == "NeighbourCandidate").Select(a => a.DetailsJson!).SingleAsync());
+    }
+
+    [Fact]
+    public async Task Un_area_sparisce_coi_suoi_legami()
+    {
+        // Il legame punta a un ACC vero: la chiave esterna è su Acc.Code, e un ente inventato la fa saltare.
+        _db.Accs.Add(new Acc { Code = "LIMM", Name = "Milano", CountryPrefix = "LI" });
+        _db.SpecialAreas.Add(new SpecialArea { IvaoId = "2731", Name = "LI R14A - S.Severa", Type = "R" });
+        _db.SpecialAreaCenters.AddRange(
+            new SpecialAreaCenter { IvaoId = "2731", CenterId = "LIRR" },
+            new SpecialAreaCenter { IvaoId = "2731", CenterId = "LIMM" });
+        await _db.SaveChangesAsync();
+
+        var f = await _repo.AreaFactsAsync("2731");
+        Assert.Equal(2, f!.Enti);
+
+        var piano = DeletionRules.PerArea(f);
+        await _repo.ApplyAsync(piano.Azioni, actorUserId: 7);
+
+        Assert.Empty(await _db.SpecialAreas.ToListAsync());
+        // ⚠️ I legami vanno via con lei: restare sarebbero righe che indicano un'area inesistente.
+        Assert.Empty(await _db.SpecialAreaCenters.ToListAsync());
     }
 
     /// <summary>Un blocco vero: serve una versione e una sezione, o le FK non reggono.</summary>

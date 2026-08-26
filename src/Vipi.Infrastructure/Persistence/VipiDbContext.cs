@@ -110,6 +110,7 @@ public class VipiDbContext : DbContext
     public DbSet<StatsSettings> StatsSettings => Set<StatsSettings>();
     public DbSet<AtcSessionRunway> AtcSessionRunways => Set<AtcSessionRunway>();
     public DbSet<AirportDayTraffic> AirportDayTraffic => Set<AirportDayTraffic>();
+    public DbSet<AtcMonthRollup> AtcMonthRollups => Set<AtcMonthRollup>();
 
     /// <summary>
     /// Lettura tollerante dell'azione di registro: un valore che questa versione non conosce diventa
@@ -561,6 +562,21 @@ public class VipiDbContext : DbContext
 
             // «Il traffico italiano del mese scorso»: si legge per giorno, su tutti i campi insieme.
             e.HasIndex(x => x.Day);
+        });
+
+        b.Entity<AtcMonthRollup>(e =>
+        {
+            // Chiave naturale: un mese, una persona, un callsign. Come per il traffico d'aeroporto, niente
+            // Id surrogato: queste righe si leggono sempre per (periodo, persona) e mai per numero.
+            e.HasKey(x => new { x.Month, x.UserId, x.Callsign });
+
+            // Nella chiave: senza lunghezza è `longtext` su MySQL e InnoDB rifiuta l'indice.
+            e.Property(x => x.Callsign).HasMaxLength(32);
+            e.Property(x => x.Position).HasMaxLength(16);
+
+            // «Chi ha controllato in quel mese»: si legge per periodo, su tutte le persone insieme.
+            e.HasIndex(x => x.Month);
+            e.HasIndex(x => x.UserId);
         });
 
         // --- Aree speciali/regolamentate importate dalla sorgente. L'appartenenza agli ACC è molti-a-molti

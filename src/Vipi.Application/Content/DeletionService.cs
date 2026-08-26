@@ -44,15 +44,17 @@ public sealed class DeletionService : IDeletionService
     private readonly IImportStateStore _stati;
     private readonly IDocumentImpactService _impatti;
     private readonly IDocumentAdminService _documenti;
+    private readonly IEditorTaskService _incarichi;
 
     public DeletionService(IDeletionRepository repo, IEditAuthorizationService authz, IImportStateStore stati,
-        IDocumentImpactService impatti, IDocumentAdminService documenti)
+        IDocumentImpactService impatti, IDocumentAdminService documenti, IEditorTaskService incarichi)
     {
         _repo = repo;
         _authz = authz;
         _stati = stati;
         _impatti = impatti;
         _documenti = documenti;
+        _incarichi = incarichi;
     }
 
     public async Task<DeletionPlan> AnteprimaAsync(DeletionTarget bersaglio, CancellationToken ct = default)
@@ -92,6 +94,13 @@ public sealed class DeletionService : IDeletionService
             await _impatti.RaiseForDocumentsAsync(ImpactKind.SectorDetached, piano.Azioni.DocumentiDaMarcare,
                 sourceKey: piano.Titolo, args: new[] { piano.Titolo }, ct);
 
+        // Un'area eliminata a mano lascia gli stessi documenti scoperti che lascerebbe una potata
+        // dall'import: stesso rilievo, stessa frase — «AreaGone» — e non un secondo modo di dirlo.
+        // ⚠️ Il reverse-lookup gira ADESSO, e l'area non c'è più: gli argomenti li porta il piano, che li
+        // ha raccolti quando ancora esisteva.
+        if (piano.Azioni.AreaDaEliminare is not null)
+            await _impatti.RaiseForAreaAsync(ImpactKind.AreaGone, piano.Azioni.AreaDaEliminare, piano.Titolo, ct);
+
         return piano;
     }
 
@@ -122,6 +131,14 @@ public sealed class DeletionService : IDeletionService
                     await _stati.GetPrevSuccessAsync(ImportCategories.AirportDirectory, ct),
                     await _stati.GetPrevSuccessAsync(ImportCategories.AirportSector, ct));
 
+            case DeletionTargetKind.Neighbour:
+                return DeletionRules.PerConfinante(
+                    await _repo.NeighbourFactsAsync(b.Id, ct) ?? throw Inesistente("Candidato confinante"));
+
+            case DeletionTargetKind.Area:
+                return DeletionRules.PerArea(
+                    await _repo.AreaFactsAsync(b.Code ?? "", ct) ?? throw Inesistente("Area regolamentata"));
+
             case DeletionTargetKind.Acc:
                 return DeletionRules.PerAcc(
                     await _repo.AccFactsAsync(b.Code ?? "", ct) ?? throw Inesistente("ACC"),
@@ -134,7 +151,17 @@ public sealed class DeletionService : IDeletionService
                 // stanno sotto (tipo, chiave) e il documento non le conosce.
                 var gestito = (await _documenti.ListAsync(ct)).FirstOrDefault(d => d.DocumentId == b.Id);
                 if (gestito is not null)
-                    f = f with { Release = await _repo.ReleaseCountAsync(gestito.ReleaseTarget, gestito.ReleaseKey, ct) };
+                    f = f with
+                    {
+                        Release = await _repo.ReleaseCountAsync(gestito.ReleaseTarget, gestito.ReleaseKey, ct),
+                        // Gli incarichi puntano al documento per (tipo, chiave), come le release: si
+                        // trovano dalla stessa coppia, e per la stessa ragione non cascadano da soli.
+                        Incarichi = (await _incarichi.ListAllAsync(ct))
+                            .Where(t => t.TargetType == gestito.ReleaseTarget
+                                        && string.Equals(t.TargetKey, gestito.ReleaseKey, StringComparison.OrdinalIgnoreCase))
+                            .Select(t => t.Title)
+                            .ToList(),
+                    };
                 return DeletionRules.PerDocumento(f);
             }
         }

@@ -262,4 +262,52 @@ public sealed class EfAtcTrafficStore : IAtcTrafficStore
         await _db.SaveChangesAsync(ct);
         return righe.Count;
     }
+
+    public async Task<int> RollupAndPruneSessionsAsync(
+        DateTimeOffset notAfter, int batch, CancellationToken ct = default)
+    {
+        if (batch <= 0) return 0;
+        var limite = notAfter.UtcDateTime;
+
+        // ⚠️ Solo le sessioni CHIUSE: una ancora aperta non ha una durata definitiva, e riassumerla
+        // vorrebbe dire congelare un numero sbagliato. Una connessione aperta da più di un anno non
+        // esiste, ma se esistesse sarebbe un guasto da guardare, non da cancellare.
+        var righe = await _db.AtcSessions
+            .Where(s => s.StartUtc < limite && s.EndUtc != null)
+            .OrderBy(s => s.StartUtc)
+            .Take(batch)
+            .ToListAsync(ct);
+        if (righe.Count == 0) return 0;
+
+        // Riassunto e cancellazione nella STESSA transazione: separate, un'interruzione fra le due
+        // conterebbe due volte lo stesso mese al giro successivo.
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+        var adesso = DateTime.UtcNow;
+        foreach (var g in righe.GroupBy(s => (
+            Mese: new DateTime(s.StartUtc.Year, s.StartUtc.Month, 1, 0, 0, 0, DateTimeKind.Utc),
+            s.UserId, s.Callsign)))
+        {
+            var riga = await _db.AtcMonthRollups.FirstOrDefaultAsync(
+                x => x.Month == g.Key.Mese && x.UserId == g.Key.UserId && x.Callsign == g.Key.Callsign, ct);
+            if (riga is null)
+            {
+                riga = new AtcMonthRollup { Month = g.Key.Mese, UserId = g.Key.UserId, Callsign = g.Key.Callsign };
+                _db.AtcMonthRollups.Add(riga);
+            }
+
+            riga.Position ??= g.Select(s => s.Position).FirstOrDefault(p => !string.IsNullOrWhiteSpace(p));
+            riga.Sessions += g.Count();
+            riga.Seconds += g.Sum(s => (long)s.DurationSeconds);
+            riga.TrafficSeen += g.Sum(s => s.TrafficCount);
+            riga.TrafficMoved += g.Sum(s => s.MovementCount);
+            riga.BusyMinutes += g.Sum(s => s.TrafficMinutes);
+            riga.UpdatedUtc = adesso;
+        }
+
+        _db.AtcSessions.RemoveRange(righe);
+        await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        return righe.Count;
+    }
 }

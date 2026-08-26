@@ -383,6 +383,67 @@ public class DeletionRulesTests
         Assert.Equal("LIRR", p.Azioni.AccDaEliminare);
     }
 
+    // ── Il candidato confinante ──────────────────────────────────────────────────────────────────────
+
+    private static NeighbourFacts Confinante(int? vloa = null, bool confermato = true, bool settore = true) =>
+        new(9, "LIMM", "LFMM", "Marseille ACC", "LFMM_CTR", confermato, vloa,
+            vloa is null ? null : "vLOA — LIMM ↔ LFMM", settore);
+
+    [Fact]
+    public void Un_confinante_con_la_vloa_si_blocca()
+    {
+        var p = DeletionRules.PerConfinante(Confinante(vloa: 12));
+
+        Assert.False(p.Eliminabile);
+        Assert.Contains("elimina prima la vLOA", Assert.Single(p.Blocca).Testo);
+    }
+
+    [Fact]
+    public void Un_confinante_senza_vloa_si_elimina_e_avvisa_del_settore_estero()
+    {
+        var p = DeletionRules.PerConfinante(Confinante());
+
+        Assert.True(p.Eliminabile);
+        Assert.Equal(9, p.Azioni.CandidatoDaEliminare);
+        // ⚠️ Il settore estero NON muore col candidato: è una riga di catalogo a sé.
+        Assert.Contains(p.Avvisi, a => a.Contains("LFMM_CTR") && a.Contains("resta"));
+        Assert.Contains(p.Avvisi, a => a.Contains("può ricomparire"));
+    }
+
+    [Fact]
+    public void Un_confinante_mai_confermato_non_avvisa_del_ritorno()
+    {
+        var p = DeletionRules.PerConfinante(Confinante(confermato: false, settore: false));
+
+        Assert.True(p.Eliminabile);
+        Assert.Empty(p.Avvisi);
+    }
+
+    // ── L'area regolamentata ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Un_area_dice_chi_la_cita_e_chi_la_elenca()
+    {
+        var p = DeletionRules.PerArea(new AreaFacts("2731", "LI R14A - S.Severa", 3,
+            new[] { "vIPI Roma", "vIPI Milano" }));
+
+        Assert.True(p.Eliminabile);
+        Assert.Equal("2731", p.Azioni.AreaDaEliminare);
+        Assert.Equal(2, p.DaRivedere.Count);
+        Assert.Contains(p.Muore, m => m.Contains("i legami con i 3 enti"));
+        Assert.Contains(p.Avvisi, a => a.Contains("sparisce per tutti"));
+        Assert.Contains(p.Avvisi, a => a.Contains("il prossimo import la ricrea"));
+    }
+
+    [Fact]
+    public void Un_area_di_un_ente_solo_non_avvisa_degli_altri()
+    {
+        var p = DeletionRules.PerArea(new AreaFacts("2731", "LI R14A", 1, Array.Empty<string>()));
+
+        Assert.DoesNotContain(p.Avvisi, a => a.Contains("sparisce per tutti"));
+        Assert.Empty(p.DaRivedere);
+    }
+
     // ── Il documento ─────────────────────────────────────────────────────────────────────────────────
 
     [Fact]
@@ -397,5 +458,29 @@ public class DeletionRulesTests
         Assert.Contains(p.Muore, m => m.Contains("3 pubblicazioni"));
         Assert.Contains(p.Muore, m => m.Contains("LIRR_CTR"));
         Assert.Contains(p.Muore, m => m.Contains("LIRF"));
+    }
+
+    [Fact]
+    public void Il_documento_avvisa_degli_incarichi_che_resteranno_appesi()
+    {
+        // ⚠️ Il legame è debole (tipo + chiave, senza FK): l'incarico non si rompe, resta — con l'etichetta
+        // vecchia e un collegamento che non apre più niente.
+        var p = DeletionRules.PerDocumento(new DocumentFacts(
+            7, "vIPI Roma", DocumentType.Vipi, true, 1, Array.Empty<string>(), null,
+            new[] { "Aggiorna le minime di vettoramento" }));
+
+        Assert.True(p.Eliminabile);
+        var avviso = Assert.Single(p.Avvisi);
+        Assert.Contains("un incarico resterà senza documento", avviso);
+        Assert.Contains("Aggiorna le minime di vettoramento", avviso);
+    }
+
+    [Fact]
+    public void Senza_incarichi_il_documento_non_ha_niente_da_avvisare()
+    {
+        var p = DeletionRules.PerDocumento(new DocumentFacts(
+            7, "vIPI Roma", DocumentType.Vipi, true, 0, Array.Empty<string>(), null));
+
+        Assert.Empty(p.Avvisi);
     }
 }

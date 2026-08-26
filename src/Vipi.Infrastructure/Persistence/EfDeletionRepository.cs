@@ -10,11 +10,16 @@ public sealed class EfDeletionRepository : IDeletionRepository
 {
     private readonly VipiDbContext _db;
     private readonly IUnitOfWork _uow;
+    private readonly IDocumentImpactRepository _impatti;
 
-    public EfDeletionRepository(VipiDbContext db, IUnitOfWork uow)
+    /// <param name="impatti">Serve al solo reverse-lookup delle aree regolamentate: «chi la cita» è una
+    /// domanda che sa rispondere quel repository, e riscriverla qui sarebbe la seconda versione della stessa
+    /// query.</param>
+    public EfDeletionRepository(VipiDbContext db, IUnitOfWork uow, IDocumentImpactRepository impatti)
     {
         _db = db;
         _uow = uow;
+        _impatti = impatti;
     }
 
     // ── Fatti ────────────────────────────────────────────────────────────────────────────────────────
@@ -137,6 +142,43 @@ public sealed class EfDeletionRepository : IDeletionRepository
 
         return new DocumentFacts(d.Id, d.Title, d.Type, d.Status == DocumentStatus.Published,
             Release: 0, settori, aeroporto);
+    }
+
+    public async Task<NeighbourFacts?> NeighbourFactsAsync(int candidateId, CancellationToken ct = default)
+    {
+        var n = await _db.NeighbourCandidates.AsNoTracking()
+            .Where(x => x.Id == candidateId)
+            .Select(x => new
+            {
+                x.Id, x.HomeAccCode, x.ForeignAccCode, x.ForeignAccName, x.ForeignRootCallsign,
+                x.Status, x.VloaDocumentId,
+            })
+            .FirstOrDefaultAsync(ct);
+        if (n is null) return null;
+
+        var titolo = n.VloaDocumentId is int id
+            ? await _db.Documents.AsNoTracking().Where(d => d.Id == id).Select(d => d.Title).FirstOrDefaultAsync(ct)
+            : null;
+
+        return new NeighbourFacts(
+            n.Id, n.HomeAccCode, n.ForeignAccCode, n.ForeignAccName, n.ForeignRootCallsign,
+            Confermato: n.Status == NeighbourCandidateStatus.Confirmed,
+            n.VloaDocumentId, titolo,
+            SettoreEsteroPresente: await _db.Sectors.AnyAsync(s => s.Callsign == n.ForeignRootCallsign, ct));
+    }
+
+    public async Task<AreaFacts?> AreaFactsAsync(string ivaoId, CancellationToken ct = default)
+    {
+        var a = await _db.SpecialAreas.AsNoTracking()
+            .Where(x => x.IvaoId == ivaoId)
+            .Select(x => new { x.IvaoId, x.Name })
+            .FirstOrDefaultAsync(ct);
+        if (a is null) return null;
+
+        return new AreaFacts(
+            a.IvaoId, a.Name ?? a.IvaoId,
+            await _db.SpecialAreaCenters.CountAsync(l => l.IvaoId == ivaoId, ct),
+            (await _impatti.FindDocumentsForSpecialAreaAsync(ivaoId, ct)).Select(d => d.Title).ToList());
     }
 
     public Task<int> ReleaseCountAsync(ReleaseTargetType tipo, string chiave, CancellationToken ct = default) =>
@@ -324,6 +366,32 @@ public sealed class EfDeletionRepository : IDeletionRepository
             var acc = await _db.Accs.FirstOrDefaultAsync(x => x.Code == accCode, ct);
             if (acc is not null)
                 AuditScribe.Write(_db, actorUserId, AuditAction.Delete, "Acc", acc.Code, new { acc.Name });
+        }
+
+        if (a.CandidatoDaEliminare is int candId)
+        {
+            var cand = await _db.NeighbourCandidates.FirstOrDefaultAsync(x => x.Id == candId, ct);
+            if (cand is not null)
+            {
+                AuditScribe.Write(_db, actorUserId, AuditAction.Delete, "NeighbourCandidate", cand.Id.ToString(),
+                    new { cand.HomeAccCode, cand.ForeignAccCode, cand.ForeignAccName, cand.Status });
+                _db.NeighbourCandidates.Remove(cand);
+            }
+        }
+
+        if (a.AreaDaEliminare is { } areaId)
+        {
+            var area = await _db.SpecialAreas.FirstOrDefaultAsync(x => x.IvaoId == areaId, ct);
+            if (area is not null)
+            {
+                AuditScribe.Write(_db, actorUserId, AuditAction.Delete, "SpecialArea", area.IvaoId,
+                    new { area.Name, area.Type });
+                // I legami con gli enti vanno via con lei: restare sarebbero righe che indicano un'area
+                // inesistente, e nessuna pagina saprebbe più toglierle.
+                var legami = await _db.SpecialAreaCenters.Where(l => l.IvaoId == areaId).ToListAsync(ct);
+                if (legami.Count > 0) _db.SpecialAreaCenters.RemoveRange(legami);
+                _db.SpecialAreas.Remove(area);
+            }
         }
 
         // 6) I DELETE veri, dal figlio al padre.

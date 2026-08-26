@@ -52,6 +52,9 @@
             @Elenco(L["Del_Dies"].Value, _piano.Muore, "del-dies")
             @Elenco(L["Del_Moves"].Value, _piano.SiSposta, "del-moves")
             @Elenco(L["Del_Review"].Value, _piano.DaRivedere, "del-review")
+            @* Quel che NON muore e NON si sposta, ma va saputo prima di premere: un riferimento che
+               resterà a puntare nel vuoto, una riga che sopravvive altrove. *@
+            @Elenco(L["Del_Notes"].Value, _piano.Avvisi, "del-notes")
         }
 
         @* Fuori dal ramo: se a fallire è stata l'anteprima stessa non c'è nessun piano, e il messaggio

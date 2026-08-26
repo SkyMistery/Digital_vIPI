@@ -293,3 +293,53 @@ public class AirportDayTraffic
     /// <summary>Quando questa riga è stata presa dalla sorgente.</summary>
     public DateTime FetchedUtc { get; set; }
 }
+
+/// <summary>
+/// Il <b>riassunto mensile</b> di una posizione controllata da una persona: quel che resta quando le
+/// sessioni di dettaglio vengono potate.
+///
+/// <para><b>Perché esiste.</b> La carta del servizio (24 agosto 2026) diceva «dettaglio 12 mesi, sessioni per
+/// sempre», e le sessioni erano l'unica tabella che cresceva senza fine — 21 275 righe nei primi dodici
+/// mesi. Dal 26 agosto la decisione è un'altra: anche le sessioni si conservano dodici mesi, e oltre resta
+/// questo. Misurato sull'archivio vero: 21 275 sessioni diventano <b>5 848</b> righe di riassunto.</para>
+///
+/// <para><b>Che cosa si perde, dichiarato.</b> L'ora esatta di ogni connessione, la griglia ora×giorno, le
+/// strisce di giorni consecutivi e il dettaglio dei voli visti. Restano le ore, le sessioni e i movimenti,
+/// per <b>mese</b>, <b>persona</b> e <b>callsign</b>: cioè le domande che si fanno su un anno fa.</para>
+///
+/// <para>⚠️ Il callsign e non la sola posizione: comprimerebbe di più (3 046 righe invece di 5 848) ma
+/// «quante ore ha fatto su LIRF_TWR» diventerebbe «quante ore ha fatto in torre», e non è la stessa
+/// domanda.</para>
+/// </summary>
+public class AtcMonthRollup
+{
+    /// <summary>Primo giorno del mese (UTC, a mezzanotte): parte della chiave.</summary>
+    public DateTime Month { get; set; }
+
+    /// <summary>VID del controllore: parte della chiave.</summary>
+    public int UserId { get; set; }
+
+    /// <summary>Callsign usato: parte della chiave.</summary>
+    public string Callsign { get; set; } = default!;
+
+    /// <summary>Suffisso di posizione (TWR/GND/APP/CTR…), per raggruppare senza dover ritagliare il callsign.</summary>
+    public string? Position { get; set; }
+
+    /// <summary>Quante connessioni sono confluite in questa riga.</summary>
+    public int Sessions { get; set; }
+
+    /// <summary>Somma dei secondi di connessione: è la durata autorevole, quella di IVAO.</summary>
+    public long Seconds { get; set; }
+
+    /// <summary>Somma delle tratte viste (presenze).</summary>
+    public int TrafficSeen { get; set; }
+
+    /// <summary>Somma delle tratte che si sono mosse: è il numero da mettere in evidenza.</summary>
+    public int TrafficMoved { get; set; }
+
+    /// <summary>Somma dei minuti con traffico dentro l'area.</summary>
+    public int BusyMinutes { get; set; }
+
+    /// <summary>Quando questa riga è stata scritta o incrementata l'ultima volta.</summary>
+    public DateTime UpdatedUtc { get; set; }
+}

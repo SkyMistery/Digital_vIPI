@@ -36,6 +36,12 @@ public interface IDeletionRepository
     /// <summary>Tutto ciò che serve a mostrare cosa si perde con un documento. <c>null</c> se non esiste.</summary>
     Task<DocumentFacts?> DocumentFactsAsync(int documentId, CancellationToken ct = default);
 
+    /// <summary>Tutto ciò che serve a decidere di un candidato confinante. <c>null</c> se non esiste.</summary>
+    Task<NeighbourFacts?> NeighbourFactsAsync(int candidateId, CancellationToken ct = default);
+
+    /// <summary>Tutto ciò che serve a decidere di un'area regolamentata. <c>null</c> se non esiste.</summary>
+    Task<AreaFacts?> AreaFactsAsync(string ivaoId, CancellationToken ct = default);
+
     /// <summary>
     /// Quante pubblicazioni ha il bersaglio indicato. ⚠️ Le <c>DocRelease</c> non hanno FK verso il
     /// documento — si trovano per tipo e chiave — e quindi non compaiono in nessun cascade: se non le si

@@ -397,7 +397,23 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
         // ⚠️ Senza soglia sulla durata: qui la domanda è «da quando esiste l'archivio», e una connessione
         // lampo è comunque un giorno in cui il poller stava registrando.
         var prima = await q.OrderBy(s => s.StartUtc).Select(s => (DateTime?)s.StartUtc).FirstOrDefaultAsync(ct);
-        return prima is { } t ? Utc(t) : null;
+
+        // ⚠️ E il RIASSUNTO mensile, che è più vecchio delle sessioni per costruzione: dal 26 agosto 2026 le
+        // sessioni si potano a dodici mesi, e questa risposta senza il riassunto direbbe che l'archivio
+        // comincia esattamente un anno fa — cioè si accorcerebbe da sola ogni notte, mentre i numeri dei mesi
+        // vecchi ci sono ancora.
+        var r = _db.AtcMonthRollups.AsNoTracking();
+        if (userId is { } vid2) r = r.Where(x => x.UserId == vid2);
+        var primoMese = await r.OrderBy(x => x.Month).Select(x => (DateTime?)x.Month).FirstOrDefaultAsync(ct);
+
+        var inizio = (prima, primoMese) switch
+        {
+            ({ } a, { } b) => a < b ? a : b,
+            ({ } a, null) => a,
+            (null, { } b) => b,
+            _ => (DateTime?)null,
+        };
+        return inizio is { } t ? Utc(t) : null;
     }
 
     private static string? Consegna(IReadOnlyDictionary<long, string> callsign, long? sessionId) =>

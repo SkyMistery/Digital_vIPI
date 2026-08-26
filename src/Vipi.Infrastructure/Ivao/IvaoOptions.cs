@@ -134,6 +134,13 @@ public sealed class IvaoOptions
     /// </summary>
     public int TrafficRetentionPerRun { get; set; } = 20000;
 
+    /// <summary>
+    /// Quante <b>sessioni</b> si riassumono e si tolgono al massimo per giro. Più basso del dettaglio, e non
+    /// per prudenza generica: ogni sessione porta con sé in cascata le sue tratte e le sue configurazioni di
+    /// pista, quindi una riga qui ne cancella parecchie altrove.
+    /// </summary>
+    public int SessionRetentionPerRun { get; set; } = 2000;
+
     /// <summary>Ogni quante ore ri-verificare il roster staffisti via API (disattiva chi non è più staff IT).</summary>
     public int StaffVerifyHours { get; set; } = 24;
 

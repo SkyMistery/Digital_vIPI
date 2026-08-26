@@ -69,6 +69,9 @@ public class AtcPollingShutdownTests
         // La potatura non c'entra con lo spegnimento del poller: qui basta che esista.
         public Task<int> PruneTrafficAsync(DateTimeOffset notAfter, int batch, CancellationToken ct = default) =>
             Task.FromResult(0);
+
+        public Task<int> RollupAndPruneSessionsAsync(DateTimeOffset notAfter, int batch, CancellationToken ct = default) =>
+            Task.FromResult(0);
     }
 
     private sealed class AmbienteFinto : IHostEnvironment

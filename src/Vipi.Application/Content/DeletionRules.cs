@@ -9,6 +9,12 @@ public enum DeletionTargetKind
     Airport,
     Acc,
     Document,
+
+    /// <summary>Un candidato confinante: la coppia ACC nostro ↔ ACC estero da cui nasce una vLOA.</summary>
+    Neighbour,
+
+    /// <summary>Un'area regolamentata del catalogo (per id IVAO).</summary>
+    Area,
 }
 
 /// <summary>L'indirizzo di ciò che si elimina: un tipo e la sua chiave.</summary>
@@ -21,6 +27,8 @@ public sealed record DeletionTarget(DeletionTargetKind Kind, int Id = 0, string?
     public static DeletionTarget Airport(int id) => new(DeletionTargetKind.Airport, id);
     public static DeletionTarget Document(int id) => new(DeletionTargetKind.Document, id);
     public static DeletionTarget Acc(string code) => new(DeletionTargetKind.Acc, 0, code);
+    public static DeletionTarget Neighbour(int id) => new(DeletionTargetKind.Neighbour, id);
+    public static DeletionTarget Area(string ivaoId) => new(DeletionTargetKind.Area, 0, ivaoId);
 }
 
 /// <summary>Chi trattiene, in una frase, col posto dove si risolve (<c>null</c> = non c'è una pagina sola).</summary>
@@ -38,9 +46,17 @@ public sealed record DeletionPlan(
     IReadOnlyList<string> SiSposta,
     IReadOnlyList<string> DaRivedere,
     IReadOnlyList<DeletionBlocker> Blocca,
-    DeletionActions Azioni)
+    DeletionActions Azioni,
+    IReadOnlyList<string>? Note = null)
 {
     public bool Eliminabile => Blocca.Count == 0;
+
+    /// <summary>
+    /// Quel che <b>non</b> muore e <b>non</b> si sposta, ma va saputo prima di premere: un riferimento che
+    /// resterà a puntare nel vuoto, una riga che sopravvive da un'altra parte. Non è un blocco — è la
+    /// differenza fra una conseguenza scelta e una scoperta dopo.
+    /// </summary>
+    public IReadOnlyList<string> Avvisi => Note ?? Array.Empty<string>();
 }
 
 /// <summary>
@@ -59,7 +75,9 @@ public sealed record DeletionActions(
     IReadOnlyList<CatalogReparent> RiaggancioDiCatalogo,
     int? AeroportoDaEliminare = null,
     string? AccDaEliminare = null,
-    int? DocumentoDaEliminare = null)
+    int? DocumentoDaEliminare = null,
+    int? CandidatoDaEliminare = null,
+    string? AreaDaEliminare = null)
 {
     public static readonly DeletionActions Nessuna = new(
         Array.Empty<int>(), Array.Empty<int>(), null, Array.Empty<int>(), Array.Empty<int>(),
@@ -131,9 +149,29 @@ public sealed record AccFacts(
     string Code, string Name, DateTime? ImportedAtUtc, int Settori, int Aeroporti);
 
 /// <summary>Tutto ciò che serve a decidere se e come un documento si può eliminare.</summary>
+/// <param name="Incarichi">
+/// Titoli degli incarichi editoriali che puntano a questo documento. ⚠️ Il legame è <b>debole</b>
+/// (<c>TargetType</c> + <c>TargetKey</c>, senza chiave esterna): eliminando il documento l'incarico resta,
+/// con la sua etichetta vecchia e senza più un collegamento che apra qualcosa.
+/// </param>
 public sealed record DocumentFacts(
     int DocumentId, string Titolo, DocumentType Tipo, bool Pubblicato,
-    int Release, IReadOnlyList<string> SettoriCheLoPerdono, string? AeroportoCheLoPerde);
+    int Release, IReadOnlyList<string> SettoriCheLoPerdono, string? AeroportoCheLoPerde,
+    IReadOnlyList<string>? Incarichi = null);
+
+/// <summary>Tutto ciò che serve a decidere di un candidato confinante.</summary>
+/// <param name="SettoreEsteroPresente">Il settore estero materializzato dalla conferma esiste ancora: non
+/// muore col candidato, e chi conferma deve saperlo.</param>
+public sealed record NeighbourFacts(
+    int Id, string HomeAccCode, string ForeignAccCode, string ForeignAccName,
+    string ForeignRootCallsign, bool Confermato, int? VloaDocumentId, string? VloaTitolo,
+    bool SettoreEsteroPresente);
+
+/// <summary>Tutto ciò che serve a decidere di un'area regolamentata.</summary>
+/// <param name="Enti">Quanti ACC la elencano: l'area è di tutti, non di chi la sta guardando.</param>
+/// <param name="Documenti">Titoli dei documenti che la citano: resteranno da rivedere.</param>
+public sealed record AreaFacts(
+    string IvaoId, string Nome, int Enti, IReadOnlyList<string> Documenti);
 
 /// <summary>
 /// Le <b>politiche di protezione</b>, in un posto solo e senza IO: dai fatti esce il piano. Le regole sono
@@ -405,8 +443,73 @@ public static class DeletionRules
         foreach (var s in f.SettoriCheLoPerdono) muore.Add($"il legame con il settore {s}");
         if (f.AeroportoCheLoPerde is { } icao) muore.Add($"il legame con l'aeroporto {icao}");
 
+        // ⚠️ Gli incarichi puntano al documento per (tipo, chiave), senza chiave esterna: non si rompe
+        // niente e nessuno se ne accorge. Restano nell'elenco col titolo di prima e senza collegamento —
+        // «aggiorna la vIPI Roma» per una vIPI Roma che non c'è più.
+        var note = new List<string>();
+        var incarichi = f.Incarichi ?? Array.Empty<string>();
+        if (incarichi.Count > 0)
+            note.Add(incarichi.Count == 1
+                ? $"un incarico resterà senza documento: «{incarichi[0]}» — l'elenco lo mostrerà ancora, ma il collegamento non aprirà più niente"
+                : $"{incarichi.Count} incarichi resteranno senza documento ({string.Join(", ", incarichi.Take(3).Select(t => $"«{t}»"))}{(incarichi.Count > 3 ? ", …" : "")}): l'elenco li mostrerà ancora, ma il collegamento non aprirà più niente");
+
         return new DeletionPlan(DeletionTarget.Document(f.DocumentId), f.Titolo,
             muore, Array.Empty<string>(), Array.Empty<string>(), Array.Empty<DeletionBlocker>(),
-            DeletionActions.Nessuna with { DocumentoDaEliminare = f.DocumentId });
+            DeletionActions.Nessuna with { DocumentoDaEliminare = f.DocumentId }, note);
+    }
+
+    /// <summary>
+    /// Il piano per un <b>candidato confinante</b>: la coppia ACC nostro ↔ ACC estero da cui nasce una vLOA.
+    ///
+    /// <para>Blocca finché c'è la vLOA — stessa regola di D2: il documento si elimina prima, a mano. Quel
+    /// che invece <b>non</b> muore col candidato è il settore estero materializzato dalla conferma: è una
+    /// riga di catalogo a sé, e si toglie dalla Struttura come qualsiasi altro settore.</para>
+    /// </summary>
+    public static DeletionPlan PerConfinante(NeighbourFacts f)
+    {
+        var muore = new List<string> { $"il candidato confinante {f.HomeAccCode} ↔ {f.ForeignAccCode} ({f.ForeignAccName})" };
+        var blocca = new List<DeletionBlocker>();
+        var note = new List<string>();
+
+        if (f.VloaDocumentId is not null)
+            blocca.Add(new DeletionBlocker(
+                $"elimina prima la vLOA «{f.VloaTitolo}»: è nata da questo candidato",
+                "/services/vsop/versions"));
+
+        if (f.SettoreEsteroPresente)
+            note.Add($"il settore estero {f.ForeignRootCallsign} resta in archivio: si elimina dalla Struttura, non da qui");
+
+        if (f.Confermato)
+            note.Add("era un confinante CONFERMATO: al prossimo giro dei confinanti la coppia può ricomparire fra i candidati in attesa");
+
+        return new DeletionPlan(DeletionTarget.Neighbour(f.Id), $"{f.HomeAccCode} ↔ {f.ForeignAccCode}",
+            muore, Array.Empty<string>(), Array.Empty<string>(), blocca,
+            DeletionActions.Nessuna with { CandidatoDaEliminare = f.Id }, note);
+    }
+
+    /// <summary>
+    /// Il piano per un'<b>area regolamentata</b>. Non la blocca niente: è una riga di catalogo, e nessun
+    /// vincolo del database la trattiene. Ma i documenti che la citano restano a nominare un'area che non
+    /// esiste più — e per questo si marcano da rivedere, esattamente come quando è l'import a potarla.
+    ///
+    /// <para>⚠️ Si elimina l'<b>area</b>, non il legame con un ente: se più ACC la elencano, sparisce per
+    /// tutti. È scritto nel piano perché non lo si scopra dopo.</para>
+    /// </summary>
+    public static DeletionPlan PerArea(AreaFacts f)
+    {
+        var muore = new List<string> { $"l'area regolamentata «{f.Nome}» ({f.IvaoId})" };
+        if (f.Enti > 0)
+            muore.Add(f.Enti == 1 ? "il legame con l'ente che la elenca" : $"i legami con i {f.Enti} enti che la elencano");
+
+        var rivedere = f.Documenti.Select(t => $"«{t}» — cita un'area che non esisterà più").ToList();
+
+        var note = new List<string>();
+        if (f.Enti > 1)
+            note.Add($"la elencano {f.Enti} enti: sparisce per tutti, non solo per quello da cui stai guardando");
+        note.Add("se la sorgente la rimanda, il prossimo import la ricrea");
+
+        return new DeletionPlan(DeletionTarget.Area(f.IvaoId), f.Nome,
+            muore, Array.Empty<string>(), rivedere, Array.Empty<DeletionBlocker>(),
+            DeletionActions.Nessuna with { AreaDaEliminare = f.IvaoId }, note);
     }
 }

@@ -292,6 +292,18 @@
                             {
                                 <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="TogglePolygon" title="@L["Conf_PolygonTitle"]"><Icon Name="map" /> @L["Conf_Polygon"]</button>
                             }
+                            @* Rifiutare NON è eliminare: il candidato rifiutato resta in elenco a vita, ed
+                               era l'unica cosa che di qui non si poteva togliere. La finestra blocca finché
+                               c'è la vLOA e avvisa che il settore estero non muore con lui. *@
+                            @if (Authz.IsAdmin)
+                            {
+                                <DeleteDialog Target="DeletionTarget.Neighbour(sel.Id)"
+                                              Nome="@($"{sel.HomeAccCode} ↔ {sel.ForeignAccCode}")"
+                                              TriggerClass="btn ghost danger" AriaLabel="@L["Del_Neighbour"]"
+                                              Disabled="@(_busy || !_canEdit)" OnDeleted="DopoEliminazione">
+                                    <Trigger><Icon Name="trash" Size="14" /> @L["Common_Delete"]</Trigger>
+                                </DeleteDialog>
+                            }
                         </div>
 
                         @if (_sectorOpen)
@@ -600,6 +612,13 @@
     }
 
     private async Task ReloadAsync() => _rows = await Neighbours.ListAsync();
+
+    /// <summary>Dopo l'eliminazione: il candidato scelto non esiste più e il pannello si svuota.</summary>
+    private async Task DopoEliminazione()
+    {
+        _selId = null;
+        await ReloadAsync();
+    }
 
     private async Task Guarded(Func<Task> action, string? okMsg = null)
     {
