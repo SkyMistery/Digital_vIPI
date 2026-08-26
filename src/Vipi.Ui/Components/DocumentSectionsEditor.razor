@@ -77,6 +77,18 @@ else
     /// Pubblica, stato salvataggio. Quando presente la griglia diventa 3 colonne (toc | contenuto | azioni).</summary>
     [Parameter] public RenderFragment? RightRail { get; set; }
 
+    /// <summary>
+    /// Pannelli dell'host da rendere DOPO le sezioni ma <b>dentro la colonna centrale</b>: il pannello Release e,
+    /// sull'aeroporto, il catalogo dei settori ATC. Non sono contenuto del documento, ma stanno nella stessa
+    /// colonna — e devono essere larghi quanto le sezioni.
+    /// <para>
+    /// ⚠️ Renderli dopo <c>&lt;/DocumentSectionsEditor&gt;</c> li mette FUORI dalla griglia, quindi larghi quanto
+    /// la pagina: nell'editor ACC — che la griglia se la costruisce da sé — il pannello Release stava già dentro,
+    /// e i tre editor che montano questo componente erano gli unici tre a mostrarlo più largo del resto.
+    /// </para>
+    /// </summary>
+    [Parameter] public RenderFragment? AfterSections { get; set; }
+
     /// <summary>Comandi in coda al TOC (espandi/comprimi tutto). L'editor ACC costruisce il proprio TOC e li
     /// mette da sé; gli editor a singola istanza montano il TOC da qui, quindi glieli passano.</summary>
     [Parameter] public RenderFragment? TocFooter { get; set; }
@@ -116,6 +128,8 @@ else
                 <button class="btn primary" @onclick="() => AddSection(AddParentId)">@(AddLabel ?? L["Dse_AddSection"].Value)</button>
             </div>
         }
+
+        @AfterSections
     };
 
     // Risolto dallo scope proprio (OwningComponentBase): context isolato dal circuito.

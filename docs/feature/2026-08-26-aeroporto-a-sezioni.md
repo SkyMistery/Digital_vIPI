@@ -294,3 +294,36 @@ sta leggendo e che è vivo, ed è quel che quella sezione ha da dire prima di es
 
 E due spaziature che Razor si mangiava davanti a un blocco di codice, corrette: «FL60current QNH» e
 «★Bari Tower».
+
+---
+
+## §10 — I pannelli che non sono sezioni erano larghi quanto la PAGINA
+
+Segnalato dal committente: «ATC sectors» e «Versions & AIRAC releases» più larghi delle sezioni.
+
+**Perché.** Quando `DocumentSectionsEditor` monta il suo indice (`ShowToc`), è **lui** a possedere la griglia
+`.ed-layout` — tre colonne, `indice | contenuto | rail`. Un pannello reso **dopo** `</DocumentSectionsEditor>`
+finisce quindi **fuori** dalla griglia: largo quanto il `.wrap`, non quanto la colonna centrale.
+
+⚠️ E non era solo l'aeroporto. Verificato su tutti e quattro gli editor: **l'unico a farlo giusto era l'ACC**,
+proprio perché la griglia se la costruisce da sé e teneva il `ReleasePanel` dentro la colonna centrale, fra
+l'indice e il rail. I tre che montano il componente condiviso — aeroporto, APP e vLOA — lo rendevano tutti
+fuori, e mostravano il pannello Release più largo del resto del documento.
+
+**La correzione**: un parametro nuovo, `DocumentSectionsEditor.AfterSections` — pannelli dell'host resi dopo
+le sezioni ma **dentro la colonna centrale**. Ci finiscono il `ReleasePanel` dei tre editor e, sull'aeroporto,
+anche il catalogo dei settori ATC. Nessun CSS: la larghezza viene dalla griglia, quindi è giusta per
+costruzione anche quando la griglia cambia.
+
+**Misurato** con `getBoundingClientRect().width`, sezione contro pannelli:
+
+| | sezione | Settori ATC | Release |
+|---|---|---|---|
+| aeroporto, 1600px | 996 | **996** | **996** |
+| APP / ACC / vLOA, 1600px | 996 | — | **996** |
+| aeroporto, ⤢ larghezza piena | 1536 | **1536** | **1536** |
+| aeroporto, 1000px (griglia collassata) | 960 | **960** | **960** |
+
+⚠️ **Non c'è un test che lo protegga.** È una relazione di ANNIDAMENTO nel DOM — «il pannello è discendente
+della colonna centrale» — e coprirla con bUnit vorrebbe dire impersonare l'intero `IEditingService`. Resta la
+misura live, e il commento sul parametro che dice perché esiste.

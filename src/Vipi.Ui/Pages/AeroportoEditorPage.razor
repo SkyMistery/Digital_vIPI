@@ -152,120 +152,125 @@ else
                         <span class="ed-rail-meta" title="@L["Ape_LastImportTitle"]">↧ @($"{li:dd/MM HH:mm}Z")</span>
                     }
                 </RightRail>
-            </DocumentSectionsEditor>
-
-            @* ===================== SETTORI ATC =====================
-               ⚠️ NON è una sezione del documento: è amministrazione della struttura, non testo pubblicato. Sta
-               fuori da DocumentSectionsEditor e si aggancia all'indice come voce extra — la stessa strada che
-               l'editor APP usa già per il pannello Release. *@
-            <div id="sec-settori" class="block" @onchange='() => MarkDirty("settori")'>
-                    <div class="section-title" style="margin-top:0">
-                        <h2 class="h-sect" style="margin:0">@L["Ape_AtcSectors"] <span class="pill blue">@_sectors.Count</span></h2>
-                        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SectorsNoteAria"]" ExtraClass="wide">@L["Ape_SectorsNote"]</HelpHint><span class="ln"></span>
-                        @if (LastImport() is DateTime lastImp)
+                @* ⚠️ Dentro la colonna centrale, non dopo il componente: qui sotto ci sono i due pannelli
+                   che NON sono contenuto del documento — il catalogo dei settori e le release — e devono
+                   essere larghi quanto le sezioni. Resi fuori da <DocumentSectionsEditor> finivano fuori
+                   dalla griglia, quindi larghi quanto la pagina. *@
+                <AfterSections>
+                    @* ===================== SETTORI ATC =====================
+                       ⚠️ NON è una sezione del documento: è amministrazione della struttura, non testo pubblicato.
+                       Non passa quindi da `DocumentSectionsEditor` — non si riordina, non si nasconde, non finisce
+                       nella vIPI pubblicata — ma sta nella sua STESSA colonna, e si aggancia all'indice come voce
+                       extra, la strada che l'editor APP usa già per il pannello Release. *@
+                    <div id="sec-settori" class="block" @onchange='() => MarkDirty("settori")'>
+                            <div class="section-title" style="margin-top:0">
+                                <h2 class="h-sect" style="margin:0">@L["Ape_AtcSectors"] <span class="pill blue">@_sectors.Count</span></h2>
+                                <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SectorsNoteAria"]" ExtraClass="wide">@L["Ape_SectorsNote"]</HelpHint><span class="ln"></span>
+                                @if (LastImport() is DateTime lastImp)
+                                {
+                                    @* La "Z": il timbro è UTC. Senza, chi importa alle 17 locali legge 15:11 e crede
+                                       che il bottone non abbia fatto nulla — è esattamente l'equivoco da cui è nata
+                                       questa modifica. Stessa convenzione della vista live (orari in Z). *@
+                                    <span class="muted" style="font-size:11.5px" title="@L["Ape_LastImportTitle"]">↧ @($"{lastImp:dd/MM/yyyy HH:mm}Z")</span>
+                                }
+                                <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="ImportSectors" title="@L["Ape_ImportSectorsTitle"]">⟳ @L["Ape_ImportSectors"]</button>
+                                @if (_sectors.Any(s => (s.Position ?? "").Trim().ToUpperInvariant() == "TWR"))
+                                {
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="ImportTwrShapes" title="@L["Ape_ImportTwrShapesTitle"]">⬡ @L["Ape_ImportTwrShapes"]</button>
+                                }
+                            </div>
+                            @if (_sectors.Count == 0)
+                            {
+                                <p class="help">@L["Ape_NoSectors"]</p>
+                            }
+                            else
+                            {
+                                <table class="res-table">
+                                    <thead><tr><th>Callsign</th><th>ACC</th><th>Pos</th><th>Mid</th><th title="@L["Ape_AccQTitle"]">ACC?</th><th>Freq</th><th>@L["Ape_PrimaryCol"]</th><th>Shape</th><th>@L["AccAdmin_LowerLimit"] <span class="muted" style="font-weight:400">(GND=0)</span></th><th>@L["AccAdmin_UpperLimit"] <span class="muted" style="font-weight:400">(UNL=@L["AccAdmin_Unlimited"])</span></th><th>@L["Common_State"]</th><th></th></tr></thead>
+                                    <tbody>
+                                        @foreach (var s in _sectors)
+                                        {
+                                            var hasLimits = SupportsLimits(s.Position);
+                                            <tr style="@(s.IsHidden ? "opacity:.5" : "")">
+                                                <td><b>@s.ComposePosition</b></td>
+                                                <td><span class="pill blue">@s.AccCode</span></td>
+                                                <td>@(s.Position ?? "—")</td>
+                                                <td>@(s.MiddleIdentifier ?? "—")</td>
+                                                <td style="text-align:center">
+                                                    @if (IsApp(s.Position))
+                                                    {
+                                                        <input type="checkbox" checked="@s.IsAccApp" disabled="@(_busy || !_canEdit)" @onchange="e => SetSectorAccApp(s.Id, (bool)(e.Value ?? false))" title="@L["Ape_AccAppTitle"]" />
+                                                    }
+                                                    else { <span class="muted">—</span> }
+                                                </td>
+                                                <td>@(s.Frequency ?? "—")</td>
+                                                <td style="text-align:center">
+                                                    @if (CanBePrimary(s.Position))
+                                                    {
+                                                        <input type="radio" name="primaryFreq-@((s.Position ?? "").Trim().ToUpperInvariant())" checked="@s.IsPrimary" disabled="@(_busy || !_canEdit)" @onchange="() => SetSectorPrimary(s.Id)" title="@L["Ape_PrimaryFreqTitle"]" />
+                                                    }
+                                                    else { <span class="muted">—</span> }
+                                                </td>
+                                                <td>@(hasLimits ? (s.HasPolygon ? "✓" : "—") : "—")</td>
+                                                @if (hasLimits)
+                                                {
+                                                    <td>
+                                                        <input style="width:70px" value="@FmtLower(_secLower.GetValueOrDefault(s.Id))" @onchange="e => _secLower[s.Id] = ParseLower(e.Value)" title="@L["AccAdmin_LowerHint"]" disabled="@(!_canEdit || s.LimitsFromSource)" />
+                                                        @if (s.LimitsFromSource) { <span class="pill" style="background:var(--surface-muted);color:var(--ink-soft);margin-left:4px" title="@L["Ape_LimitsFromSourceTitle"]">🔒</span> }
+                                                    </td>
+                                                    <td><input style="width:70px" value="@FmtUpper(_secUpper.GetValueOrDefault(s.Id))" @onchange="e => _secUpper[s.Id] = ParseUpper(e.Value)" title="@L["AccAdmin_UpperHint"]" disabled="@(!_canEdit || s.LimitsFromSource)" /></td>
+                                                }
+                                                else
+                                                {
+                                                    <td class="muted">—</td>
+                                                    <td class="muted">—</td>
+                                                }
+                                                <td>
+                                                    @if (s.IsHidden)
+                                                    {
+                                                        <span class="pill neutral">@L["AccAdmin_Hidden"]</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="pill green">@L["AccAdmin_Active"]</span>
+                                                    }
+                                                </td>
+                                                <td style="white-space:nowrap">
+                                                    @if (hasLimits && !s.LimitsFromSource)
+                                                    {
+                                                        <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SaveSectorLimits(s.Id)" title="@L["AccAdmin_SaveLimits"]" aria-label="@L["AccAdmin_SaveLimits"]"><Icon Name="check-circle" /></button>
+                                                    }
+                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => ToggleSectorHidden(s.Id, !s.IsHidden)" title="@L["AccAdmin_ToggleHide"]" aria-label="@L["AccAdmin_ToggleHide"]"><Icon Name="@(s.IsHidden ? "eye" : "eye-off")" /></button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                    </div>
+                    @* ===================== VERSIONI (release AIRAC) =====================
+                       ⚠️ L'ancora `sec-versioni` è la stessa nei QUATTRO editor: è dove atterra «Ripubblica» dalla lista
+                       «Da fare» (carta 2026-08-26-da-fare-una-lista-sola.md §3). *@
+                    <div id="sec-versioni">
+                        @if (!_canEdit)
                         {
-                            @* La "Z": il timbro è UTC. Senza, chi importa alle 17 locali legge 15:11 e crede
-                               che il bottone non abbia fatto nulla — è esattamente l'equivoco da cui è nata
-                               questa modifica. Stessa convenzione della vista live (orari in Z). *@
-                            <span class="muted" style="font-size:11.5px" title="@L["Ape_LastImportTitle"]">↧ @($"{lastImp:dd/MM/yyyy HH:mm}Z")</span>
+                            <div class="block"><div class="callout warning" style="margin:0"><span class="cic">🔒</span><div>@(string.Format(L["Ape_ReadOnlyPublish"].Value, _icao))</div></div></div>
                         }
-                        <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="ImportSectors" title="@L["Ape_ImportSectorsTitle"]">⟳ @L["Ape_ImportSectors"]</button>
-                        @if (_sectors.Any(s => (s.Position ?? "").Trim().ToUpperInvariant() == "TWR"))
+                        else
                         {
-                            <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="ImportTwrShapes" title="@L["Ape_ImportTwrShapesTitle"]">⬡ @L["Ape_ImportTwrShapes"]</button>
+                            @* Involucro, titolo, aiuto, diff, annulla e anteprima li porta il pannello condiviso
+                               (doc 13 §3i): prima questa pagina si costruiva il proprio contorno, ed era per questo
+                               che la sezione «Versioni» dell'aeroporto non somigliava a quella degli altri tre.
+                               Published ricarica tutto: BeforePublishAsync ha già avvisato sulle sezioni non salvate. *@
+                            <ReleasePanel Target="ReleaseTargetType.Airport" Key="@_icao"
+                                          ShowDiff="true" AllowCancel="Authz.IsAdmin"
+                                          BeforePublishAsync="BeforePublishAsync"
+                                          PreviewUrlFactory="ReleasePreviewUrl"
+                                          Published="LoadAsync" />
                         }
                     </div>
-                    @if (_sectors.Count == 0)
-                    {
-                        <p class="help">@L["Ape_NoSectors"]</p>
-                    }
-                    else
-                    {
-                        <table class="res-table">
-                            <thead><tr><th>Callsign</th><th>ACC</th><th>Pos</th><th>Mid</th><th title="@L["Ape_AccQTitle"]">ACC?</th><th>Freq</th><th>@L["Ape_PrimaryCol"]</th><th>Shape</th><th>@L["AccAdmin_LowerLimit"] <span class="muted" style="font-weight:400">(GND=0)</span></th><th>@L["AccAdmin_UpperLimit"] <span class="muted" style="font-weight:400">(UNL=@L["AccAdmin_Unlimited"])</span></th><th>@L["Common_State"]</th><th></th></tr></thead>
-                            <tbody>
-                                @foreach (var s in _sectors)
-                                {
-                                    var hasLimits = SupportsLimits(s.Position);
-                                    <tr style="@(s.IsHidden ? "opacity:.5" : "")">
-                                        <td><b>@s.ComposePosition</b></td>
-                                        <td><span class="pill blue">@s.AccCode</span></td>
-                                        <td>@(s.Position ?? "—")</td>
-                                        <td>@(s.MiddleIdentifier ?? "—")</td>
-                                        <td style="text-align:center">
-                                            @if (IsApp(s.Position))
-                                            {
-                                                <input type="checkbox" checked="@s.IsAccApp" disabled="@(_busy || !_canEdit)" @onchange="e => SetSectorAccApp(s.Id, (bool)(e.Value ?? false))" title="@L["Ape_AccAppTitle"]" />
-                                            }
-                                            else { <span class="muted">—</span> }
-                                        </td>
-                                        <td>@(s.Frequency ?? "—")</td>
-                                        <td style="text-align:center">
-                                            @if (CanBePrimary(s.Position))
-                                            {
-                                                <input type="radio" name="primaryFreq-@((s.Position ?? "").Trim().ToUpperInvariant())" checked="@s.IsPrimary" disabled="@(_busy || !_canEdit)" @onchange="() => SetSectorPrimary(s.Id)" title="@L["Ape_PrimaryFreqTitle"]" />
-                                            }
-                                            else { <span class="muted">—</span> }
-                                        </td>
-                                        <td>@(hasLimits ? (s.HasPolygon ? "✓" : "—") : "—")</td>
-                                        @if (hasLimits)
-                                        {
-                                            <td>
-                                                <input style="width:70px" value="@FmtLower(_secLower.GetValueOrDefault(s.Id))" @onchange="e => _secLower[s.Id] = ParseLower(e.Value)" title="@L["AccAdmin_LowerHint"]" disabled="@(!_canEdit || s.LimitsFromSource)" />
-                                                @if (s.LimitsFromSource) { <span class="pill" style="background:var(--surface-muted);color:var(--ink-soft);margin-left:4px" title="@L["Ape_LimitsFromSourceTitle"]">🔒</span> }
-                                            </td>
-                                            <td><input style="width:70px" value="@FmtUpper(_secUpper.GetValueOrDefault(s.Id))" @onchange="e => _secUpper[s.Id] = ParseUpper(e.Value)" title="@L["AccAdmin_UpperHint"]" disabled="@(!_canEdit || s.LimitsFromSource)" /></td>
-                                        }
-                                        else
-                                        {
-                                            <td class="muted">—</td>
-                                            <td class="muted">—</td>
-                                        }
-                                        <td>
-                                            @if (s.IsHidden)
-                                            {
-                                                <span class="pill neutral">@L["AccAdmin_Hidden"]</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="pill green">@L["AccAdmin_Active"]</span>
-                                            }
-                                        </td>
-                                        <td style="white-space:nowrap">
-                                            @if (hasLimits && !s.LimitsFromSource)
-                                            {
-                                                <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SaveSectorLimits(s.Id)" title="@L["AccAdmin_SaveLimits"]" aria-label="@L["AccAdmin_SaveLimits"]"><Icon Name="check-circle" /></button>
-                                            }
-                                            <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => ToggleSectorHidden(s.Id, !s.IsHidden)" title="@L["AccAdmin_ToggleHide"]" aria-label="@L["AccAdmin_ToggleHide"]"><Icon Name="@(s.IsHidden ? "eye" : "eye-off")" /></button>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    }
-            </div>
-
-            @* ===================== VERSIONI (release AIRAC) =====================
-               ⚠️ L'ancora `sec-versioni` è la stessa nei QUATTRO editor: è dove atterra «Ripubblica» dalla lista
-               «Da fare» (carta 2026-08-26-da-fare-una-lista-sola.md §3). *@
-            <div id="sec-versioni">
-                @if (!_canEdit)
-                {
-                    <div class="block"><div class="callout warning" style="margin:0"><span class="cic">🔒</span><div>@(string.Format(L["Ape_ReadOnlyPublish"].Value, _icao))</div></div></div>
-                }
-                else
-                {
-                    @* Involucro, titolo, aiuto, diff, annulla e anteprima li porta il pannello condiviso
-                       (doc 13 §3i): prima questa pagina si costruiva il proprio contorno, ed era per questo
-                       che la sezione «Versioni» dell'aeroporto non somigliava a quella degli altri tre.
-                       Published ricarica tutto: BeforePublishAsync ha già avvisato sulle sezioni non salvate. *@
-                    <ReleasePanel Target="ReleaseTargetType.Airport" Key="@_icao"
-                                  ShowDiff="true" AllowCancel="Authz.IsAdmin"
-                                  BeforePublishAsync="BeforePublishAsync"
-                                  PreviewUrlFactory="ReleasePreviewUrl"
-                                  Published="LoadAsync" />
-                }
-            </div>
+                </AfterSections>
+            </DocumentSectionsEditor>
         }
     </div>
 
@@ -1818,7 +1823,7 @@ else
                 <tbody>
                     @foreach (var f in FreqRows())
                     {
-                        <tr class="@(f.IsPrimary ? "primary" : null)"><td>@if (f.IsPrimary) { <span class="freq-key">★</span> } @FreqDisplayName(f)</td><td>@f.ComposePosition</td><td>@(f.Frequency ?? "—")</td><td class="muted">@L["Ape_Catalog"]</td><td></td></tr>
+                        <tr class="@(f.IsPrimary ? "primary" : null)"><td>@if (f.IsPrimary) { <span class="freq-key">★</span><text>&#32;</text> }@FreqDisplayName(f)</td><td>@f.ComposePosition</td><td>@(f.Frequency ?? "—")</td><td class="muted">@L["Ape_Catalog"]</td><td></td></tr>
                     }
                     @foreach (var id in _linkIds)
                     {
