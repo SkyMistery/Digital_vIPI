@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -41,6 +41,10 @@ public interface IEditingService
     Task<int> AddSectionAsync(int versionId, int? parentSectionId, string title, BlockSection kind, CancellationToken ct = default);
     Task DeleteSectionAsync(int sectionId, CancellationToken ct = default);
     Task MoveSectionAsync(int sectionId, int direction, CancellationToken ct = default);
+
+    /// <summary>Sposta una sezione PRIMA del fratello indicato (null = in coda): il trascinamento nel
+    /// menu-sezioni. Non riparenta — vedi <c>IEditingRepository.MoveSectionBeforeAsync</c>.</summary>
+    Task MoveSectionBeforeAsync(int sectionId, int? beforeSectionId, CancellationToken ct = default);
     Task MoveBlockAsync(int blockId, int direction, CancellationToken ct = default);
     Task PublishAsync(int versionId, string? note, CancellationToken ct = default);
 

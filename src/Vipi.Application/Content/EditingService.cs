@@ -176,6 +176,13 @@ public sealed class EditingService : IEditingService
         await _repo.MoveSectionAsync(sectionId, direction, ct);
     }
 
+    public async Task MoveSectionBeforeAsync(int sectionId, int? beforeSectionId, CancellationToken ct = default)
+    {
+        var docId = await AuthorizeSectionAsync(sectionId, ct);
+        await EnsureLockAsync(docId, ct);
+        await _repo.MoveSectionBeforeAsync(sectionId, beforeSectionId, ct);
+    }
+
     public async Task MoveBlockAsync(int blockId, int direction, CancellationToken ct = default)
     {
         var docId = await AuthorizeBlockAsync(blockId, ct);

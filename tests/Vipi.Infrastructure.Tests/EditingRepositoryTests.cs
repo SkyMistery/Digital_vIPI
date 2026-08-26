@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -521,6 +521,52 @@ public class EditingRepositoryTests : IAsyncLifetime
         Assert.Equal(oa, await _db.DocumentSections.Where(s => s.Id == b).Select(s => s.Order).FirstAsync());
         Assert.Equal(ob, await _db.DocumentSections.Where(s => s.Id == a).Select(s => s.Order).FirstAsync());
     }
+
+    // Trascinamento nel menu-sezioni: la sezione salta N posti in un colpo, e il gruppo si rinumera.
+    [Fact]
+    public async Task MoveSectionBefore_Moves_Across_Several_Places()
+    {
+        var docId = await AccDocIdAsync();
+        var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 1);
+
+        var ids = new List<int>();
+        foreach (var t in new[] { "A", "B", "C", "D" })
+            ids.Add(await _repo.AddSectionAsync(draftId, null, t, Vipi.Domain.BlockSection.Other));
+
+        // D prima di B  ->  A, D, B, C
+        await _repo.MoveSectionBeforeAsync(ids[3], ids[1]);
+
+        Assert.Equal(new[] { ids[0], ids[3], ids[1], ids[2] }, await OrderedRootsAsync(draftId, ids));
+
+        // ...e in coda (riferimento null): A, B, C, D di nuovo.
+        await _repo.MoveSectionBeforeAsync(ids[3], null);
+        Assert.Equal(new[] { ids[0], ids[1], ids[2], ids[3] }, await OrderedRootsAsync(draftId, ids));
+    }
+
+    // ⚠️ Il vincolo «solo dentro il suo gruppo» sta nel motore, non nella UI: un riferimento che non e' un
+    // FRATELLO non sposta niente — altrimenti sarebbe una riparentazione silenziosa.
+    [Fact]
+    public async Task MoveSectionBefore_Ignores_A_Target_From_Another_Group()
+    {
+        var docId = await AccDocIdAsync();
+        var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 1);
+
+        var a = await _repo.AddSectionAsync(draftId, null, "A", Vipi.Domain.BlockSection.Other);
+        var b = await _repo.AddSectionAsync(draftId, null, "B", Vipi.Domain.BlockSection.Other);
+        var childOfA = await _repo.AddSectionAsync(draftId, a, "A1", Vipi.Domain.BlockSection.Other);
+
+        await _repo.MoveSectionBeforeAsync(b, childOfA);
+
+        Assert.Equal(new[] { a, b }, await OrderedRootsAsync(draftId, new[] { a, b }));
+        Assert.Equal(a, await _db.DocumentSections.Where(s => s.Id == childOfA)
+            .Select(s => s.ParentSectionId).FirstAsync());
+    }
+
+    /// <summary>Le sezioni radice della bozza nell'ordine del documento, ristrette a quelle del test: la bozza
+    /// nasce copiando la versione precedente, quindi di radici ne ha gia' di sue.</summary>
+    private async Task<int[]> OrderedRootsAsync(int draftId, IReadOnlyCollection<int> only) => await _db.DocumentSections
+        .Where(s => s.DocumentVersionId == draftId && s.ParentSectionId == null && only.Contains(s.Id))
+        .OrderBy(s => s.Order).ThenBy(s => s.Id).Select(s => s.Id).ToArrayAsync();
 
     [Fact]
     public async Task Vloa_Document_Is_Editable_RoundTrip()

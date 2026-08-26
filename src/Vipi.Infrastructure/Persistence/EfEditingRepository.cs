@@ -825,6 +825,35 @@ public sealed class EfEditingRepository : IEditingRepository
             await _db.SaveChangesAsync(ct);
     }
 
+    public async Task MoveSectionBeforeAsync(int sectionId, int? beforeSectionId, CancellationToken ct = default)
+    {
+        if (sectionId == beforeSectionId) return;   // «prima di se stessa» = nessuna mossa
+
+        var section = await _db.DocumentSections.FirstOrDefaultAsync(s => s.Id == sectionId, ct)
+            ?? throw new InvalidOperationException($"Sezione {sectionId} inesistente.");
+        await RequireDraftAsync(section.DocumentVersionId, ct);
+
+        var siblings = await _db.DocumentSections
+            .Where(s => s.DocumentVersionId == section.DocumentVersionId && s.ParentSectionId == section.ParentSectionId)
+            .OrderBy(s => s.Order).ThenBy(s => s.Id).ToListAsync(ct);
+
+        // ⚠️ Il riferimento deve essere un FRATELLO: una sezione di un altro blocco (o di un altro documento)
+        // non è una destinazione, è una riparentazione — e questa mossa non riparenta. Vedi IEditingRepository.
+        var target = beforeSectionId is int b ? siblings.FirstOrDefault(s => s.Id == b) : null;
+        if (beforeSectionId is not null && target is null) return;
+
+        siblings.Remove(section);
+        var at = target is null ? siblings.Count : siblings.IndexOf(target);
+        siblings.Insert(at, section);
+
+        // Rinumerazione densa del solo gruppo: l'Order è una posizione, non un identificativo (nessun indice
+        // unico, nessun altro lettore lo confronta fra gruppi diversi).
+        var changed = false;
+        for (var i = 0; i < siblings.Count; i++)
+            if (siblings[i].Order != i) { siblings[i].Order = i; changed = true; }
+        if (changed) await _db.SaveChangesAsync(ct);
+    }
+
     public async Task MoveBlockAsync(int blockId, int direction, CancellationToken ct = default)
     {
         var block = await _db.ContentBlocks.FirstOrDefaultAsync(b => b.Id == blockId, ct)

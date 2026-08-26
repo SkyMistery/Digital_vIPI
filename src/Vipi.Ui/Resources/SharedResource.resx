@@ -177,6 +177,8 @@
   <data name="Search_ScopeAirports" xml:space="preserve"><value>Aeroporti</value></data>
   <!-- Comuni viewer -->
   <data name="Common_Navigation" xml:space="preserve"><value>Navigazione</value></data>
+  <data name="Toc_DragHint" xml:space="preserve"><value>Trascina una sezione sopra un'altra per riordinarla.</value></data>
+  <data name="Toc_DragTitle" xml:space="preserve"><value>Trascina per riordinare: la sezione prende il posto di quella su cui la lasci (solo dentro il suo gruppo)</value></data>
   <data name="Common_Contents" xml:space="preserve"><value>Sommario</value></data>
   <data name="Common_Operational" xml:space="preserve"><value>⚡ Operativa</value></data>
   <data name="Common_Editor" xml:space="preserve"><value>✎ Editor</value></data>

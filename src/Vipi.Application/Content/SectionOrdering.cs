@@ -1,4 +1,4 @@
-namespace Vipi.Application.Content;
+﻿namespace Vipi.Application.Content;
 
 /// <summary>
 /// Scostamento dall'ordine STANDARD di catalogo delle sezioni di un gruppo (fratelli con lo stesso padre: le
@@ -48,5 +48,45 @@ public static class SectionOrdering
             if (delta != 0) offsets[standard[std].Id] = delta;
         }
         return offsets;
+    }
+
+    /// <summary>
+    /// Traduce un TRASCINAMENTO nel riferimento che vuole il motore: «metti la sezione spostata prima di
+    /// questa» (null = in coda). La regola letta a schermo è una sola — <b>la sezione lasciata prende il posto
+    /// di quella su cui la si lascia</b> — e da qui esce nei due versi:
+    /// verso il basso si inserisce DOPO il bersaglio, verso l'alto PRIMA.
+    /// <para>
+    /// Vale solo dentro un gruppo: <paramref name="siblingIds"/> sono i fratelli nell'ordine attuale. Se uno
+    /// dei due non è del gruppo, o sono lo stesso, non c'è mossa (<c>false</c>).
+    /// </para>
+    /// </summary>
+    /// <param name="siblingIds">Id dei fratelli nell'ordine attuale del documento.</param>
+    /// <param name="movedId">Sezione trascinata.</param>
+    /// <param name="targetId">Sezione su cui è stata lasciata.</param>
+    /// <param name="beforeId">Riferimento per <c>MoveSectionBeforeAsync</c> (null = in coda al gruppo).</param>
+    public static bool TryDropOnto(IReadOnlyList<int> siblingIds, int movedId, int targetId, out int? beforeId)
+    {
+        beforeId = null;
+        if (movedId == targetId) return false;
+
+        var from = -1;
+        var to = -1;
+        for (var i = 0; i < siblingIds.Count; i++)
+        {
+            if (siblingIds[i] == movedId) from = i;
+            if (siblingIds[i] == targetId) to = i;
+        }
+        if (from < 0 || to < 0) return false;
+
+        // Verso il basso il posto del bersaglio si libera solo passandogli sopra: il riferimento è il fratello
+        // SUCCESSIVO al bersaglio (e se non c'è, la coda).
+        if (from < to)
+        {
+            beforeId = to + 1 < siblingIds.Count ? siblingIds[to + 1] : null;
+            return true;
+        }
+
+        beforeId = targetId;
+        return true;
     }
 }

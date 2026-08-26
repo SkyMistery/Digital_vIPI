@@ -2097,6 +2097,16 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .ed-layout .block[id],.ed-layout .ed-sec[id],.ed-layout .acc-block[id]{scroll-margin-top:84px}
 .toc-foot{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
 
+/* Riordino delle sezioni trascinando nel menu-sezioni (solo in modifica: la classe la mette EditorToc quando
+   l'host passa OnReorder). La voce trascinabile prende la manina; quella su cui si sta per lasciare mostra la
+   riga di destinazione a sinistra — lo stesso bordo di .toc a.active, in giallo, cosi' si distingue da «dove
+   sono» a colpo d'occhio. */
+.toc-drag-hint{margin:-4px 0 8px;padding-left:8px;font-size:11px;line-height:1.35;color:var(--ink-soft)}
+.toc-drag a[draggable="true"]{cursor:grab}
+.toc-drag a[draggable="true"]:active{cursor:grabbing}
+.toc-drag a.toc-dragging{opacity:.45}
+.toc-drag a.toc-drop{background:var(--tint-atmos);border-left-color:var(--ivao-yellow,var(--line-yellow))}
+
 /* AoR ACC: chip settori (sopra la mappa) + selettore configurazione (sotto). */
 .aor-toggles{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
 /* ⚠️ Le chip sono <button> dal 23 agosto 2026, non piu' <span>: erano comandi che esistevano solo per il

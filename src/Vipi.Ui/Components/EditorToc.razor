@@ -1,11 +1,17 @@
 @* Menu-sezioni laterale (TOC) CONDIVISO tra gli editor: aside.toc sticky, riusa lo stile del viewer.
-   Proiezione dato-guidata di sezioni già in memoria (nessuna query DB). Vedi docs/feature/2026-07-29-toc-editor.md. *@
+   Proiezione dato-guidata di sezioni già in memoria (nessuna query DB). Vedi docs/feature/2026-07-29-toc-editor.md.
+   Dal 26 agosto 2026 le voci-sezione si TRASCINANO per riordinare, se l'host passa OnReorder:
+   docs/feature/2026-08-26-riordino-sezioni-trascinando.md. *@
 @inject IStringLocalizer<SharedResource> L
 
 @if (Items.Count > 0)
 {
-    <aside class="toc editor-toc-side" data-tour="toc">
+    <aside class="toc editor-toc-side @(Draggable ? "toc-drag" : null)" data-tour="toc">
         <p class="toc-h">@(HeaderLabel ?? L["Common_Navigation"])</p>
+        @if (Draggable)
+        {
+            <p class="toc-drag-hint">@L["Toc_DragHint"]</p>
+        }
         <ul>
             @{ string? lastGroup = null; }
             @foreach (var it in Items)
@@ -16,10 +22,28 @@
                     <li class="toc-grp-li"><p class="toc-grp">@g</p></li>
                 }
                 <li>
-                    <a class="lvl@(it.Level)" href="#@it.AnchorId">
-                        @it.Label
-                        @if (it.Dirty) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }
-                    </a>
+                    @* ⚠️ `draggable` si scrive SEMPRE quando il riordino è acceso: un <a href> nasce
+                       trascinabile per conto suo, e senza il "false" esplicito il pannello Release e i blocchi
+                       ACC senza figli si lascerebbero prendere per poi non andare da nessuna parte.
+                       Fuori dal riordino l'ancora resta quella di prima: nessun gestore di trascinamento
+                       registrato sul circuito per gli editor che non riordinano (l'aeroporto). *@
+                    @if (Draggable)
+                    {
+                        <a class="lvl@(it.Level) @(IsDragging(it) ? "toc-dragging" : null) @(IsDropTarget(it) ? "toc-drop" : null)"
+                           href="#@it.AnchorId"
+                           draggable="@(CanDrag(it) ? "true" : "false")"
+                           title="@(CanDrag(it) ? L["Toc_DragTitle"].Value : null)"
+                           @ondragstart="() => DragStart(it)" @ondragend="DragEnd"
+                           @ondragenter="() => DragEnter(it)" @ondragleave="() => DragLeave(it)"
+                           @ondragover:preventDefault="true"
+                           @ondrop="() => Drop(it)" @ondrop:preventDefault="true">
+                            @Label(it)
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="lvl@(it.Level)" href="#@it.AnchorId">@Label(it)</a>
+                    }
                 </li>
             }
         </ul>
@@ -31,6 +55,12 @@
 }
 
 @code {
+    private RenderFragment Label(EditorTocItem it) => __builder =>
+    {
+        @it.Label
+        @if (it.Dirty) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }
+    };
+
     /// <summary>Voci del menu (proiezione delle sezioni). Vuoto = nessun aside renderizzato.</summary>
     [Parameter, EditorRequired] public IReadOnlyList<EditorTocItem> Items { get; set; } = System.Array.Empty<EditorTocItem>();
 
@@ -39,4 +69,66 @@
 
     /// <summary>Contenuto extra in fondo al TOC (es. pulsanti Espandi/Comprimi tutto).</summary>
     [Parameter] public RenderFragment? Footer { get; set; }
+
+    /// <summary>
+    /// Riordino per trascinamento: l'host lo passa SOLO quando il documento è in modifica (ed è suo il lock).
+    /// Non passarlo lascia il TOC quello di prima — è così che l'editor aeroporto, che di sezioni-documento non
+    /// ne ha, resta fuori senza una condizione dedicata.
+    /// </summary>
+    [Parameter] public EventCallback<TocReorder> OnReorder { get; set; }
+
+    private bool Draggable => OnReorder.HasDelegate;
+
+    private int? _dragId;
+    private string? _dragGroup;
+    private int? _overId;
+
+    private bool CanDrag(EditorTocItem it) => Draggable && it.SectionId is not null;
+
+    private bool IsDragging(EditorTocItem it) => _dragId is int d && it.SectionId == d;
+
+    private bool IsDropTarget(EditorTocItem it) => _overId is int o && it.SectionId == o;
+
+    private void DragStart(EditorTocItem it)
+    {
+        if (!CanDrag(it)) return;
+        _dragId = it.SectionId;
+        _dragGroup = it.DragGroup;
+        _overId = null;
+    }
+
+    private void DragEnd() { _dragId = null; _dragGroup = null; _overId = null; }
+
+    private void DragEnter(EditorTocItem it)
+    {
+        if (Accepts(it)) _overId = it.SectionId;
+    }
+
+    private void DragLeave(EditorTocItem it)
+    {
+        if (_overId == it.SectionId) _overId = null;
+    }
+
+    /// <summary>Bersaglio valido: una sezione del MEDESIMO gruppo, diversa da quella trascinata.</summary>
+    private bool Accepts(EditorTocItem it)
+        => _dragId is int d && it.SectionId is int t && t != d
+           && string.Equals(it.DragGroup, _dragGroup, StringComparison.Ordinal);
+
+    private async Task Drop(EditorTocItem it)
+    {
+        var moved = _dragId;
+        var accepted = Accepts(it);
+        DragEnd();
+        if (!accepted || moved is not int m || it.SectionId is not int target) return;
+
+        // Fratelli nell'ordine attuale = le voci-sezione dello stesso gruppo, nell'ordine in cui sono rese:
+        // il TOC è la proiezione del documento, non un secondo elenco.
+        var siblings = Items
+            .Where(x => x.SectionId is not null && string.Equals(x.DragGroup, it.DragGroup, StringComparison.Ordinal))
+            .Select(x => x.SectionId!.Value)
+            .ToList();
+
+        if (SectionOrdering.TryDropOnto(siblings, m, target, out var beforeId))
+            await OnReorder.InvokeAsync(new TocReorder(m, beforeId));
+    }
 }

@@ -2361,12 +2361,13 @@ diversamente sullo stesso oggetto, e va deciso se dirlo a schermo o dare al grup
 
 ## J. Identità dei settori e shape — 26 agosto 2026, ramo `identita-settori`
 
-Ramo aperto **da `statistiche-atc`** (non da `main`), **non fuso**, spinto su origin. Porta **nove lavori
+Ramo aperto **da `statistiche-atc`** (non da `main`), **non fuso**, spinto su origin. Porta **dieci lavori
 chiusi e nessuna voce aperta**. Carte:
 [identità dei settori](feature/2026-08-26-identita-dei-settori.md),
 [l'assenza non cancella](feature/2026-08-26-lassenza-non-cancella.md),
 [le shape dal sectorfile](feature/2026-08-26-shape-dal-sectorfile.md),
-[l'ordine delle sezioni](feature/2026-08-26-ordine-sezioni-personalizzato.md).
+[l'ordine delle sezioni](feature/2026-08-26-ordine-sezioni-personalizzato.md),
+[il riordino trascinando](feature/2026-08-26-riordino-sezioni-trascinando.md).
 
 ⚠️ Il quarto lavoro (**J6**) non c'entra con i settori: è arrivato dal committente mentre il ramo era aperto,
 e sta qui perché sta qui il ramo. **Non aggiunge migrazioni.**
@@ -2587,3 +2588,44 @@ vertici per nome non si risolvono più).
 quei campi non segnano più come inesistente un punto d'oltreconfine scritto giusto.
 
 Test: `NavaidIndiceTests` (7).
+
+### J9 ✅ CHIUSA — le sezioni si riordinano anche **trascinandole** nel menu Navigazione
+
+Richiesta del committente, 26 agosto: «se nell'editor le sezioni si potessero spostare anche trascinando nel
+pannello Navigazione… per ora fallo per la vIPI di ACC, di avvicinamento e la vLOA».
+[Carta](feature/2026-08-26-riordino-sezioni-trascinando.md).
+
+**Perché lì.** Le frecce di J6 stanno sulla card della sezione, in una pagina alta migliaia di pixel: portare
+*Validità e revisione* in cima sono otto pressioni, e a ogni pressione la sezione esce dallo schermo. Il
+menu-sezioni è l'unico posto dove l'ordine si vede **tutto insieme**. Le frecce restano — sono la strada da
+tastiera, e il trascinamento HTML5 non esiste sul tocco.
+
+**La regola è una sola**: *la sezione lasciata prende il posto di quella su cui la si lascia*. Dalla stessa
+frase escono due riferimenti diversi secondo il verso, e il conto lo fa una funzione pura
+(`SectionOrdering.TryDropOnto`); su fratelli **adiacenti** dà esattamente l'esito della freccia.
+
+Il motore serviva nuovo, perché lo scambio `±1` non salta N posti:
+`MoveSectionBeforeAsync(sezione, prima-di?)` reinserisce e **rinumera il gruppo**.
+
+⚠️ **Il vincolo «solo dentro il suo gruppo» sta nel MOTORE, non nella UI**: il riferimento dev'essere un
+**fratello**, altrimenti la mossa non avviene. Non è ridondanza — è ciò che rende impossibile trasformare un
+riordino in una **riparentazione silenziosa**, che cambierebbe il significato di una sezione e non la sua
+posizione.
+
+⚠️ **`draggable="false"` va scritto esplicitamente**: un `<a href>` nasce trascinabile per conto suo, e senza
+quell'attributo la voce del pannello Release si lascia prendere per poi non andare da nessuna parte.
+
+⚠️ **Il trascinamento è opt-in dell'host** (`EditorToc.OnReorder`): non passarlo lascia il pannello identico a
+prima, **senza gestori registrati sul circuito**. È così che l'editor aeroporto — che di sezioni-documento
+non ne ha — resta fuori senza una condizione dedicata, e fuori dalla modifica l'indice resta un indice.
+
+15 test nuovi (5 puri, 2 sul repository, 8 bUnit sul pannello), suite intera verde, Release **0 avvisi** sui
+due TFM. Verifica live sulle **tre famiglie** con browser vero: ACC `/services/vsop/libb/editor`, APP
+`?app=LIBG_APP`, vLOA `?acc=LDZO` — lo spostamento persiste al ricarico e le pill `↑2 ↓1` si aggiornano.
+Le due prove che i test non danno: trascinata una sezione **fra due blocchi** della vIPI ACC il menu è
+identico prima e dopo, e **l'anteprima bozza** della vLOA rende l'ordine nuovo.
+
+**Non fa** (deciso, non dimenticato): i **blocchi** ACC non si trascinano — nel menu sono intestazioni, e il
+loro riordino ha la regola propria dell'Aerovia in testa (J7); le **sotto-sezioni** nemmeno, il menu mostra
+solo il primo livello.
+

@@ -13,7 +13,9 @@
 @if (ShowToc)
 {
     <div class="ed-layout @(RightRail is not null ? "with-rail" : null) @(Wide ? "sid-wide" : null)">
-        <EditorToc Items="BuildToc()" Footer="TocFooter" />
+        @* Riordino trascinando: acceso solo in modifica — fuori dalla modifica l'indice resta un indice. *@
+        <EditorToc Items="BuildToc()" Footer="TocFooter"
+                   OnReorder="@(IsEditing ? EventCallback.Factory.Create<TocReorder>(this, ReorderFromToc) : default)" />
         <div>@SectionsBody</div>
         @if (RightRail is not null)
         {
@@ -77,11 +79,16 @@ else
     [Parameter] public bool Wide { get; set; }
 
     // Voci TOC = sezioni di primo livello (anchor s-{Id}, già usato da CollapsibleBlock) + eventuali extra dell'host.
+    // Le voci-sezione portano il proprio Id e il gruppo di riordino: qui il gruppo è UNO SOLO (le radici rese da
+    // questa istanza), perché è dentro quello che si scambiano l'ordine. Le voci extra dell'host (il pannello
+    // Release) restano senza Id: non sono sezioni, e non si trascinano.
+    private const string TocGroup = "root";
+
     private IReadOnlyList<EditorTocItem> BuildToc()
     {
         var items = new List<EditorTocItem>();
         foreach (var s in (RootSections ?? Doc.Sections))
-            items.Add(new EditorTocItem($"s-{s.Id}", s.Title));
+            items.Add(new EditorTocItem($"s-{s.Id}", s.Title, SectionId: s.Id, DragGroup: TocGroup));
         if (ExtraTocItems is { Count: > 0 }) items.AddRange(ExtraTocItems);
         return items;
     }
@@ -132,6 +139,13 @@ else
     private Task MoveSection(int sectionId, int dir) => Run(async () =>
     {
         await Editing.MoveSectionAsync(sectionId, dir);
+        await OnChanged.InvokeAsync();
+    });
+
+    // Trascinamento nel menu-sezioni: il TOC ha già tradotto il gesto in «prima di questa» (SectionOrdering).
+    private Task ReorderFromToc(TocReorder r) => Run(async () =>
+    {
+        await Editing.MoveSectionBeforeAsync(r.SectionId, r.BeforeSectionId);
         await OnChanged.InvokeAsync();
     });
 

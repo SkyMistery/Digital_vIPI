@@ -133,6 +133,14 @@ public interface IEditingRepository
     /// <summary>Sposta una sezione di un posto tra i fratelli (direction -1 = su, +1 = giù).</summary>
     Task MoveSectionAsync(int sectionId, int direction, CancellationToken ct = default);
 
+    /// <summary>
+    /// Sposta una sezione PRIMA del fratello indicato (null = in coda ai fratelli), rinumerando il gruppo.
+    /// È la stessa mossa delle frecce generalizzata a N posti: serve al trascinamento nel menu-sezioni.
+    /// <para>⚠️ Non riparenta: se <paramref name="beforeSectionId"/> non è un FRATELLO della sezione, la mossa
+    /// non avviene. Il vincolo «solo dentro il suo gruppo» sta qui, non nella UI che lo disegna.</para>
+    /// </summary>
+    Task MoveSectionBeforeAsync(int sectionId, int? beforeSectionId, CancellationToken ct = default);
+
     /// <summary>Sposta un blocco di un posto nella sua sezione (direction -1 = su, +1 = giù).</summary>
     Task MoveBlockAsync(int blockId, int direction, CancellationToken ct = default);
 

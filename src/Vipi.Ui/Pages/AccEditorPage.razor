@@ -77,7 +77,8 @@ else
             <div class="ed-layout with-rail @(_wide ? "sid-wide" : null)">
             @* Espandi/comprimi tutto: stessi tasti e stesse chiavi dell'editor aeroporto — quello che si fa in
                un editor si fa anche nell'altro (regola 68). Agiscono su blocchi E sezioni. *@
-            <EditorToc Items="BuildToc()">
+            <EditorToc Items="BuildToc()"
+                       OnReorder="@(_editing ? EventCallback.Factory.Create<TocReorder>(this, ReorderFromToc) : default)">
                 <Footer>
                     <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(true)" title="@L["Ed_ExpandAllTitle"]">@L["Common_ExpandAll"]</button>
                     <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(false)" title="@L["Ed_CollapseAllTitle"]">@L["Common_CollapseAll"]</button>
@@ -246,14 +247,25 @@ else
             }
             else
             {
+                // Il gruppo di riordino è il BLOCCO: una sezione si sposta fra le sorelle del suo blocco, mai
+                // in un altro (sarebbe una riparentazione, e MoveSectionBeforeAsync non la fa).
                 foreach (var c in bs.Children)
-                    items.Add(new EditorTocItem($"s-{c.Id}", c.Title, GroupLabel: group));
+                    items.Add(new EditorTocItem($"s-{c.Id}", c.Title, GroupLabel: group,
+                                                SectionId: c.Id, DragGroup: $"blk-{bs.Id}"));
             }
         }
         // Il blocco Release è reso fuori dall'editor di sezioni: la sua voce si accoda a mano, come in APP/vLOA.
         items.Add(new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]));
         return items;
     }
+
+    // Trascinamento nel menu-sezioni: il TOC ha già tradotto il gesto in «prima di questa» restando dentro il
+    // blocco. Stessa strada delle frecce (Guard + ricarico), un motore solo.
+    private Task ReorderFromToc(TocReorder r) => Guard(async () =>
+    {
+        await Editing.MoveSectionBeforeAsync(r.SectionId, r.BeforeSectionId);
+        await LoadAsync();
+    });
 
     private string ReleasePreviewUrl(int releaseId) => $"/services/vsop/{Acc.ToLowerInvariant()}/vipi?as=rel:{releaseId}";
 

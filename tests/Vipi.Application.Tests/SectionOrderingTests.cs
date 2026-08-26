@@ -85,4 +85,53 @@ public class SectionOrderingTests
         var g = Group("custom:aaaa1111", "aor", "custom:bbbb2222");
         Assert.Empty(SectionOrdering.OffsetsFromStandard(SectionProfile.App, g));
     }
+
+    // ---- Trascinamento: dal gesto al riferimento «prima di questa» -------------------------------------
+    // La regola a schermo e' una sola: la sezione lasciata PRENDE IL POSTO di quella su cui la si lascia.
+    // Verso il basso e verso l'alto quella stessa frase da' due riferimenti diversi, ed e' qui che si vede.
+
+    private static readonly int[] Sibs = { 10, 20, 30, 40 };
+
+    [Fact]
+    public void Drop_going_down_lands_after_the_target()
+    {
+        // 10 lasciata su 30 -> 20, 30, 10, 40: il riferimento e' il fratello DOPO il bersaglio.
+        Assert.True(SectionOrdering.TryDropOnto(Sibs, movedId: 10, targetId: 30, out var before));
+        Assert.Equal(40, before);
+    }
+
+    [Fact]
+    public void Drop_going_down_onto_the_last_appends()
+    {
+        Assert.True(SectionOrdering.TryDropOnto(Sibs, movedId: 10, targetId: 40, out var before));
+        Assert.Null(before);   // in coda: dopo l'ultimo non c'e' nessuno davanti a cui mettersi
+    }
+
+    [Fact]
+    public void Drop_going_up_lands_on_the_target_place()
+    {
+        // 40 lasciata su 20 -> 10, 40, 20, 30: il riferimento e' il bersaglio stesso.
+        Assert.True(SectionOrdering.TryDropOnto(Sibs, movedId: 40, targetId: 20, out var before));
+        Assert.Equal(20, before);
+    }
+
+    [Fact]
+    public void Drop_of_adjacent_sections_is_the_arrow_move()
+    {
+        // Su fratelli adiacenti il trascinamento deve dare lo stesso esito delle frecce: 20 su 10 = «20 su».
+        Assert.True(SectionOrdering.TryDropOnto(Sibs, movedId: 20, targetId: 10, out var up));
+        Assert.Equal(10, up);
+        Assert.True(SectionOrdering.TryDropOnto(Sibs, movedId: 20, targetId: 30, out var down));
+        Assert.Equal(40, down);
+    }
+
+    // ⚠️ Un bersaglio che non e' del gruppo (o la sezione su se stessa) NON e' una mossa: il trascinamento non
+    // riparenta, e chi chiama non deve trovarsi un riferimento buono per una sezione di un altro blocco.
+    [Fact]
+    public void Drop_outside_the_group_or_onto_itself_is_no_move()
+    {
+        Assert.False(SectionOrdering.TryDropOnto(Sibs, movedId: 10, targetId: 10, out _));
+        Assert.False(SectionOrdering.TryDropOnto(Sibs, movedId: 10, targetId: 99, out _));
+        Assert.False(SectionOrdering.TryDropOnto(Sibs, movedId: 99, targetId: 10, out _));
+    }
 }
