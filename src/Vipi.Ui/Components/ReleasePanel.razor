@@ -7,7 +7,7 @@
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
 @* Releases NON isolato: il publish è un'unica operazione logica composta con BeforePublishAsync della pagina
-   (es. AeroportoEditorPage.RebuildDocumentAsync), che gira sul context della pagina. Isolare ReleasePanel
+   (es. AeroportoEditorPage.EnsureDocumentAsync), che gira sul context della pagina. Isolare ReleasePanel
    spezzerebbe il publish su due context → hang. Deve condividere il context del circuito con la pagina. *@
 
 @* Involucro di sezione (ancora TOC + titolo + aiuto): sta QUI e non in ogni editor, o torna a divergere —

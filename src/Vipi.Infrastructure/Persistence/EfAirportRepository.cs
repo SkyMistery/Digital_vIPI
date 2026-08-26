@@ -23,21 +23,6 @@ public sealed class EfAirportRepository : IAirportRepository
         _media = media;
     }
 
-    /// <summary>Titoli delle sezioni del documento gestite (rigenerate); le altre vengono preservate. Include sia i
-    /// titoli EN correnti sia quelli IT legacy, così un rebuild di un documento vecchio rimuove le sezioni italiane
-    /// (e le rigenera in inglese) invece di lasciarle duplicate.</summary>
-    private static readonly string[] ManagedSectionTitles =
-    {
-        // EN correnti
-        "Runway rules", "Transition levels", "Frequencies", "Runways", "SID",
-        // IT legacy (documenti generati prima dell'i18n)
-        "Configurazioni pista", "Regole piste", "Quote di transizione", "Frequenze", "Piste",
-    };
-
-    /// <summary>Chiave delle sezioni editoriali libere dell'aeroporto emesse nel documento dal profilo (doc 08e-airport):
-    /// hanno titolo arbitrario, quindi si riconoscono/rimuovono per chiave (non per titolo come le managed).</summary>
-    private const string ExtraSectionKey = "airportextra";
-
     public async Task<string?> GetAccCodeByIcaoAsync(string icao, CancellationToken ct = default) =>
         await _db.Airports.Where(a => a.Icao == icao).Select(a => a.Acc!.Code).FirstOrDefaultAsync(ct);
 
@@ -347,7 +332,7 @@ public sealed class EfAirportRepository : IAirportRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<int> RebuildDocumentAsync(string icao, CancellationToken ct = default)
+    public async Task<int> EnsureDocumentAsync(string icao, CancellationToken ct = default)
     {
         var airport = await _db.Airports
             .Include(a => a.TransitionLevels).Include(a => a.Runways).Include(a => a.RunwayRules)
@@ -356,7 +341,7 @@ public sealed class EfAirportRepository : IAirportRepository
         // Garantisce la tabella TL di default anche per aeroporti generati senza import IVAO (es. TA/TL mai popolate).
         EnsureDefaultTransitionLevels(airport);
         // Risolve i livelli delle fasce-default se la TA è nota ma le righe portano ancora il placeholder "TA + N ft"
-        // (seminate quando la TA non era ancora arrivata dalla sorgente): senza questo il rebuild pubblicherebbe i
+        // (seminate quando la TA non era ancora arrivata dalla sorgente): senza questo la pagina mostrerebbe i
         // placeholder invece dei FL calcolati. Le fasce personalizzate restano intatte.
         RecomputeDefaultBandLevels(airport);
 
@@ -367,59 +352,41 @@ public sealed class EfAirportRepository : IAirportRepository
         var sectors = (await _db.Sectors.Where(s => s.AirportId == airport.Id && s.Type != SectorType.App)
             .ToListAsync(ct))
             .OrderBy(s => (int)s.Type).ToList();
-        var links = await _db.AirportFrequencyLinks.Where(x => x.AirportId == airport.Id).OrderBy(x => x.Order)
-            .Include(x => x.SourceSector).Where(x => x.SourceSector != null && x.SourceSector!.DefaultFrequency != null).ToListAsync(ct);
 
         var now = DateTime.UtcNow;
         var cycle = new AiracService().GetCycle(now);
 
         // Documento esistente: lo dice l'AEROPORTO. Chiedendolo ai settori — com'era fino al 25 agosto 2026 —
         // uno scalo senza torre non lo ritrovava mai e se ne creava uno nuovo a ogni apertura dell'editor.
-        var docId = airport.DocumentId;
         Document doc;
-        DocumentVersion ver;
-        // RenderMode editoriale della sezione SID (doc 10 §3e/§S4c): preservato tra i rebuild (la sezione è rigenerata,
-        // ma la scelta Live/Frozen dello staff no). Default Live alla prima generazione.
-        var sidsMode = RenderMode.Live;
-        if (docId is int existing)
+        if (airport.DocumentId is int existing)
         {
-            doc = await _db.Documents.Include(d => d.Versions).FirstAsync(d => d.Id == existing, ct);
-            ver = await _db.DocumentVersions.Include(v => v.Sections).ThenInclude(s => s.Blocks)
-                .FirstAsync(v => v.Id == doc.CurrentVersionId, ct);
-            // Rimuove le sezioni gestite (per titolo) + le sezioni editoriali libere dal profilo (per chiave); preserva
-            // eventuali sezioni aggiunte a mano di altra natura.
-            var managed = ver.Sections
-                .Where(s => ManagedSectionTitles.Contains(s.Title) || s.SectionKey == ExtraSectionKey).ToList();
-            sidsMode = ver.Sections.FirstOrDefault(s => s.SectionKey == "sids")?.RenderMode ?? RenderMode.Live;
-            foreach (var s in managed) _db.ContentBlocks.RemoveRange(s.Blocks);
-            _db.DocumentSections.RemoveRange(managed);
+            doc = await _db.Documents.FirstAsync(d => d.Id == existing, ct);
         }
         else
         {
             // Alla prima generazione il documento resta in BOZZA: l'aeroporto appena importato non è ancora
-            // pubblico. Sarà lo staff a pubblicarlo a mano da /services/vsop/versioni. (I rebuild successivi — ramo
-            // "documento esistente" sopra — preservano lo stato: un doc già pubblicato resta pubblicato.)
+            // pubblico. Sarà lo staff a pubblicarlo a mano da /services/vsop/versioni.
             doc = new Document
             {
                 Type = DocumentType.Vipi, Title = $"vIPI — {icao} {airport.Name}", Language = Language.It,
                 Status = DocumentStatus.Draft, LastUpdatedUtc = now, LastUpdatedAiracCycle = cycle,
             };
-            ver = new DocumentVersion
+            var ver = new DocumentVersion
             {
                 Document = doc, VersionNumber = 1, Status = DocumentStatus.Draft,
-                CreatedByUserId = 0, CreatedUtc = now, AiracCycle = cycle, Note = "Generato dal profilo aeroporto",
+                CreatedByUserId = 0, CreatedUtc = now, AiracCycle = cycle, Note = "Bozza iniziale",
             };
             doc.Versions.Add(ver);
             _db.Documents.Add(doc);
             await _db.SaveChangesAsync(ct);
             doc.CurrentVersionId = ver.Id;
+
+            SeedCatalogSections(ver);
+
             // Il legame che conta: il documento è dell'AEROPORTO. Vale anche per uno scalo senza nemmeno un
             // settore proprio — LIBG ha in IVAO solo un APP non remotizzato, e la sua vIPI d'aeroporto ora esiste.
             airport.DocumentId = doc.Id;
-            // I settori restano legati allo stesso documento: serve a chi parte da un callsign (vista live,
-            // ricerca). È una proiezione del legame di sopra, non una seconda verità.
-            var primary = sectors.FirstOrDefault(s => IsTower(s.Type)) ?? sectors.FirstOrDefault();
-            foreach (var s in sectors) { s.DocumentId = doc.Id; s.IsPrimary = s == primary; }
         }
 
         // Riallineamento dei settori al documento dell'aeroporto: un settore comparso DOPO la prima generazione
@@ -438,113 +405,39 @@ public sealed class EfAirportRepository : IAirportRepository
             .ToListAsync(ct);
         foreach (var s in strayApps) { s.DocumentId = null; s.IsPrimary = false; }
 
-        var b = new DocBuilder(_db, ver);
-        var order = 0;
-
-        // 1 — Regole piste (solo se presenti). Scelta in base a vento in coda/traverso + superficie.
-        if (airport.RunwayRules.Count > 0)
-        {
-            var sec = b.Section("Runway rules", BlockSection.Airport, ++order);
-            b.Prose(sec, BlockTier.Reduced,
-                "The **first** rule whose conditions are met applies (tailwind/crosswind within the stated limits and " +
-                "matching surface); if none applies, the runway with the best headwind is used.");
-            b.Table(sec, BlockTier.Reduced, new
-            {
-                columns = new[] { "Condition", "DEP", "ARR", "Notes" },
-                unified = false,
-                rows = airport.RunwayRules.OrderBy(r => r.Order)
-                    .Select(r => (object)new { cells = new[] { RuleCondition(r), Dash(r.DepRunways), Dash(r.ArrRunways), r.Note ?? "—" } })
-                    .ToList(),
-            });
-        }
-
-        // 2 — Transition levels (TA + tabella TL).
-        var trans = b.Section("Transition levels", BlockSection.Airport, ++order);
-        b.Prose(trans, BlockTier.Reduced, airport.TransitionAltitudeFt is int taFt
-            ? $"**Transition Altitude:** {taFt} ft" : "**Transition Altitude:** _to be defined_");
-        if (airport.TransitionLevels.Count > 0)
-            b.Table(trans, BlockTier.Reduced, new
-            {
-                columns = new[] { "QNH (hPa)", "Transition Level" },
-                unified = false,
-                rows = airport.TransitionLevels.OrderBy(t => t.Order)
-                    .Select(t => (object)new { cells = new[] { QnhRange(t.QnhFrom, t.QnhTo), t.Level } }).ToList(),
-            });
-
-        // 3 — Frequenze (dal catalogo AirportSector: ATIS·DEL·GND·TWR·APP/DEP, ★ = principale per tipo) + link risolti.
-        var catalog = await _db.AirportSectors.AsNoTracking()
-            .Where(s => s.AirportIcao == icao && !s.IsHidden && s.Frequency != null)
-            .ToListAsync(ct);
-        var freqRows = new List<object>();
-        foreach (var s in catalog.OrderBy(FreqOrder).ThenByDescending(s => s.IsPrimary).ThenBy(s => s.ComposePosition))
-        {
-            var cells = new[] { FreqNameForPosition(s.Position), s.ComposePosition, s.Frequency! };
-            freqRows.Add(s.IsPrimary ? new { primary = true, star = true, cells } : (object)new { cells });
-        }
-        foreach (var l in links)
-            freqRows.Add(new { cells = new[] { l.LabelOverride ?? l.SourceSector!.Callsign, l.SourceSector!.Callsign, l.SourceSector!.DefaultFrequency! } });
-        var freq = b.Section("Frequencies", BlockSection.Frequencies, ++order);
-        b.Table(freq, BlockTier.Reduced, new { columns = new[] { "Name", "Callsign", "Frequency" }, unified = false, rows = freqRows });
-
-        // 4 — Runways.
-        var rwy = b.Section("Runways", BlockSection.Airport, ++order);
-        b.Table(rwy, BlockTier.Extended, new
-        {
-            columns = new[] { "Runway", "TORA", "LDA", "APP procedures", "Patterns", "Circling" },
-            unified = false,
-            rows = airport.Runways.OrderBy(r => r.Order).Select(r => (object)new
-            {
-                cells = new[]
-                {
-                    r.Ident,
-                    r.ToraM ?? (r.LengthM is int m ? $"{m} m" : "—"),
-                    r.LdaM ?? (r.LengthM is int m2 ? $"{m2} m" : "—"),
-                    Dash(r.AppProcedures), Dash(r.Patterns), Dash(r.Circling),
-                }
-            }).ToList(),
-        });
-
-        // 5 — SID: sezione DERIVABILE (doc 10 §3e), non più «cotta» qui. Il merge editoriali+importate (filtro AIRAC)
-        // e l'ordine per FIX/priorità si derivano a view-time (AirportSidDerivationService); il viewer li rende live.
-        // La sezione resta come ancora del RenderMode (default Live) e portante per la cattura di release quando Frozen.
-        var sid = b.Section("SID", "sids", ++order);
-        sid.RenderMode = sidsMode;   // preserva la scelta editoriale Live/Frozen tra i rebuild (doc 10 §S4c)
-
-        // 6 — Sezioni editoriali libere del profilo (titolo + prosa markdown), keyed così da entrare nel documento
-        // (e quindi nello snapshot di release) invece di restare in uno store parallelo. Doc 08e-airport.
-        var extras = await _db.AirportExtraSections.Where(x => x.AirportId == airport.Id).OrderBy(x => x.Order).ToListAsync(ct);
-        foreach (var x in extras)
-        {
-            var sec = b.Section(string.IsNullOrWhiteSpace(x.Title) ? "Section" : x.Title, ExtraSectionKey, ++order);
-            // I blocchi editoriali (Prosa/Callout/Tabella) sono serializzati nel Body (formato condiviso col vIPI editor);
-            // un Body legacy markdown viene letto come un singolo blocco prosa (ExtraBlocks.Parse).
-            foreach (var blk in ExtraBlocks.Parse(x.Body))
-            {
-                switch (blk.Format)
-                {
-                    case BlockFormat.Callout when !string.IsNullOrWhiteSpace(blk.Text):
-                        b.Callout(sec, blk.CalloutKind, "", BlockTier.Extended, blk.Text!);
-                        break;
-                    case BlockFormat.Table when !string.IsNullOrWhiteSpace(blk.TableJson):
-                        b.TableRaw(sec, BlockTier.Extended, blk.TableJson!);
-                        break;
-                    case BlockFormat.Image when MediaRef.Parse(blk.ImageJson) is not null:
-                        // Senza questo ramo l'immagine resterebbe nel profilo e sparirebbe dal documento pubblicato:
-                        // il viewer legge il documento «cotto», non gli extra.
-                        b.Image(sec, BlockTier.Extended, blk.ImageJson!, blk.Text);
-                        break;
-                    case BlockFormat.Prose or BlockFormat.List when !string.IsNullOrWhiteSpace(blk.Text):
-                        b.Prose(sec, BlockTier.Extended, blk.Text!);
-                        break;
-                }
-            }
-        }
-
-        doc.LastUpdatedUtc = now;
-        doc.LastUpdatedAiracCycle = cycle;
         await _db.SaveChangesAsync(ct);
         return doc.Id;
     }
+
+    /// <summary>
+    /// Semina le sezioni del profilo aeroporto (carta 2026-08-26 §1a) sulla versione appena creata: chiave, titolo e
+    /// ordine dal <see cref="SectionCatalog"/>, <b>senza blocchi</b> — il corpo delle sezioni fisse lo produce la
+    /// pagina, derivandolo dalle tabelle del profilo.
+    /// <para>
+    /// ⚠️ Il <see cref="RenderMode"/> di nascita non è uniforme: <c>weather</c> e <c>sids</c> nascono
+    /// <see cref="RenderMode.Live"/>, le altre <see cref="RenderMode.Frozen"/> (il default della colonna). Il meteo
+    /// perché congelarlo sarebbe una bugia, le SID perché lo erano già (doc 10 §S4c) e il loro ciclo AIRAC è
+    /// governato dal gate d'import, non dalla release.
+    /// </para>
+    /// </summary>
+    private void SeedCatalogSections(DocumentVersion ver)
+    {
+        foreach (var d in SectionCatalog.For(SectionProfile.Airport).OrderBy(d => d.Order))
+        {
+            var section = new DocumentSection
+            {
+                DocumentVersion = ver, ParentSection = null, Title = d.Title, Order = d.Order,
+                Depth = 0, SectionKey = d.Key, RowVersion = Guid.NewGuid().ToByteArray(),
+                RenderMode = BornLive(d.Key) ? RenderMode.Live : RenderMode.Frozen,
+            };
+            ver.Sections.Add(section);
+            _db.DocumentSections.Add(section);
+        }
+    }
+
+    /// <summary>Sezioni derivate che nascono Live: il meteo (mai congelabile) e le SID (scelta editoriale storica).</summary>
+    private static bool BornLive(string key) =>
+        SectionCatalog.IsAlwaysLive(key) || string.Equals(key, "sids", StringComparison.OrdinalIgnoreCase);
 
     public async Task<RenderMode> GetSidsRenderModeAsync(string icao, CancellationToken ct = default)
     {
@@ -714,60 +607,5 @@ public sealed class EfAirportRepository : IAirportRepository
         if (mask is not int m || m == 0 || m == 0b1111111) return null;   // null/0/tutti = nessun vincolo da mostrare
         var names = Enumerable.Range(0, 7).Where(b => (m & (1 << b)) != 0).Select(b => DayNames[b]);
         return string.Join("/", names);
-    }
-
-    /// <summary>Builder minimale per il documento di aeroporto (stesse convenzioni di RomaAirportSeed/DocBuilder).</summary>
-    private sealed class DocBuilder
-    {
-        private readonly VipiDbContext _db;
-        private readonly DocumentVersion _ver;
-        public DocBuilder(VipiDbContext db, DocumentVersion ver) { _db = db; _ver = ver; }
-
-        public DocumentSection Section(string title, BlockSection kind, int order) =>
-            Section(title, SectionCatalogBridge.KeyFor(kind) ?? SectionKeys.NewCustom(), order);
-
-        public DocumentSection Section(string title, string sectionKey, int order)
-        {
-            var s = new DocumentSection
-            {
-                DocumentVersion = _ver, ParentSection = null, Title = title, Order = order,
-                Depth = 0, SectionKey = sectionKey, RowVersion = Guid.NewGuid().ToByteArray(),
-            };
-            _ver.Sections.Add(s);
-            _db.DocumentSections.Add(s);
-            return s;
-        }
-
-        public void Prose(DocumentSection s, BlockTier tier, string markdown) =>
-            Add(s, BlockFormat.Prose, tier, body: markdown);
-
-        public void Callout(DocumentSection s, CalloutKind kind, string title, BlockTier tier, string markdown) =>
-            Add(s, BlockFormat.Callout, tier, body: markdown, callout: kind,
-                bodyJson: JsonSerializer.Serialize(new { title }));
-
-        public void Table(DocumentSection s, BlockTier tier, object data) =>
-            Add(s, BlockFormat.Table, tier, bodyJson: JsonSerializer.Serialize(data));
-
-        /// <summary>Tabella con BodyJson già serializzato (columns/rows) — usato dai blocchi extra a formato condiviso.</summary>
-        public void TableRaw(DocumentSection s, BlockTier tier, string bodyJson) =>
-            Add(s, BlockFormat.Table, tier, bodyJson: bodyJson);
-
-        /// <summary>Immagine: <paramref name="imageJson"/> è il riferimento (<see cref="MediaRef"/>), il corpo la didascalia.</summary>
-        public void Image(DocumentSection s, BlockTier tier, string imageJson, string? caption) =>
-            Add(s, BlockFormat.Image, tier, body: caption, bodyJson: imageJson);
-
-        private void Add(DocumentSection s, BlockFormat format, BlockTier tier,
-            string? body = null, string? bodyJson = null, CalloutKind? callout = null)
-        {
-            var block = new ContentBlock
-            {
-                DocumentVersion = _ver, Section = s, Order = s.Blocks.Count + 1,
-                Tier = tier, Format = format, Visibility = BlockVisibility.Always, CalloutKind = callout,
-                Body = body, BodyJson = bodyJson, RowVersion = Guid.NewGuid().ToByteArray(),
-            };
-            s.Blocks.Add(block);
-            _ver.Blocks.Add(block);
-            _db.ContentBlocks.Add(block);
-        }
     }
 }

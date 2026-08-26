@@ -45,8 +45,18 @@ public interface IAirportRepository
     Task MergeFromSourceAsync(string icao, int? transitionAltitude,
         IReadOnlyList<(string Ident, int? LengthM, int? Bearing)> runways, CancellationToken ct = default);
 
-    /// <summary>Rigenera in-place le sezioni gestite del documento dell'aeroporto dalle entità, preservando le altre. Ritorna l'id documento.</summary>
-    Task<int> RebuildDocumentAsync(string icao, CancellationToken ct = default);
+    /// <summary>
+    /// Idempotente: garantisce che l'aeroporto abbia il suo documento (<c>Airport.DocumentId</c>) con le sezioni del
+    /// profilo <see cref="SectionProfile.Airport"/>, e riallinea i settori dello scalo a quel documento. Ritorna
+    /// l'id documento.
+    /// <para>
+    /// ⚠️ Non «rigenera» più niente: fino alla carta 2026-08-26 questo metodo <b>cuoceva</b> le sezioni — le
+    /// cancellava riconoscendole per titolo e le riscriveva come tabelle Markdown. Era il motivo per cui l'ordine,
+    /// il «nascondi» e le sotto-sezioni dell'aeroporto non sopravvivevano: quello stato sta sulla sezione, e la
+    /// sezione veniva distrutta. Ora il corpo delle sezioni fisse si deriva a view-time dalle tabelle del profilo.
+    /// </para>
+    /// </summary>
+    Task<int> EnsureDocumentAsync(string icao, CancellationToken ct = default);
 
     /// <summary>Id del Document proiettato dell'aeroporto (via settori d'aeroporto con <c>DocumentId</c>), o null se non ancora generato.</summary>
     Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default);

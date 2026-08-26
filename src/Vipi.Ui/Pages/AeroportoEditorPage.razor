@@ -1741,7 +1741,7 @@ else
             return false;
         if (!await Confirm(L["Ape_RebuildConfirm"].Value))
             return false;
-        await Profile.RebuildDocumentAsync(_icao);
+        await Profile.EnsureDocumentAsync(_icao);
         return true;
     }
 

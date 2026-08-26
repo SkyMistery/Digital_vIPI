@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
 using Vipi.Domain;
@@ -46,8 +46,9 @@ public interface IAirportEditingService
 
     /// <summary>Re-importa da IVAO (merge mirato): aggiorna TA/ATIS/piste, preserva il lavoro editoriale.</summary>
     Task ReimportFromSourceAsync(string icao, CancellationToken ct = default);
-    /// <summary>Rigenera e ripubblica le sezioni gestite del documento dalle entità. Ritorna l'id documento.</summary>
-    Task<int> RebuildDocumentAsync(string icao, CancellationToken ct = default);
+    /// <summary>Idempotente: garantisce il documento dell'aeroporto e le sue sezioni di catalogo. Ritorna l'id
+    /// documento. Non cuoce più il contenuto: le sezioni fisse si derivano a view-time (carta 2026-08-26).</summary>
+    Task<int> EnsureDocumentAsync(string icao, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IAirportEditingService"/>
@@ -193,10 +194,10 @@ public sealed class AirportEditingService : IAirportEditingService
         await _repo.MergeFromSourceAsync(icao, ta, runways, ct);
     }
 
-    public async Task<int> RebuildDocumentAsync(string icao, CancellationToken ct = default)
+    public async Task<int> EnsureDocumentAsync(string icao, CancellationToken ct = default)
     {
         await EnsureCanEditAsync(icao, ct);
-        return await _repo.RebuildDocumentAsync(Norm(icao), ct);
+        return await _repo.EnsureDocumentAsync(Norm(icao), ct);
     }
 
     private async Task EnsureCanEditAsync(string icao, CancellationToken ct)

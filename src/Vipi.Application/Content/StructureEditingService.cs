@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
 using Vipi.Domain;
@@ -251,9 +251,10 @@ public sealed class StructureEditingService : IStructureEditingService
         // piste scritte a mano anche con le categorie escluse in «Sorgenti dati» (vedi SourceMergeInputs).
         var (ta, runways) = await SourceMergeInputs.ReadAsync(policy, icao, _directory, _details, ct);
 
-        // 2 — merge nel profilo strutturato (preserva l'editoriale) e 3 — rigenera il documento (Frequenze dal catalogo).
+        // 2 — merge nel profilo strutturato (preserva l'editoriale) e 3 — garantisce il documento e le sue sezioni
+        // di catalogo. Il contenuto non si cuoce: le sezioni fisse lo derivano dalle tabelle qui sopra (carta 2026-08-26).
         await _profile.MergeFromSourceAsync(icao, ta, runways, ct);
-        var docId = await _profile.RebuildDocumentAsync(icao, ct);
+        var docId = await _profile.EnsureDocumentAsync(icao, ct);
         return new AirportDocResult(icao, true, created, docId, null);
     }
 

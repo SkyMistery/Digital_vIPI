@@ -1,6 +1,7 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Infrastructure.Persistence;
 using Xunit;
@@ -116,7 +117,7 @@ public class StructureEditingTests : IAsyncLifetime
     };
 
     [Fact]
-    public async Task EnsureSectors_Merge_Rebuild_Creates_Draft_Doc_With_Managed_Sections()
+    public async Task EnsureSectors_Merge_Ensure_Creates_Draft_Doc_With_Catalog_Sections()
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
@@ -126,7 +127,7 @@ public class StructureEditingTests : IAsyncLifetime
         Assert.True(found);
         Assert.Equal(3, created);   // ATIS non crea settore operativo
 
-        // Catalogo settori (fonte delle frequenze del documento): ATIS + TWR.
+        // Catalogo settori (fonte delle frequenze derivate): ATIS + TWR.
         await new EfAirportSectorRepository(_db).ImportForAirportAsync("LIRF", new[]
         {
             new SourceAtcPosition("LIRF_ATIS", "135.975", "ATIS", null, null, null, null),
@@ -135,7 +136,7 @@ public class StructureEditingTests : IAsyncLifetime
 
         await profile.MergeFromSourceAsync("LIRF", 6000,
             new[] { ("16L", (int?)3902, (int?)160), ("16R", (int?)3900, (int?)160) });
-        var docId = await profile.RebuildDocumentAsync("LIRF");
+        var docId = await profile.EnsureDocumentAsync("LIRF");
         Assert.True(docId > 0);
 
         // Settori: TWR primario, agganciato al documento; ATIS non è un settore.
@@ -145,25 +146,29 @@ public class StructureEditingTests : IAsyncLifetime
         Assert.Equal(docId, twr.DocumentId);
         Assert.DoesNotContain(data.Sectors, s => s.Callsign == "LIRF_ATIS");
 
-        // Documento generato in BOZZA (lo staff pubblica a mano) con le sezioni gestite.
+        // Documento in BOZZA (lo staff pubblica a mano) con le sezioni del CATALOGO, nel loro ordine.
         var doc = await _db.Documents.FirstAsync();
         Assert.Equal(DocumentStatus.Draft, doc.Status);
-        var sectionTitles = await _db.DocumentSections.Select(s => s.Title).ToListAsync();
-        Assert.Contains("Transition levels", sectionTitles);
-        Assert.Contains("Frequencies", sectionTitles);
-        Assert.Contains("Runways", sectionTitles);
-        Assert.Contains("SID", sectionTitles);
+        var sections = await _db.DocumentSections.OrderBy(s => s.Order).ToListAsync();
+        Assert.Equal(
+            SectionCatalog.For(SectionProfile.Airport).OrderBy(d => d.Order).Select(d => d.Key),
+            sections.Select(s => s.SectionKey));
+        Assert.Equal(
+            SectionCatalog.For(SectionProfile.Airport).OrderBy(d => d.Order).Select(d => d.Title),
+            sections.Select(s => s.Title));
 
-        // SID de-cotta (doc 10 §3e): la sezione "SID" ora è derivabile (key "sids", RenderMode.Live) e VUOTA — le righe
-        // si derivano a view-time, non sono più cotte nel documento.
-        var sidSec = await _db.DocumentSections.Include(s => s.Blocks).SingleAsync(s => s.Title == "SID");
-        Assert.Equal("sids", sidSec.SectionKey);
-        Assert.Equal(Vipi.Domain.RenderMode.Live, sidSec.RenderMode);
-        Assert.Empty(sidSec.Blocks);
+        // ⚠️ Nessuna sezione porta blocchi: il corpo delle fisse lo produce la pagina, derivandolo dalle
+        // tabelle del profilo (carta 2026-08-26 §2). Prima erano tabelle Markdown COTTE qui dentro, ed è per
+        // questo che l'ordine e il «nascondi» non sopravvivevano a un rebuild.
+        Assert.Empty(await _db.ContentBlocks.ToListAsync());
 
-        // ATIS (dal catalogo) nella tabella Frequenze; TA nella prose; piste con lunghezza.
-        Assert.Contains(await _db.ContentBlocks.ToListAsync(), b => b.BodyJson != null && b.BodyJson.Contains("135.975"));
-        Assert.Contains(await _db.ContentBlocks.ToListAsync(), b => b.Body != null && b.Body.Contains("6000 ft"));
+        // Meteo e SID nascono Live, il resto Frozen: si congela alla pubblicazione.
+        Assert.Equal(RenderMode.Live, sections.Single(s => s.SectionKey == "weather").RenderMode);
+        Assert.Equal(RenderMode.Live, sections.Single(s => s.SectionKey == "sids").RenderMode);
+        Assert.Equal(RenderMode.Frozen, sections.Single(s => s.SectionKey == "runways").RenderMode);
+        Assert.Equal(RenderMode.Frozen, sections.Single(s => s.SectionKey == "frequencies").RenderMode);
+
+        // I dati del profilo restano dove sono: sono loro la sorgente delle sezioni derivate.
         var prof = await profile.LoadAsync("LIRF");
         Assert.Equal(2, prof!.Runways.Count);
         Assert.Equal(3902, prof.Runways.First(r => r.Ident == "16L").LengthM);
@@ -176,7 +181,7 @@ public class StructureEditingTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task SidsRenderMode_Defaults_Live_And_Survives_Rebuild()
+    public async Task SidsRenderMode_Defaults_Live_And_Survives_A_Second_Ensure()
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
@@ -184,15 +189,15 @@ public class StructureEditingTests : IAsyncLifetime
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
         await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
 
-        await profile.RebuildDocumentAsync("LIRF");
+        await profile.EnsureDocumentAsync("LIRF");
         Assert.Equal(RenderMode.Live, await profile.GetSidsRenderModeAsync("LIRF"));   // default
 
         // Lo staff congela la sezione SID.
         await profile.SetSidsRenderModeAsync("LIRF", RenderMode.Frozen);
         Assert.Equal(RenderMode.Frozen, await profile.GetSidsRenderModeAsync("LIRF"));
 
-        // Un nuovo rebuild rigenera la sezione ma PRESERVA la scelta editoriale.
-        await profile.RebuildDocumentAsync("LIRF");
+        // Una seconda Ensure non tocca niente: è idempotente, non rigenera — era il punto dolente del rebuild.
+        await profile.EnsureDocumentAsync("LIRF");
         Assert.Equal(RenderMode.Frozen, await profile.GetSidsRenderModeAsync("LIRF"));
 
         var sidSec = await _db.DocumentSections.SingleAsync(s => s.SectionKey == "sids");
@@ -226,113 +231,46 @@ public class StructureEditingTests : IAsyncLifetime
         Assert.Equal("No", rw.Circling);
     }
 
+    /// <summary>
+    /// L'Ensure è idempotente e NON tocca il documento che trova: né l'ordine deciso in editor, né le sezioni
+    /// libere, né i loro blocchi. È la differenza col rebuild di prima, che cancellava e riscriveva.
+    /// </summary>
     [Fact]
-    public async Task Rebuild_Renders_Rules_And_Links_And_Preserves_Manual_Sections()
+    public async Task Ensure_Is_Idempotent_And_Leaves_The_Existing_Document_Alone()
     {
         await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
         var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
         await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
-        await profile.RebuildDocumentAsync("LIRF");
+        var docId = await profile.EnsureDocumentAsync("LIRF");
 
-        // Una regola pista + un link a una frequenza esistente nel DB (entità Frequency di un settore APP).
-        await profile.SaveRunwayRulesAsync("LIRF", new[]
-        {
-            new Vipi.Application.Content.RunwayRuleRow(0, "16R", "16L", "Sud", 5, null, RunwaySurface.Any, "vento da sud"),
-        });
-        var appSec = await _repo.AddSectorAsync("LIRR", "LIRF_APP", SectorType.App, SectorKind.Acc, "Roma APP", "119.200", 5, null, null, null);
-        await profile.SaveFrequencyLinksAsync("LIRF", new[] { appSec });   // link al SETTORE (DefaultFrequency)
-
-        // Aggiungo a mano una sezione extra al documento: il rebuild deve preservarla.
+        // Lo staff riordina (Frequenze in testa) e aggiunge una sezione libera con del testo.
         var ver = await _db.DocumentVersions.Include(v => v.Sections).FirstAsync();
-        _db.DocumentSections.Add(new Vipi.Domain.Entities.DocumentSection
+        ver.Sections.Single(s => s.SectionKey == "frequencies").Order = 0;
+        var libera = new Vipi.Domain.Entities.DocumentSection
         {
             DocumentVersionId = ver.Id, Title = "Note locali", Order = 99, Depth = 0,
-            SectionKey = "custom", RowVersion = System.Guid.NewGuid().ToByteArray(),
+            SectionKey = SectionKeys.NewCustom(), RowVersion = System.Guid.NewGuid().ToByteArray(),
+        };
+        _db.DocumentSections.Add(libera);
+        await _db.SaveChangesAsync();
+        _db.ContentBlocks.Add(new Vipi.Domain.Entities.ContentBlock
+        {
+            DocumentVersionId = ver.Id, SectionId = libera.Id, Order = 1, Format = BlockFormat.Prose,
+            Tier = BlockTier.Extended, Visibility = BlockVisibility.Always,
+            Body = "Attenzione al **raccordo B**.", RowVersion = System.Guid.NewGuid().ToByteArray(),
         });
         await _db.SaveChangesAsync();
 
-        await profile.RebuildDocumentAsync("LIRF");
+        Assert.Equal(docId, await profile.EnsureDocumentAsync("LIRF"));   // stesso documento, nessun gemello
 
-        var titles = await _db.DocumentSections.Select(s => s.Title).ToListAsync();
-        Assert.Contains("Runway rules", titles);
-        Assert.Contains("Note locali", titles);                       // sezione manuale preservata
-        Assert.Single(titles, t => t == "Frequencies");               // non duplicata
-        var freqBlock = await _db.ContentBlocks.FirstAsync(b => b.BodyJson != null && b.BodyJson.Contains("LIRF_APP"));
-        Assert.Contains("119.200", freqBlock.BodyJson!);              // valore del link risolto
-    }
-
-    [Fact]
-    public async Task Rebuild_Emits_Extra_Sections_Into_Document_And_Regenerates_Them()
-    {
-        await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
-        await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
-        var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
-        await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
-        await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
-        await profile.RebuildDocumentAsync("LIRF");
-
-        // Salvo due sezioni editoriali libere + rebuild: entrano nel documento come sezioni keyed "airportextra".
-        await profile.SaveExtraSectionsAsync("LIRF", new[]
-        {
-            new Vipi.Application.Content.ExtraSectionRow(0, "Hot spot", "Attenzione al **raccordo B**."),
-            new Vipi.Application.Content.ExtraSectionRow(0, "Rumore", "Procedure antirumore notturne."),
-        });
-        await profile.RebuildDocumentAsync("LIRF");
-
-        var extras = await _db.DocumentSections.Where(s => s.SectionKey == "airportextra").OrderBy(s => s.Order).ToListAsync();
-        Assert.Equal(new[] { "Hot spot", "Rumore" }, extras.Select(s => s.Title));
-        var body = await _db.ContentBlocks.FirstAsync(b => b.SectionId == extras[0].Id);
-        Assert.Contains("raccordo B", body.Body!);
-
-        // Rinomino/riduco a una sola sezione + rebuild: le sezioni extra sono rigenerate (nessun duplicato/orfano).
-        await profile.SaveExtraSectionsAsync("LIRF", new[]
-        {
-            new Vipi.Application.Content.ExtraSectionRow(0, "Solo questa", "Testo unico."),
-        });
-        await profile.RebuildDocumentAsync("LIRF");
-
-        var after = await _db.DocumentSections.Where(s => s.SectionKey == "airportextra").ToListAsync();
-        Assert.Equal("Solo questa", Assert.Single(after).Title);
-        // Le sezioni gestite restano singole (rebuild idempotente).
-        Assert.Single(await _db.DocumentSections.Where(s => s.Title == "Frequencies").ToListAsync());
-    }
-
-    /// <summary>
-    /// Il viewer dell'aeroporto legge il documento «cotto», non gli extra del profilo: un blocco immagine che il
-    /// rebuild non emette esiste nell'editor e sparisce in silenzio dal documento pubblicato.
-    /// </summary>
-    [Fact]
-    public async Task Rebuild_Emits_Image_Blocks_Of_Extra_Sections()
-    {
-        const string sha = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-        await _repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
-        await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
-        var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
-        await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
-
-        var body = Vipi.Application.Content.ExtraBlocks.Serialize(new List<Vipi.Application.Content.ExtraBlock>
-        {
-            new() { Format = BlockFormat.Prose, Text = "Vedi la foto." },
-            new()
-            {
-                Format = BlockFormat.Image, Text = "Stand 401",
-                ImageJson = Vipi.Application.Content.MediaRef.Serialize(
-                    new Vipi.Application.Content.MediaRef(sha, "Piazzale nord", 1600, 900)),
-            },
-            new() { Format = BlockFormat.Image, Text = "didascalia orfana" },   // senza riferimento: non deve entrare
-        });
-        await profile.SaveExtraSectionsAsync("LIRF", new[] { new Vipi.Application.Content.ExtraSectionRow(0, "Hot spot", body) });
-        await profile.RebuildDocumentAsync("LIRF");
-
-        var section = await _db.DocumentSections.SingleAsync(s => s.SectionKey == "airportextra");
-        var blocks = await _db.ContentBlocks.Where(b => b.SectionId == section.Id).OrderBy(b => b.Order).ToListAsync();
-
-        var image = Assert.Single(blocks, b => b.Format == BlockFormat.Image);
-        Assert.Equal("Stand 401", image.Body);
-        Assert.Equal(sha, Vipi.Application.Content.MediaRef.Parse(image.BodyJson)!.MediaId);
-        Assert.Equal(2, blocks.Count);   // prosa + immagine: il blocco immagine senza foto resta fuori
+        var sezioni = await _db.DocumentSections.OrderBy(s => s.Order).ToListAsync();
+        Assert.Equal("frequencies", sezioni[0].SectionKey);              // l'ordine deciso in editor tiene
+        Assert.Equal("Note locali", sezioni[^1].Title);                  // la sezione libera è ancora lì
+        var blocco = Assert.Single(await _db.ContentBlocks.ToListAsync());
+        Assert.Contains("raccordo B", blocco.Body!);                     // e il suo testo pure
+        Assert.Single(await _db.DocumentSections.Where(s => s.SectionKey == "frequencies").ToListAsync());
     }
 
     [Fact]
@@ -430,7 +368,7 @@ public class StructureEditingTests : IAsyncLifetime
         var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
         await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
-        await profile.RebuildDocumentAsync("LIRF");
+        await profile.EnsureDocumentAsync("LIRF");
 
         var releases = TestReleaseTargets.ReleaseRepo(_db);
         var content = new EfContentRepository(_db, releases);
