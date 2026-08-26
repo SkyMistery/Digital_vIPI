@@ -442,11 +442,19 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Riconciliate {Count} sezioni vLOA sulle chiavi del catalogo.", vloaKeys);
 
-        // Sezioni fisse del catalogo assenti dai documenti APP/vLOA già creati (doc 13 §3d).
+        // Aeroporti sulle chiavi del catalogo (carta 2026-08-26 §3). ⚠️ PRIMA di AddMissingCatalogSections: le
+        // sezioni cotte hanno chiavi casuali, e chi cercasse quelle mancanti prima di questo passo non ne
+        // riconoscerebbe nessuna — le aggiungerebbe tutte e otto accanto a quelle che ci sono già.
+        var airportKeys = maintenance.ReconcileAirportSectionKeysAsync().GetAwaiter().GetResult();
+        if (airportKeys > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Riconciliate {Count} sezioni d'aeroporto sulle chiavi del catalogo.", airportKeys);
+
+        // Sezioni fisse del catalogo assenti dai documenti APP/vLOA/aeroporto già creati (doc 13 §3d).
         var catalog = maintenance.AddMissingCatalogSectionsAsync().GetAwaiter().GetResult();
         if (catalog > 0 && log is not null)
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
-                log, "Aggiunte {Count} sezioni di catalogo mancanti ai documenti APP/vLOA.", catalog);
+                log, "Aggiunte {Count} sezioni di catalogo mancanti ai documenti APP/vLOA/aeroporto.", catalog);
 
         // «Minime di vettoramento» è tornata editoriale (doc 13 §3b): via i blocchi placeholder vuoti che aveva
         // da derivata, o l'editor mostrerebbe una tabella senza colonne.

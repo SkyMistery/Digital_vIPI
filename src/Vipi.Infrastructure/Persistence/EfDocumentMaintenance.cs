@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Content;
@@ -254,12 +254,16 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
 
     public async Task<int> AddMissingCatalogSectionsAsync(CancellationToken ct = default)
     {
-        // Solo APP standalone e vLOA: l'aeroporto non partecipa al catalogo (struttura propria) e la vIPI ACC ha
-        // le sezioni sotto i BLOCCHI, dove la rete a view-time dell'assembler continua a coprirla — serve anche
-        // agli snapshot di release vecchi, che non si riscrivono.
+        // APP standalone, vLOA e — dalla carta 2026-08-26 — AEROPORTI. Resta fuori la sola vIPI ACC, che ha le
+        // sezioni sotto i BLOCCHI: lì la rete a view-time dell'assembler continua a coprirla, e serve anche agli
+        // snapshot di release vecchi, che non si riscrivono.
+        var airportDocIds = await _db.Airports.Where(a => a.DocumentId != null)
+            .Select(a => a.DocumentId!.Value).ToListAsync(ct);
+        var airports = airportDocIds.ToHashSet();
         var docs = await _db.Documents
             .Include(d => d.Sectors)
             .Where(d => d.Type == Vipi.Domain.DocumentType.Vloa
+                        || airportDocIds.Contains(d.Id)
                         || d.Sectors.Any(x => x.IsPrimary && x.Type == SectorType.App
                                               && x.ApproachKind == ApproachKind.Standalone))
             .ToListAsync(ct);
@@ -268,7 +272,9 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         var added = 0;
         foreach (var doc in docs)
         {
-            var profile = doc.Type == Vipi.Domain.DocumentType.Vloa ? SectionProfile.Vloa : SectionProfile.App;
+            var profile = doc.Type == Vipi.Domain.DocumentType.Vloa ? SectionProfile.Vloa
+                : airports.Contains(doc.Id) ? SectionProfile.Airport
+                : SectionProfile.App;
 
             var versionId = await _db.DocumentVersions
                 .Where(v => v.DocumentId == doc.Id)
@@ -295,6 +301,9 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
                     Depth = 0,
                     SectionKey = desc.Key,
                     RowVersion = Guid.NewGuid().ToByteArray(),
+                    // Una sezione «sempre live» non deve nascere Frozen nemmeno quando arriva da qui: il default
+                    // della colonna e' Frozen, e il meteo congelato e' meteo scaduto (carta 2026-08-26 §1a).
+                    RenderMode = SectionCatalog.IsAlwaysLive(desc.Key) ? RenderMode.Live : RenderMode.Frozen,
                 };
                 // Inserita PRIMA della prima sezione fissa che nel catalogo viene dopo di lei; se non ce n'è, in
                 // coda. Accodarle e basta metterebbe «Purpose» in fondo a una lettera d'accordo.
@@ -314,5 +323,188 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
 
         if (added > 0) await _db.SaveChangesAsync(ct);
         return added;
+    }
+
+    // ---- carta 2026-08-26: i documenti d'aeroporto gia' scritti ----
+
+    /// <summary>Titolo cotto → chiave di catalogo. Include i titoli inglesi correnti e quelli italiani legacy,
+    /// perche' fino all'i18n il documento nasceva in italiano. «Frequencies» e «SID» non sono in elenco: quelle due
+    /// una chiave vera ce l'avevano gia' (<c>frequencies</c> e <c>sids</c>), le altre tre no.</summary>
+    private static readonly IReadOnlyDictionary<string, string> AirportCookedTitleToKey =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Runway rules"] = "runwayrules",
+            ["Regole piste"] = "runwayrules",
+            ["Configurazioni pista"] = "runwayrules",
+            ["Transition levels"] = "transition",
+            ["Quote di transizione"] = "transition",
+            ["Quote transizione"] = "transition",
+            ["Runways"] = "runways",
+            ["Piste"] = "runways",
+        };
+
+    /// <summary>Chiave delle sezioni editoriali libere che il documento cotto emetteva: una sola per TUTTE, quindi
+    /// indistinguibili — «nascondi» ne avrebbe nascosta una a caso.</summary>
+    private const string LegacyAirportExtraKey = "airportextra";
+
+    public async Task<int> ReconcileAirportSectionKeysAsync(CancellationToken ct = default)
+    {
+        var scali = await _db.Airports.Where(a => a.DocumentId != null)
+            .Select(a => new { a.Id, DocumentId = a.DocumentId!.Value }).ToListAsync(ct);
+        if (scali.Count == 0) return 0;
+
+        var toccate = 0;
+        foreach (var scalo in scali)
+        {
+            var versionId = await _db.DocumentVersions
+                .Where(v => v.DocumentId == scalo.DocumentId)
+                .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
+            if (versionId is not int vid) continue;
+
+            var version = await _db.DocumentVersions.FirstAsync(v => v.Id == vid, ct);
+            var roots = await _db.DocumentSections.Include(x => x.Blocks)
+                .Where(x => x.DocumentVersionId == vid && x.ParentSectionId == null)
+                .OrderBy(x => x.Order).ToListAsync(ct);
+
+            toccate += ReconcileCookedSections(roots);
+            toccate += await MoveExtraSectionsIntoDocumentAsync(scalo.Id, version, roots, ct);
+        }
+
+        if (toccate > 0) await _db.SaveChangesAsync(ct);
+        return toccate;
+    }
+
+    /// <summary>
+    /// Passi 1 e 2: la sezione cotta prende la sua chiave di catalogo e <b>perde i blocchi</b>, perche' da qui in
+    /// poi il corpo lo produce la pagina derivandolo dalle tabelle del profilo.
+    /// <para>⚠️ Si guardano solo le sezioni con chiave LIBERA: quelle cotte nascevano tutte cosi' (il builder
+    /// chiedeva la chiave per <c>BlockSection.Airport</c>, che non ne ha una, e ricadeva su una guid nuova). Una
+    /// chiave di catalogo gia' presente non si tocca, e una seconda sezione con lo stesso titolo nemmeno: la
+    /// riconciliazione ne rivendica <b>una sola</b> per chiave.</para>
+    /// </summary>
+    private int ReconcileCookedSections(List<DocumentSection> roots)
+    {
+        var gia = roots.Select(x => x.SectionKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var fatte = 0;
+        foreach (var s in roots)
+        {
+            var titolo = (s.Title ?? "").Trim();
+            var toccata = false;
+
+            // Passo 1 — la chiave. Solo le sezioni con chiave LIBERA: «Frequencies» e «SID» ce l'avevano gia'
+            // giusta, e una chiave di catalogo non si sovrascrive.
+            if (SectionKeys.IsCustom(s.SectionKey)
+                && AirportCookedTitleToKey.TryGetValue(titolo, out var key)
+                && gia.Add(key))
+            {
+                s.SectionKey = key;
+                s.Title = SectionCatalog.Find(SectionProfile.Airport, key)?.Title ?? titolo;
+                toccata = true;
+            }
+
+            // Passo 2 — i blocchi. Vale per OGNI sezione il cui corpo lo produce ora la pagina, non solo per
+            // quelle appena rinominate: «Frequencies» aveva la chiave giusta fin dall'inizio e la sua tabella
+            // cotta dentro, e senza questo ramo resterebbe li' a raddoppiare la tabella derivata.
+            if (SectionCatalog.IsHostRendered(SectionProfile.Airport, s.SectionKey) && s.Blocks.Count > 0)
+            {
+                // Rimossi dal CONTESTO, non solo dalla collezione: staccarli e basta lascerebbe a EF una riga
+                // con la chiave esterna da azzerare, che e' non-nullabile — e la SaveChanges morirebbe.
+                _db.ContentBlocks.RemoveRange(s.Blocks);
+                s.Blocks.Clear();
+                toccata = true;
+            }
+
+            if (!toccata) continue;
+            s.RowVersion = Guid.NewGuid().ToByteArray();
+            fatte++;
+        }
+        return fatte;
+    }
+
+    /// <summary>
+    /// Passo 3: le sezioni editoriali libere dell'aeroporto smettono di vivere in una tabella a parte
+    /// (<c>AirportExtraSection</c>) e diventano sezioni del documento, una chiave <c>custom:{guid}</c> ciascuna.
+    /// <para>⚠️ La sorgente e' la TABELLA, non le sezioni gia' cotte: la pagina pubblica leggeva gli extra dal
+    /// profilo <b>live</b>, quindi la copia nel documento poteva essere vecchia di un rebuild. E' un TRASLOCO —
+    /// le righe si cancellano dopo averle portate dentro, ed e' anche cio' che rende il passo idempotente.</para>
+    /// </summary>
+    private async Task<int> MoveExtraSectionsIntoDocumentAsync(
+        int airportId, DocumentVersion version, List<DocumentSection> roots, CancellationToken ct)
+    {
+        var righe = await _db.AirportExtraSections.Where(x => x.AirportId == airportId)
+            .OrderBy(x => x.Order).ToListAsync(ct);
+        var vecchie = roots.Where(x => string.Equals(x.SectionKey, LegacyAirportExtraKey, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (righe.Count == 0 && vecchie.Count == 0) return 0;
+
+        // Via le copie cotte: si riscrivono dalla tabella, che e' la versione vera.
+        foreach (var v in vecchie)
+        {
+            _db.ContentBlocks.RemoveRange(v.Blocks);
+            _db.DocumentSections.Remove(v);
+            roots.Remove(v);
+        }
+
+        var order = roots.Count == 0 ? 0 : roots.Max(x => x.Order);
+        foreach (var riga in righe)
+        {
+            var sezione = new DocumentSection
+            {
+                DocumentVersion = version,
+                ParentSection = null,
+                Title = string.IsNullOrWhiteSpace(riga.Title) ? "Sezione" : riga.Title,
+                Order = ++order,
+                Depth = 0,
+                SectionKey = SectionKeys.NewCustom(),
+                RowVersion = Guid.NewGuid().ToByteArray(),
+            };
+            _db.DocumentSections.Add(sezione);
+            roots.Add(sezione);
+
+            var n = 0;
+            foreach (var blk in ExtraBlocks.Parse(riga.Body))
+            {
+                var blocco = ToContentBlock(version, sezione, blk, ++n);
+                if (blocco is null) { n--; continue; }
+                _db.ContentBlocks.Add(blocco);
+            }
+        }
+
+        _db.AirportExtraSections.RemoveRange(righe);
+        return vecchie.Count + righe.Count;
+    }
+
+    /// <summary>Un blocco dell'envelope degli extra in un blocco del documento. Null = da scartare (stessa regola
+    /// della cottura: prosa senza testo o immagine senza riferimento non entravano nel documento).</summary>
+    private static ContentBlock? ToContentBlock(DocumentVersion version, DocumentSection section, ExtraBlock blk, int order)
+    {
+        string? body = null, bodyJson = null;
+        CalloutKind? callout = null;
+        var format = blk.Format;
+        switch (blk.Format)
+        {
+            case BlockFormat.Callout when !string.IsNullOrWhiteSpace(blk.Text):
+                body = blk.Text; callout = blk.CalloutKind;
+                bodyJson = JsonSerializer.Serialize(new { title = "" });
+                break;
+            case BlockFormat.Table when !string.IsNullOrWhiteSpace(blk.TableJson):
+                bodyJson = blk.TableJson;
+                break;
+            case BlockFormat.Image when MediaRef.Parse(blk.ImageJson) is not null:
+                body = blk.Text; bodyJson = blk.ImageJson;
+                break;
+            case BlockFormat.Prose or BlockFormat.List when !string.IsNullOrWhiteSpace(blk.Text):
+                body = blk.Text; format = BlockFormat.Prose;
+                break;
+            default:
+                return null;
+        }
+
+        return new ContentBlock
+        {
+            DocumentVersion = version, Section = section, Order = order,
+            Tier = BlockTier.Extended, Format = format, Visibility = BlockVisibility.Always,
+            CalloutKind = callout, Body = body, BodyJson = bodyJson,
+            RowVersion = Guid.NewGuid().ToByteArray(),
+        };
     }
 }

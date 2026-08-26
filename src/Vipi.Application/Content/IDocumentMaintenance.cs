@@ -54,4 +54,26 @@ public interface IDocumentMaintenance
     /// repo sono SQLite-flavored e il deploy hostato crea lo schema col <c>PostgresSchemaReconciler</c>.</para>
     /// </summary>
     Task<int> LinkAirportDocumentsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Porta i documenti d'aeroporto già scritti sulle chiavi del catalogo (carta 2026-08-26 §3). Fino a quella
+    /// carta il documento era una proiezione <b>cotta</b>: le sue sezioni si riconoscevano per TITOLO e nascevano
+    /// con una chiave <c>custom:{guid}</c> nuova a ogni rigenerazione (<c>BlockSection.Airport</c> non ha una
+    /// chiave di catalogo, quindi il builder ricadeva su <c>SectionKeys.NewCustom()</c>).
+    /// <para>Tre cose, idempotenti, sulla versione di lavoro più recente:</para>
+    /// <list type="number">
+    ///   <item>assegna la chiave giusta per titolo — <c>runwayrules</c>, <c>transition</c>, <c>runways</c>
+    ///     (<c>frequencies</c> e <c>sids</c> ce l'avevano già), riconoscendo sia i titoli inglesi correnti sia
+    ///     quelli italiani legacy;</item>
+    ///   <item><b>svuota i blocchi</b> di quelle sezioni: da qui in poi il corpo lo produce la pagina derivandolo
+    ///     dalle tabelle del profilo, e un blocco rimasto sarebbe testo scritto nel DB e invisibile in ogni vista;</item>
+    ///   <item>trasforma le sezioni <c>airportextra</c> in sezioni libere normali (<c>custom:{guid}</c>), una
+    ///     chiave per sezione: erano tutte indistinguibili, quindi «nascondi» ne avrebbe nascosta una a caso.</item>
+    /// </list>
+    /// <para>⚠️ Le release già pubblicate NON si toccano: il pubblico legge <c>payload.Doc</c>, e uno snapshot
+    /// vecchio porta ancora le sezioni cotte. Il viewer le rende come editoriali (chiave sconosciuta + blocchi
+    /// dentro), quindi uno snapshot storico continua a mostrare le sue tabelle.</para>
+    /// <para>Ritorna il numero di sezioni riconciliate.</para>
+    /// </summary>
+    Task<int> ReconcileAirportSectionKeysAsync(CancellationToken ct = default);
 }
