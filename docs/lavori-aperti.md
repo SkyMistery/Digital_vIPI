@@ -2378,8 +2378,8 @@ diversamente sullo stesso oggetto, e va deciso se dirlo a schermo o dare al grup
 
 ## J. Identità dei settori e shape — 26 agosto 2026, ramo `identita-settori`
 
-Ramo aperto **da `statistiche-atc`** (non da `main`), **non fuso**, 22 commit, spinto su origin. Porta
-cinque lavori chiusi e lascia tre voci aperte. Carte:
+Ramo aperto **da `statistiche-atc`** (non da `main`), **non fuso**, spinto su origin. Porta sette lavori
+chiusi e lascia **una** voce aperta — che è una decisione, non del lavoro (**J3**). Carte:
 [identità dei settori](feature/2026-08-26-identita-dei-settori.md),
 [l'assenza non cancella](feature/2026-08-26-lassenza-non-cancella.md),
 [le shape dal sectorfile](feature/2026-08-26-shape-dal-sectorfile.md),
@@ -2394,35 +2394,99 @@ e sta qui perché sta qui il ramo. **Non aggiunge migrazioni.**
 ⚠️ **Questo ramo si somma a `statistiche-atc`, non lo sostituisce.** La decisione B12 (fondere) adesso
 riguarda **due** rami in fila, e questo va fuso **dopo** quello.
 
-### J1 🟡 APERTA — l'avviso a chi pubblica una shape non ancora in vigore
+### J1 ✅ FATTA il 26 agosto — l'avviso a chi pubblica una shape non ancora in vigore
 
-Il gate AIRAC sostituisce la geometria al congelamento e `ShapeForcePublished` esiste in archivio, ma **non
-c'è un posto dove chi pubblica lo veda e possa accenderlo**. Finché non c'è, una correzione urgente al
-sectorfile si pubblica **per il ciclo prossimo** (che è comunque la strada giusta) oppure aspetta il giro che
-promuove.
+Il gate AIRAC faceva già la cosa giusta da solo, ma **in silenzio**: chi pubblica vedeva a schermo il confine
+nuovo e nel documento ne trovava un altro. Ora l'avviso sta **nel pannello release**, sopra i due tasti che
+pubblicano, con l'interruttore accanto.
 
-È il gemello di `AirportSid.ForcePublished`, che a schermo un interruttore ce l'ha: guardare come è fatto lì.
-Tocca il pannello release. **È il primo pezzo da fare di questa sezione.**
+- **`ShapeGateNoticeService`** (`src/Vipi.Application/Content/ShapeGateNotice.cs`) — dice quali aree del
+  perimetro resterebbero indietro, e le forza. ⚠️ **Nessuna regola nuova**: la domanda «è differita?» la fa
+  `ShapeAiracGate.IsDeferredAt`, la stessa del congelamento. Se le due divergessero, l'avviso mentirebbe.
+- **`EfShapeGateRepository`** (`src/Vipi.Infrastructure/Persistence/`) — il perimetro per bersaglio di
+  release: `AccVipi`/`Vloa` → i settori della ACC (subcenter + posizioni d'aeroporto), `Airport`/`App` → le
+  posizioni di quell'ICAO (la chiave dell'APP è un callsign: l'aeroporto sono le prime quattro lettere).
+- **`ReleasePanel.razor`** — callout `warning` con callsign, nome e ciclo d'entrata, più il tasto
+  «Pubblica comunque le aree nuove». Chiavi `Rel_Shape*` in italiano e inglese.
 
-### J2 🟡 APERTA — `GODRA` e `GIGUS`: quattro settori di Milano senza area
+⚠️ **I cicli in gioco sono DUE**, perché i tasti sono due: «pubblica ora» usa il ciclo corrente, «pubblica al
+ciclo» quello scelto nella tendina. Si avvisa per l'**unione**: sbagliare per eccesso costa una riga di
+troppo, sbagliare per difetto costa un confine vecchio pubblicato senza che nessuno l'abbia saputo. L'avviso
+si ricalcola anche quando si cambia il ciclo nella tendina (`@bind:after`).
 
-I blocchi `LIMM_WS2/WS5/ES2/ES5_CTR` del sectorfile citano due punti che **non sono in nessuno dei tre
-cataloghi navaid italiani** (`itfix.fix`, `itvor.vor`, `itndb.ndb`): sono d'oltreconfine, e Milano confina con
-Svizzera e Francia. Il parser scarta l'anello intero — di proposito, perché saltare un vertice darebbe un
-poligono che si disegna benissimo e mente.
+⚠️ **Il perimetro è quello dell'ENTE, non l'elenco esatto delle configurazioni AoR.** Ricavare quello vorrebbe
+dire rieseguire la derivazione del documento — cioè il congelamento — solo per decidere se mostrare un
+avviso. L'imprecisione è dalla parte giusta: si può avvisare per un settore che quella mappa non disegna, mai
+tacere per uno che disegna davvero.
 
-Due strade: aggiungerli a `itfix.fix` (decisione di divisione, sul repo sectorfile) oppure un elenco di
-punti-extra nostro. **Non inventato niente**: per ora quei quattro non prendono l'area dal sectorfile, e la
-cosa si vede nel log del giro (`Shape settori: il punto X non è nel catalogo navaid`).
+⚠️ **Forzare non vuol dire «è in vigore»**: `ShapeAiracCycle` resta scritto. Quando il ciclo arriva davvero, la
+promozione notturna chiude la pratica e **spegne la forzatura da sé**. Il permesso è quello del documento che
+si sta pubblicando (ACC-scoped, o del documento per la vLOA): forzare è un atto editoriale.
 
-### J3 🟡 APERTA — undici settori restano senza area
+Test: `ShapeGateNoticeTests` (8), `ShapeGateScopeTests` (6), più 4 in `ReleasePanelTests`.
 
-Dopo il ripristino dal backup (§J4) restano **10 CTR e 1 FSS** senza poligono: né IVAO li aveva, né il
-sectorfile li descrive. Sono in gran parte militari e di pianificazione (`LIPP_PLN_CTR`, `LIRO_CRC_CTR`,
-`LIVK_CRC_CTR`, `LIZZ_AEW_CTR`) più esteri (`LOVV_FSS`, `LSAS_EXA_FSS`, `DTTC_FSS`, `LMMM_FSS`).
+### J2 ✅ DECISA il 26 agosto — i ripieghi valgono **solo per gli enti della divisione**
 
-Non è un difetto: è un dato che non esiste da nessuna parte. Va deciso se lasciarli senza area o disegnarli
-a mano.
+**Decisione del committente**: *le aree degli ATC esteri le dà IVAO, se ce le dà*. Un ente straniero senza
+poligono resta senza poligono — né dal sectorfile, né da GitHub, né col cerchio sintetico. La ragione è che
+quei confini non sono nostri: prenderli da una fonte che non è l'anagrafica del titolare vuol dire pubblicare
+come vera un'area che nessuno di competente ha approvato.
+
+La regola sta in **un posto solo** (`ShapeFallbackScope`, `src/Vipi.Application/Content/`), perché i ripieghi
+sono tre e tre copie della stessa condizione sono tre racconti che prima o poi divergono. Riusa la stessa
+domanda della gerarchia (`HierarchyRules.IsForeignCode` sui prefissi di `DivisionOptions`): «estero» ha una
+definizione sola. Applicata a:
+
+| Ripiego | File | Cosa cambia |
+|---|---|---|
+| Sectorfile (CTR/APP/MIL/FSS) | `SectorShapeFallbackService` | esteri fuori dai bersagli **e dal conteggio** |
+| GitHub `twrs.tfl` (TWR) | `GithubTowerShapeService` | esteri fuori, anche col bottone manuale per ICAO |
+| Cerchio 5 NM (TWR) | `TowerShapeFallbackService` | mai un cerchio finto su un campo estero |
+
+⚠️ **Vale per i ripieghi, non per l'anagrafica**: le shape che IVAO manda si scrivono per tutti, esteri
+compresi, esattamente come prima.
+
+⚠️ Misurato in archivio: dei 118 settori esteri, **116 hanno già la shape da IVAO** (`ShapeSource = Source`) e
+gli aeroporti in `AirportSectors` sono **tutti** italiani — la decisione oggi non toglie niente a nessuno, ma
+chiude la porta prima che si apra.
+
+⚠️ **Il caso che aveva aperto questa voce resta aperto altrove**: `LIMM_WS2/WS5/ES2/ES5_CTR` non prendono
+l'area dal sectorfile perché i loro anelli citano `GODRA` e `GIGUS`, **due punti d'oltreconfine che non sono
+in nessuno dei tre cataloghi navaid italiani** (`itfix.fix`, `itvor.vor`, `itndb.ndb`). Quei quattro settori
+sono **italiani**, quindi il perimetro nuovo non li tocca: il parser scarta l'anello intero — di proposito,
+perché saltare un vertice darebbe un poligono che si disegna benissimo e mente. Due strade, entrambe di
+divisione: aggiungere i due punti a `itfix.fix` sul repo sectorfile, oppure un elenco di punti-extra nostro.
+Per ora la cosa si vede nel log del giro (`Shape settori: il punto X non è nel catalogo navaid`).
+
+### J3 🟡 APERTA — undici settori restano senza area: ecco **chi sono**
+
+Contati sul `vipi.db` di lavoro il 26 agosto (non ricordati): **11 righe su 153** in `AccSectors`. In
+`AirportSectors` le 51 senza poligono non contano — sono tutte ATIS/GND/DEL più una TWR (`LIED_TWR`):
+posizioni che un'area non ce l'hanno per natura.
+
+| Callsign | Nome | Che roba è |
+|---|---|---|
+| `LIPP_PLN_CTR` | Padova CE1 Planner | pianificazione |
+| `LIRR_PLN_FSS` | Roma FSS Planner | pianificazione |
+| `LIRO_CRC_CTR` | Barca Radar | militare |
+| `LIVK_CRC_CTR` | Pioppo Radar | militare |
+| `LIVK_RCC_CTR` | RCC | militare |
+| `LIZZ_AAR_CTR` | Boom | militare (rifornimento in volo) |
+| `LIZZ_AEW_CTR` | Legion | militare (AEW) |
+| `LIZZ_JTA_CTR` | Gladiator | militare |
+| `LIZZ_NVY_CTR` | Navy | militare |
+| `DTTC_FMP_CTR` | Tunis ATFM | **estero** — per §J2 non lo tocchiamo più |
+| `LOVV_EXA_CTR` | Vienna | **estero** — per §J2 non lo tocchiamo più |
+
+Sette di questi sono **inattivi** in `Sectors` (`IsActive = 0`): i due `LIVK_*`, `LIRO_CRC_CTR` e i quattro
+`LIZZ_*`. Gli altri quattro sono attivi.
+
+Non è un difetto: è un dato che non esiste da nessuna parte — né IVAO li dà, né il sectorfile li descrive. Con
+§J2 i due esteri escono dal conto: **restano nove**, tutti italiani, tutti militari o di pianificazione. Va
+deciso se lasciarli senza area o disegnarli a mano.
+
+⚠️ L'elenco di questa voce nella stesura precedente era **sbagliato** (citava `LOVV_FSS`, `LSAS_EXA_FSS`,
+`DTTC_FSS`, `LMMM_FSS`): quei quattro l'area ce l'hanno. Contato, non ricordato.
 
 ### J4 ✅ FATTO il 26 agosto — ripristino dei poligoni persi
 

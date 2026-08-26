@@ -83,6 +83,30 @@ public class ReleasePanelTests : TestContext
         public Task<int> PruneAllAsync(CancellationToken ct = default) => Task.FromResult(0);
     }
 
+    /// <summary>L'avviso del gate AIRAC: quel che il pannello mostra sopra i tasti che pubblicano.</summary>
+    private sealed class FakeShapeGate : IShapeGateNoticeService
+    {
+        public List<DeferredShapeNotice> Differite { get; } = new();
+        public int Forzature;
+        public List<string[]> CicliChiesti { get; } = new();
+
+        public Task<IReadOnlyList<DeferredShapeNotice>> ListDeferredAsync(
+            ReleaseTargetType target, string key, IReadOnlyList<string> cycles, CancellationToken ct = default)
+        {
+            CicliChiesti.Add(cycles.ToArray());
+            return Task.FromResult<IReadOnlyList<DeferredShapeNotice>>(Differite.ToList());
+        }
+
+        public Task<int> ForcePublishAsync(
+            ReleaseTargetType target, string key, IReadOnlyList<string> cycles, CancellationToken ct = default)
+        {
+            Forzature++;
+            var n = Differite.Count;
+            Differite.Clear();   // forzate: l'avviso non ha più ragione d'esserci
+            return Task.FromResult(n);
+        }
+    }
+
     /// <summary>Localizer che rende la chiave stessa: le asserzioni restano stabili al variare delle traduzioni.</summary>
     private sealed class KeyLocalizer : IStringLocalizer<SharedResource>
     {
@@ -93,11 +117,15 @@ public class ReleasePanelTests : TestContext
             Enumerable.Empty<LocalizedString>();
     }
 
+    private FakeShapeGate _gate = new();
+
     private FakeReleases Arrange(params ReleaseInfo[] releases)
     {
         var fake = new FakeReleases();
         fake.Releases.AddRange(releases);
+        _gate = new FakeShapeGate();
         Services.AddSingleton<IReleaseService>(fake);
+        Services.AddSingleton<IShapeGateNoticeService>(_gate);
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         return fake;
     }
@@ -360,5 +388,60 @@ public class ReleasePanelTests : TestContext
 
         Assert.DoesNotContain("Rel_SectionHelp", cut.Markup);
         Assert.Contains($"id=\"{ReleasePanel.SectionAnchor}\"", cut.Markup);   // l'ancora resta
+    }
+
+    // ---- J1: l'avviso a chi pubblica una shape non ancora in vigore ----
+
+    /// <summary>Senza aree differite il pannello resta com'era: l'avviso non è una decorazione fissa.</summary>
+    [Fact]
+    public void Nessun_avviso_se_nessuna_area_e_differita()
+    {
+        Arrange();
+
+        Assert.DoesNotContain("Rel_ShapeDeferredTitle", Render().Markup);
+    }
+
+    [Fact]
+    public void L_avviso_dice_quale_area_e_da_quale_ciclo()
+    {
+        Arrange();
+        _gate.Differite.Add(new DeferredShapeNotice("LIRR_NE_CTR", "Roma Nord Est", "2609"));
+
+        var cut = Render();
+
+        Assert.Contains("Rel_ShapeDeferredTitle", cut.Markup);
+        Assert.Contains("LIRR_NE_CTR", cut.Markup);
+        Assert.Contains("Roma Nord Est", cut.Markup);
+        Assert.Contains("2609", cut.Markup);
+    }
+
+    /// <summary>
+    /// ⚠️ I cicli chiesti sono DUE: «pubblica ora» usa il corrente, «pubblica al ciclo» quello della tendina.
+    /// Chiederne uno solo vorrebbe dire tacere per l'altro tasto.
+    /// </summary>
+    [Fact]
+    public void L_avviso_guarda_i_cicli_di_tutti_e_due_i_tasti()
+    {
+        Arrange();
+
+        Render();
+
+        var cicli = Assert.Single(_gate.CicliChiesti);
+        Assert.Contains("2607", cicli);   // il corrente (FakeReleases.CurrentCycle)
+        Assert.Contains("2608", cicli);   // il primo della tendina
+    }
+
+    [Fact]
+    public void Il_tasto_forza_le_aree_e_l_avviso_sparisce()
+    {
+        Arrange();
+        _gate.Differite.Add(new DeferredShapeNotice("LIRR_NE_CTR", "Roma Nord Est", "2609"));
+        var cut = Render();
+
+        cut.FindAll("button").Single(b => b.TextContent.Contains("Rel_ShapeForce")).Click();
+
+        Assert.Equal(1, _gate.Forzature);
+        Assert.Contains("Rel_ShapeForcedN 1", cut.Markup);       // il messaggio dice quante
+        Assert.DoesNotContain("Rel_ShapeDeferredTitle", cut.Markup);
     }
 }

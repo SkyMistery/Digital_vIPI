@@ -1445,6 +1445,12 @@
   <data name="Rel_CancelPrompt" xml:space="preserve"><value>Cancel the AIRAC {0} release? The public goes back to the previous effective one.</value></data>
   <data name="Rel_CancelYes" xml:space="preserve"><value>Cancel the release</value></data>
   <data name="Rel_OlderN" xml:space="preserve"><value>{0} more superseded releases</value></data>
+  <data name="Rel_ShapeDeferredTitle" xml:space="preserve"><value>New areas not yet effective</value></data>
+  <data name="Rel_ShapeDeferredBody" xml:space="preserve"><value>{0} area(s) in this scope have a new boundary that becomes effective later: the release knows it and will publish the PREVIOUS one. If this is an urgent fix, force it.</value></data>
+  <data name="Rel_ShapeDeferredRow" xml:space="preserve"><value>effective from cycle {0}</value></data>
+  <data name="Rel_ShapeForce" xml:space="preserve"><value>Publish the new areas anyway</value></data>
+  <data name="Rel_ShapeForceTitle" xml:space="preserve"><value>Turns on the override for these areas: the next publication carries the new boundary without waiting for the cycle.</value></data>
+  <data name="Rel_ShapeForcedN" xml:space="preserve"><value>{0} areas forced: the next publication will carry the new boundary.</value></data>
   <data name="Rel_Canceled" xml:space="preserve"><value>Release canceled.</value></data>
   <data name="Rel_Effective" xml:space="preserve"><value>Effective</value></data>
   <data name="Rel_Scheduled" xml:space="preserve"><value>Scheduled</value></data>

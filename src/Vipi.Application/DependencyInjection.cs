@@ -94,10 +94,14 @@ public static class DependencyInjection
         services.AddScoped<IAirportImportUseCase, AirportImportUseCase>();
         services.AddScoped<IAirportDataImportUseCase, AirportDataImportUseCase>();
         services.AddScoped<ISidImporter, SidImporter>();
+        // Il perimetro dei ripieghi shape (solo enti della divisione): uno solo, condiviso dai tre.
+        services.AddSingleton<ShapeFallbackScope>();
         services.AddScoped<IGithubTowerShapeService, GithubTowerShapeService>();
         services.AddScoped<ITowerShapeFallbackService, TowerShapeFallbackService>();
         // Il gemello per CTR/APP/MIL/FSS: le TWR hanno GitHub + cerchio, gli altri enti il sectorfile.
         services.AddScoped<ISectorShapeFallbackService, SectorShapeFallbackService>();
+        // L'avviso a chi pubblica un'area non ancora in vigore, e l'interruttore che la forza.
+        services.AddScoped<IShapeGateNoticeService, ShapeGateNoticeService>();
         services.AddScoped<IAirportSectorService, AirportSectorService>();
         services.AddScoped<IAgreementService, AgreementService>();
         services.AddScoped<ISearchService, SearchService>();

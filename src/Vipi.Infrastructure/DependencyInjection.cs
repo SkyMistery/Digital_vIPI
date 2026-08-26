@@ -156,6 +156,7 @@ public static class DependencyInjection
         // La rinomina: un motore solo, come l'eliminazione. Lo chiamano i due upsert di catalogo, in cima.
         services.AddScoped<Vipi.Application.Content.ICallsignRenameService, EfCallsignRenameService>();
         services.AddScoped<Vipi.Application.Content.ISectorShapeRepository, EfSectorShapeRepository>();
+        services.AddScoped<Vipi.Application.Content.IShapeGateRepository, EfShapeGateRepository>();
         // Il contesto del congelamento: SCOPED come il DbContext, quindi vale per una richiesta sola.
         services.AddScoped<Vipi.Application.Content.ShapeReleaseContext>();
         // Statistiche ATC: archivio delle sessioni e delle tratte scritte dal poller, più la mappa dei

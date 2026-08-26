@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 
 namespace Vipi.Application.Content;
@@ -23,14 +23,20 @@ public interface ITowerShapeFallbackService
 public sealed class TowerShapeFallbackService : ITowerShapeFallbackService
 {
     private readonly IAirportSectorRepository _repo;
+    private readonly ShapeFallbackScope _scope;
 
-    public TowerShapeFallbackService(IAirportSectorRepository repo) => _repo = repo;
+    public TowerShapeFallbackService(IAirportSectorRepository repo, ShapeFallbackScope? scope = null)
+    {
+        _repo = repo;
+        _scope = scope ?? new ShapeFallbackScope();
+    }
 
     public async Task<int> ApplyAsync(double radiusNm = 5.0, CancellationToken ct = default)
     {
         // "Vuoto/degenere" = il poligono attuale non si proietta (null, "[]", < 3 punti…). Decisione col projector,
         // così becchiamo anche le TWR che la sorgente espone come array vuoto.
         var targets = (await _repo.ListTwrShapesAsync(ct))
+            .Where(t => _scope.IsDomestic(t.AirportIcao))   // ⚠️ mai un cerchio finto su un campo estero
             .Where(t => AorPolygonProjector.Project(t.RawPolygon) is null)
             .ToList();
         if (targets.Count == 0) return 0;

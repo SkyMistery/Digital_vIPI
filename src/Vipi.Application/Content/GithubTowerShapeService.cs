@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 
 namespace Vipi.Application.Content;
@@ -22,11 +22,14 @@ public sealed class GithubTowerShapeService : IGithubTowerShapeService
 {
     private readonly IAirportSectorRepository _repo;
     private readonly ITowerShapeSource _source;
+    private readonly ShapeFallbackScope _scope;
 
-    public GithubTowerShapeService(IAirportSectorRepository repo, ITowerShapeSource source)
+    public GithubTowerShapeService(
+        IAirportSectorRepository repo, ITowerShapeSource source, ShapeFallbackScope? scope = null)
     {
         _repo = repo;
         _source = source;
+        _scope = scope ?? new ShapeFallbackScope();
     }
 
     public async Task<int> ApplyAsync(string? icao = null, CancellationToken ct = default)
@@ -39,6 +42,9 @@ public sealed class GithubTowerShapeService : IGithubTowerShapeService
         // non è più un bersaglio → idempotente.
         var targets = (await _repo.ListTwrShapesAsync(ct))
             .Where(t => filter is null || string.Equals(t.AirportIcao, filter, StringComparison.OrdinalIgnoreCase))
+            // ⚠️ Solo aeroporti della divisione: la TWR di un campo estero prende l'area da IVAO o resta senza
+            // (ShapeFallbackScope). Vale anche col bottone manuale: se qualcuno passa un ICAO estero, non succede nulla.
+            .Where(t => _scope.IsDomestic(t.AirportIcao))
             .Where(t => t.IsShapeSynthetic || AorPolygonProjector.Project(t.RawPolygon) is null)
             .ToList();
         if (targets.Count == 0) return 0;

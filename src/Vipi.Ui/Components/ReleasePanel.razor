@@ -2,6 +2,7 @@
    (ACC/APP/Aeroporto) e ovunque serva schedulare la pubblicazione di uno snapshot editoriale.
    Parametri opt-in (default = timeline semplice): ShowDiff, AllowCancel, BeforePublishAsync, PreviewUrlFactory. *@
 @inject IReleaseService Releases
+@inject IShapeGateNoticeService ShapeGate
 @inject IServiceProvider Servizi
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
@@ -68,8 +69,34 @@
         }
     }
 
+    @* L'avviso del gate AIRAC: c'e' un confine nuovo che a questo ciclo non e' ancora in vigore, e la
+       release pubblicherebbe il precedente. Sta QUI, accanto ai tasti che pubblicano, perche' e' li' che
+       serve saperlo -- non nella pagina del settore. [[ShapeGateNoticeService]] *@
+    @if (_deferred.Count > 0)
+    {
+        <div class="callout warning" style="margin:8px 0 0">
+            <span class="cic"><Icon Name="clock" Size="18" /></span>
+            <div style="flex:1">
+                <p class="ct">@L["Rel_ShapeDeferredTitle"]</p>
+                <p style="margin:2px 0 4px">@(string.Format(L["Rel_ShapeDeferredBody"].Value, _deferred.Count))</p>
+                <ul style="margin:0 0 6px 18px;padding:0">
+                    @foreach (var d in _deferred)
+                    {
+                        <li>
+                            <b>@d.Callsign</b>@(string.IsNullOrWhiteSpace(d.Name) ? "" : " · " + d.Name)
+                            <span class="muted">— @(string.Format(L["Rel_ShapeDeferredRow"].Value, d.FromCycle))</span>
+                        </li>
+                    }
+                </ul>
+                <button class="btn ghost" disabled="@_busy" @onclick="ForceShapes" title="@L["Rel_ShapeForceTitle"]">
+                    <Icon Name="megaphone" /> @L["Rel_ShapeForce"]
+                </button>
+            </div>
+        </div>
+    }
+
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px">
-        <select class="app-in" style="min-width:270px;max-width:340px" @bind="_cycle">
+        <select class="app-in" style="min-width:270px;max-width:340px" @bind="_cycle" @bind:after="RicaricaAvviso">
             @foreach (var c in _upcoming)
             {
                 <option value="@c.Cycle">AIRAC @c.Cycle — @L["Rel_From"] @c.EffectiveUtc.ToString("dd MMM yyyy")</option>
@@ -201,6 +228,7 @@
     private string? _note;
     private bool _busy;
     private string? _error, _ok;
+    private IReadOnlyList<DeferredShapeNotice> _deferred = Array.Empty<DeferredShapeNotice>();
     private readonly HashSet<int> _diffOpen = new();
     private readonly Dictionary<int, ReleaseDiff> _diffs = new();
 
@@ -242,6 +270,38 @@
             ? new Dictionary<int, string>()
             : await roster.GetDisplayNamesAsync(vid);
         _diffOpen.Clear(); _diffs.Clear();
+        await RicaricaAvviso();
+    }
+
+    /// <summary>
+    /// I cicli in gioco sono DUE perche' i tasti sono due: «pubblica ora» usa il ciclo corrente, «pubblica al
+    /// ciclo» quello scelto nella tendina. Si avvisa per l'unione: sbagliare per eccesso costa una riga di
+    /// troppo, sbagliare per difetto costa un confine vecchio pubblicato senza che nessuno l'abbia saputo.
+    /// </summary>
+    private string[] CicliInGioco() => new[] { _currentCycle, _cycle ?? _currentCycle };
+
+    private async Task RicaricaAvviso()
+    {
+        // ⚠️ Come Reload: qui siamo nel ciclo di vita del componente e un'eccezione abbatterebbe il circuito.
+        // L'avviso e' un di piu': se non si carica, il gate fa comunque la cosa giusta da solo.
+        try { _deferred = await ShapeGate.ListDeferredAsync(Target, Key, CicliInGioco()); }
+        catch (EditNotAllowedException) { _deferred = Array.Empty<DeferredShapeNotice>(); }
+        catch (Exception) { _deferred = Array.Empty<DeferredShapeNotice>(); }
+    }
+
+    /// <summary>«Pubblicale lo stesso»: accende la forzatura sulle aree elencate nell'avviso.</summary>
+    private async Task ForceShapes()
+    {
+        _busy = true; _error = _ok = null;
+        try
+        {
+            var n = await ShapeGate.ForcePublishAsync(Target, Key, CicliInGioco());
+            await RicaricaAvviso();
+            _ok = L["Rel_ShapeForcedN", n];
+        }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+        catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }
+        finally { _busy = false; }
     }
 
     private Task PublishAtCycle() => Run(async () =>

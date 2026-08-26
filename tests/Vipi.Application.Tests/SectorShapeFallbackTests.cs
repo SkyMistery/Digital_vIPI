@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Services;
@@ -80,6 +80,35 @@ public class SectorShapeFallbackTests
 
         Assert.Equal(0, esito.Applied);
         Assert.Empty(repo.Scritte);
+    }
+
+    /// <summary>
+    /// ⚠️ Decisione del committente (26 agosto 2026): <b>le aree degli ATC esteri le dà IVAO, o non ci sono</b>.
+    /// Il sectorfile è nostro e descrive anche pezzi di cielo altrui: pescarci dentro un confine straniero
+    /// vorrebbe dire pubblicare come vera un'area che nessuno di competente ha approvato.
+    /// </summary>
+    [Fact]
+    public async Task Un_settore_estero_non_prende_l_area_dal_sectorfile()
+    {
+        var repo = new Repo { Righe = { Riga(1, "LOVV_FSS", haShape: false) } };
+        var src = new Sorgente { Poligoni = { ["LOVV_FSS"] = Quadrato } };
+
+        var esito = await Servizio(repo, src).ApplyAsync();
+
+        Assert.Equal(0, esito.Applied);
+        Assert.Empty(repo.Scritte);
+    }
+
+    /// <summary>E non si conta nemmeno fra quelli che «restano senza area»: non è un lavoro che ci resta.</summary>
+    [Fact]
+    public async Task Un_settore_estero_senza_area_non_e_un_lavoro_in_sospeso()
+    {
+        var repo = new Repo { Righe = { Riga(1, "LOVV_FSS", false), Riga(2, "LIRR_NE_CTR", false) } };
+        var src = new Sorgente();   // il sectorfile non conosce nessuno dei due
+
+        var esito = await Servizio(repo, src).ApplyAsync();
+
+        Assert.Equal(1, esito.StillWithout);   // solo l'italiano
     }
 
     [Fact]

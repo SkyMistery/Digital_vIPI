@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Domain;
 using Vipi.Domain.Services;
@@ -44,7 +44,8 @@ public interface ISectorShapeFallbackService
 /// <param name="Applied">Shape scritte per la prima volta (settori che non ne avevano).</param>
 /// <param name="Updated">Shape aggiornate perché il sectorfile le ha cambiate: differite al ciclo successivo.</param>
 /// <param name="Promoted">Differimenti chiusi perché il ciclo è arrivato.</param>
-/// <param name="StillWithout">Quanti settori restano senza area anche dopo il ripiego.</param>
+/// <param name="StillWithout">Quanti settori <b>della divisione</b> restano senza area anche dopo il ripiego.
+/// Gli esteri non si contano: non sono un lavoro che ci resta da fare (<see cref="ShapeFallbackScope"/>).</param>
 /// <param name="UnresolvedPoints">I punti che il catalogo navaid non conosce: ognuno vale uno o più settori
 /// senza area, e non saperlo vorrebbe dire cercarne la causa a schermo.</param>
 public sealed record SectorShapeFallbackResult(
@@ -69,20 +70,26 @@ public sealed record SectorShapeFallbackResult(
 /// in anticipo (<see cref="ShapeAiracGate"/>).</para>
 ///
 /// <para>Idempotente: quel che ha appena scritto non è più un bersaglio.</para>
+///
+/// <para><b>Solo enti della divisione.</b> I settori esteri restano fuori per decisione del committente: le
+/// loro aree le dà IVAO, se ce le dà. Vedi <see cref="ShapeFallbackScope"/>.</para>
 /// </summary>
 public sealed class SectorShapeFallbackService : ISectorShapeFallbackService
 {
     private readonly ISectorShapeRepository _repo;
     private readonly ISectorShapeSource _source;
     private readonly IAiracService _airac;
+    private readonly ShapeFallbackScope _scope;
     private readonly TimeProvider _clock;
 
     public SectorShapeFallbackService(
-        ISectorShapeRepository repo, ISectorShapeSource source, IAiracService airac, TimeProvider? clock = null)
+        ISectorShapeRepository repo, ISectorShapeSource source, IAiracService airac,
+        ShapeFallbackScope? scope = null, TimeProvider? clock = null)
     {
         _repo = repo;
         _source = source;
         _airac = airac;
+        _scope = scope ?? new ShapeFallbackScope();
         _clock = clock ?? TimeProvider.System;
     }
 
@@ -94,7 +101,10 @@ public sealed class SectorShapeFallbackService : ISectorShapeFallbackService
         // «corrente e basta» quando si guarda se il sectorfile l'ha cambiata di nuovo.
         var promossi = await _repo.PromoteDueShapesAsync(adesso, ct);
 
-        var candidati = await _repo.ListShapeCandidatesAsync(ct);
+        // ⚠️ Prima di ogni altra cosa si tolgono gli ESTERI: le loro aree le dà IVAO o non ci sono
+        // (<see cref="ShapeFallbackScope"/>). Il filtro sta qui e non dentro RiguardaIlRipiego perché vale
+        // anche per il conteggio: un settore straniero senza area non è un lavoro che ci resta da fare.
+        var candidati = (await _repo.ListShapeCandidatesAsync(ct)).Where(c => _scope.IsDomestic(c.Callsign)).ToList();
         var daFare = candidati.Where(RiguardaIlRipiego).ToList();
         var senzaArea = candidati.Count(c => !c.HasUsableShape);
         if (daFare.Count == 0)

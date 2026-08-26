@@ -1448,6 +1448,12 @@
   <data name="Rel_CancelPrompt" xml:space="preserve"><value>Annullare la release AIRAC {0}? Il pubblico tornerà alla precedente in vigore.</value></data>
   <data name="Rel_CancelYes" xml:space="preserve"><value>Annulla la release</value></data>
   <data name="Rel_OlderN" xml:space="preserve"><value>Altre {0} release superate</value></data>
+  <data name="Rel_ShapeDeferredTitle" xml:space="preserve"><value>Aree nuove non ancora in vigore</value></data>
+  <data name="Rel_ShapeDeferredBody" xml:space="preserve"><value>{0} area/e di questo perimetro hanno un confine nuovo che entra in vigore più avanti: la release lo sa e pubblicherà quello PRECEDENTE. Se è una correzione urgente, forzala.</value></data>
+  <data name="Rel_ShapeDeferredRow" xml:space="preserve"><value>in vigore dal ciclo {0}</value></data>
+  <data name="Rel_ShapeForce" xml:space="preserve"><value>Pubblica comunque le aree nuove</value></data>
+  <data name="Rel_ShapeForceTitle" xml:space="preserve"><value>Accende la forzatura su queste aree: la prossima pubblicazione porterà il confine nuovo, senza aspettare il ciclo.</value></data>
+  <data name="Rel_ShapeForcedN" xml:space="preserve"><value>{0} aree forzate: la prossima pubblicazione porterà il confine nuovo.</value></data>
   <data name="Rel_Canceled" xml:space="preserve"><value>Release annullata.</value></data>
   <data name="Rel_Effective" xml:space="preserve"><value>In vigore</value></data>
   <data name="Rel_Scheduled" xml:space="preserve"><value>Schedulata</value></data>

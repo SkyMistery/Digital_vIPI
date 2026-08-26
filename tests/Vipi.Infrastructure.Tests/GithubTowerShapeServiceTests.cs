@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
@@ -107,6 +107,34 @@ public class GithubTowerShapeServiceTests : IAsyncLifetime
 
         // Idempotente: ora è reale non-sintetica → non più bersaglio.
         Assert.Equal(0, await svc.ApplyAsync());
+    }
+
+    /// <summary>
+    /// ⚠️ Decisione del committente (26 agosto 2026): i ripieghi valgono solo per gli enti della divisione.
+    /// La TWR di un campo estero prende l'area da IVAO o resta senza — né GitHub né il cerchio la toccano.
+    /// </summary>
+    [Fact]
+    public async Task Una_torre_estera_non_prende_ne_la_shape_github_ne_il_cerchio()
+    {
+        var acc = await _db.Accs.SingleAsync(a => a.Code == "LIRR");
+        _db.Airports.Add(new Airport { Icao = "LOWW", Name = "Vienna", Acc = acc });
+        await _db.SaveChangesAsync();
+        await _repo.ImportForAirportAsync("LOWW", new[]
+        {
+            new SourceAtcPosition("LOWW_TWR", "119.400", "TWR", null, "[]", null, null, 48.11, 16.57),
+        });
+
+        var source = new FakeSource(new Dictionary<string, string>
+        {
+            ["LOWW_TWR"] = "[[16.5,48.0],[16.6,48.0],[16.6,48.2],[16.5,48.0]]",
+        });
+
+        Assert.Equal(0, await new GithubTowerShapeService(_repo, source).ApplyAsync());
+        Assert.Equal(0, await new TowerShapeFallbackService(_repo).ApplyAsync());
+
+        var loww = await _db.AirportSectors.AsNoTracking().SingleAsync(s => s.ComposePosition == "LOWW_TWR");
+        Assert.Null(loww.RegionMapPolygon);   // l'import non scrive il vuoto della sorgente: resta senza area
+        Assert.False(loww.IsShapeSynthetic);
     }
 
     [Fact]

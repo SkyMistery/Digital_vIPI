@@ -248,7 +248,34 @@ riprovata su copia della produzione: 153 e 192 righe, tutte a `Source`.
 ✅ Tutti e tre eseguiti il 26 agosto 2026. I primi due si reggono da soli; il terzo è l'unico che tocca la
 pubblicazione.
 
-⚠️ **Resta fuori l'avviso a schermo.** Il congelamento sostituisce la geometria e `ShapeForcePublished`
-esiste in archivio, ma non c'è ancora un posto dove chi pubblica lo **veda** e possa accenderlo. Finché non
-c'è, una correzione urgente si pubblica per il ciclo prossimo (che è comunque la strada giusta) oppure
-aspetta il giro che promuove. È il primo pezzo da fare.
+4. ✅ **L'avviso a schermo** — fatto il 26 agosto (§7).
+
+## 7. L'avviso a chi pubblica (26 agosto)
+
+Il gate faceva la cosa giusta **in silenzio**: chi pubblica vedeva a schermo il confine nuovo e nel documento
+ne trovava un altro, e una correzione urgente non aveva scorciatoia. Ora il pannello release lo dice e offre
+l'interruttore.
+
+```
+ReleasePanel ──► IShapeGateNoticeService ──► IShapeGateRepository (perimetro dell'ente)
+                        │
+                        └──► ShapeAiracGate.IsDeferredAt   ← la STESSA del congelamento
+```
+
+- **Perimetro**: quello dell'**ente** (i settori della ACC, o le posizioni di quell'ICAO), non l'elenco esatto
+  delle configurazioni AoR — ricavare quello vorrebbe dire rieseguire la derivazione solo per decidere se
+  mostrare un avviso. L'errore possibile è per **eccesso**, che è il verso giusto.
+- **Cicli**: due, perché i tasti sono due — «pubblica ora» usa il corrente, «pubblica al ciclo» quello della
+  tendina. Si avvisa per l'unione.
+- **Forzare** accende `ShapeForcePublished` e **non tocca** `ShapeAiracCycle`: «pubblicala lo stesso» non è
+  «è in vigore». Quando il ciclo arriva, la promozione notturna spegne la forzatura da sé.
+- **Permesso**: quello del documento che si sta pubblicando. Forzare è un atto editoriale, non di sistema.
+
+## 8. ⚠️ Il perimetro dei ripieghi: solo la divisione (26 agosto)
+
+**Decisione del committente**: *le aree degli ATC esteri le dà IVAO, se ce le dà*. I tre ripieghi — sectorfile,
+GitHub `twrs.tfl`, cerchio 5 NM — da qui in avanti guardano **solo** gli enti della divisione
+(`ShapeFallbackScope`, che riusa `HierarchyRules.IsForeignCode`). Un confine straniero preso da una fonte che
+non è l'anagrafica del titolare sarebbe un'area che nessuno di competente ha approvato, pubblicata come vera.
+
+⚠️ Vale per i **ripieghi**: le shape che IVAO manda continuano a scriversi per tutti.
