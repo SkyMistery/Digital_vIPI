@@ -107,6 +107,22 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<string>("RegionMapPolygon")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("RegionMapPolygonInForce")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ShapeAiracCycle")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("ShapeForcePublished")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ShapeSource")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Source");
+
                     b.Property<int?>("UpperLimit")
                         .HasColumnType("INTEGER");
 
@@ -626,6 +642,22 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("RegionMapPolygon")
                         .HasColumnType("TEXT");
+
+                    b.Property<string>("RegionMapPolygonInForce")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ShapeAiracCycle")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("ShapeForcePublished")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ShapeSource")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Source");
 
                     b.Property<int?>("UpperLimit")
                         .HasColumnType("INTEGER");

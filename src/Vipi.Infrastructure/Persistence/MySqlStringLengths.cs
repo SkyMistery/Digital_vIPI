@@ -136,6 +136,12 @@ public static class MySqlStringLengths
             // coppia che identifica la riga di sorgente — quindi vale la stessa regola di DocumentImpact.Kind:
             // il presidio pretende una voce esplicita. Il valore più lungo è `AirportPosition` (15).
             [("CallsignAlias", "Catalog")] = EnumChars,
+            // ⚠️ Non sono indicizzate: hanno un DEFAULT. In MySQL una colonna longtext non può averne uno
+            // («BLOB, TEXT, GEOMETRY or JSON column X can't have a default value») e la migrazione si ferma
+            // al CREATE TABLE. Stessa ragione di DocumentSection.RenderMode, e il presidio le chiede per
+            // questo — non perché entrino in un indice. Il valore più lungo è `Sectorfile` (10).
+            [("AccSector", "ShapeSource")] = EnumChars,
+            [("AirportSector", "ShapeSource")] = EnumChars,
 
             // --- Chiavi composte e identificatori ------------------------------------------------------
             // TargetKey è `{acc}|{root}`, cioè codice ACC + separatore + callsign: 16+1+32 = 49 nel caso

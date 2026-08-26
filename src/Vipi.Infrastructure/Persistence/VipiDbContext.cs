@@ -182,6 +182,13 @@ public class VipiDbContext : DbContext
             e.HasIndex(x => x.ComposePosition).IsUnique();
             e.HasIndex(x => x.CenterId);
             e.HasIndex(x => x.ParentCallsign);               // gerarchia di copertura per callsign (Round 20)
+            e.Property(x => x.ShapeAiracCycle).HasMaxLength(8);   // "YYNN": misurato 4
+            // ⚠️ Il default DICHIARATO NEL MODELLO, non lasciato alla migrazione. Senza, lo scaffolding
+            // emette `defaultValue: ""` — che NON è un nome di valore dell'enum — e ogni riga già in tabella
+            // tornerebbe indietro illeggibile alla prima SELECT. Vale perché `Source` è lo zero dell'enum:
+            // con un default diverso EF ometterebbe la colonna in INSERT sul valore CLR di default e la riga
+            // tornerebbe cambiata. Stessa regola di AgreementClause, poco più sotto.
+            e.Property(x => x.ShapeSource).HasDefaultValue(ShapeSource.Source);
             // FK su Acc.Code (chiave alternata): il centerId della sorgente è il codice ACC.
             e.HasOne(x => x.Acc).WithMany(a => a.AccSectors)
                 .HasForeignKey(x => x.CenterId).HasPrincipalKey(a => a.Code)
@@ -195,6 +202,13 @@ public class VipiDbContext : DbContext
             e.HasIndex(x => x.AirportIcao);
             e.HasIndex(x => x.AccCode);
             e.HasIndex(x => x.ParentCallsign);               // gerarchia di copertura per callsign (Round 20)
+            e.Property(x => x.ShapeAiracCycle).HasMaxLength(8);   // "YYNN": misurato 4
+            // ⚠️ Il default DICHIARATO NEL MODELLO, non lasciato alla migrazione. Senza, lo scaffolding
+            // emette `defaultValue: ""` — che NON è un nome di valore dell'enum — e ogni riga già in tabella
+            // tornerebbe indietro illeggibile alla prima SELECT. Vale perché `Source` è lo zero dell'enum:
+            // con un default diverso EF ometterebbe la colonna in INSERT sul valore CLR di default e la riga
+            // tornerebbe cambiata. Stessa regola di AgreementClause, poco più sotto.
+            e.Property(x => x.ShapeSource).HasDefaultValue(ShapeSource.Source);
             // FK su Airport.Icao (chiave alternata): cascade alla rimozione dell'aeroporto.
             e.HasOne(x => x.Airport).WithMany(a => a.AirportSectors)
                 .HasForeignKey(x => x.AirportIcao).HasPrincipalKey(a => a.Icao)

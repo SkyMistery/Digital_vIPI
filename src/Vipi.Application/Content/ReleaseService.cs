@@ -87,8 +87,10 @@ public sealed class ReleaseService : IReleaseService
 
     public ReleaseService(IReleaseRepository repo, IEditAuthorizationService authz, IAiracService airac,
         IFrozenSectionRegistry frozen, IDocumentAdminRepository admin, IEditingRepository editing,
-        IReleaseTargetRegistry targets, IOptions<ReleaseRetentionOptions> retention, IUnitOfWork uow)
+        IReleaseTargetRegistry targets, IOptions<ReleaseRetentionOptions> retention, IUnitOfWork uow,
+        ShapeReleaseContext? shapeCycle = null)
     {
+        _shapeCycle = shapeCycle;
         _repo = repo;
         _authz = authz;
         _airac = airac;
@@ -99,6 +101,10 @@ public sealed class ReleaseService : IReleaseService
         _retention = retention.Value;
         _uow = uow;
     }
+
+    /// <summary>Il contesto che dice alla lettura delle shape «sto congelando per questo ciclo». Opzionale:
+    /// senza, il congelamento prende le geometrie correnti — cioè il comportamento di prima del gate.</summary>
+    private readonly ShapeReleaseContext? _shapeCycle;
 
     public Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
         _repo.ListAsync(type, key, ct);
@@ -335,7 +341,15 @@ public sealed class ReleaseService : IReleaseService
         var json = await _repo.SnapshotWorkingAsync(type, key, cycle, ct);
         if (json is null) return null;
         var payload = JsonSerializer.Deserialize<DocReleasePayload>(json)!;
-        var frozen = await _frozen.CaptureAsync(type, key, payload.Doc, ct);
+
+        // ⚠️ Il congelamento chiede le shape IN VIGORE AL CICLO DI QUESTA RELEASE, non le più recenti: il
+        // sectorfile lo scriviamo in anticipo, quindi in catalogo può già esserci il confine del ciclo
+        // prossimo. Pubblicando per il ciclo corrente esce la geometria vecchia; pubblicando in anticipo
+        // PER il ciclo prossimo — che è quel che si fa preparando un AIRAC — esce quella nuova. Vedi
+        // ShapeAiracGate e docs/feature/2026-08-26-shape-dal-sectorfile.md §3.
+        IReadOnlyDictionary<int, string> frozen;
+        using (_shapeCycle?.Capturing(cycle))
+            frozen = await _frozen.CaptureAsync(type, key, payload.Doc, ct);
         foreach (var kv in frozen) payload.FrozenSections[kv.Key] = kv.Value;
         return JsonSerializer.Serialize(payload);
     }

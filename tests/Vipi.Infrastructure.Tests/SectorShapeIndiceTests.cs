@@ -86,7 +86,7 @@ public class SectorShapeRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
         _db.ChangeTracker.Clear();
 
-        _repo = new EfSectorShapeRepository(_db);
+        _repo = new EfSectorShapeRepository(_db, new Vipi.Domain.Services.AiracService());
     }
 
     public async Task DisposeAsync() { await _db.DisposeAsync(); await _conn.DisposeAsync(); }
@@ -125,10 +125,12 @@ public class SectorShapeRepositoryTests : IAsyncLifetime
     {
         var riga = (await _repo.ListShapeCandidatesAsync()).Single(r => r.Callsign == "LIRR_NE_CTR");
 
-        await _repo.SetShapeAsync(SourceCatalog.Subcenter, riga.Id, Quadrato);
+        await _repo.ApplyShapeAsync(new ShapeWrite(SourceCatalog.Subcenter, riga.Id, Quadrato, null, null));
 
-        Assert.Equal(Quadrato, (await _db.AccSectors.AsNoTracking()
-            .SingleAsync(x => x.ComposePosition == "LIRR_NE_CTR")).RegionMapPolygon);
+        var dopo = await _db.AccSectors.AsNoTracking().SingleAsync(x => x.ComposePosition == "LIRR_NE_CTR");
+        Assert.Equal(Quadrato, dopo.RegionMapPolygon);
+        // ⚠️ La provenienza e' la condizione del gate AIRAC: senza, il differimento non scatterebbe mai.
+        Assert.Equal(ShapeSource.Sectorfile, dopo.ShapeSource);
     }
 
     /// <summary>
@@ -140,7 +142,7 @@ public class SectorShapeRepositoryTests : IAsyncLifetime
     {
         var riga = (await _repo.ListShapeCandidatesAsync()).Single(r => r.Callsign == "LIRF_TW1_APP");
 
-        await _repo.SetShapeAsync(SourceCatalog.AirportPosition, riga.Id, Quadrato);
+        await _repo.ApplyShapeAsync(new ShapeWrite(SourceCatalog.AirportPosition, riga.Id, Quadrato, null, null));
 
         var dopo = await _db.AirportSectors.AsNoTracking().SingleAsync(x => x.ComposePosition == "LIRF_TW1_APP");
         Assert.Equal(Quadrato, dopo.RegionMapPolygon);

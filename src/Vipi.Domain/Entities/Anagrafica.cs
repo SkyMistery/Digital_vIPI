@@ -73,6 +73,43 @@ public class AccSector
     public string? Frequency { get; set; }                    // MHz, da /v2/subcenters/{compose}
     public string? RegionMapPolygon { get; set; }             // poligono shape (JSON grezzo), da /v2/subcenters/{compose}
 
+    /// <summary>
+    /// La shape <b>in vigore</b>, che può essere più vecchia di <see cref="RegionMapPolygon"/>.
+    ///
+    /// <para><b>Perché due.</b> Il sectorfile lo scriviamo noi <b>prima</b> che il ciclo AIRAC esca, quindi
+    /// quel che ne arriva può descrivere un confine che entrerà in vigore fra settimane. L'editor deve vedere
+    /// l'ultima — magari è la correzione di un errore da pubblicare subito — quindi <see cref="RegionMapPolygon"/>
+    /// tiene sempre la più recente. Ma allora quella <i>in vigore</i> non ce l'avrebbe più nessuno, e il
+    /// congelamento di release non saprebbe cosa mettere nel documento pubblico. Sta qui.</para>
+    ///
+    /// <para>null = non c'è una versione precedente, e allora vale la corrente: è il caso normale, e anche
+    /// quello della <b>prima</b> shape di un settore che non ne ha mai avuta — differirla vorrebbe dire
+    /// mostrare nessuna area fino a 28 giorni, che è peggio di una in anticipo.</para>
+    ///
+    /// <para>⚠️ La legge <b>solo</b> il congelamento di release. Editor, derivazione e tutto il resto leggono
+    /// <see cref="RegionMapPolygon"/>, come hanno sempre fatto.</para>
+    /// </summary>
+    public string? RegionMapPolygonInForce { get; set; }
+
+    /// <summary>
+    /// Il ciclo AIRAC (YYNN) dal quale <see cref="RegionMapPolygon"/> entra in vigore. null = è già in vigore.
+    /// <para>Lo stampa il ripiego dal sectorfile quando vede una geometria <b>nuova</b>, col ciclo
+    /// <b>successivo</b> a quello corrente — la stessa regola del differimento delle SID
+    /// (<c>AirportSid.SourceAiracCycle</c>). L'import lo azzera da sé quando il ciclo è arrivato: nessun
+    /// lavoro schedulato, nessuna magia sull'orologio.</para>
+    /// </summary>
+    public string? ShapeAiracCycle { get; set; }
+
+    /// <summary>Da dove viene <see cref="RegionMapPolygon"/>: decide se il gate AIRAC si applica.</summary>
+    public ShapeSource ShapeSource { get; set; }
+
+    /// <summary>
+    /// Pubblica la shape nuova <b>subito</b>, scavalcando il differimento. Gemello di
+    /// <c>AirportSid.ForcePublished</c>, e per la stessa ragione: un aggiornamento può essere la correzione
+    /// di un errore, e un meccanismo che la trattiene 28 giorni sarebbe peggio del problema che risolve.
+    /// </summary>
+    public bool ShapeForcePublished { get; set; }
+
     /// <summary>Padre nella gerarchia di copertura, per callsign (= ComposePosition del padre). Cross-ACC ammesso.
     /// null = radice / da assegnare. SPEC §9.12 (Round 20).</summary>
     public string? ParentCallsign { get; set; }
@@ -122,6 +159,43 @@ public class AirportSector
     public string? AtcCallsign { get; set; }                   // nome visualizzato IVAO, es. "Pisa Approach"
     public string? Frequency { get; set; }                     // MHz, da /v2/ATCPositions/{compose}
     public string? RegionMapPolygon { get; set; }              // poligono shape (JSON grezzo), da /v2/ATCPositions/{compose}
+
+    /// <summary>
+    /// La shape <b>in vigore</b>, che può essere più vecchia di <see cref="RegionMapPolygon"/>.
+    ///
+    /// <para><b>Perché due.</b> Il sectorfile lo scriviamo noi <b>prima</b> che il ciclo AIRAC esca, quindi
+    /// quel che ne arriva può descrivere un confine che entrerà in vigore fra settimane. L'editor deve vedere
+    /// l'ultima — magari è la correzione di un errore da pubblicare subito — quindi <see cref="RegionMapPolygon"/>
+    /// tiene sempre la più recente. Ma allora quella <i>in vigore</i> non ce l'avrebbe più nessuno, e il
+    /// congelamento di release non saprebbe cosa mettere nel documento pubblico. Sta qui.</para>
+    ///
+    /// <para>null = non c'è una versione precedente, e allora vale la corrente: è il caso normale, e anche
+    /// quello della <b>prima</b> shape di un settore che non ne ha mai avuta — differirla vorrebbe dire
+    /// mostrare nessuna area fino a 28 giorni, che è peggio di una in anticipo.</para>
+    ///
+    /// <para>⚠️ La legge <b>solo</b> il congelamento di release. Editor, derivazione e tutto il resto leggono
+    /// <see cref="RegionMapPolygon"/>, come hanno sempre fatto.</para>
+    /// </summary>
+    public string? RegionMapPolygonInForce { get; set; }
+
+    /// <summary>
+    /// Il ciclo AIRAC (YYNN) dal quale <see cref="RegionMapPolygon"/> entra in vigore. null = è già in vigore.
+    /// <para>Lo stampa il ripiego dal sectorfile quando vede una geometria <b>nuova</b>, col ciclo
+    /// <b>successivo</b> a quello corrente — la stessa regola del differimento delle SID
+    /// (<c>AirportSid.SourceAiracCycle</c>). L'import lo azzera da sé quando il ciclo è arrivato: nessun
+    /// lavoro schedulato, nessuna magia sull'orologio.</para>
+    /// </summary>
+    public string? ShapeAiracCycle { get; set; }
+
+    /// <summary>Da dove viene <see cref="RegionMapPolygon"/>: decide se il gate AIRAC si applica.</summary>
+    public ShapeSource ShapeSource { get; set; }
+
+    /// <summary>
+    /// Pubblica la shape nuova <b>subito</b>, scavalcando il differimento. Gemello di
+    /// <c>AirportSid.ForcePublished</c>, e per la stessa ragione: un aggiornamento può essere la correzione
+    /// di un errore, e un meccanismo che la trattiene 28 giorni sarebbe peggio del problema che risolve.
+    /// </summary>
+    public bool ShapeForcePublished { get; set; }
 
     /// <summary>Padre nella gerarchia di copertura, per callsign (solo per le posizioni APP, che sono nodi interni
     /// dell'albero). DEL/GND/TWR non sono nodi → resta null. Cross-ACC ammesso. SPEC §9.12 (Round 20).</summary>

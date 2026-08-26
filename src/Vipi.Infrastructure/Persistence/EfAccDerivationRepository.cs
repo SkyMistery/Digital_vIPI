@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
+using Vipi.Domain.Services;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
 
@@ -14,7 +15,18 @@ namespace Vipi.Infrastructure.Persistence;
 public sealed class EfAccDerivationRepository : IAccDerivationRepository
 {
     private readonly VipiDbContext _db;
-    public EfAccDerivationRepository(VipiDbContext db) => _db = db;
+    /// <param name="release">Il contesto del congelamento: fuori da esso è a vuoto e le shape si leggono
+    /// come sempre. ⚠️ Opzionale perché i test costruiscono questo repository col solo contesto.</param>
+    public EfAccDerivationRepository(VipiDbContext db,
+        ShapeReleaseContext? release = null, IAiracService? airac = null)
+    {
+        _db = db;
+        _release = release;
+        _airac = airac;
+    }
+
+    private readonly ShapeReleaseContext? _release;
+    private readonly IAiracService? _airac;
 
     public async Task<AccDocumentIdentity?> ResolveAccDocumentIdentityAsync(string accCode, CancellationToken ct = default)
     {
@@ -94,7 +106,7 @@ public sealed class EfAccDerivationRepository : IAccDerivationRepository
             .ToListAsync(ct);
 
     public Task<IReadOnlyDictionary<string, string>> GetSectorPolygonsRawByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default) =>
-        SectorPolygonsRawByCallsignAsync(_db, callsigns, ct);
+        SectorPolygonsRawByCallsignAsync(_db, callsigns, ct, _release, _airac);
 
     public Task<IReadOnlyDictionary<string, SectorFlLimits>> GetSectorLimitsByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default) =>
         SectorLimitsByCallsignAsync(_db, callsigns, ct);
@@ -104,8 +116,16 @@ public sealed class EfAccDerivationRepository : IAccDerivationRepository
 
     // Helper statici condivisi con EfAppDerivationRepository (stessa semantica: CTR AccSector + APP/TWR AirportSector).
 
+    /// <summary>
+    /// Il poligono grezzo di ogni callsign. ⚠️ Quale poligono lo decide il <b>gate AIRAC</b>: normalmente la
+    /// geometria corrente — quella che vede l'editor — ma durante il congelamento di una release quella
+    /// <b>in vigore al ciclo della release</b>, che può essere la precedente se il sectorfile ha già
+    /// disegnato il confine del ciclo prossimo. Vedi <c>ShapeAiracGate</c> e
+    /// <c>docs/feature/2026-08-26-shape-dal-sectorfile.md</c> §3.
+    /// </summary>
     internal static async Task<IReadOnlyDictionary<string, string>> SectorPolygonsRawByCallsignAsync(
-        VipiDbContext db, IReadOnlyList<string> callsigns, CancellationToken ct)
+        VipiDbContext db, IReadOnlyList<string> callsigns, CancellationToken ct,
+        ShapeReleaseContext? release = null, IAiracService? airac = null)
     {
         var res = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         if (callsigns.Count == 0) return res;
@@ -113,15 +133,28 @@ public sealed class EfAccDerivationRepository : IAccDerivationRepository
 
         var ctr = await db.AccSectors.AsNoTracking()
             .Where(s => set.Contains(s.ComposePosition) && s.RegionMapPolygon != null && s.RegionMapPolygon != "")
-            .Select(s => new { s.ComposePosition, s.RegionMapPolygon }).ToListAsync(ct);
-        foreach (var r in ctr) res[r.ComposePosition] = r.RegionMapPolygon!;
+            .Select(s => new Grezza(s.ComposePosition, s.RegionMapPolygon!, s.RegionMapPolygonInForce,
+                s.ShapeAiracCycle, s.ShapeSource, s.ShapeForcePublished)).ToListAsync(ct);
+        foreach (var r in ctr) res[r.Callsign] = DaPubblicare(r, release, airac);
 
         var app = await db.AirportSectors.AsNoTracking()
             .Where(s => set.Contains(s.ComposePosition) && s.RegionMapPolygon != null && s.RegionMapPolygon != "")
-            .Select(s => new { s.ComposePosition, s.RegionMapPolygon }).ToListAsync(ct);
-        foreach (var r in app) res.TryAdd(r.ComposePosition, r.RegionMapPolygon!);
+            .Select(s => new Grezza(s.ComposePosition, s.RegionMapPolygon!, s.RegionMapPolygonInForce,
+                s.ShapeAiracCycle, s.ShapeSource, s.ShapeForcePublished)).ToListAsync(ct);
+        foreach (var r in app) res.TryAdd(r.Callsign, DaPubblicare(r, release, airac));
 
         return res;
+    }
+
+    private sealed record Grezza(string Callsign, string Polygon, string? InForce, string? Cycle,
+        ShapeSource Source, bool Force);
+
+    /// <summary>Fuori dal congelamento vale sempre la corrente: è l'unico caso in cui il gate non entra.</summary>
+    private static string DaPubblicare(Grezza g, ShapeReleaseContext? release, IAiracService? airac)
+    {
+        if (release?.Cycle is not { } ciclo || airac is null) return g.Polygon;
+        var stato = new ShapeState(g.Polygon, g.InForce, g.Cycle, g.Source, g.Force);
+        return ShapeAiracGate.ForRelease(stato, ciclo, airac) ?? g.Polygon;
     }
 
     internal static async Task<IReadOnlyDictionary<string, SectorFlLimits>> SectorLimitsByCallsignAsync(

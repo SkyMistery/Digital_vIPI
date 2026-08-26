@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
+using Vipi.Domain.Services;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
 
@@ -14,7 +15,18 @@ namespace Vipi.Infrastructure.Persistence;
 public sealed class EfAppDerivationRepository : IAppDerivationRepository
 {
     private readonly VipiDbContext _db;
-    public EfAppDerivationRepository(VipiDbContext db) => _db = db;
+    /// <param name="release">Il contesto del congelamento: fuori da esso è a vuoto e le shape si leggono
+    /// come sempre. ⚠️ Opzionale perché i test costruiscono questo repository col solo contesto.</param>
+    public EfAppDerivationRepository(VipiDbContext db,
+        ShapeReleaseContext? release = null, IAiracService? airac = null)
+    {
+        _db = db;
+        _release = release;
+        _airac = airac;
+    }
+
+    private readonly ShapeReleaseContext? _release;
+    private readonly IAiracService? _airac;
 
     public async Task<string?> GetAccCodeByAppAsync(string appCallsign, CancellationToken ct = default) =>
         await _db.Sectors.Where(s => s.Callsign == appCallsign && s.Type == SectorType.App)
@@ -57,7 +69,7 @@ public sealed class EfAppDerivationRepository : IAppDerivationRepository
             .Select(s => s.RegionMapPolygon).FirstOrDefaultAsync(ct);
 
     public Task<IReadOnlyDictionary<string, string>> GetSectorPolygonsRawByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default) =>
-        EfAccDerivationRepository.SectorPolygonsRawByCallsignAsync(_db, callsigns, ct);
+        EfAccDerivationRepository.SectorPolygonsRawByCallsignAsync(_db, callsigns, ct, _release, _airac);
 
     public Task<IReadOnlyDictionary<string, SectorFlLimits>> GetSectorLimitsByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default) =>
         EfAccDerivationRepository.SectorLimitsByCallsignAsync(_db, callsigns, ct);

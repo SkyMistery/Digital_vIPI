@@ -251,6 +251,27 @@ public static class ImpactKinds
 }
 
 /// <summary>
+/// Da dove viene la shape di un settore. Serve a una domanda sola, ma decisiva: <b>il gate AIRAC si applica
+/// o no?</b>
+///
+/// <para>Il sectorfile lo scriviamo noi <b>in anticipo</b> sul ciclo, quindi quel che ne arriva può non
+/// essere ancora in vigore e va differito. L'anagrafica IVAO no — quel che serve ai controllori adesso è in
+/// vigore per definizione — e nemmeno il cerchio di ripiego, che non descrive un confine ma la sua assenza.
+/// Senza questo campo il gate dovrebbe indovinare la provenienza dalla forma del poligono.</para>
+/// </summary>
+public enum ShapeSource
+{
+    /// <summary>Anagrafica IVAO (<c>regionMapPolygon</c>), o l'assenza di shape. <b>Nessun gate.</b></summary>
+    Source,
+
+    /// <summary>Sectorfile Aurora (<c>DYNAMIC_SEC/*.tfl</c>). <b>Soggetta al gate AIRAC.</b></summary>
+    Sectorfile,
+
+    /// <summary>Cerchio di ripiego generato da noi (solo TWR). Nessun gate: non è un confine.</summary>
+    Synthetic,
+}
+
+/// <summary>
 /// Quale dei due cataloghi di sorgente: i <b>subcenter</b> di un ACC (<c>AccSector</c>) o le <b>postazioni</b>
 /// di un aeroporto (<c>AirportSector</c>).
 ///

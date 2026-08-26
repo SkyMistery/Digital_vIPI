@@ -1,6 +1,6 @@
 # Le shape dal sectorfile, e il ciclo che non è ancora uscito
 
-> 26 agosto 2026 · ramo `identita-settori` · **carta, prima del codice**
+> 26 agosto 2026 · ramo `identita-settori` · ✅ **eseguita**
 >
 > L'anagrafica IVAO ha smesso di dare i poligoni. Il sectorfile Aurora ce li ha tutti — ma è il file del
 > ciclo **prossimo**, perché si edita in anticipo. Serve prenderli senza pubblicare il futuro.
@@ -178,6 +178,32 @@ Deciso: **non si cancella niente, si apre una segnalazione.** Cancellare per ass
 appena corretto sull'API (`2026-08-26-lassenza-non-cancella.md`), e un blocco può sparire dal file per un
 refuso quanto per una decisione.
 
+### Il gate, in opera (26 agosto, su copia della produzione)
+
+Primo giro del ripiego, poi il sectorfile ridisegna il confine di `LIRR_NE_CTR`:
+
+```
+giro 1: nuove=110  aggiornate=0
+giro 2: nuove=0    aggiornate=1   -> entra dal ciclo 2609 (oggi siamo nel 2608)
+
+   RegionMapPolygon         = la ridisegnata
+   RegionMapPolygonInForce  = quella di prima
+   ShapeSource              = Sectorfile
+
+EDITOR         (nessun contesto)  -> la ridisegnata      ← la decisione del committente, rispettata
+RELEASE per il ciclo 2608         -> quella di prima     ← il futuro non trapela
+RELEASE per il ciclo 2609         -> la ridisegnata      ← chi prepara l'AIRAC, senza interruttori
+```
+
+Le tre righe in fondo sono il disegno intero: **una domanda sola** — «in vigore a quale ciclo?» — e le tre
+risposte giuste cadono da sé.
+
+⚠️ **Una trappola presa al volo.** Lo scaffolding della migrazione emetteva `defaultValue: ""` per
+`ShapeSource`, che non è il nome di nessun valore dell'enum: ogni riga già in tabella sarebbe tornata
+indietro illeggibile alla prima `SELECT`. Il default va **dichiarato nel modello**, e vale perché `Source` è
+lo zero dell'enum — è la stessa regola già scritta in `VipiDbContext` per `AgreementClause`. Migrazione
+riprovata su copia della produzione: 153 e 192 righe, tutte a `Source`.
+
 ## 5. Pre-flight (FEATURE-PROCESS)
 
 1. **Modello** — nessun modello gemello: le shape restano dove sono, sulle righe di catalogo. Il catalogo
@@ -198,5 +224,10 @@ refuso quanto per una decisione.
 2. **La sorgente sectorfile** — provider e servizio di ripiego, che scrive solo dove la 1 non ha dato niente.
 3. **Il gate AIRAC** — le colonne, la promozione al giro, la sostituzione al congelamento con l'avviso.
 
-I primi due si reggono da soli e valgono anche senza il terzo: senza gate le shape entrano e basta, che è
-comunque meglio di adesso. Il terzo è quello che tocca la pubblicazione.
+✅ Tutti e tre eseguiti il 26 agosto 2026. I primi due si reggono da soli; il terzo è l'unico che tocca la
+pubblicazione.
+
+⚠️ **Resta fuori l'avviso a schermo.** Il congelamento sostituisce la geometria e `ShapeForcePublished`
+esiste in archivio, ma non c'è ancora un posto dove chi pubblica lo **veda** e possa accenderlo. Finché non
+c'è, una correzione urgente si pubblica per il ciclo prossimo (che è comunque la strada giusta) oppure
+aspetta il giro che promuove. È il primo pezzo da fare.
