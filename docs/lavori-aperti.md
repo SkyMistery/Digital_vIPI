@@ -171,6 +171,14 @@ lo sapesse.
 aeroporti alla loro vIPI al primo avvio (idempotente, lo scrive nei log). Senza, i documenti d'aeroporto già
 pubblicati risulterebbero inesistenti alla strada nuova.
 
+⚠️ **Dal 26 agosto lo stesso ramo porta anche l'ELIMINAZIONE** — un motore solo con l'anteprima, la pagina
+«Da sistemare», la retention delle sessioni ATC e due colonne nuove ([carta](feature/2026-08-26-eliminare-con-le-protezioni.md)).
+Le migrazioni salgono a **dieci**: `TimbriPerEliminare` e `RiassuntoMensileAtc`.
+
+🔵 **Deciso il 26 agosto sera: il database si ripulisce un'ultima volta prima di popolarlo.** Da qui
+l'unica voce nuova qui sotto — **I1**, le sette radici orfane di LIRR — resta **sospesa di proposito**: non
+si sistema un albero che sta per essere rifatto.
+
 ✅ **Fusa il 23 agosto, sera**: il ramo **`audit-frontend-ui`** (15 commit) è in `main`. Ci stavano l'audit
 frontend/UI (§H) e, sopra, i coordinamenti della vista live a colonne con la potatura del foglio di stile
 ([feature/2026-08-23-live-coordinamenti-a-colonne.md](feature/2026-08-23-live-coordinamenti-a-colonne.md)).
@@ -2304,3 +2312,39 @@ già una voce aperta di **B12** — così la Guida si tocca una volta sola.
 non è un link perché quel numero sta dentro un **nome** (il `publicNickname` di IVAO), e «VID 0» non è un
 link perché zero non è una persona — è la prima versione dei documenti generati dal profilo aeroporto, e la
 sua esistenza nei dati veri conferma che quel ramo di `VidLink` serviva.
+
+---
+
+## I. Dopo la pulizia del database (26 agosto 2026)
+
+Il committente ripulisce il database **un'ultima volta** prima di iniziare a popolare i dati veri. Queste
+voci nascono dall'inventario dell'archivio fatto il 26 sera e **si guardano dopo**, non prima: sistemare
+oggi un albero che sta per essere rifatto sarebbe lavoro buttato.
+
+### I1 🔵 SOSPESA — le sette radici orfane di LIRR
+
+`LIRR` ha **otto radici CTR** e una sola (`LIRR_EW_CTR`) porta il documento; `LIPP` ne ha due. Un albero così
+scollegato è la ragione per cui un residuo si era formato: quando un import cambia il padre di un settore,
+ciò che ci stava appeso si stacca — ed è esattamente com'è nata la «vIPI Roma» fantasma
+([§17 della carta](feature/2026-08-26-eliminare-con-le-protezioni.md)).
+
+Da rifare **dopo** la pulizia, e su dati veri: agganciare le radici superflue sotto quella buona dalla
+pagina Struttura. ⚠️ Il riaggancio va scritto nel **catalogo** — è quello che la proiezione rilegge — e
+adesso l'eliminazione lo fa già da sola (§14).
+
+### I2 🔵 SOSPESA — lo stato dell'archivio, com'era il 26 agosto
+
+La fotografia da cui ripartire per capire **cosa c'è davvero** (misurata sul `vipi.db` di sviluppo, prima
+della pulizia):
+
+| | |
+|---|---|
+| Documenti | 19, poi **18**: la «vIPI Roma» fantasma è stata eliminata |
+| Pubblicati e visibili | **14** bersagli: 2 ACC (Brindisi 61 KB, Milano 5 KB), 3 APP, 5 aeroporti, 4 vLOA |
+| Mai pubblicati | 4: **vIPI Roma** e **vIPI Padova** (scheletri nudi), Bologna Radar, vIPI LIBA |
+| ACC italiane | Brindisi finita (21 sezioni, 9 blocchi pieni, 15 versioni) · Milano a metà · **Roma e Padova da scrivere** |
+| Aeroporti | **6 documenti su 93**; 78 scali hanno settori e nessuna vIPI |
+| Da ripubblicare | 4 bozze più avanti della copia pubblicata: Brindisi v15, Pescara v2, vLOA LGGG v2, vLOA LDZO v3 |
+
+⚠️ Nell'archivio **due documenti diversi possono avere lo stesso titolo**: dove si elencano documenti, il
+numero va accanto al nome quando il nome si ripete.

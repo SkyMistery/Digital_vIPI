@@ -448,3 +448,40 @@ Provando a eliminarlo, tre cose sono venute fuori:
 
 **Provato sui dati veri**: 19 → **18** documenti, `LIRR_ES_CTR` liberato (`DocumentId` a null), audit
 `Delete/Document/5` col titolo dentro, sezioni e blocchi puliti, la riga sparita dalla pagina.
+
+
+## §18 — Lo stato dell'archivio, e perché ci si ferma qui
+
+L'inventario del 26 sera, misurato sul `vipi.db` di sviluppo, è la fotografia da cui ripartirà chi popola i
+dati veri.
+
+**Quel che il pubblico vede oggi — 14 bersagli pubblicati.** Due ACC (**Brindisi** 61 KB dal 31 luglio,
+ciclo 2607; **Milano** 5 KB dal 6 agosto, ciclo 2608), tre APP (`LIBA_APP` 13 KB, `LICC_APP` e `LIBP_APP`
+2 KB), cinque aeroporti (LIRN, LIBC, LIBD, LIBR, LIPA) e tutte e quattro le vLOA di Brindisi (48-216 KB).
+
+⚠️ La release di Milano ha lo **stato scritto** «Scheduled» ma è **in vigore**: l'efficacia si calcola dalla
+data in lettura (`SummariesAsync`), non dallo stato memorizzato. Chi legge quella colonna in un `SELECT`
+crede il contrario.
+
+**Mai pubblicati: quattro.** `vIPI Roma` (16) e `vIPI Padova` (17) sono **scheletri nudi** — dieci sezioni,
+quattro blocchi derivati, zero testo; `Bologna Radar` (APP) e `vIPI — LIBA Amendola`, che pure ha quattro
+blocchi pieni mentre l'APP dello stesso scalo è pubblicato.
+
+**Le quattro ACC italiane**: Brindisi è l'unica finita (21 sezioni, 9 blocchi pieni, 15 versioni, 10
+pubblicazioni); Milano è a metà (21 sezioni, 4 blocchi pieni su 11); **Roma e Padova sono da scrivere**.
+Oggi **Roma non ha una vIPI pubblica**.
+
+**Aeroporti**: 6 documenti su 93; **78 scali hanno settori e nessuna vIPI**.
+
+**Da ripubblicare**: quattro bozze sono più avanti della copia pubblicata — Brindisi v15 (pubblicata v13),
+Pescara v2, vLOA LGGG v2, vLOA LDZO v3. Tre di queste sono già segnalate in «Da sistemare».
+
+### La cosa che salta all'occhio, e che NON si tocca adesso
+
+`LIRR` ha **otto radici CTR** e una sola porta il documento; `LIPP` ne ha due. È la ragione strutturale per
+cui il residuo di §17 si era formato: con un albero così scollegato, un import che cambia il padre di un
+settore stacca ciò che ci stava appeso.
+
+🔵 **Il committente ha deciso di ripulire il database un'ultima volta prima di popolarlo** (26 agosto,
+sera). Quindi il riaggancio delle radici **non si fa ora**: sistemare un albero che sta per essere rifatto
+sarebbe lavoro buttato. La voce resta sospesa in [lavori-aperti §I1](../lavori-aperti.md).
