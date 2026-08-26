@@ -2,15 +2,19 @@
 
 > 26 agosto 2026 · ramo `identita-settori`
 >
-> IVAO ha smesso di mandare i poligoni e risponde `regionMapPolygon: []`. Gli upsert lo prendevano per una
-> forma e la scrivevano sopra quella che avevamo: **83 poligoni a zero in un solo import**, misurato sul
-> database vero.
+> La sorgente risponde `regionMapPolygon: []`, e gli upsert lo prendevano per una forma scrivendolo sopra
+> quella che avevamo: **83 poligoni a zero in un solo import**, misurato sul database vero.
+>
+> ⚠️ **Le shape delle TWR non sono mai state di IVAO**, ed è voluto: sono nostre — GitHub più il cerchio di
+> ripiego — ed è per questo che quella catena esiste. La correzione serve a **proteggerle**, non a
+> recuperare qualcosa dalla sorgente. Vedi §5 per la parte che invece è cambiata davvero.
 
 ## 1. Il difetto
 
 Trovato per strada mentre si misurava altro ([identità dei settori](2026-08-26-identita-dei-settori.md) §7).
 `/v2/ATCPositions/{compose}` e `/v2/subcenters/{compose}` rispondono `regionMapPolygon: []` — **tutte e 229**
-le righe italiane, verificate contro l'API vera.
+le righe italiane, verificate contro l'API vera. Per le TWR è la normalità (§5); il difetto è che quel vuoto
+veniva scritto **sopra** le shape che avevamo.
 
 Gli upsert dei cataloghi assegnavano senza guardare:
 
@@ -27,7 +31,8 @@ DOPO    reali=0   sintetici=0   vuoti=142
 ```
 
 **83 poligoni su 83.** I 66 «reali» non venivano da IVAO ma da **GitHub** (`twrs.tfl`, via
-`GithubTowerShapeService`); i 17 sintetici erano i cerchi di ripiego a 5 NM.
+`GithubTowerShapeService`); i 17 sintetici erano i cerchi di ripiego a 5 NM. Nessuno dei due è una shape
+della sorgente: sono il ripiego che esiste **perché** la sorgente non le dà.
 
 ### Perché non se n'era accorto nessuno
 
@@ -104,8 +109,31 @@ senza shape) e i casi di `IsEmptyShape` in `ShapeVuotaTests`.
 aeroporto che il filtro non doveva toccare. Presidiava il **modo in cui l'assenza era scritta in colonna**,
 non il fatto che GitHub non l'avesse toccato. Ora dice `Assert.Null`, cioè quel che ha sempre voluto dire.
 
-## 5. Quel che resta aperto
+## 5. Che cosa è davvero cambiato, e che cosa no
 
-**Perché IVAO non manda più le shape** non lo sappiamo: potrebbe essere una scelta, un guasto, o una
-migrazione in corso da loro. Con questa correzione la cosa non ci fa più danno, ma vale la pena chiederlo —
-se le shape tornassero, l'upsert le riprenderebbe da sé senza che si tocchi niente.
+⚠️ La prima stesura di questa carta diceva «IVAO ha smesso di mandare i poligoni». **Per le TWR è falso**, e
+il committente l'ha corretto: quelle shape non sono mai arrivate dalla sorgente, ed è esattamente il motivo
+per cui esistono `GithubTowerShapeService` e il cerchio da 5 NM. Il confronto col backup del 17 agosto lo
+conferma — le TWR sono **stabili**, e i loro poligoni sono sempre stati nostri:
+
+| | 17 agosto | oggi |
+|---|---|---|
+| TWR da GitHub (`IsShapeSynthetic=false`) | 68 | 66 |
+| TWR col cerchio di ripiego (`=true`) | 16 | 17 |
+
+**Quel che invece è cambiato non riguarda le torri.** Nello stesso periodo:
+
+| | 17 agosto | oggi |
+|---|---|---|
+| **APP** d'aeroporto con poligono vero | **59** | **0** |
+| **CTR/FSS** italiani con poligono vero | **27** | **0** |
+
+Le righe ci sono ancora — è la colonna a essere stata svuotata. E quei poligoni potevano venire **solo dalla
+sorgente**: per gli `AirportSectors` gli unici altri scrittori sono `SetRealShapeAsync` e
+`SetSyntheticShapeAsync`, che lavorano su `ListTwrShapesAsync`, cioè **solo TWR**.
+
+⚠️ **Per APP e CTR non esiste nessun ripiego.** Le TWR si sono salvate perché GitHub le rimette; quelle no.
+
+Resta da capire se anche questo sia voluto. La misura è di un istante solo (229 chiamate, tutte `[]`) e non
+si può ripetere: le credenziali di prova sono state revocate. Con la correzione applicata il danno non si
+allarga più, e se le shape tornassero l'upsert le riprenderebbe da sé senza toccare niente.
