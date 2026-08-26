@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Abstractions;
@@ -164,6 +164,28 @@ public class VloaDocumentViewTests : TestContext
 
         Assert.Contains("VALKO", cut.Markup);
         Assert.DoesNotContain("USOSA", cut.Markup);
+    }
+
+    [Fact]
+    public void The_children_order_decides_which_direction_comes_first()
+    {
+        // Le due direzioni si spostano dall'editor come ogni altra sezione del gruppo: il documento pubblicato
+        // segue l'ordine delle sotto-sezioni, non una sequenza scritta nel viewer. La CHIAVE resta l'unica cosa
+        // che dice QUALE verso è (vedi il test qui sopra): qui cambia solo chi viene prima.
+        var cut = Render(DocWith(Coordination(Inbound(), Outbound())));
+
+        Assert.True(cut.Markup.IndexOf("VALKO", StringComparison.Ordinal)
+                    < cut.Markup.IndexOf("USOSA", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Without_direction_subsections_the_canonical_order_holds()
+    {
+        // Sotto-sezioni assenti (o snapshot storici con la chiave del padre): uscente prima, entrante dopo.
+        var cut = Render(DocWith(Coordination()));
+
+        Assert.True(cut.Markup.IndexOf("USOSA", StringComparison.Ordinal)
+                    < cut.Markup.IndexOf("VALKO", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -70,16 +70,17 @@
                            rendeva affatto, pur essendo creabili dall'editor con «+ sotto-sez» (doc 11 §3b). *@
                         @SubSections(WithoutDirections(s), SectionSlot.Before)
                         @* Le due direzioni, riconosciute dalla CHIAVE (doc 13 §3c): prima erano la figlia [0] e la
-                           figlia [1], mentre l'editor le distingueva per titolo — due modi per la stessa cosa. *@
-                        @if (DirectionVisible(s, SectionKeys.CoordinationOut))
+                           figlia [1], mentre l'editor le distingueva per titolo — due modi per la stessa cosa.
+                           L'ORDINE però è quello del documento: le due sotto-sezioni si spostano dall'editor come
+                           ogni altra sezione del loro gruppo, e il documento pubblicato deve seguirle. *@
+                        @foreach (var key in DirectionOrder(s))
                         {
-                            <h4>@_coord.HomeAcc → @_coord.ForeignAcc</h4>
-                            <AccCoordinationView Coord="_coord.HomeToForeign" English="true" />
-                        }
-                        @if (DirectionVisible(s, SectionKeys.CoordinationIn))
-                        {
-                            <h4>@_coord.ForeignAcc → @_coord.HomeAcc</h4>
-                            <AccCoordinationView Coord="_coord.ForeignToHome" English="true" />
+                            var outbound = string.Equals(key, SectionKeys.CoordinationOut, StringComparison.OrdinalIgnoreCase);
+                            @if (DirectionVisible(s, key))
+                            {
+                                <h4>@(outbound ? _coord.HomeAcc : _coord.ForeignAcc) → @(outbound ? _coord.ForeignAcc : _coord.HomeAcc)</h4>
+                                <AccCoordinationView Coord="@(outbound ? _coord.HomeToForeign : _coord.ForeignToHome)" English="true" />
+                            }
                         }
                         @SubSections(WithoutDirections(s), SectionSlot.After)
                     </ChildContent>
@@ -186,6 +187,26 @@
         Blocks = s.Blocks,
         Children = s.Children.Where(c => !IsDirection(c)).ToList(),
     };
+
+    /// <summary>
+    /// Le due direzioni nell'ORDINE del documento: chi ha la sua sotto-sezione si mette dove sta la sotto-sezione,
+    /// chi non ce l'ha (o gli snapshot storici, dove entrambe portano la chiave del padre e si distinguono solo per
+    /// posizione) resta nell'ordine canonico uscente → entrante.
+    /// </summary>
+    private static IReadOnlyList<string> DirectionOrder(SectionView coordination)
+    {
+        string[] canonical = { SectionKeys.CoordinationOut, SectionKeys.CoordinationIn };
+        var directions = coordination.Children.Where(IsDirection).ToList();
+        if (directions.Count == 0
+            || directions.All(c => c.SectionKey.Equals(SectionKeys.Coordination, StringComparison.OrdinalIgnoreCase)))
+            return canonical;
+
+        return canonical
+            .Select((key, std) => (key, std, at: directions.FindIndex(c => string.Equals(c.SectionKey, key, StringComparison.OrdinalIgnoreCase))))
+            .OrderBy(x => x.at < 0 ? x.std : x.at).ThenBy(x => x.std)
+            .Select(x => x.key)
+            .ToList();
+    }
 
     /// <summary>
     /// Direzione dei coordinamenti: visibile se la sua sotto-sezione non è nascosta (in bozza si mostra comunque).

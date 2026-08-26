@@ -142,7 +142,7 @@ else
                     <DocumentSectionsEditor Doc="_doc" RootSections="blockSection.Children" AddParentId="blockSection.Id"
                                             AddLabel="@("+ " + L["Acc_AddCustomSection"].Value)" IsEditing="_editing" Run="Guard" OnChanged="LoadAsync"
                                             IsDerivedSection="s => SectionCatalog.IsHostRendered(profile, s.SectionKey)" DerivedContent="DerivedFor(blk)"
-                                            IsMandatory="s => SectionCatalog.IsFixed(profile, s.SectionKey)"
+                                            IsMandatory="s => SectionCatalog.IsFixed(profile, s.SectionKey)" Profile="profile"
                                             IsRenderModeToggleable="IsRenderModeToggleable" />
                 </details>
             }

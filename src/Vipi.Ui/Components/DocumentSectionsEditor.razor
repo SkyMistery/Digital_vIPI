@@ -53,6 +53,11 @@ else
     /// (aor/frequencies/coordination/minima). Il badge di stato compare per queste; il toggle solo in modifica.</summary>
     [Parameter] public Func<EditableSection, bool>? IsRenderModeToggleable { get; set; }
 
+    /// <summary>Profilo di catalogo delle sezioni rese qui (ACC: quello del blocco; APP/vLOA: il loro). Serve a dire
+    /// di quanti posti una sezione fissa è stata spostata rispetto all'ORDINE STANDARD (<see cref="SectionOrdering"/>).
+    /// Null = documento senza catalogo (l'aeroporto): si sposta lo stesso, ma non c'è uno standard da confrontare.</summary>
+    [Parameter] public SectionProfile? Profile { get; set; }
+
 
     /// <summary>Mostra il menu-sezioni laterale (TOC) sticky: avvolge il render in griglia 2 colonne (toc | contenuto).
     /// Opt-in per gli editor a singola istanza (App/vLOA); la vIPI ACC costruisce il TOC a livello pagina.</summary>
@@ -83,9 +88,11 @@ else
 
     private RenderFragment SectionsBody => __builder =>
     {
-        foreach (var s in (RootSections ?? Doc.Sections))
+        var roots = RootSections ?? Doc.Sections;
+        var offsets = SectionOrdering.OffsetsFromStandard(Profile, roots);
+        foreach (var s in roots)
         {
-            @SectionEditor(s, 0)
+            @SectionEditor(s, 0, Offset(offsets, s))
         }
 
         @if (IsEditing)
@@ -199,7 +206,7 @@ else
     // ---- render sezione (ricorsivo) ----
     // relDepth = profondità RELATIVA alla radice di render (RootSections), non l'assoluta s.Depth: la vIPI ACC passa i
     // FIGLI di un blocco come RootSections (s.Depth=1) ma devono rendersi come card di primo livello (.block), come APP/vLOA.
-    private RenderFragment SectionEditor(EditableSection s, int relDepth) => __builder =>
+    private RenderFragment SectionEditor(EditableSection s, int relDepth, int offset) => __builder =>
     {
         var mand = IsMandatory?.Invoke(s) == true;
         var hid = s.IsHidden;
@@ -213,7 +220,7 @@ else
                riaprire la riapre; chi la mostra di nuovo la ritrova aperta al ricarico. *@
             <CollapsibleBlock @key="s.Id" Id="@($"s-{s.Id}")" Style="@(hid ? "opacity:.5" : null)"
                               InitiallyOpen="@(!hid && !SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
-                <Header>@SectionHeader(s, mand, hid, true)</Header>
+                <Header>@SectionHeader(s, mand, hid, true, offset)</Header>
                 <ChildContent>@SectionBody(s, relDepth)</ChildContent>
             </CollapsibleBlock>
         }
@@ -221,14 +228,14 @@ else
         {
             var baseStyle = "padding:10px;margin:8px 0";
             <div class="coord-sub" id="@($"s-{s.Id}")" style="@(hid ? baseStyle + ";opacity:.5" : baseStyle)">
-                @SectionHeader(s, mand, hid, false)
+                @SectionHeader(s, mand, hid, false, offset)
                 @SectionBody(s, relDepth)
             </div>
         }
     };
 
     // Intestazione (titolo/rinomina + azioni). depth0 = h3, annidata = h4.
-    private RenderFragment SectionHeader(EditableSection s, bool mand, bool hid, bool depth0) => __builder =>
+    private RenderFragment SectionHeader(EditableSection s, bool mand, bool hid, bool depth0, int offset) => __builder =>
     {
         @* Header dentro il <summary> di CollapsibleBlock (depth0): preventDefault impedisce che il click sui
            controlli (rinomina/sposta/elimina/nascondi) collassi la card. Il toggle resta sul solo chevron. *@
@@ -250,9 +257,15 @@ else
             {
                 @if (depth0) { <h3 style="margin:0">@s.Title</h3> } else { <h4 style="margin:0">@s.Title</h4> }
                 @if (mand) { <span class="pill grey" title="@L["Dse_MandatoryTitle"]">@L["Dse_Mandatory"]</span> }
+                @OffsetPill(offset)
                 @HelpFor(s)
+                @* Una sezione di catalogo non si rinomina né si elimina — ma si SPOSTA: l'ordine delle sezioni è
+                   una scelta editoriale, e il catalogo lo decide solo alla nascita del documento. Lo scambio è
+                   fra fratelli (stesso gruppo: il blocco per la vIPI ACC, la radice per APP e vLOA). *@
                 @if (IsEditing && mand)
                 {
+                    <button class="btn ghost" title="@L["Common_Up"]" @onclick="() => MoveSection(s.Id, -1)">↑</button>
+                    <button class="btn ghost" title="@L["Common_Down"]" @onclick="() => MoveSection(s.Id, 1)">↓</button>
                     <button class="btn ghost" title="@L["Dse_AddSubsectionExtraTitle"]" @onclick="() => AddSection(s.Id)">+ @L["Dse_Subsection"]</button>
                 }
             }
@@ -302,6 +315,19 @@ else
         </div>
     };
 
+    // Scostamento dall'ordine standard di catalogo (SectionOrdering): «↑2» = due posti più in alto di dove il
+    // catalogo la metterebbe. Si legge SEMPRE, non solo in modifica: dice perché il documento non ha l'ordine
+    // che ci si aspetta, ed è una domanda che si fa leggendo, non scrivendo.
+    private static int Offset(IReadOnlyDictionary<int, int> offsets, EditableSection s)
+        => offsets.TryGetValue(s.Id, out var o) ? o : 0;
+
+    private RenderFragment? OffsetPill(int offset) => offset == 0 ? null : __builder =>
+    {
+        <span class="pill neutral" title="@L["Dse_OffsetTitle", Math.Abs(offset)]">
+            @(offset < 0 ? "↑" : "↓")@Math.Abs(offset)
+        </span>
+    };
+
     // Aiuto della sezione: il «?» accanto al titolo, per TUTTI gli editor che montano questo componente.
     // Prima ogni testo stava come paragrafo dentro il componente del corpo (AppFrequencies, AppConfigurations):
     // tre righe di prosa sempre a schermo, moltiplicate per ogni blocco della vIPI ACC. Il testo è lo STESSO,
@@ -326,9 +352,10 @@ else
     // sotto-sezioni «dopo». Stessa sequenza dei viewer.
     private RenderFragment SectionBody(EditableSection s, int relDepth) => __builder =>
     {
+        var childOffsets = SectionOrdering.OffsetsFromStandard(Profile, s.Children);
         @foreach (var c in s.Children.Where(c => c.BeforeParentBody))
         {
-            @SectionEditor(c, relDepth + 1)
+            @SectionEditor(c, relDepth + 1, Offset(childOffsets, c))
         }
 
         @if (IsDerivedSection?.Invoke(s) == true)
@@ -372,7 +399,7 @@ else
 
         @foreach (var c in s.Children.Where(c => !c.BeforeParentBody))
         {
-            @SectionEditor(c, relDepth + 1)
+            @SectionEditor(c, relDepth + 1, Offset(childOffsets, c))
         }
     };
 

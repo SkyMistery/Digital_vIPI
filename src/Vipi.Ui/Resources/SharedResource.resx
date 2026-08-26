@@ -1603,6 +1603,7 @@
   <data name="Dse_DeleteSectionPrompt" xml:space="preserve"><value>Eliminare la sezione e i suoi blocchi?</value></data>
   <data name="Dse_Mandatory" xml:space="preserve"><value>obbligatoria</value></data>
   <data name="Dse_MandatoryTitle" xml:space="preserve"><value>Sezione obbligatoria</value></data>
+  <data name="Dse_OffsetTitle" xml:space="preserve"><value>Spostata di {0} posizioni rispetto all'ordine standard del catalogo</value></data>
   <data name="Dse_Live" xml:space="preserve"><value>Live</value></data>
   <data name="Dse_Frozen" xml:space="preserve"><value>Congelata</value></data>
   <data name="Dse_LiveTitle" xml:space="preserve"><value>Live: sempre aggiornata dai cataloghi al view pubblico</value></data>

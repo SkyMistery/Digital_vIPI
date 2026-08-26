@@ -1600,6 +1600,7 @@
   <data name="Dse_DeleteSectionPrompt" xml:space="preserve"><value>Delete the section and its blocks?</value></data>
   <data name="Dse_Mandatory" xml:space="preserve"><value>mandatory</value></data>
   <data name="Dse_MandatoryTitle" xml:space="preserve"><value>Mandatory section</value></data>
+  <data name="Dse_OffsetTitle" xml:space="preserve"><value>Moved {0} position(s) from the catalogue standard order</value></data>
   <data name="Dse_Live" xml:space="preserve"><value>Live</value></data>
   <data name="Dse_Frozen" xml:space="preserve"><value>Frozen</value></data>
   <data name="Dse_LiveTitle" xml:space="preserve"><value>Live: always updated from the catalogs on public view</value></data>
