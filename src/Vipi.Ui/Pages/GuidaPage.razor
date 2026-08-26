@@ -414,14 +414,23 @@
               <p><b>Rule of thumb:</b> save → preview draft → publish. Don't publish without checking the preview.</p>"),
 
         new Sec("editor-aeroporto", "building", "Editor aeroporto (SID, frequenze, piste)", "Airport editor (SIDs, frequencies, runways)",
-            @"<p>Apre il profilo dell'aeroporto: dati generali, sezioni a blocchi condivise, più le parti specifiche.</p>
+            @"<p>Dal 26 agosto 2026 è un editor <b>come gli altri tre</b>: le sezioni si riordinano (frecce, o
+               trascinandole nel menu Navigazione), si nascondono, accettano sotto-sezioni, e se ne aggiungono di
+               libere <b>in qualunque punto</b> della sequenza — non più tutte in coda. Per scrivere si prende il
+               documento con <b>✎ Modifica</b>, come sulla vIPI di ACC, sull'APP e sulla vLOA: finché lo tieni,
+               nessun altro può modificarlo.</p>
               <ul>
+                <li><b>METAR e TAF</b> — meteo dal vivo: non c'è nulla da compilare, e non si può congelare a una
+                    release (un METAR di un ciclo fa sarebbe meteo scaduto). Si può però nascondere o spostare.</li>
+                <li><b>Regole piste</b> — scelta della pista da vento e superficie, col tester «prova vento».</li>
+                <li><b>Quote di transizione</b> — Transition Altitude e livelli per fascia QNH.</li>
                 <li><b>Piste</b> — importate da IVAO per singolo aeroporto; le regole pista/area guidano le condizioni
                     di trasferimento.</li>
                 <li><b>Frequenze</b> — sezione derivata dai settori ATC dell'aeroporto.</li>
                 <li><b>SID</b> — importate da Aurora al primo prelievo del ciclo AIRAC; i fix aggiunti a mano vengono
                     riportati. L'import è bloccato per-ICAO durante l'operazione.</li>
-                <li><b>Settori ATC</b> — mostra/nascondi i settori importati e imposta i limiti.</li>
+                <li><b>Settori ATC</b> — mostra/nascondi i settori importati e imposta i limiti. Non è una sezione
+                    del documento: è amministrazione della struttura, e infatti non compare nella vIPI pubblicata.</li>
               </ul>
               <p>La tabella delle <b>SID importate</b> è il posto dove si lavora di più, e ha regole sue:</p>
               <ul>

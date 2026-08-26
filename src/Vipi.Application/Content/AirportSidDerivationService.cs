@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Domain.Services;
 
 namespace Vipi.Application.Content;
@@ -15,8 +15,9 @@ public sealed record AirportSidView(IReadOnlyList<AirportSidRowView> Rows)
 }
 
 /// <summary>
-/// Derivazione a VIEW-TIME della sezione SID dell'aeroporto (doc 10 §3e): la SID smette di essere «cotta» in
-/// <c>RebuildDocumentAsync</c> e diventa una sezione derivabile (default <see cref="Vipi.Domain.RenderMode.Live"/>).
+/// Derivazione a VIEW-TIME della sezione SID dell'aeroporto (doc 10 §3e): la SID è stata la PRIMA sezione
+/// d'aeroporto a smettere di essere «cotta» nel documento, e resta derivabile con default
+/// <see cref="Vipi.Domain.RenderMode.Live"/>. Dalla carta 2026-08-26 lo sono tutte.
 /// Un solo posto per il merge editoriali (<c>SidRow</c>) + importate (filtro AIRAC via <see cref="SidRow.IsPublicAt"/>)
 /// e l'ordine per punto (FIX) + priorità manuale. Esposta al viewer e — se la sezione è Frozen — alla cattura di
 /// release via <c>IFrozenSectionProvider</c>, come le altre derivate.

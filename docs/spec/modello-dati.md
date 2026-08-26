@@ -572,7 +572,7 @@ Due rifiniture al filtro di eleggibilità avanzato delle regole pista:
 - **Orari in ora locale (LT), non più UTC/Z.** Gli orari AIP sono in ora locale: i campi `TimeFromUtcMin/TimeToUtcMin` sono stati **rinominati** in **`TimeFromLocalMin/TimeToLocalMin`** (minuti da mezzanotte **locale**, 0..1439). `EvaluateRules` converte l'istante UTC in **ora locale italiana** (CET/CEST con DST, `TimeZoneInfo` `Europe/Rome`→`W. Europe Standard Time`→UTC come fallback) **prima** di valutare orario, giorni, parità e stagione. UI: etichette «da/a (LT)»; documento: «08:00–20:00 LT». Migrazione **`RenameRunwayRuleTimeToLocal`** (`RenameColumn`, preserva i valori).
 - **Finestra di validità stagionale ricorrente.** Nuovi `int?` **`DateFromMonthDay`/`DateToMonthDay`** in codifica **MMDD** (mese×100+giorno, es. `101`=1 gen, `331`=31 mar), estremi inclusi, **anno ignorato** (si ripete ogni anno) e **wrap di fine anno** gestito (es. `1101`→`0228`). Entrambi null = nessun vincolo. Editor: selettori giorno+mese (no anno); un estremo conta solo se **giorno e mese** sono entrambi valorizzati. Logica in `RunwaySuggestion.DateInWindow`. Migrazione **`AddRunwayRuleDateWindow`** (2 colonne INTEGER nullable).
 
-### 9.11 `AirportExtraSection` — sezioni editoriali libere (round 18, sessione 29 giu)
+### 9.11 `AirportExtraSection` — sezioni editoriali libere (round 18, sessione 29 giu) ⚪ superata da §9.31
 Nuova entità del **profilo strutturato** aeroporto: sezioni di testo libero indipendenti dalle sezioni standard. Campi: `Id`, `AirportId` (FK→`Airport`, cascade), `Order` (priorità di visualizzazione), **`Title`** (obbligatorio), **`Body`** (testo libero nullable, a capo preservati). Collezione `Airport.ExtraSections`. Editate dal pannello **«Sezioni extra»** dell'editor aeroporto (add/rimuovi/riordina); nel **viewer** sono rese **direttamente dal profilo** (come Piste/Frequenze, non dal documento pubblicato): **colonna libera di destra** (`aside.doc-rail`, desktop ≥1500px) e **copia inline sotto le SID** su schermi stretti (`.extra-inline`, nascosta da CSS ≥1500px). Salvataggio ACC-gated (`SaveExtraSectionsAsync`, titolo obbligatorio). Migrazione **`AddAirportExtraSection`** (nuova tabella + indice `(AirportId, Order)`). **Non** scritte in `RebuildDocumentAsync` (il viewer le compone dal profilo) — eventuale inclusione nel documento pubblicato è un follow-up.
 
 ### 9.12 Fonte unica + gerarchia di copertura per **callsign** (round 20, sessione 29 giu) — sostituisce round 19
@@ -1103,3 +1103,48 @@ se manca l'ultimo giro riuscito di **entrambe** le famiglie, e silenzio totale s
 quarto del catalogo (un giro che riesce ma torna vuoto per un ente lascerebbe trenta righe senza timbro).
 
 Carta §16 della [feature](../feature/2026-08-25-documenti-da-rivedere.md).
+
+### 9.31 La vIPI d'aeroporto smette di essere una proiezione cotta (26 ago 2026) 🟢
+
+**Nessuna migrazione.** Non cambia lo schema: cambia *chi scrive* nelle tabelle che già ci sono.
+
+Fino a questa data il documento d'aeroporto non aveva sezioni proprie. `EfAirportRepository.RebuildDocumentAsync`
+le **cuoceva** dalle entità del profilo, le riconosceva **per titolo** (`ManagedSectionTitles`: cinque titoli
+inglesi più i loro gemelli italiani legacy) e le **cancellava e ricreava** a ogni rigenerazione. Le chiavi erano
+per giunta **casuali**: `DocBuilder` chiedeva la chiave a `SectionCatalogBridge.KeyFor(BlockSection.Airport)`,
+che risponde `null`, e ricadeva su `SectionKeys.NewCustom()`.
+
+Conseguenza: tutto lo stato **per-sezione** — `Order`, `IsHidden`, `RenderMode`, `BeforeParentBody`,
+`LeadSentence`, le sotto-sezioni — non poteva sopravvivere, perché sta sulla sezione e la sezione veniva
+distrutta. È per questo che l'aeroporto era l'unica famiglia senza riordino e senza «nascondi».
+
+**Dopo:**
+
+- **`SectionProfile.Airport`** entra nel `SectionCatalog` con otto chiavi: `weather`, `runwayrules`,
+  `transition`, `frequencies`, `runways`, `sids`, `operationaltechnique`, `validity`. Restano fuori `aor`,
+  `coordination` e `regulated`: l'aeroporto descrive un **luogo**, e quelle appartengono alla torre e
+  all'avvicinamento, che hanno documenti loro.
+- **`RebuildDocumentAsync` → `EnsureDocumentAsync`**: crea il documento e semina le sezioni di catalogo
+  **senza blocchi**, e per il resto è idempotente. Non cuoce e non cancella più niente.
+- Il **corpo** delle sezioni fisse si deriva a view-time (`AirportSectionProjection`, pura) e si **congela**
+  alla release come per l'APP (`AirportFrozenSectionProvider`, `AirportViewDerivationService`).
+- Nuova porta `SectionCatalog.IsAlwaysLive`: `weather` è derivata ma **non congelabile**, e
+  `IsRenderModeToggleable` diventa *derivata **e non** sempre-live*.
+- Nuova porta di sola lettura **`IAirportProfileReader`** (`IAirportRepository` la estende, l'implementazione
+  resta una): chi deriva una vista non deve poter scrivere.
+
+**Ponte per i documenti già scritti:** `IDocumentMaintenance.ReconcileAirportSectionKeysAsync`, one-shot al
+boot e **prima** di `AddMissingCatalogSectionsAsync`. Assegna le chiavi per titolo, **svuota i blocchi** di ogni
+sezione ora resa dalla pagina, e **trasloca** le righe di `AirportExtraSection` in sezioni `custom:{guid}` del
+documento — leggendo dalla **tabella**, che era la versione vera (il pubblico gli extra li leggeva live dal
+profilo), non dalla copia cotta che poteva essere vecchia di un rebuild.
+
+⚠️ **`AirportExtraSection` resta in vita ancora un rilascio.** Le migrazioni girano all'avvio **prima** delle
+riconciliazioni: una migrazione che la droppasse porterebbe via il contenuto un istante prima che il trasloco lo
+sposti. Nessuno ci scrive più; si toglie quando il trasloco ha girato ovunque. Vedi §9.11, superata.
+
+⚠️ **Le release già pubblicate non si toccano.** Uno snapshot anteriore a questa data porta ancora le sezioni
+cotte, con le chiavi casuali e le tabelle dentro; il viewer le riconosce (`IsCooked`) e rende i **suoi** blocchi
+— per quel ciclo la verità è lo snapshot, non la derivazione di oggi.
+
+Carta: [2026-08-26-aeroporto-a-sezioni.md](../feature/2026-08-26-aeroporto-a-sezioni.md).
