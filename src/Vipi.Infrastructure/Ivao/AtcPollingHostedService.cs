@@ -332,6 +332,11 @@ public static class IvaoServiceCollectionExtensions
         services.AddScoped<IvaoAccClient>();
         services.AddScoped<IAccDirectory>(sp => sp.GetRequiredService<IvaoAccClient>());
 
+        // «C'è ancora?», chiesto in puntuale su un solo elemento. Non è un quarto client anagrafico: è
+        // l'unico che guarda lo STATUS della risposta invece di ridurre ogni errore a null, ed è ciò che
+        // permette di autorizzare una cancellazione senza aspettare due giri d'import.
+        services.AddScoped<ISourcePresenceProbe, IvaoSourcePresenceProbe>();
+
         services.AddHostedService<AtcPollingHostedService>();
         services.AddHostedService<StaffRosterVerificationService>();
         services.AddHostedService<AccImportHostedService>();

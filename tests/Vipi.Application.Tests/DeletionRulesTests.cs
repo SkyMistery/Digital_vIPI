@@ -279,6 +279,90 @@ public class DeletionRulesTests
         Assert.Equal(new[] { "LIRR_W_CTR" }, p.Azioni.CallsignDiCatalogoDaTogliere);
     }
 
+    // ── D8 bis: chiedere alla sorgente invece di aspettarla ──────────────────────────────────────────
+
+    [Fact]
+    public void Il_blocco_della_sorgente_si_riconosce_dal_piano_non_dalla_frase()
+    {
+        // La finestra deve sapere QUALE blocco si può sciogliere con una domanda. Cercarlo nel testo
+        // funzionerebbe fino alla prima riscrittura della frase.
+        var p = DeletionRules.PerSettore(Settore(timbro: Adesso.AddHours(-1)), Penultimo);
+
+        Assert.True(p.LaSorgenteTrattiene);
+        Assert.True(Assert.Single(p.Blocca).DallaSorgente);
+    }
+
+    [Fact]
+    public void Con_la_prova_della_sorgente_il_settore_si_elimina_subito()
+    {
+        var f = Settore(timbro: Adesso.AddHours(-1));   // mandato un'ora fa: D8 blocca
+
+        Assert.False(DeletionRules.PerSettore(f, Penultimo).Eliminabile);
+        Assert.True(DeletionRules.PerSettore(f, Penultimo, provaDiAssenza: true).Eliminabile);
+    }
+
+    [Fact]
+    public void La_prova_della_sorgente_non_scioglie_nessun_altro_blocco()
+    {
+        // ⚠️ Il cuore della protezione: la sorgente ha voce sulla SUA anagrafica, non sulle nostre scelte
+        // editoriali. Un accordo di coordinamento, un documento all'ultimo aggancio, una torre senza il suo
+        // scalo restano dove sono anche quando IVAO giura che il settore non esiste più.
+        var conAccordo = Settore(timbro: Adesso.AddHours(-1),
+            accordi: new[] { new AgreementFacts(5, "LIRR_W_CTR ↔ LIMM_S_CTR", "/x") });
+        var p = DeletionRules.PerSettore(conAccordo, Penultimo, provaDiAssenza: true);
+        Assert.False(p.Eliminabile);
+        Assert.Contains("accordo di coordinamento", Assert.Single(p.Blocca).Testo);
+
+        var torre = Settore("LIRF_TWR", SectorType.Twr, SectorKind.Airport, airportId: 3, timbro: Adesso);
+        Assert.False(DeletionRules.PerSettore(torre, Penultimo, provaDiAssenza: true).Eliminabile);
+
+        var ultimoAggancio = Settore(timbro: Adesso,
+            documenti: new[] { Documento(ancoraQui: true, restaAncorato: false) });
+        Assert.False(DeletionRules.PerSettore(ultimoAggancio, Penultimo, provaDiAssenza: true).Eliminabile);
+    }
+
+    [Fact]
+    public void La_prova_sullo_scalo_vale_anche_per_i_suoi_settori()
+    {
+        // Le postazioni vivono SOTTO l'aeroporto nella sorgente: se lo scalo non c'è, quell'elenco non
+        // esiste, e chiedere di ciascuna una per una otterrebbe la stessa risposta N volte.
+        var scalo = Scalo(null,
+            Settore("LIRF_TWR", SectorType.Twr, SectorKind.Airport, airportId: 3, timbro: Adesso) with { SectorId = 1 },
+            Settore("LIRF_GND", SectorType.Gnd, SectorKind.Airport, airportId: 3, timbro: Adesso) with { SectorId = 2 })
+            with { LastSeenAtUtc = Adesso };
+
+        Assert.False(DeletionRules.PerAeroporto(scalo, Penultimo, Penultimo).Eliminabile);
+
+        var p = DeletionRules.PerAeroporto(scalo, Penultimo, Penultimo, provaDiAssenza: true);
+        Assert.True(p.Eliminabile);
+        Assert.Equal(new[] { 1, 2 }, p.Azioni.SettoriDaEliminare);
+    }
+
+    [Fact]
+    public void La_prova_su_una_ACC_non_la_svuota_al_posto_nostro()
+    {
+        // La ACC non cascada, e la domanda alla sorgente non cambia questa politica: toglie solo D8.
+        var piena = new AccFacts("LIRR", "Roma", Adesso, Settori: 12, Aeroporti: 4);
+        var p = DeletionRules.PerAcc(piena, Penultimo, provaDiAssenza: true);
+        Assert.False(p.Eliminabile);
+        Assert.DoesNotContain(p.Blocca, b => b.DallaSorgente);
+
+        var vuota = new AccFacts("LIRR", "Roma", Adesso, 0, 0);
+        Assert.False(DeletionRules.PerAcc(vuota, Penultimo).Eliminabile);
+        Assert.True(DeletionRules.PerAcc(vuota, Penultimo, provaDiAssenza: true).Eliminabile);
+    }
+
+    [Fact]
+    public void Senza_blocchi_della_sorgente_non_c_e_niente_da_chiedere()
+    {
+        // Il tasto non deve comparire quando a trattenere è un accordo: chiedere non lo scioglierebbe.
+        var p = DeletionRules.PerSettore(
+            Settore(accordi: new[] { new AgreementFacts(5, "un accordo", null) }), Penultimo);
+
+        Assert.False(p.Eliminabile);
+        Assert.False(p.LaSorgenteTrattiene);
+    }
+
     // ── D7: l'aeroporto ──────────────────────────────────────────────────────────────────────────────
 
     private static AirportFacts Scalo(int? documentId = null, params SectorFacts[] settori) =>

@@ -6,6 +6,10 @@
 > Nasce dall'inventario del 26 agosto su *come si elimina oggi un settore o un aeroporto* — la risposta è
 > «quasi mai, e per vie traverse» — e dalle decisioni del committente della stessa sessione (§2).
 > Il lavoro è **diviso in due**: [A] la verità sulle sorgenti, [B] l'eliminazione vera. B senza A mentirebbe.
+>
+> **Seguito, la sera stessa**: [Chiedere alla sorgente, invece di aspettarla](2026-08-26-chiedere-alla-sorgente.md)
+> — la sola **D8** si può sciogliere anche con una domanda puntuale, invece che con l'attesa dei due giri.
+> Le altre sette politiche restano esattamente com'erano.
 
 ## La domanda
 

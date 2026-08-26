@@ -3574,6 +3574,10 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .vipi-root .del-card li{font-size:13.5px;line-height:1.5}
 .vipi-root .del-card .del-go{margin-left:6px;font-size:12.5px;white-space:nowrap}
 .vipi-root .del-card .del-notes li{color:var(--ink-soft)}
+/* «Chiedi alla sorgente adesso»: tasto + il perché, sulla stessa riga e con la frase che va a capo da sola
+   quando la finestra si stringe. Carta: docs/feature/2026-08-26-chiedere-alla-sorgente.md §5. */
+.vipi-root .del-card .del-ask{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px}
+.vipi-root .del-card .del-verdict{margin:2px 0 0;font-size:13.5px;line-height:1.5}
 .vipi-root .del-card .del-actions{display:flex;gap:8px;margin-top:18px;
   /* ⚠️ I tasti restano AGGANCIATI in fondo. Un piano lungo — sedici accordi di coordinamento su un CTR
      vero — riempie gli 82vh della finestra e li porta fuori dallo schermo: chi legge si trova un elenco

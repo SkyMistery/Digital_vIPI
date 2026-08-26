@@ -73,5 +73,12 @@ public interface IDeletionRepository
     /// righe che li portano, l'audit <b>prima</b> della cancellazione — dopo, il nome non è più leggibile e
     /// resterebbe un registro che dice «eliminato il settore 7».
     /// </summary>
-    Task ApplyAsync(DeletionActions azioni, int actorUserId, CancellationToken ct = default);
+    /// <param name="provaSorgente">
+    /// Le tracce della domanda puntuale che ha autorizzato l'atto, quando è stata quella e non l'attesa dei
+    /// due giri: finisce nel dettaglio dell'audit. <c>null</c> = eliminazione ordinaria, e il registro non ne
+    /// parla. Senza, il registro mostrerebbe una cancellazione che le protezioni vietavano, e nessun modo di
+    /// sapere perché è passata.
+    /// </param>
+    Task ApplyAsync(DeletionActions azioni, int actorUserId, string? provaSorgente = null,
+        CancellationToken ct = default);
 }

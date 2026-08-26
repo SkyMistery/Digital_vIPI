@@ -14,6 +14,13 @@ namespace Vipi.Application.Content;
 /// <para>Gemella di <see cref="SogliaTimbro"/>: quella dice quando una riga va <b>segnalata</b>, questa
 /// quando può essere <b>tolta</b>. Stanno accanto perché sono due letture dello stesso timbro, e due
 /// letture dello stesso metro in due posti diversi sono il modo in cui due racconti divergono.</para>
+///
+/// <para><b>La scorciatoia onesta.</b> I due giri sono un modo di <i>dedurre</i> l'assenza dal silenzio,
+/// perché nessuno ha chiesto. Se invece si chiede — e la sorgente risponde, nomina altro, e questo non c'è —
+/// l'assenza non è più dedotta ma constatata, e l'attesa non serve più: è il parametro
+/// <c>provaDiAssenza</c>, che porta il verdetto di <see cref="Abstractions.ISourcePresenceProbe"/>. Vale
+/// <b>solo</b> per il valore <see cref="Abstractions.SourcePresence.Assente"/>, che quella porta emette
+/// soltanto dopo una controprova: vedi la sua documentazione per il perché un 404 da solo non basta.</para>
 /// </summary>
 public static class SogliaEliminazione
 {
@@ -44,9 +51,21 @@ public static class SogliaEliminazione
     /// ancora due, e allora non si sa: «non lo sappiamo» non è «è sparita».</param>
     /// <param name="isManual">Riga aggiunta a mano: la sorgente non l'ha mai mandata, la regola non la
     /// riguarda e si elimina quando si vuole.</param>
-    public static bool Consentita(DateTime? importedAtUtc, DateTime? prevSuccessUtc, bool isManual)
+    /// <param name="provaDiAssenza">
+    /// Una domanda puntuale alla sorgente, fatta adesso, ha <b>constatato</b> che l'elemento non c'è. Salta
+    /// l'attesa: i due giri servivano a dedurre ciò che qui è stato chiesto e risposto. ⚠️ Solo il verdetto
+    /// <c>Assente</c> vale come prova — «non si sa» è false, e resta l'attesa.
+    /// </param>
+    public static bool Consentita(DateTime? importedAtUtc, DateTime? prevSuccessUtc, bool isManual,
+        bool provaDiAssenza = false)
     {
         if (isManual) return true;
+
+        // La constatazione batte la deduzione, e non ha bisogno di timbri: è di un istante fa. Il timbro
+        // d'import dice quando la sorgente l'ha nominata l'ultima volta, e qui la sorgente ha appena detto
+        // che non la nomina più — un confronto fra i due non aggiungerebbe niente.
+        if (provaDiAssenza) return true;
+
         if (prevSuccessUtc is not { } penultimo) return false;
 
         // Nessun timbro e due giri riusciti alle spalle: né l'ultimo né il penultimo l'hanno nominata. Vale
@@ -58,9 +77,10 @@ public static class SogliaEliminazione
     }
 
     /// <summary>Il perché, in una frase, per chi legge lo schermo. <c>null</c> quando si può eliminare.</summary>
-    public static string? MotivoDelRifiuto(DateTime? importedAtUtc, DateTime? prevSuccessUtc, bool isManual)
+    public static string? MotivoDelRifiuto(DateTime? importedAtUtc, DateTime? prevSuccessUtc, bool isManual,
+        bool provaDiAssenza = false)
     {
-        if (Consentita(importedAtUtc, prevSuccessUtc, isManual)) return null;
+        if (Consentita(importedAtUtc, prevSuccessUtc, isManual, provaDiAssenza)) return null;
         if (prevSuccessUtc is null)
             return "la sorgente è stata interrogata con successo meno di due volte: non c'è ancora abbastanza storia per dire che è sparita";
         return importedAtUtc is { } t

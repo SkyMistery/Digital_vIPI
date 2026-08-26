@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Content;
 using Vipi.Domain.Services;
@@ -75,6 +77,12 @@ public static class DependencyInjection
         services.AddScoped<IDocumentImpactService, DocumentImpactService>();
         services.AddScoped<IOrphanSectorService, OrphanSectorService>();
         services.AddScoped<IDeletionService, DeletionService>();
+
+        // La porta verso «chiedi alla sorgente se c'è ancora» ha qui il suo null-object: l'adapter vero lo
+        // registra AddVipiIvao. TryAdd e non Add perché l'ordine fra i due blocchi non deve contare — se
+        // l'Host registra prima IVAO questa non fa niente, se lo registra dopo la sua vince essendo l'ultima.
+        // Senza questa riga, un Host senza sorgente esterna non riuscirebbe a costruire DeletionService.
+        services.TryAddScoped<ISourcePresenceProbe, SorgenteNonInterrogabile>();
         services.AddScoped<IPendingOverviewService, PendingOverviewService>();
         services.AddScoped<IImpactDriftUseCase, ImpactDriftUseCase>();
         services.AddScoped<IDocumentAdminService, DocumentAdminService>();

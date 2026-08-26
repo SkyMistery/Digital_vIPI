@@ -1366,6 +1366,11 @@
   <data name="Del_Notes" xml:space="preserve"><value>Da sapere</value></data>
   <data name="Del_Neighbour" xml:space="preserve"><value>Elimina il candidato</value></data>
   <data name="Del_Area" xml:space="preserve"><value>Elimina l'area</value></data>
+  <data name="Del_AskSource" xml:space="preserve"><value>Chiedi alla sorgente adesso</value></data>
+  <data name="Del_AskSourceHint" xml:space="preserve"><value>invece di aspettare due giri d'import</value></data>
+  <data name="Del_SourceGone" xml:space="preserve"><value>La sorgente non ce l'ha più</value></data>
+  <data name="Del_SourceStillThere" xml:space="preserve"><value>La sorgente ce l'ha ancora</value></data>
+  <data name="Del_SourceUnknown" xml:space="preserve"><value>La sorgente non l'ha detto</value></data>
   <data name="AccAdmin_AreasTitle" xml:space="preserve"><value>Aree regolamentate dell'ACC scelto</value></data>
   <data name="AccAdmin_NoAreas" xml:space="preserve"><value>Questo ACC non elenca nessuna area regolamentata.</value></data>
   <data name="AccAdmin_AreaName" xml:space="preserve"><value>Area</value></data>

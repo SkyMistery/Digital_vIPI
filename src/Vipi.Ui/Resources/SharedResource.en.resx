@@ -1363,6 +1363,11 @@
   <data name="Del_Notes" xml:space="preserve"><value>Worth knowing</value></data>
   <data name="Del_Neighbour" xml:space="preserve"><value>Delete the candidate</value></data>
   <data name="Del_Area" xml:space="preserve"><value>Delete the area</value></data>
+  <data name="Del_AskSource" xml:space="preserve"><value>Ask the source now</value></data>
+  <data name="Del_AskSourceHint" xml:space="preserve"><value>instead of waiting for two import runs</value></data>
+  <data name="Del_SourceGone" xml:space="preserve"><value>The source no longer has it</value></data>
+  <data name="Del_SourceStillThere" xml:space="preserve"><value>The source still has it</value></data>
+  <data name="Del_SourceUnknown" xml:space="preserve"><value>The source did not say</value></data>
   <data name="AccAdmin_AreasTitle" xml:space="preserve"><value>Regulated areas of the selected ACC</value></data>
   <data name="AccAdmin_NoAreas" xml:space="preserve"><value>This ACC lists no regulated area.</value></data>
   <data name="AccAdmin_AreaName" xml:space="preserve"><value>Area</value></data>

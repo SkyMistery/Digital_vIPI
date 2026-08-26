@@ -32,7 +32,12 @@ public sealed record DeletionTarget(DeletionTargetKind Kind, int Id = 0, string?
 }
 
 /// <summary>Chi trattiene, in una frase, col posto dove si risolve (<c>null</c> = non c'è una pagina sola).</summary>
-public sealed record DeletionBlocker(string Testo, string? Href = null);
+/// <param name="DallaSorgente">
+/// Questo blocco è D8 — «la sorgente la manda ancora, o non è passato abbastanza tempo». È l'<b>unico</b>
+/// che una domanda puntuale alla sorgente può togliere di mezzo, e la finestra lo riconosce da qui: cercare
+/// la frase nel testo funzionerebbe fino alla prima riscrittura della frase.
+/// </param>
+public sealed record DeletionBlocker(string Testo, string? Href = null, bool DallaSorgente = false);
 
 /// <summary>
 /// Il piano: <b>cosa muore</b>, <b>cosa si sposta</b>, <b>cosa resta da ripubblicare</b> e <b>chi blocca</b>.
@@ -50,6 +55,13 @@ public sealed record DeletionPlan(
     IReadOnlyList<string>? Note = null)
 {
     public bool Eliminabile => Blocca.Count == 0;
+
+    /// <summary>
+    /// Fra chi trattiene c'è la sorgente (D8): allora ha senso offrire di <b>chiederglielo adesso</b>, ed è
+    /// il solo caso in cui il tasto compare. Vero anche se ci sono altri blocchi — toglierne uno è progresso,
+    /// e chi legge deve poter vedere che quello lì si risolve con una domanda invece che con un'attesa.
+    /// </summary>
+    public bool LaSorgenteTrattiene => Blocca.Any(b => b.DallaSorgente);
 
     /// <summary>
     /// Quel che <b>non</b> muore e <b>non</b> si sposta, ma va saputo prima di premere: un riferimento che
@@ -192,21 +204,26 @@ public sealed record AreaFacts(
 /// <item><b>D6 torre</b> — TWR/I_TWR cade solo insieme all'intero aeroporto.</item>
 /// <item><b>D7 settori d'aeroporto</b> — DEL/GND/APP si eliminano da soli; con lo scalo muoiono tutti.</item>
 /// <item><b>D8 sorgente</b> — si elimina solo ciò che la sorgente non manda da due giri
-/// (<see cref="SogliaEliminazione"/>).</item>
+/// (<see cref="SogliaEliminazione"/>), <b>oppure</b> ciò di cui la sorgente, interrogata adesso e in
+/// puntuale, ha constatato l'assenza (<c>provaDiAssenza</c>, carta del 26 agosto sera).</item>
 /// </list>
 /// </summary>
 public static class DeletionRules
 {
     /// <summary>Il piano per un settore eliminato <b>da solo</b>.</summary>
-    public static DeletionPlan PerSettore(SectorFacts f, DateTime? penultimoGiro) =>
-        PerSettore(f, penultimoGiro, dentroLoScalo: false);
+    public static DeletionPlan PerSettore(SectorFacts f, DateTime? penultimoGiro, bool provaDiAssenza = false) =>
+        PerSettore(f, penultimoGiro, dentroLoScalo: false, provaDiAssenza);
 
     /// <param name="dentroLoScalo">
     /// Vero quando il settore cade come parte dell'eliminazione del suo aeroporto: solo allora la torre può
     /// andarsene (D6), e solo allora il documento <b>dell'aeroporto</b> non conta come aggancio perduto,
     /// perché lo si sta valutando a parte.
     /// </param>
-    public static DeletionPlan PerSettore(SectorFacts f, DateTime? penultimoGiro, bool dentroLoScalo)
+    /// <param name="provaDiAssenza">La sorgente, interrogata adesso, ha constatato che non c'è: cade la sola
+    /// D8. Tutte le altre protezioni restano dove sono — non è la sorgente a decidere degli accordi o dei
+    /// documenti, che sono <b>nostri</b>.</param>
+    public static DeletionPlan PerSettore(SectorFacts f, DateTime? penultimoGiro, bool dentroLoScalo,
+        bool provaDiAssenza = false)
     {
         var muore = new List<string> { $"il settore {f.Callsign} ({f.Name})" };
         var sposta = new List<string>();
@@ -238,12 +255,14 @@ public static class DeletionRules
                 $"{f.Callsign} è la torre di {f.AirportIcao}: una torre si elimina solo insieme all'intero aeroporto",
                 f.AirportIcao is { } icao ? $"/services/vsop/{f.AccCode.ToLowerInvariant()}/airports/editor?icao={icao}" : null));
 
-        // D8 — la sorgente deve tacere da due giri. I settori aggiunti a mano non la riguardano.
+        // D8 — la sorgente deve tacere da due giri, o averlo detto in faccia. I settori aggiunti a mano non
+        // la riguardano.
         if (f.IsProjected && !f.CatalogoManuale
-            && !SogliaEliminazione.Consentita(f.ImportedAtUtc, penultimoGiro, isManual: false))
+            && !SogliaEliminazione.Consentita(f.ImportedAtUtc, penultimoGiro, isManual: false, provaDiAssenza))
             blocca.Add(new DeletionBlocker(
                 $"{f.Callsign} non si può eliminare: " +
-                SogliaEliminazione.MotivoDelRifiuto(f.ImportedAtUtc, penultimoGiro, isManual: false)));
+                SogliaEliminazione.MotivoDelRifiuto(f.ImportedAtUtc, penultimoGiro, isManual: false),
+                Href: null, DallaSorgente: true));
 
         // D5 — gli accordi bloccano sempre, e si dice quali.
         foreach (var a in f.Accordi)
@@ -317,19 +336,26 @@ public static class DeletionRules
     /// Il piano per un aeroporto: lo scalo più <b>tutti</b> i suoi settori (D7), ciascuno con le proprie
     /// protezioni. Il documento dello scalo non cade con lui: è un bersaglio a parte, e finché c'è blocca.
     /// </summary>
+    /// <param name="provaDiAssenza">
+    /// La sorgente, interrogata adesso, ha constatato che lo scalo non c'è. ⚠️ Il verdetto vale <b>anche per
+    /// i suoi settori</b>, e non è una concessione: le postazioni d'aeroporto vivono <i>sotto</i> l'aeroporto
+    /// nella sorgente (<c>/v2/airports/{ICAO}/ATCPositions</c>). Se lo scalo non c'è, quell'elenco non esiste,
+    /// e chiedere di ciascuna postazione una per una otterrebbe la stessa risposta N volte.
+    /// </param>
     public static DeletionPlan PerAeroporto(AirportFacts f, DateTime? penultimoGiroAeroporti,
-        DateTime? penultimoGiroSettori)
+        DateTime? penultimoGiroSettori, bool provaDiAssenza = false)
     {
         var muore = new List<string> { $"l'aeroporto {f.Icao} ({f.Name})" };
         var sposta = new List<string>();
         var rivedere = new List<string>();
         var blocca = new List<DeletionBlocker>();
 
-        // D8 sullo scalo: la sorgente non deve nominarlo da due giri.
-        if (!SogliaEliminazione.Consentita(f.LastSeenAtUtc, penultimoGiroAeroporti, isManual: false))
+        // D8 sullo scalo: la sorgente non deve nominarlo da due giri, o averlo detto in faccia.
+        if (!SogliaEliminazione.Consentita(f.LastSeenAtUtc, penultimoGiroAeroporti, isManual: false, provaDiAssenza))
             blocca.Add(new DeletionBlocker(
                 $"{f.Icao} non si può eliminare: " +
-                SogliaEliminazione.MotivoDelRifiuto(f.LastSeenAtUtc, penultimoGiroAeroporti, isManual: false)));
+                SogliaEliminazione.MotivoDelRifiuto(f.LastSeenAtUtc, penultimoGiroAeroporti, isManual: false),
+                Href: null, DallaSorgente: true));
 
         // Il documento dello scalo: si elimina prima, a mano. Non lo si porta via di straforo.
         if (f.DocumentId is not null)
@@ -349,7 +375,7 @@ public static class DeletionRules
 
         foreach (var s in f.Settori)
         {
-            var p = PerSettore(s, penultimoGiroSettori, dentroLoScalo: true);
+            var p = PerSettore(s, penultimoGiroSettori, dentroLoScalo: true, provaDiAssenza);
             muore.AddRange(p.Muore);
             sposta.AddRange(p.SiSposta);
             rivedere.AddRange(p.DaRivedere);
@@ -406,14 +432,15 @@ public static class DeletionRules
     /// settori, e un tasto che li porta via tutti insieme è una perdita che nessuna finestra di conferma
     /// rende reversibile. La politica è «svuotala prima», e l'elenco dice quanto manca.
     /// </summary>
-    public static DeletionPlan PerAcc(AccFacts f, DateTime? penultimoGiroAcc)
+    public static DeletionPlan PerAcc(AccFacts f, DateTime? penultimoGiroAcc, bool provaDiAssenza = false)
     {
         var blocca = new List<DeletionBlocker>();
 
-        if (!SogliaEliminazione.Consentita(f.ImportedAtUtc, penultimoGiroAcc, isManual: false))
+        if (!SogliaEliminazione.Consentita(f.ImportedAtUtc, penultimoGiroAcc, isManual: false, provaDiAssenza))
             blocca.Add(new DeletionBlocker(
                 $"{f.Code} non si può eliminare: " +
-                SogliaEliminazione.MotivoDelRifiuto(f.ImportedAtUtc, penultimoGiroAcc, isManual: false)));
+                SogliaEliminazione.MotivoDelRifiuto(f.ImportedAtUtc, penultimoGiroAcc, isManual: false),
+                Href: null, DallaSorgente: true));
 
         if (f.Settori > 0)
             blocca.Add(new DeletionBlocker(

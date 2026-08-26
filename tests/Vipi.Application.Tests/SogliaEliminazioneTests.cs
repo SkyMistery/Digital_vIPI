@@ -66,6 +66,45 @@ public class SogliaEliminazioneTests
         Assert.True(SogliaEliminazione.IlPenultimoScorre(null, Adesso));   // il primo giro in assoluto
     }
 
+    // ── La scorciatoia: chiedere invece di aspettare ─────────────────────────────────────────────────
+
+    [Fact]
+    public void La_prova_puntuale_batte_l_attesa_dei_due_giri()
+    {
+        // La sorgente l'ha mandata due ore fa, ma interrogata ADESSO ha detto che non ce l'ha più: fra una
+        // deduzione dal silenzio e una constatazione, vince la constatazione.
+        var penultimo = Adesso.AddDays(-1);
+        var timbro = Adesso.AddHours(-2);
+        Assert.False(SogliaEliminazione.Consentita(timbro, penultimo, isManual: false));
+        Assert.True(SogliaEliminazione.Consentita(timbro, penultimo, isManual: false, provaDiAssenza: true));
+    }
+
+    [Fact]
+    public void La_prova_puntuale_vale_anche_senza_nessuna_storia()
+    {
+        // È il caso che rende il meccanismo urgente: DB appena ripulito, ImportState azzerato, nessun
+        // penultimo giro. Senza la domanda puntuale non si potrebbe eliminare NIENTE per due giri interi.
+        Assert.False(SogliaEliminazione.Consentita(null, prevSuccessUtc: null, isManual: false));
+        Assert.True(SogliaEliminazione.Consentita(null, prevSuccessUtc: null, isManual: false, provaDiAssenza: true));
+    }
+
+    [Fact]
+    public void Senza_prova_la_soglia_resta_quella_di_prima()
+    {
+        // ⚠️ Il parametro è false di default e non deve cambiare niente: «non si sa» non è «è sparita», e
+        // un verdetto NonSiSa arriva qui esattamente come se nessuno avesse chiesto.
+        var penultimo = Adesso.AddDays(-1);
+        Assert.False(SogliaEliminazione.Consentita(Adesso.AddHours(-2), penultimo, isManual: false, provaDiAssenza: false));
+        Assert.NotNull(SogliaEliminazione.MotivoDelRifiuto(Adesso.AddHours(-2), penultimo, isManual: false, provaDiAssenza: false));
+    }
+
+    [Fact]
+    public void Con_la_prova_non_c_e_piu_niente_da_spiegare()
+    {
+        Assert.Null(SogliaEliminazione.MotivoDelRifiuto(Adesso, Adesso.AddDays(-1), isManual: false, provaDiAssenza: true));
+        Assert.Null(SogliaEliminazione.MotivoDelRifiuto(Adesso.AddDays(-9), null, isManual: false, provaDiAssenza: true));
+    }
+
     [Fact]
     public void Il_rifiuto_si_spiega_in_una_frase()
     {

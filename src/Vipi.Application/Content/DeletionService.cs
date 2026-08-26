@@ -30,11 +30,32 @@ public interface IDeletionService
     Task<DeletionPlan> AnteprimaAsync(DeletionTarget bersaglio, CancellationToken ct = default);
 
     /// <summary>
+    /// Chiede alla sorgente, <b>adesso</b>, se il bersaglio esiste ancora, e ricalcola il piano col verdetto.
+    ///
+    /// <para>Serve quando a trattenere è D8 — «la sorgente la manda ancora», o «non c'è ancora abbastanza
+    /// storia». Sono due affermazioni sul <i>silenzio</i>, e il silenzio si può interrompere chiedendo. Il
+    /// verdetto <c>Presente</c> non è un fallimento: è la risposta che oggi si aspetta due giri per avere.</para>
+    /// </summary>
+    Task<DeletionProbeOutcome> VerificaAllaSorgenteAsync(DeletionTarget bersaglio, CancellationToken ct = default);
+
+    /// <summary>
     /// Esegue, in una transazione. Rifiuta con <see cref="ValidationException"/> se il piano ricalcolato ha
     /// anche un solo blocco: l'elenco dei blocchi è il messaggio.
     /// </summary>
-    Task<DeletionPlan> EliminaAsync(DeletionTarget bersaglio, CancellationToken ct = default);
+    /// <param name="conVerificaAllaSorgente">
+    /// Rifai la domanda alla sorgente <b>qui dentro</b>, e applica il verdetto al piano.
+    ///
+    /// <para>⚠️ È un <i>ordine di chiedere</i>, non una risposta: chi chiama non può passare un verdetto già
+    /// preso. È la stessa ragione per cui il piano si ricalcola invece di fidarsi di quello mostrato — fra lo
+    /// schermo e il clic passa del tempo, e una prova di dieci minuti fa è una promessa fatta sul passato.
+    /// Al momento del <c>DELETE</c> la prova è di quell'istante, o non c'è.</para>
+    /// </param>
+    Task<DeletionPlan> EliminaAsync(DeletionTarget bersaglio, bool conVerificaAllaSorgente = false,
+        CancellationToken ct = default);
 }
+
+/// <summary>Il verdetto della sorgente e il piano che ne è uscito: la finestra li mostra insieme.</summary>
+public sealed record DeletionProbeOutcome(SourceProbeResult Prova, DeletionPlan Piano);
 
 /// <inheritdoc cref="IDeletionService"/>
 public sealed class DeletionService : IDeletionService
@@ -45,9 +66,11 @@ public sealed class DeletionService : IDeletionService
     private readonly IDocumentImpactService _impatti;
     private readonly IDocumentAdminService _documenti;
     private readonly IEditorTaskService _incarichi;
+    private readonly ISourcePresenceProbe _sorgente;
 
     public DeletionService(IDeletionRepository repo, IEditAuthorizationService authz, IImportStateStore stati,
-        IDocumentImpactService impatti, IDocumentAdminService documenti, IEditorTaskService incarichi)
+        IDocumentImpactService impatti, IDocumentAdminService documenti, IEditorTaskService incarichi,
+        ISourcePresenceProbe sorgente)
     {
         _repo = repo;
         _authz = authz;
@@ -55,6 +78,7 @@ public sealed class DeletionService : IDeletionService
         _impatti = impatti;
         _documenti = documenti;
         _incarichi = incarichi;
+        _sorgente = sorgente;
     }
 
     public async Task<DeletionPlan> AnteprimaAsync(DeletionTarget bersaglio, CancellationToken ct = default)
@@ -62,14 +86,30 @@ public sealed class DeletionService : IDeletionService
         // Eliminare è un atto d'archivio, non di redazione: lo fa un amministratore. È la stessa riga che
         // separa «rimuovi» da «riaggancia» nella casella degli impatti.
         _authz.EnsureAdmin();
-        return await PianoAsync(bersaglio, ct);
+        return await PianoAsync(bersaglio, provaDiAssenza: false, ct);
     }
 
-    public async Task<DeletionPlan> EliminaAsync(DeletionTarget bersaglio, CancellationToken ct = default)
+    public async Task<DeletionProbeOutcome> VerificaAllaSorgenteAsync(DeletionTarget bersaglio,
+        CancellationToken ct = default)
+    {
+        // Interrogare la sorgente costa una chiamata di rete a ogni clic: la fa chi può anche eliminare.
+        _authz.EnsureAdmin();
+
+        var prova = await ChiediAllaSorgenteAsync(bersaglio, ct);
+        return new DeletionProbeOutcome(prova, await PianoAsync(bersaglio, prova.ProvaLAssenza, ct));
+    }
+
+    public async Task<DeletionPlan> EliminaAsync(DeletionTarget bersaglio, bool conVerificaAllaSorgente = false,
+        CancellationToken ct = default)
     {
         _authz.EnsureAdmin();
 
-        var piano = await PianoAsync(bersaglio, ct);
+        // La prova si rifà QUI. Quella mostrata nella finestra ha autorizzato il tasto, non il DELETE: fra le
+        // due c'è il tempo che l'utente ha impiegato a leggere, e in quel tempo un import può aver rimesso in
+        // archivio ciò che la sorgente aveva appena smesso di mandare.
+        var prova = conVerificaAllaSorgente ? await ChiediAllaSorgenteAsync(bersaglio, ct) : null;
+
+        var piano = await PianoAsync(bersaglio, prova?.ProvaLAssenza ?? false, ct);
         if (!piano.Eliminabile)
             throw new ValidationException(
                 "Non si può eliminare: " + string.Join("; ", piano.Blocca.Select(b => b.Testo)) + ".");
@@ -102,7 +142,10 @@ public sealed class DeletionService : IDeletionService
             return piano;
         }
 
-        await _repo.ApplyAsync(piano.Azioni, _authz.CurrentUserId ?? 0, ct);
+        // Le tracce della prova finiscono nell'audit insieme all'atto: senza, il registro direbbe che il 26
+        // agosto qualcuno ha cancellato un settore che la regola dei due giri proteggeva, e non perché.
+        await _repo.ApplyAsync(piano.Azioni, _authz.CurrentUserId ?? 0,
+            prova?.ProvaLAssenza == true ? prova.Tracce : null, ct);
 
         // I documenti che restano a raccontare qualcosa che non c'è più. La segnalazione parte DOPO
         // l'eliminazione ma con gli Id raccolti PRIMA: un istante dopo il DELETE nessun reverse-lookup
@@ -121,7 +164,54 @@ public sealed class DeletionService : IDeletionService
         return piano;
     }
 
-    private async Task<DeletionPlan> PianoAsync(DeletionTarget b, CancellationToken ct)
+    /// <summary>
+    /// Traduce il bersaglio nell'indirizzo che la <b>sorgente</b> conosce, e chiede. I bersagli che nessuna
+    /// sorgente rivendica — un documento, un candidato confinante, un'area — non hanno niente da chiedere:
+    /// rispondono «non si sa», che per loro non toglie niente perché D8 non li tocca.
+    /// </summary>
+    private async Task<SourceProbeResult> ChiediAllaSorgenteAsync(DeletionTarget b, CancellationToken ct)
+    {
+        switch (b.Kind)
+        {
+            case DeletionTargetKind.Sector:
+            {
+                var id = b.Id > 0
+                    ? b.Id
+                    : await _repo.SectorIdByCallsignAsync(b.Code ?? "", ct) ?? throw Inesistente("Settore");
+                var f = await _repo.SectorFactsAsync(id, ct) ?? throw Inesistente("Settore");
+
+                // Una riga aggiunta a mano la sorgente non l'ha mai mandata: chiederle se c'è ancora è una
+                // domanda senza senso, e la risposta «non c'è» non proverebbe niente. D8 già non la tocca.
+                if (!f.IsProjected || f.CatalogoManuale)
+                    return SourceProbeResult.NonSiSa(
+                        $"{f.Callsign} è stato aggiunto a mano: nessuna sorgente lo rivendica",
+                        "nessuna chiamata: riga di catalogo manuale");
+
+                return await _sorgente.ChiediAsync(f.Kind == SectorKind.Airport
+                    ? new SourceProbeTarget(SourceProbeKind.AirportSector, f.Callsign, f.AirportIcao)
+                    : new SourceProbeTarget(SourceProbeKind.AccSector, f.Callsign, f.AccCode), ct);
+            }
+
+            case DeletionTargetKind.Airport:
+            {
+                var f = await _repo.AirportFactsAsync(b.Id, ct) ?? throw Inesistente("Aeroporto");
+                return await _sorgente.ChiediAsync(new SourceProbeTarget(SourceProbeKind.Airport, f.Icao), ct);
+            }
+
+            case DeletionTargetKind.Acc:
+            {
+                var f = await _repo.AccFactsAsync(b.Code ?? "", ct) ?? throw Inesistente("ACC");
+                return await _sorgente.ChiediAsync(new SourceProbeTarget(SourceProbeKind.Acc, f.Code), ct);
+            }
+
+            default:
+                return SourceProbeResult.NonSiSa(
+                    "non è la sorgente a decidere di questo: è roba nostra",
+                    "nessuna chiamata: bersaglio senza sorgente");
+        }
+    }
+
+    private async Task<DeletionPlan> PianoAsync(DeletionTarget b, bool provaDiAssenza, CancellationToken ct)
     {
         switch (b.Kind)
         {
@@ -139,14 +229,15 @@ public sealed class DeletionService : IDeletionService
                 var categoria = f.Kind == SectorKind.Airport
                     ? ImportCategories.AirportSector
                     : ImportCategories.Acc;
-                return DeletionRules.PerSettore(f, await _stati.GetPrevSuccessAsync(categoria, ct));
+                return DeletionRules.PerSettore(f, await _stati.GetPrevSuccessAsync(categoria, ct), provaDiAssenza);
             }
 
             case DeletionTargetKind.Airport:
                 return DeletionRules.PerAeroporto(
                     await _repo.AirportFactsAsync(b.Id, ct) ?? throw Inesistente("Aeroporto"),
                     await _stati.GetPrevSuccessAsync(ImportCategories.AirportDirectory, ct),
-                    await _stati.GetPrevSuccessAsync(ImportCategories.AirportSector, ct));
+                    await _stati.GetPrevSuccessAsync(ImportCategories.AirportSector, ct),
+                    provaDiAssenza);
 
             case DeletionTargetKind.Neighbour:
                 return DeletionRules.PerConfinante(
@@ -159,7 +250,8 @@ public sealed class DeletionService : IDeletionService
             case DeletionTargetKind.Acc:
                 return DeletionRules.PerAcc(
                     await _repo.AccFactsAsync(b.Code ?? "", ct) ?? throw Inesistente("ACC"),
-                    await _stati.GetPrevSuccessAsync(ImportCategories.Acc, ct));
+                    await _stati.GetPrevSuccessAsync(ImportCategories.Acc, ct),
+                    provaDiAssenza);
 
             default:
             {

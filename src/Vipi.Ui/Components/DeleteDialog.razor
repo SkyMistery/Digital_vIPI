@@ -47,6 +47,29 @@
                 </div>
             }
 
+            @* D8 è l'unico blocco che si scioglie con una DOMANDA invece che con un'attesa: due giri
+               d'import sono un modo di dedurre l'assenza dal silenzio, e il silenzio si può interrompere.
+               Il tasto compare solo quando quel blocco c'è — senza, non ci sarebbe niente da sbloccare e
+               ogni clic sarebbe una chiamata di rete per nulla. Sta FUORI dal callout: quello è `flex`, e
+               una riga in più dentro diventerebbe una terza colonna accanto al titolo e all'elenco. *@
+            @if (_piano.LaSorgenteTrattiene)
+            {
+                <p class="del-sec del-ask">
+                    <button type="button" class="btn ghost" disabled="@_busy" @onclick="ChiediAsync">
+                        @L["Del_AskSource"]
+                    </button>
+                    <span class="muted">@L["Del_AskSourceHint"]</span>
+                </p>
+            }
+
+            @if (_prova is { } prova)
+            {
+                <div class="callout @ClasseDelVerdetto(prova.Esito) del-sec">
+                    <p class="ct">@L[EtichettaDelVerdetto(prova.Esito)]</p>
+                    <p class="del-verdict">@prova.Motivo</p>
+                </div>
+            }
+
             @* Cosa muore si mostra SEMPRE, anche quando qualcosa blocca: chi legge deve poter valutare se
                valga la pena di rimuovere gli ostacoli, e per farlo deve vedere il prezzo. *@
             @Elenco(L["Del_Dies"].Value, _piano.Muore, "del-dies")
@@ -125,11 +148,15 @@
     private DeletionPlan? _piano;
     private string? _errore;
 
+    /// <summary>Il verdetto della sorgente, se l'utente gliel'ha chiesto. Vive quanto la finestra.</summary>
+    private SourceProbeResult? _prova;
+
     private async Task ApriAsync()
     {
         if (CanOpenAsync is not null && !await CanOpenAsync()) return;
         _aperto = true;
         _piano = null;
+        _prova = null;
         _errore = null;
         _busy = true;
         try { _piano = await Deletion.AnteprimaAsync(Target); }
@@ -137,10 +164,44 @@
         finally { _busy = false; }
     }
 
+    /// <summary>
+    /// Chiede alla sorgente se l'elemento c'è ancora, e ridisegna col piano che ne esce. ⚠️ Il verdetto
+    /// mostrato qui <b>non</b> è ciò che autorizzerà il DELETE: il servizio rifà la domanda quando si
+    /// conferma, perché fra questa risposta e il clic passa il tempo che l'utente impiega a leggerla.
+    /// </summary>
+    private async Task ChiediAsync()
+    {
+        _busy = true;
+        _errore = null;
+        try
+        {
+            var esito = await Deletion.VerificaAllaSorgenteAsync(Target);
+            _prova = esito.Prova;
+            _piano = esito.Piano;
+        }
+        catch (Exception ex) { _errore = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private static string ClasseDelVerdetto(SourcePresence esito) => esito switch
+    {
+        SourcePresence.Assente => "success",
+        SourcePresence.Presente => "danger",
+        _ => "warning",
+    };
+
+    private static string EtichettaDelVerdetto(SourcePresence esito) => esito switch
+    {
+        SourcePresence.Assente => "Del_SourceGone",
+        SourcePresence.Presente => "Del_SourceStillThere",
+        _ => "Del_SourceUnknown",
+    };
+
     private void Chiudi()
     {
         _aperto = false;
         _piano = null;
+        _prova = null;
         _errore = null;
     }
 
@@ -152,7 +213,11 @@
         {
             // Il servizio ricalcola il piano e rifiuta se nel frattempo qualcosa è cambiato: il messaggio
             // che torna è l'elenco dei blocchi, e va mostrato QUI invece che far sparire la finestra.
-            await Deletion.EliminaAsync(Target);
+            //
+            // Il flag NON è il verdetto: è l'ordine di rifare la domanda là dentro. Si passa solo se la
+            // sorgente aveva davvero constatato l'assenza — altrimenti sarebbe una chiamata di rete in più
+            // per riottenere un «non si sa» che non sblocca niente.
+            await Deletion.EliminaAsync(Target, conVerificaAllaSorgente: _prova?.ProvaLAssenza == true);
             _aperto = false;
             await OnDeleted.InvokeAsync();
         }

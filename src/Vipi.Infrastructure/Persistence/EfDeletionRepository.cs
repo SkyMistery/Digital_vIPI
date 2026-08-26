@@ -312,10 +312,11 @@ public sealed class EfDeletionRepository : IDeletionRepository
 
     // ── Esecuzione ───────────────────────────────────────────────────────────────────────────────────
 
-    public Task ApplyAsync(DeletionActions azioni, int actorUserId, CancellationToken ct = default) =>
-        _uow.ExecuteInTransactionAsync(token => EseguiAsync(azioni, actorUserId, token), ct);
+    public Task ApplyAsync(DeletionActions azioni, int actorUserId, string? provaSorgente = null,
+        CancellationToken ct = default) =>
+        _uow.ExecuteInTransactionAsync(token => EseguiAsync(azioni, actorUserId, provaSorgente, token), ct);
 
-    private async Task EseguiAsync(DeletionActions a, int actorUserId, CancellationToken ct)
+    private async Task EseguiAsync(DeletionActions a, int actorUserId, string? prova, CancellationToken ct)
     {
         // 1) I figli al nonno, PRIMA del DELETE: la FK sul padre è Restrict e non perdona.
         if (a.FigliDaRiappendere.Count > 0)
@@ -378,23 +379,31 @@ public sealed class EfDeletionRepository : IDeletionRepository
         var settori = a.SettoriDaEliminare.Count > 0
             ? await _db.Sectors.Where(s => a.SettoriDaEliminare.Contains(s.Id)).ToListAsync(ct)
             : new List<Domain.Entities.Sector>();
+        //    ⚠️ Il dettaglio si scrive in due forme, non in una con un campo a null: `ProvaSorgente` compare
+        //    SOLO quando c'è stata una domanda puntuale alla sorgente. Un `"ProvaSorgente":null` su ogni riga
+        //    sarebbe rumore in un registro che si legge anche in SQL, di fretta, davanti a un incidente.
         foreach (var s in settori)
             AuditScribe.Write(_db, actorUserId, AuditAction.Delete, "Sector", s.Id.ToString(),
-                new { s.Callsign, s.Name, s.Type, s.Kind, s.AirportIcao });
+                prova is null
+                    ? new { s.Callsign, s.Name, s.Type, s.Kind, s.AirportIcao }
+                    : (object)new { s.Callsign, s.Name, s.Type, s.Kind, s.AirportIcao, ProvaSorgente = prova });
 
         if (a.AeroportoDaEliminare is int aptId)
         {
             var apt = await _db.Airports.FirstOrDefaultAsync(x => x.Id == aptId, ct);
             if (apt is not null)
                 AuditScribe.Write(_db, actorUserId, AuditAction.Delete, "Airport", apt.Id.ToString(),
-                    new { apt.Icao, apt.Name, Settori = settori.Count });
+                    prova is null
+                        ? new { apt.Icao, apt.Name, Settori = settori.Count }
+                        : (object)new { apt.Icao, apt.Name, Settori = settori.Count, ProvaSorgente = prova });
         }
 
         if (a.AccDaEliminare is { } accCode)
         {
             var acc = await _db.Accs.FirstOrDefaultAsync(x => x.Code == accCode, ct);
             if (acc is not null)
-                AuditScribe.Write(_db, actorUserId, AuditAction.Delete, "Acc", acc.Code, new { acc.Name });
+                AuditScribe.Write(_db, actorUserId, AuditAction.Delete, "Acc", acc.Code,
+                    prova is null ? new { acc.Name } : (object)new { acc.Name, ProvaSorgente = prova });
         }
 
         if (a.CandidatoDaEliminare is int candId)
