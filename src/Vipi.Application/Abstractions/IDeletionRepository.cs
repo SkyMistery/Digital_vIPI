@@ -36,6 +36,24 @@ public interface IDeletionRepository
     /// <summary>Tutto ciò che serve a mostrare cosa si perde con un documento. <c>null</c> se non esiste.</summary>
     Task<DocumentFacts?> DocumentFactsAsync(int documentId, CancellationToken ct = default);
 
+    /// <summary>
+    /// <b>Tutti</b> i documenti in archivio, gestiti o no.
+    ///
+    /// <para>⚠️ Serve a trovare quelli che <b>nessuna pagina elenca</b>. Un documento entra negli elenchi solo
+    /// se un descrittore lo riconosce — la vIPI ACC vuole un CTR <b>radice</b>, quella d'aeroporto un
+    /// aeroporto, la vLOA le sue parti. Se l'aggancio cambia sotto (un import che sposta un settore sotto un
+    /// padre, per dire) il documento resta in archivio e sparisce da ogni schermo: non si pubblica, non si
+    /// elimina, e nessun rilievo lo nomina — perché anche i rilievi partono dall'elenco dei gestiti.</para>
+    /// </summary>
+    Task<IReadOnlyList<AffectedDoc>> AllDocumentsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Elimina un documento che <b>nessun descrittore riconosce</b>, con il suo audit. È la via di servizio
+    /// per i documenti fuori elenco: quelli gestiti passano da <c>IDocumentAdminService</c>, che sa togliere
+    /// anche le release — e un documento fuori elenco non ne ha, perché non ha una chiave sotto cui averle.
+    /// </summary>
+    Task DeleteUnmanagedDocumentAsync(int documentId, int actorUserId, CancellationToken ct = default);
+
     /// <summary>Tutto ciò che serve a decidere di un candidato confinante. <c>null</c> se non esiste.</summary>
     Task<NeighbourFacts?> NeighbourFactsAsync(int candidateId, CancellationToken ct = default);
 

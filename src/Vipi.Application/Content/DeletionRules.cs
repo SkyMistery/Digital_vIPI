@@ -260,7 +260,8 @@ public static class DeletionRules
             if (!d.RestaAncorato)
             {
                 blocca.Add(new DeletionBlocker(
-                    $"elimina prima il documento «{d.Titolo}»: {f.Callsign} è il suo ultimo aggancio",
+                    $"elimina prima il documento «{d.Titolo}»: {f.Callsign} è il suo ultimo aggancio " +
+                    "(in Documenti, o in «Da sistemare» se lì non compare)",
                     "/services/vsop/versions"));
                 continue;
             }

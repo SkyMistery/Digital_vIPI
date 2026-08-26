@@ -128,6 +128,46 @@
             </div>
         }
 
+        @* ---- Documenti senza una chiave ----------------------------------------------------------
+           ⚠️ Non sono invisibili: sono etichettati male. Un vIPI che nessun descrittore riconosce come ACC o
+           APP finisce nel catch-all dell'aeroporto, e senza un aeroporto la chiave di release nasce VUOTA:
+           compare in elenco senza nome di scalo, non si pubblica, la tendina degli incarichi lo nasconde di
+           proposito. Ci si finisce quando il terreno cambia sotto — un CTR radice che un import infila sotto
+           un padre. Questo è il solo posto che li nomina per quello che sono. *@
+        @if (_dati.DocumentiFuoriElenco.Count > 0)
+        {
+            <div class="section-title">
+                <h2 class="h-sect">@L["Pend_LostDocsTitle"] <span class="pill amber">@_dati.DocumentiFuoriElenco.Count</span></h2>
+                <span class="ln"></span>
+            </div>
+            <div class="panel">
+                <p class="muted" style="margin:0 0 10px">@L["Pend_LostDocsHint"]</p>
+                <table class="res-table">
+                    <thead>
+                        <tr>
+                            <th>@L["Pend_ColDoc"]</th>
+                            <th>@L["Orph_Actions"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in _dati.DocumentiFuoriElenco)
+                        {
+                            <tr>
+                                <td><b>@d.Title</b> <span class="muted">@L["Pend_DocNumber", d.Id]</span></td>
+                                <td>
+                                    <DeleteDialog Target="DeletionTarget.Document(d.Id)" Nome="@d.Title"
+                                                  TriggerClass="btn ghost danger" AriaLabel="@L["Del_Doc"]"
+                                                  Disabled="@_busy" OnDeleted="CaricaAsync">
+                                        <Trigger><Icon Name="trash" Size="14" /> @L["Del_Doc"]</Trigger>
+                                    </DeleteDialog>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
         @* ---- Settori orfani, di tutte le ACC ---- *@
         @if (_dati.Orfani.Count > 0)
         {

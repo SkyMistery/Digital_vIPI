@@ -1390,6 +1390,9 @@
   <data name="Pend_ColDoc" xml:space="preserve"><value>Documento</value></data>
   <data name="Pend_ColWhy" xml:space="preserve"><value>Che cosa è successo</value></data>
   <data name="Pend_ColSince" xml:space="preserve"><value>Da</value></data>
+  <data name="Pend_LostDocsTitle" xml:space="preserve"><value>Documenti senza una chiave</value></data>
+  <data name="Pend_LostDocsHint" xml:space="preserve"><value>Il loro aggancio è cambiato sotto — un settore finito sotto un padre, un aeroporto scollegato — e la loro chiave di pubblicazione è rimasta vuota: compaiono negli elenchi senza un nome di scalo, non si pubblicano, e la tendina degli incarichi li nasconde perché il collegamento nascerebbe rotto. Da qui si eliminano.</value></data>
+  <data name="Pend_DocNumber" xml:space="preserve"><value>documento {0}</value></data>
   <data name="Impact_SectorHidden" xml:space="preserve"><value>Il settore {0} è stato nascosto: verifica frequenze, AoR e coordinamenti.</value></data>
   <data name="Impact_SectorReparented" xml:space="preserve"><value>Il settore {0} ha cambiato padre nella catena di copertura: verifica le consegne.</value></data>
   <data name="Impact_AreaGone" xml:space="preserve"><value>L'area regolamentata {0} non è più nei cataloghi: il documento la cita ma non viene mostrata.</value></data>

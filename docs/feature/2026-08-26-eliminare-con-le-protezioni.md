@@ -398,3 +398,53 @@ rivedere» e «non si può» — e un avviso non è nessuna delle quattro.
   titolo si ripete, altrimenti sarebbe rumore.
 - Il candidato `LIBB ↔ LAAA` è confermato e ha la sua vLOA: la finestra blocca e nomina il documento, poi
   avvisa del settore `LAAA_CTR` che resta.
+
+
+## §17 — I due «vIPI Roma»: cosa c'era sotto
+
+La finestra dell'area regolamentata elencava «vIPI Roma» due volte. Non era un difetto della finestra, e
+non erano nemmeno due copie della stessa cosa: sono **due documenti su due settori diversi**.
+
+| | documento 5 | documento 16 |
+|---|---|---|
+| settore primario | `LIRR_ES_CTR` — ⚠️ **ha un padre** (`LIRR_SU_CTR`) | `LIRR_EW_CTR` — **radice** |
+| creato | 10 luglio 2026, ciclo 2607 | 21 agosto 2026, ciclo 2608 |
+| contenuto | dieci sezioni, quattro blocchi derivati, **zero testo** | identico, **zero testo** |
+| pubblicazioni | nessuna | nessuna |
+| come lo vede il sistema | vIPI **d'aeroporto** con ICAO **vuoto** | vIPI ACC di LIRR |
+
+**Che cosa è successo.** La vIPI di ACC pretende un CTR **radice** (`AccVipiReleaseTarget.TryDescribe`).
+Quando il 5 è nato, `LIRR_ES_CTR` lo era. Poi il catalogo IVAO l'ha messo sotto `LIRR_SU_CTR` — il documento
+non è cambiato, gli è cambiato **il terreno sotto** — e da lì è scivolato nel *catch-all* dell'aeroporto,
+che accetta ogni vIPI non riconosciuta come ACC o APP. Senza un aeroporto, la sua chiave di release è nata
+**vuota**. In agosto qualcuno ha scritto la vIPI Roma di nuovo, sulla radice giusta: il documento 16.
+
+**Verdetto: il 5 è un residuo.** Nessun testo, nessuna pubblicazione, e il suo gemello buono esiste. Si
+elimina senza perdere niente.
+
+### Il vicolo cieco che ha aperto — e che era già lì
+
+Provando a eliminarlo, tre cose sono venute fuori:
+
+1. **La via dei gestiti lo rifiutava.** `DocumentAdminService.DeleteAsync` autorizza chiedendo «di quale ACC
+   è questo documento?», e per un documento con chiave vuota la risposta non c'è: rispondeva **«Documento
+   inesistente»** a un documento che esisteva eccome. Ora i documenti senza chiave passano da una via di
+   servizio, autorizzata `EnsureAdmin` — è un atto d'archivio.
+
+2. ⚠️ **Nessun documento vero si sarebbe cancellato.** Due vincoli del corpo sono `RESTRICT` —
+   `DocumentSections.ParentSectionId` verso sé stessa e `ContentBlocks.SectionId` — e la cascata del
+   database prova a togliere le sezioni tutte insieme, senza sapere che le figlie vanno prima delle madri.
+   Ogni vIPI ha **nove sezioni figlie su dieci**: il tasto «elimina» della pagina Documenti rispondeva
+   `FOREIGN KEY constraint failed`. **Difetto preesistente**, non del motore nuovo.
+   ⚠️ **Si nascondeva nei test**: se le righe sono state create nello stesso contesto sono ancora tracciate
+   ed EF ordina le cancellazioni da sé — il test passa e il difetto resta. Il test che lo prende azzera il
+   `ChangeTracker` prima di cancellare, che è la differenza fra il test e la vita.
+
+3. **Un posto da cui vederli.** La pagina «Da sistemare» ha una sezione nuova, *Documenti senza una chiave*:
+   sono quelli con la chiave di release vuota — in elenco senza nome di scalo, non pubblicabili, nascosti
+   alla tendina degli incarichi («un collegamento che nasce già rotto», dice il codice da luglio). Più la
+   rete di sicurezza per quelli che nessun descrittore cattura affatto: oggi zero, ma il giorno che succede
+   si vedono lì invece che da nessuna parte.
+
+**Provato sui dati veri**: 19 → **18** documenti, `LIRR_ES_CTR` liberato (`DocumentId` a null), audit
+`Delete/Document/5` col titolo dentro, sezioni e blocchi puliti, la riga sparita dalla pagina.

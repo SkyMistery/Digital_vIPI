@@ -127,7 +127,15 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
 
                 d.CurrentVersionId = null;   // rompi il ciclo CurrentVersion (NoAction) prima del cascade
                 await _db.SaveChangesAsync(ct);
-                _db.Documents.Remove(d);      // cascade: Versions/Sections/Blocks/Parties/DocumentProfile; Sector.DocumentId→SetNull
+
+                // ⚠️ Il corpo si carica e si toglie a mano: due vincoli del corpo sono RESTRICT
+                // (`DocumentSections.ParentSectionId` verso sé stessa, `ContentBlocks.SectionId`) e la
+                // cascata del database non sa che le figlie vanno prima delle madri. Ogni vIPI ha nove
+                // sezioni figlie su dieci: senza questo passo NESSUN documento vero si cancellava, e la
+                // risposta era «FOREIGN KEY constraint failed». Vedi DocumentGraphRemover.
+                await DocumentGraphRemover.StageAsync(_db, id, ct);
+
+                _db.Documents.Remove(d);      // il resto cascada: Parties/DocumentProfile; Sector.DocumentId→SetNull
             }
         }
         await _db.SaveChangesAsync(ct);

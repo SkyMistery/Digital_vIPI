@@ -393,6 +393,37 @@ public class DeletionRepositoryTests : IAsyncLifetime
         Assert.Empty(await _db.SpecialAreaCenters.ToListAsync());
     }
 
+    [Fact]
+    public async Task Un_documento_fuori_elenco_si_elimina_lo_stesso()
+    {
+        // ⚠️ Il caso vero: una «vIPI Roma» appesa a un CTR che NON è più radice. Nessun descrittore la
+        // riconosce, quindi non compare in Documenti — e la via dei gestiti la rifiuterebbe. È proprio il
+        // documento che ha più bisogno del tasto.
+        var doc = new Document { Type = DocumentType.Vipi, Title = "vIPI fuori elenco", LastUpdatedAiracCycle = "2607" };
+        _db.Documents.Add(doc);
+        await _db.SaveChangesAsync();
+
+        var v = new DocumentVersion
+        {
+            DocumentId = doc.Id, VersionNumber = 1, Status = DocumentStatus.Draft,
+            AiracCycle = "2607", CreatedUtc = DateTime.UtcNow,
+        };
+        _db.DocumentVersions.Add(v);
+        await _db.SaveChangesAsync();
+        doc.CurrentVersionId = v.Id;
+        await _db.SaveChangesAsync();
+
+        Assert.Contains(await _repo.AllDocumentsAsync(), d => d.Id == doc.Id);
+
+        await _repo.DeleteUnmanagedDocumentAsync(doc.Id, actorUserId: 7);
+
+        Assert.False(await _db.Documents.AnyAsync(d => d.Id == doc.Id));
+        // Le versioni cadono in cascata; l'audit porta il titolo, non solo il numero.
+        Assert.False(await _db.DocumentVersions.AnyAsync(x => x.DocumentId == doc.Id));
+        Assert.Contains("fuori elenco", await _db.AuditLogs.AsNoTracking()
+            .Where(a => a.EntityType == "Document").Select(a => a.DetailsJson!).SingleAsync());
+    }
+
     /// <summary>Un blocco vero: serve una versione e una sezione, o le FK non reggono.</summary>
     private async Task<(ContentBlock Blocco, DocumentSection Sezione)> BloccoAsync(
         Document doc, int? scope = null, int? from = null, int? to = null)

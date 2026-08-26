@@ -1387,6 +1387,9 @@
   <data name="Pend_ColDoc" xml:space="preserve"><value>Document</value></data>
   <data name="Pend_ColWhy" xml:space="preserve"><value>What happened</value></data>
   <data name="Pend_ColSince" xml:space="preserve"><value>Since</value></data>
+  <data name="Pend_LostDocsTitle" xml:space="preserve"><value>Documents without a key</value></data>
+  <data name="Pend_LostDocsHint" xml:space="preserve"><value>Their anchor changed underneath — a sector that ended up under a parent, an airport unlinked — and their publication key stayed empty: they show up in lists with no aerodrome name, cannot be published, and the task picker hides them because the link would be born broken. Here they can be deleted.</value></data>
+  <data name="Pend_DocNumber" xml:space="preserve"><value>document {0}</value></data>
   <data name="Impact_SectorHidden" xml:space="preserve"><value>Sector {0} has been hidden: check frequencies, AoR and coordination.</value></data>
   <data name="Impact_SectorReparented" xml:space="preserve"><value>Sector {0} changed parent in the coverage chain: check the handoffs.</value></data>
   <data name="Impact_AreaGone" xml:space="preserve"><value>Regulated area {0} is no longer in the catalogues: the document cites it but it is not shown.</value></data>

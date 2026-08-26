@@ -144,6 +144,31 @@ public sealed class EfDeletionRepository : IDeletionRepository
             Release: 0, settori, aeroporto);
     }
 
+    public async Task<IReadOnlyList<AffectedDoc>> AllDocumentsAsync(CancellationToken ct = default) =>
+        await _db.Documents.AsNoTracking()
+            .OrderBy(d => d.Id)
+            .Select(d => new AffectedDoc(d.Id, d.Title))
+            .ToListAsync(ct);
+
+    public async Task DeleteUnmanagedDocumentAsync(int documentId, int actorUserId, CancellationToken ct = default)
+    {
+        var d = await _db.Documents.FirstOrDefaultAsync(x => x.Id == documentId, ct);
+        if (d is null) return;
+
+        AuditScribe.Write(_db, actorUserId, AuditAction.Delete, "Document", d.Id.ToString(),
+            new { d.Title, Fuorielenco = true });
+
+        // Il ciclo CurrentVersion è NoAction: va rotto prima del cascade, come fa la via dei gestiti.
+        d.CurrentVersionId = null;
+        await _db.SaveChangesAsync(ct);
+
+        // E il corpo si toglie a mano, per la stessa ragione: i due vincoli RESTRICT delle sezioni.
+        await DocumentGraphRemover.StageAsync(_db, documentId, ct);
+
+        _db.Documents.Remove(d);
+        await _db.SaveChangesAsync(ct);
+    }
+
     public async Task<NeighbourFacts?> NeighbourFactsAsync(int candidateId, CancellationToken ct = default)
     {
         var n = await _db.NeighbourCandidates.AsNoTracking()

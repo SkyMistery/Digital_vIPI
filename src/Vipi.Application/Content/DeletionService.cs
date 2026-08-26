@@ -79,9 +79,26 @@ public sealed class DeletionService : IDeletionService
         // avere due modi di cancellare un documento, e uno dei due sarebbe sbagliato.
         if (piano.Azioni.DocumentoDaEliminare is int docId)
         {
-            var doc = (await _documenti.ListAsync(ct)).FirstOrDefault(d => d.DocumentId == docId)
-                      ?? throw new ValidationException("Documento non gestito: non risulta fra quelli eliminabili.");
-            await _documenti.DeleteAsync(new ManagedDocRef(doc.Kind, doc.ReleaseKey, doc.DocumentId), ct);
+            var doc = (await _documenti.ListAsync(ct)).FirstOrDefault(d => d.DocumentId == docId);
+            if (doc is not null && !string.IsNullOrWhiteSpace(doc.ReleaseKey))
+            {
+                await _documenti.DeleteAsync(new ManagedDocRef(doc.Kind, doc.ReleaseKey, doc.DocumentId), ct);
+                return piano;
+            }
+
+            // ⚠️ Senza chiave. Non è un errore da rifiutare: è il documento che ha più bisogno di questo
+            // tasto, ed è l'unico che la via dei gestiti NON sa cancellare — la sua autorizzazione parte da
+            // «di quale ACC è questo documento?», e per un documento senza chiave la risposta non c'è:
+            // `EnsureCanEditAsync` risponde «Documento inesistente» a un documento che esiste eccome.
+            //
+            // Come ci si finisce, misurato sul vipi.db vero: una «vIPI Roma» scritta il 10 luglio su
+            // LIRR_ES_CTR, che allora era una radice. Un import l'ha infilato sotto LIRR_SU_CTR, la vIPI di
+            // ACC vuole un CTR RADICE, e il documento è scivolato nel catch-all dell'aeroporto — senza un
+            // aeroporto, quindi con la chiave vuota. Da quel giorno: in elenco senza nome di scalo, non
+            // pubblicabile, nascosto alla tendina degli incarichi, e non cancellabile.
+            //
+            // Qui l'autorizzazione l'ha già data EliminaAsync con EnsureAdmin: è un atto d'archivio.
+            await _repo.DeleteUnmanagedDocumentAsync(docId, _authz.CurrentUserId ?? 0, ct);
             return piano;
         }
 

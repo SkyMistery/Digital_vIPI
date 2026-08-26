@@ -25,12 +25,13 @@ public sealed record PendingOverview(
     IReadOnlyList<OrphanSectorRow> Orfani,
     IReadOnlyList<DocumentImpactRow> Impatti,
     IReadOnlyList<PendingAirportRow> Aeroporti,
+    IReadOnlyList<AffectedDoc> DocumentiFuoriElenco,
     DateTime? UltimoGiroAcc,
     DateTime? UltimoGiroAeroporti,
     DateTime? PenultimoGiroAeroporti)
 {
     /// <summary>Quante cose chiedono attenzione in tutto: è il numero che va in cima e nella voce di menù.</summary>
-    public int Totale => Orfani.Count + Impatti.Count + Aeroporti.Count;
+    public int Totale => Orfani.Count + Impatti.Count + Aeroporti.Count + DocumentiFuoriElenco.Count;
 }
 
 /// <inheritdoc cref="PendingOverview"/>
@@ -47,15 +48,20 @@ public sealed class PendingOverviewService : IPendingOverviewService
     private readonly IDocumentImpactRepository _impatti;
     private readonly IImportStateStore _stati;
     private readonly IEditAuthorizationService _authz;
+    private readonly IDocumentAdminService _gestione;
+    private readonly IDeletionRepository _tutti;
 
     public PendingOverviewService(IOrphanSectorService orfani, IOrphanSectorRepository cataloghi,
-        IDocumentImpactRepository impatti, IImportStateStore stati, IEditAuthorizationService authz)
+        IDocumentImpactRepository impatti, IImportStateStore stati, IEditAuthorizationService authz,
+        IDocumentAdminService gestione, IDeletionRepository tutti)
     {
         _orfani = orfani;
         _cataloghi = cataloghi;
         _impatti = impatti;
         _stati = stati;
         _authz = authz;
+        _gestione = gestione;
+        _tutti = tutti;
     }
 
     public async Task<PendingOverview> LoadAsync(CancellationToken ct = default)
@@ -78,10 +84,33 @@ public sealed class PendingOverviewService : IPendingOverviewService
                 SogliaEliminazione.MotivoDelRifiuto(a.LastSeenUtc, penultimoAeroporti, isManual: false)))
             .ToList();
 
+        // ⚠️ I documenti SENZA UNA CHIAVE. Un documento vIPI che nessun descrittore riconosce come ACC o APP
+        // finisce nel catch-all dell'aeroporto — e se un aeroporto non ce l'ha, la sua chiave di release nasce
+        // VUOTA. Da lì in poi è un fantasma con la residenza: compare nell'elenco documenti senza nome di
+        // scalo, non si pubblica (la chiave non risolve niente), la tendina degli incarichi lo nasconde di
+        // proposito («un collegamento che nasce già rotto»), e nessun rilievo lo nomina.
+        //
+        // Come ci si finisce, misurato sul vipi.db vero: una «vIPI Roma» scritta il 10 luglio su
+        // LIRR_ES_CTR, che allora era una radice. Un import l'ha poi infilato sotto LIRR_SU_CTR — e la vIPI
+        // di ACC vuole un CTR RADICE. Il documento non è cambiato: gli è cambiato il terreno sotto.
+        var gestiti = await _gestione.ListAsync(ct);
+        var conId = gestiti.Where(d => d.DocumentId is not null).ToList();
+        var fuori = conId
+            .Where(d => string.IsNullOrWhiteSpace(d.ReleaseKey))
+            .Select(d => new AffectedDoc(d.DocumentId!.Value, d.Title))
+            .ToList();
+
+        // E la rete di sicurezza: se un giorno un descrittore smettesse di catturare, un documento
+        // sparirebbe dagli elenchi del tutto. Oggi non ne esistono — il catch-all li prende tutti — ma
+        // costa una query e il giorno che succede si vede qui invece che da nessuna parte.
+        var noti = conId.Select(d => d.DocumentId!.Value).ToHashSet();
+        fuori.AddRange((await _tutti.AllDocumentsAsync(ct)).Where(d => !noti.Contains(d.Id)));
+
         return new PendingOverview(
             await _orfani.ListAsync(null, ct),
             await _impatti.ListAllOpenAsync(ct),
             righe,
+            fuori,
             ultimoAcc, ultimoAeroporti, penultimoAeroporti);
     }
 }
