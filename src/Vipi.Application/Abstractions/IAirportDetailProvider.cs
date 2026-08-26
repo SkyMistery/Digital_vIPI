@@ -8,6 +8,11 @@ public sealed record SourceRunway(string Ident, int? LengthM, int? Bearing);
 /// I campi oltre Callsign/Frequency (position, middleIdentifier, regionMapPolygon, limiti) vengono dal
 /// dettaglio per-posizione (<c>/v2/ATCPositions/{compose}</c>) e sono usati dal catalogo settori aeroporto.
 /// </summary>
+/// <param name="IvaoId">
+/// Id numerico della riga alla sorgente (IVAO: <c>id</c> della postazione, presente già nella lista).
+/// È l'<b>identità</b>: sopravvive a una rinomina del <paramref name="Callsign"/>, che invece è un
+/// attributo. null = la sorgente non l'ha mandato (riga sintetica, o dettaglio non disponibile).
+/// </param>
 public sealed record SourceAtcPosition(
     string Callsign,
     string? Frequency,
@@ -20,7 +25,8 @@ public sealed record SourceAtcPosition(
     // Presenti su OGNI postazione dell'aeroporto → usate per centrare la shape tonda di fallback delle TWR.
     double? AirportLatitude = null,
     double? AirportLongitude = null,
-    string? AtcCallsign = null);         // nome visualizzato IVAO, es. "Pisa Approach"
+    string? AtcCallsign = null,          // nome visualizzato IVAO, es. "Pisa Approach"
+    int? IvaoId = null);
 
 /// <summary>
 /// Porta verso i dettagli per-aeroporto della sorgente esterna (postazioni ATC + piste), usata per generare

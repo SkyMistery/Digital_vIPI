@@ -50,6 +50,7 @@ public sealed class AirportSectorImporter : IAirportSectorImporter
                 UpperLimit = detail.UpperLimit,
                 AirportLatitude = detail.AirportLatitude,
                 AirportLongitude = detail.AirportLongitude,
+                IvaoId = detail.IvaoId ?? p.IvaoId,   // l'identità: dalla lista, col dettaglio come rete
             });
         }
 

@@ -107,7 +107,7 @@ public sealed class IvaoAccClient : IAccDirectory
         var listBody = await _http.GetStringAsync(listPath, ct);
         if (listBody is null) return Array.Empty<SourceSubcenter>();
 
-        var basics = new List<(string Compose, string Center, string? Pos, string? Mid, string? Name)>();
+        var basics = new List<(string Compose, string Center, string? Pos, string? Mid, string? Name, int? IvaoId)>();
         using (var doc = System.Text.Json.JsonDocument.Parse(listBody))
         {
             var root = doc.RootElement;
@@ -118,10 +118,14 @@ public sealed class IvaoAccClient : IAccDirectory
             if (items.ValueKind == System.Text.Json.JsonValueKind.Array)
                 foreach (var s in items.EnumerateArray())
                 {
+                    // ⚠️ `id` è NUMERICO sui subcenter (es. 1174) ed è l'identità della riga; su /v2/centers è invece
+                    // una STRINGA (il codice ACC, "LIRR"). JsonIntId legge solo i numeri, quindi il fallback del
+                    // callsign su `id` — che serve ai center — non può inquinare l'identità qui.
                     var compose = (JsonStr(s, "composePosition") ?? JsonStr(s, "id") ?? "").Trim().ToUpperInvariant();
                     if (compose.Length == 0) continue;
                     var center = (JsonStr(s, "centerId") ?? accIcao).Trim().ToUpperInvariant();
-                    basics.Add((compose, center, JsonStr(s, "position"), JsonStr(s, "middleIdentifier"), JsonStr(s, "atcCallsign")));
+                    basics.Add((compose, center, JsonStr(s, "position"), JsonStr(s, "middleIdentifier"),
+                        JsonStr(s, "atcCallsign"), JsonIntId(s, "id")));
                 }
         }
 
@@ -130,6 +134,7 @@ public sealed class IvaoAccClient : IAccDirectory
         foreach (var b in basics)
         {
             string? freq = null, polygon = null;
+            var ivaoId = b.IvaoId;
             var detailBody = await _http.GetStringAsync(string.Format(_opt.SubcenterDetailPathFormat, Uri.EscapeDataString(b.Compose)), ct);
             if (detailBody is not null)
             {
@@ -139,8 +144,9 @@ public sealed class IvaoAccClient : IAccDirectory
                 if (d.TryGetProperty("regionMapPolygon", out var poly) && poly.ValueKind != System.Text.Json.JsonValueKind.Null
                     && poly.ValueKind != System.Text.Json.JsonValueKind.Undefined)
                     polygon = poly.GetRawText();
+                ivaoId ??= JsonIntId(d, "id");   // il dettaglio lo ripete: rete di sicurezza se la lista non l'avesse
             }
-            result.Add(new SourceSubcenter(b.Compose, b.Center, b.Pos, b.Mid, freq, polygon, b.Name));
+            result.Add(new SourceSubcenter(b.Compose, b.Center, b.Pos, b.Mid, freq, polygon, b.Name, IvaoId: ivaoId));
         }
 
         return result;

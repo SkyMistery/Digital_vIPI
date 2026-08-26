@@ -12,10 +12,17 @@ public sealed record SourceCenter(
     string? Frequency = null);
 
 /// <summary>
-/// Settore ATC (subcenter) di un ACC dalla sorgente esterna. <see cref="ComposePosition"/> è la chiave
-/// naturale (callsign, es. "LIBB_ES_CTR"); <see cref="CenterId"/> è l'ACC di appartenenza.
+/// Settore ATC (subcenter) di un ACC dalla sorgente esterna. <see cref="IvaoId"/> è l'<b>identità</b>
+/// (l'id numerico della sorgente, stabile attraverso una rinomina); <see cref="ComposePosition"/> è il
+/// callsign (es. "LIBB_ES_CTR"), che la sorgente può cambiare; <see cref="CenterId"/> è l'ACC di appartenenza.
 /// <see cref="LowerLimit"/>/<see cref="UpperLimit"/> sono predisposti: oggi la sorgente IVAO non li espone (null).
 /// </summary>
+/// <param name="IvaoId">
+/// Id numerico della riga alla sorgente (IVAO: <c>id</c> del subcenter, presente già nella lista).
+/// null = riga <b>sintetica</b>, che la sorgente non ha mai mandato: è il caso dei settori esteri
+/// risolti a mano da <c>ForeignSectorResolver</c>. Per quelle l'identità resta il callsign, ed è giusto
+/// così — non c'è nessun id da conservare.
+/// </param>
 public sealed record SourceSubcenter(
     string ComposePosition,
     string CenterId,
@@ -25,7 +32,8 @@ public sealed record SourceSubcenter(
     string? RegionMapPolygon,
     string? AtcCallsign = null,
     int? LowerLimit = null,
-    int? UpperLimit = null);
+    int? UpperLimit = null,
+    int? IvaoId = null);
 
 /// <summary>
 /// Area speciale/regolamentata di un ACC dalla sorgente (es. IVAO <c>/v2/centers/{ACC}/specialAreas</c> + dettaglio

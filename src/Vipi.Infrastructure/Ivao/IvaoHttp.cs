@@ -73,6 +73,17 @@ public sealed class IvaoHttp
     public static double? JsonNum(JsonElement e, string name) =>
         e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : null;
 
+    /// <summary>
+    /// Legge un id <b>numerico</b>, e solo quello: null se il campo manca, è una stringa, o non entra in un int.
+    /// <para>La severità è voluta. Lo stesso nome <c>id</c> porta cose diverse a seconda dell'endpoint: sui
+    /// subcenter e sulle postazioni è il numero che identifica la riga (1174, 3954), su <c>/v2/centers</c> è il
+    /// codice ACC come stringa ("LIRR"). Un parser tollerante come <see cref="JsonId"/> li appiattirebbe
+    /// entrambi in una stringa, e "LIRR" finirebbe a fare da identità dove serve un numero.</para>
+    /// </summary>
+    public static int? JsonIntId(JsonElement e, string name) =>
+        e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var i)
+            ? i : null;
+
     // Legge un id come stringa (numero o stringa).
     public static string JsonId(JsonElement e, string name)
     {

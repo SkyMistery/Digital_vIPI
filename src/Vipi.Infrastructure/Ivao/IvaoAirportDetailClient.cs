@@ -34,7 +34,8 @@ public sealed class IvaoAirportDetailClient : IAirportDetailProvider
                 Frequency: FormatFrequency(p.Frequency),
                 Position: p.Position,
                 MiddleIdentifier: p.MiddleIdentifier,
-                AtcCallsign: p.AtcCallsign))
+                AtcCallsign: p.AtcCallsign,
+                IvaoId: p.Id))
             .Where(p => p.Callsign.Length > 0)
             .ToList();
     }
@@ -73,7 +74,8 @@ public sealed class IvaoAirportDetailClient : IAirportDetailProvider
             LowerLimit: JsonNum(d, "lowerLimit") is double lo ? (int)Math.Round(lo) : null,
             UpperLimit: JsonNum(d, "upperLimit") is double up ? (int)Math.Round(up) : null,
             AirportLatitude: airLat,
-            AirportLongitude: airLon);
+            AirportLongitude: airLon,
+            IvaoId: JsonIntId(d, "id"));
     }
 
     /// <inheritdoc />
