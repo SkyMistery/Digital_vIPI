@@ -1012,6 +1012,13 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .wi-giainpubblico{box-shadow:inset 3px 0 0 var(--ivao-red)}
 .wi-rotto,.wi-inritardo{box-shadow:inset 3px 0 0 var(--ivao-yellow)}
 .wi-daripubblicare{box-shadow:inset 3px 0 0 var(--ivao-info)}
+/* «Prendi in carico»: a chi, ed entro quando. Sta dentro la riga e occupa la SECONDA riga della griglia,
+   sotto il corpo — cosi' aprendolo la riga cresce in altezza invece di spingere le azioni fuori. */
+.vipi-root .wi-assign{grid-column:1 / -1;display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+  margin-top:6px;padding:8px 10px;border-radius:8px;background:var(--tint-blue);font-size:12.5px}
+.vipi-root .wi-assign label{display:inline-flex;align-items:center;gap:6px;color:var(--ink-soft)}
+.vipi-root .wi-assign .app-in{padding:2px 6px;font-size:12.5px;min-width:0;width:auto}
+.vipi-root .wi-assign .btn{padding:2px 10px;font-size:12px}
 @media (max-width:720px){
   .wi{grid-template-columns:1fr;gap:4px}
   .wi-act{flex-wrap:wrap;white-space:normal}

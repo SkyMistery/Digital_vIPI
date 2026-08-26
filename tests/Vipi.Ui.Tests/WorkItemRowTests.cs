@@ -1,7 +1,9 @@
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
+using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
+using Vipi.Domain.Services;
 using Vipi.Domain;
 using Vipi.Ui.Components;
 using Xunit;
@@ -137,6 +139,113 @@ public class WorkItemRowTests : TestContext
         Assert.DoesNotContain("Work_Assign", RenderComponent<WorkItemRow>(p => p
             .Add(x => x.Item, incarico).Add(x => x.ShowAssign, true)).Markup);
     }
+
+    // ── Il picker: a chi va il lavoro ────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Il_picker_si_apre_solo_premendo_e_propone_ME_per_primo()
+    {
+        // ⚠️ L'assegnatario nasce su chi guarda: «me ne occupo io» è il caso frequente, e una tendina vuota
+        // da riempire ogni volta costerebbe un gesto per riga.
+        var c = ConPicker();
+
+        Assert.Empty(c.FindAll(".wi-assign"));
+        c.FindAll("button.btn").First(b => b.TextContent.Contains("Work_Assign")).Click();
+
+        var opzioni = c.FindAll(".wi-assign select option").Select(o => o.TextContent.Trim()).ToArray();
+        Assert.Equal("Work_AssignMe", opzioni.First());
+        Assert.Contains("Giulia Bianchi · 777", opzioni);
+    }
+
+    [Fact]
+    public void Chi_preme_non_compare_due_volte_nella_tendina()
+    {
+        // Il roster contiene anche chi sta guardando: senza il filtro comparirebbe come «me» E col suo nome.
+        var c = ConPicker();
+        c.FindAll("button.btn").First(b => b.TextContent.Contains("Work_Assign")).Click();
+
+        // ⚠️ Si guardano i VALORI, non le etichette: l'opzione «me» si chiama «Work_AssignMe» e il 555 sta
+        // solo nel value. Cercarlo nel testo direbbe «non c'è» ed è una domanda mal posta, non un difetto.
+        var valori = c.FindAll(".wi-assign select option")
+            .Select(o => o.GetAttribute("value")).ToArray();
+        Assert.Single(valori, v => v == "555");   // solo «me», non anche «Chi Guarda · 555»
+        Assert.Contains("777", valori);
+    }
+
+    [Fact]
+    public void Assegnando_a_me_il_nome_NON_lo_manda_la_riga()
+    {
+        // È il servizio ad avere in casa il nome dell'utente corrente: passarglielo dalla UI vorrebbe dire
+        // fidarsi di un dato che ha già, e in una forma che nessuno ha verificato.
+        WorkAssignRequest? richiesta = null;
+        var c = ConPicker(r => richiesta = r);
+        c.FindAll("button.btn").First(b => b.TextContent.Contains("Work_Assign")).Click();
+        c.Find(".wi-assign button.btn.primary").Click();
+
+        Assert.Equal(555, richiesta?.UserId);
+        Assert.Null(richiesta?.Nome);
+        Assert.Null(richiesta?.Ciclo);
+    }
+
+    [Fact]
+    public void Assegnando_a_un_altro_partono_il_suo_VID_e_il_suo_nome()
+    {
+        WorkAssignRequest? richiesta = null;
+        var c = ConPicker(r => richiesta = r);
+        c.FindAll("button.btn").First(b => b.TextContent.Contains("Work_Assign")).Click();
+
+        // ⚠️ Le tendine si ricercano DOPO ogni cambio: il primo `Change` ridisegna, e gli elementi presi
+        // prima portano un gestore che non esiste più («no event handler with ID»).
+        c.FindAll(".wi-assign select").ToArray().First().Change("777");
+        c.FindAll(".wi-assign select").ToArray().Last().Change("2609");
+        c.Find(".wi-assign button.btn.primary").Click();
+
+        Assert.Equal(777, richiesta?.UserId);
+        Assert.Equal("Giulia Bianchi", richiesta?.Nome);
+        Assert.Equal("2609", richiesta?.Ciclo);
+    }
+
+    [Fact]
+    public void Confermando_il_picker_si_richiude()
+    {
+        var c = ConPicker();
+        c.FindAll("button.btn").First(b => b.TextContent.Contains("Work_Assign")).Click();
+        c.Find(".wi-assign button.btn.primary").Click();
+
+        Assert.Empty(c.FindAll(".wi-assign"));
+    }
+
+    [Fact]
+    public void Senza_roster_si_puo_comunque_assegnare_a_se_stessi()
+    {
+        // Il roster si popola ai login: appena installato è vuoto, e la lista deve restare usabile.
+        var c = RenderComponent<WorkItemRow>(p => p
+            .Add(x => x.Item, Riga(WorkSeverity.DaRileggere, WorkAction.SegnaFatto))
+            .Add(x => x.ShowAssign, true)
+            .Add(x => x.MyUserId, 555));
+        c.FindAll("button.btn").First(b => b.TextContent.Contains("Work_Assign")).Click();
+
+        var sole = c.FindAll(".wi-assign select").ToArray().First().QuerySelectorAll("option");
+        Assert.Single(sole.ToArray());   // solo «me»
+        Assert.False(c.Find(".wi-assign button.btn.primary").HasAttribute("disabled"));
+    }
+
+    private IRenderedComponent<WorkItemRow> ConPicker(Action<WorkAssignRequest>? onAssign = null) =>
+        RenderComponent<WorkItemRow>(p => p
+            .Add(x => x.Item, Riga(WorkSeverity.DaRileggere, WorkAction.SegnaFatto))
+            .Add(x => x.ShowAssign, true)
+            .Add(x => x.MyUserId, 555)
+            .Add(x => x.Roster, new[]
+            {
+                new StaffRosterEntry(555, "Chi Guarda", "ACC", Array.Empty<string>(), DateTime.UtcNow),
+                new StaffRosterEntry(777, "Giulia Bianchi", "ACC", Array.Empty<string>(), DateTime.UtcNow),
+            })
+            .Add(x => x.Cycles, new[]
+            {
+                new AiracCycleInfo("2609", new DateTime(2026, 9, 3, 0, 0, 0, DateTimeKind.Utc)),
+                new AiracCycleInfo("2610", new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc)),
+            })
+            .Add(x => x.OnAssign, (WorkAssignRequest r) => onAssign?.Invoke(r)));
 
     [Fact]
     public void L_urgenza_si_vede_anche_senza_distinguere_i_colori()

@@ -77,10 +77,49 @@
            un incarico un assegnatario ce l'ha già. *@
         @if (ShowAssign && Item.Origine == WorkOrigin.Sistema && Item.ImpactId is int)
         {
-            <button type="button" class="btn ghost" disabled="@Busy" title="@L["Work_AssignTitle"]"
-                    @onclick="() => OnAssign.InvokeAsync(Item)">@L["Work_Assign"]</button>
+            <button type="button" class="btn ghost @(_assegna ? "on" : "")" disabled="@Busy"
+                    title="@L["Work_AssignTitle"]" @onclick="ApriAssegna">@L["Work_Assign"]</button>
         }
     </span>
+
+    @* ---- A chi, ed entro quando ----------------------------------------------------------------
+       Sta DENTRO la riga e non in una finestra: assegnare è un gesto di scorrimento — si guarda l'elenco,
+       si distribuisce — e una modale per ogni riga farebbe perdere il posto ogni volta. Compare solo sulla
+       riga su cui si è premuto: lo stato è del componente, e ogni riga è un componente.
+       ⚠️ L'assegnatario nasce su ME: «me ne occupo io» è il caso frequente, e chi vuole dare il lavoro a
+       un altro lo cambia. Il contrario — una tendina vuota da riempire sempre — costa un gesto a ogni riga. *@
+    @if (_assegna)
+    {
+        <span class="wi-assign">
+            <label>
+                @L["Work_AssignTo"]
+                <select class="app-in" @bind="_chi" disabled="@Busy">
+                    @if (MyUserId is int io)
+                    {
+                        <option value="@io">@L["Work_AssignMe"]</option>
+                    }
+                    @foreach (var m in Roster.Where(m => m.UserId != MyUserId))
+                    {
+                        <option value="@m.UserId">@NomeRoster(m)</option>
+                    }
+                </select>
+            </label>
+            <label>
+                @L["Work_AssignDue"]
+                <select class="app-in" @bind="_entro" disabled="@Busy">
+                    <option value="">@L["Tasks_NoDue"]</option>
+                    @foreach (var c in Cycles)
+                    {
+                        <option value="@c.Cycle">@c.Cycle</option>
+                    }
+                </select>
+            </label>
+            <button type="button" class="btn primary" disabled="@(Busy || _chi <= 0)"
+                    @onclick="Conferma">@L["Work_AssignConfirm"]</button>
+            <button type="button" class="btn ghost" disabled="@Busy"
+                    @onclick="() => _assegna = false">@L["Common_Cancel"]</button>
+        </span>
+    }
 </li>
 
 @code {
@@ -93,11 +132,51 @@
     /// <summary>Offri «prendi in carico». Solo a chi può assegnare lavoro.</summary>
     [Parameter] public bool ShowAssign { get; set; }
 
+    /// <summary>Gli staffisti a cui si può dare il lavoro. Vuoto = si può assegnare solo a sé stessi, che è
+    /// il caso di un roster ancora da popolare (ci si entra al primo login).</summary>
+    [Parameter] public IReadOnlyList<StaffRosterEntry> Roster { get; set; } = Array.Empty<StaffRosterEntry>();
+
+    /// <summary>I cicli AIRAC proponibili come scadenza.</summary>
+    [Parameter] public IReadOnlyList<AiracCycleInfo> Cycles { get; set; } = Array.Empty<AiracCycleInfo>();
+
+    /// <summary>Chi sta guardando: è l'assegnatario predefinito.</summary>
+    [Parameter] public int? MyUserId { get; set; }
+
     [Parameter] public bool Busy { get; set; }
 
     [Parameter] public EventCallback<WorkItem> OnDone { get; set; }
     [Parameter] public EventCallback<WorkItem> OnStart { get; set; }
-    [Parameter] public EventCallback<WorkItem> OnAssign { get; set; }
+
+    /// <summary>Chiede di trasformare la riga in un incarico: a chi, ed entro quando.</summary>
+    [Parameter] public EventCallback<WorkAssignRequest> OnAssign { get; set; }
+
+    private bool _assegna;
+    private int _chi;
+    private string _entro = "";
+
+    private void ApriAssegna()
+    {
+        _assegna = !_assegna;
+        if (!_assegna) return;
+        _chi = MyUserId ?? 0;
+        _entro = "";
+    }
+
+    private async Task Conferma()
+    {
+        var nome = _chi == MyUserId
+            ? null   // il nome di chi preme lo sa già il servizio: è l'utente corrente
+            : Roster.FirstOrDefault(m => m.UserId == _chi)?.DisplayName;
+
+        await OnAssign.InvokeAsync(new WorkAssignRequest(
+            Item, _chi, nome, string.IsNullOrWhiteSpace(_entro) ? null : _entro));
+        _assegna = false;
+    }
+
+    /// <summary>Il VID accanto al nome, perché due staffisti possono chiamarsi uguale — e chi non ha ancora
+    /// un nome nel roster si riconosce dal solo VID.</summary>
+    private static string NomeRoster(StaffRosterEntry m) =>
+        string.IsNullOrWhiteSpace(m.DisplayName) ? $"VID {m.UserId}" : $"{m.DisplayName} · {m.UserId}";
 
     /// <summary>La pastiglia dice in una parola PERCHÉ la riga è lì, e il colore quanto urge.</summary>
     private RenderFragment Pastiglia() => builder =>

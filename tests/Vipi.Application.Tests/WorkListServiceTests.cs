@@ -125,6 +125,49 @@ public class WorkListServiceTests
     }
 
     [Fact]
+    public async Task Prendere_in_carico_non_fa_perdere_alla_riga_il_suo_PERCHE()
+    {
+        // ⚠️ Trovato a schermo, non dai test: la riga presa in carico mostrava due volte il titolo del
+        // documento («vLOA LIBB ↔ LGGG · vLOA LIBB ↔ LGGG») e nessun motivo. La segnalazione resta la
+        // verità su COSA e QUANTO urge; l'incarico aggiunge solo chi e entro quando.
+        var s = Costruisci(admin: true, io: 555,
+            impatti: new[] { Impatto(1, 10, ImpactKind.SectorGone) },
+            documenti: new[] { Doc(10, "vIPI Roma", "LIRR") },
+            incarichi: new[] { Incarico(7, "vIPI Roma", 555, daImpatto: 1) });
+
+        var riga = Assert.Single(await s.MieAsync());
+
+        Assert.Equal("Impact_SectorGone", riga.FraseKey);
+        Assert.Equal("LIRR_TS_CTR", Assert.Single(riga.FraseArgs));
+    }
+
+    [Fact]
+    public async Task Prendere_in_carico_non_fa_scivolare_la_riga_in_fondo()
+    {
+        // Una copia da ripubblicare presa in carico resta «da ripubblicare»: assegnare un lavoro non lo
+        // rende meno urgente, e degradarlo a incarico normale lo spingeva sotto tutto il resto.
+        var s = Costruisci(admin: true, io: 555,
+            impatti: new[] { Impatto(1, 10, ImpactKind.ReleaseDrift) },
+            documenti: new[] { Doc(10, "vIPI Roma", "LIRR") },
+            incarichi: new[] { Incarico(7, "vIPI Roma", 555, daImpatto: 1) });
+
+        Assert.Equal(WorkSeverity.DaRipubblicare, Assert.Single(await s.MieAsync()).Severita);
+    }
+
+    [Fact]
+    public async Task Un_incarico_scritto_a_mano_mostra_il_suo_titolo()
+    {
+        // Nessuna segnalazione dietro: la frase è il titolo, e `Work_Raw` dice alla UI di stamparlo com'è.
+        var s = Costruisci(admin: true, io: 555,
+            documenti: new[] { Doc(10, "vIPI Roma", "LIRR") },
+            incarichi: new[] { Incarico(7, "Rivedere le frequenze", 555) });
+
+        var riga = Assert.Single(await s.MieAsync());
+        Assert.Equal(WorkPhrases.Raw, riga.FraseKey);
+        Assert.Equal("Rivedere le frequenze", Assert.Single(riga.FraseArgs));
+    }
+
+    [Fact]
     public async Task Prendere_in_carico_crea_un_incarico_che_ricorda_da_dove_viene()
     {
         var incarichi = new IncarichiFinti();

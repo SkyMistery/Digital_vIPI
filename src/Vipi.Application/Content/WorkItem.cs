@@ -103,6 +103,17 @@ public sealed record WorkItem(
 }
 
 /// <summary>
+/// «Prendi in carico questa riga»: <b>chi</b> se ne occupa ed <b>entro quando</b>.
+///
+/// <para>Sta accanto a <see cref="WorkItem"/> e non nel componente che lo emette perché lo ricevono due
+/// pagine diverse: un record nel markup di una delle due sarebbe il tipo di una sola, e la seconda si
+/// scriverebbe il suo.</para>
+/// </summary>
+/// <param name="Nome">Come si chiama l'assegnatario. <c>null</c> = è chi sta premendo, e il nome lo sa già
+/// chi esegue: passarlo dalla UI vorrebbe dire fidarsi di un dato che il servizio ha già in casa.</param>
+public sealed record WorkAssignRequest(WorkItem Item, int UserId, string? Nome, string? Ciclo);
+
+/// <summary>
 /// Da un <see cref="ImpactKind"/> a come la sua riga si comporta in lista: quanto urge, e che cosa la chiude.
 ///
 /// <para><b>Perché qui e non accanto a <see cref="ImpactKinds"/></b>, che è dove stanno i fratelli

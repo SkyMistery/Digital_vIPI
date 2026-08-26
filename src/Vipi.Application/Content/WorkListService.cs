@@ -100,7 +100,10 @@ public sealed class WorkListService : IWorkListService
             .Select(t => t.FromImpactId!.Value)
             .ToHashSet();
 
-        foreach (var i in await _impatti.ListAllOpenAsync(ct))
+        var aperti = await _impatti.ListAllOpenAsync(ct);
+        var perId = aperti.ToDictionary(i => i.Id);
+
+        foreach (var i in aperti)
         {
             if (presiInCarico.Contains(i.Id)) continue;
             perDoc.TryGetValue(i.DocumentId, out var doc);
@@ -123,7 +126,7 @@ public sealed class WorkListService : IWorkListService
             // vede chi ce l'ha. Filtrarlo per ACC lo farebbe sparire proprio a chi deve farlo.
             if (doc is not null && !PossoToccare(doc)) continue;
 
-            righe.Add(DaIncarico(t, doc));
+            righe.Add(DaIncarico(t, doc, Origine(perId, t)));
         }
 
         return WorkOrdering.Ordina(righe);
@@ -142,7 +145,10 @@ public sealed class WorkListService : IWorkListService
             .Select(t => t.FromImpactId!.Value)
             .ToHashSet();
 
-        foreach (var i in await _impatti.ListOpenAsync(documentId, ct))
+        var aperti = await _impatti.ListOpenAsync(documentId, ct);
+        var perId = aperti.ToDictionary(i => i.Id);
+
+        foreach (var i in aperti)
         {
             if (presiInCarico.Contains(i.Id)) continue;
             righe.Add(DaImpatto(i, doc));
@@ -155,7 +161,7 @@ public sealed class WorkListService : IWorkListService
                 if (t.Status == EditorTaskStatus.Done) continue;
                 if (t.TargetType != doc.ReleaseTarget) continue;
                 if (!string.Equals(t.TargetKey, doc.ReleaseKey, StringComparison.OrdinalIgnoreCase)) continue;
-                righe.Add(DaIncarico(t, doc));
+                righe.Add(DaIncarico(t, doc, Origine(perId, t)));
             }
         }
 
@@ -209,9 +215,32 @@ public sealed class WorkListService : IWorkListService
         i.RaisedUtc,
         ImpactId: i.Id);
 
-    private WorkItem DaIncarico(EditorTask t, ManagedDoc? doc)
+    /// <summary>La segnalazione da cui l'incarico è nato, se è ancora aperta. <c>null</c> = incarico scritto
+    /// da una persona, o segnalazione nel frattempo chiusa.</summary>
+    private static DocumentImpactRow? Origine(IReadOnlyDictionary<int, DocumentImpactRow> perId, EditorTask t) =>
+        t.FromImpactId is int id && perId.TryGetValue(id, out var i) ? i : null;
+
+    /// <param name="origine">
+    /// ⚠️ Quando l'incarico nasce da una segnalazione, <b>frase e urgenza restano quelle della
+    /// segnalazione</b>, e l'incarico aggiunge solo <i>chi</i> e <i>entro quando</i>. Senza, prendere in
+    /// carico un lavoro lo <b>peggiorava</b>: la riga perdeva il motivo — a schermo si leggeva due volte il
+    /// titolo del documento, «vLOA LIBB ↔ LGGG · vLOA LIBB ↔ LGGG» — e scivolava in fondo alla lista, perché
+    /// un incarico a priorità normale urge meno di una copia da ripubblicare. Assegnare un lavoro non lo
+    /// rende meno urgente né meno comprensibile.
+    /// </param>
+    private WorkItem DaIncarico(EditorTask t, ManagedDoc? doc, DocumentImpactRow? origine = null)
     {
         var inRitardo = _regoleIncarichi.IsOverdue(t);
+
+        var suaUrgenza = inRitardo ? WorkSeverity.InRitardo
+            : t.Priority == EditorTaskPriority.High ? WorkSeverity.Rotto
+            : WorkSeverity.Normale;
+
+        // Fra le due vince la più urgente, che nella scala è la MINORE: una scadenza scaduta batte la
+        // deriva, e la deriva batte un incarico ordinario.
+        var urgenza = origine is { } o
+            ? (WorkSeverity)Math.Min((int)suaUrgenza, (int)o.Kind.Severita(o.IsPublicNow))
+            : suaUrgenza;
 
         return new WorkItem(
             WorkOrigin.Persona,
@@ -220,13 +249,11 @@ public sealed class WorkListService : IWorkListService
             doc?.Title ?? t.TargetLabel ?? t.Title,
             doc?.AccCode,
             Url(doc),
-            // L'incarico ha un titolo SCRITTO da una persona: non è una chiave, e non va cercato nel .resx.
-            // La convenzione «Work_Raw» dice alla UI di stamparlo com'è — vedi WorkItemRow.
-            WorkPhrases.Raw,
-            new[] { t.Title },
-            inRitardo ? WorkSeverity.InRitardo
-                : t.Priority == EditorTaskPriority.High ? WorkSeverity.Rotto
-                : WorkSeverity.Normale,
+            // Dalla segnalazione la frase arriva come CHIAVE + argomenti e resta traducibile. Solo il titolo
+            // scritto a mano da una persona passa per `Work_Raw`, che dice alla UI di stamparlo com'è.
+            origine?.ReasonKey ?? WorkPhrases.Raw,
+            origine?.ReasonArgs ?? new[] { t.Title },
+            urgenza,
             WorkAction.CambiaStato,
             t.CreatedUtc,
             t.AssigneeUserId,

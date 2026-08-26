@@ -2416,4 +2416,8 @@
   <data name="Task_Start" xml:space="preserve"><value>Inizia</value></data>
   <data name="Task_Done" xml:space="preserve"><value>Fatto</value></data>
   <data name="Tasks_Overdue" xml:space="preserve"><value>in ritardo</value></data>
+  <data name="Work_AssignTo" xml:space="preserve"><value>A</value></data>
+  <data name="Work_AssignMe" xml:space="preserve"><value>me</value></data>
+  <data name="Work_AssignDue" xml:space="preserve"><value>entro</value></data>
+  <data name="Work_AssignConfirm" xml:space="preserve"><value>Assegna</value></data>
 </root>

@@ -1,7 +1,7 @@
 # «Da fare»: una lista sola — carta (26 agosto 2026, notte)
 
 > **Stato: ✅ ESEGUITA il 26 agosto 2026 sera**, ramo `statistiche-atc`. Build Release pulita sui due TFM
-> (0 avvisi), test verdi — net8 **2587**, net10 **2349** — e **provata a schermo** (§7).
+> (0 avvisi), test verdi — net8 **2596**, net10 **2358** — e **provata a schermo** (§7).
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 > Unisce due meccanismi che esistono già e **non ne aggiunge un terzo**:
 > [Documenti da rivedere](2026-08-25-documenti-da-rivedere.md) (la casella degli impatti) e gli **incarichi**
@@ -147,16 +147,16 @@ alto ciò che sta facendo danno **adesso**.
 
 ## §6 — La prova
 
-**Test** — 44 nuovi, tutti verdi (net8 **2587**, net10 **2349**):
+**Test** — 53 nuovi, tutti verdi (net8 **2596**, net10 **2358**):
 
 - `WorkListTests` (19, `Vipi.Application.Tests`) — il cuore puro: che cosa chiude una riga, quanto urge, in
   che ordine compare. ⚠️ Uno gira su **tutti** gli `ImpactKind` e verifica che l'azione non contraddica mai
   il dominio: se un giorno qualcuno aggiunge un tipo calcolato e si scorda della mappatura, il ✓ non deve
   comparirgli sopra.
-- `WorkListServiceTests` (15) — chi vede che cosa (admin vs. concessioni vs. incarico libero) e, soprattutto,
+- `WorkListServiceTests` (18) — chi vede che cosa (admin vs. concessioni vs. incarico libero) e, soprattutto,
   che una segnalazione **presa in carico non compaia due volte**; che tornando `Done` l'incarico la riga di
   sistema **ritorni**, perché il fatto è ancora vero.
-- `WorkItemRowTests` (10, `Vipi.Ui.Tests`) — il tasto promesso: niente ✓ sulla copia indietro, «Ripubblica»
+- `WorkItemRowTests` (16, `Vipi.Ui.Tests`) — il tasto promesso: niente ✓ sulla copia indietro, «Ripubblica»
   che punta a `#sec-versioni`, il titolo di un incarico stampato com'è scritto, l'urgenza leggibile **anche
   senza distinguere i colori** (la barretta di sinistra, non solo la pastiglia).
 - `DocReviewBarTests` — adattati: provano le stesse cose, leggendo dal read-model.
@@ -196,3 +196,38 @@ e `SectorHidden` mostrano **✓ Mark as reviewed**, mentre `SectorStale` — che
 **«Da sistemare»** mostra le stesse sette righe attraverso lo stesso read-model, **senza** «Take it on»
 (quella è la pagina dell'archivio, non quella di chi lavora), e il totale in testata conta ciò che la pagina
 mostra davvero.
+
+## §8 — Il picker, e il difetto che ha fatto emergere
+
+Chiesto dal committente subito dopo: **assegnare ad altri anche dalla lista**, non solo a sé stessi.
+
+Il picker sta **dentro la riga** (`WorkItemRow`) e non in una finestra: assegnare è un gesto di scorrimento —
+si guarda l'elenco e si distribuisce — e una modale per ogni riga farebbe perdere il posto ogni volta. Si
+apre su **una riga per volta**, propone **me** come primo assegnatario (il caso frequente; una tendina vuota
+da riempire costerebbe un gesto a ogni riga), e offre i cicli AIRAC come scadenza facoltativa.
+
+⚠️ **Il nome dell'assegnatario non lo manda la UI quando è chi preme**: il servizio ce l'ha già in casa, e
+farselo passare vorrebbe dire fidarsi di un dato non verificato. Parte solo quando si sceglie un altro.
+
+⚠️ **Il roster si popola ai login** (`IStaffRosterService`): finché uno staffista non è mai entrato non
+compare fra gli assegnatari. In sviluppo c'è una voce sola, quindi **la scelta di un altro è coperta dai
+test ma non dalla prova a schermo** — a schermo si è potuto assegnare solo a sé stessi.
+
+### Il difetto che solo lo schermo ha mostrato
+
+Prendere in carico **peggiorava** la riga, e nessun test lo vedeva:
+
+> `task · vLOA — LIBB ↔ LGGG · **vLOA — LIBB ↔ LGGG** · assigned to Carmine`
+
+Il titolo del documento si ripeteva al posto del **motivo**, e la riga scivolava in fondo alla lista perché
+un incarico a priorità normale urge meno di una copia da ripubblicare. Assegnare un lavoro non lo rende né
+meno urgente né meno comprensibile.
+
+**La causa e la cura**: l'incarico non portava la frase dell'impatto. Ora, finché la segnalazione d'origine è
+aperta, **frase e urgenza restano le sue** e l'incarico aggiunge solo *chi* e *entro quando* — che è
+esattamente ciò che §2/D5 aveva promesso («la segnalazione resta la verità su se il fatto è ancora vero»).
+Fra l'urgenza dell'una e quella dell'altro vince la maggiore: una scadenza scaduta batte la deriva.
+
+Riverificato a schermo: la riga presa in carico resta `wi-daripubblicare`, dice *«The published copy is
+behind the draft: Coordination / LGGG → LIBB»*, mostra «assigned to Carmine (704798)» e i tasti
+**Start** / **✓ Done**.

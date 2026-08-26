@@ -5,6 +5,7 @@
 @inject IWorkListService Lavoro
 @inject IDocumentImpactService Impatti
 @inject IEditAuthorizationService Authz
+@inject IStaffRosterService Roster
 @inject ICurrentUserProvider User
 @inject IEditorTaskLinksService TaskLinks
 @inject IStringLocalizer<SharedResource> L
@@ -97,6 +98,7 @@
                 @foreach (var r in _lavoro)
                 {
                     <WorkItemRow @key="r.Chiave" Item="r" Busy="_busy" ShowAssign="Authz.IsAdmin"
+                                 Roster="_staff" Cycles="_upcoming" MyUserId="User.Get()?.UserId"
                                  OnDone="ChiudiLavoro" OnStart="AvviaLavoro" OnAssign="PrendiInCarico" />
                 }
             </ul>
@@ -156,6 +158,10 @@
     /// <summary>L'elenco unificato: le segnalazioni del sistema e gli incarichi, in una lista sola.</summary>
     private IReadOnlyList<WorkItem>? _lavoro;
 
+    /// <summary>Gli staffisti a cui un admin può dare un lavoro trovato dal sistema. ⚠️ Si carica UNA volta
+    /// all'apertura, non per riga: il picker sta in ogni riga, ma l'elenco è lo stesso per tutte.</summary>
+    private IReadOnlyList<StaffRosterEntry> _staff = Array.Empty<StaffRosterEntry>();
+
     private IReadOnlyDictionary<(ReleaseTargetType Type, string Key), EditorTaskLink> _links =
         new Dictionary<(ReleaseTargetType, string), EditorTaskLink>();
     private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
@@ -185,6 +191,12 @@
     {
         _currentCycle = Tasks.CurrentCycle();
         _upcoming = Tasks.UpcomingCycles(14);
+        // Il roster serve solo a chi può assegnare: per gli altri sarebbe una query per niente.
+        if (Authz.IsAdmin)
+        {
+            try { _staff = await Roster.ListActiveAsync(); }
+            catch (Exception ex) { _error = ex.Message; }
+        }
         await Load();
     }
 
@@ -393,18 +405,20 @@
         finally { _busy = false; }
     }
 
-    /// <summary>Da fatto del sistema a impegno di una persona. Qui l'assegnatario è CHI PREME: è il gesto
-    /// «me ne occupo io», che è l'unico che abbia senso dalla propria lista. Assegnare ad altri si fa dalla
-    /// dashboard degli incarichi, dove c'è il picker degli staffisti.</summary>
-    private async Task PrendiInCarico(WorkItem r)
+    /// <summary>Da fatto del sistema a impegno di una persona: a chi, ed entro quando. Il picker sta nella
+    /// riga (WorkItemRow), che qui manda solo la richiesta già composta.</summary>
+    private async Task PrendiInCarico(WorkAssignRequest req)
     {
-        if (r.ImpactId is not int impactId) return;
+        if (req.Item.ImpactId is not int impactId) return;
         if (User.Get() is not { } u) return;
         _busy = true;
         _error = _status = null;
         try
         {
-            await Lavoro.PrendiInCaricoAsync(impactId, u.UserId, u.Name, scadenzaCiclo: null);
+            // ⚠️ Il nome di chi preme lo mette la pagina, non la riga: `Nome` arriva null quando
+            // l'assegnatario è l'utente corrente, ed è il solo caso in cui questo dato è già in casa.
+            var nome = req.Nome ?? (req.UserId == u.UserId ? u.Name : null);
+            await Lavoro.PrendiInCaricoAsync(impactId, req.UserId, nome, req.Ciclo);
             _status = L["Work_AssignedMsg"];
             await Load();
         }
