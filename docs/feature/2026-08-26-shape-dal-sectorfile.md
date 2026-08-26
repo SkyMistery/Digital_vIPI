@@ -63,6 +63,29 @@ sono punti **esteri**, dentro i blocchi di LDZO/LGGG/LFMM.
 non dà un poligono più piccolo: dà un poligono **sbagliato**, che si disegna benissimo e mente. Il blocco si
 scarta e si dice quale punto manca.
 
+### Com'è andata (26 agosto, parser contro i file veri)
+
+```
+catalogo navaid            1385 nomi, 1385 con posizione
+callsign con anello        128     (CTR=60, APP=57, FSS=11)
+anelli che non si proiettano   0
+blocchi scartati               2
+```
+
+128 callsign da 112 blocchi: la differenza sono le intestazioni multiple.
+
+⚠️ **Il secondo separatore l'ha trovato solo la prova sui file veri.** 16 intestazioni separano i callsign
+con lo **spazio**, 3 con i **due punti** (`LIMM_WS2_CTR:LIMM_WS5_CTR:LIMM_ES2_CTR:LIMM_ES5_CTR`). Leggendo
+solo lo spazio, quelle tre davano una chiave sola coi due punti dentro, che non combacia con nessun settore:
+**quattro settori di Milano senza area, e nessun errore da nessuna parte**. Le prove a tavolino non
+l'avrebbero visto — la forma non è documentata, sta nei dati.
+
+⚠️ **Restano fuori 4 settori di Milano** (`LIMM_WS2/WS5/ES2/ES5_CTR`), scartati perché citano **GODRA** e
+**GIGUS**, che non sono in nessuno dei tre cataloghi italiani — sono punti d'oltreconfine, e Milano confina
+con Svizzera e Francia. Si sbloccano aggiungendoli a `itfix.fix` (decisione di divisione) oppure con un
+elenco di punti-extra da parte nostra. **Non inventato niente**: per ora quei quattro non prendono l'area
+dal sectorfile, e la cosa si vede.
+
 ## 3. Il ciclo AIRAC: il problema vero
 
 Il sectorfile lo scriviamo noi **prima** che il ciclo esca. Quindi in qualsiasi momento può contenere

@@ -12,11 +12,16 @@ public enum NavaidKind
     Ndb,
 }
 
-/// <summary>Un punto del catalogo: il nome come si scrive, e di che natura è. DTO neutro (ADR-0006).</summary>
-/// <remarks>Le coordinate NON ci sono, e non è una dimenticanza: il catalogo serve a completare e a validare
-/// dei NOMI. Il giorno che servisse la posizione (un CoP sulla mappa, la verifica che stia davvero sul confine
-/// fra i due enti) il parser ha già <c>TryParseDms</c> e questo record cresce di due campi.</remarks>
-public sealed record NavaidName(string Name, NavaidKind Kind);
+/// <summary>Un punto del catalogo: il nome come si scrive, di che natura è, e dove sta.</summary>
+/// <remarks>
+/// ⚠️ Fino al 26 agosto 2026 le coordinate qui non c'erano, e il commento diceva: «*il giorno che servisse la
+/// posizione … questo record cresce di due campi*». È quel giorno. Le vogliono i poligoni di settore del
+/// sectorfile, dove **233 vertici su 20 692** non sono coordinate ma nomi di punto (<c>TUFTE;TUFTE;</c>) da
+/// risolvere qui.
+/// <para><see cref="Lat"/>/<see cref="Lon"/> restano <b>nullable</b>: una riga di catalogo malformata dà
+/// comunque un nome buono per la completion delle SID, che della posizione non sa che farsene.</para>
+/// </remarks>
+public sealed record NavaidName(string Name, NavaidKind Kind, double? Lat = null, double? Lon = null);
 
 /// <summary>
 /// Il catalogo dei punti della divisione, nelle DUE forme in cui serve: l'elenco ordinato (per chi propone) e
@@ -47,7 +52,26 @@ public sealed class NavaidCatalog
 
         Entries = seen.Values.OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase).ToList();
         Names = new HashSet<string>(seen.Keys, StringComparer.OrdinalIgnoreCase);
+        _points = seen.Values.Where(e => e.Lat is not null && e.Lon is not null)
+            .ToDictionary(e => e.Name, e => (e.Lat!.Value, e.Lon!.Value), StringComparer.OrdinalIgnoreCase);
     }
+
+    private readonly Dictionary<string, (double Lat, double Lon)> _points;
+
+    /// <summary>
+    /// Dove sta un punto, per nome. Falso se il nome non è in catalogo <b>o</b> se è in catalogo senza
+    /// coordinate — per chi disegna sono la stessa cosa, e trattarle diversamente vorrebbe dire far finta di
+    /// sapere dove sia.
+    /// </summary>
+    public bool TryGetPoint(string? name, out (double Lat, double Lon) point)
+    {
+        point = default;
+        return !string.IsNullOrWhiteSpace(name) && _points.TryGetValue(name.Trim(), out point);
+    }
+
+    /// <summary>Quanti punti hanno una posizione (diagnostica: se scende a zero, il parser dei navaid ha smesso
+    /// di leggere le coordinate e i poligoni di settore spariscono in silenzio).</summary>
+    public int PointsWithPosition => _points.Count;
 
     /// <summary>I punti in ordine alfabetico, senza ripetizioni.</summary>
     public IReadOnlyList<NavaidName> Entries { get; }

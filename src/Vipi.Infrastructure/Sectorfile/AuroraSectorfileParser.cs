@@ -12,22 +12,25 @@ namespace Vipi.Infrastructure.Sectorfile;
 public static class AuroraSectorfileParser
 {
     /// <summary>
-    /// Il catalogo dei punti unendo itvor, itndb e itfix. Le coordinate non vengono parsate: né la completion
-    /// dei fix SID né i suggerimenti dell'editor usano la posizione, e leggerle costerebbe 1400 conversioni DMS
-    /// a ogni ciclo per un dato che nessuno guarda.
+    /// Il catalogo dei punti unendo itvor, itndb e itfix, <b>con le coordinate</b>.
     /// </summary>
-    /// <remarks>L'ordine di accodamento decide la natura di un nome presente in più file: VOR e NDB PRIMA dei
-    /// fix, perché su un omonimo la radioassistenza è l'informazione più specifica delle due.</remarks>
+    /// <remarks>
+    /// <para>L'ordine di accodamento decide la natura di un nome presente in più file: VOR e NDB PRIMA dei
+    /// fix, perché su un omonimo la radioassistenza è l'informazione più specifica delle due.</para>
+    /// <para>⚠️ Fino al 26 agosto 2026 le coordinate si saltavano di proposito («nessuno guarda la
+    /// posizione»). Ora servono ai poligoni di settore, dove 233 vertici sono nomi di punto. Il costo è
+    /// ~2500 conversioni DMS per giro d'import — una volta ogni 24 ore, su un catalogo tenuto in cache.</para>
+    /// </remarks>
     public static NavaidCatalog ParseNavaids(string? fixText, string? vorText, string? ndbText = null)
     {
         var entries = new List<NavaidName>();
-        foreach (var name in ParseNavaidNames(vorText)) entries.Add(new NavaidName(name, NavaidKind.Vor));
-        foreach (var name in ParseNavaidNames(ndbText)) entries.Add(new NavaidName(name, NavaidKind.Ndb));
-        foreach (var name in ParseNavaidNames(fixText)) entries.Add(new NavaidName(name, NavaidKind.Fix));
+        foreach (var e in ParseNavaidEntries(vorText, NavaidKind.Vor)) entries.Add(e);
+        foreach (var e in ParseNavaidEntries(ndbText, NavaidKind.Ndb)) entries.Add(e);
+        foreach (var e in ParseNavaidEntries(fixText, NavaidKind.Fix)) entries.Add(e);
         return new NavaidCatalog(entries);
     }
 
-    private static IEnumerable<string> ParseNavaidNames(string? text)
+    private static IEnumerable<NavaidName> ParseNavaidEntries(string? text, NavaidKind kind)
     {
         if (string.IsNullOrEmpty(text)) yield break;
         foreach (var raw in text.Split('\n'))
@@ -40,8 +43,24 @@ public static class AuroraSectorfileParser
             // barra — ma sono comparse in cima all'elenco a discesa dell'editor la prima volta che si è
             // aperto: e' cosi' che si e' visto un difetto che stava li' da sempre.
             if (line.StartsWith("//", StringComparison.Ordinal)) continue;
-            var name = line.Split(';', 2)[0].Trim();
-            if (name.Length != 0) yield return name;
+
+            var fields = line.Split(';');
+            var name = fields[0].Trim();
+            if (name.Length == 0) continue;
+
+            // ⚠️ La coppia di coordinate si CERCA, non si prende a indice fisso: i tre file la mettono in
+            // colonne diverse — `ABADI;lat;lon;…` nei fix, `AEA;111.65;lat;lon;…` nei VOR e negli NDB, dove
+            // c'è la frequenza in mezzo. Cercare la prima coppia consecutiva che si legge come DMS copre
+            // tutti e tre senza tre regole da tenere allineate.
+            double? lat = null, lon = null;
+            for (var i = 1; i + 1 < fields.Length; i++)
+                if (TryParseDms(fields[i], out var la) && TryParseDms(fields[i + 1], out var lo))
+                {
+                    (lat, lon) = (la, lo);
+                    break;
+                }
+
+            yield return new NavaidName(name, kind, lat, lon);
         }
     }
 
@@ -267,6 +286,112 @@ public static class AuroraSectorfileParser
         }
         Flush();
         return result;
+    }
+
+    // --- Poligoni di SETTORE (DYNAMIC_SEC/*.tfl, CTR/APP/MIL/FSS) ---
+
+    /// <summary>
+    /// Cos'è uscito da un file di settore: gli anelli per callsign, e i nomi di punto che non si sono
+    /// risolti. I secondi non sono un dettaglio da log — sono il motivo per cui un'area può mancare.
+    /// </summary>
+    /// <param name="Rings">Anello (Lat, Lon) per ogni callsign. Un anello può valere per PIÙ callsign.</param>
+    /// <param name="UnresolvedPoints">I nomi che il catalogo non conosce, con i callsign che li citavano.</param>
+    public sealed record SectorShapeParse(
+        IReadOnlyDictionary<string, IReadOnlyList<(double Lat, double Lon)>> Rings,
+        IReadOnlyList<(string Point, string Callsigns)> UnresolvedPoints);
+
+    /// <summary>
+    /// Parsa un file di settore Aurora (<c>DYNAMIC_SEC/*.tfl</c>: <c>lirr_ne_ctr.tfl</c>, <c>lirrapp.tfl</c>,
+    /// <c>lirr_mil.tfl</c>…) in anelli per callsign. Stesso formato di <see cref="ParseTowerShapes"/>, con
+    /// due differenze che <b>non</b> sono cosmetiche — misurate sui 112 blocchi veri del 26 agosto 2026:
+    ///
+    /// <para><b>1. Un'intestazione può portare più callsign</b>, separati da spazio:
+    /// <c>LIBB_ES_CTR LIBB_EU_CTR;CTR;1;CTR;1;</c>, fino a cinque
+    /// (<c>EDMM_CTR EDMM_S_CTR EDMM_FSS EDMM_MIL_CTR</c>). È una shape che serve più enti, e l'anello si
+    /// registra per ognuno. <see cref="ParseTowerShapes"/> ne farebbe una chiave sola, che non combacia con
+    /// niente.</para>
+    ///
+    /// <para><b>2. Un vertice può essere un NOME di punto</b> invece di una coordinata: <c>TUFTE;TUFTE;</c>
+    /// — 233 righe su 20 692. Si risolvono col catalogo navaid. Per <see cref="ParseTowerShapes"/> quella
+    /// riga è un'intestazione nuova, quindi l'anello si spezza in frammenti, in silenzio.</para>
+    ///
+    /// <para>⚠️ <b>Un punto che non si risolve invalida l'anello INTERO.</b> Saltarlo non darebbe un poligono
+    /// più piccolo: ne darebbe uno <b>sbagliato</b>, con un lato che taglia dritto dove il confine gira — e
+    /// si disegna benissimo, quindi nessuno se ne accorge. Il blocco si scarta e il nome finisce in
+    /// <see cref="SectorShapeParse.UnresolvedPoints"/>.</para>
+    ///
+    /// <para>Anelli con meno di 3 punti scartati. Puro e deterministico. Chiavi in MAIUSCOLO.</para>
+    /// </summary>
+    /// <param name="points">Il catalogo per risolvere i nomi. Vuoto = i blocchi con nomi si scartano tutti.</param>
+    /// <summary>
+    /// Come si separano più callsign in un'intestazione. ⚠️ Sono <b>due</b>, e la seconda è saltata fuori solo
+    /// provando il parser sui file veri: 16 intestazioni usano lo spazio (<c>DAAA_CTR DAAA_NE_CTR</c>) e 3 i
+    /// due punti (<c>LIMM_WS2_CTR:LIMM_WS5_CTR:LIMM_ES2_CTR:LIMM_ES5_CTR</c>). Leggendo solo lo spazio, quelle
+    /// tre davano una chiave sola coi due punti dentro, che non combacia con nessun settore — quattro settori
+    /// di Milano senza area, in silenzio.
+    /// </summary>
+    private static readonly char[] CallsignSeparators = { ' ', ':' };
+
+    public static SectorShapeParse ParseSectorShapes(string? tfl, NavaidCatalog points)
+    {
+        var rings = new Dictionary<string, IReadOnlyList<(double, double)>>(StringComparer.OrdinalIgnoreCase);
+        var irrisolti = new List<(string, string)>();
+        if (string.IsNullOrEmpty(tfl)) return new SectorShapeParse(rings, irrisolti);
+
+        string[]? callsigns = null;
+        List<(double, double)>? ring = null;
+        string? mancante = null;
+
+        void Flush()
+        {
+            if (callsigns is { Length: > 0 })
+            {
+                if (mancante is not null) irrisolti.Add((mancante, string.Join(" ", callsigns)));
+                else if (ring is { Count: >= 3 })
+                    foreach (var cs in callsigns) rings[cs] = ring;
+            }
+            callsigns = null; ring = null; mancante = null;
+        }
+
+        foreach (var raw in tfl.Split('\n'))
+        {
+            // I file di settore commentano a fine riga: `LIRR_NE_CTR;CTR;1;CTR;1; //NE cnf.1`.
+            var line = raw.Split("//", 2, StringSplitOptions.None)[0].Trim();
+            if (line.Length == 0) { Flush(); continue; }
+
+            var fields = line.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            // Vertice in coordinate.
+            if (fields.Length == 2 && TryParseDms(fields[0], out var lat) && TryParseDms(fields[1], out var lon))
+            {
+                ring?.Add((lat, lon));
+                continue;
+            }
+
+            // Vertice per NOME: due campi non-DMS uguali fra loro. L'uguaglianza è la firma della forma
+            // (`AMSOR;AMSOR;` su tutte e 233 le righe misurate) e distingue il vertice da un'intestazione
+            // malformata senza doverla indovinare.
+            if (fields.Length == 2
+                && string.Equals(fields[0], fields[1], StringComparison.OrdinalIgnoreCase))
+            {
+                if (ring is null) continue;                       // fuori da un blocco: niente da fare
+                if (points.TryGetPoint(fields[0], out var p)) ring.Add((p.Lat, p.Lon));
+                else mancante ??= fields[0].ToUpperInvariant();   // il PRIMO che manca: basta lui a invalidare
+                continue;
+            }
+
+            // Tutto il resto è un'intestazione: chiude il blocco precedente e ne apre uno.
+            if (fields.Length >= 1 && fields[0].Length != 0)
+            {
+                Flush();
+                callsigns = fields[0].ToUpperInvariant()
+                    .Split(CallsignSeparators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                ring = new List<(double, double)>();
+            }
+        }
+        Flush();
+
+        return new SectorShapeParse(rings, irrisolti);
     }
 
     /// <summary>
