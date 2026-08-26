@@ -56,13 +56,14 @@ public sealed record DeletionActions(
     IReadOnlyList<int> BlocchiDaSganciare,
     IReadOnlyList<int> DocumentiDaMarcare,
     IReadOnlyList<string> CallsignDiCatalogoDaTogliere,
+    IReadOnlyList<CatalogReparent> RiaggancioDiCatalogo,
     int? AeroportoDaEliminare = null,
     string? AccDaEliminare = null,
     int? DocumentoDaEliminare = null)
 {
     public static readonly DeletionActions Nessuna = new(
         Array.Empty<int>(), Array.Empty<int>(), null, Array.Empty<int>(), Array.Empty<int>(),
-        Array.Empty<int>(), Array.Empty<int>(), Array.Empty<string>());
+        Array.Empty<int>(), Array.Empty<int>(), Array.Empty<string>(), Array.Empty<CatalogReparent>());
 }
 
 /// <summary>Un blocco di contenuto che cita il settore, e in che veste lo cita.</summary>
@@ -81,8 +82,29 @@ public sealed record DocRefFacts(
     int DocumentId, string Titolo, bool AncoraQui, IReadOnlyList<int> Parti,
     IReadOnlyList<BlockRefFacts> Blocchi, bool RestaAncorato);
 
-/// <summary>Un figlio del settore che si sta eliminando.</summary>
+/// <summary>Un figlio del settore che si sta eliminando, nella proiezione.</summary>
 public sealed record ChildFacts(int SectorId, string Callsign);
+
+/// <summary>
+/// Una riga che si appende al settore <b>per callsign</b>: un'altra riga di catalogo, o un aeroporto.
+///
+/// <para>⚠️ Non è la stessa cosa dei figli della proiezione, ed è la differenza che conta. Il contenimento
+/// vive nel <b>catalogo</b> (<c>ParentCallsign</c>) e la proiezione lo ricalcola da lì a ogni sync: se si
+/// riappendesse solo il <c>Sector</c>, il giro successivo tornerebbe a leggere un padre che non esiste più,
+/// non lo troverebbe, e il figlio diventerebbe <b>radice</b>. La promessa «i figli passano al nonno»
+/// durerebbe meno di un giorno.</para>
+///
+/// <para>E comprende righe che la proiezione <b>non conosce affatto</b>: un settore nascosto, un aeroporto
+/// (che è una foglia dell'albero, non un settore), una riga di catalogo che nessun <c>Sector</c> specchia.</para>
+/// </summary>
+/// <param name="Dove">In quale tabella sta: serve a chi esegue, non a chi legge.</param>
+public sealed record CatalogChildFacts(string Callsign, CatalogChildKind Dove);
+
+/// <summary>Le tre tabelle che portano un <c>ParentCallsign</c>.</summary>
+public enum CatalogChildKind { AccSector, AirportSector, Airport }
+
+/// <summary>Una riga di catalogo da riappendere: da chi muore, al primo antenato che sopravvive.</summary>
+public sealed record CatalogReparent(string Figlio, CatalogChildKind Dove, string? NuovoPadre);
 
 /// <summary>Un accordo di coordinamento che ha il settore su uno dei due lati.</summary>
 public sealed record AgreementFacts(int AgreementId, string Etichetta, string? Href);
@@ -94,6 +116,7 @@ public sealed record SectorFacts(
     int? AirportId, string? AirportIcao, int? ParentSectorId, string? ParentCallsign,
     bool IsProjected, bool CatalogoManuale, DateTime? ImportedAtUtc,
     IReadOnlyList<ChildFacts> Figli,
+    IReadOnlyList<CatalogChildFacts> FigliDiCatalogo,
     IReadOnlyList<DocRefFacts> Documenti,
     IReadOnlyList<AgreementFacts> Accordi);
 
@@ -151,10 +174,23 @@ public static class DeletionRules
         var blocca = new List<DeletionBlocker>();
 
         // D1 — i figli al nonno. Non è un blocco: è un UPDATE prima del DELETE.
+        //
+        // ⚠️ Si tocca il CATALOGO, non solo la proiezione. Il contenimento vive in `ParentCallsign` e la
+        // proiezione lo ricalcola da lì a ogni sync: riappendere il solo `Sector` sarebbe una promessa che
+        // dura fino a stanotte, e poi i figli diventerebbero radici senza che nessuno l'abbia chiesto.
+        var nonnoCs = f.ParentCallsign;
         foreach (var c in f.Figli)
-            sposta.Add(f.ParentCallsign is { } nonno
-                ? $"{c.Callsign} passa sotto {nonno}"
-                : $"{c.Callsign} diventa radice");
+            sposta.Add(nonnoCs is { } n1 ? $"{c.Callsign} passa sotto {n1}" : $"{c.Callsign} diventa radice");
+
+        var riaggancio = new List<CatalogReparent>();
+        foreach (var c in f.FigliDiCatalogo)
+        {
+            riaggancio.Add(new CatalogReparent(c.Callsign, c.Dove, nonnoCs));
+            // Chi è già stato nominato come figlio della proiezione non si ripete: è la stessa cosa vista
+            // da due parti, e a schermo sarebbe una riga doppia.
+            if (f.Figli.Any(x => string.Equals(x.Callsign, c.Callsign, StringComparison.OrdinalIgnoreCase))) continue;
+            sposta.Add(nonnoCs is { } n2 ? $"{c.Callsign} passa sotto {n2}" : $"{c.Callsign} diventa radice");
+        }
 
         // D6 — la torre cade solo con lo scalo.
         if (!dentroLoScalo && f.Type is SectorType.Twr or SectorType.ITwr && f.AirportId is not null)
@@ -229,7 +265,8 @@ public static class DeletionRules
             BlocchiDaEliminare: blocchiVia,
             BlocchiDaSganciare: blocchiSganciati,
             DocumentiDaMarcare: daMarcare,
-            CallsignDiCatalogoDaTogliere: f.IsProjected ? new[] { f.Callsign } : Array.Empty<string>());
+            CallsignDiCatalogoDaTogliere: f.IsProjected ? new[] { f.Callsign } : Array.Empty<string>(),
+            RiaggancioDiCatalogo: riaggancio);
 
         return new DeletionPlan(DeletionTarget.Sector(f.SectorId), f.Callsign,
             muore, sposta, rivedere, blocca, azioni);
@@ -266,6 +303,7 @@ public static class DeletionRules
         var blocchiSganciati = new List<int>();
         var daMarcare = new List<int>();
         var callsign = new List<string>();
+        var riaggancio = new List<CatalogReparent>();
         int? nuovoPadre = null;
 
         foreach (var s in f.Settori)
@@ -286,7 +324,25 @@ public static class DeletionRules
             blocchiSganciati.AddRange(p.Azioni.BlocchiDaSganciare);
             daMarcare.AddRange(p.Azioni.DocumentiDaMarcare);
             callsign.AddRange(p.Azioni.CallsignDiCatalogoDaTogliere);
+            riaggancio.AddRange(p.Azioni.RiaggancioDiCatalogo);
         }
+
+        // ⚠️ Dentro una cascata il «nonno» può essere a sua volta in lista: la torre pende dall'APP, e nello
+        // scalo muoiono tutti e due. Riappendere a un callsign che sta per sparire rifarebbe il buco che
+        // questo riaggancio esiste per evitare — quindi si risale finché non si trova qualcuno che resta.
+        var morituri = f.Settori.Select(x => x.Callsign).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var padreDi = f.Settori.ToDictionary(x => x.Callsign, x => x.ParentCallsign, StringComparer.OrdinalIgnoreCase);
+        string? PrimoSuperstite(string? cs)
+        {
+            var visti = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            while (cs is not null && morituri.Contains(cs) && visti.Add(cs))
+                cs = padreDi.TryGetValue(cs, out var su) ? su : null;
+            return cs;
+        }
+        riaggancio = riaggancio
+            .Where(r => !morituri.Contains(r.Figlio))     // chi muore non ha bisogno di un padre nuovo
+            .Select(r => r with { NuovoPadre = PrimoSuperstite(r.NuovoPadre) })
+            .ToList();
 
         var azioni = new DeletionActions(
             SettoriDaEliminare: settori,
@@ -297,6 +353,7 @@ public static class DeletionRules
             BlocchiDaSganciare: blocchiSganciati.Distinct().ToList(),
             DocumentiDaMarcare: daMarcare.Distinct().ToList(),
             CallsignDiCatalogoDaTogliere: callsign.Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
+            RiaggancioDiCatalogo: riaggancio,
             AeroportoDaEliminare: f.AirportId);
 
         return new DeletionPlan(DeletionTarget.Airport(f.AirportId), f.Icao,

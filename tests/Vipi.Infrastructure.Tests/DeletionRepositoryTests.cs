@@ -56,7 +56,10 @@ public class DeletionRepositoryTests : IAsyncLifetime
         _db.AirportSectors.AddRange(
             new AirportSector { ComposePosition = "LIRF_APP", AirportIcao = "LIRF", AccCode = "LIRR", Position = "APP", ImportedAtUtc = Vecchio },
             new AirportSector { ComposePosition = "LIRF_TWR", AirportIcao = "LIRF", AccCode = "LIRR", Position = "TWR", ImportedAtUtc = Vecchio },
-            new AirportSector { ComposePosition = "LIRF_GND", AirportIcao = "LIRF", AccCode = "LIRR", Position = "GND", ImportedAtUtc = Vecchio });
+            new AirportSector { ComposePosition = "LIRF_GND", AirportIcao = "LIRF", AccCode = "LIRR", Position = "GND", ImportedAtUtc = Vecchio },
+            // L'ATIS: sta in catalogo e NON viene mai proiettata in un Sector. Sul vipi.db vero sono 25 righe
+            // così, e sono l'unico modo di accorgersi se la cascata dello scalo non le porta via.
+            new AirportSector { ComposePosition = "LIRF_ATIS", AirportIcao = "LIRF", AccCode = "LIRR", Position = "ATIS", ImportedAtUtc = Vecchio });
 
         _ctr = Sec("LIRR_CTR", SectorType.Ctr, SectorKind.Acc, documento: _accDoc.Id);
         _db.Sectors.Add(_ctr);
@@ -183,6 +186,40 @@ public class DeletionRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Il_catalogo_dei_figli_viene_riappeso_al_nonno()
+    {
+        // ⚠️ È QUI che la promessa «i figli passano al nonno» dura o non dura: la proiezione ricalcola il
+        // contenimento dal `ParentCallsign` del catalogo a ogni sync. Prima del 26 agosto 2026 si riappendeva
+        // il solo `Sector`, e il giro successivo avrebbe letto un padre sparito rendendo i figli RADICI.
+        var app = await _db.AirportSectors.SingleAsync(x => x.ComposePosition == "LIRF_APP");
+        app.ParentCallsign = "LIRR_CTR";
+        var twr = await _db.AirportSectors.SingleAsync(x => x.ComposePosition == "LIRF_TWR");
+        var gnd = await _db.AirportSectors.SingleAsync(x => x.ComposePosition == "LIRF_GND");
+        twr.ParentCallsign = gnd.ParentCallsign = "LIRF_APP";
+        // E un aeroporto: è una foglia dell'albero, la proiezione non lo conosce come figlio.
+        _lirf.ParentCallsign = "LIRF_APP";
+        await _db.SaveChangesAsync();
+
+        var piano = await PianoSettoreAsync(_app.Id);
+        await _repo.ApplyAsync(piano.Azioni, actorUserId: 7);
+
+        Assert.Equal("LIRR_CTR", (await _db.AirportSectors.AsNoTracking().SingleAsync(x => x.ComposePosition == "LIRF_TWR")).ParentCallsign);
+        Assert.Equal("LIRR_CTR", (await _db.AirportSectors.AsNoTracking().SingleAsync(x => x.ComposePosition == "LIRF_GND")).ParentCallsign);
+        Assert.Equal("LIRR_CTR", (await _db.Airports.AsNoTracking().SingleAsync(x => x.Id == _lirf.Id)).ParentCallsign);
+
+        // La prova che chiude la domanda: si fa girare la PROIEZIONE, che è ciò che al prossimo sync
+        // riscriverebbe il contenimento. I figli devono restare sotto il nonno, non diventare radici.
+        await new EfSectorProjectionService(_db).SyncFromCatalogsAsync();
+
+        var ctr = await _db.Sectors.AsNoTracking().SingleAsync(s => s.Callsign == "LIRR_CTR");
+        foreach (var cs in new[] { "LIRF_TWR", "LIRF_GND" })
+        {
+            var figlio = await _db.Sectors.AsNoTracking().SingleAsync(s => s.Callsign == cs);
+            Assert.Equal(ctr.Id, figlio.ParentSectorId);
+        }
+    }
+
+    [Fact]
     public async Task Eliminando_un_settore_sparisce_anche_la_sua_riga_di_catalogo()
     {
         // Togliere solo la proiezione lo farebbe tornare al primo sync: chi guarda lo vedrebbe risorgere.
@@ -253,6 +290,10 @@ public class DeletionRepositoryTests : IAsyncLifetime
 
         Assert.False(await _db.Airports.AnyAsync(a => a.Id == _lirf.Id));
         Assert.False(await _db.Sectors.AnyAsync(s => s.AirportIcao == "LIRF"));
+        // ⚠️ Le righe di CATALOGO dello scalo — ATIS compresa, che non viene mai proiettata e quindi non
+        // compare in nessun piano — se ne vanno in cascata con l'aeroporto. Se la cascata non scattasse,
+        // resterebbero righe che parlano di uno scalo inesistente e che nessuna pagina sa più togliere.
+        Assert.False(await _db.AirportSectors.AnyAsync(x => x.AirportIcao == "LIRF"));
         // Il CTR non era dello scalo: resta, e resta radice.
         var ctr = await _db.Sectors.AsNoTracking().SingleAsync(s => s.Id == _ctr.Id);
         Assert.Null(ctr.ParentSectorId);

@@ -287,3 +287,53 @@ costato un giro del driver per capirlo.
 - **La ACC non cascada** (§2, D-ACC): la politica è «svuotala prima», con l'elenco di quanto manca.
 - **Eliminare non è per sempre**: se la sorgente rimanda quel callsign, l'import lo ricrea. La regola delle
   due chiamate lo rende raro, non impossibile.
+
+
+## §14 — Il buco trovato rileggendo: una promessa che non durava
+
+L'inventario del 26 agosto sera ha cercato «cosa non si può ancora eliminare». Ha trovato qualcosa di
+peggio: qualcosa che si eliminava **male**.
+
+**Il contenimento non vive nella proiezione.** `D1` scriveva `Sector.ParentSectorId = nonno`, e finiva lì.
+Ma `SyncFromCatalogsAsync` **ricalcola** il padre di ogni settore dal `ParentCallsign` del **catalogo**, a
+ogni giro (`EfSectorProjectionService`, punto 4: `NearestVisibleAncestor`). Il figlio conservava in catalogo
+il nome del padre appena cancellato; al primo sync quel nome non era più né in `desired` né in `parentOf`,
+la risalita finiva subito, e il figlio diventava **radice**.
+
+Cioè: i figli passavano al nonno per una notte, e poi si staccavano da soli — cambiando catene di fallback,
+AoR ereditate e vista live, senza che nessuno l'avesse chiesto e senza una riga di registro.
+
+**Il rimedio**: il riaggancio si scrive nel **catalogo**, dove il contenimento abita davvero — `AccSectors`,
+`AirportSectors` e `Airports`, tutte e tre le tabelle che portano un `ParentCallsign`. Con due conseguenze
+che il modello nuovo rende esplicite:
+
+- si riappende anche **chi la proiezione non conosce**: una riga nascosta, e soprattutto un **aeroporto**,
+  che dell'albero è una foglia e non è mai un `Sector` figlio;
+- dentro la **cascata di uno scalo** si risale finché non si trova un padre che sopravvive: la torre pende
+  dall'APP e muoiono insieme, quindi riappendere all'APP rifarebbe il buco.
+
+⚠️ **La prova che chiude la domanda non è l'assert sul `ParentCallsign`**: è far girare la proiezione dopo
+l'eliminazione e verificare che i figli stiano ancora sotto il nonno. È l'unico controllo che vede la
+differenza fra «riappeso» e «riappeso finché non passa il sync».
+
+## §15 — Cosa NON si elimina, e non è un difetto (inventario 26 agosto)
+
+Sulle 43 entità dello schema, queste restano senza un tasto. Elencate perché la domanda non si riapra da
+zero, con quel che si sa dai numeri del `vipi.db` reale.
+
+| Cosa | Oggi | Vale la pena? |
+|---|---|---|
+| **`AtcSession`** (21 275 righe, dodici mesi) e `AtcSessionRunway`, `AirportDayTraffic` (3 600) | nessuna retention: crescono per sempre. Solo `AtcSessionTraffic` viene potato | **sì**, è l'unica tabella che cresce da sola |
+| **`AuditLog`** | nessuna retention (40 righe oggi) | forse, ma è il registro: si pota con criterio o non si pota |
+| **`NeighbourCandidate`** (33: 4 confermati, 29 in attesa) | si conferma e si rifiuta, non si elimina | probabile: un candidato rifiutato resta a vita |
+| **`SpecialArea`** (230) + `SpecialAreaCenter` (247) | si potano dall'import e si spengono per ACC; nessuna eliminazione singola | forse |
+| **`DocumentVersion`** | si scarta una bozza; una versione pubblicata vecchia non si toglie da sola | no: è la storia del documento |
+| **`SharedBlock`** | nessuna interfaccia, in nessun senso (0 righe) | no: è un pezzo mai usato |
+| **`StaffMember`** | si **disattiva**, mai si cancella | no, è voluto (vedi memoria del roster) |
+| **`ImportState`, `ImportPolicy`, `StatsSettings`** | configurazione, una riga per chiave | no |
+| **`EditResourceLock`** | scade da solo (TTL 3 minuti) + sblocco forzato | no |
+| **Righe di catalogo senza proiezione** (25 `ATIS`) | cadono in **cascata** con l'aeroporto — c'è un test | no |
+
+⚠️ **Un riferimento debole rimasto**: `EditorTask` punta al documento per `(TargetType, TargetKey)`, senza
+FK. Eliminando il documento l'incarico resta, con la sua etichetta vecchia e **senza collegamento** — non si
+rompe niente, ma nessuno avvisa. L'anteprima dovrebbe dirlo (0 incarichi in archivio oggi).

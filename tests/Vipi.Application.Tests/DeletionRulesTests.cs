@@ -26,11 +26,13 @@ public class DeletionRulesTests
         bool catalogoManuale = false,
         DateTime? timbro = null,
         IReadOnlyList<ChildFacts>? figli = null,
+        IReadOnlyList<CatalogChildFacts>? figliDiCatalogo = null,
         IReadOnlyList<DocRefFacts>? documenti = null,
         IReadOnlyList<AgreementFacts>? accordi = null) =>
         new(1, callsign, "Roma Ovest", "LIRR", tipo, kind, airportId, airportId is null ? null : "LIRF",
             parentId, parentCallsign, proiettato, catalogoManuale, timbro ?? Vecchio,
             figli ?? Array.Empty<ChildFacts>(),
+            figliDiCatalogo ?? Array.Empty<CatalogChildFacts>(),
             documenti ?? Array.Empty<DocRefFacts>(),
             accordi ?? Array.Empty<AgreementFacts>());
 
@@ -65,6 +67,50 @@ public class DeletionRulesTests
         Assert.True(p.Eliminabile);
         Assert.Null(p.Azioni.NuovoPadreDeiFigli);
         Assert.Contains("diventa radice", Assert.Single(p.SiSposta));
+    }
+
+    [Fact]
+    public void Il_riaggancio_tocca_il_CATALOGO_non_solo_la_proiezione()
+    {
+        // ⚠️ Il contenimento vive in `ParentCallsign` e la proiezione lo ricalcola da lì a ogni sync:
+        // riappendere il solo `Sector` sarebbe una promessa che dura fino a stanotte.
+        var p = DeletionRules.PerSettore(
+            Settore(parentId: 42, parentCallsign: "LIRR_CTR",
+                figli: new[] { new ChildFacts(10, "LIRF_APP") },
+                figliDiCatalogo: new[] { new CatalogChildFacts("LIRF_APP", CatalogChildKind.AirportSector) }),
+            Penultimo);
+
+        var r = Assert.Single(p.Azioni.RiaggancioDiCatalogo);
+        Assert.Equal("LIRF_APP", r.Figlio);
+        Assert.Equal("LIRR_CTR", r.NuovoPadre);
+        Assert.Equal(CatalogChildKind.AirportSector, r.Dove);
+        // Nominato una volta sola: proiezione e catalogo sono la stessa cosa vista da due parti.
+        Assert.Single(p.SiSposta);
+    }
+
+    [Fact]
+    public void Anche_chi_la_proiezione_non_conosce_viene_riappeso()
+    {
+        // Un aeroporto è una FOGLIA dell'albero, non un settore: non compare fra i figli della proiezione,
+        // ma si appende per callsign come tutti gli altri.
+        var p = DeletionRules.PerSettore(
+            Settore(parentCallsign: "LIRR_CTR",
+                figliDiCatalogo: new[] { new CatalogChildFacts("LIRF", CatalogChildKind.Airport) }),
+            Penultimo);
+
+        Assert.Equal("LIRR_CTR", Assert.Single(p.Azioni.RiaggancioDiCatalogo).NuovoPadre);
+        Assert.Contains("LIRF passa sotto LIRR_CTR", Assert.Single(p.SiSposta));
+    }
+
+    [Fact]
+    public void Un_figlio_di_catalogo_di_una_radice_diventa_radice()
+    {
+        var p = DeletionRules.PerSettore(
+            Settore(parentCallsign: null,
+                figliDiCatalogo: new[] { new CatalogChildFacts("LIRF_APP", CatalogChildKind.AirportSector) }),
+            Penultimo);
+
+        Assert.Null(Assert.Single(p.Azioni.RiaggancioDiCatalogo).NuovoPadre);
     }
 
     // ── D2/D3: i documenti ───────────────────────────────────────────────────────────────────────────
@@ -252,6 +298,37 @@ public class DeletionRulesTests
         Assert.Equal(new[] { 1, 2 }, p.Azioni.SettoriDaEliminare);
         Assert.Equal(3, p.Azioni.AeroportoDaEliminare);
         Assert.Contains(p.Muore, m => m.Contains("l'aeroporto LIRF"));
+    }
+
+    [Fact]
+    public void Nella_cascata_si_risale_fino_a_un_padre_che_sopravvive()
+    {
+        // La torre pende dall'APP, e nello scalo muoiono tutt'e due: riappendere all'APP rifarebbe il buco.
+        var app = Settore("LIRF_APP", SectorType.App, SectorKind.Airport, airportId: 3,
+            parentCallsign: "LIRR_CTR") with { SectorId = 1 };
+        var twr = Settore("LIRF_TWR", SectorType.Twr, SectorKind.Airport, airportId: 3,
+            parentCallsign: "LIRF_APP",
+            figliDiCatalogo: new[] { new CatalogChildFacts("LIRZ_TWR", CatalogChildKind.AirportSector) }) with { SectorId = 2 };
+
+        var p = DeletionRules.PerAeroporto(Scalo(null, app, twr), Penultimo, Penultimo);
+
+        var r = Assert.Single(p.Azioni.RiaggancioDiCatalogo);
+        Assert.Equal("LIRZ_TWR", r.Figlio);
+        Assert.Equal("LIRR_CTR", r.NuovoPadre);   // saltato LIRF_APP, che muore con lo scalo
+    }
+
+    [Fact]
+    public void Nella_cascata_chi_muore_non_riceve_un_padre_nuovo()
+    {
+        var app = Settore("LIRF_APP", SectorType.App, SectorKind.Airport, airportId: 3,
+            parentCallsign: "LIRR_CTR",
+            figliDiCatalogo: new[] { new CatalogChildFacts("LIRF_TWR", CatalogChildKind.AirportSector) }) with { SectorId = 1 };
+        var twr = Settore("LIRF_TWR", SectorType.Twr, SectorKind.Airport, airportId: 3,
+            parentCallsign: "LIRF_APP") with { SectorId = 2 };
+
+        var p = DeletionRules.PerAeroporto(Scalo(null, app, twr), Penultimo, Penultimo);
+
+        Assert.Empty(p.Azioni.RiaggancioDiCatalogo);
     }
 
     [Fact]

@@ -51,7 +51,28 @@ public sealed class EfDeletionRepository : IDeletionRepository
         return new SectorFacts(
             s.Id, s.Callsign, s.Name, s.AccCode, s.Type, s.Kind,
             s.AirportId, s.AirportIcao, s.ParentSectorId, padre,
-            s.IsProjected, manuale, timbro, figli, documenti, accordi);
+            s.IsProjected, manuale, timbro, figli,
+            await FigliDiCatalogoAsync(s.Callsign, ct), documenti, accordi);
+    }
+
+    /// <summary>
+    /// Chi si appende a questo callsign nel <b>catalogo</b>: righe ACC, posizioni d'aeroporto e gli
+    /// <b>aeroporti</b> stessi, che dell'albero sono le foglie. È l'insieme che la proiezione rileggerà al
+    /// prossimo sync — e se ci trova un padre sparito, il figlio diventa radice.
+    /// </summary>
+    private async Task<IReadOnlyList<CatalogChildFacts>> FigliDiCatalogoAsync(string callsign, CancellationToken ct)
+    {
+        var righe = new List<CatalogChildFacts>();
+        righe.AddRange(await _db.AccSectors.AsNoTracking()
+            .Where(x => x.ParentCallsign == callsign)
+            .Select(x => new CatalogChildFacts(x.ComposePosition, CatalogChildKind.AccSector)).ToListAsync(ct));
+        righe.AddRange(await _db.AirportSectors.AsNoTracking()
+            .Where(x => x.ParentCallsign == callsign)
+            .Select(x => new CatalogChildFacts(x.ComposePosition, CatalogChildKind.AirportSector)).ToListAsync(ct));
+        righe.AddRange(await _db.Airports.AsNoTracking()
+            .Where(x => x.ParentCallsign == callsign)
+            .Select(x => new CatalogChildFacts(x.Icao, CatalogChildKind.Airport)).ToListAsync(ct));
+        return righe;
     }
 
     public async Task<int?> SectorIdByCallsignAsync(string callsign, CancellationToken ct = default) =>
@@ -249,7 +270,28 @@ public sealed class EfDeletionRepository : IDeletionRepository
             foreach (var b in blocchi) b.ScopeSectorId = null;
         }
 
-        // 3) Le righe di catalogo che rimanderebbero in vita il settore al primo sync.
+        // 3) Il riaggancio nel CATALOGO: senza, il prossimo sync rileggerebbe un padre sparito e farebbe
+        //    dei figli altrettante radici — la promessa «i figli passano al nonno» durerebbe una notte.
+        foreach (var r in a.RiaggancioDiCatalogo)
+        {
+            switch (r.Dove)
+            {
+                case CatalogChildKind.AccSector:
+                    foreach (var x in await _db.AccSectors.Where(x => x.ComposePosition == r.Figlio).ToListAsync(ct))
+                        x.ParentCallsign = r.NuovoPadre;
+                    break;
+                case CatalogChildKind.AirportSector:
+                    foreach (var x in await _db.AirportSectors.Where(x => x.ComposePosition == r.Figlio).ToListAsync(ct))
+                        x.ParentCallsign = r.NuovoPadre;
+                    break;
+                default:
+                    foreach (var x in await _db.Airports.Where(x => x.Icao == r.Figlio).ToListAsync(ct))
+                        x.ParentCallsign = r.NuovoPadre;
+                    break;
+            }
+        }
+
+        // 4) Le righe di catalogo che rimanderebbero in vita il settore al primo sync.
         if (a.CallsignDiCatalogoDaTogliere.Count > 0)
         {
             var cs = a.CallsignDiCatalogoDaTogliere;
@@ -259,7 +301,7 @@ public sealed class EfDeletionRepository : IDeletionRepository
             if (apt.Count > 0) _db.AirportSectors.RemoveRange(apt);
         }
 
-        // 4) L'audit va scritto PRIMA della cancellazione: dopo, il nome non è più leggibile e resterebbe un
+        // 5) L'audit va scritto PRIMA della cancellazione: dopo, il nome non è più leggibile e resterebbe un
         //    registro che dice «eliminato il settore 7». Il nome accanto all'Id è tutto ciò che, fra sei mesi,
         //    distingue una pulizia da un incidente.
         var settori = a.SettoriDaEliminare.Count > 0
@@ -284,7 +326,7 @@ public sealed class EfDeletionRepository : IDeletionRepository
                 AuditScribe.Write(_db, actorUserId, AuditAction.Delete, "Acc", acc.Code, new { acc.Name });
         }
 
-        // 5) I DELETE veri, dal figlio al padre.
+        // 6) I DELETE veri, dal figlio al padre.
         if (settori.Count > 0) _db.Sectors.RemoveRange(settori);
         if (a.AeroportoDaEliminare is int id2)
         {
