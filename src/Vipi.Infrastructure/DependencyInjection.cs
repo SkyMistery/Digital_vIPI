@@ -111,6 +111,10 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Media.IMediaMaintenance, EfMediaMaintenance>();
         services.AddScoped<Vipi.Application.Abstractions.IStructureEditingRepository, EfStructureEditingRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAirportRepository, EfAirportRepository>();
+        // La porta di sola lettura del profilo aeroporto è LO STESSO oggetto: chi deriva una vista non deve poter
+        // scrivere, ma non esiste una seconda implementazione da tenere allineata.
+        services.AddScoped<Vipi.Application.Abstractions.IAirportProfileReader>(
+            sp => sp.GetRequiredService<Vipi.Application.Abstractions.IAirportRepository>());
         services.AddScoped<Vipi.Application.Abstractions.IAppDerivationRepository, EfAppDerivationRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAccDerivationRepository, EfAccDerivationRepository>();
         services.AddScoped<Vipi.Application.Abstractions.ISpecialAreaRepository, EfSpecialAreaRepository>();

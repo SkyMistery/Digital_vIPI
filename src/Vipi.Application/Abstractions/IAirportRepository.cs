@@ -1,18 +1,27 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 using Vipi.Domain;
 
 namespace Vipi.Application.Abstractions;
 
 /// <summary>
-/// Persistenza del profilo strutturato dell'aeroporto (TL, piste, regole, SID, link-frequenze) e
-/// rigenerazione del documento vIPI aeroporto da esse. Le scritture per-area sostituiscono l'intera
-/// lista per l'aeroporto (l'editor invia la lista completa); il merge da IVAO è invece mirato.
+/// La sola LETTURA del profilo strutturato dell'aeroporto. Esiste separata da <see cref="IAirportRepository"/>
+/// perché è tutto ciò che serve a chi ne <b>deriva una vista</b> (la pagina, la cattura di release): quei due non
+/// devono poter scrivere, e non devono conoscere le altre sedici operazioni del repository.
+/// <para>Non è un secondo modello: l'implementazione resta una sola, ed è il repository stesso.</para>
 /// </summary>
-public interface IAirportRepository
+public interface IAirportProfileReader
 {
     /// <summary>Carica il profilo completo (entità + frequenze proprie dai settori + link risolti). null = ICAO non assegnato.</summary>
     Task<AirportData?> LoadAsync(string icao, CancellationToken ct = default);
+}
 
+/// <summary>
+/// Persistenza del profilo strutturato dell'aeroporto (TL, piste, regole, SID, link-frequenze) e nascita del
+/// documento vIPI d'aeroporto. Le scritture per-area sostituiscono l'intera lista per l'aeroporto (l'editor invia
+/// la lista completa); il merge da IVAO è invece mirato.
+/// </summary>
+public interface IAirportRepository : IAirportProfileReader
+{
     /// <summary>Codice ACC dell'aeroporto (per la guardia di autorizzazione). null = ICAO inesistente.</summary>
     Task<string?> GetAccCodeByIcaoAsync(string icao, CancellationToken ct = default);
 

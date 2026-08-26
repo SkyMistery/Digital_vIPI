@@ -1,28 +1,62 @@
-using System.Text.Json;
+﻿using System.Text.Json;
+using Vipi.Application.Abstractions;
 using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
 /// <summary>
-/// Cattura Frozen della sezione derivata dell'aeroporto (doc 10 §3e). Chiave di release = ICAO. L'unica sezione
-/// derivabile è <c>sids</c> (default <see cref="RenderMode.Live"/> → di norma NON catturata); se l'admin la mette
-/// Frozen, se ne congela l'output derivato via <see cref="IAirportSidDerivationService"/>. Il resto del documento
-/// d'aeroporto è statico (già nei blocchi del <c>Doc</c>).
+/// Cattura Frozen delle sezioni derivate della vIPI d'aeroporto (doc 10 §3e, esteso dalla carta 2026-08-26).
+/// Chiave di release = ICAO.
+/// <para>
+/// Fino a quella carta l'unica sezione congelabile era <c>sids</c>, perché tutto il resto del documento era
+/// <b>già cotto</b> nei blocchi. Ora le sezioni fisse sono ancore senza corpo e si derivano a view-time: se non
+/// si congelassero qui, pubblicare non fisserebbe più niente e la pagina pubblica cambierebbe da sola a ogni
+/// modifica del profilo.
+/// </para>
+/// <para>
+/// ⚠️ Il meteo non si cattura mai (<see cref="SectionCatalog.IsAlwaysLive"/>): un METAR dentro uno snapshot di
+/// release sarebbe meteo scaduto spacciato per attuale. La sezione nasce Live e l'editor non le offre il toggle,
+/// ma la guardia sta anche qui — chi arrivasse a metterla Frozen a mano non congelerebbe comunque il tempo.
+/// </para>
 /// </summary>
 public sealed class AirportFrozenSectionProvider : IFrozenSectionProvider
 {
+    private readonly IAirportProfileReader _repo;
+    private readonly IAirportSectorService _sectors;
     private readonly IAirportSidDerivationService _sids;
-    public AirportFrozenSectionProvider(IAirportSidDerivationService sids) => _sids = sids;
+
+    public AirportFrozenSectionProvider(IAirportProfileReader repo, IAirportSectorService sectors,
+        IAirportSidDerivationService sids)
+    {
+        _repo = repo;
+        _sectors = sectors;
+        _sids = sids;
+    }
 
     public ReleaseTargetType Type => ReleaseTargetType.Airport;
 
     public async Task<IReadOnlyDictionary<int, string>> CaptureFrozenAsync(string key, RawDocument doc, CancellationToken ct = default)
     {
         var result = new Dictionary<int, string>();
-        foreach (var s in FrozenSectionScan.FrozenDerived(doc))
+        var sezioni = FrozenSectionScan.FrozenDerived(doc)
+            .Where(s => !SectionCatalog.IsAlwaysLive(s.SectionKey))
+            .ToList();
+        if (sezioni.Count == 0) return result;
+
+        // Il profilo una volta sola: le quattro sezioni di tabella escono tutte da qui.
+        var chiavi = sezioni.Select(s => s.SectionKey.ToLowerInvariant()).ToHashSet();
+        var data = chiavi.Overlaps(new[] { "runwayrules", "transition", "runways", "frequencies" })
+            ? await _repo.LoadAsync(key, ct)
+            : null;
+
+        foreach (var s in sezioni)
         {
             object? vm = s.SectionKey.ToLowerInvariant() switch
             {
+                "runwayrules" => AirportSectionProjection.Rules(data),
+                "transition" => AirportSectionProjection.Transition(data),
+                "runways" => AirportSectionProjection.Runways(data),
+                "frequencies" => AirportSectionProjection.Frequencies(await _sectors.ListByAirportAsync(key, ct), data?.Links),
                 "sids" => await _sids.DeriveAsync(key, ct),
                 _ => null,
             };
