@@ -74,6 +74,7 @@ public static class DependencyInjection
         services.AddScoped<IEditorTaskLinksService, EditorTaskLinksService>();
         services.AddScoped<IDocumentImpactService, DocumentImpactService>();
         services.AddScoped<IOrphanSectorService, OrphanSectorService>();
+        services.AddScoped<IDeletionService, DeletionService>();
         services.AddScoped<IImpactDriftUseCase, ImpactDriftUseCase>();
         services.AddScoped<IDocumentAdminService, DocumentAdminService>();
         services.AddScoped<IAirportSectorImporter, AirportSectorImporter>();

@@ -65,6 +65,17 @@ public interface IDocumentImpactService
     /// <summary>Apre l'impatto su tutti i documenti che citano l'area regolamentata.</summary>
     Task<int> RaiseForAreaAsync(ImpactKind kind, string ivaoId, string areaName, CancellationToken ct = default);
 
+    /// <summary>
+    /// Apre l'impatto su documenti <b>già noti</b>, senza passare dal reverse-lookup.
+    ///
+    /// <para>⚠️ Serve a chi ha appena <b>eliminato</b> ciò che collegava documento e settore: un istante
+    /// dopo il <c>DELETE</c> nessuna ricerca all'indietro troverebbe più quel legame, e la segnalazione non
+    /// partirebbe proprio nel caso in cui serve di più. Gli Id li porta il piano di eliminazione, che li ha
+    /// calcolati quando il legame c'era ancora.</para>
+    /// </summary>
+    Task<int> RaiseForDocumentsAsync(ImpactKind kind, IReadOnlyCollection<int> documentIds, string sourceKey,
+        IReadOnlyList<string> args, CancellationToken ct = default);
+
     /// <summary>Chiude le righe aperte dei tipi dati con quella origine, perché la causa non c'è più.
     /// Nessuna autorizzazione: non è un atto editoriale, è il calcolo che si accorge di essere superato.</summary>
     Task<int> ClearBySourceAsync(IReadOnlyCollection<ImpactKind> kinds, string sourceKey, CancellationToken ct = default);
@@ -112,6 +123,7 @@ public sealed class DocumentImpactService : IDocumentImpactService
         public const string SectorGone = "Impact_SectorGone";
         public const string SectorStale = "Impact_SectorStale";
         public const string SectorHidden = "Impact_SectorHidden";
+        public const string SectorDetached = "Impact_SectorDetached";
         public const string SectorReparented = "Impact_SectorReparented";
         public const string AreaGone = "Impact_AreaGone";
         public const string AreaChanged = "Impact_AreaChanged";
@@ -124,6 +136,7 @@ public sealed class DocumentImpactService : IDocumentImpactService
             ImpactKind.SectorGone => SectorGone,
             ImpactKind.SectorStale => SectorStale,
             ImpactKind.SectorHidden => SectorHidden,
+            ImpactKind.SectorDetached => SectorDetached,
             ImpactKind.SectorReparented => SectorReparented,
             ImpactKind.AreaGone => AreaGone,
             ImpactKind.AreaChanged => AreaChanged,
@@ -167,6 +180,22 @@ public sealed class DocumentImpactService : IDocumentImpactService
 
         return docs.Select(d => new RaiseImpactInput(
             d.Id, kind, cs, Reasons.For(kind), args, live.Contains(d.Id))).ToList();
+    }
+
+    public async Task<int> RaiseForDocumentsAsync(ImpactKind kind, IReadOnlyCollection<int> documentIds,
+        string sourceKey, IReadOnlyList<string> args, CancellationToken ct = default)
+    {
+        if (documentIds.Count == 0) return 0;
+
+        var live = await _repo.WithLiveSectionAsync(documentIds, ImpactFamily.Sector, ct);
+        var aperti = 0;
+        foreach (var id in documentIds)
+        {
+            await _repo.RaiseAsync(new RaiseImpactInput(
+                id, kind, sourceKey, Reasons.For(kind), args, live.Contains(id)), ct);
+            aperti++;
+        }
+        return aperti;
     }
 
     public async Task<int> RaiseForAreaAsync(ImpactKind kind, string ivaoId, string areaName,

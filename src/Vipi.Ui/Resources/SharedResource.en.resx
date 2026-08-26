@@ -1347,6 +1347,7 @@
   <data name="Impact_Broken" xml:space="preserve"><value>broken</value></data>
   <data name="Impact_AutoClose" xml:space="preserve"><value>closes by itself</value></data>
   <data name="Impact_SectorGone" xml:space="preserve"><value>Sector {0} is no longer in the catalogues: check frequencies, AoR and coordination.</value></data>
+  <data name="Impact_SectorDetached" xml:space="preserve"><value>Sector {0} was deleted: the text that mentions it needs updating and the document republishing.</value></data>
   <data name="Impact_SectorHidden" xml:space="preserve"><value>Sector {0} has been hidden: check frequencies, AoR and coordination.</value></data>
   <data name="Impact_SectorReparented" xml:space="preserve"><value>Sector {0} changed parent in the coverage chain: check the handoffs.</value></data>
   <data name="Impact_AreaGone" xml:space="preserve"><value>Regulated area {0} is no longer in the catalogues: the document cites it but it is not shown.</value></data>

@@ -195,6 +195,17 @@ public enum ImpactKind
     /// </summary>
     SectorStale,
 
+    /// <summary>
+    /// Il settore è stato <b>eliminato da una persona</b>, e il documento lo citava: la parte, il blocco o
+    /// il legame sono stati tolti nello stesso atto. Il testo intorno però è rimasto com'era — parla ancora
+    /// di una postazione che non esiste — e la copia pubblicata è indietro di conseguenza. Da rileggere e
+    /// ripubblicare.
+    ///
+    /// <para>Non è <see cref="SectorGone"/>: lì la sorgente ha smesso di elencare il callsign e il sistema
+    /// se n'è accorto; qui la decisione è nostra, e il documento va aggiornato di conseguenza.</para>
+    /// </summary>
+    SectorDetached,
+
     /// <summary>Un'area regolamentata citata dal documento non è più nei cataloghi (potata dall'import).</summary>
     AreaGone,
 

@@ -1350,6 +1350,7 @@
   <data name="Impact_Broken" xml:space="preserve"><value>rotto</value></data>
   <data name="Impact_AutoClose" xml:space="preserve"><value>si chiude da sé</value></data>
   <data name="Impact_SectorGone" xml:space="preserve"><value>Il settore {0} non è più nei cataloghi: verifica frequenze, AoR e coordinamenti.</value></data>
+  <data name="Impact_SectorDetached" xml:space="preserve"><value>Il settore {0} è stato eliminato: il testo che lo cita va aggiornato e il documento ripubblicato.</value></data>
   <data name="Impact_SectorHidden" xml:space="preserve"><value>Il settore {0} è stato nascosto: verifica frequenze, AoR e coordinamenti.</value></data>
   <data name="Impact_SectorReparented" xml:space="preserve"><value>Il settore {0} ha cambiato padre nella catena di copertura: verifica le consegne.</value></data>
   <data name="Impact_AreaGone" xml:space="preserve"><value>L'area regolamentata {0} non è più nei cataloghi: il documento la cita ma non viene mostrata.</value></data>
