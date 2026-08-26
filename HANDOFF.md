@@ -36,8 +36,9 @@ di lui**, `identita-settori`. Il secondo va fuso **dopo** il primo. Fonderli è 
 > **guasto loro** e che lo sistemeranno: il ripiego dal sectorfile è una rete, non una sostituzione, e il
 > rientro dell'anagrafica è già provato.
 >
-> **Dove sta il lavoro:** ramo **`identita-settori`**, spinto su origin. Release **0 avvisi** su entrambi i TFM;
-> **~5100 test verdi** (⚠️ la cifra si **conta**, non si ricorda).
+> **Dove sta il lavoro:** ramo **`identita-settori`**, **25 commit** oltre `statistiche-atc`, spinto su origin
+> (testa `934436a`). Release **0 avvisi** su entrambi i TFM; contati il 26 agosto a notte: **2733 test su net8**
+> e **2495 su net10**, tutti verdi (⚠️ la cifra si **conta**, non si ricorda).
 
 > **Il giro del 25 agosto pomeriggio, in due righe.** La sorgente IVAO sapeva già quali aeroporti hanno una base
 > militare e lo scartavamo (34 su 221) — ⚠️ ma `military` **non** vuol dire «aeroporto militare»: Linate, Pisa e
