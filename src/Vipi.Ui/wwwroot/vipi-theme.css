@@ -985,6 +985,37 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .impact-list{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
 .impact-list>li{display:flex;flex-wrap:wrap;align-items:center;gap:8px;line-height:1.45}
 .impact-list>li>.btn{padding:2px 9px;font-size:12px}
+
+/* ── «Da fare»: una riga di lavoro ────────────────────────────────────────────
+   Una sola resa per tre posti (elenco, banner dell'editor, «Da sistemare»): il componente e' WorkItemRow.
+   Carta: docs/feature/2026-08-26-da-fare-una-lista-sola.md §3.
+   La riga e' una griglia a tre colonne — pastiglia · corpo · azioni — cosi' i titoli restano incolonnati
+   anche quando le frasi hanno lunghezze molto diverse. Sotto i 720px diventa una colonna sola: incolonnare
+   tre cose in 360px vuol dire tre parole per riga. */
+.wi-list{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
+.wi{display:grid;grid-template-columns:auto 1fr auto;align-items:baseline;gap:10px;
+  padding:7px 8px;border-radius:8px;line-height:1.45}
+.wi + .wi{border-top:1px solid var(--line)}
+.wi:hover{background:color-mix(in srgb,var(--ink) 4%,transparent)}
+.wi-badge{white-space:nowrap}
+.wi-body{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;min-width:0}
+.wi-doc{font-weight:600;font-size:13.5px}
+.wi-doc a{text-decoration:none}
+.wi-doc a:hover{text-decoration:underline}
+.wi-acc{font-size:11.5px;letter-spacing:.03em;margin-left:5px}
+.wi-why{font-size:13px;color:var(--ink-soft);min-width:0}
+.wi-who{font-size:12px}
+.wi-act{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.wi-act .btn{padding:2px 9px;font-size:12px}
+/* ⚠️ La barretta di sinistra dice l'urgenza SENZA affidarsi al solo colore della pastiglia: chi non
+   distingue rosso e ambra deve poter vedere lo stesso ordine di gravita'. */
+.wi-giainpubblico{box-shadow:inset 3px 0 0 var(--ivao-red)}
+.wi-rotto,.wi-inritardo{box-shadow:inset 3px 0 0 var(--ivao-yellow)}
+.wi-daripubblicare{box-shadow:inset 3px 0 0 var(--ivao-info)}
+@media (max-width:720px){
+  .wi{grid-template-columns:1fr;gap:4px}
+  .wi-act{flex-wrap:wrap;white-space:normal}
+}
 .impact-list>li>.muted{font-size:12px}
 .callout{border-radius:11px;padding:14px 16px 14px 16px;margin:16px 0;border-left:5px solid;font-size:14px;display:flex;gap:12px}
 .callout .cic{font-size:18px;line-height:1.3}

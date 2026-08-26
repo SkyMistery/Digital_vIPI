@@ -1752,6 +1752,9 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("longtext")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
+                    b.Property<int?>("FromImpactId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Priority")
                         .IsRequired()
                         .HasMaxLength(32)

@@ -2,17 +2,20 @@
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IEditorTaskService Tasks
+@inject IWorkListService Lavoro
+@inject IDocumentImpactService Impatti
+@inject IEditAuthorizationService Authz
 @inject ICurrentUserProvider User
 @inject IEditorTaskLinksService TaskLinks
 @inject IStringLocalizer<SharedResource> L
 @inject IJSRuntime JS
 
-<PageTitle>@L["Tasks_MyTasks"] · IVAO Italia</PageTitle>
+<PageTitle>@L["Work_Title"] · IVAO Italia</PageTitle>
 
 <div class="wrap struct tasks-mine">
     @* ⚠️ La briciola RESTA: questa è una pagina d'utente, non ha la barra admin, e senza di lei non c'è
        nessun modo di risalire (regola 132). *@
-    <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <b>@L["Tasks_MyTasks"]</b></div>
+    <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <b>@L["Work_Title"]</b></div>
 
     @* ---- Testata in UNA riga: titolo · conteggio · «?» · comandi ----
        Il sottotitolo era una fascia sempre a schermo, e ⚠️ diceva una cosa falsa: «trascina lo stato per
@@ -20,10 +23,10 @@
        coi tasti della card. La prosa che descrive un gesto che non c'è manda a cercarlo. *@
     <div class="doc-head st-head">
         <h1 class="st-h2 page-h1">
-            @L["Tasks_MyTasks"]
-            @if (_tasks is { Count: > 0 })
+            @L["Work_Title"]
+            @if (_lavoro is { Count: > 0 })
             {
-                <span>&nbsp;</span><span class="pill blue" title="@L["Tasks_CountTitle"]">@Aperti / @_tasks.Count</span>
+                <span>&nbsp;</span><span class="pill amber" title="@L["Work_Subtitle"]">@_lavoro.Count</span>
             }
         </h1>
         <HelpHint Href="/services/vsop/guide#incarichi" AriaLabel="@L["Tasks_HelpAria"]" ExtraClass="wide">
@@ -76,6 +79,35 @@
             </div>
         }
 
+        @* ---- «Da fare»: una lista sola --------------------------------------------------------------
+           Ciò che il sistema ha trovato sui documenti che posso modificare E ciò che mi è stato assegnato,
+           mescolati e ordinati per urgenza — non per data. Le due nature restano quello che sono (un fatto
+           che si chiude da sé, un impegno che chiude una persona): qui si LEGGONO insieme, non si fondono.
+           Carta: docs/feature/2026-08-26-da-fare-una-lista-sola.md §2/D1. *@
+        @if (_lavoro is null) { <LoadingState /> }
+        else if (_lavoro.Count == 0)
+        {
+            <EmptyState Icon="check-circle" Title="@L["Work_Empty"].Value">
+                <p style="margin:0">@L["Work_EmptyHint"]</p>
+            </EmptyState>
+        }
+        else
+        {
+            <ul class="wi-list">
+                @foreach (var r in _lavoro)
+                {
+                    <WorkItemRow @key="r.Chiave" Item="r" Busy="_busy" ShowAssign="Authz.IsAdmin"
+                                 OnDone="ChiudiLavoro" OnStart="AvviaLavoro" OnAssign="PrendiInCarico" />
+                }
+            </ul>
+        }
+
+        @* ---- La lavagna per stato ---------------------------------------------------------------------
+           Resta, e sta sotto: serve a un'altra domanda. L'elenco qui sopra dice COSA FARE ADESSO; questa
+           dice DOVE SONO i miei incarichi — compresi «Fatto» e «Bloccato», che dall'elenco sono fuori per
+           costruzione. Chiusa di default: chi apre la pagina vuole la prima domanda. *@
+        <details class="tk-board-wrap">
+            <summary class="h-sect">@L["Tasks_MyTasks"] <span class="chip-n">@(_tasks?.Count ?? 0)</span></summary>
         @if (_tasks is null) { <LoadingState /> }
         else if (_tasks.Count == 0) { <p class="help">@L["Tasks_NoneAssigned"]</p> }
         else
@@ -114,11 +146,16 @@
                 </details>
             }
         }
+        </details>
     }
 </div>
 
 @code {
     private IReadOnlyList<EditorTask>? _tasks;
+
+    /// <summary>L'elenco unificato: le segnalazioni del sistema e gli incarichi, in una lista sola.</summary>
+    private IReadOnlyList<WorkItem>? _lavoro;
+
     private IReadOnlyDictionary<(ReleaseTargetType Type, string Key), EditorTaskLink> _links =
         new Dictionary<(ReleaseTargetType, string), EditorTaskLink>();
     private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
@@ -173,6 +210,7 @@
             // Una risoluzione per CARICAMENTO, non una per card: il read-model interroga una volta sola, e
             // se nessun incarico è legato a un documento non interroga affatto.
             _links = await TaskLinks.ForAsync(_tasks);
+            _lavoro = await Lavoro.MieAsync();
         }
         catch (Exception ex) { _error = ex.Message; }
     }
@@ -320,4 +358,57 @@
     {
         EditorTaskPriority.High => "future", EditorTaskPriority.Normal => "blue", _ => "grey",
     };
+
+    // ── Le azioni della lista unificata ──────────────────────────────────────────────────────────────
+    // ⚠️ «Chiudere» vuol dire due cose diverse secondo la natura della riga, e il read-model lo dice: un
+    // fatto del sistema si spunta (e il giro notturno lo riaprirà se è ancora vero), un incarico passa a
+    // «Fatto». Un solo tasto a schermo, due atti diversi sotto — ed è giusto così: chi legge non deve
+    // sapere da quale tabella arriva la riga.
+
+    private async Task ChiudiLavoro(WorkItem r)
+    {
+        _busy = true;
+        _error = _status = null;
+        try
+        {
+            if (r.TaskId is int taskId) await Tasks.UpdateStatusAsync(taskId, EditorTaskStatus.Done);
+            else if (r.ImpactId is int impactId) await Impatti.ClearAsync(impactId);
+            await Load();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task AvviaLavoro(WorkItem r)
+    {
+        if (r.TaskId is not int taskId) return;
+        _busy = true;
+        _error = null;
+        try
+        {
+            await Tasks.UpdateStatusAsync(taskId, EditorTaskStatus.InProgress);
+            await Load();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    /// <summary>Da fatto del sistema a impegno di una persona. Qui l'assegnatario è CHI PREME: è il gesto
+    /// «me ne occupo io», che è l'unico che abbia senso dalla propria lista. Assegnare ad altri si fa dalla
+    /// dashboard degli incarichi, dove c'è il picker degli staffisti.</summary>
+    private async Task PrendiInCarico(WorkItem r)
+    {
+        if (r.ImpactId is not int impactId) return;
+        if (User.Get() is not { } u) return;
+        _busy = true;
+        _error = _status = null;
+        try
+        {
+            await Lavoro.PrendiInCaricoAsync(impactId, u.UserId, u.Name, scadenzaCiclo: null);
+            _status = L["Work_AssignedMsg"];
+            await Load();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
 }

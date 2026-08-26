@@ -2,6 +2,8 @@
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IPendingOverviewService Pending
+@inject IWorkListService Lavoro
+@inject IDocumentImpactService Impatti
 @inject IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
 
@@ -23,7 +25,7 @@
             @if (_dati is not null)
             {
                 <span>&nbsp;</span>
-                <span class="pill @(_dati.Totale > 0 ? "amber" : "blue")">@_dati.Totale</span>
+                <span class="pill @(Totale > 0 ? "amber" : "blue")">@Totale</span>
             }
         </h1>
         <HelpHint Href="/services/vsop/guide#admin-pending" AriaLabel="@L["Pend_HelpAria"]" ExtraClass="wide">
@@ -61,7 +63,7 @@
                 _dati.PenultimoGiroAeroporti is { } c ? $"{c:yyyy-MM-dd HH:mm}Z" : "—"]
         </p>
 
-        @if (_dati.Totale == 0)
+        @if (Totale == 0)
         {
             <EmptyState Icon="check-circle" Title="@L["Pend_AllClear"].Value">
                 <p style="margin:0">@L["Pend_AllClearHint"]</p>
@@ -217,43 +219,26 @@
             </div>
         }
 
-        @* ---- Documenti che non dicono più quel che direbbero oggi ---- *@
-        @if (_dati.Impatti.Count > 0)
+        @* ---- Documenti che non dicono più quel che direbbero oggi ------------------------------------
+           Dal 26 agosto 2026 questa sezione non è più una tabella di sola lettura: sono le STESSE righe che
+           l'interessato trova in «Da fare» e in cima al suo editor, rese dallo stesso componente e lette
+           dallo stesso read-model. Tre resi diversi della stessa riga erano tre racconti che iniziavano a
+           divergere. Qui la lista è quella dell'admin, quindi copre TUTTI i documenti.
+           Carta: docs/feature/2026-08-26-da-fare-una-lista-sola.md §2/D1. *@
+        @if (_daFare.Count > 0)
         {
             <div class="section-title">
-                <h2 class="h-sect">@L["Pend_DocsTitle"] <span class="pill amber">@_dati.Impatti.Count</span></h2>
+                <h2 class="h-sect">@L["Pend_DocsTitle"] <span class="pill amber">@_daFare.Count</span></h2>
                 <span class="ln"></span>
             </div>
             <div class="panel">
-                <table class="res-table">
-                    <thead>
-                        <tr>
-                            <th>@L["Pend_ColDoc"]</th>
-                            <th>@L["Pend_ColWhy"]</th>
-                            <th>@L["Pend_ColSince"]</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var i in _dati.Impatti)
-                        {
-                            <tr>
-                                <td>
-                                    <b>@i.DocumentTitle</b>
-                                    @if (i.IsPublicNow)
-                                    {
-                                        <span class="pill red" title="@L["Impact_PublicNowTitle"]">@L["Impact_PublicNow"]</span>
-                                    }
-                                    else if (i.Kind.IsDaRipubblicare())
-                                    {
-                                        <span class="pill blue" title="@L["Impact_RepublishTitle"]">@L["Impact_Republish"]</span>
-                                    }
-                                </td>
-                                <td>@Frase(i)</td>
-                                <td class="muted">@i.RaisedUtc.ToString("yyyy-MM-dd HH:mm")Z</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+                <ul class="wi-list">
+                    @foreach (var r in _daFare)
+                    {
+                        <WorkItemRow @key="r.Chiave" Item="r" Busy="_busy" ShowAssign="false"
+                                     OnDone="ChiudiRiga" />
+                    }
+                </ul>
             </div>
         }
     }
@@ -261,6 +246,22 @@
 
 @code {
     private PendingOverview? _dati;
+
+    /// <summary>Le righe che il sistema ha aperto sui documenti, lette dal read-model unico. Solo quelle di
+    /// SISTEMA: gli incarichi delle persone stanno in «Da fare», che è la pagina di chi lavora — questa è la
+    /// pagina di chi tiene in ordine l'archivio.</summary>
+    private IReadOnlyList<WorkItem> _daFare = Array.Empty<WorkItem>();
+
+    /// <summary>
+    /// Quante cose chiedono attenzione, contate su ciò che la pagina MOSTRA DAVVERO.
+    ///
+    /// <para>⚠️ Non è <c>PendingOverview.Totale</c>, e la differenza si vede: quello conta tutte le
+    /// segnalazioni aperte, mentre la sezione qui sotto salta quelle che qualcuno ha già <b>preso in
+    /// carico</b> — sono diventate un incarico, e stanno in «Da fare». Con il totale di prima la pastiglia
+    /// direbbe nove e le righe sarebbero otto, che è il modo più rapido di far dubitare di una pagina.</para>
+    /// </summary>
+    private int Totale => _dati is null ? 0
+        : _dati.Orfani.Count + _dati.Aeroporti.Count + _dati.DocumentiFuoriElenco.Count + _daFare.Count;
     private bool _busy;
     private string? _msg;
 
@@ -273,7 +274,16 @@
         if (!Authz.IsAdmin) return;
         _busy = true;
         _msg = null;
-        try { _dati = await Pending.LoadAsync(); }
+        try
+        {
+            _dati = await Pending.LoadAsync();
+            // Solo le righe di SISTEMA: gli incarichi delle persone stanno in «Da fare». ⚠️ Da admin
+            // `MieAsync` copre tutti i documenti, quindi l'elenco qui resta quello di prima — meno quelle
+            // che qualcuno ha già preso in carico, che è esattamente ciò che si vuole vedere sparire.
+            _daFare = (await Lavoro.MieAsync())
+                .Where(r => r.Origine == WorkOrigin.Sistema)
+                .ToList();
+        }
         catch (Exception ex) { _msg = ex.Message; }
         finally { _busy = false; }
     }
@@ -287,11 +297,19 @@
         _ => L["Orph_NotListed"].Value,
     };
 
-    /// <summary>La frase dell'impatto, con i suoi argomenti. Stessa forma del banner nell'editor.</summary>
-    private string Frase(DocumentImpactRow r) => r.ReasonArgs.Count switch
+    /// <summary>Spuntare una riga: qui capitano solo segnalazioni di sistema, e solo quelle NON calcolate
+    /// mostrano il ✓ — il componente lo sa già dal piano che la riga porta con sé.</summary>
+    private async Task ChiudiRiga(WorkItem r)
     {
-        0 => L[r.ReasonKey].Value,
-        1 => L[r.ReasonKey, r.ReasonArgs[0]].Value,
-        _ => L[r.ReasonKey, r.ReasonArgs[0], r.ReasonArgs[1]].Value,
-    };
+        if (r.ImpactId is not int impactId) return;
+        _busy = true;
+        _msg = null;
+        try
+        {
+            await Impatti.ClearAsync(impactId);
+            await CaricaAsync();
+        }
+        catch (Exception ex) { _msg = ex.Message; }
+        finally { _busy = false; }
+    }
 }

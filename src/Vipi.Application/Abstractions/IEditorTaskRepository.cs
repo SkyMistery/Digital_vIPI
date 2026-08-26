@@ -4,10 +4,15 @@ using Vipi.Domain.Entities;
 namespace Vipi.Application.Abstractions;
 
 /// <summary>Dati per creare un incarico.</summary>
+/// <param name="FromImpactId">La segnalazione di sistema da cui questo incarico è stato «preso in carico»
+/// (<c>docs/feature/2026-08-26-da-fare-una-lista-sola.md</c> §2/D5). <c>null</c> = incarico nato da una
+/// persona. Serve a non mostrare <b>due volte</b> lo stesso lavoro nella lista «Da fare»: una come fatto e
+/// una come impegno.</param>
 public sealed record EditorTaskInput(
     string Title, string? Description, int AssigneeUserId, string? AssigneeName,
     EditorTaskPriority Priority, string? DueAiracCycle,
-    ReleaseTargetType? TargetType, string? TargetKey, string? TargetLabel);
+    ReleaseTargetType? TargetType, string? TargetKey, string? TargetLabel,
+    int? FromImpactId = null);
 
 /// <summary>
 /// Persistenza degli incarichi editoriali.

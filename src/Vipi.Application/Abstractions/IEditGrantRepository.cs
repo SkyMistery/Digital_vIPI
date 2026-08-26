@@ -22,4 +22,14 @@ public interface IEditGrantRepository
 
     /// <summary>Codice ACC a cui appartiene un documento (vIPI via settori di scope, vLOA via parte Home). Null se non risolvibile.</summary>
     Task<string?> GetDocumentAccCodeAsync(int documentId, CancellationToken ct = default);
+
+    /// <summary>
+    /// I codici ACC su cui il UserId ha una concessione. Vuoto = nessuna.
+    ///
+    /// <para>⚠️ Esiste per gli <b>elenchi</b>, dove <see cref="HasGrantAsync"/> e
+    /// <c>CanEditDocumentAsync</c> costerebbero due query <b>per riga</b>: su una lista di lavoro con
+    /// quaranta voci sono ottanta interrogazioni per rispondere quattro volte la stessa cosa. Si chiedono le
+    /// ACC una volta e si filtra in memoria — regola 136, «una query per pagina, non una per riga».</para>
+    /// </summary>
+    Task<IReadOnlyList<string>> ListAccCodesForUserAsync(int userId, CancellationToken ct = default);
 }

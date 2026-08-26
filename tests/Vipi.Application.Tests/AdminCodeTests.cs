@@ -142,5 +142,7 @@ public class AdminCodeTests
         public Task<bool> HasGrantAsync(int UserId, string accCode, CancellationToken ct = default) => Task.FromResult(false);
         public Task<bool> HasAnyGrantAsync(int UserId, CancellationToken ct = default) => Task.FromResult(false);
         public Task<string?> GetDocumentAccCodeAsync(int documentId, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<IReadOnlyList<string>> ListAccCodesForUserAsync(int userId, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
     }
 }

@@ -115,10 +115,15 @@ else
 
             @* Release AIRAC: involucro, aiuto, diff, annulla e anteprima li porta il pannello condiviso
                (doc 13 §3i). Prima ogni editor si costruiva il proprio contorno, e infatti erano diversi. *@
+            @* ⚠️ L'ancora `sec-versioni` è la stessa nei QUATTRO editor: è dove atterra «Ripubblica» dalla lista
+               «Da fare» (carta 2026-08-26-da-fare-una-lista-sola.md §3). Un editor lungo, aperto in cima, chiede a chi
+               ci arriva di cercare il pannello che gli è stato promesso. *@
+            <div id="sec-versioni">
             <ReleasePanel Target="ReleaseTargetType.App" Key="@_app"
                           ShowDiff="true" AllowCancel="Authz.IsAdmin"
                           PreviewUrlFactory="ReleasePreviewUrl"
                           Published="LoadAsync" />
+            </div>
         }
     </div>
 }

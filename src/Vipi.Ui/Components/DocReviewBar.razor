@@ -1,15 +1,19 @@
-@* Le segnalazioni aperte su un documento — la «casella degli impatti» (carta 2026-08-25). Una riga per fatto:
-   un settore sparito, un'area cambiata, la copia pubblicata rimasta indietro. Fino al 25 agosto 2026 era UN
-   motivo solo, e il secondo evento cancellava il primo.
-   ⚠️ Il ✓ non c'è su tutte: le righe CALCOLATE (deriva, bersaglio di release) le richiude il controllo che le
-   ha aperte, e un ✓ sarebbe un ping-pong con il giro notturno.
+@* Che cosa resta da fare su QUESTO documento, in cima al suo editor.
+
+   Fino al 26 agosto 2026 mostrava solo le segnalazioni del sistema, e gli incarichi assegnati sullo stesso
+   documento vivevano in un'altra pagina: chi apriva l'editor vedeva metà del lavoro che lo riguardava.
+   Ora legge il read-model unico (`IWorkListService`), quindi le due nature stanno nello stesso banner e la
+   riga è resa dallo STESSO componente dell'elenco — carta 2026-08-26-da-fare-una-lista-sola.md §2/D4.
+
+   ⚠️ Il ✓ non c'è su tutte: le righe CALCOLATE (deriva, bersaglio di release) le richiude il controllo che
+   le ha aperte, e un ✓ sarebbe un ping-pong con il giro notturno. Al loro posto c'è l'azione che le risolve.
    Componente autonomo: passa il DocumentId, interroga lo stato e chiude da sé. *@
 @using Vipi.Application.Content
 @using Vipi.Domain
 @using Microsoft.Extensions.DependencyInjection
 @inherits OwningComponentBase
 @inject IStringLocalizer<SharedResource> L
-@* Servizio risolto dallo scope DI proprio (VipiDbContext isolato dal circuito): evita il crash "second
+@* Servizi risolti dallo scope DI proprio (VipiDbContext isolato dal circuito): evita il crash "second
    operation" quando questo sidecar carica mentre la pagina genitore ha ancora una query in volo. [[EditLockBar]] *@
 
 @if (_righe.Count > 0)
@@ -18,33 +22,11 @@
         <span class="cic">⚠️</span>
         <div style="flex:1">
             <p class="ct">@L["Impact_Title", _righe.Count]</p>
-            <ul class="impact-list">
+            <ul class="impact-list wi-list">
                 @foreach (var r in _righe)
                 {
-                    <li>
-                        @if (r.IsPublicNow)
-                        {
-                            <span class="pill red" title="@L["Impact_PublicNowTitle"]">@L["Impact_PublicNow"]</span>
-                        }
-                        else if (r.Kind.IsDaRipubblicare())
-                        {
-                            <span class="pill blue" title="@L["Impact_RepublishTitle"]">@L["Impact_Republish"]</span>
-                        }
-                        else if (r.Kind.IsRotto())
-                        {
-                            <span class="pill amber">@L["Impact_Broken"]</span>
-                        }
-                        <span>@Frase(r)</span>
-                        @if (r.CanClear)
-                        {
-                            <button class="btn ghost" disabled="@_busy" @onclick="() => Chiudi(r.Id)"
-                                    title="@L["Review_MarkTitle"]">✓ @L["Review_MarkReviewed"]</button>
-                        }
-                        else
-                        {
-                            <span class="muted">@L["Impact_AutoClose"]</span>
-                        }
-                    </li>
+                    <WorkItemRow @key="r.Chiave" Item="r" ShowAcc="false" Busy="_busy"
+                                 OnDone="Chiudi" OnStart="Avvia" />
                 }
             </ul>
         </div>
@@ -52,18 +34,25 @@
 }
 
 @code {
-    /// <summary>Documento di cui mostrare le segnalazioni aperte. null = niente banner.</summary>
+    /// <summary>Documento di cui mostrare che cosa resta da fare. null = niente banner.</summary>
     [Parameter] public int? DocumentId { get; set; }
-    /// <summary>Notifica opzionale alla pagina quando una segnalazione viene chiusa.</summary>
+    /// <summary>Notifica opzionale alla pagina quando una riga viene chiusa.</summary>
     [Parameter] public EventCallback OnResolved { get; set; }
 
-    private IReadOnlyList<DocumentImpactRow> _righe = Array.Empty<DocumentImpactRow>();
+    private IReadOnlyList<WorkItem> _righe = Array.Empty<WorkItem>();
     private int? _loadedFor;
     private bool _busy;
 
+    private IWorkListService Lavoro = default!;
     private IDocumentImpactService Impacts = default!;
+    private IEditorTaskService Incarichi = default!;
+
     protected override void OnInitialized()
-        => Impacts = ScopedServices.GetRequiredService<IDocumentImpactService>();
+    {
+        Lavoro = ScopedServices.GetRequiredService<IWorkListService>();
+        Impacts = ScopedServices.GetRequiredService<IDocumentImpactService>();
+        Incarichi = ScopedServices.GetRequiredService<IEditorTaskService>();
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -74,26 +63,33 @@
 
     private async Task RicaricaAsync() =>
         _righe = DocumentId is int id
-            ? await Impacts.ListOpenAsync(id)
-            : Array.Empty<DocumentImpactRow>();
+            ? await Lavoro.PerDocumentoAsync(id)
+            : Array.Empty<WorkItem>();
 
-    /// <summary>La frase la compone la UI dalla chiave e dagli argomenti: in archivio non c'è testo, quindi la
-    /// stessa riga si legge in italiano o in inglese secondo chi guarda.</summary>
-    private string Frase(DocumentImpactRow r) => r.ReasonArgs.Count switch
-    {
-        0 => L[r.ReasonKey].Value,
-        1 => L[r.ReasonKey, r.ReasonArgs[0]].Value,
-        _ => L[r.ReasonKey, r.ReasonArgs[0], r.ReasonArgs[1]].Value,
-    };
-
-    private async Task Chiudi(int impactId)
+    /// <summary>Chiudere una riga vuol dire due cose diverse secondo la sua natura, e il read-model lo dice:
+    /// un fatto del sistema si spunta, un incarico passa a «Fatto».</summary>
+    private async Task Chiudi(WorkItem r)
     {
         _busy = true;
         try
         {
-            await Impacts.ClearAsync(impactId);
+            if (r.TaskId is int taskId) await Incarichi.UpdateStatusAsync(taskId, EditorTaskStatus.Done);
+            else if (r.ImpactId is int impactId) await Impacts.ClearAsync(impactId);
+
             await RicaricaAsync();
             await OnResolved.InvokeAsync();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task Avvia(WorkItem r)
+    {
+        if (r.TaskId is not int taskId) return;
+        _busy = true;
+        try
+        {
+            await Incarichi.UpdateStatusAsync(taskId, EditorTaskStatus.InProgress);
+            await RicaricaAsync();
         }
         finally { _busy = false; }
     }

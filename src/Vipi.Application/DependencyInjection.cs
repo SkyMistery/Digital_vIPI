@@ -84,6 +84,10 @@ public static class DependencyInjection
         // Senza questa riga, un Host senza sorgente esterna non riuscirebbe a costruire DeletionService.
         services.TryAddScoped<ISourcePresenceProbe, SorgenteNonInterrogabile>();
         services.AddScoped<IPendingOverviewService, PendingOverviewService>();
+
+        // «Da fare»: il read-model che legge le segnalazioni del sistema e gli incarichi delle persone e ne
+        // fa una lista sola. Non è un terzo meccanismo — non salva niente.
+        services.AddScoped<IWorkListService, WorkListService>();
         services.AddScoped<IImpactDriftUseCase, ImpactDriftUseCase>();
         services.AddScoped<IDocumentAdminService, DocumentAdminService>();
         services.AddScoped<IAirportSectorImporter, AirportSectorImporter>();

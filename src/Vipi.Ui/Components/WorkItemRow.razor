@@ -1,0 +1,130 @@
+@* Una riga di «Da fare», e UNA SOLA volta: la usano l'elenco (/services/vsop/tasks), il banner in cima
+   all'editor e la sezione «Documenti da rivedere» di «Da sistemare». Tre resi diversi della stessa riga
+   sarebbero tre racconti che iniziano a divergere — ed è esattamente ciò che questa carta esiste per non
+   rifare (docs/feature/2026-08-26-da-fare-una-lista-sola.md §1).
+
+   ⚠️ La frase si compone QUI da chiave + argomenti, e non arriva mai come testo: una riga scritta in
+   italiano si ripresenterebbe in italiano a chi legge in inglese, e il circuito Blazor cambia lingua senza
+   ricaricare. L'unica eccezione è il titolo di un incarico, che l'ha scritto una persona: lo dice
+   WorkPhrases.Raw. *@
+@inject IStringLocalizer<SharedResource> L
+
+<li class="wi wi-@Item.Severita.ToString().ToLowerInvariant()">
+    <span class="wi-badge">@Pastiglia()</span>
+
+    <span class="wi-body">
+        <span class="wi-doc">
+            @if (Item.SiRaggiunge)
+            {
+                <a href="@Item.Url" title="@L["Work_OpenTitle"]">@Item.Titolo</a>
+            }
+            else
+            {
+                <span title="@L["Work_NoLink"]">@Item.Titolo</span>
+            }
+            @if (Item.AccCode is { Length: > 0 } acc && ShowAcc)
+            {
+                <span class="muted wi-acc">@acc</span>
+            }
+        </span>
+        <span class="wi-why">@Frase()</span>
+        @if (Item.Origine == WorkOrigin.Persona && Item.AssegnatarioNome is { Length: > 0 } chi)
+        {
+            <span class="muted wi-who">@L["Work_AssignedTo", chi]@(Item.ScadenzaCiclo is { Length: > 0 } c ? $" · {c}" : "")</span>
+        }
+    </span>
+
+    <span class="wi-act">
+        @* Il tasto che la riga PROMETTE. Non è una decorazione: su una riga calcolata un ✓ sarebbe una
+           promessa che il giro notturno smentisce entro stanotte (carta §2/D3). *@
+        @switch (Item.Azione)
+        {
+            case WorkAction.SegnaFatto:
+                <button type="button" class="btn ghost" disabled="@Busy" title="@L["Review_MarkTitle"]"
+                        @onclick="() => OnDone.InvokeAsync(Item)">✓ @L["Review_MarkReviewed"]</button>
+                break;
+
+            case WorkAction.Ripubblica:
+                @if (Item.SiRaggiunge)
+                {
+                    <a class="btn ghost" href="@($"{Item.Url}#sec-versioni")">@L["Work_Republish"]</a>
+                }
+                break;
+
+            case WorkAction.VaiASistemare:
+                @if (Item.SiRaggiunge)
+                {
+                    <a class="btn ghost" href="@Item.Url">@L["Work_GoFix"]</a>
+                }
+                else
+                {
+                    <a class="btn ghost" href="/services/vsop/versions">@L["Work_GoFix"]</a>
+                }
+                break;
+
+            case WorkAction.CambiaStato:
+                @if (Item.Stato is EditorTaskStatus.Todo)
+                {
+                    <button type="button" class="btn ghost" disabled="@Busy"
+                            @onclick="() => OnStart.InvokeAsync(Item)">@L["Task_Start"]</button>
+                }
+                <button type="button" class="btn ghost" disabled="@Busy"
+                        @onclick="() => OnDone.InvokeAsync(Item)">✓ @L["Task_Done"]</button>
+                break;
+        }
+
+        @* «Prendi in carico»: da fatto del sistema a impegno di una persona. Solo sulle righe di sistema —
+           un incarico un assegnatario ce l'ha già. *@
+        @if (ShowAssign && Item.Origine == WorkOrigin.Sistema && Item.ImpactId is int)
+        {
+            <button type="button" class="btn ghost" disabled="@Busy" title="@L["Work_AssignTitle"]"
+                    @onclick="() => OnAssign.InvokeAsync(Item)">@L["Work_Assign"]</button>
+        }
+    </span>
+</li>
+
+@code {
+    [Parameter, EditorRequired] public WorkItem Item { get; set; } = default!;
+
+    /// <summary>Mostra il codice ACC accanto al titolo: serve in elenco, non nel banner di un documento
+    /// (lì l'ACC è quella della pagina che si sta guardando, e ripeterla è rumore).</summary>
+    [Parameter] public bool ShowAcc { get; set; } = true;
+
+    /// <summary>Offri «prendi in carico». Solo a chi può assegnare lavoro.</summary>
+    [Parameter] public bool ShowAssign { get; set; }
+
+    [Parameter] public bool Busy { get; set; }
+
+    [Parameter] public EventCallback<WorkItem> OnDone { get; set; }
+    [Parameter] public EventCallback<WorkItem> OnStart { get; set; }
+    [Parameter] public EventCallback<WorkItem> OnAssign { get; set; }
+
+    /// <summary>La pastiglia dice in una parola PERCHÉ la riga è lì, e il colore quanto urge.</summary>
+    private RenderFragment Pastiglia() => builder =>
+    {
+        var (classe, chiave, titolo) = Item.Severita switch
+        {
+            WorkSeverity.GiaInPubblico => ("red", "Impact_PublicNow", "Impact_PublicNowTitle"),
+            WorkSeverity.Rotto => ("amber", "Impact_Broken", "Impact_Broken"),
+            WorkSeverity.InRitardo => ("amber", "Tasks_Overdue", "Tasks_Overdue"),
+            WorkSeverity.DaRipubblicare => ("blue", "Impact_Republish", "Impact_RepublishTitle"),
+            WorkSeverity.DaRileggere => ("", "Impact_ToReview", "Impact_ToReview"),
+            _ => ("", "Work_Task", "Work_Task"),
+        };
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", $"pill {classe}".TrimEnd());
+        builder.AddAttribute(2, "title", L[titolo].Value);
+        builder.AddContent(3, L[chiave].Value);
+        builder.CloseElement();
+    };
+
+    private string Frase() =>
+        Item.FraseKey == WorkPhrases.Raw
+            ? (Item.FraseArgs.Count > 0 ? Item.FraseArgs[0] : "")
+            : Item.FraseArgs.Count switch
+            {
+                0 => L[Item.FraseKey].Value,
+                1 => L[Item.FraseKey, Item.FraseArgs[0]].Value,
+                _ => L[Item.FraseKey, Item.FraseArgs[0], Item.FraseArgs[1]].Value,
+            };
+}

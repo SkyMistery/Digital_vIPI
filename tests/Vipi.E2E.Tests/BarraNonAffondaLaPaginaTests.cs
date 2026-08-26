@@ -174,6 +174,7 @@ public sealed class BarraNonAffondaLaPaginaTests
         public Task<int> AddAsync(int UserId, string? displayName, string accCode, int GrantedByUserId, CancellationToken ct = default) => throw Giu();
         public Task RevokeAsync(int grantId, int actorUserId, CancellationToken ct = default) => throw Giu();
         public Task<string?> GetDocumentAccCodeAsync(int documentId, CancellationToken ct = default) => throw Giu();
+        public Task<IReadOnlyList<string>> ListAccCodesForUserAsync(int userId, CancellationToken ct = default) => throw Giu();
     }
 
     private sealed class FabbricaSocio : WebApplicationFactory<Program>

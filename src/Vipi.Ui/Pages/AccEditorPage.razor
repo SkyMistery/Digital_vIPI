@@ -157,10 +157,15 @@ else
             @* Published: dopo «Pubblica ora» la bozza è promossa a versione pubblicata — ricarichiamo, o la pill
                «Bozza vN» del rail resta quella letta all'apertura. Stessi parametri degli altri editor (doc 13
                §3i): qui mancavano involucro, voce di menu, differenze e annullo. *@
+            @* ⚠️ L'ancora `sec-versioni` è la stessa nei QUATTRO editor: è dove atterra «Ripubblica» dalla lista
+               «Da fare» (carta 2026-08-26-da-fare-una-lista-sola.md §3). Un editor lungo, aperto in cima, chiede a chi
+               ci arriva di cercare il pannello che gli è stato promesso. *@
+            <div id="sec-versioni">
             <ReleasePanel Target="ReleaseTargetType.AccVipi" Key="@($"{Acc.Trim().ToUpperInvariant()}|{_root}")"
                           ShowDiff="true" AllowCancel="Authz.IsAdmin"
                           PreviewUrlFactory="ReleasePreviewUrl"
                           Published="LoadAsync" />
+            </div>
             </div>
             <aside class="ed-rail">
                 @* Stato e lock stanno in TESTATA (riga unica): qui restano i comandi. I badge del lock che

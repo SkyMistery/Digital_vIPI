@@ -103,10 +103,15 @@ else
 
     @* Release AIRAC: stesso componente condiviso di ACC/APP/aeroporto (doc 11 §3f), con gli STESSI parametri
        (doc 13 §3i) — mancavano l'aiuto e, per gli admin, l'annullo di una release. *@
+    @* ⚠️ L'ancora `sec-versioni` è la stessa nei QUATTRO editor: è dove atterra «Ripubblica» dalla lista
+       «Da fare» (carta 2026-08-26-da-fare-una-lista-sola.md §3). Un editor lungo, aperto in cima, chiede a chi
+       ci arriva di cercare il pannello che gli è stato promesso. *@
+    <div id="sec-versioni">
     <ReleasePanel Target="ReleaseTargetType.Vloa" Key="@_docId!.Value.ToString()"
                   ShowDiff="true" AllowCancel="Authz.IsAdmin"
                   PreviewUrlFactory="ReleasePreviewUrl"
                   Published="LoadAsync" />
+    </div>
 }
 
 @code {

@@ -1,7 +1,10 @@
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
+using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
+using Vipi.Domain.Entities;
+using Vipi.Domain.Services;
 using Vipi.Domain;
 using Vipi.Ui.Components;
 using Xunit;
@@ -9,6 +12,13 @@ using Xunit;
 namespace Vipi.Ui.Tests;
 
 /// <summary>
+/// Il banner di ciò che resta da fare su un documento.
+///
+/// ⚠️ Dal 26 agosto 2026 legge il read-model unico (<c>IWorkListService</c>) e non più il solo servizio
+/// degli impatti: nello stesso banner stanno le segnalazioni del sistema E gli incarichi assegnati su quel
+/// documento (carta <c>2026-08-26-da-fare-una-lista-sola.md</c> §2/D4). Quel che si prova qui non cambia —
+/// cambia da dove arrivano le righe.
+///
 /// Il banner delle segnalazioni aperte su un documento. Tre cose devono reggere a schermo, e nessuna è
 /// verificabile dai test del servizio: che le righe siano <b>più di una</b> (fino al 25 agosto 2026 il motivo
 /// era uno solo e il secondo evento cancellava il primo), che il ✓ <b>non compaia</b> sulle righe calcolate —
@@ -60,6 +70,10 @@ public class DocReviewBarTests : TestContext
         fake.Righe.AddRange(righe);
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddScoped<IDocumentImpactService>(_ => fake);
+        Services.AddScoped<IEditorTaskService>(_ => new IncarichiFinti());
+        // Il banner passa dal read-model: qui gli si dà una vista che traduce le stesse righe di prova,
+        // così i test continuano a parlare di IMPATTI e non di infrastruttura.
+        Services.AddScoped<IWorkListService>(_ => new LavoroFinto(fake));
         return fake;
     }
 
@@ -85,7 +99,7 @@ public class DocReviewBarTests : TestContext
 
         var cut = RenderComponent<DocReviewBar>(p => p.Add(x => x.DocumentId, 7));
 
-        Assert.Equal(3, cut.FindAll(".impact-list > li").Count);
+        Assert.Equal(3, cut.FindAll(".impact-list > li.wi").Count);
         // La frase è composta da chiave + argomenti: il localizzatore di prova restituisce «chiave arg».
         Assert.Contains("Impact_SectorGone LIRR_TS_CTR", cut.Markup);
         Assert.Contains("Impact_AreaChanged LI D20", cut.Markup);
@@ -114,7 +128,7 @@ public class DocReviewBarTests : TestContext
         await cut.InvokeAsync(() => cut.Find(".impact-list button").Click());
 
         Assert.Equal(new[] { 1 }, fake.Chiusi);
-        Assert.Single(cut.FindAll(".impact-list > li"));
+        Assert.Single(cut.FindAll(".impact-list > li.wi"));
     }
 
     [Fact]
@@ -126,5 +140,37 @@ public class DocReviewBarTests : TestContext
 
         Assert.Contains("Impact_PublicNow", cut.Markup);
         Assert.Single(cut.FindAll(".pill.red"));
+    }
+
+    /// <summary>Traduce le righe di prova in righe di lavoro, con le stesse regole del servizio vero.</summary>
+    private sealed class LavoroFinto : IWorkListService
+    {
+        private readonly FakeImpacts _impatti;
+        public LavoroFinto(FakeImpacts impatti) => _impatti = impatti;
+
+        public async Task<IReadOnlyList<WorkItem>> PerDocumentoAsync(int documentId, CancellationToken ct = default)
+        {
+            var righe = await _impatti.ListOpenAsync(documentId, ct);
+            return WorkOrdering.Ordina(righe.Select(r => new WorkItem(
+                WorkOrigin.Sistema, $"imp:{r.Id}", r.DocumentId, r.DocumentTitle, "LIRR",
+                "/services/vsop/lirr/editor", r.ReasonKey, r.ReasonArgs,
+                r.Kind.Severita(r.IsPublicNow), r.Kind.AzioneCheChiude(), r.RaisedUtc, ImpactId: r.Id)));
+        }
+
+        public Task<IReadOnlyList<WorkItem>> MieAsync(CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> PrendiInCaricoAsync(int i, int a, string? n, string? c, CancellationToken ct = default) => throw new NotSupportedException();
+    }
+
+    private sealed class IncarichiFinti : IEditorTaskService
+    {
+        public Task UpdateStatusAsync(int id, EditorTaskStatus s, CancellationToken ct = default) => Task.CompletedTask;
+        public bool IsOverdue(EditorTask t) => false;
+        public string CurrentCycle() => "2609";
+        public IReadOnlyList<AiracCycleInfo> UpcomingCycles(int count) => Array.Empty<AiracCycleInfo>();
+        public Task<IReadOnlyList<EditorTask>> ListMineAsync(CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<IReadOnlyList<EditorTask>> ListAllAsync(CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> CreateAsync(EditorTaskInput input, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task AssignAsync(int id, int u, string? n, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task DeleteAsync(int id, CancellationToken ct = default) => throw new NotSupportedException();
     }
 }

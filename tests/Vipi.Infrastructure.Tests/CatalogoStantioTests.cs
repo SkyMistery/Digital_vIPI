@@ -204,7 +204,12 @@ public class CatalogoStantioTests : IAsyncLifetime
         var riga = Assert.Single(await _impatti.ListOpenAsync(_docApp));
         Assert.Equal(ImpactKind.SectorStale, riga.Kind);
         Assert.Equal("LIBD_CS0_APP", riga.SourceKey);
-        Assert.Equal("10", riga.ReasonArgs[1]);          // giorni di silenzio
+        // ⚠️ I giorni si contano contro l'OROLOGIO VERO (`ImpactDriftUseCase` usa `DateTime.UtcNow`), mentre
+        // il timbro del fixture è fisso: scritto «10» il 25 agosto, il 26 diventava «11» e il test rosso da
+        // solo, senza che nessuno avesse toccato niente. Si calcola con la stessa formula del codice —
+        // l'affermazione resta «tanti giorni quanti ne sono passati», che è ciò che si voleva provare.
+        var attesi = Math.Max(1, (int)(DateTime.UtcNow - Adesso.AddDays(-10)).TotalDays);
+        Assert.Equal(attesi.ToString(), riga.ReasonArgs[1]);          // giorni di silenzio
         Assert.False(riga.CanClear);                      // calcolata: la richiude il giro
 
         var vecchia = await _db.AirportSectors.FirstAsync(x => x.ComposePosition == "LIBD_CS0_APP");

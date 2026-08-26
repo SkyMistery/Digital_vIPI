@@ -2395,4 +2395,25 @@
   <data name="Stats_TagHint_Rebuilt" xml:space="preserve"><value>Ricostruito dai movimenti dell'aeroporto: nessuna fase osservata.</value></data>
   <data name="Stats_Controllers" xml:space="preserve"><value>Controllori</value></data>
   <data name="Vid_ProfileTitle" xml:space="preserve"><value>Apri il profilo IVAO — VID {0}</value></data>
+  <data name="Work_Title" xml:space="preserve"><value>Da fare</value></data>
+  <data name="Work_Subtitle" xml:space="preserve"><value>Quello che il sistema ha trovato e quello che ti è stato assegnato, in un elenco solo</value></data>
+  <data name="Work_Empty" xml:space="preserve"><value>Non c'è niente in sospeso</value></data>
+  <data name="Work_EmptyHint" xml:space="preserve"><value>Nessuna segnalazione aperta sui documenti che puoi modificare, e nessun incarico da chiudere.</value></data>
+  <data name="Work_OpenTitle" xml:space="preserve"><value>Apri il documento</value></data>
+  <data name="Work_NoLink" xml:space="preserve"><value>Questo documento non è raggiungibile da nessuna pagina</value></data>
+  <data name="Work_Republish" xml:space="preserve"><value>Ripubblica →</value></data>
+  <data name="Work_GoFix" xml:space="preserve"><value>Vai a sistemare →</value></data>
+  <data name="Work_Assign" xml:space="preserve"><value>Prendi in carico</value></data>
+  <data name="Work_AssignTitle" xml:space="preserve"><value>Assegna questo lavoro a una persona: diventa un incarico</value></data>
+  <data name="Work_AssignedTo" xml:space="preserve"><value>assegnato a {0}</value></data>
+  <data name="Work_AssignedMsg" xml:space="preserve"><value>Preso in carico: ora è un incarico.</value></data>
+  <data name="Work_Task" xml:space="preserve"><value>incarico</value></data>
+  <data name="Work_FromSystem" xml:space="preserve"><value>trovato dal sistema</value></data>
+  <data name="Work_Mine" xml:space="preserve"><value>Solo i miei</value></data>
+  <data name="Work_All" xml:space="preserve"><value>Tutto</value></data>
+  <data name="Work_NothingOnDoc" xml:space="preserve"><value>Su questo documento non c'è niente in sospeso.</value></data>
+  <data name="Work_AutoClose" xml:space="preserve"><value>si chiude da sé quando la causa sparisce</value></data>
+  <data name="Task_Start" xml:space="preserve"><value>Inizia</value></data>
+  <data name="Task_Done" xml:space="preserve"><value>Fatto</value></data>
+  <data name="Tasks_Overdue" xml:space="preserve"><value>in ritardo</value></data>
 </root>

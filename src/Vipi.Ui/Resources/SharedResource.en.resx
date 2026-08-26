@@ -2389,4 +2389,25 @@
   <data name="Stats_TagHint_Rebuilt" xml:space="preserve"><value>Rebuilt from airport movements: no phase observed.</value></data>
   <data name="Stats_Controllers" xml:space="preserve"><value>Controllers</value></data>
   <data name="Vid_ProfileTitle" xml:space="preserve"><value>Open the IVAO profile — VID {0}</value></data>
+  <data name="Work_Title" xml:space="preserve"><value>To do</value></data>
+  <data name="Work_Subtitle" xml:space="preserve"><value>What the system found and what was assigned to you, in a single list</value></data>
+  <data name="Work_Empty" xml:space="preserve"><value>Nothing pending</value></data>
+  <data name="Work_EmptyHint" xml:space="preserve"><value>No open findings on the documents you can edit, and no tasks to close.</value></data>
+  <data name="Work_OpenTitle" xml:space="preserve"><value>Open the document</value></data>
+  <data name="Work_NoLink" xml:space="preserve"><value>This document cannot be reached from any page</value></data>
+  <data name="Work_Republish" xml:space="preserve"><value>Republish →</value></data>
+  <data name="Work_GoFix" xml:space="preserve"><value>Go and fix →</value></data>
+  <data name="Work_Assign" xml:space="preserve"><value>Take it on</value></data>
+  <data name="Work_AssignTitle" xml:space="preserve"><value>Assign this work to a person: it becomes a task</value></data>
+  <data name="Work_AssignedTo" xml:space="preserve"><value>assigned to {0}</value></data>
+  <data name="Work_AssignedMsg" xml:space="preserve"><value>Taken on: it is a task now.</value></data>
+  <data name="Work_Task" xml:space="preserve"><value>task</value></data>
+  <data name="Work_FromSystem" xml:space="preserve"><value>found by the system</value></data>
+  <data name="Work_Mine" xml:space="preserve"><value>Mine only</value></data>
+  <data name="Work_All" xml:space="preserve"><value>Everything</value></data>
+  <data name="Work_NothingOnDoc" xml:space="preserve"><value>Nothing pending on this document.</value></data>
+  <data name="Work_AutoClose" xml:space="preserve"><value>closes by itself when the cause is gone</value></data>
+  <data name="Task_Start" xml:space="preserve"><value>Start</value></data>
+  <data name="Task_Done" xml:space="preserve"><value>Done</value></data>
+  <data name="Tasks_Overdue" xml:space="preserve"><value>overdue</value></data>
 </root>

@@ -29,6 +29,19 @@ public class EditorTask
     /// <summary>Etichetta leggibile del documento collegato (per l'elenco), es. "vLOA LIRR ↔ DAAA".</summary>
     public string? TargetLabel { get; set; }
 
+    /// <summary>
+    /// La segnalazione di sistema (<c>DocumentImpact</c>) da cui questo incarico è stato «preso in carico»;
+    /// null = l'ha scritto una persona da zero. Carta
+    /// <c>docs/feature/2026-08-26-da-fare-una-lista-sola.md</c> §2/D5.
+    ///
+    /// <para>⚠️ <b>Riferimento debole, senza chiave esterna</b>, ed è voluto: gli impatti si potano
+    /// (<c>PruneClearedBeforeAsync</c> toglie i chiusi dopo due cicli AIRAC) e una FK farebbe sparire
+    /// l'incarico insieme alla segnalazione che l'ha originato — cioè cancellerebbe l'impegno di una persona
+    /// perché il sistema ha fatto pulizia. Serve solo a non mostrare due volte lo stesso lavoro: un Id che
+    /// non risolve più significa «la segnalazione non c'è più», e la lista lo tratta già così.</para>
+    /// </summary>
+    public int? FromImpactId { get; set; }
+
     public DateTime CreatedUtc { get; set; }
     public DateTime UpdatedUtc { get; set; }
     public DateTime? CompletedUtc { get; set; }
