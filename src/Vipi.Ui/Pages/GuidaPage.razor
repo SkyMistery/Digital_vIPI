@@ -413,6 +413,33 @@
                and <b>cancel</b> a release.</p>
               <p><b>Rule of thumb:</b> save → preview draft → publish. Don't publish without checking the preview.</p>"),
 
+        new Sec("editor-validita", "clock", "Validità e revisione", "Validity and revision",
+            @"<p>Ogni documento — vIPI di ACC, di APP, d'aeroporto e vLOA — chiude con <b>Validità e revisione</b>.
+               I primi tre campi non si compilano: <b>li scrive il documento</b> quando lo pubblichi.</p>
+              <ul>
+                <li><b>Ciclo AIRAC di appartenenza</b> — quello della release in vigore.</li>
+                <li><b>In vigore dal</b> — la data (e l'ora in Z: un ciclo AIRAC cambia a mezzanotte UTC).</li>
+                <li><b>Revisione</b> — <b>chi ha premuto Pubblica</b>: nome, posizione staff e VID, col VID che porta al profilo IVAO.</li>
+              </ul>
+              <p>Guardando l'<b>anteprima di una release passata</b> i tre campi dicono quelli di <i>quella</i>
+               release, non quelli di oggi. Su una bozza mai pubblicata dicono «non ancora pubblicato».</p>
+              <p><b>Sotto la scheda puoi scrivere</b> come in ogni altra sezione: è lì che vanno le cose che
+               nessuno può ricavare da solo — il ciclo di revisione concordato di una vLOA, il firmatario.
+               ⚠️ Se in quel testo hai una riga «Effective from» scritta a mano, ora è ripetuta: cancellala,
+               la dice la scheda.</p>",
+            @"<p>Every document — ACC, APP and airport vIPI, and vLOA — ends with <b>Validity and revision</b>.
+               The first three fields are not filled in by hand: <b>the document writes them</b> when you publish it.</p>
+              <ul>
+                <li><b>AIRAC cycle</b> — the one of the release in force.</li>
+                <li><b>Effective from</b> — the date (and the time in Z: an AIRAC cycle turns at UTC midnight).</li>
+                <li><b>Reviewed by</b> — <b>whoever pressed Publish</b>: name, staff position and VID, the VID linking to the IVAO profile.</li>
+              </ul>
+              <p>When you preview a <b>past release</b> the three fields show that release's own, not today's.
+               On a draft never published they say ""not published yet"".</p>
+              <p><b>Below the card you can write</b> as in any other section: that is where things nobody can
+               derive belong — a vLOA's agreed review cycle, the signatory. ⚠️ If that text has a hand-written
+               ""Effective from"" row, it is now duplicated: delete it, the card says it.</p>"),
+
         new Sec("editor-aeroporto", "building", "Editor aeroporto (SID, frequenze, piste)", "Airport editor (SIDs, frequencies, runways)",
             @"<p>Dal 26 agosto 2026 è un editor <b>come gli altri tre</b>: le sezioni si riordinano (frecce, o
                trascinandole nel menu Navigazione), si nascondono, accettano sotto-sezioni, e se ne aggiungono di

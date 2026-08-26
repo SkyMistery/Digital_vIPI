@@ -708,6 +708,21 @@ Indice completo con scopo e stato di ogni documento: **`docs/index.md`**. In sin
 - `/search` (ricerca full-text reale), `/changed` (cosa è cambiato nel ciclo AIRAC), `/{acc}/export` (Estesa → stampa/PDF browser).
 - **SID ✅ reali** (round 34): importate dal sectorfile Aurora GitHub, editor aeroporto + `AirportQuickPanel`. Stub residui: mappe AoR (SVG statico), `/{acc}/aor3d` (SVG statico). METAR/TAF = reale (NOAA).
 
+**Le QUATTRO famiglie documentali sono uniformi (✅ 26 ago 2026):** vIPI ACC · vIPI APP · vLOA · **vIPI d'aeroporto**.
+L'aeroporto era l'ultimo fuori: il suo documento era una **proiezione cotta** (sezioni riconosciute per titolo,
+cancellate e ricreate a ogni rigenerazione, con chiavi casuali), e per questo l'unico senza riordino, «nascondi»
+e sotto-sezioni. Ora ha `SectionProfile.Airport` nel catalogo, l'editor monta `DocumentSectionsEditor` (**con
+bozza + lock**, obbligati dal motore condiviso) e il viewer itera l'ordine del documento. Le sezioni fisse sono
+**ancore senza corpo**: il contenuto si deriva a view-time (`AirportSectionProjection`, pura) e si **congela**
+alla release. Porte nuove nel catalogo: `IsAlwaysLive` (il meteo e la validità non si congelano mai) e
+`KeepsOwnBlocks` (una sezione può avere una **scheda dalla pagina E i suoi blocchi**: è «Validità e revisione»,
+che porta ciclo AIRAC, data e chi ha premuto Pubblica). Carta:
+`docs/feature/2026-08-26-aeroporto-a-sezioni.md`; schema: `docs/spec/modello-dati.md` §9.31, §9.31-bis, §9.32.
+⚠️ **Nessuna migrazione**, ma **un passo d'avvio nuovo**: `ReconcileAirportSectionKeysAsync`, idempotente, che
+porta i documenti già scritti sulle chiavi del catalogo e **trasloca** le sezioni libere dalla tabella
+`AirportExtraSection` dentro il documento — tabella che si droppa **un rilascio dopo**, perché le migrazioni
+girano all'avvio *prima* delle riconciliazioni.
+
 **Editing persistente (✅):** `Application/Content/EditingService.cs` + `Infrastructure/Persistence/EfEditingRepository.cs`:
 - Workflow **bozza→pubblicato** (clona versione, audit, archivia precedente). CRUD **blocchi e sezioni** (aggiungi/elimina/sposta, vincolo max 3 livelli). `EditorPage` (`/{acc}/editor`, anche `?doc={id}`), `VersioniPage`.
 - Editor specializzati: `AdminTrasferimentiPage` (trasferimenti, pagina admin globale `/vsop/admin/trasferimenti`: selettore ACC + flussi/punti, Next cross-ACC; ex per-ACC `XferEditorPage` rimosso) — **round 22:** flussi e punti **editabili in-place** via `ITransferService.UpdateFlowAsync`/`UpdatePointAsync`. **12 ago 2026 — la pagina è a TRE COLONNE**: navigatore (`XferNavigator`, albero Settore ▸ Aeroporto ▸ gruppo, dove il gruppo è una **foglia** e non un livello di collasso) · riquadro di lavoro (il gruppo scelto) · pannello riga; ognuna scorre per conto proprio, e l'altezza la misura `vipiFitViewport` perché in CSS non è esprimibile. Interruttore **Albero ⇄ Elenco** (`XferRowsTable` è **una** tabella per entrambe le viste, con le colonne di contesto solo in elenco). **CoP, livello e ricevente si scrivono in cella**; il livello si rilegge con `LevelFormatting.Parse` (round-trip provato). Stato in URL (`?acc=&vista=&gruppo=&riga=&q=&tipo=&rev=&norx=`), preferenze di vista in `localStorage`. Secondo giro: **annulla** dopo un'eliminazione — con `RestoreFlowAsync`/`RestorePointsAsync`, che rimettono anche l'outline (ricostruire con `AddPointAsync` lo appiattirebbe in silenzio) — **modifica in blocco** su ricevente/livello/condizione/eliminazione, ordinamento per intestazione in elenco, e i sei picker a digitazione ridotti a un componente solo (`TypeaheadPicker`, con frecce/Invio/Esc). ⚠️ Salvare una cella costava **8 query**: il contesto delle frasi ora si rifa solo sulle scritture di gruppo. Carte: [`docs/feature/2026-08-12-editor-trasferimenti-tre-colonne.md`](docs/feature/2026-08-12-editor-trasferimenti-tre-colonne.md) e [`docs/feature/2026-08-12-editor-trasferimenti-rifiniture.md`](docs/feature/2026-08-12-editor-trasferimenti-rifiniture.md). `VloaEditorPage` (redirect all'editor generico). Gerarchia di copertura in `StrutturaPage` (`/vsop/admin/sectorstructure`).
@@ -791,6 +806,13 @@ scrive nel tag di Aurora il livello a cui cedere il traffico al prossimo ente.
 - **Sicurezza:** ogni nuova operazione di scrittura deve passare per i service Application (guardia authz + lock), mai bypassare dal repo/UI.
 - **Sorgente dati (ADR-0006):** non reintrodurre nomi IVAO in Application/UI — usa le porte neutre; l'adapter IVAO resta in `Infrastructure/Ivao/*`, selezionato da `DataSource:Provider`.
 - **VID vs UserId:** nel **codice** è `UserId`; a **video** resta "VID". Non rinominare le label.
+- **Sezioni di un documento:** chi decide cosa è il `SectionCatalog`, **per profilo** — chi rende il corpo
+  (`IsHostRendered`), se la sezione tiene anche i suoi blocchi (`KeepsOwnBlocks`), se è obbligatoria (`IsFixed`),
+  se si può congelare (`IsRenderModeToggleable`, e il suo opposto `IsAlwaysLive`). Mai un insieme scritto in una
+  pagina: è il debito che il doc 13 ha chiuso, e ci sono test che lo presidiano.
+- **Snapshot di release = fotografie, non si riscrivono** (doc 13 §9). Chi cambia la forma di una chiave deve
+  chiedersi come si comporta il viewer davanti a uno snapshot vecchio — e ricordare la regola del 26 agosto:
+  *una sezione **sempre live** non è mai parte della verità di uno snapshot*, quindi si mostra anche se lì non c'è.
 - **Dati di sorgente = sola lettura:** se aggiungi un campo che la sorgente può fornire, trattalo come categoria `ImportPolicy` (vedi `source-decoupling-and-import-policy` in memoria). I settori sono proiezione dei cataloghi (Round 20).
 
 ---

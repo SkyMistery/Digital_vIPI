@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Content;
 using Vipi.Domain.Entities;
@@ -10,7 +10,8 @@ namespace Vipi.Infrastructure.Tests;
 
 /// <summary>
 /// Derivazione a view-time della sezione SID (doc 10 §3e): merge editoriali+importate, importate differite al ciclo
-/// successivo al prelievo (o forzate), ordine per FIX + priorità. Sostituisce la cottura in RebuildDocumentAsync.
+/// successivo al prelievo (o forzate), ordine per FIX + priorità. Fu la PRIMA sezione d'aeroporto a
+/// smettere di essere cotta nel documento; dalla carta 2026-08-26 lo sono tutte.
 /// </summary>
 public class AirportSidDerivationServiceTests : IAsyncLifetime
 {

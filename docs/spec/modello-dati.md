@@ -1147,4 +1147,61 @@ sposti. Nessuno ci scrive più; si toglie quando il trasloco ha girato ovunque. 
 cotte, con le chiavi casuali e le tabelle dentro; il viewer le riconosce (`IsCooked`) e rende i **suoi** blocchi
 — per quel ciclo la verità è lo snapshot, non la derivazione di oggi.
 
-Carta: [2026-08-26-aeroporto-a-sezioni.md](../feature/2026-08-26-aeroporto-a-sezioni.md).
+### 9.31-bis Il viewer sa leggere gli snapshot anteriori alla carta
+
+Le release già pubblicate non si riscrivono, quindi la riconciliazione d'avvio non le tocca — e la pagina
+pubblica di ogni scalo non ancora ripubblicato è **esattamente** uno di quegli snapshot. Senza un lettore
+apposta perdeva le tabelle vere (piste e quote uscivano generiche, perché lì hanno chiavi casuali) e il
+**meteo** spariva del tutto: prima della carta quel riquadro lo disegnava la pagina *fuori* dal documento.
+
+**`AirportLegacySections`** (puro, in `Vipi.Application.Content`) tiene **una sola** mappa titolo→chiave con
+**due lettori**: la riconciliazione d'avvio, che riscrive i documenti di lavoro una volta per tutte, e il
+**viewer**, che deve leggere anche gli snapshot. `ForView` riporta le sezioni cotte a chiave e titolo di
+catalogo, ne **toglie i blocchi** (il corpo lo produce la pagina) e **aggiunge le sezioni sempre-live che
+mancano**.
+
+⚠️ **La regola generale, e vale oltre l'aeroporto:** *una sezione **sempre live** non è mai parte della verità
+di uno snapshot* — non si congela, non ha contenuto salvato, e la sua assenza da un documento vecchio dice solo
+che quel documento è stato scritto prima che esistesse. Va mostrata lo stesso, al posto che il catalogo le dà.
+
+### 9.32 `SectionBodySource.HostAndBlocks` e il timbro di validità (26 ago 2026) 🟢
+
+**Nessuna migrazione.** Richiesta del committente: «Validità e revisione» deve portare **tre campi fissi** —
+ciclo AIRAC di appartenenza, data, e chi ha rivisto il documento con **nome, posizione staff e VID** di chi ha
+premuto Pubblica — **in tutti i documenti**.
+
+⚠️ **Erano già scritti a mano, e non si aggiornavano**: in archivio quelle sezioni contengono otto tabelle
+`Item | Value` compilate a mano, con dentro sia un fatto che invecchia da solo («Effective from → AIRAC 2607»)
+sia contenuto d'accordo che nessuno può derivare («Review cycle», «Italian signatory»). Decisione: la scheda
+generata **si aggiunge sopra**, il testo scritto resta.
+
+**La sezione con due corpi.** `SectionBodySource` guadagna **`HostAndBlocks`**: la pagina disegna una scheda in
+testa e sotto restano i `ContentBlock` della sezione. È l'**unica** sezione del catalogo ad averli entrambi, e
+un test lo presidia — chi ne aggiungesse un'altra lo starebbe decidendo, non ereditando. Porta nuova
+`SectionCatalog.KeepsOwnBlocks(profile, key)`; `IsHostRendered` risponde vero per `Host` **e** `HostAndBlocks`.
+
+⚠️ **`validity` è SEMPRE LIVE per una ragione di ordine, non di gusto**: il suo timbro parla della release, e la
+cattura frozen gira **dentro** la creazione dello snapshot — quando quella release non esiste ancora. Non c'è
+niente da congelare. Effetto gradito: la regola di §9.31-bis la inietta anche nei documenti pubblicati prima.
+
+| Pezzo | Dove |
+|---|---|
+| Quale release si legge | `ValidityRelease.Pick` — **pura** |
+| Il timbro | `DocumentValidityService` (release + roster staff) |
+| La scheda | `ValidityStamp.razor`, uno per tutte e quattro le famiglie |
+| Nome e posizioni per VID | `IStaffRosterRepository.FindAsync` (**metodo nuovo**, include i disattivati) |
+
+⚠️ **`FindAsync` non filtra su `IsActive`**, e deve: chi ha firmato una release un anno fa può non essere più
+staff, ma il documento dice chi l'ha rivisto **allora**. Cancellarne il nome riscriverebbe la storia.
+
+⚠️ **VID `0` non è una persona**: in archivio tre vLOA sono pubblicate senza utente registrato, e la scheda dice
+«non registrato» invece di stampare uno zero che qualcuno proverebbe a cercare.
+
+⚠️ **Il `DisplayName` del roster porta già il VID dentro** («Carmine (704798)»): lo scrive il login, perché
+nell'elenco dei permessi due omonimi vanno distinti. Il link ce lo riaggiunge, e senza `CleanName` si leggeva
+«Carmine (704798) (VID 704798)».
+
+**Chiave di release per famiglia**, che il timbro usa per sapere quale release leggere: ICAO (aeroporto),
+callsign (APP), id documento (vLOA), `ACC|root` (vIPI ACC — una per albero, non per blocco).
+
+Carta: [2026-08-26-aeroporto-a-sezioni.md](../feature/2026-08-26-aeroporto-a-sezioni.md) §8-§11.

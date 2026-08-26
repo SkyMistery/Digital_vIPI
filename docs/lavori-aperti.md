@@ -1,8 +1,9 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 26 agosto 2026, notte (**§K: la vIPI d'aeroporto entra nel catalogo delle sezioni — ramo
-`aeroporto-a-sezioni`, il TERZO in fila. Era l'ultima famiglia con un documento COTTO, e per questo l'unica
-senza riordino, senza «nascondi» e senza sotto-sezioni**) · **Aggiornato:** 26 agosto 2026, sera tardi (**§J7 chiusa: anche i blocchi della vIPI ACC si riordinano, con
+**Aggiornato:** 27 agosto 2026, notte (**§K chiusa tutta: la vIPI d'aeroporto entra nel catalogo delle sezioni
+— ramo `aeroporto-a-sezioni`, il TERZO in fila — più le tre rifiniture della stessa notte: il meteo tornato
+nella pagina pubblica, i pannelli larghi quanto la colonna, e «Validità e revisione» che porta ciclo AIRAC,
+data e chi ha premuto Pubblica in tutti e quattro i documenti**) · **Aggiornato:** 26 agosto 2026, sera tardi (**§J7 chiusa: anche i blocchi della vIPI ACC si riordinano, con
 i settori di aerovia fissi in testa; con §J6 la sezione J non ha più voci di UI aperte**) · **Aggiornato:** 26 agosto 2026, sera tardi (**§J6: l'ordine delle sezioni è una scelta editoriale — anche le
 sezioni di catalogo si spostano dentro il loro gruppo e dicono di quanto si sono allontanate dallo standard;
 nasce §J7, i blocchi della vIPI ACC che non si riordinano**) · **Aggiornato:** 26 agosto 2026, notte (**§E11 chiusa: la casella degli impatti, la sezione Orfani, il giro notturno della deriva e il rilevatore delle RINOMINE dal timbro d'import; nascono §C6 (chiave di release derivata da un callsign) e §C7 (i tre resti dell'analisi sulla cancellazione dei dati importati)**) · **Aggiornato:** 25 agosto 2026, tarda sera (**§B12: il ramo `statistiche-atc` porta anche le otto richieste
@@ -158,7 +159,7 @@ fatte o non avevano più senso.
 |---|---|---|
 | `statistiche-atc` | **82** | il terzo servizio, gli aeroporti militari, la vIPI d'aeroporto legata allo scalo, l'**eliminazione con le protezioni**, «chiedi alla sorgente», la lista «Da fare» |
 | `identita-settori` (sopra il primo) | **110** | l'identità dei settori per **id IVAO**, l'assenza che non cancella, le **shape dal sectorfile** col gate AIRAC, l'ordine delle sezioni, l'avviso a chi pubblica |
-| `aeroporto-a-sezioni` (sopra il secondo) | **11** | la vIPI d'aeroporto entra nel **catalogo delle sezioni**: si riordina, si nasconde, prende sotto-sezioni e sezioni libere ovunque; e la sua release **congela** davvero (§K) |
+| `aeroporto-a-sezioni` (sopra il secondo) | **16** | la vIPI d'aeroporto entra nel **catalogo delle sezioni**: si riordina, si nasconde, prende sotto-sezioni e sezioni libere ovunque; la sua release **congela** davvero; e «Validità e revisione» porta il **timbro** di chi ha pubblicato, in tutti e quattro i documenti (§K) |
 
 ⚠️ **L'ordine di fusione è quello della tabella**: ognuno è costruito sopra il precedente, non lo sostituisce.
 ⚠️ Le cifre si contano: `git rev-list --count main..<ramo>`.
@@ -2682,3 +2683,46 @@ riconciliazione d'avvio e il viewer), e con la regola generale: *una sezione **s
 della verità di uno snapshot*. Verificato mettendo in piedi il codice **pre-carta** in un worktree su una copia
 del DB **pre-migrazione**, accanto a quello nuovo: le due pagine coincidono. Restano tre differenze volute —
 niente più due colonne affiancate (una griglia non si riordina), titoli in italiano, «Nota» sui callout.
+
+### K1 — Le tre rifiniture della stessa notte (27 agosto, chiuse)
+
+**1. Il meteo era sparito dalla pagina pubblica** (carta §8-§9). La pagina pubblica non legge il documento di
+lavoro: legge lo **snapshot di release effettiva**, e quello — per ogni scalo non ancora ripubblicato — è
+anteriore alla carta e non conosce la sezione `weather`. Prima il riquadro lo disegnava la **pagina**, fuori dal
+documento: c'era sempre. Misurato: LIBC, LIBD, LIRN, LIPA senza meteo; il solo LIBR ce l'aveva perché
+ripubblicato. Con lo stesso difetto `transition` e `runways` uscivano come **tabelle generiche**.
+
+Chiuso con `AirportLegacySections`: **una** mappa titolo→chiave, **due** lettori (la riconciliazione d'avvio e
+il viewer, perché gli snapshot non si riscrivono mai). E con la regola generale — *una sezione **sempre live**
+non è mai parte della verità di uno snapshot*. Verificato mettendo in piedi il codice **pre-carta** in un
+worktree su una copia del DB **pre-migrazione**, accanto a quello nuovo: le due pagine coincidono.
+
+⚠️ **Tre differenze restano, volute**: niente più le due colonne affiancate (una griglia di due sezioni fisse
+non si riordina, e il riordino era la richiesta), titoli in italiano (li dà il catalogo), «Nota» sui callout
+(renderer condiviso).
+
+**2. I pannelli che non sono sezioni erano larghi quanto la pagina** (carta §10). Quando
+`DocumentSectionsEditor` monta l'indice è **lui** a possedere la griglia `.ed-layout`; un pannello reso *dopo*
+la chiusura del componente finisce fuori. ⚠️ Verificato su tutti e quattro gli editor: **l'unico a farlo giusto
+era l'ACC**, che la griglia se la costruisce da sé. Parametro nuovo `AfterSections`. Misurato: 996/996 a
+1600px, 1536 in larghezza piena, 960 a griglia collassata.
+
+**3. «Validità e revisione» porta tre campi fissi** (carta §11, `docs/spec/modello-dati.md` §9.32): ciclo AIRAC,
+data e chi ha premuto Pubblica — nome, posizione staff, VID — in **tutti e quattro** i documenti. La scheda si
+aggiunge **sopra** e il testo scritto a mano resta (`SectionBodySource.HostAndBlocks`, l'unica sezione con due
+corpi). ⚠️ È **sempre live** per una ragione di ordine: il timbro parla della release, e la cattura frozen gira
+*dentro* la creazione dello snapshot, quando quella release non esiste ancora.
+
+**Due cose da sapere, nessuna delle due è un difetto:**
+
+- 🟡 **Sulla vIPI ACC di Brindisi la sezione non si vede in pubblico**: `validity` e `operationaltechnique` sono
+  **nascoste a mano** su entrambi i blocchi. Sono le sole due in tutto l'archivio (le altre otto vIPI e quattro
+  vLOA le hanno visibili). Si riaprono dall'editor con un clic — **decisione del committente**, non l'ho
+  toccata: nascondere una sezione è una scelta editoriale registrata.
+- 🟡 **Dove c'era già la tabella a mano il ciclo AIRAC compare due volte**, una generata e una scritta. È la
+  conseguenza annunciata della scelta «si aggiunge sopra»: sparisce cancellando quella riga.
+
+⚠️ **Il `vipi.db` di sviluppo è stato migrato dal nuovo passo d'avvio** durante il lavoro (un `Vipi.Host` già in
+esecuzione da `bin/Debug` ha ripreso i binari nuovi). `AirportExtraSections` è vuota e i tre «Remarks» di
+LIBC/LIBD/LIBR sono dentro i documenti con 2/5/3 blocchi: **nulla perso**, ed è la stessa migrazione che girerà
+al primo avvio in produzione. Backup pre-migrazione: `src/Vipi.Host/vipi.db.bak-pre-ripristino-shape-20260826`.
