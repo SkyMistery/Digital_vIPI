@@ -230,9 +230,9 @@ public class CatalogoStantioTests : IAsyncLifetime
             new Vipi.Infrastructure.Persistence.ReleaseTargets.AppReleaseTarget(_db),
             new Vipi.Infrastructure.Persistence.ReleaseTargets.AirportReleaseTarget(_db),
         });
-        var releases = new EfReleaseRepository(_db, registro);
+        var releases = new EfReleaseRepository(_db, registro, new EfMediaMaintenance(_db));
         return new ImpactDriftUseCase(
-            new EfDocumentAdminRepository(_db, registro, releases),
+            new EfDocumentAdminRepository(_db, registro, releases, new EfMediaMaintenance(_db)),
             new ReleaseFinto(),
             releases,
             new DocumentImpactService(_impatti, new AuthzSi()),

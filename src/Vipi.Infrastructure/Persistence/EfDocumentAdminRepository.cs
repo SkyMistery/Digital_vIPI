@@ -12,11 +12,14 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
     private readonly VipiDbContext _db;
     private readonly IReleaseTargetRegistry _targets;
     private readonly IReleaseRepository _releases;
-    public EfDocumentAdminRepository(VipiDbContext db, IReleaseTargetRegistry targets, IReleaseRepository releases)
+    private readonly Vipi.Application.Media.IMediaMaintenance _media;
+    public EfDocumentAdminRepository(VipiDbContext db, IReleaseTargetRegistry targets, IReleaseRepository releases,
+        Vipi.Application.Media.IMediaMaintenance media)
     {
         _db = db;
         _targets = targets;
         _releases = releases;
+        _media = media;
     }
 
     public async Task<IReadOnlyList<ManagedDoc>> ListAsync(CancellationToken ct = default)
@@ -107,6 +110,17 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
         var rels = await _db.DocReleases.Where(r => r.TargetType == relType && r.TargetKey == doc.ReleaseKey).ToListAsync(ct);
         if (rels.Count > 0) _db.DocReleases.RemoveRange(rels);
 
+        // Sha citati da ciò che sta per sparire — i payload delle release E i blocchi immagine di TUTTE le
+        // versioni (che il cascade EF cancella senza passare da EliminaVersioneAsync, quindi senza scansione).
+        // Vanno letti PRIMA: dopo, il riferimento non esiste più. La liberazione vera la decide
+        // DeleteOrphansAsync in coda, che ricontrolla tutte le sorgenti rimaste.
+        var shaCitati = new List<string?>(rels.Select(r => (string?)r.PayloadJson));
+        if (doc.DocumentId is int docIdPerSha)
+            shaCitati.AddRange(await _db.ContentBlocks.AsNoTracking()
+                .Where(b => b.DocumentVersion!.DocumentId == docIdPerSha && b.Format == BlockFormat.Image && b.BodyJson != null)
+                .Select(b => b.BodyJson)
+                .ToListAsync(ct));
+
         // Post-08 tutti i tipi sono su Document → un solo ramo di cancellazione (cascade EF).
         if (doc.DocumentId is int id)
         {
@@ -139,5 +153,10 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
             }
         }
         await _db.SaveChangesAsync(ct);
+
+        // Foto rimaste orfane dalla cancellazione: DeleteOrphansAsync ricontrolla tutte le sorgenti, quindi
+        // una foto citata anche altrove (altro documento, altra release) resta dov'è.
+        var sha = Vipi.Application.Media.MediaReferenceScanner.ScanAll(shaCitati).ToList();
+        if (sha.Count > 0) await _media.DeleteOrphansAsync(sha, ct);
     }
 }

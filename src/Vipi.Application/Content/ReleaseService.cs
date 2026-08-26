@@ -16,10 +16,13 @@ public interface IReleaseService
 {
     Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default);
 
-    /// <summary>Pubblica lo snapshot corrente al ciclo AIRAC indicato (entra in vigore alla sua data efficace).</summary>
+    /// <summary>Pubblica lo snapshot corrente al ciclo AIRAC indicato (entra in vigore alla sua data efficace).
+    /// Rifiuta se il documento è lockato da un altro editor: lo snapshot fotografa la sua bozza in lavorazione.</summary>
     Task PublishAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default);
 
-    /// <summary>Forza la pubblicazione immediata (review): ciclo corrente, effettiva adesso.</summary>
+    /// <summary>Forza la pubblicazione immediata (review): ciclo corrente, effettiva adesso. Rifiuta se il documento
+    /// è lockato da un altro editor (promuoverebbe la sua bozza a metà); a pubblicazione avvenuta rilascia
+    /// l'eventuale lock del chiamante, come il publish-versione dell'editor.</summary>
     Task PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default);
 
     /// <summary>Migrazione A (doc 10 §3f): per ogni documento <c>Published</c> e non nascosto SENZA release effettiva,
@@ -31,7 +34,9 @@ public interface IReleaseService
     /// <summary>Annulla una release (per Id). Authz sull'ACC del bersaglio.</summary>
     Task CancelReleaseAsync(int releaseId, CancellationToken ct = default);
 
-    /// <summary>Riepilogo differenze di una release rispetto a quella in vigore (o allo stato pubblicato/live).</summary>
+    /// <summary>Riepilogo differenze di una release rispetto a quella immediatamente PRECEDENTE nella storia del
+    /// bersaglio (ordine: data efficace, poi progressivo) — «cosa ha cambiato questa pubblicazione». Nessuna
+    /// precedente = prima pubblicazione (tutte le voci «Aggiunta»). Authz ACC, come Preview/Location.</summary>
     Task<ReleaseDiff> DiffAsync(int releaseId, CancellationToken ct = default);
 
     /// <summary>Anteprima di una release: metadati + <see cref="RawDocument"/> del payload. Vale per TUTTI i tipi —
@@ -122,6 +127,7 @@ public sealed class ReleaseService : IReleaseService
     public async Task PublishAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default)
     {
         await EnsureCanEditAsync(type, key, ct);
+        await EnsureNotLockedByOthersAsync(type, key, ct);
         var effectiveUtc = _airac.EffectiveUtcForCycle(releaseCycle);
         await SnapshotAndSaveAsync(type, key, releaseCycle, effectiveUtc, note, ct);
     }
@@ -138,11 +144,13 @@ public sealed class ReleaseService : IReleaseService
     /// tentativo fallito rientrano insieme a quelle del nuovo. Entrambe le cose sono in <c>EfUnitOfWork</c>.</para>
     ///
     /// <para>⚠️ L'autorizzazione resta <b>fuori</b> dalla transazione: negare un permesso non è una scrittura
-    /// da annullare, e tenerla dentro significherebbe aprire una transazione anche per rifiutare.</para>
+    /// da annullare, e tenerla dentro significherebbe aprire una transazione anche per rifiutare. Fuori sta anche
+    /// il controllo del lock (<see cref="EnsureNotLockedByOthersAsync"/>), per la stessa ragione.</para>
     /// </summary>
     public async Task PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default)
     {
         await EnsureCanEditAsync(type, key, ct);
+        var docId = await EnsureNotLockedByOthersAsync(type, key, ct);
         var now = DateTime.UtcNow;
         var cycle = _airac.GetCycle(now);
 
@@ -159,6 +167,11 @@ public sealed class ReleaseService : IReleaseService
             // versione appena archiviata → cap esatto, non N+1. Lo scheduled non promuove/archivia → non serve qui.
             await PruneArchivedVersionsForTargetAsync(type, key, token);
         }, ct);
+
+        // Pubblicato → il documento resta libero, come dopo il publish-versione dell'editor
+        // (EditingService.PublishAsync). ReleaseLockAsync è no-op se il lock non è del chiamante.
+        if (docId is int id)
+            await _editing.ReleaseLockAsync(id, _authz.CurrentUserId ?? 0, ct);
     }
 
     public async Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default)
@@ -193,10 +206,23 @@ public sealed class ReleaseService : IReleaseService
     {
         var rel = await _repo.GetByIdAsync(releaseId, ct);
         if (rel is null) return ReleaseDiff.Empty;
+        // Stessa authz delle altre letture di release (Preview/Location): il diff espone titoli e struttura.
+        // ReleasePanel e VersioniPage catturavano già EditNotAllowedException attorno a questa chiamata —
+        // una cattura che non poteva scattare, perché il gate qui mancava.
+        await EnsureCanEditAsync(rel.TargetType, rel.TargetKey, ct);
 
-        // Baseline = release in vigore ORA per lo stesso bersaglio, escludendo quella in esame.
-        var eff = await _repo.GetEffectiveAsync(rel.TargetType, rel.TargetKey, DateTime.UtcNow, ct);
-        var baseline = (eff is not null && eff.Id != rel.Id) ? eff : null;
+        // Baseline = la release immediatamente PRECEDENTE nella storia del bersaglio (data efficace, poi
+        // progressivo): il diff risponde «cosa ha cambiato QUESTA pubblicazione». Prima la baseline era
+        // «l'effettiva ORA, esclusa quella in esame»: proprio per la release in vigore — il diff più
+        // richiesto — diventava null, e la UI diceva «nessuna release in vigore» con tutte le sezioni
+        // «Aggiunta» anche alla decima pubblicazione.
+        var storia = await _repo.ListAsync(rel.TargetType, rel.TargetKey, ct);
+        var precedente = storia
+            .Where(r => r.ReleaseEffectiveUtc < rel.ReleaseEffectiveUtc
+                        || (r.ReleaseEffectiveUtc == rel.ReleaseEffectiveUtc && r.VersionNumber < rel.VersionNumber))
+            .OrderByDescending(r => r.ReleaseEffectiveUtc).ThenByDescending(r => r.VersionNumber)
+            .FirstOrDefault();
+        var baseline = precedente is null ? null : await _repo.GetByIdAsync(precedente.Id, ct);
 
         var cur = Signature(rel.PayloadJson);
         var prev = baseline is null ? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
@@ -359,5 +385,24 @@ public sealed class ReleaseService : IReleaseService
         var acc = await _repo.GetAuthAccCodeAsync(type, key, ct)
             ?? throw new Aor.ValidationException("Bersaglio della release inesistente.");
         await _authz.EnsureCanEditAccAsync(acc, ct);
+    }
+
+    /// <summary>
+    /// Il lock di editing vale anche per le release: lo snapshot fotografa la BOZZA (WorkingVersionIdAsync), e
+    /// «Pubblica ora» la promuove pure — pubblicare mentre un altro editor la sta scrivendo congela il suo lavoro
+    /// a metà e gli rompe la sessione (la bozza diventa Published e i salvataggi successivi vengono rifiutati).
+    /// Il publish-versione dell'editor (EditingService.PublishAsync) il lock lo pretende; qui basta il guard
+    /// inverso — nessun ALTRO lo detiene — perché il pannello release non ha il ciclo di vita del lock.
+    /// Ritorna il documentId risolto (null se il bersaglio non ha Document), così PublishNow può liberarlo dopo.
+    /// </summary>
+    private async Task<int?> EnsureNotLockedByOthersAsync(ReleaseTargetType type, string key, CancellationToken ct)
+    {
+        var docId = await _targets.For(type).ResolveDocumentIdAsync(key, ct);
+        if (docId is not int id) return null;
+        var lk = await _editing.InspectLockAsync(id, _authz.CurrentUserId ?? 0, ct);
+        if (lk.Locked && !lk.IsMine)
+            throw new Aor.ValidationException(
+                $"Documento in modifica da VID {lk.ByUserId} ({lk.ByName}) fino alle {lk.ExpiresUtc:HH:mm} UTC: la release fotografa la sua bozza, riprova quando ha finito.");
+        return id;
     }
 }

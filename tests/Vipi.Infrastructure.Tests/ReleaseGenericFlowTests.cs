@@ -90,11 +90,11 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     [Fact]
     public async Task PublishNow_Non_Lascia_Release_Se_La_Promozione_Fallisce()
     {
-        var vero = new EfReleaseRepository(_db, Registry());
+        var vero = new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db));
         var svc = new ReleaseService(new RepoCheRompeAllaPromozione(vero), new AllowAuthz(),
             new Vipi.Domain.Services.AiracService(),
             new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()),
-            new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
+            new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
             new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
             Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()),
             new EfUnitOfWork(_db));
@@ -110,7 +110,7 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     [Fact]
     public async Task Engine_Snapshots_And_Authorizes_UnknownType_ViaDescriptorOnly()
     {
-        var repo = new EfReleaseRepository(_db, Registry());
+        var repo = new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db));
 
         var json = await repo.SnapshotWorkingAsync(FakeType, "qualsiasi-chiave", "2606");
         Assert.NotNull(json);
@@ -122,7 +122,7 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     [Fact]
     public async Task AdminList_Describes_UnknownType_ViaDescriptorOnly()
     {
-        var admin = new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry()));
+        var admin = new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db));
 
         var all = await admin.ListAsync();
         var m = Assert.Single(all);
@@ -134,9 +134,9 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     [Fact]
     public async Task ReleaseService_PublishPreviewDiff_UnknownType_ViaDescriptorOnly()
     {
-        var repo = new EfReleaseRepository(_db, Registry());
+        var repo = new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db));
         var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
-            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
+            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
             new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
             Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()), new EfUnitOfWork(_db));
 
@@ -150,16 +150,25 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         Assert.NotNull(preview);
         Assert.Contains(preview!.Doc!.Roots, s => s.Title == "Sezione Fittizia");
 
-        var diff = await svc.DiffAsync(rel.Id);   // nessuna baseline in vigore → tutte "Aggiunta"
+        var diff = await svc.DiffAsync(rel.Id);   // prima release: nessuna precedente → tutte "Aggiunta"
+        Assert.False(diff.HasBaseline);
         Assert.Contains(diff.Rows, r => r.Label == "Sezione Fittizia");
+
+        // Seconda pubblicazione identica: la baseline è la release PRECEDENTE (non «l'effettiva ora», che
+        // per la release in vigore era se stessa → null → il diff fingeva una prima pubblicazione).
+        await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", "bis");
+        var rel2 = (await svc.ListAsync(FakeType, "qualsiasi-chiave")).First(r => r.IsEffectiveNow);
+        var diff2 = await svc.DiffAsync(rel2.Id);
+        Assert.True(diff2.HasBaseline);
+        Assert.Empty(diff2.Rows);   // contenuto identico → nessuna differenza, non «tutto aggiunto»
     }
 
     [Fact]
     public async Task Backfill_Creates_Effective_Release_For_Published_Without_One_And_Is_Idempotent()
     {
-        var repo = new EfReleaseRepository(_db, Registry());
+        var repo = new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db));
         var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
-            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
+            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
             new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
             Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()), new EfUnitOfWork(_db));
 
@@ -181,8 +190,8 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         // Retention versioni con cap=1: dopo ogni PublishNow (che archivia la versione precedente) le Archived
         // devono restare esattamente 1, NON 2. Regressione off-by-one: se il prune Archived gira prima della
         // promozione della bozza, conta una versione in meno e ne lascia N+1.
-        var svc = new ReleaseService(new EfReleaseRepository(_db, Registry()), new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
-            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry())),
+        var svc = new ReleaseService(new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
+            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
             new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
             Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions { KeepArchivedVersionsPerDocument = 1 }), new EfUnitOfWork(_db));
 
@@ -195,6 +204,41 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         await AddDraftAsync(3);
         await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", null);
         Assert.Equal(1, await ArchivedCountAsync());
+    }
+
+    /// <summary>
+    /// Il lock di editing vale anche per il pannello release: lo snapshot fotografa la BOZZA e «Pubblica ora»
+    /// la promuove pure. Fino a questo giro il publish-versione dell'editor pretendeva il lock
+    /// (EditingService.EnsureLockAsync) ma le release lo ignoravano: un secondo editor poteva congelare e
+    /// promuovere il lavoro a metà di chi stava scrivendo, rompendogli la sessione senza errore.
+    /// </summary>
+    [Fact]
+    public async Task Publish_Rifiutato_Se_Il_Documento_E_In_Modifica_Da_Un_Altro()
+    {
+        var repo = new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db));
+        var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
+            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
+            new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
+            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()), new EfUnitOfWork(_db));
+
+        // Un ALTRO editor (VID 999 ≠ 1 di AllowAuthz) detiene il lock, non scaduto.
+        var doc = await _db.Documents.FirstAsync(d => d.Id == _docId);
+        doc.LockedByUserId = 999; doc.LockedByName = "Altro Editor";
+        doc.LockedAtUtc = DateTime.UtcNow; doc.LockExpiresUtc = DateTime.UtcNow.AddMinutes(3);
+        await _db.SaveChangesAsync();
+
+        // Né immediata né schedulata: entrambe fotografano la sua bozza.
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => svc.PublishNowAsync(FakeType, "fake-key", null));
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => svc.PublishAsync(FakeType, "fake-key", "2613", null));
+        Assert.Empty(await repo.ListAsync(FakeType, "fake-key"));
+
+        // Il lock MIO non blocca; a pubblicazione avvenuta il documento resta libero (come dal publish dell'editor).
+        doc.LockedByUserId = 1; doc.LockedByName = "test"; doc.LockExpiresUtc = DateTime.UtcNow.AddMinutes(3);
+        await _db.SaveChangesAsync();
+        await svc.PublishNowAsync(FakeType, "fake-key", null);
+        Assert.Single(await repo.ListAsync(FakeType, "fake-key"));
+        var after = await _db.Documents.AsNoTracking().FirstAsync(d => d.Id == _docId);
+        Assert.Null(after.LockedByUserId);
     }
 
     private async Task AddDraftAsync(int versionNumber)

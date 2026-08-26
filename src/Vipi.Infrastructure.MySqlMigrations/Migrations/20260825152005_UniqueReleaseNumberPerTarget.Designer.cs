@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vipi.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using Vipi.Infrastructure.Persistence;
 namespace Vipi.Infrastructure.MySqlMigrations.Migrations
 {
     [DbContext(typeof(VipiDbContext))]
-    partial class VipiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260825152005_UniqueReleaseNumberPerTarget")]
+    partial class UniqueReleaseNumberPerTarget
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -105,12 +108,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<bool>("IsHidden")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("IsManual")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<int?>("IvaoId")
-                        .HasColumnType("int");
-
                     b.Property<int?>("LowerLimit")
                         .HasColumnType("int");
 
@@ -131,26 +128,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("longtext")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
-                    b.Property<string>("RegionMapPolygonInForce")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<string>("ShapeAiracCycle")
-                        .HasMaxLength(8)
-                        .HasColumnType("varchar(8)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<bool>("ShapeForcePublished")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("ShapeSource")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .HasDefaultValue("Source")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
                     b.Property<int?>("UpperLimit")
                         .HasColumnType("int");
 
@@ -159,9 +136,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.HasIndex("CenterId");
 
                     b.HasIndex("ComposePosition")
-                        .IsUnique();
-
-                    b.HasIndex("IvaoId")
                         .IsUnique();
 
                     b.HasIndex("ParentCallsign");
@@ -392,22 +366,8 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<int>("AccId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("DocumentId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ElevationFt")
-                        .HasColumnType("int");
-
                     b.Property<int?>("FeaturedRank")
                         .HasColumnType("int");
-
-                    b.Property<bool>("HasMilitaryPresence")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("Iata")
-                        .HasMaxLength(4)
-                        .HasColumnType("varchar(4)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
 
                     b.Property<string>("Icao")
                         .IsRequired()
@@ -418,19 +378,10 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<bool>("IsHidden")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("IsMilitaryOnly")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<DateTime?>("LastSeenAtUtc")
-                        .HasColumnType("datetime(6)");
-
                     b.Property<double?>("Latitude")
                         .HasColumnType("double");
 
                     b.Property<double?>("Longitude")
-                        .HasColumnType("double");
-
-                    b.Property<double?>("MagneticVariation")
                         .HasColumnType("double");
 
                     b.Property<string>("Name")
@@ -450,50 +401,12 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
 
                     b.HasIndex("AccId");
 
-                    b.HasIndex("DocumentId")
-                        .IsUnique();
-
                     b.HasIndex("Icao")
                         .IsUnique();
 
                     b.HasIndex("ParentCallsign");
 
                     b.ToTable("Airports");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AirportDayTraffic", b =>
-                {
-                    b.Property<string>("Icao")
-                        .HasMaxLength(8)
-                        .HasColumnType("varchar(8)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<DateTime>("Day")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("AtcMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CoveredMovements")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("FetchedUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("Inbound")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Outbound")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Overflight")
-                        .HasColumnType("int");
-
-                    b.HasKey("Icao", "Day");
-
-                    b.HasIndex("Day");
-
-                    b.ToTable("AirportDayTraffic");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.AirportExtraSection", b =>
@@ -723,17 +636,11 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<bool>("IsHidden")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("IsManual")
-                        .HasColumnType("tinyint(1)");
-
                     b.Property<bool>("IsPrimary")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsShapeSynthetic")
                         .HasColumnType("tinyint(1)");
-
-                    b.Property<int?>("IvaoId")
-                        .HasColumnType("int");
 
                     b.Property<bool>("LimitsFromSource")
                         .HasColumnType("tinyint(1)");
@@ -758,26 +665,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("longtext")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
-                    b.Property<string>("RegionMapPolygonInForce")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<string>("ShapeAiracCycle")
-                        .HasMaxLength(8)
-                        .HasColumnType("varchar(8)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<bool>("ShapeForcePublished")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("ShapeSource")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .HasDefaultValue("Source")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
                     b.Property<int?>("UpperLimit")
                         .HasColumnType("int");
 
@@ -788,9 +675,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.HasIndex("AirportIcao");
 
                     b.HasIndex("ComposePosition")
-                        .IsUnique();
-
-                    b.HasIndex("IvaoId")
                         .IsUnique();
 
                     b.HasIndex("ParentCallsign");
@@ -912,247 +796,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("AirportTransitionLevels");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.AtcMonthRollup", b =>
-                {
-                    b.Property<DateTime>("Month")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Callsign")
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<int>("BusyMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Position")
-                        .HasMaxLength(16)
-                        .HasColumnType("varchar(16)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<long>("Seconds")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("Sessions")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TrafficMoved")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TrafficSeen")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.HasKey("Month", "UserId", "Callsign");
-
-                    b.HasIndex("Month");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("AtcMonthRollups");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AtcSession", b =>
-                {
-                    b.Property<long>("SessionId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("Callsign")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<int>("DurationSeconds")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("EndUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Frequency")
-                        .HasMaxLength(16)
-                        .HasColumnType("varchar(16)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<int>("MovementCount")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Position")
-                        .HasMaxLength(16)
-                        .HasColumnType("varchar(16)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<int?>("Rating")
-                        .HasColumnType("int");
-
-                    b.Property<long>("ShiftKey")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("Source")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<DateTime>("StartUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("TrafficCount")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("TrafficFilledUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("TrafficMinutes")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("SessionId");
-
-                    b.HasIndex("ShiftKey");
-
-                    b.HasIndex("StartUtc");
-
-                    b.HasIndex("Callsign", "StartUtc");
-
-                    b.HasIndex("UserId", "StartUtc");
-
-                    b.ToTable("AtcSessions");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AtcSessionRunway", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Arrival")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<string>("Departure")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<DateTime>("FromUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<long>("SessionId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SessionId", "FromUtc");
-
-                    b.ToTable("AtcSessionRunways");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AtcSessionTraffic", b =>
-                {
-                    b.Property<long>("SessionId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("PilotCallsign")
-                        .HasMaxLength(16)
-                        .HasColumnType("varchar(16)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<int>("LegOrdinal")
-                        .HasColumnType("int");
-
-                    b.Property<string>("AircraftIcao")
-                        .HasMaxLength(8)
-                        .HasColumnType("varchar(8)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<string>("ArrIcao")
-                        .HasMaxLength(8)
-                        .HasColumnType("varchar(8)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<string>("DepIcao")
-                        .HasMaxLength(8)
-                        .HasColumnType("varchar(8)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<int?>("EntryAltitudeFt")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ExitAltitudeFt")
-                        .HasColumnType("int");
-
-                    b.Property<string>("FirstPhase")
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<DateTime>("FirstSeenUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<long?>("FlightPlanId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("HandoffFromSessionId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("HandoffToSessionId")
-                        .HasColumnType("bigint");
-
-                    b.Property<bool>("HasObservationGap")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("LastPhase")
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<DateTime>("LastSeenUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int?>("MaxAltitudeFt")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Origin")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<int>("PilotUserId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("SawAirborne")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("SawMovement")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<int>("SeenMinutes")
-                        .HasColumnType("int");
-
-                    b.HasKey("SessionId", "PilotCallsign", "LegOrdinal");
-
-                    b.HasIndex("PilotCallsign");
-
-                    b.ToTable("AtcSessionTraffic");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<long>("Id")
@@ -1190,53 +833,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("AuditLogs");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.CallsignAlias", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Catalog")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<int?>("IvaoId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("NewCallsign")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<string>("OldCallsign")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<DateTime>("RenamedAtUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int?>("SectorId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OldCallsign")
-                        .IsUnique();
-
-                    b.HasIndex("SectorId");
-
-                    b.HasIndex("Catalog", "IvaoId");
-
-                    b.ToTable("CallsignAliases");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.ContentBlock", b =>
@@ -1496,6 +1092,13 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<int?>("LockedByUserId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("NeedsReviewUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("ReviewReason")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .HasColumnType("longblob");
@@ -1524,60 +1127,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.HasIndex("Type", "Status");
 
                     b.ToTable("Documents");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.DocumentImpact", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ClearedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("ClearedUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("DocumentId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsPublicNow")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("Kind")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar(32)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<DateTime>("RaisedUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("ReasonArgsJson")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<string>("ReasonKey")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<string>("SourceKey")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("varchar(64)")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClearedUtc", "RaisedUtc");
-
-                    b.HasIndex("DocumentId", "Kind", "SourceKey", "ClearedUtc")
-                        .IsUnique();
-
-                    b.ToTable("DocumentImpacts");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.DocumentParty", b =>
@@ -1852,9 +1401,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("longtext")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
-                    b.Property<int?>("FromImpactId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Priority")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -1905,11 +1451,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("ImportAtcSessions")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true);
-
                     b.Property<bool>("ImportRunways")
                         .HasColumnType("tinyint(1)");
 
@@ -1955,9 +1496,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
                     b.Property<DateTime>("LastSuccessUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<DateTime?>("PrevSuccessUtc")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Category");
@@ -2405,28 +1943,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("StaffMembers");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.StatsSettings", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("PublicLeaderboard")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<int>("UpdatedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("StatsSettings");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.UnificationRule", b =>
                 {
                     b.Property<int>("Id")
@@ -2519,14 +2035,7 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Vipi.Domain.Entities.Document", "Document")
-                        .WithOne("Airport")
-                        .HasForeignKey("Vipi.Domain.Entities.Airport", "DocumentId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("Acc");
-
-                    b.Navigation("Document");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.AirportExtraSection", b =>
@@ -2624,38 +2133,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Navigation("Airport");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.AtcSessionRunway", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.AtcSession", "Session")
-                        .WithMany("Runways")
-                        .HasForeignKey("SessionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Session");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AtcSessionTraffic", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.AtcSession", "Session")
-                        .WithMany("Traffic")
-                        .HasForeignKey("SessionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Session");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.CallsignAlias", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.Sector", "Sector")
-                        .WithMany()
-                        .HasForeignKey("SectorId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Sector");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.ContentBlock", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.DocumentVersion", "DocumentVersion")
@@ -2738,17 +2215,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("CurrentVersion");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.DocumentImpact", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.Document", "Document")
-                        .WithMany()
-                        .HasForeignKey("DocumentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Document");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.DocumentParty", b =>
@@ -2922,13 +2388,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Navigation("TransitionLevels");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.AtcSession", b =>
-                {
-                    b.Navigation("Runways");
-
-                    b.Navigation("Traffic");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.CoordinationAgreement", b =>
                 {
                     b.Navigation("Sections");
@@ -2936,8 +2395,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
 
             modelBuilder.Entity("Vipi.Domain.Entities.Document", b =>
                 {
-                    b.Navigation("Airport");
-
                     b.Navigation("Parties");
 
                     b.Navigation("Sectors");

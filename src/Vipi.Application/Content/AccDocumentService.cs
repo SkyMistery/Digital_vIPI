@@ -25,10 +25,10 @@ public interface IAccDocumentService
     /// <summary>Carica la vIPI ACC dalla versione di lavoro (bozza se esiste, sennò la pubblicata) assemblando i blocchi. ACC-gated; garantisce il Document.</summary>
     Task<AccDocumentModel> LoadForEditAsync(string accCode, CancellationToken ct = default);
 
-    /// <summary>Vista PUBBLICA: assembla i blocchi dallo snapshot della release AIRAC in vigore (se esiste), altrimenti
-    /// dalla versione pubblicata del Document. Se l'ACC non ha ancora un Document (o versione pubblicata), ritorna un
-    /// blocco Aerovia vuoto di default così le sezioni derivate (freq/AoR/coord) restano visibili dai cataloghi. Non
-    /// gated, non crea il Document. Null solo se l'ACC non esiste.</summary>
+    /// <summary>Vista PUBBLICA: assembla i blocchi dallo snapshot della release AIRAC in vigore. Non gated, non crea
+    /// il Document. Null se l'ACC non esiste, se non c'è release effettiva (doc 10 §3f/§S6b: visibilità pubblica =
+    /// release effettiva, nessun fallback live) o se il documento è nascosto dall'admin — lo stesso gate
+    /// <c>IsHidden</c> che gli altri tipi applicano nel predicato di <c>EfContentRepository.LoadVipiAsync</c>.</summary>
     Task<AccDocumentModel?> LoadForViewAsync(string accCode, CancellationToken ct = default);
 
     /// <summary>Anteprima di una specifica release ACC: assembla i blocchi CONGELATI dallo snapshot (DocReleasePayload) +
@@ -138,6 +138,11 @@ public sealed class AccDocumentService : IAccDocumentService
         accCode = Norm(accCode);
         var id = await _repo.ResolveAccDocumentIdentityAsync(accCode, ct);
         if (id is null) return null;   // ACC inesistente
+
+        // Documento nascosto dall'admin ⇒ invisibile al pubblico, PRIMA di guardare la release. Gli altri tipi
+        // hanno questo gate nel predicato di caricamento (EfContentRepository.LoadVipiAsync, `!d.IsHidden`); qui
+        // mancava, e una vIPI ACC nascosta spariva da landing/ricerca ma restava servita all'URL diretto.
+        if (id.IsDocumentHidden) return null;
 
         // Visibilità pubblica = esiste una release AIRAC in vigore (doc 10 §3f/§S6b, uniforme alle altre famiglie):
         // il pubblico vede i blocchi CONGELATI dello snapshot (le derivate — freq/AoR/coord — restano live). Senza

@@ -96,7 +96,7 @@ public class EliminaDocumentoAnnidatoTests : IAsyncLifetime
         // esistesse il motore di eliminazione.
         var d = await DocumentoAnnidatoAsync();
         var registro = new ReleaseTargetRegistry(new IReleaseTarget[] { new AirportReleaseTarget(_db) });
-        var repo = new EfDocumentAdminRepository(_db, registro, new EfReleaseRepository(_db, registro));
+        var repo = new EfDocumentAdminRepository(_db, registro, new EfReleaseRepository(_db, registro, new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db));
 
         await repo.DeleteAsync(new ManagedDocRef(ManagedDocKind.AirportVipi, "LIRF", d.Id), actorUserId: 7);
 

@@ -1450,7 +1450,7 @@
   <data name="Rel_EffectiveFrom" xml:space="preserve"><value>in vigore dal</value></data>
   <data name="Rel_PreviewTitle" xml:space="preserve"><value>Anteprima del documento come sarà a questo ciclo</value></data>
   <data name="Rel_Preview" xml:space="preserve"><value>Anteprima</value></data>
-  <data name="Rel_DiffTitle" xml:space="preserve"><value>Cosa cambia rispetto a quella in vigore</value></data>
+  <data name="Rel_DiffTitle" xml:space="preserve"><value>Cosa ha cambiato questa pubblicazione rispetto alla precedente</value></data>
   <data name="Rel_Diff" xml:space="preserve"><value>Differenze</value></data>
   <data name="Rel_CancelTitle" xml:space="preserve"><value>Annulla questa release</value></data>
   <data name="Rel_From" xml:space="preserve"><value>dal</value></data>
@@ -1461,8 +1461,10 @@
   <data name="Rel_ScheduleAtCycle" xml:space="preserve"><value>Programma al ciclo</value></data>
   <data name="Rel_PublishedAtCycle" xml:space="preserve"><value>Release pubblicata al ciclo AIRAC {0}.</value></data>
   <data name="Rel_PublishedNow" xml:space="preserve"><value>Release pubblicata subito (review).</value></data>
-  <data name="Rel_CancelConfirm" xml:space="preserve"><value>Annullare questa release? Il pubblico tornerà alla precedente in vigore.</value></data>
-  <data name="Rel_CancelPrompt" xml:space="preserve"><value>Annullare la release AIRAC {0}? Il pubblico tornerà alla precedente in vigore.</value></data>
+    <data name="Rel_CancelPrompt" xml:space="preserve"><value>Annullare la release AIRAC {0}? Il pubblico tornerà alla precedente in vigore.</value></data>
+  <data name="Rel_CancelPromptOld" xml:space="preserve"><value>Eliminare dalla storia la release superata AIRAC {0}? Il pubblico non vede alcuna differenza.</value></data>
+  <data name="Rel_CancelTitleOld" xml:space="preserve"><value>Elimina questa release superata dalla storia</value></data>
+  <data name="Common_SystemAuthor" xml:space="preserve"><value>sistema</value></data>
   <data name="Rel_CancelYes" xml:space="preserve"><value>Annulla la release</value></data>
   <data name="Rel_OlderN" xml:space="preserve"><value>Altre {0} release superate</value></data>
   <data name="Rel_ShapeDeferredTitle" xml:space="preserve"><value>Aree nuove non ancora in vigore</value></data>
@@ -1481,7 +1483,7 @@
   <data name="Rel_DiffItems" xml:space="preserve"><value>{0} elementi</value></data>
   <data name="Rel_DiffItemsFromTo" xml:space="preserve"><value>{0} → {1} elementi</value></data>
   <data name="Rel_BaselineCycle" xml:space="preserve"><value>AIRAC {0}</value></data>
-  <data name="Rel_BaselineNone" xml:space="preserve"><value>stato attuale (nessuna release in vigore)</value></data>
+  <data name="Rel_BaselineNone" xml:space="preserve"><value>prima pubblicazione (nessuna release precedente)</value></data>
   <data name="Rel_ComparedWith" xml:space="preserve"><value>Confronto con:</value></data>
   <data name="Rel_NoDiff" xml:space="preserve"><value>Nessuna differenza strutturale rilevata.</value></data>
   <data name="Rel_ColItem" xml:space="preserve"><value>Voce</value></data>
@@ -1539,7 +1541,7 @@
   <data name="Ver_HelpAria" xml:space="preserve"><value>Aiuto sull'elenco dei documenti</value></data>
   <data name="Ver_CountTitle" xml:space="preserve"><value>Documenti mostrati sul totale</value></data>
   <data name="Ver_CycleTitle" xml:space="preserve"><value>Ciclo AIRAC in vigore adesso</value></data>
-  <data name="Ver_PublicChipTitle" xml:space="preserve"><value>Visibili al pubblico, senza bozze aperte</value></data>
+  <data name="Ver_PublicChipTitle" xml:space="preserve"><value>Pubblicati, non nascosti e senza bozza aperta — la visibilità al pubblico la decide la release in vigore</value></data>
   <data name="Ver_DraftChipTitle" xml:space="preserve"><value>Con una bozza aperta, non ancora pubblicata</value></data>
   <data name="Ver_HiddenChipTitle" xml:space="preserve"><value>Nascosti dagli elenchi pubblici</value></data>
   <data name="Ver_Clear" xml:space="preserve"><value>Togli i filtri</value></data>
@@ -1586,7 +1588,7 @@
   <data name="Ver_PublishNowReview" xml:space="preserve"><value>Pubblica ora (review)</value></data>
   <data name="Ver_FilterAll_M" xml:space="preserve"><value>Tutti</value></data>
   <data name="Ver_FilterAll_F" xml:space="preserve"><value>Tutte</value></data>
-  <data name="Ver_FilterPublic" xml:space="preserve"><value>Pubblici</value></data>
+  <data name="Ver_FilterPublic" xml:space="preserve"><value>Pubblicati</value></data>
   <data name="Ver_FilterDraft" xml:space="preserve"><value>Solo bozza</value></data>
   <data name="Ver_FilterHidden" xml:space="preserve"><value>Nascosti</value></data>
   <data name="Ver_FilterScheduled" xml:space="preserve"><value>Programmate</value></data>

@@ -462,7 +462,10 @@ public class VipiDbContext : DbContext
         b.Entity<DocRelease>(e =>
         {
             e.HasIndex(x => new { x.TargetType, x.TargetKey, x.ReleaseEffectiveUtc });   // selezione della release effettiva
-            e.HasIndex(x => new { x.TargetType, x.TargetKey, x.VersionNumber });
+            // UNICO come quello di DocumentVersion (DocumentId, VersionNumber): il progressivo si assegna con
+            // max+1 letto in memoria (SaveReleaseAsync) e due pubblicazioni concorrenti sullo stesso bersaglio
+            // prenderebbero lo stesso numero in silenzio — meglio un conflitto rumoroso da ritentare.
+            e.HasIndex(x => new { x.TargetType, x.TargetKey, x.VersionNumber }).IsUnique();
         });
 
         // --- Incarichi editoriali (task management). ---

@@ -108,7 +108,7 @@ public class AirportDocResolutionTests : IAsyncLifetime
         {
             new AppReleaseTarget(_db), new AccVipiReleaseTarget(_db), new AirportReleaseTarget(_db), new VloaReleaseTarget(_db),
         });
-        var content = new EfContentRepository(_db, new EfReleaseRepository(_db, registry));
+        var content = new EfContentRepository(_db, new EfReleaseRepository(_db, registry, new EfMediaMaintenance(_db)));
 
         // preferWorking: salta la release e legge lo stato di lavorazione — quel che conta qui è QUALE documento.
         var raw = await content.LoadAirportVipiAsync("LIRP", ignoreRelease: true, preferWorking: true);

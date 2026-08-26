@@ -15,10 +15,25 @@ public sealed class EfReleaseRepository : IReleaseRepository
 {
     private readonly VipiDbContext _db;
     private readonly IReleaseTargetRegistry _targets;
-    public EfReleaseRepository(VipiDbContext db, IReleaseTargetRegistry targets)
+    private readonly Vipi.Application.Media.IMediaMaintenance _media;
+    public EfReleaseRepository(VipiDbContext db, IReleaseTargetRegistry targets, Vipi.Application.Media.IMediaMaintenance media)
     {
         _db = db;
         _targets = targets;
+        _media = media;
+    }
+
+    /// <summary>
+    /// Libera le immagini rimaste senza padroni dopo che dei payload di release sono spariti (annullo o
+    /// potatura). Gli sha vanno letti dai payload PRIMA della cancellazione; la decisione finale la prende
+    /// <c>DeleteOrphansAsync</c>, che ricontrolla TUTTE le sorgenti — una foto citata anche da una bozza, da
+    /// un'altra release o da una sezione extra resta dov'è. Stesso anello di EfEditingRepository: senza,
+    /// una foto usata SOLO in release rimosse restava nel deposito per sempre.
+    /// </summary>
+    private async Task LiberaImmaginiDeiPayloadAsync(IEnumerable<string> payloads, CancellationToken ct)
+    {
+        var sha = Vipi.Application.Media.MediaReferenceScanner.ScanAll(payloads).ToList();
+        if (sha.Count > 0) await _media.DeleteOrphansAsync(sha, ct);
     }
 
     public async Task<string?> SnapshotWorkingAsync(ReleaseTargetType type, string key, string airacCycle, CancellationToken ct = default)
@@ -49,9 +64,10 @@ public sealed class EfReleaseRepository : IReleaseRepository
         var existing = await _db.DocReleases
             .Where(r => r.TargetType == type && r.TargetKey == key).ToListAsync(ct);
 
-        // Una release per ciclo: le precedenti non-superate dello stesso ciclo diventano Superseded.
-        foreach (var r in existing.Where(r => r.ReleaseAiracCycle == releaseCycle && r.Status != ReleaseStatus.Superseded))
-            r.Status = ReleaseStatus.Superseded;
+        // «Una release per ciclo» lo impone RecomputeStatuses (vince la più recente del ciclo, le altre
+        // Superseded). Qui c'era anche una marcatura esplicita per-ciclo, ma per i cicli FUTURI il ricalcolo
+        // la annullava subito dopo (rimetteva Scheduled a ogni riga con data futura): ripubblicando allo
+        // stesso ciclo schedulato restavano DUE «Programmata» gemelle in timeline. La regola vive in un posto.
 
         var nextNumber = (existing.Count == 0 ? 0 : existing.Max(r => r.VersionNumber)) + 1;
         var row = new DocRelease
@@ -136,12 +152,15 @@ public sealed class EfReleaseRepository : IReleaseRepository
         var rel = await _db.DocReleases.FirstOrDefaultAsync(r => r.Id == releaseId, ct);
         if (rel is null) return null;
         var (type, key) = (rel.TargetType, rel.TargetKey);
+        var payload = rel.PayloadJson;   // letto PRIMA della cancellazione, per liberare le foto
         _db.DocReleases.Remove(rel);
         await _db.SaveChangesAsync(ct);
 
         // Ricalcola gli stati delle rimanenti dello stesso bersaglio (una potrebbe tornare effettiva).
         var rest = await _db.DocReleases.Where(r => r.TargetType == type && r.TargetKey == key).ToListAsync(ct);
         if (rest.Count > 0) { RecomputeStatuses(rest, DateTime.UtcNow); await _db.SaveChangesAsync(ct); }
+
+        await LiberaImmaginiDeiPayloadAsync(new[] { payload }, ct);
         return (type, key);
     }
 
@@ -189,14 +208,23 @@ public sealed class EfReleaseRepository : IReleaseRepository
 
     public async Task<int> PruneReleasesAsync(ReleaseTargetType type, string key, DateTime keepFromUtc, CancellationToken ct = default)
     {
-        // Solo le Superseded oltre soglia: l'Effective e le Scheduled hanno stato diverso → escluse per costruzione.
-        var stale = await _db.DocReleases
-            .Where(r => r.TargetType == type && r.TargetKey == key
-                        && r.Status == ReleaseStatus.Superseded && r.ReleaseEffectiveUtc < keepFromUtc)
+        // Gli stati si ricalcolano PRIMA di potare: fra un salvataggio e l'altro invecchiano da soli — una
+        // schedulata che entra in vigore col passare del tempo lascia la vecchia riga marcata Effective — e
+        // lo sweep di boot (PruneAllAsync), che non passa da SaveReleaseAsync, potava solo ciò che un
+        // salvataggio precedente aveva già marcato. Il ricalcolo qui rende la potatura vera a ogni giro.
+        var all = await _db.DocReleases
+            .Where(r => r.TargetType == type && r.TargetKey == key)
             .ToListAsync(ct);
-        if (stale.Count == 0) return 0;
+        if (all.Count == 0) return 0;
+        RecomputeStatuses(all, DateTime.UtcNow);
+
+        // Solo le Superseded oltre soglia: l'Effective e le Scheduled hanno stato diverso → escluse per costruzione.
+        var stale = all.Where(r => r.Status == ReleaseStatus.Superseded && r.ReleaseEffectiveUtc < keepFromUtc).ToList();
+        var payloads = stale.Select(r => r.PayloadJson).ToList();   // PRIMA della cancellazione
         _db.DocReleases.RemoveRange(stale);
-        await _db.SaveChangesAsync(ct);
+        await _db.SaveChangesAsync(ct);   // salva anche gli stati ricalcolati delle righe rimaste
+
+        if (stale.Count > 0) await LiberaImmaginiDeiPayloadAsync(payloads, ct);
         return stale.Count;
     }
 
@@ -213,15 +241,25 @@ public sealed class EfReleaseRepository : IReleaseRepository
             .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
     }
 
+    /// <summary>
+    /// Ricalcola gli stati di TUTTE le release di un bersaglio: per ogni ciclo vince la più recente
+    /// (VersionNumber più alto) — «una release per ciclo» —; fra le vincitrici, quella con data efficace
+    /// &lt;= now più recente è Effective, le future Scheduled, tutto il resto Superseded. Senza la regola
+    /// per-ciclo, ripubblicare a un ciclo FUTURO lasciava due Scheduled gemelle (la marcatura esplicita di
+    /// SaveReleaseAsync veniva annullata dal ramo «data futura → Scheduled» di questo stesso metodo).
+    /// </summary>
     private static void RecomputeStatuses(List<DocRelease> all, DateTime now)
     {
-        var effective = all.Where(r => r.ReleaseEffectiveUtc <= now)
+        var winners = all.GroupBy(r => r.ReleaseAiracCycle)
+            .Select(g => g.OrderByDescending(r => r.VersionNumber).First())
+            .ToHashSet();
+        var effective = all.Where(r => winners.Contains(r) && r.ReleaseEffectiveUtc <= now)
             .OrderByDescending(r => r.ReleaseEffectiveUtc).ThenByDescending(r => r.VersionNumber)
             .FirstOrDefault();
         foreach (var r in all)
         {
             if (ReferenceEquals(r, effective)) r.Status = ReleaseStatus.Effective;
-            else if (r.ReleaseEffectiveUtc > now) r.Status = ReleaseStatus.Scheduled;
+            else if (winners.Contains(r) && r.ReleaseEffectiveUtc > now) r.Status = ReleaseStatus.Scheduled;
             else r.Status = ReleaseStatus.Superseded;
         }
     }
