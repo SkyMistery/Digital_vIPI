@@ -1,7 +1,7 @@
 # Eliminare, con le protezioni — carta (26 agosto 2026)
 
 > **Stato: ✅ ESEGUITA il 26 agosto 2026** (lavori A e B), sul ramo `statistiche-atc`. Build Release pulita
-> sui due TFM, test verdi (net8 **2461**, net10 **2223**) e **provata sui dati veri** — §11.
+> sui due TFM, test verdi (net8 **2464**, net10 **2226**) e **provata sui dati veri** — §11.
 > Quel che l'esecuzione ha cambiato rispetto al piano sta in **§12**. Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 > Nasce dall'inventario del 26 agosto su *come si elimina oggi un settore o un aeroporto* — la risposta è
 > «quasi mai, e per vie traverse» — e dalle decisioni del committente della stessa sessione (§2).
