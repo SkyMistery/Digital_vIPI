@@ -31,6 +31,15 @@ public interface IOrphanSectorRepository
     Task<int> CountCatalogRowsAsync(CancellationToken ct = default);
 
     /// <summary>
+    /// Gli <b>aeroporti</b> che la sorgente non nomina da prima della soglia: il gemello di
+    /// <see cref="ListStaleCatalogRowsAsync"/> per gli scali. Fino al 26 agosto 2026 non era una domanda che
+    /// si potesse porre — <c>Airport</c> non aveva nessun timbro d'import.
+    /// <para>Chi non è mai stato timbrato resta fuori: è il caso degli aeroporti più vecchi del timbro
+    /// stesso, e finché la sorgente non passa almeno una volta «non lo sappiamo» non è «è sparito».</para>
+    /// </summary>
+    Task<IReadOnlyList<StaleAirportRow>> ListStaleAirportsAsync(DateTime sogliaUtc, CancellationToken ct = default);
+
+    /// <summary>
     /// Il possibile <b>sostituto</b> di un callsign non più elencato: stessa posizione, stesso perimetro
     /// (aeroporto o ACC), timbro recente. null se non ce n'è uno solo — con zero o due candidati la
     /// proposta sarebbe una scommessa, e questa è una domanda a cui deve rispondere una persona.

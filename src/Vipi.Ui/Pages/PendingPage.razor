@@ -1,0 +1,257 @@
+@page "/services/vsop/admin/pending"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject IPendingOverviewService Pending
+@inject IEditAuthorizationService Authz
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Pend_Title"] · IVAO Italia</PageTitle>
+
+@* ---- «Cosa devo sistemare» ------------------------------------------------------------------------
+   I pezzi c'erano già tutti, e si leggevano uno per volta: gli orfani in fondo alla Struttura di UNA ACC,
+   gli impatti nel banner di UN documento aperto in modifica, e gli aeroporti spariti da nessuna parte —
+   perché fino al 26 agosto 2026 `Airport` non aveva nessun timbro d'import.
+   Questa pagina è anche ciò che DÀ IL PERMESSO di eliminare: la regola è che si toglie solo quel che la
+   sorgente non manda da due giri, e qui si vede chi ha già maturato quel diritto e chi no, col motivo
+   scritto accanto invece che scoperto premendo un tasto. *@
+<div class="wrap struct">
+    <AdminNav />
+
+    <div class="doc-head st-head">
+        <h1 class="st-h2 page-h1">
+            @L["Pend_Title"]
+            @if (_dati is not null)
+            {
+                <span>&nbsp;</span>
+                <span class="pill @(_dati.Totale > 0 ? "amber" : "blue")">@_dati.Totale</span>
+            }
+        </h1>
+        <HelpHint Href="/services/vsop/guide#admin-pending" AriaLabel="@L["Pend_HelpAria"]" ExtraClass="wide">
+            @((MarkupString)L["Pend_Intro"].Value)
+        </HelpHint>
+        <nav class="struct-nav">
+            <button class="btn ghost" disabled="@_busy" @onclick="CaricaAsync" title="@L["Audit_Refresh"]">
+                <Icon Name="refresh" Size="14" /> @L["Audit_Refresh"]
+            </button>
+        </nav>
+        <LiveRegion>
+            @if (_msg is { } m)
+            {
+                <span class="st-msg warn"><Icon Name="warning" Size="14" /><span class="st-msg-t">@m</span></span>
+            }
+        </LiveRegion>
+    </div>
+
+    @if (!Authz.IsAdmin)
+    {
+        <p class="help">@L["Pend_AdminOnly"]</p>
+    }
+    else if (_dati is null)
+    {
+        <LoadingState />
+    }
+    else
+    {
+        @* Il metro, in cima: senza sapere QUANDO la sorgente ha parlato l'ultima volta, «non lo manda più»
+           è un'affermazione che chi legge non può verificare. *@
+        <p class="muted" style="margin:0 0 14px;font-size:12.5px">
+            @L["Pend_LastRuns",
+                _dati.UltimoGiroAcc is { } a ? $"{a:yyyy-MM-dd HH:mm}Z" : "—",
+                _dati.UltimoGiroAeroporti is { } b ? $"{b:yyyy-MM-dd HH:mm}Z" : "—",
+                _dati.PenultimoGiroAeroporti is { } c ? $"{c:yyyy-MM-dd HH:mm}Z" : "—"]
+        </p>
+
+        @if (_dati.Totale == 0)
+        {
+            <EmptyState Icon="check-circle" Title="@L["Pend_AllClear"].Value">
+                <p style="margin:0">@L["Pend_AllClearHint"]</p>
+            </EmptyState>
+        }
+
+        @* ---- Aeroporti che la sorgente non conferma più ---- *@
+        @if (_dati.Aeroporti.Count > 0)
+        {
+            <div class="section-title">
+                <h2 class="h-sect">@L["Pend_AirportsTitle"] <span class="pill amber">@_dati.Aeroporti.Count</span></h2>
+                <span class="ln"></span>
+            </div>
+            <div class="panel">
+                <table class="res-table">
+                    <thead>
+                        <tr>
+                            <th>@L["Pend_ColWhat"]</th>
+                            <th>@L["Pend_ColLastSeen"]</th>
+                            <th>@L["Pend_ColPrice"]</th>
+                            <th>@L["Orph_Actions"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in _dati.Aeroporti)
+                        {
+                            <tr>
+                                <td><b>@r.Riga.Icao</b> <span class="muted">@r.Riga.Name · @r.Riga.AccCode</span></td>
+                                <td>
+                                    @(r.Riga.LastSeenUtc is { } t ? $"{t:yyyy-MM-dd}" : "—")
+                                    @if (r.Riga.DaGiorni is { } g)
+                                    {
+                                        <span class="muted"> · @L["Pend_DaysAgo", g]</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (r.Riga.Settori > 0)
+                                    {
+                                        <span>@L["Pend_Sectors", r.Riga.Settori]</span>
+                                    }
+                                    @if (r.Riga.HaDocumento)
+                                    {
+                                        <span class="pill blue">@L["Pend_HasDoc"]</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (r.Eliminabile)
+                                    {
+                                        <DeleteDialog Target="DeletionTarget.Airport(r.Riga.AirportId)" Nome="@r.Riga.Icao"
+                                                      TriggerClass="btn ghost danger" AriaLabel="@L["Del_Airport"]"
+                                                      Disabled="@_busy" OnDeleted="CaricaAsync">
+                                            <Trigger><Icon Name="trash" Size="14" /> @L["Del_Airport"]</Trigger>
+                                        </DeleteDialog>
+                                    }
+                                    else
+                                    {
+                                        <span class="muted">@r.MotivoDelNo</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        @* ---- Settori orfani, di tutte le ACC ---- *@
+        @if (_dati.Orfani.Count > 0)
+        {
+            <div class="section-title">
+                <h2 class="h-sect">@L["Orph_Title"] <span class="pill amber">@_dati.Orfani.Count</span></h2>
+                <span class="ln"></span>
+            </div>
+            <div class="panel">
+                <p class="muted" style="margin:0 0 10px">@L["Pend_OrphansHint"]</p>
+                <table class="res-table">
+                    <thead>
+                        <tr>
+                            <th>@L["Orph_Callsign"]</th>
+                            <th>@L["Orph_Why"]</th>
+                            <th>@L["Orph_Documents"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var o in _dati.Orfani)
+                        {
+                            <tr>
+                                <td><b>@o.Callsign</b><br /><span class="muted">@o.AccCode</span></td>
+                                <td>@Motivo(o)</td>
+                                <td>
+                                    @if (o.DocumentTitle is { } t)
+                                    {
+                                        <span class="pill blue">@L["Orph_CarriesDoc"]</span> <span>@t</span>
+                                    }
+                                    else if (o.Documents.Count > 0)
+                                    {
+                                        <span class="muted">@string.Join(", ", o.Documents.Select(d => d.Title))</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="muted">@L["Orph_NoDocs"]</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                @* Il riaggancio e l'eliminazione vivono nella Struttura, dove c'è l'albero che serve a
+                   decidere: qui si vede che ESISTONO, e da lì si va a farlo. *@
+                <p style="margin:10px 0 0">
+                    <a class="btn ghost" href="/services/vsop/admin/sector-structure">@L["Pend_GoStructure"]</a>
+                </p>
+            </div>
+        }
+
+        @* ---- Documenti che non dicono più quel che direbbero oggi ---- *@
+        @if (_dati.Impatti.Count > 0)
+        {
+            <div class="section-title">
+                <h2 class="h-sect">@L["Pend_DocsTitle"] <span class="pill amber">@_dati.Impatti.Count</span></h2>
+                <span class="ln"></span>
+            </div>
+            <div class="panel">
+                <table class="res-table">
+                    <thead>
+                        <tr>
+                            <th>@L["Pend_ColDoc"]</th>
+                            <th>@L["Pend_ColWhy"]</th>
+                            <th>@L["Pend_ColSince"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var i in _dati.Impatti)
+                        {
+                            <tr>
+                                <td>
+                                    <b>@i.DocumentTitle</b>
+                                    @if (i.IsPublicNow)
+                                    {
+                                        <span class="pill red" title="@L["Impact_PublicNowTitle"]">@L["Impact_PublicNow"]</span>
+                                    }
+                                    else if (i.Kind.IsDaRipubblicare())
+                                    {
+                                        <span class="pill blue" title="@L["Impact_RepublishTitle"]">@L["Impact_Republish"]</span>
+                                    }
+                                </td>
+                                <td>@Frase(i)</td>
+                                <td class="muted">@i.RaisedUtc.ToString("yyyy-MM-dd HH:mm")Z</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private PendingOverview? _dati;
+    private bool _busy;
+    private string? _msg;
+
+    // ⚠️ In OnParametersSetAsync e non in OnInitializedAsync: su una pagina interattiva il primo gira una
+    // volta sola per tutta la vita del circuito.
+    protected override Task OnParametersSetAsync() => CaricaAsync();
+
+    private async Task CaricaAsync()
+    {
+        if (!Authz.IsAdmin) return;
+        _busy = true;
+        _msg = null;
+        try { _dati = await Pending.LoadAsync(); }
+        catch (Exception ex) { _msg = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    /// <summary>Il perché di un orfano, con le stesse parole della Struttura: tre fatti diversi, tre rimedi
+    /// diversi, e le stesse chiavi — due frasi per lo stesso fatto sono due racconti che divergono.</summary>
+    private string Motivo(OrphanSectorRow o) => o.Reason switch
+    {
+        OrphanReason.Hidden => L["Orph_Hidden"].Value,
+        OrphanReason.Gone => L["Orph_Gone"].Value,
+        _ => L["Orph_NotListed"].Value,
+    };
+
+    /// <summary>La frase dell'impatto, con i suoi argomenti. Stessa forma del banner nell'editor.</summary>
+    private string Frase(DocumentImpactRow r) => r.ReasonArgs.Count switch
+    {
+        0 => L[r.ReasonKey].Value,
+        1 => L[r.ReasonKey, r.ReasonArgs[0]].Value,
+        _ => L[r.ReasonKey, r.ReasonArgs[0], r.ReasonArgs[1]].Value,
+    };
+}

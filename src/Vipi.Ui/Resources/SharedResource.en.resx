@@ -1360,6 +1360,26 @@
   <data name="Del_Airport" xml:space="preserve"><value>Delete the airport</value></data>
   <data name="Del_Acc" xml:space="preserve"><value>Delete the ACC</value></data>
   <data name="Del_Doc" xml:space="preserve"><value>Delete the document</value></data>
+  <data name="Pend_Title" xml:space="preserve"><value>To sort out</value></data>
+  <data name="Pend_HelpAria" xml:space="preserve"><value>What this page is</value></data>
+  <data name="Pend_Intro" xml:space="preserve"><value>&lt;p&gt;What the &lt;b&gt;source no longer confirms&lt;/b&gt; and what the documents have left behind, in one place.&lt;/p&gt;&lt;p&gt;⚠️ Only what the source has not sent for &lt;b&gt;two runs&lt;/b&gt; can be deleted: a run can succeed and come back empty, and a missing confirmation is not a disappearance. Where the button is absent, the reason is written next to it.&lt;/p&gt;</value></data>
+  <data name="Pend_AdminOnly" xml:space="preserve"><value>This page is for division staff only.</value></data>
+  <data name="Pend_LastRuns" xml:space="preserve"><value>Last ACC run: {0} · airports: {1} (previous: {2})</value></data>
+  <data name="Pend_AllClear" xml:space="preserve"><value>Nothing to sort out</value></data>
+  <data name="Pend_AllClearHint" xml:space="preserve"><value>No orphan sectors, no airport the source stopped listing, no document waiting to be re-read.</value></data>
+  <data name="Pend_AirportsTitle" xml:space="preserve"><value>Airports the source no longer lists</value></data>
+  <data name="Pend_ColWhat" xml:space="preserve"><value>What</value></data>
+  <data name="Pend_ColLastSeen" xml:space="preserve"><value>Last seen</value></data>
+  <data name="Pend_ColPrice" xml:space="preserve"><value>What it takes with it</value></data>
+  <data name="Pend_DaysAgo" xml:space="preserve"><value>{0} days ago</value></data>
+  <data name="Pend_Sectors" xml:space="preserve"><value>{0} sectors</value></data>
+  <data name="Pend_HasDoc" xml:space="preserve"><value>has a vIPI</value></data>
+  <data name="Pend_OrphansHint" xml:space="preserve"><value>Sectors the catalogues no longer confirm, across every ACC. Reattach or delete them from Structure, where the tree you need to decide lives.</value></data>
+  <data name="Pend_GoStructure" xml:space="preserve"><value>Go to Structure</value></data>
+  <data name="Pend_DocsTitle" xml:space="preserve"><value>Documents to review</value></data>
+  <data name="Pend_ColDoc" xml:space="preserve"><value>Document</value></data>
+  <data name="Pend_ColWhy" xml:space="preserve"><value>What happened</value></data>
+  <data name="Pend_ColSince" xml:space="preserve"><value>Since</value></data>
   <data name="Impact_SectorHidden" xml:space="preserve"><value>Sector {0} has been hidden: check frequencies, AoR and coordination.</value></data>
   <data name="Impact_SectorReparented" xml:space="preserve"><value>Sector {0} changed parent in the coverage chain: check the handoffs.</value></data>
   <data name="Impact_AreaGone" xml:space="preserve"><value>Regulated area {0} is no longer in the catalogues: the document cites it but it is not shown.</value></data>

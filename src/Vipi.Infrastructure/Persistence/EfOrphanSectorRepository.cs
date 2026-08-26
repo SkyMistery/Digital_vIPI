@@ -171,6 +171,17 @@ public sealed class EfOrphanSectorRepository : IOrphanSectorRepository
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<StaleAirportRow>> ListStaleAirportsAsync(
+        DateTime sogliaUtc, CancellationToken ct = default) =>
+        await _db.Airports.AsNoTracking()
+            .Where(a => a.LastSeenAtUtc != null && a.LastSeenAtUtc < sogliaUtc)
+            .OrderBy(a => a.Acc!.Code).ThenBy(a => a.Icao)
+            .Select(a => new StaleAirportRow(
+                a.Id, a.Icao, a.Name, a.Acc!.Code, a.LastSeenAtUtc,
+                a.Sectors.Count, a.DocumentId != null))
+            .ToListAsync(ct);
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<StaleCatalogRow>> ListStaleCatalogRowsAsync(
         DateTime sogliaUtc, CancellationToken ct = default)
     {

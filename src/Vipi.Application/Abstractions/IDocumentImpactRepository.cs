@@ -38,6 +38,13 @@ public interface IDocumentImpactRepository
     /// <summary>Tutte le righe aperte di un tipo (per la riconciliazione dei rivelatori calcolati).</summary>
     Task<IReadOnlyList<DocumentImpactRow>> ListOpenByKindAsync(ImpactKind kind, CancellationToken ct = default);
 
+    /// <summary>
+    /// Tutte le righe <b>aperte</b>, di ogni tipo e di ogni documento, dalla più recente. È la vista della
+    /// pagina d'insieme: fino al 26 agosto 2026 gli impatti si potevano leggere solo un documento per volta
+    /// (il banner nell'editor) o un tipo per volta (la riconciliazione), e nessuno vedeva il quadro intero.
+    /// </summary>
+    Task<IReadOnlyList<DocumentImpactRow>> ListAllOpenAsync(CancellationToken ct = default);
+
     /// <summary>Quante righe aperte per ciascuno dei documenti indicati (per le pill degli elenchi).
     /// I documenti senza righe non compaiono nel risultato.</summary>
     Task<IReadOnlyDictionary<int, ImpactBadge>> CountOpenAsync(IReadOnlyCollection<int> documentIds, CancellationToken ct = default);

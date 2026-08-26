@@ -1363,6 +1363,26 @@
   <data name="Del_Airport" xml:space="preserve"><value>Elimina l'aeroporto</value></data>
   <data name="Del_Acc" xml:space="preserve"><value>Elimina la ACC</value></data>
   <data name="Del_Doc" xml:space="preserve"><value>Elimina il documento</value></data>
+  <data name="Pend_Title" xml:space="preserve"><value>Da sistemare</value></data>
+  <data name="Pend_HelpAria" xml:space="preserve"><value>Che cos'è questa pagina</value></data>
+  <data name="Pend_Intro" xml:space="preserve"><value>&lt;p&gt;Quel che la &lt;b&gt;sorgente non conferma più&lt;/b&gt; e quel che nei documenti è rimasto indietro, in un posto solo.&lt;/p&gt;&lt;p&gt;⚠️ Si elimina soltanto ciò che la sorgente non manda da &lt;b&gt;due giri&lt;/b&gt;: un giro può riuscire e tornare vuoto, e una conferma mancata non è una sparizione. Dove il tasto non c'è, accanto è scritto il perché.&lt;/p&gt;</value></data>
+  <data name="Pend_AdminOnly" xml:space="preserve"><value>Questa pagina è riservata allo staff di divisione.</value></data>
+  <data name="Pend_LastRuns" xml:space="preserve"><value>Ultimo giro ACC: {0} · aeroporti: {1} (penultimo: {2})</value></data>
+  <data name="Pend_AllClear" xml:space="preserve"><value>Niente da sistemare</value></data>
+  <data name="Pend_AllClearHint" xml:space="preserve"><value>Nessun settore orfano, nessun aeroporto che la sorgente abbia smesso di elencare, nessun documento in attesa di rilettura.</value></data>
+  <data name="Pend_AirportsTitle" xml:space="preserve"><value>Aeroporti che la sorgente non elenca più</value></data>
+  <data name="Pend_ColWhat" xml:space="preserve"><value>Che cosa</value></data>
+  <data name="Pend_ColLastSeen" xml:space="preserve"><value>Visto l'ultima volta</value></data>
+  <data name="Pend_ColPrice" xml:space="preserve"><value>Che cosa porta con sé</value></data>
+  <data name="Pend_DaysAgo" xml:space="preserve"><value>{0} giorni fa</value></data>
+  <data name="Pend_Sectors" xml:space="preserve"><value>{0} settori</value></data>
+  <data name="Pend_HasDoc" xml:space="preserve"><value>ha una vIPI</value></data>
+  <data name="Pend_OrphansHint" xml:space="preserve"><value>Settori che i cataloghi non confermano più, di tutte le ACC. Si riagganciano o si eliminano dalla Struttura, dove c'è l'albero che serve a decidere.</value></data>
+  <data name="Pend_GoStructure" xml:space="preserve"><value>Vai alla Struttura</value></data>
+  <data name="Pend_DocsTitle" xml:space="preserve"><value>Documenti da rivedere</value></data>
+  <data name="Pend_ColDoc" xml:space="preserve"><value>Documento</value></data>
+  <data name="Pend_ColWhy" xml:space="preserve"><value>Che cosa è successo</value></data>
+  <data name="Pend_ColSince" xml:space="preserve"><value>Da</value></data>
   <data name="Impact_SectorHidden" xml:space="preserve"><value>Il settore {0} è stato nascosto: verifica frequenze, AoR e coordinamenti.</value></data>
   <data name="Impact_SectorReparented" xml:space="preserve"><value>Il settore {0} ha cambiato padre nella catena di copertura: verifica le consegne.</value></data>
   <data name="Impact_AreaGone" xml:space="preserve"><value>L'area regolamentata {0} non è più nei cataloghi: il documento la cita ma non viene mostrata.</value></data>

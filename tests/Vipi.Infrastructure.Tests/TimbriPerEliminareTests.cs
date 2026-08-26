@@ -107,6 +107,31 @@ public class TimbriPerEliminareTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Gli_aeroporti_che_la_sorgente_non_nomina_piu_si_elencano()
+    {
+        var repo = new EfStructureEditingRepository(_db);
+        await repo.CreateAccAsync("LIRR", "Roma ACC", "LI");
+        await repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
+        await repo.CreateAirportAsync("LIRR", "LIRA", "Roma Ciampino");
+        await repo.CreateAirportAsync("LIRR", "LIRE", "Pratica di Mare");
+
+        // Fiumicino confermato adesso; Ciampino visto una settimana fa; Pratica mai timbrato.
+        var adesso = DateTime.UtcNow;
+        (await _db.Airports.SingleAsync(a => a.Icao == "LIRF")).LastSeenAtUtc = adesso;
+        (await _db.Airports.SingleAsync(a => a.Icao == "LIRA")).LastSeenAtUtc = adesso.AddDays(-7);
+        await _db.SaveChangesAsync();
+
+        var orfani = new EfOrphanSectorRepository(_db, new EfDocumentImpactRepository(_db));
+        var righe = await orfani.ListStaleAirportsAsync(adesso.AddDays(-1));
+
+        // Solo Ciampino: Fiumicino è fresco, e di Pratica «non lo sappiamo» non è «è sparito».
+        var riga = Assert.Single(righe);
+        Assert.Equal("LIRA", riga.Icao);
+        Assert.Equal("LIRR", riga.AccCode);
+        Assert.False(riga.HaDocumento);
+    }
+
+    [Fact]
     public async Task Un_giro_che_non_cambia_niente_aggiorna_lo_stesso_il_timbro()
     {
         var repo = new EfStructureEditingRepository(_db);

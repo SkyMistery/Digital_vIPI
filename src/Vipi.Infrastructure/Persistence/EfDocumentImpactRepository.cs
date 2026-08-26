@@ -447,6 +447,11 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
             .Where(i => i.Kind == kind && i.ClearedUtc == DocumentImpact.Aperto)
             .OrderByDescending(i => i.RaisedUtc), ct);
 
+    public async Task<IReadOnlyList<DocumentImpactRow>> ListAllOpenAsync(CancellationToken ct = default) =>
+        await QueryRighe(_db.DocumentImpacts.AsNoTracking()
+            .Where(i => i.ClearedUtc == DocumentImpact.Aperto)
+            .OrderByDescending(i => i.RaisedUtc), ct);
+
     private static async Task<IReadOnlyList<DocumentImpactRow>> QueryRighe(
         IQueryable<DocumentImpact> q, CancellationToken ct)
     {

@@ -64,8 +64,9 @@ public class AdminNavTests : TestContext
         var cut = Render(admin: true);
 
         var nav = cut.Find("nav.admin-nav");
-        Assert.Equal(11, nav.QuerySelectorAll(".an-link").Length);
+        Assert.Equal(12, nav.QuerySelectorAll(".an-link").Length);
         Assert.Contains("/services/vsop/admin/sector-structure", cut.Markup);
+        Assert.Contains("/services/vsop/admin/pending", cut.Markup);
         Assert.Contains("/services/vsop/admin/diagnostics", cut.Markup);
     }
 
