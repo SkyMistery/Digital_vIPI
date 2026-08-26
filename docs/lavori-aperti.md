@@ -2370,3 +2370,82 @@ distinguerli adesso c'è.
 passa dalla regola dei due giri come prima. È **voluto** — una raffica di verifiche puntuali su N scali è
 esattamente ciò che la carta §3/P7 evita — ma il tasto singolo e quello di gruppo si comportano
 diversamente sullo stesso oggetto, e va deciso se dirlo a schermo o dare al gruppo una verifica sola.
+
+---
+
+## J. Identità dei settori e shape — 26 agosto 2026, ramo `identita-settori`
+
+Ramo aperto **da `statistiche-atc`** (non da `main`), **non fuso**, 20 commit, spinto su origin. Porta tre
+lavori chiusi e lascia tre voci aperte. Carte:
+[identità dei settori](feature/2026-08-26-identita-dei-settori.md),
+[l'assenza non cancella](feature/2026-08-26-lassenza-non-cancella.md),
+[le shape dal sectorfile](feature/2026-08-26-shape-dal-sectorfile.md).
+
+⚠️ **Le migrazioni in coda passano da quattordici a DICIASSETTE**: `IdentitaDeiSettori`, `ShapeVuoteANull`,
+`GateAiracShape`. Conta per §B12 e per il cutover MariaDB.
+
+⚠️ **Questo ramo si somma a `statistiche-atc`, non lo sostituisce.** La decisione B12 (fondere) adesso
+riguarda **due** rami in fila, e questo va fuso **dopo** quello.
+
+### J1 🟡 APERTA — l'avviso a chi pubblica una shape non ancora in vigore
+
+Il gate AIRAC sostituisce la geometria al congelamento e `ShapeForcePublished` esiste in archivio, ma **non
+c'è un posto dove chi pubblica lo veda e possa accenderlo**. Finché non c'è, una correzione urgente al
+sectorfile si pubblica **per il ciclo prossimo** (che è comunque la strada giusta) oppure aspetta il giro che
+promuove.
+
+È il gemello di `AirportSid.ForcePublished`, che a schermo un interruttore ce l'ha: guardare come è fatto lì.
+Tocca il pannello release. **È il primo pezzo da fare di questa sezione.**
+
+### J2 🟡 APERTA — `GODRA` e `GIGUS`: quattro settori di Milano senza area
+
+I blocchi `LIMM_WS2/WS5/ES2/ES5_CTR` del sectorfile citano due punti che **non sono in nessuno dei tre
+cataloghi navaid italiani** (`itfix.fix`, `itvor.vor`, `itndb.ndb`): sono d'oltreconfine, e Milano confina con
+Svizzera e Francia. Il parser scarta l'anello intero — di proposito, perché saltare un vertice darebbe un
+poligono che si disegna benissimo e mente.
+
+Due strade: aggiungerli a `itfix.fix` (decisione di divisione, sul repo sectorfile) oppure un elenco di
+punti-extra nostro. **Non inventato niente**: per ora quei quattro non prendono l'area dal sectorfile, e la
+cosa si vede nel log del giro (`Shape settori: il punto X non è nel catalogo navaid`).
+
+### J3 🟡 APERTA — undici settori restano senza area
+
+Dopo il ripristino dal backup (§J4) restano **10 CTR e 1 FSS** senza poligono: né IVAO li aveva, né il
+sectorfile li descrive. Sono in gran parte militari e di pianificazione (`LIPP_PLN_CTR`, `LIRO_CRC_CTR`,
+`LIVK_CRC_CTR`, `LIZZ_AEW_CTR`) più esteri (`LOVV_FSS`, `LSAS_EXA_FSS`, `DTTC_FSS`, `LMMM_FSS`).
+
+Non è un difetto: è un dato che non esiste da nessuna parte. Va deciso se lasciarli senza area o disegnarli
+a mano.
+
+### J4 ✅ FATTO il 26 agosto — ripristino dei poligoni persi
+
+`tools/ripristino-shape/ripristina-poligoni.sql` **eseguito** sul `vipi.db` di lavoro, con backup preso
+prima (`src/Vipi.Host/vipi.db.bak-pre-ripristino-shape-20260826`) e host fermo.
+
+```
+AccSectors con poligono      5 → 142
+AirportSectors con poligono 83 → 141   (58 APP)
+righe                      153 → 153 · 192 → 192
+TWR reali/sintetiche        66 / 17    (intatte)
+```
+
+Verifica: **283 poligoni in archivio, tutti e 283 si proiettano**; dei 211 settori che possono avere un'area
+ne hanno **200**, contro i 5 di partenza.
+
+⚠️ Lo script vale per **SQLite**. In produzione (MariaDB) il travaso è un'altra cosa: si esporta dal backup
+e si applica per `UPDATE`.
+
+### J5 ✅ CHIUSA — IVAO ha confermato che è un guasto loro
+
+Il campo `regionMapPolygon` è vuoto su **tutta** l'API (misurato su 237 risorse, tre tipi, sei paesi, incluse
+le forme `/all` e la chiamata pubblica esatta di webeye). **IVAO ha confermato il 26 agosto**, su richiesta
+del committente, che è un **guasto loro** e che lo sistemeranno.
+
+Quindi il ripiego dal sectorfile è una rete, non una sostituzione — e il rientro **è già provato**: quando
+l'anagrafica torna a mandare una shape vera, riprende il comando per intero (provenienza a `Source`,
+differimento chiuso). Vedi §2-ter della carta.
+
+ⓘ **Una cosa da ricordare comunque**: il **tracker** (`/v2/tracker/now/atc/summary`, pubblico, senza token)
+porta i poligoni **pieni** annidati in `subcenter`/`atcPosition`, ma solo per gli ATC connessi in quel
+momento. Se il guasto dovesse durare, è la sorgente di riserva — e **non ha bisogno del gate AIRAC**, perché
+è quel che IVAO serve ai controllori adesso.
