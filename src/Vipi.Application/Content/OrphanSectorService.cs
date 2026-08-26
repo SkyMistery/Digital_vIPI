@@ -26,15 +26,18 @@ public enum OrphanReason
 /// <param name="Blockers">Chi lo referenzia con un vincolo che <b>impedisce</b> la cancellazione, già in
 /// frasi leggibili. Vuoto = si può rimuovere.</param>
 /// <param name="LastSeenUtc">Ultimo timbro d'import (solo per <see cref="OrphanReason.NotListed"/>).</param>
-/// <param name="RenameCandidate">
-/// Il possibile nome nuovo della stessa posizione, quando ce n'è <b>uno solo</b>. È un suggerimento, non una
-/// conclusione: con due candidati non è una rinomina ma uno sdoppiamento — che è proprio quel che significa
-/// la cifra in <c>US0</c>/<c>US1</c> — e la macchina non sa distinguerli.
-/// </param>
+/// <remarks>
+/// ⚠️ Fino al 26 agosto 2026 questa riga portava anche un <c>RenameCandidate</c>: il possibile nome nuovo
+/// della stessa posizione, quando ce n'era uno solo. Era un'ipotesi, e le ipotesi qui costano care — il caso
+/// vero (<c>LIRR_NE1_CTR</c> nato accanto a <c>LIRR_NE_CTR</c> con la stessa frequenza e lo stesso nome IVAO)
+/// era uno <b>sdoppiamento</b> che l'euristica avrebbe chiamato rinomina, spostando un documento sul settore
+/// sbagliato. Adesso le rinomine le riconosce l'identità della sorgente e sono già applicate quando si
+/// arriva qui, quindi un orfano è un orfano.
+/// </remarks>
 public sealed record OrphanSectorRow(
     int SectorId, string Callsign, string Name, string AccCode, OrphanReason Reason,
     int? DocumentId, string? DocumentTitle, IReadOnlyList<AffectedDoc> Documents,
-    IReadOnlyList<string> Blockers, DateTime? LastSeenUtc = null, string? RenameCandidate = null);
+    IReadOnlyList<string> Blockers, DateTime? LastSeenUtc = null);
 
 /// <summary>Un settore attivo a cui si può riappendere il documento di un orfano.</summary>
 public sealed record ReattachTargetRow(int SectorId, string Callsign, string Name);

@@ -315,11 +315,6 @@
                                     }
                                     break;
                             }
-                            @if (o.RenameCandidate is { } nuovoNome)
-                            {
-                                <br />
-                                <span class="muted">@L["Orph_MaybeRenamed", nuovoNome]</span>
-                            }
                         </td>
                         <td>
                             @if (o.DocumentTitle is not null)
@@ -343,8 +338,12 @@
                                     <option value="">@L["Orph_PickTarget"]</option>
                                     @foreach (var tgt in Bersagli(o.SectorId))
                                     {
-                                        @* Il sospetto sostituto in cima e segnato: resta una scelta di chi guarda. *@
-                                        <option value="@tgt.SectorId">@tgt.Callsign@(string.Equals(tgt.Callsign, o.RenameCandidate, StringComparison.OrdinalIgnoreCase) ? " ←" : "")</option>
+                                        @* ⚠️ Nessun sostituto suggerito: fino al 26 agosto 2026 una freccia
+                                           indicava il «probabile nome nuovo», ma era un'ipotesi su una
+                                           somiglianza, e le rinomine vere ora le riconosce l'identità della
+                                           sorgente prima di arrivare qui. Chi resta in questo elenco è
+                                           sparito davvero, e dove riagganciarlo lo sa solo chi guarda. *@
+                                        <option value="@tgt.SectorId">@tgt.Callsign</option>
                                     }
                                 </select>
                                 <button class="btn ghost" disabled="@(_busy || !_canEdit || !_reattachTo.TryGetValue(o.SectorId, out var sel2) || sel2 == 0)"

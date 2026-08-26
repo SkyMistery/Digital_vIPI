@@ -39,13 +39,6 @@ public interface IOrphanSectorRepository
     /// </summary>
     Task<IReadOnlyList<StaleAirportRow>> ListStaleAirportsAsync(DateTime sogliaUtc, CancellationToken ct = default);
 
-    /// <summary>
-    /// Il possibile <b>sostituto</b> di un callsign non più elencato: stessa posizione, stesso perimetro
-    /// (aeroporto o ACC), timbro recente. null se non ce n'è uno solo — con zero o due candidati la
-    /// proposta sarebbe una scommessa, e questa è una domanda a cui deve rispondere una persona.
-    /// </summary>
-    Task<string?> FindRenameCandidateAsync(StaleCatalogRow stantia, DateTime sogliaUtc, CancellationToken ct = default);
-
     /// <summary>Codice ACC del settore, per l'autorizzazione. null se non risolvibile.</summary>
     Task<string?> GetAccCodeAsync(int sectorId, CancellationToken ct = default);
 }

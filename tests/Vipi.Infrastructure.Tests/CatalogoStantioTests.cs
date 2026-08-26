@@ -11,14 +11,17 @@ using Xunit;
 namespace Vipi.Infrastructure.Tests;
 
 /// <summary>
-/// La <b>rinomina</b>: <c>LIBD_CS0_APP</c> → <c>LIBD_CS1_APP</c>. Non sparisce niente — i cataloghi non
-/// potano mai — quindi la proiezione non ha nulla da segnalare: il vecchio resta attivo, si porta dietro il
-/// documento e continua a rivendicare la sua area, mentre chi controlla si connette col nome nuovo.
+/// Il callsign che <b>la sorgente non manda più</b> mentre la sua riga di catalogo sopravvive — i cataloghi
+/// non potano mai — quindi la proiezione non ha nulla da segnalare: il settore resta attivo e si porta dietro
+/// il documento. L'unico segnale è il <b>timbro</b>, che smette di essere riscritto dagli import.
 ///
-/// <para>L'unico segnale è il <b>timbro</b>: la riga vecchia smette di essere riscritta dagli import. Qui si
-/// verifica che quel segnale si legga, che non produca falsi (righe aggiunte a mano, stato mancante) e che
-/// il suggerimento di rinomina taccia quando la risposta non è una sola — perché la cifra in
-/// <c>CS0</c>/<c>CS1</c> di solito vuol dire <b>sdoppiamento</b>, non rinomina.</para>
+/// <para>Qui si verifica che quel segnale si legga e che non produca falsi: righe aggiunte a mano, stato
+/// mancante, vicini con timbro fresco, e la guardia di massa.</para>
+///
+/// <para>⚠️ Fino al 26 agosto 2026 questo file si apriva dicendo «la rinomina», perché il timbro era l'unico
+/// modo per vederne una. Non lo è più: la rinomina la riconosce l'identità della sorgente
+/// (<c>CallsignRenameDetector</c>) e viene applicata dall'upsert prima che il timbro possa invecchiare. Qui
+/// restano le <b>sparizioni vere</b> — <c>LIED_G_APP</c>, che alla sorgente risponde 404.</para>
 /// </summary>
 public class CatalogoStantioTests : IAsyncLifetime
 {
@@ -110,27 +113,22 @@ public class CatalogoStantioTests : IAsyncLifetime
         Assert.Equal(Adesso.AddDays(-10), riga.LastSeenUtc);
     }
 
+    /// <summary>
+    /// ⚠️ Qui prima c'erano due casi sul <b>suggerimento del nome nuovo</b>: uno che lo proponeva quando il
+    /// candidato era unico, l'altro che taceva quando erano due. Sono spariti col suggerimento, il 26 agosto
+    /// 2026, perché la premessa era sbagliata — la somiglianza non distingue una rinomina da uno sdoppiamento
+    /// (<c>LIRR_NE1_CTR</c>, misurato: stessa frequenza, stesso nome IVAO, riga <b>nuova</b>). Le rinomine le
+    /// riconosce ora l'identità della sorgente, in <c>CallsignRenameDetector</c>, e quando si arriva qui sono
+    /// già applicate. Resta da presidiare che il vicino di casa <b>non</b> finisca in questo elenco: lui la
+    /// sorgente lo manda eccome.
+    /// </summary>
     [Fact]
-    public async Task E_Propone_Il_Nome_Nuovo_Quando_Ce_N_E_Uno_Solo()
+    public async Task Il_Vicino_Con_Timbro_Fresco_Non_E_Un_Orfano()
     {
-        var riga = Assert.Single(await Servizio().ListAsync());
-        Assert.Equal("LIBD_CS1_APP", riga.RenameCandidate);
-    }
+        var righe = await Servizio().ListAsync();
 
-    /// <summary>⚠️ Due candidati non sono una rinomina, sono uno sdoppiamento: la cifra in CS0/CS1 vuol dire
-    /// proprio quello. Indovinare vorrebbe dire spostare un documento sul settore sbagliato.</summary>
-    [Fact]
-    public async Task Con_Due_Candidati_Non_Propone_Niente()
-    {
-        _db.AirportSectors.Add(new AirportSector
-        {
-            ComposePosition = "LIBD_CS2_APP", AirportIcao = "LIBD", AccCode = "LIRR", Position = "APP",
-            MiddleIdentifier = "CS2", ImportedAtUtc = Adesso,
-        });
-        await _db.SaveChangesAsync();
-
-        var riga = Assert.Single(await Servizio().ListAsync());
-        Assert.Null(riga.RenameCandidate);
+        Assert.DoesNotContain(righe, r => r.Callsign == "LIBD_CS1_APP");
+        Assert.DoesNotContain(righe, r => r.Callsign == "LIBD_TWR");
     }
 
     /// <summary>⚠️ Le righe aggiunte a mano la sorgente non le ha mai mandate: il loro timbro è vecchio per

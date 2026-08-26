@@ -1409,7 +1409,6 @@
   <data name="Impact_Err_Calcolato" xml:space="preserve"><value>Questa segnalazione la richiude da sé il controllo che l'ha aperta: si chiude risolvendo la causa.</value></data>
   <data name="Orph_NotListed" xml:space="preserve"><value>non più elencato</value></data>
   <data name="Orph_NotListedTitle" xml:space="preserve"><value>La riga di catalogo c'è e il settore è attivo, ma la sorgente ha smesso di mandarlo: è quel che succede quando una posizione viene RINOMINATA.</value></data>
-  <data name="Orph_MaybeRenamed" xml:space="preserve"><value>forse rinominato in {0}?</value></data>
   <data name="Impact_SectorStale" xml:space="preserve"><value>La sorgente non elenca più il settore {0} da {1} giorni: se è stato rinominato, il documento è rimasto sul nome vecchio.</value></data>
   <data name="ImpactKind_SectorStale" xml:space="preserve"><value>Settore non più elencato</value></data>
   <data name="Orph_Title" xml:space="preserve"><value>Settori orfani</value></data>
