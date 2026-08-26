@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Abstractions;
@@ -88,6 +88,9 @@ public class StatsDivisionPageTests : TestContext
 
     private sealed class RosterFinto : IStaffRosterRepository
     {
+        public Task<StaffRosterEntry?> FindAsync(int userId, CancellationToken ct = default) =>
+            Task.FromResult<StaffRosterEntry?>(null);
+
         public Task<IReadOnlyDictionary<int, string>> GetDisplayNamesAsync(IReadOnlyCollection<int> ids, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyDictionary<int, string>>(new Dictionary<int, string>());
         public Task UpsertLoginAsync(int u, string? n, IReadOnlyList<string> p, CancellationToken ct = default) => Task.CompletedTask;

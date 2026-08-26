@@ -36,7 +36,9 @@ else if (_foreign.Length > 0)
                                PublicHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}")"
                                DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}&as=draft")" />
             }
-            <VloaDocumentView View="_view" DocId="_viewDocId" UseFrozen="_useFrozen" IsDraft="@(_mode.Kind == PreviewKind.Draft)" Subtitle="@_viewSubtitle" HomeAcc="@_acc.Code" ForeignAcc="@_foreign" />
+            <VloaDocumentView View="_view" DocId="_viewDocId" UseFrozen="_useFrozen" IsDraft="@(_mode.Kind == PreviewKind.Draft)"
+                              ReleaseId="@(_mode.Kind == PreviewKind.Release ? _mode.ReleaseId : null)"
+                              Subtitle="@_viewSubtitle" HomeAcc="@_acc.Code" ForeignAcc="@_foreign" />
         </div>
     }
 }

@@ -306,6 +306,12 @@
   <data name="Ape_NoEditPerm" xml:space="preserve"><value>You do not have permission to edit this airport.</value></data>
   <data name="Ape_WeatherTitle" xml:space="preserve"><value>Live weather</value></data>
   <data name="Ape_WeatherBody" xml:space="preserve"><value>The content is the live METAR and TAF from NOAA: there is nothing to fill in. It is also the only section that cannot be frozen at release — a METAR from a past cycle is not an archived document, it is stale weather. It can still be hidden or moved like the others.</value></data>
+  <data name="Val_AiracCycle" xml:space="preserve"><value>AIRAC cycle</value></data>
+  <data name="Val_EffectiveFrom" xml:space="preserve"><value>Effective from</value></data>
+  <data name="Val_ReviewedBy" xml:space="preserve"><value>Reviewed by</value></data>
+  <data name="Val_NotPublished" xml:space="preserve"><value>not published yet</value></data>
+  <data name="Val_ReviewerUnknown" xml:space="preserve"><value>not recorded</value></data>
+  <data name="Val_EditNote" xml:space="preserve"><value>These three fields are written by the document when you publish it: AIRAC cycle, effective date and whoever pressed «Publish». Below you can add the rest — for instance the review cycle or the signatory.</value></data>
   <!-- Common editor/tables -->
   <data name="Common_Order" xml:space="preserve"><value>Order</value></data>
   <data name="Common_Up" xml:space="preserve"><value>Up</value></data>

@@ -485,6 +485,16 @@ else
                                       Editing="_editing" AllowAuto="false" ShowExtra="true"
                                       SelectionChanged="SaveRegulated" />
                 break;
+            @* ⚠️ In modifica non c'è niente da compilare: i tre campi li scrive il documento quando lo si
+               pubblica. Vale la pena dirlo, perché sotto la scheda i blocchi si scrivono eccome — e chi
+               vede una tabella che non risponde al clic pensa a un guasto. *@
+            case "validity":
+                <div class="callout info" style="margin:0 0 10px">
+                    <span class="cic"><Icon Name="clock" Size="18" /></span>
+                    <div>@L["Val_EditNote"]</div>
+                </div>
+                <ValidityStamp Target="ReleaseTargetType.App" Key="@_app" />
+                break;
         }
     };
 

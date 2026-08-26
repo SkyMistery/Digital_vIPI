@@ -37,9 +37,9 @@ public class SectionCatalogTests
     [InlineData("runways", true)]        // derivata dall'anagrafica: si può congelare alla release
     [InlineData("transition", true)]
     [InlineData("weather", false)]       // derivata ma SEMPRE live: un METAR congelato è meteo scaduto
+    [InlineData("validity", false)]      // idem: il timbro parla della release che si sta mostrando
     [InlineData("separations", false)]
     [InlineData("vfr", false)]
-    [InlineData("validity", false)]
     [InlineData("una-sezione-custom", false)]   // chiave ignota = editoriale = niente toggle
     public void IsRenderModeToggleable_only_for_derived(string key, bool expected) =>
         Assert.Equal(expected, SectionCatalog.IsRenderModeToggleable(key));
@@ -66,6 +66,7 @@ public class SectionCatalogTests
                 Assert.False(SectionCatalog.IsRenderModeToggleable(d.Key));
             }
         Assert.True(SectionCatalog.IsAlwaysLive("weather"));
+        Assert.True(SectionCatalog.IsAlwaysLive("validity"));
         Assert.False(SectionCatalog.IsAlwaysLive("sids"));
     }
 
@@ -76,24 +77,45 @@ public class SectionCatalogTests
     [Fact]
     public void Host_rendered_sections_are_declared_per_profile()
     {
+        // ⚠️ Si chiede a IsHostRendered, non a `BodySource == Host`: dal 26 agosto 2026 esiste anche
+        // HostAndBlocks — la pagina disegna una scheda E la sezione tiene i suoi blocchi — e confrontare
+        // l'enum a mano avrebbe lasciato «validity» fuori da questa rete senza che nessuno se ne accorgesse.
         string[] Host(SectionProfile p) => SectionCatalog.For(p)
-            .Where(d => d.BodySource == SectionBodySource.Host).Select(d => d.Key).OrderBy(k => k).ToArray();
+            .Where(d => SectionCatalog.IsHostRendered(p, d.Key)).Select(d => d.Key).OrderBy(k => k).ToArray();
 
         Assert.Equal(
-            new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations", "vfr" },
+            new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations", "validity", "vfr" },
             Host(SectionProfile.App));
         Assert.Equal(
-            new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations" },
+            new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations", "validity" },
             Host(SectionProfile.AccAerovia));   // l'Aerovia non ha il VFR
         Assert.Equal(
-            new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations", "vfr" },
+            new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations", "validity", "vfr" },
             Host(SectionProfile.AccAppBlock));
         Assert.Equal(
-            new[] { "aor", "coordination", "frequencies" },
+            new[] { "aor", "coordination", "frequencies", "validity" },
             Host(SectionProfile.Vloa));   // sulla vLOA «regulated» è testo bilaterale, non un picker
         Assert.Equal(
-            new[] { "frequencies", "runwayrules", "runways", "sids", "transition", "weather" },
-            Host(SectionProfile.Airport));   // le due editoriali universali restano a blocchi
+            new[] { "frequencies", "runwayrules", "runways", "sids", "transition", "validity", "weather" },
+            Host(SectionProfile.Airport));
+    }
+
+    [Fact]
+    public void Validity_has_a_card_from_the_page_AND_its_own_blocks()
+    {
+        // Richiesta del committente (26 agosto 2026): tre campi FISSI — ciclo AIRAC, data e chi ha pubblicato —
+        // che nessuno ricopia a mano. Ma sotto resta il testo scritto: su una vLOA lì ci sono il ciclo di
+        // revisione concordato e il firmatario, che nessuno può derivare. È l'unica sezione con tutti e due.
+        foreach (SectionProfile p in Enum.GetValues<SectionProfile>())
+        {
+            Assert.True(SectionCatalog.IsHostRendered(p, "validity"), $"{p}: la scheda la disegna la pagina");
+            Assert.True(SectionCatalog.KeepsOwnBlocks(p, "validity"), $"{p}: e i blocchi restano");
+        }
+
+        // Nessun'altra sezione li ha entrambi: chi ne aggiungesse una lo sta decidendo, non ereditando.
+        foreach (SectionProfile p in Enum.GetValues<SectionProfile>())
+            foreach (var d in SectionCatalog.For(p).Where(d => d.Key != "validity"))
+                Assert.False(SectionCatalog.KeepsOwnBlocks(p, d.Key), $"{p}/{d.Key}");
     }
 
     [Fact]

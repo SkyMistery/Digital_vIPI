@@ -39,7 +39,9 @@ public static class SectionCatalog
             ["vfr"] = SectionKind.Editorial,
             ["regulated"] = SectionKind.Editorial,
             ["operationaltechnique"] = SectionKind.Editorial,
-            ["validity"] = SectionKind.Editorial,
+            // «Validità e revisione» deriva il suo timbro dalla RELEASE che si sta mostrando — ciclo, data e chi
+            // ha premuto Pubblica — e sotto tiene il testo scritto a mano. Derivata, quindi, ma sempre live.
+            ["validity"] = SectionKind.Derived,
         };
 
     /// <summary>Natura della sezione con questa chiave (Editorial se sconosciuta = custom).</summary>
@@ -57,8 +59,11 @@ public static class SectionCatalog
     // Sezioni derivate che NON si possono congelare: la loro derivazione è vera solo adesso. Un METAR catturato
     // al ciclo AIRAC non è un documento d'archivio, è meteo scaduto spacciato per attuale — quindi la sezione
     // non espone il toggle e la cattura frozen la salta.
+    // ⚠️ «validity» sta qui per una ragione di ORDINE, non di gusto: il suo timbro parla della release, e la
+    // cattura frozen gira DENTRO la creazione dello snapshot — quando quella release non esiste ancora. Non c'è
+    // niente da congelare: si legge sempre dalla release che si sta mostrando.
     private static readonly IReadOnlySet<string> AlwaysLiveKeys =
-        new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "weather" };
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "weather", "validity" };
 
     /// <summary>Vero se la sezione si deriva SEMPRE dal vivo e non può essere congelata alla release.</summary>
     public static bool IsAlwaysLive(string key) => AlwaysLiveKeys.Contains(key);
@@ -80,6 +85,10 @@ public static class SectionCatalog
     private static SectionDescriptor H(string key, string title, int order) =>
         new(key, title, order, KindOf(key), SectionBodySource.Host);
 
+    /// <summary>Scheda dalla pagina IN TESTA, e sotto i blocchi editoriali della sezione.</summary>
+    private static SectionDescriptor HB(string key, string title, int order) =>
+        new(key, title, order, KindOf(key), SectionBodySource.HostAndBlocks);
+
     // Membership per profilo (key, titolo, ordine). Universali a tutti: aor/frequencies/coordination/regulated/
     // operationaltechnique/validity. ACC/APP in italiano, vLOA in inglese (lettera di accordo bilaterale).
     // H(...) = corpo reso dalla pagina, D(...) = corpo dai blocchi della sezione.
@@ -97,7 +106,7 @@ public static class SectionCatalog
                 H("coordination", "Coordinamenti", 7),
                 H("regulated", "Aree regolamentate", 8),
                 D("operationaltechnique", "Procedure generali", 9),
-                D("validity", "Validità e revisione", 10),
+                HB("validity", "Validità e revisione", 10),
             },
             [SectionProfile.AccAerovia] = new[]
             {
@@ -109,7 +118,7 @@ public static class SectionCatalog
                 H("coordination", "Coordinamenti", 7),
                 H("regulated", "Aree regolamentate", 8),
                 D("operationaltechnique", "Procedure generali", 9),
-                D("validity", "Validità e revisione", 10),
+                HB("validity", "Validità e revisione", 10),
             },
             [SectionProfile.AccAppBlock] = new[]
             {
@@ -122,7 +131,7 @@ public static class SectionCatalog
                 H("coordination", "Coordinamenti", 7),
                 H("regulated", "Aree regolamentate", 8),
                 D("operationaltechnique", "Procedure generali", 9),
-                D("validity", "Validità e revisione", 10),
+                HB("validity", "Validità e revisione", 10),
             },
             // vLOA: titoli e ORDINE sono quelli del documento reale (doc 13 §3c). Fino al doc 13 questo profilo non
             // lo leggeva nessuno — la struttura nasceva da VloaSections — e i due elenchi erano divergenti: mancava
@@ -135,7 +144,7 @@ public static class SectionCatalog
                 D("operationaltechnique", "General procedures", 4),
                 H("coordination", "Coordination", 5),
                 D("regulated", "Military areas coordination and management", 6),
-                D("validity", "Validity and Revision", 7),
+                HB("validity", "Validity and Revision", 7),
             },
             // vIPI d'aeroporto (carta 2026-08-26). Le sei sezioni che c'erano già — con le stesse cose dentro —
             // più le due editoriali universali. Fuori restano «aor», «coordination» e «regulated»: l'aeroporto è un
@@ -151,7 +160,7 @@ public static class SectionCatalog
                 H("runways", "Piste", 5),
                 H("sids", "SID", 6),
                 D("operationaltechnique", "Procedure generali", 7),
-                D("validity", "Validità e revisione", 8),
+                HB("validity", "Validità e revisione", 8),
             },
         };
 
@@ -174,7 +183,15 @@ public static class SectionCatalog
     /// contenuto documentale o cedere il posto al componente dedicato — stava ripetuta in sei insiemi di pagina.
     /// </summary>
     public static bool IsHostRendered(SectionProfile profile, string key) =>
-        Find(profile, key)?.BodySource == SectionBodySource.Host;
+        Find(profile, key)?.BodySource is SectionBodySource.Host or SectionBodySource.HostAndBlocks;
+
+    /// <summary>
+    /// Vero se la sezione, oltre alla scheda che le disegna la pagina, tiene anche i PROPRI blocchi editoriali
+    /// (<see cref="SectionBodySource.HostAndBlocks"/>). Chi rende una sezione host deve chiederlo: le altre i
+    /// blocchi non li mostrano, e mostrarli tutti raddoppierebbe il corpo delle derivate.
+    /// </summary>
+    public static bool KeepsOwnBlocks(SectionProfile profile, string key) =>
+        Find(profile, key)?.BodySource == SectionBodySource.HostAndBlocks;
 
     /// <summary>Profilo di catalogo di un blocco della vIPI ACC (Aerovia o gruppo APP): la corrispondenza stava
     /// scritta a mano nell'assembler e negli editor.</summary>

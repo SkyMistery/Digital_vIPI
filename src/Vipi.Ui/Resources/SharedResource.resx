@@ -309,6 +309,12 @@
   <data name="Ape_NoEditPerm" xml:space="preserve"><value>Non hai i permessi per modificare questo aeroporto.</value></data>
   <data name="Ape_WeatherTitle" xml:space="preserve"><value>Meteo in tempo reale</value></data>
   <data name="Ape_WeatherBody" xml:space="preserve"><value>Il contenuto è il METAR e il TAF live dal NOAA: non c'è nulla da compilare. È anche l'unica sezione che non si può congelare alla release — un METAR di un ciclo fa non è un documento d'archivio, è meteo scaduto. Si può però nasconderla o spostarla come le altre.</value></data>
+  <data name="Val_AiracCycle" xml:space="preserve"><value>Ciclo AIRAC di appartenenza</value></data>
+  <data name="Val_EffectiveFrom" xml:space="preserve"><value>In vigore dal</value></data>
+  <data name="Val_ReviewedBy" xml:space="preserve"><value>Revisione</value></data>
+  <data name="Val_NotPublished" xml:space="preserve"><value>non ancora pubblicato</value></data>
+  <data name="Val_ReviewerUnknown" xml:space="preserve"><value>non registrato</value></data>
+  <data name="Val_EditNote" xml:space="preserve"><value>Questi tre campi li scrive il documento quando lo pubblichi: ciclo AIRAC, data di entrata in vigore e chi ha premuto «Pubblica». Sotto puoi aggiungere il resto — per esempio il ciclo di revisione o il firmatario.</value></data>
   <!-- Common editor/tabelle -->
   <data name="Common_Order" xml:space="preserve"><value>Ordine</value></data>
   <data name="Common_Up" xml:space="preserve"><value>Su</value></data>

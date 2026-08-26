@@ -1620,7 +1620,19 @@ else
         "frequencies" => FrequenciesEditor,
         "runways" => RunwaysEditor,
         "sids" => SidsEditor,
+        "validity" => ValidityEditor,
         _ => _ => { },
+    };
+
+    /// <summary>«Validità e revisione»: la scheda dei tre campi generati, e la nota che spiega che non si
+    /// compilano. I blocchi editoriali sotto li rende il motore condiviso (`KeepsOwnBlocks`).</summary>
+    private RenderFragment ValidityEditor => __builder =>
+    {
+        <div class="callout info" style="margin:0 0 10px">
+            <span class="cic"><Icon Name="clock" Size="18" /></span>
+            <div>@L["Val_EditNote"]</div>
+        </div>
+        <ValidityStamp Target="ReleaseTargetType.Airport" Key="@_icao" />
     };
 
 

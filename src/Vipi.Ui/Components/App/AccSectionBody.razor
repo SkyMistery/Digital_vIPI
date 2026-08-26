@@ -27,6 +27,16 @@
     case "vfr": <AppVfr Content="ParseVfr(Block.VfrJson)" /> break;
     case "coordination": <AccCoordinationView Coord="Coord ?? AccCoordination.Empty" LeadSentence="@(Editorial?.LeadSentence ?? false)" /> break;
     case "regulated": <RegulatedAreas Areas="Areas ?? Array.Empty<AccSpecialAreaView>()" /> break;
+    @* Il timbro sopra e il testo scritto a mano sotto: «Validità e revisione» ha tutti e due i corpi.
+       ⚠️ Senza `Acc` non si sa a quale release appartiene il blocco (la chiave è «ACC|root»), e la vista
+       operativa non lo passa: lì resta il solo testo, che è giusto — non è un documento pubblicato. *@
+    case "validity":
+        @if (!string.IsNullOrWhiteSpace(Acc) && !string.IsNullOrWhiteSpace(Root))
+        {
+            <ValidityStamp Target="ReleaseTargetType.AccVipi" Key="@($"{Acc!.Trim().ToUpperInvariant()}|{Root}")" ReleaseId="ReleaseId" />
+        }
+        @if (Editorial is not null) { <SectionBody Section="Editorial" DepthOffset="-1" /> }
+        break;
     default:
         @* Editoriale/libera: resa condivisa con APP e vLOA (prosa/callout/tabella + sotto-sezioni). *@
         @if (Editorial is not null) { <SectionBody Section="Editorial" DepthOffset="-1" /> }
@@ -53,6 +63,12 @@
         SectionCatalog.IsHostRendered(SectionCatalog.ProfileOfAccBlock(Block.Kind), key);
 
     [Parameter] public string? Root { get; set; }
+
+    /// <summary>Codice ACC: con <see cref="Root"/> forma la chiave di release «ACC|root». Null = niente timbro.</summary>
+    [Parameter] public string? Acc { get; set; }
+
+    /// <summary>Anteprima di una release precisa; null = la release effettiva adesso.</summary>
+    [Parameter] public int? ReleaseId { get; set; }
 
     [Parameter] public IReadOnlyList<AppFreqRow>? Freqs { get; set; }
     [Parameter] public AccCoordination? Coord { get; set; }

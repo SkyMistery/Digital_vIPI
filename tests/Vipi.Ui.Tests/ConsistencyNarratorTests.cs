@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Localization;
+﻿using Microsoft.Extensions.Localization;
 using Vipi.Application.Diagnostics;
 using Vipi.Ui;
 using Xunit;
@@ -203,6 +203,9 @@ public class ConsistencyNarratorTests
     /// </summary>
     private sealed class RosterSenzaAdmin : Vipi.Application.Abstractions.IStaffRosterRepository
     {
+        public Task<Vipi.Application.Abstractions.StaffRosterEntry?> FindAsync(int userId, CancellationToken ct = default) =>
+            Task.FromResult<Vipi.Application.Abstractions.StaffRosterEntry?>(null);
+
         public Task<IReadOnlyList<Vipi.Application.Abstractions.StaffRosterEntry>> ListActiveAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<Vipi.Application.Abstractions.StaffRosterEntry>>(new[]
             {

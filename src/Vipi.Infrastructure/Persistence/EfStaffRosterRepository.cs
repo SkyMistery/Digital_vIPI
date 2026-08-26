@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Domain.Entities;
 
@@ -88,6 +88,14 @@ public sealed class EfStaffRosterRepository : IStaffRosterRepository
             .Select(x => new { x.UserId, x.DisplayName })
             .ToListAsync(ct);
         return rows.ToDictionary(x => x.UserId, x => x.DisplayName!);
+    }
+
+    public async Task<StaffRosterEntry?> FindAsync(int userId, CancellationToken ct = default)
+    {
+        // ⚠️ Nessun filtro su IsActive: chi ha firmato una release resta il revisore di quella release anche dopo
+        // aver lasciato lo staff.
+        var x = await _db.StaffMembers.AsNoTracking().FirstOrDefaultAsync(m => m.UserId == userId, ct);
+        return x is null ? null : Map(x);
     }
 
     private static StaffRosterEntry Map(StaffMember x) => new(

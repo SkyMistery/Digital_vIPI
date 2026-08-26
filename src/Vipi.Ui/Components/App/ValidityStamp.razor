@@ -1,0 +1,74 @@
+﻿@* La scheda di «Validità e revisione»: da quale ciclo AIRAC il documento vale, da quando, e chi l'ha
+   pubblicato — nome, posizione staff e VID. Uno solo per tutte e quattro le famiglie.
+
+   ⚠️ Non si compila: sono tre FATTI che vengono dalla release. Su alcuni documenti erano scritti a mano in una
+   tabella che nessuno aggiornava, ed è per questo che adesso li scrive il documento da sé.
+
+   ⚠️ Lo scope è PROPRIO (OwningComponentBase): il caricamento tocca il database, e questo componente compare in
+   ogni documento — su una vIPI ACC anche una volta per blocco. Col DbContext del circuito sarebbe la solita
+   corsa «a second operation was started on this context instance». *@
+@using Microsoft.Extensions.DependencyInjection
+@using Vipi.Ui.Shared
+@inherits OwningComponentBase
+@inject IStringLocalizer<SharedResource> L
+
+<table class="tl-table validity-stamp">
+    <tbody>
+        <tr>
+            <td>@L["Val_AiracCycle"]</td>
+            <td>@(_stamp.Published ? _stamp.AiracCycle : L["Val_NotPublished"].Value)</td>
+        </tr>
+        <tr>
+            <td>@L["Val_EffectiveFrom"]</td>
+            @* ⚠️ DATA e ora, non la sola ora: «22:22Z» risponde alla domanda sbagliata — di un documento si
+               vuole sapere da QUANDO vale. La Z resta perché un ciclo AIRAC cambia a mezzanotte UTC, e il
+               browser aggiunge l'ora del lettore (regola del progetto sugli orari). *@
+            <td data-utc="@VipiTime.Iso(_stamp.EffectiveUtc)">
+                @(_stamp.EffectiveUtc is { } d ? VipiTime.DayZ(d) : "—")
+            </td>
+        </tr>
+        <tr>
+            <td>@L["Val_ReviewedBy"]</td>
+            <td>
+                @if (!_stamp.Published)
+                {
+                    <span class="muted">—</span>
+                }
+                else if (_stamp.ReviewerVid is not int vid)
+                {
+                    @* Release scritta senza un utente: ce ne sono in archivio. «Non registrato» è la verità;
+                       uno zero al posto del VID sarebbe un numero che qualcuno proverebbe a cercare. *@
+                    <span class="muted">@L["Val_ReviewerUnknown"]</span>
+                }
+                else
+                {
+                    @* «Nome (VID 123456)» col solo VID premibile: è la forma che il componente condiviso usa già
+                       in Versioni e in Permessi, e non c'è ragione perché qui sia un'altra. *@
+                    <VidLink Vid="vid" Nome="@_stamp.ReviewerName" />
+                    @if (_stamp.ReviewerPositions.Count > 0)
+                    {
+                        <span class="muted">&#32;·&#32;@string.Join(" · ", _stamp.ReviewerPositions)</span>
+                    }
+                }
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+@code {
+    /// <summary>Bersaglio e chiave di release del documento mostrato (ICAO, callsign APP, id vLOA, «ACC|root»).</summary>
+    [Parameter, EditorRequired] public ReleaseTargetType Target { get; set; }
+    [Parameter, EditorRequired] public string Key { get; set; } = "";
+
+    /// <summary>Anteprima di una release precisa; null = la release effettiva adesso.</summary>
+    [Parameter] public int? ReleaseId { get; set; }
+
+    private DocumentValidityStamp _stamp = DocumentValidityStamp.NotPublished;
+
+    // ⚠️ In OnParametersSetAsync e non nel render: il render non tocca mai il database (regola del progetto).
+    protected override async Task OnParametersSetAsync()
+    {
+        var svc = ScopedServices.GetRequiredService<IDocumentValidityService>();
+        _stamp = await svc.ResolveAsync(Target, Key ?? "", ReleaseId);
+    }
+}

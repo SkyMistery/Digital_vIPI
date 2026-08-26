@@ -398,7 +398,11 @@ else
         {
             @DerivedContent?.Invoke(s)
         }
-        else
+
+        @* ⚠️ Una sezione può avere TUTTI E DUE: la scheda che le disegna la pagina e i propri blocchi
+           editoriali («Validità e revisione»: il timbro lo scrive il documento, il resto lo scrive chi
+           redige). Il ramo `else` non basta — dovrebbero convivere, non escludersi. *@
+        @if (IsDerivedSection?.Invoke(s) != true || (Profile is { } prof && SectionCatalog.KeepsOwnBlocks(prof, s.SectionKey)))
         {
             @foreach (var b in s.Blocks)
             {

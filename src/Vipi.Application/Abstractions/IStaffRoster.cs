@@ -1,4 +1,4 @@
-namespace Vipi.Application.Abstractions;
+﻿namespace Vipi.Application.Abstractions;
 
 /// <summary>Riga del roster staff per il picker degli AOD/DIR (solo staffisti IT attivi).</summary>
 public sealed record StaffRosterEntry(
@@ -34,6 +34,13 @@ public interface IStaffRosterRepository
     /// <summary>Risolve VID → DisplayName per un insieme di UserId (batch). Include anche gli ex-staff disattivati;
     /// i VID senza nome noto (o non nel roster) non compaiono nel dizionario.</summary>
     Task<IReadOnlyDictionary<int, string>> GetDisplayNamesAsync(IReadOnlyCollection<int> userIds, CancellationToken ct = default);
+
+    /// <summary>
+    /// Uno staffista per VID: nome <b>e posizioni</b>. Null se quel VID non è mai passato dal roster.
+    /// <para>⚠️ Include i disattivati, e deve: chi ha firmato una release un anno fa può non essere più staff, ma
+    /// il documento dice chi l'ha rivisto ALLORA. Cancellarne il nome riscriverebbe la storia.</para>
+    /// </summary>
+    Task<StaffRosterEntry?> FindAsync(int userId, CancellationToken ct = default);
 }
 
 /// <summary>Dati staff di un utente dalla sorgente esterna (oggi IVAO <c>/v2/users/{UserId}</c>, leggibili col token app).</summary>

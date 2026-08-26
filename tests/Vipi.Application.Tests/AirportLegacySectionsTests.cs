@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 using Xunit;
 
 namespace Vipi.Application.Tests;
@@ -38,13 +38,27 @@ public class AirportLegacySectionsTests
     {
         var v = AirportLegacySections.ForView(SnapshotCotto());
 
+        // ⚠️ In coda c'è anche «validity», che lo snapshot non aveva: è sempre-live come il meteo, e la regola
+        // vale per tutte e due. Va al suo posto di catalogo — che è l'ultimo.
         Assert.Equal(
-            new[] { "weather", "transition", "frequencies", "runways", "sids", AirportLegacySections.ExtraKey },
+            new[] { "weather", "transition", "frequencies", "runways", "sids", AirportLegacySections.ExtraKey, "validity" },
             v.Select(s => s.SectionKey));
         // ...e ai titoli di catalogo: chi legge non deve trovarsi mezzo documento in inglese.
         Assert.Equal("Quote di transizione", v.Single(s => s.SectionKey == "transition").Title);
         Assert.Equal("Frequenze", v.Single(s => s.SectionKey == "frequencies").Title);
         Assert.Equal("Piste", v.Single(s => s.SectionKey == "runways").Title);
+    }
+
+    [Fact]
+    public void Anche_la_validita_si_aggiunge_se_manca()
+    {
+        // «Validità e revisione» è sempre-live come il meteo: il suo timbro parla della release che si sta
+        // mostrando, quindi non è mai parte della verità di uno snapshot e non ha senso che manchi.
+        var v = AirportLegacySections.ForView(SnapshotCotto());
+
+        var val = Assert.Single(v, s => s.SectionKey == "validity");
+        Assert.Equal("Validità e revisione", val.Title);
+        Assert.Empty(val.Blocks);
     }
 
     [Fact]
@@ -129,10 +143,11 @@ public class AirportLegacySectionsTests
     }
 
     [Fact]
-    public void Una_lista_vuota_da_comunque_il_meteo()
+    public void Una_lista_vuota_da_comunque_le_sezioni_sempre_live()
     {
-        // Documento senza sezioni (o snapshot rotto): il meteo è live, non ha bisogno di niente per esistere.
+        // Documento senza sezioni (o snapshot rotto): meteo e validità sono live, non hanno bisogno di niente
+        // per esistere — l'uno viene dal NOAA, l'altro dalla release.
         var v = AirportLegacySections.ForView(Array.Empty<SectionView>());
-        Assert.Equal("weather", Assert.Single(v).SectionKey);
+        Assert.Equal(new[] { "weather", "validity" }, v.Select(s => s.SectionKey));
     }
 }

@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using Vipi.Application;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
@@ -19,6 +19,9 @@ public class AdminCoverageTests
 {
     private sealed class RosterFinto : IStaffRosterRepository
     {
+        public Task<StaffRosterEntry?> FindAsync(int userId, CancellationToken ct = default) =>
+            Task.FromResult<StaffRosterEntry?>(null);
+
         private readonly List<StaffRosterEntry> _righe;
         public RosterFinto(params (int Vid, string[] Codes)[] righe) =>
             _righe = righe.Select(r => new StaffRosterEntry(r.Vid, $"Tizio {r.Vid}", "ACC", r.Codes, DateTime.UtcNow)).ToList();

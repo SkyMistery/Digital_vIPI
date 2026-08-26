@@ -1,4 +1,4 @@
-namespace Vipi.Application.Content;
+﻿namespace Vipi.Application.Content;
 
 /// <summary>
 /// Da chi è prodotto il corpo di una sezione (doc refactor 13 §3a). Ortogonale a <see cref="SectionKind"/>: la
@@ -13,6 +13,17 @@ public enum SectionBodySource
     /// <summary>Il corpo lo produce la pagina ospite: sezioni derivate e editoriali-<b>strutturate</b>
     /// (separazioni, configurazioni, VFR, aree regolamentate), che hanno un editor dedicato.</summary>
     Host,
+
+    /// <summary>
+    /// TUTTI E DUE: la pagina disegna una scheda in testa, e sotto restano i <c>ContentBlock</c> della sezione.
+    /// <para>
+    /// Serve a «Validità e revisione» (26 agosto 2026): il ciclo AIRAC, la data e chi ha pubblicato sono
+    /// <b>fatti</b> che nessuno deve ricopiare a mano, ma il resto — «ciclo di revisione bilaterale»,
+    /// «firmatario italiano» su una vLOA — è contenuto d'accordo che nessuno può derivare. Le due cose stanno
+    /// nella stessa sezione perché rispondono alla stessa domanda: da quando vale, e chi risponde.
+    /// </para>
+    /// </summary>
+    HostAndBlocks,
 }
 
 /// <summary>

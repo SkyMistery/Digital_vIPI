@@ -210,6 +210,14 @@ else
                                         <AirportSids View="_derived.Sids" Selected="@_sidRwy" SelectedChanged="SelectSidRwy"
                                                      DepIdents="_depIdents" TransitionAltitudeFt="_derived.Transition.TransitionAltitudeFt" />
                                         break;
+                                    case "validity":
+                                        <ValidityStamp Target="ReleaseTargetType.Airport" Key="@_icao" ReleaseId="@ReleaseIdShown()" />
+                                        break;
+                                }
+                                @* La sezione tiene ANCHE i suoi blocchi: il timbro sopra, il testo scritto a mano sotto. *@
+                                @if (SectionCatalog.KeepsOwnBlocks(SectionProfile.Airport, sec.SectionKey))
+                                {
+                                    <SectionBody Section="sec" ShowBlocks="true" />
                                 }
                                 @if (SectionBody.HasChildren(sec, SectionSlot.After))
                                 {
@@ -541,6 +549,9 @@ else
     // Ancora di sezione: «s-{Id}» per TUTTE, anche per quelle rese dalla pagina (doc 13 §3e), così i deep-link
     // della ricerca — che indicizza per Id — atterrano dove devono e non in cima alla pagina.
     private static string AnchorOf(SectionView s) => s.Id;
+
+    /// <summary>La release che questa vista mostra: quella dell'anteprima, o null = la effettiva adesso.</summary>
+    private int? ReleaseIdShown() => _mode.Kind == PreviewKind.Release ? _mode.ReleaseId : null;
 
     private IEnumerable<SectionView> VisibleSections() =>
         _sezioni.Where(s => _mode.Kind == PreviewKind.Draft || !s.IsHidden);

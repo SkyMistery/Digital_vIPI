@@ -327,3 +327,70 @@ costruzione anche quando la griglia cambia.
 ⚠️ **Non c'è un test che lo protegga.** È una relazione di ANNIDAMENTO nel DOM — «il pannello è discendente
 della colonna centrale» — e coprirla con bUnit vorrebbe dire impersonare l'intero `IEditingService`. Resta la
 misura live, e il commento sul parametro che dice perché esiste.
+
+---
+
+## §11 — «Validità e revisione» porta tre campi che nessuno ricopia
+
+Richiesta del committente: la sezione deve avere **tre campi fissi** — ciclo AIRAC di appartenenza, data, e chi
+ha rivisto il documento con **nome, posizione staff e VID** di chi ha premuto Pubblica — **in tutti i documenti**.
+
+**Erano già scritti a mano, e non si aggiornavano.** In archivio le sezioni `validity` contengono otto tabelle
+`Item | Value` compilate a mano: «Effective from → AIRAC 2607», «Review cycle → Bilateral, at least annually»,
+«Italian signatory → LIBB CH / AOD». La prima riga è un fatto che invecchia da solo; le altre due sono contenuto
+d'accordo che nessuno può derivare. Decisione del committente: la scheda **si aggiunge sopra**, il testo resta.
+
+### La sezione con due corpi
+
+`SectionBodySource` guadagna un terzo valore, **`HostAndBlocks`**: la pagina disegna una scheda in testa e sotto
+restano i `ContentBlock` della sezione. È l'unica sezione del catalogo ad averli entrambi, e un test lo presidia
+— chi ne aggiungesse un'altra lo starebbe decidendo, non ereditando. Nuova porta `SectionCatalog.KeepsOwnBlocks`.
+
+### Il timbro viene dalla release, e per questo è sempre-live
+
+⚠️ `validity` entra in `AlwaysLiveKeys` per una ragione di **ordine**, non di gusto: il suo timbro parla della
+release, e la cattura frozen gira **dentro** la creazione dello snapshot — quando quella release non esiste
+ancora. Non c'è niente da congelare: si legge sempre dalla release che si sta mostrando.
+
+Conseguenza gradita: la regola del §8 — *una sezione sempre-live non è mai parte della verità di uno snapshot* —
+la inietta anche nei documenti d'aeroporto pubblicati prima, senza una riga in più.
+
+| Pezzo | Dove |
+|---|---|
+| Quale release si legge | `ValidityRelease.Pick` — **pura**: è la parte che sbaglia più facilmente |
+| Il timbro | `DocumentValidityService` (release + roster staff) |
+| La scheda | `ValidityStamp.razor`, uno per tutte e quattro le famiglie |
+| Nome e posizioni per VID | `IStaffRosterRepository.FindAsync`, **anche per i disattivati** |
+
+⚠️ **Chi ha firmato una release resta il revisore di quella release**, anche dopo aver lasciato lo staff:
+`FindAsync` non filtra su `IsActive`, o cancellarne il nome riscriverebbe la storia.
+
+⚠️ **Un'anteprima che punta a una release cancellata NON ricade sull'effettiva**: mostra «non pubblicato».
+Ricadere direbbe al lettore, sotto l'intestazione «stai guardando la release #N», il ciclo e il firmatario di
+un'**altra** release.
+
+⚠️ **VID `0` non è una persona.** In archivio ci sono tre vLOA pubblicate senza utente registrato: la scheda
+dice «non registrato» invece di stampare uno zero che qualcuno proverebbe a cercare.
+
+⚠️ **Il nome del roster porta già il VID dentro** («Carmine (704798)»): lo scrive il login, perché nell'elenco
+dei permessi due omonimi vanno distinti. Qui il VID lo aggiunge il link, e senza pulizia si leggeva
+«Carmine (704798) (VID 704798)» — trovato a schermo, chiuso con `CleanName` e sette casi di prova.
+
+### Verifica live, quattro documenti
+
+| Documento | Scheda | Testo sotto |
+|---|---|---|
+| aeroporto LIBD | `2607 · 29 Jul 2026 · 22:22Z · Carmine (VID 704798) · IT-AOA1 · IT-T03` | — |
+| APP LIBA | `2608 · 23 Aug 2026 · 23:44Z · non registrato` | — |
+| vIPI ACC LIBB | una **per blocco**, il timbro è per `ACC\|root` | — |
+| vLOA LDZO | `2608 · 12 Aug 2026 · 13:56Z · Carmine (VID 704798) · IT-AOA1 · IT-T03` | ✅ la tabella scritta a mano |
+| editor aeroporto | scheda + nota «questi tre campi li scrive il documento» | — |
+
+**Due cose da sapere, e nessuna delle due è un difetto:**
+
+1. **Sulla vIPI ACC di Brindisi la sezione non si vede in pubblico**: `validity` e `operationaltechnique` sono
+   **nascoste a mano** (`IsHidden = true`) su entrambi i blocchi. Sono le sole due in tutto l'archivio — le altre
+   otto vIPI e quattro vLOA le hanno visibili. Si riaprono dall'editor con un clic; non l'ho fatto io perché
+   nascondere una sezione è una scelta editoriale registrata.
+2. **Sui documenti che avevano già la tabella a mano il ciclo AIRAC compare due volte** — una generata e una
+   scritta. È la conseguenza annunciata della scelta «si aggiunge sopra»: si toglie cancellando quella riga.

@@ -73,7 +73,9 @@ else
                                           InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.Key))">
                             <Header><h3>@s.Title @if (isHidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }</h3></Header>
                             <ChildContent>
-                                <AccSectionBody Block="block" Key="@s.Key" Root="@_root" Editorial="s.Editorial"
+                                <AccSectionBody Block="block" Key="@s.Key" Root="@_root" Acc="@Acc"
+                                                ReleaseId="@(_mode.Kind == PreviewKind.Release ? _mode.ReleaseId : null)"
+                                                Editorial="s.Editorial"
                                                 Freqs="_freqs.GetValueOrDefault(block.Key)"
                                                 Coord="_coord.GetValueOrDefault(block.Key)"
                                                 Aor="_aors.GetValueOrDefault(block.Key)"
