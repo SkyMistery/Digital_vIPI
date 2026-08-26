@@ -157,7 +157,11 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
                 row.MinimumAlt = a.MinimumAlt;
                 row.MaximumAlt = a.MaximumAlt;
                 row.Range = a.Range;
-                if (a.RegionMapPolygon is not null) row.RegionMapPolygon = a.RegionMapPolygon;   // preserva shape se il dettaglio manca
+                // Preserva la shape quando il dettaglio manca (null) O quando arriva vuota. ⚠️ La seconda metà
+                // è nuova, e senza di lei le 228 aree in archivio si salvavano solo per fortuna: le protegge
+                // `skipDetailIds`, che per un'area con shape già buona il dettaglio non lo chiede nemmeno —
+                // ma basterebbe un'area nuova, o un giro che riscarica tutto, per riportarci `[]` e perderla.
+                if (!PolygonGeometry.IsEmptyShape(a.RegionMapPolygon)) row.RegionMapPolygon = a.RegionMapPolygon;
                 row.ImportedAtUtc = now;
                 updated++;
                 if (prima != (row.Type, row.Name, row.Description, row.ActivationDetails,
@@ -176,7 +180,7 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
                     MinimumAlt = a.MinimumAlt,
                     MaximumAlt = a.MaximumAlt,
                     Range = a.Range,
-                    RegionMapPolygon = a.RegionMapPolygon,
+                    RegionMapPolygon = PolygonGeometry.IsEmptyShape(a.RegionMapPolygon) ? null : a.RegionMapPolygon,
                     ImportedAtUtc = now,
                 });
                 created++;
