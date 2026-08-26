@@ -195,17 +195,26 @@ sezione li tiene — e cede il posto a un `RenderFragment<SectionView>` per il s
 Prende il `SectionProfile` come parametro: è così che la vLOA entra nel catalogo senza una riga
 dedicata.
 
-### 3f. Una porta sola per «assicurami il documento» (🔸9, ⚠️5)
+### 3f. Le sezioni alla nascita le dice il catalogo (⚠️5, e metà di 🔸9)
 
-`IReleaseTarget` guadagna il gemello di `ResolveDocumentIdAsync`:
+`EnsureVipiDocumentAsync` e `EnsureVipiDocumentTreeAsync` non ricevono più **due** elenchi scritti a mano —
+le sezioni e le «chiavi live» — ma un `SectionProfile`. Da lì il repository prende le sezioni nel loro
+ordine, decide chi riceve il blocco placeholder (`IsHostRendered`) e con che `RenderMode` nasce
+(`IsAlwaysLive`). Gli array `LiveKeys` perdono il chiamante e spariscono: erano cinque chiavi sull'ACC e
+otto sull'APP, per la stessa domanda. `VipiBlockSpec` porta il profilo del blocco invece della sua lista.
 
-```csharp
-Task<int> EnsureDocumentIdAsync(string key, CancellationToken ct = default);
-```
+⚠️ **Quel che era scritto qui e NON si fa: `IReleaseTarget.EnsureDocumentIdAsync`.** L'idea era un gemello
+di `ResolveDocumentIdAsync` che creasse il documento se non c'è. **Crea un ciclo di dipendenze** e non
+sarebbe partito nemmeno in DI: un descrittore che dipendesse dal servizio della sua famiglia
+(`AccVipiReleaseTarget` → `IAccDocumentService`) chiuderebbe l'anello passando per
+`IReleaseRepository` → `IReleaseTargetRegistry` → `IEnumerable<IReleaseTarget>`. Aggirarlo con una
+risoluzione pigra sarebbe stato nascondere il ciclo, non toglierlo — e soprattutto **nessun chiamante
+di oggi ne ha bisogno**: ogni editor chiede il documento al servizio della propria famiglia, che lo
+garantisce da sé. La porta unica sarebbe stata speculativa.
 
-I quattro descrittori la implementano delegando al proprio servizio; la nascita del documento
-d'aeroporto lascia `EfAirportRepository` e passa da `EnsureVipiDocumentAsync` come le altre. Gli array
-`LiveKeys` perdono il chiamante: le sezioni con corpo dalla pagina le dice il catalogo.
+Resta vero il rilievo 🔸9 nella sua parte sostanziale — la nascita del documento d'aeroporto sta dentro
+`EfAirportRepository` invece che dove nascono gli altri tre — e si chiude in **P7**, dove sta il resto del
+lavoro sull'aeroporto.
 
 ### 3g. L'aeroporto rientra nel modello (🔸11, ⚠️6)
 
@@ -229,8 +238,8 @@ pagine gli chiedono le URL. I commenti che mentono se ne vanno.
 | P3 | Lo snapshot si legge una volta per pagina | ⚠️3 | basso |
 | P4 | `DocumentEditorHost`: il guscio dell'editor | 🔸8 ⚠️7 | medio |
 | P5 | `DocumentSectionsView`: il ciclo del viewer | ⚠️4 | medio |
-| P6 | `EnsureDocumentIdAsync`: una porta sola | 🔸9 ⚠️5 | medio |
-| P7 | L'aeroporto rientra nel modello | 🔸11 ⚠️6 | alto |
+| P6 | Le sezioni alla nascita le dice il catalogo | ⚠️5 | medio |
+| P7 | L'aeroporto rientra nel modello (+ la nascita del suo documento) | 🔸11 ⚠️6 🔸9 | alto |
 | P8 | Pulizia: enum, rotte, commenti | 🔸10 🔸12 🔸13 | medio |
 
 Ogni passo è un commit, con build verde. P4 e P5 portano con sé le **prove di parità** (§5).

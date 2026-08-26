@@ -91,13 +91,6 @@ public sealed class AccDocumentService : IAccDocumentService
 
     private static string Norm(string s) => (s ?? "").Trim().ToUpperInvariant();
 
-    // Sezioni "live" della vIPI ACC (derivate o rese live da componenti dedicati): ricevono un blocco placeholder alla
-    // creazione così restano visibili nel viewer anche senza contenuto memorizzato. Union dei due profili ACC.
-    // «minima» non c'è più (doc 13 §3b): è una sezione editoriale come le altre e un blocco tabella vuoto
-    // le darebbe un editor di tabella che nessuno ha chiesto.
-    private static readonly string[] LiveKeys =
-        { "separations", "aor", "frequencies", "vfr", "coordination" };
-
     public Task<AccDocumentIdentity?> GetIdentityAsync(string accCode, CancellationToken ct = default) =>
         _repo.ResolveAccDocumentIdentityAsync(Norm(accCode), ct);
 
@@ -111,11 +104,10 @@ public sealed class AccDocumentService : IAccDocumentService
         await _authz.EnsureCanEditAccAsync(accCode, ct);
 
         // Struttura di default: un solo blocco Aerovia con le sezioni del catalogo. I gruppi APP si aggiungono dall'editor.
-        var aerovia = new VipiBlockSpec("aerovia", "Settori di aerovia",
-            SectionCatalog.For(SectionProfile.AccAerovia).Select(d => (d.Key, d.Title)).ToList());
+        var aerovia = new VipiBlockSpec("aerovia", "Settori di aerovia", SectionProfile.AccAerovia);
 
         return await _editing.EnsureVipiDocumentTreeAsync(id.SectorId, $"vIPI {id.AccName}", Language.It,
-            new[] { aerovia }, _authz.CurrentUserId ?? 0, LiveKeys, ct);
+            new[] { aerovia }, _authz.CurrentUserId ?? 0, ct);
     }
 
     public async Task<AccDocumentModel> LoadForEditAsync(string accCode, CancellationToken ct = default)
@@ -232,8 +224,8 @@ public sealed class AccDocumentService : IAccDocumentService
     {
         await _authz.EnsureCanEditAccAsync(Norm(accCode), ct);
         var block = new VipiBlockSpec("appgroup", string.IsNullOrWhiteSpace(title) ? "Nuovo gruppo APP" : title.Trim(),
-            SectionCatalog.For(SectionProfile.AccAppBlock).Select(d => (d.Key, d.Title)).ToList());
-        var blockSectionId = await _editing.AddBlockToVersionAsync(versionId, block, LiveKeys, ct);
+            SectionProfile.AccAppBlock);
+        var blockSectionId = await _editing.AddBlockToVersionAsync(versionId, block, ct);
 
         // Semina un blockmeta con chiave unica (grp:{guid}) così i blocchi non collidono (anchor/dizionari).
         var meta = new AccBlockMeta { Key = "grp:" + Guid.NewGuid().ToString("N")[..8], Kind = AccBlockKind.AppGroup };

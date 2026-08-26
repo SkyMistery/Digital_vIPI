@@ -137,13 +137,6 @@ public sealed class AppDocumentService : IAppDocumentService
 
     private static string Norm(string s) => (s ?? "").Trim().ToUpperInvariant();
 
-    // Sezioni "live" dell'APP (derivate o editoriali-strutturate rese da componenti dedicati): ricevono un blocco
-    // placeholder alla creazione così restano visibili nel viewer anche senza contenuto memorizzato. Doc refactor 08e.
-    // «minima» è tornata fra queste: dal giro MRVA la carta la deriva la pagina dal sectorfile, quindi la sezione
-    // ha di nuovo un corpo che non viene dai blocchi.
-    private static readonly string[] LiveKeys =
-        { "separations", "configurations", "aor", "frequencies", "minima", "vfr", "coordination", "regulated" };
-
     public async Task<int> EnsureAsync(string appCallsign, CancellationToken ct = default)
     {
         var id = await _apps.ResolveForDocumentAsync(Norm(appCallsign), ct)
@@ -151,9 +144,8 @@ public sealed class AppDocumentService : IAppDocumentService
         // Authz PRIMA dell'uscita anticipata: sui documenti già migrati il metodo non verificava nulla.
         await _authz.EnsureCanEditAccAsync(id.AccCode, ct);
         if (id.DocumentId is int existing) return existing;   // già migrato
-        var sections = SectionCatalog.For(SectionProfile.App).Select(d => (d.Key, d.Title)).ToList();
-        return await _editing.EnsureVipiDocumentAsync(id.SectorId, id.Title, Language.It, sections,
-            _authz.CurrentUserId ?? 0, LiveKeys, ct);
+        return await _editing.EnsureVipiDocumentAsync(id.SectorId, id.Title, Language.It, SectionProfile.App,
+            _authz.CurrentUserId ?? 0, ct);
     }
 
     // Override derivati (link/ordine freq, template coord) dal DocumentProfile del documento dell'APP; vuoti se non migrato.
