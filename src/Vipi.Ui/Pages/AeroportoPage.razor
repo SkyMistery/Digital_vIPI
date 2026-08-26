@@ -150,97 +150,16 @@ else
                    piste → SID → extra) e ritrovava le sezioni con `Title.Contains("transi")`. Per questo
                    riordinare, nascondere o infilare una sezione libera in mezzo non aveva alcun effetto: il
                    documento poteva dire quello che voleva, la pagina disegnava sempre la stessa cosa. *@
-                @foreach (var sec in _sezioni)
-                {
-                    var nascosta = sec.IsHidden;
-                    @if (nascosta && _mode.Kind != PreviewKind.Draft)
-                    {
-                        <text></text>   @* nascosta: fuori dal pubblico e dall'anteprima release *@
-                    }
-                    else if (IsSpecial(sec.SectionKey))
-                    {
-                        @* ⚠️ Il meteo non va in stampa: è un dato live, e su carta sarebbe un'istantanea già
-                           scaduta quando la si legge. È anche l'unica sezione che non si congela mai. *@
-                        <CollapsibleBlock Id="@AnchorOf(sec)" ExtraClass="@(sec.SectionKey == "weather" ? "noprint" : null)"
-                                          Style="@(nascosta ? "opacity:.65" : null)"
-                                          InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(sec.SectionKey))">
-                            <Header>
-                                <h2 class="h-sect" style="margin-top:0">
-                                    @* ⚠️ Il meteo porta l'intestazione che aveva quando era un riquadro a sé:
-                                       l'emoji, l'ICAO e la nota «live NOAA». Non è decorazione — dice DI CHI è
-                                       il tempo che si sta leggendo e che è vivo, e sono le due cose che questa
-                                       sezione ha da dire prima di essere aperta. *@
-                                    @if (sec.SectionKey == "weather") { <text>🌦️ </text> }
-                                    @SectionHeading(sec)
-                                    @if (sec.SectionKey == "weather")
-                                    {
-                                        <text> · @_icao </text>
-                                        <span class="muted" style="font-weight:400;font-size:13px">@L["Airport_LiveNoaa"]</span>
-                                    }
-                                    @if (nascosta) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }
-                                </h2>
-                            </Header>
-                            <ChildContent>
-                                @* Sotto-sezioni «prima» del corpo derivato (doc 11 §3g). *@
-                                @if (SectionBody.HasChildren(sec, SectionSlot.Before))
-                                {
-                                    <SectionBody Section="sec" ShowBlocks="false" Slot="SectionSlot.Before" />
-                                }
-                                @switch (sec.SectionKey)
-                                {
-                                    case "weather":
-                                        <AirportWeather Icao="@_icao" Report="_wx" Metar="_metar" Taf="_taf" />
-                                        break;
-                                    case "runwayrules":
-                                        <AirportRunwayRules View="_derived.Rules" ActivePosition="@(_ruleResult is null ? null : _ruleResult.RuleIndex + 1)" />
-                                        break;
-                                    case "transition":
-                                        <AirportTransition View="_derived.Transition" CurrentQnh="_metar?.QnhHpa" />
-                                        break;
-                                    case "frequencies":
-                                        <AirportFrequencies View="_derived.Frequencies" />
-                                        break;
-                                    case "runways":
-                                        <AirportRunways View="_derived.Runways" DepIdents="_depIdents" ArrIdents="_arrIdents"
-                                                        RuleName="@(_ruleResult is null ? null : _ruleResult.RuleName ?? $"#{_ruleResult.RuleIndex + 1}")"
-                                                        RuleNote="@_ruleResult?.Note" WindDir="_windDir" WindKt="_windKt"
-                                                        HasRain="@(_metar?.HasRain == true)" HasSnow="@(_metar?.HasSnow == true)" />
-                                        break;
-                                    case "sids":
-                                        <AirportSids View="_derived.Sids" Selected="@_sidRwy" SelectedChanged="SelectSidRwy"
-                                                     DepIdents="_depIdents" TransitionAltitudeFt="_derived.Transition.TransitionAltitudeFt" />
-                                        break;
-                                    case "validity":
-                                        <ValidityStamp Target="ReleaseTargetType.Airport" Key="@_icao" ReleaseId="@ReleaseIdShown()" />
-                                        break;
-                                }
-                                @* La sezione tiene ANCHE i suoi blocchi: il timbro sopra, il testo scritto a mano sotto. *@
-                                @if (SectionCatalog.KeepsOwnBlocks(SectionProfile.Airport, sec.SectionKey))
-                                {
-                                    <SectionBody Section="sec" ShowBlocks="true" />
-                                }
-                                @if (SectionBody.HasChildren(sec, SectionSlot.After))
-                                {
-                                    <SectionBody Section="sec" ShowBlocks="false" Slot="SectionSlot.After" />
-                                }
-                            </ChildContent>
-                        </CollapsibleBlock>
-                    }
-                    else if (nascosta)
-                    {
-                        @* Editoriale nascosta in anteprima bozza: stessa marcatura delle speciali, o non si
-                           capirebbe che è fuori dal pubblico. *@
-                        <CollapsibleBlock Id="@AnchorOf(sec)" Style="opacity:.65"
-                                          InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(sec.SectionKey))">
-                            <Header><h2 class="h-sect" style="margin-top:0">@sec.Title <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span></h2></Header>
-                            <ChildContent><SectionBody Section="sec" /></ChildContent>
-                        </CollapsibleBlock>
-                    }
-                    else
-                    {
-                        <SectionNode Section="sec" />   @* editoriale/libera: prosa/tabella/callout + sotto-sezioni *@
-                    }
-                }
+                @* Il ciclo delle sezioni lo fa il componente condiviso (doc 14 §3e). Fino alla carta del
+                   26 agosto questa pagina aveva la sequenza CABLATA (meteo → TA+frequenze affiancate → piste
+                   → SID → extra) e ritrovava le sezioni con `Title.Contains("transi")`: riordinare o
+                   nascondere non aveva alcun effetto. Ora l'ordine è quello del documento, e le regole di
+                   contorno sono le stesse delle altre famiglie perché sono lo STESSO componente. *@
+                <DocumentSectionsView Sections="_sezioni" Profile="SectionProfile.Airport"
+                                      IsDraft="@(_mode.Kind == PreviewKind.Draft)"
+                                      AnchorOf="AnchorOf" TitleOf="SectionHeading"
+                                      ExtraClass="ClasseExtra" HeaderContent="Intestazione"
+                                      DerivedContent="CorpoDerivato" />
             </div>
 
             @* Colonna destra sticky (desktop ≥1500px): riepilogo + link + eventuali sezioni extra del profilo. *@
@@ -522,7 +441,54 @@ else
 
     // Sezioni il cui corpo lo rende questa pagina; le altre passano da SectionNode. Chi siano lo dice il
     // catalogo, per profilo (doc 13 §3a) — non un insieme scritto qui dentro.
-    private static bool IsSpecial(string key) => SectionCatalog.IsHostRendered(SectionProfile.Airport, key);
+    /// <summary>Il corpo che questa pagina disegna, per chiave di sezione.</summary>
+    private RenderFragment<SectionView> CorpoDerivato => sec => __builder =>
+    {
+        @switch (sec.SectionKey)
+        {
+            case "weather": <AirportWeather Icao="@_icao" Report="_wx" Metar="_metar" Taf="_taf" />; break;
+            case "runwayrules":
+                <AirportRunwayRules View="_derived.Rules" ActivePosition="@(_ruleResult is null ? null : _ruleResult.RuleIndex + 1)" />;
+                break;
+            case "transition": <AirportTransition View="_derived.Transition" CurrentQnh="_metar?.QnhHpa" />; break;
+            case "frequencies": <AirportFrequencies View="_derived.Frequencies" />; break;
+            case "runways":
+                <AirportRunways View="_derived.Runways" DepIdents="_depIdents" ArrIdents="_arrIdents"
+                                RuleName="@(_ruleResult is null ? null : _ruleResult.RuleName ?? $"#{_ruleResult.RuleIndex + 1}")"
+                                RuleNote="@_ruleResult?.Note" WindDir="_windDir" WindKt="_windKt"
+                                HasRain="@(_metar?.HasRain == true)" HasSnow="@(_metar?.HasSnow == true)" />;
+                break;
+            case "sids":
+                <AirportSids View="_derived.Sids" Selected="@_sidRwy" SelectedChanged="SelectSidRwy"
+                             DepIdents="_depIdents" TransitionAltitudeFt="_derived.Transition.TransitionAltitudeFt" />;
+                break;
+            case "validity": <ValidityStamp Target="ReleaseTargetType.Airport" Key="@_icao" ReleaseId="@ReleaseIdShown()" />; break;
+        }
+    };
+
+    /// <summary>⚠️ Il meteo non va in stampa: è un dato live, e su carta sarebbe un'istantanea già scaduta
+    /// quando la si legge. È anche l'unica sezione che non si congela mai.</summary>
+    private static string? ClasseExtra(SectionView sec) =>
+        sec.SectionKey == "weather" ? "noprint" : null;
+
+    /// <summary>L'intestazione del meteo porta l'emoji, l'ICAO e la nota «live NOAA»: non è decorazione, dice
+    /// DI CHI è il tempo che si sta leggendo e che è vivo — le due cose che quella sezione ha da dire prima di
+    /// essere aperta. Le altre sezioni hanno il titolo e basta, e per quelle il componente fa da sé.</summary>
+    private RenderFragment<SectionView> Intestazione => sec => __builder =>
+    {
+        @if (sec.SectionKey == "weather")
+        {
+            <text>🌦️ </text>
+            @SectionHeading(sec)
+            <text> · @_icao </text>
+            <span class="muted" style="font-weight:400;font-size:13px">@L["Airport_LiveNoaa"]</span>
+        }
+        else
+        {
+            @SectionHeading(sec)
+        }
+    };
+
 
     /// <summary>
     /// Le sezioni da rendere: quelle del documento mostrato, con le <b>cotte</b> riportate alla loro chiave di
