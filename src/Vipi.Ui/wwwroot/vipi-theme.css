@@ -1659,10 +1659,6 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
    Azzerato il minimo, le colonne cedono e la tabella scorre dentro la sua `.cb-body` (regola in fondo al
    foglio). Sopra i 900 le colonne restano larghe come prima: il minimo automatico non era mai quello che
    decideva la larghezza, solo il pavimento. */
-.apt-2col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
-.apt-2col>*{min-width:0}
-.apt-2col .block{margin-bottom:0}
-@media(max-width:820px){.apt-2col{grid-template-columns:1fr}}
 /* editor: dato unico -> due viste */
 .se-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
 .se-row:last-child{margin-bottom:0}
@@ -3322,8 +3318,8 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    mentre il layout ne ha 914. E' la stessa malattia della topbar, e la cura e' la stessa: **togliere la
    soglia**. Il contenitore diretto di una tabella scorre sempre; quando la tabella ci sta — cioe' quasi
    sempre — non cambia niente e non compare nessuna barra.
-   ⚠️ `min-width:0` insieme all'overflow: se quel contenitore e' una cella di griglia (`.apt-2col`), senza
-   azzerare il minimo automatico si allarga sul contenuto e la barra non compare mai.
+   ⚠️ `min-width:0` insieme all'overflow: se quel contenitore e' una cella di griglia, senza azzerare il
+   minimo automatico si allarga sul contenuto e la barra non compare mai.
    ⚠️ Fuori dagli scroller degli editor (`.st-scroll`): la' la tabella sta gia' in un contenitore che scorre,
    e due barre annidate sono peggio di una pagina che scorre.
    ⚠️⚠️ E fuori dalle tabelle a intestazione appiccicata (`table.sticky-head`): un `overflow` diverso da

@@ -297,6 +297,12 @@
   <data name="Airport_RwyInUse" xml:space="preserve"><value>Runway in use</value></data>
   <data name="Airport_NoSidsTitle" xml:space="preserve"><value>SIDs not entered yet</value></data>
   <data name="Airport_NoSidsBody" xml:space="preserve"><value>Add them from the airport editor or import them from the sectorfile.</value></data>
+  <data name="Airport_NoFrequencies" xml:space="preserve"><value>No frequency for this airport.</value></data>
+  <data name="Airport_NoRunways" xml:space="preserve"><value>No runway entered.</value></data>
+  <data name="Airport_RulesLead" xml:space="preserve"><value>The first rule whose conditions are met applies; if none applies, the runway with the best headwind is used.</value></data>
+  <data name="Airport_RuleCondition" xml:space="preserve"><value>Condition</value></data>
+  <data name="Airport_NoRules" xml:space="preserve"><value>No rule: the runway is chosen from the wind.</value></data>
+  <data name="Airport_SectionsPanel" xml:space="preserve"><value>ATC sectors</value></data>
   <!-- Common editor/tables -->
   <data name="Common_Order" xml:space="preserve"><value>Order</value></data>
   <data name="Common_Up" xml:space="preserve"><value>Up</value></data>

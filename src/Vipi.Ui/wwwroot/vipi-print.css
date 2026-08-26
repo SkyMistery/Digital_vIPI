@@ -95,7 +95,6 @@
   /* ── Geometria: da layout a colonne a flusso singolo ──────────────────────────── */
   .vipi-root .wrap { max-width: none !important; padding: 0 !important; }
   .vipi-root .doc-layout,
-  .vipi-root .apt-2col,
   .vipi-root .aor-wrap { display: block !important; }
   /* Sticky/max-height sono legati al viewport: senza reset clippano il contenuto sulla carta. */
   .vipi-root .toc,

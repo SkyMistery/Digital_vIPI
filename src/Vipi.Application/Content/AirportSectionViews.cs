@@ -98,8 +98,12 @@ public static class AirportSectionProjection
             .OrderBy(s => FrequencyPositions.OrderOf(s.Position))
             .ThenByDescending(s => s.IsPrimary)
             .ThenBy(s => s.ComposePosition, StringComparer.Ordinal)
+            // Il nome è quello che IVAO dà alla postazione («Pisa Approach»); il nome-posizione è il ripiego per
+            // le righe che non ce l'hanno. La cottura usava solo il ripiego, e infatti il documento pubblicato
+            // diceva «Approach» dove l'editor e la pagina dicevano il nome vero.
             .Select(s => new AirportFreqRowView(
-                FrequencyPositions.NameOf(s.Position), s.ComposePosition, s.Frequency!, s.IsPrimary))
+                string.IsNullOrWhiteSpace(s.AtcCallsign) ? FrequencyPositions.NameOf(s.Position) : s.AtcCallsign!,
+                s.ComposePosition, s.Frequency!, s.IsPrimary))
             .ToList();
 
         foreach (var l in links ?? Array.Empty<FrequencyLinkRow>())

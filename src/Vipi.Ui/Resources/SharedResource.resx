@@ -300,6 +300,12 @@
   <data name="Airport_RwyInUse" xml:space="preserve"><value>Pista in uso</value></data>
   <data name="Airport_NoSidsTitle" xml:space="preserve"><value>SID non ancora inserite</value></data>
   <data name="Airport_NoSidsBody" xml:space="preserve"><value>Aggiungile dall'editor aeroporto o importale dal sectorfile.</value></data>
+  <data name="Airport_NoFrequencies" xml:space="preserve"><value>Nessuna frequenza per questo aeroporto.</value></data>
+  <data name="Airport_NoRunways" xml:space="preserve"><value>Nessuna pista inserita.</value></data>
+  <data name="Airport_RulesLead" xml:space="preserve"><value>Si applica la prima regola le cui condizioni sono soddisfatte; se nessuna si applica, vale la pista col miglior vento di testa.</value></data>
+  <data name="Airport_RuleCondition" xml:space="preserve"><value>Condizione</value></data>
+  <data name="Airport_NoRules" xml:space="preserve"><value>Nessuna regola: la pista si sceglie col vento.</value></data>
+  <data name="Airport_SectionsPanel" xml:space="preserve"><value>Settori ATC</value></data>
   <!-- Common editor/tabelle -->
   <data name="Common_Order" xml:space="preserve"><value>Ordine</value></data>
   <data name="Common_Up" xml:space="preserve"><value>Su</value></data>

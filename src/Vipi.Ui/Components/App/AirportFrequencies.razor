@@ -1,0 +1,31 @@
+﻿@* Sezione «Frequenze» della vIPI d'aeroporto: catalogo dei settori dello scalo + i link ad altri enti.
+   ★ = frequenza principale per quel tipo di posizione.
+
+   Stessa intestazione delle altre tre famiglie (Callsign · Position · Frequenza): la tabella è la stessa cosa,
+   e leggerla in un ordine diverso a seconda del documento aperto è un costo che paga il lettore. *@
+@inject IStringLocalizer<SharedResource> L
+
+<table class="freq-table">
+    <thead><tr><th>Callsign</th><th>Position</th><th>@L["Airport_Frequency"]</th></tr></thead>
+    <tbody>
+        @foreach (var f in View.Rows)
+        {
+            <tr class="@(f.IsPrimary ? "primary" : null)">
+                <td>
+                    @if (f.IsPrimary) { <span class="freq-key">★</span> }
+                    @f.Name
+                </td>
+                <td>@f.Callsign</td>
+                <td>@f.Frequency</td>
+            </tr>
+        }
+        @if (View.Rows.Count == 0)
+        {
+            <tr><td colspan="3" class="muted">@L["Airport_NoFrequencies"]</td></tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    [Parameter, EditorRequired] public AirportFreqView View { get; set; } = AirportFreqView.Empty;
+}

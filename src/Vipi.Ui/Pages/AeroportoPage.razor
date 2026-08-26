@@ -110,9 +110,9 @@ else
             <aside class="toc" aria-label="@L["Doc_TocAria"]">
                 <p class="toc-h">@L["Common_Contents"]</p>
                 <ul>
-                    @foreach (var (id, title) in TocEntries())
+                    @foreach (var sec in VisibleSections())
                     {
-                        <li><a href="#@id">@title</a></li>
+                        <li><a href="#@AnchorOf(sec)">@sec.Title</a></li>
                     }
                 </ul>
             </aside>
@@ -144,271 +144,87 @@ else
                                    DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}&as=draft")" />
                 }
 
-                @* ---------- METAR / TAF live + parse ----------
-                   Fuori dalla stampa (noprint), come la vista live: è un dato live: su carta sarebbe
-                   un'istantanea scaduta, e a schermo solo il tab attivo (METAR o TAF) è nel DOM. *@
-                <CollapsibleBlock Id="a-meteo" ExtraClass="noprint">
-                    <Header><h3 style="margin-top:0">🌦️ METAR &amp; TAF · @_icao <span class="muted" style="font-weight:400;font-size:13px">@L["Airport_LiveNoaa"]</span></h3></Header>
-                    <ChildContent>
-
-                    @if (_wx is not null && _wx.HasData)
+                @* ---------- Le sezioni, nell'ORDINE DEL DOCUMENTO ----------
+                   Come nelle altre tre famiglie: si itera `_view.Sections` e si dispaccia per chiave. Fino alla
+                   carta 2026-08-26 questa pagina aveva la sequenza CABLATA (meteo → TA+frequenze affiancate →
+                   piste → SID → extra) e ritrovava le sezioni con `Title.Contains("transi")`. Per questo
+                   riordinare, nascondere o infilare una sezione libera in mezzo non aveva alcun effetto: il
+                   documento poteva dire quello che voleva, la pagina disegnava sempre la stessa cosa. *@
+                @foreach (var sec in _view.Sections)
+                {
+                    var nascosta = sec.IsHidden;
+                    @if (nascosta && _mode.Kind != PreviewKind.Draft)
                     {
-                        <div class="wx-tabs">
-                            <button class="wx-tab @(_tab == "metar" ? "on" : "")" @onclick='() => _tab = "metar"'>METAR</button>
-                            <button class="wx-tab @(_tab == "taf" ? "on" : "")" @onclick='() => _tab = "taf"' disabled="@(_taf is null)">TAF</button>
-                        </div>
-
-                        @if (_tab == "metar" && _metar is not null)
-                        {
-                            <div class="wx-view">
-                                <div class="metar"><span class="metar-live"><span class="dot"></span> LIVE</span> @_metar.Raw</div>
-                                <div class="metar-parse">
-                                    <span class="mp"><span class="muted">@L["Airport_Wind"]</span><b>@(_metar.Wind?.Label ?? "—")</b></span>
-                                    <span class="mp"><span class="muted">@L["Airport_Visibility"]</span><b>@(_metar.Visibility ?? "—")</b></span>
-                                    <span class="mp"><span class="muted">@L["Airport_Clouds"]</span><b>@_metar.CloudsLabel</b></span>
-                                    <span class="mp"><span class="muted">QNH</span><b>@(_metar.QnhHpa is int q ? $"{q} hPa" : "—")</b></span>
-                                    <span class="mp"><span class="muted">Temp/DP</span><b>@(_metar.TempC is int t ? $"{t} / {_metar.DewpointC} °C" : "—")</b></span>
-                                    @if (_metar.Weather is not null)
-                                    {
-                                        <span class="mp"><span class="muted">@L["Airport_Weather"]</span><b>@_metar.Weather</b></span>
-                                    }
-                                    @if (_metar.Trend is not null)
-                                    {
-                                        <span class="mp"><span class="muted">@L["Airport_Trend"]</span><b>@_metar.Trend</b></span>
-                                    }
-                                </div>
-                            </div>
-                        }
-                        else if (_tab == "metar")
-                        {
-                            <div class="empty-ph"><span class="ei">🌫️</span><div><b>@string.Format(L["Airport_MetarNA"], _icao)</b></div></div>
-                        }
-
-                        @if (_tab == "taf" && _taf is not null)
-                        {
-                            <div class="wx-view">
-                                <div class="metar"><span class="metar-live"><span class="dot"></span> LIVE</span> @_taf.Raw</div>
-                                @if (_taf.ValidityRaw is not null)
+                        <text></text>   @* nascosta: fuori dal pubblico e dall'anteprima release *@
+                    }
+                    else if (IsCooked(sec))
+                    {
+                        @* ⚠️ Uno snapshot di release scritto PRIMA della carta 2026-08-26 porta il contenuto COTTO
+                           dentro la sezione. Per quel ciclo la verità è lo snapshot, non la derivazione di oggi:
+                           si rendono i suoi blocchi e basta. Un documento di lavoro non passa mai di qui — le sue
+                           sezioni fisse sono ancore senza corpo. *@
+                        <SectionNode Section="sec" />
+                    }
+                    else if (IsSpecial(sec.SectionKey))
+                    {
+                        @* ⚠️ Il meteo non va in stampa: è un dato live, e su carta sarebbe un'istantanea già
+                           scaduta quando la si legge. È anche l'unica sezione che non si congela mai. *@
+                        <CollapsibleBlock Id="@AnchorOf(sec)" ExtraClass="@(sec.SectionKey == "weather" ? "noprint" : null)"
+                                          Style="@(nascosta ? "opacity:.65" : null)"
+                                          InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(sec.SectionKey))">
+                            <Header><h2 class="h-sect" style="margin-top:0">@SectionHeading(sec) @if (nascosta) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }</h2></Header>
+                            <ChildContent>
+                                @* Sotto-sezioni «prima» del corpo derivato (doc 11 §3g). *@
+                                @if (SectionBody.HasChildren(sec, SectionSlot.Before))
                                 {
-                                    <div class="taf-valid"><Icon Name="clock" /> @L["Airport_Validity"]: <b style="margin:0 4px">@TafPeriod.Format(_taf.ValidityRaw, DateTime.UtcNow)</b></div>
+                                    <SectionBody Section="sec" ShowBlocks="false" Slot="SectionSlot.Before" />
                                 }
-                                <div class="taf-tl">
-                                    @foreach (var seg in _taf.Segments)
-                                    {
-                                        var cls = TafCss(seg.Kind);
-                                        <div class="taf-row @cls">
-                                            <div class="taf-head">
-                                                <span class="taf-kind @cls">@TafLabel(seg)</span>
-                                                <span class="taf-when">@(seg.PeriodRaw is null ? L["Airport_FromValidityStart"].Value : TafPeriod.Format(seg.PeriodRaw, DateTime.UtcNow))</span>
-                                                <span class="taf-raw">@seg.Raw</span>
-                                            </div>
-                                            <div class="taf-parse">
-                                                @if (seg.Wind is not null)
-                                                {
-                                                    <span class="mp"><span class="muted">@L["Airport_Wind"]</span><b>@seg.Wind.Label</b></span>
-                                                }
-                                                @if (seg.Wind?.GustKt is int g)
-                                                {
-                                                    <span class="mp"><span class="muted">@L["Airport_Gusts"]</span><b>@g kt</b></span>
-                                                }
-                                                @if (seg.Visibility is not null)
-                                                {
-                                                    <span class="mp"><span class="muted">@L["Airport_Visibility"]</span><b>@seg.Visibility</b></span>
-                                                }
-                                                @if (seg.Clouds.Count > 0)
-                                                {
-                                                    <span class="mp"><span class="muted">@L["Airport_Clouds"]</span><b>@string.Join(" · ", seg.Clouds.Select(c => c.Label))</b></span>
-                                                }
-                                                @if (seg.Weather is not null)
-                                                {
-                                                    <span class="mp"><span class="muted">@L["Airport_Weather"]</span><b>@seg.Weather</b></span>
-                                                }
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        }
-
-                        <p class="muted" style="font-size:12px;margin:10px 0 0" data-utc="@VipiTime.Iso(_wx.AsOf?.UtcDateTime)" data-utc-fmt="hms">@L["AppLive_UpdatedAt", (_wx.AsOf is { } agg ? VipiTime.Zs(agg.UtcDateTime) : "—")]</p>
+                                @switch (sec.SectionKey)
+                                {
+                                    case "weather":
+                                        <AirportWeather Icao="@_icao" Report="_wx" Metar="_metar" Taf="_taf" />
+                                        break;
+                                    case "runwayrules":
+                                        <AirportRunwayRules View="_derived.Rules" ActivePosition="@(_ruleResult is null ? null : _ruleResult.RuleIndex + 1)" />
+                                        break;
+                                    case "transition":
+                                        <AirportTransition View="_derived.Transition" CurrentQnh="_metar?.QnhHpa" />
+                                        break;
+                                    case "frequencies":
+                                        <AirportFrequencies View="_derived.Frequencies" />
+                                        break;
+                                    case "runways":
+                                        <AirportRunways View="_derived.Runways" DepIdents="_depIdents" ArrIdents="_arrIdents"
+                                                        RuleName="@(_ruleResult is null ? null : _ruleResult.RuleName ?? $"#{_ruleResult.RuleIndex + 1}")"
+                                                        RuleNote="@_ruleResult?.Note" WindDir="_windDir" WindKt="_windKt"
+                                                        HasRain="@(_metar?.HasRain == true)" HasSnow="@(_metar?.HasSnow == true)" />
+                                        break;
+                                    case "sids":
+                                        <AirportSids View="_derived.Sids" Selected="@_sidRwy" SelectedChanged="SelectSidRwy"
+                                                     DepIdents="_depIdents" TransitionAltitudeFt="_derived.Transition.TransitionAltitudeFt" />
+                                        break;
+                                }
+                                @if (SectionBody.HasChildren(sec, SectionSlot.After))
+                                {
+                                    <SectionBody Section="sec" ShowBlocks="false" Slot="SectionSlot.After" />
+                                }
+                            </ChildContent>
+                        </CollapsibleBlock>
+                    }
+                    else if (nascosta)
+                    {
+                        @* Editoriale nascosta in anteprima bozza: stessa marcatura delle speciali, o non si
+                           capirebbe che è fuori dal pubblico. *@
+                        <CollapsibleBlock Id="@AnchorOf(sec)" Style="opacity:.65"
+                                          InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(sec.SectionKey))">
+                            <Header><h2 class="h-sect" style="margin-top:0">@sec.Title <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span></h2></Header>
+                            <ChildContent><SectionBody Section="sec" /></ChildContent>
+                        </CollapsibleBlock>
                     }
                     else
                     {
-                        <div class="empty-ph"><span class="ei">🌫️</span><div><b>@string.Format(L["Airport_WxNA"], _icao)</b></div><div class="muted" style="font-size:12.5px">@L["Airport_WxNAHint"]</div></div>
+                        <SectionNode Section="sec" />   @* editoriale/libera: prosa/tabella/callout + sotto-sezioni *@
                     }
-                    </ChildContent>
-                </CollapsibleBlock>
-
-                @* ---------- Transizione + Frequenze affiancate ---------- *@
-                @if (_taSection is not null || _freqSection is not null || _profile is not null)
-                {
-                    <div class="apt-2col">
-                        @if (_taSection is not null)
-                        {
-                            <CollapsibleBlock Id="@_taSection.Id">
-                                @* Heading fisso in inglese: il titolo salvato può essere IT su documenti non ancora rigenerati. *@
-                                <Header><h3 style="margin-top:0">Transition levels</h3></Header>
-                                <ChildContent>
-                                <div class="ta-badge"><span class="muted">Transition Altitude</span><b>@(_ta is int ta ? $"{ta} ft" : "N/A")</b></div>
-                                @if (_tlRows.Count > 0)
-                                {
-                                    <p class="muted" style="font-size:13.5px;margin:14px 0 6px">@L["Airport_TransLevelByQnh"]@(_metar?.QnhHpa is int ? string.Format(L["Airport_QnhCurrent"], _metar!.QnhHpa) : ""):</p>
-                                    <table class="tl-table">
-                                        <thead><tr>@foreach (var c in _tlCols) { <th>@c</th> }</tr></thead>
-                                        <tbody>
-                                            @foreach (var r in _tlRows)
-                                            {
-                                                var now = _metar?.QnhHpa is int q && QnhRowMatches(r.Range, q);
-                                                <tr class="@(now ? "tl-now" : "")">
-                                                    <td>@r.Range</td>
-                                                    <td>@(_ta is null ? "N/A" : r.Level) @if (now) { <span class="pref-tag">@L["Airport_QnhNow"]</span> }</td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                }
-                                </ChildContent>
-                            </CollapsibleBlock>
-                        }
-                        @if (FreqRows().Any() || _profile is not null)
-                        {
-                            <CollapsibleBlock Id="a-freq">
-                                <Header><h3 style="margin-top:0">@L["Common_Frequencies"]</h3></Header>
-                                <ChildContent>
-                                <table class="freq-table">
-                                    <thead><tr><th>Callsign</th><th>Position</th><th>@L["Airport_Frequency"]</th></tr></thead>
-                                    <tbody>
-                                        @foreach (var f in FreqRows())
-                                        {
-                                            <tr class="@(f.IsPrimary ? "primary" : null)">
-                                                <td>@(f.IsPrimary ? (MarkupString)$"<span class=\"freq-key\">★</span> {System.Net.WebUtility.HtmlEncode(FreqDisplayName(f))}" : (MarkupString)System.Net.WebUtility.HtmlEncode(FreqDisplayName(f)))</td><td>@f.ComposePosition</td>
-                                                <td>@(f.Frequency ?? "—")</td>
-                                            </tr>
-                                        }
-                                        @foreach (var l in _profile?.Links ?? Array.Empty<FrequencyLinkRow>())
-                                        {
-                                            <tr><td>@l.Label</td><td>@l.Callsign</td><td>@l.FrequencyMhz</td></tr>
-                                        }
-                                    </tbody>
-                                </table>
-                                </ChildContent>
-                            </CollapsibleBlock>
-                        }
-                        else if (_freqSection is not null)
-                        {
-                            <SectionNode Section="_freqSection" />
-                        }
-                    </div>
-                }
-
-                @* ---------- Piste: tabella con evidenza pista consigliata dal vento/regole ---------- *@
-                @if (_profile is { Runways.Count: > 0 })
-                {
-                    <CollapsibleBlock Id="a-piste">
-                        <Header><h3 style="margin-top:0">@L["Airport_Runways"]</h3></Header>
-                        <ChildContent>
-                        <p class="muted" style="font-size:12.5px;margin:0 0 8px">
-                            @* Lo spazio è scritto come entità: Razor scarta il testo di sola spaziatura che
-                               precede un blocco di codice (anche dentro <text>), e usciva «consigliatidal
-                               vento METAR» / «recommendedfrom the METAR wind». *@
-                            @((MarkupString)L["Airport_RwyLegend"].Value)&#32;
-                            @if (_ruleResult is not null) { <text>@string.Format(L["Airport_RwyByRule"], _ruleResult.RuleName ?? $"#{_ruleResult.RuleIndex + 1}")</text> } else { <text>@L["Airport_RwyByWind"]</text> }.
-                            @if (_windDir is int wd) { <text> @string.Format(L["Airport_WindVal"], wd, _windKt)</text> }
-                            @if (_metar?.HasRain == true) { <span class="pill">🌧️ @L["Airport_Rain"]</span> }
-                            @if (_metar?.HasSnow == true) { <span class="pill">❄️ @L["Airport_Snow"]</span> }
-                            @if (_ruleResult?.Note is string rn) { <span class="pill" style="background:var(--tint-yellow-soft);color:var(--warn-ink)">@rn</span> }
-                        </p>
-                        <table class="rwy-table">
-                            <thead><tr><th>@L["Airport_Runway"]</th><th>@L["Airport_Use"]</th><th>@L["Airport_LengthM"]</th><th>TORA</th><th>LDA</th><th>APP procedures</th><th>Patterns</th><th>Circling</th></tr></thead>
-                            <tbody>
-                                @foreach (var r in _profile.Runways)
-                                {
-                                    var dep = _depIdents.Contains(r.Ident.Trim());
-                                    var arr = _arrIdents.Contains(r.Ident.Trim());
-                                    <tr class="@RwyRowClass(dep, arr)">
-                                        <td><b>@r.Ident</b></td>
-                                        <td style="white-space:nowrap;font-size:15px">
-                                            @if (dep) { <span title="@L["Airport_RwyDepTip"]">🛫</span> }
-                                            @if (arr) { <span title="@L["Airport_RwyArrTip"]">🛬</span> }
-                                            @if (!dep && !arr) { <span class="muted" style="font-size:12px">—</span> }
-                                        </td>
-                                        <td>@(r.LengthM?.ToString() ?? "—")</td>
-                                        <td>@(string.IsNullOrWhiteSpace(r.ToraM) ? "—" : r.ToraM)</td>
-                                        <td>@(string.IsNullOrWhiteSpace(r.LdaM) ? "—" : r.LdaM)</td>
-                                        <td>@(string.IsNullOrWhiteSpace(r.AppProcedures) ? "—" : r.AppProcedures)</td>
-                                        <td>@(string.IsNullOrWhiteSpace(r.Patterns) ? "—" : r.Patterns)</td>
-                                        <td>@(string.IsNullOrWhiteSpace(r.Circling) ? "—" : r.Circling)</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                        </ChildContent>
-                    </CollapsibleBlock>
-                }
-
-                @* ---------- SID: sezione derivata a view-time (doc 10 §3e), non più cotta nel documento ---------- *@
-                @if (_sidSection is not null)
-                {
-                    <CollapsibleBlock Id="a-sid">
-                        <Header><h3 style="margin-top:0">@_sidSection.Title</h3></Header>
-                        <ChildContent>
-                        @if (_sids.Rows.Count > 0)
-                        {
-                            @if (SidRunways().Count > 1)
-                            {
-                                <div class="cfg-sel" style="margin:0 0 12px">
-                                    <span class="cfg-sel-lab">@L["Airport_Runway"]</span>
-                                    @foreach (var rw in SidRunways())
-                                    {
-                                        <button type="button" class="cfg-btn @(string.Equals(_sidRwy, rw, StringComparison.OrdinalIgnoreCase) ? "on" : "")"
-                                                @onclick="() => SelectSidRwy(rw)">
-                                            @rw @if (_depIdents.Contains(rw)) { <span title="@L["Airport_RwyInUse"]">🛫</span> }
-                                        </button>
-                                    }
-                                </div>
-                            }
-                            <div style="overflow:auto">
-                            @* Larghezze di colonna cablate in CSS (.sid-view): con table-layout:auto la tabella si
-                               ridisegnava a ogni cambio pista, perché le colonne quasi vuote (Condition tutta «—»
-                               su una pista, piena sull'altra) si afflosciavano e le altre si allargavano. *@
-                            <table class="res-table sid-table sid-view">
-                                <thead><tr><th class="col-rwy">@L["Airport_RunwayAbbr"]</th><th class="col-fix">FIX</th><th class="col-sid">SID</th><th class="col-trans">Transition</th><th class="col-climb">Initial climb</th><th class="col-type">Type</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond">Condition</th></tr></thead>
-                                <tbody>
-                                    @foreach (var r in ShownSids())
-                                    {
-                                        <tr><td class="col-rwy">@r.Runway</td><td class="col-fix">@r.Fix</td><td class="col-sid">@r.Name</td><td class="col-trans">@r.Transition</td><td class="col-climb">@FormatInitialClimb(r.InitialClimb)</td><td class="col-type">@r.Type</td><td class="col-cat">@r.Cat</td><td class="col-wtc">@r.Wtc</td><td class="col-cond">@r.Condition</td></tr>
-                                    }
-                                </tbody>
-                            </table>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="callout info"><span class="cic"><Icon Name="refresh" Size="18" /></span><div><p class="ct">@L["Airport_NoSidsTitle"]</p>@L["Airport_NoSidsBody"]</div></div>
-                        }
-                        </ChildContent>
-                    </CollapsibleBlock>
-                }
-
-                @foreach (var s in _otherSections)
-                {
-                    <SectionNode Section="s" />
-                }
-
-                @* Sezioni extra editoriali (es. Remarks) — full-width collassabili in colonna principale: le lunghe non stanno nel rail sticky. *@
-                @if (ExtraSections().Any())
-                {
-                    <div class="extra-inline">
-                        @foreach (var s in ExtraSections())
-                        {
-                            <CollapsibleBlock Id="@($"extra-{s.Id}")">
-                                <Header><h3 style="margin-top:0">@s.Title</h3></Header>
-                                <ChildContent>
-                                    <DocumentBlocksEditor Blocks="s.Blocks" Editing="false" />
-                                </ChildContent>
-                            </CollapsibleBlock>
-                        }
-                    </div>
                 }
             </div>
 
@@ -467,7 +283,6 @@ else
 
     private ParsedMetar? _metar;
     private ParsedTaf? _taf;
-    private string _tab = "metar";
 
     private List<string> _runways = new();
     private int? _windDir;
@@ -475,21 +290,15 @@ else
     private RunwaySuggestionResult _sugg = new(null, Array.Empty<RunwayPick>(), "");
     private AirportData? _profile;
     private RunwayRuleResult? _ruleResult;
-    private IReadOnlyList<AirportSectorRow> _airportSectors = Array.Empty<AirportSectorRow>();
     private HashSet<string> _depIdents = new(StringComparer.OrdinalIgnoreCase);
     private HashSet<string> _arrIdents = new(StringComparer.OrdinalIgnoreCase);
 
-    private SectionView? _taSection;
-    private SectionView? _freqSection;
-    private SectionView? _sidSection;   // sezione "sids" (doc 10 §3e): resa custom dalla derivazione, non da SectionNode
-    private AirportSidView _sids = AirportSidView.Empty;
+    /// <summary>Le sezioni derivate risolte per QUESTA vista: frozen dalla release effettiva se c'è, sennò live.
+    /// Un solo oggetto per tutte, come <c>AppViewDerived</c> sull'APP.</summary>
+    private AirportDerived _derived = AirportDerived.Empty;
+
     private string? _sidRwy;             // pista selezionata nel filtro SID (default: pista in uso in partenza)
     private bool _sidRwyUserPicked;      // l'utente ha scelto una pista → non sovrascrivere col default al Recompute
-    private List<SectionView> _otherSections = new();
-    private List<SectionView> _extraSections = new();
-    private int? _ta;
-    private IReadOnlyList<string> _tlCols = Array.Empty<string>();
-    private List<(string Range, string Level)> _tlRows = new();
 
     /// <summary>Chi presiede l'aeroporto: risolto nel ciclo di vita, MAI nel render (regola del progetto:
     /// nessuna I/O sul database mentre si disegna, o il circuito muore con «second operation»).</summary>
@@ -579,25 +388,22 @@ else
         _metar = string.IsNullOrWhiteSpace(_wx?.Metar) ? null : MetarParser.ParseMetar(_wx!.Metar!);
         _taf = string.IsNullOrWhiteSpace(_wx?.Taf) ? null : MetarParser.ParseTaf(_wx!.Taf!);
 
+        // ⚠️ Il profilo serve solo alle regole piste, che decidono la pista IN USO ADESSO: quella si valuta
+        // sempre sulle regole vive, anche mentre si guarda un ciclo passato — è la risposta a «dove atterro»,
+        // non un dato di release. La tabella delle regole, invece, viene dalle derivate come tutto il resto.
         _profile = await Profile.LoadForViewAsync(_icao);
         var anagrafica = Stations.Airport(_icao);
         _militaryPresence = anagrafica?.HasMilitaryPresence ?? false;
         _militaryOnly = anagrafica?.IsMilitaryOnly ?? false;
-        // Anteprima RELEASE: il profilo strutturato è sempre live (non congelato nello snapshot) → in release lo
-        // ignoriamo e mostriamo piste/TA/TL dal DocumentView CONGELATO del ciclo, coerente col resto del documento.
-        if (_mode.Kind == PreviewKind.Release) _profile = null;
-        _airportSectors = (await AirportSectors.ListByAirportAsync(_icao)).Where(s => !s.IsHidden).ToList();
-        _runways = _profile is { Runways.Count: > 0 }
-            ? _profile.Runways.Select(r => r.Ident).ToList()
+        // ⚠️ Le sezioni derivate si risolvono INSIEME al documento e con lo stesso criterio (doc 11 §3d): frozen
+        // solo in vista pubblica, live in bozza e in anteprima di release. Deciderlo sezione per sezione, o
+        // lasciare che un ramo di fallback dimenticasse il flag, renderebbe il congelamento AIRAC aggirabile
+        // da un `?as=` qualsiasi.
+        var useFrozen = _mode.Kind is not (PreviewKind.Draft or PreviewKind.Release);
+        _derived = await AirportView.ResolveForViewAsync(_icao, useFrozen);
+        _runways = _derived.Runways.Rows.Count > 0
+            ? _derived.Runways.Rows.Select(r => r.Ident).ToList()
             : ExtractRunways(_view);
-        SplitSections(_view);
-        // SID derivata a view-time (doc 10 §3e): frozen dalla release effettiva solo in vista pubblica (default), live
-        // in bozza/anteprima-release. La sezione è Live di default → di norma sempre derivata live (frozen è null).
-        var sidUseFrozen = _mode.Kind is not (PreviewKind.Draft or PreviewKind.Release);
-        _sids = await AirportView.ResolveSidsForViewAsync(_icao, sidUseFrozen);
-        // Anteprima BOZZA: TA/TL derivati dal profilo strutturato LIVE (working), non dall'ultimo rebuild pubblicato
-        // nel DocumentView — così la bozza riflette le modifiche editoriali non ancora rigenerate/pubblicate.
-        if (_mode.Kind == PreviewKind.Draft && _profile is not null) ApplyProfileTransition(_profile);
         // Vento iniziale dal METAR, se noto.
         _windDir = _metar?.Wind is { Calm: false, DirectionDeg: int d } ? d : null;
         _windKt = _metar?.Wind?.SpeedKt ?? 0;
@@ -712,43 +518,39 @@ else
             : $"{locali} — {L["Live_AptCoveredBy", p.Covering.Callsign].Value}";
     }
 
-    /// <summary>Voci del sommario, nello stesso ordine e con gli stessi ancoraggi (id) dei blocchi realmente renderizzati.</summary>
-    private IEnumerable<(string Id, string Title)> TocEntries()
-    {
-        yield return ("a-meteo", "METAR & TAF");
-        if (_taSection is not null) yield return (_taSection.Id, _taSection.Title);
-        if (FreqRows().Any() || _profile is not null) yield return ("a-freq", L["Common_Frequencies"]);
-        else if (_freqSection is not null) yield return (_freqSection.Id, _freqSection.Title);
-        if (_profile is { Runways.Count: > 0 }) yield return ("a-piste", L["Airport_Runways"]);
-        if (_sidSection is not null) yield return ("a-sid", _sidSection.Title);
-        foreach (var s in _otherSections) yield return (s.Id, s.Title);
-        foreach (var s in ExtraSections()) yield return ($"extra-{s.Id}", s.Title);
-    }
+    // Sezioni il cui corpo lo rende questa pagina; le altre passano da SectionNode. Chi siano lo dice il
+    // catalogo, per profilo (doc 13 §3a) — non un insieme scritto qui dentro.
+    private static bool IsSpecial(string key) => SectionCatalog.IsHostRendered(SectionProfile.Airport, key);
 
-    /// <summary>Sezioni editoriali libere del profilo (colonna destra desktop / sotto le SID su schermi stretti).</summary>
-    // Sezioni editoriali libere. In anteprima RELEASE si leggono dal documento congelato (_view, dove _profile è null);
-    // in live/bozza dal profilo (entità fresca, il documento si rigenera solo alla pubblicazione). Doc 08e-airport.
-    // Sezioni extra come blocchi (Prosa/Callout/Tabella), rese col renderer condiviso DocumentBlocksEditor (read-only).
-    // In anteprima RELEASE dal documento congelato (BlockView); in live/bozza dai blocchi serializzati nel profilo.
-    private IReadOnlyList<(string Id, string Title, List<ExtraBlock> Blocks)> ExtraSections() =>
-        _mode.Kind == PreviewKind.Release
-            ? _extraSections.Select(s => (
-                Id: s.Id, s.Title,
-                Blocks: s.Blocks.Select(b => new ExtraBlock
-                {
-                    Format = b.Format, Text = b.Body,
-                    // Il BodyJson del blocco vuole il campo giusto per formato: la tabella e l'immagine hanno
-                    // payload diversi, e infilare l'uno nell'altro fa sparire la figura dall'anteprima di release.
-                    TableJson = b.Format == BlockFormat.Table ? b.BodyJson : null,
-                    ImageJson = b.Format == BlockFormat.Image ? b.BodyJson : null,
-                    CalloutKind = b.CalloutKind ?? CalloutKind.Info,
-                }).ToList())).ToList()
-            : (_profile?.ExtraSections ?? Array.Empty<ExtraSectionRow>())
-                .Select(r => ($"extra-doc-{r.Id}", r.Title, ExtraBlocks.Parse(r.Body))).ToList();
+    /// <summary>
+    /// Sezione fissa che si porta dentro dei blocchi: può venire solo da uno snapshot di release anteriore alla
+    /// carta 2026-08-26, quando il contenuto era COTTO nel documento. Nei documenti di lavoro le sezioni fisse
+    /// sono ancore senza corpo — l'editor non sa nemmeno metterci un blocco.
+    /// </summary>
+    private static bool IsCooked(SectionView s) =>
+        SectionCatalog.IsFixed(SectionProfile.Airport, s.SectionKey) && s.Blocks.Count > 0;
+
+    // Ancora di sezione: «s-{Id}» per TUTTE, anche per quelle rese dalla pagina (doc 13 §3e), così i deep-link
+    // della ricerca — che indicizza per Id — atterrano dove devono e non in cima alla pagina.
+    private static string AnchorOf(SectionView s) => s.Id;
+
+    private IEnumerable<SectionView> VisibleSections() =>
+        _view!.Sections.Where(s => _mode.Kind == PreviewKind.Draft || !s.IsHidden);
+
+    /// <summary>
+    /// Titolo mostrato per una sezione di catalogo. ⚠️ Uno snapshot di release scritto PRIMA della carta
+    /// 2026-08-26 porta i titoli in inglese («Transition levels»), perché li scriveva la cottura: chi legge
+    /// un ciclo passato deve vedere il documento com'era, ma le sezioni riconciliate hanno il titolo nuovo e
+    /// devono leggersi uguali alle altre. Quindi: titolo del catalogo se la chiave è del catalogo.
+    /// </summary>
+    private static string SectionHeading(SectionView s) =>
+        SectionCatalog.Find(SectionProfile.Airport, s.SectionKey)?.Title ?? s.Title;
 
     private void Recompute()
     {
         // Le regole pista (se presenti) scelgono DEP/ARR dal vento in coda/traverso + superficie; altrimenti fallback headwind.
+        // ⚠️ Si valutano sulle regole VIVE, non su quelle eventualmente congelate: «quale pista è in uso adesso»
+        // è una domanda sul presente, e resta tale anche mentre si sfoglia un ciclo passato.
         var wet = (_metar?.HasRain ?? false) || (_metar?.HasSnow ?? false);
         _ruleResult = _profile is { Rules.Count: > 0 }
             ? RunwaySuggestion.EvaluateRules(_profile.Rules.Select(MapRule).ToList(), _windDir, _windKt, wet, DateTime.UtcNow)
@@ -771,29 +573,12 @@ else
 
         // Default filtro SID = pista in uso in partenza (se ha SID), altrimenti la prima pista con SID. Se l'utente ha
         // già scelto una pista la rispettiamo; se la sua scelta non è più valida ricade sul default.
-        var sidRwys = SidRunways();
+        var sidRwys = AirportSids.RunwaysOf(_derived.Sids);
         if (!_sidRwyUserPicked || _sidRwy is null || !sidRwys.Contains(_sidRwy, StringComparer.OrdinalIgnoreCase))
             _sidRwy = sidRwys.FirstOrDefault(r => _depIdents.Contains(r)) ?? sidRwys.FirstOrDefault();
     }
 
-    /// <summary>Piste distinte presenti nelle SID pubblicate (escluso "—"/vuoto), ordinate.</summary>
-    private List<string> SidRunways() => _sids.Rows
-        .Select(r => r.Runway)
-        .Where(x => !string.IsNullOrWhiteSpace(x) && x != "—")
-        .Distinct(StringComparer.OrdinalIgnoreCase)
-        .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
-        .ToList();
-
-    /// <summary>SID da mostrare: quelle della pista selezionata + quelle senza pista (valide per tutte). Se nessuna
-    /// pista è selezionata (SID senza pista) le mostra tutte.</summary>
-    private IEnumerable<AirportSidRowView> ShownSids() => _sids.Rows
-        .Where(r => _sidRwy is null
-            || string.Equals(r.Runway, _sidRwy, StringComparison.OrdinalIgnoreCase)
-            || string.IsNullOrWhiteSpace(r.Runway) || r.Runway == "—");
-
     private void SelectSidRwy(string rw) { _sidRwy = rw; _sidRwyUserPicked = true; }
-
-    private string FormatInitialClimb(string? raw) => AirportViewFormat.InitialClimb(raw, _ta);
 
     private static IEnumerable<string> SplitIdents(string? csv) => (csv ?? "")
         .Split(new[] { ',', ' ', '/' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -801,129 +586,13 @@ else
     private static string RwyRowClass(bool dep, bool arr) =>
         dep && arr ? "rwy-both" : arr ? "rwy-arr" : dep ? "rwy-dep" : "";
 
-    /// <summary>Frequenze d'aeroporto dal catalogo settori, ordinate ATIS · DEL · GND · TWR · APP/DEP (solo con frequenza).</summary>
-    private IEnumerable<AirportSectorRow> FreqRows()
-    {
-        string[] order = { "ATIS", "DEL", "GND", "TWR", "APP", "DEP" };
-        return _airportSectors
-            .Where(s => !string.IsNullOrWhiteSpace(s.Frequency))
-            .OrderBy(s => { var i = Array.IndexOf(order, (s.Position ?? "").Trim().ToUpperInvariant()); return i < 0 ? 99 : i; })
-            .ThenByDescending(s => s.IsPrimary)   // dentro il tipo: la principale (★) per prima
-            .ThenBy(s => s.ComposePosition);
-    }
-
-    /// <summary>Nome mostrato in tabella frequenze: AtcCallsign IVAO (es. "Pisa Approach"); fallback al nome-posizione.</summary>
-    private static string FreqDisplayName(AirportSectorRow f) =>
-        string.IsNullOrWhiteSpace(f.AtcCallsign) ? FreqName(f.Position) : f.AtcCallsign;
-
-    private static string FreqName(string? position) => (position ?? "").Trim().ToUpperInvariant() switch
-    {
-        "ATIS" => "ATIS",
-        "DEL" => "Delivery",
-        "GND" => "Ground",
-        "TWR" => "Tower",
-        "APP" => "Approach",
-        "DEP" => "Departure",
-        "CTR" => "Control",
-        "FSS" => "Information",
-        _ => position ?? "—",
-    };
-
     private static RunwayRuleEval MapRule(RunwayRuleRow r) => AirportViewFormat.MapRule(r);
 
-    private static string TafCss(TafChangeKind k) => k switch
-    {
-        TafChangeKind.Base => "base",
-        TafChangeKind.Becmg => "becmg",
-        TafChangeKind.Tempo => "tempo",
-        _ => "becmg",
-    };
-
-    private static string TafLabel(TafSegment s) => s.Kind switch
-    {
-        TafChangeKind.Base => "Base",
-        TafChangeKind.Becmg => "BECMG",
-        TafChangeKind.Tempo => "TEMPO",
-        TafChangeKind.From => "FM",
-        TafChangeKind.Prob => $"PROB{s.Probability}",
-        _ => s.Kind.ToString().ToUpperInvariant(),
-    };
-
-    /// <summary>Separa le sezioni: transizione (custom + badge TA) e frequenze affiancate, il resto generico.</summary>
-    private void SplitSections(DocumentView view)
-    {
-        _taSection = _freqSection = _sidSection = null;
-        _otherSections = new();
-        _extraSections = new();
-        _ta = null; _tlRows = new(); _tlCols = Array.Empty<string>();
-
-        foreach (var s in view.Sections)
-        {
-            // Match bilingue (documenti EN correnti + IT legacy non ancora rigenerati): "transi" copre
-            // transizione/transition, "frequen" copre Frequenze/Frequencies, pista/runway per le piste.
-            if (_taSection is null && s.Title.Contains("transi", StringComparison.OrdinalIgnoreCase))
-                _taSection = s;
-            else if (_freqSection is null &&
-                     (s.SectionKey == "frequencies" || s.Title.Contains("frequen", StringComparison.OrdinalIgnoreCase)))
-                _freqSection = s;
-            // La sezione Piste è resa custom (con evidenza pista consigliata) quando c'è il profilo strutturato.
-            else if (_profile is { Runways.Count: > 0 }
-                     && (s.Title.Contains("pist", StringComparison.OrdinalIgnoreCase) || s.Title.Contains("runway", StringComparison.OrdinalIgnoreCase)))
-                continue;
-            // La sezione SID è derivata a view-time (doc 10 §3e): resa custom, fuori da _otherSections.
-            else if (s.SectionKey == "sids")
-                _sidSection = s;
-            // Sezioni editoriali libere: rese con layout dedicato (inline + rail) da _extraSections, non tra le "altre".
-            else if (s.SectionKey == "airportextra")
-                _extraSections.Add(s);
-            else
-                _otherSections.Add(s);
-        }
-
-        if (_taSection is not null)
-        {
-            foreach (var b in _taSection.Blocks)
-            {
-                if (b.Format == BlockFormat.Prose && b.Body is not null && _ta is null)
-                {
-                    var m = System.Text.RegularExpressions.Regex.Match(b.Body, @"Altitude[^0-9]*(\d{3,5})");
-                    if (m.Success) _ta = int.Parse(m.Groups[1].Value);
-                }
-                else if (b.Format == BlockFormat.Table && b.BodyJson is not null && _tlRows.Count == 0)
-                    ParseTlTable(b.BodyJson);
-            }
-        }
-    }
-
-    private void ParseTlTable(string json)
-    {
-        var table = AirportViewFormat.ParseTransitionLevels(json);
-        if (table.Columns.Count > 0) _tlCols = table.Columns;
-        _tlRows.AddRange(table.Rows);
-    }
-
-    /// <summary>Vero se il QNH ricade nell'intervallo testuale della riga (es. "1014 – 1030", "≥ 1031", "&lt; 984").</summary>
-    // Sovrascrive TA e tabella TL con i valori del profilo strutturato LIVE (anteprima bozza). Il formato range QNH
-    // usa i simboli riconosciuti da QnhRowMatches (≤/≥/–) per l'evidenziazione della riga col QNH corrente.
-    private void ApplyProfileTransition(AirportData p)
-    {
-        _ta = p.TransitionAltitudeFt;
-        if (p.TransitionLevels.Count == 0) return;
-        _tlCols = new[] { "QNH (hPa)", "Transition Level" };
-        _tlRows = p.TransitionLevels.Select(t => (Range: QnhRangeLabel(t.QnhFrom, t.QnhTo), t.Level)).ToList();
-    }
-
-    private static string QnhRangeLabel(int? from, int? to) => (from, to) switch
-    {
-        (null, null) => "Tutti",
-        (null, int t) => $"≤ {t}",
-        (int f, null) => $"≥ {f}",
-        (int f, int t) => $"{f}–{t}",
-    };
-
-    private static bool QnhRowMatches(string range, int qnh) => AirportViewFormat.QnhRowMatches(range, qnh);
-
-    /// <summary>Estrae gli identificativi pista dalla tabella "Piste" del documento (prima colonna).</summary>
+    /// <summary>
+    /// Ripiego: estrae gli identificativi pista dalla tabella «Piste» COTTA nel documento. Serve solo agli
+    /// snapshot di release anteriori alla carta 2026-08-26 — un documento di lavoro le piste le ha nel profilo,
+    /// e la derivazione le porta gia'. Per questo cerca ancora per titolo: quelle sezioni hanno chiavi casuali.
+    /// </summary>
     private static List<string> ExtractRunways(DocumentView view)
     {
         var idents = new List<string>();

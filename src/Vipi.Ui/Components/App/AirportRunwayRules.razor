@@ -1,0 +1,35 @@
+﻿@* Sezione «Regole piste»: si applica la PRIMA regola le cui condizioni sono soddisfatte. Il numero d'ordine
+   non è decorazione — è la regola stessa, e per questo sta in colonna e non solo nell'ordine delle righe.
+
+   La regola che sta vincendo ADESSO si accende: è il collegamento fra questa tabella e la pista evidenziata
+   nella sezione Piste. L'indice arriva da fuori perché è live, mentre la tabella può venire da uno snapshot. *@
+@inject IStringLocalizer<SharedResource> L
+
+<p class="muted" style="font-size:12.5px;margin:0 0 8px">@L["Airport_RulesLead"]</p>
+<table class="res-table">
+    <thead><tr><th style="width:3ch">#</th><th>@L["Airport_RuleCondition"]</th><th>DEP</th><th>ARR</th><th>@L["Ape_Notes"]</th></tr></thead>
+    <tbody>
+        @foreach (var r in View.Rows)
+        {
+            var now = ActivePosition == r.Position;
+            <tr class="@(now ? "rwy-both" : null)">
+                <td>@r.Position @if (now) { <span class="pref-tag">@L["Airport_QnhNow"]</span> }</td>
+                <td>@r.Condition</td>
+                <td>@r.Dep</td>
+                <td>@r.Arr</td>
+                <td>@r.Note</td>
+            </tr>
+        }
+        @if (View.Rows.Count == 0)
+        {
+            <tr><td colspan="5" class="muted">@L["Airport_NoRules"]</td></tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    [Parameter, EditorRequired] public AirportRulesView View { get; set; } = AirportRulesView.Empty;
+
+    /// <summary>Numero d'ordine (1-based) della regola che si applica adesso; null = nessuna. Dato LIVE.</summary>
+    [Parameter] public int? ActivePosition { get; set; }
+}

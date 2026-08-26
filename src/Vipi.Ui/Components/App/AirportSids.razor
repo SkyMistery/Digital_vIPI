@@ -1,0 +1,70 @@
+﻿@* Sezione «SID»: il merge fra le righe editoriali e quelle importate dal sectorfile, già filtrato per ciclo
+   AIRAC e ordinato per punto. Il filtro per pista è una scelta di LETTURA, non del documento: chi guarda vuole
+   le SID della pista in uso, e la sceglie qui. *@
+@inject IStringLocalizer<SharedResource> L
+
+@if (View.Rows.Count > 0)
+{
+    @if (Runways.Count > 1)
+    {
+        <div class="cfg-sel" style="margin:0 0 12px">
+            <span class="cfg-sel-lab">@L["Airport_Runway"]</span>
+            @foreach (var rw in Runways)
+            {
+                var pista = rw;
+                <button type="button" class="cfg-btn @(string.Equals(Selected, pista, StringComparison.OrdinalIgnoreCase) ? "on" : "")"
+                        @onclick="() => SelectedChanged.InvokeAsync(pista)">
+                    @pista @if (DepIdents.Contains(pista)) { <span title="@L["Airport_RwyInUse"]">🛫</span> }
+                </button>
+            }
+        </div>
+    }
+    <div style="overflow:auto">
+    @* Larghezze di colonna cablate in CSS (.sid-view): con table-layout:auto la tabella si ridisegnava a ogni
+       cambio pista, perché le colonne quasi vuote (Condition tutta «—» su una pista, piena sull'altra) si
+       afflosciavano e le altre si allargavano. *@
+    <table class="res-table sid-table sid-view">
+        <thead><tr><th class="col-rwy">@L["Airport_RunwayAbbr"]</th><th class="col-fix">FIX</th><th class="col-sid">SID</th><th class="col-trans">Transition</th><th class="col-climb">Initial climb</th><th class="col-type">Type</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond">Condition</th></tr></thead>
+        <tbody>
+            @foreach (var r in Shown())
+            {
+                <tr><td class="col-rwy">@r.Runway</td><td class="col-fix">@r.Fix</td><td class="col-sid">@r.Name</td><td class="col-trans">@r.Transition</td><td class="col-climb">@AirportViewFormat.InitialClimb(r.InitialClimb, TransitionAltitudeFt)</td><td class="col-type">@r.Type</td><td class="col-cat">@r.Cat</td><td class="col-wtc">@r.Wtc</td><td class="col-cond">@r.Condition</td></tr>
+            }
+        </tbody>
+    </table>
+    </div>
+}
+else
+{
+    <div class="callout info"><span class="cic"><Icon Name="refresh" Size="18" /></span><div><p class="ct">@L["Airport_NoSidsTitle"]</p>@L["Airport_NoSidsBody"]</div></div>
+}
+
+@code {
+    [Parameter, EditorRequired] public AirportSidView View { get; set; } = AirportSidView.Empty;
+
+    /// <summary>Pista scelta dal lettore; null = tutte. L'host la possiede perché sopravvive al cambio sezione.</summary>
+    [Parameter] public string? Selected { get; set; }
+    [Parameter] public EventCallback<string> SelectedChanged { get; set; }
+
+    /// <summary>Piste in partenza adesso: marcano il chip della pista in uso. Dato LIVE.</summary>
+    [Parameter] public HashSet<string> DepIdents { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>TA dello scalo: serve a rendere l'initial climb come quota o come livello.</summary>
+    [Parameter] public int? TransitionAltitudeFt { get; set; }
+
+    /// <summary>Piste distinte presenti nelle SID pubblicate (escluso "—"/vuoto), ordinate.</summary>
+    public IReadOnlyList<string> Runways => RunwaysOf(View);
+
+    public static IReadOnlyList<string> RunwaysOf(AirportSidView view) => view.Rows
+        .Select(r => r.Runway)
+        .Where(x => !string.IsNullOrWhiteSpace(x) && x != "—")
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    /// <summary>SID da mostrare: quelle della pista scelta più quelle senza pista, valide per tutte.</summary>
+    private IEnumerable<AirportSidRowView> Shown() => View.Rows
+        .Where(r => Selected is null
+            || string.Equals(r.Runway, Selected, StringComparison.OrdinalIgnoreCase)
+            || string.IsNullOrWhiteSpace(r.Runway) || r.Runway == "—");
+}

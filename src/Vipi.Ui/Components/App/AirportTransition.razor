@@ -1,0 +1,36 @@
+﻿@* Sezione «Quote di transizione»: la TA e la tabella dei livelli per fascia QNH.
+
+   La riga della fascia in cui cade il QNH del METAR si accende: è l'unica informazione che il controllore
+   cerca davvero qui, e trovarla a colpo d'occhio evita di leggere quattro righe per scegliere la sua. Il QNH
+   arriva da fuori (`CurrentQnh`) proprio perché è live e la tabella no: la tabella può venire da uno snapshot
+   di release congelato. *@
+@inject IStringLocalizer<SharedResource> L
+
+<div class="ta-badge"><span class="muted">Transition Altitude</span><b>@(View.TransitionAltitudeFt is int ta ? $"{ta} ft" : "N/A")</b></div>
+@if (View.Rows.Count > 0)
+{
+    <p class="muted" style="font-size:13.5px;margin:14px 0 6px">@L["Airport_TransLevelByQnh"]@(CurrentQnh is int ? string.Format(L["Airport_QnhCurrent"], CurrentQnh) : ""):</p>
+    <table class="tl-table">
+        <thead><tr><th>QNH (hPa)</th><th>Transition Level</th></tr></thead>
+        <tbody>
+            @foreach (var r in View.Rows)
+            {
+                var now = CurrentQnh is int q && QnhRowMatches(r.QnhRange, q);
+                <tr class="@(now ? "tl-now" : "")">
+                    <td>@r.QnhRange</td>
+                    <td>@(View.TransitionAltitudeFt is null ? "N/A" : r.Level) @if (now) { <span class="pref-tag">@L["Airport_QnhNow"]</span> }</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter, EditorRequired] public AirportTransitionView View { get; set; } = AirportTransitionView.Empty;
+
+    /// <summary>QNH corrente dal METAR: accende la riga della sua fascia. Null = nessuna riga accesa.</summary>
+    [Parameter] public int? CurrentQnh { get; set; }
+
+    /// <summary>Vero se il QNH ricade nell'intervallo testuale della riga (es. "1014 – 1030", "≥ 1031", "≤ 984").</summary>
+    private static bool QnhRowMatches(string range, int qnh) => AirportViewFormat.QnhRowMatches(range, qnh);
+}

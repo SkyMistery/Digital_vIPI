@@ -1,0 +1,66 @@
+﻿@* Sezione «Piste». La tabella può venire da uno snapshot di release; l'evidenza della pista in uso no — quella
+   è live e arriva da fuori (`DepIdents`/`ArrIdents`, calcolate dal vento del METAR e dalle regole piste).
+   Sono due cose diverse e vanno tenute separate: la pista in uso adesso non è un dato di ciclo AIRAC. *@
+@inject IStringLocalizer<SharedResource> L
+
+@if (Legend)
+{
+    <p class="muted" style="font-size:12.5px;margin:0 0 8px">
+        @* Lo spazio è scritto come entità: Razor scarta il testo di sola spaziatura che precede un blocco di
+           codice (anche dentro <text>), e usciva «consigliatidal vento METAR». *@
+        @((MarkupString)L["Airport_RwyLegend"].Value)&#32;
+        @if (RuleName is not null) { <text>@string.Format(L["Airport_RwyByRule"], RuleName)</text> } else { <text>@L["Airport_RwyByWind"]</text> }.
+        @if (WindDir is int wd) { <text> @string.Format(L["Airport_WindVal"], wd, WindKt)</text> }
+        @if (HasRain) { <span class="pill">🌧️ @L["Airport_Rain"]</span> }
+        @if (HasSnow) { <span class="pill">❄️ @L["Airport_Snow"]</span> }
+        @if (RuleNote is not null) { <span class="pill" style="background:var(--tint-yellow-soft);color:var(--warn-ink)">@RuleNote</span> }
+    </p>
+}
+<table class="rwy-table">
+    <thead><tr><th>@L["Airport_Runway"]</th><th>@L["Airport_Use"]</th><th>@L["Airport_LengthM"]</th><th>TORA</th><th>LDA</th><th>APP procedures</th><th>Patterns</th><th>Circling</th></tr></thead>
+    <tbody>
+        @foreach (var r in View.Rows)
+        {
+            var dep = DepIdents.Contains(r.Ident.Trim());
+            var arr = ArrIdents.Contains(r.Ident.Trim());
+            <tr class="@RwyRowClass(dep, arr)">
+                <td><b>@r.Ident</b></td>
+                <td style="white-space:nowrap;font-size:15px">
+                    @if (dep) { <span title="@L["Airport_RwyDepTip"]">🛫</span> }
+                    @if (arr) { <span title="@L["Airport_RwyArrTip"]">🛬</span> }
+                    @if (!dep && !arr) { <span class="muted" style="font-size:12px">—</span> }
+                </td>
+                <td>@(r.LengthM?.ToString() ?? "—")</td>
+                <td>@r.Tora</td>
+                <td>@r.Lda</td>
+                <td>@r.AppProcedures</td>
+                <td>@r.Patterns</td>
+                <td>@r.Circling</td>
+            </tr>
+        }
+        @if (View.Rows.Count == 0)
+        {
+            <tr><td colspan="8" class="muted">@L["Airport_NoRunways"]</td></tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    [Parameter, EditorRequired] public AirportRunwaysView View { get; set; } = AirportRunwaysView.Empty;
+
+    /// <summary>Piste in uso adesso, in partenza e in arrivo: dato LIVE, non di release.</summary>
+    [Parameter] public HashSet<string> DepIdents { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    [Parameter] public HashSet<string> ArrIdents { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Mostra la riga che spiega da dove viene la pista consigliata. Fuori dalla vista pubblica non serve.</summary>
+    [Parameter] public bool Legend { get; set; } = true;
+    [Parameter] public string? RuleName { get; set; }
+    [Parameter] public string? RuleNote { get; set; }
+    [Parameter] public int? WindDir { get; set; }
+    [Parameter] public int WindKt { get; set; }
+    [Parameter] public bool HasRain { get; set; }
+    [Parameter] public bool HasSnow { get; set; }
+
+    private static string RwyRowClass(bool dep, bool arr) =>
+        dep && arr ? "rwy-both" : arr ? "rwy-arr" : dep ? "rwy-dep" : "";
+}
