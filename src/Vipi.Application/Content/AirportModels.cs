@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -42,9 +42,6 @@ public sealed record ImportedSid(string? Runway, string Fix, string Name, string
 /// <summary>Frequenza linkata (riferimento vivo): valore risolto da Sector.DefaultFrequency al momento del load/rebuild.</summary>
 public sealed record FrequencyLinkRow(int Id, int SourceSectorId, string Label, string Callsign, string FrequencyMhz);
 
-/// <summary>Sezione editoriale libera (titolo + corpo): colonna destra del documento / sotto le SID su schermi stretti.</summary>
-public sealed record ExtraSectionRow(int Id, string Title, string? Body);
-
 /// <summary>Settore selezionabile dal picker (qualunque settore con frequenza nel DB).</summary>
 public sealed record LinkableFrequencyRow(int SectorId, string? Icao, string Callsign, string FrequencyMhz, string? AtcCallsign = null);
 
@@ -61,5 +58,4 @@ public sealed class AirportData
     public required IReadOnlyList<RunwayRuleRow> Rules { get; init; }
     public required IReadOnlyList<SidRow> Sids { get; init; }
     public required IReadOnlyList<FrequencyLinkRow> Links { get; init; }
-    public required IReadOnlyList<ExtraSectionRow> ExtraSections { get; init; }
 }

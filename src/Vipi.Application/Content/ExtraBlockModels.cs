@@ -1,10 +1,11 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
 // Blocchi editoriali delle "Sezioni extra" dell'aeroporto: stesso vocabolario del vIPI editor
-// (Prosa/Callout/Tabella). Persistiti come JSON dentro AirportExtraSection.Body — nessuna nuova colonna
+// (Prosa/Callout/Tabella). Erano persistiti come JSON dentro AirportExtraSection.Body; dalla carta 2026-08-26
+// quel corpo lo legge solo il trasloco one-shot, che lo riversa nei blocchi del documento — nessuna colonna
 // né migrazione: un Body legacy (markdown semplice) viene letto come UN singolo blocco prosa (retro-compat).
 
 /// <summary>Un blocco di una sezione extra. <see cref="CalloutKind"/> usato solo se Format=Callout;

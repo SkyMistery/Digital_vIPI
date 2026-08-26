@@ -35,7 +35,6 @@ public interface IAirportEditingService
     Task UpdateImportedSidAsync(string icao, int sidId, int? priority, bool forcePublished, string? resolvedFix,
         string? initialClimb, bool initialClimbByApp, string? cat, string? wtc, string? condition, CancellationToken ct = default);
     Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceFrequencyIds, CancellationToken ct = default);
-    Task SaveExtraSectionsAsync(string icao, IReadOnlyList<ExtraSectionRow> rows, CancellationToken ct = default);
 
     /// <summary>RenderMode della sezione SID nel documento corrente (doc 10 §S4c): Live (default) = derivata al view;
     /// Frozen = congelata al publish. Lettura libera (serve al viewer/editor).</summary>
@@ -162,14 +161,6 @@ public sealed class AirportEditingService : IAirportEditingService
     {
         await EnsureCanEditAsync(icao, ct);
         await _repo.SaveFrequencyLinksAsync(Norm(icao), sourceFrequencyIds, ct);
-    }
-
-    public async Task SaveExtraSectionsAsync(string icao, IReadOnlyList<ExtraSectionRow> rows, CancellationToken ct = default)
-    {
-        await EnsureCanEditAsync(icao, ct);
-        foreach (var r in rows)
-            if (string.IsNullOrWhiteSpace(r.Title)) throw new ValidationException("Titolo obbligatorio per ogni sezione extra.");
-        await _repo.SaveExtraSectionsAsync(Norm(icao), rows, ct);
     }
 
     public Task<RenderMode> GetSidsRenderModeAsync(string icao, CancellationToken ct = default) =>

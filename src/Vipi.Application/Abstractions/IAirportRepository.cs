@@ -44,7 +44,6 @@ public interface IAirportRepository : IAirportProfileReader
     Task UpdateImportedSidAsync(int sidId, int? priority, bool forcePublished, string? resolvedFix,
         string? initialClimb, bool initialClimbByApp, string? cat, string? wtc, string? condition, CancellationToken ct = default);
     Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default);
-    Task SaveExtraSectionsAsync(string icao, IReadOnlyList<ExtraSectionRow> rows, CancellationToken ct = default);
 
     /// <summary>
     /// Merge da IVAO: imposta TA, upsert piste per ident (sovrascrive Length/Bearing, preserva le colonne

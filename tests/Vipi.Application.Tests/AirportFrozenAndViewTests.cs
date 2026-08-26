@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Xunit;
@@ -136,7 +136,6 @@ public class AirportFrozenAndViewTests
         Rules = new[] { new RunwayRuleRow(1, "16R", "16L", "Sud", 5, null, RunwaySurface.Any, "vento da sud") },
         Sids = Array.Empty<SidRow>(),
         Links = Array.Empty<FrequencyLinkRow>(),
-        ExtraSections = Array.Empty<ExtraSectionRow>(),
     };
 
     private sealed class FakeProfilo : IAirportProfileReader

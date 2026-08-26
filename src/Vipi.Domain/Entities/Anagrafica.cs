@@ -1,4 +1,4 @@
-namespace Vipi.Domain.Entities;
+﻿namespace Vipi.Domain.Entities;
 
 /// <summary>Area Control Center (es. Roma LIRR). Importato dalla sorgente esterna (centers); read-only nei campi di origine. SPEC_Modello_Dati §3.1.</summary>
 public class Acc
@@ -525,6 +525,17 @@ public class SidFixAlias
 /// <summary>
 /// Sezione editoriale libera dell'aeroporto: titolo + corpo testuale. Sorgente strutturata, indipendente dalle
 /// sezioni standard; nel viewer compare nella colonna libera di destra (desktop) o sotto le SID (schermi stretti).
+/// </summary>
+/// <summary>
+/// ⚠️ LEGACY, sola lettura. Le sezioni editoriali libere dell'aeroporto vivevano qui, fuori dal documento e tutte
+/// con la stessa chiave <c>airportextra</c> una volta cotte dentro. Dalla carta 2026-08-26 sono <b>sezioni del
+/// documento</b> come nelle altre tre famiglie, e nessuno scrive più queste righe: le legge solo il trasloco
+/// one-shot (<c>IDocumentMaintenance.ReconcileAirportSectionKeysAsync</c>), che le svuota portandole dentro.
+/// <para>
+/// La tabella NON si droppa in questo giro, e la ragione è di ordine: le migrazioni girano all'avvio <b>prima</b>
+/// delle riconciliazioni, quindi una migrazione che la cancellasse porterebbe via il contenuto un istante prima
+/// che qualcuno lo sposti. Si toglie un rilascio dopo, quando il trasloco ha girato ovunque.
+/// </para>
 /// </summary>
 public class AirportExtraSection
 {

@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 using Vipi.Domain;
 using Xunit;
 
@@ -25,7 +25,6 @@ public class AirportSectionProjectionTests
         Rules = regole ?? Array.Empty<RunwayRuleRow>(),
         Sids = Array.Empty<SidRow>(),
         Links = link ?? Array.Empty<FrequencyLinkRow>(),
-        ExtraSections = Array.Empty<ExtraSectionRow>(),
     };
 
     private static RunwayRuleRow Regola(

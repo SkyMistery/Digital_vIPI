@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Media;
 using Vipi.Domain;
 
@@ -87,6 +87,9 @@ public sealed class EfMediaMaintenance : IMediaMaintenance
             .ToListAsync(ct);
 
         // 2) sezioni extra d'aeroporto: i blocchi stanno serializzati dentro un campo solo.
+        //    ⚠️ LEGACY: nessuno scrive più quelle righe (carta 2026-08-26), ma finché il trasloco one-shot non ha
+        //    girato ovunque una foto può essere citata solo da lì — e cancellarla la farebbe sparire dal documento
+        //    un attimo prima che qualcuno lo sposti. Questa riga se ne va con la tabella.
         var dagliExtra = await _db.AirportExtraSections.AsNoTracking()
             .Where(s => s.Body != null)
             .Select(s => s.Body)

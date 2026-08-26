@@ -62,14 +62,12 @@ public sealed class EfAirportRepository : IAirportRepository
         var links = linkRaw.Select(x => new FrequencyLinkRow(x.Id, x.SourceSectorId,
             x.LabelOverride ?? (atc.TryGetValue(x.Callsign, out var n) ? n : x.Callsign), x.Callsign, x.Freq)).ToList();
 
-        var extras = await _db.AirportExtraSections.AsNoTracking().Where(x => x.AirportId == airport.Id)
-            .OrderBy(x => x.Order).Select(x => new ExtraSectionRow(x.Id, x.Title, x.Body)).ToListAsync(ct);
 
         return new AirportData
         {
             AirportId = airport.Id, Icao = airport.Icao, Name = airport.Name, AccCode = airport.Acc!.Code,
             TransitionAltitudeFt = airport.TransitionAltitudeFt,
-            TransitionLevels = tls, Runways = rwys, Rules = rules, Sids = sids, Links = links, ExtraSections = extras,
+            TransitionLevels = tls, Runways = rwys, Rules = rules, Sids = sids, Links = links,
         };
     }
 
@@ -259,30 +257,6 @@ public sealed class EfAirportRepository : IAirportRepository
     }
 
     private static string? Blank(string? v) => string.IsNullOrWhiteSpace(v) ? null : v.Trim();
-
-    public async Task SaveExtraSectionsAsync(string icao, IReadOnlyList<ExtraSectionRow> rows, CancellationToken ct = default)
-    {
-        var id = await AirportIdAsync(icao, ct);
-
-        // Qui la rimozione di una foto e' una RISCRITTURA: l'editor rimanda tutte le sezioni, e chi tolga un blocco
-        // immagine lo fa semplicemente non rispedendolo. Per sapere quali foto hanno perso il loro blocco si
-        // confronta il prima col dopo; a decidere se cancellarle resta comunque DeleteOrphansAsync.
-        var precedenti = await _db.AirportExtraSections.Where(x => x.AirportId == id).ToListAsync(ct);
-        var shaPrima = Vipi.Application.Media.MediaReferenceScanner.ScanAll(precedenti.Select(x => x.Body));
-
-        _db.AirportExtraSections.RemoveRange(precedenti);
-        var order = 0;
-        foreach (var r in rows.Where(r => !string.IsNullOrWhiteSpace(r.Title)))
-            _db.AirportExtraSections.Add(new AirportExtraSection
-            {
-                AirportId = id, Order = order++, Title = r.Title.Trim(),
-                Body = string.IsNullOrWhiteSpace(r.Body) ? null : r.Body!.Trim(),
-            });
-        await _db.SaveChangesAsync(ct);
-
-        shaPrima.ExceptWith(Vipi.Application.Media.MediaReferenceScanner.ScanAll(rows.Select(r => r.Body)));
-        if (shaPrima.Count > 0) await _media.DeleteOrphansAsync(shaPrima.ToList(), ct);
-    }
 
     public async Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default)
     {

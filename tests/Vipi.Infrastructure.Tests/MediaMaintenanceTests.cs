@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
@@ -283,30 +283,6 @@ public class MediaMaintenanceTests : IAsyncLifetime
         await Editing().DeleteSectionAsync(_sec.Id);
 
         Assert.Equal(0, await _db.MediaAssets.CountAsync());
-    }
-
-    [Fact]
-    public async Task Togliere_l_immagine_da_una_sezione_extra_la_libera_e_lascia_le_altre()
-    {
-        // Negli extra d'aeroporto la rimozione e' una RISCRITTURA: l'editor rimanda tutte le sezioni e chi toglie un
-        // blocco semplicemente non lo rispedisce. Si riconoscono confrontando il prima col dopo.
-        var restaSha = await CaricaAsync(1);
-        var viaSha = await CaricaAsync(2);
-        var acc = new Acc { Code = "LIBB", Name = "Brindisi", CountryPrefix = "LI" };
-        var apt = new Airport { Acc = acc, Icao = "LIBD", Name = "Bari" };
-        _db.Accs.Add(acc); _db.Airports.Add(apt);
-        await _db.SaveChangesAsync();
-
-        var repo = new EfAirportRepository(_db, _manutenzione);
-        string Corpo(params string[] sha) => ExtraBlocks.Serialize(
-            sha.Select(x => new ExtraBlock { Format = BlockFormat.Image, ImageJson = MediaRef.Serialize(new MediaRef(x)) }).ToList())!;
-
-        await repo.SaveExtraSectionsAsync("LIBD", new[] { new ExtraSectionRow(0, "Hot spot", Corpo(restaSha, viaSha)) });
-        Assert.Equal(2, await _db.MediaAssets.CountAsync());
-
-        await repo.SaveExtraSectionsAsync("LIBD", new[] { new ExtraSectionRow(0, "Hot spot", Corpo(restaSha)) });
-
-        Assert.Equal(new[] { restaSha }, await _db.MediaAssets.Select(m => m.Sha256).ToListAsync());
     }
 
     [Fact]
