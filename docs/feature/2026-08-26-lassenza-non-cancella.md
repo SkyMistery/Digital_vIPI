@@ -134,6 +134,48 @@ sorgente**: per gli `AirportSectors` gli unici altri scrittori sono `SetRealShap
 
 ⚠️ **Per APP e CTR non esiste nessun ripiego.** Le TWR si sono salvate perché GitHub le rimette; quelle no.
 
-Resta da capire se anche questo sia voluto. La misura è di un istante solo (229 chiamate, tutte `[]`) e non
-si può ripetere: le credenziali di prova sono state revocate. Con la correzione applicata il danno non si
-allarga più, e se le shape tornassero l'upsert le riprenderebbe da sé senza toccare niente.
+### Dove pesca webeye — e perché la risposta chiude la questione
+
+La mappa di IVAO i confini li disegna, quindi da qualche parte li prende. Il suo bundle
+(`webeye.ivao.aero/assets/shapes.*.js`) legge **lo stesso identico campo** che leggiamo noi,
+`regionMapPolygon`, e ha **lo stesso ripiego**: se è vuoto disegna un cerchio attorno all'aeroporto —
+40 km per le TWR, 50 per le DEP, 60 per le APP.
+
+Dal bundle sono usciti due endpoint che non conoscevamo, ed è la parte utile:
+
+```
+GET /v2/specialAreas/all?now=true&mapType=regionMapPolygon
+GET /v2/ATCPositions/all?mapType=regionMapPolygon
+GET /v2/subcenters/all?mapType=regionMapPolygon
+```
+
+⚠️ `mapType` sceglie **quale** dei due campi torna (`regionMap` o `regionMapPolygon`), non se torna pieno:
+provati entrambi, più `all` e `polygon` (→ `400`).
+
+E il verdetto:
+
+| Chiamata | Risposta |
+|---|---|
+| `/v2/subcenters/all?mapType=regionMapPolygon` | 1491 elementi, **0 con poligono** |
+| `/v2/ATCPositions/all?mapType=regionMapPolygon` | 11 850 elementi, **0 con poligono** |
+| `/v2/specialAreas/all?now=true&mapType=regionMapPolygon` | 2309 aree, **0 con poligono** |
+| idem, **senza token**, con `Origin`/`Referer` di webeye — cioè la chiamata *esatta* che fa la loro mappa | 2309 aree, **0 con poligono** |
+
+**Non è una scelta e non è un permesso che ci manca: il dato è vuoto alla sorgente, per tutti.** In questo
+momento anche la mappa ufficiale di IVAO sta disegnando cerchi al posto dei confini.
+
+ⓘ Gli endpoint `/all` restano un guadagno da tenere a mente a prescindere: oggi l'anagrafica costa **una
+chiamata per posizione** (192 per l'Italia, più 37 per i subcenter), e lì stanno tutte in una.
+
+### Che fare
+
+Con la correzione applicata il danno non si allarga più, e se le shape tornassero l'upsert le riprenderebbe
+da sé. Nel frattempo restano due strade, indipendenti:
+
+1. **Ripristino dal backup del 25 agosto** — `tools/ripristino-shape/ripristina-poligoni.sql`, 196 poligoni
+   recuperabili (137 ACC + 59 APP), TWR escluse.
+2. **Il ripiego permanente dal sectorfile Aurora** — `DYNAMIC_SEC/` sul repo `ivao-italy/it-aurora-sector`
+   contiene **112 blocchi** CTR/APP/MIL/FSS nello stesso formato di `twrs.tfl`, che già parsiamo. Due
+   ostacoli misurati: **233 righe sono nomi di punto** (`TUFTE;TUFTE;`) da risolvere col catalogo navaid, e
+   **un'intestazione può portare più callsign** (`LIBB_ES_CTR LIBB_EU_CTR`) — oggi il parser li tratterebbe
+   come una chiave sola.
