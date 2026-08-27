@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in
+**Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in
 un giro solo. Restano aperte solo voci che dipendono da qualcun altro: le risposte di Ivao.It (A9/A13), le
 quattro vLOA da ripubblicare (L2), il documento di Brindisi (B10-bis) e le decisioni di contenuto**) · **Aggiornato:** 27 agosto 2026, notte (**§K chiusa tutta: la vIPI d'aeroporto entra nel catalogo delle sezioni
 — ramo `aeroporto-a-sezioni`, il TERZO in fila — più le tre rifiniture della stessa notte: il meteo tornato
@@ -3053,3 +3053,79 @@ Aggiunta, nella parte di **consultazione**, la sezione **«Leggere le aree regol
 per tipo, colori, 3D, e che sulla carta finiscono solo le aree accese), con la sua voce in
 `GuideSearchCatalog` perché emerga dalla ricerca globale.
 
+
+---
+
+## O. L'audit delle prestazioni — 27 agosto 2026, sera tardi
+
+✅ **Chiuso lo stesso giorno**, dieci commit sul ramo `prestazioni`, **fuso in `main` `8e5f640`** insieme a
+`riordino-e-aree`; entrambi i rami cancellati, locale e su origin. Carta completa con tutte le misure:
+[`docs/history/audit-2026-08-27-prestazioni.md`](history/audit-2026-08-27-prestazioni.md).
+
+Revisione della responsività **tenendo conto dell'ambiente di produzione** — Plesk + Passenger, una sola
+istanza senza backplane, MariaDB sulla stessa macchina, Cloudflare davanti, aggiornamento via FTP.
+
+```
+prima visita   336 192  ->  113 052 byte     -66%
+avvio            465    ->      153 query,  e zero UPDATE inutili
+```
+
+Lo **stato stazionario era già sano** (trenta richieste concorrenti: p50 16 ms, p90 34 ms). Il costo stava
+nei byte spediti, nell'avvio, e in ciò che impediva a qualunque cache di aiutare.
+
+⚠️ **Il filo: quattro difetti su otto sono default del framework mai scritti** — il livello di compressione
+(`Fastest`, che per Brotli è la qualità 1), il livello di log (`Information`, che per EF è il testo di ogni
+query su disco), un `@rendermode` su una pagina senza comandi, un `DateTime.UtcNow` dove serviva il timbro
+della sorgente. Nessuno somiglia a un difetto: non danno errore, e tre su quattro rendono la configurazione
+*più* ricca a leggerla.
+
+⚠️ **Due interventi pianificati sono stati SCARTATI SU MISURA**, e la misura è finita **nel codice** perché
+nessuno li rifaccia partendo dalla stessa ipotesi:
+- **ReadyToRun** — +29 MB di pacchetto su un deploy solo-FTP per un 2% dentro il rumore. Il cronometro
+  d'avvio aggiunto al suo posto dice perché: **1 172 ms su ~1 300 sono database**, non compilazione.
+- **Deduplicare i poligoni AoR** — guardava i byte **grezzi**. Compressi, arrotondare le coordinate e
+  togliere i `&quot;` fa uscire **più** byte: le ripetizioni sono ciò che Brotli mangia meglio. La copia
+  costa 770 B.
+
+### O1 🟢 APERTO — `ListOrphansAsync`: ~150 query per otto orfani
+
+La Struttura settori è scesa da **173 a 167** query soltanto: l'accorpamento è parziale, e il grosso sta lì.
+Per ogni orfano `EfOrphanSectorRepository.ListOrphansAsync` cerca i documenti che lo citano e chi ne blocca
+la rimozione — due chiamate da una decina di query ciascuna. Con cinquanta orfani diventerebbero un migliaio.
+
+⚠️ **Non è stato accorpato di proposito**: è il percorso che decide se un settore si può eliminare, e
+riscrivere due metodi in versione massiva è un lavoro con i suoi test e la sua verifica, non una cosa da fare
+di sfuggita mentre si sistema il peso delle pagine. È una pagina di sola amministrazione e a caldo costa
+trenta millisecondi: il conto non è urgente, ed è scritto **accanto al ciclo**.
+
+**Blocco:** nessuno. **Dove:** `EfOrphanSectorRepository.RigaAsync`.
+
+### O2 🔴 APERTO — la Cache Rule su Cloudflare
+
+Dal 27 agosto le letture **anonime** dei documenti pubblici escono dichiarando `public, max-age=60` e
+`Vary: Accept-Encoding, Cookie`, senza cookie antiforgery. Il browser di chi ricarica o torna indietro riusa
+già la pagina da solo.
+
+Quel che **non** succede da solo è la cache al bordo: Cloudflare, di suo, non tiene le pagine HTML. Serve una
+**Cache Rule** (`URI Path starts with /services/` → *Eligible for cache* → **Respect origin TTL**), scritta
+per esteso in [`deploy/atc-ivao/LEGGIMI-DEPLOY.md`](../deploy/atc-ivao/LEGGIMI-DEPLOY.md).
+
+⚠️ **«Respect origin TTL» e non un numero scritto a mano**: la distinzione fra ciò che si può tenere e ciò
+che non si può la fa l'applicazione — sette clausole, una per una nel codice — e una durata imposta dal
+pannello ci passerebbe sopra.
+
+**Blocco:** committente (accesso al pannello Cloudflare).
+
+### O3 🔴 APERTO — due impostazioni del Plesk da verificare
+
+Nessuna delle due è codice, e nessuna delle due si vede da qui.
+
+- **`passenger_min_instances ≥ 1`**: senza, Passenger spegne il processo per inattività. Il primo visitatore
+  dopo la pausa paga ~1,3 s di avvio — e, cosa peggiore, **a processo spento i dodici hosted service non
+  girano**, polling ATC compreso.
+- **`proxy_read_timeout ≥ 100s`** nelle *direttive nginx aggiuntive* del sito: col default di 60 s il
+  circuito Blazor **cade da solo ogni minuto** e l'utente vede «Tentativo di riconnessione». ⚠️ Il file
+  `deploy/atc-ivao/nginx-vipi.conf` ce l'ha già scritto ma **su quel server non lo carica nessuno**: è
+  riferimento per un deploy systemd+nginx.
+
+**Blocco:** committente (accesso al pannello Plesk).

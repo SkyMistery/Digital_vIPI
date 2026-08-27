@@ -1893,3 +1893,39 @@ detto lui.
 
 Suite **5714**.
 
+
+---
+
+## 27 agosto 2026, sera tardi — l'audit delle prestazioni
+
+Revisione della responsività **tenendo conto dell'ambiente di produzione** (Plesk + Passenger, una sola
+istanza senza backplane, MariaDB sulla stessa macchina, Cloudflare davanti, aggiornamento via FTP). Non
+letta: **misurata**, con l'applicazione compilata in Release su una copia del `vipi.db` reale.
+
+```
+prima visita   336 192  ->  113 052 byte     -66%
+avvio            465    ->      153 query,  e zero UPDATE inutili
+```
+
+Dieci voci, **otto eseguite**. Lo stato stazionario era già sano (trenta richieste concorrenti: p50 16 ms):
+il costo stava nei byte spediti, nell'avvio, e in ciò che impediva a qualunque cache di aiutare.
+
+⚠️ **Quattro difetti su otto sono default del framework mai scritti** — il livello di compressione
+(`Fastest`, cioè qualità 1 per Brotli: **attivare Brotli faceva scaricare il 24% in più** che non averlo), il
+livello di log (EF scriveva il testo di ogni query su disco: 1 MB ogni 210 pagine), un `@rendermode`
+sull'ingresso del sito, che non ha un solo comando, e un `DateTime.UtcNow` dove serviva il timbro della
+sorgente. Nessuno somiglia a un difetto, e tre su quattro rendono la configurazione *più* ricca a leggerla.
+
+⚠️ **Due interventi pianificati sono stati SCARTATI SU MISURA**, e la misura è finita nel codice: ReadyToRun
+(+29 MB per un 2% dentro il rumore — l'avvio è **database**, non compilazione: 1 172 ms su ~1 300) e la
+deduplicazione dei poligoni AoR (guardava i byte **grezzi**; compressi, toglierli fa uscire **più** byte,
+perché le ripetizioni sono ciò che Brotli mangia meglio).
+
+⚠️ E il metodo: **quattro test sono passati per il motivo sbagliato** prima di essere corretti, e un `grep`
+di verifica diceva «0 falliti» mentre un progetto non compilava. Entrambe le cose sono raccontate una per una
+in fondo alla carta.
+
+Pezzi nuovi: `tools/Vipi.Assets` (passo del publish), `AssetPrecompressi`, `CacheDelleLettureAnonime`,
+`StartupDiagnostics.CronometroAvvio`. Nessuna migrazione.
+
+Carta: [`audit-2026-08-27-prestazioni.md`](audit-2026-08-27-prestazioni.md). Suite **5981**.

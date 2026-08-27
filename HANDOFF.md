@@ -1,11 +1,61 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 27 agosto 2026, **sera** (il trascinamento rotto e le aree regolamentate: §N).
+**Ultimo aggiornamento:** 27 agosto 2026, **sera tardi** (l'audit delle prestazioni: §O).
 
 ## Dove siamo, prima di tutto il resto
 
-⚠️ **C'è UN ramo da fondere: `riordino-e-aree`** (due commit, spinto). Racconto in `docs/lavori-aperti.md`
-**§N**; nessuna migrazione, suite **5789**, build Release **0 avvisi**.
+✅ **UN ALBERO SOLO, e nessun ramo aperto.** `main` è **`8e5f640`** (spinto): dentro c'è sia `riordino-e-aree`
+sia il giro nuovo dell'**audit delle prestazioni** (§O). Entrambi i rami sono stati **cancellati**, locale e
+su origin. Punto di ritorno di quella fusione: **`main-prima-del-merge-20260827`** (`963e9aa`).
+
+**Suite 5981** su **15** progetti con esito, build Release della soluzione intera **0 avvisi**, **nessuna
+migrazione nuova** (restano diciannove).
+
+### L'audit delle prestazioni, in cinque righe
+
+Revisione della responsività **tenendo conto dell'ambiente di produzione** — Plesk + Passenger, una sola
+istanza senza backplane, MariaDB sulla stessa macchina, Cloudflare davanti, aggiornamento via FTP. Non
+letta: **misurata**, con l'applicazione compilata in Release su una copia del `vipi.db` reale.
+
+```
+prima visita   336 192  ->  113 052 byte     -66%
+avvio            465    ->      153 query,  e zero UPDATE inutili
+```
+
+Lo **stato stazionario era già sano** (trenta richieste concorrenti: p50 16 ms, p90 34 ms). Il costo stava
+nei byte spediti, nell'avvio, e in ciò che impediva a qualunque cache di aiutare. Carta completa con tutte le
+misure: [`docs/history/audit-2026-08-27-prestazioni.md`](docs/history/audit-2026-08-27-prestazioni.md);
+voci aperte in `docs/lavori-aperti.md` **§O**.
+
+⚠️ **Il filo: quattro difetti su otto sono default del framework mai scritti.** Il livello di compressione
+(`Fastest`, che per Brotli è la **qualità 1**: attivarlo faceva scaricare il **24% in più** che non averlo),
+il livello di log (`Information`, che per EF significa il testo di **ogni query su disco** — 1 MB ogni 210
+pagine), un `@rendermode` sull'**ingresso del sito**, che non ha un solo comando, e un `DateTime.UtcNow` dove
+serviva il timbro della sorgente. Nessuno somiglia a un difetto: non danno errore, e tre su quattro rendono la
+configurazione *più* ricca a leggerla.
+
+⚠️ **Due interventi pianificati sono stati SCARTATI SU MISURA**, e la misura sta **nel codice** perché nessuno
+li rifaccia dalla stessa ipotesi: **ReadyToRun** (+29 MB su un deploy solo-FTP per un 2% dentro il rumore — il
+cronometro d'avvio nuovo dice perché: **1 172 ms su ~1 300 sono database**, non compilazione) e la
+**deduplicazione dei poligoni AoR** (guardava i byte **grezzi**: compressi, arrotondare le coordinate e
+togliere i `&quot;` fa uscire **più** byte).
+
+⚠️ **E quattro test sono passati per il motivo sbagliato prima di essere corretti** — è il rischio dominante
+di questo tipo di lavoro, ed è raccontato uno per uno in fondo alla carta. Più un errore di **verifica**:
+`grep -c "^Failed!"` diceva «0 falliti» mentre un progetto **non compilava**. Da qui in avanti la verifica è
+`dotnet build Vipi.slnx` **prima**, e poi il conto dei **progetti con esito (15)**, non dei falliti.
+
+🔵 **Due cose aspettano il committente, e non sono codice** (§O2, §O3):
+- la **Cache Rule su Cloudflare** (`/services/` → *Eligible for cache* → *Respect origin TTL*): senza, il
+  bordo non tiene l'HTML e metà del guadagno della cache resta inespressa. Istruzioni in `LEGGIMI-DEPLOY.md`;
+- sul Plesk: **`passenger_min_instances ≥ 1`** (a processo spento i dodici hosted service non girano) e
+  **`proxy_read_timeout ≥ 100s`** nelle direttive nginx aggiuntive — ⚠️ `nginx-vipi.conf` **su quel server
+  non lo carica nessuno**.
+
+⚠️ **Al primo avvio dopo il deploy** la proiezione allinea i timbri dei settori **una volta sola** (312
+UPDATE); dal secondo in poi tace. È previsto.
+
+### Il giro di prima (§N), fuso nello stesso commit
 
 - **`ff8ec29`** — il **trascinamento nel menu Navigazione non ha mai funzionato col mouse**, su tutte e tre
   le famiglie, pur essendo stato dichiarato eseguito e verificato il 26. `@ondragover:preventDefault` sulla
@@ -43,17 +93,20 @@ locale e su origin: di nuovo un albero solo.
 ⚠️ **La trappola che §M lascia in eredità**: le due guardie della corsa (layout che conclude prima del render,
 pagina con scope proprio) **bastano ognuna da sola**. Chi ne togliesse una non vedrebbe rompersi niente.
 
-✅ **Un albero solo** (⚠️ ma un ramo aperto: `riordino-e-aree`, sopra). I tre rami in
+✅ **Un albero solo**, e stavolta senza asterischi: vedi la testata. I tre rami in
 fila del 26 sono stati fusi il 27 mattina (`docs/lavori-aperti.md` **§B12**), e da lì è partito e si è chiuso
 un giro nuovo: l'**audit dei quattro documenti** (**§L**, carta
 [`docs/refactor/14-quattro-documenti.md`](docs/refactor/14-quattro-documenti.md)).
 
-**Suite 5746 verdi** su `main`, contate il 27 pomeriggio (**2992** net8 + **2754** net10); **5789** sul ramo
-`riordino-e-aree`, che porta diciassette test in più.
+**Suite 5981 verdi** su `main`, contate il 27 sera tardi dopo la fusione dell'audit prestazioni (erano 5746
+il pomeriggio).
 ⚠️ La cifra si **conta**, non si ricorda — e su net10 due progetti non girano per costruzione
 (`Vipi.AuroraBridge.Tests` e `Vipi.E2E.Tests` sono net8 soli: su net10 rispondono `NETSDK1005`, ed è atteso).
 ⚠️ Prima di credere a un conteggio: `grep "error MSB"`. Con un `Vipi.Host` acceso i suoi DLL sono bloccati,
 mezzo albero non compila e il totale cala di centinaia senza che il comando diventi rosso.
+⚠️ **E non basta contare i «Failed!»**: se un progetto non compila non produce nessuna riga di esito, quindi
+zero falliti può voler dire zero eseguiti. Il 27 sera è successo. Si costruisce PRIMA
+(`dotnet build Vipi.slnx -c Release`), e poi si contano i **progetti con esito: devono essere 15**.
 
 ⚠️ **DICIANNOVE migrazioni in coda** al cutover MariaDB (erano diciassette: l'audit versioni & release ne ha
 portate due). ⚠️ **Prima del deploy serve la SELECT dei duplicati su `DocReleases`**, o `CREATE UNIQUE INDEX`
@@ -859,6 +912,23 @@ scrive nel tag di Aurora il livello a cui cedere il traffico al prossimo ente.
 - Guida utente: `docs/guide/aurora-bridge.md`. Contratto: `docs/reference/api-aurora-bridge.md`.
 
 ---
+
+**Prestazioni e forma del pacchetto (✅ 27 ago 2026, §O):** quattro pezzi nuovi, tutti fuori dal dominio.
+- **`tools/Vipi.Assets`** (nella soluzione, non fra gli attrezzi da lanciare a mano: è un **passo del
+  publish**). Minifica CSS/JS della `wwwroot` pubblicata — NUglify, **senza rinominare i locali** — e lascia
+  accanto a ogni file di testo la variante `.br`/`.gz` alla qualità 11. ⚠️ Se un file non è minificabile il
+  **publish si ferma**: JavaScript e CSS non li compila nessun altro passo della build.
+- **`AssetPrecompressi`** (host): consegna quelle varianti al posto della compressione al volo, e le
+  **ignora se più vecchie del file** — la rete contro il `.br` dimenticato in un aggiornamento via FTP.
+- **`CacheDelleLettureAnonime`** (host): le letture anonime dei documenti pubblici escono con
+  `public, max-age=60` e senza cookie antiforgery. **Sette clausole**, ognuna col suo test; il resto continua
+  a rispondere `no-store`.
+- **`StartupDiagnostics.CronometroAvvio`**: le fasi dell'avvio in coda a `diagnostica/avvio-diagnostica.txt`.
+  Su un host senza shell è l'unico modo di rispondere a «ci mette tanto a ripartire, ma tanto **dove**?».
+
+⚠️ **Il caricamento dei moduli JS non è più tutto nel `<body>`**: `vipi-boot.js` tira dentro mappe, minime,
+3D e tour **solo se la pagina mostra il loro bersaglio**. `vipi-editor.js` e `vipi-media.js` restano sempre
+caricati, ed è una scelta: quelli il codice C# li chiama **per nome**.
 
 ## 5. PROSSIMI PASSI (ordinati per valore)
 

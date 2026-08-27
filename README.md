@@ -37,16 +37,29 @@ In sviluppo (`useDevIdentity:true`) è attivo `DevCurrentUserProvider` (admin `I
 
 ```bash
 dotnet build Vipi.slnx            # gli avvisi sono ERRORI (Directory.Build.props)
-dotnet test  Vipi.slnx            # 2111 test, su net8 e net10: entrambi i TFM girano
+dotnet test  Vipi.slnx            # ~5980 test, su net8 e net10: entrambi i TFM girano
 dotnet run --project src/Vipi.Host --urls http://localhost:5034   # poi apri /services/vsop
 ```
 
-⚠️ **`dotnet test` non basta a dire «verde».** Non applica `TreatWarningsAsErrors`, quindi la suite può
-passare mentre la build di produzione è rotta — è già successo (1391 test verdi, 28 errori in CI). Prima di
-un push: `dotnet build Vipi.slnx -c Release --no-incremental`.
+⚠️ **`dotnet test` non basta a dire «verde»**, per due ragioni distinte.
+
+1. Non applica `TreatWarningsAsErrors`, quindi la suite può passare mentre la build di produzione è rotta —
+   è già successo (1391 test verdi, 28 errori in CI).
+2. Un progetto che **non compila** non produce nessuna riga di esito: contare i «Failed!» dà **zero** anche
+   quando non è stato eseguito niente. È successo il 27 agosto 2026.
+
+Perciò: **prima** `dotnet build Vipi.slnx -c Release --no-incremental`, e poi si controlla che i progetti con
+esito siano **15** — non che i falliti siano zero.
 
 ℹ️ Le dipendenze sono bloccate dai `packages.lock.json` committati. Se aggiungi un pacchetto, il restore
 aggiorna il lock e va committato: la CI restora in «locked mode» e si ferma se il file non combacia.
+
+ℹ️ **Il `publish` fa un passo in più del `build`**: `tools/Vipi.Assets` prepara la `wwwroot` del pacchetto —
+toglie i commenti da CSS e JavaScript (erano il **44% dei byte spediti**) e lascia accanto a ogni file di
+testo la variante `.br`/`.gz` già compressa alla qualità massima. Si spegne con
+`-p:VipiOttimizzaAsset=false`, che serve a una cosa sola: guardare l'output di un publish con i file ancora
+leggibili mentre si cerca un guasto. ⚠️ Se un file non è minificabile il publish **si ferma**: è quasi sempre
+un errore di sintassi che nessun altro passo della build guarda.
 
 Tool desktop Aurora (facoltativo, fuori dal sito): `./tools/publish-aurora-bridge.ps1` → eseguibile autonomo
 in `artifacts/bridge/win-x64/`. Guida: `docs/guide/aurora-bridge.md`.
