@@ -180,6 +180,16 @@ public class StructureEditingTests : IAsyncLifetime
         Assert.Equal("FL70", prof.TransitionLevels.Single(t => t.QnhFrom == 1013).Level);   // ≥ 1013 → +1000
     }
 
+    /// <summary>
+    /// Le SID nascono Live, e una seconda <c>EnsureDocumentAsync</c> non rigenera niente — era il punto
+    /// dolente del rebuild, quando le sezioni venivano distrutte e riscritte a ogni apertura dell'editor.
+    /// <para>
+    /// ⚠️ Questa prova passava da <c>GetSidsRenderModeAsync</c>/<c>SetSidsRenderModeAsync</c>, che erano gli
+    /// UNICI suoi chiamanti in tutto il progetto: dal 26 agosto 2026 il Live/Frozen delle sezioni lo governa
+    /// l'editor condiviso, e quei due metodi erano rimasti a leggere <c>CurrentVersionId</c> col significato
+    /// sbagliato. Sono stati tolti; le due proprietà si guardano dove vivono davvero, sulla sezione.
+    /// </para>
+    /// </summary>
     [Fact]
     public async Task SidsRenderMode_Defaults_Live_And_Survives_A_Second_Ensure()
     {
@@ -190,18 +200,18 @@ public class StructureEditingTests : IAsyncLifetime
         await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
 
         await profile.EnsureDocumentAsync("LIRF");
-        Assert.Equal(RenderMode.Live, await profile.GetSidsRenderModeAsync("LIRF"));   // default
+        var sids = await _db.DocumentSections.SingleAsync(s => s.SectionKey == "sids");
+        Assert.Equal(RenderMode.Live, sids.RenderMode);   // nascono Live: una SID si mostra sempre aggiornata
 
-        // Lo staff congela la sezione SID.
-        await profile.SetSidsRenderModeAsync("LIRF", RenderMode.Frozen);
-        Assert.Equal(RenderMode.Frozen, await profile.GetSidsRenderModeAsync("LIRF"));
+        // Lo staff congela la sezione SID (è ciò che fa il toggle dell'editor condiviso).
+        sids.RenderMode = RenderMode.Frozen;
+        await _db.SaveChangesAsync();
 
-        // Una seconda Ensure non tocca niente: è idempotente, non rigenera — era il punto dolente del rebuild.
+        // Una seconda Ensure non tocca niente: è idempotente, non rigenera.
         await profile.EnsureDocumentAsync("LIRF");
-        Assert.Equal(RenderMode.Frozen, await profile.GetSidsRenderModeAsync("LIRF"));
-
-        var sidSec = await _db.DocumentSections.SingleAsync(s => s.SectionKey == "sids");
-        Assert.Equal(RenderMode.Frozen, sidSec.RenderMode);
+        var dopo = await _db.DocumentSections.SingleAsync(s => s.SectionKey == "sids");
+        Assert.Equal(RenderMode.Frozen, dopo.RenderMode);
+        Assert.Equal(sids.Id, dopo.Id);   // è la STESSA sezione, non una riscritta con lo stesso nome
     }
 
     [Fact]

@@ -394,21 +394,7 @@ public sealed class EfAirportRepository : IAirportRepository
     private static bool BornLive(string key) =>
         SectionCatalog.IsAlwaysLive(key) || string.Equals(key, "sids", StringComparison.OrdinalIgnoreCase);
 
-    public async Task<RenderMode> GetSidsRenderModeAsync(string icao, CancellationToken ct = default)
-    {
-        var sec = await CurrentSidsSectionAsync(icao, ct);
-        return sec?.RenderMode ?? RenderMode.Live;
-    }
-
-    public async Task SetSidsRenderModeAsync(string icao, RenderMode mode, CancellationToken ct = default)
-    {
-        var sec = await CurrentSidsSectionAsync(icao, ct);
-        if (sec is null) return;   // documento/sezione non ancora generati: nasceranno al primo rebuild (default Live)
-        sec.RenderMode = mode;
-        await _db.SaveChangesAsync(ct);
-    }
-
-    public async Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default)
+            public async Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default)
     {
         icao = (icao ?? "").Trim().ToUpperInvariant();
         // Dall'AEROPORTO, non dai suoi settori: è il legame autoritativo (vedi Airport.Document). Passando dai
@@ -417,20 +403,7 @@ public sealed class EfAirportRepository : IAirportRepository
             .Where(a => a.Icao == icao).Select(a => a.DocumentId).FirstOrDefaultAsync(ct);
     }
 
-    // Sezione "sids" della versione CORRENTE del documento dell'aeroporto (tracciata: settabile). Null se assente.
-    private async Task<DocumentSection?> CurrentSidsSectionAsync(string icao, CancellationToken ct)
-    {
-        icao = (icao ?? "").Trim().ToUpperInvariant();
-        var verId = await _db.Airports
-            .Where(a => a.Icao == icao && a.DocumentId != null)
-            .Select(a => a.Document!.CurrentVersionId)
-            .FirstOrDefaultAsync(ct);
-        if (verId is not int vid) return null;
-        return await _db.DocumentSections
-            .FirstOrDefaultAsync(s => s.DocumentVersionId == vid && s.SectionKey == "sids", ct);
-    }
-
-    // ---- helper ----
+        // ---- helper ----
 
     private async Task<int> AirportIdAsync(string icao, CancellationToken ct) =>
         await _db.Airports.Where(a => a.Icao == icao).Select(a => (int?)a.Id).FirstOrDefaultAsync(ct)
