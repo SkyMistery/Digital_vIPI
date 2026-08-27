@@ -1,4 +1,6 @@
 using Vipi.Application.Content;
+using Vipi.Application.Weather;
+using Vipi.Domain;
 
 namespace Vipi.Ui.Components.App;
 
@@ -158,4 +160,82 @@ public static class AirportFrequencyPicker
         "FSS" => "Information",
         _ => position ?? "—",
     };
+}
+
+/// <summary>Esito della validazione delle regole piste: gli errori impediscono il salvataggio, gli avvisi no.</summary>
+public sealed record AirportRuleIssues(
+    IReadOnlyList<AirportTlIssue> Errors, IReadOnlyList<AirportTlIssue> Warnings);
+
+/// <summary>Le regole della tabella «Regole piste». Cuore deterministico.</summary>
+public static class AirportRuleValidation
+{
+    /// <param name="knownIdents">Le piste che lo scalo ha davvero: una regola può nominarne una che non
+    /// esiste — un refuso, o una pista tolta dopo — ed è un avviso, non un errore, perché la regola resta
+    /// salvabile e va corretta da chi sa quale intendeva.</param>
+    public static AirportRuleIssues Issues(IReadOnlyList<RuleEdit> rows, IEnumerable<string> knownIdents)
+    {
+        var errors = new List<AirportTlIssue>();
+        var warnings = new List<AirportTlIssue>();
+        var note = knownIdents.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var r = rows[i];
+            var n = i + 1;
+
+            // Una regola che non nomina nessuna pista non sceglie niente: è l'unico caso che blocca il salvataggio.
+            if (r.Dep.Count == 0 && r.Arr.Count == 0)
+                errors.Add(new AirportTlIssue("Ape_IssueRuleNoRw", new object[] { n }));
+
+            foreach (var id in r.Dep.Concat(r.Arr).Where(id => !note.Contains(id)).Distinct())
+                warnings.Add(new AirportTlIssue("Ape_IssueRuleUnknownRw", new object[] { n, id }));
+
+            // Mezza finestra oraria non è una finestra: «dalle 06:00» senza un «fino a» non si sa dove finisce.
+            if (r.TimeFrom is not null ^ r.TimeTo is not null)
+                warnings.Add(new AirportTlIssue("Ape_IssueRuleTimeWin", new object[] { n }));
+        }
+        return new AirportRuleIssues(errors, warnings);
+    }
+}
+
+/// <summary>
+/// La conversione di una regola dalla forma d'editor a quella del dominio. ⚠️ Stava scritta DUE volte nella
+/// pagina, campo per campo — una per il pannello di prova (<c>RunwayRuleEval</c>) e una per il salvataggio
+/// (<c>RunwayRuleRow</c>) — e le due copie potevano divergere: la prova avrebbe detto una cosa e il salvato
+/// un'altra, che su una regola di scelta pista è il difetto peggiore possibile.
+/// </summary>
+public static class AirportRuleMapping
+{
+    public static string JoinCsv(HashSet<string> set) => string.Join(",", set);
+    public static int? TimeToMin(TimeOnly? t) => t is TimeOnly v ? v.Hour * 60 + v.Minute : null;
+
+    /// <summary>Finestra stagionale ricorrente: in DB è MMDD. Vale solo se ci sono ENTRAMBI, mese e giorno.</summary>
+    public static int? CombineMd(int? month, int? day) =>
+        month is int m && day is int d ? m * 100 + d : null;
+
+    public static RunwaySurface Surface(string? s) => s switch
+    {
+        "dry" => RunwaySurface.Dry,
+        "wet" => RunwaySurface.Wet,
+        _ => RunwaySurface.Any,
+    };
+
+    public static DateParity Parity(string? s) => s switch
+    {
+        "even" => DateParity.Even,
+        "odd" => DateParity.Odd,
+        _ => DateParity.Any,
+    };
+
+    /// <summary>La regola come la valuta il dominio: è ciò su cui gira il pannello di prova.</summary>
+    public static RunwayRuleEval ToEval(RuleEdit r) => new(
+        JoinCsv(r.Dep), JoinCsv(r.Arr), r.Name, r.Note, r.MaxTail, r.MaxCross, Surface(r.Surface),
+        TimeToMin(r.TimeFrom), TimeToMin(r.TimeTo), r.DaysMask == 0 ? null : r.DaysMask, Parity(r.Parity),
+        CombineMd(r.DateFromMonth, r.DateFromDay), CombineMd(r.DateToMonth, r.DateToDay));
+
+    /// <summary>La regola come si salva. Stessi campi di <see cref="ToEval"/>, in un altro record.</summary>
+    public static RunwayRuleRow ToRow(RuleEdit r) => new(
+        0, JoinCsv(r.Dep), JoinCsv(r.Arr), r.Name, r.MaxTail, r.MaxCross, Surface(r.Surface), r.Note,
+        TimeToMin(r.TimeFrom), TimeToMin(r.TimeTo), r.DaysMask == 0 ? null : r.DaysMask, Parity(r.Parity),
+        CombineMd(r.DateFromMonth, r.DateFromDay), CombineMd(r.DateToMonth, r.DateToDay));
 }
