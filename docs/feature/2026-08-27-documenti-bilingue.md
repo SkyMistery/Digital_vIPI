@@ -137,10 +137,38 @@ riapre da solo il buco che il protettore chiude.
 
 ## 4. La prosa scriptata: giusto non mandarla — ma non è gratis
 
-I generatori delle sezioni derivate hanno le stringhe **cablate**: italiano per ACC/APP, inglese per la
-vLOA. Sono **due percorsi di codice paralleli**, ed è già costato una divergenza documentata
-(`VloaSections` contro il registro del catalogo). Portarli a resx è lavoro meccanico ma vasto — e
-**cancella quella duplicazione**. Guadagno collaterale reale, non un effetto secondario.
+✅ **Fatto il 28 agosto 2026 — e si è rivelato molto più piccolo del preventivo.**
+
+La carta diceva «portare i generatori a resx: lavoro meccanico ma vasto». Misurando prima di toccare, il
+lavoro grosso **era già stato fatto**: le frasi di coordinamento — la prosa generata più complessa del
+prodotto — passano da `ICoordinationSentenceTemplate`, un template caricato da file e sovrascrivibile a
+caldo, e **`CoordinationSentenceTemplate.English` esisteva già**.
+
+Quindi non mancava la traduzione: mancava **chi la sceglie**. Il template lo decideva la **famiglia** del
+documento e non chi legge — la vLOA sempre inglese, l'ACC sempre italiano. Il difetto visibile era che un
+lettore italiano apriva una vLOA tradotta e ci trovava dentro i coordinamenti ancora in inglese: la
+schermata mezza tradotta che questa carta esiste per evitare.
+
+**Che cosa è cambiato davvero.**
+
+- `ReadingLanguageContext`, sullo stesso pattern di `ShapeReleaseContext` — «in che lingua sto
+  componendo». Fuori da una cattura è la lingua **dell'interfaccia**, cioè la stessa chip della barra che
+  decide tutto il resto: due sorgenti di verità sulla lingua darebbero di nuovo una schermata a metà.
+- `CoordinationSentenceTemplate.For(lingua, italianoCorrente)`. ⚠️ Il ramo italiano prende il template
+  **del file**, non una costante: la divisione lo personalizza, e prenderlo da una costante avrebbe fatto
+  sparire quelle personalizzazioni proprio nel momento in cui si comincia a scegliere per lingua.
+- **La prosa congelata guarda la lingua, il resto no.** `FrozenSections.GetProsa` scarta il congelato
+  quando la lingua non combacia, e allora si ricompone live — nella lingua giusta. ⚠️ Solo la prosa:
+  AoR, frequenze e minime sono numeri, geometrie e callsign, e scartarle mostrerebbe al lettore l'AoR **di
+  oggi** invece di quella dell'AIRAC pubblicato, cioè romperebbe la promessa della release per risolvere
+  un problema che quelle sezioni non hanno.
+- Il congelamento dichiara la lingua **sorgente del documento**: senza, prenderebbe la cultura del
+  circuito di chi ha premuto Pubblica, e la stessa release direbbe cose diverse a seconda di chi l'ha fatta.
+
+**La prosa generata si SCEGLIE, non si traduce**, e vale la pena scriverlo: quelle frasi le scrive il
+nostro codice, e di entrambe le versioni possediamo l'originale. Mandarle a un motore vorrebbe dire pagare
+per tradurre una cosa che sappiamo già dire, e accettarne la fraseologia invece della nostra — proprio
+mentre il resto della carta spiega che la fraseologia automatica è il rischio numero uno.
 
 ### ⚠️ Le sezioni derivate interpolano testo scritto a mano
 

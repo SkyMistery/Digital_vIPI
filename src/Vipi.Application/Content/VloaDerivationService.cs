@@ -76,8 +76,14 @@ public sealed class VloaDerivationService : IVloaDerivationService
     private readonly IEditAuthorizationService _authz;
     private readonly NeighboursOptions _neighbours;
 
+    /// <summary>La lingua in cui comporre la prosa generata. Opzionale: senza, resta il comportamento di
+    /// prima — italiano per ACC/APP, inglese per la vLOA.</summary>
+    private readonly ReadingLanguageContext? _lingua;
+
+
     public VloaDerivationService(IVloaDerivationRepository repo, IAccDerivationRepository accRepo, IAgreementService transfers,
-        ICoordinationSentenceTemplate sentence, IEditAuthorizationService authz, IOptions<NeighboursOptions> neighbours)
+        ICoordinationSentenceTemplate sentence, IEditAuthorizationService authz, IOptions<NeighboursOptions> neighbours,
+        ReadingLanguageContext? lingua = null)
     {
         _repo = repo;
         _accRepo = accRepo;
@@ -85,6 +91,7 @@ public sealed class VloaDerivationService : IVloaDerivationService
         _sentence = sentence;
         _authz = authz;
         _neighbours = neighbours.Value;
+        _lingua = lingua;
     }
 
     /// <summary>Settori EFFETTIVAMENTE confinanti (home/estero) calcolati per geometria dai poligoni di confine dei
@@ -180,8 +187,12 @@ public sealed class VloaDerivationService : IVloaDerivationService
         var codeMap = await _accRepo.GetSectorCodeMapAsync(ct);
         var atcMap = await _accRepo.GetSectorAtcNameMapAsync(ct);
         var accRefMap = await _accRepo.GetSectorAccRefMapAsync(ct);
-        // Le vLOA sono documenti bilaterali in INGLESE: frasi di coordinamento col template EN.
-        var tpl = CoordinationSentenceTemplate.English;
+        // ⚠️ La vLOA e' un documento bilaterale scritto in INGLESE, ma qui non si sceglie la lingua del
+        // DOCUMENTO: si sceglie quella di CHI LEGGE. Fino al 28 agosto 2026 era cablata a English, e un
+        // lettore italiano apriva la vLOA tradotta trovandoci dentro i coordinamenti ancora in inglese --
+        // cioe' proprio la schermata mezza tradotta che questa funzione esiste per evitare.
+        // Senza contesto (test, chiamanti vecchi) resta l'inglese: il comportamento di prima.
+        var tpl = CoordinationSentenceTemplate.For(_lingua?.Corrente ?? "en", _sentence.Current);
 
         var homeSet = new HashSet<string>(pair.HomeAll, StringComparer.OrdinalIgnoreCase);
         var foreignSet = new HashSet<string>(pair.ForeignAll, StringComparer.OrdinalIgnoreCase);

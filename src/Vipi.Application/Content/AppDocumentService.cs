@@ -118,10 +118,15 @@ public sealed class AppDocumentService : IAppDocumentService
     private readonly Aor.IAorService _aor;
     private readonly IVectoringMinimaSource _minima;
 
+    /// <summary>La lingua in cui comporre la prosa generata. Opzionale: senza, resta il comportamento di
+    /// prima — italiano per ACC/APP, inglese per la vLOA.</summary>
+    private readonly ReadingLanguageContext? _lingua;
+
+
     public AppDocumentService(IAppDerivationRepository apps, ISpecialAreaRepository areas, IEditingRepository editing,
         IEditAuthorizationService authz, ITopologyProvider topology, IAgreementService transfers,
         ICoordinationSentenceTemplate sentence, IDocumentProfileRepository docProfiles, Aor.IAorService aor,
-        IVectoringMinimaSource minima)
+        IVectoringMinimaSource minima, ReadingLanguageContext? lingua = null)
     {
         _apps = apps;
         _areas = areas;
@@ -133,6 +138,7 @@ public sealed class AppDocumentService : IAppDocumentService
         _docProfiles = docProfiles;
         _aor = aor;
         _minima = minima;
+        _lingua = lingua;
     }
 
     private static string Norm(string s) => (s ?? "").Trim().ToUpperInvariant();
@@ -188,7 +194,7 @@ public sealed class AppDocumentService : IAppDocumentService
         var airportMap = CoordinationDerivation.MergeAirportNames(await _apps.GetAirportNameMapAsync(ct), flows);
         var atcMap = await _apps.GetSectorAtcNameMapAsync(ct);
 
-        var tpl = _sentence.Current;
+        var tpl = CoordinationSentenceTemplate.For(_lingua?.Corrente, _sentence.Current);
 
         // Cuore condiviso (owned + entranti, direzione owner→next senza invert, frase composta).
         var domainSet = domain as IReadOnlySet<string> ?? new HashSet<string>(domain, StringComparer.OrdinalIgnoreCase);

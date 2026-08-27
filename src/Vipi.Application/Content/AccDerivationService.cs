@@ -73,9 +73,14 @@ public sealed class AccDerivationService : IAccDerivationService
     private readonly ICoordinationSentenceTemplate _sentence;
     private readonly IVectoringMinimaSource _minima;
 
+    /// <summary>La lingua in cui comporre la prosa generata. Opzionale: senza, resta il comportamento di
+    /// prima — italiano per ACC/APP, inglese per la vLOA.</summary>
+    private readonly ReadingLanguageContext? _lingua;
+
+
     public AccDerivationService(IAccDerivationRepository repo, ISpecialAreaRepository areas, IAgreementService transfers,
         ITopologyProvider topology, Aor.IAorService aor, ICoordinationSentenceTemplate sentence,
-        IVectoringMinimaSource minima)
+        IVectoringMinimaSource minima, ReadingLanguageContext? lingua = null)
     {
         _repo = repo;
         _areas = areas;
@@ -84,6 +89,7 @@ public sealed class AccDerivationService : IAccDerivationService
         _aor = aor;
         _sentence = sentence;
         _minima = minima;
+        _lingua = lingua;
     }
 
     public Task<IReadOnlyList<AccTreeRoot>> ListTreeRootsAsync(string accCode, CancellationToken ct = default) =>
@@ -135,7 +141,7 @@ public sealed class AccDerivationService : IAccDerivationService
         var airportMap = CoordinationDerivation.MergeAirportNames(await _repo.GetAirportNameMapAsync(ct), flows);
         var atcMap = await _repo.GetSectorAtcNameMapAsync(ct);
         var accRefMap = await _repo.GetSectorAccRefMapAsync(ct);
-        var tpl = _sentence.Current;
+        var tpl = CoordinationSentenceTemplate.For(_lingua?.Corrente, _sentence.Current);
 
         // Cuore condiviso (owned + entranti, direzione owner→next senza invert, frase composta).
         var entries = CoordinationDerivation.Build(flows, owners, types, nameMap, codeMap, airportMap, atcMap, tpl);
@@ -155,7 +161,8 @@ public sealed class AccDerivationService : IAccDerivationService
         var codeMap = await _repo.GetSectorCodeMapAsync(ct);
         var airportMap = CoordinationDerivation.MergeAirportNames(await _repo.GetAirportNameMapAsync(ct), flows);
         var atcMap = await _repo.GetSectorAtcNameMapAsync(ct);
-        return new CoordinationPreviewContext(types, nameMap, codeMap, airportMap, atcMap, _sentence.Current);
+        return new CoordinationPreviewContext(types, nameMap, codeMap, airportMap, atcMap,
+            CoordinationSentenceTemplate.For(_lingua?.Corrente, _sentence.Current));
     }
 
     public async Task<AccAorView> DeriveAorViewAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default)

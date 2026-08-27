@@ -114,6 +114,29 @@ public sealed class CoordinationSentenceTemplate
     public static CoordinationSentenceTemplate Default { get; } = new();
 
     /// <summary>Template inglese (usato dalle vLOA, documenti bilaterali in EN). Stessi placeholder, testi in inglese.</summary>
+    /// <summary>
+    /// Il template per la lingua di chi legge.
+    ///
+    /// <para>
+    /// ⚠️ <b>La prosa generata si SCEGLIE, non si traduce.</b> Queste frasi le scrive il nostro codice, e di
+    /// entrambe le versioni possediamo l'originale: mandarle a un motore automatico vorrebbe dire pagare per
+    /// tradurre una cosa che abbiamo già, e accettarne la fraseologia invece della nostra. È il motivo per
+    /// cui il traduttore automatico non tocca le sezioni rese dalla pagina.
+    /// </para>
+    /// <para>
+    /// ⚠️ <b>Fino al 28 agosto 2026 il template lo sceglieva la FAMIGLIA del documento</b>, non chi legge: la
+    /// vLOA prendeva sempre l'inglese, l'ACC sempre l'italiano. Il risultato era che un lettore italiano
+    /// apriva una vLOA tradotta e trovava i coordinamenti ancora in inglese — cioè proprio la schermata
+    /// mezza tradotta che tutta questa funzione esiste per evitare.
+    /// </para>
+    /// </summary>
+    /// <param name="lingua">La lingua di lettura (<c>it</c>, <c>en</c>).</param>
+    /// <param name="italiano">Il template italiano <b>corrente</b>: quello del file di progetto, che si può
+    /// sovrascrivere a caldo. Non si prende da una costante, o le personalizzazioni della divisione
+    /// sparirebbero appena si sceglie per lingua.</param>
+    public static CoordinationSentenceTemplate For(string? lingua, CoordinationSentenceTemplate italiano) =>
+        string.Equals(lingua, "en", StringComparison.OrdinalIgnoreCase) ? English : italiano;
+
     public static CoordinationSentenceTemplate English { get; } = new()
     {
         Template = "{owner} transfers to {target} the traffic {airport} {stato} {fl} over {point}.",

@@ -20,12 +20,16 @@ public sealed class AccViewDerivationService : IAccViewDerivationService
     private readonly IAccDerivationRepository _repo;
     private readonly IAccDerivationService _deriv;
     private readonly IFrozenSectionReader _frozen;
+    /// <summary>La lingua di chi legge: decide se la PROSA congelata vale, o va ricomposta live.</summary>
+    private readonly ReadingLanguageContext? _lingua;
 
-    public AccViewDerivationService(IAccDerivationRepository repo, IAccDerivationService deriv, IFrozenSectionReader frozen)
+
+    public AccViewDerivationService(IAccDerivationRepository repo, IAccDerivationService deriv, IFrozenSectionReader frozen, ReadingLanguageContext? lingua = null)
     {
         _repo = repo;
         _deriv = deriv;
         _frozen = frozen;
+        _lingua = lingua;
     }
 
     public async Task<AccDerivedSections> ResolveForViewAsync(string accCode, IReadOnlyList<AccAssembledBlock> blocks, bool useFrozen, CancellationToken ct = default)
@@ -50,7 +54,9 @@ public sealed class AccViewDerivationService : IAccViewDerivationService
         {
             freqs[ab.Block.Key] = Congelata<List<AppFreqRow>>(ab, "frequencies")
                 ?? (await _deriv.DeriveFrequenciesAsync(accCode, ab.Block, root, ct)).ToList();
-            coord[ab.Block.Key] = Congelata<AccCoordination>(ab, "coordination")
+            // ⚠️ Solo la PROSA guarda la lingua: freq, aor e minime restano congelate comunque, perche' sono
+            // numeri e geometrie -- scartarle mostrerebbe al lettore l'AoR di oggi invece di quella pubblicata.
+            coord[ab.Block.Key] = ProsaCongelata<AccCoordination>(ab, "coordination")
                 ?? await _deriv.DeriveCoordinationAsync(accCode, ab.Block, root, ct);
             aor[ab.Block.Key] = Congelata<AccAorView>(ab, "aor")
                 ?? await _deriv.DeriveAorViewAsync(accCode, ab.Block, root, ct);
@@ -62,5 +68,17 @@ public sealed class AccViewDerivationService : IAccViewDerivationService
         // Frozen della sotto-sezione, keyato per Id (== RawSection.Id catturato); null se non catturata (Live/assente).
         T? Congelata<T>(AccAssembledBlock ab, string key) where T : class =>
             ab.ChildSectionIdsByKey.TryGetValue(key, out var sid) ? frozen.Get<T>(sid) : null;
+
+        // La prosa congelata vale solo se e' nella lingua di chi legge; altrimenti si ricompone live, che e'
+        // l'unico modo di averla nella lingua giusta -- tradurla sarebbe pagare per una cosa che sappiamo dire.
+        T? ProsaCongelata<T>(AccAssembledBlock ab, string key) where T : class
+        {
+            if (frozen.Language is { } congelata && _lingua?.Corrente is { Length: > 0 } lettore)
+            {
+                var suo = congelata == Vipi.Domain.Language.En ? "en" : "it";
+                if (!string.Equals(suo, lettore, StringComparison.OrdinalIgnoreCase)) return null;
+            }
+            return Congelata<T>(ab, key);
+        }
     }
 }

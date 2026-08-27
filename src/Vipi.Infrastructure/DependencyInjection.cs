@@ -163,6 +163,9 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Content.IShapeGateRepository, EfShapeGateRepository>();
         // Il contesto del congelamento: SCOPED come il DbContext, quindi vale per una richiesta sola.
         services.AddScoped<Vipi.Application.Content.ShapeReleaseContext>();
+        // In che lingua comporre la prosa GENERATA (frasi di coordinamento). Scoped come il contesto
+        // sopra e per la stessa ragione: vale per una richiesta sola, non e' uno stato globale.
+        services.AddScoped<Vipi.Application.Content.ReadingLanguageContext>();
         // Statistiche ATC: archivio delle sessioni e delle tratte scritte dal poller, più la mappa dei
         // settori (albero proiettato + volumi dai cataloghi) su cui si attribuisce il traffico.
         services.AddScoped<Vipi.Application.Abstractions.IAtcSessionStore, EfAtcSessionStore>();

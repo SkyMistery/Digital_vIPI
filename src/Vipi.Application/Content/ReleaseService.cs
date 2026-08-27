@@ -109,8 +109,10 @@ public sealed class ReleaseService : IReleaseService
         IReleaseTargetRegistry targets, IOptions<ReleaseRetentionOptions> retention, IUnitOfWork uow,
         ShapeReleaseContext? shapeCycle = null,
         Abstractions.ITranslationMemory? memoriaTraduzioni = null,
-        IOptions<Translation.TranslationOptions>? traduzione = null)
+        IOptions<Translation.TranslationOptions>? traduzione = null,
+        ReadingLanguageContext? linguaProsa = null)
     {
+        _linguaProsa = linguaProsa;
         _shapeCycle = shapeCycle;
         _memoriaTraduzioni = memoriaTraduzioni;
         _traduzione = traduzione?.Value;
@@ -134,6 +136,9 @@ public sealed class ReleaseService : IReleaseService
     private readonly Abstractions.ITranslationMemory? _memoriaTraduzioni;
 
     private readonly Translation.TranslationOptions? _traduzione;
+
+    /// <summary>In che lingua comporre la prosa generata mentre si congela. Vedi BuildSnapshotJsonAsync.</summary>
+    private readonly ReadingLanguageContext? _linguaProsa;
 
     public Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
         _repo.ListAsync(type, key, ct);
@@ -412,8 +417,15 @@ public sealed class ReleaseService : IReleaseService
         // prossimo. Pubblicando per il ciclo corrente esce la geometria vecchia; pubblicando in anticipo
         // PER il ciclo prossimo — che è quel che si fa preparando un AIRAC — esce quella nuova. Vedi
         // ShapeAiracGate e docs/feature/2026-08-26-shape-dal-sectorfile.md §3.
+        // ⚠️ La prosa generata si congela nella lingua SORGENTE del documento, non in quella di chi sta
+        // pubblicando: uno snapshot deve dire da che lingua si parte, e chi legge in un'altra la ricompone
+        // live. Senza questa forzatura il congelato prenderebbe la cultura del circuito di chi ha premuto
+        // Pubblica -- cioe' la stessa release direbbe cose diverse a seconda di chi l'ha fatta.
+        var linguaSorgente = payload.Doc.Language == Vipi.Domain.Language.En ? "en" : "it";
+
         IReadOnlyDictionary<int, string> frozen;
         using (_shapeCycle?.Capturing(cycle))
+        using (_linguaProsa?.Rendering(linguaSorgente))
             frozen = await _frozen.CaptureAsync(type, key, payload.Doc, ct);
         foreach (var kv in frozen) payload.FrozenSections[kv.Key] = kv.Value;
 

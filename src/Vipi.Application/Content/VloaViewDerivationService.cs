@@ -21,11 +21,15 @@ public sealed class VloaViewDerivationService : IVloaViewDerivationService
 {
     private readonly IVloaDerivationService _vloa;
     private readonly IFrozenSectionReader _frozen;
+    /// <summary>La lingua di chi legge: decide se la PROSA congelata vale, o va ricomposta live.</summary>
+    private readonly ReadingLanguageContext? _lingua;
 
-    public VloaViewDerivationService(IVloaDerivationService vloa, IFrozenSectionReader frozen)
+
+    public VloaViewDerivationService(IVloaDerivationService vloa, IFrozenSectionReader frozen, ReadingLanguageContext? lingua = null)
     {
         _vloa = vloa;
         _frozen = frozen;
+        _lingua = lingua;
     }
 
     public async Task<VloaViewDerived> ResolveForViewAsync(int docId, bool useFrozen, CancellationToken ct = default)
@@ -38,7 +42,10 @@ public sealed class VloaViewDerivationService : IVloaViewDerivationService
 
         var aor = frozen.Get<VloaAorData>("aor") ?? await _vloa.DeriveAorAsync(docId, ct);
         var freq = frozen.Get<VloaFreqData>("frequencies") ?? await _vloa.DeriveFrequenciesAsync(docId, ct);
-        var coord = frozen.Get<VloaCoordination>("coordination") ?? await _vloa.DeriveCoordinationAsync(docId, ct);
+        // ⚠️ Solo la PROSA guarda la lingua: aor e freq sopra restano congelate comunque, perche' sono
+        // numeri e geometrie, e scartarle mostrerebbe al lettore l'AoR di oggi invece di quella pubblicata.
+        var coord = frozen.GetProsa<VloaCoordination>("coordination", _lingua?.Corrente)
+            ?? await _vloa.DeriveCoordinationAsync(docId, ct);
         return new VloaViewDerived(aor, freq, coord);
     }
 }
