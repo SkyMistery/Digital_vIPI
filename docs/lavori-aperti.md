@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in
+**Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in
 un giro solo. Restano aperte solo voci che dipendono da qualcun altro: le risposte di Ivao.It (A9/A13), le
 quattro vLOA da ripubblicare (L2), il documento di Brindisi (B10-bis) e le decisioni di contenuto**) · **Aggiornato:** 27 agosto 2026, notte (**§K chiusa tutta: la vIPI d'aeroporto entra nel catalogo delle sezioni
 — ramo `aeroporto-a-sezioni`, il TERZO in fila — più le tre rifiniture della stessa notte: il meteo tornato
@@ -177,13 +177,15 @@ scrivono nei log.
 | La **rotazione** dei segreti esposti il 24-25 agosto | A13 |
 | Le decisioni di contenuto (LIBB: due sezioni nascoste a mano; l'elenco aeroporti da 75 righe) | K / statistiche |
 | Se `99999 ft` debba diventare `UNL` a schermo | N4 |
+| Come fondere il ramo `basemap-esri` — in un colpo o scorporato in due | **P3** |
+| Se prendere in carico le **tessere nostre** (l'unico fondo che nessuno può chiudere) | P1 |
 
 🔵 **Resta deciso**: il database si ripulisce un'ultima volta prima di popolarlo — quindi **I1** (le radici
 orfane di LIRR) è sospesa apposta: non si sistema un albero che sta per essere rifatto.
 
-**Sezioni con lavoro aperto, oggi**: **nessuna sul codice** — ma **§N va fusa**. C6, C7a/b/c, H1, H3 ed E9
+**Sezioni con lavoro aperto, oggi**: **nessuna sul codice** — ma **§P va fusa** (§N è già in `main`). C6, C7a/b/c, H1, H3 ed E9
 sono chiuse il 27 agosto pomeriggio (§M racconta come e cosa è saltato fuori), e §N la sera. Restano
-**I3/I4** e **N3/N4** (decisioni, non lavoro) e tutto ciò che aspetta qualcun altro (A9, A13, L2, B10-bis).
+**I3/I4**, **N4** e **P1/P3** (decisioni, non lavoro) e tutto ciò che aspetta qualcun altro (A9, A13, L2, B10-bis).
 
 ---
 
@@ -3138,3 +3140,46 @@ Nessuna delle due è codice, e nessuna delle due si vede da qui.
   riferimento per un deploy systemd+nginx.
 
 **Blocco:** committente (accesso al pannello Plesk).
+
+## P. Il ramo `basemap-esri` — 27 agosto 2026, notte
+
+Due lavori usciti dalla stessa sera, **spinti e non fusi**, entrambi nati da una segnalazione del committente
+e non da un piano. Stanno sullo stesso ramo solo per questo: **si possono scorporare**.
+
+### P1 ✅ Il fondo delle mappe non è più CARTO (`95e4227`)
+
+Vedi **§N3**, chiusa, e la carta [`feature/2026-08-27-basemap-esri.md`](feature/2026-08-27-basemap-esri.md).
+
+🔵 **Quel che resta non è un residuo ma una decisione**: Esri ci serve a titolo gratuito e senza contratto,
+come CARTO fino a ieri. L'unica strada che non si ripresenta sono le **tessere nostre** — un PMTiles della
+sola Italia servito da noi, con la CSP che torna `'self'`. Da valutare a mente fredda, non sotto un fondo che
+si è appena rotto.
+
+🔵 **Piccolezza rimasta aperta, ed è di prima**: il pavimento del visore **3D non mostra attribuzione**. Non
+è una mappa Leaflet ma una texture su un piano Three.js, e non ce l'aveva neanche con CARTO. Dove scrivere il
+credito in un visore che si ruota è una scelta di interfaccia, non una riga di codice.
+
+### P2 ✅ Le chip che non facevano niente (`1c15f81`)
+
+METAR/TAF e il selettore di pista delle SID sulla vIPI d'aeroporto. Carta:
+[`feature/2026-08-27-chip-morte-pagina-statica.md`](feature/2026-08-27-chip-morte-pagina-statica.md).
+
+⚠️ **La regola che resta, e vale oltre queste due sezioni**: *uno stato che cambia deve vivere **dentro**
+l'isola che lo cambia; un genitore statico può solo **seminarlo***. Da tenere presente ogni volta che una
+pagina passa da `InteractiveServer` a SSR statica: non basta promuovere i componenti a isola, bisogna
+**spostare lo stato con loro**.
+
+⚠️ **E una lacuna della rete che non si chiude scrivendo un test**: **bUnit ignora i render mode**, cioè monta
+ogni componente come se fosse interattivo. La prova del meteo aggiunta in questo giro **sarebbe passata anche
+prima della cura**. Il render mode è un fatto dell'**hosting**, non del componente: l'unica rete che lo vede è
+il browser vero (skill `verifica-live`).
+
+**Propagazione già fatta**: chiusura transitiva dei componenti raggiunti dalle undici pagine pubbliche
+statiche, fermandosi alle isole. Nessun altro comando muto; i quattro candidati (`AppConfigurations`,
+`AppFrequencies`, `AppSeparations`, `AppVfr`) hanno i gestori dentro il ramo `Editing`, che nel viewer è
+`false`.
+
+### P3 🟢 APERTO — decidere come fondere
+
+Il ramo porta **due lavori indipendenti**. Fusione in un colpo solo, oppure scorporo in due rami: è una scelta
+di comodità del committente, non un vincolo tecnico. Nessuna migrazione nuova, nessun dato toccato.

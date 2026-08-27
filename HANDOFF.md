@@ -1,15 +1,42 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 27 agosto 2026, **sera tardi** (l'audit delle prestazioni: §O).
+**Ultimo aggiornamento:** 27 agosto 2026, **notte** (il ramo `basemap-esri`: il fondo delle mappe e le chip morte).
 
 ## Dove siamo, prima di tutto il resto
 
-✅ **UN ALBERO SOLO, e nessun ramo aperto.** `main` è **`8e5f640`** (spinto): dentro c'è sia `riordino-e-aree`
-sia il giro nuovo dell'**audit delle prestazioni** (§O). Entrambi i rami sono stati **cancellati**, locale e
-su origin. Punto di ritorno di quella fusione: **`main-prima-del-merge-20260827`** (`963e9aa`).
+🔷 **UN RAMO APERTO: `basemap-esri`**, spinto e **non fuso**, due commit e due lavori distinti — nati
+entrambi da una segnalazione del committente, non da un piano:
 
-**Suite 5981** su **15** progetti con esito, build Release della soluzione intera **0 avvisi**, **nessuna
+| commit | cosa |
+|---|---|
+| `95e4227` | **Il fondo delle mappe non è più CARTO** ma Esri «Light Gray Canvas»: le tessere arrivavano stampigliate «API KEY REQUIRED», in produzione, su tutte le mappe |
+| `1c15f81` | **Le chip METAR/TAF e la pista delle SID non facevano niente**: la vIPI d'aeroporto è SSR statica e lo stato dei suoi comandi era rimasto nel genitore |
+
+I due stanno insieme solo perché sono usciti la stessa sera; **si possono scorporare** in due rami se la
+fusione conviene separata.
+
+`main` è fermo a **`4811813`** (spinto), che porta l'**audit delle prestazioni** (§O) e `riordino-e-aree`.
+Punto di ritorno di quella fusione: **`main-prima-del-merge-20260827`** (`963e9aa`).
+
+**Suite 5989** su **15** progetti con esito (erano 5981: quattro test nuovi sulle chip, contati due volte
+perché `Vipi.Ui.Tests` gira su net8 e net10), build Release della soluzione intera **0 avvisi**, **nessuna
 migrazione nuova** (restano diciannove).
+
+### Il ramo aperto, in cinque righe
+
+**Il fondo delle mappe.** CARTO ha chiuso il basemap anonimo. ⚠️ Il guasto era **invisibile alle nostre
+reti**: il ritentatore e lo spazzino guardano la tessera che *non arriva*, e questa arrivava — `200`, immagine
+valida — con la scritta sopra. Ora è Esri, su un host che il prodotto interrogava già (il rilievo delle
+minime). 🔵 Resta la **categoria**: gratuito e senza contratto, come CARTO fino a ieri; l'unica strada che
+non si ripresenta sono le tessere nostre. Carta: `docs/feature/2026-08-27-basemap-esri.md`.
+
+**Le chip morte.** ⚠️ Due forme dello stesso difetto, e la seconda inganna: `AirportWeather` non era mai
+stato promosso a **isola** (il clic non partiva nemmeno), mentre per le SID l'isola c'era e il clic
+**arrivava al server** — ma lo stato viveva nel genitore statico, che non si ridisegna più. Regola che resta:
+*uno stato che cambia vive **dentro** l'isola che lo cambia; un genitore statico può solo **seminarlo***.
+⚠️ E **bUnit ignora i render mode**: quella classe di difetto la vede solo il browser vero. Propagazione
+fatta sulle undici pagine pubbliche statiche: nessun altro comando muto. Carta:
+`docs/feature/2026-08-27-chip-morte-pagina-statica.md`.
 
 ### L'audit delle prestazioni, in cinque righe
 
@@ -69,18 +96,8 @@ UPDATE); dal secondo in poi tace. È previsto.
   (`<b>` letterale) e gli apostrofi raddoppiati in cinque sezioni, da mesi: il corpo è una `MarkupString`.
   Ora due test lo presidiano. In più una sezione nuova, «Leggere le aree regolamentate». §N5.
 
-✅ **Le chip morte della vIPI d'aeroporto** (METAR/TAF e pista delle SID), segnalate dal committente e chiuse
-la sera del 27: la pagina è **SSR statica** e lo stato dei comandi era rimasto nel genitore. ⚠️ Regola che
-resta: *uno stato che cambia vive dentro l'isola che lo cambia*; un genitore statico può solo **seminarlo**.
-⚠️ E **bUnit ignora i render mode**: quella classe di difetto la vede solo il browser vero. Carta:
-*Le chip che non facevano niente*.
-
-✅ **Il fondo delle mappe è stato cambiato la sera del 27**: le tessere CARTO arrivavano stampigliate
-**«API KEY REQUIRED»** in produzione, su tutte le mappe, e ora il fondo è **Esri «Light Gray Canvas»** —
-`server.arcgisonline.com`, l'host che serve già il rilievo delle minime. ⚠️ Nessuna delle nostre reti poteva
-accorgersene: la tessera **arrivava**, con la scritta sopra. 🔵 Resta una **decisione**, non un residuo: Esri
-è gratuito e senza contratto come CARTO fino a ieri, e l'unica strada che non si ripresenta sono le tessere
-nostre (PMTiles della sola Italia). §N3, carta *Il fondo delle mappe non è più CARTO*.
+ℹ️ **Il fondo delle mappe e le chip morte** sono usciti dopo, la notte del 27, e stanno sul ramo
+`basemap-esri`: raccontati in cima a questo file, non qui — questo blocco è la storia di `riordino-e-aree`.
 
 ⚠️ **La lezione di §N, che vale oltre il difetto**: né gli otto test bUnit né la verifica live guardavano il
 pezzo rotto, perché **fabbricavano** gli eventi di trascinamento — dispacciando da sé proprio il `drop` che
