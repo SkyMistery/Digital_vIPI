@@ -148,6 +148,12 @@ public class AirportFrozenAndViewTests
         private readonly AirportData? _data;
         public FakeProfilo(AirportData? data) => _data = data;
         public Task<AirportData?> LoadAsync(string icao, CancellationToken ct = default) => Task.FromResult(_data);
+
+        /// <summary>Non serve a questi test — qui si prova la vista del singolo aeroporto, non l'elenco.</summary>
+        public Task<IReadOnlyDictionary<string, PisteDiAeroporto>> ListRunwayDataAsync(
+            IReadOnlyCollection<string> icaos, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<string, PisteDiAeroporto>>(
+                new Dictionary<string, PisteDiAeroporto>(StringComparer.OrdinalIgnoreCase));
     }
 
     private sealed class FakeSettori : IAirportSectorService

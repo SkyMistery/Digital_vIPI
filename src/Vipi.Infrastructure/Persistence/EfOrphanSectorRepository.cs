@@ -41,10 +41,15 @@ public sealed class EfOrphanSectorRepository : IOrphanSectorRepository
             .Select(s => new { s.Id, s.Callsign, s.Name, AccCode = s.Acc!.Code, s.DocumentId, Titolo = s.Document!.Title })
             .ToListAsync(ct);
 
+        // «Nascosto» o «sparito»: la differenza la fa la presenza nel catalogo, e si chiede per TUTTI in
+        // una volta. Prima erano due query a testa (una per catalogo) dentro il ciclo qui sotto: su otto
+        // orfani, sedici andate e ritorno per rispondere sedici volte alla stessa domanda.
+        var inCatalogo = await InCatalogoAsync(spenti.Select(x => x.Callsign).ToList(), ct);
+
         var righe = new List<OrphanSectorRow>();
         foreach (var o in spenti)
             righe.Add(await RigaAsync(o.Id, o.Callsign, o.Name, o.AccCode, o.DocumentId, o.Titolo,
-                await InCatalogoAsync(o.Callsign, ct) ? OrphanReason.Hidden : OrphanReason.Gone, null, ct));
+                inCatalogo.Contains(o.Callsign) ? OrphanReason.Hidden : OrphanReason.Gone, null, ct));
 
         // Gli STANTÌI: attivi, in catalogo, ma la sorgente non li manda più. ⚠️ Dal 26 agosto 2026 questo NON
         // è più il posto dove si vedono le rinomine: quelle le riconosce l'identità della sorgente e sono già
@@ -83,7 +88,8 @@ public sealed class EfOrphanSectorRepository : IOrphanSectorRepository
 
         if (!s.IsActive)
             return await RigaAsync(s.Id, s.Callsign, s.Name, s.AccCode, s.DocumentId, s.Titolo,
-                await InCatalogoAsync(s.Callsign, ct) ? OrphanReason.Hidden : OrphanReason.Gone, null, ct);
+                (await InCatalogoAsync(new[] { s.Callsign }, ct)).Contains(s.Callsign)
+                    ? OrphanReason.Hidden : OrphanReason.Gone, null, ct);
 
         // Attivo: è di questa pagina solo se la sorgente ha smesso di mandarlo.
         if (sogliaTimbro is not { } soglia) return null;
@@ -95,7 +101,21 @@ public sealed class EfOrphanSectorRepository : IOrphanSectorRepository
             OrphanReason.NotListed, st.LastSeenUtc, ct);
     }
 
-    /// <summary>Una riga completa: i documenti che la raccontano e chi ne impedisce la rimozione.</summary>
+    /// <summary>
+    /// Una riga completa: i documenti che la raccontano e chi ne impedisce la rimozione.
+    ///
+    /// <para>⚠️ <b>Qui dentro sta il costo di questa pagina, e non è stato tolto.</b> Le due chiamate
+    /// interrogano il database una per orfano, e ognuna vale una decina di query: su otto orfani sono
+    /// circa centocinquanta andate e ritorno, che è quasi tutto quel che la Struttura fa (contate il 27
+    /// agosto 2026: 173 in totale, scese a 167 dopo aver reso massivo il controllo di catalogo qui sopra —
+    /// il grosso e' qui). Con cinquanta orfani diventerebbero un migliaio.</para>
+    ///
+    /// <para>Non sono state accorpate <b>di proposito</b>, in questo giro: sono il percorso che decide se
+    /// un settore si può eliminare, e riscriverne due in versione massiva è un lavoro che va fatto con i
+    /// suoi test e la sua verifica, non di sfuggita mentre si sistema il peso delle pagine. È una pagina
+    /// di sola amministrazione e a caldo costa trenta millisecondi: il conto non è urgente, ma è scritto
+    /// qui perché il giorno in cui gli orfani si moltiplicano si sappia già dove guardare.</para>
+    /// </summary>
     private async Task<OrphanSectorRow> RigaAsync(
         int id, string callsign, string nome, string accCode, int? docId, string? titolo,
         OrphanReason motivo, DateTime? ultimoTimbro, CancellationToken ct) =>
@@ -104,9 +124,32 @@ public sealed class EfOrphanSectorRepository : IOrphanSectorRepository
             await BloccantiAsync(id, callsign, ct),
             ultimoTimbro);
 
-    private async Task<bool> InCatalogoAsync(string callsign, CancellationToken ct) =>
-        await _db.AccSectors.AsNoTracking().AnyAsync(x => x.ComposePosition == callsign, ct)
-        || await _db.AirportSectors.AsNoTracking().AnyAsync(x => x.ComposePosition == callsign, ct);
+    /// <summary>
+    /// Quali di questi callsign il catalogo li ha ancora: è la differenza fra «qualcuno l'ha nascosto» e
+    /// «la sorgente non lo manda più», che per chi legge la pagina sono due fatti diversi.
+    ///
+    /// <para>Due query in tutto, una per catalogo, qualunque sia il numero di orfani. Prima erano due <b>a
+    /// testa</b>, dentro il ciclo che costruisce le righe.</para>
+    ///
+    /// <para>⚠️ Confronto senza distinzione fra maiuscole e minuscole nel <c>HashSet</c> restituito, non
+    /// nella query: i tre provider trattano le collation in modo diverso, e una <c>Where</c> che ci si
+    /// appoggiasse darebbe risposte diverse su SQLite e su MariaDB.</para>
+    /// </summary>
+    private async Task<HashSet<string>> InCatalogoAsync(IReadOnlyCollection<string> callsigns, CancellationToken ct)
+    {
+        var esito = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (callsigns.Count == 0) return esito;
+
+        var cercati = callsigns.ToList();
+        foreach (var trovato in await _db.AccSectors.AsNoTracking()
+                     .Where(x => cercati.Contains(x.ComposePosition)).Select(x => x.ComposePosition).ToListAsync(ct))
+            esito.Add(trovato);
+        foreach (var trovato in await _db.AirportSectors.AsNoTracking()
+                     .Where(x => cercati.Contains(x.ComposePosition)).Select(x => x.ComposePosition).ToListAsync(ct))
+            esito.Add(trovato);
+
+        return esito;
+    }
 
     /// <summary>Chi trattiene il settore, in frasi. L'ordine è quello in cui conviene risolverli.</summary>
     private async Task<IReadOnlyList<string>> BloccantiAsync(int sectorId, string callsign, CancellationToken ct)

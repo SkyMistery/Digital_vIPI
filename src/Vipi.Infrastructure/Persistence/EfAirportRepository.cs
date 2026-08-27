@@ -71,6 +71,61 @@ public sealed class EfAirportRepository : IAirportRepository
         };
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// <b>Due query in tutto</b>, qualunque sia il numero di aeroporti: una per le piste e una per le
+    /// regole, filtrate sull'insieme degli id. Il metodo che questa sostituisce ne faceva otto per
+    /// aeroporto, in fila.
+    ///
+    /// <para>⚠️ Il filtro parte dagli ICAO e passa per gli <b>id</b>, non per una join sull'ICAO: le due
+    /// tabelle delle piste sono legate all'aeroporto per id (<c>AirportId</c>), e cercarle per ICAO
+    /// vorrebbe dire aggiungere una join a ogni riga per un dato che si è già letto.</para>
+    /// </remarks>
+    public async Task<IReadOnlyDictionary<string, PisteDiAeroporto>> ListRunwayDataAsync(
+        IReadOnlyCollection<string> icaos, CancellationToken ct = default)
+    {
+        var vuoto = (IReadOnlyDictionary<string, PisteDiAeroporto>)
+            new Dictionary<string, PisteDiAeroporto>(StringComparer.OrdinalIgnoreCase);
+        if (icaos.Count == 0) return vuoto;
+
+        var cercati = icaos.Select(i => (i ?? "").Trim().ToUpperInvariant()).Where(i => i.Length > 0).ToList();
+        if (cercati.Count == 0) return vuoto;
+
+        var idPerIcao = await _db.Airports.AsNoTracking()
+            .Where(a => cercati.Contains(a.Icao))
+            .Select(a => new { a.Id, a.Icao })
+            .ToDictionaryAsync(a => a.Id, a => a.Icao, ct);
+        if (idPerIcao.Count == 0) return vuoto;
+
+        var id = idPerIcao.Keys.ToList();
+
+        var piste = (await _db.AirportRunways.AsNoTracking()
+                .Where(x => id.Contains(x.AirportId))
+                .OrderBy(x => x.AirportId).ThenBy(x => x.Order)
+                .Select(x => new { x.AirportId, Riga = new RunwayRow(x.Id, x.Ident, x.LengthM, x.Bearing, x.ToraM, x.LdaM, x.AppProcedures, x.Patterns, x.Circling) })
+                .ToListAsync(ct))
+            .GroupBy(x => x.AirportId)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<RunwayRow>)g.Select(x => x.Riga).ToList());
+
+        var regole = (await _db.AirportRunwayRules.AsNoTracking()
+                .Where(x => id.Contains(x.AirportId))
+                .OrderBy(x => x.AirportId).ThenBy(x => x.Order)
+                .Select(x => new { x.AirportId, Riga = new RunwayRuleRow(x.Id, x.DepRunways, x.ArrRunways, x.Name,
+                    x.MaxTailwindKt, x.MaxCrosswindKt, x.Surface, x.Note,
+                    x.TimeFromLocalMin, x.TimeToLocalMin, x.DaysOfWeekMask, x.DateParity,
+                    x.DateFromMonthDay, x.DateToMonthDay) })
+                .ToListAsync(ct))
+            .GroupBy(x => x.AirportId)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<RunwayRuleRow>)g.Select(x => x.Riga).ToList());
+
+        var esito = new Dictionary<string, PisteDiAeroporto>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (idAeroporto, icao) in idPerIcao)
+            esito[icao] = new PisteDiAeroporto(
+                piste.GetValueOrDefault(idAeroporto) ?? Array.Empty<RunwayRow>(),
+                regole.GetValueOrDefault(idAeroporto) ?? Array.Empty<RunwayRuleRow>());
+        return esito;
+    }
+
     public async Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default)
     {
         var raw = await _db.Sectors.AsNoTracking()

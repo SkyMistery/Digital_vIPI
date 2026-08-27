@@ -83,7 +83,11 @@ else
     private FiltroMil _filtro = FiltroMil.Tutti;
 
     private IReadOnlyList<AirportRow> _aeroporti = Array.Empty<AirportRow>();
-    private readonly Dictionary<string, AirportData?> _profili = new(StringComparer.OrdinalIgnoreCase);
+    // ⚠️ Piste e regole, NON il profilo intero. Fino al 27 agosto 2026 qui c'era una AirportData per
+    // aeroporto, caricata una alla volta: otto query a testa (livelli di transizione, SID, link-frequenze…)
+    // per leggerne due liste. Contate: 36 query per un elenco di TRE righe.
+    private IReadOnlyDictionary<string, PisteDiAeroporto> _piste =
+        new Dictionary<string, PisteDiAeroporto>(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, (string? Wind, int? Qnh, string? Dep, string? Arr)> _meteo = new(StringComparer.OrdinalIgnoreCase);
     private bool _meteoInArrivo;
     private string? _caricato;
@@ -120,10 +124,10 @@ else
             .OrderBy(x => x.Icao).ToList()
             ?? (IReadOnlyList<AirportRow>)Array.Empty<AirportRow>();
 
-        // Profili piste (DB, veloci): servono alla pista consigliata. Il METAR (HTTP, lento) NON si aspetta
-        // qui — la lista si disegna subito e il meteo arriva dopo. È la ragione per cui questa è un'isola.
-        _profili.Clear();
-        foreach (var ap in _aeroporti) _profili[ap.Icao] = await _profilo.LoadForViewAsync(ap.Icao);
+        // Piste e regole di TUTTI gli scali in una volta: servono alla pista consigliata. Il METAR (HTTP,
+        // lento) NON si aspetta qui — la lista si disegna subito e il meteo arriva dopo. È la ragione per
+        // cui questa è un'isola.
+        _piste = await _profilo.ListRunwayDataAsync(_aeroporti.Select(x => x.Icao).ToList());
 
         _meteo.Clear();
         _meteoInArrivo = _aeroporti.Count > 0;
@@ -178,7 +182,7 @@ else
     /// <summary>Piste consigliate dal profilo: le regole se ci sono, altrimenti il miglior vento di testa.</summary>
     private (string? Dep, string? Arr) PisteConsigliate(string icao, ParsedMetar m)
     {
-        var profilo = _profili.GetValueOrDefault(icao);
+        var profilo = _piste.GetValueOrDefault(icao);
         int? dir = m.Wind is { Calm: false, DirectionDeg: int d } ? d : null;
         var kt = m.Wind?.SpeedKt ?? 0;
 
