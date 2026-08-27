@@ -353,8 +353,6 @@ else
     private int? _lastSelIdx;                 // ancora per la selezione a intervallo (Shift/Ctrl+click)
     private const StringComparison OIC = StringComparison.OrdinalIgnoreCase;
     private List<int> _linkIds = new();
-    private string _freqSearch = "";
-    private bool _freqPickerOpen;   // combobox: lista enti collegabili aperta sotto il campo di ricerca
 
     // Feedback del salvataggio-in-blocco (Ctrl+S / "Salva tutto"): riepilogo sezioni salvate vs saltate.
     private string? _saveInfo;
@@ -369,15 +367,8 @@ else
     });
 
     // Tester regole piste ("Prova vento"): non salva nulla, valuta i buffer correnti.
-    private int? _testDir = 200;
-    private int _testKt = 10;
-    private bool _testWet;
-    private bool _testRan;
-    private RunwayRuleResult? _testHit;
-    private RunwaySuggestionResult? _testFallback;
 
     // Drag-and-drop riordino regole.
-    private int? _ruleDrag;
 
     // Settori ATC importati (catalogo): righe + buffer limiti editabili per id.
     private IReadOnlyList<AirportSectorRow> _sectors = Array.Empty<AirportSectorRow>();
@@ -494,10 +485,7 @@ else
     private async Task<bool> Confirm(string message) => await JS.InvokeAsync<bool>("confirm", message);
 
     // --- Aggiunte/rimozioni con marcatura dirty per-sezione (rimozioni con conferma) ---
-    private async Task AddRule() { _rules.Add(new RuleEdit()); await MarkDirty("runwayrules"); }
-    private async Task AddTl() { _tls.Add(new TlEdit()); await MarkDirty("transition"); }
-    private async Task AddRwy() { _rwys.Add(new RwEdit()); await MarkDirty("runways"); }
-    // Il segno di «punto che il catalogo non conosce»: tinge il CAMPO invece di aggiungergli accanto un'icona.
+                // Il segno di «punto che il catalogo non conosce»: tinge il CAMPO invece di aggiungergli accanto un'icona.
     // La colonna del fix è larga 76px misurati e un'icona ne prenderebbe quattordici — cioè la quinta lettera
     // dei nomi, che è dove stanno i 5/6 dei fix veri. Sul tabellone delle importate questo segno NON c'è: là il
     // ⚠ di `NeedsFixReview` dice già la stessa cosa, e misurando l'archivio le due condizioni coincidono riga
@@ -509,13 +497,8 @@ else
 
     private async Task AddSid() { _sids.Add(new SidEdit()); _sidManualSearch = ""; await MarkDirty("sids"); }
 
-    private async Task RemoveRule(RuleEdit r) { if (await Confirm(L["Ape_RemoveRuleConfirm"].Value)) { _rules.Remove(r); await MarkDirty("runwayrules"); } }
-    private async Task RemoveTl(TlEdit t) { if (await Confirm(L["Ape_RemoveRowConfirm"].Value)) { _tls.Remove(t); await MarkDirty("transition"); } }
-    private async Task RemoveRwy(RwEdit r) { if (await Confirm(L["Ape_RemoveRwConfirm"].Value)) { _rwys.Remove(r); await MarkDirty("runways"); } }
-    private async Task RemoveSid(SidEdit s) { if (await Confirm(L["Ape_RemoveSidConfirm"].Value)) { _sids.Remove(s); await MarkDirty("sids"); } }
-    private async Task RemoveLink(int id) { _linkIds.Remove(id); await MarkDirty("frequencies"); }
-
-    // Ctrl/Cmd+S da JS o bottone «Salva tutto»: salva TUTTE le sezioni sporche valide (scroll unico).
+                private async Task RemoveSid(SidEdit s) { if (await Confirm(L["Ape_RemoveSidConfirm"].Value)) { _sids.Remove(s); await MarkDirty("sids"); } }
+        // Ctrl/Cmd+S da JS o bottone «Salva tutto»: salva TUTTE le sezioni sporche valide (scroll unico).
     // «Settori» salva per riga (fuori dal blocco). Al termine mostra il riepilogo salvate/saltate.
     [JSInvokable]
     public async Task SaveAllDirty() => await SaveAllClicked();
@@ -528,7 +511,9 @@ else
         foreach (var s in _dirtySections.ToList())
         {
             // Blocchi di validazione: non salvare e segnalare come saltata.
-            if (s == "runwayrules" && RuleIssues().Errors.Count > 0) { skipped.Add(s); continue; }
+            // ⚠️ Stessa regola del tasto dentro la sezione: con un errore aperto non si salva. La domanda la
+                // fa il cuore condiviso, non una copia (doc 14 §3g).
+                if (s == "runwayrules" && AirportRuleValidation.Issues(_rules, RwIdents()).Errors.Count > 0) { skipped.Add(s); continue; }
             if (s == "settori") continue;   // salvataggio per-riga, non in blocco
 
             Func<Task>? save = s switch
@@ -564,38 +549,8 @@ else
     private DateTime? LastImport() => _sectors.Count == 0 ? null : _sectors.Max(s => s.ImportedAtUtc);
 
     // --- Tester regole (Prova vento): mappa i buffer correnti in DTO e valuta senza salvare ---
-    private List<RunwayRuleEval> MapRulesForTest() => _rules.Select(r => new RunwayRuleEval(
-        JoinCsv(r.Dep), JoinCsv(r.Arr), r.Name, r.Note, r.MaxTail, r.MaxCross,
-        r.Surface switch { "dry" => RunwaySurface.Dry, "wet" => RunwaySurface.Wet, _ => RunwaySurface.Any },
-        TimeToMin(r.TimeFrom), TimeToMin(r.TimeTo), r.DaysMask == 0 ? null : r.DaysMask,
-        r.Parity switch { "even" => DateParity.Even, "odd" => DateParity.Odd, _ => DateParity.Any },
-        CombineMd(r.DateFromMonth, r.DateFromDay), CombineMd(r.DateToMonth, r.DateToDay))).ToList();
-
-    private void RunRuleTest()
-    {
-        _testHit = RunwaySuggestion.EvaluateRules(MapRulesForTest(), _testDir, _testKt, _testWet);
-        _testFallback = _testHit is null ? RunwaySuggestion.Suggest(RwIdents(), _testDir, _testKt) : null;
-        _testRan = true;
-    }
-
-    // --- DnD riordino regole: enter riordina live, drop marca dirty ---
-    private void RuleDragEnter(int i)
-    {
-        if (_ruleDrag is int d && d != i && d >= 0 && d < _rules.Count)
-        {
-            var item = _rules[d];
-            _rules.RemoveAt(d);
-            _rules.Insert(i, item);
-            _ruleDrag = i;
-        }
-    }
-
-    private async Task RuleDrop()
-    {
-        if (_ruleDrag is not null) { _ruleDrag = null; await MarkDirty("runwayrules"); }
-    }
-
-    private async Task LoadAsync()
+            // --- DnD riordino regole: enter riordina live, drop marca dirty ---
+            private async Task LoadAsync()
     {
         _shell.Error = null;
         // Reload totale = i buffer tornano allo stato server: nessuna sezione è più "sporca".
@@ -686,35 +641,14 @@ else
         /// <summary>Guardia passata come <c>Run=</c> al motore condiviso: mostra il badge di salvataggio e cattura
     /// gli errori. Firma a un parametro perché è quella che <c>DocumentSectionsEditor</c> si aspetta.</summary>
 
-        private IEnumerable<LinkableFrequencyRow> FilteredLinkable()
-    {
-        var q = (_freqSearch ?? "").Trim();
-        return _linkable.Where(f =>
-            q.Length == 0 ||
-            f.Callsign.Contains(q, StringComparison.OrdinalIgnoreCase) ||
-            f.FrequencyMhz.Contains(q, StringComparison.OrdinalIgnoreCase) ||
-            (f.Icao?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false))
-            .Take(50);
-    }
-
-    // Combobox enti: click su una voce = aggiunge il link; il campo di ricerca resta pronto per il prossimo.
-    private async Task PickLinkable(int id)
-    {
-        if (!_linkIds.Contains(id)) { _linkIds.Add(id); await MarkDirty("frequencies"); }
-        _freqSearch = "";
-    }
-
-    private Task SaveTa() => Guarded(() => Profile.SetTransitionAltitudeAsync(_icao, _ta));
+            // Combobox enti: click su una voce = aggiunge il link; il campo di ricerca resta pronto per il prossimo.
+        private Task SaveTa() => Guarded(() => Profile.SetTransitionAltitudeAsync(_icao, _ta));
     private Task SaveTls() => SaveSection("transition", () => Profile.SaveTransitionLevelsAsync(_icao,
         _tls.Select(t => new TlRow(t.Id, t.From, t.To, t.Level ?? "")).ToList()));
     private Task SaveRwys() => SaveSection("runways", () => Profile.SaveRunwaysAsync(_icao,
         _rwys.Select(r => new RunwayRow(r.Id, r.Ident ?? "", r.LengthM, r.Bearing, r.Tora, r.Lda, r.App, r.Patterns, r.Circling)).ToList()));
     private Task SaveRules() => SaveSection("runwayrules", () => Profile.SaveRunwayRulesAsync(_icao,
-        _rules.Select(r => new RunwayRuleRow(0, JoinCsv(r.Dep), JoinCsv(r.Arr), r.Name,
-            r.MaxTail, r.MaxCross, r.Surface switch { "dry" => RunwaySurface.Dry, "wet" => RunwaySurface.Wet, _ => RunwaySurface.Any }, r.Note,
-            TimeToMin(r.TimeFrom), TimeToMin(r.TimeTo), r.DaysMask == 0 ? null : r.DaysMask,
-            r.Parity switch { "even" => DateParity.Even, "odd" => DateParity.Odd, _ => DateParity.Any },
-            CombineMd(r.DateFromMonth, r.DateFromDay), CombineMd(r.DateToMonth, r.DateToDay))).ToList()));
+        _rules.Select(AirportRuleMapping.ToRow).ToList()));
     private Task SaveSids() => SaveSection("sids", () => Profile.SaveSidsAsync(_icao,
         _sids.Select(s => new SidRow(0, s.Runway, s.Fix ?? "", s.Name ?? "", s.Transition, s.InitialClimb, s.Type,
             s.Cat, s.Wtc, s.Condition, Priority: s.Priority, InitialClimbByApp: s.InitialClimbByApp)).ToList()));
@@ -779,11 +713,7 @@ else
     private static readonly string[] WtcTokens = { "L", "M", "H", "S" };
     private static readonly string[] CatTokens = { "A", "B", "C", "D", "E" };
 
-    private static bool HasTok(string? csv, string tok) =>
-        (csv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Contains(tok, StringComparer.OrdinalIgnoreCase);
-
-    // Toggle di un token; ricompone la CSV nell'ordine canonico (order) così la resa è stabile a prescindere dai click.
+        // Toggle di un token; ricompone la CSV nell'ordine canonico (order) così la resa è stabile a prescindere dai click.
     private static string? ToggleTok(string? csv, string tok, string[] order)
     {
         var set = (csv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -1066,30 +996,8 @@ else
 
     // Piste presenti fra le importate, con quante righe ciascuna: sono i chip della barra. Il conteggio segue
     // gli altri filtri (ricerca, «da verificare»), altrimenti un chip da 40 righe ne mostrerebbe 3 senza dirlo.
-    private List<(string Ident, int Count)> ImportedRunways() =>
-        FilteredImported(ignoreRunway: true)
-            .Where(e => !string.IsNullOrWhiteSpace(e.Runway))
-            .GroupBy(e => e.Runway!, StringComparer.OrdinalIgnoreCase)
-            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
-            .Select(g => (g.Key, g.Count()))
-            .ToList();
-
-    // --- Tabella importate: filtro (ricerca + solo-da-verificare) ---
-    private List<ImportedSidEdit> ImportedView() => FilteredImported(ignoreRunway: false).ToList();
-
-    private IEnumerable<ImportedSidEdit> FilteredImported(bool ignoreRunway)
-    {
-        IEnumerable<ImportedSidEdit> q = _imported;
-        if (_sidOnlyReview) q = q.Where(e => e.NeedsReview);
-        var s = (_sidSearch ?? "").Trim();
-        if (s.Length > 0)
-            q = q.Where(e => e.Fix.Contains(s, OIC) || e.Name.Contains(s, OIC) || (e.Runway?.Contains(s, OIC) ?? false));
-        if (!ignoreRunway && _sidRwFilter is { Length: > 0 } rw)
-            q = q.Where(e => string.Equals(e.Runway, rw, StringComparison.OrdinalIgnoreCase));
-        return q;
-    }
-
-    // --- Multi-select importate: click = toggle (Shift/Ctrl+click = intervallo dall'ancora);
+        // --- Tabella importate: filtro (ricerca + solo-da-verificare) ---
+            // --- Multi-select importate: click = toggle (Shift/Ctrl+click = intervallo dall'ancora);
     //     trascina giù = seleziona lo spazzato, trascina su = deseleziona lo spazzato ---
     private bool _selDragActive;
     private int _selDragStart;
@@ -1187,15 +1095,7 @@ else
     });
 
     // --- Tabella manuali: filtro + clona riga ---
-    private IEnumerable<SidEdit> ManualView()
-    {
-        var q = (_sidManualSearch ?? "").Trim();
-        if (q.Length == 0) return _sids;
-        return _sids.Where(s =>
-            (s.Fix?.Contains(q, OIC) ?? false) || (s.Name?.Contains(q, OIC) ?? false) || (s.Runway?.Contains(q, OIC) ?? false));
-    }
-
-    private async Task CloneSid(SidEdit s)
+        private async Task CloneSid(SidEdit s)
     {
         var i = _sids.IndexOf(s);
         var copy = new SidEdit
@@ -1267,23 +1167,8 @@ else
     }
 
     /// <summary>Nome mostrato in tabella frequenze: AtcCallsign IVAO; fallback al nome-posizione (come nel documento).</summary>
-    private static string FreqDisplayName(AirportSectorRow f) =>
-        string.IsNullOrWhiteSpace(f.AtcCallsign) ? FreqName(f.Position) : f.AtcCallsign;
 
-    private static string FreqName(string? position) => (position ?? "").Trim().ToUpperInvariant() switch
-    {
-        "ATIS" => "ATIS",
-        "DEL" => "Delivery",
-        "GND" => "Ground",
-        "TWR" => "Tower",
-        "APP" => "Approach",
-        "DEP" => "Departure",
-        "CTR" => "Control",
-        "FSS" => "Information",
-        _ => position ?? "—",
-    };
-
-    // Una principale per tipo: Delivery/Ground/TWR/APP/DEP (ATIS escluso).
+        // Una principale per tipo: Delivery/Ground/TWR/APP/DEP (ATIS escluso).
     private static bool CanBePrimary(string? position)
     {
         var p = (position ?? "").Trim().ToUpperInvariant();
@@ -1351,23 +1236,13 @@ else
     private IReadOnlyList<string> RwIdents() =>
         _rwys.Where(r => !string.IsNullOrWhiteSpace(r.Ident)).Select(r => r.Ident!.Trim()).Distinct().ToList();
 
-    private async Task Toggle(HashSet<string> set, string id) { if (!set.Remove(id)) set.Add(id); await MarkDirty("runwayrules"); }
-    private static string RwChip(HashSet<string> set, string id) => set.Contains(id)
+        private static string RwChip(HashSet<string> set, string id) => set.Contains(id)
         ? "background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)" : "opacity:.6";
 
-    private async Task ToggleDay(RuleEdit r, int bit) { r.DaysMask ^= (1 << bit); await MarkDirty("runwayrules"); }
-    private static string DayChip(RuleEdit r, int bit) => (r.DaysMask & (1 << bit)) != 0
+        private static string DayChip(RuleEdit r, int bit) => (r.DaysMask & (1 << bit)) != 0
         ? "background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)" : "opacity:.6";
 
-    private async Task Move(int idx, int dir)
-    {
-        var j = idx + dir;
-        if (j < 0 || j >= _rules.Count) return;
-        (_rules[idx], _rules[j]) = (_rules[j], _rules[idx]);
-        await MarkDirty("runwayrules");
-    }
-
-    private static HashSet<string> SplitCsv(string? csv) => (csv ?? "")
+        private static HashSet<string> SplitCsv(string? csv) => (csv ?? "")
         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
         .ToHashSet(StringComparer.OrdinalIgnoreCase);
     private static string JoinCsv(HashSet<string> set) => string.Join(",", set);
@@ -1388,146 +1263,14 @@ else
         L["Ape_Jul"].Value, L["Ape_Aug"].Value, L["Ape_Sep"].Value, L["Ape_Oct"].Value, L["Ape_Nov"].Value, L["Ape_Dec"].Value,
     };
 
-    private RenderFragment DayOptions() => builder =>
-    {
-        builder.AddMarkupContent(0, "<option value=\"\">—</option>");
-        for (var d = 1; d <= 31; d++)
-            builder.AddMarkupContent(d, $"<option value=\"{d}\">{d}</option>");
-    };
-    private RenderFragment MonthOptions() => builder =>
-    {
-        builder.AddMarkupContent(0, $"<option value=\"\">— {L["Ape_Month"].Value} —</option>");
-        for (var m = 1; m <= 12; m++)
-            builder.AddMarkupContent(m, $"<option value=\"{m}\">{MonthNames[m - 1]}</option>");
-    };
-
-    /// <summary>Avvisi sulla tabella TL: fasce QNH sovrapposte e livello mancante.</summary>
-    private List<string> TlIssues()
-    {
-        var w = new List<string>();
-        for (var i = 0; i < _tls.Count; i++)
-        {
-            if (string.IsNullOrWhiteSpace(_tls[i].Level))
-                w.Add(string.Format(L["Ape_IssueTlMissing"].Value, i + 1));
-            var aLo = _tls[i].From ?? int.MinValue;
-            var aHi = _tls[i].To ?? int.MaxValue;
-            if (aLo > aHi) w.Add(string.Format(L["Ape_IssueQnhOrder"].Value, i + 1));
-            for (var j = i + 1; j < _tls.Count; j++)
-            {
-                var bLo = _tls[j].From ?? int.MinValue;
-                var bHi = _tls[j].To ?? int.MaxValue;
-                if (aLo <= bHi && bLo <= aHi)
-                    w.Add(string.Format(L["Ape_IssueQnhOverlap"].Value, i + 1, j + 1));
-            }
-        }
-        return w;
-    }
-
-    /// <summary>Avvisi sulle piste: ident duplicati (rompono i chip DEP/ARR delle regole).</summary>
-    private List<string> RwIssues()
-    {
-        var w = new List<string>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var r in _rwys)
-        {
-            var id = (r.Ident ?? "").Trim();
-            if (id.Length == 0) continue;
-            if (!seen.Add(id)) w.Add(string.Format(L["Ape_IssueRwDup"].Value, id));
-        }
-        return w;
-    }
-
-    /// <summary>Avvisi sulle SID manuali: FIX/nome mancante, pista non tra quelle definite, righe duplicate.</summary>
-    private List<string> SidIssues()
-    {
-        var w = new List<string>();
-        var known = RwIdents().ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        for (var i = 0; i < _sids.Count; i++)
-        {
-            var s = _sids[i];
-            var n = i + 1;
-            var fix = (s.Fix ?? "").Trim();
-            var name = (s.Name ?? "").Trim();
-            var rw = (s.Runway ?? "").Trim();
-            if (fix.Length == 0 || name.Length == 0)
-                w.Add($"SID #{n}: FIX o nome mancante.");
-            if (rw.Length > 0 && !known.Contains(rw))
-                w.Add($"SID #{n}: pista «{rw}» non è tra quelle definite.");
-            if (fix.Length > 0 && name.Length > 0 && !seen.Add($"{fix}|{name}|{rw}"))
-                w.Add($"SID #{n}: duplicato ({fix}/{name}{(rw.Length > 0 ? " " + rw : "")}).");
-        }
-        return w;
-    }
-
-    private sealed record RuleValidation(List<string> Errors, List<string> Warnings);
-
-    /// <summary>Errori (bloccano il salvataggio) + avvisi (piste inesistenti / finestra orario incompleta) sulle regole correnti.</summary>
-    private RuleValidation RuleIssues()
-    {
-        var errors = new List<string>();
-        var warnings = new List<string>();
-        var known = RwIdents().ToHashSet(StringComparer.OrdinalIgnoreCase);
-        for (var i = 0; i < _rules.Count; i++)
-        {
-            var r = _rules[i];
-            var n = i + 1;
-            if (r.Dep.Count == 0 && r.Arr.Count == 0)
-                errors.Add(string.Format(L["Ape_IssueRuleNoRw"].Value, n));
-            foreach (var id in r.Dep.Concat(r.Arr).Where(id => !known.Contains(id)).Distinct())
-                warnings.Add(string.Format(L["Ape_IssueRuleUnknownRw"].Value, n, id));
-            if (r.TimeFrom is not null ^ r.TimeTo is not null)
-                warnings.Add(string.Format(L["Ape_IssueRuleTimeWin"].Value, n));
-        }
-        return new RuleValidation(errors, warnings);
-    }
-
-    private sealed class TlEdit { public int Id; public int? From; public int? To; public string? Level; }
-    private sealed class RwEdit { public int Id; public string? Ident; public int? LengthM; public int? Bearing; public string? Tora; public string? Lda; public string? App; public string? Patterns; public string? Circling; }
-    private sealed class RuleEdit
-    {
-        public string? Name;
-        public HashSet<string> Dep = new(StringComparer.OrdinalIgnoreCase);
-        public HashSet<string> Arr = new(StringComparer.OrdinalIgnoreCase);
-        public int MaxTail = 5;                                    // vento in coda massimo (kt)
-        public int? MaxCross;                                      // vento al traverso massimo (kt); null = nessun vincolo
-        public string Surface = "any";                             // "any"|"dry"|"wet"
-        public string? Note;
-        public TimeOnly? TimeFrom; public TimeOnly? TimeTo;        // finestra oraria UTC (avanzate)
-        public int DaysMask;                                       // bit0=Lun … bit6=Dom; 0 = tutti (avanzate)
-        public string Parity = "";                                 // ""|"even"|"odd" (avanzate)
-        public int? DateFromDay; public int? DateFromMonth;        // finestra stagionale ricorrente: giorno+mese, nessun anno (avanzate)
-        public int? DateToDay; public int? DateToMonth;
-    }
-    // Stessi campi editoriali delle importate: la quota «da concordare con l'APP» e la priorità fra le SID
-    // dello stesso punto esistono già sull'entità (una tabella sola per manuali e importate), erano solo
-    // scoperte dall'editor.
-    private sealed class SidEdit
-    {
-        public string? Runway; public string? Fix; public string? Name; public string? Transition;
-        public string? InitialClimb; public bool InitialClimbByApp; public string? Type;
-        public string? Cat; public string? Wtc; public string? Condition; public int? Priority;
-        // Stato di pubblicazione calcolato al caricamento con la regola del dominio (SidRow.IsPublicAt).
-        public bool IsPublicNow = true; public string PublishFromCycle = "—";
-    }
-    private sealed class ImportedSidEdit
-    {
-        public int Id; public string Fix = ""; public string Name = ""; public string? Runway; public string? Transition; public string? Type;
-        public int? Priority; public bool ForcePublished; public bool NeedsReview; public bool IsPublicNow; public string PublishFromCycle = "—";
-        public string? FixOverride; public bool CreateAlias;
-        // Arricchimenti editoriali sovrapposti alla riga di sorgente (persistiti con la riga, preservati al reimport).
-        public string? InitialClimb; public bool InitialClimbByApp; public string? Cat; public string? Wtc; public string? Condition;
-    }
-
-    // ---- il corpo delle sezioni FISSE, reso da questa pagina ----
-    // Sono gli stessi sei editor strutturati di prima, spostati dentro il motore condiviso: quel che cambia è
-    // che ora vivono in una SEZIONE del documento — con la sua chiave, il suo ordine e il suo stato — e non in
-    // un <details> scritto a mano dentro un array di nomi italiani.
-    //
-    // ⚠️ Un frammento per sezione, e il dispatch è una `switch` di sola ESPRESSIONE. Mettere la marcatura dentro
-    // i rami di una `switch` non compila: il parser Razor conta le graffe del blocco e un `@{ … }` dentro un
-    // `case` gliele sbilancia («RZ1006: the switch block is missing a closing "}"»). Ogni frammento comincia
-    // invece con un elemento, quindi si legge come marcatura dal primo carattere.
+            /// <summary>Avvisi sulla tabella TL: fasce QNH sovrapposte e livello mancante.</summary>
+        /// <summary>Avvisi sulle piste: ident duplicati (rompono i chip DEP/ARR delle regole).</summary>
+        /// <summary>Avvisi sulle SID manuali: FIX/nome mancante, pista non tra quelle definite, righe duplicate.</summary>
+        // ---- il corpo delle sezioni FISSE, reso da questa pagina ----
+    // ⚠️ Un frammento per sezione, e il dispatch è una `switch` di sola ESPRESSIONE. Mettere la marcatura
+    // dentro i rami di una `switch` non compila: il parser Razor conta le graffe del blocco e un `@{ … }`
+    // dentro un `case` gliele sbilancia («RZ1006: the switch block is missing a closing "}"»). Ogni
+    // frammento comincia invece con un elemento, quindi si legge come marcatura dal primo carattere.
     private RenderFragment DerivedSection(EditableSection s) => s.SectionKey switch
     {
         "weather" => WeatherNote,
@@ -1542,6 +1285,58 @@ else
 
     /// <summary>«Validità e revisione»: la scheda dei tre campi generati, e la nota che spiega che non si
     /// compilano. I blocchi editoriali sotto li rende il motore condiviso (`KeepsOwnBlocks`).</summary>
+    /// <summary>La conferma prima di togliere una riga da una tabella d'editor. Passata ai componenti come
+    /// funzione: così restano montabili in una prova, dove un dialogo del browser non c'è.</summary>
+    private Task<bool> ConfermaRimozioneRiga() => Confirm(L["Ape_RemoveRowConfirm"].Value);
+    private Task<bool> ConfermaRimozionePista() => Confirm(L["Ape_RemoveRwConfirm"].Value);
+    private Task<bool> ConfermaRimozioneRegola() => Confirm(L["Ape_RemoveRuleConfirm"].Value);
+
+    /// <summary>La sezione «Quote di transizione» in scrittura: la disegna un componente, non più 41 righe
+    /// di marcatura dentro questa pagina (doc 14 §3g).</summary>
+    private RenderFragment TransitionEditor => __builder =>
+    {
+        <AirportTransitionEditor Rows="_tls" TransitionAltitudeFt="_ta" TransitionAltitudeFtChanged="v => _ta = v"
+                                 SourceLocked="_policy.TransitionAltitude" Busy="_busy" CanEdit="_canEdit"
+                                 OnChanged='() => MarkDirty("transition")'
+                                 OnSaveTa="SaveTa" OnSaveRows="SaveTls"
+                                 ConfirmRemove="ConfermaRimozioneRiga" />
+    };
+
+    /// <summary>La sezione «Piste» in scrittura: un componente, non 41 righe dentro questa pagina.</summary>
+    private RenderFragment RunwaysEditor => __builder =>
+    {
+        <AirportRunwaysEditor Rows="_rwys" SourceLocked="_policy.Runways" Busy="_busy" CanEdit="_canEdit"
+                              OnChanged='() => MarkDirty("runways")' OnSaveRows="SaveRwys"
+                              ConfirmRemove="ConfermaRimozionePista" />
+    };
+
+    /// <summary>La sezione «Frequenze» in scrittura: un componente, non 51 righe dentro questa pagina.
+    /// ⚠️ Lo stato della casella di ricerca se l'è preso lui — era stato di vista, non del documento.</summary>
+    private RenderFragment FrequenciesEditor => __builder =>
+    {
+        <AirportFrequenciesEditor Catalogo="FreqRows().ToList()" LinkIds="_linkIds" Linkable="_linkable"
+                                  Busy="_busy" CanEdit="_canEdit"
+                                  OnChanged='() => MarkDirty("frequencies")' OnSaveLinks="SaveLinks" />
+    };
+
+    /// <summary>La sezione «Regole piste» in scrittura: un componente, non 128 righe dentro questa pagina —
+    /// e col banco di prova, che è suo (doc 14 §3g).</summary>
+    private RenderFragment RulesEditor => __builder =>
+    {
+        <AirportRunwayRulesEditor Rows="_rules" RunwayIdents="RwIdents()" Busy="_busy" CanEdit="_canEdit"
+                                  OnChanged='() => MarkDirty("runwayrules")' OnSaveRows="SaveRules"
+                                  ConfirmRemove="ConfermaRimozioneRegola" />
+    };
+
+    // ---- SID: i filtri e le regole li dice AirportSidRules (doc 14 §3g) ----
+    /// <summary>Quel che si sta guardando adesso nell'elenco delle importate.</summary>
+    private SidFiltro Filtro => new(_sidSearch, _sidRwFilter, _sidOnlyReview);
+    private List<ImportedSidEdit> ImportedView() => AirportSidRules.Importate(_imported, Filtro).ToList();
+    private IEnumerable<SidEdit> ManualView() => AirportSidRules.Manuali(_sids, _sidManualSearch);
+    private IReadOnlyList<(string Ident, int Count)> ImportedRunways() => AirportSidRules.PisteImportate(_imported, Filtro);
+    private static bool HasTok(string? csv, string tok) => AirportSidRules.HasTok(csv, tok);
+    private IReadOnlyList<AirportTlIssue> SidIssues() => AirportSidRules.Issues(_sids, RwIdents());
+
     private RenderFragment ValidityEditor => __builder =>
     {
         <div class="callout info" style="margin:0 0 10px">
@@ -1563,283 +1358,9 @@ else
     };
 
     /// <summary>Regole di scelta pista, con il tester «prova vento» che valuta i buffer correnti senza salvare.</summary>
-    private RenderFragment RulesEditor => __builder =>
-    {
-        <div @onchange='() => MarkDirty("runwayrules")'>
-            @* ⚠️ Niente titolo qui dentro: lo dice l'intestazione della SEZIONE. Ripeterlo faceva leggere due
-               volte la stessa cosa a due righe di distanza — «Regole piste» e poi «Runway selection rules». *@
-            <div class="ed-h3 ed-h3-mini">
-                <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_RwRulesHelpAria"]" ExtraClass="wide">
-                    @((MarkupString)L["Ape_RwRulesHelp"].Value)
-                    <p>@L["Ape_RwRulesHelp2"]</p>
-                </HelpHint>
-            </div>
-
-            @{ var issues = RuleIssues(); }
-            @if (issues.Errors.Count > 0)
-            {
-                <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@foreach (var m in issues.Errors) { <div>@m</div> }</div></div>
-            }
-            @if (issues.Warnings.Count > 0)
-            {
-                <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in issues.Warnings) { <div>@m</div> }</div></div>
-            }
-
-            @foreach (var (r, idx) in _rules.Select((r, i) => (r, i)))
-            {
-                <div class="rule-card" @key="r"
-                     style="@(_testRan && _testHit?.RuleIndex == idx ? "outline:2px solid var(--ivao-blue);outline-offset:2px" : null)"
-                     @ondragover:preventDefault="true" @ondragenter="() => RuleDragEnter(idx)" @ondrop="RuleDrop" @ondragend="() => _ruleDrag = null">
-                    <div class="rule-head">
-                        <span class="app-drag" draggable="true" @ondragstart="() => _ruleDrag = idx" title="@L["Ape_DragToReorder"]">⠿</span>
-                        <span class="rule-ord">#@(idx + 1)@if (_testRan && _testHit?.RuleIndex == idx) { <span title="@L["Ape_TestWinner"]"> ✓</span> }</span>
-                        <div style="display:flex;gap:6px">
-                            <button class="btn ghost" disabled="@(idx == 0)" @onclick="() => Move(idx, -1)" title="@L["Common_Up"]">↑</button>
-                            <button class="btn ghost" disabled="@(idx == _rules.Count - 1)" @onclick="() => Move(idx, 1)" title="@L["Common_Down"]">↓</button>
-                            <button class="btn ghost" @onclick="() => RemoveRule(r)">✕ @L["Common_Remove"]</button>
-                        </div>
-                    </div>
-                    <div class="rule-rwys">
-                        <div><span class="muted">DEP:</span>
-                            @if (_rwys.Count == 0) { <i class="muted">@L["Ape_NoRwDefined"]</i> }
-                            @foreach (var ident in RwIdents())
-                            {
-                                var id = ident;
-                                <button type="button" class="pill" style="@RwChip(r.Dep, id)" @onclick="() => Toggle(r.Dep, id)">@id</button>
-                            }
-                        </div>
-                        <div><span class="muted">ARR:</span>
-                            @foreach (var ident in RwIdents())
-                            {
-                                var id = ident;
-                                <button type="button" class="pill" style="@RwChip(r.Arr, id)" @onclick="() => Toggle(r.Arr, id)">@id</button>
-                            }
-                        </div>
-                    </div>
-                    <div class="rule-grid">
-                        <label>@L["Ape_MaxTail"]<input type="number" min="0" max="40" @bind="r.MaxTail" /></label>
-                        <label>@L["Ape_MaxCross"]<input type="number" min="0" max="60" placeholder="—" @bind="r.MaxCross" /></label>
-                        <label>@L["Ape_Surface"]<select @bind="r.Surface"><option value="any">@L["Ape_SurfAny"]</option><option value="dry">@L["Ape_SurfDry"]</option><option value="wet">@L["Ape_SurfWet"]</option></select></label>
-                        <label>@L["Airport_Name"]<input @bind="r.Name" placeholder="@L["Ape_RuleNamePh"]" /></label>
-                        <label>@L["Ape_Notes"]<input @bind="r.Note" placeholder="@L["Ape_FreeText"]" /></label>
-                    </div>
-                    <details class="rule-adv">
-                        <summary>@L["Ape_Advanced"]</summary>
-                        <div class="rule-grid" style="margin-top:8px">
-                            <label>@L["Ape_TimeFrom"]<input type="time" @bind="r.TimeFrom" /></label>
-                            <label>@L["Ape_TimeTo"]<input type="time" @bind="r.TimeTo" /></label>
-                            <label>@L["Ape_DayParity"]<select @bind="r.Parity"><option value="">@L["Ape_SurfAny"]</option><option value="even">@L["Ape_Even"]</option><option value="odd">@L["Ape_Odd"]</option></select></label>
-                            <label>@L["Ape_ValidFrom"]
-                                <span style="display:flex;gap:4px">
-                                    <select @bind="r.DateFromDay" style="flex:1">@DayOptions()</select>
-                                    <select @bind="r.DateFromMonth" style="flex:2">@MonthOptions()</select>
-                                </span>
-                            </label>
-                            <label>@L["Ape_ValidTo"]
-                                <span style="display:flex;gap:4px">
-                                    <select @bind="r.DateToDay" style="flex:1">@DayOptions()</select>
-                                    <select @bind="r.DateToMonth" style="flex:2">@MonthOptions()</select>
-                                </span>
-                            </label>
-                        </div>
-                        <div class="ed-h3 ed-h3-mini">
-                            <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SeasonalHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_SeasonalHelp"].Value)</HelpHint>
-                            <span class="muted">@L["Ape_SeasonalShort"]</span>
-                        </div>
-                        <div class="rule-days">
-                            <span class="muted">@L["Ape_Days"]</span>
-                            @for (var b = 0; b < 7; b++)
-                            {
-                                var bit = b;
-                                <button type="button" class="pill" style="@DayChip(r, bit)" @onclick="() => ToggleDay(r, bit)">@DayNames[bit]</button>
-                            }
-                        </div>
-                    </details>
-                </div>
-            }
-
-            <div style="margin-top:10px;display:flex;gap:8px">
-                <button class="btn ghost" @onclick="AddRule">+ @L["Ape_Rule"]</button>
-                <button class="btn primary" disabled="@(_busy || !_canEdit || issues.Errors.Count > 0)" @onclick="SaveRules">@L["Ape_SaveRules"]</button>
-            </div>
-
-            @* --- Tester: prova le regole con un vento arbitrario (non salva nulla) --- *@
-            <div class="block" style="margin-top:12px;background:var(--surface-soft)">
-                <div class="se-row" style="flex-wrap:wrap;align-items:end;gap:10px">
-                    <label style="display:flex;flex-direction:column;font-size:12px">Vento da (°)
-                        <input type="number" min="0" max="360" style="width:90px" @bind="_testDir" placeholder="@L["Ape_WindCalm"]" /></label>
-                    <label style="display:flex;flex-direction:column;font-size:12px">Intensità (kt)
-                        <input type="number" min="0" max="99" style="width:80px" @bind="_testKt" /></label>
-                    <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" @bind="_testWet" /> @L["Ape_SurfWet"]</label>
-                    <button type="button" class="btn ghost" @onclick="RunRuleTest">▷ @L["Ape_TestRun"]</button>
-                    @if (_testRan) { <button type="button" class="btn ghost" @onclick="() => _testRan = false">✕ @L["Ape_TestClear"]</button> }
-                </div>
-                @if (_testRan)
-                {
-                    @if (_testHit is not null)
-                    {
-                        <div class="callout success" style="margin-top:8px"><span class="cic">✓</span><div>
-                            <b>Regola #@(_testHit.RuleIndex + 1)@(string.IsNullOrWhiteSpace(_testHit.RuleName) ? "" : $" · {_testHit.RuleName}")</b> —
-                            DEP <b>@_testHit.Dep</b> · ARR <b>@_testHit.Arr</b>@if (!string.IsNullOrWhiteSpace(_testHit.Note)) { <text> (@_testHit.Note)</text> }
-                        </div></div>
-                    }
-                    else
-                    {
-                        <div class="callout warning" style="margin-top:8px"><span class="cic">⚠️</span><div>
-                            Nessuna regola si applica → fallback testa-vento: @(_testFallback?.Note ?? "—")
-                        </div></div>
-                    }
-                }
-            </div>
-        </div>
-    };
-
-    /// <summary>Transition Altitude e tabella dei livelli per fascia QNH.</summary>
-    private RenderFragment TransitionEditor => __builder =>
-    {
-        <div @onchange='() => MarkDirty("transition")'>
-            <div class="ed-h3 ed-h3-mini">
-                <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_TlHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_TlHelp"].Value)</HelpHint>
-                @if (_policy.TransitionAltitude)
-                {
-                    @* Il chip resta a schermo (è uno STATO: questo dato non si tocca), la spiegazione
-                       del perché va nel «?» accanto. *@
-                    <span class="pill neutral" title="@L["Ape_TaFromSourceTitle"]"><Icon Name="key" Size="11" /> @L["Ape_FromSource"]</span>
-                    <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_TaFromSourceAria"]" ExtraClass="wide">@L["Ape_TaFromSource"]</HelpHint>
-                }
-            </div>
-            @{ var tlIssues = TlIssues(); }
-            @if (tlIssues.Count > 0)
-            {
-                <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in tlIssues) { <div>@m</div> }</div></div>
-            }
-            <div class="se-row">
-                <label><b>@L["Ape_TaLabel"]</b></label>
-                <input type="number" style="width:100px" @bind="_ta" disabled="@(_policy.TransitionAltitude)" />
-                <button class="btn primary" disabled="@(_busy || !_canEdit || _policy.TransitionAltitude)" @onclick="SaveTa">@L["Ape_SaveTa"]</button>
-            </div>
-            <table class="res-table" style="max-width:460px">
-                <thead><tr><th>@L["Ape_QnhFrom"]</th><th>@L["Ape_QnhTo"]</th><th>Transition Level</th><th></th></tr></thead>
-                <tbody>
-                    @foreach (var t in _tls)
-                    {
-                        <tr @key="t">
-                            <td><input type="number" style="width:90px" @bind="t.From" placeholder="@L["Ape_Open"]" /></td>
-                            <td><input type="number" style="width:90px" @bind="t.To" placeholder="@L["Ape_Open"]" /></td>
-                            <td><input style="width:90px" @bind="t.Level" placeholder="FL75" /></td>
-                            <td><button class="btn ghost" @onclick="() => RemoveTl(t)">✕</button></td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-            <div style="margin-top:10px;display:flex;gap:8px">
-                <button class="btn ghost" @onclick="AddTl">+ @L["Dse_Row"]</button>
-                <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveTls">@L["Ape_SaveTable"]</button>
-            </div>
-        </div>
-    };
-
-    /// <summary>Frequenze del catalogo (sola lettura) più i link a enti esterni, che si scelgono qui.</summary>
-    private RenderFragment FrequenciesEditor => __builder =>
-    {
-        <div @onchange='() => MarkDirty("frequencies")'>
-            <div class="ed-h3 ed-h3-mini">
-                <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_FreqHelpAria"]" ExtraClass="wide">@L["Ape_FreqHelp"]</HelpHint>
-            </div>
-            <table class="res-table freq-table">
-                <thead><tr><th>Callsign</th><th>Position</th><th>@L["Vle_Frequency"]</th><th>@L["Ape_Origin"]</th><th></th></tr></thead>
-                <tbody>
-                    @foreach (var f in FreqRows())
-                    {
-                        <tr class="@(f.IsPrimary ? "primary" : null)"><td>@if (f.IsPrimary) { <span class="freq-key">★</span><text>&#32;</text> }@FreqDisplayName(f)</td><td>@f.ComposePosition</td><td>@(f.Frequency ?? "—")</td><td class="muted">@L["Ape_Catalog"]</td><td></td></tr>
-                    }
-                    @foreach (var id in _linkIds)
-                    {
-                        var lf = _linkable.FirstOrDefault(x => x.SectorId == id);
-                        <tr @key="id">
-                            <td>@(string.IsNullOrWhiteSpace(lf?.AtcCallsign) ? (lf?.Callsign ?? "—") : lf!.AtcCallsign)</td><td>@(lf?.Callsign ?? "—")</td><td>@(lf?.FrequencyMhz ?? "—")</td>
-                            <td class="muted">@L["Ape_Linked"]</td>
-                            <td><button class="btn ghost" @onclick="() => RemoveLink(id)">✕</button></td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-            <div class="se-row" style="margin-top:10px;align-items:flex-start">
-                <div style="position:relative;width:320px">
-                    <input style="width:100%" placeholder="@L["Ape_SearchCallsignFreq"]"
-                           @bind="_freqSearch" @bind:event="oninput"
-                           @onfocus="() => _freqPickerOpen = true" @onblur="() => _freqPickerOpen = false" />
-                    @if (_freqPickerOpen)
-                    {
-                        var opts = FilteredLinkable().ToList();
-                        <div class="freq-picker-list">
-                            @if (opts.Count == 0)
-                            {
-                                <div class="freq-picker-empty muted">@L["Ape_NoUnitFound"]</div>
-                            }
-                            @foreach (var lf in opts)
-                            {
-                                var id = lf.SectorId;
-                                var added = _linkIds.Contains(id);
-                                <button type="button" class="freq-picker-item" disabled="@added"
-                                        @onmousedown:preventDefault="true" @onmousedown="() => PickLinkable(id)">
-                                    <b>@lf.Callsign</b> · @lf.FrequencyMhz @(lf.Icao is null ? "" : $"({lf.Icao})")@if (added) { <span class="muted"> — @L["Ape_AlreadyAdded"]</span> }
-                                </button>
-                            }
-                        </div>
-                    }
-                </div>
-                <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveLinks">@L["Ape_SaveLinks"]</button>
-            </div>
-        </div>
-    };
-
-    /// <summary>Piste: i campi di sorgente sono bloccati se la policy d'import le dichiara di sorgente.</summary>
-    private RenderFragment RunwaysEditor => __builder =>
-    {
-        <div @onchange='() => MarkDirty("runways")'>
-            <div class="ed-h3 ed-h3-mini">
-                @if (_policy.Runways)
-                {
-                    <span class="pill neutral" title="@L["Ape_RwFromSourceTitle"]"><Icon Name="key" Size="11" /> @L["Ape_FromSource"]</span>
-                    <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_RwFromSourceAria"]" ExtraClass="wide">@L["Ape_RwFromSource"]</HelpHint>
-                }
-                else
-                {
-                    <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_RwEditorialAria"]" ExtraClass="wide">@L["Ape_RwEditorial"]</HelpHint>
-                }
-            </div>
-            @{ var rwIssues = RwIssues(); }
-            @if (rwIssues.Count > 0)
-            {
-                <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in rwIssues) { <div>@m</div> }</div></div>
-            }
-            <table class="res-table">
-                <thead><tr><th>@L["Ape_Runway"]</th><th>@L["Ape_LengthM"]</th><th>TORA</th><th>LDA</th><th>APP procedures</th><th>Patterns</th><th>Circling</th><th></th></tr></thead>
-                <tbody>
-                    @foreach (var r in _rwys)
-                    {
-                        <tr @key="r">
-                            <td><input style="width:64px" @bind="r.Ident" disabled="@(_policy.Runways)" /></td>
-                            <td class="muted">@(r.LengthM?.ToString() ?? "—")</td>
-                            <td><input style="width:80px" @bind="r.Tora" /></td>
-                            <td><input style="width:80px" @bind="r.Lda" /></td>
-                            <td><input style="width:150px" @bind="r.App" /></td>
-                            <td><input style="width:70px" @bind="r.Patterns" /></td>
-                            <td><input style="width:70px" @bind="r.Circling" /></td>
-                            <td>@if (!_policy.Runways) { <button class="btn ghost" @onclick="() => RemoveRwy(r)">✕</button> }</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-            <div style="margin-top:10px;display:flex;gap:8px">
-                @if (!_policy.Runways) { <button class="btn ghost" @onclick="AddRwy">+ @L["Ape_Runway"]</button> }
-                <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SaveRwys">@L["Ape_SaveRunways"]</button>
-            </div>
-        </div>
-    };
-
-    /// <summary>SID importate dal sectorfile e SID manuali, con selezione multipla e pubblicazione in blocco.</summary>
+        /// <summary>Frequenze del catalogo (sola lettura) più i link a enti esterni, che si scelgono qui.</summary>
+        /// <summary>Piste: i campi di sorgente sono bloccati se la policy d'import le dichiara di sorgente.</summary>
+        /// <summary>SID importate dal sectorfile e SID manuali, con selezione multipla e pubblicazione in blocco.</summary>
     private RenderFragment SidsEditor => __builder =>
     {
         @* ⚠️ Il commutatore Live/Congelata NON è più qui: sta nell'intestazione della sezione, dove lo hanno le
@@ -1993,7 +1514,7 @@ else
                 @{ var sidIssues = SidIssues(); }
                 @if (sidIssues.Count > 0)
                 {
-                    <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in sidIssues) { <div>@m</div> }</div></div>
+                    <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in sidIssues) { <div>@L[m.Key, m.Args]</div> }</div></div>
                 }
                 <div class="struct-bar">
                     <input class="htree-search" placeholder="@L["Ape_SidManualSearchPh"]" @bind="_sidManualSearch" @bind:event="oninput" />

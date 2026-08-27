@@ -331,53 +331,14 @@ public sealed class EfEditingRepository : IEditingRepository
             ?? throw new InvalidOperationException($"Settore {primarySectorId} inesistente.");
         if (sector.DocumentId is int existing) return existing;   // già migrato: idempotente
 
-        var now = DateTime.UtcNow;
-        var doc = new Document
-        {
-            Type = DocumentType.Vipi,
-            Title = title,
-            Language = language,
-            Status = DocumentStatus.Draft,
-            LastUpdatedUtc = now,
-            LastUpdatedAiracCycle = _airac.GetCycle(now),
-        };
-        _db.Documents.Add(doc);
-        await _db.SaveChangesAsync(ct); // serve doc.Id
+        // La nascita è condivisa con l'aeroporto (Seed/DocumentBirth): documento, prima versione bozza e le
+        // sezioni del profilo, coi segnaposto sulle sezioni rese dalla pagina.
+        var (doc, _) = Seed.DocumentBirth.Crea(_db, _airac, title, language, profile, authorUserId);
+        await _db.SaveChangesAsync(ct);   // serve doc.Id per agganciare il settore
 
+        // Il legame, che è la sola cosa davvero per-famiglia: qui il documento è del SETTORE primario.
         sector.DocumentId = doc.Id;
         sector.IsPrimary = true;
-        await _db.SaveChangesAsync(ct);
-
-        var version = new DocumentVersion
-        {
-            DocumentId = doc.Id,
-            VersionNumber = 1,
-            Status = DocumentStatus.Draft,
-            CreatedByUserId = authorUserId,
-            CreatedUtc = now,
-            AiracCycle = _airac.GetCycle(now),
-            Note = "Bozza iniziale",
-        };
-        _db.DocumentVersions.Add(version);
-        await _db.SaveChangesAsync(ct); // serve version.Id
-
-        var order = 1;
-        foreach (var d in SectionCatalog.For(profile).OrderBy(d => d.Order))
-        {
-            var section = new DocumentSection
-            {
-                DocumentVersionId = version.Id,
-                ParentSectionId = null,
-                Title = d.Title,
-                Order = order++,
-                Depth = 0,
-                SectionKey = d.Key,
-                RowVersion = Guid.NewGuid().ToByteArray(),
-                RenderMode = ModoAllaNascita(d.Key),
-            };
-            _db.DocumentSections.Add(section);
-            AggiungiPlaceholderSeServe(version, section, profile, d.Key);
-        }
         await _db.SaveChangesAsync(ct);
 
         return doc.Id;

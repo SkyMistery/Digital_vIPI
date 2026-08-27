@@ -15,7 +15,10 @@
    layout l'ha già scaldato (`Prewarm`): riprendendolo dallo scope nuovo si ripagherebbe la stessa query,
    a freddo. Restano fuori anche le cose che il database non lo toccano: localizzazione, AIRAC, meteo,
    cache degli ATC online. *@
-@rendermode InteractiveServer
+@* ⚠️ NIENTE `@rendermode` qui: questa pagina è SSR STATICA, come gli altri tre documenti pubblici.
+   Era `InteractiveServer` e teneva un circuito aperto per OGNI lettore — l'unico dei quattro a farlo — per
+   servire due sole cose: il filtro dell'elenco e il selettore di pista delle SID. Ora sono due ISOLE
+   (<AirportListPanel> e <AirportSids>), e il circuito lo apre solo chi arriva davvero a quelle (doc 14 §3g). *@
 @using System.Text.Json
 @using Vipi.Application.Content
 @using Vipi.Application.Weather
@@ -37,59 +40,9 @@ else if (_listMode)
         <div class="doc-head">
             <div><h1 class="page-h1" style="margin-bottom:2px">@L["AccLanding_Airports"] — @_acc.Name - @_acc.Code</h1></div>
         </div>
-        @if (_allAirports.Count == 0)
-        {
-            <EmptyState Title="@L["Common_NoAirport"]">@L["Airport_NoneBody"]</EmptyState>
-        }
-        else
-        {
-            @* Il chip c'è solo dove c'è qualcosa da filtrare: su una ACC di soli scali civili sarebbe un
-               comando che non fa niente. Ricliccato torna a «tutti», come i chip della pagina Aeroporti. *@
-            @if (MilitaryCount() > 0 && MilitaryCount() < _allAirports.Count)
-            {
-                <div class="struct-bar" style="margin-top:14px">
-                    <span class="sb-chips">
-                        <button class="sh-chip @(_milFilter == MilFilter.Military ? "on" : "")"
-                                title="@L["Airport_ChipMilitaryTitle"]" @onclick="() => ToggleMil(MilFilter.Military)">@L["Apt_ChipMilitary", MilitaryCount()]</button>
-                        <button class="sh-chip @(_milFilter == MilFilter.Civil ? "on" : "")"
-                                title="@L["Airport_ChipCivilTitle"]" @onclick="() => ToggleMil(MilFilter.Civil)">@L["Airport_ChipCivil", _allAirports.Count - MilitaryCount()]</button>
-                    </span>
-                </div>
-            }
-            <div class="choice-grid" style="margin-top:14px">
-                @foreach (var ap in ShownAirports())
-                {
-                    var n = OnlineAt(ap.Icao);
-                    <a class="choice apt-card" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@ap.Icao">
-                        <div class="apt-top">
-                            <h2 class="h-card">@ap.Icao</h2>
-                            <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? L["Common_OnlineN", n] : L["Common_Offline"])</span>
-                        </div>
-                        <p class="muted">@ap.Name</p>
-                        @if (ap.HasMilitaryPresence)
-                        {
-                            <p class="apt-mil"><MilitaryTag HasMilitaryPresence="ap.HasMilitaryPresence" IsMilitaryOnly="ap.IsMilitaryOnly" /></p>
-                        }
-                        @if (_wxMini.TryGetValue(ap.Icao, out var wx))
-                        {
-                            <div class="apt-wx">
-                                <span><span class="wx-k">@L["Airport_Wind"]</span><b>@(string.IsNullOrWhiteSpace(wx.Wind) ? "—" : wx.Wind)</b></span>
-                                <span><span class="wx-k">QNH</span><b>@(wx.Qnh is int q ? $"{q}" : "—")</b></span>
-                                @if (!string.IsNullOrEmpty(wx.Dep) || !string.IsNullOrEmpty(wx.Arr))
-                                {
-                                    <span><span class="wx-k">@L["Airport_Departures"]</span><b>@(wx.Dep ?? "—")</b></span>
-                                    <span><span class="wx-k">@L["Airport_Arrivals"]</span><b>@(wx.Arr ?? "—")</b></span>
-                                }
-                            </div>
-                        }
-                        else if (_wxLoading)
-                        {
-                            <div class="apt-wx loading"><span class="muted" style="font-size:12.5px">@L["Airport_WxLoading"]</span></div>
-                        }
-                    </a>
-                }
-            </div>
-        }
+        @* L'elenco è un'ISOLA interattiva: si carica da sé e porta il meteo che arriva dopo. Il resto di
+           questa pagina è SSR statico, come gli altri tre documenti pubblici (doc 14 §3g). *@
+        <AirportListPanel Acc="@_acc.Code" />
     </div>
 }
 else if (_view is null)
@@ -198,20 +151,13 @@ else
     private DocumentView? _view;
     private bool _listMode;
     private bool _canEdit;
-    private IReadOnlyList<AirportRow> _allAirports = Array.Empty<AirportRow>();
     // Taglio militare/civile dell'elenco: uno alla volta, ricliccato torna a «tutti».
-    private enum MilFilter { All, Military, Civil }
-    private MilFilter _milFilter = MilFilter.All;
     // Anagrafica militare dell'aeroporto aperto. Campi a parte e non letti da `_profile`, che in anteprima di
     // release viene azzerato di proposito: la presenza di una base non è un dato di release, e sparire dalla
     // testata solo perché si guarda un ciclo passato sarebbe un'informazione persa senza motivo.
     private bool _militaryPresence;
     private bool _militaryOnly;
     // Meteo mini per card (elenco): ICAO → (vento, QNH, piste suggerite decolli/atterraggi) dal METAR live.
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, (string? Wind, int? Qnh, string? Dep, string? Arr)> _wxMini = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, AirportData?> _profiles = new(StringComparer.OrdinalIgnoreCase);
-    private int _wxGen;          // token anti-corsa: scarta i caricamenti meteo di ACC ormai cambiate
-    private bool _wxLoading;     // true finché il meteo di questo elenco non è arrivato
     private string _icao = "";
     private Vipi.Application.Abstractions.WeatherReport? _wx;
 
@@ -269,31 +215,11 @@ else
         if (_acc is null) { _view = null; return; }
 
         // Senza ?icao= la pagina è l'elenco degli aeroporti della ACC; con ?icao= mostra il documento.
+        // Senza ?icao= la pagina è l'elenco degli aeroporti della ACC; con ?icao= mostra il documento.
+        // ⚠️ L'elenco non si carica più qui: se lo facesse, questa pagina resterebbe interattiva per servirlo.
+        // Se lo carica l'isola <AirportListPanel>, che è l'unica parte che ne ha bisogno (doc 14 §3g).
         _listMode = string.IsNullOrWhiteSpace(Icao);
-        if (_listMode)
-        {
-            var data = await Structure.LoadAsync(_acc.Code);
-            // Solo aeroporti con release AIRAC effettiva e non nascosti (doc 10 §3f: visibilità pubblica = release effettiva).
-            var published = (await Docs.ListAsync())
-                .Where(m => m.Kind == ReleaseTargetType.Airport && m.HasEffectiveRelease && !m.IsHidden
-                            && string.Equals(m.AccCode, _acc.Code, StringComparison.OrdinalIgnoreCase))
-                .Select(m => m.Scope)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            _allAirports = data?.Airports
-                .Where(x => x.IsPublic && published.Contains(x.Icao))
-                .OrderBy(x => x.Icao).ToList()
-                ?? (IReadOnlyList<AirportRow>)Array.Empty<AirportRow>();
-
-            // Profili piste (DB, veloci) — servono per la pista consigliata. Il METAR (HTTP, lento) NON viene
-            // atteso qui: la lista si renderizza subito e il meteo arriva in background (LoadMeteoAsync).
-            _profiles.Clear();
-            foreach (var ap in _allAirports) _profiles[ap.Icao] = await Profile.LoadForViewAsync(ap.Icao);
-            _wxMini.Clear();
-            _wxLoading = _allAirports.Count > 0;
-            var gen = ++_wxGen;
-            _ = LoadMeteoAsync(gen);
-            return;
-        }
+        if (_listMode) return;
 
         _icao = Icao!.ToUpperInvariant();
         _mode = PreviewMode.Parse(As);
@@ -345,16 +271,12 @@ else
         Recompute();
     }
 
-    private int MilitaryCount() => _allAirports.Count(x => x.HasMilitaryPresence);
-
-    private List<AirportRow> ShownAirports() => _milFilter switch
-    {
-        MilFilter.Military => _allAirports.Where(x => x.HasMilitaryPresence).ToList(),
-        MilFilter.Civil => _allAirports.Where(x => !x.HasMilitaryPresence).ToList(),
-        _ => _allAirports.ToList(),
-    };
-
-    private void ToggleMil(MilFilter f) => _milFilter = _milFilter == f ? MilFilter.All : f;
+                /// <summary>Gli ATC su questo scalo, ATIS escluso: un ATIS acceso non è una posizione presidiata.
+    /// ⚠️ Resta qui perché serve anche al DOCUMENTO, non solo all'elenco — la stessa domanda la fa da sé
+    /// l'isola <AirportListPanel> per le sue schede.</summary>
+    private int OnlineAt(string icao) => Online.GetCurrent().Callsigns.Count(cs =>
+        cs.Split('_', 2)[0].Equals(icao, StringComparison.OrdinalIgnoreCase)
+        && !cs.EndsWith("_ATIS", StringComparison.OrdinalIgnoreCase));
 
     private string PreviewTitlePrefix() => _mode.Kind switch
     {
@@ -365,65 +287,13 @@ else
 
     // Carica il METAR (HTTP, in parallelo) di tutti gli aeroporti dell'elenco e ne deriva vento/QNH/pista.
     // Fuori dal percorso di render: la lista è già visibile, il meteo compare appena pronto.
-    private async Task LoadMeteoAsync(int gen)
-    {
-        var results = await Task.WhenAll(_allAirports.Select(async ap =>
-        {
-            try
-            {
-                var wx = await Weather.GetAsync(ap.Icao);
-                var m = string.IsNullOrWhiteSpace(wx?.Metar) ? null : MetarParser.ParseMetar(wx!.Metar!);
-                return (ap.Icao, Metar: m);
-            }
-            catch { return (ap.Icao, Metar: (ParsedMetar?)null); }
-        }));
-
-        if (gen != _wxGen) return;   // l'utente ha cambiato ACC: questo risultato è obsoleto
-        foreach (var (icao, m) in results)
-            if (m is not null)
-            {
-                var (dep, arr) = SuggestRwy(icao, m);
-                _wxMini[icao] = (m.Wind?.Label, m.QnhHpa, dep, arr);
-            }
-        _wxLoading = false;
-        await InvokeAsync(StateHasChanged);
-    }
-
-    // Piste suggerite dal profilo (decolli, atterraggi): regole piste se presenti, altrimenti miglior vento di testa.
-    private (string? Dep, string? Arr) SuggestRwy(string icao, ParsedMetar m)
-    {
-        var profile = _profiles.GetValueOrDefault(icao);
-        int? windDir = m.Wind is { Calm: false, DirectionDeg: int d } ? d : null;
-        int windKt = m.Wind?.SpeedKt ?? 0;
-        if (profile is { Rules.Count: > 0 })
-        {
-            var wet = m.HasRain || m.HasSnow;
-            var rr = RunwaySuggestion.EvaluateRules(profile.Rules.Select(MapRule).ToList(), windDir, windKt, wet, DateTime.UtcNow);
-            if (rr is not null) return (Norm(rr.Dep), Norm(rr.Arr));
-        }
-        var runways = profile?.Runways.Select(r => r.Ident).ToList() ?? new List<string>();
-        if (runways.Count > 0)
-        {
-            var s = RunwaySuggestion.Suggest(runways, windDir, windKt);
-            if (s.Best is not null) return (Norm(s.DepIdent ?? s.Best.Ident), Norm(s.ArrIdent ?? s.Best.Ident));
-        }
-        return (null, null);
-    }
-
-    private static string? Norm(string? rwy) => string.IsNullOrWhiteSpace(rwy) ? null : rwy.Trim();
+        // Piste suggerite dal profilo (decolli, atterraggi): regole piste se presenti, altrimenti miglior vento di testa.
+        private static string? Norm(string? rwy) => string.IsNullOrWhiteSpace(rwy) ? null : rwy.Trim();
 
     // ATC online per l'aeroporto: callsign il cui primo token (prima del "_") è l'ICAO (es. LIRF_TWR, LIRF_S_APP).
     // ⚠️ L'ATIS è escluso: nell'elenco delle postazioni c'è, ma è una frequenza registrata, non qualcuno che
     // controlla — contarlo faceva apparire «1 online» un aeroporto dove non risponde nessuno.
-    private int OnlineAt(string icao)
-    {
-        var snap = Online.GetCurrent();
-        return snap.Callsigns.Count(cs =>
-            cs.Split('_', 2)[0].Equals(icao, StringComparison.OrdinalIgnoreCase) &&
-            !cs.EndsWith("_ATIS", StringComparison.OrdinalIgnoreCase));
-    }
-
-    /// <summary>
+        /// <summary>
     /// Chi presiede questo aeroporto adesso, in una riga: posizioni sue online dal gate in su e, per ciò che
     /// non è presidiato in loco, chi lo copre risalendo. Stessa risposta della vista live, stesso risolutore.
     /// </summary>
@@ -460,7 +330,7 @@ else
                 break;
             case "sids":
                 <AirportSids View="_derived.Sids" Selected="@_sidRwy" SelectedChanged="SelectSidRwy"
-                             DepIdents="_depIdents" TransitionAltitudeFt="_derived.Transition.TransitionAltitudeFt" />;
+                             DepIdents="_depIdents.ToArray()" TransitionAltitudeFt="_derived.Transition.TransitionAltitudeFt" />;
                 break;
             case "validity": <ValidityStamp Target="ReleaseTargetType.Airport" Key="@_icao" ReleaseId="@ReleaseIdShown()" />; break;
         }

@@ -1,0 +1,100 @@
+@* L'editor della sezione «Frequenze»: il catalogo dei settori dello scalo (sola lettura, lo riempie
+   l'anagrafica) più i LINK a frequenze di altri enti, che si scelgono qui.
+
+   ⚠️ Componente a parte da <AirportFrequencies>, la lettura, come gli altri editor dell'aeroporto: qui la
+   tabella è mista — righe di catalogo che non si toccano e righe collegate che si tolgono — e in lettura è
+   una sola lista già fusa.
+
+   ⚠️ Lo stato della casella di ricerca (`_cerca`, `_aperta`) vive QUI e non nella pagina, dov'era: è stato
+   della vista, non del documento, e nella pagina restava vivo anche cambiando sezione. *@
+@inject IStringLocalizer<SharedResource> L
+
+<div @onchange="() => OnChanged.InvokeAsync()">
+    <div class="ed-h3 ed-h3-mini">
+        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_FreqHelpAria"]" ExtraClass="wide">@L["Ape_FreqHelp"]</HelpHint>
+    </div>
+    <table class="res-table freq-table">
+        <thead><tr><th>Callsign</th><th>Position</th><th>@L["Vle_Frequency"]</th><th>@L["Ape_Origin"]</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var f in Catalogo)
+            {
+                <tr class="@(f.IsPrimary ? "primary" : null)"><td>@if (f.IsPrimary) { <span class="freq-key">★</span><text>&#32;</text> }@NomeDaMostrare(f)</td><td>@f.ComposePosition</td><td>@(f.Frequency ?? "—")</td><td class="muted">@L["Ape_Catalog"]</td><td></td></tr>
+            }
+            @foreach (var id in LinkIds)
+            {
+                var lf = Linkable.FirstOrDefault(x => x.SectorId == id);
+                <tr @key="id">
+                    <td>@(string.IsNullOrWhiteSpace(lf?.AtcCallsign) ? (lf?.Callsign ?? "—") : lf!.AtcCallsign)</td><td>@(lf?.Callsign ?? "—")</td><td>@(lf?.FrequencyMhz ?? "—")</td>
+                    <td class="muted">@L["Ape_Linked"]</td>
+                    <td><button class="btn ghost" @onclick="() => Scollega(id)">✕</button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <div class="se-row" style="margin-top:10px;align-items:flex-start">
+        <div style="position:relative;width:320px">
+            <input style="width:100%" placeholder="@L["Ape_SearchCallsignFreq"]"
+                   @bind="_cerca" @bind:event="oninput"
+                   @onfocus="() => _aperta = true" @onblur="() => _aperta = false" />
+            @if (_aperta)
+            {
+                var opzioni = AirportFrequencyPicker.Filtra(Linkable, _cerca).ToList();
+                <div class="freq-picker-list">
+                    @if (opzioni.Count == 0)
+                    {
+                        <div class="freq-picker-empty muted">@L["Ape_NoUnitFound"]</div>
+                    }
+                    @foreach (var lf in opzioni)
+                    {
+                        var id = lf.SectorId;
+                        var gia = LinkIds.Contains(id);
+                        <button type="button" class="freq-picker-item" disabled="@gia"
+                                @onmousedown:preventDefault="true" @onmousedown="() => Collega(id)">
+                            <b>@lf.Callsign</b> · @lf.FrequencyMhz @(lf.Icao is null ? "" : $"({lf.Icao})")@if (gia) { <span class="muted"> — @L["Ape_AlreadyAdded"]</span> }
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+        <button class="btn primary" disabled="@(Busy || !CanEdit)" @onclick="() => OnSaveLinks.InvokeAsync()">@L["Ape_SaveLinks"]</button>
+    </div>
+</div>
+
+@code {
+    /// <summary>I settori dello scalo con una frequenza, già ordinati: li riempie l'anagrafica, non si toccano.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<AirportSectorRow> Catalogo { get; set; } = Array.Empty<AirportSectorRow>();
+
+    /// <summary>Gli id dei settori di ALTRI enti collegati a questo scalo. Il componente li muta in posto.</summary>
+    [Parameter, EditorRequired] public List<int> LinkIds { get; set; } = new();
+
+    /// <summary>Il catalogo da cui si sceglie: tutte le frequenze collegabili.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<LinkableFrequencyRow> Linkable { get; set; } = Array.Empty<LinkableFrequencyRow>();
+
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public bool CanEdit { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+    [Parameter] public EventCallback OnSaveLinks { get; set; }
+
+    private string _cerca = "";
+    private bool _aperta;
+
+    /// <summary>Il nome dell'ente: il callsign ATC se c'è, altrimenti il nome della posizione.</summary>
+    private static string NomeDaMostrare(AirportSectorRow f) =>
+        string.IsNullOrWhiteSpace(f.AtcCallsign) ? AirportFrequencyPicker.NomePosizione(f.Position) : f.AtcCallsign;
+
+    private async Task Collega(int id)
+    {
+        if (!LinkIds.Contains(id))
+        {
+            LinkIds.Add(id);
+            await OnChanged.InvokeAsync();
+        }
+        _cerca = "";
+    }
+
+    private async Task Scollega(int id)
+    {
+        LinkIds.Remove(id);
+        await OnChanged.InvokeAsync();
+    }
+}

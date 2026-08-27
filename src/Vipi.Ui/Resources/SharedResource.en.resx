@@ -1829,6 +1829,13 @@
   <data name="Ape_TestWinner" xml:space="preserve"><value>Winning rule with the test wind</value></data>
   <data name="Ape_TestRun" xml:space="preserve"><value>Test</value></data>
   <data name="Ape_TestClear" xml:space="preserve"><value>Clear</value></data>
+  <data name="Ape_IssueSidMissing" xml:space="preserve"><value>SID #{0}: FIX or name missing.</value></data>
+  <data name="Ape_IssueSidUnknownRw" xml:space="preserve"><value>SID #{0}: runway “{1}” is not among those defined.</value></data>
+  <data name="Ape_IssueSidDup" xml:space="preserve"><value>SID #{0}: duplicate ({1}/{2} {3}).</value></data>
+  <data name="Ape_TestWindFrom" xml:space="preserve"><value>Wind from (°)</value></data>
+  <data name="Ape_TestWindKt" xml:space="preserve"><value>Speed (kt)</value></data>
+  <data name="Ape_TestRuleN" xml:space="preserve"><value>Rule #{0}</value></data>
+  <data name="Ape_TestNoRule" xml:space="preserve"><value>No rule applies → head-wind fallback:</value></data>
   <data name="Ape_NoUnitFound" xml:space="preserve"><value>No unit found.</value></data>
   <data name="Ape_AlreadyAdded" xml:space="preserve"><value>already added</value></data>
   <data name="Ape_Linked" xml:space="preserve"><value>linked</value></data>
