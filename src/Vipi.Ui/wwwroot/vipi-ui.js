@@ -222,6 +222,29 @@ window.vipiScorrimento = function () {
         }, true);
     }
 
+    // Il menu-sezioni degli editor ACCETTA il rilascio: `preventDefault` sul `dragover` delle voci.
+    //
+    // ⚠️ Perche' non lo fa Blazor. `EditorToc.razor` scriveva `@ondragover:preventDefault="true"`, e quel
+    // modificatore NON basta da solo: Blazor installa il proprio listener globale per un evento soltanto
+    // quando un componente vi registra un GESTORE, e per `dragover` non ce n'era nessuno — solo il
+    // modificatore, che restava lettera morta. Misurato il 27 agosto 2026 sull'editor ACC: `dragstart` e
+    // `dragenter` arrivavano (la voce si illuminava davvero), `dragover` arrivava con
+    // `defaultPrevented=false`, e il `drop` non arrivava MAI. Senza un bersaglio che accetta, il browser
+    // annulla il trascinamento — nessun errore, nessun segno: il gesto semplicemente non faceva niente.
+    //
+    // La strada in-framework sarebbe un gestore `@ondragover` finto, ma `dragover` scatta a ogni movimento
+    // del mouse: sarebbe un giro sul circuito e un re-render del menu una decina di volte al secondo,
+    // proprio durante il gesto. Qui basta un listener, installato una volta (stessa scelta di wireBlockMenu
+    // e delle chip AoR), e il `drop` resta di Blazor.
+    var tocDropWired = false;
+    function wireTocDrop() {
+        if (tocDropWired) return;
+        tocDropWired = true;
+        document.addEventListener('dragover', function (e) {
+            if (e.target && e.target.closest && e.target.closest('.toc-drag a[draggable="true"]')) e.preventDefault();
+        }, true);
+    }
+
     // Sospende la persistenza del collasso: l'apertura in massa per la stampa non deve riscrivere le preferenze
     // dell'utente (vedi wirePrint).
     var suppressPersist = false;
@@ -876,6 +899,7 @@ window.vipiScorrimento = function () {
         wireAnchors();
         wireCollapse();
         wireBlockMenu();
+        wireTocDrop();
         applyDense();
         wireUtcClock();
         wireSearchKey();

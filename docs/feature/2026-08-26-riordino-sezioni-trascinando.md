@@ -1,6 +1,7 @@
 # Le sezioni si riordinano trascinandole nel menu — carta (26 agosto 2026)
 
-> **Stato: ✅ ESEGUITA il 26 agosto 2026**, ramo `identita-settori`.
+> **Stato: ✅ ESEGUITA il 26 agosto 2026**, ramo `identita-settori` — ⚠️ ma **non ha mai funzionato col
+> mouse** fino al 27 agosto: vedi [§8](#8--non-ha-mai-funzionato-e-la-verifica-non-poteva-accorgersene-27-agosto-2026).
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 > Seguito diretto di [l'ordine delle sezioni è una scelta editoriale](2026-08-26-ordine-sezioni-personalizzato.md):
 > stesso `DocumentSection.Order`, stesso gruppo, **nessuno storage nuovo**.
@@ -127,3 +128,87 @@ Suite intera verde (5 314 casi sui due TFM), `dotnet build Vipi.slnx -c Release 
 - **Le sotto-sezioni non si trascinano**: il menu mostra solo il primo livello.
 - **Nessun riordino fra gruppi** (§2), e **nessuna versione da tocco**: HTML5 drag non esiste su touch, e le
   frecce coprono quel caso.
+
+---
+
+## §8 — Non ha mai funzionato, e la verifica non poteva accorgersene (27 agosto 2026)
+
+> Segnalato dal committente il 27 agosto: «ho provato a cambiare l'ordine trascinando nel menu Navigazione
+> ma non va». Vero: dal primo giorno, in **tutte e tre** le famiglie.
+
+### Il difetto
+
+`@ondragover:preventDefault="true"` sulla voce **non faceva niente**. Misurato sull'editor ACC con spie in
+cattura su tutti gli eventi di trascinamento:
+
+```
+dragstart  → «Separazioni radar»                      ✓
+dragenter  → «Configurazioni»                         ✓   (la voce si illuminava DAVVERO: .toc-drop)
+dragover   → «Configurazioni»  defaultPrevented=false ✗
+drop                                                  ✗   mai
+dragend                                                   → il browser annulla
+```
+
+Nel modello di trascinamento HTML5 il rilascio non è concesso: va **richiesto**, chiamando `preventDefault`
+sul `dragover` del bersaglio. Senza, il browser conclude che lì non si può lasciare niente e chiude il gesto
+da solo — **senza errori, senza segni**. È il caso peggiore: la destinazione si illuminava, quindi il
+trascinamento *sembrava* funzionare fino all'ultimo millimetro.
+
+⚠️ **Perché il modificatore Razor non bastava.** Blazor installa il proprio listener globale per un evento
+soltanto quando un componente vi registra un **gestore**. Per `dragover` non ce n'era nessuno — solo il
+modificatore — quindi il flag «previeni il default» veniva memorizzato e mai consultato. Sul `drop` lo stesso
+modificatore funziona, e il motivo è tutto lì: il gestore `@ondrop` c'è.
+
+### La cura
+
+Un listener solo, in cattura, installato una volta: `wireTocDrop` in `vipi-ui.js` — stessa forma di
+`wireBlockMenu` e delle chip AoR. Il `drop` resta di Blazor.
+
+La strada in-framework (un gestore `@ondragover` finto, solo per far ascoltare Blazor) è stata **scartata**:
+`dragover` scatta a ogni movimento del mouse, e sarebbe stato un giro sul circuito più un re-render del menu
+una decina di volte al secondo, proprio durante il gesto.
+
+### ⚠️ Perché §5 e §6 dicevano di sì
+
+**Nessuno dei due guardava il pezzo rotto.**
+
+- Gli **otto test bUnit** chiamano `Anchor(...).DragStart()` e poi `Anchor(...).Drop()`: invocano i gestori
+  **direttamente**. Fra i due non c'è nessun browser che decida se il rilascio è concesso. Verdi su codice
+  rotto, e lo sarebbero ancora.
+- La **verifica live** di §5 usava un `drag.js` che **sintetizzava** gli eventi con `new DragEvent(...)`:
+  stessa cecità, un livello più in là. Dispatchava il `drop` da sé, cioè proprio l'evento che nella realtà
+  non arrivava mai.
+
+> **La regola che se ne ricava: un gesto del browser si prova col browser che lo fa.** Non con eventi
+> fabbricati che ne hanno il nome.
+
+### La verifica nuova
+
+`Input.setInterceptDrags` + `Input.dispatchDragEvent` (CDP): il drag lo **avvia il controller del browser**
+— quindi si prova anche che la voce sia davvero afferrabile — e noi consegniamo enter/over/drop alle
+coordinate. Nessun `preventDefault` iniettato: se il drop arriva, arriva perché lo consente `wireTocDrop`.
+
+| documento | rotta | gesto | esito |
+|---|---|---|---|
+| vIPI ACC | `/services/vsop/libb/editor` | *Configurazioni* su *Separazioni radar* | ordine cambiato, **persiste al ricarico** |
+| vIPI APP | `…/apps/editor?app=LIBG_APP` | *Separazioni* su *AOR* | cambiato, persiste |
+| vLOA | `…/vloa/editor?acc=LDZO` | *Purpose* su *Frequencies* | cambiato, persiste |
+| rifiuto fra blocchi | ACC, prima voce del blocco 1 sull'ultima del blocco 2 | — | **invariato**, come deve |
+
+Nessun errore in pagina, nessun `console.error`.
+
+### Il test che adesso c'è
+
+`EditorTocDragTests.Il_selettore_con_cui_il_JS_accetta_il_rilascio_trova_le_voci_trascinabili` legge
+`vipi-ui.js`, ne estrae il selettore di `wireTocDrop` e lo prova **contro il markup vero** del componente:
+quattro voci in modifica, zero fuori. Pretende anche che la funzione sia **chiamata** in `vipiWireUi`, non
+solo definita.
+
+Non poteva prendere il difetto originale (non c'era niente da leggere), ma tiene il contratto che lo ha
+sostituito: due file che si parlano con un selettore, e una rinomina da una parte sola.
+
+⚠️ **Provato per mutazione**, perché un test che non fallisce non è una rete: tolta la chiamata a
+`wireTocDrop()` → rosso; rinominata la classe nel solo JS → rosso.
+
+Suite intera verde: **5 751** casi, 14 assembly. `dotnet build Vipi.slnx -c Release --no-incremental`:
+**0 avvisi**.

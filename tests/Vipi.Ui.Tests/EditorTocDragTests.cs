@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using AngleSharp.Dom;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
@@ -144,5 +145,53 @@ public class EditorTocDragTests : TestContext
 
         Anchor(c, "s-40").DragEnter();
         Assert.DoesNotContain("toc-drop", Anchor(c, "s-40").ClassName);
+    }
+
+    /// <summary>
+    /// Il pezzo che i test qui sopra NON possono vedere, e che il 27 agosto 2026 era rotto in produzione con
+    /// otto test verdi: perché il browser consegni il <c>drop</c>, qualcuno deve chiamare
+    /// <c>preventDefault</c> sul <c>dragover</c> della voce. bUnit non lo sa — <c>Drop()</c> invoca il gestore
+    /// direttamente, saltando la trattativa col browser — e il modificatore Razor che stava sul componente non
+    /// faceva niente (Blazor ascolta un evento solo se qualcuno vi registra un gestore, e per <c>dragover</c>
+    /// non ce n'era). Oggi lo fa <c>wireTocDrop</c> in vipi-ui.js: quella funzione e questo componente si
+    /// parlano attraverso UN SELETTORE, scritto in due file diversi. Questo test lo legge dal JS e lo prova
+    /// contro il markup vero, così una rinomina da una parte sola non passa.
+    /// </summary>
+    [Fact]
+    public void Il_selettore_con_cui_il_JS_accetta_il_rilascio_trova_le_voci_trascinabili()
+    {
+        var js = File.ReadAllText(FileNellaWwwroot("vipi-ui.js"));
+
+        // La funzione dev'essere agganciata, non solo definita: senza la chiamata in vipiWireUi non gira mai.
+        Assert.Contains("wireTocDrop();", js, StringComparison.Ordinal);
+
+        var corpo = Regex.Match(js, @"function\s+wireTocDrop\s*\(\)\s*\{(?<c>.*?)\n    \}", RegexOptions.Singleline);
+        Assert.True(corpo.Success, "wireTocDrop non trovata in vipi-ui.js");
+        Assert.Contains("'dragover'", corpo.Value, StringComparison.Ordinal);
+        Assert.Contains("preventDefault()", corpo.Value, StringComparison.Ordinal);
+
+        var sel = Regex.Match(corpo.Groups["c"].Value, @"closest\('(?<s>[^']+)'\)");
+        Assert.True(sel.Success, "wireTocDrop non usa un closest('…'): il selettore non è più leggibile da qui");
+        var selettore = sel.Groups["s"].Value;
+
+        // In modifica il selettore deve pescare TUTTE e sole le voci-sezione: quattro, non il pannello Release.
+        var inModifica = Render(_ => { });
+        Assert.Equal(4, inModifica.FindAll(selettore).Count);
+
+        // Fuori dalla modifica non deve pescare niente, o il menu accetterebbe rilasci che nessuno gestisce.
+        var fuori = Render(onReorder: null);
+        Assert.Empty(fuori.FindAll(selettore));
+    }
+
+    private static string FileNellaWwwroot(string nome)
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var c = Path.Combine(dir.FullName, "src", "Vipi.Ui", "wwwroot", nome);
+            if (File.Exists(c)) return c;
+            dir = dir.Parent;
+        }
+        throw new FileNotFoundException($"{nome} non trovato risalendo da {AppContext.BaseDirectory}");
     }
 }
