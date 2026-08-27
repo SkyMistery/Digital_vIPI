@@ -350,9 +350,10 @@ public sealed class EfAirportRepository : IAirportRepository
                 Language.It, SectionProfile.Airport, authorUserId: 0,
                 nasceLive: BornLive, conSegnaposto: false);
             await _db.SaveChangesAsync(ct);
-            // ⚠️ DOPO il salvataggio: prima gli Id non ci sono, e Document/DocumentVersion che si puntano a
-            // vicenda diventerebbero per EF una dipendenza circolare.
-            doc.CurrentVersionId = doc.Versions.First().Id;
+            // ⚠️ `CurrentVersionId` resta NULL, e adesso e' come nascono tutte e quattro le famiglie.
+            // Qui veniva impostato sulla versione appena creata, che e' una BOZZA — ma quel campo vuol dire
+            // «la versione PUBBLICATA corrente»: lo scrive `PublishAsync`, e l'eliminazione lo azzera.
+            // Un documento mai pubblicato che dichiara di averne una dice una cosa falsa.
 
             // Il legame che conta: il documento è dell'AEROPORTO. Vale anche per uno scalo senza nemmeno un
             // settore proprio — LIBG ha in IVAO solo un APP non remotizzato, e la sua vIPI d'aeroporto ora esiste.
@@ -394,21 +395,7 @@ public sealed class EfAirportRepository : IAirportRepository
     private static bool BornLive(string key) =>
         SectionCatalog.IsAlwaysLive(key) || string.Equals(key, "sids", StringComparison.OrdinalIgnoreCase);
 
-    public async Task<RenderMode> GetSidsRenderModeAsync(string icao, CancellationToken ct = default)
-    {
-        var sec = await CurrentSidsSectionAsync(icao, ct);
-        return sec?.RenderMode ?? RenderMode.Live;
-    }
-
-    public async Task SetSidsRenderModeAsync(string icao, RenderMode mode, CancellationToken ct = default)
-    {
-        var sec = await CurrentSidsSectionAsync(icao, ct);
-        if (sec is null) return;   // documento/sezione non ancora generati: nasceranno al primo rebuild (default Live)
-        sec.RenderMode = mode;
-        await _db.SaveChangesAsync(ct);
-    }
-
-    public async Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default)
+            public async Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default)
     {
         icao = (icao ?? "").Trim().ToUpperInvariant();
         // Dall'AEROPORTO, non dai suoi settori: è il legame autoritativo (vedi Airport.Document). Passando dai
@@ -417,20 +404,7 @@ public sealed class EfAirportRepository : IAirportRepository
             .Where(a => a.Icao == icao).Select(a => a.DocumentId).FirstOrDefaultAsync(ct);
     }
 
-    // Sezione "sids" della versione CORRENTE del documento dell'aeroporto (tracciata: settabile). Null se assente.
-    private async Task<DocumentSection?> CurrentSidsSectionAsync(string icao, CancellationToken ct)
-    {
-        icao = (icao ?? "").Trim().ToUpperInvariant();
-        var verId = await _db.Airports
-            .Where(a => a.Icao == icao && a.DocumentId != null)
-            .Select(a => a.Document!.CurrentVersionId)
-            .FirstOrDefaultAsync(ct);
-        if (verId is not int vid) return null;
-        return await _db.DocumentSections
-            .FirstOrDefaultAsync(s => s.DocumentVersionId == vid && s.SectionKey == "sids", ct);
-    }
-
-    // ---- helper ----
+        // ---- helper ----
 
     private async Task<int> AirportIdAsync(string icao, CancellationToken ct) =>
         await _db.Airports.Where(a => a.Icao == icao).Select(a => (int?)a.Id).FirstOrDefaultAsync(ct)

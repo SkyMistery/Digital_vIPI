@@ -464,6 +464,14 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Tolte {Count} righe «Effective from — AIRAC» scritte a mano nelle vLOA: il ciclo lo dice il timbro della release.", airacRighe);
 
+        // Il puntatore «versione pubblicata corrente» dove punta a una BOZZA (doc 14 §3i). ⚠️ DOPO le
+        // riconciliazioni di struttura: se una di quelle creasse o promuovesse una versione, questo giro
+        // dovrebbe vedere il risultato, non lo stato di prima.
+        var puntatori = maintenance.ClearUnpublishedCurrentVersionAsync().GetAwaiter().GetResult();
+        if (puntatori > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Azzerati {Count} puntatori «versione pubblicata» che indicavano una bozza: quel campo lo scrive la pubblicazione.", puntatori);
+
         // «Minime di vettoramento» è tornata editoriale (doc 13 §3b): via i blocchi placeholder vuoti che aveva
         // da derivata, o l'editor mostrerebbe una tabella senza colonne.
         var minima = maintenance.ClearMinimaPlaceholderBlocksAsync().GetAwaiter().GetResult();

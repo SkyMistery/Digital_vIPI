@@ -1863,3 +1863,19 @@ dire «con vento da 200° vince la #2» e il pubblicato applicarne un'altra.
 
 Suite 5432 → **5680**. Editor aeroporto 2180 → 1617 righe, viewer 594 → 464.
 
+**Aggiunta — la domanda lasciata aperta, chiusa.** P7 aveva sospeso una decisione: che cosa vuol dire
+`Document.CurrentVersionId`. Guardandola per deciderla, due cose sono cambiate.
+
+Primo, **il quadro era diverso da come l'avevo scritto**: non era «l'aeroporto contro le altre tre», anche la
+vLOA generata da «ACC confinanti» puntava quel campo alla bozza appena creata — due porte su quattro.
+
+Secondo, e più importante, **non era una decisione**. Il campo ha un significato solo: `PublishAsync` lo
+scrive sulla versione pubblicata e l'eliminazione lo azzera. L'unico lettore che gli dava l'altro significato
+serviva a un **congelamento SID dedicato**, sostituito il 26 agosto dal toggle dell'editor condiviso e rimasto
+in vita da **quattro righe di test**. Tolto il codice morto, la seconda scuola di pensiero non esisteva più.
+
+⚠️ La lezione: *una scelta che sembra da fare può essere il residuo di una che è già stata fatta.* Prima di
+portare una domanda al committente, conviene controllare se qualcuno la sta ancora ponendo davvero.
+
+Sull'archivio vero: **un** puntatore azzerato. Suite **5702**.
+

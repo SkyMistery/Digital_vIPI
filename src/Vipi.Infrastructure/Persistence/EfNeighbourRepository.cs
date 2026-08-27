@@ -335,7 +335,9 @@ public sealed class EfNeighbourRepository : INeighbourRepository
 
         await _db.SaveChangesAsync(ct);
 
-        doc.CurrentVersionId = ver.Id;
+        // ⚠️ `CurrentVersionId` NON si imposta: la vLOA nasce in bozza, e quel campo vuol dire «la versione
+        // PUBBLICATA corrente». Lo scrive `PublishAsync`. Era l'altra delle due porte su quattro che lo
+        // puntavano a una bozza — l'aeroporto e questa.
         cand.VloaDocumentId = doc.Id;
         cand.UpdatedUtc = now;
         await _db.SaveChangesAsync(ct);

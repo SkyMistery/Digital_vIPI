@@ -68,12 +68,4 @@ public interface IAirportRepository : IAirportProfileReader
 
     /// <summary>Id del Document proiettato dell'aeroporto (via settori d'aeroporto con <c>DocumentId</c>), o null se non ancora generato.</summary>
     Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default);
-
-    /// <summary>RenderMode della sezione SID nel documento corrente (doc 10 §S4c). Default <see cref="RenderMode.Live"/>
-    /// se il documento/sezione non esistono ancora.</summary>
-    Task<RenderMode> GetSidsRenderModeAsync(string icao, CancellationToken ct = default);
-
-    /// <summary>Imposta il RenderMode della sezione SID del documento corrente (doc 10 §S4c). Preservato dai rebuild.
-    /// No-op se il documento/sezione non esistono ancora (la sezione nasce al primo rebuild).</summary>
-    Task SetSidsRenderModeAsync(string icao, RenderMode mode, CancellationToken ct = default);
 }
