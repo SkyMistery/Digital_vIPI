@@ -1,6 +1,8 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 27 agosto 2026, notte (**§K chiusa tutta: la vIPI d'aeroporto entra nel catalogo delle sezioni
+**Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in
+un giro solo. Restano aperte solo voci che dipendono da qualcun altro: le risposte di Ivao.It (A9/A13), le
+quattro vLOA da ripubblicare (L2), il documento di Brindisi (B10-bis) e le decisioni di contenuto**) · **Aggiornato:** 27 agosto 2026, notte (**§K chiusa tutta: la vIPI d'aeroporto entra nel catalogo delle sezioni
 — ramo `aeroporto-a-sezioni`, il TERZO in fila — più le tre rifiniture della stessa notte: il meteo tornato
 nella pagina pubblica, i pannelli larghi quanto la colonna, e «Validità e revisione» che porta ciclo AIRAC,
 data e chi ha premuto Pubblica in tutti e quattro i documenti**) · **Aggiornato:** 26 agosto 2026, sera tardi (**§J7 chiusa: anche i blocchi della vIPI ACC si riordinano, con
@@ -176,8 +178,9 @@ scrivono nei log.
 🔵 **Resta deciso**: il database si ripulisce un'ultima volta prima di popolarlo — quindi **I1** (le radici
 orfane di LIRR) è sospesa apposta: non si sistema un albero che sta per essere rifatto.
 
-**Sezioni con lavoro aperto, oggi**: **C6** (⚠️ da rileggere: metà del problema è caduta da sé), **C7a/b/c**,
-**H1** e **H3**.
+**Sezioni con lavoro aperto, oggi**: **nessuna sul codice.** C6, C7a/b/c, H1, H3 ed E9 sono chiuse il 27
+agosto pomeriggio — §M racconta come e cosa è saltato fuori. Restano **I3/I4** (decisioni, non lavoro, e
+dopo la pulizia del database) e tutto ciò che aspetta qualcun altro (A9, A13, L2, B10-bis).
 
 ---
 
@@ -1276,7 +1279,7 @@ Development, con test sul percorso di produzione). Quel che resta — montare i 
 reali** — vive già come **A9/A10** (segreti e redirect) ed **E4** (conferma dei codici staff): tenerlo anche
 qui era contarlo due volte.
 
-### C6 🟢 La chiave di release ACC/APP è **derivata da un callsign**, e se il callsign si sposta il documento pubblicato va muto
+### C6 ✅ CHIUSA il 27 agosto 2026 — la chiave che si sposta si RIPUNTA (era: il documento pubblicato va muto)
 
 Trovato il **25 agosto 2026** scrivendo la carta [documenti da
 rivedere](feature/2026-08-25-documenti-da-rivedere.md) §3a. **Non** è un difetto introdotto da quel lavoro:
@@ -1301,7 +1304,7 @@ bersaglio di oggi non ha release ma il documento ne ha sotto un'altra chiave (E1
 una decisione a sé, e va presa sapendo che una chiave stabile per l'ACC vorrebbe dire un identificativo
 proprio del documento al posto del callsign.
 
-### C7 🟢 I tre resti dell'analisi del 25 agosto sulla cancellazione dei dati importati
+### C7 ✅ CHIUSA il 27 agosto 2026 — i tre resti dell'analisi del 25 agosto sulla cancellazione dei dati importati
 
 Analisi completa in
 [`history/audit-2026-08-25-cancellazione-dati-importati.md`](history/audit-2026-08-25-cancellazione-dati-importati.md).
@@ -1844,7 +1847,7 @@ sull'HTML servito (l'admin vede la targhetta, il socio no); senza la guardia i d
 500, cioè lo screenshot. Propagata `CanEditAnythingAsync` ai 12 finti
 `IEditAuthorizationService` dei test. Suite intera verde su entrambi i TFM.
 
-### E9 🔴 APERTA — la corsa sul `DbContext` c'è ancora, e non so ancora chi sia l'altra operazione
+### E9 ✅ CHIUSA lato codice il 27 agosto 2026 — la corsa si riproduce, e la prima operazione ha un nome
 
 **Misurato in produzione alle 17:44 del 24 agosto 2026**, con il pacchetto «h» già online (quindi con la
 correzione del catalogo dentro): il registro, che il committente aveva appena azzerato, si è riempito di
@@ -2130,7 +2133,7 @@ grandezza non è provato.
 
 Dettaglio in §13.8 della carta delle statistiche.
 
-### H1 🟢 `.ed-layout` e le altre dieci `@media` degli editor
+### H1 ✅ CHIUSA il 27 agosto 2026 — `.ed-layout` e le altre `@media` degli editor
 
 **Cos'è.** La stessa malattia curata sul viewer (A3 della carta): una `@media` misura la **finestra**, mentre
 lo zoom di questa applicazione è `zoom` sull'`<html>` e la finestra non lo vede. Sul viewer pubblico il
@@ -2265,7 +2268,7 @@ verdi.
 descriveva l'intenzione, il selettore ha preso anche le pagine admin. Vale come promemoria — quando una
 regola nasce per una famiglia di pagine, il perimetro va **nel selettore**, non nella prosa accanto.
 
-### H3 🟢 `/services/vsop/admin/acc` sfora di 24px in orizzontale — ed è a OGNI larghezza, non solo a 1600
+### H3 ✅ CHIUSA il 27 agosto 2026 — `/services/vsop/admin/acc` sforava di 24px a OGNI larghezza
 
 **Cos'è.** A 1600px di finestra la pagina ACC chiede 1624: la testata appiccicata
 (`.doc-head.st-head.sticky`) misura **1648** dentro un contenuto da 1536.
@@ -2829,4 +2832,104 @@ Tutti e tre invisibili a chi legge il codice, perché le due metà stavano lonta
 - il blocco delle **SID manuali** marcava la sezione `"SID"` invece di `"sids"`: «Salva tutto» la saltava
   **in silenzio** e restava per sempre fra le non salvate;
 - **sette frasi in italiano cablato** (il banco di prova, gli avvisi SID) mai tradotte.
+
+---
+
+## M. I resti, chiusi in un giro — 27 agosto 2026, pomeriggio
+
+Sei voci che erano rimaste indietro perché piccole o perché nessuno sapeva da dove prenderle: **C7c, C7a,
+C7b, C6, H3, H1, E9**. Nessuna migrazione. Suite net8 **2992**, build Release `--no-incremental` **0 avvisi**.
+
+### M1 ✅ C7c — un ACC estero nasce con le aree SPENTE
+
+Il default d'entità di `SpecialAreasEnabled` è `true` (giusto per i domestici) e nessun chiamante lo toccava:
+il tappo storico `OptOutForeignAreasAsync` è **one-shot** e non copre chi nasce dopo. La regola sta ora in un
+posto solo — **`Acc.NewForeign`** — usata dai tre siti di nascita (import confinanti, generazione vLOA, seed).
+⚠️ L'upsert **non** rispegne un ACC che l'admin ha acceso a mano: c'è una prova apposta.
+
+### M2 ✅ C7a — il regime di scrittura, quando non l'ha deciso nessuno, si vede
+
+Due rilievi distinti in Diagnostica, perché sono due guasti distinti:
+
+- **riga assente** (una `DELETE` sulla tabella): l'applicazione torna a «la sorgente scrive tutto» e il primo
+  giro sovrascrive TA e piste messe a mano. La riga è **una sola** in tutto il database;
+- **riga mai firmata con qualcosa di manuale**: è la storia di `ImportSids`, nato `false` su un DB già
+  popolato — un import fermo da mesi è indistinguibile da una decisione.
+
+⚠️ **Una policy tutta «da sorgente» e mai toccata NON è un rilievo**: è il default dichiarato del prodotto, e
+mostrarlo a ogni apertura insegnerebbe solo a ignorare la diagnostica. `ImportPolicyInfo` porta ora
+`RigaPresente` per distinguere i due casi.
+
+### M3 ✅ C7b — le cancellazioni della Struttura entrano nel registro
+
+ACC, aeroporto e settore uscivano muti mentre l'eliminazione di un **documento** ci finisce dal 22 agosto:
+era il **buco 5** di quell'audit, chiuso solo per `SetParentAsync`. La riga si scrive **prima** della
+cancellazione (dopo, callsign e ICAO non sono più leggibili) e con lo stesso vocabolario di
+`EfDeletionRepository` — le due strade cancellano le stesse cose e devono raccontarle uguale.
+
+### M4 ✅ C6 — la chiave che si sposta si RIPUNTA
+
+**Metà del problema era già caduta da sé**: dal 26 agosto la **rinomina** riscrive `DocReleases.TargetKey`,
+perché quella chiave non è storia ma un **puntatore**. Restava l'altra metà — un primario che cambia, un
+settore riparentato — e si chiude con la stessa regola: `IReleaseRepository.RepointKeyAsync` sposta release
+e incarichi sotto la chiave viva, e scrive nel registro (attore `0` = giro notturno).
+
+⚠️ **Rifiuta e ritorna 0 se la chiave nuova ha già delle release**: due storie di pubblicazione non si
+fondono da sole — i `VersionNumber` si scontrerebbero con l'indice unico — e quale sia quella buona è una
+decisione, non un calcolo. In quel caso resta `ReleaseKeyMoved` e la decide una persona. Il giro notturno
+ripara **prima** di segnalare, e il conteggio delle ripuntate esce nel log.
+
+### M5 ✅ H3 — la testata copre il respiro VERO del riquadro
+
+`.st-head.sticky` sborda coi margini negativi per coprire il respiro laterale, e il valore era una **copia**
+del padding del `.wrap` generico (clamp 24/3.5vw/64). Le pagine admin però sono `.wrap.struct`, che quel
+respiro lo **stringe** (clamp 16/2vw/32): la testata sbordava più di quanto dovesse coprire. 56 contro 32 a
+1600 = **24px**, e a ogni larghezza la stessa differenza fra due clamp. Ora il respiro è una variabile
+(`--wrap-pad`) dichiarata da chi ce l'ha e letta da chi lo copre. Misurato a schermo: sforo **0** a 1600,
+1366, 1280 e 1024.
+
+### M6 ✅ H1 — anche i riquadri scelgono il loro scaglione misurandosi
+
+Diciassette `@media` di editor e admin misuravano la **finestra**, mentre lo zoom di questo prodotto è `zoom`
+sull'`<html>`. Misurato: a 1600px e zoom 1.8 il riquadro ha **889** unità di layout — sotto la soglia di 900 —
+e `matchMedia('(max-width:900px)')` risponde ancora **NO**.
+
+⚠️ **La `@container` del viewer qui non si poteva**: `container-type` porta con sé `contain:layout`, che rende
+il riquadro contenitore anche per i `position:fixed`. Sulle pagine admin il **`DeleteDialog`** è un
+`.del-card` fisso centrato sullo SCHERMO e vive **dentro la riga di una tabella**: contenendo il `.wrap`
+sarebbe finito centrato su un riquadro alto migliaia di pixel. Quindi la cura è quella della **topbar**: lo
+scaglione lo sceglie il JS misurando (`vipiFitPanes`, classi cumulative `pw-1200/1180/1080/900/760`).
+
+⚠️ **E un osservatore all'avvio non basta**: su una pagina `InteractiveServer` il riquadro che si vede non è
+quello del `DOMContentLoaded` — Blazor lo rifà quando il circuito parte, e il nuovo nasce senza osservatore.
+A finestra 860px le colonne restavano affiancate mentre a zoom 1.8 si impilavano: a rimisurare era
+l'osservatore del riquadro **vecchio**.
+
+Verificato su undici pagine, quattro zoom e due finestre strette. **`.tk-board` non è stato esercitato**: nel
+database di sviluppo l'utente non ha incarichi propri.
+
+### M7 ✅ E9 — la corsa si riproduce, e la prima operazione ha un nome
+
+**`EditAuthorizationService.CanEditAnythingAsync → EfEditGrantRepository.HasAnyGrantAsync`**: la domanda «hai
+qualcosa da modificare?» del layout, quella che pagano i soli utenti **collegati e non admin**. La pagina è la
+**seconda**, ed è quella che muore. Non è più una deduzione: è la fotografia del rilevatore, in un test.
+
+⚠️ **Perché i tre tentativi precedenti non scattavano**: l'intercettore era registrato **in DI**, e in questo
+assetto si monta sulle **OPZIONI** del contesto (`AddInterceptors`). Il test ridichiara il `DbContext` con
+dentro un **ritardo per comando**, così la finestra è larga come quella di un database remoto — che è la
+differenza vera fra questa macchina e `atc.it.ivao.aero`.
+
+⚠️ **Le due guardie di oggi bastano ognuna da sola**, provato spegnendole una per volta: col layout che
+conclude prima del render la pagina regge anche sul contesto della richiesta; con lo scope proprio regge
+anche se il layout lascia qualcosa in volo. **Chi ne togliesse una sola non vedrebbe rompersi niente** — ed è
+la trappola della prossima pulizia.
+
+**Resta fuori dal codice**: la conferma dal vivo in produzione la può dare solo un socio senza incarichi che
+apra `/services/vsop/{acc}` dopo un riavvio a freddo. Da admin non prova niente.
+
+### M8 — quel che NON è stato toccato, e perché
+
+Restano su `@media` le soglie delle pagine **pubbliche** (`.wrap table` a 900, `.wi` a 720, `.area-wrap` a
+600, `.validity-stamp` a 560, il rail del viewer a 1500): lì il perimetro dichiarato parte da 375px e il
+layout di lettura è già governato dalla `@container`. Non è una dimenticanza: è il confine del giro.
 

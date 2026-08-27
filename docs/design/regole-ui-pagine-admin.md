@@ -100,6 +100,15 @@ pieno di righe.
     valuta la **finestra**: a 1280 con zoom 1.4 il layout ha **914 unità** e `@media (max-width:900px)` non
     scatta. Quindi **una soglia di viewport non può governare un difetto che compare a zoom alto**: non si
     sposta, si **toglie**. È la stessa diagnosi della topbar (§30), ritrovata sulle tabelle del viewer.
+22-quater. ⚠️ **E dal 27 agosto 2026 le pagine di lavoro non hanno più una sola `@media` di larghezza**: lo
+    scaglione lo sceglie `vipiFitPanes` misurando il riquadro, e scrive sul `.wrap` le classi cumulative
+    `pw-1200` / `pw-1180` / `pw-1080` / `pw-900` / `pw-760`. Una regola che deve valere «da qui in giù» si
+    scrive `.struct.pw-900 .qualcosa{…}`, mai dentro una `@media`.
+    ⚠️ **La `@container` — la cura del viewer — qui NON si può**: `container-type` porta con sé
+    `contain:layout`, che rende il riquadro contenitore anche per i `position:fixed`, e il `DeleteDialog`
+    (`.del-card`, centrato sullo schermo) vive dentro la riga di una tabella.
+    ⚠️ E il riquadro va riagganciato quando Blazor lo **rifà**: su una pagina interattiva quello del primo
+    disegno non è quello che si vede.
 22-ter. Per misurare sotto zoom: `scrollWidth` e `clientWidth` stanno **entrambi** in unità di layout ed è la
     coppia da usare; `getBoundingClientRect().width` e `innerWidth` stanno in pixel di finestra. Mescolarli
     dà tabelle di numeri che non tornano — al primo giro di misura ha fatto sembrare colpevole la topbar,

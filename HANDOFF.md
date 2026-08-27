@@ -1,8 +1,19 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 27 agosto 2026, sera.
+**Ultimo aggiornamento:** 27 agosto 2026, pomeriggio (i resti: §M).
 
 ## Dove siamo, prima di tutto il resto
+
+✅ **Sul codice non resta lavoro aperto.** Il 27 pomeriggio sono chiuse in un giro solo le ultime sei voci —
+**C7a/b/c** (l'ACC estero che nasceva con le aree accese, il regime di scrittura mai deciso, le cancellazioni
+strutturali mute), **C6** (la chiave di release che si sposta ora si **ripunta**), **H3** e **H1** (le due
+misure sbagliate dell'interfaccia) ed **E9**, dove la corsa sul `DbContext` si è finalmente **riprodotta**:
+la prima operazione è `HasAnyGrantAsync`, la domanda «hai qualcosa da modificare?» del layout. Racconto in
+`docs/lavori-aperti.md` **§M**. Suite **2992** su net8, build Release `--no-incremental` **0 avvisi**,
+**nessuna migrazione nuova** (restano diciannove).
+
+⚠️ **La trappola che §M lascia in eredità**: le due guardie della corsa (layout che conclude prima del render,
+pagina con scope proprio) **bastano ognuna da sola**. Chi ne togliesse una non vedrebbe rompersi niente.
 
 ✅ **Un albero solo, zero rami.** `main` è allineato a `origin/main` e non c'è lavoro fuori. I tre rami in
 fila del 26 sono stati fusi il 27 mattina (`docs/lavori-aperti.md` **§B12**), e da lì è partito e si è chiuso
