@@ -24,6 +24,36 @@
     <UserSecretsId>79756a9b-0ff7-4ec7-89d3-88a116771871</UserSecretsId>
   </PropertyGroup>
 
+  <!--
+    ⚠️ QUI NON C'È «PublishReadyToRun», ED È UNA SCELTA MISURATA. Non aggiungerlo senza rifare la misura.
+
+    Sembra la riga ovvia da scrivere: il sito gira sotto Passenger, che spegne il processo per inattività,
+    quindi il primo visitatore dopo la pausa paga l'avvio intero. Compilare in anticipo dovrebbe aiutare.
+
+    Provato il 27 agosto 2026, sei avvii per parte, stesso database e stessa macchina:
+
+        senza ReadyToRun    avvio  1 656 ms (mediana)    otto pagine a freddo  1 732 ms
+        con   ReadyToRun    avvio  1 621 ms (mediana)    otto pagine a freddo  1 503 ms
+        pacchetto            122 MB          ->            151 MB
+
+    Il 2% sull'avvio è dentro il rumore, e il minimo assoluto delle due configurazioni sulle otto pagine è
+    lo stesso (1 287 contro 1 280 ms). In cambio il pacchetto cresce di 29 MB — e questo sito si aggiorna
+    via FTP, file per file, da una persona: quei 29 MB sono un costo certo pagato per un guadagno incerto.
+
+    Il motivo per cui rendeva così poco lo dice il cronometro d'avvio (StartupDiagnostics.CronometroAvvio),
+    che è nato per rispondere a questa domanda e che scrive le sue righe in diagnostica/avvio-diagnostica.txt:
+
+        CreateBuilder                  37 ms
+        registrazioni DI               39 ms
+        builder.Build                  16 ms
+        MigrateVipiDatabase           526 ms   ***
+        RunVipiStartupMaintenance     646 ms   ***
+        resto della pipeline           28 ms
+
+    Millecento millisecondi su milletrecento sono DATABASE, non compilazione: è lavoro che ReadyToRun non
+    può toccare. Chi vuole accorciare l'avvio guardi lì.
+  -->
+
   <ItemGroup>
     <!-- File editabile della frase di coordinamento: copiato in output, ricaricato a caldo. -->
     <Content Update="content\coordination-sentence.json" CopyToOutputDirectory="PreserveNewest" />
@@ -43,26 +73,6 @@
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="8.0.*" />
   </ItemGroup>
 
-  <!--
-    Il TIMBRO DELLA BUILD: quale codice è quello che gira.
-
-    Nasce da una domanda pratica del 24 agosto 2026 — «che versione del sito è online?» — che fino a quel
-    giorno non aveva risposta: `AssemblyVersion` è 1.0.0 in ogni pacchetto, e l'unica prova che il server
-    avesse ripreso la versione nuova era la data dentro `diagnostica/avvio-diagnostica.txt`, che dice
-    quando è RIPARTITO, non che cosa è ripartito.
-
-    Si timbra il COMMIT e non l'ora di compilazione: ricompilare lo stesso commit deve dare la stessa
-    versione, o il numero racconta la macchina di chi compila invece del codice. La lettera del pacchetto
-    («e», «f», …) è l'etichetta con cui il committente lo chiama e si passa al publish:
-        dotnet publish … -p:VipiPacchetto=g
-
-    ⚠️ Niente marcatore «albero sporco»: `git status` in forma breve elenca anche i file che differiscono
-    per i soli fine riga (un worktree nuovo li checkouta in CRLF), e un allarme che suona sempre non è un
-    allarme. Il commit basta a dire quale codice è dentro.
-
-    ⚠️ Se `git` non c'è — build da uno zip, macchina senza git — il timbro resta vuoto e il sito dice
-    «sviluppo»: mai un errore di build per una cosa che serve a raccontare.
-  -->
   <!--
     LA WWWROOT DEL PACCHETTO, PREPARATA.
 
@@ -92,6 +102,26 @@
           StandardOutputImportance="high" />
   </Target>
 
+  <!--
+    Il TIMBRO DELLA BUILD: quale codice è quello che gira.
+
+    Nasce da una domanda pratica del 24 agosto 2026 — «che versione del sito è online?» — che fino a quel
+    giorno non aveva risposta: `AssemblyVersion` è 1.0.0 in ogni pacchetto, e l'unica prova che il server
+    avesse ripreso la versione nuova era la data dentro `diagnostica/avvio-diagnostica.txt`, che dice
+    quando è RIPARTITO, non che cosa è ripartito.
+
+    Si timbra il COMMIT e non l'ora di compilazione: ricompilare lo stesso commit deve dare la stessa
+    versione, o il numero racconta la macchina di chi compila invece del codice. La lettera del pacchetto
+    («e», «f», …) è l'etichetta con cui il committente lo chiama e si passa al publish:
+        dotnet publish … -p:VipiPacchetto=g
+
+    ⚠️ Niente marcatore «albero sporco»: `git status` in forma breve elenca anche i file che differiscono
+    per i soli fine riga (un worktree nuovo li checkouta in CRLF), e un allarme che suona sempre non è un
+    allarme. Il commit basta a dire quale codice è dentro.
+
+    ⚠️ Se `git` non c'è — build da uno zip, macchina senza git — il timbro resta vuoto e il sito dice
+    «sviluppo»: mai un errore di build per una cosa che serve a raccontare.
+  -->
   <Target Name="VipiTimbroVersione" BeforeTargets="GetAssemblyAttributes" Condition="'$(DesignTimeBuild)' != 'true'">
     <Exec Command="git rev-parse --short=7 HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low"
           ContinueOnError="true" IgnoreExitCode="true">

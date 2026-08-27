@@ -43,7 +43,13 @@ internal static class VipiStartup
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void Run(string[] args)
     {
+        // Il cronometro delle fasi. Costa uno Stopwatch e sei righe in coda a diagnostica/avvio-diagnostica.txt,
+        // e risponde alla sola domanda che su questo host non aveva risposta: «ci mette tanto a ripartire —
+        // tanto DOVE?». Vedi StartupDiagnostics.CronometroAvvio.
+        var crono = new StartupDiagnostics.CronometroAvvio();
+
         var builder = WebApplication.CreateBuilder(args);
+        crono.Segna("CreateBuilder");
 
         // I segreti da FUORI del file che si scarica. Prima di tutto il resto, perché AddVipiStandaloneAuth
         // legge la sezione VipiAuth alla registrazione e deve vedere già i valori buoni.
@@ -141,7 +147,10 @@ internal static class VipiStartup
         Vipi.Hosting.ProductionIdentityGuard.EnsureSafe(builder.Environment.IsDevelopment(), useDevIdentity);
         builder.Services.AddVipiModule(builder.Configuration, useDevIdentity: useDevIdentity);
 
+        crono.Segna("registrazioni dei servizi");
+
         var app = builder.Build();
+        crono.Segna("builder.Build");
 
         // Dietro il proxy TLS di Fly.io/Render (TLS al bordo, HTTP interno): fidati di X-Forwarded-Proto/For così
         // UseHttpsRedirection non entra in loop e OIDC costruisce il redirect_uri in https. KnownIPNetworks/Proxies
@@ -223,12 +232,14 @@ internal static class VipiStartup
         // CRITICA: un guasto qui deve fermare l'avvio. Servire pagine su uno schema che non è quello atteso dal
         // codice significa scoprirlo a runtime, come colonna mancante, lontano dalla causa.
         app.MigrateVipiDatabase();
+        crono.Segna("migrazione del database");
 
         // Le quattro manutenzioni non critiche (riconciliazioni documentali, proiezione settori, backfill e potatura
         // delle release), ognuna isolata dalle altre: un guasto viene registrato — log + diagnostica, quindi
         // /vsop/health in Degraded — e l'avvio prosegue. Prima erano quattro chiamate nude, e con Restart=always nel
         // servizio systemd un difetto in una di esse non era un degrado ma un ciclo di riavvii.
         app.RunVipiStartupMaintenance();
+        crono.Segna("manutenzioni d'avvio");
 
         if (!app.Environment.IsDevelopment())
         {
@@ -333,6 +344,9 @@ internal static class VipiStartup
 
         // Endpoint del modulo (SSE live ATC).
         app.MapVipiModule();
+
+        crono.Segna("resto della pipeline");
+        crono.Scrivi();
 
         app.Run();
     }
