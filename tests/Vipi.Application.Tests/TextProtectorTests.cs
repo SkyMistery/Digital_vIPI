@@ -18,6 +18,15 @@ public class TextProtectorTests
     private static readonly TextProtector Nudo = new();
     private static readonly TextProtector ConRoster = new(new[] { "Mario Rossi", "Giulia Bianchi" });
 
+    /// <summary>
+    /// Il testo con i segnaposto RIMOSSI: e' cio' che il motore tradurrebbe davvero. L'invariante degli
+    /// identificatori si esprime qui — non «non compaiono nel testo», che dal 27 agosto 2026 e' falso e
+    /// deve esserlo (viaggiano dentro il tag, perche' al motore serve l'ancora), ma «non restano FUORI dai
+    /// tag», dove il motore li tradurrebbe.
+    /// </summary>
+    private static string FuoriDaiSegnaposto(string protetto) =>
+        System.Text.RegularExpressions.Regex.Replace(protetto, @"<x id=""\d+""\s*/>|<x id=""\d+""\s*>[^<]*</x>", "@");
+
     /// <summary>Protegge e ritraduce fingendo un motore che lascia il testo com'è: prova il giro completo.</summary>
     private static string GiroCompleto(TextProtector p, string testo)
     {
@@ -110,13 +119,19 @@ public class TextProtectorTests
     [InlineData("Atterra su RWY 16R", new[] { "RWY 16R" })]
     [InlineData("TACAN CH 37X operativo", new[] { "CH 37X" })]
     [InlineData("Imposta SQUAWK 7000 subito", new[] { "SQUAWK 7000" })]
-    public void Gli_identificatori_escono_dal_testo_e_stanno_nei_gettoni(string testo, string[] attesi)
+    public void Gli_identificatori_finiscono_DENTRO_un_segnaposto_e_nei_gettoni(string testo, string[] attesi)
     {
+        // ⚠️ L'identificatore ORA COMPARE nel testo che parte, dentro il tag, ed e' voluto: misurato contro
+        // Azure il 27 agosto 2026, col tag vuoto la frase perde l'ordine delle parole («Contact X on and Y
+        // bring it back downwind»). Cio' che NON deve restare e' un identificatore FUORI dai tag, dove il
+        // motore lo tradurrebbe.
         var protetto = Nudo.Protect(testo);
+        var fuori = FuoriDaiSegnaposto(protetto.Text);
         foreach (var a in attesi)
         {
-            Assert.DoesNotContain(a, protetto.Text, StringComparison.Ordinal);
             Assert.Contains(a, protetto.Tokens);
+            Assert.DoesNotContain(a, fuori, StringComparison.Ordinal);
+            Assert.Contains($"\">{a}</x>", protetto.Text, StringComparison.Ordinal);
         }
     }
 
@@ -133,7 +148,23 @@ public class TextProtectorTests
     {
         // Un asterisco spaiato rompe la resa del blocco, e il motore puo' spostarli o mangiarli.
         var protetto = Nudo.Protect("Il settore **LIBB** e' attivo");
-        Assert.DoesNotContain("*", protetto.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("*", FuoriDaiSegnaposto(protetto.Text), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Una_regola_non_puo_entrare_dentro_un_segnaposto_gia_piazzato()
+    {
+        // ⚠️ Difetto vero, introdotto il 27 agosto 2026 quando gli identificatori hanno cominciato a
+        // viaggiare DENTRO il tag: il loro valore diventa testo visibile alle regole successive. Su
+        // «Imposta SQUAWK 7000 subito» la regola dello squawk piazza <x id="0">SQUAWK 7000</x>, e quella
+        // delle sigle maiuscole vedeva «SQUAWK» li' dentro e lo avvolgeva in un SECONDO tag annidato nel
+        // primo. Il testo che parte sarebbe marcatura rotta, e al ritorno il ripristino non ritroverebbe
+        // piu' i pezzi. Trovato da un test, non a runtime.
+        var protetto = Nudo.Protect("Imposta SQUAWK 7000 subito");
+        Assert.Single(protetto.Tokens);
+        Assert.Equal("SQUAWK 7000", protetto.Tokens[0]);
+        Assert.Equal("Imposta <x id=\"0\">SQUAWK 7000</x> subito", protetto.Text);
+        Assert.DoesNotContain("<x id=\"1\"", protetto.Text, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -18,10 +18,19 @@ public sealed record ProtectedText(string Text, IReadOnlyList<string> Tokens, bo
 /// (carta <c>docs/feature/2026-08-27-documenti-bilingue.md</c> §3).
 ///
 /// <para>
-/// ⚠️ <b>I segnaposto sono vuoti, e non è un dettaglio.</b> DeepL saprebbe rispettare il contenuto di un tag
-/// marcato «non tradurre», ma quel contenuto <b>viaggerebbe lo stesso</b>. Per un callsign non importa; per
-/// un VID sì. Un segnaposto autochiudente — <c>&lt;x id="0"/&gt;</c> — è l'unica forma in cui si può
+/// ⚠️ <b>I segnaposto hanno DUE forme, e la differenza e' misurata.</b> Un identificatore pubblico viaggia
+/// dentro il tag — <c>&lt;x id="0"&gt;LIRF_TWR&lt;/x&gt;</c> — perche' al motore serve l'ancora per capire
+/// la frase. Un dato personale no: li' il tag resta <b>vuoto</b>, ed e' l'unica forma in cui si puo'
 /// affermare che il dato non ha lasciato il processo, invece di sperarlo.
+/// </para>
+///
+/// <para>
+/// <b>Il prezzo del tag vuoto, contro il servizio vero</b> (Azure Translator, 27 agosto 2026): «Contatta X
+/// sulla Y e riporta sottovento» col segnaposto vuoto torna <i>«Contact X <b>on and</b> Y bring it back
+/// downwind»</i> — senza ancora, il motore perde l'ordine delle parole. Col valore dentro il tag torna
+/// <i>«Contact LIRF_TWR <b>on</b> 118.1 <b>and</b> bring it back downwind»</i>, cioe' la stessa qualita' del
+/// testo non protetto. Per i dati personali quel prezzo si paga volentieri: sono pochi segmenti, e sono
+/// proprio quelli che vogliono comunque una persona.
 /// </para>
 ///
 /// <para>
@@ -110,15 +119,19 @@ public sealed partial class TextProtector
     /// Il segnaposto, come si scrive e come si rilegge.
     ///
     /// <para>
-    /// ⚠️ <b>In lettura si accettano tre forme, e non è tolleranza gratuita.</b> Noi scriviamo sempre
-    /// <c>&lt;x id="0"/&gt;</c>, ma un motore che tratta il testo come marcatura lo <b>normalizza</b>: Azure
-    /// in modalità HTML lo restituisce volentieri come <c>&lt;x id="0"&gt;&lt;/x&gt;</c>, e con uno spazio
-    /// prima della barra. Se la lettura pretendesse la forma esatta, ogni segmento con un callsign
-    /// risulterebbe «segnaposto mangiato» e finirebbe fra gli scartati — cioè la traduzione non
-    /// funzionerebbe mai, e il rapporto direbbe che è colpa del motore.
+    /// ⚠️ <b>In lettura si accettano tre forme.</b> Noi scriviamo <c>&lt;x id="0"&gt;VALORE&lt;/x&gt;</c> per
+    /// gli identificatori e <c>&lt;x id="0"/&gt;</c> per i dati personali, ma un motore che tratta il testo
+    /// come marcatura puo' restituire l'una nell'altra — o chiudere il tag vuoto per esteso. Se la lettura
+    /// pretendesse la forma esatta, ogni segmento con un callsign risulterebbe «segnaposto mangiato» e
+    /// finirebbe fra gli scartati: la traduzione non funzionerebbe mai, e il rapporto darebbe la colpa al
+    /// motore.
+    /// </para>
+    /// <para>
+    /// ⚠️ Il valore che torna dentro il tag <b>si ignora</b>: vale sempre quello che avevamo messo da parte.
+    /// Un motore che «migliorasse» un callsign non deve poterlo scrivere nel documento.
     /// </para>
     /// </summary>
-    [GeneratedRegex(@"<x id=""(\d+)""\s*/>|<x id=""(\d+)""\s*>\s*</x\s*>")]
+    [GeneratedRegex(@"<x id=""(\d+)""\s*/>|<x id=""(\d+)""[^>]*>.*?</x\s*>", RegexOptions.Singleline)]
     private static partial Regex Segnaposto();
 
     /// <summary>L'indice del segnaposto, da qualunque delle forme accettate.</summary>
@@ -149,9 +162,9 @@ public sealed partial class TextProtector
         // 1. DATI PERSONALI, per primi e sempre: se una regola successiva ne spezzasse uno, quello che
         //    resta uscirebbe in chiaro.
         foreach (var nome in _nomi)
-            s = SostituisciLetterale(s, nome, tokens);
-        s = Sostituisci(s, VidAnnunciato(), tokens);
-        s = Sostituisci(s, ForseUnVid(), tokens);
+            s = SostituisciLetterale(s, nome, tokens, Riservatezza.Personale);
+        s = Sostituisci(s, VidAnnunciato(), tokens, Riservatezza.Personale);
+        s = Sostituisci(s, ForseUnVid(), tokens, Riservatezza.Personale);
 
         // 2. IDENTIFICATORI, dal più specifico al più generico.
         s = Sostituisci(s, Callsign(), tokens);
@@ -215,8 +228,36 @@ public sealed partial class TextProtector
 
     // ---- Meccanica -----------------------------------------------------------------------------------
 
-    private static string Sostituisci(string s, Regex regola, List<string> tokens) =>
-        regola.Replace(s, m => Deposita(m.Value, tokens));
+    /// <summary>
+    /// Applica una regola <b>solo fuori dai segnaposto gia' piazzati</b>.
+    ///
+    /// <para>
+    /// ⚠️ <b>Perche' non basta un Replace sull'intera stringa.</b> Da quando gli identificatori viaggiano
+    /// DENTRO il tag, il loro valore e' testo visibile alle regole che vengono dopo: su
+    /// «Imposta SQUAWK 7000 subito» la regola dello squawk produce
+    /// <c>&lt;x id="0"&gt;SQUAWK 7000&lt;/x&gt;</c>, e subito dopo la regola delle sigle maiuscole vedrebbe
+    /// «SQUAWK» li' dentro e lo avvolgerebbe in un secondo tag — <b>annidato dentro il primo</b>. Il testo
+    /// che parte sarebbe marcatura rotta, e al ritorno il ripristino non ritroverebbe piu' i pezzi.
+    /// Trovato da un test, non a runtime.
+    /// </para>
+    /// </summary>
+    private static string Sostituisci(string s, Regex regola, List<string> tokens,
+                                      Riservatezza riservatezza = Riservatezza.Pubblico)
+    {
+        var sb = new StringBuilder(s.Length);
+        var da = 0;
+
+        foreach (Match segnaposto in Segnaposto().Matches(s))
+        {
+            var prima = s.Substring(da, segnaposto.Index - da);
+            sb.Append(regola.Replace(prima, m => Deposita(m.Value, tokens, riservatezza)));
+            sb.Append(segnaposto.Value);          // intoccabile: e' gia' protetto
+            da = segnaposto.Index + segnaposto.Length;
+        }
+
+        var resto = s.Substring(da);
+        return sb.Append(regola.Replace(resto, m => Deposita(m.Value, tokens, riservatezza))).ToString();
+    }
 
     /// <summary>
     /// Un nome non è un'espressione regolare: si cerca come testo, senza distinguere maiuscole, ma
@@ -228,7 +269,7 @@ public sealed partial class TextProtector
     /// uscito a brandelli, e non per un dato personale ma per una collisione di lettere.
     /// </para>
     /// </summary>
-    private static string SostituisciLetterale(string s, string ago, List<string> tokens)
+    private static string SostituisciLetterale(string s, string ago, List<string> tokens, Riservatezza riservatezza)
     {
         var sb = new StringBuilder();
         var da = 0;
@@ -238,7 +279,7 @@ public sealed partial class TextProtector
             if (i < 0) break;
             if (ParolaIntera(s, i, ago.Length))
             {
-                sb.Append(s, da, i - da).Append(Deposita(s.Substring(i, ago.Length), tokens));
+                sb.Append(s, da, i - da).Append(Deposita(s.Substring(i, ago.Length), tokens, riservatezza));
                 da = i + ago.Length;
             }
             else
@@ -274,9 +315,45 @@ public sealed partial class TextProtector
         return prima && dopo;
     }
 
-    private static string Deposita(string valore, List<string> tokens)
+    /// <summary>
+    /// Se il valore protetto puo' VIAGGIARE (identificatore pubblico) o no (dato personale).
+    /// </summary>
+    private enum Riservatezza
+    {
+        /// <summary>Callsign, ICAO, frequenza, livello, pista: pubblici. Vanno dentro il tag.</summary>
+        Pubblico,
+
+        /// <summary>VID, nomi di persona: il tag resta VUOTO e il valore non lascia il processo.</summary>
+        Personale,
+    }
+
+    /// <summary>
+    /// Mette da parte un valore e restituisce il suo segnaposto.
+    ///
+    /// <para>
+    /// ⚠️ <b>Le due forme non sono un vezzo: sono state MISURATE contro il servizio vero</b> (27 agosto 2026,
+    /// Azure Translator). Con il segnaposto vuoto, «Contatta X sulla Y e riporta sottovento» torna
+    /// <i>«Contact X <b>on and</b> Y bring it back downwind»</i>: senza l'ancora, il motore perde l'ordine
+    /// delle parole. Col valore dentro il tag torna <i>«Contact LIRF_TWR <b>on</b> 118.1 <b>and</b> bring it
+    /// back downwind»</i> — la stessa qualita' del testo non protetto.
+    /// </para>
+    /// <para>
+    /// Quindi: <b>gli identificatori viaggiano</b> (sono pubblici, e servono al motore per capire la frase);
+    /// <b>i dati personali no</b>, e li' si paga la qualita' — ma sono pochi segmenti, e sono proprio quelli
+    /// che vogliono comunque una persona.
+    /// </para>
+    /// </summary>
+    private static string Deposita(string valore, List<string> tokens, Riservatezza riservatezza)
     {
         tokens.Add(valore);
-        return $"<x id=\"{tokens.Count - 1}\"/>";
+        var i = tokens.Count - 1;
+
+        // Vuoto quando il valore non deve uscire, e anche quando romperebbe la marcatura: le nostre regole
+        // sugli identificatori non producono mai parentesi angolari o e-commerciali, ma se un giorno lo
+        // facessero, meglio una frase tradotta peggio che una richiesta rifiutata dal motore.
+        if (riservatezza == Riservatezza.Personale || valore.IndexOfAny(new[] { '&', '<', '>' }) >= 0)
+            return $"<x id=\"{i}\"/>";
+
+        return $"<x id=\"{i}\">{valore}</x>";
     }
 }

@@ -77,8 +77,31 @@ morde. Va scritta una volta e testata, perché due normalizzazioni diverse = due
 Non si traducono: callsign (`LIPP_MIL_CTR`), ICAO (`LIRF`), punti (`QUIESA`, `RPN1`), navaid
 (`RIV`, `CH 37X`), frequenze, livelli (`FL75`), piste (`16R`), squawk.
 
-Meccanica: regex che li avvolge in tag prima dell'invio; DeepL li lascia stare (`tag_handling=xml` +
-`ignore_tags`) e tornano intatti. È meccanico e affidabile.
+Meccanica: una regex li avvolge in un tag prima dell'invio, e il motore lo lascia stare
+(`tag_handling=xml` su DeepL, `textType=html` su Azure).
+
+**⚠️ Correzione del 27 agosto 2026, dopo la prima chiamata al servizio vero.** La carta diceva che i
+segnaposto dovessero essere **vuoti** — `<x id="0"/>` — per poter affermare che nulla viaggia. Misurato
+contro Azure Translator, quella scelta costa la frase:
+
+| Forma inviata | Che cosa torna |
+|---|---|
+| `Contatta <x id="0"/> sulla <x id="1"/> e riporta sottovento.` | «Contact X **on and** Y bring it back downwind» — ordine rotto |
+| `Contatta <x id="0">LIRF_TWR</x> sulla <x id="1">118.1</x> …` | «Contact LIRF_TWR **on** 118.1 **and** bring it back downwind» — come il testo non protetto |
+
+Senza l'ancora, il motore perde l'ordine delle parole. Quindi le due categorie **si separano**, ed è la
+distinzione che questa carta faceva già a parole prima che il codice la collassasse:
+
+- **identificatori pubblici** (callsign, ICAO, punti, frequenze, livelli, piste) → viaggiano **dentro** il
+  tag. Sono pubblici, e al motore servono per capire la frase;
+- **dati personali** (VID, nomi del roster) → tag **vuoto**, il valore non lascia il processo. Lì il prezzo
+  sulla qualità si paga volentieri: sono pochi segmenti, e sono proprio quelli che vogliono comunque una
+  persona.
+
+⚠️ Il cambio ha introdotto un difetto, trovato da un test e non a runtime: da quando il valore è visibile
+dentro il tag, **una regola successiva può matchare lì dentro** e annidare un secondo segnaposto nel primo
+(«SQUAWK» dentro `<x>SQUAWK 7000</x>`). Le sostituzioni si applicano solo **fuori** dai segnaposto già
+piazzati.
 
 ### 3b. ⚠️ VID e nomi di persona NON escono di qui — decisione del committente
 
@@ -179,8 +202,13 @@ della forma e insieme il suo trabocchetto. Due mitigazioni, e bastano:
 ### La marcatura, finché nessuno ha riletto
 
 Una traduzione macchina non revisionata su un documento operativo è un rischio, e il rischio non è nei
-termini tecnici — è nella **fraseologia**. «Riporta sottovento» diventerà qualcosa di plausibile che non
-è la forma standard, e *plausibile ma sbagliato* è peggio di *assente*, perché nessuno se ne accorge.
+termini tecnici — è nella **fraseologia**.
+
+✅ **Misurato, non temuto** (Azure, 27 agosto 2026): «Contatta LIRF_TWR sulla 118.1 e riporta sottovento»
+torna **«Contact LIRF_TWR on 118.1 and bring it back downwind»**. Gli identificatori sono intatti, la
+grammatica è giusta, e *«bring it back downwind»* **non è fraseologia**: la forma standard è «report
+downwind». Plausibile, comprensibile, sbagliato — e nessuno se ne accorge leggendo. È la dimostrazione che
+il glossario e la rilettura non sono un accessorio della funzione: sono la funzione.
 
 - La vista EN nasce marcata **«traduzione automatica, non revisionata»**, e il badge sparisce **per
   sezione** man mano che qualcuno la spunta. `Origin` per segmento lo dice già.

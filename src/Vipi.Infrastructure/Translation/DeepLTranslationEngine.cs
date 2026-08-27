@@ -49,8 +49,13 @@ public sealed partial class DeepLTranslationEngine : ITranslationEngine
 
     public bool IsConfigured => _opt.Enabled && !string.IsNullOrWhiteSpace(_opt.DeepL.ApiKey);
 
-    /// <summary>Il segnaposto del protettore, che qui va tenuto fuori dalla fuga XML.</summary>
-    [GeneratedRegex(@"<x id=""\d+""\s*/>")]
+    /// <summary>
+    /// Il segnaposto del protettore, che qui va tenuto fuori dalla fuga XML.
+    /// <para>⚠️ Due forme: vuota per i dati personali, col valore dentro per gli identificatori pubblici.
+    /// Se questa regola conoscesse solo la prima, il tag con il valore verrebbe SCAPPATO — e il motore lo
+    /// tradurrebbe come testo invece di lasciarlo stare.</para>
+    /// </summary>
+    [GeneratedRegex(@"<x id=""\d+""\s*/>|<x id=""\d+""\s*>[^<]*</x>")]
     private static partial Regex Segnaposto();
 
     public async Task<TranslationBatch> TranslateAsync(
