@@ -1879,3 +1879,17 @@ portare una domanda al committente, conviene controllare se qualcuno la sta anco
 
 Sull'archivio vero: **un** puntatore azzerato. Suite **5702**.
 
+**Aggiunta — l'editor SID, l'ultimo pezzo.** 252 righe di marcatura e sessanta membri fuori dalla pagina:
+**2180 → 1001 righe** dall'inizio del giro.
+
+⚠️ Anche qui il difetto è saltato fuori **spostando**, non leggendo: il blocco delle SID manuali marcava la
+sezione `"SID"` mentre la chiave vera è `"sids"` — una stringa che nessun caso dello smistamento riconosce,
+quindi «Salva tutto» la saltava **in silenzio** e restava per sempre fra le non salvate.
+
+⚠️ La lezione di metodo: il confine si **misura** prima di tagliare. Dei trentatré metodi, ventotto erano
+puri o di vista — e saperlo ha reso l'estrazione un lavoro di un'ora invece di una scommessa. E si lascia che
+sia il **compilatore** l'oracolo: un sovraccarico di `CopyCell` era rimasto indietro (ce n'erano due), e l'ha
+detto lui.
+
+Suite **5714**.
+
