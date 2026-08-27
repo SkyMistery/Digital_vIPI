@@ -341,22 +341,18 @@ public sealed class EfAirportRepository : IAirportRepository
         {
             // Alla prima generazione il documento resta in BOZZA: l'aeroporto appena importato non è ancora
             // pubblico. Sarà lo staff a pubblicarlo a mano da /services/vsop/versioni.
-            doc = new Document
-            {
-                Type = DocumentType.Vipi, Title = $"vIPI — {icao} {airport.Name}", Language = Language.It,
-                Status = DocumentStatus.Draft, LastUpdatedUtc = now, LastUpdatedAiracCycle = cycle,
-            };
-            var ver = new DocumentVersion
-            {
-                Document = doc, VersionNumber = 1, Status = DocumentStatus.Draft,
-                CreatedByUserId = 0, CreatedUtc = now, AiracCycle = cycle, Note = "Bozza iniziale",
-            };
-            doc.Versions.Add(ver);
-            _db.Documents.Add(doc);
+            // La nascita è condivisa con le altre tre famiglie (Seed/DocumentBirth). ⚠️ Due cose restano
+            // dell'aeroporto e si dichiarano qui, perché sono scelte sue e non del catalogo: le SID nascono
+            // LIVE (una SID si mostra sempre aggiornata) e le sezioni NON ricevono blocchi segnaposto — non
+            // li hanno mai avuti, e la pagina le disegna per chiave, non perché abbiano un blocco dentro.
+            // Su `puntaAllaVersione` c'è una domanda aperta: sta scritta in DocumentBirth.
+            (doc, _) = Seed.DocumentBirth.Crea(_db, new AiracService(), $"vIPI — {icao} {airport.Name}",
+                Language.It, SectionProfile.Airport, authorUserId: 0,
+                nasceLive: BornLive, conSegnaposto: false);
             await _db.SaveChangesAsync(ct);
-            doc.CurrentVersionId = ver.Id;
-
-            SeedCatalogSections(ver);
+            // ⚠️ DOPO il salvataggio: prima gli Id non ci sono, e Document/DocumentVersion che si puntano a
+            // vicenda diventerebbero per EF una dipendenza circolare.
+            doc.CurrentVersionId = doc.Versions.First().Id;
 
             // Il legame che conta: il documento è dell'AEROPORTO. Vale anche per uno scalo senza nemmeno un
             // settore proprio — LIBG ha in IVAO solo un APP non remotizzato, e la sua vIPI d'aeroporto ora esiste.
@@ -394,21 +390,6 @@ public sealed class EfAirportRepository : IAirportRepository
     /// governato dal gate d'import, non dalla release.
     /// </para>
     /// </summary>
-    private void SeedCatalogSections(DocumentVersion ver)
-    {
-        foreach (var d in SectionCatalog.For(SectionProfile.Airport).OrderBy(d => d.Order))
-        {
-            var section = new DocumentSection
-            {
-                DocumentVersion = ver, ParentSection = null, Title = d.Title, Order = d.Order,
-                Depth = 0, SectionKey = d.Key, RowVersion = Guid.NewGuid().ToByteArray(),
-                RenderMode = BornLive(d.Key) ? RenderMode.Live : RenderMode.Frozen,
-            };
-            ver.Sections.Add(section);
-            _db.DocumentSections.Add(section);
-        }
-    }
-
     /// <summary>Sezioni derivate che nascono Live: il meteo (mai congelabile) e le SID (scelta editoriale storica).</summary>
     private static bool BornLive(string key) =>
         SectionCatalog.IsAlwaysLive(key) || string.Equals(key, "sids", StringComparison.OrdinalIgnoreCase);
