@@ -147,15 +147,17 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 
 ## Dove siamo, in cinque righe
 
-**Riscritto il 27 agosto 2026, sera**, con le cifre **contate**.
+**Riscritto il 27 agosto 2026, sera**, con le cifre **contate**. ⚠️ Aggiornato più tardi la stessa sera: §N.
 
-**Non c'è più nessun ramo con lavoro fuori da `main`.** I tre in fila del 26 sono stati fusi tutti il 27
-mattina (§B12), e da lì è partito un giro nuovo — l'**audit dei quattro documenti**, §L — che è a sua volta
-in `main`. Oggi: **un albero solo, zero rami**, `main` allineato a `origin/main`.
+⚠️ **C'è UN ramo con lavoro fuori da `main`: `riordino-e-aree`** (due commit, spinto) — il trascinamento nel
+menu Navigazione che non concedeva il rilascio, e le aree regolamentate rifatte a una mappa sola. Vedi **§N**.
+Da fondere. Tutto il resto è in `main`: i tre rami in fila del 26 sono stati fusi il 27 mattina (§B12), e da
+lì è partito un giro nuovo — l'**audit dei quattro documenti**, §L — che è a sua volta in `main`.
 
 Il **cutover MariaDB** è in `main` e verificato (A1–A8). Le sezioni **B**, **C**, **D**, **G**, **H** sono
 chiuse o chiuse-con-la-ragione-scritta (C6, C7 e le due voci UI il 27 pomeriggio, §M). **I** è sospesa di
-proposito, **J**, **K**, **L** e **M** sono chiuse.
+proposito, **J**, **K**, **L** e **M** sono chiuse. **N** ha il codice fatto (da fondere) e lascia aperta
+**N3**, che è una decisione.
 
 ⚠️ **Le migrazioni in coda al cutover sono DICIANNOVE**, non diciassette: la fusione dell'audit versioni &
 release ne ha portate due (`UniqueReleaseNumberPerTarget`, doppia emissione). ⚠️ Datate **25-ago 15:19**,
@@ -174,13 +176,15 @@ scrivono nei log.
 | Le risposte di Ivao.It, fra cui **chi fa il backup** | A9 / A13 |
 | La **rotazione** dei segreti esposti il 24-25 agosto | A13 |
 | Le decisioni di contenuto (LIBB: due sezioni nascoste a mano; l'elenco aeroporti da 75 righe) | K / statistiche |
+| 🔴 **La basemap CARTO ora vuole una API key** — tutte le mappe la stampigliano, già in produzione | **N3** |
+| Se `99999 ft` debba diventare `UNL` a schermo | N4 |
 
 🔵 **Resta deciso**: il database si ripulisce un'ultima volta prima di popolarlo — quindi **I1** (le radici
 orfane di LIRR) è sospesa apposta: non si sistema un albero che sta per essere rifatto.
 
-**Sezioni con lavoro aperto, oggi**: **nessuna sul codice.** C6, C7a/b/c, H1, H3 ed E9 sono chiuse il 27
-agosto pomeriggio — §M racconta come e cosa è saltato fuori. Restano **I3/I4** (decisioni, non lavoro, e
-dopo la pulizia del database) e tutto ciò che aspetta qualcun altro (A9, A13, L2, B10-bis).
+**Sezioni con lavoro aperto, oggi**: **nessuna sul codice** — ma **§N va fusa**. C6, C7a/b/c, H1, H3 ed E9
+sono chiuse il 27 agosto pomeriggio (§M racconta come e cosa è saltato fuori), e §N la sera. Restano
+**I3/I4** e **N3/N4** (decisioni, non lavoro) e tutto ciò che aspetta qualcun altro (A9, A13, L2, B10-bis).
 
 ---
 
@@ -2937,4 +2941,115 @@ apra `/services/vsop/{acc}` dopo un riavvio a freddo. Da admin non prova niente.
 Restano su `@media` le soglie delle pagine **pubbliche** (`.wrap table` a 900, `.wi` a 720, `.area-wrap` a
 600, `.validity-stamp` a 560, il rail del viewer a 1500): lì il perimetro dichiarato parte da 375px e il
 layout di lettura è già governato dalla `@container`. Non è una dimenticanza: è il confine del giro.
+
+
+---
+
+## N. Il trascinamento rotto e le aree regolamentate — 27 agosto 2026, sera
+
+Ramo **`riordino-e-aree`**, **spinto e non ancora fuso in `main`**. Suite **5789** (+17 test ×2 TFM), build
+Release `--no-incremental` **0 avvisi**, **nessuna migrazione**.
+
+| commit | cosa |
+|---|---|
+| `ff8ec29` | il trascinamento nel menu Navigazione non concedeva il rilascio |
+| `6d0c309` | le aree regolamentate sono una mappa sola con le chip |
+| *(docs)* | carte, indice, HANDOFF, e la Guida in-app — che mostrava i tag escapati (N5) |
+
+### N1 ✅ Il riordino trascinando non ha mai funzionato col mouse
+
+Segnalato dal committente. Vero **dal primo giorno**, su tutte e tre le famiglie, e per giunta con la carta
+del 26 che lo dava per verificato.
+
+`@ondragover:preventDefault="true"` sulla voce **non faceva niente**. Blazor installa il proprio listener
+globale per un evento soltanto quando un componente vi registra un **gestore**, e per `dragover` non ce
+n'era nessuno — solo il modificatore, memorizzato e mai consultato. Nel modello HTML5 il rilascio va
+**richiesto** con `preventDefault` sul `dragover` del bersaglio: senza, il browser chiude il gesto da sé,
+**senza errori e senza segni**. Misurato con spie in cattura sull'editor ACC:
+
+```
+dragstart ✓   dragenter ✓ (la voce si illuminava DAVVERO)
+dragover  ✓   ma defaultPrevented = false
+drop      ✗   mai        → dragend, gesto annullato
+```
+
+Cura: **`wireTocDrop`** in `vipi-ui.js`, un listener in cattura installato una volta (stessa forma di
+`wireBlockMenu`). Scartata la strada in-framework — un gestore `@ondragover` finto — perché `dragover` scatta
+a ogni movimento del mouse: un giro sul circuito e un re-render del menu una decina di volte al secondo,
+proprio durante il gesto.
+
+⚠️ **La lezione, che vale oltre questo difetto.** Né gli otto test bUnit né la verifica live guardavano il
+pezzo rotto: i primi chiamano `DragStart()` e poi `Drop()` invocando i gestori **direttamente**, la seconda
+**sintetizzava** gli eventi con `new DragEvent(...)` — dispacciando da sé proprio il `drop` che nella realtà
+non arrivava. **Un gesto del browser si prova col browser che lo fa**: `Input.setInterceptDrags` +
+`Input.dispatchDragEvent` (CDP), headful. Script e lezione: `.claude/skills/verifica-live/drag-verifica.js`
+e §4-bis della skill. Dettaglio completo in
+[`feature/2026-08-26-riordino-sezioni-trascinando.md`](feature/2026-08-26-riordino-sezioni-trascinando.md) §8.
+
+Test nuovo sul contratto fra il selettore del JS e il markup del componente, **provato per mutazione**
+(tolta la chiamata a `wireTocDrop()` → rosso; rinominata la classe nel solo JS → rosso).
+
+### N2 ✅ Aree regolamentate: una mappa sola, con le chip
+
+Richiesta del committente. Carta:
+[`feature/2026-08-27-aree-regolamentate-una-mappa.md`](feature/2026-08-27-aree-regolamentate-una-mappa.md).
+
+C'era un `<details>` per area **con la propria mappina Leaflet**: 105 contenitori mappa su LIRR, 69 su LIBB.
+Ora una mappa (2D/3D) riusata dall'AoR, una chip per area colorata per tipo, i preset R/D/P/TSA/TRA, e sotto
+le descrizioni delle **sole aree accese**, chiuse, col conteggio.
+
+Nessun motore di mappa nuovo: la traduzione area→«settore» è `RegulatedAreasMap` (pura). ⚠️ Chiave = **id
+IVAO** (i nomi hanno spazi e finirebbero in `[data-sec="…"]`); ⚠️ le quote delle aree sono in **piedi** e il
+3D estrude su FL (`AorFlBand.Normalize`); ⚠️ i preset per tipo devono stare **dentro `AccAorView.Configs`**,
+perché la fila di tasti la disegna `AccAor` leggendo quello — costruirli accanto è come non averli, ed è
+successo (visto solo alla prima prova dal vivo, con 105 chip e nessun filtro).
+
+**Niente migrazioni, niente ripubblicazione**: le aree sono sempre **live** dai cataloghi, gli id li porta il
+documento — le release già scritte mostrano la forma nuova appena il codice è in linea.
+
+Tolto per propagazione: `.area-map` e `.area-noshape`, `PRINT_AREA_MAP_H` e il ramo `isArea` di `resizeMaps`
+in `vipi-ui.js`. ⚠️ Trovato per strada: `.area-wrap`/`.area-svg`/`.area-alt` erano definite **due volte** nel
+foglio, a novecento righe di distanza, e vinceva la seconda copia. Restano — le usa `AreaMapBlock` — ma ora
+in un posto solo.
+
+⚠️ **La vLOA non c'entra**: lì `regulated` è **Editorial** nel catalogo (un paragrafo di prosa sul
+coordinamento delle aree militari transfrontaliere), non l'elenco delle aree.
+
+### N3 🔴 APERTO — la basemap CARTO ora vuole una API key
+
+**Trovato guardando gli screenshot della verifica, non cercandolo.** Le tessere di
+`basemaps.cartocdn.com/light_all` arrivano stampigliate **«API KEY REQUIRED — carto.com/basemaps/apikey»**.
+CARTO ha chiuso il fondo anonimo.
+
+Non è un difetto nostro e non riguarda le aree: riguarda **tutte le mappe del prodotto** — AoR 2D, visore 3D,
+aree regolamentate, carte delle minime di vettoramento — ed è **già così in produzione**. Il fondo si carica,
+quindi né il ritentatore né lo spazzino delle tessere se ne accorgono: le mappe funzionano, semplicemente
+hanno la scritta sopra.
+
+**Decisione del committente**: prendere una chiave CARTO (c'è un piano gratuito) oppure cambiare fornitore di
+tessere. Il posto da toccare è **uno solo**, `addBasemap` in `vipi-aor.js`, più la copia in `vipi-mva.js`.
+Vedi [`feature/2026-08-24-tessere-mappa-ritenti.md`](feature/2026-08-24-tessere-mappa-ritenti.md).
+
+### N4 🔵 Piccolezza di contenuto, da decidere
+
+Nei dati IVAO **`99999 ft` fa da «illimitato»**, e si stampa così com'è (`INDIA5 31000 ft – 99999 ft`), come
+faceva l'elenco di prima. Renderlo `UNL` a schermo è una riga, ma è una scelta editoriale.
+
+### N5 ✅ La Guida in-app mostrava i tag e gli apostrofi
+
+Trovato aggiungendo alla Guida la sezione «Leggere le aree regolamentate»: il corpo di ogni sezione è reso con
+`@((MarkupString)…)`, cioè **come HTML**, ma **novantasei tag erano scritti escapati** (`&lt;b&gt;`) e
+**trentasette apostrofi raddoppiati** (`l''editor`) — abitudini prese da altri contesti di quoting, che in una
+stringa verbatim C# resa come markup escono **letterali**. A schermo si leggeva «Le sezioni `<b>`derivate`</b>`»
+e «L''editor», in **cinque** sezioni della guida utente (`editor-app`, `editor-vloa`, `admin-sorgenti`,
+`incarichi`, `admin-incarichi`), da mesi.
+
+⚠️ **Non lo vedeva nessuno perché la Guida è testo**: nessun test la esercitava, nessuna asserzione poteva
+accorgersene, e chi la scrive guarda il sorgente, non la pagina. Ora `GuidaMarkupTests` guarda il sorgente al
+posto suo — due prove, una per difetto. `&amp;` e `&nbsp;` restano leciti: sono entità che si **vogliono**
+vedere.
+
+Aggiunta, nella parte di **consultazione**, la sezione **«Leggere le aree regolamentate»** (pastiglie, filtri
+per tipo, colori, 3D, e che sulla carta finiscono solo le aree accese), con la sua voce in
+`GuideSearchCatalog` perché emerga dalla ricerca globale.
 

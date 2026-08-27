@@ -1,10 +1,37 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 27 agosto 2026, pomeriggio (i resti: §M).
+**Ultimo aggiornamento:** 27 agosto 2026, **sera** (il trascinamento rotto e le aree regolamentate: §N).
 
 ## Dove siamo, prima di tutto il resto
 
-✅ **Sul codice non resta lavoro aperto.** Il 27 pomeriggio sono chiuse in un giro solo le ultime sei voci —
+⚠️ **C'è UN ramo da fondere: `riordino-e-aree`** (due commit, spinto). Racconto in `docs/lavori-aperti.md`
+**§N**; nessuna migrazione, suite **5789**, build Release **0 avvisi**.
+
+- **`ff8ec29`** — il **trascinamento nel menu Navigazione non ha mai funzionato col mouse**, su tutte e tre
+  le famiglie, pur essendo stato dichiarato eseguito e verificato il 26. `@ondragover:preventDefault` sulla
+  voce era lettera morta: **Blazor ascolta un evento solo se qualcuno vi registra un GESTORE**, e per
+  `dragover` non ce n'era. Senza quel `preventDefault` il bersaglio non accetta e il browser annulla il
+  gesto **senza errori e senza segni**. Cura: `wireTocDrop` in `vipi-ui.js`.
+- **`6d0c309`** — le **aree regolamentate** non hanno più una mappina per area (105 su LIRR): una mappa sola
+  riusata dall'AoR, una chip per area, i preset per tipo, e sotto le descrizioni delle sole accese.
+
+- **docs** — carte, indice e questo file; e la **Guida in-app**, che mostrava a schermo i tag escapati
+  (`<b>` letterale) e gli apostrofi raddoppiati in cinque sezioni, da mesi: il corpo è una `MarkupString`.
+  Ora due test lo presidiano. In più una sezione nuova, «Leggere le aree regolamentate». §N5.
+
+🔴 **E una cosa che aspetta una tua decisione, trovata guardando gli screenshot**: le tessere della basemap
+arrivano stampigliate **«API KEY REQUIRED — carto.com/basemaps/apikey»**. CARTO ha chiuso il fondo anonimo.
+Riguarda **tutte** le mappe del prodotto ed è **già così in produzione**: il fondo si carica, quindi nessuna
+delle nostre reti se ne accorge. §N3.
+
+⚠️ **La lezione di §N, che vale oltre il difetto**: né gli otto test bUnit né la verifica live guardavano il
+pezzo rotto, perché **fabbricavano** gli eventi di trascinamento — dispacciando da sé proprio il `drop` che
+nella realtà non arrivava. **Un gesto del browser si prova col browser che lo fa** (CDP
+`Input.setInterceptDrags`, headful): script e lezione nella skill `verifica-live`.
+
+---
+
+✅ **Per il resto, sul codice non resta lavoro aperto.** Il 27 pomeriggio sono chiuse in un giro solo le ultime sei voci —
 **C7a/b/c** (l'ACC estero che nasceva con le aree accese, il regime di scrittura mai deciso, le cancellazioni
 strutturali mute), **C6** (la chiave di release che si sposta ora si **ripunta**), **H3** e **H1** (le due
 misure sbagliate dell'interfaccia) ed **E9**, dove la corsa sul `DbContext` si è finalmente **riprodotta**:
@@ -16,12 +43,13 @@ locale e su origin: di nuovo un albero solo.
 ⚠️ **La trappola che §M lascia in eredità**: le due guardie della corsa (layout che conclude prima del render,
 pagina con scope proprio) **bastano ognuna da sola**. Chi ne togliesse una non vedrebbe rompersi niente.
 
-✅ **Un albero solo, zero rami.** `main` è allineato a `origin/main` e non c'è lavoro fuori. I tre rami in
+✅ **Un albero solo** (⚠️ ma un ramo aperto: `riordino-e-aree`, sopra). I tre rami in
 fila del 26 sono stati fusi il 27 mattina (`docs/lavori-aperti.md` **§B12**), e da lì è partito e si è chiuso
 un giro nuovo: l'**audit dei quattro documenti** (**§L**, carta
 [`docs/refactor/14-quattro-documenti.md`](docs/refactor/14-quattro-documenti.md)).
 
-**Suite 5746 verdi** sui due TFM — contate il 27 agosto pomeriggio: **2992** su net8 e **2754** su net10.
+**Suite 5746 verdi** su `main`, contate il 27 pomeriggio (**2992** net8 + **2754** net10); **5789** sul ramo
+`riordino-e-aree`, che porta diciassette test in più.
 ⚠️ La cifra si **conta**, non si ricorda — e su net10 due progetti non girano per costruzione
 (`Vipi.AuroraBridge.Tests` e `Vipi.E2E.Tests` sono net8 soli: su net10 rispondono `NETSDK1005`, ed è atteso).
 ⚠️ Prima di credere a un conteggio: `grep "error MSB"`. Con un `Vipi.Host` acceso i suoi DLL sono bloccati,
