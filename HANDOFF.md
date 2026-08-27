@@ -69,6 +69,12 @@ UPDATE); dal secondo in poi tace. È previsto.
   (`<b>` letterale) e gli apostrofi raddoppiati in cinque sezioni, da mesi: il corpo è una `MarkupString`.
   Ora due test lo presidiano. In più una sezione nuova, «Leggere le aree regolamentate». §N5.
 
+✅ **Le chip morte della vIPI d'aeroporto** (METAR/TAF e pista delle SID), segnalate dal committente e chiuse
+la sera del 27: la pagina è **SSR statica** e lo stato dei comandi era rimasto nel genitore. ⚠️ Regola che
+resta: *uno stato che cambia vive dentro l'isola che lo cambia*; un genitore statico può solo **seminarlo**.
+⚠️ E **bUnit ignora i render mode**: quella classe di difetto la vede solo il browser vero. Carta:
+*Le chip che non facevano niente*.
+
 ✅ **Il fondo delle mappe è stato cambiato la sera del 27**: le tessere CARTO arrivavano stampigliate
 **«API KEY REQUIRED»** in produzione, su tutte le mappe, e ora il fondo è **Esri «Light Gray Canvas»** —
 `server.arcgisonline.com`, l'host che serve già il rilievo delle minime. ⚠️ Nessuna delle nostre reti poteva

@@ -3,6 +3,19 @@
    ⚠️ È l'unica sezione che non si congela mai (SectionCatalog.IsAlwaysLive): un METAR catturato al ciclo AIRAC
    non è un documento d'archivio, è meteo scaduto spacciato per attuale. Per la stessa ragione resta fuori dalla
    stampa (`noprint`): su carta sarebbe un'istantanea già vecchia quando la si legge. *@
+@* ⚠️ ISOLA INTERATTIVA, e non lo era: le chip METAR/TAF **non funzionavano**. Quando la pagina d'aeroporto
+   è diventata SSR statica (doc 14 §3g) sono state promosse a isola due parti su tre — l'elenco e il
+   selettore di pista delle SID — e questa è rimasta indietro: i suoi `@@onclick` uscivano in HTML come
+   bottoni **senza un solo attributo Blazor**, e il clic non partiva nemmeno. Il difetto non lasciava traccia
+   da nessuna parte: nessun errore in console, nessuna riga nei log.
+
+   ℹ️ Il circuito non lo apre questa sezione: <LiveBadge> nella barra è già un'isola su OGNI pagina.
+
+   ⚠️ I parametri attraversano il confine SSR→interattivo e vengono **serializzati** nel descrittore:
+   `WeatherReport`, `ParsedMetar` e `ParsedTaf` devono reggere il giro andata/ritorno in System.Text.Json.
+   Sono record di tipi semplici e liste; le proprietà calcolate (`Label`, `CloudsLabel`) escono nel JSON e
+   rientrano ignorate, perché non sono parametri del costruttore. *@
+@rendermode InteractiveServer
 @using Vipi.Application.Weather
 @using Vipi.Ui.Shared
 @inject IStringLocalizer<SharedResource> L
