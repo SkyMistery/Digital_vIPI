@@ -196,6 +196,33 @@ else
         await Editing.SetSectionLeadSentenceAsync(s.Id, !s.LeadSentence);
     });
 
+    /// <summary>
+    /// Gira fra i tre destinatari: per tutti → pilota → ATC → per tutti.
+    /// <para>Un ciclo e non tre bottoni perché le scelte sono mutuamente esclusive: tre bottoni
+    /// occuperebbero tre volte lo spazio per dire la stessa cosa, e su questa riga lo spazio è già
+    /// contato (docs/design/regole-ui-pagine-admin.md).</para>
+    /// <para>⚠️ La scelta sta sulla SEZIONE, quindi è versionata e finisce nello snapshot: un documento
+    /// pubblicato non cambia forma perché qualcuno l'ha marcata nella bozza.</para>
+    /// </summary>
+    private Task CicloAudience(EditableSection s) => Run(async () =>
+    {
+        var prossimo = s.Audience switch
+        {
+            Vipi.Domain.SectionAudience.Both => Vipi.Domain.SectionAudience.Pilots,
+            Vipi.Domain.SectionAudience.Pilots => Vipi.Domain.SectionAudience.Controllers,
+            _ => Vipi.Domain.SectionAudience.Both,
+        };
+        await Editing.SetSectionAudienceAsync(s.Id, prossimo);
+        await OnChanged.InvokeAsync();
+    });
+
+    private string EtichettaAudience(Vipi.Domain.SectionAudience a) => a switch
+    {
+        Vipi.Domain.SectionAudience.Pilots => L["Aud_Pilots"].Value,
+        Vipi.Domain.SectionAudience.Controllers => L["Aud_Controllers"].Value,
+        _ => L["Aud_All"].Value,
+    };
+
     private Task ToggleBeforeParentBody(EditableSection s) => Run(async () =>
     {
         await Editing.SetSectionBeforeParentBodyAsync(s.Id, !s.BeforeParentBody);
@@ -339,6 +366,17 @@ else
                 <button class="btn ghost" title="@(s.LeadSentence ? L["Dse_ProseSpreadTitle"] : L["Dse_ProseLeadTitle"])"
                         @onclick="() => ToggleLeadSentence(s)">
                     @(s.LeadSentence ? "¶ " + L["Dse_ProseLead"] : "¶ " + L["Dse_ProseSpread"])
+                </button>
+            }
+            @* A CHI SI RIVOLGE la sezione (carta vSOP militari §3). Un giro a tre valori invece di tre
+               bottoni: le scelte sono mutuamente esclusive, e un ciclo si legge dallo stato in cui è.
+               ⚠️ NON è controllo d'accesso: il documento resta pubblico e chiunque può aprire l'altra
+               vista. È scritto nel titolo del comando perché chi marca lo veda mentre marca. *@
+            @if (IsEditing)
+            {
+                <button class="btn ghost" title="@L["Aud_EditorHint"]"
+                        @onclick="() => CicloAudience(s)">
+                    <Icon Name="users" Size="14" /> @L["Aud_EditorLabel"]: @EtichettaAudience(s.Audience)
                 </button>
             }
             @* Posizione rispetto al corpo del padre: solo per le SOTTO-sezioni (una sezione di primo livello non ha

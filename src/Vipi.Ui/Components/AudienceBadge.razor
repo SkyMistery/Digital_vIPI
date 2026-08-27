@@ -1,0 +1,20 @@
+@using Vipi.Domain
+@inject IStringLocalizer<SharedResource> L
+
+@* Il badge accanto al titolo di una sezione marcata (carta vSOP militari §3).
+
+   ⚠️ ETICHETTA PRIMA, FILTRO DOPO. Le sezioni «per tutti» -- la maggioranza -- non portano badge: se lo
+   portassero tutte, il badge smetterebbe di dire qualcosa. Marcare è l'eccezione, e si vede perché è
+   l'eccezione. *@
+
+@if (Audience != SectionAudience.Both)
+{
+    <span class="pill @(Audience == SectionAudience.Pilots ? "blue" : "amber") aud-badge">
+        @(Audience == SectionAudience.Pilots ? L["Aud_BadgePilots"] : L["Aud_BadgeControllers"])
+    </span>
+}
+
+@code {
+    /// <summary>Il destinatario della sezione. <c>Both</c> non disegna niente.</summary>
+    [Parameter, EditorRequired] public SectionAudience Audience { get; set; }
+}

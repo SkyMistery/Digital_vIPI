@@ -3222,10 +3222,20 @@ sorgente senza riscriverne il contenuto renderebbe la memoria di traduzione **in
 corpus** — le impronte sono del testo inglese, e cercarle come italiano non troverebbe niente. Vuole un
 giro suo, con un travaso pensato.
 
-### Q5 🟢 APERTO — il rosso intermittente nella corsa dell'intera soluzione
+### Q5 🟢 APERTO — il rosso intermittente: **ha un nome**
 
-Comparso **cinque volte su sette** corse complete di `dotnet test Vipi.slnx`, sempre in un progetto
-diverso (`Vipi.Ui.Tests`, `Vipi.E2E.Tests`), **mai lo stesso test**, mai riproducibile. Ogni progetto passa
-al 100% da solo (662/662, 227/227) e una corsa con file di risultati non ha registrato **nessun** test
-fallito. Non è la funzione bilingue, che non tocca quei percorsi: sembra contesa fra progetti in
-parallelo. Va guardato per conto suo, perché rende inaffidabile il segnale della suite completa.
+⚠️ **Identificato il 28 agosto 2026**: `CronometroAvvioTests.Lavvio_vero_lascia_il_riepilogo_nel_file_di_diagnostica`
+(`Vipi.E2E.Tests`).
+
+**Come si riproduce e come no.** Da solo passa (3/3 con `--filter CronometroAvvio`); con **tutto il
+progetto E2E** fallisce; nella corsa dell'intera soluzione comparve in sei corse su otto, a volte in
+`Vipi.Ui.Tests` e a volte qui — perché il segnale è la contesa, non il test.
+
+**Perché proprio lui.** Fa un **avvio vero** dell'applicazione e poi legge il file di diagnostica che
+quell'avvio scrive. Basta che un altro avvio giri nella stessa finestra — un altro test E2E, o un host
+lasciato acceso da chi sta lavorando — perché il file che rilegge non sia il suo.
+
+**Perché conta.** Non è un test ballerino da rilanciare finché passa: rende **inaffidabile il segnale
+della suite completa**, che è l'unico cancello prima di una consegna. Finché resta, «6379 verdi» va letto
+come «6379 verdi, salvo uno che non riguarda la modifica in corso» — e quella postilla è precisamente il
+modo in cui un rosso vero passa inosservato.

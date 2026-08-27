@@ -196,6 +196,32 @@ public class DocumentTranslatorTests
         Assert.Equal(new[] { 1, 2 }, esito.View.Sections[0].Blocks.Select(b => b.Id));
     }
 
+    [Fact]
+    public async Task La_traduzione_non_azzera_i_flag_della_sezione()
+    {
+        // ⚠️ DIFETTO VERO, trovato da una prova live il 28 agosto 2026. Questa classe RICOSTRUISCE le
+        // sezioni, e ogni flag per-sezione che non si ricopia viene azzerato dalla traduzione -- in
+        // silenzio, perche' il default e' quello «buono» e la pagina continua a rendersi. Effetto: su un
+        // documento tradotto la chip pilota/ATC non compariva mai e il filtro non filtrava, e nessun test
+        // se ne accorgeva perche' nessuno guardava i flag DOPO la traduzione.
+        var memoria = new MemoriaFinta().Nota("Titolo", "Title");
+        var doc = Documento("Titolo", new SectionView
+        {
+            Id = "s-1", Title = "Sezione", Depth = 0, SectionKey = "coordination",
+            Audience = SectionAudience.Controllers,
+            IsHidden = true, BeforeParentBody = true, LeadSentence = true,
+            Blocks = Array.Empty<BlockView>(), Children = Array.Empty<SectionView>(),
+        });
+
+        var esito = await new DocumentTranslator(memoria).TranslateAsync(doc, "it", "en");
+        var sez = esito.View.Sections[0];
+
+        Assert.Equal(SectionAudience.Controllers, sez.Audience);
+        Assert.True(sez.IsHidden);
+        Assert.True(sez.BeforeParentBody);
+        Assert.True(sez.LeadSentence);
+    }
+
     // ---- Quel che NON si tocca -----------------------------------------------------------------------
 
     [Fact]

@@ -11,6 +11,7 @@
 @inject Vipi.Application.Translation.DocumentTranslator Translator
 @using Vipi.Ui.Shared
 @using System.Globalization
+@using Vipi.Application.Content
 
 @if (_acc is null)
 {
@@ -38,6 +39,8 @@ else if (_foreign.Length > 0)
                                PublicHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}")"
                                DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}&as=draft")" />
             }
+            <AudienceChip Visibile="_haMarcate" Vista="_vista"
+                          BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}")" />
             <TranslationNotice Coverage="_copertura" />
             <VloaDocumentView View="_view" DocId="_viewDocId" UseFrozen="_useFrozen" IsDraft="@(_mode.Kind == PreviewKind.Draft)"
                               ReleaseId="@(_mode.Kind == PreviewKind.Release ? _mode.ReleaseId : null)"
@@ -92,6 +95,9 @@ else
     [SupplyParameterFromQuery(Name = "acc")] public string? Neighbour { get; set; }
     [SupplyParameterFromQuery(Name = "as")] public string? As { get; set; }
 
+    /// <summary>La vista di lettura: «pilota», «atc», o assente per il documento intero (carta vSOP §3).</summary>
+    [SupplyParameterFromQuery(Name = "vista")] public string? Vista { get; set; }
+
     private AccInfo? _acc;
     private string _foreign = "";
     private DocumentView? _view;
@@ -100,6 +106,8 @@ else
     private bool _useFrozen;   // vista pubblica vLOA: derivate frozen dalla release effettiva (doc 10 §3d)
     private Vipi.Application.Translation.TranslationCoverage _copertura =
         Vipi.Application.Translation.TranslationCoverage.Nessuna;
+    private Vipi.Domain.SectionAudience? _vista;
+    private bool _haMarcate;
     private PreviewMode _mode;
     private string? _relCycle;
     private IReadOnlyList<VloaRow> _vloas = Array.Empty<VloaRow>();          // tutte (per la risoluzione doc: preview/draft editor)
@@ -166,6 +174,23 @@ else
                 var tradotto = await Translator.TranslateAsync(_view, "en", lettore);
                 _view = tradotto.View;
                 _copertura = tradotto.Coverage;
+            }
+
+            // ---- Filtro pilota / ATC (carta vSOP militari §3) ---------------------------------------
+            // ⚠️ DOPO la traduzione, non prima: si filtra la vista che il lettore vedra' davvero, e la
+            // marcatura viaggia sulla sezione, quindi sopravvive alla traduzione intatta.
+            _vista = AudienceFilter.Leggi(Vista);
+            _haMarcate = false;
+            if (_view is not null)
+            {
+                _haMarcate = AudienceFilter.HaSezioniMarcate(_view.Sections);
+                var filtrate = AudienceFilter.Filtra(_view.Sections, _vista);
+                if (!ReferenceEquals(filtrate, _view.Sections))
+                    _view = new DocumentView
+                    {
+                        Title = _view.Title, AiracCycle = _view.AiracCycle, Sections = filtrate,
+                        Language = _view.Language, Translations = _view.Translations,
+                    };
             }
 
             _viewDocId = row.DocId;

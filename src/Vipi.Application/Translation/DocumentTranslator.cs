@@ -134,6 +134,11 @@ public sealed class DocumentTranslator
         IsHidden = s.IsHidden,
         BeforeParentBody = s.BeforeParentBody,
         LeadSentence = s.LeadSentence,
+        // ⚠️ Anche il destinatario: questa classe RICOSTRUISCE le sezioni, e ogni flag per-sezione che non
+        // si ricopia qui viene azzerato dalla traduzione — in silenzio, perché il default è quello «buono»
+        // (Both) e la pagina continua a rendersi. Costato una prova live: la chip non compariva mai su un
+        // documento tradotto, e il filtro non filtrava.
+        Audience = s.Audience,
         Blocks = s.Blocks.Select(b => TraduciBlocco(b, traduci)).ToList(),
         Children = s.Children.Select(c => TraduciSezione(c, traduci)).ToList(),
     };

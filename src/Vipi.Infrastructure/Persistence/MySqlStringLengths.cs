@@ -106,6 +106,11 @@ public static class MySqlStringLengths
             // OnModelCreating li mappa con SetProviderClrType(typeof(string)): sono colonne stringa
             // indicizzate senza sembrarlo guardando il tipo CLR. È la trappola che il piano segnala, ed è
             // il motivo per cui il test guarda il tipo provider e non quello CLR.
+            // ⚠️ `Audience` non è indicizzata, ma ha un VALORE DI DEFAULT: su MySQL una colonna con default
+            // non può essere longtext, e senza lunghezza il CREATE TABLE si ferma. È lo stesso presidio
+            // degli indici, per un motivo diverso — e l'ha colto il test, non una prova a mano.
+            // Il valore più lungo è `Controllers` (11).
+            [("DocumentSection", "Audience")] = EnumChars,
             [("Document", "Type")] = 32,                   // misurato 4 (`Vipi`)
             [("Document", "Status")] = 32,                 // misurato 9 (`Published`)
             // Non è indicizzata: sta qui perché ha un DEFAULT. In MySQL una colonna BLOB/TEXT non può

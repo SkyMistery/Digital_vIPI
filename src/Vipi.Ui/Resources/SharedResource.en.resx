@@ -2473,4 +2473,13 @@
   <data name="Tr_NothingToReviewHint" xml:space="preserve"><value>Every translation for this language pair has been reviewed by a person.</value></data>
   <data name="Tr_TouchesDocs" xml:space="preserve"><value>This correction applies to the sentence, not to one document: it touches {0} documents. The others will show it at their next republication.</value></data>
   <data name="Tr_Saved" xml:space="preserve"><value>Correction saved. It applies to {0} documents and the machine will not overwrite it.</value></data>
+  <data name="Aud_All" xml:space="preserve"><value>Everything</value></data>
+  <data name="Aud_Pilots" xml:space="preserve"><value>Pilot</value></data>
+  <data name="Aud_Controllers" xml:space="preserve"><value>ATC</value></data>
+  <data name="Aud_ChipAria" xml:space="preserve"><value>What to show of this document</value></data>
+  <data name="Aud_BadgePilots" xml:space="preserve"><value>pilots only</value></data>
+  <data name="Aud_BadgeControllers" xml:space="preserve"><value>ATC only</value></data>
+  <data name="Aud_EditorLabel" xml:space="preserve"><value>Intended for</value></data>
+  <data name="Aud_EditorHint" xml:space="preserve"><value>Readers can filter the document by audience. ⚠️ This is not access control: the document stays public and anyone can open the other view.</value></data>
+  <data name="Aud_FilteredNotice" xml:space="preserve"><value>You are reading the {0} view. Sections meant only for the other role are hidden.</value></data>
 </root>

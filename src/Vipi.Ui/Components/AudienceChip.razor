@@ -1,0 +1,49 @@
+@using Vipi.Application.Content
+@using Vipi.Domain
+@inject IStringLocalizer<SharedResource> L
+
+@* ---- Tutto · Pilota · ATC (carta vSOP militari §3) --------------------------------------------------
+
+   ⚠️ TRE COLLEGAMENTI, NON TRE BOTTONI, e non è una scelta di stile.
+
+   1. La pagina pubblica è SSR STATICA: un bottone che cambia stato lì dentro non parte, perché lo stato
+      che cambia deve vivere DENTRO l'isola che lo cambia. Un link invece naviga, e la pagina si ridisegna
+      per intero col filtro applicato -- senza isole, senza circuito, senza JavaScript.
+   2. Un link filtrato è CONDIVISIBILE. È probabilmente il valore vero della funzione: la divisione manda
+      ai piloti l'indirizzo della vista pilota, e chi lo apre vede quello.
+   3. Sopravvive al ricaricamento e al tasto «indietro» del browser, che è come la gente legge davvero.
+
+   ⚠️ La chip compare SOLO se il documento ha almeno una sezione marcata: altrimenti sarebbe un selettore
+   che non filtra niente, rumore su ogni pagina italiana per una funzione che ne riguarda poche. *@
+
+@if (Visibile)
+{
+    <nav class="aud-chip" aria-label="@L["Aud_ChipAria"]">
+        <a class="btn ghost @(Vista is null ? "on" : "")" href="@Href(null)"
+           aria-current="@(Vista is null ? "true" : null)">@L["Aud_All"]</a>
+        <a class="btn ghost @(Vista == SectionAudience.Pilots ? "on" : "")" href="@Href(SectionAudience.Pilots)"
+           aria-current="@(Vista == SectionAudience.Pilots ? "true" : null)">@L["Aud_Pilots"]</a>
+        <a class="btn ghost @(Vista == SectionAudience.Controllers ? "on" : "")" href="@Href(SectionAudience.Controllers)"
+           aria-current="@(Vista == SectionAudience.Controllers ? "true" : null)">@L["Aud_Controllers"]</a>
+    </nav>
+}
+
+@code {
+    /// <summary>Vero se il documento ha almeno una sezione marcata. Falso = la chip non si disegna.</summary>
+    [Parameter, EditorRequired] public bool Visibile { get; set; }
+
+    /// <summary>La vista corrente; null = «tutto».</summary>
+    [Parameter] public SectionAudience? Vista { get; set; }
+
+    /// <summary>L'indirizzo della pagina SENZA il parametro <c>vista</c>: la chip ce lo aggiunge.
+    /// <para>⚠️ Deve arrivare già ripulito dal chiamante, che è l'unico a sapere quali altri parametri
+    /// della sua pagina vanno conservati — <c>?acc=</c> su una vLOA, <c>?as=draft</c> in anteprima.</para></summary>
+    [Parameter, EditorRequired] public string BaseHref { get; set; } = "";
+
+    private string Href(SectionAudience? v)
+    {
+        var q = AudienceFilter.Query(v);
+        if (q is null) return BaseHref;
+        return BaseHref + (BaseHref.Contains('?') ? "&" : "?") + "vista=" + q;
+    }
+}
