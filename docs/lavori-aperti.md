@@ -3179,7 +3179,53 @@ statiche, fermandosi alle isole. Nessun altro comando muto; i quattro candidati 
 `AppFrequencies`, `AppSeparations`, `AppVfr`) hanno i gestori dentro il ramo `Editing`, che nel viewer è
 `false`.
 
-### P3 🟢 APERTO — decidere come fondere
+### P3 ✅ CHIUSO — fuso il 28 agosto 2026
 
-Il ramo porta **due lavori indipendenti**. Fusione in un colpo solo, oppure scorporo in due rami: è una scelta
-di comodità del committente, non un vincolo tecnico. Nessuna migrazione nuova, nessun dato toccato.
+Fuso in main insieme ai documenti bilingue (`0c81e61`), in un colpo solo. Ramo locale cancellato.
+⚠️ `origin/basemap-esri` **resta**: finché `main` non è spinto, quel ramo remoto è l'unica copia sul
+server di quel lavoro.
+
+---
+
+## Q. I documenti bilingue — 28 agosto 2026
+
+Carta: [feature/2026-08-27-documenti-bilingue.md](feature/2026-08-27-documenti-bilingue.md).
+✅ **Tutte e dieci le slice chiuse e fuse in main** (`0c81e61`), suite 6379 verdi.
+
+### Q1 🔴 APERTO — i termini di ritenzione dati del piano gratuito Azure
+
+Da leggere prima di considerare la funzione «in produzione». ⚠️ La ritenzione sul piano gratuito **non è**
+quella del piano a pagamento, e DeepL ha appena dimostrato quanto i termini cambino (da 500k/mese a
+1M una tantum, mentre si scriveva la carta).
+
+### Q2 🔴 APERTO — la domanda a IVAO HQ sul trattamento esterno
+
+Mandare i testi a un terzo è trattamento esterno. I documenti sono pubblici, e VID e nomi non escono per
+costruzione, ma **HQ ha già posto un vincolo contrattuale sui PDF**: meglio chiedere prima che dopo.
+
+### Q3 🟢 APERTO — chi cura il glossario di fraseologia
+
+Serve **un nome**, non un ruolo. È l'unica delle tre voci aperte che, se resta scoperta, **si vede sul
+documento**: finché nessuno rilegge, il badge «traduzione non revisionata» non se lo toglie nessuno, e
+misurato contro il servizio vero «riporta sottovento» resta «bring it back downwind» — grammatica giusta,
+fraseologia sbagliata, e nessuno se ne accorge leggendo.
+
+### Q4 🟢 APERTO — la vLOA dovrebbe smettere di nascere in inglese
+
+Deciso il 28 agosto 2026, **da fare dopo**. Se la lingua sorgente è «quella in cui si redige» — criterio
+adottato dal documento militare (vSOP militari §1d) — allora la **vLOA è l'unico documento che nasce
+`Language.En`**, residuo di quando l'inglese era l'unico modo di renderla leggibile alla controparte
+estera: problema che la traduzione ha risolto.
+
+⚠️ **Non è un cambio di una riga.** Le vLOA esistenti sono *scritte* in inglese: ribaltarne la lingua
+sorgente senza riscriverne il contenuto renderebbe la memoria di traduzione **inutile su tutto quel
+corpus** — le impronte sono del testo inglese, e cercarle come italiano non troverebbe niente. Vuole un
+giro suo, con un travaso pensato.
+
+### Q5 🟢 APERTO — il rosso intermittente nella corsa dell'intera soluzione
+
+Comparso **cinque volte su sette** corse complete di `dotnet test Vipi.slnx`, sempre in un progetto
+diverso (`Vipi.Ui.Tests`, `Vipi.E2E.Tests`), **mai lo stesso test**, mai riproducibile. Ogni progetto passa
+al 100% da solo (662/662, 227/227) e una corsa con file di risultati non ha registrato **nessun** test
+fallito. Non è la funzione bilingue, che non tocca quei percorsi: sembra contesa fra progetti in
+parallelo. Va guardato per conto suo, perché rende inaffidabile il segnale della suite completa.

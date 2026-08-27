@@ -14,7 +14,12 @@ libero: è un **profilo di catalogo**, esattamente come App, AccAerovia, Vloa e 
 E non è il profilo `Airport`: su venti sezioni militari, con quello civile ne condivide **due**
 (`frequencies`, `runways`) e anche quelle con colonne diverse — le frequenze militari portano CRC/GCI/AEW
 (`LIVK_CRC_CTR`, `LIZZ_AEW_CTR`) che nel catalogo settori non esistono, le piste sono coordinate di soglia
-che `AirportRunway` non ha. Più: sono **in inglese**, e `Document.Language` è fisso per documento.
+che `AirportRunway` non ha.
+
+⚠️ **I PDF di partenza sono in inglese, ma il documento nostro no** — vedi §1d. Fino al 28 agosto 2026
+questa carta contava la lingua fra le ragioni per separare i due profili; da quando i documenti si leggono
+in due lingue quell'argomento non serve più, e le due ragioni che restano — venti sezioni diverse e cicli
+AIRAC indipendenti — bastano da sole.
 
 Da qui: **documento separato**, non sezioni innestate nel documento civile.
 
@@ -65,39 +70,73 @@ domanda «di che edizione è questo documento» continua ad avere **una** rispos
 arriva dopo). Nel `SectionCatalog` il profilo **rimanda** a quello civile invece di ricopiarne l'array —
 due elenchi che devono restare uguali divergono, è già successo fra `VloaSections` e il registro.
 
+### 1d. ⚠️ Il documento militare nasce in ITALIANO — decisione del 28 agosto 2026
+
+Questa carta diceva `Language.En`, perché i quindici PDF di partenza sono in inglese. **Non vale più.**
+
+Dal 28 agosto i documenti si **scrivono in una lingua e si leggono in due**
+([[../feature/2026-08-27-documenti-bilingue.md]]): la lingua sorgente non è più «la lingua in cui il
+lettore lo vedrà», è **la lingua in cui lo si redige**. E chi redige è la divisione italiana.
+
+Quindi `DocumentBirth.Crea(..., Language.It, SectionProfile.AirportMil, ...)`, e un lettore inglese lo
+ottiene tradotto come qualunque altro documento.
+
+**Ne discendono tre cose, e la prima va applicata subito.**
+
+1. **I titoli delle 24 sezioni sono in italiano** (§2). Erano in inglese *proprio perché* il documento
+   nasceva `En`: cambiata la premessa, cambia la conclusione. L'originale inglese resta scritto accanto a
+   ciascuno, perché serve a chi trascrive dal PDF.
+2. **Il verso della traduzione si inverte**: it→en invece di en→it. Nessun codice da cambiare — la
+   direzione la decide `Document.Language` — ma è il verso che il giro schedulato riempirà.
+3. **Il congelamento** della prosa generata avverrà in italiano (`ReadingLanguageContext` prende la lingua
+   sorgente del documento al publish), e un lettore inglese la ricomporrà live.
+
+### ⚠️ Lavoro aperto: lo stesso criterio vale per gli ALTRI documenti
+
+Deciso il 28 agosto 2026, **da fare dopo**: se la lingua sorgente è «quella in cui si redige», allora la
+**vLOA non dovrebbe più nascere `Language.En`**. Oggi è l'unico documento che nasce inglese, ed è un
+residuo di quando l'inglese era l'unico modo di renderla leggibile alla controparte estera — un problema
+che la traduzione ha risolto.
+
+Non si cambia in questo giro: le vLOA esistenti sono **scritte** in inglese, e ribaltarne la lingua
+sorgente senza riscriverne il contenuto renderebbe la memoria di traduzione inutile su tutto quel corpus
+(le impronte sono del testo inglese, e cercarle come italiano non troverebbe niente). Vuole un giro suo,
+con un travaso pensato.
+
 ## 2. Le sezioni del profilo `AirportMil`
 
-Titoli in inglese (`Language.En`). `H` = corpo dalla pagina, `D` = corpo dai blocchi, `HB` = scheda dalla
-pagina **più** blocchi propri. **In grassetto le chiavi riusate** dal catalogo esistente.
+Titoli in **italiano** (`Language.It`, vedi §1d), con accanto l'originale inglese del PDF — serve a chi
+trascrive. `H` = corpo dalla pagina, `D` = corpo dai blocchi, `HB` = scheda dalla pagina **più** blocchi
+propri. **In grassetto le chiavi riusate** dal catalogo esistente.
 
 | # | Chiave | Titolo | Corpo | Note |
 |---|---|---|---|---|
 | 1 | **`weather`** | METAR & TAF | H | ✚ *non è nel PDF*: METAR/TAF live. Sempre-live, costo zero, nascondibile |
-| 2 | `generaldata` | General Data | D | contenitore |
-| 2.1 | `navaids` | Navaids | D | tabella Type/Name/Freq/Coordinates |
-| 2.2 | **`frequencies`** | ATC/CRC Freqs | **HB** | derivata: posizioni IVAO dello scalo · blocchi: CRC/GCI/AEW, che il catalogo settori non ha |
-| 2.3 | `diversion` | Diversion Airfields | D | Airport/Navaid/Bearing/Distance |
-| 2.4 | **`runways`** | Runways | **HB** | derivata: ident/lunghezza/QFU dall'anagrafica · blocchi: coordinate soglie (`AirportRunway` non le ha) |
-| 2.5 | **`transition`** | Transition Altitude/Level | H | ✚ *non è nel PDF*: TA + tabella TL per fascia QNH |
-| 2.6 | `callsigns` | Callsigns | D | Squadron / OAT c/s / GAT c/s |
-| 3 | `groundprocedures` | Ground Procedures | D | contenitore |
-| 3.1 | `parkings` | Parkings | D | |
-| 3.2 | `enginestart` | Engine Start | D | |
-| 3.3 | `taxiing` | Taxiing | D | **immagini**: Apron flow, Manoeuvring area flow |
-| 3.4 | `arming` | Arming/Dearming | D | |
-| 4 | `flightprocedures` | Flight Procedures | D | contenitore |
-| 4.1 | `takeoff` | Takeoff Restrictions | D | |
-| 4.2 | `sfo` | SFO / Precautional Circuit | D | |
-| 4.3 | `commfail` | Commfail | D | |
-| 4.4 | `gca` | GCA Circuit | D | |
-| 4.5 | `vfrjet` | VFR Jet Entry/Exit Gates and Circuits | D | **immagini** + tabella significant points |
-| 4.6 | `ifrsignificant` | Instrumental Procedures Significant Points | D | |
-| 4.7 | `gat` | IFR GAT Dep/Arr | D | |
-| 4.8 | `qra` | QRA / Scramble | D | ✚ *non è nel PDF* — vedi sotto |
-| 5 | **`regulated`** | Working Areas | **HB** | la mappa AoR con le chip per area **è già** quello che il PDF disegna a mano; sotto la prosa |
-| 5.1 | **`operationaltechnique`** | General Procedures | D | dep/arr come blocchi o sotto-sezioni |
-| 5.2 | `lowlevel` | Low Level (BOAT) | D | aree tattiche dove si vola il BOAT — 9 SOP su 15 |
-| 6 | **`validity`** | Validity and Revision | HB | obbligatoria, timbra ciclo e release |
+| 2 | `generaldata` | Dati generali <br><small>*General Data*</small> | D | contenitore |
+| 2.1 | `navaids` | Radioassistenze <br><small>*Navaids*</small> | D | tabella Type/Name/Freq/Coordinates |
+| 2.2 | **`frequencies`** | Frequenze ATC/CRC <br><small>*ATC/CRC Freqs*</small> | **HB** | derivata: posizioni IVAO dello scalo · blocchi: CRC/GCI/AEW, che il catalogo settori non ha |
+| 2.3 | `diversion` | Aeroporti alternati <br><small>*Diversion Airfields*</small> | D | Airport/Navaid/Bearing/Distance |
+| 2.4 | **`runways`** | Piste <br><small>*Runways*</small> | **HB** | derivata: ident/lunghezza/QFU dall'anagrafica · blocchi: coordinate soglie (`AirportRunway` non le ha) |
+| 2.5 | **`transition`** | Quote di transizione <br><small>*Transition Altitude/Level*</small> | H | ✚ *non è nel PDF*: TA + tabella TL per fascia QNH |
+| 2.6 | `callsigns` | Nominativi <br><small>*Callsigns*</small> | D | Squadron / OAT c/s / GAT c/s |
+| 3 | `groundprocedures` | Procedure di terra <br><small>*Ground Procedures*</small> | D | contenitore |
+| 3.1 | `parkings` | Parcheggi <br><small>*Parkings*</small> | D | |
+| 3.2 | `enginestart` | Messa in moto <br><small>*Engine Start*</small> | D | |
+| 3.3 | `taxiing` | Rullaggio <br><small>*Taxiing*</small> | D | **immagini**: Apron flow, Manoeuvring area flow |
+| 3.4 | `arming` | Armamento/disarmo <br><small>*Arming/Dearming*</small> | D | |
+| 4 | `flightprocedures` | Procedure di volo <br><small>*Flight Procedures*</small> | D | contenitore |
+| 4.1 | `takeoff` | Restrizioni al decollo <br><small>*Takeoff Restrictions*</small> | D | |
+| 4.2 | `sfo` | Circuito SFO/precauzionale <br><small>*SFO / Precautional Circuit*</small> | D | |
+| 4.3 | `commfail` | Avaria comunicazioni <br><small>*Commfail*</small> | D | |
+| 4.4 | `gca` | Circuito GCA <br><small>*GCA Circuit*</small> | D | |
+| 4.5 | `vfrjet` | Porte e circuiti VFR jet <br><small>*VFR Jet Entry/Exit Gates and Circuits*</small> | D | **immagini** + tabella significant points |
+| 4.6 | `ifrsignificant` | Punti significativi strumentali <br><small>*Instrumental Procedures Significant Points*</small> | D | |
+| 4.7 | `gat` | Partenze/arrivi IFR GAT <br><small>*IFR GAT Dep/Arr*</small> | D | |
+| 4.8 | `qra` | QRA / Scramble <br><small>*QRA / Scramble*</small> | D | ✚ *non è nel PDF* — vedi sotto |
+| 5 | **`regulated`** | Aree di lavoro <br><small>*Working Areas*</small> | **HB** | la mappa AoR con le chip per area **è già** quello che il PDF disegna a mano; sotto la prosa |
+| 5.1 | **`operationaltechnique`** | Procedure generali <br><small>*General Procedures*</small> | D | dep/arr come blocchi o sotto-sezioni |
+| 5.2 | `lowlevel` | Bassa quota (BOAT) <br><small>*Low Level (BOAT)*</small> | D | aree tattiche dove si vola il BOAT — 9 SOP su 15 |
+| 6 | **`validity`** | Validità e revisione <br><small>*Validity and Revision*</small> | HB | obbligatoria, timbra ciclo e release |
 
 **Sei sezioni riusate su ventiquattro**, e due (`regulated`, `frequencies`) riusano anche il **motore**,
 non solo la chiave.
@@ -254,8 +293,29 @@ Regola del 2: i due registry esistono già, e adesso si guadagnano lo stipendio.
 
 ## 7. Trappole già note
 
-1. **Il catch-all dell'aeroporto** (§1a): `AirportReleaseTarget.TryDescribe` accetta qualunque `Document`
-   vIPI. Ogni target militare deve avere `DescribeOrder` più basso **e** il controllo su `Edition`.
+1. **Il catch-all dell'aeroporto** (§1a) — ✅ **soluzione approvata dal committente il 28 agosto 2026**,
+   da applicare nella slice 8.
+
+   `AirportReleaseTarget.TryDescribe` accetta **qualunque** `Document` vIPI non riconosciuto come APP o
+   ACC: è il catch-all, e ha `DescribeOrder = 3`, il più alto. Senza intervento ogni documento militare ci
+   finirebbe dentro **in silenzio**, e la diagnosi sarebbe «l'aeroporto mostra il documento sbagliato» —
+   lo stesso guasto già pagato con l'APP standalone.
+
+   **La soluzione è a due mani, e servono entrambe:**
+
+   | | Che cosa | Perché non basta l'altra da sola |
+   |---|---|---|
+   | **a** | `AirportMilReleaseTarget` e `AppMilReleaseTarget` hanno `DescribeOrder` **più basso di tutti** (0) | l'ordine da solo non basta: un documento militare che i due target militari *non* riconoscono ricadrebbe comunque nel catch-all |
+   | **b** | Ogni `TryDescribe` — militare **e civile** — controlla `doc.Edition` come **prima** riga | il controllo da solo non basta: senza l'ordine, il catch-all civile verrebbe interrogato prima e il test su `Edition` non lo raggiungerebbe mai |
+
+   ⚠️ **Il controllo va messo anche sui target CIVILI**, non solo sui nuovi. È la metà che si dimentica:
+   aggiungere `Edition == Military` ai militari lascia i civili disposti ad accettare un documento
+   militare, e l'ordine è l'unica cosa che lo impedirebbe. Due difese indipendenti, ognuna sufficiente —
+   la stessa forma delle due guardie sulle corse del `DbContext`.
+
+   ⚠️ **Serve un test che lo pretenda**, non solo il codice: un `Document` con `Edition = Military` passato
+   a `AirportReleaseTarget.TryDescribe` deve tornare `false`. Senza, la regressione è muta — il catch-all
+   non fallisce, risponde.
 2. **`ReleaseTargetType` è persistito** nelle `DocReleases`: i valori nuovi vanno **in coda** all'enum,
    mai inseriti in mezzo.
 3. **Immagini**: apron flow, manoeuvring flow, circuiti VFR sono figure. `MediaAsset`/`IMediaStore`
