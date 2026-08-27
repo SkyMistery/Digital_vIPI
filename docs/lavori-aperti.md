@@ -153,9 +153,9 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 mattina (§B12), e da lì è partito un giro nuovo — l'**audit dei quattro documenti**, §L — che è a sua volta
 in `main`. Oggi: **un albero solo, zero rami**, `main` allineato a `origin/main`.
 
-Il **cutover MariaDB** è in `main` e verificato (A1–A8). Le sezioni **B**, **C** (tranne C6/C7),
-**D**, **G** sono chiuse o chiuse-con-la-ragione-scritta. **I** è sospesa di proposito, **J**, **K** e **L**
-sono chiuse.
+Il **cutover MariaDB** è in `main` e verificato (A1–A8). Le sezioni **B**, **C**, **D**, **G**, **H** sono
+chiuse o chiuse-con-la-ragione-scritta (C6, C7 e le due voci UI il 27 pomeriggio, §M). **I** è sospesa di
+proposito, **J**, **K**, **L** e **M** sono chiuse.
 
 ⚠️ **Le migrazioni in coda al cutover sono DICIANNOVE**, non diciassette: la fusione dell'audit versioni &
 release ne ha portate due (`UniqueReleaseNumberPerTarget`, doppia emissione). ⚠️ Datate **25-ago 15:19**,
@@ -2110,6 +2110,10 @@ dell'audit non fa parte: è saltata fuori verificando il lavoro sui coordinament
 ([feature/2026-08-23-live-coordinamenti-a-colonne.md](feature/2026-08-23-live-coordinamenti-a-colonne.md)),
 ed è un difetto che stava lì da prima.
 
+✅ **27 agosto 2026, pomeriggio: la sezione H è chiusa tutta.** Le ultime due — **H3** (la testata che
+sborda) e **H1** (le `@media` cieche allo zoom degli editor) — stanno in **§M**, con quello che è saltato
+fuori chiudendole: il `DeleteDialog` che impedisce la `@container`, e il riquadro che Blazor rifà.
+
 **La sezione è diventata il posto dove finisce l'UI aperta**, non solo l'audit di quel giorno. Stato al 25
 agosto, sera: **H1** e **H3** aperte come allora · **H2** ✅ **chiusa** — erano due difetti, non uno, e il
 secondo l'ha trovato il martello a 2 milioni di giri · **H4** chiusa · **H5** ✅ **chiusa** — il VID è un
@@ -2837,8 +2841,9 @@ Tutti e tre invisibili a chi legge il codice, perché le due metà stavano lonta
 
 ## M. I resti, chiusi in un giro — 27 agosto 2026, pomeriggio
 
-Sei voci che erano rimaste indietro perché piccole o perché nessuno sapeva da dove prenderle: **C7c, C7a,
-C7b, C6, H3, H1, E9**. Nessuna migrazione. Suite net8 **2992**, build Release `--no-incremental` **0 avvisi**.
+Sette voci rimaste indietro perché piccole, o perché nessuno sapeva da dove prenderle: **C7c, C7a, C7b, C6,
+H3, H1, E9**. Nessuna migrazione. Suite **5746** (net8 **2992**, net10 **2754**), build Release
+`--no-incremental` **0 avvisi**. Sei commit, fusi in `main` (**`290b833`**) e ramo cancellato.
 
 ### M1 ✅ C7c — un ACC estero nasce con le aree SPENTE
 

@@ -9,8 +9,9 @@
 strutturali mute), **C6** (la chiave di release che si sposta ora si **ripunta**), **H3** e **H1** (le due
 misure sbagliate dell'interfaccia) ed **E9**, dove la corsa sul `DbContext` si è finalmente **riprodotta**:
 la prima operazione è `HasAnyGrantAsync`, la domanda «hai qualcosa da modificare?» del layout. Racconto in
-`docs/lavori-aperti.md` **§M**. Suite **2992** su net8, build Release `--no-incremental` **0 avvisi**,
-**nessuna migrazione nuova** (restano diciannove).
+`docs/lavori-aperti.md` **§M**. Build Release `--no-incremental` **0 avvisi**, **nessuna migrazione nuova**
+(restano diciannove). Tutto fuso in `main` (**`290b833`**, spinto) e il ramo del giro è stato **cancellato**,
+locale e su origin: di nuovo un albero solo.
 
 ⚠️ **La trappola che §M lascia in eredità**: le due guardie della corsa (layout che conclude prima del render,
 pagina con scope proprio) **bastano ognuna da sola**. Chi ne togliesse una non vedrebbe rompersi niente.
@@ -20,8 +21,9 @@ fila del 26 sono stati fusi il 27 mattina (`docs/lavori-aperti.md` **§B12**), e
 un giro nuovo: l'**audit dei quattro documenti** (**§L**, carta
 [`docs/refactor/14-quattro-documenti.md`](docs/refactor/14-quattro-documenti.md)).
 
-**Suite 5714 verdi** sui due TFM, build **0 avvisi**. ⚠️ La cifra si **conta**, non si ricorda — e su net10
-due progetti non girano per costruzione (`Vipi.AuroraBridge.Tests` e `Vipi.E2E.Tests` sono net8 soli).
+**Suite 5746 verdi** sui due TFM — contate il 27 agosto pomeriggio: **2992** su net8 e **2754** su net10.
+⚠️ La cifra si **conta**, non si ricorda — e su net10 due progetti non girano per costruzione
+(`Vipi.AuroraBridge.Tests` e `Vipi.E2E.Tests` sono net8 soli: su net10 rispondono `NETSDK1005`, ed è atteso).
 ⚠️ Prima di credere a un conteggio: `grep "error MSB"`. Con un `Vipi.Host` acceso i suoi DLL sono bloccati,
 mezzo albero non compila e il totale cala di centinaia senza che il comando diventi rosso.
 
