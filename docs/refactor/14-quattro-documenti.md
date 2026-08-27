@@ -1,6 +1,7 @@
 # 14 — I quattro documenti: un motore solo 🟡
 
-> **Stato: OTTO PASSI SU OTTO ESEGUITI** (di P7 resta la sola marcatura dell'editor SID, dichiarata in §3g) (2026-08-27, branch `refactor/14-quattro-documenti`).
+> **Stato: CHIUSO** — otto passi su otto, più la domanda che P7 aveva lasciato aperta (§3i). Di P7 resta
+> la sola marcatura dell'editor SID, dichiarata in §3g. (2026-08-27, branch `refactor/14-quattro-documenti`).
 > Seguito di [11 — Uniformità dei tre documenti](11-uniformita-tre-documenti.md) e
 > [13 — Audit dei tre documenti](13-audit-tre-documenti.md). Quelli guardavano **tre** famiglie;
 > la vIPI d'aeroporto è entrata nel catalogo delle sezioni solo il 26 agosto
@@ -265,10 +266,8 @@ facile di perderlo.
   **cuori** — filtri e regole, cioè la parte che porta il rischio, con venti prove — e quella era la parte che
   rendeva l'editor non provabile. Muovere il resto è presentazione: costa 33 spostamenti di metodo e non
   compra niente finché nessuno deve riusarlo.
-- 🟡 **Una domanda aperta per il committente**, scritta in `DocumentBirth`: l'aeroporto punta
-  `CurrentVersionId` a una **bozza**, le altre tre lo lasciano null fino alla pubblicazione. Oggi non fa
-  danno, ma i due significati non coincidono e l'aeroporto usa quel puntatore per accendere e spegnere il
-  congelamento delle SID. Non si decide dentro un refactor.
+- ✅ La domanda che questo passo aveva lasciato aperta — il significato di `CurrentVersionId` — è **chiusa
+  in §3i**.
 
 ### 3h. Pulizia (🔸10, 🔸12, 🔸13)
 
@@ -276,6 +275,45 @@ facile di perderlo.
 pagine gli chiedono le URL. I commenti che mentono se ne vanno.
 
 ---
+
+### 3i. «Versione pubblicata corrente» vuol dire una cosa sola ✅
+
+⚠️ **Il quadro era diverso da come questa carta l'aveva scritto.** Non era «l'aeroporto contro le altre
+tre»: anche la **vLOA generata da «ACC confinanti»** puntava `CurrentVersionId` alla bozza appena creata.
+**Due porte su quattro.**
+
+E il campo **non ha due significati da conciliare**. `PublishAsync` lo scrive sulla versione pubblicata,
+l'eliminazione lo azzera: vuol dire *«la pubblicata»*. Le due nascite che lo puntavano a una bozza
+scrivevano una cosa falsa — un documento mai pubblicato che dichiarava di avere una versione pubblicata.
+
+⚠️ **Il motivo per cui sembrava una decisione, e non lo era.** L'unico lettore che dava al campo l'altro
+significato — «la versione su cui lavorare», in `CurrentSidsSectionAsync` — serviva a un **congelamento SID
+dedicato** che dal 26 agosto 2026 fa il toggle dell'editor condiviso. Aveva come soli chiamanti **quattro
+righe di test**: era codice morto sopravvissuto alla migrazione al catalogo. Tolto quello, la seconda scuola
+di pensiero non esisteva più.
+
+**Che cosa si è fatto**
+
+1. le due porte smettono di impostarlo: nasce `null` in tutte e quattro;
+2. via il congelamento SID dedicato (contratto, servizio, repository) — il test che lo copriva **non** è
+   stato cancellato ma riscritto sulla superficie che resta, perché provava due cose che valgono: le SID
+   nascono Live, e una seconda `Ensure` non rigenera niente;
+3. una **riconciliazione d'avvio** idempotente azzera il puntatore dove indica una versione non pubblicata.
+   ⚠️ Guarda lo stato della **versione**, non del documento: un documento archiviato che ha davvero
+   pubblicato qualcosa tiene il suo puntatore.
+
+⚠️ **Perché valeva la pena, visto che non si vedeva.** Ogni lettore pubblico ha un secondo cancello più
+forte (release effettiva, stato `Published`), ed è per questo che nessuno se n'era accorto. Il rischio è il
+**prossimo** lettore: chi si fida del nome del campo e non mette il secondo cancello si porta a casa una
+bozza.
+
+**`NascitaDocumentoParitaTests`** pone la stessa domanda a tutte e **quattro** le porte di nascita — «un
+documento appena nato non ha una versione pubblicata» — più la metà che manca: che dopo `PublishAsync` il
+campo ci sia e sia quello giusto. Senza quella, la prima si soddisferebbe non scrivendolo mai.
+
+**Prova sui dati veri** (copia del `vipi.db`, e poi attraverso l'avvio vero dell'applicazione): **1**
+puntatore azzerato — *vIPI LIBA Amendola*, mai pubblicata — i 12 corretti intatti, seconda passata **0**, e
+le **28 versioni** tutte al loro posto.
 
 ## 4. Passi di migrazione
 
@@ -289,6 +327,7 @@ pagine gli chiedono le URL. I commenti che mentono se ne vanno.
 | P6 | Le sezioni alla nascita le dice il catalogo | ⚠️5 | medio | ✅ |
 | P7 | L'aeroporto rientra nel modello | 🔸11 ⚠️6 🔸9 | alto | ✅ (resta la sola marcatura SID, §3g) |
 | P8 | Pulizia: enum, rotte, commenti | 🔸10 🔸12 🔸13 | medio | ✅ |
+| P9 | «Versione pubblicata» ha un significato solo (§3i) | — | basso | ✅ |
 
 Ogni passo è un commit, con build verde. P4 e P5 portano con sé le **prove di parità** (§5).
 
@@ -313,7 +352,7 @@ Ogni passo è un commit, con build verde. P4 e P5 portano con sé le **prove di 
 
 ## 6. Esito
 
-**Suite: 5432 → 5680 casi verdi** sui due TFM, build `0 avvisi`. Sette passi su otto eseguiti, un commit
+**Suite: 5432 → 5702 casi verdi** sui due TFM, build `0 avvisi`. Sette passi su otto eseguiti, un commit
 per passo.
 
 ### Verifica sul flusso reale (Fase 3 del runbook)
