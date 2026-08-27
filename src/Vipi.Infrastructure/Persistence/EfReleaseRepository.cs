@@ -206,6 +206,39 @@ public sealed class EfReleaseRepository : IReleaseRepository
             .Distinct()
             .ToListAsync(ct);
 
+    /// <inheritdoc />
+    public async Task<int> RepointKeyAsync(ReleaseTargetType type, string oldKey, string newKey,
+        CancellationToken ct = default)
+    {
+        oldKey = (oldKey ?? "").Trim();
+        newKey = (newKey ?? "").Trim();
+        if (oldKey.Length == 0 || newKey.Length == 0
+            || string.Equals(oldKey, newKey, StringComparison.OrdinalIgnoreCase)) return 0;
+
+        // La destinazione dev'essere vergine: vedi il perché sull'interfaccia.
+        if (await _db.DocReleases.AnyAsync(r => r.TargetType == type && r.TargetKey == newKey, ct)) return 0;
+
+        var righe = await _db.DocReleases.Where(r => r.TargetType == type && r.TargetKey == oldKey).ToListAsync(ct);
+        if (righe.Count == 0) return 0;
+
+        foreach (var r in righe) r.TargetKey = newKey;
+
+        // Gli incarichi puntano allo stesso bersaglio con la stessa chiave: lasciarli indietro vorrebbe dire
+        // una lista «Da fare» che manda su una pagina senza release. Si spostano nella stessa transazione.
+        foreach (var t in await _db.EditorTasks
+                     .Where(x => x.TargetType == type && x.TargetKey == oldKey).ToListAsync(ct))
+            t.TargetKey = newKey;
+
+        // ⚠️ Il giro che ripunta è quello notturno: attore 0, «non l'ha fatto una persona». Va nel registro
+        // lo stesso — è una riscrittura di puntatori su documenti pubblicati, e fra sei mesi la differenza
+        // fra «l'ha spostata il sistema» e «non si sa» è tutta qui.
+        AuditScribe.Write(_db, 0, AuditAction.Update, "DocRelease", $"{type}|{newKey}",
+            new { Da = oldKey, A = newKey, Righe = righe.Count });
+
+        await _db.SaveChangesAsync(ct);
+        return righe.Count;
+    }
+
     public async Task<int> PruneReleasesAsync(ReleaseTargetType type, string key, DateTime keepFromUtc, CancellationToken ct = default)
     {
         // Gli stati si ricalcolano PRIMA di potare: fra un salvataggio e l'altro invecchiano da soli — una

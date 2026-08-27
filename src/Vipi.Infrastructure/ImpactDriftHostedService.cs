@@ -53,8 +53,8 @@ public sealed class ImpactDriftHostedService : BackgroundService
 
         _log.LogInformation(
             "Deriva delle pubblicazioni: {Esaminati} documenti esaminati, {Aperti} segnalazioni aperte, " +
-            "{Chiusi} richiuse da sé, {Potati} righe chiuse potate.",
-            esito.Esaminati, esito.Aperti, esito.Chiusi, esito.Potati);
+            "{Chiusi} richiuse da sé, {Potati} righe chiuse potate, {Ripuntate} release ripuntate.",
+            esito.Esaminati, esito.Aperti, esito.Chiusi, esito.Potati, esito.Ripuntate);
 
         return true;
     }

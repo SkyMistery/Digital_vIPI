@@ -106,9 +106,13 @@ public class ImpactDriftTests : IAsyncLifetime
         Assert.Equal(ImpactKind.BrokenTarget, Assert.Single(await _impatti.ListOpenAsync(_docId)).Kind);
     }
 
-    /// <summary>Le release ci sono, ma sotto un'altra chiave: il pubblico non le trova. È il difetto C6.</summary>
+    /// <summary>
+    /// Le release ci sono, ma sotto un'altra chiave: il pubblico non le trova, e il documento pubblicato va
+    /// muto (difetto C6). Quando è inequivocabile — stesso documento, chiave nuova senza release — la chiave
+    /// si <b>ripunta</b>: la segnalazione non serve, perché il guasto è già riparato.
+    /// </summary>
     [Fact]
-    public async Task Una_Chiave_Spostata_Apre_ReleaseKeyMoved()
+    public async Task Una_Chiave_Spostata_Si_Ripunta_Da_Se()
     {
         var admin = new FakeAdmin(Gestito());
         var repo = new FakeReleaseRepo
@@ -117,8 +121,29 @@ public class ImpactDriftTests : IAsyncLifetime
             Chiavi = new[] { "LIRR|LIRR_VECCHIO_CTR" },         // ma altrove sì, e risolve a questo documento
         };
 
-        await Giro(admin, new FakeReleaseService(), repo, new FakeTargets(_docId)).RunAsync();
+        var esito = await Giro(admin, new FakeReleaseService(), repo, new FakeTargets(_docId)).RunAsync();
 
+        Assert.Equal(("LIRR|LIRR_VECCHIO_CTR", "LIRR|LIRR_NE_CTR"), repo.Ripuntamento);
+        Assert.Equal(1, esito.Ripuntate);
+        Assert.Empty(await _impatti.ListOpenAsync(_docId));    // riparato, non segnalato
+    }
+
+    /// <summary>⚠️ L'altra metà: se il ripuntamento è rifiutato — la chiave nuova ha già una sua storia di
+    /// pubblicazione — la scelta non è un calcolo, e la riga resta aperta per una persona.</summary>
+    [Fact]
+    public async Task Se_Non_Si_Puo_Ripuntare_Apre_ReleaseKeyMoved()
+    {
+        var admin = new FakeAdmin(Gestito());
+        var repo = new FakeReleaseRepo
+        {
+            Effettiva = null,
+            Chiavi = new[] { "LIRR|LIRR_VECCHIO_CTR" },
+            PuoRipuntare = false,
+        };
+
+        var esito = await Giro(admin, new FakeReleaseService(), repo, new FakeTargets(_docId)).RunAsync();
+
+        Assert.Equal(0, esito.Ripuntate);
         var riga = Assert.Single(await _impatti.ListOpenAsync(_docId));
         Assert.Equal(ImpactKind.ReleaseKeyMoved, riga.Kind);
         Assert.Equal("LIRR|LIRR_VECCHIO_CTR", riga.SourceKey);
@@ -186,6 +211,19 @@ public class ImpactDriftTests : IAsyncLifetime
     {
         public DocRelease? Effettiva { get; set; }
         public IReadOnlyList<string> Chiavi { get; set; } = Array.Empty<string>();
+
+        /// <summary>Falso = la chiave nuova ha già delle release (o comunque il ripuntamento è rifiutato):
+        /// è il caso in cui la decisione resta a una persona e la segnalazione deve restare aperta.</summary>
+        public bool PuoRipuntare { get; set; } = true;
+        public (string Da, string A)? Ripuntamento { get; private set; }
+
+        public Task<int> RepointKeyAsync(ReleaseTargetType type, string oldKey, string newKey, CancellationToken ct = default)
+        {
+            if (!PuoRipuntare) return Task.FromResult(0);
+            Ripuntamento = (oldKey, newKey);
+            Chiavi = new[] { newKey };
+            return Task.FromResult(1);
+        }
 
         public Task<DocRelease?> GetEffectiveAsync(ReleaseTargetType type, string key, DateTime atUtc, CancellationToken ct = default) =>
             Task.FromResult(Effettiva);

@@ -398,6 +398,8 @@ public class EditorTaskServiceTests
     {
         public Task<IReadOnlyList<string>> ListKeysWithReleasesAsync(ReleaseTargetType type, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+        public Task<int> RepointKeyAsync(ReleaseTargetType type, string oldKey, string newKey, CancellationToken ct = default) =>
+            Task.FromResult(0);
 
         private readonly string? _acc;
         public ReleasesFinte(string? acc) => _acc = acc;

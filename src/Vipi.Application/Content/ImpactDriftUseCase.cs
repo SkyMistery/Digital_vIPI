@@ -5,7 +5,10 @@ using Vipi.Domain.Services;
 namespace Vipi.Application.Content;
 
 /// <summary>Esito di un giro di deriva, per il log e per la diagnostica.</summary>
-public sealed record ImpactDriftResult(int Esaminati, int Aperti, int Chiusi, int Potati, int Stantii = 0);
+/// <param name="Ripuntate">Release rimesse sotto la chiave viva del loro bersaglio (C6). Non è un conteggio
+/// decorativo: è l'unica traccia, nel log del giro, di una SCRITTURA su documenti pubblicati.</param>
+public sealed record ImpactDriftResult(int Esaminati, int Aperti, int Chiusi, int Potati, int Stantii = 0,
+    int Ripuntate = 0);
 
 /// <summary>
 /// Il <b>rivelatore calcolato</b> della casella: confronta quel che la copia pubblicata dice con quel che
@@ -81,6 +84,7 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
         var attuali = new List<RaiseImpactInput>();
         var chiaviSpostate = new List<RaiseImpactInput>();
         var bersagliRotti = new List<RaiseImpactInput>();
+        var ripuntate = 0;
 
         foreach (var d in candidati)
         {
@@ -109,9 +113,23 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
             if (effettiva is null)
             {
                 if (await ChiaveSpostataAsync(d, docId, ct) is string vecchia)
+                {
+                    // Si RIPARA, non si segnala soltanto: la chiave è un puntatore, e finché resta indietro
+                    // la pagina pubblica di un documento pubblicato è muta. Il ripuntamento è lecito solo
+                    // quando è inequivocabile — stesso documento, chiave nuova senza release — e il
+                    // repository rifiuta gli altri casi ritornando 0.
+                    if (await _releaseRepo.RepointKeyAsync(d.ReleaseTarget, vecchia, d.ReleaseKey, ct) > 0)
+                    {
+                        ripuntate++;
+                        // La deriva di questo documento si guarda al giro prossimo: la copia pubblicata ora
+                        // si trova, e confrontarla adesso vorrebbe dire rileggere quel che si è appena scritto.
+                        continue;
+                    }
+
                     chiaviSpostate.Add(new RaiseImpactInput(
                         docId, ImpactKind.ReleaseKeyMoved, vecchia,
                         DocumentImpactService.Reasons.ReleaseKeyMoved, new[] { vecchia }));
+                }
                 continue;
             }
 
@@ -138,7 +156,8 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
             apertiDeriva + apertiChiavi + apertiRotti + apertiStantii,
             chiusiDeriva + chiusiChiavi + chiusiRotti + chiusiStantii,
             potati,
-            quantiStantii);
+            quantiStantii,
+            ripuntate);
     }
 
 

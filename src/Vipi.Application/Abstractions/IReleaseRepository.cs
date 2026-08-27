@@ -41,6 +41,27 @@ public interface IReleaseRepository
     /// rimaste scritte sotto una chiave che il documento non usa più (lavori-aperti C6).</summary>
     Task<IReadOnlyList<string>> ListKeysWithReleasesAsync(ReleaseTargetType type, CancellationToken ct = default);
 
+    /// <summary>
+    /// Ripunta le release scritte sotto <paramref name="oldKey"/> alla chiave <paramref name="newKey"/>, e
+    /// ritorna quante righe ha spostato (0 = non ne ha spostata nessuna).
+    ///
+    /// <para><b>Perché una release cambia chiave.</b> La chiave di una vIPI ACC è
+    /// <c>{acc}|{callsign del primario}</c> e quella di un APP <b>è</b> il callsign: le sposta un primario
+    /// che cambia o un settore riparentato. Le release restano allora scritte sotto la chiave vecchia, il
+    /// gate pubblico cerca quella nuova e non trova niente — <b>il documento pubblicato va muto</b>, senza
+    /// un errore e senza un rilievo (lavori-aperti C6).</para>
+    ///
+    /// <para>⚠️ Non è storia che si riscrive: <c>TargetKey</c> è un <b>puntatore</b>, quello con cui si
+    /// ritrova la copia pubblicata di un bersaglio. È la stessa ragione per cui la rinomina lo riscrive già
+    /// (<c>EfCallsignRenameService</c>); qui si chiude l'altra metà, quella che una rinomina non è.</para>
+    ///
+    /// <para>⚠️ <b>Rifiuta e ritorna 0 se la chiave nuova ha già delle release</b>: due storie di
+    /// pubblicazione sotto lo stesso bersaglio non si fondono da sole — i <c>VersionNumber</c> si
+    /// scontrerebbero (indice unico per bersaglio) e comunque quale sia la storia buona è una decisione, non
+    /// un calcolo. In quel caso resta la segnalazione, e la decide una persona.</para>
+    /// </summary>
+    Task<int> RepointKeyAsync(ReleaseTargetType type, string oldKey, string newKey, CancellationToken ct = default);
+
     /// <summary>Una release per Id (col payload), per anteprima/diff. null se inesistente.</summary>
     Task<DocRelease?> GetByIdAsync(int releaseId, CancellationToken ct = default);
 
