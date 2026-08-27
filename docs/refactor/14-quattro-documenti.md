@@ -1,6 +1,6 @@
 # 14 — I quattro documenti: un motore solo 🟡
 
-> **Stato: IN ESECUZIONE** (2026-08-27, branch `refactor/14-quattro-documenti`).
+> **Stato: SETTE PASSI SU OTTO ESEGUITI** (P7 aperto, con la rete pronta — §3g) (2026-08-27, branch `refactor/14-quattro-documenti`).
 > Seguito di [11 — Uniformità dei tre documenti](11-uniformita-tre-documenti.md) e
 > [13 — Audit dei tre documenti](13-audit-tre-documenti.md). Quelli guardavano **tre** famiglie;
 > la vIPI d'aeroporto è entrata nel catalogo delle sezioni solo il 26 agosto
@@ -216,11 +216,31 @@ Resta vero il rilievo 🔸9 nella sua parte sostanziale — la nascita del docum
 `EfAirportRepository` invece che dove nascono gli altri tre — e si chiude in **P7**, dove sta il resto del
 lavoro sull'aeroporto.
 
-### 3g. L'aeroporto rientra nel modello (🔸11, ⚠️6)
+### 3g. L'aeroporto rientra nel modello (🔸11, ⚠️6, 🔸9) — 🟡 **APERTO, con la rete pronta**
 
-Tre mosse indipendenti: i cinque componenti di sezione prendono `Editing` e i frammenti inline
-spariscono; l'elenco esce dalla rotta del documento; il selettore di pista diventa un'isola
-interattiva e il documento pubblico torna SSR statico.
+⚠️ **Rilievo corretto eseguendo.** La carta diceva «tre mosse indipendenti». Non lo sono: guardando il
+codice per farle, l'elenco degli aeroporti carica il **meteo in progressione dopo il render**
+(`_wxMini`, «la lista è già visibile, il meteo compare appena pronto») — quindi l'interattività su quella
+pagina **serve davvero**, e l'isola sul selettore di pista da sola non basterebbe a renderla statica.
+Elenco e documento condividono una rotta, e una pagina ha **un solo** render mode: finché stanno insieme,
+o è interattiva per tutti o si perde il meteo progressivo.
+
+Quindi ⚠️6 e la separazione della rotta sono **la stessa mossa**, non due:
+
+1. il documento d'aeroporto va su una rotta propria (`/{acc}/airports/vipi?icao=`, come `/apps/vipi?app=`),
+   l'elenco resta su `/{acc}/airports` e **resta interattivo**; serve la redirezione dai vecchi indirizzi,
+   che sono pubblici;
+2. il selettore di pista delle SID diventa un'**isola** (⚠️ i suoi parametri attraversano il confine
+   SSR→interattivo e devono essere serializzabili: `AirportSidView` va verificata a runtime, non a compilazione);
+3. i cinque componenti di sezione prendono `Editing` e i 523 righe di frammenti inline escono dalla pagina.
+   ⚠️ **Non tutti e cinque**: `AirportSids` ha una lettura da 70 righe e un editor da 251 (import + righe
+   manuali + scelta navaid). Unirli darebbe un componente peggiore di entrambi: là il modello giusto è
+   estrarre un `AirportSidsEditor` a parte, non fingere che siano lo stesso oggetto;
+4. la nascita del documento d'aeroporto lascia `EfAirportRepository` (🔸9).
+
+**La rete c'è**: `SezioniAeroportoTests` — dodici prove sulle cinque sezioni di lettura, scritte prima e
+non dopo, come pretende l'invariante #8 del runbook. Senza di essa nessuno dei quattro punti sopra era
+lecito: l'aeroporto non aveva un solo test diretto.
 
 ### 3h. Pulizia (🔸10, 🔸12, 🔸13)
 
@@ -231,16 +251,16 @@ pagine gli chiedono le URL. I commenti che mentono se ne vanno.
 
 ## 4. Passi di migrazione
 
-| # | Passo | Chiude | Rischio |
-|---|---|---|---|
-| P1 | La guardia della release sale nel servizio | ⚠️2 | basso |
-| P2 | La vLOA smette di piantare il ciclo AIRAC | ⛔1 | basso |
-| P3 | Lo snapshot si legge una volta per pagina | ⚠️3 | basso |
-| P4 | `DocumentEditorHost`: il guscio dell'editor | 🔸8 ⚠️7 | medio |
-| P5 | `DocumentSectionsView`: il ciclo del viewer | ⚠️4 | medio |
-| P6 | Le sezioni alla nascita le dice il catalogo | ⚠️5 | medio |
-| P7 | L'aeroporto rientra nel modello (+ la nascita del suo documento) | 🔸11 ⚠️6 🔸9 | alto |
-| P8 | Pulizia: enum, rotte, commenti | 🔸10 🔸12 🔸13 | medio |
+| # | Passo | Chiude | Rischio | Stato |
+|---|---|---|---|---|
+| P1 | La guardia della release sale nel servizio | ⚠️2 | basso | ✅ |
+| P2 | La vLOA smette di piantare il ciclo AIRAC | ⛔1 | basso | ✅ |
+| P3 | Lo snapshot si legge una volta per pagina | ⚠️3 | basso | ✅ |
+| P4 | `DocumentEditorHost`: il guscio dell'editor | 🔸8 ⚠️7 | medio | ✅ |
+| P5 | `DocumentSectionsView`: il ciclo del viewer | ⚠️4 | medio | ✅ |
+| P6 | Le sezioni alla nascita le dice il catalogo | ⚠️5 | medio | ✅ |
+| P7 | L'aeroporto rientra nel modello | 🔸11 ⚠️6 🔸9 | alto | 🟡 **rete pronta, esecuzione da avviare** |
+| P8 | Pulizia: enum, rotte, commenti | 🔸10 🔸12 🔸13 | medio | ✅ |
 
 Ogni passo è un commit, con build verde. P4 e P5 portano con sé le **prove di parità** (§5).
 
@@ -259,4 +279,40 @@ Ogni passo è un commit, con build verde. P4 e P5 portano con sé le **prove di 
   e dopo su `DocReleases`, `DocumentSections`, `ContentBlocks`.
 - **Misura di P3:** le letture su `DocReleases` per render della vIPI ACC di LIBB passano da 8 a 1.
 - **Invariante #7 del runbook:** nessun `catch { }` silenzioso introdotto; quello esistente in
-  `ToggleAllSections` va **tolto**, non spostato.
+  `ToggleAllSections` è stato **tolto**, non spostato.
+
+---
+
+## 6. Esito
+
+**Suite: 5432 → 5544 casi verdi** sui due TFM, build `0 avvisi`. Sette passi su otto eseguiti, un commit
+per passo.
+
+### Verifica sul flusso reale (Fase 3 del runbook)
+
+L'applicazione **vera**, pubblicata in Release e avviata su una **copia** del `vipi.db` di sviluppo
+(l'originale non è stato toccato):
+
+- all'avvio il log dice *«Tolte 8 righe "Effective from — AIRAC" scritte a mano nelle vLOA»* — P2 attraverso
+  il percorso d'avvio vero, non un test;
+- i **quattro** documenti pubblici rispondono 200 con contenuto vero: `/libb/vipi` (230 KB),
+  `/libb/apps/vipi?app=LIBA_APP`, `/libb/vloa?acc=LDZO`, `/libb/airports?icao=LIBR`;
+- **la guardia di P1 provata dal vivo**: la release di `LICC_APP` aperta sotto l'indirizzo di `LIBA_APP`
+  mostra Amendola, senza banner d'anteprima e senza una sola traccia del documento sbagliato.
+
+### ⚠️ Quel che solo la verifica live poteva trovare
+
+**Il difetto ⛔1 resta a schermo sui documenti già pubblicati, e la correzione non basta da sola.** La
+pagina pubblica legge lo **snapshot della release**, e la riconciliazione corregge il *documento*, non la
+fotografia già scattata: sulla vLOA `LIBB ↔ LDZO` il timbro dice `2608` e la tabella dello snapshot dice
+ancora `AIRAC 2607`.
+
+**Non si riscrivono gli snapshot**, ed è una scelta: una release «congela davvero» (doc 10), e
+riscriverne il payload a posteriori cambierebbe quel che un ciclo passato ha detto — un precedente peggiore
+del difetto. La strada giusta è **ripubblicare**, e il progetto ha già il meccanismo che lo chiede: il giro
+notturno `ImpactDriftUseCase` confronta il pubblicato col documento e apre `ReleaseDrift`, che compare in
+«Da fare» col tasto **Ripubblica** e si chiude da sé alla ripubblicazione. Verificato che funziona già su
+questa famiglia: i documenti vLOA 8 e 11 hanno la segnalazione aperta in archivio.
+
+🔵 **Da dire al committente:** le quattro vLOA vanno **ripubblicate** perché la correzione arrivi al
+pubblico. Sono quattro clic, e la lista «Da fare» le indicherà da sola dopo il primo giro notturno.
