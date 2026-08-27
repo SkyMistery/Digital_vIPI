@@ -199,6 +199,62 @@ in `/services/vsop/admin/diagnostics`, che serve per le foto rimaste indietro da
 
 ---
 
+## 2e. `Translation` — documenti bilingue (DeepL)
+
+Mappata su `TranslationOptions` (`src/Vipi.Application/Translation/TranslationOptions.cs`).
+Carta: [feature/2026-08-27-documenti-bilingue.md](../feature/2026-08-27-documenti-bilingue.md).
+
+```jsonc
+"Translation": {
+  "Enabled": false,              // spento di default: senza motore il sito mostra la lingua sorgente
+  "Targets": [ "it", "en" ],     // lingue offerte in lettura, oltre a quella sorgente del documento
+  "DeepL": {
+    "ApiKey": "",                // ⚠️ MAI qui: user-secrets in dev, variabile d'ambiente in produzione
+    "GlossaryId": "",            // glossario di fraseologia della divisione, se esiste
+    "BaseUrl": "",               // vuoto = dedotto dalla chiave (vedi sotto)
+    "EnglishVariant": "EN-GB",   // «EN» secco e' deprecato come bersaglio
+    "MaxTextsPerCall": 50
+  }
+}
+```
+
+| Chiave | Che cosa decide |
+|---|---|
+| `Enabled` | Spento, il sito **non e' rotto**: mostra i documenti nella lingua in cui sono scritti, come fa oggi. |
+| `Targets` | Le lingue offerte al lettore. La traduzione va in **entrambe le direzioni**: la vLOA nasce in inglese, e per lei l'italiano e' il bersaglio. |
+| `DeepL:ApiKey` | Vuota = motore non configurato. Ogni chiamata risponde `NotConfigured`, che non e' un errore. |
+| `DeepL:GlossaryId` | La difesa che conta sulla **qualita'**: «riporta sottovento» tradotto in modo plausibile ma non standard e' peggio di non tradotto, perche' nessuno se ne accorge. Va curato da un controllore. |
+| `DeepL:BaseUrl` | Vuoto = **dedotto dalla chiave**. ⚠️ Le chiavi del piano gratuito finiscono in `:fx` e vogliono `api-free.deepl.com`; le altre `api.deepl.com`. Puntare al server sbagliato risponde **403**, che somiglia a una chiave scaduta e manda a cercare il guasto dalla parte opposta. |
+
+### ⚠️ VID e nomi utente non escono mai
+
+Decisione del committente del 27 agosto 2026: **i dati pubblici si possono mandare a un servizio esterno,
+VID e nomi utente mai.** Non e' una nota di policy, e' un cancello nel codice (`TextProtector`), con un test
+che passa **tutto il corpus editoriale reale** nel protettore e pretende che nessun payload in uscita
+contenga un VID o un nome del roster.
+
+Corollario operativo: **non attivare log di diagnostica che registrino il payload inviato.** Un log del
+genere riapre da solo il buco che il protettore chiude.
+
+### Che cosa serve leggere prima di attivarlo
+
+1. I termini del piano gratuito DeepL API: richiede una carta, ha limiti d'uso, e **la ritenzione dei dati
+   sul piano gratuito non e' quella del piano a pagamento**.
+2. IVAO HQ: mandare i testi a un terzo e' trattamento esterno. I documenti sono pubblici, quindi e' poco
+   delicato, ma HQ ha gia' posto un vincolo contrattuale sui PDF.
+
+### Costo, misurato
+
+| Corpus | Caratteri |
+|---|---|
+| `vipi.db` del 27 agosto 2026, 18 documenti | **23.344** |
+| I 15 SOP militari trascritti per intero | **179.864** (~85k al netto di coordinate e identificatori) |
+
+La prima traduzione di tutto sta in un solo mese di piano gratuito (500k), con margine. Dopo si paga solo
+il delta, e col dedup sull'hash il delta e' piccolo.
+
+---
+
 ## 3. `Auth` — override codici admin (opzionale)
 
 Mappata su `AuthOptions` (`src/Vipi.Application/Auth/AuthOptions.cs`).

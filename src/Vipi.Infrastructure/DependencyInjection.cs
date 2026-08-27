@@ -186,6 +186,22 @@ public static class DependencyInjection
         });
         services.AddSingleton<Vipi.Application.Abstractions.IWeatherProvider, Weather.NoaaWeatherClient>();
 
+        // Documenti bilingue (carta 2026-08-27): il motore di traduzione automatica.
+        // ⚠️ Si registra SEMPRE, anche senza chiave: `IsConfigured` è falso e ogni chiamata risponde
+        // `NotConfigured`. È voluto — un sito senza chiave non è rotto, semplicemente non traduce, e chi
+        // dipende dalla porta non deve avere due percorsi di codice a seconda della configurazione.
+        // ⚠️ La chiave NON sta in un appsettings versionato: user-secrets in sviluppo, variabile d'ambiente
+        // o cartella dei segreti in produzione, come le credenziali IVAO.
+        if (configuration is not null)
+            services.Configure<Vipi.Application.Translation.TranslationOptions>(
+                configuration.GetSection(Vipi.Application.Translation.TranslationOptions.SectionName));
+        services.AddHttpClient(Translation.DeepLTranslationEngine.HttpClientName, c =>
+        {
+            c.Timeout = TimeSpan.FromSeconds(30);   // un lotto di 50 testi non torna in dieci secondi
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
+        });
+        services.AddSingleton<Vipi.Application.Abstractions.ITranslationEngine, Translation.DeepLTranslationEngine>();
+
         // Import SID dal sectorfile Aurora su GitHub (repo pubblico raw, no auth). Ortogonale a DataSource:Provider.
         services.AddScoped<Vipi.Application.Abstractions.ISidFixAliasRepository, EfSidFixAliasRepository>();
         if (configuration is not null)
