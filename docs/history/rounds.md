@@ -1851,3 +1851,15 @@ pubblico** finché non si ripubblica, perché la pagina legge lo snapshot della 
 si riscrivono** — una release «congela davvero» — e il progetto ha già la strada giusta: `ReleaseDrift` lo
 segnala in «Da fare» col tasto Ripubblica.
 
+**Aggiunta — P7, l'aeroporto.** Chiuso anche l'ultimo passo. Due assunzioni della carta sono cadute
+eseguendo, ed è la parte che vale la pena rileggere: «un componente, due modi» non si applica dove lettura e
+scrittura hanno forme diverse *per una ragione* (la lettura dev'essere serializzabile per il congelamento
+della release), e per togliere il circuito a una pagina **non serve separarne la rotta** — il render mode si
+dichiara sul componente, quindi bastano le isole, e gli indirizzi pubblici restano intatti.
+
+Il difetto trovato estraendo: la conversione di una regola pista verso il dominio stava scritta **due volte**
+a quattrocento righe di distanza, una per il banco di prova e una per il salvataggio. Il banco avrebbe potuto
+dire «con vento da 200° vince la #2» e il pubblicato applicarne un'altra.
+
+Suite 5432 → **5680**. Editor aeroporto 2180 → 1617 righe, viewer 594 → 464.
+
