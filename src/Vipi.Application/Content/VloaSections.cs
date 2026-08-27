@@ -26,8 +26,10 @@ public static class VloaSections
 {
     private const string CoordinationKey = SectionKeys.Coordination;
 
-    /// <summary>Struttura canonica parametrizzata sui codici ACC della coppia (contenuto EN placeholder).</summary>
-    public static IReadOnlyList<VloaSectionSpec> Canonical(string homeCode, string foreignCode, string? foreignName, string airacCycle)
+    /// <summary>Struttura canonica parametrizzata sui codici ACC della coppia (contenuto EN placeholder).
+    /// ⚠️ Niente ciclo AIRAC fra i parametri: il contenuto iniziale non ne contiene più (doc 14 §3b), e tenerlo
+    /// avrebbe lasciato in giro la porta da cui rientrare.</summary>
+    public static IReadOnlyList<VloaSectionSpec> Canonical(string homeCode, string foreignCode, string? foreignName)
     {
         var home = (homeCode ?? "").Trim().ToUpperInvariant();
         var foreign = (foreignCode ?? "").Trim().ToUpperInvariant();
@@ -35,7 +37,7 @@ public static class VloaSections
 
         return SectionCatalog.For(SectionProfile.Vloa)
             .OrderBy(d => d.Order)
-            .Select(d => new VloaSectionSpec(d.Key, d.Title, BlocksFor(d.Key, home, foreign, fName, airacCycle),
+            .Select(d => new VloaSectionSpec(d.Key, d.Title, BlocksFor(d.Key, home, foreign, fName),
                 ChildrenFor(d.Key, home, foreign)))
             .ToList();
     }
@@ -43,7 +45,7 @@ public static class VloaSections
     // Contenuto iniziale per chiave di catalogo. Le sezioni DERIVATE (aor/frequencies) portano solo l'introduzione:
     // la tabella la genera il viewer dai dati. «coordination» non ha corpo proprio — le due direzioni sono le sue
     // sotto-sezioni (doc 11 §3f).
-    private static IReadOnlyList<VloaBlockSpec> BlocksFor(string key, string home, string foreign, string fName, string airacCycle) => key switch
+    private static IReadOnlyList<VloaBlockSpec> BlocksFor(string key, string home, string foreign, string fName) => key switch
     {
         "purpose" => new[]
         {
@@ -67,10 +69,15 @@ public static class VloaSections
         {
             Prose("Activation and crossing of cross-border military areas adjacent to the common boundary are coordinated between the two units."),
         },
+        // ⚠️ Qui NON si scrive il ciclo AIRAC (doc 14 §3b). C'era, come riga «Effective from — AIRAC ####»,
+        // e portava il ciclo del GIORNO DELLA CREAZIONE: un numero che non si aggiornava mai, mentre la scheda
+        // sopra mostra quello della release che si sta guardando. Le quattro vLOA dell'archivio dicevano tutte
+        // «AIRAC 2607» e una di loro era pubblicata al 2608 — due numeri diversi nella stessa pagina, ed era
+        // esattamente la tabella scritta a mano che il timbro di validità era nato per eliminare.
+        // Restano le due cose che nessuno può derivare: il ciclo di revisione concordato e il firmatario.
         "validity" => new[]
         {
             Table(new[] { "Item", "Value" },
-                Cells("Effective from", $"AIRAC {airacCycle}"),
                 Cells("Review cycle", "Bilateral, at least annually"),
                 Cells("Italian signatory", $"{home} CH / AOD")),
         },

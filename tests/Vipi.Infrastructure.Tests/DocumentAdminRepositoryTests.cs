@@ -10,7 +10,7 @@ namespace Vipi.Infrastructure.Tests;
 
 /// <summary>
 /// Caratterizzazione di <see cref="EfDocumentAdminRepository"/> (rete pre-refactor doc 09 §3a): l'elenco unificato
-/// deve derivare per ciascun tipo di Document il giusto <see cref="ManagedDocKind"/>, la chiave di release e l'ACC.
+/// deve derivare per ciascun tipo di Document il giusto <see cref="ReleaseTargetType"/>, la chiave di release e l'ACC.
 /// Post doc 08 tutti e 4 i tipi sono su Document; questo fissa la mappatura shape→identità prima di spostarla nei descrittori.
 /// </summary>
 public class DocumentAdminRepositoryTests : IAsyncLifetime
@@ -77,29 +77,29 @@ public class DocumentAdminRepositoryTests : IAsyncLifetime
     {
         var all = await _repo.ListAsync();
 
-        var vloa = Assert.Single(all, m => m.Kind == ManagedDocKind.Vloa);
+        var vloa = Assert.Single(all, m => m.Kind == ReleaseTargetType.Vloa);
         Assert.Equal(ReleaseTargetType.Vloa, vloa.ReleaseTarget);
         Assert.Equal("LIRR", vloa.AccCode);
         Assert.Equal("LFFF", vloa.NeighbourCode);
 
-        var acc = Assert.Single(all, m => m.Kind == ManagedDocKind.AccVipi);
+        var acc = Assert.Single(all, m => m.Kind == ReleaseTargetType.AccVipi);
         Assert.Equal("LIRR|LIRR_ROOT_CTR", acc.ReleaseKey);
         Assert.Equal("LIRR", acc.AccCode);
 
-        var app = Assert.Single(all, m => m.Kind == ManagedDocKind.AppVipi);
+        var app = Assert.Single(all, m => m.Kind == ReleaseTargetType.App);
         Assert.Equal("LIRR_APP", app.ReleaseKey);
         Assert.Equal("LIRR", app.AccCode);
 
-        var air = Assert.Single(all, m => m.Kind == ManagedDocKind.AirportVipi);
+        var air = Assert.Single(all, m => m.Kind == ReleaseTargetType.Airport);
         Assert.Equal("LIRA", air.ReleaseKey);
         Assert.Equal("LIRR", air.AccCode);
     }
 
     [Theory]
-    [InlineData(ManagedDocKind.AccVipi, "LIRR|LIRR_ROOT_CTR")]
-    [InlineData(ManagedDocKind.AppVipi, "LIRR_APP")]
-    [InlineData(ManagedDocKind.AirportVipi, "LIRA")]
-    public async Task GetAccCode_ResolvesLirr_PerType(ManagedDocKind kind, string key)
+    [InlineData(ReleaseTargetType.AccVipi, "LIRR|LIRR_ROOT_CTR")]
+    [InlineData(ReleaseTargetType.App, "LIRR_APP")]
+    [InlineData(ReleaseTargetType.Airport, "LIRA")]
+    public async Task GetAccCode_ResolvesLirr_PerType(ReleaseTargetType kind, string key)
     {
         Assert.Equal("LIRR", await _repo.GetAccCodeAsync(new ManagedDocRef(kind, key, null)));
     }
@@ -107,8 +107,8 @@ public class DocumentAdminRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task GetAccCode_Vloa_FromDocumentHomeParty()
     {
-        var vloa = Assert.Single(await _repo.ListAsync(), m => m.Kind == ManagedDocKind.Vloa);
-        Assert.Equal("LIRR", await _repo.GetAccCodeAsync(new ManagedDocRef(ManagedDocKind.Vloa, vloa.ReleaseKey, vloa.DocumentId)));
+        var vloa = Assert.Single(await _repo.ListAsync(), m => m.Kind == ReleaseTargetType.Vloa);
+        Assert.Equal("LIRR", await _repo.GetAccCodeAsync(new ManagedDocRef(ReleaseTargetType.Vloa, vloa.ReleaseKey, vloa.DocumentId)));
     }
 
     [Fact]
@@ -127,8 +127,8 @@ public class DocumentAdminRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var all = await _repo.ListAsync();
-        Assert.True(Assert.Single(all, m => m.Kind == ManagedDocKind.AirportVipi).HasEffectiveRelease);
-        Assert.False(Assert.Single(all, m => m.Kind == ManagedDocKind.AppVipi).HasEffectiveRelease);   // published ma senza release
+        Assert.True(Assert.Single(all, m => m.Kind == ReleaseTargetType.Airport).HasEffectiveRelease);
+        Assert.False(Assert.Single(all, m => m.Kind == ReleaseTargetType.App).HasEffectiveRelease);   // published ma senza release
     }
 
     /// <summary>
@@ -162,18 +162,18 @@ public class DocumentAdminRepositoryTests : IAsyncLifetime
 
         var all = await _repo.ListAsync();
 
-        var air = Assert.Single(all, m => m.Kind == ManagedDocKind.AirportVipi);
+        var air = Assert.Single(all, m => m.Kind == ReleaseTargetType.Airport);
         Assert.Equal("2606", air.EffectiveCycle);
         Assert.Equal("2607", air.NextScheduledCycle);
 
         // Solo una release FUTURA: non è pubblicamente visibile, ma non è nemmeno «senza release».
-        var app = Assert.Single(all, m => m.Kind == ManagedDocKind.AppVipi);
+        var app = Assert.Single(all, m => m.Kind == ReleaseTargetType.App);
         Assert.Null(app.EffectiveCycle);
         Assert.False(app.HasEffectiveRelease);
         Assert.True(app.HasAnyRelease);
         Assert.Equal("2607", app.NextScheduledCycle);
 
-        var acc = Assert.Single(all, m => m.Kind == ManagedDocKind.AccVipi);
+        var acc = Assert.Single(all, m => m.Kind == ReleaseTargetType.AccVipi);
         Assert.False(acc.HasAnyRelease);
     }
 
@@ -194,15 +194,15 @@ public class DocumentAdminRepositoryTests : IAsyncLifetime
 
         var all = await _repo.ListAsync();
 
-        var acc = Assert.Single(all, m => m.Kind == ManagedDocKind.AccVipi);
+        var acc = Assert.Single(all, m => m.Kind == ReleaseTargetType.AccVipi);
         Assert.True(acc.IsLocked);
         Assert.Equal(4242, acc.LockedByUserId);
         Assert.Equal("Tizio", acc.LockedByName);
 
-        var app = Assert.Single(all, m => m.Kind == ManagedDocKind.AppVipi);
+        var app = Assert.Single(all, m => m.Kind == ReleaseTargetType.App);
         Assert.False(app.IsLocked);
         Assert.Null(app.LockedByName);
 
-        Assert.False(Assert.Single(all, m => m.Kind == ManagedDocKind.AirportVipi).IsLocked);
+        Assert.False(Assert.Single(all, m => m.Kind == ReleaseTargetType.Airport).IsLocked);
     }
 }

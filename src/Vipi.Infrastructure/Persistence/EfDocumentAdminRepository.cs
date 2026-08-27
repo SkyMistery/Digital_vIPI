@@ -83,7 +83,7 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
     {
         // vLOA: la chiave di release è il docId, ma la deriviamo dal DocumentId del ref (identico all'AuthAccCode del
         // descrittore, che parte dalla chiave = docId). Gli altri tipi hanno chiave = release key.
-        var key = doc.Kind == ManagedDocKind.Vloa ? doc.DocumentId?.ToString() ?? "" : doc.ReleaseKey;
+        var key = doc.Kind == ReleaseTargetType.Vloa ? doc.DocumentId?.ToString() ?? "" : doc.ReleaseKey;
         return await _targets.For(doc.Kind).AuthAccCodeAsync(key, ct);
     }
 

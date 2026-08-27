@@ -74,7 +74,7 @@ public class ReleasePanelTests : TestContext
 
         // Non usati dal pannello.
         public Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default) => Task.FromResult(0);
-        public Task<ReleasePreview?> GetPreviewAsync(int releaseId, CancellationToken ct = default) => Task.FromResult<ReleasePreview?>(null);
+        public Task<ReleasePreview?> GetPreviewAsync(int releaseId, ReleaseTargetType expectedType, string expectedKey, CancellationToken ct = default) => Task.FromResult<ReleasePreview?>(null);
         public Task<ReleaseLocation?> GetLocationAsync(int releaseId, CancellationToken ct = default) => Task.FromResult<ReleaseLocation?>(null);
         public Task<IReadOnlyDictionary<(ReleaseTargetType Type, string Key), ReleaseSummary>> SummariesAsync(
             IReadOnlyList<(ReleaseTargetType Type, string Key)> targets, CancellationToken ct = default) =>

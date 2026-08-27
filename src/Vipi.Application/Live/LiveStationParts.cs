@@ -107,7 +107,7 @@ public sealed class LiveStationParts
     public async Task<IReadOnlyList<LiveAirportChip>> AirportChipsAsync(LiveStationContext ctx, CancellationToken ct = default)
     {
         var published = (await _docs.ListAsync(ct))
-            .Where(m => m.Kind == ManagedDocKind.AirportVipi && m.HasEffectiveRelease && !m.IsHidden
+            .Where(m => m.Kind == ReleaseTargetType.Airport && m.HasEffectiveRelease && !m.IsHidden
                         && string.Equals(m.AccCode, ctx.Acc.Code, StringComparison.OrdinalIgnoreCase))
             .Select(m => m.Scope).ToHashSet(StringComparer.OrdinalIgnoreCase);
 

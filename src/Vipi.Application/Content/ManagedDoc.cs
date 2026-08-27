@@ -9,7 +9,7 @@ namespace Vipi.Application.Content;
 /// (lazy) all'espansione della riga.
 /// </summary>
 public sealed record ManagedDoc(
-    ManagedDocKind Kind,
+    ReleaseTargetType Kind,
     string Title,
     string Scope,
     string? AccCode,

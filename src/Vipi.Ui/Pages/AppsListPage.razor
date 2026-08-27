@@ -85,7 +85,7 @@ else
 
         // Stato del documento per callsign APP di questa ACC. Assente dalla lista ⇒ nessun documento ancora (AppState.None).
         _state = (await Docs.ListAsync())
-            .Where(m => m.Kind == ManagedDocKind.AppVipi
+            .Where(m => m.Kind == ReleaseTargetType.App
                         && string.Equals(m.AccCode, _acc.Code, StringComparison.OrdinalIgnoreCase))
             .GroupBy(m => m.Scope, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g =>

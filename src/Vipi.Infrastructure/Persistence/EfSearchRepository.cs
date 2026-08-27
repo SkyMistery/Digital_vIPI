@@ -185,13 +185,13 @@ public sealed class EfSearchRepository : ISearchRepository
         return null;
     }
 
-    private static bool InScope(SearchScope scope, ManagedDocKind kind) => scope switch
+    private static bool InScope(SearchScope scope, ReleaseTargetType kind) => scope switch
     {
         SearchScope.All => true,
-        SearchScope.Vipi => kind == ManagedDocKind.AccVipi,
-        SearchScope.App => kind == ManagedDocKind.AppVipi,
-        SearchScope.Airport => kind == ManagedDocKind.AirportVipi,
-        SearchScope.Vloa => kind == ManagedDocKind.Vloa,
+        SearchScope.Vipi => kind == ReleaseTargetType.AccVipi,
+        SearchScope.App => kind == ReleaseTargetType.App,
+        SearchScope.Airport => kind == ReleaseTargetType.Airport,
+        SearchScope.Vloa => kind == ReleaseTargetType.Vloa,
         _ => true,
     };
 }

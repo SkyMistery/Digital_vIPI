@@ -13,7 +13,6 @@ public sealed class VloaReleaseTarget : IReleaseTarget
     public VloaReleaseTarget(VipiDbContext db) => _db = db;
 
     public ReleaseTargetType Type => ReleaseTargetType.Vloa;
-    public ManagedDocKind ManagedKind => ManagedDocKind.Vloa;
     public int DescribeOrder => 0;
 
     public Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default) =>
@@ -32,7 +31,7 @@ public sealed class VloaReleaseTarget : IReleaseTarget
         if (doc.Type != DocumentType.Vloa) return false;
         var home = doc.Parties.FirstOrDefault(p => p.Role == PartyRole.Home)?.Sector?.Acc?.Code;
         var neigh = doc.Parties.FirstOrDefault(p => p.Role == PartyRole.Neighbour)?.Sector?.Acc?.Code;
-        managed = new ManagedDoc(ManagedDocKind.Vloa, doc.Title, home ?? "", home,
+        managed = new ManagedDoc(ReleaseTargetType.Vloa, doc.Title, home ?? "", home,
             doc.Status == DocumentStatus.Published, hasDraft, doc.IsHidden,
             ReleaseTargetType.Vloa, doc.Id.ToString(), doc.Id, neigh);
         return true;

@@ -407,7 +407,7 @@ public class ReleaseRepositoryTests : IAsyncLifetime
             (await _repo.SnapshotWorkingAsync(ReleaseTargetType.Vloa, key, "2606"))!, 1, null);
 
         var admin = TestReleaseTargets.AdminRepo(_db);
-        await admin.DeleteAsync(new Vipi.Application.Content.ManagedDocRef(Vipi.Application.Content.ManagedDocKind.Vloa, key, _docId), actorUserId: 1);
+        await admin.DeleteAsync(new Vipi.Application.Content.ManagedDocRef(Vipi.Domain.ReleaseTargetType.Vloa, key, _docId), actorUserId: 1);
 
         Assert.Empty(await _db.DocReleases.AsNoTracking().Where(r => r.TargetKey == key).ToListAsync());
         Assert.Null(await _db.Documents.AsNoTracking().FirstOrDefaultAsync(d => d.Id == _docId));

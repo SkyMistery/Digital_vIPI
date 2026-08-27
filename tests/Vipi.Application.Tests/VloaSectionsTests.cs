@@ -11,7 +11,7 @@ namespace Vipi.Application.Tests;
 public class VloaSectionsTests
 {
     private static IReadOnlyList<VloaSectionSpec> Canonical() =>
-        VloaSections.Canonical("LIBB", "LDZO", "Zagreb", "2609");
+        VloaSections.Canonical("LIBB", "LDZO", "Zagreb");
 
     [Fact]
     public void Structure_comes_from_the_catalog()
@@ -68,15 +68,53 @@ public class VloaSectionsTests
         }
     }
 
+    /// <summary>
+    /// ⚠️ Questo test asseriva il DIFETTO: pretendeva che la tabella di «validity» contenesse il ciclo AIRAC
+    /// passato alla creazione («2609»). Era la forma di prova più insidiosa — verde, precisa, e a guardia della
+    /// cosa sbagliata. Il ciclo lo dice la scheda della release; quello che qui si semina è solo il testo che
+    /// nessuno può derivare. Vedi doc 14 §3b e <see cref="La_validita_non_scrive_il_ciclo_AIRAC"/>.
+    /// </summary>
     [Fact]
     public void Validity_carries_the_starting_table_and_purpose_the_intro()
     {
         var validity = Canonical().Single(s => s.SectionKey == "validity");
         var block = Assert.Single(validity.Blocks);
         Assert.Equal(BlockFormat.Table, block.Format);
-        Assert.Contains("2609", block.BodyJson);
+        Assert.Contains("Review cycle", block.BodyJson);        // concordato fra le due parti: non derivabile
+        Assert.Contains("LIBB CH / AOD", block.BodyJson);       // il firmatario: nemmeno lui
 
         var purpose = Canonical().Single(s => s.SectionKey == "purpose");
         Assert.Contains("LIBB", Assert.Single(purpose.Blocks).Body);
+    }
+
+    /// <summary>
+    /// doc 14 §3b — il contenuto iniziale non scrive più il ciclo AIRAC. Lo dice la scheda della release, che si
+    /// aggiorna da sé; una tabella che lo ripete congela il ciclo del giorno della creazione e comincia a mentire
+    /// alla prima ripubblicazione. Restano le due cose che nessuno può derivare.
+    /// </summary>
+    [Fact]
+    public void La_validita_non_scrive_il_ciclo_AIRAC()
+    {
+        var validity = Canonical().Single(s => s.SectionKey == "validity");
+        var tabella = Assert.Single(validity.Blocks);
+        Assert.Equal(BlockFormat.Table, tabella.Format);
+
+        Assert.DoesNotContain("AIRAC", tabella.BodyJson, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Effective from", tabella.BodyJson, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Review cycle", tabella.BodyJson);
+        Assert.Contains("Italian signatory", tabella.BodyJson);
+    }
+
+    /// <summary>Rete più larga della precedente: nessun blocco seminato, di nessuna sezione, scrive un ciclo
+    /// AIRAC. Se qualcuno ne aggiungesse uno altrove, questo test se ne accorgerebbe.</summary>
+    [Fact]
+    public void Nessun_blocco_seminato_scrive_un_ciclo_AIRAC()
+    {
+        foreach (var sezione in Canonical())
+            foreach (var b in sezione.Blocks)
+            {
+                Assert.DoesNotContain("AIRAC", b.Body ?? "", StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("AIRAC", b.BodyJson ?? "", StringComparison.OrdinalIgnoreCase);
+            }
     }
 }

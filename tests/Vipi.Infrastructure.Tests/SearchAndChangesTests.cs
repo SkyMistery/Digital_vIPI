@@ -179,9 +179,12 @@ public class SearchAndChangesTests : IAsyncLifetime
     {
         var editing = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
         var sectorId = await _db.Sectors.Where(x => x.Callsign == "LIRP_APP").Select(x => x.Id).FirstAsync();
+        // ⚠️ Le sezioni le dice il CATALOGO (doc 14 §3f): il documento nasce col profilo App e basta. La sezione
+        // libera che questa prova cerca si AGGIUNGE dopo, che è anche il modo in cui la aggiunge un editore.
         var docId = await editing.EnsureVipiDocumentAsync(sectorId, "vIPI Pisa Avvicinamento", Vipi.Domain.Language.It,
-            new[] { ("custom:pisatok", "Consegne particolari PISATOKEN") }, authorUserId: 1);
+            Vipi.Application.Content.SectionProfile.App, authorUserId: 1);
         var versionId = await _db.DocumentVersions.Where(v => v.DocumentId == docId).Select(v => v.Id).FirstAsync();
+        await editing.AddSectionAsync(versionId, null, "Consegne particolari PISATOKEN", Vipi.Domain.BlockSection.Other);
         await editing.PublishAsync(versionId, actorUserId: 1, note: null);
         await TestReleaseTargets.ReleaseRepo(_db).SaveReleaseAsync(
             Vipi.Domain.ReleaseTargetType.App, "LIRP_APP", new AiracService().GetCycle(DateTime.UtcNow),
@@ -252,8 +255,9 @@ public class SearchAndChangesTests : IAsyncLifetime
         var editing = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
         var sectorId = await _db.Sectors.Where(x => x.Callsign == "LIRP_APP").Select(x => x.Id).FirstAsync();
         var docId = await editing.EnsureVipiDocumentAsync(sectorId, "vIPI Pisa Avvicinamento", Vipi.Domain.Language.It,
-            new[] { ("custom:pisatok", "Consegne particolari PISATOKEN") }, authorUserId: 1);
+            Vipi.Application.Content.SectionProfile.App, authorUserId: 1);
         var versionId = await _db.DocumentVersions.Where(v => v.DocumentId == docId).Select(v => v.Id).FirstAsync();
+        await editing.AddSectionAsync(versionId, null, "Consegne particolari PISATOKEN", Vipi.Domain.BlockSection.Other);
         await editing.PublishAsync(versionId, actorUserId: 1, note: null);   // versione pubblicata, MA nessuna release
 
         Assert.Empty(await _search.SearchAsync("PISATOKEN", SearchScope.All, 50));

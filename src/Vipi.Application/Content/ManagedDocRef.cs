@@ -1,4 +1,6 @@
+using Vipi.Domain;
+
 namespace Vipi.Application.Content;
 
 /// <summary>Riferimento per hide/delete: coincide con (Kind, ReleaseTarget, ReleaseKey, DocumentId) di un ManagedDoc.</summary>
-public sealed record ManagedDocRef(ManagedDocKind Kind, string ReleaseKey, int? DocumentId);
+public sealed record ManagedDocRef(ReleaseTargetType Kind, string ReleaseKey, int? DocumentId);

@@ -43,6 +43,10 @@ public class AppViewDerivationServiceTests
 
         Assert.Equal(2, d.Freqs.Count);   // frozen
         Assert.Empty(d.Aor.Sectors);      // reader null per "aor" → live (AccAorView.Empty)
+
+        // doc 14 §3c — lo snapshot si legge UNA volta, non una per sezione. Prima erano quattro letture
+        // dello stesso payload di release, ognuna con la sua query e la sua deserializzazione completa.
+        Assert.Equal(1, reader.Letture);
     }
 
     [Fact]
@@ -60,18 +64,19 @@ public class AppViewDerivationServiceTests
     private sealed class FakeReader : IFrozenSectionReader
     {
         public Dictionary<string, object> Frozen { get; } = new(StringComparer.OrdinalIgnoreCase);
-        public bool WasQueried { get; private set; }
 
-        public Task<T?> GetFrozenByKeyAsync<T>(ReleaseTargetType type, string key, string sectionKey, CancellationToken ct = default)
+        /// <summary>Quante volte lo snapshot e' stato chiesto. Deve essere 0 o 1: leggerlo una volta per pagina
+        /// e non una per sezione e' il punto del doc 14 §3c, e questo contatore e' la sua prova.</summary>
+        public int Letture { get; private set; }
+        public bool WasQueried => Letture > 0;
+
+        public Task<FrozenSections> LoadAsync(ReleaseTargetType type, string key, CancellationToken ct = default)
         {
-            WasQueried = true;
-            return Task.FromResult(Frozen.TryGetValue(sectionKey, out var v) && v is T t ? t : default);
+            Letture++;
+            // Si passa per il JSON vero, non per gli oggetti: cosi' la prova copre anche la deserializzazione.
+            return Task.FromResult(FrozenSections.FromKeys(
+                Frozen.ToDictionary(kv => kv.Key, kv => System.Text.Json.JsonSerializer.Serialize(kv.Value, kv.Value.GetType()))));
         }
-
-        public Task<string?> GetFrozenJsonAsync(ReleaseTargetType type, string key, int sectionId, CancellationToken ct = default) =>
-            Task.FromResult<string?>(null);
-        public Task<T?> GetFrozenAsync<T>(ReleaseTargetType type, string key, int sectionId, CancellationToken ct = default) =>
-            Task.FromResult<T?>(default);
     }
 
     private sealed class FakeApp : IAppDocumentService

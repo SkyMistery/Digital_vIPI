@@ -42,8 +42,22 @@ public interface IReleaseService
     /// <summary>Anteprima di una release: metadati + <see cref="RawDocument"/> del payload. Vale per TUTTI i tipi —
     /// dal doc 08 condividono <c>DocReleasePayload</c> — e non solo per vLOA/aeroporto come diceva questo commento.
     /// La vIPI ACC ha comunque una porta propria (<c>IAccDocumentService.LoadForReleaseAsync</c>), che oltre allo
-    /// snapshot ne assembla i blocchi: è la stessa fotografia, letta con l'attrezzo del suo tipo. Authz ACC.</summary>
-    Task<ReleasePreview?> GetPreviewAsync(int releaseId, CancellationToken ct = default);
+    /// snapshot ne assembla i blocchi: è la stessa fotografia, letta con l'attrezzo del suo tipo. Authz ACC.
+    /// <para>
+    /// ⚠️ Il bersaglio atteso è OBBLIGATORIO, e la firma è fatta apposta perché non si possa soddisfare senza
+    /// dirlo (doc 14 §3a). Autorizzare chi guarda non basta: <c>?as=rel:57</c> su un URL dice «mostrami la
+    /// release 57», non «mostrami la release 57 <b>di questo documento</b>», e chi può pubblicare due APP può
+    /// pubblicare la release dell'uno sotto l'indirizzo dell'altro. Il confronto stava in TRE copie byte per
+    /// byte nelle pagine e in una quarta forma dentro <c>AccDocumentService</c>: quattro posti in cui poteva
+    /// mancare, e un quinto — la pagina successiva — in cui sarebbe mancato.
+    /// </para>
+    /// <para>Ritorna null — non solleva — se la release non esiste, se non è di quel bersaglio, o se non se ne
+    /// ha il diritto: per una pagina i tre casi hanno lo stesso esito, ricadere sulla vista pubblica.</para>
+    /// </summary>
+    /// <param name="expectedType">Tipo del documento che sta chiedendo l'anteprima.</param>
+    /// <param name="expectedKey">Chiave di release di quel documento (ICAO, callsign APP, id vLOA, «ACC|root»).</param>
+    Task<ReleasePreview?> GetPreviewAsync(int releaseId, ReleaseTargetType expectedType, string expectedKey,
+        CancellationToken ct = default);
 
     /// <summary>Identità (tipo/chiave/ciclo/ACC) di una release, per risolvere la route del viewer tipizzato.
     /// Authz ACC come le altre operazioni di release. null se inesistente.</summary>
@@ -274,11 +288,26 @@ public sealed class ReleaseService : IReleaseService
         return righe;
     }
 
-    public async Task<ReleasePreview?> GetPreviewAsync(int releaseId, CancellationToken ct = default)
+    public async Task<ReleasePreview?> GetPreviewAsync(int releaseId, ReleaseTargetType expectedType,
+        string expectedKey, CancellationToken ct = default)
     {
         var rel = await _repo.GetByIdAsync(releaseId, ct);
         if (rel is null) return null;
-        await EnsureCanEditAsync(rel.TargetType, rel.TargetKey, ct);
+
+        // La release deve essere DI QUESTO documento. Prima di questo controllo, chi poteva editare due APP
+        // poteva farsi mostrare l'uno sotto l'indirizzo dell'altro — con l'intestazione della pagina sbagliata.
+        if (rel.TargetType != expectedType
+            || !string.Equals(rel.TargetKey, expectedKey, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        // Chi non può vedere l'anteprima non riceve un'eccezione ma un null: per una PAGINA «non ne hai il
+        // diritto» e «non c'è» hanno lo stesso esito — si ricade sulla vista pubblica — e infatti tutte e tre
+        // le pagine che chiamavano questo metodo avvolgevano la chiamata negli stessi due catch. Erano la
+        // metà mancante della guardia: tenerli fuori voleva dire che una pagina nuova poteva scordarsi anche
+        // di quelli e far cadere il circuito addosso a un lettore anonimo.
+        try { await EnsureCanEditAsync(rel.TargetType, rel.TargetKey, ct); }
+        catch (EditNotAllowedException) { return null; }
+        catch (Aor.ValidationException) { return null; }
 
         // Post-08 tutti i tipi condividono DocReleasePayload → deserializzazione unica, nessuno switch per-tipo.
         RawDocument? doc = null;

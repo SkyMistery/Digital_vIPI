@@ -299,7 +299,7 @@ public sealed class EfEditingRepository : IEditingRepository
             var foreign = codici.FirstOrDefault(x => x.Id == coppia.neighbourSectorId);
 
             Seed.VloaStructureSeeder.Seed(_db, version, Vipi.Application.Content.VloaSections.Canonical(
-                home?.AccCode ?? "", foreign?.AccCode ?? "", foreign?.AccName, version.AiracCycle));
+                home?.AccCode ?? "", foreign?.AccCode ?? "", foreign?.AccName));
         }
         else
         {
@@ -325,10 +325,8 @@ public sealed class EfEditingRepository : IEditingRepository
         await _db.Sectors.Where(s => s.Id == sectorId).Select(s => s.Acc!.Code).FirstOrDefaultAsync(ct);
 
     public async Task<int> EnsureVipiDocumentAsync(int primarySectorId, string title, Language language,
-        IReadOnlyList<(string Key, string Title)> sections, int authorUserId,
-        IReadOnlyCollection<string>? liveKeys = null, CancellationToken ct = default)
+        SectionProfile profile, int authorUserId, CancellationToken ct = default)
     {
-        var live = liveKeys is null ? null : new HashSet<string>(liveKeys, StringComparer.OrdinalIgnoreCase);
         var sector = await _db.Sectors.FirstOrDefaultAsync(s => s.Id == primarySectorId, ct)
             ?? throw new InvalidOperationException($"Settore {primarySectorId} inesistente.");
         if (sector.DocumentId is int existing) return existing;   // già migrato: idempotente
@@ -364,44 +362,57 @@ public sealed class EfEditingRepository : IEditingRepository
         await _db.SaveChangesAsync(ct); // serve version.Id
 
         var order = 1;
-        foreach (var (key, secTitle) in sections)
+        foreach (var d in SectionCatalog.For(profile).OrderBy(d => d.Order))
         {
             var section = new DocumentSection
             {
                 DocumentVersionId = version.Id,
                 ParentSectionId = null,
-                Title = secTitle,
+                Title = d.Title,
                 Order = order++,
                 Depth = 0,
-                SectionKey = key,
+                SectionKey = d.Key,
                 RowVersion = Guid.NewGuid().ToByteArray(),
+                RenderMode = ModoAllaNascita(d.Key),
             };
             _db.DocumentSections.Add(section);
-
-            // Sezioni "live" (derivate/editoriali-strutturate): blocco placeholder così non vengono potate dalla vista
-            // quando sono senza contenuto memorizzato (il renderer le riempie live). Doc refactor 08e.
-            if (live is not null && live.Contains(key))
-                _db.ContentBlocks.Add(new ContentBlock
-                {
-                    DocumentVersion = version,
-                    Section = section,
-                    Order = 1,
-                    Format = BlockFormat.Table,
-                    Tier = BlockTier.Extended,
-                    Visibility = BlockVisibility.Always,
-                    RowVersion = Guid.NewGuid().ToByteArray(),
-                });
+            AggiungiPlaceholderSeServe(version, section, profile, d.Key);
         }
         await _db.SaveChangesAsync(ct);
 
         return doc.Id;
     }
 
-    public async Task<int> EnsureVipiDocumentTreeAsync(int primarySectorId, string title, Language language,
-        IReadOnlyList<VipiBlockSpec> blocks, int authorUserId,
-        IReadOnlyCollection<string>? liveKeys = null, CancellationToken ct = default)
+    /// <summary>
+    /// Le sezioni «rese dalla pagina» ricevono un blocco placeholder alla creazione, così NON vengono potate dalla
+    /// vista quando sono senza contenuto memorizzato (il renderer le riempie live). Chi sono lo dice il CATALOGO
+    /// (doc 14 §3f): prima era un elenco di chiavi che ogni chiamante scriveva a mano, e i due elenchi non
+    /// combaciavano — l'ACC ne aveva cinque, l'APP otto, per la stessa domanda.
+    /// </summary>
+    private void AggiungiPlaceholderSeServe(DocumentVersion version, DocumentSection section,
+        SectionProfile profile, string key)
     {
-        var live = liveKeys is null ? null : new HashSet<string>(liveKeys, StringComparer.OrdinalIgnoreCase);
+        if (!SectionCatalog.IsHostRendered(profile, key)) return;
+        _db.ContentBlocks.Add(new ContentBlock
+        {
+            DocumentVersion = version,
+            Section = section,
+            Order = 1,
+            Format = BlockFormat.Table,
+            Tier = BlockTier.Extended,
+            Visibility = BlockVisibility.Always,
+            RowVersion = Guid.NewGuid().ToByteArray(),
+        });
+    }
+
+    /// <summary>Come nasce una sezione: Live se la sua derivazione è vera solo adesso (il meteo, il timbro di
+    /// validità), Frozen altrimenti — perché quello è il senso di pubblicare.</summary>
+    private static RenderMode ModoAllaNascita(string key) =>
+        SectionCatalog.IsAlwaysLive(key) ? RenderMode.Live : RenderMode.Frozen;
+
+    public async Task<int> EnsureVipiDocumentTreeAsync(int primarySectorId, string title, Language language,
+        IReadOnlyList<VipiBlockSpec> blocks, int authorUserId, CancellationToken ct = default)
+    {
         var sector = await _db.Sectors.FirstOrDefaultAsync(s => s.Id == primarySectorId, ct)
             ?? throw new InvalidOperationException($"Settore {primarySectorId} inesistente.");
         if (sector.DocumentId is int existing) return existing;   // già migrato: idempotente
@@ -452,24 +463,23 @@ public sealed class EfEditingRepository : IEditingRepository
             _db.DocumentSections.Add(blockSection);
 
             var childOrder = 1;
-            foreach (var (key, secTitle) in block.Sections)
+            foreach (var d in SectionCatalog.For(block.Profile).OrderBy(d => d.Order))
             {
+                var key = d.Key;
                 var child = new DocumentSection
                 {
                     DocumentVersion = version,
                     ParentSection = blockSection,
-                    Title = secTitle,
+                    Title = d.Title,
                     Order = childOrder++,
                     Depth = 1,
                     SectionKey = key,
                     RowVersion = Guid.NewGuid().ToByteArray(),
+                    RenderMode = ModoAllaNascita(key),
                 };
                 _db.DocumentSections.Add(child);
 
-                // Sezioni "live" (derivate/editoriali-strutturate): blocco placeholder così non vengono potate quando
-                // sono senza contenuto memorizzato (rese live dal renderer). Doc refactor 08e-acc.
-                if (live is not null && live.Contains(key))
-                    _db.ContentBlocks.Add(NewPlaceholderBlock(version, child));
+                AggiungiPlaceholderSeServe(version, child, block.Profile, key);
             }
         }
         await _db.SaveChangesAsync(ct);
@@ -489,11 +499,9 @@ public sealed class EfEditingRepository : IEditingRepository
         RowVersion = Guid.NewGuid().ToByteArray(),
     };
 
-    public async Task<int> AddBlockToVersionAsync(int versionId, VipiBlockSpec block,
-        IReadOnlyCollection<string>? liveKeys = null, CancellationToken ct = default)
+    public async Task<int> AddBlockToVersionAsync(int versionId, VipiBlockSpec block, CancellationToken ct = default)
     {
         await RequireDraftAsync(versionId, ct);
-        var live = liveKeys is null ? null : new HashSet<string>(liveKeys, StringComparer.OrdinalIgnoreCase);
 
         var nextOrder = (await _db.DocumentSections
             .Where(s => s.DocumentVersionId == versionId && s.ParentSectionId == null)
@@ -513,21 +521,21 @@ public sealed class EfEditingRepository : IEditingRepository
 
         var version = await _db.DocumentVersions.FirstAsync(v => v.Id == versionId, ct);
         var childOrder = 1;
-        foreach (var (key, secTitle) in block.Sections)
+        foreach (var d in SectionCatalog.For(block.Profile).OrderBy(d => d.Order))
         {
             var child = new DocumentSection
             {
                 DocumentVersion = version,
                 ParentSection = blockSection,
-                Title = secTitle,
+                Title = d.Title,
                 Order = childOrder++,
                 Depth = 1,
-                SectionKey = key,
+                SectionKey = d.Key,
                 RowVersion = Guid.NewGuid().ToByteArray(),
+                RenderMode = ModoAllaNascita(d.Key),
             };
             _db.DocumentSections.Add(child);
-            if (live is not null && live.Contains(key))
-                _db.ContentBlocks.Add(NewPlaceholderBlock(version, child));
+            AggiungiPlaceholderSeServe(version, child, block.Profile, d.Key);
         }
         await _db.SaveChangesAsync(ct);
         return blockSection.Id;

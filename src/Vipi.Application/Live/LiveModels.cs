@@ -34,7 +34,7 @@ public sealed record LiveGroup(AccBlock Block, IReadOnlyList<AppFreqRow> Freqs, 
 /// Riferimento al documento esteso della postazione. Porta gli ingredienti, non l'URL: la rotta la compone la UI
 /// col registry <c>IDocKindRoutes</c> (doc 09 §3b), che è dove vive la conoscenza delle rotte.
 /// </summary>
-public sealed record LiveDocRef(ManagedDocKind Kind, string AccCode, string? Scope);
+public sealed record LiveDocRef(ReleaseTargetType Kind, string AccCode, string? Scope);
 
 /// <summary>
 /// Modello uniforme reso dalla pagina live, qualunque sia il tipo di ente. È il punto dell'unificazione:

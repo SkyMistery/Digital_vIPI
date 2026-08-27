@@ -14,7 +14,6 @@ public sealed class AirportReleaseTarget : IReleaseTarget
     public AirportReleaseTarget(VipiDbContext db) => _db = db;
 
     public ReleaseTargetType Type => ReleaseTargetType.Airport;
-    public ManagedDocKind ManagedKind => ManagedDocKind.AirportVipi;
     public int DescribeOrder => 3;
 
     // Dall'aeroporto: è il legame autoritativo. Prima si passava dai settori, e serviva un filtro per non
@@ -36,7 +35,7 @@ public sealed class AirportReleaseTarget : IReleaseTarget
         // ⚠️ Richiede `.Include(d => d.Airport).ThenInclude(a => a.Acc)` a monte: senza, l'ICAO esce vuoto e il
         // documento diventa irraggiungibile invece di dare errore.
         var icao = doc.Airport?.Icao ?? "";
-        managed = new ManagedDoc(ManagedDocKind.AirportVipi, doc.Title, icao, doc.Airport?.Acc?.Code,
+        managed = new ManagedDoc(ReleaseTargetType.Airport, doc.Title, icao, doc.Airport?.Acc?.Code,
             doc.Status == DocumentStatus.Published, hasDraft, doc.IsHidden,
             ReleaseTargetType.Airport, icao, doc.Id);
         return true;

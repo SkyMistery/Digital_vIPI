@@ -48,10 +48,13 @@ public sealed class AirportViewDerivationService : IAirportViewDerivationService
     {
         icao = Norm(icao);
 
-        var rules = (useFrozen ? await FrozenAsync<AirportRulesView>(icao, "runwayrules", ct) : null);
-        var transition = (useFrozen ? await FrozenAsync<AirportTransitionView>(icao, "transition", ct) : null);
-        var freqs = (useFrozen ? await FrozenAsync<AirportFreqView>(icao, "frequencies", ct) : null);
-        var runways = (useFrozen ? await FrozenAsync<AirportRunwaysView>(icao, "runways", ct) : null);
+        // Lo snapshot una volta sola (doc 14 §3c): erano cinque letture dello stesso payload, contando le SID.
+        var frozen = useFrozen ? await _frozen.LoadAsync(ReleaseTargetType.Airport, icao, ct) : FrozenSections.Empty;
+
+        var rules = frozen.Get<AirportRulesView>("runwayrules");
+        var transition = frozen.Get<AirportTransitionView>("transition");
+        var freqs = frozen.Get<AirportFreqView>("frequencies");
+        var runways = frozen.Get<AirportRunwaysView>("runways");
 
         // Il profilo si carica una volta sola, e solo se serve davvero: con tutte e quattro le sezioni congelate
         // la pagina pubblica non tocca le tabelle dell'aeroporto.
@@ -65,19 +68,17 @@ public sealed class AirportViewDerivationService : IAirportViewDerivationService
         freqs ??= AirportSectionProjection.Frequencies(
             await _sectors.ListByAirportAsync(icao, ct), data?.Links);
 
+        // Le SID dallo STESSO lotto: chiamare qui il metodo pubblico rileggerebbe lo snapshot una sesta volta.
         return new AirportDerived(rules, transition, freqs, runways,
-            await ResolveSidsForViewAsync(icao, useFrozen, ct));
+            frozen.Get<AirportSidView>("sids") ?? await _sids.DeriveAsync(icao, ct));
     }
 
     public async Task<AirportSidView> ResolveSidsForViewAsync(string icao, bool useFrozen, CancellationToken ct = default)
     {
         icao = Norm(icao);
-        return (useFrozen ? await FrozenAsync<AirportSidView>(icao, "sids", ct) : null)
-            ?? await _sids.DeriveAsync(icao, ct);
+        var frozen = useFrozen ? await _frozen.LoadAsync(ReleaseTargetType.Airport, icao, ct) : FrozenSections.Empty;
+        return frozen.Get<AirportSidView>("sids") ?? await _sids.DeriveAsync(icao, ct);
     }
-
-    private Task<T?> FrozenAsync<T>(string icao, string key, CancellationToken ct) where T : class =>
-        _frozen.GetFrozenByKeyAsync<T>(ReleaseTargetType.Airport, icao, key, ct);
 
     private static string Norm(string? icao) => (icao ?? "").Trim().ToUpperInvariant();
 }

@@ -157,7 +157,7 @@ public class DocumentValidityTests
         public Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default) => throw new NotSupportedException();
         public Task CancelReleaseAsync(int releaseId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<ReleaseDiff> DiffAsync(int releaseId, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<ReleasePreview?> GetPreviewAsync(int releaseId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<ReleasePreview?> GetPreviewAsync(int releaseId, ReleaseTargetType expectedType, string expectedKey, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<ReleaseLocation?> GetLocationAsync(int releaseId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<IReadOnlyDictionary<(ReleaseTargetType Type, string Key), ReleaseSummary>> SummariesAsync(
             IReadOnlyList<(ReleaseTargetType Type, string Key)> targets, CancellationToken ct = default) => throw new NotSupportedException();

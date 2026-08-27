@@ -19,7 +19,7 @@ namespace Vipi.Infrastructure.Tests;
 public class ReleaseGenericFlowTests : IAsyncLifetime
 {
     private const ReleaseTargetType FakeType = (ReleaseTargetType)99;
-    private const ManagedDocKind FakeKind = (ManagedDocKind)99;
+    private const ReleaseTargetType FakeKind = (ReleaseTargetType)99;
 
     private readonly SqliteConnection _conn = new("Data Source=:memory:");
     private VipiDbContext _db = default!;
@@ -131,14 +131,35 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         Assert.Equal("FAKE", await admin.GetAccCodeAsync(new ManagedDocRef(FakeKind, m.ReleaseKey, m.DocumentId)));
     }
 
+    /// <summary>
+    /// doc 14 §3a — l'anteprima di una release che NON è di questo documento si rifiuta, anche a chi quella
+    /// release potrebbe pubblicarla. Prima il confronto stava nelle pagine, in tre copie: chi poteva editare
+    /// due documenti poteva farsi mostrare l'uno sotto l'indirizzo dell'altro scrivendo «?as=rel:{id}» a mano.
+    /// </summary>
+    [Fact]
+    public async Task Anteprima_di_una_release_di_un_ALTRO_documento_si_rifiuta()
+    {
+        var svc = Servizio();
+        await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", "review");
+        var rel = Assert.Single(await svc.ListAsync(FakeType, "qualsiasi-chiave"));
+
+        // Il bersaglio giusto: la si vede.
+        Assert.NotNull(await svc.GetPreviewAsync(rel.Id, FakeType, "qualsiasi-chiave"));
+
+        // Chiave di un altro documento dello stesso tipo → niente, pur essendo AllowAuthz.
+        Assert.Null(await svc.GetPreviewAsync(rel.Id, FakeType, "un-altro-documento"));
+
+        // Tipo diverso, stessa chiave → niente.
+        Assert.Null(await svc.GetPreviewAsync(rel.Id, ReleaseTargetType.Airport, "qualsiasi-chiave"));
+
+        // La chiave non è sensibile al maiuscolo/minuscolo: gli URL arrivano come capita.
+        Assert.NotNull(await svc.GetPreviewAsync(rel.Id, FakeType, "QUALSIASI-CHIAVE"));
+    }
+
     [Fact]
     public async Task ReleaseService_PublishPreviewDiff_UnknownType_ViaDescriptorOnly()
     {
-        var repo = new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db));
-        var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
-            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()), new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
-            new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
-            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()), new EfUnitOfWork(_db));
+        var svc = Servizio();
 
         await svc.PublishNowAsync(FakeType, "qualsiasi-chiave", "review");
 
@@ -146,7 +167,7 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         var rel = Assert.Single(list);
         Assert.True(rel.IsEffectiveNow);
 
-        var preview = await svc.GetPreviewAsync(rel.Id);
+        var preview = await svc.GetPreviewAsync(rel.Id, FakeType, "qualsiasi-chiave");
         Assert.NotNull(preview);
         Assert.Contains(preview!.Doc!.Roots, s => s.Title == "Sezione Fittizia");
 
@@ -277,7 +298,7 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         public FakeReleaseTarget(int docId) => _docId = docId;
 
         public ReleaseTargetType Type => FakeType;
-        public ManagedDocKind ManagedKind => FakeKind;
+        public ReleaseTargetType ManagedKind => FakeKind;
         public int DescribeOrder => 0;
 
         public Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default) => Task.FromResult<int?>(_docId);
@@ -291,4 +312,14 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
             return true;
         }
     }
+
+    /// <summary>Il ReleaseService montato sul DbContext di prova, con authz permissivo.</summary>
+    private ReleaseService Servizio() =>
+        new(new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new AllowAuthz(),
+            new Vipi.Domain.Services.AiracService(),
+            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()),
+            new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
+            new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)),
+            Registry(), Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()),
+            new EfUnitOfWork(_db));
 }

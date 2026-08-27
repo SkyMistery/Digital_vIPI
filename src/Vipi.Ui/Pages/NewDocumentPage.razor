@@ -338,9 +338,9 @@
         var acc = _selAcc.ToLowerInvariant();
         var url = _kind switch
         {
-            Kind.Acc => DocRoutes.For(ManagedDocKind.AccVipi).EditorUrl(acc, "", null, null),
-            Kind.App => DocRoutes.For(ManagedDocKind.AppVipi).EditorUrl(acc, _selKey, null, null),
-            _ => DocRoutes.For(ManagedDocKind.AirportVipi).EditorUrl(acc, _selKey, null, null),
+            Kind.Acc => DocRoutes.For(ReleaseTargetType.AccVipi).EditorUrl(acc, "", null, null),
+            Kind.App => DocRoutes.For(ReleaseTargetType.App).EditorUrl(acc, _selKey, null, null),
+            _ => DocRoutes.For(ReleaseTargetType.Airport).EditorUrl(acc, _selKey, null, null),
         };
         if (url is not null) Nav.NavigateTo(url, forceLoad: true);
     }

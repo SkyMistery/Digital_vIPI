@@ -96,12 +96,12 @@ public sealed class EditorTaskLinksService : IEditorTaskLinksService
     // Il nome del tipo per la tendina. Resta grezzo: e' un'etichetta che finisce SCRITTA nell'incarico
     // (TargetLabel), e quella non si ritraduce dopo — un incarico dato in italiano non deve cambiare nome
     // perche' chi lo legge ha l'interfaccia in inglese.
-    private static string Tipo(ManagedDocKind kind) => kind switch
+    private static string Tipo(ReleaseTargetType kind) => kind switch
     {
-        ManagedDocKind.AccVipi => "vIPI ACC",
-        ManagedDocKind.AirportVipi => "vIPI aeroporto",
-        ManagedDocKind.AppVipi => "vIPI APP",
-        ManagedDocKind.Vloa => "vLOA",
+        ReleaseTargetType.AccVipi => "vIPI ACC",
+        ReleaseTargetType.Airport => "vIPI aeroporto",
+        ReleaseTargetType.App => "vIPI APP",
+        ReleaseTargetType.Vloa => "vLOA",
         _ => kind.ToString(),
     };
 }

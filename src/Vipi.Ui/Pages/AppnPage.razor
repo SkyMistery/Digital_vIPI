@@ -61,70 +61,11 @@ else
                 }
                 <div class="callout info"><span class="cic"><Icon Name="radio" Size="18" /></span><div><p class="ct">@L["Appn_InfoTitle"]</p>@L["Appn_InfoBody"]</div></div>
 
-                @foreach (var s in _view.Sections)
-                {
-                    var hidden = s.IsHidden;
-                    @if (hidden && _mode.Kind != PreviewKind.Draft)
-                    {
-                        <text></text>   @* nascosta: fuori dal pubblico e dall'anteprima release *@
-                    }
-                    else if (IsSpecial(s.SectionKey))
-                    {
-                        @* Alcune sezioni nascono chiuse (doc 11 §3i): lo dice il catalogo, e vale per tutte e tre
-                           le famiglie. Questo ramo era l'unico a non chiederglielo, quindi «Aree regolamentate»
-                           nasceva aperta sull'APP e chiusa su vIPI ACC e vLOA. *@
-                        <CollapsibleBlock Id="@AnchorOf(s)" Style="@(hidden ? "opacity:.65" : null)"
-                                          InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
-                            <Header><h2 class="h-sect" style="margin-top:0">@s.Title @if (hidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }</h2></Header>
-                            <ChildContent>
-                                @* Sotto-sezioni «prima» del corpo derivato (doc 11 §3g). *@
-                                @if (SectionBody.HasChildren(s, SectionSlot.Before))
-                                {
-                                    <SectionBody Section="s" ShowBlocks="false" Slot="SectionSlot.Before" />
-                                }
-                                @switch (s.SectionKey)
-                                {
-                                    case "separations": <AppSeparations Rows="ReadSeparations(s)" />; break;
-                                    case "configurations": <AppConfigurations Configs="Array.Empty<AccConfiguration>()" Tables="_configTable" MapScope="@($"app-aor-{_app}")" />; break;
-                                    case "aor": <AccAor View="_aorView" Id="@($"app-aor-{_app}")" />; break;
-                                    case "frequencies": <AppFrequencies Rows="_freqs" />; break;
-                                    case "minima": <MinimaSection View="_minima" Aor="_aorView" />; break;
-                                    case "vfr": <AppVfr Content="ReadVfr(s)" />; break;
-                                    case "coordination": <AppCoordinationView Coord="_coord" LeadSentence="s.LeadSentence" />; break;
-                                    case "regulated": <RegulatedAreas Areas="_areas" />; break;
-                                    case "validity":
-                                        <ValidityStamp Target="ReleaseTargetType.App" Key="@_app" ReleaseId="@ReleaseIdShown()" />
-                                        break;
-                                }
-                                @* La sezione tiene ANCHE i suoi blocchi: il timbro sopra, il testo scritto a mano sotto. *@
-                                @if (SectionCatalog.KeepsOwnBlocks(SectionProfile.App, s.SectionKey))
-                                {
-                                    <SectionBody Section="s" ShowBlocks="true" />
-                                }
-                                @* Le sotto-sezioni di una sezione speciale restano contenuto del documento (doc 11 §3b):
-                                   prima sparivano, pur essendo creabili dall'editor con «+ sotto-sez». *@
-                                @if (SectionBody.HasChildren(s, SectionSlot.After))
-                                {
-                                    <SectionBody Section="s" ShowBlocks="false" Slot="SectionSlot.After" />
-                                }
-                            </ChildContent>
-                        </CollapsibleBlock>
-                    }
-                    else if (hidden)
-                    {
-                        @* Editoriale nascosta in anteprima bozza: stessa marcatura delle speciali (prima passava
-                           da SectionNode senza pill né opacità, e non si capiva che era fuori dal pubblico). *@
-                        <CollapsibleBlock Id="@AnchorOf(s)" Style="opacity:.65"
-                                          InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
-                            <Header><h2 class="h-sect" style="margin-top:0">@s.Title <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span></h2></Header>
-                            <ChildContent><SectionBody Section="s" /></ChildContent>
-                        </CollapsibleBlock>
-                    }
-                    else
-                    {
-                        <SectionNode Section="s" />   @* editoriale/custom: prosa/tabella/callout + sotto-sezioni *@
-                    }
-                }
+                @* Il ciclo delle sezioni lo fa il componente condiviso (doc 14 §3e). Qui resta il solo corpo
+                   derivato, per chiave: quello che l'APP disegna e le altre famiglie no. *@
+                <DocumentSectionsView Sections="_view.Sections" Profile="SectionProfile.App"
+                                      IsDraft="@(_mode.Kind == PreviewKind.Draft)"
+                                      AnchorOf="AnchorOf" DerivedContent="CorpoDerivato" />
             </div>
 
             <aside class="doc-rail" aria-label="@L["Doc_RailAria"]">
@@ -186,7 +127,24 @@ else
 
     // Sezioni il cui corpo lo rende questa pagina (derivate + editoriali-strutturate); le altre via SectionNode.
     // Chi siano lo dice il catalogo, per profilo (doc 13 §3a): qui stava una delle sei copie dell'insieme.
-    private static bool IsSpecial(string key) => SectionCatalog.IsHostRendered(SectionProfile.App, key);
+    /// <summary>Il corpo che questa pagina disegna, per chiave. Le chiavi sono quelle che il catalogo dichiara
+    /// «rese dalla pagina» per il profilo App: il componente condiviso ci arriva solo per quelle.</summary>
+    private RenderFragment<SectionView> CorpoDerivato => s => __builder =>
+    {
+        @switch (s.SectionKey)
+        {
+            case "separations": <AppSeparations Rows="ReadSeparations(s)" />; break;
+            case "configurations": <AppConfigurations Configs="Array.Empty<AccConfiguration>()" Tables="_configTable" MapScope="@($"app-aor-{_app}")" />; break;
+            case "aor": <AccAor View="_aorView" Id="@($"app-aor-{_app}")" />; break;
+            case "frequencies": <AppFrequencies Rows="_freqs" />; break;
+            case "minima": <MinimaSection View="_minima" Aor="_aorView" />; break;
+            case "vfr": <AppVfr Content="ReadVfr(s)" />; break;
+            case "coordination": <AppCoordinationView Coord="_coord" LeadSentence="s.LeadSentence" />; break;
+            case "regulated": <RegulatedAreas Areas="_areas" />; break;
+            case "validity": <ValidityStamp Target="ReleaseTargetType.App" Key="@_app" ReleaseId="@ReleaseIdShown()" />; break;
+        }
+    };
+
 
     // Ancora di sezione: «s-{Id}» per TUTTE, comprese quelle rese dalla pagina (doc 13 §3e). Prima le speciali
     // usavano «p-{chiave}», e i deep-link della ricerca — che indicizza per Id — cadevano in cima alla pagina.
@@ -214,20 +172,6 @@ else
     }
 
     // Anteprima release gated (authz nel servizio) + verifica identità: null se inesistente/altro bersaglio/non autorizzato.
-    private async Task<ReleasePreview?> TryPreviewAsync(int releaseId, ReleaseTargetType expectedType, string? expectedKey)
-    {
-        try
-        {
-            var pv = await Releases.GetPreviewAsync(releaseId);
-            if (pv is null || pv.Type != expectedType
-                || (expectedKey is not null && !string.Equals(pv.TargetKey, expectedKey, StringComparison.OrdinalIgnoreCase)))
-                return null;
-            return pv;
-        }
-        catch (EditNotAllowedException) { return null; }
-        catch (Vipi.Application.Aor.ValidationException) { return null; }
-    }
-
     protected override async Task OnParametersSetAsync()
     {
         _acc = Stations.Resolve(Acc);
@@ -255,7 +199,7 @@ else
                 else { _mode = default; await LoadAppPublicAsync(); }
                 break;
             case PreviewKind.Release:
-                var pv = await TryPreviewAsync(_mode.ReleaseId, ReleaseTargetType.App, _app);
+                var pv = await Releases.GetPreviewAsync(_mode.ReleaseId, ReleaseTargetType.App, _app);
                 if (pv?.Doc is not null) { _relCycle = pv.AiracCycle; _view = await ViewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended); }
                 else { _mode = default; await LoadAppPublicAsync(); }
                 break;

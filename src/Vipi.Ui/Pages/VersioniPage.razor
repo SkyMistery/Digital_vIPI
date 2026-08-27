@@ -328,16 +328,16 @@
 
     // filtri
     private string _q = "";
-    private ManagedDocKind? _kindFilter;      // null = tutti
+    private ReleaseTargetType? _kindFilter;      // null = tutti
     private string _statusFilter = "all";     // all|public|draft|hidden|editing
     private string _releaseFilter = "all";    // all|effective|scheduled|none
     private string? _accFilter;               // null = tutte
 
-    private (ManagedDocKind?, string)[] KindFilters =>
-    new (ManagedDocKind?, string)[]
+    private (ReleaseTargetType?, string)[] KindFilters =>
+    new (ReleaseTargetType?, string)[]
     {
-        (null, L["Ver_FilterAll_M"]), (ManagedDocKind.Vloa, "vLOA"), (ManagedDocKind.AccVipi, "ACC"),
-        (ManagedDocKind.AirportVipi, L["Nd_Airport"]), (ManagedDocKind.AppVipi, "APP"),
+        (null, L["Ver_FilterAll_M"]), (ReleaseTargetType.Vloa, "vLOA"), (ReleaseTargetType.AccVipi, "ACC"),
+        (ReleaseTargetType.Airport, L["Nd_Airport"]), (ReleaseTargetType.App, "APP"),
     };
     // I valori ammessi nell'URL. Le ETICHETTE non stanno più qui: i chip le portano una per una, coi loro
     // titoli, e un elenco di coppie serviva solo a generare i chip «tutti» che il ✕ ha sostituito.
@@ -583,7 +583,7 @@
 
     // ---- filtri: setter + sync URL (?q=&kind=&stato=&rel=) ----
     private void SetQuery(string? q) { _q = q ?? ""; SyncUrl(); }
-    private void SetKind(ManagedDocKind? k) { _kindFilter = k; SyncUrl(); }
+    private void SetKind(ReleaseTargetType? k) { _kindFilter = k; SyncUrl(); }
     private void SetAcc(string? a) { _accFilter = a; SyncUrl(); }
 
     // I chip sono interruttori: ricliccato, il chip acceso torna a «tutti». Il chip «tutti» non c'è — il
@@ -598,8 +598,8 @@
     }
 
     // I menu parlano in stringhe: "" è «tutti», e un valore che non esiste più non deve far esplodere la pagina.
-    private static ManagedDocKind? ParseKind(string? v) =>
-        Enum.TryParse<ManagedDocKind>(v, out var k) ? k : null;
+    private static ReleaseTargetType? ParseKind(string? v) =>
+        Enum.TryParse<ReleaseTargetType>(v, out var k) ? k : null;
     private static string? Blank(string? v) => string.IsNullOrWhiteSpace(v) ? null : v;
 
     private void SyncUrl()
@@ -619,7 +619,7 @@
     {
         var q = QueryStringUtil.Parse(new Uri(Nav.Uri).Query);
         if (q.TryGetValue("q", out var qv)) _q = qv;
-        if (q.Enum<ManagedDocKind>("kind") is { } k) _kindFilter = k;
+        if (q.Enum<ReleaseTargetType>("kind") is { } k) _kindFilter = k;
         if (q.Value("stato") is { } sv && StatusValues.Contains(sv)) _statusFilter = sv;
         if (q.Value("rel") is { } rv && ReleaseValues.Contains(rv)) _releaseFilter = rv;
         // L'ACC non si valida contro un elenco chiuso: l'elenco dei documenti non è ancora caricato, e una ACC
@@ -955,15 +955,15 @@
     private void SetNote(string key, string? n) => _note[key] = n;
 
     // Icona per tipo documento, coerente coi bottoni di NewDocumentPage (globe/map/plane/file).
-    private static string KindIcon(ManagedDocKind k) => k switch
+    private static string KindIcon(ReleaseTargetType k) => k switch
     {
-        ManagedDocKind.Vloa => "globe", ManagedDocKind.AccVipi => "map",
-        ManagedDocKind.AirportVipi => "plane-takeoff", ManagedDocKind.AppVipi => "plane-landing", _ => "file",
+        ReleaseTargetType.Vloa => "globe", ReleaseTargetType.AccVipi => "map",
+        ReleaseTargetType.Airport => "plane-takeoff", ReleaseTargetType.App => "plane-landing", _ => "file",
     };
-    private string KindLabel(ManagedDocKind k) => k switch
+    private string KindLabel(ReleaseTargetType k) => k switch
     {
-        ManagedDocKind.Vloa => "vLOA", ManagedDocKind.AccVipi => L["Nd_KindAcc"],
-        ManagedDocKind.AirportVipi => L["Nd_KindAirport"], ManagedDocKind.AppVipi => "vIPI APP", _ => k.ToString(),
+        ReleaseTargetType.Vloa => "vLOA", ReleaseTargetType.AccVipi => L["Nd_KindAcc"],
+        ReleaseTargetType.Airport => L["Nd_KindAirport"], ReleaseTargetType.App => "vIPI APP", _ => k.ToString(),
     };
     private string StatusLabel(DocumentStatus s) => s switch
     {

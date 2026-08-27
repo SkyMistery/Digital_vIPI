@@ -127,28 +127,36 @@ public class EditingRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task EnsureVipiDocument_Creates_Keyed_Sections_And_Is_Idempotent()
     {
+        // ⚠️ Le sezioni non si passano più: le dice il CATALOGO, per profilo (doc 14 §3f). È il punto della
+        // modifica — prima ogni chiamante ne portava una lista, e accanto un secondo elenco di «chiavi live»
+        // scritto a mano: l'ACC ne aveva cinque, l'APP otto, per la stessa domanda.
         var sec = await _db.Sectors.Where(s => s.DocumentId == null).Select(s => s.Id).FirstAsync();
-        var sections = new (string Key, string Title)[]
-        {
-            ("separations", "Separazioni"), ("aor", "AOR"), ("validity", "Validità e revisione"),
-        };
+        var atteso = SectionCatalog.For(SectionProfile.App).OrderBy(d => d.Order).Select(d => d.Key).ToArray();
 
-        var docId = await _repo.EnsureVipiDocumentAsync(sec, "vIPI APP di test", Language.It, sections, authorUserId: 9);
+        var docId = await _repo.EnsureVipiDocumentAsync(sec, "vIPI APP di test", Language.It, SectionProfile.App, authorUserId: 9);
 
         var doc = await _db.Documents.AsNoTracking().FirstAsync(d => d.Id == docId);
         Assert.Equal(DocumentType.Vipi, doc.Type);
         var ver = await _db.DocumentVersions.AsNoTracking().FirstAsync(v => v.DocumentId == docId);
         var keys = await _db.DocumentSections.AsNoTracking()
             .Where(s => s.DocumentVersionId == ver.Id).OrderBy(s => s.Order).Select(s => s.SectionKey).ToListAsync();
-        Assert.Equal(new[] { "separations", "aor", "validity" }, keys);
+        Assert.Equal(atteso, keys);
+
+        // E le sezioni «rese dalla pagina» hanno il loro blocco placeholder, le altre no: senza, sparirebbero
+        // dalla vista quando sono vuote — che per una derivata è sempre.
+        foreach (var d in SectionCatalog.For(SectionProfile.App))
+        {
+            var haBlocchi = await _db.ContentBlocks.AnyAsync(b => b.Section!.SectionKey == d.Key && b.DocumentVersionId == ver.Id);
+            Assert.Equal(SectionCatalog.IsHostRendered(SectionProfile.App, d.Key), haBlocchi);
+        }
 
         var linked = await _db.Sectors.AsNoTracking().FirstAsync(s => s.Id == sec);
         Assert.Equal(docId, linked.DocumentId);
         Assert.True(linked.IsPrimary);
 
         // Idempotente: seconda chiamata ritorna lo stesso documento, senza duplicare sezioni.
-        Assert.Equal(docId, await _repo.EnsureVipiDocumentAsync(sec, "altro titolo", Language.It, sections, authorUserId: 9));
-        Assert.Equal(3, await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == ver.Id));
+        Assert.Equal(docId, await _repo.EnsureVipiDocumentAsync(sec, "altro titolo", Language.It, SectionProfile.App, authorUserId: 9));
+        Assert.Equal(atteso.Length, await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == ver.Id));
     }
 
     [Fact]
@@ -157,14 +165,12 @@ public class EditingRepositoryTests : IAsyncLifetime
         var sec = await _db.Sectors.Where(s => s.DocumentId == null).Select(s => s.Id).FirstAsync();
         var blocks = new[]
         {
-            new Vipi.Application.Abstractions.VipiBlockSpec("aerovia", "Settori di aerovia",
-                new (string, string)[] { ("separations", "Separazioni"), ("aor", "AOR"), ("validity", "Validità") }),
-            new Vipi.Application.Abstractions.VipiBlockSpec("appgroup", "Gruppo APP",
-                new (string, string)[] { ("aor", "AOR"), ("frequencies", "Frequenze") }),
+            new Vipi.Application.Abstractions.VipiBlockSpec("aerovia", "Settori di aerovia", SectionProfile.AccAerovia),
+            new Vipi.Application.Abstractions.VipiBlockSpec("appgroup", "Gruppo APP", SectionProfile.AccAppBlock),
         };
 
         var docId = await _repo.EnsureVipiDocumentTreeAsync(sec, "vIPI ACC di test", Language.It, blocks,
-            authorUserId: 3, liveKeys: new[] { "aor", "frequencies" });
+            authorUserId: 3);
 
         var ver = await _db.DocumentVersions.AsNoTracking().FirstAsync(v => v.DocumentId == docId);
 
@@ -180,11 +186,16 @@ public class EditingRepositoryTests : IAsyncLifetime
             .Select(s => s.Id).FirstAsync();
         var childKeys = await _db.DocumentSections.AsNoTracking()
             .Where(s => s.ParentSectionId == aeroviaId).OrderBy(s => s.Order).Select(s => new { s.SectionKey, s.Depth }).ToListAsync();
-        Assert.Equal(new[] { "separations", "aor", "validity" }, childKeys.Select(c => c.SectionKey));
+        // ⚠️ Le figlie le dice il CATALOGO del profilo del blocco (doc 14 §3f), non una lista passata a mano.
+        Assert.Equal(SectionCatalog.For(SectionProfile.AccAerovia).OrderBy(d => d.Order).Select(d => d.Key),
+            childKeys.Select(c => c.SectionKey));
         Assert.All(childKeys, c => Assert.Equal(1, c.Depth));
 
-        // Placeholder solo sulle sezioni live (aor sotto aerovia; aor+frequencies sotto appgroup) → 3 blocchi totali.
-        Assert.Equal(3, await _db.ContentBlocks.CountAsync(b => b.DocumentVersion!.DocumentId == docId));
+        // Il placeholder va alle sezioni «rese dalla pagina», e a quelle sole: chi sono lo dice il catalogo.
+        var attesiPlaceholder =
+            SectionCatalog.For(SectionProfile.AccAerovia).Count(d => SectionCatalog.IsHostRendered(SectionProfile.AccAerovia, d.Key))
+            + SectionCatalog.For(SectionProfile.AccAppBlock).Count(d => SectionCatalog.IsHostRendered(SectionProfile.AccAppBlock, d.Key));
+        Assert.Equal(attesiPlaceholder, await _db.ContentBlocks.CountAsync(b => b.DocumentVersion!.DocumentId == docId));
 
         var linked = await _db.Sectors.AsNoTracking().FirstAsync(s => s.Id == sec);
         Assert.Equal(docId, linked.DocumentId);
@@ -192,7 +203,10 @@ public class EditingRepositoryTests : IAsyncLifetime
 
         // Idempotente: seconda chiamata ritorna lo stesso documento senza duplicare sezioni.
         Assert.Equal(docId, await _repo.EnsureVipiDocumentTreeAsync(sec, "altro", Language.It, blocks, authorUserId: 3));
-        Assert.Equal(7, await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == ver.Id));   // 2 blocchi + 5 figli
+        var atteseSezioni = 2   // le due sezioni-blocco
+            + SectionCatalog.For(SectionProfile.AccAerovia).Count
+            + SectionCatalog.For(SectionProfile.AccAppBlock).Count;
+        Assert.Equal(atteseSezioni, await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == ver.Id));
     }
 
     [Fact]
@@ -201,8 +215,7 @@ public class EditingRepositoryTests : IAsyncLifetime
         var sec = await _db.Sectors.Where(s => s.DocumentId == null).Select(s => s.Id).FirstAsync();
         var blocks = new[]
         {
-            new Vipi.Application.Abstractions.VipiBlockSpec("aerovia", "Settori di aerovia",
-                new (string, string)[] { ("separations", "Separazioni") }),
+            new Vipi.Application.Abstractions.VipiBlockSpec("aerovia", "Settori di aerovia", SectionProfile.AccAerovia),
         };
         var docId = await _repo.EnsureVipiDocumentTreeAsync(sec, "vIPI ACC di test", Language.It, blocks, authorUserId: 4);
         var ver = await _db.DocumentVersions.AsNoTracking().FirstAsync(v => v.DocumentId == docId);
@@ -237,8 +250,7 @@ public class EditingRepositoryTests : IAsyncLifetime
         // Documento vIPI APP seedato a mano (bozza v1) con la sezione radice keyed "separations".
         var sec = await _db.Sectors.Where(s => s.DocumentId == null).Select(s => s.Id).FirstAsync();
         var docId = await _repo.EnsureVipiDocumentAsync(
-            sec, "vIPI APP di test", Language.It,
-            new (string, string)[] { ("separations", "Separazioni"), ("vfr", "VFR") }, authorUserId: 5);
+            sec, "vIPI APP di test", Language.It, SectionProfile.App, authorUserId: 5);
 
         // Prima del salvataggio: nessun blocco → null.
         Assert.Null(await _repo.GetSectionBlockJsonAsync(docId, "separations"));

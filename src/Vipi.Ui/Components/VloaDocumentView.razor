@@ -36,78 +36,12 @@
         </div>
         <div class="callout info"><span class="cic"><Icon Name="globe" Size="18" /></span><div><p class="ct">@L["Vloa_BilateralNoteTitle"]</p>@L["Vloa_BilateralNoteBody"]</div></div>
 
-        @foreach (var s in View.Sections)
-        {
-            @if (s.IsHidden && !IsDraft)
-            {
-                <text></text>   @* nascosta: fuori dal pubblico e dall'anteprima release *@
-            }
-            else if (s.IsHidden)
-            {
-                @* Anteprima bozza: la sezione nascosta si vede, marcata — come ACC e APP (doc 11 §3c). Prima
-                   spariva anche in bozza, quindi non c'era modo di rivedere cosa si era nascosto. *@
-                <CollapsibleBlock Id="@s.Id" Style="opacity:.65"
-                                  InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
-                    <Header><h3 style="margin-top:0">@s.Title <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span></h3></Header>
-                    <ChildContent><SectionBody Section="s" /></ChildContent>
-                </CollapsibleBlock>
-            }
-            else if (_derive && s.SectionKey == "aor")
-            {
-                <CollapsibleBlock Id="@s.Id" InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@SubSections(s, SectionSlot.Before)@ReadAor()@SubSections(s, SectionSlot.After)</ChildContent></CollapsibleBlock>
-            }
-            else if (_derive && s.SectionKey == "frequencies")
-            {
-                <CollapsibleBlock Id="@s.Id" InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))"><Header><h3 style="margin-top:0">@s.Title</h3></Header><ChildContent>@SubSections(s, SectionSlot.Before)@ReadFreq()@SubSections(s, SectionSlot.After)</ChildContent></CollapsibleBlock>
-            }
-            else if (_derive && s.SectionKey == "coordination")
-            {
-                <CollapsibleBlock Id="@s.Id" InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
-                    <Header><h3 style="margin-top:0">@s.Title</h3></Header>
-                    <ChildContent>
-                        @* Le sotto-sezioni EXTRA (quelle che non sono una direzione) sono contenuto del documento
-                           come in ogni altra sezione resa dalla pagina: prima questo ramo — solo questo — non le
-                           rendeva affatto, pur essendo creabili dall'editor con «+ sotto-sez» (doc 11 §3b). *@
-                        @SubSections(WithoutDirections(s), SectionSlot.Before)
-                        @* Le due direzioni, riconosciute dalla CHIAVE (doc 13 §3c): prima erano la figlia [0] e la
-                           figlia [1], mentre l'editor le distingueva per titolo — due modi per la stessa cosa.
-                           L'ORDINE però è quello del documento: le due sotto-sezioni si spostano dall'editor come
-                           ogni altra sezione del loro gruppo, e il documento pubblicato deve seguirle. *@
-                        @foreach (var key in DirectionOrder(s))
-                        {
-                            var outbound = string.Equals(key, SectionKeys.CoordinationOut, StringComparison.OrdinalIgnoreCase);
-                            @if (DirectionVisible(s, key))
-                            {
-                                <h4>@(outbound ? _coord.HomeAcc : _coord.ForeignAcc) → @(outbound ? _coord.ForeignAcc : _coord.HomeAcc)</h4>
-                                <AccCoordinationView Coord="@(outbound ? _coord.HomeToForeign : _coord.ForeignToHome)" English="true" />
-                            }
-                        }
-                        @SubSections(WithoutDirections(s), SectionSlot.After)
-                    </ChildContent>
-                </CollapsibleBlock>
-            }
-            else if (s.SectionKey == "validity")
-            {
-                @* Il timbro sopra e il testo bilaterale sotto: su una vLOA lì ci stanno il ciclo di revisione
-                   concordato e il firmatario, che nessuno può derivare. *@
-                <CollapsibleBlock Id="@s.Id" InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
-                    <Header><h3 style="margin-top:0">@s.Title</h3></Header>
-                    <ChildContent>
-                        @SubSections(s, SectionSlot.Before)
-                        @if (DocId is int docId)
-                        {
-                            <ValidityStamp Target="ReleaseTargetType.Vloa" Key="@docId.ToString()" ReleaseId="ReleaseId" />
-                        }
-                        <SectionBody Section="s" ShowBlocks="true" />
-                        @SubSections(s, SectionSlot.After)
-                    </ChildContent>
-                </CollapsibleBlock>
-            }
-            else
-            {
-                <SectionNode Section="s" />
-            }
-        }
+        @* Il ciclo delle sezioni lo fa il componente condiviso (doc 14 §3e): nascosta/bozza, «nasce chiusa»,
+           sotto-sezioni prima e dopo, blocchi propri. Qui resta il solo corpo derivato, per chiave.
+           ⚠️ Chi rende il corpo lo dice ora il CATALOGO: prima era una catena di `else if` su tre chiavi
+           cablate, e la vLOA era l'unica delle quattro a decidere da sé. *@
+        <DocumentSectionsView Sections="View.Sections" Profile="SectionProfile.Vloa" IsDraft="IsDraft"
+                              SlotsOf="SenzaDirezioni" DerivedContent="CorpoDerivato" />
     </div>
 
     <aside class="doc-rail" aria-label="@L["Doc_RailAria"]">
@@ -159,7 +93,6 @@
     /// <summary>Anteprima di una release precisa; null = la release effettiva adesso.</summary>
     [Parameter] public int? ReleaseId { get; set; }
 
-    private bool _derive;
     private bool _canEdit;
     private VloaAorData _aor = VloaAorData.Empty;
     private VloaFreqData _freq = VloaFreqData.Empty;
@@ -196,6 +129,48 @@
 
     /// <summary>La stessa sezione senza le due direzioni fra le figlie: quelle le rende il corpo, le altre sono
     /// sotto-sezioni normali e vanno rese negli slot come ovunque (doc 11 §3g).</summary>
+    /// <summary>
+    /// Il corpo che questa pagina disegna, per chiave di sezione. Sono le stesse chiavi che il catalogo
+    /// dichiara «rese dalla pagina» per il profilo vLOA: aor, frequencies, coordination, validity.
+    /// </summary>
+    private RenderFragment<SectionView> CorpoDerivato => s => __builder =>
+    {
+        @switch (s.SectionKey)
+        {
+            case "aor": @ReadAor(); break;
+            case "frequencies": @ReadFreq(); break;
+            case "coordination":
+                @* Le due direzioni, riconosciute dalla CHIAVE (doc 13 §3c): prima erano la figlia [0] e la
+                   figlia [1], mentre l'editor le distingueva per titolo — due modi per la stessa cosa.
+                   L'ORDINE però è quello del documento: le due sotto-sezioni si spostano dall'editor come
+                   ogni altra sezione del loro gruppo, e il pubblicato deve seguirle. *@
+                foreach (var key in DirectionOrder(s))
+                {
+                    var outbound = string.Equals(key, SectionKeys.CoordinationOut, StringComparison.OrdinalIgnoreCase);
+                    @if (DirectionVisible(s, key))
+                    {
+                        <h4>@(outbound ? _coord.HomeAcc : _coord.ForeignAcc) → @(outbound ? _coord.ForeignAcc : _coord.HomeAcc)</h4>
+                        <AccCoordinationView Coord="@(outbound ? _coord.HomeToForeign : _coord.ForeignToHome)" English="true" />
+                    }
+                }
+                break;
+            case "validity":
+                @* Il timbro sopra; il testo bilaterale sotto lo mette il componente condiviso, perché il
+                   catalogo dice che questa sezione i propri blocchi li tiene. *@
+                @if (DocId is int docId)
+                {
+                    <ValidityStamp Target="ReleaseTargetType.Vloa" Key="@docId.ToString()" ReleaseId="ReleaseId" />
+                }
+                break;
+        }
+    };
+
+    /// <summary>La sezione dei coordinamenti senza le due direzioni: quelle le disegna il corpo derivato, e
+    /// senza questo filtro comparirebbero anche come sotto-sezioni ordinarie.</summary>
+    private static SectionView SenzaDirezioni(SectionView s) =>
+        string.Equals(s.SectionKey, SectionKeys.Coordination, StringComparison.OrdinalIgnoreCase)
+            ? WithoutDirections(s) : s;
+
     private static SectionView WithoutDirections(SectionView s) => new()
     {
         Id = s.Id,
@@ -250,14 +225,6 @@
         }
     }
 
-    // Le sotto-sezioni di una sezione DERIVATA restano contenuto del documento (doc 11 §3b): prima sparivano,
-    // pur essendo creabili dall'editor con «+ sotto-sez». I blocchi della sezione derivata NON si rendono
-    // (portano il payload, non contenuto). Lo slot decide se stanno prima o dopo il corpo (doc 11 §3g).
-    private RenderFragment SubSections(SectionView s, SectionSlot slot) => __builder =>
-    {
-        @if (SectionBody.HasChildren(s, slot)) { <SectionBody Section="s" ShowBlocks="false" Slot="slot" /> }
-    };
-
     // ATC online di un ACC (testa callsign = codice ACC, es. LIMM_CTR / LFMM_N_CTR).
     private int OnlineOf(string code) =>
         Online.GetCurrent().Callsigns.Count(cs => cs.Split('_', 2)[0].Equals(code, StringComparison.OrdinalIgnoreCase));
@@ -270,7 +237,6 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        _derive = DocId is int;
         if (DocId is int docId)
         {
             // Derivate: frozen dalla release effettiva nella vista pubblica, live in bozza/anteprima (doc 10 §3d).

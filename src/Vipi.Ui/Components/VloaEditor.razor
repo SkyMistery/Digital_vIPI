@@ -6,6 +6,7 @@
 @inherits OwningComponentBase
 @inject NavigationManager Nav
 @inject ILogger<VloaEditor> Logger
+@inject IDocRoutesRegistry DocRoutes
 @inject IStringLocalizer<SharedResource> L
 @inject IEditAuthorizationService Authz
 @inject IJSRuntime JS
@@ -22,7 +23,7 @@ else if (_denied)
     <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">@L["Vle_Unauthorized"]</p>
         @(string.Format(L["Vle_UnauthorizedBody"].Value, Home))</div></div>
 }
-else if (_doc is null)
+else if (_shell.Doc is null)
 {
     <p class="help">@L["Vle_LoadingEditor"]</p>
 }
@@ -42,22 +43,22 @@ else
                 @((MarkupString)string.Format(L["Vle_BilateralBody"].Value, Home, Foreign))
                 @((MarkupString)L["Vle_HelpBody"].Value)
             </HelpHint>
-            <span class="pill @(_doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
-                @(_doc.VersionStatus == DocumentStatus.Draft ? L["Ed_DraftVN", _doc.VersionNumber] : L["Ed_PublishedVN", _doc.VersionNumber])
+            <span class="pill @(_shell.Doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
+                @(_shell.Doc.VersionStatus == DocumentStatus.Draft ? L["Ed_DraftVN", _shell.Doc.VersionNumber] : L["Ed_PublishedVN", _shell.Doc.VersionNumber])
             </span>
-            @if (_editing)
+            @if (_shell.IsEditing)
             {
                 @* ⚠️ Il chip dice l'ORA, la frase intera sta nel `title`: misurato, «Stai modificando ·
                    lock fino alle 21:06» sono 266px, e a 1024 la testata andava a capo per nove pixel.
                    E' la stessa cura gia' pagata sul giro Versioni (la frase del lock, 647 → 289). *@
-                <span class="sh-chip ok" data-utc-title="@VipiTime.Iso(_lock.ExpiresUtc)" title="@(L["Lock_Editing"].Value + (_lock.ExpiresUtc is { } mt ? L["Lock_UntilSuffix", VipiTime.Z(mt)].Value : ""))">
-                    🔒 @(_lock.ExpiresUtc is { } me ? L["Lock_EditingShort", VipiTime.Z(me)].Value : L["Lock_EditingNoTime"].Value)
+                <span class="sh-chip ok" data-utc-title="@VipiTime.Iso(_shell.Lock.ExpiresUtc)" title="@(L["Lock_Editing"].Value + (_shell.Lock.ExpiresUtc is { } mt ? L["Lock_UntilSuffix", VipiTime.Z(mt)].Value : ""))">
+                    🔒 @(_shell.Lock.ExpiresUtc is { } me ? L["Lock_EditingShort", VipiTime.Z(me)].Value : L["Lock_EditingNoTime"].Value)
                 </span>
             }
-            else if (_lock is { Locked: true, IsMine: false })
+            else if (_shell.Lock is { Locked: true, IsMine: false })
             {
-                <span class="sh-chip warn" data-utc-title="@VipiTime.Iso(_lock.ExpiresUtc)" title="@(string.Format(L["Ed_LockedByOtherBody"].Value, _lock.ByName ?? L["Lock_AnotherEditor"].Value, _lock.ExpiresUtc is { } ot ? L["Lock_UntilSuffix", VipiTime.Z(ot)].Value : ""))">
-                    🔒 @(_lock.ByName ?? L["Lock_AnotherEditor"].Value)@(_lock.ExpiresUtc is { } oe ? L["Lock_UntilSuffix", VipiTime.Z(oe)].Value : "")
+                <span class="sh-chip warn" data-utc-title="@VipiTime.Iso(_shell.Lock.ExpiresUtc)" title="@(string.Format(L["Ed_LockedByOtherBody"].Value, _shell.Lock.ByName ?? L["Lock_AnotherEditor"].Value, _shell.Lock.ExpiresUtc is { } ot ? L["Lock_UntilSuffix", VipiTime.Z(ot)].Value : ""))">
+                    🔒 @(_shell.Lock.ByName ?? L["Lock_AnotherEditor"].Value)@(_shell.Lock.ExpiresUtc is { } oe ? L["Lock_UntilSuffix", VipiTime.Z(oe)].Value : "")
                 </span>
             }
             <button type="button" class="btn ghost st-head-end" @onclick="() => _wide = !_wide"
@@ -66,37 +67,37 @@ else
         </div>
     </div>
 
-    <DocReviewBar DocumentId="_docId" />
-    @if (_error is not null) { <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@_error</div></div> }
+    <DocReviewBar DocumentId="_shell.DocumentId" />
+    @if (_shell.Error is not null) { <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@_shell.Error</div></div> }
 
-    @if (_doc.Sections.Count == 0)
+    @if (_shell.Doc.Sections.Count == 0)
     {
         <div class="callout info"><span class="cic"><Icon Name="file" Size="18" /></span><div><p class="ct">@L["Vle_Empty"]</p>
-            @if (_editing) { <text>@L["Vle_EmptyEditing"]</text> } else { <text>@L["Vle_EmptyReadonly"]</text> }</div></div>
+            @if (_shell.IsEditing) { <text>@L["Vle_EmptyEditing"]</text> } else { <text>@L["Vle_EmptyReadonly"]</text> }</div></div>
     }
 
-    <DocumentSectionsEditor Doc="_doc" IsEditing="_editing" Run="Guard" OnChanged="LoadAsync"
+    <DocumentSectionsEditor Doc="_shell.Doc" IsEditing="_shell.IsEditing" Run="_shell.GuardAsync" OnChanged="LoadAsync"
                             IsDerivedSection="IsDerived" DerivedContent="DerivedSection"
                             IsMandatory="IsMandatory" Profile="SectionProfile.Vloa"
                             IsRenderModeToggleable="IsRenderModeToggleable"
                             ShowToc="true" ExtraTocItems="_tocExtra" Wide="_wide"
                             TocFooter="@TocCommands">
         <RightRail>
-            @if (_save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
-            else if (_save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
-            <DraftPreviewLink Href="@($"/services/vsop/{Home.ToLowerInvariant()}/vloa?acc={Foreign}&as=draft")" />
+            @if (_shell.Save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
+            else if (_shell.Save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
+            <DraftPreviewLink Href="@(DocRoutes.For(ReleaseTargetType.Vloa).DraftUrl(Home.ToLowerInvariant(), "", Foreign))" />
             @* Il lock e' salito in testata: qui restano i COMANDI (regola 1). *@
-            @if (_editing)
+            @if (_shell.IsEditing)
             {
-                <button class="btn ghost" @onclick="FinishEditing">✓ @L["Lock_FinishEdit"]</button>
+                <button class="btn ghost" @onclick="() => _shell.FinishEditingAsync()">✓ @L["Lock_FinishEdit"]</button>
             }
-            else if (_lock is { Locked: true, IsMine: false })
+            else if (_shell.Lock is { Locked: true, IsMine: false })
             {
                 <button class="btn ghost" disabled title="@L["Ed_LockedByOther"]">✎ @L["Ed_Edit"]</button>
             }
             else
             {
-                <button class="btn ghost" @onclick="StartEditing">✎ @L["Ed_Edit"]</button>
+                <button class="btn ghost" @onclick="() => _shell.StartEditingAsync(LoadAsync)">✎ @L["Ed_Edit"]</button>
             }
         </RightRail>
         @* ⚠️ Dentro la colonna centrale, non dopo il componente: reso fuori da <DocumentSectionsEditor>
@@ -109,7 +110,7 @@ else
                «Da fare» (carta 2026-08-26-da-fare-una-lista-sola.md §3). Un editor lungo, aperto in cima, chiede a chi
                ci arriva di cercare il pannello che gli è stato promesso. *@
             <div id="sec-versioni">
-                <ReleasePanel Target="ReleaseTargetType.Vloa" Key="@_docId!.Value.ToString()"
+                <ReleasePanel Target="ReleaseTargetType.Vloa" Key="@_shell.DocumentId!.Value.ToString()"
                               ShowDiff="true" AllowCancel="Authz.IsAdmin"
                               PreviewUrlFactory="ReleasePreviewUrl"
                               Published="LoadAsync" />
@@ -122,30 +123,25 @@ else
     [Parameter, EditorRequired] public string Home { get; set; } = default!;
     [Parameter, EditorRequired] public string Foreign { get; set; } = default!;
 
-    private int? _docId;
-    private EditableDocument? _doc;
     // Sezioni DERIVATE (data-driven) unendo i due ACC: AoR, frequenze, coordinamenti.
     private VloaAorData _aor = VloaAorData.Empty;
     private VloaFreqData _freq = VloaFreqData.Empty;
     private VloaCoordination _coord = VloaCoordination.Empty;
-    private LockInfo _lock = LockInfo.Free();
-    private bool _notFound, _denied, _editing;
+    private bool _notFound, _denied;
     private bool _wide;
-    private string? _error;
+
+    /// <summary>Il guscio comune dei quattro editor (doc 14 §3d): documento, modifica, errore, lock, badge di
+    /// salvataggio, e i gesti che li muovono. Qui resta solo ciò che è della vLOA.</summary>
+    private DocumentEditorShell _shell = default!;
 
     // Espandi/comprimi tutto, in coda al TOC: stesse chiavi e stesso gesto degli altri due editor (regola 68).
     private RenderFragment TocCommands => __builder =>
     {
-        <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(true)" title="@L["Ed_ExpandAllTitle"]">@L["Common_ExpandAll"]</button>
-        <button type="button" class="btn ghost" @onclick="() => ToggleAllSections(false)" title="@L["Ed_CollapseAllTitle"]">@L["Common_CollapseAll"]</button>
+        <button type="button" class="btn ghost" @onclick="() => _shell.ToggleAllSectionsAsync(true)" title="@L["Ed_ExpandAllTitle"]">@L["Common_ExpandAll"]</button>
+        <button type="button" class="btn ghost" @onclick="() => _shell.ToggleAllSectionsAsync(false)" title="@L["Ed_CollapseAllTitle"]">@L["Common_CollapseAll"]</button>
     };
 
-    private async Task ToggleAllSections(bool open)
-    {
-        try { await JS.InvokeVoidAsync("vipiEditorSections", open); } catch (Exception) { }
-    }
-
-    // Sezioni OBBLIGATORIE: quelle fisse del catalogo (doc 13 §3c). Prima erano riconosciute per TITOLO — una
+        // Sezioni OBBLIGATORIE: quelle fisse del catalogo (doc 13 §3c). Prima erano riconosciute per TITOLO — una
     // rinomina perdeva lo stato e due titoli uguali collidevano, esattamente ciò che il doc 11 §3a aveva vietato
     // per «nascosta» ma che qui era rimasto.
     private static bool IsMandatory(EditableSection s) => SectionCatalog.IsFixed(SectionProfile.Vloa, s.SectionKey);
@@ -155,12 +151,8 @@ else
     // Voce TOC per il blocco Release (reso fuori da DocumentSectionsEditor), come nell'editor APP.
     private IReadOnlyList<EditorTocItem> _tocExtra => new[] { new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]) };
 
-    private string ReleasePreviewUrl(int releaseId) =>
-        $"/services/vsop/{(Home ?? "").ToLowerInvariant()}/vloa?acc={Foreign}&as=rel:{releaseId}";
-
-    private enum SaveState { Idle, Saving, Saved }
-    private SaveState _save = SaveState.Idle;
-    private readonly DelayedUiAction _dismissSaved = new();
+    private string? ReleasePreviewUrl(int releaseId) =>
+        DocRoutes.For(ReleaseTargetType.Vloa).ViewerUrl((Home ?? "").ToLowerInvariant(), "", Foreign, releaseId);
 
     // Risolti dallo scope proprio (OwningComponentBase): context isolato dal circuito.
     private IEditingService Editing = default!;
@@ -169,31 +161,42 @@ else
     {
         Editing = ScopedServices.GetRequiredService<IEditingService>();
         Vloa = ScopedServices.GetRequiredService<IVloaDerivationService>();
+        _shell = new DocumentEditorShell(Editing, JS, L, Logger, "vLOA", "Vle_NoEditPerm",
+            () => InvokeAsync(StateHasChanged));
+    }
+
+    // ⚠️ Espandi/comprimi tutto lo fa il JS sui <details>, e prima del primo render interattivo l'interop non
+    // è lecita. Questo editor si proteggeva con `catch (Exception) { }` — che oltre al caso previsto ingoiava
+    // in silenzio qualunque altro guasto (invariante #7 del runbook). Ora la guardia è un segnale, come
+    // nell'editor ACC e in quello d'aeroporto: se non si accendesse, i due tasti resterebbero muti.
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) _shell.JsReady = true;
     }
 
     protected override async Task OnParametersSetAsync()
     {
         _notFound = _denied = false;
-        _error = null;
-        _doc = null;
+        _shell.Error = null;
+        _shell.Doc = null;
 
         var home = (Home ?? "").Trim().ToUpperInvariant();
         var foreign = (Foreign ?? "").Trim().ToUpperInvariant();
-        _docId = await Editing.ResolveVloaIdByPairAsync(home, foreign);
-        if (_docId is null) { _notFound = true; return; }
+        _shell.DocumentId = await Editing.ResolveVloaIdByPairAsync(home, foreign);
+        if (_shell.DocumentId is null) { _notFound = true; return; }
 
         await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
-        if (_docId is not int id) return;
+        if (_shell.DocumentId is not int id) return;
         try
         {
-            _doc = await Editing.LoadForEditAsync(id);
-            _lock = await Editing.InspectLockAsync(id);
-            if (_doc is null) { _notFound = true; return; }
-            _editing = _editing && _doc.IsEditable;   // resta in modifica solo se la working è bozza
+            _shell.Doc = await Editing.LoadForEditAsync(id);
+            _shell.Lock = await Editing.InspectLockAsync(id);
+            if (_shell.Doc is null) { _notFound = true; return; }
+            _shell.IsEditing = _shell.IsEditing && _shell.Doc.IsEditable;   // resta in modifica solo se la working è bozza
             await LoadDerivedAsync(id);
         }
         catch (EditNotAllowedException) { _denied = true; }
@@ -207,16 +210,16 @@ else
         _coord = await Vloa.DeriveCoordinationAsync(id);
     }
 
-    private Task ToggleAor(string cs) => Guard(async () =>
+    private Task ToggleAor(string cs) => _shell.GuardAsync(async () =>
     {
-        await Vloa.ToggleAorSectorAsync(_docId!.Value, cs);
-        _aor = await Vloa.DeriveAorAsync(_docId!.Value);
+        await Vloa.ToggleAorSectorAsync(_shell.DocumentId!.Value, cs);
+        _aor = await Vloa.DeriveAorAsync(_shell.DocumentId!.Value);
     });
 
-    private Task ToggleFreq(string cs) => Guard(async () =>
+    private Task ToggleFreq(string cs) => _shell.GuardAsync(async () =>
     {
-        await Vloa.ToggleFrequencyAsync(_docId!.Value, cs);
-        _freq = await Vloa.DeriveFrequenciesAsync(_docId!.Value);
+        await Vloa.ToggleFrequencyAsync(_shell.DocumentId!.Value, cs);
+        _freq = await Vloa.DeriveFrequenciesAsync(_shell.DocumentId!.Value);
     });
 
     // Sezione il cui corpo lo produce l'editor dai dati, non i blocchi. Lo dice il catalogo per il profilo vLOA
@@ -225,78 +228,11 @@ else
     private static bool IsDerived(EditableSection s) =>
         SectionCatalog.IsHostRendered(SectionProfile.Vloa, s.SectionKey);
 
-    // «Modifica»: garantisce una bozza editabile (+ lock) e passa in edit.
-    private async Task StartEditing()
-    {
-        if (_docId is not int id) return;
-        await GuardCore(async () =>
-        {
-            if (_doc is { IsEditable: false })
-            {
-                await Editing.CreateDraftAsync(id);   // copia Published→Draft (idempotente) e acquisisce il lock
-                await LoadAsync();
-            }
-            else
-            {
-                await Editing.AcquireLockAsync(id);
-                await LoadAsync();
-            }
-            _editing = _doc?.IsEditable == true;
-        }, silent: true);
-    }
-
-    // Fine modifica: rilascia il lock così il documento è subito libero per gli altri (non aspetta i 30 min di TTL).
-    private async Task FinishEditing()
-    {
-        _editing = false;
-        if (_docId is int id)
-        {
-            await GuardCore(() => Editing.ReleaseLockAsync(id), silent: true);
-            _lock = await Editing.InspectLockAsync(id);
-        }
-    }
-
-    // ---- infra ----
-    // Firma a 1 parametro preservata: passata come Run= a DocumentSectionsEditor (Func<Func<Task>,Task>).
-    private Task Guard(Func<Task> action) => GuardCore(action, silent: false);
-    private async Task GuardCore(Func<Task> action, bool silent)
-    {
-        _error = null;
-        if (!silent) { _save = SaveState.Saving; StateHasChanged(); }
-        try
-        {
-            await action();
-            if (!silent)
-            {
-                _save = SaveState.Saved;
-                // Il badge «Salvato» si spegne da solo. DelayedUiAction annulla il precedente e — a
-                // differenza del contatore che c'era prima — si ferma anche allo smontaggio del componente.
-                _dismissSaved.Schedule(TimeSpan.FromSeconds(2), () =>
-                {
-                    if (_save != SaveState.Saved) return Task.CompletedTask;
-                    _save = SaveState.Idle;
-                    return InvokeAsync(StateHasChanged);
-                });
-            }
-        }
-        catch (EditNotAllowedException) { _error = L["Vle_NoEditPerm"]; _save = SaveState.Idle; }
-        catch (EditConflictException ex) { _error = ex.Message; _save = SaveState.Idle; if (_docId is int id) _lock = await Editing.InspectLockAsync(id); }
-        catch (ValidationException ex) { _error = ex.Message; _save = SaveState.Idle; }
-        // Rete di sicurezza: senza questo, un'eccezione non prevista (DbUpdateException, Npgsql…) sfuggiva,
-        // abbatteva il circuito e lasciava il badge inchiodato su "Salvataggio". Meglio un errore visibile.
-        catch (Exception ex)
-        {
-            _error = L["Common_UnexpectedError"] + ex.Message;
-            _save = SaveState.Idle;
-            Logger.LogError(ex, "Azione editor vLOA fallita (documento {DocId}).", _docId);
-        }
-    }
-
-    /// <summary>Ferma il badge che si spegne da solo: dopo lo smontaggio non c'è più un renderer da avvisare.
+                /// <summary>Ferma il badge che si spegne da solo: dopo lo smontaggio non c'è più un renderer da avvisare.
     /// Override e non IDisposable a parte: OwningComponentBase possiede già il proprio scope DI da liberare.</summary>
     protected override void Dispose(bool disposing)
     {
-        if (disposing) _dismissSaved.Dispose();
+        if (disposing) _shell.Dispose();
         base.Dispose(disposing);
     }
 
@@ -334,7 +270,7 @@ else
                     <span class="cic"><Icon Name="clock" Size="18" /></span>
                     <div>@L["Val_EditNote"]</div>
                 </div>
-                <ValidityStamp Target="ReleaseTargetType.Vloa" Key="@(_docId?.ToString() ?? "")" />
+                <ValidityStamp Target="ReleaseTargetType.Vloa" Key="@(_shell.DocumentId?.ToString() ?? "")" />
                 break;
         }
     };
@@ -342,11 +278,11 @@ else
     // Righe di un lato: in modifica tutte (le escluse attenuate), in lettura solo quelle nel documento.
     private RenderFragment FreqSide(bool foreign) => __builder =>
     {
-        var side = _freq.Rows.Where(r => r.IsForeign == foreign).Where(r => _editing || !r.Hidden).ToList();
+        var side = _freq.Rows.Where(r => r.IsForeign == foreign).Where(r => _shell.IsEditing || !r.Hidden).ToList();
         var hidden = side.Where(r => r.Hidden).Select(r => r.Row.Callsign).ToHashSet(StringComparer.OrdinalIgnoreCase);
         <AppFrequencies Rows="side.Select(r => r.Row).ToList()"
                         IsDimmed="row => hidden.Contains(row.Callsign)"
-                        RowActions="@(_editing ? FreqToggle(hidden) : null)" />
+                        RowActions="@(_shell.IsEditing ? FreqToggle(hidden) : null)" />
     };
 
     private RenderFragment<AppFreqRow> FreqToggle(IReadOnlySet<string> hidden) => row => __builder =>
@@ -368,8 +304,8 @@ else
     // e non lo si confonde con la lente che sta sopra.
     private RenderFragment AorView() => __builder =>
     {
-        <AccAor View="_aor.Map" Id="@($"vloa-aor-{_docId}")" />
-        @if (_editing && _aor.Toggles.Count > 0)
+        <AccAor View="_aor.Map" Id="@($"vloa-aor-{_shell.DocumentId}")" />
+        @if (_shell.IsEditing && _aor.Toggles.Count > 0)
         {
             var dentro = _aor.Toggles.Count(x => !x.Hidden);
             <div class="vloa-aor-pick">

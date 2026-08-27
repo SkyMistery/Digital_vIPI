@@ -1817,3 +1817,37 @@ dal primo giro notturno su documenti veri.
 ⚠️ **Per provare qualcosa sul `vipi.db` reale servono tre file** — `.db`, `-wal`, `-shm` — o SQLite lo
 dichiara *malformed*. E un `Vipi.Host` sopravvissuto a un `dotnet run` blocca i `bin/`: se una build si
 lamenta di file in uso, non è mai un caso.
+
+---
+
+## 2026-08-27 — I quattro documenti, un motore solo (doc 14)
+
+Audit di **supervisione** su `main @ fbac773`, subito dopo la fusione di tutti i rami in un albero solo.
+È il primo giro che guarda **quattro** famiglie: la vIPI d'aeroporto era entrata nel catalogo delle sezioni
+il 26 agosto, e i doc 11 e 13 ne avevano viste tre.
+
+**Sette passi su otto, un commit per passo. Suite 5432 → 5544, build 0 avvisi.**
+
+Il difetto che l'audit ha trovato per primo era **visibile a un lettore**: su una vLOA pubblicata il ciclo
+AIRAC era scritto due volte — il timbro diceva 2608, la tabella seminata a mano sotto diceva 2607.
+
+Le due cose che valgono più dei passi:
+
+- **`ParitaQuattroDocumentiTests`** — quaranta prove che pongono ai **cinque profili** (l'ACC ne ha due) le
+  stesse domande di comportamento. Il catalogo aveva già invarianti provate su tutti i profili, ed è per
+  questo che quella parte non divergeva; per il comportamento non esisteva l'equivalente, e **ogni**
+  divergenza di questo audit era passata attraverso una suite verde.
+- **`SezioniAeroportoTests`** — la rete scritta **prima** di toccare l'aeroporto, come pretende
+  l'invariante #8 del runbook: l'editor più lungo del progetto (2180 righe) non aveva un solo test diretto.
+
+⚠️ **Due promesse della carta corrette eseguendo, e scritte nella carta al posto della promessa:**
+`IReleaseTarget.EnsureDocumentIdAsync` avrebbe creato un **ciclo di dipendenze** (descrittore → servizio →
+`IReleaseRepository` → registro → descrittori) e nessun chiamante ne aveva bisogno; e l'aeroporto non si
+rende statico con la sola isola sul selettore SID, perché **l'elenco carica il meteo in progressione dopo
+il render** — separare la rotta e togliere il circuito sono la stessa mossa, non due.
+
+⚠️ **Quel che solo la verifica live poteva trovare**: la correzione del ciclo AIRAC **non arriva al
+pubblico** finché non si ripubblica, perché la pagina legge lo snapshot della release. Gli snapshot **non
+si riscrivono** — una release «congela davvero» — e il progetto ha già la strada giusta: `ReleaseDrift` lo
+segnala in «Da fare» col tasto Ripubblica.
+

@@ -14,7 +14,6 @@ public sealed class AccVipiReleaseTarget : IReleaseTarget
     public AccVipiReleaseTarget(VipiDbContext db) => _db = db;
 
     public ReleaseTargetType Type => ReleaseTargetType.AccVipi;
-    public ManagedDocKind ManagedKind => ManagedDocKind.AccVipi;
     public int DescribeOrder => 2;
 
     public async Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default)
@@ -53,7 +52,7 @@ public sealed class AccVipiReleaseTarget : IReleaseTarget
         var primary = doc.Sectors.FirstOrDefault(s => s.IsPrimary) ?? doc.Sectors.FirstOrDefault();
         if (primary is not { Type: SectorType.Ctr, ParentSectorId: null }) return false;
         var acc = primary.Acc?.Code ?? "";
-        managed = new ManagedDoc(ManagedDocKind.AccVipi, doc.Title, primary.Callsign, acc,
+        managed = new ManagedDoc(ReleaseTargetType.AccVipi, doc.Title, primary.Callsign, acc,
             doc.Status == DocumentStatus.Published, hasDraft, doc.IsHidden,
             ReleaseTargetType.AccVipi, $"{acc}|{primary.Callsign}", doc.Id);
         return true;

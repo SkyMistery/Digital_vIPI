@@ -1,0 +1,120 @@
+@* Il ciclo delle sezioni di un documento pubblicato, CONDIVISO (doc 14 §3e).
+
+   Le regole che applica sono le stesse in tutte le famiglie, e stavano scritte quattro volte con quattro
+   sintassi diverse:
+     · una sezione nascosta sta fuori dal pubblico e dall'anteprima release, e in bozza si vede marcata;
+     · nasce chiusa se lo dice il catalogo;
+     · le sotto-sezioni «prima» vanno sopra il corpo e le altre sotto (doc 11 §3g);
+     · una sezione resa dalla pagina cede il posto al corpo derivato, e tiene anche i propri blocchi solo se
+       il catalogo dice che li tiene (oggi la sola «validità e revisione»).
+
+   Chi rende il corpo lo decide il CATALOGO, per profilo. È il punto per cui questo componente esiste: la vLOA
+   era l'unica delle quattro a deciderlo con una catena di `else if` su tre chiavi cablate, e una sezione
+   derivata aggiunta al suo profilo sarebbe comparsa nell'editor e nell'indice — ma non nel documento
+   pubblicato, perché sarebbe caduta nel ramo finale, quello che rende i blocchi salvati, e i blocchi di una
+   sezione derivata sono vuoti per costruzione.
+
+   ⚠️ La vIPI ACC non passa di qui, e non è una dimenticanza: è l'unica a BLOCCHI (Aerovia + gruppi APP), e il
+   suo ciclo esterno itera i blocchi, non le sezioni. Il suo corpo di sezione è già estratto in AccSectionBody,
+   che usa lo stesso SectionBody e lo stesso catalogo. Portarla qui vorrebbe dire cambiare anche il modello che
+   la pagina ha in mano, ed è un lavoro diverso da questo. *@
+
+@foreach (var s in Sections)
+{
+    var nascosta = s.IsHidden;
+
+    @if (nascosta && !IsDraft)
+    {
+        @* Fuori dal pubblico e dall'anteprima release. Non si rende niente: non un contenitore vuoto. *@
+    }
+    else if (SectionCatalog.IsHostRendered(Profile, s.SectionKey))
+    {
+        <CollapsibleBlock Id="@Anchor(s)" ExtraClass="@ExtraClass?.Invoke(s)"
+                          Style="@(nascosta ? "opacity:.65" : null)"
+                          InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
+            <Header>
+                <h2 class="h-sect" style="margin-top:0">
+                    @if (HeaderContent is not null) { @HeaderContent(s) } else { @Titolo(s) }
+                    @if (nascosta) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }
+                </h2>
+            </Header>
+            <ChildContent>
+                @{ var perSlot = SlotsOf?.Invoke(s) ?? s; }
+                @if (SectionBody.HasChildren(perSlot, SectionSlot.Before))
+                {
+                    <SectionBody Section="perSlot" ShowBlocks="false" Slot="SectionSlot.Before" />
+                }
+                @DerivedContent(s)
+                @* La sezione tiene ANCHE i suoi blocchi: il timbro sopra, il testo scritto a mano sotto. *@
+                @if (SectionCatalog.KeepsOwnBlocks(Profile, s.SectionKey))
+                {
+                    <SectionBody Section="s" ShowBlocks="true" />
+                }
+                @if (SectionBody.HasChildren(perSlot, SectionSlot.After))
+                {
+                    <SectionBody Section="perSlot" ShowBlocks="false" Slot="SectionSlot.After" />
+                }
+            </ChildContent>
+        </CollapsibleBlock>
+    }
+    else if (nascosta)
+    {
+        @* Editoriale nascosta, in anteprima bozza: stessa marcatura delle rese dalla pagina. Prima, in due
+           viewer su tre, passava da SectionNode senza pill né opacità, e non si capiva che era fuori dal
+           pubblico. *@
+        <CollapsibleBlock Id="@Anchor(s)" Style="opacity:.65"
+                          InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
+            <Header>
+                <h2 class="h-sect" style="margin-top:0">
+                    @Titolo(s) <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span>
+                </h2>
+            </Header>
+            <ChildContent><SectionBody Section="s" /></ChildContent>
+        </CollapsibleBlock>
+    }
+    else
+    {
+        <SectionNode Section="s" />
+    }
+}
+
+@code {
+    [Inject] private IStringLocalizer<SharedResource> L { get; set; } = default!;
+
+    /// <summary>Le sezioni del documento mostrato, NELL'ORDINE del documento (doc 11 §3b).</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<SectionView> Sections { get; set; } = Array.Empty<SectionView>();
+
+    /// <summary>Profilo di catalogo del documento: è lui a dire chi rende il corpo di ogni sezione.</summary>
+    [Parameter, EditorRequired] public SectionProfile Profile { get; set; }
+
+    /// <summary>Anteprima BOZZA: le sezioni nascoste si vedono, marcate. Pubblica e anteprima release: no.</summary>
+    [Parameter] public bool IsDraft { get; set; }
+
+    /// <summary>Il corpo che la pagina disegna per una sezione resa da lei. Riceve la sezione e decide per chiave.</summary>
+    [Parameter, EditorRequired] public RenderFragment<SectionView> DerivedContent { get; set; } = default!;
+
+    /// <summary>Ancora della sezione (default <c>s-{Id}</c>, come in tutte le famiglie — doc 13 §3e).</summary>
+    [Parameter] public Func<SectionView, string>? AnchorOf { get; set; }
+
+    /// <summary>Titolo mostrato (default: quello del documento). L'aeroporto lo risolve dal catalogo, perché uno
+    /// snapshot scritto prima della carta del 26 agosto porta i titoli in inglese.</summary>
+    [Parameter] public Func<SectionView, string>? TitleOf { get; set; }
+
+    /// <summary>Classe extra sul contenitore, per sezione: l'aeroporto ci mette <c>noprint</c> sul meteo.</summary>
+    [Parameter] public Func<SectionView, string?>? ExtraClass { get; set; }
+
+    /// <summary>Intestazione su misura, quando il titolo non basta: il meteo dell'aeroporto porta l'ICAO e la
+    /// nota «live NOAA», che dicono DI CHI è il tempo e che è vivo. La pill «nascosta» la mette comunque questo
+    /// componente.</summary>
+    [Parameter] public RenderFragment<SectionView>? HeaderContent { get; set; }
+
+    /// <summary>
+    /// La sezione da usare per le SOTTO-SEZIONI, quando non è quella stessa. Serve a chi disegna da sé alcune
+    /// figlie dentro il corpo derivato: la vLOA rende le due direzioni dei coordinamenti come intestazioni e
+    /// tabelle proprie, e senza questo filtro ricomparirebbero anche come sotto-sezioni ordinarie.
+    /// </summary>
+    [Parameter] public Func<SectionView, SectionView>? SlotsOf { get; set; }
+
+    private string Anchor(SectionView s) => AnchorOf?.Invoke(s) ?? s.Id;
+    private string Titolo(SectionView s) => TitleOf?.Invoke(s) ?? s.Title;
+}

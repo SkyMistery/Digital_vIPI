@@ -12,6 +12,14 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
 {
     private const string HiddenSectionsProperty = "HiddenSections";
     private const string MinimaKey = "minima";
+    private const string ValidityKey = "validity";
+
+    /// <summary>L'etichetta esatta che il seminatore scriveva, e il valore che la accompagnava: «AIRAC » e quattro
+    /// cifre. Solo questa coppia si tocca — vedi <see cref="IDocumentMaintenance.ClearVloaSeededAiracRowAsync"/>.</summary>
+    private const string SeededAiracLabel = "Effective from";
+    private static readonly System.Text.RegularExpressions.Regex SeededAiracValue =
+        new(@"^AIRAC\s*\d{4}$", System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
     private const string PurposeKey = "purpose";
     private const string PurposeTitle = "Purpose";
 
@@ -138,6 +146,67 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
 
         if (collegati > 0) await _db.SaveChangesAsync(ct);
         return collegati;
+    }
+
+    public async Task<int> ClearVloaSeededAiracRowAsync(CancellationToken ct = default)
+    {
+        var blocchi = await _db.ContentBlocks
+            .Include(b => b.Section)
+            .Where(b => b.Section!.SectionKey == ValidityKey
+                        && b.Format == BlockFormat.Table
+                        && b.BodyJson != null && b.BodyJson != ""
+                        && b.DocumentVersion!.Document!.Type == DocumentType.Vloa)
+            .ToListAsync(ct);
+        if (blocchi.Count == 0) return 0;
+
+        var tolte = 0;
+        var vuoti = new List<ContentBlock>();
+        foreach (var b in blocchi)
+        {
+            if (!TogliRigaAirac(b.BodyJson!, out var json, out var n)) continue;
+            tolte += n;
+            b.BodyJson = json;
+            if (SenzaRighe(json)) vuoti.Add(b);
+        }
+
+        if (tolte == 0) return 0;
+        if (vuoti.Count > 0) _db.ContentBlocks.RemoveRange(vuoti);
+        await _db.SaveChangesAsync(ct);
+        return tolte;
+    }
+
+    /// <summary>Toglie dal JSON della tabella le righe seminate «Effective from | AIRAC ####». Ritorna false se
+    /// non c'era niente da togliere (o se il JSON non è una tabella leggibile: non è compito nostro ripararlo).</summary>
+    private static bool TogliRigaAirac(string bodyJson, out string json, out int tolte)
+    {
+        json = bodyJson;
+        tolte = 0;
+        JsonNode? root;
+        try { root = JsonNode.Parse(bodyJson); }
+        catch (JsonException) { return false; }
+        if (root is not JsonObject obj || obj["rows"] is not JsonArray rows) return false;
+
+        // Si itera all'indietro: togliere dal fondo non sposta gli indici di quelle ancora da guardare.
+        for (var i = rows.Count - 1; i >= 0; i--)
+        {
+            if (rows[i] is not JsonObject riga || riga["cells"] is not JsonArray celle || celle.Count < 2) continue;
+            var prima = celle[0]?.GetValue<string>()?.Trim();
+            var seconda = celle[1]?.GetValue<string>()?.Trim();
+            if (!string.Equals(prima, SeededAiracLabel, StringComparison.OrdinalIgnoreCase)) continue;
+            if (seconda is null || !SeededAiracValue.IsMatch(seconda)) continue;
+            rows.RemoveAt(i);
+            tolte++;
+        }
+
+        if (tolte == 0) return false;
+        json = obj.ToJsonString();
+        return true;
+    }
+
+    private static bool SenzaRighe(string json)
+    {
+        try { return JsonNode.Parse(json) is JsonObject o && (o["rows"] as JsonArray)?.Count is null or 0; }
+        catch (JsonException) { return false; }
     }
 
     public async Task<int> ClearMinimaPlaceholderBlocksAsync(CancellationToken ct = default)

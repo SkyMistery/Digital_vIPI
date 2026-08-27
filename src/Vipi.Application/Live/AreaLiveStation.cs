@@ -68,7 +68,7 @@ public sealed class AreaLiveStation : ILiveStationKind
             Aor = aor,
             CoverageChain = LiveStationParts.CoverageChain(ctx.Topology, ctx.Callsign),
             TreeRoot = root,
-            ExtendedDoc = new LiveDocRef(ManagedDocKind.AccVipi, ctx.Acc.Code, null),
+            ExtendedDoc = new LiveDocRef(ReleaseTargetType.AccVipi, ctx.Acc.Code, null),
             NoDocument = model is null,
         };
     }

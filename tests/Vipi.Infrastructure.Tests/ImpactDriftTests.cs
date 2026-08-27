@@ -53,7 +53,7 @@ public class ImpactDriftTests : IAsyncLifetime
         new(admin, rel, repo, _servizio, new AiracService(), targets);
 
     private ManagedDoc Gestito() => new(
-        ManagedDocKind.AccVipi, "vIPI Roma ACC", "LIRR_NE_CTR", "LIRR",
+        ReleaseTargetType.AccVipi, "vIPI Roma ACC", "LIRR_NE_CTR", "LIRR",
         IsPublished: true, HasDraft: false, IsHidden: false,
         ReleaseTargetType.AccVipi, "LIRR|LIRR_NE_CTR", _docId);
 
@@ -172,7 +172,7 @@ public class ImpactDriftTests : IAsyncLifetime
         public FakeAdmin(params ManagedDoc[] docs) => _docs = docs;
         public Task<IReadOnlyList<ManagedDoc>> ListAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<ManagedDoc>>(_docs);
-        public Task<ManagedDocRef?> FindAsync(ManagedDocKind kind, string key, CancellationToken ct = default) =>
+        public Task<ManagedDocRef?> FindAsync(ReleaseTargetType kind, string key, CancellationToken ct = default) =>
             Task.FromResult<ManagedDocRef?>(null);
         public Task<IReadOnlyDictionary<int, string>> GetTitlesAsync(IReadOnlyCollection<int> documentIds, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyDictionary<int, string>>(new Dictionary<int, string>());
@@ -228,7 +228,7 @@ public class ImpactDriftTests : IAsyncLifetime
         public Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default) => Task.FromResult(0);
         public Task CancelReleaseAsync(int releaseId, CancellationToken ct = default) => Task.CompletedTask;
         public Task<ReleaseDiff> DiffAsync(int releaseId, CancellationToken ct = default) => Task.FromResult(ReleaseDiff.Empty);
-        public Task<ReleasePreview?> GetPreviewAsync(int releaseId, CancellationToken ct = default) => Task.FromResult<ReleasePreview?>(null);
+        public Task<ReleasePreview?> GetPreviewAsync(int releaseId, ReleaseTargetType expectedType, string expectedKey, CancellationToken ct = default) => Task.FromResult<ReleasePreview?>(null);
         public Task<ReleaseLocation?> GetLocationAsync(int releaseId, CancellationToken ct = default) => Task.FromResult<ReleaseLocation?>(null);
         public string CurrentCycle() => "2608";
         public IReadOnlyList<AiracCycleInfo> UpcomingCycles(int count) => Array.Empty<AiracCycleInfo>();
@@ -246,11 +246,9 @@ public class ImpactDriftTests : IAsyncLifetime
         public FakeTargets(int? docId) => _docId = docId;
 
         public IReleaseTarget For(ReleaseTargetType type) => this;
-        public IReleaseTarget For(ManagedDocKind kind) => this;
         public IReadOnlyList<IReleaseTarget> ByDescribeOrder => new IReleaseTarget[] { this };
 
         public ReleaseTargetType Type => ReleaseTargetType.AccVipi;
-        public ManagedDocKind ManagedKind => ManagedDocKind.AccVipi;
         public int DescribeOrder => 1;
         public Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default) => Task.FromResult(_docId);
         public Task<string?> AuthAccCodeAsync(string key, CancellationToken ct = default) => Task.FromResult<string?>("LIRR");

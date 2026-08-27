@@ -57,7 +57,9 @@ else
 
     /// <summary>Profilo di catalogo delle sezioni rese qui (ACC: quello del blocco; APP/vLOA: il loro). Serve a dire
     /// di quanti posti una sezione fissa è stata spostata rispetto all'ORDINE STANDARD (<see cref="SectionOrdering"/>).
-    /// Null = documento senza catalogo (l'aeroporto): si sposta lo stesso, ma non c'è uno standard da confrontare.</summary>
+    /// <para>⚠️ Null = documento senza catalogo: si sposta lo stesso, ma non c'è uno standard da confrontare. Qui
+    /// c'era scritto «(l'aeroporto)», e non è più vero dal 26 agosto 2026: l'aeroporto ha il suo profilo e lo
+    /// passa. Oggi nessuno dei quattro documenti passa null.</para></summary>
     [Parameter] public SectionProfile? Profile { get; set; }
 
 

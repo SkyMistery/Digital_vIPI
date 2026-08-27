@@ -45,30 +45,30 @@ public interface IEditingRepository
     /// la versione bozza e le sezioni radice indicate (chiave catalogo + titolo, nell'ordine dato). Se il settore ha
     /// già un documento ne ritorna l'Id senza toccarlo. Per la migrazione ACC/APP/Airport su Document (doc refactor 08e).
     /// </summary>
-    /// <param name="liveKeys">Chiavi delle sezioni "live" (derivate o editoriali-strutturate: aor/frequencies/…): ricevono
-    /// un blocco placeholder alla creazione così NON vengono potate dalla vista quando sono senza contenuto memorizzato
-    /// (rese live dal renderer). Le altre sezioni restano senza blocchi (potate se vuote). Null = nessuna.</param>
+    /// <param name="profile">Profilo di catalogo del documento: da lì vengono le sezioni, nel loro ordine, e da lì
+    /// si sa quali sono «rese dalla pagina» — quelle ricevono un blocco placeholder alla creazione, così NON vengono
+    /// potate dalla vista quando sono senza contenuto memorizzato. Le altre restano senza blocchi.
+    /// <para>⚠️ Prima erano DUE parametri, l'elenco delle sezioni e quello delle chiavi live, e i chiamanti li
+    /// scrivevano a mano: l'ACC elencava cinque chiavi live, l'APP otto, per la stessa domanda (doc 14 §3f).</para></param>
     Task<int> EnsureVipiDocumentAsync(int primarySectorId, string title, Language language,
-        IReadOnlyList<(string Key, string Title)> sections, int authorUserId,
-        IReadOnlyCollection<string>? liveKeys = null, CancellationToken ct = default);
+        SectionProfile profile, int authorUserId, CancellationToken ct = default);
 
     /// <summary>
     /// Idempotente, variante <b>annidata</b> per la vIPI ACC (doc refactor 08e-acc): garantisce il documento vIPI del
     /// settore primario con una versione bozza e un albero a <b>blocchi</b> — ogni blocco è una sezione radice (depth 0,
     /// chiave = <c>Block.Key</c>) con le sue sezioni-catalogo come figli (depth 1). Se il settore ha già un documento
-    /// ne ritorna l'Id senza toccarlo. Le sezioni figlie in <paramref name="liveKeys"/> ricevono il blocco placeholder
-    /// (come <see cref="EnsureVipiDocumentAsync"/>). Ritorna l'Id del documento.
+    /// ne ritorna l'Id senza toccarlo. Le sezioni figlie le dice il profilo di ciascun blocco, e quelle rese dalla
+    /// pagina ricevono il blocco placeholder (come <see cref="EnsureVipiDocumentAsync"/>). Ritorna l'Id del documento.
     /// </summary>
     Task<int> EnsureVipiDocumentTreeAsync(int primarySectorId, string title, Language language,
-        IReadOnlyList<VipiBlockSpec> blocks, int authorUserId,
-        IReadOnlyCollection<string>? liveKeys = null, CancellationToken ct = default);
+        IReadOnlyList<VipiBlockSpec> blocks, int authorUserId, CancellationToken ct = default);
 
     /// <summary>
     /// Aggiunge un blocco (sezione radice depth 0 + sue sezioni-catalogo figlie depth 1, con placeholder sulle live)
     /// in coda ai blocchi esistenti di una versione bozza. Per l'aggiunta di un gruppo APP dall'editor vIPI ACC (doc
     /// refactor 08e-acc). Errore se la versione non è una bozza. Ritorna l'Id della sezione-blocco creata.
     /// </summary>
-    Task<int> AddBlockToVersionAsync(int versionId, VipiBlockSpec block, IReadOnlyCollection<string>? liveKeys = null, CancellationToken ct = default);
+    Task<int> AddBlockToVersionAsync(int versionId, VipiBlockSpec block, CancellationToken ct = default);
 
     /// <summary>
     /// Legge il <c>BodyJson</c> del primo blocco di UNA sezione identificata dall'Id (non per chiave radice): serve alla
