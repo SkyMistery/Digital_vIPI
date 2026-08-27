@@ -66,7 +66,16 @@ public sealed class VipiViewService : IVipiViewService
             .Select(s => Map(s, renders))
             .ToList();
 
-        return new DocumentView { Title = raw.Title, AiracCycle = raw.AiracCycle, Sections = sections };
+        // Lingua e traduzioni congelate passano DI PESO dallo snapshot alla vista: chi rende il documento
+        // deve poter sapere da che lingua si parte e che cosa era gia' tradotto quando si e' pubblicato.
+        return new DocumentView
+        {
+            Title = raw.Title,
+            AiracCycle = raw.AiracCycle,
+            Sections = sections,
+            Language = raw.Language,
+            Translations = raw.Translations,
+        };
     }
 
     private static IEnumerable<RawSection> Flatten(RawSection s)

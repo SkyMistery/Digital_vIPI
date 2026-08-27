@@ -2458,4 +2458,19 @@
   <data name="Work_AssignMe" xml:space="preserve"><value>me</value></data>
   <data name="Work_AssignDue" xml:space="preserve"><value>by</value></data>
   <data name="Work_AssignConfirm" xml:space="preserve"><value>Assign</value></data>
+  <data name="Tr_NoticeTitle" xml:space="preserve"><value>Machine-translated page</value></data>
+  <data name="Tr_NoticeMachine" xml:space="preserve"><value>This translation was produced by a machine and nobody has reviewed it yet. Check the phraseology against the original before using it on position.</value></data>
+  <data name="Tr_NoticePartial" xml:space="preserve"><value>{0} of {1} sentences are not translated yet and are shown in the original language.</value></data>
+  <data name="Tr_ReadInSource" xml:space="preserve"><value>Read the original</value></data>
+  <data name="Tr_AdminTitle" xml:space="preserve"><value>Translations</value></data>
+  <data name="Tr_OnlyUnreviewed" xml:space="preserve"><value>Unreviewed only</value></data>
+  <data name="Tr_ColSource" xml:space="preserve"><value>Source text</value></data>
+  <data name="Tr_ColTarget" xml:space="preserve"><value>Translation</value></data>
+  <data name="Tr_ColOrigin" xml:space="preserve"><value>By</value></data>
+  <data name="Tr_OriginHuman" xml:space="preserve"><value>Person</value></data>
+  <data name="Tr_OriginMachine" xml:space="preserve"><value>Machine</value></data>
+  <data name="Tr_NothingToReview" xml:space="preserve"><value>Nothing to review</value></data>
+  <data name="Tr_NothingToReviewHint" xml:space="preserve"><value>Every translation for this language pair has been reviewed by a person.</value></data>
+  <data name="Tr_TouchesDocs" xml:space="preserve"><value>This correction applies to the sentence, not to one document: it touches {0} documents. The others will show it at their next republication.</value></data>
+  <data name="Tr_Saved" xml:space="preserve"><value>Correction saved. It applies to {0} documents and the machine will not overwrite it.</value></data>
 </root>

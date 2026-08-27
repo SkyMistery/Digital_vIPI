@@ -107,9 +107,15 @@ public sealed class ReleaseService : IReleaseService
     public ReleaseService(IReleaseRepository repo, IEditAuthorizationService authz, IAiracService airac,
         IFrozenSectionRegistry frozen, IDocumentAdminRepository admin, IEditingRepository editing,
         IReleaseTargetRegistry targets, IOptions<ReleaseRetentionOptions> retention, IUnitOfWork uow,
-        ShapeReleaseContext? shapeCycle = null)
+        ShapeReleaseContext? shapeCycle = null,
+        Abstractions.ITranslationMemory? memoriaTraduzioni = null,
+        IOptions<Translation.TranslationOptions>? traduzione = null,
+        ReadingLanguageContext? linguaProsa = null)
     {
+        _linguaProsa = linguaProsa;
         _shapeCycle = shapeCycle;
+        _memoriaTraduzioni = memoriaTraduzioni;
+        _traduzione = traduzione?.Value;
         _repo = repo;
         _authz = authz;
         _airac = airac;
@@ -124,6 +130,15 @@ public sealed class ReleaseService : IReleaseService
     /// <summary>Il contesto che dice alla lettura delle shape «sto congelando per questo ciclo». Opzionale:
     /// senza, il congelamento prende le geometrie correnti — cioè il comportamento di prima del gate.</summary>
     private readonly ShapeReleaseContext? _shapeCycle;
+
+    /// <summary>La memoria di traduzione. Opzionale: senza, la release non congela traduzioni e il viewer
+    /// ricade sulla memoria viva — che e' il comportamento di prima di questa funzione.</summary>
+    private readonly Abstractions.ITranslationMemory? _memoriaTraduzioni;
+
+    private readonly Translation.TranslationOptions? _traduzione;
+
+    /// <summary>In che lingua comporre la prosa generata mentre si congela. Vedi BuildSnapshotJsonAsync.</summary>
+    private readonly ReadingLanguageContext? _linguaProsa;
 
     public Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
         _repo.ListAsync(type, key, ct);
@@ -402,11 +417,100 @@ public sealed class ReleaseService : IReleaseService
         // prossimo. Pubblicando per il ciclo corrente esce la geometria vecchia; pubblicando in anticipo
         // PER il ciclo prossimo — che è quel che si fa preparando un AIRAC — esce quella nuova. Vedi
         // ShapeAiracGate e docs/feature/2026-08-26-shape-dal-sectorfile.md §3.
+        // ⚠️ La prosa generata si congela nella lingua SORGENTE del documento, non in quella di chi sta
+        // pubblicando: uno snapshot deve dire da che lingua si parte, e chi legge in un'altra la ricompone
+        // live. Senza questa forzatura il congelato prenderebbe la cultura del circuito di chi ha premuto
+        // Pubblica -- cioe' la stessa release direbbe cose diverse a seconda di chi l'ha fatta.
+        var linguaSorgente = payload.Doc.Language == Vipi.Domain.Language.En ? "en" : "it";
+
         IReadOnlyDictionary<int, string> frozen;
         using (_shapeCycle?.Capturing(cycle))
+        using (_linguaProsa?.Rendering(linguaSorgente))
             frozen = await _frozen.CaptureAsync(type, key, payload.Doc, ct);
         foreach (var kv in frozen) payload.FrozenSections[kv.Key] = kv.Value;
+
+        payload.Doc = await ConTraduzioniCongelateAsync(payload.Doc, ct).ConfigureAwait(false);
         return JsonSerializer.Serialize(payload);
+    }
+
+    /// <summary>
+    /// Copia nello snapshot le traduzioni note per i segmenti di QUESTO documento (carta bilingue §6).
+    ///
+    /// <para>
+    /// ⚠️ <b>Congelare non e' cautela, e' l'unico modo di limitare il raggio d'azione di una correzione.</b>
+    /// La memoria e' indicizzata sulla FRASE: senza questa fotografia, chi corregge una resa su un documento
+    /// cambierebbe l'inglese gia' pubblicato di ogni altro documento che contiene quella frase — sotto gli
+    /// occhi di chi lo sta leggendo, e senza che il suo editor abbia pubblicato niente. Congelata, la
+    /// correzione arriva agli altri alla LORO prossima ripubblicazione, quando il loro editor vede il diff.
+    /// </para>
+    /// <para>
+    /// Senza memoria configurata o senza lingua sorgente nota, torna il documento intatto: il viewer ricadra'
+    /// sulla memoria viva, che e' il comportamento di prima di questa funzione.
+    /// </para>
+    /// </summary>
+    private async Task<RawDocument> ConTraduzioniCongelateAsync(RawDocument raw, CancellationToken ct)
+    {
+        if (_memoriaTraduzioni is null || _traduzione is null || !_traduzione.Enabled) return raw;
+        if (raw.Language is not { } sorgente) return raw;
+
+        var da = sorgente == Vipi.Domain.Language.En ? "en" : "it";
+        var segmenti = SegmentiDi(raw).Distinct(StringComparer.Ordinal).ToList();
+        if (segmenti.Count == 0) return raw;
+
+        var impronte = segmenti.Select(Translation.TranslationText.Hash).Distinct().ToList();
+        var congelate = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var a in _traduzione.Targets)
+        {
+            if (string.Equals(a, da, StringComparison.OrdinalIgnoreCase)) continue;
+            var note = await _memoriaTraduzioni.LookupAsync(da, a, impronte, ct).ConfigureAwait(false);
+            if (note.Count == 0) continue;
+            congelate[a] = note.ToDictionary(kv => kv.Key, kv => kv.Value.TargetText, StringComparer.Ordinal);
+        }
+
+        if (congelate.Count == 0) return raw;
+
+        return new RawDocument
+        {
+            Title = raw.Title,
+            AiracCycle = raw.AiracCycle,
+            Roots = raw.Roots,
+            Language = raw.Language,
+            Translations = congelate,
+        };
+    }
+
+    /// <summary>Ogni testo traducibile dello snapshot: titoli di sezione, paragrafi e celle dei blocchi.</summary>
+    private static IEnumerable<string> SegmentiDi(RawDocument raw)
+    {
+        var titolo = Translation.TranslationText.Normalize(raw.Title);
+        if (Translation.TranslationText.HasSomethingToTranslate(titolo)) yield return titolo;
+
+        foreach (var s in raw.Roots)
+            foreach (var t in SegmentiDiSezione(s))
+                yield return t;
+    }
+
+    private static IEnumerable<string> SegmentiDiSezione(RawSection s)
+    {
+        var titolo = Translation.TranslationText.Normalize(s.Title);
+        if (Translation.TranslationText.HasSomethingToTranslate(titolo)) yield return titolo;
+
+        foreach (var b in s.Blocks)
+        {
+            foreach (var p in Translation.TextSegmenter.SplitProse(b.Body))
+                if (Translation.TranslationText.HasSomethingToTranslate(p)) yield return p;
+
+            foreach (var c in Translation.TextSegmenter.SplitJson(b.BodyJson))
+            {
+                var norm = Translation.TranslationText.Normalize(c);
+                if (Translation.TranslationText.HasSomethingToTranslate(norm)) yield return norm;
+            }
+        }
+
+        foreach (var figlia in s.Children)
+            foreach (var t in SegmentiDiSezione(figlia))
+                yield return t;
     }
 
     private async Task EnsureCanEditAsync(ReleaseTargetType type, string key, CancellationToken ct)

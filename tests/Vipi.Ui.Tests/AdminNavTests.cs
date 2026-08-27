@@ -64,8 +64,10 @@ public class AdminNavTests : TestContext
         var cut = Render(admin: true);
 
         var nav = cut.Find("nav.admin-nav");
-        Assert.Equal(12, nav.QuerySelectorAll(".an-link").Length);
+        // 13 dal 28 agosto 2026: si aggiunge la revisione delle traduzioni.
+        Assert.Equal(13, nav.QuerySelectorAll(".an-link").Length);
         Assert.Contains("/services/vsop/admin/sector-structure", cut.Markup);
+        Assert.Contains("/services/vsop/admin/translations", cut.Markup);
         Assert.Contains("/services/vsop/admin/pending", cut.Markup);
         Assert.Contains("/services/vsop/admin/diagnostics", cut.Markup);
     }

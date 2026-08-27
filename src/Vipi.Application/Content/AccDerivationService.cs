@@ -73,9 +73,19 @@ public sealed class AccDerivationService : IAccDerivationService
     private readonly ICoordinationSentenceTemplate _sentence;
     private readonly IVectoringMinimaSource _minima;
 
+    /// <summary>La lingua in cui comporre la prosa generata. Opzionale: senza, resta il comportamento di
+    /// prima — italiano per ACC/APP, inglese per la vLOA.</summary>
+    private readonly ReadingLanguageContext? _lingua;
+
+    /// <summary>Traduttore dei testi dell'anagrafica (descrizioni delle aree). Opzionale: senza, restano
+    /// nella lingua della sorgente — il comportamento di prima.</summary>
+    private readonly Translation.TranslationLookup? _traduzioni;
+
+
     public AccDerivationService(IAccDerivationRepository repo, ISpecialAreaRepository areas, IAgreementService transfers,
         ITopologyProvider topology, Aor.IAorService aor, ICoordinationSentenceTemplate sentence,
-        IVectoringMinimaSource minima)
+        IVectoringMinimaSource minima, ReadingLanguageContext? lingua = null,
+        Translation.TranslationLookup? traduzioni = null)
     {
         _repo = repo;
         _areas = areas;
@@ -84,6 +94,8 @@ public sealed class AccDerivationService : IAccDerivationService
         _aor = aor;
         _sentence = sentence;
         _minima = minima;
+        _lingua = lingua;
+        _traduzioni = traduzioni;
     }
 
     public Task<IReadOnlyList<AccTreeRoot>> ListTreeRootsAsync(string accCode, CancellationToken ct = default) =>
@@ -135,7 +147,7 @@ public sealed class AccDerivationService : IAccDerivationService
         var airportMap = CoordinationDerivation.MergeAirportNames(await _repo.GetAirportNameMapAsync(ct), flows);
         var atcMap = await _repo.GetSectorAtcNameMapAsync(ct);
         var accRefMap = await _repo.GetSectorAccRefMapAsync(ct);
-        var tpl = _sentence.Current;
+        var tpl = CoordinationSentenceTemplate.For(_lingua?.Corrente, _sentence.Current);
 
         // Cuore condiviso (owned + entranti, direzione owner→next senza invert, frase composta).
         var entries = CoordinationDerivation.Build(flows, owners, types, nameMap, codeMap, airportMap, atcMap, tpl);
@@ -155,7 +167,8 @@ public sealed class AccDerivationService : IAccDerivationService
         var codeMap = await _repo.GetSectorCodeMapAsync(ct);
         var airportMap = CoordinationDerivation.MergeAirportNames(await _repo.GetAirportNameMapAsync(ct), flows);
         var atcMap = await _repo.GetSectorAtcNameMapAsync(ct);
-        return new CoordinationPreviewContext(types, nameMap, codeMap, airportMap, atcMap, _sentence.Current);
+        return new CoordinationPreviewContext(types, nameMap, codeMap, airportMap, atcMap,
+            CoordinationSentenceTemplate.For(_lingua?.Corrente, _sentence.Current));
     }
 
     public async Task<AccAorView> DeriveAorViewAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default)
@@ -286,7 +299,10 @@ public sealed class AccDerivationService : IAccDerivationService
         if (orderedIds.Count == 0) return Array.Empty<AccSpecialAreaView>();
 
         // Ordine preservato (proprie poi extra) dal proiettore condiviso con l'APP non remotizzata.
-        return SpecialAreaProjection.Build(await _areas.GetSpecialAreasByIdsAsync(orderedIds, ct), orderedIds);
+        // I testi delle aree li scrive la SORGENTE in inglese: si rendono nella lingua di chi legge.
+        var traduci = _traduzioni is null ? null : await _traduzioni.DallaSorgenteAsync(ct);
+        return SpecialAreaProjection.Build(
+            await _areas.GetSpecialAreasByIdsAsync(orderedIds, ct), orderedIds, traduci);
     }
 
     /// <summary>Membri effettivi del blocco: Aerovia con lista vuota = TUTTI i CTR dell'ACC (una vIPI per ACC, tutti

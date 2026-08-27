@@ -177,8 +177,9 @@ else
     /// Un solo oggetto per tutte, come <c>AppViewDerived</c> sull'APP.</summary>
     private AirportDerived _derived = AirportDerived.Empty;
 
-    private string? _sidRwy;             // pista selezionata nel filtro SID (default: pista in uso in partenza)
-    private bool _sidRwyUserPicked;      // l'utente ha scelto una pista → non sovrascrivere col default al Recompute
+    // Pista da cui parte il filtro SID: la pista in uso in partenza. ⚠️ È solo un SEME per <AirportSids>, non
+    // la scelta del lettore — quella vive nell'isola, perché questa pagina è statica e non si ridisegna.
+    private string? _sidRwy;
 
     /// <summary>Chi presiede l'aeroporto: risolto nel ciclo di vita, MAI nel render (regola del progetto:
     /// nessuna I/O sul database mentre si disegna, o il circuito muore con «second operation»).</summary>
@@ -329,7 +330,7 @@ else
                                 HasRain="@(_metar?.HasRain == true)" HasSnow="@(_metar?.HasSnow == true)" />;
                 break;
             case "sids":
-                <AirportSids View="_derived.Sids" Selected="@_sidRwy" SelectedChanged="SelectSidRwy"
+                <AirportSids View="_derived.Sids" InitialRunway="@_sidRwy"
                              DepIdents="_depIdents.ToArray()" TransitionAltitudeFt="_derived.Transition.TransitionAltitudeFt" />;
                 break;
             case "validity": <ValidityStamp Target="ReleaseTargetType.Airport" Key="@_icao" ReleaseId="@ReleaseIdShown()" />; break;
@@ -412,14 +413,12 @@ else
             _arrIdents.Add((_sugg.ArrIdent ?? _sugg.Best.Ident).Trim());
         }
 
-        // Default filtro SID = pista in uso in partenza (se ha SID), altrimenti la prima pista con SID. Se l'utente ha
-        // già scelto una pista la rispettiamo; se la sua scelta non è più valida ricade sul default.
+        // Seme del filtro SID = pista in uso in partenza (se ha SID), altrimenti la prima pista con SID.
+        // ⚠️ Qui non c'è più nessun «se l'utente ha già scelto»: la scelta del lettore non passa di qui, e
+        // fingere di conoscerla è esattamente ciò che teneva le chip ferme.
         var sidRwys = AirportSids.RunwaysOf(_derived.Sids);
-        if (!_sidRwyUserPicked || _sidRwy is null || !sidRwys.Contains(_sidRwy, StringComparer.OrdinalIgnoreCase))
-            _sidRwy = sidRwys.FirstOrDefault(r => _depIdents.Contains(r)) ?? sidRwys.FirstOrDefault();
+        _sidRwy = sidRwys.FirstOrDefault(r => _depIdents.Contains(r)) ?? sidRwys.FirstOrDefault();
     }
-
-    private void SelectSidRwy(string rw) { _sidRwy = rw; _sidRwyUserPicked = true; }
 
     private static IEnumerable<string> SplitIdents(string? csv) => (csv ?? "")
         .Split(new[] { ',', ' ', '/' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

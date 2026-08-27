@@ -163,6 +163,9 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Content.IShapeGateRepository, EfShapeGateRepository>();
         // Il contesto del congelamento: SCOPED come il DbContext, quindi vale per una richiesta sola.
         services.AddScoped<Vipi.Application.Content.ShapeReleaseContext>();
+        // In che lingua comporre la prosa GENERATA (frasi di coordinamento). Scoped come il contesto
+        // sopra e per la stessa ragione: vale per una richiesta sola, non e' uno stato globale.
+        services.AddScoped<Vipi.Application.Content.ReadingLanguageContext>();
         // Statistiche ATC: archivio delle sessioni e delle tratte scritte dal poller, più la mappa dei
         // settori (albero proiettato + volumi dai cataloghi) su cui si attribuisce il traffico.
         services.AddScoped<Vipi.Application.Abstractions.IAtcSessionStore, EfAtcSessionStore>();
@@ -185,6 +188,40 @@ public static class DependencyInjection
             c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
         });
         services.AddSingleton<Vipi.Application.Abstractions.IWeatherProvider, Weather.NoaaWeatherClient>();
+
+        // Documenti bilingue (carta 2026-08-27): il motore di traduzione automatica.
+        // ⚠️ Si registra SEMPRE, anche senza chiave: `IsConfigured` è falso e ogni chiamata risponde
+        // `NotConfigured`. È voluto — un sito senza chiave non è rotto, semplicemente non traduce, e chi
+        // dipende dalla porta non deve avere due percorsi di codice a seconda della configurazione.
+        // ⚠️ La chiave NON sta in un appsettings versionato: user-secrets in sviluppo, variabile d'ambiente
+        // o cartella dei segreti in produzione, come le credenziali IVAO.
+        if (configuration is not null)
+            services.Configure<Vipi.Application.Translation.TranslationOptions>(
+                configuration.GetSection(Vipi.Application.Translation.TranslationOptions.SectionName));
+        services.AddHttpClient(Translation.DeepLTranslationEngine.HttpClientName, c =>
+        {
+            c.Timeout = TimeSpan.FromSeconds(30);   // un lotto di 50 testi non torna in dieci secondi
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
+        });
+        services.AddHttpClient(Translation.AzureTranslationEngine.HttpClientName, c =>
+        {
+            c.Timeout = TimeSpan.FromSeconds(30);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
+        });
+        // ⚠️ Si registrano ENTRAMBI, e l'ordine di preferenza lo decide `Translation:Order`, non l'ordine di
+        // queste righe: un motore aggiunto in fondo al file non deve diventare il primario per sbaglio.
+        // Azure e' il primario dal 27 agosto 2026; DeepL resta pronto e subentra da solo quando Azure non
+        // risponde o esaurisce la franchigia.
+        services.AddSingleton<Vipi.Application.Abstractions.ITranslationEngine, Translation.AzureTranslationEngine>();
+        services.AddSingleton<Vipi.Application.Abstractions.ITranslationEngine, Translation.DeepLTranslationEngine>();
+        services.AddScoped<Vipi.Application.Abstractions.ITranslationMemory, EfTranslationMemory>();
+        services.AddScoped<Vipi.Application.Abstractions.ITranslatableCorpus, EfTranslatableCorpus>();
+        services.AddScoped<Vipi.Application.Translation.DocumentTranslator>();
+        // Traduttore dei testi dell'anagrafica dentro le sezioni derivate. Scoped: carica la coppia di
+        // lingue una volta per richiesta, perche' chi proietta scopre i testi che gli servono strada facendo.
+        services.AddScoped<Vipi.Application.Translation.TranslationLookup>();
+
+
 
         // Import SID dal sectorfile Aurora su GitHub (repo pubblico raw, no auth). Ortogonale a DataSource:Provider.
         services.AddScoped<Vipi.Application.Abstractions.ISidFixAliasRepository, EfSidFixAliasRepository>();

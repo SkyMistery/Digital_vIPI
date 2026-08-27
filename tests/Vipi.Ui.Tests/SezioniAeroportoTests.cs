@@ -1,7 +1,9 @@
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
+using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
+using Vipi.Application.Weather;
 using Vipi.Ui.Components.App;
 using Xunit;
 
@@ -172,7 +174,7 @@ public class SezioniAeroportoTests : TestContext
         // comunque. Perderle vorrebbe dire nascondere una procedura pubblicata.
         var cut = RenderComponent<AirportSids>(p => p
             .Add(x => x.View, Sid())
-            .Add(x => x.Selected, "16L"));
+            .Add(x => x.InitialRunway, "16L"));
 
         var testo = cut.Markup;
         Assert.Contains("ALAXI 5A", testo);   // la pista scelta
@@ -200,11 +202,96 @@ public class SezioniAeroportoTests : TestContext
     }
 
     [Fact]
+    public void La_chip_di_pista_cambia_davvero_le_SID_mostrate()
+    {
+        // ⚠️ Questo test mancava, ed è il buco da cui il difetto è passato: le prove qui sopra montavano il
+        // componente con la pista GIÀ scelta e guardavano il risultato, senza mai premere una chip. Il filtro
+        // funzionava; a non funzionare era il modo in cui la scelta arrivava — la teneva la pagina, che dal
+        // doc 14 è SSR statica e non si ridisegna più. Chip premute a mano: zero.
+        var cut = RenderComponent<AirportSids>(p => p
+            .Add(x => x.View, Sid())
+            .Add(x => x.InitialRunway, "16L"));
+
+        Assert.Contains("ALAXI 5A", cut.Markup);
+        Assert.DoesNotContain("ELKAP 3B", cut.Markup);
+
+        cut.FindAll(".cfg-btn").Single(b => b.TextContent.Contains("34R")).Click();
+
+        Assert.Contains("ELKAP 3B", cut.Markup);          // la pista appena scelta
+        Assert.Contains("TAQ 1X", cut.Markup);            // senza pista: vale per tutte, anche dopo il cambio
+        Assert.DoesNotContain("ALAXI 5A", cut.Markup);    // quella di prima se ne va
+    }
+
+    [Fact]
+    public void Il_seme_non_torna_a_riprendersi_la_scelta_del_lettore()
+    {
+        // Il genitore può ridisegnare (in produzione non lo fa, ma un componente non deve dipendere da
+        // questo): il seme si prende una volta sola, o riporterebbe il lettore alla pista in uso.
+        var cut = RenderComponent<AirportSids>(p => p
+            .Add(x => x.View, Sid())
+            .Add(x => x.InitialRunway, "16L"));
+
+        cut.FindAll(".cfg-btn").Single(b => b.TextContent.Contains("34R")).Click();
+        cut.SetParametersAndRender(p => p.Add(x => x.InitialRunway, "16L"));
+
+        Assert.Contains("ELKAP 3B", cut.Markup);
+        Assert.DoesNotContain("ALAXI 5A", cut.Markup);
+    }
+
+    [Fact]
     public void Senza_SID_si_dice_perche_invece_di_mostrare_una_tabella_vuota()
     {
         var cut = RenderComponent<AirportSids>(p => p.Add(x => x.View, AirportSidView.Empty));
 
         Assert.Empty(cut.FindAll("table"));
         Assert.Contains("Airport_NoSidsTitle", cut.Markup);
+    }
+
+    // ---------------------------------------------------------------------------------------------------
+    // Meteo — le chip METAR/TAF. Stessa lezione delle SID: non basta che la vista sia giusta, deve
+    // rispondere al CLIC. Prima di questo giro nessun test montava <AirportWeather>.
+
+    private static ParsedMetar Metar() => new(
+        "METAR LIBD 271820Z 05004KT CAVOK 28/23 Q1017", "LIBD", "271820Z",
+        new ParsedWind(50, false, 4, null, false), "CAVOK", Array.Empty<CloudLayer>(),
+        null, 1017, 28, 23, null, false, false);
+
+    private static ParsedTaf Taf() => new(
+        "TAF LIBD 271700Z 2718/2818 06008KT CAVOK", "LIBD", "2718/2818", new[]
+        {
+            new TafSegment(TafChangeKind.Base, null, null, new ParsedWind(60, false, 8, null, false),
+                "CAVOK", Array.Empty<CloudLayer>(), null, "2718/2818 06008KT CAVOK"),
+        });
+
+    private IRenderedComponent<AirportWeather> RendiMeteo(ParsedTaf? taf) =>
+        RenderComponent<AirportWeather>(p => p
+            .Add(x => x.Icao, "LIBD")
+            .Add(x => x.Report, new WeatherReport("LIBD", Metar().Raw, taf?.Raw, DateTimeOffset.UtcNow))
+            .Add(x => x.Metar, Metar())
+            .Add(x => x.Taf, taf));
+
+    [Fact]
+    public void La_chip_TAF_mostra_il_TAF()
+    {
+        var cut = RendiMeteo(Taf());
+
+        Assert.Contains("METAR LIBD 271820Z", cut.Markup);
+        Assert.DoesNotContain("TAF LIBD 271700Z", cut.Markup);
+
+        cut.FindAll(".wx-tab").Single(b => b.TextContent.Trim() == "TAF").Click();
+
+        Assert.Contains("TAF LIBD 271700Z", cut.Markup);
+        Assert.DoesNotContain("METAR LIBD 271820Z", cut.Markup);
+    }
+
+    [Fact]
+    public void Senza_TAF_la_chip_e_spenta()
+    {
+        // Non è un dettaglio estetico: una chip che si preme e non porta da nessuna parte è il difetto che
+        // questo giro ha appena chiuso.
+        var cut = RendiMeteo(null);
+
+        var taf = cut.FindAll(".wx-tab").Single(b => b.TextContent.Trim() == "TAF");
+        Assert.True(taf.HasAttribute("disabled"));
     }
 }

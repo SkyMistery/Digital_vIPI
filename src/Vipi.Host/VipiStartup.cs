@@ -214,9 +214,15 @@ internal static class VipiStartup
                 "default-src 'self'; " +
                 "script-src 'self'; " +
                 "style-src 'self' 'unsafe-inline'; " +
-                // Le tessere della mappa vengono da CARTO e non si vendorizzano: è l'unico host esterno rimasto,
-                // ed è dato pubblico di sfondo — i poligoni, che sono il nostro dato, li disegna Leaflet in locale.
-                "img-src 'self' data: blob: https://*.basemaps.cartocdn.com; " +
+                // Le tessere delle mappe non si vendorizzano: sono gli unici host esterni rimasti, e sono dato
+                // pubblico di sfondo — i poligoni, che sono il nostro dato, li disegna Leaflet in locale.
+                // • `server.arcgisonline.com`: il fondo chiaro di AoR/aree (`vipi-aor.js`, pavimento del 3D) e il
+                //   rilievo delle minime di vettoramento (`vipi-mva.js`). Ha sostituito CARTO il 27 agosto 2026,
+                //   quando il fondo anonimo è stato chiuso.
+                // • `*.tile.opentopomap.org`: il fondo con le curve di livello, seconda scelta delle minime.
+                //   ⚠️ Mancava: le minime esistono da giorni e questa riga parlava ancora solo di CARTO. Non si
+                //   è visto perché l'intestazione è **Report-Only** — segnala e non blocca.
+                "img-src 'self' data: blob: https://server.arcgisonline.com https://*.tile.opentopomap.org; " +
                 "font-src 'self'; " +
                 "connect-src 'self'; " +
                 "frame-ancestors 'none'; " +

@@ -19,8 +19,8 @@
             @foreach (var rw in Runways)
             {
                 var pista = rw;
-                <button type="button" class="cfg-btn @(string.Equals(Selected, pista, StringComparison.OrdinalIgnoreCase) ? "on" : "")"
-                        @onclick="() => SelectedChanged.InvokeAsync(pista)">
+                <button type="button" class="cfg-btn @(string.Equals(_scelta, pista, StringComparison.OrdinalIgnoreCase) ? "on" : "")"
+                        @onclick="() => _scelta = pista">
                     @pista @if (DepIdents.Contains(pista, StringComparer.OrdinalIgnoreCase)) { <span title="@L["Airport_RwyInUse"]">🛫</span> }
                 </button>
             }
@@ -49,9 +49,18 @@ else
 @code {
     [Parameter, EditorRequired] public AirportSidView View { get; set; } = AirportSidView.Empty;
 
-    /// <summary>Pista scelta dal lettore; null = tutte. L'host la possiede perché sopravvive al cambio sezione.</summary>
-    [Parameter] public string? Selected { get; set; }
-    [Parameter] public EventCallback<string> SelectedChanged { get; set; }
+    /// <summary>Pista da cui partire: la pista in uso in partenza, che il documento conosce e l'isola no.
+    /// È un SEME, non uno stato condiviso — da qui in avanti la scelta è di questo componente.
+    ///
+    /// ⚠️ **Prima era `Selected` + `SelectedChanged`, e le chip non funzionavano.** Lo stato viveva nella
+    /// pagina, che dal doc 14 è **SSR statica**: il clic arrivava al server (visto sul WebSocket) e tornava
+    /// pure un `RenderBatch`, ma il gestore aggiornava un campo di una pagina che **non si ridisegna mai
+    /// più**, e questa isola si riceveva indietro il valore congelato nel descrittore. Nessun errore, da
+    /// nessuna parte: le chip si limitavano a non fare niente.
+    ///
+    /// *Uno stato che cambia deve vivere dentro l'isola che lo cambia*: un genitore statico può solo
+    /// seminarlo.</summary>
+    [Parameter] public string? InitialRunway { get; set; }
 
     /// <summary>Piste in partenza adesso: marcano il chip della pista in uso. Dato LIVE.
     /// ⚠️ Un array e non un HashSet: attraversa il confine SSR→interattivo e dev'essere serializzabile.</summary>
@@ -70,9 +79,23 @@ else
         .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
         .ToList();
 
+    /// <summary>Pista scelta ADESSO. Nasce dal seme e poi è solo di questo componente.</summary>
+    private string? _scelta;
+    private bool _seminata;
+
+    /// <summary>⚠️ Il seme si prende UNA VOLTA. Riprenderlo a ogni giro di parametri riporterebbe la scelta
+    /// del lettore alla pista in uso ogni volta che il genitore ridisegna — che è il difetto di prima
+    /// scritto al contrario.</summary>
+    protected override void OnParametersSet()
+    {
+        if (_seminata) return;
+        _scelta = InitialRunway;
+        _seminata = true;
+    }
+
     /// <summary>SID da mostrare: quelle della pista scelta più quelle senza pista, valide per tutte.</summary>
     private IEnumerable<AirportSidRowView> Shown() => View.Rows
-        .Where(r => Selected is null
-            || string.Equals(r.Runway, Selected, StringComparison.OrdinalIgnoreCase)
+        .Where(r => _scelta is null
+            || string.Equals(r.Runway, _scelta, StringComparison.OrdinalIgnoreCase)
             || string.IsNullOrWhiteSpace(r.Runway) || r.Runway == "—");
 }

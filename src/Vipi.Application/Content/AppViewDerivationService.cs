@@ -29,11 +29,15 @@ public sealed class AppViewDerivationService : IAppViewDerivationService
 
     private readonly IAppDocumentService _app;
     private readonly IFrozenSectionReader _frozen;
+    /// <summary>La lingua di chi legge: decide se la PROSA congelata vale, o va ricomposta live.</summary>
+    private readonly ReadingLanguageContext? _lingua;
 
-    public AppViewDerivationService(IAppDocumentService app, IFrozenSectionReader frozen)
+
+    public AppViewDerivationService(IAppDocumentService app, IFrozenSectionReader frozen, ReadingLanguageContext? lingua = null)
     {
         _app = app;
         _frozen = frozen;
+        _lingua = lingua;
     }
 
     public async Task<AppViewDerived> ResolveForViewAsync(string appCallsign, DocumentView view, bool useFrozen, CancellationToken ct = default)
@@ -45,7 +49,8 @@ public sealed class AppViewDerivationService : IAppViewDerivationService
 
         var freqs = frozen.Get<List<AppFreqRow>>("frequencies")
             ?? (await _app.DeriveFrequenciesAsync(app, ct)).ToList();
-        var coord = frozen.Get<AppCoordination>("coordination")
+        // ⚠️ Solo la PROSA guarda la lingua (vedi VloaViewDerivationService): le altre congelate restano.
+        var coord = frozen.GetProsa<AppCoordination>("coordination", _lingua?.Corrente)
             ?? await _app.DeriveCoordinationAsync(app, ct);
         var aor = frozen.Get<AccAorView>("aor")
             ?? await _app.GetAorViewAsync(app, ct);

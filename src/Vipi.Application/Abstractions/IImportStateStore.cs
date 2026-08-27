@@ -90,6 +90,18 @@ public static class ImportCategories
     public const string TrafficRetention = "TrafficRetention";
 
     /// <summary>
+    /// Il riempimento della <b>memoria di traduzione</b> (dal 27 agosto 2026). ⚠️ Non è un import: la
+    /// sorgente che interroga non porta dati nostri, li rende in un'altra lingua. Sta fra queste chiavi
+    /// perché usa lo stesso giro gestito — periodo, stato, ultimo esito — e senza una chiave sua non si
+    /// saprebbe quando ha girato l'ultima volta, che è l'unico modo di dire «la traduzione è ferma da tre
+    /// giorni» invece di credere al silenzio.
+    /// <para>⚠️ Gira ogni <b>quarto d'ora</b>, non ogni giorno come gli altri: qui il tempo che conta non è
+    /// il ritmo di una sorgente ma quanto aspetta un lettore prima di vedere in inglese una frase appena
+    /// scritta.</para>
+    /// </summary>
+    public const string Translation = "Translation";
+
+    /// <summary>
     /// Il giro che confronta la copia pubblicata con quel che direbbe oggi (<c>IImpactDriftUseCase</c>, dal
     /// 25 agosto 2026). ⚠️ <b>Non è un import</b> e non compare nella pagina Sorgenti: quell'elenco si
     /// intitola «stato degli import», e una riga che non interroga nessuna sorgente lì dentro mentirebbe —

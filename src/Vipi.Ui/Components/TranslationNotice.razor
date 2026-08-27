@@ -1,0 +1,37 @@
+@using Vipi.Application.Translation
+@inject IStringLocalizer<SharedResource> L
+
+@* Che cosa il lettore deve sapere di una pagina tradotta a macchina (carta bilingue §5).
+
+   ⚠️ PERCHE' QUESTO AVVISO ESISTE, e non e' una formalita' legale. Misurato contro il servizio vero il 27
+   agosto 2026: «riporta sottovento» torna «bring it back downwind». Grammatica giusta, identificatori
+   intatti, e NON e' fraseologia -- la forma standard e' «report downwind». Plausibile e sbagliato e' peggio
+   di assente, perche' nessuno se ne accorge leggendo. Finche' un umano non ha riletto, chi legge deve
+   saperlo.
+
+   Nessun @rendermode: e' testo, quindi SSR statico come il resto del chrome. *@
+
+@if (Coverage.Segmenti > 0 && (Coverage.DaRileggere || !Coverage.Completa))
+{
+    <div class="callout warning tr-notice">
+        <span class="cic"><Icon Name="warning" Size="18" /></span>
+        <div>
+            <p class="ct">@L["Tr_NoticeTitle"]</p>
+            @if (Coverage.DaRileggere)
+            {
+                <p>@L["Tr_NoticeMachine"]</p>
+            }
+            @if (!Coverage.Completa)
+            {
+                @* Un documento a chiazze si legge male ma si legge; uno coi buchi mente. Meglio dire QUANTE
+                   frasi sono rimaste nella lingua d'origine che lasciarle scoprire una per una. *@
+                <p>@L["Tr_NoticePartial", Coverage.Mancanti, Coverage.Segmenti]</p>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>Quanto e' tradotto e quanto e' stato riletto. Con zero segmenti l'avviso non compare.</summary>
+    [Parameter, EditorRequired] public TranslationCoverage Coverage { get; set; } = TranslationCoverage.Nessuna;
+}

@@ -52,6 +52,20 @@ public sealed class FrozenSections
             ? new FrozenSections(null, null, new Dictionary<string, string>(byKey, StringComparer.OrdinalIgnoreCase))
             : Empty;
 
+    /// <summary>
+    /// La lingua in cui questo snapshot è stato congelato, o null se non si sa (release pubblicate prima del
+    /// 28 agosto 2026, o lotti costruiti per chiave).
+    ///
+    /// <para>
+    /// ⚠️ <b>Serve alla sola prosa GENERATA</b> — le frasi di coordinamento — che è congelata <i>in una
+    /// lingua</i>. Tutto il resto del congelato (AoR, frequenze, minime) sono numeri, geometrie e callsign,
+    /// che una lingua non ce l'hanno: quelli si leggono dallo snapshot sempre, ed è quello che la release
+    /// promette. Scartare l'intero lotto per un lettore in un'altra lingua vorrebbe dire mostrargli l'AoR
+    /// <b>di oggi</b> invece di quella dell'AIRAC pubblicato.
+    /// </para>
+    /// </summary>
+    public Language? Language => _doc?.Language;
+
     /// <summary>Vero se non c'è niente di congelato da leggere: tutto si deriverà live.</summary>
     public bool IsEmpty => (_byId is null || _byId.Count == 0) && (_byKey is null || _byKey.Count == 0);
 
@@ -73,6 +87,30 @@ public sealed class FrozenSections
             .GroupBy(s => s.SectionKey, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
         return _idsByKey.TryGetValue(sectionKey, out var id) ? Get<T>(id) : null;
+    }
+
+    /// <summary>
+    /// La prosa GENERATA congelata, ma solo se è nella lingua di chi legge; altrimenti null, cioè «deriva
+    /// live» — e la derivazione live compone nella lingua giusta.
+    ///
+    /// <para>
+    /// ⚠️ È il pezzo che rende bilingue anche ciò che il traduttore automatico non tocca. Senza, un lettore
+    /// italiano che apre una vLOA tradotta trova i coordinamenti ancora in inglese: lo snapshot li ha
+    /// congelati così, e nessuno li ritraduce — perché non si devono tradurre, si devono <b>ricomporre</b>.
+    /// </para>
+    /// <para>
+    /// Snapshot senza lingua nota (pubblicati prima del 28 agosto 2026) → si usa il congelato com'è: è
+    /// esattamente il comportamento di prima, e cambiarlo farebbe ricomparire live delle release chiuse.
+    /// </para>
+    /// </summary>
+    public T? GetProsa<T>(string sectionKey, string? linguaDiLettura) where T : class
+    {
+        if (Language is { } congelata && linguaDiLettura is { Length: > 0 })
+        {
+            var suo = congelata == Vipi.Domain.Language.En ? "en" : "it";
+            if (!string.Equals(suo, linguaDiLettura, StringComparison.OrdinalIgnoreCase)) return null;
+        }
+        return Get<T>(sectionKey);
     }
 
     private static T? Deserialize<T>(string? json) where T : class
