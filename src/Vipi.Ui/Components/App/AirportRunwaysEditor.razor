@@ -1,0 +1,80 @@
+@* L'editor della sezione «Piste»: i campi di sorgente IVAO più le colonne editoriali.
+
+   ⚠️ Componente a parte da <AirportRunways>, che è la lettura, per la stessa ragione detta in
+   <AirportTransitionEditor>: le due forme dei dati sono diverse, e il difetto da chiudere era che questo
+   stava scritto dentro la pagina.
+
+   ⚠️ `SourceLocked`: quando le piste vengono dall'anagrafica IVAO, l'identificativo non si tocca e le righe
+   non si aggiungono né si tolgono — le colonne EDITORIALI (TORA, LDA, procedure, circuiti, circling) restano
+   scrivibili comunque. È il motivo per cui non basta un `disabled` sull'intera tabella. *@
+@inject IStringLocalizer<SharedResource> L
+
+<div @onchange="() => OnChanged.InvokeAsync()">
+    <div class="ed-h3 ed-h3-mini">
+        @if (SourceLocked)
+        {
+            <span class="pill neutral" title="@L["Ape_RwFromSourceTitle"]"><Icon Name="key" Size="11" /> @L["Ape_FromSource"]</span>
+            <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_RwFromSourceAria"]" ExtraClass="wide">@L["Ape_RwFromSource"]</HelpHint>
+        }
+        else
+        {
+            <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_RwEditorialAria"]" ExtraClass="wide">@L["Ape_RwEditorial"]</HelpHint>
+        }
+    </div>
+    @{ var problemi = AirportRunwayValidation.Issues(Rows); }
+    @if (problemi.Count > 0)
+    {
+        <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var p in problemi) { <div>@L[p.Key, p.Args]</div> }</div></div>
+    }
+    <table class="res-table">
+        <thead><tr><th>@L["Ape_Runway"]</th><th>@L["Ape_LengthM"]</th><th>TORA</th><th>LDA</th><th>APP procedures</th><th>Patterns</th><th>Circling</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var r in Rows)
+            {
+                <tr @key="r">
+                    <td><input style="width:64px" @bind="r.Ident" disabled="@SourceLocked" /></td>
+                    <td class="muted">@(r.LengthM?.ToString() ?? "—")</td>
+                    <td><input style="width:80px" @bind="r.Tora" /></td>
+                    <td><input style="width:80px" @bind="r.Lda" /></td>
+                    <td><input style="width:150px" @bind="r.App" /></td>
+                    <td><input style="width:70px" @bind="r.Patterns" /></td>
+                    <td><input style="width:70px" @bind="r.Circling" /></td>
+                    <td>@if (!SourceLocked) { <button class="btn ghost" @onclick="() => Rimuovi(r)">✕</button> }</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <div style="margin-top:10px;display:flex;gap:8px">
+        @if (!SourceLocked) { <button class="btn ghost" @onclick="Aggiungi">+ @L["Ape_Runway"]</button> }
+        <button class="btn primary" disabled="@(Busy || !CanEdit)" @onclick="() => OnSaveRows.InvokeAsync()">@L["Ape_SaveRunways"]</button>
+    </div>
+</div>
+
+@code {
+    /// <summary>Le piste in lavorazione: il componente le muta in posto e avvisa con <see cref="OnChanged"/>.</summary>
+    [Parameter, EditorRequired] public List<RwEdit> Rows { get; set; } = new();
+
+    /// <summary>Le piste arrivano dall'anagrafica IVAO: identificativo bloccato, righe non aggiungibili.</summary>
+    [Parameter] public bool SourceLocked { get; set; }
+
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public bool CanEdit { get; set; }
+    [Parameter] public EventCallback OnChanged { get; set; }
+    [Parameter] public EventCallback OnSaveRows { get; set; }
+
+    /// <summary>Conferma prima di togliere una pista; null = non si chiede.</summary>
+    [Parameter] public Func<Task<bool>>? ConfirmRemove { get; set; }
+
+    private async Task Aggiungi()
+    {
+        Rows.Add(new RwEdit());
+        await OnChanged.InvokeAsync();
+    }
+
+    private async Task Rimuovi(RwEdit r)
+    {
+        if (ConfirmRemove is not null && !await ConfirmRemove()) return;
+        Rows.Remove(r);
+        await OnChanged.InvokeAsync();
+    }
+}
