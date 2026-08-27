@@ -1,6 +1,15 @@
 @page "/services/vsop/release/{Id:int}"
 @layout SopLayout
-@rendermode InteractiveServer
+@*  ⚠️ NIENTE @@rendermode: questa pagina è un REDIRECT, e un redirect non ha bisogno di un circuito.
+
+    Con «InteractiveServer» il salto costava: pagina resa, WebSocket aperto, e solo allora la navigazione.
+    Senza, `Nav.NavigateTo` durante il ciclo di vita diventa quel che è sempre stato — una risposta di
+    reindirizzamento HTTP, che il browser segue prima di disegnare qualunque cosa. Più veloce e più
+    corretto: chi arriva qui da un segnalibro vecchio ottiene un vero 302 verso l'indirizzo di oggi.
+
+    I tre rami visibili (accesso negato, release inesistente, «reindirizzamento…») restano quello che
+    erano: testo, senza un comando dentro.
+*@
 @inject IReleaseService Releases
 @inject IDocumentAdminService DocAdmin
 @inject Vipi.Application.Routing.IDocRoutesRegistry DocRoutes
