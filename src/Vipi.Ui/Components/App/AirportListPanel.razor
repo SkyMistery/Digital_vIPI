@@ -1,0 +1,203 @@
+@* L'elenco degli aeroporti di una ACC: le schede, il filtro militare/civile e il meteo che arriva dopo.
+
+   ⚠️ È un'ISOLA interattiva (doc 14 §3g), come <LiveBadge> nella topbar, e sta dentro una pagina che è SSR
+   statica. Il motivo è misurato: la vIPI d'aeroporto era l'unico dei quattro documenti pubblici a tenere un
+   circuito aperto per OGNI lettore, perché elenco e documento condividono una rotta e una pagina ha un solo
+   render mode.
+
+   ⚠️ La carta diceva che per togliere quel circuito bisognava separare la rotta. Non è vero, e verificarlo
+   ha evitato di toccare indirizzi pubblici che stanno nei preferiti di chi controlla: il render mode si
+   dichiara sul COMPONENTE, quindi basta che le due parti interattive — questa e il selettore di pista delle
+   SID — diventino isole, e la pagina torna statica con le sue URL intatte.
+
+   ⚠️ Si carica da sé a partire dal solo codice ACC, e non riceve gli aeroporti come parametro. È la stessa
+   scelta di <LiveBadge>, e qui ha una ragione in più: attraversare il confine SSR→interattivo vuol dire
+   serializzare, e una lista di schede col meteo dentro sarebbe una serializzazione grossa per ogni lettore. *@
+@rendermode InteractiveServer
+@inherits OwningComponentBase
+@using Microsoft.Extensions.DependencyInjection
+@using Vipi.Application.Weather
+@inject IOnlineAtcProvider Online
+@inject Vipi.Application.Abstractions.IWeatherProvider Weather
+@inject IStringLocalizer<SharedResource> L
+
+@if (_aeroporti.Count == 0)
+{
+    <EmptyState Title="@L["Common_NoAirport"]">@L["Airport_NoneBody"]</EmptyState>
+}
+else
+{
+    @* Il chip c'è solo dove c'è qualcosa da filtrare: su una ACC di soli scali civili sarebbe un comando che
+       non fa niente. Ricliccato torna a «tutti», come i chip della pagina Aeroporti. *@
+    @if (Militari > 0 && Militari < _aeroporti.Count)
+    {
+        <div class="struct-bar" style="margin-top:14px">
+            <span class="sb-chips">
+                <button class="sh-chip @(_filtro == FiltroMil.Militari ? "on" : "")"
+                        title="@L["Airport_ChipMilitaryTitle"]" @onclick="() => Commuta(FiltroMil.Militari)">@L["Apt_ChipMilitary", Militari]</button>
+                <button class="sh-chip @(_filtro == FiltroMil.Civili ? "on" : "")"
+                        title="@L["Airport_ChipCivilTitle"]" @onclick="() => Commuta(FiltroMil.Civili)">@L["Airport_ChipCivil", _aeroporti.Count - Militari]</button>
+            </span>
+        </div>
+    }
+    <div class="choice-grid" style="margin-top:14px">
+        @foreach (var ap in Mostrati())
+        {
+            var n = OnlineSu(ap.Icao);
+            <a class="choice apt-card" href="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={ap.Icao}")">
+                <div class="apt-top">
+                    <h2 class="h-card">@ap.Icao</h2>
+                    <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? L["Common_OnlineN", n] : L["Common_Offline"])</span>
+                </div>
+                <p class="muted">@ap.Name</p>
+                @if (ap.HasMilitaryPresence)
+                {
+                    <p class="apt-mil"><MilitaryTag HasMilitaryPresence="ap.HasMilitaryPresence" IsMilitaryOnly="ap.IsMilitaryOnly" /></p>
+                }
+                @if (_meteo.TryGetValue(ap.Icao, out var wx))
+                {
+                    <div class="apt-wx">
+                        <span><span class="wx-k">@L["Airport_Wind"]</span><b>@(string.IsNullOrWhiteSpace(wx.Wind) ? "—" : wx.Wind)</b></span>
+                        <span><span class="wx-k">QNH</span><b>@(wx.Qnh is int q ? $"{q}" : "—")</b></span>
+                        @if (!string.IsNullOrEmpty(wx.Dep) || !string.IsNullOrEmpty(wx.Arr))
+                        {
+                            <span><span class="wx-k">@L["Airport_Departures"]</span><b>@(wx.Dep ?? "—")</b></span>
+                            <span><span class="wx-k">@L["Airport_Arrivals"]</span><b>@(wx.Arr ?? "—")</b></span>
+                        }
+                    </div>
+                }
+                else if (_meteoInArrivo)
+                {
+                    <div class="apt-wx loading"><span class="muted" style="font-size:12.5px">@L["Airport_WxLoading"]</span></div>
+                }
+            </a>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>Il codice della ACC di cui elencare gli aeroporti.</summary>
+    [Parameter, EditorRequired] public string Acc { get; set; } = default!;
+
+    private enum FiltroMil { Tutti, Militari, Civili }
+    private FiltroMil _filtro = FiltroMil.Tutti;
+
+    private IReadOnlyList<AirportRow> _aeroporti = Array.Empty<AirportRow>();
+    private readonly Dictionary<string, AirportData?> _profili = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, (string? Wind, int? Qnh, string? Dep, string? Arr)> _meteo = new(StringComparer.OrdinalIgnoreCase);
+    private bool _meteoInArrivo;
+    private string? _caricato;
+
+    // Dallo scope DI proprio: il contesto è isolato dal circuito (stessa regola dei sei componenti dopo
+    // l'audit del 30 luglio 2026).
+    private IStructureEditingService _struttura = default!;
+    private IDocumentAdminService _documenti = default!;
+    private IAirportEditingService _profilo = default!;
+
+    protected override void OnInitialized()
+    {
+        _struttura = ScopedServices.GetRequiredService<IStructureEditingService>();
+        _documenti = ScopedServices.GetRequiredService<IDocumentAdminService>();
+        _profilo = ScopedServices.GetRequiredService<IAirportEditingService>();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var acc = (Acc ?? "").Trim().ToUpperInvariant();
+        if (acc.Length == 0 || acc == _caricato) return;
+        _caricato = acc;
+
+        var data = await _struttura.LoadAsync(acc);
+        // Solo aeroporti con release AIRAC effettiva e non nascosti (doc 10 §3f: visibilità pubblica = release effettiva).
+        var pubblicati = (await _documenti.ListAsync())
+            .Where(m => m.Kind == ReleaseTargetType.Airport && m.HasEffectiveRelease && !m.IsHidden
+                        && string.Equals(m.AccCode, acc, StringComparison.OrdinalIgnoreCase))
+            .Select(m => m.Scope)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        _aeroporti = data?.Airports
+            .Where(x => x.IsPublic && pubblicati.Contains(x.Icao))
+            .OrderBy(x => x.Icao).ToList()
+            ?? (IReadOnlyList<AirportRow>)Array.Empty<AirportRow>();
+
+        // Profili piste (DB, veloci): servono alla pista consigliata. Il METAR (HTTP, lento) NON si aspetta
+        // qui — la lista si disegna subito e il meteo arriva dopo. È la ragione per cui questa è un'isola.
+        _profili.Clear();
+        foreach (var ap in _aeroporti) _profili[ap.Icao] = await _profilo.LoadForViewAsync(ap.Icao);
+
+        _meteo.Clear();
+        _meteoInArrivo = _aeroporti.Count > 0;
+        if (_meteoInArrivo) _ = CaricaMeteoAsync(acc);
+    }
+
+    private int Militari => _aeroporti.Count(x => x.HasMilitaryPresence);
+
+    private List<AirportRow> Mostrati() => _filtro switch
+    {
+        FiltroMil.Militari => _aeroporti.Where(x => x.HasMilitaryPresence).ToList(),
+        FiltroMil.Civili => _aeroporti.Where(x => !x.HasMilitaryPresence).ToList(),
+        _ => _aeroporti.ToList(),
+    };
+
+    private void Commuta(FiltroMil f) => _filtro = _filtro == f ? FiltroMil.Tutti : f;
+
+    /// <summary>Gli ATC su quello scalo, ATIS escluso: un ATIS acceso non è una posizione presidiata.</summary>
+    private int OnlineSu(string icao) => Online.GetCurrent().Callsigns.Count(cs =>
+        cs.Split('_', 2)[0].Equals(icao, StringComparison.OrdinalIgnoreCase)
+        && !cs.EndsWith("_ATIS", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Il meteo di tutti gli scali, in parallelo, fuori dal percorso di render.
+    /// ⚠️ Il controllo sull'ACC alla fine è un token anti-corsa: chi cambia ACC mentre questi HTTP sono in
+    /// volo non deve vedersi arrivare il meteo di quella di prima.
+    /// </summary>
+    private async Task CaricaMeteoAsync(string acc)
+    {
+        var esiti = await Task.WhenAll(_aeroporti.Select(async ap =>
+        {
+            try
+            {
+                var wx = await Weather.GetAsync(ap.Icao);
+                var m = string.IsNullOrWhiteSpace(wx?.Metar) ? null : MetarParser.ParseMetar(wx!.Metar!);
+                return (ap.Icao, Metar: m);
+            }
+            catch { return (ap.Icao, Metar: (ParsedMetar?)null); }
+        }));
+
+        if (acc != _caricato) return;
+        foreach (var (icao, m) in esiti)
+            if (m is not null)
+            {
+                var (dep, arr) = PisteConsigliate(icao, m);
+                _meteo[icao] = (m.Wind?.Label, m.QnhHpa, dep, arr);
+            }
+        _meteoInArrivo = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>Piste consigliate dal profilo: le regole se ci sono, altrimenti il miglior vento di testa.</summary>
+    private (string? Dep, string? Arr) PisteConsigliate(string icao, ParsedMetar m)
+    {
+        var profilo = _profili.GetValueOrDefault(icao);
+        int? dir = m.Wind is { Calm: false, DirectionDeg: int d } ? d : null;
+        var kt = m.Wind?.SpeedKt ?? 0;
+
+        if (profilo is { Rules.Count: > 0 })
+        {
+            var bagnata = m.HasRain || m.HasSnow;
+            var vincente = RunwaySuggestion.EvaluateRules(
+                profilo.Rules.Select(AirportViewFormat.MapRule).ToList(), dir, kt, bagnata, DateTime.UtcNow);
+            if (vincente is not null) return (Norm(vincente.Dep), Norm(vincente.Arr));
+        }
+
+        var piste = profilo?.Runways.Select(r => r.Ident).ToList() ?? new List<string>();
+        if (piste.Count > 0)
+        {
+            var s = RunwaySuggestion.Suggest(piste, dir, kt);
+            if (s.Best is not null) return (Norm(s.DepIdent ?? s.Best.Ident), Norm(s.ArrIdent ?? s.Best.Ident));
+        }
+        return (null, null);
+    }
+
+    private static string? Norm(string? v) => string.IsNullOrWhiteSpace(v) ? null : v.Trim();
+}

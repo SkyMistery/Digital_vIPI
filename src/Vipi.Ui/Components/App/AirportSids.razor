@@ -1,6 +1,13 @@
 ﻿@* Sezione «SID»: il merge fra le righe editoriali e quelle importate dal sectorfile, già filtrato per ciclo
    AIRAC e ordinato per punto. Il filtro per pista è una scelta di LETTURA, non del documento: chi guarda vuole
    le SID della pista in uso, e la sceglie qui. *@
+@* ⚠️ ISOLA INTERATTIVA (doc 14 §3g). Il selettore di pista è l'unico comando del DOCUMENTO d'aeroporto, e
+   per servirlo l'intera pagina era `InteractiveServer`: un circuito aperto per ogni lettore, l'unico dei
+   quattro documenti pubblici a farlo. Da qui in poi il circuito lo apre solo chi arriva a questa sezione.
+
+   ⚠️ I parametri attraversano il confine SSR→interattivo, quindi devono SERIALIZZARE: per questo le piste in
+   uso arrivano come array e non come HashSet. Il tipo `AirportSidView` è un record di stringhe, e passa. *@
+@rendermode InteractiveServer
 @inject IStringLocalizer<SharedResource> L
 
 @if (View.Rows.Count > 0)
@@ -14,7 +21,7 @@
                 var pista = rw;
                 <button type="button" class="cfg-btn @(string.Equals(Selected, pista, StringComparison.OrdinalIgnoreCase) ? "on" : "")"
                         @onclick="() => SelectedChanged.InvokeAsync(pista)">
-                    @pista @if (DepIdents.Contains(pista)) { <span title="@L["Airport_RwyInUse"]">🛫</span> }
+                    @pista @if (DepIdents.Contains(pista, StringComparer.OrdinalIgnoreCase)) { <span title="@L["Airport_RwyInUse"]">🛫</span> }
                 </button>
             }
         </div>
@@ -46,8 +53,9 @@ else
     [Parameter] public string? Selected { get; set; }
     [Parameter] public EventCallback<string> SelectedChanged { get; set; }
 
-    /// <summary>Piste in partenza adesso: marcano il chip della pista in uso. Dato LIVE.</summary>
-    [Parameter] public HashSet<string> DepIdents { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Piste in partenza adesso: marcano il chip della pista in uso. Dato LIVE.
+    /// ⚠️ Un array e non un HashSet: attraversa il confine SSR→interattivo e dev'essere serializzabile.</summary>
+    [Parameter] public string[] DepIdents { get; set; } = Array.Empty<string>();
 
     /// <summary>TA dello scalo: serve a rendere l'initial climb come quota o come livello.</summary>
     [Parameter] public int? TransitionAltitudeFt { get; set; }
