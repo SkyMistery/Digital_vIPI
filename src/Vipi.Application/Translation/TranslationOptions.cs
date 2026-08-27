@@ -26,6 +26,24 @@ public sealed class TranslationOptions
     /// </summary>
     public string[] Targets { get; set; } = { "it", "en" };
 
+    /// <summary>
+    /// Quale motore usare, per nome (<c>ITranslationEngine.Name</c>). Con un motore solo registrato il campo
+    /// non serve; esiste perché <b>aggiungerne un secondo sia una riga di configurazione</b>, non un lavoro
+    /// nel contenitore.
+    /// <para>⚠️ Non è una previsione: la franchigia di DeepL è passata da ricorrente a <b>una tantum</b>
+    /// mentre questa carta si scriveva. Il giorno che si cambia motore, la memoria già tradotta <b>resta</b>
+    /// — è indicizzata sul testo, non su chi l'ha tradotto — e non si ripaga niente.</para>
+    /// </summary>
+    public string Engine { get; set; } = "deepl";
+
+    /// <summary>
+    /// Tetto di caratteri complessivi da spendere col motore. <c>0</c> = nessun tetto.
+    /// <para>⚠️ Conta soprattutto quando la franchigia è <b>una tantum e non si rinnova</b>: scoprire a cose
+    /// fatte che è finita costerebbe la funzione, non un giro. Il giro si ferma <b>prima</b> di spendere e
+    /// lo dice; il dato autorevole sul consumo lo dà comunque il motore.</para>
+    /// </summary>
+    public long MaxCaratteriTotali { get; set; }
+
     public DeepLOptions DeepL { get; set; } = new();
 }
 

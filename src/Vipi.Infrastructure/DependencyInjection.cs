@@ -201,6 +201,9 @@ public static class DependencyInjection
             c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
         });
         services.AddSingleton<Vipi.Application.Abstractions.ITranslationEngine, Translation.DeepLTranslationEngine>();
+        services.AddScoped<Vipi.Application.Abstractions.ITranslationMemory, EfTranslationMemory>();
+        services.AddScoped<Vipi.Application.Abstractions.ITranslatableCorpus, EfTranslatableCorpus>();
+
 
         // Import SID dal sectorfile Aurora su GitHub (repo pubblico raw, no auth). Ortogonale a DataSource:Provider.
         services.AddScoped<Vipi.Application.Abstractions.ISidFixAliasRepository, EfSidFixAliasRepository>();
