@@ -200,6 +200,16 @@ public static class DependencyInjection
             c.Timeout = TimeSpan.FromSeconds(30);   // un lotto di 50 testi non torna in dieci secondi
             c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
         });
+        services.AddHttpClient(Translation.AzureTranslationEngine.HttpClientName, c =>
+        {
+            c.Timeout = TimeSpan.FromSeconds(30);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
+        });
+        // ⚠️ Si registrano ENTRAMBI, e l'ordine di preferenza lo decide `Translation:Order`, non l'ordine di
+        // queste righe: un motore aggiunto in fondo al file non deve diventare il primario per sbaglio.
+        // Azure e' il primario dal 27 agosto 2026; DeepL resta pronto e subentra da solo quando Azure non
+        // risponde o esaurisce la franchigia.
+        services.AddSingleton<Vipi.Application.Abstractions.ITranslationEngine, Translation.AzureTranslationEngine>();
         services.AddSingleton<Vipi.Application.Abstractions.ITranslationEngine, Translation.DeepLTranslationEngine>();
         services.AddScoped<Vipi.Application.Abstractions.ITranslationMemory, EfTranslationMemory>();
         services.AddScoped<Vipi.Application.Abstractions.ITranslatableCorpus, EfTranslatableCorpus>();

@@ -30,6 +30,7 @@ public class TranslationFillUseCaseTests
     {
         public Dictionary<string, KnownTranslation> Note { get; } = new(StringComparer.Ordinal);
         public List<(string Sorgente, string Bersaglio)> Scritte { get; } = new();
+        public List<string> MotoriScritti { get; } = new();
         public long Spesi { get; set; }
 
         public void GiaNota(string sorgente, string bersaglio) =>
@@ -44,6 +45,7 @@ public class TranslationFillUseCaseTests
             IReadOnlyList<(string SourceText, string TargetText)> tradotte, CancellationToken ct = default)
         {
             Scritte.AddRange(tradotte);
+            MotoriScritti.Add(engine);
             return Task.FromResult(tradotte.Count);
         }
 
@@ -61,30 +63,39 @@ public class TranslationFillUseCaseTests
         private readonly TranslationOutcome _esito;
         private readonly Func<string, string>? _traduci;
 
-        public MotoreFinto(TranslationOutcome esito = TranslationOutcome.Ok, Func<string, string>? traduci = null)
+        public MotoreFinto(TranslationOutcome esito = TranslationOutcome.Ok, Func<string, string>? traduci = null,
+                           string nome = "azure", bool configurato = true)
         {
             _esito = esito;
             _traduci = traduci;
+            Name = nome;
+            IsConfigured = configurato;
         }
 
         public List<string> Ricevuti { get; } = new();
-        public string Name => "finto";
-        public bool IsConfigured => true;
+        public string Name { get; }
+        public bool IsConfigured { get; }
 
         public Task<TranslationBatch> TranslateAsync(
             IReadOnlyList<string> testi, string s, string t, CancellationToken ct = default)
         {
             Ricevuti.AddRange(testi);
-            if (_esito != TranslationOutcome.Ok) return Task.FromResult(TranslationBatch.Ko(_esito, "finto"));
+            if (_esito != TranslationOutcome.Ok) return Task.FromResult(TranslationBatch.Ko(_esito, "finto", Name));
             var f = _traduci ?? (x => "EN:" + x);
-            return Task.FromResult(TranslationBatch.Ok(testi.Select(f).ToList()));
+            return Task.FromResult(TranslationBatch.Ok(testi.Select(f).ToList(), Name));
         }
     }
 
     private static TranslationFillUseCase Giro(
         CorpusFinto corpus, MemoriaFinta memoria, MotoreFinto motore,
         TranslationOptions? opt = null, string[]? roster = null) =>
-        new(corpus, memoria, motore, new TextProtector(roster), opt ?? new TranslationOptions());
+        Catena(corpus, memoria, opt ?? new TranslationOptions(), roster, motore);
+
+    /// <summary>Il giro con piu' motori: l'ordine di preferenza lo detta `opt.Order`.</summary>
+    private static TranslationFillUseCase Catena(
+        CorpusFinto corpus, MemoriaFinta memoria, TranslationOptions opt, string[]? roster,
+        params MotoreFinto[] motori) =>
+        new(corpus, memoria, motori, new TextProtector(roster), opt);
 
     // ---- Il dedup che si vede -------------------------------------------------------------------------
 
@@ -136,7 +147,8 @@ public class TranslationFillUseCaseTests
         var motore = new MotoreFinto();
         var protettoreCieco = new TextProtector();
         var giro = new TranslationFillUseCase(
-            new CorpusFinto("Contatta la torre."), new MemoriaFinta(), motore, protettoreCieco, new TranslationOptions());
+            new CorpusFinto("Contatta la torre."), new MemoriaFinta(), new[] { motore }, protettoreCieco,
+            new TranslationOptions());
 
         // Caso di controllo: senza dati personali passa.
         var ok = await giro.EseguiAsync("it", "en");
@@ -163,7 +175,7 @@ public class TranslationFillUseCaseTests
         // fatte che e' finita costerebbe la funzione, non un giro.
         var memoria = new MemoriaFinta { Spesi = 990 };
         var motore = new MotoreFinto();
-        var opt = new TranslationOptions { MaxCaratteriTotali = 1000 };
+        var opt = new TranslationOptions { Order = new[] { "azure" }, Azure = { MaxCaratteriTotali = 1000 } };
 
         var rapporto = await Giro(new CorpusFinto(new string('a', 50) + " testo lungo"), memoria, motore, opt)
             .EseguiAsync("it", "en");
@@ -172,6 +184,7 @@ public class TranslationFillUseCaseTests
         Assert.Empty(motore.Ricevuti);          // non ha speso niente
         Assert.Empty(memoria.Scritte);
         Assert.Contains("tetto di 1000", rapporto.Dettaglio);
+        Assert.Contains("azure", rapporto.Dettaglio);
     }
 
     [Fact]
@@ -225,5 +238,131 @@ public class TranslationFillUseCaseTests
         var rapporto = await Giro(new CorpusFinto(), new MemoriaFinta(), new MotoreFinto()).EseguiAsync("it", "en");
         Assert.Equal(TranslationOutcome.Ok, rapporto.Esito);
         Assert.Equal(0, rapporto.Segmenti);
+    }
+    // ---- La catena: Azure primario, DeepL pronto -------------------------------------------------------
+
+    [Fact]
+    public async Task Il_primario_traduce_e_il_secondo_non_viene_nemmeno_interpellato()
+    {
+        var azure = new MotoreFinto(nome: "azure");
+        var deepl = new MotoreFinto(nome: "deepl");
+        var memoria = new MemoriaFinta();
+
+        var rapporto = await Catena(new CorpusFinto("Contatta la torre."), memoria,
+            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, azure, deepl)
+            .EseguiAsync("it", "en");
+
+        Assert.Single(azure.Ricevuti);
+        Assert.Empty(deepl.Ricevuti);
+        Assert.Equal("azure", rapporto.Motore);
+    }
+
+    [Theory]
+    [InlineData(TranslationOutcome.QuotaExceeded)]
+    [InlineData(TranslationOutcome.AuthFailed)]
+    [InlineData(TranslationOutcome.TemporaryFailure)]
+    [InlineData(TranslationOutcome.PermanentFailure)]
+    [InlineData(TranslationOutcome.NotConfigured)]
+    public async Task Se_il_primario_non_risponde_il_secondo_subentra_da_solo(TranslationOutcome guasto)
+    {
+        // E' tutta la ragione per cui esiste una catena. Anche AuthFailed fa passare oltre: una chiave
+        // sbagliata vuole una persona, ma nel frattempo il documento si traduce lo stesso.
+        var azure = new MotoreFinto(guasto, nome: "azure");
+        var deepl = new MotoreFinto(nome: "deepl");
+        var memoria = new MemoriaFinta();
+
+        var rapporto = await Catena(new CorpusFinto("Contatta la torre."), memoria,
+            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, azure, deepl)
+            .EseguiAsync("it", "en");
+
+        Assert.Equal(TranslationOutcome.Ok, rapporto.Esito);
+        Assert.Single(deepl.Ricevuti);
+        Assert.Equal(1, rapporto.Tradotti);
+    }
+
+    [Fact]
+    public async Task La_voce_in_memoria_porta_il_nome_di_CHI_HA_TRADOTTO_non_del_primario()
+    {
+        // ⚠️ Se qui finisse "azure", il tetto di Azure verrebbe consumato dal lavoro di DeepL -- e la
+        // guardia sul budget del primario direbbe il falso proprio quando il primario e' fermo.
+        var azure = new MotoreFinto(TranslationOutcome.QuotaExceeded, nome: "azure");
+        var deepl = new MotoreFinto(nome: "deepl");
+        var memoria = new MemoriaFinta();
+
+        var rapporto = await Catena(new CorpusFinto("Contatta la torre."), memoria,
+            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, azure, deepl)
+            .EseguiAsync("it", "en");
+
+        Assert.Equal("deepl", rapporto.Motore);
+        Assert.Equal("deepl", memoria.MotoriScritti.Single());
+    }
+
+    [Fact]
+    public async Task Un_motore_oltre_il_suo_tetto_si_salta_e_il_giro_NON_si_ferma()
+    {
+        // Il tetto e' per motore: quello di DeepL protegge una riserva UNA TANTUM, quello di Azure una
+        // franchigia mensile. Sfondare il primo non deve spegnere il servizio.
+        var azure = new MotoreFinto(nome: "azure");
+        var deepl = new MotoreFinto(nome: "deepl");
+        var memoria = new MemoriaFinta { Spesi = 999_999 };
+
+        var opt = new TranslationOptions
+        {
+            Order = new[] { "deepl", "azure" },   // DeepL primario, ma esaurito
+            DeepL = { MaxCaratteriTotali = 1000 },
+        };
+
+        var rapporto = await Catena(new CorpusFinto("Contatta la torre."), memoria, opt, null, azure, deepl)
+            .EseguiAsync("it", "en");
+
+        Assert.Empty(deepl.Ricevuti);            // saltato PRIMA di spendere
+        Assert.Single(azure.Ricevuti);
+        Assert.Equal("azure", rapporto.Motore);
+    }
+
+    [Fact]
+    public async Task L_ordine_lo_detta_la_configurazione_non_quello_di_registrazione()
+    {
+        // Un motore aggiunto in fondo al file di DI non deve diventare il primario per sbaglio.
+        var azure = new MotoreFinto(nome: "azure");
+        var deepl = new MotoreFinto(nome: "deepl");
+
+        // Registrati azure-poi-deepl, ma la configurazione dice il contrario.
+        var rapporto = await Catena(new CorpusFinto("Contatta la torre."), new MemoriaFinta(),
+            new TranslationOptions { Order = new[] { "deepl", "azure" } }, null, azure, deepl)
+            .EseguiAsync("it", "en");
+
+        Assert.Equal("deepl", rapporto.Motore);
+        Assert.Empty(azure.Ricevuti);
+    }
+
+    [Fact]
+    public async Task Se_nessun_motore_risponde_il_rapporto_porta_l_ultimo_motivo()
+    {
+        var azure = new MotoreFinto(TranslationOutcome.QuotaExceeded, nome: "azure");
+        var deepl = new MotoreFinto(TranslationOutcome.AuthFailed, nome: "deepl");
+        var memoria = new MemoriaFinta();
+
+        var rapporto = await Catena(new CorpusFinto("Contatta la torre."), memoria,
+            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, azure, deepl)
+            .EseguiAsync("it", "en");
+
+        Assert.Equal(TranslationOutcome.AuthFailed, rapporto.Esito);
+        Assert.Contains("deepl", rapporto.Dettaglio);
+        Assert.Empty(memoria.Scritte);
+    }
+
+    [Fact]
+    public async Task Un_motore_non_configurato_si_salta_senza_consumare_il_tentativo()
+    {
+        var azure = new MotoreFinto(nome: "azure", configurato: false);
+        var deepl = new MotoreFinto(nome: "deepl");
+
+        var rapporto = await Catena(new CorpusFinto("Contatta la torre."), new MemoriaFinta(),
+            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, azure, deepl)
+            .EseguiAsync("it", "en");
+
+        Assert.Empty(azure.Ricevuti);
+        Assert.Equal("deepl", rapporto.Motore);
     }
 }

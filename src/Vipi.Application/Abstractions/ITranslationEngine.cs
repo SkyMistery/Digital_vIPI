@@ -36,13 +36,21 @@ public enum TranslationOutcome
 /// <param name="Texts">Tradotti, uno per ingresso e <b>nello stesso ordine</b>. null se <see cref="Outcome"/>
 /// non è <see cref="TranslationOutcome.Ok"/>.</param>
 /// <param name="Detail">Che cosa ha detto il motore, per il registro. ⚠️ Non contiene mai la chiave.</param>
+/// <param name="Engine">CHI ha tradotto. ⚠️ Non è deducibile da chi è stato chiamato: con una catena di
+/// motori il primo può cedere il passo al secondo, e sia la voce in memoria sia il contatore dei caratteri
+/// spesi appartengono a quello che ha <b>davvero</b> risposto. Senza questo campo il tetto di spesa di un
+/// motore verrebbe consumato dal lavoro dell'altro.</param>
 public sealed record TranslationBatch(
     IReadOnlyList<string>? Texts,
     TranslationOutcome Outcome,
-    string? Detail = null)
+    string? Detail = null,
+    string? Engine = null)
 {
-    public static TranslationBatch Ok(IReadOnlyList<string> testi) => new(testi, TranslationOutcome.Ok);
-    public static TranslationBatch Ko(TranslationOutcome esito, string? dettaglio = null) => new(null, esito, dettaglio);
+    public static TranslationBatch Ok(IReadOnlyList<string> testi, string? engine = null) =>
+        new(testi, TranslationOutcome.Ok, null, engine);
+
+    public static TranslationBatch Ko(TranslationOutcome esito, string? dettaglio = null, string? engine = null) =>
+        new(null, esito, dettaglio, engine);
 }
 
 /// <summary>

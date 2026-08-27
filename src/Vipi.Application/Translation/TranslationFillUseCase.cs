@@ -11,9 +11,12 @@ namespace Vipi.Application.Translation;
 /// <param name="Scartati">Segmenti che il motore ha restituito rotti (un segnaposto mangiato o inventato).</param>
 /// <param name="Esito">Come è finita la parte automatica.</param>
 /// <param name="Dettaglio">Che cosa ha detto il motore, per il registro. Non contiene mai la chiave.</param>
+/// <param name="Motore">Chi ha tradotto davvero. Con una catena non e' scontato che sia il primo: se Azure
+/// ha finito la quota, qui c'e' scritto «deepl», ed e' l'informazione che dice all'amministratore che il
+/// primario e' fermo <b>senza</b> che il servizio si sia fermato con lui.</param>
 public sealed record TranslationFillReport(
     int Segmenti, int GiaInMemoria, int Tradotti, int DaTradurreAMano, int Scartati,
-    TranslationOutcome Esito, string? Dettaglio = null)
+    TranslationOutcome Esito, string? Dettaglio = null, string? Motore = null)
 {
     /// <summary>Quanti mancano ancora, dopo questo giro.</summary>
     public int Mancanti => Segmenti - GiaInMemoria - Tradotti;
@@ -38,19 +41,27 @@ public sealed class TranslationFillUseCase
 {
     private readonly ITranslatableCorpus _corpus;
     private readonly ITranslationMemory _memoria;
-    private readonly ITranslationEngine _motore;
+    private readonly IReadOnlyList<ITranslationEngine> _catena;
     private readonly TextProtector _protettore;
     private readonly TranslationOptions _opt;
 
+    /// <param name="motori">I motori <b>in ordine di preferenza</b>. Il primo che risponde vince.</param>
     public TranslationFillUseCase(
-        ITranslatableCorpus corpus, ITranslationMemory memoria, ITranslationEngine motore,
+        ITranslatableCorpus corpus, ITranslationMemory memoria, IEnumerable<ITranslationEngine> motori,
         TextProtector protettore, TranslationOptions opt)
     {
         _corpus = corpus;
         _memoria = memoria;
-        _motore = motore;
         _protettore = protettore;
         _opt = opt;
+
+        // L'ordine lo detta la configurazione, non l'ordine di registrazione nel contenitore: un motore
+        // aggiunto in fondo al file di DI non deve diventare il primario per sbaglio.
+        var perNome = motori.ToDictionary(m => m.Name, StringComparer.OrdinalIgnoreCase);
+        _catena = opt.Order
+            .Where(perNome.ContainsKey)
+            .Select(n => perNome[n])
+            .ToList();
     }
 
     public async Task<TranslationFillReport> EseguiAsync(
@@ -89,21 +100,50 @@ public sealed class TranslationFillUseCase
         if (daSpedire.Count == 0)
             return new TranslationFillReport(segmenti.Count, giaInMemoria, 0, aMano, 0, TranslationOutcome.Ok);
 
-        // ---- Cancello 2: il budget. ----
-        // ⚠️ Serve perché la franchigia del motore può essere UNA TANTUM e non rinnovarsi: scoprire a cose
-        // fatte che è finita costerebbe la funzione, non un giro. Si controlla PRIMA di spendere.
-        var superato = await BudgetSuperatoAsync(daSpedire.Sum(d => d.Protetto.Text.Length), ct).ConfigureAwait(false);
-        if (superato is not null)
-            return new TranslationFillReport(segmenti.Count, giaInMemoria, 0, aMano, 0,
-                TranslationOutcome.QuotaExceeded, superato);
+        // ---- Cancello 2 e la catena: si prova un motore per volta, in ordine di preferenza. ----
+        var testi = daSpedire.Select(d => d.Protetto.Text).ToList();
+        var caratteri = testi.Sum(t => t.Length);
 
-        // ---- Il motore. ----
-        var esito = await _motore
-            .TranslateAsync(daSpedire.Select(d => d.Protetto.Text).ToList(), sourceLang, targetLang, ct)
-            .ConfigureAwait(false);
+        TranslationBatch? riuscito = null;
+        var ultimoEsito = TranslationOutcome.NotConfigured;
+        string? ultimoDettaglio = null;
 
-        if (esito.Outcome != TranslationOutcome.Ok)
-            return new TranslationFillReport(segmenti.Count, giaInMemoria, 0, aMano, 0, esito.Outcome, esito.Detail);
+        foreach (var motore in _catena)
+        {
+            if (!motore.IsConfigured) continue;
+
+            // ⚠️ Il tetto e' PER MOTORE, e si controlla PRIMA di spendere. Un motore oltre il suo tetto non
+            // ferma il giro: si passa al successivo. E' tutta la ragione per cui esiste una catena -- la
+            // franchigia di DeepL e' una tantum, e quando finisce il servizio deve continuare, non fermarsi.
+            var tetto = _opt.TettoDi(motore.Name);
+            if (tetto > 0)
+            {
+                var spesi = await _memoria.CaratteriSpesiStimatiAsync(motore.Name, ct).ConfigureAwait(false);
+                if (spesi + caratteri > tetto)
+                {
+                    ultimoEsito = TranslationOutcome.QuotaExceeded;
+                    ultimoDettaglio = $"{motore.Name}: tetto di {tetto} caratteri, stimati {spesi} gia' spesi, "
+                                      + $"questo giro ne chiede {caratteri}";
+                    continue;
+                }
+            }
+
+            var tentativo = await motore.TranslateAsync(testi, sourceLang, targetLang, ct).ConfigureAwait(false);
+            if (tentativo.Outcome == TranslationOutcome.Ok) { riuscito = tentativo; break; }
+
+            // Qualunque esito diverso da Ok fa passare al motore dopo. Anche AuthFailed: una chiave
+            // sbagliata vuole una persona, ma nel frattempo il documento si traduce lo stesso, e il
+            // rapporto porta il motivo.
+            ultimoEsito = tentativo.Outcome;
+            ultimoDettaglio = $"{motore.Name}: {tentativo.Detail}";
+        }
+
+        if (riuscito is null)
+            return new TranslationFillReport(segmenti.Count, giaInMemoria, 0, aMano, 0, ultimoEsito, ultimoDettaglio);
+
+        // ⚠️ Chi ha tradotto DAVVERO, non chi e' stato chiamato per primo: la voce in memoria e il contatore
+        // dei caratteri appartengono a lui, o il tetto di un motore verrebbe consumato dal lavoro dell'altro.
+        var motoreUsato = riuscito.Engine ?? _catena[0].Name;
 
         // ---- Ripristino, e chi non torna intero si butta. ----
         var buone = new List<(string, string)>();
@@ -111,36 +151,19 @@ public sealed class TranslationFillUseCase
         for (var i = 0; i < daSpedire.Count; i++)
         {
             var (originale, protetto) = daSpedire[i];
-            if (TextProtector.TryRestore(esito.Texts![i], protetto.Tokens, out var tradotto))
+            if (TextProtector.TryRestore(riuscito.Texts![i], protetto.Tokens, out var tradotto))
                 buone.Add((originale, tradotto));
             else
-                // Una frase a cui manca il callsign è PEGGIO della frase non tradotta: sembra giusta e non
-                // lo è. Non si salva, così il giro dopo ci riprova.
+                // Una frase a cui manca il callsign e' PEGGIO della frase non tradotta: sembra giusta e non
+                // lo e'. Non si salva, cosi' il giro dopo ci riprova.
                 scartati++;
         }
 
         var scritte = buone.Count == 0
             ? 0
-            : await _memoria.SaveMachineAsync(sourceLang, targetLang, _motore.Name, buone, ct).ConfigureAwait(false);
+            : await _memoria.SaveMachineAsync(sourceLang, targetLang, motoreUsato, buone, ct).ConfigureAwait(false);
 
-        return new TranslationFillReport(segmenti.Count, giaInMemoria, scritte, aMano, scartati, TranslationOutcome.Ok);
-    }
-
-    /// <summary>
-    /// Il tetto di spesa, se ne è stato messo uno. Torna il motivo se questo giro lo sfonderebbe, altrimenti
-    /// null.
-    /// <para>⚠️ La stima è locale e per difetto (non conta i tentativi falliti). Il dato autorevole lo dà
-    /// il motore, ed è quello che l'amministratore deve guardare: questa guardia serve a non partire, non a
-    /// fare la contabilità.</para>
-    /// </summary>
-    private async Task<string?> BudgetSuperatoAsync(int caratteriDiQuestoGiro, CancellationToken ct)
-    {
-        var tetto = _opt.MaxCaratteriTotali;
-        if (tetto <= 0) return null;   // nessun tetto configurato
-
-        var spesi = await _memoria.CaratteriSpesiStimatiAsync(_motore.Name, ct).ConfigureAwait(false);
-        if (spesi + caratteriDiQuestoGiro <= tetto) return null;
-
-        return $"tetto di {tetto} caratteri: stimati {spesi} già spesi, questo giro ne chiede {caratteriDiQuestoGiro}";
+        return new TranslationFillReport(
+            segmenti.Count, giaInMemoria, scritte, aMano, scartati, TranslationOutcome.Ok, null, motoreUsato);
     }
 }

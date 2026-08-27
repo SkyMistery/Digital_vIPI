@@ -106,9 +106,24 @@ public sealed partial class TextProtector
     [GeneratedRegex(@"\*{1,2}")]
     private static partial Regex MarcatoriMarkdown();
 
-    /// <summary>Il segnaposto, come si scrive e come si rilegge.</summary>
-    [GeneratedRegex(@"<x id=""(\d+)""\s*/>")]
+    /// <summary>
+    /// Il segnaposto, come si scrive e come si rilegge.
+    ///
+    /// <para>
+    /// ⚠️ <b>In lettura si accettano tre forme, e non è tolleranza gratuita.</b> Noi scriviamo sempre
+    /// <c>&lt;x id="0"/&gt;</c>, ma un motore che tratta il testo come marcatura lo <b>normalizza</b>: Azure
+    /// in modalità HTML lo restituisce volentieri come <c>&lt;x id="0"&gt;&lt;/x&gt;</c>, e con uno spazio
+    /// prima della barra. Se la lettura pretendesse la forma esatta, ogni segmento con un callsign
+    /// risulterebbe «segnaposto mangiato» e finirebbe fra gli scartati — cioè la traduzione non
+    /// funzionerebbe mai, e il rapporto direbbe che è colpa del motore.
+    /// </para>
+    /// </summary>
+    [GeneratedRegex(@"<x id=""(\d+)""\s*/>|<x id=""(\d+)""\s*>\s*</x\s*>")]
     private static partial Regex Segnaposto();
+
+    /// <summary>L'indice del segnaposto, da qualunque delle forme accettate.</summary>
+    private static string IndiceDi(Match m) =>
+        m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value;
 
     /// <summary>Vero se il testo ha delle lettere minuscole: allora è prosa, e le sigle maiuscole spiccano.</summary>
     private static bool HaMinuscole(string s) => s.Any(char.IsLower);
@@ -186,7 +201,7 @@ public sealed partial class TextProtector
         var ok = true;
         risultato = Segnaposto().Replace(risultato, m =>
         {
-            if (!int.TryParse(m.Groups[1].Value, out var i) || i < 0 || i >= tokens.Count)
+            if (!int.TryParse(IndiceDi(m), out var i) || i < 0 || i >= tokens.Count)
             {
                 ok = false;             // un segnaposto che non abbiamo mai messo
                 return m.Value;

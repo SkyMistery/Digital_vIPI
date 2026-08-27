@@ -56,8 +56,8 @@ public sealed partial class DeepLTranslationEngine : ITranslationEngine
     public async Task<TranslationBatch> TranslateAsync(
         IReadOnlyList<string> testi, string sourceLang, string targetLang, CancellationToken ct = default)
     {
-        if (!IsConfigured) return TranslationBatch.Ko(TranslationOutcome.NotConfigured);
-        if (testi.Count == 0) return TranslationBatch.Ok(Array.Empty<string>());
+        if (!IsConfigured) return TranslationBatch.Ko(TranslationOutcome.NotConfigured, engine: Name);
+        if (testi.Count == 0) return TranslationBatch.Ok(Array.Empty<string>(), Name);
 
         var risultato = new List<string>(testi.Count);
 
@@ -70,7 +70,7 @@ public sealed partial class DeepLTranslationEngine : ITranslationEngine
             risultato.AddRange(esito.Texts!);
         }
 
-        return TranslationBatch.Ok(risultato);
+        return TranslationBatch.Ok(risultato, Name);
     }
 
     private async Task<TranslationBatch> UnLottoAsync(
@@ -98,12 +98,12 @@ public sealed partial class DeepLTranslationEngine : ITranslationEngine
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
         {
             // La rete non c'è o ha impiegato troppo: si riprova al giro dopo, non è colpa del testo.
-            return TranslationBatch.Ko(TranslationOutcome.TemporaryFailure, e.GetType().Name);
+            return TranslationBatch.Ko(TranslationOutcome.TemporaryFailure, e.GetType().Name, Name);
         }
 
         var esito = EsitoDi(risposta.StatusCode);
         if (esito != TranslationOutcome.Ok)
-            return TranslationBatch.Ko(esito, $"HTTP {(int)risposta.StatusCode}");
+            return TranslationBatch.Ko(esito, $"HTTP {(int)risposta.StatusCode}", Name);
 
         RispostaDeepL? corpo;
         try
@@ -112,7 +112,7 @@ public sealed partial class DeepLTranslationEngine : ITranslationEngine
         }
         catch (Exception e) when (e is System.Text.Json.JsonException or HttpRequestException)
         {
-            return TranslationBatch.Ko(TranslationOutcome.PermanentFailure, "risposta illeggibile");
+            return TranslationBatch.Ko(TranslationOutcome.PermanentFailure, "risposta illeggibile", Name);
         }
 
         var tradotti = corpo?.translations;
@@ -121,9 +121,9 @@ public sealed partial class DeepLTranslationEngine : ITranslationEngine
             // POSIZIONE. Un conteggio diverso non si aggiusta a naso — accoppierebbe la traduzione di una
             // frase con l'impronta di un'altra, e la memoria resterebbe sbagliata per sempre.
             return TranslationBatch.Ko(TranslationOutcome.PermanentFailure,
-                $"attesi {lotto.Count} testi, arrivati {tradotti?.Count ?? 0}");
+                $"attesi {lotto.Count} testi, arrivati {tradotti?.Count ?? 0}", Name);
 
-        return TranslationBatch.Ok(tradotti.Select(t => Rientra(t.text ?? "")).ToList());
+        return TranslationBatch.Ok(tradotti.Select(t => Rientra(t.text ?? "")).ToList(), Name);
     }
 
     /// <summary>

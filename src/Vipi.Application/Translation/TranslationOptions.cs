@@ -27,24 +27,34 @@ public sealed class TranslationOptions
     public string[] Targets { get; set; } = { "it", "en" };
 
     /// <summary>
-    /// Quale motore usare, per nome (<c>ITranslationEngine.Name</c>). Con un motore solo registrato il campo
-    /// non serve; esiste perché <b>aggiungerne un secondo sia una riga di configurazione</b>, non un lavoro
-    /// nel contenitore.
-    /// <para>⚠️ Non è una previsione: la franchigia di DeepL è passata da ricorrente a <b>una tantum</b>
-    /// mentre questa carta si scriveva. Il giorno che si cambia motore, la memoria già tradotta <b>resta</b>
-    /// — è indicizzata sul testo, non su chi l'ha tradotto — e non si ripaga niente.</para>
+    /// I motori da provare, <b>in ordine di preferenza</b>, per nome (<c>ITranslationEngine.Name</c>).
+    /// Il primo che risponde vince; gli altri restano pronti.
+    ///
+    /// <para>
+    /// ⚠️ <b>Perche' una catena e non un motore.</b> Le franchigie gratuite cambiano senza preavviso: quella
+    /// di DeepL e' passata da 500k al mese a un milione UNA TANTUM mentre si scriveva questa carta. Con un
+    /// motore solo, il giorno che la quota finisce la funzione si ferma e qualcuno deve accorgersene. Con la
+    /// catena, il secondo subentra da se' e il rapporto dice chi ha tradotto.
+    /// </para>
+    /// <para>
+    /// ⚠️ La <b>memoria non cambia</b> quando cambia il motore: e' indicizzata sul testo, non su chi l'ha
+    /// tradotto. Passare dall'uno all'altro non ripaga niente di gia' fatto, e nel database resta scritto
+    /// quale motore ha prodotto ogni voce.
+    /// </para>
     /// </summary>
-    public string Engine { get; set; } = "deepl";
+    public string[] Order { get; set; } = { "azure", "deepl" };
 
-    /// <summary>
-    /// Tetto di caratteri complessivi da spendere col motore. <c>0</c> = nessun tetto.
-    /// <para>⚠️ Conta soprattutto quando la franchigia è <b>una tantum e non si rinnova</b>: scoprire a cose
-    /// fatte che è finita costerebbe la funzione, non un giro. Il giro si ferma <b>prima</b> di spendere e
-    /// lo dice; il dato autorevole sul consumo lo dà comunque il motore.</para>
-    /// </summary>
-    public long MaxCaratteriTotali { get; set; }
+    public AzureOptions Azure { get; set; } = new();
 
     public DeepLOptions DeepL { get; set; } = new();
+
+    /// <summary>Il tetto di spesa configurato per un motore, per nome. 0 = nessun tetto.</summary>
+    public long TettoDi(string engine) => engine switch
+    {
+        "azure" => Azure.MaxCaratteriTotali,
+        "deepl" => DeepL.MaxCaratteriTotali,
+        _ => 0,
+    };
 }
 
 /// <summary>Il motore DeepL. Vive qui e non in Infrastructure perché è configurazione, non implementazione.</summary>
@@ -77,4 +87,36 @@ public sealed class DeepLOptions
 
     /// <summary>Quanti testi per chiamata. DeepL ne accetta 50; oltre, si spezza in più lotti.</summary>
     public int MaxTextsPerCall { get; set; } = 50;
+
+    /// <summary>
+    /// Tetto di caratteri complessivi da spendere con QUESTO motore. <c>0</c> = nessun tetto.
+    /// <para>⚠️ Per DeepL conta piu' che altrove, perche' la franchigia e' <b>una tantum e non si
+    /// rinnova</b>: qui il tetto non protegge un mese, protegge la riserva. Superato, la catena passa al
+    /// motore dopo invece di fermarsi.</para>
+    /// </summary>
+    public long MaxCaratteriTotali { get; set; }
+}
+
+/// <summary>
+/// Il motore Azure AI Translator (Text Translation v3.0).
+/// <para>⚠️ La <see cref="Region"/> non e' facoltativa quando la risorsa e' regionale o multi-servizio: senza
+/// l'intestazione della regione, Azure risponde <b>401</b> — che somiglia a una chiave sbagliata e manda a
+/// rigenerare una chiave che andava benissimo.</para>
+/// </summary>
+public sealed class AzureOptions
+{
+    /// <summary>La chiave della risorsa. Vuota = motore non configurato.</summary>
+    public string? ApiKey { get; set; }
+
+    /// <summary>La regione della risorsa (es. <c>westeurope</c>). Vedi l'avviso sulla classe.</summary>
+    public string? Region { get; set; }
+
+    /// <summary>Base dell'API. Il default e' l'endpoint globale, che va bene per la gran parte dei casi.</summary>
+    public string BaseUrl { get; set; } = "https://api.cognitive.microsofttranslator.com";
+
+    /// <summary>Quanti testi per chiamata. Azure ne accetta 100 (o 50.000 caratteri per richiesta).</summary>
+    public int MaxTextsPerCall { get; set; } = 50;
+
+    /// <summary>Tetto di caratteri complessivi con questo motore. <c>0</c> = nessun tetto.</summary>
+    public long MaxCaratteriTotali { get; set; }
 }

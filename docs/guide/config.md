@@ -199,59 +199,91 @@ in `/services/vsop/admin/diagnostics`, che serve per le foto rimaste indietro da
 
 ---
 
-## 2e. `Translation` — documenti bilingue (DeepL)
+## 2e. `Translation` — documenti bilingue (Azure primario, DeepL di riserva)
 
 Mappata su `TranslationOptions` (`src/Vipi.Application/Translation/TranslationOptions.cs`).
 Carta: [feature/2026-08-27-documenti-bilingue.md](../feature/2026-08-27-documenti-bilingue.md).
 
 ```jsonc
 "Translation": {
-  "Enabled": false,              // spento di default: senza motore il sito mostra la lingua sorgente
-  "Targets": [ "it", "en" ],     // lingue offerte in lettura, oltre a quella sorgente del documento
+  "Enabled": false,                 // spento di default: senza motore il sito mostra la lingua sorgente
+  "Targets": [ "it", "en" ],        // lingue offerte in lettura, oltre a quella sorgente del documento
+  "Order":   [ "azure", "deepl" ],  // ORDINE DI PREFERENZA: il primo che risponde vince
+  "Azure": {
+    "ApiKey": "",                   // ⚠️ MAI qui: user-secrets in dev, variabile d'ambiente in produzione
+    "Region": "westeurope",         // ⚠️ obbligatoria su risorsa regionale, vedi sotto
+    "BaseUrl": "https://api.cognitive.microsofttranslator.com",
+    "MaxTextsPerCall": 50,
+    "MaxCaratteriTotali": 0         // 0 = nessun tetto
+  },
   "DeepL": {
-    "ApiKey": "",                // ⚠️ MAI qui: user-secrets in dev, variabile d'ambiente in produzione
-    "GlossaryId": "",            // glossario di fraseologia della divisione, se esiste
-    "BaseUrl": "",               // vuoto = dedotto dalla chiave (vedi sotto)
-    "EnglishVariant": "EN-GB",   // «EN» secco e' deprecato come bersaglio
-    "MaxTextsPerCall": 50
+    "ApiKey": "",
+    "GlossaryId": "",               // glossario di fraseologia della divisione, se esiste
+    "BaseUrl": "",                  // vuoto = dedotto dalla chiave (:fx = piano gratuito)
+    "EnglishVariant": "EN-GB",      // «EN» secco e' deprecato come bersaglio
+    "MaxTextsPerCall": 50,
+    "MaxCaratteriTotali": 0
   }
 }
 ```
 
-| Chiave | Che cosa decide |
-|---|---|
-| `Enabled` | Spento, il sito **non e' rotto**: mostra i documenti nella lingua in cui sono scritti, come fa oggi. |
-| `Targets` | Le lingue offerte al lettore. La traduzione va in **entrambe le direzioni**: la vLOA nasce in inglese, e per lei l'italiano e' il bersaglio. |
-| `DeepL:ApiKey` | Vuota = motore non configurato. Ogni chiamata risponde `NotConfigured`, che non e' un errore. |
-| `DeepL:GlossaryId` | La difesa che conta sulla **qualita'**: «riporta sottovento» tradotto in modo plausibile ma non standard e' peggio di non tradotto, perche' nessuno se ne accorge. Va curato da un controllore. |
-| `DeepL:BaseUrl` | Vuoto = **dedotto dalla chiave**. ⚠️ Le chiavi del piano gratuito finiscono in `:fx` e vogliono `api-free.deepl.com`; le altre `api.deepl.com`. Puntare al server sbagliato risponde **403**, che somiglia a una chiave scaduta e manda a cercare il guasto dalla parte opposta. |
+### La catena, e perche' c'e'
+
+`Order` elenca i motori **in ordine di preferenza**. Il primo che risponde vince; se non risponde — quota
+finita, chiave rifiutata, servizio giu', non configurato — **il successivo subentra da solo** e il servizio
+non si ferma. Nel rapporto del giro e nella riga di memoria resta scritto **chi ha tradotto davvero**.
+
+⚠️ L'ordine lo detta questa chiave, **non** l'ordine di registrazione nel contenitore: un motore aggiunto in
+fondo al file di DI non deve diventare il primario per sbaglio.
+
+⚠️ Cambiare motore **non ripaga niente**: la memoria e' indicizzata sul testo, non su chi l'ha tradotto.
+
+### `MaxCaratteriTotali` e' PER MOTORE, e i due budget sono di natura diversa
+
+| Motore | Natura della franchigia | Che cosa protegge il tetto |
+|---|---|---|
+| Azure | mensile ricorrente | che un giro impazzito non bruci il mese |
+| DeepL | **una tantum, non si rinnova** | una **riserva**: finita, e' finita per sempre |
+
+Superato il tetto, quel motore si **salta** e la catena passa al successivo: il giro non si ferma.
+Il controllo avviene **prima** di spendere.
+
+### ⚠️ Le due trappole di Azure
+
+1. **La regione.** Su una risorsa regionale o multi-servizio, senza `Ocp-Apim-Subscription-Region` Azure
+   risponde **401** — che somiglia a una chiave sbagliata e manda a rigenerare una chiave che andava
+   benissimo. Compila `Region`.
+2. **Il 403 vuol dire due cose.** Chiave rifiutata *e* quota gratuita esaurita rispondono entrambe 403, e le
+   azioni sono opposte. Le distingue solo il codice nel corpo (`403000` = non autorizzato, `403001` = quota
+   finita), e il codice **si legge**.
+
+### ⚠️ La trappola di DeepL
+
+`BaseUrl` vuoto = dedotto dalla chiave. Le chiavi del piano gratuito finiscono in `:fx` e vogliono
+`api-free.deepl.com`; le altre `api.deepl.com`. Puntare al server sbagliato risponde **403**.
 
 ### ⚠️ VID e nomi utente non escono mai
 
 Decisione del committente del 27 agosto 2026: **i dati pubblici si possono mandare a un servizio esterno,
 VID e nomi utente mai.** Non e' una nota di policy, e' un cancello nel codice (`TextProtector`), con un test
 che passa **tutto il corpus editoriale reale** nel protettore e pretende che nessun payload in uscita
-contenga un VID o un nome del roster.
+contenga un VID o un nome del roster. Vale per **entrambi** i motori: il protettore sta a monte della porta,
+e nessun adapter vede mai l'originale.
 
 Corollario operativo: **non attivare log di diagnostica che registrino il payload inviato.** Un log del
 genere riapre da solo il buco che il protettore chiude.
-
-### Che cosa serve leggere prima di attivarlo
-
-1. I termini del piano gratuito DeepL API: richiede una carta, ha limiti d'uso, e **la ritenzione dei dati
-   sul piano gratuito non e' quella del piano a pagamento**.
-2. IVAO HQ: mandare i testi a un terzo e' trattamento esterno. I documenti sono pubblici, quindi e' poco
-   delicato, ma HQ ha gia' posto un vincolo contrattuale sui PDF.
 
 ### Costo, misurato
 
 | Corpus | Caratteri |
 |---|---|
 | `vipi.db` del 27 agosto 2026, 18 documenti | **23.344** |
-| I 15 SOP militari trascritti per intero | **179.864** (~85k al netto di coordinate e identificatori) |
+| I 15 SOP militari — **solo prosa** (il 42% del grezzo) | **74.401** |
+| **Semina iniziale completa** | **~98.000** |
 
-La prima traduzione di tutto sta in un solo mese di piano gratuito (500k), con margine. Dopo si paga solo
-il delta, e col dedup sull'hash il delta e' piccolo.
+Dopo la semina si paga solo il **delta**, perche' la memoria e' indicizzata sull'hash: cambia una frase,
+si ritraduce quella. Il glossario di fraseologia resta la difesa che conta sulla **qualita'** — «riporta
+sottovento» reso in modo plausibile ma non standard e' peggio di non tradotto, perche' nessuno se ne accorge.
 
 ---
 
