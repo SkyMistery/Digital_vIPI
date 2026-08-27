@@ -1482,42 +1482,9 @@ else
         return new RuleValidation(errors, warnings);
     }
 
-    private sealed class TlEdit { public int Id; public int? From; public int? To; public string? Level; }
-    private sealed class RwEdit { public int Id; public string? Ident; public int? LengthM; public int? Bearing; public string? Tora; public string? Lda; public string? App; public string? Patterns; public string? Circling; }
-    private sealed class RuleEdit
-    {
-        public string? Name;
-        public HashSet<string> Dep = new(StringComparer.OrdinalIgnoreCase);
-        public HashSet<string> Arr = new(StringComparer.OrdinalIgnoreCase);
-        public int MaxTail = 5;                                    // vento in coda massimo (kt)
-        public int? MaxCross;                                      // vento al traverso massimo (kt); null = nessun vincolo
-        public string Surface = "any";                             // "any"|"dry"|"wet"
-        public string? Note;
-        public TimeOnly? TimeFrom; public TimeOnly? TimeTo;        // finestra oraria UTC (avanzate)
-        public int DaysMask;                                       // bit0=Lun … bit6=Dom; 0 = tutti (avanzate)
-        public string Parity = "";                                 // ""|"even"|"odd" (avanzate)
-        public int? DateFromDay; public int? DateFromMonth;        // finestra stagionale ricorrente: giorno+mese, nessun anno (avanzate)
-        public int? DateToDay; public int? DateToMonth;
-    }
-    // Stessi campi editoriali delle importate: la quota «da concordare con l'APP» e la priorità fra le SID
-    // dello stesso punto esistono già sull'entità (una tabella sola per manuali e importate), erano solo
-    // scoperte dall'editor.
-    private sealed class SidEdit
-    {
-        public string? Runway; public string? Fix; public string? Name; public string? Transition;
-        public string? InitialClimb; public bool InitialClimbByApp; public string? Type;
-        public string? Cat; public string? Wtc; public string? Condition; public int? Priority;
-        // Stato di pubblicazione calcolato al caricamento con la regola del dominio (SidRow.IsPublicAt).
-        public bool IsPublicNow = true; public string PublishFromCycle = "—";
-    }
-    private sealed class ImportedSidEdit
-    {
-        public int Id; public string Fix = ""; public string Name = ""; public string? Runway; public string? Transition; public string? Type;
-        public int? Priority; public bool ForcePublished; public bool NeedsReview; public bool IsPublicNow; public string PublishFromCycle = "—";
-        public string? FixOverride; public bool CreateAlias;
-        // Arricchimenti editoriali sovrapposti alla riga di sorgente (persistiti con la riga, preservati al reimport).
-        public string? InitialClimb; public bool InitialClimbByApp; public string? Cat; public string? Wtc; public string? Condition;
-    }
+    // ⚠️ I modelli di scrittura (TlEdit, RwEdit, RuleEdit, SidEdit, ImportedSidEdit) sono usciti da qui:
+    // stanno in Components/App/AirportEditModels.cs, pubblici, perché li ricevono i componenti d'editor che
+    // vivono fuori da questa pagina (doc 14 §3g). Erano classi private annidate.
 
     // ---- il corpo delle sezioni FISSE, reso da questa pagina ----
     // Sono gli stessi sei editor strutturati di prima, spostati dentro il motore condiviso: quel che cambia è
