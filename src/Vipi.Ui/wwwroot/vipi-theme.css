@@ -560,9 +560,13 @@
 /* ---------- Layout ---------- */
 .screen{display:none}
 .screen.active{display:block}
-.wrap{width:100%;max-width:1640px;margin:0 auto;padding:30px clamp(24px,3.5vw,64px) 70px}
+/* `--wrap-pad` è il respiro laterale della pagina, e serve come VARIABILE perché non lo usa solo il
+   riquadro: chi deve coprirlo — la testata appiccicata, che sborda coi margini negativi — deve sapere
+   quanto vale QUI. Scritto due volte, il numero diverge: `.wrap.struct` lo stringe e la testata continuava
+   a sbordare del vecchio, sforando la pagina di 24px a 1600 (lavori-aperti H3). */
+.wrap{--wrap-pad:clamp(24px,3.5vw,64px);width:100%;max-width:1640px;margin:0 auto;padding:30px var(--wrap-pad) 70px}
 /* pagine di lavoro (admin struttura/aeroporti/acc): usano tutta la larghezza disponibile */
-.wrap.struct{max-width:none;padding-left:clamp(16px,2vw,32px);padding-right:clamp(16px,2vw,32px)}
+.wrap.struct{--wrap-pad:clamp(16px,2vw,32px);max-width:none;padding-left:var(--wrap-pad);padding-right:var(--wrap-pad)}
 /* Vista live: il contenuto sono colonne affiancate, non prosa — il cap a 1640px lasciava vuoto lo
    schermo. Il tetto resta perché oltre i ~2100px le righe si allungano senza dire niente di più.
    ⚠️ E il fondo pagina si azzera, perché `vipiCapInner` misura fin dove arriva il RIQUADRO e non vede
@@ -590,7 +594,7 @@
 .cov-q2{background:color-mix(in srgb,var(--brand-ink-2) 45%,transparent)}
 .cov-q3{background:color-mix(in srgb,var(--brand-ink-2) 70%,transparent);color:var(--surface)}
 .cov-q4{background:var(--brand-ink-2);color:var(--surface);font-weight:600}
-.wrap.stats{max-width:none;padding-left:clamp(16px,2vw,32px);padding-right:clamp(16px,2vw,32px)}
+.wrap.stats{--wrap-pad:clamp(16px,2vw,32px);max-width:none;padding-left:var(--wrap-pad);padding-right:var(--wrap-pad)}
 /* ⚠️ Larghezza piena NON vuol dire tabelle stirate. Con quattro colonne su 2560px il numero finisce a mezzo
    metro dalla sua etichetta e l'occhio deve viaggiare: lo schermo largo deve mostrare PIÙ COSE, non le
    stesse allargate. Le tabelle corte (per postazione, per mese, classifica) si affiancano; quella lunga
@@ -2447,10 +2451,15 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
    Serve dove la pagina scorre davvero e i comandi di scrittura stanno lassù: senza, per salvare si risale
    tutta la tabella. Stesse quote della testata della vista live (.reduced-top): sotto la topbar (62px), sopra
    le righe e sotto la topbar stessa (45). Sfondo pieno perché ci passa sotto il contenuto, e i lati coprono
-   il respiro del .wrap con un margine negativo — altrimenti si vedono le righe scorrere di fianco. */
+   il respiro del .wrap con un margine negativo — altrimenti si vedono le righe scorrere di fianco.
+   ⚠️ Il margine negativo vale `--wrap-pad`, cioè il respiro VERO del riquadro che la ospita, non una copia
+   del valore del `.wrap` generico: sulle pagine admin (`.wrap.struct`) quel respiro è più stretto, e la
+   copia sbordava di 24px a 1600, 20 a 1366, 15 a 1024 — a ogni larghezza, perché è la differenza fra due
+   clamp e non un difetto di una soglia. */
 .st-head.sticky{position:sticky;top:62px;z-index:30;background:var(--bg);border-bottom:1px solid var(--line);
-  margin-left:calc(clamp(24px,3.5vw,64px) * -1);margin-right:calc(clamp(24px,3.5vw,64px) * -1);
-  padding:10px clamp(24px,3.5vw,64px)}
+  margin-left:calc(var(--wrap-pad,clamp(24px,3.5vw,64px)) * -1);
+  margin-right:calc(var(--wrap-pad,clamp(24px,3.5vw,64px)) * -1);
+  padding:10px var(--wrap-pad,clamp(24px,3.5vw,64px))}
 /* La regione annunciata di LiveRegion.razor: presente nel DOM, invisibile al layout. Le testate sono flex
    con `gap:10px`, e un elemento in piu' — anche largo zero — ci lascerebbe un vuoto permanente. */
 .live-region{display:contents}
