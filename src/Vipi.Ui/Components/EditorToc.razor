@@ -26,7 +26,14 @@
                        trascinabile per conto suo, e senza il "false" esplicito il pannello Release e i blocchi
                        ACC senza figli si lascerebbero prendere per poi non andare da nessuna parte.
                        Fuori dal riordino l'ancora resta quella di prima: nessun gestore di trascinamento
-                       registrato sul circuito per gli editor che non riordinano (l'aeroporto). *@
+                       registrato sul circuito per gli editor che non riordinano (l'aeroporto).
+
+                       ⚠️ Il `preventDefault` sul `dragover` — quello che rende la voce un bersaglio che
+                       ACCETTA — NON sta qui: lo fa `wireTocDrop` in vipi-ui.js, dove c'è scritto perché.
+                       Qui c'era scritto il modificatore `:preventDefault` su `ondragover` e non faceva
+                       niente: Blazor ascolta un evento solo se qualcuno vi registra un GESTORE, e per
+                       `dragover` non ce n'è. Il gesto partiva, illuminava la destinazione e spariva senza
+                       drop. Sul `drop` qui sotto invece il modificatore funziona: il gestore c'è. *@
                     @if (Draggable)
                     {
                         <a class="lvl@(it.Level) @(IsDragging(it) ? "toc-dragging" : null) @(IsDropTarget(it) ? "toc-drop" : null)"
@@ -35,7 +42,6 @@
                            title="@(CanDrag(it) ? L["Toc_DragTitle"].Value : null)"
                            @ondragstart="() => DragStart(it)" @ondragend="DragEnd"
                            @ondragenter="() => DragEnter(it)" @ondragleave="() => DragLeave(it)"
-                           @ondragover:preventDefault="true"
                            @ondrop="() => Drop(it)" @ondrop:preventDefault="true">
                             @Label(it)
                         </a>

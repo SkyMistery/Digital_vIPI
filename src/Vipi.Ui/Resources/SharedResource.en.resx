@@ -142,6 +142,12 @@
   <data name="Aor_ConfigLabel" xml:space="preserve"><value>Configuration:</value></data>
   <data name="Aor_Clear" xml:space="preserve"><value>clear</value></data>
   <data name="Aor_MapHint" xml:space="preserve"><value>Toggle the sectors above the map; pick a configuration below to apply its layout.</value></data>
+  <data name="Reg_NoneSelected" xml:space="preserve"><value>No regulated area selected.</value></data>
+  <data name="Reg_MapHint" xml:space="preserve"><value>Toggle the areas above the map; the per-type buttons light up only areas of that type. Below you get the description of the lit areas only.</value></data>
+  <data name="Reg_TypeLabel" xml:space="preserve"><value>Type:</value></data>
+  <data name="Reg_NoShape" xml:space="preserve"><value>shape not available</value></data>
+  <data name="Reg_AllOff" xml:space="preserve"><value>No area is lit: turn one on with the chips above the map.</value></data>
+  <data name="Reg_Shown" xml:space="preserve"><value>Areas lit: {0} of {1}.</value></data>
   <data name="Aor_3dHint" xml:space="preserve"><value>Each sector is extruded over its flight-level band. Click a legend entry to show or hide it.</value></data>
   <data name="Aor_3dUnavailable" xml:space="preserve"><value>3D view not available (WebGL is off on this device).</value></data>
   <data name="Aor_NoShapeTitle" xml:space="preserve"><value>AOR shape not available</value></data>

@@ -61,7 +61,7 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
                 Callsign: s.ComposePosition, AccId: accId, Type: MapType(s.Position),
                 Kind: SectorKind.Acc, Frequency: s.Frequency, AirportId: null, AirportIcao: null,
                 ParentCallsign: s.ParentCallsign, IsAccApp: true,   // APP da un subcenter ACC è per natura "di ACC"
-                AtcCallsign: s.AtcCallsign, Position: s.Position);
+                AtcCallsign: s.AtcCallsign, Position: s.Position, ImportedAtUtc: s.ImportedAtUtc);
         }
 
         // Padre impostato sul nodo AEROPORTO in /services/vsop/admin/sector-structure (`Airport.ParentCallsign`): è il
@@ -90,7 +90,7 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
                 AirportId: airportId == 0 ? null : airportId, AirportIcao: s.AirportIcao,
                 ParentCallsign: s.ParentCallsign ?? LadderParent(s, visibleByIcao, airportParentByIcao),
                 IsAccApp: s.IsAccApp,
-                AtcCallsign: s.AtcCallsign, Position: s.Position);
+                AtcCallsign: s.AtcCallsign, Position: s.Position, ImportedAtUtc: s.ImportedAtUtc);
         }
 
         // 2. Settori già presenti che ci interessano: tutti i proiettati + quelli col callsign desiderato (per adottarli).
@@ -150,7 +150,26 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
             // sparì non ha più causa, e sara' questa lista a farla chiudere (§6).
             if (sector.Id != 0 && !sector.IsActive) tornati.Add(sector);
             sector.IsActive = true;
-            sector.ImportedAtUtc = DateTime.UtcNow;
+
+            // ⚠️ IL TIMBRO DELLA RIGA DI CATALOGO, NON L'ORA DI ADESSO. Qui c'era `DateTime.UtcNow`, e
+            // faceva due danni insieme.
+            //
+            // Il primo è il costo: questa proiezione gira a OGNI AVVIO (RunVipiStartupMaintenance), e
+            // scrivendo un valore nuovo su ogni riga marcava come modificati TUTTI i settori. Misurato il
+            // 27 agosto 2026: 312 UPDATE su 465 query d'avvio, ogni volta, senza che nulla fosse cambiato.
+            // Su un database condiviso con il sito che ci ospita è lavoro che paga qualcun altro.
+            //
+            // Il secondo è il significato, ed è il più serio. Il campo si chiama «importato alle» e la
+            // regola D8 delle eliminazioni gli chiede «la sorgente lo manda ancora?». Con `UtcNow` la
+            // risposta era «sì, perché abbiamo riavviato»: un settore sparito dalla sorgente a luglio
+            // tornava fresco a ogni riavvio. EfDeletionRepository lo sapeva e ci girava intorno — legge il
+            // timbro dalle righe di catalogo e usa questo solo come ripiego, con scritto sopra che «dice
+            // quando è nato lo specchio, non quando la sorgente ha parlato». Adesso i due coincidono, e
+            // quel ripiego smette di essere una mezza verità.
+            //
+            // Conseguenza voluta: al PRIMO avvio dopo questa modifica le righe si aggiornano una volta
+            // sola — dall'ora del riavvio a quella del catalogo — e dai giri successivi tacciono.
+            sector.ImportedAtUtc = d.ImportedAtUtc;
             changed++;
         }
 
@@ -250,10 +269,15 @@ public sealed class EfSectorProjectionService : ISectorProjectionService
         return null;
     }
 
+    /// <param name="ImportedAtUtc">
+    /// Il timbro della RIGA DI CATALOGO da cui questo settore è proiettato: quando la sorgente l'ha nominata
+    /// l'ultima volta. Viaggia fin qui perché è quello che finisce su <c>Sector.ImportedAtUtc</c> — vedi il
+    /// commento all'assegnazione, che spiega perché non è più <c>DateTime.UtcNow</c>.
+    /// </param>
     private sealed record Desired(
         string Callsign, int AccId, SectorType Type, SectorKind Kind,
         string? Frequency, int? AirportId, string? AirportIcao, string? ParentCallsign, bool IsAccApp,
-        string? AtcCallsign, string? Position);
+        string? AtcCallsign, string? Position, DateTime? ImportedAtUtc);
 
     /// <summary>Adatta le righe di catalogo al modello puro della scaletta (<see cref="AirportPositionLadder"/>).</summary>
     private static string? LadderParent(

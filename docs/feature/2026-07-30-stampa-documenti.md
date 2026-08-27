@@ -59,10 +59,13 @@ Vincoli del contesto già presenti:
   tiene la propria dimensione in memoria, quindi cambiare l'altezza da foglio di stile **ritaglia** la mappa
   invece di riadattarla. Serve `invalidateSize(false)` + il refit sui settori accesi, esposto da `vipi-aor.js`
   su `_leafletMap` / `_aorRefit` (il refit è stato aggiunto anche al percorso mappa-singola, così il contratto
-  è uniforme fra i due tipi). Le miniature per-area (`.area-map`, decine su una ACC, in griglia accanto al
-  testo) si toccano **solo in altezza** e solo verso il basso: 190 → 130px (≈34 mm). L'AoR principale è passata
-  da 340 a 200px, poi a **260px** con l'inquadratura del punto successivo (`PRINT_MAP_H` in `vipi-ui.js`): più
-  alta ma molto più stretta, quindi il saldo in pagine resta a favore.
+  è uniforme fra i due tipi). L'AoR è passata da 340 a 200px, poi a **260px** con l'inquadratura del punto
+  successivo (`PRINT_MAP_H` in `vipi-ui.js`): più alta ma molto più stretta, quindi il saldo in pagine resta
+  a favore.
+  ⚠️ **Aggiornamento 27 agosto 2026**: qui c'era una **seconda misura** (`PRINT_AREA_MAP_H`, 190 → 130px) per
+  le miniature per-area `.area-map`, «decine su una ACC». Quelle miniature **non esistono più** — le aree
+  regolamentate hanno una mappa sola (carta del 27) — e con loro sono spariti la costante e il ramo `isArea`
+  di `resizeMaps`. Resta una misura sola.
 - **Cornice dell'AoR con le proporzioni dell'area** (`frameWidth`): `fitBounds` sceglie lo zoom che fa stare i
   bounds in **entrambe** le dimensioni, quindi in una cornice larga e bassa (703 × 200) un AoR alto e stretto
   come LIBB è limitato dall'altezza → zoom basso, mezzo Mediterraneo attorno a un poligono minuscolo. In stampa

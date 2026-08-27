@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.IO.Compression;
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Vipi.Host;
@@ -42,7 +43,13 @@ internal static class VipiStartup
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void Run(string[] args)
     {
+        // Il cronometro delle fasi. Costa uno Stopwatch e sei righe in coda a diagnostica/avvio-diagnostica.txt,
+        // e risponde alla sola domanda che su questo host non aveva risposta: «ci mette tanto a ripartire —
+        // tanto DOVE?». Vedi StartupDiagnostics.CronometroAvvio.
+        var crono = new StartupDiagnostics.CronometroAvvio();
+
         var builder = WebApplication.CreateBuilder(args);
+        crono.Segna("CreateBuilder");
 
         // I segreti da FUORI del file che si scarica. Prima di tutto il resto, perché AddVipiStandaloneAuth
         // legge la sezione VipiAuth alla registrazione e deve vedere già i valori buoni.
@@ -88,6 +95,27 @@ internal static class VipiStartup
             o.MimeTypes = new[] { "text/css", "text/javascript", "application/javascript", "application/json", "image/svg+xml", "text/html" };
         });
 
+        // ⚠️ I LIVELLI SI SCRIVONO, e la ragione è misurata — non è rifinitura.
+        //
+        // Il default di ASP.NET per ENTRAMBI i provider è CompressionLevel.Fastest, che per Brotli vuol dire
+        // QUALITÀ 1: il livello più basso che il formato ha. E Brotli è registrato per primo, quindi vince la
+        // negoziazione con ogni browser moderno (mandano tutti «br»). Il risultato misurato il 27 agosto 2026
+        // sul server vero, prima di questa riga:
+        //
+        //     vipi-theme.css   grezzo 295 571 B   servito(br) 120 601 B   gzip 101 217 B
+        //     HTML vIPI ACC    grezzo 294 776 B   servito(br)  62 161 B   gzip  50 018 B
+        //
+        // Cioè: attivare Brotli faceva scaricare ~24% di byte IN PIÙ di quanti se ne sarebbero scaricati
+        // lasciando solo gzip. Un difetto che non somiglia a un difetto — la compressione c'era, l'header
+        // «Content-Encoding: br» pure, e nessun errore da nessuna parte.
+        //
+        // Optimal e non SmallestSize: SmallestSize è la qualità 11, che su 300 KB costa centinaia di
+        // millisecondi di CPU A OGNI RICHIESTA (qui non ci sono varianti precompilate: su net8 UseStaticFiles
+        // serve i file così come sono, vedi il commento a UseResponseCompression). Optimal è la qualità 4, che
+        // batte gzip-6 e costa poco. Chi volesse la qualità 11 la paghi a build-time, non a richiesta.
+        builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Optimal);
+        builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Optimal);
+
         // Ogni richiesta finita in eccezione lascia una riga in diagnostica/errori-richieste.txt, con lo
         // stesso codice che la pagina d'errore mostra all'utente. Su questo host i log del processo non li
         // legge nessuno: vedi DiagnosticaErrori.
@@ -119,7 +147,10 @@ internal static class VipiStartup
         Vipi.Hosting.ProductionIdentityGuard.EnsureSafe(builder.Environment.IsDevelopment(), useDevIdentity);
         builder.Services.AddVipiModule(builder.Configuration, useDevIdentity: useDevIdentity);
 
+        crono.Segna("registrazioni dei servizi");
+
         var app = builder.Build();
+        crono.Segna("builder.Build");
 
         // Dietro il proxy TLS di Fly.io/Render (TLS al bordo, HTTP interno): fidati di X-Forwarded-Proto/For così
         // UseHttpsRedirection non entra in loop e OIDC costruisce il redirect_uri in https. KnownIPNetworks/Proxies
@@ -201,12 +232,14 @@ internal static class VipiStartup
         // CRITICA: un guasto qui deve fermare l'avvio. Servire pagine su uno schema che non è quello atteso dal
         // codice significa scoprirlo a runtime, come colonna mancante, lontano dalla causa.
         app.MigrateVipiDatabase();
+        crono.Segna("migrazione del database");
 
         // Le quattro manutenzioni non critiche (riconciliazioni documentali, proiezione settori, backfill e potatura
         // delle release), ognuna isolata dalle altre: un guasto viene registrato — log + diagnostica, quindi
         // /vsop/health in Degraded — e l'avvio prosegue. Prima erano quattro chiamate nude, e con Restart=always nel
         // servizio systemd un difetto in una di esse non era un degrado ma un ciclo di riavvii.
         app.RunVipiStartupMaintenance();
+        crono.Segna("manutenzioni d'avvio");
 
         if (!app.Environment.IsDevelopment())
         {
@@ -227,12 +260,23 @@ internal static class VipiStartup
         // build, quindi un asset immutato conserva il proprio URL e resta valido in cache.
         AssetVersion.Initialize(app.Environment.WebRootFileProvider);
 
+        // Le varianti già compresse alla qualità massima, quando ci sono (le prepara il publish: vedi il
+        // target VipiOttimizzaAsset). Deve stare PRIMA di UseStaticFiles, che è chi poi le consegna.
+        // In sviluppo non esistono e questo middleware non fa niente.
+        app.UseVipiAssetPrecompressi();
+
         app.UseStaticFiles(new StaticFileOptions
         {
+            // Senza questo, «vipi-theme.css.br» sarebbe un tipo sconosciuto e UseStaticFiles risponderebbe
+            // 404: le varianti starebbero nel pacchetto senza che nessuno le riceva.
+            ContentTypeProvider = new AssetPrecompressi.TipiConVariantiCompresse(),
             OnPrepareResponse = ctx =>
             {
                 var dev = app.Environment.IsDevelopment();
-                var percorso = ctx.File.Name;
+                // ⚠️ Il nome può essere quello della VARIANTE («vipi-fonts.css.br»): la decisione sulla
+                // cache si prende sul nome ORIGINALE, o un .woff2.br — se un domani ce ne fosse uno —
+                // prenderebbe la scadenza corta di tutti gli altri.
+                var percorso = SenzaSuffissoDiCompressione(ctx.File.Name);
 
                 // I .woff2 sono referenziati da DENTRO vipi-fonts.css, quindi NON passano da AssetVersion e il
                 // loro URL non cambia mai. I nomi però arrivano da Google Fonts, sono già content-addressed e i
@@ -262,6 +306,12 @@ internal static class VipiStartup
         // cambio di utente sulla stessa sessione. Nessun exploit da mostrare; solo un ordine che non aveva
         // motivo di essere quello.
         app.UseAntiforgery();
+
+        // Le letture anonime dei documenti pubblici sono copie CONGELATE: si possono tenere per un minuto,
+        // e non hanno bisogno del cookie antiforgery — in tutta l'interfaccia non esiste un form da inviare.
+        // Dopo UseAuthentication, perché la decisione guarda anche se chi chiede è entrato. Vedi
+        // CacheDelleLettureAnonime, che spiega ognuna delle sette clausole.
+        app.UseVipiCacheDelleLettureAnonime();
 
         // Middleware del modulo (registrazione login staff nel roster).
         app.UseVipiModule();
@@ -301,6 +351,19 @@ internal static class VipiStartup
         // Endpoint del modulo (SSE live ATC).
         app.MapVipiModule();
 
+        crono.Segna("resto della pipeline");
+        crono.Scrivi();
+
         app.Run();
     }
+
+    /// <summary>
+    /// «vipi-fonts.css.br» → «vipi-fonts.css». Serve a decidere sul file VERO quando quello che si sta
+    /// servendo è la sua variante compressa.
+    /// </summary>
+    private static string SenzaSuffissoDiCompressione(string nome) =>
+        nome.EndsWith(".br", StringComparison.OrdinalIgnoreCase) ||
+        nome.EndsWith(".gz", StringComparison.OrdinalIgnoreCase)
+            ? nome[..nome.LastIndexOf('.')]
+            : nome;
 }

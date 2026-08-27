@@ -9,33 +9,40 @@
         <button type="button" class="aor-vm-btn" data-view="3d">@L["Aor_View3d"]</button>
     </div>
     <div class="aor-view aor-view-2d">
-    <div class="aor-block" data-aor="@Id">
+    <div class="aor-block @BlockClass" data-aor="@Id">
         <div class="aor-toggles">
             @foreach (var s in View.Sectors)
             {
+                @* Etichetta: il callsign, o `Label` quando il «callsign» è una chiave tecnica (aree regolamentate). *@
                 <button type="button" class="aor-chip on" data-sec="@s.Callsign" title="@s.Name" aria-pressed="true">
-                    <span class="sw" style="background:@(s.Color)33;border-color:@s.Color"></span> @s.Callsign
+                    <span class="sw" style="background:@(s.Color)33;border-color:@s.Color"></span> @(s.Label ?? s.Callsign)
                 </button>
             }
             <span class="aor-chip-actions"><button type="button" class="aor-all" data-act="all">@L["Common_All"]</button> · <button type="button" class="aor-all" data-act="none">@L["Common_None"]</button></span>
         </div>
 
         <div @key="MapSignature()" class="aor-leaflet" data-sectors="@SectorsJson()" style="height:340px;border:1px solid var(--line);border-radius:11px;overflow:hidden">
-            <svg viewBox="@View.Sectors[0].Polygons[0].ViewBox" width="100%" height="100%" style="background:var(--surface-soft)">
-                @foreach (var s in View.Sectors)
-                {
-                    @foreach (var p in s.Polygons)
+            @* ⚠️ Il riquadro si prende dal PRIMO poligono che esiste, non dal primo settore: un elenco può
+               aprirsi con una voce senza shape — le aree regolamentate ne hanno il diritto — e
+               `Sectors[0].Polygons[0]` era un indice fuori intervallo che portava giù la pagina. *@
+            @if (FallbackViewBox() is { } vb)
+            {
+                <svg viewBox="@vb" width="100%" height="100%" style="background:var(--surface-soft)">
+                    @foreach (var s in View.Sectors)
                     {
-                        <path data-sec="@s.Callsign" d="@p.Path" fill="@s.Color" fill-opacity="0.16" stroke="@s.Color" stroke-width="2" stroke-linejoin="round" />
+                        @foreach (var p in s.Polygons)
+                        {
+                            <path data-sec="@s.Callsign" d="@p.Path" fill="@s.Color" fill-opacity="0.16" stroke="@s.Color" stroke-width="2" stroke-linejoin="round" />
+                        }
                     }
-                }
-            </svg>
+                </svg>
+            }
         </div>
 
         @if (View.Configs is { Count: > 0 })
         {
             <div class="cfg-sel">
-                <span class="cfg-sel-lab">@L["Aor_ConfigLabel"]</span>
+                <span class="cfg-sel-lab">@(ConfigLabel ?? L["Aor_ConfigLabel"].Value)</span>
                 @foreach (var c in View.Configs)
                 {
                     <button type="button" class="cfg-btn" data-secs="@string.Join(",", c.OpenCallsigns)" data-cfgkey="@c.Key" aria-pressed="false">@c.Name</button>
@@ -43,7 +50,7 @@
                 <button type="button" class="cfg-clear" data-rows="">@L["Aor_Clear"]</button>
             </div>
         }
-        <p class="muted noprint" style="font-size:12.5px;margin:6px 0 0">@L["Aor_MapHint"]</p>
+        <p class="muted noprint" style="font-size:12.5px;margin:6px 0 0">@(Hint ?? L["Aor_MapHint"].Value)</p>
     </div>
     </div>
     <div class="aor-view aor-view-3d" hidden>
@@ -66,10 +73,27 @@ else
     [Parameter, EditorRequired] public AccAorView View { get; set; } = AccAorView.Empty;
     [Parameter] public string? Id { get; set; }
 
+    /// <summary>Etichetta della riga di chip sotto la mappa (default: «Configurazione»). Le aree regolamentate
+    /// riusano quella riga per i preset per TIPO, che configurazioni non sono.</summary>
+    [Parameter] public string? ConfigLabel { get; set; }
+
+    /// <summary>Riga d'aiuto sotto la mappa (default: quella dell'AoR). Non si stampa.</summary>
+    [Parameter] public string? Hint { get; set; }
+
+    /// <summary>Classe extra sul <c>.aor-block</c> 2D. Le aree regolamentate passano <c>aor-many</c>: è quella
+    /// che mette il tetto alla barra delle chip, che con 105 pastiglie riempirebbe lo schermo prima della
+    /// mappa. ⚠️ Non si mette a tutti: l'AoR ha una decina di chip e un tetto lì, ad alto zoom, farebbe
+    /// scorrere una barra che oggi ci sta.</summary>
+    [Parameter] public string? BlockClass { get; set; }
+
     // Firma del contenuto mappa (callsign + colore per settore): cambia il @key del contenitore Leaflet così Blazor
     // sostituisce il nodo quando cambiano colori/settori → vipi-aor.js re-inizializza la mappa (altrimenti l'init è
     // idempotente e la mappa non rileggerebbe i nuovi data-sectors fino a un reset del nodo).
     private string MapSignature() => string.Join("|", View.Sectors.Select(s => s.Callsign + ":" + s.Color));
+
+    /// <summary>Riquadro del ripiego SVG: il primo poligono disponibile. Null = nessuna shape, niente ripiego.</summary>
+    private string? FallbackViewBox() =>
+        View.Sectors.SelectMany(s => s.Polygons).Select(p => p.ViewBox).FirstOrDefault();
 
     private string SectorsJson() => JsonSerializer.Serialize(
         View.Sectors.Select(s => new

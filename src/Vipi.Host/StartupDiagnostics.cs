@@ -117,6 +117,58 @@ public static class StartupDiagnostics
         return string.Join(";", parti);
     }
 
+    /// <summary>
+    /// Quanto è durata ogni fase dell'avvio, scritto in coda a <see cref="InfoFileName"/>.
+    ///
+    /// <para><b>Perché.</b> Questo sito gira sotto Passenger, che spegne il processo quando nessuno lo
+    /// usa: il primo visitatore dopo la pausa paga l'avvio intero, e «ci mette tanto a ripartire» è la
+    /// prima cosa che si nota. Su questo host non c'è modo di profilare — niente shell, niente log del
+    /// processo — quindi la domanda «tanto DOVE?» non aveva risposta, e la tentazione era rispondere per
+    /// analogia («sarà la compilazione al volo») invece che con una misura.</para>
+    ///
+    /// <para>La misura, presa il 27 agosto 2026, dice un'altra cosa: <b>1 172 ms su ~1 300 sono database</b>
+    /// (migrazioni e manutenzioni d'avvio), e il resto sono 120 ms in tutto. È il motivo per cui compilare
+    /// in anticipo il pacchetto (ReadyToRun) è stato provato e scartato — vedi il commento in
+    /// <c>Vipi.Host.csproj</c>.</para>
+    ///
+    /// <para>⚠️ Costa un <see cref="Stopwatch"/> e sei righe di testo per avvio. È scritto perché la
+    /// prossima persona che vorrà accorciare l'avvio parta da un numero invece che da un'ipotesi.</para>
+    /// </summary>
+    public sealed class CronometroAvvio
+    {
+        private readonly System.Diagnostics.Stopwatch _fase = System.Diagnostics.Stopwatch.StartNew();
+        private readonly List<(string Nome, long Ms)> _fasi = new();
+
+        /// <summary>Chiude la fase in corso col nome dato e ne apre una nuova.</summary>
+        public void Segna(string nome)
+        {
+            _fasi.Add((nome, _fase.ElapsedMilliseconds));
+            _fase.Restart();
+        }
+
+        /// <summary>
+        /// Aggiunge il riepilogo in coda al file di diagnostica. Va chiamato subito prima di mettersi in
+        /// ascolto: da lì in poi il tempo non è più «avvio», è attesa.
+        /// </summary>
+        public void Scrivi()
+        {
+            if (_fasi.Count == 0) return;
+
+            var sb = new StringBuilder();
+            sb.AppendLine();
+            sb.AppendLine("Durata delle fasi d'avvio");
+            sb.AppendLine(new string('-', 70));
+            foreach (var (nome, ms) in _fasi)
+                sb.AppendLine($"  {nome.PadRight(34, '.')} {ms,6} ms");
+            sb.AppendLine($"  {"TOTALE".PadRight(34, '.')} {_fasi.Sum(f => f.Ms),6} ms");
+            sb.AppendLine();
+            sb.AppendLine("  Se il totale cresce, quasi sempre cresce una delle due voci di database:");
+            sb.AppendLine("  le migrazioni o le manutenzioni. Il resto dell'avvio è un decimo del tempo.");
+
+            Append(InfoFileName, sb.ToString());
+        }
+    }
+
     private static string Describe(Exception ex)
     {
         var sb = new StringBuilder();
@@ -143,6 +195,19 @@ public static class StartupDiagnostics
     /// e in ogni caso stampa dove è finito. Non solleva mai: un problema nel raccontare l'errore non deve
     /// diventare l'errore.
     /// </summary>
+    /// <summary>
+    /// Come <see cref="Write"/>, ma in coda invece che sovrascrivendo: il riepilogo delle fasi si aggiunge
+    /// al riassunto della configurazione, che è già stato scritto quando l'avvio comincia.
+    /// ⚠️ Non solleva mai, per la stessa ragione di <see cref="Write"/>: un problema nel raccontare
+    /// l'avvio non deve diventare un avvio fallito.
+    /// </summary>
+    private static void Append(string nomeFile, string contenuto)
+    {
+        if (Percorso(nomeFile) is not { } percorso) { Console.WriteLine(contenuto); return; }
+        try { File.AppendAllText(percorso, contenuto, Codifica); }
+        catch (Exception ex) { Console.WriteLine($"[vIPI] impossibile aggiornare {percorso}: {ex.Message}"); }
+    }
+
     private static void Write(string nomeFile, string contenuto)
     {
         if (Percorso(nomeFile) is not { } percorso)

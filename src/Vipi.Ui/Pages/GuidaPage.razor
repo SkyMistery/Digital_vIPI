@@ -144,6 +144,40 @@
               </ul>
               <p>A coloured banner at the top flags when you are <b>not</b> looking at the public version. If you are
                not authorized, the view <b>degrades to public</b> without revealing the draft.</p>"),
+        new Sec("aree", "map", "Leggere le aree regolamentate", "Reading the regulated areas",
+            @"<p>La sezione <b>Aree regolamentate</b> di una vIPI ha <b>una mappa sola</b> e una
+               <b>pastiglia per ogni area</b> sopra di essa. All'apertura sono tutte accese: spegnendone una
+               sparisce il poligono dalla mappa <b>e</b> la sua descrizione dall'elenco qui sotto.</p>
+              <ul>
+                <li>Il <b>colore</b> dice il tipo: R rosso, D giallo, P viola, TSA blu, TRA verde. Lo stesso
+                    pallino torna accanto a ogni riga dell'elenco.</li>
+                <li>La riga <b>TIPO</b> sotto la mappa accende <b>solo</b> le aree di quel tipo: su Roma sono
+                    105, ed è il modo per arrivare alle tre che interessano. Ripremendo lo stesso tasto (o
+                    «azzera») tornano tutte.</li>
+                <li>Le descrizioni nascono <b>chiuse</b>: una riga con tipo, nome e banda di quota. Si apre
+                    quella che serve.</li>
+                <li><b>Vista 3D</b>: le stesse aree come prismi, alti quanto la loro banda di quota. Le
+                    pastiglie sono le stesse e comandano le stesse descrizioni.</li>
+              </ul>
+              <p>Sulla <b>carta stampata</b> finiscono solo le aree accese — mappa, pastiglie e descrizioni:
+               scegli cosa ti serve <i>prima</i> di stampare.</p>",
+            @"<p>The <b>Regulated areas</b> section of a vIPI has <b>a single map</b> with <b>one chip per
+               area</b> above it. They all start lit: turning one off removes its polygon from the map <b>and</b>
+               its description from the list below.</p>
+              <ul>
+                <li>The <b>colour</b> tells the type: R red, D yellow, P purple, TSA blue, TRA green. The same
+                    dot appears next to each row of the list.</li>
+                <li>The <b>TYPE</b> row under the map lights <b>only</b> the areas of that type: Rome has 105 of
+                    them, and this is how you reach the three you care about. Press the same button again (or
+                    «clear») to get them all back.</li>
+                <li>Descriptions start <b>collapsed</b>: one row with type, name and altitude band. Open the one
+                    you need.</li>
+                <li><b>3D view</b>: the same areas as prisms, as tall as their altitude band. The chips are the
+                    same ones and drive the same descriptions.</li>
+              </ul>
+              <p>Only the lit areas reach the <b>printed page</b> — map, chips and descriptions: pick what you
+               need <i>before</i> printing.</p>"),
+
         new Sec("profile-swapper", "copy", "Aurora Profile Swapper", "Aurora Profile Swapper",
             @"<p>Copia <b>sezioni intere</b> da un profilo Aurora <code>.cpr</code> a uno o piu' profili, senza
                copia-incolla a mano. Sta in <code>/services/profile-swapper</code>, ed e' aperto a tutti.</p>
@@ -525,76 +559,76 @@
               <p>As with the others, you save to the draft and publish with the release panel.</p>"),
 
         new Sec("editor-app", "radio", "Editor APP: come si scrive", "APP editor: how to write it",
-            @"<p>L''editor (<code>/services/vsop/{acc}/apps/editor?app=…</code>) scrive il documento di un
+            @"<p>L'editor (<code>/services/vsop/{acc}/apps/editor?app=…</code>) scrive il documento di un
                <b>avvicinamento non remotizzato</b>: un APP che ha una vIPI propria invece di stare dentro
-               quella dell''ACC.</p>
+               quella dell'ACC.</p>
               <ul>
-                <li>Le sezioni &lt;b&gt;derivate&lt;/b&gt; — AOR, frequenze, coordinamenti, configurazioni — non si
-                    scrivono a mano: le calcola l''applicazione dai dati. Qui si scelgono le opzioni (quali
+                <li>Le sezioni <b>derivate</b> — AOR, frequenze, coordinamenti, configurazioni — non si
+                    scrivono a mano: le calcola l'applicazione dai dati. Qui si scelgono le opzioni (quali
                     frequenze collegare, quali shape aggiungere alla mappa, quali aree regolamentate).</li>
-                <li>Le altre si riempiono a &lt;b&gt;blocchi&lt;/b&gt;, dal tasto &lt;b&gt;+ Blocco&lt;/b&gt; in fondo alla
+                <li>Le altre si riempiono a <b>blocchi</b>, dal tasto <b>+ Blocco</b> in fondo alla
                     sezione: paragrafo, callout, tabella, immagine.</li>
-                <li>&lt;b&gt;Espandi/Comprimi tutto&lt;/b&gt;, sotto l''indice, apre e chiude tutte le sezioni insieme:
+                <li><b>Espandi/Comprimi tutto</b>, sotto l'indice, apre e chiude tutte le sezioni insieme:
                     con undici sezioni aperte è il modo più rapido per arrivare a quella che serve. Lo stato
-                    di ogni sezione è ricordato fra una visita e l''altra.</li>
-                <li>Una sezione &lt;b&gt;nascosta&lt;/b&gt; resta scritta ma non compare nel documento pubblico, e
+                    di ogni sezione è ricordato fra una visita e l'altra.</li>
+                <li>Una sezione <b>nascosta</b> resta scritta ma non compare nel documento pubblico, e
                     nasce chiusa: è esclusa, non è lì che si lavora.</li>
-                <li>&lt;b&gt;Larghezza piena&lt;/b&gt; (⤢) toglie indice e comandi laterali: serve alle tabelle larghe.</li>
+                <li><b>Larghezza piena</b> (⤢) toglie indice e comandi laterali: serve alle tabelle larghe.</li>
               </ul>
-              <p>Le modifiche vanno in &lt;b&gt;bozza&lt;/b&gt; e diventano pubbliche solo con una &lt;b&gt;release AIRAC&lt;/b&gt;,
-               in fondo alla pagina. L''&lt;b&gt;anteprima bozza&lt;/b&gt; la apre in una scheda nuova, come sarà.</p>",
+              <p>Le modifiche vanno in <b>bozza</b> e diventano pubbliche solo con una <b>release AIRAC</b>,
+               in fondo alla pagina. L'<b>anteprima bozza</b> la apre in una scheda nuova, come sarà.</p>",
             @"<p>The editor (<code>/services/vsop/{acc}/apps/editor?app=…</code>) writes the document of a
-               <b>non-remoted approach</b>: an APP with its own vIPI instead of living inside the ACC''s one.</p>
+               <b>non-remoted approach</b>: an APP with its own vIPI instead of living inside the ACC's one.</p>
               <ul>
-                <li>&lt;b&gt;Derived&lt;/b&gt; sections — AOR, frequencies, coordination, configurations — are not written
+                <li><b>Derived</b> sections — AOR, frequencies, coordination, configurations — are not written
                     by hand: the application computes them from the data. Here you pick the options (which
                     frequencies to link, which shapes to add to the map, which regulated areas).</li>
-                <li>The others are filled with &lt;b&gt;blocks&lt;/b&gt;, from the &lt;b&gt;+ Block&lt;/b&gt; button at the end of
+                <li>The others are filled with <b>blocks</b>, from the <b>+ Block</b> button at the end of
                     each section: paragraph, callout, table, image.</li>
-                <li>&lt;b&gt;Expand/Collapse all&lt;/b&gt;, under the index, opens and closes every section at once: with
-                    eleven sections open it is the quickest way to reach the one you need. Each section''s
+                <li><b>Expand/Collapse all</b>, under the index, opens and closes every section at once: with
+                    eleven sections open it is the quickest way to reach the one you need. Each section's
                     state is remembered between visits.</li>
-                <li>A &lt;b&gt;hidden&lt;/b&gt; section stays written but does not appear in the public document, and it
+                <li>A <b>hidden</b> section stays written but does not appear in the public document, and it
                     starts collapsed: it is excluded, it is not where you are working.</li>
-                <li>&lt;b&gt;Full width&lt;/b&gt; (⤢) removes the index and the side commands: useful for wide tables.</li>
+                <li><b>Full width</b> (⤢) removes the index and the side commands: useful for wide tables.</li>
               </ul>
-              <p>Changes go into a &lt;b&gt;draft&lt;/b&gt; and become public only with an &lt;b&gt;AIRAC release&lt;/b&gt;, at the
-               bottom of the page. The &lt;b&gt;draft preview&lt;/b&gt; opens it in a new tab, as it will look.</p>"),
+              <p>Changes go into a <b>draft</b> and become public only with an <b>AIRAC release</b>, at the
+               bottom of the page. The <b>draft preview</b> opens it in a new tab, as it will look.</p>"),
 
         new Sec("editor-vloa", "globe", "Editor vLOA: come si scrive", "vLOA editor: how to write it",
-            @"<p>L''editor (<code>/services/vsop/{acc}/vloa/editor?acc=…</code>) scrive la vLOA di una &lt;b&gt;coppia&lt;/b&gt;
-               ACC italiano ↔ ACC estero. Il documento è in &lt;b&gt;inglese&lt;/b&gt;: è la lingua delle vLOA.</p>
+            @"<p>L'editor (<code>/services/vsop/{acc}/vloa/editor?acc=…</code>) scrive la vLOA di una <b>coppia</b>
+               ACC italiano ↔ ACC estero. Il documento è in <b>inglese</b>: è la lingua delle vLOA.</p>
               <ul>
-                <li>⚠️ Solo la parte &lt;b&gt;Home&lt;/b&gt; (l''ACC italiano) si modifica qui. La parte del &lt;b&gt;vicino&lt;/b&gt;
+                <li>⚠️ Solo la parte <b>Home</b> (l'ACC italiano) si modifica qui. La parte del <b>vicino</b>
                     è concordata fuori dal tool.</li>
-                <li>Le sezioni &lt;b&gt;derivate&lt;/b&gt; — aree, frequenze, coordinamenti — uniscono i dati dei &lt;b&gt;due&lt;/b&gt;
+                <li>Le sezioni <b>derivate</b> — aree, frequenze, coordinamenti — uniscono i dati dei <b>due</b>
                     ACC: qui si sceglie cosa entra nel documento, non si riscrivono.</li>
-                <li>Nella sezione &lt;b&gt;Areas of Responsibility&lt;/b&gt; ci sono due cose diverse: i &lt;b&gt;chip sopra la
-                    mappa&lt;/b&gt; accendono e spengono i poligoni &lt;i&gt;solo per te&lt;/i&gt;, mentre l''&lt;b&gt;elenco sotto&lt;/b&gt;
+                <li>Nella sezione <b>Areas of Responsibility</b> ci sono due cose diverse: i <b>chip sopra la
+                    mappa</b> accendono e spengono i poligoni <i>solo per te</i>, mentre l'<b>elenco sotto</b>
                     decide quali settori fanno parte del documento — quello lo vede chi legge, ed è scritto
                     nella bozza.</li>
-                <li>Il resto è come negli altri editor: blocchi col tasto &lt;b&gt;+ Blocco&lt;/b&gt;, &lt;b&gt;espandi/comprimi
-                    tutto&lt;/b&gt; sotto l''indice, sezioni nascoste che restano scritte ma fuori dal documento.</li>
+                <li>Il resto è come negli altri editor: blocchi col tasto <b>+ Blocco</b>, <b>espandi/comprimi
+                    tutto</b> sotto l'indice, sezioni nascoste che restano scritte ma fuori dal documento.</li>
               </ul>
-              <p>Le modifiche vanno in &lt;b&gt;bozza&lt;/b&gt; e diventano pubbliche solo con una &lt;b&gt;release AIRAC&lt;/b&gt;.
-               Le coppie da cui nascono le vLOA si gestiscono in &lt;a href=""#admin-confinanti""&gt;Confinanti&lt;/a&gt;.</p>",
-            @"<p>The editor (<code>/services/vsop/{acc}/vloa/editor?acc=…</code>) writes the vLOA of a &lt;b&gt;pair&lt;/b&gt;
-               Italian ACC ↔ foreign ACC. The document is in &lt;b&gt;English&lt;/b&gt;: it is the language of vLOAs.</p>
+              <p>Le modifiche vanno in <b>bozza</b> e diventano pubbliche solo con una <b>release AIRAC</b>.
+               Le coppie da cui nascono le vLOA si gestiscono in <a href=""#admin-confinanti"">Confinanti</a>.</p>",
+            @"<p>The editor (<code>/services/vsop/{acc}/vloa/editor?acc=…</code>) writes the vLOA of a <b>pair</b>
+               Italian ACC ↔ foreign ACC. The document is in <b>English</b>: it is the language of vLOAs.</p>
               <ul>
-                <li>⚠️ Only the &lt;b&gt;Home&lt;/b&gt; side (the Italian ACC) is edited here. The &lt;b&gt;neighbour&lt;/b&gt; side is
+                <li>⚠️ Only the <b>Home</b> side (the Italian ACC) is edited here. The <b>neighbour</b> side is
                     agreed outside the tool.</li>
-                <li>&lt;b&gt;Derived&lt;/b&gt; sections — areas, frequencies, coordination — merge the data of &lt;b&gt;both&lt;/b&gt;
+                <li><b>Derived</b> sections — areas, frequencies, coordination — merge the data of <b>both</b>
                     ACCs: here you choose what goes into the document, you do not rewrite it.</li>
-                <li>The &lt;b&gt;Areas of Responsibility&lt;/b&gt; section holds two different things: the &lt;b&gt;chips above
-                    the map&lt;/b&gt; light the polygons up &lt;i&gt;for you only&lt;/i&gt;, while the &lt;b&gt;list below&lt;/b&gt; decides
+                <li>The <b>Areas of Responsibility</b> section holds two different things: the <b>chips above
+                    the map</b> light the polygons up <i>for you only</i>, while the <b>list below</b> decides
                     which sectors are part of the document — that one is seen by whoever reads it, and it is
                     written into the draft.</li>
-                <li>The rest is like the other editors: blocks from the &lt;b&gt;+ Block&lt;/b&gt; button,
-                    &lt;b&gt;expand/collapse all&lt;/b&gt; under the index, hidden sections that stay written but out of the
+                <li>The rest is like the other editors: blocks from the <b>+ Block</b> button,
+                    <b>expand/collapse all</b> under the index, hidden sections that stay written but out of the
                     document.</li>
               </ul>
-              <p>Changes go into a &lt;b&gt;draft&lt;/b&gt; and become public only with an &lt;b&gt;AIRAC release&lt;/b&gt;. The pairs
-               vLOAs are born from live in &lt;a href=""#admin-confinanti""&gt;Neighbours&lt;/a&gt;.</p>"),
+              <p>Changes go into a <b>draft</b> and become public only with an <b>AIRAC release</b>. The pairs
+               vLOAs are born from live in <a href=""#admin-confinanti"">Neighbours</a>.</p>"),
 
         new Sec("editor-acc", "map", "Editor vIPI ACC", "ACC vIPI editor",
             @"<p>L'editor del vIPI di ACC (<code>/services/vsop/{acc}/editor</code>) è fatto di <b>blocchi</b>: i
@@ -922,9 +956,9 @@
                non per aeroporto, e vale per tutti gli import: quelli automatici e i bottoni.</p>
               <ul>
                 <li><b>Da sorgente</b> = i dati sono autorevoli e in <b>sola lettura</b> negli editor, e a ogni
-                    import vengono riscritti. <b>Manuale</b> = l''import non li tocca più e gli editor li
+                    import vengono riscritti. <b>Manuale</b> = l'import non li tocca più e gli editor li
                     lasciano modificabili.</li>
-                <li>⚠️ Passare una categoria da <b>manuale a sorgente</b> è l''unico cambio che <b>distrugge</b>:
+                <li>⚠️ Passare una categoria da <b>manuale a sorgente</b> è l'unico cambio che <b>distrugge</b>:
                     al primo import quello che era stato scritto a mano viene sostituito. La conferma lo dice
                     categoria per categoria prima di salvare.</li>
                 <li>Le <b>aree regolamentate</b> fanno eccezione: non sono modificabili da nessuna pagina,
@@ -934,13 +968,13 @@
                     import e generazione sono scollegati, quindi il dato nuovo si vede sul sito al prossimo
                     <b>Genera documenti</b> — e i bottoni «Reimporta» restano dove sono sempre stati.</li>
                 <li>Le <b>due anagrafiche</b> non hanno una spunta perché sono sempre di sorgente, e girano
-                    ogni giorno anche loro: quella <b>ACC</b> è l''elenco su cui tutto il resto si appoggia,
-                    quella <b>aeroporti</b> assegna alla ACC gli scali nuovi della divisione. ⚠️ Quest''ultima
-                    è l''<b>unica che crea</b> — un aeroporto comparso nell''anagrafica entra nel sito da sé,
+                    ogni giorno anche loro: quella <b>ACC</b> è l'elenco su cui tutto il resto si appoggia,
+                    quella <b>aeroporti</b> assegna alla ACC gli scali nuovi della divisione. ⚠️ Quest'ultima
+                    è l'<b>unica che crea</b> — un aeroporto comparso nell'anagrafica entra nel sito da sé,
                     col suo catalogo settori. <b>Aggiunge e basta</b>: uno scalo tolto dalla sorgente resta
-                    dov''è, e si toglie a mano da <b>Aeroporti</b>.</li>
-                <li>La colonna <b>Ultimo aggiornamento</b> dice com''è andato l''ultimo giro e quando è atteso
-                    il prossimo. <b>Ferma</b> significa che sono passati più di due giri dall''ultimo successo;
+                    dov'è, e si toglie a mano da <b>Aeroporti</b>.</li>
+                <li>La colonna <b>Ultimo aggiornamento</b> dice com'è andato l'ultimo giro e quando è atteso
+                    il prossimo. <b>Ferma</b> significa che sono passati più di due giri dall'ultimo successo;
                     <b>errore</b> mostra il messaggio della sorgente. Una categoria <b>esclusa</b> non è né
                     verde né rossa: non si importa per scelta.</li>
               </ul>
@@ -1131,12 +1165,12 @@
                sono il lavoro in corso; <b>Bloccato</b> e <b>Fatto</b> stanno in fondo, chiusi, col loro
                conteggio.</p>
               <ul>
-                <li>Il tasto della scheda porta l''incarico al <b>passo successivo</b> (da fare → in corso →
+                <li>Il tasto della scheda porta l'incarico al <b>passo successivo</b> (da fare → in corso →
                     in revisione → fatto); tutti gli altri stati stanno nel <b>menù</b> accanto, compreso il
                     ritorno indietro.</li>
-                <li>Se l''incarico è legato a un <b>documento</b>, il collegamento apre l''editor giusto — non
-                    l''elenco dei documenti.</li>
-                <li>La <b>scadenza</b> è un ciclo AIRAC: l''incarico è <b>in ritardo</b> quando quel ciclo è già
+                <li>Se l'incarico è legato a un <b>documento</b>, il collegamento apre l'editor giusto — non
+                    l'elenco dei documenti.</li>
+                <li>La <b>scadenza</b> è un ciclo AIRAC: l'incarico è <b>in ritardo</b> quando quel ciclo è già
                     cominciato e non è ancora concluso. Il bordo rosso e la pill lo dicono.</li>
                 <li><b>Nuovo incarico</b>, in testata, aggiunge un promemoria <b>a te stesso</b>, senza
                     documento. Gli incarichi sui documenti li assegna un admin.</li>
@@ -1165,20 +1199,20 @@
 
         new Sec("admin-incarichi", "clipboard", "Incarichi: chi sta facendo cosa", "Tasks: who is doing what",
             @"<p>La pagina (<code>/services/vsop/admin/tasks</code>) assegna il <b>lavoro editoriale</b> e ne segue
-               l''avanzamento. Ogni incarico ha una <b>persona</b>, una priorità, e se serve una <b>scadenza</b>
-               espressa in ciclo AIRAC: è in ritardo quando quel ciclo è già cominciato e l''incarico non è
+               l'avanzamento. Ogni incarico ha una <b>persona</b>, una priorità, e se serve una <b>scadenza</b>
+               espressa in ciclo AIRAC: è in ritardo quando quel ciclo è già cominciato e l'incarico non è
                concluso.</p>
               <ul>
-                <li>⚠️ Senza chip acceso l''elenco mostra gli incarichi <b>non conclusi</b>: gli incarichi non
+                <li>⚠️ Senza chip acceso l'elenco mostra gli incarichi <b>non conclusi</b>: gli incarichi non
                     si archiviano, e i «Fatto» resterebbero per sempre. Sono a un clic, col loro chip, e il
                     contatore in testata dice sempre <b>quanti se ne vedono sul totale</b>.</li>
                 <li>I <b>chip contano</b>: per stato, per «in ritardo», e per <b>persona</b> — quelli delle
                     persone dicono quanti incarichi aperti ha ciascuno e, nel suggerimento, quanti ne ha
                     conclusi e quanti in ritardo.</li>
-                <li>Scegliendo una riga, a destra c''è tutto l''incarico: descrizione, <b>chi l''ha assegnato</b>
-                    e quando, l''ultimo cambio, la data di conclusione, e il documento collegato da aprire.</li>
-                <li>Da lì si <b>cambia stato</b>, si <b>riassegna</b> a un''altra persona (senza perdere la
-                    storia dell''incarico) e si <b>elimina</b>, con conferma.</li>
+                <li>Scegliendo una riga, a destra c'è tutto l'incarico: descrizione, <b>chi l'ha assegnato</b>
+                    e quando, l'ultimo cambio, la data di conclusione, e il documento collegato da aprire.</li>
+                <li>Da lì si <b>cambia stato</b>, si <b>riassegna</b> a un'altra persona (senza perdere la
+                    storia dell'incarico) e si <b>elimina</b>, con conferma.</li>
                 <li><b>Nuovo incarico</b>, in testata: servono un <b>titolo</b> e una <b>persona</b>, il resto è
                     facoltativo. Il documento collegato si sceglie fra quelli che esistono.</li>
               </ul>
@@ -1197,7 +1231,7 @@
                 <li>Picking a row shows the whole task on the right: description, <b>who assigned it</b> and
                     when, the last change, the completion date, and the linked document to open.</li>
                 <li>From there you <b>change the status</b>, <b>reassign</b> it to somebody else (without
-                    losing the task''s history) and <b>delete</b> it, with a confirmation.</li>
+                    losing the task's history) and <b>delete</b> it, with a confirmation.</li>
                 <li><b>New task</b>, in the header: a <b>title</b> and a <b>person</b> are required, the rest is
                     optional. The linked document is picked among the ones that exist.</li>
               </ul>

@@ -14,9 +14,14 @@
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/Vipi.AgreementsToSections/Vipi.AgreementsToSections.csproj" />
+    <!-- Sta nella soluzione, a differenza degli altri attrezzi, perché non è uno strumento da lanciare a
+         mano una volta: è un passo del PUBLISH. Se smette di compilare, il pacchetto non si costruisce
+         più — e questo dev'essere la CI a dirlo, non chi sta preparando una consegna. -->
+    <Project Path="tools/Vipi.Assets/Vipi.Assets.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Vipi.Application.Tests/Vipi.Application.Tests.csproj" />
+    <Project Path="tests/Vipi.Assets.Tests/Vipi.Assets.Tests.csproj" />
     <Project Path="tests/Vipi.AuroraBridge.Tests/Vipi.AuroraBridge.Tests.csproj" />
     <Project Path="tests/Vipi.AuroraProfiles.Tests/Vipi.AuroraProfiles.Tests.csproj" />
     <Project Path="tests/Vipi.Domain.Tests/Vipi.Domain.Tests.csproj" />

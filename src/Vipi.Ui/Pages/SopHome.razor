@@ -1,6 +1,19 @@
 ﻿@page "/services/vsop"
 @layout SopLayout
-@rendermode InteractiveServer
+@*  ⚠️ NIENTE @@rendermode, ed è una scelta: questa pagina non ha un solo comando.
+
+    Fino al 27 agosto 2026 era «InteractiveServer», e ogni visitatore dell'INGRESSO del sito apriva un
+    WebSocket e uno stato lato server — per una pagina che conta gli ATC una volta sola al render (lo dice
+    OnlineCount qui sotto) e non ha né un pulsante né un campo. Con una sola istanza, nessun backplane e
+    venticinque circuiti trattenuti, sono i circuiti che servono all'editor.
+
+    ⚠️ I numeri degli ATC non erano comunque «vivi» nemmeno prima: chi si iscrive allo stream è il badge in
+    barra (LiveBadge), che è un'isola sua. Qui erano e restano una fotografia al momento del render.
+
+    ⚠️ Se un domani qui dentro entra un comando — un filtro, una chip cliccabile — la cosa da fare NON è
+    rimettere @@rendermode su tutta la pagina, ma rendere interattivo QUEL pezzo. Vedi ChangedPage, che il
+    circuito ce l'ha per due chip e basta.
+*@
 @inject IAiracService Airac
 @inject IStationResolver Stations
 @inject IEditAuthorizationService Authz

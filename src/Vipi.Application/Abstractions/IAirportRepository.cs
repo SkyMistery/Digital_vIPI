@@ -13,7 +13,29 @@ public interface IAirportProfileReader
 {
     /// <summary>Carica il profilo completo (entità + frequenze proprie dai settori + link risolti). null = ICAO non assegnato.</summary>
     Task<AirportData?> LoadAsync(string icao, CancellationToken ct = default);
+
+    /// <summary>
+    /// Piste e regole-pista di PIÙ aeroporti insieme: quel poco che serve a dire quale pista è in uso, e
+    /// nient'altro.
+    ///
+    /// <para><b>Perché esiste.</b> L'elenco degli aeroporti di una ACC mostra la pista consigliata accanto
+    /// a ogni scalo, e per calcolarla chiamava <see cref="LoadAsync"/> una volta per aeroporto — cioè
+    /// caricava il profilo INTERO (livelli di transizione, SID, link-frequenze, che quell'elenco non
+    /// guarda) con <b>otto query a testa, in fila</b>. Contate il 27 agosto 2026 su un ACC con tre
+    /// aeroporti pubblicati: 36 query per una pagina che ne mostra tre righe. Su una ACC con quindici
+    /// diventavano centoventi andate e ritorno, una dietro l'altra.</para>
+    ///
+    /// <para>⚠️ Restituisce <b>solo</b> piste e regole. Chi avesse bisogno d'altro non allarghi questa: ne
+    /// faccia un'altra, o torni a <see cref="LoadAsync"/>. Il valore di questo metodo è tutto in quello
+    /// che NON legge.</para>
+    /// </summary>
+    /// <returns>ICAO → piste e regole. Gli ICAO senza profilo semplicemente non compaiono.</returns>
+    Task<IReadOnlyDictionary<string, PisteDiAeroporto>> ListRunwayDataAsync(
+        IReadOnlyCollection<string> icaos, CancellationToken ct = default);
 }
+
+/// <summary>Le due liste che bastano a scegliere la pista in uso. Vedi <see cref="IAirportProfileReader.ListRunwayDataAsync"/>.</summary>
+public sealed record PisteDiAeroporto(IReadOnlyList<RunwayRow> Runways, IReadOnlyList<RunwayRuleRow> Rules);
 
 /// <summary>
 /// Persistenza del profilo strutturato dell'aeroporto (TL, piste, regole, SID, link-frequenze) e nascita del

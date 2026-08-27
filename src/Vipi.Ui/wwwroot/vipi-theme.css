@@ -1263,12 +1263,6 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 /* miniatura nell'elenco di pulizia: object-fit contain, altrimenti una foto verticale verrebbe ritagliata
    proprio dove si riconosce */
 .img-thumb{width:80px;height:56px;object-fit:contain;background:var(--bg);border:1px solid var(--line);border-radius:6px;display:block}
-/* area regolamentata */
-.area-wrap{display:grid;grid-template-columns:260px 1fr;gap:18px;align-items:center}
-.area-svg{width:100%;background:var(--surface);border:1px solid var(--line-red);border-radius:10px}
-.area-alt{display:flex;align-items:center;gap:8px;font-family:var(--font-head)}
-.area-alt b{color:var(--brand-ink);font-size:20px}
-@media(max-width:600px){.area-wrap{grid-template-columns:1fr}}
 
 /* ---------- Screen 4: ridotta ---------- */
 /* Vista live: cambi di stato ATC dall'ultimo tick. Restano scritti finché non li scarti — un handoff che
@@ -2117,6 +2111,25 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 
 /* AoR ACC: chip settori (sopra la mappa) + selettore configurazione (sotto). */
 .aor-toggles{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
+/* ⚠️ Il tetto vale SOLO per `.aor-many`, che è la barra delle aree regolamentate: su LIRR sono 105 pastiglie,
+   dieci righe che spingevano la mappa fuori dallo schermo prima ancora di vederla. Sull'AoR, che di chip ne ha
+   una decina, il tetto NON si mette: ad alto zoom le chip vanno a capo di più e farebbe scorrere una barra che
+   oggi ci sta intera. `overflow-x:hidden` esplicito: `overflow-y:auto` da solo rende `auto` anche l'altro. */
+.aor-many .aor-toggles{max-height:152px;overflow-y:auto;overflow-x:hidden;align-content:flex-start;padding:1px}
+
+/* ---------- Aree regolamentate: le descrizioni sotto la mappa ---------- */
+/* Una riga per area, chiusa; l'utente apre quelle che gli interessano. Chi le mostra e chi le nasconde è la
+   chip della mappa (vipi-aor.js → setCard), che scrive `hidden` sul <details>. */
+.reg-cards{margin-top:4px}
+.reg-card{margin:6px 0}
+.reg-card>summary{padding:8px 13px;font-size:13.5px;gap:10px}
+.reg-card>summary>span:first-child{display:inline-flex;align-items:baseline;gap:7px;flex-wrap:wrap;min-width:0}
+.reg-card .body{padding:10px 14px;font-size:13.5px}
+/* Il pallino ripete il colore che l'area ha in mappa: è il legame fra la riga e il poligono. */
+.reg-dot{flex:none;align-self:center;display:inline-block;width:10px;height:10px;border-radius:3px;border:1px solid}
+.reg-type{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft)}
+.reg-band{font-family:var(--font-head);font-weight:600;font-size:12.5px;color:var(--ink-soft)}
+.reg-noshape{font-size:11.5px;font-style:italic}
 /* ⚠️ Le chip sono <button> dal 23 agosto 2026, non piu' <span>: erano comandi che esistevano solo per il
    mouse — non entravano nel giro del tabulatore e non rispondevano a Invio/Spazio — e stanno sulle pagine
    PUBBLICHE, cioe' quelle che si aprono senza login. La regola e' scritta per esteso in Chip.razor.
@@ -2206,12 +2219,15 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 .cfg-table th:nth-child(4),.cfg-table td:nth-child(4){width:18%}
 .cfg-table td{overflow-wrap:anywhere}
 
-/* Aree regolamentate (special areas): shape rossa + banda quota + note. */
+/* Blocco «carta d'area» del corpo editoriale (AreaMapBlock): shape disegnata + banda quota accanto.
+   ⚠️ Queste classi erano definite DUE VOLTE nel foglio, a novecento righe di distanza, e vinceva questa
+   copia: la prima diceva `align-items:center` sulla banda e nessuna altezza sulla shape, e nessuno se ne
+   accorgeva perché il valore calcolato veniva comunque da qui. */
+.area-wrap{display:grid;grid-template-columns:260px 1fr;gap:18px;align-items:center}
 @media(max-width:600px){.area-wrap{grid-template-columns:1fr}}
 .area-svg{background:var(--surface);border:1px solid var(--line-red);border-radius:10px;width:100%;height:170px}
-.area-map{height:190px;width:100%;border:1px solid var(--line-red);border-radius:10px;overflow:hidden}
-.area-noshape{display:grid;place-items:center;font-size:13px}
 .area-alt{display:flex;gap:8px;align-items:baseline}
+.area-alt b{color:var(--brand-ink);font-size:20px}
 
 /* ===== Editor trasferimenti =====================================================================
    Pagina a TRE colonne (.xfe-layout3): navigatore · riquadro di lavoro · pannello riga. Prima erano due, con

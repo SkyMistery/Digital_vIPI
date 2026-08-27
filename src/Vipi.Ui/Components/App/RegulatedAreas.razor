@@ -1,50 +1,73 @@
-@* Corpo della sezione «Aree regolamentate»: un dettaglio collassabile per area (shape + banda quota + note).
-   Condiviso fra la vIPI ACC (per blocco, via AccSectionBody) e la vIPI APP non remotizzata. *@
+@* Corpo della sezione «Aree regolamentate»: UNA mappa (2D/3D) con una chip per area, e sotto la descrizione
+   delle sole aree accese, compatta e apribile. Condiviso fra la vIPI ACC (per blocco, via AccSectionBody),
+   la vIPI APP non remotizzata e la vLOA.
 
-@if (Areas.Count == 0) { <p class="muted">Nessuna area regolamentata selezionata.</p> }
+   ⚠️ Fino al 27 agosto 2026 qui c'era un <details> per area con la PROPRIA mappina: su LIBB ne uscivano 77 e
+   su LIRR 105, cioè centinaia di tessere chieste per disegnare cento volte lo stesso pezzo di Mediterraneo —
+   è il caso che vipi-aor.js cita nel commento sull'accensione a scaglioni. Una mappa sola fa lo stesso
+   lavoro, e per giunta lascia CONFRONTARE due aree, che con le mappine non si poteva.
+
+   La mappa è quella dell'AoR, non una nuova: la traduzione area→«settore» la fa RegulatedAreasMap, e il
+   legame chip→descrizione lo tiene vipi-aor.js (setCard, scoping per data-aor come già syncCfgDetails). *@
+@using Vipi.Application.Aor
+@inject IStringLocalizer<SharedResource> L
+
+@if (Areas.Count == 0)
+{
+    <p class="muted">@L["Reg_NoneSelected"]</p>
+}
 else
 {
-    <p class="muted" style="margin-top:0;font-size:13.5px">Apri un'area per vederne shape e dettagli.</p>
-    @foreach (var a in Areas)
-    {
-        <details class="coord-sub">
-            <summary><span>@(string.IsNullOrWhiteSpace(a.Type) ? a.Name : $"{a.Type} · {a.Name}")</span><span class="chev">▸</span></summary>
-            <div class="body">
-                <div class="area-wrap">
-                    @if (a.Shape is not null)
+    var scope = Scope();
+    <AccAor @key="scope" View="RegulatedAreasMap.Build(Areas)" Id="@scope" BlockClass="aor-many"
+            ConfigLabel="@L["Reg_TypeLabel"].Value" Hint="@L["Reg_MapHint"].Value" />
+
+    @* Le descrizioni. Vivono FUORI dai due riquadri 2D/3D — devono restare in pagina in tutt'e due le viste —
+       e si legano alla mappa con la chiave di scope, come fanno i <details> di configurazione. *@
+    <div class="reg-cards" data-areacards="@scope">
+        @* Il conteggio nasce già scritto (all'apertura sono tutte accese) e il JS lo riscrive a ogni chip usando
+           il FORMATO qui accanto: la frase resta tradotta anche se a cambiarla è il browser. *@
+        <p class="muted reg-count" data-areacount="@scope" data-fmt="@L["Reg_Shown"].Value"
+           style="font-size:13px;margin:10px 0 6px">@L["Reg_Shown", Areas.Count, Areas.Count]</p>
+        <p class="muted reg-empty" data-areaempty="@scope" hidden>@L["Reg_AllOff"]</p>
+        @foreach (var a in Areas)
+        {
+            <details class="coord-sub reg-card" data-areacard="@a.IvaoId">
+                <summary>
+                    <span>
+                        <span class="reg-dot" style="background:@(SpecialAreaColorScheme.For(a.Type))33;border-color:@SpecialAreaColorScheme.For(a.Type)"></span>
+                        @if (!string.IsNullOrWhiteSpace(a.Type)) { <b class="reg-type">@a.Type</b> }
+                        @a.Name
+                        <span class="reg-band">@Band(a)</span>
+                        @if (a.Shape is null) { <span class="muted reg-noshape">@L["Reg_NoShape"]</span> }
+                    </span>
+                    <span class="chev">▸</span>
+                </summary>
+                <div class="body">
+                    @if (!string.IsNullOrWhiteSpace(a.ActivationDetails)) { <p style="margin:.2em 0 0"><b>@a.ActivationDetails</b></p> }
+                    @if (!string.IsNullOrWhiteSpace(a.Description)) { <p style="margin:.3em 0 0">@a.Description</p> }
+                    @if (string.IsNullOrWhiteSpace(a.ActivationDetails) && string.IsNullOrWhiteSpace(a.Description))
                     {
-                        <div class="aor-leaflet area-map" data-poly="@PointsJson(a.Shape)" data-color="--ivao-red">
-                            @* Fallback SVG finché Leaflet non carica; sostituito dalla mappa reale. *@
-                            <svg viewBox="@a.Shape.ViewBox" width="100%" height="100%" style="background:var(--tint-red)">
-                                <path d="@a.Shape.Path" fill="var(--ivao-red)" fill-opacity="0.16" stroke="var(--ivao-red)" stroke-width="2" stroke-linejoin="round" />
-                            </svg>
-                        </div>
+                        <p class="muted" style="margin:.2em 0 0">—</p>
                     }
-                    else { <div class="area-svg area-noshape muted">Shape non disponibile</div> }
-                    <div class="area-meta">
-                        <div class="area-alt">
-                            @if (a.MinimumAlt == a.MaximumAlt)
-                            {
-                                <b>@AltText(a.MaximumAlt)</b>
-                            }
-                            else
-                            {
-                                <span class="muted">Da</span><b>@AltText(a.MinimumAlt)</b><span class="muted">a</span><b>@AltText(a.MaximumAlt)</b>
-                            }
-                        </div>
-                        @if (!string.IsNullOrWhiteSpace(a.ActivationDetails)) { <p style="margin:.3em 0 0"><b>@a.ActivationDetails</b></p> }
-                        @if (!string.IsNullOrWhiteSpace(a.Description)) { <p style="margin:.3em 0 0">@a.Description</p> }
-                    </div>
                 </div>
-            </div>
-        </details>
-    }
+            </details>
+        }
+    </div>
 }
 
 @code {
     [Parameter] public IReadOnlyList<AccSpecialAreaView> Areas { get; set; } = Array.Empty<AccSpecialAreaView>();
 
-    private static string AltText(int? alt) => alt is null ? "—" : (alt.Value <= 0 ? "GND" : $"{alt.Value} ft");
+    /// <summary>Chiave del blocco ospite (vIPI ACC), per tenere separate due sezioni «aree» nella stessa pagina.
+    /// Null va bene dove la sezione è una sola (APP, vLOA).</summary>
+    [Parameter] public string? BlockKey { get; set; }
 
-    private static string PointsJson(AppAorPolygon p) => System.Text.Json.JsonSerializer.Serialize(p.Points);
+    private string Scope() => "reg-" + (string.IsNullOrWhiteSpace(BlockKey) ? "x" : BlockKey);
+
+    // Banda di quota, come la scriveva l'elenco di prima: un valore solo se coincidono, GND per lo zero.
+    private static string Band(AccSpecialAreaView a) =>
+        a.MinimumAlt == a.MaximumAlt ? Alt(a.MaximumAlt) : $"{Alt(a.MinimumAlt)} – {Alt(a.MaximumAlt)}";
+
+    private static string Alt(int? alt) => alt is null ? "—" : (alt.Value <= 0 ? "GND" : $"{alt.Value} ft");
 }

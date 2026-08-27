@@ -26,7 +26,12 @@
     case "minima": <MinimaSection @key="@(Block.Key + ":minima:" + Root)" View="Minima ?? MinimaView.Empty" Aor="Aor" /> break;
     case "vfr": <AppVfr Content="ParseVfr(Block.VfrJson)" /> break;
     case "coordination": <AccCoordinationView Coord="Coord ?? AccCoordination.Empty" LeadSentence="@(Editorial?.LeadSentence ?? false)" /> break;
-    case "regulated": <RegulatedAreas Areas="Areas ?? Array.Empty<AccSpecialAreaView>()" /> break;
+    @* Come l'AoR: la chiave del blocco fa da scope alla mappa (e al legame chip→descrizione), e il @key
+       include l'albero così al cambio root il nodo mappa è ricreato e vipi-aor.js re-inizializza. *@
+    case "regulated":
+        <RegulatedAreas @key="@(Block.Key + ":reg:" + Root)"
+                        Areas="Areas ?? Array.Empty<AccSpecialAreaView>()" BlockKey="@Block.Key" />
+        break;
     @* Il timbro sopra e il testo scritto a mano sotto: «Validità e revisione» ha tutti e due i corpi.
        ⚠️ Senza `Acc` non si sa a quale release appartiene il blocco (la chiave è «ACC|root»), e la vista
        operativa non lo passa: lì resta il solo testo, che è giusto — non è un documento pubblicato. *@

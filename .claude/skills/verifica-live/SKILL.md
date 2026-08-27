@@ -81,12 +81,15 @@ node driver.js
 `driver.js` accanto a questo file è il punto di partenza: adattarne la sezione dei passi.
 Edge sta in `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`.
 
-Accanto a `driver.js` ci sono altri **due** script, che non si adattano: si lanciano così com'è.
+Accanto a `driver.js` ci sono altri **quattro** script, che non si adattano: si lanciano così com'è.
 
 | script | cosa prende | quando |
 |---|---|---|
 | `sweep.js` | fondi che **non si sono girati** nel tema scuro (12 pagine) | dopo ogni modifica a un foglio di stile |
 | `probe.js` | testo sotto **4.5:1** su una pagina, in un tema | quando si cambia un colore di testo |
+| `drag-verifica.js` | il riordino delle sezioni trascinando, con un drag **vero** (§4-bis) | quando si tocca `EditorToc` o `wireTocDrop` |
+| `aree-verifica.js` | la sezione «Aree regolamentate» su ACC/APP: chip, preset per tipo, 2D↔3D, descrizioni | quando si tocca `RegulatedAreas`, `AccAor` o le chip in `vipi-aor.js` |
+| `lazy-verifica.js` | che i quattro moduli pesanti (mappe, minime, 3D, tour) arrivino **solo** dove servono, e che dove servono arrivino | quando si tocca `vipi-boot.js` o l'elenco degli `<script>` in `App.razor` |
 
 ```powershell
 node sweep.js
@@ -163,6 +166,27 @@ await page.mouse.move(x, y);
 await page.mouse.down({ clickCount: 1 }); await page.mouse.up({ clickCount: 1 });
 await page.mouse.down({ clickCount: 2 }); await page.mouse.up({ clickCount: 2 });
 ```
+
+- **Un trascinamento NON si prova con eventi fabbricati.** `new DragEvent('drop', ...)` dispatchato a mano
+  salta l'unica parte che conta: la trattativa col browser, che consegna il `drop` **solo** se qualcuno ha
+  chiamato `preventDefault` sul `dragover` del bersaglio. Costato una feature dichiarata funzionante e mai
+  funzionata (riordino delle sezioni, 26→27 agosto 2026: otto test bUnit verdi e una verifica live verde su
+  codice rotto). Il drag vero si guida col controller del browser, via CDP:
+
+```js
+const client = await page.createCDPSession();
+let data = null;
+client.on('Input.dragIntercepted', (e) => { data = e.data; });
+await client.send('Input.setInterceptDrags', { enabled: true });
+await client.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: sx, y: sy, button: 'left', clickCount: 1 });
+await client.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: sx + 10, y: sy + 12, button: 'left', buttons: 1 });
+// data === null  ⇒  il browser non ha nemmeno AVVIATO il drag (elemento non afferrabile)
+await client.send('Input.dispatchDragEvent', { type: 'dragEnter', x: dx, y: dy, data });
+await client.send('Input.dispatchDragEvent', { type: 'dragOver',  x: dx, y: dy, data });
+await client.send('Input.dispatchDragEvent', { type: 'drop',      x: dx, y: dy, data });
+```
+
+  ⚠️ E **headful** (`headless: false`): in headless il drag nativo non parte.
 
 Per capire *quale* evento arriva davvero, mettere una spia in cattura e leggerla dal `console` di puppeteer:
 

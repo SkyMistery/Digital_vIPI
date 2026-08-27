@@ -222,6 +222,29 @@ window.vipiScorrimento = function () {
         }, true);
     }
 
+    // Il menu-sezioni degli editor ACCETTA il rilascio: `preventDefault` sul `dragover` delle voci.
+    //
+    // ⚠️ Perche' non lo fa Blazor. `EditorToc.razor` scriveva `@ondragover:preventDefault="true"`, e quel
+    // modificatore NON basta da solo: Blazor installa il proprio listener globale per un evento soltanto
+    // quando un componente vi registra un GESTORE, e per `dragover` non ce n'era nessuno — solo il
+    // modificatore, che restava lettera morta. Misurato il 27 agosto 2026 sull'editor ACC: `dragstart` e
+    // `dragenter` arrivavano (la voce si illuminava davvero), `dragover` arrivava con
+    // `defaultPrevented=false`, e il `drop` non arrivava MAI. Senza un bersaglio che accetta, il browser
+    // annulla il trascinamento — nessun errore, nessun segno: il gesto semplicemente non faceva niente.
+    //
+    // La strada in-framework sarebbe un gestore `@ondragover` finto, ma `dragover` scatta a ogni movimento
+    // del mouse: sarebbe un giro sul circuito e un re-render del menu una decina di volte al secondo,
+    // proprio durante il gesto. Qui basta un listener, installato una volta (stessa scelta di wireBlockMenu
+    // e delle chip AoR), e il `drop` resta di Blazor.
+    var tocDropWired = false;
+    function wireTocDrop() {
+        if (tocDropWired) return;
+        tocDropWired = true;
+        document.addEventListener('dragover', function (e) {
+            if (e.target && e.target.closest && e.target.closest('.toc-drag a[draggable="true"]')) e.preventDefault();
+        }, true);
+    }
+
     // Sospende la persistenza del collasso: l'apertura in massa per la stampa non deve riscrivere le preferenze
     // dell'utente (vedi wirePrint).
     var suppressPersist = false;
@@ -270,12 +293,10 @@ window.vipiScorrimento = function () {
         // riduciamo per la stampa. Non basta il CSS: Leaflet tiene la propria dimensione in memoria, quindi
         // cambiare l'altezza da foglio di stile RITAGLIA la mappa invece di riadattarla. Serve invalidateSize()
         // + il refit sui settori accesi, che vipi-aor.js espone su `_leafletMap` / `_aorRefit`.
-        // Due misure: la mappa AoR principale del documento resta leggibile (200px ≈ 53 mm), le miniature
-        // per-area (.area-map, una per area regolamentata: su una ACC sono decine) scendono a 130px ≈ 34 mm.
-        // Solo verso il BASSO: una vIPI ACC ha mappe-area già a 190px e portarle alla misura della principale
-        // le ingrandirebbe, allungando il documento invece di accorciarlo (preso in questo modo alla prima
-        // verifica: 34 pagine prima, 34 dopo).
-        var PRINT_MAP_H = 260, PRINT_AREA_MAP_H = 130;
+        // Una misura sola (260px ≈ 69 mm). Qui ce n'erano due, perché le aree regolamentate portavano una
+        // MINIATURA A TESTA (.area-map, decine su una ACC) da rimpicciolire a parte: dal 27 agosto 2026 la
+        // sezione ha una mappa sola, come l'AoR, e il caso non esiste più.
+        var PRINT_MAP_H = 260;
 
         // Larghezza della cornice della mappa AoR principale, dedotta dalle PROPORZIONI dell'area inquadrata.
         // Perché serve: `fitBounds` sceglie lo zoom che fa stare i bounds in ENTRAMBE le dimensioni. In una
@@ -298,25 +319,18 @@ window.vipiScorrimento = function () {
             document.querySelectorAll('.aor-leaflet').forEach(function (el) {
                 var m = el._leafletMap;
                 if (!m) return;   // fallback SVG (nessun Leaflet): scala già da sé
-                var isArea = el.classList.contains('area-map');
                 if (toPrint) {
                     // Altezza calcolata, non il rettangolo: con lo zoom di pagina attivo il rect è scalato, e
                     // 'beforeprint' scatta prima che il media passi a print (quindi prima del reset dello zoom).
-                    var target = isArea ? PRINT_AREA_MAP_H : PRINT_MAP_H;
-                    var now = parseFloat(getComputedStyle(el).height) || 0;
-                    // Le miniature per-area vivono in una griglia accanto al testo: si toccano solo in altezza.
-                    if (isArea && now <= target) return;
                     // Misure da ripristinare sull'elemento, non in un array indicizzato che si disallineerebbe
                     // se Blazor rirenderizzasse la pagina fra apertura e ripristino.
                     el._printPrevH = el.style.height;
-                    el.style.height = target + 'px';
-                    if (!isArea) {
-                        var w = frameWidth(el, m, target);
-                        if (w) {
-                            el._printPrevW = [el.style.width, el.style.margin];
-                            el.style.width = w + 'px';
-                            el.style.margin = '0 auto';
-                        }
+                    el.style.height = PRINT_MAP_H + 'px';
+                    var w = frameWidth(el, m, PRINT_MAP_H);
+                    if (w) {
+                        el._printPrevW = [el.style.width, el.style.margin];
+                        el.style.width = w + 'px';
+                        el.style.margin = '0 auto';
                     }
                 } else {
                     if (el._printPrevH === undefined) return;
@@ -876,6 +890,7 @@ window.vipiScorrimento = function () {
         wireAnchors();
         wireCollapse();
         wireBlockMenu();
+        wireTocDrop();
         applyDense();
         wireUtcClock();
         wireSearchKey();

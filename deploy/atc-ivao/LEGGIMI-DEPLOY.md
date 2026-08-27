@@ -196,6 +196,45 @@ Devono combaciare esatti: `https`, nessuno slash finale.
 
 ---
 
+## Una regola di Cloudflare che vale la pena aggiungere
+
+Dal 27 agosto 2026 le letture **anonime** dei documenti pubblici escono dall'applicazione dichiarando che si
+possono tenere per un minuto:
+
+```
+Cache-Control: public, max-age=60
+Vary: Accept-Encoding, Cookie
+```
+
+Prima dicevano `no-cache, no-store` e portavano un cookie: due righe che insieme dicono a ogni cache del
+mondo «non tenermi». Adesso il browser di chi ricarica o torna indietro riusa la pagina da solo, **senza
+toccare il server**, e questo funziona già così com'è.
+
+Quel che **non** succede da solo è la cache al bordo: Cloudflare, di suo, non tiene le pagine HTML — tiene
+solo i file (CSS, JavaScript, immagini), e quelli li tiene già. Per farle tenere serve una **Cache Rule**
+sul dominio:
+
+| campo | valore |
+|---|---|
+| quando | `URI Path starts with /services/` |
+| cosa fare | *Eligible for cache* |
+| durata al bordo | *Respect origin TTL* |
+
+⚠️ **«Respect origin TTL» e non un numero scritto a mano.** L'applicazione già distingue quel che si può
+tenere da quel che non si può — le schermate di amministrazione, gli editor, il live, le anteprime delle
+bozze e tutto ciò che chiede chi è entrato continuano a rispondere `no-store` — e una durata imposta dal
+pannello passerebbe sopra a quella distinzione. Le sette clausole della decisione stanno in
+`CacheDelleLettureAnonime`, una per una, con scritto perché.
+
+⚠️ `Vary: Cookie` fa il resto: chi arriva col proprio cookie di sessione non riceve mai la copia anonima.
+Senza quella riga vedrebbe la pagina di un altro, senza i propri tasti.
+
+**A che serve.** A una cosa sola, ma è quella che conta: il giorno della pubblicazione AIRAC la stessa
+pagina viene chiesta da molte persone negli stessi minuti, e dietro c'è **un processo solo**, senza
+backplane (vedi il passo 4). Sessanta secondi bastano a far assorbire quella folla al bordo.
+
+---
+
 ## Due impostazioni del vostro MariaDB che ci servono
 
 | Impostazione | Cosa serve | Perché |

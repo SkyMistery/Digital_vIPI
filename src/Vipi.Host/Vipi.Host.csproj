@@ -24,6 +24,36 @@
     <UserSecretsId>79756a9b-0ff7-4ec7-89d3-88a116771871</UserSecretsId>
   </PropertyGroup>
 
+  <!--
+    ⚠️ QUI NON C'È «PublishReadyToRun», ED È UNA SCELTA MISURATA. Non aggiungerlo senza rifare la misura.
+
+    Sembra la riga ovvia da scrivere: il sito gira sotto Passenger, che spegne il processo per inattività,
+    quindi il primo visitatore dopo la pausa paga l'avvio intero. Compilare in anticipo dovrebbe aiutare.
+
+    Provato il 27 agosto 2026, sei avvii per parte, stesso database e stessa macchina:
+
+        senza ReadyToRun    avvio  1 656 ms (mediana)    otto pagine a freddo  1 732 ms
+        con   ReadyToRun    avvio  1 621 ms (mediana)    otto pagine a freddo  1 503 ms
+        pacchetto            122 MB          ->            151 MB
+
+    Il 2% sull'avvio è dentro il rumore, e il minimo assoluto delle due configurazioni sulle otto pagine è
+    lo stesso (1 287 contro 1 280 ms). In cambio il pacchetto cresce di 29 MB — e questo sito si aggiorna
+    via FTP, file per file, da una persona: quei 29 MB sono un costo certo pagato per un guadagno incerto.
+
+    Il motivo per cui rendeva così poco lo dice il cronometro d'avvio (StartupDiagnostics.CronometroAvvio),
+    che è nato per rispondere a questa domanda e che scrive le sue righe in diagnostica/avvio-diagnostica.txt:
+
+        CreateBuilder                  37 ms
+        registrazioni DI               39 ms
+        builder.Build                  16 ms
+        MigrateVipiDatabase           526 ms   ***
+        RunVipiStartupMaintenance     646 ms   ***
+        resto della pipeline           28 ms
+
+    Millecento millisecondi su milletrecento sono DATABASE, non compilazione: è lavoro che ReadyToRun non
+    può toccare. Chi vuole accorciare l'avvio guardi lì.
+  -->
+
   <ItemGroup>
     <!-- File editabile della frase di coordinamento: copiato in output, ricaricato a caldo. -->
     <Content Update="content\coordination-sentence.json" CopyToOutputDirectory="PreserveNewest" />
@@ -42,6 +72,35 @@
     <!-- Key-ring Data Protection su DB (antiforgery/cookie persistenti tra redeploy su Render). Vedi VipiDataProtection.cs. -->
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="8.0.*" />
   </ItemGroup>
+
+  <!--
+    LA WWWROOT DEL PACCHETTO, PREPARATA.
+
+    Toglie da CSS e JavaScript i commenti (il 44% dei byte spediti, contato il 27 agosto 2026: 218 905 su
+    500 367) e lascia accanto a ogni file di testo la sua variante .br e .gz già compressa alla qualità
+    massima — quella che a richiesta non ci si potrebbe permettere. Misura sui file del modulo:
+
+        com'era: non minificato, compresso a richiesta (q4)   159 852 B
+        minificato + precompresso (q11)                        48 129 B      −70%
+
+    ⚠️ Gira SOLO al publish, mai al build: in sviluppo i file devono restare leggibili — sono la
+    documentazione — e il ricaricamento a caldo non deve trovarseli riscritti sotto.
+
+    ⚠️ Se un file non è minificabile l'attrezzo esce con errore e il publish si ferma. È voluto: JavaScript
+    e CSS non li compila nessuno, quindi un errore di sintassi lì dentro non lo vede nessun'altra parte
+    della build, e il primo a incontrarlo sarebbe chi apre la pagina.
+
+    Si spegne con -p:VipiOttimizzaAsset=false, che serve a una cosa sola: guardare l'output di un publish
+    con i file ancora leggibili quando si sta cercando un guasto.
+  -->
+  <PropertyGroup>
+    <VipiOttimizzaAsset Condition="'$(VipiOttimizzaAsset)' == ''">true</VipiOttimizzaAsset>
+  </PropertyGroup>
+
+  <Target Name="VipiOttimizzaAsset" AfterTargets="Publish" Condition="'$(VipiOttimizzaAsset)' == 'true'">
+    <Exec Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)..\..\tools\Vipi.Assets\Vipi.Assets.csproj&quot; -c Release --no-launch-profile -- &quot;$(PublishDir)wwwroot&quot;"
+          StandardOutputImportance="high" />
+  </Target>
 
   <!--
     Il TIMBRO DELLA BUILD: quale codice è quello che gira.

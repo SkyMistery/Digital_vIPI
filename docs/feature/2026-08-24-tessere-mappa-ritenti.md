@@ -38,7 +38,8 @@ per il codice non era successo niente.
 
 ## 3. Due difetti trovati per strada
 
-- **C'erano due basemap**, non una: la strada delle mappine (`.area-map`) creava la sua `L.tileLayer` a mano
+- **C'erano due basemap**, non una: la strada delle mappine (`.area-map` — ⚠️ **tolte il 27 agosto 2026**, le
+  aree regolamentate hanno ora una mappa sola) creava la sua `L.tileLayer` a mano
   invece di passare da `addBasemap`, sessanta righe più su. Risultato: il ritentatore copriva l'AoR grande e
   **saltava proprio le decine di mappe che fanno la raffica**. Si è visto solo dal numero: 30 tessere rotte a
   schermo ma **28** marcate come ritentate. Quando i due conteggi non tornano, il bersaglio è sbagliato.
@@ -165,3 +166,19 @@ Il lavoro dei §6–§9 resta comunque giustificato, ma per un altro motivo: il 
 (§6) e un utente con un bloccante attivo è un caso che si ripresenterà, perché non si può chiedere a chi usa
 lo strumento di smontarsi il browser.
 
+---
+
+## 🔴 Aggiunta del 27 agosto 2026 — il fondo ora vuole una API key
+
+Trovato guardando gli **screenshot** di una verifica su tutt'altro, non cercandolo: le tessere di
+`basemaps.cartocdn.com/light_all` arrivano stampigliate **«API KEY REQUIRED — carto.com/basemaps/apikey»**.
+CARTO ha chiuso il basemap anonimo.
+
+⚠️ **Niente di quel che sta scritto sopra se ne accorge, ed è giusto così.** Il ritentatore reagisce alle
+tessere che **cadono** e lo spazzino a quelle che restano nere: qui la tessera **arriva**, con dentro la
+scritta. Non è un guasto di rete, è il fornitore che ha cambiato condizioni.
+
+Riguarda **tutte** le mappe del prodotto — AoR 2D, visore 3D, aree regolamentate, carte delle minime — ed è
+**già così in produzione**. Il posto da toccare è uno solo, `addBasemap` in `vipi-aor.js`, più la copia in
+`vipi-mva.js`. Decisione del committente: chiave CARTO (c'è un piano gratuito) o altro fornitore di tessere.
+Vedi `docs/lavori-aperti.md` **§N3**.

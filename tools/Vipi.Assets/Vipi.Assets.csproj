@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- net8.0 come Vipi.Host: questo attrezzo gira DENTRO il publish di quel progetto, e farlo girare su
+         un runtime che sulla macchina di chi pubblica potrebbe non esserci sarebbe un modo nuovo di far
+         fallire il pacchetto. -->
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Vipi.Assets</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Il minificatore. È una DIPENDENZA NUOVA e vale la pena scrivere perché.
+
+      L'alternativa gratis era una passata di espressioni regolari che togliesse `/* … */` e `// …`. Sul CSS
+      sarebbe anche passabile; sul JavaScript no, e il modo in cui sbaglia è il peggiore: `//` dentro una
+      stringa o dentro un'espressione regolare letterale (`/https?:\/\//`) diventa «da qui in poi è un
+      commento», e il file esce sintatticamente valido ma con dentro un'altra cosa. Nessun test di
+      compilazione lo vede, la pagina si apre, e una funzione smette di esistere.
+
+      L'altra alternativa era esbuild/terser via npm. Scartata perché la CI non ha Node (.github/workflows/ci.yml
+      installa solo i runtime .NET) e chi costruisce il pacchetto lo fa da Windows con `dotnet publish`:
+      una toolchain in più è una ragione in più per cui il pacchetto non si costruisce.
+
+      NUglify è il seguito mantenuto dell'Ajax Minifier di Microsoft, MIT, .NET Standard 2.0, nessuna
+      dipendenza nativa.
+    -->
+    <PackageReference Include="NUglify" Version="1.22.*" />
+  </ItemGroup>
+
+</Project>

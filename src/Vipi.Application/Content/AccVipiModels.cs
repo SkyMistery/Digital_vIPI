@@ -197,10 +197,14 @@ public sealed class AccCoordination
 
 /// <summary>AoR di un singolo settore del blocco: callsign + nome + colore + poligoni. Anello toggleabile in mappa.
 /// <paramref name="LowerFl"/>/<paramref name="UpperFl"/> = banda FL per l'estrusione 3D (normalizzata via
-/// <see cref="Vipi.Application.Aor.AorFlBand"/>; null = non disponibile → il viewer 3D usa GND/UNL di default).</summary>
+/// <see cref="Vipi.Application.Aor.AorFlBand"/>; null = non disponibile → il viewer 3D usa GND/UNL di default).
+/// <para><paramref name="Label"/> = testo della chip quando il <paramref name="Callsign"/> non è da mostrare.
+/// Per i settori è null e la chip dice il callsign, che è il nome con cui li si chiama. Serve alle <b>aree
+/// regolamentate</b>, che riusano questa mappa (<see cref="Vipi.Application.Aor.RegulatedAreasMap"/>): lì il
+/// «callsign» è l'id IVAO, cioè un numero, e la chip deve dire il nome dell'area.</para></summary>
 public sealed record AccSectorAor(
     string Callsign, string Name, string Color, IReadOnlyList<AppAorPolygon> Polygons,
-    int? LowerFl = null, int? UpperFl = null);
+    int? LowerFl = null, int? UpperFl = null, string? Label = null);
 
 /// <summary>Selezione di configurazione per la mappa: quali settori accendere.</summary>
 public sealed record AccConfigSelection(string Key, string Name, IReadOnlyList<string> OpenCallsigns);

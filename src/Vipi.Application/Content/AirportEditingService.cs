@@ -14,6 +14,14 @@ public interface IAirportEditingService
 {
     /// <summary>Lettura per il viewer (nessuna guardia): regole pista + link frequenze + resto.</summary>
     Task<AirportData?> LoadForViewAsync(string icao, CancellationToken ct = default);
+
+    /// <summary>
+    /// Piste e regole-pista di più aeroporti in una volta: quel poco che basta a dire quale pista è in uso.
+    /// La usa l'elenco degli aeroporti di una ACC, che prima chiamava <see cref="LoadForViewAsync"/> una
+    /// volta per scalo — otto query a testa, in fila, per leggerne due liste.
+    /// </summary>
+    Task<IReadOnlyDictionary<string, PisteDiAeroporto>> ListRunwayDataAsync(
+        IReadOnlyCollection<string> icaos, CancellationToken ct = default);
     /// <summary>Lettura per l'editor: richiede il permesso di editare la ACC dell'aeroporto.</summary>
     Task<AirportData?> LoadForEditAsync(string icao, CancellationToken ct = default);
 
@@ -71,6 +79,10 @@ public sealed class AirportEditingService : IAirportEditingService
 
     public Task<AirportData?> LoadForViewAsync(string icao, CancellationToken ct = default) =>
         _repo.LoadAsync(Norm(icao), ct);
+
+    public Task<IReadOnlyDictionary<string, PisteDiAeroporto>> ListRunwayDataAsync(
+        IReadOnlyCollection<string> icaos, CancellationToken ct = default) =>
+        _repo.ListRunwayDataAsync(icaos, ct);
 
     public async Task<AirportData?> LoadForEditAsync(string icao, CancellationToken ct = default)
     {
