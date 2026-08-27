@@ -52,6 +52,14 @@ public class TranslationFillUseCaseTests
         public Task SaveHumanAsync(string s, string t, string src, string tgt, int uid, CancellationToken ct = default) =>
             Task.CompletedTask;
 
+
+        public Task<IReadOnlyList<TranslationReviewRow>> ListForReviewAsync(
+            string s, string t, bool solo, int limite, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<TranslationReviewRow>>(Array.Empty<TranslationReviewRow>());
+
+        public Task<(int Totale, int DaRileggere)> ContaAsync(string s, string t, CancellationToken ct = default) =>
+            Task.FromResult((0, 0));
+
         public Task<int> DocumentiToccatiAsync(string sourceText, CancellationToken ct = default) => Task.FromResult(0);
 
         public Task<long> CaratteriSpesiStimatiAsync(string engine, CancellationToken ct = default) =>

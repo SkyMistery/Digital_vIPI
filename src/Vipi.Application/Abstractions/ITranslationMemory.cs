@@ -2,6 +2,13 @@ using Vipi.Domain.Entities;
 
 namespace Vipi.Application.Abstractions;
 
+/// <summary>Una riga della pagina di revisione: la frase, la sua resa, e chi l'ha prodotta.</summary>
+/// <param name="SourceText">Il testo sorgente normalizzato: e' <b>la chiave</b>, e non si modifica da qui.
+/// Cambiare cio' che il documento dice e' un'edit del documento, non una revisione della traduzione.</param>
+public sealed record TranslationReviewRow(
+    int Id, string SourceText, string TargetText, TranslationOrigin Origin,
+    DateTime? ReviewedUtc, int? ReviewedByUserId);
+
 /// <summary>Una traduzione già in memoria: il testo e da chi viene.</summary>
 /// <param name="TargetText">La traduzione.</param>
 /// <param name="Origin">Macchina o persona. <see cref="TranslationOrigin.Human"/> è definitivo.</param>
@@ -42,6 +49,18 @@ public interface ITranslationMemory
     Task SaveHumanAsync(
         string sourceLang, string targetLang, string sourceText, string targetText,
         int reviewerUserId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Le voci di memoria per la pagina di revisione, le <b>meno riviste per prime</b>: chi apre quella
+    /// pagina vuole vedere cio' che nessuno ha ancora guardato, non l'ordine di inserimento.
+    /// </summary>
+    /// <param name="soloDaRileggere">Solo quelle prodotte dalla macchina e mai riviste.</param>
+    Task<IReadOnlyList<TranslationReviewRow>> ListForReviewAsync(
+        string sourceLang, string targetLang, bool soloDaRileggere, int limite, CancellationToken ct = default);
+
+    /// <summary>Quante voci ci sono, e quante ne restano da rileggere. Per il contatore in cima.</summary>
+    Task<(int Totale, int DaRileggere)> ContaAsync(
+        string sourceLang, string targetLang, CancellationToken ct = default);
 
     /// <summary>
     /// Quanti documenti contengono la frase che sta dietro questa impronta: il numero che si mostra a chi

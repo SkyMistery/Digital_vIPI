@@ -115,6 +115,40 @@ public sealed class EfTranslationMemory : ITranslationMemory
         await _db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyList<TranslationReviewRow>> ListForReviewAsync(
+        string sourceLang, string targetLang, bool soloDaRileggere, int limite, CancellationToken ct = default)
+    {
+        var q = _db.TranslationUnits.AsNoTracking()
+            .Where(u => u.SourceLang == sourceLang && u.TargetLang == targetLang);
+
+        if (soloDaRileggere)
+            q = q.Where(u => u.ReviewedUtc == null);
+
+        // ⚠️ Le mai riviste PRIME, non le piu' recenti: chi apre la pagina di revisione vuole vedere cio'
+        // che nessuno ha ancora guardato. Ordinare per data di inserimento gli metterebbe in cima le
+        // ultime tradotte, che non sono ne' le piu' urgenti ne' le piu' lette.
+        return await q
+            .OrderBy(u => u.ReviewedUtc == null ? 0 : 1)
+            .ThenBy(u => u.Id)
+            .Take(limite)
+            .Select(u => new TranslationReviewRow(
+                u.Id, u.SourceText, u.TargetText, u.Origin, u.ReviewedUtc, u.ReviewedByUserId))
+            .ToListAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task<(int Totale, int DaRileggere)> ContaAsync(
+        string sourceLang, string targetLang, CancellationToken ct = default)
+    {
+        // Un giro solo sul database: due Count separati sarebbero due passate sulla stessa tabella.
+        var righe = await _db.TranslationUnits.AsNoTracking()
+            .Where(u => u.SourceLang == sourceLang && u.TargetLang == targetLang)
+            .GroupBy(u => u.ReviewedUtc == null)
+            .Select(g => new { DaRileggere = g.Key, Quante = g.Count() })
+            .ToListAsync(ct).ConfigureAwait(false);
+
+        return (righe.Sum(r => r.Quante), righe.Where(r => r.DaRileggere).Sum(r => r.Quante));
+    }
+
     public async Task<int> DocumentiToccatiAsync(string sourceText, CancellationToken ct = default)
     {
         // Il numero che si mostra a chi corregge PRIMA che salvi. Si conta sui documenti, non sui blocchi:

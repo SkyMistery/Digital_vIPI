@@ -118,6 +118,64 @@ public class EfTranslationMemoryTests : IAsyncLifetime
     public async Task Un_elenco_vuoto_non_interroga_il_database() =>
         Assert.Empty(await _memoria.LookupAsync(It, En, Array.Empty<string>()));
 
+    // ---- La pagina di revisione ----------------------------------------------------------------------
+
+    [Fact]
+    public async Task L_elenco_mette_in_cima_quelle_che_nessuno_ha_riletto()
+    {
+        // ⚠️ Chi apre la pagina di revisione vuole vedere cio' che nessuno ha ancora guardato. Ordinare per
+        // data di inserimento gli metterebbe in cima le ultime tradotte, che non sono ne' le piu' urgenti
+        // ne' le piu' lette.
+        await _memoria.SaveMachineAsync(It, En, "azure", Una("Prima.", "First."));
+        await _memoria.SaveMachineAsync(It, En, "azure", Una("Seconda.", "Second."));
+        await _memoria.SaveHumanAsync(It, En, "Prima.", "First one.", reviewerUserId: 7);
+
+        var righe = await _memoria.ListForReviewAsync(It, En, soloDaRileggere: false, limite: 10);
+
+        Assert.Equal(2, righe.Count);
+        Assert.Equal("Seconda.", righe[0].SourceText);          // mai riletta: prima
+        Assert.Equal(TranslationOrigin.Human, righe[1].Origin);
+    }
+
+    [Fact]
+    public async Task Il_filtro_mostra_solo_quelle_da_rileggere()
+    {
+        await _memoria.SaveMachineAsync(It, En, "azure", Una("Prima.", "First."));
+        await _memoria.SaveHumanAsync(It, En, "Seconda.", "Second.", reviewerUserId: 7);
+
+        var righe = await _memoria.ListForReviewAsync(It, En, soloDaRileggere: true, limite: 10);
+        Assert.Single(righe);
+        Assert.Equal("Prima.", righe[0].SourceText);
+    }
+
+    [Fact]
+    public async Task Il_conteggio_dice_quante_sono_e_quante_restano()
+    {
+        await _memoria.SaveMachineAsync(It, En, "azure", Una("A.", "A."));
+        await _memoria.SaveMachineAsync(It, En, "azure", Una("B.", "B."));
+        await _memoria.SaveHumanAsync(It, En, "A.", "A rivista.", reviewerUserId: 7);
+
+        var (totale, daRileggere) = await _memoria.ContaAsync(It, En);
+        Assert.Equal(2, totale);
+        Assert.Equal(1, daRileggere);
+
+        // Una coppia di lingue senza niente non e' un errore: e' zero.
+        Assert.Equal((0, 0), await _memoria.ContaAsync(En, It));
+    }
+
+    [Fact]
+    public async Task Correggere_marca_la_voce_come_riletta_e_da_chi()
+    {
+        await _memoria.SaveMachineAsync(It, En, "azure", Una("Riporta sottovento.", "Bring it back downwind."));
+        await _memoria.SaveHumanAsync(It, En, "Riporta sottovento.", "Report downwind.", reviewerUserId: 123456);
+
+        var riga = (await _memoria.ListForReviewAsync(It, En, false, 10)).Single();
+        Assert.Equal("Report downwind.", riga.TargetText);
+        Assert.Equal(TranslationOrigin.Human, riga.Origin);
+        Assert.NotNull(riga.ReviewedUtc);
+        Assert.Equal(123456, riga.ReviewedByUserId);
+    }
+
     // ---- La guardia sul budget -------------------------------------------------------------------------
 
     [Fact]

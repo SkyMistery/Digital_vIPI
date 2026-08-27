@@ -41,6 +41,14 @@ public class DocumentTranslatorTests
         public Task<int> SaveMachineAsync(string s, string t, string e,
             IReadOnlyList<(string SourceText, string TargetText)> v, CancellationToken ct = default) => Task.FromResult(0);
         public Task SaveHumanAsync(string s, string t, string a, string b, int u, CancellationToken ct = default) => Task.CompletedTask;
+
+        public Task<IReadOnlyList<TranslationReviewRow>> ListForReviewAsync(
+            string s, string t, bool solo, int limite, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<TranslationReviewRow>>(Array.Empty<TranslationReviewRow>());
+
+        public Task<(int Totale, int DaRileggere)> ContaAsync(string s, string t, CancellationToken ct = default) =>
+            Task.FromResult((0, 0));
+
         public Task<int> DocumentiToccatiAsync(string s, CancellationToken ct = default) => Task.FromResult(0);
         public Task<long> CaratteriSpesiStimatiAsync(string e, CancellationToken ct = default) => Task.FromResult(0L);
     }

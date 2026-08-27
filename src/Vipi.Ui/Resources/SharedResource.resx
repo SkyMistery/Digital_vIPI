@@ -2468,4 +2468,15 @@
   <data name="Tr_NoticeMachine" xml:space="preserve"><value>La traduzione l'ha fatta una macchina e nessuno l'ha ancora riletta. Verifica la fraseologia sull'originale prima di usarla in servizio.</value></data>
   <data name="Tr_NoticePartial" xml:space="preserve"><value>{0} frasi su {1} non sono ancora tradotte e restano nella lingua originale.</value></data>
   <data name="Tr_ReadInSource" xml:space="preserve"><value>Leggi l'originale</value></data>
+  <data name="Tr_AdminTitle" xml:space="preserve"><value>Traduzioni</value></data>
+  <data name="Tr_OnlyUnreviewed" xml:space="preserve"><value>Solo da rileggere</value></data>
+  <data name="Tr_ColSource" xml:space="preserve"><value>Testo originale</value></data>
+  <data name="Tr_ColTarget" xml:space="preserve"><value>Traduzione</value></data>
+  <data name="Tr_ColOrigin" xml:space="preserve"><value>Da chi</value></data>
+  <data name="Tr_OriginHuman" xml:space="preserve"><value>Persona</value></data>
+  <data name="Tr_OriginMachine" xml:space="preserve"><value>Macchina</value></data>
+  <data name="Tr_NothingToReview" xml:space="preserve"><value>Niente da rileggere</value></data>
+  <data name="Tr_NothingToReviewHint" xml:space="preserve"><value>Ogni traduzione di questa coppia di lingue è stata riletta da una persona.</value></data>
+  <data name="Tr_TouchesDocs" xml:space="preserve"><value>Questa correzione vale per la frase, non per un documento: tocca {0} documenti. Gli altri la vedranno alla loro prossima ripubblicazione.</value></data>
+  <data name="Tr_Saved" xml:space="preserve"><value>Correzione salvata. Vale per {0} documenti e la macchina non la tocca più.</value></data>
 </root>
