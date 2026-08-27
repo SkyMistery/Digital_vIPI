@@ -19,7 +19,7 @@ namespace Vipi.Infrastructure.Tests;
 public class ReleaseGenericFlowTests : IAsyncLifetime
 {
     private const ReleaseTargetType FakeType = (ReleaseTargetType)99;
-    private const ManagedDocKind FakeKind = (ManagedDocKind)99;
+    private const ReleaseTargetType FakeKind = (ReleaseTargetType)99;
 
     private readonly SqliteConnection _conn = new("Data Source=:memory:");
     private VipiDbContext _db = default!;
@@ -298,7 +298,7 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         public FakeReleaseTarget(int docId) => _docId = docId;
 
         public ReleaseTargetType Type => FakeType;
-        public ManagedDocKind ManagedKind => FakeKind;
+        public ReleaseTargetType ManagedKind => FakeKind;
         public int DescribeOrder => 0;
 
         public Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default) => Task.FromResult<int?>(_docId);

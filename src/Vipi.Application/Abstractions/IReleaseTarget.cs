@@ -13,11 +13,11 @@ namespace Vipi.Application.Abstractions;
 /// </summary>
 public interface IReleaseTarget
 {
-    /// <summary>Discriminatore di release di questo tipo.</summary>
+    /// <summary>Discriminatore di questo tipo di documento — nelle release e nell'elenco unificato.
+    /// <para>⚠️ Erano DUE proprietà, <c>Type</c> e <c>ManagedKind</c>, sui due enum paralleli: gli stessi
+    /// quattro valori con nomi diversi (<c>App</c>/<c>AppVipi</c>, <c>Airport</c>/<c>AirportVipi</c>), e questo
+    /// descrittore esisteva in parte per tenerli allineati (doc 14 §3h).</para></summary>
     ReleaseTargetType Type { get; }
-
-    /// <summary>Tipo corrispondente nell'elenco unificato /services/vsop/versioni.</summary>
-    ManagedDocKind ManagedKind { get; }
 
     /// <summary>Ordine di tentativo in <see cref="TryDescribe"/> (più basso prima). L'aeroporto è il catch-all finale
     /// dei Document vIPI non riconosciuti come APP/ACC → deve avere l'ordine più alto.</summary>

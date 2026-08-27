@@ -6,6 +6,7 @@
 @inherits OwningComponentBase
 @inject NavigationManager Nav
 @inject ILogger<VloaEditor> Logger
+@inject IDocRoutesRegistry DocRoutes
 @inject IStringLocalizer<SharedResource> L
 @inject IEditAuthorizationService Authz
 @inject IJSRuntime JS
@@ -84,7 +85,7 @@ else
         <RightRail>
             @if (_shell.Save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
             else if (_shell.Save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
-            <DraftPreviewLink Href="@($"/services/vsop/{Home.ToLowerInvariant()}/vloa?acc={Foreign}&as=draft")" />
+            <DraftPreviewLink Href="@(DocRoutes.For(ReleaseTargetType.Vloa).DraftUrl(Home.ToLowerInvariant(), "", Foreign))" />
             @* Il lock e' salito in testata: qui restano i COMANDI (regola 1). *@
             @if (_shell.IsEditing)
             {
@@ -150,8 +151,8 @@ else
     // Voce TOC per il blocco Release (reso fuori da DocumentSectionsEditor), come nell'editor APP.
     private IReadOnlyList<EditorTocItem> _tocExtra => new[] { new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]) };
 
-    private string ReleasePreviewUrl(int releaseId) =>
-        $"/services/vsop/{(Home ?? "").ToLowerInvariant()}/vloa?acc={Foreign}&as=rel:{releaseId}";
+    private string? ReleasePreviewUrl(int releaseId) =>
+        DocRoutes.For(ReleaseTargetType.Vloa).ViewerUrl((Home ?? "").ToLowerInvariant(), "", Foreign, releaseId);
 
     // Risolti dallo scope proprio (OwningComponentBase): context isolato dal circuito.
     private IEditingService Editing = default!;

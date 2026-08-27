@@ -54,7 +54,7 @@ public class DocumentAdminLockGuardTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         _docId = doc.Id;
-        _doc = new ManagedDocRef(ManagedDocKind.AccVipi, "LIRR|LIRR_ROOT_CTR", _docId);
+        _doc = new ManagedDocRef(ReleaseTargetType.AccVipi, "LIRR|LIRR_ROOT_CTR", _docId);
     }
 
     public async Task DisposeAsync() { await _db.DisposeAsync(); await _conn.DisposeAsync(); }

@@ -13,7 +13,6 @@ public sealed class AppReleaseTarget : IReleaseTarget
     public AppReleaseTarget(VipiDbContext db) => _db = db;
 
     public ReleaseTargetType Type => ReleaseTargetType.App;
-    public ManagedDocKind ManagedKind => ManagedDocKind.AppVipi;
     public int DescribeOrder => 1;
 
     public async Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default) =>
@@ -32,7 +31,7 @@ public sealed class AppReleaseTarget : IReleaseTarget
         if (doc.Type != DocumentType.Vipi) return false;
         var primary = doc.Sectors.FirstOrDefault(s => s.IsPrimary) ?? doc.Sectors.FirstOrDefault();
         if (primary is not { Type: SectorType.App, ApproachKind: ApproachKind.Standalone }) return false;
-        managed = new ManagedDoc(ManagedDocKind.AppVipi, doc.Title, primary.Callsign, primary.Acc?.Code,
+        managed = new ManagedDoc(ReleaseTargetType.App, doc.Title, primary.Callsign, primary.Acc?.Code,
             doc.Status == DocumentStatus.Published, hasDraft, doc.IsHidden,
             ReleaseTargetType.App, primary.Callsign, doc.Id);
         return true;

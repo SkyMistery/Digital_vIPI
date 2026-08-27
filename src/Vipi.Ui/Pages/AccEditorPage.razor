@@ -10,6 +10,7 @@
 @inject IEditAuthorizationService Authz
 @inject IJSRuntime JS
 @inject ILogger<AccEditorPage> Logger
+@inject IDocRoutesRegistry DocRoutes
 @inject IStringLocalizer<SharedResource> L
 
 @if (_acc is null)
@@ -182,7 +183,7 @@ else
                    scrive locale — la stessa scadenza compariva a due ore diverse. *@
                 @if (_shell.Save == SaveState.Saving) { <span class="save-badge saving"><span class="spin"></span> @L["Ed_Saving"]</span> }
                 else if (_shell.Save == SaveState.Saved) { <span class="save-badge saved"><Icon Name="check-circle" Size="13" /> @L["Ed_Saved"]</span> }
-                <DraftPreviewLink Href="@($"/services/vsop/{Acc.ToLowerInvariant()}/vipi?as=draft")" />
+                <DraftPreviewLink Href="@(DocRoutes.For(ReleaseTargetType.AccVipi).DraftUrl(Acc.ToLowerInvariant(), "", null))" />
                 @if (_shell.IsEditing)
                 {
                     <button class="btn ghost" @onclick="() => _shell.FinishEditingAsync()">✓ @L["Lock_FinishEdit"]</button>
@@ -268,7 +269,8 @@ else
         await LoadAsync();
     });
 
-    private string ReleasePreviewUrl(int releaseId) => $"/services/vsop/{Acc.ToLowerInvariant()}/vipi?as=rel:{releaseId}";
+    private string? ReleasePreviewUrl(int releaseId) =>
+        DocRoutes.For(ReleaseTargetType.AccVipi).ViewerUrl(Acc.ToLowerInvariant(), "", null, releaseId);
 
     // Espandi/comprimi tutto: lo fa il JS sui <details> (blocchi e sezioni), non un flag Blazor — il collasso
     // è nativo e vive fuori dal circuito. Prima del primo render interattivo l'interop non è lecita.

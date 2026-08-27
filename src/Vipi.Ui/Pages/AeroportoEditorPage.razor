@@ -21,6 +21,7 @@
 @inject IJSRuntime JS
 @inject ILogger<AeroportoEditorPage> Logger
 @implements IAsyncDisposable
+@inject IDocRoutesRegistry DocRoutes
 @inject IStringLocalizer<SharedResource> L
 
 @if (_acc is null)
@@ -131,7 +132,7 @@ else
                             @((MarkupString)L["Ape_SaveHelpBody"].Value)
                         </HelpHint>
                     }
-                    <DraftPreviewLink Href="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}&as=draft")" />
+                    <DraftPreviewLink Href="@(DocRoutes.For(ReleaseTargetType.Airport).DraftUrl(Acc.ToLowerInvariant(), _icao, null))" />
                     @* ✎ Modifica / ✓ Fine modifica: lo stesso gesto degli altri tre editor. Prende il lock e,
                        se la versione di lavoro è pubblicata, apre una bozza. *@
                     @if (_shell.IsEditing)
@@ -1226,8 +1227,8 @@ else
             || await Confirm(string.Format(L["Ape_UnsavedPublishConfirm"].Value, string.Join(", ", _dirtySections.Select(DirtyLabel))));
     }
 
-    private string ReleasePreviewUrl(int releaseId) =>
-        $"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}&as=rel:{releaseId}";
+    private string? ReleasePreviewUrl(int releaseId) =>
+        DocRoutes.For(ReleaseTargetType.Airport).ViewerUrl(Acc.ToLowerInvariant(), _icao, null, releaseId);
 
     // --- Settori ATC importati (catalogo): import + limiti + mostra/nascondi ---
     private Task ImportSectors() => Guarded(async () =>

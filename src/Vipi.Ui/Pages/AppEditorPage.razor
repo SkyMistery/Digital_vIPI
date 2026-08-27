@@ -11,6 +11,7 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject ILogger<AppEditorPage> Logger
+@inject IDocRoutesRegistry DocRoutes
 @inject IStringLocalizer<SharedResource> L
 
 @if (_acc is null)
@@ -94,7 +95,7 @@ else
                 <RightRail>
                     @if (_shell.Save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
                     else if (_shell.Save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
-                    <DraftPreviewLink Href="@($"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=draft")" />
+                    <DraftPreviewLink Href="@(DocRoutes.For(ReleaseTargetType.App).DraftUrl(Acc.ToLowerInvariant(), _app, null))" />
                     @* Il lock e' salito in testata: qui restano i COMANDI, che e' quello per cui il rail
                        esiste. Prima lo stato del lock stava scritto in tre punti (callout, rail, e nulla in
                        testata) e nessuno dei tre era accanto al titolo del documento. *@
@@ -468,7 +469,7 @@ else
     };
 
     // ---- release AIRAC (target App) ----
-    private string ReleasePreviewUrl(int releaseId) =>
-        $"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=rel:{releaseId}";
+    private string? ReleasePreviewUrl(int releaseId) =>
+        DocRoutes.For(ReleaseTargetType.App).ViewerUrl(Acc.ToLowerInvariant(), _app, null, releaseId);
 
 }

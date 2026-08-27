@@ -56,6 +56,6 @@
     {
         if (!int.TryParse(targetKey, out var docId)) return null;
         return (await DocAdmin.ListAsync())
-            .FirstOrDefault(x => x.Kind == ManagedDocKind.Vloa && x.DocumentId == docId)?.NeighbourCode;
+            .FirstOrDefault(x => x.Kind == ReleaseTargetType.Vloa && x.DocumentId == docId)?.NeighbourCode;
     }
 }

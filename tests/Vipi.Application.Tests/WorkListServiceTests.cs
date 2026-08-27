@@ -270,7 +270,7 @@ public class WorkListServiceTests
             new[] { "LIRR_TS_CTR" }, false, Adesso.AddDays(-1));
 
     private static ManagedDoc Doc(int id, string titolo, string acc) =>
-        new(ManagedDocKind.AccVipi, titolo, acc, acc, true, false, false,
+        new(ReleaseTargetType.AccVipi, titolo, acc, acc, true, false, false,
             ReleaseTargetType.AccVipi, $"{acc}|{acc}_CTR", id);
 
     private static EditorTask Incarico(int id, string titolo, int assegnatario,
@@ -310,11 +310,12 @@ public class WorkListServiceTests
 
     private sealed class RotteFinte : IDocKindRoutes
     {
-        public ManagedDocKind Kind => ManagedDocKind.AccVipi;
+        public ReleaseTargetType Kind => ReleaseTargetType.AccVipi;
         public ReleaseTargetType Target => ReleaseTargetType.AccVipi;
         public string? ViewerUrl(string acc, string key, string? n, int releaseId) => $"/services/vsop/{acc}";
         public string? PublicUrl(string acc, string key, string? n) => $"/services/vsop/{acc}";
         public string? EditorUrl(string acc, string key, string? n, int? documentId) => $"/services/vsop/{acc}/editor";
+        public string? DraftUrl(string acc, string key, string? n) => $"/services/vsop/{acc}/vipi?as=draft";
     }
 
     private sealed class ImpattiFinti : IDocumentImpactRepository

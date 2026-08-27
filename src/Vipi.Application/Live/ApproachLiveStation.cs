@@ -55,7 +55,7 @@ public sealed class ApproachLiveStation : ILiveStationKind
             {
                 Title = identity is null || string.IsNullOrWhiteSpace(identity.Title) ? ctx.Callsign : identity.Title,
                 Frequencies = await _appDoc.DeriveFrequenciesAsync(ctx.Callsign, ct),
-                ExtendedDoc = new LiveDocRef(ManagedDocKind.AppVipi, ctx.Acc.Code, ctx.Callsign),
+                ExtendedDoc = new LiveDocRef(ReleaseTargetType.App, ctx.Acc.Code, ctx.Callsign),
                 NoDocument = identity is null,
             };
         }
@@ -79,7 +79,7 @@ public sealed class ApproachLiveStation : ILiveStationKind
             Frequencies = freqs,
             Groups = block is null ? Array.Empty<LiveGroup>() : new[] { new LiveGroup(block, freqs.ToList(), false) },
             TreeRoot = root,
-            ExtendedDoc = new LiveDocRef(ManagedDocKind.AccVipi, ctx.Acc.Code, null),
+            ExtendedDoc = new LiveDocRef(ReleaseTargetType.AccVipi, ctx.Acc.Code, null),
             NoDocument = block is null,
         };
     }

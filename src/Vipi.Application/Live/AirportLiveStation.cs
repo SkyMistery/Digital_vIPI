@@ -38,7 +38,7 @@ public sealed class AirportLiveStation : ILiveStationKind
         var freqs = await _parts.FrequenciesAsync(ctx.Acc.Code, new[] { ctx.Callsign }, null, ct);
 
         var published = icao is not null && (await _docs.ListAsync(ct)).Any(m =>
-            m.Kind == ManagedDocKind.AirportVipi && m.HasEffectiveRelease && !m.IsHidden
+            m.Kind == ReleaseTargetType.Airport && m.HasEffectiveRelease && !m.IsHidden
             && string.Equals(m.Scope, icao, StringComparison.OrdinalIgnoreCase));
 
         return new LiveView
@@ -52,7 +52,7 @@ public sealed class AirportLiveStation : ILiveStationKind
             Transfers = await _parts.TransfersAsync(ctx.Acc.Code, ctx.Callsign, ctx.Online, ctx.Topology, ct),
             Aor = _parts.Aor(ctx.Topology, ctx.Callsign, ctx.Online),
             CoverageChain = LiveStationParts.CoverageChain(ctx.Topology, ctx.Callsign),
-            ExtendedDoc = icao is null ? null : new LiveDocRef(ManagedDocKind.AirportVipi, ctx.Acc.Code, icao),
+            ExtendedDoc = icao is null ? null : new LiveDocRef(ReleaseTargetType.Airport, ctx.Acc.Code, icao),
             NoDocument = !published,
         };
     }

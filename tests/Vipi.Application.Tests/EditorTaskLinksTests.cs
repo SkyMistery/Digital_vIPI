@@ -20,10 +20,10 @@ public class EditorTaskLinksTests
     public async Task Ogni_tipo_di_documento_ha_il_link_del_suo_editor()
     {
         var servizio = Servizio(
-            Doc(ManagedDocKind.AirportVipi, ReleaseTargetType.Airport, "LIRF", acc: "LIRR", id: 3),
-            Doc(ManagedDocKind.AppVipi, ReleaseTargetType.App, "LIML_APP", acc: "LIMM", id: 4),
-            Doc(ManagedDocKind.Vloa, ReleaseTargetType.Vloa, "7", acc: "LIRR", id: 7, vicino: "LFFF"),
-            Doc(ManagedDocKind.AccVipi, ReleaseTargetType.AccVipi, "LIRR|", acc: "LIRR", id: 9));
+            Doc(ReleaseTargetType.Airport, ReleaseTargetType.Airport, "LIRF", acc: "LIRR", id: 3),
+            Doc(ReleaseTargetType.App, ReleaseTargetType.App, "LIML_APP", acc: "LIMM", id: 4),
+            Doc(ReleaseTargetType.Vloa, ReleaseTargetType.Vloa, "7", acc: "LIRR", id: 7, vicino: "LFFF"),
+            Doc(ReleaseTargetType.AccVipi, ReleaseTargetType.AccVipi, "LIRR|", acc: "LIRR", id: 9));
 
         var mappa = await servizio.ForAsync(new[]
         {
@@ -42,7 +42,7 @@ public class EditorTaskLinksTests
     [Fact]
     public async Task Il_link_porta_anche_il_titolo_che_il_documento_ha_adesso()
     {
-        var servizio = Servizio(Doc(ManagedDocKind.AirportVipi, ReleaseTargetType.Airport, "LIRF", "LIRR", 3, titolo: "vIPI Fiumicino"));
+        var servizio = Servizio(Doc(ReleaseTargetType.Airport, ReleaseTargetType.Airport, "LIRF", "LIRR", 3, titolo: "vIPI Fiumicino"));
 
         var mappa = await servizio.ForAsync(new[] { Incarico(ReleaseTargetType.Airport, "LIRF") });
 
@@ -54,7 +54,7 @@ public class EditorTaskLinksTests
     [Fact]
     public async Task Un_documento_sparito_non_ha_link()
     {
-        var servizio = Servizio(Doc(ManagedDocKind.AirportVipi, ReleaseTargetType.Airport, "LIRF", "LIRR", 3));
+        var servizio = Servizio(Doc(ReleaseTargetType.Airport, ReleaseTargetType.Airport, "LIRF", "LIRR", 3));
 
         var mappa = await servizio.ForAsync(new[] { Incarico(ReleaseTargetType.Airport, "LIMC") });
 
@@ -65,7 +65,7 @@ public class EditorTaskLinksTests
     [Fact]
     public async Task Senza_incarichi_legati_a_un_documento_non_si_interroga_niente()
     {
-        var repo = new DocumentiFinti(Doc(ManagedDocKind.AirportVipi, ReleaseTargetType.Airport, "LIRF", "LIRR", 3));
+        var repo = new DocumentiFinti(Doc(ReleaseTargetType.Airport, ReleaseTargetType.Airport, "LIRF", "LIRR", 3));
         var servizio = new EditorTaskLinksService(repo, Rotte());
 
         var mappa = await servizio.ForAsync(new[] { new EditorTask { Id = 1, Title = "Incarico libero" } });
@@ -85,7 +85,7 @@ public class EditorTaskLinksTests
     [Fact]
     public async Task La_chiave_che_si_sceglie_e_la_stessa_che_ritrova_il_documento()
     {
-        var accVipi = Doc(ManagedDocKind.AccVipi, ReleaseTargetType.AccVipi, "LIBB|LIBB_CTR", acc: "LIBB", id: 9);
+        var accVipi = Doc(ReleaseTargetType.AccVipi, ReleaseTargetType.AccVipi, "LIBB|LIBB_CTR", acc: "LIBB", id: 9);
         var servizio = Servizio(accVipi);
 
         var opzioni = await servizio.OpzioniAsync();
@@ -101,8 +101,8 @@ public class EditorTaskLinksTests
     [Fact]
     public async Task I_documenti_nascosti_non_sono_fra_le_opzioni()
     {
-        var visibile = Doc(ManagedDocKind.AirportVipi, ReleaseTargetType.Airport, "LIRF", "LIRR", 3);
-        var nascosto = new ManagedDoc(ManagedDocKind.AirportVipi, "Nascosto", "LIMC", "LIMM",
+        var visibile = Doc(ReleaseTargetType.Airport, ReleaseTargetType.Airport, "LIRF", "LIRR", 3);
+        var nascosto = new ManagedDoc(ReleaseTargetType.Airport, "Nascosto", "LIMC", "LIMM",
             IsPublished: true, HasDraft: false, IsHidden: true, ReleaseTargetType.Airport, "LIMC", 4);
 
         var opzioni = await Servizio(visibile, nascosto).OpzioniAsync();
@@ -117,8 +117,8 @@ public class EditorTaskLinksTests
     [Fact]
     public async Task Un_documento_senza_chiave_non_si_puo_collegare()
     {
-        var buono = Doc(ManagedDocKind.AirportVipi, ReleaseTargetType.Airport, "LIRF", "LIRR", 3);
-        var senzaChiave = new ManagedDoc(ManagedDocKind.AirportVipi, "Senza chiave", "", "LIMM",
+        var buono = Doc(ReleaseTargetType.Airport, ReleaseTargetType.Airport, "LIRF", "LIRR", 3);
+        var senzaChiave = new ManagedDoc(ReleaseTargetType.Airport, "Senza chiave", "", "LIMM",
             IsPublished: true, HasDraft: false, IsHidden: false, ReleaseTargetType.Airport, "", 5);
 
         var opzioni = await Servizio(buono, senzaChiave).OpzioniAsync();
@@ -132,7 +132,7 @@ public class EditorTaskLinksTests
     private static EditorTask Incarico(ReleaseTargetType tipo, string chiave) =>
         new() { Id = 1, Title = "x", TargetType = tipo, TargetKey = chiave };
 
-    private static ManagedDoc Doc(ManagedDocKind kind, ReleaseTargetType target, string chiave, string acc,
+    private static ManagedDoc Doc(ReleaseTargetType kind, ReleaseTargetType target, string chiave, string acc,
         int id, string? vicino = null, string titolo = "Documento") =>
         new(kind, titolo, chiave, acc, IsPublished: true, HasDraft: false, IsHidden: false, target, chiave, id, vicino);
 

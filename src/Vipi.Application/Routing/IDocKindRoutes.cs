@@ -10,7 +10,7 @@ namespace Vipi.Application.Routing;
 /// </summary>
 public interface IDocKindRoutes
 {
-    ManagedDocKind Kind { get; }
+    /// <summary>Il tipo di documento a cui queste rotte appartengono.</summary>
     ReleaseTargetType Target { get; }
 
     /// <summary>URL del viewer tipizzato in anteprima release (<c>?as=rel:{id}</c>). <paramref name="acc"/> minuscolo,
@@ -24,4 +24,15 @@ public interface IDocKindRoutes
 
     /// <summary>URL dell'editor del tipo. null se non risolvibile; il chiamante applica il proprio fallback.</summary>
     string? EditorUrl(string acc, string key, string? neighbourCode, int? documentId);
+
+    /// <summary>
+    /// URL del viewer in anteprima BOZZA (<c>?as=draft</c>): il documento come sarà, prima di pubblicarlo.
+    /// <para>
+    /// ⚠️ È la forma che le pagine usano di più — ogni editor ha il suo «vedi la bozza» — ed era l'unica che
+    /// questo registro non conosceva: i quattro editor se la componevano a mano, ognuno con la propria
+    /// stringa. Il registro esiste per togliere dalle pagine la conoscenza delle URL (doc 09 §3b), e lasciarne
+    /// fuori proprio quella la rendeva una promessa a metà (doc 14 §3h).
+    /// </para>
+    /// </summary>
+    string? DraftUrl(string acc, string key, string? neighbourCode);
 }

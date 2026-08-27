@@ -6,11 +6,6 @@ namespace Vipi.Application.Abstractions;
 public interface IContentRepository
 {
     /// <summary>
-    /// Carica la vIPI pubblicata di un ACC (per codice ACC, es. "LIRR") come struttura grezza
-    /// (albero sezioni + blocchi non filtrati). Null se non esiste.
-    /// </summary>
-
-    /// <summary>
     /// Carica la vIPI pubblicata di un aeroporto (per ICAO, es. "LIRF"): documento con scope su una
     /// posizione aeroportuale (torre) di quell'aeroporto. Null se non esiste.
     /// </summary>
@@ -30,9 +25,4 @@ public interface IContentRepository
     /// <param name="ignoreRelease">true = ignora la release AIRAC effettiva e torna lo stato pubblicato/live (anteprima bozza).</param>
     /// <param name="preferWorking">true = usa la versione di lavorazione più recente (bozza inclusa, anche se il doc non è pubblicato). Solo anteprima bozza gated.</param>
     Task<RawDocument?> LoadVloaByIdAsync(int docId, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default);
-
-    /// <summary>Carica la vLOA pubblicata della coppia (Home=<paramref name="homeAccCode"/>, Neighbour=<paramref name="foreignAccCode"/>).
-    /// Una sola vLOA per coppia ACC↔ACC. Null se non esiste.</summary>
-    /// <param name="ignoreRelease">true = ignora la release AIRAC effettiva e torna lo stato pubblicato/live (anteprima bozza).</param>
-    /// <param name="preferWorking">true = usa la versione di lavorazione più recente (bozza inclusa). Solo anteprima bozza gated.</param>
 }
