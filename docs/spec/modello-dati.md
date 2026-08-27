@@ -183,11 +183,24 @@ Un documento vIPI o vLOA. I contenuti vivono nelle **versioni**.
 | `Title` | string(200) | |
 | `Language` | enum `Language` | It (vIPI) \| En (vLOA) — fisso per documento |
 | `Status` | enum `DocumentStatus` | Draft \| Published \| Archived |
-| `CurrentVersionId` | int? FK→DocumentVersion | versione pubblicata corrente |
+| `CurrentVersionId` | int? FK→DocumentVersion | versione **pubblicata** corrente — `null` finché non si pubblica (vedi nota) |
 | `LastUpdatedUtc` | datetime | |
 | `LastUpdatedAiracCycle` | string(6) | calcolato da `AiracService` (es. `2606`) |
 | `IsHidden` | bool | nascosto dai loader pubblici (reversibile) |
 | `RowVersion` | rowversion | |
+
+> ⚠️ **`CurrentVersionId` vuol dire «la versione PUBBLICATA», e una cosa sola** (doc 14 §3i, 27 ago 2026).
+> Lo scrive `PublishAsync`; l'eliminazione lo azzera; **nessuna** delle quattro porte di nascita lo imposta.
+> Fino al 27 agosto due su quattro — l'aeroporto e la vLOA generata da «ACC confinanti» — lo puntavano alla
+> **bozza** appena creata, e un documento mai pubblicato dichiarava di avere una versione pubblicata che non
+> esisteva. Non si vedeva perché ogni lettore pubblico ha un secondo cancello più forte (release effettiva,
+> stato `Published`): il rischio era il **prossimo** lettore. Un passo d'avvio idempotente
+> (`ClearUnpublishedCurrentVersionAsync`) azzera il puntatore dove indica una versione non pubblicata —
+> ⚠️ guarda lo stato della **versione**, non del documento: un archiviato che ha davvero pubblicato qualcosa
+> tiene il suo puntatore. Rete: `NascitaDocumentoParitaTests`.
+>
+> ⚠️ **Non si imposta prima del primo `SaveChanges`**: `Document` e `DocumentVersion` si puntano a vicenda, e
+> EF vede una dipendenza **circolare**.
 
 > ⚠️ **`NeedsReviewUtc` e `ReviewReason` non ci sono più** (migrazione `AddDocumentImpact`, 25 ago 2026). Erano
 > **un** motivo solo: il secondo evento a monte sovrascriveva il primo, che spariva senza traccia. La
