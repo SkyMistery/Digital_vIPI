@@ -113,6 +113,9 @@ public class VipiDbContext : DbContext
     public DbSet<AirportDayTraffic> AirportDayTraffic => Set<AirportDayTraffic>();
     public DbSet<AtcMonthRollup> AtcMonthRollups => Set<AtcMonthRollup>();
 
+    /// <summary>La memoria di traduzione: una riga per FRASE, non per documento. Carta del 27 agosto 2026.</summary>
+    public DbSet<TranslationUnit> TranslationUnits => Set<TranslationUnit>();
+
     /// <summary>
     /// Lettura tollerante dell'azione di registro: un valore che questa versione non conosce diventa
     /// <see cref="AuditAction.Unknown"/> invece di far esplodere la query. Metodo e non lambda in linea perché
@@ -521,6 +524,30 @@ public class VipiDbContext : DbContext
             e.Property(x => x.Sha256).HasMaxLength(64);
             e.Property(x => x.ContentType).HasMaxLength(100);
             e.Property(x => x.OriginalFileName).HasMaxLength(200);
+        });
+
+        // --- Memoria di traduzione (carta del 27 agosto 2026) --------------------------------------------
+        // Content-addressed come i MediaAsset, e per la stessa ragione: l'identità di una traduzione è il
+        // TESTO che traduce, non il documento in cui quel testo si trova oggi. Nessuna FK verso sezioni o
+        // blocchi — una voce sopravvive al blocco che l'ha fatta nascere, e serve ancora al blocco che
+        // domani conterrà la stessa frase.
+        b.Entity<TranslationUnit>(e =>
+        {
+            // ⚠️ UNICO: è ciò che rende la memoria una memoria. Due righe con la stessa terna sarebbero due
+            // traduzioni della stessa frase, e la lettura pescherebbe «la prima che capita» — cioè talvolta
+            // quella automatica al posto di quella corretta a mano.
+            e.HasIndex(x => new { x.SourceLang, x.TargetLang, x.SourceHash }).IsUnique();
+
+            // ⚠️ Le lunghezze non sono cosmesi: senza, MySQL non può costruire l'indice unico su colonne
+            // di testo (chiave troppo lunga). 8+8+64 caratteri stanno larghi dentro il limite anche a
+            // quattro byte per carattere.
+            e.Property(x => x.SourceLang).HasMaxLength(8);
+            e.Property(x => x.TargetLang).HasMaxLength(8);
+            e.Property(x => x.SourceHash).HasMaxLength(64);
+            e.Property(x => x.Engine).HasMaxLength(32);
+
+            // L'elenco «cosa manca ancora di rivedere», che è la query della vista e del badge.
+            e.HasIndex(x => new { x.TargetLang, x.ReviewedUtc });
         });
 
         // --- Statistiche ATC (servizio /services/stats, carta del 24 agosto 2026) -----------------------

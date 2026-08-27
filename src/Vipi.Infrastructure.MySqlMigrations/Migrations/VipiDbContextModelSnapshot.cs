@@ -2427,6 +2427,72 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("StatsSettings");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.TranslationUnit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Engine")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int?>("ReviewedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ReviewedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("SourceHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("SourceLang")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("SourceText")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("TargetLang")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("TargetText")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TargetLang", "ReviewedUtc");
+
+                    b.HasIndex("SourceLang", "TargetLang", "SourceHash")
+                        .IsUnique();
+
+                    b.ToTable("TranslationUnits");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.UnificationRule", b =>
                 {
                     b.Property<int>("Id")
