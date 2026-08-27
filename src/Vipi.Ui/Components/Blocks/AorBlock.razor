@@ -76,6 +76,32 @@
 
     // <text> è una keyword Razor → l'SVG interno si genera come markup.
     // I valori provengono da BodyJson editabile: vanno HTML-encoded per evitare iniezione (XSS) di markup/script.
+    //
+    // ⚠️ SÌ, QUESTO DISEGNO È UNA COPIA DEI POLIGONI CHE VIAGGIANO ANCHE NEI `data-`, E NO, TOGLIERLO NON
+    // CONVIENE. Scritto qui perché è una conclusione che costa mezz'ora di misure e che, a guardare i byte
+    // grezzi, sembra ovvia al contrario.
+    //
+    // Contato il 27 agosto 2026 sulla vIPI ACC di LIBB, la pagina più pesante del sito (294 122 byte di
+    // HTML). A occhio nudo la duplicazione è enorme: 47 KB di SVG più 62 KB di JSON negli attributi, di cui
+    // 13,6 KB di soli «&quot;». Ma quello che arriva al browser è compresso, e compresso il conto cambia
+    // di segno:
+    //
+    //     com'è oggi                                    grezzo 294 122   br 32 445
+    //     coordinate arrotondate a 5 decimali           grezzo 288 161   br 34 426   PEGGIO
+    //     JSON fuori dagli attributi (niente &quot;)    grezzo 274 571   br 34 035   PEGGIO
+    //
+    // Le ripetizioni — le virgolette escapate, le lunghe cifre decimali, gli stessi numeri che compaiono
+    // sia qui sia nel JSON — sono esattamente ciò che un compressore mangia meglio. Toglierle ROMPE le
+    // ripetizioni e fa uscire più byte di prima. La copia dei poligoni, misurata da sola, costa 770 byte
+    // compressi: praticamente niente, perché il compressore la riconosce.
+    //
+    // Quel che questo disegno costa davvero è 9 230 byte compressi, e sono il prezzo di quello che fa:
+    // mostrare l'area PRIMA che Leaflet arrivi — e da quando Leaflet si carica su richiesta (vipi-boot.js)
+    // quella finestra è più lunga, non più corta. Toglierlo vuol dire un riquadro vuoto al suo posto.
+    //
+    // Se un domani lo si volesse comunque togliere, la strada NON è spedire meno dati: è far disegnare
+    // questo stesso ripiego al JavaScript, dal JSON che già c'è. Costa codice nuovo e una verifica a
+    // schermo, e vale 9 KB su una pagina che ne pesa 32.
     private string BuildSvg()
     {
         var sb = new System.Text.StringBuilder();
