@@ -69,10 +69,12 @@ UPDATE); dal secondo in poi tace. È previsto.
   (`<b>` letterale) e gli apostrofi raddoppiati in cinque sezioni, da mesi: il corpo è una `MarkupString`.
   Ora due test lo presidiano. In più una sezione nuova, «Leggere le aree regolamentate». §N5.
 
-🔴 **E una cosa che aspetta una tua decisione, trovata guardando gli screenshot**: le tessere della basemap
-arrivano stampigliate **«API KEY REQUIRED — carto.com/basemaps/apikey»**. CARTO ha chiuso il fondo anonimo.
-Riguarda **tutte** le mappe del prodotto ed è **già così in produzione**: il fondo si carica, quindi nessuna
-delle nostre reti se ne accorge. §N3.
+✅ **Il fondo delle mappe è stato cambiato la sera del 27**: le tessere CARTO arrivavano stampigliate
+**«API KEY REQUIRED»** in produzione, su tutte le mappe, e ora il fondo è **Esri «Light Gray Canvas»** —
+`server.arcgisonline.com`, l'host che serve già il rilievo delle minime. ⚠️ Nessuna delle nostre reti poteva
+accorgersene: la tessera **arrivava**, con la scritta sopra. 🔵 Resta una **decisione**, non un residuo: Esri
+è gratuito e senza contratto come CARTO fino a ieri, e l'unica strada che non si ripresenta sono le tessere
+nostre (PMTiles della sola Italia). §N3, carta *Il fondo delle mappe non è più CARTO*.
 
 ⚠️ **La lezione di §N, che vale oltre il difetto**: né gli otto test bUnit né la verifica live guardavano il
 pezzo rotto, perché **fabbricavano** gli eventi di trascinamento — dispacciando da sé proprio il `drop` che

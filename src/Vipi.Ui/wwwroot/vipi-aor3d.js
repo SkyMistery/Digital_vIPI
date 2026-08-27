@@ -95,7 +95,7 @@
         };
     }
 
-    // Pavimento = mappa geografica reale: cuce le tile CartoDB Positron che coprono il bbox e le applica come texture su
+    // Pavimento = mappa geografica reale: cuce le tile Esri «Light Gray Canvas» che coprono il bbox e le applica come texture su
     // un piano a z=0. crossOrigin='anonymous' (le tile mandano ACAO:*) → niente canvas "tainted". Fallimento rete/CORS =
     // nessuna basemap (resta la griglia). onReady(plane) al completamento per il primo render.
     function buildBasemap(THREE, proj, onReady) {
@@ -126,19 +126,47 @@
         plane.position.set((nw[0] + se[0]) / 2, (nw[1] + se[1]) / 2, -0.5);   // sotto i prismi (z≥0)
 
         // Carica e disegna ogni tile; ridisegna la texture quando tutte sono pronte.
+        //
+        // ⚠️ **Il fondo Esri è muto**: i nomi stanno in un secondo foglio (`…Reference`), come nel 2D. Qui
+        // non ci sono layer da impilare — c'è un canvas solo — quindi le etichette si dipingono SOPRA il fondo
+        // della stessa casella, e per questo si chiedono **dopo** che il fondo di quella casella è arrivato:
+        // partendo insieme, un `Reference` veloce finirebbe coperto dal `Base` che arriva dopo.
+        //
+        // ⚠️ Il conto `pending` sta sui soli fondi: il pavimento si mostra appena c'è la geografia, e i nomi
+        // compaiono poco dopo con un `needsUpdate` loro. Aspettarli tutti ritarderebbe il primo render per
+        // uno strato che non porta forma.
+        //
+        // ℹ️ Niente `@2x`: Esri non ha la doppia densità. Si perde poco — la texture è comunque 256 px per
+        // casella (`canvas.width = cols * 256`), quindi la tessera doppia veniva già rimpicciolita: era
+        // supersampling, non risoluzione vera. Per un pavimento più fine si alza il canvas, non il fornitore.
+        var ESRI_CANVAS = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_';
         var pending = cols * rows, ok = 0;
-        var subs = ['a', 'b', 'c', 'd'];
+
+        // ⚠️ ArcGIS indirizza `{z}/{y}/{x}`: prima la RIGA, poi la colonna. Invertirle non dà errore, dà un
+        // altro pezzo di mondo sotto i settori.
+        function tessera(foglio, tileX, tileY, col, row, poi) {
+            var img = new Image();
+            img.crossOrigin = 'anonymous';   // Esri manda ACAO:* → canvas non «tainted»
+            img.onload = function () {
+                try { g.drawImage(img, col * 256, row * 256, 256, 256); } catch (e) { return poi(false); }
+                poi(true);
+            };
+            img.onerror = function () { poi(false); };
+            img.src = ESRI_CANVAS + foglio + '/MapServer/tile/' + z + '/' + tileY + '/' + tileX;
+        }
+
         for (var ix = tx0; ix <= tx1; ix++) {
             for (var iy = ty0; iy <= ty1; iy++) {
                 (function (col, row, tileX, tileY) {
-                    var img = new Image();
-                    img.crossOrigin = 'anonymous';
-                    img.onload = function () {
-                        try { g.drawImage(img, col * 256, row * 256, 256, 256); ok++; } catch (e) { }
+                    tessera('Base', tileX, tileY, col, row, function (riuscita) {
+                        if (riuscita) ok++;
                         if (--pending === 0) { texture.needsUpdate = true; if (onReady) onReady(ok > 0 ? plane : null); }
-                    };
-                    img.onerror = function () { if (--pending === 0) { texture.needsUpdate = true; if (onReady) onReady(ok > 0 ? plane : null); } };
-                    img.src = 'https://' + subs[(tileX + tileY) % 4] + '.basemaps.cartocdn.com/light_all/' + z + '/' + tileX + '/' + tileY + '@2x.png';
+                        if (riuscita) {
+                            tessera('Reference', tileX, tileY, col, row, function (etichette) {
+                                if (etichette) texture.needsUpdate = true;
+                            });
+                        }
+                    });
                 })(ix - tx0, iy - ty0, ix, iy);
             }
         }

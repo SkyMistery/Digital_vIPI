@@ -84,9 +84,14 @@ quel giorno arrivava dalla CDN unpkg e qui c'era scritto «non ridistribuito, ne
 Vendorizzandolo l'obbligo lo abbiamo acquisito noi — è la ragione per cui il testo della licenza sta qui
 sotto per esteso, come per three.js e per i font.
 
-Caricato in `src/Vipi.Host/Components/App.razor` dalle rotte statiche del modulo. ℹ️ Le **tessere** della
-mappa restano esterne (`basemaps.cartocdn.com`): quelle non si vendorizzano, e sono l'unico host di terzi
-che la pagina contatti ancora.
+Caricato in `src/Vipi.Host/Components/App.razor` dalle rotte statiche del modulo. ℹ️ Le **tessere** delle
+mappe restano esterne — `server.arcgisonline.com` per il fondo chiaro e il rilievo, `tile.opentopomap.org`
+per le curve di livello: quelle non si vendorizzano, e sono gli unici host di terzi che la pagina contatti
+ancora. Attribuzione dovuta e mostrata dal controllo di Leaflet: **© Esri, HERE, Garmin, © OpenStreetMap
+contributors**; per le curve **© OpenStreetMap, SRTM | © OpenTopoMap (CC-BY-SA)**.
+
+⚠️ Fino al 27 agosto 2026 il fondo era **CartoDB Positron**; CARTO ha chiuso il basemap anonimo e le
+tessere arrivavano stampigliate «API KEY REQUIRED».
 
 ```
 BSD 2-Clause License

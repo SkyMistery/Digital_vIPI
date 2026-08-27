@@ -176,7 +176,6 @@ scrivono nei log.
 | Le risposte di Ivao.It, fra cui **chi fa il backup** | A9 / A13 |
 | La **rotazione** dei segreti esposti il 24-25 agosto | A13 |
 | Le decisioni di contenuto (LIBB: due sezioni nascoste a mano; l'elenco aeroporti da 75 righe) | K / statistiche |
-| 🔴 **La basemap CARTO ora vuole una API key** — tutte le mappe la stampigliano, già in produzione | **N3** |
 | Se `99999 ft` debba diventare `UNL` a schermo | N4 |
 
 🔵 **Resta deciso**: il database si ripulisce un'ultima volta prima di popolarlo — quindi **I1** (le radici
@@ -3015,20 +3014,30 @@ in un posto solo.
 ⚠️ **La vLOA non c'entra**: lì `regulated` è **Editorial** nel catalogo (un paragrafo di prosa sul
 coordinamento delle aree militari transfrontaliere), non l'elenco delle aree.
 
-### N3 🔴 APERTO — la basemap CARTO ora vuole una API key
+### N3 ✅ CHIUSA il 27 agosto — la basemap CARTO voleva una API key, ora è Esri
 
 **Trovato guardando gli screenshot della verifica, non cercandolo.** Le tessere di
-`basemaps.cartocdn.com/light_all` arrivano stampigliate **«API KEY REQUIRED — carto.com/basemaps/apikey»**.
-CARTO ha chiuso il fondo anonimo.
+`basemaps.cartocdn.com/light_all` arrivavano stampigliate **«API KEY REQUIRED — carto.com/basemaps/apikey»**:
+CARTO ha chiuso il fondo anonimo. Riguardava **tutte le mappe del prodotto** — AoR 2D, visore 3D, aree
+regolamentate — ed era **già così in produzione**. ⚠️ Il fondo si **caricava**, quindi né il ritentatore né lo
+spazzino potevano accorgersene: guardano la tessera che non arriva, e questa arrivava con la scritta sopra.
 
-Non è un difetto nostro e non riguarda le aree: riguarda **tutte le mappe del prodotto** — AoR 2D, visore 3D,
-aree regolamentate, carte delle minime di vettoramento — ed è **già così in produzione**. Il fondo si carica,
-quindi né il ritentatore né lo spazzino delle tessere se ne accorgono: le mappe funzionano, semplicemente
-hanno la scritta sopra.
+**Fatto**: il fondo è **Esri «Light Gray Canvas»** (`server.arcgisonline.com`, host che il prodotto interroga
+già per il rilievo delle minime), due fogli — base muto più etichette. Toccati `addBasemap` in `vipi-aor.js`,
+il pavimento del 3D in `vipi-aor3d.js`, la CSP e le note di terzi. ⚠️ **`vipi-mva.js` non c'entrava**: le
+minime avevano già lasciato Positron per il rilievo. Carta:
+[`feature/2026-08-27-basemap-esri.md`](feature/2026-08-27-basemap-esri.md).
 
-**Decisione del committente**: prendere una chiave CARTO (c'è un piano gratuito) oppure cambiare fornitore di
-tessere. Il posto da toccare è **uno solo**, `addBasemap` in `vipi-aor.js`, più la copia in `vipi-mva.js`.
-Vedi [`feature/2026-08-24-tessere-mappa-ritenti.md`](feature/2026-08-24-tessere-mappa-ritenti.md).
+🔵 **Resta aperta la categoria, non il caso.** Esri ci serve a titolo gratuito e senza contratto, come
+CARTO fino a ieri: il giorno in cui chiude siamo di nuovo qui. L'unica strada che non si ripresenta sono le
+**tessere nostre** — un PMTiles della sola Italia servito da noi, con la CSP che torna `'self'`. È lavoro
+vero (file da produrre e ospitare, un plugin al posto di `L.tileLayer`), quindi è una **decisione**, non un
+residuo.
+
+⚠️ **Trovato per strada e chiuso**: la CSP `img-src` elencava **solo** CARTO, mentre le minime chiedono
+tessere a `server.arcgisonline.com` e `*.tile.opentopomap.org` — due host fuori dalla politica da giorni. Non
+si è visto perché l'intestazione è **Report-Only**: segnala e non blocca. Il giorno che diventerà una CSP
+vera, una riga così **spegne le mappe**.
 
 ### N4 🔵 Piccolezza di contenuto, da decidere
 

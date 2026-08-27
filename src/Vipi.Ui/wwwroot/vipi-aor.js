@@ -1,4 +1,4 @@
-﻿// Mappa AOR: disegna il poligono shape reale su una basemap minimal (CartoDB Positron) via Leaflet.
+﻿// Mappa AOR: disegna il poligono shape reale su una basemap minimal (Esri Light Gray Canvas) via Leaflet.
 // Idempotente: ogni contenitore .aor-leaflet[data-poly] è inizializzato una sola volta (data-init).
 //
 // ⚠️ Leaflet NON è nel <body> di ogni pagina: sono 162 KB (js + css) che servono alle sole pagine con una
@@ -135,7 +135,7 @@
     /// RINUNCIA AL FONDO: quando la basemap non arriva e non arriverà, si toglie invece di lasciarla a pezzi.
     ///
     /// Il ritentatore e lo spazzino coprono i guasti che passano. Contro un blocco STABILE — un'estensione
-    /// che filtra `basemaps.cartocdn.com`, un DNS che non risolve, un fornitore che ci ha chiuso fuori — non
+    /// che filtra `server.arcgisonline.com`, un DNS che non risolve, un fornitore che ci ha chiuso fuori — non
     /// esiste ritento che tenga: si riprova e si resta col riquadro a scacchi. Lì la cosa giusta non è
     /// insistere ma **smettere**: via il fondo, restano lo sfondo neutro e i nostri poligoni, che sono il
     /// dato che la mappa esiste per mostrare.
@@ -279,10 +279,37 @@
     // Serve anche a vipi-mva.js, che ha i suoi fondi (Esri, OpenTopoMap) e lo stesso problema.
     window.vipiRitentaTessere = ritentaTessere;
 
-    // Basemap CartoDB Positron condivisa.
+    // Basemap condivisa: Esri «Light Gray Canvas», grigio chiaro e neutro sotto i poligoni.
+    //
+    // ⚠️ **Non è più CartoDB Positron.** Il 27 agosto 2026 CARTO ha chiuso il fondo anonimo e le tessere
+    // arrivavano stampigliate «API KEY REQUIRED». Il ritentatore e lo spazzino qui sopra non potevano
+    // accorgersene, e non è una loro mancanza: la tessera **arriva**, con la scritta sopra, ed è un'immagine
+    // valida per il browser. Un fornitore che chiude il rubinetto non si vede dal codice della risposta.
+    //
+    // ⚠️ **DUE fogli, non uno.** Positron `light_all` portava fondo e nomi nella stessa tessera; in Esri il
+    // fondo (`World_Light_Gray_Base`) è muto e le etichette stanno in un foglio a parte
+    // (`World_Light_Gray_Reference`). Col solo primo si otterrebbe una mappa senza un nome di città sopra.
+    // L'attribuzione si scrive una volta sola: è la stessa per i due fogli.
+    //
+    // ⚠️ **Ordine `{z}/{y}/{x}`, non `{z}/{x}/{y}`**: ArcGIS indirizza per riga/colonna, il contrario dello
+    // schema slippy. Invertirli non dà errore — dà l'Italia da un'altra parte del mondo. È la stessa forma
+    // già scritta in `vipi-mva.js`, che da Esri prende il rilievo.
+    //
+    // ⚠️ `maxNativeZoom: 16` e `maxZoom: 19` sono due cose diverse: il fornitore possiede fino al 16, oltre
+    // quello Leaflet **ingrandisce** l'ultima tessera buona invece di lasciare il vuoto. La ragione per esteso
+    // sta in `vipi-mva.js`, dove il vuoto si era visto davvero.
+    //
+    // ℹ️ Niente `{r}` (cioè `@2x`): Esri non ha la variante a doppia densità, che Leaflet chiederebbe da
+    // solo sugli schermi HiDPI. Lì il fondo è appena più morbido; i poligoni — il dato nostro — sono vettoriali
+    // e restano nitidi comunque.
+    var ESRI_CANVAS = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_';
+    var ESRI_ATTR = '© Esri, HERE, Garmin, © OpenStreetMap contributors';
     function addBasemap(map) {
-        ritentaTessere(L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            maxZoom: 19, subdomains: 'abcd', attribution: '© OpenStreetMap, © CARTO'
+        ritentaTessere(L.tileLayer(ESRI_CANVAS + 'Base/MapServer/tile/{z}/{y}/{x}', {
+            maxNativeZoom: 16, maxZoom: 19, attribution: ESRI_ATTR
+        })).addTo(map);
+        ritentaTessere(L.tileLayer(ESRI_CANVAS + 'Reference/MapServer/tile/{z}/{y}/{x}', {
+            maxNativeZoom: 16, maxZoom: 19
         })).addTo(map);
     }
 
