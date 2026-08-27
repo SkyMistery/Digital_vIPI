@@ -1,11 +1,61 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 26 agosto 2026, notte.
+**Ultimo aggiornamento:** 27 agosto 2026, sera.
 
-⚠️ **I rami con lavoro fuori da `main` sono DUE, e stanno in fila**: `statistiche-atc` e, costruito **sopra
-di lui**, `identita-settori`. Il secondo va fuso **dopo** il primo. Fonderli è una decisione del committente
-(`docs/lavori-aperti.md` **§B12**), non un passo tecnico rimasto indietro.
-⚠️ Insieme portano **diciassette** migrazioni e **un passo d'avvio nuovo** (`LinkAirportDocumentsAsync`).
+## Dove siamo, prima di tutto il resto
+
+✅ **Un albero solo, zero rami.** `main` è allineato a `origin/main` e non c'è lavoro fuori. I tre rami in
+fila del 26 sono stati fusi il 27 mattina (`docs/lavori-aperti.md` **§B12**), e da lì è partito e si è chiuso
+un giro nuovo: l'**audit dei quattro documenti** (**§L**, carta
+[`docs/refactor/14-quattro-documenti.md`](docs/refactor/14-quattro-documenti.md)).
+
+**Suite 5714 verdi** sui due TFM, build **0 avvisi**. ⚠️ La cifra si **conta**, non si ricorda — e su net10
+due progetti non girano per costruzione (`Vipi.AuroraBridge.Tests` e `Vipi.E2E.Tests` sono net8 soli).
+⚠️ Prima di credere a un conteggio: `grep "error MSB"`. Con un `Vipi.Host` acceso i suoi DLL sono bloccati,
+mezzo albero non compila e il totale cala di centinaia senza che il comando diventi rosso.
+
+⚠️ **DICIANNOVE migrazioni in coda** al cutover MariaDB (erano diciassette: l'audit versioni & release ne ha
+portate due). ⚠️ **Prima del deploy serve la SELECT dei duplicati su `DocReleases`**, o `CREATE UNIQUE INDEX`
+fallisce. ⚠️ **Tre passi d'avvio** idempotenti: `LinkAirportDocumentsAsync`, `ClearVloaSeededAiracRowAsync`,
+`ClearUnpublishedCurrentVersionAsync`.
+
+🔵 **L'unica cosa che aspetta il committente sul codice: ripubblicare le quattro vLOA.** La correzione del
+ciclo AIRAC doppio **non arriva al pubblico da sola** — la pagina legge lo snapshot della release, e gli
+snapshot non si riscrivono. Quattro clic; la lista «Da fare» le indica dopo il primo giro notturno (§L2).
+
+## Il giro dei quattro documenti, in cinque righe
+
+I quattro tipi previsti da direttiva — vIPI ACC, vIPI APP non remotizzato, vLOA, vIPI d'aeroporto — condividono
+ora anche il **guscio dell'editor**, il **ciclo delle sezioni del viewer**, la **nascita del documento** e un
+**enum solo**. L'aeroporto è rientrato nel modello: editor **2180 → 1001** righe, e la sua pagina pubblica è
+tornata **SSR statica** come le altre tre.
+
+⚠️ **Quattro cose da sapere prima di rifare qualcosa di simile** (per esteso in §L4):
+
+1. **«Un componente, due modi» non vale dove lettura e scrittura hanno forme diverse** — e nell'aeroporto le
+   hanno *per una ragione*: la lettura dev'essere serializzabile per il congelamento della release.
+2. **Per togliere il circuito a una pagina non serve separarne la rotta**: il render mode si dichiara sul
+   **componente**, quindi bastano le isole e gli indirizzi pubblici non si toccano.
+3. **`IReleaseTarget` non può avere un `EnsureDocumentIdAsync`**: fa **ciclo** in DI.
+4. **Una scelta che sembra da fare può essere il residuo di una già fatta**: il doppio significato di
+   `CurrentVersionId` lo teneva in vita **codice morto**.
+
+⚠️ **E tre difetti trovati SPOSTANDO il codice, non leggendolo** (§L5): una conversione di regola pista
+scritta due volte a quattrocento righe di distanza, un `MarkDirty("SID")` che nessuno salvava, sette frasi
+mai tradotte. Le due metà stavano sempre lontane: è il motivo per cui si sono viste solo muovendole.
+
+## Le due reti, che valgono più dei passi
+
+- **`ParitaQuattroDocumentiTests`** — le stesse domande di comportamento ai **cinque profili**.
+- **`NascitaDocumentoParitaTests`** — le stesse domande alle **quattro porte di nascita**.
+
+Il catalogo delle sezioni aveva già invarianti provate su tutti i profili, ed è per questo che quella parte
+non divergeva. Per il **comportamento** non esisteva l'equivalente, e **ogni** divergenza trovata da questo
+audit era passata attraverso una suite verde. Chi aggiungerà un quinto documento le eredita.
+
+---
+
+<details><summary>Lo stato precedente (26 agosto), per chi rilegge</summary>
 
 > **Il ramo `identita-settori`, in tre righe.** Nasce da una domanda del committente — *svincolare il settore
 > dal suo nome* — e porta tre lavori (più le chiusure della notte del 26, qui sotto). **(1)** L'identità dei cataloghi passa dal callsign all'**id numerico che
@@ -665,6 +715,9 @@ di lui**, `identita-settori`. Il secondo va fuso **dopo** il primo. Fonderli è 
 
 ---
 
+
+</details>
+
 ## 1. In una frase
 Portale web interattivo che trasforma le **vIPI** (istruzioni operative ATC) e le **vLOA** (lettere di accordo) della divisione IVAO Italia da Word statici a contenuto strutturato, con due livelli (Estesa/Ridotta), logica di visibilità live legata a chi è online (AoR top-down) ed editing per lo staff.
 
@@ -672,8 +725,8 @@ Portale web interattivo che trasforma le **vIPI** (istruzioni operative ATC) e l
 ```bash
 cd "vIPI Ivao Italy"            # cartella interna con la solution
 dotnet build Vipi.slnx
-dotnet test  Vipi.slnx          # 631 test (Domain 23 · App 273 · Infra 228 · Hosting 18 · Ui/bUnit 85 · E2E 4)
-dotnet run --project src/Vipi.Host --urls http://localhost:5034   # poi apri /vsop
+dotnet test  Vipi.slnx          # 5714 casi verdi sui due TFM (27-ago-2026) — ⚠️ la cifra si CONTA, non si ricorda
+dotnet run --project src/Vipi.Host --urls http://localhost:5034   # poi apri /services/vsop
 ```
 - 🔎 **Per verificare una modifica UI a schermo** (non solo coi test): skill **`.claude/skills/verifica-live/`** —
   avvio su una copia del DB, driver Edge+puppeteer-core, bersagli e trappole già mappate. Le regressioni Blazor

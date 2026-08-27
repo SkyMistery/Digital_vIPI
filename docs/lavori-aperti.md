@@ -145,38 +145,39 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 
 ## Dove siamo, in cinque righe
 
-⚠️ **Questo blocco era rimasto indietro per due giri** (dava «24 commit» e la sezione E in uno stato
-precedente). Riscritto il **26 agosto a notte**, con le cifre **contate**.
+**Riscritto il 27 agosto 2026, sera**, con le cifre **contate**.
 
-Il **cutover MariaDB è in `main`** e verificato (A1–A8). Le sezioni **B** (branch), **C** (debito, tranne C3
-e le tre voci C6/C7 aperte il 25-26), **D** (verifiche live arretrate) e **G** (audit del database, lato
-codice) sono chiuse o chiuse-con-la-ragione-scritta. La **E** è stata sfoltita: metà delle voci erano già
-fatte o non avevano più senso.
+**Non c'è più nessun ramo con lavoro fuori da `main`.** I tre in fila del 26 sono stati fusi tutti il 27
+mattina (§B12), e da lì è partito un giro nuovo — l'**audit dei quattro documenti**, §L — che è a sua volta
+in `main`. Oggi: **un albero solo, zero rami**, `main` allineato a `origin/main`.
 
-🟡 **La decisione sul tavolo è UNA, ed è B12: fondere.** ⚠️ Ma non è più un ramo solo: sono **TRE, in fila**.
+Il **cutover MariaDB** è in `main` e verificato (A1–A8). Le sezioni **B**, **C** (tranne C6/C7),
+**D**, **G** sono chiuse o chiuse-con-la-ragione-scritta. **I** è sospesa di proposito, **J**, **K** e **L**
+sono chiuse.
 
-| Ramo | Commit oltre `main` | Cosa porta |
-|---|---|---|
-| `statistiche-atc` | **82** | il terzo servizio, gli aeroporti militari, la vIPI d'aeroporto legata allo scalo, l'**eliminazione con le protezioni**, «chiedi alla sorgente», la lista «Da fare» |
-| `identita-settori` (sopra il primo) | **110** | l'identità dei settori per **id IVAO**, l'assenza che non cancella, le **shape dal sectorfile** col gate AIRAC, l'ordine delle sezioni, l'avviso a chi pubblica |
-| `aeroporto-a-sezioni` (sopra il secondo) | **16** | la vIPI d'aeroporto entra nel **catalogo delle sezioni**: si riordina, si nasconde, prende sotto-sezioni e sezioni libere ovunque; la sua release **congela** davvero; e «Validità e revisione» porta il **timbro** di chi ha pubblicato, in tutti e quattro i documenti (§K) |
+⚠️ **Le migrazioni in coda al cutover sono DICIANNOVE**, non diciassette: la fusione dell'audit versioni &
+release ne ha portate due (`UniqueReleaseNumberPerTarget`, doppia emissione). ⚠️ Datate **25-ago 15:19**,
+quindi su un DB già aggiornato EF le applicherà **fuori ordine** — lecito, ma da sapere. ⚠️ **Prima del
+deploy serve la SELECT dei duplicati su `DocReleases`**, o `CREATE UNIQUE INDEX` fallisce.
 
-⚠️ **L'ordine di fusione è quello della tabella**: ognuno è costruito sopra il precedente, non lo sostituisce.
-⚠️ Le cifre si contano: `git rev-list --count main..<ramo>`.
-⚠️ Insieme portano **DICIASSETTE** migrazioni — è la coda più lunga da mesi per il cutover MariaDB — e **un
-passo d'avvio nuovo**, `LinkAirportDocumentsAsync`, che collega gli aeroporti alla loro vIPI al primo avvio
-(idempotente, lo scrive nei log). Senza, i documenti d'aeroporto già pubblicati risulterebbero inesistenti
-alla strada nuova.
+⚠️ **Tre passi d'avvio** nuovi rispetto al 26: `LinkAirportDocumentsAsync` (dai rami fusi),
+`ClearVloaSeededAiracRowAsync` e `ClearUnpublishedCurrentVersionAsync` (§L). Tutti idempotenti e tutti si
+scrivono nei log.
 
-⚠️ **Quel che resta fuori dai due rami è quasi tutto fuori dal codice**: le risposte di Ivao.It (A9/A13) —
-fra cui **chi fa il backup**, domanda a cui oggi nessuno sa rispondere — la **rotazione** dei segreti esposti
-il 24-25 agosto, e le decisioni di contenuto che aspettano il committente.
+🔵 **Quel che aspetta il committente, oggi**
 
-🔵 **Deciso il 26 agosto sera: il database si ripulisce un'ultima volta prima di popolarlo.** Da qui **I1**
-(le radici orfane di LIRR) resta **sospesa di proposito**: non si sistema un albero che sta per essere rifatto.
+| Cosa | Dove |
+|---|---|
+| **Ripubblicare le quattro vLOA** — quattro clic, la lista «Da fare» le indica | §L |
+| Le risposte di Ivao.It, fra cui **chi fa il backup** | A9 / A13 |
+| La **rotazione** dei segreti esposti il 24-25 agosto | A13 |
+| Le decisioni di contenuto (LIBB: due sezioni nascoste a mano; l'elenco aeroporti da 75 righe) | K / statistiche |
+
+🔵 **Resta deciso**: il database si ripulisce un'ultima volta prima di popolarlo — quindi **I1** (le radici
+orfane di LIRR) è sospesa apposta: non si sistema un albero che sta per essere rifatto.
 
 **Sezioni con lavoro aperto, oggi**: **C6** (⚠️ da rileggere: metà del problema è caduta da sé), **C7a/b/c**,
-**H1** e **H3**. Le sezioni **I** (sospesa), **J** e **K** (chiuse tutte) non chiedono niente.
+**H1** e **H3**.
 
 ---
 
@@ -746,7 +747,28 @@ la ripara**.
 
 ## B. Branch non fusi — decisioni, non lavoro
 
-### B12 🟡 NON FUSO — `statistiche-atc`: la decisione è del committente
+### B12 ✅ FUSO — i tre rami in fila, fusi il 27 agosto 2026
+
+**Il committente ha deciso: fondere.** I tre rami — `statistiche-atc` → `identita-settori` →
+`aeroporto-a-sezioni` — erano costruiti l'uno sopra l'altro, quindi otto rami su nove sono entrati in
+**fast-forward, zero conflitti**. Il solo lavoro vero è stato `audit-versioni-release`, nato da `main` in
+parallelo.
+
+⚠️ **Due guasti che git non poteva vedere**, e sono la lezione che resta: *il conflitto segnalato non è
+quello che rompe*. Git ha marcato **un file solo**; a rompere sono stati (a) un parametro obbligatorio nuovo
+sui costruttori `EfReleaseRepository`/`EfDocumentAdminRepository` contro test nati sull'altro ramo — otto
+errori di compilazione, **file diversi, nessun conflitto** — e (b) `ReleasePanel`, dove il `title` della riga
+diceva «sistema» sul VID 0 mentre la riga a schermo diceva «VID 0», perché i due rami avevano toccato **due
+metodi diversi** della stessa idea.
+
+**Dopo una fusione fra rami paralleli, compilare e far girare i test è parte della fusione, non una verifica
+successiva.**
+
+Punti di ritorno spinti come tag: `punto-di-ritorno-20260827-{main,aeroporto,audit}`.
+
+<details><summary>Com'era scritta finché la decisione era aperta</summary>
+
+
 
 **Una sessantina di commit** oltre `main`, spinti su `origin/statistiche-atc`. ⚠️ **La cifra esatta si conta,
 non si legge da qui** — ed è scritta così di proposito: ogni volta che la si fissava a un numero, il commit
@@ -845,6 +867,8 @@ Verifica per tutt'e due: aprire `/services/stats/session/{id}` di una sessione r
 `TrafficoRiempitoAPosteriori`, `ImpostazioniStatistiche`, `PisteInUso`, `FasiQuoteConsegne` e
 `TrafficoAeroportoGiornaliero` (25 sera, §16.3). Il ramo
 **allunga la coda del cutover MariaDB** — a differenza di B10, che non aveva migrazioni.
+
+</details>
 
 ### B11 ✅ FUSO — `login-utente-nuovo`, fuso in `main` il 24 agosto 2026
 
@@ -2726,3 +2750,83 @@ corpi). ⚠️ È **sempre live** per una ragione di ordine: il timbro parla del
 esecuzione da `bin/Debug` ha ripreso i binari nuovi). `AirportExtraSections` è vuota e i tre «Remarks» di
 LIBC/LIBD/LIBR sono dentro i documenti con 2/5/3 blocchi: **nulla perso**, ed è la stessa migrazione che girerà
 al primo avvio in produzione. Backup pre-migrazione: `src/Vipi.Host/vipi.db.bak-pre-ripristino-shape-20260826`.
+
+---
+
+## L. I quattro documenti, un motore solo — 27 agosto 2026, **chiusa**
+
+Carta ed esito: [`docs/refactor/14-quattro-documenti.md`](refactor/14-quattro-documenti.md). Tutto in `main`.
+**Suite 5432 → 5714**, build 0 avvisi, verifica sul flusso reale con l'applicazione vera **quattro volte**.
+
+Audit di **supervisione** chiesto dal committente: i quattro tipi di documento previsti da direttiva devono
+condividere quanto più possibile. È il primo giro che ne guarda **quattro** — i doc 11 e 13 ne vedevano tre,
+perché la vIPI d'aeroporto è entrata nel catalogo delle sezioni solo il 26.
+
+**Il verdetto**: lo strato profondo rispettava già la direttiva (catalogo sezioni, `IReleaseTarget`, editor
+di sezioni e pannello release condivisi). La divergenza si era ritirata **in alto** — il guscio delle pagine —
+e **in basso**, le porte d'ingresso.
+
+### L1 ✅ Che cosa è stato fatto
+
+| | |
+|---|---|
+| La guardia «questa release è di questo documento» | sale nel servizio: la firma non si può soddisfare senza dirlo |
+| Il ciclo AIRAC scritto due volte sulla vLOA | **difetto visibile**, chiuso |
+| Lo snapshot di release | letto **una volta per pagina**: ACC LIBB 375 KB → 62,5 KB per render |
+| `DocumentEditorShell` | un guscio solo per i quattro editor (erano 16 membri con lo stesso nome) |
+| `DocumentSectionsView` | un ciclo solo per le sezioni dei viewer — porta la **vLOA sul catalogo** |
+| Le sezioni alla nascita | le dice il catalogo; i due array `LiveKeys` divergenti spariscono |
+| Un enum solo | `ManagedDocKind` fuso in `ReleaseTargetType` |
+| L'aeroporto | editor **2180 → 1001** righe, viewer **594 → 464**, pagina **SSR statica** con due isole |
+| `DocumentBirth` | la nascita del documento è una sola |
+| `CurrentVersionId` | ha **un significato solo** (§3i) |
+
+### L2 🔵 L'unica cosa che aspetta il committente: **ripubblicare le quattro vLOA**
+
+⚠️ **La correzione del ciclo AIRAC non arriva al pubblico da sola.** La pagina pubblica legge lo **snapshot**
+della release; la riconciliazione d'avvio corregge il *documento*. Sulla `LIBB ↔ LDZO` il timbro dice `2608` e
+lo snapshot dice ancora `AIRAC 2607`.
+
+**Gli snapshot non si riscrivono**, ed è una scelta: una release «congela davvero» (doc 10), e riscriverne il
+payload a posteriori cambierebbe quel che un ciclo passato ha detto — un precedente peggiore del difetto. La
+strada è **ripubblicare**, e il giro notturno `ImpactDriftUseCase` lo segnala già in «Da fare» col tasto
+**Ripubblica**.
+
+**Quattro clic.** La lista li indica da sola dopo il primo giro notturno.
+
+### L3 ✅ Le due reti, che valgono più degli otto passi
+
+- **`ParitaQuattroDocumentiTests`** — 40 prove che pongono ai **cinque profili** (l'ACC ne ha due) le stesse
+  domande di comportamento. Il catalogo aveva già invarianti su tutti i profili, ed è per questo che non
+  divergeva; per il **comportamento** non esisteva l'equivalente, e **ogni** divergenza di questo audit era
+  passata attraverso una suite verde.
+- **`NascitaDocumentoParitaTests`** — la stessa domanda a tutte e **quattro** le porte di nascita.
+
+Chi aggiungerà un quinto documento le eredita: basta aggiungere il profilo, o il caso.
+
+### L4 ⚠️ Le assunzioni cadute eseguendo — da leggere prima di rifare qualcosa di simile
+
+1. **«Un componente, due modi» non si applica alle sezioni dell'aeroporto**, e non per pigrizia: lettura e
+   scrittura hanno forme diverse *per una ragione* — la lettura è una proiezione già formattata perché
+   dev'essere **serializzabile per il congelamento della release**. Il modello di `AppSeparations` vale dove
+   lettura e scrittura sono la stessa riga.
+2. **Per togliere il circuito a una pagina NON serve separarne la rotta**: il render mode si dichiara sul
+   **componente**. Bastano le isole, e gli indirizzi pubblici non si toccano. ⚠️ I parametri che attraversano
+   il confine SSR→interattivo devono **serializzare** (`HashSet` → array).
+3. **`IReleaseTarget.EnsureDocumentIdAsync` non si può fare**: crea un **ciclo** di dipendenze in DI
+   (descrittore → servizio della famiglia → `IReleaseRepository` → registro → descrittori).
+4. **Una scelta che sembra da fare può essere il residuo di una già fatta.** `CurrentVersionId` sembrava una
+   decisione fra due significati: il secondo lo teneva in vita **codice morto** (un congelamento SID
+   dedicato, con quattro righe di test come unici chiamanti). Tolto quello, non c'era niente da decidere.
+
+### L5 ⚠️ I difetti trovati **spostando**, non leggendo
+
+Tutti e tre invisibili a chi legge il codice, perché le due metà stavano lontane:
+
+- la conversione di una **regola pista** verso il dominio era scritta **due volte**, a quattrocento righe di
+  distanza — una per il banco di prova, una per il salvataggio. Il banco poteva dire «vince la #2» e il
+  pubblicato applicarne un'altra;
+- il blocco delle **SID manuali** marcava la sezione `"SID"` invece di `"sids"`: «Salva tutto» la saltava
+  **in silenzio** e restava per sempre fra le non salvate;
+- **sette frasi in italiano cablato** (il banco di prova, gli avvisi SID) mai tradotte.
+
