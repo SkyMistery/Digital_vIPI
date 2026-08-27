@@ -249,12 +249,23 @@ internal static class VipiStartup
         // build, quindi un asset immutato conserva il proprio URL e resta valido in cache.
         AssetVersion.Initialize(app.Environment.WebRootFileProvider);
 
+        // Le varianti già compresse alla qualità massima, quando ci sono (le prepara il publish: vedi il
+        // target VipiOttimizzaAsset). Deve stare PRIMA di UseStaticFiles, che è chi poi le consegna.
+        // In sviluppo non esistono e questo middleware non fa niente.
+        app.UseVipiAssetPrecompressi();
+
         app.UseStaticFiles(new StaticFileOptions
         {
+            // Senza questo, «vipi-theme.css.br» sarebbe un tipo sconosciuto e UseStaticFiles risponderebbe
+            // 404: le varianti starebbero nel pacchetto senza che nessuno le riceva.
+            ContentTypeProvider = new AssetPrecompressi.TipiConVariantiCompresse(),
             OnPrepareResponse = ctx =>
             {
                 var dev = app.Environment.IsDevelopment();
-                var percorso = ctx.File.Name;
+                // ⚠️ Il nome può essere quello della VARIANTE («vipi-fonts.css.br»): la decisione sulla
+                // cache si prende sul nome ORIGINALE, o un .woff2.br — se un domani ce ne fosse uno —
+                // prenderebbe la scadenza corta di tutti gli altri.
+                var percorso = SenzaSuffissoDiCompressione(ctx.File.Name);
 
                 // I .woff2 sono referenziati da DENTRO vipi-fonts.css, quindi NON passano da AssetVersion e il
                 // loro URL non cambia mai. I nomi però arrivano da Google Fonts, sono già content-addressed e i
@@ -325,4 +336,14 @@ internal static class VipiStartup
 
         app.Run();
     }
+
+    /// <summary>
+    /// «vipi-fonts.css.br» → «vipi-fonts.css». Serve a decidere sul file VERO quando quello che si sta
+    /// servendo è la sua variante compressa.
+    /// </summary>
+    private static string SenzaSuffissoDiCompressione(string nome) =>
+        nome.EndsWith(".br", StringComparison.OrdinalIgnoreCase) ||
+        nome.EndsWith(".gz", StringComparison.OrdinalIgnoreCase)
+            ? nome[..nome.LastIndexOf('.')]
+            : nome;
 }

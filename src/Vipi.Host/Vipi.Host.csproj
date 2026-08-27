@@ -63,6 +63,35 @@
     ⚠️ Se `git` non c'è — build da uno zip, macchina senza git — il timbro resta vuoto e il sito dice
     «sviluppo»: mai un errore di build per una cosa che serve a raccontare.
   -->
+  <!--
+    LA WWWROOT DEL PACCHETTO, PREPARATA.
+
+    Toglie da CSS e JavaScript i commenti (il 44% dei byte spediti, contato il 27 agosto 2026: 218 905 su
+    500 367) e lascia accanto a ogni file di testo la sua variante .br e .gz già compressa alla qualità
+    massima — quella che a richiesta non ci si potrebbe permettere. Misura sui file del modulo:
+
+        com'era: non minificato, compresso a richiesta (q4)   159 852 B
+        minificato + precompresso (q11)                        48 129 B      −70%
+
+    ⚠️ Gira SOLO al publish, mai al build: in sviluppo i file devono restare leggibili — sono la
+    documentazione — e il ricaricamento a caldo non deve trovarseli riscritti sotto.
+
+    ⚠️ Se un file non è minificabile l'attrezzo esce con errore e il publish si ferma. È voluto: JavaScript
+    e CSS non li compila nessuno, quindi un errore di sintassi lì dentro non lo vede nessun'altra parte
+    della build, e il primo a incontrarlo sarebbe chi apre la pagina.
+
+    Si spegne con -p:VipiOttimizzaAsset=false, che serve a una cosa sola: guardare l'output di un publish
+    con i file ancora leggibili quando si sta cercando un guasto.
+  -->
+  <PropertyGroup>
+    <VipiOttimizzaAsset Condition="'$(VipiOttimizzaAsset)' == ''">true</VipiOttimizzaAsset>
+  </PropertyGroup>
+
+  <Target Name="VipiOttimizzaAsset" AfterTargets="Publish" Condition="'$(VipiOttimizzaAsset)' == 'true'">
+    <Exec Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)..\..\tools\Vipi.Assets\Vipi.Assets.csproj&quot; -c Release --no-launch-profile -- &quot;$(PublishDir)wwwroot&quot;"
+          StandardOutputImportance="high" />
+  </Target>
+
   <Target Name="VipiTimbroVersione" BeforeTargets="GetAssemblyAttributes" Condition="'$(DesignTimeBuild)' != 'true'">
     <Exec Command="git rev-parse --short=7 HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low"
           ContinueOnError="true" IgnoreExitCode="true">

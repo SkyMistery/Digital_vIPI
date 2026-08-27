@@ -9,6 +9,16 @@ console. Il resto della procedura — configurazione, database, servizio, proxy 
 > rendere eseguibile `Vipi.Host`, installare il servizio `systemd` e configurare nginx. Se quell'accesso non
 > c'è, il caricamento è **metà dell'opera**: si vedono i file e non si vede il sito.
 
+> ℹ️ **Dentro `wwwroot` ogni foglio di stile e ogni script ha ora due file gemelli**, `nome.css.br` e
+> `nome.css.gz`: sono lo stesso contenuto già compresso alla qualità massima, preparati dal publish, ed è
+> quello che il sito consegna al browser (un foglio di stile da 295 KB arriva così a 22 KB invece di 120).
+>
+> **Vanno caricati insieme all'originale.** Se però capita di dimenticarne uno — succederà, sono file con
+> lo stesso nome in un elenco lungo — **non si rompe niente**: l'applicazione confronta le date e, trovando
+> il gemello più vecchio del file, lo ignora e comprime al volo come faceva prima. Si perde qualche byte
+> fino al prossimo aggiornamento fatto per intero, e nient'altro. La cosa da **non** fare è cancellarli a
+> mano dal server pensando che siano avanzi.
+
 ---
 
 ## 1. Prima di aprire FileZilla
