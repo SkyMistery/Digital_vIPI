@@ -1,7 +1,6 @@
 # 14 — I quattro documenti: un motore solo 🟡
 
-> **Stato: CHIUSO** — otto passi su otto, più la domanda che P7 aveva lasciato aperta (§3i). Di P7 resta
-> la sola marcatura dell'editor SID, dichiarata in §3g. (2026-08-27, branch `refactor/14-quattro-documenti`).
+> **Stato: CHIUSO** — otto passi su otto, la domanda che P7 aveva lasciato aperta (§3i), e l'editor SID. (2026-08-27, branch `refactor/14-quattro-documenti`).
 > Seguito di [11 — Uniformità dei tre documenti](11-uniformita-tre-documenti.md) e
 > [13 — Audit dei tre documenti](13-audit-tre-documenti.md). Quelli guardavano **tre** famiglie;
 > la vIPI d'aeroporto è entrata nel catalogo delle sezioni solo il 26 agosto
@@ -248,7 +247,7 @@ messaggi su Discord — restano quelli.
 | `AeroportoPage` | **SSR statica**, come gli altri tre |
 | `DocumentBirth` | la nascita del documento è una sola |
 
-**Editor 2180 → 1617 righe. Viewer 594 → 464. Suite 5568 → 5680: 112 casi nuovi.**
+**Editor 2180 → 1001 righe. Viewer 594 → 464. Suite 5568 → 5714.**
 
 ⚠️ **Il difetto trovato estraendo, e vale più del riordino**: la conversione di una regola pista verso il
 dominio stava scritta **due volte**, campo per campo, a quattrocento righe di distanza — una per il banco di
@@ -260,12 +259,24 @@ quale pista è in uso è il difetto peggiore possibile.
 chiavi, in tutt'e due le lingue. Trasportare un difetto mentre si sposta il codice sarebbe stato il modo più
 facile di perderlo.
 
-**Quel che resta, dichiarato**
+✅ **Anche l'editor SID è uscito** (era l'ultimo pezzo dichiarato «resta»): 252 righe di marcatura e sessanta
+membri in `AirportSidsEditor`. **Editor 2180 → 1001 righe.**
 
-- La **marcatura** dell'editor SID (252 righe, 13 campi, 33 metodi) è ancora nella pagina. Ne sono usciti i
-  **cuori** — filtri e regole, cioè la parte che porta il rischio, con venti prove — e quella era la parte che
-  rendeva l'editor non provabile. Muovere il resto è presentazione: costa 33 spostamenti di metodo e non
-  compra niente finché nessuno deve riusarlo.
+⚠️ **Il difetto trovato spostandolo.** Il blocco delle SID manuali marcava la sezione `"SID"` — con la S
+maiuscola — mentre la chiave vera è `"sids"`: una stringa che non corrisponde a nessun caso dello smistamento
+del salvataggio, quindi **«Salva tutto» la saltava in silenzio** (nemmeno fra le saltate: la `switch` cade su
+`null` e fa `continue` prima del conteggio) e la sezione restava per sempre fra le non salvate.
+
+Il confine, misurato: dei trentatré metodi, **ventotto erano puri o di vista** e sono entrati. Restano alla
+pagina le sole cose che toccano il database, chieste con quattro callback.
+
+⚠️ Due conseguenze del cambio di proprietà dello stato, che sono la parte da non riscoprire:
+- la **selezione** e le righe non salvate le azzerava `LoadAsync` della pagina, che quello stato lo
+  possedeva. Ora lo possiede il componente e se ne accorge da sé guardando se i buffer sono gli stessi:
+  senza, la selezione parlerebbe di righe che non esistono più;
+- il «Re-import da IVAO» della pagina chiede conferma se ci sono righe importate non salvate. Il conteggio è
+  del componente, che lo **comunica**: una proiezione in sola lettura, non una seconda proprietà dello stesso
+  stato.
 - ✅ La domanda che questo passo aveva lasciato aperta — il significato di `CurrentVersionId` — è **chiusa
   in §3i**.
 
@@ -325,7 +336,7 @@ le **28 versioni** tutte al loro posto.
 | P4 | `DocumentEditorHost`: il guscio dell'editor | 🔸8 ⚠️7 | medio | ✅ |
 | P5 | `DocumentSectionsView`: il ciclo del viewer | ⚠️4 | medio | ✅ |
 | P6 | Le sezioni alla nascita le dice il catalogo | ⚠️5 | medio | ✅ |
-| P7 | L'aeroporto rientra nel modello | 🔸11 ⚠️6 🔸9 | alto | ✅ (resta la sola marcatura SID, §3g) |
+| P7 | L'aeroporto rientra nel modello | 🔸11 ⚠️6 🔸9 | alto | ✅ |
 | P8 | Pulizia: enum, rotte, commenti | 🔸10 🔸12 🔸13 | medio | ✅ |
 | P9 | «Versione pubblicata» ha un significato solo (§3i) | — | basso | ✅ |
 
@@ -352,7 +363,7 @@ Ogni passo è un commit, con build verde. P4 e P5 portano con sé le **prove di 
 
 ## 6. Esito
 
-**Suite: 5432 → 5702 casi verdi** sui due TFM, build `0 avvisi`. Sette passi su otto eseguiti, un commit
+**Suite: 5432 → 5714 casi verdi** sui due TFM, build `0 avvisi`. Sette passi su otto eseguiti, un commit
 per passo.
 
 ### Verifica sul flusso reale (Fase 3 del runbook)
