@@ -307,6 +307,12 @@ internal static class VipiStartup
         // motivo di essere quello.
         app.UseAntiforgery();
 
+        // Le letture anonime dei documenti pubblici sono copie CONGELATE: si possono tenere per un minuto,
+        // e non hanno bisogno del cookie antiforgery — in tutta l'interfaccia non esiste un form da inviare.
+        // Dopo UseAuthentication, perché la decisione guarda anche se chi chiede è entrato. Vedi
+        // CacheDelleLettureAnonime, che spiega ognuna delle sette clausole.
+        app.UseVipiCacheDelleLettureAnonime();
+
         // Middleware del modulo (registrazione login staff nel roster).
         app.UseVipiModule();
 
