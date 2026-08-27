@@ -351,6 +351,10 @@ public static class IvaoServiceCollectionExtensions
         // ⚠️ Non è un import — non interroga nessuna sorgente — ma vive nella stessa lista perché è un giro
         // gestito uguale agli altri, e parte per ultimo: guarda il mondo DOPO che gli import l'hanno aggiornato.
         services.AddHostedService<ImpactDriftHostedService>();
+        // ⚠️ Nemmeno questo e' un import: la sorgente che interroga non porta dati nostri, li rende in
+        // un'altra lingua. Vive qui perche' e' un giro gestito uguale agli altri, e parte per ultimo --
+        // tradurre prima degli import vorrebbe dire tradurre il corpus di ieri e ripagare domani.
+        services.AddHostedService<TranslationFillHostedService>();
         return services;
     }
 }

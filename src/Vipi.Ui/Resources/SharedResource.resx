@@ -2464,4 +2464,8 @@
   <data name="Work_AssignMe" xml:space="preserve"><value>me</value></data>
   <data name="Work_AssignDue" xml:space="preserve"><value>entro</value></data>
   <data name="Work_AssignConfirm" xml:space="preserve"><value>Assegna</value></data>
+  <data name="Tr_NoticeTitle" xml:space="preserve"><value>Pagina tradotta automaticamente</value></data>
+  <data name="Tr_NoticeMachine" xml:space="preserve"><value>La traduzione l'ha fatta una macchina e nessuno l'ha ancora riletta. Verifica la fraseologia sull'originale prima di usarla in servizio.</value></data>
+  <data name="Tr_NoticePartial" xml:space="preserve"><value>{0} frasi su {1} non sono ancora tradotte e restano nella lingua originale.</value></data>
+  <data name="Tr_ReadInSource" xml:space="preserve"><value>Leggi l'originale</value></data>
 </root>
