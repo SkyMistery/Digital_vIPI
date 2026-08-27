@@ -553,6 +553,12 @@
   <data name="Diag_Pezzo_Admin" xml:space="preserve"><value>Copertura admin</value></data>
   <data name="Diag_Pezzo_Server" xml:space="preserve"><value>Impostazioni del server</value></data>
   <data name="Diag_Pezzo_Avvio" xml:space="preserve"><value>Manutenzioni d’avvio</value></data>
+  <data name="Diag_Pezzo_Policy" xml:space="preserve"><value>Policy di import</value></data>
+  <data name="Diag_Ent_PolicyImport" xml:space="preserve"><value>Policy di import</value></data>
+  <data name="Diag_Cat_PolicyAssente" xml:space="preserve"><value>Policy di import assente</value></data>
+  <data name="Diag_Msg_PolicyAssente" xml:space="preserve"><value>La riga della policy non c’è: vale il default «tutto da sorgente», e nessuno l’ha scelto. Se qualche categoria era manuale, il prossimo giro di import la sovrascrive senza dirlo. Si chiude salvando la policy dalla pagina Sorgenti.</value></data>
+  <data name="Diag_Cat_PolicyMaiDecisa" xml:space="preserve"><value>Policy di import mai decisa</value></data>
+  <data name="Diag_Msg_PolicyMaiDecisa" xml:space="preserve"><value>Queste categorie risultano manuali senza che nessuno l’abbia scelto: {0}. Il valore viene dal default della colonna, quindi un import fermo da mesi è indistinguibile da una decisione. Si chiude salvando la policy dalla pagina Sorgenti.</value></data>
   <data name="Diag_NoIssues" xml:space="preserve"><value>Nessun rilievo: tutti i controlli sono andati a buon fine e nessuno ha trovato niente da dire — dati, schema, server, avvio e configurazione.</value></data>
   <data name="Diag_IssuesFound" xml:space="preserve"><value>{0} incongruenze rilevate ({1} gravi). Sono &lt;b&gt;solo diagnosi&lt;/b&gt;: nessun dato è stato modificato. Correzione manuale via editor.</value></data>
   <data name="Diag_Severity" xml:space="preserve"><value>Gravità</value></data>

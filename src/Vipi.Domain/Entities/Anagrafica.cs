@@ -29,6 +29,20 @@ public class Acc
     /// <summary>Istante dell'ultimo import dalla sorgente.</summary>
     public DateTime? ImportedAtUtc { get; set; }
 
+    /// <summary>
+    /// Nascita di un ACC <b>estero</b>: unica porta, perché l'invariante «gli esteri nascono con le aree spente»
+    /// vive qui e non nei chiamanti (<see cref="SpecialAreasEnabled"/> ha default <c>true</c>, che è giusto per i
+    /// domestici). Il tappo storico <c>OptOutForeignAreasAsync</c> è one-shot e non copre chi nasce dopo.
+    /// </summary>
+    public static Acc NewForeign(string code, string name) => new()
+    {
+        Code = code,
+        Name = name,
+        CountryPrefix = code.Length >= 2 ? code[..2] : code,
+        IsForeign = true,
+        SpecialAreasEnabled = false,
+    };
+
     public ICollection<Sector> Sectors { get; set; } = new List<Sector>();
     public ICollection<Airport> Airports { get; set; } = new List<Airport>();
     public ICollection<UnificationRule> UnificationRules { get; set; } = new List<UnificationRule>();

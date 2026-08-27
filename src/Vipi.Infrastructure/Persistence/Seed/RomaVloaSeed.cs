@@ -26,7 +26,7 @@ public static class RomaVloaSeed
         var dttcAcc = await db.Accs.FirstOrDefaultAsync(f => f.Code == "DTTC", ct);
         if (dttcAcc is null)
         {
-            dttcAcc = new Acc { Code = "DTTC", Name = "Tunis ACC", CountryPrefix = "DT", IsForeign = true };
+            dttcAcc = Acc.NewForeign("DTTC", "Tunis ACC");
             db.Accs.Add(dttcAcc);
             await db.SaveChangesAsync(ct);
         }

@@ -35,7 +35,7 @@ public sealed class EfImportPolicyStore : IImportPolicyStore
         var row = await _db.ImportPolicies.AsNoTracking().OrderBy(p => p.Id).FirstOrDefaultAsync(ct);
         return row is null
             // Riga assente: la policy in vigore è il default, e non l'ha decisa nessuno.
-            ? new ImportPolicyInfo(ImportPolicySnapshot.AllImported, null, 0)
+            ? new ImportPolicyInfo(ImportPolicySnapshot.AllImported, null, 0, RigaPresente: false)
             : new ImportPolicyInfo(
                 new ImportPolicySnapshot(row.ImportTransitionAltitude, row.ImportRunways, row.ImportSectors,
                     row.ImportSids, row.ImportSpecialAreas, row.ImportAtcSessions),

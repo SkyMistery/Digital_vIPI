@@ -550,6 +550,12 @@
   <data name="Diag_Pezzo_Admin" xml:space="preserve"><value>Admin coverage</value></data>
   <data name="Diag_Pezzo_Server" xml:space="preserve"><value>Server settings</value></data>
   <data name="Diag_Pezzo_Avvio" xml:space="preserve"><value>Startup maintenance</value></data>
+  <data name="Diag_Pezzo_Policy" xml:space="preserve"><value>Import policy</value></data>
+  <data name="Diag_Ent_PolicyImport" xml:space="preserve"><value>Import policy</value></data>
+  <data name="Diag_Cat_PolicyAssente" xml:space="preserve"><value>Import policy missing</value></data>
+  <data name="Diag_Msg_PolicyAssente" xml:space="preserve"><value>The policy row is not there: the default «everything from the source» applies, and nobody chose it. If any category was manual, the next import run overwrites it silently. Save the policy from the Sources page to close this.</value></data>
+  <data name="Diag_Cat_PolicyMaiDecisa" xml:space="preserve"><value>Import policy never decided</value></data>
+  <data name="Diag_Msg_PolicyMaiDecisa" xml:space="preserve"><value>These categories are manual without anyone having chosen so: {0}. The value comes from the column default, so an import stalled for months is indistinguishable from a decision. Save the policy from the Sources page to close this.</value></data>
   <data name="Diag_NoIssues" xml:space="preserve"><value>No findings: every check completed and none had anything to report — data, schema, server, startup and configuration.</value></data>
   <data name="Diag_IssuesFound" xml:space="preserve"><value>{0} inconsistencies detected ({1} severe). This is &lt;b&gt;diagnosis only&lt;/b&gt;: no data was modified. Fix manually via the editor.</value></data>
   <data name="Diag_Severity" xml:space="preserve"><value>Severity</value></data>

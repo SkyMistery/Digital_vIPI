@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Auth;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
@@ -10,7 +11,22 @@ namespace Vipi.Infrastructure.Persistence;
 public sealed class EfStructureEditingRepository : IStructureEditingRepository
 {
     private readonly VipiDbContext _db;
-    public EfStructureEditingRepository(VipiDbContext db) => _db = db;
+    private readonly IEditAuthorizationService? _authz;
+
+    /// <param name="authz">
+    /// Serve a una cosa sola: sapere <b>chi</b> sta cancellando, per il registro di audit. Opzionale perché
+    /// le prove costruiscono il repository col solo contesto e non hanno un utente; in esercizio la DI lo
+    /// passa sempre. ⚠️ Senza, la riga di audit si scrive lo stesso con attore <c>0</c>: il fatto va nel
+    /// registro anche quando l'attore non è noto — un'eliminazione muta è peggio di una senza firma.
+    /// </param>
+    public EfStructureEditingRepository(VipiDbContext db, IEditAuthorizationService? authz = null)
+    {
+        _db = db;
+        _authz = authz;
+    }
+
+    /// <summary>Chi sta agendo, per il registro. <c>0</c> = attore non noto (vedi il costruttore).</summary>
+    private int Attore => _authz?.CurrentUserId ?? 0;
 
     public async Task<IReadOnlyList<AccRow>> ListAccsAsync(CancellationToken ct = default) =>
         await _db.Accs.AsNoTracking()
@@ -39,6 +55,11 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         var airports = await _db.Airports.Where(a => a.AccId == fid).ToListAsync(ct);
         if (airports.Count > 0) _db.Airports.RemoveRange(airports);
         var acc = await _db.Accs.FirstAsync(f => f.Id == fid, ct);
+        // ⚠️ PRIMA della cancellazione: dopo, nome e codice non sono più leggibili e resterebbe un registro
+        // che non dice che cosa è sparito. Stessa lezione di EliminaBozzaAsync, stesso vocabolario di
+        // EfDeletionRepository — le due strade cancellano le stesse cose e devono raccontarle uguale.
+        AuditScribe.Write(_db, Attore, AuditAction.Delete, "Acc", acc.Code,
+            new { acc.Name, Aeroporti = airports.Count });
         _db.Accs.Remove(acc);
         await _db.SaveChangesAsync(ct);
     }
@@ -136,6 +157,8 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         if (airport is null) return;
         if (await _db.Sectors.AnyAsync(s => s.AirportId == airportId, ct))
             throw new InvalidOperationException("Impossibile eliminare l'aeroporto: dei settori vi puntano.");
+        AuditScribe.Write(_db, Attore, AuditAction.Delete, "Airport", airport.Id.ToString(),
+            new { airport.Icao, airport.Name, Acc = accCode });
         _db.Airports.Remove(airport);
         await _db.SaveChangesAsync(ct);
     }
@@ -380,6 +403,8 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
             && !await _db.Sectors.AnyAsync(s => s.AirportId == aid && s.Id != sectorId
                 && (s.Type == SectorType.Twr || s.Type == SectorType.ITwr), ct))
             throw new InvalidOperationException("Impossibile eliminare l'unica torre (TWR/I_TWR) dell'aeroporto: ogni aeroporto deve mantenerne almeno una.");
+        AuditScribe.Write(_db, Attore, AuditAction.Delete, "Sector", sector.Id.ToString(),
+            new { sector.Callsign, sector.Name, sector.Type, sector.Kind, Acc = accCode });
         _db.Sectors.Remove(sector);
         await _db.SaveChangesAsync(ct);
     }

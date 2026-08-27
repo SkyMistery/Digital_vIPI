@@ -46,14 +46,8 @@ public sealed class EfNeighbourRepository : INeighbourRepository
             }
             else
             {
-                acc = new Acc
-                {
-                    Code = code,
-                    Name = fa.Name,
-                    CountryPrefix = code.Length >= 2 ? code[..2] : code,
-                    IsForeign = true,
-                    ImportedAtUtc = now,
-                };
+                acc = Acc.NewForeign(code, fa.Name);
+                acc.ImportedAtUtc = now;
                 _db.Accs.Add(acc);
                 existingAccs[code] = acc;
             }
@@ -257,13 +251,7 @@ public sealed class EfNeighbourRepository : INeighbourRepository
         var foreignAcc = await _db.Accs.FirstOrDefaultAsync(a => a.Code == fCode, ct);
         if (foreignAcc is null)
         {
-            foreignAcc = new Acc
-            {
-                Code = fCode,
-                Name = cand.ForeignAccName,
-                CountryPrefix = fCode.Length >= 2 ? fCode[..2] : fCode,
-                IsForeign = true,
-            };
+            foreignAcc = Acc.NewForeign(fCode, cand.ForeignAccName);
             _db.Accs.Add(foreignAcc);
             await _db.SaveChangesAsync(ct);
         }

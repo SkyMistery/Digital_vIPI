@@ -36,7 +36,14 @@ public sealed record ImportPolicySnapshot(
 /// <c>ImportSids</c> è nato <c>false</c> su un DB già popolato (migration <c>AddSidImport</c>, luglio 2026),
 /// e senza questo campo un import fermo da mesi è indistinguibile da una scelta dell'amministratore.</para>
 /// </summary>
-public sealed record ImportPolicyInfo(ImportPolicySnapshot Policy, DateTime? UpdatedUtc, int UpdatedByUserId)
+/// <param name="RigaPresente">
+/// Falso quando la tabella è <b>vuota</b>: la policy che si legge non è scritta da nessuna parte, viene dai
+/// default del record. ⚠️ Distinguerlo da «riga c'è ma non l'ha decisa nessuno» serve alla diagnostica: nel
+/// primo caso una <c>DELETE</c> ha riportato il regime a «la sorgente scrive tutto» e il primo giro dopo
+/// sovrascrive TA e piste messe a mano; nel secondo i valori ci sono e uno può anche essere manuale.
+/// </param>
+public sealed record ImportPolicyInfo(ImportPolicySnapshot Policy, DateTime? UpdatedUtc, int UpdatedByUserId,
+    bool RigaPresente = true)
 {
     /// <summary>Vero se la riga non l'ha mai scritta una persona (o non c'è affatto).</summary>
     public bool MaiDecisa => UpdatedByUserId == 0;

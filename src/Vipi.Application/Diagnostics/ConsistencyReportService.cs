@@ -1,4 +1,5 @@
 using Vipi.Application.Abstractions;
+using Vipi.Domain;
 
 namespace Vipi.Application.Diagnostics;
 
@@ -20,6 +21,7 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     private readonly Auth.IAdminCoverageService? _admin;
     private readonly IServerSettingsProbe? _server;
     private readonly IStartupMaintenanceReport? _startup;
+    private readonly IImportPolicyStore? _policy;
 
     /// <param name="schema">
     /// Opzionale: se c'è, al report si aggiunge il drift fra modello EF e schema fisico. Sta qui e non in
@@ -44,15 +46,22 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     /// e lasciano proseguire l'avvio (un guasto lì, con <c>Restart=always</c>, era un ciclo di riavvii);
     /// perché «proseguire» non diventi «nessuno lo sa», il guasto esce di qui.
     /// </param>
+    /// <param name="policy">
+    /// Opzionale: il <b>regime di scrittura</b> dell'applicazione — quali categorie la sorgente può
+    /// sovrascrivere. Non è un dato editoriale né una configurazione di file: è una riga sola in archivio, e
+    /// se sparisce l'applicazione torna a «tutto da sorgente» <b>in silenzio</b>. Agganciato qui per la
+    /// ragione degli altri: è il punto letto sia dalla diagnostica sia dall'health check.
+    /// </param>
     public ConsistencyReportService(IConsistencyReportRepository repo, ISchemaDriftProbe? schema = null,
         Auth.IAdminCoverageService? admin = null, IServerSettingsProbe? server = null,
-        IStartupMaintenanceReport? startup = null)
+        IStartupMaintenanceReport? startup = null, IImportPolicyStore? policy = null)
     {
         _repo = repo;
         _schema = schema;
         _admin = admin;
         _server = server;
         _startup = startup;
+        _policy = policy;
     }
 
     /// <summary>
@@ -67,6 +76,7 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     /// </summary>
     private const string DoveAccordi = "/services/vsop/admin/transfers";
     private const string DoveStruttura = "/services/vsop/admin/sector-structure";
+    private const string DoveSorgenti = "/services/vsop/admin/sources";
 
     /// <summary>
     /// L'elenco dei documenti, non l'editor del singolo. ⚠️ Scelta dichiarata: la riga porta il <i>titolo</i>
@@ -107,6 +117,9 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         if (_startup is not null)
             await Raccogli(findings, "manutenzioni d'avvio", "Diag_Pezzo_Avvio", ConsistencyArea.Avvio,
                 () => Task.FromResult(_startup.Findings), ct);
+        if (_policy is not null)
+            await Raccogli(findings, "policy di import", "Diag_Pezzo_Policy", ConsistencyArea.Dati,
+                async () => PolicyDiImport(await _policy.GetInfoAsync(ct)), ct);
 
         return findings;
     }
@@ -137,6 +150,57 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                 DetailArgs: new object[] { ex.GetType().Name, ex.Message },
                 EntityKey: pezzoKey));
         }
+    }
+
+    /// <summary>
+    /// Il regime di scrittura in vigore, quando <b>non l'ha deciso nessuno</b>. Funzione pura sul solo
+    /// <see cref="ImportPolicyInfo"/>: il fatto è già tutto lì.
+    ///
+    /// <para>Due rilievi diversi perché sono due guasti diversi. <b>Riga assente</b>: una <c>DELETE</c> sulla
+    /// tabella riporta l'applicazione a «la sorgente scrive tutto», e il primo giro dopo sovrascrive TA e
+    /// piste messe a mano — la riga è <b>una sola</b> in tutto il database, quindi non è un caso teorico.
+    /// <b>Riga mai decisa con qualcosa di manuale</b>: quei <c>false</c> vengono dal default di una colonna,
+    /// non da una scelta (è la storia di <c>ImportSids</c>, nato spento su un DB già popolato), e un import
+    /// fermo da mesi è indistinguibile da una scelta dell'amministratore.</para>
+    /// </summary>
+    public static IReadOnlyList<ConsistencyFinding> PolicyDiImport(ImportPolicyInfo info)
+    {
+        if (!info.RigaPresente)
+        {
+            return new[]
+            {
+                new ConsistencyFinding("Policy di import assente", ConsistencySeverity.Warning,
+                    "Policy di import",
+                    "La riga della policy non c'è: vale il default «tutto da sorgente», e nessuno l'ha scelto. " +
+                    "Se qualche categoria era manuale, il prossimo giro di import la sovrascrive senza dirlo. " +
+                    "Si chiude salvando la policy voluta dalla pagina Sorgenti, anche identica a quella che si vede.",
+                    ConsistencyArea.Dati, DoveSorgenti,
+                    CategoryKey: "Diag_Cat_PolicyAssente", DetailKey: "Diag_Msg_PolicyAssente",
+                    EntityKey: "Diag_Ent_PolicyImport"),
+            };
+        }
+
+        if (!info.MaiDecisa) return Array.Empty<ConsistencyFinding>();
+
+        // Solo se qualcosa è davvero manuale: una policy tutta «da sorgente» e mai toccata è il default
+        // dichiarato del prodotto, non un'anomalia da mostrare a ogni apertura della pagina.
+        var manuali = Enum.GetValues<ImportCategory>().Where(c => !info.Policy.IsImported(c))
+            .Select(c => c.ToString()).ToArray();
+        if (manuali.Length == 0) return Array.Empty<ConsistencyFinding>();
+
+        var elenco = string.Join(", ", manuali);
+        return new[]
+        {
+            new ConsistencyFinding("Policy di import mai decisa", ConsistencySeverity.Warning,
+                "Policy di import",
+                $"Queste categorie risultano manuali senza che nessuno l'abbia scelto: {elenco}. " +
+                "Il valore viene dal default della colonna, quindi un import fermo da mesi qui è " +
+                "indistinguibile da una decisione. Si chiude salvando la policy dalla pagina Sorgenti.",
+                ConsistencyArea.Dati, DoveSorgenti,
+                CategoryKey: "Diag_Cat_PolicyMaiDecisa", DetailKey: "Diag_Msg_PolicyMaiDecisa",
+                DetailArgs: new object[] { elenco },
+                EntityKey: "Diag_Ent_PolicyImport"),
+        };
     }
 
     /// <summary>Come si nomina una clausola a video: numero, ACC e punti. Un posto solo, perché tre rilievi
