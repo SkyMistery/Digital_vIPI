@@ -16,35 +16,25 @@ namespace Vipi.Infrastructure.Persistence.Seed;
 /// </para>
 ///
 /// <para>
-/// ⚠️ <b>Quel che NON si è unificato, e perché.</b> Fra le due nascite restano tre differenze vere, e sono
-/// scelte, non sviste:
-/// <list type="number">
-/// <item><b>Le SID nascono Live sull'aeroporto</b> e non lo farebbero altrove: è una scelta editoriale
-/// storica (una SID si mostra sempre aggiornata), non una proprietà del catalogo. Sta in
-/// <paramref name="nasceLive"/> perché sia il chiamante a dirlo.</item>
-/// <item><b>I blocchi segnaposto.</b> Le altre tre famiglie li mettono sulle sezioni rese dalla pagina, così
-/// non vengono potate quando sono vuote; l'aeroporto non li ha mai avuti e le sue sezioni si vedono lo
-/// stesso, perché la pagina le disegna per chiave. Metterglieli ora cambierebbe i documenti esistenti.</item>
-/// <item><b><c>CurrentVersionId</c></b> — vedi il riquadro qui sotto: è l'unica delle tre che non è una
-/// scelta consapevole, ed è una domanda aperta.</item>
-/// </list>
+/// ⚠️ <b>Quel che NON si è unificato, e perché.</b> Fra le due nascite restano due differenze, e sono scelte
+/// vere: le <b>SID nascono Live</b> sull'aeroporto (scelta editoriale storica — una SID si mostra sempre
+/// aggiornata — non una proprietà del catalogo), e l'aeroporto <b>non mette blocchi segnaposto</b>: non li ha
+/// mai avuti, e la pagina disegna le sue sezioni per chiave. Le dichiara il chiamante.
 /// </para>
 ///
 /// <para>
-/// 🟡 <b>DOMANDA APERTA, da portare al committente.</b> L'aeroporto imposta <c>CurrentVersionId</c> sulla
-/// versione appena creata, che è una <b>bozza</b>; le altre tre famiglie lo lasciano null finché non si
-/// pubblica. I due significati non coincidono: <c>LoadForViewAsync</c> lo documenta come «solo la versione
-/// pubblicata corrente» e non guarda lo stato, quindi su un documento d'aeroporto mai pubblicato
-/// restituirebbe una bozza come se fosse la vista pubblica. In pratica oggi non fa danno — la pagina
-/// pubblica passa da un'altra porta e il cancello è comunque la release effettiva — ma l'aeroporto <b>usa</b>
-/// quel puntatore come «la versione su cui lavorare» (<c>CurrentSidsSectionAsync</c>, che accende e spegne il
-/// congelamento delle SID). Azzerarlo qui spegnerebbe quel comando sui documenti nuovi.
+/// ✅ <b>La terza differenza è stata chiusa</b> (doc 14 §3i). <c>CurrentVersionId</c> vuol dire «la versione
+/// <b>pubblicata</b> corrente»: lo scrive <c>PublishAsync</c>, l'eliminazione lo azzera. Due porte su quattro
+/// — l'aeroporto e la vLOA da «ACC confinanti» — lo puntavano invece alla bozza appena creata, e un documento
+/// mai pubblicato dichiarava di avere una versione pubblicata che non esisteva. Ora <b>nessuna</b> porta lo
+/// imposta alla nascita, e <c>NascitaDocumentoParitaTests</c> lo chiede a tutte e quattro.
 /// <br/>
-/// Non si decide dentro un refactor: o la colonna vuol dire «la pubblicata» e l'aeroporto va cambiato con una
-/// riconciliazione per quelli già scritti, o vuol dire «quella corrente» e va cambiato il commento delle
-/// altre. Finché non è deciso, ogni chiamante lo imposta da sé DOPO il salvataggio, e il suo comportamento
-/// di oggi non cambia.
+/// ⚠️ L'unico lettore che gli dava l'altro significato — «la versione su cui lavorare», in
+/// <c>CurrentSidsSectionAsync</c> — era <b>codice morto</b>: serviva a un congelamento SID dedicato che dal
+/// 26 agosto 2026 fa il toggle dell'editor condiviso, e aveva come soli chiamanti quattro righe di test.
+/// Tolto quello, il campo ha un significato solo.
 /// </para>
+///
 /// </summary>
 public static class DocumentBirth
 {

@@ -350,9 +350,10 @@ public sealed class EfAirportRepository : IAirportRepository
                 Language.It, SectionProfile.Airport, authorUserId: 0,
                 nasceLive: BornLive, conSegnaposto: false);
             await _db.SaveChangesAsync(ct);
-            // ⚠️ DOPO il salvataggio: prima gli Id non ci sono, e Document/DocumentVersion che si puntano a
-            // vicenda diventerebbero per EF una dipendenza circolare.
-            doc.CurrentVersionId = doc.Versions.First().Id;
+            // ⚠️ `CurrentVersionId` resta NULL, e adesso e' come nascono tutte e quattro le famiglie.
+            // Qui veniva impostato sulla versione appena creata, che e' una BOZZA — ma quel campo vuol dire
+            // «la versione PUBBLICATA corrente»: lo scrive `PublishAsync`, e l'eliminazione lo azzera.
+            // Un documento mai pubblicato che dichiara di averne una dice una cosa falsa.
 
             // Il legame che conta: il documento è dell'AEROPORTO. Vale anche per uno scalo senza nemmeno un
             // settore proprio — LIBG ha in IVAO solo un APP non remotizzato, e la sua vIPI d'aeroporto ora esiste.

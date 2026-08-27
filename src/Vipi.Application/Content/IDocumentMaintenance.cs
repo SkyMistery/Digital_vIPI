@@ -92,4 +92,25 @@ public interface IDocumentMaintenance
     /// </summary>
     /// <returns>Quante righe sono state tolte.</returns>
     Task<int> ClearVloaSeededAiracRowAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Azzera <c>Document.CurrentVersionId</c> dove punta a una versione <b>non pubblicata</b>. Doc 14 §3i.
+    /// <para>
+    /// Quel campo vuol dire «la versione PUBBLICATA corrente»: lo scrive <c>PublishAsync</c> e l'eliminazione
+    /// lo azzera. Due porte su quattro — l'aeroporto e la vLOA generata da «ACC confinanti» — lo puntavano
+    /// invece alla bozza appena creata, quindi un documento mai pubblicato dichiarava di avere una versione
+    /// pubblicata che non esisteva.
+    /// </para>
+    /// <para>
+    /// ⚠️ Oggi non fa danno visibile: ogni lettore pubblico ha un secondo cancello più forte (release
+    /// effettiva, e stato Published). È il PROSSIMO lettore il rischio — chi si fida del nome del campo e
+    /// non mette il secondo cancello si porta a casa una bozza.
+    /// </para>
+    /// <para>
+    /// ⚠️ Prudente: tocca solo il puntatore, mai le versioni. E non guarda lo stato del DOCUMENTO ma quello
+    /// della VERSIONE puntata — un documento archiviato che ha davvero pubblicato qualcosa resta com'è.
+    /// </para>
+    /// </summary>
+    /// <returns>Quanti puntatori sono stati azzerati.</returns>
+    Task<int> ClearUnpublishedCurrentVersionAsync(CancellationToken ct = default);
 }

@@ -209,6 +209,23 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         catch (JsonException) { return false; }
     }
 
+    public async Task<int> ClearUnpublishedCurrentVersionAsync(CancellationToken ct = default)
+    {
+        // Il puntatore e lo stato della versione PUNTATA, in una lettura sola.
+        var sospetti = await _db.Documents
+            .Where(d => d.CurrentVersionId != null)
+            .Select(d => new { d.Id, VersionStatus = d.CurrentVersion!.Status })
+            .Where(x => x.VersionStatus != DocumentStatus.Published)
+            .Select(x => x.Id)
+            .ToListAsync(ct);
+        if (sospetti.Count == 0) return 0;
+
+        var docs = await _db.Documents.Where(d => sospetti.Contains(d.Id)).ToListAsync(ct);
+        foreach (var d in docs) d.CurrentVersionId = null;
+        await _db.SaveChangesAsync(ct);
+        return docs.Count;
+    }
+
     public async Task<int> ClearMinimaPlaceholderBlocksAsync(CancellationToken ct = default)
     {
         // Solo i placeholder: blocco senza testo E senza JSON. Un blocco con contenuto è roba di un editore e resta.
