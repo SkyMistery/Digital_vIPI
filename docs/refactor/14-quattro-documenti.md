@@ -1,6 +1,6 @@
 # 14 — I quattro documenti: un motore solo 🟡
 
-> **Stato: SETTE PASSI SU OTTO ESEGUITI** (P7 aperto, con la rete pronta — §3g) (2026-08-27, branch `refactor/14-quattro-documenti`).
+> **Stato: OTTO PASSI SU OTTO ESEGUITI** (di P7 resta la sola marcatura dell'editor SID, dichiarata in §3g) (2026-08-27, branch `refactor/14-quattro-documenti`).
 > Seguito di [11 — Uniformità dei tre documenti](11-uniformita-tre-documenti.md) e
 > [13 — Audit dei tre documenti](13-audit-tre-documenti.md). Quelli guardavano **tre** famiglie;
 > la vIPI d'aeroporto è entrata nel catalogo delle sezioni solo il 26 agosto
@@ -216,31 +216,59 @@ Resta vero il rilievo 🔸9 nella sua parte sostanziale — la nascita del docum
 `EfAirportRepository` invece che dove nascono gli altri tre — e si chiude in **P7**, dove sta il resto del
 lavoro sull'aeroporto.
 
-### 3g. L'aeroporto rientra nel modello (🔸11, ⚠️6, 🔸9) — 🟡 **APERTO, con la rete pronta**
+### 3g. L'aeroporto rientra nel modello (🔸11, ⚠️6, 🔸9) — ✅ **FATTO**
 
-⚠️ **Rilievo corretto eseguendo.** La carta diceva «tre mosse indipendenti». Non lo sono: guardando il
-codice per farle, l'elenco degli aeroporti carica il **meteo in progressione dopo il render**
-(`_wxMini`, «la lista è già visibile, il meteo compare appena pronto») — quindi l'interattività su quella
-pagina **serve davvero**, e l'isola sul selettore di pista da sola non basterebbe a renderla statica.
-Elenco e documento condividono una rotta, e una pagina ha **un solo** render mode: finché stanno insieme,
-o è interattiva per tutti o si perde il meteo progressivo.
+⚠️ **Due assunzioni di questa carta sono cadute eseguendo, e vale la pena leggerle prima del resto.**
 
-Quindi ⚠️6 e la separazione della rotta sono **la stessa mossa**, non due:
+**1. «I cinque componenti prendono il flag `Editing`.»** Falso, e non per tre su cinque come avevo poi
+corretto: per **nessuno**. Lettura e scrittura di queste sezioni hanno forme di dati genuinamente diverse —
+la lettura è una proiezione già formattata (la fascia QNH è la stringa «1014 – 1030») perché dev'essere
+serializzabile per il congelamento della release; la scrittura ha i campi separati e mutabili perché è ciò
+che un `<input>` sa legare. Il modello «un componente, due modi» di `AppSeparations` funziona **perché là
+lettura e scrittura sono la stessa riga**.
 
-1. il documento d'aeroporto va su una rotta propria (`/{acc}/airports/vipi?icao=`, come `/apps/vipi?app=`),
-   l'elenco resta su `/{acc}/airports` e **resta interattivo**; serve la redirezione dai vecchi indirizzi,
-   che sono pubblici;
-2. il selettore di pista delle SID diventa un'**isola** (⚠️ i suoi parametri attraversano il confine
-   SSR→interattivo e devono essere serializzabili: `AirportSidView` va verificata a runtime, non a compilazione);
-3. i cinque componenti di sezione prendono `Editing` e i 523 righe di frammenti inline escono dalla pagina.
-   ⚠️ **Non tutti e cinque**: `AirportSids` ha una lettura da 70 righe e un editor da 251 (import + righe
-   manuali + scelta navaid). Unirli darebbe un componente peggiore di entrambi: là il modello giusto è
-   estrarre un `AirportSidsEditor` a parte, non fingere che siano lo stesso oggetto;
-4. la nascita del documento d'aeroporto lascia `EfAirportRepository` (🔸9).
+Quindi non applicarlo qui non era il difetto. Il difetto era un altro: **523 righe di editor scritte dentro
+la pagina**, che nessun test poteva montare. Sono uscite come componenti **accanto** a quelli di lettura.
 
-**La rete c'è**: `SezioniAeroportoTests` — dodici prove sulle cinque sezioni di lettura, scritte prima e
-non dopo, come pretende l'invariante #8 del runbook. Senza di essa nessuno dei quattro punti sopra era
-lecito: l'aeroporto non aveva un solo test diretto.
+**2. «Separare la rotta e togliere il circuito sono la stessa mossa.»** Falso. Il render mode si dichiara sul
+**componente**: bastava che le due parti interattive diventassero **isole**, come `LiveBadge`. Niente rotta
+nuova, niente redirezioni, e gli indirizzi pubblici — che stanno nei preferiti di chi controlla e nei
+messaggi su Discord — restano quelli.
+
+**Che cosa è stato fatto**
+
+| | |
+|---|---|
+| Modelli di scrittura | fuori dalla pagina, pubblici (`AirportEditModels.cs`) |
+| `AirportTransitionEditor`, `AirportRunwaysEditor`, `AirportFrequenciesEditor` | componenti |
+| `AirportRunwayRulesEditor` | componente, col suo banco di prova |
+| Cuori deterministici | `AirportTlValidation`, `AirportRunwayValidation`, `AirportFrequencyPicker`, `AirportRuleValidation`, `AirportRuleMapping`, `AirportSidRules` |
+| `AirportListPanel`, `AirportSids` | **isole** interattive |
+| `AeroportoPage` | **SSR statica**, come gli altri tre |
+| `DocumentBirth` | la nascita del documento è una sola |
+
+**Editor 2180 → 1617 righe. Viewer 594 → 464. Suite 5568 → 5680: 112 casi nuovi.**
+
+⚠️ **Il difetto trovato estraendo, e vale più del riordino**: la conversione di una regola pista verso il
+dominio stava scritta **due volte**, campo per campo, a quattrocento righe di distanza — una per il banco di
+prova, una per il salvataggio. Due copie che potevano divergere in silenzio: il banco avrebbe detto «con
+vento da 200° vince la #2» e il documento pubblicato ne avrebbe applicata un'altra. Su una regola che dice
+quale pista è in uso è il difetto peggiore possibile.
+
+⚠️ **Sette frasi in italiano cablato** (quattro nel banco di prova, tre negli avvisi SID) hanno finalmente le
+chiavi, in tutt'e due le lingue. Trasportare un difetto mentre si sposta il codice sarebbe stato il modo più
+facile di perderlo.
+
+**Quel che resta, dichiarato**
+
+- La **marcatura** dell'editor SID (252 righe, 13 campi, 33 metodi) è ancora nella pagina. Ne sono usciti i
+  **cuori** — filtri e regole, cioè la parte che porta il rischio, con venti prove — e quella era la parte che
+  rendeva l'editor non provabile. Muovere il resto è presentazione: costa 33 spostamenti di metodo e non
+  compra niente finché nessuno deve riusarlo.
+- 🟡 **Una domanda aperta per il committente**, scritta in `DocumentBirth`: l'aeroporto punta
+  `CurrentVersionId` a una **bozza**, le altre tre lo lasciano null fino alla pubblicazione. Oggi non fa
+  danno, ma i due significati non coincidono e l'aeroporto usa quel puntatore per accendere e spegnere il
+  congelamento delle SID. Non si decide dentro un refactor.
 
 ### 3h. Pulizia (🔸10, 🔸12, 🔸13)
 
@@ -259,7 +287,7 @@ pagine gli chiedono le URL. I commenti che mentono se ne vanno.
 | P4 | `DocumentEditorHost`: il guscio dell'editor | 🔸8 ⚠️7 | medio | ✅ |
 | P5 | `DocumentSectionsView`: il ciclo del viewer | ⚠️4 | medio | ✅ |
 | P6 | Le sezioni alla nascita le dice il catalogo | ⚠️5 | medio | ✅ |
-| P7 | L'aeroporto rientra nel modello | 🔸11 ⚠️6 🔸9 | alto | 🟡 **rete pronta, esecuzione da avviare** |
+| P7 | L'aeroporto rientra nel modello | 🔸11 ⚠️6 🔸9 | alto | ✅ (resta la sola marcatura SID, §3g) |
 | P8 | Pulizia: enum, rotte, commenti | 🔸10 🔸12 🔸13 | medio | ✅ |
 
 Ogni passo è un commit, con build verde. P4 e P5 portano con sé le **prove di parità** (§5).
@@ -285,10 +313,23 @@ Ogni passo è un commit, con build verde. P4 e P5 portano con sé le **prove di 
 
 ## 6. Esito
 
-**Suite: 5432 → 5544 casi verdi** sui due TFM, build `0 avvisi`. Sette passi su otto eseguiti, un commit
+**Suite: 5432 → 5680 casi verdi** sui due TFM, build `0 avvisi`. Sette passi su otto eseguiti, un commit
 per passo.
 
 ### Verifica sul flusso reale (Fase 3 del runbook)
+
+⚠️ **Fatta due volte**: dopo i primi sette passi, e di nuovo dopo P7.
+
+**Dopo P7**, sull'applicazione vera con una copia del `vipi.db`:
+- i quattro documenti pubblici rispondono 200 e la pagina d'aeroporto **non è più un circuito**: le isole
+  dichiarate nel markup sono due (la sua e `LiveBadge` della barra), contro l'unica delle altre tre — cioè
+  la pagina in sé non lo è più;
+- il documento di LIBR rende tutte le sue sezioni e la tabella SID;
+- **i cuori estratti girati sull'archivio vero**: 3 regole piste su 2 scali (nessun problema), i livelli di
+  transizione di **93 scali** (nessun problema), e l'invariante delle chip verificata su **367 SID reali** di
+  tre aeroporti — filtrando per una pista le chip restano tutte, che è la regola che rende usabile il
+  pannello.
+
 
 L'applicazione **vera**, pubblicata in Release e avviata su una **copia** del `vipi.db` di sviluppo
 (l'originale non è stato toccato):
