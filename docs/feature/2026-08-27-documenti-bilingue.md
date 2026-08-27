@@ -170,18 +170,35 @@ nostro codice, e di entrambe le versioni possediamo l'originale. Mandarle a un m
 per tradurre una cosa che sappiamo già dire, e accettarne la fraseologia invece della nostra — proprio
 mentre il resto della carta spiega che la fraseologia automatica è il rischio numero uno.
 
-### ⚠️ Le sezioni derivate interpolano testo scritto a mano
+### ✅ I testi scritti a mano DENTRO le sezioni derivate — fatto il 28 agosto 2026
 
-Non sono pura macchina. Misurato sul dominio, ~15 campi di prosa umana dentro sezioni «derivate»:
+Le sezioni derivate non sono pura macchina: interpolano prosa umana che vive nell'**anagrafica**, non in un
+documento. Misurato sul `vipi.db` reale, e il dato ribalta le priorità della carta:
 
-`AgreementSection.Description` (la frase capofila delle tabelle di coordinamento) ·
-`CoordinationAgreement.Note` · `CoordinationClause.HandoffLabel` / `ConditionCustomLabel` /
-`ConditionLabel` / `LevelSpecial` · `SpecialArea.Description` / `ActivationDetails` ·
-`AirportRunway.AppProcedures` / `Patterns` / `Circling` · `AirportRunwayRule.Name` ·
-`AirportSid.Condition` · `AirportExtraSection.Title` / `Body`.
+| Campo | Righe | Caratteri |
+|---|---:|---:|
+| `SpecialAreas.ActivationDetails` | 230 | **19.159** |
+| `SpecialAreas.Description` | 230 | **15.501** |
+| tutti gli altri tredici campi messi insieme | 27 | **396** |
 
-Se non passano dalla memoria di traduzione, **l'inglese esce a chiazze**: script tradotto, con buchi in
-italiano dentro. È il difetto che farebbe sembrare rotta tutta la funzione.
+**35.056 caratteri**, cioè più dell'intero corpus editoriale — e il **99% in due colonne sole**. Gli altri
+tredici campi che questa carta elencava sono rumore: quattro dei quali (le colonne delle clausole di
+coordinamento) nel database <b>non esistono nemmeno</b>.
+
+⚠️ **E il dedup rende il pezzo quasi gratuito**: 230 aree, ma appena **9 descrizioni e 6 attivazioni
+distinte**. Quindici segmenti in tutto, una chiamata al motore, una volta sola.
+
+**La lingua sorgente non è quella del documento.** Una descrizione d'area appartiene alla **sorgente** —
+IVAO, che scrive in inglese («Reserved and designated for exclusive use by SO flights only») — e la stessa
+area compare identica in una vIPI italiana e in una vLOA inglese. Entra quindi nel giro `en`, qualunque
+documento poi la mostri.
+
+`TranslationLookup` è **scoped** e carica la coppia di lingue **una volta per richiesta**: chi proietta
+scopre i testi che gli servono strada facendo, quindi non può passare un elenco di impronte prima. Con 90
+righe in memoria, una lettura sola costa meno di una query per area su 230 aree.
+
+⚠️ **Il nome dell'area non si traduce mai.** «LI-R59 Capo Frasca» è un identificatore: tradurlo renderebbe
+irriconoscibile la stessa area fra la carta e il documento, che è peggio che lasciarla in inglese.
 
 ## 5. Chi rivede, e quanto lontano arriva una correzione
 

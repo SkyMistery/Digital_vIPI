@@ -62,6 +62,16 @@ public class TraduzioneDalVivoTests : IAsyncLifetime
 
         _copia = Path.Combine(Path.GetTempPath(), $"vipi-traduzione-{Guid.NewGuid():N}.db");
         File.Copy(vero, _copia, overwrite: true);
+
+        // ⚠️ SI COPIA ANCHE IL WAL, o si legge un database VECCHIO. SQLite in modalità write-ahead tiene le
+        // scritture recenti in «vipi.db-wal» finché non fa checkpoint, e su questo database il file pesa
+        // 4 MB: copiando il solo «.db» la prova partiva da uno stato di ore prima e dichiarava «0 già in
+        // memoria» mentre nel database vero ce n'erano 90. Un banco di prova che mente sullo stato di
+        // partenza misura il lavoro sbagliato — e lo fa in silenzio, perché il conto torna lo stesso.
+        foreach (var estensione in new[] { "-wal", "-shm" })
+            if (File.Exists(vero + estensione))
+                File.Copy(vero + estensione, _copia + estensione, overwrite: true);
+
         return Task.CompletedTask;
     }
 
@@ -71,7 +81,8 @@ public class TraduzioneDalVivoTests : IAsyncLifetime
         // cancella («being used by another process»), lasciando spazzatura nella cartella temporanea a ogni
         // giro. Non basta chiudere il DbContext.
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        if (_copia.Length > 0 && File.Exists(_copia)) File.Delete(_copia);
+        foreach (var f in new[] { _copia, _copia + "-wal", _copia + "-shm" })
+            if (f.Length > 0 && File.Exists(f)) File.Delete(f);
         return Task.CompletedTask;
     }
 
@@ -141,7 +152,10 @@ public class TraduzioneDalVivoTests : IAsyncLifetime
         var secondo = await giro.EseguiAsync("en", "it");
         _out.WriteLine($"\nsecondo giro -> tradotti {secondo.Tradotti}, gia' in memoria {secondo.GiaInMemoria}");
         Assert.Equal(0, secondo.Tradotti);
-        Assert.Equal(rapporto.Tradotti, secondo.GiaInMemoria);
+        // ⚠️ Non «quante ne ha tradotte il primo giro»: il database di sviluppo ha gia' dentro il lavoro dei
+        // giri precedenti, e da quando la copia porta anche il WAL quel lavoro si vede. Quel che il secondo
+        // giro deve trovare in memoria e' TUTTO cio' che c'era piu' tutto cio' che il primo ha aggiunto.
+        Assert.Equal(rapporto.GiaInMemoria + rapporto.Tradotti, secondo.GiaInMemoria);
 
         // ⚠️ Cio' che e' stato scartato NON entra in memoria, quindi il giro dopo ci riprova — e con un
         // segmento su cui il motore sbaglia sempre allo stesso modo, ci riprovera' per sempre, spendendo

@@ -77,10 +77,15 @@ public sealed class AccDerivationService : IAccDerivationService
     /// prima — italiano per ACC/APP, inglese per la vLOA.</summary>
     private readonly ReadingLanguageContext? _lingua;
 
+    /// <summary>Traduttore dei testi dell'anagrafica (descrizioni delle aree). Opzionale: senza, restano
+    /// nella lingua della sorgente — il comportamento di prima.</summary>
+    private readonly Translation.TranslationLookup? _traduzioni;
+
 
     public AccDerivationService(IAccDerivationRepository repo, ISpecialAreaRepository areas, IAgreementService transfers,
         ITopologyProvider topology, Aor.IAorService aor, ICoordinationSentenceTemplate sentence,
-        IVectoringMinimaSource minima, ReadingLanguageContext? lingua = null)
+        IVectoringMinimaSource minima, ReadingLanguageContext? lingua = null,
+        Translation.TranslationLookup? traduzioni = null)
     {
         _repo = repo;
         _areas = areas;
@@ -90,6 +95,7 @@ public sealed class AccDerivationService : IAccDerivationService
         _sentence = sentence;
         _minima = minima;
         _lingua = lingua;
+        _traduzioni = traduzioni;
     }
 
     public Task<IReadOnlyList<AccTreeRoot>> ListTreeRootsAsync(string accCode, CancellationToken ct = default) =>
@@ -293,7 +299,10 @@ public sealed class AccDerivationService : IAccDerivationService
         if (orderedIds.Count == 0) return Array.Empty<AccSpecialAreaView>();
 
         // Ordine preservato (proprie poi extra) dal proiettore condiviso con l'APP non remotizzata.
-        return SpecialAreaProjection.Build(await _areas.GetSpecialAreasByIdsAsync(orderedIds, ct), orderedIds);
+        // I testi delle aree li scrive la SORGENTE in inglese: si rendono nella lingua di chi legge.
+        var traduci = _traduzioni is null ? null : await _traduzioni.DallaSorgenteAsync(ct);
+        return SpecialAreaProjection.Build(
+            await _areas.GetSpecialAreasByIdsAsync(orderedIds, ct), orderedIds, traduci);
     }
 
     /// <summary>Membri effettivi del blocco: Aerovia con lista vuota = TUTTI i CTR dell'ACC (una vIPI per ACC, tutti

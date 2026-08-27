@@ -58,6 +58,20 @@ public interface ITranslationMemory
     Task<IReadOnlyList<TranslationReviewRow>> ListForReviewAsync(
         string sourceLang, string targetLang, bool soloDaRileggere, int limite, CancellationToken ct = default);
 
+    /// <summary>
+    /// <b>Tutte</b> le traduzioni di una coppia di lingue: impronta → testo tradotto.
+    ///
+    /// <para>
+    /// ⚠️ Sembra sproporzionato e non lo è: serve ai testi che stanno <b>fuori dai documenti</b> — le
+    /// descrizioni delle aree regolamentate, che vivono nell'anagrafica — dove non esiste una lista di
+    /// impronte da chiedere prima, perché il chiamante scopre quali testi gli servono mentre proietta.
+    /// Misurato: la memoria intera oggi sono 90 righe, e il corpus editoriale completo 23.344 caratteri.
+    /// Chiedere la coppia intera una volta per richiesta costa meno di una query per area su 230 aree.
+    /// </para>
+    /// </summary>
+    Task<IReadOnlyDictionary<string, string>> LoadAllAsync(
+        string sourceLang, string targetLang, CancellationToken ct = default);
+
     /// <summary>Quante voci ci sono, e quante ne restano da rileggere. Per il contatore in cima.</summary>
     Task<(int Totale, int DaRileggere)> ContaAsync(
         string sourceLang, string targetLang, CancellationToken ct = default);

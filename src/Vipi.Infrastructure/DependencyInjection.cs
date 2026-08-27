@@ -217,6 +217,9 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.ITranslationMemory, EfTranslationMemory>();
         services.AddScoped<Vipi.Application.Abstractions.ITranslatableCorpus, EfTranslatableCorpus>();
         services.AddScoped<Vipi.Application.Translation.DocumentTranslator>();
+        // Traduttore dei testi dell'anagrafica dentro le sezioni derivate. Scoped: carica la coppia di
+        // lingue una volta per richiesta, perche' chi proietta scopre i testi che gli servono strada facendo.
+        services.AddScoped<Vipi.Application.Translation.TranslationLookup>();
 
 
 

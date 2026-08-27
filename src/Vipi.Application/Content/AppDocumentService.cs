@@ -122,11 +122,16 @@ public sealed class AppDocumentService : IAppDocumentService
     /// prima — italiano per ACC/APP, inglese per la vLOA.</summary>
     private readonly ReadingLanguageContext? _lingua;
 
+    /// <summary>Traduttore dei testi dell'anagrafica (descrizioni delle aree). Opzionale: senza, restano
+    /// nella lingua della sorgente — il comportamento di prima.</summary>
+    private readonly Translation.TranslationLookup? _traduzioni;
+
 
     public AppDocumentService(IAppDerivationRepository apps, ISpecialAreaRepository areas, IEditingRepository editing,
         IEditAuthorizationService authz, ITopologyProvider topology, IAgreementService transfers,
         ICoordinationSentenceTemplate sentence, IDocumentProfileRepository docProfiles, Aor.IAorService aor,
-        IVectoringMinimaSource minima, ReadingLanguageContext? lingua = null)
+        IVectoringMinimaSource minima, ReadingLanguageContext? lingua = null,
+        Translation.TranslationLookup? traduzioni = null)
     {
         _apps = apps;
         _areas = areas;
@@ -139,6 +144,7 @@ public sealed class AppDocumentService : IAppDocumentService
         _aor = aor;
         _minima = minima;
         _lingua = lingua;
+        _traduzioni = traduzioni;
     }
 
     private static string Norm(string s) => (s ?? "").Trim().ToUpperInvariant();
@@ -411,7 +417,10 @@ public sealed class AppDocumentService : IAppDocumentService
         var sel = NoAuto(selection);
         var orderedIds = sel.OwnIds.Concat(sel.ExtraIds).ToList();
         if (orderedIds.Count == 0) return Array.Empty<AccSpecialAreaView>();
-        return SpecialAreaProjection.Build(await _areas.GetSpecialAreasByIdsAsync(orderedIds, ct), orderedIds);
+        // I testi delle aree li scrive la SORGENTE in inglese: si rendono nella lingua di chi legge.
+        var traduci = _traduzioni is null ? null : await _traduzioni.DallaSorgenteAsync(ct);
+        return SpecialAreaProjection.Build(
+            await _areas.GetSpecialAreasByIdsAsync(orderedIds, ct), orderedIds, traduci);
     }
 
     // --- Configurazioni (blocco keyed "configurations"): storage editoriale + accorpamento derivato. ---

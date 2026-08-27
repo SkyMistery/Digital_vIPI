@@ -136,6 +136,17 @@ public sealed class EfTranslationMemory : ITranslationMemory
             .ToListAsync(ct).ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyDictionary<string, string>> LoadAllAsync(
+        string sourceLang, string targetLang, CancellationToken ct = default)
+    {
+        var righe = await _db.TranslationUnits.AsNoTracking()
+            .Where(u => u.SourceLang == sourceLang && u.TargetLang == targetLang)
+            .Select(u => new { u.SourceHash, u.TargetText })
+            .ToListAsync(ct).ConfigureAwait(false);
+
+        return righe.ToDictionary(r => r.SourceHash, r => r.TargetText, StringComparer.Ordinal);
+    }
+
     public async Task<(int Totale, int DaRileggere)> ContaAsync(
         string sourceLang, string targetLang, CancellationToken ct = default)
     {

@@ -45,6 +45,11 @@ public class TraduzioniCongelateTests
         public Task<IReadOnlyList<TranslationReviewRow>> ListForReviewAsync(
             string s, string t, bool solo, int limite, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<TranslationReviewRow>>(Array.Empty<TranslationReviewRow>());
+        public Task<IReadOnlyDictionary<string, string>> LoadAllAsync(
+            string s, string t, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<string, string>>(
+                new Dictionary<string, string>(StringComparer.Ordinal));
+
         public Task<(int Totale, int DaRileggere)> ContaAsync(string s, string t, CancellationToken ct = default) =>
             Task.FromResult((0, 0));
         public Task<int> DocumentiToccatiAsync(string s, CancellationToken ct = default) => Task.FromResult(0);

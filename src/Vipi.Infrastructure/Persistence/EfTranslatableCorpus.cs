@@ -61,6 +61,31 @@ public sealed class EfTranslatableCorpus : ITranslatableCorpus
         foreach (var t in titoliSezione) segmenti.Add(TranslationText.Normalize(t));
         foreach (var t in titoliDocumento) segmenti.Add(TranslationText.Normalize(t));
 
+        // ---- I testi che stanno FUORI dai documenti (carta §4) --------------------------------------
+        // ⚠️ Descrizioni e dettagli di attivazione delle aree regolamentate vivono nell'ANAGRAFICA, non in
+        // un documento: non hanno una `Document.Language`, e la loro lingua è quella della SORGENTE — IVAO,
+        // che scrive in inglese. Entrano quindi nel giro «en», qualunque documento poi li mostri.
+        //
+        // Senza questo pezzo il lettore italiano vedrebbe il documento tradotto e le aree regolamentate
+        // ancora in inglese: la stessa schermata a metà di prima, solo in un'altra sezione.
+        //
+        // Misurato il 28 agosto 2026: 230 aree, 35.056 caratteri in queste due colonne, ma appena
+        // **9 descrizioni e 6 attivazioni DISTINTE**. Il dedup rende questo pezzo quasi gratuito.
+        if (lingua == Language.En)
+        {
+            var aree = await _db.SpecialAreas.AsNoTracking()
+                .Where(a => a.Description != null || a.ActivationDetails != null)
+                .Select(a => new { a.Description, a.ActivationDetails })
+                .Distinct()
+                .ToListAsync(ct).ConfigureAwait(false);
+
+            foreach (var a in aree)
+            {
+                segmenti.Add(TranslationText.Normalize(a.Description));
+                segmenti.Add(TranslationText.Normalize(a.ActivationDetails));
+            }
+        }
+
         segmenti.Remove("");
         return segmenti.ToList();
     }
