@@ -142,6 +142,12 @@
   <data name="Aor_ConfigLabel" xml:space="preserve"><value>Configurazione:</value></data>
   <data name="Aor_Clear" xml:space="preserve"><value>azzera</value></data>
   <data name="Aor_MapHint" xml:space="preserve"><value>Accendi/spegni i settori sopra la mappa; scegli una configurazione sotto per applicarne l'assetto.</value></data>
+  <data name="Reg_NoneSelected" xml:space="preserve"><value>Nessuna area regolamentata selezionata.</value></data>
+  <data name="Reg_MapHint" xml:space="preserve"><value>Accendi/spegni le aree sopra la mappa; i tasti per tipo accendono solo quelle di quel tipo. Sotto trovi la descrizione delle sole aree accese.</value></data>
+  <data name="Reg_TypeLabel" xml:space="preserve"><value>Tipo:</value></data>
+  <data name="Reg_NoShape" xml:space="preserve"><value>shape non disponibile</value></data>
+  <data name="Reg_AllOff" xml:space="preserve"><value>Nessuna area accesa: accendine una fra le chip sopra la mappa.</value></data>
+  <data name="Reg_Shown" xml:space="preserve"><value>Aree accese: {0} su {1}.</value></data>
   <data name="Aor_3dHint" xml:space="preserve"><value>Ogni settore è estruso sulla sua banda di livelli (FL). Clicca una voce in legenda per mostrarlo/nasconderlo.</value></data>
   <data name="Aor_3dUnavailable" xml:space="preserve"><value>Vista 3D non disponibile (WebGL non attivo su questo dispositivo).</value></data>
   <data name="Aor_NoShapeTitle" xml:space="preserve"><value>Shape AOR non disponibile</value></data>

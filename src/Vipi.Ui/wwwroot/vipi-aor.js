@@ -350,7 +350,46 @@
         // (`_aorSetSec` + `_secMap`), quindi la logica chip/Tutti/Nessuno/configurazione qui sotto vale per entrambi.
         var lf = block.querySelector('.aor-leaflet, .aor3d-stage');
 
+        // Chiave di scope della sezione: la stessa per la vista 2D e per quella 3D, che si distinguono col
+        // suffisso «-3d» nel data-aor. Serve a raggiungere quel che sta FUORI dal .aor-block — le descrizioni
+        // delle aree regolamentate — come già fa syncCfgDetails coi <details> di configurazione.
+        var scope = (block.dataset.aor || '').replace(/-3d$/, '');
+
+        // Aree regolamentate: la chip accende l'area sulla mappa E la sua descrizione qui sotto. Sull'AoR non
+        // c'è nessuna card con quel nome e questa funzione non trova niente: costa una query e basta.
+        function setCard(sec, on) {
+            var box = document.querySelector('[data-areacards="' + scope + '"]');
+            if (!box) return;
+            var c = box.querySelector('[data-areacard="' + (sec || '').replace(/"/g, '') + '"]');
+            if (c) c.hidden = !on;
+        }
+
+        // Porta in vista la PRIMA chip accesa dentro la sua barra. Serve quando la barra scorre — 105 chip su
+        // LIRR — e un preset ne accende quattro in fondo: la barra resta in cima, mostrando quattro righe di
+        // pastiglie tutte spente, e sembra che il tasto abbia spento tutto. Si muove SOLO la barra
+        // (`scrollTop`), non la pagina: `scrollIntoView` trascinerebbe con sé ogni antenato che scorre.
+        function mostraPrimaAccesa() {
+            var bar = block.querySelector('.aor-toggles');
+            if (!bar || bar.scrollHeight <= bar.clientHeight + 1) return;
+            var chip = bar.querySelector('.aor-chip.on');
+            if (chip) bar.scrollTop = Math.max(0, chip.offsetTop - bar.offsetTop - 4);
+        }
+
+        // Quante ne restano accese: senza, un elenco che si accorcia da 105 a 3 sembra rotto.
+        function syncCount() {
+            var box = document.querySelector('[data-areacards="' + scope + '"]');
+            if (!box) return;
+            var tutte = box.querySelectorAll('[data-areacard]');
+            var accese = box.querySelectorAll('[data-areacard]:not([hidden])');
+            var riga = box.querySelector('[data-areacount]');
+            if (riga) riga.textContent = riga.dataset.fmt
+                ? riga.dataset.fmt.replace('{0}', accese.length).replace('{1}', tutte.length) : '';
+            var vuoto = box.querySelector('[data-areaempty]');
+            if (vuoto) vuoto.hidden = accese.length > 0;
+        }
+
         function setSec(sec, on) {
+            setCard(sec, on);
             if (lf && lf._aorSetSec) { lf._aorSetSec(sec, on); return; }
             if (lf) lf.querySelectorAll('svg [data-sec="' + (sec || '').replace(/"/g, '') + '"]').forEach(function (p) {
                 p.style.display = on ? '' : 'none';
@@ -398,6 +437,7 @@
                     setSec(ch.dataset.sec, on);
                 });
                 syncCfgDetails(t.dataset.cfgkey || '');   // apre solo questa, collassa le altre
+                mostraPrimaAccesa();
             }
             refit();
             // Tiene l'AoR al centro schermo: aprire i details config sposta il layout.
@@ -409,6 +449,7 @@
             syncCfgDetails(null);
             refit();
         }
+        syncCount();
     }
     document.addEventListener('click', onAorClick);
 

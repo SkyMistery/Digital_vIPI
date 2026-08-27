@@ -81,13 +81,14 @@ node driver.js
 `driver.js` accanto a questo file è il punto di partenza: adattarne la sezione dei passi.
 Edge sta in `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`.
 
-Accanto a `driver.js` ci sono altri **tre** script, che non si adattano: si lanciano così com'è.
+Accanto a `driver.js` ci sono altri **quattro** script, che non si adattano: si lanciano così com'è.
 
 | script | cosa prende | quando |
 |---|---|---|
 | `sweep.js` | fondi che **non si sono girati** nel tema scuro (12 pagine) | dopo ogni modifica a un foglio di stile |
 | `probe.js` | testo sotto **4.5:1** su una pagina, in un tema | quando si cambia un colore di testo |
 | `drag-verifica.js` | il riordino delle sezioni trascinando, con un drag **vero** (§4-bis) | quando si tocca `EditorToc` o `wireTocDrop` |
+| `aree-verifica.js` | la sezione «Aree regolamentate» su ACC/APP: chip, preset per tipo, 2D↔3D, descrizioni | quando si tocca `RegulatedAreas`, `AccAor` o le chip in `vipi-aor.js` |
 
 ```powershell
 node sweep.js

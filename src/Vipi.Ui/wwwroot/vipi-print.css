@@ -164,6 +164,16 @@
   .vipi-root .ta-badge .muted { font-size: 8pt; }
   .vipi-root .pill, .vipi-root .rwy-key, .vipi-root .st-pill,
   .vipi-root .pref-tag, .vipi-root .aor-chip { font-size: 7.5pt; }
+
+  /* Le chip sulla carta non sono comandi, sono la LEGENDA della mappa: stampa quelle accese, cioè quelle che
+     un poligono sul foglio ce l'hanno davvero. Le altre direbbero il nome di qualcosa che non si vede.
+     ⚠️ Nato con le aree regolamentate, dove le chip sono una per area (105 su LIRR) e stamparle tutte
+     significava una pagina di pastiglie per una mappa con tre poligoni. Vale anche per l'AoR, ed è giusto:
+     il foglio deve dire quello che dice lo schermo. */
+  .vipi-root .aor-chip:not(.on) { display: none; }
+  /* A schermo la barra delle aree è alta al massimo quattro righe e scorre; sulla carta non si scorre, e
+     quel che resta fuori sarebbe perso. Qui si lascia crescere. */
+  .vipi-root .aor-many .aor-toggles { max-height: none; overflow: visible; }
   /* Card più compatte: il riquadro serve a separare le sezioni, non a fare aria. */
   .vipi-root .block { padding: 9px 11px; margin-bottom: 9px; }
 

@@ -48,8 +48,10 @@ public static class SectionCatalog
     public static SectionKind KindOf(string key) => KindByKey.TryGetValue(key, out var k) ? k : SectionKind.Editorial;
 
     // Sezioni che nascono COLLASSATE (doc 11 §3i): quelle il cui contenuto è voluminoso per natura — «Aree
-    // regolamentate» su una ACC sono decine di aree, ognuna con la sua mappa, e aperta la sezione occupa il
-    // documento da sola. Vale OVUNQUE: viewer ed editor, tutte e tre le famiglie.
+    // regolamentate» su una ACC sono decine di aree (105 su LIRR), e aperta la sezione occupa il documento
+    // da sola. Vale OVUNQUE: viewer ed editor, tutte e tre le famiglie.
+    // ⚠️ Qui c'era scritto «ognuna con la sua mappa»: non è più vero dal 27 agosto 2026 — la sezione ha una
+    // mappa sola con le chip. Resta collassata per il numero di RIGHE, non più per il numero di mappe.
     private static readonly IReadOnlySet<string> InitiallyCollapsedKeys =
         new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "regulated" };
 
