@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.IO.Compression;
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Vipi.Host;
@@ -87,6 +88,27 @@ internal static class VipiStartup
             o.Providers.Add<GzipCompressionProvider>();
             o.MimeTypes = new[] { "text/css", "text/javascript", "application/javascript", "application/json", "image/svg+xml", "text/html" };
         });
+
+        // ⚠️ I LIVELLI SI SCRIVONO, e la ragione è misurata — non è rifinitura.
+        //
+        // Il default di ASP.NET per ENTRAMBI i provider è CompressionLevel.Fastest, che per Brotli vuol dire
+        // QUALITÀ 1: il livello più basso che il formato ha. E Brotli è registrato per primo, quindi vince la
+        // negoziazione con ogni browser moderno (mandano tutti «br»). Il risultato misurato il 27 agosto 2026
+        // sul server vero, prima di questa riga:
+        //
+        //     vipi-theme.css   grezzo 295 571 B   servito(br) 120 601 B   gzip 101 217 B
+        //     HTML vIPI ACC    grezzo 294 776 B   servito(br)  62 161 B   gzip  50 018 B
+        //
+        // Cioè: attivare Brotli faceva scaricare ~24% di byte IN PIÙ di quanti se ne sarebbero scaricati
+        // lasciando solo gzip. Un difetto che non somiglia a un difetto — la compressione c'era, l'header
+        // «Content-Encoding: br» pure, e nessun errore da nessuna parte.
+        //
+        // Optimal e non SmallestSize: SmallestSize è la qualità 11, che su 300 KB costa centinaia di
+        // millisecondi di CPU A OGNI RICHIESTA (qui non ci sono varianti precompilate: su net8 UseStaticFiles
+        // serve i file così come sono, vedi il commento a UseResponseCompression). Optimal è la qualità 4, che
+        // batte gzip-6 e costa poco. Chi volesse la qualità 11 la paghi a build-time, non a richiesta.
+        builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Optimal);
+        builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Optimal);
 
         // Ogni richiesta finita in eccezione lascia una riga in diagnostica/errori-richieste.txt, con lo
         // stesso codice che la pagina d'errore mostra all'utente. Su questo host i log del processo non li
