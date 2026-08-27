@@ -89,6 +89,7 @@ Accanto a `driver.js` ci sono altri **quattro** script, che non si adattano: si 
 | `probe.js` | testo sotto **4.5:1** su una pagina, in un tema | quando si cambia un colore di testo |
 | `drag-verifica.js` | il riordino delle sezioni trascinando, con un drag **vero** (§4-bis) | quando si tocca `EditorToc` o `wireTocDrop` |
 | `aree-verifica.js` | la sezione «Aree regolamentate» su ACC/APP: chip, preset per tipo, 2D↔3D, descrizioni | quando si tocca `RegulatedAreas`, `AccAor` o le chip in `vipi-aor.js` |
+| `lazy-verifica.js` | che i quattro moduli pesanti (mappe, minime, 3D, tour) arrivino **solo** dove servono, e che dove servono arrivino | quando si tocca `vipi-boot.js` o l'elenco degli `<script>` in `App.razor` |
 
 ```powershell
 node sweep.js
