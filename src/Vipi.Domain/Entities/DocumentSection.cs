@@ -39,6 +39,19 @@ public class DocumentSection
     /// </summary>
     public bool LeadSentence { get; set; }
 
+    /// <summary>
+    /// A chi si rivolge la sezione (carta <c>2026-08-27-vsop-militari.md</c> §3). <b>Quinto flag</b> con
+    /// <see cref="RenderMode"/>, <see cref="IsHidden"/>, <see cref="BeforeParentBody"/> e
+    /// <see cref="LeadSentence"/>, e per la stessa ragione: è una scelta editoriale, quindi è versionata e
+    /// finisce nello snapshot di release senza una riga di codice in più.
+    ///
+    /// <para>Default <see cref="SectionAudience.Both"/> = per tutti: nessuna sezione già scritta cambia da
+    /// sé, e la chip di filtro compare solo dove qualcuno ha marcato qualcosa.</para>
+    /// <para>⚠️ Non è controllo d'accesso: il documento è pubblico e la vista ATC la apre chiunque cambi
+    /// l'indirizzo. È un filtro di lettura.</para>
+    /// </summary>
+    public SectionAudience Audience { get; set; }
+
     public byte[]? RowVersion { get; set; }                // concorrenza ottimistica in editing
 
     public ICollection<DocumentSection> Children { get; set; } = new List<DocumentSection>();

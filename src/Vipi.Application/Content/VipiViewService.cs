@@ -123,7 +123,7 @@ public sealed class VipiViewService : IVipiViewService
             Depth = s.Depth,
             SectionKey = s.SectionKey,
             IsHidden = s.IsHidden,
-            BeforeParentBody = s.BeforeParentBody,
+            BeforeParentBody = s.BeforeParentBody, Audience = s.Audience,
             LeadSentence = s.LeadSentence,
             Blocks = blocks,
             Children = children,

@@ -33,6 +33,32 @@ public enum EditorTaskStatus { Todo, InProgress, InReview, Done, Blocked }
 /// <summary>Priorità di un incarico editoriale.</summary>
 public enum EditorTaskPriority { Low, Normal, High }
 
+/// <summary>
+/// A chi si rivolge una sezione di documento (carta <c>docs/feature/2026-08-27-vsop-militari.md</c> §3).
+///
+/// <para>
+/// ⚠️ <b>Non è controllo d'accesso.</b> Il documento è pubblico e la vista ATC la apre chiunque cambi
+/// l'indirizzo: è un <b>filtro di lettura</b>, e chi ci scrive dentro deve saperlo.
+/// </para>
+/// <para>
+/// <see cref="Both"/> è lo zero dell'enum, ed è voluto: ogni sezione già esistente nasce così e nessun
+/// documento cambia di una virgola finché qualcuno non marca qualcosa a mano. La maggioranza delle
+/// sezioni resterà <c>Both</c> — il contenuto davvero di uno solo dei due è poco, e il valore della
+/// funzione sta nelle poche che non lo sono.
+/// </para>
+/// </summary>
+public enum SectionAudience
+{
+    /// <summary>Per tutti. Non porta badge e non si filtra mai via.</summary>
+    Both,
+
+    /// <summary>Solo per i piloti.</summary>
+    Pilots,
+
+    /// <summary>Solo per i controllori.</summary>
+    Controllers,
+}
+
 /// <summary>Lingua fissa per documento: IT per le vIPI, EN per le vLOA.</summary>
 public enum Language { It, En }
 

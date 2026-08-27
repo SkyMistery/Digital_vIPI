@@ -526,6 +526,15 @@ public class VipiDbContext : DbContext
             e.Property(x => x.OriginalFileName).HasMaxLength(200);
         });
 
+        // --- A chi si rivolge una sezione (carta vSOP militari del 27 agosto 2026) ---
+        // ⚠️ Default DICHIARATO NEL MODELLO e non solo nella migrazione: su Postgres la colonna la aggiunge
+        // PostgresSchemaReconciler, che legge di qui il valore con cui backfillare le righe esistenti.
+        // Senza, le sezioni già scritte nascerebbero con una stringa vuota, che non è un nome dell'enum.
+        // Vale perché Both è lo zero dell'enum.
+        b.Entity<DocumentSection>()
+            .Property(x => x.Audience)
+            .HasDefaultValue(SectionAudience.Both);
+
         // --- Memoria di traduzione (carta del 27 agosto 2026) --------------------------------------------
         // Content-addressed come i MediaAsset, e per la stessa ragione: l'identità di una traduzione è il
         // TESTO che traduce, non il documento in cui quel testo si trova oggi. Nessuna FK verso sezioni o

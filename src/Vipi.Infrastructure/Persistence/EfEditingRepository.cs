@@ -131,7 +131,7 @@ public sealed class EfEditingRepository : IEditingRepository
             Order = s.Order,
             RenderMode = s.RenderMode,
             IsHidden = s.IsHidden,
-            BeforeParentBody = s.BeforeParentBody,
+            BeforeParentBody = s.BeforeParentBody, Audience = s.Audience,
             LeadSentence = s.LeadSentence,
             Blocks = (blocksBySection.TryGetValue(s.Id, out var bs) ? bs : new())
                 .Select(b => new EditableBlock
@@ -205,7 +205,7 @@ public sealed class EfEditingRepository : IEditingRepository
                     Title = s.Title, Order = s.Order, Depth = s.Depth, SectionKey = s.SectionKey,
                     // La copia deve portarsi dietro anche i flag per-sezione: senza, «crea bozza» resettava
                     // RenderMode a Frozen (doc 10) e ora azzererebbe pure IsHidden (doc 11 §3c).
-                    RenderMode = s.RenderMode, IsHidden = s.IsHidden, BeforeParentBody = s.BeforeParentBody,
+                    RenderMode = s.RenderMode, IsHidden = s.IsHidden, BeforeParentBody = s.BeforeParentBody, Audience = s.Audience,
         LeadSentence = s.LeadSentence,
                     RowVersion = Guid.NewGuid().ToByteArray(),
                 };
@@ -674,6 +674,15 @@ public sealed class EfEditingRepository : IEditingRepository
             ?? throw new InvalidOperationException($"Sezione {sectionId} inesistente.");
         await RequireDraftAsync(section.DocumentVersionId, ct);
         section.Title = string.IsNullOrWhiteSpace(title) ? section.Title : title.Trim();
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task SetSectionAudienceAsync(int sectionId, SectionAudience audience, CancellationToken ct = default)
+    {
+        var section = await _db.DocumentSections.FirstOrDefaultAsync(s => s.Id == sectionId, ct)
+            ?? throw new InvalidOperationException($"Sezione {sectionId} inesistente.");
+        await RequireDraftAsync(section.DocumentVersionId, ct);
+        section.Audience = audience;
         await _db.SaveChangesAsync(ct);
     }
 

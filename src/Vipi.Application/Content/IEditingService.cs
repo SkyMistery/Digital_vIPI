@@ -34,6 +34,10 @@ public interface IEditingService
     Task SetSectionHiddenAsync(int sectionId, bool hidden, CancellationToken ct = default);
     /// <summary>Colloca una sotto-sezione PRIMA o dopo il corpo della sezione padre (doc 11 §3g): blocchi per una
     /// sezione editoriale, resa derivata per una strutturata. Fra loro le sotto-sezioni restano ordinate per Order.</summary>
+    /// <summary>A chi si rivolge la sezione (carta vSOP militari §3). ⚠️ Non è controllo d'accesso: il
+    /// documento resta pubblico, e la vista ATC la apre chiunque cambi l'indirizzo.</summary>
+    Task SetSectionAudienceAsync(int sectionId, SectionAudience audience, CancellationToken ct = default);
+
     Task SetSectionBeforeParentBodyAsync(int sectionId, bool before, CancellationToken ct = default);
 
     /// <summary>Prosa a CAPOFILA per una sezione derivata a tabelle.</summary>

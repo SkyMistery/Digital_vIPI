@@ -65,6 +65,10 @@ public sealed class EditableSection
     /// <summary>Sotto-sezione resa prima del corpo del padre (doc 11 §3g); l'editor espone il toggle.</summary>
     public bool BeforeParentBody { get; init; }
 
+    /// <summary>A chi si rivolge la sezione (carta vSOP militari §3). Viaggia nello snapshot con gli altri
+    /// flag. <c>Both</c> = per tutti, ed è il default: nessun documento cambia finché nessuno marca.</summary>
+    public SectionAudience Audience { get; init; }
+
     /// <summary>Prosa a CAPOFILA: una frase che introduce la tabella invece di una per clausola.</summary>
     public bool LeadSentence { get; init; }
 

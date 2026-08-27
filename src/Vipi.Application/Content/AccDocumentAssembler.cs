@@ -26,7 +26,7 @@ public static class AccDocumentAssembler
     private static EditableSection ToEditable(RawSection s) => new()
     {
         Id = s.Id, Title = s.Title, SectionKey = s.SectionKey, Depth = s.Depth, Order = s.Order,
-        RenderMode = s.RenderMode, IsHidden = s.IsHidden, BeforeParentBody = s.BeforeParentBody,
+        RenderMode = s.RenderMode, IsHidden = s.IsHidden, BeforeParentBody = s.BeforeParentBody, Audience = s.Audience,
         LeadSentence = s.LeadSentence,
         Blocks = s.Blocks.OrderBy(b => b.Order).Select(b => new EditableBlock
         {
@@ -109,7 +109,7 @@ public static class AccDocumentAssembler
         Depth = s.Depth,
         SectionKey = s.SectionKey,
         IsHidden = s.IsHidden,
-        BeforeParentBody = s.BeforeParentBody,
+        BeforeParentBody = s.BeforeParentBody, Audience = s.Audience,
         LeadSentence = s.LeadSentence,
         Blocks = s.Blocks.OrderBy(b => b.Order).Select(b => new BlockView
         {

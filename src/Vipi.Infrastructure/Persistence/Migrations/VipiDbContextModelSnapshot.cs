@@ -1422,6 +1422,12 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Audience")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Both");
+
                     b.Property<bool>("BeforeParentBody")
                         .HasColumnType("INTEGER");
 

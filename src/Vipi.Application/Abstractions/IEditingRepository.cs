@@ -118,6 +118,9 @@ public interface IEditingRepository
     Task SetSectionHiddenAsync(int sectionId, bool hidden, CancellationToken ct = default);
 
     /// <summary>Colloca una sotto-sezione prima/dopo il corpo del padre (doc 11 §3g). Errore se non è una bozza.</summary>
+    /// <inheritdoc cref="Vipi.Application.Content.IEditingService.SetSectionAudienceAsync"/>
+    Task SetSectionAudienceAsync(int sectionId, SectionAudience audience, CancellationToken ct = default);
+
     Task SetSectionBeforeParentBodyAsync(int sectionId, bool before, CancellationToken ct = default);
 
     /// <summary>Prosa a CAPOFILA per una sezione derivata a tabelle: una frase che introduce la tabella invece
