@@ -384,7 +384,7 @@
 .struct .inline-form .field label{font-family:var(--font-body);text-transform:none;letter-spacing:normal;font-size:12.5px}
 /* Sotto i 900 resta una colonna sola e l'altezza fissa SPARISCE (il JS la toglie da sé con collapseBelow):
    un riquadro alto quanto lo schermo dentro una pagina che scorre sono due barre annidate. */
-@media(max-width:900px){.struct .topo-layout{grid-template-columns:1fr;height:auto;min-height:0}}
+.struct.pw-900 .topo-layout{grid-template-columns:1fr;height:auto;min-height:0}
 
 /* ---- Confinanti: elenco delle coppie a sinistra, coppia scelta a destra ----
    Il `calc` è il valore di PARTENZA prima che vipiFitViewport misuri, non la verità; `min-height` allineata
@@ -395,7 +395,7 @@
 .struct .conf-layout .panel{min-width:0;padding:18px}
 .struct .conf-layout .panel.st-pane{overflow:hidden}
 .wrap.struct:has(.conf-layout){padding-bottom:18px}
-@media(max-width:900px){.struct .conf-layout{grid-template-columns:1fr;height:auto;min-height:0}}
+.struct.pw-900 .conf-layout{grid-template-columns:1fr;height:auto;min-height:0}
 /* Una coppia rifiutata resta in elenco, spenta: è la memoria di un falso positivo già valutato. Sbiadire la
    riga scelta però la renderebbe illeggibile proprio mentre ci si lavora. */
 .struct .conf-table tr.row-off:not(.picked)>td{opacity:.5}
@@ -434,7 +434,7 @@
 .struct .ver-layout .panel{min-width:0;padding:18px}
 .struct .ver-layout .panel.st-pane{overflow:hidden}
 .wrap.struct:has(.ver-layout){padding-bottom:18px}
-@media(max-width:900px){.struct .ver-layout{grid-template-columns:1fr;height:auto;min-height:0}}
+.struct.pw-900 .ver-layout{grid-template-columns:1fr;height:auto;min-height:0}
 /* In un pannello stretto il campo non deve pretendere i 240px della sua base condivisa: sono loro a mandare
    a capo la barra prima dei chip. */
 .struct .ver-layout .struct-bar .htree-search{flex:1 1 150px;min-width:120px}
@@ -486,7 +486,7 @@
 .struct .perm-layout .panel, .struct .task-layout .panel{min-width:0;padding:18px}
 .struct .perm-layout .panel.st-pane, .struct .task-layout .panel.st-pane{overflow:hidden}
 .wrap.struct:has(.perm-layout), .wrap.struct:has(.task-layout){padding-bottom:18px}
-@media(max-width:900px){.struct .perm-layout,.struct .task-layout{grid-template-columns:1fr;height:auto;min-height:0}}
+.struct.pw-900 .perm-layout,.struct.pw-900 .task-layout{grid-template-columns:1fr;height:auto;min-height:0}
 .struct .perm-layout .struct-bar .htree-search, .struct .task-layout .struct-bar .htree-search{flex:1 1 150px;min-width:120px}
 /* Un chip a zero qui è neutro, non verde: «0 persone su LIMM» non è una buona notizia (regola 108). */
 .struct .perm-layout button.sh-chip:disabled, .struct .task-layout button.sh-chip:disabled{background:var(--surface-muted);color:var(--ink-soft);border-color:var(--line);opacity:.65}
@@ -1474,21 +1474,17 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 /* Sotto i 1200 il pannello scende sotto le altre due; sotto i 900 resta una colonna sola. In entrambi i casi
    l'altezza fissa SPARISCE: un riquadro alto quanto lo schermo dentro una pagina che scorre è una trappola —
    ci si trova dentro due barre di scorrimento annidate, ed è il difetto che questa pagina ha già avuto. */
-@media(max-width:1200px){
-  /* align-items:start e non stretch: senza, il riquadro di lavoro si allineava all'altezza del navigatore —
-     che qui è incastonato — e si ritrovava incastonato anche lui, con una barra di scorrimento interna dentro
-     una pagina che già scorre. Misurato: pane alto 378 px per una tabella da 2082. */
-  .xfe-layout3,.xfe-layout3.xt-noNav{grid-template-columns:minmax(0,1fr) 380px;height:auto;align-items:start}
-  .xfe-layout3 .xt-panel{grid-column:1/-1;max-height:80vh}
-  /* Il navigatore tiene il tetto anche qui, e da solo: senza, l'albero si srotolava per intero — misurato,
-     2174 px — e per arrivare al lavoro bisognava scorrere tutto l'elenco di ciò che si poteva scegliere.
-     Il riquadro di lavoro invece resta libero di crescere: lì il contenuto È la pagina, e incastonarlo
-     vorrebbe dire due barre di scorrimento annidate. */
-  .xfe-layout3 .xt-nav{max-height:42vh}
-}
-@media(max-width:900px){
-  .xfe-layout3,.xfe-layout3.xt-noNav{grid-template-columns:1fr}
-}
+/* align-items:start e non stretch: senza, il riquadro di lavoro si allineava all'altezza del navigatore —
+   che qui è incastonato — e si ritrovava incastonato anche lui, con una barra di scorrimento interna dentro
+   una pagina che già scorre. Misurato: pane alto 378 px per una tabella da 2082. */
+.wrap.pw-1200 .xfe-layout3,.wrap.pw-1200 .xfe-layout3.xt-noNav{grid-template-columns:minmax(0,1fr) 380px;height:auto;align-items:start}
+.wrap.pw-1200 .xfe-layout3 .xt-panel{grid-column:1/-1;max-height:80vh}
+/* Il navigatore tiene il tetto anche qui, e da solo: senza, l'albero si srotolava per intero — misurato,
+   2174 px — e per arrivare al lavoro bisognava scorrere tutto l'elenco di ciò che si poteva scegliere.
+   Il riquadro di lavoro invece resta libero di crescere: lì il contenuto È la pagina, e incastonarlo
+   vorrebbe dire due barre di scorrimento annidate. */
+.wrap.pw-1200 .xfe-layout3 .xt-nav{max-height:42vh}
+.wrap.pw-900 .xfe-layout3,.wrap.pw-900 .xfe-layout3.xt-noNav{grid-template-columns:1fr}
 .xfe-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .xfe-filters select{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-family:var(--font-body);font-size:13px;background:var(--surface)}
 /* ---- Colonne FISSE ----
@@ -1685,7 +1681,7 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
 .derived{background:var(--tint-atmos-soft);border:1px solid var(--on-dark-soft);border-left:4px solid var(--ivao-lightblue);border-radius:9px;padding:11px 14px;margin:12px 0}
 /* topologia settori */
 .topo{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-@media(max-width:900px){.topo{grid-template-columns:1fr}}
+.wrap.pw-900 .topo{grid-template-columns:1fr}
 /* Cosa è cambiato */
 .chg{display:flex;flex-direction:column;gap:10px}
 .chg-row{display:flex;align-items:flex-start;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:12px 14px;box-shadow:var(--shadow)}
@@ -1728,9 +1724,11 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
    glielo avremmo incollato dentro. Col `:has()` il contenimento vale solo per le quattro pagine di lettura,
    che un elemento fisso non ce l'hanno.
 
-   ⚠️ `.ed-layout` resta sulla `@media`: stessa malattia, ma le pagine di editor hanno un perimetro
-   d'uso dichiarato da 1024px in su (docs/design/regole-ui-pagine-admin.md) e vanno verificate a mano una
-   per una. E' un giro a se'. */
+   ⚠️ 27 agosto 2026: `.ed-layout` e le dieci regole `.struct` NON stanno piu' su una `@media`. Il
+   contenimento li' non si poteva — il `DeleteDialog` e' un `.del-card` fisso che vive dentro la riga di una
+   tabella, e `contain:layout` lo avrebbe centrato sul riquadro invece che sullo schermo — quindi lo
+   scaglione lo sceglie il JS misurando (`vipiFitPanes`, classi `pw-1080`/`pw-900`/`pw-760`), come gia'
+   fa la topbar. Le pagine di lettura restano sulla `@container`: il dialogo non ce l'hanno. */
 .wrap:has(> .doc-layout){container-type:inline-size}
 @container (max-width:1080px){
   .doc-layout{grid-template-columns:minmax(0,1fr)}
@@ -1738,10 +1736,10 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
   .doc-layout .toc{position:static;max-height:none}
   .doc-layout .doc-rail{position:static}
 }
-@media(max-width:1080px){.ed-layout,.ed-layout.with-rail{grid-template-columns:minmax(0,1fr)}
-.ed-layout>*{min-width:0}.toc{position:static;max-height:none}
-.ed-rail{position:static;max-height:none}.acc-grid{grid-template-columns:repeat(2,1fr)}
-.aor-wrap{grid-template-columns:1fr}}
+.wrap.pw-1080 .ed-layout,.wrap.pw-1080 .ed-layout.with-rail{grid-template-columns:minmax(0,1fr)}
+.wrap.pw-1080 .ed-layout>*{min-width:0}.wrap.pw-1080 .toc{position:static;max-height:none}
+.wrap.pw-1080 .ed-rail{position:static;max-height:none}.wrap.pw-1080 .acc-grid{grid-template-columns:repeat(2,1fr)}
+.wrap.pw-1080 .aor-wrap{grid-template-columns:1fr}
 
 /* ---------- Screen 5b: Topologia settori ---------- */
 .topo-layout{display:grid;grid-template-columns:330px 1fr 360px;gap:22px;align-items:start}
@@ -1765,13 +1763,13 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
 .wrap.struct:has(.gerarchia-2col){padding-bottom:18px}
 /* Sotto i 900 resta una colonna sola e l'altezza fissa SPARISCE (il JS la toglie da sé con collapseBelow):
    un riquadro alto quanto lo schermo dentro una pagina che scorre sono due barre annidate. */
-@media(max-width:900px){.gerarchia-2col{grid-template-columns:1fr;height:auto;min-height:0}}
+.wrap.pw-900 .gerarchia-2col{grid-template-columns:1fr;height:auto;min-height:0}
 /* Pannello incastonato: intestazione e barra dei filtri ferme, corpo che scorre.
    `min-height:0` è obbligatorio — senza, un figlio che scorre dentro un flex si rifiuta di rimpicciolirsi
    sotto il proprio contenuto e il riquadro cresce oltre l'altezza misurata. */
 .st-pane{display:flex;flex-direction:column;min-height:0;overflow:hidden}
 .st-scroll{flex:1;min-height:0;overflow:auto;margin:0 -4px;padding:0 4px}
-@media(max-width:900px){.st-pane{overflow:visible}.st-scroll{overflow:visible}}
+.wrap.pw-900 .st-pane{overflow:visible}.wrap.pw-900 .st-scroll{overflow:visible}
 /* campo di ricerca dell'albero, stile brand */
 .htree-search{width:100%;margin-bottom:12px;border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-family:var(--font-body);font-size:13px;background:var(--surface) url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%237a86a8' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat 11px 50%;background-size:15px;padding-left:34px;transition:.12s}
 .htree-search:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px var(--line-atmos-soft)}
@@ -1932,7 +1930,7 @@ button.sh-chip.warn:hover{background:var(--tint-gold)}
 .struct .res-table td.sel-cell{cursor:pointer;user-select:none}
 .struct .res-table tbody tr:hover td.sel-cell{background:var(--tint-atmos-soft)}
 .struct .res-table tbody tr.row-sel td{background:var(--line-atmos-soft) !important}
-@media(max-width:1180px){.topo-layout{grid-template-columns:1fr}}
+.wrap.pw-1180 .topo-layout{grid-template-columns:1fr}
 
 
 /* ---- Aggiunte vIPI (non nel mockup) ---- */
@@ -2709,10 +2707,9 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
 /* ⚠️ Il collasso a una colonna sotto i 1080 esisteva gia' (media query piu' in alto) ma NON si applicava:
    `.ed-layout.with-rail` e' dichiarata piu' in basso nel foglio e a parita' di peso vinceva. Misurato: a
    1024 la colonna centrale restava 391px con indice e rail ai lati. Va riscritto DOPO, con le stesse classi. */
-@media(max-width:1080px){
-  .ed-layout,.ed-layout.with-rail,.ed-layout.with-rail.sid-wide{grid-template-columns:minmax(0,1fr)}
-  .ed-layout>.toc,.ed-layout>.ed-rail{position:static;max-height:none}
-}
+.wrap.pw-1080 .ed-layout,.wrap.pw-1080 .ed-layout.with-rail,
+.wrap.pw-1080 .ed-layout.with-rail.sid-wide{grid-template-columns:minmax(0,1fr)}
+.wrap.pw-1080 .ed-layout>.toc,.wrap.pw-1080 .ed-layout>.ed-rail{position:static;max-height:none}
 
 /* ---- Editor ACC, giro densità del 20 agosto 2026 (docs/feature/2026-08-20-editor-acc-densita-ui.md) ----
    Le regole nuove stanno in CODA al foglio: a parità di peso vince l'ultima (regola 56). */
@@ -2770,7 +2767,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 /* ⚠️ Misurato: col padding di fondo del `.wrap` la pagina restava 52px piu' alta del viewport e
    scorreva per niente. vipiFitViewport misura fin dove arriva il pannello, non cosa gli sta sotto. */
 .wrap.struct:has(.audit-pane){padding-bottom:18px}
-@media(max-width:900px){.struct .audit-pane{height:auto;min-height:0}}
+.struct.pw-900 .audit-pane{height:auto;min-height:0}
 .struct .audit-pane .struct-bar .htree-search{flex:1 1 200px;min-width:150px}
 /* Un chip a zero qui e' NEUTRO, non verde: «0 eliminazioni» non e' una coda vuota da festeggiare come su
    Confinanti, e' solo un fatto del periodo scelto (regola 108). */
@@ -2800,7 +2797,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    arriva il riquadro, non cosa gli sta sotto. Senza questa riga la pagina scorreva di 9px a 1280x800 e di 52
    a 1024x768 per del bianco. È la stessa trappola gia' pagata su Audit (li' erano 52). */
 .wrap.struct:has(.sorg-pane){padding-bottom:18px}
-@media(max-width:900px){.struct .sorg-pane{max-height:none}}
+.struct.pw-900 .sorg-pane{max-height:none}
 /* Colonne fisse tranne la categoria, che porta nome e descrizione e prende quello che avanza. Il min-width
    della tabella e' la somma delle fisse PIU' il pavimento dell'elastica, non la somma delle fisse. */
 .struct .sorg-table{table-layout:fixed;min-width:780px}
@@ -2859,7 +2856,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 /* ⚠️ vipiFitViewport misura fin dove arriva il riquadro, non cosa gli sta sotto: senza questo il padding di
    fondo del `.wrap` lascia uno scorrimento inutile (70px su Sorgenti, 52 su Audit). */
 .wrap.struct:has(.diag-layout){padding-bottom:18px}
-@media(max-width:900px){.struct .diag-layout{grid-template-columns:1fr;height:auto;min-height:0}}
+.struct.pw-900 .diag-layout{grid-template-columns:1fr;height:auto;min-height:0}
 .struct .diag-layout .struct-bar .htree-search{flex:1 1 180px;min-width:140px}
 /* Un chip a zero qui e' NEUTRO, non verde: zero puo' anche voler dire «quella sonda non gira su questo
    provider», che non e' una buona notizia — e' l'assenza di una notizia (regola 108). */
@@ -2907,13 +2904,13 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 /* ⚠️ Il `.wrap` porta un padding di fondo che il tetto NON vede (misura fin dove arriva il riquadro, non
    cosa gli sta sotto): 70px su Sorgenti, 52 su Audit. */
 .wrap.struct:has(.nd-pane){padding-bottom:18px}
-@media(max-width:900px){.struct .nd-pane{max-height:none;overflow:visible}}
+.struct.pw-900 .nd-pane{max-height:none;overflow:visible}
 .struct .nd-seg{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
 /* Le schede sono larghe quanto il loro testo: `flex:1` le stirerebbe su tutta la riga (vedi `.seg`). */
 .struct .nd-seg .btn{flex:0 0 auto;padding:7px 14px;font-size:12.5px}
 .struct .nd-form{max-width:720px}
 .struct .nd-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px}
-@media(max-width:760px){.struct .nd-grid{grid-template-columns:1fr}}
+.struct.pw-760 .nd-grid{grid-template-columns:1fr}
 /* ⚠️ I campi NON usano `.se-row`: quella e' la riga di un form e la sua `input{flex:1}` e' pensata per i
    campi di testo (trappola gia' pagata su Sorgenti con le checkbox). Qui la larghezza la da' la griglia. */
 .struct .nd-grid .field{display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -2981,7 +2978,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    di griglia, sull'asse verticale: il minimo automatico di una traccia e' il suo contenuto, e va tolto a mano. */
 .struct.tasks-mine .tk-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
   grid-template-rows:minmax(0,1fr);gap:12px;align-items:stretch;min-height:0}
-@media(max-width:900px){.struct.tasks-mine .tk-board{grid-template-columns:1fr;max-height:none}}
+.struct.tasks-mine.pw-900 .tk-board{grid-template-columns:1fr;max-height:none}
 .struct.tasks-mine .tk-col{display:flex;flex-direction:column;min-width:0;min-height:0}
 /* L'intestazione della colonna resta ferma: e' l'unica cosa che dice DOVE si sta guardando quando si scorre. */
 .struct.tasks-mine .tk-col-head{position:sticky;top:0;z-index:1;background:var(--paper,var(--on-brand));

@@ -735,6 +735,67 @@ window.vipiScorrimento = function () {
 
     window.vipiFitTopbar = function () { tbWatch(); tbFit(); };
 
+    // ---- E anche i RIQUADRI scelgono il loro scaglione misurandosi ----
+    //
+    // Stessa malattia della topbar, stessa cura, un anno di distanza: ⚠️ una `@media` misura la FINESTRA,
+    // mentre lo zoom di questa applicazione è `zoom` sull'`<html>` — la finestra non cambia e la soglia non
+    // scatta mai. Misurato il 27 agosto 2026 su /services/vsop/admin/tasks a 1600px: a zoom 1.8 il riquadro
+    // ha 889 unità di layout (sotto la soglia di 900) e `matchMedia('(max-width:900px)')` risponde ancora
+    // NO. Le due colonne restavano affiancate a 526 e 277px invece di impilarsi.
+    //
+    // ⚠️ Perché non `@container`, che è la cura usata per il viewer (`.wrap:has(> .doc-layout)`):
+    // `container-type` porta con sé `contain:layout`, che rende il riquadro contenitore anche per i
+    // discendenti `position:fixed`. Sulle pagine admin il `DeleteDialog` è un `.del-card` fisso, centrato
+    // sullo SCHERMO, e vive dentro la riga di una tabella: contenendo il `.wrap` finirebbe centrato su un
+    // riquadro alto migliaia di pixel, cioè fuori dallo schermo. Le pagine di lettura quel dialogo non ce
+    // l'hanno, ed è per questo che là il contenimento si può.
+    //
+    // Le classi sono cumulative (pw-760 implica pw-900 e pw-1080) e le regole di ogni scaglione stanno dove
+    // stavano, in vipi-theme.css: qui si decide solo QUANDO valgono.
+    // ⚠️ Le soglie sono quelle che c'erano: non si è colta l'occasione per «razionalizzarle» (1200 e 1180
+    // sono vicine ma governano due pagine diverse, e ognuna era stata misurata dov'è).
+    var pwSoglie = [1200, 1180, 1080, 900, 760];
+    function pwFit(el) {
+        // ⚠️ `clientWidth` del RIQUADRO, non di `documentElement`: in Edge 151 quello della radice non è in
+        // unità di layout sotto `zoom` e risponde con i px di finestra — una misura presa da lì dice che
+        // non succede niente.
+        var w = el.clientWidth;
+        if (!w) return;                              // riquadro non ancora disegnato: non si decide al buio
+        for (var i = 0; i < pwSoglie.length; i++) el.classList.toggle('pw-' + pwSoglie[i], w <= pwSoglie[i]);
+    }
+    function pwWire() {
+        document.querySelectorAll('.wrap').forEach(function (el) {
+            pwFit(el);
+            if (el.hasAttribute('data-pw')) return;
+            el.setAttribute('data-pw', '1');
+            // L'osservatore prende TUTTO quel che un `resize` non emette: lo zoom, una colonna che compare,
+            // un pannello che si apre di fianco.
+            if (window.ResizeObserver) new ResizeObserver(function () { pwFit(el); }).observe(el);
+        });
+    }
+    // ⚠️ Non basta agganciarsi una volta all'avvio, e costa un giro di misure scoprirlo: su una pagina
+    // `InteractiveServer` il riquadro che si vede NON è quello che c'era al `DOMContentLoaded` — Blazor lo
+    // rifà quando il circuito parte, e il nuovo nasce senza osservatore. A finestra stretta (860px) le
+    // colonne restavano affiancate mentre a zoom 1.8 si impilavano: stesso codice, due esiti, perché nel
+    // secondo caso a rimisurare era l'osservatore del riquadro VECCHIO, ancora vivo.
+    var pwPending = false;
+    function pwSchedule() {
+        // ⚠️ Il segno di «già agganciato» è un ATTRIBUTO e non una proprietà, perché serve qui: questa
+        // domanda gira a ogni render e dev'essere un selettore, non una lettura di `clientWidth` — che
+        // costerebbe un ricalcolo di layout ogni volta che una tabella si aggiorna.
+        if (pwPending || !document.querySelector('.wrap:not([data-pw])')) return;
+        pwPending = true;
+        requestAnimationFrame(function () { pwPending = false; pwWire(); });
+    }
+    function pwWatch() {
+        var host = document.querySelector('main') || document.querySelector('.vipi-root') || document.body;
+        if (!host || host.__vipiPwHost) return;
+        host.__vipiPwHost = true;
+        new MutationObserver(pwSchedule).observe(host, { childList: true, subtree: true });
+    }
+    window.vipiFitPanes = function () { pwWatch(); pwWire(); };
+    window.addEventListener('resize', pwWire);
+
     window.addEventListener('resize', tbSchedule);   // e lo zoom ne emette uno apposta (vipi-zoom.js)
     // I font web cambiano le misure: al primo giro `scrollWidth` e' quello del ripiego, non quello vero.
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(tbSchedule);
@@ -821,6 +882,7 @@ window.vipiScorrimento = function () {
         wirePrint();
         wireHashLanding();   // deep-link "#id" verso sezioni collassate (Guida) → apri + scorri
         window.vipiFitTopbar();
+        window.vipiFitPanes();
     };
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -833,6 +895,7 @@ window.vipiScorrimento = function () {
     // la prima misura la barra sta al livello 0. Misurare adesso e' ciò che tiene quel divario dentro un
     // fotogramma invece di regalarlo alla rete.
     window.vipiFitTopbar();
+    window.vipiFitPanes();
 })();
 
 // Consegna un file al browser a partire da uno stream .NET (Aurora Profile Swapper).
