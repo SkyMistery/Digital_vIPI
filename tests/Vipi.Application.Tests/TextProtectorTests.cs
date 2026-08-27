@@ -144,11 +144,52 @@ public class TextProtectorTests
         Assert.Equal(TranslationText.Normalize(testo), GiroCompleto(Nudo, testo));
 
     [Fact]
-    public void I_marcatori_del_grassetto_si_proteggono()
+    public void I_marcatori_del_grassetto_NON_si_proteggono()
     {
-        // Un asterisco spaiato rompe la resa del blocco, e il motore puo' spostarli o mangiarli.
+        // ⚠️ Ribaltato il 27 agosto 2026 da una misura contro Azure. Proteggerli spezza la frase in tre e il
+        // motore SPOSTA LE PAROLE DENTRO I TAG:
+        //   IN  «is initiated <x id="0">**</x>not later than 5 minutes<x id="1">**</x> before…»
+        //   OUT «viene <x id="0">avviato **</x>non oltre 5 <x id="1">minuti**</x> prima…»
+        // e il ripristino, sostituendo il tag col gettone, cancellava «avviato» e «minuti». Lasciati stare,
+        // la stessa frase esce intera: per il motore un asterisco e' testo, non struttura.
         var protetto = Nudo.Protect("Il settore **LIBB** e' attivo");
-        Assert.DoesNotContain("*", FuoriDaiSegnaposto(protetto.Text), StringComparison.Ordinal);
+        Assert.Contains("**", protetto.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("**", protetto.Tokens);
+    }
+
+    [Fact]
+    public void Se_il_motore_INFILA_una_parola_nel_tag_la_parola_si_TIENE()
+    {
+        // Caso 2 delle tre derive misurate su Azure: la preposizione appartiene alla traduzione, e il
+        // nostro valore e' ancora li'. Buttare la frase perderebbe una parola GIUSTA.
+        // Misurato: «sectors bordering <x id="1">LGGG</x>» torna «settori confinanti <x id="1">con LGGG</x>».
+        var protetto = Nudo.Protect("settori confinanti LGGG");
+        Assert.Equal("LGGG", protetto.Tokens[0]);
+
+        Assert.True(TextProtector.TryRestore("settori confinanti <x id=\"0\">con LGGG</x>", protetto.Tokens, out var r));
+        Assert.Equal("settori confinanti con LGGG", r);
+    }
+
+    [Fact]
+    public void Se_il_motore_CAMBIA_il_valore_la_traduzione_si_butta()
+    {
+        // Caso 3, ed e' il motivo per cui questo controllo esiste. Misurato: «TKOF AND LDG ... ON RWY 07/25
+        // ONLY» e' tornato con «RWY 25» dentro il tag -- Azure ha invertito i numeri. Accettarlo avrebbe
+        // scritto una PISTA SBAGLIATA in un documento operativo.
+        var protetto = Nudo.Protect("consentito solo su RWY 07");
+        Assert.Equal("RWY 07", protetto.Tokens[0]);
+
+        Assert.False(TextProtector.TryRestore("consentito solo su <x id=\"0\">RWY 25</x>", protetto.Tokens, out _));
+        // E lo stesso se il valore sparisce del tutto (misurato: «messo LYBA, tornato /»).
+        Assert.False(TextProtector.TryRestore("consentito solo su <x id=\"0\">/</x>", protetto.Tokens, out _));
+    }
+
+    [Fact]
+    public void Uno_spazio_in_piu_non_e_una_parola_persa()
+    {
+        var protetto = Nudo.Protect("Contatta LIRF_TWR adesso");
+        Assert.True(TextProtector.TryRestore("Contact <x id=\"0\"> LIRF_TWR </x>", protetto.Tokens, out var ok));
+        Assert.Equal("Contact LIRF_TWR", ok);
     }
 
     [Fact]

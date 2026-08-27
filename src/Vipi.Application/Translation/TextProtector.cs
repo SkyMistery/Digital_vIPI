@@ -110,11 +110,6 @@ public sealed partial class TextProtector
     [GeneratedRegex(@"\b[A-Z]{2,}\d{1,2}\b|\b[A-Z]{4,}\b")]
     private static partial Regex SiglaMaiuscola();
 
-    /// <summary>I marcatori di grassetto e corsivo. Protetti perché il motore può spostarli o mangiarli, e
-    /// un asterisco spaiato rompe la resa del blocco.</summary>
-    [GeneratedRegex(@"\*{1,2}")]
-    private static partial Regex MarcatoriMarkdown();
-
     /// <summary>
     /// Il segnaposto, come si scrive e come si rilegge.
     ///
@@ -131,12 +126,15 @@ public sealed partial class TextProtector
     /// Un motore che «migliorasse» un callsign non deve poterlo scrivere nel documento.
     /// </para>
     /// </summary>
-    [GeneratedRegex(@"<x id=""(\d+)""\s*/>|<x id=""(\d+)""[^>]*>.*?</x\s*>", RegexOptions.Singleline)]
+    [GeneratedRegex(@"<x id=""(\d+)""\s*/>|<x id=""(\d+)""[^>]*>(.*?)</x\s*>", RegexOptions.Singleline)]
     private static partial Regex Segnaposto();
 
     /// <summary>L'indice del segnaposto, da qualunque delle forme accettate.</summary>
     private static string IndiceDi(Match m) =>
         m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value;
+
+    /// <summary>Il contenuto del segnaposto tornato indietro; null per la forma autochiudente.</summary>
+    private static string? ContenutoDi(Match m) => m.Groups[3].Success ? m.Groups[3].Value : null;
 
     /// <summary>Vero se il testo ha delle lettere minuscole: allora è prosa, e le sigle maiuscole spiccano.</summary>
     private static bool HaMinuscole(string s) => s.Any(char.IsLower);
@@ -175,8 +173,13 @@ public sealed partial class TextProtector
         s = Sostituisci(s, Pista(), tokens);
         if (eProsa) s = Sostituisci(s, SiglaMaiuscola(), tokens);
 
-        // 3. Marcatori di formattazione.
-        s = Sostituisci(s, MarcatoriMarkdown(), tokens);
+        // 3. I marcatori di grassetto NON si proteggono, e la ragione e' misurata (Azure, 27 agosto 2026).
+        //    Proteggerli spezza la frase in tre e il motore SPOSTA LE PAROLE DENTRO I TAG:
+        //      IN  «is initiated <x id="0">**</x>not later than 5 minutes<x id="1">**</x> before…»
+        //      OUT «viene <x id="0">avviato **</x>non oltre 5 <x id="1">minuti**</x> prima…»
+        //    e il ripristino, che sostituisce il tag col gettone, CANCELLA «avviato» e «minuti». Lasciati
+        //    stare, la stessa frase esce intera e con gli asterischi al loro posto: per il motore in
+        //    modalita' marcatura un asterisco e' testo, non struttura, e non ha motivo di spostarlo.
 
         return new ProtectedText(s, tokens, Safe: !RestaQualcosaDiPersonale(s));
     }
@@ -212,6 +215,7 @@ public sealed partial class TextProtector
 
         var visti = new bool[tokens.Count];
         var ok = true;
+
         risultato = Segnaposto().Replace(risultato, m =>
         {
             if (!int.TryParse(IndiceDi(m), out var i) || i < 0 || i >= tokens.Count)
@@ -219,8 +223,34 @@ public sealed partial class TextProtector
                 ok = false;             // un segnaposto che non abbiamo mai messo
                 return m.Value;
             }
+
+            // ⚠️ IL MOTORE PUO' TOCCARE IL CONTENUTO DEL TAG, e le tre cose che puo' fare vogliono tre
+            // risposte diverse. Misurato su Azure col corpus vero (27 agosto 2026), 12 casi su 30:
+            //
+            //   1. lo lascia com'e'            -> a posto
+            //   2. ci INFILA DENTRO altro      -> «<x>con LGGG</x>», «<x>**LGGG</x>»: la preposizione o
+            //      l'asterisco appartengono alla traduzione, e il nostro valore e' ancora li'. Si tiene
+            //      quello che e' tornato: buttarlo perderebbe una parola giusta.
+            //   3. lo CAMBIA o lo perde        -> «messo RWY 07, tornato RWY 25» (Azure ha invertito
+            //      "RWY 07/25" in "RWY 25/07"), oppure «messo LYBA, tornato /». Qui non si ripara niente:
+            //      la frase e' compromessa e si BUTTA. Accettare quel caso avrebbe scritto una PISTA
+            //      SBAGLIATA in un documento operativo, ed e' il motivo per cui questo controllo esiste.
+            var contenuto = ContenutoDi(m);
             visti[i] = true;
-            return tokens[i];
+
+            var atteso = tokens[i];
+
+            // Niente contenuto da confrontare: e' la forma autochiudente, oppure il tag e' tornato vuoto.
+            // ⚠️ Il vuoto si ACCETTA in entrambi i casi, e per due ragioni diverse: per un dato personale
+            // il tag e' PARTITO vuoto (e' tutto il punto), e per un identificatore un tag svuotato dal
+            // motore si richiude rimettendoci dentro il valore nostro, che e' la cosa giusta. Trattarlo
+            // come «valore perso» avrebbe buttato via ogni segmento con un VID o un nome dentro.
+            if (contenuto is null || contenuto.Trim().Length == 0) return atteso;
+            if (contenuto.Trim() == atteso.Trim()) return atteso;          // caso 1
+            if (contenuto.Contains(atteso, StringComparison.Ordinal)) return contenuto;   // caso 2
+
+            ok = false;                                                    // caso 3
+            return atteso;
         });
 
         return ok && visti.All(v => v);

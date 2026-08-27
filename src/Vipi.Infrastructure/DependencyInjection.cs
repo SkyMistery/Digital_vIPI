@@ -213,6 +213,8 @@ public static class DependencyInjection
         services.AddSingleton<Vipi.Application.Abstractions.ITranslationEngine, Translation.DeepLTranslationEngine>();
         services.AddScoped<Vipi.Application.Abstractions.ITranslationMemory, EfTranslationMemory>();
         services.AddScoped<Vipi.Application.Abstractions.ITranslatableCorpus, EfTranslatableCorpus>();
+        services.AddScoped<Vipi.Application.Translation.DocumentTranslator>();
+
 
 
         // Import SID dal sectorfile Aurora su GitHub (repo pubblico raw, no auth). Ortogonale a DataSource:Provider.

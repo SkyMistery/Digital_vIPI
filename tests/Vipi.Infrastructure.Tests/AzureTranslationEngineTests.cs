@@ -198,6 +198,9 @@ public class AzureTranslationEngineTests
         var protetto = protettore.Protect("Contatta LIRF_TWR sulla 118.1");
         Assert.Equal(2, protetto.Tokens.Count);
 
+        // ⚠️ Un tag tornato VUOTO si accetta: per un dato personale e' partito vuoto (e' tutto il punto),
+        // e per un identificatore rimettercelo dentro e' la cosa giusta. Trattarlo come "valore perso"
+        // avrebbe buttato via ogni segmento con un VID o un nome.
         var comeLoRendeAzure = "Contact <x id=\"0\"></x> on <x id=\"1\"></x>";
         Assert.True(TextProtector.TryRestore(comeLoRendeAzure, protetto.Tokens, out var tornato));
         Assert.Equal("Contact LIRF_TWR on 118.1", tornato);
