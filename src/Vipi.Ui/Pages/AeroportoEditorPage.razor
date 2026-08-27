@@ -713,11 +713,7 @@ else
     private static readonly string[] WtcTokens = { "L", "M", "H", "S" };
     private static readonly string[] CatTokens = { "A", "B", "C", "D", "E" };
 
-    private static bool HasTok(string? csv, string tok) =>
-        (csv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Contains(tok, StringComparer.OrdinalIgnoreCase);
-
-    // Toggle di un token; ricompone la CSV nell'ordine canonico (order) così la resa è stabile a prescindere dai click.
+        // Toggle di un token; ricompone la CSV nell'ordine canonico (order) così la resa è stabile a prescindere dai click.
     private static string? ToggleTok(string? csv, string tok, string[] order)
     {
         var set = (csv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -1000,30 +996,8 @@ else
 
     // Piste presenti fra le importate, con quante righe ciascuna: sono i chip della barra. Il conteggio segue
     // gli altri filtri (ricerca, «da verificare»), altrimenti un chip da 40 righe ne mostrerebbe 3 senza dirlo.
-    private List<(string Ident, int Count)> ImportedRunways() =>
-        FilteredImported(ignoreRunway: true)
-            .Where(e => !string.IsNullOrWhiteSpace(e.Runway))
-            .GroupBy(e => e.Runway!, StringComparer.OrdinalIgnoreCase)
-            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
-            .Select(g => (g.Key, g.Count()))
-            .ToList();
-
-    // --- Tabella importate: filtro (ricerca + solo-da-verificare) ---
-    private List<ImportedSidEdit> ImportedView() => FilteredImported(ignoreRunway: false).ToList();
-
-    private IEnumerable<ImportedSidEdit> FilteredImported(bool ignoreRunway)
-    {
-        IEnumerable<ImportedSidEdit> q = _imported;
-        if (_sidOnlyReview) q = q.Where(e => e.NeedsReview);
-        var s = (_sidSearch ?? "").Trim();
-        if (s.Length > 0)
-            q = q.Where(e => e.Fix.Contains(s, OIC) || e.Name.Contains(s, OIC) || (e.Runway?.Contains(s, OIC) ?? false));
-        if (!ignoreRunway && _sidRwFilter is { Length: > 0 } rw)
-            q = q.Where(e => string.Equals(e.Runway, rw, StringComparison.OrdinalIgnoreCase));
-        return q;
-    }
-
-    // --- Multi-select importate: click = toggle (Shift/Ctrl+click = intervallo dall'ancora);
+        // --- Tabella importate: filtro (ricerca + solo-da-verificare) ---
+            // --- Multi-select importate: click = toggle (Shift/Ctrl+click = intervallo dall'ancora);
     //     trascina giù = seleziona lo spazzato, trascina su = deseleziona lo spazzato ---
     private bool _selDragActive;
     private int _selDragStart;
@@ -1121,15 +1095,7 @@ else
     });
 
     // --- Tabella manuali: filtro + clona riga ---
-    private IEnumerable<SidEdit> ManualView()
-    {
-        var q = (_sidManualSearch ?? "").Trim();
-        if (q.Length == 0) return _sids;
-        return _sids.Where(s =>
-            (s.Fix?.Contains(q, OIC) ?? false) || (s.Name?.Contains(q, OIC) ?? false) || (s.Runway?.Contains(q, OIC) ?? false));
-    }
-
-    private async Task CloneSid(SidEdit s)
+        private async Task CloneSid(SidEdit s)
     {
         var i = _sids.IndexOf(s);
         var copy = new SidEdit
@@ -1300,29 +1266,7 @@ else
             /// <summary>Avvisi sulla tabella TL: fasce QNH sovrapposte e livello mancante.</summary>
         /// <summary>Avvisi sulle piste: ident duplicati (rompono i chip DEP/ARR delle regole).</summary>
         /// <summary>Avvisi sulle SID manuali: FIX/nome mancante, pista non tra quelle definite, righe duplicate.</summary>
-    private List<string> SidIssues()
-    {
-        var w = new List<string>();
-        var known = RwIdents().ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        for (var i = 0; i < _sids.Count; i++)
-        {
-            var s = _sids[i];
-            var n = i + 1;
-            var fix = (s.Fix ?? "").Trim();
-            var name = (s.Name ?? "").Trim();
-            var rw = (s.Runway ?? "").Trim();
-            if (fix.Length == 0 || name.Length == 0)
-                w.Add($"SID #{n}: FIX o nome mancante.");
-            if (rw.Length > 0 && !known.Contains(rw))
-                w.Add($"SID #{n}: pista «{rw}» non è tra quelle definite.");
-            if (fix.Length > 0 && name.Length > 0 && !seen.Add($"{fix}|{name}|{rw}"))
-                w.Add($"SID #{n}: duplicato ({fix}/{name}{(rw.Length > 0 ? " " + rw : "")}).");
-        }
-        return w;
-    }
-
-    // ---- il corpo delle sezioni FISSE, reso da questa pagina ----
+        // ---- il corpo delle sezioni FISSE, reso da questa pagina ----
     // ⚠️ Un frammento per sezione, e il dispatch è una `switch` di sola ESPRESSIONE. Mettere la marcatura
     // dentro i rami di una `switch` non compila: il parser Razor conta le graffe del blocco e un `@{ … }`
     // dentro un `case` gliele sbilancia («RZ1006: the switch block is missing a closing "}"»). Ogni
@@ -1383,6 +1327,15 @@ else
                                   OnChanged='() => MarkDirty("runwayrules")' OnSaveRows="SaveRules"
                                   ConfirmRemove="ConfermaRimozioneRegola" />
     };
+
+    // ---- SID: i filtri e le regole li dice AirportSidRules (doc 14 §3g) ----
+    /// <summary>Quel che si sta guardando adesso nell'elenco delle importate.</summary>
+    private SidFiltro Filtro => new(_sidSearch, _sidRwFilter, _sidOnlyReview);
+    private List<ImportedSidEdit> ImportedView() => AirportSidRules.Importate(_imported, Filtro).ToList();
+    private IEnumerable<SidEdit> ManualView() => AirportSidRules.Manuali(_sids, _sidManualSearch);
+    private IReadOnlyList<(string Ident, int Count)> ImportedRunways() => AirportSidRules.PisteImportate(_imported, Filtro);
+    private static bool HasTok(string? csv, string tok) => AirportSidRules.HasTok(csv, tok);
+    private IReadOnlyList<AirportTlIssue> SidIssues() => AirportSidRules.Issues(_sids, RwIdents());
 
     private RenderFragment ValidityEditor => __builder =>
     {
@@ -1561,7 +1514,7 @@ else
                 @{ var sidIssues = SidIssues(); }
                 @if (sidIssues.Count > 0)
                 {
-                    <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in sidIssues) { <div>@m</div> }</div></div>
+                    <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in sidIssues) { <div>@L[m.Key, m.Args]</div> }</div></div>
                 }
                 <div class="struct-bar">
                     <input class="htree-search" placeholder="@L["Ape_SidManualSearchPh"]" @bind="_sidManualSearch" @bind:event="oninput" />

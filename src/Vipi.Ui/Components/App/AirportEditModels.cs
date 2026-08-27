@@ -239,3 +239,93 @@ public static class AirportRuleMapping
         TimeToMin(r.TimeFrom), TimeToMin(r.TimeTo), r.DaysMask == 0 ? null : r.DaysMask, Parity(r.Parity),
         CombineMd(r.DateFromMonth, r.DateFromDay), CombineMd(r.DateToMonth, r.DateToDay));
 }
+
+/// <summary>Che cosa si sta guardando nell'elenco delle SID importate: il testo cercato, la pista scelta fra
+/// le chip, e se si vogliono solo quelle da rivedere.</summary>
+public sealed record SidFiltro(string? Cerca = null, string? Pista = null, bool SoloDaRivedere = false);
+
+/// <summary>
+/// Filtri e regole delle SID. Cuore deterministico: è ciò che decide quali procedure un editore VEDE, e una
+/// riga che sparisce da un filtro sbagliato è una riga che nessuno corregge.
+/// </summary>
+public static class AirportSidRules
+{
+    private const StringComparison OIC = StringComparison.OrdinalIgnoreCase;
+
+    /// <summary>
+    /// Le SID importate che passano il filtro.
+    /// </summary>
+    /// <param name="ignoraPista">Vero quando si stanno CONTANDO le piste da offrire nelle chip: se si
+    /// applicasse anche il filtro pista, l'elenco delle chip conterrebbe solo quella già scelta e non si
+    /// potrebbe più cambiarla. È il motivo per cui questo parametro esiste.</param>
+    public static IEnumerable<ImportedSidEdit> Importate(
+        IEnumerable<ImportedSidEdit> tutte, SidFiltro filtro, bool ignoraPista = false)
+    {
+        var q = tutte;
+        if (filtro.SoloDaRivedere) q = q.Where(e => e.NeedsReview);
+
+        var s = (filtro.Cerca ?? "").Trim();
+        if (s.Length > 0)
+            q = q.Where(e => e.Fix.Contains(s, OIC) || e.Name.Contains(s, OIC) || (e.Runway?.Contains(s, OIC) ?? false));
+
+        if (!ignoraPista && filtro.Pista is { Length: > 0 } rw)
+            q = q.Where(e => string.Equals(e.Runway, rw, OIC));
+
+        return q;
+    }
+
+    /// <summary>Le piste presenti fra le SID importate che passano gli ALTRI filtri, col loro conteggio.</summary>
+    public static IReadOnlyList<(string Ident, int Count)> PisteImportate(
+        IEnumerable<ImportedSidEdit> tutte, SidFiltro filtro) =>
+        Importate(tutte, filtro, ignoraPista: true)
+            .Where(e => !string.IsNullOrWhiteSpace(e.Runway))
+            .GroupBy(e => e.Runway!, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(g => (g.Key, g.Count()))
+            .ToList();
+
+    /// <summary>Le SID scritte a mano che corrispondono al testo cercato.</summary>
+    public static IEnumerable<SidEdit> Manuali(IEnumerable<SidEdit> tutte, string? cerca)
+    {
+        var q = (cerca ?? "").Trim();
+        if (q.Length == 0) return tutte;
+        return tutte.Where(s =>
+            (s.Fix?.Contains(q, OIC) ?? false)
+            || (s.Name?.Contains(q, OIC) ?? false)
+            || (s.Runway?.Contains(q, OIC) ?? false));
+    }
+
+    /// <summary>Vero se il token compare nella lista separata da virgole (le transizioni, le categorie).</summary>
+    public static bool HasTok(string? csv, string tok) =>
+        (csv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Contains(tok, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Problemi delle SID scritte a mano: FIX o nome mancante, pista che non c'è, righe doppie.</summary>
+    public static IReadOnlyList<AirportTlIssue> Issues(IReadOnlyList<SidEdit> rows, IEnumerable<string> knownIdents)
+    {
+        var w = new List<AirportTlIssue>();
+        var note = knownIdents.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var viste = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var s = rows[i];
+            var n = i + 1;
+            var fix = (s.Fix ?? "").Trim();
+            var nome = (s.Name ?? "").Trim();
+            var rw = (s.Runway ?? "").Trim();
+
+            if (fix.Length == 0 || nome.Length == 0)
+                w.Add(new AirportTlIssue("Ape_IssueSidMissing", new object[] { n }));
+
+            if (rw.Length > 0 && !note.Contains(rw))
+                w.Add(new AirportTlIssue("Ape_IssueSidUnknownRw", new object[] { n, rw }));
+
+            // ⚠️ La chiave del duplicato è FIX + nome + PISTA: la stessa procedura su due piste diverse è
+            // legittima, ed è anzi il caso normale.
+            if (fix.Length > 0 && nome.Length > 0 && !viste.Add($"{fix}|{nome}|{rw}"))
+                w.Add(new AirportTlIssue("Ape_IssueSidDup", new object[] { n, fix, nome, rw }));
+        }
+        return w;
+    }
+}

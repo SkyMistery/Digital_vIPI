@@ -1832,6 +1832,9 @@
   <data name="Ape_TestWinner" xml:space="preserve"><value>Regola vincente col vento di prova</value></data>
   <data name="Ape_TestRun" xml:space="preserve"><value>Prova</value></data>
   <data name="Ape_TestClear" xml:space="preserve"><value>Pulisci</value></data>
+  <data name="Ape_IssueSidMissing" xml:space="preserve"><value>SID #{0}: FIX o nome mancante.</value></data>
+  <data name="Ape_IssueSidUnknownRw" xml:space="preserve"><value>SID #{0}: pista «{1}» non è tra quelle definite.</value></data>
+  <data name="Ape_IssueSidDup" xml:space="preserve"><value>SID #{0}: duplicato ({1}/{2} {3}).</value></data>
   <data name="Ape_TestWindFrom" xml:space="preserve"><value>Vento da (°)</value></data>
   <data name="Ape_TestWindKt" xml:space="preserve"><value>Intensità (kt)</value></data>
   <data name="Ape_TestRuleN" xml:space="preserve"><value>Regola #{0}</value></data>
