@@ -223,10 +223,33 @@ il *salvataggio*, che è inaccettabile.
 1. Il salvataggio **accoda** i segmenti mancanti (dopo lookup in cache: quasi sempre pochi o zero).
 2. Un giro schedulato svuota la coda — l'infrastruttura dei giri c'è già.
 3. L'editor mostra «N segmenti mancanti», e chi vuole forza il giro.
-4. **La pubblicazione è il cancello**: non si pubblica in EN con buchi. Un documento pubblico mezzo
-   tradotto è peggio di uno solo in italiano.
-5. **Lo snapshot di release congela anche la traduzione.** Senza, l'inglese pubblicato cambierebbe da
-   sotto ogni volta che qualcuno corregge la memoria. Coerente con `RenderMode.Frozen`, e §5 ci si appoggia.
+4. **La pubblicazione avvisa, ma NON blocca.** ⚠️ *Correzione del 28 agosto 2026, in fase di esecuzione.*
+   La carta diceva «non si pubblica in EN con buchi». Scritto così è sbagliato, e sbagliato in un modo che
+   fa danno: bloccare la pubblicazione perché la traduzione è indietro rende **il documento italiano
+   ostaggio di un servizio esterno**. Il testo italiano *è* il documento; la traduzione è un servizio.
+
+   L'avviso c'è, e sta dove l'editor guarda davvero prima di pubblicare — l'**anteprima bozza**, che monta
+   lo stesso `TranslationNotice` della vista pubblica e dice «4 frasi su 28 non sono ancora tradotte».
+   Non è stato aggiunto un secondo meccanismo nel pannello di rilascio: sarebbe stata la stessa
+   informazione in due posti, cioè il modo in cui due racconti divergono.
+
+5. **Lo snapshot di release congela anche la traduzione.** ✅ Fatto: le traduzioni viaggiano **dentro
+   `RawDocument`**, non nell'involucro della release, così arrivano da sole a chiunque legga il documento —
+   vista pubblica, anteprima e bozza — senza plumbing per ogni percorso.
+
+   ⚠️ **Non è cautela: è l'unico modo di limitare il raggio d'azione di una correzione.** La memoria è
+   indicizzata sulla FRASE. Senza fotografia, chi corregge una resa su un documento cambierebbe l'inglese
+   **già pubblicato** di ogni altro documento che contiene quella frase — sotto gli occhi di chi lo sta
+   leggendo, e senza che il suo editor abbia pubblicato niente. Congelata, la correzione arriva agli altri
+   alla **loro** prossima ripubblicazione, quando il loro editor guarda il diff.
+
+   ⚠️ `RawDocument.Language` è **nullable**, e non per pigrizia: gli snapshot pubblicati prima di questa
+   funzione non la portano, e un default farebbe dire a una vLOA — che nasce in inglese — di essere
+   italiana. Il viewer tradurrebbe testo inglese come se fosse italiano.
+
+   ⚠️ Il congelato si dichiara **non riletto**: lo snapshot porta il testo, non chi lo ha scritto.
+   Sbagliare per eccesso di cautela costa un avviso di troppo; sbagliare al contrario vuol dire dichiarare
+   riletta una frase che nessuno ha mai guardato, su un documento operativo.
 
 ## 7. Lingua sorgente contro lingua di lettura
 

@@ -150,6 +150,7 @@ public sealed class EfContentRepository : IContentRepository
             Title = doc.Title,
             AiracCycle = doc.LastUpdatedAiracCycle,
             Roots = roots,
+            Language = doc.Language,
         };
     }
 

@@ -10,6 +10,32 @@ public sealed class RawDocument
     public required string Title { get; init; }
     public required string AiracCycle { get; init; }
     public required IReadOnlyList<RawSection> Roots { get; init; }
+
+    /// <summary>
+    /// La lingua in cui il documento è SCRITTO. Serve a sapere da dove si traduce.
+    /// <para>⚠️ <b>Nullable, e non per pigrizia</b>: gli snapshot pubblicati prima del 28 agosto 2026 non la
+    /// portano, e un default farebbe dire a una vLOA — che nasce in inglese — di essere italiana. Il viewer
+    /// tradurrebbe testo inglese come se fosse italiano. null = non si sa, quindi non si traduce.</para>
+    /// </summary>
+    public Language? Language { get; init; }
+
+    /// <summary>
+    /// Le traduzioni <b>congelate</b> con questa release: lingua bersaglio → (impronta del testo sorgente →
+    /// traduzione).
+    ///
+    /// <para>
+    /// ⚠️ <b>Perché viaggiano nello snapshot e non si leggono dal vivo.</b> La memoria è indicizzata sulla
+    /// FRASE, quindi una correzione fatta oggi sul documento di Roma cambierebbe anche l'inglese già
+    /// pubblicato di Milano — sotto gli occhi di chi lo sta leggendo, e senza che il suo editor abbia
+    /// pubblicato niente. Congelandole qui, il raggio d'azione di una correzione resta limitato: gli altri
+    /// documenti la vedono alla LORO prossima ripubblicazione, quando il loro editor guarda il diff.
+    /// </para>
+    /// <para>
+    /// null o vuoto = niente congelato: il viewer ricade sulla memoria viva. È il comportamento delle
+    /// release pubblicate prima di questa funzione, ed è quello giusto per una bozza.
+    /// </para>
+    /// </summary>
+    public Dictionary<string, Dictionary<string, string>>? Translations { get; init; }
 }
 
 public sealed class RawSection
@@ -59,6 +85,12 @@ public sealed class DocumentView
     public required string Title { get; init; }
     public required string AiracCycle { get; init; }
     public required IReadOnlyList<SectionView> Sections { get; init; }
+
+    /// <inheritdoc cref="RawDocument.Language"/>
+    public Language? Language { get; init; }
+
+    /// <inheritdoc cref="RawDocument.Translations"/>
+    public Dictionary<string, Dictionary<string, string>>? Translations { get; init; }
 }
 
 public sealed class SectionView

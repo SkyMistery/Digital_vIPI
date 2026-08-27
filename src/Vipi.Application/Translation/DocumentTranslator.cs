@@ -80,9 +80,24 @@ public sealed class DocumentTranslator
         var impronte = segmenti.Distinct(StringComparer.Ordinal)
             .ToDictionary(s => s, TranslationText.Hash, StringComparer.Ordinal);
 
-        var note = await _memoria
-            .LookupAsync(sourceLang, targetLang, impronte.Values.Distinct().ToList(), ct)
-            .ConfigureAwait(false);
+        // ⚠️ SE LA RELEASE HA CONGELATO LE TRADUZIONI, VINCONO LORO — e la memoria viva non si tocca
+        // nemmeno. Senza questa preferenza, una correzione fatta oggi su un'altra vLOA cambierebbe l'inglese
+        // gia' pubblicato di questa, sotto gli occhi di chi lo sta leggendo e senza che il suo editor abbia
+        // pubblicato niente. Congelato, il raggio d'azione di una correzione resta limitato: gli altri
+        // documenti la vedono alla LORO prossima ripubblicazione, quando il loro editor guarda il diff.
+        var congelate = view.Translations is { } t && t.TryGetValue(targetLang, out var perLingua) ? perLingua : null;
+
+        var note = congelate is not null
+            // ⚠️ Le congelate si mostrano come NON riviste: lo snapshot porta il testo, non chi lo ha
+            // scritto. Sbagliare per eccesso di cautela qui vuol dire un avviso di troppo; sbagliare al
+            // contrario vuol dire dichiarare riletta una frase che nessuno ha guardato.
+            ? congelate.ToDictionary(
+                kv => kv.Key,
+                kv => new KnownTranslation(kv.Value, TranslationOrigin.Machine, Reviewed: false),
+                StringComparer.Ordinal)
+            : await _memoria
+                .LookupAsync(sourceLang, targetLang, impronte.Values.Distinct().ToList(), ct)
+                .ConfigureAwait(false);
 
         string? Traduci(string? testo)
         {
@@ -101,6 +116,10 @@ public sealed class DocumentTranslator
             Title = Traduci(view.Title) ?? view.Title,
             AiracCycle = view.AiracCycle,   // un ciclo AIRAC non si traduce
             Sections = view.Sections.Select(s => TraduciSezione(s, Traduci)).ToList(),
+            // La vista tradotta resta una vista dello STESSO documento, e deve continuare a sapere in che
+            // lingua e' scritto l'originale e che cosa la release aveva congelato.
+            Language = view.Language,
+            Translations = view.Translations,
         };
 
         return new TranslatedDocument(tradotto, copertura);
