@@ -1,0 +1,737 @@
+@* L'editor delle SID: quelle IMPORTATE dal sectorfile Aurora (che si rivedono, si arricchiscono e si
+   pubblicano) e quelle scritte a mano.
+
+   ⚠️ È l'editor più grosso del progetto, e per questo è uscito dalla pagina per ultimo (doc 14 §3g): 252
+   righe di marcatura, tredici pezzi di stato e trentatré metodi. Ne erano già usciti i CUORI — i filtri e le
+   regole, in , con venti prove — che erano la parte che portava il rischio; questo giro
+   sposta il resto, che è presentazione e stato di vista.
+
+   ⚠️ Che cosa resta alla PAGINA, e perché: tutto ciò che tocca il database. Il salvataggio di una riga
+   importata (), quello delle manuali, il reimport dal sectorfile. Il componente possiede la
+   SELEZIONE e le righe non salvate — che sono stato di vista, e stavano nella pagina dove sopravvivevano al
+   cambio di sezione — e chiede alla pagina di scrivere, una riga per volta.
+
+   ⚠️ Il commutatore Live/Congelata NON è qui: sta nell'intestazione della sezione, dove lo hanno le altre tre
+   famiglie (). Averne due sarebbe stato lo stesso comando in due posti. *@
+@using Microsoft.Extensions.Logging
+@inject IStringLocalizer<SharedResource> L
+@inject ILogger<AirportSidsEditor> Logger
+
+<div @onchange="() => Sporca()">
+
+    @* ⚠️ Il commutatore Live/Congelata NON è più qui: sta nell'intestazione della sezione, dove lo hanno le
+       altre tre famiglie (`IsRenderModeToggleable`). Averne due sarebbe stato lo stesso comando in due
+       posti, e quello locale conosceva solo le SID. *@
+    <div @onchange='() => Sporca()'>
+        @if (Imported.Count > 0)
+        {
+            <div class="block">
+                @{ var nReview = Imported.Count(e => e.NeedsReview); var iview = ImportedView(); }
+                <div class="ed-h3">
+                    <h2 class="h-sect">@L["Ape_SidImportedTitle"] <span class="pill blue" title="@L["Ape_SidImportedCountTitle"]">@CountLabel(iview.Count, Imported.Count)</span></h2>
+                    <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SidImportedHelpAria"]" ExtraClass="wide">
+                        @((MarkupString)L["Ape_SidImportedHelp"].Value)
+                        <p>@L["Ape_SidSelectHint"]</p>
+                    </HelpHint>
+                    <span class="ln"></span>
+                    @* ⤢ larghezza piena: TOC e rail via mentre si lavora nelle SID. A 1600 la colonna
+                       centrale è 946px per dodici colonne; senza i due lati diventa 1536. *@
+                    <button class="btn ghost" @onclick="() => WideChanged.InvokeAsync(!Wide)" title="@(Wide ? L["Ed_NarrowTitle"] : L["Ed_WideTitle"])"
+                            aria-pressed="@Wide.ToString().ToLowerInvariant()">@(Wide ? "⤡" : "⤢") @(Wide ? L["Ed_Narrow"] : L["Ed_Wide"])</button>
+                    <button class="btn ghost" disabled="@(Busy || !CanEdit)" @onclick="Reimporta" title="@L["Ape_ReimportSidTitle"]"><Icon Name="refresh" Size="14" /> @L["Ape_ReimportSid"]</button>
+                </div>
+                @* Barra dei filtri: campi di Struttura (la lente è disegnata nel campo) e chip SEMPRE
+                   presenti, spenti a zero — un chip che compare col contatore accorcia la riga sotto
+                   il puntatore. I chip pista tagliano 206 righe a una quarantina con un clic. *@
+                <div class="struct-bar">
+                    <input class="htree-search" placeholder="@L["Ape_SidSearchPh"]" @bind="_sidSearch" @bind:event="oninput" />
+                    <span class="sb-chips">
+                        <button class="sh-chip @(nReview > 0 ? "warn" : "") @(_sidOnlyReview ? "on" : "")" disabled="@(nReview == 0)"
+                                title="@L["Ape_SidReviewChipTitle"]" @onclick="() => _sidOnlyReview = !_sidOnlyReview">@L["Ape_SidReviewChip", nReview]</button>
+                        @foreach (var rw in ImportedRunways())
+                        {
+                            var id = rw.Ident;
+                            <button class="sh-chip @(_sidRwFilter == id ? "on" : "")" title="@L["Ape_SidRwChipTitle"]"
+                                    @onclick="() => _sidRwFilter = _sidRwFilter == id ? null : id">@id <span class="chip-n">@rw.Count</span></button>
+                        }
+                    </span>
+                </div>
+                @* Barra delle azioni FUORI dal riquadro che scorre: chi compila in fondo alle 206 righe
+                   non deve risalire per confermare. «Salva modificate» conta le righe TOCCATE, che non
+                   sono più le righe SCELTE: due stati diversi, due colori diversi. *@
+                <div class="bulk-bar">
+                    <b>@L["Ape_SidDirtyN", _dirtySid.Count]</b>
+                    <button class="btn primary" disabled="@(Busy || !CanEdit || _dirtySid.Count == 0)" @onclick="SalvaImportateSporche"><Icon Name="check-circle" /> @L["Ape_SidSaveDirty"]</button>
+                    <span class="sb-sep"></span>
+                    <b>@L["Apt_NSelected", _selSid.Count]</b>
+                    <button type="button" class="btn ghost" disabled="@(iview.Count == 0)" @onclick="() => ToggleSelectAll(iview)">@(AllSelected(iview) ? L["Ape_SidUnselectAll"] : L["Ape_SidSelectAll"])</button>
+                    @* Gli stessi due gesti del doppio clic, raggiungibili anche da tastiera: agiscono
+                       sulla riga del campo toccato per ultimo. *@
+                    <button class="btn ghost" disabled="@(_src is null || !_src.Imported)" @onclick="() => PickSameFromBar(true, false)" title="@L["Ape_PickSameFixTitle"]">@L["Ape_PickSameFix"]</button>
+                    <button class="btn ghost" disabled="@(_src is null || !_src.Imported)" @onclick="() => PickSameFromBar(true, true)" title="@L["Ape_PickSameTransTitle"]">@L["Ape_PickSameTrans"]</button>
+                    <button class="btn ghost" disabled="@(Busy || !CanEdit || _selSid.Count == 0)" @onclick="PubblicaSelezionate" title="@L["Ape_SidPublishSelTitle"]"><Icon Name="clock" /> @L["Ape_SidPublishSel"]</button>
+                    @* «Applica alle scelte»: dice sempre COSA copierà e DOVE — niente azioni al buio. *@
+                    <button class="btn ghost" disabled="@(!CanApply(true))" @onclick="() => ApplyToSelected(true)" title="@L["Ape_ApplyTitle"]">⤓ @ApplyLabel(true)</button>
+                    <button class="btn ghost" title="@L["Apt_Deselect"]" aria-label="@L["Apt_Deselect"]" disabled="@(_selSid.Count == 0)" @onclick="ClearSidSelection">✕</button>
+                </div>
+                @* ⚠️ Prima la tabella stava in un `overflow:auto` SENZA altezza: un contenitore di
+                   scorrimento che non scorre mai in verticale, dove uno `sticky` non si aggancia a
+                   niente. Con l'altezza il corpo scorre davvero e l'intestazione resta. *@
+                <div class="ed-pane">
+                @* Larghezze per CLASSE semantica e `table-layout:fixed`, come nella tabella SID del
+                   viewer: con `auto` le colonne dei chip Cat./WTC collassavano e i chip si impilavano
+                   in verticale — misurato, 128px di altezza per riga invece di 44. *@
+                <table class="res-table sid-table sid-edit sid-imported sticky-head">
+                    <thead><tr><th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@AllSelected(iview)" @onclick:preventDefault="true" @onclick="() => ToggleSelectAll(iview)" /></th><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="Condition">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-pub">@L["Common_State"]</th></tr></thead>
+                    <tbody @onmouseup="SelDragEnd" @onmouseleave="SelDragEnd">
+                        @for (var vi = 0; vi < iview.Count; vi++)
+                        {
+                            var idx = vi; var e = iview[idx];
+                            @* Due stati distinti, due segni distinti: `row-sel` = scelta (per pubblicare),
+                               `row-dirty` = toccata e non ancora salvata. Prima erano la stessa cosa —
+                               modificare una cella metteva la riga fra le «selezionate». *@
+                            <tr class="@(_selSid.Contains(e.Id) ? "row-sel" : null) @(_dirtySid.Contains(e.Id) ? "row-dirty" : null)">
+                                @* La cella di scelta è il comando: da mouse col trascinamento, da
+                                   TASTIERA con Invio/Spazio (prima la casella aveva tabindex -1 e le
+                                   righe non si potevano scegliere senza mouse). *@
+                                <td class="col-chk sid-pick" role="button" tabindex="0"
+                                    aria-pressed="@_selSid.Contains(e.Id).ToString().ToLowerInvariant()"
+                                    aria-label="@L["Apt_SelectRow", e.Fix + " " + e.Name]"
+                                    title="@L["Ape_SidPickTitle"]"
+                                    @onmousedown="ev => SelDragStart(idx, ev)" @onmouseenter="() => SelDragEnter(idx)"
+                                    @onkeydown="ev => PickSidOnKey(ev, e.Id)"><input type="checkbox" checked="@_selSid.Contains(e.Id)" tabindex="-1" aria-hidden="true" @onclick:preventDefault="true" /></td>
+                                <td class="col-fix">
+                                    @if (e.NeedsReview)
+                                    {
+                                        <span title="@L["Ape_FixToVerify"]" class="fix-warn"><Icon Name="warning" Size="12" /></span>
+                                        <input class="in-fix" list="@NavaidDatalist.DefaultId" @bind="e.FixOverride" @bind:after="() => TouchImported(e)" placeholder="@e.Fix" aria-label="@L["Ape_FixToVerify"]" />
+                                        <label class="ic-app" title="@(string.Format(L["Ape_AliasTitle"].Value, e.Fix))"><input type="checkbox" @bind="e.CreateAlias" @bind:after="() => TouchImported(e)" /> @L["Ape_Alias"]</label>
+                                    }
+                                    else { <b>@e.Fix</b> }
+                                </td>
+                                @* Il doppio clic sta sulle celle NON scrivibili: dentro un campo il
+                                   doppio clic seleziona la parola, ed è il gesto di chi sta scrivendo. *@
+                                <td class="col-sid dbl-pick" title="@L["Ape_DblSameFixTitle"]" @ondblclick="() => PickSameFix(e)">@e.Name</td>
+                                <td class="col-rwy dbl-pick" title="@L["Ape_DblSameFixTitle"]" @ondblclick="() => PickSameFix(e)">@(string.IsNullOrWhiteSpace(e.Runway) ? "—" : e.Runway)</td>
+                                <td class="col-trans dbl-pick" title="@L["Ape_DblSameTransTitle"]" @ondblclick="() => PickSameTrans(e)">@(string.IsNullOrWhiteSpace(e.Transition) ? "—" : e.Transition)</td>
+                                <td class="col-type dbl-pick" title="@L["Ape_DblSameFixTitle"]" @ondblclick="() => PickSameFix(e)">@(string.IsNullOrWhiteSpace(e.Type) ? "—" : e.Type)</td>
+                                <td class="col-climb">
+                                    <input type="number" min="0" step="100" class="in-climb" @bind="e.InitialClimb" @bind:after="() => TouchImported(e)" placeholder="ft" title="@L["Ape_ClimbTitle"]" aria-label="@L["Ape_ClimbTitle"]"
+                                           @onfocus="() => Src(true, e, SidCol.Climb)" @onkeydown="ev => CellKey(ev, true)" />
+                                    <label class="ic-app" title="@L["Ape_ClimbByAppTitle"]"><input type="checkbox" @bind="e.InitialClimbByApp" @bind:after="() => TouchImported(e)" @onfocus="() => Src(true, e, SidCol.Climb)" /> APP</label>
+                                </td>
+                                <td class="col-cat">
+                                    <div class="tok-set">
+                                        @foreach (var t in CatTokens)
+                                        {
+                                            <button type="button" class="tok @(HasTok(e.Cat, t) ? "on" : "")" title="@L["Ape_TokScaleTitle"]"
+                                                    @onclick="ev => TokClick(ev, true, e, t, CatTokens)" @ondblclick="() => TokScale(true, e, t, CatTokens)"
+                                                    @onfocus="() => Src(true, e, SidCol.Cat)">@t</button>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="col-wtc">
+                                    <div class="tok-set">
+                                        @foreach (var t in WtcTokens)
+                                        {
+                                            <button type="button" class="tok @(HasTok(e.Wtc, t) ? "on" : "")" title="@L["Ape_TokScaleTitle"]"
+                                                    @onclick="ev => TokClick(ev, true, e, t, WtcTokens)" @ondblclick="() => TokScale(true, e, t, WtcTokens)"
+                                                    @onfocus="() => Src(true, e, SidCol.Wtc)">@t</button>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="col-cond"><input class="in-cond" @bind="e.Condition" @bind:after="() => TouchImported(e)" placeholder="—" aria-label="Condition" title="@e.Condition"
+                                                             @onfocus="() => Src(true, e, SidCol.Cond)" @onkeydown="ev => CellKey(ev, true)" /></td>
+                                <td class="col-prio"><input type="number" class="in-prio" @bind="e.Priority" @bind:after="() => TouchImported(e)" aria-label="@L["Ape_Priority"]" title="@L["Ape_PriorityTitle"]"
+                                                             @onfocus="() => Src(true, e, SidCol.Prio)" @onkeydown="ev => CellKey(ev, true)" /></td>
+                                <td class="col-pub">
+                                    @if (e.IsPublicNow) { <span class="pill green">@L["Ape_Public"]</span> }
+                                    else { <span class="pill future" title="@(string.Format(L["Ape_AutoPublishTitle"].Value, e.PublishFromCycle))"><Icon Name="clock" Size="11" /> @e.PublishFromCycle</span> }
+                                </td>
+                            </tr>
+                        }
+                        @if (iview.Count == 0)
+                        {
+                            <tr><td colspan="12" class="muted">@L["Ape_SidNoMatch"]</td></tr>
+                        }
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        }
+
+        @* ⚠️ Qui c'era `MarkDirty("SID")`, con la S maiuscola: una chiave che NON corrisponde a nessun caso
+           dello smistamento del salvataggio, quindi «Salva tutto» la saltava in silenzio e restava per sempre
+           fra le non salvate. Spostando il codice si e' vista: ora e' lo stesso `Sporca()` di tutto il resto. *@
+        <div class="block" @onchange="() => Sporca()">
+            <div class="ed-h3">
+                <h2 class="h-sect">@L["Ape_SidManualTitle"] <span class="pill blue">@CountLabel(ManualView().Count(), Manual.Count)</span></h2>
+                <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SidManualHelpAria"]" ExtraClass="wide">
+                    @L["Ape_SidManualHelp"]
+                </HelpHint>
+            </div>
+            @{ var sidIssues = SidIssues(); }
+            @if (sidIssues.Count > 0)
+            {
+                <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var m in sidIssues) { <div>@L[m.Key, m.Args]</div> }</div></div>
+            }
+            <div class="struct-bar">
+                <input class="htree-search" placeholder="@L["Ape_SidManualSearchPh"]" @bind="_sidManualSearch" @bind:event="oninput" />
+            </div>
+            @{ var mview = ManualView().ToList(); }
+            @* Stessa barra delle importate: quello che si può fare di là si può fare anche di qua. *@
+            <div class="bulk-bar">
+                <b>@L["Apt_NSelected", _selManual.Count]</b>
+                <button type="button" class="btn ghost" disabled="@(mview.Count == 0)" @onclick="() => ToggleSelectAllManual(mview)">@(mview.Count > 0 && mview.All(_selManual.Contains) ? L["Ape_SidUnselectAll"] : L["Ape_SidSelectAll"])</button>
+                <button class="btn ghost" disabled="@(_src is null || _src.Imported)" @onclick="() => PickSameFromBar(false, false)" title="@L["Ape_PickSameFixTitle"]">@L["Ape_PickSameFix"]</button>
+                <button class="btn ghost" disabled="@(_src is null || _src.Imported)" @onclick="() => PickSameFromBar(false, true)" title="@L["Ape_PickSameTransTitle"]">@L["Ape_PickSameTrans"]</button>
+                <button class="btn ghost" disabled="@(!CanApply(false))" @onclick="() => ApplyToSelected(false)" title="@L["Ape_ApplyTitle"]">⤓ @ApplyLabel(false)</button>
+                <button class="btn ghost" title="@L["Apt_Deselect"]" aria-label="@L["Apt_Deselect"]" disabled="@(_selManual.Count == 0)" @onclick="() => _selManual.Clear()">✕</button>
+            </div>
+            <datalist id="ape-rwy-idents">@foreach (var id in RunwayIdents) { <option value="@id" /> }</datalist>
+            @* Type: i due valori veri sono CONV e RNAV, ma il campo resta libero — le sorgenti ne
+               portano altri e non si vuole perdere un valore solo perché non è in elenco. *@
+            <datalist id="ape-sid-types"><option value="CONV" /><option value="RNAV" /></datalist>
+            <div class="tbl-scroll">
+            <table class="res-table sid-table sid-edit sid-manual">
+                @* Stesso ordine e stessi comandi della tabella importate: chi lavora sulle due
+                   tabelle non deve reimparare dove sta cosa. *@
+                <thead><tr><th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@(mview.Count > 0 && mview.All(_selManual.Contains))" @onclick:preventDefault="true" @onclick="() => ToggleSelectAllManual(mview)" /></th><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="Condition">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-pub">@L["Common_State"]</th><th class="col-act"></th></tr></thead>
+                <tbody>
+                    @foreach (var s in mview)
+                    {
+                        <tr @key="s" class="@(_selManual.Contains(s) ? "row-sel" : null)">
+                            @* Qui tutte le celle sono campi, quindi il doppio clic «stesso punto» vive
+                               sulla cella di scelta: dentro un campo il doppio clic serve a chi scrive. *@
+                            <td class="col-chk sid-pick" role="button" tabindex="0"
+                                aria-pressed="@_selManual.Contains(s).ToString().ToLowerInvariant()"
+                                aria-label="@L["Apt_SelectRow", (s.Fix ?? "") + " " + (s.Name ?? "")]"
+                                title="@L["Ape_ManualPickTitle"]"
+                                @onclick="() => ToggleManual(s)" @onkeydown="ev => ToggleManualOnKey(ev, s)"
+                                @ondblclick="() => PickSameFixManual(s)"><input type="checkbox" checked="@_selManual.Contains(s)" tabindex="-1" aria-hidden="true" @onclick:preventDefault="true" /></td>
+                            <td class="col-fix"><input list="@NavaidDatalist.DefaultId" class="@UnknownFixClass(s.Fix)" title="@UnknownFixTitle(s.Fix)" @bind="s.Fix" aria-label="FIX" /></td>
+                            <td class="col-sid"><input @bind="s.Name" aria-label="SID" /></td>
+                            <td class="col-rwy"><input list="ape-rwy-idents" @bind="s.Runway" aria-label="@L["Ape_Runway"]" /></td>
+                            <td class="col-trans"><input list="@NavaidDatalist.DefaultId" class="@UnknownFixClass(s.Transition)" title="@UnknownFixTitle(s.Transition)" @bind="s.Transition" aria-label="Transition" /></td>
+                            <td class="col-type"><input list="ape-sid-types" @bind="s.Type" placeholder="CONV" aria-label="Type" title="@L["Ape_TypeTitle"]" /></td>
+                            @* Testo libero e non `type=number` come nelle importate: qui i valori
+                               storici portano l'unità («5000ft», «FL80») e un campo numerico li
+                               butterebbe via al primo salvataggio. *@
+                            <td class="col-climb">
+                                <input class="in-climb" @bind="s.InitialClimb" placeholder="ft" aria-label="Initial climb"
+                                       @onfocus="() => Src(false, s, SidCol.Climb)" @onkeydown="ev => CellKey(ev, false)" />
+                                <label class="ic-app" title="@L["Ape_ClimbByAppTitle"]"><input type="checkbox" @bind="s.InitialClimbByApp" @onfocus="() => Src(false, s, SidCol.Climb)" /> APP</label>
+                            </td>
+                            <td class="col-cat">
+                                <div class="tok-set">
+                                    @foreach (var t in CatTokens)
+                                    {
+                                        <button type="button" class="tok @(HasTok(s.Cat, t) ? "on" : "")" title="@L["Ape_TokScaleTitle"]"
+                                                @onclick="ev => TokClick(ev, false, s, t, CatTokens)" @ondblclick="() => TokScale(false, s, t, CatTokens)"
+                                                @onfocus="() => Src(false, s, SidCol.Cat)">@t</button>
+                                    }
+                                </div>
+                            </td>
+                            <td class="col-wtc">
+                                <div class="tok-set">
+                                    @foreach (var t in WtcTokens)
+                                    {
+                                        <button type="button" class="tok @(HasTok(s.Wtc, t) ? "on" : "")" title="@L["Ape_TokScaleTitle"]"
+                                                @onclick="ev => TokClick(ev, false, s, t, WtcTokens)" @ondblclick="() => TokScale(false, s, t, WtcTokens)"
+                                                @onfocus="() => Src(false, s, SidCol.Wtc)">@t</button>
+                                    }
+                                </div>
+                            </td>
+                            <td class="col-cond"><input class="in-cond" @bind="s.Condition" aria-label="Condition" title="@s.Condition"
+                                                         @onfocus="() => Src(false, s, SidCol.Cond)" @onkeydown="ev => CellKey(ev, false)" /></td>
+                            <td class="col-prio"><input type="number" class="in-prio" @bind="s.Priority" aria-label="@L["Ape_Priority"]" title="@L["Ape_PriorityTitle"]"
+                                                         @onfocus="() => Src(false, s, SidCol.Prio)" @onkeydown="ev => CellKey(ev, false)" /></td>
+                            @* Lo stato lo calcola `SidRow.IsPublicAt`, la stessa regola delle importate:
+                               oggi una riga a mano è pubblica appena si pubblica il documento, e la
+                               colonna lo dice; se la regola cambia, qui non c'è niente da riscrivere. *@
+                            <td class="col-pub">
+                                @if (s.IsPublicNow) { <span class="pill green">@L["Ape_Public"]</span> }
+                                else { <span class="pill future" title="@(string.Format(L["Ape_AutoPublishTitle"].Value, s.PublishFromCycle))"><Icon Name="clock" Size="11" /> @s.PublishFromCycle</span> }
+                            </td>
+                            <td class="col-act">
+                                <button class="btn ghost" @onclick="() => CloneSid(s)" title="@L["Ape_CloneRow"]" aria-label="@L["Ape_CloneRow"]">⎘</button>
+                                <button class="btn ghost" @onclick="() => RemoveSid(s)" title="@L["Common_Remove"]" aria-label="@L["Common_Remove"]">✕</button>
+                            </td>
+                        </tr>
+                    }
+                    @if (mview.Count == 0)
+                    {
+                        <tr><td colspan="13" class="muted">@(Manual.Count == 0 ? L["Ape_SidNoManual"] : L["Ape_SidNoRowMatch"])</td></tr>
+                    }
+                </tbody>
+            </table>
+            </div>
+            <div style="margin-top:10px;display:flex;gap:8px">
+                <button class="btn ghost" @onclick="AddSid">+ SID</button>
+                <button class="btn primary" disabled="@(Busy || !CanEdit)" @onclick="SalvaManuali">@L["Ape_SaveManualSids"]</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // ---- i dati, che possiede la pagina ----
+
+    /// <summary>Le SID importate dal sectorfile. Il componente le muta in posto e avvisa con i callback.</summary>
+    [Parameter, EditorRequired] public List<ImportedSidEdit> Imported { get; set; } = new();
+
+    /// <summary>Le SID scritte a mano.</summary>
+    [Parameter, EditorRequired] public List<SidEdit> Manual { get; set; } = new();
+
+    /// <summary>Le piste dello scalo: servono ai chip e all'avviso «pista non fra quelle definite».</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<string> RunwayIdents { get; set; } = Array.Empty<string>();
+
+    /// <summary>Il catalogo dei punti: marca i FIX che non esistono.</summary>
+    [Parameter] public NavaidCatalog Navaids { get; set; } = NavaidCatalog.Empty;
+
+    /// <summary>ICAO dello scalo: serve solo ai messaggi di registro.</summary>
+    [Parameter] public string Icao { get; set; } = "";
+
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public bool CanEdit { get; set; }
+
+    /// <summary>Larghezza piena: indice e rail via, per le dodici colonne delle SID.</summary>
+    [Parameter] public bool Wide { get; set; }
+    [Parameter] public EventCallback<bool> WideChanged { get; set; }
+
+    // ---- quel che il componente chiede alla pagina ----
+
+    /// <summary>Qualcosa è cambiato nelle MANUALI: la pagina segna la sezione fra quelle non salvate.</summary>
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    /// <summary>Salva le SID manuali.</summary>
+    [Parameter] public EventCallback OnSaveManual { get; set; }
+
+    /// <summary>Reimporta dal sectorfile.</summary>
+    [Parameter] public EventCallback OnReimport { get; set; }
+
+    /// <summary>Scrive UNA riga importata. ⚠️ Una per volta e non in blocco: così un guasto su una riga non
+    /// porta con sé le altre, e il componente sa esattamente quali togliere dalle «non salvate».</summary>
+    [Parameter, EditorRequired] public Func<ImportedSidEdit, Task> PersistImported { get; set; } = default!;
+
+    /// <summary>La guardia della pagina: badge, errori tradotti, rete di sicurezza. Ritorna se è andata.</summary>
+    [Parameter, EditorRequired] public Func<Func<Task>, Task<bool>> RunGuarded { get; set; } = default!;
+
+    /// <summary>Chiede conferma. È un parametro e non una chiamata JS diretta perché così il componente resta
+    /// montabile in una prova, dove un dialogo del browser non c'è.</summary>
+    [Parameter] public Func<string, Task<bool>>? ConfirmAsync { get; set; }
+
+    /// <summary>Quante righe importate sono modificate e non salvate. Serve alla PAGINA, che ha un suo
+    /// «Re-import da IVAO» — quello grosso, che riscrive anche le SID — e deve chiedere la stessa conferma.
+    /// ⚠️ È una proiezione in sola lettura, non una seconda proprietà dello stato: il conteggio lo possiede
+    /// questo componente e lo comunica quando cambia.</summary>
+    [Parameter] public EventCallback<int> OnDirtyCountChanged { get; set; }
+
+    /// <summary>Un messaggio da mostrare in cima («applicato a N righe», «pubblicate N»): lo mostra la pagina,
+    /// che possiede quel riquadro.</summary>
+    [Parameter] public EventCallback<(string Testo, bool Avviso)> OnInfo { get; set; }
+
+    private const StringComparison OIC = StringComparison.OrdinalIgnoreCase;
+
+    private Task Sporca() => OnChanged.InvokeAsync();
+
+    /// <summary>Da chiamare dopo ogni cambio di <c>_dirtySid</c>: tiene allineato il conteggio della pagina.</summary>
+    private Task AvvisaNonSalvate() => OnDirtyCountChanged.InvokeAsync(_dirtySid.Count);
+    private Task SalvaManuali() => OnSaveManual.InvokeAsync();
+    /// <summary>
+    /// Reimporta dal sectorfile. ⚠️ Chiede conferma se ci sono righe importate NON SALVATE: il reimport le
+    /// riscrive, e chi ha passato mezz'ora a rivedere i FIX perderebbe il lavoro senza che nessuno glielo
+    /// abbia chiesto. La domanda sta qui perché è qui che si sa quante sono.
+    /// </summary>
+    private async Task Reimporta()
+    {
+        if (_dirtySid.Count > 0
+            && !await Conferma(Plural(_dirtySid.Count, "Ape_SidDiscardConfirm", _dirtySid.Count))) return;
+        await OnReimport.InvokeAsync();
+    }
+
+    private async Task<bool> Conferma(string domanda) =>
+        ConfirmAsync is null || await ConfirmAsync(domanda);
+
+    private void Informa(string testo, bool avviso = false) => OnInfo.InvokeAsync((testo, avviso));
+
+    /// <summary>
+    /// ⚠️ Quando la pagina ricarica, i buffer sono NUOVI: la selezione, le righe non salvate e la cella
+    /// sorgente parlano di oggetti che non esistono più e vanno azzerate. Lo faceva <c>LoadAsync</c> della
+    /// pagina, che quello stato lo possedeva; ora lo possiede questo componente, e se ne accorge da sé
+    /// guardando se la lista è la stessa di prima.
+    /// </summary>
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(Imported, _ultimeImportate) && ReferenceEquals(Manual, _ultimeManuali)) return;
+        _ultimeImportate = Imported;
+        _ultimeManuali = Manual;
+        _selSid.Clear();
+        _dirtySid.Clear();
+        _selManual.Clear();
+        _src = null;
+        _lastSelIdx = null;
+        _ = AvvisaNonSalvate();
+    }
+
+    private object? _ultimeImportate;
+    private object? _ultimeManuali;
+
+    /// <summary>«1 riga» / «N righe»: la chiave singolare è quella plurale con «One» in coda.</summary>
+    private readonly HashSet<int> _dirtySid = new();
+    private int? _lastSelIdx;
+    private bool _selDragActive;
+    private bool _selDragMods;
+    private bool _selDragMoved;
+    private int _selDragStart;
+    private readonly HashSet<SidEdit> _selManual = new();
+    private readonly HashSet<int> _selSid = new();
+    private string _sidManualSearch = "";
+    private bool _sidOnlyReview;
+    private string? _sidRwFilter;
+    private string _sidSearch = "";
+    private CellSource? _src;
+    private async Task AddSid() { Manual.Add(new SidEdit()); _sidManualSearch = ""; await Sporca(); }
+    private bool AllSelected(List<ImportedSidEdit> view) => view.Count > 0 && view.All(e => _selSid.Contains(e.Id));
+    private string ApplyLabel(bool imported) =>
+        _src is null || _src.Imported != imported
+            ? L["Ape_ApplyNoSource"].Value
+            : L["Ape_ApplyN", SourceValue(), SelCount(imported)].Value;
+    private async Task ApplyToSelected(bool imported)
+    {
+        if (!CanApply(imported)) return;
+        var value = SourceValue();
+        var n = SelCount(imported);
+        // Sopra le venti righe si rilegge prima di scrivere: sotto sarebbe rumore, sopra è una scrittura
+        // che vale la pena confermare.
+        if (n > 20 && !await Conferma(L["Ape_ApplyConfirm", value, n].Value)) return;
+
+        var hidden = 0;
+        if (imported)
+        {
+            var src = (ImportedSidEdit)_src!.Row;
+            var visible = ImportedView().Select(x => x.Id).ToHashSet();
+            foreach (var e in Imported.Where(x => _selSid.Contains(x.Id)))
+            {
+                CopyCell(src, e, _src.Col);
+                TouchImported(e);
+                if (!visible.Contains(e.Id)) { hidden++; }
+            }
+        }
+        else
+        {
+            var src = (SidEdit)_src!.Row;
+            var visible = ManualView().ToHashSet();
+            foreach (var m in _selManual)
+            {
+                CopyCell(src, m, _src.Col);
+                if (!visible.Contains(m)) { hidden++; }
+            }
+            await Sporca();
+        }
+        Informa(Plural(n, "Ape_ApplyDone", n) + (hidden > 0 ? L["Ape_ApplyHidden", hidden].Value : ""));
+    }
+    private bool CanApply(bool imported) =>
+        _src is not null && _src.Imported == imported && SelCount(imported) > 0 && CanEdit && !Busy;
+    private static readonly string[] CatTokens = { "A", "B", "C", "D", "E" };
+    private Task CellKey(KeyboardEventArgs ev, bool imported) =>
+        ev.CtrlKey && ev.Key == "Enter" ? ApplyToSelected(imported) : Task.CompletedTask;
+    private void ClearSidSelection() { _selSid.Clear(); _lastSelIdx = null; }
+        private async Task CloneSid(SidEdit s)
+    {
+        var i = Manual.IndexOf(s);
+        var copy = new SidEdit
+        {
+            Runway = s.Runway, Fix = s.Fix, Name = s.Name, Transition = s.Transition, InitialClimb = s.InitialClimb,
+            InitialClimbByApp = s.InitialClimbByApp, Type = s.Type, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
+            Priority = s.Priority,
+        };
+        Manual.Insert(i < 0 ? Manual.Count : i + 1, copy);
+        _sidManualSearch = "";   // rendi visibile la nuova riga anche se un filtro era attivo
+        await Sporca();
+    }
+    /// <summary>Copia una cella da una riga MANUALE all'altra. ⚠️ Due sovraccarichi e non un'interfaccia
+    /// comune: le due forme di riga non condividono un tipo, e inventarlo per cinque campi costerebbe più di
+    /// quel che rende.</summary>
+    private static void CopyCell(SidEdit from, SidEdit to, SidCol col)
+    {
+        switch (col)
+        {
+            case SidCol.Climb: to.InitialClimb = from.InitialClimb; to.InitialClimbByApp = from.InitialClimbByApp; break;
+            case SidCol.Cat: to.Cat = from.Cat; break;
+            case SidCol.Wtc: to.Wtc = from.Wtc; break;
+            case SidCol.Cond: to.Condition = from.Condition; break;
+            default: to.Priority = from.Priority; break;
+        }
+    }
+
+    private static void CopyCell(ImportedSidEdit from, ImportedSidEdit to, SidCol col)
+    {
+        switch (col)
+        {
+            case SidCol.Climb: to.InitialClimb = from.InitialClimb; to.InitialClimbByApp = from.InitialClimbByApp; break;
+            case SidCol.Cat: to.Cat = from.Cat; break;
+            case SidCol.Wtc: to.Wtc = from.Wtc; break;
+            case SidCol.Cond: to.Condition = from.Condition; break;
+            default: to.Priority = from.Priority; break;
+        }
+    }
+    private string CountLabel(int shown, int total) =>
+        shown == total ? total.ToString() : L["Apt_CountOf", shown, total].Value;
+    private SidFiltro Filtro => new(_sidSearch, _sidRwFilter, _sidOnlyReview);
+    private static bool HasTok(string? csv, string tok) => AirportSidRules.HasTok(csv, tok);
+    private List<ImportedSidEdit> ImportedView() => AirportSidRules.Importate(Imported, Filtro).ToList();
+    private IEnumerable<SidEdit> ManualView() => AirportSidRules.Manuali(Manual, _sidManualSearch);
+    private void PickGroup(List<int> ids)
+    {
+        if (ids.Count == 0) return;
+        if (ids.All(_selSid.Contains)) { foreach (var id in ids) { _selSid.Remove(id); } }
+        else { foreach (var id in ids) { _selSid.Add(id); } }
+        _lastSelIdx = null;
+    }
+    private void PickGroupManual(List<SidEdit> rows)
+    {
+        if (rows.Count == 0) return;
+        if (rows.All(_selManual.Contains)) { foreach (var r in rows) { _selManual.Remove(r); } }
+        else { foreach (var r in rows) { _selManual.Add(r); } }
+    }
+    private void PickSameFix(ImportedSidEdit e) =>
+        PickGroup(ImportedView().Where(x => string.Equals(x.Fix, e.Fix, OIC)).Select(x => x.Id).ToList());
+    private void PickSameFixManual(SidEdit s) =>
+        PickGroupManual(ManualView().Where(x => string.Equals(x.Fix ?? "", s.Fix ?? "", OIC)).ToList());
+    private void PickSameFromBar(bool imported, bool byTransition)
+    {
+        if (_src is null || _src.Imported != imported) return;
+        if (imported)
+        {
+            var e = (ImportedSidEdit)_src.Row;
+            if (byTransition) { PickSameTrans(e); } else { PickSameFix(e); }
+        }
+        else
+        {
+            var m = (SidEdit)_src.Row;
+            if (byTransition) { PickSameTransManual(m); } else { PickSameFixManual(m); }
+        }
+    }
+    private void PickSameTrans(ImportedSidEdit e) =>
+        PickGroup(ImportedView().Where(x => string.Equals(x.Transition ?? "", e.Transition ?? "", OIC)).Select(x => x.Id).ToList());
+    private void PickSameTransManual(SidEdit s) =>
+        PickGroupManual(ManualView().Where(x => string.Equals(x.Transition ?? "", s.Transition ?? "", OIC)).ToList());
+    private void PickSidOnKey(KeyboardEventArgs ev, int id)
+    {
+        if (ev.Key != "Enter" && ev.Key != " " && ev.Key != "Spacebar") return;
+        if (!_selSid.Remove(id)) _selSid.Add(id);
+        _lastSelIdx = null;
+    }
+                private async Task RemoveSid(SidEdit s) { if (await Conferma(L["Ape_RemoveSidConfirm"].Value)) { Manual.Remove(s); await Sporca(); } }
+    private static string? ScaleTok(string? csv, string tok, string[] order)
+    {
+        var turnOn = !HasTok(csv, tok);
+        var upTo = Array.IndexOf(order, tok);
+        if (upTo < 0) return csv;
+        var set = new HashSet<string>(
+            (csv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i <= upTo; i++)
+        {
+            if (turnOn) { set.Add(order[i]); } else { set.Remove(order[i]); }
+        }
+        var res = string.Join(",", order.Where(t => set.Contains(t)));
+        return res.Length == 0 ? null : res;
+    }
+    private int SelCount(bool imported) => imported ? _selSid.Count : _selManual.Count;
+    private void SelDragEnd()
+    {
+        if (_selDragActive && !_selDragMoved)            // click puro sulla riga d'avvio (nessun trascinamento)
+        {
+            var view = ImportedView();
+            if (_selDragStart < view.Count)
+            {
+                if (_selDragMods && _lastSelIdx is int a && a >= 0 && a < view.Count)
+                {
+                    var lo = Math.Min(a, _selDragStart);
+                    var hi = Math.Max(a, _selDragStart);
+                    for (var i = lo; i <= hi; i++) _selSid.Add(view[i].Id);
+                }
+                else
+                {
+                    var id = view[_selDragStart].Id;
+                    if (!_selSid.Remove(id)) _selSid.Add(id);
+                    _lastSelIdx = _selDragStart;
+                }
+            }
+        }
+        _selDragActive = false;
+    }
+    private void SelDragEnter(int idx)
+    {
+        if (!_selDragActive || idx == _selDragStart) return;
+        _selDragMoved = true;
+        var view = ImportedView();
+        var down = idx >= _selDragStart;                 // verso il basso = seleziona; verso l'alto = deseleziona
+        var lo = Math.Min(idx, _selDragStart);
+        var hi = Math.Max(idx, _selDragStart);
+        for (var i = lo; i <= hi && i < view.Count; i++)
+            if (down) _selSid.Add(view[i].Id); else _selSid.Remove(view[i].Id);
+        _lastSelIdx = idx;
+    }
+    private void SelDragStart(int idx, MouseEventArgs e)
+    {
+        _selDragActive = true;
+        _selDragStart = idx;
+        _selDragMoved = false;
+        _selDragMods = e.ShiftKey || e.CtrlKey;
+    }
+    private void SetTok(bool imported, object row, string[] order, bool Toggle, string tok)
+    {
+        var cat = ReferenceEquals(order, CatTokens);
+        if (imported)
+        {
+            var e = (ImportedSidEdit)row;
+            var cur = cat ? e.Cat : e.Wtc;
+            var next = Toggle ? ToggleTok(cur, tok, order) : ScaleTok(cur, tok, order);
+            if (cat) { e.Cat = next; } else { e.Wtc = next; }
+        }
+        else
+        {
+            var m = (SidEdit)row;
+            var cur = cat ? m.Cat : m.Wtc;
+            var next = Toggle ? ToggleTok(cur, tok, order) : ScaleTok(cur, tok, order);
+            if (cat) { m.Cat = next; } else { m.Wtc = next; }
+        }
+    }
+    private IReadOnlyList<AirportTlIssue> SidIssues() => AirportSidRules.Issues(Manual, RunwayIdents);
+    private string SourceValue()
+    {
+        if (_src is null) return "";
+        string v;
+        if (_src.Imported)
+        {
+            var e = (ImportedSidEdit)_src.Row;
+            v = _src.Col switch
+            {
+                SidCol.Climb => (e.InitialClimb ?? "—") + (e.InitialClimbByApp ? " + APP" : ""),
+                SidCol.Cat => e.Cat ?? "—",
+                SidCol.Wtc => e.Wtc ?? "—",
+                SidCol.Cond => e.Condition ?? "—",
+                _ => e.Priority?.ToString() ?? "—",
+            };
+        }
+        else
+        {
+            var m = (SidEdit)_src.Row;
+            v = _src.Col switch
+            {
+                SidCol.Climb => (m.InitialClimb ?? "—") + (m.InitialClimbByApp ? " + APP" : ""),
+                SidCol.Cat => m.Cat ?? "—",
+                SidCol.Wtc => m.Wtc ?? "—",
+                SidCol.Cond => m.Condition ?? "—",
+                _ => m.Priority?.ToString() ?? "—",
+            };
+        }
+        v = v.Trim();
+        if (v.Length == 0) { v = "—"; }
+        return v.Length > 22 ? v[..21] + "…" : v;
+    }
+    private void Src(bool imported, object row, SidCol col) => _src = new CellSource(imported, row, col);
+    private void ToggleManual(SidEdit s) { if (!_selManual.Remove(s)) { _selManual.Add(s); } }
+    private void ToggleManualOnKey(KeyboardEventArgs ev, SidEdit s)
+    {
+        if (ev.Key != "Enter" && ev.Key != " " && ev.Key != "Spacebar") return;
+        ToggleManual(s);
+    }
+    private void ToggleSelectAll(List<ImportedSidEdit> view)
+    {
+        if (AllSelected(view)) foreach (var e in view) _selSid.Remove(e.Id);
+        else foreach (var e in view) _selSid.Add(e.Id);
+        _lastSelIdx = null;
+    }
+    private void ToggleSelectAllManual(List<SidEdit> view)
+    {
+        if (view.Count == 0) return;
+        if (view.All(_selManual.Contains)) { foreach (var r in view) { _selManual.Remove(r); } }
+        else { foreach (var r in view) { _selManual.Add(r); } }
+    }
+    private static string? ToggleTok(string? csv, string tok, string[] order)
+    {
+        var set = (csv ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(t => t.ToUpperInvariant()).ToHashSet();
+        if (!set.Remove(tok)) set.Add(tok);
+        var res = string.Join(", ", order.Where(set.Contains));
+        return res.Length == 0 ? null : res;
+    }
+    private async Task TokClick(MouseEventArgs ev, bool imported, object row, string tok, string[] order)
+    {
+        if (ev.ShiftKey) { await TokScale(imported, row, tok, order); return; }
+        SetTok(imported, row, order, Toggle: true, tok);
+        await TouchRow(imported, row);
+    }
+    private async Task TokScale(bool imported, object row, string tok, string[] order)
+    {
+        SetTok(imported, row, order, Toggle: false, tok);
+        await TouchRow(imported, row);
+    }
+    private void TouchImported(ImportedSidEdit e)
+    {
+        _dirtySid.Add(e.Id);
+        _ = AvvisaNonSalvate();
+    }
+    private Task TouchRow(bool imported, object row)
+    {
+        if (imported) { TouchImported((ImportedSidEdit)row); return Task.CompletedTask; }
+        return Sporca();
+    }
+    private string? UnknownFixClass(string? value) => NavaidCheck.IsUnknown(value, Navaids) ? "nav-unknown" : null;
+    private string? UnknownFixTitle(string? value) =>
+        NavaidCheck.IsUnknown(value, Navaids) ? L["Ape_PointUnknown"].Value : null;
+    private static readonly string[] WtcTokens = { "L", "M", "H", "S" };
+    private sealed record CellSource(bool Imported, object Row, SidCol Col);
+
+    /// <summary>Le colonne che si possono copiare da una riga alle altre selezionate.</summary>
+    private enum SidCol { Climb, Cat, Wtc, Cond, Prio }
+
+    /// <summary>Le piste presenti fra le importate che passano gli ALTRI filtri, col loro conteggio.</summary>
+    private IReadOnlyList<(string Ident, int Count)> ImportedRunways() => AirportSidRules.PisteImportate(Imported, Filtro);
+
+    /// <summary>
+    /// Salva TUTTE le righe toccate, non le scelte. ⚠️ Chi fallisce RESTA modificata: sparire dal contatore
+    /// senza essere stata scritta è la stessa perdita di non averla mai provata — e a fine giornata nessuno
+    /// saprebbe quali riprovare.
+    /// </summary>
+    private Task SalvaImportateSporche() => RunGuarded(async () =>
+    {
+        var bersagli = Imported.Where(e => _dirtySid.Contains(e.Id)).ToList();
+        if (bersagli.Count == 0) return;
+
+        var fatte = 0;
+        var fallite = new List<string>();
+        foreach (var e in bersagli)
+        {
+            try { await PersistImported(e); _dirtySid.Remove(e.Id); fatte++; }
+            catch (Exception ex)
+            {
+                fallite.Add(e.Fix);
+                Logger.LogWarning(ex, "Salvataggio SID importata fallito ({Icao} {Fix}).", Icao, e.Fix);
+            }
+        }
+        await AvvisaNonSalvate();
+        Informa(Plural(fatte, "Ape_SidSavedN", fatte)
+            + (fallite.Count > 0 ? Plural(fallite.Count, "Ape_SidSaveFailedN", fallite.Count) : ""),
+            avviso: fallite.Count > 0);
+    });
+
+    /// <summary>Pubblica le righe scelte: la selezione si svuota, perché il gesto è finito.</summary>
+    private Task PubblicaSelezionate() => RunGuarded(async () =>
+    {
+        var bersagli = Imported.Where(e => _selSid.Contains(e.Id)).ToList();
+        if (bersagli.Count == 0) return;
+
+        foreach (var e in bersagli) { e.ForcePublished = true; await PersistImported(e); _dirtySid.Remove(e.Id); }
+        _selSid.Clear();
+        _lastSelIdx = null;
+        await AvvisaNonSalvate();
+        Informa(Plural(bersagli.Count, "Ape_SidPublishedN", bersagli.Count));
+    });
+
+    private string Plural(int n, string key, params object[] args) => L[n == 1 ? key + "One" : key, args].Value;
+}
