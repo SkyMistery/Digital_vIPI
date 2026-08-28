@@ -1,13 +1,22 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 28 agosto 2026, sera (il **glossario di fraseologia**, e §Q3 chiusa).
+**Ultimo aggiornamento:** 28 agosto 2026, notte (glossario **fuso in `main`**; aperta §U, le autorizzazioni a livelli).
 
 ## Dove siamo, prima di tutto il resto
 
-⚠️ **UN RAMO APERTO: `glossario-fraseologia`**, due commit (`ee5fad7` il meccanismo e la pagina, `f2ee4eb`
-la decisione «lo curano tutti gli admin»). **Spinto** su `origin`, quindi non è l'unica copia — ma **non è
-fuso in `main`**, e `main` resta a **`0a4f92e`** (allineato con `origin/main`, 0/0). Fondere e cancellare
-il ramo è la prima cosa da decidere alla ripresa.
+✅ **NESSUN RAMO CON LAVORO FUORI.** `glossario-fraseologia` è stato **fuso in `main`** la notte del 28
+agosto (merge `332f881`, `--no-ff`; fast-forward possibile, nessun conflitto), con
+`main-prima-del-merge-20260828-glossario` lasciato come punto di ritorno su `0a4f92e`. Build Release
+`--no-incremental` della soluzione intera **dopo** la fusione: **0 avvisi, 0 errori**.
+
+⚠️ **Il ramo remoto `origin/glossario-fraseologia` c'è ancora**: si cancella solo dopo aver spinto `main`,
+quando `git rev-list --count main..origin/glossario-fraseologia` dà **0**.
+
+🟢 **Il lavoro in corso è §U — le autorizzazioni a livelli.** Carta approvata dal committente
+(`docs/feature/2026-08-28-autorizzazioni-a-livelli.md`), **codice ancora da scrivere**, ramo
+`autorizzazioni-a-livelli`. L'interruttore unico `IsAdmin` (160 usi su 46 file) diventa un enum ordinato a
+cinque livelli cumulativi; l'Editor edita tutto; le concessioni per ACC si eliminano. Due cose da chiedere
+al committente prima della prima slice: il **VID del fondatore** e se `IT-AWM` è admin (vedi §U1).
 
 ⚠️ Questa testata diceva `6644b5e` fino a stasera, cioè era **indietro di due fusioni**: nel frattempo erano
 entrati in `main` l'archivio ATC (`f120d5c`) e l'audit della lingua (`0a4f92e`). Un HANDOFF che dà lo SHA
@@ -16,7 +25,7 @@ sbagliato è peggio di uno che non lo dà: si finisce per cercare lavoro che c'�
 ⚠️ **La regola sui rami remoti**: un ramo remoto si cancella quando ciò che porta è **anche altrove**, e la
 verifica è `git rev-list --count main..origin/<ramo>` = 0. Prima di quel momento è l'unica copia sul
 server, e cancellarlo perde lavoro **senza un errore che lo dica**. Oggi su `glossario-fraseologia` quel
-conto è **2**, non 0.
+conto era **2** fino alla fusione della notte del 28; ora è **0**, e il ramo remoto si può cancellare **dopo** che `main` è stato spinto.
 
 **Suite verde su net8 e net10** (Application 1348, Infrastructure 962/953, Ui 729, E2E 254, Domain 117,
 Hosting 57, AuroraProfiles 63, AuroraBridge 79, Assets 52 — **0 falliti**), build Release
@@ -57,7 +66,7 @@ rifare col glossario si apre la voce nella pagina e si preme **«falle rifare»*
 |---|---|---|
 | **Documenti bilingue** | si **scrive in una lingua** e si **legge in due**. La traduzione non è un campo del documento ma una **memoria indicizzata sull'hash del sorgente**: da lì vengono gratis l'incrementale, il dedup e il fatto che una correzione umana valga **ovunque e per sempre**. Azure primario, DeepL di riserva | `docs/feature/2026-08-27-documenti-bilingue.md` |
 | **vSOP militari** | documento **separato** dalla vIPI civile, profilo `AirportMil` a **26 sezioni**, release e ciclo AIRAC propri, elenco nazionale `/services/vsop/mil`, editor dedicato, **filtro pilota/ATC** per sezione. Il primo SOP vero — **LIPI Rivolto** — è caricato in bozza | `docs/feature/2026-08-27-vsop-militari.md` |
-| **Glossario di fraseologia** | le formule che si dicono **in un modo solo**, dentro qualunque frase le contenga — il pezzo che la memoria di traduzione non poteva coprire, perché è indicizzata per **segmento intero**. Segnaposto `<g>`, tabella `GlossaryTerms`, pagina di cura per **tutti gli admin**. ⚠️ È sul ramo `glossario-fraseologia`, **non in `main`** | `docs/lavori-aperti.md` §Q3 |
+| **Glossario di fraseologia** | le formule che si dicono **in un modo solo**, dentro qualunque frase le contenga — il pezzo che la memoria di traduzione non poteva coprire, perché è indicizzata per **segmento intero**. Segnaposto `<g>`, tabella `GlossaryTerms`, pagina di cura per **tutti gli admin**. ✅ **In `main`** dalla notte del 28 agosto (`332f881`) | `docs/lavori-aperti.md` §Q3 |
 
 ### ⚠️ La cosa da portarsi dietro: cinque difetti li ha trovati lo SCHERMO, non la suite
 
