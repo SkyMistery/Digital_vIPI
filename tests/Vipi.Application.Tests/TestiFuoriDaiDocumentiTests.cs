@@ -43,6 +43,10 @@ public class TestiFuoriDaiDocumentiTests
             return Task.FromResult<IReadOnlyDictionary<string, string>>(_note);
         }
 
+        public Task<IReadOnlySet<string>> LoadHumanHashesAsync(
+            string s, string t, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlySet<string>>(new HashSet<string>(StringComparer.Ordinal));
+
         public Task<IReadOnlyDictionary<string, KnownTranslation>> LookupAsync(
             string s, string t, IReadOnlyCollection<string> h, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyDictionary<string, KnownTranslation>>(

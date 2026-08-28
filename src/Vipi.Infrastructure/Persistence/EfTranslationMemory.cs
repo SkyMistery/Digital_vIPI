@@ -147,6 +147,15 @@ public sealed class EfTranslationMemory : ITranslationMemory
         return righe.ToDictionary(r => r.SourceHash, r => r.TargetText, StringComparer.Ordinal);
     }
 
+    public async Task<IReadOnlySet<string>> LoadHumanHashesAsync(
+        string sourceLang, string targetLang, CancellationToken ct = default) =>
+        (await _db.TranslationUnits.AsNoTracking()
+            .Where(u => u.SourceLang == sourceLang && u.TargetLang == targetLang
+                        && u.Origin == TranslationOrigin.Human)
+            .Select(u => u.SourceHash)
+            .ToListAsync(ct).ConfigureAwait(false))
+        .ToHashSet(StringComparer.Ordinal);
+
     public async Task<(int Totale, int DaRileggere)> ContaAsync(
         string sourceLang, string targetLang, CancellationToken ct = default)
     {

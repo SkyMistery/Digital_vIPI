@@ -3205,6 +3205,16 @@ costruzione, ma **HQ ha già posto un vincolo contrattuale sui PDF**: meglio chi
 
 ### Q3 🟢 APERTO — chi cura il glossario di fraseologia
 
+⚠️ **Il 28 agosto 2026 ne è nato il primo pezzo, e non per scelta ma per un difetto visto a schermo**: la
+macchina rendeva «Piste» con *Slopes* e «Quote di transizione» con *Transition Dimensions*.
+`Vipi.Application/Translation/TitoliUfficiali.cs` mette in memoria come **Human** i 26 titoli del profilo
+militare, presi dagli originali inglesi dei quindici SOP (carta vSOP militari §2 e §8b). Un test pretende
+che ogni titolo del profilo abbia il suo originale, quindi la lista non può restare indietro.
+
+Questo **non chiude la domanda**: copre i titoli, non la fraseologia dentro le frasi — «riporta sottovento»
+resta il caso che nessun elenco di titoli risolve. Ma dice dove va messo ciò che si decide, e mostra che il
+meccanismo (voce umana in memoria, mai toccata dalla macchina) funziona.
+
 Serve **un nome**, non un ruolo. È l'unica delle tre voci aperte che, se resta scoperta, **si vede sul
 documento**: finché nessuno rilegge, il badge «traduzione non revisionata» non se lo toglie nessuno, e
 misurato contro il servizio vero «riporta sottovento» resta «bring it back downwind» — grammatica giusta,

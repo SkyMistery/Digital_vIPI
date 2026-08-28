@@ -4,7 +4,7 @@
    il cui corpo lo produce la pagina: quelle chiamano due volte, Slot="Before" e Slot="After", con ShowBlocks="false"
    (il blocco della sezione derivata porta il payload JSON, non contenuto). *@
 
-@if (Slot != SectionSlot.After)
+@if (Slot is SectionSlot.All or SectionSlot.Before)
 {
     @foreach (var child in Section.Children.Where(c => c.BeforeParentBody))
     {
@@ -30,7 +30,7 @@
     }
 }
 
-@if (Slot != SectionSlot.Before)
+@if (Slot is SectionSlot.All or SectionSlot.After)
 {
     @foreach (var child in Section.Children.Where(c => !c.BeforeParentBody))
     {

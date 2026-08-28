@@ -50,6 +50,10 @@ public class TraduzioniCongelateTests
             Task.FromResult<IReadOnlyDictionary<string, string>>(
                 new Dictionary<string, string>(StringComparer.Ordinal));
 
+        public Task<IReadOnlySet<string>> LoadHumanHashesAsync(
+            string s, string t, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlySet<string>>(new HashSet<string>(StringComparer.Ordinal));
+
         public Task<(int Totale, int DaRileggere)> ContaAsync(string s, string t, CancellationToken ct = default) =>
             Task.FromResult((0, 0));
         public Task<int> DocumentiToccatiAsync(string s, CancellationToken ct = default) => Task.FromResult(0);

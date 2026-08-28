@@ -45,10 +45,13 @@
                     <SectionBody Section="perSlot" ShowBlocks="false" Slot="SectionSlot.Before" />
                 }
                 @DerivedContent(s)
-                @* La sezione tiene ANCHE i suoi blocchi: il timbro sopra, il testo scritto a mano sotto. *@
+                @* La sezione tiene ANCHE i suoi blocchi: il timbro sopra, il testo scritto a mano sotto.
+                   ⚠️ `Slot="Blocks"`: SOLO i blocchi. Le sotto-sezioni le rendono le due chiamate attorno, e
+                   con lo slot `All` una sezione che avesse tutt'e due — scheda e sotto-sezioni — le mostrava
+                   DUE VOLTE. Si vede alla prima che le ha, «Aree di lavoro» del vSOP militare. *@
                 @if (SectionCatalog.KeepsOwnBlocks(Profile, s.SectionKey))
                 {
-                    <SectionBody Section="s" ShowBlocks="true" />
+                    <SectionBody Section="s" ShowBlocks="true" Slot="SectionSlot.Blocks" />
                 }
                 @if (SectionBody.HasChildren(perSlot, SectionSlot.After))
                 {

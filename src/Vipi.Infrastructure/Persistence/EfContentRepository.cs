@@ -35,6 +35,20 @@ public sealed class EfContentRepository : IContentRepository
             ignoreRelease, preferWorking, ct);
     }
 
+    public Task<RawDocument?> LoadAirportMilVipiAsync(string icao, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default)
+    {
+        // Gemella di LoadAirportVipiAsync, e passa dal legame MILITARE. ⚠️ Il filtro sull'edizione non è
+        // ridondante col legame: se un giorno un documento civile finisse per errore in MilDocumentId,
+        // questa query lo scarterebbe invece di mostrarlo come vSOP militare.
+        return LoadVipiAsync(
+            d => d.Type == DocumentType.Vipi
+                 && d.Edition == DocumentEdition.Military
+                 && (preferWorking || ignoreRelease || !d.IsHidden)
+                 && _db.Airports.Any(a => a.Icao == icao && a.MilDocumentId == d.Id)
+                 && (preferWorking || ignoreRelease || !_db.Airports.Any(a => a.Icao == icao && a.IsHidden)),
+            ignoreRelease, preferWorking, ct);
+    }
+
     public Task<RawDocument?> LoadAppVipiAsync(string appCallsign, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default)
     {
         var app = (appCallsign ?? "").Trim().ToUpperInvariant();

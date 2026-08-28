@@ -280,10 +280,27 @@ Regola del 2: i due registry esistono già, e adesso si guadagnano lo stipendio.
   con il tasto che lo crea.
 - Creazione dalla pagina Aeroporti admin (dove già vive `IsMilitaryOnly`) e dal wizard nuovo documento.
 
+### Com'è finita davvero (28 agosto 2026)
+
+Gli ingressi realizzati sono **tre**: la card su `/services/vsop`, l'elenco nazionale `/services/vsop/mil`
+(con «Crea il vSOP» e «✎ Modifica» per lo staff) e la scheda incrociata sul documento civile. Due previsti
+non si sono fatti, e vale la pena dire perché:
+
+| previsto | esito | ragione |
+|---|---|---|
+| card su `/services` | **no** | i vSOP militari non sono un **servizio**: sono una parte della vSOP. C'è un test che pretende che ogni figlio di `/services` sia un servizio a un solo segmento (`ServicesHomeTests`), e metterla lì lo faceva diventare rosso. La regola ha ragione: la card sta su `/services/vsop`, accanto agli altri elenchi di documenti |
+| tasto nella pagina Aeroporti admin | **no** | quella colonna azioni è già misurata al limite: il commento in `AeroportiPage.razor` racconta che un quinto tasto spingeva il cestino **oltre il bordo del pannello** a 1600px. Un solo posto da cui si crea — l'elenco militare — è anche più facile da spiegare |
+
+⚠️ **I candidati si elencano per `HasMilitaryPresence`, non per `IsMilitaryOnly`** — al contrario di quanto
+diceva la trappola 6 di §7. La ragione è nei quindici PDF: **LIRP Pisa c'è**, ed è uno scalo civile con
+sedime militare. Filtrare per `IsMilitaryOnly` avrebbe nascosto proprio i campi misti che un SOP militare
+ce l'hanno davvero. `IsMilitaryOnly` resta, ma come **etichetta** sulla riga («solo militare» /
+«civile+militare»): dice al lettore che cos'è quel campo, senza decidere per lui.
+
 ## 6. Slice di esecuzione
 
-| # | Slice | Verde su |
-|---|---|---|
+| # | Slice | Verde su | |
+|---|---|---|---|
 | 1 | `SectionAudience` su `DocumentSection` + migrazioni + propagazione DTO/proiezioni | test |
 | 2 | Editor: selettore audience per sezione + badge | live |
 | 3 | Viewer: chip `?vista=` + filtro + regola sui figli | live |
@@ -292,8 +309,14 @@ Regola del 2: i due registry esistono già, e adesso si guadagnano lo stipendio.
 | 6 | `SectionProfile.AirportMil` + le 26 sezioni nel `SectionCatalog` | test |
 | 7 | `SectionProfile.AppMil` (rimanda ad `App`) | test |
 | 8 | Due `IReleaseTarget` + due `IDocKindRoutes` | test |
-| 9 | Rotte, `/services/vsop/mil`, schede incrociate, creazione da admin | live |
-| 10 | Carico di un SOP vero (LIPI Rivolto, il più corto) come prova end-to-end | live |
+| 9 | Rotte, `/services/vsop/mil`, schede incrociate, creazione da admin, **editor** | live | ✅ 28-ago |
+| 10 | Carico di un SOP vero (LIPI Rivolto, il più corto) come prova end-to-end | live | |
+
+⚠️ **L'editor non era in elenco e serviva lo stesso.** La slice 9 diceva «rotte, elenco, schede, creazione»:
+tutte cose che portano a un documento che poi **non si può scrivere**. `MilDocRoutes` dichiarava già un
+`EditorUrl` verso una pagina che non esisteva. `MilEditorPage` è nato qui, ed è il più magro dei cinque —
+26 sezioni di cui 20 di sola prosa, e le sei rese dalla pagina che dicono soltanto *dove* si cambiano i
+dati (nell'editor dell'aeroporto civile), perché due editor sullo stesso dato sono due verità che divergono.
 
 ## 7. Trappole già note
 
@@ -331,3 +354,54 @@ Regola del 2: i due registry esistono già, e adesso si guadagnano lo stipendio.
 6. **Aeroporti solo militari**: `IsMilitaryOnly` è un giudizio di un amministratore, l'import non lo
    tocca. È il flag giusto per suggerire «questo campo vuole un'edizione militare», **non**
    `HasMilitaryPresence`, che è vero anche su Linate e Ciampino.
+
+## 8. Quel che ha trovato la prova a schermo (28 agosto 2026)
+
+I test erano verdi e la funzione girava. Poi si è guidato il browser sul documento vero, e sono usciti
+**due difetti** — nessuno dei due era del codice militare.
+
+### 8a. Una sezione con la scheda **e** le sotto-sezioni le mostrava DUE volte
+
+`DocumentSectionsView` rende il corpo di una sezione derivata in tre chiamate: sotto-sezioni «prima», la
+scheda che disegna la pagina, sotto-sezioni «dopo». La chiamata di mezzo — quella dei blocchi propri —
+usava lo slot `All`, che rende **anche** le sotto-sezioni. Su tutte le famiglie fin qui non si vedeva:
+nessuna sezione `HostAndBlocks` aveva figli. «Aree di lavoro» del vSOP militare è la prima, e a schermo
+usciva così:
+
+```
+▸ Aree di lavoro
+    Procedure generali
+    Bassa quota (BOAT)
+    Procedure generali      ← di nuovo
+    Bassa quota (BOAT)      ← di nuovo
+```
+
+Difetto **latente da sempre** nel componente condiviso: mancava soltanto un profilo che lo esercitasse.
+Chiuso con `SectionSlot.Blocks` (solo i blocchi, nessuna sotto-sezione) più una prova in
+`ParitaQuattroDocumentiTests` che gira su **tutti** i profili — verificata rossa prima di correggere.
+
+### 8b. La macchina traduceva «Piste» con *Slopes*
+
+Alla prima lettura in inglese: «Piste» → *Slopes*, «Quote di transizione» → *Transition Dimensions*. Non
+sono sfumature, sono i titoli sbagliati di due sezioni — e un controllore che li legge così non trova
+quello che cerca. La macchina non poteva saperlo (*pista* è anche una pista da sci); **noi sì**: quei
+titoli vengono dai quindici SOP, che sono scritti in inglese, e l'originale è nella tabella di §2.
+
+`TitoliUfficiali` mette i 26 titoli in memoria come **Human** prima di ogni giro: la macchina non li vede
+nemmeno, la pagina di revisione non li elenca, e una correzione umana successiva resta l'unica cosa che
+può cambiarli. ⚠️ Il seme guarda le impronte **umane**, non tutte: quando è nato, «Slopes» era **già** in
+memoria, messo lì dal giro automatico — un seme che si fermasse davanti a qualunque voce esistente non
+avrebbe corretto niente proprio dove serviva.
+
+È il primo pezzo del glossario di fraseologia di `lavori-aperti §Q3`. Non chiude la domanda su **chi** lo
+cura; toglie di mezzo il caso in cui la risposta giusta era già scritta e la stavamo buttando via.
+
+### 8c. Trappola dell'attrezzo: `innerText` non vede dentro un `<details>` chiuso
+
+Il primo giro di sonda ha riportato **24 sezioni su 26**, e mancavano proprio i due figli di «Aree di
+lavoro». Non era un difetto: `regulated` è l'unica chiave che nasce **chiusa** (`InitiallyCollapsedKeys`),
+e `innerText` di un `<details>` chiuso è vuoto. Con `textContent` le sezioni erano 26.
+
+⚠️ Vale come regola per le prossime verifiche: **`textContent` per contare, `innerText` per leggere quel
+che l'utente vede**. Confonderli fa cercare un difetto che sta nell'attrezzo — è la stessa lezione di
+`probe.js` e delle alfa non composte.

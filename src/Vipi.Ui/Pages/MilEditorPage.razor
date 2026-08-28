@@ -1,0 +1,262 @@
+@page "/services/vsop/{Acc}/mil/editor"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject IMilitaryDocumentService Militari
+@inject IEditingService Editing
+@inject IStationResolver Stations
+@inject IEditAuthorizationService Authz
+@inject IJSRuntime JS
+@inject ILogger<MilEditorPage> Logger
+@inject IDocRoutesRegistry DocRoutes
+@inject IStringLocalizer<SharedResource> L
+@using Vipi.Application.Content
+@using Vipi.Ui.Shared
+
+@* ---- Editor del vSOP MILITARE d'aeroporto (carta vSOP militari §5-6) --------------------------------
+
+   ⚠️ È l'editor più magro dei cinque, e apposta: delle 26 sezioni, 20 sono PROSA e le altre sei le
+   disegna la pagina da dati che sono dell'aeroporto CIVILE. Quei dati non si toccano da qui — piste,
+   quote di transizione e frequenze di LIPI sono quelle, qualunque documento le mostri, e due editor sullo
+   stesso dato sono due verità che divergono. Qui si scrive, e si scelgono le aree di lavoro.
+
+   ⚠️ Nessun `AirportProfile`: il documento è ACC-gated come il gemello civile, ma il suo contenuto sta
+   tutto nei blocchi. *@
+
+@if (_acc is null)
+{
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Vle_UnknownAcc"]</p>@Acc</div></div></div>
+}
+else
+{
+    <PageTitle>@L["Mil_EditorTitle"] @_icao · vIPI</PageTitle>
+    <div class="wrap struct">
+        <div class="breadcrumb">
+            <a href="/services/vsop">@L["Common_Home"]</a> ›
+            <a href="/services/vsop/mil">@L["Mil_Title"]</a> ›
+            <a href="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil?icao={_icao}")">@_icao</a> ›
+            <b>@L["Common_Editor"]</b>
+        </div>
+
+        @if (_notFound)
+        {
+            <div class="doc-head"><div><h1 class="page-h1" style="margin-bottom:2px">✎ @L["Mil_EditorTitle"] @_icao</h1><span class="muted">@_acc.Name</span></div></div>
+            <div class="callout warning"><span class="cic">⚠️</span><div>@L["Mil_NotFound"]</div></div>
+        }
+        else if (_denied)
+        {
+            <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">@L["Vle_Unauthorized"]</p>@(string.Format(L["App_DeniedBody"].Value, _acc.Code))</div></div>
+        }
+        else if (_shell.Doc is null)
+        {
+            <p class="help">@L["App_LoadingEditor"]</p>
+        }
+        else
+        {
+            @* Testata in UNA riga: titolo · «?» · stato · lock, come negli altri quattro editor. *@
+            <div class="editor-bar">
+                <div class="doc-head st-head" style="margin:0">
+                    <h1 class="st-h2 page-h1">✎ @L["Mil_EditorTitle"] @_icao</h1>
+                    <HelpHint Href="/services/vsop/guide#editor-mil" AriaLabel="@L["Mil_HelpAria"]" ExtraClass="wide">
+                        <p>@_icao · @_acc.Name</p>
+                        @((MarkupString)L["Mil_HelpBody"].Value)
+                    </HelpHint>
+                    <span class="pill @(_shell.Doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
+                        @(_shell.Doc.VersionStatus == DocumentStatus.Draft ? L["Ed_DraftVN", _shell.Doc.VersionNumber] : L["Ed_PublishedVN", _shell.Doc.VersionNumber])
+                    </span>
+                    @if (_shell.IsEditing)
+                    {
+                        <span class="sh-chip ok" data-utc-title="@VipiTime.Iso(_shell.Lock.ExpiresUtc)" title="@(L["Lock_Editing"].Value + (_shell.Lock.ExpiresUtc is { } mt ? L["Lock_UntilSuffix", VipiTime.Z(mt)].Value : ""))">
+                            🔒 @(_shell.Lock.ExpiresUtc is { } me ? L["Lock_EditingShort", VipiTime.Z(me)].Value : L["Lock_EditingNoTime"].Value)
+                        </span>
+                    }
+                    else if (_shell.Lock is { Locked: true, IsMine: false })
+                    {
+                        <span class="sh-chip warn" data-utc-title="@VipiTime.Iso(_shell.Lock.ExpiresUtc)" title="@(string.Format(L["Ed_LockedByOtherBody"].Value, _shell.Lock.ByName ?? L["Lock_AnotherEditor"].Value, _shell.Lock.ExpiresUtc is { } ot ? L["Lock_UntilSuffix", VipiTime.Z(ot)].Value : ""))">
+                            🔒 @(_shell.Lock.ByName ?? L["Lock_AnotherEditor"].Value)@(_shell.Lock.ExpiresUtc is { } oe ? L["Lock_UntilSuffix", VipiTime.Z(oe)].Value : "")
+                        </span>
+                    }
+                </div>
+            </div>
+
+            <DocReviewBar DocumentId="_shell.DocumentId" OnResolved="LoadAsync" />
+
+            @if (_shell.Error is not null)
+            {
+                <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div style="flex:1">@_shell.Error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _shell.Error = null">✕</button></div>
+            }
+
+            <DocumentSectionsEditor Doc="_shell.Doc" IsEditing="_shell.IsEditing" Run="_shell.GuardAsync" OnChanged="LoadAsync"
+                                    IsDerivedSection="IsDerived" DerivedContent="DerivedSection"
+                                    IsMandatory="IsMandatory" Profile="SectionProfile.AirportMil"
+                                    IsRenderModeToggleable="IsRenderModeToggleable"
+                                    ShowToc="true" ExtraTocItems="_tocExtra" TocFooter="@TocCommands">
+                <RightRail>
+                    @if (_shell.Save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
+                    else if (_shell.Save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
+                    <DraftPreviewLink Href="@(DocRoutes.For(ReleaseTargetType.AirportMil).DraftUrl(Acc.ToLowerInvariant(), _icao, null))" />
+                    @if (_shell.IsEditing)
+                    {
+                        <button class="btn ghost" @onclick="() => _shell.FinishEditingAsync()">✓ @L["Lock_FinishEdit"]</button>
+                    }
+                    else if (_shell.Lock is { Locked: true, IsMine: false })
+                    {
+                        <button class="btn ghost" disabled title="@L["Ed_LockedByOther"]">✎ @L["Ed_Edit"]</button>
+                    }
+                    else
+                    {
+                        <button class="btn ghost" @onclick="() => _shell.StartEditingAsync(LoadAsync)">✎ @L["Ed_Edit"]</button>
+                    }
+                </RightRail>
+                <AfterSections>
+                    @* L'ancora `sec-versioni` è la stessa nei cinque editor: è dove atterra «Ripubblica». *@
+                    <div id="sec-versioni">
+                        <ReleasePanel Target="ReleaseTargetType.AirportMil" Key="@_icao"
+                                      ShowDiff="true" AllowCancel="Authz.IsAdmin"
+                                      PreviewUrlFactory="ReleasePreviewUrl"
+                                      Published="LoadAsync" />
+                    </div>
+                </AfterSections>
+            </DocumentSectionsEditor>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string Acc { get; set; } = default!;
+    [SupplyParameterFromQuery(Name = "icao")] public string? Icao { get; set; }
+
+    private AccInfo? _acc;
+    private string _icao = "";
+    private string _loaded = "";
+    private bool _notFound, _denied;
+
+    /// <summary>Il guscio comune dei cinque editor (doc 14 §3d): documento, modifica, errore, lock, badge.</summary>
+    private DocumentEditorShell _shell = default!;
+
+    // Aree di lavoro: selezione salvata + i due cataloghi del picker (aree dell'ACC, aree degli altri).
+    private RegulatedSelection _regulated = new() { OwnAuto = false };
+    private IReadOnlyList<SpecialAreaPick> _areaPicks = Array.Empty<SpecialAreaPick>();
+    private IReadOnlyList<SpecialAreaPick> _otherAreaPicks = Array.Empty<SpecialAreaPick>();
+
+    // Voce del menu-sezioni per il pannello Release, che sta FUORI da DocumentSectionsEditor: senza, con
+    // ventisei sezioni il pannello si raggiunge solo scorrendo fino in fondo. Come negli altri quattro.
+    private IReadOnlyList<EditorTocItem> _tocExtra =>
+        new[] { new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]) };
+
+    protected override void OnInitialized() =>
+        _shell = new DocumentEditorShell(Editing, JS, L, Logger, "vSOP militare", "Mil_NoEditPerm",
+            () => InvokeAsync(StateHasChanged));
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) _shell.JsReady = true;
+    }
+
+    // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su InteractiveServer il secondo gira UNA VOLTA SOLA,
+    // e questa pagina cambia aeroporto dalla stringa di query.
+    protected override async Task OnParametersSetAsync()
+    {
+        _acc = Stations.Resolve(Acc);
+        if (_acc is null) return;
+        _icao = (Icao ?? "").Trim().ToUpperInvariant();
+        if (_icao.Length == 0) { _notFound = true; return; }
+        if (_loaded == _icao) return;
+
+        _loaded = _icao;
+        _notFound = _denied = false;
+        try
+        {
+            // ⚠️ Ensure e non «se manca crealo» scritto qui: è ACC-gated e idempotente, quindi solo chi può
+            // editare lo fa nascere. A chi guarda in sola lettura serve già esistente, e se non c'è lo si dice.
+            _shell.DocumentId = Authz.IsAdmin || await Authz.CanEditAccAsync(_acc.Code)
+                ? await Militari.CreaAsync(_icao)
+                : await Militari.GetDocumentIdAsync(_icao);
+        }
+        catch (EditNotAllowedException) { _denied = true; return; }
+        catch (Vipi.Application.Aor.ValidationException) { _notFound = true; return; }
+
+        if (_shell.DocumentId is null) { _notFound = true; return; }
+
+        _areaPicks = await Militari.ListSpecialAreasAsync(_icao);
+        _otherAreaPicks = await Militari.ListOtherAccSpecialAreasAsync(_icao);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_shell.DocumentId is not int id) return;
+        try
+        {
+            _shell.Doc = await Editing.LoadForEditAsync(id);
+            _shell.Lock = await Editing.InspectLockAsync(id);
+            if (_shell.Doc is null) { _notFound = true; return; }
+            _shell.IsEditing = _shell.IsEditing && _shell.Doc.IsEditable && _shell.Lock.IsMine;
+            _regulated = await Militari.GetRegulatedAsync(_icao);
+        }
+        catch (EditNotAllowedException) { _denied = true; }
+    }
+
+    // Espandi/comprimi tutto, in coda al menu-sezioni: con 26 sezioni è l'unico modo per non scorrere.
+    private RenderFragment TocCommands => __builder =>
+    {
+        <button type="button" class="btn ghost" @onclick="() => _shell.ToggleAllSectionsAsync(true)" title="@L["Ed_ExpandAllTitle"]">@L["Common_ExpandAll"]</button>
+        <button type="button" class="btn ghost" @onclick="() => _shell.ToggleAllSectionsAsync(false)" title="@L["Ed_CollapseAllTitle"]">@L["Common_CollapseAll"]</button>
+    };
+
+    // ---- sezioni il cui corpo lo rende questa pagina ---------------------------------------------------
+    // L'insieme lo dice il CATALOGO, per profilo (doc 13 §3a): qui stava una delle sei copie.
+    // ⚠️ `Depth == 0` no: nell'`AirportMil` le derivate sono ANNIDATE (frequenze e piste stanno sotto «Dati
+    // generali»), ed è la prima famiglia in cui succede.
+    private static bool IsDerived(EditableSection s) =>
+        SectionCatalog.IsHostRendered(SectionProfile.AirportMil, s.SectionKey);
+
+    private static bool IsMandatory(EditableSection s) => SectionCatalog.IsFixed(SectionProfile.AirportMil, s.SectionKey);
+
+    private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.IsRenderModeToggleable(s.SectionKey);
+
+    /// <summary>
+    /// Il corpo delle sezioni rese dalla pagina. ⚠️ Cinque delle sei sono <b>di sola lettura anche in
+    /// modifica</b>: i loro dati sono dell'aeroporto civile e si scrivono nel suo editor. Dirlo è
+    /// necessario — chi vede una tabella che non risponde al clic pensa a un guasto.
+    /// </summary>
+    private RenderFragment<EditableSection> DerivedSection => s => __builder =>
+    {
+        @switch (s.SectionKey)
+        {
+            case "regulated":
+                @* Come l'APP: nessuna area di default, si scelgono tutte a mano. *@
+                <RegulatedAreasEditor Selection="_regulated" OwnPicks="_areaPicks" OtherPicks="_otherAreaPicks"
+                                      Editing="_shell.IsEditing" AllowAuto="false" ShowExtra="true"
+                                      SelectionChanged="SaveRegulated" />
+                break;
+            case "validity":
+                <div class="callout info" style="margin:0 0 10px">
+                    <span class="cic"><Icon Name="clock" Size="18" /></span>
+                    <div>@L["Val_EditNote"]</div>
+                </div>
+                <ValidityStamp Target="ReleaseTargetType.AirportMil" Key="@_icao" />
+                break;
+            default:
+                @* weather, frequencies, runways, transition: la scheda la disegna il VIEWER dai dati
+                   dell'aeroporto civile. Qui si dice dove si cambiano, e sotto si scrivono i blocchi —
+                   che su un campo militare pesano più della scheda (misurato su LIPI). *@
+                <div class="callout info" style="margin:0 0 10px">
+                    <span class="cic"><Icon Name="info" Size="18" /></span>
+                    <div>
+                        @L["Mil_DerivedNote"]
+                        <a href="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports/editor?icao={_icao}")">@L["Mil_DerivedLink"]</a>
+                    </div>
+                </div>
+                break;
+        }
+    };
+
+    private Task SaveRegulated(RegulatedSelection sel) => _shell.GuardAsync(async () =>
+    {
+        await Militari.SaveRegulatedAsync(_icao, sel);
+        _regulated = await Militari.GetRegulatedAsync(_icao);
+    });
+
+    private string? ReleasePreviewUrl(int releaseId) =>
+        DocRoutes.For(ReleaseTargetType.AirportMil).ViewerUrl(Acc.ToLowerInvariant(), _icao, null, releaseId);
+}

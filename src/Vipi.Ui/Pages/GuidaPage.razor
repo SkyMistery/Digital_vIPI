@@ -595,6 +595,49 @@
               <p>Changes go into a <b>draft</b> and become public only with an <b>AIRAC release</b>, at the
                bottom of the page. The <b>draft preview</b> opens it in a new tab, as it will look.</p>"),
 
+        new Sec("editor-mil", "shield", "Editor vSOP militare", "Military vSOP editor",
+            @"<p>L'editor (<code>/services/vsop/{acc}/mil/editor?icao=…</code>) scrive il vSOP <b>militare</b>
+               di un campo. È un documento a sé, con le sue release e il suo ciclo AIRAC: non è la vIPI
+               dell'aeroporto con una parte in più. Si arriva dall'elenco
+               <a href=""/services/vsop/mil"">vSOP militari</a>, che è dove si crea anche il primo.</p>
+              <ul>
+                <li>Il documento si scrive in <b>italiano</b>. La versione inglese la produce la traduzione
+                    automatica, e chi rivede il documento può correggerla: quello che c'è in una lingua c'è
+                    anche nell'altra.</li>
+                <li>Ogni sezione dichiara <b>a chi si rivolge</b> — tutti, solo piloti, solo controllori — e
+                    chi legge filtra con la chip in cima al documento. Una sezione filtrata via si porta
+                    dietro le sue sotto-sezioni.</li>
+                <li>⚠️ <b>Piste, frequenze, quote di transizione e meteo non si toccano qui</b>: vengono
+                    dall'anagrafica dello scalo e si cambiano nell'<a href=""#editor-aeroporto"">editor
+                    dell'aeroporto</a>. Sotto la scheda si scrivono i blocchi — su un campo militare pesano
+                    più della scheda.</li>
+                <li>Le <b>aree di lavoro</b> si scelgono col picker: sono le stesse aree regolamentate della
+                    vIPI ACC, e la mappa è la stessa.</li>
+              </ul>
+              <p>Le modifiche vanno in <b>bozza</b> e diventano pubbliche solo con una <b>release AIRAC</b>.
+               Finché non c'è una release, il documento non compare nell'elenco pubblico.</p>",
+            @"<p>The editor (<code>/services/vsop/{acc}/mil/editor?icao=…</code>) writes the <b>military</b>
+               vSOP of an airfield. It is a document of its own, with its own releases and AIRAC cycle: it is
+               not the airport vIPI with an extra part. You reach it from the
+               <a href=""/services/vsop/mil"">Military vSOPs</a> list, which is also where the first one is
+               created.</p>
+              <ul>
+                <li>The document is written in <b>Italian</b>. The English version comes from machine
+                    translation, and whoever reviews the document can correct it: what exists in one language
+                    exists in the other.</li>
+                <li>Every section states <b>who it addresses</b> — everyone, pilots only, controllers only —
+                    and readers filter with the chip at the top. A filtered-out section takes its
+                    sub-sections with it.</li>
+                <li>⚠️ <b>Runways, frequencies, transition levels and weather are not edited here</b>: they
+                    come from the airport record and are changed in the <a href=""#editor-aeroporto"">airport
+                    editor</a>. Below the card you write the blocks — on a military airfield they weigh more
+                    than the card.</li>
+                <li><b>Working areas</b> are picked from the same regulated areas as the ACC vIPI, and the map
+                    is the same one.</li>
+              </ul>
+              <p>Changes go into a <b>draft</b> and become public only with an <b>AIRAC release</b>. Until
+               there is a release, the document does not appear in the public list.</p>"),
+
         new Sec("editor-vloa", "globe", "Editor vLOA: come si scrive", "vLOA editor: how to write it",
             @"<p>L'editor (<code>/services/vsop/{acc}/vloa/editor?acc=…</code>) scrive la vLOA di una <b>coppia</b>
                ACC italiano ↔ ACC estero. Il documento è in <b>inglese</b>: è la lingua delle vLOA.</p>

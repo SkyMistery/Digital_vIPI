@@ -74,10 +74,18 @@ public sealed class TranslationFillHostedService : BackgroundService
             return true;   // non è un guasto: è un sito che non traduce
         }
 
+        // ⚠️ PRIMA di chiedere alla macchina: i titoli che hanno un originale ufficiale si mettono in
+        // memoria a mano, o il giro li traduce e paga per una risposta sbagliata («Piste» → «Slopes», visto
+        // dal vivo il 28 agosto 2026). Idempotente: dal secondo giro non scrive niente.
+        var memoria = sp.GetRequiredService<ITranslationMemory>();
+        var seminati = await TitoliUfficiali.SeminaAsync(memoria, ct).ConfigureAwait(false);
+        if (seminati > 0)
+            _log.LogInformation("Titoli ufficiali messi in memoria: {Quanti}.", seminati);
+
         var protettore = await ProtettoreColRosterAsync(sp, ct).ConfigureAwait(false);
         var giro = new TranslationFillUseCase(
             sp.GetRequiredService<ITranslatableCorpus>(),
-            sp.GetRequiredService<ITranslationMemory>(),
+            memoria,
             sp.GetServices<ITranslationEngine>(),
             protettore,
             opzioni);

@@ -1,0 +1,224 @@
+@page "/services/vsop/{Acc}/mil"
+@layout SopLayout
+@inject IVipiViewService ViewService
+@inject IAirportViewDerivationService AirportView
+@inject IWeatherProvider Weather
+@inject IMilitaryDocumentService Militari
+@inject IStationResolver Stations
+@inject Vipi.Application.Translation.DocumentTranslator Translator
+@inject IReleaseService Releases
+@inject IEditAuthorizationService Authz
+@inject IStringLocalizer<SharedResource> L
+@using System.Globalization
+@using Vipi.Application.Content
+@using Vipi.Ui.Shared
+@using Vipi.Ui.Components.App
+@using Vipi.Application.Abstractions
+@using Vipi.Application.Weather
+@using Vipi.Domain
+
+<PageTitle>@(_view?.Title ?? L["Mil_Title"].Value) · IVAO Italia</PageTitle>
+
+@* ---- Il vSOP militare di un campo (carta vSOP militari §5) -------------------------------------------
+
+   ⚠️ NESSUN @rendermode: e' un documento, quindi SSR statico come il resto del chrome. La chip
+   pilota/ATC sono tre COLLEGAMENTI apposta -- un bottone qui non partirebbe.
+
+   ⚠️ Non e' la pagina dell'aeroporto con un parametro: le due edizioni hanno release, cicli AIRAC e
+   contenuti indipendenti, e un collegamento salvato deve portare sempre allo stesso documento. *@
+
+<div class="wrap reading-cap">
+    <div class="breadcrumb">
+        <a href="/services/vsop">@L["Common_Home"]</a> ›
+        <a href="/services/vsop/mil">@L["Mil_Title"]</a> ›
+        <b>@(_icao.Length > 0 ? _icao : "—")</b>
+    </div>
+
+    @if (_view is null)
+    {
+        <div class="callout warning">
+            <span class="cic"><Icon Name="warning" Size="18" /></span>
+            <div><p class="ct">@L["Mil_Empty"]</p>@L["Mil_EmptyHint"]</div>
+        </div>
+    }
+    else
+    {
+        <div class="doc-head">
+            <div>
+                <h1 class="page-h1">@_view.Title</h1>
+                @* Il ponte verso l'altra edizione dello stesso scalo: chi apre il militare deve poter
+                   arrivare al civile senza tornare indietro di due pagine. *@
+                <p class="muted">
+                    <a href="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}")">
+                        <Icon Name="book-open" Size="14" /> @L["Mil_LinkToCivil"]
+                    </a>
+                </p>
+            </div>
+            @if (_canEdit)
+            {
+                <a class="btn primary" href="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil/editor?icao={_icao}")">@L["Common_Editor"]</a>
+            }
+        </div>
+
+        @if (_mode.IsPreview)
+        {
+            <PreviewBanner Kind="_mode.Kind" Cycle="@_relCycle"
+                           PublicHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil?icao={_icao}")"
+                           DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil?icao={_icao}&as=draft")" />
+        }
+
+        <AudienceChip Visibile="_haMarcate" Vista="_vista"
+                      BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil?icao={_icao}")" />
+        <TranslationNotice Coverage="_copertura" />
+
+        <DocumentSectionsView Sections="_view.Sections" Profile="SectionProfile.AirportMil"
+                              IsDraft="@(_mode.Kind == PreviewKind.Draft)"
+                              DerivedContent="CorpoDerivato" />
+    }
+</div>
+
+@code {
+    [Parameter] public string Acc { get; set; } = "";
+
+    [SupplyParameterFromQuery(Name = "icao")] public string? Icao { get; set; }
+
+    /// <summary>Anteprima: assente = pubblica, <c>draft</c> = bozza, <c>rel:{id}</c> = una release. Stessa
+    /// grammatica degli altri quattro viewer.</summary>
+    [SupplyParameterFromQuery(Name = "as")] public string? As { get; set; }
+
+    /// <summary>La vista di lettura: «pilota», «atc», o assente per il documento intero.</summary>
+    [SupplyParameterFromQuery(Name = "vista")] public string? Vista { get; set; }
+
+    private DocumentView? _view;
+    private string _icao = "";
+    private Vipi.Domain.SectionAudience? _vista;
+    private bool _haMarcate;
+    private Vipi.Application.Translation.TranslationCoverage _copertura =
+        Vipi.Application.Translation.TranslationCoverage.Nessuna;
+
+    private PreviewMode _mode;      // pubblica | bozza | release
+    private string? _relCycle;      // il ciclo dell'anteprima release, per il banner
+    private bool _canEdit;
+    private bool _useFrozen;        // vista pubblica: derivate congelate dalla release effettiva (doc 10 §3d)
+
+    private AirportDerived _derivate = AirportDerived.Empty;
+    private WeatherReport? _wx;
+    private ParsedMetar? _metar;
+    private ParsedTaf? _taf;
+    private IReadOnlyList<AccSpecialAreaView> _aree = Array.Empty<AccSpecialAreaView>();
+
+    /// <summary>
+    /// Il corpo delle sezioni rese dalla pagina. ⚠️ Sono le STESSE dell'aeroporto civile perché parlano
+    /// dello stesso scalo: meteo, piste, quote di transizione e frequenze di LIPI sono quelle, qualunque
+    /// documento le mostri. Riusare la derivazione invece di rifarla è ciò che rende «sei chiavi riusate»
+    /// un fatto e non una dichiarazione.
+    ///
+    /// <para>⚠️ Quel che il PDF ha in più — le coordinate delle soglie, i CRC/AEW — non si deriva: sta nei
+    /// blocchi editoriali sotto la scheda, ed è per questo che quelle due sezioni sono <c>HostAndBlocks</c>.</para>
+    /// </summary>
+    private RenderFragment<SectionView> CorpoDerivato => sec => __builder =>
+    {
+        @switch (sec.SectionKey)
+        {
+            case "weather": <AirportWeather Icao="@_icao" Report="_wx" Metar="_metar" Taf="_taf" />; break;
+            case "transition": <AirportTransition View="_derivate.Transition" CurrentQnh="_metar?.QnhHpa" />; break;
+            case "frequencies": <AirportFrequencies View="_derivate.Frequencies" />; break;
+            case "runways": <AirportRunways View="_derivate.Runways" />; break;
+            @* Le aree di lavoro: E' la mappa dell'AoR con le chip, cioe' esattamente cio' che il PDF disegna
+               a mano una figura per volta. Stesso motore della vIPI ACC e dell'APP. *@
+            case "regulated": <RegulatedAreas Areas="_aree" />; break;
+            case "validity": <ValidityStamp Target="ReleaseTargetType.AirportMil" Key="@_icao" ReleaseId="@ReleaseMostrata()" />; break;
+        }
+    };
+
+    /// <summary>Vista PUBBLICA: documento e derivate congelate si impostano INSIEME (doc 11 §3d).</summary>
+    private async Task CaricaPubblicoAsync()
+    {
+        _view = await ViewService.BuildAirportMilVipiAsync(_icao, BlockTier.Extended, live: false);
+        _useFrozen = true;
+    }
+
+    /// <summary>La release che questa vista mostra: quella dell'anteprima, o null = la effettiva adesso.</summary>
+    private int? ReleaseMostrata() => _mode.Kind == PreviewKind.Release ? _mode.ReleaseId : null;
+
+    /// <summary>
+    /// La selezione vive nel BodyJson del primo blocco della sezione, come per l'APP.
+    /// ⚠️ <c>OwnAuto</c> forzato a falso: senza JSON <c>Parse</c> risponde «automatico», che qui non esiste —
+    /// il modo automatico è del solo blocco Aerovia della vIPI ACC.
+    /// </summary>
+    private static RegulatedSelection LeggiAree(SectionView s)
+    {
+        var sel = RegulatedSelectionJson.Parse(s.Blocks.FirstOrDefault()?.BodyJson);
+        return new RegulatedSelection { OwnAuto = false, OwnIds = sel.OwnIds, ExtraIds = sel.ExtraIds };
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _icao = (Icao ?? "").Trim().ToUpperInvariant();
+        _view = null;
+        _copertura = Vipi.Application.Translation.TranslationCoverage.Nessuna;
+        _haMarcate = false;
+        _mode = PreviewMode.Parse(As, null);
+        _relCycle = null;
+        _useFrozen = false;
+        if (_icao.Length == 0) return;
+
+        Stations.Prewarm();
+        _canEdit = await Authz.CanEditAccAsync(Acc);
+
+        // ⚠️ Il degrado di un'anteprima non autorizzata torna alla PUBBLICA, derivate congelate comprese:
+        // lasciarlo a metà servirebbe al pubblico le derivate live, e il congelamento AIRAC diventerebbe
+        // aggirabile scrivendo un `?as=rel:` qualsiasi nell'indirizzo.
+        switch (_mode.Kind)
+        {
+            case PreviewKind.Draft:
+                if (_canEdit)
+                    _view = await ViewService.BuildAirportMilVipiAsync(_icao, BlockTier.Extended, live: false,
+                        ignoreRelease: true, preferWorking: true);
+                else { _mode = default; await CaricaPubblicoAsync(); }
+                break;
+            case PreviewKind.Release:
+                var pv = await Releases.GetPreviewAsync(_mode.ReleaseId, ReleaseTargetType.AirportMil, _icao);
+                if (pv?.Doc is not null) { _relCycle = pv.AiracCycle; _view = await ViewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended); }
+                else { _mode = default; await CaricaPubblicoAsync(); }
+                break;
+            default:
+                await CaricaPubblicoAsync();
+                break;
+        }
+        if (_view is null) return;
+
+        // Le derivate dello STESSO scalo: meteo live piu' le sezioni congelate della release militare.
+        _wx = await Weather.GetAsync(_icao);
+        _metar = string.IsNullOrWhiteSpace(_wx?.Metar) ? null : MetarParser.ParseMetar(_wx!.Metar!);
+        _taf = string.IsNullOrWhiteSpace(_wx?.Taf) ? null : MetarParser.ParseTaf(_wx!.Taf!);
+        _derivate = await AirportView.ResolveForViewAsync(_icao, _useFrozen);
+
+        // ⚠️ Gli id delle aree li porta il DOCUMENTO mostrato; shape e descrizioni vengono dai cataloghi
+        // correnti — come nella vIPI ACC e nell'APP. Si legge PRIMA della traduzione: la sezione tradotta
+        // porta la prosa, non il JSON del blocco.
+        var aree = _view.Sections.FirstOrDefault(
+            s => string.Equals(s.SectionKey, "regulated", StringComparison.OrdinalIgnoreCase));
+        _aree = aree is null
+            ? Array.Empty<AccSpecialAreaView>()
+            : await Militari.ResolveRegulatedAreasAsync(LeggiAree(aree));
+
+        // ⚠️ Il vSOP militare nasce in ITALIANO (carta §1d): la lingua sorgente e' quella in cui si
+        // REDIGE, non quella dei quindici PDF di partenza. Un lettore inglese lo ottiene tradotto.
+        var lettore = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+        var tradotto = await Translator.TranslateAsync(_view, "it", lettore);
+        _view = tradotto.View;
+        _copertura = tradotto.Coverage;
+
+        // Il filtro DOPO la traduzione: si filtra la vista che il lettore vedra' davvero.
+        _vista = AudienceFilter.Leggi(Vista);
+        _haMarcate = AudienceFilter.HaSezioniMarcate(_view.Sections);
+        var filtrate = AudienceFilter.Filtra(_view.Sections, _vista);
+        if (!ReferenceEquals(filtrate, _view.Sections))
+            _view = new DocumentView
+            {
+                Title = _view.Title, AiracCycle = _view.AiracCycle, Sections = filtrate,
+                Language = _view.Language, Translations = _view.Translations,
+            };
+    }
+}

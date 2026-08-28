@@ -27,6 +27,7 @@
 @inject IOnlineAtcProvider Online
 @using Vipi.Ui.Shared
 @inject IStringLocalizer<SharedResource> L
+@inject IMilitaryDocumentService Militari
 
 @if (_acc is null)
 {
@@ -133,6 +134,12 @@ else
                         <li><a href="/services/vsop">@L["Common_Home"]</a></li>
                         <li><a href="/services/vsop/@Acc.ToLowerInvariant()">ACC @_acc.Code</a></li>
                         <li><a href="/services/vsop/@Acc.ToLowerInvariant()/airports">@L["AccLanding_Airports"]</a></li>
+                        @* Il ponte verso l'altra edizione dello stesso scalo: compare SOLO se il vSOP
+                           militare esiste davvero, o sarebbe un collegamento a una pagina vuota. *@
+                        @if (_haMilitare)
+                        {
+                            <li><a href="/services/vsop/@Acc.ToLowerInvariant()/mil?icao=@_icao">@L["Mil_LinkFromCivil"]</a></li>
+                        }
                     </ul>
                 </div>
             </aside>
@@ -163,6 +170,11 @@ else
 
     private ParsedMetar? _metar;
     private ParsedTaf? _taf;
+
+    /// <summary>Vero se questo scalo ha anche un vSOP MILITARE pubblicato: allora nel riquadro dei
+    /// collegamenti compare il ponte verso l'altra edizione. Senza il controllo, il collegamento porterebbe
+    /// a una pagina vuota — peggio che non averlo.</summary>
+    private bool _haMilitare;
 
     private List<string> _runways = new();
     private int? _windDir;
@@ -263,6 +275,7 @@ else
         // da un `?as=` qualsiasi.
         var useFrozen = _mode.Kind is not (PreviewKind.Draft or PreviewKind.Release);
         _derived = await AirportView.ResolveForViewAsync(_icao, useFrozen);
+        _haMilitare = await Militari.HasPublishedAsync(_icao);
         _runways = _derived.Runways.Rows.Count > 0
             ? _derived.Runways.Rows.Select(r => r.Ident).ToList()
             : ExtractRunways(_view);

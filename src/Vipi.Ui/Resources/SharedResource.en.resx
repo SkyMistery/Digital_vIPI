@@ -2482,4 +2482,29 @@
   <data name="Aud_EditorLabel" xml:space="preserve"><value>Intended for</value></data>
   <data name="Aud_EditorHint" xml:space="preserve"><value>Readers can filter the document by audience. ⚠️ This is not access control: the document stays public and anyone can open the other view.</value></data>
   <data name="Aud_FilteredNotice" xml:space="preserve"><value>You are reading the {0} view. Sections meant only for the other role are hidden.</value></data>
+  <data name="Mil_Title" xml:space="preserve"><value>Military vSOPs</value></data>
+  <data name="Mil_EditorTitle" xml:space="preserve"><value>Military vSOP</value></data>
+  <data name="Mil_NotFound" xml:space="preserve"><value>This airfield has no military vSOP, and one cannot be created from here: start from the list.</value></data>
+  <data name="Mil_NoEditPerm" xml:space="preserve"><value>You do not have permission to edit documents of this ACC.</value></data>
+  <data name="Mil_HelpAria" xml:space="preserve"><value>Help on the military vSOP editor</value></data>
+  <data name="Mil_HelpBody" xml:space="preserve"><value>&lt;p&gt;The document is written in &lt;b&gt;Italian&lt;/b&gt;: the English version comes from translation, and whoever reviews it can correct it.&lt;/p&gt;&lt;p&gt;Every section states who it addresses — everyone, pilots only, controllers only — and readers filter with the chip at the top of the document.&lt;/p&gt;&lt;p&gt;Runways, frequencies, transition levels and weather come from the airport record: change them in the airport editor, not here.&lt;/p&gt;</value></data>
+  <data name="Mil_DerivedNote" xml:space="preserve"><value>This card is drawn by the document from the airport data. To change it:</value></data>
+  <data name="Mil_DerivedLink" xml:space="preserve"><value>airport editor</value></data>
+  <data name="Mil_Desc" xml:space="preserve"><value>Standard operating procedures of the Italian military airfields: read by both pilots and controllers.</value></data>
+  <data name="Mil_Intro" xml:space="preserve"><value>These are the SOPs of the Italian military airfields. Readers can filter by audience using the chip at the top of the document.</value></data>
+  <data name="Mil_OnlyMilitary" xml:space="preserve"><value>military only</value></data>
+  <data name="Mil_JointField" xml:space="preserve"><value>joint civil/military</value></data>
+  <data name="Mil_NoDoc" xml:space="preserve"><value>no document</value></data>
+  <data name="Mil_Draft" xml:space="preserve"><value>draft</value></data>
+  <data name="Mil_Published" xml:space="preserve"><value>published</value></data>
+  <data name="Mil_Create" xml:space="preserve"><value>Create the vSOP</value></data>
+  <data name="Mil_Empty" xml:space="preserve"><value>No military vSOP published</value></data>
+  <data name="Mil_EmptyHint" xml:space="preserve"><value>When a military vSOP is published, it will appear here.</value></data>
+  <data name="Mil_EmptyStaff" xml:space="preserve"><value>No airfield with military presence</value></data>
+  <data name="Mil_ColField" xml:space="preserve"><value>Airfield</value></data>
+  <data name="Mil_ColAcc" xml:space="preserve"><value>ACC</value></data>
+  <data name="Mil_ColState" xml:space="preserve"><value>State</value></data>
+  <data name="Mil_LinkFromCivil" xml:space="preserve"><value>Military vSOP</value></data>
+  <data name="Mil_LinkToCivil" xml:space="preserve"><value>Civil vIPI</value></data>
+  <data name="Mil_Created" xml:space="preserve"><value>Military vSOP created for {0}: it is a draft now, to be filled in and published.</value></data>
 </root>

@@ -46,6 +46,9 @@ public class ParitaQuattroDocumentiTests : TestContext
         SectionProfile.App,
         SectionProfile.Vloa,
         SectionProfile.Airport,
+        // La quinta famiglia, dal 28 agosto 2026: il vSOP militare d'aeroporto. Non ha invarianti proprie —
+        // eredita queste, che è esattamente ciò che questa classe prometteva a chi ne aggiungesse una.
+        SectionProfile.AirportMil,
     };
 
     private static SectionView Sezione(string key, string titolo, bool nascosta = false,
@@ -200,5 +203,42 @@ public class ParitaQuattroDocumentiTests : TestContext
         var posizioni = alRovescio.Select(s => cut.Markup.IndexOf($"id=\"{s.Id}\"", StringComparison.Ordinal)).ToList();
         Assert.All(posizioni, p => Assert.True(p >= 0));
         Assert.Equal(posizioni.OrderBy(x => x), posizioni);   // già in ordine crescente = ordine del documento
+    }
+
+    // ---------------------------------------------------------------------------------------------------
+    // 6. Una sezione con la scheda E le sotto-sezioni le mostra UNA volta sola.
+    // ---------------------------------------------------------------------------------------------------
+
+    [Theory]
+    [MemberData(nameof(Profili))]
+    public void Una_sezione_con_scheda_E_sottosezioni_non_le_mostra_DUE_volte(SectionProfile profilo)
+    {
+        // ⚠️ Trovato a schermo il 28 agosto 2026, non dai test: «Aree di lavoro» del vSOP militare è la prima
+        // sezione che ha insieme la scheda disegnata dalla pagina e delle sotto-sezioni proprie, e le mostrava
+        // due volte — una dalla chiamata di mezzo (slot `All`) e una dagli slot attorno. Difetto latente da
+        // sempre nel componente condiviso: mancava solo un profilo che lo esercitasse.
+        foreach (var d in SectionCatalog.For(profilo).Where(d => SectionCatalog.KeepsOwnBlocks(profilo, d.Key)))
+        {
+            var figlia = Sezione($"{d.Key}-figlia", "Sotto-sezione");
+            var madre = Sezione(d.Key, d.Title, blocchi: new[] { Prosa("testo della madre") });
+            var conFigli = new SectionView
+            {
+                Id = madre.Id, Title = madre.Title, Depth = 0, SectionKey = madre.SectionKey,
+                Blocks = madre.Blocks, Children = new[] { figlia },
+            };
+
+            var cut = Rendi(profilo, new[] { conFigli });
+
+            Assert.Equal(1, Occorrenze(cut.Markup, $"id=\"{figlia.Id}\""));
+            Assert.Equal(1, Occorrenze(cut.Markup, "testo della madre"));
+        }
+    }
+
+    private static int Occorrenze(string testo, string ago)
+    {
+        var n = 0;
+        for (var i = testo.IndexOf(ago, StringComparison.Ordinal); i >= 0;
+             i = testo.IndexOf(ago, i + ago.Length, StringComparison.Ordinal)) n++;
+        return n;
     }
 }

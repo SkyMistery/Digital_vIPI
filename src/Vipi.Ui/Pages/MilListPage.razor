@@ -1,0 +1,161 @@
+@page "/services/vsop/mil"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject IMilitaryDocumentService Militari
+@inject IEditAuthorizationService Authz
+@inject IStringLocalizer<SharedResource> L
+@using Vipi.Application.Content
+
+<PageTitle>@L["Mil_Title"] · vIPI IVAO Italia</PageTitle>
+
+@* ---- L'elenco NAZIONALE dei vSOP militari (carta vSOP militari §5) ----------------------------------
+
+   ⚠️ NAZIONALE, e raggruppato per ACC solo dentro: un pilota cerca «Ghedi», non «LIMM». Metterlo sotto
+   una ACC vorrebbe dire che per trovare un campo bisogna prima sapere chi lo governa -- che è
+   esattamente l'informazione che chi cerca non ha.
+
+   ⚠️ IL CATCH-22 DELL'INGRESSO. L'elenco pubblico mostra solo ciò che ha una release effettiva, quindi il
+   PRIMO documento non sarebbe raggiungibile: non c'è, e per farlo esistere bisognerebbe già poterci
+   arrivare. È successo davvero con l'elenco APP. Allo staff si mostrano anche i campi SENZA documento,
+   col tasto che lo crea. Il gate sta nel servizio, non qui: una pagina che filtra è una pagina che può
+   dimenticarsene. *@
+
+<div class="wrap reading-cap">
+    <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <b>@L["Mil_Title"]</b></div>
+
+    <div class="hero">
+        <h1 class="page-h1">@L["Mil_Title"]</h1>
+        <p class="muted">@L["Mil_Intro"]</p>
+    </div>
+
+    <LiveRegion>
+        @if (_msg is { } m)
+        {
+            <span class="st-msg ok"><Icon Name="check-circle" Size="14" /><span class="st-msg-t">@m</span></span>
+        }
+        @if (_errore is { } e)
+        {
+            <span class="st-msg warn"><Icon Name="warning" Size="14" /><span class="st-msg-t">@e</span></span>
+        }
+    </LiveRegion>
+
+    @if (_righe is null)
+    {
+        <LoadingState />
+    }
+    else if (_righe.Count == 0)
+    {
+        <EmptyState Icon="book-open" Title="@(Authz.IsAdmin ? L["Mil_EmptyStaff"].Value : L["Mil_Empty"].Value)">
+            <p style="margin:0">@L["Mil_EmptyHint"]</p>
+        </EmptyState>
+    }
+    else
+    {
+        @foreach (var gruppo in _righe.GroupBy(r => r.AccCode ?? "—").OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            <div class="section-title">
+                <h2 class="h-sect">@gruppo.Key <span class="pill blue">@gruppo.Count()</span></h2>
+                <span class="ln"></span>
+            </div>
+            <div class="panel">
+                <table class="res-table">
+                    <thead>
+                        <tr>
+                            <th>@L["Mil_ColField"]</th>
+                            <th>@L["Mil_ColState"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var r in gruppo)
+                    {
+                        <tr>
+                            <td>
+                                @if (r.DocumentId is not null)
+                                {
+                                    <a href="@Indirizzo(r)"><b>@r.Icao</b> @r.Name</a>
+                                }
+                                else
+                                {
+                                    <span><b>@r.Icao</b> @r.Name</span>
+                                }
+                                @* ⚠️ «solo militare» è il giudizio di un amministratore, non il campo
+                                   `military` della sorgente — che è vero anche su Linate e Ciampino. Dirlo
+                                   com'è evita che il lettore creda a un'informazione che non abbiamo. *@
+                                <span class="pill @(r.SoloMilitare ? "amber" : "blue")">
+                                    @(r.SoloMilitare ? L["Mil_OnlyMilitary"] : L["Mil_JointField"])
+                                </span>
+                            </td>
+                            <td>
+                                @if (r.Pubblicato)
+                                {
+                                    <span class="pill blue">@L["Mil_Published"]</span>
+                                }
+                                else if (r.DocumentId is not null)
+                                {
+                                    <span class="pill amber">@L["Mil_Draft"]</span>
+                                }
+                                @* ⚠️ Il collegamento all'editor sta accanto allo STATO e non sul nome: finché
+                                   il documento è in bozza il nome non è un link, e senza questo lo staff
+                                   creerebbe il documento e poi non avrebbe dove scriverlo. *@
+                                @if (r.DocumentId is not null && Authz.IsAdmin)
+                                {
+                                    <a class="btn ghost" href="@Editor(r)"><Icon Name="pencil" Size="14" /> @L["Ed_Edit"]</a>
+                                }
+                                else if (r.DocumentId is null && Authz.IsAdmin)
+                                {
+                                    <button class="btn ghost" disabled="@_busy" @onclick="() => CreaAsync(r.Icao)">
+                                        <Icon Name="plus" Size="14" /> @L["Mil_Create"]
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="muted">@L["Mil_NoDoc"]</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private IReadOnlyList<MilAirportRow>? _righe;
+    private bool _busy;
+    private string? _msg;
+    private string? _errore;
+
+    // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su InteractiveServer il secondo gira UNA VOLTA
+    // SOLA, e questa pagina si ricarica dopo aver creato un documento.
+    protected override Task OnParametersSetAsync() => CaricaAsync();
+
+    private async Task CaricaAsync() => _righe = await Militari.ListAsync(perStaff: Authz.IsAdmin);
+
+    private static string Indirizzo(MilAirportRow r) =>
+        $"/services/vsop/{(r.AccCode ?? "").ToLowerInvariant()}/mil?icao={r.Icao}";
+
+    private static string Editor(MilAirportRow r) =>
+        $"/services/vsop/{(r.AccCode ?? "").ToLowerInvariant()}/mil/editor?icao={r.Icao}";
+
+    private async Task CreaAsync(string icao)
+    {
+        _busy = true;
+        _msg = null;
+        _errore = null;
+        try
+        {
+            await Militari.CreaAsync(icao);
+            _msg = L["Mil_Created", icao].Value;
+            await CaricaAsync();
+        }
+        catch (Vipi.Application.Aor.ValidationException ex)
+        {
+            // ⚠️ Si cattura la ValidationException dell'Application, non una DataAnnotations: quella la UI
+            // non la prende e il circuito muore. Regola del runbook, gia' pagata.
+            _errore = ex.Message;
+        }
+        finally { _busy = false; }
+    }
+}

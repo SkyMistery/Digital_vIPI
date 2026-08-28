@@ -72,6 +72,15 @@ public interface ITranslationMemory
     Task<IReadOnlyDictionary<string, string>> LoadAllAsync(
         string sourceLang, string targetLang, CancellationToken ct = default);
 
+    /// <summary>
+    /// Le impronte delle traduzioni scritte da una <b>persona</b>: quelle che nessun automatismo può toccare.
+    /// <para>⚠️ Non è <see cref="LoadAllAsync"/> con un filtro a valle: quel metodo non dice <i>chi</i> ha
+    /// tradotto, e chi semina l'ha usato lo stesso — lasciando in piedi la resa sbagliata della macchina
+    /// invece di correggerla.</para>
+    /// </summary>
+    Task<IReadOnlySet<string>> LoadHumanHashesAsync(
+        string sourceLang, string targetLang, CancellationToken ct = default);
+
     /// <summary>Quante voci ci sono, e quante ne restano da rileggere. Per il contatore in cima.</summary>
     Task<(int Totale, int DaRileggere)> ContaAsync(
         string sourceLang, string targetLang, CancellationToken ct = default);

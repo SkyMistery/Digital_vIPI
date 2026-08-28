@@ -2488,4 +2488,29 @@
   <data name="Aud_EditorLabel" xml:space="preserve"><value>A chi si rivolge</value></data>
   <data name="Aud_EditorHint" xml:space="preserve"><value>Chi legge può filtrare il documento per destinatario. ⚠️ Non è un controllo d'accesso: il documento resta pubblico e chiunque può aprire l'altra vista.</value></data>
   <data name="Aud_FilteredNotice" xml:space="preserve"><value>Stai leggendo la vista {0}. Le sezioni destinate solo all'altro ruolo sono nascoste.</value></data>
+  <data name="Mil_Title" xml:space="preserve"><value>vSOP militari</value></data>
+  <data name="Mil_EditorTitle" xml:space="preserve"><value>vSOP militare</value></data>
+  <data name="Mil_NotFound" xml:space="preserve"><value>Questo campo non ha un vSOP militare, e da qui non se ne può creare uno: si parte dall'elenco.</value></data>
+  <data name="Mil_NoEditPerm" xml:space="preserve"><value>Non hai i permessi per modificare i documenti di questo ACC.</value></data>
+  <data name="Mil_HelpAria" xml:space="preserve"><value>Aiuto sull'editor del vSOP militare</value></data>
+  <data name="Mil_HelpBody" xml:space="preserve"><value>&lt;p&gt;Il documento si scrive in &lt;b&gt;italiano&lt;/b&gt;: la versione inglese la produce la traduzione, e chi rivede può correggerla.&lt;/p&gt;&lt;p&gt;Ogni sezione dichiara a chi si rivolge — tutti, solo piloti, solo controllori — e il lettore filtra con la chip in cima al documento.&lt;/p&gt;&lt;p&gt;Piste, frequenze, quote di transizione e meteo vengono dall'anagrafica dello scalo: si cambiano nell'editor dell'aeroporto, non qui.&lt;/p&gt;</value></data>
+  <data name="Mil_DerivedNote" xml:space="preserve"><value>Questa scheda la disegna il documento dai dati dell'aeroporto. Per cambiarli:</value></data>
+  <data name="Mil_DerivedLink" xml:space="preserve"><value>editor dell'aeroporto</value></data>
+  <data name="Mil_Desc" xml:space="preserve"><value>Procedure operative dei campi militari italiani: le leggono sia i piloti sia i controllori.</value></data>
+  <data name="Mil_Intro" xml:space="preserve"><value>Sono i SOP dei campi militari italiani. Un lettore può filtrare per destinatario con la chip in cima al documento.</value></data>
+  <data name="Mil_OnlyMilitary" xml:space="preserve"><value>solo militare</value></data>
+  <data name="Mil_JointField" xml:space="preserve"><value>civile e militare</value></data>
+  <data name="Mil_NoDoc" xml:space="preserve"><value>nessun documento</value></data>
+  <data name="Mil_Draft" xml:space="preserve"><value>bozza</value></data>
+  <data name="Mil_Published" xml:space="preserve"><value>pubblicato</value></data>
+  <data name="Mil_Create" xml:space="preserve"><value>Crea il vSOP</value></data>
+  <data name="Mil_Empty" xml:space="preserve"><value>Nessun vSOP militare pubblicato</value></data>
+  <data name="Mil_EmptyHint" xml:space="preserve"><value>Quando un vSOP militare verrà pubblicato, comparirà qui.</value></data>
+  <data name="Mil_EmptyStaff" xml:space="preserve"><value>Nessun campo con presenza militare</value></data>
+  <data name="Mil_ColField" xml:space="preserve"><value>Campo</value></data>
+  <data name="Mil_ColAcc" xml:space="preserve"><value>ACC</value></data>
+  <data name="Mil_ColState" xml:space="preserve"><value>Stato</value></data>
+  <data name="Mil_LinkFromCivil" xml:space="preserve"><value>vSOP militare</value></data>
+  <data name="Mil_LinkToCivil" xml:space="preserve"><value>vIPI civile</value></data>
+  <data name="Mil_Created" xml:space="preserve"><value>vSOP militare creato per {0}: ora è una bozza, va compilato e pubblicato.</value></data>
 </root>
