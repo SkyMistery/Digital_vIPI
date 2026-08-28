@@ -148,6 +148,11 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IReleaseTarget, Persistence.ReleaseTargets.AppReleaseTarget>();
         services.AddScoped<Vipi.Application.Abstractions.IReleaseTarget, Persistence.ReleaseTargets.AccVipiReleaseTarget>();
         services.AddScoped<Vipi.Application.Abstractions.IReleaseTarget, Persistence.ReleaseTargets.AirportReleaseTarget>();
+        // Edizione militare (carta vSOP militari §4). L'ordine di REGISTRAZIONE non conta: a decidere chi
+        // viene interrogato prima e' DescribeOrder, e questi due l'hanno a zero -- vedi l'avviso sulla
+        // classe per il perche' servano DUE difese e non una.
+        services.AddScoped<Vipi.Application.Abstractions.IReleaseTarget, Persistence.ReleaseTargets.AirportMilReleaseTarget>();
+        services.AddScoped<Vipi.Application.Abstractions.IReleaseTarget, Persistence.ReleaseTargets.AppMilReleaseTarget>();
         services.AddScoped<Vipi.Application.Abstractions.IReleaseTargetRegistry, Vipi.Application.Content.ReleaseTargetRegistry>();
         services.AddScoped<Vipi.Application.Abstractions.IReleaseRepository, EfReleaseRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IEditorTaskRepository, EfEditorTaskRepository>();

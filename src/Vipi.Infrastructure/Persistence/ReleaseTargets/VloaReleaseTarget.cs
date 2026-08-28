@@ -29,6 +29,10 @@ public sealed class VloaReleaseTarget : IReleaseTarget
     {
         managed = default!;
         if (doc.Type != DocumentType.Vloa) return false;
+        // ⚠️ Seconda mano della difesa (carta vSOP militari §7.1). Una vLOA militare oggi non esiste, e
+        // proprio per questo il controllo va messo adesso: il giorno che esistesse, il descrittore civile
+        // se la prenderebbe in silenzio -- e nessuno collegherebbe il guasto a questa riga mancante.
+        if (doc.Edition != DocumentEdition.Civil) return false;
         var home = doc.Parties.FirstOrDefault(p => p.Role == PartyRole.Home)?.Sector?.Acc?.Code;
         var neigh = doc.Parties.FirstOrDefault(p => p.Role == PartyRole.Neighbour)?.Sector?.Acc?.Code;
         managed = new ManagedDoc(ReleaseTargetType.Vloa, doc.Title, home ?? "", home,

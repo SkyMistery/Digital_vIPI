@@ -138,7 +138,11 @@ propri. **In grassetto le chiavi riusate** dal catalogo esistente.
 | 5.2 | `lowlevel` | Bassa quota (BOAT) <br><small>*Low Level (BOAT)*</small> | D | aree tattiche dove si vola il BOAT — 9 SOP su 15 |
 | 6 | **`validity`** | Validità e revisione <br><small>*Validity and Revision*</small> | HB | obbligatoria, timbra ciclo e release |
 
-**Sei sezioni riusate su ventiquattro**, e due (`regulated`, `frequencies`) riusano anche il **motore**,
+⚠️ **Ventisei, non ventiquattro come diceva questa carta fino al 28 agosto 2026**: il conto era rimasto
+indietro di due quando si sono aggiunte `qra` e `lowlevel`. L'ha corretto un test che contava le righe
+vere del profilo, non la memoria di chi le aveva scritte.
+
+**Sei sezioni riusate su ventisei**, e due (`regulated`, `frequencies`) riusano anche il **motore**,
 non solo la chiave.
 
 ### ⚠️ `qra` è contenuto NUOVO, non trascrizione
@@ -285,7 +289,7 @@ Regola del 2: i due registry esistono già, e adesso si guadagnano lo stipendio.
 | 3 | Viewer: chip `?vista=` + filtro + regola sui figli | live |
 | 4 | `DocumentEdition` + `Airport.MilDocumentId` + `Sector.MilDocumentId` + migrazioni | test |
 | 5 | `DocumentBirth` semina anche i figli del catalogo (`ChildRegistry`) | test |
-| 6 | `SectionProfile.AirportMil` + le 24 sezioni nel `SectionCatalog` | test |
+| 6 | `SectionProfile.AirportMil` + le 26 sezioni nel `SectionCatalog` | test |
 | 7 | `SectionProfile.AppMil` (rimanda ad `App`) | test |
 | 8 | Due `IReleaseTarget` + due `IDocKindRoutes` | test |
 | 9 | Rotte, `/services/vsop/mil`, schede incrociate, creazione da admin | live |

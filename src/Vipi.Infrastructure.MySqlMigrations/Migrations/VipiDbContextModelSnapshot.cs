@@ -433,6 +433,9 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<double?>("MagneticVariation")
                         .HasColumnType("double");
 
+                    b.Property<int?>("MilDocumentId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("longtext")
@@ -454,6 +457,9 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .IsUnique();
 
                     b.HasIndex("Icao")
+                        .IsUnique();
+
+                    b.HasIndex("MilDocumentId")
                         .IsUnique();
 
                     b.HasIndex("ParentCallsign");
@@ -1463,6 +1469,14 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<int?>("CurrentVersionId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Edition")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .HasDefaultValue("Civil")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
                     b.Property<int?>("FeaturedRank")
                         .HasColumnType("int");
 
@@ -2201,6 +2215,9 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("varchar(32)")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
+                    b.Property<int?>("MilDocumentId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("longtext")
@@ -2225,6 +2242,8 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .IsUnique();
 
                     b.HasIndex("DocumentId");
+
+                    b.HasIndex("MilDocumentId");
 
                     b.HasIndex("ParentSectorId");
 
@@ -2598,9 +2617,16 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasForeignKey("Vipi.Domain.Entities.Airport", "DocumentId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("Vipi.Domain.Entities.Document", "MilDocument")
+                        .WithOne()
+                        .HasForeignKey("Vipi.Domain.Entities.Airport", "MilDocumentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Acc");
 
                     b.Navigation("Document");
+
+                    b.Navigation("MilDocument");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.AirportExtraSection", b =>
@@ -2913,6 +2939,11 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasForeignKey("DocumentId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("Vipi.Domain.Entities.Document", "MilDocument")
+                        .WithMany()
+                        .HasForeignKey("MilDocumentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Vipi.Domain.Entities.Sector", "ParentSector")
                         .WithMany("Children")
                         .HasForeignKey("ParentSectorId")
@@ -2923,6 +2954,8 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Navigation("Airport");
 
                     b.Navigation("Document");
+
+                    b.Navigation("MilDocument");
 
                     b.Navigation("ParentSector");
                 });

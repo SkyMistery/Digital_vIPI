@@ -239,6 +239,16 @@ public class VipiDbContext : DbContext
             // Cancellare il documento non cancella l'aeroporto: come per Sector.Document, il legame si recide.
             e.HasOne(x => x.Document).WithOne(d => d.Airport).HasForeignKey<Airport>(x => x.DocumentId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // L'edizione MILITARE dello stesso scalo (carta vSOP militari §1b). Unico per la stessa ragione
+            // del gemello civile: un documento militare descrive UN aeroporto.
+            // ⚠️ Con navigazione inversa (Document.MilAirport), e serve: IReleaseTarget.TryDescribe decide
+            // guardando il DOCUMENTO in mano e non ha modo di interrogare il database. Non e' un doppione
+            // di Document.Airport -- quella dice «di quale scalo sono la vIPI civile», questa «di quale
+            // scalo sono il vSOP militare» -- e su un documento ne e' valorizzata al piu' UNA.
+            e.HasIndex(x => x.MilDocumentId).IsUnique();
+            e.HasOne(x => x.MilDocument).WithOne(d => d.MilAirport).HasForeignKey<Airport>(x => x.MilDocumentId)
+                .OnDelete(DeleteBehavior.SetNull);
             e.HasOne(x => x.Acc).WithMany(f => f.Airports).HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -253,6 +263,11 @@ public class VipiDbContext : DbContext
             e.HasOne(x => x.ParentSector).WithMany(p => p.Children).HasForeignKey(x => x.ParentSectorId).OnDelete(DeleteBehavior.Restrict);
             // Documento di riferimento (uno-a-molti): cancellare il documento non cancella i settori.
             e.HasOne(x => x.Document).WithMany(d => d.Sectors).HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.SetNull);
+            // L'edizione MILITARE del documento di questo settore (APP non remotizzato). Non unico: come il
+            // gemello civile, piu' settori possono condividere lo stesso documento.
+            e.HasIndex(x => x.MilDocumentId);
+            e.HasOne(x => x.MilDocument).WithMany(d => d.MilSectors).HasForeignKey(x => x.MilDocumentId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // NB: niente token di concorrenza qui — decisione del 14 agosto 2026, come per CoordinationAgreement,
@@ -525,6 +540,16 @@ public class VipiDbContext : DbContext
             e.Property(x => x.ContentType).HasMaxLength(100);
             e.Property(x => x.OriginalFileName).HasMaxLength(200);
         });
+
+        // --- Edizione civile o militare (carta vSOP militari §1a) ---
+        // ⚠️ Default DICHIARATO NEL MODELLO e non solo nella migrazione, per la ragione gia' pagata due
+        // volte: lo scaffolder propone defaultValue: "" -- che NON e' un nome di valore dell'enum -- e ogni
+        // documento gia' in tabella tornerebbe illeggibile alla prima SELECT. Su Postgres, poi, la colonna
+        // la aggiunge il reconciler, che il valore di backfill lo legge di qui. Vale perche' Civil e' lo
+        // zero dell'enum.
+        b.Entity<Document>()
+            .Property(x => x.Edition)
+            .HasDefaultValue(DocumentEdition.Civil);
 
         // --- A chi si rivolge una sezione (carta vSOP militari del 27 agosto 2026) ---
         // ⚠️ Default DICHIARATO NEL MODELLO e non solo nella migrazione: su Postgres la colonna la aggiunge

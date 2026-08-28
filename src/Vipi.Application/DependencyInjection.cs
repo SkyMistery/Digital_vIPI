@@ -18,6 +18,11 @@ public static class DependencyInjection
         services.AddSingleton<Routing.IDocKindRoutes, Routing.AppDocRoutes>();
         services.AddSingleton<Routing.IDocKindRoutes, Routing.AccVipiDocRoutes>();
         services.AddSingleton<Routing.IDocKindRoutes, Routing.AirportDocRoutes>();
+        // Edizione militare (carta vSOP militari §4): rotte proprie, non la stessa pagina con un
+        // parametro -- le due edizioni hanno release e contenuti indipendenti, e un collegamento salvato
+        // deve portare sempre allo stesso documento.
+        services.AddSingleton<Routing.IDocKindRoutes, Routing.AirportMilDocRoutes>();
+        services.AddSingleton<Routing.IDocKindRoutes, Routing.AppMilDocRoutes>();
         services.AddSingleton<Routing.IDocRoutesRegistry, Routing.DocRoutesRegistry>();
 
         services.AddSingleton<IAiracService, AiracService>();

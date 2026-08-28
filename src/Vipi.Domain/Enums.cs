@@ -12,6 +12,29 @@ public enum ApproachKind { Remotized, Standalone }
 /// <summary>vIPI (istruzioni di posizione) o vLOA (lettera di accordo).</summary>
 public enum DocumentType { Vipi, Vloa }
 
+/// <summary>
+/// L'<b>edizione</b> di un documento: quella civile o quella militare (carta
+/// <c>docs/feature/2026-08-27-vsop-militari.md</c> §1a).
+///
+/// <para>
+/// ⚠️ <b>Perché un discriminatore memorizzato e non una deduzione dalle navigazioni.</b>
+/// <c>IReleaseTarget.TryDescribe</c> decide il tipo <b>guardando l'oggetto in mano</b>, e
+/// <c>AirportReleaseTarget</c> è il <b>catch-all</b> dei <c>Document</c> vIPI non riconosciuti come APP o
+/// ACC. Senza un valore locale, ogni documento militare finirebbe lì dentro <b>in silenzio</b>, e la
+/// diagnosi sarebbe «l'aeroporto mostra il documento sbagliato» — lo stesso guasto già pagato con l'APP
+/// non remotizzato.
+/// </para>
+/// <para>⚠️ <see cref="Civil"/> è lo zero: ogni documento esistente nasce così senza toccare una riga.</para>
+/// </summary>
+public enum DocumentEdition
+{
+    /// <summary>Il documento ordinario. Lo zero dell'enum.</summary>
+    Civil,
+
+    /// <summary>L'edizione militare: stesso motore, altro profilo di sezioni, altra release.</summary>
+    Military,
+}
+
 /// <summary>Stato di un documento o di una sua versione.</summary>
 public enum DocumentStatus { Draft, Published, Archived }
 
@@ -21,8 +44,11 @@ public enum DocumentStatus { Draft, Published, Archived }
 /// (sempre Frozen). Default <c>Frozen</c>.</summary>
 public enum RenderMode { Frozen, Live }
 
-/// <summary>Tipo di bersaglio di una release AIRAC (documento versionato per snapshot editoriale).</summary>
-public enum ReleaseTargetType { Vloa, AccVipi, App, Airport }
+/// <summary>Tipo di bersaglio di una release AIRAC (documento versionato per snapshot editoriale).
+/// <para>⚠️ I valori si aggiungono <b>IN CODA</b>. Nel payload di release gli enum sono serializzati come
+/// ORDINALI — non come nomi, a differenza delle colonne del database — quindi inserirne uno in mezzo
+/// reinterpreterebbe in silenzio ogni release già pubblicata.</para></summary>
+public enum ReleaseTargetType { Vloa, AccVipi, App, Airport, AirportMil, AppMil }
 
 /// <summary>Stato di una <c>DocRelease</c>: schedulata (ciclo futuro), in vigore (effettiva ora), superata da una successiva dello stesso ciclo.</summary>
 public enum ReleaseStatus { Scheduled, Effective, Superseded }

@@ -80,22 +80,47 @@ public static class DocumentBirth
         var live = nasceLive ?? SectionCatalog.IsAlwaysLive;
         var order = 1;
         foreach (var d in SectionCatalog.For(profile).OrderBy(d => d.Order))
-        {
-            var section = new DocumentSection
-            {
-                DocumentVersion = version,
-                ParentSection = null,
-                Title = d.Title,
-                Order = order++,
-                Depth = 0,
-                SectionKey = d.Key,
-                RowVersion = Guid.NewGuid().ToByteArray(),
-                RenderMode = live(d.Key) ? RenderMode.Live : RenderMode.Frozen,
-            };
-            version.Sections.Add(section);
-            db.DocumentSections.Add(section);
+            Semina(db, version, profile, d, genitore: null, profondita: 0, ordine: order++, live, conSegnaposto);
 
-            if (!conSegnaposto || !SectionCatalog.IsHostRendered(profile, d.Key)) continue;
+        // ⚠️ `CurrentVersionId` NON si imposta qui, e non è una dimenticanza: Document e DocumentVersion si
+        // puntano a vicenda, e assegnarlo prima del salvataggio fa vedere a EF una dipendenza CIRCOLARE fra
+        // le due chiavi esterne — «circular dependency was detected in the data to be saved». Chi lo vuole lo
+        // scrive DOPO il primo SaveChanges, quando gli Id esistono.
+        return (doc, version);
+    }
+    /// <summary>
+    /// Semina una sezione del catalogo e, ricorsivamente, le sue sotto-sezioni fisse.
+    ///
+    /// <para>
+    /// ⚠️ <b>La ricorsione è nuova dal 28 agosto 2026</b>, e serviva: fino ad allora nascevano solo le
+    /// sezioni di primo livello, perché nessun profilo ne aveva di annidate. I SOP militari hanno quattro
+    /// contenitori con figli, e senza questo il documento nascerebbe <b>piatto</b> — venti sezioni di primo
+    /// livello invece di sei con dentro le loro.
+    /// </para>
+    /// <para>
+    /// L'<b>ordine dei figli riparte da uno</b> dentro ogni padre: <c>DocumentSection.Order</c> è l'ordine
+    /// fra FRATELLI, non una posizione assoluta nel documento.
+    /// </para>
+    /// </summary>
+    private static void Semina(
+        VipiDbContext db, DocumentVersion version, SectionProfile profile, SectionDescriptor d,
+        DocumentSection? genitore, int profondita, int ordine, Func<string, bool> live, bool conSegnaposto)
+    {
+        var section = new DocumentSection
+        {
+            DocumentVersion = version,
+            ParentSection = genitore,
+            Title = d.Title,
+            Order = ordine,
+            Depth = profondita,
+            SectionKey = d.Key,
+            RowVersion = Guid.NewGuid().ToByteArray(),
+            RenderMode = live(d.Key) ? RenderMode.Live : RenderMode.Frozen,
+        };
+        version.Sections.Add(section);
+        db.DocumentSections.Add(section);
+
+        if (conSegnaposto && SectionCatalog.IsHostRendered(profile, d.Key))
             db.ContentBlocks.Add(new ContentBlock
             {
                 DocumentVersion = version,
@@ -106,12 +131,18 @@ public static class DocumentBirth
                 Visibility = BlockVisibility.Always,
                 RowVersion = Guid.NewGuid().ToByteArray(),
             });
-        }
 
-        // ⚠️ `CurrentVersionId` NON si imposta qui, e non è una dimenticanza: Document e DocumentVersion si
-        // puntano a vicenda, e assegnarlo prima del salvataggio fa vedere a EF una dipendenza CIRCOLARE fra
-        // le due chiavi esterne — «circular dependency was detected in the data to be saved». Chi lo vuole lo
-        // scrive DOPO il primo SaveChanges, quando gli Id esistono.
-        return (doc, version);
+        if (d.Children is not { Count: > 0 } figli) return;
+
+        // ⚠️ Il vincolo di profondità è applicativo (DocumentSection.MaxDepth), non del database: se un
+        // profilo annidasse troppo, il documento nascerebbe fuori regola e il difetto si vedrebbe solo a
+        // schermo, in una TOC che non rientra. Meglio fermarsi qui e dirlo.
+        if (profondita + 1 > DocumentSection.MaxDepth)
+            throw new InvalidOperationException(
+                $"Il profilo {profile} annida la sezione «{d.Key}» oltre {DocumentSection.MaxDepth} livelli.");
+
+        var ordineFiglio = 1;
+        foreach (var f in figli.OrderBy(x => x.Order))
+            Semina(db, version, profile, f, section, profondita + 1, ordineFiglio++, live, conSegnaposto);
     }
 }

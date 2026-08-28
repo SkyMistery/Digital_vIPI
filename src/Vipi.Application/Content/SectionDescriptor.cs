@@ -32,4 +32,12 @@ public enum SectionBodySource
 /// <see cref="SectionCatalog"/> (una sezione ha la stessa natura ovunque); <see cref="BodySource"/> no, è
 /// per profilo. Doc refactor 08a, esteso dal doc 13 §3a.
 /// </summary>
-public sealed record SectionDescriptor(string Key, string Title, int Order, SectionKind Kind, SectionBodySource BodySource);
+/// <param name="Children">Le sotto-sezioni FISSE di questa sezione, seminate insieme al padre.
+/// <para>⚠️ Vuota per quasi tutti i profili, e non è una dimenticanza: fino al 28 agosto 2026 nessun
+/// profilo aveva sotto-sezioni fisse, e <c>DocumentBirth</c> seminava il solo primo livello. I SOP militari
+/// hanno quattro contenitori con figli — «Dati generali» con dentro radioassistenze, frequenze, alternati —
+/// e senza questo campo il documento nascerebbe piatto, con venti sezioni di primo livello al posto di
+/// sei.</para></param>
+public sealed record SectionDescriptor(
+    string Key, string Title, int Order, SectionKind Kind, SectionBodySource BodySource,
+    IReadOnlyList<SectionDescriptor>? Children = null);

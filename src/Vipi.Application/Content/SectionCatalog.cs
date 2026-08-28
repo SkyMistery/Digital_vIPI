@@ -42,6 +42,31 @@ public static class SectionCatalog
             // «Validità e revisione» deriva il suo timbro dalla RELEASE che si sta mostrando — ciclo, data e chi
             // ha premuto Pubblica — e sotto tiene il testo scritto a mano. Derivata, quindi, ma sempre live.
             ["validity"] = SectionKind.Derived,
+
+            // --- vSOP militari (carta 2026-08-27): tutte EDITORIALI tranne quelle riusate sopra. ---
+            // ⚠️ Si parte con tutto editoriale, e non e' pigrizia: la tabella ATC/CRC di un SOP elenca
+            // anche l'APP di UN ALTRO campo e i CRC/AEW, che nel catalogo settori non esistono. Derivare
+            // paga dove la sorgente ha davvero il dato; qui la sorgente e' un PDF, e il confine di
+            // un'estrazione si misura prima di tagliare.
+            ["generaldata"] = SectionKind.Editorial,
+            ["navaids"] = SectionKind.Editorial,
+            ["diversion"] = SectionKind.Editorial,
+            ["callsigns"] = SectionKind.Editorial,
+            ["groundprocedures"] = SectionKind.Editorial,
+            ["parkings"] = SectionKind.Editorial,
+            ["enginestart"] = SectionKind.Editorial,
+            ["taxiing"] = SectionKind.Editorial,
+            ["arming"] = SectionKind.Editorial,
+            ["flightprocedures"] = SectionKind.Editorial,
+            ["takeoff"] = SectionKind.Editorial,
+            ["sfo"] = SectionKind.Editorial,
+            ["commfail"] = SectionKind.Editorial,
+            ["gca"] = SectionKind.Editorial,
+            ["vfrjet"] = SectionKind.Editorial,
+            ["ifrsignificant"] = SectionKind.Editorial,
+            ["gat"] = SectionKind.Editorial,
+            ["qra"] = SectionKind.Editorial,
+            ["lowlevel"] = SectionKind.Editorial,
         };
 
     /// <summary>Natura della sezione con questa chiave (Editorial se sconosciuta = custom).</summary>
@@ -81,35 +106,46 @@ public static class SectionCatalog
 
     // Corpo prodotto dalla PAGINA (doc 13 §3a): derivate + editoriali-strutturate. Scritto per esteso su ogni
     // voce perché non è deducibile dalla natura — «regulated» è un picker sulla vIPI ACC/APP e prosa sulla vLOA.
-    private static SectionDescriptor D(string key, string title, int order) =>
-        new(key, title, order, KindOf(key), SectionBodySource.Blocks);
+    private static SectionDescriptor D(string key, string title, int order,
+                                       IReadOnlyList<SectionDescriptor>? children = null) =>
+        new(key, title, order, KindOf(key), SectionBodySource.Blocks, children);
 
-    private static SectionDescriptor H(string key, string title, int order) =>
-        new(key, title, order, KindOf(key), SectionBodySource.Host);
+    private static SectionDescriptor H(string key, string title, int order,
+                                       IReadOnlyList<SectionDescriptor>? children = null) =>
+        new(key, title, order, KindOf(key), SectionBodySource.Host, children);
 
     /// <summary>Scheda dalla pagina IN TESTA, e sotto i blocchi editoriali della sezione.</summary>
-    private static SectionDescriptor HB(string key, string title, int order) =>
-        new(key, title, order, KindOf(key), SectionBodySource.HostAndBlocks);
+    private static SectionDescriptor HB(string key, string title, int order,
+                                        IReadOnlyList<SectionDescriptor>? children = null) =>
+        new(key, title, order, KindOf(key), SectionBodySource.HostAndBlocks, children);
 
     // Membership per profilo (key, titolo, ordine). Universali a tutti: aor/frequencies/coordination/regulated/
     // operationaltechnique/validity. ACC/APP in italiano, vLOA in inglese (lettera di accordo bilaterale).
     // H(...) = corpo reso dalla pagina, D(...) = corpo dai blocchi della sezione.
+    /// <summary>
+    /// Le sezioni dell'APP non remotizzato. Estratto in un campo perché il profilo <b>militare</b> lo
+    /// RIMANDA invece di ricopiarlo: due elenchi che devono restare uguali divergono, ed è già successo
+    /// fra <c>VloaSections</c> e questo registro. Il giorno che il militare avrà sezioni sue, si separa —
+    /// e sarà una scelta, non una svista.
+    /// </summary>
+    private static readonly IReadOnlyList<SectionDescriptor> Registry_App = new[]
+    {
+        H("separations", "Separazioni", 1),
+        H("configurations", "Configurazioni", 2),
+        H("aor", "AOR", 3),
+        H("frequencies", "Frequenze", 4),
+        H("minima", "Minime di vettoramento", 5),
+        H("vfr", "VFR", 6),
+        H("coordination", "Coordinamenti", 7),
+        H("regulated", "Aree regolamentate", 8),
+        D("operationaltechnique", "Procedure generali", 9),
+        HB("validity", "Validità e revisione", 10),
+    };
+
     private static readonly IReadOnlyDictionary<SectionProfile, IReadOnlyList<SectionDescriptor>> Registry =
         new Dictionary<SectionProfile, IReadOnlyList<SectionDescriptor>>
         {
-            [SectionProfile.App] = new[]
-            {
-                H("separations", "Separazioni", 1),
-                H("configurations", "Configurazioni", 2),
-                H("aor", "AOR", 3),
-                H("frequencies", "Frequenze", 4),
-                H("minima", "Minime di vettoramento", 5),
-                H("vfr", "VFR", 6),
-                H("coordination", "Coordinamenti", 7),
-                H("regulated", "Aree regolamentate", 8),
-                D("operationaltechnique", "Procedure generali", 9),
-                HB("validity", "Validità e revisione", 10),
-            },
+            [SectionProfile.App] = Registry_App,
             [SectionProfile.AccAerovia] = new[]
             {
                 H("separations", "Separazioni radar", 1),
@@ -164,6 +200,78 @@ public static class SectionCatalog
                 D("operationaltechnique", "Procedure generali", 7),
                 HB("validity", "Validità e revisione", 8),
             },
+
+            // --- vSOP MILITARE d'aeroporto (carta 2026-08-27) ------------------------------------------
+            //
+            // Ventiquattro sezioni tratte dai quindici SOP reali, che hanno TUTTI lo stesso indice: non e'
+            // contenuto libero, e' un profilo. Titoli in ITALIANO (§1d): la lingua sorgente e' quella in
+            // cui si REDIGE, non quella dei PDF di partenza, e un lettore inglese lo ottiene tradotto.
+            //
+            // ⚠️ Le code per campo -- LVP di Pratica, SAR alert di Cervia, Combat departure di Gioia, il
+            // Range LI-R59 di Decimomannu, l'HEMS di Pisa -- NON si seminano: sono sezioni libere, che il
+            // catalogo gia' sa fare. Seminarne venticinque perche' un campo le ha tutte vorrebbe dire far
+            // nascere quattordici documenti con roba da nascondere.
+            [SectionProfile.AirportMil] = new[]
+            {
+                // ✚ Non e' nel PDF: meteo live, sempre-live, costo zero, nascondibile.
+                H("weather", "METAR & TAF", 1),
+
+                D("generaldata", "Dati generali", 2, new[]
+                {
+                    D("navaids", "Radioassistenze", 1),
+                    // Derivata: le posizioni IVAO dello scalo. Blocchi: CRC/GCI/AEW e l'APP di un altro
+                    // campo, che il catalogo settori non ha. Sui campi militari i blocchi pesano PIU' della
+                    // scheda -- misurato su LIPI Rivolto.
+                    HB("frequencies", "Frequenze ATC/CRC", 2),
+                    D("diversion", "Aeroporti alternati", 3),
+                    // Derivata: ident, lunghezza e QFU dall'anagrafica. Blocchi: le coordinate delle
+                    // soglie, che AirportRunway non ha.
+                    HB("runways", "Piste", 4),
+                    // ✚ Non e' nel PDF: TA e tabella dei livelli per fascia QNH.
+                    H("transition", "Quote di transizione", 5),
+                    D("callsigns", "Nominativi", 6),
+                }),
+
+                D("groundprocedures", "Procedure di terra", 3, new[]
+                {
+                    D("parkings", "Parcheggi", 1),
+                    D("enginestart", "Messa in moto", 2),
+                    D("taxiing", "Rullaggio", 3),
+                    D("arming", "Armamento/disarmo", 4),
+                }),
+
+                D("flightprocedures", "Procedure di volo", 4, new[]
+                {
+                    D("takeoff", "Restrizioni al decollo", 1),
+                    D("sfo", "Circuito SFO/precauzionale", 2),
+                    D("commfail", "Avaria comunicazioni", 3),
+                    D("gca", "Circuito GCA", 4),
+                    D("vfrjet", "Porte e circuiti VFR jet", 5),
+                    D("ifrsignificant", "Punti significativi strumentali", 6),
+                    D("gat", "Partenze/arrivi IFR GAT", 7),
+                    // ⚠️ CONTENUTO NUOVO, non trascrizione: una sezione QRA/Scramble non esiste in nessuno
+                    // dei quindici PDF -- QRA compare solo come colonna, e solo sulle quattro basi di
+                    // difesa aerea (Amendola, Gioia, Istrana, Grosseto). Si semina su tutti perche'
+                    // nascondere e' un clic; sugli altri undici campi nasce e si nasconde.
+                    D("qra", "QRA / Scramble", 8),
+                }),
+
+                // La mappa AoR con le chip per area E' GIA' quello che il PDF disegna a mano, una figura
+                // per volta: qui il riuso porta il motore, non solo la chiave.
+                HB("regulated", "Aree di lavoro", 5, new[]
+                {
+                    D("operationaltechnique", "Procedure generali", 1),
+                    // Aree tattiche dove si vola il BOAT: parla di AREE, quindi sta sotto la sezione che le
+                    // disegna. Presente in 9 SOP su 15.
+                    D("lowlevel", "Bassa quota (BOAT)", 2),
+                }),
+
+                HB("validity", "Validità e revisione", 6),
+            },
+
+            // vSOP militare di un APP non remotizzato: PER ORA le stesse sezioni del civile. Vedi sotto il
+            // perche' si rimanda invece di ricopiare.
+            [SectionProfile.AppMil] = Registry_App,
         };
 
     // Sezioni fisse che NON sono di primo livello: stanno fuori dal registro di membership, che descrive solo ciò

@@ -112,10 +112,26 @@ public class SectionCatalogTests
             Assert.True(SectionCatalog.KeepsOwnBlocks(p, "validity"), $"{p}: e i blocchi restano");
         }
 
-        // Nessun'altra sezione li ha entrambi: chi ne aggiungesse una lo sta decidendo, non ereditando.
+        // Le sezioni che hanno ENTRAMBI sono un elenco chiuso: chi ne aggiungesse una lo sta decidendo, non
+        // ereditando. Questo cancello ha gia' fatto il suo mestiere il 28 agosto 2026, fermando l'arrivo
+        // del profilo militare finche' la decisione non e' stata scritta qui sotto.
+        //
+        // ⚠️ `AirportMil/regulated` e' DELIBERATO (carta vSOP militari §2): su un SOP le «aree di lavoro»
+        // sono una mappa PIU' la prosa che le governa -- procedure generali, bassa quota -- e la mappa AoR
+        // con le chip per area e' gia' quello che il PDF disegna a mano, una figura per volta. Toglierle i
+        // blocchi vorrebbe dire perdere il testo; toglierle la scheda, ridisegnare a mano una mappa che
+        // abbiamo gia'.
+        var conEntrambi = new HashSet<(SectionProfile, string)>
+        {
+            (SectionProfile.AirportMil, "regulated"),
+        };
+
         foreach (SectionProfile p in Enum.GetValues<SectionProfile>())
             foreach (var d in SectionCatalog.For(p).Where(d => d.Key != "validity"))
+            {
+                if (conEntrambi.Contains((p, d.Key))) continue;
                 Assert.False(SectionCatalog.KeepsOwnBlocks(p, d.Key), $"{p}/{d.Key}");
+            }
     }
 
     [Fact]

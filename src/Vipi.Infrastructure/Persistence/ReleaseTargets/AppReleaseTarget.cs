@@ -29,6 +29,13 @@ public sealed class AppReleaseTarget : IReleaseTarget
     {
         managed = default!;
         if (doc.Type != DocumentType.Vipi) return false;
+        // ⚠️ SECONDA MANO della difesa contro il catch-all (carta vSOP militari §7.1): un documento
+        // dell'edizione MILITARE non appartiene a questo descrittore, e va rifiutato QUI e non solo
+        // sperando nell'ordine. Aggiungere il controllo ai soli descrittori militari lascerebbe i civili
+        // disposti ad accettare un documento militare, e l'ordine sarebbe l'unica cosa a impedirlo: due
+        // difese indipendenti, ognuna sufficiente -- la stessa forma delle guardie sulle corse del context.
+        if (doc.Edition != DocumentEdition.Civil) return false;
+
         var primary = doc.Sectors.FirstOrDefault(s => s.IsPrimary) ?? doc.Sectors.FirstOrDefault();
         if (primary is not { Type: SectorType.App, ApproachKind: ApproachKind.Standalone }) return false;
         managed = new ManagedDoc(ReleaseTargetType.App, doc.Title, primary.Callsign, primary.Acc?.Code,

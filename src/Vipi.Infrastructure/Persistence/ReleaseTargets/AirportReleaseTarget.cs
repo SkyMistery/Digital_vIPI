@@ -30,6 +30,13 @@ public sealed class AirportReleaseTarget : IReleaseTarget
     {
         managed = default!;
         if (doc.Type != DocumentType.Vipi) return false;
+        // ⚠️ SECONDA MANO della difesa contro il catch-all (carta vSOP militari §7.1): un documento
+        // dell'edizione MILITARE non appartiene a questo descrittore, e va rifiutato QUI e non solo
+        // sperando nell'ordine. Aggiungere il controllo ai soli descrittori militari lascerebbe i civili
+        // disposti ad accettare un documento militare, e l'ordine sarebbe l'unica cosa a impedirlo: due
+        // difese indipendenti, ognuna sufficiente -- la stessa forma delle guardie sulle corse del context.
+        if (doc.Edition != DocumentEdition.Civil) return false;
+
         // Catch-all: Document vIPI non APP/ACC → aeroporto. L'ICAO viene dall'AEROPORTO collegato; l'ACC pure,
         // e non più dal settore — uno scalo col solo APP non remotizzato non ha un settore da cui prenderla.
         // ⚠️ Richiede `.Include(d => d.Airport).ThenInclude(a => a.Acc)` a monte: senza, l'ICAO esce vuoto e il

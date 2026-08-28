@@ -20,4 +20,21 @@ public enum SectionProfile
     /// piste, SID. Prima di quella carta l'aeroporto non aveva un profilo: il documento era una proiezione
     /// cotta con sezioni riconosciute per titolo.</summary>
     Airport,
+
+    /// <summary>
+    /// vSOP MILITARE d'aeroporto (carta <c>2026-08-27-vsop-militari.md</c>). Ventiquattro sezioni tratte
+    /// dai quindici SOP reali, che hanno tutti lo stesso indice: non è contenuto libero, è un profilo.
+    /// <para>⚠️ Non è il profilo <see cref="Airport"/> con qualche sezione in più: su venti sezioni ne
+    /// condivide due, e anche quelle con colonne diverse.</para>
+    /// </summary>
+    AirportMil,
+
+    /// <summary>
+    /// vSOP militare di un APP <b>non remotizzato</b>. Per ora le stesse sezioni di <see cref="App"/>, per
+    /// decisione del committente: il contenuto vero arriva dopo.
+    /// <para>⚠️ Nel catalogo questo profilo <b>rimanda</b> a quello civile invece di ricopiarne l'elenco.
+    /// Due elenchi che devono restare uguali divergono — è già successo fra <c>VloaSections</c> e il
+    /// registro.</para>
+    /// </summary>
+    AppMil,
 }

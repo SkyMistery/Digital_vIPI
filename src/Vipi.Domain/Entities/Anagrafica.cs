@@ -344,6 +344,25 @@ public class Airport
     public int? DocumentId { get; set; }
     public Document? Document { get; set; }
 
+    /// <summary>
+    /// L'<b>edizione militare</b> del documento di questo aeroporto (carta
+    /// <c>2026-08-27-vsop-militari.md</c> §1b): gemella di <see cref="DocumentId"/>.
+    ///
+    /// <para>
+    /// ⚠️ <b>Perché una colonna in più e non una relazione sola.</b> La chiave esterna sta sul
+    /// PROPRIETARIO, quindi una riga può puntare a un documento solo. Le due alternative si sono misurate e
+    /// perdono: un <i>auto-riferimento</i> fra documenti si rompe sugli aeroporti <b>solo militari</b>
+    /// (Aviano, Ghedi, Decimomannu), che un documento civile non ce l'hanno e bisognerebbe fabbricarglielo
+    /// finto; una <i>tabella di legame</i> darebbe due posti dove cercare «dov'è il documento di X», che è
+    /// esattamente ciò che la domanda 1 del pre-flight vieta.
+    /// </para>
+    /// <para>Non è un modello gemello: è il minimo che la direzione della chiave esterna impone, e «di che
+    /// edizione è questo documento» continua ad avere <b>una</b> risposta sola
+    /// (<see cref="Document.Edition"/>).</para>
+    /// </summary>
+    public int? MilDocumentId { get; set; }
+    public Document? MilDocument { get; set; }
+
     /// <summary>Settori che puntano a questo aeroporto (Sector.AirportId). La gerarchia si ricostruisce da qui.</summary>
     public ICollection<Sector> Sectors { get; set; } = new List<Sector>();
 
@@ -403,6 +422,25 @@ public class Sector
     // --- ogni settore è descritto da un solo documento. Invariante: 1 settore IsPrimary per documento. ---
     public int? DocumentId { get; set; }
     public Document? Document { get; set; }
+
+    /// <summary>
+    /// L'<b>edizione militare</b> del documento di questo settore (carta
+    /// <c>2026-08-27-vsop-militari.md</c> §1b): gemella di <see cref="DocumentId"/>.
+    ///
+    /// <para>
+    /// ⚠️ <b>Perché una colonna in più e non una relazione sola.</b> La chiave esterna sta sul
+    /// PROPRIETARIO, quindi una riga può puntare a un documento solo. Le due alternative si sono misurate e
+    /// perdono: un <i>auto-riferimento</i> fra documenti si rompe sugli aeroporti <b>solo militari</b>
+    /// (Aviano, Ghedi, Decimomannu), che un documento civile non ce l'hanno e bisognerebbe fabbricarglielo
+    /// finto; una <i>tabella di legame</i> darebbe due posti dove cercare «dov'è il documento di X», che è
+    /// esattamente ciò che la domanda 1 del pre-flight vieta.
+    /// </para>
+    /// <para>Non è un modello gemello: è il minimo che la direzione della chiave esterna impone, e «di che
+    /// edizione è questo documento» continua ad avere <b>una</b> risposta sola
+    /// (<see cref="Document.Edition"/>).</para>
+    /// </summary>
+    public int? MilDocumentId { get; set; }
+    public Document? MilDocument { get; set; }
     public bool IsPrimary { get; set; }                // settore principale del proprio documento
 }
 
