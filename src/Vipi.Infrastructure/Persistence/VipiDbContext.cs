@@ -116,6 +116,9 @@ public class VipiDbContext : DbContext
     /// <summary>La memoria di traduzione: una riga per FRASE, non per documento. Carta del 27 agosto 2026.</summary>
     public DbSet<TranslationUnit> TranslationUnits => Set<TranslationUnit>();
 
+    /// <summary>Il glossario di fraseologia: una riga per FORMULA, che vive dentro le frasi. §Q3.</summary>
+    public DbSet<GlossaryTerm> GlossaryTerms => Set<GlossaryTerm>();
+
     /// <summary>
     /// Lettura tollerante dell'azione di registro: un valore che questa versione non conosce diventa
     /// <see cref="AuditAction.Unknown"/> invece di far esplodere la query. Metodo e non lambda in linea perché
@@ -582,6 +585,30 @@ public class VipiDbContext : DbContext
 
             // L'elenco «cosa manca ancora di rivedere», che è la query della vista e del badge.
             e.HasIndex(x => new { x.TargetLang, x.ReviewedUtc });
+        });
+
+        // --- Glossario di fraseologia (lavori-aperti §Q3) ------------------------------------------------
+        // Vicina alla memoria di traduzione e distinta da lei: là un SEGMENTO INTERO tradotto, qui un pezzo
+        // di frase e come va reso dentro qualunque frase lo contenga. Nessuna FK verso l'una o verso i
+        // documenti: una voce di glossario non appartiene a niente, vale ovunque.
+        b.Entity<GlossaryTerm>(e =>
+        {
+            // ⚠️ UNICO sulla CHIAVE MINUSCOLA, non sul testo scritto: due voci che differiscono solo per le
+            // maiuscole sono la stessa voce con due rese, e la ricerca nel testo — che le maiuscole non le
+            // guarda — ne applicherebbe una a caso. Vedi GlossaryTerm.SourceKey per il perché la colonna
+            // esiste invece di lasciar decidere al confronto del database.
+            e.HasIndex(x => new { x.SourceLang, x.TargetLang, x.SourceKey }).IsUnique();
+
+            // Stessa ragione della memoria: senza le lunghezze, MySQL non riesce a costruire l'indice unico.
+            // ⚠️ 200 caratteri per la sorgente non sono generosità: una voce di glossario è una FORMULA, e
+            // una formula più lunga di così quasi certamente non è una formula — è una frase, e le frasi
+            // intere le tratta già la memoria di traduzione. 8+8+200 stanno dentro il limite di chiave anche
+            // a quattro byte per carattere.
+            e.Property(x => x.SourceLang).HasMaxLength(8);
+            e.Property(x => x.TargetLang).HasMaxLength(8);
+            e.Property(x => x.SourceText).HasMaxLength(200);
+            e.Property(x => x.SourceKey).HasMaxLength(200);
+            e.Property(x => x.TargetText).HasMaxLength(400);
         });
 
         // --- Statistiche ATC (servizio /services/stats, carta del 24 agosto 2026) -----------------------

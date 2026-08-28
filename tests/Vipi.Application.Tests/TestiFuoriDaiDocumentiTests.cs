@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Application.Translation;
 using Vipi.Domain.Entities;
@@ -60,6 +60,12 @@ public class TestiFuoriDaiDocumentiTests
         public Task<(int Totale, int DaRileggere)> ContaAsync(string s, string t, CancellationToken ct = default) =>
             Task.FromResult((0, 0));
         public Task<int> DocumentiToccatiAsync(string s, CancellationToken ct = default) => Task.FromResult(0);
+        public Task<int> ContaConLaFormulaAsync(string s, string t, string f, CancellationToken ct = default) =>
+            Task.FromResult(0);
+
+        public Task<int> DimenticaAutomaticheConLaFormulaAsync(
+            string s, string t, string f, CancellationToken ct = default) => Task.FromResult(0);
+
         public Task<long> CaratteriSpesiStimatiAsync(string e, CancellationToken ct = default) => Task.FromResult(0L);
     }
 

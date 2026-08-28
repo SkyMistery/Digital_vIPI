@@ -101,6 +101,40 @@ public interface ITranslationMemory
     Task<int> DocumentiToccatiAsync(string sourceText, CancellationToken ct = default);
 
     /// <summary>
+    /// Quante voci <b>prodotte dalla macchina</b> contengono questa formula nel testo sorgente.
+    ///
+    /// <para>
+    /// ⚠️ <b>È il numero che dice se una voce di glossario servirà a qualcosa.</b> Il giro traduce solo ciò
+    /// che <i>manca</i>: una formula aggiunta oggi non tocca le frasi già in memoria, che restano com'erano —
+    /// e chi ha appena scritto «riporta sottovento → report downwind» rileggerebbe il documento trovandoci
+    /// ancora «bring it back downwind», senza capire se ha sbagliato lui o la macchina.
+    /// </para>
+    /// <para>
+    /// ⚠️ Solo le automatiche, e senza distinguere le maiuscole: come la ricerca del glossario nel testo.
+    /// </para>
+    /// </summary>
+    Task<int> ContaConLaFormulaAsync(
+        string sourceLang, string targetLang, string formula, CancellationToken ct = default);
+
+    /// <summary>
+    /// Butta via le traduzioni <b>automatiche</b> che contengono questa formula, così il giro dopo le rifà —
+    /// stavolta col glossario.
+    ///
+    /// <para>
+    /// ⚠️ <b>Non tocca mai una voce corretta da una persona</b>, nemmeno se contiene la formula: là qualcuno
+    /// ha già deciso come si dice quella frase intera, e una formula è un'opinione più debole di una lettura.
+    /// </para>
+    /// <para>
+    /// ⚠️ <b>Si ricomprano.</b> Quello che si cancella qui il giro dopo si ripaga al motore, carattere per
+    /// carattere. È il prezzo giusto per una fraseologia sbagliata in un documento operativo, ma è un prezzo,
+    /// e chi preme il tasto deve saperlo.
+    /// </para>
+    /// </summary>
+    /// <returns>Quante ne ha buttate.</returns>
+    Task<int> DimenticaAutomaticheConLaFormulaAsync(
+        string sourceLang, string targetLang, string formula, CancellationToken ct = default);
+
+    /// <summary>
     /// Stima dei caratteri già spesi col motore: la somma dei testi sorgente delle voci prodotte dalla
     /// macchina.
     /// <para>⚠️ È una <b>stima</b>, e va detto: non conta i tentativi falliti, e il testo che viaggia è

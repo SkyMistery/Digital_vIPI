@@ -102,13 +102,20 @@ public sealed class TranslationFillUseCase
             var protetto = _protettore.Protect(s);
             if (!protetto.Safe) { aMano++; continue; }
 
-            // ⚠️ Del testo protetto non resta che segnaposto: la «traduzione» è il testo stesso, e si scrive
-            // in memoria senza chiamare nessuno. Vale per le celle che sono solo un identificatore — un
-            // punto («MARTE»), un fix («CHI»), un callsign — e senza questo passaggio partirebbero a ogni
-            // giro per tornare cambiate e farsi scartare.
+            // ⚠️ Del testo protetto non resta che segnaposto: non c'è niente da chiedere a nessuno, e la
+            // traduzione si compone qui. Vale per le celle che sono solo un identificatore — un punto
+            // («MARTE»), un fix («CHI»), un callsign — e senza questo passaggio partirebbero a ogni giro per
+            // tornare cambiate e farsi scartare.
             if (TextProtector.SoloSegnaposti(protetto.Text))
             {
-                identiche.Add((s, TranslationText.Normalize(s)));
+                // ⚠️ La traduzione è il testo protetto RIPRISTINATO, non il sorgente ricopiato. Per un
+                // identificatore le due cose coincidono — torna esattamente quello che era partito — ma per
+                // una cella che è tutta una voce di glossario NO: lì il ripristino mette la resa inglese,
+                // mentre ricopiare il sorgente scriverebbe in memoria l'ITALIANO spacciandolo per inglese, e
+                // lo scriverebbe come voce definitiva che nessun giro successivo riproverebbe.
+                identiche.Add(TextProtector.TryRestore(protetto.Text, protetto.Tokens, out var comeVa)
+                    ? (s, comeVa)
+                    : (s, TranslationText.Normalize(s)));
                 continue;
             }
 

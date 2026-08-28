@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 28 agosto 2026, notte (**I DUE RAMI SONO FUSI IN `main` E SPINTI**: `bilingue-tutte-le-pagine` — la lingua per intero, §Q-bis — e `archivio-atc-mondiale` — §S e §T. I due non si toccavano: un conflitto solo, in questo file. Sul codice tutto verde su net8+net10 DOPO la fusione, che è l'unico momento in cui la prova conta**) · **Aggiornato:** 28 agosto 2026, sera (**§Q-bis — LA LINGUA. Il bilingue girava su DUE viewer su cinque e la barra non aveva nessun comando per cambiare lingua: entrambe le cose chiuse, più le REGOLE su carta (`docs/design/regole-lingua.md`), i messaggi del backend, il catalogo della Guida, «MRVA» e il correttore delle traduzioni dentro l'editor. Sei commit nel ramo **`bilingue-tutte-le-pagine`** (`2af3a39`), spinto e NON fuso**) · **Aggiornato:** 28 agosto 2026, pomeriggio (**I DUE ROSSI INTERMITTENTI SONO CHIUSI — Q5 e Q6, riprodotti prima di correggerli: erano due contese diverse fra test paralleli. Q5 era il file di diagnostica dell'avvio, uno solo per processo, riscritto da un altro host nella finestra fra scrittura e rilettura; Q6 era un test che passava per via del POOL di SQLite invece che per via dell'interceptor, e che un `ClearAllPools()` di processo chiamato da un altro test faceva cadere. Ora «tutto verde» si può leggere alla lettera: 6633 verdi su entrambi i TFM**) · **Aggiornato:** 28 agosto 2026, mattina (**§Q e §R — i documenti bilingue e i vSOP militari, VENTI slice chiuse in due giorni e tutte in `main`, che è stato SPINTO (`6644b5e`): `origin/main` allineato, `origin/basemap-esri` cancellato perché ormai contenuto in main. Restano aperte Q1/Q2/Q3 (che dipendono da qualcun altro), Q4 (la vLOA che deve smettere di nascere inglese), Q5 e Q6 (due rossi intermittenti) e R1 (le figure dei SOP, lavoro manuale)**) · **Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in · **Aggiornato:** 28 agosto 2026, sera tardi (**§T — la SELECT dei duplicati su `DocReleases`: NON era eseguibile (il 3306 del server è su localhost, niente pannello), quindi ora la fa l'applicazione prima di `Migrate()` e nomina le righe in `avvio-errore.txt`; gli altri quattro indici unici della coda non possono fallire, verificato**) · **Aggiornato:** 28 agosto 2026, sera (**§S — l'archivio ATC mondiale, ramo `archivio-atc-mondiale` (il codice è tutto in `0ced074`, il resto sono documenti) SPINTO e NON fuso: il poller archivia tutte le postazioni ATC aperte, i conti della divisione non cambiano, ritenzione dodici mesi per tutto. S1 CHIUSA (il volume del mondo è misurato: 10×-14× le sessioni italiane, il database intero va a ~230 MB su MariaDB a regime) e S2 DECISA (si ricomincia da capo, raccolta dal 1° settembre 2026, cutover dal Worker nel 2027). ⚠️ Le migrazioni in coda al cutover MariaDB diventano VENTI**) · **Aggiornato:** 28 agosto 2026, pomeriggio (**I DUE ROSSI INTERMITTENTI SONO CHIUSI — Q5 e Q6, riprodotti prima di correggerli: erano due contese diverse fra test paralleli. Q5 era il file di diagnostica dell'avvio, uno solo per processo, riscritto da un altro host nella finestra fra scrittura e rilettura; Q6 era un test che passava per via del POOL di SQLite invece che per via dell'interceptor, e che un `ClearAllPools()` di processo chiamato da un altro test faceva cadere. Ora «tutto verde» si può leggere alla lettera: 6633 verdi su entrambi i TFM**) · **Aggiornato:** 28 agosto 2026, mattina (**§Q e §R — i documenti bilingue e i vSOP militari, VENTI slice chiuse in due giorni e tutte in `main`, che è stato SPINTO (`6644b5e`): `origin/main` allineato, `origin/basemap-esri` cancellato perché ormai contenuto in main. Restano aperte Q1/Q2/Q3 (che dipendono da qualcun altro), Q4 (la vLOA che deve smettere di nascere inglese), Q5 e Q6 (due rossi intermittenti) e R1 (le figure dei SOP, lavoro manuale)**) · **Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in
+**Aggiornato:** 28 agosto 2026, sera (**§Q3 CHIUSA — il glossario di fraseologia. La fraseologia DENTRO le frasi, che la memoria di traduzione non poteva coprire perché è indicizzata per segmento intero: segnaposto `<g>` col contratto OPPOSTO a `<x>`, tabella `GlossaryTerms`, pagina di cura. E la risposta del committente alla domanda che teneva aperta la voce: lo curano TUTTI GLI ADMIN, cioè tutto lo staff di divisione — nessun codice, la pagina era già dietro `IsAdmin`. Ramo **`glossario-fraseologia`** (`ee5fad7`, `f2ee4eb`), SPINTO e NON fuso. ⚠️ Le migrazioni in coda diventano VENTUNO**) · 28 agosto 2026, notte (**I DUE RAMI SONO FUSI IN `main` E SPINTI**: `bilingue-tutte-le-pagine` — la lingua per intero, §Q-bis — e `archivio-atc-mondiale` — §S e §T. I due non si toccavano: un conflitto solo, in questo file. Sul codice tutto verde su net8+net10 DOPO la fusione, che è l'unico momento in cui la prova conta**) · **Aggiornato:** 28 agosto 2026, sera (**§Q-bis — LA LINGUA. Il bilingue girava su DUE viewer su cinque e la barra non aveva nessun comando per cambiare lingua: entrambe le cose chiuse, più le REGOLE su carta (`docs/design/regole-lingua.md`), i messaggi del backend, il catalogo della Guida, «MRVA» e il correttore delle traduzioni dentro l'editor. Sei commit nel ramo **`bilingue-tutte-le-pagine`** (`2af3a39`), spinto e NON fuso**) · **Aggiornato:** 28 agosto 2026, pomeriggio (**I DUE ROSSI INTERMITTENTI SONO CHIUSI — Q5 e Q6, riprodotti prima di correggerli: erano due contese diverse fra test paralleli. Q5 era il file di diagnostica dell'avvio, uno solo per processo, riscritto da un altro host nella finestra fra scrittura e rilettura; Q6 era un test che passava per via del POOL di SQLite invece che per via dell'interceptor, e che un `ClearAllPools()` di processo chiamato da un altro test faceva cadere. Ora «tutto verde» si può leggere alla lettera: 6633 verdi su entrambi i TFM**) · **Aggiornato:** 28 agosto 2026, mattina (**§Q e §R — i documenti bilingue e i vSOP militari, VENTI slice chiuse in due giorni e tutte in `main`, che è stato SPINTO (`6644b5e`): `origin/main` allineato, `origin/basemap-esri` cancellato perché ormai contenuto in main. Restano aperte Q1/Q2/Q3 (che dipendono da qualcun altro), Q4 (la vLOA che deve smettere di nascere inglese), Q5 e Q6 (due rossi intermittenti) e R1 (le figure dei SOP, lavoro manuale)**) · **Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in · **Aggiornato:** 28 agosto 2026, sera tardi (**§T — la SELECT dei duplicati su `DocReleases`: NON era eseguibile (il 3306 del server è su localhost, niente pannello), quindi ora la fa l'applicazione prima di `Migrate()` e nomina le righe in `avvio-errore.txt`; gli altri quattro indici unici della coda non possono fallire, verificato**) · **Aggiornato:** 28 agosto 2026, sera (**§S — l'archivio ATC mondiale, ramo `archivio-atc-mondiale` (il codice è tutto in `0ced074`, il resto sono documenti) SPINTO e NON fuso: il poller archivia tutte le postazioni ATC aperte, i conti della divisione non cambiano, ritenzione dodici mesi per tutto. S1 CHIUSA (il volume del mondo è misurato: 10×-14× le sessioni italiane, il database intero va a ~230 MB su MariaDB a regime) e S2 DECISA (si ricomincia da capo, raccolta dal 1° settembre 2026, cutover dal Worker nel 2027). ⚠️ Le migrazioni in coda al cutover MariaDB diventano VENTI**) · **Aggiornato:** 28 agosto 2026, pomeriggio (**I DUE ROSSI INTERMITTENTI SONO CHIUSI — Q5 e Q6, riprodotti prima di correggerli: erano due contese diverse fra test paralleli. Q5 era il file di diagnostica dell'avvio, uno solo per processo, riscritto da un altro host nella finestra fra scrittura e rilettura; Q6 era un test che passava per via del POOL di SQLite invece che per via dell'interceptor, e che un `ClearAllPools()` di processo chiamato da un altro test faceva cadere. Ora «tutto verde» si può leggere alla lettera: 6633 verdi su entrambi i TFM**) · **Aggiornato:** 28 agosto 2026, mattina (**§Q e §R — i documenti bilingue e i vSOP militari, VENTI slice chiuse in due giorni e tutte in `main`, che è stato SPINTO (`6644b5e`): `origin/main` allineato, `origin/basemap-esri` cancellato perché ormai contenuto in main. Restano aperte Q1/Q2/Q3 (che dipendono da qualcun altro), Q4 (la vLOA che deve smettere di nascere inglese), Q5 e Q6 (due rossi intermittenti) e R1 (le figure dei SOP, lavoro manuale)**) · **Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in
 un giro solo. Restano aperte solo voci che dipendono da qualcun altro: le risposte di Ivao.It (A9/A13), le
 quattro vLOA da ripubblicare (L2), il documento di Brindisi (B10-bis) e le decisioni di contenuto**) · **Aggiornato:** 27 agosto 2026, notte (**§K chiusa tutta: la vIPI d'aeroporto entra nel catalogo delle sezioni
 — ramo `aeroporto-a-sezioni`, il TERZO in fila — più le tre rifiniture della stessa notte: il meteo tornato
@@ -179,7 +179,7 @@ scrivono nei log.
 | Le decisioni di contenuto (LIBB: due sezioni nascoste a mano; l'elenco aeroporti da 75 righe) | K / statistiche |
 | Se `99999 ft` debba diventare `UNL` a schermo | N4 |
 | Se prendere in carico le **tessere nostre** (l'unico fondo che nessuno può chiudere) | P1 |
-| **Chi cura il glossario di fraseologia** — serve un nome, e finché manca il badge «non revisionata» resta | **Q3** |
+| ~~Chi cura il glossario di fraseologia~~ — ✅ **CHIUSA il 28-ago**: meccanismo, pagina di cura, e la risposta del committente — **tutti gli admin**, cioè tutto lo staff di divisione | **Q3** |
 | I **termini di ritenzione** del piano gratuito Azure, e la domanda a IVAO HQ sul trattamento esterno | Q1 / Q2 |
 | **Rileggere la trascrizione di LIPI** e le **figure** dei SOP da estrarre dai PDF | R1 / R2 |
 | Gli altri **quattordici SOP** militari, e su quattro campi la sezione QRA da riempire | R3 |
@@ -3217,7 +3217,7 @@ quella del piano a pagamento, e DeepL ha appena dimostrato quanto i termini camb
 Mandare i testi a un terzo è trattamento esterno. I documenti sono pubblici, e VID e nomi non escono per
 costruzione, ma **HQ ha già posto un vincolo contrattuale sui PDF**: meglio chiedere prima che dopo.
 
-### Q3 🟢 APERTO — chi cura il glossario di fraseologia
+### Q3 ✅ CHIUSA — chi cura il glossario di fraseologia: **tutti gli admin**
 
 ⚠️ **Il 28 agosto 2026 ne è nato il primo pezzo, e non per scelta ma per un difetto visto a schermo**: la
 macchina rendeva «Piste» con *Slopes* e «Quote di transizione» con *Transition Dimensions*.
@@ -3230,15 +3230,81 @@ delle tabelle. Erano sbagliate **tutte** — «Pista» → *Track*, «Piazzale»
 «Rilevamento» → *Detection*, «Quota» → *Share*, «Ente» → *Institution* — e sono le colonne che un
 controllore legge per trovare il dato.
 
-Questo **non chiude la domanda**: copre i segmenti INTERI (un titolo, una cella di tabella), non la
-fraseologia dentro le frasi — «riporta sottovento» resta il caso che nessun elenco risolve, e nella prosa
-di LIPI restano cose come «the cocking and disarming positions». Ma dice dove va messo ciò che si decide, e
-mostra che il meccanismo (voce umana in memoria, mai toccata dalla macchina) funziona.
+Quello **non chiudeva la domanda**: copriva i segmenti INTERI (un titolo, una cella di tabella), non la
+fraseologia dentro le frasi — «riporta sottovento» era il caso che nessun elenco risolveva, e nella prosa
+di LIPI restavano cose come «the cocking and disarming positions». Ma diceva dove va messo ciò che si
+decide, e mostrava che il meccanismo (voce umana in memoria, mai toccata dalla macchina) funziona.
 
-Serve **un nome**, non un ruolo. È l'unica delle tre voci aperte che, se resta scoperta, **si vede sul
-documento**: finché nessuno rilegge, il badge «traduzione non revisionata» non se lo toglie nessuno, e
-misurato contro il servizio vero «riporta sottovento» resta «bring it back downwind» — grammatica giusta,
-fraseologia sbagliata, e nessuno se ne accorge leggendo.
+#### ✅ Il 28 agosto sera: il meccanismo dentro le frasi, e la lista non è più nel codice
+
+**Il pezzo tecnico è chiuso.** `GlossarioFraseologia` + tabella `GlossaryTerms` + pagina
+`/services/vsop/admin/glossary`. Come funziona, in una riga: prima di spedire, il protettore mette la
+formula italiana in un segnaposto `<g id="0" translate="no">riporta sottovento</g>` e tiene da parte la
+resa inglese; al ritorno rimette **la nostra**, qualunque cosa il motore abbia fatto lì dentro.
+
+⚠️ **I due segnaposto hanno contratti OPPOSTI, ed è tutta la faccenda.** Un `<x>` deve tornare *identico*
+— se torna diverso il motore ha rovinato un identificatore e la frase si butta. Un `<g>` torna *sempre*
+diverso, perché dentro è partito l'italiano e la resa inglese non c'è mai stata: se passasse dal confronto
+degli identificatori, ogni frase con dentro una formula finirebbe fra gli scartati, e il glossario
+**spegnerebbe** la traduzione invece di migliorarla. La lettera del tag è il solo posto in cui la
+differenza si vede.
+
+⚠️ **Il glossario passa PRIMA delle regole sugli identificatori**, non dopo. Dopo, una formula che ne
+contenesse uno non scatterebbe più — a quel punto il callsign è un tag, non più le lettere che la voce
+cerca — e non scatterebbe in silenzio. La simmetria è il rifiuto `ContieneIdentificatore` nella pagina di
+cura: siccome passa per primo, una voce con dentro un identificatore se lo *inghiottirebbe*, e quello
+finirebbe cablato nella resa, uguale in ogni documento che contiene la formula.
+
+⚠️ **La funzione nativa dei motori è nel TESTO, non in un ramo di codice.** `translate="no"` lo onora Azure
+da sé in modalità marcatura, e a DeepL si passa `ignore_tags: ["x","g"]`: la formula non si traduce, quindi
+non si paga e il motore non ci può spostare dentro le parole di contorno. Un motore che lo ignorasse non
+romperebbe niente — tradurrebbe l'italiano per niente, e il ripristino butterebbe via la sua fatica.
+
+⚠️ **E c'era un difetto che il glossario avrebbe introdotto**: una cella che è *tutta* una formula non parte
+(del protetto non resta che il segnaposto), e prima il giro ne scriveva in memoria «il testo così com'è» —
+cioè il sorgente ricopiato, che con soli identificatori dentro era giusto. Con una formula avrebbe scritto
+l'**italiano spacciandolo per inglese**, come voce definitiva che nessun giro riprova. Adesso scrive il
+protetto *ripristinato*.
+
+⚠️ **Il seme non è una regola che il codice fa rispettare.** Le voci di partenza si scrivono **solo se il
+glossario è vuoto**: da quando lo tocca una persona, il codice non ci scrive più. Con la condizione ovvia
+(«questa voce manca») una formula *tolta* dal curatore tornerebbe al riavvio dopo, per sempre, senza che si
+capisca da dove.
+
+⚠️ **Una voce nuova NON tocca le frasi già tradotte**, perché il giro traduce solo ciò che manca — e senza
+dirlo, chi la scrive rileggerebbe il documento trovandolo identico. La pagina conta le automatiche che
+contengono la formula e offre di **buttarle**, così il giro dopo le rifà: mai quelle riviste da una persona,
+e ⚠️ **i caratteri si ripagano al motore**.
+
+**Le voci di partenza sono 24, e sono di due specie dichiarate.** Tre gruppi vengono da difetti **visti**:
+«riporta sottovento» → *bring it back downwind* (Azure, 27 ago, carta §5), «il campo» → *the camp* e
+«armamento e disarmo» → *the cocking and disarming positions* (LIPI, 28 ago, §R2 qui sotto — che con questo
+si chiude). Gli altri sono fraseologia standard, messi perché la lista non nasca vuota: di quelli non
+sappiamo che cosa facesse la macchina, e chi cura il glossario è libero di toglierli.
+
+#### ✅ Chi lo cura: TUTTI GLI ADMIN — deciso dal committente il 28 agosto 2026
+
+**La domanda è chiusa, e la risposta è un ruolo, non un nome.** Cura il glossario chiunque sia admin: per la
+decisione già presa sui codici staff (`^IT-[A-Z0-9]+$`, vedi §staff), **tutto lo staff di divisione lo è**.
+
+⚠️ **Non serviva codice.** La pagina è già dietro `Authz.IsAdmin` e la sua voce in `AdminNav` è `Chi.Admin`
+come le altre: verificato, non assunto. Quello che si chiude qui è la **domanda**, non un lavoro.
+
+⚠️ **Con un ruolo al posto di un nome, la colonna «Da chi» smette di essere un dettaglio.** La carta chiedeva
+un nome apposta: un elenco che è di tutti non è di nessuno, e una resa che entra **verbatim** in ogni carta
+che contiene la formula è una cosa che si vuole poter risalire. La pagina registra il VID di chi ha scritto
+o corretto ogni voce e lo mostra come link al profilo IVAO, e tiene distinte le voci **di partenza** (senza
+autore: sono contenuto iniziale, non la scelta di qualcuno). È quella colonna a rendere praticabile la
+decisione: chi arriva dopo vede *chi* ha deciso come si dice quella formula, e a chi chiedere perché.
+
+⚠️ **E resta il limite del meccanismo, che ora va detto a tutti e non a uno**: la resa entra nel documento
+**verbatim**. Non c'è declinazione, non c'è concordanza, non c'è contesto — «report downwind» è quella
+stringa lì, in ogni frase in cui la voce scatta, anche a inizio periodo. Vanno bene le formule che *sono*
+fisse; una parola comune che cambia forma no. Sapere quali sono quali resta mestiere di chi controlla, non
+di chi programma: è il motivo per cui la lista non poteva restare nel codice, e non cambia con la platea.
+
+Delle tre voci aperte di questa carta restano quindi **Q1** (ritenzione del piano gratuito) e **Q2** (la
+domanda a IVAO HQ).
 
 ### Q4 🟢 APERTO — la vLOA dovrebbe smettere di nascere in inglese
 
@@ -3690,9 +3756,11 @@ La prima stesura italiana è mia, non di un controllore militare, ed è in bozza
 pubblicata**, e non deve esserlo prima che qualcuno che conosce il campo l'abbia riletta. Il badge
 «traduzione non revisionata» dice la stessa cosa al lettore inglese.
 
-⚠️ Restano dentro due rese che il glossario non copre, perché sono **parole dentro una frase** e non
-segmenti interi: «the **camp**» per «il campo» e «the **cocking** and disarming positions» per
-«armamento/disarmo». È la parte aperta di **Q3**.
+⚠️ ✅ **Chiuse la sera del 28 agosto.** Erano le due rese che il glossario non copriva, perché sono
+**parole dentro una frase** e non segmenti interi: «the **camp**» per «il campo» e «the **cocking** and
+disarming positions» per «armamento/disarmo». Sono state il caso di prova del meccanismo dentro le frasi
+(**Q3**) e sono fra le sue voci di partenza. ⚠️ Le traduzioni **già in memoria** non cambiano da sole: dalla
+pagina del glossario si preme «falle rifare», o il documento resta com'era.
 
 ### R3 🟢 APERTO — gli altri quattordici SOP
 

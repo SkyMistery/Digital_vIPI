@@ -2521,6 +2521,33 @@
   <data name="Tr_Saved" xml:space="preserve"><value>Correzione salvata. Vale per {0} documenti e la macchina non la tocca più.</value></data>
   <data name="Tr_SavedOne" xml:space="preserve"><value>Correzione salvata. Vale per questo documento e la macchina non la tocca più.</value></data>
   <data name="Tr_SavedNone" xml:space="preserve"><value>Correzione salvata: la macchina non la tocca più. Nessun documento contiene questa frase in questo momento.</value></data>
+  <data name="Gl_Title" xml:space="preserve"><value>Glossario</value></data>
+  <data name="Gl_Subtitle" xml:space="preserve"><value>Glossario di fraseologia: le formule che si dicono in un modo solo</value></data>
+  <data name="Gl_Intro" xml:space="preserve"><value>Qui si decide come va detta una formula in inglese, dentro qualunque frase la contenga. La resa entra nel documento parola per parola come è scritta qui: nessun motore la tocca e nessuno la declina. Vanno bene le formule fisse della fraseologia standard; una parola comune che cambia forma no.</value></data>
+  <data name="Gl_ColSource" xml:space="preserve"><value>Formula</value></data>
+  <data name="Gl_ColTarget" xml:space="preserve"><value>Resa fissa</value></data>
+  <data name="Gl_ColWho" xml:space="preserve"><value>Da chi</value></data>
+  <data name="Gl_WhoSeed" xml:space="preserve"><value>Di partenza</value></data>
+  <data name="Gl_WhoPerson" xml:space="preserve"><value>Persona</value></data>
+  <data name="Gl_Add" xml:space="preserve"><value>Aggiungi</value></data>
+  <data name="Gl_PhSource" xml:space="preserve"><value>riporta sottovento</value></data>
+  <data name="Gl_PhTarget" xml:space="preserve"><value>report downwind</value></data>
+  <data name="Gl_Empty" xml:space="preserve"><value>Il glossario è vuoto</value></data>
+  <data name="Gl_EmptyHint" xml:space="preserve"><value>Finché è vuoto, la fraseologia inglese la sceglie la macchina: plausibile, comprensibile, e ogni tanto sbagliata senza che si veda.</value></data>
+  <data name="Gl_WarnSingleWord" xml:space="preserve"><value>È una parola sola: scatterà ovunque compaia, anche dove voleva dire un'altra cosa.</value></data>
+  <data name="Gl_ErrEmpty" xml:space="preserve"><value>Servono tutti e due i lati.</value></data>
+  <data name="Gl_ErrTooShort" xml:space="preserve"><value>Troppo corto: sotto i quattro caratteri la ricerca a parola intera non basta più a difendere.</value></data>
+  <data name="Gl_ErrTooLong" xml:space="preserve"><value>Troppo lungo per essere una formula. Una frase intera la tratta già la memoria di traduzione.</value></data>
+  <data name="Gl_ErrIdentifier" xml:space="preserve"><value>Dentro c'è un identificatore (callsign, frequenza, pista, livello). Resterebbe cablato nella resa, uguale in ogni documento che contiene la formula.</value></data>
+  <data name="Gl_ErrMarkup" xml:space="preserve"><value>I caratteri &lt;, &gt; e &amp; non si possono usare: romperebbero la marcatura che protegge il testo.</value></data>
+  <data name="Gl_ErrDuplicate" xml:space="preserve"><value>Questa formula c'è già. Correggi quella invece di aggiungerne una seconda.</value></data>
+  <data name="Gl_Saved" xml:space="preserve"><value>Voce salvata.</value></data>
+  <data name="Gl_Deleted" xml:space="preserve"><value>Voce tolta.</value></data>
+  <data name="Gl_InMemory" xml:space="preserve"><value>{0} traduzioni automatiche già in memoria contengono questa formula, e restano come sono: il giro traduce solo quello che manca.</value></data>
+  <data name="Gl_Redo" xml:space="preserve"><value>Falle rifare ({0})</value></data>
+  <data name="Gl_RedoHint" xml:space="preserve"><value>Butta le traduzioni automatiche che contengono la formula, così il prossimo giro le rifà col glossario. Le correzioni scritte da una persona non si toccano. ⚠️ I caratteri si ripagano al motore.</value></data>
+  <data name="Gl_RedoDone" xml:space="preserve"><value>{0} traduzioni buttate: il prossimo giro le rifà.</value></data>
+  <data name="Gl_RedoNone" xml:space="preserve"><value>Nessuna traduzione automatica conteneva questa formula.</value></data>
   <data name="Aud_All" xml:space="preserve"><value>Tutto</value></data>
   <data name="Aud_Pilots" xml:space="preserve"><value>Pilota</value></data>
   <data name="Aud_Controllers" xml:space="preserve"><value>ATC</value></data>
