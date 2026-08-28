@@ -264,9 +264,9 @@ il glossario e la rilettura non sono un accessorio della funzione: sono la funzi
   per la stessa porta dei callsign: la formula parte dentro il tag e al ritorno ci si rimette la resa. La
   funzione nativa dei motori si usa dove serve davvero — `translate="no"` per Azure, `ignore_tags` per
   DeepL — e serve a **non pagare** la formula, non a tradurla.
-  ⚠️ Resta vero il resto: va costruito e curato da un controllore, non da chi scrive il codice. Per questo
-  vive in una tabella e ha una pagina (`/services/vsop/admin/glossary`), non un file `.cs`. Vedi
-  `lavori-aperti §Q3`.
+  ⚠️ Resta vero il resto: va costruito e curato da chi controlla, non da chi scrive il codice. Per questo
+  vive in una tabella e ha una pagina (`/services/vsop/admin/glossary`), non un file `.cs`. **Chi**: tutti
+  gli admin, deciso dal committente il 28 agosto 2026 — vedi `lavori-aperti §Q3`, che con quello si chiude.
 
 ## 6. Quando si traduce
 
@@ -341,8 +341,12 @@ segmentatore e il cancello sui dati personali.
    sul piano gratuito non è quella del piano a pagamento**. Da leggere prima di impegnarsi, non dopo.
 2. **IVAO HQ**: mandare i testi a un terzo è trattamento esterno. I documenti sono pubblici, quindi è
    poco delicato, ma HQ ha già posto un vincolo contrattuale sui PDF — meglio chiedere prima.
-3. **Il glossario di fraseologia ha bisogno di un nome**, non di un ruolo. Senza qualcuno che lo curi, la
-   §5 resta una buona intenzione.
+3. ~~**Il glossario di fraseologia ha bisogno di un nome**, non di un ruolo.~~ ✅ **Risolta il 28 agosto
+   2026, e con un ruolo**: lo cura **chiunque sia admin**, cioè — per la decisione già presa sui codici
+   staff — tutto lo staff di divisione. Questa riga temeva che «un ruolo» volesse dire «nessuno»; la
+   mitigazione è che la pagina registra **il VID di chi scrive o corregge ogni voce**, e tiene distinte le
+   voci di partenza (senza autore). Una resa entra **verbatim** in ogni carta che contiene la formula: con
+   una platea al posto di un nome, quella colonna è ciò che permette di risalire a chi ha deciso.
 
 ## Che cosa ha insegnato il primo documento VERO (28 agosto 2026)
 

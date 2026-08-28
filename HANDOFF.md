@@ -17,10 +17,15 @@ avvisi**, **nessuna migrazione nuova** (restano diciannove).
 
 ### ⚠️ 28 agosto, sera — il glossario di fraseologia (`lavori-aperti §Q3`)
 
-Chiuso il **pezzo tecnico** della domanda: la fraseologia **dentro** le frasi, che la memoria di traduzione
-non poteva coprire perché è indicizzata per segmento intero. Segnaposto `<g>` nel protettore, tabella
-`GlossaryTerms`, pagina di cura `/services/vsop/admin/glossary`, 24 voci di partenza. Resta aperto **il
-nome** di chi lo cura — ma adesso quella persona apre una pagina invece di farsi ricompilare un `.cs`.
+✅ **Chiusa tutta**, pezzo tecnico e domanda. La fraseologia **dentro** le frasi, che la memoria di
+traduzione non poteva coprire perché è indicizzata per segmento intero: segnaposto `<g>` nel protettore,
+tabella `GlossaryTerms`, pagina di cura `/services/vsop/admin/glossary`, 24 voci di partenza.
+
+**Chi lo cura: tutti gli admin** — deciso dal committente il 28 agosto, cioè tutto lo staff di divisione
+(jolly `^IT-[A-Z0-9]+$`). Non è servito codice: la pagina era già dietro `Authz.IsAdmin`. ⚠️ Con un ruolo al
+posto di un nome, la colonna **«Da chi»** — il VID di chi ha scritto o corretto la voce, e nessun autore per
+le voci di partenza — è ciò che rende risalibile una resa che entra **verbatim** in ogni carta.
+Della carta bilingue restano aperte **Q1** (ritenzione piano gratuito) e **Q2** (domanda a IVAO HQ).
 
 ⚠️ **AZIONE PENDENTE: RIAVVIARE il Host** per applicare la migrazione **`GlossarioFraseologia`** (additiva,
 crea `GlossaryTerms`; **ventuno** migrazioni in coda — le diciannove di stamattina, più

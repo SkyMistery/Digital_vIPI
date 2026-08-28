@@ -179,7 +179,7 @@ scrivono nei log.
 | Le decisioni di contenuto (LIBB: due sezioni nascoste a mano; l'elenco aeroporti da 75 righe) | K / statistiche |
 | Se `99999 ft` debba diventare `UNL` a schermo | N4 |
 | Se prendere in carico le **tessere nostre** (l'unico fondo che nessuno può chiudere) | P1 |
-| **Chi cura il glossario di fraseologia** — serve un nome. ✅ Il meccanismo e la pagina di cura ci sono (28-ago sera): la domanda non chiede più di ricompilare, chiede di aprire una pagina | **Q3** |
+| ~~Chi cura il glossario di fraseologia~~ — ✅ **CHIUSA il 28-ago**: meccanismo, pagina di cura, e la risposta del committente — **tutti gli admin**, cioè tutto lo staff di divisione | **Q3** |
 | I **termini di ritenzione** del piano gratuito Azure, e la domanda a IVAO HQ sul trattamento esterno | Q1 / Q2 |
 | **Rileggere la trascrizione di LIPI** e le **figure** dei SOP da estrarre dai PDF | R1 / R2 |
 | Gli altri **quattordici SOP** militari, e su quattro campi la sezione QRA da riempire | R3 |
@@ -3217,7 +3217,7 @@ quella del piano a pagamento, e DeepL ha appena dimostrato quanto i termini camb
 Mandare i testi a un terzo è trattamento esterno. I documenti sono pubblici, e VID e nomi non escono per
 costruzione, ma **HQ ha già posto un vincolo contrattuale sui PDF**: meglio chiedere prima che dopo.
 
-### Q3 🟢 APERTO — chi cura il glossario di fraseologia
+### Q3 ✅ CHIUSA — chi cura il glossario di fraseologia: **tutti gli admin**
 
 ⚠️ **Il 28 agosto 2026 ne è nato il primo pezzo, e non per scelta ma per un difetto visto a schermo**: la
 macchina rendeva «Piste» con *Slopes* e «Quote di transizione» con *Transition Dimensions*.
@@ -3282,18 +3282,29 @@ e ⚠️ **i caratteri si ripagano al motore**.
 si chiude). Gli altri sono fraseologia standard, messi perché la lista non nasca vuota: di quelli non
 sappiamo che cosa facesse la macchina, e chi cura il glossario è libero di toglierli.
 
-#### 🟢 Resta aperto: il nome
+#### ✅ Chi lo cura: TUTTI GLI ADMIN — deciso dal committente il 28 agosto 2026
 
-Serve **un nome**, non un ruolo — e adesso la domanda è pulita, perché non chiede più a un controllore di
-farsi ricompilare un file `.cs`: chiede di aprire una pagina. È l'unica delle tre voci aperte che, se resta
-scoperta, **si vede sul documento**: finché nessuno rilegge, il badge «traduzione non revisionata» non se
-lo toglie nessuno.
+**La domanda è chiusa, e la risposta è un ruolo, non un nome.** Cura il glossario chiunque sia admin: per la
+decisione già presa sui codici staff (`^IT-[A-Z0-9]+$`, vedi §staff), **tutto lo staff di divisione lo è**.
 
-⚠️ **E il meccanismo ha un limite che va detto a chi lo curerà**: la resa entra nel documento **verbatim**.
-Non c'è declinazione, non c'è concordanza, non c'è contesto — «report downwind» è quella stringa lì, in ogni
-frase in cui la voce scatta, anche a inizio periodo. Vanno bene le formule che *sono* fisse; una parola
-comune che cambia forma no. Sapere quali sono quali è il suo mestiere, non il nostro: è esattamente il
-motivo per cui la lista non poteva restare nel codice.
+⚠️ **Non serviva codice.** La pagina è già dietro `Authz.IsAdmin` e la sua voce in `AdminNav` è `Chi.Admin`
+come le altre: verificato, non assunto. Quello che si chiude qui è la **domanda**, non un lavoro.
+
+⚠️ **Con un ruolo al posto di un nome, la colonna «Da chi» smette di essere un dettaglio.** La carta chiedeva
+un nome apposta: un elenco che è di tutti non è di nessuno, e una resa che entra **verbatim** in ogni carta
+che contiene la formula è una cosa che si vuole poter risalire. La pagina registra il VID di chi ha scritto
+o corretto ogni voce e lo mostra come link al profilo IVAO, e tiene distinte le voci **di partenza** (senza
+autore: sono contenuto iniziale, non la scelta di qualcuno). È quella colonna a rendere praticabile la
+decisione: chi arriva dopo vede *chi* ha deciso come si dice quella formula, e a chi chiedere perché.
+
+⚠️ **E resta il limite del meccanismo, che ora va detto a tutti e non a uno**: la resa entra nel documento
+**verbatim**. Non c'è declinazione, non c'è concordanza, non c'è contesto — «report downwind» è quella
+stringa lì, in ogni frase in cui la voce scatta, anche a inizio periodo. Vanno bene le formule che *sono*
+fisse; una parola comune che cambia forma no. Sapere quali sono quali resta mestiere di chi controlla, non
+di chi programma: è il motivo per cui la lista non poteva restare nel codice, e non cambia con la platea.
+
+Delle tre voci aperte di questa carta restano quindi **Q1** (ritenzione del piano gratuito) e **Q2** (la
+domanda a IVAO HQ).
 
 ### Q4 🟢 APERTO — la vLOA dovrebbe smettere di nascere in inglese
 
