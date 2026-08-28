@@ -30,17 +30,22 @@ dagli otto codici di direzione (`IT-T01`, `IT-T03`, `IT-FOC`, `IT-FOAC`, `IT-AOA
 vedono le statistiche e basta. La risposta è una promozione a mano da `/services/vsop/admin/permissions`,
 trenta secondi a persona — ma è meglio che lo sappiano prima loro che dopo.
 
-⚠️ Questa testata diceva `6644b5e` fino a stasera, cioè era **indietro di due fusioni**: nel frattempo erano
-entrati in `main` l'archivio ATC (`f120d5c`) e l'audit della lingua (`0a4f92e`). Un HANDOFF che dà lo SHA
-sbagliato è peggio di uno che non lo dà: si finisce per cercare lavoro che c'è già.
+⚠️ **Questa testata è già stata trovata indietro di due fusioni** (dava `6644b5e` mentre `main` era a
+`0a4f92e`). Un HANDOFF che dà lo SHA sbagliato è peggio di uno che non lo dà: si finisce per cercare lavoro
+che c'è già. Si aggiorna **insieme alla fusione**, non dopo.
 
 ⚠️ **La regola sui rami remoti**: un ramo remoto si cancella quando ciò che porta è **anche altrove**, e la
 verifica è `git rev-list --count main..origin/<ramo>` = 0. Prima di quel momento è l'unica copia sul
-server, e cancellarlo perde lavoro **senza un errore che lo dica**. Oggi su `glossario-fraseologia` quel
-conto era **2** fino alla fusione della notte del 28; ora è **0**, e il ramo remoto si può cancellare **dopo** che `main` è stato spinto.
+server, e cancellarlo perde lavoro **senza un errore che lo dica**. Applicata due volte in due giorni:
+`glossario-fraseologia` il 28 e `autorizzazioni-a-livelli` il 29, tutti e due cancellati **dopo** aver
+spinto `main` e aver visto quel conto a zero.
 
-**Suite verde su net8 e net10** (Application 1348, Infrastructure 962/953, Ui 729, E2E 254, Domain 117,
-Hosting 57, AuroraProfiles 63, AuroraBridge 79, Assets 52 — **0 falliti**), build Release
+**Suite verde su net8 e net10** (Application 1423, Infrastructure 969/960, Ui 746, Domain 117, Hosting 57,
+AuroraProfiles 63, AuroraBridge 79, Assets 52 — **0 falliti**, misurati sul `main` fuso).
+⚠️ **`Vipi.E2E.Tests` non compare, e non è una svista**: referenzia `Vipi.Host` e finché quel processo è
+acceso i suoi DLL sono bloccati, quindi il progetto **non si costruisce**. Sparisce dal riepilogo in
+silenzio e l'exit code di `dotnet test` è **inaffidabile** (tre esecuzioni con lo stesso guasto: 0, 0 e 1):
+«verde» si legge **contando i progetti**, non dall'exit code. Build Release
 `--no-incremental` della soluzione intera **0 avvisi**, **tre migrazioni nuove** — `GlossarioFraseologia`,
 `PromozioniAMano` e `ConcessioniPerAccRimosse`, che portano la coda al cutover MariaDB a **ventitré**.
 ⚠️ L'ultima **droppa** `EditGrants`: in produzione la tabella è già vuota, le concessioni le ha cancellate
