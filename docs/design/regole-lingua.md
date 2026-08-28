@@ -84,6 +84,17 @@ scrive lo staff, cambia a ogni ciclo AIRAC, e nessuno può ritradurla ogni volta
 - ⚠️ **`IStringLocalizer` non sa leggere in un'altra lingua**: risolve sempre sulla cultura corrente. Per
   R3 serve il `ResourceManager`.
 
+### Il testo che nasce nel BACKEND
+
+Non passa dalle risorse (che vivono in `Vipi.Ui`, e l'applicazione non può dipendere dalla UI): dove serve,
+porta con sé **le due lingue** e la sceglie chi sa chi sta leggendo — `ReadingLanguageContext`. È lo stesso
+schema del template dei coordinamenti e ora del **catalogo di ricerca della Guida**
+(`GuideSearchCatalog`), che è l'unico testo di backend che vede il **pubblico**.
+
+⚠️ Nel catalogo della Guida le **parole chiave non si sdoppiano per lingua**: chi legge in inglese cercherà
+comunque «frequenze», e chi legge in italiano cercherà «runway». Chi cerca vuole trovare, non essere
+coerente.
+
 ## Le eccezioni, dichiarate
 
 Sono poche, e stanno scritte qui perché una misura con delle eccezioni non dichiarate è una misura che
