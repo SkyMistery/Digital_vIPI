@@ -139,6 +139,36 @@ public sealed partial class TextProtector
     /// <summary>Vero se il testo ha delle lettere minuscole: allora è prosa, e le sigle maiuscole spiccano.</summary>
     private static bool HaMinuscole(string s) => s.Any(char.IsLower);
 
+    /// <summary>
+    /// Vero se il segmento è <b>una parola sola</b> tutta maiuscola: <c>MARTE</c>, <c>CHI</c>, <c>NAXAV</c>,
+    /// <c>PONY</c>, <c>NIL</c>. Una cella così è un <b>identificatore</b>, non una frase.
+    ///
+    /// <para>
+    /// ⚠️ <b>Misurato il 28 agosto 2026 sul primo SOP vero</b>, e questo è il caso peggiore visto finora: la
+    /// cella <c>MARTE</c> è tornata <i>MARS</i> e la cella <c>CHI</c> è tornata <i>WHO</i>. Sono nomi di punti
+    /// significativi in un piano di volo: un pilota che pianifica <i>WHO</i> non trova niente. Non è una
+    /// traduzione brutta, è un <b>dato falso</b>.
+    /// </para>
+    /// <para>
+    /// ⚠️ Perché la regola sulle sigle maiuscole non bastava: si applica solo dove c'è della prosa attorno
+    /// (<c>eProsa</c>), e in una cella che è <i>solo</i> «MARTE» di minuscole non ce n'è. La condizione giusta
+    /// non è «ci sono minuscole» ma «è una parola sola»: «REVIEW CYCLE», che di parole ne ha due, resta
+    /// traducibile.
+    /// </para>
+    /// <para>
+    /// ⚠️ Il prezzo: una cella che fosse una parola sola scritta in maiuscolo <i>e</i> da tradurre — «NOTE»
+    /// come intestazione — resta in italiano. È il prezzo giusto: una parola non tradotta si vede, un nome
+    /// di punto cambiato no.
+    /// </para>
+    /// </summary>
+    private static bool UnaParolaSolaMaiuscola(string s)
+    {
+        var t = s.Trim();
+        if (t.Length < 2 || t.Any(char.IsWhiteSpace)) return false;
+        // Almeno una lettera, e nessuna minuscola: «MARTE», «RPN1», «H24», ma non «06» né «---».
+        return t.Any(char.IsLetter) && !t.Any(char.IsLower);
+    }
+
     // ---- Protezione ----------------------------------------------------------------------------------
 
     /// <summary>
@@ -156,6 +186,14 @@ public sealed partial class TextProtector
         // sia stata protetta una frequenza — e da lì in poi ogni parola di quella cella verrebbe scambiata
         // per una sigla e non si tradurrebbe più niente.
         var eProsa = HaMinuscole(s);
+
+        // 0. UNA PAROLA SOLA, TUTTA MAIUSCOLA: è un identificatore, e si mette da parte per intero prima di
+        //    ogni altra regola. Vedi il commento di `UnaParolaSolaMaiuscola`: qui si sono persi «MARTE» e
+        //    «CHI», che sono punti di un piano di volo.
+        if (UnaParolaSolaMaiuscola(s))
+            // Safe: in una parola sola tutta maiuscola non c'è niente di personale — e comunque il testo
+            // protetto resta VUOTO, quindi il segmento non parte affatto.
+            return new ProtectedText(Deposita(s, tokens, Riservatezza.Intraducibile), tokens, Safe: true);
 
         // 1. DATI PERSONALI, per primi e sempre: se una regola successiva ne spezzasse uno, quello che
         //    resta uscirebbe in chiaro.
@@ -355,6 +393,14 @@ public sealed partial class TextProtector
 
         /// <summary>VID, nomi di persona: il tag resta VUOTO e il valore non lascia il processo.</summary>
         Personale,
+
+        /// <summary>
+        /// Pubblico ma <b>intraducibile</b>: il segmento è tutto qui dentro, quindi il tag resta vuoto e non
+        /// c'è più niente da spedire. ⚠️ Col valore dentro il tag il segmento partirebbe lo stesso, il motore
+        /// lo cambierebbe («MARTE» → «MARS»), il ripristino lo scarterebbe — e questo a <b>ogni giro, per
+        /// sempre</b>, con un contatore «scartati» che sale e non vuol dire niente.
+        /// </summary>
+        Intraducibile,
     }
 
     /// <summary>
@@ -373,6 +419,23 @@ public sealed partial class TextProtector
     /// che vogliono comunque una persona.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// Vero se del testo protetto non resta che <b>segnaposto</b>: non c'è più niente da tradurre, e
+    /// spedirlo sarebbe pagare per farsi restituire ciò che abbiamo già.
+    ///
+    /// <para>
+    /// ⚠️ Non è un'ottimizzazione: senza questo controllo una cella come «MARTE» parte, il motore la
+    /// «traduce», il ripristino la scarta perché il contenuto è cambiato — e succede a <b>ogni giro, per
+    /// sempre</b>, con un contatore «scartati» che sale e non vuol dire niente.
+    /// </para>
+    /// </summary>
+    public static bool SoloSegnaposti(string? protetto)
+    {
+        if (string.IsNullOrWhiteSpace(protetto)) return true;
+        var resto = Segnaposto().Replace(protetto, "");
+        return !TranslationText.HasSomethingToTranslate(resto);
+    }
+
     private static string Deposita(string valore, List<string> tokens, Riservatezza riservatezza)
     {
         tokens.Add(valore);
@@ -381,7 +444,8 @@ public sealed partial class TextProtector
         // Vuoto quando il valore non deve uscire, e anche quando romperebbe la marcatura: le nostre regole
         // sugli identificatori non producono mai parentesi angolari o e-commerciali, ma se un giorno lo
         // facessero, meglio una frase tradotta peggio che una richiesta rifiutata dal motore.
-        if (riservatezza == Riservatezza.Personale || valore.IndexOfAny(new[] { '&', '<', '>' }) >= 0)
+        if (riservatezza is Riservatezza.Personale or Riservatezza.Intraducibile
+            || valore.IndexOfAny(new[] { '&', '<', '>' }) >= 0)
             return $"<x id=\"{i}\"/>";
 
         return $"<x id=\"{i}\">{valore}</x>";

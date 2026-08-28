@@ -42,7 +42,7 @@
                 @{ var perSlot = SlotsOf?.Invoke(s) ?? s; }
                 @if (SectionBody.HasChildren(perSlot, SectionSlot.Before))
                 {
-                    <SectionBody Section="perSlot" ShowBlocks="false" Slot="SectionSlot.Before" />
+                    <SectionBody Section="perSlot" ShowBlocks="false" Slot="SectionSlot.Before" IsDraft="IsDraft" />
                 }
                 @DerivedContent(s)
                 @* La sezione tiene ANCHE i suoi blocchi: il timbro sopra, il testo scritto a mano sotto.
@@ -51,11 +51,11 @@
                    DUE VOLTE. Si vede alla prima che le ha, «Aree di lavoro» del vSOP militare. *@
                 @if (SectionCatalog.KeepsOwnBlocks(Profile, s.SectionKey))
                 {
-                    <SectionBody Section="s" ShowBlocks="true" Slot="SectionSlot.Blocks" />
+                    <SectionBody Section="s" ShowBlocks="true" Slot="SectionSlot.Blocks" IsDraft="IsDraft" />
                 }
                 @if (SectionBody.HasChildren(perSlot, SectionSlot.After))
                 {
-                    <SectionBody Section="perSlot" ShowBlocks="false" Slot="SectionSlot.After" />
+                    <SectionBody Section="perSlot" ShowBlocks="false" Slot="SectionSlot.After" IsDraft="IsDraft" />
                 }
             </ChildContent>
         </CollapsibleBlock>
@@ -72,12 +72,12 @@
                     @Titolo(s) <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span>
                 </h2>
             </Header>
-            <ChildContent><SectionBody Section="s" /></ChildContent>
+            <ChildContent><SectionBody Section="s" IsDraft="IsDraft" /></ChildContent>
         </CollapsibleBlock>
     }
     else
     {
-        <SectionNode Section="s" />
+        <SectionNode Section="s" IsDraft="IsDraft" />
     }
 }
 

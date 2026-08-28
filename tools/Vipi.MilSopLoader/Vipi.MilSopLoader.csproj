@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- net8 come gli altri strumenti: la destinazione è lo stesso archivio dell'applicazione — SQLite in
+         sviluppo, MariaDB in produzione — e l'unico provider EF che regge MariaDB è Pomelo, che esiste solo
+         per EF Core 8 (ADR-0007 §D4-ter). -->
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Vipi.MilSopLoader</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Vipi.Infrastructure\Vipi.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

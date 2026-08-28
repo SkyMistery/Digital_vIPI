@@ -43,7 +43,7 @@ public class TitoliUfficialiTests : IAsyncLifetime
     {
         var quanti = await TitoliUfficiali.SeminaAsync(Memoria());
 
-        Assert.Equal(TitoliUfficiali.Sezioni.Count, quanti);
+        Assert.Equal(TitoliUfficiali.Sezioni.Count + TitoliUfficiali.Termini.Count, quanti);
         // ⚠️ Human e non Machine: sono l'ORIGINALE, non una proposta. Da Machine, il giro successivo li
         // rimanderebbe al motore e la pagina di revisione li elencherebbe fra le cose da guardare.
         Assert.All(await _db.TranslationUnits.AsNoTracking().ToListAsync(),
@@ -59,6 +59,28 @@ public class TitoliUfficialiTests : IAsyncLifetime
         Assert.Equal("Runways", memoria[TranslationText.Hash("Piste")]);
         Assert.Equal("Transition Altitude/Level", memoria[TranslationText.Hash("Quote di transizione")]);
         Assert.Equal("Working Areas", memoria[TranslationText.Hash("Aree di lavoro")]);
+
+        // Le parole delle TABELLE: la macchina le sbagliava tutte, e sono le intestazioni che un
+        // controllore legge per trovare il dato.
+        Assert.Equal("Runway", memoria[TranslationText.Hash("Pista")]);       // era «Track»
+        Assert.Equal("Apron", memoria[TranslationText.Hash("Piazzale")]);     // era «Forecourt»
+        Assert.Equal("Altitude", memoria[TranslationText.Hash("Quota")]);     // era «Share»
+        Assert.Equal("Bearing", memoria[TranslationText.Hash("Rilevamento")]); // era «Detection»
+        Assert.Equal("Facility", memoria[TranslationText.Hash("Ente")]);      // era «Institution»
+    }
+
+    [Fact]
+    public void Nessuna_voce_del_glossario_e_ripetuta()
+    {
+        // Due voci con la stessa sorgente e traduzioni diverse: la seconda vincerebbe in silenzio, e quale
+        // sia «la seconda» dipenderebbe dall'ordine in cui sono scritte.
+        var doppie = TitoliUfficiali.Sezioni.Concat(TitoliUfficiali.Termini)
+            .GroupBy(t => t.It, StringComparer.Ordinal)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+
+        Assert.Empty(doppie);
     }
 
     [Fact]
@@ -66,7 +88,8 @@ public class TitoliUfficialiTests : IAsyncLifetime
     {
         await TitoliUfficiali.SeminaAsync(Memoria());
         Assert.Equal(0, await TitoliUfficiali.SeminaAsync(Memoria()));
-        Assert.Equal(TitoliUfficiali.Sezioni.Count, await _db.TranslationUnits.CountAsync());
+        Assert.Equal(TitoliUfficiali.Sezioni.Count + TitoliUfficiali.Termini.Count,
+            await _db.TranslationUnits.CountAsync());
     }
 
     [Fact]
@@ -77,7 +100,7 @@ public class TitoliUfficialiTests : IAsyncLifetime
 
         var quanti = await TitoliUfficiali.SeminaAsync(Memoria());
 
-        Assert.Equal(TitoliUfficiali.Sezioni.Count - 1, quanti);
+        Assert.Equal(TitoliUfficiali.Sezioni.Count + TitoliUfficiali.Termini.Count - 1, quanti);
         var memoria = await Memoria().LoadAllAsync("it", "en");
         Assert.Equal("Runways (RWY)", memoria[TranslationText.Hash("Piste")]);
     }
@@ -90,7 +113,8 @@ public class TitoliUfficialiTests : IAsyncLifetime
         // corretto niente proprio dove serviva.
         await Memoria().SaveMachineAsync("it", "en", "azure", new[] { ("Piste", "Slopes") });
 
-        Assert.Equal(TitoliUfficiali.Sezioni.Count, await TitoliUfficiali.SeminaAsync(Memoria()));
+        Assert.Equal(TitoliUfficiali.Sezioni.Count + TitoliUfficiali.Termini.Count,
+            await TitoliUfficiali.SeminaAsync(Memoria()));
 
         var memoria = await Memoria().LoadAllAsync("it", "en");
         Assert.Equal("Runways", memoria[TranslationText.Hash("Piste")]);

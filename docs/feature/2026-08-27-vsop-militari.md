@@ -310,7 +310,7 @@ ce l'hanno davvero. `IsMilitaryOnly` resta, ma come **etichetta** sulla riga («
 | 7 | `SectionProfile.AppMil` (rimanda ad `App`) | test |
 | 8 | Due `IReleaseTarget` + due `IDocKindRoutes` | test |
 | 9 | Rotte, `/services/vsop/mil`, schede incrociate, creazione da admin, **editor** | live | ✅ 28-ago |
-| 10 | Carico di un SOP vero (LIPI Rivolto, il più corto) come prova end-to-end | live | |
+| 10 | Carico di un SOP vero (LIPI Rivolto, il più corto) come prova end-to-end | live | ✅ 28-ago |
 
 ⚠️ **L'editor non era in elenco e serviva lo stesso.** La slice 9 diceva «rotte, elenco, schede, creazione»:
 tutte cose che portano a un documento che poi **non si può scrivere**. `MilDocRoutes` dichiarava già un
@@ -405,3 +405,117 @@ e `innerText` di un `<details>` chiuso è vuoto. Con `textContent` le sezioni er
 ⚠️ Vale come regola per le prossime verifiche: **`textContent` per contare, `innerText` per leggere quel
 che l'utente vede**. Confonderli fa cercare un difetto che sta nell'attrezzo — è la stessa lezione di
 `probe.js` e delle alfa non composte.
+
+## 9. LIPI Rivolto, il primo SOP vero (slice 10)
+
+`tools/Vipi.MilSopLoader` mette una trascrizione al posto giusto e dice che cosa resta fuori. Come
+`Vipi.AgreementsToSections`: prova a vuoto per default, `--apply` per scrivere, non gira all'avvio.
+
+```
+dotnet run --project tools/Vipi.MilSopLoader -- --sqlite <file.db> --icao LIPI [--apply]
+```
+
+⚠️ **Non è un lettore di PDF, e non deve diventarlo.** Il contenuto è trascritto a mano per due ragioni che
+nessun parser risolve: va **tradotto in italiano** (§1d), e metà di ciò che conta nei quindici SOP sono
+**figure**.
+
+### Che cosa dice la misura
+
+| | |
+|---|---|
+| sezioni del profilo | 26 |
+| trascritte con contenuto | **19** |
+| vuote perché **contenitori** | 3 (`generaldata`, `groundprocedures`, `flightprocedures`) |
+| vuote perché la **scheda la disegna la pagina** | 2 (`weather`, `transition`) |
+| **nascoste** perché su questo campo non esistono | 2 (`qra`, `lowlevel`) |
+| **incomplete**: nel PDF sono figure | 3 (`taxiing`, `arming`, `vfrjet`) |
+
+⚠️ **Il rendiconto distingue i quattro motivi, e questa è la parte che conta**: una sezione vuota perché è un
+contenitore, una vuota perché la scheda la disegna la pagina, una vuota perché il PDF ha un disegno e una
+vuota per dimenticanza si assomigliano solo a chi non guarda. Contenitore e «resa dalla pagina» le dice il
+**catalogo**, non un elenco scritto nello strumento.
+
+⚠️ **Nascondere non è lasciare vuoto.** Il profilo semina tutto su tutti perché nascondere è un clic (§2), ma
+una sezione vuota lasciata in vista dice al lettore «qui manca qualcosa» — che su Rivolto, dove QRA e bassa
+quota non esistono, è **falso**.
+
+⚠️ **Lo strumento non ripassa sopra a una sezione che ha già contenuto**: si ferma e lo dice. Il blocco
+*segnaposto* delle sezioni rese dalla pagina non conta come contenuto — nasce vuoto alla creazione, e
+scambiarlo per lavoro di qualcuno bloccherebbe proprio `frequencies` e `runways`, che hanno più da dire.
+
+### Il verdetto sul profilo
+
+**Il profilo regge un SOP vero**: ogni pezzo di testo dell'originale ha trovato una chiave, e nessuna chiave
+è rimasta senza spiegazione. Il conto delle sei sezioni riusate (§2) si è verificato in concreto: la scheda
+di `frequencies` la disegna la pagina dalle posizioni IVAO e i blocchi portano i tre CRC/GCI/AEW che il
+catalogo settori non ha; `runways` porta le coordinate delle soglie.
+
+### Che cosa ha trovato, di nuovo, la lettura in inglese
+
+Il giro di traduzione ha fatto **119 frasi nuove, 0 scartate**: il protettore ha retto su coordinate,
+frequenze, canali TACAN e nominativi veri. Ma la pagina inglese ha mostrato due cose:
+
+1. ⚠️ **Un `**` orfano stampato a schermo.** «• A `**`nord`**` del campo» → «• To the north`**` of the
+   field». I marcatori non si proteggono — provato, il motore infila le parole dentro i tag — quindi ogni
+   tanto ne perde uno. `TranslationText.RiparaGrassetto` toglie i marcatori quando non tornano: fra un
+   grassetto perso e due asterischi a schermo si sceglie il grassetto perso. **Misurato: 1 voce su 246** —
+   troppo poco per una riparazione retroattiva, abbastanza per non lasciarla capitare ancora.
+2. ⚠️ **Le intestazioni delle tabelle erano tutte sbagliate**: «Pista» → *Track*, «Piazzale» →
+   *Forecourt*, «Stand» → *Booth*, «Rilevamento» → *Detection*, «Quota» → ***Share***, «Ente» →
+   *Institution*. Non sono sfumature: sono le colonne che un controllore legge per trovare il dato.
+   `TitoliUfficiali.Termini` le semina come **Human** (28 voci), e funziona perché la memoria è per
+   **segmento intero** — una cella di tabella *è* un segmento. Rimisurato dopo: *Facility · Callsign ·
+   Airport · Navaid · Bearing · Distance · Runway · Threshold coordinates · Squadron · OAT callsign · Apron ·
+   Stand · Used by · Point · Reference · Altitude*, tutte giuste.
+
+   ⚠️ **Su una parola in mezzo a una frase non funziona**, e si vede: restano «the **camp**» per «il campo» e
+   «the **cocking** and disarming positions» per «armamento/disarmo». Quella è la parte aperta del glossario
+   (`lavori-aperti §Q3`), e nel frattempo il badge «traduzione non revisionata» lo dice a chi legge — che è
+   il motivo per cui il badge esiste.
+
+### 8d (trovato con la slice 10) — «nascosta» non valeva per le SOTTO-sezioni
+
+Nascondere `qra` e `lowlevel` su Rivolto non ha nascosto niente: uscivano nel documento lo stesso. La
+regola stava **solo** su `DocumentSectionsView`, cioè solo sulle sezioni **radice**; `SectionNode`, che rende
+le figlie, `IsHidden` non lo guardava affatto.
+
+⚠️ **Difetto latente come 8a, e per lo stesso motivo**: nessuna famiglia aveva sotto-sezioni nascondibili —
+la vLOA ne ha due, fisse. Il vSOP militare ne ha **venti**, e su Rivolto due vanno nascoste davvero.
+
+Chiuso propagando `IsDraft` lungo `DocumentSectionsView → SectionBody → SectionNode`. ⚠️ Il default è
+`false`, cioè «vista pubblica»: chi dimentica di passarlo **nasconde**, non pubblica per sbaglio. Le due
+prove nuove in `ParitaQuattroDocumentiTests` girano su tutti i profili e sono state **verificate rosse**
+prima della correzione — sei profili su sei.
+
+### 8e (il peggiore) — «MARTE» tornava «MARS», «CHI» tornava «WHO»
+
+⚠️ **Non è una traduzione brutta: è un dato falso.** Sono nomi di punti significativi in un piano di volo, e
+un pilota che pianifica *WHO* non trova niente.
+
+**Perché il protettore non li ha fermati.** La regola sulle sigle maiuscole si applicava solo dove c'è della
+prosa attorno (`eProsa = HaMinuscole(testo)`), e in una **cella** che è *solo* «MARTE» di minuscole non ce
+n'è. La condizione giusta non è «ci sono minuscole» ma **«è una parola sola»**: «REVIEW CYCLE», che di
+parole ne ha due, resta traducibile.
+
+Una parola sola tutta maiuscola va nel segnaposto **vuoto** — la forma dei dati personali — e da lì
+`TextProtector.SoloSegnaposti` ferma il segmento **prima** della rete: non c'è più niente da tradurre.
+⚠️ Senza quel secondo passo il segmento partirebbe lo stesso, tornerebbe cambiato, il ripristino lo
+scarterebbe, **e questo a ogni giro per sempre** — con un contatore «scartati» che sale e non vuol dire
+niente.
+
+**Misurato su LIPI**: 28 segmenti su 218 erano identificatori puri (callsign, stand, punti, `S1→S15`). Solo
+due erano tornati sbagliati, ma adesso nessuno dei 28 parte più — e sono anche caratteri risparmiati.
+
+✅ **Riprovato a schermo**: nella pagina inglese i punti sono `BRAVO`, `MARTE`, `NAXAV`, `CHI`, `RON`, `VIC`
+— gli stessi dell'italiano, uno per uno.
+
+⚠️ **Il prezzo, detto**: una cella che fosse una parola sola scritta in maiuscolo *e* da tradurre — «NOTE»
+come intestazione — resta in italiano. È il prezzo giusto: una parola non tradotta **si vede**, un nome di
+punto cambiato no.
+
+### Che cosa resta a una persona
+
+- Le **figure**: apron flow, area di manovra, armamento/disarmo, circuiti e porte VFR (§7.3).
+- La **rilettura della trascrizione**: la prima stesura è mia, non di un controllore militare.
+- Gli **altri quattordici SOP**: ognuno è un file come `SopLipi.cs`, e la parte che conta non è scriverlo —
+  è rileggerlo con qualcuno che conosca il campo.

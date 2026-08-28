@@ -8,7 +8,7 @@
 {
     @foreach (var child in Section.Children.Where(c => c.BeforeParentBody))
     {
-        <SectionNode Section="child" DepthOffset="DepthOffset" />
+        <SectionNode Section="child" DepthOffset="DepthOffset" IsDraft="IsDraft" />
     }
 }
 
@@ -34,7 +34,7 @@
 {
     @foreach (var child in Section.Children.Where(c => !c.BeforeParentBody))
     {
-        <SectionNode Section="child" DepthOffset="DepthOffset" />
+        <SectionNode Section="child" DepthOffset="DepthOffset" IsDraft="IsDraft" />
     }
 }
 
@@ -46,6 +46,10 @@
 
     /// <summary>Quali sotto-sezioni rendere rispetto al corpo (doc 11 §3g).</summary>
     [Parameter] public SectionSlot Slot { get; set; } = SectionSlot.All;
+
+    /// <summary>Vista bozza: si passa alle sotto-sezioni, che senza non saprebbero se una nascosta va
+    /// mostrata marcata o tolta. Default <c>false</c> = comportamento pubblico, che è il prudente.</summary>
+    [Parameter] public bool IsDraft { get; set; }
 
     /// <summary>Scostamento di profondità per la resa delle sotto-sezioni: la vIPI ACC ospita le sezioni a
     /// <c>Depth 1</c> (figlie della sezione-blocco) ma le mostra come sezioni di primo livello, quindi passa -1.</summary>

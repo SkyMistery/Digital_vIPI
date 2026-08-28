@@ -3211,9 +3211,15 @@ macchina rendeva «Piste» con *Slopes* e «Quote di transizione» con *Transiti
 militare, presi dagli originali inglesi dei quindici SOP (carta vSOP militari §2 e §8b). Un test pretende
 che ogni titolo del profilo abbia il suo originale, quindi la lista non può restare indietro.
 
-Questo **non chiude la domanda**: copre i titoli, non la fraseologia dentro le frasi — «riporta sottovento»
-resta il caso che nessun elenco di titoli risolve. Ma dice dove va messo ciò che si decide, e mostra che il
-meccanismo (voce umana in memoria, mai toccata dalla macchina) funziona.
+Il 28 agosto, caricando il primo SOP vero, si è aggiunta la **seconda lista**: `Termini`, le intestazioni
+delle tabelle. Erano sbagliate **tutte** — «Pista» → *Track*, «Piazzale» → *Forecourt*, «Stand» → *Booth*,
+«Rilevamento» → *Detection*, «Quota» → *Share*, «Ente» → *Institution* — e sono le colonne che un
+controllore legge per trovare il dato.
+
+Questo **non chiude la domanda**: copre i segmenti INTERI (un titolo, una cella di tabella), non la
+fraseologia dentro le frasi — «riporta sottovento» resta il caso che nessun elenco risolve, e nella prosa
+di LIPI restano cose come «the cocking and disarming positions». Ma dice dove va messo ciò che si decide, e
+mostra che il meccanismo (voce umana in memoria, mai toccata dalla macchina) funziona.
 
 Serve **un nome**, non un ruolo. È l'unica delle tre voci aperte che, se resta scoperta, **si vede sul
 documento**: finché nessuno rilegge, il badge «traduzione non revisionata» non se lo toglie nessuno, e
@@ -3249,3 +3255,18 @@ lasciato acceso da chi sta lavorando — perché il file che rilegge non sia il 
 della suite completa**, che è l'unico cancello prima di una consegna. Finché resta, «6379 verdi» va letto
 come «6379 verdi, salvo uno che non riguarda la modifica in corso» — e quella postilla è precisamente il
 modo in cui un rosso vero passa inosservato.
+
+### Q6 🟢 APERTO — un SECONDO rosso intermittente, e non è quello di Q5
+
+⚠️ `SqliteTuningTests.Interceptor_enables_wal_and_busy_timeout` (`Vipi.Infrastructure.Tests`), **rosso una
+volta sola** il 28 agosto 2026, e solo su net10 mentre net8 girava verde nella stessa corsa.
+
+**Non si riproduce**: tre corse complete del progetto su entrambi i TFM, subito dopo, tutte verdi; il test
+da solo, verde. La **circostanza** vale più dell'ipotesi: la corsa che l'ha visto rosso girava mentre l'app
+di verifica era **accesa** su un `vipi.db` in WAL, sullo stesso disco, insieme a una build. Il test crea un
+file suo in `%TEMP%` con un GUID, quindi non è contesa sul *file* — semmai sul passaggio a WAL, che SQLite
+può non riuscire a fare (e `PRAGMA journal_mode` risponde col modo *corrente*, non con un errore).
+
+Da fare quando ricapita: **catturare il messaggio d'asserzione** — dice se ha risposto `delete` (WAL non
+attivato) o se è caduto sul `busy_timeout`. Sono due diagnosi diverse, e senza quel dato ogni ipotesi qui
+sarebbe inventata.

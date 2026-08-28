@@ -234,6 +234,43 @@ public class ParitaQuattroDocumentiTests : TestContext
         }
     }
 
+    // ---------------------------------------------------------------------------------------------------
+    // 7. «Nascosta» vale anche per le SOTTO-sezioni.
+    // ---------------------------------------------------------------------------------------------------
+
+    [Theory]
+    [MemberData(nameof(Profili))]
+    public void Una_SOTTOsezione_nascosta_non_esce_in_pubblico(SectionProfile profilo)
+    {
+        // ⚠️ Trovato a schermo il 28 agosto 2026: la regola stava solo su `DocumentSectionsView`, cioè solo
+        // sulle sezioni RADICE, e una sotto-sezione nascosta usciva nel pubblico lo stesso. Non si era mai
+        // visto perché nessuna famiglia aveva sotto-sezioni nascondibili — il vSOP militare ne ha venti.
+        var cut = Rendi(profilo, new[] { ConFigli("libera-1", "Padre", Sezione("libera-2", "Segreta", nascosta: true,
+            blocchi: new[] { Prosa("testo riservato") })) });
+
+        Assert.Contains("Padre", cut.Markup);
+        Assert.DoesNotContain("Segreta", cut.Markup);
+        Assert.DoesNotContain("testo riservato", cut.Markup);
+    }
+
+    [Theory]
+    [MemberData(nameof(Profili))]
+    public void Una_SOTTOsezione_nascosta_in_bozza_si_vede_MARCATA(SectionProfile profilo)
+    {
+        var cut = Rendi(profilo, new[] { ConFigli("libera-1", "Padre", Sezione("libera-2", "Segreta", nascosta: true,
+            blocchi: new[] { Prosa("testo riservato") })) }, bozza: true);
+
+        Assert.Contains("Segreta", cut.Markup);
+        Assert.Contains("Common_HiddenNotPublic", cut.Markup);
+        Assert.Contains("testo riservato", cut.Markup);
+    }
+
+    private static SectionView ConFigli(string key, string titolo, params SectionView[] figli) => new()
+    {
+        Id = $"s-{key}", Title = titolo, Depth = 0, SectionKey = key,
+        Blocks = Array.Empty<BlockView>(), Children = figli,
+    };
+
     private static int Occorrenze(string testo, string ago)
     {
         var n = 0;

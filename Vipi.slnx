@@ -14,6 +14,7 @@
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/Vipi.AgreementsToSections/Vipi.AgreementsToSections.csproj" />
+    <Project Path="tools/Vipi.MilSopLoader/Vipi.MilSopLoader.csproj" />
     <!-- Sta nella soluzione, a differenza degli altri attrezzi, perché non è uno strumento da lanciare a
          mano una volta: è un passo del PUBLISH. Se smette di compilare, il pacchetto non si costruisce
          più — e questo dev'essere la CI a dirlo, non chi sta preparando una consegna. -->

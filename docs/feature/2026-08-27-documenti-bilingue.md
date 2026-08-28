@@ -335,3 +335,21 @@ segmentatore e il cancello sui dati personali.
    poco delicato, ma HQ ha già posto un vincolo contrattuale sui PDF — meglio chiedere prima.
 3. **Il glossario di fraseologia ha bisogno di un nome**, non di un ruolo. Senza qualcuno che lo curi, la
    §5 resta una buona intenzione.
+
+## Che cosa ha insegnato il primo documento VERO (28 agosto 2026)
+
+Il bilingue era chiuso e provato. Poi è arrivato un SOP militare vero — testo denso di identificatori,
+tabelle, coordinate — e ha trovato **tre** cose che il corpus di prova non aveva.
+
+| | Che cosa | Dove sta la correzione |
+|---|---|---|
+| ⚠️⚠️ | **«MARTE» → *MARS*, «CHI» → *WHO*.** Una cella che è *solo* un identificatore non ha minuscole, e la regola sulle sigle maiuscole si applicava solo «se c'è prosa attorno». La condizione giusta è **«è una parola sola»** | `TextProtector.UnaParolaSolaMaiuscola` + `SoloSegnaposti`, che ferma il segmento **prima** della rete |
+| ⚠️ | **Un `**` orfano stampato a schermo**: i marcatori non si proteggono (il motore infila le parole nei tag), quindi ogni tanto ne perde uno | `TranslationText.RiparaGrassetto`: se non tornano, si tolgono tutti — un grassetto perso si nota meno di due asterischi |
+| ⚠️ | **Le intestazioni delle tabelle erano tutte sbagliate**: «Pista» → *Track*, «Quota» → *Share*, «Piazzale» → *Forecourt* | `TitoliUfficiali.Termini`, seminati come **Human**: la memoria è per segmento intero, e una cella *è* un segmento |
+
+⚠️ **Il filo comune**: nessuna delle tre si vedeva sul corpus di prova, perché quello era fatto di **prosa**.
+Un documento tecnico è fatto per metà di **celle**, e una cella si comporta in modo diverso da una frase —
+non ha minuscole attorno, non ha contesto, e vale come dato e non come testo.
+
+**Misura**: 28 segmenti su 218 di quel documento sono identificatori puri. Adesso non partono più, e sono
+anche caratteri risparmiati.

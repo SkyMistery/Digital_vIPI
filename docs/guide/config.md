@@ -248,6 +248,11 @@ fondo al file di DI non deve diventare il primario per sbaglio.
 Superato il tetto, quel motore si **salta** e la catena passa al successivo: il giro non si ferma.
 Il controllo avviene **prima** di spendere.
 
+⚠️ **Un segmento che è solo un identificatore non parte, e non conta.** Le celle fatte di un callsign, di un
+punto o di uno stand vengono messe da parte dal protettore, e ciò che resta non ha più niente da tradurre:
+si scrivono in memoria col motore «nessuno». Misurato sul primo SOP militare, **28 segmenti su 218** —
+caratteri che nessun tetto deve contare, perché nessuno li ha spesi.
+
 ### ⚠️ Le due trappole di Azure
 
 1. **La regione.** Su una risorsa regionale o multi-servizio, senza `Ocp-Apim-Subscription-Region` Azure

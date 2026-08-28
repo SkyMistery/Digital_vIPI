@@ -1,24 +1,40 @@
 @* Sezione adattiva: livello 0 = card .block; livelli annidati = .coord-sub / .coord-sub2 (stile mockup).
    Il corpo (blocchi + sotto-sezioni) è condiviso con i viewer che si fanno l'involucro da sé: SectionBody. *@
+@inject IStringLocalizer<SharedResource> L
 @{
     var depth = Section.Depth + DepthOffset;
 }
-@if (depth <= 0)
+@* ⚠️ «Nascosta» vale anche QUI. Fino al 28 agosto 2026 la regola stava solo su `DocumentSectionsView`,
+   cioè solo sulle sezioni RADICE: una sotto-sezione nascosta usciva nel documento pubblico lo stesso.
+   Non si era mai visto perché nessuna famiglia aveva sotto-sezioni nascondibili — il vSOP militare ne ha
+   venti, e su Rivolto due vanno nascoste davvero (QRA e bassa quota non esistono su quel campo). *@
+@if (Section.IsHidden && !IsDraft)
+{
+    @* Fuori dal pubblico: non si rende niente, nemmeno un contenitore vuoto. *@
+}
+else if (depth <= 0)
 {
     @* Alcune sezioni nascono collassate nel documento (doc 11 §3i): il catalogo sa quali. *@
     <CollapsibleBlock Id="@Section.Id" InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(Section.SectionKey))">
-        <Header><h3 style="margin-top:0">@Section.Title</h3></Header>
-        <ChildContent><SectionBody Section="Section" DepthOffset="DepthOffset" /></ChildContent>
+        <Header>
+            <h3 style="margin-top:0">
+                @Section.Title
+                @if (Section.IsHidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }
+            </h3>
+        </Header>
+        <ChildContent><SectionBody Section="Section" DepthOffset="DepthOffset" IsDraft="IsDraft" /></ChildContent>
     </CollapsibleBlock>
 }
 else
 {
-    <details class="@(depth == 1 ? "coord-sub" : "coord-sub2")" id="@Section.Id" open>
+    <details class="@(depth == 1 ? "coord-sub" : "coord-sub2")" id="@Section.Id" open
+             style="@(Section.IsHidden ? "opacity:.65" : null)">
         <summary>
             <span>@Section.Title</span>
+            @if (Section.IsHidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }
             <span class="sum-right"><span class="chev">▸</span></span>
         </summary>
-        <div class="body"><SectionBody Section="Section" DepthOffset="DepthOffset" /></div>
+        <div class="body"><SectionBody Section="Section" DepthOffset="DepthOffset" IsDraft="IsDraft" /></div>
     </details>
 }
 
@@ -27,4 +43,8 @@ else
 
     /// <summary>Scostamento di profondità (vedi <see cref="SectionBody.DepthOffset"/>).</summary>
     [Parameter] public int DepthOffset { get; set; }
+
+    /// <summary>Vista bozza: le sezioni nascoste si vedono, marcate. ⚠️ Il default <c>false</c> è quello
+    /// prudente — chi dimentica di passarlo <b>nasconde</b>, non pubblica per sbaglio.</summary>
+    [Parameter] public bool IsDraft { get; set; }
 }

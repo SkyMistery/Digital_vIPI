@@ -65,7 +65,64 @@ public static class TitoliUfficiali
     };
 
     /// <summary>
-    /// Mette in memoria i titoli che non ci sono ancora. Idempotente e <b>non sovrascrive</b>: se qualcuno
+    /// Le parole delle <b>tabelle</b> dei SOP: intestazioni di colonna e celle che si ripetono.
+    ///
+    /// <para>
+    /// ⚠️ <b>Anche queste hanno un originale, e la macchina le sbagliava tutte.</b> Misurato sul primo SOP
+    /// vero, il 28 agosto 2026: «Pista» → <i>Track</i>, «Piazzale» → <i>Forecourt</i>, «Stand» →
+    /// <i>Booth</i>, «Rilevamento» → <i>Detection</i>, «Quota» → <i>Share</i>, «Ente» → <i>Institution</i>,
+    /// «uscita/ingresso» → <i>Output/Input</i>. Nessuna è una sfumatura: sono le intestazioni delle colonne
+    /// che un controllore legge per trovare il dato.
+    /// </para>
+    /// <para>
+    /// ⚠️ Funziona perché la memoria è per <b>segmento intero</b>, e una cella di tabella <i>è</i> un
+    /// segmento. Su una parola in mezzo a una frase non funzionerebbe — quella resta la parte aperta del
+    /// glossario (<c>lavori-aperti §Q3</c>).
+    /// </para>
+    /// <para>
+    /// ⚠️ <b>Queste voci valgono per TUTTI i documenti</b>, non solo per i militari: la memoria è una sola e
+    /// non sa da quale documento venga il segmento. È voluto — «Rilevamento» è <i>Bearing</i> anche nella
+    /// vIPI di un ACC — ma è la ragione per cui qui ci va solo ciò di cui si conosce l'originale, e non una
+    /// resa che ci sembra migliore.
+    /// </para>
+    /// </summary>
+    public static readonly IReadOnlyList<(string It, string En)> Termini = new[]
+    {
+        // Intestazioni di colonna
+        ("Tipo", "Type"),
+        ("Nome", "Name"),
+        ("Frequenza", "Frequency"),
+        ("Coordinate", "Coordinates"),
+        ("Ente", "Facility"),
+        ("Nominativo", "Callsign"),
+        ("Note", "Notes"),
+        ("Aeroporto", "Airport"),
+        ("Radioassistenza", "Navaid"),
+        ("Rilevamento", "Bearing"),
+        ("Distanza", "Distance"),
+        ("Pista", "Runway"),
+        ("Coordinate della soglia", "Threshold coordinates"),
+        ("Reparto", "Squadron"),
+        ("Nominativo OAT", "OAT callsign"),
+        ("Nominativo GAT", "GAT callsign"),
+        ("Piazzale", "Apron"),
+        ("Stand", "Stand"),
+        ("Usato da", "Used by"),
+        ("Punto", "Point"),
+        ("Riferimento", "Reference"),
+        ("Quota", "Altitude"),
+        ("Partenza", "Departure"),
+        ("Arrivo", "Arrival"),
+
+        // Celle che si ripetono
+        ("transiti", "transit"),
+        ("posizionamento autonomo", "self positioning"),
+        ("posizione GCI", "GCI position"),
+        ("Coordinate delle soglie.", "Threshold coordinates."),
+    };
+
+    /// <summary>
+    /// Mette in memoria i titoli e i termini che non ci sono ancora. Idempotente e <b>non sovrascrive</b>: se qualcuno
     /// ha già corretto una voce a mano, la sua correzione vince su questa tabella.
     /// </summary>
     /// <returns>Quante voci ha scritto.</returns>
@@ -77,7 +134,7 @@ public static class TitoliUfficiali
         var giaCi = await memoria.LoadHumanHashesAsync("it", "en", ct).ConfigureAwait(false);
         var scritte = 0;
 
-        foreach (var (it, en) in Sezioni)
+        foreach (var (it, en) in Sezioni.Concat(Termini))
         {
             ct.ThrowIfCancellationRequested();
             if (giaCi.Contains(TranslationText.Hash(it))) continue;

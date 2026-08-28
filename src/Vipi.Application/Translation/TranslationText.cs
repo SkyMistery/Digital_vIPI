@@ -119,4 +119,37 @@ public static partial class TranslationText
     /// </summary>
     public static bool HasSomethingToTranslate(string? raw) =>
         !string.IsNullOrWhiteSpace(raw) && QualcheLettera().IsMatch(raw);
+
+    /// <summary>
+    /// Ripara il <b>grassetto</b> di una traduzione: se i marcatori <c>**</c> non sono più tanti quanti
+    /// nell'originale, li toglie tutti.
+    ///
+    /// <para>
+    /// ⚠️ <b>Visto a schermo il 28 agosto 2026</b>, sul primo SOP vero: «• A <c>**</c>nord<c>**</c> del campo»
+    /// è tornato «• To the north<c>**</c> of the field», con un marcatore orfano <b>stampato nella pagina</b>.
+    /// I marcatori NON si proteggono — provato, e il motore infila le parole dentro i tag — quindi il motore
+    /// li sposta e ogni tanto ne perde uno.
+    /// </para>
+    /// <para>
+    /// Fra un grassetto perso e due asterischi a schermo si sceglie il grassetto perso: il testo resta
+    /// giusto, e quello che si nota è solo che una parola non è in neretto.
+    /// </para>
+    /// </summary>
+    public static string RiparaGrassetto(string sorgente, string tradotto)
+    {
+        var attesi = Marcatori(sorgente);
+        // Dispari = sicuramente rotto. Diverso dall'originale ma pari = il motore ha spostato un grassetto
+        // su un'altra parola: sgradevole, non sbagliato, e si tiene.
+        if (attesi == Marcatori(tradotto) || Marcatori(tradotto) % 2 == 0) return tradotto;
+        return tradotto.Replace("**", "");
+    }
+
+    private static int Marcatori(string? t)
+    {
+        if (string.IsNullOrEmpty(t)) return 0;
+        var n = 0;
+        for (var i = 0; i + 1 < t.Length; i++)
+            if (t[i] == '*' && t[i + 1] == '*') { n++; i++; }
+        return n;
+    }
 }

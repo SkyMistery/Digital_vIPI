@@ -266,4 +266,56 @@ public class TextProtectorTests
         Assert.True(TextProtector.TryRestore("Contact the tower", Array.Empty<string>(), out var r));
         Assert.Equal("Contact the tower", r);
     }
+
+    // ---- una parola sola tutta maiuscola: è un identificatore -----------------------------------------
+
+    [Theory]
+    [InlineData("MARTE")]   // punto significativo — tornava «MARS»
+    [InlineData("CHI")]     // fix del piano di volo — tornava «WHO»
+    [InlineData("NAXAV")]
+    [InlineData("PONY")]    // nominativo di reparto
+    [InlineData("RPN1")]    // punto alfanumerico
+    [InlineData("NIL")]
+    public void Una_cella_con_UNA_PAROLA_maiuscola_non_si_traduce(string identificatore)
+    {
+        // ⚠️ Il caso peggiore visto finora, misurato sul primo SOP vero il 28 agosto 2026: «MARTE» → «MARS»
+        // e «CHI» → «WHO». Sono nomi di punti in un piano di volo: un pilota che pianifica «WHO» non trova
+        // niente. Non è una traduzione brutta, è un dato falso.
+        var protetto = new TextProtector(Array.Empty<string>()).Protect(identificatore);
+
+        // Il segnaposto è VUOTO: il segmento non ha più niente da tradurre, quindi non parte affatto.
+        Assert.Equal("<x id=\"0\"/>", protetto.Text);
+        // Del testo protetto non resta che il segnaposto: il giro non lo spedisce affatto.
+        Assert.True(TextProtector.SoloSegnaposti(protetto.Text));
+
+        // E se anche partisse, torna quello di prima: il valore lo teniamo noi.
+        Assert.True(TextProtector.TryRestore(protetto.Text, protetto.Tokens, out var tornato));
+        Assert.Equal(identificatore, tornato);
+    }
+
+    [Fact]
+    public void Due_parole_maiuscole_restano_traducibili()
+    {
+        // La regola è «una parola sola», non «tutto maiuscolo»: un'intestazione di due parole è testo.
+        var protetto = new TextProtector(Array.Empty<string>()).Protect("REVIEW CYCLE");
+
+        Assert.Contains("REVIEW", protetto.Text, StringComparison.Ordinal);
+        Assert.False(TextProtector.SoloSegnaposti(protetto.Text));
+    }
+
+    [Fact]
+    public void Una_parola_minuscola_o_mista_resta_traducibile()
+    {
+        var p = new TextProtector(Array.Empty<string>());
+        Assert.False(TextProtector.SoloSegnaposti(p.Protect("Note").Text));
+        Assert.False(TextProtector.SoloSegnaposti(p.Protect("Rilevamento").Text));
+    }
+
+    [Fact]
+    public void Un_numero_da_solo_non_e_un_identificatore_da_proteggere()
+    {
+        // «06» non ha lettere: non è un nome, e proteggerlo non servirebbe a niente.
+        var protetto = new TextProtector(Array.Empty<string>()).Protect("06");
+        Assert.Equal("06", protetto.Text);
+    }
 }

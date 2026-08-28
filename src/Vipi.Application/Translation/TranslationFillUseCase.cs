@@ -89,16 +89,37 @@ public sealed class TranslationFillUseCase
 
         // ---- Cancello 1: i dati personali. Prima di tutto, budget compreso. ----
         var daSpedire = new List<(string Originale, ProtectedText Protetto)>();
+
+        // I segmenti che non hanno niente da tradurre: la loro «traduzione» è se stessi.
+        var identiche = new List<(string, string)>();
         var aMano = 0;
         foreach (var s in mancanti)
         {
             var protetto = _protettore.Protect(s);
             if (!protetto.Safe) { aMano++; continue; }
+
+            // ⚠️ Del testo protetto non resta che segnaposto: la «traduzione» è il testo stesso, e si scrive
+            // in memoria senza chiamare nessuno. Vale per le celle che sono solo un identificatore — un
+            // punto («MARTE»), un fix («CHI»), un callsign — e senza questo passaggio partirebbero a ogni
+            // giro per tornare cambiate e farsi scartare.
+            if (TextProtector.SoloSegnaposti(protetto.Text))
+            {
+                identiche.Add((s, TranslationText.Normalize(s)));
+                continue;
+            }
+
             daSpedire.Add((s, protetto));
         }
 
         if (daSpedire.Count == 0)
-            return new TranslationFillReport(segmenti.Count, giaInMemoria, 0, aMano, 0, TranslationOutcome.Ok);
+        {
+            var soleIdentiche = identiche.Count == 0
+                ? 0
+                : await _memoria.SaveMachineAsync(sourceLang, targetLang, "nessuno", identiche, ct).ConfigureAwait(false);
+            // «nessuno» e non null: il registro dice CHI ha tradotto, e «(null)» non lo dice a nessuno.
+            return new TranslationFillReport(
+                segmenti.Count, giaInMemoria, soleIdentiche, aMano, 0, TranslationOutcome.Ok, null, "nessuno");
+        }
 
         // ---- Cancello 2 e la catena: si prova un motore per volta, in ordine di preferenza. ----
         var testi = daSpedire.Select(d => d.Protetto.Text).ToList();
@@ -146,13 +167,18 @@ public sealed class TranslationFillUseCase
         var motoreUsato = riuscito.Engine ?? _catena[0].Name;
 
         // ---- Ripristino, e chi non torna intero si butta. ----
+        // ⚠️ Le identiche NON vanno nel mucchio del motore: verrebbero salvate col suo nome, e i loro
+        // caratteri conterebbero nel suo tetto — caratteri che non ha mai speso. Il tetto è una difesa vera,
+        // e una difesa tarata su una misura falsa non difende.
         var buone = new List<(string, string)>();
         var scartati = 0;
         for (var i = 0; i < daSpedire.Count; i++)
         {
             var (originale, protetto) = daSpedire[i];
             if (TextProtector.TryRestore(riuscito.Texts![i], protetto.Tokens, out var tradotto))
-                buone.Add((originale, tradotto));
+                // ⚠️ Il grassetto si ripara PRIMA di salvare, non alla resa: quel che entra in memoria è
+                // quello che leggeranno tutti finché una persona non lo corregge.
+                buone.Add((originale, TranslationText.RiparaGrassetto(originale, tradotto)));
             else
                 // Una frase a cui manca il callsign e' PEGGIO della frase non tradotta: sembra giusta e non
                 // lo e'. Non si salva, cosi' il giro dopo ci riprova.
@@ -162,6 +188,10 @@ public sealed class TranslationFillUseCase
         var scritte = buone.Count == 0
             ? 0
             : await _memoria.SaveMachineAsync(sourceLang, targetLang, motoreUsato, buone, ct).ConfigureAwait(false);
+
+        if (identiche.Count > 0)
+            scritte += await _memoria.SaveMachineAsync(sourceLang, targetLang, "nessuno", identiche, ct)
+                .ConfigureAwait(false);
 
         return new TranslationFillReport(
             segmenti.Count, giaInMemoria, scritte, aMano, scartati, TranslationOutcome.Ok, null, motoreUsato);

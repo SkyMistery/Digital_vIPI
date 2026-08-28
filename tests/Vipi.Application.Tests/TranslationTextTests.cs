@@ -188,4 +188,52 @@ public class TranslationTextTests
             Assert.All(n.Split('\n'), riga => Assert.Equal(riga.TrimEnd(), riga));
         });
     }
+
+    // ---- il grassetto che il motore rompe -------------------------------------------------------------
+
+    [Fact]
+    public void Un_marcatore_ORFANO_si_toglie()
+    {
+        // ⚠️ Il caso vero, visto a schermo il 28 agosto 2026 sul primo SOP militare: il motore ha spostato
+        // il primo `**` e ne ha perso uno, e la pagina ha stampato due asterischi.
+        var riparato = TranslationText.RiparaGrassetto(
+            "• A **nord** del campo.", "• To the north** of the field.");
+
+        Assert.Equal("• To the north of the field.", riparato);
+        Assert.DoesNotContain("**", riparato);
+    }
+
+    [Fact]
+    public void Un_grassetto_INTATTO_non_si_tocca()
+    {
+        const string tradotto = "• To the **north** of the field.";
+        Assert.Equal(tradotto, TranslationText.RiparaGrassetto("• A **nord** del campo.", tradotto));
+    }
+
+    [Fact]
+    public void Un_grassetto_SPOSTATO_ma_chiuso_si_tiene()
+    {
+        // Il motore ha messo in neretto un'altra parola: sgradevole, non sbagliato — e toglierlo perderebbe
+        // un grassetto che c'è. Si interviene solo su ciò che a schermo si VEDE rotto.
+        const string tradotto = "• To the north of the **field**.";
+        Assert.Equal(tradotto, TranslationText.RiparaGrassetto("• A **nord** del campo.", tradotto));
+    }
+
+    [Fact]
+    public void Un_testo_senza_grassetto_resta_come_e()
+    {
+        Assert.Equal("No take-off restrictions.",
+            TranslationText.RiparaGrassetto("Nessuna restrizione al decollo.", "No take-off restrictions."));
+    }
+
+    [Fact]
+    public void Due_grassetti_e_uno_si_rompe_li_toglie_TUTTI()
+    {
+        // Non si può sapere QUALE dei due è rotto: lasciarne uno vorrebbe dire indovinare, e un neretto
+        // sulla parola sbagliata è peggio di nessun neretto.
+        var riparato = TranslationText.RiparaGrassetto(
+            "Il traffico **IFR** e il traffico **VFR**.", "The **IFR traffic and the **VFR** traffic.");
+
+        Assert.DoesNotContain("**", riparato);
+    }
 }
