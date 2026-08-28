@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 28 agosto 2026, mattina (**§Q e §R — i documenti bilingue e i vSOP militari, VENTI slice chiuse in due giorni e tutte in `main`, che è stato SPINTO (`6644b5e`): `origin/main` allineato, `origin/basemap-esri` cancellato perché ormai contenuto in main. Restano aperte Q1/Q2/Q3 (che dipendono da qualcun altro), Q4 (la vLOA che deve smettere di nascere inglese), Q5 e Q6 (due rossi intermittenti) e R1 (le figure dei SOP, lavoro manuale)**) · **Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in
+**Aggiornato:** 28 agosto 2026, pomeriggio (**I DUE ROSSI INTERMITTENTI SONO CHIUSI — Q5 e Q6, riprodotti prima di correggerli: erano due contese diverse fra test paralleli. Q5 era il file di diagnostica dell'avvio, uno solo per processo, riscritto da un altro host nella finestra fra scrittura e rilettura; Q6 era un test che passava per via del POOL di SQLite invece che per via dell'interceptor, e che un `ClearAllPools()` di processo chiamato da un altro test faceva cadere. Ora «tutto verde» si può leggere alla lettera: 6633 verdi su entrambi i TFM**) · **Aggiornato:** 28 agosto 2026, mattina (**§Q e §R — i documenti bilingue e i vSOP militari, VENTI slice chiuse in due giorni e tutte in `main`, che è stato SPINTO (`6644b5e`): `origin/main` allineato, `origin/basemap-esri` cancellato perché ormai contenuto in main. Restano aperte Q1/Q2/Q3 (che dipendono da qualcun altro), Q4 (la vLOA che deve smettere di nascere inglese), Q5 e Q6 (due rossi intermittenti) e R1 (le figure dei SOP, lavoro manuale)**) · **Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in
 un giro solo. Restano aperte solo voci che dipendono da qualcun altro: le risposte di Ivao.It (A9/A13), le
 quattro vLOA da ripubblicare (L2), il documento di Brindisi (B10-bis) e le decisioni di contenuto**) · **Aggiornato:** 27 agosto 2026, notte (**§K chiusa tutta: la vIPI d'aeroporto entra nel catalogo delle sezioni
 — ramo `aeroporto-a-sezioni`, il TERZO in fila — più le tre rifiniture della stessa notte: il meteo tornato
@@ -188,9 +188,10 @@ orfane di LIRR) è sospesa apposta: non si sistema un albero che sta per essere 
 
 **Sezioni con lavoro aperto, oggi**: **nessuna sul codice**. §P è fusa e spinta, §Q (bilingue) e §R (vSOP
 militari) sono chiuse — venti slice in due giorni, tutte in `main`, che il 28 agosto è stato **spinto**
-(`6644b5e`, `origin/main` allineato). Restano **I3/I4**, **N4**, **P1** (decisioni, non lavoro), i due
-rossi intermittenti **Q5/Q6**, la lingua sorgente della vLOA **Q4** — e tutto ciò che aspetta qualcun
-altro: A9, A13, L2, B10-bis, **Q1/Q2/Q3**, **R1/R2/R3**.
+(`6644b5e`, `origin/main` allineato). Restano **I3/I4**, **N4**, **P1** (decisioni, non lavoro) e la
+lingua sorgente della vLOA **Q4** — e tutto ciò che aspetta qualcun altro: A9, A13, L2, B10-bis,
+**Q1/Q2/Q3**, **R1/R2/R3**. ✅ **I due rossi intermittenti Q5 e Q6 sono chiusi** il 28 agosto: erano due
+contese diverse fra test paralleli, entrambe riprodotte prima di correggerle.
 
 ---
 
@@ -3247,38 +3248,70 @@ sorgente senza riscriverne il contenuto renderebbe la memoria di traduzione **in
 corpus** — le impronte sono del testo inglese, e cercarle come italiano non troverebbe niente. Vuole un
 giro suo, con un travaso pensato.
 
-### Q5 🟢 APERTO — il rosso intermittente: **ha un nome**
+### Q5 ✅ CHIUSO — il rosso intermittente: era la contesa sul file di diagnostica
 
 ⚠️ **Identificato il 28 agosto 2026**: `CronometroAvvioTests.Lavvio_vero_lascia_il_riepilogo_nel_file_di_diagnostica`
-(`Vipi.E2E.Tests`).
+(`Vipi.E2E.Tests`). ✅ **Chiuso lo stesso giorno.**
 
-**Come si riproduce e come no.** Da solo passa (3/3 con `--filter CronometroAvvio`); con **tutto il
-progetto E2E** fallisce; nella corsa dell'intera soluzione comparve in sei corse su otto, a volte in
-`Vipi.Ui.Tests` e a volte qui — perché il segnale è la contesa, non il test.
+**Come si riproduceva e come no.** Da solo passava (3/3 con `--filter CronometroAvvio`); con **tutto il
+progetto E2E** cadeva; nella corsa dell'intera soluzione comparve in sei corse su otto — perché il segnale
+era la contesa, non il test.
 
-**Perché proprio lui.** Fa un **avvio vero** dell'applicazione e poi legge il file di diagnostica che
-quell'avvio scrive. Basta che un altro avvio giri nella stessa finestra — un altro test E2E, o un host
-lasciato acceso da chi sta lavorando — perché il file che rilegge non sia il suo.
+**La causa, letta nel codice.** Il file di diagnostica è **uno solo per processo** — `diagnostica/avvio-diagnostica.txt`
+accanto all'eseguibile, che nei test è la cartella `bin` del progetto — e ogni avvio lo **riscrive da capo**
+(`WriteConfigurationSummary` fa `File.WriteAllText`) prima di aggiungerci in coda il riepilogo delle fasi
+(`CronometroAvvio.Scrivi`, che invece fa `AppendAllText`). In produzione è il disegno giusto: un host per
+processo, e chi scarica il file vuole l'avvio corrente. Ma in `Vipi.E2E.Tests` gli host li avviano **dieci
+classi**, e xUnit fa girare le classi in parallelo: la finestra fra «il mio avvio ha scritto» e «io rileggo»
+è aperta a chiunque, e la `WriteAllText` di un altro host porta via il riepilogo appena scritto.
 
-**Perché conta.** Non è un test ballerino da rilanciare finché passa: rende **inaffidabile il segnale
-della suite completa**, che è l'unico cancello prima di una consegna. Finché resta, «6379 verdi» va letto
-come «6379 verdi, salvo uno che non riguarda la modifica in corso» — e quella postilla è precisamente il
-modo in cui un rosso vero passa inosservato.
+**La correzione**: `tests/Vipi.E2E.Tests/ParallelismoDelProgetto.cs` — un solo test alla volta in tutto il
+progetto (`[assembly: CollectionBehavior(DisableTestParallelization = true)]`), col perché scritto accanto.
+Serializzare le **sole** classi che avviano un host costerebbe uguale — sono quelle lente — e lascerebbe una
+trappola silenziosa: l'undicesima classe che avvia un host senza mettersi l'attributo rimetterebbe il rosso
+senza che nulla lo dica. **Costo misurato** (due corse per parte, build ferma): 227 test, **43 s in parallelo,
+78 s in fila** — ~35 secondi per corsa, in cambio di un cancello di cui ci si può fidare.
 
-### Q6 🟢 APERTO — un SECONDO rosso intermittente, e non è quello di Q5
+L'asserzione ora dice anche **dove guardare** se ricapita, perché un rosso lì sembra un difetto del
+cronometro mentre quasi sempre è un secondo avvio nella stessa finestra.
 
-⚠️ `SqliteTuningTests.Interceptor_enables_wal_and_busy_timeout` (`Vipi.Infrastructure.Tests`), **rosso una
-volta sola** il 28 agosto 2026, e solo su net10 mentre net8 girava verde nella stessa corsa.
+### Q6 ✅ CHIUSO — il secondo rosso: passava per via del POOL, non dell'interceptor
 
-**Non si riproduce**: tre corse complete del progetto su entrambi i TFM, subito dopo, tutte verdi; il test
-da solo, verde. La **circostanza** vale più dell'ipotesi: la corsa che l'ha visto rosso girava mentre l'app
-di verifica era **accesa** su un `vipi.db` in WAL, sullo stesso disco, insieme a una build. Il test crea un
-file suo in `%TEMP%` con un GUID, quindi non è contesa sul *file* — semmai sul passaggio a WAL, che SQLite
-può non riuscire a fare (e `PRAGMA journal_mode` risponde col modo *corrente*, non con un errore).
+⚠️ `SqliteTuningTests.Interceptor_enables_wal_and_busy_timeout` (`Vipi.Infrastructure.Tests`), rosso **una
+volta sola** il 28 agosto 2026, e solo su net10. ✅ **Chiuso lo stesso giorno, con la riproduzione in mano.**
 
-Da fare quando ricapita: **catturare il messaggio d'asserzione** — dice se ha risposto `delete` (WAL non
-attivato) o se è caduto sul `busy_timeout`. Sono due diagnosi diverse, e senza quel dato ogni ipotesi qui
-sarebbe inventata.
+**Il messaggio d'asserzione che serviva** — quello che questa scheda chiedeva di catturare — dice
+`Expected: 5000, Actual: 0`: è caduto sul **`busy_timeout`**, non sul WAL. L'ipotesi di prima (il passaggio
+a WAL che non riesce) era sbagliata, ed era sbagliata per un motivo che vale la pena tenere: il WAL è
+scritto nell'**intestazione del file**, quindi sopravvive a qualunque connessione; il `busy_timeout` invece
+è **per-connessione** e muore con essa.
+
+**La causa vera.** Il test apriva la connessione con `conn.Open()` sulla `DbConnection` **nuda**. Ma
+l'interceptor è di EF Core e gira **solo quando è EF ad aprire**: `Open()` diretto lo scavalca. Il test
+passava lo stesso perché Microsoft.Data.Sqlite tiene le connessioni in un **pool**, e dopo `EnsureCreated`
+gli restituiva la **stessa handle**, che il `busy_timeout` ce l'aveva già addosso da quando l'interceptor
+era girato per davvero. Verde per via del pool, non per via di ciò che diceva di provare.
+
+Basta quindi che qualcuno **svuoti il pool** in quella finestra perché arrivi una handle nuova, col
+`busy_timeout` a zero — e qualcuno lo faceva: `TraduzioneDalVivoTests.DisposeAsync` chiamava
+`SqliteConnection.ClearAllPools()`, che è di **processo**, e lo chiamava **sempre**, anche quando quella
+prova è saltata (è saltata in ogni corsa normale: vuole `VIPI_TRADUZIONE_LIVE=1` e una chiave Azure). Le
+classi sono due, quindi giravano in parallelo.
+
+**Riprodotto in modo deterministico** aggiungendo `Pooling=False` alla stringa di connessione: rosso ogni
+volta, con quel messaggio.
+
+**La correzione, in due mosse**: (1) il test riapre **attraverso EF** (`db.Database.OpenConnection()`), così
+l'interceptor gira davvero, e tiene `Pooling=False` perché non possa più passare per sbaglio — senza pool,
+se l'interceptor non gira l'asserzione cade **sempre** invece che una volta ogni tanto; (2) `ClearAllPools()`
+è sparito da **tutti e due** i posti che lo chiamavano, sostituito da `Pooling=False` nella stringa di
+connessione: il file si libera alla chiusura del `DbContext` senza toccare i pool degli altri.
+
+⚠️ **La regola generale**: `SqliteConnection.ClearAllPools()` è una chiamata **di processo**. In una suite
+che gira in parallelo, un test che ripulisce dopo di sé con quella sporca tutti gli altri. Se serve
+liberare un file, si evita il pool alla radice con `Pooling=False`.
+
+**Esito**: suite **6633 verdi** su entrambi i TFM, `dotnet build -warnaserror` senza avvisi.
 
 ---
 

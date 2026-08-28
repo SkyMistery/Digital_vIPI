@@ -16,16 +16,33 @@ public sealed class SqliteTuningTests : IDisposable
     [Fact]
     public void Interceptor_enables_wal_and_busy_timeout()
     {
+        // ⚠️ `Pooling=False` NON è un dettaglio di pulizia: è ciò che rende la prova onesta. Vedi sotto.
         var options = new DbContextOptionsBuilder<VipiDbContext>()
-            .UseSqlite($"Data Source={_dbPath}")
+            .UseSqlite($"Data Source={_dbPath};Pooling=False")
             .AddInterceptors(new SqliteTuningInterceptor())
             .Options;
 
         using var db = new VipiDbContext(options);
         db.Database.EnsureCreated();   // apre la connessione ⇒ l'interceptor gira
 
+        // ⚠️ Si riapre ATTRAVERSO EF, non con `conn.Open()` sulla connessione nuda: l'interceptor è di EF
+        // Core e gira solo quando è EF ad aprire. `Open()` diretto lo scavalca — e prima del 28 agosto 2026
+        // il test faceva esattamente questo, passando lo stesso: Microsoft.Data.Sqlite tiene le connessioni
+        // in un POOL, e dopo EnsureCreated ne restituiva la STESSA handle, che il busy_timeout ce l'aveva
+        // già addosso. Verde per via del pool, non per via dell'interceptor.
+        //
+        // È il rosso «una volta sola» di lavori-aperti Q6: basta che qualcuno svuoti il pool nella finestra
+        // fra la chiusura di EF e la riapertura — `SqliteConnection.ClearAllPools()` è di PROCESSO, e un
+        // altro test dell'assembly lo chiamava — perché arrivi una handle nuova, col busy_timeout a zero.
+        // Riprodotto in modo deterministico aggiungendo `Pooling=False`: «Expected: 5000, Actual: 0».
+        // Il WAL invece regge comunque, perché è scritto nell'intestazione del FILE e non nella connessione:
+        // l'asserzione che cadeva era la seconda, non la prima. Le due diagnosi che il documento chiedeva
+        // di distinguere sono distinte, ed è questa.
+        //
+        // `Pooling=False` resta acceso perché il test non possa più passare per sbaglio: senza pool, se
+        // l'interceptor non gira l'asserzione cade sempre invece che una volta ogni tanto.
+        db.Database.OpenConnection();
         var conn = (SqliteConnection)db.Database.GetDbConnection();
-        if (conn.State != System.Data.ConnectionState.Open) conn.Open();
 
         Assert.Equal("wal", Scalar(conn, "PRAGMA journal_mode;")?.ToLowerInvariant());
         Assert.Equal(5000L, Convert.ToInt64(Scalar(conn, "PRAGMA busy_timeout;")));
@@ -40,7 +57,10 @@ public sealed class SqliteTuningTests : IDisposable
 
     public void Dispose()
     {
-        SqliteConnection.ClearAllPools();
+        // ⚠️ Qui c'era `SqliteConnection.ClearAllPools()`, che serviva a liberare il file per cancellarlo.
+        // È una chiamata di PROCESSO: svuota anche i pool dei test che stanno girando in parallelo, ed è
+        // il meccanismo con cui questo stesso test faceva cadere sé stesso (Q6). Con `Pooling=False` nella
+        // stringa di connessione il file si libera alla chiusura del DbContext e non serve toccare nessuno.
         foreach (var suffix in new[] { "", "-wal", "-shm" })
             try { if (File.Exists(_dbPath + suffix)) File.Delete(_dbPath + suffix); } catch { /* best-effort */ }
     }

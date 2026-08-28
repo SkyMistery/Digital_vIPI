@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Translation;
@@ -77,10 +77,16 @@ public class TraduzioneDalVivoTests : IAsyncLifetime
 
     public Task DisposeAsync()
     {
-        // ⚠️ SQLite tiene le connessioni in un POOL: senza svuotarlo il file resta aperto e la copia non si
-        // cancella («being used by another process»), lasciando spazzatura nella cartella temporanea a ogni
-        // giro. Non basta chiudere il DbContext.
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        // ⚠️ SQLite tiene le connessioni in un POOL: finché la copia è in pool il file resta aperto e non si
+        // cancella («being used by another process»), lasciando spazzatura in %TEMP% a ogni giro — chiudere
+        // il DbContext non basta. Il pool si evita alla RADICE, con `Pooling=False` nella stringa di
+        // connessione (più sotto): così il file si libera alla chiusura del contesto.
+        //
+        // ⚠️ Qui c'era invece `SqliteConnection.ClearAllPools()`, e per giunta chiamato SEMPRE — anche
+        // quando la prova è saltata e non c'è nessuna copia da cancellare, cioè in ogni corsa normale della
+        // suite. È una chiamata di PROCESSO: svuotava anche i pool dei test che giravano in parallelo, e uno
+        // di quelli ci contava. È il meccanismo del rosso «una volta sola» di lavori-aperti Q6
+        // (`SqliteTuningTests`). Un test che ripulisce dopo di sé non deve poter sporcare gli altri.
         foreach (var f in new[] { _copia, _copia + "-wal", _copia + "-shm" })
             if (f.Length > 0 && File.Exists(f)) File.Delete(f);
         return Task.CompletedTask;
@@ -102,7 +108,7 @@ public class TraduzioneDalVivoTests : IAsyncLifetime
         Assert.True(File.Exists(_copia), "copia del vipi.db non creata: il database di sviluppo non e' stato trovato");
 
         await using var db = new VipiDbContext(
-            new DbContextOptionsBuilder<VipiDbContext>().UseSqlite($"Data Source={_copia}").Options);
+            new DbContextOptionsBuilder<VipiDbContext>().UseSqlite($"Data Source={_copia};Pooling=False").Options);
 
         // ⚠️ Il vipi.db di sviluppo e' fermo a prima di questa funzione: la tabella della memoria non c'e'
         // ancora. La copia si porta al passo PRIMA di usarla — ed e' anche il promemoria che il database
