@@ -57,8 +57,11 @@ chiave e distinguere i **quattro** motivi per cui una sezione resta vuota.
 
 ## Prima del prossimo deploy
 
-⚠️ **DICIANNOVE migrazioni in coda** al cutover MariaDB. ⚠️ **Prima del deploy serve la SELECT dei
-duplicati su `DocReleases`**, o `CREATE UNIQUE INDEX` fallisce. ⚠️ **Tre passi d'avvio** idempotenti:
+⚠️ **VENTI migrazioni in coda** al cutover MariaDB. ✅ La **SELECT dei duplicati su `DocReleases`** non
+va più fatta a mano — non era nemmeno eseguibile, il 3306 del server sta sul suo `localhost`:
+`ReleaseNumberPreflight` la esegue all'avvio, subito prima di `Migrate()`, e se trova doppioni ferma la
+migrazione **nominando le righe** in `avvio-errore.txt` invece di lasciar fallire il `CREATE UNIQUE INDEX`
+con un «Duplicate entry» che dice solo la chiave. ⚠️ **Tre passi d'avvio** idempotenti:
 `LinkAirportDocumentsAsync`, `ClearVloaSeededAiracRowAsync`, `ClearUnpublishedCurrentVersionAsync`.
 
 ⚠️ **Due rossi intermittenti hanno un nome** (`docs/lavori-aperti.md` §Q5 e §Q6):

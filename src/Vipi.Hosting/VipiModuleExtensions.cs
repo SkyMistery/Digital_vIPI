@@ -412,6 +412,12 @@ public static class VipiModuleExtensions
         else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) ||
                  provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
         {
+            // ⚠️ PRIMA di migrare: l'unico indice unico della coda che possa trovare dati già in conflitto
+            // è quello dei numeri di rilascio. Senza questo controllo il guasto arriva da dentro una
+            // migrazione a metà, come un «Duplicate entry ... for key ...» che dice la chiave e non le
+            // righe — su un host dove l'unico canale è scaricare `avvio-errore.txt` via FTP.
+            ReleaseNumberPreflight.Verifica(db);
+
             db.Database.Migrate();
         }
         else

@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 28 agosto 2026, sera (**§S — l'archivio ATC mondiale, ramo `archivio-atc-mondiale` (il codice è tutto in `0ced074`, il resto sono documenti) SPINTO e NON fuso: il poller archivia tutte le postazioni ATC aperte, i conti della divisione non cambiano, ritenzione dodici mesi per tutto. S1 CHIUSA (il volume del mondo è misurato: 10×-14× le sessioni italiane, il database intero va a ~230 MB su MariaDB a regime) e S2 DECISA (si ricomincia da capo, raccolta dal 1° settembre 2026, cutover dal Worker nel 2027). ⚠️ Le migrazioni in coda al cutover MariaDB diventano VENTI**) · **Aggiornato:** 28 agosto 2026, pomeriggio (**I DUE ROSSI INTERMITTENTI SONO CHIUSI — Q5 e Q6, riprodotti prima di correggerli: erano due contese diverse fra test paralleli. Q5 era il file di diagnostica dell'avvio, uno solo per processo, riscritto da un altro host nella finestra fra scrittura e rilettura; Q6 era un test che passava per via del POOL di SQLite invece che per via dell'interceptor, e che un `ClearAllPools()` di processo chiamato da un altro test faceva cadere. Ora «tutto verde» si può leggere alla lettera: 6633 verdi su entrambi i TFM**) · **Aggiornato:** 28 agosto 2026, mattina (**§Q e §R — i documenti bilingue e i vSOP militari, VENTI slice chiuse in due giorni e tutte in `main`, che è stato SPINTO (`6644b5e`): `origin/main` allineato, `origin/basemap-esri` cancellato perché ormai contenuto in main. Restano aperte Q1/Q2/Q3 (che dipendono da qualcun altro), Q4 (la vLOA che deve smettere di nascere inglese), Q5 e Q6 (due rossi intermittenti) e R1 (le figure dei SOP, lavoro manuale)**) · **Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in
+**Aggiornato:** 28 agosto 2026, sera tardi (**§T — la SELECT dei duplicati su `DocReleases`: NON era eseguibile (il 3306 del server è su localhost, niente pannello), quindi ora la fa l'applicazione prima di `Migrate()` e nomina le righe in `avvio-errore.txt`; gli altri quattro indici unici della coda non possono fallire, verificato**) · **Aggiornato:** 28 agosto 2026, sera (**§S — l'archivio ATC mondiale, ramo `archivio-atc-mondiale` (il codice è tutto in `0ced074`, il resto sono documenti) SPINTO e NON fuso: il poller archivia tutte le postazioni ATC aperte, i conti della divisione non cambiano, ritenzione dodici mesi per tutto. S1 CHIUSA (il volume del mondo è misurato: 10×-14× le sessioni italiane, il database intero va a ~230 MB su MariaDB a regime) e S2 DECISA (si ricomincia da capo, raccolta dal 1° settembre 2026, cutover dal Worker nel 2027). ⚠️ Le migrazioni in coda al cutover MariaDB diventano VENTI**) · **Aggiornato:** 28 agosto 2026, pomeriggio (**I DUE ROSSI INTERMITTENTI SONO CHIUSI — Q5 e Q6, riprodotti prima di correggerli: erano due contese diverse fra test paralleli. Q5 era il file di diagnostica dell'avvio, uno solo per processo, riscritto da un altro host nella finestra fra scrittura e rilettura; Q6 era un test che passava per via del POOL di SQLite invece che per via dell'interceptor, e che un `ClearAllPools()` di processo chiamato da un altro test faceva cadere. Ora «tutto verde» si può leggere alla lettera: 6633 verdi su entrambi i TFM**) · **Aggiornato:** 28 agosto 2026, mattina (**§Q e §R — i documenti bilingue e i vSOP militari, VENTI slice chiuse in due giorni e tutte in `main`, che è stato SPINTO (`6644b5e`): `origin/main` allineato, `origin/basemap-esri` cancellato perché ormai contenuto in main. Restano aperte Q1/Q2/Q3 (che dipendono da qualcun altro), Q4 (la vLOA che deve smettere di nascere inglese), Q5 e Q6 (due rossi intermittenti) e R1 (le figure dei SOP, lavoro manuale)**) · **Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in
 un giro solo. Restano aperte solo voci che dipendono da qualcun altro: le risposte di Ivao.It (A9/A13), le
 quattro vLOA da ripubblicare (L2), il documento di Brindisi (B10-bis) e le decisioni di contenuto**) · **Aggiornato:** 27 agosto 2026, notte (**§K chiusa tutta: la vIPI d'aeroporto entra nel catalogo delle sezioni
 — ramo `aeroporto-a-sezioni`, il TERZO in fila — più le tre rifiniture della stessa notte: il meteo tornato
@@ -159,10 +159,11 @@ chiuse o chiuse-con-la-ragione-scritta (C6, C7 e le due voci UI il 27 pomeriggio
 proposito, **J**, **K**, **L** e **M** sono chiuse. **N** ha il codice fatto (da fondere) e lascia aperta
 **N3**, che è una decisione.
 
-⚠️ **Le migrazioni in coda al cutover sono DICIANNOVE**, non diciassette: la fusione dell'audit versioni &
+⚠️ **Le migrazioni in coda al cutover sono DICIANNOVE** (VENTI dal 28-ago sera, con `ArchivioAtcMondiale`), non diciassette: la fusione dell'audit versioni &
 release ne ha portate due (`UniqueReleaseNumberPerTarget`, doppia emissione). ⚠️ Datate **25-ago 15:19**,
-quindi su un DB già aggiornato EF le applicherà **fuori ordine** — lecito, ma da sapere. ⚠️ **Prima del
-deploy serve la SELECT dei duplicati su `DocReleases`**, o `CREATE UNIQUE INDEX` fallisce.
+quindi su un DB già aggiornato EF le applicherà **fuori ordine** — lecito, ma da sapere. ✅ **La SELECT dei duplicati su `DocReleases` la fa ora l'applicazione da sé** (§T): non era
+eseguibile a mano — il 3306 del server sta sul suo `localhost` e non c'è un pannello — e ora
+`ReleaseNumberPreflight` la esegue subito prima di `Migrate()`, nominando le righe in `avvio-errore.txt`.
 
 ⚠️ **Tre passi d'avvio** nuovi rispetto al 26: `LinkAirportDocumentsAsync` (dai rami fusi),
 `ClearVloaSeededAiracRowAsync` e `ClearUnpublishedCurrentVersionAsync` (§L). Tutti idempotenti e tutti si
@@ -3413,4 +3414,40 @@ stesso server. È il prezzo accettato per non dipendere da un travaso.
 cioè col punto: nella stessa colonna si legge `<0,1 h` accanto a `0.2 h`. Si vede su ogni pagina delle
 statistiche, non solo su quella nuova, ed è precedente a questo giro — sta qui perché l'ho visto a schermo
 verificando l'archivio.
+
+## T. La SELECT dei duplicati che nessuno poteva eseguire — 28 agosto 2026, sera
+
+✅ **CHIUSA.** Stava nei lavori aperti da agosto come «prima del deploy serve la SELECT dei duplicati su
+`DocReleases`, o `CREATE UNIQUE INDEX` fallisce». Andandola a fare, il problema è risultato essere la nota
+stessa: **quella SELECT non è eseguibile con gli accessi che abbiamo.**
+
+- Il **3306 del server sta sul suo `localhost`** e da fuori non è raggiungibile
+  (`deploy/mariadb/README.md`, prima sezione: è scritto lì dal 6 agosto).
+- Sull'host **non c'è un pannello** da cui aprire una console SQL: il canale è l'FTP confinato a
+  `public_atc` ([[host-reale-plesk-passenger]]).
+- L'unico programma che quel database lo raggiunge è **l'applicazione stessa**.
+
+**Quindi il controllo lo fa lei**: `ReleaseNumberPreflight.Verifica()` gira in `MigrateVipiDatabase` subito
+prima di `Migrate()`, e solo se la migrazione è ancora pendente (applicata, l'indice c'è già e i doppioni
+non possono esistere).
+
+⚠️ **Non cambia l'esito, cambia che cosa si legge.** Coi doppioni l'avvio si ferma comunque — si
+fermerebbe da solo — ma in `avvio-errore.txt`, il file che si scarica via FTP, c'è l'elenco di bersagli e
+numeri da sistemare invece di un `Duplicate entry '...' for key '...'` che dice la chiave e non le righe.
+
+⚠️ **Non ripara, di proposito**: rinumerare un rilascio cambia un «rilascio #N» che qualcuno può aver
+già letto o citato, ed è una decisione di chi pubblica, non di una routine d'avvio.
+
+⚠️ **Un difetto trovato dal test, non da una rilettura**: la stessa migrazione ha **due id diversi** nei due
+insiemi — `20260825151953` (SQLite) e `20260825152005` (MySQL), emesse a dodici secondi di distanza. Il
+controllo scritto con l'identificativo completo sarebbe stato **muto su uno dei due provider, in silenzio**.
+Ora si confronta il nome senza il timbro.
+
+**Gli altri quattro indici unici della coda non possono fallire**, e non è una speranza: `Airports.DocumentId`,
+`Airports.MilDocumentId`, `AccSectors.IvaoId` e `AirportSectors.IvaoId` stanno su colonne **create dalla
+stessa migrazione** che vi posa l'indice — nascono tutte nulle, e un indice unico ammette quanti nulli
+vuole. `CallsignAliases` è una tabella nuova. Verificato leggendo le migrazioni, una per una.
+
+Sul `vipi.db` di sviluppo (38 rilasci, 14 bersagli): **zero doppioni**. Della produzione non si sa, ed è
+esattamente il motivo per cui il controllo ora viaggia col programma.
 
