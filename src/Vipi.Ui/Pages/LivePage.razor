@@ -1,4 +1,4 @@
-﻿@* Vista live UNICA (doc refactor 12). Rende il modello uniforme LiveView: la pagina non sa se sta mostrando
+@* Vista live UNICA (doc refactor 12). Rende il modello uniforme LiveView: la pagina non sa se sta mostrando
    un CTR, un APP o una torre — lo decide il descrittore per tipo (ILiveStationKind).
    /services/vsop/live           = la postazione con cui sei connesso su IVAO (nessun selettore: la vista segue te)
    /services/vsop/live/{callsign} = quella postazione, in consultazione *@
@@ -12,18 +12,19 @@
 @inject IDocRoutesRegistry DocRoutes
 @inject Microsoft.JSInterop.IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
+@inject EnglishStrings En
 @implements IAsyncDisposable
 
-<PageTitle>@(_view?.Title ?? L["Live_Tab"].Value) — @L["Live_Tab"] · vIPI IVAO Italia</PageTitle>
+<PageTitle>@(_view?.Title ?? L["Live_Tab"].Value) — @L["Live_Tab"] · vIPI IVAO Italy</PageTitle>
 
 <div class="wrap live">
     <div class="breadcrumb">
-        <a href="/services/vsop">@L["Common_Home"]</a>
+        <a href="/services/vsop">@En["Common_Home"]</a>
         @if (_view is not null)
         {
             <text> › </text><a href="/services/vsop/@_view.AccCode.ToLowerInvariant()">@_view.AccCode</a>
         }
-        <text> › </text><b>@L["Live_Tab"]</b>
+        <text> › </text><b>@En["Live_Tab"]</b>
     </div>
 
     <div class="reduced-top">

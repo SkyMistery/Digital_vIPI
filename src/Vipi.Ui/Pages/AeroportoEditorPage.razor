@@ -1,4 +1,4 @@
-﻿@page "/services/vsop/{Acc}/airports/editor"
+@page "/services/vsop/{Acc}/airports/editor"
 @layout SopLayout
 @rendermode InteractiveServer
 @using Vipi.Application.Content
@@ -23,6 +23,7 @@
 @implements IAsyncDisposable
 @inject IDocRoutesRegistry DocRoutes
 @inject IStringLocalizer<SharedResource> L
+@inject EnglishStrings En
 
 @if (_acc is null)
 {
@@ -36,8 +37,8 @@ else
     <NavaidDatalist Entries="_navaids.Entries" />
     <div class="wrap struct">
         <div class="breadcrumb">
-            <a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> ›
-            <a href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao">@_icao</a> › <b>@L["Common_Editor"]</b>
+            <a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> ›
+            <a href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao">@_icao</a> › <b>@En["Common_Editor"]</b>
         </div>
 
         @* ---- Testata in UNA riga: titolo · «?» · stato · lock · larghezza piena ----

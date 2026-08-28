@@ -1,4 +1,4 @@
-﻿@page "/services/vsop/{Acc}/vipi"
+@page "/services/vsop/{Acc}/vipi"
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IAccDerivationService Profile
@@ -9,6 +9,7 @@
 @inject IAiracService Airac
 @inject IStringLocalizer<SharedResource> L
 @inject Vipi.Application.Translation.AccVipiTranslator Translator
+@inject EnglishStrings En
 @using System.Globalization
 @using Vipi.Ui.Shared
 
@@ -19,15 +20,15 @@
 else if (_notAvailable)
 {
     <div class="wrap">
-        <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>vIPI</b></div>
+        <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>vIPI</b></div>
         <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["AccVipi_NotAvailTitle"]</p>@((MarkupString)string.Format(L["AccVipi_NotAvailBody"], _acc.Code, $"/services/vsop/{Acc.ToLowerInvariant()}/editor"))</div></div>
     </div>
 }
 else
 {
-    <PageTitle>@PreviewTitlePrefix()vIPI @_data.AccName · IVAO Italia</PageTitle>
+    <PageTitle>@PreviewTitlePrefix()vIPI @_data.AccName · IVAO Italy</PageTitle>
     <div class="wrap">
-        <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_data.AccCode</a> › <b>vIPI</b></div>
+        <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_data.AccCode</a> › <b>vIPI</b></div>
         <div class="doc-layout">
             <aside class="toc" aria-label="@L["Doc_TocAria"]">
                 <p class="toc-h">@L["Common_Navigation"]</p>

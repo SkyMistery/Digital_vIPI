@@ -1,4 +1,7 @@
 using Bunit;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
+using Vipi.Ui;
 using Vipi.Ui.Components;
 using Xunit;
 
@@ -10,12 +13,23 @@ namespace Vipi.Ui.Tests;
 /// </summary>
 public class StructureComponentsTests : TestContext
 {
+
+    /// <summary>Localizzatore che rende la CHIAVE: qui si prova il markup, non le traduzioni.</summary>
+    private sealed class ChiaveComeValore : IStringLocalizer<SharedResource>
+    {
+        public LocalizedString this[string name] => new(name, name, resourceNotFound: false);
+        public LocalizedString this[string name, params object[] arguments] => new(name, name, resourceNotFound: false);
+        public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
+    }
+
+    public StructureComponentsTests() =>
+        Services.AddSingleton<IStringLocalizer<SharedResource>>(new ChiaveComeValore());
     [Fact]
     public void FallbackChain_root_shows_help_when_no_ancestors()
     {
         var cut = RenderComponent<StructureFallbackChain>(p =>
             p.Add(x => x.Rows, Array.Empty<FallbackChainRow>()));
-        Assert.Contains("Radice", cut.Markup);
+        Assert.Contains("Struct_RootNoParent", cut.Markup);
     }
 
     [Fact]
@@ -37,7 +51,7 @@ public class StructureComponentsTests : TestContext
         var cut = RenderComponent<StructureCoverage>(p => p
             .Add(x => x.IsLeaf, true)
             .Add(x => x.Rows, Array.Empty<CoverageChildRow>()));
-        Assert.Contains("foglia", cut.Markup);
+        Assert.Contains("Struct_LeafAirport", cut.Markup);
     }
 
     [Fact]

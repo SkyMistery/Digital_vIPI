@@ -1,4 +1,4 @@
-﻿@page "/services/vsop/{Acc}/airports"
+@page "/services/vsop/{Acc}/airports"
 @layout SopLayout
 @inherits OwningComponentBase
 @using Microsoft.Extensions.DependencyInjection
@@ -29,6 +29,7 @@
 @using Vipi.Ui.Shared
 @inject IStringLocalizer<SharedResource> L
 @inject IMilitaryDocumentService Militari
+@inject EnglishStrings En
 
 @if (_acc is null)
 {
@@ -36,9 +37,9 @@
 }
 else if (_listMode)
 {
-    <PageTitle>@L["AccLanding_Airports"] @_acc.Code · vIPI IVAO Italia</PageTitle>
+    <PageTitle>@L["AccLanding_Airports"] @_acc.Code · vIPI IVAO Italy</PageTitle>
     <div class="wrap reading-cap">
-        <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@L["AccLanding_Airports"]</b></div>
+        <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@En["AccLanding_Airports"]</b></div>
         <div class="doc-head">
             <div><h1 class="page-h1" style="margin-bottom:2px">@L["AccLanding_Airports"] — @_acc.Name - @_acc.Code</h1></div>
         </div>
@@ -50,16 +51,16 @@ else if (_listMode)
 else if (_view is null)
 {
     <div class="wrap">
-        <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@_icao</b></div>
+        <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@_icao</b></div>
         <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Airport_DocNotAvailTitle"]</p>@string.Format(L["Airport_DocNotAvailBody"], _icao)</div></div>
     </div>
 }
 else
 {
-    <PageTitle>@PreviewTitlePrefix()@_view.Title · vIPI IVAO Italia</PageTitle>
+    <PageTitle>@PreviewTitlePrefix()@_view.Title · vIPI IVAO Italy</PageTitle>
 
     <div class="wrap">
-        <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/airports">@L["AccLanding_Airports"]</a> › <b>@_view.Title</b></div>
+        <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/airports">@En["AccLanding_Airports"]</a> › <b>@_view.Title</b></div>
 
         <div class="doc-layout">
             <aside class="toc" aria-label="@L["Doc_TocAria"]">

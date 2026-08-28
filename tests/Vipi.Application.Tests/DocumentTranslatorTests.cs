@@ -50,19 +50,54 @@ public class DocumentTranslatorTests
     public async Task Titoli_e_corpi_passano_alla_lingua_di_chi_legge()
     {
         var memoria = new MemoriaDiTraduzioneFinta()
-            .Nota("Procedure generali", "General procedures")
             .Nota("Separazioni", "Separations")
             .Nota("Contatta la torre.", "Contact the tower.");
 
-        var doc = Documento("Procedure generali",
+        var doc = Documento("vIPI — LIBC Crotone",
             Sezione("Separazioni", Blocco(1, "Contatta la torre.")));
 
         var esito = await new DocumentTranslator(memoria).TranslateAsync(doc, "it", "en");
 
-        Assert.Equal("General procedures", esito.View.Title);
         Assert.Equal("Separations", esito.View.Sections[0].Title);
         Assert.Equal("Contact the tower.", esito.View.Sections[0].Blocks[0].Body);
         Assert.Equal("2609", esito.View.AiracCycle);   // un ciclo AIRAC non si traduce
+    }
+
+    // ---- Il NOME del documento non si traduce (R4) ---------------------------------------------------
+
+    [Fact]
+    public async Task Il_titolo_del_documento_resta_quello_che_e()
+    {
+        // ⚠️ Regola del committente (docs/design/regole-lingua.md R4): «vIPI — LIBC Crotone» è il NOME di
+        // quel documento — quello che sta nell'elenco, nella briciola di pane e in bocca a chi lo cita in
+        // frequenza. Un nome che cambia con la lingua di chi guarda non è più un nome. Qui la memoria HA la
+        // traduzione, e non deve servire a niente.
+        var memoria = new MemoriaDiTraduzioneFinta()
+            .Nota("vIPI — LIBC Crotone", "vIPI — LIBC Crotone airport manual")
+            .Nota("Separazioni", "Separations");
+
+        var doc = Documento("vIPI — LIBC Crotone", Sezione("Separazioni"));
+
+        var esito = await new DocumentTranslator(memoria).TranslateAsync(doc, "it", "en");
+
+        Assert.Equal("vIPI — LIBC Crotone", esito.View.Title);
+        Assert.Equal("Separations", esito.View.Sections[0].Title);
+    }
+
+    [Fact]
+    public async Task Il_titolo_del_documento_non_conta_nella_copertura()
+    {
+        // Se contasse, un documento tutto tradotto direbbe per sempre «manca una frase» — e l'avviso che
+        // serve a segnalare i buchi veri diventerebbe rumore che nessuno guarda più.
+        var memoria = new MemoriaDiTraduzioneFinta().Nota("Separazioni", "Separations", riletta: true);
+
+        var doc = Documento("vIPI — LIBC Crotone", Sezione("Separazioni"));
+
+        var esito = await new DocumentTranslator(memoria).TranslateAsync(doc, "it", "en");
+
+        Assert.Equal(1, esito.Coverage.Segmenti);
+        Assert.True(esito.Coverage.Completa);
+        Assert.False(esito.Coverage.DaRileggere);
     }
 
     [Fact]
@@ -111,11 +146,12 @@ public class DocumentTranslatorTests
         var doc = Documento("Titolo", Sezione("Sezione", Blocco(1, "Uno.\n\nDue.\n\nTre.")));
         var esito = await new DocumentTranslator(memoria).TranslateAsync(doc, "it", "en");
 
-        // 5 segmenti: titolo documento, titolo sezione, tre paragrafi.
-        Assert.Equal(5, esito.Coverage.Segmenti);
+        // 4 segmenti: titolo di sezione + tre paragrafi. Il titolo del DOCUMENTO non è un segmento
+        // (regole-lingua R4): non si traduce, e quindi non si conta.
+        Assert.Equal(4, esito.Coverage.Segmenti);
         Assert.Equal(2, esito.Coverage.Tradotti);
         Assert.Equal(1, esito.Coverage.Riletti);
-        Assert.Equal(3, esito.Coverage.Mancanti);
+        Assert.Equal(2, esito.Coverage.Mancanti);
         Assert.False(esito.Coverage.Completa);
         Assert.True(esito.Coverage.DaRileggere);         // «Due.» non l'ha riletta nessuno
     }
@@ -123,7 +159,7 @@ public class DocumentTranslatorTests
     [Fact]
     public async Task Se_tutto_e_stato_riletto_la_vista_non_va_marcata()
     {
-        var memoria = new MemoriaDiTraduzioneFinta().Nota("Titolo", "Title", true).Nota("Sezione", "Section", true);
+        var memoria = new MemoriaDiTraduzioneFinta().Nota("Sezione", "Section", true);
         var doc = Documento("Titolo", Sezione("Sezione"));
         var esito = await new DocumentTranslator(memoria).TranslateAsync(doc, "it", "en");
 

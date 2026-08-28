@@ -4,9 +4,10 @@
 @inject IMilitaryDocumentService Militari
 @inject IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
+@inject EnglishStrings En
 @using Vipi.Application.Content
 
-<PageTitle>@L["Mil_Title"] · vIPI IVAO Italia</PageTitle>
+<PageTitle>@L["Mil_Title"] · vIPI IVAO Italy</PageTitle>
 
 @* ---- L'elenco NAZIONALE dei vSOP militari (carta vSOP militari §5) ----------------------------------
 
@@ -21,7 +22,7 @@
    dimenticarsene. *@
 
 <div class="wrap reading-cap">
-    <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <b>@L["Mil_Title"]</b></div>
+    <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <b>@En["Mil_Title"]</b></div>
 
     <div class="hero">
         <h1 class="page-h1">@L["Mil_Title"]</h1>

@@ -1,4 +1,4 @@
-﻿@page "/services/vsop/{Acc}/vloa"
+@page "/services/vsop/{Acc}/vloa"
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IStructureEditingService Structure
@@ -9,6 +9,7 @@
 @inject IDocumentAdminService Docs
 @inject IStringLocalizer<SharedResource> L
 @inject Vipi.Application.Translation.DocumentTranslator Translator
+@inject EnglishStrings En
 @using Vipi.Ui.Shared
 @using System.Globalization
 @using Vipi.Application.Content
@@ -23,16 +24,16 @@ else if (_foreign.Length > 0)
     @if (_view is null)
     {
         <div class="wrap">
-            <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/vloa">@L["Vloa_Title"]</a> › <b>—</b></div>
+            <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/vloa">@En["Vloa_Title"]</a> › <b>—</b></div>
             @* Stesse stringhe già localizzate del vecchio viewer vLOA su AppnPage (rotta rimossa, doc 11 §3f). *@
             <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Appn_VloaNotAvailTitle"]</p>@((MarkupString)string.Format(L["Appn_VloaNotAvailBody"], $"{_acc.Code} ↔ {_foreign}"))</div></div>
         </div>
     }
     else
     {
-        <PageTitle>@PreviewTitlePrefix()@_view.Title · IVAO Italia</PageTitle>
+        <PageTitle>@PreviewTitlePrefix()@_view.Title · IVAO Italy</PageTitle>
         <div class="wrap">
-            <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/vloa">@L["Vloa_Title"]</a> › <b>@_view.Title</b></div>
+            <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/vloa">@En["Vloa_Title"]</a> › <b>@_view.Title</b></div>
             @if (_mode.IsPreview)
             {
                 <PreviewBanner Kind="_mode.Kind" Cycle="@_relCycle"
@@ -51,9 +52,9 @@ else if (_foreign.Length > 0)
 else
 {
     @* ---- elenco vLOA della ACC ---- *@
-    <PageTitle>@L["Vloa_Title"] @_acc.Code · vIPI IVAO Italia</PageTitle>
+    <PageTitle>@L["Vloa_Title"] @_acc.Code · vIPI IVAO Italy</PageTitle>
     <div class="wrap reading-cap">
-        <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@L["Vloa_Title"]</b></div>
+        <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@En["Vloa_Title"]</b></div>
         <div class="doc-head">
             <div><h1 class="page-h1" style="margin-bottom:2px">@L["Vloa_Title"] — @_acc.Name - @_acc.Code</h1></div>
         </div>

@@ -43,7 +43,7 @@ internal static class PaginaErrore
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="robots" content="noindex">
-        <title>Errore · vIPI IVAO Italia</title>
+        <title>Errore · vIPI IVAO Italy</title>
         <style>
           :root { color-scheme: light dark; --bg:#f6f7f9; --fg:#16181d; --mut:#5b6472; --card:#fff; --bd:#dfe3e8; --acc:#0b5fff; }
           @media (prefers-color-scheme: dark) {

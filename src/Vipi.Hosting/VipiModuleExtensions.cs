@@ -137,6 +137,11 @@ public static class VipiModuleExtensions
         // Localizzazione: risorse condivise in Vipi.Ui/Resources (it default, en). Incrementale.
         services.AddLocalization(o => o.ResourcesPath = "Resources");
 
+        // Le stesse stringhe, sempre in inglese: le chiede la BRICIOLA DI PANE, che per decisione del
+        // committente non segue la lingua (docs/design/regole-lingua.md R3). Singleton: non ha stato, e il
+        // ResourceManager che c'è dentro è già suo di natura.
+        services.AddSingleton<Vipi.Ui.EnglishStrings>();
+
         return services;
     }
 

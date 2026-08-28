@@ -118,7 +118,11 @@ public sealed class DocumentTranslator
 
         var tradotto = new DocumentView
         {
-            Title = passata.Testo(view.Title) ?? view.Title,
+            // ⚠️ IL TITOLO DEL DOCUMENTO NON SI TRADUCE, ed è una regola del committente
+            // (docs/design/regole-lingua.md R4): «vIPI — LIBC Crotone» è il NOME di quel documento, quello
+            // che sta nell'elenco, nella briciola di pane e in bocca a chi lo cita in frequenza. Un nome
+            // che cambia con la lingua di chi guarda non è più un nome.
+            Title = view.Title,
             AiracCycle = view.AiracCycle,   // un ciclo AIRAC non si traduce
             Sections = view.Sections.Select(passata.Sezione).ToList(),
             // La vista tradotta resta una vista dello STESSO documento, e deve continuare a sapere in che
@@ -234,10 +238,14 @@ public sealed class DocumentTranslator
         CalloutKind = b.CalloutKind,
     };
 
-    /// <summary>Ogni testo traducibile del documento, nell'ordine in cui si incontra.</summary>
+    /// <summary>
+    /// Ogni testo traducibile del documento, nell'ordine in cui si incontra.
+    /// <para>⚠️ <b>Il titolo del documento non c'è</b>, e non è una dimenticanza: non si traduce (R4), e
+    /// quindi non deve nemmeno finire nel conto della copertura — dire «manca una frase» di una frase che
+    /// non si tradurrà mai vorrebbe dire lasciare l'avviso acceso per sempre.</para>
+    /// </summary>
     private static IEnumerable<string> Segmenti(DocumentView view)
     {
-        foreach (var s in Aggiungi(view.Title)) yield return s;
         foreach (var sezione in view.Sections)
             foreach (var s in SegmentiSezione(sezione))
                 yield return s;

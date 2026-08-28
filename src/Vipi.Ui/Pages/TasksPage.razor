@@ -1,4 +1,4 @@
-﻿@page "/services/vsop/tasks"
+@page "/services/vsop/tasks"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IEditorTaskService Tasks
@@ -10,13 +10,14 @@
 @inject IEditorTaskLinksService TaskLinks
 @inject IStringLocalizer<SharedResource> L
 @inject IJSRuntime JS
+@inject EnglishStrings En
 
-<PageTitle>@L["Work_Title"] · IVAO Italia</PageTitle>
+<PageTitle>@L["Work_Title"] · IVAO Italy</PageTitle>
 
 <div class="wrap struct tasks-mine">
     @* ⚠️ La briciola RESTA: questa è una pagina d'utente, non ha la barra admin, e senza di lei non c'è
        nessun modo di risalire (regola 132). *@
-    <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <b>@L["Work_Title"]</b></div>
+    <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <b>@En["Work_Title"]</b></div>
 
     @* ---- Testata in UNA riga: titolo · conteggio · «?» · comandi ----
        Il sottotitolo era una fascia sempre a schermo, e ⚠️ diceva una cosa falsa: «trascina lo stato per

@@ -1,4 +1,4 @@
-﻿@page "/services/vsop/{Acc}/apps/editor"
+@page "/services/vsop/{Acc}/apps/editor"
 @layout SopLayout
 @rendermode InteractiveServer
 @implements IDisposable
@@ -13,6 +13,7 @@
 @inject ILogger<AppEditorPage> Logger
 @inject IDocRoutesRegistry DocRoutes
 @inject IStringLocalizer<SharedResource> L
+@inject EnglishStrings En
 
 @if (_acc is null)
 {
@@ -23,9 +24,9 @@ else
     <PageTitle>@L["App_EditorTitle"] @_app · vIPI</PageTitle>
     <div class="wrap struct">
         <div class="breadcrumb">
-            <a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> ›
-            <a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@L["App_NonRemotized"]</a> ›
-            <a href="/services/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app">@_app</a> › <b>@L["Common_Editor"]</b>
+            <a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> ›
+            <a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@En["App_NonRemotized"]</a> ›
+            <a href="/services/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app">@_app</a> › <b>@En["Common_Editor"]</b>
         </div>
 
         @if (_notFound)

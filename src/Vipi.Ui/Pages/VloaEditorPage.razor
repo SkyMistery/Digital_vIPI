@@ -1,9 +1,10 @@
-﻿@page "/services/vsop/{Acc}/vloa/editor"
+@page "/services/vsop/{Acc}/vloa/editor"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IStationResolver Stations
 @inject IStructureEditingService Structure
 @inject IStringLocalizer<SharedResource> L
+@inject EnglishStrings En
 
 @if (_acc is null)
 {
@@ -14,8 +15,8 @@ else if (_foreign.Length > 0)
     <PageTitle>@L["Vle_EditorTitle"] @Acc.ToUpperInvariant() ↔ @_foreign · vIPI</PageTitle>
     <div class="wrap struct">
         <div class="breadcrumb">
-            <a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> ›
-            <a href="/services/vsop/@Acc.ToLowerInvariant()/vloa">vLOA</a> › <b>@_foreign · @L["Common_Editor"]</b>
+            <a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> ›
+            <a href="/services/vsop/@Acc.ToLowerInvariant()/vloa">vLOA</a> › <b>@_foreign · @En["Common_Editor"]</b>
         </div>
         <VloaEditor Home="@Acc.ToUpperInvariant()" Foreign="@_foreign" />
     </div>
@@ -24,7 +25,7 @@ else
 {
     <PageTitle>@L["Vle_EditorTitle"] @_acc.Code · vIPI</PageTitle>
     <div class="wrap">
-        <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>@L["Vle_EditorVloa"]</b></div>
+        <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> › <b>@En["Vle_EditorVloa"]</b></div>
         <div class="doc-head">
             <div><h1 class="page-h1" style="margin-bottom:2px">@L["Vle_EditorVloa"] — @_acc.Name</h1><p class="muted" style="margin:0">@(string.Format(L["Vle_ChooseLoa"].Value, _acc.Code))</p></div>
         </div>

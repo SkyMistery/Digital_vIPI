@@ -1,4 +1,4 @@
-﻿@* Vista rapida aeroporto (inline nella vista live ACC/APP). Mostra ESATTAMENTE ciò che è nel
+@* Vista rapida aeroporto (inline nella vista live ACC/APP). Mostra ESATTAMENTE ciò che è nel
    documento pubblico dell'aeroporto (release-aware), coerente con /services/vsop/{acc}/airports?icao=:
    - TA / TL·QNH → dal DocumentView pubblico (BuildAirportVipiAsync live:false, rispetta la release del ciclo)
    - Piste suggerite + SID → dal profilo strutturato (come /airports)
@@ -20,7 +20,7 @@
     <div class="block">
         <div class="rap-h" style="justify-content:space-between">
             <span><b>@Icao</b> <span class="muted">vista rapida</span></span>
-            <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@Icao">Apri vIPI completa →</a>
+            <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@Icao">@L["Apt_OpenFullVipi"] →</a>
         </div>
         <p class="muted" style="margin:0">Nessun documento pubblicato per @Icao.</p>
     </div>
@@ -30,7 +30,7 @@ else
     <div class="block">
         <div class="rap-h" style="justify-content:space-between">
             <span><b>@Icao</b> <span class="muted">vista rapida</span></span>
-            <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@Icao">Apri vIPI completa →</a>
+            <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@Icao">@L["Apt_OpenFullVipi"] →</a>
         </div>
 
         <div class="rap-quick">
@@ -44,8 +44,8 @@ else
             <div class="rap-box"><span class="muted">TL@(_qnh is int q ? $" · QNH {q}" : "")</span><b>@TlNow()</b></div>
             @* Il vento accanto alla pista suggerita: la pista si sceglie per il vento, e senza vederlo la
                riga «piste suggerite» e' un numero da prendere per buono. *@
-            <div class="rap-box"><span class="muted">Vento</span><b>@WindText()</b></div>
-            <div class="rap-box"><span class="muted">Piste suggerite</span><b>@SuggText()</b></div>
+            <div class="rap-box"><span class="muted">@L["Apt_Wind"]</span><b>@WindText()</b></div>
+            <div class="rap-box"><span class="muted">@L["Apt_SuggestedRunways"]</span><b>@SuggText()</b></div>
         </div>
 
         @if (_runways.Count > 0)
@@ -167,7 +167,7 @@ else
     private string ChiPresiede()
     {
         var p = Presidency!;
-        if (p.Unicom) return "nessuno online — UNICOM";
+        if (p.Unicom) return L["Apt_NobodyOnline"];
 
         var locali = string.Join(" · ", p.Local.Select(s => s.Callsign));
         if (p.Covering is null) return locali;

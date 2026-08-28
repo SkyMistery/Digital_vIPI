@@ -1,4 +1,4 @@
-﻿@page "/services/vsop/aor3d/{Kind}/{Key}"
+@page "/services/vsop/aor3d/{Kind}/{Key}"
 @layout SopLayout
 @using Vipi.Ui.Shared
 @inject IAccDocumentService AccDoc
@@ -7,6 +7,7 @@
 @inject IVloaDerivationService VloaDeriv
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
+@inject EnglishStrings En
 
 @* Pagina 3D dedicata dell'AoR (schermo quasi intero). Sorgente-neutra: risolve l'AccAorView dal discriminatore Kind
    (acc = intera ACC unendo i blocchi · app = APP standalone · vloa = coppia vLOA) e la rende con AccAor3d.
@@ -17,9 +18,9 @@
    Per rimettere il link: revert del commit «AoR 3D: rimosso il link Apri pagina». *@
 
 <div class="wrap">
-    <PageTitle>@L["Aor3d_PageTitle"] · @_title · IVAO Italia</PageTitle>
+    <PageTitle>@L["Aor3d_PageTitle"] · @_title · IVAO Italy</PageTitle>
 
-    <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <b>@L["Aor3d_Crumb"]</b> › @_title</div>
+    <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <b>@En["Aor3d_Crumb"]</b> › @_title</div>
 
     @if (_view.Sectors is { Count: > 0 })
     {
@@ -31,8 +32,8 @@
         <div class="callout warning" style="margin-top:14px">
             <span class="cic"><Icon Name="map" Size="18" /></span>
             <div>
-                <p class="ct">AoR non disponibile</p>
-                Nessun poligono per i settori di <b>@Key</b> (non ancora importati/pubblicati o sorgente sconosciuta).
+                <p class="ct">@L["Aor3d_NotAvailable"]</p>
+                @L["Aor3d_NoPolygonFor"] <b>@Key</b> @L["Aor3d_NoPolygonWhy"]
             </div>
         </div>
     }

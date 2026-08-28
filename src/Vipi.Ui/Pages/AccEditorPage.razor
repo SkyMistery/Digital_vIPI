@@ -1,4 +1,4 @@
-﻿@page "/services/vsop/{Acc}/editor"
+@page "/services/vsop/{Acc}/editor"
 @layout SopLayout
 @rendermode InteractiveServer
 @implements IDisposable
@@ -12,6 +12,7 @@
 @inject ILogger<AccEditorPage> Logger
 @inject IDocRoutesRegistry DocRoutes
 @inject IStringLocalizer<SharedResource> L
+@inject EnglishStrings En
 
 @if (_acc is null)
 {
@@ -22,8 +23,8 @@ else
     <PageTitle>@L["Acc_EditorTitle"] @_accName</PageTitle>
     <div class="wrap struct">
         <div class="breadcrumb">
-            <a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_accName</a> ›
-            <a href="/services/vsop/@Acc.ToLowerInvariant()/vipi">vIPI</a> › <b>@L["Common_Editor"]</b>
+            <a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_accName</a> ›
+            <a href="/services/vsop/@Acc.ToLowerInvariant()/vipi">vIPI</a> › <b>@En["Common_Editor"]</b>
         </div>
 
         @if (_denied)

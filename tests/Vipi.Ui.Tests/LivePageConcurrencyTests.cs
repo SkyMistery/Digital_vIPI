@@ -70,6 +70,9 @@ public class LivePageConcurrencyTests : TestContext
         Services.AddSingleton<ILiveViewService>(servizio);
         Services.AddSingleton<IDocRoutesRegistry>(new DocRoutesRegistry(Array.Empty<IDocKindRoutes>()));
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        // La briciola di pane legge le stringhe in INGLESE FISSO (regole-lingua R3): senza questo
+        // servizio la pagina non si costruisce nemmeno.
+        Services.AddSingleton(new EnglishStrings());
         JSInterop.Mode = JSRuntimeMode.Loose;
 
         var cut = RenderComponent<LivePage>(p => p.Add(x => x.Callsign, "LIBB_ES_CTR"));

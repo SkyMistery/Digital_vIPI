@@ -1,4 +1,4 @@
-﻿@* Resa live dei coordinamenti risolti: UNA COLONNA PER TIPO DI TRAFFICO (arrivi · partenze · sorvoli · …),
+@* Resa live dei coordinamenti risolti: UNA COLONNA PER TIPO DI TRAFFICO (arrivi · partenze · sorvoli · …),
    UNA RIGA PER PUNTO. Carta: docs/feature/2026-08-23-live-coordinamenti-a-colonne.md.
 
    ⚠️ Qui NON si raggruppa per mittente. `LiveStationParts.TransfersAsync` filtra
@@ -62,7 +62,7 @@
 
 @if (tutte.Count == 0)
 {
-    <p class="help">@(Flows.Count == 0 ? EmptyText : L["Live_OnlyUnicom"])</p>
+    <p class="help">@(Flows.Count == 0 ? (EmptyText ?? L["Coord_None"].Value) : L["Live_OnlyUnicom"].Value)</p>
 }
 else if (mostrate.Count == 0)
 {
@@ -122,7 +122,9 @@ else
 
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<ResolvedTransferFlow> Flows { get; set; } = Array.Empty<ResolvedTransferFlow>();
-    [Parameter] public string EmptyText { get; set; } = "Nessun coordinamento.";
+    /// <summary>Che cosa dire quando non c'è nessun flusso. ⚠️ Nullo = lo dice questo componente nella
+    /// lingua di chi legge: un default scritto qui sarebbe una stringa italiana che nessun resx conosce.</summary>
+    [Parameter] public string? EmptyText { get; set; }
 
     /// <summary>Callsign appena passati online/offline: le righe che li riguardano si evidenziano, così un
     /// cambio di destinatario non passa inosservato mentre stai guardando altrove.</summary>

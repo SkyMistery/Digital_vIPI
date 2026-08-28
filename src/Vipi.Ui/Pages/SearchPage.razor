@@ -1,15 +1,16 @@
-﻿@page "/services/vsop/search"
+@page "/services/vsop/search"
 @layout SopLayout
 @rendermode InteractiveServer
 @using System.Net
 @using System.Text.RegularExpressions
 @inject ISearchService Search
 @inject IStringLocalizer<SharedResource> L
+@inject EnglishStrings En
 
-<PageTitle>@L["Search_Title"] · vIPI IVAO Italia</PageTitle>
+<PageTitle>@L["Search_Title"] · vIPI IVAO Italy</PageTitle>
 
 <div class="wrap" style="max-width:1000px">
-    <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <b>@L["Search_Title"]</b></div>
+    <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <b>@En["Search_Title"]</b></div>
     @* ⚠️ Fuori campo e non a schermo: qui il titolo lo dice già la briciola di pane, e stamparne uno vero
        sopra il campo di ricerca vorrebbe dire ripetere la stessa parola due volte a 20px di distanza. Ma una
        pagina senza <h1> non ha un titolo per chi la naviga per intestazioni, ed è una pagina di RISULTATI:

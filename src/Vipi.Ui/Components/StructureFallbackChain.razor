@@ -1,3 +1,4 @@
+@inject IStringLocalizer<SharedResource> L
 @* Catena di fallback (antenati per callsign) di un nodo di struttura. Markup dichiarativo: Blazor encoda i
    valori dinamici (no MarkupString, no XSS). Le righe sono già calcolate dalla pagina. *@
 
@@ -5,7 +6,7 @@
     <div class="muted" style="font-size:12px;margin-bottom:4px">Catena di fallback:</div>
     @if (Rows.Count == 0)
     {
-        <div class="help">Radice (nessun padre): copre sé stesso top-down.</div>
+        <div class="help">@L["Struct_RootNoParent"]</div>
     }
     else
     {

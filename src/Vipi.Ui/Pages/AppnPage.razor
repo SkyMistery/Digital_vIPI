@@ -1,4 +1,4 @@
-﻿@page "/services/vsop/{Acc}/apps/vipi"
+@page "/services/vsop/{Acc}/apps/vipi"
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IAppDocumentService AppDoc
@@ -10,6 +10,7 @@
 @inject IAiracService Airac
 @inject IStringLocalizer<SharedResource> L
 @inject Vipi.Application.Translation.DocumentTranslator Translator
+@inject EnglishStrings En
 @using System.Text.Json
 @using System.Globalization
 @using Vipi.Ui.Shared
@@ -24,10 +25,10 @@ else if (_view is null)
 }
 else
 {
-    <PageTitle>@PreviewTitlePrefix()@_displayName · vIPI IVAO Italia</PageTitle>
+    <PageTitle>@PreviewTitlePrefix()@_displayName · vIPI IVAO Italy</PageTitle>
 
     <div class="wrap">
-        <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@L["AccLanding_Apps"]</a> › <b>@_app</b></div>
+        <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@En["AccLanding_Apps"]</a> › <b>@_app</b></div>
         <div class="doc-layout">
             <aside class="toc" aria-label="@L["Doc_TocAria"]">
                 <p class="toc-h">@L["Common_Contents"]</p>

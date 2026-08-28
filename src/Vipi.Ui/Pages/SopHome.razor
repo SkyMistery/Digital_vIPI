@@ -1,4 +1,4 @@
-﻿@page "/services/vsop"
+@page "/services/vsop"
 @layout SopLayout
 @*  ⚠️ NIENTE @@rendermode, ed è una scelta: questa pagina non ha un solo comando.
 
@@ -19,11 +19,12 @@
 @inject IEditAuthorizationService Authz
 @inject IOnlineAtcProvider Online
 @inject IStringLocalizer<SharedResource> L
+@inject EnglishStrings En
 
-<PageTitle>vIPI · IVAO Italia</PageTitle>
+<PageTitle>vIPI · IVAO Italy</PageTitle>
 
 <div class="wrap">
-    <div class="breadcrumb"><a href="/services">‹ @L["Services_Title"]</a></div>
+    <div class="breadcrumb"><a href="/services">‹ @En["Services_Title"]</a></div>
     <div class="hero">
         <span class="airac"><Icon Name="calendar" /> AIRAC @Airac.GetCycle(DateTime.UtcNow)</span>
         <h1>@L["Home_Heading"]</h1>

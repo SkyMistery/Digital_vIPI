@@ -66,7 +66,10 @@ public class TraduzioniCongelateTests
 
         var esito = await new DocumentTranslator(memoria).TranslateAsync(vista, "en", "it");
 
-        Assert.Equal("Lettera d'accordo", esito.View.Title);
+        // ⚠️ Il TITOLO no: e' il nome del documento e non si traduce (regole-lingua R4), nemmeno se una
+        // release vecchia se l'era congelato tradotto. Lo snapshot puo' portarsela dietro, la pagina non
+        // la usa.
+        Assert.Equal("Letter of Agreement", esito.View.Title);
         Assert.Equal("Scopo", esito.View.Sections[0].Title);
         Assert.Equal("La presente lettera si applica.", esito.View.Sections[0].Blocks[0].Body);
         Assert.Equal(0, memoria.Letture);
