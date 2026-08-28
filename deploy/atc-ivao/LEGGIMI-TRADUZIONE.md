@@ -31,17 +31,17 @@ Misurato sul `vipi.db` reale il 28 agosto 2026:
 
 | | |
 |---|---|
-| Prosa dei documenti (corpus intero, una direzione) | **499 campi, 23 344 caratteri** |
-| Descrizioni e attivazioni delle aree regolamentate | 230 aree, 35 056 caratteri — ma **9 descrizioni e 6 attivazioni distinte** |
+| Prosa dei documenti (corpus editoriale) | **499 campi, 23 344 caratteri** |
+| Prosa vera dei quindici vSOP militari | **74 401 caratteri** |
+| Descrizioni e attivazioni delle aree regolamentate | 230 aree, 35 056 caratteri — ma appena **9 descrizioni e 6 attivazioni distinte** (il dedup le rende quasi gratuite) |
 | Direzioni da tradurre | **due**: `it→en` per le vIPI, `en→it` per le vLOA (che nascono in inglese) |
 
-Ordine di grandezza del **primo giro**: qualche decina di migliaia di caratteri. Dopo, si paga solo il
-**nuovo**: la memoria è indicizzata sull'impronta del testo normalizzato, e una frase già tradotta non
-riparte mai — nemmeno se compare in dieci documenti diversi, nemmeno se cambia un a-capo o un apostrofo
-tipografico.
+**Semina completa misurata: ~98 000 caratteri.** Dopo, si paga solo il **nuovo**: la memoria è indicizzata
+sull'impronta del testo normalizzato, e una frase già tradotta non riparte mai — nemmeno se compare in
+dieci documenti diversi, nemmeno se cambia un a-capo o un apostrofo tipografico.
 
-Sta dentro la franchigia gratuita di entrambi i motori con largo margine. **Il costo non è il problema**;
-il motivo per cui c'è un tetto è un altro, ed è scritto più sotto.
+La franchigia una tantum di DeepL è **un milione** di caratteri: dieci volte tutto quello che c'è.
+**Il costo non è il problema**; il motivo per cui c'è un tetto è un altro, ed è scritto più sotto.
 
 ## I due motori
 
@@ -60,12 +60,19 @@ o non risponde, il secondo subentra da sé, e il registro dice chi ha tradotto d
 Sul secondo tranello il codice si difende da sé: se `Translation:DeepL:BaseUrl` è vuoto, l'indirizzo viene
 **dedotto dalla chiave**. Non riempitelo, a meno che DeepL non cambi idea.
 
+⚠️ **Il 403 di Azure vuol dire due cose, con azioni opposte**, e le distingue solo il codice dentro il
+corpo della risposta: `403000` è la **chiave** (va rigenerata), `403001` è la **quota** (va aspettato il
+mese, o va usato l'altro motore). Il rapporto del giro riporta il dettaglio così com'è arrivato.
+
 **Ne basta uno.** Con una chiave sola la catena funziona, semplicemente non ha una riserva.
 
 ## Che cosa fare, in cinque minuti
 
-**1. Procuratevi una chiave.** Per Azure servono due valori: la chiave e la **regione** della risorsa
-(es. `westeurope`). Per DeepL basta la chiave.
+**1. Procuratevi una chiave.** Per Azure servono due valori: la chiave e la **regione** della risorsa — la
+nostra è **`italynorth`**. Per DeepL basta la chiave.
+
+⚠️ Se dovete crearne una nuova: **West Europe rifiuta le risorse Cognitive Services nuove**
+(«region not accepting new customers»). Non è un errore vostro, è quella regione.
 
 **2. Aggiungetela al file `.json` della cartella `segreti`** — lo stesso file dove stanno già la password
 del database e le credenziali IVAO, quello dal nome non indovinabile
@@ -78,7 +85,7 @@ del database e le credenziali IVAO, quello dal nome non indovinabile
   "Ivao":     { "ClientId": "…", "ClientSecret": "…" },
 
   "Translation": {
-    "Azure": { "ApiKey": "LA-CHIAVE-VERA", "Region": "westeurope" }
+    "Azure": { "ApiKey": "LA-CHIAVE-VERA", "Region": "italynorth" }
   }
 }
 ```
@@ -107,7 +114,7 @@ accorgere Passenger del file (vedi la nota in fondo a LEGGIMI-SEGRETI).
 
 ```
   Translation:Enabled ........ true
-  Translation:Azure:ApiKey ... valorizzato (32 caratteri)  (regione: westeurope)
+  Translation:Azure:ApiKey ... valorizzato (32 caratteri)  (regione: italynorth)
   Translation:DeepL:ApiKey ... VUOTO
 ```
 
@@ -166,13 +173,17 @@ suo. È annotato in `docs/lavori-aperti.md`.
 
 ## In sviluppo
 
+Sulla macchina di sviluppo **è già configurata** dal 27 agosto 2026 (user-secrets di `Vipi.Host`,
+`Translation:Enabled` acceso, Azure con la sua regione): queste righe servono a chi parte da zero, o a
+ricostruirla dopo una macchina nuova.
+
 Non toccate `appsettings.Development.json`: la chiave si mette nei **user-secrets**, che non finiscono nel
 repository.
 
 ```
 dotnet user-secrets --project src/Vipi.Host set "Translation:Enabled" "true"
 dotnet user-secrets --project src/Vipi.Host set "Translation:Azure:ApiKey" "…"
-dotnet user-secrets --project src/Vipi.Host set "Translation:Azure:Region" "westeurope"
+dotnet user-secrets --project src/Vipi.Host set "Translation:Azure:Region" "italynorth"
 ```
 
 ⚠️ **Lasciatela spenta se non vi serve.** Un ambiente di sviluppo che traduce spende franchigia vera per
