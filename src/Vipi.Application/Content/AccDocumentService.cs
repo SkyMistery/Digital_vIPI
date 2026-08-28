@@ -144,8 +144,10 @@ public sealed class AccDocumentService : IAccDocumentService
         if (rel is not null && DeserializeSnapshot(rel.PayloadJson) is { } snapRaw)
         {
             var blocks = AccDocumentAssembler.Assemble(snapRaw);
+            // Lingua e traduzioni congelate viaggiano con lo snapshot: la pagina deve poter sapere da che
+            // lingua si parte e che cosa era già tradotto quando si è pubblicato (carta bilingue §7-8).
             return new AccDocumentModel(id.DocumentId ?? 0, 0, IsDraft: false, accCode, id.AccName, blocks,
-                rel.ReleaseAiracCycle);
+                rel.ReleaseAiracCycle, snapRaw.Language, snapRaw.Translations);
         }
 
         return null;
@@ -163,7 +165,7 @@ public sealed class AccDocumentService : IAccDocumentService
         var name = (await _repo.ResolveAccDocumentIdentityAsync(accCode, ct))?.AccName ?? accCode;
         var blocks = AccDocumentAssembler.Assemble(raw);
         var data = new AccVipiData { AccCode = accCode, AccName = name, Blocks = blocks.Select(b => b.Block).ToList() };
-        return new AccReleaseView(data, rel.ReleaseAiracCycle);
+        return new AccReleaseView(data, rel.ReleaseAiracCycle, raw.Language, raw.Translations);
     }
 
     // Snapshot release ACC = DocReleasePayload (ramo Document, doc 08e-acc): estrae il RawDocument congelato.

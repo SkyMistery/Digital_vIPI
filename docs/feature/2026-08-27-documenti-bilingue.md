@@ -353,3 +353,31 @@ non ha minuscole attorno, non ha contesto, e vale come dato e non come testo.
 
 **Misura**: 28 segmenti su 218 di quel documento sono identificatori puri. Adesso non partono più, e sono
 anche caratteri risparmiati.
+
+## Che cosa ha insegnato la prima pagina PUBBLICA (28 agosto 2026)
+
+La slice 6 era segnata «live» e lo era davvero — ma su **due** viewer su cinque. Chiesto perché la vIPI di
+Crotone (`/services/vsop/libb/airports?icao=LIBC`) non mostrava traccia di traduzione, la risposta non era
+nei dati: `DocumentTranslator` era iniettato **solo** in `MilDocumentPage` e `VloaListPage`. L'aeroporto,
+l'APP non remotizzato e la vIPI ACC non lo chiamavano affatto. Nessun test poteva accorgersene, perché il
+traduttore da solo funzionava.
+
+| | Che cosa | Dove sta la correzione |
+|---|---|---|
+| ⚠️⚠️ | **Tre viewer su cinque non traducevano.** Il documento restava in italiano dentro un'interfaccia inglese, senza avviso: per il prodotto era «niente da tradurre» | `AeroportoPage`, `AppnPage`, `AccVipiPage`: traduzione + `<TranslationNotice>`, come le altre due |
+| ⚠️⚠️ | **La vIPI ACC non è un `DocumentView`**: vive a blocchi, e il traduttore di documento non la sa leggere | `AccVipiTranslator` sopra `DocumentTranslator.PreparaAsync`: la memoria, la copertura e la preferenza per le congelate restano una implementazione sola |
+| ⚠️ | **La lingua sorgente era CABLATA nella pagina** («it» il militare, «en» la vLOA): un secondo posto che dichiara la lingua, e che può contraddire il documento | `DocumentTranslator.CodiceSorgente(view.Language, predefinita)`: la famiglia dice solo in che lingua **nasce**, per gli snapshot salvati prima del campo |
+| ⚠️ | **Titoli tradotti al 100% e testate ancora italiane.** Il viewer d'aeroporto non mostra il titolo del DOCUMENTO ma quello del **catalogo**, che è una stringa italiana cablata: «Regole piste» in mezzo alla prosa inglese, e la copertura diceva «completa» perché quei titoli al traduttore non erano mai passati davanti | `TranslatedDocument.Pass` + `SectionHeading` che traduce anche il titolo di catalogo, con la stessa impronta |
+
+⚠️ **Il filo comune**: quattro difetti su quattro erano **davanti agli occhi e invisibili ai test**. Il
+traduttore, la memoria, la copertura e il congelamento avevano ognuno i suoi test verdi; quello che mancava
+era **chi chiama chi**, e quello si vede solo aprendo la pagina. Vale la regola già scritta per le
+regressioni Blazor: la verifica è guidare il flusso reale, non la suite.
+
+**Verificato il 28 agosto 2026** su copia del `vipi.db` (host su :5199, `?culture=`): aeroporto LIBC,
+vIPI ACC LIBB, APP LIBA_APP — avviso e testate in inglese; vLOA LDZO — tradotta in italiano e originale in
+inglese, che è il verso opposto e la prova che la sorgente arriva dal documento.
+
+⚠️ **Quello che la pagina vera ha fatto vedere, e non è codice**: la memoria contiene rese **plausibili e
+sbagliate** — «Regole piste» → *Slope rules*, «Minime di vettoramento» → *Minimum vectoring*. Il badge le
+dichiara non riviste, ed è esattamente il lavoro che la §5 aspetta da una persona con un nome.

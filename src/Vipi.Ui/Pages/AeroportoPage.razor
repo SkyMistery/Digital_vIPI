@@ -20,6 +20,7 @@
    servire due sole cose: il filtro dell'elenco e il selettore di pista delle SID. Ora sono due ISOLE
    (<AirportListPanel> e <AirportSids>), e il circuito lo apre solo chi arriva davvero a quelle (doc 14 §3g). *@
 @using System.Text.Json
+@using System.Globalization
 @using Vipi.Application.Content
 @using Vipi.Application.Weather
 @inject IStationResolver Stations
@@ -98,6 +99,9 @@ else
                                    DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}&as=draft")" />
                 }
 
+                @* Tradotto a macchina e non ancora riletto, o tradotto a metà: chi legge deve saperlo. *@
+                <TranslationNotice Coverage="_copertura" />
+
                 @* ---------- Le sezioni, nell'ORDINE DEL DOCUMENTO ----------
                    Come nelle altre tre famiglie: si itera `_view.Sections` e si dispaccia per chiave. Fino alla
                    carta 2026-08-26 questa pagina aveva la sequenza CABLATA (meteo → TA+frequenze affiancate →
@@ -156,6 +160,11 @@ else
 
     private AccInfo? _acc;
     private DocumentView? _view;
+    private Vipi.Application.Translation.TranslationCoverage _copertura =
+        Vipi.Application.Translation.TranslationCoverage.Nessuna;
+    // La passata di traduzione di QUESTA vista: la usano le testate prese dal catalogo (vedi SectionHeading).
+    private Vipi.Application.Translation.TranslationPass _passata =
+        Vipi.Application.Translation.TranslationPass.Nessuna;
     private bool _listMode;
     private bool _canEdit;
     // Taglio militare/civile dell'elenco: uno alla volta, ricliccato torna a «tutti».
@@ -208,6 +217,9 @@ else
     private Vipi.Application.Live.IAirportPresidencyService Presidency = default!;
     private IEditAuthorizationService Authz = default!;
     private IReleaseService Releases = default!;
+    // ⚠️ Anche il traduttore legge il database (la memoria di traduzione): va preso dallo scope di QUESTA
+    // pagina come tutti gli altri, o si rimette in coda sul DbContext della richiesta — vedi la nota in testa.
+    private Vipi.Application.Translation.DocumentTranslator Translator = default!;
 
     protected override void OnInitialized()
     {
@@ -220,6 +232,7 @@ else
         Presidency = ScopedServices.GetRequiredService<Vipi.Application.Live.IAirportPresidencyService>();
         Authz = ScopedServices.GetRequiredService<IEditAuthorizationService>();
         Releases = ScopedServices.GetRequiredService<IReleaseService>();
+        Translator = ScopedServices.GetRequiredService<Vipi.Application.Translation.DocumentTranslator>();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -237,6 +250,8 @@ else
         _icao = Icao!.ToUpperInvariant();
         _mode = PreviewMode.Parse(As);
         _relCycle = null;
+        _copertura = Vipi.Application.Translation.TranslationCoverage.Nessuna;
+        _passata = Vipi.Application.Translation.TranslationPass.Nessuna;
         _presidency = await Presidency.ResolveAsync(_icao);
         switch (_mode.Kind)
         {
@@ -255,7 +270,6 @@ else
                 break;
         }
         if (_view is null) return;
-        _sezioni = AirportLegacySections.ForView(_view.Sections);
         _canEdit = await Authz.CanEditAccAsync(_acc.Code);   // tasto Editor solo a chi può editare l'ACC
 
         _wx = await Weather.GetAsync(_icao);
@@ -283,6 +297,29 @@ else
         _windDir = _metar?.Wind is { Calm: false, DirectionDeg: int d } ? d : null;
         _windKt = _metar?.Wind?.SpeedKt ?? 0;
         Recompute();
+
+        // ---- Lettura bilingue (carta 2026-08-27 §7) --------------------------------------------------
+        // ⚠️ La lingua di lettura è quella dell'INTERFACCIA, non un secondo selettore: un documento italiano
+        // dentro una pagina inglese è una schermata mezza tradotta. La sceglie la chip della barra, che
+        // scrive il cookie di cultura — l'unico modo perché la scelta sopravviva al circuito, che su
+        // /_blazor non porta ?culture=.
+        //
+        // ⚠️ La sorgente la dice il DOCUMENTO, non questa pagina: un aeroporto nasce in italiano, ma se un
+        // giorno ne nascesse uno inglese cablare «it» qui vorrebbe dire tradurre l'inglese come italiano —
+        // e il lettore vedrebbe la memoria mancare su ogni frase senza capire perché.
+        //
+        // ⚠️ IN FONDO, non appena caricato il documento: le sezioni derivate e le piste si leggono
+        // dall'originale (ids, identificatori, JSON dei blocchi), la traduzione porta la PROSA. È la stessa
+        // sequenza del vSOP militare, ed è misurata: tradurre prima significherebbe cercare «regulated» in
+        // un documento che nel frattempo dice altro.
+        var lettore = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+        var tradotto = await Translator.TranslateAsync(_view, Vipi.Domain.Language.It, lettore);
+        _view = tradotto.View;
+        _copertura = tradotto.Coverage;
+        _passata = tradotto.Pass;   // serve alle testate di catalogo, che al traduttore non passano davanti
+
+        // Le sezioni da rendere si ricavano DOPO la traduzione: è la vista che il lettore vedrà davvero.
+        _sezioni = AirportLegacySections.ForView(_view.Sections);
     }
 
                 /// <summary>Gli ATC su questo scalo, ATIS escluso: un ATIS acceso non è una posizione presidiata.
@@ -398,8 +435,22 @@ else
     /// un ciclo passato deve vedere il documento com'era, ma le sezioni riconciliate hanno il titolo nuovo e
     /// devono leggersi uguali alle altre. Quindi: titolo del catalogo se la chiave è del catalogo.
     /// </summary>
-    private static string SectionHeading(SectionView s) =>
-        SectionCatalog.Find(SectionProfile.Airport, s.SectionKey)?.Title ?? s.Title;
+    /// <summary>
+    /// La testata di una sezione: quella del CATALOGO se la sezione è di catalogo, altrimenti quella del
+    /// documento.
+    ///
+    /// <para>⚠️ <b>Anche il titolo di catalogo passa dalla traduzione</b>, e senza questo passaggio la
+    /// pagina restava a metà: i titoli del catalogo sono stringhe italiane cablate, quindi su un documento
+    /// tradotto per intero si leggeva «Regole piste» in mezzo alla prosa inglese — visto a schermo su
+    /// LIBC il 28 agosto 2026. Il titolo del documento, che di norma è lo stesso testo, la sua traduzione ce
+    /// l'ha già in memoria: qui si cerca con la stessa impronta. Se manca resta il titolo di catalogo, come
+    /// prima.</para>
+    /// </summary>
+    private string SectionHeading(SectionView s)
+    {
+        var catalogo = SectionCatalog.Find(SectionProfile.Airport, s.SectionKey)?.Title;
+        return catalogo is null ? s.Title : _passata.Testo(catalogo) ?? catalogo;
+    }
 
     private void Recompute()
     {

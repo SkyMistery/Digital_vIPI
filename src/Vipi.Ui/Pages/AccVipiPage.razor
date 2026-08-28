@@ -8,6 +8,8 @@
 @inject IOnlineAtcProvider Online
 @inject IAiracService Airac
 @inject IStringLocalizer<SharedResource> L
+@inject Vipi.Application.Translation.AccVipiTranslator Translator
+@using System.Globalization
 @using Vipi.Ui.Shared
 
 @if (_acc is null)
@@ -62,6 +64,9 @@ else
                                    PublicHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vipi")"
                                    DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vipi?as=draft")" />
                 }
+
+                @* Tradotto a macchina e non ancora riletto, o tradotto a metà: chi legge deve saperlo. *@
+                <TranslationNotice Coverage="_copertura" />
 
                 @foreach (var block in _data.Blocks)
                 {
@@ -131,6 +136,14 @@ else
     private string? _relCycle;      // anteprima release: ciclo di quella release
     private string? _docCycle;      // vista pubblica: ciclo della release effettiva da cui viene lo snapshot
 
+    // Lettura bilingue (carta 2026-08-27 §7): la lingua in cui il documento è REDATTO e le traduzioni che la
+    // release ha congelato. Nulle in bozza — una bozza non ha ancora congelato niente, e la sorgente è quella
+    // in cui la famiglia nasce.
+    private Vipi.Domain.Language? _lingua;
+    private Dictionary<string, Dictionary<string, string>>? _congelate;
+    private Vipi.Application.Translation.TranslationCoverage _copertura =
+        Vipi.Application.Translation.TranslationCoverage.Nessuna;
+
     /// <summary>Ciclo AIRAC da mostrare: quello del documento mostrato; in lavorazione (bozza) quello corrente.</summary>
     private string Cycle() => _relCycle ?? _docCycle ?? Airac.GetCycle(DateTime.UtcNow);
 
@@ -159,6 +172,9 @@ else
         _blocks = null;
         _useFrozen = false;
         _notAvailable = false;
+        _lingua = null;
+        _congelate = null;
+        _copertura = Vipi.Application.Translation.TranslationCoverage.Nessuna;
         switch (_mode.Kind)
         {
             case PreviewKind.Draft:
@@ -170,7 +186,7 @@ else
                 AccReleaseView? rv = null;
                 try { rv = await AccDoc.LoadForReleaseAsync(Acc, _mode.ReleaseId); }
                 catch (EditNotAllowedException) { }
-                if (rv is not null) { _data = rv.Data; _relCycle = rv.AiracCycle; }   // anteprima release: derive live (no ids)
+                if (rv is not null) { _data = rv.Data; _relCycle = rv.AiracCycle; _lingua = rv.Language; _congelate = rv.Translations; }   // anteprima release: derive live (no ids)
                 else { _mode = default; LoadViewModel(await AccDoc.LoadForViewAsync(Acc)); }
                 break;
             default:
@@ -208,6 +224,18 @@ else
                 _configTables[b.Key] = await Profile.DeriveConfigTableAsync(Acc, b, _root);
             }
         }
+
+        // ---- Lettura bilingue (carta 2026-08-27 §7) --------------------------------------------------
+        // ⚠️ La lingua di lettura è quella dell'INTERFACCIA, non un secondo selettore: la sceglie la chip
+        // della barra, che scrive il cookie di cultura — l'unico modo perché la scelta sopravviva al
+        // circuito, che su /_blazor non porta ?culture=.
+        //
+        // ⚠️ IN FONDO, dopo TUTTE le derivazioni: quelle leggono dai blocchi i settori membri, le
+        // configurazioni e le chiavi, e il traduttore i blocchi li modifica sul posto. Le sezioni derivate si
+        // traducono per conto loro, dalla parte dell'anagrafica (TranslationLookup): qui passa solo la prosa
+        // editoriale, che è la parte che questa pagina mostrava ancora in italiano soltanto.
+        var lettore = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+        _copertura = await Translator.TranslateAsync(_data, _lingua, lettore, _congelate);
     }
 
     // Vista pubblica dal modello ACC: dati + blocchi con Id sezione, e abilita la lettura frozen. model null (nessuna
@@ -218,6 +246,8 @@ else
         _data = model.Data;
         _blocks = model.Blocks;
         _docCycle = model.AiracCycle;
+        _lingua = model.Language;
+        _congelate = model.Translations;
         _useFrozen = true;
     }
 

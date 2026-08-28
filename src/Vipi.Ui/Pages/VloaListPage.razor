@@ -165,13 +165,16 @@ else
             // barra, che scrive il cookie di cultura -- ed e' l'unico modo perche' la scelta sopravviva al
             // circuito, che su /_blazor non porta ?culture=.
             //
-            // ⚠️ La vLOA nasce in INGLESE: qui la sorgente e' «en» e il bersaglio l'italiano. E' il verso
-            // opposto a quello delle vIPI, e va scritto, non dedotto.
+            // ⚠️ La vLOA nasce in INGLESE: per lei l'italiano e' il BERSAGLIO, non la sorgente — il verso
+            // opposto a quello delle vIPI. Ma la lingua la dice il DOCUMENTO, non questa pagina: «en» resta
+            // solo come lingua di nascita della famiglia, per gli snapshot salvati prima che il campo
+            // esistesse. Cablarla qui vorrebbe dire tradurre una vLOA redatta in italiano come se fosse
+            // inglese, e far mancare la memoria su ogni frase senza che si capisca perche'.
             _copertura = Vipi.Application.Translation.TranslationCoverage.Nessuna;
             if (_view is not null)
             {
                 var lettore = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
-                var tradotto = await Translator.TranslateAsync(_view, "en", lettore);
+                var tradotto = await Translator.TranslateAsync(_view, Vipi.Domain.Language.En, lettore);
                 _view = tradotto.View;
                 _copertura = tradotto.Coverage;
             }

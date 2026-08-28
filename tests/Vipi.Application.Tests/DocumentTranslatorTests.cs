@@ -18,50 +18,6 @@ namespace Vipi.Application.Tests;
 /// </summary>
 public class DocumentTranslatorTests
 {
-    private sealed class MemoriaFinta : ITranslationMemory
-    {
-        private readonly Dictionary<string, KnownTranslation> _note = new(StringComparer.Ordinal);
-        public int Letture { get; private set; }
-
-        public MemoriaFinta Nota(string sorgente, string bersaglio, bool riletta = false)
-        {
-            _note[TranslationText.Hash(sorgente)] =
-                new KnownTranslation(bersaglio, riletta ? TranslationOrigin.Human : TranslationOrigin.Machine, riletta);
-            return this;
-        }
-
-        public Task<IReadOnlyDictionary<string, KnownTranslation>> LookupAsync(
-            string s, string t, IReadOnlyCollection<string> hashes, CancellationToken ct = default)
-        {
-            Letture++;
-            return Task.FromResult<IReadOnlyDictionary<string, KnownTranslation>>(
-                hashes.Where(_note.ContainsKey).ToDictionary(h => h, h => _note[h], StringComparer.Ordinal));
-        }
-
-        public Task<int> SaveMachineAsync(string s, string t, string e,
-            IReadOnlyList<(string SourceText, string TargetText)> v, CancellationToken ct = default) => Task.FromResult(0);
-        public Task SaveHumanAsync(string s, string t, string a, string b, int u, CancellationToken ct = default) => Task.CompletedTask;
-
-        public Task<IReadOnlyList<TranslationReviewRow>> ListForReviewAsync(
-            string s, string t, bool solo, int limite, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<TranslationReviewRow>>(Array.Empty<TranslationReviewRow>());
-
-        public Task<IReadOnlyDictionary<string, string>> LoadAllAsync(
-            string s, string t, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyDictionary<string, string>>(
-                new Dictionary<string, string>(StringComparer.Ordinal));
-
-        public Task<IReadOnlySet<string>> LoadHumanHashesAsync(
-            string s, string t, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlySet<string>>(new HashSet<string>(StringComparer.Ordinal));
-
-        public Task<(int Totale, int DaRileggere)> ContaAsync(string s, string t, CancellationToken ct = default) =>
-            Task.FromResult((0, 0));
-
-        public Task<int> DocumentiToccatiAsync(string s, CancellationToken ct = default) => Task.FromResult(0);
-        public Task<long> CaratteriSpesiStimatiAsync(string e, CancellationToken ct = default) => Task.FromResult(0L);
-    }
-
     private static BlockView Blocco(int id, string? body = null, string? json = null) => new()
     {
         Id = id,
@@ -93,7 +49,7 @@ public class DocumentTranslatorTests
     [Fact]
     public async Task Titoli_e_corpi_passano_alla_lingua_di_chi_legge()
     {
-        var memoria = new MemoriaFinta()
+        var memoria = new MemoriaDiTraduzioneFinta()
             .Nota("Procedure generali", "General procedures")
             .Nota("Separazioni", "Separations")
             .Nota("Contatta la torre.", "Contact the tower.");
@@ -114,7 +70,7 @@ public class DocumentTranslatorTests
     {
         const string tabella =
             """{"columns":["Item","Value"],"unified":false,"rows":[{"cells":["Review cycle","Annually"]}]}""";
-        var memoria = new MemoriaFinta()
+        var memoria = new MemoriaDiTraduzioneFinta()
             .Nota("Review cycle", "Ciclo di revisione")
             .Nota("Item", "Voce");
 
@@ -134,7 +90,7 @@ public class DocumentTranslatorTests
     public async Task Cio_che_non_e_tradotto_resta_nella_lingua_sorgente_e_non_sparisce()
     {
         // ⚠️ Un documento a chiazze si legge male ma si legge; un documento con dei buchi MENTE.
-        var memoria = new MemoriaFinta().Nota("Prima frase.", "First sentence.");
+        var memoria = new MemoriaDiTraduzioneFinta().Nota("Prima frase.", "First sentence.");
         var doc = Documento("Titolo mai tradotto",
             Sezione("Sezione mai tradotta", Blocco(1, "Prima frase.\n\nSeconda frase mai tradotta.")));
 
@@ -148,7 +104,7 @@ public class DocumentTranslatorTests
     [Fact]
     public async Task La_copertura_dice_quanto_manca_e_quanto_e_da_rileggere()
     {
-        var memoria = new MemoriaFinta()
+        var memoria = new MemoriaDiTraduzioneFinta()
             .Nota("Uno.", "One.", riletta: true)
             .Nota("Due.", "Two.");                       // automatica, mai riletta
 
@@ -167,7 +123,7 @@ public class DocumentTranslatorTests
     [Fact]
     public async Task Se_tutto_e_stato_riletto_la_vista_non_va_marcata()
     {
-        var memoria = new MemoriaFinta().Nota("Titolo", "Title", true).Nota("Sezione", "Section", true);
+        var memoria = new MemoriaDiTraduzioneFinta().Nota("Titolo", "Title", true).Nota("Sezione", "Section", true);
         var doc = Documento("Titolo", Sezione("Sezione"));
         var esito = await new DocumentTranslator(memoria).TranslateAsync(doc, "it", "en");
 
@@ -182,7 +138,7 @@ public class DocumentTranslatorTests
     {
         // «Quel che e' scritto in italiano c'e' in inglese e viceversa»: la divergenza qui non e' un rischio
         // da sorvegliare, e' IRRAPPRESENTABILE -- non esiste un percorso che aggiunga o tolga una sezione.
-        var memoria = new MemoriaFinta().Nota("A", "AA");
+        var memoria = new MemoriaDiTraduzioneFinta().Nota("A", "AA");
         var doc = Documento("T",
             new SectionView
             {
@@ -208,7 +164,7 @@ public class DocumentTranslatorTests
         // silenzio, perche' il default e' quello «buono» e la pagina continua a rendersi. Effetto: su un
         // documento tradotto la chip pilota/ATC non compariva mai e il filtro non filtrava, e nessun test
         // se ne accorgeva perche' nessuno guardava i flag DOPO la traduzione.
-        var memoria = new MemoriaFinta().Nota("Titolo", "Title");
+        var memoria = new MemoriaDiTraduzioneFinta().Nota("Titolo", "Title");
         var doc = Documento("Titolo", new SectionView
         {
             Id = "s-1", Title = "Sezione", Depth = 0, SectionKey = "coordination",
@@ -231,7 +187,7 @@ public class DocumentTranslatorTests
     [Fact]
     public async Task Leggere_un_documento_nella_sua_lingua_non_costa_una_query()
     {
-        var memoria = new MemoriaFinta();
+        var memoria = new MemoriaDiTraduzioneFinta();
         var doc = Documento("Titolo", Sezione("Sezione", Blocco(1, "Testo")));
 
         var esito = await new DocumentTranslator(memoria).TranslateAsync(doc, "it", "it");
@@ -245,7 +201,7 @@ public class DocumentTranslatorTests
     {
         // Le derivate e le strutturate non hanno corpo nel view — lo disegna il componente. La loro prosa e'
         // generata da codice e si localizza con le RISORSE, non col traduttore automatico.
-        var memoria = new MemoriaFinta();
+        var memoria = new MemoriaDiTraduzioneFinta();
         var doc = Documento("T", new SectionView
         {
             Id = "s-1", Title = "AOR", Depth = 0, SectionKey = "aor",
@@ -261,12 +217,73 @@ public class DocumentTranslatorTests
     {
         // ⚠️ Una query per segmento sarebbe una corsa sul DbContext del circuito Blazor: il guasto
         // «second operation» gia' pagato sei volte su questo prodotto.
-        var memoria = new MemoriaFinta();
+        var memoria = new MemoriaDiTraduzioneFinta();
         var doc = Documento("T",
             Sezione("S1", Blocco(1, "a"), Blocco(2, "b")),
             Sezione("S2", Blocco(3, "c")));
 
         await new DocumentTranslator(memoria).TranslateAsync(doc, "it", "en");
         Assert.Equal(1, memoria.Letture);
+    }
+
+    // ---- La lingua sorgente la dichiara il DOCUMENTO -------------------------------------------------
+    //
+    // ⚠️ Fino al 28 agosto 2026 ogni pagina bilingue scriveva la sorgente a mano: «it» il vSOP militare,
+    // «en» la vLOA. Finché ogni famiglia nasce in una lingua sola la cosa regge — ma è un secondo posto che
+    // dichiara la lingua, e un secondo posto può contraddire il primo. Il guasto non fa rumore: la memoria
+    // viene cercata nella coppia sbagliata, torna vuota, e il lettore vede il documento intatto.
+
+    [Fact]
+    public void La_sorgente_e_quella_del_documento_quando_ce_l_ha()
+    {
+        Assert.Equal("en", DocumentTranslator.CodiceSorgente(Language.En, Language.It));
+        Assert.Equal("it", DocumentTranslator.CodiceSorgente(Language.It, Language.En));
+    }
+
+    [Fact]
+    public void Senza_lingua_sul_documento_vale_quella_in_cui_la_famiglia_nasce()
+    {
+        // I documenti salvati prima che il campo esistesse arrivano con la lingua nulla.
+        Assert.Equal("it", DocumentTranslator.CodiceSorgente(null, Language.It));
+        Assert.Equal("en", DocumentTranslator.CodiceSorgente(null, Language.En));
+    }
+
+    [Fact]
+    public async Task La_lingua_del_documento_batte_quella_della_famiglia()
+    {
+        // Una vLOA (famiglia inglese) redatta in italiano: si traduce DALL'ITALIANO, o la memoria si
+        // cercherebbe in «en→en» e il lettore vedrebbe il documento intatto senza capire perché.
+        var memoria = new MemoriaDiTraduzioneFinta().Nota("Riporta sottovento.", "Report downwind.");
+        var doc = new DocumentView
+        {
+            Title = "T",
+            AiracCycle = "2609",
+            Language = Language.It,
+            Sections = new[] { Sezione("S", Blocco(1, "Riporta sottovento.")) },
+        };
+
+        var esito = await new DocumentTranslator(memoria).TranslateAsync(doc, Language.En, "en");
+
+        Assert.Equal("it", memoria.UltimaSorgente);
+        Assert.Equal("en", memoria.UltimoBersaglio);
+        Assert.Equal("Report downwind.", esito.View.Sections[0].Blocks[0].Body);
+    }
+
+    [Fact]
+    public async Task Un_documento_letto_nella_sua_lingua_non_costa_una_query()
+    {
+        var memoria = new MemoriaDiTraduzioneFinta();
+        var doc = new DocumentView
+        {
+            Title = "T",
+            AiracCycle = "2609",
+            Language = Language.En,
+            Sections = new[] { Sezione("S", Blocco(1, "Contact the tower.")) },
+        };
+
+        var esito = await new DocumentTranslator(memoria).TranslateAsync(doc, Language.It, "en");
+
+        Assert.Equal(0, memoria.Letture);
+        Assert.Same(doc, esito.View);
     }
 }

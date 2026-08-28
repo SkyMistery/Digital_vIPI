@@ -222,6 +222,9 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.ITranslationMemory, EfTranslationMemory>();
         services.AddScoped<Vipi.Application.Abstractions.ITranslatableCorpus, EfTranslatableCorpus>();
         services.AddScoped<Vipi.Application.Translation.DocumentTranslator>();
+        // La vIPI ACC non arriva alla pagina come DocumentView (vive a blocchi): stessa memoria, stessa
+        // copertura, solo un'altra passeggiata sull'albero.
+        services.AddScoped<Vipi.Application.Translation.AccVipiTranslator>();
         // Traduttore dei testi dell'anagrafica dentro le sezioni derivate. Scoped: carica la coppia di
         // lingue una volta per richiesta, perche' chi proietta scopre i testi che gli servono strada facendo.
         services.AddScoped<Vipi.Application.Translation.TranslationLookup>();
