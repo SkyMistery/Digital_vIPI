@@ -260,6 +260,14 @@
 
     @if (Authz.IsAdmin)
     {
+        @* L'ingresso all'archivio grezzo: senza un link da qualche parte, la pagina esisterebbe solo per
+           chi ne conosce l'indirizzo. Sta accanto agli altri strumenti di staff, non nel menu pubblico. *@
+        <h2 class="h-sect">@L["World_Title"]</h2>
+        <p class="muted">@L["World_Subtitle"]</p>
+        <a class="btn ghost" href="/services/stats/world">
+            <Icon Name="search" Size="15" /> @L["World_Title"]
+        </a>
+
         <h2 class="h-sect">@L["Stats_Visibility"]</h2>
         <label class="inline-form">
             <input type="checkbox" checked="@_pubblica" @onchange="CambiaVisibilita" />

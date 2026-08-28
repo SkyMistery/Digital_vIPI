@@ -1040,6 +1040,22 @@ Sono la condizione perché la potatura del dettaglio (12 mesi) **non azzeri le o
 data e zero traffico è «riempita, non c'era nessuno». Senza la marca i due casi sarebbero indistinguibili e
 il riempimento a posteriori riproverebbe per sempre.
 
+**Aggiunta del 28 agosto** (migrazione `ArchivioAtcMondiale`, doppia emissione): `AtcSession.IsOutsideDivision`
++ indice `(IsOutsideDivision, StartUtc)`. Dal 28 agosto il poller archivia **tutte** le postazioni ATC
+aperte, non i soli prefissi di divisione: la fotografia le porta già tutte, e quel che si buttava non lo
+ridava più nessuno.
+
+⚠️ **La colonna è dichiarata in NEGATIVO** perché un `bool NOT NULL` nuovo nasce `false` su tutti e tre i
+percorsi che creano schema qui dentro (migrazione, `EnsureCreated`, `PostgresSchemaReconciler`) e le 21 133
+righe già in archivio sono **tutte** di divisione (verificato: zero callsign non-`LI`). Con la forma
+positiva quel default avrebbe dichiarato straniero l'intero storico italiano.
+
+⚠️ **Le righe fuori divisione sono archivio e basta**: nessun traffico attribuito (l'AoR è italiana),
+nessuna configurazione di pista, e **nessun `AtcMonthRollup`** — alla potatura dei dodici mesi se ne vanno
+senza lasciare riassunto, o la classifica di due anni fa conterrebbe mezzo pianeta. Ogni lettura che *conta*
+passa da `AtcSessionScope.DiDivisione()`; l'unica che non filtra è quella con cui il poller **chiude** le
+sessioni sparite. Carta: `docs/feature/2026-08-28-archivio-atc-mondiale.md`.
+
 **Aggiunta del 25 agosto** (migrazione `FasiQuoteConsegne`, doppia emissione): otto colonne su
 `AtcSessionTraffic` — `FirstPhase`, `LastPhase`, `SawAirborne`, `EntryAltitudeFt`, `ExitAltitudeFt`,
 `MaxAltitudeFt`, `HandoffToSessionId`, `HandoffFromSessionId`. Sono ~50 B/riga in più (da ~75 a ~125), cioè

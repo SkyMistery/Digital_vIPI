@@ -45,6 +45,7 @@ public sealed class CacheDelleLettureAnonimeTests : IClassFixture<SmokeTests.Vip
     [InlineData("/services/vsop/search")]
     [InlineData("/services/vsop/changed")]
     [InlineData("/services/vsop/auth/login")]
+    [InlineData("/services/stats/world")]
     public void Le_pagine_che_dipendono_da_chi_guarda_non_si_tengono(string percorso)
         => Assert.False(CacheDelleLettureAnonime.Riutilizzabile(Richiesta(percorso)));
 

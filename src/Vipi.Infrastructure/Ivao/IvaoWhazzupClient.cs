@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
 using Vipi.Application;
@@ -19,8 +19,14 @@ namespace Vipi.Infrastructure.Ivao;
 /// <para>⚠️ La decompressione va abilitata sull'<c>HttpClient</c> (vedi la registrazione in
 /// <c>IvaoServiceCollectionExtensions</c>), o si scaricano 705 KB per niente.</para>
 ///
-/// <para>Gli ATC escono <b>filtrati ai prefissi della divisione</b>; i piloti no, di proposito: un volo dentro
-/// un settore italiano può avere qualunque callsign, e il filtro giusto è geometrico, non testuale.</para>
+/// <para>Gli ATC escono <b>tutti</b>, marcati con <c>IsOutsideDivision</c> (dal 28 agosto 2026: prima
+/// uscivano filtrati ai prefissi della divisione, e le postazioni del resto del mondo si buttavano). Il
+/// filtro è sceso di un piano — lo fa il poller, che sa a cosa serve ogni lista — perché la fotografia è
+/// <b>una sola chiamata</b>: le altre postazioni arrivano già pagate, e buttarle era l'unico modo di non
+/// poterle più recuperare (il whazzup non ricorda il passato).</para>
+///
+/// <para>I piloti non si filtrano affatto, di proposito: un volo dentro un settore italiano può avere
+/// qualunque callsign, e il filtro giusto è geometrico, non testuale.</para>
 /// </summary>
 public sealed class IvaoWhazzupClient : IAtcActivitySource
 {
@@ -44,7 +50,7 @@ public sealed class IvaoWhazzupClient : IAtcActivitySource
         var clients = raw?.Clients;
 
         var atc = (clients?.Atcs ?? new List<WhazzupAtcDto>())
-            .Where(a => !string.IsNullOrWhiteSpace(a.Callsign) && MatchesDivision(a.Callsign!))
+            .Where(a => !string.IsNullOrWhiteSpace(a.Callsign))
             .Select(a => new SourceAtcConnection(
                 SessionId: a.Id,
                 UserId: a.UserId,
@@ -54,7 +60,8 @@ public sealed class IvaoWhazzupClient : IAtcActivitySource
                 Rating: a.Rating,
                 StartUtc: a.CreatedAt,
                 ConnectedSeconds: a.Time,
-                AtisLines: a.Atis?.Lines))
+                AtisLines: a.Atis?.Lines,
+                IsOutsideDivision: !MatchesDivision(a.Callsign!)))
             .ToList();
 
         var pilots = (clients?.Pilots ?? new List<WhazzupPilotDto>())

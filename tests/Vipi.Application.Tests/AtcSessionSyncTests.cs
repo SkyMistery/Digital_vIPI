@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Vipi.Application.Abstractions;
@@ -150,5 +150,34 @@ public class AtcSessionSyncTests
     {
         Assert.True(AtcSessionSync.Plan(
             Array.Empty<SourceAtcConnection>(), Array.Empty<KnownAtcSession>(), T0).Nothing);
+    }
+
+    [Fact]
+    public void La_marca_fuori_divisione_viaggia_dalla_sorgente_alla_riga()
+    {
+        // Dal 28 agosto 2026 nel piano finiscono anche le postazioni del resto del mondo. Il pianificatore
+        // non le tratta diversamente — aprono, si aggiornano e si chiudono come tutte — ma la marca deve
+        // arrivare intatta fino all'archivio, o le righe nuove sarebbero indistinguibili da quelle italiane.
+        var estera = Conn(200, T0, 600, callsign: "EDDF_TWR") with { IsOutsideDivision = true };
+
+        var p = AtcSessionSync.Plan(
+            new[] { Conn(100, T0, 600), estera }, Array.Empty<KnownAtcSession>(), T0.AddMinutes(10));
+
+        Assert.False(p.Upserts.Single(u => u.SessionId == 100).IsOutsideDivision);
+        Assert.True(p.Upserts.Single(u => u.SessionId == 200).IsOutsideDivision);
+    }
+
+    [Fact]
+    public void Anche_una_postazione_estera_si_chiude_quando_sparisce()
+    {
+        // ⚠️ È il difetto che si pagherebbe filtrando troppo presto: se la lettura delle sessioni note
+        // saltasse il resto del mondo, una connessione straniera resterebbe APERTA per sempre in archivio.
+        var known = new[] { Nota(200, T0, null, turno: 200, callsign: "EDDF_TWR") };
+
+        var p = AtcSessionSync.Plan(Array.Empty<SourceAtcConnection>(), known, T0.AddMinutes(20));
+
+        var chiusa = Assert.Single(p.Closures);
+        Assert.Equal(200, chiusa.SessionId);
+        Assert.Equal(T0.AddMinutes(20), chiusa.EndUtc);
     }
 }

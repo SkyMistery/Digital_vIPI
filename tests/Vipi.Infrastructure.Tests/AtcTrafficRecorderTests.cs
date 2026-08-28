@@ -308,4 +308,25 @@ public class AtcTrafficRecorderTests : IAsyncLifetime
         Assert.Equal(24_000, riga.ExitAltitudeFt);
         Assert.Equal(35_000, riga.MaxAltitudeFt);
     }
+
+    [Fact]
+    public async Task Una_postazione_fuori_divisione_si_archivia_ma_non_prende_traffico()
+    {
+        // Dal 28 agosto 2026 il poller registra anche il resto del mondo. La sessione si scrive — è archivio
+        // — ma l'attribuzione non la deve nemmeno guardare: l'AoR che abbiamo è italiana, e provarci a ogni
+        // giro vorrebbe dire idratare dal database centinaia di sessioni che non avranno mai una tratta.
+        var estera = Atc(300, "EDDF_TWR") with { IsOutsideDivision = true };
+
+        var esito = await Giro(T0, new[] { estera },
+            new[] { Volo("DLH400", 50.03, 8.57, 3_000) });
+
+        Assert.Equal(0, esito.Attributed);
+        Assert.Equal(0, esito.WrittenLegs);
+
+        _db.ChangeTracker.Clear();
+        var riga = Assert.Single(await _db.AtcSessions.ToListAsync());
+        Assert.Equal("EDDF_TWR", riga.Callsign);
+        Assert.True(riga.IsOutsideDivision);
+        Assert.Empty(await _db.AtcSessionTraffic.ToListAsync());
+    }
 }

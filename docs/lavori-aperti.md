@@ -3359,3 +3359,46 @@ quindici — Amendola, Gioia del Colle, Istrana, Grosseto — sono basi di difes
 `SectionProfile.AppMil` esiste e rimanda al profilo civile dell'APP; `AppMilReleaseTarget` e
 `AppMilDocRoutes` sono registrati. Manca l'ingresso UI (`/services/vsop/{acc}/mil/apps`): nessuno dei
 quindici SOP è di un APP, quindi non c'era niente da caricarci dentro.
+
+## S. L'archivio ATC mondiale — 28 agosto 2026
+
+Carta: [feature/2026-08-28-archivio-atc-mondiale.md](feature/2026-08-28-archivio-atc-mondiale.md).
+✅ **Slice chiuse**, suite verde su entrambi i TFM, verificato dal vivo contro IVAO vero
+(0 ATC di divisione online, **18 fuori divisione archiviate**, endpoint e pagina guidati in Edge).
+
+Il poller smette di buttare le postazioni fuori divisione: le archivia tutte, marcate con
+`AtcSession.IsOutsideDivision`. I conti della divisione non cambiano — ogni lettura che conta passa da
+`AtcSessionScope.DiDivisione()`. Ritenzione **dodici mesi per tutto**; il riassunto mensile resta italiano.
+Nuovi: pagina staff `/services/stats/world` e `GET /vsop/api/v1/atc/sessions`.
+
+### S1 🟢 APERTO — il rapporto mondo/Italia è STIMATO, non misurato
+
+Le stime di spazio (≈219 000 righe e ~88 MB su MariaDB a dodici mesi) poggiano su un rapporto
+mondo/Italia di 8–12×, che **non è stato misurato**: il campione delle 08:14Z — 15 ATC nel mondo, zero
+italiani — a quell'ora non dice niente. Il numero vero ce l'ha già l'archiviatore del validatore dei tour,
+che archivia il mondo da settimane:
+
+```
+npx wrangler d1 execute atc-archiver-db --remote --command   "SELECT COUNT(*) righe, MIN(started_at) dal, MAX(started_at) al, SUM(callsign LIKE 'LI%') italiane FROM atc_sessions"
+```
+
+⚠️ Serve una sessione `wrangler` autenticata (`CLOUDFLARE_API_TOKEN` o login interattivo): da qui non
+passa. Finché il numero non c'è, la tabella della carta §3 va letta come un ordine di grandezza.
+
+### S2 🟢 APERTO — due archiviatori sullo stesso whazzup
+
+Il validatore dei tour (`AutomaticValidatorTour/Tours Validator Instrument/atc-archiver`) continua a
+girare: Cloudflare Worker + D1, cron al minuto, stessa sorgente, tabella quasi identica. Ora che
+`/vsop/api/v1/atc/sessions` esiste, quel Worker potrebbe leggere da qui invece di archiviare per conto suo
+— ma è una decisione di quel progetto, e la sua tabella è più vecchia della nostra: unificando si perde
+lo storico che noi non abbiamo, a meno di travasarlo prima.
+
+⚠️ Finché girano tutti e due, sono **due processi che chiedono lo stesso file allo stesso server**.
+
+### S3 🟢 APERTO (piccolo, non nostro di questo giro) — `StatsView.Ore` scrive la virgola a mano
+
+`StatsView.Ore` rende `"<0,1"` come **letterale**, mentre tutto il resto formatta con `ToString("0.0")`,
+cioè col punto: nella stessa colonna si legge `<0,1 h` accanto a `0.2 h`. Si vede su ogni pagina delle
+statistiche, non solo su quella nuova, ed è precedente a questo giro — sta qui perché l'ho visto a schermo
+verificando l'archivio.
+

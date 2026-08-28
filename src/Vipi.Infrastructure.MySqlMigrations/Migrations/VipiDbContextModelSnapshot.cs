@@ -985,6 +985,9 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("varchar(16)")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
+                    b.Property<bool>("IsOutsideDivision")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<int>("MovementCount")
                         .HasColumnType("int");
 
@@ -1030,6 +1033,8 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.HasIndex("StartUtc");
 
                     b.HasIndex("Callsign", "StartUtc");
+
+                    b.HasIndex("IsOutsideDivision", "StartUtc");
 
                     b.HasIndex("UserId", "StartUtc");
 
@@ -2618,7 +2623,7 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Vipi.Domain.Entities.Document", "MilDocument")
-                        .WithOne()
+                        .WithOne("MilAirport")
                         .HasForeignKey("Vipi.Domain.Entities.Airport", "MilDocumentId")
                         .OnDelete(DeleteBehavior.SetNull);
 
@@ -2940,7 +2945,7 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Vipi.Domain.Entities.Document", "MilDocument")
-                        .WithMany()
+                        .WithMany("MilSectors")
                         .HasForeignKey("MilDocumentId")
                         .OnDelete(DeleteBehavior.SetNull);
 
@@ -3044,6 +3049,10 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
             modelBuilder.Entity("Vipi.Domain.Entities.Document", b =>
                 {
                     b.Navigation("Airport");
+
+                    b.Navigation("MilAirport");
+
+                    b.Navigation("MilSectors");
 
                     b.Navigation("Parties");
 

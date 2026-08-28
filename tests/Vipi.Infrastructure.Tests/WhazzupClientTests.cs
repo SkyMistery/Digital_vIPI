@@ -43,18 +43,33 @@ public class WhazzupClientTests
     """;
 
     [Fact]
-    public async Task Gli_ATC_escono_filtrati_alla_divisione()
+    public async Task Gli_ATC_escono_TUTTI_e_quello_di_divisione_e_marcato()
     {
         var snap = await Client().GetSnapshotAsync();
 
-        var atc = Assert.Single(snap.Atc);
-        Assert.Equal("LIRF_TWR", atc.Callsign);      // l'ucraino UKLU_TWR resta fuori
+        var atc = Assert.Single(snap.Atc, a => a.Callsign == "LIRF_TWR");
+        Assert.False(atc.IsOutsideDivision);
         Assert.Equal(63243559, atc.SessionId);        // l'id di sessione IVAO, che ritroveremo nello storico
         Assert.Equal(762032, atc.UserId);
         Assert.Equal("TWR", atc.Position);
         Assert.Equal("118.700", atc.Frequency);
         Assert.Equal(2116, atc.ConnectedSeconds);
         Assert.Equal(new DateTimeOffset(2026, 8, 24, 12, 35, 16, TimeSpan.Zero), atc.StartUtc);
+    }
+
+    [Fact]
+    public async Task L_ATC_fuori_divisione_non_si_butta_piu_ma_esce_marcato()
+    {
+        // Dal 28 agosto 2026 l'ucraino UKLU_TWR NON resta più fuori: si archivia come tutti gli altri, e a
+        // distinguerlo è la sola marca. È il difetto che questa modifica esiste per togliere — la
+        // fotografia è già pagata, e quel che si buttava non si poteva più recuperare da nessuna parte.
+        var snap = await Client().GetSnapshotAsync();
+
+        Assert.Equal(2, snap.Atc.Count);
+        var estero = Assert.Single(snap.Atc, a => a.Callsign == "UKLU_TWR");
+        Assert.True(estero.IsOutsideDivision);
+        Assert.Equal(307959, estero.UserId);
+        Assert.Equal("TWR", estero.Position);
     }
 
     [Fact]

@@ -25,7 +25,10 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
         var a = to.UtcDateTime;
         var soglia = (int)StatsCounting.MinCountedSession.TotalSeconds;
 
-        var q = _db.AtcSessions.AsNoTracking()
+        // ⚠️ DiDivisione() sta qui, nell'imbuto di ogni lettura: dal 28 agosto 2026 la tabella contiene
+        // anche le postazioni del resto del mondo, che sono la maggioranza delle righe. Senza questo filtro
+        // le ore, la classifica e i movimenti della divisione diventerebbero quelli del pianeta.
+        var q = _db.AtcSessions.AsNoTracking().DiDivisione()
             .Where(s => s.StartUtc >= da && s.StartUtc <= a && s.DurationSeconds >= soglia);
 
         return userId is { } vid ? q.Where(s => s.UserId == vid) : q;
@@ -420,7 +423,7 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
 
     public async Task<DateTimeOffset?> ArchiveStartAsync(int? userId, CancellationToken ct = default)
     {
-        var q = _db.AtcSessions.AsNoTracking();
+        var q = _db.AtcSessions.AsNoTracking().DiDivisione();
         if (userId is { } vid) q = q.Where(s => s.UserId == vid);
 
         // ⚠️ Senza soglia sulla durata: qui la domanda è «da quando esiste l'archivio», e una connessione
