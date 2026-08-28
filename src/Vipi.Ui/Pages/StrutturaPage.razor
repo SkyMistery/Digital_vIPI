@@ -28,6 +28,11 @@
        il «?» dice al clic, e qui l'altezza è albero — ogni fascia tolta in testa diventa nodi visibili, perché
        l'altezza del riquadro la MISURA vipiFitViewport a ogni render. La barra del lock sale sulla stessa
        riga per la stessa ragione: è uno stato, non una sezione. *@
+    @if (!Authz.IsEditor)
+    {
+        <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Common_AccessReserved"]</p>@L["Pend_AdminOnly"]</div></div>
+    }
+
     <div class="doc-head st-head">
         <h1 class="st-h2 page-h1">@L["Struct_Title"]</h1>
         <HelpHint Href="/services/vsop/guide#struttura" AriaLabel="@L["Struct_HelpAria"]" ExtraClass="wide">
@@ -417,6 +422,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // ⚠️ Il cancello di PAGINA, non solo dei comandi: senza, un socio apriva la gerarchia in sola
+        // lettura. Prima non si vedeva perché ogni comando era dietro `IsAdmin` — ma i dati c'erano.
+        if (!Authz.IsEditor) return;
+
         _accs = await Struct.ListAccsAsync();
         _confining = await Hierarchy.ListConfiningForeignCallsignsAsync();
         _online = new HashSet<string>(Online.GetCurrent().Callsigns, StringComparer.OrdinalIgnoreCase);

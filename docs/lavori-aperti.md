@@ -4028,16 +4028,28 @@ traduzione morte**, il vocabolario delle concessioni.
 ⚠️ **Due memorie puntavano a `HasAnyGrantAsync` come primo sospettato** delle corse sul `DbContext`: quella
 query non esiste più, e il metodo di diagnosi resta valido — cambia il sospettato.
 
+### U2-septies. La verifica live — ✅ **FATTA** il 29 agosto, e ha trovato tre difetti
+
+La suite era verde su tutti e quattordici i progetti. La verifica ha trovato lo stesso:
+
+1. ⚠️ **La pagina Struttura moriva con un 500 per un Editor**: `OrphanSectorService.ListAsync` chiedeva
+   ancora `EnsureAdmin()`. È **esattamente** il caso che la carta annunciava — il cancello sta in DUE sedi —
+   e nessun test lo vedeva, perché nessun test apre quella pagina con quell'identità.
+2. ⚠️ **Struttura e Documenti non si chiudevano affatto**: non hanno mai avuto un cancello di *pagina*, e
+   l'elenco dei documenti porta bozze e documenti nascosti. Ora rifiutano prima di caricare i dati.
+3. ⚠️ **Due falsi allarmi della sonda**, non del prodotto: `a.editor-btn` prende anche Guida/login/logout, e
+   il «non puoi entrare» in questa applicazione si scrive in **due** modi (fascia rossa **e**
+   `<p class="help">`). *Quando un numero accusa qualcosa che sta lì da mesi, il sospetto va prima allo
+   strumento.*
+
+**Come si guida l'app a un livello che non è il proprio**: `DevIdentityOptions` (sezione `DevIdentity`,
+solo in Development) prende VID e posizioni staff da configurazione. Prima erano una costante nel codice,
+quindi cinque livelli = cinque ricompilazioni, quindi in pratica non si verificava.
+
 ### U3. Che cosa resta 🟢
 
-✅ **Tutte e otto le slice sono chiuse**: il ramo `autorizzazioni-a-livelli` è completo. Restano due cose,
-ed entrambe sono decisioni più che lavoro:
-
-1. **La verifica live** — guidare il flusso reale con un utente per livello (skill `verifica-live`).
-   ⚠️ Non è stata fatta: la suite è verde ma cinque difetti di funzioni recenti erano usciti **solo a
-   schermo** ([[vsop-militari]]).
-2. **Quando fondere**, e con quale avviso allo staff: al deploy tutti gli `IT-` fuori dagli otto codici di
-   direzione perdono l'editing.
+Una decisione sola: **quando fondere**, e con quale avviso allo staff. Al deploy tutti gli `IT-` fuori dagli
+otto codici di direzione perdono l'editing, e la risposta è una promozione a mano — trenta secondi.
 
 ### U4. ⚠️ Gli E2E non girano finché l'host è acceso
 

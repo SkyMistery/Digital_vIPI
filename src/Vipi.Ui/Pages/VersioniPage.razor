@@ -35,6 +35,11 @@
     @* ---- Testata in UNA riga: titolo (+conteggio) · ciclo · «?» · comandi di PAGINA · esito ----
        Come Struttura, ACC, Accordi, Aeroporti e Confinanti (.st-head). Il sottotitolo diceva SEMPRE a schermo
        ciò che il «?» dice al clic: stesso testo, stessa chiave (Ver_Subtitle), cambia solo dove si legge. *@
+    @if (!Authz.IsEditor)
+    {
+        <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Common_AccessReserved"]</p>@L["Pend_AdminOnly"]</div></div>
+    }
+
     <div class="doc-head st-head">
         @* ⚠️ Lo spazio fra un'espressione e un `@if` Razor lo mangia il compilatore: serve un carattere vero. *@
         <h1 class="st-h2 page-h1">@L["Nd_Drafts"]&nbsp;<span class="pill blue" title="@L["Ver_CountTitle"]">@CountLabel()</span></h1>
@@ -353,6 +358,11 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // ⚠️ Fino al 29 agosto 2026 questa pagina non aveva un cancello, ed era una scelta: l'elenco si
+        // leggeva e i tasti li abilitava la concessione. Con le concessioni morte quella scelta non ha più
+        // un meccanismo dietro — e l'elenco porta bozze e documenti nascosti, che non sono roba pubblica.
+        if (!Authz.IsEditor) return;
+
         _currentCycle = Releases.CurrentCycle();
         _upcoming = Releases.UpcomingCycles(14);
         ReadFiltersFromUrl();

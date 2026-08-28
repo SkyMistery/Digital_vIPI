@@ -22,9 +22,13 @@ memoria, il servizio a livelli, la **morte delle concessioni per ACC**, la pagin
 gli **84 cancelli** spostati e la propagazione su diagnostica, Guida, specifiche e memorie. **86 test
 nuovi**, Release 0 avvisi, 14 assemblee verdi.
 
-⚠️ Restano **due decisioni, non lavoro**: la **verifica live** (mai fatta — e su questo progetto cinque
-difetti recenti erano usciti solo a schermo) e **quando fondere**. Al deploy tutti gli `IT-` fuori dagli
-otto codici di direzione perdono l'editing: la risposta è una promozione a mano, trenta secondi.
+✅ **Verifica live fatta** il 29 agosto, guidando l'app su cinque identità (`DevIdentityOptions`): ha
+trovato **tre difetti** che la suite non vedeva — un 500 sulla pagina Struttura per un Editor
+(`OrphanSectorService` chiedeva ancora l'admin), due pagine senza cancello, e due falsi allarmi della sonda.
+Tutti corretti e riverificati.
+
+⚠️ Resta **una decisione**: **quando fondere**, e con quale avviso allo staff. Al deploy tutti gli `IT-`
+fuori dagli otto codici di direzione perdono l'editing: la risposta è una promozione a mano, trenta secondi.
 
 ⚠️ Questa testata diceva `6644b5e` fino a stasera, cioè era **indietro di due fusioni**: nel frattempo erano
 entrati in `main` l'archivio ATC (`f120d5c`) e l'audit della lingua (`0a4f92e`). Un HANDOFF che dà lo SHA

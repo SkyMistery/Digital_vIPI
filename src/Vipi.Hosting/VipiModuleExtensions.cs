@@ -86,6 +86,8 @@ public static class VipiModuleExtensions
         // Identità: dal login dell'host (default) o utente fittizio in sviluppo.
         if (useDevIdentity)
         {
+            services.Configure<DevIdentityOptions>(
+                configuration.GetSection(DevIdentityOptions.SectionName));
             services.AddScoped<ICurrentUserProvider, DevCurrentUserProvider>();
         }
         else

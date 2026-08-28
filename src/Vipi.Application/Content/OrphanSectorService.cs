@@ -90,7 +90,10 @@ public sealed class OrphanSectorService : IOrphanSectorService
 
     public async Task<IReadOnlyList<OrphanSectorRow>> ListAsync(string? accCode = null, CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        // ⚠️ Editor, non admin: gli orfani si leggono da Struttura, che è una pagina del contenuto. Finché
+        // qui c'era EnsureAdmin, un chief d'ACC apriva la pagina e prendeva un 500 — la pagina si era
+        // aperta, il servizio no. Trovato dalla verifica live del 29 agosto 2026, non dalla suite.
+        _authz.EnsureAtLeast(VipiRole.Editor);
         var soglia = await SogliaTimbroAsync(ct);
 
         // La stessa guardia del giro notturno: se gli stantìi sono troppi il guasto è a monte, e l'elenco

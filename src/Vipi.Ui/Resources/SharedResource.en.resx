@@ -1413,7 +1413,7 @@
   <data name="Pend_Title" xml:space="preserve"><value>To sort out</value></data>
   <data name="Pend_HelpAria" xml:space="preserve"><value>What this page is</value></data>
   <data name="Pend_Intro" xml:space="preserve"><value>&lt;p&gt;What the &lt;b&gt;source no longer confirms&lt;/b&gt; and what the documents have left behind, in one place.&lt;/p&gt;&lt;p&gt;⚠️ Only what the source has not sent for &lt;b&gt;two runs&lt;/b&gt; can be deleted: a run can succeed and come back empty, and a missing confirmation is not a disappearance. Where the button is absent, the reason is written next to it.&lt;/p&gt;</value></data>
-  <data name="Pend_AdminOnly" xml:space="preserve"><value>This page is for division staff only.</value></data>
+  <data name="Pend_AdminOnly" xml:space="preserve"><value>This page is for those who maintain the documents.</value></data>
   <data name="Pend_LastRuns" xml:space="preserve"><value>Last ACC run: {0} · airports: {1} (previous: {2})</value></data>
   <data name="Pend_AllClear" xml:space="preserve"><value>Nothing to sort out</value></data>
   <data name="Pend_AllClearHint" xml:space="preserve"><value>No orphan sectors, no airport the source stopped listing, no document waiting to be re-read.</value></data>

@@ -3,8 +3,9 @@
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Sostituisce la decisione del 22 agosto sera
 > («lo staff di divisione è admin, tutto» — memoria `staff-code-reali`, riflessa in
 > `DivisionOptions.AdminRolePatterns`), che resta valida come **storia** e non più come regola.
-> **Stato: ✅ TUTTE E OTTO LE SLICE CHIUSE (28-29 agosto 2026).** Il ramo `autorizzazioni-a-livelli` è
-> completo e pronto alla fusione. Resta da fare una **verifica live** e da decidere **quando fondere**.
+> **Stato: ✅ COMPLETO E VERIFICATO DAL VIVO (28-29 agosto 2026).** Otto slice su otto, più la verifica
+> live guidata su cinque identità — che ha trovato **tre difetti** che la suite non vedeva (§12). Resta da
+> decidere **quando fondere**.
 
 ## 1. Perché
 
@@ -348,6 +349,42 @@ La propagazione, che il pre-flight chiede nello **stesso giro** e non «dopo»:
   non affonda la pagina e quella sulle corse del `DbContext` puntavano entrambe a `HasAnyGrantAsync` come
   primo sospettato. Quella query non esiste più — il **metodo** di diagnosi resta valido parola per parola,
   cambia solo che il primo sospettato ora è un altro.
+
+## 10-septies. La verifica live, e i tre difetti che ha trovato
+
+La suite era verde su tutti e quattordici i progetti quando questa verifica è cominciata. Ha trovato
+comunque tre cose, e la prima era grave.
+
+**Come.** L'identità di sviluppo era inchiodata a una costante (`DevUserId = 704798`), quindi guidare l'app
+a un livello diverso da admin richiedeva **cinque ricompilazioni con una costante cambiata a mano** — cioè,
+in pratica, non si verificava. Ora c'è `DevIdentityOptions` (sezione `DevIdentity`, **solo in Development**):
+VID e posizioni staff da configurazione, e l'app si guida a qualunque livello con una variabile d'ambiente.
+Cinque avvii, cinque identità: `IT-AOC` (Admin), `LIRR-CH` (Editor), `IT-T01` (DivisionStaff), `DE-DIR`
+(IvaoStaff), nessuna posizione (Socio).
+
+⚠️ **Difetto 1 — la pagina Struttura moriva con un 500 per un Editor.** `OrphanSectorService.ListAsync`
+chiedeva ancora `EnsureAdmin()` mentre la pagina che la chiama si era aperta all'Editor. È **esattamente**
+il caso che la carta annunciava — *«il cancello sta in due sedi: la pagina e il servizio»* — e nessun test
+lo vedeva, perché nessun test apre quella pagina con quell'identità. La pagina si apriva; il servizio no.
+
+⚠️ **Difetto 2 — due pagine non si chiudevano affatto.** Struttura e Documenti non hanno mai avuto un
+cancello di *pagina*: la prima perché ogni comando era dietro `IsAdmin` voce per voce, la seconda per
+scelta esplicita (l'elenco si leggeva, i tasti li abilitava la concessione). Con le concessioni morte
+quella scelta non ha più un meccanismo dietro, e l'elenco porta bozze e documenti nascosti. Ora entrambe
+rifiutano prima di caricare i dati.
+
+⚠️ **Difetto 3, nello strumento e non nel prodotto.** La prima sonda diceva «tasto Modifica acceso» per
+**tutti**, socio compreso: il selettore `a.editor-btn` prende anche Guida, login e logout. E diceva «pagina
+aperta» per tre pagine chiuse, perché cercava solo la fascia rossa mentre metà delle pagine dice di no con
+un `<p class="help">`. *Quando un numero accusa qualcosa che sta lì da mesi, il sospetto va prima allo
+strumento* — è scritto nella skill, ed è successo di nuovo.
+
+**Che cosa si è visto, alla fine.** Admin: quattordici voci in barra, tutto aperto. Editor: nove voci,
+permessi/sorgenti/diagnostica chiusi, tasto «Modifica» acceso. DivisionStaff e Socio: nessuna voce, nessun
+tasto, tutte le pagine admin chiuse. E la decisione del committente sulle statistiche, verificata a schermo:
+un `IT-T01` apre le statistiche di un altro controllore e legge *«puoi vederle perché sei staff di
+divisione; l'accesso è registrato nel registro»*; un socio legge *«le statistiche personali di un altro
+controllore le può aprire solo lo staff di divisione»* e la classifica non gli si mostra.
 
 ## 11. Le due decisioni che mancavano — ✅ chiuse il 28 agosto, notte
 

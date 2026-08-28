@@ -1416,7 +1416,7 @@
   <data name="Pend_Title" xml:space="preserve"><value>Da sistemare</value></data>
   <data name="Pend_HelpAria" xml:space="preserve"><value>Che cos'è questa pagina</value></data>
   <data name="Pend_Intro" xml:space="preserve"><value>&lt;p&gt;Quel che la &lt;b&gt;sorgente non conferma più&lt;/b&gt; e quel che nei documenti è rimasto indietro, in un posto solo.&lt;/p&gt;&lt;p&gt;⚠️ Si elimina soltanto ciò che la sorgente non manda da &lt;b&gt;due giri&lt;/b&gt;: un giro può riuscire e tornare vuoto, e una conferma mancata non è una sparizione. Dove il tasto non c'è, accanto è scritto il perché.&lt;/p&gt;</value></data>
-  <data name="Pend_AdminOnly" xml:space="preserve"><value>Questa pagina è riservata allo staff di divisione.</value></data>
+  <data name="Pend_AdminOnly" xml:space="preserve"><value>Questa pagina è riservata a chi cura i documenti.</value></data>
   <data name="Pend_LastRuns" xml:space="preserve"><value>Ultimo giro ACC: {0} · aeroporti: {1} (penultimo: {2})</value></data>
   <data name="Pend_AllClear" xml:space="preserve"><value>Niente da sistemare</value></data>
   <data name="Pend_AllClearHint" xml:space="preserve"><value>Nessun settore orfano, nessun aeroporto che la sorgente abbia smesso di elencare, nessun documento in attesa di rilettura.</value></data>
