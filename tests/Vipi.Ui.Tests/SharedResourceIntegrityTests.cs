@@ -1,5 +1,9 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using Vipi.Application.Content;
+using Vipi.Application.Diagnostics;
+using Vipi.Application.Stats;
+using Vipi.Domain;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -62,6 +66,15 @@ public sealed class SharedResourceIntegrityTests
     /// <summary>
     /// Ogni <c>L["Chiave"]</c> scritto nei sorgenti deve esistere nelle risorse: una chiave assente non
     /// lancia — il localizzatore restituisce il NOME della chiave, che finisce a schermo.
+    ///
+    /// <para>⚠️ <b>Anche <c>En["Chiave"]</c></b> (<see cref="EnglishStrings"/>, la briciola di pane in
+    /// inglese fisso): legge le <b>stesse</b> chiavi dallo stesso resx e si comporta allo stesso modo —
+    /// chiave assente, nome della chiave a schermo. Guardarne una sola voleva dire lasciare scoperta metà
+    /// della briciola, che sta in cima a ventinove pagine.</para>
+    ///
+    /// <para>⚠️ Restano fuori le chiavi <b>composte a runtime</b>: le copre
+    /// <see cref="Ogni_valore_di_enum_reso_a_schermo_ha_la_sua_chiave"/>, che parte dall'enum invece che
+    /// dal sorgente.</para>
     /// </summary>
     [Fact]
     public void Ogni_chiave_usata_nel_codice_esiste_nelle_risorse()
@@ -76,7 +89,7 @@ public sealed class SharedResourceIntegrityTests
                                  !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}") &&
                                  !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")))
         {
-            foreach (Match m in Regex.Matches(File.ReadAllText(file), @"\bL\[""([A-Za-z0-9_]+)""(?<coda>\s*\+)?"))
+            foreach (Match m in Regex.Matches(File.ReadAllText(file), @"\b(?:L|En)\[""([A-Za-z0-9_]+)""(?<coda>\s*\+)?"))
             {
                 // `L["Country_" + code]`: la chiave si compone a runtime, qui non è verificabile.
                 if (m.Groups["coda"].Success) continue;
@@ -93,6 +106,86 @@ public sealed class SharedResourceIntegrityTests
         Assert.True(mancanti.Count == 0,
             $"{mancanti.Count} chiavi usate nel codice e assenti da SharedResource.resx: a schermo compare " +
             "il nome della chiave.\n  " + string.Join("\n  ", mancanti));
+    }
+
+    /// <summary>
+    /// Le famiglie di chiavi che si compongono a runtime da un <b>enum</b>: prefisso e vocabolario che lo
+    /// riempie. È dichiarativa apposta — se un domani si aggiunge un enum reso con
+    /// <c>L["Prefisso_" + valore]</c>, si aggiunge una riga qui.
+    ///
+    /// <para>⚠️ <b>Si scrive <c>typeof</c> e non il nome dell'enum come stringa</b>: così un enum rinominato
+    /// o spostato non compila, invece di far passare un test che ha smesso di guardare qualcosa.</para>
+    /// </summary>
+    public static TheoryData<string, Type> FamiglieComposte() => new()
+    {
+        { "Audit_Cat_", typeof(AuditNarrator.Categoria) },
+        { "TaskStatus_", typeof(EditorTaskStatus) },
+        { "Stats_Tag_", typeof(TrafficTag) },
+        { "Stats_TagHint_", typeof(TrafficTag) },
+        { "Diag_Area_", typeof(ConsistencyArea) },
+        { "Sorg_St_", typeof(ImportHealth) },
+        // Due famiglie sullo stesso enum: l'etichetta corta del riepilogo in Diagnostica e la frase intera
+        // della riga «da rivedere».
+        { "ImpactKind_", typeof(ImpactKind) },
+        { "Impact_", typeof(ImpactKind) },
+    };
+
+    /// <summary>
+    /// Ogni valore di un enum reso a schermo ha la sua riga nelle risorse.
+    ///
+    /// <para>⚠️ <b>È il buco da cui è passato un difetto vero.</b>
+    /// <see cref="Ogni_chiave_usata_nel_codice_esiste_nelle_risorse"/> salta di proposito le chiavi
+    /// composte — <c>L["ImpactKind_" + r.Key]</c> non è verificabile leggendo il sorgente — e in quel buco
+    /// stavano <c>ImpactKind_SectorRenamed</c> e <c>ImpactKind_SectorDetached</c>, mai scritte in nessuno
+    /// dei due file. Entrambi gli impatti si alzano davvero (<c>EfCallsignRenameService</c>,
+    /// <c>DeletionService</c>), quindi la tabella di Diagnostica scriveva <b>il nome della chiave</b> —
+    /// in italiano e in inglese. Un valore aggiunto a un enum non rompe niente: fa comparire il suo nome
+    /// tecnico a schermo, e nessuno lo denuncia.</para>
+    ///
+    /// <para>Il controllo è a senso unico e dev'esserlo: si pretende che ogni valore abbia la sua chiave,
+    /// non che ogni chiave col prefisso corrisponda a un valore — <c>Impact_Title</c> e
+    /// <c>Impact_ToReview</c> stanno in quella famiglia e non sono impatti.</para>
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(FamiglieComposte))]
+    public void Ogni_valore_di_enum_reso_a_schermo_ha_la_sua_chiave(string prefisso, Type enumerazione)
+    {
+        var it = Chiavi(PercorsoIt).ToHashSet(StringComparer.Ordinal);
+        var en = Chiavi(PercorsoEn).ToHashSet(StringComparer.Ordinal);
+
+        var mancanti = Enum.GetNames(enumerazione)
+            .Select(v => prefisso + v)
+            .Where(k => !it.Contains(k) || !en.Contains(k))
+            .ToList();
+
+        foreach (var m in mancanti) _out.WriteLine(m);
+
+        Assert.True(mancanti.Count == 0,
+            $"{enumerazione.Name}: {mancanti.Count} valori senza riga nelle risorse. A schermo compare il " +
+            "nome della chiave, e succede solo quando quel valore capita davvero — cioè non in una prova, " +
+            "ma su un sito vero davanti a chi lo usa.\n  " + string.Join("\n  ", mancanti));
+    }
+
+    /// <summary>
+    /// I giorni della settimana, l'altra famiglia composta a runtime (<c>L[$"Day_{g}"]</c> in
+    /// <c>StatsHome</c> e <c>CoverageHeatmap</c>). ⚠️ Non è un enum: l'indice è <b>1 = lunedì</b> e arriva
+    /// da un conteggio, quindi la sola cosa che si può pretendere è che ci siano tutti e sette, corti e
+    /// per esteso. Un giorno mancante darebbe «Day_7» come intestazione di colonna.
+    /// </summary>
+    [Fact]
+    public void I_sette_giorni_ci_sono_in_tutte_e_due_le_forme()
+    {
+        var it = Chiavi(PercorsoIt).ToHashSet(StringComparer.Ordinal);
+        var en = Chiavi(PercorsoEn).ToHashSet(StringComparer.Ordinal);
+
+        var mancanti = Enumerable.Range(1, 7)
+            .SelectMany(g => new[] { $"Day_{g}", $"Day_{g}_Full" })
+            .Where(k => !it.Contains(k) || !en.Contains(k))
+            .ToList();
+
+        Assert.True(mancanti.Count == 0,
+            "Giorni senza riga nelle risorse: a schermo compare «Day_3» al posto del giorno.\n  " +
+            string.Join("\n  ", mancanti));
     }
 
     private static IReadOnlyList<string> Chiavi(string percorsoRelativo)

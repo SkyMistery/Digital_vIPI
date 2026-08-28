@@ -1408,6 +1408,8 @@
   <data name="ImpactKind_ReleaseDrift" xml:space="preserve"><value>Copia pubblicata indietro</value></data>
   <data name="ImpactKind_ReleaseKeyMoved" xml:space="preserve"><value>Bersaglio spostato</value></data>
   <data name="ImpactKind_BrokenTarget" xml:space="preserve"><value>Bersaglio rotto</value></data>
+  <data name="ImpactKind_SectorRenamed" xml:space="preserve"><value>Settore rinominato</value></data>
+  <data name="ImpactKind_SectorDetached" xml:space="preserve"><value>Settore eliminato</value></data>
   <data name="Impact_ToReview" xml:space="preserve"><value>da rivedere</value></data>
   <data name="Impact_Title" xml:space="preserve"><value>Da rivedere ({0})</value></data>
   <data name="Impact_PublicNow" xml:space="preserve"><value>già in pubblico</value></data>

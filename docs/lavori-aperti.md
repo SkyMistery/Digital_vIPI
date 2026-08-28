@@ -3407,6 +3407,43 @@ per giro con i caratteri spediti — invece di dedurre la spesa dallo stato attu
 cosa diversa. ⚠️ Vale per DeepL più che per Azure: la sua franchigia è **una tantum**, e un tetto tarato su
 una misura che si sgonfia non protegge la riserva che esiste per proteggere.
 
+### Q17 ✅ CHIUSA — due chiavi mancanti, e il buco della guardia che le ha lasciate passare
+
+`ImpactKind_SectorRenamed` e `ImpactKind_SectorDetached` non erano scritte in **nessuno** dei due `.resx`.
+`DiagnosticaPage` rende quella tabella con `L["ImpactKind_" + r.Key]`, e un `IStringLocalizer` a cui manca
+la chiave **non lancia**: restituisce il **nome della chiave**. La tabella scriveva
+`ImpactKind_SectorRenamed`, in italiano e in inglese.
+
+⚠️ **Non era un valore teorico.** Entrambi gli impatti si alzano in produzione: `SectorRenamed` da
+`EfCallsignRenameService`, `SectorDetached` da `DeletionService`. I gemelli `Impact_*` — le frasi della
+riga «da rivedere» — c'erano tutti e undici: mancava solo l'etichetta corta del riepilogo.
+
+**Perché la suite non lo vedeva**, ed è la parte che conta: `SharedResourceIntegrityTests` verificava le
+chiavi **letterali** e saltava di proposito quelle composte (`if (m.Groups["coda"].Success) continue`),
+perché `L["ImpactKind_" + r.Key]` leggendo il sorgente non è verificabile. Il buco era dichiarato e
+nessuno l'aveva mai riempito.
+
+La cura non è una riga di risorsa in più: è **guardare dall'altro capo**. La guardia nuova non parte dal
+sorgente ma dall'**enum**, con una tabella dichiarativa di otto famiglie
+(`Audit_Cat_`/`Categoria`, `TaskStatus_`/`EditorTaskStatus`, `Stats_Tag_` e `Stats_TagHint_`/`TrafficTag`,
+`Diag_Area_`/`ConsistencyArea`, `Sorg_St_`/`ImportHealth`, `ImpactKind_` e `Impact_`/`ImpactKind`), più i
+sette giorni di `Day_{n}` e `Day_{n}_Full`, che non sono un enum.
+
+- ⚠️ **`typeof` e non il nome dell'enum come stringa**: un enum rinominato non compila, invece di far
+  passare un test che ha smesso di guardare qualcosa.
+- ⚠️ **Il controllo è a senso unico** e dev'esserlo: ogni valore deve avere la sua chiave, non ogni chiave
+  col prefisso deve avere un valore — `Impact_Title` e `Impact_ToReview` stanno in quella famiglia e non
+  sono impatti.
+- Nello stesso giro la guardia letterale guarda anche **`En["…"]`** (`EnglishStrings`): legge le stesse
+  chiavi dallo stesso resx e sbaglia allo stesso modo, e guardarne una sola lasciava scoperta metà della
+  briciola di pane, che sta in cima a ventinove pagine.
+
+Verificata **togliendo** le due chiavi: la guardia le nomina tutte e due, e togliendone una sola dall'en
+cade anche la guardia di parità. `Vipi.Ui.Tests` 715 → **724**.
+
+⚠️ **Resta fuori** `src/Vipi.Host`: la guardia letterale scandisce solo `src/Vipi.Ui`. Oggi non ci sono
+chiavi di risorsa là dentro, quindi non copre niente — ma è una condizione, non una garanzia.
+
 ---
 
 ## R. I vSOP militari — 28 agosto 2026
