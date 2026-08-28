@@ -415,3 +415,28 @@ meteo («VENTO», «VISIBILITÀ», «NUBI», «aggiornato»), il badge «Live ·
 pista scritto a mano nell'anagrafica. Le prime due sono **stringhe cablate nei componenti** — è la slice 9,
 «generatori derivati da stringhe cablate a resx», che resta aperta; la terza è prosa d'anagrafica che
 entrerà in memoria al prossimo giro di riempimento.
+
+### E infine le due cose che ha chiesto il committente (28 agosto, sera tardi)
+
+| | Che cosa | Perché |
+|---|---|---|
+| **«MRVA»** al posto di «Minime di vettoramento», uguale nelle due lingue | È la sigla con cui la si chiama in frequenza e sulle carte: come «SID» o «AOR» non si traduce. Il motore rendeva il titolo con *Minimum vectoring* — giusto a metà, e comunque non la sigla |
+| Il **correttore delle traduzioni dentro l'editor** | Chi scrive un documento è l'unico che sa se «riporta sottovento» è diventato *report downwind* o *bring it back downwind*. Il Registro admin elenca le frasi di tutta la divisione: è il posto per un giro di revisione, non per chi ha appena scritto |
+
+⚠️ **Il titolo di una sezione di catalogo sta NEL DOCUMENTO**, non nel catalogo: cambiare `SectionCatalog`
+vale per i documenti nuovi e sui documenti già scritti non cambia niente. Serve un passo d'avvio
+(`RenameMinimaSectionsAsync`, 19 sezioni sul `vipi.db` di prova) che rinomina **solo i titoli vecchi** — un
+nome scelto da un editore è una scelta e non si sovrascrive. Le release già pubblicate restano com'erano
+finché non si ripubblica.
+
+⚠️ Nel correttore, tre vincoli che non sono dettagli: si corregge **come** si dice e mai **cosa** (il testo
+sorgente è la chiave della memoria e lì non si tocca); il permesso è quello del **documento** e non l'admin
+(ridire in un'altra lingua quel che un documento afferma è un atto editoriale su quel documento); e il
+**titolo del documento non è fra le frasi**, o si inviterebbe a correggere una cosa che il viewer ignora.
+
+⚠️ `IDocumentForReview` è la faccia stretta dell'editing — «dammi il documento in lavorazione» e nient'altro.
+Far dipendere il correttore da tutto `IEditingService` vorrebbe dire dargli in mano l'editing intero per una
+lettura, e obbligare ogni suo test a implementare trenta metodi che non chiamerà mai.
+
+**Stato**: ramo `bilingue-tutte-le-pagine` (`2af3a39`), sei commit, spinto e non fuso. Suite verde su net8 e
+net10, build Release senza avvisi. Il seguito sta in `docs/lavori-aperti.md` §Q-bis.

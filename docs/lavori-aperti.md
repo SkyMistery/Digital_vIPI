@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 28 agosto 2026, pomeriggio (**I DUE ROSSI INTERMITTENTI SONO CHIUSI — Q5 e Q6, riprodotti prima di correggerli: erano due contese diverse fra test paralleli. Q5 era il file di diagnostica dell'avvio, uno solo per processo, riscritto da un altro host nella finestra fra scrittura e rilettura; Q6 era un test che passava per via del POOL di SQLite invece che per via dell'interceptor, e che un `ClearAllPools()` di processo chiamato da un altro test faceva cadere. Ora «tutto verde» si può leggere alla lettera: 6633 verdi su entrambi i TFM**) · **Aggiornato:** 28 agosto 2026, mattina (**§Q e §R — i documenti bilingue e i vSOP militari, VENTI slice chiuse in due giorni e tutte in `main`, che è stato SPINTO (`6644b5e`): `origin/main` allineato, `origin/basemap-esri` cancellato perché ormai contenuto in main. Restano aperte Q1/Q2/Q3 (che dipendono da qualcun altro), Q4 (la vLOA che deve smettere di nascere inglese), Q5 e Q6 (due rossi intermittenti) e R1 (le figure dei SOP, lavoro manuale)**) · **Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in
+**Aggiornato:** 28 agosto 2026, sera (**§Q-bis — LA LINGUA. Il bilingue girava su DUE viewer su cinque e la barra non aveva nessun comando per cambiare lingua: entrambe le cose chiuse, più le REGOLE su carta (`docs/design/regole-lingua.md`), i messaggi del backend, il catalogo della Guida, «MRVA» e il correttore delle traduzioni dentro l'editor. Sei commit nel ramo **`bilingue-tutte-le-pagine`** (`2af3a39`), spinto e NON fuso**) · **Aggiornato:** 28 agosto 2026, pomeriggio (**I DUE ROSSI INTERMITTENTI SONO CHIUSI — Q5 e Q6, riprodotti prima di correggerli: erano due contese diverse fra test paralleli. Q5 era il file di diagnostica dell'avvio, uno solo per processo, riscritto da un altro host nella finestra fra scrittura e rilettura; Q6 era un test che passava per via del POOL di SQLite invece che per via dell'interceptor, e che un `ClearAllPools()` di processo chiamato da un altro test faceva cadere. Ora «tutto verde» si può leggere alla lettera: 6633 verdi su entrambi i TFM**) · **Aggiornato:** 28 agosto 2026, mattina (**§Q e §R — i documenti bilingue e i vSOP militari, VENTI slice chiuse in due giorni e tutte in `main`, che è stato SPINTO (`6644b5e`): `origin/main` allineato, `origin/basemap-esri` cancellato perché ormai contenuto in main. Restano aperte Q1/Q2/Q3 (che dipendono da qualcun altro), Q4 (la vLOA che deve smettere di nascere inglese), Q5 e Q6 (due rossi intermittenti) e R1 (le figure dei SOP, lavoro manuale)**) · **Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in
 un giro solo. Restano aperte solo voci che dipendono da qualcun altro: le risposte di Ivao.It (A9/A13), le
 quattro vLOA da ripubblicare (L2), il documento di Brindisi (B10-bis) e le decisioni di contenuto**) · **Aggiornato:** 27 agosto 2026, notte (**§K chiusa tutta: la vIPI d'aeroporto entra nel catalogo delle sezioni
 — ramo `aeroporto-a-sezioni`, il TERZO in fila — più le tre rifiniture della stessa notte: il meteo tornato
@@ -186,7 +186,8 @@ scrivono nei log.
 🔵 **Resta deciso**: il database si ripulisce un'ultima volta prima di popolarlo — quindi **I1** (le radici
 orfane di LIRR) è sospesa apposta: non si sistema un albero che sta per essere rifatto.
 
-**Sezioni con lavoro aperto, oggi**: **nessuna sul codice**. §P è fusa e spinta, §Q (bilingue) e §R (vSOP
+**Sezioni con lavoro aperto, oggi**: **§Q-bis**, nel ramo `bilingue-tutte-le-pagine` (spinto, non fuso).
+§P è fusa e spinta, §Q (bilingue, primo giro) e §R (vSOP
 militari) sono chiuse — venti slice in due giorni, tutte in `main`, che il 28 agosto è stato **spinto**
 (`6644b5e`, `origin/main` allineato). Restano **I3/I4**, **N4**, **P1** (decisioni, non lavoro) e la
 lingua sorgente della vLOA **Q4** — e tutto ciò che aspetta qualcun altro: A9, A13, L2, B10-bis,
@@ -3312,6 +3313,53 @@ che gira in parallelo, un test che ripulisce dopo di sé con quella sporca tutti
 liberare un file, si evita il pool alla radice con `Pooling=False`.
 
 **Esito**: suite **6633 verdi** su entrambi i TFM, `dotnet build -warnaserror` senza avvisi.
+
+---
+
+## Q-bis. La lingua, per intero — 28 agosto 2026, sera
+
+Ramo **`bilingue-tutte-le-pagine`**, sei commit, **spinto e non fuso**. Regole:
+[design/regole-lingua.md](design/regole-lingua.md).
+
+Nasce da una domanda del committente — «sono sulla vIPI di Crotone e non c'è traccia della traduzione» — e
+ogni voce qui sotto è un difetto che **la suite non poteva vedere**: ognuno sta nell'incontro fra due pezzi
+che, da soli, funzionavano.
+
+| | Che cosa mancava | Dove |
+|---|---|---|
+| **Q7** ✅ | **La lettura bilingue girava su DUE viewer su cinque.** `DocumentTranslator` era iniettato solo in `MilDocumentPage` e `VloaListPage`; aeroporto, APP e vIPI ACC non lo chiamavano. Documento italiano dentro interfaccia inglese, **senza avviso** | `1c44c92` |
+| **Q8** ✅ | **Il selettore di lingua non esisteva.** C'erano il cookie, la risoluzione per richiesta e il badge: la lingua si poteva chiedere solo scrivendo `?culture=` nell'indirizzo | `13df644` |
+| **Q9** ✅ | **Le REGOLE su carta**, e le cose che non si traducono: marchio, titolo del documento, briciola di pane (sempre inglese), indirizzi | `6247987` |
+| **Q10** ✅ | **La Guida** risponde alla ricerca nella lingua di chi ha cercato (l'unico testo di backend che vede il pubblico) | `857bf58` |
+| **Q11** ✅ | **125 messaggi a chi modifica** (validazione + blocchi all'eliminazione) hanno due lingue | `1649358` |
+| **Q12** ✅ | **«MRVA»** al posto di «Minime di vettoramento», uguale nelle due lingue; e il **correttore delle traduzioni dentro l'editor** | `2af3a39` |
+
+### Le trappole, che valgono oltre questo giro
+
+- ⚠️ **Cambiare lingua deve RICARICARE la pagina.** La navigazione «enhanced» di `blazor.web.js` non
+  ricarica il documento: sostituisce il DOM e **riusa il circuito**, la cui cultura è quella di quando è
+  nato. Visto a schermo: pagina inglese col METAR ancora «VENTO / VISIBILITÀ / NUBI». Cura:
+  `data-enhance-nav="false"` sui link del selettore.
+- ⚠️ **`AirportLegacySections.ForView` butta via la traduzione**: riporta ogni sezione di catalogo al suo
+  titolo cablato, quindi chiamato *dopo* il traduttore rimette l'italiano. Indice e testate dicevano cose
+  diverse.
+- ⚠️ **Il titolo di una sezione di catalogo sta NEL DOCUMENTO**: cambiare `SectionCatalog` vale solo per i
+  documenti nuovi. Serve un passo d'avvio, e le release pubblicate restano com'erano.
+- ⚠️ **`IStringLocalizer` non sa leggere in un'altra lingua**: risolve sempre sulla cultura corrente. Per la
+  briciola in inglese fisso serve il `ResourceManager` (`EnglishStrings`).
+- ⚠️ **Nei test la cultura si FISSA** (`CulturaDiProva`): dodici test asserivano il testo italiano e
+  sarebbero caduti su una macchina inglese. Fragilità vecchia, resa visibile dai messaggi bilingui.
+
+### Q13 🟢 APERTO — la memoria contiene rese plausibili e sbagliate
+
+Non è un difetto del codice: è il lavoro che la §Q3 aspetta da una persona. Viste a schermo il 28 agosto:
+«Regole piste» → *Slope rules* (corretta in *Runway rules* provando il correttore nuovo), «Minime di
+vettoramento» → *Minimum vectoring*. ⚠️ Ora si correggono **dall'editor**, senza passare dal Registro.
+
+### Q14 🟢 APERTO — il ramo va fuso
+
+Sei commit, suite verde su entrambi i TFM, build Release senza avvisi. Da fondere insieme a
+[archivio-atc-mondiale](feature/2026-08-28-archivio-atc-mondiale.md), o dopo: i due rami non si toccano.
 
 ---
 
