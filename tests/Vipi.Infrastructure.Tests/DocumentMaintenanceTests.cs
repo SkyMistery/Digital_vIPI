@@ -181,6 +181,44 @@ public class DocumentMaintenanceTests : IAsyncLifetime
         Assert.Single(_db.ContentBlocks.Where(b => b.SectionId == other.Id));
     }
 
+    // ---- La sezione delle minime si chiama «MRVA», e uguale nelle due lingue ----
+
+    [Fact]
+    public async Task Le_sezioni_minima_prendono_il_titolo_MRVA()
+    {
+        // ⚠️ Il titolo di una sezione di catalogo sta NEL DOCUMENTO: cambiare SectionCatalog vale per i
+        // documenti nuovi, e senza questo passo la stessa sezione si chiamerebbe in due modi a seconda di
+        // quando è nata.
+        var ver = await SeedVersionAsync();
+        var italiana = Section(ver, "minima", 1); italiana.Title = "Minime di vettoramento";
+        var inglese = Section(ver, "minima", 2); inglese.Title = "Minimum vectoring";
+        var rinominata = Section(ver, "minima", 3); rinominata.Title = "MRVA Roma";     // scelta di un editore
+        var altra = Section(ver, "separations", 4); altra.Title = "Minime di vettoramento";  // altra chiave
+        _db.DocumentSections.AddRange(italiana, inglese, rinominata, altra);
+        await _db.SaveChangesAsync();
+
+        var toccate = await _maintenance.RenameMinimaSectionsAsync();
+
+        Assert.Equal(2, toccate);
+        Assert.Equal("MRVA", _db.DocumentSections.Single(x => x.Id == italiana.Id).Title);
+        Assert.Equal("MRVA", _db.DocumentSections.Single(x => x.Id == inglese.Id).Title);
+        // ⚠️ Un titolo che l'editore ha scelto di suo NON si sovrascrive: è una scelta, non un residuo.
+        Assert.Equal("MRVA Roma", _db.DocumentSections.Single(x => x.Id == rinominata.Id).Title);
+        Assert.Equal("Minime di vettoramento", _db.DocumentSections.Single(x => x.Id == altra.Id).Title);
+    }
+
+    [Fact]
+    public async Task Rinominare_le_minima_e_idempotente()
+    {
+        var ver = await SeedVersionAsync();
+        var sec = Section(ver, "minima", 1); sec.Title = "Minime di vettoramento";
+        _db.DocumentSections.Add(sec);
+        await _db.SaveChangesAsync();
+
+        Assert.Equal(1, await _maintenance.RenameMinimaSectionsAsync());
+        Assert.Equal(0, await _maintenance.RenameMinimaSectionsAsync());
+    }
+
     [Fact]
     public async Task Clearing_Minima_Placeholders_Is_Idempotent()
     {

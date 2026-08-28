@@ -1,0 +1,178 @@
+@inject Vipi.Application.Translation.IDocumentTranslationReview Revisione
+@inject IStringLocalizer<SharedResource> L
+@using System.Globalization
+@using Vipi.Application.Translation
+@using Vipi.Domain.Entities
+
+@* ---- Il correttore delle traduzioni, dentro l'editor (carta bilingue §5) -----------------------------
+
+   ⚠️ PERCHE' QUI E NON SOLO NEL REGISTRO. Il Registro (`/services/vsop/admin/translations`) elenca le frasi
+   di TUTTA la divisione in ordine di quanto sono state riviste: e' il posto giusto per chi fa un giro di
+   revisione, ed e' quello sbagliato per chi ha appena scritto un documento e vuole vedere come viene letto
+   QUEL documento. Chi scrive conosce la fraseologia del suo scalo, ed e' l'unico che puo' dire se «riporta
+   sottovento» e' diventato «report downwind» o «bring it back downwind».
+
+   ⚠️ SI CORREGGE COME SI DICE, MAI COSA SI DICE. Il testo sorgente e' la chiave della memoria e qui non e'
+   modificabile: cambiare cio' che il documento afferma e' un'edit del documento, e passa dall'editor e
+   dalla release come ogni altra modifica.
+
+   ⚠️ E LA CORREZIONE TOCCA LA FRASE, NON IL DOCUMENTO: la memoria e' indicizzata sull'impronta, quindi vale
+   per ogni documento che contiene quella frase. Il conto si mostra PRIMA di salvare, non dopo. *@
+
+<CollapsibleBlock Id="tr-review" InitiallyOpen="false">
+    <Header>
+        <h3>
+            @L["TrEd_Title"]
+            @if (_righe is { Count: > 0 })
+            {
+                <span>&nbsp;</span>
+                <span class="pill @(DaRileggere > 0 ? "amber" : "blue")">@DaRileggere / @_righe.Count</span>
+            }
+        </h3>
+    </Header>
+    <ChildContent>
+        @if (_stessaLingua)
+        {
+            <p class="help">@L["TrEd_SameLanguage"]</p>
+        }
+        else if (_righe is null)
+        {
+            <p class="help">…</p>
+        }
+        else if (_righe.Count == 0)
+        {
+            <p class="help">@L["TrEd_Empty"]</p>
+        }
+        else
+        {
+            <p class="help">@L["TrEd_Intro", _lettore.ToUpperInvariant()]</p>
+
+            @foreach (var r in _righe)
+            {
+                <div class="tr-row">
+                    <div class="tr-src">
+                        <span class="muted tr-where">@L["TrEd_Where"] @r.Dove</span>
+                        <div>@r.Sorgente</div>
+                    </div>
+                    <div class="tr-dst">
+                        @if (_aperta == r.Sorgente)
+                        {
+                            <textarea class="tr-edit" rows="3" @bind="_bozza" @bind:event="oninput"></textarea>
+                            @if (_toccati > 1)
+                            {
+                                <p class="help">@L["Tr_TouchesDocs", _toccati]</p>
+                            }
+                            <div class="tr-cmds">
+                                <button class="btn" disabled="@(_busy || string.IsNullOrWhiteSpace(_bozza))"
+                                        @onclick="() => SalvaAsync(r)">
+                                    <Icon Name="check-circle" Size="14" /> @L["Common_Save"]
+                                </button>
+                                <button class="btn ghost" disabled="@_busy" @onclick="Chiudi">@L["Common_Cancel"]</button>
+                            </div>
+                        }
+                        else
+                        {
+                            <button class="btn ghost tr-open" disabled="@_busy" @onclick="() => ApriAsync(r)">
+                                @if (string.IsNullOrWhiteSpace(r.Tradotto))
+                                {
+                                    <span class="muted">@L["TrEd_Missing"]</span>
+                                }
+                                else
+                                {
+                                    @r.Tradotto
+                                }
+                            </button>
+                            @if (r.Origine == TranslationOrigin.Human)
+                            {
+                                <span class="pill blue">@L["Tr_OriginHuman"]</span>
+                            }
+                            else if (!string.IsNullOrWhiteSpace(r.Tradotto))
+                            {
+                                <span class="pill amber">@L["TrEd_ToReview"]</span>
+                            }
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (_esito is { Length: > 0 })
+            {
+                <p class="help">@_esito</p>
+            }
+        }
+    </ChildContent>
+</CollapsibleBlock>
+
+@code {
+    /// <summary>Il documento che si sta scrivendo. Senza, il pannello non ha niente da mostrare.</summary>
+    [Parameter, EditorRequired] public int DocumentId { get; set; }
+
+    private IReadOnlyList<RigaDaRivedere>? _righe;
+    private string _lettore = "it";
+    private bool _stessaLingua;
+    private bool _busy;
+    private string? _aperta;
+    private string _bozza = "";
+    private int _toccati;
+    private string? _esito;
+
+    private int DaRileggere => _righe?.Count(r => r.Origine != TranslationOrigin.Human) ?? 0;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // ⚠️ La lingua è quella della barra, la stessa di tutto il resto: il pannello non ha un selettore
+        // suo. Due comandi per la stessa cosa sono il difetto che la Guida ha già pagato.
+        _lettore = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+        _righe = null;
+        _aperta = null;
+        _esito = null;
+
+        var righe = await Revisione.RigheAsync(DocumentId, _lettore);
+        // Vuoto vuol dire due cose diverse — «stessa lingua» e «niente da tradurre» — e vanno dette in due
+        // modi diversi, o chi guarda pensa che il pannello sia rotto.
+        _stessaLingua = righe.Count == 0 && await StessaLinguaAsync();
+        _righe = righe;
+    }
+
+    /// <summary>Vero se si sta leggendo nella lingua in cui il documento è scritto.</summary>
+    private async Task<bool> StessaLinguaAsync()
+    {
+        // Se in un'altra lingua ci sarebbe qualcosa da rivedere, allora il vuoto di adesso è «stessa lingua».
+        var altra = _lettore == "en" ? "it" : "en";
+        return (await Revisione.RigheAsync(DocumentId, altra)).Count > 0;
+    }
+
+    private async Task ApriAsync(RigaDaRivedere r)
+    {
+        _aperta = r.Sorgente;
+        _bozza = r.Tradotto;
+        _esito = null;
+        _toccati = await Revisione.DocumentiToccatiAsync(r.Sorgente);
+    }
+
+    private void Chiudi()
+    {
+        _aperta = null;
+        _bozza = "";
+    }
+
+    private async Task SalvaAsync(RigaDaRivedere r)
+    {
+        _busy = true;
+        try
+        {
+            await Revisione.CorreggiAsync(DocumentId, _lettore, r.Sorgente, _bozza);
+            _esito = L["Tr_Saved", Math.Max(_toccati, 1)];
+            Chiudi();
+            _righe = await Revisione.RigheAsync(DocumentId, _lettore);
+        }
+        catch (Vipi.Application.Aor.ValidationException ex)
+        {
+            _esito = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

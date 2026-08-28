@@ -43,6 +43,13 @@ public sealed class EditableDocument
     public required string Title { get; init; }
     public required IReadOnlyList<EditableSection> Sections { get; init; }
 
+    /// <summary>
+    /// La lingua in cui il documento è <b>redatto</b>: da lì parte la traduzione, e in quella lingua
+    /// l'editor mostra i testi. ⚠️ Nulla sui documenti salvati prima che il campo esistesse — allora vale
+    /// la lingua in cui quella famiglia nasce (<c>DocumentTranslator.CodiceSorgente</c>).
+    /// </summary>
+    public Vipi.Domain.Language? Language { get; init; }
+
     /// <summary>Vero se la versione di lavoro è una bozza editabile.</summary>
     public bool IsEditable => VersionStatus == DocumentStatus.Draft;
 }

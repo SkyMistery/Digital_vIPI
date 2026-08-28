@@ -48,8 +48,14 @@ internal sealed class MemoriaDiTraduzioneFinta : ITranslationMemory
     public Task<int> SaveMachineAsync(string s, string t, string e,
         IReadOnlyList<(string SourceText, string TargetText)> v, CancellationToken ct = default) => Task.FromResult(0);
 
-    public Task SaveHumanAsync(string s, string t, string a, string b, int u, CancellationToken ct = default) =>
-        Task.CompletedTask;
+    /// <summary>L'ultima correzione salvata: coppia di lingue, testo sorgente, resa e chi l'ha scritta.</summary>
+    public (string Da, string A, string Sorgente, string Tradotto, int Utente)? UltimaCorrezione { get; private set; }
+
+    public Task SaveHumanAsync(string s, string t, string a, string b, int u, CancellationToken ct = default)
+    {
+        UltimaCorrezione = (s, t, a, b, u);
+        return Task.CompletedTask;
+    }
 
     public Task<IReadOnlyList<TranslationReviewRow>> ListForReviewAsync(
         string s, string t, bool solo, int limite, CancellationToken ct = default) =>

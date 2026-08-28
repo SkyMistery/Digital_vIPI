@@ -155,6 +155,7 @@ public sealed class EfEditingRepository : IEditingRepository
             VersionStatus = version.Status,
             Title = doc.Title,
             Sections = roots,
+            Language = doc.Language,
         };
     }
 

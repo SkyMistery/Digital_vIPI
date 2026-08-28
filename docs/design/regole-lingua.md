@@ -109,6 +109,34 @@ asserisce il testo italiano senza fissarla passa in Italia e cade su una macchin
 comunque «frequenze», e chi legge in italiano cercherà «runway». Chi cerca vuole trovare, non essere
 coerente.
 
+### Le SIGLE non si traducono
+
+«MRVA», «SID», «AOR», «METAR & TAF»: si chiamano così in frequenza e sulle carte, e una sigla tradotta non
+è più quella sigla. La sezione delle minime di vettoramento **si chiama MRVA** in tutte e due le lingue —
+prima diceva «Minime di vettoramento», che il motore rendeva «Minimum vectoring»: giusto a metà, e comunque
+non la sigla.
+
+⚠️ **Il titolo di una sezione di catalogo sta NEL DOCUMENTO**, non nel catalogo: cambiare `SectionCatalog`
+vale per i documenti nuovi, e su quelli già scritti non cambia niente. Serve un passo di manutenzione
+all'avvio (`RenameMinimaSectionsAsync`), e **le release già pubblicate restano com'erano** finché non si
+ripubblica — la regola di ogni altra correzione editoriale.
+
+### Chi scrive corregge la sua traduzione
+
+Nell'editor c'è il pannello **Traduzione**: le frasi di *quel* documento, con la loro resa nella lingua
+scelta in barra, e la correzione sul posto.
+
+⚠️ Il **Registro** (`/services/vsop/admin/translations`) resta dov'è e non è un doppione: quello elenca le
+frasi di **tutta la divisione** in ordine di quanto sono state riviste — è il posto per chi fa un giro di
+revisione. Il pannello è per chi ha appena scritto un documento e vuole sapere **come viene letto**: chi
+scrive conosce la fraseologia del suo scalo, ed è l'unico che può dire se «riporta sottovento» è diventato
+«report downwind» o «bring it back downwind».
+
+⚠️ **Si corregge COME si dice, mai COSA si dice.** Il testo sorgente è la chiave della memoria e lì non è
+modificabile: cambiare quel che il documento afferma è un'edit del documento, e passa dall'editor e dalla
+release. ⚠️ E la correzione **tocca la frase, non il documento** — vale per ogni documento che contiene
+quella frase, per questo il conto si mostra *prima* di salvare.
+
 ## Le eccezioni, dichiarate
 
 Sono poche, e stanno scritte qui perché una misura con delle eccezioni non dichiarate è una misura che

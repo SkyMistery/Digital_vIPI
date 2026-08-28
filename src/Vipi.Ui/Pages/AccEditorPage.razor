@@ -76,6 +76,14 @@ else
 
             <DocReviewBar DocumentId="_shell.DocumentId" />
 
+            @* Come si legge questo documento nell'altra lingua, e la correzione sul posto. Chiuso di suo: si
+               apre quando serve, e chi scrive in italiano non ha ragione di vederlo tutti i giorni. *@
+            @if (_shell.DocumentId is int docIdTraduzione)
+            {
+                <TranslationReviewPanel DocumentId="docIdTraduzione" />
+            }
+
+
             <div class="ed-layout with-rail @(_wide ? "sid-wide" : null)">
             @* Espandi/comprimi tutto: stessi tasti e stesse chiavi dell'editor aeroporto — quello che si fa in
                un editor si fa anche nell'altro (regola 68). Agiscono su blocchi E sezioni. *@

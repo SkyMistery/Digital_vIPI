@@ -128,6 +128,13 @@
   <data name="Cov_OnFrequency" xml:space="preserve"><value>{0}: {1} minutes on frequency out of {2} possible ({3}%)</value></data>
   <data name="Blocks_HelpBody" xml:space="preserve"><value>Add a block: &lt;b&gt;Paragraph&lt;/b&gt; (text), &lt;b&gt;Callout&lt;/b&gt; (note/warning box), &lt;b&gt;Table&lt;/b&gt; (rows/columns), &lt;b&gt;Image&lt;/b&gt; (a photo from your device, or dragged in). Reorder with ↑/↓. Everything then has to be &lt;b&gt;saved&lt;/b&gt; and &lt;b&gt;published&lt;/b&gt;.</value></data>
   <data name="Rel_PreviewCrumb" xml:space="preserve"><value>Release preview</value></data>
+  <data name="TrEd_Title" xml:space="preserve"><value>Translation</value></data>
+  <data name="TrEd_SameLanguage" xml:space="preserve"><value>You are reading in the language this document is written in. Switch language in the top bar to review how it reads.</value></data>
+  <data name="TrEd_Empty" xml:space="preserve"><value>There is nothing to review yet: this document has no translated prose.</value></data>
+  <data name="TrEd_Missing" xml:space="preserve"><value>not translated</value></data>
+  <data name="TrEd_Intro" xml:space="preserve"><value>The sentences of this document and how they read in {0}. You correct HOW it is said, never WHAT it says: the original text is changed in the editor.</value></data>
+  <data name="TrEd_Where" xml:space="preserve"><value>In</value></data>
+  <data name="TrEd_ToReview" xml:space="preserve"><value>to review</value></data>
   <data name="Chrome_Theme" xml:space="preserve"><value>Theme</value></data>
   <data name="Chrome_Version" xml:space="preserve"><value>Site version</value></data>
   <data name="Chrome_ThemeAuto" xml:space="preserve"><value>Theme: automatic (follows the system)</value></data>

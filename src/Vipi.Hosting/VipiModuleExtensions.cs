@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
@@ -480,6 +480,14 @@ public static class VipiModuleExtensions
         if (puntatori > 0 && log is not null)
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Azzerati {Count} puntatori «versione pubblicata» che indicavano una bozza: quel campo lo scrive la pubblicazione.", puntatori);
+
+        // La sezione delle minime di vettoramento si chiama «MRVA», e uguale in tutte e due le lingue: il
+        // titolo di una sezione di catalogo sta NEL DOCUMENTO, quindi cambiare il catalogo vale solo per i
+        // documenti nuovi e questo passo porta avanti quelli già scritti.
+        var mrva = maintenance.RenameMinimaSectionsAsync().GetAwaiter().GetResult();
+        if (mrva > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Rinominate {Count} sezioni «minima» in MRVA.", mrva);
 
         // «Minime di vettoramento» è tornata editoriale (doc 13 §3b): via i blocchi placeholder vuoti che aveva
         // da derivata, o l'editor mostrerebbe una tabella senza colonne.

@@ -81,6 +81,14 @@ else
 
             <DocReviewBar DocumentId="_shell.DocumentId" OnResolved="LoadAsync" />
 
+            @* Come si legge questo documento nell'altra lingua, e la correzione sul posto. Chiuso di suo: si
+               apre quando serve, e chi scrive in italiano non ha ragione di vederlo tutti i giorni. *@
+            @if (_shell.DocumentId is int docIdTraduzione)
+            {
+                <TranslationReviewPanel DocumentId="docIdTraduzione" />
+            }
+
+
             @if (_shell.Error is not null)
             {
                 <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div style="flex:1">@_shell.Error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _shell.Error = null">✕</button></div>

@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Content;
@@ -12,6 +12,10 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
 {
     private const string HiddenSectionsProperty = "HiddenSections";
     private const string MinimaKey = "minima";
+
+    /// <summary>Il titolo della sezione MRVA. ⚠️ Uguale in tutte e due le lingue: è una sigla, come «SID» o
+    /// «AOR» (docs/design/regole-lingua.md). Deve dire la stessa cosa di <c>SectionCatalog</c>.</summary>
+    private const string MinimaTitolo = "MRVA";
     private const string ValidityKey = "validity";
 
     /// <summary>L'etichetta esatta che il seminatore scriveva, e il valore che la accompagnava: «AIRAC » e quattro
@@ -239,6 +243,24 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         _db.ContentBlocks.RemoveRange(stale);
         await _db.SaveChangesAsync(ct);
         return stale.Count;
+    }
+
+    /// <inheritdoc cref="IDocumentMaintenance.RenameMinimaSectionsAsync"/>
+    public async Task<int> RenameMinimaSectionsAsync(CancellationToken ct = default)
+    {
+        // ⚠️ Si guardano i titoli VECCHI, non «tutti quelli diversi da MRVA»: se un editore l'avesse
+        // rinominata di suo, quel nome è una scelta e non si sovrascrive. I due titoli sono l'italiano
+        // storico e la resa inglese che la memoria di traduzione aveva prodotto per lui.
+        var vecchi = new[] { "Minime di vettoramento", "Minimum vectoring", "Minimum vectoring altitudes" };
+
+        var sezioni = await _db.DocumentSections
+            .Where(x => x.SectionKey == MinimaKey && vecchi.Contains(x.Title))
+            .ToListAsync(ct);
+        if (sezioni.Count == 0) return 0;
+
+        foreach (var sezione in sezioni) sezione.Title = MinimaTitolo;
+        await _db.SaveChangesAsync(ct);
+        return sezioni.Count;
     }
 
     /// <summary>APP (chiavi) e vLOA (titoli): un'unica colonna <c>DocumentProfiles.HiddenSectionsJson</c>, per

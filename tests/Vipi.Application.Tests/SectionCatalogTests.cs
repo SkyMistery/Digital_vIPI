@@ -1,4 +1,4 @@
-﻿using Vipi.Application.Content;
+using Vipi.Application.Content;
 using Xunit;
 
 namespace Vipi.Application.Tests;
@@ -247,6 +247,16 @@ public class SectionCatalogTests
 
         Assert.Single(parent.Blocks);
         Assert.Equal("Foglia", Assert.Single(parent.SubSections).Title);
+    }
+
+    [Fact]
+    public void La_sezione_delle_minime_si_chiama_MRVA_in_ogni_profilo()
+    {
+        // ⚠️ È una SIGLA, e resta uguale in italiano e in inglese — come «SID» o «AOR»
+        // (docs/design/regole-lingua.md). Diceva «Minime di vettoramento», che il motore rendeva
+        // «Minimum vectoring»: giusto a metà, e comunque non la sigla con cui la si chiama in frequenza.
+        foreach (var profilo in new[] { SectionProfile.AccAerovia, SectionProfile.AccAppBlock, SectionProfile.App })
+            Assert.Equal("MRVA", SectionCatalog.Find(profilo, "minima")?.Title);
     }
 
     [Fact]

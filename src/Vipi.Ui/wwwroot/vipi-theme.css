@@ -3240,6 +3240,20 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 
 .topbar.tb-3 .top-search:focus-within input{width:auto;flex:1;opacity:1}
 
+/* ---- Il correttore delle traduzioni dentro l'editor ----
+   Due colonne: a sinistra la frase com'e' scritta (non si tocca: e' la chiave della memoria), a destra come
+   si legge nell'altra lingua. Su schermo stretto si impilano — e' testo, e il testo cede prima dei comandi. */
+.tr-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;
+  padding:8px 0;border-bottom:1px solid var(--line)}
+.tr-row:last-child{border-bottom:0}
+.tr-src{min-width:0}
+.tr-where{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+.tr-dst{min-width:0;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.tr-dst .tr-open{text-align:left;width:100%;white-space:normal}
+.tr-edit{width:100%;font-family:var(--font-body)}
+.tr-cmds{display:flex;gap:6px}
+@container (max-width: 720px){ .tr-row{grid-template-columns:1fr} }
+
 /* ---- Pannello release: la riga sta in UNA riga ----
    Erano due — titolo sopra, meta sotto — cioe' 68px l'una: su dieci release 680px per una storia che si
    scorre, non si legge riga per riga. L'ora esatta e la nota stanno nel `title` della riga: sono la verita'

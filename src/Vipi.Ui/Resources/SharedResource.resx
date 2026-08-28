@@ -128,6 +128,13 @@
   <data name="Cov_OnFrequency" xml:space="preserve"><value>{0}: {1} minuti in frequenza su {2} possibili ({3}%)</value></data>
   <data name="Blocks_HelpBody" xml:space="preserve"><value>Aggiungi un blocco: &lt;b&gt;Paragrafo&lt;/b&gt; (testo), &lt;b&gt;Callout&lt;/b&gt; (riquadro nota/attenzione), &lt;b&gt;Tabella&lt;/b&gt; (righe/colonne), &lt;b&gt;Immagine&lt;/b&gt; (foto dal dispositivo o trascinata). Riordina con ↑/↓. Tutto va poi &lt;b&gt;salvato&lt;/b&gt; e &lt;b&gt;pubblicato&lt;/b&gt;.</value></data>
   <data name="Rel_PreviewCrumb" xml:space="preserve"><value>Anteprima release</value></data>
+  <data name="TrEd_Title" xml:space="preserve"><value>Traduzione</value></data>
+  <data name="TrEd_SameLanguage" xml:space="preserve"><value>Stai leggendo nella lingua in cui questo documento è scritto. Passa all'altra lingua nella barra in alto per rivedere come viene letto.</value></data>
+  <data name="TrEd_Empty" xml:space="preserve"><value>Non c'è ancora niente da rivedere: questo documento non ha prosa tradotta.</value></data>
+  <data name="TrEd_Missing" xml:space="preserve"><value>non tradotta</value></data>
+  <data name="TrEd_Intro" xml:space="preserve"><value>Le frasi di questo documento e come si leggono in {0}. Si corregge COME si dice, mai COSA si dice: il testo originale si cambia nell'editor.</value></data>
+  <data name="TrEd_Where" xml:space="preserve"><value>In</value></data>
+  <data name="TrEd_ToReview" xml:space="preserve"><value>da rileggere</value></data>
   <data name="Chrome_Theme" xml:space="preserve"><value>Tema</value></data>
   <data name="Chrome_Version" xml:space="preserve"><value>Versione del sito</value></data>
   <data name="Chrome_ThemeAuto" xml:space="preserve"><value>Tema: automatico (segue il sistema)</value></data>
