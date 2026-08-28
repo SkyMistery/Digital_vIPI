@@ -2,7 +2,10 @@
 
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Estende il servizio statistiche
 > ([carta del 24 agosto](2026-08-24-servizio-statistiche-atc.md)) senza toccarne i conti.
-> **Stato: slice chiuse, suite verde, verificato dal vivo.**
+> **Stato al 28 agosto 2026, sera: slice chiuse, suite verde su entrambi i TFM, verificato dal vivo contro
+> IVAO vero.** Ramo `archivio-atc-mondiale` (`14df770`, tre commit) **spinto e NON fuso**: la fusione è una
+> decisione del committente. ⚠️ **Consegna attesa entro il 1° settembre 2026** — è la data da cui deve
+> partire la raccolta, e nel codice non c'è niente che la faccia rispettare (§3-bis).
 
 ## 1. Perché
 
