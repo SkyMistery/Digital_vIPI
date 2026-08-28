@@ -141,7 +141,7 @@ else
     // release ha congelato. Nulle in bozza — una bozza non ha ancora congelato niente, e la sorgente è quella
     // in cui la famiglia nasce.
     private Vipi.Domain.Language? _lingua;
-    private Dictionary<string, Dictionary<string, string>>? _congelate;
+    private Dictionary<string, Dictionary<string, FrozenTranslation>>? _congelate;
     private Vipi.Application.Translation.TranslationCoverage _copertura =
         Vipi.Application.Translation.TranslationCoverage.Nessuna;
 

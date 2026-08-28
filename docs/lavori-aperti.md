@@ -3444,6 +3444,62 @@ cade anche la guardia di parità. `Vipi.Ui.Tests` 715 → **724**.
 ⚠️ **Resta fuori** `src/Vipi.Host`: la guardia letterale scandisce solo `src/Vipi.Ui`. Oggi non ci sono
 chiavi di risorsa là dentro, quindi non copre niente — ma è una condizione, non una garanzia.
 
+### Q18 ✅ CHIUSA — il congelato era un muro, e l'avviso non si spegneva mai
+
+Due difetti diversi nello stesso pezzo di codice, e nessuno dei due si vedeva prima che la funzione
+girasse davvero (§Q15). Entrambi stanno fra `ReleaseService` — che scatta la fotografia — e
+`DocumentTranslator` — che la legge.
+
+**a) Il congelato SOSTITUIVA la memoria invece di sovrapporsi.** `PreparaAsync` faceva
+`congelate is not null ? congelate : memoria`: bastava **una** voce nello snapshot perché la memoria viva
+non venisse più letta per tutto il documento. Ma la fotografia la scatta la pubblicazione, nell'istante in
+cui si preme il tasto, e il giro che riempie la memoria passa **ogni quarto d'ora**. Chi scriveva prosa
+nuova e pubblicava subito — il caso normale, non quello raro — congelava una traduzione **incompleta**: il
+motore traduceva il resto dieci minuti dopo, la memoria ce l'aveva, e nessuno andava più a prenderla. Quel
+documento restava **a chiazze fino alla ripubblicazione**, con l'avviso «mancano N frasi su M» acceso.
+
+⚠️ **La ragione del congelamento resta intatta**, e la riparazione non la tocca: dove lo snapshot ha una
+voce, vince la voce — una resa corretta oggi su un altro documento non deve riscrivere quel che questo ha
+già pubblicato. Ma **dove lo snapshot non ha niente non c'è niente di pubblicato da proteggere**: quella
+frase, nella release, si legge nella lingua sorgente. Prenderla dalla memoria non cambia una parola
+pubblicata, riempie un buco. «Dove», non «se».
+
+⚠️ **A congelato completo il database non si tocca**, come prima: la memoria si legge solo se resta
+qualche impronta scoperta, e **solo per quelle**. Su una release pubblicata con calma sono zero query.
+
+**b) Il timbro «riletta» non viaggiava nello snapshot.** Le congelate erano `hash → stringa`, quindi il
+viewer non poteva che dichiararle tutte «non revisionate». Conseguenza: l'avviso «traduzione automatica,
+non revisionata» **non si spegneva mai** su un documento pubblicato — nemmeno con ogni singola frase
+corretta a mano. Lo staff correggeva nel pannello, ripubblicava, e l'avviso restava: un giro di revisione
+senza uscita, cioè un giro che nessuno fa una seconda volta.
+
+Ora lo snapshot porta `FrozenTranslation(Text, Reviewed)`. ⚠️ **La cautela non è cambiata**: quel che
+arriva senza timbro si dichiara **non riletto** — dichiarare riletta una frase che nessuno ha guardato, su
+un documento operativo, è l'errore che non si può fare. Le release pubblicate prima restano marcate finché
+non si ripubblicano, che è la regola di ogni altra correzione editoriale.
+
+**Il lettore legge due forme e ne scrive una.** Gli snapshot già pubblicati portano la stringa nuda e sono
+documenti **in vigore**: un cambio di forma che non sapesse leggere la vecchia non darebbe un errore di
+compilazione, darebbe un'eccezione su una pagina pubblica — o, peggio, una vLOA che si apre con tutte le
+traduzioni sparite. Il convertitore accetta stringa e oggetto, ignora i campi che non conosce, e su
+qualunque altra forma legge «niente di congelato» invece di sollevare.
+
+⚠️ **`HandleNull` non è rifinitura.** Senza, `System.Text.Json` non chiama affatto il convertitore su un
+token `null`: infila un `null` nel dizionario, e la prima riga che chiede a quella voce se ha un testo
+esplode — su una pagina pubblica, per un solo `null` in fondo a uno snapshot. Trovato dal test, non a
+mano.
+
+**Le prove.** Nove test sul convertitore (le due forme, la convivenza, il campo sconosciuto, le quattro
+forme illeggibili, la voce rotta che non deve rovinare quelle dopo) più due sul **payload vero** — perché
+il convertitore da solo non dice niente su quel che succede due livelli di annidamento più in là, dentro
+un `DocReleasePayload` serializzato come lo serializza `BuildSnapshotJsonAsync`. Uno di quei due apre uno
+snapshot **nella forma di prima** e pretende che si legga. `Vipi.Application.Tests` 1303 → **1322**.
+
+⚠️ Il test che diceva «il congelato vince e la memoria NON si legge» **asseriva il difetto**: era vero, ed
+era il guasto. Ora si chiama «se il congelato copre TUTTO», e accanto c'è quello che prova il caso
+parziale. Un test verde non è una prova che il comportamento sia quello giusto: è una prova che è quello
+che qualcuno ha scritto.
+
 ---
 
 ## R. I vSOP militari — 28 agosto 2026

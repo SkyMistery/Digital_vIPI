@@ -11,7 +11,7 @@ namespace Vipi.Application.Content;
 /// <param name="Translations">Le traduzioni congelate in QUESTA release: se ci sono vincono sulla memoria viva.</param>
 public sealed record AccReleaseView(
     AccVipiData Data, string AiracCycle,
-    Language? Language = null, Dictionary<string, Dictionary<string, string>>? Translations = null);
+    Language? Language = null, Dictionary<string, Dictionary<string, FrozenTranslation>>? Translations = null);
 
 /// <summary>
 /// Use-case di authoring della vIPI ACC: documento a blocchi (Aerovia/CTR + gruppi APP). Le parti editoriali

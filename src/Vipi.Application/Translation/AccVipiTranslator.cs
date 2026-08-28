@@ -44,7 +44,7 @@ public sealed class AccVipiTranslator
     /// vincono sulla memoria viva, come per le altre famiglie.</param>
     public async Task<TranslationCoverage> TranslateAsync(
         AccVipiData data, Language? lingua, string targetLang,
-        IReadOnlyDictionary<string, Dictionary<string, string>>? congelate = null, CancellationToken ct = default)
+        IReadOnlyDictionary<string, Dictionary<string, FrozenTranslation>>? congelate = null, CancellationToken ct = default)
     {
         var sourceLang = DocumentTranslator.CodiceSorgente(lingua, Predefinita);
         var passata = await _traduttore

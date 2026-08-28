@@ -21,7 +21,7 @@ public class TraduzioniCongelateTests
 {
     private static DocumentView Vista(
         string titolo, string corpo,
-        Dictionary<string, Dictionary<string, string>>? congelate = null,
+        Dictionary<string, Dictionary<string, FrozenTranslation>>? congelate = null,
         Language? lingua = Language.En) => new()
     {
         Title = titolo,
@@ -42,19 +42,31 @@ public class TraduzioniCongelateTests
         },
     };
 
-    private static Dictionary<string, Dictionary<string, string>> Congelate(params (string Da, string A)[] coppie) =>
+    /// <summary>Congelate <b>senza timbro</b>: è quello che portano le release pubblicate prima che il
+    /// timbro esistesse, e resta il caso normale di una release mai revisionata.</summary>
+    private static Dictionary<string, Dictionary<string, FrozenTranslation>> Congelate(
+        params (string Da, string A)[] coppie) => Congelate(rilette: false, coppie);
+
+    /// <param name="rilette">Il timbro che viaggia nello snapshot: se una persona le aveva riviste al
+    /// momento della pubblicazione.</param>
+    private static Dictionary<string, Dictionary<string, FrozenTranslation>> Congelate(
+        bool rilette, params (string Da, string A)[] coppie) =>
         new(StringComparer.OrdinalIgnoreCase)
         {
-            ["it"] = coppie.ToDictionary(c => TranslationText.Hash(c.Da), c => c.A, StringComparer.Ordinal),
+            ["it"] = coppie.ToDictionary(
+                c => TranslationText.Hash(c.Da),
+                c => new FrozenTranslation(c.A, rilette),
+                StringComparer.Ordinal),
         };
 
     // ---- Il congelato vince -------------------------------------------------------------------------
 
     [Fact]
-    public async Task Se_la_release_ha_congelato_vince_il_congelato_e_la_memoria_NON_si_legge()
+    public async Task Se_il_congelato_copre_TUTTO_la_memoria_non_si_legge()
     {
-        // La memoria viva dice una cosa, lo snapshot un'altra: deve vincere lo snapshot. E la memoria non
-        // si deve nemmeno interrogare — sarebbe una query per documento pubblicato, per niente.
+        // La memoria viva dice una cosa, lo snapshot un'altra: deve vincere lo snapshot. E se lo snapshot
+        // copre ogni segmento, la memoria non si deve nemmeno interrogare — sarebbe una query per
+        // documento pubblicato, per niente.
         var memoria = new MemoriaDiTraduzioneFinta()
             .Nota("Purpose", "SCOPO DALLA MEMORIA VIVA")
             .Nota("This LoA applies.", "DALLA MEMORIA VIVA");
@@ -108,9 +120,9 @@ public class TraduzioniCongelateTests
     {
         // Snapshot con l'inglese congelato, lettore che chiede il francese: si ricade sulla memoria viva
         // invece di mostrare l'inglese come se fosse francese.
-        var congelate = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase)
+        var congelate = new Dictionary<string, Dictionary<string, FrozenTranslation>>(StringComparer.OrdinalIgnoreCase)
         {
-            ["en"] = new(StringComparer.Ordinal) { [TranslationText.Hash("Testo")] = "Text" },
+            ["en"] = new(StringComparer.Ordinal) { [TranslationText.Hash("Testo")] = new("Text", false) },
         };
         var memoria = new MemoriaDiTraduzioneFinta();
         var vista = Vista("T", "Testo", congelate, lingua: Language.It);
@@ -119,14 +131,93 @@ public class TraduzioniCongelateTests
         Assert.Equal(1, memoria.Letture);
     }
 
+    // ---- Quel che il congelato NON copre --------------------------------------------------------------
+    //
+    // ⚠️ È il difetto che si vedeva solo a regime, e che nessun test prendeva. La fotografia la scatta
+    // `ReleaseService` nell'ISTANTE della pubblicazione, e il giro che riempie la memoria passa ogni
+    // QUARTO D'ORA: chi scriveva prosa nuova e pubblicava subito — il caso normale, non quello raro —
+    // congelava una traduzione incompleta. Il motore traduceva il resto dieci minuti dopo, la memoria ce
+    // l'aveva, e nessuno andava più a prenderla: quel documento restava a chiazze FINO ALLA
+    // RIPUBBLICAZIONE, con l'avviso «mancano N frasi su M» acceso per sempre.
+
+    [Fact]
+    public async Task Quel_che_il_congelato_NON_copre_lo_riempie_la_memoria_viva()
+    {
+        // Lo snapshot ha fotografato solo il titolo di sezione: il corpo, scritto poco prima di pubblicare,
+        // il motore l'ha tradotto dopo.
+        var memoria = new MemoriaDiTraduzioneFinta().Nota("This LoA applies.", "La presente lettera si applica.");
+        var vista = Vista("T", "This LoA applies.", Congelate(("Purpose", "Scopo")));
+
+        var esito = await new DocumentTranslator(memoria).TranslateAsync(vista, "en", "it");
+
+        Assert.Equal("Scopo", esito.View.Sections[0].Title);                                  // dal congelato
+        Assert.Equal("La presente lettera si applica.", esito.View.Sections[0].Blocks[0].Body); // dalla memoria
+        Assert.True(esito.Coverage.Completa);
+        Assert.Equal(0, esito.Coverage.Mancanti);
+    }
+
+    [Fact]
+    public async Task La_memoria_si_interroga_SOLO_per_le_impronte_scoperte()
+    {
+        // ⚠️ Non basta contare le letture: una lettura che chiede tutto e butta via metà costerebbe come
+        // prima e riaprirebbe la porta a una correzione arrivata dopo. Si chiede solo quel che manca.
+        var memoria = new MemoriaDiTraduzioneFinta().Nota("This LoA applies.", "Si applica.");
+        var vista = Vista("T", "This LoA applies.", Congelate(("Purpose", "Scopo")));
+
+        await new DocumentTranslator(memoria).TranslateAsync(vista, "en", "it");
+
+        Assert.Equal(1, memoria.Letture);
+        Assert.True(memoria.HaChiesto("This LoA applies."));
+        Assert.False(memoria.HaChiesto("Purpose"));
+    }
+
+    [Fact]
+    public async Task Il_congelato_vince_ANCHE_quando_e_parziale()
+    {
+        // La riparazione non deve aprire una porta: sulle frasi che lo snapshot PORTA continua a vincere
+        // lui, anche se il resto lo riempie la memoria. È tutta la ragione per cui si congela.
+        var memoria = new MemoriaDiTraduzioneFinta()
+            .Nota("Purpose", "RESA CORRETTA DOPO")
+            .Nota("This LoA applies.", "Si applica.");
+        var vista = Vista("T", "This LoA applies.", Congelate(("Purpose", "Scopo")));
+
+        var esito = await new DocumentTranslator(memoria).TranslateAsync(vista, "en", "it");
+
+        Assert.Equal("Scopo", esito.View.Sections[0].Title);
+    }
+
+    [Fact]
+    public async Task Un_congelato_VUOTO_non_cancella_la_frase()
+    {
+        // ⚠️ Uno snapshot troncato, o una forma che il lettore non riconosce, arriva come testo vuoto. Se
+        // valesse come «congelata», la frase sparirebbe dalla pagina invece di restare nella sua lingua —
+        // e sparire è l'unico esito che un documento operativo non può avere. Vuoto = scoperto.
+        var memoria = new MemoriaDiTraduzioneFinta().Nota("This LoA applies.", "Si applica.");
+        var congelate = new Dictionary<string, Dictionary<string, FrozenTranslation>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["it"] = new(StringComparer.Ordinal)
+            {
+                [TranslationText.Hash("This LoA applies.")] = new("", false),
+                [TranslationText.Hash("Purpose")] = new("", false),
+            },
+        };
+        var vista = Vista("T", "This LoA applies.", congelate);
+
+        var esito = await new DocumentTranslator(memoria).TranslateAsync(vista, "en", "it");
+
+        Assert.Equal("Si applica.", esito.View.Sections[0].Blocks[0].Body);   // ripescata dalla memoria
+        Assert.Equal("Purpose", esito.View.Sections[0].Title);                // né tradotta né cancellata
+    }
+
     // ---- La copertura sul congelato ------------------------------------------------------------------
 
     [Fact]
-    public async Task Il_congelato_si_dichiara_NON_riletto()
+    public async Task Il_congelato_SENZA_timbro_si_dichiara_non_riletto()
     {
-        // ⚠️ Lo snapshot porta il TESTO, non chi lo ha scritto. Sbagliare per eccesso di cautela qui vuol
-        // dire un avviso di troppo; sbagliare al contrario vuol dire dichiarare riletta una frase che
-        // nessuno ha mai guardato — su un documento operativo.
+        // ⚠️ Sbagliare per eccesso di cautela qui vuol dire un avviso di troppo; sbagliare al contrario
+        // vuol dire dichiarare riletta una frase che nessuno ha mai guardato — su un documento operativo.
+        // Senza timbro sono le release pubblicate prima del 28 agosto 2026: restano marcate finché non si
+        // ripubblica, che è la regola di ogni altra correzione editoriale.
         var vista = Vista("T", "This LoA applies.",
             Congelate(("T", "T"), ("Purpose", "Scopo"), ("This LoA applies.", "Si applica.")));
 
@@ -135,6 +226,40 @@ public class TraduzioniCongelateTests
         Assert.True(esito.Coverage.Completa);
         Assert.True(esito.Coverage.DaRileggere);
         Assert.Equal(0, esito.Coverage.Riletti);
+    }
+
+    [Fact]
+    public async Task Col_timbro_l_avviso_SI_SPEGNE()
+    {
+        // ⚠️ È il difetto che rendeva il giro di revisione un vicolo cieco: lo snapshot portava il testo e
+        // non chi l'aveva scritto, quindi il viewer non poteva che dichiarare tutto «non revisionato».
+        // Lo staff correggeva nel pannello, ripubblicava, e l'avviso restava acceso — su un documento in
+        // cui ogni frase era stata riletta. Un giro di revisione senza uscita è un giro che nessuno fa una
+        // seconda volta.
+        var vista = Vista("T", "This LoA applies.",
+            Congelate(rilette: true, ("Purpose", "Scopo"), ("This LoA applies.", "Si applica.")));
+
+        var esito = await new DocumentTranslator(new MemoriaDiTraduzioneFinta()).TranslateAsync(vista, "en", "it");
+
+        Assert.True(esito.Coverage.Completa);
+        Assert.False(esito.Coverage.DaRileggere);
+        Assert.Equal(2, esito.Coverage.Riletti);
+    }
+
+    [Fact]
+    public async Task Una_sola_frase_senza_timbro_tiene_acceso_l_avviso()
+    {
+        // Il timbro è per FRASE, non per documento: basta che una non l'abbia guardata nessuno perché il
+        // lettore debba saperlo. È l'avviso giusto, non un avviso di troppo.
+        var congelate = Congelate(rilette: true, ("Purpose", "Scopo"));
+        congelate["it"][TranslationText.Hash("This LoA applies.")] = new("Si applica.", false);
+        var vista = Vista("T", "This LoA applies.", congelate);
+
+        var esito = await new DocumentTranslator(new MemoriaDiTraduzioneFinta()).TranslateAsync(vista, "en", "it");
+
+        Assert.True(esito.Coverage.Completa);
+        Assert.True(esito.Coverage.DaRileggere);
+        Assert.Equal(1, esito.Coverage.Riletti);
     }
 
     [Fact]

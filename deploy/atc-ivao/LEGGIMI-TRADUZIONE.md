@@ -145,15 +145,13 @@ Dove guardare, in ordine di comodità:
    dire** (un giro che non trova niente da fare è il caso normale e non si annota, o riempirebbe il
    registro nascondendo quelli che contano).
 
-## Le tre cose che vanno sapute
+## Le cose che vanno sapute
 
-⚠️ **Le release già pubblicate si traducono da sole, quelle nuove no.** Un documento pubblicato *prima*
-che la traduzione fosse accesa non porta nessuna traduzione congelata, quindi il lettore ricade sulla
-memoria viva e lo vede tradotto appena il motore ha lavorato. Dal momento in cui la funzione è accesa,
-invece, ogni **nuova** pubblicazione **fotografa** le traduzioni note in quel momento — ed è voluto (una
-correzione fatta su un documento non deve cambiare l'inglese già pubblicato di un altro, sotto gli occhi
-di chi lo sta leggendo). Conseguenza pratica: **se pubblicate prosa nuova, aspettate il giro** prima di
-premere Pubblica, o quel documento resterà a chiazze fino alla ripubblicazione successiva.
+⚠️ **Non serve aspettare il giro per pubblicare.** Ogni pubblicazione **fotografa** le traduzioni note in
+quell'istante, ed è voluto: una correzione fatta su un documento non deve cambiare l'inglese già
+pubblicato di un altro, sotto gli occhi di chi lo sta leggendo. Ma la fotografia **non è un muro**: le
+frasi che lo snapshot non porta — quelle scritte pochi minuti prima di premere Pubblica — le riempie la
+memoria viva appena il motore le ha tradotte. Chi pubblica non deve guardare l'orologio.
 
 ⚠️ **Comparirà l'avviso «traduzione automatica, non revisionata»**, e non è un guasto. Finché una persona
 non ha riletto una frase nel Registro o nel pannello Traduzione dell'editor, il documento tradotto porta
@@ -162,6 +160,12 @@ torna «bring it back downwind» — grammatica giusta, identificatori intatti, 
 Plausibile e sbagliato è peggio di assente, perché nessuno se ne accorge leggendo. La cura vera è il
 **glossario** (`Translation:DeepL:GlossaryId`), che va costruito da un controllore e non da chi scrive il
 codice.
+
+**L'avviso si spegne**, quando il lavoro è fatto: si rileggono le frasi nel pannello Traduzione, si
+**ripubblica**, e il riquadro sparisce. ⚠️ Il *ripubblicare* è necessario — il timbro «riletta» viaggia
+dentro lo snapshot, quindi una revisione fatta dopo l'ultima pubblicazione la vede solo la bozza. ⚠️ E le
+release pubblicate **prima del 28 agosto 2026** portano snapshot senza timbro: restano marcate finché non
+si ripubblicano, come ogni altra correzione editoriale.
 
 ⚠️ **Il tetto di spesa è una stima, e sottostima.** `Translation:DeepL:MaxCaratteriTotali` (450 000 nel
 pacchetto) ferma DeepL prima che finisca la franchigia — che per lui è una tantum. Ma il conto dei

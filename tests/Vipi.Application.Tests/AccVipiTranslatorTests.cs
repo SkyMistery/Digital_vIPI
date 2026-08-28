@@ -136,10 +136,18 @@ public class AccVipiTranslatorTests
     {
         // ⚠️ Senza questa preferenza una correzione fatta oggi su un altro documento cambierebbe l'inglese
         // già pubblicato di questo, sotto gli occhi di chi lo sta leggendo.
-        var memoria = new MemoriaDiTraduzioneFinta().Nota("Contatta la torre.", "Call the tower.");
-        var congelate = new Dictionary<string, Dictionary<string, string>>
+        //
+        // ⚠️ E dove il congelato NON arriva, vince la memoria: qui lo snapshot porta solo il corpo, e i due
+        // titoli — «Uno» e «S» — nella release erano rimasti in italiano. Prima del 28 agosto 2026 la sola
+        // presenza di una voce congelata spegneva la memoria per tutto il documento, e quei titoli
+        // restavano italiani per sempre dentro una pagina inglese.
+        var memoria = new MemoriaDiTraduzioneFinta()
+            .Nota("Contatta la torre.", "RESA CORRETTA DOPO LA PUBBLICAZIONE")
+            .Nota("Uno", "One")
+            .Nota("S", "S-en");
+        var congelate = new Dictionary<string, Dictionary<string, FrozenTranslation>>
         {
-            ["en"] = new() { [TranslationText.Hash("Contatta la torre.")] = "Contact the tower." },
+            ["en"] = new() { [TranslationText.Hash("Contatta la torre.")] = new("Contact the tower.", false) },
         };
 
         var dati = Dati(Blocco("Uno",
@@ -148,8 +156,15 @@ public class AccVipiTranslatorTests
         await new AccVipiTranslator(new DocumentTranslator(memoria))
             .TranslateAsync(dati, Language.It, "en", congelate);
 
-        Assert.Equal(0, memoria.Letture);   // la memoria viva non si tocca nemmeno
+        // Il corpo resta quello che la release aveva fotografato, non la correzione arrivata dopo.
         Assert.Equal("Contact the tower.", dati.Blocks[0].Sections[0].Editorial!.Blocks[0].Body);
+        // I titoli, che il congelato non copriva, li riempie la memoria viva.
+        Assert.Equal("One", dati.Blocks[0].Title);
+        Assert.Equal("S-en", dati.Blocks[0].Sections[0].Title);
+
+        // ⚠️ Una lettura sola, e solo per le impronte SCOPERTE: quella congelata non si richiede.
+        Assert.Equal(1, memoria.Letture);
+        Assert.False(memoria.HaChiesto("Contatta la torre."));
     }
 
     [Fact]

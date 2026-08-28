@@ -35,7 +35,7 @@ public sealed class RawDocument
     /// release pubblicate prima di questa funzione, ed è quello giusto per una bozza.
     /// </para>
     /// </summary>
-    public Dictionary<string, Dictionary<string, string>>? Translations { get; init; }
+    public Dictionary<string, Dictionary<string, FrozenTranslation>>? Translations { get; init; }
 }
 
 public sealed class RawSection
@@ -94,7 +94,7 @@ public sealed class DocumentView
     public Language? Language { get; init; }
 
     /// <inheritdoc cref="RawDocument.Translations"/>
-    public Dictionary<string, Dictionary<string, string>>? Translations { get; init; }
+    public Dictionary<string, Dictionary<string, FrozenTranslation>>? Translations { get; init; }
 }
 
 public sealed class SectionView

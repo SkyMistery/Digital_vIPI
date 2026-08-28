@@ -459,14 +459,20 @@ public sealed class ReleaseService : IReleaseService
         if (segmenti.Count == 0) return raw;
 
         var impronte = segmenti.Select(Translation.TranslationText.Hash).Distinct().ToList();
-        var congelate = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+        var congelate = new Dictionary<string, Dictionary<string, FrozenTranslation>>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var a in _traduzione.Targets)
         {
             if (string.Equals(a, da, StringComparison.OrdinalIgnoreCase)) continue;
             var note = await _memoriaTraduzioni.LookupAsync(da, a, impronte, ct).ConfigureAwait(false);
             if (note.Count == 0) continue;
-            congelate[a] = note.ToDictionary(kv => kv.Key, kv => kv.Value.TargetText, StringComparer.Ordinal);
+            // ⚠️ Si fotografa anche CHI l'ha scritta, non solo che cosa dice. Con la sola stringa il viewer
+            // non poteva che dichiarare tutto «non revisionato», e l'avviso su un documento pubblicato non
+            // si spegneva piu' — nemmeno con ogni frase corretta a mano. Vedi FrozenTranslation.
+            congelate[a] = note.ToDictionary(
+                kv => kv.Key,
+                kv => new FrozenTranslation(kv.Value.TargetText, kv.Value.Reviewed),
+                StringComparer.Ordinal);
         }
 
         if (congelate.Count == 0) return raw;

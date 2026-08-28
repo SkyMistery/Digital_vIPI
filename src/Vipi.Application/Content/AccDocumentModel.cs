@@ -21,7 +21,7 @@ namespace Vipi.Application.Content;
 public sealed record AccDocumentModel(
     int DocumentId, int VersionId, bool IsDraft, string AccCode, string AccName,
     IReadOnlyList<AccAssembledBlock> Blocks, string? AiracCycle = null,
-    Language? Language = null, Dictionary<string, Dictionary<string, string>>? Translations = null)
+    Language? Language = null, Dictionary<string, Dictionary<string, FrozenTranslation>>? Translations = null)
 {
     public AccVipiData Data => new()
     {

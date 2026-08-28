@@ -152,7 +152,7 @@ public sealed class DocumentTranslator
     /// <param name="congelate">Le traduzioni congelate dalla release, se il documento ne porta.</param>
     public async Task<TranslationPass> PreparaAsync(
         IEnumerable<string> segmenti, string sourceLang, string targetLang,
-        IReadOnlyDictionary<string, string>? congelate = null, CancellationToken ct = default)
+        IReadOnlyDictionary<string, FrozenTranslation>? congelate = null, CancellationToken ct = default)
     {
         if (string.Equals(sourceLang, targetLang, StringComparison.OrdinalIgnoreCase))
             return TranslationPass.Nessuna;
@@ -160,15 +160,7 @@ public sealed class DocumentTranslator
         var impronte = segmenti.Select(TranslationText.Hash).Distinct(StringComparer.Ordinal).ToList();
         if (impronte.Count == 0) return TranslationPass.Nessuna;
 
-        var note = congelate is not null
-            // ⚠️ Le congelate si mostrano come NON riviste: lo snapshot porta il testo, non chi lo ha
-            // scritto. Sbagliare per eccesso di cautela qui vuol dire un avviso di troppo; sbagliare al
-            // contrario vuol dire dichiarare riletta una frase che nessuno ha guardato.
-            ? congelate.ToDictionary(
-                kv => kv.Key,
-                kv => new KnownTranslation(kv.Value, TranslationOrigin.Machine, Reviewed: false),
-                StringComparer.Ordinal)
-            : await _memoria.LookupAsync(sourceLang, targetLang, impronte, ct).ConfigureAwait(false);
+        var note = await NoteAsync(impronte, sourceLang, targetLang, congelate, ct).ConfigureAwait(false);
 
         var copertura = new TranslationCoverage(
             Segmenti: impronte.Count,
@@ -187,22 +179,92 @@ public sealed class DocumentTranslator
     }
 
     /// <summary>
+    /// Che cosa si sa di queste impronte: <b>prima il congelato della release, poi la memoria viva per
+    /// quel che il congelato non copre</b>.
+    ///
+    /// <para>
+    /// ⚠️ <b>Il congelato si SOVRAPPONE alla memoria, non la sostituisce</b>, e la differenza si vede solo
+    /// a regime. Fino al 28 agosto 2026 bastava che lo snapshot portasse una traduzione qualsiasi perché la
+    /// memoria non venisse più letta: ma la fotografia la scatta <c>ReleaseService</c> nell'istante della
+    /// pubblicazione, e il giro che riempie la memoria passa <b>ogni quarto d'ora</b>. Chi scriveva prosa
+    /// nuova e pubblicava subito — cioè il caso normale, non quello raro — congelava una traduzione
+    /// incompleta, e quel documento restava <b>a chiazze per sempre</b>: il motore traduceva le frasi
+    /// mancanti dieci minuti dopo, la memoria le aveva, e nessuno le andava più a prendere. L'avviso
+    /// «mancano N frasi su M» rimaneva acceso fino alla ripubblicazione successiva.
+    /// </para>
+    ///
+    /// <para>
+    /// ⚠️ <b>La ragione del congelamento resta intatta.</b> Il congelato serve a limitare il raggio d'azione
+    /// di una correzione: una resa cambiata oggi su un altro documento non deve riscrivere quello che
+    /// questo ha <b>già pubblicato</b>. Ma dove lo snapshot <i>non ha niente</i> non c'è niente di
+    /// pubblicato da proteggere: quella frase, nella release, si legge nella lingua sorgente. Prendere la
+    /// memoria viva lì non cambia una parola già pubblicata — riempie un buco.
+    /// </para>
+    ///
+    /// <para>
+    /// ⚠️ <b>A congelato completo il database non si tocca</b>, esattamente come prima: si legge solo se
+    /// resta qualche impronta scoperta, e solo per QUELLE. Su una release pubblicata con calma è zero
+    /// query, che è il caso per cui quella scorciatoia era stata scritta.
+    /// </para>
+    /// </summary>
+    private async Task<IReadOnlyDictionary<string, KnownTranslation>> NoteAsync(
+        IReadOnlyList<string> impronte, string sourceLang, string targetLang,
+        IReadOnlyDictionary<string, FrozenTranslation>? congelate, CancellationToken ct)
+    {
+        if (congelate is null || congelate.Count == 0)
+            return await _memoria.LookupAsync(sourceLang, targetLang, impronte, ct).ConfigureAwait(false);
+
+        var note = new Dictionary<string, KnownTranslation>(StringComparer.Ordinal);
+        var scoperte = new List<string>();
+
+        foreach (var impronta in impronte)
+        {
+            // ⚠️ `HasText` e non `ContainsKey`: una voce arrivata vuota — snapshot troncato, forma che il
+            // lettore non riconosce — non deve valere come «congelata», o cancellerebbe la frase invece di
+            // tradurla. Vuota = scoperta, e si prova la memoria.
+            if (congelate.TryGetValue(impronta, out var c) && c.HasText)
+                // ⚠️ Il timbro viene dallo snapshot, non da un default. Riletta ⇒ l'ha scritta una persona:
+                // `ReviewedUtc` lo mette solo `SaveHumanAsync`, quindi l'origine si deduce e non si
+                // inventa. Senza timbro (release pubblicate prima del 28 agosto 2026) resta «da rileggere»,
+                // che è tutto quello che quello snapshot può dire di sé.
+                note[impronta] = new KnownTranslation(
+                    c.Text,
+                    c.Reviewed ? TranslationOrigin.Human : TranslationOrigin.Machine,
+                    c.Reviewed);
+            else
+                scoperte.Add(impronta);
+        }
+
+        if (scoperte.Count == 0) return note;
+
+        // Una lettura sola, e solo per quel che manca: le impronte già congelate non si richiedono.
+        var viva = await _memoria.LookupAsync(sourceLang, targetLang, scoperte, ct).ConfigureAwait(false);
+        foreach (var kv in viva) note[kv.Key] = kv.Value;
+
+        return note;
+    }
+
+    /// <summary>
     /// Le traduzioni che la <b>release</b> ha congelato per la lingua di lettura, se ce ne sono.
     ///
-    /// <para>⚠️ SE LA RELEASE HA CONGELATO LE TRADUZIONI, VINCONO LORO — e la memoria viva non si tocca
-    /// nemmeno. Senza questa preferenza, una correzione fatta oggi su un'altra vLOA cambierebbe l'inglese
-    /// già pubblicato di questa, sotto gli occhi di chi lo sta leggendo e senza che il suo editor abbia
-    /// pubblicato niente. Congelato, il raggio d'azione di una correzione resta limitato: gli altri
-    /// documenti la vedono alla LORO prossima ripubblicazione, quando il loro editor guarda il diff.</para>
+    /// <para>⚠️ DOVE LA RELEASE HA CONGELATO, VINCE IL CONGELATO. Senza questa preferenza, una correzione
+    /// fatta oggi su un'altra vLOA cambierebbe l'inglese già pubblicato di questa, sotto gli occhi di chi
+    /// lo sta leggendo e senza che il suo editor abbia pubblicato niente. Congelato, il raggio d'azione di
+    /// una correzione resta limitato: gli altri documenti la vedono alla LORO prossima ripubblicazione,
+    /// quando il loro editor guarda il diff.</para>
+    ///
+    /// <para>⚠️ <b>«Dove», non «se».</b> Le impronte che lo snapshot non porta le riempie la memoria viva
+    /// (<see cref="NoteAsync"/>): lì non c'è niente di pubblicato da proteggere, e prima del 28 agosto 2026
+    /// restavano non tradotte per sempre.</para>
     /// </summary>
-    public static IReadOnlyDictionary<string, string>? Congelate(DocumentView view, string targetLang) =>
+    public static IReadOnlyDictionary<string, FrozenTranslation>? Congelate(DocumentView view, string targetLang) =>
         Congelate(view.Translations, targetLang);
 
     /// <inheritdoc cref="Congelate(DocumentView, string)"/>
     /// <param name="traduzioni">Le traduzioni congelate dello snapshot, per lingua di lettura.</param>
     /// <param name="targetLang">La lingua di chi legge.</param>
-    public static IReadOnlyDictionary<string, string>? Congelate(
-        IReadOnlyDictionary<string, Dictionary<string, string>>? traduzioni, string targetLang) =>
+    public static IReadOnlyDictionary<string, FrozenTranslation>? Congelate(
+        IReadOnlyDictionary<string, Dictionary<string, FrozenTranslation>>? traduzioni, string targetLang) =>
         traduzioni is not null && traduzioni.TryGetValue(targetLang, out var perLingua) ? perLingua : null;
 
     internal static SectionView TraduciSezione(SectionView s, Func<string?, string?> traduci) => new()

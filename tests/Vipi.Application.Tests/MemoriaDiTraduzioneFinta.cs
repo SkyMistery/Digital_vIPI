@@ -28,6 +28,16 @@ internal sealed class MemoriaDiTraduzioneFinta : ITranslationMemory
     /// <inheritdoc cref="UltimaSorgente"/>
     public string? UltimoBersaglio { get; private set; }
 
+    /// <summary>
+    /// Le impronte CHIESTE nell'ultima interrogazione. Serve a provare che, con un congelato parziale, si
+    /// domanda solo quel che il congelato non copre: «quante volte» non basta a distinguere una lettura
+    /// mirata da una che richiede tutto e butta via metà.
+    /// </summary>
+    public IReadOnlyCollection<string> UltimeImpronte { get; private set; } = Array.Empty<string>();
+
+    /// <summary>Vero se l'ultima interrogazione ha chiesto l'impronta di questo testo.</summary>
+    public bool HaChiesto(string sorgente) => UltimeImpronte.Contains(TranslationText.Hash(sorgente));
+
     public MemoriaDiTraduzioneFinta Nota(string sorgente, string bersaglio, bool riletta = false)
     {
         _note[TranslationText.Hash(sorgente)] =
@@ -41,6 +51,7 @@ internal sealed class MemoriaDiTraduzioneFinta : ITranslationMemory
         Letture++;
         UltimaSorgente = s;
         UltimoBersaglio = t;
+        UltimeImpronte = hashes.ToList();
         return Task.FromResult<IReadOnlyDictionary<string, KnownTranslation>>(
             hashes.Where(_note.ContainsKey).ToDictionary(h => h, h => _note[h], StringComparer.Ordinal));
     }
