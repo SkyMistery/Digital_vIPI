@@ -1,19 +1,27 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 28 agosto 2026, mattina (i **vSOP militari**, dieci slice, e il primo SOP vero).
+**Ultimo aggiornamento:** 28 agosto 2026, sera (il **glossario di fraseologia**, e §Q3 chiusa).
 
 ## Dove siamo, prima di tutto il resto
 
-✅ **Nessun ramo aperto.** `main` è a **`6644b5e`**, **spinto**: `origin/main` allineato (0/0). Sul server
-non resta nessun ramo di lavoro — `origin/basemap-esri` è stato cancellato il 28 agosto, quando `main` è
-stato spinto e quel lavoro non viveva più solo lì.
+⚠️ **UN RAMO APERTO: `glossario-fraseologia`**, due commit (`ee5fad7` il meccanismo e la pagina, `f2ee4eb`
+la decisione «lo curano tutti gli admin»). **Spinto** su `origin`, quindi non è l'unica copia — ma **non è
+fuso in `main`**, e `main` resta a **`0a4f92e`** (allineato con `origin/main`, 0/0). Fondere e cancellare
+il ramo è la prima cosa da decidere alla ripresa.
 
-⚠️ **La regola che ne resta**: un ramo remoto si cancella quando ciò che porta è **anche altrove**, e la
+⚠️ Questa testata diceva `6644b5e` fino a stasera, cioè era **indietro di due fusioni**: nel frattempo erano
+entrati in `main` l'archivio ATC (`f120d5c`) e l'audit della lingua (`0a4f92e`). Un HANDOFF che dà lo SHA
+sbagliato è peggio di uno che non lo dà: si finisce per cercare lavoro che c'è già.
+
+⚠️ **La regola sui rami remoti**: un ramo remoto si cancella quando ciò che porta è **anche altrove**, e la
 verifica è `git rev-list --count main..origin/<ramo>` = 0. Prima di quel momento è l'unica copia sul
-server, e cancellarlo perde lavoro **senza un errore che lo dica**.
+server, e cancellarlo perde lavoro **senza un errore che lo dica**. Oggi su `glossario-fraseologia` quel
+conto è **2**, non 0.
 
-**Suite 6633** su 15 progetti con esito, build Release `--no-incremental` della soluzione intera **0
-avvisi**, **nessuna migrazione nuova** (restano diciannove).
+**Suite verde su net8 e net10** (Application 1348, Infrastructure 962/953, Ui 729, E2E 254, Domain 117,
+Hosting 57, AuroraProfiles 63, AuroraBridge 79, Assets 52 — **0 falliti**), build Release
+`--no-incremental` della soluzione intera **0 avvisi**, **una migrazione nuova** — `GlossarioFraseologia`,
+additiva, che porta la coda al cutover MariaDB a **ventuno**.
 
 ### ⚠️ 28 agosto, sera — il glossario di fraseologia (`lavori-aperti §Q3`)
 
@@ -27,21 +35,29 @@ posto di un nome, la colonna **«Da chi»** — il VID di chi ha scritto o corre
 le voci di partenza — è ciò che rende risalibile una resa che entra **verbatim** in ogni carta.
 Della carta bilingue restano aperte **Q1** (ritenzione piano gratuito) e **Q2** (domanda a IVAO HQ).
 
-⚠️ **AZIONE PENDENTE: RIAVVIARE il Host** per applicare la migrazione **`GlossarioFraseologia`** (additiva,
-crea `GlossaryTerms`; **ventuno** migrazioni in coda — le diciannove di stamattina, più
-`ArchivioAtcMondiale` e questa). Al primo giro di traduzione dopo il
-riavvio il glossario si semina da sé.
+**Le tre cose da non riscoprire da capo**, se si torna a toccare questo codice:
+
+| | Che cos'è | Se lo si sbaglia |
+|---|---|---|
+| I **due segnaposto** hanno contratti **opposti** | un `<x>` deve tornare *identico* (diverso = il motore ha rovinato un identificatore → si butta la frase); un `<g>` torna *sempre* diverso, perché dentro parte l'italiano | passando dal confronto degli identificatori, **ogni frase con una formula finisce fra gli scartati**: il glossario spegne la traduzione invece di migliorarla |
+| Il glossario passa **PRIMA** delle regole sugli identificatori | dopo non scatterebbe più su una frase che ne contiene uno (il callsign a quel punto è un tag) | non scatterebbe **in silenzio**. È anche il perché del rifiuto `ContieneIdentificatore`: passando per primo, una voce con dentro una frequenza se la **inghiotte**, e quella resta cablata nella resa in ogni carta |
+| Una cella che è **tutta** una formula non parte | del protetto non resta che il segnaposto, quindi il giro compone la traduzione da sé: dal protetto **ripristinato**, non dal sorgente ricopiato | ricopiando il sorgente si scriverebbe l'**italiano spacciato per inglese**, come voce definitiva che nessun giro riprova |
+
+⚠️ **AZIONE PENDENTE: RIAVVIARE il Host** per applicare `GlossarioFraseologia` (additiva, crea
+`GlossaryTerms`). Al primo giro di traduzione dopo il riavvio il glossario **si semina da sé** — e solo se
+la tabella è vuota, o una voce tolta tornerebbe a ogni riavvio.
 
 ⚠️ **Le traduzioni già in memoria non cambiano da sole**: il giro traduce solo ciò che manca. Per farle
-rifare con il glossario si apre la voce nella pagina e si preme «falle rifare» — che butta le **automatiche**
+rifare col glossario si apre la voce nella pagina e si preme **«falle rifare»**, che butta le *automatiche*
 (mai le riviste da una persona) e **ripaga i caratteri** al motore.
 
-### Che cosa è entrato in due giorni: venti slice, due funzioni
+### Che cosa è entrato in due giorni: venti slice, due funzioni (più il glossario)
 
 | | Che cos'è | Dove |
 |---|---|---|
 | **Documenti bilingue** | si **scrive in una lingua** e si **legge in due**. La traduzione non è un campo del documento ma una **memoria indicizzata sull'hash del sorgente**: da lì vengono gratis l'incrementale, il dedup e il fatto che una correzione umana valga **ovunque e per sempre**. Azure primario, DeepL di riserva | `docs/feature/2026-08-27-documenti-bilingue.md` |
 | **vSOP militari** | documento **separato** dalla vIPI civile, profilo `AirportMil` a **26 sezioni**, release e ciclo AIRAC propri, elenco nazionale `/services/vsop/mil`, editor dedicato, **filtro pilota/ATC** per sezione. Il primo SOP vero — **LIPI Rivolto** — è caricato in bozza | `docs/feature/2026-08-27-vsop-militari.md` |
+| **Glossario di fraseologia** | le formule che si dicono **in un modo solo**, dentro qualunque frase le contenga — il pezzo che la memoria di traduzione non poteva coprire, perché è indicizzata per **segmento intero**. Segnaposto `<g>`, tabella `GlossaryTerms`, pagina di cura per **tutti gli admin**. ⚠️ È sul ramo `glossario-fraseologia`, **non in `main`** | `docs/lavori-aperti.md` §Q3 |
 
 ### ⚠️ La cosa da portarsi dietro: cinque difetti li ha trovati lo SCHERMO, non la suite
 
@@ -78,7 +94,8 @@ chiave e distinguere i **quattro** motivi per cui una sezione resta vuota.
 
 ## Prima del prossimo deploy
 
-⚠️ **VENTI migrazioni in coda** al cutover MariaDB. ✅ La **SELECT dei duplicati su `DocReleases`** non
+⚠️ **VENTUNO migrazioni in coda** al cutover MariaDB (la ventunesima è `GlossarioFraseologia`, che
+è ancora **sul ramo**, non in `main`). ✅ La **SELECT dei duplicati su `DocReleases`** non
 va più fatta a mano — non era nemmeno eseguibile, il 3306 del server sta sul suo `localhost`:
 `ReleaseNumberPreflight` la esegue all'avvio, subito prima di `Migrate()`, e se trova doppioni ferma la
 migrazione **nominando le righe** in `avvio-errore.txt` invece di lasciar fallire il `CREATE UNIQUE INDEX`
