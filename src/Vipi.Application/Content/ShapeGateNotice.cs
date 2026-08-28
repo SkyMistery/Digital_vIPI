@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 using Vipi.Domain.Services;
 
 namespace Vipi.Application.Content;
@@ -95,8 +95,8 @@ public sealed class ShapeGateNoticeService : IShapeGateNoticeService
 
         // Il permesso è quello del documento che si sta pubblicando: forzare una shape è un atto editoriale,
         // non un'operazione di sistema. Chi non può pubblicare quel documento non può nemmeno forzarne le aree.
-        if (scope.AccCode is { Length: > 0 } acc) await _authz.EnsureCanEditAccAsync(acc, ct);
-        else if (scope.DocumentId is { } docId) await _authz.EnsureCanEditDocumentAsync(docId, ct);
+        if (scope.AccCode is { Length: > 0 } acc) _authz.EnsureAtLeast(VipiRole.Editor);
+        else if (scope.DocumentId is { } docId) _authz.EnsureAtLeast(VipiRole.Editor);
         else return 0;   // perimetro sconosciuto: non si tocca niente
 
         var righe = Differite(scope, cycles).Select(r => (r.Catalog, r.Id)).ToList();

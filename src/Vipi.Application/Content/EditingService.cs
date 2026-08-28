@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
@@ -33,7 +33,7 @@ public sealed class EditingService : IEditingService
 
     public async Task<EditableDocument?> LoadForEditAsync(int documentId, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditDocumentAsync(documentId, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         return await _repo.LoadForEditAsync(documentId, ct);
     }
 
@@ -87,14 +87,14 @@ public sealed class EditingService : IEditingService
                 ?? throw new Aor.ValidationException(Lingua("Settore di scope inesistente.", "The scope sector does not exist."));
         }
 
-        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         var language = type == DocumentType.Vloa ? Language.En : Language.It;
         return await _repo.CreateDocumentAsync(type, title, language, scope, primary, parties, _authz.CurrentUserId ?? 0, ct);
     }
 
     public async Task<int> CreateDraftAsync(int documentId, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditDocumentAsync(documentId, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         // Creare/aprire una bozza = iniziare a editare → acquisisce (o conferma) il lock.
         var lk = await _repo.AcquireOrInspectLockAsync(documentId, _authz.CurrentUserId ?? 0, _authz.CurrentName, LockTtlMinutes, ct);
         if (!lk.IsMine) throw LockedByOther(lk);
@@ -244,7 +244,7 @@ public sealed class EditingService : IEditingService
     // --- Lock ---
     public async Task<LockInfo> AcquireLockAsync(int documentId, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditDocumentAsync(documentId, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         return await _repo.AcquireOrInspectLockAsync(documentId, _authz.CurrentUserId ?? 0, _authz.CurrentName, LockTtlMinutes, ct);
     }
 
@@ -275,21 +275,21 @@ public sealed class EditingService : IEditingService
     private async Task<int> AuthorizeVersionAsync(int versionId, CancellationToken ct)
     {
         var docId = await _repo.GetDocumentIdByVersionAsync(versionId, ct) ?? throw new EditNotAllowedException();
-        await _authz.EnsureCanEditDocumentAsync(docId, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         return docId;
     }
 
     private async Task<int> AuthorizeSectionAsync(int sectionId, CancellationToken ct)
     {
         var docId = await _repo.GetDocumentIdBySectionAsync(sectionId, ct) ?? throw new EditNotAllowedException();
-        await _authz.EnsureCanEditDocumentAsync(docId, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         return docId;
     }
 
     private async Task<int> AuthorizeBlockAsync(int blockId, CancellationToken ct)
     {
         var docId = await _repo.GetDocumentIdByBlockAsync(blockId, ct) ?? throw new EditNotAllowedException();
-        await _authz.EnsureCanEditDocumentAsync(docId, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         return docId;
     }
 }

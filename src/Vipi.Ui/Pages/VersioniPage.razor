@@ -1,4 +1,4 @@
-@page "/services/vsop/versions"
+﻿@page "/services/vsop/versions"
 @page "/services/vsop/{Acc}/versions"
 @layout SopLayout
 @rendermode InteractiveServer
@@ -407,7 +407,7 @@
         _accGestibili.Clear();
         if (_docs is null || Authz.IsAdmin) return;
         foreach (var acc in _docs.Select(d => d.AccCode).Where(a => !string.IsNullOrWhiteSpace(a)).Distinct(StringComparer.OrdinalIgnoreCase))
-            if (await Authz.CanEditAccAsync(acc!)) _accGestibili.Add(acc!);
+            if (Authz.IsEditor) _accGestibili.Add(acc!);
     }
 
     /// <summary>Può nascondere/eliminare questa riga: admin, oppure grant sull'ACC del documento.</summary>

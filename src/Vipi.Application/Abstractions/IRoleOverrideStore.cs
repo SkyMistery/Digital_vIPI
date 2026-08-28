@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 
 namespace Vipi.Application.Abstractions;
 
@@ -33,5 +33,5 @@ public interface IRoleOverrideStore
     Task SetAsync(int userId, VipiRole level, int grantedByUserId, string? displayName, string? note, CancellationToken ct = default);
 
     /// <summary>Toglie la promozione. <c>false</c> se non ce n'era una: cancellare due volte non è un errore.</summary>
-    Task<bool> RemoveAsync(int userId, CancellationToken ct = default);
+    Task<bool> RemoveAsync(int userId, int actorUserId, CancellationToken ct = default);
 }

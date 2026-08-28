@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Domain;
 using static Vipi.Application.Messaggio;
@@ -259,7 +259,7 @@ public sealed class DocumentImpactService : IDocumentImpactService
         // Il permesso si chiede SEMPRE. Dove l'ACC non si risolve serve essere admin: è il grado giusto per
         // agire su un documento che non si sa nemmeno a chi appartenga.
         var acc = await _repo.GetDocAccCodeAsync(riga.DocumentId, ct);
-        if (acc is not null) await _authz.EnsureCanEditAccAsync(acc, ct);
+        if (acc is not null) _authz.EnsureAtLeast(VipiRole.Editor);
         else _authz.EnsureAdmin();
 
         await _repo.ClearAsync(impactId, _authz.CurrentUserId ?? 0, DateTime.UtcNow, ct);

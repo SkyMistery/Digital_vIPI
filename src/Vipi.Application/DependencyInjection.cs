@@ -45,6 +45,9 @@ public static class DependencyInjection
         // in produzione nessuno può editare e non lo si scopre in altro modo.
         services.AddScoped<Auth.IAdminCoverageService, Auth.AdminCoverageService>();
         services.AddScoped<Auth.IStaffRosterService, Auth.StaffRosterService>();
+        // La gestione dei livelli: promuove, declassa, e RICARICA la cache — senza l'ultima cosa una
+        // promozione non farebbe effetto fino al riavvio.
+        services.AddScoped<Auth.IRoleAdminService, Auth.RoleAdminService>();
         services.AddScoped<IEditingService, EditingService>();
         services.AddScoped<IResourceLockService, ResourceLockService>();
         services.AddScoped<IStructureEditingService, StructureEditingService>();

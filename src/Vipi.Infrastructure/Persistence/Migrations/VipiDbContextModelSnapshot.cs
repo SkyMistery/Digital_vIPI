@@ -1530,37 +1530,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("DocumentVersions");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.EditGrant", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AccId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("DisplayName")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("GrantedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("GrantedByUserId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AccId");
-
-                    b.HasIndex("UserId", "AccId")
-                        .IsUnique();
-
-                    b.ToTable("EditGrants");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.EditResourceLock", b =>
                 {
                     b.Property<int>("Id")
@@ -2627,17 +2596,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Document");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.EditGrant", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
-                        .WithMany()
-                        .HasForeignKey("AccId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Acc");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Sector", b =>

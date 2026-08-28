@@ -1,4 +1,4 @@
-@page "/services/vsop/{Acc}/vipi"
+﻿@page "/services/vsop/{Acc}/vipi"
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IAccDerivationService Profile
@@ -194,7 +194,7 @@ else
                 LoadViewModel(await AccDoc.LoadForViewAsync(Acc));   // vista pubblica: frozen dalla release effettiva
                 break;
         }
-        _canEdit = await Authz.CanEditAccAsync(_data.AccCode);
+        _canEdit = Authz.IsEditor;
 
         _freqs.Clear(); _coord.Clear(); _aors.Clear(); _areas.Clear(); _configTables.Clear();
         if (_blocks is not null)

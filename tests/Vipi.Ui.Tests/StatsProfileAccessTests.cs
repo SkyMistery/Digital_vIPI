@@ -43,15 +43,6 @@ public class StatsProfileAccessTests : TestContext
         public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
         public int? CurrentUserId => null;
         public string? CurrentName => null;
-        public Task EnsureCanEditAccAsync(string a, CancellationToken ct = default) => Task.CompletedTask;
-        public Task EnsureCanEditDocumentAsync(int d, CancellationToken ct = default) => Task.CompletedTask;
-        public Task<bool> CanEditAccAsync(string a, CancellationToken ct = default) => Task.FromResult(false);
-        public Task<bool> CanEditDocumentAsync(int d, CancellationToken ct = default) => Task.FromResult(false);
-        public Task<bool> CanEditAnythingAsync(CancellationToken ct = default) => Task.FromResult(false);
-        public Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<GrantRow>>(Array.Empty<GrantRow>());
-        public Task<int> AddGrantAsync(int u, string? n, string a, CancellationToken ct = default) => Task.FromResult(0);
-        public Task RevokeGrantAsync(int id, CancellationToken ct = default) => Task.CompletedTask;
         public void EnsureAdmin() { }
     }
 

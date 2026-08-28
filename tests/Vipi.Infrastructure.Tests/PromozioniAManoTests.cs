@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Domain;
 using Vipi.Infrastructure.Persistence;
@@ -93,7 +93,7 @@ public class PromozioniAManoTests : IAsyncLifetime
     {
         await Deposito().SetAsync(Promosso, VipiRole.Editor, Admin, null, null);
 
-        Assert.True(await Deposito().RemoveAsync(Promosso));
+        Assert.True(await Deposito().RemoveAsync(Promosso, Admin));
         Assert.Empty(await Deposito().ListAsync());
     }
 
@@ -101,8 +101,8 @@ public class PromozioniAManoTests : IAsyncLifetime
     [Fact]
     public async Task Togliere_una_promozione_che_non_ce_e_un_no_op()
     {
-        Assert.False(await Deposito().RemoveAsync(Promosso));
-        Assert.False(await Deposito().RemoveAsync(999999));
+        Assert.False(await Deposito().RemoveAsync(Promosso, Admin));
+        Assert.False(await Deposito().RemoveAsync(999999, Admin));
     }
 
     /// <summary>

@@ -270,15 +270,6 @@ public class CatalogoStantioTests : IAsyncLifetime
         public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
         public int? CurrentUserId => 1;
         public string? CurrentName => "test";
-        public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => Task.CompletedTask;
-        public Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.CompletedTask;
-        public Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default) => Task.FromResult(true);
-        public Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.FromResult(true);
-        public Task<bool> CanEditAnythingAsync(CancellationToken ct = default) => Task.FromResult(true);
-        public Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<GrantRow>>(Array.Empty<GrantRow>());
-        public Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default) => Task.FromResult(0);
-        public Task RevokeGrantAsync(int grantId, CancellationToken ct = default) => Task.CompletedTask;
         public void EnsureAdmin() { }
     }
 }

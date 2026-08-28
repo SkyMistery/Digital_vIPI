@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
@@ -258,7 +258,7 @@ public sealed class VloaDerivationService : IVloaDerivationService
     {
         var homeAcc = await _repo.GetHomeAccCodeAsync(docId, ct)
             ?? throw new Aor.ValidationException(Lingua("vLOA inesistente.", "The vLOA does not exist."));
-        await _authz.EnsureCanEditAccAsync(homeAcc, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
 
         var state = await _repo.LoadEditorialAsync(docId, ct);
         var hiddenAor = new HashSet<string>(state.HiddenAorSectors, StringComparer.OrdinalIgnoreCase);

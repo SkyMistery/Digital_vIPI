@@ -29,7 +29,11 @@ public static class AuditNarrator
     {
         ("DocumentVersion", AuditAction.Publish) => Categoria.Pubblicazione,
         ("DocumentVersion", AuditAction.Discard) => Categoria.Bozza,
+        // ⚠️ «EditGrant» resta, e non è un residuo: le concessioni per ACC sono morte il 28 agosto 2026 ma
+        // le loro righe di registro no — un archivio append-only attraversa le versioni, e cancellarne la
+        // narrazione riscriverebbe la storia. «RoleOverride» è la stessa famiglia con il meccanismo nuovo.
         ("EditGrant", _) => Categoria.Permesso,
+        ("RoleOverride", _) => Categoria.Permesso,
         ("ImportPolicy", _) => Categoria.Sorgenti,
         // ⚠️ È la famiglia più prolifica del registro: un incarico attraversa quattro stati, e ogni passaggio
         // è una riga. Il chip di famiglia serve proprio a poterla mettere da parte quando si cerca altro.
@@ -100,6 +104,8 @@ public static class AuditNarrator
         if (e.EntityType == "ImportPolicy") return L["Sorg_Title"].Value;
         if (e.EntityType == "EditResourceLock") return e.EntityId;
         if (e.EntityType == "EditGrant") return L["Audit_GrantN", e.EntityId].Value;
+        // Il bersaglio di una promozione è la PERSONA: l'EntityId è il suo VID, non un id di riga.
+        if (e.EntityType == "RoleOverride") return L["Audit_VidN", e.EntityId].Value;
         // Il bersaglio è la PERSONA guardata, non una pagina: l'EntityId è il suo VID.
         if (e.EntityType == "StatsProfile") return L["Audit_VidN", e.EntityId].Value;
         return $"{e.EntityType} {e.EntityId}";

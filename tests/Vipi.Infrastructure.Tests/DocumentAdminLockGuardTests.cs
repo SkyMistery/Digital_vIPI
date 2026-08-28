@@ -143,16 +143,5 @@ public class DocumentAdminLockGuardTests : IAsyncLifetime
         public int? CurrentUserId { get; }
         public string? CurrentName => $"VID {CurrentUserId}";
         public void EnsureAdmin() { if (!_puo) throw new EditNotAllowedException(); }
-        public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) =>
-            _puo ? Task.CompletedTask : throw new EditNotAllowedException();
-        public Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default) =>
-            _puo ? Task.CompletedTask : throw new EditNotAllowedException();
-        public Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default) => Task.FromResult(_puo);
-        public Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.FromResult(_puo);
-        public Task<bool> CanEditAnythingAsync(CancellationToken ct = default) => Task.FromResult(_puo);
-        public Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<GrantRow>>(Array.Empty<GrantRow>());
-        public Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default) => Task.FromResult(0);
-        public Task RevokeGrantAsync(int grantId, CancellationToken ct = default) => Task.CompletedTask;
     }
 }

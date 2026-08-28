@@ -246,7 +246,7 @@
             _coord = d.Coord;
         }
         // vLOA editabile solo lato italiano (CH/AOD dell'ACC home).
-        _canEdit = !string.IsNullOrWhiteSpace(HomeAcc) && await Authz.CanEditAccAsync(HomeAcc!);
+        _canEdit = !string.IsNullOrWhiteSpace(HomeAcc) && Authz.IsEditor;
     }
 
     /// <summary>Le righe di un lato della coppia, scartato l'involucro di visibilità della vLOA.</summary>

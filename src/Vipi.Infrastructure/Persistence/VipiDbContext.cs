@@ -83,7 +83,6 @@ public class VipiDbContext : DbContext
     public DbSet<AgreementSection> AgreementSections => Set<AgreementSection>();
     public DbSet<AgreementAirport> AgreementAirports => Set<AgreementAirport>();
     public DbSet<AgreementClause> AgreementClauses => Set<AgreementClause>();
-    public DbSet<EditGrant> EditGrants => Set<EditGrant>();
 
     /// <summary>Le promozioni a mano: una riga per persona promossa. Carta del 28 agosto 2026 §5.</summary>
     public DbSet<RoleOverride> RoleOverrides => Set<RoleOverride>();
@@ -420,12 +419,6 @@ public class VipiDbContext : DbContext
             e.Property(x => x.HandoffLevelUnit).HasDefaultValue(LevelUnit.Fl);
             e.Property(x => x.HandoffLevelConstraint).HasDefaultValue(LevelConstraint.AtOrAbove);
             e.Property(x => x.SpeedConstraint).HasDefaultValue(SpeedConstraint.Unspecified);
-        });
-
-        b.Entity<EditGrant>(e =>
-        {
-            e.HasIndex(x => new { x.UserId, x.AccId }).IsUnique();
-            e.HasOne(x => x.Acc).WithMany().HasForeignKey(x => x.AccId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<StaffMember>(e =>

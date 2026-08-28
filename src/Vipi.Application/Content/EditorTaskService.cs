@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
@@ -150,6 +150,6 @@ public sealed class EditorTaskService : IEditorTaskService
         if (acc is null) throw new Aor.ValidationException(
             Lingua("Documento collegato inesistente.", "The linked document does not exist."),
             "Task_Err_TargetMissing");
-        await _authz.EnsureCanEditAccAsync(acc, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
     }
 }

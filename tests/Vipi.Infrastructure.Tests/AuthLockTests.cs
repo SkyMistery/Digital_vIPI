@@ -40,21 +40,20 @@ public class AuthLockTests : IAsyncLifetime
     private static CurrentUser Admin(int UserId) => new(UserId, $"Admin{UserId}", "LIRR", new[] { "IT-AOC" });
     private static CurrentUser Plain(int UserId) => new(UserId, $"User{UserId}", "LIRR", System.Array.Empty<string>());
 
-    private (EditingService editing, EditAuthorizationService authz, EfEditGrantRepository grants) Build(CurrentUser user)
+    private (EditingService editing, EditAuthorizationService authz) Build(CurrentUser user)
     {
         var provider = new FakeUser { User = user };
-        var grants = new EfEditGrantRepository(_db);
-        var authz = new EditAuthorizationService(provider, grants,
+        var authz = new EditAuthorizationService(provider,
             new Vipi.Application.Auth.RoleResolver(new Vipi.Application.Auth.AuthOptions(), new Vipi.Application.DivisionOptions()), SenzaPromozioni.Instance);
         var editing = new EditingService(new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db)), authz,
             Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()));
-        return (editing, authz, grants);
+        return (editing, authz);
     }
 
     [Fact]
     public async Task Admin_Can_Edit_Any_Acc()
     {
-        var (editing, _, _) = Build(Admin(1));
+        var (editing, _) = Build(Admin(1));
         var draftId = await editing.CreateDraftAsync(_accDocId); // non lancia
         Assert.True(draftId > 0);
     }
@@ -74,7 +73,7 @@ public class AuthLockTests : IAsyncLifetime
     public void Il_livello_segue_il_codice_staff(string staffCode, VipiRole atteso)
     {
         var user = new CurrentUser(42, "Tizio", "LIRR", new[] { staffCode });
-        var (_, authz, _) = Build(user);
+        var (_, authz) = Build(user);
 
         Assert.Equal(atteso, authz.Role);
         Assert.Equal(atteso >= VipiRole.Admin, authz.IsAdmin);
@@ -84,39 +83,25 @@ public class AuthLockTests : IAsyncLifetime
     [Fact]
     public async Task Plain_User_Without_Grant_Is_Denied()
     {
-        var (editing, _, _) = Build(Plain(555));
+        var (editing, _) = Build(Plain(555));
         await Assert.ThrowsAsync<EditNotAllowedException>(() => editing.CreateDraftAsync(_accDocId));
     }
 
-    [Fact]
-    public async Task Granted_User_Edits_Only_Granted_Acc()
-    {
-        // admin concede a 555 la ACC LIRR
-        var (_, adminAuthz, _) = Build(Admin(1));
-        await adminAuthz.AddGrantAsync(555, "Mario", "LIRR");
-
-        var (editing, authz, _) = Build(Plain(555));
-        var draftId = await editing.CreateDraftAsync(_accDocId);   // LIRR concesso → ok
-        Assert.True(draftId > 0);
-
-        await Assert.ThrowsAsync<EditNotAllowedException>(() => authz.EnsureCanEditAccAsync("LIMM")); // altra ACC → negato
-    }
-
-    [Fact]
-    public async Task Grant_Management_Is_Admin_Only()
-    {
-        var (_, plainAuthz, _) = Build(Plain(555));
-        await Assert.ThrowsAsync<EditNotAllowedException>(() => plainAuthz.AddGrantAsync(777, null, "LIRR"));
-    }
+    // ⚠️ Qui c'erano «Granted_User_Edits_Only_Granted_Acc» e «Grant_Management_Is_Admin_Only»: provavano che
+    // una concessione aprisse UNA ACC e non le altre, e che distribuirle fosse cosa da admin. Il 28 agosto
+    // 2026 le concessioni per ACC sono state eliminate — l'Editor edita tutto, per decisione del committente
+    // — quindi non c'e' piu' un «solo la sua ACC» da provare. Chi puo' editare lo dice ora
+    // «Il_livello_segue_il_codice_staff» qui sopra; chi puo' promuovere lo provano i test del livello in
+    // Vipi.Application.Tests.
 
     [Fact]
     public async Task Lock_Blocks_Second_Editor_Until_Force_Unlock()
     {
-        var (edA, _, _) = Build(Admin(1));
+        var (edA, _) = Build(Admin(1));
         var lockA = await edA.AcquireLockAsync(_accDocId);
         Assert.True(lockA.IsMine);
 
-        var (edB, _, _) = Build(Admin(2));
+        var (edB, _) = Build(Admin(2));
         var lockB = await edB.AcquireLockAsync(_accDocId);
         Assert.False(lockB.IsMine);
         Assert.Equal(1, lockB.ByUserId);
@@ -133,7 +118,7 @@ public class AuthLockTests : IAsyncLifetime
     [Fact]
     public async Task Stale_Block_Update_Raises_Conflict()
     {
-        var (editing, _, _) = Build(Admin(1));
+        var (editing, _) = Build(Admin(1));
         var draftId = await editing.CreateDraftAsync(_accDocId);   // acquisisce il lock
         var doc = await editing.LoadForEditAsync(_accDocId);
         var blk = doc!.Sections.SelectMany(Flatten).SelectMany(s => s.Blocks)

@@ -3976,10 +3976,32 @@ permesso più alto del prodotto. Il `max` sta in un posto solo, `RoleResolver.Ef
 chief risulta senza admin. È lì che il cambio di regola si legge. `AdminCodeTests` è diventato
 `LivelloEffettivoTests`: rispondeva a una domanda che non esiste più.
 
+### U2-quater. Slice 4 e 6, la morte delle concessioni — ✅ **CHIUSE** il 29 agosto
+
+Via `EditGrant`, il suo repository, `GrantRow`, la tabella (migrazione `ConcessioniPerAccRimosse`, in
+entrambi gli insiemi) e le otto domande che le interrogavano. Le cinque `CanEdit…`/`EnsureCanEdit…` —
+**219 riferimenti** — sono diventate `IsEditor` e `EnsureAtLeast(VipiRole.Editor)`: **sincrone, zero query,
+nessun parametro**.
+
+⚠️ **La slice 6 è stata tirata avanti**: tolte le concessioni, `/admin/permissions` restava senza
+contenuto. `AdminGrantsPage` → **`AdminRolesPage`**, una riga per persona, col **pavimento** dichiarato e i
+livelli sotto di esso **disabilitati** — un comando che accetta e non fa niente è peggio di uno che dice di
+no. Servizio nuovo `RoleAdminService`, 10 test.
+
+⚠️ **Le tre guardie sono tre modi di perdere il prodotto**: non ci si declassa da soli, non si tocca un
+fondatore, non si scende sotto il pavimento. ⚠️ **Ogni scrittura ricarica il fotogramma**, o la promozione
+non fa effetto fino al riavvio.
+
+⚠️ **Quattro test hanno perso il loro oggetto e lo dicono nel codice** invece di sparire: il più
+significativo è l'E2E «se la domanda della barra fallisce la pagina esce lo stesso» — quella domanda non è
+stata resa tollerante, è stata **TOLTA**.
+
+⚠️ **La coda al cutover MariaDB è VENTITRÉ.**
+
 ### U3. Le slice che restano 🟢
 
-4 (morte delle concessioni per ACC), 5 (i cancelli), 6 (`/admin/permissions` riscritta), 7 (diagnostica,
-Guida, memorie).
+**5** (i cancelli: `AdminNav` + le ~30 chiamate che scendono a Editor + le statistiche a DivisionStaff) e
+**7** (diagnostica, Guida, documenti, memorie). Fino alla 5 il ramo **non si mette in produzione**.
 
 ### U4. ⚠️ Gli E2E non girano finché l'host è acceso
 

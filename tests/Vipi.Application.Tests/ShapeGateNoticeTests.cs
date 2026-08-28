@@ -44,32 +44,15 @@ public class ShapeGateNoticeTests
     private sealed class Authz : IEditAuthorizationService
     {
         public bool Nega;
-        public List<string> AccChieste = new();
-        public List<int> DocChiesti = new();
 
-        public bool IsAdmin => !Nega;
-        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
+        // ⚠️ Qui c'erano «AccChieste» e «DocChiesti»: registravano SU CHE COSA veniva chiesto il permesso,
+        // perché il permesso dipendeva dall'ACC o dal documento. Dal 28 agosto 2026 non dipende più da
+        // niente di tutto ciò — l'Editor edita tutto — e non c'è più un bersaglio da registrare.
+        public VipiRole Role => Nega ? VipiRole.DivisionStaff : VipiRole.Admin;
+        public bool IsAdmin => Role >= VipiRole.Admin;
         public int? CurrentUserId => 1;
         public string? CurrentName => "Chi Pubblica";
         public void EnsureAdmin() { }
-        public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default)
-        {
-            AccChieste.Add(accCode);
-            return Nega ? throw new EditNotAllowedException() : Task.CompletedTask;
-        }
-        public Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default)
-        {
-            DocChiesti.Add(documentId);
-            return Nega ? throw new EditNotAllowedException() : Task.CompletedTask;
-        }
-        public Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default) => Task.FromResult(!Nega);
-        public Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.FromResult(!Nega);
-        public Task<bool> CanEditAnythingAsync(CancellationToken ct = default) => Task.FromResult(!Nega);
-        public Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default) =>
-            throw new NotSupportedException();
-        public Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default) =>
-            throw new NotSupportedException();
-        public Task RevokeGrantAsync(int grantId, CancellationToken ct = default) => throw new NotSupportedException();
     }
 
     private static ShapeGateNoticeService Servizio(Repo r, Authz a) => new(r, Airac, a);
@@ -126,8 +109,9 @@ public class ShapeGateNoticeTests
             ReleaseTargetType.AccVipi, "LIRR|LIRR_CTR", new[] { Corrente }));
     }
 
+    /// <summary>Forza le sole righe differite. (Il permesso non guarda più l'ACC: guarda il livello.)</summary>
     [Fact]
-    public async Task Forza_solo_le_righe_differite_e_chiede_il_permesso_della_acc()
+    public async Task Forza_solo_le_righe_differite()
     {
         var repo = new Repo
         {
@@ -144,7 +128,6 @@ public class ShapeGateNoticeTests
             ReleaseTargetType.AccVipi, "LIRR|LIRR_CTR", new[] { Corrente });
 
         Assert.Equal(2, n);
-        Assert.Equal(new[] { "LIRR" }, authz.AccChieste);
         Assert.Contains((SourceCatalog.Subcenter, 1), repo.Forzate);
         Assert.Contains((SourceCatalog.AirportPosition, 3), repo.Forzate);
         Assert.DoesNotContain((SourceCatalog.Subcenter, 2), repo.Forzate);
@@ -162,17 +145,19 @@ public class ShapeGateNoticeTests
         Assert.Empty(repo.Forzate);
     }
 
-    /// <summary>Sul bersaglio vLOA il permesso è quello del DOCUMENTO: non c'è una ACC sola a governarlo.</summary>
+    /// <summary>
+    /// Anche sul bersaglio vLOA — che non ha una ACC sola a governarlo — si forza.
+    /// <para>⚠️ Questo test provava che lì il permesso si chiedesse sul DOCUMENTO invece che sull'ACC: una
+    /// distinzione che il 28 agosto 2026 è sparita insieme alle concessioni. Resta a provare che il caso
+    /// senza ACC funzioni comunque, che è la metà che poteva rompersi.</para>
+    /// </summary>
     [Fact]
-    public async Task Sulla_vloa_il_permesso_e_quello_del_documento()
+    public async Task Anche_la_vloa_che_non_ha_una_acc_si_forza()
     {
         var repo = new Repo { Scope = new ShapeGateScope(null, 42, new[] { Riga(1, "LIRR_NE_CTR", Differita(Prossimo)) }) };
-        var authz = new Authz();
 
-        await Servizio(repo, authz).ForcePublishAsync(ReleaseTargetType.Vloa, "42", new[] { Corrente });
-
-        Assert.Equal(new[] { 42 }, authz.DocChiesti);
-        Assert.Empty(authz.AccChieste);
+        Assert.Equal(1, await Servizio(repo, new Authz()).ForcePublishAsync(
+            ReleaseTargetType.Vloa, "42", new[] { Corrente }));
     }
 
     /// <summary>Perimetro sconosciuto (chiave illeggibile): non si tocca niente, e non si finge un permesso.</summary>

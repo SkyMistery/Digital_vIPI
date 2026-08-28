@@ -11,6 +11,13 @@ namespace Vipi.Application.Auth;
 /// <para>Il livello è <c>max(quello garantito dalle posizioni staff IVAO, la promozione a mano)</c>:
 /// <see cref="RoleResolver"/> per il primo, <see cref="IRoleOverrides"/> per la seconda. Verifica sempre
 /// server-side: quello che la pagina nasconde, il servizio deve comunque rifiutarlo.</para>
+///
+/// <para>⚠️ <b>Non c'è più «può editare QUESTO documento».</b> Le concessioni per ACC sono morte il 28
+/// agosto 2026: l'Editor edita tutto, per decisione del committente («il CH di Roma può dare una mano a
+/// quello di Milano»). Le cinque domande che c'erano — <c>CanEditAcc</c>, <c>CanEditDocument</c>,
+/// <c>CanEditAnything</c> e i due <c>EnsureCanEdit…</c> — interrogavano il database per rispondere sempre
+/// la stessa cosa, e una di loro lo faceva <b>dal layout, a ogni pagina</b>. Oggi sono
+/// <see cref="IsEditor"/> e <c>EnsureAtLeast(VipiRole.Editor)</c>: nessuna query, nessun parametro.</para>
 /// </summary>
 public interface IEditAuthorizationService
 {
@@ -36,31 +43,6 @@ public interface IEditAuthorizationService
     int? CurrentUserId { get; }
     string? CurrentName { get; }
 
-    Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default);
-    Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default);
-
-    /// <summary>Check non-throwing per la UI: true se l'utente può editare la ACC (livello o concessione).</summary>
-    Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default);
-
-    /// <summary>Check non-throwing per la UI: true se l'utente può editare il documento.</summary>
-    Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default);
-
-    /// <summary>
-    /// Vero se l'utente ha qualcosa da editare: è la domanda della BARRA, che deve solo decidere se
-    /// accendere il tasto «Modifica».
-    ///
-    /// <para>⚠️ Non è «può editare almeno un documento», ed è voluto: chi ha una concessione su una ACC
-    /// che non ha ancora documenti vede il tasto e trova un elenco vuoto — che è il posto giusto dove
-    /// scoprirlo. La domanda vecchia (<c>ListEditableDocumentsAsync().Count &gt; 0</c>) costava una query
-    /// per documento <b>a ogni pagina</b>, e la pagava solo l'utente loggato non-admin.</para>
-    /// </summary>
-    Task<bool> CanEditAnythingAsync(CancellationToken ct = default);
-
-    // Gestione grant (solo admin)
-    Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default);
-    Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default);
-    Task RevokeGrantAsync(int grantId, CancellationToken ct = default);
-
     /// <summary>Rifiuta se il livello effettivo è sotto <paramref name="minimo"/>. È il cancello, in una riga.</summary>
     /// <inheritdoc cref="IsEditor" path="/summary/para"/>
     void EnsureAtLeast(VipiRole minimo)
@@ -69,14 +51,13 @@ public interface IEditAuthorizationService
     }
 
     /// <inheritdoc cref="EnsureAtLeast"/>
-    void EnsureAdmin();
+    void EnsureAdmin() => EnsureAtLeast(VipiRole.Admin);
 }
 
 /// <inheritdoc cref="IEditAuthorizationService"/>
 public sealed class EditAuthorizationService : IEditAuthorizationService
 {
     private readonly ICurrentUserProvider _user;
-    private readonly IEditGrantRepository _grants;
     private readonly RoleResolver _resolver;
     private readonly IRoleOverrides _overrides;
 
@@ -86,14 +67,9 @@ public sealed class EditAuthorizationService : IEditAuthorizationService
     private bool _risolto;
     private VipiRole? _role;
 
-    public EditAuthorizationService(
-        ICurrentUserProvider user,
-        IEditGrantRepository grants,
-        RoleResolver resolver,
-        IRoleOverrides overrides)
+    public EditAuthorizationService(ICurrentUserProvider user, RoleResolver resolver, IRoleOverrides overrides)
     {
         _user = user;
-        _grants = grants;
         _resolver = resolver;
         _overrides = overrides;
     }
@@ -140,60 +116,6 @@ public sealed class EditAuthorizationService : IEditAuthorizationService
 
     public int? CurrentUserId => Corrente?.UserId;
     public string? CurrentName => Corrente?.Name;
-
-    public async Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default)
-    {
-        if (IsEditor) return;
-        var u = Corrente;
-        if (u is not null && await _grants.HasGrantAsync(u.UserId, accCode, ct)) return;
-        throw new EditNotAllowedException();
-    }
-
-    public async Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default)
-    {
-        if (IsEditor) return true;
-        var u = Corrente;
-        return u is not null && await _grants.HasGrantAsync(u.UserId, accCode, ct);
-    }
-
-    public async Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default)
-    {
-        if (IsEditor) return;
-        var acc = await _grants.GetDocumentAccCodeAsync(documentId, ct)
-            ?? throw new EditNotAllowedException();
-        await EnsureCanEditAccAsync(acc, ct);
-    }
-
-    public async Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default)
-    {
-        if (IsEditor) return true;
-        var acc = await _grants.GetDocumentAccCodeAsync(documentId, ct);
-        return acc is not null && await CanEditAccAsync(acc, ct);
-    }
-
-    public async Task<bool> CanEditAnythingAsync(CancellationToken ct = default)
-    {
-        if (IsEditor) return true;
-        return Corrente is { } u && await _grants.HasAnyGrantAsync(u.UserId, ct);
-    }
-
-    public Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default)
-    {
-        EnsureAdmin();
-        return _grants.ListAsync(ct);
-    }
-
-    public Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default)
-    {
-        EnsureAdmin();
-        return _grants.AddAsync(UserId, displayName, accCode, CurrentUserId ?? 0, ct);
-    }
-
-    public Task RevokeGrantAsync(int grantId, CancellationToken ct = default)
-    {
-        EnsureAdmin();
-        return _grants.RevokeAsync(grantId, CurrentUserId ?? 0, ct);
-    }
 
     public void EnsureAtLeast(VipiRole minimo)
     {

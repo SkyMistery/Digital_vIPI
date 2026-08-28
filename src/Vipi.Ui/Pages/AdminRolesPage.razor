@@ -1,0 +1,349 @@
+@page "/services/vsop/admin/permissions"
+@layout SopLayout
+@rendermode InteractiveServer
+@using Vipi.Domain
+@inject IEditAuthorizationService Authz
+@inject IRoleAdminService Livelli
+@inject IStringLocalizer<SharedResource> L
+@inject Vipi.Application.Abstractions.IStaffRosterRepository StaffRoster
+@inject IJSRuntime JS
+
+@* Chi può cosa: una persona, un livello.
+
+   Prima questa pagina distribuiva CONCESSIONI PER ACC — «Tizio può editare LIRR» — e la stessa persona
+   compariva in più righe, una per ACC. Quel modello è morto il 28 agosto 2026 insieme al concetto che lo
+   reggeva: l'Editor edita tutto, quindi non c'è più niente da scegliere per-ACC. Resta una domanda sola,
+   «a che livello arriva questa persona», e ha una riga per persona.
+
+   ⚠️ Il livello ha DUE metà che non si sommano ma si massimizzano: il PAVIMENTO, che glielo dà la sua
+   posizione staff IVAO e non si può togliere da qui, e la PROMOZIONE a mano, che è l'unica cosa che questa
+   pagina scrive. Il livello effettivo è il maggiore dei due — per questo i livelli sotto il pavimento sono
+   disabilitati invece che accettati e ignorati: un comando che dice di sì e non fa niente è peggio di un
+   comando che dice di no. *@
+
+<PageTitle>@L["Home_PermsTitle"] · IVAO Italy</PageTitle>
+
+<div class="wrap struct">
+    <AdminNav />
+
+    <div class="doc-head st-head">
+        <h1 class="st-h2 page-h1">@L["Home_PermsTitle"]&nbsp;<span class="pill blue" title="@L["Roles_CountTitle"]">@(_righe?.Count ?? 0)</span></h1>
+        <HelpHint Href="/services/vsop/guide#admin-permessi" AriaLabel="@L["Roles_HelpAria"]" ExtraClass="wide">
+            <p style="margin:0 0 6px">@L["Roles_Subtitle"]</p>
+            @((MarkupString)L["Roles_Intro"].Value)
+        </HelpHint>
+        @if (Authz.IsAdmin)
+        {
+            <LiveRegion>
+                @if (_error is not null || _status is not null)
+                {
+                    <span class="st-msg @(_error is not null ? "warn" : "ok")">
+                        <Icon Name="@(_error is not null ? "warning" : "check-circle")" Size="14" />
+                        <span class="st-msg-t">@(_error ?? _status)</span>
+                        <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
+                    </span>
+                }
+            </LiveRegion>
+        }
+    </div>
+
+    @if (!Authz.IsAdmin)
+    {
+        <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Common_AccessReserved"]</p>@L["Grants_StaffOnly"]</div></div>
+    }
+    else
+    {
+        <div class="perm-layout">
+            @* --- SINISTRA: tutti quelli che il sistema conosce, col livello che hanno --- *@
+            <div class="panel st-pane">
+                <div class="struct-bar">
+                    <input class="htree-search" value="@_q" @oninput="e => SetQuery(e.Value?.ToString())" placeholder="@L["Roles_SearchPh"]" />
+                    @* Un chip per livello, sempre presenti e spenti a zero: contano PERSONE, come le righe. *@
+                    <span class="sb-chips">
+                        @foreach (var liv in Livelli_Chip)
+                        {
+                            var n = Quanti(liv);
+                            <button class="sh-chip @(_filtro == liv ? "on" : "")" disabled="@(n == 0)"
+                                    title="@L["Roles_ChipTitle", Nome(liv)]" @onclick="() => ToggleLivello(liv)">@Nome(liv) <span class="chip-n">@n</span></button>
+                        }
+                        <button class="lnk-mini" disabled="@(!Filtrando)" @onclick="PulisciFiltri"
+                                title="@L["Roles_ClearTitle"]" aria-label="@L["Grants_Clear"]">✕</button>
+                    </span>
+                </div>
+                @if (_righe is null)
+                {
+                    <LoadingState />
+                }
+                else if (Visibili.Count == 0)
+                {
+                    <p class="help">@L["Roles_NoMatch"]</p>
+                }
+                else
+                {
+                    <div class="st-scroll">
+                        @foreach (var r in Visibili)
+                        {
+                            <div class="doc-rowi acc-pick @(_scelto == r.UserId ? "picked" : "")"
+                                 role="button" tabindex="0" aria-pressed="@(_scelto == r.UserId ? "true" : "false")"
+                                 title="@L["Roles_RowPickTitle"]" @onclick="() => Scegli(r.UserId)" @onkeydown="e => TastoRiga(e, r.UserId)">
+                                <span class="di"><Icon Name="key" Size="16" /></span>
+                                <div class="dr-main">
+                                    <b>@NomeDi(r)</b>
+                                    <div class="dr-sub"><VidLink Vid="r.UserId" />@(r.StaffPositions.Count == 0 ? "" : " · " + string.Join(" ", r.StaffPositions))</div>
+                                </div>
+                                @* Il pallino dice che quel livello è stato dato a mano: senza, la riga non
+                                   distingue chi è Editor perché è chief da chi lo è perché l'abbiamo deciso noi. *@
+                                <span class="pill @Colore(r.Effective)" title="@(r.Override is null ? L["Roles_FromStaff"] : L["Roles_FromOverride"])">
+                                    @Nome(r.Effective)@(r.Override is null ? "" : " •")
+                                </span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            @* --- DESTRA: la persona scelta, il suo pavimento, e il livello che le diamo noi --- *@
+            <div class="panel st-pane">
+                @if (Scelta is { } sel)
+                {
+                    <div class="ver-detail-head">
+                        <div class="dr-main">
+                            <b>@NomeDi(sel)</b>
+                            <div class="dr-sub"><VidLink Vid="sel.UserId" />@(sel.StaffPositions.Count == 0 ? "" : " · " + string.Join(" ", sel.StaffPositions))</div>
+                        </div>
+                        <span class="pill @Colore(sel.Effective)" title="@L["Roles_EffectiveTitle"]">@Nome(sel.Effective)</span>
+                    </div>
+                    <div class="st-scroll">
+                        <div class="perm-form">
+                            @* Il pavimento si dice sempre, anche quando è «nessuno»: è la riga che spiega
+                               perché più sotto certi livelli non si possono scegliere. *@
+                            <p class="help">
+                                @if (sel.StaffPositions.Count == 0)
+                                {
+                                    @L["Roles_NoStaffPosition"]
+                                }
+                                else
+                                {
+                                    @L["Roles_FloorIs", string.Join(" ", sel.StaffPositions), Nome(sel.Floor)]
+                                }
+                            </p>
+
+                            <div class="field">
+                                <label>@L["Roles_Level"]</label>
+                                <select class="app-in" @bind="_livelloScelto">
+                                    @foreach (var liv in Tutti)
+                                    {
+                                        @* ⚠️ Sotto il pavimento si DISABILITA, non si accetta: il `max` lo
+                                           renderebbe un no-op, e un comando che non fa niente in silenzio è
+                                           un modo per far credere di aver declassato qualcuno. *@
+                                        <option value="@liv" disabled="@(liv < sel.Floor)">
+                                            @Nome(liv)@(liv < sel.Floor ? $" — {L["Roles_BelowFloor"]}" : "")
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label>@L["Roles_Note"]</label>
+                                <input class="app-in" placeholder="@L["Roles_NotePh"]" @bind="_nota" />
+                            </div>
+
+                            <button class="btn primary perm-go" disabled="@(_busy || _livelloScelto < sel.Floor || IoStesso(sel))"
+                                    @onclick="() => Salva(sel)"><Icon Name="check-circle" Size="14" /> @L["Roles_Save"]</button>
+
+                            @if (IoStesso(sel))
+                            {
+                                <p class="help">@L["Roles_NotYourself"]</p>
+                            }
+                        </div>
+
+                        @if (sel.Override is { } o)
+                        {
+                            <div class="ver-row">
+                                <span class="vb">@Nome(o)</span>
+                                <div>
+                                    <b>@L["Roles_GrantedOn", VipiTime.Day(sel.GrantedAtUtc ?? default)]</b>
+                                    <div class="vmeta">
+                                        @L["Grants_GrantedBy"]: <VidLink Vid="@(sel.GrantedByUserId ?? 0)" Nome="@NomeNoto(sel.GrantedByUserId ?? 0)" />
+                                        @if (!string.IsNullOrWhiteSpace(sel.Note)) { <text> · @sel.Note</text> }
+                                    </div>
+                                </div>
+                                <span class="vact">
+                                    @* Togliere la promozione non lascia la persona a mani vuote: la riporta
+                                       al suo pavimento, e la conferma lo dice. *@
+                                    <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Roles_RemoveTitle"]" AriaLabel="@L["Roles_Remove"]"
+                                                   Prompt="@L["Roles_RemovePrompt", NomeDi(sel), Nome(sel.Floor)]" Disabled="@(_busy || IoStesso(sel))"
+                                                   ConfirmLabel="@L["Roles_RemoveYes"]" CancelLabel="@L["Common_Cancel"]"
+                                                   OnConfirm="() => Togli(sel)">
+                                        <Trigger><Icon Name="x" Size="14" /> @L["Roles_Remove"]</Trigger>
+                                    </InlineConfirm>
+                                </span>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="help">@L["Roles_PickHint"]</p>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<RoleRow>? _righe;
+    private bool _busy;
+    private string? _status, _error;
+
+    private int? _scelto;
+    private string _q = "";
+    private VipiRole? _filtro;
+
+    private VipiRole _livelloScelto = VipiRole.User;
+    private string _nota = "";
+
+    // Nomi risolti dal roster: l'elenco porta il VID di chi ha firmato, e «704798» non dice niente.
+    private readonly Dictionary<int, string> _nomi = new();
+
+    private static readonly VipiRole[] Tutti =
+    {
+        VipiRole.User, VipiRole.IvaoStaff, VipiRole.DivisionStaff, VipiRole.Editor, VipiRole.Admin,
+    };
+
+    // Nei chip i cinque livelli dal più alto: chi apre questa pagina cerca chi comanda, non chi non conta.
+    private static readonly VipiRole[] Livelli_Chip =
+    {
+        VipiRole.Admin, VipiRole.Editor, VipiRole.DivisionStaff, VipiRole.IvaoStaff, VipiRole.User,
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Authz.IsAdmin) return;
+        await CaricaAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!Authz.IsAdmin) return;
+        // «Schermo meno ciò che sta sopra» non è esprimibile in CSS: si misura, e a ogni render — sopra ci
+        // sono cose che compaiono e spariscono (il chip d'esito, la barra che va a capo, il «?» aperto).
+        try { await JS.InvokeVoidAsync("vipiFitViewport", ".perm-layout", 900); } catch (Exception) { }
+    }
+
+    private async Task CaricaAsync()
+    {
+        try
+        {
+            _righe = await Livelli.ListAsync();
+            await RisolviNomiAsync();
+        }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+    }
+
+    private async Task RisolviNomiAsync()
+    {
+        if (_righe is null) return;
+        var mancanti = _righe
+            .Select(r => r.GrantedByUserId ?? 0)
+            .Where(v => v != 0 && !_nomi.ContainsKey(v))
+            .Distinct()
+            .ToList();
+        if (mancanti.Count == 0) return;
+        foreach (var kv in await StaffRoster.GetDisplayNamesAsync(mancanti)) _nomi[kv.Key] = kv.Value;
+    }
+
+    private string? NomeNoto(int vid) => _nomi.TryGetValue(vid, out var n) ? n : null;
+
+    private RoleRow? Scelta => _righe?.FirstOrDefault(r => r.UserId == _scelto);
+
+    private bool IoStesso(RoleRow r) => r.UserId == Authz.CurrentUserId;
+
+    private IReadOnlyList<RoleRow> Visibili
+    {
+        get
+        {
+            if (_righe is null) return Array.Empty<RoleRow>();
+            var q = _q.Trim();
+            return _righe
+                .Where(r => _filtro is null || r.Effective == _filtro)
+                .Where(r => q.Length == 0
+                            || r.UserId.ToString().Contains(q, StringComparison.Ordinal)
+                            || (r.DisplayName ?? "").Contains(q, StringComparison.OrdinalIgnoreCase)
+                            || r.StaffPositions.Any(p => p.Contains(q, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+        }
+    }
+
+    private int Quanti(VipiRole liv) => _righe?.Count(r => r.Effective == liv) ?? 0;
+
+    private bool Filtrando => _filtro is not null || _q.Length > 0;
+
+    private void SetQuery(string? q) { _q = q ?? ""; }
+
+    private void ToggleLivello(VipiRole liv) => _filtro = _filtro == liv ? null : liv;
+
+    private void PulisciFiltri() { _filtro = null; _q = ""; }
+
+    private void Scegli(int userId)
+    {
+        _scelto = _scelto == userId ? null : userId;
+        ClearStatus();
+        if (Scelta is { } sel)
+        {
+            // Il selettore parte da dove si è: il livello effettivo, non da «User». Chi apre il pannello per
+            // alzare qualcuno di un gradino non deve ritrovare il campo azzerato.
+            _livelloScelto = sel.Effective;
+            _nota = sel.Note ?? "";
+        }
+    }
+
+    private void TastoRiga(KeyboardEventArgs e, int userId)
+    {
+        if (e.Key is "Enter" or " ") Scegli(userId);
+    }
+
+    private async Task Salva(RoleRow sel)
+    {
+        _busy = true;
+        ClearStatus();
+        try
+        {
+            await Livelli.SetAsync(sel.UserId, _livelloScelto, _nota);
+            _status = L["Roles_Saved", NomeDi(sel), Nome(_livelloScelto)];
+            await CaricaAsync();
+        }
+        catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task Togli(RoleRow sel)
+    {
+        _busy = true;
+        ClearStatus();
+        try
+        {
+            await Livelli.RemoveAsync(sel.UserId);
+            _status = L["Roles_Removed", NomeDi(sel), Nome(sel.Floor)];
+            await CaricaAsync();
+        }
+        catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private void ClearStatus() { _status = null; _error = null; }
+
+    private string NomeDi(RoleRow r) => string.IsNullOrWhiteSpace(r.DisplayName) ? $"VID {r.UserId}" : r.DisplayName!;
+
+    /// <summary>Il nome del livello, tradotto. Le chiavi seguono l'enum: aggiungerne uno è aggiungere una riga.</summary>
+    private string Nome(VipiRole liv) => L[$"Roles_Level_{liv}"].Value;
+
+    private static string Colore(VipiRole liv) => liv switch
+    {
+        VipiRole.Admin => "red",
+        VipiRole.Editor => "blue",
+        VipiRole.DivisionStaff => "green",
+        _ => "grey",
+    };
+}

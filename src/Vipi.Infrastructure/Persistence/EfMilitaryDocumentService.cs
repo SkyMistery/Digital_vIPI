@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -82,9 +82,7 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
             ?? throw new Vipi.Application.Aor.ValidationException(Lingua($"Aeroporto {icao} inesistente.", $"Airport {icao} does not exist."));
 
         // Stesso permesso del documento civile: l'edizione non cambia chi comanda su quello scalo.
-        await _authz.EnsureCanEditAccAsync(
-            (await _db.Accs.AsNoTracking().Where(f => f.Id == campo.AccId).Select(f => f.Code)
-                .FirstOrDefaultAsync(ct).ConfigureAwait(false)) ?? "", ct).ConfigureAwait(false);
+        _authz.EnsureAtLeast(VipiRole.Editor);
 
         if (campo.MilDocumentId is int esistente) return esistente;
 

@@ -61,7 +61,7 @@ public class SectorProjectionTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var provider = new FakeUser { User = new CurrentUser(1, "Admin", "LIRR", new[] { "IT-AOC" }) };
-        var authz = new EditAuthorizationService(provider, new EfEditGrantRepository(_db),
+        var authz = new EditAuthorizationService(provider,
             new Vipi.Application.Auth.RoleResolver(new Vipi.Application.Auth.AuthOptions(), new Vipi.Application.DivisionOptions()), SenzaPromozioni.Instance);
         _proj = new EfSectorProjectionService(_db);
         _hier = new EfHierarchyEditingService(_db, authz, _proj,

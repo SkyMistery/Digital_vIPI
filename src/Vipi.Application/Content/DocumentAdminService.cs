@@ -1,6 +1,7 @@
 ﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using static Vipi.Application.Messaggio;
+using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -73,6 +74,6 @@ public sealed class DocumentAdminService : IDocumentAdminService
     {
         var acc = await _repo.GetAccCodeAsync(doc, ct)
             ?? throw new Aor.ValidationException(Lingua("Documento inesistente.", "The document does not exist."));
-        await _authz.EnsureCanEditAccAsync(acc, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
     }
 }

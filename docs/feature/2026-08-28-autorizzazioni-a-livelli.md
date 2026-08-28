@@ -3,10 +3,11 @@
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Sostituisce la decisione del 22 agosto sera
 > («lo staff di divisione è admin, tutto» — memoria `staff-code-reali`, riflessa in
 > `DivisionOptions.AdminRolePatterns`), che resta valida come **storia** e non più come regola.
-> **Stato: slice 0, 1, 2 e 3 chiuse (28 agosto 2026, notte).** Il livello è ora quello che il prodotto
-> usa davvero. ⚠️ **Da qui il ramo NON è deployabile fino alla slice 5**: i chief d'ACC sono diventati
-> `Editor` ma i cancelli delle pagine guardano ancora `IsAdmin`, quindi in questo stato intermedio non
-> aprirebbero niente. Ramo `autorizzazioni-a-livelli`, aperto da `main` dopo la fusione del glossario.
+> **Stato: slice 0→4 e 6 chiuse (28-29 agosto 2026).** Il livello è quello che il prodotto usa davvero, le
+> concessioni per ACC non esistono più e la pagina dei permessi assegna livelli. ⚠️ **Il ramo NON è
+> deployabile fino alla slice 5**: i chief d'ACC sono `Editor` ma i cancelli delle pagine guardano ancora
+> `IsAdmin`, quindi in questo stato intermedio aprirebbero di meno, non di più. Ramo
+> `autorizzazioni-a-livelli`, aperto da `main` dopo la fusione del glossario.
 
 ## 1. Perché
 
@@ -190,9 +191,9 @@ col suo commento sul jolly, la scheda «Chi può editare» della diagnostica, la
 | ✅ 1 | `VipiRole` + `RoleResolver` puro + test di tabella | **47 test nuovi verdi**, niente cablato |
 | ✅ 2 | `RoleOverride` + migrazione **doppia** (SQLite e MySql) + cache singleton | **19 test nuovi verdi** |
 | ✅ 3 | il servizio: `Role`, `IsEditor`, `EnsureAtLeast`; `IsAdmin` **conserva il significato**; muoiono `AdminStaffCodes` e le due liste legacy di `DivisionOptions` | suite verde, **i 160 usi non toccati** |
-| 4 | morte delle concessioni: entità, repo, metodi async → sincroni | suite verde, meno codice |
+| ✅ 4 | morte delle concessioni: entità, repo, metodi async → sincroni | suite verde, **−219 riferimenti** |
 | 5 | i cancelli: `AdminNav` + le ~30 chiamate che scendono a Editor + le stats a DivisionStaff | test per rotta |
-| 6 | `/admin/permissions` riscritta | verifica live |
+| ✅ 6 | `/admin/permissions` riscritta (**tirata avanti**: senza le concessioni la pagina non aveva più contenuto) | 10 test nuovi |
 | 7 | diagnostica, Guida, documenti, memorie | tracciamento coerente |
 
 La slice 3 è la chiave dell'ordine: siccome `IsAdmin` continua a voler dire `Role >= Admin`, **i 160 usi
@@ -263,6 +264,39 @@ liste legacy di `DivisionOptions`.
   legge, ed è giusto che si legga in un test.
 - `AdminCodeTests` → **`LivelloEffettivoTests`**: il file rispondeva a «questo codice è admin?», quando le
   risposte possibili erano due. Ora sono cinque e la domanda è un'altra, quindi il nome doveva cambiare.
+
+## 10-quater. Che cosa è entrato con le slice 4 e 6
+
+**Le concessioni per ACC non esistono più.** Via `EditGrant`, `IEditGrantRepository`,
+`EfEditGrantRepository`, `GrantRow`, la tabella (migrazione `ConcessioniPerAccRimosse`, in entrambi gli
+insiemi) e le otto domande che le interrogavano. Le cinque `CanEdit…`/`EnsureCanEdit…` — **219 riferimenti
+in tutto il repo** — sono diventate `IsEditor` e `EnsureAtLeast(VipiRole.Editor)`: **sincrone, zero query,
+nessun parametro**. Il parametro era la cosa più eloquente: chiedere «puoi editare *questo* documento?»
+non ha più senso se la risposta non dipende dal documento.
+
+⚠️ **La slice 6 è stata tirata avanti**, e non per fretta: tolte le concessioni, `/admin/permissions`
+restava una pagina senza contenuto. O moriva con loro o diventava la pagina dei livelli. È diventata quella
+(`AdminGrantsPage` → **`AdminRolesPage`**): una riga per persona, il **pavimento** dichiarato accanto, e i
+livelli sotto di esso **disabilitati** invece che accettati e ignorati.
+
+- **`RoleAdminService` ha tre guardie, e sono tre modi di perdere il controllo del prodotto**: non ci si
+  declassa da soli (ci si chiude fuori, e non si rimedia da dentro); non si tocca un fondatore (è la porta
+  di servizio che esiste apposta); non si scende sotto il pavimento — che il `max` renderebbe un **no-op
+  silenzioso**, cioè far credere di aver tolto un permesso che c'è ancora.
+- **Ogni scrittura ricarica il fotogramma.** Senza, una promozione non farebbe effetto fino al riavvio; c'è
+  un test che conta le ricariche.
+- **L'elenco include chi ha una promozione ma non è nel roster.** È il socio qualunque promosso a mano,
+  cioè il caso per cui la promozione esiste: saltarlo significherebbe che la pagina dei permessi non mostra
+  un permesso che ha dato lei.
+- **L'audit segue il permesso dove si è spostato.** Il difetto storico — la revoca attribuita a chi aveva
+  *concesso* invece che a chi revocava — aveva un test sulle concessioni: quel test ora prova la stessa
+  invariante sulle promozioni, che è dove il permesso vive adesso.
+
+**Quattro test hanno perso il loro oggetto e lo dicono**, invece di sparire in silenzio: «un editor vede
+solo le ACC su cui ha la concessione», «un responsabile vede solo i suoi ACC», «il permesso è quello
+dell'ACC» e — in E2E — «se la domanda della barra fallisce la pagina esce lo stesso». L'ultimo è il più
+significativo: quella domanda non è stata resa tollerante, è stata **tolta**. Un test che finge di rompere
+una query che nessuno fa più proverebbe soltanto sé stesso.
 
 ## 11. Le due decisioni che mancavano — ✅ chiuse il 28 agosto, notte
 

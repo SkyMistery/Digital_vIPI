@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Domain;
@@ -102,7 +102,7 @@ public sealed class AccDocumentService : IAccDocumentService
             ?? throw new Aor.ValidationException(Lingua($"ACC {accCode} inesistente o senza settori CTR.", $"ACC {accCode} does not exist, or has no CTR sectors."));
         if (id.DocumentId is int existing) return existing;   // già migrato
 
-        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
 
         // Struttura di default: un solo blocco Aerovia con le sezioni del catalogo. I gruppi APP si aggiungono dall'editor.
         var aerovia = new VipiBlockSpec("aerovia", "Settori di aerovia", SectionProfile.AccAerovia);
@@ -116,7 +116,7 @@ public sealed class AccDocumentService : IAccDocumentService
         accCode = Norm(accCode);
         var id = await _repo.ResolveAccDocumentIdentityAsync(accCode, ct)
             ?? throw new Aor.ValidationException(Lingua($"ACC {accCode} inesistente o senza settori CTR.", $"ACC {accCode} does not exist, or has no CTR sectors."));
-        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
 
         var docId = await EnsureAsync(accCode, ct);
         var doc = await _editing.LoadForEditAsync(docId, ct)
@@ -157,7 +157,7 @@ public sealed class AccDocumentService : IAccDocumentService
     public async Task<AccReleaseView?> LoadForReleaseAsync(string accCode, int releaseId, CancellationToken ct = default)
     {
         accCode = Norm(accCode);
-        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         var rel = await _releases.GetByIdAsync(releaseId, ct);
         if (rel is null || rel.TargetType != ReleaseTargetType.AccVipi) return null;
         if (!rel.TargetKey.StartsWith(accCode + "|", StringComparison.OrdinalIgnoreCase)) return null;
@@ -216,7 +216,7 @@ public sealed class AccDocumentService : IAccDocumentService
     // Serializza (null/vuoto azzera) e scrive il BodyJson della sezione, previa autorizzazione ACC.
     private async Task SaveJsonAsync(string accCode, int sectionId, object? value, CancellationToken ct)
     {
-        await _authz.EnsureCanEditAccAsync(Norm(accCode), ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         var json = value is null ? null : System.Text.Json.JsonSerializer.Serialize(value);
         await _editing.SaveSectionBlockJsonBySectionAsync(sectionId, json, _authz.CurrentUserId ?? 0, ct);
     }
@@ -225,7 +225,7 @@ public sealed class AccDocumentService : IAccDocumentService
 
     public async Task<int> AddGroupAsync(string accCode, int versionId, string title, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditAccAsync(Norm(accCode), ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         var block = new VipiBlockSpec("appgroup", string.IsNullOrWhiteSpace(title) ? "Nuovo gruppo APP" : title.Trim(),
             SectionProfile.AccAppBlock);
         var blockSectionId = await _editing.AddBlockToVersionAsync(versionId, block, ct);
@@ -239,13 +239,13 @@ public sealed class AccDocumentService : IAccDocumentService
 
     public async Task RemoveGroupAsync(string accCode, int blockSectionId, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditAccAsync(Norm(accCode), ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         await _editing.DeleteSectionAsync(blockSectionId, ct);
     }
 
     public async Task MoveGroupAsync(string accCode, int blockSectionId, int direction, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditAccAsync(Norm(accCode), ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
 
         var docId = await _editing.GetDocumentIdBySectionAsync(blockSectionId, ct);
         if (docId is null) return;

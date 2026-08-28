@@ -17,9 +17,11 @@ quando `git rev-list --count main..origin/glossario-fraseologia` dà **0**.
 46 file) diventa un enum ordinato a cinque livelli cumulativi; l'Editor edita tutto; le concessioni per
 ACC si eliminano.
 
-**Slice 0, 1 e 2 chiuse** (`VipiRole`, `RoleResolver` puro, `RoleOverride` + cache in memoria +
-migrazione doppia; 66 test nuovi). ⚠️ **Niente è ancora cablato**: a decidere sono `AdminStaffCodes` e le
-due liste legacy di `DivisionOptions`, che muoiono nella **slice 3**. Il prodotto si comporta come prima.
+**Slice 0→4 e 6 chiuse** (`VipiRole`, `RoleResolver` puro, `RoleOverride` + cache in memoria, il servizio
+a livelli, la **morte delle concessioni per ACC** e la pagina dei permessi riscritta; 76 test nuovi).
+⚠️ **Il ramo NON è deployabile fino alla slice 5**: il chief d'ACC è ora `Editor` e un `IT-AOA1` non è più
+admin, ma i cancelli delle pagine guardano ancora `IsAdmin` — in questo stato il prodotto aprirebbe di
+**meno**, non di più. Restano la **5** (i cancelli) e la **7** (diagnostica, Guida, memorie).
 
 ⚠️ Questa testata diceva `6644b5e` fino a stasera, cioè era **indietro di due fusioni**: nel frattempo erano
 entrati in `main` l'archivio ATC (`f120d5c`) e l'audit della lingua (`0a4f92e`). Un HANDOFF che dà lo SHA
@@ -32,8 +34,10 @@ conto era **2** fino alla fusione della notte del 28; ora è **0**, e il ramo re
 
 **Suite verde su net8 e net10** (Application 1348, Infrastructure 962/953, Ui 729, E2E 254, Domain 117,
 Hosting 57, AuroraProfiles 63, AuroraBridge 79, Assets 52 — **0 falliti**), build Release
-`--no-incremental` della soluzione intera **0 avvisi**, **due migrazioni nuove** — `GlossarioFraseologia`
-e `PromozioniAMano`, entrambe additive, che portano la coda al cutover MariaDB a **ventidue**.
+`--no-incremental` della soluzione intera **0 avvisi**, **tre migrazioni nuove** — `GlossarioFraseologia`,
+`PromozioniAMano` e `ConcessioniPerAccRimosse`, che portano la coda al cutover MariaDB a **ventitré**.
+⚠️ L'ultima **droppa** `EditGrants`: in produzione la tabella è già vuota, le concessioni le ha cancellate
+il committente a mano.
 
 ### ⚠️ 28 agosto, sera — il glossario di fraseologia (`lavori-aperti §Q3`)
 
@@ -106,8 +110,9 @@ chiave e distinguere i **quattro** motivi per cui una sezione resta vuota.
 
 ## Prima del prossimo deploy
 
-⚠️ **VENTIDUE migrazioni in coda** al cutover MariaDB (la ventiduesima è `PromozioniAMano`, additiva:
-crea `RoleOverrides`; la ventunesima è `GlossarioFraseologia`, che
+⚠️ **VENTITRÉ migrazioni in coda** al cutover MariaDB (la ventitreesima è `ConcessioniPerAccRimosse`, che
+DROPPA `EditGrants` — in produzione già vuota; la ventiduesima è `PromozioniAMano`, additiva: crea
+`RoleOverrides`; la ventunesima è `GlossarioFraseologia`, che
 è ancora **sul ramo**, non in `main`). ✅ La **SELECT dei duplicati su `DocReleases`** non
 va più fatta a mano — non era nemmeno eseguibile, il 3306 del server sta sul suo `localhost`:
 `ReleaseNumberPreflight` la esegue all'avvio, subito prima di `Migrate()`, e se trova doppioni ferma la

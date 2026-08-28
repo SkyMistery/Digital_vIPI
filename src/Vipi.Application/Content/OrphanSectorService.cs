@@ -1,5 +1,6 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
+using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -118,7 +119,7 @@ public sealed class OrphanSectorService : IOrphanSectorService
     private async Task EnsureCanEditAsync(int orphanSectorId, CancellationToken ct)
     {
         var acc = await _repo.GetAccCodeAsync(orphanSectorId, ct);
-        if (acc is not null) await _authz.EnsureCanEditAccAsync(acc, ct);
+        if (acc is not null) _authz.EnsureAtLeast(VipiRole.Editor);
         else _authz.EnsureAdmin();
     }
 }

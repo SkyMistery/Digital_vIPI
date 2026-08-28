@@ -1,4 +1,4 @@
-@page "/services/vsop/{Acc}/mil/editor"
+﻿@page "/services/vsop/{Acc}/mil/editor"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IMilitaryDocumentService Militari
@@ -177,7 +177,7 @@ else
         {
             // ⚠️ Ensure e non «se manca crealo» scritto qui: è ACC-gated e idempotente, quindi solo chi può
             // editare lo fa nascere. A chi guarda in sola lettura serve già esistente, e se non c'è lo si dice.
-            _shell.DocumentId = Authz.IsAdmin || await Authz.CanEditAccAsync(_acc.Code)
+            _shell.DocumentId = Authz.IsAdmin || Authz.IsEditor
                 ? await Militari.CreaAsync(_icao)
                 : await Militari.GetDocumentIdAsync(_icao);
         }

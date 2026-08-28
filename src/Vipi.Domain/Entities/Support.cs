@@ -86,24 +86,6 @@ public class RoleOverride
 }
 
 /// <summary>
-/// Concessione di editing: abilita un UserId a modificare TUTTI i documenti di una ACC (vIPI/aeroporto/vLOA,
-/// topologia, trasferimenti). Gli admin (staff IT-AO*) non hanno bisogno di grant. PIANO sicurezza.
-///
-/// <para>⚠️ <b>In via di eliminazione</b> (carta del 28 agosto 2026, slice 4): l'Editor edita tutto e le
-/// concessioni per ACC non servono più. In produzione sono già state cancellate tutte a mano.</para>
-/// </summary>
-public class EditGrant
-{
-    public int Id { get; set; }
-    public int UserId { get; set; }                       // UserId IVAO abilitato
-    public string? DisplayName { get; set; }           // nome opzionale per l'elenco admin
-    public int AccId { get; set; }
-    public Acc? Acc { get; set; }
-    public int GrantedByUserId { get; set; }              // admin che ha concesso
-    public DateTime GrantedAtUtc { get; set; }
-}
-
-/// <summary>
 /// Staffista della divisione noto al sistema. Popolato al login di un membro con posizioni staff IT
 /// e ri-verificato periodicamente via API IVAO (/v2/users/{UserId}). Alimenta il picker degli AOD/DIR
 /// nella pagina permessi, evitando l'enumerazione dell'intera divisione (endpoint non disponibile

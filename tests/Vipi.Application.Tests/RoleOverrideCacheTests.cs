@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Domain;
@@ -40,7 +40,7 @@ public class RoleOverrideCacheTests
             return Task.CompletedTask;
         }
 
-        public Task<bool> RemoveAsync(int userId, CancellationToken ct = default) => Task.FromResult(Righe.Remove(userId));
+        public Task<bool> RemoveAsync(int userId, int actorUserId, CancellationToken ct = default) => Task.FromResult(Righe.Remove(userId));
     }
 
     private static (RoleOverrideCache Cache, DepositoFinto Deposito) Cache()

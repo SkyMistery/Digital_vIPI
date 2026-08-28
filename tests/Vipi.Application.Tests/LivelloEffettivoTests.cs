@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -26,7 +26,6 @@ public class LivelloEffettivoTests
         CurrentUser? utente, VipiRole? promozione = null, AuthOptions? auth = null, DivisionOptions? division = null) =>
         new EditAuthorizationService(
             new UtenteFinto(utente),
-            new GrantsInerti(),
             new RoleResolver(auth ?? new AuthOptions(), division ?? new DivisionOptions()),
             new PromozioniFinte(utente?.UserId ?? 0, promozione));
 
@@ -193,7 +192,7 @@ public class LivelloEffettivoTests
     {
         var provider = new UtenteContato(Utente("IT-AOC"));
         var authz = new EditAuthorizationService(
-            provider, new GrantsInerti(),
+            provider,
             new RoleResolver(new AuthOptions(), new DivisionOptions()),
             new PromozioniFinte(123, null));
 
@@ -220,7 +219,7 @@ public class LivelloEffettivoTests
     {
         var provider = new UtenteContato(null);
         var authz = new EditAuthorizationService(
-            provider, new GrantsInerti(),
+            provider,
             new RoleResolver(new AuthOptions(), new DivisionOptions()),
             new PromozioniFinte(0, null));
 
@@ -262,15 +261,4 @@ public class LivelloEffettivoTests
     }
 
     // Il livello non tocca i grant: stub inerte.
-    private sealed class GrantsInerti : IEditGrantRepository
-    {
-        public Task<IReadOnlyList<GrantRow>> ListAsync(CancellationToken ct = default) => throw new NotImplementedException();
-        public Task<int> AddAsync(int UserId, string? displayName, string accCode, int GrantedByUserId, CancellationToken ct = default) => throw new NotImplementedException();
-        public Task RevokeAsync(int grantId, int actorUserId, CancellationToken ct = default) => throw new NotImplementedException();
-        public Task<bool> HasGrantAsync(int UserId, string accCode, CancellationToken ct = default) => Task.FromResult(false);
-        public Task<bool> HasAnyGrantAsync(int UserId, CancellationToken ct = default) => Task.FromResult(false);
-        public Task<string?> GetDocumentAccCodeAsync(int documentId, CancellationToken ct = default) => throw new NotImplementedException();
-        public Task<IReadOnlyList<string>> ListAccCodesForUserAsync(int userId, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
-    }
 }

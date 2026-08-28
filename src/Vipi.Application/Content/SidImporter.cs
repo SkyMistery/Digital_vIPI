@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using Vipi.Application.Abstractions;
 using Vipi.Domain;
 using Vipi.Domain.Services;
@@ -41,7 +41,7 @@ public sealed class SidImporter : ISidImporter
         var norm = icao.Trim().ToUpperInvariant();
         var acc = await _repo.GetAccCodeByIcaoAsync(norm, ct)
             ?? throw new Vipi.Application.Aor.ValidationException(Lingua($"Aeroporto {norm} inesistente o senza ACC.", $"Airport {norm} does not exist, or has no ACC."));
-        await _authz.EnsureCanEditAccAsync(acc, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         return await ImportAsync(norm, ct);
     }
 

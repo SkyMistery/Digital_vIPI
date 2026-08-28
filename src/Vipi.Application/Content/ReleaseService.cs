@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
@@ -531,7 +531,7 @@ public sealed class ReleaseService : IReleaseService
     {
         var acc = await _repo.GetAuthAccCodeAsync(type, key, ct)
             ?? throw new Aor.ValidationException(Lingua("Bersaglio della release inesistente.", "The release target does not exist."));
-        await _authz.EnsureCanEditAccAsync(acc, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
     }
 
     /// <summary>

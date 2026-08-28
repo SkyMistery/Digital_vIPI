@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
 using Vipi.Domain;
@@ -195,7 +195,7 @@ public sealed class AirportEditingService : IAirportEditingService
     {
         var acc = await _repo.GetAccCodeByIcaoAsync(Norm(icao), ct)
             ?? throw new ValidationException(Lingua($"Aeroporto {Norm(icao)} inesistente.", $"Airport {Norm(icao)} does not exist."));
-        await _authz.EnsureCanEditAccAsync(acc, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
     }
 
     private static string Norm(string icao) => (icao ?? "").Trim().ToUpperInvariant();

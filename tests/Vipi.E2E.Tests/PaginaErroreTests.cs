@@ -140,14 +140,6 @@ public sealed class PaginaErroreTests
 
         public int? CurrentUserId => null;
         public string? CurrentName => null;
-        public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => throw Giu();
-        public Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default) => throw Giu();
-        public Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default) => throw Giu();
-        public Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default) => throw Giu();
-        public Task<bool> CanEditAnythingAsync(CancellationToken ct = default) => throw Giu();
-        public Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default) => throw Giu();
-        public Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default) => throw Giu();
-        public Task RevokeGrantAsync(int grantId, CancellationToken ct = default) => throw Giu();
         public void EnsureAdmin() => throw Giu();
     }
 
