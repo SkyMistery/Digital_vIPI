@@ -63,9 +63,41 @@ Prendendo il valore centrale (**670 sessioni/giorno**, italiane comprese):
 | 12 mesi | ~245 000 | 56 MB | **93 MB** |
 | 3 anni | ~734 000 | 168 MB | 280 MB |
 
-Agli estremi del rapporto, i dodici mesi stanno fra **81 e 109 MB** su MariaDB. Tutto `vipi.db` oggi pesa
-**5,1 MB**: l'archivio diventa, da solo, l'oggetto più grosso del database — ed è il prezzo dichiarato di
-tenere un dato che nessuno può ricostruire.
+Agli estremi del rapporto, i dodici mesi stanno fra **81 e 113 MB** su MariaDB.
+
+### 3-ter. E quanto pesa TUTTO il database, allora
+
+Misurato il 28 agosto sul `vipi.db` reale, tabella per tabella (copia isolata coi suoi indici, `VACUUM`,
+dimensione del file): il database intero è **10,05 MiB**, di cui **8,82 MiB** di tabelle e il resto pagine
+libere. Le cinque più grosse:
+
+| tabella | righe | MiB | B/riga |
+|---|---:|---:|---:|
+| `AtcSessions` | 21 133 | 4,82 | **239** |
+| `AccSectors` | 153 | 0,89 | 6 104 (poligoni) |
+| `DocReleases` | 38 | 0,88 | 24 253 (istantanee) |
+| `AirportDayTraffic` | 6 450 | 0,77 | 126 |
+| `AtcSessionTraffic` | 1 410 | 0,20 | 151 |
+
+⚠️ **Le sessioni sono già oggi metà del database**, con le sole italiane. Proiezione a regime, dopo dodici
+mesi di raccolta col mondo dentro:
+
+| voce | righe/anno | MiB (SQLite) |
+|---|---:|---:|
+| `AtcSessions` (mondo + Italia, 670/giorno) | 244 550 | 55,7 |
+| `AtcSessionTraffic` (dettaglio, **solo divisione**) | ~500 000 | 72,0 |
+| `AirportDayTraffic` (93 scali × 365) | ~34 000 | 4,1 |
+| `AtcSessionRunway` + `AtcMonthRollup` | ~27 000 | 2,2 |
+| contenuto (documenti, release, settori, blocchi) | — | 3,2 |
+| **totale** | | **~137** |
+
+Su MariaDB/InnoDB, col solito ×1,67: **~230 MB**. Di questi, **~85 MB sono le sole righe fuori divisione**,
+cioè il prezzo di questo giro; il resto c'era già in programma.
+
+⚠️ **Il pezzo più grosso non è il mondo: è il dettaglio del traffico** (~72 MiB), che nasce **solo** dalle
+sessioni di divisione e non cambia di una riga con questa modifica. Le 500 000 righe l'anno vengono dalla
+carta del 24 agosto, non da una misura nostra: in sviluppo ce ne sono 1 410, quindi è l'unico numero grosso
+di questa pagina che non poggia su dati veri.
 
 ### 3-bis. Si comincia da capo, il 1° settembre 2026
 

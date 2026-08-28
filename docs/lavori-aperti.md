@@ -3386,6 +3386,14 @@ La stima a occhio (8×-12×) era **bassa di poco**. I dodici mesi passano da ~88
 ⚠️ Resta un'ipotesi sola, il costo per riga dello schema altrui — e il campione copre **giugno-agosto**,
 mesi d'estate. Fra qualche mese la misura diretta ce l'avremo in casa.
 
+**Il database intero**, misurato lo stesso giorno tabella per tabella (carta §3-ter): **10,05 MiB** oggi, di
+cui `AtcSessions` è già **metà** (4,82 MiB, 239 B/riga). A regime dopo dodici mesi: **~137 MiB su SQLite,
+~230 MB su MariaDB**, di cui ~85 MB sono le righe fuori divisione.
+⚠️ Il pezzo più grosso **non è il mondo**: è `AtcSessionTraffic` (~72 MiB), che nasce solo dalle sessioni
+di divisione — e le sue 500 000 righe l'anno vengono dalla carta del 24 agosto, non da una misura: è il
+solo numero grosso di questa analisi che non poggia su dati veri. **Da ricontrollare** quando l'archivio
+avrà qualche mese.
+
 ### S2 ✅ DECISA — si ricomincia da capo, cutover nel 2027
 
 Decisione del committente (28 agosto sera): **lo storico del Worker non si travasa.** I due archivi
