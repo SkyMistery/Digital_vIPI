@@ -23,6 +23,20 @@ public interface IDocumentMaintenance
     Task<int> ClearMinimaPlaceholderBlocksAsync(CancellationToken ct = default);
 
     /// <summary>
+    /// Rinomina in <b>«MRVA»</b> le sezioni <c>minima</c> dei documenti in lavorazione che portano ancora il
+    /// titolo vecchio.
+    ///
+    /// <para>⚠️ Il titolo di una sezione di catalogo sta <b>nel documento</b>, non nel catalogo: cambiare
+    /// <c>SectionCatalog</c> vale per i documenti nuovi, e su quelli già scritti non cambia niente. Senza
+    /// questo passo la stessa sezione si chiamerebbe in due modi a seconda di quando è nata.</para>
+    ///
+    /// <para>⚠️ Le <b>release già pubblicate non si toccano</b> (doc 13 §9): il titolo vecchio resta nel
+    /// pubblico finché quel documento non viene ripubblicato. È la stessa regola di ogni altra correzione
+    /// editoriale, e non è un'eccezione fatta qui.</para>
+    /// </summary>
+    Task<int> RenameMinimaSectionsAsync(CancellationToken ct = default);
+
+    /// <summary>
     /// Porta le vLOA esistenti sulle chiavi del catalogo (doc 13 §3c): le due sotto-sezioni dei coordinamenti
     /// smettono di ripetere la chiave del padre e prendono <c>coordination:out</c>/<c>coordination:in</c> secondo
     /// l'ordine (la prima è Home→vicino, come le semina il registro), e la sezione «Purpose» — che nasceva con una

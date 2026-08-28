@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Vipi.Application;
 using Vipi.Application.Abstractions;
@@ -7,6 +7,7 @@ using Vipi.Application.Auth;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
 using Vipi.Domain.Services;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Infrastructure.Persistence;
 
@@ -148,7 +149,7 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
             case HierarchyNodeKind.Acc:
             {
                 var e = await _db.AccSectors.FirstOrDefaultAsync(s => s.Id == nodeId, ct)
-                    ?? throw new ValidationException("Settore ACC inesistente.");
+                    ?? throw new ValidationException(Lingua("Settore ACC inesistente.", "The ACC sector does not exist."));
                 childAccCode = e.CenterId; childCallsign = e.ComposePosition;
                 break;
             }
@@ -162,13 +163,13 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
             case HierarchyNodeKind.Airport:
             {
                 var e = await _db.Airports.Include(a => a.Acc).FirstOrDefaultAsync(a => a.Id == nodeId, ct)
-                    ?? throw new ValidationException("Aeroporto inesistente.");
-                childAccCode = e.Acc?.Code ?? throw new ValidationException("Aeroporto senza ACC.");
+                    ?? throw new ValidationException(Lingua("Aeroporto inesistente.", "The airport does not exist."));
+                childAccCode = e.Acc?.Code ?? throw new ValidationException(Lingua("Aeroporto senza ACC.", "The airport has no ACC."));
                 childCallsign = null;   // foglia: non referenziabile come padre
                 break;
             }
             default:
-                throw new ValidationException("Tipo di nodo non valido.");
+                throw new ValidationException(Lingua("Tipo di nodo non valido.", "Invalid node type."));
         }
 
         // Gli ACC esteri (confinanti) non hanno grant per-ACC: l'editing della loro gerarchia è riservato agli admin.
@@ -182,12 +183,12 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
         {
             var internalParents = await InternalNodeParentMapAsync(ct);   // callsign → ParentCallsign
             if (!internalParents.ContainsKey(parentCallsign))
-                throw new ValidationException($"Il padre «{parentCallsign}» non è un settore ACC o APP valido.");
+                throw new ValidationException(Lingua($"Il padre «{parentCallsign}» non è un settore ACC o APP valido.", $"The parent «{parentCallsign}» is not a valid ACC or APP sector."));
 
             if (childCallsign is not null)
             {
                 if (string.Equals(parentCallsign, childCallsign, StringComparison.OrdinalIgnoreCase))
-                    throw new ValidationException("Un nodo non può essere padre di sé stesso.");
+                    throw new ValidationException(Lingua("Un nodo non può essere padre di sé stesso.", "A node cannot be its own parent."));
                 HierarchyRules.EnsureNoCycle(childCallsign, parentCallsign, internalParents);
                 await EnsureParentIsNotLowerAsync(childCallsign, parentCallsign, ct);
             }

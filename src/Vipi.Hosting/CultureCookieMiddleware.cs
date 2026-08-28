@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Localization;
+using Vipi.Application.Content;
 
 namespace Vipi.Hosting;
 
@@ -30,9 +31,6 @@ namespace Vipi.Hosting;
 /// </summary>
 public sealed class CultureCookieMiddleware
 {
-    /// <summary>Le chiavi che <c>QueryStringRequestCultureProvider</c> legge, con i suoi nomi di default.</summary>
-    private static readonly string[] ChiaviQuery = { "culture", "ui-culture" };
-
     private readonly RequestDelegate _next;
     public CultureCookieMiddleware(RequestDelegate next) => _next = next;
 
@@ -63,7 +61,7 @@ public sealed class CultureCookieMiddleware
 
     private static bool Richiesta(HttpContext ctx)
     {
-        foreach (var chiave in ChiaviQuery)
+        foreach (var chiave in LinguaDiLettura.ChiaviQuery)
             if (ctx.Request.Query.ContainsKey(chiave)) return true;
         return false;
     }

@@ -1,7 +1,8 @@
-﻿using Vipi.Application.Abstractions;
+using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
 using Vipi.Domain;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
@@ -97,8 +98,8 @@ public sealed class AirportEditingService : IAirportEditingService
     {
         await EnsureCanEditAsync(icao, ct);
         if ((await _policy.GetAsync(ct)).TransitionAltitude)
-            throw new ValidationException("Transition Altitude è gestita dalla sorgente (sola lettura). Per modificarla, escludila in «Sorgenti dati».");
-        if (ta is < 0 or > 60000) throw new ValidationException("Transition Altitude non valida.");
+            throw new ValidationException(Lingua("Transition Altitude è gestita dalla sorgente (sola lettura). Per modificarla, escludila in «Sorgenti dati».", "The Transition Altitude comes from the source (read-only). To change it, exclude it under «Data sources»."));
+        if (ta is < 0 or > 60000) throw new ValidationException(Lingua("Transition Altitude non valida.", "Invalid Transition Altitude."));
         await _repo.SetTransitionAltitudeAsync(Norm(icao), ta, ct);
     }
 
@@ -107,7 +108,7 @@ public sealed class AirportEditingService : IAirportEditingService
         await EnsureCanEditAsync(icao, ct);
         foreach (var r in rows)
         {
-            if (string.IsNullOrWhiteSpace(r.Level)) throw new ValidationException("Transition Level obbligatorio per ogni riga.");
+            if (string.IsNullOrWhiteSpace(r.Level)) throw new ValidationException(Lingua("Transition Level obbligatorio per ogni riga.", "A Transition Level is required on every row."));
             if (r.QnhFrom is int a && r.QnhTo is int b && a > b) throw new ValidationException("Intervallo QNH invertito (From > To).");
         }
         await _repo.SaveTransitionLevelsAsync(Norm(icao), rows, ct);
@@ -117,7 +118,7 @@ public sealed class AirportEditingService : IAirportEditingService
     {
         await EnsureCanEditAsync(icao, ct);
         foreach (var r in rows)
-            if (string.IsNullOrWhiteSpace(r.Ident)) throw new ValidationException("Ident pista obbligatorio.");
+            if (string.IsNullOrWhiteSpace(r.Ident)) throw new ValidationException(Lingua("Ident pista obbligatorio.", "The runway ident is required."));
 
         // Se le piste sono di sorgente (bloccate), le colonne ident/lunghezza/bearing e l'insieme delle piste
         // non sono modificabili: si possono salvare solo le colonne editoriali (TORA/LDA/APP/Patterns/Circling).
@@ -129,7 +130,7 @@ public sealed class AirportEditingService : IAirportEditingService
                 || rows.Any(r => !storedByIdent.TryGetValue(r.Ident.Trim().ToUpperInvariant(), out var s)
                     || s.LengthM != r.LengthM || s.Bearing != r.Bearing);
             if (locked)
-                throw new ValidationException("Le piste sono gestite dalla sorgente (sola lettura): non puoi aggiungere/rimuovere piste né cambiarne ident, lunghezza o bearing. Per modificarle, escludi «Piste» in «Sorgenti dati».");
+                throw new ValidationException(Lingua("Le piste sono gestite dalla sorgente (sola lettura): non puoi aggiungere/rimuovere piste né cambiarne ident, lunghezza o bearing. Per modificarle, escludi «Piste» in «Sorgenti dati».", "Runways come from the source (read-only): you cannot add or remove runways, nor change their ident, length or bearing. To change them, exclude «Runways» under «Data sources»."));
         }
         await _repo.SaveRunwaysAsync(Norm(icao), rows, ct);
     }
@@ -140,7 +141,7 @@ public sealed class AirportEditingService : IAirportEditingService
         foreach (var r in rows)
         {
             if (string.IsNullOrWhiteSpace(r.DepRunways) && string.IsNullOrWhiteSpace(r.ArrRunways))
-                throw new ValidationException("Specifica almeno una pista DEP o ARR per la regola.");
+                throw new ValidationException(Lingua("Specifica almeno una pista DEP o ARR per la regola.", "Give the rule at least one DEP or ARR runway."));
             if (r.MaxTailwindKt is < 0 or > 40) throw new ValidationException("Vento in coda massimo fuori range (0–40 kt).");
             if (r.MaxCrosswindKt is < 0 or > 60) throw new ValidationException("Vento al traverso massimo fuori range (0–60 kt).");
         }
@@ -153,7 +154,7 @@ public sealed class AirportEditingService : IAirportEditingService
         foreach (var r in rows)
         {
             if (string.IsNullOrWhiteSpace(r.Name)) throw new ValidationException("Nome SID obbligatorio.");
-            if (string.IsNullOrWhiteSpace(r.Fix)) throw new ValidationException("FIX obbligatorio per ogni SID.");
+            if (string.IsNullOrWhiteSpace(r.Fix)) throw new ValidationException(Lingua("FIX obbligatorio per ogni SID.", "A FIX is required on every SID."));
         }
         await _repo.SaveSidsAsync(Norm(icao), rows, ct);
     }
@@ -193,7 +194,7 @@ public sealed class AirportEditingService : IAirportEditingService
     private async Task EnsureCanEditAsync(string icao, CancellationToken ct)
     {
         var acc = await _repo.GetAccCodeByIcaoAsync(Norm(icao), ct)
-            ?? throw new ValidationException($"Aeroporto {Norm(icao)} inesistente.");
+            ?? throw new ValidationException(Lingua($"Aeroporto {Norm(icao)} inesistente.", $"Airport {Norm(icao)} does not exist."));
         await _authz.EnsureCanEditAccAsync(acc, ct);
     }
 

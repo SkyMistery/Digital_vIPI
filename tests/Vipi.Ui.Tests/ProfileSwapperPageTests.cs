@@ -31,6 +31,9 @@ public class ProfileSwapperPageTests : TestContext
     private IRenderedComponent<ProfileSwapperPage> Render()
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        // La briciola di pane legge le stringhe in INGLESE FISSO (regole-lingua R3): senza questo
+        // servizio la pagina non si costruisce nemmeno.
+        Services.AddSingleton(new EnglishStrings());
         return RenderComponent<ProfileSwapperPage>();
     }
 

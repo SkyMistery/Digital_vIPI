@@ -35,7 +35,7 @@ public sealed class EfTranslatableCorpus : ITranslatableCorpus
     {
         var lingua = sourceLang.Equals("en", StringComparison.OrdinalIgnoreCase) ? Language.En : Language.It;
 
-        // Tre letture, non una per documento: il corpus si prende in blocco.
+        // Due letture, non una per documento: il corpus si prende in blocco.
         var blocchi = await _db.ContentBlocks.AsNoTracking()
             .Where(b => b.DocumentVersion!.Document!.Language == lingua)
             .Select(b => new { b.Body, b.BodyJson })
@@ -46,10 +46,10 @@ public sealed class EfTranslatableCorpus : ITranslatableCorpus
             .Select(s => s.Title)
             .ToListAsync(ct).ConfigureAwait(false);
 
-        var titoliDocumento = await _db.Documents.AsNoTracking()
-            .Where(d => d.Language == lingua)
-            .Select(d => d.Title)
-            .ToListAsync(ct).ConfigureAwait(false);
+        // ⚠️ I TITOLI DEI DOCUMENTI NON SONO NEL CORPUS, ed è una regola del committente
+        // (docs/design/regole-lingua.md R4): «vIPI — LIBC Crotone» è il NOME di quel documento e non si
+        // traduce mai. Mandarlo al motore vorrebbe dire pagare dei caratteri per una risposta che nessuno
+        // mostrerà — e riempire il Registro di righe che chi rivede non saprebbe dove vanno a finire.
 
         var segmenti = new HashSet<string>(StringComparer.Ordinal);
 
@@ -59,7 +59,6 @@ public sealed class EfTranslatableCorpus : ITranslatableCorpus
             foreach (var s in TextSegmenter.SplitJson(b.BodyJson)) segmenti.Add(TranslationText.Normalize(s));
         }
         foreach (var t in titoliSezione) segmenti.Add(TranslationText.Normalize(t));
-        foreach (var t in titoliDocumento) segmenti.Add(TranslationText.Normalize(t));
 
         // ---- I testi che stanno FUORI dai documenti (carta §4) --------------------------------------
         // ⚠️ Descrizioni e dettagli di attivazione delle aree regolamentate vivono nell'ANAGRAFICA, non in

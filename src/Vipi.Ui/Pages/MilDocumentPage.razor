@@ -9,6 +9,7 @@
 @inject IReleaseService Releases
 @inject IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
+@inject EnglishStrings En
 @using System.Globalization
 @using Vipi.Application.Content
 @using Vipi.Ui.Shared
@@ -17,7 +18,7 @@
 @using Vipi.Application.Weather
 @using Vipi.Domain
 
-<PageTitle>@(_view?.Title ?? L["Mil_Title"].Value) · IVAO Italia</PageTitle>
+<PageTitle>@(_view?.Title ?? L["Mil_Title"].Value) · IVAO Italy</PageTitle>
 
 @* ---- Il vSOP militare di un campo (carta vSOP militari §5) -------------------------------------------
 
@@ -29,8 +30,8 @@
 
 <div class="wrap reading-cap">
     <div class="breadcrumb">
-        <a href="/services/vsop">@L["Common_Home"]</a> ›
-        <a href="/services/vsop/mil">@L["Mil_Title"]</a> ›
+        <a href="/services/vsop">@En["Common_Home"]</a> ›
+        <a href="/services/vsop/mil">@En["Mil_Title"]</a> ›
         <b>@(_icao.Length > 0 ? _icao : "—")</b>
     </div>
 
@@ -205,8 +206,11 @@
 
         // ⚠️ Il vSOP militare nasce in ITALIANO (carta §1d): la lingua sorgente e' quella in cui si
         // REDIGE, non quella dei quindici PDF di partenza. Un lettore inglese lo ottiene tradotto.
+        // ⚠️ «It» qui e' solo la lingua di NASCITA della famiglia: la sorgente vera la porta il documento
+        // (DocumentView.Language), e questo parametro serve agli snapshot salvati prima che il campo
+        // esistesse. Due posti che dichiarano la lingua sono due posti che possono contraddirsi.
         var lettore = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
-        var tradotto = await Translator.TranslateAsync(_view, "it", lettore);
+        var tradotto = await Translator.TranslateAsync(_view, Vipi.Domain.Language.It, lettore);
         _view = tradotto.View;
         _copertura = tradotto.Coverage;
 

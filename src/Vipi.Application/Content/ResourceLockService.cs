@@ -1,5 +1,6 @@
-﻿using Vipi.Application.Abstractions;
+using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
@@ -101,7 +102,7 @@ public sealed class ResourceLockService : IResourceLockService
     {
         var uid = _authz.CurrentUserId ?? 0;
         if (!await _repo.IsHeldByAsync(resourceKey, uid, ct))
-            throw new EditConflictException("Lock scaduto o preso da un altro editor: clicca «Inizia modifica» per riacquisirlo.");
+            throw new EditConflictException(Lingua("Lock scaduto o preso da un altro editor: clicca «Inizia modifica» per riacquisirlo.", "The lock has expired, or another editor took it: click «Start editing» to take it again."));
         await _repo.RenewAsync(resourceKey, uid, LockTtlMinutes, ct);
     }
 }

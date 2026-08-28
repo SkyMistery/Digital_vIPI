@@ -353,3 +353,90 @@ non ha minuscole attorno, non ha contesto, e vale come dato e non come testo.
 
 **Misura**: 28 segmenti su 218 di quel documento sono identificatori puri. Adesso non partono più, e sono
 anche caratteri risparmiati.
+
+## Che cosa ha insegnato la prima pagina PUBBLICA (28 agosto 2026)
+
+La slice 6 era segnata «live» e lo era davvero — ma su **due** viewer su cinque. Chiesto perché la vIPI di
+Crotone (`/services/vsop/libb/airports?icao=LIBC`) non mostrava traccia di traduzione, la risposta non era
+nei dati: `DocumentTranslator` era iniettato **solo** in `MilDocumentPage` e `VloaListPage`. L'aeroporto,
+l'APP non remotizzato e la vIPI ACC non lo chiamavano affatto. Nessun test poteva accorgersene, perché il
+traduttore da solo funzionava.
+
+| | Che cosa | Dove sta la correzione |
+|---|---|---|
+| ⚠️⚠️ | **Tre viewer su cinque non traducevano.** Il documento restava in italiano dentro un'interfaccia inglese, senza avviso: per il prodotto era «niente da tradurre» | `AeroportoPage`, `AppnPage`, `AccVipiPage`: traduzione + `<TranslationNotice>`, come le altre due |
+| ⚠️⚠️ | **La vIPI ACC non è un `DocumentView`**: vive a blocchi, e il traduttore di documento non la sa leggere | `AccVipiTranslator` sopra `DocumentTranslator.PreparaAsync`: la memoria, la copertura e la preferenza per le congelate restano una implementazione sola |
+| ⚠️ | **La lingua sorgente era CABLATA nella pagina** («it» il militare, «en» la vLOA): un secondo posto che dichiara la lingua, e che può contraddire il documento | `DocumentTranslator.CodiceSorgente(view.Language, predefinita)`: la famiglia dice solo in che lingua **nasce**, per gli snapshot salvati prima del campo |
+| ⚠️ | **Titoli tradotti al 100% e testate ancora italiane.** Il viewer d'aeroporto non mostra il titolo del DOCUMENTO ma quello del **catalogo**, che è una stringa italiana cablata: «Regole piste» in mezzo alla prosa inglese, e la copertura diceva «completa» perché quei titoli al traduttore non erano mai passati davanti | `TranslatedDocument.Pass` + `SectionHeading` che traduce anche il titolo di catalogo, con la stessa impronta |
+
+⚠️ **Il filo comune**: quattro difetti su quattro erano **davanti agli occhi e invisibili ai test**. Il
+traduttore, la memoria, la copertura e il congelamento avevano ognuno i suoi test verdi; quello che mancava
+era **chi chiama chi**, e quello si vede solo aprendo la pagina. Vale la regola già scritta per le
+regressioni Blazor: la verifica è guidare il flusso reale, non la suite.
+
+**Verificato il 28 agosto 2026** su copia del `vipi.db` (host su :5199, `?culture=`): aeroporto LIBC,
+vIPI ACC LIBB, APP LIBA_APP — avviso e testate in inglese; vLOA LDZO — tradotta in italiano e originale in
+inglese, che è il verso opposto e la prova che la sorgente arriva dal documento.
+
+⚠️ **Quello che la pagina vera ha fatto vedere, e non è codice**: la memoria contiene rese **plausibili e
+sbagliate** — «Regole piste» → *Slope rules*, «Minime di vettoramento» → *Minimum vectoring*. Il badge le
+dichiara non riviste, ed è esattamente il lavoro che la §5 aspetta da una persona con un nome.
+
+### E poi mancava il COMANDO (28 agosto 2026, sera)
+
+Agganciate le cinque pagine, la domanda successiva è stata: «sono sulla vIPI di Crotone e ancora non si
+può passare da italiano a inglese». Aveva ragione, e non era un residuo delle pagine: **il selettore di
+lingua non esisteva**. La slice 6 dichiarava «selettore unico lingua UI+documento, cookie, badge»; erano
+stati fatti il cookie (`CultureCookieMiddleware`), la risoluzione per richiesta e il badge — la lingua si
+poteva chiedere solo **scrivendo `?culture=` nell'indirizzo**.
+
+| | Che cosa | Dove sta la correzione |
+|---|---|---|
+| ⚠️⚠️ | **Nessun controllo per cambiare lingua** in tutta l'interfaccia | Gruppo `IT | EN` in barra + le due voci nel «☰», entrambi LINK: il chrome è SSR statico e cambiare lingua è ricaricare questa pagina chiedendola in un'altra lingua — funziona a JavaScript spento |
+| ⚠️ | **Le lingue servite e le chiavi di query erano scritte in due file privati** (`VipiModuleExtensions`, `CultureCookieMiddleware`) che la UI non può vedere: il selettore avrebbe fatto una terza copia | `LinguaDiLettura` in `Vipi.Application.Content`, e i due file dell'hosting ora leggono di lì |
+| ⚠️⚠️ | **Indice in italiano e testate in inglese** sulla stessa pagina: `AirportLegacySections.ForView` riporta ogni sezione di catalogo al suo titolo CABLATO, quindi **buttava via il titolo appena tradotto** | Le sezioni si ripassano dalla stessa passata dopo `ForView` (zero query, la memoria è già in mano); `TitleOf`/`SectionHeading` spariscono, erano il secondo posto che rileggeva il catalogo |
+
+⚠️ **Due chip e non un tasto che gira** come quello del tema: su un tasto solo non si sa se «EN» è la lingua
+in cui sei o quella in cui andresti, e a differenza del tema qui l'errore non si vede finché la pagina non
+si è già ricaricata. Costa ~30px in barra, che la misura trova; dallo scaglione `tb-4` il gruppo esce di
+riga e la scelta resta nel «☰», come zoom e badge.
+
+⚠️ **Il link riparte dall'indirizzo vero**, query compresa: un `?culture=en` fisso su
+`/airports?icao=LIBC` avrebbe riportato all'elenco degli aeroporti. Cambiare lingua deve cambiare la lingua
+e basta. Ed è un **percorso assoluto senza schema né host**, perché in produzione davanti c'è Cloudflare.
+
+**Verificato guidando il browser** (finestra 1440, host su :5199 su copia del `vipi.db`): la barra non
+sfora, «IT» è segnato, il clic su «EN» resta su LIBC e traduce indice e testate, il cookie regge il
+ricarico senza `?culture=`. Cinque test E2E nuovi (`SelettoreLinguaTests`) più uno di caratterizzazione su
+`ForView`, che è il posto dove la traduzione si perdeva.
+
+⚠️ **Quello che a schermo si vede ancora in italiano, e non è questa funzione**: le etichette del riquadro
+meteo («VENTO», «VISIBILITÀ», «NUBI», «aggiornato»), il badge «Live · non connesso» e il testo delle regole
+pista scritto a mano nell'anagrafica. Le prime due sono **stringhe cablate nei componenti** — è la slice 9,
+«generatori derivati da stringhe cablate a resx», che resta aperta; la terza è prosa d'anagrafica che
+entrerà in memoria al prossimo giro di riempimento.
+
+### E infine le due cose che ha chiesto il committente (28 agosto, sera tardi)
+
+| | Che cosa | Perché |
+|---|---|---|
+| **«MRVA»** al posto di «Minime di vettoramento», uguale nelle due lingue | È la sigla con cui la si chiama in frequenza e sulle carte: come «SID» o «AOR» non si traduce. Il motore rendeva il titolo con *Minimum vectoring* — giusto a metà, e comunque non la sigla |
+| Il **correttore delle traduzioni dentro l'editor** | Chi scrive un documento è l'unico che sa se «riporta sottovento» è diventato *report downwind* o *bring it back downwind*. Il Registro admin elenca le frasi di tutta la divisione: è il posto per un giro di revisione, non per chi ha appena scritto |
+
+⚠️ **Il titolo di una sezione di catalogo sta NEL DOCUMENTO**, non nel catalogo: cambiare `SectionCatalog`
+vale per i documenti nuovi e sui documenti già scritti non cambia niente. Serve un passo d'avvio
+(`RenameMinimaSectionsAsync`, 19 sezioni sul `vipi.db` di prova) che rinomina **solo i titoli vecchi** — un
+nome scelto da un editore è una scelta e non si sovrascrive. Le release già pubblicate restano com'erano
+finché non si ripubblica.
+
+⚠️ Nel correttore, tre vincoli che non sono dettagli: si corregge **come** si dice e mai **cosa** (il testo
+sorgente è la chiave della memoria e lì non si tocca); il permesso è quello del **documento** e non l'admin
+(ridire in un'altra lingua quel che un documento afferma è un atto editoriale su quel documento); e il
+**titolo del documento non è fra le frasi**, o si inviterebbe a correggere una cosa che il viewer ignora.
+
+⚠️ `IDocumentForReview` è la faccia stretta dell'editing — «dammi il documento in lavorazione» e nient'altro.
+Far dipendere il correttore da tutto `IEditingService` vorrebbe dire dargli in mano l'editing intero per una
+lettura, e obbligare ogni suo test a implementare trenta metodi che non chiamerà mai.
+
+**Stato**: ramo `bilingue-tutte-le-pagine` (`2af3a39`), sei commit, spinto e non fuso. Suite verde su net8 e
+net10, build Release senza avvisi. Il seguito sta in `docs/lavori-aperti.md` §Q-bis.

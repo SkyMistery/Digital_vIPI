@@ -1,8 +1,9 @@
-﻿using Vipi.Application.Abstractions;
+using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
 using Vipi.Domain.Services;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
@@ -81,7 +82,7 @@ public sealed class EditorTaskService : IEditorTaskService
         if (input.AssigneeUserId <= 0)
             throw new Aor.ValidationException("Scegli a chi assegnare l'incarico.", "Task_Err_AssigneeRequired");
 
-        var me = _authz.CurrentUserId ?? throw new Aor.ValidationException("Non autenticato.", "Task_Err_NotAuthenticated");
+        var me = _authz.CurrentUserId ?? throw new Aor.ValidationException(Lingua("Non autenticato.", "Not signed in."), "Task_Err_NotAuthenticated");
 
         // Non admin: può assegnare SOLO a sé stesso e, se il task è legato a un documento, deve poterlo editare.
         if (!_authz.IsAdmin)

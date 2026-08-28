@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Vipi.Infrastructure.Aor;
 using Vipi.Infrastructure.Persistence;
@@ -222,9 +222,19 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.ITranslationMemory, EfTranslationMemory>();
         services.AddScoped<Vipi.Application.Abstractions.ITranslatableCorpus, EfTranslatableCorpus>();
         services.AddScoped<Vipi.Application.Translation.DocumentTranslator>();
+        // La vIPI ACC non arriva alla pagina come DocumentView (vive a blocchi): stessa memoria, stessa
+        // copertura, solo un'altra passeggiata sull'albero.
+        services.AddScoped<Vipi.Application.Translation.AccVipiTranslator>();
         // Traduttore dei testi dell'anagrafica dentro le sezioni derivate. Scoped: carica la coppia di
         // lingue una volta per richiesta, perche' chi proietta scopre i testi che gli servono strada facendo.
         services.AddScoped<Vipi.Application.Translation.TranslationLookup>();
+        // Le frasi di UN documento con la loro resa: il correttore dentro l'editor. Il Registro admin
+        // resta dov'e' — quello elenca tutta la divisione, questo il documento che si sta scrivendo.
+        // La faccia stretta dell'editing: il correttore legge il documento e basta.
+        services.AddScoped<Vipi.Application.Content.IDocumentForReview>(sp =>
+            sp.GetRequiredService<Vipi.Application.Content.IEditingService>());
+        services.AddScoped<Vipi.Application.Translation.IDocumentTranslationReview,
+                           Vipi.Application.Translation.DocumentTranslationReview>();
         services.AddScoped<Vipi.Application.Content.IMilitaryDocumentService, EfMilitaryDocumentService>();
 
 

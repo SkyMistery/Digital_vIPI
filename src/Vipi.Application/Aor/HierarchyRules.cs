@@ -1,3 +1,4 @@
+using static Vipi.Application.Messaggio;
 namespace Vipi.Application.Aor;
 
 /// <summary>
@@ -25,7 +26,7 @@ public static class HierarchyRules
         while (current is not null && guard.Add(current))
         {
             if (string.Equals(current, childCallsign, StringComparison.OrdinalIgnoreCase))
-                throw new ValidationException("Gerarchia non valida: creerebbe un ciclo.");
+                throw new ValidationException(Lingua("Gerarchia non valida: creerebbe un ciclo.", "Invalid hierarchy: it would create a cycle."));
             parents.TryGetValue(current, out current);
         }
     }

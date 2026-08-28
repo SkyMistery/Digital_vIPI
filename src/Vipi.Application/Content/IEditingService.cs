@@ -1,4 +1,4 @@
-﻿using Vipi.Domain;
+using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -6,11 +6,26 @@ namespace Vipi.Application.Content;
 /// Use-case di editing. Autorizzazione ACC-scoped via <see cref="Auth.IEditAuthorizationService"/>
 /// (admin o grant sulla ACC del documento); identità (UserId) per audit/CreatedBy. Verifica server-side.
 /// </summary>
-public interface IEditingService
+/// <summary>
+/// «Dammi il documento in lavorazione», e nient'altro.
+///
+/// <para>⚠️ Esiste perché il <b>correttore delle traduzioni</b> ha bisogno di leggere le frasi di un
+/// documento e di niente altro: farlo dipendere da tutto <see cref="IEditingService"/> — trenta metodi che
+/// creano, pubblicano, scartano — vorrebbe dire dargli in mano l'editing intero per una lettura, e
+/// obbligare ogni suo test a implementare trenta metodi che non chiamerà mai.</para>
+/// </summary>
+public interface IDocumentForReview
+{
+    /// <inheritdoc cref="IEditingService.LoadForEditAsync"/>
+    Task<EditableDocument?> LoadForEditAsync(int documentId, CancellationToken ct = default);
+}
+
+public interface IEditingService : IDocumentForReview
 {
     Task<IReadOnlyList<DocumentSummary>> ListDocumentsAsync(CancellationToken ct = default);
 
-    Task<EditableDocument?> LoadForEditAsync(int documentId, CancellationToken ct = default);
+    /// <summary>Il documento in lavorazione: struttura, sezioni e blocchi della versione di lavoro.</summary>
+    new Task<EditableDocument?> LoadForEditAsync(int documentId, CancellationToken ct = default);
     Task<int> CreateDraftAsync(int documentId, CancellationToken ct = default);
 
     /// <summary>Id della vLOA della coppia (Home, Neighbour), o null. Una vLOA per coppia ACC↔ACC.</summary>

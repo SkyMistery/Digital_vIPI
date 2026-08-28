@@ -1,9 +1,10 @@
-﻿@page "/services/profile-swapper"
+@page "/services/profile-swapper"
 @layout SopLayout
 @rendermode InteractiveServer
 @using System.IO.Compression
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
+@inject EnglishStrings En
 
 @* Aurora Profile Swapper: copia sezioni intere fra profili .cpr. Il motore è Vipi.AuroraProfiles, che di
    questa pagina non sa nulla — qui c'è solo la conversazione con chi la usa.
@@ -19,7 +20,7 @@
 <PageTitle>@L["Swap_PageTitle"]</PageTitle>
 
 <div class="wrap" style="max-width:1100px">
-    <div class="breadcrumb"><a href="/services">@L["Services_Title"]</a> › <b>@L["Swap_Heading"]</b></div>
+    <div class="breadcrumb"><a href="/services">@En["Services_Title"]</a> › <b>@En["Swap_Heading"]</b></div>
 
     <div class="doc-head">
         <div>

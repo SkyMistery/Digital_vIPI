@@ -1,4 +1,4 @@
-﻿@page "/services/vsop/{Acc}/editor"
+@page "/services/vsop/{Acc}/editor"
 @layout SopLayout
 @rendermode InteractiveServer
 @implements IDisposable
@@ -12,6 +12,7 @@
 @inject ILogger<AccEditorPage> Logger
 @inject IDocRoutesRegistry DocRoutes
 @inject IStringLocalizer<SharedResource> L
+@inject EnglishStrings En
 
 @if (_acc is null)
 {
@@ -22,8 +23,8 @@ else
     <PageTitle>@L["Acc_EditorTitle"] @_accName</PageTitle>
     <div class="wrap struct">
         <div class="breadcrumb">
-            <a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_accName</a> ›
-            <a href="/services/vsop/@Acc.ToLowerInvariant()/vipi">vIPI</a> › <b>@L["Common_Editor"]</b>
+            <a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_accName</a> ›
+            <a href="/services/vsop/@Acc.ToLowerInvariant()/vipi">vIPI</a> › <b>@En["Common_Editor"]</b>
         </div>
 
         @if (_denied)
@@ -74,6 +75,14 @@ else
             </div>
 
             <DocReviewBar DocumentId="_shell.DocumentId" />
+
+            @* Come si legge questo documento nell'altra lingua, e la correzione sul posto. Chiuso di suo: si
+               apre quando serve, e chi scrive in italiano non ha ragione di vederlo tutti i giorni. *@
+            @if (_shell.DocumentId is int docIdTraduzione)
+            {
+                <TranslationReviewPanel DocumentId="docIdTraduzione" />
+            }
+
 
             <div class="ed-layout with-rail @(_wide ? "sid-wide" : null)">
             @* Espandi/comprimi tutto: stessi tasti e stesse chiavi dell'editor aeroporto — quello che si fa in

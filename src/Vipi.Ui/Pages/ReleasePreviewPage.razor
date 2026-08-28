@@ -14,20 +14,22 @@
 @inject IDocumentAdminService DocAdmin
 @inject Vipi.Application.Routing.IDocRoutesRegistry DocRoutes
 @inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> L
+@inject EnglishStrings En
 
 @* Compat: la vecchia pagina di anteprima release è ora un redirect al viewer tipizzato con ?as=rel:{id},
    così l'anteprima è resa dentro il documento reale (ACC/APP inclusi), non più solo Aeroporto/vLOA. *@
 
-<PageTitle>Anteprima release · IVAO Italia</PageTitle>
+<PageTitle>Anteprima release · IVAO Italy</PageTitle>
 <div class="wrap">
-    <div class="breadcrumb"><a href="/services/vsop/versions">Bozze &amp; versioni</a> › <b>Anteprima release</b></div>
+    <div class="breadcrumb"><a href="/services/vsop/versions">@En["Nd_Drafts"]</a> › <b>@En["Rel_PreviewCrumb"]</b></div>
     @if (_denied)
     {
-        <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">Accesso riservato</p>Non hai i permessi per vedere questa anteprima.</div></div>
+        <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Rel_AccessTitle"]</p>@L["Rel_NoPermissionPreview"]</div></div>
     }
     else if (_notFound)
     {
-        <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">Release inesistente</p>Nessuna release con questo id.</div></div>
+        <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">@L["Rel_MissingTitle"]</p>@L["Rel_NoReleaseWithId"]</div></div>
     }
     else
     {

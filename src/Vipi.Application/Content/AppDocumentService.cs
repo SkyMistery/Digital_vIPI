@@ -1,7 +1,8 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Domain;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
@@ -152,7 +153,7 @@ public sealed class AppDocumentService : IAppDocumentService
     public async Task<int> EnsureAsync(string appCallsign, CancellationToken ct = default)
     {
         var id = await _apps.ResolveForDocumentAsync(Norm(appCallsign), ct)
-            ?? throw new Aor.ValidationException($"{Norm(appCallsign)} non è un APP non remotizzato.");
+            ?? throw new Aor.ValidationException(Lingua($"{Norm(appCallsign)} non è un APP non remotizzato.", $"{Norm(appCallsign)} is not a non-remotised APP."));
         // Authz PRIMA dell'uscita anticipata: sui documenti già migrati il metodo non verificava nulla.
         await _authz.EnsureCanEditAccAsync(id.AccCode, ct);
         if (id.DocumentId is int existing) return existing;   // già migrato

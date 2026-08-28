@@ -2,6 +2,7 @@ using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
 using Vipi.Domain;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
@@ -112,7 +113,8 @@ public sealed class DeletionService : IDeletionService
         var piano = await PianoAsync(bersaglio, prova?.ProvaLAssenza ?? false, ct);
         if (!piano.Eliminabile)
             throw new ValidationException(
-                "Non si può eliminare: " + string.Join("; ", piano.Blocca.Select(b => b.Testo)) + ".");
+                Lingua("Non si può eliminare: ", "It cannot be deleted: ")
+                + string.Join("; ", piano.Blocca.Select(b => b.Testo)) + ".");
 
         // Il documento ha già il suo percorso: toglie anche le release (che non hanno FK e non cascadano),
         // controlla il lock di editing e scrive l'audit col titolo dentro. Riscriverlo qui vorrebbe dire
@@ -184,8 +186,10 @@ public sealed class DeletionService : IDeletionService
                 // domanda senza senso, e la risposta «non c'è» non proverebbe niente. D8 già non la tocca.
                 if (!f.IsProjected || f.CatalogoManuale)
                     return SourceProbeResult.NonSiSa(
-                        $"{f.Callsign} è stato aggiunto a mano: nessuna sorgente lo rivendica",
-                        "nessuna chiamata: riga di catalogo manuale");
+                        Lingua($"{f.Callsign} è stato aggiunto a mano: nessuna sorgente lo rivendica",
+                               $"{f.Callsign} was added by hand: no source claims it"),
+                        Lingua("nessuna chiamata: riga di catalogo manuale",
+                               "no call: manual catalogue row"));
 
                 return await _sorgente.ChiediAsync(f.Kind == SectorKind.Airport
                     ? new SourceProbeTarget(SourceProbeKind.AirportSector, f.Callsign, f.AirportIcao)
@@ -206,8 +210,10 @@ public sealed class DeletionService : IDeletionService
 
             default:
                 return SourceProbeResult.NonSiSa(
-                    "non è la sorgente a decidere di questo: è roba nostra",
-                    "nessuna chiamata: bersaglio senza sorgente");
+                    Lingua("non è la sorgente a decidere di questo: è roba nostra",
+                           "the source does not decide about this: it is ours"),
+                    Lingua("nessuna chiamata: bersaglio senza sorgente",
+                           "no call: target without a source"));
         }
     }
 
@@ -276,5 +282,19 @@ public sealed class DeletionService : IDeletionService
         }
     }
 
-    private static ValidationException Inesistente(string cosa) => new($"{cosa} inesistente.");
+    /// <summary>
+    /// «X inesistente», dove X è il TIPO di bersaglio. ⚠️ Il tipo arriva come chiave neutra
+    /// (<c>"Settore"</c>, <c>"Aeroporto"</c>, <c>"ACC"</c>) e si traduce QUI: era il nome già scritto in
+    /// italiano, e in inglese avrebbe dato «Settore does not exist».
+    /// </summary>
+    private static ValidationException Inesistente(string cosa) => new(Lingua(
+        $"{Tipo(cosa, inglese: false)} inesistente.",
+        $"{Tipo(cosa, inglese: true)} does not exist."));
+
+    private static string Tipo(string chiave, bool inglese) => chiave switch
+    {
+        "Settore" => inglese ? "Sector" : "Settore",
+        "Aeroporto" => inglese ? "Airport" : "Aeroporto",
+        _ => chiave,   // «ACC» è uguale in tutte e due
+    };
 }

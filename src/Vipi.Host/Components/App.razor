@@ -1,4 +1,4 @@
-﻿@using System.Globalization
+@using System.Globalization
 @inject NavigationManager Nav
 <!DOCTYPE html>
 @* La lingua della pagina è quella risolta da UseRequestLocalization, non «it» fisso: il modulo è
@@ -31,7 +31,7 @@
     <link rel="stylesheet" href="@AssetVersion.Url("Vipi.Host.styles.css")" />
     <!-- Reset di pagina dell'host standalone: il modulo non tocca più body/html (stili confinati in .vipi-root). -->
     <style>html,body{height:100%;margin:0;background:var(--bg)}</style>
-    @* Il simbolo di IVAO Italia. ⚠️ Sta nel wwwroot dell'HOST e non nella RCL: la favicon è del SITO, non
+    @* Il simbolo di IVAO Italy. ⚠️ Sta nel wwwroot dell'HOST e non nella RCL: la favicon è del SITO, non
        del modulo — quando la vIPI viene inserita in ivao.it è il loro <head> a portare la propria (si vede
        in docs/guide/ivao-it-wiring.patch), e una favicon dentro `_content/Vipi.Ui/` non servirebbe a
        nessuno dei due.

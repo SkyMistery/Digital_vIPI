@@ -3,6 +3,7 @@ using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Services;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Infrastructure.Persistence;
 
@@ -78,7 +79,7 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
     {
         icao = (icao ?? "").Trim().ToUpperInvariant();
         var campo = await _db.Airports.FirstOrDefaultAsync(a => a.Icao == icao, ct).ConfigureAwait(false)
-            ?? throw new Vipi.Application.Aor.ValidationException($"Aeroporto {icao} inesistente.");
+            ?? throw new Vipi.Application.Aor.ValidationException(Lingua($"Aeroporto {icao} inesistente.", $"Airport {icao} does not exist."));
 
         // Stesso permesso del documento civile: l'edizione non cambia chi comanda su quello scalo.
         await _authz.EnsureCanEditAccAsync(

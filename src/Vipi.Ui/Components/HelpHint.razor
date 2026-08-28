@@ -1,3 +1,4 @@
+@inject IStringLocalizer<SharedResource> L
 @* HelpHint — piccolo "?" di aiuto contestuale accanto a un controllo. Popover nativo <details>/<summary>:
    niente circuito Blazor, niente JS → funziona sia in static SSR sia in InteractiveServer, come CollapsibleBlock.
    Testo breve (ChildContent) + link opzionale alla pagina Guida (Href, apre in nuova scheda).
@@ -8,7 +9,7 @@
         <div class="help-pop-body">@ChildContent</div>
         @if (Href is not null)
         {
-            <a class="help-more" href="@Href" target="_blank" rel="noopener"><Icon Name="book-open" Size="13" /> Apri la Guida</a>
+            <a class="help-more" href="@Href" target="_blank" rel="noopener"><Icon Name="book-open" Size="13" /> @L["Help_OpenGuide"]</a>
         }
     </div>
 </details>

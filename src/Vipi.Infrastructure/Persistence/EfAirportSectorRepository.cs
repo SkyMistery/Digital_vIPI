@@ -1,9 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Infrastructure.Persistence;
 
@@ -63,7 +64,7 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
     public async Task SetHiddenAsync(int id, bool hidden, CancellationToken ct = default)
     {
         var s = await _db.AirportSectors.FirstOrDefaultAsync(x => x.Id == id, ct)
-                ?? throw new InvalidOperationException($"Settore d'aeroporto id {id} inesistente.");
+                ?? throw new InvalidOperationException(Lingua($"Settore d'aeroporto id {id} inesistente.", $"Airport sector id {id} does not exist."));
         s.IsHidden = hidden;
         await _db.SaveChangesAsync(ct);
     }
@@ -71,10 +72,10 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
     public async Task SetLimitsAsync(int id, int? lower, int? upper, CancellationToken ct = default)
     {
         var s = await _db.AirportSectors.FirstOrDefaultAsync(x => x.Id == id, ct)
-                ?? throw new InvalidOperationException($"Settore d'aeroporto id {id} inesistente.");
+                ?? throw new InvalidOperationException(Lingua($"Settore d'aeroporto id {id} inesistente.", $"Airport sector id {id} does not exist."));
         // Limiti da sorgente = verità primaria: read-only (la UI li disabilita; qui la difesa server).
         if (s.LimitsFromSource)
-            throw new InvalidOperationException("I limiti di questo settore provengono dalla sorgente (IVAO): non modificabili.");
+            throw new InvalidOperationException(Lingua("I limiti di questo settore provengono dalla sorgente (IVAO): non modificabili.", "This sector's limits come from the source (IVAO): they cannot be changed."));
         s.LowerLimit = lower ?? DefaultLowerFt;   // inferiore: vuoto → 0 (GND)
         s.UpperLimit = upper;                      // superiore: vuoto → null = UNL
         await _db.SaveChangesAsync(ct);
@@ -83,7 +84,7 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
     public async Task SetPrimaryAsync(int id, CancellationToken ct = default)
     {
         var s = await _db.AirportSectors.FirstOrDefaultAsync(x => x.Id == id, ct)
-                ?? throw new InvalidOperationException($"Settore d'aeroporto id {id} inesistente.");
+                ?? throw new InvalidOperationException(Lingua($"Settore d'aeroporto id {id} inesistente.", $"Airport sector id {id} does not exist."));
         // Esclusiva per TIPO: una principale per Delivery, una per Ground, una per TWR, una per APP…
         var pos = (s.Position ?? "").Trim().ToUpperInvariant();
         var siblings = await _db.AirportSectors
@@ -95,7 +96,7 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
     public async Task SetIsAccAppAsync(int id, bool isAccApp, CancellationToken ct = default)
     {
         var s = await _db.AirportSectors.FirstOrDefaultAsync(x => x.Id == id, ct)
-                ?? throw new InvalidOperationException($"Settore d'aeroporto id {id} inesistente.");
+                ?? throw new InvalidOperationException(Lingua($"Settore d'aeroporto id {id} inesistente.", $"Airport sector id {id} does not exist."));
         s.IsAccApp = isAccApp;
         await _db.SaveChangesAsync(ct);
     }
@@ -128,7 +129,7 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
     public async Task SetSyntheticShapeAsync(int sectorId, string polygonJson, CancellationToken ct = default)
     {
         var s = await _db.AirportSectors.FirstOrDefaultAsync(x => x.Id == sectorId, ct)
-                ?? throw new InvalidOperationException($"Settore d'aeroporto id {sectorId} inesistente.");
+                ?? throw new InvalidOperationException(Lingua($"Settore d'aeroporto id {sectorId} inesistente.", $"Airport sector id {sectorId} does not exist."));
         s.RegionMapPolygon = polygonJson;
         s.IsShapeSynthetic = true;
         await _db.SaveChangesAsync(ct);
@@ -137,7 +138,7 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
     public async Task SetRealShapeAsync(int sectorId, string polygonJson, CancellationToken ct = default)
     {
         var s = await _db.AirportSectors.FirstOrDefaultAsync(x => x.Id == sectorId, ct)
-                ?? throw new InvalidOperationException($"Settore d'aeroporto id {sectorId} inesistente.");
+                ?? throw new InvalidOperationException(Lingua($"Settore d'aeroporto id {sectorId} inesistente.", $"Airport sector id {sectorId} does not exist."));
         s.RegionMapPolygon = polygonJson;
         s.IsShapeSynthetic = false;   // poligono reale (GitHub): non è un cerchio di ripiego
         await _db.SaveChangesAsync(ct);

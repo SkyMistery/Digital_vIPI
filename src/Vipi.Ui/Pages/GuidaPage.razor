@@ -1,23 +1,22 @@
-﻿@* Guida in-app bilingue (IT/EN): come si consulta e come si modifica vIPI/vLOA. Contenuto statico (static SSR):
+@* Guida in-app bilingue (IT/EN): come si consulta e come si modifica vIPI/vLOA. Contenuto statico (static SSR):
    usa CollapsibleBlock (<details> nativo) → nessun circuito, cercabile con Ctrl+F, ancore deep-link.
    La lingua è scelta dal parametro di query ?lang=it|en (toggle in cima); default = cultura corrente del browser.
    Contenuto DATA-DRIVEN (liste _consult/_modify): un'unica sorgente per corpo pagina e indice. *@
 @page "/services/vsop/guide"
 @layout SopLayout
+@inject NavigationManager Nav
 @using System.Globalization
 
-<PageTitle>@T("Guida","Guide") · vIPI IVAO Italia</PageTitle>
+<PageTitle>@T("Guida","Guide") · vIPI IVAO Italy</PageTitle>
 
 <div class="wrap" style="max-width:1000px">
-    <div class="breadcrumb"><a href="/services/vsop">Home</a> › <b>@T("Guida","Guide")</b></div>
+    @* ⚠️ La briciola è in INGLESE anche qui, come in tutto il sito (regole-lingua R3): scriveva
+       @T("Guida","Guide") e seguiva la lingua della pagina — l'unica del sito a farlo. *@
+    <div class="breadcrumb"><a href="/services/vsop">Home</a> › <b>Guide</b></div>
     <div class="doc-head">
         <div>
             <h1 class="page-h1" style="margin-bottom:2px"><Icon Name="book-open" /> @T("Guida a vIPI / vLOA","vIPI / vLOA Guide")</h1>
             <span class="muted">@T("Come consultare le procedure e come usare gli strumenti di modifica","How to consult the procedures and how to use the editing tools")</span>
-        </div>
-        <div class="apt-quick" style="margin:0" role="group" aria-label="@T("Lingua","Language")">
-            <a class="ch @(_en ? "" : "on")" href="/services/vsop/guide?lang=it">IT</a>
-            <a class="ch @(_en ? "on" : "")" href="/services/vsop/guide?lang=en">EN</a>
         </div>
     </div>
     <p class="guida-lead">@T("Questa pagina è il riferimento completo. Dentro l'app trovi anche piccoli","This page is the complete reference. Inside the app you'll also find small")
@@ -65,16 +64,30 @@
 </div>
 
 @code {
+    /// <summary>
+    /// Vecchio modo di chiedere la lingua a QUESTA pagina, tenuto per i collegamenti già in giro.
+    /// <para>⚠️ Non decide più niente: rimanda a <c>?culture=</c>, che è il selettore di TUTTA
+    /// l'applicazione (docs/design/regole-lingua.md). Fino al 28 agosto 2026 la Guida aveva la sua chip
+    /// IT/EN accanto al titolo, e con quella del selettore in barra facevano due comandi sulla stessa
+    /// schermata che dicevano cose diverse: <c>?lang=</c> cambiava questa pagina e non scriveva il cookie,
+    /// quindi bastava andare altrove per ritrovare l'altra lingua.</para>
+    /// </summary>
     [SupplyParameterFromQuery(Name = "lang")] public string? Lang { get; set; }
 
     private bool _en;
 
     protected override void OnParametersSet()
     {
-        // Esplicito ?lang= vince; altrimenti segue la cultura negoziata (browser Accept-Language / cookie).
-        _en = Lang is not null
-            ? Lang.Equals("en", StringComparison.OrdinalIgnoreCase)
-            : CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals("en", StringComparison.OrdinalIgnoreCase);
+        // ⚠️ Il vecchio `?lang=` non si limita a essere ignorato: REINDIRIZZA. Onorarlo qui e basta darebbe
+        // la Guida in inglese dentro un'interfaccia italiana — la schermata mezza tradotta che questa
+        // funzione esiste per evitare.
+        if (LinguaDiLettura.Supportata(Lang))
+        {
+            Nav.NavigateTo($"/services/vsop/guide?{LinguaDiLettura.ChiaveQuery}={Lang!.ToLowerInvariant()}");
+            return;
+        }
+
+        _en = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals("en", StringComparison.OrdinalIgnoreCase);
     }
 
     private string T(string it, string en) => _en ? en : it;

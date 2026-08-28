@@ -1,4 +1,7 @@
 using Bunit;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
+using Vipi.Ui;
 using Microsoft.AspNetCore.Components;
 using Vipi.Ui.Components;
 using Xunit;
@@ -11,6 +14,17 @@ namespace Vipi.Ui.Tests;
 /// </summary>
 public class HelpHintTests : TestContext
 {
+
+    /// <summary>Localizzatore che rende la CHIAVE: qui si prova il markup, non le traduzioni.</summary>
+    private sealed class ChiaveComeValore : IStringLocalizer<SharedResource>
+    {
+        public LocalizedString this[string name] => new(name, name, resourceNotFound: false);
+        public LocalizedString this[string name, params object[] arguments] => new(name, name, resourceNotFound: false);
+        public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
+    }
+
+    public HelpHintTests() =>
+        Services.AddSingleton<IStringLocalizer<SharedResource>>(new ChiaveComeValore());
     [Fact]
     public void HelpHint_renders_details_popover_with_body_and_guide_link()
     {

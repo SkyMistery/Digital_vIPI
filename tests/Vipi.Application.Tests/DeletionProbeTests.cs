@@ -19,8 +19,16 @@ namespace Vipi.Application.Tests;
 ///
 /// <para>Carta: <c>docs/feature/2026-08-26-chiedere-alla-sorgente.md</c>.</para>
 /// </summary>
-public class DeletionProbeTests
+public class DeletionProbeTests : IDisposable
 {
+
+    // ⚠️ Questi test leggono i MESSAGGI, e i messaggi hanno due lingue (Messaggio.Lingua): senza fissare la
+    // cultura passerebbero in Italia e cadrebbero su una macchina inglese. Si fissa qui, una volta per la
+    // classe, invece che in ogni test.
+    private readonly CulturaDiProva _lingua = CulturaDiProva.Italiana();
+    public DeletionProbeTests() { }
+
+    public void Dispose() => _lingua.Dispose();
     private static readonly DateTime Adesso = new(2026, 8, 26, 12, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime Penultimo = Adesso.AddDays(-1);
 

@@ -1,4 +1,5 @@
 using Vipi.Application.Aor;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Media;
 
@@ -20,10 +21,10 @@ public static class MediaValidator
             throw new ValidationException(TooBigMessage(bytes.Length, options));
 
         var info = ImageProbe.Inspect(bytes.Span)
-            ?? throw new ValidationException("Il file non è un'immagine in un formato supportato (PNG, JPEG, WebP, GIF).");
+            ?? throw new ValidationException(Lingua("Il file non è un'immagine in un formato supportato (PNG, JPEG, WebP, GIF).", "The file is not an image in a supported format (PNG, JPEG, WebP, GIF)."));
 
         if (info.Width <= 0 || info.Height <= 0)
-            throw new ValidationException("L'immagine dichiara dimensioni non valide.");
+            throw new ValidationException(Lingua("L'immagine dichiara dimensioni non valide.", "The image declares invalid dimensions."));
 
         if (info.Width > options.MaxImagePixels || info.Height > options.MaxImagePixels)
             throw new ValidationException(

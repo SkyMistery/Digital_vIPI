@@ -1,7 +1,8 @@
-﻿using Vipi.Application.Abstractions;
+using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
 using Vipi.Domain;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
@@ -117,7 +118,7 @@ public sealed class StructureEditingService : IStructureEditingService
         _authz.EnsureAdmin();
         code = (code ?? "").Trim().ToUpperInvariant();
         name = (name ?? "").Trim();
-        if (code.Length is < 2 or > 8) throw new ValidationException("Codice ACC non valido (es. LIRR).");
+        if (code.Length is < 2 or > 8) throw new ValidationException(Lingua("Codice ACC non valido (es. LIRR).", "Invalid ACC code (e.g. LIRR)."));
         if (name.Length == 0) throw new ValidationException("Nome ACC obbligatorio.");
         if (await _repo.AccExistsAsync(code, ct)) throw new ValidationException($"ACC {code} già esistente.");
         var prefix = string.IsNullOrWhiteSpace(countryPrefix) ? code.Substring(0, 2) : countryPrefix.Trim().ToUpperInvariant();
@@ -135,9 +136,9 @@ public sealed class StructureEditingService : IStructureEditingService
         await _authz.EnsureCanEditAccAsync(accCode, ct);
         icao = (icao ?? "").Trim().ToUpperInvariant();
         name = (name ?? "").Trim();
-        if (icao.Length != 4) throw new ValidationException("ICAO aeroporto non valido (4 lettere, es. LIRF).");
-        if (name.Length == 0) throw new ValidationException("Nome aeroporto obbligatorio.");
-        if (await _repo.AirportIcaoExistsAsync(icao, ct)) throw new ValidationException($"Aeroporto {icao} già esistente.");
+        if (icao.Length != 4) throw new ValidationException(Lingua("ICAO aeroporto non valido (4 lettere, es. LIRF).", "Invalid airport ICAO (4 letters, e.g. LIRF)."));
+        if (name.Length == 0) throw new ValidationException(Lingua("Nome aeroporto obbligatorio.", "The airport name is required."));
+        if (await _repo.AirportIcaoExistsAsync(icao, ct)) throw new ValidationException(Lingua($"Aeroporto {icao} già esistente.", $"Airport {icao} already exists."));
         return await _repo.CreateAirportAsync(accCode, icao, name, ct);
     }
 
@@ -212,7 +213,7 @@ public sealed class StructureEditingService : IStructureEditingService
     private async Task<AirportDocResult> GenerateAirportDocumentCoreAsync(string icao, CancellationToken ct = default)
     {
         icao = (icao ?? "").Trim().ToUpperInvariant();
-        if (icao.Length != 4) throw new ValidationException("ICAO aeroporto non valido.");
+        if (icao.Length != 4) throw new ValidationException(Lingua("ICAO aeroporto non valido.", "Invalid airport ICAO."));
 
         // Una lettura sola della policy per tutta la generazione: decide sia il catalogo settori sia cosa
         // finisce nel merge (TA e piste).
@@ -282,12 +283,12 @@ public sealed class StructureEditingService : IStructureEditingService
         callsign = (callsign ?? "").Trim().ToUpperInvariant();
         name = (name ?? "").Trim();
         if (callsign.Length == 0) throw new ValidationException("Callsign obbligatorio (es. LIRR_NE_CTR).");
-        if (name.Length == 0) throw new ValidationException("Nome settore obbligatorio.");
-        if (kind == SectorKind.Airport && airportId is null) throw new ValidationException("Seleziona l'aeroporto del settore.");
+        if (name.Length == 0) throw new ValidationException(Lingua("Nome settore obbligatorio.", "The sector name is required."));
+        if (kind == SectorKind.Airport && airportId is null) throw new ValidationException(Lingua("Seleziona l'aeroporto del settore.", "Choose the sector's airport."));
         // I settori d'aeroporto (DEL/GND/TWR/APP) provengono dalla sorgente quando «Settori» è importato:
         // in tal caso si generano da «Genera documenti», non si aggiungono a mano. I settori d'area (ACC) restano liberi.
         if (kind == SectorKind.Airport && (await _policy.GetAsync(ct)).Sectors)
-            throw new ValidationException("I settori d'aeroporto sono gestiti dalla sorgente (sola lettura): usa «Genera documenti». Per aggiungerli a mano, escludi «Settori» in «Sorgenti dati».");
+            throw new ValidationException(Lingua("I settori d'aeroporto sono gestiti dalla sorgente (sola lettura): usa «Genera documenti». Per aggiungerli a mano, escludi «Settori» in «Sorgenti dati».", "Airport sectors come from the source (read-only): use «Generate documents». To add them by hand, exclude «Sectors» under «Data sources»."));
         if (await _repo.CallsignExistsAsync(callsign, ct)) throw new ValidationException($"Callsign {callsign} già esistente.");
         return await _repo.AddSectorAsync(accCode, callsign, type, kind, name,
             string.IsNullOrWhiteSpace(defaultFrequency) ? null : defaultFrequency.Trim(),

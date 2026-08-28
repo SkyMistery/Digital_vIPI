@@ -1,4 +1,4 @@
-﻿@page "/services/vsop/{Acc}/apps"
+@page "/services/vsop/{Acc}/apps"
 @layout SopLayout
 @inject IStringLocalizer<SharedResource> L
 @inject IStationResolver Stations
@@ -6,6 +6,7 @@
 @inject IDocumentAdminService Docs
 @inject IOnlineAtcProvider Online
 @inject IEditAuthorizationService Authz
+@inject EnglishStrings En
 
 @if (_acc is null)
 {
@@ -13,9 +14,9 @@
 }
 else
 {
-    <PageTitle>@L["Apps_Title"] @_acc.Code · vIPI IVAO Italia</PageTitle>
+    <PageTitle>@L["Apps_Title"] @_acc.Code · vIPI IVAO Italy</PageTitle>
     <div class="wrap reading-cap">
-        <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@L["Apps_Title"]</b></div>
+        <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@En["Apps_Title"]</b></div>
         <div class="doc-head">
             <div><h1 class="page-h1" style="margin-bottom:2px">@L["Apps_Title"] — @_acc.Name - @_acc.Code</h1></div>
         </div>

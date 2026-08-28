@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.Sqlite;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -442,6 +442,14 @@ public class EditingRepositoryTests : IAsyncLifetime
         var docId = await AccDocIdAsync();
         var svc = Servizio();
 
+        // ⚠️ La lingua si FISSA: i messaggi dell'applicazione ne hanno due (Messaggio.Lingua) e quella che
+        // esce dipende dalla cultura ambientale, cioè — in un test — da come è configurata la macchina.
+        // Senza questa riga il test passa in Italia e cade su una macchina inglese.
+        var linguaPrima = System.Globalization.CultureInfo.CurrentUICulture;
+        System.Globalization.CultureInfo.CurrentUICulture = System.Globalization.CultureInfo.GetCultureInfo("it");
+        try
+        {
+
         // Il lock si prende prima, come fa la pagina: scartare è una scrittura, e la guardia del lock
         // precede la validazione esattamente come nella pubblicazione.
         await svc.AcquireLockAsync(docId);
@@ -461,6 +469,9 @@ public class EditingRepositoryTests : IAsyncLifetime
             () => svc.DiscardDraftAsync(unica));
         Assert.Contains("unica versione", unicaVersione.Message);
         Assert.True(await _db.DocumentVersions.AnyAsync(v => v.Id == unica));   // non è stata toccata
+
+        }
+        finally { System.Globalization.CultureInfo.CurrentUICulture = linguaPrima; }
     }
 
     private EditingService Servizio() => new(_repo, new AllowAuthz(),

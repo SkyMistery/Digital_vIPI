@@ -1,3 +1,5 @@
+using Vipi.Domain;
+
 namespace Vipi.Application.Content;
 
 /// <summary>
@@ -10,9 +12,16 @@ namespace Vipi.Application.Content;
 /// Null in lavorazione — una bozza non è ancora legata a un ciclo, e la pagina ricade su quello corrente. Senza
 /// questo campo la vIPI ACC scriveva in pagina il ciclo di oggi accanto a un contenuto congelato a un altro ciclo
 /// (doc 13 §3h).</param>
+/// <param name="Language">La lingua in cui il documento è REDATTO, per la lettura bilingue (carta
+/// <c>docs/feature/2026-08-27-documenti-bilingue.md</c> §7). Null sui documenti salvati prima che il campo
+/// esistesse e in lavorazione, dove la sorgente è quella in cui la famiglia nasce.</param>
+/// <param name="Translations">Le traduzioni CONGELATE dalla release, per lingua di lettura e impronta del testo:
+/// se ci sono vincono sulla memoria viva, o una correzione fatta oggi su un altro documento cambierebbe sotto gli
+/// occhi del lettore un testo già pubblicato.</param>
 public sealed record AccDocumentModel(
     int DocumentId, int VersionId, bool IsDraft, string AccCode, string AccName,
-    IReadOnlyList<AccAssembledBlock> Blocks, string? AiracCycle = null)
+    IReadOnlyList<AccAssembledBlock> Blocks, string? AiracCycle = null,
+    Language? Language = null, Dictionary<string, Dictionary<string, string>>? Translations = null)
 {
     public AccVipiData Data => new()
     {

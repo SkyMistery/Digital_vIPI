@@ -1,4 +1,4 @@
-﻿@* Barra di lock di editing esclusivo per pagine SENZA documento (struttura admin, nuovo doc). Riusabile: passa la
+@* Barra di lock di editing esclusivo per pagine SENZA documento (struttura admin, nuovo doc). Riusabile: passa la
    ResourceKey e ascolta LockChanged per abilitare/disabilitare i controlli della pagina. Heartbeat 60s finché la
    scheda è aperta (TTL corto lato service → la chiusura scheda libera da sé in pochi minuti). Rilascio su teardown. *@
 @using Vipi.Application.Content
@@ -43,9 +43,8 @@
            testata di Struttura, dove la barra sta in riga col titolo e i collegamenti. *@
         <span class="lb-state muted">@L["Lock_ReadOnly"]</span>
         <button class="btn primary" @onclick="Acquire">✎ @L["Lock_StartEdit"]</button>
-        <HelpHint Href="/services/vsop/guide#editor-lock" AriaLabel="Aiuto sul lock di modifica">
-            La pagina è in <b>sola lettura</b> finché non premi <b>Inizia modifica</b>: così una persona alla volta
-            modifica. Il lock si rinnova da solo mentre lavori e si libera chiudendo la scheda.
+        <HelpHint Href="/services/vsop/guide#editor-lock" AriaLabel="@L["Lock_HelpAria"]">
+            @((MarkupString)L["Lock_HelpBody"].Value)
         </HelpHint>
     }
 </div>

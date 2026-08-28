@@ -1,4 +1,4 @@
-﻿@page "/services/vsop/{Acc}/apps/editor"
+@page "/services/vsop/{Acc}/apps/editor"
 @layout SopLayout
 @rendermode InteractiveServer
 @implements IDisposable
@@ -13,6 +13,7 @@
 @inject ILogger<AppEditorPage> Logger
 @inject IDocRoutesRegistry DocRoutes
 @inject IStringLocalizer<SharedResource> L
+@inject EnglishStrings En
 
 @if (_acc is null)
 {
@@ -23,9 +24,9 @@ else
     <PageTitle>@L["App_EditorTitle"] @_app · vIPI</PageTitle>
     <div class="wrap struct">
         <div class="breadcrumb">
-            <a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> ›
-            <a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@L["App_NonRemotized"]</a> ›
-            <a href="/services/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app">@_app</a> › <b>@L["Common_Editor"]</b>
+            <a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> ›
+            <a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@En["App_NonRemotized"]</a> ›
+            <a href="/services/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app">@_app</a> › <b>@En["Common_Editor"]</b>
         </div>
 
         @if (_notFound)
@@ -83,6 +84,14 @@ else
             </div>
 
             <DocReviewBar DocumentId="_shell.DocumentId" />
+
+            @* Come si legge questo documento nell'altra lingua, e la correzione sul posto. Chiuso di suo: si
+               apre quando serve, e chi scrive in italiano non ha ragione di vederlo tutti i giorni. *@
+            @if (_shell.DocumentId is int docIdTraduzione)
+            {
+                <TranslationReviewPanel DocumentId="docIdTraduzione" />
+            }
+
 
             @if (_shell.Error is not null) { <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div style="flex:1">@_shell.Error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _shell.Error = null">✕</button></div> }
 

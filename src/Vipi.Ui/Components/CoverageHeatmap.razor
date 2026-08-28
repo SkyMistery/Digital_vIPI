@@ -65,11 +65,11 @@
     private string Descrizione(int giorno, int ora, CoverageCell c)
     {
         var quando = $"{L[$"Day_{giorno}"].Value} {ora:00}:00–{(ora + 1) % 24:00}:00Z";
-        if (c.PossibleMinutes <= 0) return $"{quando}: fuori dalla finestra";
+        if (c.PossibleMinutes <= 0) return L["Cov_OutOfWindow", quando];
 
         var perc = Math.Round(c.Ratio * 100);
         return Copertura
-            ? $"{quando}: coperta al {perc}% ({c.CoveredMinutes} minuti su {c.PossibleMinutes})"
-            : $"{quando}: {c.CoveredMinutes} minuti in frequenza su {c.PossibleMinutes} possibili ({perc}%)";
+            ? L["Cov_Covered", quando, perc, c.CoveredMinutes, c.PossibleMinutes]
+            : L["Cov_OnFrequency", quando, c.CoveredMinutes, c.PossibleMinutes, perc];
     }
 }

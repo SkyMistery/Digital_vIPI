@@ -93,10 +93,48 @@
   <data name="Country_DA" xml:space="preserve"><value>Algeria</value></data>
   <data name="Country_DT" xml:space="preserve"><value>Tunisia</value></data>
   <data name="Country_LI" xml:space="preserve"><value>Italy</value></data>
-  <data name="Chrome_BrandSubtitle" xml:space="preserve"><value>IVAO Italy</value></data>
   <data name="Chrome_BrandHome" xml:space="preserve"><value>ATC Services home</value></data>
   <data name="Chrome_Guide" xml:space="preserve"><value>Guide</value></data>
   <data name="Chrome_Menu" xml:space="preserve"><value>Menu</value></data>
+  <data name="Chrome_Language" xml:space="preserve"><value>Language</value></data>
+  <data name="Chrome_Lang_it" xml:space="preserve"><value>Italian</value></data>
+  <data name="Chrome_Lang_en" xml:space="preserve"><value>English</value></data>
+  <data name="Lock_HelpAria" xml:space="preserve"><value>Help on the editing lock</value></data>
+  <data name="Lock_HelpBody" xml:space="preserve"><value>The page is &lt;b&gt;read-only&lt;/b&gt; until you press &lt;b&gt;Start editing&lt;/b&gt;: this way one person at a time edits it. The lock renews itself while you work and is released when you close the tab.</value></data>
+  <data name="Blocks_HelpAria" xml:space="preserve"><value>Help on block types</value></data>
+  <data name="Help_OpenGuide" xml:space="preserve"><value>Open the Guide</value></data>
+  <data name="Struct_LeafAirport" xml:space="preserve"><value>An airport is a leaf: no subtree.</value></data>
+  <data name="Struct_NoSubtree" xml:space="preserve"><value>No subtree (it covers only itself).</value></data>
+  <data name="Struct_RootNoParent" xml:space="preserve"><value>Root (no parent): it covers itself top-down.</value></data>
+  <data name="Apt_OpenFullVipi" xml:space="preserve"><value>Open the full vIPI</value></data>
+  <data name="Apt_Wind" xml:space="preserve"><value>Wind</value></data>
+  <data name="Apt_SuggestedRunways" xml:space="preserve"><value>Suggested runways</value></data>
+  <data name="Apt_NobodyOnline" xml:space="preserve"><value>nobody online — UNICOM</value></data>
+  <data name="Aor_NoSectorWithShape" xml:space="preserve"><value>No sector with a shape matches.</value></data>
+  <data name="Aor3d_NotAvailable" xml:space="preserve"><value>AoR not available</value></data>
+  <data name="Aor3d_NoPolygonFor" xml:space="preserve"><value>No polygon for the sectors of</value></data>
+  <data name="Aor3d_NoPolygonWhy" xml:space="preserve"><value>(not imported/published yet, or unknown source).</value></data>
+  <data name="Rel_NoPermissionPreview" xml:space="preserve"><value>You do not have permission to see this preview.</value></data>
+  <data name="Rel_NoReleaseWithId" xml:space="preserve"><value>No release with this id.</value></data>
+  <data name="Coord_BlockIntro" xml:space="preserve"><value>Transfers of the block's sectors, by sector → airport ACC → airport.</value></data>
+  <data name="Coord_NoneForBlock" xml:space="preserve"><value>No coordination configured for this block.</value></data>
+  <data name="Coord_None" xml:space="preserve"><value>No coordination.</value></data>
+  <data name="AccVipi_NotAvailShort" xml:space="preserve"><value>not available</value></data>
+  <data name="Ape_PointsCatalogDown" xml:space="preserve"><value>Point catalogue unavailable: point fields are left without suggestions.</value></data>
+  <data name="Rel_AccessTitle" xml:space="preserve"><value>Restricted access</value></data>
+  <data name="Rel_MissingTitle" xml:space="preserve"><value>No such release</value></data>
+  <data name="Cov_OutOfWindow" xml:space="preserve"><value>{0}: outside the window</value></data>
+  <data name="Cov_Covered" xml:space="preserve"><value>{0}: {1}% covered ({2} minutes out of {3})</value></data>
+  <data name="Cov_OnFrequency" xml:space="preserve"><value>{0}: {1} minutes on frequency out of {2} possible ({3}%)</value></data>
+  <data name="Blocks_HelpBody" xml:space="preserve"><value>Add a block: &lt;b&gt;Paragraph&lt;/b&gt; (text), &lt;b&gt;Callout&lt;/b&gt; (note/warning box), &lt;b&gt;Table&lt;/b&gt; (rows/columns), &lt;b&gt;Image&lt;/b&gt; (a photo from your device, or dragged in). Reorder with ↑/↓. Everything then has to be &lt;b&gt;saved&lt;/b&gt; and &lt;b&gt;published&lt;/b&gt;.</value></data>
+  <data name="Rel_PreviewCrumb" xml:space="preserve"><value>Release preview</value></data>
+  <data name="TrEd_Title" xml:space="preserve"><value>Translation</value></data>
+  <data name="TrEd_SameLanguage" xml:space="preserve"><value>You are reading in the language this document is written in. Switch language in the top bar to review how it reads.</value></data>
+  <data name="TrEd_Empty" xml:space="preserve"><value>There is nothing to review yet: this document has no translated prose.</value></data>
+  <data name="TrEd_Missing" xml:space="preserve"><value>not translated</value></data>
+  <data name="TrEd_Intro" xml:space="preserve"><value>The sentences of this document and how they read in {0}. You correct HOW it is said, never WHAT it says: the original text is changed in the editor.</value></data>
+  <data name="TrEd_Where" xml:space="preserve"><value>In</value></data>
+  <data name="TrEd_ToReview" xml:space="preserve"><value>to review</value></data>
   <data name="Chrome_Theme" xml:space="preserve"><value>Theme</value></data>
   <data name="Chrome_Version" xml:space="preserve"><value>Site version</value></data>
   <data name="Chrome_ThemeAuto" xml:space="preserve"><value>Theme: automatic (follows the system)</value></data>

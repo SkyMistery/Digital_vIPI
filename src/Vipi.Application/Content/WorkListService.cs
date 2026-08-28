@@ -5,6 +5,7 @@ using Vipi.Application.Routing;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
 using Vipi.Domain.Services;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
@@ -175,7 +176,7 @@ public sealed class WorkListService : IWorkListService
         _authz.EnsureAdmin();
 
         var i = await _impatti.GetOpenAsync(impactId, ct)
-            ?? throw new ValidationException("Questa segnalazione non è più aperta.");
+            ?? throw new ValidationException(Lingua("Questa segnalazione non è più aperta.", "This notice is no longer open."));
 
         var doc = (await _documenti.ListAsync(ct)).FirstOrDefault(d => d.DocumentId == i.DocumentId);
 

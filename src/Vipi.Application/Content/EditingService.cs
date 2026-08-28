@@ -1,8 +1,9 @@
-﻿using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
 using Vipi.Domain;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
@@ -52,11 +53,11 @@ public sealed class EditingService : IEditingService
         if (type == DocumentType.Vloa)
         {
             if (homeSectorId is not int home || neighbourSectorId is not int neigh)
-                throw new Aor.ValidationException("La vLOA richiede un settore Home e uno Neighbour.");
-            if (home == neigh) throw new Aor.ValidationException("Home e Neighbour non possono coincidere.");
+                throw new Aor.ValidationException(Lingua("La vLOA richiede un settore Home e uno Neighbour.", "A vLOA needs a Home sector and a Neighbour one."));
+            if (home == neigh) throw new Aor.ValidationException(Lingua("Home e Neighbour non possono coincidere.", "Home and Neighbour cannot be the same."));
             parties = (home, neigh);
             accCode = await _repo.GetAccCodeBySectorAsync(home, ct)
-                ?? throw new Aor.ValidationException("Settore Home inesistente.");
+                ?? throw new Aor.ValidationException(Lingua("Settore Home inesistente.", "The Home sector does not exist."));
 
             // ⚠️ Una coppia, una vLOA. Il contratto di `FindVloaIdByPairAsync` lo dichiarava già — «una sola
             // vLOA per coppia ACC↔ACC» — e nessuno lo imponeva: la generazione da /services/vsop/admin/neighbours è
@@ -68,7 +69,7 @@ public sealed class EditingService : IEditingService
             // Non si «riusa in silenzio» come fa l'import: lì non c'è nessuno davanti, qui sì, e chi ha
             // appena scritto un titolo deve sapere perché non è stato usato.
             var neighAcc = await _repo.GetAccCodeBySectorAsync(neigh, ct)
-                ?? throw new Aor.ValidationException("Settore Neighbour inesistente.");
+                ?? throw new Aor.ValidationException(Lingua("Settore Neighbour inesistente.", "The Neighbour sector does not exist."));
             if (await _repo.FindVloaIdByPairAsync(accCode, neighAcc, ct) is int gia)
                 throw new Aor.ValidationException(
                     $"Esiste già una vLOA {accCode} ↔ {neighAcc} (documento #{gia}): aprila invece di crearne una seconda.");
@@ -76,13 +77,13 @@ public sealed class EditingService : IEditingService
         else
         {
             if (scopeSectorIds is null || scopeSectorIds.Count == 0)
-                throw new Aor.ValidationException("La vIPI richiede almeno un settore di scope.");
+                throw new Aor.ValidationException(Lingua("La vIPI richiede almeno un settore di scope.", "A vIPI needs at least one sector in scope."));
             scope = scopeSectorIds.Distinct().ToList();
             primary = primarySectorId ?? scope[0];
             if (!scope.Contains(primary.Value))
-                throw new Aor.ValidationException("Il settore primario deve far parte dello scope.");
+                throw new Aor.ValidationException(Lingua("Il settore primario deve far parte dello scope.", "The primary sector has to be part of the scope."));
             accCode = await _repo.GetAccCodeBySectorAsync(primary.Value, ct)
-                ?? throw new Aor.ValidationException("Settore di scope inesistente.");
+                ?? throw new Aor.ValidationException(Lingua("Settore di scope inesistente.", "The scope sector does not exist."));
         }
 
         await _authz.EnsureCanEditAccAsync(accCode, ct);
@@ -221,7 +222,7 @@ public sealed class EditingService : IEditingService
         // Si scarta una BOZZA, non una versione qualsiasi: pubblicate e archiviate sono storia del documento,
         // e cancellarle romperebbe ciò che le release dichiarano di aver fotografato.
         if (draft.Status != DocumentStatus.Draft)
-            throw new ValidationException($"La versione {draft.VersionNumber} non è una bozza ({draft.Status}): non si scarta.");
+            throw new ValidationException(Lingua($"La versione {draft.VersionNumber} non è una bozza ({draft.Status}): non si scarta.", $"Version {draft.VersionNumber} is not a draft ({draft.Status}): it cannot be discarded."));
 
         // Serve qualcosa a cui tornare. Su un documento mai pubblicato la bozza È il documento: scartarla
         // lascerebbe un guscio senza contenuto e senza vista pubblica — chi vuole disfarsene elimini il
@@ -260,7 +261,7 @@ public sealed class EditingService : IEditingService
     private async Task EnsureLockAsync(int documentId, CancellationToken ct)
     {
         if (!await _repo.IsLockHeldByAsync(documentId, _authz.CurrentUserId ?? 0, ct))
-            throw new EditConflictException("Documento bloccato da un altro editor o lock scaduto: riapri l'editor per riacquisirlo.");
+            throw new EditConflictException(Lingua("Documento bloccato da un altro editor o lock scaduto: riapri l'editor per riacquisirlo.", "The document is locked by another editor, or the lock has expired: reopen the editor to take it again."));
         await _repo.RenewLockAsync(documentId, _authz.CurrentUserId ?? 0, LockTtlMinutes, ct);
     }
 

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Vipi.Application.Abstractions;
 using Vipi.Domain;
 using Vipi.Domain.Services;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
@@ -39,7 +40,7 @@ public sealed class SidImporter : ISidImporter
     {
         var norm = icao.Trim().ToUpperInvariant();
         var acc = await _repo.GetAccCodeByIcaoAsync(norm, ct)
-            ?? throw new Vipi.Application.Aor.ValidationException($"Aeroporto {norm} inesistente o senza ACC.");
+            ?? throw new Vipi.Application.Aor.ValidationException(Lingua($"Aeroporto {norm} inesistente o senza ACC.", $"Airport {norm} does not exist, or has no ACC."));
         await _authz.EnsureCanEditAccAsync(acc, ct);
         return await ImportAsync(norm, ct);
     }

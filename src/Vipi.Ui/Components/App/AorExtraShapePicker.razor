@@ -1,4 +1,4 @@
-﻿@* Picker delle shape AoR extra: settori DB (anche esteri/torri) aggiunti a mano come anelli toggleabili sulla mappa.
+@* Picker delle shape AoR extra: settori DB (anche esteri/torri) aggiunti a mano come anelli toggleabili sulla mappa.
    Chip dei selezionati + campo cerca (ente/callsign) + lista filtrata. Emette l'intera lista aggiornata (l'host salva). *@
 @inject IStringLocalizer<SharedResource> L
 
@@ -43,7 +43,7 @@
                     }
                     @if (!Filtered().Any())
                     {
-                        <span class="sp-empty muted">Nessun settore con shape corrisponde.</span>
+                        <span class="sp-empty muted">@L["Aor_NoSectorWithShape"]</span>
                     }
                 </div>
             }

@@ -6,7 +6,12 @@ using Vipi.Domain;
 namespace Vipi.Application.Content;
 
 /// <summary>Anteprima release di una vIPI ACC: dati con blocchi congelati + ciclo AIRAC della release.</summary>
-public sealed record AccReleaseView(AccVipiData Data, string AiracCycle);
+/// <param name="Language">La lingua in cui il documento è redatto; la lettura bilingue parte da lì (carta
+/// <c>docs/feature/2026-08-27-documenti-bilingue.md</c> §7).</param>
+/// <param name="Translations">Le traduzioni congelate in QUESTA release: se ci sono vincono sulla memoria viva.</param>
+public sealed record AccReleaseView(
+    AccVipiData Data, string AiracCycle,
+    Language? Language = null, Dictionary<string, Dictionary<string, string>>? Translations = null);
 
 /// <summary>
 /// Use-case di authoring della vIPI ACC: documento a blocchi (Aerovia/CTR + gruppi APP). Le parti editoriali

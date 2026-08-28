@@ -19,47 +19,6 @@ namespace Vipi.Application.Tests;
 /// </summary>
 public class TraduzioniCongelateTests
 {
-    private sealed class MemoriaFinta : ITranslationMemory
-    {
-        private readonly Dictionary<string, KnownTranslation> _note = new(StringComparer.Ordinal);
-        public int Letture { get; private set; }
-
-        public MemoriaFinta Nota(string sorgente, string bersaglio)
-        {
-            _note[TranslationText.Hash(sorgente)] =
-                new KnownTranslation(bersaglio, TranslationOrigin.Machine, false);
-            return this;
-        }
-
-        public Task<IReadOnlyDictionary<string, KnownTranslation>> LookupAsync(
-            string s, string t, IReadOnlyCollection<string> hashes, CancellationToken ct = default)
-        {
-            Letture++;
-            return Task.FromResult<IReadOnlyDictionary<string, KnownTranslation>>(
-                hashes.Where(_note.ContainsKey).ToDictionary(h => h, h => _note[h], StringComparer.Ordinal));
-        }
-
-        public Task<int> SaveMachineAsync(string s, string t, string e,
-            IReadOnlyList<(string SourceText, string TargetText)> v, CancellationToken ct = default) => Task.FromResult(0);
-        public Task SaveHumanAsync(string s, string t, string a, string b, int u, CancellationToken ct = default) => Task.CompletedTask;
-        public Task<IReadOnlyList<TranslationReviewRow>> ListForReviewAsync(
-            string s, string t, bool solo, int limite, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<TranslationReviewRow>>(Array.Empty<TranslationReviewRow>());
-        public Task<IReadOnlyDictionary<string, string>> LoadAllAsync(
-            string s, string t, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyDictionary<string, string>>(
-                new Dictionary<string, string>(StringComparer.Ordinal));
-
-        public Task<IReadOnlySet<string>> LoadHumanHashesAsync(
-            string s, string t, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlySet<string>>(new HashSet<string>(StringComparer.Ordinal));
-
-        public Task<(int Totale, int DaRileggere)> ContaAsync(string s, string t, CancellationToken ct = default) =>
-            Task.FromResult((0, 0));
-        public Task<int> DocumentiToccatiAsync(string s, CancellationToken ct = default) => Task.FromResult(0);
-        public Task<long> CaratteriSpesiStimatiAsync(string e, CancellationToken ct = default) => Task.FromResult(0L);
-    }
-
     private static DocumentView Vista(
         string titolo, string corpo,
         Dictionary<string, Dictionary<string, string>>? congelate = null,
@@ -96,7 +55,7 @@ public class TraduzioniCongelateTests
     {
         // La memoria viva dice una cosa, lo snapshot un'altra: deve vincere lo snapshot. E la memoria non
         // si deve nemmeno interrogare — sarebbe una query per documento pubblicato, per niente.
-        var memoria = new MemoriaFinta()
+        var memoria = new MemoriaDiTraduzioneFinta()
             .Nota("Purpose", "SCOPO DALLA MEMORIA VIVA")
             .Nota("This LoA applies.", "DALLA MEMORIA VIVA");
 
@@ -107,7 +66,10 @@ public class TraduzioniCongelateTests
 
         var esito = await new DocumentTranslator(memoria).TranslateAsync(vista, "en", "it");
 
-        Assert.Equal("Lettera d'accordo", esito.View.Title);
+        // ⚠️ Il TITOLO no: e' il nome del documento e non si traduce (regole-lingua R4), nemmeno se una
+        // release vecchia se l'era congelato tradotto. Lo snapshot puo' portarsela dietro, la pagina non
+        // la usa.
+        Assert.Equal("Letter of Agreement", esito.View.Title);
         Assert.Equal("Scopo", esito.View.Sections[0].Title);
         Assert.Equal("La presente lettera si applica.", esito.View.Sections[0].Blocks[0].Body);
         Assert.Equal(0, memoria.Letture);
@@ -121,7 +83,7 @@ public class TraduzioniCongelateTests
         var congelate = Congelate(("This LoA applies.", "La presente lettera si applica."));
         var vista = Vista("T", "This LoA applies.", congelate);
 
-        var memoriaCorretta = new MemoriaFinta().Nota("This LoA applies.", "RESA CORRETTA OGGI");
+        var memoriaCorretta = new MemoriaDiTraduzioneFinta().Nota("This LoA applies.", "RESA CORRETTA OGGI");
         var esito = await new DocumentTranslator(memoriaCorretta).TranslateAsync(vista, "en", "it");
 
         Assert.Equal("La presente lettera si applica.", esito.View.Sections[0].Blocks[0].Body);
@@ -132,7 +94,7 @@ public class TraduzioniCongelateTests
     {
         // È il comportamento delle release pubblicate prima di questa funzione, ed è quello giusto per una
         // bozza: chi sta scrivendo vuole vedere la traduzione di adesso, non quella dell'ultima release.
-        var memoria = new MemoriaFinta().Nota("This LoA applies.", "La presente lettera si applica.");
+        var memoria = new MemoriaDiTraduzioneFinta().Nota("This LoA applies.", "La presente lettera si applica.");
         var vista = Vista("T", "This LoA applies.", congelate: null);
 
         var esito = await new DocumentTranslator(memoria).TranslateAsync(vista, "en", "it");
@@ -150,7 +112,7 @@ public class TraduzioniCongelateTests
         {
             ["en"] = new(StringComparer.Ordinal) { [TranslationText.Hash("Testo")] = "Text" },
         };
-        var memoria = new MemoriaFinta();
+        var memoria = new MemoriaDiTraduzioneFinta();
         var vista = Vista("T", "Testo", congelate, lingua: Language.It);
 
         await new DocumentTranslator(memoria).TranslateAsync(vista, "it", "fr");
@@ -168,7 +130,7 @@ public class TraduzioniCongelateTests
         var vista = Vista("T", "This LoA applies.",
             Congelate(("T", "T"), ("Purpose", "Scopo"), ("This LoA applies.", "Si applica.")));
 
-        var esito = await new DocumentTranslator(new MemoriaFinta()).TranslateAsync(vista, "en", "it");
+        var esito = await new DocumentTranslator(new MemoriaDiTraduzioneFinta()).TranslateAsync(vista, "en", "it");
 
         Assert.True(esito.Coverage.Completa);
         Assert.True(esito.Coverage.DaRileggere);
@@ -180,7 +142,7 @@ public class TraduzioniCongelateTests
     {
         // Resta una vista dello STESSO documento: chi la riceve deve poter sapere da che lingua si parte.
         var vista = Vista("T", "Testo", Congelate(("Testo", "Testo tradotto")));
-        var esito = await new DocumentTranslator(new MemoriaFinta()).TranslateAsync(vista, "en", "it");
+        var esito = await new DocumentTranslator(new MemoriaDiTraduzioneFinta()).TranslateAsync(vista, "en", "it");
 
         Assert.Equal(Language.En, esito.View.Language);
         Assert.NotNull(esito.View.Translations);
@@ -199,7 +161,7 @@ public class TraduzioniCongelateTests
 
         // Il traduttore lavora lo stesso: la lingua sorgente gliela dice il chiamante. Quel che cambia è
         // che il chiamante, senza lingua nello snapshot, non deve chiedere una traduzione a caso.
-        var esito = await new DocumentTranslator(new MemoriaFinta()).TranslateAsync(vista, "en", "it");
+        var esito = await new DocumentTranslator(new MemoriaDiTraduzioneFinta()).TranslateAsync(vista, "en", "it");
         Assert.Null(esito.View.Language);
     }
 }

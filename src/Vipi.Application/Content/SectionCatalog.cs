@@ -1,4 +1,4 @@
-﻿namespace Vipi.Application.Content;
+namespace Vipi.Application.Content;
 
 /// <summary>
 /// Catalogo UNIFICATO delle sezioni documentali (doc refactor 08a). Fonte unica per: la natura di ogni sezione
@@ -28,6 +28,10 @@ public static class SectionCatalog
             ["runwayrules"] = SectionKind.Derived,    // regole di scelta pista (vento/superficie)
             ["transition"] = SectionKind.Derived,     // TA + tabella dei livelli di transizione per fascia QNH
             ["runways"] = SectionKind.Derived,        // piste dell'anagrafica IVAO + arricchimenti editoriali
+            // ⚠️ IL TITOLO E' «MRVA», e resta uguale in tutte e due le lingue: e' la sigla con cui la si
+            // chiama in frequenza e sulle carte, e come «SID» o «AOR» non si traduce (decisione del
+            // committente, docs/design/regole-lingua.md). Prima diceva «Minime di vettoramento», che in
+            // inglese il motore rendeva «Minimum vectoring» — giusto a meta', e comunque non la sigla.
             // «minima» è tornata Derived: le MRVA si prendono dal sectorfile come CARTA (non come tabella), una
             // per file .mva, e la pagina la disegna. La decisione del 2026-08-09 che le dichiarava non importabili
             // riguardava la tabella area→quota, che il formato davvero non permette di ricostruire; il disegno sì,
@@ -134,7 +138,7 @@ public static class SectionCatalog
         H("configurations", "Configurazioni", 2),
         H("aor", "AOR", 3),
         H("frequencies", "Frequenze", 4),
-        H("minima", "Minime di vettoramento", 5),
+        H("minima", "MRVA", 5),
         H("vfr", "VFR", 6),
         H("coordination", "Coordinamenti", 7),
         H("regulated", "Aree regolamentate", 8),
@@ -152,7 +156,7 @@ public static class SectionCatalog
                 H("configurations", "Configurazioni", 2),
                 H("aor", "AOR", 3),
                 H("frequencies", "Frequenze", 4),
-                H("minima", "Minime di vettoramento", 5),
+                H("minima", "MRVA", 5),
                 H("coordination", "Coordinamenti", 7),
                 H("regulated", "Aree regolamentate", 8),
                 D("operationaltechnique", "Procedure generali", 9),
@@ -164,7 +168,7 @@ public static class SectionCatalog
                 H("configurations", "Configurazioni", 2),
                 H("aor", "AOR", 3),
                 H("frequencies", "Frequenze", 4),
-                H("minima", "Minime di vettoramento", 5),
+                H("minima", "MRVA", 5),
                 H("vfr", "VFR", 6),
                 H("coordination", "Coordinamenti", 7),
                 H("regulated", "Aree regolamentate", 8),

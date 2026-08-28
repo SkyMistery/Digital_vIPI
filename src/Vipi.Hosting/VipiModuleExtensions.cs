@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Vipi.Application;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Content;
 using Vipi.Application.Auth;
 using Vipi.Infrastructure;
 using Vipi.Infrastructure.Ivao;
@@ -136,11 +137,19 @@ public static class VipiModuleExtensions
         // Localizzazione: risorse condivise in Vipi.Ui/Resources (it default, en). Incrementale.
         services.AddLocalization(o => o.ResourcesPath = "Resources");
 
+        // Le stesse stringhe, sempre in inglese: le chiede la BRICIOLA DI PANE, che per decisione del
+        // committente non segue la lingua (docs/design/regole-lingua.md R3). Singleton: non ha stato, e il
+        // ResourceManager che c'è dentro è già suo di natura.
+        services.AddSingleton<Vipi.Ui.EnglishStrings>();
+
         return services;
     }
 
-    /// <summary>Culture supportate dal modulo (it default, en).</summary>
-    private static readonly string[] SupportedCultures = { "it", "en" };
+    /// <summary>Culture supportate dal modulo. ⚠️ L'elenco NON sta qui: lo dice
+    /// <see cref="LinguaDiLettura.Supportate"/>, perché lo stesso elenco serve al selettore di lingua in
+    /// barra, e la UI non può vedere dentro l'hosting. Due elenchi divergerebbero in silenzio — un tasto che
+    /// offre una lingua non servita non dà errore, ricarica la stessa pagina.</summary>
+    private static readonly string[] SupportedCultures = LinguaDiLettura.Supportate;
 
     /// <summary>Middleware del modulo (localizzazione + registrazione login staff nel roster).</summary>
     public static IApplicationBuilder UseVipiModule(this IApplicationBuilder app)
@@ -471,6 +480,14 @@ public static class VipiModuleExtensions
         if (puntatori > 0 && log is not null)
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Azzerati {Count} puntatori «versione pubblicata» che indicavano una bozza: quel campo lo scrive la pubblicazione.", puntatori);
+
+        // La sezione delle minime di vettoramento si chiama «MRVA», e uguale in tutte e due le lingue: il
+        // titolo di una sezione di catalogo sta NEL DOCUMENTO, quindi cambiare il catalogo vale solo per i
+        // documenti nuovi e questo passo porta avanti quelli già scritti.
+        var mrva = maintenance.RenameMinimaSectionsAsync().GetAwaiter().GetResult();
+        if (mrva > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Rinominate {Count} sezioni «minima» in MRVA.", mrva);
 
         // «Minime di vettoramento» è tornata editoriale (doc 13 §3b): via i blocchi placeholder vuoti che aveva
         // da derivata, o l'editor mostrerebbe una tabella senza colonne.

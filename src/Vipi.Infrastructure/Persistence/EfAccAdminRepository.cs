@@ -4,6 +4,7 @@ using Vipi.Application.Aor;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Infrastructure.Persistence;
 
@@ -71,7 +72,7 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
     public async Task SetSubcenterHiddenAsync(int id, bool hidden, CancellationToken ct = default)
     {
         var s = await _db.AccSectors.FirstOrDefaultAsync(x => x.Id == id, ct)
-                ?? throw new InvalidOperationException($"Settore ATC id {id} inesistente.");
+                ?? throw new InvalidOperationException(Lingua($"Settore ATC id {id} inesistente.", $"ATC sector id {id} does not exist."));
         s.IsHidden = hidden;
         await _db.SaveChangesAsync(ct);
     }
@@ -99,7 +100,7 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
     public async Task SetSubcenterLimitsAsync(int id, int? lower, int? upper, CancellationToken ct = default)
     {
         var s = await _db.AccSectors.FirstOrDefaultAsync(x => x.Id == id, ct)
-                ?? throw new InvalidOperationException($"Settore ATC id {id} inesistente.");
+                ?? throw new InvalidOperationException(Lingua($"Settore ATC id {id} inesistente.", $"ATC sector id {id} does not exist."));
         s.LowerLimit = lower ?? 0;     // inferiore: vuoto → 0
         s.UpperLimit = upper;          // superiore: vuoto → null = UNL
         await _db.SaveChangesAsync(ct);

@@ -1,10 +1,11 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
 using Vipi.Domain.Services;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Infrastructure.Persistence;
 
@@ -465,7 +466,7 @@ public sealed class EfAirportRepository : IAirportRepository
         await _db.Airports.Where(a => a.Icao == icao).Select(a => (int?)a.Id).FirstOrDefaultAsync(ct)
         ?? throw NotFound(icao);
 
-    private static InvalidOperationException NotFound(string icao) => new($"Aeroporto {icao} inesistente.");
+    private static InvalidOperationException NotFound(string icao) => new(Lingua($"Aeroporto {icao} inesistente.", $"Airport {icao} does not exist."));
 
     private static string Dash(string? s) => string.IsNullOrWhiteSpace(s) ? "—" : s!.Trim();
 

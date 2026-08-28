@@ -1,9 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
 using Vipi.Domain.Services;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Infrastructure.Persistence;
 
@@ -154,6 +155,7 @@ public sealed class EfEditingRepository : IEditingRepository
             VersionStatus = version.Status,
             Title = doc.Title,
             Sections = roots,
+            Language = doc.Language,
         };
     }
 
@@ -260,7 +262,7 @@ public sealed class EfEditingRepository : IEditingRepository
             foreach (var s in sectors)
             {
                 if (s.DocumentId is int existing && existing != doc.Id)
-                    throw new InvalidOperationException($"Il settore {s.Callsign} è già descritto da un altro documento.");
+                    throw new InvalidOperationException(Lingua($"Il settore {s.Callsign} è già descritto da un altro documento.", $"Sector {s.Callsign} is already described by another document."));
                 s.DocumentId = doc.Id;
                 s.IsPrimary = s.Id == (primarySectorId ?? ids[0]);
             }
@@ -328,7 +330,7 @@ public sealed class EfEditingRepository : IEditingRepository
         SectionProfile profile, int authorUserId, CancellationToken ct = default)
     {
         var sector = await _db.Sectors.FirstOrDefaultAsync(s => s.Id == primarySectorId, ct)
-            ?? throw new InvalidOperationException($"Settore {primarySectorId} inesistente.");
+            ?? throw new InvalidOperationException(Lingua($"Settore {primarySectorId} inesistente.", $"Sector {primarySectorId} does not exist."));
         if (sector.DocumentId is int existing) return existing;   // già migrato: idempotente
 
         // La nascita è condivisa con l'aeroporto (Seed/DocumentBirth): documento, prima versione bozza e le
@@ -375,7 +377,7 @@ public sealed class EfEditingRepository : IEditingRepository
         IReadOnlyList<VipiBlockSpec> blocks, int authorUserId, CancellationToken ct = default)
     {
         var sector = await _db.Sectors.FirstOrDefaultAsync(s => s.Id == primarySectorId, ct)
-            ?? throw new InvalidOperationException($"Settore {primarySectorId} inesistente.");
+            ?? throw new InvalidOperationException(Lingua($"Settore {primarySectorId} inesistente.", $"Sector {primarySectorId} does not exist."));
         if (sector.DocumentId is int existing) return existing;   // già migrato: idempotente
 
         var now = DateTime.UtcNow;
@@ -557,7 +559,7 @@ public sealed class EfEditingRepository : IEditingRepository
     public async Task SaveSectionBlockJsonAsync(int documentId, string sectionKey, string? json, int authorUserId, CancellationToken ct = default)
     {
         var versionId = await ResolveWorkingVersionIdAsync(documentId, ct)
-            ?? throw new InvalidOperationException($"Documento {documentId} senza versione di lavoro.");
+            ?? throw new InvalidOperationException(Lingua($"Documento {documentId} senza versione di lavoro.", $"Document {documentId} has no working version."));
         await RequireDraftAsync(versionId, ct);
 
         var section = await _db.DocumentSections

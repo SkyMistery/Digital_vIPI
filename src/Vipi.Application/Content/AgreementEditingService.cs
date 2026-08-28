@@ -3,6 +3,7 @@ using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
 using Vipi.Domain;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
@@ -112,7 +113,7 @@ public sealed class AgreementService : IAgreementService
     {
         await _authz.EnsureCanEditAccAsync(accCode, ct);
         if (keepId == absorbId)
-            throw new ValidationException("Una sezione non può assorbire sé stessa.");
+            throw new ValidationException(Lingua("Una sezione non può assorbire sé stessa.", "A section cannot absorb itself."));
         return await _repo.MergeSectionsAsync(accCode, keepId, absorbId, ct);
     }
 
@@ -224,10 +225,10 @@ public sealed class AgreementService : IAgreementService
         // anche di schema (due colonne NOT NULL), e questa validazione resta perché l'errore arrivi come una
         // frase e non come una violazione di vincolo.
         if (i.SideASectorId <= 0 || i.SideBSectorId <= 0)
-            throw new ValidationException("Indica tutti e due gli enti dell'accordo.");
+            throw new ValidationException(Lingua("Indica tutti e due gli enti dell'accordo.", "Name both units of the agreement."));
 
         if (i.SideASectorId == i.SideBSectorId)
-            throw new ValidationException("Un ente non può stare su entrambi i lati dello stesso accordo.");
+            throw new ValidationException(Lingua("Un ente non può stare su entrambi i lati dello stesso accordo.", "A unit cannot be on both sides of the same agreement."));
     }
 
     /// <summary>
@@ -247,17 +248,19 @@ public sealed class AgreementService : IAgreementService
         // relazione con lo scalo, e la frase userebbe comunque la forma neutra ignorandolo. VFR e Altro invece
         // possono averne — è la regola «dove non sono esclusi», già pagata una volta col catch-22 di ferragosto.
         if (i.Kind == TransferFlowKind.Overflight && i.Airports.Count > 0)
-            throw new ValidationException("I sorvoli non hanno aeroporti: il traffico attraversa, non atterra.");
+            throw new ValidationException(Lingua("I sorvoli non hanno aeroporti: il traffico attraversa, non atterra.", "Overflights have no airports: the traffic crosses, it does not land."));
 
         if (i.Airports.Any(a => string.IsNullOrWhiteSpace(a.Icao)))
-            throw new ValidationException("Ogni aeroporto della sezione deve avere un ICAO.");
+            throw new ValidationException(Lingua("Ogni aeroporto della sezione deve avere un ICAO.", "Every airport in the section must have an ICAO."));
 
         // Lo stesso scalo due volte non aggiunge niente e moltiplica le righe derivate: è un errore di
         // digitazione, non una scelta.
         var duplicati = i.Airports.GroupBy(a => a.Icao.Trim(), StringComparer.OrdinalIgnoreCase)
             .Where(g => g.Count() > 1).Select(g => g.Key).ToList();
         if (duplicati.Count > 0)
-            throw new ValidationException($"Aeroporto ripetuto nella sezione: {string.Join(", ", duplicati)}.");
+            throw new ValidationException(Lingua(
+                $"Aeroporto ripetuto nella sezione: {string.Join(", ", duplicati)}.",
+                $"Airport repeated in the section: {string.Join(", ", duplicati)}."));
     }
 
     private static void ValidateClause(AgreementClauseInput i)
@@ -276,7 +279,7 @@ public sealed class AgreementService : IAgreementService
             throw new ValidationException("Indica dove passano le comunicazioni (punto o testo).");
 
         if (i.SpeedConstraint != SpeedConstraint.Unspecified && i.SpeedValue is null)
-            throw new ValidationException("Indica il valore della velocità, o togli il vincolo.");
+            throw new ValidationException(Lingua("Indica il valore della velocità, o togli il vincolo.", "Give the speed value, or drop the constraint."));
 
         // Una clausola che scavalca le alternative deve dire A QUALI CONDIZIONI le scavalca («di notte,
         // qualunque pista»): senza condizione non si distinguerebbe da un'alternativa in più.

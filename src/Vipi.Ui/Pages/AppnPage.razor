@@ -1,4 +1,4 @@
-﻿@page "/services/vsop/{Acc}/apps/vipi"
+@page "/services/vsop/{Acc}/apps/vipi"
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IAppDocumentService AppDoc
@@ -9,7 +9,10 @@
 @inject IOnlineAtcProvider Online
 @inject IAiracService Airac
 @inject IStringLocalizer<SharedResource> L
+@inject Vipi.Application.Translation.DocumentTranslator Translator
+@inject EnglishStrings En
 @using System.Text.Json
+@using System.Globalization
 @using Vipi.Ui.Shared
 
 @if (_acc is null)
@@ -22,10 +25,10 @@ else if (_view is null)
 }
 else
 {
-    <PageTitle>@PreviewTitlePrefix()@_displayName · vIPI IVAO Italia</PageTitle>
+    <PageTitle>@PreviewTitlePrefix()@_displayName · vIPI IVAO Italy</PageTitle>
 
     <div class="wrap">
-        <div class="breadcrumb"><a href="/services/vsop">@L["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@L["AccLanding_Apps"]</a> › <b>@_app</b></div>
+        <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@En["AccLanding_Apps"]</a> › <b>@_app</b></div>
         <div class="doc-layout">
             <aside class="toc" aria-label="@L["Doc_TocAria"]">
                 <p class="toc-h">@L["Common_Contents"]</p>
@@ -60,6 +63,9 @@ else
                                    DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=draft")" />
                 }
                 <div class="callout info"><span class="cic"><Icon Name="radio" Size="18" /></span><div><p class="ct">@L["Appn_InfoTitle"]</p>@L["Appn_InfoBody"]</div></div>
+
+                @* Tradotto a macchina e non ancora riletto, o tradotto a metà: chi legge deve saperlo. *@
+                <TranslationNotice Coverage="_copertura" />
 
                 @* Il ciclo delle sezioni lo fa il componente condiviso (doc 14 §3e). Qui resta il solo corpo
                    derivato, per chiave: quello che l'APP disegna e le altre famiglie no. *@
@@ -116,6 +122,8 @@ else
     // Storage APP su Document (doc 08e): struttura + editoriale dal DocumentView; derivate frozen (release effettiva) o
     // live (bozza/anteprima) via AppViewDerivationService.
     private DocumentView? _view;
+    private Vipi.Application.Translation.TranslationCoverage _copertura =
+        Vipi.Application.Translation.TranslationCoverage.Nessuna;
     private bool _useFrozen;   // vista pubblica: leggi le derivate frozen dalla release effettiva (doc 10 §3d)
     private AppVfrContent _vfr = AppVfrContent.Empty;
     private List<AppFreqRow> _freqs = new();
@@ -225,6 +233,22 @@ else
         _areas = regulated is null
             ? Array.Empty<AccSpecialAreaView>()
             : await AppDoc.ResolveRegulatedAreasAsync(ReadRegulated(regulated));
+
+        // ---- Lettura bilingue (carta 2026-08-27 §7) --------------------------------------------------
+        // ⚠️ La lingua di lettura è quella dell'INTERFACCIA, non un secondo selettore: la sceglie la chip
+        // della barra, che scrive il cookie di cultura — l'unico modo perché la scelta sopravviva al
+        // circuito, che su /_blazor non porta ?culture=.
+        //
+        // ⚠️ La sorgente la dice il DOCUMENTO: qui si passa solo la lingua in cui la famiglia NASCE, per i
+        // documenti salvati prima che il campo esistesse.
+        //
+        // ⚠️ IN FONDO, dopo le derivate e le aree: quelle si leggono dall'originale (gli id stanno nel JSON
+        // dei blocchi), la traduzione porta la PROSA. Tradurre prima vorrebbe dire cercare «regulated» in un
+        // documento che nel frattempo dice altro.
+        var lettore = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+        var tradotto = await Translator.TranslateAsync(_view, Vipi.Domain.Language.It, lettore);
+        _view = tradotto.View;
+        _copertura = tradotto.Coverage;
     }
 
     // ATC online per l'APP: callsign _APP/_DEP la cui testa è l'ICAO d'aeroporto del callsign (es. LIRP_APP → LIRP).

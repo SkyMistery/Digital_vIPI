@@ -9,6 +9,7 @@
 @inject ILogger<MilEditorPage> Logger
 @inject IDocRoutesRegistry DocRoutes
 @inject IStringLocalizer<SharedResource> L
+@inject EnglishStrings En
 @using Vipi.Application.Content
 @using Vipi.Ui.Shared
 
@@ -31,10 +32,10 @@ else
     <PageTitle>@L["Mil_EditorTitle"] @_icao · vIPI</PageTitle>
     <div class="wrap struct">
         <div class="breadcrumb">
-            <a href="/services/vsop">@L["Common_Home"]</a> ›
-            <a href="/services/vsop/mil">@L["Mil_Title"]</a> ›
+            <a href="/services/vsop">@En["Common_Home"]</a> ›
+            <a href="/services/vsop/mil">@En["Mil_Title"]</a> ›
             <a href="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil?icao={_icao}")">@_icao</a> ›
-            <b>@L["Common_Editor"]</b>
+            <b>@En["Common_Editor"]</b>
         </div>
 
         @if (_notFound)
@@ -79,6 +80,14 @@ else
             </div>
 
             <DocReviewBar DocumentId="_shell.DocumentId" OnResolved="LoadAsync" />
+
+            @* Come si legge questo documento nell'altra lingua, e la correzione sul posto. Chiuso di suo: si
+               apre quando serve, e chi scrive in italiano non ha ragione di vederlo tutti i giorni. *@
+            @if (_shell.DocumentId is int docIdTraduzione)
+            {
+                <TranslationReviewPanel DocumentId="docIdTraduzione" />
+            }
+
 
             @if (_shell.Error is not null)
             {
