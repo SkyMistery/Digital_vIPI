@@ -32,17 +32,9 @@ public class VloaDocumentViewTests : TestContext
     private sealed class NoEditor : IEditAuthorizationService
     {
         public bool IsAdmin => false;
+        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
         public int? CurrentUserId => null;
         public string? CurrentName => null;
-        public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => Task.CompletedTask;
-        public Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.CompletedTask;
-        public Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default) => Task.FromResult(false);
-        public Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.FromResult(false);
-        public Task<bool> CanEditAnythingAsync(CancellationToken ct = default) => Task.FromResult(false);
-        public Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<GrantRow>>(Array.Empty<GrantRow>());
-        public Task<int> AddGrantAsync(int userId, string? displayName, string accCode, CancellationToken ct = default) => Task.FromResult(0);
-        public Task RevokeGrantAsync(int grantId, CancellationToken ct = default) => Task.CompletedTask;
         public void EnsureAdmin() { }
     }
 

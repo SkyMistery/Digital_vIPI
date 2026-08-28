@@ -1,4 +1,4 @@
-@page "/services/vsop/admin/glossary"
+﻿@page "/services/vsop/admin/glossary"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject Vipi.Application.Abstractions.IGlossaryStore Glossario
@@ -50,7 +50,7 @@
         </LiveRegion>
     </div>
 
-    @if (!Authz.IsAdmin)
+    @if (!Authz.IsEditor)
     {
         <p class="help">@L["Pend_AdminOnly"]</p>
     }
@@ -228,7 +228,7 @@
 
     private async Task CaricaAsync()
     {
-        if (!Authz.IsAdmin) return;
+        if (!Authz.IsEditor) return;
         _busy = true;
         try
         {

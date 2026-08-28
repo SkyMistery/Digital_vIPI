@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Application.Content;
 using Vipi.Application.Routing;
@@ -25,7 +25,7 @@ public class WorkListServiceTests
     [Fact]
     public async Task L_admin_vede_le_segnalazioni_di_tutte_le_ACC()
     {
-        var s = Costruisci(admin: true,
+        var s = Costruisci(VipiRole.Admin,
             impatti: new[] { Impatto(1, 10), Impatto(2, 20) },
             documenti: new[] { Doc(10, "vIPI Roma", "LIRR"), Doc(20, "vIPI Milano", "LIMM") });
 
@@ -35,24 +35,40 @@ public class WorkListServiceTests
         Assert.All(righe, r => Assert.Equal(WorkOrigin.Sistema, r.Origine));
     }
 
+    /// <summary>
+    /// ⚠️ Fino al 28 agosto 2026 questo test si chiamava «Un_editor_vede_solo_le_ACC_su_cui_ha_la
+    /// _concessione» e provava la decisione D2: un editor di LIRR non doveva vedere il lavoro di Milano.
+    /// Con la morte delle concessioni per ACC quel «solo» non esiste più — l'Editor edita tutto, quindi il
+    /// lavoro di Milano <b>è</b> anche suo. Resta da provare la metà che conta ancora: chi non è Editor non
+    /// vede niente.
+    /// </summary>
     [Fact]
-    public async Task Un_editor_vede_solo_le_ACC_su_cui_ha_la_concessione()
+    public async Task Un_editor_vede_il_lavoro_di_tutte_le_ACC()
     {
-        // ⚠️ È la decisione D2, ed è ciò che rende la lista una to-do list VERA anche per chi non è admin:
-        // senza, un editor di LIRR aprirebbe una pagina piena di lavoro che non può toccare.
-        var s = Costruisci(admin: false, mieAcc: new[] { "LIRR" },
+        var s = Costruisci(VipiRole.Editor,
             impatti: new[] { Impatto(1, 10), Impatto(2, 20) },
             documenti: new[] { Doc(10, "vIPI Roma", "LIRR"), Doc(20, "vIPI Milano", "LIMM") });
 
         var righe = await s.MieAsync();
 
-        Assert.Equal("vIPI Roma", Assert.Single(righe).Titolo);
+        // Due righe: quella di Roma e quella di Milano. Prima ne sarebbe arrivata una sola.
+        Assert.Equal(2, righe.Count);
+    }
+
+    [Fact]
+    public async Task Chi_non_e_editor_non_vede_lavoro_da_fare()
+    {
+        var s = Costruisci(VipiRole.DivisionStaff,
+            impatti: new[] { Impatto(1, 10) },
+            documenti: new[] { Doc(10, "vIPI Roma", "LIRR") });
+
+        Assert.Empty(await s.MieAsync());
     }
 
     [Fact]
     public async Task Un_editor_vede_i_propri_incarichi_e_non_quelli_degli_altri()
     {
-        var s = Costruisci(admin: false, io: 555, mieAcc: new[] { "LIRR" },
+        var s = Costruisci(VipiRole.Editor, io: 555,
             documenti: new[] { Doc(10, "vIPI Roma", "LIRR") },
             incarichi: new[]
             {
@@ -66,10 +82,10 @@ public class WorkListServiceTests
     }
 
     [Fact]
-    public async Task Un_incarico_LIBERO_lo_vede_chi_ce_l_ha_anche_senza_concessioni()
+    public async Task Un_incarico_LIBERO_lo_vede_chi_ce_l_ha()
     {
-        // Non ha documento, quindi non ha ACC: filtrarlo per ACC lo farebbe sparire proprio a chi deve farlo.
-        var s = Costruisci(admin: false, io: 555, mieAcc: Array.Empty<string>(),
+        // Non ha documento, quindi non ha ACC: quando si filtrava per ACC, spariva proprio a chi doveva farlo.
+        var s = Costruisci(VipiRole.Editor, io: 555,
             incarichi: new[] { Incarico(1, "comprare il caffè", assegnatario: 555, libero: true) });
 
         Assert.Single(await s.MieAsync());
@@ -78,7 +94,7 @@ public class WorkListServiceTests
     [Fact]
     public async Task Gli_incarichi_conclusi_non_sono_lavoro()
     {
-        var s = Costruisci(admin: true, io: 555,
+        var s = Costruisci(VipiRole.Admin, io: 555,
             incarichi: new[] { Incarico(1, "fatto ieri", 555, stato: EditorTaskStatus.Done) });
 
         Assert.Empty(await s.MieAsync());
@@ -87,7 +103,7 @@ public class WorkListServiceTests
     [Fact]
     public async Task Senza_utente_la_lista_e_vuota()
     {
-        var s = Costruisci(admin: false, io: null, impatti: new[] { Impatto(1, 10) },
+        var s = Costruisci(VipiRole.Editor, io: null, impatti: new[] { Impatto(1, 10) },
             documenti: new[] { Doc(10, "vIPI Roma", "LIRR") });
 
         Assert.Empty(await s.MieAsync());
@@ -100,7 +116,7 @@ public class WorkListServiceTests
     {
         // ⚠️ Il cuore di D5: senza il rimando `FromImpactId` lo stesso lavoro comparirebbe come fatto E come
         // impegno, e chi legge penserebbe di averne il doppio.
-        var s = Costruisci(admin: true, io: 555,
+        var s = Costruisci(VipiRole.Admin, io: 555,
             impatti: new[] { Impatto(1, 10) },
             documenti: new[] { Doc(10, "vIPI Roma", "LIRR") },
             incarichi: new[] { Incarico(7, "vIPI Roma", 555, daImpatto: 1) });
@@ -115,7 +131,7 @@ public class WorkListServiceTests
     {
         // Il fatto è ancora vero: chiudere l'impegno non lo rende falso, e nasconderlo sarebbe perdere il
         // lavoro che resta.
-        var s = Costruisci(admin: true, io: 555,
+        var s = Costruisci(VipiRole.Admin, io: 555,
             impatti: new[] { Impatto(1, 10) },
             documenti: new[] { Doc(10, "vIPI Roma", "LIRR") },
             incarichi: new[] { Incarico(7, "vIPI Roma", 555, daImpatto: 1, stato: EditorTaskStatus.Done) });
@@ -130,7 +146,7 @@ public class WorkListServiceTests
         // ⚠️ Trovato a schermo, non dai test: la riga presa in carico mostrava due volte il titolo del
         // documento («vLOA LIBB ↔ LGGG · vLOA LIBB ↔ LGGG») e nessun motivo. La segnalazione resta la
         // verità su COSA e QUANTO urge; l'incarico aggiunge solo chi e entro quando.
-        var s = Costruisci(admin: true, io: 555,
+        var s = Costruisci(VipiRole.Admin, io: 555,
             impatti: new[] { Impatto(1, 10, ImpactKind.SectorGone) },
             documenti: new[] { Doc(10, "vIPI Roma", "LIRR") },
             incarichi: new[] { Incarico(7, "vIPI Roma", 555, daImpatto: 1) });
@@ -146,7 +162,7 @@ public class WorkListServiceTests
     {
         // Una copia da ripubblicare presa in carico resta «da ripubblicare»: assegnare un lavoro non lo
         // rende meno urgente, e degradarlo a incarico normale lo spingeva sotto tutto il resto.
-        var s = Costruisci(admin: true, io: 555,
+        var s = Costruisci(VipiRole.Admin, io: 555,
             impatti: new[] { Impatto(1, 10, ImpactKind.ReleaseDrift) },
             documenti: new[] { Doc(10, "vIPI Roma", "LIRR") },
             incarichi: new[] { Incarico(7, "vIPI Roma", 555, daImpatto: 1) });
@@ -158,7 +174,7 @@ public class WorkListServiceTests
     public async Task Un_incarico_scritto_a_mano_mostra_il_suo_titolo()
     {
         // Nessuna segnalazione dietro: la frase è il titolo, e `Work_Raw` dice alla UI di stamparlo com'è.
-        var s = Costruisci(admin: true, io: 555,
+        var s = Costruisci(VipiRole.Admin, io: 555,
             documenti: new[] { Doc(10, "vIPI Roma", "LIRR") },
             incarichi: new[] { Incarico(7, "Rivedere le frequenze", 555) });
 
@@ -171,7 +187,7 @@ public class WorkListServiceTests
     public async Task Prendere_in_carico_crea_un_incarico_che_ricorda_da_dove_viene()
     {
         var incarichi = new IncarichiFinti();
-        var s = Costruisci(admin: true, io: 555,
+        var s = Costruisci(VipiRole.Admin, io: 555,
             impatti: new[] { Impatto(1, 10) },
             documenti: new[] { Doc(10, "vIPI Roma", "LIRR") },
             repoIncarichi: incarichi);
@@ -191,7 +207,7 @@ public class WorkListServiceTests
         // La priorità la sa già l'impatto: farla riscegliere a chi assegna sarebbe chiedere due volte una
         // cosa già decisa.
         var incarichi = new IncarichiFinti();
-        var s = Costruisci(admin: true, io: 555,
+        var s = Costruisci(VipiRole.Admin, io: 555,
             impatti: new[] { Impatto(1, 10) with { IsPublicNow = true } },
             documenti: new[] { Doc(10, "vIPI Roma", "LIRR") },
             repoIncarichi: incarichi);
@@ -204,7 +220,7 @@ public class WorkListServiceTests
     [Fact]
     public async Task Non_si_prende_in_carico_una_segnalazione_gia_chiusa()
     {
-        var s = Costruisci(admin: true, io: 555, documenti: new[] { Doc(10, "vIPI Roma", "LIRR") });
+        var s = Costruisci(VipiRole.Admin, io: 555, documenti: new[] { Doc(10, "vIPI Roma", "LIRR") });
 
         await Assert.ThrowsAsync<Aor.ValidationException>(() => s.PrendiInCaricoAsync(99, 777, "Giulia", null));
     }
@@ -216,7 +232,7 @@ public class WorkListServiceTests
     {
         // È la richiesta «lo stesso task deve apparire anche in cima all'editor»: fino al 26 agosto il
         // banner mostrava solo le segnalazioni, e chi apriva l'editor vedeva metà del lavoro suo.
-        var s = Costruisci(admin: true, io: 555,
+        var s = Costruisci(VipiRole.Admin, io: 555,
             impatti: new[] { Impatto(1, 10) },
             documenti: new[] { Doc(10, "vIPI Roma", "LIRR") },
             incarichi: new[] { Incarico(7, "rivedi le frequenze", 555, chiave: "LIRR|LIRR_CTR") });
@@ -231,7 +247,7 @@ public class WorkListServiceTests
     [Fact]
     public async Task Il_banner_non_mostra_gli_incarichi_di_un_ALTRO_documento()
     {
-        var s = Costruisci(admin: true, io: 555,
+        var s = Costruisci(VipiRole.Admin, io: 555,
             documenti: new[] { Doc(10, "vIPI Roma", "LIRR"), Doc(20, "vIPI Milano", "LIMM") },
             incarichi: new[] { Incarico(7, "roba di Milano", 555, chiave: "LIMM|LIMM_CTR") });
 
@@ -243,7 +259,7 @@ public class WorkListServiceTests
     [Fact]
     public async Task La_riga_porta_il_link_all_editor_del_tipo_giusto()
     {
-        var s = Costruisci(admin: true, impatti: new[] { Impatto(1, 10) },
+        var s = Costruisci(VipiRole.Admin, impatti: new[] { Impatto(1, 10) },
             documenti: new[] { Doc(10, "vIPI Roma", "LIRR") });
 
         var riga = Assert.Single(await s.MieAsync());
@@ -256,7 +272,7 @@ public class WorkListServiceTests
     {
         // Un documento che nessun descrittore riconosce non ha una pagina: sparire dalla lista lo
         // renderebbe invisibile due volte.
-        var s = Costruisci(admin: true, impatti: new[] { Impatto(1, 99) }, documenti: Array.Empty<ManagedDoc>());
+        var s = Costruisci(VipiRole.Admin, impatti: new[] { Impatto(1, 99) }, documenti: Array.Empty<ManagedDoc>());
 
         var riga = Assert.Single(await s.MieAsync());
         Assert.Null(riga.Url);
@@ -289,7 +305,7 @@ public class WorkListServiceTests
         };
 
     private static WorkListService Costruisci(
-        bool admin, int? io = 555, IReadOnlyList<string>? mieAcc = null,
+        VipiRole livello, int? io = 555,
         IReadOnlyList<DocumentImpactRow>? impatti = null,
         IReadOnlyList<ManagedDoc>? documenti = null,
         IReadOnlyList<EditorTask>? incarichi = null,
@@ -303,8 +319,7 @@ public class WorkListServiceTests
             repo,
             new DocumentiFinti(documenti ?? Array.Empty<ManagedDoc>()),
             new DocRoutesRegistry(new IDocKindRoutes[] { new RotteFinte() }),
-            new AuthzFinta(admin, io),
-            new GrantsFinti(mieAcc ?? Array.Empty<string>()),
+            new AuthzFinta(livello, io),
             new RegoleIncarichiFinte());
     }
 
@@ -373,39 +388,16 @@ public class WorkListServiceTests
 
     private sealed class AuthzFinta : IEditAuthorizationService
     {
-        private readonly bool _admin;
         private readonly int? _io;
-        public AuthzFinta(bool admin, int? io) { _admin = admin; _io = io; }
+        public AuthzFinta(VipiRole livello, int? io) { Role = livello; _io = io; }
 
-        public bool IsAdmin => _admin;
+        public VipiRole Role { get; }
+        public bool IsAdmin => Role >= VipiRole.Admin;
         public int? CurrentUserId => _io;
         public string? CurrentName => "Chi Lavora";
-        public void EnsureAdmin() { if (!_admin) throw new EditNotAllowedException(); }
-        public Task EnsureCanEditAccAsync(string a, CancellationToken ct = default) => Task.CompletedTask;
-        public Task EnsureCanEditDocumentAsync(int d, CancellationToken ct = default) => Task.CompletedTask;
-        public Task<bool> CanEditAccAsync(string a, CancellationToken ct = default) => Task.FromResult(true);
-        public Task<bool> CanEditDocumentAsync(int d, CancellationToken ct = default) => Task.FromResult(true);
-        public Task<bool> CanEditAnythingAsync(CancellationToken ct = default) => Task.FromResult(true);
-        public Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<int> AddGrantAsync(int u, string? n, string a, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task RevokeGrantAsync(int g, CancellationToken ct = default) => throw new NotSupportedException();
+        public void EnsureAdmin() { if (!IsAdmin) throw new EditNotAllowedException(); }
     }
 
-    private sealed class GrantsFinti : IEditGrantRepository
-    {
-        private readonly IReadOnlyList<string> _acc;
-        public GrantsFinti(IReadOnlyList<string> acc) => _acc = acc;
-
-        public Task<IReadOnlyList<string>> ListAccCodesForUserAsync(int userId, CancellationToken ct = default) =>
-            Task.FromResult(_acc);
-
-        public Task<IReadOnlyList<GrantRow>> ListAsync(CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<int> AddAsync(int u, string? n, string a, int g, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task RevokeAsync(int g, int a, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<bool> HasGrantAsync(int u, string a, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<bool> HasAnyGrantAsync(int u, CancellationToken ct = default) => throw new NotSupportedException();
-        public Task<string?> GetDocumentAccCodeAsync(int d, CancellationToken ct = default) => throw new NotSupportedException();
-    }
 
     /// <summary>Serve solo per <c>IsOverdue</c>: il resto non lo tocca il servizio.</summary>
     private sealed class RegoleIncarichiFinte : IEditorTaskService

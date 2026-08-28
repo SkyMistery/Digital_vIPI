@@ -674,28 +674,7 @@
   <data name="Struct_OptToAssign" xml:space="preserve"><value>— da assegnare —</value></data>
   <data name="Struct_DropInvalid" xml:space="preserve"><value>Non puoi agganciare {0} sotto {1} (sé stesso/discendente o nazione diversa).</value></data>
   <!-- Area Staff / Grants (/vsop/admin/permessi) -->
-  <data name="Grants_CountTitle" xml:space="preserve"><value>Persone con almeno un permesso</value></data>
-  <data name="Grants_HelpAria" xml:space="preserve"><value>Aiuto sui permessi di modifica</value></data>
-  <data name="Grants_Intro" xml:space="preserve"><value>&lt;p style="margin:0 0 6px"&gt;Un &lt;b&gt;permesso&lt;/b&gt; lega una persona (il suo VID) a un &lt;b&gt;ACC&lt;/b&gt;: da quel momento può aprire l'editor dei documenti di quell'ACC, pubblicarne le release e nasconderne o eliminarne i documenti.&lt;/p&gt;&lt;p style="margin:0 0 6px"&gt;Una riga per &lt;b&gt;persona&lt;/b&gt;: le pill dicono su quali ACC può lavorare. Scegliendola, a destra ci sono i suoi permessi con la data, chi glieli ha dati e come toglierli — e il menu per dargliene un altro.&lt;/p&gt;&lt;p style="margin:0"&gt;Gli &lt;b&gt;admin&lt;/b&gt; non hanno bisogno di permessi: possono già tutto in forza del loro codice staff, e non compaiono in questo elenco.&lt;/p&gt;</value></data>
-  <data name="Grants_SearchPh" xml:space="preserve"><value>cerca VID / nome / ACC…</value></data>
-  <data name="Grants_ChipAccTitle" xml:space="preserve"><value>Chi può modificare {0}</value></data>
   <data name="Grants_Clear" xml:space="preserve"><value>Togli i filtri</value></data>
-  <data name="Grants_ClearTitle" xml:space="preserve"><value>Togli i filtri e mostra tutte le persone</value></data>
-  <data name="Grants_NoMatch" xml:space="preserve"><value>Nessuna persona corrisponde ai filtri.</value></data>
-  <data name="Grants_RowPickTitle" xml:space="preserve"><value>Scegli la persona: i suoi permessi compaiono a destra</value></data>
-  <data name="Grants_PickHint" xml:space="preserve"><value>Scegli una persona dall'elenco per vederne i permessi, oppure premi «Concedi» per aggiungerne una nuova.</value></data>
-  <data name="Grants_NAcc" xml:space="preserve"><value>{0} ACC</value></data>
-  <data name="Grants_NAccTitle" xml:space="preserve"><value>Su quanti ACC può lavorare</value></data>
-  <data name="Grants_GrantedOn" xml:space="preserve"><value>Concesso il {0}</value></data>
-  <data name="Grants_RevokeTitle" xml:space="preserve"><value>Togli il permesso su questo ACC</value></data>
-  <data name="Grants_RevokePrompt" xml:space="preserve"><value>Togliere a {0} il permesso su {1}? Non potrà più modificare i documenti di quell'ACC.</value></data>
-  <data name="Grants_RevokeYes" xml:space="preserve"><value>Sì, togli</value></data>
-  <data name="Grants_AddAcc" xml:space="preserve"><value>Aggiungi ACC</value></data>
-  <data name="Grants_AddAccTitle" xml:space="preserve"><value>Dà a questa persona il permesso su un altro ACC</value></data>
-  <data name="Grants_VidPh" xml:space="preserve"><value>es. 123456</value></data>
-  <data name="Grants_NamePh" xml:space="preserve"><value>es. Mario Rossi</value></data>
-  <data name="Grants_BadVid" xml:space="preserve"><value>Il VID non è valido: serve un numero maggiore di zero.</value></data>
-  <data name="Grants_Subtitle" xml:space="preserve"><value>Tutte le funzioni riservate allo staff</value></data>
   <data name="Grants_StaffOnly" xml:space="preserve"><value>Solo lo staff può accedere a quest'area.</value></data>
   <data name="Grants_StructDesc" xml:space="preserve"><value>ACC, posizioni, settori, ownership, frequenze e topologia.</value></data>
   <data name="Grants_DocsDesc" xml:space="preserve"><value>Crea, modifica, nascondi/elimina e pubblica: vIPI, aeroporti, vLOA. Storico e release AIRAC.</value></data>
@@ -703,19 +682,9 @@
   <data name="Grants_TasksTitle" xml:space="preserve"><value>Incarichi editor</value></data>
   <data name="Grants_TasksDesc" xml:space="preserve"><value>Assegna e monitora i task degli editor, con avanzamento e ritardi.</value></data>
   <data name="Grants_DiagDesc" xml:space="preserve"><value>Incongruenze dei riferimenti deboli: piste orfane, etichette divergenti, aree fantasma, gerarchia interrotta.</value></data>
-  <data name="Grants_GrantByVid" xml:space="preserve"><value>Grant per VID</value></data>
   <data name="Grants_GrantHint" xml:space="preserve"><value>Seleziona uno staffista dall'elenco (staff IT che si è loggato almeno una volta) oppure inserisci un VID a mano.</value></data>
-  <data name="Grants_NoneGranted" xml:space="preserve"><value>Nessun permesso concesso.</value></data>
   <data name="Grants_GrantedBy" xml:space="preserve"><value>Concesso da</value></data>
-  <data name="Grants_Revoke" xml:space="preserve"><value>Revoca</value></data>
-  <data name="Grants_GrantPermission" xml:space="preserve"><value>Concedi permesso</value></data>
-  <data name="Grants_ItStaffer" xml:space="preserve"><value>Staffista IT</value></data>
   <data name="Grants_Select" xml:space="preserve"><value>— seleziona —</value></data>
-  <data name="Grants_NoStaffer" xml:space="preserve"><value>Nessuno staffista nell'elenco: comparirà dopo il primo login. Inserisci il VID a mano.</value></data>
-  <data name="Grants_NameOptional" xml:space="preserve"><value>Nome (opzionale)</value></data>
-  <data name="Grants_GrantBtn" xml:space="preserve"><value>Concedi</value></data>
-  <data name="Grants_GrantedMsg" xml:space="preserve"><value>Permesso concesso.</value></data>
-  <data name="Grants_RevokedMsg" xml:space="preserve"><value>Permesso revocato.</value></data>
   <data name="Common_State" xml:space="preserve"><value>Stato</value></data>
   <!-- Stati/priorità incarichi (condivisi) -->
   <data name="TaskStatus_Todo" xml:space="preserve"><value>Da fare</value></data>
@@ -1447,7 +1416,7 @@
   <data name="Pend_Title" xml:space="preserve"><value>Da sistemare</value></data>
   <data name="Pend_HelpAria" xml:space="preserve"><value>Che cos'è questa pagina</value></data>
   <data name="Pend_Intro" xml:space="preserve"><value>&lt;p&gt;Quel che la &lt;b&gt;sorgente non conferma più&lt;/b&gt; e quel che nei documenti è rimasto indietro, in un posto solo.&lt;/p&gt;&lt;p&gt;⚠️ Si elimina soltanto ciò che la sorgente non manda da &lt;b&gt;due giri&lt;/b&gt;: un giro può riuscire e tornare vuoto, e una conferma mancata non è una sparizione. Dove il tasto non c'è, accanto è scritto il perché.&lt;/p&gt;</value></data>
-  <data name="Pend_AdminOnly" xml:space="preserve"><value>Questa pagina è riservata allo staff di divisione.</value></data>
+  <data name="Pend_AdminOnly" xml:space="preserve"><value>Questa pagina è riservata a chi cura i documenti.</value></data>
   <data name="Pend_LastRuns" xml:space="preserve"><value>Ultimo giro ACC: {0} · aeroporti: {1} (penultimo: {2})</value></data>
   <data name="Pend_AllClear" xml:space="preserve"><value>Niente da sistemare</value></data>
   <data name="Pend_AllClearHint" xml:space="preserve"><value>Nessun settore orfano, nessun aeroporto che la sorgente abbia smesso di elencare, nessun documento in attesa di rilettura.</value></data>
@@ -2600,4 +2569,37 @@
   <data name="World_End" xml:space="preserve"><value>Chiusura</value></data>
   <data name="World_Duration" xml:space="preserve"><value>Durata</value></data>
   <data name="World_ApiHint" xml:space="preserve"><value>Le stesse righe si leggono a macchina da /vsop/api/v1/atc/sessions (parametri: from, to, callsign, vid, open, scope, limit, offset).</value></data>
+  <data name="Roles_CountTitle" xml:space="preserve"><value>Quante persone il sistema conosce</value></data>
+  <data name="Roles_HelpAria" xml:space="preserve"><value>Come funzionano i livelli</value></data>
+  <data name="Roles_Subtitle" xml:space="preserve"><value>Una persona, un livello. I livelli sono cumulativi: chi sta sopra può tutto quello che può chi sta sotto.</value></data>
+  <data name="Roles_Intro" xml:space="preserve"><value>&lt;p&gt;Il livello ha due metà. Il &lt;b&gt;pavimento&lt;/b&gt; glielo dà la sua posizione staff IVAO e da qui non si toglie; la &lt;b&gt;promozione&lt;/b&gt; è l'unica cosa che questa pagina scrive. Vale il maggiore dei due.&lt;/p&gt;&lt;p&gt;Per questo i livelli sotto il pavimento sono disabilitati: sceglierli non farebbe niente.&lt;/p&gt;</value></data>
+  <data name="Roles_SearchPh" xml:space="preserve"><value>Cerca per nome, VID o codice staff…</value></data>
+  <data name="Roles_ChipTitle" xml:space="preserve"><value>Mostra solo: {0}</value></data>
+  <data name="Roles_ClearTitle" xml:space="preserve"><value>Togli i filtri</value></data>
+  <data name="Roles_NoMatch" xml:space="preserve"><value>Nessuno corrisponde ai filtri.</value></data>
+  <data name="Roles_RowPickTitle" xml:space="preserve"><value>Apri questa persona</value></data>
+  <data name="Roles_PickHint" xml:space="preserve"><value>Scegli una persona dall'elenco per vedere e cambiare il suo livello.</value></data>
+  <data name="Roles_Level" xml:space="preserve"><value>Livello</value></data>
+  <data name="Roles_Level_User" xml:space="preserve"><value>Socio</value></data>
+  <data name="Roles_Level_IvaoStaff" xml:space="preserve"><value>Staff IVAO</value></data>
+  <data name="Roles_Level_DivisionStaff" xml:space="preserve"><value>Staff di divisione</value></data>
+  <data name="Roles_Level_Editor" xml:space="preserve"><value>Redattore</value></data>
+  <data name="Roles_Level_Admin" xml:space="preserve"><value>Amministratore</value></data>
+  <data name="Roles_FromStaff" xml:space="preserve"><value>Livello dato dalla posizione staff</value></data>
+  <data name="Roles_FromOverride" xml:space="preserve"><value>Livello assegnato a mano</value></data>
+  <data name="Roles_EffectiveTitle" xml:space="preserve"><value>Il livello che vale davvero</value></data>
+  <data name="Roles_FloorIs" xml:space="preserve"><value>{0} gli garantisce già il livello «{1}»: sotto non si scende.</value></data>
+  <data name="Roles_NoStaffPosition" xml:space="preserve"><value>Nessuna posizione staff IVAO: tutto quello che ha, gliel'abbiamo dato noi.</value></data>
+  <data name="Roles_BelowFloor" xml:space="preserve"><value>sotto il pavimento</value></data>
+  <data name="Roles_Note" xml:space="preserve"><value>Perché (facoltativo)</value></data>
+  <data name="Roles_NotePh" xml:space="preserve"><value>es. dà una mano sui documenti di Milano</value></data>
+  <data name="Roles_Save" xml:space="preserve"><value>Assegna il livello</value></data>
+  <data name="Roles_Saved" xml:space="preserve"><value>{0} ora è «{1}».</value></data>
+  <data name="Roles_NotYourself" xml:space="preserve"><value>Il proprio livello non si cambia da qui: è il modo esatto in cui ci si chiude fuori.</value></data>
+  <data name="Roles_GrantedOn" xml:space="preserve"><value>Assegnato il {0}</value></data>
+  <data name="Roles_Remove" xml:space="preserve"><value>Togli</value></data>
+  <data name="Roles_RemoveTitle" xml:space="preserve"><value>Togli la promozione</value></data>
+  <data name="Roles_RemoveYes" xml:space="preserve"><value>Sì, togli</value></data>
+  <data name="Roles_RemovePrompt" xml:space="preserve"><value>Togliere la promozione a {0}? Torna al livello «{1}», quello della sua posizione staff.</value></data>
+  <data name="Roles_Removed" xml:space="preserve"><value>{0} torna al livello «{1}».</value></data>
 </root>

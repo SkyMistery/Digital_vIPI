@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
 using Vipi.Domain;
@@ -86,7 +86,7 @@ public sealed class DeletionService : IDeletionService
     {
         // Eliminare è un atto d'archivio, non di redazione: lo fa un amministratore. È la stessa riga che
         // separa «rimuovi» da «riaggancia» nella casella degli impatti.
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         return await PianoAsync(bersaglio, provaDiAssenza: false, ct);
     }
 
@@ -94,7 +94,7 @@ public sealed class DeletionService : IDeletionService
         CancellationToken ct = default)
     {
         // Interrogare la sorgente costa una chiamata di rete a ogni clic: la fa chi può anche eliminare.
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
 
         var prova = await ChiediAllaSorgenteAsync(bersaglio, ct);
         return new DeletionProbeOutcome(prova, await PianoAsync(bersaglio, prova.ProvaLAssenza, ct));
@@ -103,7 +103,7 @@ public sealed class DeletionService : IDeletionService
     public async Task<DeletionPlan> EliminaAsync(DeletionTarget bersaglio, bool conVerificaAllaSorgente = false,
         CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
 
         // La prova si rifà QUI. Quella mostrata nella finestra ha autorizzato il tasto, non il DELETE: fra le
         // due c'è il tempo che l'utente ha impiegato a leggere, e in quel tempo un import può aver rimesso in

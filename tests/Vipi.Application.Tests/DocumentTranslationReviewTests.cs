@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Application.Content;
 using Vipi.Application.Translation;
@@ -32,20 +32,13 @@ public class DocumentTranslationReviewTests
 
     private sealed class AuthzFinto : IEditAuthorizationService
     {
+        // «Negato» resta il nome che i test usano, ma ora dice un LIVELLO: chi non arriva a Editor non
+        // corregge una traduzione, come non scrive il documento.
         public bool Negato { get; set; }
-        public bool IsAdmin => true;
+        public VipiRole Role => Negato ? VipiRole.DivisionStaff : VipiRole.Admin;
+        public bool IsAdmin => Role >= VipiRole.Admin;
         public int? CurrentUserId => 42;
         public string? CurrentName => "chi corregge";
-        public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => Task.CompletedTask;
-        public Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default) =>
-            Negato ? throw new EditNotAllowedException() : Task.CompletedTask;
-        public Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default) => Task.FromResult(true);
-        public Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.FromResult(true);
-        public Task<bool> CanEditAnythingAsync(CancellationToken ct = default) => Task.FromResult(true);
-        public Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<GrantRow>>(Array.Empty<GrantRow>());
-        public Task<int> AddGrantAsync(int userId, string? displayName, string accCode, CancellationToken ct = default) => Task.FromResult(0);
-        public Task RevokeGrantAsync(int grantId, CancellationToken ct = default) => Task.CompletedTask;
         public void EnsureAdmin() { }
     }
 

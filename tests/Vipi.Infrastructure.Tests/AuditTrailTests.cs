@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
@@ -41,38 +41,41 @@ public class AuditTrailTests : IAsyncLifetime
     private static CurrentUser Admin(int userId) => new(userId, $"Admin{userId}", "LIRR", new[] { "IT-AOC" });
 
     private EditAuthorizationService Authz(CurrentUser user) =>
-        new(new FakeUser { User = user }, new EfEditGrantRepository(_db),
-            Microsoft.Extensions.Options.Options.Create(new AuthOptions()),
-            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.DivisionOptions()));
+        new(new FakeUser { User = user },
+            new Vipi.Application.Auth.RoleResolver(new Vipi.Application.Auth.AuthOptions(), new Vipi.Application.DivisionOptions()), SenzaPromozioni.Instance);
+
+    private EfRoleOverrideStore Promozioni() => new(_db);
 
     /// <summary>
-    /// Il difetto storico: la revoca scriveva <c>g.GrantedByUserId</c>, cioè chi aveva <b>concesso</b>. Con due
-    /// admin diversi (uno concede, l'altro revoca) il registro attribuiva l'atto alla persona sbagliata — ed è
-    /// esattamente il caso in cui a qualcuno interessa saperlo.
+    /// ⚠️ Il difetto storico stava sulle concessioni, morte il 28 agosto 2026, ma <b>l'invariante è la
+    /// stessa e va tenuta ferma dove il permesso vive adesso</b>: la revoca scriveva chi aveva
+    /// <b>concesso</b> invece di chi revocava, e con due admin diversi il registro attribuiva l'atto alla
+    /// persona sbagliata — esattamente il caso in cui a qualcuno interessa saperlo.
     /// </summary>
     [Fact]
-    public async Task Revoca_Permesso_Registra_Chi_Revoca_Non_Chi_Aveva_Concesso()
+    public async Task Togliere_Una_Promozione_Registra_Chi_La_Toglie_Non_Chi_La_Aveva_Data()
     {
-        var grantId = await Authz(Admin(101)).AddGrantAsync(555, "Mario Rossi", "LIRR");
-        await Authz(Admin(202)).RevokeGrantAsync(grantId);
+        await Promozioni().SetAsync(555, VipiRole.Editor, grantedByUserId: 101, "Mario Rossi", null);
+        await Promozioni().RemoveAsync(555, actorUserId: 202);
 
-        var riga = await _db.AuditLogs.Where(a => a.EntityType == "EditGrant" && a.Action == AuditAction.Delete)
+        var riga = await _db.AuditLogs.Where(a => a.EntityType == "RoleOverride" && a.Action == AuditAction.Delete)
             .SingleAsync();
-        Assert.Equal(202, riga.UserId);                       // chi revoca
-        Assert.Equal(grantId.ToString(), riga.EntityId);
+        Assert.Equal(202, riga.UserId);                       // chi toglie
+        Assert.Equal("555", riga.EntityId);
         Assert.Contains("\"UserId\":555", riga.DetailsJson);  // su chi
-        Assert.Contains("LIRR", riga.DetailsJson);
+        Assert.Contains("Editor", riga.DetailsJson);          // e da quale livello
     }
 
-    /// <summary>La concessione continua a registrare chi concede: la correzione non l'ha spostata.</summary>
+    /// <summary>La promozione registra chi la firma: è il permesso più alto che si possa dare a mano.</summary>
     [Fact]
-    public async Task Concessione_Registra_Chi_Concede()
+    public async Task Una_Promozione_Registra_Chi_La_Firma()
     {
-        await Authz(Admin(101)).AddGrantAsync(555, "Mario Rossi", "LIRR");
+        await Promozioni().SetAsync(555, VipiRole.Admin, grantedByUserId: 101, "Mario Rossi", "aiuta in direzione");
 
-        var riga = await _db.AuditLogs.Where(a => a.EntityType == "EditGrant" && a.Action == AuditAction.Create)
+        var riga = await _db.AuditLogs.Where(a => a.EntityType == "RoleOverride" && a.Action == AuditAction.Create)
             .SingleAsync();
         Assert.Equal(101, riga.UserId);
+        Assert.Contains("Admin", riga.DetailsJson);
     }
 
     /// <summary>

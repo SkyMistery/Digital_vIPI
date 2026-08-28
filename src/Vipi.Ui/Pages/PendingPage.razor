@@ -1,4 +1,4 @@
-@page "/services/vsop/admin/pending"
+﻿@page "/services/vsop/admin/pending"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IPendingOverviewService Pending
@@ -44,7 +44,7 @@
         </LiveRegion>
     </div>
 
-    @if (!Authz.IsAdmin)
+    @if (!Authz.IsEditor)
     {
         <p class="help">@L["Pend_AdminOnly"]</p>
     }
@@ -271,7 +271,7 @@
 
     private async Task CaricaAsync()
     {
-        if (!Authz.IsAdmin) return;
+        if (!Authz.IsEditor) return;
         _busy = true;
         _msg = null;
         try

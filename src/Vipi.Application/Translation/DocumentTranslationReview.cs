@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
@@ -116,7 +116,7 @@ public sealed class DocumentTranslationReview : IDocumentTranslationReview
         // ⚠️ Il permesso è quello del DOCUMENTO: correggere la traduzione è un atto editoriale su ciò che
         // quel documento dice a chi legge, e chi non lo può scrivere non lo può nemmeno ridire in un'altra
         // lingua. (Il Registro, che tocca tutte le frasi della divisione, resta agli admin.)
-        await _authz.EnsureCanEditDocumentAsync(documentId, ct).ConfigureAwait(false);
+        _authz.EnsureAtLeast(VipiRole.Editor);
 
         var doc = await _editing.LoadForEditAsync(documentId, ct)
             ?? throw new Aor.ValidationException(Messaggio.Lingua(

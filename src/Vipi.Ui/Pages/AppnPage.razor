@@ -1,4 +1,4 @@
-@page "/services/vsop/{Acc}/apps/vipi"
+﻿@page "/services/vsop/{Acc}/apps/vipi"
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IAppDocumentService AppDoc
@@ -197,7 +197,7 @@ else
         if (identity is null) return;   // callsign non è un APP standalone
         _displayName = string.IsNullOrWhiteSpace(identity.Title) ? _app : identity.Title;
         _mil = Stations.AirportOfCallsign(_app);
-        _canEdit = await Authz.CanEditAccAsync(identity.AccCode);
+        _canEdit = Authz.IsEditor;
 
         // Vista documentale (struttura + editoriale). Le derivate restano vuote nel view → rese live sotto.
         switch (_mode.Kind)

@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 28 agosto 2026, sera (**§Q3 CHIUSA — il glossario di fraseologia. La fraseologia DENTRO le frasi, che la memoria di traduzione non poteva coprire perché è indicizzata per segmento intero: segnaposto `<g>` col contratto OPPOSTO a `<x>`, tabella `GlossaryTerms`, pagina di cura. E la risposta del committente alla domanda che teneva aperta la voce: lo curano TUTTI GLI ADMIN, cioè tutto lo staff di divisione — nessun codice, la pagina era già dietro `IsAdmin`. Ramo **`glossario-fraseologia`** (`ee5fad7`, `f2ee4eb`), SPINTO e NON fuso. ⚠️ Le migrazioni in coda diventano VENTUNO**) · 28 agosto 2026, notte (**I DUE RAMI SONO FUSI IN `main` E SPINTI**: `bilingue-tutte-le-pagine` — la lingua per intero, §Q-bis — e `archivio-atc-mondiale` — §S e §T. I due non si toccavano: un conflitto solo, in questo file. Sul codice tutto verde su net8+net10 DOPO la fusione, che è l'unico momento in cui la prova conta**) · **Aggiornato:** 28 agosto 2026, sera (**§Q-bis — LA LINGUA. Il bilingue girava su DUE viewer su cinque e la barra non aveva nessun comando per cambiare lingua: entrambe le cose chiuse, più le REGOLE su carta (`docs/design/regole-lingua.md`), i messaggi del backend, il catalogo della Guida, «MRVA» e il correttore delle traduzioni dentro l'editor. Sei commit nel ramo **`bilingue-tutte-le-pagine`** (`2af3a39`), spinto e NON fuso**) · **Aggiornato:** 28 agosto 2026, pomeriggio (**I DUE ROSSI INTERMITTENTI SONO CHIUSI — Q5 e Q6, riprodotti prima di correggerli: erano due contese diverse fra test paralleli. Q5 era il file di diagnostica dell'avvio, uno solo per processo, riscritto da un altro host nella finestra fra scrittura e rilettura; Q6 era un test che passava per via del POOL di SQLite invece che per via dell'interceptor, e che un `ClearAllPools()` di processo chiamato da un altro test faceva cadere. Ora «tutto verde» si può leggere alla lettera: 6633 verdi su entrambi i TFM**) · **Aggiornato:** 28 agosto 2026, mattina (**§Q e §R — i documenti bilingue e i vSOP militari, VENTI slice chiuse in due giorni e tutte in `main`, che è stato SPINTO (`6644b5e`): `origin/main` allineato, `origin/basemap-esri` cancellato perché ormai contenuto in main. Restano aperte Q1/Q2/Q3 (che dipendono da qualcun altro), Q4 (la vLOA che deve smettere di nascere inglese), Q5 e Q6 (due rossi intermittenti) e R1 (le figure dei SOP, lavoro manuale)**) · **Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in · **Aggiornato:** 28 agosto 2026, sera tardi (**§T — la SELECT dei duplicati su `DocReleases`: NON era eseguibile (il 3306 del server è su localhost, niente pannello), quindi ora la fa l'applicazione prima di `Migrate()` e nomina le righe in `avvio-errore.txt`; gli altri quattro indici unici della coda non possono fallire, verificato**) · **Aggiornato:** 28 agosto 2026, sera (**§S — l'archivio ATC mondiale, ramo `archivio-atc-mondiale` (il codice è tutto in `0ced074`, il resto sono documenti) SPINTO e NON fuso: il poller archivia tutte le postazioni ATC aperte, i conti della divisione non cambiano, ritenzione dodici mesi per tutto. S1 CHIUSA (il volume del mondo è misurato: 10×-14× le sessioni italiane, il database intero va a ~230 MB su MariaDB a regime) e S2 DECISA (si ricomincia da capo, raccolta dal 1° settembre 2026, cutover dal Worker nel 2027). ⚠️ Le migrazioni in coda al cutover MariaDB diventano VENTI**) · **Aggiornato:** 28 agosto 2026, pomeriggio (**I DUE ROSSI INTERMITTENTI SONO CHIUSI — Q5 e Q6, riprodotti prima di correggerli: erano due contese diverse fra test paralleli. Q5 era il file di diagnostica dell'avvio, uno solo per processo, riscritto da un altro host nella finestra fra scrittura e rilettura; Q6 era un test che passava per via del POOL di SQLite invece che per via dell'interceptor, e che un `ClearAllPools()` di processo chiamato da un altro test faceva cadere. Ora «tutto verde» si può leggere alla lettera: 6633 verdi su entrambi i TFM**) · **Aggiornato:** 28 agosto 2026, mattina (**§Q e §R — i documenti bilingue e i vSOP militari, VENTI slice chiuse in due giorni e tutte in `main`, che è stato SPINTO (`6644b5e`): `origin/main` allineato, `origin/basemap-esri` cancellato perché ormai contenuto in main. Restano aperte Q1/Q2/Q3 (che dipendono da qualcun altro), Q4 (la vLOA che deve smettere di nascere inglese), Q5 e Q6 (due rossi intermittenti) e R1 (le figure dei SOP, lavoro manuale)**) · **Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in
+**Aggiornato:** 28 agosto 2026, notte (**§U APERTA — LE AUTORIZZAZIONI A LIVELLI. L'interruttore unico `IsAdmin` (160 usi su 46 file) diventa un numero ordinato a cinque livelli: User, IvaoStaff, DivisionStaff, Editor, Admin, **cumulativi**. Sei decisioni del committente, fra cui l'Editor che edita **tutto** (non la sola ACC) e le concessioni per ACC **eliminate** — il che toglie dal layout `HasAnyGrantAsync`, cioè la prima query di ogni pagina e la causa prima delle corse sul DbContext. Carta approvata: `docs/feature/2026-08-28-autorizzazioni-a-livelli.md`. Ramo `autorizzazioni-a-livelli`, **codice da scrivere**. ⚠️ Le migrazioni in coda diventano VENTIDUE**) · **Aggiornato:** 28 agosto 2026, sera (**§Q3 CHIUSA — il glossario di fraseologia. La fraseologia DENTRO le frasi, che la memoria di traduzione non poteva coprire perché è indicizzata per segmento intero: segnaposto `<g>` col contratto OPPOSTO a `<x>`, tabella `GlossaryTerms`, pagina di cura. E la risposta del committente alla domanda che teneva aperta la voce: lo curano TUTTI GLI ADMIN, cioè tutto lo staff di divisione — nessun codice, la pagina era già dietro `IsAdmin`. Ramo **`glossario-fraseologia`** (`ee5fad7`, `f2ee4eb`), ✅ **FUSO in `main` la notte del 28 agosto** (`332f881`), build Release verde su entrambi i TFM dopo la fusione. ⚠️ Le migrazioni in coda diventano VENTUNO**) · 28 agosto 2026, notte (**I DUE RAMI SONO FUSI IN `main` E SPINTI**: `bilingue-tutte-le-pagine` — la lingua per intero, §Q-bis — e `archivio-atc-mondiale` — §S e §T. I due non si toccavano: un conflitto solo, in questo file. Sul codice tutto verde su net8+net10 DOPO la fusione, che è l'unico momento in cui la prova conta**) · **Aggiornato:** 28 agosto 2026, sera (**§Q-bis — LA LINGUA. Il bilingue girava su DUE viewer su cinque e la barra non aveva nessun comando per cambiare lingua: entrambe le cose chiuse, più le REGOLE su carta (`docs/design/regole-lingua.md`), i messaggi del backend, il catalogo della Guida, «MRVA» e il correttore delle traduzioni dentro l'editor. Sei commit nel ramo **`bilingue-tutte-le-pagine`** (`2af3a39`), spinto e NON fuso**) · **Aggiornato:** 28 agosto 2026, pomeriggio (**I DUE ROSSI INTERMITTENTI SONO CHIUSI — Q5 e Q6, riprodotti prima di correggerli: erano due contese diverse fra test paralleli. Q5 era il file di diagnostica dell'avvio, uno solo per processo, riscritto da un altro host nella finestra fra scrittura e rilettura; Q6 era un test che passava per via del POOL di SQLite invece che per via dell'interceptor, e che un `ClearAllPools()` di processo chiamato da un altro test faceva cadere. Ora «tutto verde» si può leggere alla lettera: 6633 verdi su entrambi i TFM**) · **Aggiornato:** 28 agosto 2026, mattina (**§Q e §R — i documenti bilingue e i vSOP militari, VENTI slice chiuse in due giorni e tutte in `main`, che è stato SPINTO (`6644b5e`): `origin/main` allineato, `origin/basemap-esri` cancellato perché ormai contenuto in main. Restano aperte Q1/Q2/Q3 (che dipendono da qualcun altro), Q4 (la vLOA che deve smettere di nascere inglese), Q5 e Q6 (due rossi intermittenti) e R1 (le figure dei SOP, lavoro manuale)**) · **Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in · **Aggiornato:** 28 agosto 2026, sera tardi (**§T — la SELECT dei duplicati su `DocReleases`: NON era eseguibile (il 3306 del server è su localhost, niente pannello), quindi ora la fa l'applicazione prima di `Migrate()` e nomina le righe in `avvio-errore.txt`; gli altri quattro indici unici della coda non possono fallire, verificato**) · **Aggiornato:** 28 agosto 2026, sera (**§S — l'archivio ATC mondiale, ramo `archivio-atc-mondiale` (il codice è tutto in `0ced074`, il resto sono documenti) SPINTO e NON fuso: il poller archivia tutte le postazioni ATC aperte, i conti della divisione non cambiano, ritenzione dodici mesi per tutto. S1 CHIUSA (il volume del mondo è misurato: 10×-14× le sessioni italiane, il database intero va a ~230 MB su MariaDB a regime) e S2 DECISA (si ricomincia da capo, raccolta dal 1° settembre 2026, cutover dal Worker nel 2027). ⚠️ Le migrazioni in coda al cutover MariaDB diventano VENTI**) · **Aggiornato:** 28 agosto 2026, pomeriggio (**I DUE ROSSI INTERMITTENTI SONO CHIUSI — Q5 e Q6, riprodotti prima di correggerli: erano due contese diverse fra test paralleli. Q5 era il file di diagnostica dell'avvio, uno solo per processo, riscritto da un altro host nella finestra fra scrittura e rilettura; Q6 era un test che passava per via del POOL di SQLite invece che per via dell'interceptor, e che un `ClearAllPools()` di processo chiamato da un altro test faceva cadere. Ora «tutto verde» si può leggere alla lettera: 6633 verdi su entrambi i TFM**) · **Aggiornato:** 28 agosto 2026, mattina (**§Q e §R — i documenti bilingue e i vSOP militari, VENTI slice chiuse in due giorni e tutte in `main`, che è stato SPINTO (`6644b5e`): `origin/main` allineato, `origin/basemap-esri` cancellato perché ormai contenuto in main. Restano aperte Q1/Q2/Q3 (che dipendono da qualcun altro), Q4 (la vLOA che deve smettere di nascere inglese), Q5 e Q6 (due rossi intermittenti) e R1 (le figure dei SOP, lavoro manuale)**) · **Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in
 un giro solo. Restano aperte solo voci che dipendono da qualcun altro: le risposte di Ivao.It (A9/A13), le
 quattro vLOA da ripubblicare (L2), il documento di Brindisi (B10-bis) e le decisioni di contenuto**) · **Aggiornato:** 27 agosto 2026, notte (**§K chiusa tutta: la vIPI d'aeroporto entra nel catalogo delle sezioni
 — ramo `aeroporto-a-sezioni`, il TERZO in fila — più le tre rifiniture della stessa notte: il meteo tornato
@@ -3867,3 +3867,194 @@ vuole. `CallsignAliases` è una tabella nuova. Verificato leggendo le migrazioni
 Sul `vipi.db` di sviluppo (38 rilasci, 14 bersagli): **zero doppioni**. Della produzione non si sa, ed è
 esattamente il motivo per cui il controllo ora viaggia col programma.
 
+
+## U. Le autorizzazioni a livelli — 28 agosto 2026, notte
+
+🟢 **APERTA, carta approvata, codice da scrivere.** Documento:
+[`docs/feature/2026-08-28-autorizzazioni-a-livelli.md`](feature/2026-08-28-autorizzazioni-a-livelli.md).
+Ramo `autorizzazioni-a-livelli`, aperto da `main` subito dopo la fusione del glossario.
+
+**Il problema in una riga.** Il prodotto ha un interruttore solo — `IsAdmin`, **160 usi su 46 file** — e
+in mezzo fra «vede tutto» e «vede le pagine pubbliche» non c'è niente. Un `IT-T01` può ridistribuire i
+permessi; e non c'è modo di dare a qualcuno **le sole statistiche di divisione**, che è ciò che allo
+staff serve più spesso.
+
+**La forma nuova.** Cinque livelli **cumulativi** (`enum VipiRole { User=0, IvaoStaff=1, DivisionStaff=2,
+Editor=3, Admin=4 }`), un `>=` a ogni cancello. Chi sta sopra ha tutte le prerogative di chi sta sotto —
+il che risolve da solo il caso «il chief è anche membro della divisione italiana»: Editor (3) ≥
+DivisionStaff (2), senza scrivere una regola in più.
+
+Le sei decisioni del committente del 28 sera:
+
+| | scelta |
+|---|---|
+| **Editor** | edita **tutto**, non la sola ACC — «il CH di Roma può dare una mano a quello di Milano» |
+| **Concessioni per ACC** (`EditGrant`) | **eliminate**, entità compresa (in produzione già cancellate a mano) |
+| **Statistiche personali altrui** | le vede **tutto lo staff italiano**, non i soli admin |
+| **`IT-WM`** | admin, come `IT-DIR` |
+| **Fondatore** | Admin per VID, indipendentemente dalla posizione staff, da `appsettings.json` |
+| **Promozione** | un admin promuove e declassa per VID; `Effettivo = max(DaStaff, Override)` |
+
+⚠️ **Il pavimento non è un controllo, è il `max`.** «Non si declassa nessuno sotto il livello garantito
+dalla sua posizione staff» è ciò che `max` fa già: un declassamento sotto il pavimento è un no-op. E
+siccome i no-op silenziosi sono bugie, i livelli sotto il pavimento in pagina sono **disabilitati**, col
+codice staff che li garantisce scritto accanto.
+
+⚠️ **Questa feature TOGLIE codice.** Se l'Editor edita tutto, i cinque metodi `CanEdit*`/`EnsureCanEdit*`
+smettono di interrogare il database e diventano `Role >= Editor`, **sincroni**. Sparisce
+`HasAnyGrantAsync` chiamato dal layout — la prima query di ogni pagina per un utente loggato, e la causa
+prima delle corse sul `DbContext` di circuito ([[corse-dbcontext-diagnosi]],
+[[barra-non-affonda-la-pagina]]). Non si mitiga: non c'è più.
+
+⚠️ **Ma l'override sta in banca dati e rifarebbe lo stesso danno**, se lo si leggesse per richiesta.
+Quindi `RoleOverride` (poche decine di righe, sempre) si tiene **intera in memoria** in un singleton
+invalidato alla scrittura: il livello resta a **zero query per richiesta**, come oggi `IsAdmin`.
+
+**Chi perde l'editing**, ed è voluto: tutti gli `IT-` fuori dagli otto codici di direzione — `IT-T01`,
+`IT-T03`, `IT-FOC`, `IT-FOAC`, `IT-AOA1`… Gli assistenti Ops oggi editano, domani no. La risposta è una
+promozione a mano, trenta secondi. **Nessuno perde una concessione**, perché in produzione non ce ne sono
+più: chi editava lo faceva da admin, quindi il travaso è pulito ed è il momento giusto per farlo.
+
+⚠️ **Torna l'elenco puntuale**, e torna il difetto per cui il 22 agosto si era scelto il jolly: un ruolo
+di direzione **nuovo** nascerà DivisionStaff invece che Admin. Compromesso accettato, perché adesso
+esiste la promozione a mano che allora non c'era — il difetto si sposta su qualcosa che si ripara da
+dentro il prodotto in trenta secondi. La memoria [[staff-code-reali]] va riscritta di conseguenza:
+la decisione del 22 agosto diventa **storia**.
+
+⚠️ **Migrazione doppia** (SQLite + MySql, due identificativi diversi per la stessa migrazione — la
+trappola di §T): con questa la coda al cutover MariaDB passa da ventuno a **VENTIDUE**.
+
+### U1. Le due decisioni che mancavano — ✅ **CHIUSA** il 28 agosto, notte
+
+- **VID del fondatore: `704798`**, scritto in `src/Vipi.Host/appsettings.json` (sezione `Auth`).
+- **`IT-AWM` è admin**, dentro l'elenco degli otto.
+
+### U2. Slice 0 e 1 — ✅ **CHIUSE** il 28 agosto, notte
+
+`VipiRole` in `Vipi.Domain/Enums.cs` (valori numerici espliciti: finiranno in banca dati) e `RoleResolver`
+in `Vipi.Application/Auth/`, **puro**, con **47 test** di tabella di verità sui codici staff **veri**.
+Build Release `--no-incremental` 0 avvisi, suite intera verde. ⚠️ **Niente è cablato**: il prodotto si
+comporta esattamente come prima, e le due liste legacy di `DivisionOptions` (`AdminRolePatterns` col jolly,
+`AdminAccRolePatterns`) sono ancora quelle che decidono davvero. **Muoiono nella slice 3.**
+
+⚠️ Tre trappole trovate scrivendo, tutte con un test che le tiene ferme: i pattern **vanno ancorati**
+(`IT-DIRETTIVO` sarebbe diventato direttore); **l'ordine di valutazione è la regola** (un `IT-DIR`
+combacia anche col pattern dello staff di divisione — è il valutare l'admin per primo a renderlo admin);
+**l'ordine dell'enum è un contratto** (rinumerarlo lascerebbe ogni `Role >= X` compilabile e cambiato di
+significato).
+
+### U2-bis. Slice 2, le promozioni a mano — ✅ **CHIUSA** il 28 agosto, notte
+
+`RoleOverride` (**chiave = il VID**: «una riga per persona» la garantisce la tabella), lo store EF, la
+cache `IRoleOverrides` e la migrazione `PromozioniAMano` **in entrambi gli insiemi**, puramente additiva.
+**19 test nuovi.** La cache si scalda all'avvio, per prima fra le manutenzioni, e un suo guasto **non
+ferma l'avvio**: il fotogramma vuoto non nega niente a nessuno.
+
+⚠️ `For()` torna `null` per «nessuna promozione», **mai** per «non lo so»: chi chiama ricade sul livello
+dello staff. È la differenza fra una promozione che tarda (fastidio) e un permesso negato a chi lo ha per
+ruolo (guasto).
+
+⚠️ **Prezzo dichiarato**: una promozione fa effetto **solo dopo una ricarica**, e chi scrive deve
+ricaricare. ⚠️ **La coda al cutover MariaDB è ora VENTIDUE** — id `20260828212030` (SQLite) e
+`20260828212039` (MySql), la stessa migrazione con due identificativi.
+
+### U2-ter. Slice 3, il servizio — ✅ **CHIUSA** il 28 agosto, notte
+
+`Role`, `IsEditor`, `IsDivisionStaff`, `EnsureAtLeast(livello)`; `IsAdmin` **conserva il significato**
+(`Role >= Admin`) e infatti **nessuno dei 160 usi è stato toccato**. Morti `AdminStaffCodes` e le due liste
+legacy di `DivisionOptions`. La diagnostica «Chi può editare» legge ora i pattern dal `RoleResolver`.
+
+⚠️ **DA QUI IL RAMO NON È DEPLOYABILE FINO ALLA SLICE 5.** Il comportamento è cambiato — un `IT-AOA1` non
+è più admin, un `LIRR-CH` è `Editor` — ma i cancelli delle pagine guardano ancora `IsAdmin`: in questo
+stato intermedio il prodotto **aprirebbe di meno**, non di più.
+
+⚠️ **I predicati derivati e il cancello sono default sull'interfaccia**, perché ci sono **ventitré** classi
+finte che la implementano: scriverli a mano sarebbe stato ventitré occasioni di sbagliare un `>=` sul
+permesso più alto del prodotto. Il `max` sta in un posto solo, `RoleResolver.Effective`.
+
+⚠️ **Due test hanno cambiato colonna, non forma** — il chief d'ACC non è più admin, e un roster di soli
+chief risulta senza admin. È lì che il cambio di regola si legge. `AdminCodeTests` è diventato
+`LivelloEffettivoTests`: rispondeva a una domanda che non esiste più.
+
+### U2-quater. Slice 4 e 6, la morte delle concessioni — ✅ **CHIUSE** il 29 agosto
+
+Via `EditGrant`, il suo repository, `GrantRow`, la tabella (migrazione `ConcessioniPerAccRimosse`, in
+entrambi gli insiemi) e le otto domande che le interrogavano. Le cinque `CanEdit…`/`EnsureCanEdit…` —
+**219 riferimenti** — sono diventate `IsEditor` e `EnsureAtLeast(VipiRole.Editor)`: **sincrone, zero query,
+nessun parametro**.
+
+⚠️ **La slice 6 è stata tirata avanti**: tolte le concessioni, `/admin/permissions` restava senza
+contenuto. `AdminGrantsPage` → **`AdminRolesPage`**, una riga per persona, col **pavimento** dichiarato e i
+livelli sotto di esso **disabilitati** — un comando che accetta e non fa niente è peggio di uno che dice di
+no. Servizio nuovo `RoleAdminService`, 10 test.
+
+⚠️ **Le tre guardie sono tre modi di perdere il prodotto**: non ci si declassa da soli, non si tocca un
+fondatore, non si scende sotto il pavimento. ⚠️ **Ogni scrittura ricarica il fotogramma**, o la promozione
+non fa effetto fino al riavvio.
+
+⚠️ **Quattro test hanno perso il loro oggetto e lo dicono nel codice** invece di sparire: il più
+significativo è l'E2E «se la domanda della barra fallisce la pagina esce lo stesso» — quella domanda non è
+stata resa tollerante, è stata **TOLTA**.
+
+⚠️ **La coda al cutover MariaDB è VENTITRÉ.**
+
+### U2-quinquies. Slice 5, i cancelli — ✅ **CHIUSA** il 29 agosto
+
+**84 cancelli spostati**, e il prodotto torna coerente. `AdminNav.Chi` → `VipiRole Minimo`, filtro in una
+riga (`Authz.Role >= v.Minimo`); il default resta **Admin apposta**, così una pagina nuova nasce chiusa.
+
+⚠️ **La barra ha smesso di fare una domanda.** `PuoModificareAsync` è sparito col suo `try/catch` che
+ingoiava l'errore: quella domanda andava al database e poteva portare giù la pagina (il difetto del 24
+agosto, [[barra-non-affonda-la-pagina]]). Una domanda che non tocca il database non fallisce — chiuso alla
+**radice**, non mitigato.
+
+⚠️ **Due cose restano agli admin dentro pagine da Editor**: la voce «Permessi» nella Home e l'assegnare un
+incarico **a un'altra persona**. ⚠️ **Forzare il lock di un collega è sceso all'Editor**: serviva l'admin
+solo perché l'admin era l'unico che editava.
+
+⚠️ **La rete è un test per rotta**, e prova ogni voce al suo livello **e a quello subito sotto** — la metà
+che conta. Serve un `TestContext` per render: bUnit congela il contenitore al primo render, e due livelli
+nello stesso contesto darebbero due volte la stessa risposta.
+
+### U2-sexies. Slice 7, la propagazione — ✅ **CHIUSA** il 29 agosto
+
+La diagnostica «Chi può editare» racconta i **livelli** (col pallino per chi l'ha per promozione) e i
+pattern di tutti e tre; ⚠️ `AnyAdmin` guarda il livello **effettivo**, non i codici — un admin per
+promozione è un admin. La Guida in-app e il catalogo della ricerca non parlano più di concessioni.
+Aggiornate `mappa-pagine.md`, `modello-dati.md`, `regole-ui-pagine-admin.md` e `guide/config.md` (che
+documentava due chiavi `Division:*` inesistenti: ora c'è la sezione **`Auth`**). Tolte **31 chiavi di
+traduzione morte**, il vocabolario delle concessioni.
+
+⚠️ **Due memorie puntavano a `HasAnyGrantAsync` come primo sospettato** delle corse sul `DbContext`: quella
+query non esiste più, e il metodo di diagnosi resta valido — cambia il sospettato.
+
+### U2-septies. La verifica live — ✅ **FATTA** il 29 agosto, e ha trovato tre difetti
+
+La suite era verde su tutti e quattordici i progetti. La verifica ha trovato lo stesso:
+
+1. ⚠️ **La pagina Struttura moriva con un 500 per un Editor**: `OrphanSectorService.ListAsync` chiedeva
+   ancora `EnsureAdmin()`. È **esattamente** il caso che la carta annunciava — il cancello sta in DUE sedi —
+   e nessun test lo vedeva, perché nessun test apre quella pagina con quell'identità.
+2. ⚠️ **Struttura e Documenti non si chiudevano affatto**: non hanno mai avuto un cancello di *pagina*, e
+   l'elenco dei documenti porta bozze e documenti nascosti. Ora rifiutano prima di caricare i dati.
+3. ⚠️ **Due falsi allarmi della sonda**, non del prodotto: `a.editor-btn` prende anche Guida/login/logout, e
+   il «non puoi entrare» in questa applicazione si scrive in **due** modi (fascia rossa **e**
+   `<p class="help">`). *Quando un numero accusa qualcosa che sta lì da mesi, il sospetto va prima allo
+   strumento.*
+
+**Come si guida l'app a un livello che non è il proprio**: `DevIdentityOptions` (sezione `DevIdentity`,
+solo in Development) prende VID e posizioni staff da configurazione. Prima erano una costante nel codice,
+quindi cinque livelli = cinque ricompilazioni, quindi in pratica non si verificava.
+
+### U3. Che cosa resta 🟢
+
+Una decisione sola: **quando fondere**, e con quale avviso allo staff. Al deploy tutti gli `IT-` fuori dagli
+otto codici di direzione perdono l'editing, e la risposta è una promozione a mano — trenta secondi.
+
+### U4. ⚠️ Gli E2E non girano finché l'host è acceso
+
+Scoperto qui, ma vale per tutto il repo: `Vipi.E2E.Tests` referenzia `Vipi.Host`, e finché il processo
+`Vipi.Host` è acceso (porta 5034, quello del committente — **non si spegne**) i suoi DLL sono bloccati e
+il progetto **non si costruisce**. Non compare fra i `Passed!` e **l'exit code di `dotnet test` è
+inaffidabile**: tre esecuzioni con lo stesso guasto hanno dato 0, 0 e 1. «Verde» si legge **contando i
+progetti** nel riepilogo, non dall'exit code.

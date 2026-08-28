@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Domain;
 
@@ -31,16 +31,17 @@ public sealed record NewDocumentOptions(
 /// <summary>
 /// Ciò che <c>/services/vsop/editor/new-document</c> può offrire a <b>questa</b> persona.
 ///
-/// <para><b>Perché un servizio e non tre letture nella pagina.</b> Due ragioni, e la seconda è quella che
-/// conta. La prima: gli elenchi globali (<c>ListSectorNodesAsync</c>, <c>ListAllAirportsAsync</c>) sono
-/// <c>EnsureAdmin</c>, e allentarli per far entrare qui un responsabile d'ACC cambierebbe i permessi anche
-/// di <c>/services/vsop/admin/sector-structure</c> e <c>/services/vsop/admin/airports</c> — dove si <b>scrive</b>. La seconda:
-/// la pagina è dietro <c>IsAdmin</c> mentre i servizi che chiama autorizzano per <b>grant di ACC</b>, quindi
-/// il responsabile di LIRR trovava la porta chiusa pur avendo la chiave (bastava andare all'URL
-/// dell'editor). Qui la domanda si fa <b>una volta</b>, con la stessa regola che poi rifiuterebbe.</para>
+/// <para><b>Perché un servizio e non tre letture nella pagina.</b> Gli elenchi globali
+/// (<c>ListSectorNodesAsync</c>, <c>ListAllAirportsAsync</c>) sono <c>EnsureAdmin</c>, e allentarli per far
+/// entrare qui un Editor cambierebbe i permessi anche di <c>/services/vsop/admin/sector-structure</c> e
+/// <c>/services/vsop/admin/airports</c> — dove si <b>scrive</b>. Qui la domanda si fa <b>una volta</b>, con
+/// la stessa regola che poi rifiuterebbe.</para>
 ///
-/// <para>⚠️ Filtra, non autorizza: chi crea davvero passa comunque da <c>EnsureCanEditAccAsync</c>. Una
-/// tendina è una comodità, non una guardia — lezione di <c>/services/vsop/versions</c>.</para>
+/// <para>⚠️ <b>Non è più «quali ACC sono suoi»</b>: dal 28 agosto 2026 l'Editor edita tutto, quindi o li
+/// vede tutti o non ne vede nessuno. Il filtro per ACC che c'era qui è morto con le concessioni.</para>
+///
+/// <para>⚠️ Filtra, non autorizza: chi crea davvero passa comunque dal cancello del servizio. Una tendina è
+/// una comodità, non una guardia — lezione di <c>/services/vsop/versions</c>.</para>
 /// </summary>
 public interface INewDocumentOptionsService
 {
@@ -69,12 +70,13 @@ public sealed class NewDocumentOptionsService : INewDocumentOptionsService
         var airports = await _repo.ListAllAirportsAsync(ct);
 
         var miei = new List<NewDocumentAcc>();
-        foreach (var a in accs.Where(Nazionale).OrderBy(a => a.Code, StringComparer.OrdinalIgnoreCase))
-        {
-            // ⚠️ La stessa domanda che si farà EnsureCanEditAccAsync quando poi rifiuta: due letture della
-            // stessa regola divergono.
-            if (!await _authz.CanEditAccAsync(a.Code, ct)) continue;
 
+        // ⚠️ La domanda si fa UNA volta e fuori dal ciclo: da quando l'Editor edita tutto, chiederla per ogni
+        // ACC sarebbe chiedere la stessa cosa dieci volte per avere dieci volte la stessa risposta.
+        foreach (var a in _authz.IsEditor
+                     ? accs.Where(Nazionale).OrderBy(a => a.Code, StringComparer.OrdinalIgnoreCase)
+                     : Enumerable.Empty<AccRow>())
+        {
             var suoi = sectors.Where(s => Uguale(s.AccCode, a.Code)).ToList();
             miei.Add(new NewDocumentAcc(a.Code, a.Name,
                 AreaSectors: suoi.Where(EArea).OrderBy(s => s.Callsign, StringComparer.Ordinal)

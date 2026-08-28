@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
 using Vipi.Application.Routing;
@@ -52,7 +52,6 @@ public sealed class WorkListService : IWorkListService
     private readonly IDocumentAdminService _documenti;
     private readonly IDocRoutesRegistry _rotte;
     private readonly IEditAuthorizationService _authz;
-    private readonly IEditGrantRepository _grants;
 
     // ⚠️ Iniettato per UN metodo puro, `IsOverdue`, e non per le sue liste — quelle chiamano EnsureAdmin.
     // Ricalcolare qui «in ritardo» sarebbe una seconda lettura dello stesso metro: due posti che decidono
@@ -61,14 +60,13 @@ public sealed class WorkListService : IWorkListService
 
     public WorkListService(IDocumentImpactRepository impatti, IEditorTaskRepository incarichi,
         IDocumentAdminService documenti, IDocRoutesRegistry rotte, IEditAuthorizationService authz,
-        IEditGrantRepository grants, IEditorTaskService regoleIncarichi)
+        IEditorTaskService regoleIncarichi)
     {
         _impatti = impatti;
         _incarichi = incarichi;
         _documenti = documenti;
         _rotte = rotte;
         _authz = authz;
-        _grants = grants;
         _regoleIncarichi = regoleIncarichi;
     }
 
@@ -80,14 +78,10 @@ public sealed class WorkListService : IWorkListService
         var gestiti = await _documenti.ListAsync(ct);
         var perDoc = IndicizzaPerDocumento(gestiti);
 
-        // Le ACC che posso toccare: UNA domanda, non una per riga. Per un admin la domanda non si fa
-        // nemmeno — vede tutto, e chiederlo sarebbe una query per rispondere «sì» comunque.
-        var mieAcc = _authz.IsAdmin
-            ? null
-            : (await _grants.ListAccCodesForUserAsync(io.Value, ct)).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        bool PossoToccare(ManagedDoc? d) =>
-            mieAcc is null || (d?.AccCode is { } acc && mieAcc.Contains(acc));
+        // ⚠️ Non si filtra piu' per ACC, e non e' una semplificazione di comodo: dal 28 agosto 2026
+        // l'Editor edita TUTTO, quindi «quali ACC posso toccare» non e' piu' una domanda. Qui c'era una
+        // query per rispondere all'unica cosa che le concessioni sapevano dire.
+        bool PossoToccare(ManagedDoc? d) => _authz.IsEditor;
 
         var righe = new List<WorkItem>();
 

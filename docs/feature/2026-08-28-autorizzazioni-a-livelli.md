@@ -1,0 +1,415 @@
+# Le autorizzazioni a livelli: un numero al posto di un interruttore (28 agosto 2026)
+
+> Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Sostituisce la decisione del 22 agosto sera
+> («lo staff di divisione è admin, tutto» — memoria `staff-code-reali`, riflessa in
+> `DivisionOptions.AdminRolePatterns`), che resta valida come **storia** e non più come regola.
+> **Stato: ✅ COMPLETO E VERIFICATO DAL VIVO (28-29 agosto 2026).** Otto slice su otto, più la verifica
+> live guidata su cinque identità — che ha trovato **tre difetti** che la suite non vedeva (§12). Resta da
+> decidere **quando fondere**.
+
+## 1. Perché
+
+Il prodotto ha **un interruttore solo**: `IEditAuthorizationService.IsAdmin`, chiamato in **160 punti
+su 46 file**. O sei admin — e allora vedi e modifichi tutto, dalle sorgenti di import ai permessi degli
+altri, passando per le statistiche personali di chiunque — oppure sei un socio qualunque e vedi le pagine
+pubbliche. In mezzo non c'è niente.
+
+Sotto l'interruttore c'è un secondo meccanismo, la **concessione per ACC** (`EditGrant`,
+`/services/vsop/admin/permissions`): un non-admin con una concessione modifica i documenti di quella ACC.
+Nato per dare l'editing a chi non era staff, non è mai stato il meccanismo principale — e in produzione
+su `atc.it.ivao.aero` **le concessioni sono già state cancellate tutte** dal committente.
+
+Il risultato è che oggi, in produzione, valgono queste due regole e nient'altro:
+
+| chi | oggi |
+|---|---|
+| `^IT-[A-Z0-9]+$` — **tutto** lo staff di divisione, jolly | admin pieno |
+| `^LI[A-Z0-9]+-(CH\|ACH)$` — i chief e vice-chief d'ACC | admin pieno |
+| tutti gli altri, staff IVAO di altre divisioni compreso | solo pagine pubbliche |
+
+Due cose non vanno. La prima: un `IT-T01` (staff tecnico) e un `IT-FOC` (Flight Operations) possono
+cancellare un documento e ridistribuire i permessi, che non è il loro mestiere. La seconda, opposta:
+**non c'è nessun modo di dare a una persona meno di tutto** — per esempio le sole statistiche di
+divisione, che è la cosa che allo staff serve più spesso.
+
+## 2. Cosa cambia, in una riga
+
+L'autorizzazione smette di essere un booleano e diventa **un numero ordinato**: cinque livelli cumulativi,
+un confronto `>=` a ogni cancello.
+
+## 3. Le decisioni del committente (28 agosto 2026, notte)
+
+| | scelta |
+|---|---|
+| **Livelli** | cinque, **cumulativi**: chi sta sopra ha tutte le prerogative di chi sta sotto |
+| **Editor** | edita **tutto**, non solo la sua ACC — «il CH di Roma può dare una mano a quello di Milano» |
+| **Concessioni per ACC** | **eliminate**, entità compresa (in produzione erano già cancellate) |
+| **Statistiche personali altrui** | le vede **tutto lo staff italiano**, non i soli admin |
+| **`IT-WM`** | admin, come `IT-DIR` |
+| **Fondatore** | Admin sempre, per VID, indipendentemente dalla posizione staff; in `appsettings.json` |
+
+I cinque livelli:
+
+| n | livello | chi è | cosa apre in più |
+|---|---|---|---|
+| 0 | **User** | chiunque, anche anonimo | le pagine e i documenti pubblici |
+| 1 | **IvaoStaff** | ha una posizione staff IVAO, **di qualunque divisione** | *niente, per ora* |
+| 2 | **DivisionStaff** | posizione `IT-…` | statistiche di divisione + statistiche personali di chiunque |
+| 3 | **Editor** | chief e vice-chief d'ACC italiani | struttura, ACC, aeroporti, confinanti, trasferimenti, documenti, «Da sistemare», traduzioni, glossario |
+| 4 | **Admin** | otto codici di direzione + i fondatori | sorgenti, incarichi, audit, diagnostica, permessi |
+
+⚠️ **Il livello 1 oggi non fa niente**, ed è voluto: è un'etichetta, non un permesso. Serve perché uno
+staffista di un'altra divisione **si distingua** nell'elenco dei permessi, così che promuoverlo a mano sia
+una scelta e non una scoperta. Il giorno che qualcosa gli si vuole aprire, il livello c'è già.
+
+⚠️ **I chief sono anche membri della divisione italiana**, quindi un `LIRR-CH` deve vedere le statistiche
+di divisione. Non serve scriverlo da nessuna parte: Editor (3) ≥ DivisionStaff (2), e l'ordinamento lo
+risolve da solo. È esattamente il motivo per cui i livelli sono **cumulativi** e non un insieme di flag.
+
+## 4. Il modello
+
+```csharp
+public enum VipiRole { User = 0, IvaoStaff = 1, DivisionStaff = 2, Editor = 3, Admin = 4 }
+```
+
+Un `RoleResolver` **puro** — niente IO, niente DB, tutto testabile per tabella di verità — porta le
+posizioni staff al livello:
+
+| esito | regola |
+|---|---|
+| **Admin** | `^IT-(DIR\|ADIR\|WM\|AWM\|AOC\|AOAC\|SOC\|SOAC)$` |
+| **Editor** | `^LI[A-Z0-9]+-(CH\|ACH)$` |
+| **DivisionStaff** | `^IT-[A-Z0-9]+$` |
+| **IvaoStaff** | almeno una posizione staff, qualunque essa sia |
+| **User** | nessuna posizione |
+
+Si valuta dall'alto e vince il primo che risponde: una persona con più posizioni prende **la più alta**.
+
+✅ **`IT-AWM` è dentro**, confermato dal committente il 28 agosto notte: era stato proposto da chi scrive
+per simmetria con `ADIR`/`AOAC`/`SOAC`, visto che il committente aveva nominato il solo `IT-WM`.
+
+⚠️ **L'elenco puntuale torna, e con lui torna il suo difetto.** Il 22 agosto il jolly era stato scelto
+apposta perché *«un ruolo nuovo della divisione non nasca escluso»*. Con l'elenco puntuale un ruolo di
+direzione nuovo — poniamo `IT-ATOC` — nasce **DivisionStaff**, non Admin. È il compromesso accettato: il
+danno di un admin di troppo è peggiore di quello di un admin di meno, **ora che esiste la promozione a
+mano** che il 22 agosto non c'era. Il difetto non sparisce, si sposta su qualcosa che si ripara in trenta
+secondi da dentro il prodotto.
+
+### Il fondatore
+
+`Auth:FounderVids` — elenco di VID che sono Admin comunque. Non è un vezzo: è **l'antidoto al blocco**.
+Oggi, se i pattern sbagliassero, «nessuno è admin» sarebbe irreparabile *da dentro* — perché per
+assegnare permessi bisogna essere admin. Con un VID nell'`appsettings.json` la porta si riapre sempre.
+
+✅ **Il VID è `704798`**, in `src/Vipi.Host/appsettings.json`, sezione `Auth`, con accanto il commento che
+dice perché esiste. Un VID ≤ 0 non vale mai come fondatore: una lista mal configurata non deve poter
+promuovere l'anonimo.
+
+## 5. L'override per VID, e il pavimento
+
+Entità nuova, una riga per persona promossa:
+
+```csharp
+class RoleOverride { int UserId; VipiRole Level; int GrantedByUserId; DateTime GrantedAtUtc; string? Note; }
+```
+
+**La regola è una sola:** `Effettivo = max(DaStaff, Override)`.
+
+Il «non si declassa sotto il livello garantito dalla posizione staff» **non è un controllo**: è ciò che
+`max` fa già. Un declassamento sotto il pavimento è un no-op silenzioso — e siccome i no-op silenziosi
+sono bugie, la pagina mostra i livelli sotto il pavimento **disabilitati**, con scritto accanto il codice
+staff che li garantisce. Il declassamento serve, ma serve solo a **togliere una promozione**.
+
+Due guardie che il `max` non copre:
+
+- **nessuno declassa sé stesso** (è il modo esatto in cui ci si chiude fuori);
+- **nessuno declassa un fondatore** (sarebbe comunque un no-op, ma deve dirlo).
+
+Ogni scrittura passa da `AuditLog`, come le altre.
+
+## 6. Il regalo: le concessioni muoiono, e con loro una corsa
+
+Questa è la parte che **toglie** codice invece di aggiungerne, e va detta per prima perché cambia il segno
+del lavoro.
+
+Se l'Editor edita tutto, i cinque metodi dell'autorizzazione che oggi interrogano il database —
+`CanEditAccAsync`, `CanEditDocumentAsync`, `CanEditAnythingAsync`, `EnsureCanEditAccAsync`,
+`EnsureCanEditDocumentAsync` — diventano `Role >= Editor`: **sincroni, zero query**. Spariscono
+`EditGrant`, `IEditGrantRepository`, `EfEditGrantRepository`, la tabella e il picker ACC.
+
+E sparisce `HasAnyGrantAsync` chiamato dal layout, che è **la prima query di ogni pagina per un utente
+loggato**: cioè la causa prima delle corse sul `DbContext` di circuito documentate nelle memorie
+`corse-dbcontext-diagnosi` e `barra-non-affonda-la-pagina`. Non si mitiga: non c'è più.
+
+⚠️ **Ma l'override è in banca dati, e rifarebbe il danno.** Se il livello si risolvesse con una `SELECT`
+per richiesta, avremmo tolto una query dal layout per rimetterne un'altra nello stesso posto. Quindi:
+la tabella `RoleOverride` — poche decine di righe, sempre — si tiene **intera in memoria** in un servizio
+singleton, invalidato alla scrittura. Il livello resta a **zero query per richiesta**, come oggi `IsAdmin`.
+
+## 7. La mappa dei cancelli
+
+| pagine | oggi | domani |
+|---|---|---|
+| `sector-structure`, `acc`, `airports`, `neighbours`, `transfers`, `pending`, `translations`, `glossary` | Admin | **Editor** |
+| `versions` (i documenti) e gli editor (ACC, APP, aeroporto, militare, vLOA) | Chiunque / Admin ∪ concessione | **Editor** |
+| `sources`, `tasks`, `audit`, `diagnostics`, `permissions` | Admin | **Admin** |
+| `/services/stats/division`, `/stats/user/{vid}`, `/stats/session/{id}`, copertura aeroporti | Admin | **DivisionStaff** |
+
+`AdminNav` ha già l'enum `Chi` accanto a ogni voce: diventa un `VipiRole`, e **resta una riga per voce**.
+È il punto in cui questa feature costa poco proprio perché quel componente era stato scritto bene.
+
+⚠️ Non basta cambiare la barra. Una pagina aperta all'Editor il cui **servizio** continua a chiamare
+`EnsureAdmin()` mostra il link e poi nega: il cancello va spostato **in tutte e due** le sedi, ed è per
+questo che i predicati diventano due (`IsAdmin`, `IsEditor`) e non uno rinominato.
+
+## 8. Pre-flight — le quattro domande
+
+**1. Modello.** Non si affianca niente: `VipiRole` **sostituisce** il booleano, `RoleOverride`
+**sostituisce** `EditGrant`. Fra sei mesi «dove si decide chi può cosa» ha una risposta sola,
+`RoleResolver` + `RoleOverride`.
+
+**2. Dispatch.** Nessuno `switch (livello)`: l'enum è ordinato apposta perché ogni cancello sia un `>=`.
+Un livello nuovo in mezzo si inserisce cambiando i numeri, senza toccare i confronti.
+
+**3. Ingressi e verifica.** L'ingresso è `/services/vsop/admin/permissions`, che esiste già e cambia
+contenuto (da «VID + ACC» a «VID → livello»). Niente catch-22: il fondatore è Admin da config, quindi
+la prima promozione è sempre possibile anche su un database vuoto. Verifica: si guida il flusso reale con
+un utente finto per livello (la skill `verifica-live` sa già fabbricarlo).
+
+**4. Propagazione.** Questa modifica **rimuove**. Vanno nello stesso giro: `EditGrant` e tutto il suo
+corredo, `CurrentUser.CanEdit` (già codice morto oggi, nessun uso), `DivisionOptions.AdminRolePatterns`
+col suo commento sul jolly, la scheda «Chi può editare» della diagnostica, la Guida in-app, e le memorie
+`staff-code-reali` e `staff-roster-design`.
+
+## 9. Le slice
+
+| # | slice | verde a fine slice |
+|---|---|---|
+| ✅ 0 | fusione del glossario, ramo nuovo | build Release su entrambi i TFM: 0 avvisi |
+| ✅ 1 | `VipiRole` + `RoleResolver` puro + test di tabella | **47 test nuovi verdi**, niente cablato |
+| ✅ 2 | `RoleOverride` + migrazione **doppia** (SQLite e MySql) + cache singleton | **19 test nuovi verdi** |
+| ✅ 3 | il servizio: `Role`, `IsEditor`, `EnsureAtLeast`; `IsAdmin` **conserva il significato**; muoiono `AdminStaffCodes` e le due liste legacy di `DivisionOptions` | suite verde, **i 160 usi non toccati** |
+| ✅ 4 | morte delle concessioni: entità, repo, metodi async → sincroni | suite verde, **−219 riferimenti** |
+| ✅ 5 | i cancelli: `AdminNav` + le chiamate che scendono a Editor + le stats a DivisionStaff | **test per rotta**, 84 cancelli spostati |
+| ✅ 6 | `/admin/permissions` riscritta (**tirata avanti**: senza le concessioni la pagina non aveva più contenuto) | 10 test nuovi |
+| ✅ 7 | diagnostica, Guida, documenti, memorie | **tracciamento coerente** |
+
+La slice 3 è la chiave dell'ordine: siccome `IsAdmin` continua a voler dire `Role >= Admin`, **i 160 usi
+non si toccano in blocco**. Si toccano solo quelli che devono scendere, nella slice 5, uno a uno e con la
+suite a fare da rete.
+
+⚠️ **Due migrazioni, due insiemi.** SQLite e MySql hanno cartelle separate e la stessa migrazione prende
+**due identificativi diversi**: è la trappola già presa (`audit-2026-08-25`). Con questa la coda al cutover
+MariaDB passa da ventuno a **ventidue**.
+
+## 10. Cosa può andare storto
+
+- **Gente che perde l'editing.** Tutti gli `IT-` fuori dagli otto codici: `IT-T01`, `IT-T03`, `IT-FOC`,
+  `IT-FOAC`, `IT-AOA1`… Gli `AOA1`/`AOA2` (assistenti Ops) oggi editano e domani no. È l'effetto voluto,
+  ma è la telefonata che arriverà: la risposta è una promozione a mano, trenta secondi.
+- **Nessuno perde una concessione**, perché in produzione non ce ne sono più: chi editava lo faceva da
+  admin. Il travaso è pulito, ed è il momento giusto per farlo.
+- **Un cancello dimenticato in un servizio** mentre la pagina si apre: la difesa è il test per rotta
+  della slice 5, che chiede un 403 al livello immediatamente sotto.
+- **La cache degli override che non si invalida**: una promozione che «non fa effetto» finché non si
+  riavvia. Test dedicato nella slice 2.
+
+## 10-bis. Che cosa è entrato con la slice 2
+
+`RoleOverride` (in `Vipi.Domain/Entities/Support.cs`, **chiave = il VID**), `IRoleOverrideStore` +
+`EfRoleOverrideStore`, la cache `IRoleOverrides`/`RoleOverrideCache` e la migrazione `PromozioniAMano`
+**in entrambi gli insiemi** — puramente additiva, una `CreateTable` e basta. 19 test nuovi.
+
+- **La chiave è il VID, non un id di comodo.** «Una riga per persona» la garantisce la tabella: con una
+  chiave surrogata, promuovere due volte lascerebbe due righe e a decidere sarebbe l'ordine della query.
+- **Il livello va in colonna come parola** (`"Editor"`, non `3`), e c'è un test che lo legge in SQL nudo —
+  passando da EF la conversione renderebbe il test cieco proprio a ciò che prova. Un giorno quella tabella
+  la leggerà qualcuno da un pannello.
+- **La cache si carica all'avvio**, come quinta manutenzione (la prima della fila) in
+  `RunVipiStartupMaintenance`, e un suo guasto **non ferma l'avvio**: il fotogramma vuoto non nega niente a
+  nessuno, perché chi ha un livello per posizione staff ce l'ha comunque. Manca solo l'effetto delle
+  promozioni scritte a mano — un fastidio, non un guasto.
+- ⚠️ **`For()` torna `null` per "nessuna promozione", mai per "non lo so"**: chi chiama ricade sul livello
+  dello staff. È la differenza fra una promozione che tarda e un permesso negato a chi lo ha per ruolo.
+- ⚠️ **Il prezzo dichiarato del fotogramma**: una promozione fa effetto solo dopo una ricarica, e chi
+  scrive deve ricaricare. Due test lo tengono fermo, uno per la promozione e uno per il declassamento.
+
+⚠️ **La coda al cutover MariaDB è ora VENTIDUE**, e i due id sono `20260828212030` (SQLite) /
+`20260828212039` (MySql) — la stessa migrazione, nove secondi di distanza, due identificativi.
+
+## 10-ter. Che cosa è entrato con la slice 3
+
+Il livello smette di essere una prova e diventa la regola: `IEditAuthorizationService` espone `Role`,
+`IsEditor`, `IsDivisionStaff` ed `EnsureAtLeast(livello)`; `IsAdmin` **conserva il significato**
+(`Role >= Admin`), e infatti **nessuno dei 160 usi è stato toccato**. Muoiono `AdminStaffCodes` e le due
+liste legacy di `DivisionOptions`.
+
+- ⚠️ **Da questa slice il comportamento cambia davvero.** Un `IT-AOA1` non è più admin, un `LIRR-CH`
+  nemmeno — è `Editor`. E siccome i cancelli delle pagine guardano ancora `IsAdmin` fino alla slice 5,
+  **il ramo in questo stato non va messo in produzione**: aprirebbe di meno, non di più.
+- **I predicati derivati e il cancello hanno un'implementazione di default sull'interfaccia.** Non è
+  pigrizia: `IsEditor`, `IsDivisionStaff` ed `EnsureAtLeast` sono la stessa domanda a soglie diverse, e
+  nessuna implementazione ha una ragione legittima per rispondere in modo suo. Scriverle a mano avrebbe
+  significato **ventitré occasioni** di sbagliare un `>=` sul permesso più alto del prodotto — tante sono
+  le classi finte che implementano l'interfaccia.
+- **Il `max` sta in un posto solo**, `RoleResolver.Effective`: lo useranno anche la pagina dei permessi e
+  la diagnostica, e due copie di un `max` sono due modi di calcolare il pavimento.
+- **La diagnostica «Chi può editare» ora legge i pattern dal `RoleResolver`**, cioè gli stessi che
+  l'autorizzazione applica davvero. ⚠️ Guarda il **solo livello admin**: è quello che, mancando, non si
+  ripara da dentro.
+- **Due test hanno cambiato colonna, non forma**: il chief d'ACC non è più admin (`AuthLockTests`) e un
+  roster di soli chief risulta **senza admin** (`AdminCoverageTests`). È lì che il cambio di regola si
+  legge, ed è giusto che si legga in un test.
+- `AdminCodeTests` → **`LivelloEffettivoTests`**: il file rispondeva a «questo codice è admin?», quando le
+  risposte possibili erano due. Ora sono cinque e la domanda è un'altra, quindi il nome doveva cambiare.
+
+## 10-quater. Che cosa è entrato con le slice 4 e 6
+
+**Le concessioni per ACC non esistono più.** Via `EditGrant`, `IEditGrantRepository`,
+`EfEditGrantRepository`, `GrantRow`, la tabella (migrazione `ConcessioniPerAccRimosse`, in entrambi gli
+insiemi) e le otto domande che le interrogavano. Le cinque `CanEdit…`/`EnsureCanEdit…` — **219 riferimenti
+in tutto il repo** — sono diventate `IsEditor` e `EnsureAtLeast(VipiRole.Editor)`: **sincrone, zero query,
+nessun parametro**. Il parametro era la cosa più eloquente: chiedere «puoi editare *questo* documento?»
+non ha più senso se la risposta non dipende dal documento.
+
+⚠️ **La slice 6 è stata tirata avanti**, e non per fretta: tolte le concessioni, `/admin/permissions`
+restava una pagina senza contenuto. O moriva con loro o diventava la pagina dei livelli. È diventata quella
+(`AdminGrantsPage` → **`AdminRolesPage`**): una riga per persona, il **pavimento** dichiarato accanto, e i
+livelli sotto di esso **disabilitati** invece che accettati e ignorati.
+
+- **`RoleAdminService` ha tre guardie, e sono tre modi di perdere il controllo del prodotto**: non ci si
+  declassa da soli (ci si chiude fuori, e non si rimedia da dentro); non si tocca un fondatore (è la porta
+  di servizio che esiste apposta); non si scende sotto il pavimento — che il `max` renderebbe un **no-op
+  silenzioso**, cioè far credere di aver tolto un permesso che c'è ancora.
+- **Ogni scrittura ricarica il fotogramma.** Senza, una promozione non farebbe effetto fino al riavvio; c'è
+  un test che conta le ricariche.
+- **L'elenco include chi ha una promozione ma non è nel roster.** È il socio qualunque promosso a mano,
+  cioè il caso per cui la promozione esiste: saltarlo significherebbe che la pagina dei permessi non mostra
+  un permesso che ha dato lei.
+- **L'audit segue il permesso dove si è spostato.** Il difetto storico — la revoca attribuita a chi aveva
+  *concesso* invece che a chi revocava — aveva un test sulle concessioni: quel test ora prova la stessa
+  invariante sulle promozioni, che è dove il permesso vive adesso.
+
+**Quattro test hanno perso il loro oggetto e lo dicono**, invece di sparire in silenzio: «un editor vede
+solo le ACC su cui ha la concessione», «un responsabile vede solo i suoi ACC», «il permesso è quello
+dell'ACC» e — in E2E — «se la domanda della barra fallisce la pagina esce lo stesso». L'ultimo è il più
+significativo: quella domanda non è stata resa tollerante, è stata **tolta**. Un test che finge di rompere
+una query che nessuno fa più proverebbe soltanto sé stesso.
+
+## 10-quinquies. Che cosa è entrato con la slice 5
+
+**84 cancelli spostati**, e il prodotto torna coerente: un `LIRR-CH` apre struttura, ACC, aeroporti,
+confinanti, trasferimenti, documenti, «Da sistemare», traduzioni e glossario; un `IT-T01` vede le
+statistiche di divisione e quelle personali di chiunque; sorgenti, incarichi, audit, diagnostica e permessi
+restano agli otto codici di direzione.
+
+- **`AdminNav.Chi` è diventato `VipiRole Minimo`**, e il filtro una riga: `Authz.Role >= v.Minimo`. Il
+  default resta `Admin` **apposta**: una pagina nuova nasce chiusa e la si apre scrivendolo. Il contrario —
+  nascere aperta e ricordarsi di chiuderla — è il modo in cui i permessi si allargano senza che nessuno lo
+  decida.
+- **Il cancello si è spostato in due sedi per ogni pagina**, la pagina e il servizio, come la carta
+  prometteva. Le pagine sono cambiate per file (una pagina, un livello); i servizi uno a uno.
+- **La barra ha smesso di fare una domanda.** `PuoModificareAsync` è sparito: aveva un `try/catch` che
+  ingoiava l'errore — l'unica eccezione motivata del progetto — perché quella domanda andava al database e
+  poteva fallire portando giù la pagina. Una domanda che non tocca il database non fallisce, quindi non c'è
+  più niente da ingoiare. È il difetto del 24 agosto chiuso **alla radice**, non mitigato.
+- **`_accGestibili` in Versioni era l'ultimo residuo delle concessioni**: una domanda per ACC a ogni
+  caricamento, che dopo la slice 4 rispondeva sempre la stessa cosa. `CanManage(d)` è ora `IsEditor`.
+- **Due cose restano agli admin dentro pagine da Editor**, ed è voluto: la voce «Permessi» nella sezione
+  staff della Home, e l'assegnare un incarico **a un'altra persona** — dare lavoro a qualcuno non è
+  editare un documento.
+- ⚠️ **Forzare il lock di un collega è sceso all'Editor.** Prima serviva l'admin, ma solo perché l'admin
+  era l'unico che editava: chi può scrivere quel documento può anche sbloccarlo.
+
+**La rete è un test per rotta**: ogni voce della barra si prova al suo livello **e a quello subito sotto**.
+La seconda metà è quella che conta — un cancello che non chiude non è un cancello. ⚠️ Serve un
+`TestContext` per render: bUnit congela il contenitore al primo render, e due livelli nello stesso contesto
+darebbero due volte la stessa risposta, cioè un test che passa sempre.
+
+## 10-sexies. Che cosa è entrato con la slice 7
+
+La propagazione, che il pre-flight chiede nello **stesso giro** e non «dopo»:
+
+- **La diagnostica racconta i livelli.** «Chi può editare» mostra ora il **livello effettivo** di ogni
+  staffista — col pallino quando gliel'ha dato una promozione a mano e non un codice — e i pattern di
+  **tutti e tre** i livelli che se ne servono. ⚠️ `AnyAdmin` guarda il livello effettivo e non più i codici:
+  un admin per promozione è un admin, e un rilievo che lo ignorasse manderebbe a caccia di un guasto che
+  non c'è.
+- **La Guida in-app** (`/services/vsop/guide#admin-permessi`) descriveva concessioni per ACC: ora spiega i
+  cinque livelli, il pavimento, e le tre cose che non si possono fare. Con lei il catalogo della ricerca,
+  che cercava «grant» e «revoca».
+- **Le specifiche**: `mappa-pagine.md` (la colonna dei permessi diceva «admin/grant ACC» in cinque righe),
+  `modello-dati.md` (`EditGrant` marcata come eliminata, `RoleOverride` al suo posto),
+  `regole-ui-pagine-admin.md`, e `guide/config.md` — che documentava due chiavi `Division:*` che non
+  esistono più e ora ha la sezione **`Auth`** con le quattro nuove.
+- **31 chiavi di traduzione morte** tolte dai due `.resx`: erano il vocabolario delle concessioni
+  («concedi», «revoca», «aggiungi ACC»…). Una stringa che nessuno rende è una stringa che qualcuno
+  tradurrà.
+- **Quattro memorie riscritte**, e due dicono qualcosa che vale oltre questo giro: quella sulla barra che
+  non affonda la pagina e quella sulle corse del `DbContext` puntavano entrambe a `HasAnyGrantAsync` come
+  primo sospettato. Quella query non esiste più — il **metodo** di diagnosi resta valido parola per parola,
+  cambia solo che il primo sospettato ora è un altro.
+
+## 10-septies. La verifica live, e i tre difetti che ha trovato
+
+La suite era verde su tutti e quattordici i progetti quando questa verifica è cominciata. Ha trovato
+comunque tre cose, e la prima era grave.
+
+**Come.** L'identità di sviluppo era inchiodata a una costante (`DevUserId = 704798`), quindi guidare l'app
+a un livello diverso da admin richiedeva **cinque ricompilazioni con una costante cambiata a mano** — cioè,
+in pratica, non si verificava. Ora c'è `DevIdentityOptions` (sezione `DevIdentity`, **solo in Development**):
+VID e posizioni staff da configurazione, e l'app si guida a qualunque livello con una variabile d'ambiente.
+Cinque avvii, cinque identità: `IT-AOC` (Admin), `LIRR-CH` (Editor), `IT-T01` (DivisionStaff), `DE-DIR`
+(IvaoStaff), nessuna posizione (Socio).
+
+⚠️ **Difetto 1 — la pagina Struttura moriva con un 500 per un Editor.** `OrphanSectorService.ListAsync`
+chiedeva ancora `EnsureAdmin()` mentre la pagina che la chiama si era aperta all'Editor. È **esattamente**
+il caso che la carta annunciava — *«il cancello sta in due sedi: la pagina e il servizio»* — e nessun test
+lo vedeva, perché nessun test apre quella pagina con quell'identità. La pagina si apriva; il servizio no.
+
+⚠️ **Difetto 2 — due pagine non si chiudevano affatto.** Struttura e Documenti non hanno mai avuto un
+cancello di *pagina*: la prima perché ogni comando era dietro `IsAdmin` voce per voce, la seconda per
+scelta esplicita (l'elenco si leggeva, i tasti li abilitava la concessione). Con le concessioni morte
+quella scelta non ha più un meccanismo dietro, e l'elenco porta bozze e documenti nascosti. Ora entrambe
+rifiutano prima di caricare i dati.
+
+⚠️ **Difetto 3, nello strumento e non nel prodotto.** La prima sonda diceva «tasto Modifica acceso» per
+**tutti**, socio compreso: il selettore `a.editor-btn` prende anche Guida, login e logout. E diceva «pagina
+aperta» per tre pagine chiuse, perché cercava solo la fascia rossa mentre metà delle pagine dice di no con
+un `<p class="help">`. *Quando un numero accusa qualcosa che sta lì da mesi, il sospetto va prima allo
+strumento* — è scritto nella skill, ed è successo di nuovo.
+
+**Che cosa si è visto, alla fine.** Admin: quattordici voci in barra, tutto aperto. Editor: nove voci,
+permessi/sorgenti/diagnostica chiusi, tasto «Modifica» acceso. DivisionStaff e Socio: nessuna voce, nessun
+tasto, tutte le pagine admin chiuse. E la decisione del committente sulle statistiche, verificata a schermo:
+un `IT-T01` apre le statistiche di un altro controllore e legge *«puoi vederle perché sei staff di
+divisione; l'accesso è registrato nel registro»*; un socio legge *«le statistiche personali di un altro
+controllore le può aprire solo lo staff di divisione»* e la classifica non gli si mostra.
+
+## 11. Le due decisioni che mancavano — ✅ chiuse il 28 agosto, notte
+
+- **VID del fondatore: `704798`**, in `appsettings.json`.
+- **`IT-AWM` è admin**, dentro l'elenco degli otto.
+
+## 12. Che cosa è entrato con la slice 1
+
+`VipiRole` (in `Vipi.Domain/Enums.cs`, coi valori numerici **espliciti**: finiranno in banca dati) e
+`RoleResolver` (in `Vipi.Application/Auth/`), **puro** — niente IO, niente orologio — con 47 test di
+tabella di verità. I codici provati sono **quelli veri** osservati ai login del 9 agosto, non esempi
+inventati: metà di quei test riguarda gente che esiste.
+
+Quattro cose imparate scrivendolo, che non erano nella carta:
+
+- **I pattern vanno ancorati, e va provato che lo siano.** Senza `^…$` un `IT-DIRETTIVO` inventato
+  diventerebbe direttore della divisione. Tre test esistono solo per questo.
+- **L'ordine di valutazione è la regola, non i pattern.** Un `IT-DIR` combacia **anche** col pattern dello
+  staff di divisione: è il fatto che l'admin si valuti per primo a renderlo admin. Un ordine sbagliato
+  declasserebbe la direzione in silenzio, e i pattern sembrerebbero giusti.
+- **L'ordine dell'enum è un contratto**, e ha un test suo. Se qualcuno rinumerasse, ogni `Role >= X` del
+  prodotto resterebbe compilabile cambiando significato.
+- **Le liste di autorizzazione stanno nella sezione `Auth`, non in `Division`.** `Division` dice *qual è*
+  la divisione (codice, prefissi ICAO); `Auth` dice *a chi* quei codici danno un permesso. ⚠️ Per una
+  slice le due liste vecchie di `DivisionOptions` (`AdminRolePatterns` col jolly, `AdminAccRolePatterns`)
+  **convivono** con le nuove: sono ancora quelle che `AdminStaffCodes` dà all'autorizzazione vera, ed è
+  l'unico modo perché la slice 1 non cambi il comportamento del prodotto. **Muoiono nella slice 3**, e se
+  sopravvivessero sarebbero esattamente il modello gemello che il pre-flight vieta.

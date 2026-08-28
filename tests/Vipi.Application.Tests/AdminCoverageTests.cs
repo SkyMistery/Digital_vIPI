@@ -37,40 +37,48 @@ public class AdminCoverageTests
             Task.FromResult<IReadOnlyDictionary<int, string>>(new Dictionary<int, string>());
     }
 
-    private static AdminCoverageService Servizio(IStaffRosterRepository roster) => new(
-        roster, Options.Create(new AuthOptions()), Options.Create(new DivisionOptions()));
+    private static AdminCoverageService Servizio(IStaffRosterRepository roster) =>
+        new(roster, new RoleResolver(new AuthOptions(), new DivisionOptions()), SenzaPromozioni.Instance);
 
     [Fact]
     public async Task Un_codice_di_divisione_vero_risulta_admin()
     {
-        // «IT-AOA1» e «IT-T03» sono la coppia osservata davvero via API su un VID solo. Dal 22 agosto 2026
-        // valgono admin tutti e due: prima il secondo restava fuori, ed è il caso che ha cambiato la regola.
-        var c = await Servizio(new RosterFinto((704798, new[] { "IT-AOA1", "IT-T03" }))).DescribeAsync();
+        // ⚠️ Dal 28 agosto 2026 «IT-AOA1» e «IT-T03» NON sono più admin: sono staff di divisione. Chi lo è
+        // qui è «IT-AOC», uno degli otto codici di direzione — ed è il senso del cambio di regola.
+        var c = await Servizio(new RosterFinto((704798, new[] { "IT-AOA1", "IT-AOC" }))).DescribeAsync();
 
         Assert.True(c.AnyAdmin);
-        Assert.Equal(new[] { "IT-AOA1", "IT-T03" }, c.Rows.Single().Matched);
-        Assert.Empty(c.UnmatchedCodes);
+        Assert.Equal(new[] { "IT-AOC" }, c.Rows.Single().Matched);
+        Assert.Equal(new[] { "IT-AOA1" }, c.UnmatchedCodes);   // resta visibile: e' staff, ma non e' admin
     }
 
     /// <summary>
-    /// Un codice che non è della divisione resta fuori <b>e visibile</b>: il jolly allarga dentro
-    /// <c>{Code}-…</c>, non oltre. Un VID può essere staff altrove (o in HQ) e passare di qui coi suoi codici.
+    /// I codici che non danno l'admin restano fuori <b>e visibili</b>: è l'elenco da cui si capisce se un
+    /// pattern è sbagliato, e serve che ci sia dentro tanto un <c>DE-DIR</c> (staff di un'altra divisione)
+    /// quanto un <c>IT-AOA1</c> (staff nostro, ma non di direzione).
     /// </summary>
     [Fact]
-    public async Task I_codici_fuori_divisione_restano_fuori_e_si_vedono()
+    public async Task I_codici_che_non_danno_ladmin_restano_fuori_e_si_vedono()
     {
-        var c = await Servizio(new RosterFinto((704798, new[] { "IT-AOA1", "DE-DIR" }))).DescribeAsync();
+        var c = await Servizio(new RosterFinto((704798, new[] { "IT-AOC", "IT-AOA1", "DE-DIR" }))).DescribeAsync();
 
         Assert.True(c.AnyAdmin);
-        Assert.Equal(new[] { "IT-AOA1" }, c.Rows.Single().Matched);
-        Assert.Equal(new[] { "DE-DIR" }, c.UnmatchedCodes);   // gli altri codici restano visibili, non spariscono
+        Assert.Equal(new[] { "IT-AOC" }, c.Rows.Single().Matched);
+        Assert.Equal(new[] { "DE-DIR", "IT-AOA1" }, c.UnmatchedCodes);   // restano visibili, non spariscono
     }
 
+    /// <summary>
+    /// ⚠️ Dal 28 agosto 2026 il chief d'ACC <b>non è admin</b>: è <c>Editor</c>, cioè cura i documenti e non
+    /// distribuisce permessi. Questa diagnosi guarda il solo livello admin — quello che, mancando, non si
+    /// ripara da dentro — quindi un roster fatto di soli chief deve risultare <b>senza admin</b>.
+    /// </summary>
     [Fact]
-    public async Task Il_chief_di_un_acc_risulta_admin()
+    public async Task Il_chief_di_un_acc_non_e_admin()
     {
         var c = await Servizio(new RosterFinto((123, new[] { "LIRR-CH" }))).DescribeAsync();
-        Assert.True(c.AnyAdmin);
+
+        Assert.False(c.AnyAdmin);
+        Assert.Equal(new[] { "LIRR-CH" }, c.UnmatchedCodes);
     }
 
     [Fact]
@@ -118,7 +126,7 @@ public class AdminCoverageTests
     {
         var auth = new AuthOptions { AdminStaffCodes = new List<string> { "^ZZ-BOSS$" } };
         var svc = new AdminCoverageService(new RosterFinto((9, new[] { "IT-DIR" }), (10, new[] { "ZZ-BOSS" })),
-            Options.Create(auth), Options.Create(new DivisionOptions()));
+            new RoleResolver(auth, new DivisionOptions()), SenzaPromozioni.Instance);
 
         var c = await svc.DescribeAsync();
         Assert.Equal(new[] { "^ZZ-BOSS$" }, c.Patterns);

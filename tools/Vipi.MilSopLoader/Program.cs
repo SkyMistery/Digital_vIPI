@@ -1,8 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Auth;
 using Vipi.Domain.Services;
 using Vipi.Infrastructure.Persistence;
 using Vipi.MilSopLoader;
+using Vipi.Domain;
 
 // -----------------------------------------------------------------------------------------------
 // Vipi.MilSopLoader — carica un SOP militare TRASCRITTO nel documento del campo (28 agosto 2026).
@@ -111,17 +112,8 @@ file sealed class AutorizzazioneDelloStrumento : IEditAuthorizationService
     public AutorizzazioneDelloStrumento(int vid) => _vid = vid;
 
     public bool IsAdmin => true;
+    public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
     public int? CurrentUserId => _vid;
     public string? CurrentName => "MilSopLoader";
-    public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => Task.CompletedTask;
-    public Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.CompletedTask;
-    public Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default) => Task.FromResult(true);
-    public Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.FromResult(true);
-    public Task<bool> CanEditAnythingAsync(CancellationToken ct = default) => Task.FromResult(true);
-    public Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<GrantRow>>(Array.Empty<GrantRow>());
-    public Task<int> AddGrantAsync(int userId, string? displayName, string accCode, CancellationToken ct = default) =>
-        Task.FromResult(0);
-    public Task RevokeGrantAsync(int grantId, CancellationToken ct = default) => Task.CompletedTask;
     public void EnsureAdmin() { }
 }

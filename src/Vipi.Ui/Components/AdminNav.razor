@@ -46,35 +46,30 @@
 
 @code {
     /// <summary>
-    /// Chi può entrare in una pagina admin. È l'unico posto dove sta scritto: se domani una pagina si apre
-    /// (o si chiude), si cambia la sua riga in <see cref="Voci"/> e la barra si adegua ovunque.
+    /// Una pagina admin: rotta, icona, nome corto in barra, nome per esteso nel tooltip, e il <b>livello
+    /// minimo</b> per entrarci. È l'unico posto dove sta scritto: se domani una pagina si apre (o si
+    /// chiude), si cambia la sua riga in <see cref="Voci"/> e la barra si adegua ovunque.
+    ///
+    /// <para>Il default è <see cref="VipiRole.Admin"/> apposta: una pagina nuova nasce <b>chiusa</b>, e la
+    /// si apre scrivendolo. Il contrario — nascere aperta e ricordarsi di chiuderla — è il modo in cui i
+    /// permessi si allargano senza che nessuno lo decida.</para>
     /// </summary>
-    private enum Chi
-    {
-        /// <summary>Solo admin di divisione (la pagina ha il suo `!Authz.IsAdmin → accesso riservato`).</summary>
-        Admin,
-
-        /// <summary>Chiunque sia loggato: la pagina non ha un cancello, i comandi dentro sì (es. Versioni,
-        /// dove l'elenco si legge e i tasti per riga li abilita il grant sull'ACC del documento).</summary>
-        Chiunque,
-    }
-
-    /// <summary>Una pagina admin: rotta, icona, nome corto in barra, nome per esteso nel tooltip, chi entra.</summary>
-    private sealed record Voce(string Url, string Icon, string LabelKey, string TitleKey, Chi Chi = Chi.Admin);
+    private sealed record Voce(string Url, string Icon, string LabelKey, string TitleKey,
+        VipiRole Minimo = VipiRole.Admin);
 
     private static readonly Voce[] Voci =
     {
-        new("/services/vsop/admin/sector-structure", "building",       "Struct_Title",        "Grants_StructDesc"),
-        new("/services/vsop/admin/acc",             "map",            "Struct_NavAcc",       "Home_AccDesc"),
-        new("/services/vsop/admin/airports",        "plane-takeoff",  "Struct_NavAirports",  "Nav_AirportsTitle"),
-        new("/services/vsop/admin/neighbours",      "globe",          "Struct_NavNeighbours","Conf_Subtitle"),
+        new("/services/vsop/admin/sector-structure", "building",       "Struct_Title",        "Grants_StructDesc", VipiRole.Editor),
+        new("/services/vsop/admin/acc",             "map",            "Struct_NavAcc",       "Home_AccDesc", VipiRole.Editor),
+        new("/services/vsop/admin/airports",        "plane-takeoff",  "Struct_NavAirports",  "Nav_AirportsTitle", VipiRole.Editor),
+        new("/services/vsop/admin/neighbours",      "globe",          "Struct_NavNeighbours","Conf_Subtitle", VipiRole.Editor),
         new("/services/vsop/admin/sources",        "plug",           "Struct_NavSources",   "Nav_SourcesTitle"),
-        new("/services/vsop/admin/transfers",   "refresh",        "Home_TransfersTitle", "Home_TransfersDesc"),
-        new("/services/vsop/versions",              "file",           "Nav_Docs",            "Grants_DocsDesc", Chi.Chiunque),
-        new("/services/vsop/admin/pending",         "warning",        "Pend_Title",          "Pend_Title"),
+        new("/services/vsop/admin/transfers",   "refresh",        "Home_TransfersTitle", "Home_TransfersDesc", VipiRole.Editor),
+        new("/services/vsop/versions",              "file",           "Nav_Docs",            "Grants_DocsDesc", VipiRole.Editor),
+        new("/services/vsop/admin/pending",         "warning",        "Pend_Title",          "Pend_Title", VipiRole.Editor),
         new("/services/vsop/admin/tasks",           "clipboard",      "Nav_Tasks",           "Grants_TasksDesc"),
-        new("/services/vsop/admin/translations",    "book-open",      "Tr_AdminTitle",       "Tr_AdminTitle"),
-        new("/services/vsop/admin/glossary",        "radio",           "Gl_Title",            "Gl_Subtitle"),
+        new("/services/vsop/admin/translations",    "book-open",      "Tr_AdminTitle",       "Tr_AdminTitle", VipiRole.Editor),
+        new("/services/vsop/admin/glossary",        "radio",           "Gl_Title",            "Gl_Subtitle", VipiRole.Editor),
         new("/services/vsop/admin/audit",           "scroll",         "Audit_Title",         "Grants_AuditDesc"),
         new("/services/vsop/admin/diagnostics",     "activity",       "Nav_Diag",            "Grants_DiagDesc"),
         new("/services/vsop/admin/permissions",        "key",            "Nav_Perms",           "Grants_GrantHint"),
@@ -83,16 +78,16 @@
     /// <summary>
     /// Le voci che questo utente può davvero aprire.
     ///
-    /// <para>Niente giro in banca dati: le due regole si rispondono con <c>IsAdmin</c>, che il servizio
-    /// risolve una volta per scope. Una barra che interrogasse il DB girerebbe su undici pagine mentre
-    /// ognuna sta caricando i propri dati, sullo stesso <c>DbContext</c> di circuito — che è esattamente
-    /// come si prende un «A second operation was started on this context».</para>
+    /// <para>Niente giro in banca dati: il livello lo risolve il servizio una volta per scope, dai claim e
+    /// dal fotogramma in memoria. Una barra che interrogasse il DB girerebbe su undici pagine mentre ognuna
+    /// sta caricando i propri dati, sullo stesso <c>DbContext</c> di circuito — che è esattamente come si
+    /// prende un «A second operation was started on this context».</para>
     /// </summary>
     private IReadOnlyList<Voce> Visibili = Array.Empty<Voce>();
 
     // Una volta sola, non a ogni valutazione del markup: il filtro lo leggono sia il `@if` che il `foreach`.
     protected override void OnInitialized() =>
-        Visibili = Voci.Where(v => v.Chi == Chi.Chiunque || Authz.IsAdmin).ToArray();
+        Visibili = Voci.Where(v => Authz.Role >= v.Minimo).ToArray();
 
     /// <summary>
     /// Confronto sul solo percorso: la pagina corrente può portarsi dietro una query (i filtri di Versioni la

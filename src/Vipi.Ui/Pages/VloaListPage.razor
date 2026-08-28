@@ -1,4 +1,4 @@
-@page "/services/vsop/{Acc}/vloa"
+﻿@page "/services/vsop/{Acc}/vloa"
 @layout SopLayout
 @inject IStationResolver Stations
 @inject IStructureEditingService Structure
@@ -147,7 +147,7 @@ else
             switch (_mode.Kind)
             {
                 case PreviewKind.Draft:
-                    if (await Authz.CanEditAccAsync(_acc.Code))
+                    if (Authz.IsEditor)
                         _view = await ViewService.BuildVloaByIdAsync(row.DocId, BlockTier.Extended, live: false, ignoreRelease: true, preferWorking: true);
                     else { _mode = default; await LoadPublicAsync(row.DocId); }
                     break;

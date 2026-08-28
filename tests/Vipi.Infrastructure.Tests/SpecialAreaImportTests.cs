@@ -1,9 +1,10 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Infrastructure.Persistence;
 using Xunit;
+using Vipi.Domain;
 
 namespace Vipi.Infrastructure.Tests;
 
@@ -308,17 +309,9 @@ public class SpecialAreaImportTests : IAsyncLifetime
     private sealed class SempreSi : Vipi.Application.Auth.IEditAuthorizationService
     {
         public bool IsAdmin => true;
+        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
         public int? CurrentUserId => 1;
         public string? CurrentName => "test";
-        public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => Task.CompletedTask;
-        public Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.CompletedTask;
-        public Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default) => Task.FromResult(true);
-        public Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.FromResult(true);
-        public Task<bool> CanEditAnythingAsync(CancellationToken ct = default) => Task.FromResult(true);
-        public Task<IReadOnlyList<Vipi.Application.Auth.GrantRow>> ListGrantsAsync(CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<Vipi.Application.Auth.GrantRow>>(Array.Empty<Vipi.Application.Auth.GrantRow>());
-        public Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default) => Task.FromResult(0);
-        public Task RevokeGrantAsync(int grantId, CancellationToken ct = default) => Task.CompletedTask;
         public void EnsureAdmin() { }
     }
 

@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,30 +34,18 @@ public sealed class BarraNonAffondaLaPaginaTests
     [InlineData("/services/vsop/guide")]
     public async Task Un_socio_senza_incarichi_apre_le_pagine(string percorso)
     {
-        using var fabbrica = new FabbricaSocio(concessioniRotte: false);
+        using var fabbrica = new FabbricaSocio();
 
         var res = await fabbrica.CreateClient().GetAsync(percorso);
 
         await Assert200(percorso, res);
     }
 
-    /// <summary>
-    /// Il caso che si è visto in produzione: la domanda della barra fallisce. Prima la pagina moriva con
-    /// lei; ora esce senza il tasto «Modifica», che è esattamente ciò che quella domanda decideva.
-    /// </summary>
-    [Theory]
-    [InlineData("/services")]
-    [InlineData("/services/vsop")]
-    public async Task Se_la_domanda_della_barra_fallisce_la_pagina_esce_lo_stesso(string percorso)
-    {
-        using var fabbrica = new FabbricaSocio(concessioniRotte: true);
-
-        var res = await fabbrica.CreateClient().GetAsync(percorso);
-
-        await Assert200(percorso, res);
-        var html = await res.Content.ReadAsStringAsync();
-        Assert.DoesNotContain("/services/vsop/versions", html);   // il tasto «Modifica» resta spento
-    }
+    // ⚠️ Qui c'era «Se_la_domanda_della_barra_fallisce_la_pagina_esce_lo_stesso», che spegneva le
+    // concessioni e chiedeva che la pagina uscisse comunque. Il 28 agosto 2026 quella domanda è stata
+    // TOLTA, non resa tollerante: il tasto «Modifica» ora si decide sul livello, che sta nei claim e in
+    // memoria. Un test che finge di rompere una query che nessuno fa più proverebbe soltanto sé stesso.
+    // Il difetto che raccontava resta nella carta e in `docs/lavori-aperti.md` §U.
 
     /// <summary>
     /// La versione è una spia per chi amministra: a un socio non dice niente, e a chiunque passi di qui
@@ -66,7 +54,7 @@ public sealed class BarraNonAffondaLaPaginaTests
     [Fact]
     public async Task Al_socio_la_versione_non_si_mostra()
     {
-        using var fabbrica = new FabbricaSocio(concessioniRotte: false);
+        using var fabbrica = new FabbricaSocio();
 
         var html = await fabbrica.CreateClient().GetStringAsync("/services");
 
@@ -88,7 +76,7 @@ public sealed class BarraNonAffondaLaPaginaTests
     public async Task Il_catalogo_si_scalda_fuori_dal_render()
     {
         var catalogo = new CatalogoCheRicordaLOrdine();
-        using var fabbrica = new FabbricaSocio(concessioniRotte: false, catalogo: catalogo);
+        using var fabbrica = new FabbricaSocio(catalogo);
 
         var res = await fabbrica.CreateClient().GetAsync("/services");
 
@@ -104,7 +92,7 @@ public sealed class BarraNonAffondaLaPaginaTests
     [Fact]
     public async Task Se_il_catalogo_non_si_legge_la_pagina_esce_senza_i_collegamenti()
     {
-        using var fabbrica = new FabbricaSocio(concessioniRotte: false, catalogo: new CatalogoRotto());
+        using var fabbrica = new FabbricaSocio(new CatalogoRotto());
 
         var res = await fabbrica.CreateClient().GetAsync("/services");
 
@@ -163,31 +151,12 @@ public sealed class BarraNonAffondaLaPaginaTests
         public CurrentUser? Get() => new(123456, "Mario Rossi", "LIRR", Array.Empty<string>());
     }
 
-    /// <summary>Le concessioni non si possono leggere: è il guasto del database visto dalla barra.</summary>
-    private sealed class ConcessioniRotte : IEditGrantRepository
-    {
-        private static Exception Giu() => new InvalidOperationException("database non raggiungibile (simulato)");
-
-        public Task<bool> HasAnyGrantAsync(int UserId, CancellationToken ct = default) => throw Giu();
-        public Task<bool> HasGrantAsync(int UserId, string accCode, CancellationToken ct = default) => throw Giu();
-        public Task<IReadOnlyList<GrantRow>> ListAsync(CancellationToken ct = default) => throw Giu();
-        public Task<int> AddAsync(int UserId, string? displayName, string accCode, int GrantedByUserId, CancellationToken ct = default) => throw Giu();
-        public Task RevokeAsync(int grantId, int actorUserId, CancellationToken ct = default) => throw Giu();
-        public Task<string?> GetDocumentAccCodeAsync(int documentId, CancellationToken ct = default) => throw Giu();
-        public Task<IReadOnlyList<string>> ListAccCodesForUserAsync(int userId, CancellationToken ct = default) => throw Giu();
-    }
-
     private sealed class FabbricaSocio : WebApplicationFactory<Program>
     {
-        private readonly bool _concessioniRotte;
         private readonly IStationResolver? _catalogo;
         private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"vipi-socio-{Guid.NewGuid():N}.db");
 
-        public FabbricaSocio(bool concessioniRotte, IStationResolver? catalogo = null)
-        {
-            _concessioniRotte = concessioniRotte;
-            _catalogo = catalogo;
-        }
+        public FabbricaSocio(IStationResolver? catalogo = null) => _catalogo = catalogo;
 
         protected override IHost CreateHost(IHostBuilder builder)
         {
@@ -200,11 +169,6 @@ public sealed class BarraNonAffondaLaPaginaTests
             {
                 s.RemoveAll<ICurrentUserProvider>();
                 s.AddScoped<ICurrentUserProvider, SocioSemplice>();
-                if (_concessioniRotte)
-                {
-                    s.RemoveAll<IEditGrantRepository>();
-                    s.AddScoped<IEditGrantRepository, ConcessioniRotte>();
-                }
                 if (_catalogo is not null)
                 {
                     s.RemoveAll<IStationResolver>();

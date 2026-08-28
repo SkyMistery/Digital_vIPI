@@ -1,4 +1,4 @@
-@page "/services/vsop/admin/translations"
+﻿@page "/services/vsop/admin/translations"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject Vipi.Application.Abstractions.ITranslationMemory Memoria
@@ -53,7 +53,7 @@
         </LiveRegion>
     </div>
 
-    @if (!Authz.IsAdmin)
+    @if (!Authz.IsEditor)
     {
         <p class="help">@L["Pend_AdminOnly"]</p>
     }
@@ -151,7 +151,7 @@
 
     private async Task CaricaAsync()
     {
-        if (!Authz.IsAdmin) return;
+        if (!Authz.IsEditor) return;
         _busy = true;
         try
         {

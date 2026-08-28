@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Auth;
 using Vipi.Application.Content;
@@ -54,20 +54,26 @@ public class NewDocumentOptionsTests : IAsyncLifetime
 
     public async Task DisposeAsync() { await _db.DisposeAsync(); await _conn.DisposeAsync(); }
 
-    private NewDocumentOptionsService Servizio(string? puoEditare) => new(_repo, new Authz(puoEditare));
+    private NewDocumentOptionsService Servizio(VipiRole livello) => new(_repo, new Authz(livello));
 
+    /// <summary>
+    /// ⚠️ Fino al 28 agosto 2026 questo test si chiamava «Un_responsabile_vede_solo_i_suoi_ACC» e provava
+    /// che un chief di LIRR vedesse solo LIRR. Con la morte delle concessioni per ACC quel «solo» non esiste
+    /// più: l'Editor edita tutto, quindi o li vede tutti o non ne vede nessuno.
+    /// </summary>
     [Fact]
-    public async Task Un_responsabile_vede_solo_i_suoi_ACC()
+    public async Task Un_editor_li_vede_tutti()
     {
-        var opts = await Servizio("LIRR").LoadAsync();
+        var opts = await Servizio(VipiRole.Editor).LoadAsync();
 
-        Assert.Equal(new[] { "LIRR" }, opts.MyAccs.Select(a => a.Code));
+        Assert.Contains(opts.MyAccs, a => a.Code == "LIRR");
+        Assert.Contains(opts.MyAccs, a => a.Code == "LIMM");
     }
 
     [Fact]
     public async Task Un_admin_li_vede_tutti()
     {
-        var opts = await Servizio(null).LoadAsync();
+        var opts = await Servizio(VipiRole.Admin).LoadAsync();
 
         Assert.Contains(opts.MyAccs, a => a.Code == "LIRR");
         Assert.Contains(opts.MyAccs, a => a.Code == "LIMM");
@@ -77,7 +83,7 @@ public class NewDocumentOptionsTests : IAsyncLifetime
     [Fact]
     public async Task Senza_permessi_non_c_e_niente_da_offrire()
     {
-        Assert.Empty((await Servizio("NESSUNO").LoadAsync()).MyAccs);
+        Assert.Empty((await Servizio(VipiRole.DivisionStaff).LoadAsync()).MyAccs);
     }
 
     /// <summary>
@@ -87,7 +93,7 @@ public class NewDocumentOptionsTests : IAsyncLifetime
     [Fact]
     public async Task Gli_esteri_ci_sono_anche_senza_permessi_su_di_loro()
     {
-        var opts = await Servizio("LIRR").LoadAsync();
+        var opts = await Servizio(VipiRole.Editor).LoadAsync();
 
         Assert.Contains(opts.ForeignAccs, a => a.Code == "LFFF" && a.AreaSectors.Count > 0);
         // e non compaiono fra quelli su cui si crea
@@ -99,7 +105,7 @@ public class NewDocumentOptionsTests : IAsyncLifetime
     [Fact]
     public async Task Ogni_elenco_porta_la_sua_specie()
     {
-        var acc = (await Servizio("LIRR").LoadAsync()).MyAccs.Single();
+        var acc = (await Servizio(VipiRole.Editor).LoadAsync()).MyAccs.Single(a => a.Code == "LIRR");
 
         Assert.All(acc.AreaSectors, s => Assert.DoesNotContain(s.Key, acc.StandaloneApps.Select(x => x.Key)));
         Assert.Contains(acc.StandaloneApps, s => s.Key.EndsWith("_APP", StringComparison.Ordinal));
@@ -114,14 +120,14 @@ public class NewDocumentOptionsTests : IAsyncLifetime
     [Fact]
     public async Task Dice_quali_bersagli_hanno_gia_un_documento()
     {
-        var acc = (await Servizio("LIRR").LoadAsync()).MyAccs.Single();
+        var acc = (await Servizio(VipiRole.Editor).LoadAsync()).MyAccs.Single(a => a.Code == "LIRR");
 
         // Il seed dà un documento alla vIPI di Roma: almeno un settore d'area lo dichiara.
         Assert.Contains(acc.AreaSectors, s => s.HasDocument);
 
         // E un aeroporto senza documento non lo dichiara: è la metà che rende il dato utile.
         var senza = await NuovoAeroportoSenzaDocumentoAsync("LIRZ", "Prova");
-        acc = (await Servizio("LIRR").LoadAsync()).MyAccs.Single();
+        acc = (await Servizio(VipiRole.Editor).LoadAsync()).MyAccs.Single(a => a.Code == "LIRR");
         Assert.False(acc.Airports.Single(a => a.Key == senza).HasDocument);
     }
 
@@ -133,25 +139,15 @@ public class NewDocumentOptionsTests : IAsyncLifetime
         return icao;
     }
 
-    /// <summary>Autorizzazione finta: <c>null</c> = admin (può tutto), altrimenti solo l'ACC nominato.</summary>
+    /// <summary>Autorizzazione finta: un livello, e tutto il resto ne discende.</summary>
     private sealed class Authz : IEditAuthorizationService
     {
-        private readonly string? _acc;
-        public Authz(string? acc) => _acc = acc;
+        public Authz(VipiRole livello) => Role = livello;
 
-        public bool IsAdmin => _acc is null;
+        public VipiRole Role { get; }
+        public bool IsAdmin => Role >= VipiRole.Admin;
         public int? CurrentUserId => 704798;
         public string? CurrentName => "test";
-        public Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default) =>
-            Task.FromResult(_acc is null || string.Equals(_acc, accCode, StringComparison.OrdinalIgnoreCase));
-        public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => Task.CompletedTask;
-        public Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.CompletedTask;
-        public Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default) => Task.FromResult(true);
-        public Task<bool> CanEditAnythingAsync(CancellationToken ct = default) => Task.FromResult(true);
-        public Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<GrantRow>>(Array.Empty<GrantRow>());
-        public Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default) => Task.FromResult(0);
-        public Task RevokeGrantAsync(int grantId, CancellationToken ct = default) => Task.CompletedTask;
         public void EnsureAdmin() { }
     }
 }

@@ -1,4 +1,4 @@
-@* Barra di lock di editing esclusivo per pagine SENZA documento (struttura admin, nuovo doc). Riusabile: passa la
+﻿@* Barra di lock di editing esclusivo per pagine SENZA documento (struttura admin, nuovo doc). Riusabile: passa la
    ResourceKey e ascolta LockChanged per abilitare/disabilitare i controlli della pagina. Heartbeat 60s finché la
    scheda è aperta (TTL corto lato service → la chiusura scheda libera da sé in pochi minuti). Rilascio su teardown. *@
 @using Vipi.Application.Content
@@ -31,7 +31,7 @@
     else if (_lock.Locked)
     {
         <span class="lb-state" title="@LockTitolo()" data-utc="@VipiTime.Iso(_lock.ExpiresUtc)"><span class="lb-dot"></span> 🔒 @L["Lock_LockedByPrefix"] <b>@(_lock.ByName ?? L["Lock_AnotherEditor"].Value)</b>@(_lock.ExpiresUtc is { } e ? string.Format(L["Lock_UntilShort"].Value, VipiTime.Z(e)) : "")</span>
-        @if (Authz.IsAdmin)
+        @if (Authz.IsEditor)
         {
             <button class="btn ghost" @onclick="ForceUnlock" title="@L["Lock_ForceTitle"]">🔓 @L["Lock_ForceUnlock"]</button>
         }

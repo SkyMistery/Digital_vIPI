@@ -1,4 +1,4 @@
-@page "/services/vsop/{Acc}"
+﻿@page "/services/vsop/{Acc}"
 @layout SopLayout
 @inherits OwningComponentBase
 @using Microsoft.Extensions.DependencyInjection
@@ -173,7 +173,7 @@ else
     {
         _acc = Stations.Resolve(Acc);
         if (_acc is null) return;
-        _canEdit = await Authz.CanEditAccAsync(_acc.Code);
+        _canEdit = Authz.IsEditor;
 
         var data = await Structure.LoadAsync(_acc.Code);
         if (data is not null)

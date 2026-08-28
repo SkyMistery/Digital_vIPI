@@ -1,4 +1,4 @@
-@page "/services/vsop/{Acc}/airports/editor"
+﻿@page "/services/vsop/{Acc}/airports/editor"
 @layout SopLayout
 @rendermode InteractiveServer
 @using Vipi.Application.Content
@@ -273,7 +273,7 @@ else
                                che la sezione «Versioni» dell'aeroporto non somigliava a quella degli altri tre.
                                Published ricarica tutto: BeforePublishAsync ha già avvisato sulle sezioni non salvate. *@
                             <ReleasePanel Target="ReleaseTargetType.Airport" Key="@_icao"
-                                          ShowDiff="true" AllowCancel="Authz.IsAdmin"
+                                          ShowDiff="true" AllowCancel="Authz.IsEditor"
                                           BeforePublishAsync="BeforePublishAsync"
                                           PreviewUrlFactory="ReleasePreviewUrl"
                                           Published="LoadAsync" />

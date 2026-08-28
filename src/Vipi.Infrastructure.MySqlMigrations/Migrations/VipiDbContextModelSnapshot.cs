@@ -1778,40 +1778,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("DocumentVersions");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.EditGrant", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AccId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("DisplayName")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<DateTime>("GrantedAtUtc")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("GrantedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AccId");
-
-                    b.HasIndex("UserId", "AccId")
-                        .IsUnique();
-
-                    b.ToTable("EditGrants");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.EditResourceLock", b =>
                 {
                     b.Property<int>("Id")
@@ -2206,6 +2172,38 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .IsUnique();
 
                     b.ToTable("NeighbourCandidates");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.RoleOverride", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime>("GrantedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("GrantedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("RoleOverrides");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Sector", b =>
@@ -2968,17 +2966,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .IsRequired();
 
                     b.Navigation("Document");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.EditGrant", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.Acc", "Acc")
-                        .WithMany()
-                        .HasForeignKey("AccId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Acc");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.Sector", b =>

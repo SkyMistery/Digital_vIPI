@@ -1,4 +1,4 @@
-@page "/services/vsop/admin/airports"
+﻿@page "/services/vsop/admin/airports"
 @layout SopLayout
 @rendermode InteractiveServer
 @using Microsoft.Extensions.Logging
@@ -35,7 +35,7 @@
         <HelpHint Href="/services/vsop/guide#admin-aeroporti" AriaLabel="@L["Apt_HelpAria"]" ExtraClass="wide">
             @((MarkupString)L["Apt_HelpBody"].Value)
         </HelpHint>
-        @if (Authz.IsAdmin)
+        @if (Authz.IsEditor)
         {
             <nav class="struct-nav">
                 @* Niente spinner dentro i tasti: comparendo ne cambiava la larghezza e spostava i vicini.
@@ -75,7 +75,7 @@
         }
     </div>
 
-    @if (!Authz.IsAdmin)
+    @if (!Authz.IsEditor)
     {
         <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@L["Common_AdminOnly"]</div></div>
     }
@@ -438,7 +438,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!Authz.IsAdmin) return;
+        if (!Authz.IsEditor) return;
         await ReloadAsync();
         _ = LoadIvaoAsync();
     }

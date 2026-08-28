@@ -179,8 +179,9 @@ public class ConsistencyNarratorTests
 
         var senzaAdmin = new Vipi.Application.Auth.AdminCoverageService(
             new RosterSenzaAdmin(),
-            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.Auth.AuthOptions()),
-            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.DivisionOptions()));
+            new Vipi.Application.Auth.RoleResolver(
+                new Vipi.Application.Auth.AuthOptions(), new Vipi.Application.DivisionOptions()),
+            new NessunaPromozione());
         foreach (var f in senzaAdmin.RunAsync().GetAwaiter().GetResult()) yield return f;
     }
 
@@ -196,10 +197,19 @@ public class ConsistencyNarratorTests
             throw new InvalidOperationException("connessione caduta");
     }
 
+    /// <summary>Nessuna promozione a mano: qui si prova il racconto del rilievo, non i permessi.</summary>
+    private sealed class NessunaPromozione : Vipi.Application.Auth.IRoleOverrides
+    {
+        public bool Loaded => true;
+        public Vipi.Domain.VipiRole? For(int userId) => null;
+        public IReadOnlyDictionary<int, Vipi.Domain.VipiRole> All { get; } = new Dictionary<int, Vipi.Domain.VipiRole>();
+        public Task ReloadAsync(CancellationToken ct = default) => Task.CompletedTask;
+    }
+
     /// <summary>
     /// Uno staffista nel roster, con un codice che nessun pattern admin riconosce. ⚠️ Dal 22 agosto 2026
-    /// vale admin qualunque <c>IT-{ruolo}</c>, quindi per restare fuori il codice dev'essere <b>malformato</b>
-    /// (qui: senza trattino) — un <c>IT-QUALCOSA</c> oggi sarebbe admin.
+    /// dal 28 agosto 2026 valgono admin OTTO codici puntuali, quindi per restare fuori basta un codice che
+    /// non sia fra quelli — qui uno malformato, che resta il caso più eloquente.
     /// </summary>
     private sealed class RosterSenzaAdmin : Vipi.Application.Abstractions.IStaffRosterRepository
     {

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Vipi.Infrastructure.Aor;
 using Vipi.Infrastructure.Persistence;
@@ -122,7 +122,6 @@ public static class DependencyInjection
         // I flussi storici restano leggibili finche' il travaso non e' stato eseguito ovunque: la
         // migrazione che droppa le due tabelle arriva DOPO, in una release sua.
         services.AddScoped<Vipi.Application.Abstractions.IAgreementRepository, EfAgreementRepository>();
-        services.AddScoped<Vipi.Application.Abstractions.IEditGrantRepository, EfEditGrantRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IStaffRosterRepository, EfStaffRosterRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAuditLogReader, EfAuditLogReader>();
         services.AddScoped<Vipi.Application.Abstractions.ISearchRepository, EfSearchRepository>();
@@ -224,6 +223,7 @@ public static class DependencyInjection
         services.AddSingleton<Vipi.Application.Abstractions.ITranslationEngine, Translation.DeepLTranslationEngine>();
         services.AddScoped<Vipi.Application.Abstractions.ITranslationMemory, EfTranslationMemory>();
         services.AddScoped<Vipi.Application.Abstractions.IGlossaryStore, EfGlossaryStore>();
+        services.AddScoped<Vipi.Application.Abstractions.IRoleOverrideStore, EfRoleOverrideStore>();
         services.AddScoped<Vipi.Application.Abstractions.ITranslatableCorpus, EfTranslatableCorpus>();
         services.AddScoped<Vipi.Application.Translation.DocumentTranslator>();
         // La vIPI ACC non arriva alla pagina come DocumentView (vive a blocchi): stessa memoria, stessa

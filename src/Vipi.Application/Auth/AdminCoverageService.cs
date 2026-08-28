@@ -1,21 +1,32 @@
-using Microsoft.Extensions.Options;
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Diagnostics;
+using Vipi.Domain;
 
 namespace Vipi.Application.Auth;
 
-/// <summary>Uno staffista visto dal roster, coi suoi codici e quali di questi valgono admin.</summary>
+/// <summary>
+/// Uno staffista visto dal roster: i suoi codici, quali di questi valgono admin, e il <b>livello effettivo</b>
+/// — che può venire da una promozione a mano e non dai codici.
+/// </summary>
 public sealed record AdminCodeRow(int UserId, string? DisplayName, IReadOnlyList<string> Codes,
-    IReadOnlyList<string> Matched);
+    IReadOnlyList<string> Matched, VipiRole Level, bool Promosso);
 
-/// <summary>Fotografia di «chi può editare»: i pattern in vigore e i codici realmente osservati.</summary>
-public sealed record AdminCoverage(IReadOnlyList<string> Patterns, IReadOnlyList<AdminCodeRow> Rows)
+/// <summary>Fotografia di «chi può editare»: i pattern in vigore, per livello, e i codici osservati.</summary>
+public sealed record AdminCoverage(
+    IReadOnlyList<string> Patterns,
+    IReadOnlyList<string> EditorPatterns,
+    IReadOnlyList<string> DivisionStaffPatterns,
+    IReadOnlyList<AdminCodeRow> Rows)
 {
     /// <summary>Nessuno ha mai fatto login: il roster si popola dai login, quindi non si sa ancora nulla.</summary>
     public bool RosterEmpty => Rows.Count == 0;
 
-    /// <summary>Almeno uno degli staffisti conosciuti è admin.</summary>
-    public bool AnyAdmin => Rows.Any(r => r.Matched.Count > 0);
+    /// <summary>
+    /// Almeno uno degli staffisti conosciuti è admin. ⚠️ Guarda il livello <b>effettivo</b>, non i codici:
+    /// un admin per promozione a mano è un admin, e un rilievo che lo ignorasse manderebbe a cercare un
+    /// guasto che non c'è.
+    /// </summary>
+    public bool AnyAdmin => Rows.Any(r => r.Level >= VipiRole.Admin);
 
     /// <summary>Codici osservati che NON valgono admin: è l'elenco da cui capire se un pattern è sbagliato.</summary>
     public IReadOnlyList<string> UnmatchedCodes => Rows
@@ -29,10 +40,11 @@ public sealed record AdminCoverage(IReadOnlyList<string> Patterns, IReadOnlyList
 /// Risponde a una domanda che finora nessuno poneva: <b>i codici admin configurati corrispondono a quelli
 /// veri di IVAO?</b>
 ///
-/// <para>Dal 22 agosto 2026 il lato divisione <b>non è più un'ipotesi</b>: vale admin qualunque
-/// <c>^IT-[A-Z0-9]+$</c>, perché lo staff di divisione è admin per decisione del committente, e quel formato
-/// è stato osservato davvero ai login. Resta un'ipotesi il lato ACC (<c>^LI[A-Z0-9]+-CH$</c>): nessun codice
-/// chief è ancora comparso. Se sbaglia, i due modi di rompersi non si somigliano —
+/// <para>Dal 28 agosto 2026 admin sono <b>otto codici puntuali</b> di direzione (<c>IT-DIR</c>,
+/// <c>IT-ADIR</c>, <c>IT-WM</c>, <c>IT-AWM</c>, <c>IT-AOC</c>, <c>IT-AOAC</c>, <c>IT-SOC</c>,
+/// <c>IT-SOAC</c>) più i fondatori per VID; il resto dello staff <c>IT-</c> è <c>DivisionStaff</c> e i
+/// chief d'ACC sono <c>Editor</c>. ⚠️ Questa diagnosi guarda <b>solo il livello admin</b>, che è quello
+/// che, mancando, non si ripara da dentro. Se sbaglia, i due modi di rompersi non si somigliano —
 /// <b>nessuno è admin</b> significa che in produzione nessuno può editare nulla e non lo si può nemmeno
 /// rimediare da dentro (distribuire i permessi richiede di essere admin); <b>troppi admin</b> significa dare
 /// il controllo editoriale a chi non doveva averlo. Il primo è silenzioso, il secondo lo è ancora di più.</para>
@@ -55,24 +67,38 @@ public interface IAdminCoverageService
 public sealed class AdminCoverageService : IAdminCoverageService
 {
     private readonly IStaffRosterRepository _roster;
-    private readonly IReadOnlyList<string> _patterns;
+    private readonly RoleResolver _resolver;
+    private readonly IRoleOverrides _promozioni;
 
-    public AdminCoverageService(IStaffRosterRepository roster, IOptions<AuthOptions> auth,
-        IOptions<DivisionOptions> division)
+    // I pattern non si ricalcolano qui: sono quelli del RoleResolver, cioè gli stessi che l'autorizzazione
+    // usa davvero. Una diagnosi che se li ricostruisse per conto proprio potrebbe dire «va tutto bene»
+    // mentre il prodotto ne applica altri — e perderebbe l'unica proprietà che la rende utile.
+    public AdminCoverageService(IStaffRosterRepository roster, RoleResolver resolver, IRoleOverrides promozioni)
     {
         _roster = roster;
-        _patterns = AdminStaffCodes.Patterns(auth.Value, division.Value);
+        _resolver = resolver;
+        _promozioni = promozioni;
     }
 
     public async Task<AdminCoverage> DescribeAsync(CancellationToken ct = default)
     {
-        var compilati = AdminStaffCodes.Compile(_patterns);
         var righe = (await _roster.ListActiveAsync(ct))
-            .Select(s => new AdminCodeRow(s.UserId, s.DisplayName, s.StaffPositions,
-                AdminStaffCodes.Matching(s.StaffPositions, compilati)))
+            .Select(s =>
+            {
+                // ⚠️ Il livello che si mostra è quello EFFETTIVO, promozione compresa: una diagnosi che
+                // guardasse i soli codici direbbe «nessuno è admin» mentre qualcuno lo è per promozione, e
+                // manderebbe a caccia di un guasto che non c'è.
+                var promozione = _promozioni.For(s.UserId);
+                return new AdminCodeRow(
+                    s.UserId, s.DisplayName, s.StaffPositions,
+                    _resolver.MatchingCodes(s.StaffPositions, VipiRole.Admin),
+                    _resolver.Effective(s.UserId, s.StaffPositions, promozione),
+                    Promosso: promozione is { } p && p > _resolver.Resolve(s.UserId, s.StaffPositions));
+            })
             .ToList();
 
-        return new AdminCoverage(_patterns, righe);
+        return new AdminCoverage(
+            _resolver.AdminPatterns, _resolver.EditorPatterns, _resolver.DivisionStaffPatterns, righe);
     }
 
     public async Task<IReadOnlyList<ConsistencyFinding>> RunAsync(CancellationToken ct = default)
@@ -89,8 +115,9 @@ public sealed class AdminCoverageService : IAdminCoverageService
             new ConsistencyFinding("Nessun admin fra gli staffisti conosciuti", ConsistencySeverity.Error,
                 $"{c.Rows.Count} staffisti nel roster",
                 $"Nessuno dei codici staff osservati combacia coi pattern admin in vigore ({string.Join(" | ", c.Patterns)}). " +
-                $"Codici visti e non riconosciuti: {visti}. Finché è così nessuno può editare né assegnare permessi, " +
-                "e la cosa non si sblocca da dentro: si corregge «Auth:AdminStaffCodes» o la sezione «Division».",
+                $"Codici visti e non riconosciuti: {visti}. Finché è così nessuno può assegnare permessi, " +
+                "e la cosa non si sblocca da dentro: si corregge «Auth:AdminRoles» (o «Auth:AdminStaffCodes» " +
+                "per sostituirli tutti), oppure si mette un VID in «Auth:FounderVids».",
                 // ⚠️ Nessuna rotta: questo NON si ripara da dentro l'applicazione — è proprio ciò che il
                 // rilievo dice. Mandare a /services/vsop/admin/permissions sarebbe mandare a una porta chiusa.
                 ConsistencyArea.Configurazione,

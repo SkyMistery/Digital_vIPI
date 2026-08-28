@@ -1,4 +1,4 @@
-@page "/services/stats/division"
+﻿@page "/services/stats/division"
 @layout SopLayout
 @rendermode InteractiveServer
 @using Vipi.Application.Abstractions
@@ -55,7 +55,7 @@
            ⚠️ Sta QUI, subito sotto i quattro riquadri, e non in fondo: è la domanda per cui uno staffista
            apre questa pagina, e in coda alla classifica da cinquanta righe non la trovava nessuno (chiesto
            dal committente). *@
-        @if (Authz.IsAdmin)
+        @if (Authz.IsDivisionStaff)
         {
             <h2 class="h-sect">@L["Stats_Airports"]</h2>
             <p class="muted">@L["Stats_AirportsHint"]</p>
@@ -142,7 +142,7 @@
            vorrebbe dire offrire una porta che si chiude in faccia. Non è comunque una guardia — la guardia
            sta nella pagina di destinazione, insieme alla riga di audit — è il modo di arrivarci senza
            scorrere una classifica di cinquanta righe cercando un numero. *@
-        @if (Authz.IsAdmin)
+        @if (Authz.IsDivisionStaff)
         {
             <h2 class="h-sect">@L["Stats_FindVid"]</h2>
             <div class="vid-find">
@@ -185,7 +185,7 @@
                         <div>
                             <div class="who">
                             <VidLink Vid="c.UserId" SoloNumero="true" />
-                            @if (Authz.IsAdmin) { <StatsPeekLink Vid="c.UserId" /> }
+                            @if (Authz.IsDivisionStaff) { <StatsPeekLink Vid="c.UserId" /> }
                         </div>
                             <div class="what">@StatsView.Ore(c.Seconds) h · @c.Shifts @L["Stats_Shifts"]</div>
                         </div>
@@ -215,7 +215,7 @@
                                    ovunque nell'app), la lente alle statistiche personali qui dentro. *@
                                 <td data-l="VID">
                                     <VidLink Vid="c.UserId" SoloNumero="true" />
-                                    @if (Authz.IsAdmin) { <StatsPeekLink Vid="c.UserId" /> }
+                                    @if (Authz.IsDivisionStaff) { <StatsPeekLink Vid="c.UserId" /> }
                                 </td>
                                 <td class="cb" data-l="@L["Stats_Hours"]"
                                     style="--cb:@StatsView.Quota(c.Seconds, _maxOre)">@StatsView.Ore(c.Seconds)</td>
@@ -258,7 +258,7 @@
         </div>
     }
 
-    @if (Authz.IsAdmin)
+    @if (Authz.IsDivisionStaff)
     {
         @* L'ingresso all'archivio grezzo: senza un link da qualche parte, la pagina esisterebbe solo per
            chi ne conosce l'indirizzo. Sta accanto agli altri strumenti di staff, non nel menu pubblico. *@
@@ -344,7 +344,7 @@
         _io = Utenti.Get()?.UserId;
 
         // Lo staff vede sempre; gli altri solo se la classifica è stata resa pubblica.
-        _puoVedere = Authz.IsAdmin || (_pubblica && Utenti.Get() is not null);
+        _puoVedere = Authz.IsDivisionStaff || (_pubblica && Utenti.Get() is not null);
         if (!_puoVedere) return;
 
         var periodo = StatsView.Period(P);
@@ -393,7 +393,7 @@
         // ⚠️ Il traffico dei campi si legge SOLO per lo staff, e la guardia sta qui — prima della query —
         // non davanti al markup: una guardia messa dopo nasconde i numeri a schermo e li ha comunque già
         // tirati fuori dal database. È la stessa regola della pagina personale di un altro.
-        if (!Authz.IsAdmin) return;
+        if (!Authz.IsDivisionStaff) return;
 
         var elenco = await Aeroporti.GroupsAsync();
         _gruppi = new[] { new StatsChipBar.Voce(L["Stats_AirportsAll"], Indirizzo(periodo.Key, null), gruppo is null) }
@@ -442,7 +442,7 @@
 
     private async Task CambiaVisibilita(ChangeEventArgs e)
     {
-        if (!Authz.IsAdmin) return;                       // la guardia sta anche qui, non solo nel markup
+        if (!Authz.IsDivisionStaff) return;                       // la guardia sta anche qui, non solo nel markup
 
         var acceso = e.Value is true;
         await Impostazioni.SaveAsync(acceso, Utenti.Get()?.UserId ?? 0);

@@ -1,4 +1,4 @@
-@page "/services/vsop/{Acc}/apps"
+﻿@page "/services/vsop/{Acc}/apps"
 @layout SopLayout
 @inject IStringLocalizer<SharedResource> L
 @inject IStationResolver Stations
@@ -80,7 +80,7 @@ else
     {
         _acc = Stations.Resolve(Acc);
         if (_acc is null) return;
-        _canEdit = await Authz.CanEditAccAsync(_acc.Code);
+        _canEdit = Authz.IsEditor;
         var data = await Structure.LoadAsync(_acc.Code);
         var all = data?.Sectors ?? (IReadOnlyList<SectorRow>)Array.Empty<SectorRow>();
 

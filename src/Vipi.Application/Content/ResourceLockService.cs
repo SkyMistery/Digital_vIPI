@@ -1,6 +1,7 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using static Vipi.Application.Messaggio;
+using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -76,7 +77,7 @@ public sealed class ResourceLockService : IResourceLockService
     {
         if (_authz.CurrentUserId is not int uid) return Task.FromResult(LockInfo.Free());
         // Le chiavi admin le prende solo un admin: vedi ResourceLockKeys.RichiedonoAdmin per il perché.
-        if (ResourceLockKeys.RichiedonoAdmin.Contains(resourceKey)) _authz.EnsureAdmin();
+        if (ResourceLockKeys.RichiedonoAdmin.Contains(resourceKey)) _authz.EnsureAtLeast(VipiRole.Editor);
         return _repo.AcquireOrInspectAsync(resourceKey, uid, _authz.CurrentName, LockTtlMinutes, ct);
     }
 
@@ -94,7 +95,7 @@ public sealed class ResourceLockService : IResourceLockService
 
     public Task ForceUnlockAsync(string resourceKey, CancellationToken ct = default)
     {
-        if (!_authz.IsAdmin) throw new EditNotAllowedException();
+        if (!_authz.IsEditor) throw new EditNotAllowedException();
         return _repo.ForceUnlockAsync(resourceKey, _authz.CurrentUserId ?? 0, ct);
     }
 

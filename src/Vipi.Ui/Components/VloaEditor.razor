@@ -1,4 +1,4 @@
-@* Editor documentale della vLOA (coppia Home↔Neighbour). Primo editor costruito su IEditingService:
+﻿@* Editor documentale della vLOA (coppia Home↔Neighbour). Primo editor costruito su IEditingService:
    bozza + lock esclusivo, sezioni (albero) e blocchi (prosa/callout/tabella), pubblicazione. Lato Home editabile.
    Ospitato da VloaEditorPage (route /services/vsop/{acc}/vloa/editor?acc=<vicino>). *@
 @using System.Text.Json
@@ -119,7 +119,7 @@ else
                ci arriva di cercare il pannello che gli è stato promesso. *@
             <div id="sec-versioni">
                 <ReleasePanel Target="ReleaseTargetType.Vloa" Key="@_shell.DocumentId!.Value.ToString()"
-                              ShowDiff="true" AllowCancel="Authz.IsAdmin"
+                              ShowDiff="true" AllowCancel="Authz.IsEditor"
                               PreviewUrlFactory="ReleasePreviewUrl"
                               Published="LoadAsync" />
             </div>

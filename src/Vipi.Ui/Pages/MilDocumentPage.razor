@@ -1,4 +1,4 @@
-@page "/services/vsop/{Acc}/mil"
+﻿@page "/services/vsop/{Acc}/mil"
 @layout SopLayout
 @inject IVipiViewService ViewService
 @inject IAirportViewDerivationService AirportView
@@ -165,7 +165,7 @@
         if (_icao.Length == 0) return;
 
         Stations.Prewarm();
-        _canEdit = await Authz.CanEditAccAsync(Acc);
+        _canEdit = Authz.IsEditor;
 
         // ⚠️ Il degrado di un'anteprima non autorizzata torna alla PUBBLICA, derivate congelate comprese:
         // lasciarlo a metà servirebbe al pubblico le derivate live, e il congelamento AIRAC diventerebbe

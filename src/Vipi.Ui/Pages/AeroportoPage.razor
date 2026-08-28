@@ -1,4 +1,4 @@
-@page "/services/vsop/{Acc}/airports"
+﻿@page "/services/vsop/{Acc}/airports"
 @layout SopLayout
 @inherits OwningComponentBase
 @using Microsoft.Extensions.DependencyInjection
@@ -258,7 +258,7 @@ else
         switch (_mode.Kind)
         {
             case PreviewKind.Draft:
-                if (await Authz.CanEditAccAsync(_acc.Code))
+                if (Authz.IsEditor)
                     _view = await ViewService.BuildAirportVipiAsync(_icao, BlockTier.Extended, live: false, ignoreRelease: true, preferWorking: true);
                 else { _mode = default; _view = await ViewService.BuildAirportVipiAsync(_icao, BlockTier.Extended, live: false); }
                 break;
@@ -272,7 +272,7 @@ else
                 break;
         }
         if (_view is null) return;
-        _canEdit = await Authz.CanEditAccAsync(_acc.Code);   // tasto Editor solo a chi può editare l'ACC
+        _canEdit = Authz.IsEditor;   // tasto Editor solo a chi può editare l'ACC
 
         _wx = await Weather.GetAsync(_icao);
         _metar = string.IsNullOrWhiteSpace(_wx?.Metar) ? null : MetarParser.ParseMetar(_wx!.Metar!);

@@ -19,8 +19,31 @@ Centralizza tutto ciò che cambia passando divisione (es. IT → DE). Mappata su
 | `Division:Code` | string | `IT` | Codice divisione IVAO. Prefisso degli **staff code** (`{Code}-DIR`…) e id nell'**API membri** (`/v2/divisions/{Code}/members`). |
 | `Division:Name` | string | `Italy` | Nome leggibile (display). |
 | `Division:IcaoPrefixes` | string[] | `["LI"]` | Prefissi ICAO dei callsign ATC della divisione. Filtra il polling online. IT→`["LI"]`, DE→`["ED","ET"]`. |
-| `Division:AdminRolePatterns` | string[] | `["[A-Z0-9]+"]` | Suffissi (regex, **senza** prefisso divisione) che valgono come admin. Codice finale = `^{Code}-{ruolo}$`. ⚠️ Il default è un **jolly**: tutto lo staff di divisione è admin (decisione del 22 agosto 2026). Per restringere serve `Auth:AdminStaffCodes`, non questa chiave — da qui si può solo allargare. |
-| `Division:AdminAccRolePatterns` | string[] | `["CH","ACH"]` | Suffissi (regex) di ruoli admin **ACC-scoped** (prefisso ICAO dell'ACC, non della divisione, es. `LIRR-CH`, `LIMM-ACH`). Codice finale = `^{prefissoIcao}[A-Z0-9]+-{ruolo}$` per ogni `IcaoPrefixes`. |
+
+> ⚠️ **`Division:AdminRolePatterns` e `Division:AdminAccRolePatterns` non esistono più** (28 agosto 2026).
+> «Qual è la divisione» e «a chi i suoi codici danno un permesso» sono due domande diverse, e la seconda è
+> passata alla sezione **`Auth`**: vedi §1a-bis.
+
+### 1a-bis. `Auth` — chi può cosa
+
+Mappata su `AuthOptions` (`src/Vipi.Application/Auth/AuthOptions.cs`). Ogni persona ha **un livello**
+(`VipiRole`: `User` → `IvaoStaff` → `DivisionStaff` → `Editor` → `Admin`) e i livelli sono **cumulativi**.
+Carta: `docs/feature/2026-08-28-autorizzazioni-a-livelli.md`.
+
+| Chiave | Tipo | Default | Significato |
+|---|---|---|---|
+| `Auth:FounderVids` | int[] | *(vuoto; `704798` in `appsettings.json`)* | VID che sono `Admin` comunque, qualunque posizione staff abbiano. ⚠️ **È l'antidoto al blocco**: se i pattern sbagliassero, «nessuno è admin» non si ripara da dentro, perché per assegnare permessi bisogna essere admin. Un VID ≤ 0 non vale mai. |
+| `Auth:AdminRoles` | string[] | `["DIR","ADIR","WM","AWM","AOC","AOAC","SOC","SOAC"]` | Suffissi dei ruoli di **direzione**: codice finale `^{Division:Code}-{ruolo}$`. Chi ha un `IT-…` fuori da questo elenco è `DivisionStaff`, non admin. |
+| `Auth:EditorAccRoles` | string[] | `["CH","ACH"]` | Suffissi dei ruoli **ACC-scoped** che valgono `Editor`: codice finale `^{prefissoIcao}[A-Z0-9]+-{ruolo}$` per ogni `Division:IcaoPrefixes`. |
+| `Auth:AdminStaffCodes` | string[] | *(vuoto)* | Pattern regex **completi** che sostituiscono in blocco quelli dell'admin. È l'unica lista che **sostituisce** invece di sommare: la via per **restringere** senza ricompilare. |
+
+Il livello di `DivisionStaff` non si configura: è `^{Division:Code}-[A-Z0-9]+$`, cioè tutto il resto dello
+staff della divisione. E chi ha una posizione staff di **un'altra** divisione è `IvaoStaff`, che oggi non
+apre niente in più — è un'etichetta, perché si veda chi è chi.
+
+**La promozione a mano** non sta in config: è una riga di banca dati (`RoleOverrides`), scritta da
+`/services/vsop/admin/permissions`. Il livello effettivo è `max(quello dei codici staff, la promozione)`,
+quindi da lì si può solo **alzare** qualcuno sopra il suo pavimento.
 
 **Cambiare divisione (IT → DE):**
 ```json
@@ -30,7 +53,7 @@ Centralizza tutto ciò che cambia passando divisione (es. IT → DE). Mappata su
 ⚠️ Il **contenuto seed** (Roma/LIRR) è dato, non config: una nuova divisione va riseedata a parte.
 
 > ### ⚠️ Da queste liste si può solo ALLARGARE, mai restringere
-> Il binder della configurazione **aggiunge** alle liste di default invece di sostituirle: elencare qui tre
+> Il binder della configurazione **aggiunge** alle liste di default invece di sostituirle: elencare tre
 > ruoli non toglie gli altri, li somma (è anche il motivo per cui `IcaoPrefixes: ["LI"]` produceva «LI» due
 > volte). Per **restringere** davvero l'insieme degli admin si usa **`Auth:AdminStaffCodes`**, che sostituisce
 > l'intero elenco con pattern completi. Su ciò che è il permesso più alto del prodotto, la differenza conta.
@@ -38,13 +61,16 @@ Centralizza tutto ciò che cambia passando divisione (es. IT → DE). Mappata su
 > ### Come si verifica che i pattern siano quelli giusti
 > IVAO **non** espone l'elenco degli staffisti di divisione (`/v2/divisions/{id}/members` → 404 col token
 > app), quindi la verifica è empirica: il roster si popola dai login, e la scheda **«Chi può editare»** in
-> `/services/vsop/admin/diagnostics` mette i pattern in vigore accanto ai codici staff **realmente osservati**. Se
-> nessuno degli staffisti conosciuti risulta admin scatta un rilievo grave (e `/vsop/health` va a Degraded);
-> a roster vuoto invece tace, perché su un'installazione nuova nessuno ha ancora fatto login.
+> `/services/vsop/admin/diagnostics` mette i pattern in vigore — per **tutti e tre** i livelli che se ne
+> servono — accanto ai codici staff **realmente osservati** e al livello effettivo di ognuno (col pallino
+> quando gliel'ha dato una promozione a mano, non un codice). Se nessuno degli staffisti conosciuti risulta
+> admin scatta un rilievo grave (e `/vsop/health` va a Degraded); a roster vuoto invece tace, perché su
+> un'installazione nuova nessuno ha ancora fatto login.
 >
 > Codici veri visti al 9 agosto 2026: `IT-AOC`, `IT-SOC`, `IT-T01`, `IT-FOC`, `IT-ADIR`, `IT-FOAC`,
-> `IT-AOA1`, `IT-T03` — quindi **`IT-SOC`, `IT-T01`, `IT-FOC` e `IT-FOAC` non sono coperti** dai default, e
-> nessun codice chief `{ACC}-CH` è ancora comparso.
+> `IT-AOA1`, `IT-T03`. Con le regole del 28 agosto: `IT-AOC`, `IT-SOC` e `IT-ADIR` sono **admin**; gli altri
+> cinque sono **`DivisionStaff`** — vedono le statistiche e non toccano i documenti, e per rimetterli in
+> gioco c'è la promozione a mano. Nessun codice chief `{ACC}-CH` è ancora comparso ai login.
 
 ---
 

@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Vipi.Application.Auth;
 using Vipi.Host;
 using Xunit;
+using Vipi.Domain;
 
 namespace Vipi.E2E.Tests;
 
@@ -135,17 +136,10 @@ public sealed class PaginaErroreTests
 
         // È ciò che il layout chiede per decidere che cosa mostrare, e non è guardato di proposito.
         public bool IsAdmin => throw Giu();
+        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
 
         public int? CurrentUserId => null;
         public string? CurrentName => null;
-        public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => throw Giu();
-        public Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default) => throw Giu();
-        public Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default) => throw Giu();
-        public Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default) => throw Giu();
-        public Task<bool> CanEditAnythingAsync(CancellationToken ct = default) => throw Giu();
-        public Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default) => throw Giu();
-        public Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default) => throw Giu();
-        public Task RevokeGrantAsync(int grantId, CancellationToken ct = default) => throw Giu();
         public void EnsureAdmin() => throw Giu();
     }
 

@@ -1,4 +1,4 @@
-@page "/services/stats"
+﻿@page "/services/stats"
 @page "/services/stats/user/{Vid:int}"
 @layout SopLayout
 @using Vipi.Application.Abstractions
@@ -17,7 +17,7 @@
    così la pagina resta statica, il tasto «indietro» funziona e un periodo si può mandare a qualcuno.
 
    ⚠️ DUE indirizzi, una pagina sola. «/services/stats» sono le PROPRIE; «/services/stats/user/{vid}» sono
-   quelle di un altro e le apre solo lo staff (`Authz.IsAdmin`) — con la fascia in testa che lo dice e una
+   quelle di un altro e le apre solo lo staff (`Authz.IsDivisionStaff`) — con la fascia in testa che lo dice e una
    riga nel registro di audit, perché la griglia ora×giorno racconta QUANDO una persona è online e un dato
    così non si guarda in silenzio. Due pagine gemelle si sarebbero scollate al primo grafico aggiunto a una
    sola delle due: qui cambia il VID di partenza, non il contenuto.
@@ -38,7 +38,7 @@
                stata resa pubblica — e non è una guardia: la guardia è là, come per la lente del podio. *@
             <div class="sh-title">
                 <h1 class="page-h1">@(_altrui || _vietato ? L["Stats_UserTitle"] : L["Stats_Title"])</h1>
-                @if (_utente is not null && !_vietato && (Authz.IsAdmin || _classificaPubblica))
+                @if (_utente is not null && !_vietato && (Authz.IsDivisionStaff || _classificaPubblica))
                 {
                     <a class="btn ghost sh-go" href="/services/stats/division">
                         <Icon Name="grid" Size="15" /> @L["Stats_DivisionLink"]
@@ -427,7 +427,7 @@
         // La guardia sta QUI, prima di ogni query: le statistiche di un altro non si aprono indovinando il
         // VID. ⚠️ Vale anche per l'anonimo — che non è staff — e per lui il divieto è la risposta giusta:
         // «entra e poi vedrai» prometterebbe a chiunque una pagina che quasi nessuno può aprire.
-        if (chiesteAltrui && !Authz.IsAdmin)
+        if (chiesteAltrui && !Authz.IsDivisionStaff)
         {
             _vietato = true;
             return;

@@ -1,4 +1,4 @@
-@page "/services/vsop/tasks"
+﻿@page "/services/vsop/tasks"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IEditorTaskService Tasks
@@ -192,7 +192,8 @@
     {
         _currentCycle = Tasks.CurrentCycle();
         _upcoming = Tasks.UpcomingCycles(14);
-        // Il roster serve solo a chi può assegnare: per gli altri sarebbe una query per niente.
+        // Il roster serve solo a chi può assegnare — che resta l'admin: dare lavoro a un'altra persona
+        // non è editare un documento. Per gli altri sarebbe una query per niente.
         if (Authz.IsAdmin)
         {
             try { _staff = await Roster.ListActiveAsync(); }

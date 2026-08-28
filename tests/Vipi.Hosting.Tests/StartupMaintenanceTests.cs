@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Vipi.Application.Diagnostics;
 using Vipi.Hosting;
@@ -49,12 +49,13 @@ public class StartupMaintenanceTests
 
         host.RunVipiStartupMaintenance();
 
-        // Tutte e QUATTRO hanno provato e fallito: se il guasto della prima avesse fermato la sequenza, qui ci
-        // sarebbe una segnalazione sola. Il numero segue le passate — erano cinque finche' c'era il travaso dei
-        // flussi in accordi, tolto il 17 agosto 2026 con le tabelle che leggeva — ed e' voluto che aggiungerne
-        // o toglierne una faccia fallire questo test: e' il promemoria che una passata nuova va anche isolata,
-        // o il suo guasto porterebbe giu' l'avvio.
-        Assert.Equal(4, report.Findings.Count);
+        // Tutte e CINQUE hanno provato e fallito: se il guasto della prima avesse fermato la sequenza, qui ci
+        // sarebbe una segnalazione sola. Il numero segue le passate — quattro dal 17 agosto 2026, quando il
+        // travaso dei flussi in accordi e' stato tolto con le tabelle che leggeva; cinque dal 28 agosto, con
+        // il caricamento delle promozioni a mano — ed e' voluto che aggiungerne o toglierne una faccia
+        // fallire questo test: e' il promemoria che una passata nuova va anche isolata, o il suo guasto
+        // porterebbe giu' l'avvio. Questo test ha gia' fatto il suo mestiere due volte.
+        Assert.Equal(5, report.Findings.Count);
     }
 
     /// <summary>
@@ -79,6 +80,7 @@ public class StartupMaintenanceTests
         Assert.Contains(report.Findings, f => f.Entity.Contains("riconciliazioni", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(report.Findings, f => f.Entity.Contains("settori", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(report.Findings, f => f.Entity.Contains("release", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(report.Findings, f => f.Entity.Contains("promozioni", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

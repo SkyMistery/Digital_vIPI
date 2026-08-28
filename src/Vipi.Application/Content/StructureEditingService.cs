@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
 using Vipi.Domain;
@@ -115,7 +115,7 @@ public sealed class StructureEditingService : IStructureEditingService
 
     public async Task<int> CreateAccAsync(string code, string name, string? countryPrefix, CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         code = (code ?? "").Trim().ToUpperInvariant();
         name = (name ?? "").Trim();
         if (code.Length is < 2 or > 8) throw new ValidationException(Lingua("Codice ACC non valido (es. LIRR).", "Invalid ACC code (e.g. LIRR)."));
@@ -127,13 +127,13 @@ public sealed class StructureEditingService : IStructureEditingService
 
     public async Task DeleteAccAsync(string accCode, CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         await _repo.DeleteAccAsync(accCode, ct);
     }
 
     public async Task<int> CreateAirportAsync(string accCode, string icao, string name, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         icao = (icao ?? "").Trim().ToUpperInvariant();
         name = (name ?? "").Trim();
         if (icao.Length != 4) throw new ValidationException(Lingua("ICAO aeroporto non valido (4 lettere, es. LIRF).", "Invalid airport ICAO (4 letters, e.g. LIRF)."));
@@ -144,21 +144,21 @@ public sealed class StructureEditingService : IStructureEditingService
 
     public async Task DeleteAirportAsync(string accCode, int airportId, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         await _repo.DeleteAirportAsync(accCode, airportId, ct);
     }
 
     public async Task MoveAirportAsync(int airportId, string fromAccCode, string targetAccCode, CancellationToken ct = default)
     {
         // Spostamento cross-ACC: serve poter editare sia origine sia destinazione.
-        await _authz.EnsureCanEditAccAsync(fromAccCode, ct);
-        await _authz.EnsureCanEditAccAsync(targetAccCode, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         await _repo.MoveAirportAsync(airportId, targetAccCode, ct);
     }
 
     public Task<IReadOnlyList<AirportAdminRow>> ListAllAirportsAsync(CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         return _repo.ListAllAirportsAsync(ct);
     }
 
@@ -172,13 +172,13 @@ public sealed class StructureEditingService : IStructureEditingService
 
     public async Task SetAirportHiddenAsync(string accCode, int airportId, bool hidden, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         await _repo.SetAirportHiddenAsync(accCode, airportId, hidden, ct);
     }
 
     public async Task SetAirportMilitaryOnlyAsync(string accCode, int airportId, bool militaryOnly, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         await _repo.SetAirportMilitaryOnlyAsync(accCode, airportId, militaryOnly, ct);
         // ⚠️ Senza questo il segno resterebbe vecchio per ORE. La mappa degli aeroporti sta in una cache
         // SCOPED, e in Blazor Server lo scope è il circuito, cioè l'intera sessione: chi ha la pagina aperta
@@ -188,25 +188,25 @@ public sealed class StructureEditingService : IStructureEditingService
 
     public Task<IReadOnlyList<SectorBriefRow>> ListAllSectorsAsync(CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         return _repo.ListAllSectorsAsync(ct);
     }
 
     public Task<IReadOnlyList<GlobalSectorRow>> ListSectorNodesAsync(CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         return _repo.ListSectorNodesAsync(ct);
     }
 
     public async Task<AirportImportResult> AutoAssignKnownAirportsAsync(CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();                       // solo il chiamante manual applica il guard
+        _authz.EnsureAtLeast(VipiRole.Editor);                       // solo il chiamante manual applica il guard
         return await _airportImport.RunAsync(ct);   // core anagrafica (doc 03 §4.2); i Failures li logga la UI
     }
 
     public async Task<AirportDocResult> GenerateAirportDocumentAsync(string icao, CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         return await GenerateAirportDocumentCoreAsync(icao, ct);
     }
 
@@ -279,7 +279,7 @@ public sealed class StructureEditingService : IStructureEditingService
         string? defaultFrequency, int coverageOrder, ApproachKind? approachKind, int? parentSectorId,
         int? airportId, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         callsign = (callsign ?? "").Trim().ToUpperInvariant();
         name = (name ?? "").Trim();
         if (callsign.Length == 0) throw new ValidationException(Lingua("Callsign obbligatorio (es. LIRR_NE_CTR).", "The callsign is required (e.g. LIRR_NE_CTR)."));
@@ -298,31 +298,31 @@ public sealed class StructureEditingService : IStructureEditingService
 
     public async Task DeleteSectorAsync(string accCode, int sectorId, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         await _repo.DeleteSectorAsync(accCode, sectorId, ct);
     }
 
     public async Task SetFeaturedAirportsAsync(string accCode, IReadOnlyList<int> orderedAirportIds, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         await _repo.SetFeaturedAirportsAsync(accCode, orderedAirportIds ?? Array.Empty<int>(), ct);
     }
 
     public async Task SetFeaturedAppsAsync(string accCode, IReadOnlyList<int> orderedAppSectorIds, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         await _repo.SetFeaturedAppsAsync(accCode, orderedAppSectorIds ?? Array.Empty<int>(), ct);
     }
 
     public async Task SetFeaturedVloasAsync(string accCode, IReadOnlyList<int> orderedVloaDocIds, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         await _repo.SetFeaturedVloasAsync(accCode, orderedVloaDocIds ?? Array.Empty<int>(), ct);
     }
 
     public async Task SetSectorFrequencyAsync(string accCode, int sectorId, string? frequencyMhz, CancellationToken ct = default)
     {
-        await _authz.EnsureCanEditAccAsync(accCode, ct);
+        _authz.EnsureAtLeast(VipiRole.Editor);
         await _repo.SetSectorFrequencyAsync(accCode, sectorId, (frequencyMhz ?? "").Trim(), ct);
     }
 }

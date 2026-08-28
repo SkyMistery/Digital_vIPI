@@ -1,75 +1,77 @@
-﻿using System.Text.RegularExpressions;
-using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
+using Vipi.Domain;
 
 namespace Vipi.Application.Auth;
 
 /// <summary>
-/// Autorizzazione all'editing. Admin = staff position che matcha i ruoli admin della divisione
-/// (<see cref="DivisionOptions"/>: <c>^{Code}-{ruolo}$</c>, es. IT-DIR/IT-WM/IT-AOC) oppure i pattern
-/// espliciti in <see cref="AuthOptions.AdminStaffCodes"/>: editano tutto e gestiscono i grant. Gli altri
-/// editano una ACC solo con un <see cref="Vipi.Domain.Entities.EditGrant"/>. Verifica sempre server-side.
+/// Chi può cosa. Il livello di una persona è <b>un numero ordinato</b> (<see cref="VipiRole"/>) e ogni
+/// cancello è un confronto <c>&gt;=</c>. Carta <c>docs/feature/2026-08-28-autorizzazioni-a-livelli.md</c>.
+///
+/// <para>Il livello è <c>max(quello garantito dalle posizioni staff IVAO, la promozione a mano)</c>:
+/// <see cref="RoleResolver"/> per il primo, <see cref="IRoleOverrides"/> per la seconda. Verifica sempre
+/// server-side: quello che la pagina nasconde, il servizio deve comunque rifiutarlo.</para>
+///
+/// <para>⚠️ <b>Non c'è più «può editare QUESTO documento».</b> Le concessioni per ACC sono morte il 28
+/// agosto 2026: l'Editor edita tutto, per decisione del committente («il CH di Roma può dare una mano a
+/// quello di Milano»). Le cinque domande che c'erano — <c>CanEditAcc</c>, <c>CanEditDocument</c>,
+/// <c>CanEditAnything</c> e i due <c>EnsureCanEdit…</c> — interrogavano il database per rispondere sempre
+/// la stessa cosa, e una di loro lo faceva <b>dal layout, a ogni pagina</b>. Oggi sono
+/// <see cref="IsEditor"/> e <c>EnsureAtLeast(VipiRole.Editor)</c>: nessuna query, nessun parametro.</para>
 /// </summary>
 public interface IEditAuthorizationService
 {
+    /// <summary>Il livello effettivo dell'utente corrente. Anonimo = <see cref="VipiRole.User"/>.</summary>
+    VipiRole Role { get; }
+
+    /// <summary>Direzione della divisione e fondatori: sorgenti, incarichi, audit, diagnostica, permessi.</summary>
     bool IsAdmin { get; }
+
+    /// <summary>
+    /// Chief d'ACC e chi sta sopra: il contenuto documentale, tutto.
+    ///
+    /// <para>⚠️ <b>I predicati derivati e il cancello hanno un'implementazione di default</b>, e non è
+    /// pigrizia: sono la <i>stessa</i> domanda posta a soglie diverse, e nessuna implementazione ha una
+    /// ragione legittima per rispondere in modo suo. Scriverli in ogni classe significherebbe soltanto
+    /// offrire ventitré occasioni di sbagliare un <c>&gt;=</c> sul permesso più alto del prodotto.</para>
+    /// </summary>
+    bool IsEditor => Role >= VipiRole.Editor;
+
+    /// <inheritdoc cref="IsEditor"/>
+    bool IsDivisionStaff => Role >= VipiRole.DivisionStaff;
+
     int? CurrentUserId { get; }
     string? CurrentName { get; }
 
-    Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default);
-    Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default);
+    /// <summary>Rifiuta se il livello effettivo è sotto <paramref name="minimo"/>. È il cancello, in una riga.</summary>
+    /// <inheritdoc cref="IsEditor" path="/summary/para"/>
+    void EnsureAtLeast(VipiRole minimo)
+    {
+        if (Role < minimo) throw new EditNotAllowedException();
+    }
 
-    /// <summary>Check non-throwing per la UI: true se l'utente può editare la ACC (admin o grant).</summary>
-    Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default);
-
-    /// <summary>Check non-throwing per la UI: true se l'utente può editare il documento (admin o grant sulla sua ACC).</summary>
-    Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default);
-
-    /// <summary>
-    /// Vero se l'utente ha qualcosa da editare: admin, oppure almeno una concessione. È la domanda della
-    /// BARRA, che deve solo decidere se accendere il tasto «Modifica».
-    ///
-    /// <para>⚠️ Non è «può editare almeno un documento», ed è voluto: chi ha una concessione su una ACC
-    /// che non ha ancora documenti vede il tasto e trova un elenco vuoto — che è il posto giusto dove
-    /// scoprirlo. La domanda vecchia (<c>ListEditableDocumentsAsync().Count &gt; 0</c>) costava una query
-    /// per documento <b>a ogni pagina</b>, e la pagava solo l'utente loggato non-admin: cioè il socio
-    /// qualunque, che di quel tasto non se ne fa niente.</para>
-    /// </summary>
-    Task<bool> CanEditAnythingAsync(CancellationToken ct = default);
-
-    // Gestione grant (solo admin)
-    Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default);
-    Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default);
-    Task RevokeGrantAsync(int grantId, CancellationToken ct = default);
-    void EnsureAdmin();
+    /// <inheritdoc cref="EnsureAtLeast"/>
+    void EnsureAdmin() => EnsureAtLeast(VipiRole.Admin);
 }
 
 /// <inheritdoc cref="IEditAuthorizationService"/>
 public sealed class EditAuthorizationService : IEditAuthorizationService
 {
     private readonly ICurrentUserProvider _user;
-    private readonly IEditGrantRepository _grants;
-    private readonly Regex[] _adminCodes;
+    private readonly RoleResolver _resolver;
+    private readonly IRoleOverrides _overrides;
 
     // L'utente risolto una volta per scope. `_risolto` distingue «non ancora chiesto» da «chiesto, e non
     // c'è nessuno»: senza, l'anonimo rifarebbe il giro a ogni lettura, che è proprio il caso peggiore.
     private CurrentUser? _corrente;
     private bool _risolto;
-    private bool? _isAdmin;
+    private VipiRole? _role;
 
-    public EditAuthorizationService(
-        ICurrentUserProvider user,
-        IEditGrantRepository grants,
-        IOptions<AuthOptions> options,
-        IOptions<DivisionOptions> division)
+    public EditAuthorizationService(ICurrentUserProvider user, RoleResolver resolver, IRoleOverrides overrides)
     {
         _user = user;
-        _grants = grants;
-
-        // I pattern stanno in AdminStaffCodes, non qui: li usa anche la diagnostica, e una diagnosi che se li
-        // ricalcolasse per conto proprio potrebbe dire «tutto a posto» mentre l'autorizzazione ne usa altri.
-        _adminCodes = AdminStaffCodes.Compile(AdminStaffCodes.Patterns(options.Value, division.Value));
+        _resolver = resolver;
+        _overrides = overrides;
     }
 
     /// <summary>
@@ -99,68 +101,26 @@ public sealed class EditAuthorizationService : IEditAuthorizationService
         }
     }
 
-    public bool IsAdmin =>
-        _isAdmin ??= Corrente is { } u && u.StaffPositions.Any(s => _adminCodes.Any(rx => rx.IsMatch(s)));
+    /// <summary>
+    /// Il livello effettivo, memoizzato per scope come l'identità.
+    ///
+    /// <para>⚠️ <b>Nessuna query.</b> Le posizioni staff vengono dai claim e la promozione a mano dal
+    /// fotogramma in memoria: rispondere «che livello ha questa persona?» non tocca il database. È la
+    /// condizione perché la domanda si possa fare dentro il markup, dove si fa.</para>
+    /// </summary>
+    public VipiRole Role => _role ??= _resolver.Effective(Corrente, _overrides.For(Corrente?.UserId ?? 0));
+
+    public bool IsAdmin => Role >= VipiRole.Admin;
+    public bool IsEditor => Role >= VipiRole.Editor;
+    public bool IsDivisionStaff => Role >= VipiRole.DivisionStaff;
 
     public int? CurrentUserId => Corrente?.UserId;
     public string? CurrentName => Corrente?.Name;
 
-    public async Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default)
+    public void EnsureAtLeast(VipiRole minimo)
     {
-        if (IsAdmin) return;
-        var u = Corrente;
-        if (u is not null && await _grants.HasGrantAsync(u.UserId, accCode, ct)) return;
-        throw new EditNotAllowedException();
+        if (Role < minimo) throw new EditNotAllowedException();
     }
 
-    public async Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default)
-    {
-        if (IsAdmin) return true;
-        var u = Corrente;
-        return u is not null && await _grants.HasGrantAsync(u.UserId, accCode, ct);
-    }
-
-    public async Task EnsureCanEditDocumentAsync(int documentId, CancellationToken ct = default)
-    {
-        if (IsAdmin) return;
-        var acc = await _grants.GetDocumentAccCodeAsync(documentId, ct)
-            ?? throw new EditNotAllowedException();
-        await EnsureCanEditAccAsync(acc, ct);
-    }
-
-    public async Task<bool> CanEditDocumentAsync(int documentId, CancellationToken ct = default)
-    {
-        if (IsAdmin) return true;
-        var acc = await _grants.GetDocumentAccCodeAsync(documentId, ct);
-        return acc is not null && await CanEditAccAsync(acc, ct);
-    }
-
-    public async Task<bool> CanEditAnythingAsync(CancellationToken ct = default)
-    {
-        if (IsAdmin) return true;
-        return Corrente is { } u && await _grants.HasAnyGrantAsync(u.UserId, ct);
-    }
-
-    public Task<IReadOnlyList<GrantRow>> ListGrantsAsync(CancellationToken ct = default)
-    {
-        EnsureAdmin();
-        return _grants.ListAsync(ct);
-    }
-
-    public Task<int> AddGrantAsync(int UserId, string? displayName, string accCode, CancellationToken ct = default)
-    {
-        EnsureAdmin();
-        return _grants.AddAsync(UserId, displayName, accCode, CurrentUserId ?? 0, ct);
-    }
-
-    public Task RevokeGrantAsync(int grantId, CancellationToken ct = default)
-    {
-        EnsureAdmin();
-        return _grants.RevokeAsync(grantId, CurrentUserId ?? 0, ct);
-    }
-
-    public void EnsureAdmin()
-    {
-        if (!IsAdmin) throw new EditNotAllowedException();
-    }
+    public void EnsureAdmin() => EnsureAtLeast(VipiRole.Admin);
 }

@@ -1,4 +1,4 @@
-@page "/services/vsop/mil"
+﻿@page "/services/vsop/mil"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IMilitaryDocumentService Militari
@@ -46,7 +46,7 @@
     }
     else if (_righe.Count == 0)
     {
-        <EmptyState Icon="book-open" Title="@(Authz.IsAdmin ? L["Mil_EmptyStaff"].Value : L["Mil_Empty"].Value)">
+        <EmptyState Icon="book-open" Title="@(Authz.IsEditor ? L["Mil_EmptyStaff"].Value : L["Mil_Empty"].Value)">
             <p style="margin:0">@L["Mil_EmptyHint"]</p>
         </EmptyState>
     }
@@ -98,11 +98,11 @@
                                 @* ⚠️ Il collegamento all'editor sta accanto allo STATO e non sul nome: finché
                                    il documento è in bozza il nome non è un link, e senza questo lo staff
                                    creerebbe il documento e poi non avrebbe dove scriverlo. *@
-                                @if (r.DocumentId is not null && Authz.IsAdmin)
+                                @if (r.DocumentId is not null && Authz.IsEditor)
                                 {
                                     <a class="btn ghost" href="@Editor(r)"><Icon Name="pencil" Size="14" /> @L["Ed_Edit"]</a>
                                 }
-                                else if (r.DocumentId is null && Authz.IsAdmin)
+                                else if (r.DocumentId is null && Authz.IsEditor)
                                 {
                                     <button class="btn ghost" disabled="@_busy" @onclick="() => CreaAsync(r.Icao)">
                                         <Icon Name="plus" Size="14" /> @L["Mil_Create"]
@@ -132,7 +132,7 @@
     // SOLA, e questa pagina si ricarica dopo aver creato un documento.
     protected override Task OnParametersSetAsync() => CaricaAsync();
 
-    private async Task CaricaAsync() => _righe = await Militari.ListAsync(perStaff: Authz.IsAdmin);
+    private async Task CaricaAsync() => _righe = await Militari.ListAsync(perStaff: Authz.IsEditor);
 
     private static string Indirizzo(MilAirportRow r) =>
         $"/services/vsop/{(r.AccCode ?? "").ToLowerInvariant()}/mil?icao={r.Icao}";
