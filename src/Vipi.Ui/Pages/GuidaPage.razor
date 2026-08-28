@@ -1,4 +1,4 @@
-@* Guida in-app bilingue (IT/EN): come si consulta e come si modifica vIPI/vLOA. Contenuto statico (static SSR):
+﻿@* Guida in-app bilingue (IT/EN): come si consulta e come si modifica vIPI/vLOA. Contenuto statico (static SSR):
    usa CollapsibleBlock (<details> nativo) → nessun circuito, cercabile con Ctrl+F, ancore deep-link.
    La lingua è scelta dal parametro di query ?lang=it|en (toggle in cima); default = cultura corrente del browser.
    Contenuto DATA-DRIVEN (liste _consult/_modify): un'unica sorgente per corpo pagina e indice. *@
@@ -1319,38 +1319,75 @@
                «Task» family.</p>"),
 
         new Sec("admin-permessi", "key",
-            @"<p>Un <b>permesso</b> (<code>/services/vsop/admin/permissions</code>) lega una persona — il suo <b>VID</b> —
-               a un <b>ACC</b>. Da quel momento può aprire l'editor dei documenti di quell'ACC, pubblicarne le
-               release e nasconderne o eliminarne i documenti.</p>
+            @"<p>Ogni persona ha <b>un livello</b>, e i livelli sono <b>cumulativi</b>: chi sta sopra può tutto quello
+               che può chi sta sotto.</p>
               <ul>
-                <li>L'elenco ha <b>una riga per persona</b>: le pill dicono su quali ACC può lavorare. La barra
-                    cerca per VID, nome o ACC, e i <b>chip contano le persone</b> di ogni ACC.</li>
-                <li>Scegliendo una riga, a destra ci sono i suoi permessi: per ognuno la <b>data</b>, <b>chi</b>
-                    glielo ha dato, e la ✕ per <b>toglierlo</b> (chiede conferma e dice quale ACC).</li>
-                <li><b>Aggiungi ACC</b>, in fondo allo stesso pannello, dà un altro ACC alla stessa persona
-                    senza ridigitare il VID.</li>
-                <li><b>Concedi</b>, in testata, serve per una persona <b>nuova</b>: si sceglie dallo staff IT che
-                    si è loggato almeno una volta, oppure si scrive il VID a mano.</li>
+                <li><b>Socio</b> — le pagine e i documenti pubblici.</li>
+                <li><b>Staff IVAO</b> — ha una posizione staff di una divisione qualunque. Oggi non apre niente in
+                    più: è un'etichetta, perché si veda chi è chi.</li>
+                <li><b>Staff di divisione</b> (<code>IT-…</code>) — le <b>statistiche</b>: quelle di divisione e
+                    quelle personali di chiunque.</li>
+                <li><b>Redattore</b> — chief e vice-chief d'ACC (<code>LIRR-CH</code>, <code>LIMM-ACH</code>): il
+                    <b>contenuto documentale</b>, tutto. Non solo la propria ACC: il chief di Roma può dare una
+                    mano a quello di Milano.</li>
+                <li><b>Amministratore</b> — la direzione della divisione (<code>IT-DIR</code>, <code>IT-ADIR</code>,
+                    <code>IT-WM</code>, <code>IT-AWM</code>, <code>IT-AOC</code>, <code>IT-AOAC</code>,
+                    <code>IT-SOC</code>, <code>IT-SOAC</code>): sorgenti, incarichi, registro, diagnostica e questa
+                    pagina.</li>
               </ul>
-              <p>Gli <b>admin</b> non hanno bisogno di permessi: possono già tutto in forza del loro codice
-               staff, e non compaiono in questo elenco. Le altre pagine admin si raggiungono dalla <b>barra</b>
-               in cima alla pagina.</p>",
-            @"<p>A <b>permission</b> (<code>/services/vsop/admin/permissions</code>) ties a person — their <b>VID</b> — to an
-               <b>ACC</b>. From then on they can open the editor for that ACC's documents, publish its releases
-               and hide or delete its documents.</p>
+              <p>Il livello ha <b>due metà</b>. Il <b>pavimento</b> glielo dà la sua posizione staff IVAO e da qui
+               non si toglie; la <b>promozione</b> a mano è l'unica cosa che questa pagina scrive. Vale il maggiore
+               dei due — per questo i livelli sotto il pavimento sono <b>disabilitati</b>: sceglierli non farebbe
+               niente.</p>
               <ul>
-                <li>The list has <b>one row per person</b>: the pills say which ACCs they can work on. The bar
-                    searches by VID, name or ACC, and the <b>chips count the people</b> of each ACC.</li>
-                <li>Picking a row shows their permissions on the right: for each one the <b>date</b>, <b>who</b>
-                    granted it, and the ✕ to <b>take it away</b> (it asks, and says which ACC).</li>
-                <li><b>Add ACC</b>, at the bottom of the same panel, grants another ACC to the same person
-                    without retyping the VID.</li>
-                <li><b>Grant</b>, in the header, is for a <b>new</b> person: pick them from the IT staff who have
-                    logged in at least once, or type the VID by hand.</li>
+                <li>L'elenco ha <b>una riga per persona</b>, col livello che vale davvero; il <b>pallino</b> accanto
+                    dice che gliel'abbiamo dato noi. La barra cerca per VID, nome o codice staff, e i <b>chip
+                    contano le persone</b> di ogni livello.</li>
+                <li>Scegliendo una riga, a destra c'è il suo pavimento, il selettore del livello e una <b>nota</b>
+                    facoltativa — che è l'unica cosa che spiegherà quella riga fra sei mesi.</li>
+                <li><b>Togli</b> non lascia la persona a mani vuote: la riporta al suo pavimento, e la conferma lo
+                    dice.</li>
+                <li>Compare anche chi <b>non è staff di nessuno</b> ma è stato promosso a mano: è il caso per cui la
+                    promozione esiste.</li>
               </ul>
-              <p><b>Admins</b> need no permission: their staff code already allows everything, and they do not
-               appear in this list. The other admin pages are reachable from the <b>bar</b> at the top of the
-               page.</p>"),
+              <p>Tre cose non si possono fare, e non è pignoleria: <b>cambiare il proprio livello</b> (è il modo
+               esatto in cui ci si chiude fuori), toccare chi è amministratore <b>per configurazione</b>, e
+               scendere sotto il pavimento. Ogni promozione e ogni rimozione finisce nel <b>registro</b>, sotto la
+               famiglia «Permesso».</p>",
+            @"<p>Every person has <b>one level</b>, and levels are <b>cumulative</b>: whoever is above can do
+               everything those below can.</p>
+              <ul>
+                <li><b>Member</b> — public pages and documents.</li>
+                <li><b>IVAO staff</b> — holds a staff position in any division. Today it opens nothing more: it is
+                    a label, so that one can tell who is who.</li>
+                <li><b>Division staff</b> (<code>IT-…</code>) — the <b>statistics</b>: the division's and anyone's
+                    personal ones.</li>
+                <li><b>Editor</b> — ACC chiefs and assistant chiefs (<code>LIRR-CH</code>, <code>LIMM-ACH</code>):
+                    the <b>documents</b>, all of them. Not just their own ACC: the Rome chief can lend a hand to
+                    the Milan one.</li>
+                <li><b>Administrator</b> — the division's direction (<code>IT-DIR</code>, <code>IT-ADIR</code>,
+                    <code>IT-WM</code>, <code>IT-AWM</code>, <code>IT-AOC</code>, <code>IT-AOAC</code>,
+                    <code>IT-SOC</code>, <code>IT-SOAC</code>): sources, tasks, audit log, diagnostics and this
+                    page.</li>
+              </ul>
+              <p>A level has <b>two halves</b>. The <b>floor</b> comes from their IVAO staff position and cannot be
+               removed here; the <b>promotion</b> by hand is the only thing this page writes. The higher of the two
+               wins — which is why levels below the floor are <b>disabled</b>: picking one would do nothing.</p>
+              <ul>
+                <li>The list has <b>one row per person</b>, with the level that actually applies; the <b>dot</b>
+                    next to it means we gave it to them. The bar searches by VID, name or staff code, and the
+                    <b>chips count the people</b> at each level.</li>
+                <li>Picking a row shows their floor on the right, the level selector and an optional <b>note</b> —
+                    the only thing that will explain that row six months from now.</li>
+                <li><b>Remove</b> does not leave the person empty-handed: it takes them back to their floor, and the
+                    confirmation says so.</li>
+                <li>People who are <b>nobody's staff</b> but were promoted by hand show up too: that is the very
+                    case promotions exist for.</li>
+              </ul>
+              <p>Three things cannot be done, and it is not pedantry: <b>changing your own level</b> (that is
+               exactly how one locks oneself out), touching someone who is an administrator <b>by
+               configuration</b>, and going below the floor. Every promotion and removal goes into the <b>audit
+               log</b>, under the «Permission» family.</p>"),
 
         new Sec("admin", "grid",
             @"<p>Solo per gli admin, sotto <code>/services/vsop/admin</code>:</p>

@@ -671,28 +671,7 @@
   <data name="Struct_OptToAssign" xml:space="preserve"><value>— to assign —</value></data>
   <data name="Struct_DropInvalid" xml:space="preserve"><value>You can't attach {0} under {1} (itself/descendant or different country).</value></data>
   <!-- Staff Area / Grants (/vsop/admin/permessi) -->
-  <data name="Grants_CountTitle" xml:space="preserve"><value>People with at least one permission</value></data>
-  <data name="Grants_HelpAria" xml:space="preserve"><value>Help on editing permissions</value></data>
-  <data name="Grants_Intro" xml:space="preserve"><value>&lt;p style="margin:0 0 6px"&gt;A &lt;b&gt;permission&lt;/b&gt; ties a person (their VID) to an &lt;b&gt;ACC&lt;/b&gt;: from then on they can open the editor for that ACC's documents, publish its releases and hide or delete its documents.&lt;/p&gt;&lt;p style="margin:0 0 6px"&gt;One row per &lt;b&gt;person&lt;/b&gt;: the pills say which ACCs they can work on. Pick one and the right-hand panel shows their permissions with the date, who granted them and how to take them away — plus the menu to grant another.&lt;/p&gt;&lt;p style="margin:0"&gt;&lt;b&gt;Admins&lt;/b&gt; need no permission: their staff code already allows everything, and they do not appear in this list.&lt;/p&gt;</value></data>
-  <data name="Grants_SearchPh" xml:space="preserve"><value>search VID / name / ACC…</value></data>
-  <data name="Grants_ChipAccTitle" xml:space="preserve"><value>Who can edit {0}</value></data>
   <data name="Grants_Clear" xml:space="preserve"><value>Clear filters</value></data>
-  <data name="Grants_ClearTitle" xml:space="preserve"><value>Clear the filters and show every person</value></data>
-  <data name="Grants_NoMatch" xml:space="preserve"><value>No person matches the filters.</value></data>
-  <data name="Grants_RowPickTitle" xml:space="preserve"><value>Pick the person: their permissions show on the right</value></data>
-  <data name="Grants_PickHint" xml:space="preserve"><value>Pick a person from the list to see their permissions, or press "Grant" to add a new one.</value></data>
-  <data name="Grants_NAcc" xml:space="preserve"><value>{0} ACCs</value></data>
-  <data name="Grants_NAccTitle" xml:space="preserve"><value>How many ACCs they can work on</value></data>
-  <data name="Grants_GrantedOn" xml:space="preserve"><value>Granted on {0}</value></data>
-  <data name="Grants_RevokeTitle" xml:space="preserve"><value>Take away the permission on this ACC</value></data>
-  <data name="Grants_RevokePrompt" xml:space="preserve"><value>Take away {0}'s permission on {1}? They will no longer be able to edit that ACC's documents.</value></data>
-  <data name="Grants_RevokeYes" xml:space="preserve"><value>Yes, take it away</value></data>
-  <data name="Grants_AddAcc" xml:space="preserve"><value>Add ACC</value></data>
-  <data name="Grants_AddAccTitle" xml:space="preserve"><value>Give this person the permission on another ACC</value></data>
-  <data name="Grants_VidPh" xml:space="preserve"><value>e.g. 123456</value></data>
-  <data name="Grants_NamePh" xml:space="preserve"><value>e.g. Mario Rossi</value></data>
-  <data name="Grants_BadVid" xml:space="preserve"><value>That VID is not valid: it must be a number greater than zero.</value></data>
-  <data name="Grants_Subtitle" xml:space="preserve"><value>All staff-reserved functions</value></data>
   <data name="Grants_StaffOnly" xml:space="preserve"><value>Only staff can access this area.</value></data>
   <data name="Grants_StructDesc" xml:space="preserve"><value>ACC, positions, sectors, ownership, frequencies and topology.</value></data>
   <data name="Grants_DocsDesc" xml:space="preserve"><value>Create, edit, hide/delete and publish: vIPI, airports, vLOA. History and AIRAC releases.</value></data>
@@ -700,19 +679,9 @@
   <data name="Grants_TasksTitle" xml:space="preserve"><value>Editor tasks</value></data>
   <data name="Grants_TasksDesc" xml:space="preserve"><value>Assign and monitor editor tasks, with progress and delays.</value></data>
   <data name="Grants_DiagDesc" xml:space="preserve"><value>Inconsistencies in soft references: orphan runways, diverging labels, phantom areas, broken hierarchy.</value></data>
-  <data name="Grants_GrantByVid" xml:space="preserve"><value>Grant by VID</value></data>
   <data name="Grants_GrantHint" xml:space="preserve"><value>Select a staffer from the list (IT staff who logged in at least once) or enter a VID manually.</value></data>
-  <data name="Grants_NoneGranted" xml:space="preserve"><value>No permission granted.</value></data>
   <data name="Grants_GrantedBy" xml:space="preserve"><value>Granted by</value></data>
-  <data name="Grants_Revoke" xml:space="preserve"><value>Revoke</value></data>
-  <data name="Grants_GrantPermission" xml:space="preserve"><value>Grant permission</value></data>
-  <data name="Grants_ItStaffer" xml:space="preserve"><value>IT staffer</value></data>
   <data name="Grants_Select" xml:space="preserve"><value>— select —</value></data>
-  <data name="Grants_NoStaffer" xml:space="preserve"><value>No staffer in the list: they appear after first login. Enter the VID manually.</value></data>
-  <data name="Grants_NameOptional" xml:space="preserve"><value>Name (optional)</value></data>
-  <data name="Grants_GrantBtn" xml:space="preserve"><value>Grant</value></data>
-  <data name="Grants_GrantedMsg" xml:space="preserve"><value>Permission granted.</value></data>
-  <data name="Grants_RevokedMsg" xml:space="preserve"><value>Permission revoked.</value></data>
   <data name="Common_State" xml:space="preserve"><value>Status</value></data>
   <!-- Task states/priorities (shared) -->
   <data name="TaskStatus_Todo" xml:space="preserve"><value>To do</value></data>

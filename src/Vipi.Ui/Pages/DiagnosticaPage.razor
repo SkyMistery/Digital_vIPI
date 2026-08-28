@@ -1,4 +1,4 @@
-@page "/services/vsop/admin/diagnostics"
+﻿@page "/services/vsop/admin/diagnostics"
 @layout SopLayout
 @rendermode InteractiveServer
 @using Vipi.Application.Diagnostics
@@ -180,8 +180,14 @@
                                schermo, che servono QUANDO qualcosa non torna. Nel «?», col loro perché. *@
                             <HelpHint AriaLabel="@L["Diag_AdminHelpAria"]" ExtraClass="wide">
                                 <p style="margin:0 0 6px">@L["Diag_AdminHint"]</p>
-                                <p style="margin:0"><b>@L["Diag_AdminPatterns"]</b><br />
+                                <p style="margin:0 0 6px"><b>@L["Diag_AdminPatterns"]</b><br />
                                     <code>@string.Join(" · ", _admin.Patterns)</code></p>
+                                @* I pattern degli altri due livelli ci sono per la stessa ragione dei primi:
+                                   se un chief non risulta Redattore, il motivo si legge qui. *@
+                                <p style="margin:0 0 6px"><b>@L["Roles_Level_Editor"]</b><br />
+                                    <code>@string.Join(" · ", _admin.EditorPatterns)</code></p>
+                                <p style="margin:0"><b>@L["Roles_Level_DivisionStaff"]</b><br />
+                                    <code>@string.Join(" · ", _admin.DivisionStaffPatterns)</code></p>
                             </HelpHint>
                         </div>
 
@@ -193,7 +199,7 @@
                         {
                             <div class="st-scroll">
                                 <table class="res-table diag-admin">
-                                    <thead><tr><th>VID</th><th>@L["Common_Name"]</th><th>@L["Diag_AdminIsAdmin"]</th></tr></thead>
+                                    <thead><tr><th>VID</th><th>@L["Common_Name"]</th><th>@L["Roles_Level"]</th><th>@L["Diag_AdminIsAdmin"]</th></tr></thead>
                                     <tbody>
                                         @foreach (var r in _admin.Rows)
                                         {
@@ -202,6 +208,12 @@
                                             <tr title="@L["Diag_AdminCodes"]: @(r.Codes.Count == 0 ? "—" : string.Join(", ", r.Codes))">
                                                 <td><VidLink Vid="r.UserId" SoloNumero="true" /></td>
                                                 <td>@(r.DisplayName ?? "—")</td>
+                                                @* Il pallino distingue chi ha quel livello per codice staff da
+                                                   chi l'ha per promozione a mano: senza, una diagnosi che dice
+                                                   «è Redattore» non dice PERCHE'. *@
+                                                <td title="@(r.Promosso ? L["Roles_FromOverride"] : L["Roles_FromStaff"])">
+                                                    @L[$"Roles_Level_{r.Level}"]@(r.Promosso ? " •" : "")
+                                                </td>
                                                 <td>
                                                     @if (r.Matched.Count > 0)
                                                     { <span class="pill green">@string.Join(", ", r.Matched)</span> }

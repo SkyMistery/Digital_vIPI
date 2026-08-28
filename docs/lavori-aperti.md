@@ -4016,10 +4016,28 @@ solo perché l'admin era l'unico che editava.
 che conta. Serve un `TestContext` per render: bUnit congela il contenitore al primo render, e due livelli
 nello stesso contesto darebbero due volte la stessa risposta.
 
+### U2-sexies. Slice 7, la propagazione — ✅ **CHIUSA** il 29 agosto
+
+La diagnostica «Chi può editare» racconta i **livelli** (col pallino per chi l'ha per promozione) e i
+pattern di tutti e tre; ⚠️ `AnyAdmin` guarda il livello **effettivo**, non i codici — un admin per
+promozione è un admin. La Guida in-app e il catalogo della ricerca non parlano più di concessioni.
+Aggiornate `mappa-pagine.md`, `modello-dati.md`, `regole-ui-pagine-admin.md` e `guide/config.md` (che
+documentava due chiavi `Division:*` inesistenti: ora c'è la sezione **`Auth`**). Tolte **31 chiavi di
+traduzione morte**, il vocabolario delle concessioni.
+
+⚠️ **Due memorie puntavano a `HasAnyGrantAsync` come primo sospettato** delle corse sul `DbContext`: quella
+query non esiste più, e il metodo di diagnosi resta valido — cambia il sospettato.
+
 ### U3. Che cosa resta 🟢
 
-Solo la **slice 7**: diagnostica a livelli, Guida in-app, documenti e memorie. ✅ Da qui il ramo è di nuovo
-**coerente**, quindi fondibile — resta da decidere quando.
+✅ **Tutte e otto le slice sono chiuse**: il ramo `autorizzazioni-a-livelli` è completo. Restano due cose,
+ed entrambe sono decisioni più che lavoro:
+
+1. **La verifica live** — guidare il flusso reale con un utente per livello (skill `verifica-live`).
+   ⚠️ Non è stata fatta: la suite è verde ma cinque difetti di funzioni recenti erano usciti **solo a
+   schermo** ([[vsop-militari]]).
+2. **Quando fondere**, e con quale avviso allo staff: al deploy tutti gli `IT-` fuori dagli otto codici di
+   direzione perdono l'editing.
 
 ### U4. ⚠️ Gli E2E non girano finché l'host è acceso
 

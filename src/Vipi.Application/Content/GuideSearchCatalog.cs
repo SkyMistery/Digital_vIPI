@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -148,9 +148,9 @@ public static class GuideSearchCatalog
             "La pagina Confinanti: le coppie ACC italiano ↔ estero, la verifica dell'adiacenza e la generazione della vLOA.",
             "The Neighbours page: the Italian ACC to foreign ACC pairs, the adjacency check and generating the vLOA."),
         new Entry("admin-permessi", "Permessi: chi può modificare cosa", "Permissions: who can edit what",
-            "permesso permessi grant vid staff staffista concedi concessione revoca revocare togliere acc editor admin abilitare abilitazione chi puo modificare permission permissions grant revoke staff enable",
-            "La pagina Permessi: una riga per persona, i suoi ACC, come concedere e come revocare.",
-            "The Permissions page: one row per person, their ACCs, how to grant and how to revoke."),
+            "permesso permessi livello livelli ruolo ruoli vid staff staffista promuovi promuovere promozione declassa declassare togliere pavimento socio redattore amministratore editor admin division staff chi puo modificare permission permissions level levels role promote demote floor member editor administrator",
+            "La pagina Permessi: una riga per persona, il suo livello, il pavimento che gli dà la posizione staff, e come promuovere o togliere.",
+            "The Permissions page: one row per person, their level, the floor their staff position grants, and how to promote or remove."),
         new Entry("admin-sorgenti", "Sorgenti: cosa arriva da fuori", "Sources: what comes from outside",
             "sorgenti sorgente import importa importato manuale policy ivao sola lettura bloccato escludi esclusa categoria transition altitude piste settori sid aree regolamentate congelate reimport automatico giro fermo stantio provenienza sources source import manual policy read only excluded frozen automatic stale",
             "La pagina Sorgenti: quali dati arrivano da IVAO e quali si gestiscono a mano, e come sta ogni import.",

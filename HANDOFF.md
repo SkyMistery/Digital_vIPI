@@ -17,10 +17,14 @@ quando `git rev-list --count main..origin/glossario-fraseologia` dà **0**.
 46 file) diventa un enum ordinato a cinque livelli cumulativi; l'Editor edita tutto; le concessioni per
 ACC si eliminano.
 
-**Slice 0→6 chiuse** (`VipiRole`, `RoleResolver` puro, `RoleOverride` + cache in memoria, il servizio a
-livelli, la **morte delle concessioni per ACC**, la pagina dei permessi riscritta e gli **84 cancelli**
-spostati al loro livello; 86 test nuovi). ✅ **Il ramo è di nuovo coerente**: un `LIRR-CH` apre davvero le
-pagine che deve aprire. Resta la sola **slice 7** (diagnostica a livelli, Guida, documenti, memorie).
+✅ **TUTTE E OTTO LE SLICE SONO CHIUSE**: `VipiRole`, `RoleResolver` puro, `RoleOverride` + cache in
+memoria, il servizio a livelli, la **morte delle concessioni per ACC**, la pagina dei permessi riscritta,
+gli **84 cancelli** spostati e la propagazione su diagnostica, Guida, specifiche e memorie. **86 test
+nuovi**, Release 0 avvisi, 14 assemblee verdi.
+
+⚠️ Restano **due decisioni, non lavoro**: la **verifica live** (mai fatta — e su questo progetto cinque
+difetti recenti erano usciti solo a schermo) e **quando fondere**. Al deploy tutti gli `IT-` fuori dagli
+otto codici di direzione perdono l'editing: la risposta è una promozione a mano, trenta secondi.
 
 ⚠️ Questa testata diceva `6644b5e` fino a stasera, cioè era **indietro di due fusioni**: nel frattempo erano
 entrati in `main` l'archivio ATC (`f120d5c`) e l'audit della lingua (`0a4f92e`). Un HANDOFF che dà lo SHA

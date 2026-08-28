@@ -38,7 +38,7 @@ public class AdminCoverageTests
     }
 
     private static AdminCoverageService Servizio(IStaffRosterRepository roster) =>
-        new(roster, new RoleResolver(new AuthOptions(), new DivisionOptions()));
+        new(roster, new RoleResolver(new AuthOptions(), new DivisionOptions()), SenzaPromozioni.Instance);
 
     [Fact]
     public async Task Un_codice_di_divisione_vero_risulta_admin()
@@ -126,7 +126,7 @@ public class AdminCoverageTests
     {
         var auth = new AuthOptions { AdminStaffCodes = new List<string> { "^ZZ-BOSS$" } };
         var svc = new AdminCoverageService(new RosterFinto((9, new[] { "IT-DIR" }), (10, new[] { "ZZ-BOSS" })),
-            new RoleResolver(auth, new DivisionOptions()));
+            new RoleResolver(auth, new DivisionOptions()), SenzaPromozioni.Instance);
 
         var c = await svc.DescribeAsync();
         Assert.Equal(new[] { "^ZZ-BOSS$" }, c.Patterns);

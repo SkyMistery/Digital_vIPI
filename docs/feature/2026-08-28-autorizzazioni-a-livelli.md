@@ -3,9 +3,8 @@
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Sostituisce la decisione del 22 agosto sera
 > («lo staff di divisione è admin, tutto» — memoria `staff-code-reali`, riflessa in
 > `DivisionOptions.AdminRolePatterns`), che resta valida come **storia** e non più come regola.
-> **Stato: slice 0→6 chiuse (28-29 agosto 2026); resta la 7.** ✅ **Il ramo è di nuovo coerente**: i
-> cancelli sono al livello che gli spetta, e un chief d'ACC apre davvero le pagine che deve aprire. Ramo
-> `autorizzazioni-a-livelli`, aperto da `main` dopo la fusione del glossario.
+> **Stato: ✅ TUTTE E OTTO LE SLICE CHIUSE (28-29 agosto 2026).** Il ramo `autorizzazioni-a-livelli` è
+> completo e pronto alla fusione. Resta da fare una **verifica live** e da decidere **quando fondere**.
 
 ## 1. Perché
 
@@ -192,7 +191,7 @@ col suo commento sul jolly, la scheda «Chi può editare» della diagnostica, la
 | ✅ 4 | morte delle concessioni: entità, repo, metodi async → sincroni | suite verde, **−219 riferimenti** |
 | ✅ 5 | i cancelli: `AdminNav` + le chiamate che scendono a Editor + le stats a DivisionStaff | **test per rotta**, 84 cancelli spostati |
 | ✅ 6 | `/admin/permissions` riscritta (**tirata avanti**: senza le concessioni la pagina non aveva più contenuto) | 10 test nuovi |
-| 7 | diagnostica, Guida, documenti, memorie | tracciamento coerente |
+| ✅ 7 | diagnostica, Guida, documenti, memorie | **tracciamento coerente** |
 
 La slice 3 è la chiave dell'ordine: siccome `IsAdmin` continua a voler dire `Role >= Admin`, **i 160 usi
 non si toccano in blocco**. Si toccano solo quelli che devono scendere, nella slice 5, uno a uno e con la
@@ -325,6 +324,30 @@ restano agli otto codici di direzione.
 La seconda metà è quella che conta — un cancello che non chiude non è un cancello. ⚠️ Serve un
 `TestContext` per render: bUnit congela il contenitore al primo render, e due livelli nello stesso contesto
 darebbero due volte la stessa risposta, cioè un test che passa sempre.
+
+## 10-sexies. Che cosa è entrato con la slice 7
+
+La propagazione, che il pre-flight chiede nello **stesso giro** e non «dopo»:
+
+- **La diagnostica racconta i livelli.** «Chi può editare» mostra ora il **livello effettivo** di ogni
+  staffista — col pallino quando gliel'ha dato una promozione a mano e non un codice — e i pattern di
+  **tutti e tre** i livelli che se ne servono. ⚠️ `AnyAdmin` guarda il livello effettivo e non più i codici:
+  un admin per promozione è un admin, e un rilievo che lo ignorasse manderebbe a caccia di un guasto che
+  non c'è.
+- **La Guida in-app** (`/services/vsop/guide#admin-permessi`) descriveva concessioni per ACC: ora spiega i
+  cinque livelli, il pavimento, e le tre cose che non si possono fare. Con lei il catalogo della ricerca,
+  che cercava «grant» e «revoca».
+- **Le specifiche**: `mappa-pagine.md` (la colonna dei permessi diceva «admin/grant ACC» in cinque righe),
+  `modello-dati.md` (`EditGrant` marcata come eliminata, `RoleOverride` al suo posto),
+  `regole-ui-pagine-admin.md`, e `guide/config.md` — che documentava due chiavi `Division:*` che non
+  esistono più e ora ha la sezione **`Auth`** con le quattro nuove.
+- **31 chiavi di traduzione morte** tolte dai due `.resx`: erano il vocabolario delle concessioni
+  («concedi», «revoca», «aggiungi ACC»…). Una stringa che nessuno rende è una stringa che qualcuno
+  tradurrà.
+- **Quattro memorie riscritte**, e due dicono qualcosa che vale oltre questo giro: quella sulla barra che
+  non affonda la pagina e quella sulle corse del `DbContext` puntavano entrambe a `HasAnyGrantAsync` come
+  primo sospettato. Quella query non esiste più — il **metodo** di diagnosi resta valido parola per parola,
+  cambia solo che il primo sospettato ora è un altro.
 
 ## 11. Le due decisioni che mancavano — ✅ chiuse il 28 agosto, notte
 

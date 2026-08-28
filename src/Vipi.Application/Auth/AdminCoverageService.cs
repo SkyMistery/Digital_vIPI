@@ -4,18 +4,29 @@ using Vipi.Domain;
 
 namespace Vipi.Application.Auth;
 
-/// <summary>Uno staffista visto dal roster, coi suoi codici e quali di questi valgono admin.</summary>
+/// <summary>
+/// Uno staffista visto dal roster: i suoi codici, quali di questi valgono admin, e il <b>livello effettivo</b>
+/// — che può venire da una promozione a mano e non dai codici.
+/// </summary>
 public sealed record AdminCodeRow(int UserId, string? DisplayName, IReadOnlyList<string> Codes,
-    IReadOnlyList<string> Matched);
+    IReadOnlyList<string> Matched, VipiRole Level, bool Promosso);
 
-/// <summary>Fotografia di «chi può editare»: i pattern in vigore e i codici realmente osservati.</summary>
-public sealed record AdminCoverage(IReadOnlyList<string> Patterns, IReadOnlyList<AdminCodeRow> Rows)
+/// <summary>Fotografia di «chi può editare»: i pattern in vigore, per livello, e i codici osservati.</summary>
+public sealed record AdminCoverage(
+    IReadOnlyList<string> Patterns,
+    IReadOnlyList<string> EditorPatterns,
+    IReadOnlyList<string> DivisionStaffPatterns,
+    IReadOnlyList<AdminCodeRow> Rows)
 {
     /// <summary>Nessuno ha mai fatto login: il roster si popola dai login, quindi non si sa ancora nulla.</summary>
     public bool RosterEmpty => Rows.Count == 0;
 
-    /// <summary>Almeno uno degli staffisti conosciuti è admin.</summary>
-    public bool AnyAdmin => Rows.Any(r => r.Matched.Count > 0);
+    /// <summary>
+    /// Almeno uno degli staffisti conosciuti è admin. ⚠️ Guarda il livello <b>effettivo</b>, non i codici:
+    /// un admin per promozione a mano è un admin, e un rilievo che lo ignorasse manderebbe a cercare un
+    /// guasto che non c'è.
+    /// </summary>
+    public bool AnyAdmin => Rows.Any(r => r.Level >= VipiRole.Admin);
 
     /// <summary>Codici osservati che NON valgono admin: è l'elenco da cui capire se un pattern è sbagliato.</summary>
     public IReadOnlyList<string> UnmatchedCodes => Rows
@@ -57,24 +68,37 @@ public sealed class AdminCoverageService : IAdminCoverageService
 {
     private readonly IStaffRosterRepository _roster;
     private readonly RoleResolver _resolver;
+    private readonly IRoleOverrides _promozioni;
 
     // I pattern non si ricalcolano qui: sono quelli del RoleResolver, cioè gli stessi che l'autorizzazione
     // usa davvero. Una diagnosi che se li ricostruisse per conto proprio potrebbe dire «va tutto bene»
     // mentre il prodotto ne applica altri — e perderebbe l'unica proprietà che la rende utile.
-    public AdminCoverageService(IStaffRosterRepository roster, RoleResolver resolver)
+    public AdminCoverageService(IStaffRosterRepository roster, RoleResolver resolver, IRoleOverrides promozioni)
     {
         _roster = roster;
         _resolver = resolver;
+        _promozioni = promozioni;
     }
 
     public async Task<AdminCoverage> DescribeAsync(CancellationToken ct = default)
     {
         var righe = (await _roster.ListActiveAsync(ct))
-            .Select(s => new AdminCodeRow(s.UserId, s.DisplayName, s.StaffPositions,
-                _resolver.MatchingCodes(s.StaffPositions, VipiRole.Admin)))
+            .Select(s =>
+            {
+                // ⚠️ Il livello che si mostra è quello EFFETTIVO, promozione compresa: una diagnosi che
+                // guardasse i soli codici direbbe «nessuno è admin» mentre qualcuno lo è per promozione, e
+                // manderebbe a caccia di un guasto che non c'è.
+                var promozione = _promozioni.For(s.UserId);
+                return new AdminCodeRow(
+                    s.UserId, s.DisplayName, s.StaffPositions,
+                    _resolver.MatchingCodes(s.StaffPositions, VipiRole.Admin),
+                    _resolver.Effective(s.UserId, s.StaffPositions, promozione),
+                    Promosso: promozione is { } p && p > _resolver.Resolve(s.UserId, s.StaffPositions));
+            })
             .ToList();
 
-        return new AdminCoverage(_resolver.AdminPatterns, righe);
+        return new AdminCoverage(
+            _resolver.AdminPatterns, _resolver.EditorPatterns, _resolver.DivisionStaffPatterns, righe);
     }
 
     public async Task<IReadOnlyList<ConsistencyFinding>> RunAsync(CancellationToken ct = default)
