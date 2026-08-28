@@ -4,6 +4,7 @@ using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Domain;
 using Vipi.Domain.Services;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
@@ -337,7 +338,7 @@ public sealed class ReleaseService : IReleaseService
         if (rel is null) return null;
         await EnsureCanEditAsync(rel.TargetType, rel.TargetKey, ct);
         var acc = await _repo.GetAuthAccCodeAsync(rel.TargetType, rel.TargetKey, ct)
-            ?? throw new Aor.ValidationException("Bersaglio della release inesistente.");
+            ?? throw new Aor.ValidationException(Lingua("Bersaglio della release inesistente.", "The release target does not exist."));
         return new ReleaseLocation(rel.TargetType, rel.TargetKey, rel.ReleaseAiracCycle, acc);
     }
 
@@ -516,7 +517,7 @@ public sealed class ReleaseService : IReleaseService
     private async Task EnsureCanEditAsync(ReleaseTargetType type, string key, CancellationToken ct)
     {
         var acc = await _repo.GetAuthAccCodeAsync(type, key, ct)
-            ?? throw new Aor.ValidationException("Bersaglio della release inesistente.");
+            ?? throw new Aor.ValidationException(Lingua("Bersaglio della release inesistente.", "The release target does not exist."));
         await _authz.EnsureCanEditAccAsync(acc, ct);
     }
 

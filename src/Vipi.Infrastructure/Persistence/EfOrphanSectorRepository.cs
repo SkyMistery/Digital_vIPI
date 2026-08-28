@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain.Entities;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Infrastructure.Persistence;
 
@@ -194,11 +195,11 @@ public sealed class EfOrphanSectorRepository : IOrphanSectorRepository
     public async Task ReattachAsync(int orphanSectorId, int targetSectorId, CancellationToken ct = default)
     {
         var orfano = await _db.Sectors.FirstOrDefaultAsync(s => s.Id == orphanSectorId, ct)
-                     ?? throw new Vipi.Application.Aor.ValidationException("Settore orfano inesistente.");
+                     ?? throw new Vipi.Application.Aor.ValidationException(Lingua("Settore orfano inesistente.", "The orphan sector does not exist."));
         var bersaglio = await _db.Sectors.FirstOrDefaultAsync(s => s.Id == targetSectorId, ct)
-                        ?? throw new Vipi.Application.Aor.ValidationException("Settore di destinazione inesistente.");
+                        ?? throw new Vipi.Application.Aor.ValidationException(Lingua("Settore di destinazione inesistente.", "The destination sector does not exist."));
         if (orfano.DocumentId is not int docId)
-            throw new Vipi.Application.Aor.ValidationException("Questo orfano non porta nessun documento.");
+            throw new Vipi.Application.Aor.ValidationException(Lingua("Questo orfano non porta nessun documento.", "This orphan carries no document."));
         if (bersaglio.DocumentId is int altro && altro != docId)
             throw new Vipi.Application.Aor.ValidationException(
                 $"{bersaglio.Callsign} descrive già un altro documento: scegli un settore libero.");

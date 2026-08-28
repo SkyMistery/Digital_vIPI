@@ -1,4 +1,5 @@
 using Vipi.Application.Aor;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
@@ -29,11 +30,11 @@ public sealed record ForeignSectorCallsign(string Callsign, string Icao, string 
 
         var parts = cs.Split('_', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 2)
-            throw new ValidationException($"Callsign «{cs}» non valido: atteso ICAO_…_POS (es. LGKR_APP, LGGG_N_CTR).");
+            throw new ValidationException(Lingua($"Callsign «{cs}» non valido: atteso ICAO_…_POS (es. LGKR_APP, LGGG_N_CTR).", $"Callsign «{cs}» is not valid: ICAO_…_POS expected (e.g. LGKR_APP, LGGG_N_CTR)."));
 
         var icao = parts[0];
         if (icao.Length != 4)
-            throw new ValidationException($"ICAO «{icao}» non valido: attesi 4 caratteri (prime lettere del callsign).");
+            throw new ValidationException(Lingua($"ICAO «{icao}» non valido: attesi 4 caratteri (prime lettere del callsign).", $"ICAO «{icao}» is not valid: 4 characters expected (the first letters of the callsign)."));
 
         var suffix = parts[^1];
         var kind =

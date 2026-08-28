@@ -1,10 +1,11 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
@@ -185,7 +186,7 @@ public sealed class NeighbourImportService : INeighbourImportService
         _authz.EnsureAdmin();
         // Valida il poligono incollato: null da Project = JSON non parsabile / degenere.
         if (!string.IsNullOrWhiteSpace(regionMapPolygon) && AorPolygonProjector.Project(regionMapPolygon) is null)
-            throw new Aor.ValidationException("Poligono non valido: atteso JSON [[lng,lat],…] o [{lat,lng},…] con ≥3 punti.");
+            throw new Aor.ValidationException(Lingua("Poligono non valido: atteso JSON [[lng,lat],…] o [{lat,lng},…] con ≥3 punti.", "Invalid polygon: JSON [[lng,lat],…] or [{lat,lng},…] with 3 points or more expected."));
         await _repo.SetPolygonAsync(id, regionMapPolygon, ct);
     }
 
@@ -198,9 +199,9 @@ public sealed class NeighbourImportService : INeighbourImportService
         if (homeAccCode.Length == 0 || foreignAccCode.Length == 0)
             throw new Aor.ValidationException("Codici ACC Home e Foreign obbligatori.");
         if (string.Equals(homeAccCode, foreignAccCode, StringComparison.OrdinalIgnoreCase))
-            throw new Aor.ValidationException("Home e Foreign non possono coincidere.");
+            throw new Aor.ValidationException(Lingua("Home e Foreign non possono coincidere.", "Home and Foreign cannot be the same."));
         if (!string.IsNullOrWhiteSpace(regionMapPolygon) && AorPolygonProjector.Project(regionMapPolygon) is null)
-            throw new Aor.ValidationException("Poligono non valido.");
+            throw new Aor.ValidationException(Lingua("Poligono non valido.", "Invalid polygon."));
 
         foreignRootCallsign = (foreignRootCallsign ?? "").Trim().ToUpperInvariant();
         if (foreignRootCallsign.Length == 0) foreignRootCallsign = $"{foreignAccCode}_CTR";
@@ -233,7 +234,7 @@ public sealed class NeighbourImportService : INeighbourImportService
         var cand = await repo.GetAsync(candidateId, ct)
             ?? throw new Aor.ValidationException("Candidato inesistente.");
         if (cand.Status != NeighbourCandidateStatus.Confirmed)
-            throw new Aor.ValidationException("Conferma prima la coppia, poi aggiungi settori esteri.");
+            throw new Aor.ValidationException(Lingua("Conferma prima la coppia, poi aggiungi settori esteri.", "Confirm the pair first, then add foreign sectors."));
 
         var foreignAcc = cand.ForeignAccCode.ToUpperInvariant();
 
@@ -248,7 +249,7 @@ public sealed class NeighbourImportService : INeighbourImportService
 
         // Verifica sulla sorgente (dispatch per natura del callsign). Assente → errore.
         var sub = await _sectorResolver.ResolveAsync(parsed, foreignAcc, ct)
-            ?? throw new Aor.ValidationException($"Settore «{parsed.Callsign}» non trovato sulla sorgente (IVAO).");
+            ?? throw new Aor.ValidationException(Lingua($"Settore «{parsed.Callsign}» non trovato sulla sorgente (IVAO).", $"Sector «{parsed.Callsign}» was not found on the source (IVAO)."));
 
         // Persist (riuso PersistForeignCatalog: upsert Acc estero + AccSector) + riproiezione, atomico.
         var uow = dbScope.ServiceProvider.GetRequiredService<IUnitOfWork>();

@@ -1,7 +1,8 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Domain;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
@@ -98,7 +99,7 @@ public sealed class AccDocumentService : IAccDocumentService
     {
         accCode = Norm(accCode);
         var id = await _repo.ResolveAccDocumentIdentityAsync(accCode, ct)
-            ?? throw new Aor.ValidationException($"ACC {accCode} inesistente o senza settori CTR.");
+            ?? throw new Aor.ValidationException(Lingua($"ACC {accCode} inesistente o senza settori CTR.", $"ACC {accCode} does not exist, or has no CTR sectors."));
         if (id.DocumentId is int existing) return existing;   // già migrato
 
         await _authz.EnsureCanEditAccAsync(accCode, ct);
@@ -114,12 +115,12 @@ public sealed class AccDocumentService : IAccDocumentService
     {
         accCode = Norm(accCode);
         var id = await _repo.ResolveAccDocumentIdentityAsync(accCode, ct)
-            ?? throw new Aor.ValidationException($"ACC {accCode} inesistente o senza settori CTR.");
+            ?? throw new Aor.ValidationException(Lingua($"ACC {accCode} inesistente o senza settori CTR.", $"ACC {accCode} does not exist, or has no CTR sectors."));
         await _authz.EnsureCanEditAccAsync(accCode, ct);
 
         var docId = await EnsureAsync(accCode, ct);
         var doc = await _editing.LoadForEditAsync(docId, ct)
-            ?? throw new Aor.ValidationException($"vIPI ACC {accCode} senza versione di lavoro.");
+            ?? throw new Aor.ValidationException(Lingua($"vIPI ACC {accCode} senza versione di lavoro.", $"ACC vIPI {accCode} has no working version."));
 
         var blocks = AccDocumentAssembler.Assemble(doc);
         return new AccDocumentModel(doc.DocumentId, doc.VersionId, doc.IsEditable, accCode, id.AccName, blocks);

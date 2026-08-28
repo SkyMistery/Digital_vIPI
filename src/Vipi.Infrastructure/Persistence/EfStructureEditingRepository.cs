@@ -4,6 +4,7 @@ using Vipi.Application.Auth;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Infrastructure.Persistence;
 
@@ -50,7 +51,7 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         var fid = await AccIdAsync(accCode, ct) ?? throw new InvalidOperationException($"ACC {accCode} inesistente.");
         // I settori portano contenuto/documenti: vanno rimossi esplicitamente prima.
         if (await _db.Sectors.AnyAsync(s => s.AccId == fid, ct))
-            throw new InvalidOperationException("Impossibile eliminare la ACC: rimuovi prima i settori.");
+            throw new InvalidOperationException(Lingua("Impossibile eliminare la ACC: rimuovi prima i settori.", "The ACC cannot be deleted: remove its sectors first."));
         // Gli aeroporti (spesso auto-assegnati in blocco) seguono la ACC: FK Sector.AirportId è SetNull.
         var airports = await _db.Airports.Where(a => a.AccId == fid).ToListAsync(ct);
         if (airports.Count > 0) _db.Airports.RemoveRange(airports);
@@ -156,7 +157,7 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         var airport = await _db.Airports.FirstOrDefaultAsync(a => a.Id == airportId && a.AccId == fid, ct);
         if (airport is null) return;
         if (await _db.Sectors.AnyAsync(s => s.AirportId == airportId, ct))
-            throw new InvalidOperationException("Impossibile eliminare l'aeroporto: dei settori vi puntano.");
+            throw new InvalidOperationException(Lingua("Impossibile eliminare l'aeroporto: dei settori vi puntano.", "The airport cannot be deleted: some sectors point to it."));
         AuditScribe.Write(_db, Attore, AuditAction.Delete, "Airport", airport.Id.ToString(),
             new { airport.Icao, airport.Name, Acc = accCode });
         _db.Airports.Remove(airport);
@@ -167,7 +168,7 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
     {
         var targetFid = await AccIdAsync(targetAccCode, ct) ?? throw new InvalidOperationException($"ACC {targetAccCode} inesistente.");
         var airport = await _db.Airports.FirstOrDefaultAsync(a => a.Id == airportId, ct)
-            ?? throw new InvalidOperationException("Aeroporto inesistente.");
+            ?? throw new InvalidOperationException(Lingua("Aeroporto inesistente.", "The airport does not exist."));
         if (airport.AccId == targetFid) return;
 
         airport.AccId = targetFid;
@@ -198,7 +199,7 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
     {
         var fid = await AccIdAsync(accCode, ct) ?? throw new InvalidOperationException($"ACC {accCode} inesistente.");
         var airport = await _db.Airports.FirstOrDefaultAsync(a => a.Id == airportId && a.AccId == fid, ct)
-            ?? throw new InvalidOperationException("Aeroporto inesistente nella ACC indicata.");
+            ?? throw new InvalidOperationException(Lingua("Aeroporto inesistente nella ACC indicata.", "The airport does not exist in that ACC."));
         // Senza presenza militare la distinzione non ha senso: «solo militare» ne è un sottoinsieme, non un flag
         // indipendente. Tacere e uscire lascerebbe la spunta accesa a schermo e spenta in archivio.
         if (militaryOnly && !airport.HasMilitaryPresence)
@@ -213,7 +214,7 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
     {
         var fid = await AccIdAsync(accCode, ct) ?? throw new InvalidOperationException($"ACC {accCode} inesistente.");
         var airport = await _db.Airports.FirstOrDefaultAsync(a => a.Id == airportId && a.AccId == fid, ct)
-            ?? throw new InvalidOperationException("Aeroporto inesistente nella ACC indicata.");
+            ?? throw new InvalidOperationException(Lingua("Aeroporto inesistente nella ACC indicata.", "The airport does not exist in that ACC."));
         if (airport.IsHidden == hidden) return;
         airport.IsHidden = hidden;
         await _db.SaveChangesAsync(ct);
@@ -367,13 +368,13 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
     {
         var fid = await AccIdAsync(accCode, ct) ?? throw new InvalidOperationException($"ACC {accCode} inesistente.");
         if (parentSectorId is int pid && !await _db.Sectors.AnyAsync(s => s.Id == pid && s.AccId == fid, ct))
-            throw new InvalidOperationException("Il settore padre non appartiene alla ACC.");
+            throw new InvalidOperationException(Lingua("Il settore padre non appartiene alla ACC.", "The parent sector does not belong to the ACC."));
 
         string? icao = null;
         if (kind == SectorKind.Airport && airportId is int aid)
         {
             var airport = await _db.Airports.FirstOrDefaultAsync(a => a.Id == aid && a.AccId == fid, ct)
-                ?? throw new InvalidOperationException("L'aeroporto non appartiene alla ACC.");
+                ?? throw new InvalidOperationException(Lingua("L'aeroporto non appartiene alla ACC.", "The airport does not belong to the ACC."));
             icao = airport.Icao;
         }
         else airportId = null;
@@ -396,13 +397,13 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         var sector = await _db.Sectors.FirstOrDefaultAsync(s => s.Id == sectorId && s.AccId == fid, ct);
         if (sector is null) return;
         if (await _db.Sectors.AnyAsync(s => s.ParentSectorId == sectorId, ct))
-            throw new InvalidOperationException("Impossibile eliminare il settore: ha dei sotto-settori.");
+            throw new InvalidOperationException(Lingua("Impossibile eliminare il settore: ha dei sotto-settori.", "The sector cannot be deleted: it has sub-sectors."));
         // Invariante: un aeroporto non resta senza torre. Blocca la rimozione dell'unica TWR/I_TWR
         // (per rimuoverla, eliminare prima l'intero aeroporto o aggiungere un'altra torre).
         if (sector.AirportId is int aid && (sector.Type is SectorType.Twr or SectorType.ITwr)
             && !await _db.Sectors.AnyAsync(s => s.AirportId == aid && s.Id != sectorId
                 && (s.Type == SectorType.Twr || s.Type == SectorType.ITwr), ct))
-            throw new InvalidOperationException("Impossibile eliminare l'unica torre (TWR/I_TWR) dell'aeroporto: ogni aeroporto deve mantenerne almeno una.");
+            throw new InvalidOperationException(Lingua("Impossibile eliminare l'unica torre (TWR/I_TWR) dell'aeroporto: ogni aeroporto deve mantenerne almeno una.", "The airport's only tower (TWR/I_TWR) cannot be deleted: every airport has to keep at least one."));
         AuditScribe.Write(_db, Attore, AuditAction.Delete, "Sector", sector.Id.ToString(),
             new { sector.Callsign, sector.Name, sector.Type, sector.Kind, Acc = accCode });
         _db.Sectors.Remove(sector);
@@ -413,7 +414,7 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
     {
         var fid = await AccIdAsync(accCode, ct) ?? throw new InvalidOperationException($"ACC {accCode} inesistente.");
         var sector = await _db.Sectors.FirstOrDefaultAsync(s => s.Id == sectorId && s.AccId == fid, ct)
-                     ?? throw new InvalidOperationException("Settore inesistente nella ACC.");
+                     ?? throw new InvalidOperationException(Lingua("Settore inesistente nella ACC.", "The sector does not exist in the ACC."));
         // Un settore PROIETTATO ha la frequenza come attributo di sorgente: SyncFromCatalogsAsync la riscrive a
         // ogni import/hide/edit (EfSectorProjectionService: DefaultFrequency = catalogo). Editarla qui darebbe
         // l'illusione di una modifica che il prossimo sync cancella in silenzio → si rifiuta. Catalogo = fonte unica.

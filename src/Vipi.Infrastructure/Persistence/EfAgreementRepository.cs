@@ -4,6 +4,7 @@ using Vipi.Application.Aor;      // ValidationException: la UI cattura questa, m
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Infrastructure.Persistence;
 
@@ -85,7 +86,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
     {
         var a = await AgreementsOf(accCode).Include(x => x.Sections)
                     .FirstOrDefaultAsync(x => x.Id == agreementId, ct)
-                ?? throw new InvalidOperationException($"Accordo {agreementId} non riguarda la ACC {accCode}.");
+                ?? throw new InvalidOperationException(Lingua($"Accordo {agreementId} non riguarda la ACC {accCode}.", $"Agreement {agreementId} does not belong to ACC {accCode}."));
 
         var (sideA, sideB) = Canonical(input.SideASectorId, input.SideBSectorId);
         if (await _db.CoordinationAgreements
@@ -134,7 +135,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
     {
         var section = await SectionsOf(accCode).Include(s => s.Airports)
                           .FirstOrDefaultAsync(s => s.Id == sectionId, ct)
-                      ?? throw new InvalidOperationException($"Sezione {sectionId} non riguarda la ACC {accCode}.");
+                      ?? throw new InvalidOperationException(Lingua($"Sezione {sectionId} non riguarda la ACC {accCode}.", $"Section {sectionId} does not belong to ACC {accCode}."));
 
         ApplySection(section, input);
         await _db.SaveChangesAsync(ct);
@@ -153,7 +154,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
         var src = await SectionsOf(accCode)
                       .Include(s => s.Airports).Include(s => s.Clauses)
                       .FirstOrDefaultAsync(s => s.Id == sectionId, ct)
-                  ?? throw new InvalidOperationException($"Sezione {sectionId} non riguarda la ACC {accCode}.");
+                  ?? throw new InvalidOperationException(Lingua($"Sezione {sectionId} non riguarda la ACC {accCode}.", $"Section {sectionId} does not belong to ACC {accCode}."));
 
         var reverse = Flip(src.Direction);
         var key = AirportKey(src.Airports.Select(x => x.Icao));
@@ -210,17 +211,17 @@ public sealed class EfAgreementRepository : IAgreementRepository
 
         var keep = await SectionsOf(accCode).Include(s => s.Airports)
                        .FirstOrDefaultAsync(s => s.Id == keepId, ct)
-                   ?? throw new InvalidOperationException($"Sezione {keepId} non riguarda la ACC {accCode}.");
+                   ?? throw new InvalidOperationException(Lingua($"Sezione {keepId} non riguarda la ACC {accCode}.", $"Section {keepId} does not belong to ACC {accCode}."));
         var absorb = await SectionsOf(accCode).Include(s => s.Airports)
                          .FirstOrDefaultAsync(s => s.Id == absorbId, ct)
-                     ?? throw new InvalidOperationException($"Sezione {absorbId} non riguarda la ACC {accCode}.");
+                     ?? throw new InvalidOperationException(Lingua($"Sezione {absorbId} non riguarda la ACC {accCode}.", $"Section {absorbId} does not belong to ACC {accCode}."));
 
         // ⚠️ Le condizioni si rivalidano QUI e non si dànno per buone dalla segnalazione: fra il cruscotto e il
         // tasto l'archivio può essere cambiato, e unire due tabelle che dicono cose diverse le mescolerebbe
         // senza che nessuno possa più separarle.
         if (keep.AgreementId != absorb.AgreementId || keep.Kind != absorb.Kind || keep.Direction != absorb.Direction
             || AirportKey(keep.Airports.Select(x => x.Icao)) != AirportKey(absorb.Airports.Select(x => x.Icao)))
-            throw new ValidationException("Le due sezioni non dicono la stessa cosa: si uniscono solo le gemelle.");
+            throw new ValidationException(Lingua("Le due sezioni non dicono la stessa cosa: si uniscono solo le gemelle.", "The two sections do not say the same thing: only twins can be merged."));
 
         var moving = await _db.AgreementClauses.Where(c => c.SectionId == absorbId)
             .OrderBy(c => c.Order).ToListAsync(ct);
@@ -282,7 +283,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
         CancellationToken ct = default)
     {
         var section = await SectionsOf(accCode).FirstOrDefaultAsync(s => s.Id == sectionId, ct)
-                      ?? throw new InvalidOperationException($"Sezione {sectionId} non riguarda la ACC {accCode}.");
+                      ?? throw new InvalidOperationException(Lingua($"Sezione {sectionId} non riguarda la ACC {accCode}.", $"Section {sectionId} does not belong to ACC {accCode}."));
 
         var order = (await Scope(section.Id).MaxAsync(c => (int?)c.Order, ct) ?? 0) + 1;
 
@@ -301,7 +302,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
         if (c.VariantGroup is int group)
         {
             if (c.IsGroupWide && c.VariantDepth > 0)
-                throw new ValidationException("Una clausola «in ogni caso» non può essere l'eccezione di un'altra.");
+                throw new ValidationException(Lingua("Una clausola «in ogni caso» non può essere l'eccezione di un'altra.", "An «in any case» clause cannot be the exception to another one."));
 
             // I PUNTI sono l'identità dell'accordo dentro un gruppo — le varianti sono lo stesso accordo detto a
             // condizioni diverse — quindi cambiarli su una clausola li cambia sulle sorelle. Propagare è meglio
@@ -645,7 +646,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
                 if (r.VariantGroup is not int g) continue;
 
                 if (r.IsGroupWide && r.VariantDepth > 0)
-                    throw new ValidationException("Una clausola «in ogni caso» non può essere l'eccezione di un'altra.");
+                    throw new ValidationException(Lingua("Una clausola «in ogni caso» non può essere l'eccezione di un'altra.", "An «in any case» clause cannot be the exception to another one."));
 
                 var previous = depthByGroup.TryGetValue(g, out var d) ? d : -1;
                 if (r.VariantDepth > previous + 1)
@@ -793,11 +794,11 @@ public sealed class EfAgreementRepository : IAgreementRepository
 
     private async Task<CoordinationAgreement> AgreementAsync(string accCode, int agreementId, CancellationToken ct) =>
         await AgreementsOf(accCode).FirstOrDefaultAsync(x => x.Id == agreementId, ct)
-            ?? throw new InvalidOperationException($"Accordo {agreementId} non riguarda la ACC {accCode}.");
+            ?? throw new InvalidOperationException(Lingua($"Accordo {agreementId} non riguarda la ACC {accCode}.", $"Agreement {agreementId} does not belong to ACC {accCode}."));
 
     private async Task<AgreementClause> ClauseInAccAsync(string accCode, int clauseId, CancellationToken ct) =>
         await ClausesOf(accCode).FirstOrDefaultAsync(x => x.Id == clauseId, ct)
-            ?? throw new InvalidOperationException($"Clausola {clauseId} non riguarda la ACC {accCode}.");
+            ?? throw new InvalidOperationException(Lingua($"Clausola {clauseId} non riguarda la ACC {accCode}.", $"Clause {clauseId} does not belong to ACC {accCode}."));
 
     /// <summary>Le clausole indicate che riguardano davvero la ACC: il filtro è la guardia, non un dettaglio.</summary>
     private async Task<List<AgreementClause>> ClausesInAccAsync(string accCode, IReadOnlyList<int> clauseIds, CancellationToken ct) =>

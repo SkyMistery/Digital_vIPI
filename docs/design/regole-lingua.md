@@ -87,9 +87,23 @@ scrive lo staff, cambia a ogni ciclo AIRAC, e nessuno può ritradurla ogni volta
 ### Il testo che nasce nel BACKEND
 
 Non passa dalle risorse (che vivono in `Vipi.Ui`, e l'applicazione non può dipendere dalla UI): dove serve,
-porta con sé **le due lingue** e la sceglie chi sa chi sta leggendo — `ReadingLanguageContext`. È lo stesso
-schema del template dei coordinamenti e ora del **catalogo di ricerca della Guida**
-(`GuideSearchCatalog`), che è l'unico testo di backend che vede il **pubblico**.
+porta con sé **le due lingue** e la sceglie chi sa chi sta leggendo. Tre punti, un solo schema:
+
+| Che cosa | Chi sceglie la lingua |
+|---|---|
+| Le frasi di **coordinamento** nei documenti | `ICoordinationSentenceTemplate`, sulla famiglia del documento |
+| Il **catalogo di ricerca della Guida** (l'unico testo di backend che vede il pubblico) | `SearchService`, da `ReadingLanguageContext` |
+| I **messaggi a chi modifica** — 100 errori di validazione e 25 motivi di blocco all'eliminazione | `Messaggio.Lingua(it, en)`, dalla cultura della richiesta |
+
+⚠️ `Messaggio.Lingua` legge la **cultura ambientale** e non si fa passare la lingua di firma in firma: fra
+chi la conosce (la richiesta) e chi compone il messaggio (un servizio in fondo a una catena di chiamate) ci
+sono cinque o sei firme che dovrebbero portarsi dietro un parametro che riguarda uno solo dei loro
+chiamanti. E un messaggio d'errore non finisce mai in uno snapshot congelato, che è l'unico caso in cui la
+cultura ambientale non basterebbe.
+
+⚠️ **Nei test la cultura si FISSA.** La lingua che esce dipende dalla cultura della macchina: un test che
+asserisce il testo italiano senza fissarla passa in Italia e cade su una macchina inglese. Si usa
+`CulturaDiProva.Italiana()` / `.Inglese()`. Non è una fragilità nuova: è una vecchia che adesso si vede.
 
 ⚠️ Nel catalogo della Guida le **parole chiave non si sdoppiano per lingua**: chi legge in inglese cercherà
 comunque «frequenze», e chi legge in italiano cercherà «runway». Chi cerca vuole trovare, non essere

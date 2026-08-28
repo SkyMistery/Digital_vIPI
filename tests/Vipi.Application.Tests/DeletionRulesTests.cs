@@ -9,8 +9,16 @@ namespace Vipi.Application.Tests;
 /// dai fatti esce il piano — e questi test le fissano una per una, perché è l'unico posto dove si può
 /// leggere, senza database, che cosa il sistema promette prima di cancellare qualcosa.
 /// </summary>
-public class DeletionRulesTests
+public class DeletionRulesTests : IDisposable
 {
+
+    // ⚠️ Questi test leggono i MESSAGGI, e i messaggi hanno due lingue (Messaggio.Lingua): senza fissare la
+    // cultura passerebbero in Italia e cadrebbero su una macchina inglese. Si fissa qui, una volta per la
+    // classe, invece che in ogni test.
+    private readonly CulturaDiProva _lingua = CulturaDiProva.Italiana();
+    public DeletionRulesTests() { }
+
+    public void Dispose() => _lingua.Dispose();
     private static readonly DateTime Adesso = new(2026, 8, 26, 12, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime Penultimo = Adesso.AddDays(-1);
     private static readonly DateTime Vecchio = Adesso.AddDays(-5);   // due giri non l'hanno nominato

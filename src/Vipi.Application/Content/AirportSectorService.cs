@@ -1,6 +1,7 @@
 using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
@@ -80,14 +81,14 @@ public sealed class AirportSectorService : IAirportSectorService
     private async Task EnsureCanEditAsync(string icao, CancellationToken ct)
     {
         var acc = await _repo.GetAccCodeByIcaoAsync(Norm(icao), ct)
-            ?? throw new ValidationException($"Aeroporto {Norm(icao)} inesistente o senza ACC.");
+            ?? throw new ValidationException(Lingua($"Aeroporto {Norm(icao)} inesistente o senza ACC.", $"Airport {Norm(icao)} does not exist, or has no ACC."));
         await _authz.EnsureCanEditAccAsync(acc, ct);
     }
 
     private async Task EnsureCanEditSectorAsync(int id, CancellationToken ct)
     {
         var acc = await _repo.GetAccCodeBySectorIdAsync(id, ct)
-            ?? throw new ValidationException($"Settore d'aeroporto id {id} inesistente.");
+            ?? throw new ValidationException(Lingua($"Settore d'aeroporto id {id} inesistente.", $"Airport sector id {id} does not exist."));
         await _authz.EnsureCanEditAccAsync(acc, ct);
     }
 
