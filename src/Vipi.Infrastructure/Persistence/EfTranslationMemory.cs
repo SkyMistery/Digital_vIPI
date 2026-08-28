@@ -242,8 +242,34 @@ public sealed class EfTranslationMemory : ITranslationMemory
     private static bool Contiene(IEnumerable<string> segmenti, string impronta) =>
         segmenti.Any(s => TranslationText.Hash(s) == impronta);
 
+    /// <summary>
+    /// I caratteri già spesi con questo motore: la somma dei testi sorgente delle voci che <b>lui</b> ha
+    /// prodotto.
+    ///
+    /// <para>
+    /// ⚠️ <b>Non si filtra più su <c>Origin</c>, ed è la correzione di una deriva vera.</b> Fino al 28
+    /// agosto 2026 qui c'era anche <c>Origin == Machine</c>. Ma quando una persona corregge una resa,
+    /// <c>SaveHumanAsync</c> ribalta <c>Origin</c> a <c>Human</c> e <b>lascia intatto <c>Engine</c></b>:
+    /// quei caratteri erano stati spesi davvero, e sparivano dal conto. Più si revisionava, più il tetto
+    /// si allargava — cioè la difesa si allentava proprio mentre il lavoro andava avanti.
+    /// </para>
+    ///
+    /// <para>
+    /// La colonna <c>Engine</c> è la domanda giusta: dice <b>chi ha tradotto</b>, e non cambia quando
+    /// cambia chi ha l'ultima parola sul testo. Una riga nata da una correzione umana senza che nessun
+    /// motore l'avesse mai tradotta ha <c>Engine</c> nullo, e non conta per nessuno: giusto, non è stata
+    /// pagata.
+    /// </para>
+    ///
+    /// <para>
+    /// ⚠️ <b>Resta una stima, e per una ragione che non si chiude qui</b>: i segmenti che il motore
+    /// restituisce rotti (un segnaposto mangiato) vengono <b>pagati e non salvati</b>, quindi non entrano
+    /// in questa somma — e il giro successivo li rispedisce. Vedi <c>docs/lavori-aperti.md</c> §Q16: quella
+    /// parte vuole un contatore suo, non una somma dedotta da ciò che è rimasto in tabella.
+    /// </para>
+    /// </summary>
     public async Task<long> CaratteriSpesiStimatiAsync(string engine, CancellationToken ct = default) =>
         await _db.TranslationUnits.AsNoTracking()
-            .Where(u => u.Engine == engine && u.Origin == TranslationOrigin.Machine)
+            .Where(u => u.Engine == engine)
             .SumAsync(u => (long)u.SourceText.Length, ct).ConfigureAwait(false);
 }

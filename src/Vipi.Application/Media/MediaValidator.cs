@@ -15,7 +15,7 @@ public static class MediaValidator
     public static ImageInfo Validate(ReadOnlyMemory<byte> bytes, MediaOptions options)
     {
         if (bytes.Length == 0)
-            throw new ValidationException("Il file è vuoto.");
+            throw new ValidationException(Lingua("Il file è vuoto.", "The file is empty."));
 
         if (bytes.Length > options.MaxUploadBytes)
             throw new ValidationException(TooBigMessage(bytes.Length, options));
@@ -27,8 +27,9 @@ public static class MediaValidator
             throw new ValidationException(Lingua("L'immagine dichiara dimensioni non valide.", "The image declares invalid dimensions."));
 
         if (info.Width > options.MaxImagePixels || info.Height > options.MaxImagePixels)
-            throw new ValidationException(
-                $"L'immagine è {info.Width}×{info.Height} pixel: il massimo per lato è {options.MaxImagePixels}.");
+            throw new ValidationException(Lingua(
+                $"L'immagine è {info.Width}×{info.Height} pixel: il massimo per lato è {options.MaxImagePixels}.",
+                $"The image is {info.Width}×{info.Height} pixels: the maximum per side is {options.MaxImagePixels}."));
 
         return info;
     }

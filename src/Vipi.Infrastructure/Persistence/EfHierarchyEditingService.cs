@@ -156,7 +156,7 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
             case HierarchyNodeKind.AirportPosition:
             {
                 var e = await _db.AirportSectors.FirstOrDefaultAsync(s => s.Id == nodeId, ct)
-                    ?? throw new ValidationException("Posizione APP inesistente.");
+                    ?? throw new ValidationException(Lingua("Posizione APP inesistente.", "The APP position does not exist."));
                 childAccCode = e.AccCode; childCallsign = e.ComposePosition;
                 break;
             }
@@ -266,9 +266,11 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
         var childRung = RungOf(childCallsign);
         var parentRung = RungOf(parentCallsign);
         if (parentRung > childRung)
-            throw new ValidationException(
+            throw new ValidationException(Lingua(
                 $"«{parentCallsign}» non può coprire «{childCallsign}»: sta più in basso nella scaletta " +
-                "dell'aeroporto (DEL → GND → TWR → APP).");
+                "dell'aeroporto (DEL → GND → TWR → APP).",
+                $"«{parentCallsign}» cannot cover «{childCallsign}»: it sits lower on the airport ladder " +
+                "(DEL → GND → TWR → APP)."));
     }
 
     private static LadderPosition ToLadder(AirportSector s) =>

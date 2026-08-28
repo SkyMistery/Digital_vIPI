@@ -109,7 +109,7 @@ public sealed class AirportEditingService : IAirportEditingService
         foreach (var r in rows)
         {
             if (string.IsNullOrWhiteSpace(r.Level)) throw new ValidationException(Lingua("Transition Level obbligatorio per ogni riga.", "A Transition Level is required on every row."));
-            if (r.QnhFrom is int a && r.QnhTo is int b && a > b) throw new ValidationException("Intervallo QNH invertito (From > To).");
+            if (r.QnhFrom is int a && r.QnhTo is int b && a > b) throw new ValidationException(Lingua("Intervallo QNH invertito (From > To).", "QNH range is inverted (From > To)."));
         }
         await _repo.SaveTransitionLevelsAsync(Norm(icao), rows, ct);
     }
@@ -142,8 +142,8 @@ public sealed class AirportEditingService : IAirportEditingService
         {
             if (string.IsNullOrWhiteSpace(r.DepRunways) && string.IsNullOrWhiteSpace(r.ArrRunways))
                 throw new ValidationException(Lingua("Specifica almeno una pista DEP o ARR per la regola.", "Give the rule at least one DEP or ARR runway."));
-            if (r.MaxTailwindKt is < 0 or > 40) throw new ValidationException("Vento in coda massimo fuori range (0–40 kt).");
-            if (r.MaxCrosswindKt is < 0 or > 60) throw new ValidationException("Vento al traverso massimo fuori range (0–60 kt).");
+            if (r.MaxTailwindKt is < 0 or > 40) throw new ValidationException(Lingua("Vento in coda massimo fuori range (0–40 kt).", "Maximum tailwind out of range (0–40 kt)."));
+            if (r.MaxCrosswindKt is < 0 or > 60) throw new ValidationException(Lingua("Vento al traverso massimo fuori range (0–60 kt).", "Maximum crosswind out of range (0–60 kt)."));
         }
         await _repo.SaveRunwayRulesAsync(Norm(icao), rows, ct);
     }
@@ -153,7 +153,7 @@ public sealed class AirportEditingService : IAirportEditingService
         await EnsureCanEditAsync(icao, ct);
         foreach (var r in rows)
         {
-            if (string.IsNullOrWhiteSpace(r.Name)) throw new ValidationException("Nome SID obbligatorio.");
+            if (string.IsNullOrWhiteSpace(r.Name)) throw new ValidationException(Lingua("Nome SID obbligatorio.", "The SID name is required."));
             if (string.IsNullOrWhiteSpace(r.Fix)) throw new ValidationException(Lingua("FIX obbligatorio per ogni SID.", "A FIX is required on every SID."));
         }
         await _repo.SaveSidsAsync(Norm(icao), rows, ct);

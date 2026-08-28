@@ -1,6 +1,7 @@
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Domain;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
@@ -251,7 +252,8 @@ public sealed class DocumentImpactService : IDocumentImpactService
         // e l'utente si troverebbe a spuntare la stessa riga ogni notte. Si chiudono togliendo la causa.
         if (riga.Kind.IsCalcolato())
             throw new Aor.ValidationException(
-                "Questa segnalazione la richiude da sé il controllo che l'ha aperta: si chiude risolvendo la causa.",
+                Lingua("Questa segnalazione la richiude da sé il controllo che l'ha aperta: si chiude risolvendo la causa.",
+                       "This item is closed by the check that raised it: it goes away when the cause is fixed."),
                 "Impact_Err_Calcolato");
 
         // Il permesso si chiede SEMPRE. Dove l'ACC non si risolve serve essere admin: è il grado giusto per

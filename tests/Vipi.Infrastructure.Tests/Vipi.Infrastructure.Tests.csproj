@@ -39,6 +39,15 @@
     <ProjectReference Include="..\..\src\Vipi.Domain\Vipi.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- ⚠️ COLLEGATO, non copiato. La cultura di UI di questa macchina è INGLESE (è la lingua di Windows,
+         indipendente dal formato regionale), e da quando i messaggi a chi modifica hanno due lingue un test
+         che asserisce una parola italiana senza fissarla cade qui. Il difetto non è nuovo: è vecchio, e
+         adesso si vede. La regoletta sta in Vipi.Application.Tests: una seconda copia sarebbe un secondo
+         posto dove sapere quali lingue esistono. -->
+    <Compile Include="..\Vipi.Application.Tests\CulturaDiProva.cs" Link="CulturaDiProva.cs" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <!-- Set di migrazioni MariaDB: esiste solo su net8, come Pomelo. Serve a verificare che non resti
          indietro rispetto al modello — il costo dichiarato della scelta (a) in ADR-0007 è "ogni cambio di

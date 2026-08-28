@@ -11,12 +11,16 @@ namespace Vipi.Application.Translation;
 /// <param name="Scartati">Segmenti che il motore ha restituito rotti (un segnaposto mangiato o inventato).</param>
 /// <param name="Esito">Come è finita la parte automatica.</param>
 /// <param name="Dettaglio">Che cosa ha detto il motore, per il registro. Non contiene mai la chiave.</param>
+/// <param name="CaratteriScartati">I caratteri spesi per i segmenti tornati rotti: <b>pagati e buttati</b>.
+/// ⚠️ Non entrano nel conto della spesa (quello si deduce da quel che è rimasto in memoria, e questi in
+/// memoria non ci vanno) e il giro dopo si rispediscono. Finché sono zero non c'è niente da dire; quando
+/// non lo sono, questo numero è l'unico posto in cui la perdita si vede. Vedi lavori-aperti §Q16.</param>
 /// <param name="Motore">Chi ha tradotto davvero. Con una catena non e' scontato che sia il primo: se Azure
 /// ha finito la quota, qui c'e' scritto «deepl», ed e' l'informazione che dice all'amministratore che il
 /// primario e' fermo <b>senza</b> che il servizio si sia fermato con lui.</param>
 public sealed record TranslationFillReport(
     int Segmenti, int GiaInMemoria, int Tradotti, int DaTradurreAMano, int Scartati,
-    TranslationOutcome Esito, string? Dettaglio = null, string? Motore = null)
+    TranslationOutcome Esito, string? Dettaglio = null, string? Motore = null, long CaratteriScartati = 0)
 {
     /// <summary>Quanti mancano ancora, dopo questo giro.</summary>
     public int Mancanti => Segmenti - GiaInMemoria - Tradotti;
@@ -172,6 +176,8 @@ public sealed class TranslationFillUseCase
         // e una difesa tarata su una misura falsa non difende.
         var buone = new List<(string, string)>();
         var scartati = 0;
+        // I caratteri di quel che si butta: gia' spesi, e il giro dopo si rispendono.
+        var caratteriScartati = 0L;
         for (var i = 0; i < daSpedire.Count; i++)
         {
             var (originale, protetto) = daSpedire[i];
@@ -180,9 +186,14 @@ public sealed class TranslationFillUseCase
                 // quello che leggeranno tutti finché una persona non lo corregge.
                 buone.Add((originale, TranslationText.RiparaGrassetto(originale, tradotto)));
             else
+            {
                 // Una frase a cui manca il callsign e' PEGGIO della frase non tradotta: sembra giusta e non
                 // lo e'. Non si salva, cosi' il giro dopo ci riprova.
+                // ⚠️ E siccome ci riprova ogni quarto d'ora, questi caratteri si ripagano ogni volta senza
+                // comparire da nessuna parte: qui si contano almeno, o la perdita resta invisibile.
                 scartati++;
+                caratteriScartati += protetto.Text.Length;
+            }
         }
 
         var scritte = buone.Count == 0
@@ -194,6 +205,7 @@ public sealed class TranslationFillUseCase
                 .ConfigureAwait(false);
 
         return new TranslationFillReport(
-            segmenti.Count, giaInMemoria, scritte, aMano, scartati, TranslationOutcome.Ok, null, motoreUsato);
+            segmenti.Count, giaInMemoria, scritte, aMano, scartati, TranslationOutcome.Ok, null, motoreUsato,
+            caratteriScartati);
     }
 }

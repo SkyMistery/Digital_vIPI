@@ -159,7 +159,7 @@ public sealed class NeighbourImportService : INeighbourImportService
         var repo = dbScope.ServiceProvider.GetRequiredService<INeighbourRepository>();
 
         var cand = await repo.GetAsync(id, ct)
-            ?? throw new Aor.ValidationException("Candidato inesistente.");
+            ?? throw new Aor.ValidationException(Lingua("Candidato inesistente.", "The candidate does not exist."));
         var home = cand.HomeAccCode.ToUpperInvariant();
         var foreign = cand.ForeignAccCode.ToUpperInvariant();
 
@@ -197,7 +197,7 @@ public sealed class NeighbourImportService : INeighbourImportService
         homeAccCode = (homeAccCode ?? "").Trim().ToUpperInvariant();
         foreignAccCode = (foreignAccCode ?? "").Trim().ToUpperInvariant();
         if (homeAccCode.Length == 0 || foreignAccCode.Length == 0)
-            throw new Aor.ValidationException("Codici ACC Home e Foreign obbligatori.");
+            throw new Aor.ValidationException(Lingua("Codici ACC Home e Foreign obbligatori.", "The Home and Foreign ACC codes are required."));
         if (string.Equals(homeAccCode, foreignAccCode, StringComparison.OrdinalIgnoreCase))
             throw new Aor.ValidationException(Lingua("Home e Foreign non possono coincidere.", "Home and Foreign cannot be the same."));
         if (!string.IsNullOrWhiteSpace(regionMapPolygon) && AorPolygonProjector.Project(regionMapPolygon) is null)
@@ -216,9 +216,11 @@ public sealed class NeighbourImportService : INeighbourImportService
     {
         _authz.EnsureAdmin();
         var cand = await _repo.GetAsync(id, ct)
-            ?? throw new Aor.ValidationException("Candidato inesistente.");
+            ?? throw new Aor.ValidationException(Lingua("Candidato inesistente.", "The candidate does not exist."));
         if (cand.Status != NeighbourCandidateStatus.Confirmed)
-            throw new Aor.ValidationException("Conferma prima la coppia, poi genera la vLOA.");
+            throw new Aor.ValidationException(Lingua(
+                "Conferma prima la coppia, poi genera la vLOA.",
+                "Confirm the pair first, then generate the vLOA."));
         return await _repo.MaterializeAndCreateVloaAsync(id, ct);
     }
 
@@ -232,7 +234,7 @@ public sealed class NeighbourImportService : INeighbourImportService
         var repo = dbScope.ServiceProvider.GetRequiredService<INeighbourRepository>();
 
         var cand = await repo.GetAsync(candidateId, ct)
-            ?? throw new Aor.ValidationException("Candidato inesistente.");
+            ?? throw new Aor.ValidationException(Lingua("Candidato inesistente.", "The candidate does not exist."));
         if (cand.Status != NeighbourCandidateStatus.Confirmed)
             throw new Aor.ValidationException(Lingua("Conferma prima la coppia, poi aggiungi settori esteri.", "Confirm the pair first, then add foreign sectors."));
 
@@ -243,8 +245,9 @@ public sealed class NeighbourImportService : INeighbourImportService
         {
             if (string.Equals(owner.AccCode, foreignAcc, StringComparison.OrdinalIgnoreCase))
                 return new AddForeignSectorResult(parsed.Callsign, foreignAcc, AlreadyPresent: true, Hidden: owner.IsHidden);
-            throw new Aor.ValidationException(
-                $"«{parsed.Callsign}» appartiene già all'ACC {owner.AccCode} — non spostabile da qui.");
+            throw new Aor.ValidationException(Lingua(
+                $"«{parsed.Callsign}» appartiene già all'ACC {owner.AccCode} — non spostabile da qui.",
+                $"«{parsed.Callsign}» already belongs to ACC {owner.AccCode} — it cannot be moved from here."));
         }
 
         // Verifica sulla sorgente (dispatch per natura del callsign). Assente → errore.

@@ -5,6 +5,7 @@ using Vipi.Application.Aor;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
 using Vipi.Domain.Services;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Infrastructure.Persistence;
 
@@ -192,7 +193,7 @@ public sealed class EfNeighbourRepository : INeighbourRepository
         var dup = await _db.NeighbourCandidates
             .FirstOrDefaultAsync(c => c.HomeAccCode == home && c.ForeignAccCode == foreign, ct);
         if (dup is not null)
-            throw new InvalidOperationException($"Coppia {home}↔{foreign} già presente.");
+            throw new InvalidOperationException(Lingua($"Coppia {home}↔{foreign} già presente.", $"The pair {home}↔{foreign} is already there."));
 
         var row = new NeighbourCandidate
         {
@@ -243,8 +244,9 @@ public sealed class EfNeighbourRepository : INeighbourRepository
             .OrderBy(s => s.ParentSectorId == null ? 0 : 1)
             .ThenBy(s => s.CoverageOrder)
             .FirstOrDefaultAsync(ct)
-            ?? throw new InvalidOperationException(
-                $"Nessun settore operativo per l'ACC {cand.HomeAccCode}: proietta i settori (pagina ACC) prima di generare la vLOA.");
+            ?? throw new InvalidOperationException(Lingua(
+                $"Nessun settore operativo per l'ACC {cand.HomeAccCode}: proietta i settori (pagina ACC) prima di generare la vLOA.",
+                $"No operational sector for ACC {cand.HomeAccCode}: project the sectors (ACC page) before generating the vLOA."));
 
         // 2) Materializza ACC estero (upsert per Code).
         var fCode = cand.ForeignAccCode.ToUpperInvariant();

@@ -44,7 +44,7 @@ public sealed class EditingService : IEditingService
         int? primarySectorId, int? homeSectorId, int? neighbourSectorId, CancellationToken ct = default)
     {
         title = (title ?? "").Trim();
-        if (title.Length == 0) throw new Aor.ValidationException("Titolo documento obbligatorio.");
+        if (title.Length == 0) throw new Aor.ValidationException(Lingua("Titolo documento obbligatorio.", "The document title is required."));
 
         (int, int)? parties = null;
         IReadOnlyList<int>? scope = null;
@@ -71,8 +71,9 @@ public sealed class EditingService : IEditingService
             var neighAcc = await _repo.GetAccCodeBySectorAsync(neigh, ct)
                 ?? throw new Aor.ValidationException(Lingua("Settore Neighbour inesistente.", "The Neighbour sector does not exist."));
             if (await _repo.FindVloaIdByPairAsync(accCode, neighAcc, ct) is int gia)
-                throw new Aor.ValidationException(
-                    $"Esiste già una vLOA {accCode} ↔ {neighAcc} (documento #{gia}): aprila invece di crearne una seconda.");
+                throw new Aor.ValidationException(Lingua(
+                    $"Esiste già una vLOA {accCode} ↔ {neighAcc} (documento #{gia}): aprila invece di crearne una seconda.",
+                    $"A vLOA {accCode} ↔ {neighAcc} already exists (document #{gia}): open that one instead of creating a second."));
         }
         else
         {
@@ -228,9 +229,11 @@ public sealed class EditingService : IEditingService
         // lascerebbe un guscio senza contenuto e senza vista pubblica — chi vuole disfarsene elimini il
         // documento, che è un'altra azione con altre conseguenze.
         if (!versions.Any(v => v.Id != versionId && v.Status is DocumentStatus.Published or DocumentStatus.Archived))
-            throw new ValidationException(
+            throw new ValidationException(Lingua(
                 "Questa bozza è l'unica versione del documento: scartandola non resterebbe nulla da mostrare. " +
-                "Pubblicala, oppure elimina il documento.");
+                "Pubblicala, oppure elimina il documento.",
+                "This draft is the document's only version: discarding it would leave nothing to show. " +
+                "Publish it, or delete the document."));
 
         var numero = await _repo.DiscardDraftAsync(versionId, _authz.CurrentUserId ?? 0, ct);
         // Scartare è finire di editare: come la pubblicazione, lascia il documento libero per gli altri.

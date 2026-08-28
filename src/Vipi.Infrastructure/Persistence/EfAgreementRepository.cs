@@ -56,7 +56,9 @@ public sealed class EfAgreementRepository : IAgreementRepository
         // La coppia è unica anche per indice; qui si risponde con una frase invece che con una violazione di
         // vincolo, e l'editor può proporre di aprire quello che c'è.
         if (await _db.CoordinationAgreements.AnyAsync(x => x.SideASectorId == sideA && x.SideBSectorId == sideB, ct))
-            throw new ValidationException("Fra questi due enti esiste già un accordo: aggiungi una sezione a quello.");
+            throw new ValidationException(Lingua(
+                "Fra questi due enti esiste già un accordo: aggiungi una sezione a quello.",
+                "These two units already have an agreement: add a section to that one."));
 
         var order = (await _db.CoordinationAgreements.Where(a => a.OwnerAccId == accId)
             .MaxAsync(a => (int?)a.Order, ct) ?? 0) + 1;
@@ -91,7 +93,9 @@ public sealed class EfAgreementRepository : IAgreementRepository
         var (sideA, sideB) = Canonical(input.SideASectorId, input.SideBSectorId);
         if (await _db.CoordinationAgreements
                 .AnyAsync(x => x.Id != agreementId && x.SideASectorId == sideA && x.SideBSectorId == sideB, ct))
-            throw new ValidationException("Fra questi due enti esiste già un altro accordo.");
+            throw new ValidationException(Lingua(
+                "Fra questi due enti esiste già un altro accordo.",
+                "These two units already have another agreement."));
 
         var swapped = (a.SideASectorId == sideB && sideB != a.SideBSectorId)
                       || (a.SideBSectorId == sideA && sideA != a.SideASectorId);
@@ -650,9 +654,11 @@ public sealed class EfAgreementRepository : IAgreementRepository
 
                 var previous = depthByGroup.TryGetValue(g, out var d) ? d : -1;
                 if (r.VariantDepth > previous + 1)
-                    throw new ValidationException(
+                    throw new ValidationException(Lingua(
                         $"La clausola «{r.Cops}» sta a profondità {r.VariantDepth} senza una clausola di " +
-                        $"profondità {r.VariantDepth - 1} che la preceda.");
+                        $"profondità {r.VariantDepth - 1} che la preceda.",
+                        $"Clause «{r.Cops}» sits at depth {r.VariantDepth} with no clause at depth " +
+                        $"{r.VariantDepth - 1} before it."));
 
                 depthByGroup[g] = r.VariantDepth;
             }

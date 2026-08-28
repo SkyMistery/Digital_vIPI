@@ -119,8 +119,8 @@ public sealed class StructureEditingService : IStructureEditingService
         code = (code ?? "").Trim().ToUpperInvariant();
         name = (name ?? "").Trim();
         if (code.Length is < 2 or > 8) throw new ValidationException(Lingua("Codice ACC non valido (es. LIRR).", "Invalid ACC code (e.g. LIRR)."));
-        if (name.Length == 0) throw new ValidationException("Nome ACC obbligatorio.");
-        if (await _repo.AccExistsAsync(code, ct)) throw new ValidationException($"ACC {code} già esistente.");
+        if (name.Length == 0) throw new ValidationException(Lingua("Nome ACC obbligatorio.", "The ACC name is required."));
+        if (await _repo.AccExistsAsync(code, ct)) throw new ValidationException(Lingua($"ACC {code} già esistente.", $"ACC {code} already exists."));
         var prefix = string.IsNullOrWhiteSpace(countryPrefix) ? code.Substring(0, 2) : countryPrefix.Trim().ToUpperInvariant();
         return await _repo.CreateAccAsync(code, name, prefix, ct);
     }
@@ -282,14 +282,14 @@ public sealed class StructureEditingService : IStructureEditingService
         await _authz.EnsureCanEditAccAsync(accCode, ct);
         callsign = (callsign ?? "").Trim().ToUpperInvariant();
         name = (name ?? "").Trim();
-        if (callsign.Length == 0) throw new ValidationException("Callsign obbligatorio (es. LIRR_NE_CTR).");
+        if (callsign.Length == 0) throw new ValidationException(Lingua("Callsign obbligatorio (es. LIRR_NE_CTR).", "The callsign is required (e.g. LIRR_NE_CTR)."));
         if (name.Length == 0) throw new ValidationException(Lingua("Nome settore obbligatorio.", "The sector name is required."));
         if (kind == SectorKind.Airport && airportId is null) throw new ValidationException(Lingua("Seleziona l'aeroporto del settore.", "Choose the sector's airport."));
         // I settori d'aeroporto (DEL/GND/TWR/APP) provengono dalla sorgente quando «Settori» è importato:
         // in tal caso si generano da «Genera documenti», non si aggiungono a mano. I settori d'area (ACC) restano liberi.
         if (kind == SectorKind.Airport && (await _policy.GetAsync(ct)).Sectors)
             throw new ValidationException(Lingua("I settori d'aeroporto sono gestiti dalla sorgente (sola lettura): usa «Genera documenti». Per aggiungerli a mano, escludi «Settori» in «Sorgenti dati».", "Airport sectors come from the source (read-only): use «Generate documents». To add them by hand, exclude «Sectors» under «Data sources»."));
-        if (await _repo.CallsignExistsAsync(callsign, ct)) throw new ValidationException($"Callsign {callsign} già esistente.");
+        if (await _repo.CallsignExistsAsync(callsign, ct)) throw new ValidationException(Lingua($"Callsign {callsign} già esistente.", $"Callsign {callsign} already exists."));
         return await _repo.AddSectorAsync(accCode, callsign, type, kind, name,
             string.IsNullOrWhiteSpace(defaultFrequency) ? null : defaultFrequency.Trim(),
             coverageOrder, type == SectorType.App ? approachKind : null, parentSectorId,

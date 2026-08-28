@@ -227,7 +227,7 @@ public sealed class ReleaseService : IReleaseService
     public async Task CancelReleaseAsync(int releaseId, CancellationToken ct = default)
     {
         var rel = await _repo.GetByIdAsync(releaseId, ct)
-            ?? throw new Aor.ValidationException("Release inesistente.");
+            ?? throw new Aor.ValidationException(Lingua("Release inesistente.", "The release does not exist."));
         await EnsureCanEditAsync(rel.TargetType, rel.TargetKey, ct);
         await _repo.CancelAsync(releaseId, ct);
     }
@@ -369,7 +369,9 @@ public sealed class ReleaseService : IReleaseService
     private async Task SnapshotAndSaveAsync(ReleaseTargetType type, string key, string cycle, DateTime effectiveUtc, string? note, CancellationToken ct)
     {
         var finalJson = await BuildSnapshotJsonAsync(type, key, cycle, ct)
-            ?? throw new Aor.ValidationException("Nessun contenuto da pubblicare: crea prima il documento (bozza).");
+            ?? throw new Aor.ValidationException(Lingua(
+                "Nessun contenuto da pubblicare: crea prima il documento (bozza).",
+                "There is nothing to publish: create the document first (as a draft)."));
         await _repo.SaveReleaseAsync(type, key, cycle, effectiveUtc, finalJson, _authz.CurrentUserId ?? 0, note, ct);
         // Retention per-publish (release Superseded): sia per l'immediato sia per lo schedulato. Le versioni Archived
         // si potano solo dopo la promozione della bozza (PublishNowAsync) → vedi PruneArchivedVersionsForTargetAsync.
@@ -541,8 +543,9 @@ public sealed class ReleaseService : IReleaseService
         if (docId is not int id) return null;
         var lk = await _editing.InspectLockAsync(id, _authz.CurrentUserId ?? 0, ct);
         if (lk.Locked && !lk.IsMine)
-            throw new Aor.ValidationException(
-                $"Documento in modifica da VID {lk.ByUserId} ({lk.ByName}) fino alle {lk.ExpiresUtc:HH:mm} UTC: la release fotografa la sua bozza, riprova quando ha finito.");
+            throw new Aor.ValidationException(Lingua(
+                $"Documento in modifica da VID {lk.ByUserId} ({lk.ByName}) fino alle {lk.ExpiresUtc:HH:mm} UTC: la release fotografa la sua bozza, riprova quando ha finito.",
+                $"Document being edited by VID {lk.ByUserId} ({lk.ByName}) until {lk.ExpiresUtc:HH:mm} UTC: the release photographs their draft, try again when they are done."));
         return id;
     }
 }

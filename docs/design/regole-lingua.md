@@ -93,7 +93,7 @@ porta con sé **le due lingue** e la sceglie chi sa chi sta leggendo. Tre punti,
 |---|---|
 | Le frasi di **coordinamento** nei documenti | `ICoordinationSentenceTemplate`, sulla famiglia del documento |
 | Il **catalogo di ricerca della Guida** (l'unico testo di backend che vede il pubblico) | `SearchService`, da `ReadingLanguageContext` |
-| I **messaggi a chi modifica** — 100 errori di validazione e 25 motivi di blocco all'eliminazione | `Messaggio.Lingua(it, en)`, dalla cultura della richiesta |
+| I **messaggi a chi modifica** — errori di validazione e motivi di blocco all'eliminazione | `Messaggio.Lingua(it, en)`, dalla cultura della richiesta |
 | Le **due pagine d'errore** — `PaginaErrore` e `IvaoLoginFailurePage` | `Messaggio.Lingua(it, en)`, e `lang` da `Messaggio.Codice` |
 
 ⚠️ **Le pagine d'errore erano un'eccezione non dichiarata**, corretta il 28 agosto 2026: `lang="it"`, testo
@@ -108,6 +108,25 @@ aver lanciato, o quando l'autenticazione è rotta.
 ⚠️ **`lang` esce dallo stesso posto del testo** (`Messaggio.Codice`). Con due letture separate della
 cultura, un giorno una pagina direbbe `lang="it"` con dentro l'inglese — e per un lettore di schermo, o per
 il traduttore automatico del browser, quella riga è l'unica cosa che dice in che lingua è scritta la pagina.
+
+### Quali messaggi del backend hanno due lingue, e quali no
+
+Il confine lo dice **il tipo dell'eccezione**, ed era già così prima che qualcuno lo scrivesse:
+
+| Tipo | Chi lo legge | Lingua |
+|---|---|---|
+| `ValidationException`, `EditConflictException` | una **persona**, in cima all'editor | **due** (`Lingua(it, en)`) |
+| `InvalidOperationException`, `KeyNotFoundException` | la pagina d'errore e il registro | **italiano** (l'eccezione dichiarata più sotto) |
+
+«Sezione 41 inesistente» non dice niente a nessuno: è una invariante, e non si traduce. «Proietta i
+settori prima di generare la vLOA» è un'istruzione, e si traduce — anche quando per ragioni storiche viaggia
+dentro una `InvalidOperationException` (sono quattro, e sono marcate nel codice).
+
+⚠️ **C'è una guardia**, `MessaggiAChiModificaTests`, e il controllo è **strutturale**: non prova a
+indovinare se una stringa è italiana — un elenco di parole sbaglia in tutti e due i versi, e infatti la
+scansione a parole con cui è cominciata questa passata ne aveva mancati quattro («Intervallo QNH invertito
+(From > To).» non ha né accenti né parole funzione italiane). Pretende che l'argomento sia `Lingua(...)`,
+che è l'unica forma che porta due lingue.
 
 ⚠️ `Messaggio.Lingua` legge la **cultura ambientale** e non si fa passare la lingua di firma in firma: fra
 chi la conosce (la richiesta) e chi compone il messaggio (un servizio in fondo a una catena di chiamate) ci

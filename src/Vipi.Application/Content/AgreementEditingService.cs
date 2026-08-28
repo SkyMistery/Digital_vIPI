@@ -241,8 +241,9 @@ public sealed class AgreementService : IAgreementService
         // destinazione …») e la derivazione scarta la riga. È una scelta del committente, riconfermata il
         // 18 agosto 2026.
         if (i.Kind is TransferFlowKind.Arrival or TransferFlowKind.Departure && i.Airports.Count == 0)
-            throw new ValidationException(
-                "Arrivi e Partenze richiedono almeno un aeroporto. Per il traffico senza aeroporto usa Sorvoli/VFR/Altro.");
+            throw new ValidationException(Lingua(
+                "Arrivi e Partenze richiedono almeno un aeroporto. Per il traffico senza aeroporto usa Sorvoli/VFR/Altro.",
+                "Arrivals and Departures need at least one airport. For traffic with no airport use Overflights/VFR/Other."));
 
         // Un sorvolo con un aeroporto sarebbe una contraddizione scritta: il traffico che sorvola non ha
         // relazione con lo scalo, e la frase userebbe comunque la forma neutra ignorandolo. VFR e Altro invece
@@ -267,16 +268,20 @@ public sealed class AgreementService : IAgreementService
     {
         if (i.LevelConstraint != LevelConstraint.Special && i.LevelValue is null
             && CopList.Format(CopList.Parse(i.Cops)).Length == 0)
-            throw new ValidationException("Indica almeno un punto o un livello.");
+            throw new ValidationException(Lingua("Indica almeno un punto o un livello.", "Give at least a point or a level."));
 
         // Il tipo «punto» senza etichetta non dice dove, e resterebbe muto nella frase. «Confine dell'AoR»
         // invece si descrive da sé, e l'etichetta lì non serve.
         if (i.HandoffKind is TransferHandoffKind.Point or TransferHandoffKind.Custom
             && string.IsNullOrWhiteSpace(i.HandoffLabel))
-            throw new ValidationException("Indica dove avviene il trasferimento (punto o testo).");
+            throw new ValidationException(Lingua(
+                "Indica dove avviene il trasferimento (punto o testo).",
+                "Say where the transfer happens (a point, or free text)."));
         if (i.CommsHandoffKind is TransferHandoffKind.Point or TransferHandoffKind.Custom
             && string.IsNullOrWhiteSpace(i.CommsHandoffLabel))
-            throw new ValidationException("Indica dove passano le comunicazioni (punto o testo).");
+            throw new ValidationException(Lingua(
+                "Indica dove passano le comunicazioni (punto o testo).",
+                "Say where the communications transfer happens (a point, or free text)."));
 
         if (i.SpeedConstraint != SpeedConstraint.Unspecified && i.SpeedValue is null)
             throw new ValidationException(Lingua("Indica il valore della velocità, o togli il vincolo.", "Give the speed value, or drop the constraint."));
@@ -286,6 +291,8 @@ public sealed class AgreementService : IAgreementService
         if (i.IsGroupWide && string.IsNullOrWhiteSpace(i.ConditionLabel)
                           && string.IsNullOrWhiteSpace(i.ConditionAreaLabel)
                           && string.IsNullOrWhiteSpace(i.ConditionCustomLabel))
-            throw new ValidationException("Una clausola «in ogni caso» deve dire a quali condizioni vale.");
+            throw new ValidationException(Lingua(
+                "Una clausola «in ogni caso» deve dire a quali condizioni vale.",
+                "A «in any case» clause has to say under which conditions it applies."));
     }
 }

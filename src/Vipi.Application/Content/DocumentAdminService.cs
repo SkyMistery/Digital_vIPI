@@ -1,5 +1,6 @@
 ﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
@@ -61,15 +62,17 @@ public sealed class DocumentAdminService : IDocumentAdminService
         if (doc.DocumentId is not int id) return;
         var lk = await _editing.InspectLockAsync(id, _authz.CurrentUserId ?? 0, ct);
         if (!lk.Locked || lk.IsMine) return;
-        throw new EditConflictException(
+        throw new EditConflictException(Lingua(
             $"Documento in modifica da {lk.ByName ?? $"VID {lk.ByUserId}"} fino alle {lk.ExpiresUtc:HH:mm} UTC: "
-            + "aspetta che finisca, oppure sbloccalo (solo admin) prima di procedere.");
+            + "aspetta che finisca, oppure sbloccalo (solo admin) prima di procedere.",
+            $"Document being edited by {lk.ByName ?? $"VID {lk.ByUserId}"} until {lk.ExpiresUtc:HH:mm} UTC: "
+            + "wait until they are done, or unlock it (admin only) before carrying on."));
     }
 
     private async Task EnsureCanEditAsync(ManagedDocRef doc, CancellationToken ct)
     {
         var acc = await _repo.GetAccCodeAsync(doc, ct)
-            ?? throw new Aor.ValidationException("Documento inesistente.");
+            ?? throw new Aor.ValidationException(Lingua("Documento inesistente.", "The document does not exist."));
         await _authz.EnsureCanEditAccAsync(acc, ct);
     }
 }

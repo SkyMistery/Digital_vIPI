@@ -179,16 +179,45 @@ public class EfTranslationMemoryTests : IAsyncLifetime
     // ---- La guardia sul budget -------------------------------------------------------------------------
 
     [Fact]
-    public async Task I_caratteri_spesi_contano_solo_la_macchina_e_solo_quel_motore()
+    public async Task I_caratteri_spesi_sono_quelli_di_QUEL_motore_e_di_nessun_altro()
     {
         const string pagata = "Contatta la torre.";
         await _memoria.SaveMachineAsync(It, En, "deepl", Una(pagata, "Contact the tower."));
         await _memoria.SaveMachineAsync(It, En, "altro", Una("un altro motore", "another engine"));
+
+        // ⚠️ Una riga nata da una CORREZIONE UMANA senza che nessun motore l'avesse mai tradotta non ha
+        // motore, e non conta per nessuno: non è stata pagata.
         await _memoria.SaveHumanAsync(It, En, "scritta a mano", "written by hand", reviewerUserId: 1);
 
-        // Una correzione umana non e' stata pagata al motore, e un altro motore ha un altro budget.
         // L'attesa e' legata alla LUNGHEZZA VERA e non a un numero battuto a mano: contarlo a occhio e'
         // gia' costato un rosso.
         Assert.Equal(pagata.Length, await _memoria.CaratteriSpesiStimatiAsync("deepl"));
+        Assert.Equal("un altro motore".Length, await _memoria.CaratteriSpesiStimatiAsync("altro"));
+        Assert.Equal(0, await _memoria.CaratteriSpesiStimatiAsync("mai-usato"));
+    }
+
+    /// <summary>
+    /// ⚠️ <b>Il difetto che questo test chiude, e che il test di prima non poteva vedere.</b> Il conto
+    /// filtrava anche su <c>Origin == Machine</c>. Ma quando una persona corregge una resa,
+    /// <c>SaveHumanAsync</c> ribalta <c>Origin</c> a <c>Human</c> e lascia intatto <c>Engine</c>: quei
+    /// caratteri, <b>spesi davvero</b>, sparivano dal conto. Più si revisionava, più il tetto si
+    /// allargava — la difesa si allentava proprio mentre il lavoro andava avanti, e nel verso peggiore:
+    /// sottostimare la spesa vuol dire sfondare una franchigia che per DeepL <b>non si rinnova</b>.
+    ///
+    /// <para>Il test di prima non lo prendeva perché la sua riga «scritta a mano» non era mai passata da
+    /// un motore: aveva <c>Engine</c> nullo, e sarebbe uscita dal conto in tutti e due i modi.</para>
+    /// </summary>
+    [Fact]
+    public async Task Una_correzione_umana_NON_toglie_dal_conto_i_caratteri_gia_pagati()
+    {
+        const string frase = "Riporta sottovento.";
+        await _memoria.SaveMachineAsync(It, En, "azure", Una(frase, "Report downwind leg."));
+        var prima = await _memoria.CaratteriSpesiStimatiAsync("azure");
+        Assert.Equal(frase.Length, prima);
+
+        // Una persona rilegge e corregge: il testo cambia padrone, i caratteri restano spesi.
+        await _memoria.SaveHumanAsync(It, En, frase, "Report downwind.", reviewerUserId: 123456);
+
+        Assert.Equal(prima, await _memoria.CaratteriSpesiStimatiAsync("azure"));
     }
 }

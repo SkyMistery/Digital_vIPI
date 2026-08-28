@@ -2,6 +2,7 @@
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
 using Vipi.Domain;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
@@ -88,8 +89,9 @@ public sealed class AccAdminService : IAccAdminService
         {
             ctx = await _repo.GetSubcenterHideContextAsync(id, ct);
             if (ctx is { IsRoot: true, HasVisibleChildren: true })
-                throw new ValidationException(
-                    "Non puoi nascondere un settore radice con figli visibili: nascondi prima i figli o assegnagli un padre.");
+                throw new ValidationException(Lingua(
+                    "Non puoi nascondere un settore radice con figli visibili: nascondi prima i figli o assegnagli un padre.",
+                    "You cannot hide a root sector that still has visible children: hide the children first, or give them a parent."));
         }
 
         await _repo.SetSubcenterHiddenAsync(id, hidden, ct);

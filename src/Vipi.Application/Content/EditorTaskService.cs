@@ -74,13 +74,15 @@ public sealed class EditorTaskService : IEditorTaskService
     public async Task<int> CreateAsync(EditorTaskInput input, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(input.Title))
-            throw new Aor.ValidationException("Titolo obbligatorio.", "Task_Err_TitleRequired");
+            throw new Aor.ValidationException(Lingua("Titolo obbligatorio.", "The title is required."), "Task_Err_TitleRequired");
 
         // ⚠️ Un incarico assegnato al VID 0 non è di nessuno: non compare negli incarichi di nessun utente
         // (nessuno ha VID 0), si vede solo nell'elenco admin, e non lo si può nemmeno riassegnare. Nasceva
         // premendo «Crea» senza scegliere la persona, perché l'opzione «Seleziona» vale 0.
         if (input.AssigneeUserId <= 0)
-            throw new Aor.ValidationException("Scegli a chi assegnare l'incarico.", "Task_Err_AssigneeRequired");
+            throw new Aor.ValidationException(
+                Lingua("Scegli a chi assegnare l'incarico.", "Choose who the task is assigned to."),
+                "Task_Err_AssigneeRequired");
 
         var me = _authz.CurrentUserId ?? throw new Aor.ValidationException(Lingua("Non autenticato.", "Not signed in."), "Task_Err_NotAuthenticated");
 
@@ -88,7 +90,9 @@ public sealed class EditorTaskService : IEditorTaskService
         if (!_authz.IsAdmin)
         {
             if (input.AssigneeUserId != me)
-                throw new Aor.ValidationException("Solo un admin può assegnare incarichi ad altri.", "Task_Err_AssignOnlySelf");
+                throw new Aor.ValidationException(
+                    Lingua("Solo un admin può assegnare incarichi ad altri.", "Only an admin can assign tasks to other people."),
+                    "Task_Err_AssignOnlySelf");
             await EnsureCanEditTargetAsync(input.TargetType, input.TargetKey, ct);
         }
         return await _repo.AddAsync(input, me, ct);
@@ -96,10 +100,12 @@ public sealed class EditorTaskService : IEditorTaskService
 
     public async Task UpdateStatusAsync(int id, EditorTaskStatus status, CancellationToken ct = default)
     {
-        var t = await _repo.GetAsync(id, ct) ?? throw new Aor.ValidationException("Incarico inesistente.", "Task_Err_NotFound");
+        var t = await _repo.GetAsync(id, ct) ?? throw new Aor.ValidationException(Lingua("Incarico inesistente.", "The task does not exist."), "Task_Err_NotFound");
         var me = _authz.CurrentUserId ?? 0;
         if (!_authz.IsAdmin && t.AssigneeUserId != me)
-            throw new Aor.ValidationException("Puoi aggiornare solo i tuoi incarichi.", "Task_Err_UpdateOnlyMine");
+            throw new Aor.ValidationException(
+                Lingua("Puoi aggiornare solo i tuoi incarichi.", "You can only update your own tasks."),
+                "Task_Err_UpdateOnlyMine");
         await _repo.UpdateStatusAsync(id, status, me, ct);
     }
 
@@ -107,16 +113,20 @@ public sealed class EditorTaskService : IEditorTaskService
     {
         _authz.EnsureAdmin();
         if (assigneeUserId <= 0)
-            throw new Aor.ValidationException("Scegli a chi assegnare l'incarico.", "Task_Err_AssigneeRequired");
+            throw new Aor.ValidationException(
+                Lingua("Scegli a chi assegnare l'incarico.", "Choose who the task is assigned to."),
+                "Task_Err_AssigneeRequired");
         await _repo.AssignAsync(id, assigneeUserId, assigneeName, _authz.CurrentUserId ?? 0, ct);
     }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {
-        var t = await _repo.GetAsync(id, ct) ?? throw new Aor.ValidationException("Incarico inesistente.", "Task_Err_NotFound");
+        var t = await _repo.GetAsync(id, ct) ?? throw new Aor.ValidationException(Lingua("Incarico inesistente.", "The task does not exist."), "Task_Err_NotFound");
         var me = _authz.CurrentUserId ?? 0;
         if (!_authz.IsAdmin && t.CreatedByUserId != me)
-            throw new Aor.ValidationException("Puoi eliminare solo gli incarichi che hai creato.", "Task_Err_DeleteOnlyMine");
+            throw new Aor.ValidationException(
+                Lingua("Puoi eliminare solo gli incarichi che hai creato.", "You can only delete tasks you created."),
+                "Task_Err_DeleteOnlyMine");
         await _repo.DeleteAsync(id, me, ct);
     }
 
@@ -137,7 +147,9 @@ public sealed class EditorTaskService : IEditorTaskService
     {
         if (type is null || string.IsNullOrWhiteSpace(key)) return;   // incarico libero: nessun documento da autorizzare
         var acc = await _releases.GetAuthAccCodeAsync(type.Value, key!, ct);
-        if (acc is null) throw new Aor.ValidationException("Documento collegato inesistente.", "Task_Err_TargetMissing");
+        if (acc is null) throw new Aor.ValidationException(
+            Lingua("Documento collegato inesistente.", "The linked document does not exist."),
+            "Task_Err_TargetMissing");
         await _authz.EnsureCanEditAccAsync(acc, ct);
     }
 }

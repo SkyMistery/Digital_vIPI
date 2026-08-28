@@ -3,6 +3,7 @@ using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
 using Vipi.Domain;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
@@ -256,7 +257,7 @@ public sealed class VloaDerivationService : IVloaDerivationService
     private async Task ToggleAsync(int docId, string key, Target which, CancellationToken ct)
     {
         var homeAcc = await _repo.GetHomeAccCodeAsync(docId, ct)
-            ?? throw new Aor.ValidationException("vLOA inesistente.");
+            ?? throw new Aor.ValidationException(Lingua("vLOA inesistente.", "The vLOA does not exist."));
         await _authz.EnsureCanEditAccAsync(homeAcc, ct);
 
         var state = await _repo.LoadEditorialAsync(docId, ct);

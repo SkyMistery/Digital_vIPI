@@ -629,8 +629,9 @@ public sealed class EfEditingRepository : IEditingRepository
         try { await _db.SaveChangesAsync(ct); }
         catch (DbUpdateConcurrencyException)
         {
-            throw new Vipi.Application.Content.EditConflictException(
-                "Il blocco è stato modificato nel frattempo: ricarica l'editor prima di salvare.");
+            throw new Vipi.Application.Content.EditConflictException(Lingua(
+                "Il blocco è stato modificato nel frattempo: ricarica l'editor prima di salvare.",
+                "The block has been changed in the meantime: reload the editor before saving."));
         }
     }
 
@@ -738,7 +739,9 @@ public sealed class EfEditingRepository : IEditingRepository
             depth = parent.Depth + 1;
         }
         if (depth > DocumentSection.MaxDepth)
-            throw new InvalidOperationException($"Profondità massima superata (max {DocumentSection.MaxDepth} livelli).");
+            throw new InvalidOperationException(Lingua(
+                $"Profondità massima superata (max {DocumentSection.MaxDepth} livelli).",
+                $"Maximum depth exceeded (max {DocumentSection.MaxDepth} levels)."));
 
         var nextOrder = (await _db.DocumentSections
             .Where(s => s.DocumentVersionId == versionId && s.ParentSectionId == parentSectionId)

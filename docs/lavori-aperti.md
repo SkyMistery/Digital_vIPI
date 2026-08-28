@@ -3394,18 +3394,36 @@ memoria viva), mentre da quel momento ogni **nuova** pubblicazione fotografa que
 quell'istante — quindi pubblicare prosa nuova *prima* del giro la congela non tradotta. E comparirà
 l'avviso «traduzione automatica, non revisionata» finché una persona non rilegge (§Q13).
 
-### Q16 🟢 APERTO — il tetto di spesa è una stima che sottostima
+### Q16 🟡 METÀ CHIUSA — il tetto di spesa sottostimava
 
-`EfTranslationMemory.CaratteriSpesiStimatiAsync` somma la lunghezza del sorgente delle righe di memoria
-**vive e attribuite a quel motore**. Quando una persona corregge una resa, la riga passa a `Origin=Human` e
-i suoi caratteri **escono dal conto** — pur essendo stati spesi davvero. Più si revisiona, più il tetto si
-allarga.
+**a) ✅ La deriva da revisione è chiusa.** `CaratteriSpesiStimatiAsync` filtrava su
+`Origin == TranslationOrigin.Machine`. Ma quando una persona corregge una resa, `SaveHumanAsync` ribalta
+`Origin` a `Human` e **lascia intatto `Engine`**: quei caratteri, spesi davvero, sparivano dal conto. Più
+si revisionava, più il tetto si allargava — la difesa si allentava proprio mentre il lavoro andava avanti,
+e nel verso peggiore: sottostimare vuol dire sfondare una franchigia che per DeepL **non si rinnova**.
 
-Non è urgente: sui volumi misurati (23 344 caratteri per direzione) il tetto non si avvicina nemmeno. Lo
-diventa se il corpus cresce di un ordine di grandezza, e allora la cura è un **contatore suo** — una riga
-per giro con i caratteri spediti — invece di dedurre la spesa dallo stato attuale della memoria, che è una
-cosa diversa. ⚠️ Vale per DeepL più che per Azure: la sua franchigia è **una tantum**, e un tetto tarato su
-una misura che si sgonfia non protegge la riserva che esiste per proteggere.
+La cura è togliere il filtro: la colonna `Engine` è la domanda giusta — dice **chi ha tradotto**, e non
+cambia quando cambia chi ha l'ultima parola sul testo. Una riga nata da una correzione umana senza che
+nessun motore l'avesse tradotta ha `Engine` nullo e non conta per nessuno, che è corretto.
+
+⚠️ **Il test che c'era non poteva vederlo**: si chiamava «i caratteri spesi contano solo la macchina», e la
+sua riga umana non era mai passata da un motore — `Engine` nullo, quindi fuori dal conto in tutti e due i
+modi. Ora c'è quello che manca: macchina, **poi** correzione, e il conto non cala.
+
+**b) 🟢 APERTO — i segmenti scartati si ripagano a ogni giro.** Quando il motore restituisce un segmento
+rotto (un segnaposto mangiato), `TranslationFillUseCase` **non lo salva**, per non mettere in memoria una
+frase che sembra giusta e non lo è. Conseguenza: quei caratteri sono stati **pagati**, non entrano in
+questa somma (che si deduce da ciò che è rimasto in tabella), e **il giro dopo li rispedisce** — ogni
+quarto d'ora, per sempre.
+
+Non si chiude senza un posto dove ricordarsene, cioè senza schema: la cura vera è un **contatore suo**, una
+riga per giro con i caratteri spediti, invece di dedurre la spesa dallo stato della memoria — che è una
+cosa diversa e lo sarà sempre. In attesa, la perdita **non è più invisibile**: il rapporto porta
+`CaratteriScartati` e il giro lo scrive come **Warning**, perché vuole una persona.
+
+⚠️ Sui volumi misurati (98 000 caratteri di semina contro il milione di DeepL) il tetto non si avvicina
+nemmeno. Diventa urgente se il corpus cresce di un ordine di grandezza, o se un segmento comincia a tornare
+rotto sistematicamente — ed è per quello che ora si vede nei log.
 
 ### Q17 ✅ CHIUSA — due chiavi mancanti, e il buco della guardia che le ha lasciate passare
 
@@ -3565,6 +3583,36 @@ numeriche sia l'apostrofo sia le accentate. Cercare «L'accesso è scaduto» non
 c'è** — un test verde che ha smesso di guardare. E `CulturaDiProva` è ora **collegata** (non copiata) anche
 in `Vipi.E2E.Tests`: da qui in avanti quelle pagine dipendono dalla cultura ambientale, e un test che
 asserisce l'italiano senza fissarla passa in Italia e cade su una macchina inglese.
+
+### Q21 ✅ CHIUSA — 56 messaggi a chi modifica erano in una lingua sola
+
+La §Q11 ne aveva portati 125 a due lingue, ma si era fermata ai **servizi di `Vipi.Application`**: i
+**repository di `Vipi.Infrastructure`** non erano stati nominati da nessuna parte, e la carta non li
+menzionava. Restavano in italiano frasi che legge un controllore in cima all'editor — «Il blocco è stato
+modificato nel frattempo: ricarica l'editor prima di salvare», «Fra questi due enti esiste già un accordo»,
+«proietta i settori (pagina ACC) prima di generare la vLOA».
+
+**Il confine, ora scritto** (`docs/design/regole-lingua.md`): lo dice il **tipo dell'eccezione**, ed era
+già così prima che qualcuno lo scrivesse. `ValidationException` / `EditConflictException` = frase per una
+**persona** → due lingue. `InvalidOperationException` / `KeyNotFoundException` = **invariante** → resta in
+italiano, perché «Sezione 41 inesistente» non dice niente a nessuno e finisce nel registro. Quattro
+istruzioni viaggiano per ragioni storiche dentro una `InvalidOperationException` e sono tradotte lo stesso,
+marcate nel codice.
+
+⚠️ **La guardia è STRUTTURALE, e non è un dettaglio di stile.** Questa passata è cominciata con una
+scansione a parole italiane, e quella scansione ne ha **mancati quattro**: «Intervallo QNH invertito
+(From > To).», «Vento in coda massimo fuori range (0–40 kt).» — nessun accento, nessuna parola funzione. Li
+ha trovati la guardia, che non prova a indovinare se una stringa è italiana ma pretende che l'argomento sia
+`Lingua(...)`, l'unica forma che porta due lingue. Un elenco di parole sbaglia in tutti e due i versi; una
+regola sulla forma no.
+
+⚠️ **E la cultura di UI di questa macchina è INGLESE** — è la lingua di Windows, indipendente dal formato
+regionale. Se n'è accorto un test: `SetParent_Rifiuta_Un_Padre_Piu_In_Basso_Nella_Scaletta` cercava
+«scaletta» e ha trovato «cannot cover». Non era un difetto nuovo: era una fragilità vecchia, resa visibile
+dalla traduzione. `CulturaDiProva` è ora collegata anche in `Vipi.Infrastructure.Tests`.
+
+Restano in italiano, dichiarati: avvio, configurazione, credenziali IVAO, provider di persistenza,
+key-ring — chi li legge tiene su il sito, non lo usa.
 
 ---
 

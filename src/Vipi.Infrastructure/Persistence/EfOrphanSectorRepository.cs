@@ -201,8 +201,9 @@ public sealed class EfOrphanSectorRepository : IOrphanSectorRepository
         if (orfano.DocumentId is not int docId)
             throw new Vipi.Application.Aor.ValidationException(Lingua("Questo orfano non porta nessun documento.", "This orphan carries no document."));
         if (bersaglio.DocumentId is int altro && altro != docId)
-            throw new Vipi.Application.Aor.ValidationException(
-                $"{bersaglio.Callsign} descrive già un altro documento: scegli un settore libero.");
+            throw new Vipi.Application.Aor.ValidationException(Lingua(
+                $"{bersaglio.Callsign} descrive già un altro documento: scegli un settore libero.",
+                $"{bersaglio.Callsign} already describes another document: choose a free sector."));
 
         bersaglio.DocumentId = docId;
         bersaglio.IsPrimary = orfano.IsPrimary || bersaglio.IsPrimary;

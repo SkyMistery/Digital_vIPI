@@ -91,8 +91,9 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
         if (!campo.HasMilitaryPresence)
             // Meglio fermarsi che creare un vSOP militare su un campo che militare non è: il documento
             // resterebbe lì, vuoto, in un elenco dove nessuno saprebbe perché c'è.
-            throw new Vipi.Application.Aor.ValidationException(
-                $"{icao} non risulta avere presenza militare: la sorgente non lo dice.");
+            throw new Vipi.Application.Aor.ValidationException(Lingua(
+                $"{icao} non risulta avere presenza militare: la sorgente non lo dice.",
+                $"{icao} is not recorded as having a military presence: the source does not say so."));
 
         // ⚠️ Language.It, non En (carta §1d): la lingua sorgente è quella in cui si REDIGE. I quindici PDF
         // di partenza sono in inglese, ma il documento è nostro e un lettore inglese lo ottiene tradotto.

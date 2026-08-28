@@ -203,8 +203,9 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         // Senza presenza militare la distinzione non ha senso: «solo militare» ne è un sottoinsieme, non un flag
         // indipendente. Tacere e uscire lascerebbe la spunta accesa a schermo e spenta in archivio.
         if (militaryOnly && !airport.HasMilitaryPresence)
-            throw new InvalidOperationException(
-                $"{airport.Icao} non ha presenza militare secondo la sorgente: non può essere «solo militare».");
+            throw new InvalidOperationException(Lingua(
+                $"{airport.Icao} non ha presenza militare secondo la sorgente: non può essere «solo militare».",
+                $"{airport.Icao} has no military presence according to the source: it cannot be «military only»."));
         if (airport.IsMilitaryOnly == militaryOnly) return;
         airport.IsMilitaryOnly = militaryOnly;
         await _db.SaveChangesAsync(ct);
@@ -419,8 +420,9 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         // ogni import/hide/edit (EfSectorProjectionService: DefaultFrequency = catalogo). Editarla qui darebbe
         // l'illusione di una modifica che il prossimo sync cancella in silenzio → si rifiuta. Catalogo = fonte unica.
         if (sector.IsProjected)
-            throw new Vipi.Application.Aor.ValidationException(
-                "La frequenza di un settore proiettato è gestita dalla sorgente (sola lettura): modificala nel catalogo, non qui.");
+            throw new Vipi.Application.Aor.ValidationException(Lingua(
+                "La frequenza di un settore proiettato è gestita dalla sorgente (sola lettura): modificala nel catalogo, non qui.",
+                "The frequency of a projected sector comes from the source (read-only): change it in the catalogue, not here."));
         var f = (frequencyMhz ?? "").Trim();
         sector.DefaultFrequency = f.Length == 0 ? null : f;
         await _db.SaveChangesAsync(ct);

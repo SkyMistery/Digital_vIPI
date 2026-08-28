@@ -26,7 +26,7 @@ public sealed record ForeignSectorCallsign(string Callsign, string Icao, string 
     {
         var cs = (raw ?? "").Trim().ToUpperInvariant();
         if (cs.Length == 0)
-            throw new ValidationException("Callsign obbligatorio.");
+            throw new ValidationException(Lingua("Callsign obbligatorio.", "The callsign is required."));
 
         var parts = cs.Split('_', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 2)
@@ -40,8 +40,9 @@ public sealed record ForeignSectorCallsign(string Callsign, string Icao, string 
         var kind =
             AirportSuffixes.Contains(suffix) ? ForeignSectorKind.Airport :
             CenterSuffixes.Contains(suffix) ? ForeignSectorKind.Center :
-            throw new ValidationException(
-                $"Suffisso «{suffix}» non gestito: ammessi APP/DEP/TWR/GND/DEL (aeroporto) o CTR/FSS (center).");
+            throw new ValidationException(Lingua(
+                $"Suffisso «{suffix}» non gestito: ammessi APP/DEP/TWR/GND/DEL (aeroporto) o CTR/FSS (center).",
+                $"Suffix «{suffix}» is not handled: allowed are APP/DEP/TWR/GND/DEL (airport) or CTR/FSS (center)."));
 
         return new ForeignSectorCallsign(cs, icao, suffix, kind);
     }

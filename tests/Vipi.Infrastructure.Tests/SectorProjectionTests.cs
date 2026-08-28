@@ -283,6 +283,10 @@ public class SectorProjectionTests : IAsyncLifetime
     [Fact]
     public async Task SetParent_Rifiuta_Un_Padre_Piu_In_Basso_Nella_Scaletta()
     {
+        // ⚠️ La cultura si FISSA: il messaggio ha due lingue, e la cultura di UI di QUESTA macchina è
+        // inglese. Senza questa riga il test cercava «scaletta» dentro «cannot cover» e cadeva — non per
+        // un difetto del codice, ma perché asseriva una lingua senza averla chiesta.
+        using var _ = Vipi.Application.Tests.CulturaDiProva.Italiana();
         var twr = await _db.AirportSectors.FirstAsync(s => s.ComposePosition == "LIRP_TWR");
 
         var ex = await Assert.ThrowsAsync<ValidationException>(() =>

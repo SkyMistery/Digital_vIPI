@@ -143,6 +143,16 @@ public sealed class TranslationFillHostedService : BackgroundService
                             "{AMano} da tradurre a mano, {Scartati} scartate perché il motore ha cambiato un identificatore.",
                             sorgente, bersaglio, esito.Motore, esito.Tradotti, esito.GiaInMemoria,
                             esito.DaTradurreAMano, esito.Scartati);
+
+                    // ⚠️ Le scartate si RIPAGANO a ogni giro: non finiscono in memoria, quindi il conto della
+                    // spesa non le vede e il giro dopo le rispedisce — ogni quarto d'ora, per sempre. Finché
+                    // sono zero non c'è niente da dire; quando non lo sono, questa riga è l'unico posto in cui
+                    // la perdita si vede. È un Warning perché vuole una persona: vedi lavori-aperti §Q16.
+                    if (esito.CaratteriScartati > 0)
+                        _log.LogWarning(
+                            "Traduzione {Da}→{A} ({Motore}): {Caratteri} caratteri spesi per {Scartati} segmenti " +
+                            "tornati rotti. Non entrano nel conto della spesa e il prossimo giro li rispedisce.",
+                            sorgente, bersaglio, esito.Motore, esito.CaratteriScartati, esito.Scartati);
                     continue;
                 }
 
