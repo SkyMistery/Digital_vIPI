@@ -37,6 +37,14 @@ namespace Vipi.Infrastructure.Translation;
 /// ⚠️ In quella modalità Azure può <b>normalizzare</b> <c>&lt;x id="0"/&gt;</c> in
 /// <c>&lt;x id="0"&gt;&lt;/x&gt;</c> — per questo il ripristino accetta entrambe le forme.
 /// </para>
+///
+/// <para>
+/// <b>E il glossario di fraseologia non chiede niente a questa classe.</b> I suoi segnaposto
+/// (<c>&lt;g id="0" translate="no"&gt;…&lt;/g&gt;</c>) portano già l'attributo che in modalità marcatura
+/// Azure onora da sé: il contenuto non si traduce, quindi non si paga e non lo si può rovinare. È la
+/// funzione nativa del motore, usata da dove va usata — nel testo — invece che da un ramo di codice che
+/// questo motore avrebbe e l'altro no.
+/// </para>
 /// </summary>
 public sealed class AzureTranslationEngine : ITranslationEngine
 {

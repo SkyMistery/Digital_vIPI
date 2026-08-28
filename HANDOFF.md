@@ -15,6 +15,22 @@ server, e cancellarlo perde lavoro **senza un errore che lo dica**.
 **Suite 6633** su 15 progetti con esito, build Release `--no-incremental` della soluzione intera **0
 avvisi**, **nessuna migrazione nuova** (restano diciannove).
 
+### ⚠️ 28 agosto, sera — il glossario di fraseologia (`lavori-aperti §Q3`)
+
+Chiuso il **pezzo tecnico** della domanda: la fraseologia **dentro** le frasi, che la memoria di traduzione
+non poteva coprire perché è indicizzata per segmento intero. Segnaposto `<g>` nel protettore, tabella
+`GlossaryTerms`, pagina di cura `/services/vsop/admin/glossary`, 24 voci di partenza. Resta aperto **il
+nome** di chi lo cura — ma adesso quella persona apre una pagina invece di farsi ricompilare un `.cs`.
+
+⚠️ **AZIONE PENDENTE: RIAVVIARE il Host** per applicare la migrazione **`GlossarioFraseologia`** (additiva,
+crea `GlossaryTerms`; **ventuno** migrazioni in coda — le diciannove di stamattina, più
+`ArchivioAtcMondiale` e questa). Al primo giro di traduzione dopo il
+riavvio il glossario si semina da sé.
+
+⚠️ **Le traduzioni già in memoria non cambiano da sole**: il giro traduce solo ciò che manca. Per farle
+rifare con il glossario si apre la voce nella pagina e si preme «falle rifare» — che butta le **automatiche**
+(mai le riviste da una persona) e **ripaga i caratteri** al motore.
+
 ### Che cosa è entrato in due giorni: venti slice, due funzioni
 
 | | Che cos'è | Dove |

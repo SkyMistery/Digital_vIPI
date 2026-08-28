@@ -257,8 +257,16 @@ il glossario e la rilettura non sono un accessorio della funzione: sono la funzi
 
 - La vista EN nasce marcata **«traduzione automatica, non revisionata»**, e il badge sparisce **per
   sezione** man mano che qualcuno la spunta. `Origin` per segmento lo dice già.
-- **Glossario DeepL** it→en di fraseologia della divisione: è la funzione giusta dell'API per questo
-  caso. Va costruito e curato da un controllore, non da chi scrive il codice.
+- **Glossario di fraseologia** it→en della divisione. ✅ **Fatto il 28 agosto 2026**, ma non come diceva
+  questa riga: non è il glossario *di DeepL*. Legarlo alla funzione di un fornitore avrebbe voluto dire
+  implementarlo due volte — Azure è il primario, DeepL il ripiego — e avrebbe lasciato decidere al motore la
+  forma finale di una stringa che noi abbiamo già deciso. È invece un segnaposto nostro, `<g>`, che passa
+  per la stessa porta dei callsign: la formula parte dentro il tag e al ritorno ci si rimette la resa. La
+  funzione nativa dei motori si usa dove serve davvero — `translate="no"` per Azure, `ignore_tags` per
+  DeepL — e serve a **non pagare** la formula, non a tradurla.
+  ⚠️ Resta vero il resto: va costruito e curato da un controllore, non da chi scrive il codice. Per questo
+  vive in una tabella e ha una pagina (`/services/vsop/admin/glossary`), non un file `.cs`. Vedi
+  `lavori-aperti §Q3`.
 
 ## 6. Quando si traduce
 

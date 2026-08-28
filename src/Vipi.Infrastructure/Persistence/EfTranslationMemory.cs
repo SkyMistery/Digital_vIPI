@@ -268,6 +268,49 @@ public sealed class EfTranslationMemory : ITranslationMemory
     /// parte vuole un contatore suo, non una somma dedotta da ciò che è rimasto in tabella.
     /// </para>
     /// </summary>
+    public Task<int> ContaConLaFormulaAsync(
+        string sourceLang, string targetLang, string formula, CancellationToken ct = default)
+    {
+        var ago = formula.Trim().ToLowerInvariant();
+        if (ago.Length == 0) return Task.FromResult(0);
+
+        return AutomaticheCon(sourceLang, targetLang, ago).AsNoTracking().CountAsync(ct);
+    }
+
+    public async Task<int> DimenticaAutomaticheConLaFormulaAsync(
+        string sourceLang, string targetLang, string formula, CancellationToken ct = default)
+    {
+        var ago = formula.Trim().ToLowerInvariant();
+        if (ago.Length == 0) return 0;
+
+        var righe = await AutomaticheCon(sourceLang, targetLang, ago).ToListAsync(ct).ConfigureAwait(false);
+        if (righe.Count == 0) return 0;
+
+        // ⚠️ RemoveRange e non ExecuteDelete: il secondo scavalca il change-tracker e lo lascia convinto che
+        // le righe ci siano ancora. È la regola già scritta per gli altri repository, e vale anche qui.
+        _db.TranslationUnits.RemoveRange(righe);
+        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+        return righe.Count;
+    }
+
+    /// <summary>
+    /// Le voci automatiche di questa coppia che contengono la formula.
+    ///
+    /// <para>⚠️ <c>ToLower().Contains()</c> e non <c>Like</c> con le percentuali intorno: <c>Contains</c>
+    /// diventa <c>instr</c> su SQLite e <c>LOCATE</c> su MySQL, che cercano una <b>sottostringa</b> — una
+    /// formula che contenesse un <c>%</c> o un <c>_</c> con <c>Like</c> diventerebbe un carattere jolly, e
+    /// cancellerebbe molto più di quel che il curatore ha chiesto.</para>
+    /// <para>⚠️ Il <c>ToLower</c> su entrambi i lati perché il glossario cerca senza distinguere le
+    /// maiuscole mentre i due database, ognuno a modo suo, distinguono: senza, «Riporta sottovento» a inizio
+    /// frase resterebbe in memoria com'era e il documento non cambierebbe.</para>
+    /// </summary>
+    private IQueryable<TranslationUnit> AutomaticheCon(string sourceLang, string targetLang, string agoMinuscolo) =>
+        _db.TranslationUnits
+            .Where(u => u.SourceLang == sourceLang
+                        && u.TargetLang == targetLang
+                        && u.Origin == TranslationOrigin.Machine
+                        && u.SourceText.ToLower().Contains(agoMinuscolo));
+
     public async Task<long> CaratteriSpesiStimatiAsync(string engine, CancellationToken ct = default) =>
         await _db.TranslationUnits.AsNoTracking()
             .Where(u => u.Engine == engine)

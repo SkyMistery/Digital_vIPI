@@ -1924,6 +1924,61 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("EditorTasks");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.GlossaryTerm", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("SourceLang")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("SourceText")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("TargetLang")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("TargetText")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("varchar(400)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int?>("UpdatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceLang", "TargetLang", "SourceKey")
+                        .IsUnique();
+
+                    b.ToTable("GlossaryTerms");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.ImportPolicy", b =>
                 {
                     b.Property<int>("Id")

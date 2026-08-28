@@ -114,13 +114,20 @@ public sealed class TranslationFillHostedService : BackgroundService
         if (seminati > 0)
             _log.LogInformation("Titoli ufficiali messi in memoria: {Quanti}.", seminati);
 
-        var protettore = await ProtettoreColRosterAsync(sp, ct).ConfigureAwait(false);
-        var giro = new TranslationFillUseCase(
-            sp.GetRequiredService<ITranslatableCorpus>(),
-            memoria,
-            motori,
-            protettore,
-            opzioni);
+        // ⚠️ E il glossario di fraseologia, per la stessa ragione un gradino più in là: là si compra una
+        // traduzione sbagliata di un titolo, qui una frase che SEMBRA giusta («bring it back downwind») e che
+        // nessuno correggerà mai leggendo. Semina solo se il glossario è ancora vuoto: da quando lo tocca una
+        // persona, questo codice non ci scrive più (lavori-aperti §Q3).
+        var glossarioStore = sp.GetRequiredService<IGlossaryStore>();
+        var semiGlossario = await GlossarioFraseologia
+            .SeminaAsync(glossarioStore, ct: ct).ConfigureAwait(false);
+        if (semiGlossario > 0)
+            _log.LogInformation("Glossario di fraseologia, voci di partenza scritte: {Quanti}.", semiGlossario);
+
+        // ⚠️ I nomi si leggono UNA volta per giro; il glossario, invece, una per COPPIA DI LINGUE — vedi il
+        // ciclo qui sotto. Sono due cose diverse: un nome di persona non si traduce in nessun verso, una
+        // formula sì e in un verso solo.
+        var nomi = await NomiDelloStaffAsync(sp, ct).ConfigureAwait(false);
 
         var tutteRiuscite = true;
 
@@ -130,6 +137,20 @@ public sealed class TranslationFillHostedService : BackgroundService
             {
                 if (string.Equals(sorgente, bersaglio, StringComparison.OrdinalIgnoreCase)) continue;
                 ct.ThrowIfCancellationRequested();
+
+                // ⚠️ Un protettore per VERSO, e non uno solo per tutto il giro: il glossario è direzionale.
+                // Con un protettore solo, le formule it→en verrebbero cercate anche nel testo inglese delle
+                // vLOA — dove non compaiono mai, quindi nessun danno — ma soprattutto il verso en→it
+                // resterebbe senza glossario per sempre, e non lo direbbe nessun errore.
+                var glossario = await GlossarioFraseologia
+                    .CaricaAsync(glossarioStore, sorgente, bersaglio, ct).ConfigureAwait(false);
+
+                var giro = new TranslationFillUseCase(
+                    sp.GetRequiredService<ITranslatableCorpus>(),
+                    memoria,
+                    motori,
+                    new TextProtector(nomi, glossario),
+                    opzioni);
 
                 var esito = await giro.EseguiAsync(sorgente, bersaglio, ct).ConfigureAwait(false);
 
@@ -176,18 +197,17 @@ public sealed class TranslationFillHostedService : BackgroundService
     }
 
     /// <summary>
-    /// Il protettore con dentro i nomi dello staff. ⚠️ Vanno letti a <b>ogni</b> giro e non una volta
-    /// all'avvio: il roster cresce a ogni login nuovo, e un protettore costruito ieri non conosce lo
-    /// staffista arrivato stamattina — cioè lascerebbe uscire proprio il nome più recente.
+    /// I nomi dello staff, per il protettore. ⚠️ Vanno letti a <b>ogni</b> giro e non una volta all'avvio: il
+    /// roster cresce a ogni login nuovo, e un protettore costruito ieri non conosce lo staffista arrivato
+    /// stamattina — cioè lascerebbe uscire proprio il nome più recente.
     /// </summary>
-    private static async Task<TextProtector> ProtettoreColRosterAsync(IServiceProvider sp, CancellationToken ct)
+    private static async Task<List<string>> NomiDelloStaffAsync(IServiceProvider sp, CancellationToken ct)
     {
         var db = sp.GetRequiredService<Persistence.VipiDbContext>();
-        var nomi = await db.StaffMembers.AsNoTracking()
+        return await db.StaffMembers.AsNoTracking()
             .Where(s => s.DisplayName != null)
             .Select(s => s.DisplayName!)
             .ToListAsync(ct)
             .ConfigureAwait(false);
-        return new TextProtector(nomi);
     }
 }

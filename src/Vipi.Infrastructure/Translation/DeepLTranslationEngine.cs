@@ -54,8 +54,15 @@ public sealed partial class DeepLTranslationEngine : ITranslationEngine
     /// <para>⚠️ Due forme: vuota per i dati personali, col valore dentro per gli identificatori pubblici.
     /// Se questa regola conoscesse solo la prima, il tag con il valore verrebbe SCAPPATO — e il motore lo
     /// tradurrebbe come testo invece di lasciarlo stare.</para>
+    /// <para>⚠️ E <b>due lettere</b>: <c>x</c> per gli identificatori, <c>g</c> per le voci di glossario. Un
+    /// <c>&lt;g&gt;</c> scappato arriverebbe a DeepL come testo, verrebbe tradotto, e il ripristino ci
+    /// rimetterebbe comunque la resa giusta — quindi il difetto non si vedrebbe nel documento: si vedrebbe
+    /// solo nel conto dei caratteri, che è il posto in cui nessuno guarda.</para>
+    /// <para>⚠️ Gli attributi si accettano (<c>[^&gt;]*</c>) e non si pretende <c>\s*&gt;</c>: il segnaposto
+    /// del glossario ne porta uno, <c>translate="no"</c>, ed è proprio quello che dice ai motori di lasciare
+    /// stare il contenuto.</para>
     /// </summary>
-    [GeneratedRegex(@"<x id=""\d+""\s*/>|<x id=""\d+""\s*>[^<]*</x>")]
+    [GeneratedRegex(@"<[xg] id=""\d+""\s*/>|<[xg] id=""\d+""[^>]*>[^<]*</[xg]>")]
     private static partial Regex Segnaposto();
 
     public async Task<TranslationBatch> TranslateAsync(
@@ -87,7 +94,11 @@ public sealed partial class DeepLTranslationEngine : ITranslationEngine
             source_lang = CodiceSorgente(sourceLang),
             target_lang = CodiceBersaglio(targetLang),
             tag_handling = "xml",
-            ignore_tags = new[] { "x" },
+            // ⚠️ «g» accanto a «x»: è la funzione nativa di DeepL per «questo non si tocca», ed è il modo in
+            // cui questo motore onora il glossario di fraseologia. Senza, DeepL tradurrebbe la frase italiana
+            // che sta dentro il segnaposto: il documento verrebbe giusto lo stesso — la resa la rimette il
+            // ripristino — ma si pagherebbero caratteri per una risposta che si butta.
+            ignore_tags = new[] { "x", "g" },
             glossary_id = string.IsNullOrWhiteSpace(_opt.DeepL.GlossaryId) ? null : _opt.DeepL.GlossaryId,
         };
 

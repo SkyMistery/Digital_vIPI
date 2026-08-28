@@ -1,0 +1,327 @@
+@page "/services/vsop/admin/glossary"
+@layout SopLayout
+@rendermode InteractiveServer
+@inject Vipi.Application.Abstractions.IGlossaryStore Glossario
+@inject Vipi.Application.Abstractions.ITranslationMemory Memoria
+@inject IEditAuthorizationService Authz
+@inject IStringLocalizer<SharedResource> L
+@using Vipi.Application.Translation
+@using Vipi.Domain.Entities
+
+<PageTitle>@L["Gl_Title"] · IVAO Italy</PageTitle>
+
+@* ---- Il glossario di fraseologia (lavori-aperti §Q3) -------------------------------------------------
+
+   ⚠️ QUESTA PAGINA ESISTE PER SPOSTARE UNA COMPETENZA, non per aggiungere una funzione. Le formule della
+   fraseologia le sa un controllore, non chi scrive il codice: finché il glossario si curava ricompilando un
+   file .cs, l'unica persona che poteva curarlo era esattamente quella che la carta dice non debba farlo.
+
+   ⚠️ E DICE DUE COSE CHE ALTROVE NON SI VEDONO. La prima: la resa entra nel documento VERBATIM, quindi una
+   voce sbagliata qui è una parola sbagliata in ogni carta che contiene la formula. La seconda: il giro
+   traduce solo ciò che MANCA, quindi una voce nuova non tocca le frasi già in memoria — senza dirlo, chi la
+   scrive rileggerebbe il documento trovandolo identico e penserebbe che la pagina non funziona. *@
+
+<div class="wrap struct">
+    <AdminNav />
+
+    <div class="doc-head st-head">
+        <h1 class="st-h2 page-h1">
+            @L["Gl_Title"]
+            @if (_conteggio is { } n)
+            {
+                <span>&nbsp;</span>
+                <span class="pill @(n > 0 ? "blue" : "amber")">@n</span>
+            }
+        </h1>
+        <nav class="struct-nav">
+            <select class="btn ghost" @onchange="CambiaCoppiaAsync" disabled="@_busy">
+                <option value="it|en" selected="@(_da == "it")">IT → EN</option>
+                <option value="en|it" selected="@(_da == "en")">EN → IT</option>
+            </select>
+            <button class="btn ghost" disabled="@_busy" @onclick="CaricaAsync">
+                <Icon Name="refresh" Size="14" /> @L["Audit_Refresh"]
+            </button>
+        </nav>
+        <LiveRegion>
+            @if (_msg is { } m)
+            {
+                <span class="st-msg ok"><Icon Name="check-circle" Size="14" /><span class="st-msg-t">@m</span></span>
+            }
+        </LiveRegion>
+    </div>
+
+    @if (!Authz.IsAdmin)
+    {
+        <p class="help">@L["Pend_AdminOnly"]</p>
+    }
+    else
+    {
+        <p class="help">@L["Gl_Intro"]</p>
+
+        <div class="panel" style="margin-bottom:12px">
+            <div class="inline-form">
+                <input class="in" placeholder="@L["Gl_PhSource"]" disabled="@_busy"
+                       maxlength="@GlossarioFraseologia.LunghezzaMassimaSorgente"
+                       @bind="_nuovaSorgente" @bind:event="oninput" />
+                <span class="muted">→</span>
+                <input class="in" placeholder="@L["Gl_PhTarget"]" disabled="@_busy"
+                       maxlength="@GlossarioFraseologia.LunghezzaMassimaResa"
+                       @bind="_nuovaResa" @bind:event="oninput" />
+                <button class="btn" disabled="@(_busy || RifiutoNuova is not null)" @onclick="AggiungiAsync">
+                    <Icon Name="plus" Size="14" /> @L["Gl_Add"]
+                </button>
+            </div>
+
+            @* Il motivo si mostra solo quando c'è qualcosa di scritto: un modulo vuoto che grida «servono
+               tutti e due i lati» è rumore, non aiuto. *@
+            @if (QualcosaScritto && RifiutoNuova is { } rifiuto)
+            {
+                <p class="st-msg warn" style="margin:6px 0 0">
+                    <Icon Name="warning" Size="14" /><span class="st-msg-t">@L[ChiaveDi(rifiuto)]</span>
+                </p>
+            }
+            else if (GlossarioFraseologia.ParolaSola(_nuovaSorgente) && QualcosaScritto)
+            {
+                <p class="st-msg warn" style="margin:6px 0 0">
+                    <Icon Name="warning" Size="14" /><span class="st-msg-t">@L["Gl_WarnSingleWord"]</span>
+                </p>
+            }
+        </div>
+
+        @if (_voci is null)
+        {
+            <LoadingState />
+        }
+        else if (_voci.Count == 0)
+        {
+            <EmptyState Icon="warning" Title="@L["Gl_Empty"].Value">
+                <p style="margin:0">@L["Gl_EmptyHint"]</p>
+            </EmptyState>
+        }
+        else
+        {
+            <div class="panel">
+                <table class="res-table">
+                    <thead>
+                        <tr>
+                            <th style="width:34%">@L["Gl_ColSource"]</th>
+                            <th>@L["Gl_ColTarget"]</th>
+                            <th style="width:120px">@L["Gl_ColWho"]</th>
+                            <th style="width:60px"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var v in _voci)
+                    {
+                        <tr class="@(v.Id == _apertaId ? "on" : "")">
+                            <td><span class="muted">@v.SourceText</span></td>
+                            <td>
+                                @if (_apertaId == v.Id)
+                                {
+                                    <input class="in" disabled="@_busy"
+                                           maxlength="@GlossarioFraseologia.LunghezzaMassimaResa"
+                                           @bind="_bozza" @bind:event="oninput" />
+
+                                    @* ⚠️ IL RAGGIO D'AZIONE, PRIMA DEL SALVATAGGIO — come nella pagina delle
+                                       traduzioni, ma dicendo il contrario: là il numero avverte che la
+                                       correzione tocca N documenti, qui che NON li tocca finché quelle
+                                       traduzioni non si rifanno. *@
+                                    @if (_inMemoria > 0)
+                                    {
+                                        <p class="st-msg warn" style="margin:6px 0 0">
+                                            <Icon Name="warning" Size="14" />
+                                            <span class="st-msg-t">@L["Gl_InMemory", _inMemoria]</span>
+                                        </p>
+                                    }
+                                    <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+                                        <button class="btn" disabled="@(_busy || !BozzaValida(v))"
+                                                @onclick="() => SalvaAsync(v)">
+                                            <Icon Name="check-circle" Size="14" /> @L["Common_Save"]
+                                        </button>
+                                        @if (_inMemoria > 0)
+                                        {
+                                            <button class="btn ghost" disabled="@_busy"
+                                                    title="@L["Gl_RedoHint"]"
+                                                    @onclick="() => RifaiAsync(v)">
+                                                <Icon Name="refresh" Size="14" /> @L["Gl_Redo", _inMemoria]
+                                            </button>
+                                        }
+                                        <button class="btn ghost" disabled="@_busy" @onclick="Chiudi">@L["Common_Cancel"]</button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <button class="btn ghost" style="text-align:left;width:100%"
+                                            disabled="@_busy" @onclick="() => ApriAsync(v)">@v.TargetText</button>
+                                }
+                            </td>
+                            <td>
+                                @if (v.UpdatedByUserId is { } vid)
+                                {
+                                    <VidLink Vid="vid" SoloNumero="true" />
+                                }
+                                else
+                                {
+                                    <span class="pill amber">@L["Gl_WhoSeed"]</span>
+                                }
+                            </td>
+                            <td>
+                                <button class="btn ghost" disabled="@_busy" title="@L["Common_Delete"]"
+                                        @onclick="() => TogliAsync(v)">
+                                    <Icon Name="trash" Size="14" />
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private IReadOnlyList<GlossaryTerm>? _voci;
+    private int? _conteggio;
+    private string _da = "it";
+    private string _a = "en";
+    private bool _busy;
+    private string? _msg;
+
+    private string _nuovaSorgente = "";
+    private string _nuovaResa = "";
+
+    private int? _apertaId;
+    private string _bozza = "";
+    private int _inMemoria;
+
+    // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su @rendermode InteractiveServer il secondo gira UNA
+    // VOLTA SOLA, e questa pagina si ricarica cambiando coppia di lingue.
+    protected override Task OnParametersSetAsync() => CaricaAsync();
+
+    private bool QualcosaScritto =>
+        !string.IsNullOrWhiteSpace(_nuovaSorgente) || !string.IsNullOrWhiteSpace(_nuovaResa);
+
+    /// <summary>
+    /// Perché la voce che si sta scrivendo non si può accettare. ⚠️ Il cancello è lo <b>stesso</b> del seme
+    /// (<c>GlossarioFraseologia.PerchéNonVa</c>): una regola riscritta qui a mano sarebbe una seconda verità,
+    /// e le due divergerebbero al primo cambiamento.
+    /// </summary>
+    private GlossarioRifiuto? RifiutoNuova => GlossarioFraseologia.PerchéNonVa(
+        _nuovaSorgente, _nuovaResa, _voci?.Select(v => v.SourceText));
+
+    /// <summary>Correggere una voce esistente non è un duplicato di sé stessa: la sorgente non cambia, e
+    /// dall'elenco dei già presenti si toglie la riga che si sta modificando.</summary>
+    private bool BozzaValida(GlossaryTerm v) =>
+        GlossarioFraseologia.PerchéNonVa(
+            v.SourceText, _bozza, _voci?.Where(x => x.Id != v.Id).Select(x => x.SourceText)) is null;
+
+    private static string ChiaveDi(GlossarioRifiuto r) => r switch
+    {
+        GlossarioRifiuto.Vuoto => "Gl_ErrEmpty",
+        GlossarioRifiuto.TroppoCorto => "Gl_ErrTooShort",
+        GlossarioRifiuto.TroppoLungo => "Gl_ErrTooLong",
+        GlossarioRifiuto.ContieneIdentificatore => "Gl_ErrIdentifier",
+        GlossarioRifiuto.ContieneMarcatura => "Gl_ErrMarkup",
+        _ => "Gl_ErrDuplicate",
+    };
+
+    private async Task CaricaAsync()
+    {
+        if (!Authz.IsAdmin) return;
+        _busy = true;
+        try
+        {
+            _voci = await Glossario.ListAsync(_da, _a);
+            _conteggio = _voci.Count;
+            Chiudi();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task CambiaCoppiaAsync(ChangeEventArgs e)
+    {
+        var parti = (e.Value?.ToString() ?? "it|en").Split('|');
+        _da = parti[0];
+        _a = parti[1];
+        await CaricaAsync();
+    }
+
+    private async Task AggiungiAsync()
+    {
+        if (RifiutoNuova is not null) return;
+        _busy = true;
+        try
+        {
+            await Glossario.UpsertAsync(_da, _a, _nuovaSorgente, _nuovaResa, Authz.CurrentUserId);
+            _nuovaSorgente = "";
+            _nuovaResa = "";
+            _msg = L["Gl_Saved"].Value;
+        }
+        finally { _busy = false; }
+        await CaricaAsync();
+    }
+
+    /// <summary>
+    /// Apre una voce in correzione. ⚠️ Il conto delle traduzioni già in memoria si chiede QUI e non
+    /// nell'elenco: una query per riga su cinquanta righe sarebbero cinquanta query a ogni caricamento — e
+    /// tutte sullo stesso <c>DbContext</c> di circuito — mentre il numero serve solo a chi sta guardando
+    /// quella voce.
+    /// </summary>
+    private async Task ApriAsync(GlossaryTerm v)
+    {
+        _apertaId = v.Id;
+        _bozza = v.TargetText;
+        _msg = null;
+        _inMemoria = await Memoria.ContaConLaFormulaAsync(_da, _a, v.SourceText);
+    }
+
+    private void Chiudi()
+    {
+        _apertaId = null;
+        _bozza = "";
+        _inMemoria = 0;
+    }
+
+    private async Task SalvaAsync(GlossaryTerm v)
+    {
+        if (!BozzaValida(v)) return;
+        _busy = true;
+        try
+        {
+            await Glossario.UpsertAsync(_da, _a, v.SourceText, _bozza, Authz.CurrentUserId);
+            _msg = L["Gl_Saved"].Value;
+        }
+        finally { _busy = false; }
+        await CaricaAsync();
+    }
+
+    /// <summary>
+    /// Butta le traduzioni automatiche che contengono la formula, così il giro dopo le rifà col glossario.
+    /// <para>⚠️ Non le ritraduce <b>adesso</b>: chiamare il motore da un clic bloccherebbe la pagina su
+    /// un'attesa di rete, ed è la stessa ragione per cui non si traduce al salvataggio di un documento.</para>
+    /// </summary>
+    private async Task RifaiAsync(GlossaryTerm v)
+    {
+        _busy = true;
+        try
+        {
+            var quante = await Memoria.DimenticaAutomaticheConLaFormulaAsync(_da, _a, v.SourceText);
+            _msg = (quante > 0 ? L["Gl_RedoDone", quante] : L["Gl_RedoNone"]).Value;
+        }
+        finally { _busy = false; }
+        await CaricaAsync();
+    }
+
+    private async Task TogliAsync(GlossaryTerm v)
+    {
+        _busy = true;
+        try
+        {
+            await Glossario.DeleteAsync(v.Id);
+            _msg = L["Gl_Deleted"].Value;
+        }
+        finally { _busy = false; }
+        await CaricaAsync();
+    }
+}

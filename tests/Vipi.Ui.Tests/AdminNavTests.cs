@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
@@ -64,10 +64,11 @@ public class AdminNavTests : TestContext
         var cut = Render(admin: true);
 
         var nav = cut.Find("nav.admin-nav");
-        // 13 dal 28 agosto 2026: si aggiunge la revisione delle traduzioni.
-        Assert.Equal(13, nav.QuerySelectorAll(".an-link").Length);
+        // 14 dal 28 agosto 2026: la revisione delle traduzioni e il glossario di fraseologia.
+        Assert.Equal(14, nav.QuerySelectorAll(".an-link").Length);
         Assert.Contains("/services/vsop/admin/sector-structure", cut.Markup);
         Assert.Contains("/services/vsop/admin/translations", cut.Markup);
+        Assert.Contains("/services/vsop/admin/glossary", cut.Markup);
         Assert.Contains("/services/vsop/admin/pending", cut.Markup);
         Assert.Contains("/services/vsop/admin/diagnostics", cut.Markup);
     }

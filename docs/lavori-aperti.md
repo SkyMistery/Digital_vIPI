@@ -179,7 +179,7 @@ scrivono nei log.
 | Le decisioni di contenuto (LIBB: due sezioni nascoste a mano; l'elenco aeroporti da 75 righe) | K / statistiche |
 | Se `99999 ft` debba diventare `UNL` a schermo | N4 |
 | Se prendere in carico le **tessere nostre** (l'unico fondo che nessuno può chiudere) | P1 |
-| **Chi cura il glossario di fraseologia** — serve un nome, e finché manca il badge «non revisionata» resta | **Q3** |
+| **Chi cura il glossario di fraseologia** — serve un nome. ✅ Il meccanismo e la pagina di cura ci sono (28-ago sera): la domanda non chiede più di ricompilare, chiede di aprire una pagina | **Q3** |
 | I **termini di ritenzione** del piano gratuito Azure, e la domanda a IVAO HQ sul trattamento esterno | Q1 / Q2 |
 | **Rileggere la trascrizione di LIPI** e le **figure** dei SOP da estrarre dai PDF | R1 / R2 |
 | Gli altri **quattordici SOP** militari, e su quattro campi la sezione QRA da riempire | R3 |
@@ -3230,15 +3230,70 @@ delle tabelle. Erano sbagliate **tutte** — «Pista» → *Track*, «Piazzale»
 «Rilevamento» → *Detection*, «Quota» → *Share*, «Ente» → *Institution* — e sono le colonne che un
 controllore legge per trovare il dato.
 
-Questo **non chiude la domanda**: copre i segmenti INTERI (un titolo, una cella di tabella), non la
-fraseologia dentro le frasi — «riporta sottovento» resta il caso che nessun elenco risolve, e nella prosa
-di LIPI restano cose come «the cocking and disarming positions». Ma dice dove va messo ciò che si decide, e
-mostra che il meccanismo (voce umana in memoria, mai toccata dalla macchina) funziona.
+Quello **non chiudeva la domanda**: copriva i segmenti INTERI (un titolo, una cella di tabella), non la
+fraseologia dentro le frasi — «riporta sottovento» era il caso che nessun elenco risolveva, e nella prosa
+di LIPI restavano cose come «the cocking and disarming positions». Ma diceva dove va messo ciò che si
+decide, e mostrava che il meccanismo (voce umana in memoria, mai toccata dalla macchina) funziona.
 
-Serve **un nome**, non un ruolo. È l'unica delle tre voci aperte che, se resta scoperta, **si vede sul
-documento**: finché nessuno rilegge, il badge «traduzione non revisionata» non se lo toglie nessuno, e
-misurato contro il servizio vero «riporta sottovento» resta «bring it back downwind» — grammatica giusta,
-fraseologia sbagliata, e nessuno se ne accorge leggendo.
+#### ✅ Il 28 agosto sera: il meccanismo dentro le frasi, e la lista non è più nel codice
+
+**Il pezzo tecnico è chiuso.** `GlossarioFraseologia` + tabella `GlossaryTerms` + pagina
+`/services/vsop/admin/glossary`. Come funziona, in una riga: prima di spedire, il protettore mette la
+formula italiana in un segnaposto `<g id="0" translate="no">riporta sottovento</g>` e tiene da parte la
+resa inglese; al ritorno rimette **la nostra**, qualunque cosa il motore abbia fatto lì dentro.
+
+⚠️ **I due segnaposto hanno contratti OPPOSTI, ed è tutta la faccenda.** Un `<x>` deve tornare *identico*
+— se torna diverso il motore ha rovinato un identificatore e la frase si butta. Un `<g>` torna *sempre*
+diverso, perché dentro è partito l'italiano e la resa inglese non c'è mai stata: se passasse dal confronto
+degli identificatori, ogni frase con dentro una formula finirebbe fra gli scartati, e il glossario
+**spegnerebbe** la traduzione invece di migliorarla. La lettera del tag è il solo posto in cui la
+differenza si vede.
+
+⚠️ **Il glossario passa PRIMA delle regole sugli identificatori**, non dopo. Dopo, una formula che ne
+contenesse uno non scatterebbe più — a quel punto il callsign è un tag, non più le lettere che la voce
+cerca — e non scatterebbe in silenzio. La simmetria è il rifiuto `ContieneIdentificatore` nella pagina di
+cura: siccome passa per primo, una voce con dentro un identificatore se lo *inghiottirebbe*, e quello
+finirebbe cablato nella resa, uguale in ogni documento che contiene la formula.
+
+⚠️ **La funzione nativa dei motori è nel TESTO, non in un ramo di codice.** `translate="no"` lo onora Azure
+da sé in modalità marcatura, e a DeepL si passa `ignore_tags: ["x","g"]`: la formula non si traduce, quindi
+non si paga e il motore non ci può spostare dentro le parole di contorno. Un motore che lo ignorasse non
+romperebbe niente — tradurrebbe l'italiano per niente, e il ripristino butterebbe via la sua fatica.
+
+⚠️ **E c'era un difetto che il glossario avrebbe introdotto**: una cella che è *tutta* una formula non parte
+(del protetto non resta che il segnaposto), e prima il giro ne scriveva in memoria «il testo così com'è» —
+cioè il sorgente ricopiato, che con soli identificatori dentro era giusto. Con una formula avrebbe scritto
+l'**italiano spacciandolo per inglese**, come voce definitiva che nessun giro riprova. Adesso scrive il
+protetto *ripristinato*.
+
+⚠️ **Il seme non è una regola che il codice fa rispettare.** Le voci di partenza si scrivono **solo se il
+glossario è vuoto**: da quando lo tocca una persona, il codice non ci scrive più. Con la condizione ovvia
+(«questa voce manca») una formula *tolta* dal curatore tornerebbe al riavvio dopo, per sempre, senza che si
+capisca da dove.
+
+⚠️ **Una voce nuova NON tocca le frasi già tradotte**, perché il giro traduce solo ciò che manca — e senza
+dirlo, chi la scrive rileggerebbe il documento trovandolo identico. La pagina conta le automatiche che
+contengono la formula e offre di **buttarle**, così il giro dopo le rifà: mai quelle riviste da una persona,
+e ⚠️ **i caratteri si ripagano al motore**.
+
+**Le voci di partenza sono 24, e sono di due specie dichiarate.** Tre gruppi vengono da difetti **visti**:
+«riporta sottovento» → *bring it back downwind* (Azure, 27 ago, carta §5), «il campo» → *the camp* e
+«armamento e disarmo» → *the cocking and disarming positions* (LIPI, 28 ago, §R2 qui sotto — che con questo
+si chiude). Gli altri sono fraseologia standard, messi perché la lista non nasca vuota: di quelli non
+sappiamo che cosa facesse la macchina, e chi cura il glossario è libero di toglierli.
+
+#### 🟢 Resta aperto: il nome
+
+Serve **un nome**, non un ruolo — e adesso la domanda è pulita, perché non chiede più a un controllore di
+farsi ricompilare un file `.cs`: chiede di aprire una pagina. È l'unica delle tre voci aperte che, se resta
+scoperta, **si vede sul documento**: finché nessuno rilegge, il badge «traduzione non revisionata» non se
+lo toglie nessuno.
+
+⚠️ **E il meccanismo ha un limite che va detto a chi lo curerà**: la resa entra nel documento **verbatim**.
+Non c'è declinazione, non c'è concordanza, non c'è contesto — «report downwind» è quella stringa lì, in ogni
+frase in cui la voce scatta, anche a inizio periodo. Vanno bene le formule che *sono* fisse; una parola
+comune che cambia forma no. Sapere quali sono quali è il suo mestiere, non il nostro: è esattamente il
+motivo per cui la lista non poteva restare nel codice.
 
 ### Q4 🟢 APERTO — la vLOA dovrebbe smettere di nascere in inglese
 
@@ -3690,9 +3745,11 @@ La prima stesura italiana è mia, non di un controllore militare, ed è in bozza
 pubblicata**, e non deve esserlo prima che qualcuno che conosce il campo l'abbia riletta. Il badge
 «traduzione non revisionata» dice la stessa cosa al lettore inglese.
 
-⚠️ Restano dentro due rese che il glossario non copre, perché sono **parole dentro una frase** e non
-segmenti interi: «the **camp**» per «il campo» e «the **cocking** and disarming positions» per
-«armamento/disarmo». È la parte aperta di **Q3**.
+⚠️ ✅ **Chiuse la sera del 28 agosto.** Erano le due rese che il glossario non copriva, perché sono
+**parole dentro una frase** e non segmenti interi: «the **camp**» per «il campo» e «the **cocking** and
+disarming positions» per «armamento/disarmo». Sono state il caso di prova del meccanismo dentro le frasi
+(**Q3**) e sono fra le sue voci di partenza. ⚠️ Le traduzioni **già in memoria** non cambiano da sole: dalla
+pagina del glossario si preme «falle rifare», o il documento resta com'era.
 
 ### R3 🟢 APERTO — gli altri quattordici SOP
 

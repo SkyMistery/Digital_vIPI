@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
@@ -101,7 +101,10 @@ public class DeepLTranslationEngineTests
         await Motore(spia).TranslateAsync(new[] { "Contatta la torre" }, "it", "en");
 
         Assert.Contains("\"tag_handling\":\"xml\"", spia.UltimoCorpoInviato);
-        Assert.Contains("\"ignore_tags\":[\"x\"]", spia.UltimoCorpoInviato);
+        // ⚠️ «g» accanto a «x»: è il modo in cui DeepL onora il glossario di fraseologia. Toglierlo non
+        // romperebbe il documento — la resa la rimette il ripristino — ma si pagherebbero caratteri
+        // per tradurre una frase che poi si butta, e il conto è l'unico posto in cui si vedrebbe.
+        Assert.Contains("\"ignore_tags\":[\"x\",\"g\"]", spia.UltimoCorpoInviato);
         Assert.Contains("\"source_lang\":\"IT\"", spia.UltimoCorpoInviato);
         // «EN» secco e' deprecato come bersaglio, e l'inglese aeronautico e' quello britannico.
         Assert.Contains("\"target_lang\":\"EN-GB\"", spia.UltimoCorpoInviato);
@@ -141,6 +144,20 @@ public class DeepLTranslationEngineTests
         Assert.Contains("<x id=\"1\"/>", scappato);
         Assert.Contains("&amp;", scappato);
         Assert.DoesNotContain("&lt;x", scappato);
+    }
+
+    [Fact]
+    public void Anche_il_segnaposto_del_GLOSSARIO_resta_un_tag()
+    {
+        // Il segnaposto del glossario porta un attributo (`translate="no"`) e una lettera diversa. Una
+        // regola che pretendesse «<x» e nessun attributo lo scapperebbe: DeepL lo tradurrebbe come testo, e
+        // la formula si pagherebbe per niente a ogni giro.
+        const string protetto = "Poi <g id=\"0\" translate=\"no\">riporta sottovento</g> & attendi";
+        var scappato = DeepLTranslationEngine.ScappaTenendoISegnaposto(protetto);
+
+        Assert.Contains("<g id=\"0\" translate=\"no\">riporta sottovento</g>", scappato);
+        Assert.Contains("&amp;", scappato);
+        Assert.DoesNotContain("&lt;g", scappato);
     }
 
     [Fact]

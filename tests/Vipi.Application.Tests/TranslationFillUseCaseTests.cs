@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Translation;
 using Vipi.Domain.Entities;
 
@@ -71,6 +71,12 @@ public class TranslationFillUseCaseTests
 
         public Task<int> DocumentiToccatiAsync(string sourceText, CancellationToken ct = default) => Task.FromResult(0);
 
+        public Task<int> ContaConLaFormulaAsync(string s, string t, string f, CancellationToken ct = default) =>
+            Task.FromResult(0);
+
+        public Task<int> DimenticaAutomaticheConLaFormulaAsync(
+            string s, string t, string f, CancellationToken ct = default) => Task.FromResult(0);
+
         public Task<long> CaratteriSpesiStimatiAsync(string engine, CancellationToken ct = default) =>
             Task.FromResult(Spesi);
     }
@@ -105,14 +111,15 @@ public class TranslationFillUseCaseTests
 
     private static TranslationFillUseCase Giro(
         CorpusFinto corpus, MemoriaFinta memoria, MotoreFinto motore,
-        TranslationOptions? opt = null, string[]? roster = null) =>
-        Catena(corpus, memoria, opt ?? new TranslationOptions(), roster, motore);
+        TranslationOptions? opt = null, string[]? roster = null,
+        GlossarioFraseologia? glossario = null) =>
+        Catena(corpus, memoria, opt ?? new TranslationOptions(), roster, glossario, motore);
 
     /// <summary>Il giro con piu' motori: l'ordine di preferenza lo detta `opt.Order`.</summary>
     private static TranslationFillUseCase Catena(
         CorpusFinto corpus, MemoriaFinta memoria, TranslationOptions opt, string[]? roster,
-        params MotoreFinto[] motori) =>
-        new(corpus, memoria, motori, new TextProtector(roster), opt);
+        GlossarioFraseologia? glossario, params MotoreFinto[] motori) =>
+        new(corpus, memoria, motori, new TextProtector(roster, glossario), opt);
 
     // ---- Il dedup che si vede -------------------------------------------------------------------------
 
@@ -266,7 +273,7 @@ public class TranslationFillUseCaseTests
         var memoria = new MemoriaFinta();
 
         var rapporto = await Catena(new CorpusFinto("Contatta la torre."), memoria,
-            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, azure, deepl)
+            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, null, azure, deepl)
             .EseguiAsync("it", "en");
 
         Assert.Single(azure.Ricevuti);
@@ -289,7 +296,7 @@ public class TranslationFillUseCaseTests
         var memoria = new MemoriaFinta();
 
         var rapporto = await Catena(new CorpusFinto("Contatta la torre."), memoria,
-            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, azure, deepl)
+            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, null, azure, deepl)
             .EseguiAsync("it", "en");
 
         Assert.Equal(TranslationOutcome.Ok, rapporto.Esito);
@@ -307,7 +314,7 @@ public class TranslationFillUseCaseTests
         var memoria = new MemoriaFinta();
 
         var rapporto = await Catena(new CorpusFinto("Contatta la torre."), memoria,
-            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, azure, deepl)
+            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, null, azure, deepl)
             .EseguiAsync("it", "en");
 
         Assert.Equal("deepl", rapporto.Motore);
@@ -329,7 +336,7 @@ public class TranslationFillUseCaseTests
             DeepL = { MaxCaratteriTotali = 1000 },
         };
 
-        var rapporto = await Catena(new CorpusFinto("Contatta la torre."), memoria, opt, null, azure, deepl)
+        var rapporto = await Catena(new CorpusFinto("Contatta la torre."), memoria, opt, null, null, azure, deepl)
             .EseguiAsync("it", "en");
 
         Assert.Empty(deepl.Ricevuti);            // saltato PRIMA di spendere
@@ -346,7 +353,7 @@ public class TranslationFillUseCaseTests
 
         // Registrati azure-poi-deepl, ma la configurazione dice il contrario.
         var rapporto = await Catena(new CorpusFinto("Contatta la torre."), new MemoriaFinta(),
-            new TranslationOptions { Order = new[] { "deepl", "azure" } }, null, azure, deepl)
+            new TranslationOptions { Order = new[] { "deepl", "azure" } }, null, null, azure, deepl)
             .EseguiAsync("it", "en");
 
         Assert.Equal("deepl", rapporto.Motore);
@@ -361,7 +368,7 @@ public class TranslationFillUseCaseTests
         var memoria = new MemoriaFinta();
 
         var rapporto = await Catena(new CorpusFinto("Contatta la torre."), memoria,
-            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, azure, deepl)
+            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, null, azure, deepl)
             .EseguiAsync("it", "en");
 
         Assert.Equal(TranslationOutcome.AuthFailed, rapporto.Esito);
@@ -376,10 +383,50 @@ public class TranslationFillUseCaseTests
         var deepl = new MotoreFinto(nome: "deepl");
 
         var rapporto = await Catena(new CorpusFinto("Contatta la torre."), new MemoriaFinta(),
-            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, azure, deepl)
+            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, null, azure, deepl)
             .EseguiAsync("it", "en");
 
         Assert.Empty(azure.Ricevuti);
         Assert.Equal("deepl", rapporto.Motore);
     }
+
+    // ---- Il glossario di fraseologia (lavori-aperti §Q3) ---------------------------------------------
+
+    [Fact]
+    public async Task Una_cella_che_e_TUTTA_una_formula_non_parte_e_finisce_in_memoria_in_INGLESE()
+    {
+        // ⚠️ È il difetto che questo test esiste per impedire. Del testo protetto non resta che il
+        // segnaposto, quindi il giro non chiama nessuno — giusto — e scrive in memoria «il testo così
+        // com'è». Prima del glossario «così com'è» voleva sempre dire «identico al sorgente», perché lì
+        // dentro c'erano solo identificatori. Con una formula NO: ricopiare il sorgente scriverebbe
+        // l'ITALIANO come se fosse la traduzione inglese, e come voce DEFINITIVA che nessun giro riprova.
+        var memoria = new MemoriaFinta();
+        var motore = new MotoreFinto();
+        var glossario = new GlossarioFraseologia(new[] { new VoceGlossario("riporta sottovento", "report downwind") });
+
+        var rapporto = await Giro(new CorpusFinto("Riporta sottovento"), memoria, motore, glossario: glossario)
+            .EseguiAsync("it", "en");
+
+        Assert.Empty(motore.Ricevuti);                                  // non si e' pagato niente
+        Assert.Equal(1, rapporto.Tradotti);
+        Assert.Equal(("Riporta sottovento", "report downwind"), memoria.Scritte.Single());
+    }
+
+    [Fact]
+    public async Task La_formula_dentro_una_frase_sopravvive_a_un_motore_che_la_traduce_a_modo_suo()
+    {
+        // Il motore finto fa esattamente quel che Azure faceva davvero: rende la formula a modo suo. La
+        // frase intorno resta sua, la formula torna nostra, e la frase NON finisce fra gli scartati.
+        var memoria = new MemoriaFinta();
+        var motore = new MotoreFinto(traduci: t => t.Replace("riporta sottovento", "bring it back downwind"));
+        var glossario = new GlossarioFraseologia(new[] { new VoceGlossario("riporta sottovento", "report downwind") });
+
+        var rapporto = await Giro(new CorpusFinto("Poi riporta sottovento."), memoria, motore, glossario: glossario)
+            .EseguiAsync("it", "en");
+
+        Assert.Equal(0, rapporto.Scartati);
+        Assert.Contains("report downwind", memoria.Scritte.Single().Bersaglio, StringComparison.Ordinal);
+        Assert.DoesNotContain("bring it back", memoria.Scritte.Single().Bersaglio, StringComparison.Ordinal);
+    }
+
 }

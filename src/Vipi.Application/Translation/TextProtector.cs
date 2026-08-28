@@ -51,16 +51,27 @@ public sealed partial class TextProtector
     /// nome intero resterebbe in chiaro il cognome.</summary>
     private readonly IReadOnlyList<string> _nomi;
 
+    /// <summary>Le frasi che si dicono in un modo solo. Vuoto = questa classe si comporta come prima che il
+    /// glossario esistesse.</summary>
+    private readonly GlossarioFraseologia _glossario;
+
     /// <param name="nomiDaNonInviare">I nomi delle persone note (<c>StaffMember.DisplayName</c>). ⚠️ Vanno
     /// passati: questa classe non sa da sola chi esiste, e il roster è l'unico posto dove un nome è un
     /// <b>dato</b> invece che una stringa qualunque.</param>
-    public TextProtector(IEnumerable<string>? nomiDaNonInviare = null) =>
+    /// <param name="glossario">Il glossario di fraseologia della <b>direzione che si sta traducendo</b>. ⚠️ È
+    /// direzionale: passare quello it→en mentre si traduce en→it non fa danni — semplicemente non scatta —
+    /// ma non serve a niente, ed è il chiamante l'unico che sa in che verso sta andando.</param>
+    public TextProtector(
+        IEnumerable<string>? nomiDaNonInviare = null, GlossarioFraseologia? glossario = null)
+    {
+        _glossario = glossario ?? GlossarioFraseologia.Vuoto;
         _nomi = (nomiDaNonInviare ?? Enumerable.Empty<string>())
             .Where(n => !string.IsNullOrWhiteSpace(n) && n.Trim().Length >= 3)
             .Select(n => n.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderByDescending(n => n.Length)
             .ToList();
+    }
 
     // ---- Le regole, in ordine di applicazione --------------------------------------------------------
 
@@ -125,16 +136,32 @@ public sealed partial class TextProtector
     /// ⚠️ Il valore che torna dentro il tag <b>si ignora</b>: vale sempre quello che avevamo messo da parte.
     /// Un motore che «migliorasse» un callsign non deve poterlo scrivere nel documento.
     /// </para>
+    /// <para>
+    /// ⚠️ <b>Due lettere, non una: <c>x</c> e <c>g</c>.</b> Un <c>&lt;x&gt;</c> torna com'era partito, un
+    /// <c>&lt;g&gt;</c> torna <b>diverso</b> — è una voce di glossario, e al suo posto va la resa inglese che
+    /// nel testo spedito non c'era mai stata. Sono due contratti opposti, e la lettera è il solo posto in cui
+    /// si vedono: farli condividere il tag vorrebbe dire portarsi dietro un insieme di indici in ogni firma
+    /// che tocca un segnaposto.
+    /// </para>
+    /// <para>
+    /// ⚠️ Il nome di gruppo ripetuto nelle due alternative è voluto e legale in .NET: le due forme popolano
+    /// lo <b>stesso</b> gruppo, e chi legge non deve sapere quale ramo ha vinto.
+    /// </para>
     /// </summary>
-    [GeneratedRegex(@"<x id=""(\d+)""\s*/>|<x id=""(\d+)""[^>]*>(.*?)</x\s*>", RegexOptions.Singleline)]
+    [GeneratedRegex(
+        @"<(?<tag>[xg]) id=""(?<id>\d+)""\s*/>|<(?<tag>[xg]) id=""(?<id>\d+)""[^>]*>(?<val>.*?)</[xg]\s*>",
+        RegexOptions.Singleline)]
     private static partial Regex Segnaposto();
 
     /// <summary>L'indice del segnaposto, da qualunque delle forme accettate.</summary>
-    private static string IndiceDi(Match m) =>
-        m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value;
+    private static string IndiceDi(Match m) => m.Groups["id"].Value;
 
     /// <summary>Il contenuto del segnaposto tornato indietro; null per la forma autochiudente.</summary>
-    private static string? ContenutoDi(Match m) => m.Groups[3].Success ? m.Groups[3].Value : null;
+    private static string? ContenutoDi(Match m) => m.Groups["val"].Success ? m.Groups["val"].Value : null;
+
+    /// <summary>Vero se questo segnaposto è una voce di <b>glossario</b>: al suo posto va la nostra resa, e
+    /// quello che è tornato dentro non si guarda nemmeno.</summary>
+    private static bool EGlossario(Match m) => m.Groups["tag"].Value == "g";
 
     /// <summary>Vero se il testo ha delle lettere minuscole: allora è prosa, e le sigle maiuscole spiccano.</summary>
     private static bool HaMinuscole(string s) => s.Any(char.IsLower);
@@ -201,6 +228,21 @@ public sealed partial class TextProtector
             s = SostituisciLetterale(s, nome, tokens, Riservatezza.Personale);
         s = Sostituisci(s, VidAnnunciato(), tokens, Riservatezza.Personale);
         s = Sostituisci(s, ForseUnVid(), tokens, Riservatezza.Personale);
+
+        // 1-bis. IL GLOSSARIO DI FRASEOLOGIA, e sta QUI in mezzo per due ragioni opposte.
+        //
+        //   Dopo i dati personali, perché quelli vengono prima di tutto: una voce di glossario che
+        //   contenesse un pezzo di nome lo porterebbe fuori dentro la resa.
+        //
+        //   ⚠️ PRIMA degli identificatori, e questa è la meno ovvia. Dopo, una frase che ne contiene uno non
+        //   scatterebbe più — il callsign a quel punto è un tag, non più le lettere che la voce cerca — e non
+        //   scatterebbe IN SILENZIO: nessun errore, solo una fraseologia che resta quella del motore. La
+        //   simmetria di questa scelta e' il rifiuto `ContieneIdentificatore` della pagina di cura: siccome
+        //   il glossario passa per primo, una voce con dentro un identificatore se lo INGHIOTTIREBBE, e
+        //   quell'identificatore finirebbe cablato nella resa — uguale in ogni documento in cui la frase
+        //   compare. Le due cose sono la stessa decisione vista dai due lati.
+        foreach (var voce in _glossario.Voci)
+            s = SostituisciGlossario(s, voce, tokens);
 
         // 2. IDENTIFICATORI, dal più specifico al più generico.
         s = Sostituisci(s, Callsign(), tokens);
@@ -273,9 +315,17 @@ public sealed partial class TextProtector
             //      "RWY 07/25" in "RWY 25/07"), oppure «messo LYBA, tornato /». Qui non si ripara niente:
             //      la frase e' compromessa e si BUTTA. Accettare quel caso avrebbe scritto una PISTA
             //      SBAGLIATA in un documento operativo, ed e' il motivo per cui questo controllo esiste.
-            var contenuto = ContenutoDi(m);
             visti[i] = true;
 
+            // ⚠️ IL GLOSSARIO NON SI CONFRONTA, SI IMPONE. Per un identificatore «tornato diverso» vuol dire
+            // «il motore l'ha rovinato, si butta»; per una voce di glossario è la NORMA — dentro il tag è
+            // partita la frase italiana e la resa inglese non c'è mai stata, quindi il contenuto tornato è
+            // sempre «diverso» da quello che va scritto. Passando dal confronto, ogni frase con dentro una
+            // voce di glossario verrebbe scartata: il glossario spegnerebbe la traduzione invece di
+            // migliorarla, e il contatore direbbe che è colpa del motore.
+            if (EGlossario(m)) return tokens[i];
+
+            var contenuto = ContenutoDi(m);
             var atteso = tokens[i];
 
             // Niente contenuto da confrontare: e' la forma autochiudente, oppure il tag e' tornato vuoto.
@@ -296,11 +346,53 @@ public sealed partial class TextProtector
 
     // ---- Meccanica -----------------------------------------------------------------------------------
 
+    /// <summary>Applica una regola <b>solo fuori dai segnaposto gia' piazzati</b>
+    /// (vedi <see cref="FuoriDaiSegnaposti"/> per il perché).</summary>
+    private static string Sostituisci(string s, Regex regola, List<string> tokens,
+                                      Riservatezza riservatezza = Riservatezza.Pubblico) =>
+        FuoriDaiSegnaposti(s, pezzo => regola.Replace(pezzo, m => Deposita(m.Value, tokens, riservatezza)));
+
     /// <summary>
-    /// Applica una regola <b>solo fuori dai segnaposto gia' piazzati</b>.
+    /// Mette una voce di glossario nel suo segnaposto, ovunque compaia <b>a parola intera</b> e senza badare
+    /// alle maiuscole.
     ///
     /// <para>
-    /// ⚠️ <b>Perche' non basta un Replace sull'intera stringa.</b> Da quando gli identificatori viaggiano
+    /// ⚠️ <b>La parola intera è la stessa difesa dei nomi del roster, e per un motivo più stretto.</b> Là
+    /// «Rossi» dentro «crossing» rovinava un segmento; qui una voce corta dentro una parola più lunga
+    /// scriverebbe un pezzo di inglese in mezzo a una parola italiana — «ri<i>report downwind</i>are» — e non
+    /// lo segnalerebbe nessuno, perché per il ripristino sarebbe andato tutto bene.
+    /// </para>
+    /// </summary>
+    private static string SostituisciGlossario(string s, VoceGlossario voce, List<string> tokens) =>
+        FuoriDaiSegnaposti(s, pezzo =>
+        {
+            var sb = new StringBuilder();
+            var da = 0;
+            while (true)
+            {
+                var i = pezzo.IndexOf(voce.Sorgente, da, StringComparison.OrdinalIgnoreCase);
+                if (i < 0) break;
+                if (ParolaIntera(pezzo, i, voce.Sorgente.Length))
+                {
+                    sb.Append(pezzo, da, i - da).Append(DepositaGlossario(voce, tokens));
+                    da = i + voce.Sorgente.Length;
+                }
+                else
+                {
+                    // Come per i nomi: si avanza di uno solo, o un falso positivo nasconderebbe
+                    // l'occorrenza vera che viene dopo nella stessa frase.
+                    sb.Append(pezzo, da, i + 1 - da);
+                    da = i + 1;
+                }
+            }
+            return sb.Append(pezzo, da, pezzo.Length - da).ToString();
+        });
+
+    /// <summary>
+    /// Applica una trasformazione al testo, <b>saltando i segnaposto già piazzati</b>.
+    ///
+    /// <para>
+    /// ⚠️ <b>Perche' non basta lavorare sull'intera stringa.</b> Da quando gli identificatori viaggiano
     /// DENTRO il tag, il loro valore e' testo visibile alle regole che vengono dopo: su
     /// «Imposta SQUAWK 7000 subito» la regola dello squawk produce
     /// <c>&lt;x id="0"&gt;SQUAWK 7000&lt;/x&gt;</c>, e subito dopo la regola delle sigle maiuscole vedrebbe
@@ -309,22 +401,19 @@ public sealed partial class TextProtector
     /// Trovato da un test, non a runtime.
     /// </para>
     /// </summary>
-    private static string Sostituisci(string s, Regex regola, List<string> tokens,
-                                      Riservatezza riservatezza = Riservatezza.Pubblico)
+    private static string FuoriDaiSegnaposti(string s, Func<string, string> suPezzo)
     {
         var sb = new StringBuilder(s.Length);
         var da = 0;
 
         foreach (Match segnaposto in Segnaposto().Matches(s))
         {
-            var prima = s.Substring(da, segnaposto.Index - da);
-            sb.Append(regola.Replace(prima, m => Deposita(m.Value, tokens, riservatezza)));
+            sb.Append(suPezzo(s.Substring(da, segnaposto.Index - da)));
             sb.Append(segnaposto.Value);          // intoccabile: e' gia' protetto
             da = segnaposto.Index + segnaposto.Length;
         }
 
-        var resto = s.Substring(da);
-        return sb.Append(regola.Replace(resto, m => Deposita(m.Value, tokens, riservatezza))).ToString();
+        return sb.Append(suPezzo(s.Substring(da))).ToString();
     }
 
     /// <summary>
@@ -434,6 +523,55 @@ public sealed partial class TextProtector
         if (string.IsNullOrWhiteSpace(protetto)) return true;
         var resto = Segnaposto().Replace(protetto, "");
         return !TranslationText.HasSomethingToTranslate(resto);
+    }
+
+    /// <summary>
+    /// Mette da parte la <b>resa</b> di una voce di glossario e restituisce il segnaposto che porta ancora la
+    /// frase italiana.
+    ///
+    /// <para>
+    /// ⚠️ <b>Dentro il tag ci va l'ITALIANO, non l'inglese</b>, e non è indifferente: quel testo è l'unica
+    /// cosa che il motore vede al posto della frase, e su di esso costruisce l'accordo delle parole intorno.
+    /// Mettendoci già l'inglese, il motore leggerebbe una frase italiana con un buco di lingua in mezzo. La
+    /// resa non gli serve — la mettiamo noi al ritorno — e infatti non esce mai da questo processo.
+    /// </para>
+    /// <para>
+    /// ⚠️ <b><c>translate="no"</c> è la funzione nativa dei motori, e qui è il PREZZO che si risparmia.</b>
+    /// Azure in modalità marcatura e DeepL con <c>ignore_tags</c> lasciano stare il contenuto così marcato:
+    /// la frase non si traduce, quindi non si paga, e non c'è modo che il motore ci sposti dentro le parole
+    /// di contorno — il guasto già misurato sui marcatori di grassetto. Un motore che lo ignorasse non
+    /// romperebbe niente: tradurrebbe l'italiano per niente, e il ripristino butterebbe via la sua fatica
+    /// come fa comunque.
+    /// </para>
+    /// </summary>
+    private static string DepositaGlossario(VoceGlossario voce, List<string> tokens)
+    {
+        tokens.Add(voce.Resa);
+        return $"<g id=\"{tokens.Count - 1}\" translate=\"no\">{voce.Sorgente}</g>";
+    }
+
+    /// <summary>
+    /// Vero se in questo testo c'è qualcosa che la protezione tratterebbe da <b>identificatore</b>.
+    /// <para>Serve a chi <i>scrive</i> una voce di glossario, non a chi traduce: è il cancello della pagina
+    /// di cura (<see cref="GlossarioRifiuto.ContieneIdentificatore"/>). Le regole sono queste, e chiederle
+    /// qui invece di riscriverle là è l'unico modo perché le due cose non divergano.</para>
+    /// <para>⚠️ La sigla maiuscola si guarda <b>solo dove c'è della prosa</b>, con lo stesso criterio della
+    /// protezione: una voce tutta maiuscola non è materia di glossario, ma non è per via di questa regola
+    /// che va rifiutata.</para>
+    /// </summary>
+    public static bool ContieneIdentificatori(string? testo)
+    {
+        if (string.IsNullOrWhiteSpace(testo)) return false;
+
+        return VidAnnunciato().IsMatch(testo)
+               || ForseUnVid().IsMatch(testo)
+               || Callsign().IsMatch(testo)
+               || CanaleTacan().IsMatch(testo)
+               || Squawk().IsMatch(testo)
+               || Frequenza().IsMatch(testo)
+               || LivelloDiVolo().IsMatch(testo)
+               || Pista().IsMatch(testo)
+               || (HaMinuscole(testo) && SiglaMaiuscola().IsMatch(testo));
     }
 
     private static string Deposita(string valore, List<string> tokens, Riservatezza riservatezza)

@@ -87,4 +87,10 @@ internal sealed class MemoriaDiTraduzioneFinta : ITranslationMemory
     public Task<int> DocumentiToccatiAsync(string s, CancellationToken ct = default) => Task.FromResult(0);
 
     public Task<long> CaratteriSpesiStimatiAsync(string e, CancellationToken ct = default) => Task.FromResult(0L);
+
+    public Task<int> ContaConLaFormulaAsync(string s, string t, string f, CancellationToken ct = default) =>
+        Task.FromResult(0);
+
+    public Task<int> DimenticaAutomaticheConLaFormulaAsync(
+        string s, string t, string f, CancellationToken ct = default) => Task.FromResult(0);
 }
