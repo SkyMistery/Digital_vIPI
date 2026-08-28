@@ -3924,8 +3924,27 @@ la decisione del 22 agosto diventa **storia**.
 ⚠️ **Migrazione doppia** (SQLite + MySql, due identificativi diversi per la stessa migrazione — la
 trappola di §T): con questa la coda al cutover MariaDB passa da ventuno a **VENTIDUE**.
 
-### U1. Due cose da decidere prima di scrivere la slice 1 🔴 *dipende dal committente*
+### U1. Le due decisioni che mancavano — ✅ **CHIUSA** il 28 agosto, notte
 
-- **Il VID del fondatore**, da mettere in `Auth:FounderVids`.
-- **`IT-AWM`** (assistente webmaster): dentro o fuori dall'elenco degli otto admin. Il committente ha
-  nominato `IT-WM`; l'assistente l'ha aggiunto chi scrive, per simmetria con `ADIR`/`AOAC`/`SOAC`.
+- **VID del fondatore: `704798`**, scritto in `src/Vipi.Host/appsettings.json` (sezione `Auth`).
+- **`IT-AWM` è admin**, dentro l'elenco degli otto.
+
+### U2. Slice 0 e 1 — ✅ **CHIUSE** il 28 agosto, notte
+
+`VipiRole` in `Vipi.Domain/Enums.cs` (valori numerici espliciti: finiranno in banca dati) e `RoleResolver`
+in `Vipi.Application/Auth/`, **puro**, con **47 test** di tabella di verità sui codici staff **veri**.
+Build Release `--no-incremental` 0 avvisi, suite intera verde. ⚠️ **Niente è cablato**: il prodotto si
+comporta esattamente come prima, e le due liste legacy di `DivisionOptions` (`AdminRolePatterns` col jolly,
+`AdminAccRolePatterns`) sono ancora quelle che decidono davvero. **Muoiono nella slice 3.**
+
+⚠️ Tre trappole trovate scrivendo, tutte con un test che le tiene ferme: i pattern **vanno ancorati**
+(`IT-DIRETTIVO` sarebbe diventato direttore); **l'ordine di valutazione è la regola** (un `IT-DIR`
+combacia anche col pattern dello staff di divisione — è il valutare l'admin per primo a renderlo admin);
+**l'ordine dell'enum è un contratto** (rinumerarlo lascerebbe ogni `Role >= X` compilabile e cambiato di
+significato).
+
+### U3. Le slice che restano 🟢
+
+2 (`RoleOverride` + migrazione doppia + cache), 3 (il servizio, e la morte di `AdminStaffCodes`),
+4 (morte delle concessioni per ACC), 5 (i cancelli), 6 (`/admin/permissions` riscritta), 7 (diagnostica,
+Guida, memorie).

@@ -340,3 +340,44 @@ public enum SourceCatalog
     /// <summary>Postazione ATC di un aeroporto (<c>/v2/airports/{ICAO}/ATCPositions</c> → <c>AirportSector</c>).</summary>
     AirportPosition,
 }
+
+/// <summary>
+/// Che cosa può fare una persona nel prodotto. Carta
+/// <c>docs/feature/2026-08-28-autorizzazioni-a-livelli.md</c>.
+///
+/// <para><b>I valori sono ORDINATI e i livelli CUMULATIVI</b>: chi sta sopra ha tutte le prerogative di chi
+/// sta sotto, e ogni cancello si scrive <c>Role &gt;= VipiRole.Qualcosa</c> — mai un <c>switch</c>, mai un
+/// insieme di flag. È questo che risponde da solo alla domanda «un chief d'ACC è anche membro della
+/// divisione, vede le statistiche?»: <see cref="Editor"/> (3) ≥ <see cref="DivisionStaff"/> (2), senza una
+/// regola in più.</para>
+///
+/// <para>⚠️ <b>I numeri sono espliciti e vanno lasciati stare.</b> Un livello nuovo in mezzo si inserisce
+/// rinumerando, ma il valore finisce in banca dati (<c>RoleOverride</c>): rinumerare senza migrazione
+/// promuove o declassa delle persone in silenzio.</para>
+/// </summary>
+public enum VipiRole
+{
+    /// <summary>Chiunque, anche anonimo: le pagine e i documenti pubblici.</summary>
+    User = 0,
+
+    /// <summary>
+    /// Ha una posizione staff IVAO, <b>di qualunque divisione</b>.
+    /// <para>⚠️ Oggi non apre niente: è un'<b>etichetta</b>, non un permesso. Serve perché uno staffista di
+    /// un'altra divisione si distingua nell'elenco dei permessi, così che promuoverlo sia una scelta e non
+    /// una scoperta.</para>
+    /// </summary>
+    IvaoStaff = 1,
+
+    /// <summary>Staff della divisione (<c>IT-…</c>): statistiche di divisione e statistiche personali di chiunque.</summary>
+    DivisionStaff = 2,
+
+    /// <summary>
+    /// Chief e vice-chief d'ACC (<c>LIRR-CH</c>, <c>LIMM-ACH</c>): il contenuto documentale, <b>tutto</b>.
+    /// <para>Non è limitato alla propria ACC, per decisione del committente del 28 agosto 2026: «il CH di
+    /// Roma può dare una mano a quello di Milano».</para>
+    /// </summary>
+    Editor = 3,
+
+    /// <summary>Direzione della divisione e fondatori: sorgenti, incarichi, audit, diagnostica, permessi.</summary>
+    Admin = 4,
+}

@@ -3,8 +3,9 @@
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Sostituisce la decisione del 22 agosto sera
 > («lo staff di divisione è admin, tutto» — memoria `staff-code-reali`, riflessa in
 > `DivisionOptions.AdminRolePatterns`), che resta valida come **storia** e non più come regola.
-> **Stato: carta approvata dal committente il 28 agosto 2026, notte. Codice da scrivere.**
-> Ramo `autorizzazioni-a-livelli`, aperto da `main` dopo la fusione del glossario di fraseologia.
+> **Stato: slice 0 e 1 chiuse (28 agosto 2026, notte).** Il modello esiste ed è provato; niente è ancora
+> cablato, il prodotto si comporta esattamente come prima. Ramo `autorizzazioni-a-livelli`, aperto da
+> `main` dopo la fusione del glossario di fraseologia.
 
 ## 1. Perché
 
@@ -84,8 +85,8 @@ posizioni staff al livello:
 
 Si valuta dall'alto e vince il primo che risponde: una persona con più posizioni prende **la più alta**.
 
-⚠️ **`IT-AWM` l'ha aggiunto chi scrive**, per simmetria con `ADIR`/`AOAC`/`SOAC` — il committente ha
-nominato `IT-WM`. Se l'assistente webmaster non deve essere admin, è una voce da togliere dall'elenco.
+✅ **`IT-AWM` è dentro**, confermato dal committente il 28 agosto notte: era stato proposto da chi scrive
+per simmetria con `ADIR`/`AOAC`/`SOAC`, visto che il committente aveva nominato il solo `IT-WM`.
 
 ⚠️ **L'elenco puntuale torna, e con lui torna il suo difetto.** Il 22 agosto il jolly era stato scelto
 apposta perché *«un ruolo nuovo della divisione non nasca escluso»*. Con l'elenco puntuale un ruolo di
@@ -99,6 +100,10 @@ secondi da dentro il prodotto.
 `Auth:FounderVids` — elenco di VID che sono Admin comunque. Non è un vezzo: è **l'antidoto al blocco**.
 Oggi, se i pattern sbagliassero, «nessuno è admin» sarebbe irreparabile *da dentro* — perché per
 assegnare permessi bisogna essere admin. Con un VID nell'`appsettings.json` la porta si riapre sempre.
+
+✅ **Il VID è `704798`**, in `src/Vipi.Host/appsettings.json`, sezione `Auth`, con accanto il commento che
+dice perché esiste. Un VID ≤ 0 non vale mai come fondatore: una lista mal configurata non deve poter
+promuovere l'anonimo.
 
 ## 5. L'override per VID, e il pavimento
 
@@ -180,10 +185,10 @@ col suo commento sul jolly, la scheda «Chi può editare» della diagnostica, la
 
 | # | slice | verde a fine slice |
 |---|---|---|
-| 0 | fusione del glossario, ramo nuovo | build Release su entrambi i TFM |
-| 1 | `VipiRole` + `RoleResolver` puro + test di tabella | test nuovi verdi, niente cablato |
+| ✅ 0 | fusione del glossario, ramo nuovo | build Release su entrambi i TFM: 0 avvisi |
+| ✅ 1 | `VipiRole` + `RoleResolver` puro + test di tabella | **47 test nuovi verdi**, niente cablato |
 | 2 | `RoleOverride` + migrazione **doppia** (SQLite e MySql) + cache singleton | test di persistenza |
-| 3 | il servizio: `Role`, `IsEditor`, `EnsureAtLeast`; `IsAdmin` **conserva il significato** | suite verde senza toccare i 160 usi |
+| 3 | il servizio: `Role`, `IsEditor`, `EnsureAtLeast`; `IsAdmin` **conserva il significato**; muoiono `AdminStaffCodes` e le due liste legacy di `DivisionOptions` | suite verde senza toccare i 160 usi |
 | 4 | morte delle concessioni: entità, repo, metodi async → sincroni | suite verde, meno codice |
 | 5 | i cancelli: `AdminNav` + le ~30 chiamate che scendono a Editor + le stats a DivisionStaff | test per rotta |
 | 6 | `/admin/permissions` riscritta | verifica live |
@@ -209,7 +214,30 @@ MariaDB passa da ventuno a **ventidue**.
 - **La cache degli override che non si invalida**: una promozione che «non fa effetto» finché non si
   riavvia. Test dedicato nella slice 2.
 
-## 11. Da decidere prima della slice 1
+## 11. Le due decisioni che mancavano — ✅ chiuse il 28 agosto, notte
 
-- **Il VID del fondatore** da mettere in `Auth:FounderVids`.
-- **`IT-AWM`**: dentro o fuori dall'elenco degli admin.
+- **VID del fondatore: `704798`**, in `appsettings.json`.
+- **`IT-AWM` è admin**, dentro l'elenco degli otto.
+
+## 12. Che cosa è entrato con la slice 1
+
+`VipiRole` (in `Vipi.Domain/Enums.cs`, coi valori numerici **espliciti**: finiranno in banca dati) e
+`RoleResolver` (in `Vipi.Application/Auth/`), **puro** — niente IO, niente orologio — con 47 test di
+tabella di verità. I codici provati sono **quelli veri** osservati ai login del 9 agosto, non esempi
+inventati: metà di quei test riguarda gente che esiste.
+
+Quattro cose imparate scrivendolo, che non erano nella carta:
+
+- **I pattern vanno ancorati, e va provato che lo siano.** Senza `^…$` un `IT-DIRETTIVO` inventato
+  diventerebbe direttore della divisione. Tre test esistono solo per questo.
+- **L'ordine di valutazione è la regola, non i pattern.** Un `IT-DIR` combacia **anche** col pattern dello
+  staff di divisione: è il fatto che l'admin si valuti per primo a renderlo admin. Un ordine sbagliato
+  declasserebbe la direzione in silenzio, e i pattern sembrerebbero giusti.
+- **L'ordine dell'enum è un contratto**, e ha un test suo. Se qualcuno rinumerasse, ogni `Role >= X` del
+  prodotto resterebbe compilabile cambiando significato.
+- **Le liste di autorizzazione stanno nella sezione `Auth`, non in `Division`.** `Division` dice *qual è*
+  la divisione (codice, prefissi ICAO); `Auth` dice *a chi* quei codici danno un permesso. ⚠️ Per una
+  slice le due liste vecchie di `DivisionOptions` (`AdminRolePatterns` col jolly, `AdminAccRolePatterns`)
+  **convivono** con le nuove: sono ancora quelle che `AdminStaffCodes` dà all'autorizzazione vera, ed è
+  l'unico modo perché la slice 1 non cambi il comportamento del prodotto. **Muoiono nella slice 3**, e se
+  sopravvivessero sarebbero esattamente il modello gemello che il pre-flight vieta.
