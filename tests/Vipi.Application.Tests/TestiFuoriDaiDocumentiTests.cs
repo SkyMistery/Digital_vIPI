@@ -160,6 +160,45 @@ public class TestiFuoriDaiDocumentiTests
         Assert.Equal(1, memoria.LettureTotali);
     }
 
+    /// <summary>
+    /// ⚠️ <b>«Scoped» non vuol dire «per richiesta» dappertutto.</b> Sulle pagine pubbliche, SSR statiche,
+    /// lo scope è la richiesta e la cache vive un istante. Dentro un <b>circuito Blazor</b> — l'editor — lo
+    /// scope vive quanto il circuito, cioè <b>ore</b>: senza scadenza, una correzione fatta nel pannello
+    /// Traduzione non si sarebbe vista fino al circuito successivo. Nessun errore, solo un testo vecchio —
+    /// che è il modo in cui questa trappola si è già presentata su questo prodotto.
+    /// </summary>
+    [Fact]
+    public async Task Dopo_la_scadenza_la_cache_si_rilegge()
+    {
+        var memoria = new MemoriaFinta();
+        var orologio = new OrologioFinto(DateTimeOffset.UnixEpoch);
+        var lookup = new TranslationLookup(memoria, Lettore("it"), orologio);
+
+        await lookup.DallaSorgenteAsync();
+        await lookup.DallaSorgenteAsync();
+        Assert.Equal(1, memoria.LettureTotali);   // dentro la finestra: una lettura sola
+
+        // Un secondo PRIMA della scadenza: ancora la stessa.
+        orologio.Avanza(TranslationLookup.Freschezza - TimeSpan.FromSeconds(1));
+        await lookup.DallaSorgenteAsync();
+        Assert.Equal(1, memoria.LettureTotali);
+
+        // Oltre la scadenza: si rilegge, ed è così che chi ha appena corretto rivede la sua correzione.
+        orologio.Avanza(TimeSpan.FromSeconds(2));
+        await lookup.DallaSorgenteAsync();
+        Assert.Equal(2, memoria.LettureTotali);
+    }
+
+    /// <summary>Un orologio che si sposta a mano: una scadenza provata con un'attesa vera è un test lento
+    /// e capriccioso.</summary>
+    private sealed class OrologioFinto : TimeProvider
+    {
+        private DateTimeOffset _adesso;
+        public OrologioFinto(DateTimeOffset da) => _adesso = da;
+        public override DateTimeOffset GetUtcNow() => _adesso;
+        public void Avanza(TimeSpan quanto) => _adesso += quanto;
+    }
+
     [Fact]
     public async Task Senza_traduttore_la_proiezione_si_comporta_come_prima()
     {

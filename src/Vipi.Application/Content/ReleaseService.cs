@@ -492,8 +492,13 @@ public sealed class ReleaseService : IReleaseService
     /// <summary>Ogni testo traducibile dello snapshot: titoli di sezione, paragrafi e celle dei blocchi.</summary>
     private static IEnumerable<string> SegmentiDi(RawDocument raw)
     {
-        var titolo = Translation.TranslationText.Normalize(raw.Title);
-        if (Translation.TranslationText.HasSomethingToTranslate(titolo)) yield return titolo;
+        // ⚠️ IL TITOLO DEL DOCUMENTO NON C'È, ed è una regola del committente (regole-lingua R4): «vIPI —
+        // LIBC Crotone» è il NOME di quel documento, quello che sta nell'elenco, nella briciola di pane e
+        // in bocca a chi lo cita in frequenza. Fino al 28 agosto 2026 finiva qui dentro: innocuo — nessuno
+        // lo traduce, quindi la memoria non aveva niente da congelare — ma era l'unico posto del prodotto
+        // che chiedeva la traduzione di un titolo, e la prossima persona che ne avesse dedotto la regola
+        // avrebbe dedotto quella sbagliata. `DocumentTranslator` e `EfTranslatableCorpus` lo escludono
+        // entrambi, e ora anche il congelamento.
 
         foreach (var s in raw.Roots)
             foreach (var t in SegmentiDiSezione(s))

@@ -121,6 +121,12 @@ public static class GuideSearchCatalog
             "configurazione configurazioni assetto settori aperti accorpamento unificato center point range configuration configurations open sectors merging unified center point range",
             "Le configurazioni di apertura dei settori e la tabella di accorpamento che ne deriva.",
             "The sector opening configurations, and the merging table that follows from them."),
+        // ⚠️ «MRVA» in chiaro fra le parole chiave: la sezione si chiama così in tutte e due le lingue
+        // (regole-lingua, le sigle non si traducono), ma chi cerca scrive anche «minime» o «vettoramento».
+        new Entry("editor-minime", "Minime di vettoramento", "Minimum vectoring altitudes",
+            "minime minima vettoramento mrva mva carta carte altitudine quota settore a mano manuale import sectorfile minimum vectoring altitude chart charts by hand manual",
+            "La sezione delle minime di vettoramento (MRVA): si compila a mano, e perché non arriva dall'import.",
+            "The minimum vectoring altitudes section (MRVA): filled in by hand, and why it does not come from the import."),
         new Entry("editor-aor", "AOR: shape extra e colori", "AOR: extra shapes and colours",
             "aor area responsabilita shape extra colori colore settore torre estero mappa anelli area of responsibility shape extra colour colours sector tower foreign map rings",
             "La mappa AOR: aggiungere shape di altri enti e cambiare i colori per settore.",

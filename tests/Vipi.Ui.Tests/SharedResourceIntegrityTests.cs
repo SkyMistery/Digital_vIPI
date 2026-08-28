@@ -82,8 +82,17 @@ public sealed class SharedResourceIntegrityTests
         var definite = Chiavi(PercorsoIt).ToHashSet(StringComparer.Ordinal);
         var radice = RadiceDelRepo();
 
+        // ⚠️ Anche `Vipi.Host`, e non è teoria: l'host ha un `<head>`, due pagine d'errore e i suoi
+        // endpoint, e niente gli impedisce di chiedere una chiave. Finché la guardia guardava una cartella
+        // sola, una chiave sbagliata scritta là si sarebbe vista solo a schermo — che è esattamente il modo
+        // in cui è arrivata fin qui quella di ImpactKind.
+        var progetti = new[] { "Vipi.Ui", "Vipi.Host" }
+            .Select(p => Path.Combine(radice, "src", p))
+            .Where(Directory.Exists);
+
         var usate = new SortedDictionary<string, string>(StringComparer.Ordinal);
-        foreach (var file in Directory.EnumerateFiles(Path.Combine(radice, "src", "Vipi.Ui"), "*.*", SearchOption.AllDirectories)
+        foreach (var file in progetti
+                     .SelectMany(c => Directory.EnumerateFiles(c, "*.*", SearchOption.AllDirectories))
                      .Where(f => (f.EndsWith(".razor", StringComparison.OrdinalIgnoreCase) ||
                                   f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)) &&
                                  !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}") &&

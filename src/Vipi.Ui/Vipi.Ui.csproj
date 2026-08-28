@@ -4,6 +4,14 @@
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- ⚠️ Le risorse NEUTRE di questo assembly sono in ITALIANO, e finora non lo diceva nessuno.
+         `SharedResource.resx` (senza suffisso) è l'italiano e `SharedResource.en.resx` l'inglese: senza
+         questa riga, ogni lettura in italiano prova PRIMA a caricare un satellite `it` che non esiste —
+         una ricerca su disco e un fallimento, per poi ricadere sul neutro. Dichiararlo è anche la sola
+         cosa scritta che dica quale lingua c'è dentro il file senza suffisso: un nuovo arrivato che apra
+         i due .resx non ha altro modo di saperlo che leggerne i valori. -->
+    <NeutralResourcesLanguage>it</NeutralResourcesLanguage>
   </PropertyGroup>
 
 

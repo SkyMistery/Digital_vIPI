@@ -1,4 +1,6 @@
 @using System.Globalization
+@using Vipi.Application.Content
+@using Vipi.Ui
 @inject NavigationManager Nav
 <!DOCTYPE html>
 @* La lingua della pagina è quella risolta da UseRequestLocalization, non «it» fisso: il modulo è
@@ -38,6 +40,20 @@
        ⚠️ Passa da `AssetVersion` come ogni altro asset: le favicon restano in cache per giorni, e senza
        impronta chi ha già visitato il sito continuerebbe a vedere quella di prima anche dopo il deploy. *@
     <link rel="icon" type="image/x-icon" href="@AssetVersion.Url("favicon.ico")" />
+    @* Le due versioni di QUESTA pagina, dichiarate a chi indicizza. ⚠️ Senza, il sito è bilingue e per un
+       motore di ricerca è una pagina sola: l'indirizzo non cambia con la lingua (regole-lingua R5, nessuna
+       rotta localizzata) e a distinguerle sono solo `?culture=` e un cookie — che un crawler non ha. Il
+       `lang` dell'<html> dice in che lingua è QUESTA copia; queste righe dicono che ne esiste un'altra e
+       dove sta, che è un'altra domanda.
+       ⚠️ `x-default` è la lingua in cui si scrive quando nessuno chiede altro — la prima di
+       LinguaDiLettura.Supportate, non una scritta a mano qui.
+       ⚠️ L'indirizzo lo compone LinkLingua, lo stesso del selettore in barra: due modi di costruirlo
+       potrebbero divergere, e un'alternativa che punta altrove rispetto al tasto nessuno la vede. *@
+    @foreach (var lingua in LinguaDiLettura.Supportate)
+    {
+        <link rel="alternate" hreflang="@lingua" href="@LinkLingua.Url(Nav, lingua)" />
+    }
+    <link rel="alternate" hreflang="x-default" href="@LinkLingua.Url(Nav, LinguaDiLettura.Predefinita)" />
     @* Tema scelto dall'utente (automatico/chiaro/scuro). Come lo zoom: in un FILE e non inline (la CSP),
        nel <head> e senza `defer`. Qui l'urgenza è maggiore che per lo zoom — senza, chi ha scelto il tema
        scuro vede un lampo BIANCO a ogni caricamento, cioè tutta la pagina e non la sua dimensione.

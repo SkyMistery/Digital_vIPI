@@ -3473,8 +3473,20 @@ girasse davvero (§Q15). Entrambi stanno fra `ReleaseService` — che scatta la 
 non venisse più letta per tutto il documento. Ma la fotografia la scatta la pubblicazione, nell'istante in
 cui si preme il tasto, e il giro che riempie la memoria passa **ogni quarto d'ora**. Chi scriveva prosa
 nuova e pubblicava subito — il caso normale, non quello raro — congelava una traduzione **incompleta**: il
-motore traduceva il resto dieci minuti dopo, la memoria ce l'aveva, e nessuno andava più a prenderla. Quel
-documento restava **a chiazze fino alla ripubblicazione**, con l'avviso «mancano N frasi su M» acceso.
+motore traduceva il resto dieci minuti dopo, la memoria ce l'aveva, e nessuno andava più a prenderla.
+
+⚠️ **Ed era peggio di «a chiazze», misurato a schermo il 28 agosto sera** sulla vIPI di LIBD, servita dalla
+sua release effettiva. Preparando la copia del database con **una sola** voce congelata — per un segmento
+che sulla pagina non compare nemmeno — e due frasi tradotte in memoria:
+
+```
+codice vecchio:  40 of 40 sentences are not translated yet      (la riga resta in lingua sorgente)
+codice nuovo:    33 of 40 sentences are not translated yet      (la riga dice la sua traduzione)
+```
+
+Non è un pezzo che manca: è **tutta** la traduzione del documento che si spegne, per una voce congelata.
+Un documento pubblicato dopo la prima frase congelata si sarebbe letto **interamente** nella lingua
+d'origine, con l'avviso che diceva la verità e nessuno che potesse capire perché.
 
 ⚠️ **La ragione del congelamento resta intatta**, e la riparazione non la tocca: dove lo snapshot ha una
 voce, vince la voce — una resa corretta oggi su un altro documento non deve riscrivere quel che questo ha
@@ -3613,6 +3625,42 @@ dalla traduzione. `CulturaDiProva` è ora collegata anche in `Vipi.Infrastructur
 
 Restano in italiano, dichiarati: avvio, configurazione, credenziali IVAO, provider di persistenza,
 key-ring — chi li legge tiene su il sito, non lo usa.
+
+### Q22 ✅ CHIUSA — i sette resti dell'audit, e la prova a schermo
+
+Chiusi in un giro perché piccoli e della stessa famiglia. In ordine di quanto si vedono:
+
+| | | |
+|---|---|---|
+| **§9** | La **Guida** era un quarto meccanismo non dichiarato | I *corpi* restano in linea, e ora la carta **dice perché** (sono paragrafi HTML di quindici righe: nel resx sarebbero valori giganti che nessuno rilegge in parallelo). I **titoli** invece vengono dal catalogo di ricerca: stavano in due posti e gli **inglesi divergevano in 11 casi su 38** |
+| **§10** | `TranslationLookup` è scoped, e in un circuito Blazor lo scope vive **ore** | La cache **scade** dopo 30 s: una correzione fatta nel pannello si rivede ricaricando, invece che al circuito successivo |
+| **§11** | `Rendering()` non si annidava: il `Dispose` **azzerava** invece di rimettere | Si rimette. Con un blocco solo era identico; il primo che ne annidasse due avrebbe visto la release uscire metà in una lingua e metà nell'altra, **senza errore** |
+| **§12** | Il **titolo del documento** finiva fra i segmenti da congelare | Tolto. Innocuo — nessuno lo traduce — ma era l'unico posto del prodotto che chiedeva la traduzione di un titolo, e la prossima persona ne avrebbe dedotto la regola sbagliata (R4) |
+| **§13c** | La guardia sulle risorse scandiva solo `src/Vipi.Ui` | Anche `Vipi.Host`, che ha un `<head>`, due pagine d'errore e i suoi endpoint |
+| **§14** | Nessun `hreflang`: per un motore di ricerca il sito bilingue era **una pagina sola** | `rel="alternate"` per lingua più `x-default`, composti da `LinkLingua` — lo **stesso** codice del selettore in barra, o un'alternativa che punta altrove nessuno la vedrebbe |
+| **§15** | `NeutralResourcesLanguage` non dichiarato | `it`. Toglie una ricerca a vuoto di satellite a ogni lettura italiana, ed è la sola cosa scritta che dica quale lingua c'è nel `.resx` senza suffisso |
+
+### La verifica live, e le due cose che ha detto
+
+Guidata su Edge contro una **copia** del `vipi.db`, 13 controlli su 13 (`lingua-verifica.js`):
+gli `hreflang` puntano a **questa** pagina e non perdono la query (`?icao=LIBD` sopravvive); `<html lang>`
+segue `?culture=`; la Guida rende 39 capitoli col titolo dal catalogo in IT e in EN; il selettore ha
+`data-enhance-nav="false"` e, cambiando lingua, cambiano **anche le isole** (METAR, badge live); le due
+pagine d'errore sono nella lingua giusta.
+
+⚠️ **La prima mira era sbagliata, e lo ha detto lo schermo.** Avevo seminato la memoria coi titoli che la
+pagina d'aeroporto mostra — e non si è tradotto niente. Quei titoli vengono dal **catalogo**, non dallo
+snapshot: **non sono segmenti del documento**, quindi la passata non li conosce e non li conoscerà mai
+(`TranslatedDocument.Pass` ri-applica la passata, non ne allarga il vocabolario). Vale finché il titolo di
+catalogo **coincide** con quello del documento — che è il caso dei vSOP militari, dove il difetto era stato
+trovato, e **non** quello degli aeroporti importati, che hanno titoli di sezione inglesi. 🟢 **Resta
+aperto**: su una vIPI d'aeroporto letta in inglese le testate delle sezioni di catalogo sono **italiane**, e
+nessun avviso lo dice.
+
+⚠️ **E il §Q18a era peggio di come l'avevo scritto.** Rimesso il codice vecchio, ricompilato e ricaricata la
+stessa pagina: **40 su 40 non tradotte**, contro 33 su 40 col codice nuovo. Una sola voce congelata — per un
+segmento che sulla pagina non compare nemmeno — spegneva **tutta** la traduzione del documento. «A chiazze»
+era ottimismo.
 
 ---
 

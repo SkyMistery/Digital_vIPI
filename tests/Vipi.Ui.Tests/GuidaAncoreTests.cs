@@ -30,6 +30,35 @@ public class GuidaAncoreTests : TestContext
         Assert.Empty(mancanti);
     }
 
+    /// <summary>
+    /// Il verso opposto: ogni capitolo della Guida deve avere la sua voce nel catalogo.
+    ///
+    /// <para>⚠️ <b>Dal 28 agosto 2026 non è più solo una questione di ricerca</b>: il <b>titolo</b> del
+    /// capitolo viene dal catalogo, quindi un capitolo che non c'è si renderebbe con la propria ancora al
+    /// posto del titolo — «editor-minime» stampato in una testata. Prima di allora i titoli stavano in due
+    /// posti e gli inglesi erano divergenti in <b>11 casi su 38</b>: chi cercava leggeva un titolo e ne
+    /// apriva un altro, e nessuna delle due copie era sbagliata da sola.</para>
+    ///
+    /// <para>⚠️ E resta vero il motivo di prima: un capitolo fuori dal catalogo <b>non si trova</b>. Era il
+    /// caso di «Minime di vettoramento», che è esattamente ciò che qualcuno cerca.</para>
+    /// </summary>
+    [Fact]
+    public void Ogni_capitolo_della_guida_ha_la_sua_voce_nel_catalogo()
+    {
+        var cut = RenderComponent<GuidaPage>();
+        var ancoreDelCatalogo = GuideSearchCatalog.Entries.Select(e => e.Anchor).ToHashSet(StringComparer.Ordinal);
+
+        // Le sezioni della Guida sono i <details> con la classe che il componente mette a ogni capitolo.
+        var senzaVoce = cut.FindAll(".guida-sec")
+            .Select(e => e.Id)
+            .Where(id => !string.IsNullOrEmpty(id) && !ancoreDelCatalogo.Contains(id!))
+            .ToList();
+
+        Assert.True(senzaVoce.Count == 0,
+            "Capitoli della Guida senza voce nel catalogo di ricerca: il titolo verrebbe reso come l'ancora " +
+            "nuda, e il capitolo non si troverebbe cercando.\n  " + string.Join("\n  ", senzaVoce));
+    }
+
     [Fact]
     public void Il_capitolo_delle_statistiche_dice_le_due_pagine()
     {

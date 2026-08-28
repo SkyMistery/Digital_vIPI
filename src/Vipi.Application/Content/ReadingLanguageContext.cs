@@ -42,17 +42,32 @@ public sealed class ReadingLanguageContext
     /// <summary>
     /// Impone una lingua per la durata del blocco: serve al <b>congelamento</b>, dove non c'è nessun
     /// lettore e la lingua la decide chi pubblica, non chi guarda.
+    ///
+    /// <para>⚠️ <b>Alla chiusura si RIMETTE quel che c'era</b>, non si azzera. Fino al 28 agosto 2026 il
+    /// <c>Dispose</c> scriveva <c>null</c>: con un blocco solo era identico, ma il primo che ne avesse
+    /// annidati due — congelare una vLOA dentro un giro che ne sta già congelando un'altra — avrebbe visto
+    /// il blocco esterno finire in una lingua che non aveva chiesto, <b>senza errore</b>, e la sua release
+    /// sarebbe uscita metà in una lingua e metà nell'altra. Costa un campo; l'alternativa costa una
+    /// pubblicazione da rifare.</para>
     /// </summary>
     public IDisposable Rendering(string lingua)
     {
+        var precedente = _forzata;
         _forzata = lingua.ToLowerInvariant();
-        return new Scope(this);
+        return new Scope(this, precedente);
     }
 
     private sealed class Scope : IDisposable
     {
         private readonly ReadingLanguageContext _ctx;
-        public Scope(ReadingLanguageContext ctx) => _ctx = ctx;
-        public void Dispose() => _ctx._forzata = null;
+        private readonly string? _precedente;
+
+        public Scope(ReadingLanguageContext ctx, string? precedente)
+        {
+            _ctx = ctx;
+            _precedente = precedente;
+        }
+
+        public void Dispose() => _ctx._forzata = _precedente;
     }
 }

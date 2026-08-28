@@ -28,12 +28,12 @@
         <h2 class="h-sect">@T("Consultare","Reading")</h2>
         @foreach (var s in _consult)
         {
-            <a href="#@s.Anchor">@T(s.TitleIt, s.TitleEn)</a>
+            <a href="#@s.Anchor">@Titolo(s)</a>
         }
         <h2 class="h-sect">@T("Modificare","Editing")</h2>
         @foreach (var s in _modify)
         {
-            <a href="#@s.Anchor">@T(s.TitleIt, s.TitleEn)</a>
+            <a href="#@s.Anchor">@Titolo(s)</a>
         }
     </nav>
 
@@ -42,7 +42,7 @@
     @foreach (var s in _consult)
     {
         <CollapsibleBlock Id="@s.Anchor" ExtraClass="guida-sec">
-            <Header><Icon Name="@s.Icon" /> &nbsp;@T(s.TitleIt, s.TitleEn)</Header>
+            <Header><Icon Name="@s.Icon" /> &nbsp;@Titolo(s)</Header>
             <ChildContent>@((MarkupString)T(s.BodyIt, s.BodyEn))</ChildContent>
         </CollapsibleBlock>
     }
@@ -52,7 +52,7 @@
     @foreach (var s in _modify)
     {
         <CollapsibleBlock Id="@s.Anchor" ExtraClass="guida-sec">
-            <Header><Icon Name="@s.Icon" /> &nbsp;@T(s.TitleIt, s.TitleEn)</Header>
+            <Header><Icon Name="@s.Icon" /> &nbsp;@Titolo(s)</Header>
             <ChildContent>@((MarkupString)T(s.BodyIt, s.BodyEn))</ChildContent>
         </CollapsibleBlock>
     }
@@ -94,11 +94,35 @@
 
     // Sezione localizzata: ancora, icona, titolo (it/en) e corpo HTML (it/en). Corpi senza attributi con virgolette
     // così restano stringhe verbatim leggibili; niente <Icon> nel corpo (usa unicode) perché sono MarkupString.
-    private sealed record Sec(string Anchor, string Icon, string TitleIt, string TitleEn, string BodyIt, string BodyEn);
+    /// <summary>
+    /// Il titolo del capitolo, <b>dal catalogo di ricerca</b> — non da qui.
+    ///
+    /// <para>⚠️ Fino al 28 agosto 2026 i titoli stavano in DUE posti: qui e in
+    /// <see cref="GuideSearchCatalog"/>, ciascuno con la sua coppia italiano/inglese. Gli italiani
+    /// combaciavano (scritti una volta e copiati); gli <b>inglesi no, in 11 casi su 38</b> — «Live status
+    /// and online ATC» qui e «Live status and ATC online» nel risultato di ricerca, «What changed» e «What
+    /// has changed». Chi cerca leggeva un titolo e ne apriva un altro, e nessuno se ne accorgeva perché
+    /// nessuna delle due copie è sbagliata da sola. È il <b>vocabolario parallelo</b> che le regole della
+    /// lingua vietano per la briciola di pane, arrivato qui dalla porta di servizio.</para>
+    ///
+    /// <para>⚠️ La direzione è obbligata: il catalogo vive in <c>Vipi.Application</c> (lo legge
+    /// <c>SearchService</c>, che è backend) e l'applicazione non può dipendere dalla UI. Quindi è la pagina
+    /// a chiedere al catalogo, non il contrario.</para>
+    ///
+    /// <para>Se un capitolo non fosse nel catalogo si vedrebbe la sua ancora al posto del titolo — brutto e
+    /// evidente, che è il modo giusto di fallire. Non succede: c'è una guardia
+    /// (<c>GuidaAncoreTests</c>).</para>
+    /// </summary>
+    private string Titolo(Sec s) =>
+        GuideSearchCatalog.Entries.FirstOrDefault(e => e.Anchor == s.Anchor) is { } voce
+            ? voce.Title(_en)
+            : s.Anchor;
+
+    private sealed record Sec(string Anchor, string Icon, string BodyIt, string BodyEn);
 
     private static readonly List<Sec> _consult = new()
     {
-        new Sec("nav", "map", "Navigare tra le pagine", "Navigating the pages",
+        new Sec("nav", "map",
             @"<p>Tutto vive sotto <code>/services/vsop</code>. La barra in alto ha i codici <b>ACC</b> (LIRR, LIMM, …),
                la ricerca e, se sei ATC/staff, i tasti Editor e Incarichi.</p>
               <ul>
@@ -116,7 +140,7 @@
                 <li>From there open the specific document: ACC vIPI, airport vIPI (with SIDs), APP, or a vLOA to a neighbour.</li>
               </ul>"),
 
-        new Sec("ricerca", "search", "Cercare", "Searching",
+        new Sec("ricerca", "search",
             @"<p>La barra di ricerca in alto (o <code>/services/vsop/search</code>) è full-text: cerca <b>CoP, FIX, callsign,
                frequenze</b> e testo dei documenti. Servono almeno 2 caratteri. I filtri (chip) restringono l'ambito;
                ogni risultato porta al punto esatto del documento. Anche le sezioni di questa Guida compaiono nei risultati.</p>",
@@ -124,7 +148,7 @@
                callsigns, frequencies</b> and document text. At least 2 characters are needed. The chips narrow the scope;
                each result jumps to the exact point in the document. Sections of this Guide appear in the results too.</p>"),
 
-        new Sec("live", "radio", "Stato live e ATC online", "Live status and online ATC",
+        new Sec("live", "radio",
             @"<p>Il badge in alto a destra mostra se sei <b>connesso</b> come ATC (col tuo callsign) o disconnesso.
                Le card ACC in Home contano i controllori online. Alcune viste (Coordinamenti/Trasferimenti) risolvono
                <b>in tempo reale</b> chi è collegato, risalendo la gerarchia dei settori fino a UNICOM.</p>",
@@ -132,7 +156,7 @@
                The ACC cards on Home count online controllers. Some views (Coordinations/Transfers) resolve
                <b>in real time</b> who is connected, climbing the sector hierarchy up to UNICOM.</p>"),
 
-        new Sec("changed", "activity", "Cosa è cambiato", "What changed",
+        new Sec("changed", "activity",
             @"<p><code>/services/vsop/changed</code> elenca i documenti <b>nuovi</b> o <b>aggiornati</b> nel ciclo AIRAC corrente,
                con quante sezioni/blocchi sono cambiati e chi ha pubblicato. Filtra per ACC. È il primo posto da
                guardare quando entra in vigore un nuovo ciclo.</p>",
@@ -140,7 +164,7 @@
                with how many sections/blocks changed and who published. Filter by ACC. It's the first place to
                check when a new cycle comes into effect.</p>"),
 
-        new Sec("anteprime", "file", "Anteprime e badge bozza", "Previews and draft badge",
+        new Sec("anteprime", "file",
             @"<p>Ogni documento può essere visto in tre modi, controllati dal parametro <code>?as=</code> nell'URL:</p>
               <ul>
                 <li><b>Pubblica</b> (default, nessun parametro): quello che vede tutti — la release in vigore, o il live se non c'è release.</li>
@@ -157,7 +181,7 @@
               </ul>
               <p>A coloured banner at the top flags when you are <b>not</b> looking at the public version. If you are
                not authorized, the view <b>degrades to public</b> without revealing the draft.</p>"),
-        new Sec("aree", "map", "Leggere le aree regolamentate", "Reading the regulated areas",
+        new Sec("aree", "map",
             @"<p>La sezione <b>Aree regolamentate</b> di una vIPI ha <b>una mappa sola</b> e una
                <b>pastiglia per ogni area</b> sopra di essa. All'apertura sono tutte accese: spegnendone una
                sparisce il poligono dalla mappa <b>e</b> la sua descrizione dall'elenco qui sotto.</p>
@@ -191,7 +215,7 @@
               <p>Only the lit areas reach the <b>printed page</b> — map, chips and descriptions: pick what you
                need <i>before</i> printing.</p>"),
 
-        new Sec("profile-swapper", "copy", "Aurora Profile Swapper", "Aurora Profile Swapper",
+        new Sec("profile-swapper", "copy",
             @"<p>Copia <b>sezioni intere</b> da un profilo Aurora <code>.cpr</code> a uno o piu' profili, senza
                copia-incolla a mano. Sta in <code>/services/profile-swapper</code>, ed e' aperto a tutti.</p>
               <ul>
@@ -221,7 +245,7 @@
               <p>Profiles reach the server, where they are processed <b>in memory</b>: they are never written to
                disk nor kept.</p>"),
 
-        new Sec("statistiche", "activity", "Statistiche ATC", "ATC statistics",
+        new Sec("statistiche", "activity",
             @"<p><code>/services/stats</code> raccoglie quanto e cosa hai controllato: <b>ore</b>, <b>turni</b>,
                <b>movimenti</b> e <b>presenze</b>, con il confronto rispetto al periodo precedente. Le chip in alto
                scelgono il periodo e stanno nell'<b>indirizzo</b>: un periodo si può mandare a qualcuno.</p>
@@ -264,7 +288,7 @@
 
     private static readonly List<Sec> _modify = new()
     {
-        new Sec("editor-accesso", "key", "Chi può modificare e da dove", "Who can edit and from where",
+        new Sec("editor-accesso", "key",
             @"<p>Puoi modificare se sei <b>admin</b> o hai un <b>permesso (grant)</b> su un ACC. In quel caso in alto
                a destra compaiono due tasti:</p>
               <ul>
@@ -292,7 +316,7 @@
                the main controls (index, save, preview, publish). To see it again, add <code>?tour=1</code>
                to the editor URL.</p>"),
 
-        new Sec("versioni", "clipboard", "Elenco documenti, versioni e release", "Documents list, versions and releases",
+        new Sec("versioni", "clipboard",
             @"<p>L'<b>hub documenti</b> (<code>/services/vsop/versions</code>) è l'elenco di tutto ciò che si pubblica:
                vIPI ACC, aeroporti, APP non remotizzati e vLOA. A sinistra le righe, a destra il documento
                <b>scelto</b>.</p>
@@ -334,7 +358,7 @@
                lock lasts <b>30 minutes</b> and has no heartbeat: saving renews it, ""Finish editing"" releases
                it. An <b>admin</b> can force the unlock (🔓).</p>"),
 
-        new Sec("editor-lock", "key", "Prendere in carico (lock)", "Taking the lock",
+        new Sec("editor-lock", "key",
             @"<p>Per evitare che due persone si sovrascrivano, alcune pagine si aprono in <b>sola lettura</b> finché
                non premi <b>«Inizia modifica»</b> nella barra in alto. Da quel momento il documento è tuo:</p>
               <ul>
@@ -354,7 +378,7 @@
               <p>When done, press <b>""Finish editing""</b> to release it right away. The admin structure pages share
                a single lock (one person at a time).</p>"),
 
-        new Sec("editor-documento", "file", "Editor documento: sezioni e blocchi", "Document editor: sections and blocks",
+        new Sec("editor-documento", "file",
             @"<p>Un documento è fatto di <b>sezioni</b> (i capitoli) che contengono <b>blocchi</b> (i contenuti).
                Nell'editor puoi:</p>
               <ul>
@@ -380,7 +404,7 @@
               <p><b>Derived</b> sections (frequencies, AOR, coordinations) fill themselves from source data:
                you see them but don't edit them by hand.</p>"),
 
-        new Sec("editor-blocchi", "grid", "I tipi di blocco", "Block types",
+        new Sec("editor-blocchi", "grid",
             @"<p>Ogni blocco ha un tipo, scelto quando lo aggiungi:</p>
               <ul>
                 <li><b>Prosa</b> — testo libero (paragrafi, elenchi).</li>
@@ -410,7 +434,7 @@
               </ul>
               <p>Write short, verifiable content: a reader on frequency must find the answer at a glance.</p>"),
 
-        new Sec("editor-minime", "layers", "Minime di vettoramento", "Minimum vectoring altitudes",
+        new Sec("editor-minime", "layers",
             @"<p>La sezione <b>Minime di vettoramento</b> si compila <b>a mano</b>, come qualsiasi altra sezione
                editoriale: aggiungi prosa, tabelle o immagini delle carte.</p>
               <p>Non arrivano dall'import e non arriveranno: nel sectorfile la struttura dei file MVA <b>non dice a
@@ -422,7 +446,7 @@
                each area belongs to, and assigning a minimum to the wrong sector is worse than not having it — it is
                operational data someone would act on. A person declares the association.</p>"),
 
-        new Sec("editor-salva", "check-circle", "Indice laterale e salvataggio", "Side index and saving",
+        new Sec("editor-salva", "check-circle",
             @"<p>L'<b>indice laterale</b> (TOC) elenca le sezioni: cliccane una per saltarci. Un pallino segnala le
                sezioni con <b>modifiche non salvate</b>.</p>
               <p>Salva con <b>«Salva tutto»</b>: scrive le modifiche nella <b>bozza</b>, non ancora al pubblico
@@ -432,7 +456,7 @@
               <p>Save with <b>""Save all""</b>: it writes the changes to the <b>draft</b>, not yet to the public
                (also with <code>Ctrl+S</code>). The public sees the changes only after <b>publishing</b>.</p>"),
 
-        new Sec("editor-anteprima", "eye", "Vedere la bozza in anteprima", "Preview the draft",
+        new Sec("editor-anteprima", "eye",
             @"<p>Il tasto <b>«Anteprima»</b> apre il documento come <code>?as=draft</code>: vedi la bozza esattamente
                come apparirà, con una fascia che ricorda che <b>non</b> è ancora pubblica. Controlla sempre qui prima
                di pubblicare.</p>",
@@ -440,7 +464,7 @@
                as it will look, with a banner reminding you it is <b>not</b> public yet. Always check here before
                publishing.</p>"),
 
-        new Sec("editor-release", "megaphone", "Pubblicare (release AIRAC)", "Publishing (AIRAC release)",
+        new Sec("editor-release", "megaphone",
             @"<p>La bozza diventa pubblica con una <b>release</b>, legata a un ciclo <b>AIRAC</b>. Nel pannello release:</p>
               <ul>
                 <li><b>Pubblica ora</b> — la bozza corrente entra in vigore <b>subito</b>.</li>
@@ -460,7 +484,7 @@
                and <b>cancel</b> a release.</p>
               <p><b>Rule of thumb:</b> save → preview draft → publish. Don't publish without checking the preview.</p>"),
 
-        new Sec("editor-validita", "clock", "Validità e revisione", "Validity and revision",
+        new Sec("editor-validita", "clock",
             @"<p>Ogni documento — vIPI di ACC, di APP, d'aeroporto e vLOA — chiude con <b>Validità e revisione</b>.
                I primi tre campi non si compilano: <b>li scrive il documento</b> quando lo pubblichi.</p>
               <ul>
@@ -487,7 +511,7 @@
                derive belong — a vLOA's agreed review cycle, the signatory. ⚠️ If that text has a hand-written
                ""Effective from"" row, it is now duplicated: delete it, the card says it.</p>"),
 
-        new Sec("editor-aeroporto", "building", "Editor aeroporto (SID, frequenze, piste)", "Airport editor (SIDs, frequencies, runways)",
+        new Sec("editor-aeroporto", "building",
             @"<p>Dal 26 agosto 2026 è un editor <b>come gli altri tre</b>: le sezioni si riordinano (frecce, o
                trascinandole nel menu Navigazione), si nascondono, accettano sotto-sezioni, e se ne aggiungono di
                libere <b>in qualunque punto</b> della sequenza — non più tutte in coda. Per scrivere si prende il
@@ -571,7 +595,7 @@
               </ul>
               <p>As with the others, you save to the draft and publish with the release panel.</p>"),
 
-        new Sec("editor-app", "radio", "Editor APP: come si scrive", "APP editor: how to write it",
+        new Sec("editor-app", "radio",
             @"<p>L'editor (<code>/services/vsop/{acc}/apps/editor?app=…</code>) scrive il documento di un
                <b>avvicinamento non remotizzato</b>: un APP che ha una vIPI propria invece di stare dentro
                quella dell'ACC.</p>
@@ -608,7 +632,7 @@
               <p>Changes go into a <b>draft</b> and become public only with an <b>AIRAC release</b>, at the
                bottom of the page. The <b>draft preview</b> opens it in a new tab, as it will look.</p>"),
 
-        new Sec("editor-mil", "shield", "Editor vSOP militare", "Military vSOP editor",
+        new Sec("editor-mil", "shield",
             @"<p>L'editor (<code>/services/vsop/{acc}/mil/editor?icao=…</code>) scrive il vSOP <b>militare</b>
                di un campo. È un documento a sé, con le sue release e il suo ciclo AIRAC: non è la vIPI
                dell'aeroporto con una parte in più. Si arriva dall'elenco
@@ -651,7 +675,7 @@
               <p>Changes go into a <b>draft</b> and become public only with an <b>AIRAC release</b>. Until
                there is a release, the document does not appear in the public list.</p>"),
 
-        new Sec("editor-vloa", "globe", "Editor vLOA: come si scrive", "vLOA editor: how to write it",
+        new Sec("editor-vloa", "globe",
             @"<p>L'editor (<code>/services/vsop/{acc}/vloa/editor?acc=…</code>) scrive la vLOA di una <b>coppia</b>
                ACC italiano ↔ ACC estero. Il documento è in <b>inglese</b>: è la lingua delle vLOA.</p>
               <ul>
@@ -686,7 +710,7 @@
               <p>Changes go into a <b>draft</b> and become public only with an <b>AIRAC release</b>. The pairs
                vLOAs are born from live in <a href=""#admin-confinanti"">Neighbours</a>.</p>"),
 
-        new Sec("editor-acc", "map", "Editor vIPI ACC", "ACC vIPI editor",
+        new Sec("editor-acc", "map",
             @"<p>L'editor del vIPI di ACC (<code>/services/vsop/{acc}/editor</code>) è fatto di <b>blocchi</b>: i
                <b>settori di aerovia</b> e un blocco per ogni <b>gruppo APP</b>. Ogni blocco copre il suo albero di
                settori, anche cross-ACC.</p>
@@ -712,7 +736,7 @@
                 <li><b>⤢ Full width</b> hides index and rail when the tables need the room.</li>
               </ul>"),
 
-        new Sec("editor-frequenze", "radio", "Frequenze (derivate)", "Frequencies (derived)",
+        new Sec("editor-frequenze", "radio",
             @"<p>Le frequenze <b>si derivano dall'albero dei settori</b>: cambia la gerarchia in «Struttura» e
                cambiano qui. Nell'editor puoi <b>riordinarle</b> trascinando ⠿ o con ↑/↓, e <b>collegare</b> la
                frequenza di un altro ente (resta un riferimento vivo: se cambia là, cambia qui).</p>",
@@ -720,7 +744,7 @@
                change here. In the editor you can <b>reorder</b> them by dragging ⠿ or with ↑/↓, and <b>link</b>
                another unit's frequency (it stays a live reference: if it changes there, it changes here).</p>"),
 
-        new Sec("editor-configurazioni", "grid", "Configurazioni di settore", "Sector configurations",
+        new Sec("editor-configurazioni", "grid",
             @"<p>Una <b>configurazione</b> è un assetto di apertura: le dai un nome e scegli quali settori sono
                <b>aperti</b>. Il sistema calcola l'<b>accorpamento</b> — chi assorbe chi — e la tabella che ne esce è
                quella che si legge nel documento. Center Point e Range si impostano per settore unificato.</p>",
@@ -728,7 +752,7 @@
                The system computes the <b>merging</b> — who absorbs whom — and the resulting table is the one read in
                the document. Center Point and Range are set per unified sector.</p>"),
 
-        new Sec("editor-aor", "map", "AOR: shape extra e colori", "AOR: extra shapes and colours",
+        new Sec("editor-aor", "map",
             @"<p>La mappa AOR mostra gli anelli dei settori del blocco. Puoi <b>aggiungere shape di altri enti</b>
                presi dal database (anche esteri o torri): compaiono come anelli accendibili e sono selezionabili
                nelle configurazioni. Il <b>colore</b> è per tipo di ente (le torri in rosso, ecc.) e si può cambiare
@@ -738,7 +762,7 @@
                the configurations. The <b>colour</b> comes from the unit type (towers in red, and so on) and can be
                changed per sector; «default» restores the type's colour.</p>"),
 
-        new Sec("accordi", "refresh", "Accordi di coordinamento", "Coordination agreements",
+        new Sec("accordi", "refresh",
             @"<p>Un <b>accordo</b> lega <b>due elenchi di enti</b> per un tipo di traffico, su <b>tutti gli
                aeroporti</b> elencati. Dentro ci sono le <b>clausole</b>: ognuna dice su quali <b>punti</b> vale,
                a quale quota, dove avviene il trasferimento e a quali condizioni.</p>
@@ -818,7 +842,7 @@
                  the same airport (or under «Overflights»), the table <b>splits in two</b>: «&#8230; we hand
                  over» and «&#8230; we receive».</p>"),
 
-        new Sec("struttura", "link", "Struttura: la gerarchia di copertura", "Structure: the coverage hierarchy",
+        new Sec("struttura", "link",
             @"<p>La pagina <b>Struttura</b> (<code>/services/vsop/admin/sector-structure</code>) tiene l'<b>albero di fallback
                unico</b> di tutta la divisione, anche fra ACC diversi: <b>Aeroporto → APP → settore ACC</b>.
                L'aeroporto è la <b>foglia</b> (DEL/GND/TWR condividono la sua vista rapida): quando un ente è
@@ -883,7 +907,7 @@
               <p>The <b>lock</b> is the shared one of the structure pages: one person at a time, coordination
                agreements included.</p>"),
 
-        new Sec("admin-aeroporti", "plane-takeoff", "Aeroporti: assegnazione alle ACC", "Airports: assignment to ACCs",
+        new Sec("admin-aeroporti", "plane-takeoff",
             @"<p>La pagina <b>Aeroporti</b> (<code>/services/vsop/admin/airports</code>) decide la <b>ACC di competenza</b>
                di ogni aeroporto: da lì discendono la gerarchia di settori, il documento e la pagina pubblica.
                A sinistra gli aeroporti già assegnati, a destra l'<b>anagrafica IVAO</b> da cui si pescano.</p>
@@ -927,7 +951,7 @@
               </ul>
               <p>The <b>lock</b> is the shared one of the structure pages: one person at a time.</p>"),
 
-        new Sec("admin-confinanti", "globe", "Confinanti: coppie e vLOA", "Neighbours: pairs and vLOAs",
+        new Sec("admin-confinanti", "globe",
             @"<p>La pagina <b>Confinanti</b> (<code>/services/vsop/admin/neighbours</code>) tiene le <b>coppie</b>
                ACC italiano ↔ ACC estero da cui nascono le <b>vLOA</b>. I paesi da cui pescare stanno in
                <code>Neighbours:CountryIds</code>; confinano i settori la cui distanza minima fra i bordi sta
@@ -973,7 +997,7 @@
               </ul>
               <p>The <b>lock</b> is the shared one of the structure pages: one person at a time.</p>"),
 
-        new Sec("admin-audit", "clock", "Audit: chi ha fatto cosa", "Audit: who did what",
+        new Sec("admin-audit", "clock",
             @"<p>Il <b>registro</b> (<code>/services/vsop/admin/audit</code>) elenca gli <b>atti amministrativi</b>:
                pubblicazioni, bozze scartate, documenti eliminati o nascosti, permessi concessi e revocati,
                cambi di gerarchia, e i <b>lock tolti</b> a un'altra persona. Non si modifica e non si
@@ -1006,7 +1030,7 @@
               <p><b>Content changes</b> are not here: a document's history is read from its <b>versions</b>,
                in Documents.</p>"),
 
-        new Sec("admin-sorgenti", "plug", "Sorgenti: cosa arriva da fuori", "Sources: what comes from outside",
+        new Sec("admin-sorgenti", "plug",
             @"<p>La pagina (<code>/services/vsop/admin/sources</code>) decide, per ogni <b>categoria</b> di dati, se
                arriva dalla <b>sorgente</b> (oggi IVAO) o se la gestiamo <b>a mano</b>. È una scelta globale,
                non per aeroporto, e vale per tutti gli import: quelli automatici e i bottoni.</p>
@@ -1066,7 +1090,7 @@
               <p>Who decided the policy, and when, is written under the table. Every change also lands in the
                <b>log</b> (Audit), with the touched categories only.</p>"),
 
-        new Sec("nuovo-documento", "plus", "Nuovo documento: cosa crea e cosa apre", "New document: what it creates and what it opens",
+        new Sec("nuovo-documento", "plus",
             @"<p>Da <code>/services/vsop/editor/new-document</code> nasce un documento nuovo. ⚠️ <b>Il nome dice meno di
                quello che succede</b>: la <b>vLOA</b> la crei qui davvero; le tre <b>vIPI</b> — ACC, APP,
                Aeroporto — le crea il loro <b>editor</b>, alla prima apertura, e se il documento c’è già lo
@@ -1114,7 +1138,7 @@
                with none does not get the page at all. The vLOA also needs <b>«Start editing»</b>: creation is
                serialized, so two people cannot create the same document at the same moment.</p>"),
 
-        new Sec("revisioni", "warning", "Documenti da rivedere", "Documents needing review",
+        new Sec("revisioni", "warning",
             @"<p>Quando cambia qualcosa <b>a monte</b> di un documento — un settore sparisce dai cataloghi o
                viene nascosto, un'area regolamentata cambia, la copia pubblicata resta indietro — il documento
                se lo sente dire. Le segnalazioni compaiono in tre posti, e sono la stessa cosa vista da tre
@@ -1159,7 +1183,7 @@
                Diagnostics — because ""nothing to report"" and ""the check has been stuck for three days"" look
                far too alike on screen.</p>"),
 
-        new Sec("admin-diagnostica", "activity", "Diagnostica: cosa non torna", "Diagnostics: what does not add up",
+        new Sec("admin-diagnostica", "activity",
             @"<p>La <b>diagnostica</b> (<code>/services/vsop/admin/diagnostics</code>) risponde a una domanda sola:
                <b>qualcosa non torna?</b> Ogni riga dice anche <b>di chi è il problema</b>, perché le cinque
                aree si riparano in cinque posti diversi — e i chip in cima le contano.</p>
@@ -1215,7 +1239,7 @@
                staff-code patterns compared with the ones actually seen at login) and the <b>images</b> no
                document cites any more, deleted in two steps: first look at the list, then delete.</p>"),
 
-        new Sec("incarichi", "clipboard", "I miei incarichi", "My tasks",
+        new Sec("incarichi", "clipboard",
             @"<p>La pagina (<code>/services/vsop/tasks</code>) elenca gli <b>incarichi assegnati a te</b>, più quelli
                che ti aggiungi da solo. Le tre colonne — <b>Da fare</b>, <b>In corso</b>, <b>In revisione</b> —
                sono il lavoro in corso; <b>Bloccato</b> e <b>Fatto</b> stanno in fondo, chiusi, col loro
@@ -1253,7 +1277,7 @@
               <p>Every status change leaves an entry in the <b>audit log</b>: it is there so whoever coordinates
                knows how the work is going, not to keep an eye on people.</p>"),
 
-        new Sec("admin-incarichi", "clipboard", "Incarichi: chi sta facendo cosa", "Tasks: who is doing what",
+        new Sec("admin-incarichi", "clipboard",
             @"<p>La pagina (<code>/services/vsop/admin/tasks</code>) assegna il <b>lavoro editoriale</b> e ne segue
                l'avanzamento. Ogni incarico ha una <b>persona</b>, una priorità, e se serve una <b>scadenza</b>
                espressa in ciclo AIRAC: è in ritardo quando quel ciclo è già cominciato e l'incarico non è
@@ -1294,7 +1318,7 @@
               <p>Creation, status changes, reassignment and deletion all go into the <b>audit log</b>, under the
                «Task» family.</p>"),
 
-        new Sec("admin-permessi", "key", "Permessi: chi può modificare cosa", "Permissions: who can edit what",
+        new Sec("admin-permessi", "key",
             @"<p>Un <b>permesso</b> (<code>/services/vsop/admin/permissions</code>) lega una persona — il suo <b>VID</b> —
                a un <b>ACC</b>. Da quel momento può aprire l'editor dei documenti di quell'ACC, pubblicarne le
                release e nasconderne o eliminarne i documenti.</p>
@@ -1328,7 +1352,7 @@
                appear in this list. The other admin pages are reachable from the <b>bar</b> at the top of the
                page.</p>"),
 
-        new Sec("admin", "grid", "Aree admin", "Admin areas",
+        new Sec("admin", "grid",
             @"<p>Solo per gli admin, sotto <code>/services/vsop/admin</code>:</p>
               <ul>
                 <li><b>Gerarchia settori</b> (<code>/sectorstructure</code>) — catena di copertura per callsign, cross-ACC.</li>

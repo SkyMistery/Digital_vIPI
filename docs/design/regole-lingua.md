@@ -185,10 +185,19 @@ mente:
   sito. ⚠️ **Il confine è «lo legge un utente?», non «è testo tecnico?»**: le due pagine d'errore
   sembravano cadere qui e non ci cadevano affatto — le legge un utente, ed è l'unica cosa che legge quando
   la pagina che voleva non c'è. Sono passate alle due lingue il 28 agosto 2026.
-- ⚠️ **Un'eccezione non dichiarata resta**: `GuidaPage.razor` porta ~178 righe di `@T("italiano","english")`
-  scritte in linea invece che nei `.resx` — un quarto meccanismo, e il più grande. Va o dichiarato qui con
-  il suo perché (i corpi sono HTML lungo, e il resx è il posto sbagliato per quelli) o ricondotto alle
-  risorse. Finché sta così, chi legge questa carta non trova la regola che il codice segue davvero.
+- **La Guida** (`GuidaPage.razor`): i **corpi dei capitoli** portano le due lingue **in linea**
+  (`@T("italiano","english")`), non nei `.resx`. È la più grande delle eccezioni — un centinaio di righe —
+  e sta qui perché il resx è il posto sbagliato per quel contenuto: sono **paragrafi HTML** di quindici
+  righe l'uno, con `<ul>`, `<code>` e `<b>` dentro. Nel resx sarebbero valori giganti su una riga sola, in
+  un file dove tutto il resto è un'etichetta da tre parole, e nessuno li riuscirebbe più a rileggere in
+  parallelo per controllare che le due lingue dicano la stessa cosa — che è esattamente il controllo che
+  su una guida serve.
+  ⚠️ I **titoli** dei capitoli invece **non** stanno lì: vengono da `GuideSearchCatalog`, che è anche
+  quello che li mostra nei risultati di ricerca. Fino al 28 agosto 2026 stavano in tutti e due i posti e
+  gli **inglesi divergevano in 11 casi su 38** («Live status and online ATC» nella Guida, «Live status and
+  ATC online» nella ricerca): chi cercava leggeva un titolo e ne apriva un altro. È il **vocabolario
+  parallelo** che R3 vieta per la briciola di pane, entrato dalla porta di servizio — e nessuna delle due
+  copie era sbagliata da sola, che è il motivo per cui nessuno lo vedeva.
 
 ## Come si verifica
 

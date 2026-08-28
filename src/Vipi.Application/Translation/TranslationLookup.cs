@@ -27,6 +27,23 @@ namespace Vipi.Application.Translation;
 /// righe, e le 230 aree regolamentate del database contengono <b>9 descrizioni distinte e 6 attivazioni</b>.
 /// Una lettura sola per richiesta costa meno di una query per area.
 /// </para>
+///
+/// <para>
+/// ⚠️ <b>Ma «scoped» non vuol dire «per richiesta» dappertutto.</b> Sulle pagine pubbliche, che sono SSR
+/// statiche, lo scope è la richiesta e la cache vive un istante. Dentro un <b>circuito Blazor</b> — l'editor
+/// — lo scope vive quanto il circuito, cioè <b>ore</b>: la cache caricata alla prima proiezione resterebbe lì
+/// tutto il pomeriggio, e una correzione fatta nel pannello Traduzione non si vedrebbe fino al circuito
+/// successivo. È la trappola già pagata su questo prodotto («AddScoped = cache di sessione»), e qui si
+/// presenta con la faccia buona: nessun errore, solo un testo vecchio.
+/// </para>
+///
+/// <para>
+/// La cura è <see cref="Freschezza"/>: la cache <b>scade</b>. Non è un compromesso di comodo — è la misura
+/// giusta della cosa. Chi corregge una resa si aspetta di rivederla «subito», non «entro un millisecondo»; e
+/// una lettura ogni mezzo minuto su una tabella di 90 righe non è un costo. ⚠️ L'alternativa — invalidare
+/// alla scrittura — vorrebbe dire che la memoria conosce le sue cache, cioè un filo che va all'indietro fra
+/// due strati che oggi non si conoscono.
+/// </para>
 /// </summary>
 public sealed class TranslationLookup
 {
@@ -38,14 +55,27 @@ public sealed class TranslationLookup
     /// </summary>
     public const string LinguaDellaSorgente = "en";
 
+    /// <summary>
+    /// Quanto vive una coppia di lingue in cache. Mezzo minuto: abbastanza perché una proiezione intera —
+    /// che è un lampo — non tocchi il database più di una volta, abbastanza poco perché chi ha appena
+    /// corretto una resa nel pannello la riveda ricaricando la pagina.
+    /// </summary>
+    public static readonly TimeSpan Freschezza = TimeSpan.FromSeconds(30);
+
     private readonly ITranslationMemory _memoria;
     private readonly ReadingLanguageContext? _lingua;
-    private readonly Dictionary<string, IReadOnlyDictionary<string, string>> _cache = new(StringComparer.Ordinal);
+    private readonly TimeProvider _orologio;
+    private readonly Dictionary<string, (IReadOnlyDictionary<string, string> Note, DateTimeOffset Letta)> _cache =
+        new(StringComparer.Ordinal);
 
-    public TranslationLookup(ITranslationMemory memoria, ReadingLanguageContext? lingua = null)
+    /// <param name="orologio">L'orologio. Si inietta per poterlo <b>spostare</b> nei test: una scadenza
+    /// provata con un'attesa vera è un test lento e capriccioso.</param>
+    public TranslationLookup(
+        ITranslationMemory memoria, ReadingLanguageContext? lingua = null, TimeProvider? orologio = null)
     {
         _memoria = memoria;
         _lingua = lingua;
+        _orologio = orologio ?? TimeProvider.System;
     }
 
     /// <summary>
@@ -61,11 +91,16 @@ public sealed class TranslationLookup
             return static t => t;
 
         var chiave = LinguaDellaSorgente + "|" + bersaglio;
-        if (!_cache.TryGetValue(chiave, out var note))
+        var adesso = _orologio.GetUtcNow();
+
+        if (!_cache.TryGetValue(chiave, out var voce) || adesso - voce.Letta >= Freschezza)
         {
-            note = await _memoria.LoadAllAsync(LinguaDellaSorgente, bersaglio, ct).ConfigureAwait(false);
-            _cache[chiave] = note;
+            var lette = await _memoria.LoadAllAsync(LinguaDellaSorgente, bersaglio, ct).ConfigureAwait(false);
+            voce = (lette, adesso);
+            _cache[chiave] = voce;
         }
+
+        var note = voce.Note;
 
         return testo =>
         {
