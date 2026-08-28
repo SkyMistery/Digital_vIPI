@@ -769,6 +769,23 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
    punto del catalogo. */
 .vid-find input::-webkit-calendar-picker-indicator{display:none !important}
 
+/* Barra dei filtri dell'archivio ATC: stessa forma del campo VID qui sopra (una riga che va a capo da sola),
+   ma con le etichette sopra i campi -- sono quattro, e senza etichetta un `select` e due caselle di ricerca
+   non dicono cosa cercano. Classe propria e non `.vid-find` riusata: quella cerca UN VID, questa filtra un
+   elenco, e un nome che mente costa piu' delle quattro righe che risparmia. */
+.arch-filtri{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin-bottom:12px}
+.arch-filtri label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--ink-faint)}
+.arch-filtri label.riga{flex-direction:row;align-items:center;gap:7px;padding-bottom:9px}
+/* ⚠️ La casella e la sua etichetta stanno su UNA riga. Senza, la colonna flex stringe il testo alla
+   larghezza della casella e «Open right now» usciva su tre righe, alto il doppio degli altri campi
+   (visto a schermo, non nei test). */
+.arch-filtri label.riga span{white-space:nowrap}
+.arch-filtri label.riga input{width:auto}
+.arch-filtri input,.arch-filtri select{width:min(200px,100%);border:1px solid var(--line);border-radius:8px;
+  padding:8px 10px;font-family:var(--font-body);font-size:13.5px;background:var(--surface);color:var(--ink)}
+.arch-filtri input:focus,.arch-filtri select:focus{outline:2px solid var(--ivao-lightblue);outline-offset:-1px}
+.arch-filtri .btn{display:inline-flex;align-items:center;gap:7px;flex:none}
+
 /* Podio della classifica: i primi tre grandi, il resto in tabella. */
 .podium{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:16px}
 .pod{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px}

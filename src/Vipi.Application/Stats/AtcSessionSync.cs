@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Vipi.Application.Abstractions;
@@ -12,7 +12,7 @@ public readonly record struct KnownAtcSession(
 /// <summary>Riga di sessione da scrivere (creazione o aggiornamento).</summary>
 public sealed record AtcSessionUpsert(
     long SessionId, int UserId, string Callsign, string? Position, string? Frequency, int Rating,
-    DateTimeOffset StartUtc, int DurationSeconds, long ShiftKey, bool IsNew);
+    DateTimeOffset StartUtc, int DurationSeconds, long ShiftKey, bool IsNew, bool IsOutsideDivision = false);
 
 /// <summary>Sessione da chiudere: era aperta in archivio e non è più in frequenza.</summary>
 public sealed record AtcSessionClosure(long SessionId, DateTimeOffset EndUtc);
@@ -29,6 +29,11 @@ public sealed record AtcSessionPlan(IReadOnlyList<AtcSessionUpsert> Upserts, IRe
 /// <summary>
 /// Cosa scrivere in archivio dopo un giro di poll: quali sessioni aggiornare, quali aprire, quali chiudere.
 /// Puro e deterministico — nessun I/O, nessun orologio interno (l'istante arriva dal chiamante).
+///
+/// <para><b>Il mondo si pianifica come l'Italia.</b> Dal 28 agosto 2026 arrivano anche le postazioni fuori
+/// divisione: aprono, si aggiornano e si chiudono con le stesse regole — compreso il turno, che ha senso
+/// anche per loro (una caduta di linea è una caduta di linea ovunque). L'unica differenza è la marca
+/// <c>IsOutsideDivision</c>, che viaggia dalla sorgente alla riga senza che questa classe la interpreti.</para>
 ///
 /// <para><b>Il turno si assegna qui, alla nascita della sessione.</b> Se lo stesso VID sullo stesso callsign
 /// aveva una connessione finita da poco, la nuova ne eredita la <c>ShiftKey</c>: è una caduta di linea, non
@@ -69,7 +74,8 @@ public static class AtcSessionSync
                 // Il turno si decide una volta sola: una sessione già in archivio si tiene il suo, o un
                 // riavvio dell'applicazione lo riscriverebbe a ogni giro.
                 ShiftKey: esiste ? precedente.ShiftKey : ShiftKeyFor(c, known),
-                IsNew: !esiste));
+                IsNew: !esiste,
+                IsOutsideDivision: c.IsOutsideDivision));
         }
 
         // Chiudo quelle che l'archivio ha aperte e che non sono più in frequenza. L'istante è il nostro:

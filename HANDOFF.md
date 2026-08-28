@@ -57,8 +57,11 @@ chiave e distinguere i **quattro** motivi per cui una sezione resta vuota.
 
 ## Prima del prossimo deploy
 
-⚠️ **DICIANNOVE migrazioni in coda** al cutover MariaDB. ⚠️ **Prima del deploy serve la SELECT dei
-duplicati su `DocReleases`**, o `CREATE UNIQUE INDEX` fallisce. ⚠️ **Tre passi d'avvio** idempotenti:
+⚠️ **VENTI migrazioni in coda** al cutover MariaDB. ✅ La **SELECT dei duplicati su `DocReleases`** non
+va più fatta a mano — non era nemmeno eseguibile, il 3306 del server sta sul suo `localhost`:
+`ReleaseNumberPreflight` la esegue all'avvio, subito prima di `Migrate()`, e se trova doppioni ferma la
+migrazione **nominando le righe** in `avvio-errore.txt` invece di lasciar fallire il `CREATE UNIQUE INDEX`
+con un «Duplicate entry» che dice solo la chiave. ⚠️ **Tre passi d'avvio** idempotenti:
 `LinkAirportDocumentsAsync`, `ClearVloaSeededAiracRowAsync`, `ClearUnpublishedCurrentVersionAsync`.
 
 ⚠️ **Due rossi intermittenti hanno un nome** (`docs/lavori-aperti.md` §Q5 e §Q6):
@@ -860,6 +863,20 @@ girano all'avvio *prima* delle riconciliazioni.
 **Fonte unica settori (✅ Round 20):** cataloghi `AccSector`/`AirportSector` = fonte autoritativa; `Sector` = proiezione (`ISectorProjectionService.SyncFromCatalogsAsync`). Gerarchia per callsign (`ParentCallsign`, cross-ACC) editata in `/vsop/admin/sectorstructure` (`IHierarchyEditingService`). Dettagli: `docs/spec/modello-dati.md` §9.12.
 
 **Shape tonda TWR + coord aeroporto (✅ Round 22):** le TWR senza poligono reale (IVAO le espone come `"[]"`) ricevono una **shape circolare 5 NM** sintetica così da poterle disegnare. `CircleShapeBuilder` (puro, formato `[[lng,lat],…]`), `TowerShapeFallbackService` (genera solo sulle vuote — decise col `AorPolygonProjector` —, marca `IsShapeSynthetic=true`, mai sovrascrive shape reali). Centro = `Airport.Latitude/Longitude`, popolate all'import dal blocco `airport` del dettaglio `/v2/ATCPositions/{compose}` (`SourceAtcPosition.AirportLatitude/Longitude`); ripiego = centro del poligono di un settore fratello. Job in `AirportSectorImportHostedService` (import isolato in try: il fallback gira anche senza credenziali). **TODO futuro:** shape reali TWR dal **sectorfile GitHub** via `DataSource:Provider` → rimpiazzano solo le sintetiche. Dettagli: `docs/spec/modello-dati.md` §9.14.
+
+**Archivio ATC mondiale (✅ 28 ago 2026):** il poller archivia **tutte** le postazioni ATC aperte, non più i
+soli prefissi di divisione. `AtcSession.IsOutsideDivision` (in negativo: il default `false` di un bool nuovo
+coincide così con la verità dello storico, che è tutto italiano). `IvaoWhazzupClient` non filtra più: marca,
+e a filtrare è chi sa a cosa serve la lista, attraverso `AtcSessionScope.DiDivisione()`.
+⚠️ L'unica lettura che NON filtra è `IAtcSessionStore.GetOpenOrRecentAsync`, con cui il poller chiude le
+sessioni sparite: senza il mondo, una connessione straniera resterebbe aperta per sempre.
+Ritenzione dodici mesi per tutto; `AtcMonthRollup` resta **solo** di divisione.
+⚠️ **La raccolta parte da zero il 1° settembre 2026** e lo storico del Worker del validatore **non si
+travasa**: cutover da quel servizio a questo nel **2027**, fino ad allora girano in parallelo. Nessun
+cancello di data nel codice: il 1° settembre è una scadenza di **consegna**, non una `if`. Letture:
+`IAtcArchiveQueries`/`EfAtcArchiveQueries`. Superficie: pagina staff `/services/stats/world` e
+**`GET /vsop/api/v1/atc/sessions`** (anonimo, read-only, tetto duro 500 righe + `RequestRateLimiter`).
+Carta: `docs/feature/2026-08-28-archivio-atc-mondiale.md`.
 
 **Bridge Aurora (✅ 3 ago 2026, branch `feature/aurora-bridge`, NON ancora in `main`):** tool desktop che
 scrive nel tag di Aurora il livello a cui cedere il traffico al prossimo ente.

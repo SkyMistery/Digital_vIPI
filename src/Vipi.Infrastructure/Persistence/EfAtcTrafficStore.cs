@@ -137,7 +137,7 @@ public sealed class EfAtcTrafficStore : IAtcTrafficStore
         // Solo sessioni CHIUSE: di una ancora in corso la finestra non è nota, e riempirla adesso vorrebbe
         // dire perdere quel che succede dopo. Solo senza traffico: dove il campionamento dal vivo ha già
         // lavorato non si mescola una seconda fonte. Solo mai provate: la marca evita di riprovarci ogni notte.
-        var candidate = await _db.AtcSessions.AsNoTracking()
+        var candidate = await _db.AtcSessions.AsNoTracking().DiDivisione()
             .Where(s => s.EndUtc != null && s.StartUtc >= soglia
                         && s.TrafficCount == 0 && s.TrafficFilledUtc == null
                         && s.DurationSeconds >= 60)
@@ -155,7 +155,7 @@ public sealed class EfAtcTrafficStore : IAtcTrafficStore
         var da = daRiempire.Min(s => s.StartUtc).UtcDateTime;
         var a = daRiempire.Max(s => s.EndUtc).UtcDateTime;
 
-        var vicine = await _db.AtcSessions.AsNoTracking()
+        var vicine = await _db.AtcSessions.AsNoTracking().DiDivisione()
             .Where(s => s.EndUtc != null && s.EndUtc >= da && s.StartUtc <= a)
             .Select(s => new { s.SessionId, s.Callsign, s.StartUtc, s.EndUtc })
             .ToListAsync(ct);
@@ -284,7 +284,12 @@ public sealed class EfAtcTrafficStore : IAtcTrafficStore
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
         var adesso = DateTime.UtcNow;
-        foreach (var g in righe.GroupBy(s => (
+
+        // ⚠️ Il riassunto è SOLO della divisione: <c>AtcMonthRollup</c> è la memoria lunga delle ore
+        // italiane (mese · persona · callsign) e regge la classifica. Le sessioni fuori divisione si
+        // cancellano e basta, alla stessa scadenza — dodici mesi — senza lasciare niente dietro: sono
+        // archivio, non un conto di qualcuno, e riassumerle vorrebbe dire mettere il pianeta in classifica.
+        foreach (var g in righe.Where(s => !s.IsOutsideDivision).GroupBy(s => (
             Mese: new DateTime(s.StartUtc.Year, s.StartUtc.Month, 1, 0, 0, 0, DateTimeKind.Utc),
             s.UserId, s.Callsign)))
         {

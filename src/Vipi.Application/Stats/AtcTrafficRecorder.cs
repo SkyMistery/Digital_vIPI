@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -54,8 +54,14 @@ public sealed class AtcTrafficRecorder
 
     public async Task<Result> RecordAsync(NetworkSnapshot snapshot, IAtcTrafficStore store, CancellationToken ct = default)
     {
-        var online = new HashSet<string>(snapshot.Atc.Select(a => a.Callsign), StringComparer.OrdinalIgnoreCase);
-        var perCallsign = snapshot.Atc.ToDictionary(a => a.Callsign, a => a.SessionId, StringComparer.OrdinalIgnoreCase);
+        // ⚠️ Solo le postazioni della DIVISIONE. Dal 28 agosto 2026 la fotografia porta anche il resto del
+        // mondo (si archivia e basta): attribuire il traffico a quelle sessioni è impossibile — l'AoR che
+        // abbiamo è italiana, e un APP brasiliano non ha nessun poligono qui — e provarci a ogni giro
+        // vorrebbe dire idratare dal database centinaia di sessioni che non potranno mai avere una tratta.
+        var atcDivisione = snapshot.Atc.Where(a => !a.IsOutsideDivision).ToList();
+
+        var online = new HashSet<string>(atcDivisione.Select(a => a.Callsign), StringComparer.OrdinalIgnoreCase);
+        var perCallsign = atcDivisione.ToDictionary(a => a.Callsign, a => a.SessionId, StringComparer.OrdinalIgnoreCase);
 
         // ⚠️ PRIMA di ogni altra cosa: chi non è più in frequenza va salvato e liberato. Stava in fondo, e
         // bastava che gli unici online fossero settori senza poligono — o che non ci fosse nessuno — perché
@@ -143,7 +149,8 @@ public sealed class AtcTrafficRecorder
 
     private async Task IdrataAsync(NetworkSnapshot snapshot, IAtcTrafficStore store, CancellationToken ct)
     {
-        var ignote = snapshot.Atc.Select(a => a.SessionId).Where(id => !_registro.Knows(id)).ToList();
+        var ignote = snapshot.Atc.Where(a => !a.IsOutsideDivision)
+            .Select(a => a.SessionId).Where(id => !_registro.Knows(id)).ToList();
         if (ignote.Count == 0) return;
 
         var vecchie = await store.GetLegsAsync(ignote, ct);

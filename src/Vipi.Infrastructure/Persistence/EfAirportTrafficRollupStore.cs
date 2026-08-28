@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Stats;
 using Vipi.Domain.Entities;
@@ -43,7 +43,7 @@ public sealed class EfAirportTrafficRollupStore : IAirportTrafficRollupStore
 
         // ⚠️ La stessa soglia di ogni altra lettura: una connessione sotto il minuto non è un'apertura, e
         // contarla direbbe che il campo era «aperto» per il tempo di un errore di collegamento.
-        var sessioni = await _db.AtcSessions.AsNoTracking()
+        var sessioni = await _db.AtcSessions.AsNoTracking().DiDivisione()
             .Where(s => s.StartUtc < a && s.DurationSeconds >= soglia)
             .Where(s => s.EndUtc == null || s.EndUtc > da)
             .Select(s => new { s.Callsign, s.StartUtc, s.EndUtc, s.DurationSeconds })

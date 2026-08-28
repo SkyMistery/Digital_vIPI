@@ -22,6 +22,9 @@ public sealed class EfAtcSessionStore : IAtcSessionStore
     {
         var soglia = since.UtcDateTime;
 
+        // ⚠️ Qui il mondo ci vuole: sono le righe con cui il poller decide chi chiudere, e una sessione
+        // fuori divisione lasciata fuori da questa lettura resterebbe aperta per sempre. È l'unica lettura
+        // delle sessioni che NON passa da DiDivisione(), ed è apposta.
         var righe = await _db.AtcSessions.AsNoTracking()
             .Where(s => s.EndUtc == null || s.EndUtc >= soglia)
             .Select(s => new { s.SessionId, s.UserId, s.Callsign, s.StartUtc, s.EndUtc, s.ShiftKey })
@@ -77,6 +80,7 @@ public sealed class EfAtcSessionStore : IAtcSessionStore
                     DurationSeconds = u.DurationSeconds,
                     Source = AtcSessionSource.Live,
                     ShiftKey = u.ShiftKey,
+                    IsOutsideDivision = u.IsOutsideDivision,
                     UpdatedAtUtc = DateTime.UtcNow,
                 });
             }
@@ -148,7 +152,12 @@ public sealed class EfAtcSessionStore : IAtcSessionStore
         var da = from.UtcDateTime;
         var a = to.UtcDateTime;
 
-        var righe = await _db.AtcSessions.Where(s => s.StartUtc >= da && s.StartUtc <= a).ToListAsync(ct);
+        // ⚠️ Solo la divisione, e non è un dettaglio di correttezza ma di memoria: lo chiama il backfill
+        // dello storico, che lavora su finestre lunghe (fino a dodici mesi), e in tabella c'è ora anche il
+        // resto del mondo — dieci volte le righe. I turni delle sessioni fuori divisione li assegna già il
+        // poller alla nascita, con lo stesso raggruppatore: qui non ci sarebbe niente da correggere.
+        var righe = await _db.AtcSessions.DiDivisione()
+            .Where(s => s.StartUtc >= da && s.StartUtc <= a).ToListAsync(ct);
         if (righe.Count == 0) return 0;
 
         var chiavi = AtcShiftGrouper.Group(righe.Select(s => new ShiftInput(

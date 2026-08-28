@@ -1,0 +1,169 @@
+@page "/services/stats/world"
+@layout SopLayout
+@rendermode InteractiveServer
+@using Vipi.Application.Abstractions
+@using Vipi.Application.Auth
+@using Vipi.Application.Stats
+@inject IAtcArchiveQueries Archivio
+@inject IEditAuthorizationService Authz
+@inject IStringLocalizer<SharedResource> L
+
+@* L'archivio grezzo delle connessioni ATC, divisione compresa: chi è aperto adesso e chi c'era prima.
+   Interattiva perché è tutta una ricerca — i filtri cambiano senza cambiare pagina. *@
+
+<PageTitle>@L["World_Title"] · vIPI IVAO Italia</PageTitle>
+
+<div class="wrap stats">
+    <div class="doc-head">
+        <div class="sh-title">
+            <h1 class="page-h1">@L["World_Title"]</h1>
+            <a class="btn ghost sh-go" href="/services/stats/division">
+                <Icon Name="activity" Size="15" /> @L["Stats_DivisionTitle"]
+            </a>
+        </div>
+        <p class="muted">@L["World_Subtitle"]</p>
+    </div>
+
+    @if (!Authz.IsAdmin)
+    {
+        @* Non è la guardia vera — quella è la query, che senza staff non parte — ma è quel che vede chi
+           arriva qui con un indirizzo copiato. *@
+        <p class="muted">@L["World_StaffOnly"]</p>
+    }
+    else
+    {
+        <div class="arch-filtri">
+            <label>
+                <span>@L["World_Scope"]</span>
+                <select value="@_fetta" @onchange="CambiaFetta">
+                    <option value="@nameof(AtcArchiveScope.All)">@L["World_ScopeAll"]</option>
+                    <option value="@nameof(AtcArchiveScope.World)">@L["World_ScopeWorld"]</option>
+                    <option value="@nameof(AtcArchiveScope.Division)">@L["World_ScopeDivision"]</option>
+                </select>
+            </label>
+            <label>
+                <span>@L["World_Callsign"]</span>
+                <input type="search" value="@_callsign" @oninput="ScriveCallsign"
+                       placeholder="LIRF" aria-label="@L["World_Callsign"]" />
+            </label>
+            <label>
+                <span>@L["World_Vid"]</span>
+                <input type="search" inputmode="numeric" value="@_vid" @oninput="ScriveVid"
+                       placeholder="123456" aria-label="@L["World_Vid"]" />
+            </label>
+            <label class="riga">
+                <input type="checkbox" checked="@_soloAperte" @onchange="CambiaSoloAperte" />
+                <span>@L["World_OnlyOpen"]</span>
+            </label>
+            <button class="btn primary" @onclick="CercaAsync">
+                <Icon Name="search" Size="15" /> @L["World_Search"]
+            </button>
+        </div>
+
+        @if (_righe.Count == 0)
+        {
+            <p class="muted">@L["World_Empty"]</p>
+        }
+        else
+        {
+            @* Il totale accanto alle righe mostrate: il tetto è duro, e senza il totale una pagina piena
+               sembrerebbe tutto quel che c'è. *@
+            <p class="muted">@L["World_Found", _righe.Count, _totale]</p>
+
+            <table class="res-table tbl-cards">
+                <thead>
+                    <tr>
+                        <th>@L["World_Callsign"]</th>
+                        <th>@L["World_Vid"]</th>
+                        <th>@L["Stats_Position"]</th>
+                        <th>@L["World_Start"]</th>
+                        <th>@L["World_End"]</th>
+                        <th>@L["World_Duration"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in _righe)
+                    {
+                        <tr>
+                            <td data-l="@L["World_Callsign"]">
+                                @if (!r.IsOutsideDivision)
+                                {
+                                    @* Il dettaglio con traffico e piste esiste solo per la divisione: per il
+                                       resto del mondo non c'è niente da aprire, e un link a una pagina vuota
+                                       è peggio di nessun link. *@
+                                    <a href="/services/stats/session/@r.SessionId">@r.Callsign</a>
+                                }
+                                else
+                                {
+                                    <text>@r.Callsign</text>
+                                }
+                            </td>
+                            <td data-l="@L["World_Vid"]"><VidLink Vid="r.UserId" SoloNumero="true" /></td>
+                            <td data-l="@L["Stats_Position"]">@(r.Position ?? "—")</td>
+                            <td data-l="@L["World_Start"]">@r.StartUtc.ToString("yyyy-MM-dd HH:mm")Z</td>
+                            <td data-l="@L["World_End"]">
+                                @if (r.EndUtc is { } fine)
+                                {
+                                    <text>@fine.ToString("yyyy-MM-dd HH:mm")Z</text>
+                                }
+                                else
+                                {
+                                    <span class="pill gate">@L["World_Open"]</span>
+                                }
+                            </td>
+                            <td data-l="@L["World_Duration"]">@StatsView.Ore(r.DurationSeconds) h</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <p class="muted" style="margin-top:22px">@L["World_ApiHint"]</p>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<AtcArchiveRow> _righe = Array.Empty<AtcArchiveRow>();
+    private int _totale;
+
+    private string _fetta = nameof(AtcArchiveScope.All);
+    private string _callsign = "";
+    private string _vid = "";
+    private bool _soloAperte = true;
+
+    /// <summary>
+    /// ⚠️ <c>OnParametersSetAsync</c> e non <c>OnInitializedAsync</c>: su una pagina interattiva
+    /// l'inizializzazione gira una volta sola, e questa la si riapre navigando.
+    /// </summary>
+    private bool _caricata;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_caricata || !Authz.IsAdmin) return;
+
+        _caricata = true;
+        await CercaAsync();
+    }
+
+    private void CambiaFetta(ChangeEventArgs e) => _fetta = e.Value?.ToString() ?? nameof(AtcArchiveScope.All);
+    private void ScriveCallsign(ChangeEventArgs e) => _callsign = e.Value?.ToString() ?? "";
+    private void ScriveVid(ChangeEventArgs e) => _vid = e.Value?.ToString() ?? "";
+    private void CambiaSoloAperte(ChangeEventArgs e) => _soloAperte = e.Value is true;
+
+    private async Task CercaAsync()
+    {
+        // La guardia sta QUI, davanti alla lettura, e non solo nel markup: il markup dice cosa si vede, il
+        // metodo dice cosa si legge — e questo lo può chiamare un evento, non solo il render.
+        if (!Authz.IsAdmin) return;
+
+        var pagina = await Archivio.SearchAsync(new AtcArchiveFilter(
+            CallsignPrefix: string.IsNullOrWhiteSpace(_callsign) ? null : _callsign,
+            UserId: int.TryParse(_vid, out var v) ? v : null,
+            OnlyOpen: _soloAperte,
+            Scope: Enum.TryParse<AtcArchiveScope>(_fetta, out var f) ? f : AtcArchiveScope.All,
+            Limit: 200));
+
+        _righe = pagina.Rows;
+        _totale = pagina.Total;
+    }
+}

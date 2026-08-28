@@ -166,6 +166,15 @@ public static class VipiModuleExtensions
         return app;
     }
 
+    /// <summary>Richieste al minuto per IP sull'archivio ATC: un cliente onesto sincronizza, non sfoglia.</summary>
+    private const int ArchivioRichiesteAlMinutoPerIp = 30;
+
+    /// <summary>Tetto complessivo dell'archivio ATC: è quello che regge davvero, l'IP dietro il proxy lo sceglie chi chiama.</summary>
+    private const int ArchivioRichiesteAlMinutoTotali = 300;
+
+    /// <summary>Quanti IP distinti il limitatore tiene in memoria per questo endpoint.</summary>
+    private const int ArchivioClientiTracciati = 5000;
+
     /// <summary>Endpoint del modulo: stream live SSE dell'ATC online (read-only).</summary>
     public static IEndpointRouteBuilder MapVipiModule(this IEndpointRouteBuilder endpoints)
     {
@@ -238,6 +247,69 @@ public static class VipiModuleExtensions
                 cache.Changed -= OnChanged;
                 Interlocked.Decrement(ref _sseAperti);
             }
+        });
+
+        // Archivio delle connessioni ATC, per le macchine (carta docs/feature/2026-08-28-archivio-atc-mondiale.md).
+        // Dal 28 agosto 2026 il poller registra TUTTE le postazioni aperte, non le sole italiane: questo
+        // endpoint è il modo di rileggerle da fuori — nasce perché altri strumenti della divisione (il
+        // validatore dei tour) tenevano un archiviatore proprio sullo stesso whazzup.
+        //
+        // Anonimo e in sola lettura come /vsop/live/atc, e per lo stesso motivo: è la ripetizione di un
+        // dato che la sorgente pubblica già a chiunque, senza token. Quel che si aggiunge è il PASSATO, che
+        // il whazzup non conserva. Tetto per IP e tetto complessivo con lo stesso limitatore del bridge: qui
+        // una richiesta costa una COUNT e una pagina di righe, non un file.
+        endpoints.MapGet("/vsop/api/v1/atc/sessions", async (
+            HttpContext ctx,
+            IAtcArchiveQueries archivio,
+            RequestRateLimiter limiter,
+            DateTimeOffset? from,
+            DateTimeOffset? to,
+            string? callsign,
+            int? vid,
+            bool? open,
+            string? scope,
+            int? limit,
+            int? offset,
+            CancellationToken ct) =>
+        {
+            if (!limiter.TryAcquire(RequestRateLimiter.GlobalKey, ArchivioRichiesteAlMinutoTotali))
+            {
+                ctx.Response.Headers.RetryAfter = "60";
+                return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+            }
+
+            var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "sconosciuto";
+            if (!limiter.TryAcquire(ip, ArchivioRichiesteAlMinutoPerIp, ArchivioClientiTracciati))
+            {
+                ctx.Response.Headers.RetryAfter = "60";
+                return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+            }
+
+            // Una finestra rovesciata non è «zero righe», è una domanda sbagliata: dirlo evita che chi
+            // integra passi mezz'ora a chiedersi perché l'archivio è vuoto.
+            if (from is { } f && to is { } t && f > t)
+                return Results.BadRequest(new { error = "from deve precedere to" });
+
+            var fetta = scope?.ToLowerInvariant() switch
+            {
+                "division" or "divisione" => AtcArchiveScope.Division,
+                "world" or "mondo" => AtcArchiveScope.World,
+                _ => AtcArchiveScope.All,
+            };
+
+            var pagina = await archivio.SearchAsync(new AtcArchiveFilter(
+                From: from, To: to, CallsignPrefix: callsign, UserId: vid,
+                OnlyOpen: open ?? false, Scope: fetta,
+                Limit: limit ?? 200, Offset: offset ?? 0), ct);
+
+            // `total` accanto alle righe: il tetto è duro (500) e senza il totale chi integra non può
+            // sapere se ha in mano tutto o la prima pagina di diecimila.
+            return Results.Json(new
+            {
+                total = pagina.Total,
+                count = pagina.Rows.Count,
+                sessions = pagina.Rows,
+            });
         });
 
         // Bridge Aurora (piano docs/design/piano-aurora-bridge.md §5): dato il contesto di un volo selezionato in
@@ -349,6 +421,12 @@ public static class VipiModuleExtensions
         else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) ||
                  provider.Contains("MySql", StringComparison.OrdinalIgnoreCase))
         {
+            // ⚠️ PRIMA di migrare: l'unico indice unico della coda che possa trovare dati già in conflitto
+            // è quello dei numeri di rilascio. Senza questo controllo il guasto arriva da dentro una
+            // migrazione a metà, come un «Duplicate entry ... for key ...» che dice la chiave e non le
+            // righe — su un host dove l'unico canale è scaricare `avvio-errore.txt` via FTP.
+            ReleaseNumberPreflight.Verifica(db);
+
             db.Database.Migrate();
         }
         else

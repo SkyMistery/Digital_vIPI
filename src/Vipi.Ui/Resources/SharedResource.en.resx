@@ -2545,4 +2545,22 @@
   <data name="Mil_LinkFromCivil" xml:space="preserve"><value>Military vSOP</value></data>
   <data name="Mil_LinkToCivil" xml:space="preserve"><value>Civil vIPI</value></data>
   <data name="Mil_Created" xml:space="preserve"><value>Military vSOP created for {0}: it is a draft now, to be filled in and published.</value></data>
+  <data name="World_Title" xml:space="preserve"><value>ATC archive</value></data>
+  <data name="World_Subtitle" xml:space="preserve"><value>Every ATC position the poller has seen, division and rest of the world: when they opened and when we last saw them. Twelve months.</value></data>
+  <data name="World_StaffOnly" xml:space="preserve"><value>The connection archive is for staff.</value></data>
+  <data name="World_Scope" xml:space="preserve"><value>Scope</value></data>
+  <data name="World_ScopeAll" xml:space="preserve"><value>All</value></data>
+  <data name="World_ScopeWorld" xml:space="preserve"><value>Outside division</value></data>
+  <data name="World_ScopeDivision" xml:space="preserve"><value>Division</value></data>
+  <data name="World_Callsign" xml:space="preserve"><value>Callsign</value></data>
+  <data name="World_Vid" xml:space="preserve"><value>VID</value></data>
+  <data name="World_OnlyOpen" xml:space="preserve"><value>Open right now</value></data>
+  <data name="World_Search" xml:space="preserve"><value>Search</value></data>
+  <data name="World_Empty" xml:space="preserve"><value>No connection matches these filters.</value></data>
+  <data name="World_Found" xml:space="preserve"><value>{0} rows shown out of {1} found.</value></data>
+  <data name="World_Open" xml:space="preserve"><value>open</value></data>
+  <data name="World_Start" xml:space="preserve"><value>Opened</value></data>
+  <data name="World_End" xml:space="preserve"><value>Closed</value></data>
+  <data name="World_Duration" xml:space="preserve"><value>Duration</value></data>
+  <data name="World_ApiHint" xml:space="preserve"><value>The same rows are machine-readable at /vsop/api/v1/atc/sessions (parameters: from, to, callsign, vid, open, scope, limit, offset).</value></data>
 </root>

@@ -90,7 +90,12 @@ public sealed class AtcPollingHostedService : BackgroundService
             var source = scope.ServiceProvider.GetRequiredService<IAtcActivitySource>();
             var snapshot = await source.GetSnapshotAsync(ct);
 
+            // ⚠️ La cache resta della DIVISIONE. Dal 28 agosto 2026 la fotografia porta tutte le postazioni
+            // del mondo (si archiviano), ma la cache è quella che accende il pallino «in frequenza», risolve i
+            // punti di trasferimento e decide chi è online nelle pagine: metterci dentro il pianeta vorrebbe
+            // dire mostrare come vicino di casa un APP brasiliano.
             var atcs = snapshot.Atc
+                .Where(a => !a.IsOutsideDivision)
                 .Select(a => new OnlineAtc(a.Callsign, a.UserId, $"UserId {a.UserId}", a.Rating))
                 .ToList();
             var callsigns = new HashSet<string>(
@@ -103,8 +108,9 @@ public sealed class AtcPollingHostedService : BackgroundService
                 AsOf = snapshot.AsOf,
             });
 
-            _log.LogInformation("Poll IVAO: {Count} ATC divisione online, {Piloti} piloti nella fotografia.",
-                atcs.Count, snapshot.Pilots.Count);
+            _log.LogInformation(
+                "Poll IVAO: {Count} ATC divisione online, {Mondo} fuori divisione, {Piloti} piloti nella fotografia.",
+                atcs.Count, snapshot.Atc.Count - atcs.Count, snapshot.Pilots.Count);
 
             await RegistraSessioniAsync(scope, snapshot, ct);
             await RegistraTrafficoAsync(scope, snapshot, ct);
@@ -170,6 +176,10 @@ public sealed class AtcPollingHostedService : BackgroundService
     {
         foreach (var atc in snapshot.Atc)
         {
+            // Solo la divisione: le piste servono a raccontare il turno di un controllore italiano, e la
+            // sequenza di configurazioni del resto del mondo sarebbe una riga ogni cambio d'ATIS del pianeta.
+            if (atc.IsOutsideDivision) continue;
+
             var piste = AtisRunways.Leggi(atc.AtisLines);
             if (piste.Vuoto) continue;
 

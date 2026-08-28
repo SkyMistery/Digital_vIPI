@@ -51,12 +51,15 @@ internal static class CacheDelleLettureAnonime
     ///   <item><c>/live</c> — è viva per definizione.</item>
     ///   <item><c>/search</c>, <c>/changed</c> — dipendono dai permessi di chi cerca.</item>
     ///   <item><c>/auth</c> — login e logout non si tengono da parte, mai.</item>
+    ///   <item><c>/stats/world</c> — l'archivio delle connessioni è roba di staff, ma vive sotto
+    ///         <c>/services/stats</c> e non porta la parola <c>admin</c> nell'indirizzo: senza questa riga
+    ///         sarebbe l'unica schermata di staff di cui si terrebbe una copia.</item>
     /// </list>
     /// </summary>
     private static readonly string[] SegmentiEsclusi =
     {
         "/admin", "/editor", "/new-document", "/pending", "/versions", "/tasks",
-        "/live", "/search", "/changed", "/auth",
+        "/live", "/search", "/changed", "/auth", "/stats/world",
     };
 
     public static IApplicationBuilder UseVipiCacheDelleLettureAnonime(this WebApplication app)

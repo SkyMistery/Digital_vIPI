@@ -2551,4 +2551,22 @@
   <data name="Mil_LinkFromCivil" xml:space="preserve"><value>vSOP militare</value></data>
   <data name="Mil_LinkToCivil" xml:space="preserve"><value>vIPI civile</value></data>
   <data name="Mil_Created" xml:space="preserve"><value>vSOP militare creato per {0}: ora è una bozza, va compilato e pubblicato.</value></data>
+  <data name="World_Title" xml:space="preserve"><value>Archivio ATC</value></data>
+  <data name="World_Subtitle" xml:space="preserve"><value>Tutte le postazioni ATC viste dal poller, divisione e resto del mondo: quando hanno aperto e quando le abbiamo perse di vista. Dodici mesi.</value></data>
+  <data name="World_StaffOnly" xml:space="preserve"><value>L'archivio delle connessioni lo vede lo staff.</value></data>
+  <data name="World_Scope" xml:space="preserve"><value>Fetta</value></data>
+  <data name="World_ScopeAll" xml:space="preserve"><value>Tutte</value></data>
+  <data name="World_ScopeWorld" xml:space="preserve"><value>Fuori divisione</value></data>
+  <data name="World_ScopeDivision" xml:space="preserve"><value>Divisione</value></data>
+  <data name="World_Callsign" xml:space="preserve"><value>Callsign</value></data>
+  <data name="World_Vid" xml:space="preserve"><value>VID</value></data>
+  <data name="World_OnlyOpen" xml:space="preserve"><value>Solo aperte adesso</value></data>
+  <data name="World_Search" xml:space="preserve"><value>Cerca</value></data>
+  <data name="World_Empty" xml:space="preserve"><value>Nessuna connessione con questi filtri.</value></data>
+  <data name="World_Found" xml:space="preserve"><value>{0} righe mostrate su {1} trovate.</value></data>
+  <data name="World_Open" xml:space="preserve"><value>aperta</value></data>
+  <data name="World_Start" xml:space="preserve"><value>Apertura</value></data>
+  <data name="World_End" xml:space="preserve"><value>Chiusura</value></data>
+  <data name="World_Duration" xml:space="preserve"><value>Durata</value></data>
+  <data name="World_ApiHint" xml:space="preserve"><value>Le stesse righe si leggono a macchina da /vsop/api/v1/atc/sessions (parametri: from, to, callsign, vid, open, scope, limit, offset).</value></data>
 </root>

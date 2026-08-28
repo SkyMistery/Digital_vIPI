@@ -41,6 +41,22 @@ public class AtcSession
     /// <summary>Rating ATC al momento della connessione.</summary>
     public int? Rating { get; set; }
 
+    /// <summary>
+    /// Vero se il callsign <b>non</b> appartiene ai prefissi della divisione: è una postazione del resto del
+    /// mondo, archiviata dal 28 agosto 2026 e basta.
+    ///
+    /// <para><b>Perché negativa.</b> Un bool NOT NULL nuovo nasce <c>false</c> su ogni provider — migrazione,
+    /// <c>EnsureCreated</c> e <c>PostgresSchemaReconciler</c> — e le 21 133 righe già in archivio sono
+    /// <b>tutte</b> di divisione (verificato: zero callsign non-<c>LI</c>). Con la forma positiva
+    /// («IsDivision») quel default avrebbe dichiarato straniero tutto lo storico italiano, che è esattamente
+    /// la trappola dei flag opt-out già pagata una volta. Così il default è <b>già il valore vero</b>.</para>
+    ///
+    /// <para>⚠️ Queste righe sono <b>archivio e basta</b>: non entrano nelle statistiche, non hanno traffico
+    /// attribuito (l'AoR è italiana), non hanno piste da ATIS e non confluiscono nel riassunto mensile. Chi
+    /// legge le sessioni per contare qualcosa passa da <c>AtcSessionScope.DiDivisione</c>.</para>
+    /// </summary>
+    public bool IsOutsideDivision { get; set; }
+
     public AtcSessionSource Source { get; set; }
 
     /// <summary>

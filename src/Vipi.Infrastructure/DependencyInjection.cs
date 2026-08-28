@@ -177,6 +177,9 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IAtcTrafficStore, EfAtcTrafficStore>();
         services.AddScoped<Vipi.Application.Abstractions.ISectorVolumeCatalog, EfSectorVolumeCatalog>();
         services.AddScoped<Vipi.Application.Abstractions.IAtcStatsQueries, EfAtcStatsQueries>();
+        // Lettura grezza dell'archivio (divisione + resto del mondo): la usano la pagina staff e l'endpoint
+        // macchina. Porta separata da quella delle statistiche apposta — quella conta, questa mostra.
+        services.AddScoped<Vipi.Application.Abstractions.IAtcArchiveQueries, EfAtcArchiveQueries>();
         services.AddScoped<Vipi.Application.Abstractions.IStatsSettingsStore, EfStatsSettingsStore>();
         services.AddScoped<Vipi.Application.Abstractions.IStatsAccessLog, EfStatsAccessLog>();
         // Traffico d'aeroporto consolidato: quanto ce n'era e quanto ha trovato un controllore acceso.

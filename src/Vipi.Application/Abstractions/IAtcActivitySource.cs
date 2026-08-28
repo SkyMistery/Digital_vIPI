@@ -1,4 +1,4 @@
-namespace Vipi.Application.Abstractions;
+﻿namespace Vipi.Application.Abstractions;
 
 /// <summary>
 /// Una connessione ATC vista dalla sorgente, in un istante. DTO <b>neutro</b>: nessun nome della rete
@@ -16,6 +16,10 @@ namespace Vipi.Application.Abstractions;
 /// autorevole, più affidabile di una differenza calcolata da noi fra due istanti.</param>
 /// <param name="AtisLines">Righe dell'ATIS trasmesso, se ce n'è uno: da lì si leggono le piste in uso
 /// (misurato: la fotografia le porta per ogni ATC, e 48 su 71 nominano una pista).</param>
+/// <param name="IsOutsideDivision">Vero se il callsign non è di un prefisso della divisione. La fotografia
+/// le porta <b>tutte</b> dal 28 agosto 2026, e questa è la sola cosa che le distingue: la sorgente non
+/// espone nessun campo «divisione» (verificato sul whazzup vero), quindi il confine resta il prefisso del
+/// callsign e lo decide l'adattatore, che è l'unico posto dove sta la configurazione della divisione.</param>
 public sealed record SourceAtcConnection(
     long SessionId,
     int UserId,
@@ -25,7 +29,8 @@ public sealed record SourceAtcConnection(
     int Rating,
     DateTimeOffset StartUtc,
     int ConnectedSeconds,
-    IReadOnlyList<string>? AtisLines = null);
+    IReadOnlyList<string>? AtisLines = null,
+    bool IsOutsideDivision = false);
 
 /// <summary>
 /// La posizione di un aeroplano in un istante, più quel che serve a capire <b>chi</b> è e <b>cosa</b> sta

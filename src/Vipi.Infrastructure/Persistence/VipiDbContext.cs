@@ -605,6 +605,13 @@ public class VipiDbContext : DbContext
             e.HasIndex(x => new { x.Callsign, x.StartUtc });  // «chi ha tenuto questa postazione»
             e.HasIndex(x => x.StartUtc);                      // finestre temporali (mese, anno, copertura)
             e.HasIndex(x => x.ShiftKey);                      // raccolta degli spezzoni in turni
+
+            // ⚠️ Dal 28 agosto 2026 in tabella c'è anche il resto del mondo, che è la maggioranza delle
+            // righe: le finestre temporali delle statistiche («il mese scorso», «l'anno») filtrano SEMPRE
+            // anche sulla divisione, e senza questo indice diventerebbero una scansione su dieci volte le
+            // righe di prima. Gli altri tre indici reggono da soli perché partono da una colonna selettiva
+            // (VID, callsign, turno).
+            e.HasIndex(x => new { x.IsOutsideDivision, x.StartUtc });
         });
 
         b.Entity<AtcSessionTraffic>(e =>
