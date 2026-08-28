@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Auth;
 using Vipi.Application.Content;
@@ -30,6 +30,7 @@ public class ElencoMilitareTests : IAsyncLifetime
     private sealed class AllowAuthz : IEditAuthorizationService
     {
         public bool IsAdmin => true;
+        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
         public int? CurrentUserId => 42;
         public string? CurrentName => "test";
         public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => Task.CompletedTask;

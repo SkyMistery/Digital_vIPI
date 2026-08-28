@@ -32,6 +32,7 @@ public class VloaDocumentViewTests : TestContext
     private sealed class NoEditor : IEditAuthorizationService
     {
         public bool IsAdmin => false;
+        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
         public int? CurrentUserId => null;
         public string? CurrentName => null;
         public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => Task.CompletedTask;

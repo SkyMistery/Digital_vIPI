@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Application.Content;
 using Vipi.Application.Routing;
@@ -378,6 +378,7 @@ public class WorkListServiceTests
         public AuthzFinta(bool admin, int? io) { _admin = admin; _io = io; }
 
         public bool IsAdmin => _admin;
+        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
         public int? CurrentUserId => _io;
         public string? CurrentName => "Chi Lavora";
         public void EnsureAdmin() { if (!_admin) throw new EditNotAllowedException(); }

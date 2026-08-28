@@ -1,8 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Auth;
 using Vipi.Domain.Services;
 using Vipi.Infrastructure.Persistence;
 using Vipi.MilSopLoader;
+using Vipi.Domain;
 
 // -----------------------------------------------------------------------------------------------
 // Vipi.MilSopLoader — carica un SOP militare TRASCRITTO nel documento del campo (28 agosto 2026).
@@ -111,6 +112,7 @@ file sealed class AutorizzazioneDelloStrumento : IEditAuthorizationService
     public AutorizzazioneDelloStrumento(int vid) => _vid = vid;
 
     public bool IsAdmin => true;
+    public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
     public int? CurrentUserId => _vid;
     public string? CurrentName => "MilSopLoader";
     public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => Task.CompletedTask;

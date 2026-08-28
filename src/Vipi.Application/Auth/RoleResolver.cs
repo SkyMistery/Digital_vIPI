@@ -85,6 +85,32 @@ public sealed class RoleResolver
         return VipiRole.IvaoStaff;
     }
 
+    /// <summary>
+    /// Il livello <b>effettivo</b>: <c>max</c> fra quello garantito dall'identità IVAO e la promozione
+    /// scritta a mano.
+    ///
+    /// <para><b>Il pavimento non è un controllo: è questo <c>max</c>.</b> «Nessuno si declassa sotto ciò
+    /// che la sua posizione staff gli garantisce» non è una regola da scrivere e da ricordarsi di
+    /// applicare — è ciò che <c>max</c> fa già, e in un posto solo. Un declassamento sotto il pavimento
+    /// non è vietato: è <b>inerte</b>.</para>
+    ///
+    /// <para>⚠️ Siccome è inerte <b>e silenzioso</b>, la pagina che assegna i livelli deve mostrare
+    /// disabilitati quelli sotto il pavimento: un comando che accetta e non fa niente è peggio di un
+    /// comando che non c'è.</para>
+    /// </summary>
+    public VipiRole Effective(CurrentUser? user, VipiRole? overrideLevel)
+    {
+        var daStaff = Resolve(user);
+        return overrideLevel is { } o && o > daStaff ? o : daStaff;
+    }
+
+    /// <inheritdoc cref="Effective(CurrentUser?, VipiRole?)"/>
+    public VipiRole Effective(int userId, IEnumerable<string>? staffPositions, VipiRole? overrideLevel)
+    {
+        var daStaff = Resolve(userId, staffPositions);
+        return overrideLevel is { } o && o > daStaff ? o : daStaff;
+    }
+
     /// <summary>Quali fra i codici dati fanno scattare un livello: serve alla diagnostica per dire <i>perché</i>.</summary>
     public IReadOnlyList<string> MatchingCodes(IEnumerable<string> codes, VipiRole level)
     {

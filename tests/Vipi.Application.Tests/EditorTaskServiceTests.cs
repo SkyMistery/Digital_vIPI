@@ -376,6 +376,7 @@ public class EditorTaskServiceTests
         public AuthzFinta(int? userId, bool admin, bool puo) { CurrentUserId = userId; IsAdmin = admin; _puo = puo; }
 
         public bool IsAdmin { get; }
+        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
         public int? CurrentUserId { get; }
         public string? CurrentName => CurrentUserId is null ? null : $"VID {CurrentUserId}";
         public void EnsureAdmin() { if (!IsAdmin) throw new EditNotAllowedException(); }

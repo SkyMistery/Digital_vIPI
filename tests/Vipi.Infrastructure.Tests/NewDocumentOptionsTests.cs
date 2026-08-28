@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Auth;
 using Vipi.Application.Content;
@@ -140,6 +140,7 @@ public class NewDocumentOptionsTests : IAsyncLifetime
         public Authz(string? acc) => _acc = acc;
 
         public bool IsAdmin => _acc is null;
+        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
         public int? CurrentUserId => 704798;
         public string? CurrentName => "test";
         public Task<bool> CanEditAccAsync(string accCode, CancellationToken ct = default) =>

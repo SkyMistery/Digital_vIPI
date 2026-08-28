@@ -410,6 +410,7 @@ public class AppDocumentServiceTests : IAsyncLifetime
     private sealed class AllowAuthz : IEditAuthorizationService
     {
         public bool IsAdmin => true;
+        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
         public int? CurrentUserId => 1;
         public string? CurrentName => "test";
         public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => Task.CompletedTask;

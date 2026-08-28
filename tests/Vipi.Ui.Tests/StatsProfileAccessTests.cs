@@ -7,6 +7,7 @@ using Vipi.Application.Stats;
 using Vipi.Ui;
 using Vipi.Ui.Pages;
 using Xunit;
+using Vipi.Domain;
 
 namespace Vipi.Ui.Tests;
 
@@ -39,6 +40,7 @@ public class StatsProfileAccessTests : TestContext
     private sealed class FakeAuthz : IEditAuthorizationService
     {
         public bool IsAdmin { get; set; }
+        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
         public int? CurrentUserId => null;
         public string? CurrentName => null;
         public Task EnsureCanEditAccAsync(string a, CancellationToken ct = default) => Task.CompletedTask;

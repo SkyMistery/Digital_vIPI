@@ -62,7 +62,7 @@ public class SectorProjectionTests : IAsyncLifetime
 
         var provider = new FakeUser { User = new CurrentUser(1, "Admin", "LIRR", new[] { "IT-AOC" }) };
         var authz = new EditAuthorizationService(provider, new EfEditGrantRepository(_db),
-            Options.Create(new AuthOptions()), Options.Create(new DivisionOptions()));
+            new Vipi.Application.Auth.RoleResolver(new Vipi.Application.Auth.AuthOptions(), new Vipi.Application.DivisionOptions()), SenzaPromozioni.Instance);
         _proj = new EfSectorProjectionService(_db);
         _hier = new EfHierarchyEditingService(_db, authz, _proj,
             Options.Create(new Vipi.Application.NeighboursOptions()), Options.Create(new DivisionOptions()));

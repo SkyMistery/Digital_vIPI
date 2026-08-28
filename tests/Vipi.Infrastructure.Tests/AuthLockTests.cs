@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
@@ -45,8 +45,7 @@ public class AuthLockTests : IAsyncLifetime
         var provider = new FakeUser { User = user };
         var grants = new EfEditGrantRepository(_db);
         var authz = new EditAuthorizationService(provider, grants,
-            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.Auth.AuthOptions()),
-            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.DivisionOptions()));
+            new Vipi.Application.Auth.RoleResolver(new Vipi.Application.Auth.AuthOptions(), new Vipi.Application.DivisionOptions()), SenzaPromozioni.Instance);
         var editing = new EditingService(new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db)), authz,
             Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()));
         return (editing, authz, grants);
@@ -60,17 +59,26 @@ public class AuthLockTests : IAsyncLifetime
         Assert.True(draftId > 0);
     }
 
+    /// <summary>
+    /// ⚠️ <b>Dal 28 agosto 2026 il chief d'ACC non è più admin: è Editor.</b> Cura i documenti — tutti, non
+    /// solo la sua ACC — e non distribuisce permessi. Il test è rimasto lo stesso caso, ma la colonna
+    /// attesa è cambiata: è qui che si legge il cambio di regola.
+    /// </summary>
     [Theory]
-    [InlineData("LIRR-CH", true)]     // chief ACC → admin completo
-    [InlineData("LIMM-ACH", true)]    // assistant chief ACC → admin completo
-    [InlineData("IT-DIR", true)]      // ruolo di divisione → admin
-    [InlineData("LIRR-TC", false)]    // altro ruolo ACC → non admin
-    [InlineData("LIRR-CHX", false)]   // suffisso non esatto → non admin
-    public void Acc_Chief_Roles_Are_Admin(string staffCode, bool expectedAdmin)
+    [InlineData("LIRR-CH", VipiRole.Editor)]           // chief ACC → cura i documenti
+    [InlineData("LIMM-ACH", VipiRole.Editor)]          // assistant chief ACC → idem
+    [InlineData("IT-DIR", VipiRole.Admin)]             // direzione della divisione → admin
+    [InlineData("IT-AOA1", VipiRole.DivisionStaff)]    // staff nostro fuori dagli otto → solo statistiche
+    [InlineData("LIRR-TC", VipiRole.IvaoStaff)]        // altro ruolo ACC → nessun permesso qui
+    [InlineData("LIRR-CHX", VipiRole.IvaoStaff)]       // suffisso non esatto → i pattern sono ancorati
+    public void Il_livello_segue_il_codice_staff(string staffCode, VipiRole atteso)
     {
         var user = new CurrentUser(42, "Tizio", "LIRR", new[] { staffCode });
         var (_, authz, _) = Build(user);
-        Assert.Equal(expectedAdmin, authz.IsAdmin);
+
+        Assert.Equal(atteso, authz.Role);
+        Assert.Equal(atteso >= VipiRole.Admin, authz.IsAdmin);
+        Assert.Equal(atteso >= VipiRole.Editor, authz.IsEditor);
     }
 
     [Fact]

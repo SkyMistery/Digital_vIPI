@@ -1,6 +1,6 @@
-using Microsoft.Extensions.Options;
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Diagnostics;
+using Vipi.Domain;
 
 namespace Vipi.Application.Auth;
 
@@ -29,10 +29,11 @@ public sealed record AdminCoverage(IReadOnlyList<string> Patterns, IReadOnlyList
 /// Risponde a una domanda che finora nessuno poneva: <b>i codici admin configurati corrispondono a quelli
 /// veri di IVAO?</b>
 ///
-/// <para>Dal 22 agosto 2026 il lato divisione <b>non è più un'ipotesi</b>: vale admin qualunque
-/// <c>^IT-[A-Z0-9]+$</c>, perché lo staff di divisione è admin per decisione del committente, e quel formato
-/// è stato osservato davvero ai login. Resta un'ipotesi il lato ACC (<c>^LI[A-Z0-9]+-CH$</c>): nessun codice
-/// chief è ancora comparso. Se sbaglia, i due modi di rompersi non si somigliano —
+/// <para>Dal 28 agosto 2026 admin sono <b>otto codici puntuali</b> di direzione (<c>IT-DIR</c>,
+/// <c>IT-ADIR</c>, <c>IT-WM</c>, <c>IT-AWM</c>, <c>IT-AOC</c>, <c>IT-AOAC</c>, <c>IT-SOC</c>,
+/// <c>IT-SOAC</c>) più i fondatori per VID; il resto dello staff <c>IT-</c> è <c>DivisionStaff</c> e i
+/// chief d'ACC sono <c>Editor</c>. ⚠️ Questa diagnosi guarda <b>solo il livello admin</b>, che è quello
+/// che, mancando, non si ripara da dentro. Se sbaglia, i due modi di rompersi non si somigliano —
 /// <b>nessuno è admin</b> significa che in produzione nessuno può editare nulla e non lo si può nemmeno
 /// rimediare da dentro (distribuire i permessi richiede di essere admin); <b>troppi admin</b> significa dare
 /// il controllo editoriale a chi non doveva averlo. Il primo è silenzioso, il secondo lo è ancora di più.</para>
@@ -55,24 +56,25 @@ public interface IAdminCoverageService
 public sealed class AdminCoverageService : IAdminCoverageService
 {
     private readonly IStaffRosterRepository _roster;
-    private readonly IReadOnlyList<string> _patterns;
+    private readonly RoleResolver _resolver;
 
-    public AdminCoverageService(IStaffRosterRepository roster, IOptions<AuthOptions> auth,
-        IOptions<DivisionOptions> division)
+    // I pattern non si ricalcolano qui: sono quelli del RoleResolver, cioè gli stessi che l'autorizzazione
+    // usa davvero. Una diagnosi che se li ricostruisse per conto proprio potrebbe dire «va tutto bene»
+    // mentre il prodotto ne applica altri — e perderebbe l'unica proprietà che la rende utile.
+    public AdminCoverageService(IStaffRosterRepository roster, RoleResolver resolver)
     {
         _roster = roster;
-        _patterns = AdminStaffCodes.Patterns(auth.Value, division.Value);
+        _resolver = resolver;
     }
 
     public async Task<AdminCoverage> DescribeAsync(CancellationToken ct = default)
     {
-        var compilati = AdminStaffCodes.Compile(_patterns);
         var righe = (await _roster.ListActiveAsync(ct))
             .Select(s => new AdminCodeRow(s.UserId, s.DisplayName, s.StaffPositions,
-                AdminStaffCodes.Matching(s.StaffPositions, compilati)))
+                _resolver.MatchingCodes(s.StaffPositions, VipiRole.Admin)))
             .ToList();
 
-        return new AdminCoverage(_patterns, righe);
+        return new AdminCoverage(_resolver.AdminPatterns, righe);
     }
 
     public async Task<IReadOnlyList<ConsistencyFinding>> RunAsync(CancellationToken ct = default)
@@ -89,8 +91,9 @@ public sealed class AdminCoverageService : IAdminCoverageService
             new ConsistencyFinding("Nessun admin fra gli staffisti conosciuti", ConsistencySeverity.Error,
                 $"{c.Rows.Count} staffisti nel roster",
                 $"Nessuno dei codici staff osservati combacia coi pattern admin in vigore ({string.Join(" | ", c.Patterns)}). " +
-                $"Codici visti e non riconosciuti: {visti}. Finché è così nessuno può editare né assegnare permessi, " +
-                "e la cosa non si sblocca da dentro: si corregge «Auth:AdminStaffCodes» o la sezione «Division».",
+                $"Codici visti e non riconosciuti: {visti}. Finché è così nessuno può assegnare permessi, " +
+                "e la cosa non si sblocca da dentro: si corregge «Auth:AdminRoles» (o «Auth:AdminStaffCodes» " +
+                "per sostituirli tutti), oppure si mette un VID in «Auth:FounderVids».",
                 // ⚠️ Nessuna rotta: questo NON si ripara da dentro l'applicazione — è proprio ciò che il
                 // rilievo dice. Mandare a /services/vsop/admin/permissions sarebbe mandare a una porta chiusa.
                 ConsistencyArea.Configurazione,

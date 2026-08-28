@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Auth;
 using Vipi.Application.Content;
@@ -139,6 +139,7 @@ public class DocumentAdminLockGuardTests : IAsyncLifetime
         public AuthzFinta(int userId, bool puo = true) { CurrentUserId = userId; _puo = puo; }
 
         public bool IsAdmin => _puo;
+        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
         public int? CurrentUserId { get; }
         public string? CurrentName => $"VID {CurrentUserId}";
         public void EnsureAdmin() { if (!_puo) throw new EditNotAllowedException(); }

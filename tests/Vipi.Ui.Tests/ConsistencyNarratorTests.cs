@@ -179,8 +179,8 @@ public class ConsistencyNarratorTests
 
         var senzaAdmin = new Vipi.Application.Auth.AdminCoverageService(
             new RosterSenzaAdmin(),
-            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.Auth.AuthOptions()),
-            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.DivisionOptions()));
+            new Vipi.Application.Auth.RoleResolver(
+                new Vipi.Application.Auth.AuthOptions(), new Vipi.Application.DivisionOptions()));
         foreach (var f in senzaAdmin.RunAsync().GetAwaiter().GetResult()) yield return f;
     }
 

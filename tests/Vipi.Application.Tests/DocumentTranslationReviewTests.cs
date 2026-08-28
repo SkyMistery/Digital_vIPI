@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Application.Content;
 using Vipi.Application.Translation;
@@ -34,6 +34,7 @@ public class DocumentTranslationReviewTests
     {
         public bool Negato { get; set; }
         public bool IsAdmin => true;
+        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
         public int? CurrentUserId => 42;
         public string? CurrentName => "chi corregge";
         public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => Task.CompletedTask;

@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Vipi.Application;
@@ -105,7 +105,7 @@ public class GenerateAirportDocumentPolicyTests : IAsyncLifetime
     {
         var provider = new FakeUser { User = new CurrentUser(1, "Admin", "LIRR", new[] { "IT-AOC" }) };
         var authz = new EditAuthorizationService(provider, new EfEditGrantRepository(_db),
-            Options.Create(new AuthOptions()), Options.Create(new DivisionOptions()));
+            new Vipi.Application.Auth.RoleResolver(new Vipi.Application.Auth.AuthOptions(), new Vipi.Application.DivisionOptions()), SenzaPromozioni.Instance);
         var sectors = new EfAirportSectorRepository(_db);
         var importer = new AirportSectorImporter(det, sectors, _policy);
         return new StructureEditingService(

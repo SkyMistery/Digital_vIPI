@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Vipi.Application.Aor;
@@ -177,6 +177,7 @@ public class VloaUnaPerCoppiaTests : IAsyncLifetime
     private sealed class PermettiTutto : Vipi.Application.Auth.IEditAuthorizationService
     {
         public bool IsAdmin => true;
+        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
         public int? CurrentUserId => 111;
         public string? CurrentName => "test";
         public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => Task.CompletedTask;

@@ -3,9 +3,10 @@
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Sostituisce la decisione del 22 agosto sera
 > («lo staff di divisione è admin, tutto» — memoria `staff-code-reali`, riflessa in
 > `DivisionOptions.AdminRolePatterns`), che resta valida come **storia** e non più come regola.
-> **Stato: slice 0, 1 e 2 chiuse (28 agosto 2026, notte).** Il modello e la persistenza esistono e sono
-> provati; niente è ancora cablato, il prodotto si comporta esattamente come prima. Ramo
-> `autorizzazioni-a-livelli`, aperto da `main` dopo la fusione del glossario di fraseologia.
+> **Stato: slice 0, 1, 2 e 3 chiuse (28 agosto 2026, notte).** Il livello è ora quello che il prodotto
+> usa davvero. ⚠️ **Da qui il ramo NON è deployabile fino alla slice 5**: i chief d'ACC sono diventati
+> `Editor` ma i cancelli delle pagine guardano ancora `IsAdmin`, quindi in questo stato intermedio non
+> aprirebbero niente. Ramo `autorizzazioni-a-livelli`, aperto da `main` dopo la fusione del glossario.
 
 ## 1. Perché
 
@@ -188,7 +189,7 @@ col suo commento sul jolly, la scheda «Chi può editare» della diagnostica, la
 | ✅ 0 | fusione del glossario, ramo nuovo | build Release su entrambi i TFM: 0 avvisi |
 | ✅ 1 | `VipiRole` + `RoleResolver` puro + test di tabella | **47 test nuovi verdi**, niente cablato |
 | ✅ 2 | `RoleOverride` + migrazione **doppia** (SQLite e MySql) + cache singleton | **19 test nuovi verdi** |
-| 3 | il servizio: `Role`, `IsEditor`, `EnsureAtLeast`; `IsAdmin` **conserva il significato**; muoiono `AdminStaffCodes` e le due liste legacy di `DivisionOptions` | suite verde senza toccare i 160 usi |
+| ✅ 3 | il servizio: `Role`, `IsEditor`, `EnsureAtLeast`; `IsAdmin` **conserva il significato**; muoiono `AdminStaffCodes` e le due liste legacy di `DivisionOptions` | suite verde, **i 160 usi non toccati** |
 | 4 | morte delle concessioni: entità, repo, metodi async → sincroni | suite verde, meno codice |
 | 5 | i cancelli: `AdminNav` + le ~30 chiamate che scendono a Editor + le stats a DivisionStaff | test per rotta |
 | 6 | `/admin/permissions` riscritta | verifica live |
@@ -236,6 +237,32 @@ MariaDB passa da ventuno a **ventidue**.
 
 ⚠️ **La coda al cutover MariaDB è ora VENTIDUE**, e i due id sono `20260828212030` (SQLite) /
 `20260828212039` (MySql) — la stessa migrazione, nove secondi di distanza, due identificativi.
+
+## 10-ter. Che cosa è entrato con la slice 3
+
+Il livello smette di essere una prova e diventa la regola: `IEditAuthorizationService` espone `Role`,
+`IsEditor`, `IsDivisionStaff` ed `EnsureAtLeast(livello)`; `IsAdmin` **conserva il significato**
+(`Role >= Admin`), e infatti **nessuno dei 160 usi è stato toccato**. Muoiono `AdminStaffCodes` e le due
+liste legacy di `DivisionOptions`.
+
+- ⚠️ **Da questa slice il comportamento cambia davvero.** Un `IT-AOA1` non è più admin, un `LIRR-CH`
+  nemmeno — è `Editor`. E siccome i cancelli delle pagine guardano ancora `IsAdmin` fino alla slice 5,
+  **il ramo in questo stato non va messo in produzione**: aprirebbe di meno, non di più.
+- **I predicati derivati e il cancello hanno un'implementazione di default sull'interfaccia.** Non è
+  pigrizia: `IsEditor`, `IsDivisionStaff` ed `EnsureAtLeast` sono la stessa domanda a soglie diverse, e
+  nessuna implementazione ha una ragione legittima per rispondere in modo suo. Scriverle a mano avrebbe
+  significato **ventitré occasioni** di sbagliare un `>=` sul permesso più alto del prodotto — tante sono
+  le classi finte che implementano l'interfaccia.
+- **Il `max` sta in un posto solo**, `RoleResolver.Effective`: lo useranno anche la pagina dei permessi e
+  la diagnostica, e due copie di un `max` sono due modi di calcolare il pavimento.
+- **La diagnostica «Chi può editare» ora legge i pattern dal `RoleResolver`**, cioè gli stessi che
+  l'autorizzazione applica davvero. ⚠️ Guarda il **solo livello admin**: è quello che, mancando, non si
+  ripara da dentro.
+- **Due test hanno cambiato colonna, non forma**: il chief d'ACC non è più admin (`AuthLockTests`) e un
+  roster di soli chief risulta **senza admin** (`AdminCoverageTests`). È lì che il cambio di regola si
+  legge, ed è giusto che si legga in un test.
+- `AdminCodeTests` → **`LivelloEffettivoTests`**: il file rispondeva a «questo codice è admin?», quando le
+  risposte possibili erano due. Ora sono cinque e la domanda è un'altra, quindi il nome doveva cambiare.
 
 ## 11. Le due decisioni che mancavano — ✅ chiuse il 28 agosto, notte
 

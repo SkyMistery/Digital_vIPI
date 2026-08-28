@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Auth;
 using Vipi.Domain;
@@ -95,6 +95,7 @@ public class CancellazioniStrutturaliNelRegistroTests : IAsyncLifetime
     private sealed class AttoreFinto : IEditAuthorizationService
     {
         public bool IsAdmin => true;
+        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
         public int? CurrentUserId => 7;
         public string? CurrentName => "test";
         public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => Task.CompletedTask;

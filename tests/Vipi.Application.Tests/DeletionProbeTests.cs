@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
 using Vipi.Application.Content;
@@ -300,6 +300,7 @@ public class DeletionProbeTests : IDisposable
     private sealed class AuthzFinta : IEditAuthorizationService
     {
         public bool IsAdmin => true;
+        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
         public int? CurrentUserId => 555;
         public string? CurrentName => "Chi Elimina";
         public void EnsureAdmin() { }

@@ -3958,7 +3958,33 @@ ruolo (guasto).
 ricaricare. ⚠️ **La coda al cutover MariaDB è ora VENTIDUE** — id `20260828212030` (SQLite) e
 `20260828212039` (MySql), la stessa migrazione con due identificativi.
 
+### U2-ter. Slice 3, il servizio — ✅ **CHIUSA** il 28 agosto, notte
+
+`Role`, `IsEditor`, `IsDivisionStaff`, `EnsureAtLeast(livello)`; `IsAdmin` **conserva il significato**
+(`Role >= Admin`) e infatti **nessuno dei 160 usi è stato toccato**. Morti `AdminStaffCodes` e le due liste
+legacy di `DivisionOptions`. La diagnostica «Chi può editare» legge ora i pattern dal `RoleResolver`.
+
+⚠️ **DA QUI IL RAMO NON È DEPLOYABILE FINO ALLA SLICE 5.** Il comportamento è cambiato — un `IT-AOA1` non
+è più admin, un `LIRR-CH` è `Editor` — ma i cancelli delle pagine guardano ancora `IsAdmin`: in questo
+stato intermedio il prodotto **aprirebbe di meno**, non di più.
+
+⚠️ **I predicati derivati e il cancello sono default sull'interfaccia**, perché ci sono **ventitré** classi
+finte che la implementano: scriverli a mano sarebbe stato ventitré occasioni di sbagliare un `>=` sul
+permesso più alto del prodotto. Il `max` sta in un posto solo, `RoleResolver.Effective`.
+
+⚠️ **Due test hanno cambiato colonna, non forma** — il chief d'ACC non è più admin, e un roster di soli
+chief risulta senza admin. È lì che il cambio di regola si legge. `AdminCodeTests` è diventato
+`LivelloEffettivoTests`: rispondeva a una domanda che non esiste più.
+
 ### U3. Le slice che restano 🟢
 
-3 (il servizio, e la morte di `AdminStaffCodes`), 4 (morte delle concessioni per ACC), 5 (i cancelli),
-6 (`/admin/permissions` riscritta), 7 (diagnostica, Guida, memorie).
+4 (morte delle concessioni per ACC), 5 (i cancelli), 6 (`/admin/permissions` riscritta), 7 (diagnostica,
+Guida, memorie).
+
+### U4. ⚠️ Gli E2E non girano finché l'host è acceso
+
+Scoperto qui, ma vale per tutto il repo: `Vipi.E2E.Tests` referenzia `Vipi.Host`, e finché il processo
+`Vipi.Host` è acceso (porta 5034, quello del committente — **non si spegne**) i suoi DLL sono bloccati e
+il progetto **non si costruisce**. Non compare fra i `Passed!` e **l'exit code di `dotnet test` è
+inaffidabile**: tre esecuzioni con lo stesso guasto hanno dato 0, 0 e 1. «Verde» si legge **contando i
+progetti** nel riepilogo, non dall'exit code.

@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
@@ -76,8 +76,7 @@ public class SidImporterAuthorizationTests : IAsyncLifetime
     {
         var provider = new FakeUser { User = user };
         var authz = new EditAuthorizationService(provider, new EfEditGrantRepository(_db),
-            Microsoft.Extensions.Options.Options.Create(new AuthOptions()),
-            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.DivisionOptions()));
+            new Vipi.Application.Auth.RoleResolver(new Vipi.Application.Auth.AuthOptions(), new Vipi.Application.DivisionOptions()), SenzaPromozioni.Instance);
 
         return new SidImporter(new UnaSid(), new EfAirportRepository(_db, new EfMediaMaintenance(_db)),
             new TuttoImportato(), new AiracService(), authz);

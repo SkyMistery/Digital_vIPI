@@ -1,4 +1,4 @@
-using Vipi.Application.Auth;
+﻿using Vipi.Application.Auth;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Services;
@@ -48,6 +48,7 @@ public class ShapeGateNoticeTests
         public List<int> DocChiesti = new();
 
         public bool IsAdmin => !Nega;
+        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
         public int? CurrentUserId => 1;
         public string? CurrentName => "Chi Pubblica";
         public void EnsureAdmin() { }

@@ -1,9 +1,10 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Infrastructure.Persistence;
 using Xunit;
+using Vipi.Domain;
 
 namespace Vipi.Infrastructure.Tests;
 
@@ -308,6 +309,7 @@ public class SpecialAreaImportTests : IAsyncLifetime
     private sealed class SempreSi : Vipi.Application.Auth.IEditAuthorizationService
     {
         public bool IsAdmin => true;
+        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
         public int? CurrentUserId => 1;
         public string? CurrentName => "test";
         public Task EnsureCanEditAccAsync(string accCode, CancellationToken ct = default) => Task.CompletedTask;
