@@ -3,9 +3,9 @@
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Sostituisce la decisione del 22 agosto sera
 > («lo staff di divisione è admin, tutto» — memoria `staff-code-reali`, riflessa in
 > `DivisionOptions.AdminRolePatterns`), che resta valida come **storia** e non più come regola.
-> **Stato: slice 0 e 1 chiuse (28 agosto 2026, notte).** Il modello esiste ed è provato; niente è ancora
-> cablato, il prodotto si comporta esattamente come prima. Ramo `autorizzazioni-a-livelli`, aperto da
-> `main` dopo la fusione del glossario di fraseologia.
+> **Stato: slice 0, 1 e 2 chiuse (28 agosto 2026, notte).** Il modello e la persistenza esistono e sono
+> provati; niente è ancora cablato, il prodotto si comporta esattamente come prima. Ramo
+> `autorizzazioni-a-livelli`, aperto da `main` dopo la fusione del glossario di fraseologia.
 
 ## 1. Perché
 
@@ -187,7 +187,7 @@ col suo commento sul jolly, la scheda «Chi può editare» della diagnostica, la
 |---|---|---|
 | ✅ 0 | fusione del glossario, ramo nuovo | build Release su entrambi i TFM: 0 avvisi |
 | ✅ 1 | `VipiRole` + `RoleResolver` puro + test di tabella | **47 test nuovi verdi**, niente cablato |
-| 2 | `RoleOverride` + migrazione **doppia** (SQLite e MySql) + cache singleton | test di persistenza |
+| ✅ 2 | `RoleOverride` + migrazione **doppia** (SQLite e MySql) + cache singleton | **19 test nuovi verdi** |
 | 3 | il servizio: `Role`, `IsEditor`, `EnsureAtLeast`; `IsAdmin` **conserva il significato**; muoiono `AdminStaffCodes` e le due liste legacy di `DivisionOptions` | suite verde senza toccare i 160 usi |
 | 4 | morte delle concessioni: entità, repo, metodi async → sincroni | suite verde, meno codice |
 | 5 | i cancelli: `AdminNav` + le ~30 chiamate che scendono a Editor + le stats a DivisionStaff | test per rotta |
@@ -213,6 +213,29 @@ MariaDB passa da ventuno a **ventidue**.
   della slice 5, che chiede un 403 al livello immediatamente sotto.
 - **La cache degli override che non si invalida**: una promozione che «non fa effetto» finché non si
   riavvia. Test dedicato nella slice 2.
+
+## 10-bis. Che cosa è entrato con la slice 2
+
+`RoleOverride` (in `Vipi.Domain/Entities/Support.cs`, **chiave = il VID**), `IRoleOverrideStore` +
+`EfRoleOverrideStore`, la cache `IRoleOverrides`/`RoleOverrideCache` e la migrazione `PromozioniAMano`
+**in entrambi gli insiemi** — puramente additiva, una `CreateTable` e basta. 19 test nuovi.
+
+- **La chiave è il VID, non un id di comodo.** «Una riga per persona» la garantisce la tabella: con una
+  chiave surrogata, promuovere due volte lascerebbe due righe e a decidere sarebbe l'ordine della query.
+- **Il livello va in colonna come parola** (`"Editor"`, non `3`), e c'è un test che lo legge in SQL nudo —
+  passando da EF la conversione renderebbe il test cieco proprio a ciò che prova. Un giorno quella tabella
+  la leggerà qualcuno da un pannello.
+- **La cache si carica all'avvio**, come quinta manutenzione (la prima della fila) in
+  `RunVipiStartupMaintenance`, e un suo guasto **non ferma l'avvio**: il fotogramma vuoto non nega niente a
+  nessuno, perché chi ha un livello per posizione staff ce l'ha comunque. Manca solo l'effetto delle
+  promozioni scritte a mano — un fastidio, non un guasto.
+- ⚠️ **`For()` torna `null` per "nessuna promozione", mai per "non lo so"**: chi chiama ricade sul livello
+  dello staff. È la differenza fra una promozione che tarda e un permesso negato a chi lo ha per ruolo.
+- ⚠️ **Il prezzo dichiarato del fotogramma**: una promozione fa effetto solo dopo una ricarica, e chi
+  scrive deve ricaricare. Due test lo tengono fermo, uno per la promozione e uno per il declassamento.
+
+⚠️ **La coda al cutover MariaDB è ora VENTIDUE**, e i due id sono `20260828212030` (SQLite) /
+`20260828212039` (MySql) — la stessa migrazione, nove secondi di distanza, due identificativi.
 
 ## 11. Le due decisioni che mancavano — ✅ chiuse il 28 agosto, notte
 

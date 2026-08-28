@@ -48,8 +48,49 @@ public class EditorTask
 }
 
 /// <summary>
+/// Promozione (o declassamento) a mano di una persona, per VID. Carta
+/// <c>docs/feature/2026-08-28-autorizzazioni-a-livelli.md</c> §5.
+///
+/// <para><b>Non è il livello di quella persona: è solo la metà scritta a mano.</b> Il livello effettivo è
+/// <c>max(quello garantito dalle posizioni staff IVAO, questo)</c> — e quel <c>max</c> è tutto il
+/// meccanismo del pavimento: «nessuno si declassa sotto ciò che la sua posizione staff gli garantisce» non
+/// è un controllo da scrivere, è ciò che <c>max</c> fa già. Una riga con un livello sotto il pavimento non
+/// è vietata: è <b>inerte</b>.</para>
+///
+/// <para><b>Una riga per persona</b> (la chiave è il VID, non un id di comodo): declassare non aggiunge una
+/// riga contraria, riscrive quella che c'è. Togliere del tutto una promozione è cancellare la riga.</para>
+///
+/// <para>⚠️ <b>La tabella si legge INTERA e si tiene in memoria</b> (<c>IRoleOverrides</c>): poche decine di
+/// righe, e la domanda «che livello ha questa persona?» arriva a <b>ogni</b> richiesta. Una <c>SELECT</c>
+/// per richiesta rimetterebbe nel layout la query che questa funzione toglie — cioè la causa prima delle
+/// corse sul <c>DbContext</c> di circuito.</para>
+/// </summary>
+public class RoleOverride
+{
+    /// <summary>VID IVAO della persona. È la chiave: una riga per persona, non un id di comodo.</summary>
+    public int UserId { get; set; }
+
+    /// <summary>Il livello assegnato a mano. Vale solo se è <b>sopra</b> quello garantito dallo staff.</summary>
+    public VipiRole Level { get; set; }
+
+    /// <summary>Chi ha firmato la promozione (VID dell'admin).</summary>
+    public int GrantedByUserId { get; set; }
+
+    public DateTime GrantedAtUtc { get; set; }
+
+    /// <summary>Perché, in una riga. Facoltativa, ma è l'unica cosa che spiega la riga fra sei mesi.</summary>
+    public string? Note { get; set; }
+
+    /// <summary>Nome per l'elenco, come per gli altri: il VID da solo non dice chi è.</summary>
+    public string? DisplayName { get; set; }
+}
+
+/// <summary>
 /// Concessione di editing: abilita un UserId a modificare TUTTI i documenti di una ACC (vIPI/aeroporto/vLOA,
 /// topologia, trasferimenti). Gli admin (staff IT-AO*) non hanno bisogno di grant. PIANO sicurezza.
+///
+/// <para>⚠️ <b>In via di eliminazione</b> (carta del 28 agosto 2026, slice 4): l'Editor edita tutto e le
+/// concessioni per ACC non servono più. In produzione sono già state cancellate tutte a mano.</para>
 /// </summary>
 public class EditGrant
 {

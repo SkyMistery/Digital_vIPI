@@ -12,11 +12,14 @@ agosto (merge `332f881`, `--no-ff`; fast-forward possibile, nessun conflitto), c
 ⚠️ **Il ramo remoto `origin/glossario-fraseologia` c'è ancora**: si cancella solo dopo aver spinto `main`,
 quando `git rev-list --count main..origin/glossario-fraseologia` dà **0**.
 
-🟢 **Il lavoro in corso è §U — le autorizzazioni a livelli.** Carta approvata dal committente
-(`docs/feature/2026-08-28-autorizzazioni-a-livelli.md`), **codice ancora da scrivere**, ramo
-`autorizzazioni-a-livelli`. L'interruttore unico `IsAdmin` (160 usi su 46 file) diventa un enum ordinato a
-cinque livelli cumulativi; l'Editor edita tutto; le concessioni per ACC si eliminano. Due cose da chiedere
-al committente prima della prima slice: il **VID del fondatore** e se `IT-AWM` è admin (vedi §U1).
+🟢 **Il lavoro in corso è §U — le autorizzazioni a livelli**, ramo `autorizzazioni-a-livelli`
+(carta: `docs/feature/2026-08-28-autorizzazioni-a-livelli.md`). L'interruttore unico `IsAdmin` (160 usi su
+46 file) diventa un enum ordinato a cinque livelli cumulativi; l'Editor edita tutto; le concessioni per
+ACC si eliminano.
+
+**Slice 0, 1 e 2 chiuse** (`VipiRole`, `RoleResolver` puro, `RoleOverride` + cache in memoria +
+migrazione doppia; 66 test nuovi). ⚠️ **Niente è ancora cablato**: a decidere sono `AdminStaffCodes` e le
+due liste legacy di `DivisionOptions`, che muoiono nella **slice 3**. Il prodotto si comporta come prima.
 
 ⚠️ Questa testata diceva `6644b5e` fino a stasera, cioè era **indietro di due fusioni**: nel frattempo erano
 entrati in `main` l'archivio ATC (`f120d5c`) e l'audit della lingua (`0a4f92e`). Un HANDOFF che dà lo SHA
@@ -29,8 +32,8 @@ conto era **2** fino alla fusione della notte del 28; ora è **0**, e il ramo re
 
 **Suite verde su net8 e net10** (Application 1348, Infrastructure 962/953, Ui 729, E2E 254, Domain 117,
 Hosting 57, AuroraProfiles 63, AuroraBridge 79, Assets 52 — **0 falliti**), build Release
-`--no-incremental` della soluzione intera **0 avvisi**, **una migrazione nuova** — `GlossarioFraseologia`,
-additiva, che porta la coda al cutover MariaDB a **ventuno**.
+`--no-incremental` della soluzione intera **0 avvisi**, **due migrazioni nuove** — `GlossarioFraseologia`
+e `PromozioniAMano`, entrambe additive, che portano la coda al cutover MariaDB a **ventidue**.
 
 ### ⚠️ 28 agosto, sera — il glossario di fraseologia (`lavori-aperti §Q3`)
 
@@ -103,7 +106,8 @@ chiave e distinguere i **quattro** motivi per cui una sezione resta vuota.
 
 ## Prima del prossimo deploy
 
-⚠️ **VENTUNO migrazioni in coda** al cutover MariaDB (la ventunesima è `GlossarioFraseologia`, che
+⚠️ **VENTIDUE migrazioni in coda** al cutover MariaDB (la ventiduesima è `PromozioniAMano`, additiva:
+crea `RoleOverrides`; la ventunesima è `GlossarioFraseologia`, che
 è ancora **sul ramo**, non in `main`). ✅ La **SELECT dei duplicati su `DocReleases`** non
 va più fatta a mano — non era nemmeno eseguibile, il 3306 del server sta sul suo `localhost`:
 `ReleaseNumberPreflight` la esegue all'avvio, subito prima di `Migrate()`, e se trova doppioni ferma la

@@ -84,6 +84,9 @@ public class VipiDbContext : DbContext
     public DbSet<AgreementAirport> AgreementAirports => Set<AgreementAirport>();
     public DbSet<AgreementClause> AgreementClauses => Set<AgreementClause>();
     public DbSet<EditGrant> EditGrants => Set<EditGrant>();
+
+    /// <summary>Le promozioni a mano: una riga per persona promossa. Carta del 28 agosto 2026 §5.</summary>
+    public DbSet<RoleOverride> RoleOverrides => Set<RoleOverride>();
     public DbSet<StaffMember> StaffMembers => Set<StaffMember>();
     public DbSet<AirportTransitionLevel> AirportTransitionLevels => Set<AirportTransitionLevel>();
     public DbSet<AirportRunway> AirportRunways => Set<AirportRunway>();
@@ -430,6 +433,18 @@ public class VipiDbContext : DbContext
             e.HasKey(x => x.UserId);
             e.Property(x => x.UserId).ValueGeneratedNever();   // il UserId è l'identità IVAO, non un id DB
             e.HasIndex(x => x.IsActive);
+        });
+
+        b.Entity<RoleOverride>(e =>
+        {
+            // ⚠️ La chiave è il VID, non un id di comodo: è la tabella stessa a garantire «una riga per
+            // persona». Con una chiave surrogata, promuovere due volte lascerebbe due righe e a decidere
+            // sarebbe l'ordine della query — cioè il caso, sul permesso più alto del prodotto.
+            e.HasKey(x => x.UserId);
+            e.Property(x => x.UserId).ValueGeneratedNever();   // il VID è l'identità IVAO, non un id DB
+            e.Property(x => x.Level).HasMaxLength(32);         // enum → stringa (SPEC §6)
+            e.Property(x => x.Note).HasMaxLength(500);
+            e.Property(x => x.DisplayName).HasMaxLength(120);
         });
 
         // --- Profilo strutturato aeroporto: tutte FK→Airport con cascade + ordinamento (AirportId, Order). ---

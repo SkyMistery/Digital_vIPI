@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
@@ -470,6 +470,9 @@ public static class VipiModuleExtensions
             ?.CreateLogger("Vipi.StartupMaintenance");
         var report = host.Services.GetService<Vipi.Application.Diagnostics.IStartupMaintenanceReport>();
 
+        // PRIMA delle riconciliazioni, perché è l'unica che serve a qualcuno appena il sito comincia a
+        // servire: finché non è girata, chi è stato promosso a mano vale quanto dice la sua posizione staff.
+        Isolata(host, log, report, "promozioni a mano in memoria", h => h.LoadVipiRoleOverrides());
         Isolata(host, log, report, "riconciliazioni documentali", h => h.ReconcileVipiDocuments());
         Isolata(host, log, report, "proiezione dei settori dai cataloghi", h => h.ProjectVipiSectors());
         Isolata(host, log, report, "backfill delle release effettive", h => h.BackfillVipiReleases());
@@ -494,6 +497,28 @@ public static class VipiModuleExtensions
                     "Manutenzione d'avvio «{Passata}» fallita: l'avvio prosegue e la segnalazione entra nella " +
                     "diagnostica. È idempotente: un riavvio riuscito la rifà.", nome);
         }
+    }
+
+    /// <summary>
+    /// Legge le promozioni a mano e le mette in memoria (<c>IRoleOverrides</c>). Carta
+    /// <c>docs/feature/2026-08-28-autorizzazioni-a-livelli.md</c> §6.
+    ///
+    /// <para><b>Perché all'avvio e non alla prima domanda.</b> «Che livello ha questa persona?» si chiede
+    /// dentro il markup, dove non si può attendere: la risposta dev'essere già in memoria quando arriva la
+    /// prima richiesta. Ed è anche il motivo per cui non è una query per richiesta — quella la
+    /// pagherebbe il layout di ogni pagina, che è il posto da cui sono già uscite due volte le corse sul
+    /// <c>DbContext</c> di circuito.</para>
+    ///
+    /// <para><b>Perché può fallire senza fermare l'avvio.</b> Il fotogramma vuoto non nega niente a
+    /// nessuno: chi ha un livello per posizione staff ce l'ha comunque, e a mancare sono solo le
+    /// promozioni scritte a mano. Un fastidio, non un guasto — e la segnalazione finisce in diagnostica.
+    /// Il contrario (fermare l'avvio) trasformerebbe una tabella illeggibile nel sito giù.</para>
+    /// </summary>
+    public static IHost LoadVipiRoleOverrides(this IHost host)
+    {
+        var overrides = host.Services.GetRequiredService<Vipi.Application.Auth.IRoleOverrides>();
+        overrides.ReloadAsync().GetAwaiter().GetResult();
+        return host;
     }
 
     /// <summary>Riconciliazioni documentali one-shot (doc 11): chiavi univoche per le sezioni libere nate con la

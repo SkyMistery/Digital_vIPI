@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Vipi.Infrastructure.Aor;
 using Vipi.Infrastructure.Persistence;
@@ -224,6 +224,7 @@ public static class DependencyInjection
         services.AddSingleton<Vipi.Application.Abstractions.ITranslationEngine, Translation.DeepLTranslationEngine>();
         services.AddScoped<Vipi.Application.Abstractions.ITranslationMemory, EfTranslationMemory>();
         services.AddScoped<Vipi.Application.Abstractions.IGlossaryStore, EfGlossaryStore>();
+        services.AddScoped<Vipi.Application.Abstractions.IRoleOverrideStore, EfRoleOverrideStore>();
         services.AddScoped<Vipi.Application.Abstractions.ITranslatableCorpus, EfTranslatableCorpus>();
         services.AddScoped<Vipi.Application.Translation.DocumentTranslator>();
         // La vIPI ACC non arriva alla pagina come DocumentView (vive a blocchi): stessa memoria, stessa

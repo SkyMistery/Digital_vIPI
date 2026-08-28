@@ -3943,8 +3943,22 @@ combacia anche col pattern dello staff di divisione — è il valutare l'admin p
 **l'ordine dell'enum è un contratto** (rinumerarlo lascerebbe ogni `Role >= X` compilabile e cambiato di
 significato).
 
+### U2-bis. Slice 2, le promozioni a mano — ✅ **CHIUSA** il 28 agosto, notte
+
+`RoleOverride` (**chiave = il VID**: «una riga per persona» la garantisce la tabella), lo store EF, la
+cache `IRoleOverrides` e la migrazione `PromozioniAMano` **in entrambi gli insiemi**, puramente additiva.
+**19 test nuovi.** La cache si scalda all'avvio, per prima fra le manutenzioni, e un suo guasto **non
+ferma l'avvio**: il fotogramma vuoto non nega niente a nessuno.
+
+⚠️ `For()` torna `null` per «nessuna promozione», **mai** per «non lo so»: chi chiama ricade sul livello
+dello staff. È la differenza fra una promozione che tarda (fastidio) e un permesso negato a chi lo ha per
+ruolo (guasto).
+
+⚠️ **Prezzo dichiarato**: una promozione fa effetto **solo dopo una ricarica**, e chi scrive deve
+ricaricare. ⚠️ **La coda al cutover MariaDB è ora VENTIDUE** — id `20260828212030` (SQLite) e
+`20260828212039` (MySql), la stessa migrazione con due identificativi.
+
 ### U3. Le slice che restano 🟢
 
-2 (`RoleOverride` + migrazione doppia + cache), 3 (il servizio, e la morte di `AdminStaffCodes`),
-4 (morte delle concessioni per ACC), 5 (i cancelli), 6 (`/admin/permissions` riscritta), 7 (diagnostica,
-Guida, memorie).
+3 (il servizio, e la morte di `AdminStaffCodes`), 4 (morte delle concessioni per ACC), 5 (i cancelli),
+6 (`/admin/permissions` riscritta), 7 (diagnostica, Guida, memorie).

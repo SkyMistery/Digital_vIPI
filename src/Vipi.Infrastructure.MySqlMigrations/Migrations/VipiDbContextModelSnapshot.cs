@@ -2208,6 +2208,38 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("NeighbourCandidates");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.RoleOverride", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime>("GrantedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("GrantedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("RoleOverrides");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.Sector", b =>
                 {
                     b.Property<int>("Id")

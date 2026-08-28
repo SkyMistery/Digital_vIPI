@@ -34,6 +34,13 @@ public static class DependencyInjection
         services.AddScoped<IStationResolver, StationResolver>();   // scoped: legge le ACC dal DB
         services.AddScoped<IVipiViewService, VipiViewService>();
         services.AddScoped<Auth.IEditAuthorizationService, Auth.EditAuthorizationService>();
+        // Da posizione staff IVAO a livello: funzione PURA, e singleton perché i pattern si compilano una
+        // volta sola (otto regex per l'admin, due per prefisso ICAO) e la domanda arriva a ogni richiesta.
+        services.AddSingleton<Auth.RoleResolver>();
+        // Le promozioni a mano, tenute INTERE in memoria. ⚠️ Singleton non è una comodità: leggerle con una
+        // SELECT per richiesta rimetterebbe nel layout la query che questa funzione toglie, cioè la causa
+        // prima delle corse sul DbContext di circuito. Lo scope per il database se lo apre la ricarica.
+        services.AddSingleton<Auth.IRoleOverrides, Auth.RoleOverrideCache>();
         // Confronta i pattern admin coi codici staff realmente osservati dai login: se non combaciano,
         // in produzione nessuno può editare e non lo si scopre in altro modo.
         services.AddScoped<Auth.IAdminCoverageService, Auth.AdminCoverageService>();
