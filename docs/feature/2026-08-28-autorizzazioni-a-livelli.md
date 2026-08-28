@@ -3,9 +3,9 @@
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Sostituisce la decisione del 22 agosto sera
 > («lo staff di divisione è admin, tutto» — memoria `staff-code-reali`, riflessa in
 > `DivisionOptions.AdminRolePatterns`), che resta valida come **storia** e non più come regola.
-> **Stato: ✅ COMPLETO E VERIFICATO DAL VIVO (28-29 agosto 2026).** Otto slice su otto, più la verifica
-> live guidata su cinque identità — che ha trovato **tre difetti** che la suite non vedeva (§12). Resta da
-> decidere **quando fondere**.
+> **Stato: ✅ FUSO IN `main` il 29 agosto 2026** (merge `8d14b499`, ramo cancellato). Otto slice su otto,
+> più la verifica live guidata su cinque identità — che ha trovato **tre difetti** che la suite non vedeva.
+> ⚠️ **Non è ancora in produzione**: al deploy gli `IT-` fuori dagli otto codici perdono l'editing.
 
 ## 1. Perché
 

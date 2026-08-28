@@ -1,19 +1,17 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 28 agosto 2026, notte (glossario **fuso in `main`**; aperta §U, le autorizzazioni a livelli).
+**Ultimo aggiornamento:** 29 agosto 2026 (le **autorizzazioni a livelli** fuse in `main`: §U chiusa).
 
 ## Dove siamo, prima di tutto il resto
 
-✅ **NESSUN RAMO CON LAVORO FUORI.** `glossario-fraseologia` è stato **fuso in `main`** la notte del 28
-agosto (merge `332f881`, `--no-ff`; fast-forward possibile, nessun conflitto), con
-`main-prima-del-merge-20260828-glossario` lasciato come punto di ritorno su `0a4f92e`. Build Release
-`--no-incremental` della soluzione intera **dopo** la fusione: **0 avvisi, 0 errori**.
+✅ **NESSUN RAMO CON LAVORO FUORI.** `main` = **`8d14b499`**, spinto: dentro ci sono il glossario di
+fraseologia (28 agosto) e le **autorizzazioni a livelli** (29 agosto). Entrambi i rami sono stati cancellati
+da locale e da `origin` dopo aver verificato `git rev-list --count main..origin/<ramo>` = 0. Build Release
+`--no-incremental` e suite intera verdi **dopo** ogni fusione, che è l'unico momento in cui la prova conta.
 
-⚠️ **Il ramo remoto `origin/glossario-fraseologia` c'è ancora**: si cancella solo dopo aver spinto `main`,
-quando `git rev-list --count main..origin/glossario-fraseologia` dà **0**.
-
-🟢 **Il lavoro in corso è §U — le autorizzazioni a livelli**, ramo `autorizzazioni-a-livelli`
-(carta: `docs/feature/2026-08-28-autorizzazioni-a-livelli.md`). L'interruttore unico `IsAdmin` (160 usi su
+✅ **§U — le autorizzazioni a livelli — è FUSA IN `main`** il 29 agosto (merge `8d14b499`, ramo cancellato;
+punto di ritorno locale `main-prima-del-merge-20260829-autorizzazioni`). Carta:
+`docs/feature/2026-08-28-autorizzazioni-a-livelli.md`. L'interruttore unico `IsAdmin` (160 usi su
 46 file) diventa un enum ordinato a cinque livelli cumulativi; l'Editor edita tutto; le concessioni per
 ACC si eliminano.
 
@@ -27,8 +25,10 @@ trovato **tre difetti** che la suite non vedeva — un 500 sulla pagina Struttur
 (`OrphanSectorService` chiedeva ancora l'admin), due pagine senza cancello, e due falsi allarmi della sonda.
 Tutti corretti e riverificati.
 
-⚠️ Resta **una decisione**: **quando fondere**, e con quale avviso allo staff. Al deploy tutti gli `IT-`
-fuori dagli otto codici di direzione perdono l'editing: la risposta è una promozione a mano, trenta secondi.
+⚠️ **Resta il DEPLOY, e va annunciato.** Quando questo `main` arriva in produzione, tutti gli `IT-` fuori
+dagli otto codici di direzione (`IT-T01`, `IT-T03`, `IT-FOC`, `IT-FOAC`, `IT-AOA1`…) **smettono di editare**:
+vedono le statistiche e basta. La risposta è una promozione a mano da `/services/vsop/admin/permissions`,
+trenta secondi a persona — ma è meglio che lo sappiano prima loro che dopo.
 
 ⚠️ Questa testata diceva `6644b5e` fino a stasera, cioè era **indietro di due fusioni**: nel frattempo erano
 entrati in `main` l'archivio ATC (`f120d5c`) e l'audit della lingua (`0a4f92e`). Un HANDOFF che dà lo SHA

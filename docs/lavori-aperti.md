@@ -4046,10 +4046,17 @@ La suite era verde su tutti e quattordici i progetti. La verifica ha trovato lo 
 solo in Development) prende VID e posizioni staff da configurazione. Prima erano una costante nel codice,
 quindi cinque livelli = cinque ricompilazioni, quindi in pratica non si verificava.
 
-### U3. Che cosa resta 🟢
+### U3. ✅ **FUSO IN `main`** il 29 agosto (merge `8d14b499`)
 
-Una decisione sola: **quando fondere**, e con quale avviso allo staff. Al deploy tutti gli `IT-` fuori dagli
-otto codici di direzione perdono l'editing, e la risposta è una promozione a mano — trenta secondi.
+Ramo cancellato da locale e da `origin`; punto di ritorno locale
+`main-prima-del-merge-20260829-autorizzazioni` (= `332f8814`). Build Release e suite verdi **dopo** la
+fusione, che è l'unico momento in cui la prova conta.
+
+⚠️ **Resta una cosa, e non è codice: il DEPLOY.** Quando questo `main` va in produzione, tutti gli `IT-`
+fuori dagli otto codici di direzione (`IT-T01`, `IT-T03`, `IT-FOC`, `IT-FOAC`, `IT-AOA1`…) **smettono di
+editare** — vedono le statistiche e basta. La risposta è una promozione a mano da
+`/services/vsop/admin/permissions`, trenta secondi a persona, ma è meglio che lo sappiano prima loro che
+dopo.
 
 ### U4. ⚠️ Gli E2E non girano finché l'host è acceso
 
