@@ -274,9 +274,9 @@
         // è più stato evidenziato. Ora il prefisso sta in un posto solo (VsopRoutes).
         _acc = VsopRoutes.AccFrom(Nav.ToAbsoluteUri(Nav.Uri).AbsolutePath);
 
-        // Tasto Editor: visibile solo a chi ha qualcosa da editare (admin o concessione).
+        // Tasto Editor: visibile a chi può editare, cioè dall'Editor in su.
         _isAdmin = Authz.IsAdmin;
-        _canEdit = _user is not null && await PuoModificareAsync();
+        _canEdit = Authz.IsEditor;
     }
 
     /// <summary>
@@ -310,23 +310,11 @@
     /// il socio qualunque. Qualunque intoppo — connessione caduta, pool esaurito, comando scaduto — non
     /// spegneva un tasto: buttava giù <b>tutta</b> la pagina, per i soli utenti loggati.</para>
     ///
-    /// <para>⚠️ Ingoiare un errore è di norma proibito in questo progetto, e questa è l'eccezione motivata:
-    /// il tasto è una decorazione del contorno, e il contorno non può decidere se la pagina esiste. Non è
-    /// però un guasto muto — finisce nel log con la sua categoria, e da lì nel file di diagnostica.</para>
+    /// <para>⚠️ <b>Il difetto è stato chiuso alla radice il 28 agosto 2026, e questo metodo è sparito con
+    /// lui.</b> La domanda non si fa più: il livello sta nei claim e in un fotogramma in memoria, quindi
+    /// «può modificare?» è un confronto, non una query. Il <c>try/catch</c> che ingoiava l'errore serviva
+    /// solo perché quella domanda poteva fallire; una domanda che non tocca il database non fallisce.</para>
     /// </summary>
-    private async Task<bool> PuoModificareAsync()
-    {
-        try
-        {
-            return Authz.IsEditor;
-        }
-        catch (Exception ex)
-        {
-            Log.LogWarning(ex, "Barra: non si è potuto stabilire se l'utente può modificare. "
-                             + "Il tasto resta spento e la pagina si serve lo stesso.");
-            return false;
-        }
-    }
 
     private bool IsActiveAcc(string code) =>
         _acc is not null && code.Equals(_acc, StringComparison.OrdinalIgnoreCase);

@@ -1,4 +1,4 @@
-@page "/services/stats/session/{SessionId:long}"
+﻿@page "/services/stats/session/{SessionId:long}"
 @layout SopLayout
 @using Microsoft.Extensions.Options
 @using Vipi.Application
@@ -164,7 +164,7 @@
 
         // Le proprie a chi è loggato, tutte allo staff: la sessione di un altro non si apre indovinando l'id.
         var utente = Utenti.Get();
-        if (!Authz.IsAdmin && (utente is null || utente.UserId != dettaglio.Session.UserId))
+        if (!Authz.IsDivisionStaff && (utente is null || utente.UserId != dettaglio.Session.UserId))
         {
             _vietato = true;
             return;

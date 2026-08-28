@@ -3998,10 +3998,28 @@ stata resa tollerante, è stata **TOLTA**.
 
 ⚠️ **La coda al cutover MariaDB è VENTITRÉ.**
 
-### U3. Le slice che restano 🟢
+### U2-quinquies. Slice 5, i cancelli — ✅ **CHIUSA** il 29 agosto
 
-**5** (i cancelli: `AdminNav` + le ~30 chiamate che scendono a Editor + le statistiche a DivisionStaff) e
-**7** (diagnostica, Guida, documenti, memorie). Fino alla 5 il ramo **non si mette in produzione**.
+**84 cancelli spostati**, e il prodotto torna coerente. `AdminNav.Chi` → `VipiRole Minimo`, filtro in una
+riga (`Authz.Role >= v.Minimo`); il default resta **Admin apposta**, così una pagina nuova nasce chiusa.
+
+⚠️ **La barra ha smesso di fare una domanda.** `PuoModificareAsync` è sparito col suo `try/catch` che
+ingoiava l'errore: quella domanda andava al database e poteva portare giù la pagina (il difetto del 24
+agosto, [[barra-non-affonda-la-pagina]]). Una domanda che non tocca il database non fallisce — chiuso alla
+**radice**, non mitigato.
+
+⚠️ **Due cose restano agli admin dentro pagine da Editor**: la voce «Permessi» nella Home e l'assegnare un
+incarico **a un'altra persona**. ⚠️ **Forzare il lock di un collega è sceso all'Editor**: serviva l'admin
+solo perché l'admin era l'unico che editava.
+
+⚠️ **La rete è un test per rotta**, e prova ogni voce al suo livello **e a quello subito sotto** — la metà
+che conta. Serve un `TestContext` per render: bUnit congela il contenitore al primo render, e due livelli
+nello stesso contesto darebbero due volte la stessa risposta.
+
+### U3. Che cosa resta 🟢
+
+Solo la **slice 7**: diagnostica a livelli, Guida in-app, documenti e memorie. ✅ Da qui il ramo è di nuovo
+**coerente**, quindi fondibile — resta da decidere quando.
 
 ### U4. ⚠️ Gli E2E non girano finché l'host è acceso
 

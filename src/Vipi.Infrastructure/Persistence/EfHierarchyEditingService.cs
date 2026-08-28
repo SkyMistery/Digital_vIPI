@@ -175,7 +175,7 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
         // Gli ACC esteri (confinanti) non hanno grant per-ACC: l'editing della loro gerarchia è riservato agli admin.
         var isForeign = await _db.Accs.AsNoTracking()
             .Where(a => a.Code == childAccCode).Select(a => a.IsForeign).FirstOrDefaultAsync(ct);
-        if (isForeign) _authz.EnsureAdmin();
+        if (isForeign) _authz.EnsureAtLeast(VipiRole.Editor);
         else _authz.EnsureAtLeast(VipiRole.Editor);
 
         // 2. Valida il padre: dev'essere un nodo interno (ACC o APP) esistente; anti-ciclo per i nodi interni.

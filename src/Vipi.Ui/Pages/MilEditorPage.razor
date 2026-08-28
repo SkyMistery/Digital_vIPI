@@ -120,7 +120,7 @@ else
                     @* L'ancora `sec-versioni` è la stessa nei cinque editor: è dove atterra «Ripubblica». *@
                     <div id="sec-versioni">
                         <ReleasePanel Target="ReleaseTargetType.AirportMil" Key="@_icao"
-                                      ShowDiff="true" AllowCancel="Authz.IsAdmin"
+                                      ShowDiff="true" AllowCancel="Authz.IsEditor"
                                       PreviewUrlFactory="ReleasePreviewUrl"
                                       Published="LoadAsync" />
                     </div>
@@ -177,7 +177,7 @@ else
         {
             // ⚠️ Ensure e non «se manca crealo» scritto qui: è ACC-gated e idempotente, quindi solo chi può
             // editare lo fa nascere. A chi guarda in sola lettura serve già esistente, e se non c'è lo si dice.
-            _shell.DocumentId = Authz.IsAdmin || Authz.IsEditor
+            _shell.DocumentId = Authz.IsEditor
                 ? await Militari.CreaAsync(_icao)
                 : await Militari.GetDocumentIdAsync(_icao);
         }

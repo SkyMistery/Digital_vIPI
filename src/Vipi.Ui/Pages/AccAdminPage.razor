@@ -1,4 +1,4 @@
-@page "/services/vsop/admin/acc"
+﻿@page "/services/vsop/admin/acc"
 @layout SopLayout
 @rendermode InteractiveServer
 @using Microsoft.Extensions.Logging
@@ -38,7 +38,7 @@
         <HelpHint Href="/services/vsop/guide#struttura" AriaLabel="@L["AccAdmin_HelpAria"]" ExtraClass="wide">
             @((MarkupString)L["AccAdmin_HelpBody"].Value)
         </HelpHint>
-        @if (Authz.IsAdmin)
+        @if (Authz.IsEditor)
         {
             <nav class="struct-nav">
                 <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="Import" title="@L["AccAdmin_ImportTitle"]">
@@ -70,7 +70,7 @@
         }
     </div>
 
-    @if (!Authz.IsAdmin)
+    @if (!Authz.IsEditor)
     {
         <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@L["Common_AdminOnly"]</div></div>
     }
@@ -166,7 +166,7 @@
                                     @* ⚠️ La ACC non porta via con sé i suoi settori e i suoi aeroporti: sarebbe
                                        una perdita che nessuna conferma rende reversibile. La finestra dice
                                        quanti ne restano e dove si svuotano. *@
-                                    @if (Authz.IsAdmin)
+                                    @if (Authz.IsEditor)
                                     {
                                         <DeleteDialog Target="DeletionTarget.Acc(a.Code)" Nome="@a.Code"
                                                       TriggerClass="btn ghost danger" AriaLabel="@L["Del_Acc"]"
@@ -269,7 +269,7 @@
        Erano l'unica anagrafica che si poteva importare e non si poteva correggere: un'area sbagliata o
        sparita dalla realtà restava finché la sorgente non smetteva di mandarla. Si vede solo con un ACC
        scelto — sono centinaia in tutto, e un elenco nazionale non risponde a nessuna domanda. *@
-    @if (Authz.IsAdmin && _pickedAcc is not null)
+    @if (Authz.IsEditor && _pickedAcc is not null)
     {
         <div class="section-title">
             <h2 class="h-sect">@L["AccAdmin_AreasTitle"] <span class="pill blue">@_aree.Count</span></h2>
@@ -339,7 +339,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!Authz.IsAdmin) return;
+        if (!Authz.IsEditor) return;
         await ReloadAsync();
     }
 
@@ -429,7 +429,7 @@
     /// <summary>Le aree dell'ACC scelto. Si caricano al clic e non a ogni render: sono una query, e il
     /// markup non può attendere.</summary>
     private async Task CaricaAreeAsync() =>
-        _aree = _pickedAcc is { } acc && Authz.IsAdmin
+        _aree = _pickedAcc is { } acc && Authz.IsEditor
             ? await AccDeriv.ListSpecialAreasByAccAsync(acc)
             : Array.Empty<SpecialAreaPick>();
 

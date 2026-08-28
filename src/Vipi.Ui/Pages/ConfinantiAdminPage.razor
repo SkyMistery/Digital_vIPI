@@ -1,4 +1,4 @@
-@page "/services/vsop/admin/neighbours"
+﻿@page "/services/vsop/admin/neighbours"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject INeighbourImportService Neighbours
@@ -30,13 +30,13 @@
         @* ⚠️ Lo spazio fra un'espressione e un `@if` Razor lo mangia: misurato, il titolo usciva «…vLOA33»
            attaccato. Serve un carattere vero, non uno spazio nel sorgente. *@
         <h1 class="st-h2 page-h1">
-            @L["Conf_Heading"]&nbsp;@if (Authz.IsAdmin) { <span class="pill blue">@CountLabel()</span> }
+            @L["Conf_Heading"]&nbsp;@if (Authz.IsEditor) { <span class="pill blue">@CountLabel()</span> }
         </h1>
         <HelpHint Href="/services/vsop/guide#admin-confinanti" AriaLabel="@L["Conf_HelpAria"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@L["Conf_Subtitle"]</p>
             @((MarkupString)L["Conf_Intro"].Value)
         </HelpHint>
-        @if (Authz.IsAdmin)
+        @if (Authz.IsEditor)
         {
             <nav class="struct-nav">
                 @* Niente spinner dentro il tasto: comparendo ne cambia la larghezza e sposta i vicini.
@@ -98,7 +98,7 @@
         }
     </div>
 
-    @if (!Authz.IsAdmin)
+    @if (!Authz.IsEditor)
     {
         <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@L["Common_AdminOnly"]</div></div>
     }
@@ -295,7 +295,7 @@
                             @* Rifiutare NON è eliminare: il candidato rifiutato resta in elenco a vita, ed
                                era l'unica cosa che di qui non si poteva togliere. La finestra blocca finché
                                c'è la vLOA e avvisa che il settore estero non muore con lui. *@
-                            @if (Authz.IsAdmin)
+                            @if (Authz.IsEditor)
                             {
                                 <DeleteDialog Target="DeletionTarget.Neighbour(sel.Id)"
                                               Nome="@($"{sel.HomeAccCode} ↔ {sel.ForeignAccCode}")"
@@ -597,7 +597,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (!Authz.IsAdmin) return;
+        if (!Authz.IsEditor) return;
         try { await ReloadAsync(); }
         catch (Exception ex) { NeighbourDebugLog.Log($"PAGE INIT EX: {ex}"); _msg = L["Conf_LoadError"] + ex.Message; }
     }
@@ -607,7 +607,7 @@
     // avvisi, lock). Sotto i 900px l'altezza fissa sparisce da sé (collapseBelow).
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!Authz.IsAdmin) return;
+        if (!Authz.IsEditor) return;
         try { await JS.InvokeVoidAsync("vipiFitViewport", ".conf-layout", 900); } catch (Exception) { }
     }
 

@@ -256,7 +256,9 @@ public sealed class EditingService : IEditingService
 
     public async Task ForceUnlockAsync(int documentId, CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        // Togliere il lock a un collega è un atto forte, ma è lo stesso mestiere: chi può scrivere quel
+        // documento può anche sbloccarlo. Prima serviva l'admin, quando l'admin era l'unico che editava.
+        _authz.EnsureAtLeast(VipiRole.Editor);
         await _repo.ForceUnlockAsync(documentId, _authz.CurrentUserId ?? 0, ct);
     }
 

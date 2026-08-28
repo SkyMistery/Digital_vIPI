@@ -1,5 +1,6 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
+using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -66,7 +67,7 @@ public sealed class PendingOverviewService : IPendingOverviewService
 
     public async Task<PendingOverview> LoadAsync(CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
 
         var ultimoAeroporti = await _stati.GetLastSuccessAsync(ImportCategories.AirportDirectory, ct);
         var penultimoAeroporti = await _stati.GetPrevSuccessAsync(ImportCategories.AirportDirectory, ct);

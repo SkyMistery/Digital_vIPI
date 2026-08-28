@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
@@ -80,7 +80,7 @@ public sealed class NeighbourImportService : INeighbourImportService
         IProgress<ForeignAccFetchProgress>? progress)
     {
         NeighbourDebugLog.Log("Import start");
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         NeighbourDebugLog.Log("Admin ok");
 
         // L'import dura ~30s (centinaia di GET IVAO). Il VipiDbContext iniettato è scoped al circuito Blazor
@@ -154,7 +154,7 @@ public sealed class NeighbourImportService : INeighbourImportService
 
     public async Task<NeighbourPairDetail> GetPairDetailAsync(int id, CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         using var dbScope = _scopeFactory.CreateScope();
         var repo = dbScope.ServiceProvider.GetRequiredService<INeighbourRepository>();
 
@@ -177,13 +177,13 @@ public sealed class NeighbourImportService : INeighbourImportService
 
     public async Task SetStatusAsync(int id, NeighbourCandidateStatus status, CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         await _repo.SetStatusAsync(id, status, ct);
     }
 
     public async Task SetPolygonAsync(int id, string? regionMapPolygon, CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         // Valida il poligono incollato: null da Project = JSON non parsabile / degenere.
         if (!string.IsNullOrWhiteSpace(regionMapPolygon) && AorPolygonProjector.Project(regionMapPolygon) is null)
             throw new Aor.ValidationException(Lingua("Poligono non valido: atteso JSON [[lng,lat],…] o [{lat,lng},…] con ≥3 punti.", "Invalid polygon: JSON [[lng,lat],…] or [{lat,lng},…] with 3 points or more expected."));
@@ -193,7 +193,7 @@ public sealed class NeighbourImportService : INeighbourImportService
     public async Task<int> AddManualAsync(string homeAccCode, string foreignAccCode, string foreignAccName,
         string countryId, string foreignRootCallsign, string? regionMapPolygon, CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         homeAccCode = (homeAccCode ?? "").Trim().ToUpperInvariant();
         foreignAccCode = (foreignAccCode ?? "").Trim().ToUpperInvariant();
         if (homeAccCode.Length == 0 || foreignAccCode.Length == 0)
@@ -214,7 +214,7 @@ public sealed class NeighbourImportService : INeighbourImportService
 
     public async Task<int> GenerateVloaAsync(int id, CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         var cand = await _repo.GetAsync(id, ct)
             ?? throw new Aor.ValidationException(Lingua("Candidato inesistente.", "The candidate does not exist."));
         if (cand.Status != NeighbourCandidateStatus.Confirmed)
@@ -226,7 +226,7 @@ public sealed class NeighbourImportService : INeighbourImportService
 
     public async Task<AddForeignSectorResult> AddForeignSectorAsync(int candidateId, string callsign, CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         var parsed = ForeignSectorCallsign.Parse(callsign);   // valida la forma (throwa ValidationException)
 
         // Scope DI dedicato: le fetch sorgente possono durare e il context del circuito Blazor potrebbe riciclarsi.

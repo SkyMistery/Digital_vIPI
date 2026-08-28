@@ -3,10 +3,8 @@
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Sostituisce la decisione del 22 agosto sera
 > («lo staff di divisione è admin, tutto» — memoria `staff-code-reali`, riflessa in
 > `DivisionOptions.AdminRolePatterns`), che resta valida come **storia** e non più come regola.
-> **Stato: slice 0→4 e 6 chiuse (28-29 agosto 2026).** Il livello è quello che il prodotto usa davvero, le
-> concessioni per ACC non esistono più e la pagina dei permessi assegna livelli. ⚠️ **Il ramo NON è
-> deployabile fino alla slice 5**: i chief d'ACC sono `Editor` ma i cancelli delle pagine guardano ancora
-> `IsAdmin`, quindi in questo stato intermedio aprirebbero di meno, non di più. Ramo
+> **Stato: slice 0→6 chiuse (28-29 agosto 2026); resta la 7.** ✅ **Il ramo è di nuovo coerente**: i
+> cancelli sono al livello che gli spetta, e un chief d'ACC apre davvero le pagine che deve aprire. Ramo
 > `autorizzazioni-a-livelli`, aperto da `main` dopo la fusione del glossario.
 
 ## 1. Perché
@@ -192,7 +190,7 @@ col suo commento sul jolly, la scheda «Chi può editare» della diagnostica, la
 | ✅ 2 | `RoleOverride` + migrazione **doppia** (SQLite e MySql) + cache singleton | **19 test nuovi verdi** |
 | ✅ 3 | il servizio: `Role`, `IsEditor`, `EnsureAtLeast`; `IsAdmin` **conserva il significato**; muoiono `AdminStaffCodes` e le due liste legacy di `DivisionOptions` | suite verde, **i 160 usi non toccati** |
 | ✅ 4 | morte delle concessioni: entità, repo, metodi async → sincroni | suite verde, **−219 riferimenti** |
-| 5 | i cancelli: `AdminNav` + le ~30 chiamate che scendono a Editor + le stats a DivisionStaff | test per rotta |
+| ✅ 5 | i cancelli: `AdminNav` + le chiamate che scendono a Editor + le stats a DivisionStaff | **test per rotta**, 84 cancelli spostati |
 | ✅ 6 | `/admin/permissions` riscritta (**tirata avanti**: senza le concessioni la pagina non aveva più contenuto) | 10 test nuovi |
 | 7 | diagnostica, Guida, documenti, memorie | tracciamento coerente |
 
@@ -297,6 +295,36 @@ solo le ACC su cui ha la concessione», «un responsabile vede solo i suoi ACC»
 dell'ACC» e — in E2E — «se la domanda della barra fallisce la pagina esce lo stesso». L'ultimo è il più
 significativo: quella domanda non è stata resa tollerante, è stata **tolta**. Un test che finge di rompere
 una query che nessuno fa più proverebbe soltanto sé stesso.
+
+## 10-quinquies. Che cosa è entrato con la slice 5
+
+**84 cancelli spostati**, e il prodotto torna coerente: un `LIRR-CH` apre struttura, ACC, aeroporti,
+confinanti, trasferimenti, documenti, «Da sistemare», traduzioni e glossario; un `IT-T01` vede le
+statistiche di divisione e quelle personali di chiunque; sorgenti, incarichi, audit, diagnostica e permessi
+restano agli otto codici di direzione.
+
+- **`AdminNav.Chi` è diventato `VipiRole Minimo`**, e il filtro una riga: `Authz.Role >= v.Minimo`. Il
+  default resta `Admin` **apposta**: una pagina nuova nasce chiusa e la si apre scrivendolo. Il contrario —
+  nascere aperta e ricordarsi di chiuderla — è il modo in cui i permessi si allargano senza che nessuno lo
+  decida.
+- **Il cancello si è spostato in due sedi per ogni pagina**, la pagina e il servizio, come la carta
+  prometteva. Le pagine sono cambiate per file (una pagina, un livello); i servizi uno a uno.
+- **La barra ha smesso di fare una domanda.** `PuoModificareAsync` è sparito: aveva un `try/catch` che
+  ingoiava l'errore — l'unica eccezione motivata del progetto — perché quella domanda andava al database e
+  poteva fallire portando giù la pagina. Una domanda che non tocca il database non fallisce, quindi non c'è
+  più niente da ingoiare. È il difetto del 24 agosto chiuso **alla radice**, non mitigato.
+- **`_accGestibili` in Versioni era l'ultimo residuo delle concessioni**: una domanda per ACC a ogni
+  caricamento, che dopo la slice 4 rispondeva sempre la stessa cosa. `CanManage(d)` è ora `IsEditor`.
+- **Due cose restano agli admin dentro pagine da Editor**, ed è voluto: la voce «Permessi» nella sezione
+  staff della Home, e l'assegnare un incarico **a un'altra persona** — dare lavoro a qualcuno non è
+  editare un documento.
+- ⚠️ **Forzare il lock di un collega è sceso all'Editor.** Prima serviva l'admin, ma solo perché l'admin
+  era l'unico che editava: chi può scrivere quel documento può anche sbloccarlo.
+
+**La rete è un test per rotta**: ogni voce della barra si prova al suo livello **e a quello subito sotto**.
+La seconda metà è quella che conta — un cancello che non chiude non è un cancello. ⚠️ Serve un
+`TestContext` per render: bUnit congela il contenitore al primo render, e due livelli nello stesso contesto
+darebbero due volte la stessa risposta, cioè un test che passa sempre.
 
 ## 11. Le due decisioni che mancavano — ✅ chiuse il 28 agosto, notte
 

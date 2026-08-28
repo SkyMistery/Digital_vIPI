@@ -1,4 +1,4 @@
-@page "/services/vsop/admin/sector-structure"
+﻿@page "/services/vsop/admin/sector-structure"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IStructureEditingService Struct
@@ -33,7 +33,7 @@
         <HelpHint Href="/services/vsop/guide#struttura" AriaLabel="@L["Struct_HelpAria"]" ExtraClass="wide">
             @((MarkupString)L["Struct_HelpBody"].Value)
         </HelpHint>
-        @if (Authz.IsAdmin)
+        @if (Authz.IsEditor)
         {
             @* ⚠️ La testata di questa pagina non ha più comandi: c'erano ACC, Aeroporti, Confinanti,
                Trasferimenti e Sorgenti (cinque doppioni della barra admin qui sotto, e sotto ~1280px
@@ -151,7 +151,7 @@
                                 <div id="@RowId(n.Kind, n.Id)"
                                      class="acc-row @(IsSelected(n.Kind, n.Id) ? "sel" : "") @(IsHit(n) ? "match" : "") @DropClass(n)"
                                      style="padding-left:@(12 + n.Depth * 20)px"
-                                     draggable="@(Authz.IsAdmin && _canEdit ? "true" : "false")"
+                                     draggable="@(Authz.IsEditor && _canEdit ? "true" : "false")"
                                      @ondragstart="() => OnDragStart(n)"
                                      @ondragend="OnDragEnd"
                                      ondragover="event.preventDefault()"
@@ -219,8 +219,8 @@
                 <StructureCoverage IsLeaf="sel.Callsign is null" Rows="CoverageRows(sel)" AirportsCovered="AirportsCovered(sel)" />
                 <div class="field" style="margin-top:10px">
                     <label>@L["Struct_ParentLabel"]</label>
-                    <input placeholder="@L["Struct_FilterCallsign"]" @bind="_parentFilter" @bind:event="oninput" disabled="@(!Authz.IsAdmin || !_canEdit || _busy)" style="margin-bottom:6px" />
-                    <select value="@_pendingParent" disabled="@(!Authz.IsAdmin || !_canEdit || _busy)" @onchange="e => _pendingParent = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString()">
+                    <input placeholder="@L["Struct_FilterCallsign"]" @bind="_parentFilter" @bind:event="oninput" disabled="@(!Authz.IsEditor || !_canEdit || _busy)" style="margin-bottom:6px" />
+                    <select value="@_pendingParent" disabled="@(!Authz.IsEditor || !_canEdit || _busy)" @onchange="e => _pendingParent = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString()">
                         <option value="">@InheritOptionLabel(sel)</option>
                         @foreach (var p in EligibleParents(sel))
                         {
@@ -228,7 +228,7 @@
                         }
                     </select>
                     <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
-                        <button class="btn primary" disabled="@(!Authz.IsAdmin || !_canEdit || _busy || !IsDirty(sel))" @onclick="() => Apply(sel)">@L["Common_Apply"]</button>
+                        <button class="btn primary" disabled="@(!Authz.IsEditor || !_canEdit || _busy || !IsDirty(sel))" @onclick="() => Apply(sel)">@L["Common_Apply"]</button>
                         @if (IsDirty(sel))
                         {
                             <button class="btn ghost" disabled="@_busy" @onclick="() => _pendingParent = sel.ParentCallsign">@L["Common_Cancel"]</button>
@@ -248,7 +248,7 @@
                    rimanda quel callsign: e' scritto la dentro perche' non sembri un guasto.
                    ⚠️ L'albero e' fatto di righe di CATALOGO: il numero del nodo non e' un Id di settore, e
                    il bersaglio va per callsign. *@
-                @if (Authz.IsAdmin)
+                @if (Authz.IsEditor)
                 {
                     <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
                         <DeleteDialog Target="@BersaglioDi(sel)" Nome="@(sel.Callsign ?? sel.Label)"
@@ -270,7 +270,7 @@
        persona. La sezione compare SOLO se ce ne sono: una sezione vuota permanente è rumore.
        ⚠️ La frase «se la sorgente lo rimanda, torna» è a schermo di proposito — senza, una riga che riappare
        dopo la rimozione sembra un guasto. *@
-    @if (Authz.IsAdmin && _orfani.Count > 0)
+    @if (Authz.IsEditor && _orfani.Count > 0)
     {
         <div class="section-title">
             <h2 class="h-sect">@L["Orph_Title"] <span class="pill amber">@_orfani.Count</span></h2>
@@ -445,7 +445,7 @@
     /// caricano QUI e non durante il render: la lista serve dentro un @foreach, che non può attendere.</summary>
     private async Task RicaricaOrfaniAsync()
     {
-        if (!Authz.IsAdmin) return;
+        if (!Authz.IsEditor) return;
         _orfani = await Orphans.ListAsync();
         _bersagli.Clear();
         foreach (var o in _orfani.Where(x => x.DocumentId is not null))
@@ -779,7 +779,7 @@
         var target = NodeOf(targetRow);
         _dropTargetCs = null;
         if (child is null || target?.Callsign is null) { _dragKind = null; return; }
-        if (!Authz.IsAdmin || !_canEdit) { _dragKind = null; return; }
+        if (!Authz.IsEditor || !_canEdit) { _dragKind = null; return; }
         if (!IsEligibleParent(child, target))
         {
             _msg = string.Format(L["Struct_DropInvalid"], child.Callsign ?? child.Label, target.Callsign);

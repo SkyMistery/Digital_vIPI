@@ -1,4 +1,4 @@
-@page "/services/vsop/{Acc}/editor"
+﻿@page "/services/vsop/{Acc}/editor"
 @layout SopLayout
 @rendermode InteractiveServer
 @implements IDisposable
@@ -181,7 +181,7 @@ else
                ci arriva di cercare il pannello che gli è stato promesso. *@
             <div id="sec-versioni">
             <ReleasePanel Target="ReleaseTargetType.AccVipi" Key="@($"{Acc.Trim().ToUpperInvariant()}|{_root}")"
-                          ShowDiff="true" AllowCancel="Authz.IsAdmin"
+                          ShowDiff="true" AllowCancel="Authz.IsEditor"
                           PreviewUrlFactory="ReleasePreviewUrl"
                           Published="LoadAsync" />
             </div>

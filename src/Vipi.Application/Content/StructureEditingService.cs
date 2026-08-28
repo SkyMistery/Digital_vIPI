@@ -115,7 +115,7 @@ public sealed class StructureEditingService : IStructureEditingService
 
     public async Task<int> CreateAccAsync(string code, string name, string? countryPrefix, CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         code = (code ?? "").Trim().ToUpperInvariant();
         name = (name ?? "").Trim();
         if (code.Length is < 2 or > 8) throw new ValidationException(Lingua("Codice ACC non valido (es. LIRR).", "Invalid ACC code (e.g. LIRR)."));
@@ -127,7 +127,7 @@ public sealed class StructureEditingService : IStructureEditingService
 
     public async Task DeleteAccAsync(string accCode, CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         await _repo.DeleteAccAsync(accCode, ct);
     }
 
@@ -158,7 +158,7 @@ public sealed class StructureEditingService : IStructureEditingService
 
     public Task<IReadOnlyList<AirportAdminRow>> ListAllAirportsAsync(CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         return _repo.ListAllAirportsAsync(ct);
     }
 
@@ -188,25 +188,25 @@ public sealed class StructureEditingService : IStructureEditingService
 
     public Task<IReadOnlyList<SectorBriefRow>> ListAllSectorsAsync(CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         return _repo.ListAllSectorsAsync(ct);
     }
 
     public Task<IReadOnlyList<GlobalSectorRow>> ListSectorNodesAsync(CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         return _repo.ListSectorNodesAsync(ct);
     }
 
     public async Task<AirportImportResult> AutoAssignKnownAirportsAsync(CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();                       // solo il chiamante manual applica il guard
+        _authz.EnsureAtLeast(VipiRole.Editor);                       // solo il chiamante manual applica il guard
         return await _airportImport.RunAsync(ct);   // core anagrafica (doc 03 §4.2); i Failures li logga la UI
     }
 
     public async Task<AirportDocResult> GenerateAirportDocumentAsync(string icao, CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         return await GenerateAirportDocumentCoreAsync(icao, ct);
     }
 

@@ -34,7 +34,7 @@ public sealed class AccAdminService : IAccAdminService
 
     public async Task<AccImportOutcome> ImportFromSourceAsync(CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();                        // solo il manual applica il guard
+        _authz.EnsureAtLeast(VipiRole.Editor);                        // solo il manual applica il guard
         var result = await _import.RunAsync(ct);     // core ACC + subcenter (condiviso con l'auto)
         _catalog.Bump();                             // l'import puo' aggiungere ACC: l'elenco in giro e' vecchio
         var special = await _specialAreas.RunAsync(ct);   // aree speciali: manual = auto, stesso stato DB (doc 02 §4.4)
@@ -44,7 +44,7 @@ public sealed class AccAdminService : IAccAdminService
 
     public async Task<SpecialAreaImportResult> ImportSpecialAreasAsync(string accCode, CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         var result = await _specialAreas.RunForAccAsync(accCode, ct);
 
         // Abilita solo se ha davvero portato a casa qualcosa: un ACC acceso ma con la fetch fallita entrerebbe nel
@@ -61,13 +61,13 @@ public sealed class AccAdminService : IAccAdminService
 
     public Task<int> SetSpecialAreasEnabledAsync(int accId, bool enabled, CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         return _repo.SetSpecialAreasEnabledAsync(accId, enabled, ct);
     }
 
     public async Task SetHiddenAsync(int accId, bool hidden, CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         await _repo.SetHiddenAsync(accId, hidden, ct);
         await _projection.SyncFromCatalogsAsync(ct);   // nascondere un ACC disattiva i suoi settori proiettati
         // ⚠️ E dirlo a chi ha l'elenco in mano. La cache del resolver vive quanto il CIRCUITO (Blazor Server),
@@ -79,7 +79,7 @@ public sealed class AccAdminService : IAccAdminService
 
     public async Task SetSubcenterHiddenAsync(int id, bool hidden, CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
 
         // Regola 1: una RADICE (settore senza padre) non si può nascondere finché ha figli visibili — li
         // orfanerebbe senza un nonno a cui riappenderli. I figli di un settore NON-radice risalgono invece al
@@ -107,7 +107,7 @@ public sealed class AccAdminService : IAccAdminService
 
     public async Task SetSubcenterLimitsAsync(int id, int? lower, int? upper, CancellationToken ct = default)
     {
-        _authz.EnsureAdmin();
+        _authz.EnsureAtLeast(VipiRole.Editor);
         await _repo.SetSubcenterLimitsAsync(id, lower, upper, ct);
     }
 }

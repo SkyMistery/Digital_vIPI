@@ -1,4 +1,4 @@
-@page "/services/stats/world"
+﻿@page "/services/stats/world"
 @layout SopLayout
 @rendermode InteractiveServer
 @using Vipi.Application.Abstractions
@@ -24,7 +24,7 @@
         <p class="muted">@L["World_Subtitle"]</p>
     </div>
 
-    @if (!Authz.IsAdmin)
+    @if (!Authz.IsDivisionStaff)
     {
         @* Non è la guardia vera — quella è la query, che senza staff non parte — ma è quel che vede chi
            arriva qui con un indirizzo copiato. *@
@@ -139,7 +139,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (_caricata || !Authz.IsAdmin) return;
+        if (_caricata || !Authz.IsDivisionStaff) return;
 
         _caricata = true;
         await CercaAsync();
@@ -154,7 +154,7 @@
     {
         // La guardia sta QUI, davanti alla lettura, e non solo nel markup: il markup dice cosa si vede, il
         // metodo dice cosa si legge — e questo lo può chiamare un evento, non solo il render.
-        if (!Authz.IsAdmin) return;
+        if (!Authz.IsDivisionStaff) return;
 
         var pagina = await Archivio.SearchAsync(new AtcArchiveFilter(
             CallsignPrefix: string.IsNullOrWhiteSpace(_callsign) ? null : _callsign,

@@ -31,21 +31,21 @@ public class AdminNavTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
-    /// <summary>Autorizzazione finta: qui conta solo <c>IsAdmin</c>, che è ciò che la barra guarda.</summary>
+    /// <summary>Autorizzazione finta: un livello, che è ciò che la barra guarda dal 29 agosto 2026.</summary>
     private sealed class FakeAuthz : IEditAuthorizationService
     {
-        public FakeAuthz(bool admin) => IsAdmin = admin;
-        public bool IsAdmin { get; }
-        public VipiRole Role => IsAdmin ? VipiRole.Admin : VipiRole.User;
+        public FakeAuthz(VipiRole livello) => Role = livello;
+        public VipiRole Role { get; }
+        public bool IsAdmin => Role >= VipiRole.Admin;
         public int? CurrentUserId => 704798;
         public string? CurrentName => "Tizio";
         public void EnsureAdmin() { }
     }
 
-    private IRenderedComponent<AdminNav> Render(bool admin, string url = "http://localhost/services/vsop/admin/audit")
+    private IRenderedComponent<AdminNav> Render(VipiRole livello, string url = "http://localhost/services/vsop/admin/audit")
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
-        Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(admin));
+        Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
         Services.GetRequiredService<NavigationManager>().NavigateTo(url);
         return RenderComponent<AdminNav>();
     }
@@ -53,7 +53,7 @@ public class AdminNavTests : TestContext
     [Fact]
     public void Un_admin_vede_tutte_le_pagine()
     {
-        var cut = Render(admin: true);
+        var cut = Render(VipiRole.Admin);
 
         var nav = cut.Find("nav.admin-nav");
         // 14 dal 28 agosto 2026: la revisione delle traduzioni e il glossario di fraseologia.
@@ -68,7 +68,7 @@ public class AdminNavTests : TestContext
     [Fact]
     public void La_pagina_in_cui_sei_e_uno_stato_non_un_comando()
     {
-        var cut = Render(admin: true, url: "http://localhost/services/vsop/admin/audit");
+        var cut = Render(VipiRole.Admin, url: "http://localhost/services/vsop/admin/audit");
 
         var corrente = cut.Find(".an-link.on");
         Assert.Equal("span", corrente.TagName, ignoreCase: true);   // niente href: non ti porta dove sei già
@@ -83,22 +83,80 @@ public class AdminNavTests : TestContext
     [Fact]
     public void La_query_non_fa_perdere_la_pagina_corrente()
     {
-        var cut = Render(admin: true, url: "http://localhost/services/vsop/versions?q=lirr&tipo=vipi");
+        var cut = Render(VipiRole.Admin, url: "http://localhost/services/vsop/versions?q=lirr&tipo=vipi");
 
         Assert.Equal("Nav_Docs", cut.Find(".an-link.on").TextContent.Trim());
     }
 
     /// <summary>
-    /// Regola 120: a chi non può aprire nessuna di quelle pagine la barra non si mostra affatto. Un non-admin
-    /// arriva solo a Versioni — cioè alla pagina in cui è già — e una voce sola non è una navigazione.
+    /// Regola 120: a chi non può aprire nessuna di quelle pagine la barra non si mostra affatto. Un socio, o
+    /// uno staffista di divisione che non edita, non deve trovarsi davanti un elenco di porte chiuse.
     /// </summary>
-    [Fact]
-    public void Chi_non_e_admin_non_vede_un_elenco_di_porte_chiuse()
+    [Theory]
+    [InlineData(VipiRole.User)]
+    [InlineData(VipiRole.IvaoStaff)]
+    [InlineData(VipiRole.DivisionStaff)]
+    public void Chi_non_edita_non_vede_un_elenco_di_porte_chiuse(VipiRole livello)
     {
-        var cut = Render(admin: false, url: "http://localhost/services/vsop/versions");
+        var cut = Render(livello, url: "http://localhost/services/vsop/versions");
 
         Assert.Empty(cut.FindAll("nav.admin-nav"));
         Assert.Empty(cut.Markup.Trim());
+    }
+
+    /// <summary>
+    /// ⚠️ <b>Il cancello, pagina per pagina.</b> È la rete della slice 5: se domani qualcuno abbassa (o alza)
+    /// una voce senza volerlo, qui si vede — e si vede <b>quale</b>. Le nove voci dell'Editor sono il
+    /// contenuto documentale; le cinque dell'admin toccano import, sicurezza e diagnosi.
+    /// </summary>
+    [Theory]
+    [InlineData("/services/vsop/admin/sector-structure", VipiRole.Editor)]
+    [InlineData("/services/vsop/admin/acc", VipiRole.Editor)]
+    [InlineData("/services/vsop/admin/airports", VipiRole.Editor)]
+    [InlineData("/services/vsop/admin/neighbours", VipiRole.Editor)]
+    [InlineData("/services/vsop/admin/transfers", VipiRole.Editor)]
+    [InlineData("/services/vsop/versions", VipiRole.Editor)]
+    [InlineData("/services/vsop/admin/pending", VipiRole.Editor)]
+    [InlineData("/services/vsop/admin/translations", VipiRole.Editor)]
+    [InlineData("/services/vsop/admin/glossary", VipiRole.Editor)]
+    [InlineData("/services/vsop/admin/sources", VipiRole.Admin)]
+    [InlineData("/services/vsop/admin/tasks", VipiRole.Admin)]
+    [InlineData("/services/vsop/admin/audit", VipiRole.Admin)]
+    [InlineData("/services/vsop/admin/diagnostics", VipiRole.Admin)]
+    [InlineData("/services/vsop/admin/permissions", VipiRole.Admin)]
+    public void Ogni_voce_compare_dal_suo_livello_in_su_e_non_prima(string url, VipiRole minimo)
+    {
+        // ⚠️ Un TestContext per render: bUnit congela il contenitore al primo render, quindi due livelli
+        // nello stesso contesto darebbero due volte la stessa risposta — e il test passerebbe sempre.
+        // Al livello giusto c'è…
+        Assert.Contains(url, Markup(minimo));
+
+        // …e al livello immediatamente sotto no. È la metà che conta: un cancello che non chiude non è un
+        // cancello, e allargarsi di un livello è il modo silenzioso in cui i permessi scappano.
+        Assert.DoesNotContain(url, Markup((VipiRole)((int)minimo - 1)));
+    }
+
+    /// <summary>Il markup della barra a un dato livello, in un contesto tutto suo.</summary>
+    private static string Markup(VipiRole livello)
+    {
+        using var ctx = new TestContext();
+        ctx.Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        ctx.Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
+        // ⚠️ Un indirizzo che NON è nessuna delle voci: la voce della pagina corrente è uno <span> senza
+        // href, e cercandola per URL non la si troverebbe.
+        ctx.Services.GetRequiredService<NavigationManager>().NavigateTo("http://localhost/services/vsop/guide");
+        return ctx.RenderComponent<AdminNav>().Markup;
+    }
+
+    /// <summary>Un editor vede le sue nove voci e nessuna delle cinque dell'admin.</summary>
+    [Fact]
+    public void Un_editor_vede_nove_voci()
+    {
+        var cut = Render(VipiRole.Editor, url: "http://localhost/services/vsop/versions");
+
+        Assert.Equal(9, cut.Find("nav.admin-nav").QuerySelectorAll(".an-link").Length);
+        Assert.DoesNotContain("/services/vsop/admin/permissions", cut.Markup);
+        Assert.DoesNotContain("/services/vsop/admin/diagnostics", cut.Markup);
     }
 
     /// <summary>
@@ -114,7 +172,7 @@ public class AdminNavTests : TestContext
             .Select(r => r.Template.TrimEnd('/'))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var cut = Render(admin: true);
+        var cut = Render(VipiRole.Admin);
         var voci = cut.FindAll(".an-link")
             .Select(e => e.GetAttribute("href"))
             .Where(h => h is not null)

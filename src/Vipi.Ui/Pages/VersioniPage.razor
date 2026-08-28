@@ -282,7 +282,7 @@
                                 </InlineConfirm>
                             }
                         }
-                        @if (sel.IsLocked && !IsMyLock(sel) && Authz.IsAdmin)
+                        @if (sel.IsLocked && !IsMyLock(sel) && Authz.IsEditor)
                         {
                             <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Lock_ForceTitle"]" AriaLabel="@L["Lock_ForceUnlock"]"
                                            Prompt="@L["Ver_ForceUnlockPrompt", sel.LockedByName ?? L["Lock_AnotherEditor"].Value]"
@@ -316,9 +316,6 @@
     private readonly HashSet<string> _loadingKeys = new();
     private readonly Dictionary<string, IReadOnlyList<VersionInfo>> _versions = new();
     private readonly Dictionary<string, IReadOnlyList<ReleaseInfo>> _releases = new();
-    // Chi può gestire (nascondi/elimina) quale ACC: risolto una volta per caricamento. Il servizio autorizza per
-    // grant ACC, non per «admin»; il markup diceva solo IsAdmin e nascondeva i tasti a chi il permesso ce l'ha.
-    private readonly HashSet<string> _accGestibili = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<int, string> _authorNames = new();
     private readonly Dictionary<string, IReadOnlyList<Vipi.Application.Abstractions.AuditEntry>> _history = new();
     private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
@@ -385,7 +382,6 @@
             // documento a ogni caricamento della pagina.
             _impatti = await Impacts.CountOpenAsync(_docs.Where(x => x.DocumentId is not null)
                 .Select(x => x.DocumentId!.Value).ToList());
-            await LoadPermessiAsync();
         }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
     }
@@ -398,21 +394,13 @@
     // 2026 questa pagina rifaceva la stessa SummariesAsync che il repository aveva appena eseguito.
 
     /// <summary>
-    /// Quali ACC può gestire l'utente: una domanda per ACC distinta (poche), una volta per caricamento.
-    /// L'<c>AccCode</c> del <c>ManagedDoc</c> è lo stesso che il servizio usa per autorizzare — verificato su
-    /// tutti e quattro i descrittori <c>IReleaseTarget</c>.
+    /// Può nascondere/eliminare questa riga.
+    ///
+    /// <para>⚠️ Qui c'era una domanda per ACC, risolta a ogni caricamento: quali ACC può gestire questa
+    /// persona. Dal 28 agosto 2026 non è più una domanda — l'Editor edita tutto — e il documento non entra
+    /// più nella risposta.</para>
     /// </summary>
-    private async Task LoadPermessiAsync()
-    {
-        _accGestibili.Clear();
-        if (_docs is null || Authz.IsAdmin) return;
-        foreach (var acc in _docs.Select(d => d.AccCode).Where(a => !string.IsNullOrWhiteSpace(a)).Distinct(StringComparer.OrdinalIgnoreCase))
-            if (Authz.IsEditor) _accGestibili.Add(acc!);
-    }
-
-    /// <summary>Può nascondere/eliminare questa riga: admin, oppure grant sull'ACC del documento.</summary>
-    private bool CanManage(ManagedDoc d) =>
-        Authz.IsAdmin || (d.AccCode is { } acc && _accGestibili.Contains(acc));
+    private bool CanManage(ManagedDoc d) => Authz.IsEditor;
 
     // ---- lock: chi ci sta lavorando ----
     private bool IsMyLock(ManagedDoc d) => d.LockedByUserId is { } uid && uid == Authz.CurrentUserId;
@@ -781,7 +769,7 @@
                         <span class="vact">
                             <a class="btn ghost" href="@PreviewLink(d, r.Id)" target="_blank" rel="noopener" title="@L["Rel_PreviewTitle"]"><Icon Name="eye" /> @L["Rel_Preview"]</a>
                             <button class="btn ghost" disabled="@_busy" @onclick="() => ToggleDiff(key, r.Id)" title="@L["Rel_DiffTitle"]"><Icon Name="search" /> @L["Rel_Diff"]</button>
-                            @if (Authz.IsAdmin)
+                            @if (Authz.IsEditor)
                             {
                                 @* Annullare una release in vigore/programmata riporta il PUBBLICO alla precedente:
                                    più delicato di «nascondi». Una SUPERATA invece è storia: la domanda lo dice
