@@ -33,21 +33,55 @@ divisione.
 | **Ritenzione** | **dodici mesi per tutto**, divisione compresa (era già dodici per le italiane) |
 | **Uso** | archivio **+ pagina staff + endpoint macchina** |
 
-La ritenzione è stata scelta sui numeri, non a sentimento. Misurato sull'archivio vero (`vipi.db`,
-21 133 sessioni italiane = esattamente dodici mesi, quindi **58 sessioni/giorno**), la tabella
-`AtcSessions` isolata coi suoi indici e compattata pesa **240 byte/riga**; su MariaDB/InnoDB, contando
-l'overhead di riga e la PK ripetuta in ogni indice secondario, la stima è **~400 byte/riga**.
+La ritenzione è stata scelta sui numeri, non a sentimento.
 
-| finestra | righe stimate | SQLite (240 B) | MariaDB (400 B) |
+**Il costo di una riga, misurato da noi.** Sull'archivio vero (`vipi.db`, 21 133 sessioni italiane =
+esattamente dodici mesi, quindi **58 sessioni/giorno**), la tabella `AtcSessions` isolata coi suoi indici e
+compattata pesa **240 byte/riga**; su MariaDB/InnoDB, contando l'overhead di riga e la PK ripetuta in ogni
+indice secondario, la stima è **~400 byte/riga**.
+
+**Quante righe fa il mondo, misurato da qualcun altro.** L'archiviatore del validatore dei tour archivia
+tutte le postazioni del pianeta **dal 2 giugno 2026**, e al 28 agosto il suo database D1 pesa **13,35 MB**:
+87 giorni, cioè **0,153 MB al giorno** sul suo schema. Convertito in righe con un costo per riga fra 200 e
+280 byte (il suo schema è più magro del nostro nelle colonne e più grasso negli istanti, che sono testo ISO):
+
+| costo per riga ipotizzato | sessioni/giorno nel mondo | rapporto sulle 58 italiane |
+|---|---:|---:|
+| 200 B | 805 | 13,9× |
+| **240 B** (il nostro, misurato) | **670** | **11,6×** |
+| 280 B | 575 | 9,9× |
+
+⚠️ Il rapporto vero sta dunque fra **10× e 14×**, non fra 8× e 12× come si era stimato a occhio prima di
+avere questo numero. Resta un'unica ipotesi, il costo per riga dello schema altrui; e resta il fatto che il
+campione copre **giugno-agosto**, cioè mesi d'estate: un anno intero può essere più magro.
+
+Prendendo il valore centrale (**670 sessioni/giorno**, italiane comprese):
+
+| finestra | righe | SQLite (240 B) | MariaDB (400 B) |
 |---|---:|---:|---:|
-| 90 giorni | ~54 000 | 13 MB | 22 MB |
-| 12 mesi | ~219 000 | 53 MB | **88 MB** |
-| 3 anni | ~657 000 | 158 MB | 263 MB |
+| 90 giorni | ~60 000 | 14 MB | 23 MB |
+| 12 mesi | ~245 000 | 56 MB | **93 MB** |
+| 3 anni | ~734 000 | 168 MB | 280 MB |
 
-⚠️ Il rapporto mondo/Italia (8–12×, cioè ~500-700 sessioni al giorno) è **stimato, non misurato**: il
-campione preso alle 08:14Z del 28 agosto — 15 ATC nel mondo, **zero** italiani, 298 piloti, 76 KB — non dice
-niente sul rapporto a quell'ora. Il numero vero lo può dare l'archiviatore del validatore, che quelle righe
-le ha già.
+Agli estremi del rapporto, i dodici mesi stanno fra **81 e 109 MB** su MariaDB. Tutto `vipi.db` oggi pesa
+**5,1 MB**: l'archivio diventa, da solo, l'oggetto più grosso del database — ed è il prezzo dichiarato di
+tenere un dato che nessuno può ricostruire.
+
+### 3-bis. Si comincia da capo, il 1° settembre 2026
+
+Decisione del committente (28 agosto): **lo storico del Worker non si travasa.** I due archivi restano
+separati, il nostro comincia da zero, e il passaggio dal servizio vecchio a questo si fa **nel 2027** —
+quando qui dentro ci sarà già più di un anno di dati, cioè quando il travaso non servirebbe più a niente.
+
+La data d'inizio della raccolta è il **1° settembre 2026**.
+
+⚠️ **Non c'è nessun cancello di data nel codice, ed è voluto.** Una data fissa scritta in una `if` può solo
+fare danno: se il deploy arriva prima del 1° settembre, raccogliere qualche giorno in più non toglie niente
+a nessuno; se arriva dopo, il cancello non recupera i giorni persi. La data d'inizio la decide **il
+deploy**, e la dice l'archivio stesso (la prima riga fuori divisione).
+
+⚠️ Il che vuol dire che la data del 1° settembre è una **scadenza di consegna**, non una riga di codice: se
+il ramo non è in produzione entro quel giorno, la raccolta comincia dopo.
 
 ## 4. Cosa dà la sorgente — misurato, non dedotto
 
@@ -133,9 +167,16 @@ chiuso alle 22:00 fa parte di «cosa c'era alle 21».
   dell'archivio; `WhazzupClientTests` (l'ucraino non si butta più, esce marcato); `AtcSessionSyncTests`
   (la marca viaggia; una postazione estera si chiude quando sparisce); `AtcTrafficRecorderTests`
   (si archivia ma non prende traffico); `CacheDelleLettureAnonimeTests` (la pagina staff non si tiene).
-- **Live**: vedi §10.
+- **Live**, contro IVAO vero: «Poll IVAO: 0 ATC divisione online, **18 fuori divisione**, 307 piloti», 18
+  righe scritte (EHAM_W_APP, WADD_TWR, LECB_CTR, NZAA_APP…) e le 21 133 italiane intatte; endpoint provato
+  nei quattro casi (fetta, tetto duro, totale onesto, 400 sulla finestra rovesciata); pagina guidata in Edge
+  nei due temi, ricerca `LIRF`+divisione → 1375 trovate e 200 mostrate, zero errori di console.
+  ⚠️ Un difetto visto **solo a schermo**: «Open right now» andava a capo su tre righe, perché la colonna
+  flex stringeva il testo alla larghezza della casella.
 
 ## 10. Cosa resta
 
-- Il rapporto mondo/Italia è stimato: quando serve il numero vero, sta nell'archiviatore del validatore.
-- L'archiviatore del validatore continua a girare: unificarlo su questo endpoint è un lavoro suo, non di qui.
+- Il campione del rapporto mondo/Italia copre **giugno-agosto**: un anno intero può essere più magro.
+  Si ricontrolla fra qualche mese sul nostro archivio, che a quel punto è la misura diretta.
+- I due archiviatori girano **in parallelo fino al 2027**, per decisione del committente: due processi che
+  chiedono lo stesso file allo stesso server. È il prezzo accettato per non dipendere da un travaso.

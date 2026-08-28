@@ -3365,35 +3365,39 @@ quindici SOP è di un APP, quindi non c'era niente da caricarci dentro.
 Carta: [feature/2026-08-28-archivio-atc-mondiale.md](feature/2026-08-28-archivio-atc-mondiale.md).
 ✅ **Slice chiuse**, suite verde su entrambi i TFM, verificato dal vivo contro IVAO vero
 (0 ATC di divisione online, **18 fuori divisione archiviate**, endpoint e pagina guidati in Edge).
+⚠️ **Consegna attesa entro il 1° settembre 2026**: è la data da cui il committente vuole che parta la
+raccolta, e non c'è nessun cancello nel codice che la faccia rispettare (§S2).
 
 Il poller smette di buttare le postazioni fuori divisione: le archivia tutte, marcate con
 `AtcSession.IsOutsideDivision`. I conti della divisione non cambiano — ogni lettura che conta passa da
 `AtcSessionScope.DiDivisione()`. Ritenzione **dodici mesi per tutto**; il riassunto mensile resta italiano.
 Nuovi: pagina staff `/services/stats/world` e `GET /vsop/api/v1/atc/sessions`.
 
-### S1 🟢 APERTO — il rapporto mondo/Italia è STIMATO, non misurato
+### S1 ✅ CHIUSA — il rapporto mondo/Italia è MISURATO
 
-Le stime di spazio (≈219 000 righe e ~88 MB su MariaDB a dodici mesi) poggiano su un rapporto
-mondo/Italia di 8–12×, che **non è stato misurato**: il campione delle 08:14Z — 15 ATC nel mondo, zero
-italiani — a quell'ora non dice niente. Il numero vero ce l'ha già l'archiviatore del validatore dei tour,
-che archivia il mondo da settimane:
+Il numero l'ha dato il committente il 28 agosto sera: il D1 dell'archiviatore del validatore archivia il
+mondo **dal 2 giugno 2026** e pesa **13,35 MB**. Sono 87 giorni, cioè **0,153 MB al giorno** su quello
+schema; convertiti in righe con un costo per riga fra 200 e 280 byte danno **575-805 sessioni al giorno**
+nel mondo, cioè un rapporto di **10×-14×** sulle 58 italiane.
 
-```
-npx wrangler d1 execute atc-archiver-db --remote --command   "SELECT COUNT(*) righe, MIN(started_at) dal, MAX(started_at) al, SUM(callsign LIKE 'LI%') italiane FROM atc_sessions"
-```
+La stima a occhio (8×-12×) era **bassa di poco**. I dodici mesi passano da ~88 a **~93 MB** su MariaDB
+(81-109 agli estremi). Tabelle rifatte nella carta §3.
 
-⚠️ Serve una sessione `wrangler` autenticata (`CLOUDFLARE_API_TOKEN` o login interattivo): da qui non
-passa. Finché il numero non c'è, la tabella della carta §3 va letta come un ordine di grandezza.
+⚠️ Resta un'ipotesi sola, il costo per riga dello schema altrui — e il campione copre **giugno-agosto**,
+mesi d'estate. Fra qualche mese la misura diretta ce l'avremo in casa.
 
-### S2 🟢 APERTO — due archiviatori sullo stesso whazzup
+### S2 ✅ DECISA — si ricomincia da capo, cutover nel 2027
 
-Il validatore dei tour (`AutomaticValidatorTour/Tours Validator Instrument/atc-archiver`) continua a
-girare: Cloudflare Worker + D1, cron al minuto, stessa sorgente, tabella quasi identica. Ora che
-`/vsop/api/v1/atc/sessions` esiste, quel Worker potrebbe leggere da qui invece di archiviare per conto suo
-— ma è una decisione di quel progetto, e la sua tabella è più vecchia della nostra: unificando si perde
-lo storico che noi non abbiamo, a meno di travasarlo prima.
+Decisione del committente (28 agosto sera): **lo storico del Worker non si travasa.** I due archivi
+restano separati, il nostro comincia da zero il **1° settembre 2026**, e il passaggio dal servizio vecchio
+a questo si fa **nel 2027** — quando qui dentro ci sarà già più di un anno di dati.
 
-⚠️ Finché girano tutti e due, sono **due processi che chiedono lo stesso file allo stesso server**.
+⚠️ **Nessun cancello di data nel codice, ed è voluto**: una data fissa in una `if` può solo fare danno —
+prima del 1° settembre toglierebbe giorni gratis, dopo non ne recupererebbe nessuno. Il 1° settembre è
+una **scadenza di consegna**: se il ramo non è in produzione entro quel giorno, la raccolta comincia dopo.
+
+⚠️ Fino al 2027 i due archiviatori girano **in parallelo**: due processi che chiedono lo stesso file allo
+stesso server. È il prezzo accettato per non dipendere da un travaso.
 
 ### S3 🟢 APERTO (piccolo, non nostro di questo giro) — `StatsView.Ore` scrive la virgola a mano
 

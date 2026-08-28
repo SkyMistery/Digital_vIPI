@@ -867,7 +867,10 @@ coincide così con la verità dello storico, che è tutto italiano). `IvaoWhazzu
 e a filtrare è chi sa a cosa serve la lista, attraverso `AtcSessionScope.DiDivisione()`.
 ⚠️ L'unica lettura che NON filtra è `IAtcSessionStore.GetOpenOrRecentAsync`, con cui il poller chiude le
 sessioni sparite: senza il mondo, una connessione straniera resterebbe aperta per sempre.
-Ritenzione dodici mesi per tutto; `AtcMonthRollup` resta **solo** di divisione. Letture:
+Ritenzione dodici mesi per tutto; `AtcMonthRollup` resta **solo** di divisione.
+⚠️ **La raccolta parte da zero il 1° settembre 2026** e lo storico del Worker del validatore **non si
+travasa**: cutover da quel servizio a questo nel **2027**, fino ad allora girano in parallelo. Nessun
+cancello di data nel codice: il 1° settembre è una scadenza di **consegna**, non una `if`. Letture:
 `IAtcArchiveQueries`/`EfAtcArchiveQueries`. Superficie: pagina staff `/services/stats/world` e
 **`GET /vsop/api/v1/atc/sessions`** (anonimo, read-only, tetto duro 500 righe + `RequestRateLimiter`).
 Carta: `docs/feature/2026-08-28-archivio-atc-mondiale.md`.
