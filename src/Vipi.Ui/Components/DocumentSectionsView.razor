@@ -99,8 +99,13 @@
     /// <summary>Ancora della sezione (default <c>s-{Id}</c>, come in tutte le famiglie — doc 13 §3e).</summary>
     [Parameter] public Func<SectionView, string>? AnchorOf { get; set; }
 
-    /// <summary>Titolo mostrato (default: quello del documento). L'aeroporto lo risolve dal catalogo, perché uno
-    /// snapshot scritto prima della carta del 26 agosto porta i titoli in inglese.</summary>
+    /// <summary>Titolo mostrato (default: quello del documento).
+    /// <para>⚠️ Nessuno lo passa più. L'aeroporto lo faceva — risolveva il titolo dal CATALOGO, perché uno
+    /// snapshot anteriore alla carta del 26 agosto porta i titoli in inglese — ma quel lavoro lo fa già
+    /// <c>AirportLegacySections.ForView</c> sulla sezione, e farlo due volte significava anche saltare la
+    /// traduzione: il titolo della sezione era tradotto, quello riletto dal catalogo no, e l'indice diceva
+    /// una cosa diversa dalla testata (28 agosto 2026). Resta come punto di innesto, senza consumatori.</para>
+    /// </summary>
     [Parameter] public Func<SectionView, string>? TitleOf { get; set; }
 
     /// <summary>Classe extra sul contenitore, per sezione: l'aeroporto ci mette <c>noprint</c> sul meteo.</summary>

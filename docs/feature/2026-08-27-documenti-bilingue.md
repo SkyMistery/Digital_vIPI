@@ -381,3 +381,37 @@ inglese, che è il verso opposto e la prova che la sorgente arriva dal documento
 ⚠️ **Quello che la pagina vera ha fatto vedere, e non è codice**: la memoria contiene rese **plausibili e
 sbagliate** — «Regole piste» → *Slope rules*, «Minime di vettoramento» → *Minimum vectoring*. Il badge le
 dichiara non riviste, ed è esattamente il lavoro che la §5 aspetta da una persona con un nome.
+
+### E poi mancava il COMANDO (28 agosto 2026, sera)
+
+Agganciate le cinque pagine, la domanda successiva è stata: «sono sulla vIPI di Crotone e ancora non si
+può passare da italiano a inglese». Aveva ragione, e non era un residuo delle pagine: **il selettore di
+lingua non esisteva**. La slice 6 dichiarava «selettore unico lingua UI+documento, cookie, badge»; erano
+stati fatti il cookie (`CultureCookieMiddleware`), la risoluzione per richiesta e il badge — la lingua si
+poteva chiedere solo **scrivendo `?culture=` nell'indirizzo**.
+
+| | Che cosa | Dove sta la correzione |
+|---|---|---|
+| ⚠️⚠️ | **Nessun controllo per cambiare lingua** in tutta l'interfaccia | Gruppo `IT | EN` in barra + le due voci nel «☰», entrambi LINK: il chrome è SSR statico e cambiare lingua è ricaricare questa pagina chiedendola in un'altra lingua — funziona a JavaScript spento |
+| ⚠️ | **Le lingue servite e le chiavi di query erano scritte in due file privati** (`VipiModuleExtensions`, `CultureCookieMiddleware`) che la UI non può vedere: il selettore avrebbe fatto una terza copia | `LinguaDiLettura` in `Vipi.Application.Content`, e i due file dell'hosting ora leggono di lì |
+| ⚠️⚠️ | **Indice in italiano e testate in inglese** sulla stessa pagina: `AirportLegacySections.ForView` riporta ogni sezione di catalogo al suo titolo CABLATO, quindi **buttava via il titolo appena tradotto** | Le sezioni si ripassano dalla stessa passata dopo `ForView` (zero query, la memoria è già in mano); `TitleOf`/`SectionHeading` spariscono, erano il secondo posto che rileggeva il catalogo |
+
+⚠️ **Due chip e non un tasto che gira** come quello del tema: su un tasto solo non si sa se «EN» è la lingua
+in cui sei o quella in cui andresti, e a differenza del tema qui l'errore non si vede finché la pagina non
+si è già ricaricata. Costa ~30px in barra, che la misura trova; dallo scaglione `tb-4` il gruppo esce di
+riga e la scelta resta nel «☰», come zoom e badge.
+
+⚠️ **Il link riparte dall'indirizzo vero**, query compresa: un `?culture=en` fisso su
+`/airports?icao=LIBC` avrebbe riportato all'elenco degli aeroporti. Cambiare lingua deve cambiare la lingua
+e basta. Ed è un **percorso assoluto senza schema né host**, perché in produzione davanti c'è Cloudflare.
+
+**Verificato guidando il browser** (finestra 1440, host su :5199 su copia del `vipi.db`): la barra non
+sfora, «IT» è segnato, il clic su «EN» resta su LIBC e traduce indice e testate, il cookie regge il
+ricarico senza `?culture=`. Cinque test E2E nuovi (`SelettoreLinguaTests`) più uno di caratterizzazione su
+`ForView`, che è il posto dove la traduzione si perdeva.
+
+⚠️ **Quello che a schermo si vede ancora in italiano, e non è questa funzione**: le etichette del riquadro
+meteo («VENTO», «VISIBILITÀ», «NUBI», «aggiornato»), il badge «Live · non connesso» e il testo delle regole
+pista scritto a mano nell'anagrafica. Le prime due sono **stringhe cablate nei componenti** — è la slice 9,
+«generatori derivati da stringhe cablate a resx», che resta aperta; la terza è prosa d'anagrafica che
+entrerà in memoria al prossimo giro di riempimento.

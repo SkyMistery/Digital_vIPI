@@ -143,6 +143,23 @@ public class AirportLegacySectionsTests
     }
 
     [Fact]
+    public void Il_titolo_di_catalogo_SCAVALCA_quello_della_sezione_anche_se_tradotto()
+    {
+        // ⚠️ CARATTERIZZAZIONE, non desiderio: questo metodo riporta ogni sezione di catalogo al titolo
+        // CABLATO del catalogo, che è in italiano. È voluto — una sezione fissa non si rinomina a mano — ma
+        // ha una conseguenza che si vede solo a schermo: se il documento è già stato TRADOTTO, il titolo
+        // tradotto viene buttato via qui, e la pagina torna a dire «Regole piste» in mezzo alla prosa
+        // inglese (visto su LIBC il 28 agosto 2026, con la copertura che dichiarava «tutto tradotto»).
+        //
+        // Per questo il viewer d'aeroporto ripassa le sezioni dalla traduzione DOPO questa chiamata. Se un
+        // giorno quel secondo giro sembrasse di troppo, è questo test a dire perché c'è.
+        var v = AirportLegacySections.ForView(new[] { Sez("s-1", "runwayrules", "Runway rules", "corpo") });
+
+        var s = Assert.Single(v, x => x.Id == "s-1");
+        Assert.Equal("Regole piste", s.Title);
+    }
+
+    [Fact]
     public void Una_lista_vuota_da_comunque_le_sezioni_sempre_live()
     {
         // Documento senza sezioni (o snapshot rotto): meteo e validità sono live, non hanno bisogno di niente

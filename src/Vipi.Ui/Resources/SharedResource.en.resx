@@ -97,6 +97,9 @@
   <data name="Chrome_BrandHome" xml:space="preserve"><value>ATC Services home</value></data>
   <data name="Chrome_Guide" xml:space="preserve"><value>Guide</value></data>
   <data name="Chrome_Menu" xml:space="preserve"><value>Menu</value></data>
+  <data name="Chrome_Language" xml:space="preserve"><value>Language</value></data>
+  <data name="Chrome_Lang_it" xml:space="preserve"><value>Italian</value></data>
+  <data name="Chrome_Lang_en" xml:space="preserve"><value>English</value></data>
   <data name="Chrome_Theme" xml:space="preserve"><value>Theme</value></data>
   <data name="Chrome_Version" xml:space="preserve"><value>Site version</value></data>
   <data name="Chrome_ThemeAuto" xml:space="preserve"><value>Theme: automatic (follows the system)</value></data>

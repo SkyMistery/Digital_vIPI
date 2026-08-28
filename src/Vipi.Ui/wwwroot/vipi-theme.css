@@ -1938,6 +1938,20 @@ button.sh-chip.warn:hover{background:var(--tint-gold)}
 .zoom-ctrl button:hover{background:rgba(255,255,255,.18);color:var(--on-brand)}
 .zoom-ctrl span{color:var(--on-dark-soft);font-size:12.5px;min-width:42px;text-align:center;cursor:pointer;font-family:var(--font-body);user-select:none}
 .zoom-ctrl span:hover{color:var(--on-brand)}
+/* ---------- Scelta della lingua (interfaccia E documento insieme) ----------
+   DUE chip e non un tasto che gira come il tema: su un tasto solo non si sa se «EN» e' la lingua in cui sei
+   o quella in cui andresti, e a differenza del tema qui l'errore non si vede finche' la pagina non si e'
+   gia' ricaricata. Costa ~30px in piu' del tasto singolo, e dallo scaglione tb-4 il gruppo esce di riga.
+   ⚠️ Sono LINK e non tasti: il chrome e' SSR statico, cambiare lingua e' ricaricare questa stessa pagina
+   chiedendola in un'altra lingua — e funziona anche a JavaScript spento.
+   ⚠️ I CODICI restano in maiuscolo e non si traducono: «IT»/«EN» sono la stessa cosa in tutte e due le
+   lingue, ed e' il nome per esteso — quello si' tradotto — a stare nel `title` e nell'aria-label. */
+.lang-ctrl{display:flex;align-items:center;gap:2px;background:rgba(255,255,255,.12);border-radius:9px;padding:3px;flex:none}
+.lang-ctrl a{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;
+  padding:0 7px;border-radius:7px;color:var(--on-dark-soft);text-decoration:none;font-family:var(--font-head);
+  font-weight:600;font-size:12.5px;letter-spacing:.02em;white-space:nowrap}
+.lang-ctrl a:hover{background:rgba(255,255,255,.18);color:var(--on-brand)}
+.lang-ctrl a.on{background:var(--on-brand);color:var(--ivao-blue);font-weight:700}
 /* ---------- Scelta del tema (automatico / chiaro / scuro) ----------
    Un tasto solo nella barra, che gira fra i tre stati: la barra ha un minimo incomprimibile noto e tre
    tasti costerebbero ~90px. Le tre scelte esplicite stanno nel menu a scomparsa, dove lo spazio c'e'.
@@ -3281,7 +3295,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 
 /* Quello che esce dalla riga vive nel menu: non sparisce, cambia posto. */
 
-.topbar.tb-4 .acc-nav,.topbar.tb-4 .zoom-ctrl,.topbar.tb-4 .live-badge,
+.topbar.tb-4 .acc-nav,.topbar.tb-4 .zoom-ctrl,.topbar.tb-4 .live-badge,.topbar.tb-4 .lang-ctrl,
 
 .topbar.tb-4 .right>.editor-btn,.topbar.tb-4 .right>.user-chip{display:none}
 
@@ -3339,6 +3353,15 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
   padding:9px 8px;border-radius:9px;font-family:var(--font-head);font-weight:600;font-size:13px}
 .topbar.tb-4 .tb-menu-tema button:hover{background:rgba(255,255,255,.18);color:var(--on-brand)}
 .topbar.tb-4 .tb-menu-tema button.on{background:var(--on-brand);color:var(--ivao-blue);font-weight:700}
+
+/* La lingua nel menu: stessa forma delle tre del tema, ma sono LINK (vedi .lang-ctrl). */
+.topbar.tb-4 .tb-menu-lingua{display:flex;gap:6px;padding:2px 2px 10px;margin-bottom:6px;
+  border-bottom:1px solid rgba(255,255,255,.18)}
+.topbar.tb-4 .tb-menu-lingua a{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  cursor:pointer;color:var(--on-dark-soft);background:rgba(255,255,255,.1);text-decoration:none;
+  padding:9px 8px;border-radius:9px;font-family:var(--font-head);font-weight:600;font-size:13px}
+.topbar.tb-4 .tb-menu-lingua a:hover{background:rgba(255,255,255,.18);color:var(--on-brand)}
+.topbar.tb-4 .tb-menu-lingua a.on{background:var(--on-brand);color:var(--ivao-blue);font-weight:700}
 
 /* ---- Una tabella del viewer scorre DENTRO il suo blocco, a QUALUNQUE larghezza ----
    ⚠️ Misurato il 22 agosto sul viewer aeroporto (LIBD): finestra 1280 con zoom 1.4 — cioe' **914 unita' di

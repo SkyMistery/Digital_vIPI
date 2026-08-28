@@ -115,7 +115,7 @@ else
                    contorno sono le stesse delle altre famiglie perché sono lo STESSO componente. *@
                 <DocumentSectionsView Sections="_sezioni" Profile="SectionProfile.Airport"
                                       IsDraft="@(_mode.Kind == PreviewKind.Draft)"
-                                      AnchorOf="AnchorOf" TitleOf="SectionHeading"
+                                      AnchorOf="AnchorOf"
                                       ExtraClass="ClasseExtra" HeaderContent="Intestazione"
                                       DerivedContent="CorpoDerivato" />
             </div>
@@ -162,7 +162,8 @@ else
     private DocumentView? _view;
     private Vipi.Application.Translation.TranslationCoverage _copertura =
         Vipi.Application.Translation.TranslationCoverage.Nessuna;
-    // La passata di traduzione di QUESTA vista: la usano le testate prese dal catalogo (vedi SectionHeading).
+    // La passata di traduzione di QUESTA vista: serve una seconda volta sulle sezioni, dopo che
+    // `AirportLegacySections.ForView` ha rimesso i titoli di catalogo (vedi il commento sul suo uso).
     private Vipi.Application.Translation.TranslationPass _passata =
         Vipi.Application.Translation.TranslationPass.Nessuna;
     private bool _listMode;
@@ -316,10 +317,17 @@ else
         var tradotto = await Translator.TranslateAsync(_view, Vipi.Domain.Language.It, lettore);
         _view = tradotto.View;
         _copertura = tradotto.Coverage;
-        _passata = tradotto.Pass;   // serve alle testate di catalogo, che al traduttore non passano davanti
+        _passata = tradotto.Pass;   // serve ai titoli di catalogo, che al traduttore non passano davanti
 
-        // Le sezioni da rendere si ricavano DOPO la traduzione: è la vista che il lettore vedrà davvero.
-        _sezioni = AirportLegacySections.ForView(_view.Sections);
+        // Le sezioni da rendere si ricavano DOPO la traduzione, e si RITRADUCONO.
+        //
+        // ⚠️ Il secondo giro non è per scrupolo: `ForView` riporta ogni sezione di catalogo al suo titolo di
+        // CATALOGO — che è una stringa italiana cablata — e quindi butta via il titolo appena tradotto. Visto
+        // a schermo su LIBC il 28 agosto 2026: indice e testate dicevano «Regole piste» in mezzo a una pagina
+        // inglese, con la copertura che dichiarava «tutto tradotto». Ripassare la sezione dalla stessa passata
+        // costa zero query (la memoria è già in mano) e ritraduce dalla stessa impronta; su un testo già
+        // tradotto non trova nulla e lo lascia dov'è.
+        _sezioni = AirportLegacySections.ForView(_view.Sections).Select(_passata.Sezione).ToList();
     }
 
                 /// <summary>Gli ATC su questo scalo, ATIS escluso: un ATIS acceso non è una posizione presidiata.
@@ -400,13 +408,13 @@ else
         @if (sec.SectionKey == "weather")
         {
             <text>🌦️ </text>
-            @SectionHeading(sec)
+            @sec.Title
             <text> · @_icao </text>
             <span class="muted" style="font-weight:400;font-size:13px">@L["Airport_LiveNoaa"]</span>
         }
         else
         {
-            @SectionHeading(sec)
+            @sec.Title
         }
     };
 
@@ -435,22 +443,6 @@ else
     /// un ciclo passato deve vedere il documento com'era, ma le sezioni riconciliate hanno il titolo nuovo e
     /// devono leggersi uguali alle altre. Quindi: titolo del catalogo se la chiave è del catalogo.
     /// </summary>
-    /// <summary>
-    /// La testata di una sezione: quella del CATALOGO se la sezione è di catalogo, altrimenti quella del
-    /// documento.
-    ///
-    /// <para>⚠️ <b>Anche il titolo di catalogo passa dalla traduzione</b>, e senza questo passaggio la
-    /// pagina restava a metà: i titoli del catalogo sono stringhe italiane cablate, quindi su un documento
-    /// tradotto per intero si leggeva «Regole piste» in mezzo alla prosa inglese — visto a schermo su
-    /// LIBC il 28 agosto 2026. Il titolo del documento, che di norma è lo stesso testo, la sua traduzione ce
-    /// l'ha già in memoria: qui si cerca con la stessa impronta. Se manca resta il titolo di catalogo, come
-    /// prima.</para>
-    /// </summary>
-    private string SectionHeading(SectionView s)
-    {
-        var catalogo = SectionCatalog.Find(SectionProfile.Airport, s.SectionKey)?.Title;
-        return catalogo is null ? s.Title : _passata.Testo(catalogo) ?? catalogo;
-    }
 
     private void Recompute()
     {

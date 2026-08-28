@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Vipi.Application;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Content;
 using Vipi.Application.Auth;
 using Vipi.Infrastructure;
 using Vipi.Infrastructure.Ivao;
@@ -139,8 +140,11 @@ public static class VipiModuleExtensions
         return services;
     }
 
-    /// <summary>Culture supportate dal modulo (it default, en).</summary>
-    private static readonly string[] SupportedCultures = { "it", "en" };
+    /// <summary>Culture supportate dal modulo. ⚠️ L'elenco NON sta qui: lo dice
+    /// <see cref="LinguaDiLettura.Supportate"/>, perché lo stesso elenco serve al selettore di lingua in
+    /// barra, e la UI non può vedere dentro l'hosting. Due elenchi divergerebbero in silenzio — un tasto che
+    /// offre una lingua non servita non dà errore, ricarica la stessa pagina.</summary>
+    private static readonly string[] SupportedCultures = LinguaDiLettura.Supportate;
 
     /// <summary>Middleware del modulo (localizzazione + registrazione login staff nel roster).</summary>
     public static IApplicationBuilder UseVipiModule(this IApplicationBuilder app)

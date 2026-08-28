@@ -36,6 +36,16 @@
                     <button type="button" data-theme-set="light" onclick="vipiSetTema('light')"><Icon Name="sun" /> @L["Chrome_ThemeLightShort"]</button>
                     <button type="button" data-theme-set="dark" onclick="vipiSetTema('dark')"><Icon Name="moon" /> @L["Chrome_ThemeDarkShort"]</button>
                 </div>
+                @* La lingua: dallo scaglione tb-4 il gruppo esce dalla riga, e qui è l'unica strada che
+                   resta — la stessa regola del tema e dello zoom. Nomi per esteso, che qui lo spazio c'è. *@
+                <div class="tb-menu-lingua" role="group" aria-label="@L["Chrome_Language"]">
+                    @foreach (var lingua in LinguaDiLettura.Supportate)
+                    {
+                        var attiva = string.Equals(lingua, _lingua, StringComparison.OrdinalIgnoreCase);
+                        <a href="@UrlConLingua(lingua)" hreflang="@lingua" class="@(attiva ? "on" : null)"
+                           aria-current="@(attiva ? "true" : null)">@L[NomeLingua(lingua)]</a>
+                    }
+                </div>
                 <a href="/services"><Icon Name="grid" /> @L["Chrome_Services"]</a>
                 <a href="/services/vsop/guide"><Icon Name="help-circle" /> @L["Chrome_Guide"]</a>
                 <a href="/services/vsop/live"><Icon Name="radio" /> @L["Chrome_OpenLive"]</a>
@@ -86,6 +96,26 @@
                 <button type="button" onclick="vipiZoom(-0.1)" title="@L["Chrome_ZoomOut"]" aria-label="@L["Chrome_ZoomOut"]">−</button>
                 <span id="vipiZoomPct" role="status" aria-live="polite" aria-label="@L["Chrome_ZoomPage"]" onclick="vipiZoomReset()" title="@L["Chrome_ZoomReset"]">100%</span>
                 <button type="button" onclick="vipiZoom(0.1)" title="@L["Chrome_ZoomIn"]" aria-label="@L["Chrome_ZoomIn"]">+</button>
+            </div>
+            @* La LINGUA. ⚠️ Un controllo solo per l'interfaccia E per il documento (carta bilingue §7): un
+               documento inglese dentro una pagina italiana è una schermata mezza tradotta. Fino al 28 agosto
+               2026 il meccanismo c'era tutto — `?culture=`, il cookie, il badge «non revisionata» — e
+               mancava questo: la lingua si poteva chiedere solo scrivendola nell'indirizzo.
+               ⚠️ DUE CHIP e non un tasto che gira come il tema: su un tasto solo non si sa se «EN» è la
+               lingua in cui sei o quella in cui andresti, e a differenza del tema qui l'errore non si vede
+               finché la pagina non si è già ricaricata. Costa una trentina di px in più, e la barra li
+               trova: dallo scaglione tb-4 in giù il gruppo esce di riga e la scelta resta nel «☰».
+               ⚠️ SONO LINK, non tasti: il chrome è SSR statico e non c'è nessun circuito da chiamare —
+               cambiare lingua è ricaricare questa stessa pagina chiedendola in un'altra lingua, e infatti
+               funziona anche a JavaScript spento. *@
+            <div class="lang-ctrl" role="group" aria-label="@L["Chrome_Language"]">
+                @foreach (var lingua in LinguaDiLettura.Supportate)
+                {
+                    var attiva = string.Equals(lingua, _lingua, StringComparison.OrdinalIgnoreCase);
+                    <a href="@UrlConLingua(lingua)" hreflang="@lingua" class="@(attiva ? "on" : null)"
+                       aria-current="@(attiva ? "true" : null)"
+                       title="@L[NomeLingua(lingua)]" aria-label="@L[NomeLingua(lingua)]">@lingua.ToUpperInvariant()</a>
+                }
             </div>
             @* Tema: un solo tasto che gira automatico → chiaro → scuro. È un tasto e non tre perché tre
                costerebbero una novantina di px in barra; le tre scelte esplicite stanno nel menù, dove lo
@@ -284,6 +314,36 @@
 
     private bool IsActiveAcc(string code) =>
         _acc is not null && code.Equals(_acc, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>La lingua in cui si sta leggendo: quella dell'interfaccia, che è anche quella del documento.</summary>
+    private static string _lingua =>
+        System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+
+    /// <summary>Il nome della lingua nella lingua corrente («Italiano»/«Inglese»), dalle risorse.</summary>
+    private static string NomeLingua(string lingua) => "Chrome_Lang_" + lingua.ToLowerInvariant();
+
+    /// <summary>
+    /// Questa stessa pagina, chiesta in un'altra lingua.
+    ///
+    /// <para>⚠️ <b>Si riparte dall'indirizzo VERO, query compresa.</b> Un link fisso a
+    /// <c>?culture=en</c> perderebbe il resto — su <c>/airports?icao=LIBC</c> riporterebbe all'elenco degli
+    /// aeroporti, e su un'anteprima di release al documento pubblico: cambiare lingua butterebbe via dove
+    /// sei. Le chiavi di cultura già presenti si tolgono, o la vecchia resterebbe accanto alla nuova e a
+    /// decidere sarebbe l'ordine.</para>
+    /// </summary>
+    private string UrlConLingua(string lingua)
+    {
+        // Le chiavi di cultura già presenti si TOLGONO (valore null), poi si scrive la sola che conta:
+        // lasciarle accanto alla nuova vorrebbe dire far decidere all'ordine.
+        var parametri = LinguaDiLettura.ChiaviQuery
+            .ToDictionary(k => k, _ => (object?)null, StringComparer.OrdinalIgnoreCase);
+        parametri[LinguaDiLettura.ChiaveQuery] = lingua;
+        // ⚠️ Percorso ASSOLUTO ma senza schema né host: `GetUriWithQueryParameters` torna l'indirizzo
+        // completo, e in produzione davanti c'è Cloudflare — un link che si porta dietro schema e host visti
+        // dall'applicazione manderebbe il lettore sull'origine, o su http. `PathAndQuery` tiene anche
+        // l'eventuale percorso di base, che serve quando il modulo è montato dentro un altro sito.
+        return new Uri(Nav.GetUriWithQueryParameters(parametri)).PathAndQuery;
+    }
 
     /// ⚠️ Si tengono solo le parole che COMINCIANO PER LETTERA. Il nome che arriva non è sempre
     /// «nome cognome»: l'identità di sviluppo è «Carmine (704798)», e prendendo alla lettera «la prima
