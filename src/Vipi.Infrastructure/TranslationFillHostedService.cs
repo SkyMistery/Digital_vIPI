@@ -49,6 +49,13 @@ public sealed class TranslationFillHostedService : BackgroundService
     private readonly IServiceScopeFactory _scopes;
     private readonly ILogger<TranslationFillHostedService> _log;
 
+    /// <summary>
+    /// Se l'avviso «acceso ma senza chiave» è già stato dato. ⚠️ Serve perché il giro è ogni quarto d'ora e
+    /// l'avviso è di quelli che non cambiano da soli: senza questo campo sarebbero <b>96 righe di Warning
+    /// al giorno per sempre</b>, cioè il modo sicuro di far smettere di leggere i Warning.
+    /// </summary>
+    private bool _avvisoSenzaMotoreDato;
+
     public TranslationFillHostedService(IServiceScopeFactory scopes, ILogger<TranslationFillHostedService> log)
     {
         _scopes = scopes;
@@ -74,6 +81,31 @@ public sealed class TranslationFillHostedService : BackgroundService
             return true;   // non è un guasto: è un sito che non traduce
         }
 
+        // ⚠️ ACCESO SENZA CHIAVE si dice UNA volta e in modo esplicito, non due volte a giro per sempre.
+        // Senza questa uscita anticipata il giro arriva in fondo alla catena, non trova nessun motore
+        // configurato e riporta `NotConfigured` per ogni direzione: due Warning ogni quarto d'ora, che
+        // dicono «non riuscita» quando la verità è «non è mai stata chiesta a nessuno». Il rimedio è una
+        // riga di configurazione, non un guasto da ritentare — e un avviso che si ripete senza cambiare è
+        // un avviso che fra due giorni nessuno legge più.
+        var motori = sp.GetServices<ITranslationEngine>().ToList();
+        if (!motori.Any(m => m.IsConfigured))
+        {
+            if (!_avvisoSenzaMotoreDato)
+            {
+                _avvisoSenzaMotoreDato = true;
+                _log.LogWarning(
+                    "Translation:Enabled è true ma nessun motore ha una chiave ({Motori}): non si traduce " +
+                    "niente e i documenti restano nella lingua sorgente. La chiave va sotto " +
+                    "Translation:Azure:ApiKey (con Translation:Azure:Region) o Translation:DeepL:ApiKey — " +
+                    "in produzione nel file della cartella «segreti». Questo avviso non si ripete.",
+                    string.Join(", ", motori.Select(m => m.Name)));
+            }
+
+            // Vero e non falso: la configurazione manca, non è il giro ad essere fallito. Segnare un
+            // fallimento farebbe ritentare a raffica una cosa che nessun ritentativo può risolvere.
+            return true;
+        }
+
         // ⚠️ PRIMA di chiedere alla macchina: i titoli che hanno un originale ufficiale si mettono in
         // memoria a mano, o il giro li traduce e paga per una risposta sbagliata («Piste» → «Slopes», visto
         // dal vivo il 28 agosto 2026). Idempotente: dal secondo giro non scrive niente.
@@ -86,7 +118,7 @@ public sealed class TranslationFillHostedService : BackgroundService
         var giro = new TranslationFillUseCase(
             sp.GetRequiredService<ITranslatableCorpus>(),
             memoria,
-            sp.GetServices<ITranslationEngine>(),
+            motori,
             protettore,
             opzioni);
 

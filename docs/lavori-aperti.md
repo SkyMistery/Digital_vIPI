@@ -3364,6 +3364,49 @@ vettoramento» → *Minimum vectoring*. ⚠️ Ora si correggono **dall'editor**
 Sei commit, suite verde su entrambi i TFM, build Release senza avvisi. Da fondere insieme a
 [archivio-atc-mondiale](feature/2026-08-28-archivio-atc-mondiale.md), o dopo: i due rami non si toccano.
 
+### Q15 ✅ CHIUSA — l'interruttore esisteva e nessuno sapeva dove fosse
+
+Trovata rileggendo la funzione da fuori. `Translation:Enabled` è **falso per default** — scelta giusta, un
+sito senza chiave non è rotto — ma non compariva in **nessun** `appsettings`, in nessun file di deploy, in
+nessun foglio di manovra: cercando `Translation__` in tutto il repository non usciva niente. Il cablaggio
+era completo dal 27 agosto (motori, catena, memoria, giro dei 15 minuti, congelamento nelle release), e la
+funzione era **spenta**.
+
+⚠️ **È il modo silenzioso di sbagliare, ed è per questo che vale una voce.** Spenta, la traduzione non
+somiglia a una funzione spenta: il selettore IT/EN c'è lo stesso, le 2 487 etichette cambiano lo stesso, e
+solo aprendo un documento si scopre che la **prosa** è rimasta nella lingua in cui è stata scritta. Nessun
+errore, nessun log, nessuna pagina che lo dica. Dimenticare di accenderla era indistinguibile dall'averla
+accesa.
+
+Che cosa è stato fatto:
+
+| | |
+|---|---|
+| **La forma della sezione, scritta** | `src/Vipi.Host/appsettings.json` porta ora `Translation` per intero (spenta, chiavi vuote, tetto di DeepL a 450 000). Non serve a configurare: serve a **dire che esiste** e quale chiave si aspetta |
+| **L'interruttore, acceso** | `deploy/atc-ivao/appsettings.Production.json`: `"Translation": { "Enabled": true }`. ⚠️ Chi aggiorna da un pacchetto precedente **non ha questa riga** e deve aggiungerla |
+| **Il posto dove guardare** | `StartupDiagnostics`: tre righe nuove (`Enabled`, presenza della chiave Azure con la sua regione, presenza della chiave DeepL) più un blocco `⚠` esplicito quando è **accesa senza nessuna chiave** — che è la combinazione che non dà nessun altro segnale |
+| **Il rumore, tolto prima di farlo** | `TranslationFillHostedService`: accesa senza motore configurato, il giro finiva la catena e riportava `NotConfigured` **per ogni direzione** — due Warning ogni quarto d'ora, 96 al giorno per sempre, che dicono «non riuscita» dove la verità è «non è mai stata chiesta a nessuno». Ora esce prima, con **un** Warning che non si ripete |
+| **Il foglio di manovra** | [deploy/atc-ivao/LEGGIMI-TRADUZIONE.md](../deploy/atc-ivao/LEGGIMI-TRADUZIONE.md): quale chiave, dove si mette, i due tranelli dei motori (regione Azure ⇒ 401, chiave `:fx` di DeepL ⇒ 403), come si verifica, e le tre cose che cambiano a schermo quando si accende |
+
+⚠️ **Due conseguenze da sapere prima di premere l'interruttore**, e sono scritte anche nel foglio: le
+release pubblicate **prima** si traducono da sole (non portano niente di congelato, quindi ricadono sulla
+memoria viva), mentre da quel momento ogni **nuova** pubblicazione fotografa quel che la memoria sa in
+quell'istante — quindi pubblicare prosa nuova *prima* del giro la congela non tradotta. E comparirà
+l'avviso «traduzione automatica, non revisionata» finché una persona non rilegge (§Q13).
+
+### Q16 🟢 APERTO — il tetto di spesa è una stima che sottostima
+
+`EfTranslationMemory.CaratteriSpesiStimatiAsync` somma la lunghezza del sorgente delle righe di memoria
+**vive e attribuite a quel motore**. Quando una persona corregge una resa, la riga passa a `Origin=Human` e
+i suoi caratteri **escono dal conto** — pur essendo stati spesi davvero. Più si revisiona, più il tetto si
+allarga.
+
+Non è urgente: sui volumi misurati (23 344 caratteri per direzione) il tetto non si avvicina nemmeno. Lo
+diventa se il corpus cresce di un ordine di grandezza, e allora la cura è un **contatore suo** — una riga
+per giro con i caratteri spediti — invece di dedurre la spesa dallo stato attuale della memoria, che è una
+cosa diversa. ⚠️ Vale per DeepL più che per Azure: la sua franchigia è **una tantum**, e un tetto tarato su
+una misura che si sgonfia non protegge la riserva che esiste per proteggere.
+
 ---
 
 ## R. I vSOP militari — 28 agosto 2026

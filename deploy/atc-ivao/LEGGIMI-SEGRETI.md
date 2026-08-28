@@ -49,9 +49,18 @@ indovinabile e non va scritto da nessuna parte che finisca sul server.
     "Vipi": "Server=localhost;Port=3306;Database=itivao_atc;User Id=itivao_atc;Password=LA-PASSWORD-VERA;MaximumPoolSize=20;ConnectionIdleTimeout=60;DefaultCommandTimeout=30"
   },
   "VipiAuth": { "ClientId": "…", "ClientSecret": "…" },
-  "Ivao":     { "ClientId": "…", "ClientSecret": "…" }
+  "Ivao":     { "ClientId": "…", "ClientSecret": "…" },
+
+  "Translation": {
+    "Azure": { "ApiKey": "…", "Region": "westeurope" }
+  }
 }
 ```
+
+La sezione `Translation` è **facoltativa**: senza, il sito funziona e mostra i documenti nella lingua in
+cui sono stati scritti. Serve solo alla traduzione automatica della prosa dei documenti, e ha un foglio
+suo — [LEGGIMI-TRADUZIONE](LEGGIMI-TRADUZIONE.md) — perché oltre alla chiave vuole un interruttore acceso
+in `appsettings.Production.json`, e con l'uno senza l'altro non traduce **senza dare nessun errore**.
 
 **4. Togliete gli stessi valori da `appsettings.Production.json`.** ⚠️ Questo è il passo che chiude la
 falla: finché la password resta anche là, spostarla non è servito a niente. Della connection string si

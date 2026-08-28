@@ -88,6 +88,26 @@ public static class StartupDiagnostics
         sb.AppendLine($"  Ivao:ClientId .............. {Presenza(cfg["Ivao:ClientId"])}");
         sb.AppendLine($"  Ivao:ClientSecret .......... {Presenza(cfg["Ivao:ClientSecret"])}");
 
+        // ⚠️ La traduzione è l'unica funzione che, spenta, non somiglia a una funzione spenta: il selettore
+        // di lingua c'è lo stesso, le etichette cambiano lo stesso, e solo i DOCUMENTI restano nella lingua
+        // in cui sono stati scritti. Senza queste tre righe non c'è nessun posto, sul server vero, dove
+        // leggere se sta traducendo — e «sembra bilingue» è indistinguibile da «è bilingue» finché non si
+        // apre un documento e si sa che cosa aspettarsi.
+        var traduzioneAccesa = string.Equals(cfg["Translation:Enabled"], "true", StringComparison.OrdinalIgnoreCase);
+        sb.AppendLine($"  Translation:Enabled ........ {Mostra(cfg["Translation:Enabled"], "assente ⇒ FALSO: i documenti restano nella lingua sorgente")}");
+        sb.AppendLine($"  Translation:Azure:ApiKey ... {Presenza(cfg["Translation:Azure:ApiKey"])}  (regione: {Mostra(cfg["Translation:Azure:Region"], "non impostata")})");
+        sb.AppendLine($"  Translation:DeepL:ApiKey ... {Presenza(cfg["Translation:DeepL:ApiKey"])}");
+
+        // Enabled senza chiave è il modo silenzioso di sbagliare: il giro parte ogni quarto d'ora, non ha
+        // nessuno da chiamare, e il sito continua a mostrare i documenti nella lingua sorgente.
+        if (traduzioneAccesa &&
+            string.IsNullOrWhiteSpace(cfg["Translation:Azure:ApiKey"]) &&
+            string.IsNullOrWhiteSpace(cfg["Translation:DeepL:ApiKey"]))
+            sb.AppendLine()
+              .AppendLine("⚠ Translation:Enabled è true ma NESSUN motore ha una chiave: non si traduce niente.")
+              .AppendLine("  La chiave va nel file .json della cartella «segreti», sotto Translation:Azure:ApiKey")
+              .AppendLine("  (con Translation:Azure:Region) o Translation:DeepL:ApiKey. Vedi LEGGIMI-TRADUZIONE.md.");
+
         if (!string.IsNullOrWhiteSpace(cfg["VipiAuth:ClientId"]) &&
             !string.Equals(cfg["VipiAuth:ClientId"], cfg["Ivao:ClientId"], StringComparison.Ordinal))
             sb.AppendLine()
