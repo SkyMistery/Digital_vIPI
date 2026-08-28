@@ -1,146 +1,87 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 27 agosto 2026, **notte** (il ramo `basemap-esri`: il fondo delle mappe e le chip morte).
+**Ultimo aggiornamento:** 28 agosto 2026, mattina (i **vSOP militari**, dieci slice, e il primo SOP vero).
 
 ## Dove siamo, prima di tutto il resto
 
-🔷 **UN RAMO APERTO: `basemap-esri`**, spinto e **non fuso**, due commit e due lavori distinti — nati
-entrambi da una segnalazione del committente, non da un piano:
+✅ **Nessun ramo aperto.** `main` è a **`6644b5e`**, **spinto**: `origin/main` allineato (0/0). Sul server
+non resta nessun ramo di lavoro — `origin/basemap-esri` è stato cancellato il 28 agosto, quando `main` è
+stato spinto e quel lavoro non viveva più solo lì.
 
-| commit | cosa |
-|---|---|
-| `95e4227` | **Il fondo delle mappe non è più CARTO** ma Esri «Light Gray Canvas»: le tessere arrivavano stampigliate «API KEY REQUIRED», in produzione, su tutte le mappe |
-| `1c15f81` | **Le chip METAR/TAF e la pista delle SID non facevano niente**: la vIPI d'aeroporto è SSR statica e lo stato dei suoi comandi era rimasto nel genitore |
+⚠️ **La regola che ne resta**: un ramo remoto si cancella quando ciò che porta è **anche altrove**, e la
+verifica è `git rev-list --count main..origin/<ramo>` = 0. Prima di quel momento è l'unica copia sul
+server, e cancellarlo perde lavoro **senza un errore che lo dica**.
 
-I due stanno insieme solo perché sono usciti la stessa sera; **si possono scorporare** in due rami se la
-fusione conviene separata.
+**Suite 6633** su 15 progetti con esito, build Release `--no-incremental` della soluzione intera **0
+avvisi**, **nessuna migrazione nuova** (restano diciannove).
 
-`main` è fermo a **`4811813`** (spinto), che porta l'**audit delle prestazioni** (§O) e `riordino-e-aree`.
-Punto di ritorno di quella fusione: **`main-prima-del-merge-20260827`** (`963e9aa`).
+### Che cosa è entrato in due giorni: venti slice, due funzioni
 
-**Suite 5989** su **15** progetti con esito (erano 5981: quattro test nuovi sulle chip, contati due volte
-perché `Vipi.Ui.Tests` gira su net8 e net10), build Release della soluzione intera **0 avvisi**, **nessuna
-migrazione nuova** (restano diciannove).
+| | Che cos'è | Dove |
+|---|---|---|
+| **Documenti bilingue** | si **scrive in una lingua** e si **legge in due**. La traduzione non è un campo del documento ma una **memoria indicizzata sull'hash del sorgente**: da lì vengono gratis l'incrementale, il dedup e il fatto che una correzione umana valga **ovunque e per sempre**. Azure primario, DeepL di riserva | `docs/feature/2026-08-27-documenti-bilingue.md` |
+| **vSOP militari** | documento **separato** dalla vIPI civile, profilo `AirportMil` a **26 sezioni**, release e ciclo AIRAC propri, elenco nazionale `/services/vsop/mil`, editor dedicato, **filtro pilota/ATC** per sezione. Il primo SOP vero — **LIPI Rivolto** — è caricato in bozza | `docs/feature/2026-08-27-vsop-militari.md` |
 
-### Il ramo aperto, in cinque righe
+### ⚠️ La cosa da portarsi dietro: cinque difetti li ha trovati lo SCHERMO, non la suite
 
-**Il fondo delle mappe.** CARTO ha chiuso il basemap anonimo. ⚠️ Il guasto era **invisibile alle nostre
-reti**: il ritentatore e lo spazzino guardano la tessera che *non arriva*, e questa arrivava — `200`, immagine
-valida — con la scritta sopra. Ora è Esri, su un host che il prodotto interrogava già (il rilievo delle
-minime). 🔵 Resta la **categoria**: gratuito e senza contratto, come CARTO fino a ieri; l'unica strada che
-non si ripresenta sono le tessere nostre. Carta: `docs/feature/2026-08-27-basemap-esri.md`.
+Con 6633 test verdi. E **tre erano latenti da mesi** in codice condiviso da tutte le famiglie di documenti:
+mancava solo un profilo che li esercitasse.
 
-**Le chip morte.** ⚠️ Due forme dello stesso difetto, e la seconda inganna: `AirportWeather` non era mai
-stato promosso a **isola** (il clic non partiva nemmeno), mentre per le SID l'isola c'era e il clic
-**arrivava al server** — ma lo stato viveva nel genitore statico, che non si ridisegna più. Regola che resta:
-*uno stato che cambia vive **dentro** l'isola che lo cambia; un genitore statico può solo **seminarlo***.
-⚠️ E **bUnit ignora i render mode**: quella classe di difetto la vede solo il browser vero. Propagazione
-fatta sulle undici pagine pubbliche statiche: nessun altro comando muto. Carta:
-`docs/feature/2026-08-27-chip-morte-pagina-statica.md`.
+| | Che cosa si vedeva | Che cos'era |
+|---|---|---|
+| ⚠️⚠️ | «MARTE» diventava *MARS*, «CHI» diventava *WHO* | Sono **punti di un piano di volo**: chi pianifica *WHO* non trova niente. La protezione degli identificatori si applicava solo dove c'era **prosa attorno**, e una cella che è *solo* «MARTE» di minuscole non ne ha. La condizione giusta è **«è una parola sola»** |
+| ⚠️ | Le sotto-sezioni di «Aree di lavoro» uscivano **due volte** | La chiamata di mezzo del corpo usava lo slot `All`, che rende **anche** le sotto-sezioni. Nessun profilo aveva mai avuto una sezione `HostAndBlocks` **con figli** |
+| ⚠️ | Nascondere QRA non nascondeva niente | «Nascosta» valeva solo per le sezioni **radice**: `SectionNode`, che rende le figlie, `IsHidden` non lo guardava affatto |
+| ⚠️ | Un `**` orfano **stampato nella pagina** | I marcatori di grassetto non si proteggono (il motore infila le parole nei tag), quindi ogni tanto ne perde uno |
+| ⚠️ | «Pista» → *Track*, «Quota» → *Share*, «Piazzale» → *Forecourt* | Le **intestazioni delle tabelle**, cioè le colonne che un controllore legge per trovare il dato |
 
-### L'audit delle prestazioni, in cinque righe
+⚠️ **Il filo comune, e vale per la prossima volta**: nessuno di questi si vedeva sul corpus di prova, perché
+quello era fatto di **prosa**. Un documento tecnico è per metà fatto di **celle**, e una cella si comporta
+in modo diverso da una frase — non ha minuscole attorno, non ha contesto, e **vale come dato**, non come
+testo.
 
-Revisione della responsività **tenendo conto dell'ambiente di produzione** — Plesk + Passenger, una sola
-istanza senza backplane, MariaDB sulla stessa macchina, Cloudflare davanti, aggiornamento via FTP. Non
-letta: **misurata**, con l'applicazione compilata in Release su una copia del `vipi.db` reale.
+⚠️ **E una regola sull'attrezzo**: `innerText` di un `<details>` **chiuso è vuoto**. La prima sonda contò
+24 sezioni su 26 e mandò a cercare un difetto che stava nella sonda. **`textContent` per contare,
+`innerText` per leggere quel che l'utente vede.**
+
+### Come si carica un SOP militare
 
 ```
-prima visita   336 192  ->  113 052 byte     -66%
-avvio            465    ->      153 query,  e zero UPDATE inutili
+dotnet run --project tools/Vipi.MilSopLoader -- --sqlite <file.db> --icao LIPI [--apply]
 ```
 
-Lo **stato stazionario era già sano** (trenta richieste concorrenti: p50 16 ms, p90 34 ms). Il costo stava
-nei byte spediti, nell'avvio, e in ciò che impediva a qualunque cache di aiutare. Carta completa con tutte le
-misure: [`docs/history/audit-2026-08-27-prestazioni.md`](docs/history/audit-2026-08-27-prestazioni.md);
-voci aperte in `docs/lavori-aperti.md` **§O**.
+Prova a vuoto per default, non gira all'avvio, **non ripassa su una sezione che ha già contenuto**.
+⚠️ **Non è un lettore di PDF e non deve diventarlo**: il testo va **tradotto in italiano** (il documento
+nasce in italiano) e metà di ciò che conta nei quindici SOP sono **figure**. Quel che fa è non sbagliare
+chiave e distinguere i **quattro** motivi per cui una sezione resta vuota.
 
-⚠️ **Il filo: quattro difetti su otto sono default del framework mai scritti.** Il livello di compressione
-(`Fastest`, che per Brotli è la **qualità 1**: attivarlo faceva scaricare il **24% in più** che non averlo),
-il livello di log (`Information`, che per EF significa il testo di **ogni query su disco** — 1 MB ogni 210
-pagine), un `@rendermode` sull'**ingresso del sito**, che non ha un solo comando, e un `DateTime.UtcNow` dove
-serviva il timbro della sorgente. Nessuno somiglia a un difetto: non danno errore, e tre su quattro rendono la
-configurazione *più* ricca a leggerla.
+## Prima del prossimo deploy
 
-⚠️ **Due interventi pianificati sono stati SCARTATI SU MISURA**, e la misura sta **nel codice** perché nessuno
-li rifaccia dalla stessa ipotesi: **ReadyToRun** (+29 MB su un deploy solo-FTP per un 2% dentro il rumore — il
-cronometro d'avvio nuovo dice perché: **1 172 ms su ~1 300 sono database**, non compilazione) e la
-**deduplicazione dei poligoni AoR** (guardava i byte **grezzi**: compressi, arrotondare le coordinate e
-togliere i `&quot;` fa uscire **più** byte).
+⚠️ **DICIANNOVE migrazioni in coda** al cutover MariaDB. ⚠️ **Prima del deploy serve la SELECT dei
+duplicati su `DocReleases`**, o `CREATE UNIQUE INDEX` fallisce. ⚠️ **Tre passi d'avvio** idempotenti:
+`LinkAirportDocumentsAsync`, `ClearVloaSeededAiracRowAsync`, `ClearUnpublishedCurrentVersionAsync`.
 
-⚠️ **E quattro test sono passati per il motivo sbagliato prima di essere corretti** — è il rischio dominante
-di questo tipo di lavoro, ed è raccontato uno per uno in fondo alla carta. Più un errore di **verifica**:
-`grep -c "^Failed!"` diceva «0 falliti» mentre un progetto **non compilava**. Da qui in avanti la verifica è
-`dotnet build Vipi.slnx` **prima**, e poi il conto dei **progetti con esito (15)**, non dei falliti.
+⚠️ **Due rossi intermittenti hanno un nome** (`docs/lavori-aperti.md` §Q5 e §Q6):
+`CronometroAvvioTests.Lavvio_vero_lascia_il_riepilogo_nel_file_di_diagnostica`, che fa un avvio vero e
+rilegge il file di *quell'* avvio, e `SqliteTuningTests.Interceptor_enables_wal_and_busy_timeout`, rosso
+una volta sola e non riprodotto. Finché restano, «tutto verde» va letto come «tutto verde salvo uno che non
+c'entra» — ed è il modo in cui un rosso vero passa inosservato.
 
-🔵 **Due cose aspettano il committente, e non sono codice** (§O2, §O3):
-- la **Cache Rule su Cloudflare** (`/services/` → *Eligible for cache* → *Respect origin TTL*): senza, il
-  bordo non tiene l'HTML e metà del guadagno della cache resta inespressa. Istruzioni in `LEGGIMI-DEPLOY.md`;
-- sul Plesk: **`passenger_min_instances ≥ 1`** (a processo spento i dodici hosted service non girano) e
-  **`proxy_read_timeout ≥ 100s`** nelle direttive nginx aggiuntive — ⚠️ `nginx-vipi.conf` **su quel server
-  non lo carica nessuno**.
+## Come si conta la suite
 
-⚠️ **Al primo avvio dopo il deploy** la proiezione allinea i timbri dei settori **una volta sola** (312
-UPDATE); dal secondo in poi tace. È previsto.
-
-### Il giro di prima (§N), fuso nello stesso commit
-
-- **`ff8ec29`** — il **trascinamento nel menu Navigazione non ha mai funzionato col mouse**, su tutte e tre
-  le famiglie, pur essendo stato dichiarato eseguito e verificato il 26. `@ondragover:preventDefault` sulla
-  voce era lettera morta: **Blazor ascolta un evento solo se qualcuno vi registra un GESTORE**, e per
-  `dragover` non ce n'era. Senza quel `preventDefault` il bersaglio non accetta e il browser annulla il
-  gesto **senza errori e senza segni**. Cura: `wireTocDrop` in `vipi-ui.js`.
-- **`6d0c309`** — le **aree regolamentate** non hanno più una mappina per area (105 su LIRR): una mappa sola
-  riusata dall'AoR, una chip per area, i preset per tipo, e sotto le descrizioni delle sole accese.
-
-- **docs** — carte, indice e questo file; e la **Guida in-app**, che mostrava a schermo i tag escapati
-  (`<b>` letterale) e gli apostrofi raddoppiati in cinque sezioni, da mesi: il corpo è una `MarkupString`.
-  Ora due test lo presidiano. In più una sezione nuova, «Leggere le aree regolamentate». §N5.
-
-ℹ️ **Il fondo delle mappe e le chip morte** sono usciti dopo, la notte del 27, e stanno sul ramo
-`basemap-esri`: raccontati in cima a questo file, non qui — questo blocco è la storia di `riordino-e-aree`.
-
-⚠️ **La lezione di §N, che vale oltre il difetto**: né gli otto test bUnit né la verifica live guardavano il
-pezzo rotto, perché **fabbricavano** gli eventi di trascinamento — dispacciando da sé proprio il `drop` che
-nella realtà non arrivava. **Un gesto del browser si prova col browser che lo fa** (CDP
-`Input.setInterceptDrags`, headful): script e lezione nella skill `verifica-live`.
-
----
-
-✅ **Per il resto, sul codice non resta lavoro aperto.** Il 27 pomeriggio sono chiuse in un giro solo le ultime sei voci —
-**C7a/b/c** (l'ACC estero che nasceva con le aree accese, il regime di scrittura mai deciso, le cancellazioni
-strutturali mute), **C6** (la chiave di release che si sposta ora si **ripunta**), **H3** e **H1** (le due
-misure sbagliate dell'interfaccia) ed **E9**, dove la corsa sul `DbContext` si è finalmente **riprodotta**:
-la prima operazione è `HasAnyGrantAsync`, la domanda «hai qualcosa da modificare?» del layout. Racconto in
-`docs/lavori-aperti.md` **§M**. Build Release `--no-incremental` **0 avvisi**, **nessuna migrazione nuova**
-(restano diciannove). Tutto fuso in `main` (**`290b833`**, spinto) e il ramo del giro è stato **cancellato**,
-locale e su origin: di nuovo un albero solo.
-
-⚠️ **La trappola che §M lascia in eredità**: le due guardie della corsa (layout che conclude prima del render,
-pagina con scope proprio) **bastano ognuna da sola**. Chi ne togliesse una non vedrebbe rompersi niente.
-
-✅ **Un albero solo**, e stavolta senza asterischi: vedi la testata. I tre rami in
-fila del 26 sono stati fusi il 27 mattina (`docs/lavori-aperti.md` **§B12**), e da lì è partito e si è chiuso
-un giro nuovo: l'**audit dei quattro documenti** (**§L**, carta
-[`docs/refactor/14-quattro-documenti.md`](docs/refactor/14-quattro-documenti.md)).
-
-**Suite 5981 verdi** su `main`, contate il 27 sera tardi dopo la fusione dell'audit prestazioni (erano 5746
-il pomeriggio).
-⚠️ La cifra si **conta**, non si ricorda — e su net10 due progetti non girano per costruzione
-(`Vipi.AuroraBridge.Tests` e `Vipi.E2E.Tests` sono net8 soli: su net10 rispondono `NETSDK1005`, ed è atteso).
 ⚠️ Prima di credere a un conteggio: `grep "error MSB"`. Con un `Vipi.Host` acceso i suoi DLL sono bloccati,
 mezzo albero non compila e il totale cala di centinaia senza che il comando diventi rosso.
 ⚠️ **E non basta contare i «Failed!»**: se un progetto non compila non produce nessuna riga di esito, quindi
-zero falliti può voler dire zero eseguiti. Il 27 sera è successo. Si costruisce PRIMA
-(`dotnet build Vipi.slnx -c Release`), e poi si contano i **progetti con esito: devono essere 15**.
+zero falliti può voler dire zero eseguiti. Si costruisce PRIMA (`dotnet build Vipi.slnx -c Release`), e poi
+si contano i **progetti con esito: devono essere 15**.
 
-⚠️ **DICIANNOVE migrazioni in coda** al cutover MariaDB (erano diciassette: l'audit versioni & release ne ha
-portate due). ⚠️ **Prima del deploy serve la SELECT dei duplicati su `DocReleases`**, o `CREATE UNIQUE INDEX`
-fallisce. ⚠️ **Tre passi d'avvio** idempotenti: `LinkAirportDocumentsAsync`, `ClearVloaSeededAiracRowAsync`,
-`ClearUnpublishedCurrentVersionAsync`.
+🔵 **Quel che aspetta il committente sul codice: ripubblicare le quattro vLOA.** La correzione del ciclo
+AIRAC doppio **non arriva al pubblico da sola** — la pagina legge lo snapshot della release, e gli snapshot
+non si riscrivono. Quattro clic; la lista «Da fare» le indica.
 
-🔵 **L'unica cosa che aspetta il committente sul codice: ripubblicare le quattro vLOA.** La correzione del
-ciclo AIRAC doppio **non arriva al pubblico da sola** — la pagina legge lo snapshot della release, e gli
-snapshot non si riscrivono. Quattro clic; la lista «Da fare» le indica dopo il primo giro notturno (§L2).
+🔵 **E sui vSOP militari**: rileggere la trascrizione di LIPI (la prima stesura non è di un controllore
+militare, ed è in bozza apposta), estrarre le **figure** dai PDF, e decidere **chi cura il glossario di
+fraseologia** — è l'unica voce aperta che, se resta scoperta, **si vede sul documento**.
 
 ## Il giro dei quattro documenti, in cinque righe
 
@@ -956,6 +897,10 @@ scrive nel tag di Aurora il livello a cui cedere il traffico al prossimo ente.
 caricati, ed è una scelta: quelli il codice C# li chiama **per nome**.
 
 ## 5. PROSSIMI PASSI (ordinati per valore)
+
+⚠️ **Questa sezione è STORIA, non lo stato di oggi**: è stratificata da mesi e qualche voce è già chiusa
+(il bridge Aurora, per dirne una, è in `main` dal 7 agosto). L'elenco **autorevole** di cosa manca è
+[`docs/lavori-aperti.md`](docs/lavori-aperti.md), e la testa di questo file dice dove siamo davvero.
 
 0. **Bridge Aurora — portarlo in produzione:** il branch `feature/aurora-bridge` va rivisto e unito; finché
    l'endpoint non è rilasciato su `it.ivao.aero`, il tool funziona **solo** contro un host locale.

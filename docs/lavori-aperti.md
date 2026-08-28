@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in
+**Aggiornato:** 28 agosto 2026, mattina (**§Q e §R — i documenti bilingue e i vSOP militari, VENTI slice chiuse in due giorni e tutte in `main`, che è stato SPINTO (`6644b5e`): `origin/main` allineato, `origin/basemap-esri` cancellato perché ormai contenuto in main. Restano aperte Q1/Q2/Q3 (che dipendono da qualcun altro), Q4 (la vLOA che deve smettere di nascere inglese), Q5 e Q6 (due rossi intermittenti) e R1 (le figure dei SOP, lavoro manuale)**) · **Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in
 un giro solo. Restano aperte solo voci che dipendono da qualcun altro: le risposte di Ivao.It (A9/A13), le
 quattro vLOA da ripubblicare (L2), il documento di Brindisi (B10-bis) e le decisioni di contenuto**) · **Aggiornato:** 27 agosto 2026, notte (**§K chiusa tutta: la vIPI d'aeroporto entra nel catalogo delle sezioni
 — ramo `aeroporto-a-sezioni`, il TERZO in fila — più le tre rifiniture della stessa notte: il meteo tornato
@@ -177,15 +177,20 @@ scrivono nei log.
 | La **rotazione** dei segreti esposti il 24-25 agosto | A13 |
 | Le decisioni di contenuto (LIBB: due sezioni nascoste a mano; l'elenco aeroporti da 75 righe) | K / statistiche |
 | Se `99999 ft` debba diventare `UNL` a schermo | N4 |
-| Come fondere il ramo `basemap-esri` — in un colpo o scorporato in due | **P3** |
 | Se prendere in carico le **tessere nostre** (l'unico fondo che nessuno può chiudere) | P1 |
+| **Chi cura il glossario di fraseologia** — serve un nome, e finché manca il badge «non revisionata» resta | **Q3** |
+| I **termini di ritenzione** del piano gratuito Azure, e la domanda a IVAO HQ sul trattamento esterno | Q1 / Q2 |
+| **Rileggere la trascrizione di LIPI** e le **figure** dei SOP da estrarre dai PDF | R1 / R2 |
+| Gli altri **quattordici SOP** militari, e su quattro campi la sezione QRA da riempire | R3 |
 
 🔵 **Resta deciso**: il database si ripulisce un'ultima volta prima di popolarlo — quindi **I1** (le radici
 orfane di LIRR) è sospesa apposta: non si sistema un albero che sta per essere rifatto.
 
-**Sezioni con lavoro aperto, oggi**: **nessuna sul codice** — ma **§P va fusa** (§N è già in `main`). C6, C7a/b/c, H1, H3 ed E9
-sono chiuse il 27 agosto pomeriggio (§M racconta come e cosa è saltato fuori), e §N la sera. Restano
-**I3/I4**, **N4** e **P1/P3** (decisioni, non lavoro) e tutto ciò che aspetta qualcun altro (A9, A13, L2, B10-bis).
+**Sezioni con lavoro aperto, oggi**: **nessuna sul codice**. §P è fusa e spinta, §Q (bilingue) e §R (vSOP
+militari) sono chiuse — venti slice in due giorni, tutte in `main`, che il 28 agosto è stato **spinto**
+(`6644b5e`, `origin/main` allineato). Restano **I3/I4**, **N4**, **P1** (decisioni, non lavoro), i due
+rossi intermittenti **Q5/Q6**, la lingua sorgente della vLOA **Q4** — e tutto ciò che aspetta qualcun
+altro: A9, A13, L2, B10-bis, **Q1/Q2/Q3**, **R1/R2/R3**.
 
 ---
 
@@ -3181,9 +3186,13 @@ statiche, fermandosi alle isole. Nessun altro comando muto; i quattro candidati 
 
 ### P3 ✅ CHIUSO — fuso il 28 agosto 2026
 
-Fuso in main insieme ai documenti bilingue (`0c81e61`), in un colpo solo. Ramo locale cancellato.
-⚠️ `origin/basemap-esri` **resta**: finché `main` non è spinto, quel ramo remoto è l'unica copia sul
-server di quel lavoro.
+Fuso in main insieme ai documenti bilingue (`0c81e61`), in un colpo solo. Ramo locale cancellato, e il
+**28 agosto** — spinto `main` — anche `origin/basemap-esri`: era interamente contenuto in `main`
+(20 commit dietro, 0 avanti), quindi non c'era più niente che vivesse solo lì.
+
+⚠️ **La regola, per la prossima volta**: un ramo remoto si cancella quando ciò che porta è **anche
+altrove**, e la verifica è `git rev-list --count main..origin/<ramo>` = 0. Fino a quel momento è l'unica
+copia sul server, e cancellarlo è perdere lavoro senza un errore che lo dica.
 
 ---
 
@@ -3270,3 +3279,50 @@ può non riuscire a fare (e `PRAGMA journal_mode` risponde col modo *corrente*, 
 Da fare quando ricapita: **catturare il messaggio d'asserzione** — dice se ha risposto `delete` (WAL non
 attivato) o se è caduto sul `busy_timeout`. Sono due diagnosi diverse, e senza quel dato ogni ipotesi qui
 sarebbe inventata.
+
+---
+
+## R. I vSOP militari — 28 agosto 2026
+
+Carta: [feature/2026-08-27-vsop-militari.md](feature/2026-08-27-vsop-militari.md).
+✅ **Tutte e dieci le slice chiuse e in `main`** (`b940609`, `2ffc728`, `6644b5e`), suite 6633 verdi.
+`main` **spinto**: `origin/main` allineato a `6644b5e`.
+
+Documento **separato** dalla vIPI civile: profilo `AirportMil` con 26 sezioni, release e ciclo AIRAC
+propri, elenco nazionale `/services/vsop/mil`, viewer + editor dedicati, filtro pilota/ATC per sezione.
+Il primo SOP vero — **LIPI Rivolto** — è caricato in bozza.
+
+### R1 🟢 APERTO — le figure dei SOP: lavoro manuale, non codice
+
+Su LIPI restano **tre** sezioni incomplete perché nell'originale sono disegni: `taxiing` (flussi del
+piazzale e dell'area di manovra), `arming` (posizioni per pista 06 e 24), `vfrjet` (circuiti e porte).
+Il testo attorno c'è, e ogni sezione porta una nota che dice che manca la figura — così una sezione
+incompleta non si confonde con una vuota.
+
+`MediaAsset`/`IMediaStore` ci sono già: serve estrarre le immagini dai PDF e caricarle. È lavoro di chi
+redige, non di chi programma.
+
+### R2 🟢 APERTO — la trascrizione di LIPI va RILETTA
+
+La prima stesura italiana è mia, non di un controllore militare, ed è in bozza apposta: **non è
+pubblicata**, e non deve esserlo prima che qualcuno che conosce il campo l'abbia riletta. Il badge
+«traduzione non revisionata» dice la stessa cosa al lettore inglese.
+
+⚠️ Restano dentro due rese che il glossario non copre, perché sono **parole dentro una frase** e non
+segmenti interi: «the **camp**» per «il campo» e «the **cocking** and disarming positions» per
+«armamento/disarmo». È la parte aperta di **Q3**.
+
+### R3 🟢 APERTO — gli altri quattordici SOP
+
+I PDF stanno in `vIPI Ivao Italy\MIL vSOP IVAO\` (fuori dal repo). Ognuno è un file come
+`tools/Vipi.MilSopLoader/SopLipi.cs` più una riga nello `switch` di `Program.cs`.
+
+⚠️ **La parte che conta non è scriverli**: è rileggerli con qualcuno che conosca il campo. E quattro dei
+quindici — Amendola, Gioia del Colle, Istrana, Grosseto — sono basi di difesa aerea: su quelle la sezione
+`qra` va **riempita**, non nascosta, ed è contenuto nuovo che nei PDF non c'è (carta §2).
+
+### R4 🟢 DECISO, da fare dopo — la vSOP militare di un APP non remotizzato
+
+`SectionProfile.AppMil` esiste e rimanda al profilo civile dell'APP; `AppMilReleaseTarget` e
+`AppMilDocRoutes` sono registrati. Manca l'ingresso UI (`/services/vsop/{acc}/mil/apps`): nessuno dei
+quindici SOP è di un APP, quindi non c'era niente da caricarci dentro.
