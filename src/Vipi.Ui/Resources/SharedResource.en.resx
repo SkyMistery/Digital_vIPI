@@ -2513,6 +2513,8 @@
   <data name="Tr_NothingToReviewHint" xml:space="preserve"><value>Every translation for this language pair has been reviewed by a person.</value></data>
   <data name="Tr_TouchesDocs" xml:space="preserve"><value>This correction applies to the sentence, not to one document: it touches {0} documents. The others will show it at their next republication.</value></data>
   <data name="Tr_Saved" xml:space="preserve"><value>Correction saved. It applies to {0} documents and the machine will not overwrite it.</value></data>
+  <data name="Tr_SavedOne" xml:space="preserve"><value>Correction saved. It applies to this document and the machine will not overwrite it.</value></data>
+  <data name="Tr_SavedNone" xml:space="preserve"><value>Correction saved: the machine will not overwrite it. No document currently contains this sentence.</value></data>
   <data name="Aud_All" xml:space="preserve"><value>Everything</value></data>
   <data name="Aud_Pilots" xml:space="preserve"><value>Pilot</value></data>
   <data name="Aud_Controllers" xml:space="preserve"><value>ATC</value></data>

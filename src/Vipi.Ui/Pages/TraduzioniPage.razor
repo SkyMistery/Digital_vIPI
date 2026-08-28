@@ -205,7 +205,13 @@
             // Origin diventa Human: da qui in avanti la macchina non la tocca piu', nemmeno cambiando
             // motore o versione. E' la promessa su cui si regge la funzione.
             await Memoria.SaveHumanAsync(_da, _a, r.SourceText, _bozza.Trim(), Authz.CurrentUserId ?? 0);
-            _msg = L["Tr_Saved", Math.Max(1, _toccati)].Value;
+            // ⚠️ Il conto adesso e' vero: la frase deve reggere anche a uno e a zero.
+            _msg = (_toccati switch
+            {
+                0 => L["Tr_SavedNone"],
+                1 => L["Tr_SavedOne"],
+                _ => L["Tr_Saved", _toccati],
+            }).Value;
         }
         finally { _busy = false; }
         await CaricaAsync();

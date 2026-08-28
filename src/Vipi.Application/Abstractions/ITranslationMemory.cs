@@ -86,8 +86,17 @@ public interface ITranslationMemory
         string sourceLang, string targetLang, CancellationToken ct = default);
 
     /// <summary>
-    /// Quanti documenti contengono la frase che sta dietro questa impronta: il numero che si mostra a chi
-    /// corregge <b>prima</b> che salvi («questa correzione tocca N documenti»).
+    /// Quanti documenti contengono questa frase: il numero che si mostra a chi corregge <b>prima</b> che
+    /// salvi («questa correzione tocca N documenti»).
+    ///
+    /// <para>⚠️ <b>La frase può stare in tre posti</b>, e vanno guardati tutti e tre: la prosa di un
+    /// blocco, una <b>cella</b> di tabella (<c>BodyJson</c>) e un <b>titolo di sezione</b>. Guardarne uno
+    /// solo non dà un numero approssimato: dà <b>zero</b> proprio sulle correzioni più diffuse, e chi
+    /// corregge non vede nessun avviso.</para>
+    ///
+    /// <para>⚠️ Il confronto è per <b>impronta</b>, non per contenuto: la stessa frase scritta con
+    /// l'apostrofo tipografico o l'a-capo di Windows è la stessa frase, ed è l'unica ragione per cui la
+    /// memoria è indicizzata così.</para>
     /// </summary>
     Task<int> DocumentiToccatiAsync(string sourceText, CancellationToken ct = default);
 

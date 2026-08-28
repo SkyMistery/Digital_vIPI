@@ -1,4 +1,5 @@
 using System.Text.Encodings.Web;
+using Vipi.Application;
 
 namespace Vipi.Host;
 
@@ -29,21 +30,28 @@ internal static class PaginaErrore
     internal static string Build(string? codice)
     {
         var e = HtmlEncoder.Default;
+
+        // ⚠️ Anche questa pagina segue la lingua di chi legge, e fino al 28 agosto 2026 non lo faceva:
+        // `lang="it"`, testo italiano e una riga inglese in grigio in fondo. È la pagina che un lettore
+        // inglese vede PROPRIO QUANDO qualcosa si è rotto — il momento peggiore per non capire che cosa
+        // c'è scritto. Le due lingue viaggiano in linea (Messaggio.Lingua) e non dalle risorse: quelle
+        // vivono in Vipi.Ui, e il senso di questa pagina è dipendere dal minor numero di pezzi possibile.
         var riga = string.IsNullOrWhiteSpace(codice)
             ? ""
             : $"""
-              <p class="foot">Se la segnalate, indicate questo codice: <span class="m">{e.Encode(codice)}</span>.<br>
-              <span class="en">If you report this, please include the code above.</span></p>
+              <p class="foot">{e.Encode(Messaggio.Lingua(
+                  "Se la segnalate, indicate questo codice:",
+                  "If you report this, please include this code:"))} <span class="m">{e.Encode(codice)}</span>.</p>
               """;
 
         return $$"""
         <!doctype html>
-        <html lang="it">
+        <html lang="{{Messaggio.Codice}}">
         <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="robots" content="noindex">
-        <title>Errore · vIPI IVAO Italy</title>
+        <title>{{Messaggio.Lingua("Errore", "Error")}} · vIPI IVAO Italy</title>
         <style>
           :root { color-scheme: light dark; --bg:#f6f7f9; --fg:#16181d; --mut:#5b6472; --card:#fff; --bd:#dfe3e8; --acc:#0b5fff; }
           @media (prefers-color-scheme: dark) {
@@ -64,21 +72,27 @@ internal static class PaginaErrore
                   background:var(--acc); color:#fff; font-weight:600; }
           a.alt { background:transparent; color:var(--acc); border:1px solid var(--bd); font-weight:500; }
           .foot { margin-top:22px; padding-top:14px; border-top:1px solid var(--bd); color:var(--mut); font-size:.85rem; }
-          .en { color:var(--mut); font-size:.88rem; }
         </style>
         </head>
         <body>
         <main class="card">
-          <h1>Questa pagina non si è aperta</h1>
-          <p>La richiesta si è interrotta a metà. Non è colpa di quello che avete scritto o cliccato, e non
-             si è perso niente di ciò che avevate già salvato.</p>
+          <h1>{{Messaggio.Lingua(
+                  "Questa pagina non si è aperta",
+                  "This page did not open")}}</h1>
+          <p>{{Messaggio.Lingua(
+                  "La richiesta si è interrotta a metà. Non è colpa di quello che avete scritto o cliccato, e non si è perso niente di ciò che avevate già salvato.",
+                  "The request stopped halfway. It is not down to anything you typed or clicked, and nothing you had already saved has been lost.")}}</p>
           <ul>
-            <li>Riprova a caricare la pagina: se l'intoppo era di passaggio, la seconda volta va.</li>
-            <li>Se ricapita sempre sulla stessa pagina, segnalatelo: dall'altra parte c'è scritto perché.</li>
+            <li>{{Messaggio.Lingua(
+                    "Riprova a caricare la pagina: se l'intoppo era di passaggio, la seconda volta va.",
+                    "Try loading the page again: if the hiccup was a passing one, the second time works.")}}</li>
+            <li>{{Messaggio.Lingua(
+                    "Se ricapita sempre sulla stessa pagina, segnalatelo: dall'altra parte c'è scritto perché.",
+                    "If it keeps happening on the same page, report it: on our side the reason is written down.")}}</li>
           </ul>
           <div class="row">
-            <a class="btn" href="/services">Torna ai servizi</a>
-            <a class="btn alt" href="/services/vsop">Vai alla documentazione</a>
+            <a class="btn" href="/services">{{Messaggio.Lingua("Torna ai servizi", "Back to services")}}</a>
+            <a class="btn alt" href="/services/vsop">{{Messaggio.Lingua("Vai alla documentazione", "Go to the documentation")}}</a>
           </div>
           {{riga}}
         </main>

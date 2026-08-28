@@ -30,8 +30,19 @@ namespace Vipi.Application;
 public static class Messaggio
 {
     /// <summary>Il testo nella lingua di chi legge: <paramref name="en"/> in inglese, altrimenti <paramref name="it"/>.</summary>
-    public static string Lingua(string it, string en) =>
+    public static string Lingua(string it, string en) => Codice == "en" ? en : it;
+
+    /// <summary>
+    /// Il codice a due lettere della lingua in cui si sta scrivendo, <c>it</c> o <c>en</c>.
+    ///
+    /// <para>Serve a chi la lingua deve <b>dichiararla</b> e non solo usarla: l'attributo <c>lang</c> di
+    /// una pagina HTML scritta a mano (le due pagine d'errore di <c>Vipi.Host</c>). ⚠️ Esce da qui e non da
+    /// una seconda lettura della cultura, o un giorno una pagina direbbe <c>lang="it"</c> con dentro
+    /// l'inglese — e a un lettore di schermo, o a un traduttore automatico del browser, quella riga è
+    /// l'unica cosa che dice in che lingua è scritta la pagina.</para>
+    /// </summary>
+    public static string Codice =>
         CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals("en", StringComparison.OrdinalIgnoreCase)
-            ? en
-            : it;
+            ? "en"
+            : "it";
 }

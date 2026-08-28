@@ -3500,6 +3500,72 @@ era il guasto. Ora si chiama «se il congelato copre TUTTO», e accanto c'è que
 parziale. Un test verde non è una prova che il comportamento sia quello giusto: è una prova che è quello
 che qualcuno ha scritto.
 
+### Q19 ✅ CHIUSA — «questa correzione tocca N documenti» diceva un numero falso
+
+Il pannello di revisione mostra quel numero **prima** che si salvi, ed è l'unico avviso che ha chi
+corregge: una correzione di traduzione tocca la **frase**, quindi vale su ogni documento che la contiene.
+`EfTranslationMemory.DocumentiToccatiAsync` faceva un `Body.Contains(testo)` e guardava **solo**
+`ContentBlock.Body`.
+
+⚠️ **Sbagliava in tutte e tre le direzioni**, e ognuna nel modo peggiore:
+- una frase in un **titolo di sezione** contava **zero** — e i titoli di sezione sono nel corpus, quindi la
+  memoria ne è piena;
+- una frase in una **cella di tabella** (`BodyJson`) contava **zero** — e le tabelle sono metà del contenuto
+  di una vIPI;
+- un corpo con l'**apostrofo tipografico** o l'a-capo di Windows non corrispondeva al testo normalizzato che
+  arriva dalla memoria, quindi contava zero anche lì.
+
+E siccome il pannello mostra l'avviso solo **sopra il primo documento**, un conto che sbaglia per difetto
+non dà un numero impreciso: non dà **nessun avviso**. Chi correggeva salvava credendo di toccare il
+documento che aveva davanti.
+
+⚠️ **Il commento prometteva un passo che nel codice non c'era**: «si filtra grossolanamente sul database e
+si conferma in memoria con la normalizzazione» — la conferma non esisteva, il `Contains` era l'ultima
+parola. Un commento che descrive una difesa assente è peggio di nessun commento: chi lo legge smette di
+cercare.
+
+Adesso si confronta l'**impronta**, e i segmenti si tagliano **come li taglia il corpus** — una definizione
+sola di «segmento» fra chi traduce, chi conta e chi riempie la memoria. ⚠️ Si legge tutto e si conta in
+memoria, senza `LIKE`: un prefiltro sul database non può essere corretto, perché la normalizzazione avviene
+*dopo* e quel che il database confronta è la grafia. Costa quanto il corpus misurato — 499 campi, 23 344
+caratteri — e parte solo quando una persona apre **una** riga del pannello.
+
+Con un conto vero, la frase doveva reggere anche a uno e a zero: `Tr_SavedOne` e `Tr_SavedNone` al posto di
+`Math.Max(_toccati, 1)`, che scriveva «vale per 1 documenti» — il segno che quel numero non lo guardava
+nessuno. Dieci test, **verificati mutando il codice al comportamento vecchio: sei cadono**.
+
+### Q20 ✅ CHIUSA — le due pagine d'errore erano solo italiane
+
+`PaginaErrore` e `IvaoLoginFailurePage`: `<html lang="it">`, testo italiano, e una riga inglese in grigio in
+fondo. Sono **pubbliche**, e sono quelle che un lettore inglese vede *proprio quando* qualcosa si è rotto —
+il momento peggiore per non capire che cosa c'è scritto.
+
+⚠️ **Non cadevano sotto nessuna eccezione dichiarata.** La carta ne dichiara tre — `ScreensIndex`,
+`AccCoordinationView`, e «log e diagnostica» — e l'ultima sembrava coprirle. Non le copre: il confine è
+**«lo legge un utente?»**, non «è testo tecnico?». Ora la regola lo dice a parole.
+
+Le due lingue viaggiano in linea (`Messaggio.Lingua`), non dalle risorse: quelle vivono in `Vipi.Ui`, e il
+senso di quelle due pagine è dipendere dal minor numero di pezzi possibile — devono reggere quando è il
+**layout condiviso** ad aver lanciato (successo il 24 agosto 2026), o quando l'autenticazione è rotta.
+
+⚠️ **`lang` esce dallo stesso posto del testo** (`Messaggio.Codice`, nuovo). Con due letture separate della
+cultura, un giorno una pagina direbbe `lang="it"` con dentro l'inglese — e per un lettore di schermo, o per
+il traduttore automatico del browser, quella riga è l'unica cosa che dice in che lingua è scritta.
+
+⚠️ **La parte non ovvia era che la cultura fosse già risolta.** `UseExceptionHandler("/Error")` non scrive
+una risposta al volo: **ri-esegue** la pipeline, e in quel secondo giro `UseRequestLocalization` passa prima
+dell'endpoint. Se la pagina si fosse composta dove l'eccezione è stata *catturata*, la cultura sarebbe stata
+quella sbagliata — le modifiche a `CurrentUICulture` scendono lungo la catena di chiamate, **non risalgono**.
+A tavolino non si vede; il test lo chiede con `Accept-Language` e lo prova dal vivo. ⚠️ E nel giro di
+ri-esecuzione la stringa di query non c'è più: restano il **cookie** e `Accept-Language`, che è l'ennesima
+ragione per cui la lingua si ricorda nel cookie.
+
+⚠️ **Nei test asserire solo ASCII**: titolo e spiegazione passano da `HtmlEncoder`, che rende in entità
+numeriche sia l'apostrofo sia le accentate. Cercare «L'accesso è scaduto» non trova niente **nemmeno quando
+c'è** — un test verde che ha smesso di guardare. E `CulturaDiProva` è ora **collegata** (non copiata) anche
+in `Vipi.E2E.Tests`: da qui in avanti quelle pagine dipendono dalla cultura ambientale, e un test che
+asserisce l'italiano senza fissarla passa in Italia e cade su una macchina inglese.
+
 ---
 
 ## R. I vSOP militari — 28 agosto 2026

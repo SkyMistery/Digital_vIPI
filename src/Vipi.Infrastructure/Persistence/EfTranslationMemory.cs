@@ -169,23 +169,78 @@ public sealed class EfTranslationMemory : ITranslationMemory
         return (righe.Sum(r => r.Quante), righe.Where(r => r.DaRileggere).Sum(r => r.Quante));
     }
 
+    /// <summary>
+    /// Quanti documenti contengono questa frase: il numero che si mostra a chi corregge <b>prima</b> che
+    /// salvi. Si conta sui documenti e non sui blocchi — «tocca 4 blocchi» non dice niente a nessuno,
+    /// «tocca 3 documenti» sì.
+    ///
+    /// <para>
+    /// ⚠️ <b>Si confronta l'IMPRONTA, e i segmenti si tagliano come li taglia il corpus.</b> Fino al 28
+    /// agosto 2026 questo metodo faceva un <c>Body.Contains(testo)</c> e guardava <b>solo</b>
+    /// <c>ContentBlock.Body</c>: una frase che sta in un <b>titolo di sezione</b> o in una <b>cella di
+    /// tabella</b> (<c>BodyJson</c>) contava <b>zero</b>. E il pannello mostra l'avviso solo sopra il primo
+    /// documento, quindi proprio le correzioni più diffuse passavano <b>mute</b>: chi correggeva salvava
+    /// credendo di toccare il documento che aveva davanti.
+    /// </para>
+    ///
+    /// <para>
+    /// ⚠️ Il commento che stava qui prometteva una «conferma in memoria con la normalizzazione» che nel
+    /// codice <b>non c'era</b>: il <c>Contains</c> era l'ultima parola. Quindi il conto sbagliava anche
+    /// dall'altro lato — un corpo con l'apostrofo tipografico o l'a-capo di Windows non corrispondeva al
+    /// testo normalizzato che arriva dalla memoria, e quel documento non si contava.
+    /// </para>
+    ///
+    /// <para>
+    /// ⚠️ <b>Si legge tutto e si conta in memoria</b>, senza <c>LIKE</c>. Un prefiltro sul database non può
+    /// essere corretto — la normalizzazione avviene <i>dopo</i>, e quel che il database confronta è la
+    /// grafia — quindi sarebbe un filtro che scarta risposte giuste. Il corpus editoriale è stato
+    /// <b>misurato</b>: 499 campi per 23 344 caratteri in tutto il <c>vipi.db</c> reale, e questo giro parte
+    /// solo quando una persona apre <b>una</b> riga del pannello di revisione.
+    /// </para>
+    ///
+    /// <para>
+    /// ⚠️ Si guardano <b>tutte le versioni</b>, bozze e archiviate comprese, ed è la stessa portata di
+    /// <c>EfTranslatableCorpus</c>: una frase entra in memoria se una qualunque versione la contiene, e il
+    /// conto deve dire la stessa cosa che dice il corpus. Due portate diverse sulla stessa domanda sono due
+    /// risposte diverse alla stessa domanda.
+    /// </para>
+    /// </summary>
     public async Task<int> DocumentiToccatiAsync(string sourceText, CancellationToken ct = default)
     {
-        // Il numero che si mostra a chi corregge PRIMA che salvi. Si conta sui documenti, non sui blocchi:
-        // «tocca 4 blocchi» non dice niente a nessuno, «tocca 3 documenti» sì.
-        var testo = TranslationText.Normalize(sourceText);
-        if (testo.Length == 0) return 0;
+        if (TranslationText.Normalize(sourceText).Length == 0) return 0;
+        var impronta = TranslationText.Hash(sourceText);
 
-        // ⚠️ Confronto per CONTENUTO e non per impronta: l'impronta ce l'ha solo la memoria, i blocchi no.
-        // Il testo del blocco può avere grafia diversa (a-capo Windows, apostrofo tipografico), quindi si
-        // filtra grossolanamente sul database e si conferma in memoria con la normalizzazione.
-        var candidati = await _db.ContentBlocks.AsNoTracking()
-            .Where(b => b.Body != null && b.Body.Contains(testo))
-            .Select(b => new { b.DocumentVersion!.DocumentId })
+        // Due letture in blocco, come le fa il corpus: non una query per documento.
+        var blocchi = await _db.ContentBlocks.AsNoTracking()
+            .Where(b => b.Body != null || b.BodyJson != null)
+            .Select(b => new { b.Body, b.BodyJson, b.DocumentVersion!.DocumentId })
             .ToListAsync(ct).ConfigureAwait(false);
 
-        return candidati.Select(c => c.DocumentId).Distinct().Count();
+        var titoli = await _db.DocumentSections.AsNoTracking()
+            .Select(s => new { s.Title, s.DocumentVersion!.DocumentId })
+            .ToListAsync(ct).ConfigureAwait(false);
+
+        var documenti = new HashSet<int>();
+
+        foreach (var b in blocchi)
+        {
+            if (documenti.Contains(b.DocumentId)) continue;   // un documento si conta una volta sola
+            if (Contiene(TextSegmenter.SplitProse(b.Body), impronta) ||
+                Contiene(TextSegmenter.SplitJson(b.BodyJson), impronta))
+                documenti.Add(b.DocumentId);
+        }
+
+        foreach (var t in titoli)
+            if (!documenti.Contains(t.DocumentId) && TranslationText.Hash(t.Title) == impronta)
+                documenti.Add(t.DocumentId);
+
+        return documenti.Count;
     }
+
+    /// <summary>Vero se uno di questi segmenti ha questa impronta. <c>Hash</c> normalizza da sé, quindi la
+    /// grafia non conta — che è tutto il punto.</summary>
+    private static bool Contiene(IEnumerable<string> segmenti, string impronta) =>
+        segmenti.Any(s => TranslationText.Hash(s) == impronta);
 
     public async Task<long> CaratteriSpesiStimatiAsync(string engine, CancellationToken ct = default) =>
         await _db.TranslationUnits.AsNoTracking()

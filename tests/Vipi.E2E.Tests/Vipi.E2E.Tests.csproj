@@ -30,4 +30,13 @@
     <ProjectReference Include="..\..\src\Vipi.Host\Vipi.Host.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- ⚠️ COLLEGATO, non copiato. Da quando le due pagine d'errore parlano la lingua di chi legge, il loro
+         testo dipende dalla cultura AMBIENTALE: un test che asserisce l'italiano senza fissarla passa in
+         Italia e cade su una macchina inglese. La regoletta per fissarla esiste già in
+         Vipi.Application.Tests; una seconda copia sarebbe un secondo posto dove sapere che le lingue sono
+         «it» e «en», e i due un giorno direbbero cose diverse. -->
+    <Compile Include="..\Vipi.Application.Tests\CulturaDiProva.cs" Link="CulturaDiProva.cs" />
+  </ItemGroup>
+
 </Project>

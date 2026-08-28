@@ -31,7 +31,11 @@ public sealed class PaginaErroreTests
         if (File.Exists(registro)) File.Delete(registro);
 
         using var fabbrica = new FabbricaRotta();
-        var res = await fabbrica.CreateClient().GetAsync("/services");
+        // ⚠️ La lingua si CHIEDE, non si eredita dalla macchina: da quando la pagina la segue, un test
+        // che asserisce l'italiano senza dirlo passa in Italia e cade su una macchina inglese.
+        var richiesta = new HttpRequestMessage(HttpMethod.Get, "/services");
+        richiesta.Headers.AcceptLanguage.ParseAdd("it");
+        var res = await fabbrica.CreateClient().SendAsync(richiesta);
         var html = await res.Content.ReadAsStringAsync();
 
         // 1. Lo stato resta 500: le sonde devono continuare a vedere un guasto come tale.
@@ -51,6 +55,43 @@ public sealed class PaginaErroreTests
         Assert.Contains(codice, righe);
         Assert.Contains(Rotto.Messaggio, righe);
         Assert.Contains("GET /services", righe);
+    }
+
+    /// <summary>
+    /// La pagina d'errore segue la lingua di chi legge — e questo test prova <b>più</b> di quanto sembri.
+    ///
+    /// <para>⚠️ <b>La parte non ovvia è che la cultura sia già risolta quando la pagina si compone.</b>
+    /// <c>UseExceptionHandler("/Error")</c> non scrive una risposta al volo: <b>ri-esegue</b> la pipeline su
+    /// <c>/Error</c>, e in quel secondo giro <c>UseRequestLocalization</c> passa prima dell'endpoint. Se
+    /// invece la pagina si fosse composta dove l'eccezione è stata <i>catturata</i>, la cultura non sarebbe
+    /// stata quella della richiesta: le modifiche a <c>CurrentUICulture</c> scendono lungo la catena di
+    /// chiamate, non risalgono. Da una prova a tavolino questo non si vede; da qui sì.</para>
+    ///
+    /// <para>⚠️ Nel giro di ri-esecuzione la stringa di query originale <b>non c'è più</b> — l'indirizzo è
+    /// <c>/Error</c> — quindi un <c>?culture=</c> non arriverebbe. Restano il <b>cookie</b> e
+    /// <c>Accept-Language</c>, ed è per questo che la lingua si ricorda nel cookie
+    /// (<c>CultureCookieMiddleware</c>).</para>
+    /// </summary>
+    [Theory]
+    [InlineData("en", "en", "This page did not open", "Questa pagina")]
+    [InlineData("it", "it", "Questa pagina non si è aperta", "This page did not open")]
+    // Una lingua che non serviamo ricade sull'italiano — e `lang` deve dirlo, o a un lettore di schermo la
+    // pagina dichiara una lingua che non è quella che ha dentro.
+    [InlineData("de", "it", "Questa pagina non si è aperta", "This page did not open")]
+    public async Task La_pagina_d_errore_segue_la_lingua_di_chi_legge(
+        string chiesta, string attesa, string ciDeveEssere, string nonCiDeveEssere)
+    {
+        using var fabbrica = new FabbricaRotta();
+        var richiesta = new HttpRequestMessage(HttpMethod.Get, "/services");
+        richiesta.Headers.AcceptLanguage.ParseAdd(chiesta);
+
+        var res = await fabbrica.CreateClient().SendAsync(richiesta);
+        var html = await res.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.InternalServerError, res.StatusCode);
+        Assert.Contains($"<html lang=\"{attesa}\">", html);
+        Assert.Contains(ciDeveEssere, html);
+        Assert.DoesNotContain(nonCiDeveEssere, html);
     }
 
     /// <summary>La stringa di query non deve finire nel registro: su /signin-oidc è una credenziale.</summary>

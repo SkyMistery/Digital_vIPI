@@ -162,7 +162,15 @@
         try
         {
             await Revisione.CorreggiAsync(DocumentId, _lettore, r.Sorgente, _bozza);
-            _esito = L["Tr_Saved", Math.Max(_toccati, 1)];
+            // ⚠️ Il conto adesso e' vero (vedi DocumentiToccatiAsync), quindi la frase deve dire la
+            // verita' anche a uno e a zero: «vale per 1 documenti» era il segno che il numero non lo
+            // guardava nessuno.
+            _esito = _toccati switch
+            {
+                0 => L["Tr_SavedNone"],
+                1 => L["Tr_SavedOne"],
+                _ => L["Tr_Saved", _toccati],
+            };
             Chiudi();
             _righe = await Revisione.RigheAsync(DocumentId, _lettore);
         }

@@ -94,6 +94,20 @@ porta con sé **le due lingue** e la sceglie chi sa chi sta leggendo. Tre punti,
 | Le frasi di **coordinamento** nei documenti | `ICoordinationSentenceTemplate`, sulla famiglia del documento |
 | Il **catalogo di ricerca della Guida** (l'unico testo di backend che vede il pubblico) | `SearchService`, da `ReadingLanguageContext` |
 | I **messaggi a chi modifica** — 100 errori di validazione e 25 motivi di blocco all'eliminazione | `Messaggio.Lingua(it, en)`, dalla cultura della richiesta |
+| Le **due pagine d'errore** — `PaginaErrore` e `IvaoLoginFailurePage` | `Messaggio.Lingua(it, en)`, e `lang` da `Messaggio.Codice` |
+
+⚠️ **Le pagine d'errore erano un'eccezione non dichiarata**, corretta il 28 agosto 2026: `lang="it"`, testo
+italiano e una riga inglese in grigio in fondo. Sono le pagine che un lettore inglese vede *proprio quando*
+qualcosa si è rotto — il momento peggiore per non capire che cosa c'è scritto — e non ricadono sotto
+l'eccezione «log e diagnostica», che vale per ciò che un utente non legge mai.
+
+⚠️ Non passano dalle **risorse** e non è una svista: quelle vivono in `Vipi.Ui`, e il senso di quelle due
+pagine è dipendere dal minor numero di pezzi possibile — devono reggere quando è il layout condiviso ad
+aver lanciato, o quando l'autenticazione è rotta.
+
+⚠️ **`lang` esce dallo stesso posto del testo** (`Messaggio.Codice`). Con due letture separate della
+cultura, un giorno una pagina direbbe `lang="it"` con dentro l'inglese — e per un lettore di schermo, o per
+il traduttore automatico del browser, quella riga è l'unica cosa che dice in che lingua è scritta la pagina.
 
 ⚠️ `Messaggio.Lingua` legge la **cultura ambientale** e non si fa passare la lingua di firma in firma: fra
 chi la conosce (la richiesta) e chi compone il messaggio (un servizio in fondo a una catena di chiamate) ci
@@ -149,7 +163,13 @@ mente:
   lì la lingua la decide il **documento** (una vLOA parla inglese), non chi guarda. Quando la §4 della
   carta bilingue arriverà anche lì, passeranno dalle risorse come tutto il resto.
 - **Log e messaggi di diagnostica**: restano in italiano. Non li legge un utente, li legge chi tiene su il
-  sito.
+  sito. ⚠️ **Il confine è «lo legge un utente?», non «è testo tecnico?»**: le due pagine d'errore
+  sembravano cadere qui e non ci cadevano affatto — le legge un utente, ed è l'unica cosa che legge quando
+  la pagina che voleva non c'è. Sono passate alle due lingue il 28 agosto 2026.
+- ⚠️ **Un'eccezione non dichiarata resta**: `GuidaPage.razor` porta ~178 righe di `@T("italiano","english")`
+  scritte in linea invece che nei `.resx` — un quarto meccanismo, e il più grande. Va o dichiarato qui con
+  il suo perché (i corpi sono HTML lungo, e il resx è il posto sbagliato per quelli) o ricondotto alle
+  risorse. Finché sta così, chi legge questa carta non trova la regola che il codice segue davvero.
 
 ## Come si verifica
 

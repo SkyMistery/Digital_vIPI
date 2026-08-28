@@ -2519,6 +2519,8 @@
   <data name="Tr_NothingToReviewHint" xml:space="preserve"><value>Ogni traduzione di questa coppia di lingue è stata riletta da una persona.</value></data>
   <data name="Tr_TouchesDocs" xml:space="preserve"><value>Questa correzione vale per la frase, non per un documento: tocca {0} documenti. Gli altri la vedranno alla loro prossima ripubblicazione.</value></data>
   <data name="Tr_Saved" xml:space="preserve"><value>Correzione salvata. Vale per {0} documenti e la macchina non la tocca più.</value></data>
+  <data name="Tr_SavedOne" xml:space="preserve"><value>Correzione salvata. Vale per questo documento e la macchina non la tocca più.</value></data>
+  <data name="Tr_SavedNone" xml:space="preserve"><value>Correzione salvata: la macchina non la tocca più. Nessun documento contiene questa frase in questo momento.</value></data>
   <data name="Aud_All" xml:space="preserve"><value>Tutto</value></data>
   <data name="Aud_Pilots" xml:space="preserve"><value>Pilota</value></data>
   <data name="Aud_Controllers" xml:space="preserve"><value>ATC</value></data>

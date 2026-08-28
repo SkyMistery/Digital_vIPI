@@ -1,4 +1,5 @@
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Vipi.Application.Tests;
 using Vipi.Host.Auth;
 using Xunit;
 
@@ -89,6 +90,10 @@ public sealed class LoginFailureTests
     [Fact]
     public void La_pagina_dice_di_riprovare_solo_dove_riprovare_serve()
     {
+        // ⚠️ La cultura si FISSA: da quando la pagina parla la lingua di chi legge, un test che asserisce
+        // l'italiano senza fissarla passa in Italia e cade su una macchina inglese.
+        using var _ = CulturaDiProva.Italiana();
+
         // Consenso negato sul portale: rimbalzare sul login non lo aggiusta, e la pagina non lo promette.
         var portale = IvaoLoginFailurePage.Build("portale", "/services/vsop");
         Assert.DoesNotContain("quasi sempre al secondo tentativo", portale);
@@ -96,5 +101,70 @@ public sealed class LoginFailureTests
         // Correlazione/nonce: il secondo tentativo rigenera i cookie di stato, quindi di norma entra.
         var correlazione = IvaoLoginFailurePage.Build("correlazione", "/services/vsop");
         Assert.Contains("quasi sempre al secondo tentativo", correlazione);
+    }
+
+    // ---- La lingua ------------------------------------------------------------------------------------
+    //
+    // ⚠️ Fino al 28 agosto 2026 questa pagina era `lang="it"` con dentro solo italiano, più una riga
+    // inglese in grigio in fondo. È la pagina che un lettore inglese vede PROPRIO QUANDO qualcosa si è
+    // rotto, cioè nel momento peggiore per non capire che cosa c'è scritto — e la carta della lingua non la
+    // dichiarava fra le eccezioni: le eccezioni dichiarate sono log e diagnostica, che un utente non legge.
+
+    [Fact]
+    public void In_inglese_la_pagina_e_INGLESE_e_lo_dichiara()
+    {
+        using var _ = CulturaDiProva.Inglese();
+        var html = IvaoLoginFailurePage.Build("correlazione", "/services/vsop");
+
+        Assert.Contains("<html lang=\"en\">", html);
+        Assert.Contains("The sign-in expired along the way", html);
+        Assert.Contains("the second attempt almost always gets through", html);
+        // ⚠️ Sottostringhe SOLO ASCII: titolo e spiegazione passano da HtmlEncoder, che rende in entità
+        // numeriche sia l'apostrofo sia le lettere accentate. Cercare «L’accesso è» non troverebbe niente
+        // nemmeno quando c'è — un test verde che non guarda più niente.
+        Assert.DoesNotContain("scaduto durante il percorso", html);
+    }
+
+    [Fact]
+    public void In_italiano_la_pagina_e_ITALIANA_e_lo_dichiara()
+    {
+        using var _ = CulturaDiProva.Italiana();
+        var html = IvaoLoginFailurePage.Build("correlazione", "/services/vsop");
+
+        Assert.Contains("<html lang=\"it\">", html);
+        Assert.Contains("scaduto durante il percorso", html);
+        Assert.DoesNotContain("The sign-in expired along the way", html);
+    }
+
+    [Fact]
+    public void Una_lingua_che_non_serviamo_ricade_sull_italiano_e_lo_DICHIARA()
+    {
+        // ⚠️ Il ripiego dev'essere coerente: `lang` deve dire la lingua che c'è DAVVERO nella pagina.
+        // A un lettore di schermo, o al traduttore automatico del browser, quella riga è l'unica cosa che
+        // dice in che lingua è scritta — `lang="de"` con dentro l'italiano è peggio di niente.
+        using var _ = CulturaDiProva.Tedesca();
+        var html = IvaoLoginFailurePage.Build("correlazione", "/services/vsop");
+
+        Assert.Contains("<html lang=\"it\">", html);
+        Assert.Contains("scaduto durante il percorso", html);
+    }
+
+    [Theory]
+    [InlineData("portale")]
+    [InlineData("correlazione")]
+    [InlineData("nonce")]
+    [InlineData("sconosciuto")]
+    public void Nessun_motivo_lascia_pezzi_di_italiano_nella_pagina_inglese(string motivo)
+    {
+        // I motivi sono quattro e ognuno porta titolo, spiegazione e rimedio suoi: tradurne tre su quattro
+        // darebbe una pagina che è inglese finché non capita proprio quel guasto.
+        using var _ = CulturaDiProva.Inglese();
+        var html = IvaoLoginFailurePage.Build(motivo, "/services/vsop");
+
+        Assert.Contains("<html lang=\"en\">", html);
+        // Spie italiane e SOLO ASCII, scelte fra quelle che l'inglese non contiene: «server.» non andava
+        // bene — la frase inglese finisce «recorded on the server.» e la spia scattava sul suo bersaglio.
+        foreach (var spia in new[] { "Riprova", "consenso", "questo codice", "scaduto", "Continua senza" })
+            Assert.DoesNotContain(spia, html, StringComparison.Ordinal);
     }
 }
