@@ -994,6 +994,9 @@
   <data name="Div_UnknownIcao" xml:space="preserve"><value>That code is not among our airports and the source does not know it: the row was added without a name.</value></data>
   <data name="Div_UnknownNavaid" xml:space="preserve"><value>That code is not in the catalogue: add it in the Navaids section first.</value></data>
   <data name="Div_AmbiguousNavaid" xml:space="preserve"><value>That code exists with more than one nature: write it in full in the Navaids section.</value></data>
+  <data name="Rwy_ThresholdsTitle" xml:space="preserve"><value>Threshold coordinates</value></data>
+  <data name="Rwy_ThresholdsEmpty" xml:space="preserve"><value>Threshold coordinates have not arrived from the source yet: they come with a re-import of the airport from IVAO.</value></data>
+  <data name="Rwy_ThresholdElev" xml:space="preserve"><value>Elevation</value></data>
   <data name="Sorg_StatesTitle" xml:space="preserve"><value>Periodic import status</value></data>
   <data name="Sorg_StatesHelp" xml:space="preserve"><value>Outcome of the last automatic run of each gated import. An error here means potentially stale data until the retry succeeds.</value></data>
   <data name="Sorg_NoStates" xml:space="preserve"><value>No import run yet (new DB or jobs not started).</value></data>

@@ -20,13 +20,15 @@ internal static class SourceMergeInputs
 {
     /// <summary>Legge dalla sorgente le sole categorie importate. La TA è best-effort: se l'anagrafica non
     /// risponde resta <c>null</c> (= invariata), perché non avere la TA non deve impedire il resto.</summary>
-    public static async Task<(int? Ta, List<(string Ident, int? LengthM, int? Bearing)> Runways)> ReadAsync(
+    public static async Task<(int? Ta, List<SourceRunway> Runways)> ReadAsync(
         ImportPolicySnapshot policy, string icao,
         IAirportDirectory directory, IAirportDetailProvider details, CancellationToken ct)
     {
+        // ⚠️ Le righe passano INTERE: dal 30 agosto 2026 portano anche le coordinate della soglia, e una
+        // tupla di tre campi le avrebbe lasciate fuori senza che niente lo dicesse.
         var runways = policy.Runways
-            ? (await details.GetRunwaysAsync(icao, ct)).Select(r => (r.Ident, r.LengthM, r.Bearing)).ToList()
-            : new List<(string, int?, int?)>();
+            ? (await details.GetRunwaysAsync(icao, ct)).ToList()
+            : new List<SourceRunway>();
 
         int? ta = null;
         if (policy.TransitionAltitude)

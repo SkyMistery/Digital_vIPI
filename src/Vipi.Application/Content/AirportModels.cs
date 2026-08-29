@@ -8,9 +8,16 @@ namespace Vipi.Application.Content;
 /// <summary>Riga QNH→Transition Level. Range numerico (estremi null = aperto).</summary>
 public sealed record TlRow(int Id, int? QnhFrom, int? QnhTo, string Level);
 
-/// <summary>Estremità di pista: Ident/Length/Bearing da IVAO, il resto editoriale.</summary>
+/// <summary>Estremità di pista: Ident/Length/Bearing e le coordinate della SOGLIA da IVAO, il resto editoriale.</summary>
+/// <param name="ThresholdLat">
+/// Coordinate della soglia in gradi decimali, e la sua elevazione: le manda IVAO con le piste.
+/// <para>⚠️ Sono <b>in coda e con un default</b> perché nessun editor le scrive — chi costruisce una riga a
+/// mano non deve doversene ricordare. E chi salva non deve <b>poterle perdere</b>: la conservazione vera sta
+/// in <c>EfAirportRepository.SaveRunwaysAsync</c>, che le riporta per ident qualunque cosa arrivi.</para>
+/// </param>
 public sealed record RunwayRow(int Id, string Ident, int? LengthM, int? Bearing,
-    string? ToraM, string? LdaM, string? AppProcedures, string? Patterns, string? Circling);
+    string? ToraM, string? LdaM, string? AppProcedures, string? Patterns, string? Circling,
+    double? ThresholdLat = null, double? ThresholdLon = null, int? ThresholdElevationFt = null);
 
 /// <summary>Regola di scelta pista: piste DEP/ARR preferenziali + soglie (coda/traverso/superficie) + filtro temporale opzionale.</summary>
 public sealed record RunwayRuleRow(int Id, string DepRunways, string ArrRunways, string? Name,

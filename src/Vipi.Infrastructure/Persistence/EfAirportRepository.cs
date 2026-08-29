@@ -37,7 +37,8 @@ public sealed class EfAirportRepository : IAirportRepository
             .OrderBy(x => x.Order).Select(x => new TlRow(x.Id, x.QnhFrom, x.QnhTo, x.Level)).ToListAsync(ct);
         var rwys = await _db.AirportRunways.AsNoTracking().Where(x => x.AirportId == airport.Id)
             .OrderBy(x => x.Order)
-            .Select(x => new RunwayRow(x.Id, x.Ident, x.LengthM, x.Bearing, x.ToraM, x.LdaM, x.AppProcedures, x.Patterns, x.Circling))
+            .Select(x => new RunwayRow(x.Id, x.Ident, x.LengthM, x.Bearing, x.ToraM, x.LdaM, x.AppProcedures, x.Patterns,
+                x.Circling, x.ThresholdLat, x.ThresholdLon, x.ThresholdElevationFt))
             .ToListAsync(ct);
         var rules = await _db.AirportRunwayRules.AsNoTracking().Where(x => x.AirportId == airport.Id)
             .OrderBy(x => x.Order)
@@ -103,7 +104,8 @@ public sealed class EfAirportRepository : IAirportRepository
         var piste = (await _db.AirportRunways.AsNoTracking()
                 .Where(x => id.Contains(x.AirportId))
                 .OrderBy(x => x.AirportId).ThenBy(x => x.Order)
-                .Select(x => new { x.AirportId, Riga = new RunwayRow(x.Id, x.Ident, x.LengthM, x.Bearing, x.ToraM, x.LdaM, x.AppProcedures, x.Patterns, x.Circling) })
+                .Select(x => new { x.AirportId, Riga = new RunwayRow(x.Id, x.Ident, x.LengthM, x.Bearing, x.ToraM, x.LdaM, x.AppProcedures, x.Patterns,
+                    x.Circling, x.ThresholdLat, x.ThresholdLon, x.ThresholdElevationFt) })
                 .ToListAsync(ct))
             .GroupBy(x => x.AirportId)
             .ToDictionary(g => g.Key, g => (IReadOnlyList<RunwayRow>)g.Select(x => x.Riga).ToList());
@@ -160,17 +162,46 @@ public sealed class EfAirportRepository : IAirportRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    /// <summary>
+    /// Le coordinate della soglia e la sua elevazione, dalla sorgente. ⚠️ <b>L'assenza non cancella</b>: un
+    /// giro che non le porta lascia quelle che ci sono. È la stessa regola dell'anagrafica radioassistenze,
+    /// e la stessa che azzerò 83 poligoni su 83 quando non c'era.
+    /// </summary>
+    private static void Soglia(AirportRunway riga, SourceRunway rw)
+    {
+        if (rw.ThresholdLat is { } la && rw.ThresholdLon is { } lo)
+        {
+            riga.ThresholdLat = la;
+            riga.ThresholdLon = lo;
+        }
+        if (rw.ElevationFt is { } e) riga.ThresholdElevationFt = e;
+    }
+
     public async Task SaveRunwaysAsync(string icao, IReadOnlyList<RunwayRow> rows, CancellationToken ct = default)
     {
         var id = await AirportIdAsync(icao, ct);
+        var vecchie = await _db.AirportRunways.AsNoTracking().Where(x => x.AirportId == id).ToListAsync(ct);
+
+        // ⚠️ I campi di SORGENTE si riportano per IDENT. Questo salvataggio cancella e riscrive le righe — è
+        // l'unico modo di gestire ordine e cancellazioni in un colpo — e le coordinate della soglia non
+        // passano dall'editor: senza questa riga sparirebbero al primo salvataggio di una colonna qualsiasi,
+        // e sarebbero tornate solo al re-import successivo. Nessun errore, nessun avviso: una tabella che si
+        // svuota da sola.
+        var perIdent = vecchie.ToDictionary(x => x.Ident.Trim().ToUpperInvariant(), x => x,
+            StringComparer.OrdinalIgnoreCase);
+
         _db.AirportRunways.RemoveRange(_db.AirportRunways.Where(x => x.AirportId == id));
         for (var i = 0; i < rows.Count; i++)
         {
             var r = rows[i];
+            var ident = r.Ident.Trim().ToUpperInvariant();
+            perIdent.TryGetValue(ident, out var prima);
             _db.AirportRunways.Add(new AirportRunway
             {
-                AirportId = id, Order = i, Ident = r.Ident.Trim().ToUpperInvariant(), LengthM = r.LengthM, Bearing = r.Bearing,
+                AirportId = id, Order = i, Ident = ident, LengthM = r.LengthM, Bearing = r.Bearing,
                 ToraM = r.ToraM, LdaM = r.LdaM, AppProcedures = r.AppProcedures, Patterns = r.Patterns, Circling = r.Circling,
+                ThresholdLat = prima?.ThresholdLat, ThresholdLon = prima?.ThresholdLon,
+                ThresholdElevationFt = prima?.ThresholdElevationFt,
             });
         }
         await _db.SaveChangesAsync(ct);
@@ -326,7 +357,7 @@ public sealed class EfAirportRepository : IAirportRepository
     }
 
     public async Task MergeFromSourceAsync(string icao, int? transitionAltitude,
-        IReadOnlyList<(string Ident, int? LengthM, int? Bearing)> runways, CancellationToken ct = default)
+        IReadOnlyList<SourceRunway> runways, CancellationToken ct = default)
     {
         var airport = await _db.Airports.Include(a => a.Runways).Include(a => a.TransitionLevels)
             .FirstOrDefaultAsync(a => a.Icao == icao, ct) ?? throw NotFound(icao);
@@ -342,14 +373,17 @@ public sealed class EfAirportRepository : IAirportRepository
             {
                 ex.LengthM = rw.LengthM;            // sovrascrive solo i campi IVAO
                 ex.Bearing = rw.Bearing ?? BearingFromIdent(ident) ?? ex.Bearing;
+                Soglia(ex, rw);
             }
             else
             {
-                airport.Runways.Add(new AirportRunway
+                var nuova = new AirportRunway
                 {
                     AirportId = airport.Id, Order = nextOrder++, Ident = ident,
                     LengthM = rw.LengthM, Bearing = rw.Bearing ?? BearingFromIdent(ident),
-                });
+                };
+                Soglia(nuova, rw);
+                airport.Runways.Add(nuova);
             }
         }
 

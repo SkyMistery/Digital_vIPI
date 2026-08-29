@@ -105,7 +105,7 @@ public class ImportPolicyTests : IAsyncLifetime
     public async Task Runways_Locked_Rejects_Geometry_Change_But_Allows_Editorial()
     {
         var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
-        await profile.MergeFromSourceAsync("LIRF", null, new[] { ("16L", (int?)3902, (int?)160) });
+        await profile.MergeFromSourceAsync("LIRF", null, new[] { new SourceRunway("16L", 3902, 160) });
         var svc = BuildService();
         var stored = (await profile.LoadAsync("LIRF"))!.Runways.Single();
 
@@ -125,7 +125,7 @@ public class ImportPolicyTests : IAsyncLifetime
     {
         var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
         // Stato iniziale editoriale dell'utente: TA 4000 + pista 16L lunga 3902.
-        await profile.MergeFromSourceAsync("LIRF", 4000, new[] { ("16L", (int?)3902, (int?)160) });
+        await profile.MergeFromSourceAsync("LIRF", 4000, new[] { new SourceRunway("16L", 3902, 160) });
 
         // Escludo TA e Piste → reimport non deve toccarle, anche se la sorgente fornisce valori diversi.
         await _store.SaveAsync(new ImportPolicySnapshot(false, false, true), 1);

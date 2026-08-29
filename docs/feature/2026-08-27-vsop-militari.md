@@ -1033,7 +1033,7 @@ due si guardano in momenti diversi. ⚠️ E fa **due interrogazioni in tutto**,
 **Conti**: 27 test nuovi, nessuna migrazione. Verdi su net8: Application **1 619**, Ui **864**,
 Infrastructure **1 022**, Assets 52; Release verde su entrambi i TFM.
 
-### 12c. Le coordinate delle soglie pista ci sono, e non le memorizziamo
+### 12c. Le coordinate delle soglie pista — **chiusa** (S4)
 
 Verificato **sul filo** il 29 agosto, `GET /v2/airports/LIPI/runways`:
 
@@ -1051,7 +1051,35 @@ diventano **venticinque**, contando quella delle radioassistenze) e un `SaveRunw
 sarebbe una seconda migrazione per un campo che era già nella busta.
 
 ⚠️ **La tabella nasce vuota su tutti i campi.** L'import piste è **per-aeroporto e non automatico**: finché
-non si ri-importa da IVAO, le soglie non ci sono. Va nel piano, non scoperto a schermo.
+non si ri-importa da IVAO, le soglie non ci sono. Per questo, quando non c'è niente, la tabella **lo dice**
+invece di non comparire — una tabella che manca si scambia per una funzione che non c'è.
+
+**Com'è finita.** I tre campi entrano in `AirportRunway` (una migrazione per provider), risalgono la catena
+`RunwayDto` → `SourceRunway` → entità → `RunwayRow` → `AirportRunwayRowView`, e il vSOP militare li mostra in
+una **seconda tabella** sotto quella delle piste.
+
+⚠️ **Una tabella a parte, non due colonne in più**, e non è gusto: la tabella delle piste ha già otto colonne
+— su un portatile è al limite — e una coordinata sessagesimale è larga il doppio di una cella normale. Due
+tabelle si leggono; una da dieci colonne si scorre.
+
+⚠️ **Il difetto vero non era l'import: era il salvataggio.** `SaveRunwaysAsync` cancella e riscrive tutte le
+righe — è l'unico modo di gestire ordine e cancellazioni in un colpo — e le coordinate della soglia **non
+passano dall'editor**: senza la conservazione per ident sarebbero sparite al primo salvataggio di una colonna
+qualsiasi, per tornare solo al re-import successivo. Nessun errore, nessun avviso: una tabella che si svuota
+da sola. La conservazione sta nel **repository**, non nella buona memoria del chiamante — un editor che
+ricostruisce le righe da zero non deve poterle perdere.
+⚠️ È per **ident**: una pista rinominata perde la sua soglia, ed è giusto — con un altro ident quella non è
+più la stessa testata, e al re-import torna quella vera.
+
+⚠️ La soglia si scrive in sessagesimale **nel modello di vista**, non nella pagina: quella riga finisce negli
+snapshot di release, e una release fotografa *quel che si legge*, non due numeri da ri-formattare al view.
+
+⚠️ **`MergeFromSourceAsync` non prende più una tupla di tre campi** ma la riga intera: con una tupla i campi
+nuovi sarebbero rimasti fuori senza che niente lo dicesse.
+
+**Conti**: 8 test nuovi, due migrazioni (SQLite + MySQL) — quelle in coda diventano **venticinque**. Verdi su
+net8: Application 1 619, Ui 864, Infrastructure **1 030**.
+
 
 ### 12d. Ordine dei lavori
 

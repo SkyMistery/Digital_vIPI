@@ -1,7 +1,14 @@
 namespace Vipi.Application.Abstractions;
 
 /// <summary>Pista dalla sorgente esterna. Lunghezza in metri, bearing in gradi (se noti).</summary>
-public sealed record SourceRunway(string Ident, int? LengthM, int? Bearing);
+/// <param name="ThresholdLat">
+/// Latitudine della SOGLIA, in gradi decimali. ⚠️ La sorgente manda una riga <b>per soglia</b>, quindi questa
+/// è la posizione di <i>quella</i> testata — non del centro pista. È il dato che il vSOP militare stampa.
+/// </param>
+/// <param name="ElevationFt">Elevazione della soglia in piedi. Viaggia nella stessa risposta: prenderla dopo
+/// sarebbe stata una seconda migrazione per un campo che era già nella busta.</param>
+public sealed record SourceRunway(string Ident, int? LengthM, int? Bearing,
+    double? ThresholdLat = null, double? ThresholdLon = null, int? ElevationFt = null);
 
 /// <summary>
 /// Postazione ATC dalla sorgente esterna. Il tipo si deriva dal suffisso del callsign.

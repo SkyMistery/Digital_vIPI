@@ -15,7 +15,9 @@ public class ImportPolicy
 {
     public int Id { get; set; }                                   // riga singola: Id = 1
     public bool ImportTransitionAltitude { get; set; } = true;    // Airport.TransitionAltitudeFt
-    public bool ImportRunways { get; set; } = true;               // AirportRunway.Ident/LengthM/Bearing
+    // AirportRunway: Ident/LengthM/Bearing e, dal 30 agosto 2026, le coordinate della SOGLIA e la sua
+    // elevazione — arrivano nella stessa risposta e sono di sorgente come gli altri tre.
+    public bool ImportRunways { get; set; } = true;
     public bool ImportSectors { get; set; } = true;               // Sector.Callsign/Type/DefaultFrequency
     public bool ImportSids { get; set; } = true;                  // AirportSid dal sectorfile Aurora (GitHub)
     public bool ImportSpecialAreas { get; set; } = true;          // SpecialArea (aree regolamentate per ACC)

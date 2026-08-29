@@ -88,7 +88,12 @@ public sealed class IvaoAirportDetailClient : IAirportDetailProvider
             .Select(r => new SourceRunway(
                 Ident: StripRunwayPrefix(r.Runway),
                 LengthM: r.Length is double l and > 0 ? (int)Math.Round(l * 0.3048) : null,   // length in piedi → metri
-                Bearing: r.Bearing is double b ? (int)Math.Round(b) : null))
+                Bearing: r.Bearing is double b ? (int)Math.Round(b) : null,
+                // ⚠️ La coppia si prende INTERA o non si prende: una latitudine senza la sua longitudine non
+                // è una posizione, e mezza coordinata in archivio è peggio di nessuna.
+                ThresholdLat: r.Latitude is double la && r.Longitude is not null ? la : null,
+                ThresholdLon: r.Longitude is double lo && r.Latitude is not null ? lo : null,
+                ElevationFt: r.Elevation is double e ? (int)Math.Round(e) : null))
             .Where(r => r.Ident.Length > 0)
             .ToList();
     }

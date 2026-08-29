@@ -997,6 +997,9 @@
   <data name="Div_UnknownIcao" xml:space="preserve"><value>Quel codice non è fra i nostri aeroporti e la sorgente non lo conosce: la riga è stata aggiunta senza nome.</value></data>
   <data name="Div_UnknownNavaid" xml:space="preserve"><value>Quel codice non è in anagrafica: si aggiunge prima nella sezione Radioassistenze.</value></data>
   <data name="Div_AmbiguousNavaid" xml:space="preserve"><value>Quel codice esiste con più nature: scriverlo per esteso nella sezione Radioassistenze.</value></data>
+  <data name="Rwy_ThresholdsTitle" xml:space="preserve"><value>Coordinate delle soglie</value></data>
+  <data name="Rwy_ThresholdsEmpty" xml:space="preserve"><value>Le coordinate delle soglie non sono ancora arrivate dalla sorgente: si prendono ri-importando l'aeroporto da IVAO.</value></data>
+  <data name="Rwy_ThresholdElev" xml:space="preserve"><value>Elevazione</value></data>
   <data name="Sorg_StatesTitle" xml:space="preserve"><value>Stato import periodici</value></data>
   <data name="Sorg_StatesHelp" xml:space="preserve"><value>Esito dell'ultima esecuzione automatica di ogni import gated. Un errore qui significa dati potenzialmente stantii finché il retry non riesce.</value></data>
   <data name="Sorg_NoStates" xml:space="preserve"><value>Nessun import ancora eseguito (DB nuovo o job non ancora partiti).</value></data>

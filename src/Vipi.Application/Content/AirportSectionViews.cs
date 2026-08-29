@@ -39,8 +39,15 @@ public sealed record AirportFreqView(IReadOnlyList<AirportFreqRowView> Rows)
 }
 
 /// <summary>Riga della tabella piste: i campi di sorgente IVAO più le colonne editoriali.</summary>
+/// <param name="Threshold">
+/// Le coordinate della soglia già scritte in sessagesimale, o stringa vuota se la sorgente non le ha ancora
+/// portate. ⚠️ Si formattano <b>qui</b> e non nella pagina perché questa riga finisce negli SNAPSHOT di
+/// release: una release deve fotografare quel che si legge, non due numeri da ri-formattare al view — e la
+/// formattazione può cambiare.
+/// </param>
 public sealed record AirportRunwayRowView(string Ident, int? LengthM, string Tora, string Lda,
-    string AppProcedures, string Patterns, string Circling);
+    string AppProcedures, string Patterns, string Circling,
+    string Threshold = "", int? ThresholdElevationFt = null);
 
 /// <summary>Sezione «Piste».</summary>
 public sealed record AirportRunwaysView(IReadOnlyList<AirportRunwayRowView> Rows)
@@ -120,7 +127,8 @@ public static class AirportSectionProjection
                 r.Ident, r.LengthM,
                 // TORA e LDA sono testo editoriale; se non compilati vale la lunghezza d'anagrafica.
                 Fallback(r.ToraM, r.LengthM), Fallback(r.LdaM, r.LengthM),
-                Dash(r.AppProcedures), Dash(r.Patterns), Dash(r.Circling)))
+                Dash(r.AppProcedures), Dash(r.Patterns), Dash(r.Circling),
+                NavaidText.Coordinate(r.ThresholdLat, r.ThresholdLon), r.ThresholdElevationFt))
             .ToList());
     }
 

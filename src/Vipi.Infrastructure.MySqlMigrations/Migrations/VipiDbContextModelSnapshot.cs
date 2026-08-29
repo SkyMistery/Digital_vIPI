@@ -603,6 +603,15 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("longtext")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
+                    b.Property<int?>("ThresholdElevationFt")
+                        .HasColumnType("int");
+
+                    b.Property<double?>("ThresholdLat")
+                        .HasColumnType("double");
+
+                    b.Property<double?>("ThresholdLon")
+                        .HasColumnType("double");
+
                     b.Property<string>("ToraM")
                         .HasColumnType("longtext")
                         .UseCollation("utf8mb4_uca1400_as_cs");

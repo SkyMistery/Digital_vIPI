@@ -93,7 +93,7 @@ public class AirportDataImportTests : IAsyncLifetime
     [Fact]
     public async Task Escludere_le_piste_non_spegne_la_TA()
     {
-        await _airports.MergeFromSourceAsync("LIRF", null, new[] { ("16L", (int?)3902, (int?)160) });
+        await _airports.MergeFromSourceAsync("LIRF", null, new[] { new SourceRunway("16L", 3902, 160) });
         await _policy.SaveAsync(new ImportPolicySnapshot(TransitionAltitude: true, Runways: false, true, true, true), 1);
 
         var dir = new FakeDirectory { Airports = { new SourceAirport("LIRF", "Roma Fiumicino", "LIRR", null, 6000) } };

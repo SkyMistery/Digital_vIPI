@@ -46,7 +46,7 @@ public class GenerateAirportDocumentPolicyTests : IAsyncLifetime
     public async Task Generate_respects_excluded_TA_and_runways()
     {
         // Stato editoriale dell'utente: TA a mano, una pista con le sue misure, e una seconda pista TOLTA.
-        await _profile.MergeFromSourceAsync("LIRF", 4000, new[] { ("16L", (int?)3902, (int?)160) });
+        await _profile.MergeFromSourceAsync("LIRF", 4000, new[] { new SourceRunway("16L", 3902, 160) });
         await _policy.SaveAsync(new ImportPolicySnapshot(TransitionAltitude: false, Runways: false, true, true, true), 1);
 
         // La sorgente dice altro, e ha una pista in più.

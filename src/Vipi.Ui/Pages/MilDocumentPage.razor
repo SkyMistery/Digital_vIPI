@@ -247,7 +247,12 @@
                congelano, o una frequenza corretta oggi cambierebbe un SOP pubblicato al ciclo scorso. *@
             case "navaids": <MilNavaids Rows="_radioassistenze" />; break;
             case "diversion": <MilDiversions Rows="_alternati" />; break;
-            case "runways": <AirportRunways View="_derivate.Runways" />; break;
+            @* ⚠️ Due tabelle, e la seconda è SOLO militare: le soglie stanno nei SOP e non nella vIPI
+               civile, e otto colonne più due coordinate non ci starebbero in una riga sola. *@
+            case "runways":
+                <AirportRunways View="_derivate.Runways" />
+                <MilRunwayThresholds View="_derivate.Runways" />
+                break;
             @* Le aree di lavoro: E' la mappa dell'AoR con le chip, cioe' esattamente cio' che il PDF disegna
                a mano una figura per volta. Stesso motore della vIPI ACC e dell'APP. *@
             case "regulated": <RegulatedAreas Areas="_aree" />; break;

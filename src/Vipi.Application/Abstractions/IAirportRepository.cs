@@ -73,7 +73,7 @@ public interface IAirportRepository : IAirportProfileReader
     /// L'ATIS non è più qui: è una frequenza del catalogo AirportSector.
     /// </summary>
     Task MergeFromSourceAsync(string icao, int? transitionAltitude,
-        IReadOnlyList<(string Ident, int? LengthM, int? Bearing)> runways, CancellationToken ct = default);
+        IReadOnlyList<SourceRunway> runways, CancellationToken ct = default);
 
     /// <summary>
     /// Idempotente: garantisce che l'aeroporto abbia il suo documento (<c>Airport.DocumentId</c>) con le sezioni del

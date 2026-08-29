@@ -1,0 +1,51 @@
+@* La SECONDA tabella della sezione «Piste», e sta <b>solo</b> nel vSOP militare (carta §12c): le coordinate
+   delle soglie.
+
+   ⚠️ È una tabella a parte e non due colonne in più su quella delle piste, e non è una scelta di gusto: la
+   tabella delle piste ha già otto colonne — su un portatile è al limite — e una coordinata sessagesimale è
+   larga il doppio di una cella normale. Due tabelle si leggono; una tabella da dieci colonne si scorre.
+
+   ⚠️ Nasce VUOTA su tutti i campi finché l'aeroporto non si ri-importa da IVAO: l'import delle piste è
+   per-aeroporto e non automatico. Per questo, quando non c'è niente, lo dice invece di non comparire — una
+   tabella che manca si scambia per una funzione che non c'è. *@
+@inject IStringLocalizer<SharedResource> L
+@using Vipi.Application.Content
+
+<h4 style="margin:16px 0 6px">@L["Rwy_ThresholdsTitle"]</h4>
+
+@if (Righe.Count == 0)
+{
+    <p class="muted">@L["Rwy_ThresholdsEmpty"]</p>
+}
+else
+{
+    <table class="cfg-table">
+        <thead>
+            <tr>
+                <th style="width:90px">@L["Airport_Runway"]</th>
+                <th>@L["Nav_Coordinates"]</th>
+                <th style="width:130px">@L["Rwy_ThresholdElev"]</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in Righe)
+            {
+                <tr>
+                    <td><b>@r.Ident</b></td>
+                    <td style="white-space:nowrap">@r.Threshold</td>
+                    <td>@(r.ThresholdElevationFt is { } e ? $"{e} ft" : "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    /// <summary>La tabella piste del documento mostrato: qui si guardano le sole righe che una soglia ce
+    /// l'hanno. ⚠️ Le altre non si elencano con la cella vuota: sarebbero righe che non dicono niente, e su
+    /// un campo appena importato sono tutte.</summary>
+    [Parameter, EditorRequired] public AirportRunwaysView View { get; set; } = AirportRunwaysView.Empty;
+
+    private IReadOnlyList<AirportRunwayRowView> Righe =>
+        View.Rows.Where(r => r.Threshold.Length > 0).ToList();
+}

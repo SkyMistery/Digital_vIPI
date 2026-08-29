@@ -486,6 +486,20 @@ public class AirportRunway
     public string Ident { get; set; } = default!;      // es. "16L" (IVAO)
     public int? LengthM { get; set; }                  // lunghezza in metri (IVAO)
     public int? Bearing { get; set; }                  // rotta vera (IVAO o derivata dall'ident)
+
+    /// <summary>
+    /// Coordinate della <b>soglia</b> in gradi decimali, e la sua elevazione in piedi: le manda IVAO nella
+    /// stessa risposta delle piste (una riga per soglia), e fino al 30 agosto 2026 le buttavamo via.
+    /// <para>⚠️ Sono di <b>sorgente</b>: l'editor non le tocca, e il salvataggio editoriale delle piste — che
+    /// cancella e riscrive le righe — le <b>riporta</b> per ident, o si perderebbero al primo salvataggio di
+    /// una colonna qualsiasi.</para>
+    /// <para>⚠️ Restano vuote finché l'aeroporto non si ri-importa: l'import piste è per-aeroporto e non
+    /// automatico.</para>
+    /// </summary>
+    public double? ThresholdLat { get; set; }
+    public double? ThresholdLon { get; set; }
+    public int? ThresholdElevationFt { get; set; }
+
     // --- Editoriali (preservati nel merge) ---
     public string? ToraM { get; set; }
     public string? LdaM { get; set; }

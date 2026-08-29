@@ -135,7 +135,7 @@ public class StructureEditingTests : IAsyncLifetime
         });
 
         await profile.MergeFromSourceAsync("LIRF", 6000,
-            new[] { ("16L", (int?)3902, (int?)160), ("16R", (int?)3900, (int?)160) });
+            new[] { new SourceRunway("16L", 3902, 160), new SourceRunway("16R", 3900, 160) });
         var docId = await profile.EnsureDocumentAsync("LIRF");
         Assert.True(docId > 0);
 
@@ -197,7 +197,7 @@ public class StructureEditingTests : IAsyncLifetime
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
         var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
-        await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
+        await profile.MergeFromSourceAsync("LIRF", 6000, new[] { new SourceRunway("16L", 3902, 160) });
 
         await profile.EnsureDocumentAsync("LIRF");
         var sids = await _db.DocumentSections.SingleAsync(s => s.SectionKey == "sids");
@@ -222,7 +222,7 @@ public class StructureEditingTests : IAsyncLifetime
         var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
 
-        await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
+        await profile.MergeFromSourceAsync("LIRF", 6000, new[] { new SourceRunway("16L", 3902, 160) });
 
         // Lo staff compila le colonne editoriali della pista.
         await profile.SaveRunwaysAsync("LIRF", new[]
@@ -231,7 +231,7 @@ public class StructureEditingTests : IAsyncLifetime
         });
 
         // Re-import con lunghezza cambiata: sovrascrive Length, preserva APP/Patterns/Circling.
-        await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3950, (int?)160) });
+        await profile.MergeFromSourceAsync("LIRF", 6000, new[] { new SourceRunway("16L", 3950, 160) });
 
         var data = await profile.LoadAsync("LIRF");
         var rw = Assert.Single(data!.Runways);
@@ -252,7 +252,7 @@ public class StructureEditingTests : IAsyncLifetime
         await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
         var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
-        await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
+        await profile.MergeFromSourceAsync("LIRF", 6000, new[] { new SourceRunway("16L", 3902, 160) });
         var docId = await profile.EnsureDocumentAsync("LIRF");
 
         // Lo staff riordina (Frequenze in testa) e aggiunge una sezione libera con del testo.
@@ -291,7 +291,7 @@ public class StructureEditingTests : IAsyncLifetime
         var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
 
         // TA ignota: la tabella di default mostra la formula TA + offset.
-        await profile.MergeFromSourceAsync("LIRF", null, Array.Empty<(string, int?, int?)>());
+        await profile.MergeFromSourceAsync("LIRF", null, Array.Empty<SourceRunway>());
         var noTa = await profile.LoadAsync("LIRF");
         Assert.Equal(4, noTa!.TransitionLevels.Count);
         Assert.Equal("TA + 2500 ft", noTa.TransitionLevels.Single(t => t.QnhTo == 976).Level);
@@ -377,7 +377,7 @@ public class StructureEditingTests : IAsyncLifetime
         var apId = await _repo.CreateAirportAsync("LIRR", "LIRF", "Roma Fiumicino");
         var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
         await _repo.EnsureAirportSectorsAsync("LIRF", RomePositions());
-        await profile.MergeFromSourceAsync("LIRF", 6000, new[] { ("16L", (int?)3902, (int?)160) });
+        await profile.MergeFromSourceAsync("LIRF", 6000, new[] { new SourceRunway("16L", 3902, 160) });
         await profile.EnsureDocumentAsync("LIRF");
 
         var releases = TestReleaseTargets.ReleaseRepo(_db);
