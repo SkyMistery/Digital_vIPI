@@ -335,11 +335,26 @@
     private string _releaseFilter = "all";    // all|effective|scheduled|none
     private string? _accFilter;               // null = tutte
 
+    /// <summary>
+    /// Le voci del menu «Tipo». ⚠️ L'etichetta di ogni tipo è quella di <see cref="KindLabel"/>: due elenchi
+    /// che nominano le stesse cose in due modi diversi si scostano al primo che si tocca, e il filtro
+    /// direbbe una parola mentre la riga ne mostra un'altra.
+    ///
+    /// <para>⚠️ <b>`AirportMil` mancava</b> (trovato a schermo il 29 agosto 2026): l'icona e l'etichetta
+    /// della riga erano già state sistemate, il filtro no — quindi i vSOP militari si vedevano nell'elenco
+    /// ma non si potevano isolare, ed erano l'unica famiglia con documenti veri a non avere la sua voce.</para>
+    ///
+    /// <para>⚠️ <b>`AppMil` NON c'è, ed è la cosa giusta</b>: quel documento non esiste — nessuna porta lo
+    /// crea e le sue rotte tornano `null` (carta vSOP militari §1c). Una voce di filtro che non può che dare
+    /// zero righe è una promessa falsa, la stessa che quelle rotte hanno già pagato una volta. Va aggiunta
+    /// <b>insieme</b> alle sue pagine.</para>
+    /// </summary>
     private (ReleaseTargetType?, string)[] KindFilters =>
     new (ReleaseTargetType?, string)[]
     {
         (null, L["Ver_FilterAll_M"]), (ReleaseTargetType.Vloa, "vLOA"), (ReleaseTargetType.AccVipi, "ACC"),
         (ReleaseTargetType.Airport, L["Nd_Airport"]), (ReleaseTargetType.App, "APP"),
+        (ReleaseTargetType.AirportMil, KindLabel(ReleaseTargetType.AirportMil)),
     };
     // I valori ammessi nell'URL. Le ETICHETTE non stanno più qui: i chip le portano una per una, coi loro
     // titoli, e un elenco di coppie serviva solo a generare i chip «tutti» che il ✕ ha sostituito.

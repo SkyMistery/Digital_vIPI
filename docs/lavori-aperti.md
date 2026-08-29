@@ -4366,3 +4366,13 @@ alle 09:17:15 UTC, militare alle 09:17:20): è la guardia che ha funzionato.
 Il caso ora si **vede**: callout sul viewer militare e pill rossa nell'elenco nazionale, solo per lo staff,
 entrambi col tasto che apre l'editor della vIPI civile — che è anche ciò che la fa nascere. ⚠️ **Non si crea
 niente da soli**: creare un documento al posto di una persona è la stessa categoria di errore appena chiusa.
+
+### X8 ✅ CHIUSA — il filtro «Tipo» di `/services/vsop/versions` non aveva i vSOP militari
+
+Trovato a schermo. L'elenco li **mostrava** (icona, etichetta, riga: sistemate in §V) ma il menu Tipo restò
+ai quattro civili, quindi non si potevano **isolare**. Stessa forma dei difetti di §V — mostrare è lettura,
+filtrare è governo — in scala ridotta.
+
+⚠️ `AppMil` resta fuori apposta: quel documento non esiste e le sue rotte tornano `null`. Va aggiunto
+**insieme** alle sue pagine. Presidio: `FiltroPerTipoCompletoTests`, che deriva l'elenco dai **descrittori di
+rotta** invece di ricopiarlo. Carta §11f.

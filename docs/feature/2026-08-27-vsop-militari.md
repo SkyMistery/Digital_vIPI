@@ -725,3 +725,23 @@ la stessa categoria di errore che si è appena chiusa.
 esistere e la guardia li lascia passare — è la seconda metà della regola. Se un campo così ha in realtà
 traffico civile, la correzione è togliergli la spunta «solo militare» in Struttura, e da quel momento
 l'avviso comparirà anche su di lui.
+
+### 11f. Il filtro «Tipo» di `/services/vsop/versions` non aveva i militari
+
+Trovato a schermo il 29 agosto. Quando è nata la famiglia, l'elenco imparò a **mostrare** il documento
+militare — icona `shield`, etichetta, riga — ma il **menu Tipo** restò ai quattro tipi civili: i vSOP
+militari si vedevano e non si potevano **isolare**, in una pagina che serve proprio a isolare.
+
+⚠️ È la stessa forma dei difetti di §10: *il documento era agganciato al motore di lettura e non a quello di
+governo*. Qui in scala ridotta — mostrare è lettura, filtrare è governo — e nessun compilatore lega un
+elenco di filtri all'enum che filtra. A schermo la mancanza non salta all'occhio: un menu con cinque voci
+sembra completo quanto uno con sei.
+
+⚠️ **`AppMil` NON è stato aggiunto, ed è la cosa giusta**: quel documento non esiste, nessuna porta lo crea e
+le sue rotte tornano `null` (§1c). Una voce di filtro che non può che dare zero righe è la stessa promessa
+falsa che `MilDocRoutes` ha già pagato una volta.
+
+**Presidio**: `FiltroPerTipoCompletoTests` — per ogni descrittore di rotta, se ha un `PublicUrl` allora deve
+comparire fra i filtri, e se torna `null` allora **non** deve comparire. Chi «esiste davvero» lo dice il
+descrittore, non un elenco scritto nel test. L'etichetta del filtro viene da `KindLabel`: due elenchi che
+nominano le stesse cose in due modi diversi si scostano al primo che si tocca.
