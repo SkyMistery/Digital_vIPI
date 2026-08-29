@@ -315,13 +315,17 @@ public class EditingRepositoryTests : IAsyncLifetime
     public async Task SectionBlockJson_Non_Tocca_La_Prosa_E_Non_Si_Perde_Sotto_Un_Paragrafo()
     {
         var docId = await MilDocIdAsync();
-        var (versionId, sectionId) = await SezioneAsync(docId, "parkings");
+        var (versionId, sectionId) = await SezioneAsync(docId, "enginestart");
+
+        // ⚠️ Si usa «Messa in moto» e non «Parcheggi»: dal 30 agosto quest'ultima è resa dalla PAGINA,
+        // quindi nasce con un blocco segnaposto e il conto dei blocchi qui non direbbe più quel che
+        // si vuole provare — che è la convivenza fra il payload e la PROSA, non il segnaposto.
 
         // La prosa del SOP, come la scrive il caricatore: primo blocco, Markdown, nessun BodyJson.
         _db.ContentBlocks.Add(Blocco(versionId, sectionId, order: 1, body: "Il piazzale nord è riservato ai caccia."));
         await _db.SaveChangesAsync();
 
-        await _repo.SaveSectionBlockJsonAsync(docId, "parkings", "[{\"Name\":\"Nord\"}]", authorUserId: 7);
+        await _repo.SaveSectionBlockJsonAsync(docId, "enginestart", "[{\"Name\":\"Nord\"}]", authorUserId: 7);
 
         // Due blocchi: la prosa dov'era, il payload IN CODA. La prosa non è stata toccata.
         var blocchi = await _db.ContentBlocks.AsNoTracking()
@@ -330,15 +334,15 @@ public class EditingRepositoryTests : IAsyncLifetime
         Assert.Equal("Il piazzale nord è riservato ai caccia.", blocchi[0].Body);
         Assert.Null(blocchi[0].BodyJson);
         Assert.Equal("[{\"Name\":\"Nord\"}]", blocchi[1].BodyJson);
-        Assert.Equal("[{\"Name\":\"Nord\"}]", await _repo.GetSectionBlockJsonAsync(docId, "parkings"));
+        Assert.Equal("[{\"Name\":\"Nord\"}]", await _repo.GetSectionBlockJsonAsync(docId, "enginestart"));
 
         // Un secondo paragrafo scritto SOPRA la tabella: con la regola «il primo blocco» qui il payload
         // spariva, e il salvataggio successivo lo riscriveva sul paragrafo.
         _db.ContentBlocks.Add(Blocco(versionId, sectionId, order: 0, body: "Premessa."));
         await _db.SaveChangesAsync();
 
-        Assert.Equal("[{\"Name\":\"Nord\"}]", await _repo.GetSectionBlockJsonAsync(docId, "parkings"));
-        await _repo.SaveSectionBlockJsonAsync(docId, "parkings", "[{\"Name\":\"Sud\"}]", authorUserId: 7);
+        Assert.Equal("[{\"Name\":\"Nord\"}]", await _repo.GetSectionBlockJsonAsync(docId, "enginestart"));
+        await _repo.SaveSectionBlockJsonAsync(docId, "enginestart", "[{\"Name\":\"Sud\"}]", authorUserId: 7);
         Assert.Equal(3, await _db.ContentBlocks.CountAsync(b => b.SectionId == sectionId));
         Assert.Equal("Premessa.", await _db.ContentBlocks.Where(b => b.SectionId == sectionId)
             .OrderBy(b => b.Order).Select(b => b.Body).FirstAsync());

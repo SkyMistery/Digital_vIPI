@@ -243,12 +243,14 @@ public static class SectionCatalog
                     HB("runways", "Piste", 4),
                     // ✚ Non e' nel PDF: TA e tabella dei livelli per fascia QNH.
                     H("transition", "Quote di transizione", 5),
-                    D("callsigns", "Nominativi", 6),
+                    // Scheda + blocchi. ⚠️ Restano EDITORIALI: il contenuto è tutto nel payload, quindi la
+                    // release lo fotografa già copiando i blocchi — non c'è nessuna derivazione da congelare.
+                    HB("callsigns", "Nominativi", 6),
                 }),
 
                 D("groundprocedures", "Procedure di terra", 3, new[]
                 {
-                    D("parkings", "Parcheggi", 1),
+                    HB("parkings", "Parcheggi", 1),
                     D("enginestart", "Messa in moto", 2),
                     D("taxiing", "Rullaggio", 3),
                     D("arming", "Armamento/disarmo", 4),

@@ -274,6 +274,55 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
         return await MilDiversionResolver.ResolveAsync(righe, _navaids, _aeroporti, ct).ConfigureAwait(false);
     }
 
+    // ---- Tabelle a colonne fisse: «Nominativi» e «Parcheggi» (§12g) ------------------------------------
+
+    public async Task<IReadOnlyList<IReadOnlyList<string>>> GetFixedTableAsync(
+        string icao, string sectionKey, int colonne, CancellationToken ct = default)
+    {
+        if (await GetDocumentIdAsync(icao, ct).ConfigureAwait(false) is not int docId)
+            return Array.Empty<IReadOnlyList<string>>();
+        var json = await _editing.GetSectionBlockJsonAsync(docId, sectionKey, ct).ConfigureAwait(false);
+        return MilTablePayload.Leggi(json, colonne);
+    }
+
+    public async Task SaveFixedTableAsync(string icao, string sectionKey, string variante,
+        IReadOnlyList<IReadOnlyList<string>> righe, int colonne, CancellationToken ct = default)
+    {
+        var docId = await CreaAsync(icao, ct).ConfigureAwait(false);
+        await _editing.SaveSectionBlockJsonAsync(docId, sectionKey,
+            MilTablePayload.Scrivi(variante, righe, colonne), _authz.CurrentUserId ?? 0, ct).ConfigureAwait(false);
+    }
+
+    // ---- Aree di lavoro: che attività si vola (§12h) ----------------------------------------------------
+
+    public async Task<IReadOnlyDictionary<string, MilActivity>> GetAreaActivitiesAsync(
+        string icao, CancellationToken ct = default)
+    {
+        if (await GetDocumentIdAsync(icao, ct).ConfigureAwait(false) is not int docId)
+            return new Dictionary<string, MilActivity>();
+        var json = await _editing.GetSectionBlockJsonAsync(docId, "regulated", ct).ConfigureAwait(false);
+        return MilRegulatedPayload.LeggiAttivita(json);
+    }
+
+    public async Task SaveAreaActivityAsync(string icao, string areaId, MilActivity attivita,
+        CancellationToken ct = default)
+    {
+        var docId = await CreaAsync(icao, ct).ConfigureAwait(false);
+        var json = await _editing.GetSectionBlockJsonAsync(docId, "regulated", ct).ConfigureAwait(false);
+
+        // Si rilegge la selezione dal payload e la si riscrive INSIEME alle attività: sono un oggetto solo,
+        // e salvarne metà lascerebbe l'altra metà com'era prima della modifica precedente.
+        var selezione = Manuale(RegulatedSelectionJson.Parse(json));
+        var attuali = new Dictionary<string, MilActivity>(
+            MilRegulatedPayload.LeggiAttivita(json), StringComparer.OrdinalIgnoreCase);
+
+        if (attivita == MilActivity.None) attuali.Remove(areaId);
+        else attuali[areaId] = attivita;
+
+        await _editing.SaveSectionBlockJsonAsync(docId, "regulated",
+            MilRegulatedPayload.Scrivi(selezione, attuali), _authz.CurrentUserId ?? 0, ct).ConfigureAwait(false);
+    }
+
     public async Task<RegulatedSelection> GetRegulatedAsync(string icao, CancellationToken ct = default)
     {
         if (await GetDocumentIdAsync(icao, ct).ConfigureAwait(false) is not int docId) return Manuale(null);
@@ -288,8 +337,15 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
         var docId = await CreaAsync(icao, ct).ConfigureAwait(false);
         var pulita = Manuale(selection);
         var vuota = pulita.OwnIds.Count == 0 && pulita.ExtraIds.Count == 0;
+
+        // ⚠️ Le ATTIVITÀ già scritte si riportano: stanno nello stesso oggetto JSON, e serializzare la sola
+        // selezione le cancellerebbe a ogni chip aggiunta o tolta — senza un errore, e senza che chi le ha
+        // scritte tocchi mai quella tendina. Quelle delle aree non più scelte le scarta `Scrivi`.
+        var attivita = MilRegulatedPayload.LeggiAttivita(
+            await _editing.GetSectionBlockJsonAsync(docId, "regulated", ct).ConfigureAwait(false));
+
         await _editing.SaveSectionBlockJsonAsync(docId, "regulated",
-            vuota ? null : System.Text.Json.JsonSerializer.Serialize(pulita),
+            vuota ? null : MilRegulatedPayload.Scrivi(pulita, attivita),
             _authz.CurrentUserId ?? 0, ct).ConfigureAwait(false);
     }
 

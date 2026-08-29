@@ -154,10 +154,19 @@ else
     private IReadOnlyList<MilDiversionView> _alternati = Array.Empty<MilDiversionView>();
     private IReadOnlyList<AirportName> _aeroportiNoti = Array.Empty<AirportName>();
 
+    // Le due tabelle a mano e le attività delle aree.
+    private IReadOnlyList<IReadOnlyList<string>> _nominativi = Array.Empty<IReadOnlyList<string>>();
+    private IReadOnlyList<IReadOnlyList<string>> _parcheggi = Array.Empty<IReadOnlyList<string>>();
+    private IReadOnlyDictionary<string, MilActivity> _attivitaAree = new Dictionary<string, MilActivity>();
+
     // Aree di lavoro: selezione salvata + i due cataloghi del picker (aree dell'ACC, aree degli altri).
     private RegulatedSelection _regulated = new() { OwnAuto = false };
     private IReadOnlyList<SpecialAreaPick> _areaPicks = Array.Empty<SpecialAreaPick>();
     private IReadOnlyList<SpecialAreaPick> _otherAreaPicks = Array.Empty<SpecialAreaPick>();
+
+    /// <summary>Le aree SCELTE, risolte: la tabella sotto la mappa prende di qui nome e limiti, e così
+    /// non esiste nessun secondo posto dove riscriverli.</summary>
+    private IReadOnlyList<AccSpecialAreaView> _areeScelte = Array.Empty<AccSpecialAreaView>();
 
     // Voce del menu-sezioni per il pannello Release, che sta FUORI da DocumentSectionsEditor: senza, con
     // ventisei sezioni il pannello si raggiunge solo scorrendo fino in fondo. Come negli altri quattro.
@@ -215,6 +224,8 @@ else
             _regulated = await Militari.GetRegulatedAsync(_icao);
             await CaricaRadioassistenzeAsync();
             await CaricaAlternatiAsync();
+            await CaricaTabelleAsync();
+            _areeScelte = await Militari.ResolveRegulatedAreasAsync(_regulated);
         }
         catch (EditNotAllowedException) { _denied = true; }
     }
@@ -259,10 +270,23 @@ else
                                      OnSetNumber="ScriviNumeroAlternato" />
                 break;
             case "regulated":
-                @* Come l'APP: nessuna area di default, si scelgono tutte a mano. *@
+                @* Come l'APP: nessuna area di default, si scelgono tutte a mano. Sotto, la tabella: nome e
+                   limiti vengono dalle aree scelte, l'attività si compila coi gettoni. *@
                 <RegulatedAreasEditor Selection="_regulated" OwnPicks="_areaPicks" OtherPicks="_otherAreaPicks"
                                       Editing="_shell.IsEditing" AllowAuto="false" ShowExtra="true"
                                       SelectionChanged="SaveRegulated" />
+                <MilWorkingAreas Areas="_areeScelte" Activities="_attivitaAree" Editing="_shell.IsEditing"
+                                 OnSet="ScriviAttivitaArea" />
+                break;
+            case "callsigns":
+                <MilFixedTableEditor Colonne="MilDocumentPage.ColonneNominativi(L)" Righe="_nominativi"
+                                     Editing="_shell.IsEditing" OnAdd="AggiungiNominativo" OnRemove="TogliNominativo"
+                                     OnMove="SpostaNominativo" OnSet="ScriviNominativo" />
+                break;
+            case "parkings":
+                <MilFixedTableEditor Colonne="MilDocumentPage.ColonneParcheggi(L)" Righe="_parcheggi"
+                                     Editing="_shell.IsEditing" OnAdd="AggiungiParcheggio" OnRemove="TogliParcheggio"
+                                     OnMove="SpostaParcheggio" OnSet="ScriviParcheggio" />
                 break;
             case "validity":
                 <div class="callout info" style="margin:0 0 10px">
@@ -470,6 +494,100 @@ else
         };
         return SalvaAlternati(righe);
     }
+
+    // ---- Nominativi e Parcheggi: tabelle a colonne fisse, tutto a mano (§12g) ---------------------------
+    //
+    // ⚠️ Qui non si scrive in nessun catalogo condiviso: il contenuto è del documento, e per questo non c'è
+    // nessun avviso da dare — a differenza delle Radioassistenze, dove quel che si scrive cambia gli altri SOP.
+
+    private const int ColNominativi = 4;
+    private const int ColParcheggi = 3;
+
+    private async Task CaricaTabelleAsync()
+    {
+        _nominativi = await Militari.GetFixedTableAsync(_icao, "callsigns", ColNominativi);
+        _parcheggi = await Militari.GetFixedTableAsync(_icao, "parkings", ColParcheggi);
+        _attivitaAree = await Militari.GetAreaActivitiesAsync(_icao);
+    }
+
+    /// <summary>Le due tabelle si comportano allo stesso modo: una sola funzione, e la sezione la sceglie il
+    /// chiamante. Due copie divergerebbero al primo ritocco.</summary>
+    private Task SalvaTabella(string chiave, string variante, int colonne,
+        IReadOnlyList<IReadOnlyList<string>> righe) => _shell.GuardAsync(async () =>
+    {
+        await Militari.SaveFixedTableAsync(_icao, chiave, variante, righe, colonne);
+        await CaricaTabelleAsync();
+    });
+
+    private static List<IReadOnlyList<string>> Copia(IReadOnlyList<IReadOnlyList<string>> righe) =>
+        righe.Select(r => (IReadOnlyList<string>)r.ToList()).ToList();
+
+    private static List<IReadOnlyList<string>> ConCella(IReadOnlyList<IReadOnlyList<string>> righe,
+        int riga, int colonna, string testo)
+    {
+        var copia = Copia(righe);
+        if (riga < 0 || riga >= copia.Count) return copia;
+        var celle = copia[riga].ToList();
+        while (celle.Count <= colonna) celle.Add("");
+        celle[colonna] = testo;
+        copia[riga] = celle;
+        return copia;
+    }
+
+    private static List<IReadOnlyList<string>> Spostata(IReadOnlyList<IReadOnlyList<string>> righe, int i, int delta)
+    {
+        var copia = Copia(righe);
+        var b = i + delta;
+        if (i < 0 || i >= copia.Count || b < 0 || b >= copia.Count) return copia;
+        (copia[i], copia[b]) = (copia[b], copia[i]);
+        return copia;
+    }
+
+    private static List<IReadOnlyList<string>> Senza(IReadOnlyList<IReadOnlyList<string>> righe, int i)
+    {
+        var copia = Copia(righe);
+        if (i >= 0 && i < copia.Count) copia.RemoveAt(i);
+        return copia;
+    }
+
+    /// <summary>
+    /// Una riga nuova nasce con le celle vuote e si salva subito. ⚠️ La prima cella porta uno spazio: una riga
+    /// tutta vuota il payload la scarta — è quel che resta di una cancellata a metà — e senza questo la riga
+    /// appena aggiunta sparirebbe al ricarico, con l'aria di un guasto.
+    /// </summary>
+    private static List<IReadOnlyList<string>> ConRigaVuota(IReadOnlyList<IReadOnlyList<string>> righe, int colonne)
+    {
+        var copia = Copia(righe);
+        var nuova = new List<string> { " " };
+        while (nuova.Count < colonne) nuova.Add("");
+        copia.Add(nuova);
+        return copia;
+    }
+
+    private Task AggiungiNominativo() =>
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, ConRigaVuota(_nominativi, ColNominativi));
+    private Task TogliNominativo(int i) =>
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, Senza(_nominativi, i));
+    private Task SpostaNominativo((int Indice, int Delta) m) =>
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, Spostata(_nominativi, m.Indice, m.Delta));
+    private Task ScriviNominativo((int Riga, int Colonna, string Testo) c) =>
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, ConCella(_nominativi, c.Riga, c.Colonna, c.Testo));
+
+    private Task AggiungiParcheggio() =>
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, ConRigaVuota(_parcheggi, ColParcheggi));
+    private Task TogliParcheggio(int i) =>
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, Senza(_parcheggi, i));
+    private Task SpostaParcheggio((int Indice, int Delta) m) =>
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, Spostata(_parcheggi, m.Indice, m.Delta));
+    private Task ScriviParcheggio((int Riga, int Colonna, string Testo) c) =>
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, ConCella(_parcheggi, c.Riga, c.Colonna, c.Testo));
+
+    /// <summary>L'attività di UN'area (§12h): una alla volta, come i campi delle radioassistenze.</summary>
+    private Task ScriviAttivitaArea((string AreaId, MilActivity Attivita) x) => _shell.GuardAsync(async () =>
+    {
+        await Militari.SaveAreaActivityAsync(_icao, x.AreaId, x.Attivita);
+        _attivitaAree = await Militari.GetAreaActivitiesAsync(_icao);
+    });
 
     private Task SaveRegulated(RegulatedSelection sel) => _shell.GuardAsync(async () =>
     {

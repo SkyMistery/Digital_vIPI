@@ -1,0 +1,25 @@
+@* Una tabella a colonne fisse e celle libere, in lettura: «Nominativi» e «Parcheggi» del vSOP militare
+   (carta §12g). Le colonne le decide il profilo, il contenuto sta nel documento. *@
+@inject IStringLocalizer<SharedResource> L
+
+<table class="cfg-table">
+    <thead><tr>@foreach (var c in Colonne) { <th>@c</th> }</tr></thead>
+    <tbody>
+        @foreach (var r in Righe)
+        {
+            <tr>@foreach (var cella in r) { <td>@(cella.Length > 0 ? cella : "—")</td> }</tr>
+        }
+        @if (Righe.Count == 0)
+        {
+            <tr><td colspan="@Colonne.Count" class="muted">@(Vuoto ?? L["Mil_TableEmpty"].Value)</td></tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<string> Colonne { get; set; } = Array.Empty<string>();
+    [Parameter, EditorRequired] public IReadOnlyList<IReadOnlyList<string>> Righe { get; set; } = Array.Empty<IReadOnlyList<string>>();
+
+    /// <summary>Che cosa dire quando non c'è niente. Null = la frase generica.</summary>
+    [Parameter] public string? Vuoto { get; set; }
+}

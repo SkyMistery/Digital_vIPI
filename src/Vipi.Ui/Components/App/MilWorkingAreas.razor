@@ -1,0 +1,88 @@
+@* La tabella sotto la mappa delle «Aree di lavoro» (carta §12h): nome, limiti e che attività ci si vola.
+
+   ⚠️ Nome e limiti NON si riscrivono a mano: vengono dalle aree scelte con le chip, cioè dal catalogo. La
+   sola cosa che si compila è l'attività — è la differenza fra una tabella che ripete quel che la mappa dice
+   già e una che aggiunge quel che la mappa non può dire.
+
+   ⚠️ La banda di quota si scrive come nella mappa (`GND`, `— `, «da – a»): due modi di scrivere la stessa
+   quota nella stessa sezione fanno dubitare che sia la stessa. *@
+@inject IStringLocalizer<SharedResource> L
+@using Vipi.Application.Content
+
+<table class="cfg-table" style="margin-top:12px">
+    <thead>
+        <tr>
+            <th>@L["Area_Name"]</th>
+            <th style="width:180px">@L["Area_Limits"]</th>
+            <th style="width:190px">@L["Area_Activity"]</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var a in Areas)
+        {
+            var att = Attivita(a.IvaoId);
+            <tr>
+                <td><b>@a.Name</b></td>
+                <td style="white-space:nowrap">@Banda(a)</td>
+                <td>
+                    @if (Editing)
+                    {
+                        @* Gli stessi gettoni delle WTC nelle SID: il clic accende o spegne, il doppio clic
+                           prende TUTTE — con due voci è il modo più corto di dire «A/A - A/G». *@
+                        <div class="tok-set">
+                            @foreach (var (flag, testo) in Gettoni)
+                            {
+                                <button type="button" class="tok @(att.HasFlag(flag) ? "on" : "")"
+                                        title="@L["Area_ActivityTitle"]"
+                                        @onclick="() => Commuta(a.IvaoId, att, flag)"
+                                        @ondblclick="() => Tutte(a.IvaoId)">@testo</button>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        @(MilActivityText.Scrivi(att) is { Length: > 0 } s ? s : "—")
+                    }
+                </td>
+            </tr>
+        }
+        @if (Areas.Count == 0)
+        {
+            <tr><td colspan="3" class="muted">@L["Area_None"]</td></tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    /// <summary>Le aree SCELTE, già risolte: nome e limiti vengono da qui.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<AccSpecialAreaView> Areas { get; set; } = Array.Empty<AccSpecialAreaView>();
+
+    /// <summary>Le attività salvate, per id d'area.</summary>
+    [Parameter] public IReadOnlyDictionary<string, MilActivity> Activities { get; set; } = new Dictionary<string, MilActivity>();
+
+    [Parameter] public bool Editing { get; set; }
+
+    /// <summary>Cambia l'attività di UN'area: due persone che marcano due aree diverse non si sovrascrivono.</summary>
+    [Parameter] public EventCallback<(string AreaId, MilActivity Attivita)> OnSet { get; set; }
+
+    private static readonly (MilActivity Flag, string Testo)[] Gettoni =
+    {
+        (MilActivity.AirToAir, "A/A"),
+        (MilActivity.AirToGround, "A/G"),
+    };
+
+    private MilActivity Attivita(string id) =>
+        Activities.TryGetValue(id, out var a) ? a : MilActivity.None;
+
+    private Task Commuta(string id, MilActivity attuale, MilActivity flag) =>
+        OnSet.InvokeAsync((id, attuale.HasFlag(flag) ? attuale & ~flag : attuale | flag));
+
+    private Task Tutte(string id) =>
+        OnSet.InvokeAsync((id, MilActivity.AirToAir | MilActivity.AirToGround));
+
+    // Come la mappa: un valore solo se coincidono, GND per lo zero.
+    private static string Banda(AccSpecialAreaView a) =>
+        a.MinimumAlt == a.MaximumAlt ? Alt(a.MaximumAlt) : $"{Alt(a.MinimumAlt)} – {Alt(a.MaximumAlt)}";
+
+    private static string Alt(int? alt) => alt is null ? "—" : (alt.Value <= 0 ? "GND" : $"{alt.Value} ft");
+}

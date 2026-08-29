@@ -997,6 +997,20 @@
   <data name="Rwy_ThresholdsTitle" xml:space="preserve"><value>Threshold coordinates</value></data>
   <data name="Rwy_ThresholdsEmpty" xml:space="preserve"><value>Threshold coordinates have not arrived from the source yet: they come with a re-import of the airport from IVAO.</value></data>
   <data name="Rwy_ThresholdElev" xml:space="preserve"><value>Elevation</value></data>
+  <data name="Area_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Area_Limits" xml:space="preserve"><value>Limits</value></data>
+  <data name="Area_Activity" xml:space="preserve"><value>Type of activity</value></data>
+  <data name="Area_ActivityTitle" xml:space="preserve"><value>Click to turn on or off, double click to take them all</value></data>
+  <data name="Area_None" xml:space="preserve"><value>No area selected: pick them with the chips above the map.</value></data>
+  <data name="Mil_TableEmpty" xml:space="preserve"><value>No rows in this table.</value></data>
+  <data name="Mil_TableAddRow" xml:space="preserve"><value>Add row</value></data>
+  <data name="Mil_Squadron" xml:space="preserve"><value>Squadron</value></data>
+  <data name="Mil_OatCallsign" xml:space="preserve"><value>OAT callsign</value></data>
+  <data name="Mil_GatCallsign" xml:space="preserve"><value>GAT callsign</value></data>
+  <data name="Mil_QraCallsign" xml:space="preserve"><value>QRA callsign</value></data>
+  <data name="Mil_ParkingName" xml:space="preserve"><value>Name</value></data>
+  <data name="Mil_ParkingNumbers" xml:space="preserve"><value>Numbers</value></data>
+  <data name="Mil_ParkingUsedBy" xml:space="preserve"><value>Used by</value></data>
   <data name="Sorg_StatesTitle" xml:space="preserve"><value>Periodic import status</value></data>
   <data name="Sorg_StatesHelp" xml:space="preserve"><value>Outcome of the last automatic run of each gated import. An error here means potentially stale data until the retry succeeds.</value></data>
   <data name="Sorg_NoStates" xml:space="preserve"><value>No import run yet (new DB or jobs not started).</value></data>

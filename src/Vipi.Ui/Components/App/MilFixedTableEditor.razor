@@ -1,0 +1,82 @@
+@* L'editor di una tabella a colonne fisse: si aggiungono righe, si spostano, si tolgono, e le celle si
+   scrivono. Colonne dal profilo (carta §12g).
+
+   ⚠️ Si salva a ogni cella lasciata (`@onchange`, non `@oninput`): un salvataggio per tasto premuto
+   attraverserebbe il circuito Blazor a ogni lettera, e su una tabella di dieci righe si vede.
+
+   ⚠️ Il contenuto sta tutto nel documento: qui non si scrive in nessun catalogo condiviso, e infatti non c'è
+   nessun avviso da dare — a differenza delle Radioassistenze, dove quel che si scrive cambia gli altri SOP. *@
+@inject IStringLocalizer<SharedResource> L
+
+<table class="cfg-table">
+    <thead>
+        <tr>
+            @if (Editing) { <th style="width:76px"></th> }
+            @foreach (var c in Colonne) { <th>@c</th> }
+            @if (Editing) { <th style="width:40px"></th> }
+        </tr>
+    </thead>
+    <tbody>
+        @for (var i = 0; i < Righe.Count; i++)
+        {
+            var idx = i;
+            <tr>
+                @if (Editing)
+                {
+                    <td style="white-space:nowrap">
+                        <button type="button" class="btn ghost" style="padding:0 6px" disabled="@(idx == 0)"
+                                title="@L["Common_Up"]" @onclick="() => OnMove.InvokeAsync((idx, -1))">↑</button>
+                        <button type="button" class="btn ghost" style="padding:0 6px" disabled="@(idx == Righe.Count - 1)"
+                                title="@L["Common_Down"]" @onclick="() => OnMove.InvokeAsync((idx, 1))">↓</button>
+                    </td>
+                }
+                @for (var j = 0; j < Colonne.Count; j++)
+                {
+                    var col = j;
+                    <td>
+                        @if (Editing)
+                        {
+                            <input value="@Cella(idx, col)" style="width:100%" aria-label="@Colonne[col]"
+                                   @onchange="e => OnSet.InvokeAsync((idx, col, e.Value?.ToString() ?? string.Empty))" />
+                        }
+                        else { @(Cella(idx, col) is { Length: > 0 } v ? v : "—") }
+                    </td>
+                }
+                @if (Editing)
+                {
+                    <td>
+                        <button type="button" class="btn ghost" style="padding:0 6px" title="@L["Common_Delete"]"
+                                @onclick="() => OnRemove.InvokeAsync(idx)">✕</button>
+                    </td>
+                }
+            </tr>
+        }
+        @if (Righe.Count == 0)
+        {
+            <tr><td colspan="@(Colonne.Count + (Editing ? 2 : 0))" class="muted">@(Vuoto ?? L["Mil_TableEmpty"].Value)</td></tr>
+        }
+    </tbody>
+</table>
+
+@if (Editing)
+{
+    <button type="button" class="btn primary" style="margin-top:10px" @onclick="() => OnAdd.InvokeAsync()">
+        + @L["Mil_TableAddRow"]
+    </button>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<string> Colonne { get; set; } = Array.Empty<string>();
+    [Parameter, EditorRequired] public IReadOnlyList<IReadOnlyList<string>> Righe { get; set; } = Array.Empty<IReadOnlyList<string>>();
+    [Parameter] public bool Editing { get; set; }
+    [Parameter] public string? Vuoto { get; set; }
+
+    [Parameter] public EventCallback OnAdd { get; set; }
+    [Parameter] public EventCallback<int> OnRemove { get; set; }
+    [Parameter] public EventCallback<(int Indice, int Delta)> OnMove { get; set; }
+
+    /// <summary>Scrive UNA cella: riga, colonna, testo.</summary>
+    [Parameter] public EventCallback<(int Riga, int Colonna, string Testo)> OnSet { get; set; }
+
+    private string Cella(int r, int c) => r < Righe.Count && c < Righe[r].Count ? Righe[r][c] : "";
+}

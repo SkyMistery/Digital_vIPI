@@ -159,4 +159,26 @@ public interface IMilitaryDocumentService
     Task<IReadOnlyList<MilDiversionView>> ResolveDiversionsForViewAsync(
         string icao, IReadOnlyList<MilDiversionPayload.Riga> righe, bool useFrozen,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Le righe di una tabella a <b>colonne fisse</b> del documento — «Nominativi», «Parcheggi» — lette dalla
+    /// versione di lavoro. ⚠️ Qui non c'è niente da risolvere su un catalogo: il contenuto è il payload, e
+    /// per questo non esiste una gemella «per la vista» — la legge il viewer dai blocchi che ha già in mano.
+    /// </summary>
+    Task<IReadOnlyList<IReadOnlyList<string>>> GetFixedTableAsync(
+        string icao, string sectionKey, int colonne, CancellationToken ct = default);
+
+    /// <summary>Salva le righe di una tabella a colonne fisse.</summary>
+    Task SaveFixedTableAsync(string icao, string sectionKey, string variante,
+        IReadOnlyList<IReadOnlyList<string>> righe, int colonne, CancellationToken ct = default);
+
+    /// <summary>Che attività si vola in ognuna delle aree di lavoro scelte (carta §12h), per id d'area.</summary>
+    Task<IReadOnlyDictionary<string, MilActivity>> GetAreaActivitiesAsync(
+        string icao, CancellationToken ct = default);
+
+    /// <summary>
+    /// Cambia l'attività di UN'area. ⚠️ Un'area alla volta e non la mappa intera: due persone che marcano due
+    /// aree diverse non devono sovrascriversi — è la stessa regola dei campi delle radioassistenze.
+    /// </summary>
+    Task SaveAreaActivityAsync(string icao, string areaId, MilActivity attivita, CancellationToken ct = default);
 }

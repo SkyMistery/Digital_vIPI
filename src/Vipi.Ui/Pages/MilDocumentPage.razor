@@ -226,6 +226,17 @@
     private IReadOnlyList<AccSpecialAreaView> _aree = Array.Empty<AccSpecialAreaView>();
     private IReadOnlyList<NavaidRow> _radioassistenze = Array.Empty<NavaidRow>();
     private IReadOnlyList<MilDiversionView> _alternati = Array.Empty<MilDiversionView>();
+    private IReadOnlyDictionary<string, MilActivity> _attivitaAree = new Dictionary<string, MilActivity>();
+    private IReadOnlyList<IReadOnlyList<string>> _nominativi = Array.Empty<IReadOnlyList<string>>();
+    private IReadOnlyList<IReadOnlyList<string>> _parcheggi = Array.Empty<IReadOnlyList<string>>();
+
+    /// <summary>Le colonne delle due tabelle a mano: le decide il PROFILO, non chi compila — è quel che
+    /// rende una sezione confrontabile fra quindici campi.</summary>
+    internal static IReadOnlyList<string> ColonneNominativi(IStringLocalizer<SharedResource> l) =>
+        new[] { l["Mil_Squadron"].Value, l["Mil_OatCallsign"].Value, l["Mil_GatCallsign"].Value, l["Mil_QraCallsign"].Value };
+
+    internal static IReadOnlyList<string> ColonneParcheggi(IStringLocalizer<SharedResource> l) =>
+        new[] { l["Mil_ParkingName"].Value, l["Mil_ParkingNumbers"].Value, l["Mil_ParkingUsedBy"].Value };
 
     /// <summary>
     /// Il corpo delle sezioni rese dalla pagina. ⚠️ Sono le STESSE dell'aeroporto civile perché parlano
@@ -255,7 +266,18 @@
                 break;
             @* Le aree di lavoro: E' la mappa dell'AoR con le chip, cioe' esattamente cio' che il PDF disegna
                a mano una figura per volta. Stesso motore della vIPI ACC e dell'APP. *@
-            case "regulated": <RegulatedAreas Areas="_aree" />; break;
+            @* La mappa con le chip, e SOTTO la tabella: nome e limiti vengono dalle aree scelte, e la
+               sola colonna scritta a mano è l'attività. *@
+            case "regulated":
+                <RegulatedAreas Areas="_aree" />
+                <MilWorkingAreas Areas="_aree" Activities="_attivitaAree" />
+                break;
+            case "callsigns":
+                <MilFixedTable Colonne="ColonneNominativi(L)" Righe="_nominativi" />
+                break;
+            case "parkings":
+                <MilFixedTable Colonne="ColonneParcheggi(L)" Righe="_parcheggi" />
+                break;
             case "validity": <ValidityStamp Target="ReleaseTargetType.AirportMil" Key="@_icao" ReleaseId="@ReleaseMostrata()" />; break;
         }
     };
@@ -360,6 +382,13 @@
 
         _alternati = await Militari.ResolveDiversionsForViewAsync(
             _icao, MilDiversionPayload.Leggi(SectionPayload.Read(SezioneDi("diversion"))), _useFrozen);
+
+        // ⚠️ Queste tre si leggono dai BLOCCHI del documento mostrato e non dal servizio: il contenuto è il
+        // payload, quindi in anteprima release arriva già dallo snapshot — chiederlo al servizio darebbe
+        // quel che c'è adesso, cioè scavalcherebbe la release.
+        _attivitaAree = MilRegulatedPayload.LeggiAttivita(SectionPayload.Read(SezioneDi("regulated")));
+        _nominativi = MilTablePayload.Leggi(SectionPayload.Read(SezioneDi("callsigns")), 4);
+        _parcheggi = MilTablePayload.Leggi(SectionPayload.Read(SezioneDi("parkings")), 3);
 
         // ⚠️ Il vSOP militare nasce in ITALIANO (carta §1d): la lingua sorgente e' quella in cui si
         // REDIGE, non quella dei quindici PDF di partenza. Un lettore inglese lo ottiene tradotto.

@@ -1000,6 +1000,20 @@
   <data name="Rwy_ThresholdsTitle" xml:space="preserve"><value>Coordinate delle soglie</value></data>
   <data name="Rwy_ThresholdsEmpty" xml:space="preserve"><value>Le coordinate delle soglie non sono ancora arrivate dalla sorgente: si prendono ri-importando l'aeroporto da IVAO.</value></data>
   <data name="Rwy_ThresholdElev" xml:space="preserve"><value>Elevazione</value></data>
+  <data name="Area_Name" xml:space="preserve"><value>Nome</value></data>
+  <data name="Area_Limits" xml:space="preserve"><value>Limiti</value></data>
+  <data name="Area_Activity" xml:space="preserve"><value>Tipo di attività</value></data>
+  <data name="Area_ActivityTitle" xml:space="preserve"><value>Clic per accendere o spegnere, doppio clic per prenderle tutte</value></data>
+  <data name="Area_None" xml:space="preserve"><value>Nessuna area scelta: si scelgono con le chip sopra la mappa.</value></data>
+  <data name="Mil_TableEmpty" xml:space="preserve"><value>Nessuna riga in questa tabella.</value></data>
+  <data name="Mil_TableAddRow" xml:space="preserve"><value>Aggiungi riga</value></data>
+  <data name="Mil_Squadron" xml:space="preserve"><value>Squadrone</value></data>
+  <data name="Mil_OatCallsign" xml:space="preserve"><value>OAT callsign</value></data>
+  <data name="Mil_GatCallsign" xml:space="preserve"><value>GAT callsign</value></data>
+  <data name="Mil_QraCallsign" xml:space="preserve"><value>QRA callsign</value></data>
+  <data name="Mil_ParkingName" xml:space="preserve"><value>Nome</value></data>
+  <data name="Mil_ParkingNumbers" xml:space="preserve"><value>Numeri</value></data>
+  <data name="Mil_ParkingUsedBy" xml:space="preserve"><value>Usato da</value></data>
   <data name="Sorg_StatesTitle" xml:space="preserve"><value>Stato import periodici</value></data>
   <data name="Sorg_StatesHelp" xml:space="preserve"><value>Esito dell'ultima esecuzione automatica di ogni import gated. Un errore qui significa dati potenzialmente stantii finché il retry non riesce.</value></data>
   <data name="Sorg_NoStates" xml:space="preserve"><value>Nessun import ancora eseguito (DB nuovo o job non ancora partiti).</value></data>
