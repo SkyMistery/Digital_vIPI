@@ -167,7 +167,7 @@ Con la sorgente muta non si accusa nessun alias, per la stessa ragione di sempre
 - **Nessuna tabella `Navaid` in database.** Il catalogo vive in memoria: niente migrazione, e il deploy è già
   fermo in attesa del cutover MariaDB con migrazioni in coda. Se la sorgente tace si perdono i suggerimenti,
   non si rompe niente.
-- **Nessuna coordinata.** `TryParseDms` c'è già e il record cresce di due campi il giorno che servisse — per
+- **Nessuna coordinata.** `DmsCoordinate.TryParse` (già `AuroraSectorfileParser.TryParseDms`, traslocato in `Vipi.Application/Coordinates` il 29 agosto 2026) c'è già e il record cresce di due campi il giorno che servisse — per
   esempio per verificare che un CoP stia davvero **sul confine** fra i due enti dell'accordo, o per vederlo
   sulla mappa. Oggi leggerle costerebbe 1400 conversioni per un dato che nessuno guarda.
 - **Nessuna normalizzazione delle maiuscole.** Il confronto le ignora già; forzarle nel campo dal browser

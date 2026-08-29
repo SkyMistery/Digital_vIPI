@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Coordinates;
 
 namespace Vipi.Infrastructure.Sectorfile;
 
@@ -437,51 +438,12 @@ public static class AuroraSectorfileParser
     /// <b>compatta</b> (<c>N0463144000</c> = 046°31'44.000"), usata da <c>liph.mva</c>, <c>itgeo.geo</c> e dai
     /// <c>.vfi</c>. False se malformata.
     /// </summary>
-    /// <remarks>La forma compatta si legge da destra: 3 cifre di millisecondi, 2 di secondi, 2 di primi, il resto
-    /// gradi — così vale sia per la latitudine sia per la longitudine, che ha un grado in più.</remarks>
-    public static bool TryParseDms(string? token, out double degrees)
-    {
-        degrees = 0;
-        if (string.IsNullOrWhiteSpace(token)) return false;
-        token = token.Trim();
-        var hemi = char.ToUpperInvariant(token[0]);
-        if (hemi is not ('N' or 'S' or 'E' or 'W')) return false;
-
-        var body = token[1..];
-        if (!body.Contains('.')) return TryParseCompactDms(body, hemi, out degrees);
-
-        var parts = body.Split('.');
-        if (parts.Length < 3) return false;
-        // Secondi = "SS.sss": parts[2] interi + eventuale parts[3] frazione.
-        var secText = parts.Length >= 4 ? parts[2] + "." + parts[3] : parts[2];
-        if (!int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var deg)) return false;
-        if (!int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var min)) return false;
-        if (!double.TryParse(secText, NumberStyles.Float, CultureInfo.InvariantCulture, out var sec)) return false;
-
-        var value = deg + min / 60.0 + sec / 3600.0;
-        degrees = hemi is 'S' or 'W' ? -value : value;
-        return true;
-    }
-
-    /// <summary>Forma compatta <c>DDD MM SS sss</c> senza separatori, letta da destra. Serve almeno una cifra di
-    /// gradi oltre alle 7 fisse (3 millisecondi + 2 secondi + 2 primi).</summary>
-    private static bool TryParseCompactDms(string body, char hemi, out double degrees)
-    {
-        degrees = 0;
-        if (body.Length < 8) return false;
-        foreach (var c in body) if (!char.IsAsciiDigit(c)) return false;
-
-        var frac = body[^3..];
-        var sec = body[^5..^3];
-        var min = body[^7..^5];
-        var deg = body[..^7];
-
-        if (!int.TryParse(deg, NumberStyles.Integer, CultureInfo.InvariantCulture, out var d)) return false;
-        if (!int.TryParse(min, NumberStyles.Integer, CultureInfo.InvariantCulture, out var m)) return false;
-        if (!double.TryParse(sec + "." + frac, NumberStyles.Float, CultureInfo.InvariantCulture, out var s)) return false;
-
-        var value = d + m / 60.0 + s / 3600.0;
-        degrees = hemi is 'S' or 'W' ? -value : value;
-        return true;
-    }
+    /// <remarks>
+    /// ⚠️ <b>Il formato non si legge qui</b>: dal 29 agosto 2026 la conoscenza del DMS Aurora sta in
+    /// <see cref="DmsCoordinate"/> (in <c>Vipi.Application</c>), perché la usa anche il convertitore di
+    /// coordinate, che l'infrastruttura non la vede. Questa firma resta per i suoi chiamanti e per i suoi
+    /// test: è una delega, non una seconda implementazione.
+    /// </remarks>
+    public static bool TryParseDms(string? token, out double degrees) =>
+        DmsCoordinate.TryParse(token, out degrees);
 }
