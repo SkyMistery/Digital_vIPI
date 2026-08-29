@@ -1648,9 +1648,14 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
    ⚠️ Niente `@media` e niente `@container`: qui basta il FLEX che va a capo da solo. Le due colonne hanno una
    base in px (380 e 260) e cedono quando non ci stanno — cosi' la soglia la calcola il layout, che lo zoom
    dell'applicazione lo vede, mentre una media query no (2026-08-22-topbar-misurata.md). */
-.ta-grid{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
+.ta-grid{display:flex;flex-wrap:wrap;gap:18px;align-items:stretch}
 .ta-main{flex:1 1 380px;min-width:0}
-.ta-side{flex:1 1 260px;min-width:0;max-width:360px;display:flex;flex-direction:column;gap:12px}
+/* Le schede stanno al CENTRO dell'altezza della tabella, non appese in alto: la colonna e' alta quanto la
+   riga (`align-items:stretch`) e il `justify-content:center` ci mette dentro le schede in mezzo. Appese in
+   alto lasciavano un vuoto sotto lungo quanto quello che questa colonna era nata per chiudere.
+   ⚠️ Quando la riga va a capo la colonna non ha piu' altezza da avanzare, e il centraggio e' un no-op:
+   sotto i 900px le schede restano attaccate alla tabella come prima. */
+.ta-side{flex:1 1 260px;min-width:0;max-width:360px;display:flex;flex-direction:column;justify-content:center;gap:12px}
 .ta-card{background:var(--surface-soft);border:1px solid var(--line);border-radius:11px;padding:12px 16px}
 .ta-card-t{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-soft)}
 .ta-card-v{display:block;font-family:var(--font-head);color:var(--brand-ink);font-size:30px;font-weight:800;line-height:1.15;margin:2px 0}

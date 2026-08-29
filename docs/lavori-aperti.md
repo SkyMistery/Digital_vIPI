@@ -4731,6 +4731,11 @@ allo stesso prezzo.
 ⚠️ Va a capo con un **flex**, senza `@media` e senza `@container`: la soglia la calcola il layout, che lo
 `zoom` dell'applicazione lo vede.
 
+⚠️ **Le schede stanno al CENTRO dell'altezza della tabella**, non appese in alto (correzione del committente,
+carta §5-bis): con **due** schede sposta di 10px, ma con **una sola** — campo senza METAR, niente «TL
+adesso» — la scheda restava in alto a destra col vuoto sotto. Misurato su LIML: **67px sopra e 67 sotto**,
+prima 0 e 134.
+
 ### Z2 ✅ CHIUSA — fuso in `main`
 
 `quote-transizione-colonna-destra` è entrato in `main` il 29 agosto per **avanzamento diretto** (`main` era

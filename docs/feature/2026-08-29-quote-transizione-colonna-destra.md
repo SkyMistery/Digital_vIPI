@@ -74,6 +74,17 @@ una media query no (stessa malattia della topbar, 2026-08-22).
 max-width:100%}`): lì la tabella diventa piena larghezza e le schede scendono sotto. È il comportamento di
 tutte le tabelle del prodotto, non una scelta di questa sezione.
 
+### 5-bis. Le schede stanno al centro, non appese in alto (correzione del committente)
+
+Prima erano allineate in cima (`align-items:flex-start`). Con **due** schede si nota poco — la colonna è già
+alta quasi quanto la tabella — ma con **una sola** (campo senza METAR: niente «TL adesso») la scheda restava
+in alto a destra e sotto si apriva un vuoto lungo quanto quello che questa colonna era nata per chiudere.
+
+Ora la colonna è alta quanto la riga (`align-items:stretch`) e le schede stanno in mezzo
+(`justify-content:center`). Misurato su LIML, una scheda sola: **67px sopra e 67 sotto**, prima erano 0 e 134.
+⚠️ Quando la riga va a capo la colonna non ha più altezza da avanzare e il centraggio è un **no-op**: sotto
+i 900px le schede restano attaccate alla tabella come prima.
+
 ## 6. Verifica dal vivo
 
 Host su copia del DB (`.claude/skills/verifica-live`), Edge headless, LIBD e LIML:
