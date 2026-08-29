@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
+using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
 using Vipi.Ui.Pages;
@@ -60,6 +61,10 @@ public class PaginaAllegatiTests : TestContext
         public Task<AttachmentRow?> BySlugAsync(string slug, CancellationToken ct = default) =>
             Task.FromResult(_righe.FirstOrDefault(r => r.Slug == slug));
 
+        public Task<(AttachmentReplace Esito, AttachmentRow? Riga)> ReplaceAsync(
+            string slug, string link, string? note, int userId, CancellationToken ct = default) =>
+            throw new NotSupportedException();   // la pagina passa dal servizio, non da qui
+
         public Task<(AttachmentCreate Esito, AttachmentRow? Riga)> CreateAsync(
             AttachmentDraft draft, int userId, CancellationToken ct = default)
         {
@@ -89,6 +94,36 @@ public class PaginaAllegatiTests : TestContext
                 _uso.TryGetValue(slug, out var u) ? u.Citations : Array.Empty<AttachmentCitation>());
     }
 
+    /// <summary>Sostituzione finta: ricorda che cosa le è stato chiesto, e con che link.</summary>
+    private sealed class SostituzioneFinta : IAttachmentReplacement
+    {
+        private readonly AttachmentReplace _esito;
+        private readonly AttachmentCitation[] _impattati;
+
+        public SostituzioneFinta(AttachmentReplace esito = AttachmentReplace.Ok,
+            params AttachmentCitation[] impattati)
+        {
+            _esito = esito;
+            _impattati = impattati;
+        }
+
+        public string? Slug { get; private set; }
+        public string? Link { get; private set; }
+        public string? Nota { get; private set; }
+
+        public Task<IReadOnlyList<AttachmentCitation>> ImpactPreviewAsync(string slug, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<AttachmentCitation>>(_impattati);
+
+        public Task<AttachmentReplacementOutcome> ReplaceAsync(
+            string slug, string link, string? note, int userId, CancellationToken ct = default)
+        {
+            Slug = slug; Link = link; Nota = note;
+
+            var riga = _esito == AttachmentReplace.Ok ? Riga(1, slug, "LoA Roma–Marseille", versione: 3) : null;
+            return Task.FromResult(new AttachmentReplacementOutcome(_esito, riga, _impattati));
+        }
+    }
+
     private static AttachmentRow Riga(int id, string slug, string titolo,
         AttachmentKind tipo = AttachmentKind.Loa, AttachmentScope ambito = AttachmentScope.Division,
         string? chiave = null, int versione = 1) =>
@@ -98,12 +133,14 @@ public class PaginaAllegatiTests : TestContext
             new DateTime(2026, 8, 29, 9, 0, 0, DateTimeKind.Utc));
 
     private IRenderedComponent<AdminAttachmentsPage> Render(
-        IAttachmentLibrary biblioteca, VipiRole livello = VipiRole.Editor, IAttachmentUsage? uso = null)
+        IAttachmentLibrary biblioteca, VipiRole livello = VipiRole.Editor, IAttachmentUsage? uso = null,
+        IAttachmentReplacement? sostituzione = null)
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
         Services.AddSingleton(biblioteca);
         Services.AddSingleton(uso ?? new UsoFinto());
+        Services.AddSingleton(sostituzione ?? new SostituzioneFinta());
         return RenderComponent<AdminAttachmentsPage>();
     }
 
@@ -353,6 +390,124 @@ public class PaginaAllegatiTests : TestContext
         var chip = cut.FindAll("button.sh-chip").ToArray()[^1];
         Assert.Contains("Att_Unused", chip.TextContent);
         Assert.True(chip.HasAttribute("disabled"));
+    }
+
+    // ---- sostituzione ------------------------------------------------------------------------------
+
+    /// <summary>
+    /// ⚠️ <b>La conferma dice QUALI documenti cambiano, prima che si prema.</b> È l'unica informazione con
+    /// cui si decide: il link segue sempre la versione corrente, quindi un documento già <b>pubblicato</b>
+    /// mostrerà il file nuovo senza che nessuno l'abbia toccato. Un «sei sicuro?» non direbbe niente.
+    /// </summary>
+    [Fact]
+    public void La_conferma_elenca_i_documenti_che_cambiano()
+    {
+        var cut = Render(
+            new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA Roma–Marseille")),
+            uso: new UsoFinto(("loa-lirr-lfmm", new[]
+            {
+                new AttachmentCitation(AttachmentCitationSource.Release, "vIPI Fiumicino",
+                    "/services/vsop/lirr/airports/editor?icao=LIRF", true, "2609", 7),
+            })));
+
+        cut.FindAll("table.res-table tbody button").ToArray()[^1].Click();
+
+        var pannello = cut.Find(".att-replace");
+        Assert.Contains("Att_ReplaceImpact 1", pannello.TextContent);
+        Assert.Contains("vIPI Fiumicino", pannello.TextContent);
+        Assert.Contains("Att_CitedAirac 2609", pannello.TextContent);
+    }
+
+    /// <summary>Una voce che non cita nessuno lo dice: «cambia solo la biblioteca» è una risposta, il
+    /// silenzio no.</summary>
+    [Fact]
+    public void Senza_citazioni_la_conferma_lo_dice()
+    {
+        var cut = Render(new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA")));
+
+        cut.FindAll("table.res-table tbody button").ToArray()[^1].Click();
+
+        Assert.Contains("Att_ReplaceNoImpact", cut.Find(".att-replace").TextContent);
+    }
+
+    [Fact]
+    public void La_sostituzione_passa_link_e_nota_al_servizio()
+    {
+        var sostituzione = new SostituzioneFinta();
+        var cut = Render(
+            new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA")),
+            sostituzione: sostituzione);
+
+        cut.FindAll("table.res-table tbody button").ToArray()[^1].Click();
+
+        // ⚠️ Si ricerca l'elemento DOPO ogni render: il primo `Change` rende di nuovo il componente, e la
+        // collezione presa prima porta gestori che nel nuovo albero non esistono più.
+        cut.FindAll(".att-replace input").ToArray()[0]
+            .Change("https://drive.google.com/file/d/1A2b3C4d5E6f7G8h9I0jKlMnOpQrStUvW/view");
+        cut.FindAll(".att-replace input").ToArray()[1].Change("rifirmata dopo modifica CoP");
+        cut.Find(".att-replace-actions button.primary").Click();
+
+        Assert.Equal("loa-lirr-lfmm", sostituzione.Slug);
+        Assert.Contains("1A2b3C4d5E6f7G8h9I0jKlMnOpQrStUvW", sostituzione.Link);
+        Assert.Equal("rifirmata dopo modifica CoP", sostituzione.Nota);
+    }
+
+    /// <summary>L'esito dice la versione nuova e <b>quanti documenti sono stati segnalati</b>: è la metà utile
+    /// del messaggio, perché dice che di quel cambiamento è rimasta una traccia su cui qualcuno tornerà.</summary>
+    [Fact]
+    public void Lesito_dice_la_versione_e_quanti_documenti_sono_segnalati()
+    {
+        var impattato = new AttachmentCitation(AttachmentCitationSource.Release, "vIPI Fiumicino",
+            null, true, "2609", 7);
+        var cut = Render(
+            new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA Roma–Marseille")),
+            sostituzione: new SostituzioneFinta(AttachmentReplace.Ok, impattato));
+
+        cut.FindAll("table.res-table tbody button").ToArray()[^1].Click();
+        cut.Find(".att-replace-actions button.primary").Click();
+
+        var msg = cut.Find(".st-msg");
+        Assert.Contains("Att_Replaced", msg.TextContent);
+        Assert.Contains("3", msg.TextContent);   // la versione nuova
+        Assert.Contains("ok", msg.ClassName);
+    }
+
+    /// <summary>⚠️ Il non-evento si distingue: rimettere lo stesso file non è un errore, ma non è nemmeno una
+    /// sostituzione — e dirlo evita che qualcuno aspetti una segnalazione che non arriverà.</summary>
+    [Theory]
+    [InlineData(AttachmentReplace.Invariato, "Att_ReplaceSame")]
+    [InlineData(AttachmentReplace.LinkNonValido, "Att_ErrLink")]
+    [InlineData(AttachmentReplace.NonTrovata, "Att_ReplaceGone")]
+    public void Ogni_rifiuto_della_sostituzione_dice_la_sua_cosa(AttachmentReplace esito, string chiave)
+    {
+        var cut = Render(
+            new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA")),
+            sostituzione: new SostituzioneFinta(esito));
+
+        cut.FindAll("table.res-table tbody button").ToArray()[^1].Click();
+        cut.Find(".att-replace-actions button.primary").Click();
+
+        Assert.Contains(chiave, cut.Find(".st-msg").TextContent);
+        Assert.Contains("warn", cut.Find(".st-msg").ClassName);
+        // Il pannello resta aperto: c'è qualcosa da correggere, e chiuderlo farebbe ricominciare da capo.
+        Assert.Single(cut.FindAll(".att-replace"));
+    }
+
+    /// <summary>⚠️ I campi si svuotano a ogni apertura: un link rimasto da una sostituzione annullata verrebbe
+    /// confermato su un'altra voce senza che nessuno lo rilegga.</summary>
+    [Fact]
+    public void Annullare_svuota_i_campi()
+    {
+        var cut = Render(new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA")));
+
+        cut.FindAll("table.res-table tbody button").ToArray()[^1].Click();
+        cut.FindAll(".att-replace input").ToArray()[0].Change("https://drive.google.com/file/d/AAAAAAAAAAAA/view");
+        cut.Find(".att-replace-actions button.ghost").Click();
+
+        Assert.Empty(cut.FindAll(".att-replace"));
+
+        cut.FindAll("table.res-table tbody button").ToArray()[^1].Click();
+        Assert.Equal("", cut.FindAll(".att-replace input").ToArray()[0].GetAttribute("value"));
     }
 
     /// <summary>La chiave d'ambito compare solo quando serve: la divisione non ne ha una, e un campo che

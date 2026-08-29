@@ -2173,8 +2173,26 @@ preview quando vuole. Nessun test qui dentro apre un browser.
 nuovo — **255 verdi** — e dentro ci sono i due test della slice 3 (302, destinazione, `no-cache`, 404), la
 riga `frame-src` della 5-bis e `/vsop/files` fra gli endpoint macchina.
 
-**Da dove si riparte**: slice 7 — la sostituzione con **conferma informata** (l'elenco dei documenti
-impattati), audit e voce in Cambiamenti.
+**✅ Slice 7 fatta il 29 agosto 2026**: la sostituzione. Il pannello mostra **prima** l'elenco dei documenti
+che cambiano, con lo stato di ciascuno; poi il link e la nota di versione. Nasce la versione successiva, il
+registro porta **id vecchio e nuovo**, e su ogni documento che cita la voce si apre una riga **«da rivedere»**.
+
+⚠️ **La carta diceva «voce in Cambiamenti», e non era il posto giusto.** *Cambiamenti* è **pubblica** e si
+ricava dai documenti col ciclo AIRAC corrente: una voce d'allegato lì sarebbe di natura diversa e rivolta al
+pubblico, mentre la frase serve a **chi cura il documento**. È andata nella **casella degli impatti**
+(`ImpactKind.AttachmentReplaced`, in coda), che è già «un fatto a monte tocca un documento» e ha la
+deduplicazione su *(documento, tipo, origine)*.
+
+- ⚠️ È l'**unico impatto in cui non c'è niente di rotto**: la copia pubblicata mostra già il file nuovo,
+  perché il link segue la versione corrente. La riga serve a **farlo sapere**, e si chiude a mano.
+- ⚠️ **Il non-evento non si registra**: rimettere lo stesso file torna `Invariato` e **non** apre righe —
+  altrimenti si manderebbero delle persone a rileggere un documento che non è cambiato.
+- ⚠️ **Chi cita si legge una volta sola, PRIMA di scrivere**: rileggere dopo vorrebbe dire che un salvataggio
+  in un'altra scheda cambia l'elenco fra la conferma e la segnalazione.
+- La sostituzione è un **servizio a parte** (`IAttachmentReplacement`): scrivere è una riga, sapere chi cita
+  costa una scansione — e quella non la devono pagare né il redirect né l'elenco.
+
+**Da dove si riparte**: slice 8 — cancellazione con guardia, ricerca, stampa e guida in-app. È l'ultima.
 
 ⚠️ **La 5-bis non si chiude senza una prova dal vivo**: Google può togliere l'embed della preview quando
 vuole — è già successo col fondo mappa CARTO il 27 agosto — e qui dentro nessun test apre un browser.

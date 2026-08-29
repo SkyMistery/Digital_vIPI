@@ -39,6 +39,8 @@ public class BloccoAllegatoTests : TestContext
             Task.FromResult(_righe.FirstOrDefault(r => r.Slug == slug));
         public Task<(AttachmentCreate Esito, AttachmentRow? Riga)> CreateAsync(
             AttachmentDraft draft, int userId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<(AttachmentReplace Esito, AttachmentRow? Riga)> ReplaceAsync(
+            string slug, string link, string? note, int userId, CancellationToken ct = default) => throw new NotSupportedException();
     }
 
     private static AttachmentRow Voce(string slug, string titolo) =>

@@ -121,6 +121,7 @@ public static class DependencyInjection
         // Chi cita cosa nella biblioteca allegati: si RICAVA leggendo i testi, non si mantiene in una
         // tabella di join — quella si desincronizza e mente proprio davanti a una cancellazione.
         services.AddScoped<Abstractions.IAttachmentUsage, AttachmentUsageService>();
+        services.AddScoped<IAttachmentReplacement, AttachmentReplacementService>();
         services.AddScoped<IImpactDriftUseCase, ImpactDriftUseCase>();
         services.AddScoped<IDocumentAdminService, DocumentAdminService>();
         services.AddScoped<IAirportSectorImporter, AirportSectorImporter>();

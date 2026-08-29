@@ -121,7 +121,8 @@ public sealed class AttachmentUsageService : IAttachmentUsage
             // Senza documento resta l'etichetta del posto (l'ICAO della sezione extra, la chiave del blocco
             // condiviso): una riga senza nome non si può né capire né andare a correggere.
             ? new AttachmentCitation(testo.Source, testo.Label ?? "—")
-            : new AttachmentCitation(testo.Source, doc.Title, Url(doc), doc.IsPublished, doc.EffectiveCycle);
+            : new AttachmentCitation(testo.Source, doc.Title, Url(doc), doc.IsPublished, doc.EffectiveCycle,
+                doc.DocumentId);
 
     /// <summary>Dove si va a correggere: l'<b>editor</b>, non la pagina pubblica. Chi apre questa lista deve
     /// togliere o cambiare una citazione, non leggerla.</summary>

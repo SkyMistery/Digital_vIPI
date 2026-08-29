@@ -250,8 +250,20 @@ Cambia ciò che vedono 3 documenti:
 Nota di versione: [____________]      [Sostituisci]  [Annulla]
 ```
 
-Più la riga in `AuditLogs` e una voce in **Cambiamenti**: così lo staff si accorge che un riferimento è
-cambiato sotto un documento pubblicato senza che nessuno l'abbia ripubblicato.
+Più la riga in `AuditLogs` — col valore **vecchio e nuovo**, o «Tizio ha sostituito la LoA» non permette né
+di accorgersene né di rimettere a posto — e una riga **«da rivedere»** su ogni documento che la cita.
+
+⚠️ **La carta diceva «una voce in Cambiamenti», e non era il posto giusto.** *Cambiamenti* è una pagina
+**pubblica** e si **ricava** dai documenti la cui versione corrente porta un dato ciclo AIRAC: una voce
+d'allegato lì sarebbe una riga di natura diversa in mezzo alle altre, e per giunta visibile a chi legge —
+mentre la frase da dire è rivolta a **chi cura il documento**. La casella degli impatti
+(`DocumentImpact`, carta del 25 agosto «Documenti da rivedere») è esattamente «un fatto a monte tocca un
+documento», ha già la deduplicazione su *(documento, tipo, origine)* e una pagina d'insieme. Nuovo valore
+`ImpactKind.AttachmentReplaced`, in coda.
+
+⚠️ È l'unico impatto in cui **non c'è niente di rotto e niente da ripubblicare**: il link segue sempre la
+versione corrente, quindi la copia pubblicata mostra **già** il file nuovo. La riga serve proprio per
+questo — la rilettura può concludersi con «va bene così», e allora si chiude a mano.
 
 ### 6. Cancellazione — guardia, non sorpresa
 
@@ -283,7 +295,7 @@ principale del sistema attuale, dove i link a Drive stanno sparsi nei documenti 
 | 5 | ✅ **FATTA il 29 agosto** — blocco `Attachment`: enum in coda, `case` nei punti che dispatchano davvero, editor e resa condivisi — **modo Link** | link 1 |
 | 5-bis | ✅ **FATTA il 29 agosto** — modo Incorporato: campo `Modo` + altezza a scaglioni, iframe sulla nostra rotta, link di ripiego, **`frame-src` in CSP** | resa in pagina |
 | 6 | ✅ **FATTA il 29 agosto** — link inline in `MarkdownLite`, **solo schema `allegato:`** | link 2 |
-| 7 | Sostituzione con conferma informata + audit + voce in Cambiamenti | versioni |
+| 7 | ✅ **FATTA il 29 agosto** — sostituzione con conferma informata + audit + riga «da rivedere» | versioni |
 | 8 | Cancellazione con guardia; ricerca; stampa; guida in-app | contorno |
 
 Un commit per slice, `dotnet build` verde a ogni commit.

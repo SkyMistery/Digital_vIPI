@@ -26,6 +26,9 @@ public enum AttachmentCitationSource
 
 /// <summary>Una citazione: chi nomina l'allegato, e dove si va a metterci le mani.</summary>
 /// <param name="Title">Come si chiama il posto che lo cita, per chi legge: il titolo del documento.</param>
+/// <param name="DocumentId">Il documento che la contiene, quando ce n'è uno. Serve ad aprire la riga «da
+/// rivedere» dopo una sostituzione: senza, la conferma direbbe <i>quali</i> documenti cambiano e poi non
+/// saprebbe a quali attaccare la segnalazione.</param>
 /// <param name="Url">Dove si va a correggerlo. <c>null</c> quando il posto non è raggiungibile — e la riga
 /// resta lo stesso: sparire sarebbe peggio che comparire senza collegamento.</param>
 /// <param name="IsPublished">Il documento è pubblicato: la citazione la sta leggendo qualcuno adesso.</param>
@@ -34,7 +37,7 @@ public enum AttachmentCitationSource
 /// parlando. Una stringa italiana costruita qui uscirebbe italiana anche nella versione inglese.</para></param>
 public sealed record AttachmentCitation(
     AttachmentCitationSource Source, string Title, string? Url = null,
-    bool IsPublished = false, string? EffectiveCycle = null);
+    bool IsPublished = false, string? EffectiveCycle = null, int? DocumentId = null);
 
 /// <summary>Chi cita una voce di biblioteca, per slug.</summary>
 public sealed record AttachmentUsage(string Slug, IReadOnlyList<AttachmentCitation> Citations);

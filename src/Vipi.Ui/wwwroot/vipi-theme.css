@@ -1325,6 +1325,14 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .att-preview{border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--surface-soft)}
 .att-preview .att-link{margin:0}
 
+/* conferma informata della sostituzione: l'elenco di CHI CAMBIA sta sopra i campi, perche' si legge
+   mentre si decide -- non dopo aver gia' incollato il link. */
+.att-replace{display:flex;flex-direction:column;gap:8px;padding:4px 0}
+.att-replace-h{margin:0}
+.att-replace-fields{display:flex;gap:10px;flex-wrap:wrap}
+.att-replace-fields .att-field{flex:1;min-width:220px}
+.att-replace-actions{display:flex;gap:8px}
+
 /* elenco «citato da» nella biblioteca: una riga per DOCUMENTO, non per citazione. */
 .att-cited{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
 .att-cited li{display:flex;align-items:center;gap:8px;flex-wrap:wrap}

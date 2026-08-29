@@ -89,6 +89,54 @@ public sealed class EfAttachmentLibrary : IAttachmentLibrary
         return (AttachmentCreate.Ok, Riga(voce));
     }
 
+    public async Task<(AttachmentReplace Esito, AttachmentRow? Riga)> ReplaceAsync(
+        string slug, string link, string? note, int userId, CancellationToken ct = default)
+    {
+        var chiave = AttachmentRules.Norm(slug).ToLowerInvariant();
+
+        // ⚠️ Tracciata, non AsNoTracking: qui si scrive. Con le versioni incluse, perché il progressivo è
+        // «il più alto più uno» e leggerlo altrove vorrebbe dire una seconda query che può già mentire.
+        var voce = await _db.Attachments.Include(a => a.Versions).FirstOrDefaultAsync(a => a.Slug == chiave, ct);
+        if (voce is null) return (AttachmentReplace.NonTrovata, null);
+
+        var externalId = AttachmentRules.ExternalIdDa(link);
+        if (externalId is null) return (AttachmentReplace.LinkNonValido, null);
+
+        var corrente = voce.Versions.OrderByDescending(v => v.Number).FirstOrDefault();
+
+        // Il non-evento non si registra: una versione identica alla corrente manderebbe delle persone a
+        // rileggere un documento che non è cambiato. Stessa regola dell'anagrafica radioassistenze.
+        if (corrente is not null && corrente.ExternalId == externalId) return (AttachmentReplace.Invariato, null);
+
+        var ora = DateTime.UtcNow;
+        var nuova = new AttachmentVersion
+        {
+            Number = (corrente?.Number ?? 0) + 1,
+            Provider = AttachmentProvider.Drive,
+            ExternalId = externalId,
+            Note = AttachmentRules.Norm(note) is { Length: > 0 } n ? n : null,
+            CreatedUtc = ora,
+            CreatedByUserId = userId,
+        };
+        voce.Versions.Add(nuova);
+        voce.UpdatedUtc = ora;
+        voce.UpdatedByUserId = userId;
+
+        // Il registro porta il valore VECCHIO e quello nuovo: «Tizio ha sostituito la LoA» non permette né di
+        // accorgersene né di rimettere a posto.
+        AuditScribe.Write(_db, userId, AuditAction.Update, "Attachment", chiave, new
+        {
+            Versione = nuova.Number,
+            Precedente = corrente?.Number,
+            IdVecchio = corrente?.ExternalId,
+            IdNuovo = externalId,
+            Nota = nuova.Note,
+        });
+
+        await _db.SaveChangesAsync(ct);
+        return (AttachmentReplace.Ok, Riga(voce));
+    }
+
     /// <summary>
     /// La voce più la sua versione corrente, che è quella col <c>Number</c> più alto.
     /// <para>Torna <c>null</c> per una voce senza nemmeno una versione: non dovrebbe esistere — nascono

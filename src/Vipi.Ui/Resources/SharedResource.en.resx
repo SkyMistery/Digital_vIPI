@@ -2823,4 +2823,15 @@
   <data name="AttHeight_Small" xml:space="preserve"><value>Short</value></data>
   <data name="AttHeight_Medium" xml:space="preserve"><value>Medium</value></data>
   <data name="AttHeight_Large" xml:space="preserve"><value>Tall</value></data>
+  <data name="Att_Replace" xml:space="preserve"><value>Replace</value></data>
+  <data name="Att_ReplaceTitle" xml:space="preserve"><value>Replace «{0}» (v{1} → v{2})</value></data>
+  <data name="Att_ReplaceImpact" xml:space="preserve"><value>Changes what {0} documents show:</value></data>
+  <data name="Att_ReplaceNoImpact" xml:space="preserve"><value>No document cites it: only the library changes.</value></data>
+  <data name="Att_ReplaceNote" xml:space="preserve"><value>Version note</value></data>
+  <data name="Att_ReplaceNotePh" xml:space="preserve"><value>re-signed after the CoP change</value></data>
+  <data name="Att_Replaced" xml:space="preserve"><value>«{0}» is now at v{1}; flagged for review on {2} documents.</value></data>
+  <data name="Att_ReplaceSame" xml:space="preserve"><value>That is the same file as now: there is nothing to replace.</value></data>
+  <data name="Att_ReplaceGone" xml:space="preserve"><value>The entry is gone: somebody deleted it while you were replacing it.</value></data>
+  <data name="Impact_AttachmentReplaced" xml:space="preserve"><value>The attachment «{0}» was replaced: the document already shows the new file, so it needs re-reading.</value></data>
+  <data name="ImpactKind_AttachmentReplaced" xml:space="preserve"><value>Attachment replaced</value></data>
 </root>

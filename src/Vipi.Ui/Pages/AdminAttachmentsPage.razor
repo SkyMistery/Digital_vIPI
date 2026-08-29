@@ -8,6 +8,7 @@
 @inject IEditAuthorizationService Authz
 @inject IAttachmentLibrary Biblioteca
 @inject IAttachmentUsage Uso
+@inject IAttachmentReplacement Sostituzione
 @inject IStringLocalizer<SharedResource> L
 
 @* La biblioteca degli allegati: i PDF caricati in un posto solo e citabili dai documenti
@@ -27,6 +28,11 @@
    desincronizza al primo percorso di scrittura che dimentica di aggiornarla e mente proprio qui.
    ⚠️ E il chip «mai usata» è il modo di tenere pulita la biblioteca: senza, una voce caricata per sbaglio non
    si distingue più da una che serve.
+
+   ⚠️ La sostituzione è una CONFERMA INFORMATA, non un «sei sicuro?»: prima di premere si vede l'elenco dei
+   documenti che cambiano, con lo stato di ciascuno. È l'unica informazione con cui si decide, e il link segue
+   sempre la versione corrente — quindi un documento già PUBBLICATO mostra il file nuovo senza che nessuno
+   l'abbia toccato.
 
    ⚠️ Tutto ciò che entra qui è PUBBLICO: il file su Drive è condiviso «chiunque abbia il link». Allegati
    riservati non esistono, e la pagina lo dice invece di lasciarlo scoprire.
@@ -145,9 +151,72 @@
                                 <a class="btn ghost" target="_blank" rel="noopener"
                                    href="@AttachmentRules.UrlDi(r.Slug)"
                                    title="@L["Att_Open"]">@L["Att_Open"]</a>
+                                <button type="button" class="btn ghost" disabled="@_busy"
+                                        title="@L["Att_Replace"]" @onclick="() => ApriSostituzione(r)">
+                                    @L["Att_Replace"]
+                                </button>
                             </td>
                         </tr>
-                        @if (_aperta == r.Slug)
+                        @if (_sostituisce == r.Slug)
+                        {
+                            <tr class="mil-note">
+                                <td colspan="8">
+                                    <div class="att-replace">
+                                        <p class="att-replace-h">
+                                            <b>@L["Att_ReplaceTitle", r.Title, r.VersionNumber, r.VersionNumber + 1]</b>
+                                        </p>
+
+                                        @* ⚠️ L'elenco viene PRIMA dei campi, e non è impaginazione: chi apre
+                                           questo pannello deve leggere che cosa cambia mentre decide, non
+                                           dopo aver già incollato il link. *@
+                                        @if (Citazioni(r.Slug).Count > 0)
+                                        {
+                                            <p class="muted">@L["Att_ReplaceImpact", Citazioni(r.Slug).Count]</p>
+                                            <ul class="att-cited">
+                                                @foreach (var c in Citazioni(r.Slug))
+                                                {
+                                                    <li>
+                                                        <span class="pill neutral">@L["AttSrc_" + c.Source]</span>
+                                                        @if (c.Url is { Length: > 0 } curl)
+                                                        {
+                                                            <a href="@curl">@c.Title</a>
+                                                        }
+                                                        else
+                                                        {
+                                                            <b>@c.Title</b>
+                                                        }
+                                                        <span class="muted">@Stato(c)</span>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        }
+                                        else
+                                        {
+                                            <p class="muted">@L["Att_ReplaceNoImpact"]</p>
+                                        }
+
+                                        <div class="att-replace-fields">
+                                            <label class="att-field">
+                                                <span class="muted">@L["Att_Link"]</span>
+                                                <input class="app-in" @bind="_nuovoLink" placeholder="@L["Att_LinkPh"]" />
+                                            </label>
+                                            <label class="att-field">
+                                                <span class="muted">@L["Att_ReplaceNote"]</span>
+                                                <input class="app-in" @bind="_nuovaNota" placeholder="@L["Att_ReplaceNotePh"]" />
+                                            </label>
+                                        </div>
+
+                                        <div class="att-replace-actions">
+                                            <button type="button" class="btn primary" disabled="@_busy"
+                                                    @onclick="() => Sostituisci(r)">@L["Att_Replace"]</button>
+                                            <button type="button" class="btn ghost" disabled="@_busy"
+                                                    @onclick="ChiudiSostituzione">@L["Common_Cancel"]</button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        else if (_aperta == r.Slug)
                         {
                             <tr class="mil-note">
                                 <td colspan="8">
@@ -232,6 +301,9 @@
     private AttachmentScope? _ambito;
     private bool _soloMaiUsate;
     private string? _aperta;
+    private string? _sostituisce;
+    private string _nuovoLink = "";
+    private string _nuovaNota = "";
 
     private string _nTitolo = "";
     private string _nSlug = "";
@@ -306,6 +378,54 @@
     {
         _nTitolo = valore ?? "";
         if (!_slugToccato) _nSlug = AttachmentRules.SlugDa(_nTitolo);
+    }
+
+    /// <summary>Apre la conferma informata. ⚠️ I campi si svuotano a ogni apertura: un link rimasto da una
+    /// sostituzione annullata verrebbe confermato su un'altra voce senza che nessuno lo rilegga.</summary>
+    private void ApriSostituzione(AttachmentRow r)
+    {
+        _messaggio = null;
+        _aperta = null;
+        _sostituisce = r.Slug;
+        _nuovoLink = "";
+        _nuovaNota = "";
+    }
+
+    private void ChiudiSostituzione()
+    {
+        _sostituisce = null;
+        _nuovoLink = "";
+        _nuovaNota = "";
+    }
+
+    private async Task Sostituisci(AttachmentRow r)
+    {
+        if (!PuoScrivere) return;
+        _busy = true; _messaggio = null;
+        try
+        {
+            var esito = await Sostituzione.ReplaceAsync(r.Slug, _nuovoLink, _nuovaNota, Authz.CurrentUserId ?? 0);
+
+            _ok = esito.Esito == AttachmentReplace.Ok;
+            _messaggio = esito.Esito switch
+            {
+                // Il conteggio dei documenti segnalati è la METÀ utile del messaggio: dice che di quel
+                // cambiamento è rimasta una traccia su cui qualcuno tornerà.
+                AttachmentReplace.Ok => L["Att_Replaced", r.Title, esito.Riga!.VersionNumber,
+                    esito.Impattati.Count(c => c.DocumentId is not null)].Value,
+                AttachmentReplace.LinkNonValido => L["Att_ErrLink"].Value,
+                AttachmentReplace.Invariato => L["Att_ReplaceSame"].Value,
+                _ => L["Att_ReplaceGone"].Value,
+            };
+
+            if (esito.Esito == AttachmentReplace.Ok)
+            {
+                ChiudiSostituzione();
+                await CaricaAsync();
+            }
+        }
+        catch (Exception ex) { _ok = false; _messaggio = ex.Message; }
+        finally { _busy = false; }
     }
 
     private async Task Aggiungi()

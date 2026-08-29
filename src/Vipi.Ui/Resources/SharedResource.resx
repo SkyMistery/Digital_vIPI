@@ -2831,4 +2831,15 @@
   <data name="AttHeight_Small" xml:space="preserve"><value>Bassa</value></data>
   <data name="AttHeight_Medium" xml:space="preserve"><value>Media</value></data>
   <data name="AttHeight_Large" xml:space="preserve"><value>Alta</value></data>
+  <data name="Att_Replace" xml:space="preserve"><value>Sostituisci</value></data>
+  <data name="Att_ReplaceTitle" xml:space="preserve"><value>Sostituisci «{0}» (v{1} → v{2})</value></data>
+  <data name="Att_ReplaceImpact" xml:space="preserve"><value>Cambia ciò che vedono {0} documenti:</value></data>
+  <data name="Att_ReplaceNoImpact" xml:space="preserve"><value>Non la cita nessun documento: cambia solo la biblioteca.</value></data>
+  <data name="Att_ReplaceNote" xml:space="preserve"><value>Nota di versione</value></data>
+  <data name="Att_ReplaceNotePh" xml:space="preserve"><value>rifirmata dopo modifica CoP</value></data>
+  <data name="Att_Replaced" xml:space="preserve"><value>«{0}» ora è alla v{1}; segnalata su {2} documenti da rivedere.</value></data>
+  <data name="Att_ReplaceSame" xml:space="preserve"><value>È lo stesso file di adesso: non c'è niente da sostituire.</value></data>
+  <data name="Att_ReplaceGone" xml:space="preserve"><value>La voce non c'è più: qualcuno l'ha eliminata mentre la stavi sostituendo.</value></data>
+  <data name="Impact_AttachmentReplaced" xml:space="preserve"><value>L'allegato «{0}» è stato sostituito: il documento mostra già il file nuovo, da rileggere.</value></data>
+  <data name="ImpactKind_AttachmentReplaced" xml:space="preserve"><value>Allegato sostituito</value></data>
 </root>

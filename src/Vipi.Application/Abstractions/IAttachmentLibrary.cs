@@ -53,6 +53,28 @@ public enum AttachmentCreate
 }
 
 /// <summary>
+/// Esito della sostituzione del file di una voce.
+/// </summary>
+public enum AttachmentReplace
+{
+    Ok,
+
+    /// <summary>Lo slug non esiste (o non esiste più: qualcuno l'ha cancellato mentre lo si sostituiva).</summary>
+    NonTrovata,
+
+    /// <summary>Dal link incollato non si ricava nessun id di file.</summary>
+    LinkNonValido,
+
+    /// <summary>
+    /// Il file è <b>lo stesso di adesso</b>: non si scrive una versione nuova.
+    /// <para>⚠️ Il non-evento non si registra. Una v4 identica alla v3 direbbe che qualcuno ha sostituito
+    /// qualcosa, aprirebbe una riga «da rivedere» su ogni documento che la cita, e manderebbe delle persone
+    /// a rileggere un documento che non è cambiato.</para>
+    /// </summary>
+    Invariato,
+}
+
+/// <summary>
 /// La biblioteca degli allegati (carta <c>docs/feature/2026-08-25-biblioteca-allegati.md</c>): i PDF stanno
 /// sul Drive di divisione, qui stanno <b>identità, organizzazione e versioni</b>.
 ///
@@ -82,6 +104,21 @@ public interface IAttachmentLibrary
 
     /// <summary>Una voce dal suo slug, o <c>null</c>. È la lettura del redirect <c>/vsop/files/{slug}</c>.</summary>
     Task<AttachmentRow?> BySlugAsync(string slug, CancellationToken ct = default);
+
+    /// <summary>
+    /// Sostituisce il file di una voce: nasce la versione <b>successiva</b>, e da quel momento ogni link la
+    /// serve — release pubblicate comprese.
+    ///
+    /// <para>⚠️ <b>La versione vecchia non si cancella e non si riscrive.</b> La riga resta a dire chi,
+    /// quando e perché: è la tracciatura chiesta dal committente, ed è l'unica parte della storia che sia
+    /// nostra — i <i>byte</i> vecchi se ne vanno col deposito, e non promettiamo di riscaricarli.</para>
+    ///
+    /// <para>⚠️ <b>Qui non si aprono le righe «da rivedere»</b>: quelle le apre chi orchestra la
+    /// sostituzione, perché sapere <i>chi cita</i> è una domanda che costa una scansione e questa porta la
+    /// chiamano anche percorsi che non ne hanno bisogno.</para>
+    /// </summary>
+    Task<(AttachmentReplace Esito, AttachmentRow? Riga)> ReplaceAsync(
+        string slug, string link, string? note, int userId, CancellationToken ct = default);
 
     /// <summary>
     /// Crea una voce e la sua <b>v1</b> in un colpo solo.
