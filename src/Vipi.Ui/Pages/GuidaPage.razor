@@ -1371,12 +1371,12 @@
             @"<p>Ogni persona ha <b>un livello</b>, e i livelli sono <b>cumulativi</b>: chi sta sopra può tutto quello
                che può chi sta sotto.</p>
               <ul>
-                <li><b>Socio</b> — le pagine e i documenti pubblici.</li>
+                <li><b>Utente</b> — le pagine e i documenti pubblici.</li>
                 <li><b>Staff IVAO</b> — ha una posizione staff di una divisione qualunque. Oggi non apre niente in
                     più: è un'etichetta, perché si veda chi è chi.</li>
                 <li><b>Staff di divisione</b> (<code>IT-…</code>) — le <b>statistiche</b>: quelle di divisione e
                     quelle personali di chiunque.</li>
-                <li><b>Redattore</b> — chief e vice-chief d'ACC (<code>LIRR-CH</code>, <code>LIMM-ACH</code>): il
+                <li><b>Editor</b> — chief e vice-chief d'ACC (<code>LIRR-CH</code>, <code>LIMM-ACH</code>): il
                     <b>contenuto documentale</b>, tutto. Non solo la propria ACC: il chief di Roma può dare una
                     mano a quello di Milano.</li>
                 <li><b>Amministratore</b> — la direzione della divisione (<code>IT-DIR</code>, <code>IT-ADIR</code>,
@@ -1384,29 +1384,30 @@
                     <code>IT-SOC</code>, <code>IT-SOAC</code>): sorgenti, incarichi, registro, diagnostica e questa
                     pagina.</li>
               </ul>
-              <p>Il livello ha <b>due metà</b>. Il <b>pavimento</b> glielo dà la sua posizione staff IVAO e da qui
-               non si toglie; la <b>promozione</b> a mano è l'unica cosa che questa pagina scrive. Vale il maggiore
-               dei due — per questo i livelli sotto il pavimento sono <b>disabilitati</b>: sceglierli non farebbe
-               niente.</p>
+              <p>Il livello ha <b>due metà</b>. Il <b>livello garantito dal ruolo staff</b> glielo dà la sua posizione
+               staff IVAO e da qui non si toglie; la <b>promozione</b> a mano è l'unica cosa che questa pagina
+               scrive. Vale il maggiore dei due — per questo i livelli più bassi sono <b>disabilitati</b>:
+               sceglierli non farebbe niente.</p>
               <ul>
                 <li>L'elenco ha <b>una riga per persona</b>, col livello che vale davvero; il <b>pallino</b> accanto
                     dice che gliel'abbiamo dato noi. La barra cerca per VID, nome o codice staff, e i <b>chip
                     contano le persone</b> di ogni livello.</li>
-                <li>Scegliendo una riga, a destra c'è il suo pavimento, il selettore del livello e una <b>nota</b>
-                    facoltativa — che è l'unica cosa che spiegherà quella riga fra sei mesi.</li>
-                <li><b>Togli</b> non lascia la persona a mani vuote: la riporta al suo pavimento, e la conferma lo
-                    dice.</li>
+                <li>Scegliendo una riga, a destra c'è il livello garantito dal suo ruolo staff, il selettore del
+                    livello e una <b>nota</b> facoltativa — che è l'unica cosa che spiegherà quella riga fra sei
+                    mesi.</li>
+                <li><b>Togli</b> non lascia la persona a mani vuote: la riporta al livello garantito dal suo ruolo
+                    staff, e la conferma lo dice.</li>
                 <li>Compare anche chi <b>non è staff di nessuno</b> ma è stato promosso a mano: è il caso per cui la
                     promozione esiste.</li>
               </ul>
               <p>Tre cose non si possono fare, e non è pignoleria: <b>cambiare il proprio livello</b> (è il modo
                esatto in cui ci si chiude fuori), toccare chi è amministratore <b>per configurazione</b>, e
-               scendere sotto il pavimento. Ogni promozione e ogni rimozione finisce nel <b>registro</b>, sotto la
-               famiglia «Permesso».</p>",
+               scendere sotto il livello garantito dal ruolo staff. Ogni promozione e ogni rimozione finisce nel
+               <b>registro</b>, sotto la famiglia «Permesso».</p>",
             @"<p>Every person has <b>one level</b>, and levels are <b>cumulative</b>: whoever is above can do
                everything those below can.</p>
               <ul>
-                <li><b>Member</b> — public pages and documents.</li>
+                <li><b>User</b> — public pages and documents.</li>
                 <li><b>IVAO staff</b> — holds a staff position in any division. Today it opens nothing more: it is
                     a label, so that one can tell who is who.</li>
                 <li><b>Division staff</b> (<code>IT-…</code>) — the <b>statistics</b>: the division's and anyone's
@@ -1419,24 +1420,25 @@
                     <code>IT-SOC</code>, <code>IT-SOAC</code>): sources, tasks, audit log, diagnostics and this
                     page.</li>
               </ul>
-              <p>A level has <b>two halves</b>. The <b>floor</b> comes from their IVAO staff position and cannot be
-               removed here; the <b>promotion</b> by hand is the only thing this page writes. The higher of the two
-               wins — which is why levels below the floor are <b>disabled</b>: picking one would do nothing.</p>
+              <p>A level has <b>two halves</b>. The <b>level granted by the staff role</b> comes from their IVAO
+               staff position and cannot be removed here; the <b>promotion</b> by hand is the only thing this page
+               writes. The higher of the two wins — which is why the lower levels are <b>disabled</b>: picking one
+               would do nothing.</p>
               <ul>
                 <li>The list has <b>one row per person</b>, with the level that actually applies; the <b>dot</b>
                     next to it means we gave it to them. The bar searches by VID, name or staff code, and the
                     <b>chips count the people</b> at each level.</li>
-                <li>Picking a row shows their floor on the right, the level selector and an optional <b>note</b> —
-                    the only thing that will explain that row six months from now.</li>
-                <li><b>Remove</b> does not leave the person empty-handed: it takes them back to their floor, and the
-                    confirmation says so.</li>
+                <li>Picking a row shows the level granted by their staff role on the right, the level selector and
+                    an optional <b>note</b> — the only thing that will explain that row six months from now.</li>
+                <li><b>Remove</b> does not leave the person empty-handed: it takes them back to the level granted by
+                    their staff role, and the confirmation says so.</li>
                 <li>People who are <b>nobody's staff</b> but were promoted by hand show up too: that is the very
                     case promotions exist for.</li>
               </ul>
               <p>Three things cannot be done, and it is not pedantry: <b>changing your own level</b> (that is
                exactly how one locks oneself out), touching someone who is an administrator <b>by
-               configuration</b>, and going below the floor. Every promotion and removal goes into the <b>audit
-               log</b>, under the «Permission» family.</p>"),
+               configuration</b>, and going below the level granted by the staff role. Every promotion and removal
+               goes into the <b>audit log</b>, under the «Permission» family.</p>"),
 
         new Sec("admin", "grid",
             @"<p>Solo per gli admin, sotto <code>/services/vsop/admin</code>:</p>

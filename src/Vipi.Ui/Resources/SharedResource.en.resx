@@ -2636,7 +2636,7 @@
   <data name="Roles_CountTitle" xml:space="preserve"><value>How many people the system knows</value></data>
   <data name="Roles_HelpAria" xml:space="preserve"><value>How levels work</value></data>
   <data name="Roles_Subtitle" xml:space="preserve"><value>One person, one level. Levels are cumulative: whoever is above can do everything those below can.</value></data>
-  <data name="Roles_Intro" xml:space="preserve"><value>&lt;p&gt;A level has two halves. The &lt;b&gt;floor&lt;/b&gt; comes from their IVAO staff position and cannot be removed here; the &lt;b&gt;promotion&lt;/b&gt; is the only thing this page writes. The higher of the two wins.&lt;/p&gt;&lt;p&gt;That is why levels below the floor are disabled: picking one would do nothing.&lt;/p&gt;</value></data>
+  <data name="Roles_Intro" xml:space="preserve"><value>&lt;p&gt;A level has two halves. The &lt;b&gt;level granted by the staff role&lt;/b&gt; comes from their IVAO staff position and cannot be removed here; the &lt;b&gt;promotion&lt;/b&gt; is the only thing this page writes. The higher of the two wins.&lt;/p&gt;&lt;p&gt;That is why levels below the level granted by the staff role are disabled: picking one would do nothing.&lt;/p&gt;</value></data>
   <data name="Roles_SearchPh" xml:space="preserve"><value>Search by name, VID or staff code…</value></data>
   <data name="Roles_ChipTitle" xml:space="preserve"><value>Show only: {0}</value></data>
   <data name="Roles_ClearTitle" xml:space="preserve"><value>Clear filters</value></data>
@@ -2644,7 +2644,7 @@
   <data name="Roles_RowPickTitle" xml:space="preserve"><value>Open this person</value></data>
   <data name="Roles_PickHint" xml:space="preserve"><value>Pick someone from the list to see and change their level.</value></data>
   <data name="Roles_Level" xml:space="preserve"><value>Level</value></data>
-  <data name="Roles_Level_User" xml:space="preserve"><value>Member</value></data>
+  <data name="Roles_Level_User" xml:space="preserve"><value>User</value></data>
   <data name="Roles_Level_IvaoStaff" xml:space="preserve"><value>IVAO staff</value></data>
   <data name="Roles_Level_DivisionStaff" xml:space="preserve"><value>Division staff</value></data>
   <data name="Roles_Level_Editor" xml:space="preserve"><value>Editor</value></data>
@@ -2652,9 +2652,9 @@
   <data name="Roles_FromStaff" xml:space="preserve"><value>Level granted by the staff position</value></data>
   <data name="Roles_FromOverride" xml:space="preserve"><value>Level assigned by hand</value></data>
   <data name="Roles_EffectiveTitle" xml:space="preserve"><value>The level that actually applies</value></data>
-  <data name="Roles_FloorIs" xml:space="preserve"><value>{0} already grants the «{1}» level: it cannot go below.</value></data>
+  <data name="Roles_FloorIs" xml:space="preserve"><value>{0} already grants the «{1}» level: it cannot go below the level granted by the staff role.</value></data>
   <data name="Roles_NoStaffPosition" xml:space="preserve"><value>No IVAO staff position: whatever they have, we gave them.</value></data>
-  <data name="Roles_BelowFloor" xml:space="preserve"><value>below the floor</value></data>
+  <data name="Roles_BelowFloor" xml:space="preserve"><value>below the level granted by the staff role</value></data>
   <data name="Roles_Note" xml:space="preserve"><value>Why (optional)</value></data>
   <data name="Roles_NotePh" xml:space="preserve"><value>e.g. helps with the Milan documents</value></data>
   <data name="Roles_Save" xml:space="preserve"><value>Assign the level</value></data>
