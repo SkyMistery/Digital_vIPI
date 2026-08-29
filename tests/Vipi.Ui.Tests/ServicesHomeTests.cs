@@ -1,6 +1,8 @@
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
+using Vipi.Application.Auth;
+using Vipi.Domain;
 using Vipi.Ui;
 using Vipi.Ui.Pages;
 using Xunit;
@@ -21,9 +23,20 @@ public class ServicesHomeTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
-    private IRenderedComponent<ServicesHome> Render()
+    /// <summary>Autorizzazione finta: dal 29 agosto 2026 l'hub chiede il LIVELLO, perché una scheda è chiusa.</summary>
+    private sealed class FakeAuthz(VipiRole livello) : IEditAuthorizationService
+    {
+        public VipiRole Role { get; } = livello;
+        public bool IsAdmin => Role >= VipiRole.Admin;
+        public int? CurrentUserId => 704798;
+        public string? CurrentName => "Tizio";
+        public void EnsureAdmin() { }
+    }
+
+    private IRenderedComponent<ServicesHome> Render(VipiRole livello = VipiRole.DivisionStaff)
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
         return RenderComponent<ServicesHome>();
     }
 
@@ -35,6 +48,24 @@ public class ServicesHomeTests : TestContext
 
         Assert.Contains("/services/vsop", indirizzi);
         Assert.Contains("/services/profile-swapper", indirizzi);
+        Assert.Contains("/services/coordinates", indirizzi);
+    }
+
+    /// <summary>
+    /// Il convertitore è per lo staff di divisione, e chi non lo è non deve nemmeno vedere la porta: un elenco
+    /// di porte chiuse è la stessa cosa che la barra admin evita da sempre (regola 120).
+    /// </summary>
+    [Theory]
+    [InlineData(VipiRole.User, false)]
+    [InlineData(VipiRole.IvaoStaff, false)]
+    [InlineData(VipiRole.DivisionStaff, true)]
+    [InlineData(VipiRole.Admin, true)]
+    public void Il_convertitore_si_vede_solo_dallo_staff_di_divisione(VipiRole livello, bool atteso)
+    {
+        var cut = Render(livello);
+        var indirizzi = cut.FindAll("a.choice").Select(a => a.GetAttribute("href")).ToList();
+
+        Assert.Equal(atteso, indirizzi.Contains("/services/coordinates"));
     }
 
     /// <summary>

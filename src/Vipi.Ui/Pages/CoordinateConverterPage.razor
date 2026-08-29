@@ -44,7 +44,7 @@
         <div class="conv-cols">
             @* ---- Ingresso ---- *@
             <section class="panel">
-                <h5>@L["Conv_InputTitle"]</h5>
+                <h2 class="h-card">@L["Conv_InputTitle"]</h2>
 
                 @if (_fileNome is not null)
                 {
@@ -71,7 +71,7 @@
 
             @* ---- Uscita ---- *@
             <section class="panel">
-                <h5>@L["Conv_OutputTitle"]</h5>
+                <h2 class="h-card">@L["Conv_OutputTitle"]</h2>
 
                 <div class="aor-toggles">
                     <button type="button" class="aor-chip @(_formato == CoordinateOutput.DbIvao ? "on" : null)"
@@ -147,7 +147,7 @@
         @if (_esito.PuntiTotali > 0 || _esito.Segnalazioni.Count > 0)
         {
             <section class="panel conv-diag">
-                <h5>@L["Conv_DiagTitle"]</h5>
+                <h2 class="h-card">@L["Conv_DiagTitle"]</h2>
 
                 <p class="conv-count">@L["Conv_Read", _esito.PuntiTotali, _esito.RigheLette]</p>
 
