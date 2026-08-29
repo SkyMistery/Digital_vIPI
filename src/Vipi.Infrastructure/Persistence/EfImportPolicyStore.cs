@@ -27,7 +27,7 @@ public sealed class EfImportPolicyStore : IImportPolicyStore
         return row is null
             ? ImportPolicySnapshot.AllImported
             : new ImportPolicySnapshot(row.ImportTransitionAltitude, row.ImportRunways, row.ImportSectors,
-                row.ImportSids, row.ImportSpecialAreas, row.ImportAtcSessions);
+                row.ImportSids, row.ImportSpecialAreas, row.ImportAtcSessions, row.ImportNavaids);
     }
 
     public async Task<ImportPolicyInfo> GetInfoAsync(CancellationToken ct = default)
@@ -38,7 +38,7 @@ public sealed class EfImportPolicyStore : IImportPolicyStore
             ? new ImportPolicyInfo(ImportPolicySnapshot.AllImported, null, 0, RigaPresente: false)
             : new ImportPolicyInfo(
                 new ImportPolicySnapshot(row.ImportTransitionAltitude, row.ImportRunways, row.ImportSectors,
-                    row.ImportSids, row.ImportSpecialAreas, row.ImportAtcSessions),
+                    row.ImportSids, row.ImportSpecialAreas, row.ImportAtcSessions, row.ImportNavaids),
                 row.UpdatedUtc == default ? null : row.UpdatedUtc, row.UpdatedByUserId);
     }
 
@@ -51,7 +51,7 @@ public sealed class EfImportPolicyStore : IImportPolicyStore
         var prima = row is null
             ? ImportPolicySnapshot.AllImported
             : new ImportPolicySnapshot(row.ImportTransitionAltitude, row.ImportRunways, row.ImportSectors,
-                row.ImportSids, row.ImportSpecialAreas, row.ImportAtcSessions);
+                row.ImportSids, row.ImportSpecialAreas, row.ImportAtcSessions, row.ImportNavaids);
 
         // ⚠️ Il non-evento non si scrive (regola del giro Audit): un salvataggio che non cambia niente non
         // è un atto, e riscriverebbe «deciso da X il <oggi>» su una decisione presa da qualcun altro mesi fa.
@@ -71,6 +71,7 @@ public sealed class EfImportPolicyStore : IImportPolicyStore
         row.ImportSids = policy.Sids;
         row.ImportSpecialAreas = policy.SpecialAreas;
         row.ImportAtcSessions = policy.AtcSessions;
+        row.ImportNavaids = policy.Navaids;
         row.UpdatedUtc = DateTime.UtcNow;
         row.UpdatedByUserId = updatedByUserId;
 

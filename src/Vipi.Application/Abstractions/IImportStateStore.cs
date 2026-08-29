@@ -58,6 +58,14 @@ public static class ImportCategories
     public const string Sid = "Sid";
 
     /// <summary>
+    /// Le radioassistenze dal sectorfile: frequenza, canale e coordinate di VOR e NDB (dal 29 agosto 2026).
+    /// <para>⚠️ Chiave sua e non quella delle SID, benché i file siano gli stessi: lo stato d'import è come si
+    /// risponde a «quando è arrivata l'ultima volta», e appeso a un'altra chiave un giro fermo da settimane
+    /// sarebbe indistinguibile da uno riuscito ieri.</para>
+    /// </summary>
+    public const string Navaid = "Navaid";
+
+    /// <summary>
     /// Lo storico delle connessioni ATC per le statistiche (dal 24 agosto 2026). Il primo giro recupera i
     /// dodici mesi che la sorgente conserva; i successivi ripassano gli ultimi giorni per mettere la fine
     /// vera alle sessioni che il poller ha chiuso a occhio e recuperare quel che non ha visto.

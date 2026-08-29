@@ -36,6 +36,7 @@ public sealed class ImportSchedule : IImportSchedule
         ImportCategories.AirportDirectory => Ore(_ivao.AirportDirectoryImportHours),
         ImportCategories.AirportData => Ore(_ivao.AirportDataImportHours),
         ImportCategories.Sid => string.IsNullOrWhiteSpace(_sectorfile.RawBaseUrl) ? null : Ore(_sectorfile.ImportHours),
+        ImportCategories.Navaid => string.IsNullOrWhiteSpace(_sectorfile.RawBaseUrl) ? null : Ore(_sectorfile.ImportHours),
         ImportCategories.AtcHistory => Ore(_ivao.AtcHistoryImportHours),
         ImportCategories.AirportTrafficBackfill => Ore(_ivao.AirportTrafficBackfillHours),
         ImportCategories.AirportTrafficRollup => Ore(_ivao.AirportTrafficRollupHours),

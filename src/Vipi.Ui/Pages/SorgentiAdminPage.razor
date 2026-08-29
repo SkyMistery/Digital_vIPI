@@ -322,6 +322,7 @@
             ImportCategory.Sectors => _p with { Sectors = daSorgente },
             ImportCategory.Sids => _p with { Sids = daSorgente },
             ImportCategory.AtcSessions => _p with { AtcSessions = daSorgente },
+            ImportCategory.Navaids => _p with { Navaids = daSorgente },
             _ => _p with { SpecialAreas = daSorgente },
         };
         _msg = _ok = null;

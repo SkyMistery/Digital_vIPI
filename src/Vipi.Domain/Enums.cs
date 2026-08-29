@@ -196,7 +196,7 @@ public enum RunwaySurface { Any, Dry, Wet }
 /// raccolta</b> delle statistiche, dal vivo e dallo storico. È l'interruttore per una divisione che non
 /// volesse conservare l'attività dei propri controllori.
 /// </summary>
-public enum ImportCategory { TransitionAltitude, Runways, Sectors, Sids, SpecialAreas, AtcSessions }
+public enum ImportCategory { TransitionAltitude, Runways, Sectors, Sids, SpecialAreas, AtcSessions, Navaids }
 
 /// <summary>Stato di una coppia ACC confinante candidata a diventare una vLOA: proposta dal calcolo di
 /// adiacenza, confermata dall'admin (→ vLOA generabile), o rifiutata (falso positivo, non riproporre).</summary>

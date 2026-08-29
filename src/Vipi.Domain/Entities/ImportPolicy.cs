@@ -21,6 +21,14 @@ public class ImportPolicy
     public bool ImportSpecialAreas { get; set; } = true;          // SpecialArea (aree regolamentate per ACC)
 
     /// <summary>
+    /// Le radioassistenze dal sectorfile: frequenza, canale e coordinate di VOR e NDB (carta vSOP militari
+    /// §12b). ⚠️ Default <c>true</c> nel MODELLO e nella migrazione, non solo qui — un <c>bool NOT NULL</c>
+    /// nuovo nasce <c>false</c> su ogni riga già esistente, e per un flag opt-out significa nascere
+    /// <b>spento</b>. È già successo con <c>ImportSids</c>.
+    /// </summary>
+    public bool ImportNavaids { get; set; } = true;
+
+    /// <summary>
     /// Raccolta delle statistiche ATC: sessioni dal vivo e storico. ⚠️ Default <c>true</c> nel MODELLO e
     /// nella migrazione, non solo qui: un <c>bool NOT NULL</c> nuovo nasce <c>false</c> su ogni riga già
     /// esistente, e per un flag opt-out significa nascere <b>spento</b> — cioè spegnere la raccolta a chi

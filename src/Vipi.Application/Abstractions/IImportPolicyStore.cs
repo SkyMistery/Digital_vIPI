@@ -8,10 +8,10 @@ namespace Vipi.Application.Abstractions;
 /// </summary>
 public sealed record ImportPolicySnapshot(
     bool TransitionAltitude, bool Runways, bool Sectors, bool Sids = true, bool SpecialAreas = true,
-    bool AtcSessions = true)
+    bool AtcSessions = true, bool Navaids = true)
 {
     /// <summary>Tutto importato e bloccato: default opt-out.</summary>
-    public static ImportPolicySnapshot AllImported { get; } = new(true, true, true, true, true, true);
+    public static ImportPolicySnapshot AllImported { get; } = new(true, true, true, true, true, true, true);
 
     /// <summary>Vero se la categoria è importata dalla sorgente (quindi sola lettura per l'utente).</summary>
     public bool IsImported(ImportCategory category) => category switch
@@ -22,6 +22,7 @@ public sealed record ImportPolicySnapshot(
         ImportCategory.Sids => Sids,
         ImportCategory.SpecialAreas => SpecialAreas,
         ImportCategory.AtcSessions => AtcSessions,
+        ImportCategory.Navaids => Navaids,
         _ => true,
     };
 }

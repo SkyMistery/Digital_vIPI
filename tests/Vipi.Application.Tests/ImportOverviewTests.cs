@@ -20,11 +20,11 @@ public class ImportOverviewTests
         new(new PolicyFinta(policy), new StatiFinti(stati), new CadenzaFinta());
 
     [Fact]
-    public async Task Ci_sono_otto_righe_e_le_due_anagrafiche_stanno_in_testa()
+    public async Task Ci_sono_nove_righe_e_le_due_anagrafiche_stanno_in_testa()
     {
         var righe = await Servizio(ImportPolicySnapshot.AllImported).ListAsync();
 
-        Assert.Equal(8, righe.Count);
+        Assert.Equal(9, righe.Count);
         Assert.Equal(new[] { ImportAnagrafica.Acc, ImportAnagrafica.Aeroporti },
             righe.Take(2).Select(r => r.Anagrafica!.Value));
         Assert.Equal(ImportCategories.Acc, righe[0].StateKey);
@@ -32,7 +32,7 @@ public class ImportOverviewTests
         Assert.Equal(new[]
         {
             ImportCategory.TransitionAltitude, ImportCategory.Runways, ImportCategory.Sectors,
-            ImportCategory.Sids, ImportCategory.SpecialAreas, ImportCategory.AtcSessions,
+            ImportCategory.Sids, ImportCategory.Navaids, ImportCategory.SpecialAreas, ImportCategory.AtcSessions,
         }, righe.Skip(2).Select(r => r.Categoria!.Value));
     }
 
@@ -248,7 +248,7 @@ public class ImportOverviewTests
         public TimeSpan? PeriodOf(string category) => category switch
         {
             ImportCategories.Acc or ImportCategories.AirportSector or ImportCategories.SpecialArea
-                or ImportCategories.Sid or ImportCategories.AirportData
+                or ImportCategories.Sid or ImportCategories.Navaid or ImportCategories.AirportData
                 or ImportCategories.AirportDirectory or ImportCategories.AtcHistory => TimeSpan.FromHours(24),
             _ => null,
         };

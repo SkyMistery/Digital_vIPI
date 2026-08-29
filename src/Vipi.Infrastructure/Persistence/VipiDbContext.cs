@@ -121,6 +121,10 @@ public class VipiDbContext : DbContext
     /// <summary>Il glossario di fraseologia: una riga per FORMULA, che vive dentro le frasi. §Q3.</summary>
     public DbSet<GlossaryTerm> GlossaryTerms => Set<GlossaryTerm>();
 
+    /// <summary>L'anagrafica delle radioassistenze: una riga per codice+natura, condivisa da tutti i
+    /// documenti che la citano (carta vSOP militari §12b).</summary>
+    public DbSet<Navaid> Navaids => Set<Navaid>();
+
     /// <summary>
     /// Lettura tollerante dell'azione di registro: un valore che questa versione non conosce diventa
     /// <see cref="AuditAction.Unknown"/> invece di far esplodere la query. Metodo e non lambda in linea perché
@@ -178,6 +182,7 @@ public class VipiDbContext : DbContext
             e.Property(x => x.ImportSids).HasDefaultValue(true);
             e.Property(x => x.ImportSpecialAreas).HasDefaultValue(true);
             e.Property(x => x.ImportAtcSessions).HasDefaultValue(true);
+            e.Property(x => x.ImportNavaids).HasDefaultValue(true);
         });
 
         b.Entity<AccSector>(e =>
@@ -617,6 +622,27 @@ public class VipiDbContext : DbContext
             e.Property(x => x.SourceText).HasMaxLength(200);
             e.Property(x => x.SourceKey).HasMaxLength(200);
             e.Property(x => x.TargetText).HasMaxLength(400);
+        });
+
+        // --- Anagrafica delle radioassistenze (carta vSOP militari §12b) --------------------------------
+        // Scritta una volta, esce uguale ovunque: nel vSOP di Amendola e in quello di Gioia. Nessuna FK verso
+        // aeroporti o documenti — una radioassistenza non appartiene a nessuno, e la stessa compare nei SOP di
+        // campi diversi.
+        b.Entity<Navaid>(e =>
+        {
+            // L'identità decisa dal committente: codice + natura. Due `DEC`, uno VOR e uno NDB, sono due righe.
+            // ⚠️ Unico, e non «tanto non capita»: senza, il giro d'import creerebbe un doppione a ogni passata
+            // in cui la ricerca fallisse per un dettaglio di maiuscole, e nessuno se ne accorgerebbe finché la
+            // tabella di un SOP non mostra due volte lo stesso VOR.
+            e.HasIndex(x => new { x.Code, x.Kind }).IsUnique();
+
+            // Lunghezze dichiarate: senza, MySQL non riesce a costruire l'indice unico (stessa ragione del
+            // glossario). Misure vere del sectorfile: codici di 2-3 lettere, canali `99Y`, frequenze `115.25`.
+            e.Property(x => x.Code).HasMaxLength(8);
+            e.Property(x => x.Kind).HasMaxLength(16);
+            e.Property(x => x.DisplayType).HasMaxLength(16);
+            e.Property(x => x.Frequency).HasMaxLength(16);
+            e.Property(x => x.Channel).HasMaxLength(8);
         });
 
         // --- Statistiche ATC (servizio /services/stats, carta del 24 agosto 2026) -----------------------

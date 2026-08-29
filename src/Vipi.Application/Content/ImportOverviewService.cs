@@ -116,6 +116,7 @@ public sealed class ImportOverviewService : IImportOverviewService
         (ImportCategory.Runways, null, ImportCategories.AirportData),
         (ImportCategory.Sectors, null, ImportCategories.AirportSector),
         (ImportCategory.Sids, null, ImportCategories.Sid),
+        (ImportCategory.Navaids, null, ImportCategories.Navaid),
         (ImportCategory.SpecialAreas, null, ImportCategories.SpecialArea),
         (ImportCategory.AtcSessions, null, ImportCategories.AtcHistory),
     };

@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Text.RegularExpressions;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Coordinates;
 
@@ -71,16 +72,51 @@ public static class AuroraSectorfileParser
             // c'è la frequenza in mezzo. Cercare la prima coppia consecutiva che si legge come DMS copre
             // tutti e tre senza tre regole da tenere allineate.
             double? lat = null, lon = null;
+            var iLon = -1;
             for (var i = 1; i + 1 < fields.Length; i++)
                 if (TryParseDms(fields[i], out var la) && TryParseDms(fields[i + 1], out var lo))
                 {
                     (lat, lon) = (la, lo);
+                    iLon = i + 1;
                     break;
                 }
 
-            yield return new NavaidName(name, kind, lat, lon);
+            // La FREQUENZA sta PRIMA delle coordinate, ed è il campo subito dopo il nome: `AEA;111.65;lat;lon;…`.
+            // Si legge dalla posizione trovata invece che dall'indice 1 fisso, così un file che un giorno
+            // infilasse una colonna in mezzo non farebbe passare per frequenza qualcos'altro.
+            var frequenza = iLon >= 3 ? Frequenza(fields[iLon - 2]) : null;
+
+            // Il CANALE sta tre campi dopo la longitudine: `…;lat;lon;0;2;54Y;`. I due campi in mezzo non
+            // sappiamo che cosa siano, e non si toccano.
+            // ⚠️ Si valida la FORMA (cifre più X/Y) e non si prende «quel che c'è»: in quella posizione, su un
+            // file che cambia, potrebbe esserci qualunque cosa — e una tabella di SOP che stampa un canale
+            // sbagliato è peggio di una che non lo stampa.
+            var canale = iLon >= 0 && iLon + 3 < fields.Length ? Canale(fields[iLon + 3]) : null;
+
+            yield return new NavaidName(name, kind, lat, lon, frequenza, canale);
         }
     }
+
+    /// <summary>
+    /// Una frequenza di radioassistenza: <c>111.65</c>, <c>390.0</c>, <c>117</c>. Null se il campo non ha
+    /// questa forma — VHF e NDB stanno entrambi dentro «due o tre cifre, eventualmente con decimali».
+    /// </summary>
+    private static string? Frequenza(string? campo)
+    {
+        var v = (campo ?? "").Trim();
+        return v.Length > 0 && FormaFrequenza.IsMatch(v) ? v : null;
+    }
+
+    /// <summary>Un canale TACAN/DME: da una a tre cifre più <c>X</c> o <c>Y</c> (<c>19X</c>, <c>99Y</c>,
+    /// <c>120X</c>). Null se il campo è vuoto o ha un'altra forma.</summary>
+    private static string? Canale(string? campo)
+    {
+        var v = (campo ?? "").Trim().ToUpperInvariant();
+        return v.Length > 0 && FormaCanale.IsMatch(v) ? v : null;
+    }
+
+    private static readonly Regex FormaFrequenza = new(@"^\d{2,3}(\.\d{1,3})?$", RegexOptions.Compiled);
+    private static readonly Regex FormaCanale = new(@"^\d{1,3}[XY]$", RegexOptions.Compiled);
 
     /// <summary>Parsa un file <c>&lt;icao&gt;.sid</c> in una lista di <see cref="SourceSid"/> risolti.</summary>
     public static IReadOnlyList<SourceSid> ParseSids(

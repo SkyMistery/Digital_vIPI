@@ -137,4 +137,61 @@ public class AuroraSectorfileParserTests
         Assert.Equal("AJO", Assert.Single(c.Entries).Name);
         Assert.DoesNotContain(c.Names, n => n.StartsWith("//", StringComparison.Ordinal));
     }
+
+    // ---- Frequenza e canale: il dato che c'era e si buttava via (carta vSOP militari §12b) --------------
+
+    /// <summary>
+    /// Le righe sono quelle VERE di <c>itvor.vor</c> e <c>itndb.ndb</c>, e MNL è l'esempio che il committente
+    /// ha scritto a mano prima di sapere che stava già nel file: <c>MNL - CH 99Y (115.25)</c> è la riga 85.
+    /// </summary>
+    [Fact]
+    public void Il_catalogo_porta_frequenza_e_canale()
+    {
+        const string Vor3 = """
+            MNL;115.25;N041.32.51.500;E015.41.23.300;0;3;99Y
+            ALB;116.95;N044.02.53.400;E008.07.39.400;;;;
+            """;
+        const string Ndb = "AVI;390.0;N045.55.27.600;E012.25.42.600;";
+
+        var c = AuroraSectorfileParser.ParseNavaids(null, Vor3, Ndb);
+
+        var mnl = c.Entries.Single(e => e.Name == "MNL");
+        Assert.Equal("115.25", mnl.Frequency);
+        Assert.Equal("99Y", mnl.Channel);
+
+        // Un VOR senza canale: i campi in coda ci sono ma sono vuoti, e vuoto non è «zero», è «non ce l'ha».
+        var alb = c.Entries.Single(e => e.Name == "ALB");
+        Assert.Equal("116.95", alb.Frequency);
+        Assert.Null(alb.Channel);
+
+        // L'NDB porta la frequenza e la riga finisce lì: nessun campo dove cercare un canale.
+        var avi = c.Entries.Single(e => e.Name == "AVI");
+        Assert.Equal("390.0", avi.Frequency);
+        Assert.Null(avi.Channel);
+    }
+
+    /// <summary>Un fix non ha né frequenza né canale: il suo primo campo dopo il nome è già la latitudine, e
+    /// leggerlo come frequenza darebbe a ogni punto di riporto una frequenza inventata.</summary>
+    [Fact]
+    public void Un_fix_non_ha_frequenza()
+    {
+        var c = AuroraSectorfileParser.ParseNavaids(Fix, null, null);
+
+        Assert.All(c.Entries, e => Assert.Null(e.Frequency));
+        Assert.All(c.Entries, e => Assert.Null(e.Channel));
+    }
+
+    /// <summary>
+    /// ⚠️ Si valida la FORMA, non si prende «quel che c'è in quella posizione». I due campi fra la
+    /// longitudine e il canale non sappiamo che cosa siano: il giorno che il file ne aggiungesse uno, senza
+    /// questo controllo una tabella di SOP stamperebbe come canale un numero qualunque — con l'aria di essere
+    /// precisa.
+    /// </summary>
+    [Fact]
+    public void Un_campo_che_non_ha_la_forma_di_un_canale_non_diventa_un_canale()
+    {
+        var c = AuroraSectorfileParser.ParseNavaids(null, "XXX;110.00;N041.00.00.000;E012.00.00.000;0;3;pippo", null);
+
+        Assert.Null(c.Entries.Single().Channel);
+    }
 }

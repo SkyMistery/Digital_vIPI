@@ -21,7 +21,21 @@ public enum NavaidKind
 /// <para><see cref="Lat"/>/<see cref="Lon"/> restano <b>nullable</b>: una riga di catalogo malformata dà
 /// comunque un nome buono per la completion delle SID, che della posizione non sa che farsene.</para>
 /// </remarks>
-public sealed record NavaidName(string Name, NavaidKind Kind, double? Lat = null, double? Lon = null);
+/// <param name="Frequency">
+/// La frequenza come la scrive il sectorfile (<c>115.25</c>, <c>390.0</c>), o null se quel file non ne porta
+/// — i <c>.fix</c> non ne hanno.
+/// <para>⚠️ Aggiunta il 29 agosto 2026, e il dato <b>c'era da sempre</b>: le righe dei VOR sono
+/// <c>AEA;111.65;lat;lon;0;2;54Y;</c> e il parser leggeva il nome, cercava le coordinate e <b>buttava via il
+/// resto</b>. Il commento che spiegava perché le coordinate si cercano invece di prenderle a indice fisso
+/// nominava la frequenza come l'ostacolo — e nessuno si era chiesto se servisse.</para>
+/// </param>
+/// <param name="Channel">
+/// Il canale TACAN/DME (<c>99Y</c>, <c>54Y</c>): tre campi dopo la longitudine, e ce l'hanno <b>26 VOR su
+/// 128</b>. ⚠️ Un canale su un VOR <b>non prova</b> che sia un VORTAC — può essere il DME appaiato — quindi si
+/// tiene come dato e non si deduce nessuna natura da lui.
+/// </param>
+public sealed record NavaidName(string Name, NavaidKind Kind, double? Lat = null, double? Lon = null,
+    string? Frequency = null, string? Channel = null);
 
 /// <summary>
 /// Il catalogo dei punti della divisione, nelle DUE forme in cui serve: l'elenco ordinato (per chi propone) e

@@ -121,6 +121,7 @@ public static class DependencyInjection
         services.AddScoped<IAirportImportUseCase, AirportImportUseCase>();
         services.AddScoped<IAirportDataImportUseCase, AirportDataImportUseCase>();
         services.AddScoped<ISidImporter, SidImporter>();
+        services.AddScoped<INavaidImporter, NavaidImporter>();
         // Il perimetro dei ripieghi shape (solo enti della divisione): uno solo, condiviso dai tre.
         services.AddSingleton<ShapeFallbackScope>();
         services.AddScoped<IGithubTowerShapeService, GithubTowerShapeService>();
