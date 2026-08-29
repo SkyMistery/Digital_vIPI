@@ -1983,9 +1983,16 @@ Drive pubblico sarebbe teatro. Confermato dal committente che non servono.
    archiviata male;
 6. **due** modi di linkare: blocco «Allegato» e `[testo](allegato:slug)` inline, con **un token solo** in
    entrambi → una sola regex per lo scanner;
-7. v1 = caricamento **a mano** su Drive; l'API Drive (service account sul drive condiviso) è rimandata.
+7. v1 = caricamento **a mano** su Drive; l'API Drive (service account sul drive condiviso) è rimandata;
+8. 🆕 **29 agosto**: il blocco rende in **due modi**, scelti blocco per blocco — **Link** (default, porta
+   fuori dal sito) e **Incorporato** (`<iframe>` col visualizzatore Drive *dentro* la pagina, **più il link
+   sotto** come ripiego). L'iframe punta alla **nostra** rotta `/vsop/files/{slug}`, quindi neanche lì l'ID
+   Drive entra nei documenti. Altezza a **tre scaglioni**, non un numero libero;
+9. 🆕 **29 agosto**: i campi si chiamano **`Provider` + `ExternalId`**, non `DriveFileId`. La decisione 2
+   dice che il deposito è una colonna: un nome che dice «Drive» la richiuderebbe. Costa zero adesso e tiene
+   aperte **Cloudflare R2** (c'è già Cloudflare davanti al sito) e GitHub senza migrazione.
 
-**Le due trappole trovate leggendo il codice:**
+**Le trappole trovate leggendo il codice:**
 
 - ⚠️ **`MarkdownLite.cs` non ha link di NESSUN tipo.** Il link inline va aperto **solo** allo schema
   `allegato:`: il renderer fa HTML-encode e poi regex, quindi aprirlo a `[testo](url)` qualunque farebbe
@@ -1993,6 +2000,13 @@ Drive pubblico sarebbe teatro. Confermato dal committente che non servono.
 - ⚠️ `/vsop/files/{slug}` **non può essere `immutable`** come `/vsop/media/{sha}`: sostituisci il PDF e il
   browser tiene il vecchio per un anno. Va `no-cache`. È ciò che renderebbe la sostituzione «non
   funzionante» in modo intermittente e inspiegabile.
+- ⚠️ 🆕 **La CSP non ha `frame-src`** (`VipiStartup.cs:213`) ⇒ cade su `default-src 'self'`, che l'iframe
+  Drive non passa. E siccome l'intestazione è **Report-Only**, oggi l'incorporato **funzionerebbe lo
+  stesso**, con la violazione solo segnalata: il difetto resterebbe invisibile fino al passaggio a CSP vera,
+  quando la resa incorporata morirebbe **in blocco**. La riga va aggiunta **nella stessa slice**. Stessa
+  lezione delle tessere OpenTopoMap, mancanti per giorni per lo stesso motivo.
+- ✅ 🆕 `X-Frame-Options: DENY` (`VipiStartup.cs:187`) **non è un ostacolo**: vieta che *le nostre* pagine
+  stiano in un iframe altrui, non che noi ne incorporiamo uno.
 
 **Debito annotato, non aperto**: i punti di dispatch su `BlockFormat` sono **9 file**, e questa è la
 **seconda** feature che vi aggiunge un `case` (la prima furono le immagini). La regola del 2 del gate è
@@ -2011,10 +2025,43 @@ che il gate vieta. **Alla terza volta si apre.**
   solo i byte delle versioni passate, già fuori perimetro (`AllegatoVersione` registra **chi, quando e
   perché**, non promette di riscaricare la v1).
 
-**Resta da chiedere a Ivao.It**: il drive condiviso ha politiche di **pulizia periodica**?
+**Risposto dal committente il 29 agosto 2026:**
 
-**Da dove si riparte**: slice 1 della carta — entità `Allegato` + `AllegatoVersione` e migrazioni **×2**
-(SQLite + MySQL). ⚠️ Additive: una colonna nuova non la riempie nessuno da sola.
+- ✅ **Nessuna pulizia periodica** sul drive condiviso: non scade niente per policy. Restano solo le regole di
+  piattaforma già misurate qui sopra, e la **revisione di testa non è mai purgata**.
+- ✅ **Accesso alla cartella**: c'è, con l'**account IVAO del committente** (dominio `ivao.aero`). Basta per
+  la v1, dove il caricamento è **a mano** e il sito non parla con Drive: tiene solo l'`ExternalId`.
+
+⚠️ **Due cose che restano da non riscoprire:**
+
+1. l'accesso è **di una persona, non del sito**. Il giorno del caricamento via API (fuori perimetro v1) non si
+   usa quell'account: serve un **service account** membro del drive condiviso, o i caricamenti muoiono al
+   primo cambio d'incarico;
+2. ✅ **confermato il 29 agosto**: è una cartella dentro un **Drive condiviso**. I byte sono quindi
+   dell'**organizzazione** e sopravvivono a qualunque cambio d'incarico; niente da spostare prima della
+   slice 1. È anche la precondizione del caricamento via API, perché un service account si aggiunge come
+   **membro** di un Drive condiviso e in un «Mio Drive» non si potrebbe.
+
+**✅ Slice 1 fatta il 29 agosto 2026** (ramo `biblioteca-allegati`): entità `Attachment` e
+`AttachmentVersion` — nomi **inglesi** come tutti i tipi di casa, mentre il blocco e il token restano
+`allegato:` — più le migrazioni **×2** (`BibliotecaAllegati`, SQLite e MySQL). Additive: nessuna tabella
+esistente toccata.
+
+⚠️ **Una decisione della carta ribaltata scrivendo il modello**: l'id del file **non sta anche sulla voce**,
+come diceva la carta del 25, ma **solo sulla versione**. Due posti che dicono la stessa cosa un giorno
+dicono cose diverse, e quello sbagliato sarebbe proprio quello che serve il link. Conseguenza voluta: una
+voce **nasce con la v1**, lo stato «voce senza file» non esiste.
+
+⚠️ **Trappola pagata subito**: `IndexedStringLengthTests` pretende una voce **esplicita** in
+`MySqlStringLengths.Map` per ogni colonna **indicizzata**, e la regola generale sugli enum non le basta — i
+due assi `Kind` e `Scope` stanno nello stesso indice. Due righe aggiunte, stessa forma di
+`DocumentImpact.Kind`.
+
+**Da dove si riparte**: slice 2 — la pagina `/services/vsop/admin/attachments`. Le slice sono **nove**: la
+**5-bis** (modo incorporato + `frame-src`) si è aggiunta il 29 agosto.
+
+⚠️ **La 5-bis non si chiude senza una prova dal vivo**: Google può togliere l'embed della preview quando
+vuole — è già successo col fondo mappa CARTO il 27 agosto — e qui dentro nessun test apre un browser.
 
 **Fuori perimetro, deciso**: `RealDOCS/IPI Roma ACC.pdf` (**180 MB**) e gli altri monoliti — sono i documenti
 che il sito **sostituisce**, non allegati.
