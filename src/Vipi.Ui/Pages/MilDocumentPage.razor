@@ -220,6 +220,9 @@
     private bool MancaCivile => _canEdit && !_civile.SoloMilitare && !_civile.Esiste;
 
     private AirportDerived _derivate = AirportDerived.Empty;
+    /// <summary>L'anagrafica in cache dello scalo: la scheda «Dati del campo» della sezione «Quote di
+    /// transizione». Stesso dato della vIPI civile, perche' il campo e' lo stesso.</summary>
+    private Vipi.Application.Content.AirportStation? _station;
     private WeatherReport? _wx;
     private ParsedMetar? _metar;
     private ParsedTaf? _taf;
@@ -252,7 +255,10 @@
         @switch (sec.SectionKey)
         {
             case "weather": <AirportWeather Icao="@_icao" Report="_wx" Metar="_metar" Taf="_taf" />; break;
-            case "transition": <AirportTransition View="_derivate.Transition" CurrentQnh="_metar?.QnhHpa" />; break;
+            case "transition":
+                <AirportTransition View="_derivate.Transition" CurrentQnh="_metar?.QnhHpa"
+                                   MetarTimeRaw="@_metar?.TimeRaw" Station="_station" />;
+                break;
             case "frequencies": <AirportFrequencies View="_derivate.Frequencies" />; break;
             @* Le righe le porta il DOCUMENTO, i valori l'anagrafica di divisione — e alla release si
                congelano, o una frequenza corretta oggi cambierebbe un SOP pubblicato al ciclo scorso. *@
@@ -358,6 +364,7 @@
         _civile = await Militari.GetCivilEditionAsync(_icao);
 
         // Le derivate dello STESSO scalo: meteo live piu' le sezioni congelate della release militare.
+        _station = Stations.Airport(_icao);
         _wx = await Weather.GetAsync(_icao);
         _metar = string.IsNullOrWhiteSpace(_wx?.Metar) ? null : MetarParser.ParseMetar(_wx!.Metar!);
         _taf = string.IsNullOrWhiteSpace(_wx?.Taf) ? null : MetarParser.ParseTaf(_wx!.Taf!);

@@ -180,6 +180,10 @@ else
     // testata solo perché si guarda un ciclo passato sarebbe un'informazione persa senza motivo.
     private bool _militaryPresence;
     private bool _militaryOnly;
+    /// <summary>L'anagrafica in cache dello scalo aperto: quota, variazione magnetica, IATA e coordinate per
+    /// la scheda «Dati del campo». ⚠️ Non e' un dato di release — la riscrive il giro notturno — e per questo
+    /// non passa dalle derivate congelate, come gia' i due flag militari qui sopra.</summary>
+    private Vipi.Application.Content.AirportStation? _station;
     // Meteo mini per card (elenco): ICAO → (vento, QNH, piste suggerite decolli/atterraggi) dal METAR live.
     private string _icao = "";
     private Vipi.Application.Abstractions.WeatherReport? _wx;
@@ -288,9 +292,11 @@ else
         // sempre sulle regole vive, anche mentre si guarda un ciclo passato — è la risposta a «dove atterro»,
         // non un dato di release. La tabella delle regole, invece, viene dalle derivate come tutto il resto.
         _profile = await Profile.LoadForViewAsync(_icao);
-        var anagrafica = Stations.Airport(_icao);
-        _militaryPresence = anagrafica?.HasMilitaryPresence ?? false;
-        _militaryOnly = anagrafica?.IsMilitaryOnly ?? false;
+        // L'anagrafica del campo: presenza militare per la testata, quota/variazione/IATA/coordinate per la
+        // scheda della sezione «Quote di transizione». Una lettura sola, e viene dalla mappa gia' in cache.
+        _station = Stations.Airport(_icao);
+        _militaryPresence = _station?.HasMilitaryPresence ?? false;
+        _militaryOnly = _station?.IsMilitaryOnly ?? false;
         // ⚠️ Le sezioni derivate si risolvono INSIEME al documento e con lo stesso criterio (doc 11 §3d): frozen
         // solo in vista pubblica, live in bozza e in anteprima di release. Deciderlo sezione per sezione, o
         // lasciare che un ramo di fallback dimenticasse il flag, renderebbe il congelamento AIRAC aggirabile
@@ -399,7 +405,10 @@ else
             case "runwayrules":
                 <AirportRunwayRules View="_derived.Rules" ActivePosition="@(_ruleResult is null ? null : _ruleResult.RuleIndex + 1)" />;
                 break;
-            case "transition": <AirportTransition View="_derived.Transition" CurrentQnh="_metar?.QnhHpa" />; break;
+            case "transition":
+                <AirportTransition View="_derived.Transition" CurrentQnh="_metar?.QnhHpa"
+                                   MetarTimeRaw="@_metar?.TimeRaw" Station="_station" />;
+                break;
             case "frequencies": <AirportFrequencies View="_derived.Frequencies" />; break;
             case "runways":
                 <AirportRunways View="_derived.Runways" DepIdents="_depIdents" ArrIdents="_arrIdents"

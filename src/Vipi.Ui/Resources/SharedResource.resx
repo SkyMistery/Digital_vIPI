@@ -323,6 +323,14 @@
   <data name="Airport_TransLevelByQnh" xml:space="preserve"><value>Transition Level in base al QNH</value></data>
   <data name="Airport_QnhCurrent" xml:space="preserve"><value> (attuale {0} hPa)</value></data>
   <data name="Airport_QnhNow" xml:space="preserve"><value>QNH attuale</value></data>
+  <!-- Colonna destra della sezione «Quote di transizione»: il verdetto sul QNH di adesso e l'anagrafica
+       del campo. Le due schede stanno accanto alla tabella, che da sola ne occupava meta'. -->
+  <data name="Airport_TlNow" xml:space="preserve"><value>Transition Level adesso</value></data>
+  <data name="Airport_TlNoBand" xml:space="preserve"><value>Nessuna fascia per questo QNH</value></data>
+  <data name="Airport_FieldData" xml:space="preserve"><value>Dati del campo</value></data>
+  <data name="Airport_Elevation" xml:space="preserve"><value>Elevazione</value></data>
+  <data name="Airport_MagVar" xml:space="preserve"><value>Var. magnetica</value></data>
+  <data name="Airport_Coordinates" xml:space="preserve"><value>Coordinate</value></data>
   <data name="Airport_Name" xml:space="preserve"><value>Nome</value></data>
   <data name="Airport_Frequency" xml:space="preserve"><value>Frequenza</value></data>
   <data name="Airport_Runways" xml:space="preserve"><value>Piste</value></data>

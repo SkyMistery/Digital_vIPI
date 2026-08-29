@@ -323,6 +323,12 @@
   <data name="Airport_TransLevelByQnh" xml:space="preserve"><value>Transition Level based on QNH</value></data>
   <data name="Airport_QnhCurrent" xml:space="preserve"><value> (current {0} hPa)</value></data>
   <data name="Airport_QnhNow" xml:space="preserve"><value>current QNH</value></data>
+  <data name="Airport_TlNow" xml:space="preserve"><value>Transition Level now</value></data>
+  <data name="Airport_TlNoBand" xml:space="preserve"><value>No band for this QNH</value></data>
+  <data name="Airport_FieldData" xml:space="preserve"><value>Field data</value></data>
+  <data name="Airport_Elevation" xml:space="preserve"><value>Elevation</value></data>
+  <data name="Airport_MagVar" xml:space="preserve"><value>Magnetic variation</value></data>
+  <data name="Airport_Coordinates" xml:space="preserve"><value>Coordinates</value></data>
   <data name="Airport_Name" xml:space="preserve"><value>Name</value></data>
   <data name="Airport_Frequency" xml:space="preserve"><value>Frequency</value></data>
   <data name="Airport_Runways" xml:space="preserve"><value>Runways</value></data>

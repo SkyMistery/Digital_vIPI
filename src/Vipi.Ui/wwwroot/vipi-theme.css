@@ -1642,6 +1642,26 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
 .ta-badge b{font-family:var(--font-head);color:var(--brand-ink);font-size:20px;font-weight:800}
 .tl-table{max-width:420px}
 .tl-table tr.tl-now td{background:var(--tint-green);font-weight:700}
+/* ---- Quote di transizione: tabella a sinistra, schede a destra ----
+   La tabella ha due colonne di numeri e un tetto di 420px, quindi meta' sezione restava vuota. Le schede
+   («TL adesso» + «Dati del campo») le stanno accanto e la riempiono.
+   ⚠️ Niente `@media` e niente `@container`: qui basta il FLEX che va a capo da solo. Le due colonne hanno una
+   base in px (380 e 260) e cedono quando non ci stanno — cosi' la soglia la calcola il layout, che lo zoom
+   dell'applicazione lo vede, mentre una media query no (2026-08-22-topbar-misurata.md). */
+.ta-grid{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
+.ta-main{flex:1 1 380px;min-width:0}
+.ta-side{flex:1 1 260px;min-width:0;max-width:360px;display:flex;flex-direction:column;gap:12px}
+.ta-card{background:var(--surface-soft);border:1px solid var(--line);border-radius:11px;padding:12px 16px}
+.ta-card-t{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-soft)}
+.ta-card-v{display:block;font-family:var(--font-head);color:var(--brand-ink);font-size:30px;font-weight:800;line-height:1.15;margin:2px 0}
+.ta-card-s{display:block;font-size:12.5px;color:var(--ink-soft)}
+/* Etichetta a sinistra, valore a destra: due colonne, e il valore non va a capo sotto l'etichetta. */
+.ta-facts{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:8px 0 0}
+.ta-facts dt{font-size:12.5px;color:var(--ink-soft)}
+.ta-facts dd{margin:0;font-size:13.5px;font-weight:600;text-align:right}
+.ta-facts .muted{font-weight:400}
+.ta-coord{font-family:var(--font-mono);font-size:12.5px;font-weight:400;line-height:1.45}
+.ta-coord span{display:block;white-space:nowrap}
 /* ---- La scheda di «Validita' e revisione» ----
    Larga quanto la sezione: era nata sulle classi di `.tl-table`, e con lei si portava dietro il tetto di
    420px — che li' ha senso (due colonne di numeri) e qui no. La colonna del valore porta un nome, le

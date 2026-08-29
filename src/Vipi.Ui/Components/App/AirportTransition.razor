@@ -1,31 +1,102 @@
-﻿@* Sezione «Quote di transizione»: la TA e la tabella dei livelli per fascia QNH.
+﻿@* Sezione «Quote di transizione»: la TA e la tabella dei livelli per fascia QNH, con a fianco il verdetto
+   sul QNH di adesso e l'anagrafica del campo.
 
    La riga della fascia in cui cade il QNH del METAR si accende: è l'unica informazione che il controllore
    cerca davvero qui, e trovarla a colpo d'occhio evita di leggere quattro righe per scegliere la sua. Il QNH
    arriva da fuori (`CurrentQnh`) proprio perché è live e la tabella no: la tabella può venire da uno snapshot
-   di release congelato. *@
-@inject IStringLocalizer<SharedResource> L
+   di release congelato.
 
-<div class="ta-badge"><span class="muted">Transition Altitude</span><b>@(View.TransitionAltitudeFt is int ta ? $"{ta} ft" : "N/A")</b></div>
-@if (View.Rows.Count > 0)
-{
-    <p class="muted" style="font-size:13.5px;margin:14px 0 6px">@L["Airport_TransLevelByQnh"]@(CurrentQnh is int ? string.Format(L["Airport_QnhCurrent"], CurrentQnh) : ""):</p>
-    <table class="tl-table">
-        <thead><tr><th>QNH (hPa)</th><th>Transition Level</th></tr></thead>
-        <tbody>
-            @foreach (var r in View.Rows)
+   La tabella è larga al massimo 420px — due colonne di numeri, allargarle non le rende più leggibili — e
+   lasciava vuota metà sezione. Nella metà che avanza stanno due schede:
+
+   • «Transition Level adesso»: la stessa risposta della riga accesa, ma scritta grande e senza cercarla.
+     ⚠️ È `noprint`, come il meteo: nasce dal METAR, e su carta sarebbe un verdetto già scaduto quando lo si
+     legge. La tabella accanto, che il QNH non ce l'ha dentro, si stampa come prima.
+
+   • «Dati del campo»: quota, variazione magnetica, IATA e coordinate. Sono dati che il database aveva già e
+     che nessuna pagina pubblica mostrava, e stanno in QUESTA sezione perché la quota del campo è il motivo
+     per cui il livello di transizione è quello e non un altro. Arrivano dall'anagrafica in cache
+     (`AirportStation`), non dallo snapshot di release: il perché sta nella nota su quel record. *@
+@inject IStringLocalizer<SharedResource> L
+@using System.Globalization
+@using Vipi.Application.Content
+@using Vipi.Application.Coordinates
+
+<div class="ta-grid">
+    <div class="ta-main">
+        <div class="ta-badge"><span class="muted">Transition Altitude</span><b>@(View.TransitionAltitudeFt is int ta ? $"{ta} ft" : "N/A")</b></div>
+        @if (View.Rows.Count > 0)
+        {
+            <p class="muted" style="font-size:13.5px;margin:14px 0 6px">@L["Airport_TransLevelByQnh"]@(CurrentQnh is int ? string.Format(L["Airport_QnhCurrent"], CurrentQnh) : ""):</p>
+            <table class="tl-table">
+                <thead><tr><th>QNH (hPa)</th><th>Transition Level</th></tr></thead>
+                <tbody>
+                    @foreach (var r in View.Rows)
+                    {
+                        var now = CurrentQnh is int q && QnhRowMatches(r.QnhRange, q);
+                        <tr class="@(now ? "tl-now" : "")">
+                            <td>@r.QnhRange</td>
+                            @* Lo spazio è scritto come entità: Razor scarta il testo di sola spaziatura che precede un
+                               blocco di codice, e usciva «FL60current QNH» attaccato. *@
+                            <td>@(View.TransitionAltitudeFt is null ? "N/A" : r.Level)&#32;@if (now) { <span class="pref-tag">@L["Airport_QnhNow"]</span> }</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    @if (MostraAdesso || MostraCampo)
+    {
+        <aside class="ta-side">
+            @if (MostraAdesso)
             {
-                var now = CurrentQnh is int q && QnhRowMatches(r.QnhRange, q);
-                <tr class="@(now ? "tl-now" : "")">
-                    <td>@r.QnhRange</td>
-                    @* Lo spazio è scritto come entità: Razor scarta il testo di sola spaziatura che precede un
-                       blocco di codice, e usciva «FL60current QNH» attaccato. *@
-                    <td>@(View.TransitionAltitudeFt is null ? "N/A" : r.Level)&#32;@if (now) { <span class="pref-tag">@L["Airport_QnhNow"]</span> }</td>
-                </tr>
+                <div class="ta-card noprint">
+                    <span class="ta-card-t">@L["Airport_TlNow"]</span>
+                    <b class="ta-card-v">@(LivelloAdesso ?? "—")</b>
+                    <span class="ta-card-s">
+                        @if (LivelloAdesso is null)
+                        {
+                            @L["Airport_TlNoBand"]<text> · </text>
+                        }
+                        QNH @CurrentQnh hPa@(string.IsNullOrWhiteSpace(MetarTimeRaw) ? "" : $" · METAR {MetarTimeRaw}")
+                    </span>
+                </div>
             }
-        </tbody>
-    </table>
-}
+            @if (MostraCampo)
+            {
+                <div class="ta-card">
+                    <span class="ta-card-t">@L["Airport_FieldData"]</span>
+                    <dl class="ta-facts">
+                        @if (Station!.ElevationFt is int ft)
+                        {
+                            <dt>@L["Airport_Elevation"]</dt>
+                            <dd>@ft ft <span class="muted">(@Metri(ft) m)</span></dd>
+                        }
+                        @if (Station.MagneticVariation is double mv)
+                        {
+                            <dt>@L["Airport_MagVar"]</dt>
+                            <dd>@Variazione(mv)</dd>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(Station.Iata))
+                        {
+                            <dt>IATA</dt>
+                            <dd>@Station.Iata</dd>
+                        }
+                        @if (Station.Latitude is double la && Station.Longitude is double lo)
+                        {
+                            <dt>@L["Airport_Coordinates"]</dt>
+                            <dd class="ta-coord">
+                                <span>@SexagesimalPair.Angolo(la, isLatitudine: true)</span>
+                                <span>@SexagesimalPair.Angolo(lo, isLatitudine: false)</span>
+                            </dd>
+                        }
+                    </dl>
+                </div>
+            }
+        </aside>
+    }
+</div>
 
 @code {
     [Parameter, EditorRequired] public AirportTransitionView View { get; set; } = AirportTransitionView.Empty;
@@ -33,6 +104,36 @@
     /// <summary>QNH corrente dal METAR: accende la riga della sua fascia. Null = nessuna riga accesa.</summary>
     [Parameter] public int? CurrentQnh { get; set; }
 
+    /// <summary>L'ora grezza del METAR («291250Z»): dice a QUANDO risale il verdetto della scheda «adesso».
+    /// Senza, la scheda direbbe «adesso» di un bollettino che può avere un'ora.</summary>
+    [Parameter] public string? MetarTimeRaw { get; set; }
+
+    /// <summary>Anagrafica del campo per la scheda «Dati del campo». Null — o senza nessuno dei quattro dati —
+    /// vuol dire scheda assente: un riquadro di trattini non è un'informazione.</summary>
+    [Parameter] public AirportStation? Station { get; set; }
+
+    /// <summary>Il livello della fascia in cui cade il QNH di adesso, o null se nessuna fascia lo contiene
+    /// (buco fra due fasce, o QNH fuori da tutte quelle scritte).</summary>
+    private string? LivelloAdesso => CurrentQnh is int q
+        ? View.Rows.FirstOrDefault(r => QnhRowMatches(r.QnhRange, q))?.Level
+        : null;
+
+    /// <summary>La scheda «adesso» ha senso solo con un QNH e una TA: senza TA la tabella stessa dice «N/A», e
+    /// un livello scritto grande sopra un documento che la quota di transizione non ce l'ha sarebbe inventato.</summary>
+    private bool MostraAdesso => CurrentQnh is int && View.TransitionAltitudeFt is int && View.Rows.Count > 0;
+
+    private bool MostraCampo => Station is not null &&
+        (Station.ElevationFt is not null || Station.MagneticVariation is not null
+         || !string.IsNullOrWhiteSpace(Station.Iata)
+         || (Station.Latitude is not null && Station.Longitude is not null));
+
     /// <summary>Vero se il QNH ricade nell'intervallo testuale della riga (es. "1014 – 1030", "≥ 1031", "≤ 984").</summary>
     private static bool QnhRowMatches(string range, int qnh) => AirportViewFormat.QnhRowMatches(range, qnh);
+
+    private static int Metri(int feet) => (int)Math.Round(feet * 0.3048, MidpointRounding.AwayFromZero);
+
+    /// <summary>La variazione magnetica con l'emisfero, non col segno: «3° E» si legge, «3°» no. La sorgente la
+    /// manda positiva a est (in archivio è fra 1° e 4° E su tutti e 93 gli aeroporti).</summary>
+    private static string Variazione(double gradi) =>
+        $"{Math.Abs(gradi).ToString("0.#", CultureInfo.CurrentCulture)}° {(gradi < 0 ? "W" : "E")}";
 }

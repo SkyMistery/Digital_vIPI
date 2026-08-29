@@ -4705,3 +4705,41 @@ ramo con dieci slice dentro vive su una macchina sola.
 ⚠️ **La suite completa non si è potuta contare**: il `Vipi.Host` era acceso (PID 35396) e tiene i `.dll` di
 Debug, quindi `Vipi.E2E.Tests` non compila e **sparisce dal riepilogo in silenzio** con exit code 0 — è
 **X4**, ancora aperto. Verificati a mano i progetti toccati.
+
+## Z. La colonna destra delle «Quote di transizione» — 29 agosto 2026
+
+> **Carta:** [`docs/feature/2026-08-29-quote-transizione-colonna-destra.md`](feature/2026-08-29-quote-transizione-colonna-destra.md)
+> **Ramo:** `quote-transizione-colonna-destra`. **Nessuna migrazione.** **7 test nuovi.**
+
+### Z1 ✅ CHIUSA — metà sezione non è più vuota
+
+La tabella dei livelli ha un tetto di 420px (giusto: due colonne di numeri) e lasciava **402px vuoti** su una
+sezione da 822 — misurato a schermo su LIBD. Accanto ci sono ora due schede, scelte dal committente fra sei
+proposte: **«Transition Level adesso»** (il verdetto sul QNH del METAR, scritto grande, con l'ora del
+bollettino) e **«Dati del campo»** (elevazione in piedi e metri, variazione magnetica con l'emisfero, IATA,
+coordinate).
+
+⚠️ La prima è **`noprint`**, come il meteo: nasce dal METAR e su carta sarebbe un verdetto già scaduto. La
+tabella accanto si stampa come prima.
+
+⚠️ I quattro dati del campo il database **ce li aveva già** e nessuna pagina pubblica li mostrava. Arrivano
+dall'anagrafica in cache (`AirportStation`, cinque colonne in più su una lettura che il layout fa comunque),
+**non** dallo snapshot di release: non sono dati di release — li riscrive il giro notturno — e nello snapshot
+sarebbero trattini su ogni documento già pubblicato finché qualcuno non ripubblica. Il vSOP **militare** li ha
+allo stesso prezzo.
+
+⚠️ Va a capo con un **flex**, senza `@media` e senza `@container`: la soglia la calcola il layout, che lo
+`zoom` dell'applicazione lo vede.
+
+### Z2 🟢 APERTO — il ramo NON è fuso
+
+`quote-transizione-colonna-destra`, sopra `main`. Fondere è una decisione del committente.
+
+### Z3 ⚠️ VISTO, NON TOCCATO — due cose che stanno lì da prima
+
+- **LIRN** ha una sezione «Transition Altitude/Level» che non è quella derivata (nessun `.ta-grid` nel DOM):
+  documento vecchio, sezione scritta a mano. Non è una regressione di questo lavoro, ma è un documento che
+  non riceve né la tabella né le schede.
+- `AirportViewFormat.QnhRowMatches` legge la fascia dal **testo**: «1013.2 e oltre» lo leggerebbe come
+  intervallo 2–1013. In archivio quel testo non esiste (le fasce le scrive `QnhRange` dai numeri), quindi è
+  una trappola latente, non un difetto vivo.

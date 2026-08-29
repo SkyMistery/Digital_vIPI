@@ -166,6 +166,12 @@
   .vipi-root .ta-badge { padding: 5px 12px; }
   .vipi-root .ta-badge b { font-size: 11pt; }
   .vipi-root .ta-badge .muted { font-size: 8pt; }
+  /* La scheda «TL adesso» esce dal foglio da se' (e' `noprint`): resta questa, e sul foglio non ha
+     bisogno di essere larga quanto a schermo. */
+  .vipi-root .ta-card { padding: 6px 12px; }
+  .vipi-root .ta-card-t { font-size: 8pt; }
+  .vipi-root .ta-facts dt { font-size: 8.5pt; }
+  .vipi-root .ta-facts dd, .vipi-root .ta-coord { font-size: 9pt; }
   .vipi-root .pill, .vipi-root .rwy-key, .vipi-root .st-pill,
   .vipi-root .pref-tag, .vipi-root .aor-chip { font-size: 7.5pt; }
 

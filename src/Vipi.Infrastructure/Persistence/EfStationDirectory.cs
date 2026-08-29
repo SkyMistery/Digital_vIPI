@@ -29,9 +29,13 @@ public sealed class EfStationDirectory : IStationDirectory
             .Where(a => _prefixes.Any(p => a.Code.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
             .ToList();
 
-    // Tutti gli aeroporti col codice ACC di competenza (per il conteggio ATC online d'aeroporto).
+    // Tutti gli aeroporti col codice ACC di competenza (per il conteggio ATC online d'aeroporto) e
+    // l'anagrafica di campo: quota, variazione magnetica, IATA e coordinate. Sono cinque colonne in piu' su
+    // una lettura sola di 93 righe, fatta una volta per circuito, e risparmiano a chi le mostra la lettura
+    // del profilo dell'aeroporto (sei query) che il vSOP militare non fa nemmeno.
     public IReadOnlyList<AirportStation> ListAirports() =>
         _db.Airports.AsNoTracking()
-            .Select(a => new AirportStation(a.Icao, a.Acc!.Code, a.HasMilitaryPresence, a.IsMilitaryOnly))
+            .Select(a => new AirportStation(a.Icao, a.Acc!.Code, a.HasMilitaryPresence, a.IsMilitaryOnly,
+                a.ElevationFt, a.MagneticVariation, a.Iata, a.Latitude, a.Longitude))
             .ToList();
 }

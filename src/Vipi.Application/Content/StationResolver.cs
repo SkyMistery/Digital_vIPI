@@ -5,12 +5,27 @@ namespace Vipi.Application.Content;
 /// <summary>Informazioni di un ACC per la navigazione documentale (derivato dalle ACC nel DB).</summary>
 public sealed record AccInfo(string Code, string Name);
 
-/// <summary>Aeroporto con l'ACC di competenza (per mappare i callsign d'aeroporto al loro ACC).</summary>
+/// <summary>Aeroporto con l'ACC di competenza (per mappare i callsign d'aeroporto al loro ACC) e la sua
+/// anagrafica di campo.</summary>
 /// <param name="HasMilitaryPresence">Dalla sorgente: c'è una base militare sul campo. ⚠️ Non vuol dire
 /// «aeroporto militare» — è vero anche per Linate, Pisa, Ciampino.</param>
 /// <param name="IsMilitaryOnly">Scelta di un amministratore: nessun traffico civile.</param>
+/// <param name="ElevationFt">Quota del riferimento aeroporto, in piedi. null = la sorgente non la dà.</param>
+/// <param name="MagneticVariation">Variazione magnetica in gradi, positiva a EST (in Italia è 1°–4° E).</param>
+/// <param name="Iata">Codice IATA, dove la sorgente ce l'ha (55 aeroporti su 93 in archivio).</param>
+/// <param name="Latitude">Coordinate del riferimento aeroporto, in gradi decimali.</param>
+/// <remarks>
+/// ⚠️ I cinque campi d'anagrafica stanno QUI e non in <c>AirportData</c> per la stessa ragione per cui ci
+/// stanno già i due militari: questa mappa è <b>già in cache</b> e la scalda il layout, mentre il profilo
+/// dell'aeroporto è una lettura di sei query che la pagina militare non fa nemmeno. Quota, variazione e
+/// coordinate sono anagrafica — le riscrive il giro notturno, non un editor — e per questo non passano
+/// dallo snapshot di release: congelarle vorrebbe dire mostrarle vuote su ogni documento già pubblicato
+/// finché qualcuno non lo ripubblica.
+/// </remarks>
 public sealed record AirportStation(string Icao, string AccCode,
-    bool HasMilitaryPresence = false, bool IsMilitaryOnly = false);
+    bool HasMilitaryPresence = false, bool IsMilitaryOnly = false,
+    int? ElevationFt = null, double? MagneticVariation = null, string? Iata = null,
+    double? Latitude = null, double? Longitude = null);
 
 /// <summary>
 /// Contatore di processo del CATALOGO delle stazioni: sale di uno ogni volta che l'elenco degli ACC

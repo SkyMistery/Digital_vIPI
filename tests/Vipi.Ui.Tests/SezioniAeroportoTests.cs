@@ -111,6 +111,106 @@ public class SezioniAeroportoTests : TestContext
         Assert.DoesNotContain("FL", cut.Markup);
     }
 
+    /// <summary>Le fasce come le scrive <c>AirportSectionProjection.QnhRange</c> dai numeri del database:
+    /// «≥ 1013», «995 – 1012», «≤ 976». ⚠️ È la forma vera — in archivio non c'è una riga con un QNH
+    /// decimale — e usarne un'altra proverebbe il comportamento su un testo che nessun documento ha.</summary>
+    private static AirportTransitionView Fasce() => new(6000, new[]
+    {
+        new AirportTlRowView("≥ 1013", "FL70"),
+        new AirportTlRowView("995 – 1012", "FL75"),
+        new AirportTlRowView("≤ 994", "FL80"),
+    });
+
+    [Fact]
+    public void La_scheda_adesso_scrive_il_livello_della_fascia_del_QNH()
+    {
+        var cut = RenderComponent<AirportTransition>(p => p
+            .Add(x => x.View, Fasce())
+            .Add(x => x.CurrentQnh, 1005)
+            .Add(x => x.MetarTimeRaw, "291250Z"));
+
+        var scheda = cut.Find(".ta-card.noprint");
+        Assert.Contains("FL75", scheda.QuerySelector(".ta-card-v")!.TextContent);
+        Assert.Contains("1005", scheda.TextContent);
+        Assert.Contains("291250Z", scheda.TextContent);
+    }
+
+    [Fact]
+    public void Senza_QNH_la_scheda_adesso_non_compare()
+    {
+        var cut = RenderComponent<AirportTransition>(p => p.Add(x => x.View, Fasce()));
+        Assert.Empty(cut.FindAll(".ta-card.noprint"));
+    }
+
+    /// <summary>Senza TA la tabella scrive «N/A» su ogni riga: un livello grande accanto sarebbe un numero
+    /// che il documento non ha mai detto.</summary>
+    [Fact]
+    public void Senza_TA_la_scheda_adesso_non_compare()
+    {
+        var cut = RenderComponent<AirportTransition>(p => p
+            .Add(x => x.View, new AirportTransitionView(null, new[] { new AirportTlRowView("≥ 1013", "FL70") }))
+            .Add(x => x.CurrentQnh, 1020));
+
+        Assert.Empty(cut.FindAll(".ta-card.noprint"));
+    }
+
+    /// <summary>QNH dentro un buco fra le fasce scritte: la scheda c'è e dice che fascia non ce n'è — tacere
+    /// lascerebbe pensare a un livello che nessuno ha scritto.</summary>
+    [Fact]
+    public void Un_QNH_fuori_da_ogni_fascia_lo_dice()
+    {
+        var cut = RenderComponent<AirportTransition>(p => p
+            .Add(x => x.View, new AirportTransitionView(6000, new[] { new AirportTlRowView("995 – 1012", "FL75") }))
+            .Add(x => x.CurrentQnh, 1020));
+
+        var scheda = cut.Find(".ta-card.noprint");
+        Assert.Contains("—", scheda.QuerySelector(".ta-card-v")!.TextContent);
+        Assert.Contains("Airport_TlNoBand", scheda.TextContent);
+    }
+
+    [Fact]
+    public void I_dati_del_campo_si_leggono_accanto_alla_tabella()
+    {
+        var cut = RenderComponent<AirportTransition>(p => p
+            .Add(x => x.View, Fasce())
+            .Add(x => x.Station, new AirportStation("LIMC", "LIMM", ElevationFt: 768, MagneticVariation: 1,
+                Iata: "MXP", Latitude: 45.63, Longitude: 8.7230555556)));
+
+        var schede = cut.FindAll(".ta-card:not(.noprint)");
+        var testo = Assert.Single(schede).TextContent;
+        Assert.Contains("768 ft", testo);
+        Assert.Contains("234 m", testo);            // 768 ft in metri, arrotondati
+        Assert.Contains("1° E", testo);             // positiva = est, e l'emisfero si scrive
+        Assert.Contains("MXP", testo);
+        Assert.Contains("N45°37", testo);
+        Assert.Contains("E008°43", testo);          // longitudine su TRE cifre di grado
+    }
+
+    [Fact]
+    public void La_variazione_a_ovest_si_scrive_W()
+    {
+        var cut = RenderComponent<AirportTransition>(p => p
+            .Add(x => x.View, Fasce())
+            .Add(x => x.Station, new AirportStation("BIKF", "BIRD", MagneticVariation: -12.5)));
+
+        Assert.Contains("W", cut.Find(".ta-card:not(.noprint)").TextContent);
+        Assert.DoesNotContain("-12", cut.Markup);
+    }
+
+    /// <summary>Senza anagrafica — o con un'anagrafica che non porta nessuno dei quattro dati — la scheda
+    /// non c'è: un riquadro di trattini non è un'informazione.</summary>
+    [Fact]
+    public void Senza_dati_del_campo_la_scheda_non_compare()
+    {
+        var vuota = RenderComponent<AirportTransition>(p => p.Add(x => x.View, Fasce()));
+        Assert.Empty(vuota.FindAll(".ta-card:not(.noprint)"));
+
+        var senzaDati = RenderComponent<AirportTransition>(p => p
+            .Add(x => x.View, Fasce())
+            .Add(x => x.Station, new AirportStation("LIRA", "LIRR")));
+        Assert.Empty(senzaDati.FindAll(".ta-card:not(.noprint)"));
+    }
+
     // ---------------------------------------------------------------------------------------------------
     // Frequenze
     // ---------------------------------------------------------------------------------------------------
