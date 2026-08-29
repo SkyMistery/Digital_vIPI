@@ -2,6 +2,7 @@
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
+using Vipi.Domain.Entities;
 using Vipi.Domain.Services;
 using static Vipi.Application.Messaggio;
 
@@ -117,18 +118,37 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
         await _db.Airports.AsNoTracking().Where(a => a.Icao == Norm(icao))
             .Select(a => a.MilDocumentId).FirstOrDefaultAsync(ct).ConfigureAwait(false);
 
-    public async Task<bool> HasPublishedAsync(string icao, CancellationToken ct = default)
+    public Task<bool> HasPublishedAsync(string icao, CancellationToken ct = default) =>
+        PubblicatoAsync(icao, militare: true, ct);
+
+    public Task<bool> HasPublishedCivilAsync(string icao, CancellationToken ct = default) =>
+        PubblicatoAsync(icao, militare: false, ct);
+
+    /// <summary>
+    /// Il gate del ponte fra le due edizioni, scritto UNA volta: il documento dev'esserci <b>e</b> avere una
+    /// release effettiva — lo stesso gate dell'elenco pubblico, per un aeroporto solo.
+    /// <para>⚠️ Le due edizioni condividono la CHIAVE di release (l'ICAO) e si distinguono per il TIPO: è
+    /// per questo che il tipo e il legame si scelgono insieme, dallo stesso parametro. Sceglierne uno e
+    /// dimenticare l'altro darebbe la risposta di un documento leggendo il legame dell'altro.</para>
+    /// </summary>
+    private async Task<bool> PubblicatoAsync(string icao, bool militare, CancellationToken ct)
     {
         icao = Norm(icao);
-        // Il documento dev'esserci E avere una release effettiva: lo stesso gate dell'elenco pubblico,
-        // scritto una volta per un aeroporto solo.
-        if (!await _db.Airports.AsNoTracking()
-                .AnyAsync(a => a.Icao == icao && a.MilDocumentId != null, ct).ConfigureAwait(false))
+        var tipo = militare ? ReleaseTargetType.AirportMil : ReleaseTargetType.Airport;
+
+        // ⚠️ Il predicato si sceglie FUORI dall'espressione: un ternario che salta fra due colonne dentro
+        // una `Where` diventa una CASE WHEN che i provider traducono in modi diversi. Due lambda esplicite
+        // sono più lunghe da leggere e più corte da spiegare.
+        System.Linq.Expressions.Expression<Func<Airport, bool>> haIlDocumento = militare
+            ? a => a.Icao == icao && a.MilDocumentId != null
+            : a => a.Icao == icao && a.DocumentId != null;
+
+        if (!await _db.Airports.AsNoTracking().AnyAsync(haIlDocumento, ct).ConfigureAwait(false))
             return false;
 
         var adesso = DateTime.UtcNow;
         return await _db.DocReleases.AsNoTracking()
-            .AnyAsync(r => r.TargetType == ReleaseTargetType.AirportMil && r.TargetKey == icao
+            .AnyAsync(r => r.TargetType == tipo && r.TargetKey == icao
                            && r.ReleaseEffectiveUtc <= adesso, ct).ConfigureAwait(false);
     }
 

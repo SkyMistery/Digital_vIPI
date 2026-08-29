@@ -48,12 +48,21 @@
             <div>
                 <h1 class="page-h1">@_view.Title</h1>
                 @* Il ponte verso l'altra edizione dello stesso scalo: chi apre il militare deve poter
-                   arrivare al civile senza tornare indietro di due pagine. *@
-                <p class="muted">
-                    <a href="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}")">
-                        <Icon Name="book-open" Size="14" /> @L["Mil_LinkToCivil"]
-                    </a>
-                </p>
+                   arrivare al civile senza tornare indietro di due pagine.
+
+                   ⚠️ SOLO SE la vIPI civile esiste davvero, come fa la pagina civile verso di qui. Fino al
+                   29 agosto 2026 il collegamento c'era sempre, e sui campi SOLO militari — Aviano, Ghedi,
+                   Decimomannu, Rivolto, cioè proprio quelli che un vSOP ce l'hanno — portava al callout
+                   «documento non disponibile». Un ponte che a volte non porta da nessuna parte è peggio di
+                   un ponte che non c'è: la seconda volta non ci si clicca più nemmeno quando funziona. *@
+                @if (_haCivile)
+                {
+                    <p class="muted">
+                        <a href="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}")">
+                            <Icon Name="book-open" Size="14" /> @L["Mil_LinkToCivil"]
+                        </a>
+                    </p>
+                }
             </div>
             @if (_canEdit)
             {
@@ -101,6 +110,7 @@
     private string? _relCycle;      // il ciclo dell'anteprima release, per il banner
     private bool _canEdit;
     private bool _useFrozen;        // vista pubblica: derivate congelate dalla release effettiva (doc 10 §3d)
+    private bool _haCivile;         // esiste una vIPI civile pubblicata per questo scalo? (il ponte inverso)
 
     private AirportDerived _derivate = AirportDerived.Empty;
     private WeatherReport? _wx;
@@ -162,6 +172,7 @@
         _mode = PreviewMode.Parse(As, null);
         _relCycle = null;
         _useFrozen = false;
+        _haCivile = false;
         if (_icao.Length == 0) return;
 
         Stations.Prewarm();
@@ -189,11 +200,17 @@
         }
         if (_view is null) return;
 
+        _haCivile = await Militari.HasPublishedCivilAsync(_icao);
+
         // Le derivate dello STESSO scalo: meteo live piu' le sezioni congelate della release militare.
         _wx = await Weather.GetAsync(_icao);
         _metar = string.IsNullOrWhiteSpace(_wx?.Metar) ? null : MetarParser.ParseMetar(_wx!.Metar!);
         _taf = string.IsNullOrWhiteSpace(_wx?.Taf) ? null : MetarParser.ParseTaf(_wx!.Taf!);
-        _derivate = await AirportView.ResolveForViewAsync(_icao, _useFrozen);
+        // ⚠️ `AirportMil`, NON `Airport`: le tabelle si derivano dallo stesso scalo, ma il congelato si
+        // legge dalla release di QUESTO documento. Con `Airport` un campo misto (Pisa) mostrerebbe qui la
+        // fotografia della vIPI civile — al ciclo AIRAC civile — e un campo solo militare (Rivolto) non
+        // troverebbe niente e resterebbe per sempre live, senza che nulla protesti.
+        _derivate = await AirportView.ResolveForViewAsync(_icao, _useFrozen, ReleaseTargetType.AirportMil);
 
         // ⚠️ Gli id delle aree li porta il DOCUMENTO mostrato; shape e descrizioni vengono dai cataloghi
         // correnti — come nella vIPI ACC e nell'APP. Si legge PRIMA della traduzione: la sezione tradotta

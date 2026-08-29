@@ -60,9 +60,25 @@ public class CatchAllEdizioneMilitareTests : IAsyncLifetime
         // Da solo l'ordine non basta -- un documento militare che i descrittori militari NON riconoscono
         // ricadrebbe comunque nel catch-all -- ma senza, il controllo sull'edizione non verrebbe mai
         // raggiunto: il catch-all civile risponderebbe per primo.
-        Assert.Equal(0, new AirportMilReleaseTarget(_db).DescribeOrder);
-        Assert.Equal(0, new AppMilReleaseTarget(_db).DescribeOrder);
-        Assert.True(new AirportReleaseTarget(_db).DescribeOrder > 0);
+        // ⚠️ «PRIMA DI TUTTI» va provato contro TUTTI, non contro il solo catch-all: fino al 29 agosto 2026
+        // questo test guardava soltanto `AirportReleaseTarget`, e intanto `VloaReleaseTarget` stava a zero —
+        // cioè PARI con i militari. Non faceva danno (la vLOA rifiuta per `doc.Type`), ma la difesa era più
+        // debole di come la carta la racconta, e nessuno l'avrebbe saputo.
+        var militari = new[]
+        {
+            new AirportMilReleaseTarget(_db).DescribeOrder,
+            new AppMilReleaseTarget(_db).DescribeOrder,
+        };
+        var civili = new[]
+        {
+            new AirportReleaseTarget(_db).DescribeOrder,
+            new AppReleaseTarget(_db).DescribeOrder,
+            new AccVipiReleaseTarget(_db).DescribeOrder,
+            new VloaReleaseTarget(_db).DescribeOrder,
+        };
+
+        Assert.All(militari, m => Assert.All(civili, c => Assert.True(m < c,
+            $"un descrittore militare (ordine {m}) deve essere interrogato prima di ogni civile (ordine {c}).")));
     }
 
     // ---- La seconda mano: il controllo sull'edizione --------------------------------------------------

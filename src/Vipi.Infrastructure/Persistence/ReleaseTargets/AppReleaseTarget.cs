@@ -13,7 +13,7 @@ public sealed class AppReleaseTarget : IReleaseTarget
     public AppReleaseTarget(VipiDbContext db) => _db = db;
 
     public ReleaseTargetType Type => ReleaseTargetType.App;
-    public int DescribeOrder => 1;
+    public int DescribeOrder => 2;
 
     public async Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default) =>
         await _db.Sectors.AsNoTracking()

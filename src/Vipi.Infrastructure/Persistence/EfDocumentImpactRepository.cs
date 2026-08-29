@@ -99,10 +99,23 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
             .Distinct()
             .ToListAsync(ct);
         if (icaos.Count > 0)
+        {
             ids.AddRange(await _db.Airports.AsNoTracking()
                 .Where(a => a.DocumentId != null && icaos.Contains(a.Icao))
                 .Select(a => a.DocumentId!.Value)
                 .ToListAsync(ct));
+
+            // ⚠️ E il vSOP MILITARE dello stesso scalo, che è un documento diverso con un legame diverso
+            // (`Airport.MilDocumentId`). Non è un doppione: quel documento DERIVA la stessa tabella
+            // frequenze e le stesse piste (carta vSOP militari §2), quindi se cambia una posizione di quel
+            // campo va riletto e ripubblicato esattamente come il civile. Fino al 29 agosto 2026 non lo
+            // segnalava nessuno, e la promessa della carta — «cambia in ENTRAMBI i documenti, alla
+            // ripubblicazione se Frozen» — era mantenuta dal motore ma non dalla casella che avvisa.
+            ids.AddRange(await _db.Airports.AsNoTracking()
+                .Where(a => a.MilDocumentId != null && icaos.Contains(a.Icao))
+                .Select(a => a.MilDocumentId!.Value)
+                .ToListAsync(ct));
+        }
 
         return ids;
     }
@@ -170,8 +183,11 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
 
         // Gli aeroporti agganciati a questo callsign: il nodo dell'albero è l'AEROPORTO, e le sue posizioni
         // ereditano il padre da lì (scaletta DEL→GND→TWR→APP). Il documento impattato è quello dello scalo.
+        // ⚠️ «con un documento» vuol dire con UNO DEI DUE: un campo solo militare (Aviano, Ghedi,
+        // Decimomannu, Rivolto) ha `DocumentId` nullo e `MilDocumentId` valorizzato, e con il solo controllo
+        // civile spariva dal vicinato — cioè le sue posizioni non venivano nemmeno guardate.
         var icaoFigli = await _db.Airports.AsNoTracking()
-            .Where(a => a.ParentCallsign == callsign && a.DocumentId != null)
+            .Where(a => a.ParentCallsign == callsign && (a.DocumentId != null || a.MilDocumentId != null))
             .Select(a => a.Icao).ToListAsync(ct);
         if (icaoFigli.Count > 0)
             vicini.AddRange(await _db.AirportSectors.AsNoTracking()
@@ -200,9 +216,16 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
             .Select(l => l.Airport!.Icao)
             .Distinct().ToListAsync(ct);
         if (icaos.Count > 0)
+        {
             ids.AddRange(await _db.Airports.AsNoTracking()
                 .Where(a => a.DocumentId != null && icaos.Contains(a.Icao))
                 .Select(a => a.DocumentId!.Value).ToListAsync(ct));
+
+            // L'edizione militare dello scalo: stessa ragione del gemello, vedi `DocsForCallsignsAsync`.
+            ids.AddRange(await _db.Airports.AsNoTracking()
+                .Where(a => a.MilDocumentId != null && icaos.Contains(a.Icao))
+                .Select(a => a.MilDocumentId!.Value).ToListAsync(ct));
+        }
 
         // Blocchi: scope, sorgente e destinazione di un coordinamento. Il documento è quello della versione.
         ids.AddRange(await _db.ContentBlocks.AsNoTracking()

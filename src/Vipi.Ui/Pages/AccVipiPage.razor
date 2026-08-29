@@ -69,6 +69,13 @@ else
                 @* Tradotto a macchina e non ancora riletto, o tradotto a metà: chi legge deve saperlo. *@
                 <TranslationNotice Coverage="_copertura" />
 
+                @* Il filtro di lettura pilota/ATC (carta vSOP militari §3). ⚠️ Vale su TUTTE le famiglie, non
+                   solo sul vSOP militare: il flag è per-sezione e l'editor lo offre ovunque, quindi una
+                   sezione marcata in una vIPI ACC deve poter essere filtrata dove si legge. La chip resta
+                   invisibile finché nessuno ha marcato niente. *@
+                <AudienceChip Visibile="_haMarcate" Vista="_vista"
+                              BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vipi" + (_mode.Kind == PreviewKind.Draft ? "?as=draft" : ""))" />
+
                 @foreach (var block in _data.Blocks)
                 {
                     <h2 class="acc-block-h">@(block.Kind == AccBlockKind.Aerovia ? L["AccVipi_AirwaySectors"] : block.Title)</h2>
@@ -77,7 +84,7 @@ else
                         var isHidden = s.IsHidden;
                         <CollapsibleBlock Id="@AnchorOf(block, s)" Style="@(isHidden ? "opacity:.65" : null)"
                                           InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(s.Key))">
-                            <Header><h3>@s.Title @if (isHidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }</h3></Header>
+                            <Header><h3>@s.Title @if (isHidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }<AudienceBadge Audience="s.Audience" /></h3></Header>
                             <ChildContent>
                                 <AccSectionBody Block="block" Key="@s.Key" Root="@_root" Acc="@Acc"
                                                 ReleaseId="@(_mode.Kind == PreviewKind.Release ? _mode.ReleaseId : null)"
@@ -125,6 +132,14 @@ else
     [SupplyParameterFromQuery] public string? Tree { get; set; }
     [SupplyParameterFromQuery(Name = "as")] public string? As { get; set; }
 
+    /// <summary>La vista di lettura: «pilota», «atc», o assente per il documento intero (carta vSOP
+    /// militari §3). ⚠️ In QUERY STRING e non in stato d'isola: questa pagina è SSR statica, e un link
+    /// filtrato è condivisibile.</summary>
+    [SupplyParameterFromQuery(Name = "vista")] public string? Vista { get; set; }
+
+    private Vipi.Domain.SectionAudience? _vista;
+    private bool _haMarcate;
+
     private AccInfo? _acc;
     private AccVipiData _data = new() { AccCode = "", AccName = "", Blocks = new() };
     private IReadOnlyList<AccAssembledBlock>? _blocks;   // blocchi con Id sezione (view/draft); null in anteprima release
@@ -169,6 +184,7 @@ else
 
         _mode = PreviewMode.Parse(As);
         _relCycle = null;
+        _haMarcate = false;
         _docCycle = null;
         _blocks = null;
         _useFrozen = false;
@@ -237,6 +253,12 @@ else
         // editoriale, che è la parte che questa pagina mostrava ancora in italiano soltanto.
         var lettore = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
         _copertura = await Translator.TranslateAsync(_data, _lingua, lettore, _congelate);
+
+        // Il filtro di lettura, DOPO la traduzione: si filtra la vista che il lettore vedrà davvero.
+        _vista = AudienceFilter.Leggi(Vista);
+        _haMarcate = _data.Blocks.Any(b => b.Sections.Any(
+            s => s.Audience != Vipi.Domain.SectionAudience.Both
+                 || (s.Editorial is not null && AudienceFilter.HaSezioniMarcate(s.Editorial.Children))));
     }
 
     // Vista pubblica dal modello ACC: dati + blocchi con Id sezione, e abilita la lettura frozen. model null (nessuna
@@ -290,6 +312,13 @@ else
     // Sezioni da mostrare, NELL'ORDINE del documento (doc 11 §3b: si itera la lista di sezioni, non un elenco di
     // chiavi riconciliato a view-time). Anteprima BOZZA: mostra anche le nascoste (stato editoriale in lavorazione),
     // marcate; pubblica/release: filtrate. Lo stato «nascosta» è sulla sezione e versionato (doc 11 §3c).
+    // ⚠️ E il filtro pilota/ATC, che è una domanda DIVERSA da «nascosta»: nascosta vuol dire «non è
+    // pubblica», filtrata vuol dire «non serve a chi sta leggendo adesso». Le sezioni «per tutti» non si
+    // filtrano mai, e una sezione che se ne va porta via i suoi figli.
     private IReadOnlyList<AccBlockSection> VisibleSections(AccBlock b) =>
-        b.Sections.Where(s => _mode.Kind == PreviewKind.Draft || !s.IsHidden).ToList();
+        b.Sections
+            .Where(s => _mode.Kind == PreviewKind.Draft || !s.IsHidden)
+            .Where(s => AudienceFilter.Mostra(s.Audience, _vista))
+            .Select(s => s.Editorial is null ? s : s with { Editorial = AudienceFilter.FiltraFigli(s.Editorial, _vista) })
+            .ToList();
 }

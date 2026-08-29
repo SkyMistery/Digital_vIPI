@@ -202,4 +202,50 @@ public class AudienceFilterTests
         Assert.False(AudienceFilter.HaSezioniMarcate(Array.Empty<SectionView>()));
         Assert.Empty(AudienceFilter.Filtra(Array.Empty<SectionView>(), SectionAudience.Pilots));
     }
+
+    // ---- La porta per la vIPI ACC, che non passa da `Filtra` (correzione del 29 agosto 2026) ----------
+    //
+    // ⚠️ L'ACC è l'unica famiglia a BLOCCHI: il suo ciclo esterno itera i blocchi e le sue sezioni sono
+    // `AccBlockSection`, non `SectionView`. Senza queste due porte l'unica strada era riscrivere la regola
+    // dentro la pagina — la quinta copia di una condizione di tre righe, e la prima a divergere.
+
+    [Theory]
+    [InlineData(SectionAudience.Both, null, true)]
+    [InlineData(SectionAudience.Both, SectionAudience.Pilots, true)]
+    [InlineData(SectionAudience.Both, SectionAudience.Controllers, true)]
+    [InlineData(SectionAudience.Pilots, null, true)]
+    [InlineData(SectionAudience.Pilots, SectionAudience.Pilots, true)]
+    [InlineData(SectionAudience.Pilots, SectionAudience.Controllers, false)]
+    [InlineData(SectionAudience.Controllers, SectionAudience.Pilots, false)]
+    public void Mostra_risponde_come_il_filtro_dell_albero(SectionAudience sezione, SectionAudience? vista, bool atteso)
+    {
+        Assert.Equal(atteso, AudienceFilter.Mostra(sezione, vista));
+
+        // E dice la STESSA cosa di `Filtra` sulla stessa sezione: sono due porte sulla stessa regola, e il
+        // giorno in cui divergessero l'ACC mostrerebbe qualcosa che le altre famiglie nascondono.
+        Assert.Equal(atteso, AudienceFilter.Filtra(new[] { Sez("x", sezione) }, vista).Count == 1);
+    }
+
+    [Fact]
+    public void FiltraFigli_toglie_le_figlie_dell_altra_vista_e_lascia_la_radice()
+    {
+        var padre = Sez("p", SectionAudience.Both,
+            Sez("f1", SectionAudience.Pilots),
+            Sez("f2", SectionAudience.Controllers),
+            Sez("f3", SectionAudience.Both));
+
+        var visto = AudienceFilter.FiltraFigli(padre, SectionAudience.Pilots);
+
+        Assert.Equal("p", visto.Id);   // la radice la filtra il chiamante: qui si toccano solo le figlie
+        Assert.Equal(new[] { "f1", "f3" }, visto.Children.Select(c => c.Id));
+    }
+
+    [Fact]
+    public void FiltraFigli_senza_vista_non_copia_niente()
+    {
+        // «Tutto» deve costare zero: è il caso normale di ogni pagina del sito.
+        var padre = Sez("p", SectionAudience.Both, Sez("f1", SectionAudience.Pilots));
+
+        Assert.Same(padre, AudienceFilter.FiltraFigli(padre, null));
+    }
 }

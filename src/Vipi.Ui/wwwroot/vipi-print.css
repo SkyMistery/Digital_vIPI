@@ -66,6 +66,10 @@
      tabella («Arrivi», «Partenze»), che sulla carta deve restare. */
   .vipi-root .coord-prose > summary > .prose-cue,
   .vipi-root .onl-badge,
+  /* La chip pilota/ATC e' un comando: i suoi link sono gia' `.btn`, ma senza questa riga resterebbe il
+     contenitore vuoto e il suo margine. ⚠️ Il BADGE invece si stampa: dice a chi parla la sezione, ed e'
+     contenuto. */
+  .vipi-root .aud-chip,
   .vipi-root .noprint,
   /* Vista live: orologio UTC e tasto «Compatta» sono comandi a schermo, non contenuto. */
   .vipi-root .utc-clock,

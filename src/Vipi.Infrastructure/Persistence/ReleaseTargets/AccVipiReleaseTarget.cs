@@ -14,7 +14,7 @@ public sealed class AccVipiReleaseTarget : IReleaseTarget
     public AccVipiReleaseTarget(VipiDbContext db) => _db = db;
 
     public ReleaseTargetType Type => ReleaseTargetType.AccVipi;
-    public int DescribeOrder => 2;
+    public int DescribeOrder => 3;
 
     public async Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default)
     {

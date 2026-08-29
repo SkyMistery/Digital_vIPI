@@ -848,6 +848,16 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .pill.red{background:var(--tint-orange);color:var(--danger-ink)}      /* stato negativo (nascosto dall'admin): prima in linea */
 .pill.amber{background:var(--tint-yellow);color:var(--warn-ink-orange)}    /* avviso su una riga (senza torre): prima in linea */
 
+/* ---- Destinatario di una sezione: badge + chip (carta vSOP militari §3) --------------------------------
+   Il BADGE sta accanto al titolo di una sezione marcata, in tutte le famiglie. Ha bisogno solo di un
+   respiro a sinistra: il colore lo porta `.pill.blue` (pilota) / `.pill.amber` (ATC).
+   ⚠️ `vertical-align` perche' il titolo e' piu' grande del badge: senza, la pill si appoggia alla base del
+   testo e sembra scesa di un pixel. */
+.aud-badge{margin-left:8px;vertical-align:middle}
+/* La CHIP «Tutto · Pilota · ATC» sopra il documento: tre collegamenti, non tre bottoni (vedi il commento
+   sul componente). Qui serve solo tenerli in riga e staccarli dal testo che segue. */
+.aud-chip{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+
 /* Toggle multi-select compatti (CAT/WTC nelle SID importate): chip on/off cliccabili in cella tabella */
 .tok-set{display:inline-flex;gap:2px;flex-wrap:wrap}
 .tok{border:1px solid var(--ivao-grey);background:var(--surface);color:var(--ink-soft);border-radius:4px;padding:1px 5px;min-width:18px;font-size:11px;line-height:1.5;font-weight:600;cursor:pointer}

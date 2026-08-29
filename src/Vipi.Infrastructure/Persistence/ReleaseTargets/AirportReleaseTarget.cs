@@ -14,7 +14,7 @@ public sealed class AirportReleaseTarget : IReleaseTarget
     public AirportReleaseTarget(VipiDbContext db) => _db = db;
 
     public ReleaseTargetType Type => ReleaseTargetType.Airport;
-    public int DescribeOrder => 3;
+    public int DescribeOrder => 4;
 
     // Dall'aeroporto: è il legame autoritativo. Prima si passava dai settori, e serviva un filtro per non
     // fotografare l'APP non remotizzato dello stesso ICAO, che ha un documento suo.

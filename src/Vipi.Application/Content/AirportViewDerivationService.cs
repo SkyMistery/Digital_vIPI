@@ -21,7 +21,26 @@ namespace Vipi.Application.Content;
 public interface IAirportViewDerivationService
 {
     /// <summary>Tutte le sezioni derivate dell'aeroporto in un colpo solo.</summary>
-    Task<AirportDerived> ResolveForViewAsync(string icao, bool useFrozen, CancellationToken ct = default);
+    /// <param name="edizione">
+    /// ⚠️ <b>Da quale RELEASE leggere il congelato</b>, non da quali tabelle derivare: le tabelle sono le
+    /// stesse — meteo, piste, quote e frequenze di uno scalo sono quelle, qualunque documento le mostri — ma
+    /// gli <b>snapshot</b> sono due, perché due sono i documenti che parlano di quel campo e ognuno si
+    /// pubblica per conto suo (carta vSOP militari §4: cicli AIRAC indipendenti).
+    /// <para>
+    /// ⚠️ Passare <see cref="ReleaseTargetType.Airport"/> dalla pagina militare non è «un default innocuo»:
+    /// sui campi MISTI (Pisa) il vSOP militare mostrerebbe la fotografia della release CIVILE, timbrata al
+    /// ciclo civile, e ripubblicare il militare non la cambierebbe; sui campi SOLO militari (Rivolto,
+    /// Aviano, Ghedi, Decimomannu) non esiste release civile, si ricadrebbe sempre live, e il congelamento
+    /// sarebbe un no-op invisibile.
+    /// </para>
+    /// <para>
+    /// ⚠️ Per questo il parametro è <b>obbligatorio e senza default</b>: un default sarebbe «civile», cioè
+    /// la risposta giusta per il chiamante che c'era e sbagliata IN SILENZIO per quello nuovo — la forma
+    /// esatta del difetto che si sta correggendo.
+    /// </para>
+    /// </param>
+    Task<AirportDerived> ResolveForViewAsync(string icao, bool useFrozen, ReleaseTargetType edizione,
+        CancellationToken ct = default);
 
     /// <summary>Le sole SID. Resta a parte perché la pagina le ri-filtra per pista scelta dal lettore.</summary>
     Task<AirportSidView> ResolveSidsForViewAsync(string icao, bool useFrozen, CancellationToken ct = default);
@@ -44,12 +63,15 @@ public sealed class AirportViewDerivationService : IAirportViewDerivationService
         _frozen = frozen;
     }
 
-    public async Task<AirportDerived> ResolveForViewAsync(string icao, bool useFrozen, CancellationToken ct = default)
+    public async Task<AirportDerived> ResolveForViewAsync(string icao, bool useFrozen, ReleaseTargetType edizione,
+        CancellationToken ct = default)
     {
         icao = Norm(icao);
 
         // Lo snapshot una volta sola (doc 14 §3c): erano cinque letture dello stesso payload, contando le SID.
-        var frozen = useFrozen ? await _frozen.LoadAsync(ReleaseTargetType.Airport, icao, ct) : FrozenSections.Empty;
+        // ⚠️ La chiave di release è l'ICAO per tutte e due le edizioni; a distinguerle è il TIPO — vedi il
+        // commento sul parametro nell'interfaccia.
+        var frozen = useFrozen ? await _frozen.LoadAsync(edizione, icao, ct) : FrozenSections.Empty;
 
         var rules = frozen.Get<AirportRulesView>("runwayrules");
         var transition = frozen.Get<AirportTransitionView>("transition");

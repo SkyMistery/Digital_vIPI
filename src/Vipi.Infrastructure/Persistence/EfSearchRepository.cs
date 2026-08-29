@@ -35,6 +35,10 @@ public sealed class EfSearchRepository : ISearchRepository
             .Include(d => d.Sectors).ThenInclude(s => s.Acc)
             // L'aeroporto descritto: da qui il descrittore prende ICAO e ACC (vedi AirportReleaseTarget).
             .Include(d => d.Airport).ThenInclude(a => a!.Acc)
+            // ⚠️ E quello dell'edizione MILITARE: legame diverso, navigazione diversa. Senza, il documento
+            // militare non viene descritto da nessuno e sparisce di qui in silenzio — la spiegazione lunga
+            // sta su `EfDocumentAdminRepository.ListAsync`, che fa la stessa query.
+            .Include(d => d.MilAirport).ThenInclude(a => a!.Acc)
             .Include(d => d.Parties).ThenInclude(p => p.Sector).ThenInclude(s => s!.Acc)
             .AsNoTracking().ToListAsync(ct);
 
@@ -192,6 +196,7 @@ public sealed class EfSearchRepository : ISearchRepository
         SearchScope.App => kind == ReleaseTargetType.App,
         SearchScope.Airport => kind == ReleaseTargetType.Airport,
         SearchScope.Vloa => kind == ReleaseTargetType.Vloa,
+        SearchScope.Mil => kind is ReleaseTargetType.AirportMil or ReleaseTargetType.AppMil,
         _ => true,
     };
 }

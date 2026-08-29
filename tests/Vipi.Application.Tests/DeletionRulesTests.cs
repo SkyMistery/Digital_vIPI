@@ -334,7 +334,7 @@ public class DeletionRulesTests : IDisposable
     {
         // Le postazioni vivono SOTTO l'aeroporto nella sorgente: se lo scalo non c'è, quell'elenco non
         // esiste, e chiedere di ciascuna una per una otterrebbe la stessa risposta N volte.
-        var scalo = Scalo(null,
+        var scalo = Scalo(null, null,
             Settore("LIRF_TWR", SectorType.Twr, SectorKind.Airport, airportId: 3, timbro: Adesso) with { SectorId = 1 },
             Settore("LIRF_GND", SectorType.Gnd, SectorKind.Airport, airportId: 3, timbro: Adesso) with { SectorId = 2 })
             with { LastSeenAtUtc = Adesso };
@@ -373,15 +373,21 @@ public class DeletionRulesTests : IDisposable
 
     // ── D7: l'aeroporto ──────────────────────────────────────────────────────────────────────────────
 
-    private static AirportFacts Scalo(int? documentId = null, params SectorFacts[] settori) =>
+    /// <param name="milDocumentId">
+    /// L'edizione MILITARE dello scalo. ⚠️ È un legame indipendente dal civile: su un campo solo militare —
+    /// Aviano, Ghedi, Decimomannu, Rivolto — <paramref name="documentId"/> è nullo e questo no.
+    /// </param>
+    private static AirportFacts Scalo(int? documentId = null, int? milDocumentId = null,
+                                      params SectorFacts[] settori) =>
         new(3, "LIRF", "Roma Fiumicino", "LIRR", Vecchio, documentId,
-            documentId is null ? null : "vIPI LIRF", settori);
+            documentId is null ? null : "vIPI LIRF",
+            milDocumentId, milDocumentId is null ? null : "vSOP MIL — LIRF", settori);
 
     [Fact]
     public void Con_lo_scalo_muoiono_tutti_i_suoi_settori()
     {
         var p = DeletionRules.PerAeroporto(
-            Scalo(null,
+            Scalo(null, null,
                 Settore("LIRF_TWR", SectorType.Twr, SectorKind.Airport, airportId: 3) with { SectorId = 1 },
                 Settore("LIRF_GND", SectorType.Gnd, SectorKind.Airport, airportId: 3) with { SectorId = 2 }),
             Penultimo, Penultimo);
@@ -402,7 +408,7 @@ public class DeletionRulesTests : IDisposable
             parentCallsign: "LIRF_APP",
             figliDiCatalogo: new[] { new CatalogChildFacts("LIRZ_TWR", CatalogChildKind.AirportSector) }) with { SectorId = 2 };
 
-        var p = DeletionRules.PerAeroporto(Scalo(null, app, twr), Penultimo, Penultimo);
+        var p = DeletionRules.PerAeroporto(Scalo(null, null, app, twr), Penultimo, Penultimo);
 
         var r = Assert.Single(p.Azioni.RiaggancioDiCatalogo);
         Assert.Equal("LIRZ_TWR", r.Figlio);
@@ -418,7 +424,7 @@ public class DeletionRulesTests : IDisposable
         var twr = Settore("LIRF_TWR", SectorType.Twr, SectorKind.Airport, airportId: 3,
             parentCallsign: "LIRF_APP") with { SectorId = 2 };
 
-        var p = DeletionRules.PerAeroporto(Scalo(null, app, twr), Penultimo, Penultimo);
+        var p = DeletionRules.PerAeroporto(Scalo(null, null, app, twr), Penultimo, Penultimo);
 
         Assert.Empty(p.Azioni.RiaggancioDiCatalogo);
     }
@@ -430,6 +436,32 @@ public class DeletionRulesTests : IDisposable
 
         Assert.False(p.Eliminabile);
         Assert.Contains("elimina prima il documento", Assert.Single(p.Blocca).Testo);
+    }
+
+    [Fact]
+    public void ANCHE_il_vSOP_MILITARE_si_elimina_prima_a_mano()
+    {
+        // ⚠️ È IL test del campo SOLO militare — Aviano, Ghedi, Decimomannu, Rivolto: `DocumentId` è NULLO,
+        // quindi il blocco del gemello civile non scatta. Fino al 29 agosto 2026 l'aeroporto si eliminava e
+        // il vSOP militare restava ORFANO: senza `MilAirport` nessun descrittore lo riconosce più, e le sue
+        // righe in `DocReleases` restano in tabella sull'ICAO. L'anteprima non lo nominava nemmeno.
+        var p = DeletionRules.PerAeroporto(Scalo(documentId: null, milDocumentId: 77), Penultimo, Penultimo);
+
+        Assert.False(p.Eliminabile);
+        Assert.Contains("vSOP militare", Assert.Single(p.Blocca).Testo);
+    }
+
+    [Fact]
+    public void Uno_scalo_MISTO_trattiene_TUTTI_E_DUE_i_documenti()
+    {
+        // Pisa: vIPI civile e vSOP militare sullo stesso ICAO. Due blocchi, due nomi: l'anteprima deve dire
+        // che cosa si porterebbe via, e sono due documenti diversi con due release diverse.
+        var p = DeletionRules.PerAeroporto(Scalo(documentId: 12, milDocumentId: 77), Penultimo, Penultimo);
+
+        Assert.False(p.Eliminabile);
+        Assert.Equal(2, p.Blocca.Count);
+        Assert.Contains(p.Blocca, b => b.Testo.Contains("è la vIPI"));
+        Assert.Contains(p.Blocca, b => b.Testo.Contains("vSOP militare"));
     }
 
     [Fact]
@@ -446,7 +478,7 @@ public class DeletionRulesTests : IDisposable
     public void Un_settore_dello_scalo_che_blocca_blocca_tutto_lo_scalo()
     {
         var p = DeletionRules.PerAeroporto(
-            Scalo(null, Settore("LIRF_APP", SectorType.App, SectorKind.Airport, airportId: 3,
+            Scalo(null, null, Settore("LIRF_APP", SectorType.App, SectorKind.Airport, airportId: 3,
                 documenti: new[] { Documento(ancoraQui: true, restaAncorato: false) })),
             Penultimo, Penultimo);
 

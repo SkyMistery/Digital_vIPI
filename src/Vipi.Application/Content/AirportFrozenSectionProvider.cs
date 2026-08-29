@@ -25,15 +25,29 @@ public sealed class AirportFrozenSectionProvider : IFrozenSectionProvider
     private readonly IAirportSectorService _sectors;
     private readonly IAirportSidDerivationService _sids;
 
+    /// <param name="type">
+    /// La famiglia che questo provider serve. ⚠️ <b>Sono DUE</b>: la vIPI civile d'aeroporto e il vSOP
+    /// <b>militare</b> dello stesso scalo, che deriva le stesse tre tabelle (<c>frequencies</c>,
+    /// <c>runways</c>, <c>transition</c>) perché parlano dello stesso campo. Il <i>motore</i> è uno solo —
+    /// riscriverlo sarebbe due proiezioni che col tempo divergono — ma le <b>catture</b> devono restare due,
+    /// perché due sono le release: un vSOP militare si pubblica con un suo progressivo e un suo ciclo AIRAC,
+    /// e deve fotografare le tabelle in quel momento, non nel momento in cui è stata pubblicata la civile.
+    /// <para>
+    /// ⚠️ Non è la stessa cosa di «riusare la chiave» (carta vSOP militari §2): lì si condivide il renderer,
+    /// qui si terrebbe lo <i>snapshot</i>. Chi registra questo provider una volta sola lascia l'edizione
+    /// militare senza cattura, e il registry risponde <c>Empty</c> in silenzio.
+    /// </para>
+    /// </param>
     public AirportFrozenSectionProvider(IAirportProfileReader repo, IAirportSectorService sectors,
-        IAirportSidDerivationService sids)
+        IAirportSidDerivationService sids, ReleaseTargetType type = ReleaseTargetType.Airport)
     {
         _repo = repo;
         _sectors = sectors;
         _sids = sids;
+        Type = type;
     }
 
-    public ReleaseTargetType Type => ReleaseTargetType.Airport;
+    public ReleaseTargetType Type { get; }
 
     public async Task<IReadOnlyDictionary<int, string>> CaptureFrozenAsync(string key, RawDocument doc, CancellationToken ct = default)
     {

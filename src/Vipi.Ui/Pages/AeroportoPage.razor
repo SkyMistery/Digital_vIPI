@@ -101,6 +101,12 @@ else
                 }
 
                 @* Tradotto a macchina e non ancora riletto, o tradotto a metà: chi legge deve saperlo. *@
+                @* Il filtro di lettura pilota/ATC (carta vSOP militari §3): vale su tutte le famiglie,
+                   perché il flag è per-sezione e l'editor lo offre ovunque. Invisibile finché nessuno ha
+                   marcato niente. *@
+                <AudienceChip Visibile="_haMarcate" Vista="_vista"
+                              BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}" + (_mode.Kind == PreviewKind.Draft ? "&as=draft" : ""))" />
+
                 <TranslationNotice Coverage="_copertura" />
 
                 @* ---------- Le sezioni, nell'ORDINE DEL DOCUMENTO ----------
@@ -156,6 +162,13 @@ else
     [Parameter] public string Acc { get; set; } = default!;
     [SupplyParameterFromQuery] public string? Icao { get; set; }
     [SupplyParameterFromQuery(Name = "as")] public string? As { get; set; }
+
+    /// <summary>La vista di lettura: «pilota», «atc», o assente per il documento intero (carta vSOP
+    /// militari §3).</summary>
+    [SupplyParameterFromQuery(Name = "vista")] public string? Vista { get; set; }
+
+    private Vipi.Domain.SectionAudience? _vista;
+    private bool _haMarcate;
     private PreviewMode _mode;
     private string? _relCycle;
 
@@ -253,6 +266,7 @@ else
         _mode = PreviewMode.Parse(As);
         _relCycle = null;
         _copertura = Vipi.Application.Translation.TranslationCoverage.Nessuna;
+        _haMarcate = false;
         _passata = Vipi.Application.Translation.TranslationPass.Nessuna;
         _presidency = await Presidency.ResolveAsync(_icao);
         switch (_mode.Kind)
@@ -290,7 +304,7 @@ else
         // lasciare che un ramo di fallback dimenticasse il flag, renderebbe il congelamento AIRAC aggirabile
         // da un `?as=` qualsiasi.
         var useFrozen = _mode.Kind is not (PreviewKind.Draft or PreviewKind.Release);
-        _derived = await AirportView.ResolveForViewAsync(_icao, useFrozen);
+        _derived = await AirportView.ResolveForViewAsync(_icao, useFrozen, ReleaseTargetType.Airport);
         _haMilitare = await Militari.HasPublishedAsync(_icao);
         _runways = _derived.Runways.Rows.Count > 0
             ? _derived.Runways.Rows.Select(r => r.Ident).ToList()
@@ -329,6 +343,12 @@ else
         // costa zero query (la memoria è già in mano) e ritraduce dalla stessa impronta; su un testo già
         // tradotto non trova nulla e lo lascia dov'è.
         _sezioni = AirportLegacySections.ForView(_view.Sections).Select(_passata.Sezione).ToList();
+
+        // Il filtro di lettura, DOPO la traduzione e DOPO i titoli di catalogo: si filtra la vista che il
+        // lettore vedrà davvero, e la chip si accende solo se c'è qualcosa da filtrare.
+        _vista = AudienceFilter.Leggi(Vista);
+        _haMarcate = AudienceFilter.HaSezioniMarcate(_sezioni);
+        _sezioni = AudienceFilter.Filtra(_sezioni, _vista);
     }
 
                 /// <summary>Gli ATC su questo scalo, ATIS escluso: un ATIS acceso non è una posizione presidiata.

@@ -36,13 +36,19 @@
                 <h2 class="h-sect" style="margin-top:0">
                     @if (HeaderContent is not null) { @HeaderContent(s) } else { @Titolo(s) }
                     @if (nascosta) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }
+                    @* ⚠️ «Etichetta PRIMA, filtro dopo» (carta vSOP militari §3): il badge dice a chi parla
+                       questa sezione, e lo dice SEMPRE — anche a chi non ha filtrato niente, anche nelle
+                       famiglie che la chip non ce l'hanno. Sta qui, nel componente condiviso, e non nelle
+                       pagine, perché una regola scritta in cinque posti si applica in tre. *@
+                    <AudienceBadge Audience="s.Audience" />
                 </h2>
             </Header>
             <ChildContent>
                 @{ var perSlot = SlotsOf?.Invoke(s) ?? s; }
                 @if (SectionBody.HasChildren(perSlot, SectionSlot.Before))
                 {
-                    <SectionBody Section="perSlot" ShowBlocks="false" Slot="SectionSlot.Before" IsDraft="IsDraft" />
+                    <SectionBody Section="perSlot" ShowBlocks="false" Slot="SectionSlot.Before" IsDraft="IsDraft"
+                                 Profile="Profile" DerivedContent="DerivedContent" />
                 }
                 @DerivedContent(s)
                 @* La sezione tiene ANCHE i suoi blocchi: il timbro sopra, il testo scritto a mano sotto.
@@ -55,7 +61,8 @@
                 }
                 @if (SectionBody.HasChildren(perSlot, SectionSlot.After))
                 {
-                    <SectionBody Section="perSlot" ShowBlocks="false" Slot="SectionSlot.After" IsDraft="IsDraft" />
+                    <SectionBody Section="perSlot" ShowBlocks="false" Slot="SectionSlot.After" IsDraft="IsDraft"
+                                 Profile="Profile" DerivedContent="DerivedContent" />
                 }
             </ChildContent>
         </CollapsibleBlock>
@@ -70,14 +77,18 @@
             <Header>
                 <h2 class="h-sect" style="margin-top:0">
                     @Titolo(s) <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span>
+                    <AudienceBadge Audience="s.Audience" />
                 </h2>
             </Header>
-            <ChildContent><SectionBody Section="s" IsDraft="IsDraft" /></ChildContent>
+            <ChildContent><SectionBody Section="s" IsDraft="IsDraft" Profile="Profile" DerivedContent="DerivedContent" /></ChildContent>
         </CollapsibleBlock>
     }
     else
     {
-        <SectionNode Section="s" IsDraft="IsDraft" />
+        @* ⚠️ Profilo e corpo derivato SCENDONO: una sezione contenitore — «Dati generali» del vSOP militare —
+           non è resa dalla pagina, ma le sue FIGLIE sì (frequenze, piste, quote di transizione). Senza
+           passarli, quelle figlie uscivano come titoli vuoti. *@
+        <SectionNode Section="s" IsDraft="IsDraft" Profile="Profile" DerivedContent="DerivedContent" />
     }
 }
 

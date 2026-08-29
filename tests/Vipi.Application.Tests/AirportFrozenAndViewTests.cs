@@ -28,6 +28,10 @@ public class AirportFrozenAndViewTests
     private static AirportFrozenSectionProvider Provider(AirportData? data = null) =>
         new(new FakeProfilo(data), new FakeSettori(), new FakeSid());
 
+    /// <summary>Lo stesso provider, ma per l'edizione MILITARE dello scalo.</summary>
+    private static AirportFrozenSectionProvider ProviderMil(AirportData? data = null) =>
+        new(new FakeProfilo(data), new FakeSettori(), new FakeSid(), ReleaseTargetType.AirportMil);
+
     private static AirportViewDerivationService Derivazione(FakeReader reader, AirportData? data = null) =>
         new(new FakeProfilo(data), new FakeSettori(), new FakeSid(), reader);
 
@@ -107,7 +111,8 @@ public class AirportFrozenAndViewTests
             Frozen = { ["runways"] = new AirportRunwaysView(new[] { new AirportRunwayRowView("34R", 3900, "—", "—", "—", "—", "—") }) },
         };
 
-        var v = await Derivazione(reader, Profilo()).ResolveForViewAsync("LIRF", useFrozen: true);
+        var v = await Derivazione(reader, Profilo()).ResolveForViewAsync("LIRF", useFrozen: true,
+                                                                          ReleaseTargetType.Airport);
 
         Assert.Equal("34R", Assert.Single(v.Runways.Rows).Ident);   // congelata: la pista di un altro ciclo
         Assert.Equal("16L", Assert.Single(Profilo().Runways).Ident); // ...mentre il profilo dice 16L
@@ -125,11 +130,86 @@ public class AirportFrozenAndViewTests
     {
         // ⚠️ È ciò che rende morbido il passaggio: gli aeroporti già pubblicati non hanno un payload congelato
         // per le chiavi nuove, quindi continuano a leggersi live finché non si ripubblica.
-        var v = await Derivazione(new FakeReader(), Profilo()).ResolveForViewAsync("LIRF", useFrozen: true);
+        var v = await Derivazione(new FakeReader(), Profilo()).ResolveForViewAsync("LIRF", useFrozen: true,
+                                                                                   ReleaseTargetType.Airport);
 
         Assert.Equal("16L", Assert.Single(v.Runways.Rows).Ident);
         Assert.Equal(6000, v.Transition.TransitionAltitudeFt);
         Assert.Equal("118.700", Assert.Single(v.Frequencies.Rows).Frequency);
+    }
+
+    // ---- L'EDIZIONE MILITARE dello stesso scalo (carta vSOP militari §2, correzione del 29 agosto 2026) ----
+    //
+    // ⚠️ Le tabelle sono le STESSE — piste, quote e frequenze di un campo sono quelle, qualunque documento
+    // le mostri — ma le RELEASE sono due, e quindi due sono gli snapshot. Il motore di proiezione resta uno
+    // solo: quel che cambia è il bersaglio da cui si legge e su cui si cattura.
+
+    [Fact]
+    public void Il_provider_MILITARE_e_lo_STESSO_motore_con_un_bersaglio_diverso()
+    {
+        // Se un giorno qualcuno ricopiasse la proiezione in una classe militare a parte, le due mappe
+        // divergerebbero e una delle due sarebbe sbagliata senza che nessuno se ne accorga.
+        Assert.Equal(ReleaseTargetType.Airport, Provider().Type);
+        Assert.Equal(ReleaseTargetType.AirportMil, ProviderMil().Type);
+    }
+
+    [Fact]
+    public async Task Pubblicare_un_vSOP_MILITARE_congela_le_sue_tabelle()
+    {
+        // ⚠️ È IL test della correzione. Senza un provider registrato per `AirportMil`, il registry rispondeva
+        // `Empty` IN SILENZIO: pubblicare non fissava niente, e le tre tabelle derivate del documento
+        // militare restavano appese alla release CIVILE dello scalo — al ciclo AIRAC di quella.
+        var doc = Doc(
+            Sec(10, "frequencies", RenderMode.Frozen),
+            Sec(20, "runways", RenderMode.Frozen),
+            Sec(30, "transition", RenderMode.Frozen));
+
+        var frozen = await ProviderMil(Profilo()).CaptureFrozenAsync("LIRF", doc);
+
+        Assert.Equal(3, frozen.Count);
+        Assert.Contains("118.700", frozen[10]);
+        Assert.Contains("16L", frozen[20]);
+        Assert.Contains("6000", frozen[30]);
+    }
+
+    [Fact]
+    public async Task La_vista_MILITARE_chiede_lo_snapshot_della_release_MILITARE()
+    {
+        // ⚠️ La chiave di release è l'ICAO per TUTTE E DUE le edizioni: il tipo è l'unica cosa che le
+        // distingue. Chiedere `Airport` da qui non darebbe errore — darebbe la fotografia dell'altro
+        // documento, che è molto peggio.
+        var reader = new FakeReader();
+
+        await Derivazione(reader, Profilo()).ResolveForViewAsync("LIRF", useFrozen: true,
+                                                                 ReleaseTargetType.AirportMil);
+
+        Assert.Equal(ReleaseTargetType.AirportMil, reader.TipoChiesto);
+    }
+
+    [Fact]
+    public async Task La_vista_CIVILE_continua_a_chiedere_la_release_CIVILE()
+    {
+        var reader = new FakeReader();
+
+        await Derivazione(reader, Profilo()).ResolveForViewAsync("LIRF", useFrozen: true,
+                                                                 ReleaseTargetType.Airport);
+
+        Assert.Equal(ReleaseTargetType.Airport, reader.TipoChiesto);
+    }
+
+    [Fact]
+    public async Task Un_tipo_SENZA_provider_non_cattura_niente_e_NON_protesta()
+    {
+        // ⚠️ Il modo in cui il difetto è rimasto nascosto un giorno intero: `FrozenSectionRegistry` non
+        // conosce l'elenco delle famiglie che DEVONO avere un provider, quindi una famiglia dimenticata non
+        // è un errore — è un dizionario vuoto. Questo test non chiede di cambiarlo: lo mette per iscritto,
+        // così chi aggiunge una famiglia sa che il silenzio è il comportamento previsto e la registrazione
+        // in DI è l'unica cosa che lo evita.
+        var registry = new FrozenSectionRegistry(new IFrozenSectionProvider[] { Provider(Profilo()) });
+        var doc = Doc(Sec(10, "runways", RenderMode.Frozen));
+
+        Assert.Empty(await registry.CaptureAsync(ReleaseTargetType.AirportMil, "LIRF", doc));
+        Assert.NotEmpty(await registry.CaptureAsync(ReleaseTargetType.Airport, "LIRF", doc));
     }
 
     private static AirportData Profilo() => new()
@@ -190,9 +270,14 @@ public class AirportFrozenAndViewTests
         public int Letture { get; private set; }
         public bool WasQueried => Letture > 0;
 
+        /// <summary>Di quale FAMIGLIA e' stato chiesto lo snapshot. Non e' un dettaglio: la chiave e' l'ICAO
+        /// per tutte e due le edizioni dello scalo, quindi il tipo e' l'unica cosa che le distingue.</summary>
+        public ReleaseTargetType? TipoChiesto { get; private set; }
+
         public Task<FrozenSections> LoadAsync(ReleaseTargetType type, string key, CancellationToken ct = default)
         {
             Letture++;
+            TipoChiesto = type;
             // Si passa per il JSON vero, non per gli oggetti: cosi' la prova copre anche la deserializzazione.
             return Task.FromResult(FrozenSections.FromKeys(
                 Frozen.ToDictionary(kv => kv.Key, kv => System.Text.Json.JsonSerializer.Serialize(kv.Value, kv.Value.GetType()))));

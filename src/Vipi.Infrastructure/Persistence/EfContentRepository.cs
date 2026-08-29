@@ -183,10 +183,41 @@ public sealed class EfContentRepository : IContentRepository
 
     /// <summary>Determina (tipo, chiave) di release per un documento: vLOA → docId; vIPI d'aeroporto → ICAO.
     /// Gli altri (ACC vIPI legacy) non hanno release doc-based (null → path pubblicato storico).</summary>
+    /// <summary>
+    /// Di quale release è il bersaglio questo documento. ⚠️ È una <b>quinta</b> risoluzione scritta a mano —
+    /// i descrittori <c>IReleaseTarget</c> decidono guardando le NAVIGAZIONI, e qui il documento arriva da una
+    /// query senza <c>Include</c> — quindi si passa dalle colonne, e per farlo bisogna sapere che le colonne
+    /// sono <b>due</b>.
+    ///
+    /// <para>
+    /// ⚠️ <b>L'edizione si guarda PRIMA di tutto il resto</b> (correzione del 29 agosto 2026). Un documento
+    /// militare non è agganciato a <c>Sector.DocumentId</c> né a <c>Airport.DocumentId</c> — quei legami sono
+    /// del gemello civile — quindi le due domande di sotto rispondevano <c>null</c> tutte e due, il bersaglio
+    /// restava sconosciuto, lo snapshot della release non veniva nemmeno cercato e il chiamante concludeva
+    /// «nessuna release effettiva». Effetto a schermo: <b>un vSOP militare pubblicato e in vigore mostrava
+    /// «Nessun vSOP militare pubblicato»</b>. Non si era visto perché l'unico documento militare guardato a
+    /// schermo era in BOZZA, e la bozza prende un'altra strada (<c>ignoreRelease</c>).
+    /// </para>
+    /// </summary>
     private async Task<(ReleaseTargetType?, string?)> ResolveReleaseTargetAsync(Document doc, CancellationToken ct)
     {
         if (doc.Type == DocumentType.Vloa)
             return (ReleaseTargetType.Vloa, doc.Id.ToString());
+
+        if (doc.Edition == DocumentEdition.Military)
+        {
+            // Gli stessi due bersagli del civile, letti dalle colonne gemelle. La CHIAVE è la stessa —
+            // l'ICAO, il callsign — perché a distinguere le due edizioni è il TIPO.
+            var milApp = await _db.Sectors.AsNoTracking()
+                .Where(s => s.MilDocumentId == doc.Id && s.IsPrimary && s.Type == SectorType.App
+                            && s.ApproachKind == ApproachKind.Standalone)
+                .Select(s => s.Callsign).FirstOrDefaultAsync(ct);
+            if (milApp is not null) return (ReleaseTargetType.AppMil, milApp);
+
+            var milIcao = await _db.Airports.AsNoTracking()
+                .Where(a => a.MilDocumentId == doc.Id).Select(a => a.Icao).FirstOrDefaultAsync(ct);
+            return milIcao is not null ? (ReleaseTargetType.AirportMil, milIcao) : (null, null);
+        }
 
         // APP non remotizzato su Document (doc 08e): target release = callsign APP.
         var appCallsign = await _db.Sectors.AsNoTracking()

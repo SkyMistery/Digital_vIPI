@@ -79,6 +79,15 @@ public static class DependencyInjection
         services.AddScoped<IFrozenSectionProvider, AppFrozenSectionProvider>();
         services.AddScoped<IFrozenSectionProvider, AccFrozenSectionProvider>();
         services.AddScoped<IFrozenSectionProvider, AirportFrozenSectionProvider>();
+        // ⚠️ Lo STESSO provider una seconda volta, per l'edizione MILITARE dello scalo (carta vSOP militari
+        // §2): stesso motore di proiezione, cattura separata. Senza questa riga `FrozenSectionRegistry`
+        // non trova un provider per `AirportMil` e torna `Empty` IN SILENZIO — pubblicare un vSOP militare
+        // non congelerebbe niente, e le sue tabelle derivate resterebbero appese alla release CIVILE.
+        services.AddScoped<IFrozenSectionProvider>(sp => new AirportFrozenSectionProvider(
+            sp.GetRequiredService<IAirportProfileReader>(),
+            sp.GetRequiredService<IAirportSectorService>(),
+            sp.GetRequiredService<IAirportSidDerivationService>(),
+            Vipi.Domain.ReleaseTargetType.AirportMil));
         services.AddScoped<IFrozenSectionRegistry, FrozenSectionRegistry>();
         services.AddScoped<IFrozenSectionReader, FrozenSectionReader>();   // doc 10 §3d: lettura frozen al view
         services.AddScoped<IAccViewDerivationService, AccViewDerivationService>();

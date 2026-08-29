@@ -77,6 +77,26 @@ public static class AudienceFilter
     public static bool HaSezioniMarcate(IReadOnlyList<SectionView> sezioni) =>
         sezioni.Any(s => s.Audience != SectionAudience.Both || HaSezioniMarcate(s.Children));
 
+    /// <summary>
+    /// Se una sezione con questo destinatario si mostra a chi guarda in questa vista; <c>vista</c> nulla
+    /// («tutto») mostra sempre.
+    /// <para>
+    /// ⚠️ È pubblica per la vIPI <b>ACC</b>, che non passa da <see cref="Filtra"/>: è l'unica famiglia a
+    /// blocchi, il suo ciclo esterno itera i blocchi e le sue sezioni sono <c>AccBlockSection</c>, non
+    /// <see cref="SectionView"/>. Ha comunque bisogno della <b>stessa</b> regola — riscriverla lì sarebbe la
+    /// quinta copia di una condizione di tre righe, e la prima a divergere.
+    /// </para>
+    /// </summary>
+    public static bool Mostra(SectionAudience sezione, SectionAudience? vista) =>
+        vista is null || sezione == SectionAudience.Both || sezione == vista.Value;
+
+    /// <summary>
+    /// La stessa sezione con i soli FIGLI che questo lettore deve vedere. Serve a chi filtra la radice per
+    /// conto suo (la vIPI ACC) ma vuole la regola sui figli senza riscriverla.
+    /// </summary>
+    public static SectionView FiltraFigli(SectionView s, SectionAudience? vista) =>
+        vista is null || s.Children.Count == 0 ? s : ConFigli(s, Filtra(s.Children, vista));
+
     /// <summary>Se una sezione con questo destinatario si mostra a chi guarda in questa vista.</summary>
     private static bool Passa(SectionAudience sezione, SectionAudience vista) =>
         sezione == SectionAudience.Both || sezione == vista;

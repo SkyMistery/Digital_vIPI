@@ -155,6 +155,7 @@ public sealed record SectorFacts(
 public sealed record AirportFacts(
     int AirportId, string Icao, string Name, string AccCode,
     DateTime? LastSeenAtUtc, int? DocumentId, string? DocumentTitolo,
+    int? MilDocumentId, string? MilDocumentTitolo,
     IReadOnlyList<SectorFacts> Settori);
 
 /// <summary>Tutto ciò che serve a decidere se e come una ACC si può eliminare.</summary>
@@ -362,6 +363,16 @@ public static class DeletionRules
         if (f.DocumentId is not null)
             blocca.Add(new DeletionBlocker(
                 $"elimina prima il documento «{f.DocumentTitolo}»: è la vIPI di {f.Icao}",
+                "/services/vsop/versions"));
+
+        // ⚠️ E l'EDIZIONE MILITARE, che è un secondo documento con un secondo legame
+        // (`Airport.MilDocumentId`). Va chiesto a parte, e non è ridondante: sui campi SOLO militari —
+        // Aviano, Ghedi, Decimomannu, Rivolto — `DocumentId` è NULL, quindi il blocco civile qui sopra non
+        // scatta, l'aeroporto si elimina e il vSOP militare resta ORFANO: senza `MilAirport` nessun
+        // descrittore lo riconosce più, e le sue righe in `DocReleases` restano in tabella sull'ICAO.
+        if (f.MilDocumentId is not null)
+            blocca.Add(new DeletionBlocker(
+                $"elimina prima il documento «{f.MilDocumentTitolo}»: è il vSOP militare di {f.Icao}",
                 "/services/vsop/versions"));
 
         var settori = new List<int>();

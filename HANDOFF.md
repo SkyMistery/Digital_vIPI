@@ -1,8 +1,48 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 29 agosto 2026 (le **autorizzazioni a livelli** fuse in `main`: §U chiusa).
+**Ultimo aggiornamento:** 29 agosto 2026, notte (la **supervisione dei vSOP militari**: §V, tredici voci chiuse).
 
 ## Dove siamo, prima di tutto il resto
+
+🆕 **29 agosto, sera — supervisione dei vSOP militari contro la loro carta.** Dieci voci trovate leggendo
+[`docs/feature/2026-08-27-vsop-militari.md`](docs/feature/2026-08-27-vsop-militari.md) **contro il codice**;
+dieci chiuse. Esito: [`docs/history/audit-2026-08-29-vsop-militari-relazione.md`](docs/history/audit-2026-08-29-vsop-militari-relazione.md),
+lavori aperti **§V**. Il filo: il documento militare era agganciato al motore di **lettura** e non a quello
+di **governo**. Le quattro grosse:
+
+- **nessun congelamento** per l'edizione militare, e la vista che leggeva lo snapshot della release **civile**
+  (su un campo misto mostrava la fotografia dell'altro documento; su uno solo militare il congelamento era un
+  no-op);
+- il documento **invisibile** a ricerca, «Novità», VersioniPage, incarichi, eliminazione e drift, per un
+  `.Include(d => d.MilAirport)` mai messo in tre repository;
+- gli **impatti** che non avvisavano mai il gemello militare quando cambiava una frequenza;
+- l'**eliminazione** di un aeroporto solo militare che lasciava il suo documento orfano.
+
+✅ **§V1 — la verifica a schermo su un campo MISTO è stata fatta** (LIML Linate: creata e pubblicata la vIPI
+civile, ripubblicato il vSOP militare, cambiata una frequenza nel catalogo e ripubblicato **solo il civile**).
+Tutti e cinque i punti verificati — e ha trovato **altre tre voci**, le peggiori del giro:
+
+- ⚠️ **un vSOP militare PUBBLICATO diceva «nessun vSOP militare pubblicato»**: il bersaglio di release non si
+  risolveva sul legame militare, quindi lo snapshot non veniva nemmeno cercato. Il viewer pubblico dei vSOP
+  militari non aveva mai funzionato su un documento pubblicato — l'unico guardato a schermo era in BOZZA;
+- ⚠️ **tre tabelle su tre erano titoli VUOTI** (Frequenze, Piste, Quote di transizione): il corpo derivato lo
+  disegnavano solo le sezioni **radice**, e nel profilo militare quelle tre sono figlie;
+- ⚠️ **il catalogo non trovava le sezioni annidate**: `SectionCatalog.Find` si fermava al primo livello, e
+  venti sezioni di catalogo su ventisei passavano per libere anche nell'editor.
+
+La misura che chiude il punto, stesso scalo e stesso istante:
+
+```
+vIPI civile   LIML_TWR  118.999   ← ripubblicata dopo il cambio di catalogo
+vSOP militare LIML_TWR  118.100   ← non ripubblicata: tiene il SUO snapshot
+```
+
+✅ **Suite: 3 841 su net8, NOVE progetti su nove** (E2E compresi) e altrettanti su net10. **Build Release
+`--no-incremental` a zero avvisi e zero errori** sull'intera soluzione.
+
+⚠️ **Nuovo lavoro aperto §V4**, visto di striscio: nella vIPI **civile** d'aeroporto il titolo «Regole piste»
+esce **«Slope rules»** in inglese — la stessa resa che il 28 agosto si era chiusa per i soli titoli militari.
+È il glossario, non la relazione fra le edizioni: non toccato apposta.
 
 ✅ **NESSUN RAMO CON LAVORO FUORI.** `main` = **`8d14b499`**, spinto: dentro ci sono il glossario di
 fraseologia (28 agosto) e le **autorizzazioni a livelli** (29 agosto). Entrambi i rami sono stati cancellati

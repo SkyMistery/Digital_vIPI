@@ -1,4 +1,6 @@
-﻿namespace Vipi.Application.Content;
+﻿using Vipi.Domain;
+
+namespace Vipi.Application.Content;
 
 // Modelli della vIPI ACC: documento a blocchi (Aerovia/CTR + gruppi APP). Riusa i record editoriali/derivati
 // dell'APP (AppSeparationRow, AppFreqOrderOverride, AppFreqRow, AppCoordination, AppAorPolygon).
@@ -29,7 +31,17 @@ public sealed class AccConfiguration
 /// blocchi e le sotto-sezioni già pronti per la resa condivisa (<c>SectionNode</c>/<c>SectionBody</c>): per le
 /// sezioni strutturate (aor/frequenze/…) il corpo lo produce la pagina, ma le sotto-sezioni restano qui.
 /// </summary>
-public sealed record AccBlockSection(int SectionId, string Key, string Title, bool IsHidden, SectionView? Editorial);
+/// <param name="Audience">
+/// A chi si rivolge la sezione (carta vSOP militari §3). ⚠️ Sta <b>anche</b> qui e non solo dentro
+/// <paramref name="Editorial"/>: le sezioni di catalogo mai scritte arrivano con <c>Editorial = null</c>, e
+/// senza questo campo il filtro della pagina dovrebbe indovinarne il destinatario.
+/// </param>
+/// ⚠️ Il default è <c>Both</c> — «per tutti» — e non è pigrizia: è lo zero dell'enum e il significato
+/// giusto di «nessuno l'ha marcata». Chi costruisce una sezione senza dire il destinatario sta dicendo
+/// esattamente quello.
+public sealed record AccBlockSection(int SectionId, string Key, string Title, bool IsHidden,
+                                     SectionView? Editorial,
+                                     SectionAudience Audience = SectionAudience.Both);
 
 /// <summary>
 /// Un blocco della vIPI ACC: Aerovia (settori CTR, pool implicito) o gruppo-APP (settori APP scelti).

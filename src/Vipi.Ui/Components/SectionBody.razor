@@ -8,7 +8,8 @@
 {
     @foreach (var child in Section.Children.Where(c => c.BeforeParentBody))
     {
-        <SectionNode Section="child" DepthOffset="DepthOffset" IsDraft="IsDraft" />
+        <SectionNode Section="child" DepthOffset="DepthOffset" IsDraft="IsDraft"
+                     Profile="Profile" DerivedContent="DerivedContent" />
     }
 }
 
@@ -34,12 +35,20 @@
 {
     @foreach (var child in Section.Children.Where(c => !c.BeforeParentBody))
     {
-        <SectionNode Section="child" DepthOffset="DepthOffset" IsDraft="IsDraft" />
+        <SectionNode Section="child" DepthOffset="DepthOffset" IsDraft="IsDraft"
+                     Profile="Profile" DerivedContent="DerivedContent" />
     }
 }
 
 @code {
     [Parameter, EditorRequired] public SectionView Section { get; set; } = default!;
+
+    /// <summary>Profilo di catalogo, passato alle sotto-sezioni: senza, una sotto-sezione resa dalla PAGINA
+    /// non saprebbe di esserlo e uscirebbe come un titolo vuoto (vedi l'avviso su <c>SectionNode</c>).</summary>
+    [Parameter] public SectionProfile? Profile { get; set; }
+
+    /// <summary>Il corpo che la pagina disegna, passato alle sotto-sezioni insieme al profilo.</summary>
+    [Parameter] public RenderFragment<SectionView>? DerivedContent { get; set; }
 
     /// <summary>Rende i blocchi della sezione. False per le sezioni derivate (blocco = payload, non contenuto).</summary>
     [Parameter] public bool ShowBlocks { get; set; } = true;

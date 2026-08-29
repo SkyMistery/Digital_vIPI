@@ -26,6 +26,10 @@ public class DocumentImpactLookupTests : IAsyncLifetime
     // Documenti della scena, per Id (riempiti in InitializeAsync).
     private int _accDoc, _appPisaDoc, _scaloPisaDoc, _appGrottaglieDoc, _scaloGrottaglieDoc, _scaloMilanoDoc, _vloaDoc;
 
+    // Le due edizioni militari della scena: Pisa è un campo MISTO (civile + militare, ed è fra i quindici
+    // SOP veri), Rivolto è SOLO militare — nessun documento civile a cui appoggiarsi.
+    private int _milPisaDoc, _milRivoltoDoc;
+
     public async Task InitializeAsync()
     {
         await _conn.OpenAsync();
@@ -45,15 +49,17 @@ public class DocumentImpactLookupTests : IAsyncLifetime
         // Pisa: APP (sotto NE) + TWR + GND. Grottaglie: SOLO un APP non remotizzato (il caso LIBG).
         // Milano Linate: una torre, in un ALTRO ACC — serve a dimostrare che non viene segnalata per sbaglio.
         var lirp = new Airport { Icao = "LIRP", Name = "Pisa", Acc = lirr };
+        var lipi = new Airport { Icao = "LIPI", Name = "Rivolto", Acc = lirr };
         var libg = new Airport { Icao = "LIBG", Name = "Grottaglie", Acc = lirr };
         var liml = new Airport { Icao = "LIML", Name = "Linate", Acc = limm };
-        _db.Airports.AddRange(lirp, libg, liml);
+        _db.Airports.AddRange(lirp, libg, liml, lipi);
         _db.AirportSectors.AddRange(
             new AirportSector { ComposePosition = "LIRP_APP", AirportIcao = "LIRP", AccCode = "LIRR", Position = "APP", ParentCallsign = "LIRR_NE_CTR" },
             new AirportSector { ComposePosition = "LIRP_TWR", AirportIcao = "LIRP", AccCode = "LIRR", Position = "TWR" },
             new AirportSector { ComposePosition = "LIRP_GND", AirportIcao = "LIRP", AccCode = "LIRR", Position = "GND" },
             new AirportSector { ComposePosition = "LIBG_APP", AirportIcao = "LIBG", AccCode = "LIRR", Position = "APP" },
-            new AirportSector { ComposePosition = "LIML_TWR", AirportIcao = "LIML", AccCode = "LIMM", Position = "TWR" });
+            new AirportSector { ComposePosition = "LIML_TWR", AirportIcao = "LIML", AccCode = "LIMM", Position = "TWR" },
+            new AirportSector { ComposePosition = "LIPI_TWR", AirportIcao = "LIPI", AccCode = "LIRR", Position = "TWR" });
         await _db.SaveChangesAsync();
 
         var accDoc = Doc("vIPI Roma ACC");
@@ -62,6 +68,8 @@ public class DocumentImpactLookupTests : IAsyncLifetime
         var appGrottaglie = Doc("vIPI APP Grottaglie");
         var scaloGrottaglie = Doc("vIPI Aeroporto Grottaglie");
         var scaloMilano = Doc("vIPI Aeroporto Linate");
+        var milPisa = Doc("vSOP MIL — LIRP");
+        var milRivolto = Doc("vSOP MIL — LIPI");
         var vloa = new Document { Type = DocumentType.Vloa, Title = "vLOA LIRR ↔ LFMM", LastUpdatedAiracCycle = "2608" };
         _db.Documents.Add(vloa);
         await _db.SaveChangesAsync();
@@ -69,6 +77,7 @@ public class DocumentImpactLookupTests : IAsyncLifetime
         _accDoc = accDoc.Id; _appPisaDoc = appPisa.Id; _scaloPisaDoc = scaloPisa.Id;
         _appGrottaglieDoc = appGrottaglie.Id; _scaloGrottaglieDoc = scaloGrottaglie.Id;
         _scaloMilanoDoc = scaloMilano.Id; _vloaDoc = vloa.Id;
+        _milPisaDoc = milPisa.Id; _milRivoltoDoc = milRivolto.Id;
 
         // Proiezione dei settori. Nota bene chi porta quale documento:
         //  - LIRR_NE_CTR: radice CTR primaria → documento ACC-wide;
@@ -88,6 +97,11 @@ public class DocumentImpactLookupTests : IAsyncLifetime
         lirp.DocumentId = scaloPisa.Id;
         libg.DocumentId = scaloGrottaglie.Id;   // ⚠️ nessun Sector porta questo documento: è tutto il punto
         liml.DocumentId = scaloMilano.Id;
+
+        // E il legame GEMELLO dell'edizione militare. ⚠️ Su Rivolto c'è SOLO questo: `DocumentId` resta
+        // nullo, e un lookup che guardasse la sola colonna civile non troverebbe niente da segnalare.
+        lirp.MilDocumentId = milPisa.Id;
+        lipi.MilDocumentId = milRivolto.Id;
 
         _db.NeighbourCandidates.Add(new NeighbourCandidate
         {
@@ -163,6 +177,46 @@ public class DocumentImpactLookupTests : IAsyncLifetime
     }
 
     // ---- Regola 3: reverse-lookup preciso ----
+
+    // ---- L'edizione MILITARE dello scalo (correzione del 29 agosto 2026) -----------------------------
+    //
+    // ⚠️ La carta dei vSOP militari (§2) promette che una frequenza cambiata nel catalogo «cambia in
+    // ENTRAMBI i documenti — alla vista se Live, alla ripubblicazione se Frozen». Il motore la mantiene:
+    // le due edizioni derivano dalla stessa anagrafica. Ma il meccanismo che dice all'editore «ripubblica»
+    // è QUESTO, e fino al 29 agosto 2026 guardava soltanto `Airport.DocumentId`.
+
+    [Fact]
+    public async Task Una_posizione_di_PISA_segnala_ANCHE_il_vSOP_militare()
+    {
+        // Pisa è un campo MISTO — scalo civile con sedime militare, ed è fra i quindici SOP veri. I due
+        // documenti derivano la STESSA tabella frequenze: se cambia una posizione, vanno riletti tutti e due.
+        var ids = await LookupAsync("LIRP_TWR");
+
+        Assert.Contains(_scaloPisaDoc, ids);   // il civile: c'era già
+        Assert.Contains(_milPisaDoc, ids);     // il militare: non c'era
+    }
+
+    [Fact]
+    public async Task Un_campo_SOLO_militare_non_e_invisibile_agli_impatti()
+    {
+        // ⚠️ Rivolto non ha un documento civile: `Airport.DocumentId` è NULLO. Un lookup che guardi la sola
+        // colonna civile su questo campo non torna NIENTE — non una riga sbagliata: zero — e l'unico
+        // documento che quel campo ha non viene avvisato mai.
+        var ids = await LookupAsync("LIPI_TWR");
+
+        Assert.Contains(_milRivoltoDoc, ids);
+    }
+
+    [Fact]
+    public async Task Il_militare_di_UN_campo_non_segnala_quello_di_un_ALTRO()
+    {
+        // La regola resta «per legame dimostrabile»: allargare il lookup non deve allargare il rumore, che
+        // era il difetto da cui è nata la riscrittura del 25 agosto.
+        var ids = await LookupAsync("LIPI_TWR");
+
+        Assert.DoesNotContain(_milPisaDoc, ids);
+        Assert.DoesNotContain(_scaloPisaDoc, ids);
+    }
 
     [Fact]
     public async Task Un_Settore_Acc_Segnala_La_vIPI_Acc_Il_Padre_E_La_vLOA_Confinante()

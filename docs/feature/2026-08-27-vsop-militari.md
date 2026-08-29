@@ -519,3 +519,39 @@ punto cambiato no.
 - La **rilettura della trascrizione**: la prima stesura è mia, non di un controllore militare.
 - Gli **altri quattordici SOP**: ognuno è un file come `SopLipi.cs`, e la parte che conta non è scriverlo —
   è rileggerlo con qualcuno che conosca il campo.
+
+## 10. Supervisione del 29 agosto 2026 — dove questa carta e il codice non dicevano la stessa cosa
+
+Carta dell'audit: [`../history/audit-2026-08-29-vsop-militari-relazione.md`](../history/audit-2026-08-29-vsop-militari-relazione.md).
+**Tredici voci, tredici chiuse** — dieci dalla lettura, tre dalla verifica a schermo. Qui restano solo le
+**righe di questa carta** che l'audit ha dovuto correggere: chi la rilegge deve trovarle emendate dove sono
+scritte, non solo altrove.
+
+| § | Diceva | Va letto così |
+|---|---|---|
+| **§4** | «l'identità di una release è `(TargetType, TargetKey)` … è già soddisfatto dallo schema: **zero lavoro**» | Vero per le **release**, falso per le **derivate**: senza un `IFrozenSectionProvider` per `AirportMil` pubblicare non congelava nulla, e la vista leggeva lo snapshot della release **civile**. Zero lavoro sullo schema, due mezze giornate sul motore |
+| **§2** | «cambio una frequenza nel catalogo → cambia in **entrambi** i documenti … alla ripubblicazione se Frozen» | Il motore lo faceva; **la casella degli impatti no**. Chi doveva ripubblicare non veniva avvisato, perché il reverse-lookup guardava solo `Airport.DocumentId` |
+| **§3** | «**Etichetta prima, filtro dopo**» + «Quinto flag … su **tutti** i documenti» | L'etichetta non era stata resa da nessuna pagina (`AudienceBadge`: zero usi), e il filtro stava su due viewer su cinque. Ora il badge è nel componente condiviso e la chip su tutte le famiglie |
+| **§7.1a** | i militari hanno «`DescribeOrder` **più basso di tutti** (0)» | Era un **pareggio** con `VloaReleaseTarget`, anche lui a 0. Ora i civili partono da 1 |
+| **§5** | «Testata del documento civile → scheda «vSOP militare» … **E il ritorno**» | Il ritorno c'era ma **senza gate**: sui quattro campi solo militari portava a «documento non disponibile» |
+| **§1c** | «`SectionProfile.AppMil` … la nascita costa zero» | Il **profilo** costa zero; il **documento** non esiste. `AppMilDocRoutes` dichiarava due pagine mai scritte: ora torna `null`, e sul file c'è l'elenco di che cosa serve quando si faranno |
+
+⚠️ **E una cosa che questa carta non poteva sapere**: la prova a schermo della slice 10 è stata fatta su
+**LIPI Rivolto perché era il SOP più corto**, e per di più **in bozza**. Rivolto è **solo militare** — nessun
+documento civile — ed è precisamente il campo su cui quattro difetti su quattro sono invisibili; la bozza, per
+di più, salta il ramo che risolve il bersaglio di release. La prossima volta che si prova una famiglia
+**gemella** di un'altra, il caso di prova si sceglie **misto e PUBBLICATO**.
+
+### §9 — quel che la slice 10 non poteva vedere
+
+Il «verdetto sul profilo» del §9 resta valido: ogni pezzo di testo dei SOP ha trovato una chiave. Ma il §9 è
+stato scritto guardando **una bozza**, e tre cose si vedono solo su un documento **pubblicato**:
+
+| | |
+|---|---|
+| il viewer pubblico | non apriva affatto un vSOP militare pubblicato: il bersaglio di release non si risolveva sul legame militare, e la pagina diceva «nessun vSOP militare pubblicato» |
+| «Frequenze ATC/CRC», «Piste», «Quote di transizione» | uscivano come **titoli vuoti**: il corpo derivato lo disegnavano solo le sezioni **radice**, e nel profilo militare quelle tre sono **figlie** |
+| le venti sezioni figlie | il catalogo non le trovava affatto (`Find` si fermava al primo livello) → non «rese dalla pagina» e non «di catalogo», nemmeno nell'editor |
+
+Dettaglio in §J dell'audit. ⚠️ Il conto delle sezioni del §9 («2 rese dalla pagina») era giusto sulla carta e
+falso a schermo: `transition` è resa dalla pagina, e a schermo non rendeva niente.

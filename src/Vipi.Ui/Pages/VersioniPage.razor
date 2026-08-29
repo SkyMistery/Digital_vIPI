@@ -953,15 +953,24 @@
     private void SetNote(string key, string? n) => _note[key] = n;
 
     // Icona per tipo documento, coerente coi bottoni di NewDocumentPage (globe/map/plane/file).
+    // ⚠️ Lo «scudo» dei militari è lo stesso della card su /services/vsop: un documento si riconosce
+    // dall'icona prima che dall'etichetta, e due icone diverse per la stessa cosa sono due cose diverse.
     private static string KindIcon(ReleaseTargetType k) => k switch
     {
         ReleaseTargetType.Vloa => "globe", ReleaseTargetType.AccVipi => "map",
-        ReleaseTargetType.Airport => "plane-takeoff", ReleaseTargetType.App => "plane-landing", _ => "file",
+        ReleaseTargetType.Airport => "plane-takeoff", ReleaseTargetType.App => "plane-landing",
+        ReleaseTargetType.AirportMil or ReleaseTargetType.AppMil => "shield", _ => "file",
     };
+    // ⚠️ Il ramo finale stampa il NOME DELL'ENUM: fino al 29 agosto 2026 una release militare compariva
+    // qui come «AirportMil», non tradotta e non riconoscibile. Il ramo resta — è la rete per un tipo nuovo —
+    // ma i tipi che esistono devono avere tutti un nome scritto per un lettore.
     private string KindLabel(ReleaseTargetType k) => k switch
     {
         ReleaseTargetType.Vloa => "vLOA", ReleaseTargetType.AccVipi => L["Nd_KindAcc"],
-        ReleaseTargetType.Airport => L["Nd_KindAirport"], ReleaseTargetType.App => "vIPI APP", _ => k.ToString(),
+        ReleaseTargetType.Airport => L["Nd_KindAirport"], ReleaseTargetType.App => "vIPI APP",
+        ReleaseTargetType.AirportMil => L["Mil_LinkFromCivil"],
+        ReleaseTargetType.AppMil => $"{L["Mil_LinkFromCivil"]} APP",
+        _ => k.ToString(),
     };
     private string StatusLabel(DocumentStatus s) => s switch
     {

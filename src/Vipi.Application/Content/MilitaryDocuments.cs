@@ -61,6 +61,19 @@ public interface IMilitaryDocumentService
     /// </summary>
     Task<bool> HasPublishedAsync(string icao, CancellationToken ct = default);
 
+    /// <summary>
+    /// Vero se questo campo ha una vIPI <b>civile</b> pubblicata: la stessa domanda al contrario, e serve al
+    /// ponte militare → civile.
+    /// <para>
+    /// ⚠️ <b>Il ponte va gated nei DUE versi.</b> Fino al 29 agosto 2026 lo era solo in uno: la pagina civile
+    /// mostrava il collegamento al militare solo se esisteva, ma quella militare mandava al civile
+    /// <b>sempre</b> — e sui campi solo militari (Aviano, Ghedi, Decimomannu, Rivolto), che sono proprio
+    /// quelli con più probabilità di avere un vSOP, il civile non c'è: il lettore finiva su «documento non
+    /// disponibile».
+    /// </para>
+    /// </summary>
+    Task<bool> HasPublishedCivilAsync(string icao, CancellationToken ct = default);
+
     /// <summary>Le aree di lavoro scelte per questo campo (sezione <c>regulated</c>).</summary>
     Task<RegulatedSelection> GetRegulatedAsync(string icao, CancellationToken ct = default);
 

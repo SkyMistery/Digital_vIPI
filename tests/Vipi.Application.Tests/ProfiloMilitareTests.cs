@@ -130,6 +130,52 @@ public class ProfiloMilitareTests
 
     // ---- Le chiavi -----------------------------------------------------------------------------------
 
+    // ---- Il catalogo risponde anche sulle sezioni ANNIDATE (trovato a schermo il 29 agosto 2026) ------
+
+    [Theory]
+    [InlineData("frequencies")]
+    [InlineData("runways")]
+    [InlineData("transition")]
+    public void Le_derivate_ANNIDATE_sono_RESE_DALLA_PAGINA(string chiave)
+    {
+        // ⚠️ È IL test del difetto visto a schermo: `SectionCatalog.Find` guardava solo il PRIMO LIVELLO del
+        // profilo, e queste tre stanno sotto «Dati generali». Rispondeva `null`, quindi «non è resa dalla
+        // pagina» e «non è di catalogo» — e nel documento pubblicato uscivano tre TITOLI VUOTI, perché la
+        // scheda non la disegnava nessuno e i blocchi di una derivata sono vuoti per costruzione.
+        Assert.True(SectionCatalog.IsHostRendered(SectionProfile.AirportMil, chiave),
+            $"«{chiave}» è annidata sotto «generaldata»: il catalogo deve trovarla lo stesso.");
+    }
+
+    [Fact]
+    public void TUTTE_le_ventisei_sezioni_sono_di_CATALOGO_anche_le_figlie()
+    {
+        // `IsFixed` decide se una sezione si può cancellare o rinominare nell'editor. Con la ricerca ferma al
+        // primo livello, VENTI sezioni di catalogo su ventisei passavano per sezioni libere.
+        static IEnumerable<SectionDescriptor> Tutte(IEnumerable<SectionDescriptor> d) =>
+            d.SelectMany(x => new[] { x }.Concat(Tutte(x.Children ?? Array.Empty<SectionDescriptor>())));
+
+        var chiavi = Tutte(SectionCatalog.For(SectionProfile.AirportMil)).Select(d => d.Key).ToList();
+
+        Assert.Equal(26, chiavi.Count);
+        Assert.All(chiavi, k => Assert.True(SectionCatalog.IsFixed(SectionProfile.AirportMil, k), k));
+    }
+
+    [Fact]
+    public void La_discesa_nei_figli_non_cambia_gli_ALTRI_profili()
+    {
+        // La misura che rende sicura la modifica: gli unici descrittori con figli sono i quattro contenitori
+        // del profilo militare. Se un giorno un altro profilo ne avesse, questo test lo dice — e chi lo
+        // aggiunge deve rileggere che cosa cambia per `IsFixed` e `IsHostRendered`.
+        static bool HaFigli(IEnumerable<SectionDescriptor> d) =>
+            d.Any(x => x.Children is { Count: > 0 } || HaFigli(x.Children ?? Array.Empty<SectionDescriptor>()));
+
+        foreach (var p in new[] { SectionProfile.App, SectionProfile.AccAerovia, SectionProfile.AccAppBlock,
+                                  SectionProfile.Vloa, SectionProfile.Airport, SectionProfile.AppMil })
+            Assert.False(HaFigli(SectionCatalog.For(p)), p.ToString());
+
+        Assert.True(HaFigli(SectionCatalog.For(SectionProfile.AirportMil)));
+    }
+
     [Fact]
     public void Nessuna_chiave_e_ripetuta()
     {

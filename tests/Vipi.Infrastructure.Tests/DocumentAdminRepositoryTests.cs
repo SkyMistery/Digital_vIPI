@@ -55,12 +55,19 @@ public class DocumentAdminRepositoryTests : IAsyncLifetime
         _db.Airports.Add(new Airport { Icao = "LIRA", Name = "Ciampino", Acc = lirr, DocumentId = airDoc });
         _db.Sectors.Add(new Sector { Acc = lirr, Callsign = "LIRA_TWR", Name = "Ciampino TWR", Type = SectorType.Twr, Kind = SectorKind.Airport, AirportIcao = "LIRA", IsActive = true, DocumentId = airDoc, IsPrimary = true });
 
+        // vSOP MILITARE: Document(Vipi) con Edition=Military, legato allo scalo da MilDocumentId.
+        // ⚠️ Su un aeroporto SOLO militare, che è il caso che ha fatto emergere il difetto: nessun documento
+        // civile, quindi nessun legame `Airport.DocumentId` a cui appoggiarsi e nessuna riga d'aeroporto già
+        // caricata da un altro Include che possa ripararlo per caso.
+        var milDoc = await NewVipiDocAsync("vSOP MIL — LIPI", DocumentEdition.Military);
+        _db.Airports.Add(new Airport { Icao = "LIPI", Name = "Rivolto", Acc = lirr, MilDocumentId = milDoc });
+
         await _db.SaveChangesAsync();
     }
 
-    private async Task<int> NewVipiDocAsync(string title)
+    private async Task<int> NewVipiDocAsync(string title, DocumentEdition edizione = DocumentEdition.Civil)
     {
-        var doc = new Document { Type = DocumentType.Vipi, Title = title, Language = Language.It, Status = DocumentStatus.Published, LastUpdatedAiracCycle = "2606" };
+        var doc = new Document { Type = DocumentType.Vipi, Title = title, Language = Language.It, Status = DocumentStatus.Published, LastUpdatedAiracCycle = "2606", Edition = edizione };
         var ver = new DocumentVersion { Document = doc, VersionNumber = 1, Status = DocumentStatus.Published, AiracCycle = "2606", CreatedUtc = DateTime.UtcNow };
         doc.Versions.Add(ver);
         _db.Documents.Add(doc);
@@ -93,6 +100,43 @@ public class DocumentAdminRepositoryTests : IAsyncLifetime
         var air = Assert.Single(all, m => m.Kind == ReleaseTargetType.Airport);
         Assert.Equal("LIRA", air.ReleaseKey);
         Assert.Equal("LIRR", air.AccCode);
+
+        var mil = Assert.Single(all, m => m.Kind == ReleaseTargetType.AirportMil);
+        Assert.Equal("LIPI", mil.ReleaseKey);
+        Assert.Equal("LIRR", mil.AccCode);
+    }
+
+    [Fact]
+    public async Task IL_DOCUMENTO_MILITARE_NON_SPARISCE_DALL_ELENCO()
+    {
+        // ⚠️ UN CONTESTO NUOVO sulla stessa connessione, e non è pignoleria: in produzione chi legge questo
+        // elenco è il contesto della RICHIESTA, che i dati non li ha seminati. Il contesto della fixture sì,
+        // e il suo change tracker tiene agganciate le navigazioni che ha visto passare — una rete che
+        // dipende da quello proteggerebbe finché EF non cambia idea su quando fare il fixup.
+        //
+        // ⚠️ Verificato ROSSO il 29 agosto 2026 togliendo l'`.Include`: il documento militare non compare
+        // fra i quattro civili, e l'assenza è silenziosa — nessuna eccezione, nessuna riga in meno che si
+        // noti guardando la pagina. (Rosso in tutt'e due i modi, con la fixture e col contesto nuovo: qui
+        // il tracker non stava riparando nulla. Il contesto nuovo resta perché è il setup fedele.)
+        await using var fresco = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn).Options);
+        var repo = TestReleaseTargets.AdminRepo(fresco);
+
+        // ⚠️ È IL test della correzione del 29 agosto 2026. La query di questo repository includeva
+        // `d.Airport` ma NON `d.MilAirport`: `AirportMilReleaseTarget.TryDescribe` leggeva
+        // `doc.MilAirport?.Icao` su una navigazione nulla e rispondeva false, i quattro descrittori civili
+        // rifiutavano per `Edition`, e `Describe` tornava null. Il documento non finiva in errore: non
+        // finiva PROPRIO — e con lui sparivano VersioniPage, la tendina degli incarichi, l'anteprima
+        // dell'eliminazione e il rivelatore di drift, che leggono tutti di qui.
+        //
+        // ⚠️ La query è `AsNoTracking`: non c'è fixup di navigazione che possa ripararlo per caso, ed è la
+        // ragione per cui il difetto era deterministico invece che intermittente.
+        var all = await repo.ListAsync();
+
+        Assert.Contains(all, m => m.Kind == ReleaseTargetType.AirportMil && m.ReleaseKey == "LIPI");
+        // E non è finito nel catch-all civile con la chiave giusta e il tipo sbagliato, che sarebbe peggio:
+        // stessa chiave di release del documento civile di quello scalo, e due edizioni che si
+        // sovrascrivono a vicenda.
+        Assert.DoesNotContain(all, m => m.Kind == ReleaseTargetType.Airport && m.ReleaseKey == "LIPI");
     }
 
     [Theory]

@@ -94,6 +94,11 @@ public sealed class EfDeletionRepository : IDeletionRepository
             {
                 x.Id, x.Icao, x.Name, AccCode = x.Acc!.Code, x.LastSeenAtUtc, x.DocumentId,
                 Titolo = x.Document!.Title,
+                // I due legami sono GEMELLI e indipendenti: uno scalo può avere solo la vIPI civile, solo il
+                // vSOP militare (Aviano, Ghedi, Decimomannu, Rivolto), o tutti e due (Pisa). L'anteprima
+                // dell'eliminazione deve nominarli entrambi, o promette meno di quel che porterebbe via.
+                x.MilDocumentId,
+                TitoloMil = x.MilDocument!.Title,
             })
             .FirstOrDefaultAsync(ct);
         if (a is null) return null;
@@ -110,7 +115,8 @@ public sealed class EfDeletionRepository : IDeletionRepository
         foreach (var id in ids)
             if (await SectorFactsAsync(id, ct) is { } f) settori.Add(f);
 
-        return new AirportFacts(a.Id, a.Icao, a.Name, a.AccCode, a.LastSeenAtUtc, a.DocumentId, a.Titolo, settori);
+        return new AirportFacts(a.Id, a.Icao, a.Name, a.AccCode, a.LastSeenAtUtc, a.DocumentId, a.Titolo,
+                                a.MilDocumentId, a.TitoloMil, settori);
     }
 
     public async Task<AccFacts?> AccFactsAsync(string accCode, CancellationToken ct = default)

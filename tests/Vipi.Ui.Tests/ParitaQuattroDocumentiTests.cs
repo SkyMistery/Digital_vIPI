@@ -52,16 +52,24 @@ public class ParitaQuattroDocumentiTests : TestContext
     };
 
     private static SectionView Sezione(string key, string titolo, bool nascosta = false,
-        IReadOnlyList<BlockView>? blocchi = null) => new()
+        IReadOnlyList<BlockView>? blocchi = null, SectionAudience destinatario = SectionAudience.Both,
+        IReadOnlyList<SectionView>? figlie = null) => new()
         {
             Id = $"s-{key}",
             Title = titolo,
             Depth = 0,
             SectionKey = key,
             IsHidden = nascosta,
+            Audience = destinatario,
             Blocks = blocchi ?? Array.Empty<BlockView>(),
-            Children = Array.Empty<SectionView>(),
+            Children = figlie ?? Array.Empty<SectionView>(),
         };
+
+    private static SectionView Figlia(string key, string titolo, SectionAudience destinatario) => new()
+    {
+        Id = $"s-{key}", Title = titolo, Depth = 1, SectionKey = key, Audience = destinatario,
+        Blocks = Array.Empty<BlockView>(), Children = Array.Empty<SectionView>(),
+    };
 
     private static BlockView Prosa(string testo) => new()
     {
@@ -263,6 +271,86 @@ public class ParitaQuattroDocumentiTests : TestContext
         Assert.Contains("Segreta", cut.Markup);
         Assert.Contains("Common_HiddenNotPublic", cut.Markup);
         Assert.Contains("testo riservato", cut.Markup);
+    }
+
+    // ---------------------------------------------------------------------------------------------------
+    // 4-bis. Una SOTTO-sezione resa dalla pagina riceve il suo corpo.
+    //
+    // ⚠️ Trovato A SCHERMO il 29 agosto 2026, e invisibile a quattro famiglie su cinque: le loro sezioni
+    // derivate stanno tutte al primo livello. Nel vSOP militare `frequenze`, `piste` e `quote di
+    // transizione` sono FIGLIE di «Dati generali», e uscivano come titoli VUOTI — la scheda non la
+    // disegnava nessuno (il corpo derivato lo rendeva solo `DocumentSectionsView`, cioè solo le radici) e i
+    // blocchi di una sezione derivata sono vuoti per costruzione.
+    // ---------------------------------------------------------------------------------------------------
+
+    [Theory]
+    [MemberData(nameof(Profili))]
+    public void Una_SOTTOsezione_resa_dalla_PAGINA_riceve_il_suo_corpo(SectionProfile profilo)
+    {
+        var chiave = ChiaveResaDallaPagina(profilo);
+
+        var cut = Rendi(profilo, new[] { ConFigli("libera-1", "Contenitore", Sezione(chiave, "Figlia")) });
+
+        Assert.Contains($"corpo di {chiave}", cut.Markup);
+    }
+
+    [Theory]
+    [MemberData(nameof(Profili))]
+    public void Il_corpo_di_una_sottosezione_esce_UNA_VOLTA_SOLA(SectionProfile profilo)
+    {
+        // ⚠️ L'altra metà, e non è teorica: la doppia resa è già successa una volta su questo componente
+        // (§8a della carta militare, «Aree di lavoro» che mostrava due volte le sue figlie). Aggiungere una
+        // strada nuova al corpo derivato è esattamente il modo di rifarlo.
+        var chiave = ChiaveResaDallaPagina(profilo);
+
+        var cut = Rendi(profilo, new[] { ConFigli("libera-1", "Contenitore", Sezione(chiave, "Figlia")) });
+
+        Assert.Equal(1, Occorrenze(cut.Markup, $"corpo di {chiave}"));
+    }
+
+    // ---------------------------------------------------------------------------------------------------
+    // 5. Il destinatario di una sezione si VEDE, e si vede in tutte le famiglie.
+    //
+    // ⚠️ «Etichetta prima, filtro dopo» (carta vSOP militari §3): l'etichetta era la metà che doveva
+    // arrivare per prima, ed era l'unica a non essere arrivata affatto. `AudienceBadge` è esistito dal 28
+    // agosto 2026 al 29 senza un solo uso in una pagina: l'unico posto che lo nominava erano i suoi test.
+    // Intanto l'editor offriva il selettore su TUTTI i documenti, quindi si poteva marcare una sezione e
+    // non vederlo da nessuna parte.
+    // ---------------------------------------------------------------------------------------------------
+
+    [Theory]
+    [MemberData(nameof(Profili))]
+    public void Una_sezione_marcata_ATC_porta_il_BADGE(SectionProfile profilo)
+    {
+        var cut = Rendi(profilo, new[] { Sezione("libera-1", "Solo per i controllori",
+            destinatario: SectionAudience.Controllers) });
+
+        Assert.Contains("Aud_BadgeControllers", cut.Markup);
+    }
+
+    [Theory]
+    [MemberData(nameof(Profili))]
+    public void Una_sezione_PER_TUTTI_non_porta_badge(SectionProfile profilo)
+    {
+        // ⚠️ È la regola che rende utile il badge invece che rumore: se lo portassero tutte, smetterebbe di
+        // dire qualcosa. Marcare è l'eccezione, e si vede perché è l'eccezione.
+        var cut = Rendi(profilo, new[] { Sezione("libera-1", "Per tutti") });
+
+        Assert.DoesNotContain("Aud_Badge", cut.Markup);
+    }
+
+    [Theory]
+    [MemberData(nameof(Profili))]
+    public void Il_badge_vale_anche_sulle_SOTTOsezioni(SectionProfile profilo)
+    {
+        // Nel vSOP militare venti sezioni su ventisei sono figlie: un badge che vivesse solo sulle radici
+        // lascerebbe fuori quasi tutto il documento in cui la funzione è nata.
+        var cut = Rendi(profilo, new[]
+        {
+            ConFigli("libera-1", "Padre", Figlia("libera-2", "Solo per i piloti", SectionAudience.Pilots)),
+        });
+
+        Assert.Contains("Aud_BadgePilots", cut.Markup);
     }
 
     private static SectionView ConFigli(string key, string titolo, params SectionView[] figli) => new()

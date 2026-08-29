@@ -13,7 +13,11 @@ public sealed class VloaReleaseTarget : IReleaseTarget
     public VloaReleaseTarget(VipiDbContext db) => _db = db;
 
     public ReleaseTargetType Type => ReleaseTargetType.Vloa;
-    public int DescribeOrder => 0;
+    // ⚠️ Era 0, ed era un PAREGGIO con i due descrittori militari: «più basso di tutti» (carta vSOP
+    // militari §7.1a) non era vero. Qui non faceva danno — questo rifiuta per `doc.Type` prima ancora di
+    // guardare l'edizione — ma una difesa che si racconta più forte di com'è finisce per essere creduta.
+    // Lo zero è dei militari; i civili partono da 1, nello stesso ordine relativo di prima.
+    public int DescribeOrder => 1;
 
     public Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default) =>
         Task.FromResult(int.TryParse(key, out var id) ? id : (int?)null);

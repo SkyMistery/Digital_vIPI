@@ -20,9 +20,12 @@ else if (depth <= 0)
             <h3 style="margin-top:0">
                 @Section.Title
                 @if (Section.IsHidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }
+                @* Il badge del destinatario vale anche sulle SOTTO-sezioni: nel vSOP militare venti delle
+                   ventisei sezioni sono figlie, e marcare solo le radici lascerebbe fuori quasi tutto. *@
+                <AudienceBadge Audience="Section.Audience" />
             </h3>
         </Header>
-        <ChildContent><SectionBody Section="Section" DepthOffset="DepthOffset" IsDraft="IsDraft" /></ChildContent>
+        <ChildContent>@Corpo()</ChildContent>
     </CollapsibleBlock>
 }
 else
@@ -32,14 +35,56 @@ else
         <summary>
             <span>@Section.Title</span>
             @if (Section.IsHidden) { <span class="pill neutral" style="font-weight:500">@L["Common_HiddenNotPublic"]</span> }
+            <AudienceBadge Audience="Section.Audience" />
             <span class="sum-right"><span class="chev">▸</span></span>
         </summary>
-        <div class="body"><SectionBody Section="Section" DepthOffset="DepthOffset" IsDraft="IsDraft" /></div>
+        <div class="body">@Corpo()</div>
     </details>
 }
 
+@* Il corpo della sotto-sezione.
+
+   ⚠️ UNA SOTTO-SEZIONE PUÒ ESSERE RESA DALLA PAGINA, e fino al 29 agosto 2026 qui non lo era mai: il corpo
+   derivato lo disegnava solo `DocumentSectionsView`, cioè solo le RADICI. Su quattro famiglie su cinque non
+   si vedeva — le loro sezioni derivate stanno tutte al primo livello — ma nel vSOP militare `frequenze`,
+   `piste` e `quote di transizione` sono FIGLIE di «Dati generali», e a schermo uscivano come titoli VUOTI:
+   la scheda non la disegnava nessuno, e i blocchi di una sezione derivata sono vuoti per costruzione.
+
+   ⚠️ `Profile`/`DerivedContent` sono OPZIONALI e chi non li passa non cambia di una virgola: le famiglie a
+   blocchi (vIPI ACC) e i viewer che l'involucro se lo fanno da sé continuano a passare di qui come prima. *@
 @code {
+    private RenderFragment Corpo() => __builder =>
+    {
+        if (RendeLaPagina)
+        {
+            @DerivedContent!(Section)
+            @* La scheda in testa, e sotto i blocchi editoriali SOLO se il catalogo dice che li tiene: è la
+               definizione di `HostAndBlocks`. Per una derivata pura il blocco porta il payload JSON, non
+               contenuto, e stamparlo vorrebbe dire stampare del JSON. *@
+            <SectionBody Section="Section" DepthOffset="DepthOffset" IsDraft="IsDraft"
+                         ShowBlocks="@SectionCatalog.KeepsOwnBlocks(Profile!.Value, Section.SectionKey)"
+                         Profile="Profile" DerivedContent="DerivedContent" />
+        }
+        else
+        {
+            <SectionBody Section="Section" DepthOffset="DepthOffset" IsDraft="IsDraft"
+                         Profile="Profile" DerivedContent="DerivedContent" />
+        }
+    };
+
+    /// <summary>Vero se il corpo di QUESTA sotto-sezione lo produce la pagina e la pagina ce l'ha dato.</summary>
+    private bool RendeLaPagina =>
+        Profile is { } p && DerivedContent is not null && SectionCatalog.IsHostRendered(p, Section.SectionKey);
+
     [Parameter, EditorRequired] public SectionView Section { get; set; } = default!;
+
+    /// <summary>Profilo di catalogo del documento: serve a sapere se questa sotto-sezione è resa dalla
+    /// pagina. Null = nessuno l'ha passato, e allora si rende come si è sempre reso.</summary>
+    [Parameter] public SectionProfile? Profile { get; set; }
+
+    /// <summary>Il corpo che la pagina disegna per una sezione resa da lei. È lo STESSO frammento delle
+    /// radici — la pagina dispaccia per chiave e non sa a che profondità si trova.</summary>
+    [Parameter] public RenderFragment<SectionView>? DerivedContent { get; set; }
 
     /// <summary>Scostamento di profondità (vedi <see cref="SectionBody.DepthOffset"/>).</summary>
     [Parameter] public int DepthOffset { get; set; }

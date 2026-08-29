@@ -30,6 +30,16 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
             .Include(d => d.Sectors).ThenInclude(s => s.Acc)
             // L'aeroporto descritto: da qui il descrittore prende ICAO e ACC (vedi AirportReleaseTarget).
             .Include(d => d.Airport).ThenInclude(a => a!.Acc)
+            // ⚠️ E l'aeroporto dell'edizione MILITARE, che è un legame DIVERSO (`Airport.MilDocumentId`) e
+            // una navigazione diversa. Senza, `AirportMilReleaseTarget.TryDescribe` legge `doc.MilAirport?.Icao`
+            // su una navigazione NULLA e risponde false; i quattro descrittori civili rifiutano a loro volta
+            // per `Edition`; `Describe` torna null e il documento militare sparisce da questo elenco IN
+            // SILENZIO — insieme a tutto ciò che ci si appoggia (VersioniPage, incarichi, eliminazione,
+            // rivelatore di drift). La query è `AsNoTracking`, quindi non c'è fixup che ripari per caso.
+            // ⚠️ `MilSectors` NON è incluso, ed è una scelta: nessuna porta crea documenti `AppMil` (vedi
+            // `AppMilDocRoutes`), e un include di COLLEZIONE su tre query calde si paga. Va aggiunto
+            // insieme alla pagina dell'APP militare, non prima.
+            .Include(d => d.MilAirport).ThenInclude(a => a!.Acc)
             .Include(d => d.Parties).ThenInclude(p => p.Sector).ThenInclude(s => s!.Acc)
             .ToListAsync(ct);
         var draftDocIds = (await _db.DocumentVersions.AsNoTracking()

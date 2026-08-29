@@ -62,6 +62,10 @@
     private static readonly (string, SearchScope)[] _scopes =
     {
         ("Common_All", SearchScope.All), ("Search_ScopeVipi", SearchScope.Vipi), ("Search_ScopeApp", SearchScope.App), ("Search_ScopeVloa", SearchScope.Vloa), ("Search_ScopeAirports", SearchScope.Airport),
+        // ⚠️ I vSOP militari NON stanno sotto «Aeroporti»: quel taglio guarda il tipo di release, non
+        // l'ICAO, e un documento militare non è una vIPI d'aeroporto — ha altre sezioni, altra release e
+        // altro ciclo. Senza un taglio suo si poteva trovare solo cercando in «Tutto».
+        ("Mil_Title", SearchScope.Mil),
     };
 
     protected override async Task OnParametersSetAsync()

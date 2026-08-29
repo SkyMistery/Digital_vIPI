@@ -64,6 +64,11 @@ else
                 }
                 <div class="callout info"><span class="cic"><Icon Name="radio" Size="18" /></span><div><p class="ct">@L["Appn_InfoTitle"]</p>@L["Appn_InfoBody"]</div></div>
 
+                @* Il filtro di lettura pilota/ATC (carta vSOP militari §3): vale su tutte le famiglie,
+                   perché il flag è per-sezione e l'editor lo offre ovunque. *@
+                <AudienceChip Visibile="_haMarcate" Vista="_vista"
+                              BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}" + (_mode.Kind == PreviewKind.Draft ? "&as=draft" : ""))" />
+
                 @* Tradotto a macchina e non ancora riletto, o tradotto a metà: chi legge deve saperlo. *@
                 <TranslationNotice Coverage="_copertura" />
 
@@ -101,11 +106,18 @@ else
 @code {
     [Parameter] public string Acc { get; set; } = default!;
     [SupplyParameterFromQuery] public string? App { get; set; }
+
+    /// <summary>La vista di lettura: «pilota», «atc», o assente per il documento intero (carta vSOP
+    /// militari §3).</summary>
+    [SupplyParameterFromQuery(Name = "vista")] public string? Vista { get; set; }
     [SupplyParameterFromQuery] public string? Live { get; set; }   // legacy: live=1 → alias di as=draft
     [SupplyParameterFromQuery(Name = "as")] public string? As { get; set; }
 
     private PreviewMode _mode;   // pubblica | bozza | release
     private string? _relCycle;   // ciclo AIRAC della release (banner)
+
+    private Vipi.Domain.SectionAudience? _vista;
+    private bool _haMarcate;
 
     /// <summary>Ciclo AIRAC da mostrare: quello del documento mostrato (lo snapshot lo porta con sé); in mancanza,
     /// quello corrente.</summary>
@@ -187,6 +199,7 @@ else
 
         _mode = PreviewMode.Parse(As, Live);
         _relCycle = null;
+        _haMarcate = false;
 
         _app = (App ?? "").Trim().ToUpperInvariant();
         _view = null;
@@ -249,6 +262,17 @@ else
         var tradotto = await Translator.TranslateAsync(_view, Vipi.Domain.Language.It, lettore);
         _view = tradotto.View;
         _copertura = tradotto.Coverage;
+
+        // Il filtro di lettura, DOPO la traduzione: si filtra la vista che il lettore vedrà davvero.
+        _vista = AudienceFilter.Leggi(Vista);
+        _haMarcate = AudienceFilter.HaSezioniMarcate(_view.Sections);
+        var filtrate = AudienceFilter.Filtra(_view.Sections, _vista);
+        if (!ReferenceEquals(filtrate, _view.Sections))
+            _view = new DocumentView
+            {
+                Title = _view.Title, AiracCycle = _view.AiracCycle, Sections = filtrate,
+                Language = _view.Language, Translations = _view.Translations,
+            };
     }
 
     // ATC online per l'APP: callsign _APP/_DEP la cui testa è l'ICAO d'aeroporto del callsign (es. LIRP_APP → LIRP).

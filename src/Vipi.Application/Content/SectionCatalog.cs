@@ -207,8 +207,10 @@ public static class SectionCatalog
 
             // --- vSOP MILITARE d'aeroporto (carta 2026-08-27) ------------------------------------------
             //
-            // Ventiquattro sezioni tratte dai quindici SOP reali, che hanno TUTTI lo stesso indice: non e'
-            // contenuto libero, e' un profilo. Titoli in ITALIANO (§1d): la lingua sorgente e' quella in
+            // VENTISEI sezioni tratte dai quindici SOP reali, che hanno TUTTI lo stesso indice: non e'
+            // contenuto libero, e' un profilo. (Diceva «ventiquattro»: il conto era rimasto indietro di due
+            // quando si sono aggiunte `qra` e `lowlevel`. Il numero vero lo conta
+            // `ProfiloMilitareTests.Le_sezioni_sono_ventisei`, non questo commento.) Titoli in ITALIANO (§1d): la lingua sorgente e' quella in
             // cui si REDIGE, non quella dei PDF di partenza, e un lettore inglese lo ottiene tradotto.
             //
             // ⚠️ Le code per campo -- LVP di Pratica, SAR alert di Cervia, Combat departure di Gioia, il
@@ -317,11 +319,38 @@ public static class SectionCatalog
 
     /// <summary>Descrittore della sezione fissa con questa chiave: di primo livello o sotto-sezione fissa
     /// (<see cref="ChildRegistry"/>). Null = sezione libera.</summary>
+    /// <summary>
+    /// Il descrittore di catalogo di questa chiave, per questo profilo — <b>a qualunque profondità</b>.
+    ///
+    /// <para>
+    /// ⚠️ <b>La ricerca scende nei figli dal 29 agosto 2026</b>, e prima no: guardava solo il primo livello
+    /// del profilo più il <see cref="ChildRegistry"/>. Finché nessun profilo aveva sezioni annidate la
+    /// differenza non esisteva; il vSOP militare ne ha venti su ventisei, e su quelle <c>Find</c> rispondeva
+    /// <c>null</c>. Da lì: <see cref="IsHostRendered"/> falso su <c>frequencies</c>, <c>runways</c> e
+    /// <c>transition</c> — che sono <b>rese dalla pagina</b> — e <see cref="IsFixed"/> falso su tutte e venti,
+    /// cioè venti sezioni di CATALOGO scambiate per sezioni libere.
+    /// </para>
+    /// <para>
+    /// ⚠️ A schermo si vedeva così: nel vSOP militare pubblicato, «Frequenze ATC/CRC», «Piste» e «Quote di
+    /// transizione» uscivano come <b>titoli vuoti</b>. Nessun test lo prendeva perché tutte le altre famiglie
+    /// hanno le derivate al primo livello.
+    /// </para>
+    /// <para>Misurato: gli unici descrittori con figli sono i quattro contenitori di <c>AirportMil</c>, quindi
+    /// la discesa non cambia una virgola per gli altri profili.</para>
+    /// </summary>
     public static SectionDescriptor? Find(SectionProfile profile, string key) =>
-        For(profile).FirstOrDefault(d => string.Equals(d.Key, key, StringComparison.OrdinalIgnoreCase))
-        ?? (ChildRegistry.TryGetValue(profile, out var children)
-            ? children.FirstOrDefault(d => string.Equals(d.Key, key, StringComparison.OrdinalIgnoreCase))
-            : null);
+        Cerca(For(profile), key)
+        ?? (ChildRegistry.TryGetValue(profile, out var children) ? Cerca(children, key) : null);
+
+    private static SectionDescriptor? Cerca(IEnumerable<SectionDescriptor> descrittori, string key)
+    {
+        foreach (var d in descrittori)
+        {
+            if (string.Equals(d.Key, key, StringComparison.OrdinalIgnoreCase)) return d;
+            if (d.Children is { Count: > 0 } figli && Cerca(figli, key) is { } trovato) return trovato;
+        }
+        return null;
+    }
 
     public static bool IsFixed(SectionProfile profile, string key) => Find(profile, key) is not null;
 }

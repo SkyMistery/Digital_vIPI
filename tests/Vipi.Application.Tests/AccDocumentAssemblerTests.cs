@@ -27,9 +27,11 @@ public class AccDocumentAssemblerTests
     };
 
     private static EditableSection Sec(int id, string key, string title, int order,
-        string? ownJson = null, IReadOnlyList<EditableSection>? children = null) => new()
+        string? ownJson = null, IReadOnlyList<EditableSection>? children = null,
+        SectionAudience destinatario = SectionAudience.Both) => new()
     {
         Id = id, Title = title, SectionKey = key, Depth = children is null ? 1 : 0, Order = order,
+        Audience = destinatario,
         Blocks = ownJson is null ? new List<EditableBlock>() : new List<EditableBlock> { Table(ownJson) },
         Children = children ?? new List<EditableSection>(),
     };
@@ -180,5 +182,30 @@ public class AccDocumentAssemblerTests
         Assert.False(block.Regulated.OwnAuto);
         Assert.Equal(new[] { "a1" }, block.Regulated.OwnIds);
         Assert.Equal(new[] { "x9" }, block.Regulated.ExtraIds);
+    }
+
+    [Fact]
+    public void Il_DESTINATARIO_della_sezione_arriva_fino_al_blocco()
+    {
+        // ⚠️ La vIPI ACC è l'unica famiglia a BLOCCHI: la sua pagina non itera `SectionView` ma
+        // `AccBlockSection`, e fino al 29 agosto 2026 quel record il destinatario non lo portava affatto.
+        // Risultato: si poteva marcare una sezione ACC nell'editor — il selettore è condiviso — e la pagina
+        // non aveva modo di saperlo. Il flag c'era, arrivava fino al DTO, e moriva qui.
+        var doc = Doc(Sec(1, "aerovia", "Aerovia", 1, ownJson: null, children: new[]
+        {
+            Sec(2, "separations", "Separazioni", 1, destinatario: SectionAudience.Controllers),
+            Sec(3, "vfr", "VFR", 2),
+        }));
+
+        var sezioni = Assert.Single(AccDocumentAssembler.Assemble(doc)).Block.Sections;
+
+        var atc = Assert.Single(sezioni, s => s.Key == "separations");
+        Assert.Equal(SectionAudience.Controllers, atc.Audience);
+        Assert.Equal(SectionAudience.Controllers, atc.Editorial!.Audience);
+
+        // E chi non è marcato resta «per tutti», compreso chi il documento non l'ha mai avuto: le sezioni
+        // di catalogo accodate nascono con `Editorial = null` e devono comunque avere un destinatario.
+        Assert.All(sezioni.Where(s => s.Key != "separations"),
+                   s => Assert.Equal(SectionAudience.Both, s.Audience));
     }
 }

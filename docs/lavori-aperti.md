@@ -1,6 +1,17 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 29 agosto 2026 (**§U CHIUSA E FUSA IN `main`** — merge `8d14b499`, ramo cancellato. Le **autorizzazioni a livelli**: `IsAdmin` (160 usi su 46 file) diventa un enum ORDINATO a cinque livelli **cumulativi**, l'Editor edita **TUTTO** e le concessioni per ACC sono **eliminate** (219 riferimenti). Otto slice, **86 test nuovi**, tre migrazioni. ⚠️ La **verifica live** su cinque identità ha trovato **tre difetti** che la suite non vedeva — un 500 sulla pagina Struttura per un Editor, due pagine senza cancello, e due falsi allarmi della sonda. ⚠️ Resta il **DEPLOY, da annunciare**: gli `IT-` fuori dagli otto codici di direzione smettono di editare. ⚠️ Migrazioni in coda: **VENTITRÉ****) · **Aggiornato:** 28 agosto 2026, notte (**§U APERTA — LE AUTORIZZAZIONI A LIVELLI. L'interruttore unico `IsAdmin` (160 usi su 46 file) diventa un numero ordinato a cinque livelli: User, IvaoStaff, DivisionStaff, Editor, Admin, **cumulativi**. Sei decisioni del committente, fra cui l'Editor che edita **tutto** (non la sola ACC) e le concessioni per ACC **eliminate** — il che toglie dal layout `HasAnyGrantAsync`, cioè la prima query di ogni pagina e la causa prima delle corse sul DbContext. Carta approvata: `docs/feature/2026-08-28-autorizzazioni-a-livelli.md`. Ramo `autorizzazioni-a-livelli`, **codice da scrivere**. ⚠️ Le migrazioni in coda diventano VENTIDUE**) · **Aggiornato:** 28 agosto 2026, sera (**§Q3 CHIUSA — il glossario di fraseologia. La fraseologia DENTRO le frasi, che la memoria di traduzione non poteva coprire perché è indicizzata per segmento intero: segnaposto `<g>` col contratto OPPOSTO a `<x>`, tabella `GlossaryTerms`, pagina di cura. E la risposta del committente alla domanda che teneva aperta la voce: lo curano TUTTI GLI ADMIN, cioè tutto lo staff di divisione — nessun codice, la pagina era già dietro `IsAdmin`. Ramo **`glossario-fraseologia`** (`ee5fad7`, `f2ee4eb`), ✅ **FUSO in `main` la notte del 28 agosto** (`332f881`), build Release verde su entrambi i TFM dopo la fusione. ⚠️ Le migrazioni in coda diventano VENTUNO**) · 28 agosto 2026, notte (**I DUE RAMI SONO FUSI IN `main` E SPINTI**: `bilingue-tutte-le-pagine` — la lingua per intero, §Q-bis — e `archivio-atc-mondiale` — §S e §T. I due non si toccavano: un conflitto solo, in questo file. Sul codice tutto verde su net8+net10 DOPO la fusione, che è l'unico momento in cui la prova conta**) · **Aggiornato:** 28 agosto 2026, sera (**§Q-bis — LA LINGUA. Il bilingue girava su DUE viewer su cinque e la barra non aveva nessun comando per cambiare lingua: entrambe le cose chiuse, più le REGOLE su carta (`docs/design/regole-lingua.md`), i messaggi del backend, il catalogo della Guida, «MRVA» e il correttore delle traduzioni dentro l'editor. Sei commit nel ramo **`bilingue-tutte-le-pagine`** (`2af3a39`), spinto e NON fuso**) · **Aggiornato:** 28 agosto 2026, pomeriggio (**I DUE ROSSI INTERMITTENTI SONO CHIUSI — Q5 e Q6, riprodotti prima di correggerli: erano due contese diverse fra test paralleli. Q5 era il file di diagnostica dell'avvio, uno solo per processo, riscritto da un altro host nella finestra fra scrittura e rilettura; Q6 era un test che passava per via del POOL di SQLite invece che per via dell'interceptor, e che un `ClearAllPools()` di processo chiamato da un altro test faceva cadere. Ora «tutto verde» si può leggere alla lettera: 6633 verdi su entrambi i TFM**) · **Aggiornato:** 28 agosto 2026, mattina (**§Q e §R — i documenti bilingue e i vSOP militari, VENTI slice chiuse in due giorni e tutte in `main`, che è stato SPINTO (`6644b5e`): `origin/main` allineato, `origin/basemap-esri` cancellato perché ormai contenuto in main. Restano aperte Q1/Q2/Q3 (che dipendono da qualcun altro), Q4 (la vLOA che deve smettere di nascere inglese), Q5 e Q6 (due rossi intermittenti) e R1 (le figure dei SOP, lavoro manuale)**) · **Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in · **Aggiornato:** 28 agosto 2026, sera tardi (**§T — la SELECT dei duplicati su `DocReleases`: NON era eseguibile (il 3306 del server è su localhost, niente pannello), quindi ora la fa l'applicazione prima di `Migrate()` e nomina le righe in `avvio-errore.txt`; gli altri quattro indici unici della coda non possono fallire, verificato**) · **Aggiornato:** 28 agosto 2026, sera (**§S — l'archivio ATC mondiale, ramo `archivio-atc-mondiale` (il codice è tutto in `0ced074`, il resto sono documenti) SPINTO e NON fuso: il poller archivia tutte le postazioni ATC aperte, i conti della divisione non cambiano, ritenzione dodici mesi per tutto. S1 CHIUSA (il volume del mondo è misurato: 10×-14× le sessioni italiane, il database intero va a ~230 MB su MariaDB a regime) e S2 DECISA (si ricomincia da capo, raccolta dal 1° settembre 2026, cutover dal Worker nel 2027). ⚠️ Le migrazioni in coda al cutover MariaDB diventano VENTI**) · **Aggiornato:** 28 agosto 2026, pomeriggio (**I DUE ROSSI INTERMITTENTI SONO CHIUSI — Q5 e Q6, riprodotti prima di correggerli: erano due contese diverse fra test paralleli. Q5 era il file di diagnostica dell'avvio, uno solo per processo, riscritto da un altro host nella finestra fra scrittura e rilettura; Q6 era un test che passava per via del POOL di SQLite invece che per via dell'interceptor, e che un `ClearAllPools()` di processo chiamato da un altro test faceva cadere. Ora «tutto verde» si può leggere alla lettera: 6633 verdi su entrambi i TFM**) · **Aggiornato:** 28 agosto 2026, mattina (**§Q e §R — i documenti bilingue e i vSOP militari, VENTI slice chiuse in due giorni e tutte in `main`, che è stato SPINTO (`6644b5e`): `origin/main` allineato, `origin/basemap-esri` cancellato perché ormai contenuto in main. Restano aperte Q1/Q2/Q3 (che dipendono da qualcun altro), Q4 (la vLOA che deve smettere di nascere inglese), Q5 e Q6 (due rossi intermittenti) e R1 (le figure dei SOP, lavoro manuale)**) · **Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in
+**Aggiornato:** 29 agosto 2026, notte (**§V: TREDICI voci, tredici chiuse.** Dieci le ha trovate la lettura,
+TRE la verifica a schermo su un campo MISTO (§V1, chiusa) — e le tre dello schermo sono le peggiori: **un vSOP
+militare pubblicato non si apriva affatto** (il bersaglio di release non si risolveva sul legame militare),
+**tre tabelle su tre erano titoli vuoti** (il corpo derivato lo disegnavano solo le sezioni radice) e **il
+catalogo non trovava le sezioni annidate** (venti su ventisei date per libere). Nuova **§V4**: «Regole piste»
+→ *Slope rules* nella vIPI CIVILE. Suite **3 841**, nove progetti su nove) · **Aggiornato:** 29 agosto 2026, sera (**§V NUOVA: la supervisione dei vSOP militari**, dieci voci trovate
+e dieci chiuse — il documento militare era agganciato al motore di **lettura** e non a quello di **governo**:
+nessun congelamento della release e vista che leggeva lo snapshot **civile**, documento **invisibile** ai tre
+elenchi generici per un `.Include` mancante, impatti che non avvisavano il gemello, eliminazione che lo
+lasciava orfano, badge pilota/ATC **mai reso da nessuna pagina**. Restano aperte **V1** — rifare la verifica a
+schermo su un campo **misto**, non su Rivolto che è solo militare — **V2** e **V3**. Suite **3 570** su net8,
+otto progetti) · **Aggiornato:** 29 agosto 2026 (**§U CHIUSA E FUSA IN `main`** — merge `8d14b499`, ramo cancellato. Le **autorizzazioni a livelli**: `IsAdmin` (160 usi su 46 file) diventa un enum ORDINATO a cinque livelli **cumulativi**, l'Editor edita **TUTTO** e le concessioni per ACC sono **eliminate** (219 riferimenti). Otto slice, **86 test nuovi**, tre migrazioni. ⚠️ La **verifica live** su cinque identità ha trovato **tre difetti** che la suite non vedeva — un 500 sulla pagina Struttura per un Editor, due pagine senza cancello, e due falsi allarmi della sonda. ⚠️ Resta il **DEPLOY, da annunciare**: gli `IT-` fuori dagli otto codici di direzione smettono di editare. ⚠️ Migrazioni in coda: **VENTITRÉ****) · **Aggiornato:** 28 agosto 2026, notte (**§U APERTA — LE AUTORIZZAZIONI A LIVELLI. L'interruttore unico `IsAdmin` (160 usi su 46 file) diventa un numero ordinato a cinque livelli: User, IvaoStaff, DivisionStaff, Editor, Admin, **cumulativi**. Sei decisioni del committente, fra cui l'Editor che edita **tutto** (non la sola ACC) e le concessioni per ACC **eliminate** — il che toglie dal layout `HasAnyGrantAsync`, cioè la prima query di ogni pagina e la causa prima delle corse sul DbContext. Carta approvata: `docs/feature/2026-08-28-autorizzazioni-a-livelli.md`. Ramo `autorizzazioni-a-livelli`, **codice da scrivere**. ⚠️ Le migrazioni in coda diventano VENTIDUE**) · **Aggiornato:** 28 agosto 2026, sera (**§Q3 CHIUSA — il glossario di fraseologia. La fraseologia DENTRO le frasi, che la memoria di traduzione non poteva coprire perché è indicizzata per segmento intero: segnaposto `<g>` col contratto OPPOSTO a `<x>`, tabella `GlossaryTerms`, pagina di cura. E la risposta del committente alla domanda che teneva aperta la voce: lo curano TUTTI GLI ADMIN, cioè tutto lo staff di divisione — nessun codice, la pagina era già dietro `IsAdmin`. Ramo **`glossario-fraseologia`** (`ee5fad7`, `f2ee4eb`), ✅ **FUSO in `main` la notte del 28 agosto** (`332f881`), build Release verde su entrambi i TFM dopo la fusione. ⚠️ Le migrazioni in coda diventano VENTUNO**) · 28 agosto 2026, notte (**I DUE RAMI SONO FUSI IN `main` E SPINTI**: `bilingue-tutte-le-pagine` — la lingua per intero, §Q-bis — e `archivio-atc-mondiale` — §S e §T. I due non si toccavano: un conflitto solo, in questo file. Sul codice tutto verde su net8+net10 DOPO la fusione, che è l'unico momento in cui la prova conta**) · **Aggiornato:** 28 agosto 2026, sera (**§Q-bis — LA LINGUA. Il bilingue girava su DUE viewer su cinque e la barra non aveva nessun comando per cambiare lingua: entrambe le cose chiuse, più le REGOLE su carta (`docs/design/regole-lingua.md`), i messaggi del backend, il catalogo della Guida, «MRVA» e il correttore delle traduzioni dentro l'editor. Sei commit nel ramo **`bilingue-tutte-le-pagine`** (`2af3a39`), spinto e NON fuso**) · **Aggiornato:** 28 agosto 2026, pomeriggio (**I DUE ROSSI INTERMITTENTI SONO CHIUSI — Q5 e Q6, riprodotti prima di correggerli: erano due contese diverse fra test paralleli. Q5 era il file di diagnostica dell'avvio, uno solo per processo, riscritto da un altro host nella finestra fra scrittura e rilettura; Q6 era un test che passava per via del POOL di SQLite invece che per via dell'interceptor, e che un `ClearAllPools()` di processo chiamato da un altro test faceva cadere. Ora «tutto verde» si può leggere alla lettera: 6633 verdi su entrambi i TFM**) · **Aggiornato:** 28 agosto 2026, mattina (**§Q e §R — i documenti bilingue e i vSOP militari, VENTI slice chiuse in due giorni e tutte in `main`, che è stato SPINTO (`6644b5e`): `origin/main` allineato, `origin/basemap-esri` cancellato perché ormai contenuto in main. Restano aperte Q1/Q2/Q3 (che dipendono da qualcun altro), Q4 (la vLOA che deve smettere di nascere inglese), Q5 e Q6 (due rossi intermittenti) e R1 (le figure dei SOP, lavoro manuale)**) · **Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in · **Aggiornato:** 28 agosto 2026, sera tardi (**§T — la SELECT dei duplicati su `DocReleases`: NON era eseguibile (il 3306 del server è su localhost, niente pannello), quindi ora la fa l'applicazione prima di `Migrate()` e nomina le righe in `avvio-errore.txt`; gli altri quattro indici unici della coda non possono fallire, verificato**) · **Aggiornato:** 28 agosto 2026, sera (**§S — l'archivio ATC mondiale, ramo `archivio-atc-mondiale` (il codice è tutto in `0ced074`, il resto sono documenti) SPINTO e NON fuso: il poller archivia tutte le postazioni ATC aperte, i conti della divisione non cambiano, ritenzione dodici mesi per tutto. S1 CHIUSA (il volume del mondo è misurato: 10×-14× le sessioni italiane, il database intero va a ~230 MB su MariaDB a regime) e S2 DECISA (si ricomincia da capo, raccolta dal 1° settembre 2026, cutover dal Worker nel 2027). ⚠️ Le migrazioni in coda al cutover MariaDB diventano VENTI**) · **Aggiornato:** 28 agosto 2026, pomeriggio (**I DUE ROSSI INTERMITTENTI SONO CHIUSI — Q5 e Q6, riprodotti prima di correggerli: erano due contese diverse fra test paralleli. Q5 era il file di diagnostica dell'avvio, uno solo per processo, riscritto da un altro host nella finestra fra scrittura e rilettura; Q6 era un test che passava per via del POOL di SQLite invece che per via dell'interceptor, e che un `ClearAllPools()` di processo chiamato da un altro test faceva cadere. Ora «tutto verde» si può leggere alla lettera: 6633 verdi su entrambi i TFM**) · **Aggiornato:** 28 agosto 2026, mattina (**§Q e §R — i documenti bilingue e i vSOP militari, VENTI slice chiuse in due giorni e tutte in `main`, che è stato SPINTO (`6644b5e`): `origin/main` allineato, `origin/basemap-esri` cancellato perché ormai contenuto in main. Restano aperte Q1/Q2/Q3 (che dipendono da qualcun altro), Q4 (la vLOA che deve smettere di nascere inglese), Q5 e Q6 (due rossi intermittenti) e R1 (le figure dei SOP, lavoro manuale)**) · **Aggiornato:** 27 agosto 2026, notte (**§P — il ramo `basemap-esri`, spinto e NON fuso: il fondo delle mappe non è più CARTO (§N3 chiusa) e le chip METAR/TAF e pista SID, che non facevano niente. Resta P3, come fonderlo; e due decisioni: le tessere nostre, e l'attribuzione mancante nel 3D**) · **Aggiornato:** 27 agosto 2026, sera tardi (**§O — l'audit delle prestazioni, chiuso lo stesso giorno e fuso in `main` `8e5f640` insieme a `riordino-e-aree`: prima visita 336 → 113 KB, avvio 465 → 153 query. DUE interventi scartati su misura. Restano O1 (le query degli orfani), O2 e O3, che sono del committente**) · **Aggiornato:** 27 agosto 2026, pomeriggio (**§M — i resti: C7a/b/c, C6, H3, H1 e E9 chiusi lato codice in
 un giro solo. Restano aperte solo voci che dipendono da qualcun altro: le risposte di Ivao.It (A9/A13), le
 quattro vLOA da ripubblicare (L2), il documento di Brindisi (B10-bis) e le decisioni di contenuto**) · **Aggiornato:** 27 agosto 2026, notte (**§K chiusa tutta: la vIPI d'aeroporto entra nel catalogo delle sezioni
 — ramo `aeroporto-a-sezioni`, il TERZO in fila — più le tre rifiniture della stessa notte: il meteo tornato
@@ -3781,6 +3792,14 @@ quindici — Amendola, Gioia del Colle, Istrana, Grosseto — sono basi di difes
 `AppMilDocRoutes` sono registrati. Manca l'ingresso UI (`/services/vsop/{acc}/mil/apps`): nessuno dei
 quindici SOP è di un APP, quindi non c'era niente da caricarci dentro.
 
+⚠️ **Aggiornato il 29 agosto 2026** (§V): `AppMilDocRoutes` **dichiarava** quei due indirizzi verso pagine
+che non esistono — la stessa forma del difetto già pagato al §6 della carta. Ora le quattro rotte tornano
+`null`, che il contratto prevede, e sul file c'è scritto **che cosa serve quando le pagine si faranno**:
+i quattro indirizzi, l'`.Include(d => d.MilSectors)` nei tre elenchi generici, un
+`IFrozenSectionProvider` per `AppMil`, e la voce nel conteggio di `RegistrazioniPerFamigliaTests`. Il
+test `RotteDeiDocumentiEsistonoTests` diventa rosso il giorno in cui si aggiunge un indirizzo senza la
+sua pagina.
+
 ## S. L'archivio ATC mondiale — 28 agosto 2026
 
 Carta: [feature/2026-08-28-archivio-atc-mondiale.md](feature/2026-08-28-archivio-atc-mondiale.md).
@@ -4069,3 +4088,87 @@ Scoperto qui, ma vale per tutto il repo: `Vipi.E2E.Tests` referenzia `Vipi.Host`
 il progetto **non si costruisce**. Non compare fra i `Passed!` e **l'exit code di `dotnet test` è
 inaffidabile**: tre esecuzioni con lo stesso guasto hanno dato 0, 0 e 1. «Verde» si legge **contando i
 progetti** nel riepilogo, non dall'exit code.
+
+## V. La supervisione dei vSOP militari — 29 agosto 2026
+
+Carta: [`history/audit-2026-08-29-vsop-militari-relazione.md`](history/audit-2026-08-29-vsop-militari-relazione.md).
+✅ **Dieci voci, dieci chiuse.** Suite su net8: **3 570** test, otto progetti verdi (il nono, `Vipi.E2E.Tests`,
+non si costruisce con l'host acceso — vedi **U4**).
+
+La carta dei vSOP militari letta **contro il codice**, da fuori. Il filo: il documento militare era
+agganciato al motore di **lettura** e non a quello di **governo**. Le quattro grosse — congelamento della
+release inesistente e vista che leggeva lo snapshot **civile**; documento **invisibile** ai tre elenchi
+generici per un `.Include` mancante; impatti che non avvisavano mai il gemello; eliminazione dell'aeroporto
+che lasciava il documento orfano — erano lo stesso errore ripetuto: **`MilDocumentId` aveva quattro lettori
+in tutto il repository**, `DocumentId` decine.
+
+### V1 ✅ CHIUSA — la verifica a schermo su un campo MISTO, fatta
+
+⚠️ **È la voce che conta di questa sezione.** La prova a schermo della slice 10 fu fatta su **LIPI Rivolto
+perché era il SOP più corto**, e Rivolto è **solo militare**: nessun documento civile. È precisamente il
+campo su cui tutti e quattro i difetti grossi sono **invisibili** — il congelamento sbagliato degrada in
+«live», non c'è un gemello con cui confondersi, e il campo non ha ancora una release da elencare.
+
+Serve una passata sul primo campo **misto** che avrà tutt'e due i documenti pubblicati — nei quindici SOP è
+**LIRP Pisa** — e va guardato:
+
+1. che la tabella **Frequenze** del vSOP militare pubblico **non** cambi ripubblicando la vIPI civile, e
+   **cambi** ripubblicando il militare;
+2. che il ciclo AIRAC in fondo alle due pagine sia quello della **propria** release;
+3. che il documento militare compaia in `/services/vsop/admin/versions`, nella **ricerca** (col taglio
+   nuovo «vSOP militari») e nelle **«Novità»** del ciclo;
+4. che i **due ponti** fra le edizioni si vedano su Pisa e che su Rivolto se ne veda **uno solo**;
+5. che il badge pilota/ATC compaia accanto a una sezione marcata **anche in una vIPI civile**, e che
+   `?vista=pilota` filtri su aeroporto, ACC e APP come già fa sul militare.
+
+✅ **Fatta la sera del 29 agosto**, su **LIML Linate** (scalo civile con presenza militare): creata e
+pubblicata la vIPI civile, ripubblicato il vSOP militare, cambiata una frequenza nel catalogo e ripubblicato
+**solo il civile**. Tutti e cinque i punti verificati.
+
+⚠️ **E ha trovato altre TRE voci**, le peggiori del giro — un vSOP militare pubblicato che non si apriva
+affatto, tre tabelle su tre rese come titoli vuoti, e il catalogo che non trovava le sezioni annidate. Sono
+il §J della carta dell'audit. Il conto del giro passa da dieci voci a **tredici**.
+
+La misura che chiude il punto, sullo stesso scalo e nello stesso istante:
+
+```
+vIPI civile   LIML_TWR  118.999   ← ripubblicata dopo il cambio di catalogo
+vSOP militare LIML_TWR  118.100   ← non ripubblicata: tiene il SUO snapshot
+```
+
+### V2 🟢 APERTO — i documenti militari già pubblicati vanno RIPUBBLICATI
+
+Se un vSOP militare fosse stato pubblicato prima di oggi, il suo snapshot **non contiene** le sezioni
+derivate congelate: il provider non esisteva. La pagina pubblica ricade live — quindi non si rompe niente —
+ma il congelamento comincia a valere solo **dalla prossima release**. È la stessa trappola già pagata due
+volte con le altre famiglie: *le chiavi nuove si leggono live finché non si ripubblica*.
+
+⚠️ Oggi la coda è **vuota** (nessun vSOP militare è pubblicato). La voce resta scritta perché se ne pubblica
+uno prima di leggere questa riga, la risposta è: **Ripubblica**, non «indagare».
+
+### V3 🟢 APERTO — cercare gli altri legami «gemelli» prima che facciano lo stesso
+
+La lezione di questa sezione non è sui vSOP militari: **un legame nuovo va cercato con `grep`, non con la
+memoria**. Il difetto si sarebbe visto in un minuto contando i lettori della colonna nuova contro quelli
+della colonna che imita.
+
+Da fare una volta, su tutto il repository: per ogni colonna che è il **gemello** di un'altra
+(`MilDocumentId` ↔ `DocumentId` è l'unica di oggi), contare i due insiemi di lettori e spiegare ogni
+differenza. Dove la differenza non si spiega, è un difetto.
+
+### V4 🟢 APERTO — «Regole piste» esce «Slope rules» nella vIPI CIVILE d'aeroporto
+
+Visto di striscio durante la verifica §V1, sulla pagina inglese della vIPI civile di Linate: il titolo di
+sezione «Regole piste» è reso **«Slope rules»**.
+
+È **la stessa resa sbagliata** che il 28 agosto si era chiusa per i titoli del profilo **militare** — «Piste»
+→ *Slopes* — seminandoli in memoria come **umani** (`TitoliUfficiali`). Quel seme copre i **ventisei titoli
+militari**; i titoli del catalogo **civile** (aeroporto, APP, ACC, vLOA) non li semina nessuno.
+
+⚠️ **Non è una sfumatura**: «Slope rules» è il nome di una sezione, ed è quello che un controllore cerca
+nell'indice. La correzione è la stessa e sta già scritta: mettere i titoli di catalogo delle altre famiglie
+fra le voci umane del glossario. ⚠️ E vale la trappola nota: le rese **già in memoria** non cambiano da sole
+— dalla pagina del glossario si preme «falle rifare», o i documenti restano com'erano
+([[glossario-fraseologia]], §Q3).
+
+Non toccata in questo giro apposta: è il glossario, non la relazione fra le due edizioni.

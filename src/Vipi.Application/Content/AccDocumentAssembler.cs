@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -86,7 +87,7 @@ public static class AccDocumentAssembler
     private static List<AccBlockSection> SectionsOf(EditableSection blockSection, AccBlockKind kind)
     {
         var sections = blockSection.Children.OrderBy(c => c.Order)
-            .Select(c => new AccBlockSection(c.Id, c.SectionKey, c.Title, c.IsHidden, ToSectionView(c)))
+            .Select(c => new AccBlockSection(c.Id, c.SectionKey, c.Title, c.IsHidden, ToSectionView(c), c.Audience))
             .ToList();
 
         // Documenti vecchi (o snapshot) senza una sezione-catalogo: la si accoda comunque, così le derivate
@@ -95,7 +96,8 @@ public static class AccDocumentAssembler
         var present = sections.Select(s => s.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var desc in SectionCatalog.For(profile).OrderBy(d => d.Order))
             if (!present.Contains(desc.Key))
-                sections.Add(new AccBlockSection(0, desc.Key, desc.Title, false, null));
+                // Sezione di catalogo mai scritta: nasce «per tutti», come ogni sezione esistente.
+                sections.Add(new AccBlockSection(0, desc.Key, desc.Title, false, null, SectionAudience.Both));
 
         return sections;
     }
