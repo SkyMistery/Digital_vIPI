@@ -2550,6 +2550,9 @@
   <data name="Mil_ColState" xml:space="preserve"><value>State</value></data>
   <data name="Mil_LinkFromCivil" xml:space="preserve"><value>Military vSOP</value></data>
   <data name="Mil_LinkToCivil" xml:space="preserve"><value>Civil vIPI</value></data>
+  <data name="Mil_MissingCivilTitle" xml:space="preserve"><value>This field has no civil vIPI</value></data>
+  <data name="Mil_MissingCivilBody" xml:space="preserve"><value>This field carries civil traffic, so the military vSOP should sit alongside a civil vIPI: it says what differs from it. This document was created before the rule was in force.</value></data>
+  <data name="Mil_MissingCivilAction" xml:space="preserve"><value>Create the civil vIPI</value></data>
   <data name="Mil_Created" xml:space="preserve"><value>Military vSOP created for {0}: it is a draft now, to be filled in and published.</value></data>
   <data name="Mil_CreateFromCivil" xml:space="preserve"><value>Create the military vSOP</value></data>
   <data name="Mil_OpenFromCivil" xml:space="preserve"><value>Military vSOP</value></data>

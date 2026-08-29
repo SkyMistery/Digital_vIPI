@@ -140,15 +140,38 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
     public Task<bool> HasPublishedAsync(string icao, CancellationToken ct = default) =>
         PubblicatoAsync(icao, militare: true, ct);
 
-    public Task<bool> HasPublishedCivilAsync(string icao, CancellationToken ct = default) =>
-        PubblicatoAsync(icao, militare: false, ct);
+    public async Task<CivilEdition> GetCivilEditionAsync(string icao, CancellationToken ct = default)
+    {
+        icao = Norm(icao);
+
+        // Una proiezione sola: esiste il documento civile, e il campo è solo militare? Le due risposte
+        // stanno sulla stessa riga di `Airports`, e chiederle separatamente vorrebbe dire poterle vedere
+        // in due istanti diversi.
+        var campo = await _db.Airports.AsNoTracking()
+            .Where(a => a.Icao == icao)
+            .Select(a => new { Esiste = a.DocumentId != null, a.IsMilitaryOnly })
+            .FirstOrDefaultAsync(ct).ConfigureAwait(false);
+
+        // ICAO sconosciuto: «non esiste, non pubblicata» — e NON «solo militare», che direbbe che
+        // l'assenza è a norma quando in realtà non si sa niente di quel campo.
+        if (campo is null) return new CivilEdition(false, false, false);
+        if (!campo.Esiste) return new CivilEdition(false, false, campo.IsMilitaryOnly);
+
+        var adesso = DateTime.UtcNow;
+        var pubblicata = await _db.DocReleases.AsNoTracking()
+            .AnyAsync(r => r.TargetType == ReleaseTargetType.Airport && r.TargetKey == icao
+                           && r.ReleaseEffectiveUtc <= adesso, ct).ConfigureAwait(false);
+
+        return new CivilEdition(true, pubblicata, campo.IsMilitaryOnly);
+    }
 
     /// <summary>
-    /// Il gate del ponte fra le due edizioni, scritto UNA volta: il documento dev'esserci <b>e</b> avere una
-    /// release effettiva — lo stesso gate dell'elenco pubblico, per un aeroporto solo.
-    /// <para>⚠️ Le due edizioni condividono la CHIAVE di release (l'ICAO) e si distinguono per il TIPO: è
-    /// per questo che il tipo e il legame si scelgono insieme, dallo stesso parametro. Sceglierne uno e
-    /// dimenticare l'altro darebbe la risposta di un documento leggendo il legame dell'altro.</para>
+    /// Il gate del ponte civile → militare: il documento dev'esserci <b>e</b> avere una release effettiva —
+    /// lo stesso gate dell'elenco pubblico, per un aeroporto solo.
+    /// <para>⚠️ Le due edizioni condividono la CHIAVE di release (l'ICAO) e si distinguono per il TIPO:
+    /// leggere il legame di una e la release dell'altra darebbe la risposta del documento sbagliato. Il
+    /// verso opposto lo dà <see cref="GetCivilEditionAsync"/>, che deve rispondere anche a «esiste ma non è
+    /// pubblicata» e quindi non può essere un booleano.</para>
     /// </summary>
     private async Task<bool> PubblicatoAsync(string icao, bool militare, CancellationToken ct)
     {

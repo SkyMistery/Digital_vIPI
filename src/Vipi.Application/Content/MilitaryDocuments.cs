@@ -30,6 +30,19 @@ public sealed record MilAirportRow(
 /// stessa: allo <b>staff</b> l'elenco mostra anche i campi <i>senza</i> documento, con il tasto che lo crea.
 /// </para>
 /// </summary>
+/// <summary>
+/// Lo stato dell'edizione <b>civile</b> di uno scalo, visto dal documento militare.
+///
+/// <para>⚠️ Le tre risposte si danno <b>insieme</b> perché insieme si decide che cosa mostrare, e chiederle
+/// separatamente vorrebbe dire poterle vedere in tre istanti diversi: se il ponte verso il civile si
+/// accende, e se invece manca qualcosa che <b>dovrebbe</b> esserci.</para>
+/// </summary>
+/// <param name="Esiste">La vIPI civile c'è, anche solo in <b>bozza</b>.</param>
+/// <param name="Pubblicata">Ha una release effettiva: è il gate del ponte per il <b>pubblico</b>.</param>
+/// <param name="SoloMilitare">Il campo non ha traffico civile: allora la vIPI civile <b>non deve</b>
+/// esistere, e la sua assenza non è un difetto ma la regola (carta vSOP militari §5-bis).</param>
+public sealed record CivilEdition(bool Esiste, bool Pubblicata, bool SoloMilitare);
+
 public interface IMilitaryDocumentService
 {
     /// <summary>
@@ -66,8 +79,8 @@ public interface IMilitaryDocumentService
     Task<bool> HasPublishedAsync(string icao, CancellationToken ct = default);
 
     /// <summary>
-    /// Vero se questo campo ha una vIPI <b>civile</b> pubblicata: la stessa domanda al contrario, e serve al
-    /// ponte militare → civile.
+    /// Lo stato della vIPI <b>civile</b> gemella: la stessa domanda al contrario, e serve al ponte
+    /// militare → civile.
     /// <para>
     /// ⚠️ <b>Il ponte va gated nei DUE versi.</b> Fino al 29 agosto 2026 lo era solo in uno: la pagina civile
     /// mostrava il collegamento al militare solo se esisteva, ma quella militare mandava al civile
@@ -75,8 +88,14 @@ public interface IMilitaryDocumentService
     /// quelli con più probabilità di avere un vSOP, il civile non c'è: il lettore finiva su «documento non
     /// disponibile».
     /// </para>
+    /// <para>
+    /// ⚠️ <b>Torna tre cose e non un sì/no</b>, perché «pubblicata» da sola non basta più: allo <b>staff</b>
+    /// il ponte si accende anche su una <b>bozza</b> (il civile può essere appena nato), e su un campo
+    /// <b>misto</b> l'assenza del civile è un <b>difetto da dire</b> — la guardia impedisce di crearne di
+    /// nuovi, ma i vSOP nati prima del 29 agosto 2026 possono benissimo essere lì senza gemello.
+    /// </para>
     /// </summary>
-    Task<bool> HasPublishedCivilAsync(string icao, CancellationToken ct = default);
+    Task<CivilEdition> GetCivilEditionAsync(string icao, CancellationToken ct = default);
 
     /// <summary>Le aree di lavoro scelte per questo campo (sezione <c>regulated</c>).</summary>
     Task<RegulatedSelection> GetRegulatedAsync(string icao, CancellationToken ct = default);

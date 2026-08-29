@@ -185,6 +185,65 @@ public class EdizioneGiustaPerCampoTests : IAsyncLifetime
         Assert.True(dopo.Single(r => r.Icao == "LIRP").HaCivile);
     }
 
+    // ---- Il ponte militare → civile, e il difetto che resta dal passato -------------------------------
+
+    /// <summary>
+    /// ⚠️ Le tre risposte servono tutte, e per ragioni diverse: <b>pubblicata</b> accende il ponte per il
+    /// pubblico, <b>esiste</b> lo accende per lo staff (una civile appena nata è in bozza, e un
+    /// collegamento che compare solo dopo la pubblicazione compare quando non serve più), <b>solo
+    /// militare</b> dice se l'assenza del civile è la regola o un difetto.
+    /// </summary>
+    [Fact]
+    public async Task Lo_stato_della_vIPI_civile_dice_ESISTE_PUBBLICATA_e_SOLO_MILITARE()
+    {
+        // Campo misto, nessuna civile: è il caso che va DETTO — un vSOP militare orfano.
+        var prima = await Militari().GetCivilEditionAsync("LIRP");
+        Assert.False(prima.Esiste);
+        Assert.False(prima.Pubblicata);
+        Assert.False(prima.SoloMilitare);
+
+        // Creata: esiste, ma è una BOZZA. Il pubblico non deve vedere il ponte, lo staff sì.
+        await Civile().EnsureDocumentAsync("LIRP");
+        var bozza = await Militari().GetCivilEditionAsync("LIRP");
+        Assert.True(bozza.Esiste);
+        Assert.False(bozza.Pubblicata);
+
+        // Con una release effettiva il ponte si accende anche per il pubblico.
+        _db.DocReleases.Add(new DocRelease
+        {
+            TargetType = ReleaseTargetType.Airport, TargetKey = "LIRP", VersionNumber = 1,
+            ReleaseAiracCycle = "2609", ReleaseEffectiveUtc = DateTime.UtcNow.AddDays(-1),
+            Status = ReleaseStatus.Effective, PayloadJson = "{}", CreatedByUserId = 1,
+            CreatedUtc = DateTime.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        var pubblicata = await Militari().GetCivilEditionAsync("LIRP");
+        Assert.True(pubblicata.Esiste);
+        Assert.True(pubblicata.Pubblicata);
+    }
+
+    [Fact]
+    public async Task Su_un_campo_SOLO_militare_l_assenza_del_civile_e_la_REGOLA_e_lo_dice()
+    {
+        // ⚠️ Senza questo campo la pagina militare di Rivolto griderebbe «manca la vIPI civile» per sempre,
+        // su un campo dove quella vIPI non deve esistere.
+        var rivolto = await Militari().GetCivilEditionAsync("LIPI");
+        Assert.False(rivolto.Esiste);
+        Assert.True(rivolto.SoloMilitare);
+    }
+
+    [Fact]
+    public async Task Un_ICAO_sconosciuto_non_dichiara_che_l_assenza_e_a_norma()
+    {
+        // ⚠️ `SoloMilitare` falso e non vero: di quel campo non si sa niente, e dire «a norma» sarebbe
+        // rispondere a una domanda che non è stata posta.
+        var ignoto = await Militari().GetCivilEditionAsync("ZZZZ");
+        Assert.False(ignoto.Esiste);
+        Assert.False(ignoto.Pubblicata);
+        Assert.False(ignoto.SoloMilitare);
+    }
+
     // ---- La lettura che le due guardie condividono ----------------------------------------------------
 
     [Fact]

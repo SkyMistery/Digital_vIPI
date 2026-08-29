@@ -79,7 +79,7 @@
                            Decimomannu, Rivolto, cioè proprio quelli che un vSOP ce l'hanno — portava al callout
                            «documento non disponibile». Un ponte che a volte non porta da nessuna parte è peggio di
                            un ponte che non c'è: la seconda volta non ci si clicca più nemmeno quando funziona. *@
-                        @if (_haCivile)
+                        @if (MostraPonteCivile)
                         {
                             <p class="muted">
                                 <a href="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}")">
@@ -102,6 +102,25 @@
                     <PreviewBanner Kind="_mode.Kind" Cycle="@_relCycle"
                                    PublicHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil?icao={_icao}")"
                                    DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil?icao={_icao}&as=draft")" />
+                }
+
+                @* ⚠️ Un vSOP militare su un campo MISTO senza la sua vIPI civile: la guardia impedisce di
+                   crearne di nuovi, ma non ripara quelli nati prima del 29 agosto 2026. Lo si dice a chi
+                   può rimediare, con il tasto che rimedia — non a chi legge, che non ci può fare niente. *@
+                @if (MancaCivile)
+                {
+                    <div class="callout warning">
+                        <span class="cic"><Icon Name="warning" Size="18" /></span>
+                        <div>
+                            <p class="ct">@L["Mil_MissingCivilTitle"]</p>
+                            @L["Mil_MissingCivilBody"]
+                            <p style="margin:8px 0 0">
+                                <a class="btn ghost" href="/services/vsop/@Acc.ToLowerInvariant()/airports/editor?icao=@_icao">
+                                    <Icon Name="plus" Size="14" /> @L["Mil_MissingCivilAction"]
+                                </a>
+                            </p>
+                        </div>
+                    </div>
                 }
 
                 <AudienceChip Visibile="_haMarcate" Vista="_vista"
@@ -137,7 +156,7 @@
                         @* Stesso ponte della testata, e stesso gate: se la vIPI civile non c'è, la voce non
                            c'è. Un elenco di collegamenti utili con dentro un vicolo cieco è peggio di uno
                            più corto. *@
-                        @if (_haCivile)
+                        @if (MostraPonteCivile)
                         {
                             <li><a href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao">@L["Mil_LinkToCivil"]</a></li>
                         }
@@ -191,7 +210,24 @@
     private string? _relCycle;      // il ciclo dell'anteprima release, per il banner
     private bool _canEdit;
     private bool _useFrozen;        // vista pubblica: derivate congelate dalla release effettiva (doc 10 §3d)
-    private bool _haCivile;         // esiste una vIPI civile pubblicata per questo scalo? (il ponte inverso)
+    /// <summary>Lo stato della vIPI CIVILE gemella. ⚠️ Non è più un booleano: «pubblicata» decide il ponte
+    /// per il pubblico, «esiste» lo decide per lo staff (una civile appena nata è in bozza), e «solo
+    /// militare» dice se la sua ASSENZA è la regola o un difetto.</summary>
+    private CivilEdition _civile = new(false, false, false);
+
+    /// <summary>Il ponte verso la vIPI civile: al pubblico solo se PUBBLICATA, allo staff anche se è solo
+    /// una bozza — il civile può essere appena nato, e un collegamento che compare solo dopo la
+    /// pubblicazione compare quando non serve più.</summary>
+    private bool MostraPonteCivile => _civile.Pubblicata || (_canEdit && _civile.Esiste);
+
+    /// <summary>
+    /// Vero quando questo vSOP militare <b>non dovrebbe esistere da solo</b>: campo misto, e la vIPI civile
+    /// non c'è. Si dice solo allo staff, perché è un lavoro da fare, non un'informazione per chi legge.
+    /// <para>⚠️ Dal 29 agosto 2026 questo caso non si può più CREARE (la guardia sta in
+    /// <c>EfMilitaryDocumentService.CreaAsync</c>), ma i documenti nati prima possono benissimo essere lì:
+    /// una guardia nuova non ripara il passato, e tacere lascerebbe il difetto dov'è.</para>
+    /// </summary>
+    private bool MancaCivile => _canEdit && !_civile.SoloMilitare && !_civile.Esiste;
 
     private AirportDerived _derivate = AirportDerived.Empty;
     private WeatherReport? _wx;
@@ -253,7 +289,7 @@
         _mode = PreviewMode.Parse(As, null);
         _relCycle = null;
         _useFrozen = false;
-        _haCivile = false;
+        _civile = new CivilEdition(false, false, false);
         if (_icao.Length == 0) return;
 
         Stations.Prewarm();
@@ -281,7 +317,7 @@
         }
         if (_view is null) return;
 
-        _haCivile = await Militari.HasPublishedCivilAsync(_icao);
+        _civile = await Militari.GetCivilEditionAsync(_icao);
 
         // Le derivate dello STESSO scalo: meteo live piu' le sezioni congelate della release militare.
         _wx = await Weather.GetAsync(_icao);

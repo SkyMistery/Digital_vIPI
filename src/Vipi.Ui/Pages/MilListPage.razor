@@ -85,6 +85,16 @@
                                 <span class="pill @(r.SoloMilitare ? "amber" : "blue")">
                                     @(r.SoloMilitare ? L["Mil_OnlyMilitary"] : L["Mil_JointField"])
                                 </span>
+                                @* ⚠️ Un vSOP militare su un campo MISTO senza la sua vIPI civile. Dal 29
+                                   agosto 2026 non si può più creare, ma i documenti nati prima possono
+                                   essere lì: una guardia nuova non ripara il passato, e questo elenco è
+                                   l'unico posto da cui si vedono TUTTI insieme. *@
+                                @if (Authz.IsEditor && !r.SoloMilitare && !r.HaCivile && r.DocumentId is not null)
+                                {
+                                    <a class="pill red" href="@EditorCivile(r)" title="@L["Mil_MissingCivilBody"]">
+                                        <Icon Name="warning" Size="12" /> @L["Mil_MissingCivilTitle"]
+                                    </a>
+                                }
                             </td>
                             <td>
                                 @if (r.Pubblicato)

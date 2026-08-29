@@ -4339,3 +4339,30 @@ La suite non vede le tre colonne renderizzate né i percorsi di creazione dal br
 sul solito campo **misto e pubblicato** (la lezione di §V1): la vIPI civile di Pisa con il tasto «Crea il
 vSOP militare», l'elenco militare che offre «Prima la vIPI civile» su un campo misto vergine, e
 «Nuovo documento» su un campo solo militare.
+
+### X6 ✅ CHIUSA — il ponte al civile si accende su «esiste», non su «pubblicata»
+
+Trovata alla prova a schermo su `/services/vsop/limm/mil?icao=LIML`. `HasPublishedCivilAsync` è diventato
+`GetCivilEditionAsync` → `CivilEdition(Esiste, Pubblicata, SoloMilitare)`: al pubblico il ponte vuole la
+release, allo staff basta la bozza. Carta §11e.
+
+### X7 🟡 DATO DA SISTEMARE — LIML ha un vSOP militare PUBBLICATO e nessuna vIPI civile
+
+Non è un difetto di codice: il documento è del **28 agosto**, di prima della guardia di §11b, e la guardia
+non ripara il passato. Misurato in archivio il 29 agosto:
+
+| campo | presenza mil. | solo mil. | vIPI civile | vSOP militare |
+|---|---|---|---|---|
+| LIBG Grottaglie | sì | **sì** | — | #24, pubblicato |
+| LIBN Lecce Galatina | sì | **sì** | — | #27, bozza |
+| **LIML Linate** | sì | **no** | **manca** | **#25, PUBBLICATO** |
+| LIMN Cameri | sì | no | #28 | #29 |
+
+⚠️ **Solo LIML è fuori regola.** LIBG e LIBN sono marcati `IsMilitaryOnly`, quindi la civile non deve
+esistere: se in realtà hanno traffico civile, la correzione è **togliere la spunta «solo militare»** in
+Struttura, e da quel momento l'avviso comparirà anche su di loro. LIMN è nato **nell'ordine giusto** (civile
+alle 09:17:15 UTC, militare alle 09:17:20): è la guardia che ha funzionato.
+
+Il caso ora si **vede**: callout sul viewer militare e pill rossa nell'elenco nazionale, solo per lo staff,
+entrambi col tasto che apre l'editor della vIPI civile — che è anche ciò che la fa nascere. ⚠️ **Non si crea
+niente da soli**: creare un documento al posto di una persona è la stessa categoria di errore appena chiusa.

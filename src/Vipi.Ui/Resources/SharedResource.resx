@@ -2556,6 +2556,9 @@
   <data name="Mil_ColState" xml:space="preserve"><value>Stato</value></data>
   <data name="Mil_LinkFromCivil" xml:space="preserve"><value>vSOP militare</value></data>
   <data name="Mil_LinkToCivil" xml:space="preserve"><value>vIPI civile</value></data>
+  <data name="Mil_MissingCivilTitle" xml:space="preserve"><value>Manca la vIPI civile di questo scalo</value></data>
+  <data name="Mil_MissingCivilBody" xml:space="preserve"><value>Questo campo ha traffico civile, quindi il vSOP militare dovrebbe affiancare una vIPI civile: dice cosa cambia rispetto a quella. Questo documento è nato prima che la regola fosse in vigore.</value></data>
+  <data name="Mil_MissingCivilAction" xml:space="preserve"><value>Crea la vIPI civile</value></data>
   <data name="Mil_Created" xml:space="preserve"><value>vSOP militare creato per {0}: ora è una bozza, va compilato e pubblicato.</value></data>
   <data name="Mil_CreateFromCivil" xml:space="preserve"><value>Crea il vSOP militare</value></data>
   <data name="Mil_OpenFromCivil" xml:space="preserve"><value>vSOP militare</value></data>

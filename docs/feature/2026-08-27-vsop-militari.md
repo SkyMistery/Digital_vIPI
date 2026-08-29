@@ -687,3 +687,41 @@ settore non proverebbe niente e resterebbe verde per sempre.
 | `Lingua()` sceglie sulla **cultura corrente**, e nella suite è l'**inglese** | un'asserzione sulla parola italiana del messaggio passava solo per caso di ambiente |
 | `AeroportoPage` è **due schermate in una** | l'elenco degli aeroporti un `reading-cap` ce l'ha, a ragione: il test sul tetto di lettura guarda il contenitore **più vicino** a `doc-layout`, non tutto il file |
 | l'indice a sinistra usa `s.Id` come ancora | è il default di `DocumentSectionsView`: se le due si scostano, i link dell'indice non fanno niente — **senza errori** |
+
+### 11e. Il ponte al civile, e i vSOP orfani nati prima della regola (29 agosto, dopo la prova a schermo)
+
+La prova dal vivo su `/services/vsop/limm/mil?icao=LIML` ha trovato due cose, e la seconda spiega la prima.
+
+**Il ponte era gated su «pubblicata», e doveva esserlo su «esiste».** `HasPublishedCivilAsync` è diventato
+`GetCivilEditionAsync` → `CivilEdition(Esiste, Pubblicata, SoloMilitare)`: al **pubblico** il ponte si accende
+solo se la civile è pubblicata (un collegamento a un documento invisibile è un vicolo cieco), allo **staff**
+anche se è solo una **bozza** — la civile può essere appena nata, e un ponte che compare solo dopo la
+pubblicazione compare quando non serve più. È la stessa correzione già fatta nel verso opposto in §11a.
+
+⚠️ **Tre risposte e non un booleano**, perché servono tutte e tre e vanno lette nello stesso istante: le due
+sopra più `SoloMilitare`, che dice se l'assenza del civile è **la regola** o **un difetto**. Su un ICAO
+sconosciuto `SoloMilitare` torna **falso**: dire «a norma» di un campo di cui non si sa niente sarebbe
+rispondere a una domanda che non è stata posta.
+
+**E il difetto vero: su LIML il ponte mancava perché la vIPI civile non c'è affatto.** Misurato in archivio:
+
+| campo | presenza mil. | solo mil. | vIPI civile | vSOP militare |
+|---|---|---|---|---|
+| LIBG Grottaglie | sì | **sì** | — | #24, pubblicato |
+| LIBN Lecce Galatina | sì | **sì** | — | #27, bozza |
+| **LIML Linate** | sì | **no** | **manca** | **#25, PUBBLICATO** |
+| LIMN Cameri | sì | no | #28 | #29 |
+
+LIML è uno scalo **misto** con un vSOP militare **pubblicato** e nessuna vIPI civile: esattamente ciò che
+§11b vieta. Il documento è del **28 agosto**, cioè di prima della guardia.
+
+⚠️ **Una guardia nuova non ripara il passato, e tacere lascia il difetto dov'è.** Il caso ora si **dice**, a
+chi può rimediare e con il tasto che rimedia: un callout sul viewer militare (`MancaCivile`, solo per lo
+staff) e una pill rossa sulla riga dell'elenco nazionale, entrambi collegati all'editor della vIPI civile —
+che è anche ciò che la fa nascere. Non si crea niente da soli: creare un documento al posto di una persona è
+la stessa categoria di errore che si è appena chiusa.
+
+⚠️ **Quello che NON è un difetto**: LIBG e LIBN sono marcati `IsMilitaryOnly`, quindi la civile non deve
+esistere e la guardia li lascia passare — è la seconda metà della regola. Se un campo così ha in realtà
+traffico civile, la correzione è togliergli la spunta «solo militare» in Struttura, e da quel momento
+l'avviso comparirà anche su di lui.
