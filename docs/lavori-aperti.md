@@ -2156,7 +2156,25 @@ riquadro alto quanto uno dei **tre scaglioni** scelti dall'editore, **più il li
 ⚠️ **Da provare DAL VIVO prima di dire chiusa la 5-bis** (rischio R8): Google può togliere l'embed della
 preview quando vuole. Nessun test qui dentro apre un browser.
 
-**Da dove si riparte**: slice 6 — il link inline in `MarkdownLite`, **solo** schema `allegato:`.
+**✅ Slice 6 fatta il 29 agosto 2026**: il link inline. Nella prosa si scrive
+`[come si legge](allegato:lo-slug)` e diventa un'ancora verso `/vsop/files/{slug}`. **Chiude R1 della carta.**
+
+- ⚠️ **È l'UNICO link che la prosa riconosce**, e non è una mancanza da colmare: `MarkdownLite` encoda e poi
+  sostituisce con delle regex, quindi aprirlo a `[testo](url)` qualunque farebbe entrare un indirizzo
+  arbitrario — `javascript:` compreso — dentro un `href` che costruiamo noi.
+- ⚠️ **Lo slug è vincolato alla sua forma**, non è «qualunque cosa dopo i due punti»: senza,
+  `allegato:../../qualcosa` passerebbe per uno slug e finirebbe dentro l'indirizzo che componiamo.
+- La sostituzione gira **dopo** grassetto e corsivo (così il testo del link può portarli) e **prima** degli
+  a capo (un'ancora non deve spezzarsi su una riga).
+- Il registro «chi cita cosa» copriva già questa forma: lo scanner legge anche il `Body` in prosa, non solo
+  il `BodyJson` dei blocchi.
+
+**✅ Verificati i presidi rimasti indietro** (sito di sviluppo spento il 29 agosto): `Vipi.E2E.Tests` gira di
+nuovo — **255 verdi** — e dentro ci sono i due test della slice 3 (302, destinazione, `no-cache`, 404), la
+riga `frame-src` della 5-bis e `/vsop/files` fra gli endpoint macchina.
+
+**Da dove si riparte**: slice 7 — la sostituzione con **conferma informata** (l'elenco dei documenti
+impattati), audit e voce in Cambiamenti.
 
 ⚠️ **La 5-bis non si chiude senza una prova dal vivo**: Google può togliere l'embed della preview quando
 vuole — è già successo col fondo mappa CARTO il 27 agosto — e qui dentro nessun test apre un browser.

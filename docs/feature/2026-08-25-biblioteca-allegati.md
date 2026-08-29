@@ -282,7 +282,7 @@ principale del sistema attuale, dove i link a Drive stanno sparsi nei documenti 
 | 4 | ✅ **FATTA il 29 agosto** — scanner del token `allegato:` + `DoveUsato(slug)` + filtro «mai usata» | registro |
 | 5 | ✅ **FATTA il 29 agosto** — blocco `Attachment`: enum in coda, `case` nei punti che dispatchano davvero, editor e resa condivisi — **modo Link** | link 1 |
 | 5-bis | ✅ **FATTA il 29 agosto** — modo Incorporato: campo `Modo` + altezza a scaglioni, iframe sulla nostra rotta, link di ripiego, **`frame-src` in CSP** | resa in pagina |
-| 6 | Link inline in `MarkdownLite`, **solo schema `allegato:`** | link 2 |
+| 6 | ✅ **FATTA il 29 agosto** — link inline in `MarkdownLite`, **solo schema `allegato:`** | link 2 |
 | 7 | Sostituzione con conferma informata + audit + voce in Cambiamenti | versioni |
 | 8 | Cancellazione con guardia; ricerca; stampa; guida in-app | contorno |
 
@@ -292,7 +292,7 @@ Un commit per slice, `dotnet build` verde a ogni commit.
 
 | # | Rischio | Mitigazione |
 |---|---|---|
-| R1 | `MarkdownLite` non ha link: aprirlo a URL generici farebbe entrare `javascript:` e link esterni nel contenuto editoriale | Un solo schema riconosciuto (`allegato:`), `href` costruito da noi. Test su input ostile |
+| R1 | ~~`MarkdownLite` non ha link: aprirlo a URL generici farebbe entrare `javascript:` e link esterni nel contenuto editoriale~~ | ✅ **CHIUSO il 29 agosto**: un solo schema riconosciuto (`allegato:`), lo **slug vincolato alla sua forma** e l'`href` costruito da noi. 22 test, di cui metà sono cose che **non** devono diventare link (`javascript:`, `data:`, `vbscript:`, URL assoluti e relativi, `allegato:../../qualcosa`, un apice nel testo) |
 | R2 | Nono punto di dispatch per-formato; secondo `case` aggiunto senza registry | Decisione esplicita di non aprirlo qui + debito annotato nel doc refactor |
 | R3 | ~~Il reconciler Postgres allinea colonne e indici, non crea tabelle~~ | ✅ **VERIFICATO IL 25-AGO: non è più un rischio.** Il commit `eac14fd` ha chiuso l'R1 del doc immagini: `PostgresSchemaReconciler.EnsureModelTables` genera la DDL **dal diff del modello EF**, quindi una tabella nuova nasce da sola senza elenchi di colonne da tenere aggiornati. Coperto da 3 test in `PostgresSchemaReconcilerTests`. Riguarda comunque solo Render/Neon (**ambiente di prova**): SQLite e MariaDB usano migrazioni versionate |
 | R4 | Le revisioni Drive scadono. ✅ **29-ago: nessuna pulizia periodica** sul drive condiviso (risposta del committente), quindi resta solo la scadenza di piattaforma qui sotto | ✅ **VERIFICATO IL 25-AGO, impatto minimo.** Regola misurata sulla doc Drive API: le revisioni «purgabili» durano **~30 giorni**, e possono cadere prima se il file ha **100** revisioni non marcate e se ne carica un'altra. Fino a **200** revisioni si possono marcare «Keep Forever», e occupano quota. ⚠️ **Ma la revisione di testa non viene MAI purgata**: la versione *corrente* — l'unica che i documenti servono — è sempre al sicuro. La scadenza tocca solo i byte delle versioni passate, che erano già fuori perimetro |
