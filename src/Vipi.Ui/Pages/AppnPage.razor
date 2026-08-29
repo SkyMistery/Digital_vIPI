@@ -289,13 +289,13 @@ else
 
     // Editoriali-strutturate: il dato vive nel BodyJson del primo blocco Table della sezione keyed del Document.
     private static IReadOnlyList<AppSeparationRow> ReadSeparations(SectionView s) =>
-        Deser<List<AppSeparationRow>>(s.Blocks.FirstOrDefault()?.BodyJson) ?? new List<AppSeparationRow>();
+        Deser<List<AppSeparationRow>>(SectionPayload.Read(s)) ?? new List<AppSeparationRow>();
 
     private static AppVfrContent ReadVfr(SectionView s) =>
-        Deser<AppVfrContent>(s.Blocks.FirstOrDefault()?.BodyJson) ?? AppVfrContent.Empty;
+        Deser<AppVfrContent>(SectionPayload.Read(s)) ?? AppVfrContent.Empty;
 
     private static RegulatedSelection ReadRegulated(SectionView s) =>
-        Deser<RegulatedSelection>(s.Blocks.FirstOrDefault()?.BodyJson) ?? new RegulatedSelection { OwnAuto = false };
+        Deser<RegulatedSelection>(SectionPayload.Read(s)) ?? new RegulatedSelection { OwnAuto = false };
 
     private static T? Deser<T>(string? json) where T : class
     {

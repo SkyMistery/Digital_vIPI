@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 29 agosto 2026, notte fonda (**§X — L'EDIZIONE GIUSTA PER IL CAMPO, e i vSOP militari raggiungibili**. La regola che finora stava solo nella testa di chi scrive: su un campo **solo militare** la vIPI civile **non nasce**, su un campo **misto** il vSOP militare nasce **solo dopo** la civile (basta che esista, anche in bozza). Due guardie gemelle **nei servizi**, non nelle tendine — `EnsureDocumentAsync` è chiamato dall'APERTURA dell'editor, quindi bastava l'URL — e bloccano la **nascita**, non l'apertura. Il viewer militare era l'**unico dei cinque senza `doc-layout`**. E i militari erano difficili da raggiungere in quattro punti: il ponte al civile gated su «pubblicata» invece che su «esiste», il filtro «Tipo» delle Versioni senza la loro voce, la pagina di una ACC con tre famiglie invece di quattro, l'hub `/services` che non li nominava (⚠️ **ribalta §5 della carta militare**, con la scheda marcata `shortcut` per non cancellare la regola). ⚠️ La **verifica sui duplicati** chiesta dal committente ha trovato un buco vero: le due porte che creano una vLOA confrontavano cose diverse — la **coppia di ACC** una, i **SectorId** l'altra — e nascevano **due vLOA sulla stessa coppia**, di cui una invisibile. **19 test nuovi**, nessuna migrazione, **3 762** su net8. ⚠️ **X4**: `Vipi.E2E.Tests` non compilato, il Host era acceso. ⚠️ **X5**: verifica a schermo da fare. ⚠️ **X7**: **LIML** ha un vSOP militare pubblicato e nessuna vIPI civile — dato di prima della guardia, ora si vede ma va creata a mano) · **Aggiornato:** 29 agosto 2026, notte tarda (**§W NUOVA: il convertitore di coordinate**, un servizio nuovo in `/services` per lo staff di divisione. Tredici forme di coordinate in ingresso — KML/KMZ compresi — e le due uscite chieste, col sectorfile in **due forme**: l'elenco dei punti (default) e i segmenti. ⚠️ Il DB elenca **VERTICI**, i segmenti elencano **LATI**. Nessun modello nuovo e nessun motore nuovo: il DMS e l'ordine lat/lon del JSON **traslocano** in `Vipi.Application/Coordinates` e l'infrastruttura delega; la mappa è quella dell'AoR. **Nessuna migrazione**. ⚠️ La **verifica dal vivo** ha trovato **cinque** difetti che la suite non vedeva. Dieci slice, **143 test nuovi**, suite **3 984** su nove progetti. ⚠️ Ramo `convertitore-coordinate` **NON fuso**) · **Aggiornato:** 29 agosto 2026, notte (**§V: TREDICI voci, tredici chiuse.** Dieci le ha trovate la lettura,
+**Aggiornato:** 29 agosto 2026, notte fonda (**§Y NUOVA — LE TABELLE DEL vSOP MILITARE**. Otto richieste del committente: sette sezioni oggi a prosa libera diventano **tabelle** — radioassistenze, aeroporti alternati, nominativi, parcheggi, coordinate soglia pista, attività delle aree — e l'indice impara a mostrare le **sotto-sezioni**. L'ottava (il BOAT) è stata **ritirata dal committente**. ✅ **Y0 chiusa**: il payload di una sezione cercava `ParentSectionId == null`, cioè **solo le radici**, e nel profilo militare venti sezioni su ventisei sono figlie — è la **terza** volta che la stessa assunzione si presenta con un vestito diverso. Chiuso insieme a un difetto latente: il payload nel «primo blocco» si sarebbe perso al primo paragrafo scritto sopra la tabella. ⚠️ **Misurato sul filo**: IVAO manda **lat/lon ed elevazione di ogni soglia pista** e noi ne mappiamo quattro campi su otto → **una migrazione (le in coda diventano VENTIQUATTRO) e un re-import**. ⚠️ E la sorgente ha **già** frequenza e canale delle radioassistenze — `MNL - CH 99Y (115.25)` è alla lettera una riga di `itvor.vor`, e il parser la butta via. ⚠️ **Y3**: sarebbe il **terzo ramo impilato**, decisione del committente) · **Aggiornato:** 29 agosto 2026, notte fonda (**§X — L'EDIZIONE GIUSTA PER IL CAMPO, e i vSOP militari raggiungibili**. La regola che finora stava solo nella testa di chi scrive: su un campo **solo militare** la vIPI civile **non nasce**, su un campo **misto** il vSOP militare nasce **solo dopo** la civile (basta che esista, anche in bozza). Due guardie gemelle **nei servizi**, non nelle tendine — `EnsureDocumentAsync` è chiamato dall'APERTURA dell'editor, quindi bastava l'URL — e bloccano la **nascita**, non l'apertura. Il viewer militare era l'**unico dei cinque senza `doc-layout`**. E i militari erano difficili da raggiungere in quattro punti: il ponte al civile gated su «pubblicata» invece che su «esiste», il filtro «Tipo» delle Versioni senza la loro voce, la pagina di una ACC con tre famiglie invece di quattro, l'hub `/services` che non li nominava (⚠️ **ribalta §5 della carta militare**, con la scheda marcata `shortcut` per non cancellare la regola). ⚠️ La **verifica sui duplicati** chiesta dal committente ha trovato un buco vero: le due porte che creano una vLOA confrontavano cose diverse — la **coppia di ACC** una, i **SectorId** l'altra — e nascevano **due vLOA sulla stessa coppia**, di cui una invisibile. **19 test nuovi**, nessuna migrazione, **3 762** su net8. ⚠️ **X4**: `Vipi.E2E.Tests` non compilato, il Host era acceso. ⚠️ **X5**: verifica a schermo da fare. ⚠️ **X7**: **LIML** ha un vSOP militare pubblicato e nessuna vIPI civile — dato di prima della guardia, ora si vede ma va creata a mano) · **Aggiornato:** 29 agosto 2026, notte tarda (**§W NUOVA: il convertitore di coordinate**, un servizio nuovo in `/services` per lo staff di divisione. Tredici forme di coordinate in ingresso — KML/KMZ compresi — e le due uscite chieste, col sectorfile in **due forme**: l'elenco dei punti (default) e i segmenti. ⚠️ Il DB elenca **VERTICI**, i segmenti elencano **LATI**. Nessun modello nuovo e nessun motore nuovo: il DMS e l'ordine lat/lon del JSON **traslocano** in `Vipi.Application/Coordinates` e l'infrastruttura delega; la mappa è quella dell'AoR. **Nessuna migrazione**. ⚠️ La **verifica dal vivo** ha trovato **cinque** difetti che la suite non vedeva. Dieci slice, **143 test nuovi**, suite **3 984** su nove progetti. ⚠️ Ramo `convertitore-coordinate` **NON fuso**) · **Aggiornato:** 29 agosto 2026, notte (**§V: TREDICI voci, tredici chiuse.** Dieci le ha trovate la lettura,
 TRE la verifica a schermo su un campo MISTO (§V1, chiusa) — e le tre dello schermo sono le peggiori: **un vSOP
 militare pubblicato non si apriva affatto** (il bersaglio di release non si risolveva sul legame militare),
 **tre tabelle su tre erano titoli vuoti** (il corpo derivato lo disegnavano solo le sezioni radice) e **il
@@ -4400,3 +4400,64 @@ nella documentazione civile. La scheda è marcata `a.choice.shortcut` — **non 
 dentro a uno** — così `ServicesHomeTests` continua a pretendere un solo segmento sotto `/services` per tutte
 le altre. ⚠️ **Marcare invece di allargare**: senza il segno quel test sarebbe stato cancellato per far
 entrare un'eccezione, e da lì in poi non avrebbe più protetto nessuno. Carta §11h.
+
+## Y. Le tabelle del vSOP militare — 29 agosto 2026, notte
+
+> **Carta:** [`docs/feature/2026-08-27-vsop-militari.md`](feature/2026-08-27-vsop-militari.md) **§12**
+> (12a il payload nei figli, 12b le decisioni del committente, 12c le soglie pista, 12d l'ordine dei lavori).
+
+Otto richieste del committente sulle sezioni del vSOP militare: sette diventano **tabelle** al posto della
+prosa libera, una è l'indice. L'ottava — il BOAT — è stata **ritirata dal committente** dopo un ricontrollo,
+e torna separatamente.
+
+**Le cinque decisioni prese prima di scrivere** stanno tutte in carta §12b: l'anagrafica condivisa delle
+radioassistenze, **la fonte vince sempre** (un campo che viene dalla sorgente non è modificabile), identità
+`codice + tipo`, concorrenza a **ultimo-che-scrive-vince** ma **per campo** e con vecchio+nuovo nel registro,
+rilevamento e distanza degli alternati **a mano**.
+
+### Y0 ✅ CHIUSA — il payload di una sezione non scendeva nei figli
+
+⚠️ **Il blocco che stava davanti a tutto.** `GetSectionBlockJsonAsync` / `SaveSectionBlockJsonAsync`
+cercavano la sezione con `ParentSectionId == null`: **solo fra le radici**. Nel profilo `AirportMil` venti
+sezioni su ventisei sono figlie, e ci stanno dentro *tutte* le tabelle chieste — su quelle il salvataggio
+sollevava «Sezione assente» e la lettura tornava `null`.
+
+⚠️ **Terza occorrenza della stessa assunzione**: `SectionCatalog.Find` (§V), il corpo derivato reso solo
+dalle radici (§V), e ora il payload. Quando una famiglia introduce un annidamento che le altre non hanno,
+vanno cercate **tutte** le query che dicono `ParentSectionId == null` o `Depth == 0`.
+
+**E un secondo difetto, latente**: il payload viveva nel `BodyJson` del **primo blocco**, convenzione scritta
+in cinque file. Sulle sezioni militari — che `MilSopLoader` riempie di prosa — «il primo» è «quello che oggi
+sta in cima»: chi avesse scritto una premessa sopra la tabella l'avrebbe vista **svuotarsi**, senza errori.
+Ora la domanda è una sola e uguale nei due versi (`SectionPayload.Read` in lettura): **il primo blocco che un
+payload ce l'ha**; in scrittura, in mancanza, un blocco **senza prosa** (il segnaposto della nascita), e solo
+in ultima istanza uno nuovo **in coda**. ⚠️ Un blocco di prosa non si tocca mai.
+
+**2 test nuovi**, nessuna migrazione. Verdi: 989 + 1 555 + 852 su net8.
+
+### Y1 🟢 DA FARE — le sette tabelle, nell'ordine
+
+`S1` navigazione con le sotto-sezioni (l'indice del viewer e il menu dell'editor elencano solo le radici;
+`EditorTocItem.Level = 3` e la classe `.lvl3` **esistono già e non le usa nessuno**) → `S2a` anagrafica
+radioassistenze → `S2` Radioassistenze → `S3` Aeroporti alternati → `S4` coordinate soglia → `S5`/`S6`/`S7`
+nominativi, parcheggi, attività delle aree → reti e lingua.
+
+⚠️ Le sezioni passano a `HostAndBlocks`, **non** a `Host`: con `Host` sparirebbe dallo schermo la prosa dei
+SOP già caricata.
+
+### Y2 🟡 DA FARE — le coordinate delle soglie: **una migrazione, e un re-import**
+
+Verificato sul filo: `/v2/airports/{icao}/runways` manda **latitudine, longitudine ed elevazione** per ogni
+soglia, e `RunwayDto` ne mappa quattro campi su otto. ⚠️ Le migrazioni in coda al cutover MariaDB diventano
+**VENTIQUATTRO**.
+
+⚠️ **La tabella nasce vuota su tutti i campi**: l'import piste è per-aeroporto e non automatico. Dopo la
+migrazione serve un giro col bottone bulk di `/services/vsop/admin/airports`, o le soglie non compaiono e
+sembrerà un difetto.
+
+### Y3 🔵 DECISIONE DEL COMMITTENTE — su che ramo va questo lavoro
+
+Questo lavoro nasce su `edizione-giusta-per-il-campo`, che **non è fuso** e nasce sopra
+`convertitore-coordinate`, anch'esso **non fuso**. E usa `Vipi.Application/Coordinates` — cioè il DMS del
+convertitore — per validare le coordinate delle radioassistenze. Sarebbe il **terzo ramo impilato**.
+Consigliato: fondere i due in `main` prima di proseguire oltre S1.

@@ -276,7 +276,7 @@
     /// </summary>
     private static RegulatedSelection LeggiAree(SectionView s)
     {
-        var sel = RegulatedSelectionJson.Parse(s.Blocks.FirstOrDefault()?.BodyJson);
+        var sel = RegulatedSelectionJson.Parse(SectionPayload.Read(s));
         return new RegulatedSelection { OwnAuto = false, OwnIds = sel.OwnIds, ExtraIds = sel.ExtraIds };
     }
 

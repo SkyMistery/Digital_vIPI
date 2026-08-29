@@ -807,3 +807,112 @@ pagina rifiuta chi scrive l'indirizzo a mano.
 
 ⚠️ Sotto un titolo di sezione le schede diventano `<h3>`: il tag dice la **struttura**, `.h-card` porta la
 **misura**, quindi il disegno non cambia.
+
+## 12. 29 agosto 2026, notte — le tabelle del vSOP militare (§X2)
+
+Otto richieste del committente. Sette diventano **tabelle** dentro le sezioni che oggi sono prosa libera, una
+è l'indice; l'ottava — il BOAT — è stata **ritirata dal committente** dopo un ricontrollo («è più complicato
+di quanto mi aspettassi»), e si riprende separatamente.
+
+**Il filo**: le sezioni del SOP che *contengono un elenco* — radioassistenze, alternati, nominativi,
+parcheggi — oggi sono paragrafi in cui l'elenco è scritto a mano ogni volta, e ogni campo lo scrive a modo
+suo. Una tabella con le colonne giuste non è impaginazione: è la differenza fra un dato e una frase che lo
+contiene.
+
+### 12a. Il payload di una sezione non scendeva nei figli — **chiuso**
+
+⚠️ **Il blocco tecnico che stava davanti a tutto, e non si vedeva dalla carta.**
+`EfEditingRepository.GetSectionBlockJsonAsync` / `SaveSectionBlockJsonAsync` — le due porte da cui passa il
+contenuto strutturato di una sezione (le configurazioni di un APP, la selezione delle aree) — cercavano la
+sezione con `ParentSectionId == null`, cioè **solo fra le radici**.
+
+Nel profilo `AirportMil` **venti sezioni su ventisei sono figlie**, e ci stanno dentro *tutte* le tabelle
+chieste: «Radioassistenze» e «Nominativi» sotto «Dati generali», «Parcheggi» sotto «Procedure di terra».
+Su quelle il salvataggio sollevava **«Sezione assente»** e la lettura tornava `null`.
+
+⚠️ È la **terza volta** che la stessa assunzione si presenta con un vestito diverso: `SectionCatalog.Find`
+non scendeva nei figli (§V), il corpo derivato lo disegnavano solo le radici (§V, verifica a schermo), e ora
+il payload. **La regola da portarsi via**: quando una famiglia introduce un annidamento che le altre non
+hanno, non basta correggere il punto che si è rotto — vanno cercate *tutte* le query che dicono
+`ParentSectionId == null` o `Depth == 0`, perché sono la stessa assunzione scritta in posti diversi.
+
+**E un secondo difetto, latente, trovato mentre si chiudeva il primo.** Il payload viveva per convenzione nel
+`BodyJson` del **primo blocco** della sezione — regola scritta in cinque file diversi. Regge finché la
+sezione ha un blocco solo, ed è il caso di tutte le derivate delle altre famiglie. **Non regge sulle sezioni
+militari**, che `MilSopLoader` riempie di prosa: lì il payload convive con i paragrafi, e «il primo» diventa
+«quello che oggi sta in cima». Chi avesse scritto una premessa sopra la tabella non avrebbe visto un errore —
+avrebbe visto **la tabella svuotarsi**, e il salvataggio successivo avrebbe scritto il JSON *dentro il blocco
+di prosa*.
+
+La regola ora è la stessa in lettura e in scrittura, ed è una domanda sola:
+
+- **lettura** (`SectionPayload.Read`, nuovo, unico punto per i cinque chiamanti): il primo blocco che un
+  payload **ce l'ha**. Un blocco di prosa non ne ha, quindi i due non si confondono, e su una sezione con un
+  blocco solo la risposta è identica a prima.
+- **scrittura**: quel blocco se esiste; altrimenti un blocco **senza prosa** — il segnaposto che
+  `AggiungiPlaceholderSeServe` mette alla nascita sulle sezioni rese dalla pagina, e riusarlo tiene il conto
+  dei blocchi identico a prima su tutte le famiglie; altrimenti se ne crea uno **in coda**.
+  ⚠️ *In coda*, non a `Order = 1`: su una sezione che ha già la prosa dei SOP quell'ordine è occupato, e due
+  blocchi con lo stesso ordine si dispongono come capita.
+
+⚠️ **Un blocco di prosa non si tocca mai.** È l'invariante che rende sicuro tutto il resto della sezione 12:
+le sette tabelle nuove abitano le stesse sezioni del testo già caricato dai quindici PDF.
+
+Reti: `SectionBlockJson_Trova_Anche_Le_Sezioni_Annidate` — che verifica anche che la sezione sia davvero a
+profondità 1, così il test non diventa verde per il motivo sbagliato il giorno che il profilo cambia — e
+`SectionBlockJson_Non_Tocca_La_Prosa_E_Non_Si_Perde_Sotto_Un_Paragrafo`. Verdi: 989 + 1 555 + 852 su net8
+(Infrastructure, Application, Ui).
+
+### 12b. Le decisioni del committente, prese prima di scrivere
+
+1. **Le radioassistenze diventano un'anagrafica condivisa.** Quel che si scrive nella tabella di un campo si
+   memorizza, e quella radioassistenza esce uguale ovunque. ⚠️ E la sorgente quel dato **ce l'ha già**: il
+   parser del sectorfile legge `AEA;111.65;N040.38.17.400;E008.17.30.400;0;2;54Y;` e **butta via frequenza e
+   canale**, tenendo solo nome e coordinate. Misurato il 29 agosto sul repo `ivao-italy/it-aurora-sector`:
+   **128 VOR, 30 NDB, e 26 col canale** — che sono i VORTAC/TACAN, cioè proprio i militari. L'esempio che il
+   committente ha scritto a mano, `MNL - CH 99Y (115.25)`, è alla lettera la riga 85 di `itvor.vor`.
+   ⚠️ **ILS e TACAN puro non sono nel sectorfile**: quelle righe saranno sempre «nostre».
+2. **La fonte vince sempre.** Un campo che viene dalla sorgente **non è modificabile**: il tentativo di
+   correzione a mano non va a buon fine. La provenienza è **per campo**, non per riga — su MNL frequenza e
+   canale sono della fonte, su un ILS sono nostri, e una colonna sola sulla riga mentirebbe su metà dei
+   campi. ⚠️ Vale la regola già pagata cara: **l'assenza non cancella** — un import che trova il campo vuoto
+   non scrive il vuoto sopra il nostro.
+3. **Identità di una radioassistenza: `codice + tipo`.** Due `DEC`, uno VOR e uno NDB, sono due righe.
+4. **Concorrenza: vince chi arriva per ultimo**, e tutto finisce nel registro d'audit. ⚠️ Con due
+   precisazioni che il committente ha accettato: si scrivono **i campi toccati, non la riga** (altrimenti chi
+   cambia la frequenza e chi cambia le coordinate si sovrascrivono a vicenda *senza aver toccato la stessa
+   cosa*, e il registro direbbe una cosa falsa), e il registro porta il valore **vecchio e nuovo** — «Tizio ha
+   modificato MNL» non permette né di accorgersi né di rimettere a posto.
+   ⚠️ **Il lock del documento qui non protegge niente**: due persone su due SOP diversi hanno ognuna il lock
+   del proprio documento e scrivono sulla stessa radioassistenza. Il lock è del documento, l'anagrafica è di
+   tutti.
+5. **Rilevamento e distanza degli alternati si scrivono a mano**, non si calcolano dalle coordinate: sono i
+   valori del SOP, e nessuno sa come li abbiano ricavati. Calcolarli darebbe numeri veri e **diversi dal PDF**.
+
+### 12c. Le coordinate delle soglie pista ci sono, e non le memorizziamo
+
+Verificato **sul filo** il 29 agosto, `GET /v2/airports/LIPI/runways`:
+
+```json
+{"id":11609,"airportIcao":"LIPI","runway":"RW06","length":8383,"bearing":57,
+ "latitude":45.9735305556,"longitude":13.0350638889,"elevation":162,"width":44}
+```
+
+Una riga **per soglia**, con latitudine, longitudine **ed elevazione**. `RunwayDto` ne mappa quattro campi su
+otto: il dato arriva e si perde in traduzione. Servono una migrazione (le in coda al cutover MariaDB
+diventano **ventiquattro**) e un `SaveRunwaysAsync` che le **preservi** nel merge editoriale.
+
+⚠️ **L'elevazione si prende adesso**: viaggia nella stessa risposta, i SOP la stampano, e prenderla dopo
+sarebbe una seconda migrazione per un campo che era già nella busta.
+
+⚠️ **La tabella nasce vuota su tutti i campi.** L'import piste è **per-aeroporto e non automatico**: finché
+non si ri-importa da IVAO, le soglie non ci sono. Va nel piano, non scoperto a schermo.
+
+### 12d. Ordine dei lavori
+
+`S0` payload nei figli (**fatto**) → `S1` navigazione con le sotto-sezioni → `S2a` anagrafica radioassistenze
+→ `S2` Radioassistenze → `S3` Aeroporti alternati → `S4` coordinate soglia → `S5`/`S6`/`S7` nominativi,
+parcheggi, attività delle aree → reti e lingua → verifica a schermo.
+
+⚠️ **Il caso di prova è LIMN Cameri**: campo **misto** e nato nell'ordine giusto. La regola l'abbiamo già
+pagata due volte — su Rivolto, che è solo militare, metà dei difetti è invisibile.

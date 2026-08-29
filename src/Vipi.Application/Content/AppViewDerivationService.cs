@@ -70,6 +70,6 @@ public sealed class AppViewDerivationService : IAppViewDerivationService
     {
         var section = view?.Sections.FirstOrDefault(s =>
             string.Equals(s.SectionKey, ConfigurationsKey, StringComparison.OrdinalIgnoreCase));
-        return ConfigTableProjector.Deserialize(section?.Blocks.FirstOrDefault()?.BodyJson);
+        return ConfigTableProjector.Deserialize(SectionPayload.Read(section));
     }
 }

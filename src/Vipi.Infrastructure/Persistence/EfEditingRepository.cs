@@ -546,14 +546,13 @@ public sealed class EfEditingRepository : IEditingRepository
         var versionId = await ResolveWorkingVersionIdAsync(documentId, ct);
         if (versionId is null) return null;
 
-        var sectionId = await _db.DocumentSections
-            .Where(s => s.DocumentVersionId == versionId && s.ParentSectionId == null && s.SectionKey == sectionKey)
-            .OrderBy(s => s.Order).Select(s => (int?)s.Id).FirstOrDefaultAsync(ct);
+        var sectionId = await SezionePerChiaveAsync(versionId.Value, sectionKey, ct);
         if (sectionId is null) return null;
 
-        return await _db.ContentBlocks
-            .Where(b => b.SectionId == sectionId)
-            .OrderBy(b => b.Order).Select(b => b.BodyJson).FirstOrDefaultAsync(ct);
+        return await BlocchiDi(sectionId.Value).Select(b => b.BodyJson)
+            // La stessa domanda di SectionPayload.Read: il primo blocco che un payload ce l'ha. Un blocco di
+            // prosa qui c'è e non ne ha, e prendendo «il primo» si tornerebbe indietro con un null.
+            .FirstOrDefaultAsync(j => j != null, ct);
     }
 
     public async Task SaveSectionBlockJsonAsync(int documentId, string sectionKey, string? json, int authorUserId, CancellationToken ct = default)
@@ -562,22 +561,33 @@ public sealed class EfEditingRepository : IEditingRepository
             ?? throw new InvalidOperationException(Lingua($"Documento {documentId} senza versione di lavoro.", $"Document {documentId} has no working version."));
         await RequireDraftAsync(versionId, ct);
 
-        var section = await _db.DocumentSections
-            .Where(s => s.DocumentVersionId == versionId && s.ParentSectionId == null && s.SectionKey == sectionKey)
-            .OrderBy(s => s.Order).FirstOrDefaultAsync(ct)
+        var sectionId = await SezionePerChiaveAsync(versionId, sectionKey, ct)
             ?? throw new InvalidOperationException($"Sezione '{sectionKey}' assente nel documento {documentId}.");
 
         var normalized = string.IsNullOrWhiteSpace(json) ? null : json;
-        var block = await _db.ContentBlocks
-            .Where(b => b.SectionId == section.Id).OrderBy(b => b.Order).FirstOrDefaultAsync(ct);
+        var blocchi = await BlocchiDi(sectionId).ToListAsync(ct);
+        // Dove va il payload, in tre domande in ordine:
+        //   1. il blocco che un payload ce l'ha già — è lui, e si riscrive;
+        //   2. altrimenti un blocco SENZA prosa: è il segnaposto che `AggiungiPlaceholderSeServe` mette alla
+        //      nascita sulle sezioni rese dalla pagina, e riusarlo è ciò che tiene il conto dei blocchi
+        //      identico a prima su tutte le famiglie;
+        //   3. altrimenti se ne crea uno.
+        // ⚠️ Un blocco di PROSA non si tocca mai. Prendere «il primo e basta» — la regola di prima —
+        // significava, su una sezione riempita dal caricatore dei SOP, scrivere il JSON sul blocco di prosa:
+        // funzionava per caso finché quello restava in cima, e si rompeva al primo paragrafo aggiunto sopra.
+        var block = blocchi.FirstOrDefault(b => b.BodyJson != null)
+                    ?? blocchi.FirstOrDefault(b => string.IsNullOrWhiteSpace(b.Body));
 
         if (block is null)
         {
+            // ⚠️ IN CODA, non a `Order = 1`: su una sezione che ha già la prosa dei SOP, l'ordine 1 è occupato,
+            // e due blocchi con lo stesso ordine si mettono in fila come capita — cioè la tabella poteva
+            // comparire sopra la frase che la introduce, o sotto, a seconda del giro.
             _db.ContentBlocks.Add(new ContentBlock
             {
                 DocumentVersionId = versionId,
-                SectionId = section.Id,
-                Order = 1,
+                SectionId = sectionId,
+                Order = blocchi.Count == 0 ? 1 : blocchi.Max(b => b.Order) + 1,
                 Format = BlockFormat.Table,
                 Tier = BlockTier.Extended,
                 Visibility = BlockVisibility.Always,
@@ -592,6 +602,32 @@ public sealed class EfEditingRepository : IEditingRepository
         }
         await _db.SaveChangesAsync(ct);
     }
+
+    /// <summary>
+    /// La sezione con questa chiave dentro la versione, <b>a qualunque profondità</b>.
+    ///
+    /// <para>
+    /// ⚠️ Fin qui la ricerca aveva <c>ParentSectionId == null</c>, cioè leggeva e scriveva il payload solo
+    /// sulle sezioni RADICE. Finché le sezioni strutturate stavano tutte al primo livello la differenza non
+    /// esisteva; nel profilo <c>AirportMil</c> venti su ventisei sono figlie — «Radioassistenze» e
+    /// «Parcheggi» stanno sotto «Dati generali» e «Procedure di terra» — e su quelle il salvataggio
+    /// <b>sollevava «Sezione assente»</b> e la lettura tornava null. È la stessa forma del difetto chiuso il
+    /// 29 agosto 2026 su <c>SectionCatalog.Find</c>, che non scendeva nei figli.
+    /// </para>
+    /// <para>Le chiavi di sezione sono univoche dentro un documento (doc 11 §3b), quindi la discesa non
+    /// introduce ambiguità; l'ordine è comunque deterministico, che è ciò che rende ripetibile la risposta se
+    /// un giorno un documento nascesse con una chiave in doppio.</para>
+    /// </summary>
+    private Task<int?> SezionePerChiaveAsync(int versionId, string sectionKey, CancellationToken ct) =>
+        _db.DocumentSections
+            .Where(s => s.DocumentVersionId == versionId && s.SectionKey == sectionKey)
+            .OrderBy(s => s.Depth).ThenBy(s => s.Order).ThenBy(s => s.Id)
+            .Select(s => (int?)s.Id)
+            .FirstOrDefaultAsync(ct);
+
+    /// <summary>I blocchi di una sezione nel loro ordine di lettura. Una query sola, letta due volte.</summary>
+    private IQueryable<ContentBlock> BlocchiDi(int sectionId) =>
+        _db.ContentBlocks.Where(b => b.SectionId == sectionId).OrderBy(b => b.Order).ThenBy(b => b.Id);
 
     /// <summary>Id della versione di lavoro: bozza più recente se esiste, sennò la pubblicata corrente, sennò l'ultima. Null se nessuna versione.</summary>
     private async Task<int?> ResolveWorkingVersionIdAsync(int documentId, CancellationToken ct)
