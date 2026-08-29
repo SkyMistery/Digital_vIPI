@@ -1229,6 +1229,72 @@ esattamente l'ambiguità che ha fatto perdere questo giro.
 loro coordinate, i campi della sorgente in **pill** e non in caselle, il tipo scritto a mano che fa scendere
 la chip «senza tipo» da 122 a 121.
 
+### 12n. Il tasto d'import, e la forma delle sei tabelle (30 agosto 2026)
+
+Due richieste del committente in un giro: *«vorrei il tasto per importare i fix anche in `/admin/navaids`,
+così com'è in Sorgenti»* e *«nei documenti militari molti degli editor sono molto rudimentali, puoi fare una
+revisione e dargli lo stesso stile del resto?»*.
+
+**Il tasto.** «Importa dal sectorfile» sta in **testata** (regola 3: agisce sulla pagina, non su una riga) e
+il suo esito è un **chip in testata** (regola 5), non una fascia che spinge in giù la tabella su cui si sta
+lavorando.
+
+⚠️ **Non è lo stesso metodo del giro notturno.** `RunNowAsync` **riscarica** la sorgente prima di leggerla;
+`RunAsync` legge la copia in memoria, che può avere fino a ventiquattro ore. Chi preme un tasto d'import lo
+preme *perché il sectorfile è cambiato oggi*: sulla copia vecchia la risposta sarebbe «0 create, 0
+aggiornate» con la riga nuova già pronta sul repository — uno strumento che «funziona» e convince che il dato
+non c'è. È la stessa ragione per cui in Sorgenti esiste «Ricarica catalogo punti».
+
+⚠️ **Il giro lo timbra il CORPO**, non solo il ciclo gestito (`IImportStateStore` dentro `NavaidImporter`,
+come in `AccImportUseCase`): senza, la pagina Sorgenti direbbe «ferma da tre giorni» di un'anagrafica
+riempita un minuto fa dal tasto. E lo timbra **solo** quando la sorgente ha davvero parlato: i due giri
+saltati — policy che esclude, sorgente muta — non timbrano niente, o «ultimo giro riuscito: adesso» sarebbe
+scritto su un giro che non ha letto una riga.
+
+⚠️ **Le tre risposte si distinguono a schermo**, e non si riassumono in «fatto»: *escluso dalla policy* è una
+**decisione** (si cambia in Sorgenti), *sorgente muta* è un **guasto** (repository spostato, rete giù), e il
+giro riuscito dice **quanto** ha portato. Detto «fatto» e basta, nessuno si accorgerebbe mai che il
+repository è stato spostato.
+
+**E la forma.** Il «rudimentale» che il committente ha visto aveva una causa precisa, e non era il gusto:
+tutt'e sei le tabelle nascevano **`cfg-table`**, che non è una tabella generica — è quella delle
+«Configurazioni operative», e **cabla le larghezze su quattro colonne** (26/38/18/18%).
+
+| tabella | colonne | che cosa succedeva |
+|---|---|---|
+| anagrafica radioassistenze | 8 | le prime quattro si prendevano tutto, le altre quattro a zero |
+| radioassistenze del documento | 4-6 | in modifica le due colonne dei comandi restavano senza larghezza |
+| alternati | 4-6 | idem |
+| nominativi, parcheggi | variabili | le larghezze **non si possono** cablare: le decide il profilo |
+| aree di lavoro, soglie | 3 | proporzioni prese da un'altra tabella |
+
+⚠️ E le larghezze scritte **in linea** coprivano il caso a metà: `style="width:76px"` vale per il `th` e non
+per il `td`, quindi bastava una cella lunga a rimetterle in discussione. Ora stanno nel foglio, nel gruppo
+`.res-table.mil-table`, e un test le presidia — è **la stessa diagnosi che le SID avevano già pagato**
+(`.sid-table` non eredita `cfg-table` proprio per questo), ritrovata tale e quale un mese dopo.
+
+Il resto dell'allineamento è la ricognizione del ramo di modifica applicata a queste sei:
+
+- la **fascia azzurra** «è un'anagrafica di divisione», sempre a schermo, diventa una **pastiglia più un
+  «?»** (regola 7): stessa frase, stessa chiave, cambia *dove* si legge;
+- le **barre d'aggiunta** hanno le etichette maiuscole delle altre (`.mil-add`), non un `flex` scritto in
+  linea ogni volta;
+- i tasti di riga (frecce, cestino) sono gli **stessi** tasti, rimpiccioliti dal foglio: un `.btn` intero in
+  una cella è alto quanto due righe di tabella;
+- l'eliminazione dall'anagrafica passa da `InlineConfirm`, come ogni eliminazione di un dato salvato;
+- la barra dei filtri della pagina è quella di **Struttura e delle SID** — campo con la lente e chip — invece
+  di un'etichetta e una casella inventate lì.
+
+⚠️ **Un «?» da solo non si mette**: sugli alternati la riga d'aiuto era diventata un punto interrogativo
+isolato in fondo a una testata di sezione già piena di comandi, e si leggeva come un segno rimasto per
+sbaglio. È tornata una riga sotto la barra d'aggiunta, **dove sta quella delle radioassistenze**.
+
+**Misurato a schermo** (1600px, tema scuro, sectorfile vero): l'import risponde «0 create, 0 aggiornate, 149
+invariate (su 149 righe dal sectorfile)» in chip verde; nessuna `cfg-table` rimasta; **zero** attributi di
+stile in linea nelle sei tabelle; nessuna pagina che scorre in orizzontale; console e rete pulite.
+⚠️ E la colonna «Coordinate» dell'anagrafica, unica senza larghezza, si prendeva **824px su 1600** lasciando
+la provenienza contro il bordo: con tutte le colonne dichiarate l'avanzo si distribuisce in proporzione.
+
 ### 12d. Ordine dei lavori
 
 Tutte fatte: `S0` payload nei figli, `S1` navigazione, `S2a` anagrafica radioassistenze, `S2`

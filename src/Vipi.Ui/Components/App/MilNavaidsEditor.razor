@@ -15,20 +15,26 @@
 @using Vipi.Application.Abstractions
 @using Vipi.Application.Content
 
-<div class="callout info" style="margin:0 0 10px">
-    <span class="cic"><Icon Name="info" Size="18" /></span>
-    <div>@L["Nav_SharedNote"]</div>
+@* ⚠️ L'avviso «è un'anagrafica di divisione» era una fascia SEMPRE a schermo: diceva a chiunque, ogni
+   volta, quello che il «?» dice a chi lo chiede — ed è il primo posto da cui si recupera spazio in un
+   editor da ventisei sezioni (regola 7 delle pagine admin). Il testo è lo STESSO, chiave compresa: cambia
+   dove si legge, non che cosa dice. *@
+<div class="ed-h3 ed-h3-mini">
+    <span class="pill neutral" title="@L["Nav_SharedTitle"]"><Icon Name="key" Size="11" /> @L["Nav_Shared"]</span>
+    <HelpHint Href="/services/vsop/guide#editor-mil" AriaLabel="@L["Nav_SharedAria"]" ExtraClass="wide">
+        @L["Nav_SharedNote"]
+    </HelpHint>
 </div>
 
-<table class="cfg-table">
+<table class="res-table mil-table nav-table">
     <thead>
         <tr>
-            @if (Editing) { <th style="width:76px"></th> }
-            <th style="width:110px">@L["Nav_Type"]</th>
+            @if (Editing) { <th class="c-move"></th> }
+            <th class="c-type">@L["Nav_Type"]</th>
             <th>@L["Nav_Freq"]</th>
-            <th>@L["Nav_Coordinates"]</th>
-            <th style="width:150px">@L["Nav_Origin"]</th>
-            @if (Editing) { <th style="width:40px"></th> }
+            <th class="c-coord">@L["Nav_Coordinates"]</th>
+            <th class="c-origin">@L["Nav_Origin"]</th>
+            @if (Editing) { <th class="c-act"></th> }
         </tr>
     </thead>
     <tbody>
@@ -39,77 +45,75 @@
             <tr>
                 @if (Editing)
                 {
-                    <td style="white-space:nowrap">
-                        <button type="button" class="btn ghost" style="padding:0 6px" disabled="@(idx == 0)"
+                    <td class="c-move">
+                        <button type="button" class="btn ghost" disabled="@(idx == 0)"
                                 title="@L["Common_Up"]" @onclick="() => Sposta(idx, -1)">↑</button>
-                        <button type="button" class="btn ghost" style="padding:0 6px" disabled="@(idx == Rows.Count - 1)"
+                        <button type="button" class="btn ghost" disabled="@(idx == Rows.Count - 1)"
                                 title="@L["Common_Down"]" @onclick="() => Sposta(idx, 1)">↓</button>
                     </td>
                 }
-                <td>
-                    @* Il tipo MOSTRATO: non è mai della sorgente, perché la sorgente dice la NATURA (il file da
-                       cui la riga arriva) e questo campo esiste apposta per poter scrivere «VORTACAN» su un VOR
-                       senza cambiare identità. *@
+                <td class="c-type">
+                    @* Il TIPO non è mai della sorgente: `itvor.vor` tiene VOR, TACAN e VORTAC insieme e la
+                       banda non lo dice. Finché non lo scrive una persona, in tabella si legge un trattino. *@
                     @if (Editing)
                     {
-                        <input list="@TipiId" value="@r.Type" style="width:100px" aria-label="@L["Nav_Type"]"
+                        <input list="@TipiId" value="@r.Type" aria-label="@L["Nav_Type"]"
                                @onchange="e => Scrivi(r, NavaidCampo.Tipo, e.Value?.ToString())" />
                     }
-                    else { @r.Type }
+                    else { @(r.Type is { Length: > 0 } t ? t : "—") }
                 </td>
                 <td>
                     @if (Editing)
                     {
-                        <span style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap">
+                        <span class="mil-freq">
                             <b>@r.Code</b>
                             @if (r.ChannelOrigin == NavaidFieldOrigin.Source) { <span class="pill neutral">CH @r.Channel</span> }
                             else
                             {
-                                <input value="@r.Channel" placeholder="@L["Nav_ChannelPlaceholder"]" style="width:70px"
+                                <input class="w-chan" value="@r.Channel" placeholder="@L["Nav_ChannelPlaceholder"]"
                                        aria-label="@L["Nav_Channel"]"
                                        @onchange="e => Scrivi(r, NavaidCampo.Canale, e.Value?.ToString())" />
                             }
                             @if (r.FrequencyOrigin == NavaidFieldOrigin.Source) { <span class="pill neutral">@r.Frequency</span> }
                             else
                             {
-                                <input value="@r.Frequency" placeholder="@L["Nav_FreqPlaceholder"]" style="width:80px"
+                                <input class="w-freq" value="@r.Frequency" placeholder="@L["Nav_FreqPlaceholder"]"
                                        aria-label="@L["Nav_Freq"]"
                                        @onchange="e => Scrivi(r, NavaidCampo.Frequenza, e.Value?.ToString())" />
                             }
                         </span>
-                        <div class="muted" style="font-size:12px">@NavaidText.Freq(r.Code, r.Channel, r.Frequency)</div>
+                        @* Come verrà scritta sul documento: si vede mentre si compila, e nessuno deve
+                           ricordarsi a memoria che il canale precede la frequenza fra parentesi. *@
+                        <div class="muted mil-preview">@NavaidText.Freq(r.Code, r.Channel, r.Frequency)</div>
                     }
                     else { @NavaidText.Freq(r.Code, r.Channel, r.Frequency) }
                 </td>
-                <td>
-                    @if (Editing && r.CoordinatesOrigin != NavaidFieldOrigin.Source)
+                <td class="c-coord @(PuoScrivereCoordinate(r) ? null : "c-nowrap")">
+                    @if (PuoScrivereCoordinate(r))
                     {
                         @* Solo sessagesimale, per decisione del committente: il segnaposto lo dice, e chi
                            scrive un decimale riceve un no invece di un dato salvato in un'altra forma. *@
-                        <input value="@NavaidText.Coordinate(r.Latitude, r.Longitude)" style="width:100%;min-width:220px"
+                        <input value="@NavaidText.Coordinate(r.Latitude, r.Longitude)"
                                placeholder="N41°32'05.07''E015°43'42.47''" aria-label="@L["Nav_Coordinates"]"
                                @onchange="e => Scrivi(r, NavaidCampo.Coordinate, e.Value?.ToString())" />
                     }
-                    else
-                    {
-                        <span style="white-space:nowrap">@Coordinate(r)</span>
-                    }
+                    else { @Coordinate(r) }
                 </td>
-                <td class="muted" style="font-size:12px">@Provenienza(r)</td>
+                <td class="muted c-origin">@Provenienza(r)</td>
                 @if (Editing)
                 {
-                    <td>
+                    <td class="c-act">
                         @* ⚠️ Toglie la riga dal DOCUMENTO, non dall'anagrafica: la radioassistenza resta, e la
-                           citano altri SOP. Cancellarla davvero sarebbe un atto su un dato di tutti, preso
-                           dalla tabella di uno. *@
-                        <button type="button" class="btn ghost" style="padding:0 6px" title="@L["Nav_RemoveFromDoc"]"
+                           citano altri SOP. Cancellarla davvero è un atto su un dato di tutti, e si fa dalla
+                           pagina Radioassistenze — non dalla tabella di un documento solo. *@
+                        <button type="button" class="btn ghost" title="@L["Nav_RemoveFromDoc"]"
                                 @onclick="() => Togli(idx)">✕</button>
                     </td>
                 }
             </tr>
             @if (_messaggi.TryGetValue(r.Id, out var msg))
             {
-                <tr><td colspan="@(Editing ? 6 : 4)" class="muted" style="color:var(--danger-ink)">@msg</td></tr>
+                <tr class="mil-note"><td colspan="@(Editing ? 6 : 4)">@msg</td></tr>
             }
         }
         @if (Rows.Count == 0)
@@ -121,23 +125,23 @@
 
 @if (Editing)
 {
-    <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:10px">
-        <label style="display:flex;flex-direction:column;gap:2px;font-size:12px">
+    <div class="mil-add">
+        <label>
             @L["Nav_Code"]
-            <input list="@CodiciId" @bind="_nuovoCodice" style="width:110px" placeholder="MNL" />
+            <input class="w-code" list="@CodiciId" @bind="_nuovoCodice" placeholder="MNL" />
         </label>
-        <label style="display:flex;flex-direction:column;gap:2px;font-size:12px">
+        <label>
             @L["Nav_Kind"]
             @* ⚠️ La FAMIGLIA (la banda), non il tipo: serve solo quando il codice non è ancora in
                anagrafica, ed è la sola classificazione che la sorgente sa dare. *@
-            <select @bind="_nuovaFamiglia" style="width:120px">
+            <select class="w-band" @bind="_nuovaFamiglia">
                 @foreach (var f in NavaidRules.Famiglie) { <option value="@f">@f</option> }
             </select>
         </label>
         <button type="button" class="btn primary" @onclick="Aggiungi">+ @L["Nav_Add"]</button>
-        @if (_errore is not null) { <span class="muted" style="color:var(--danger-ink)">@_errore</span> }
+        @if (_errore is not null) { <span class="mil-err">@_errore</span> }
     </div>
-    <p class="help" style="margin-top:6px">@L["Nav_AddHint"]</p>
+    <p class="help mil-hint">@L["Nav_AddHint"]</p>
 
     @* Gli elenchi nativi: li disegna il browser fuori dalla pagina, quindi non li taglia il contenitore che
        scorre — la stessa scelta già fatta per i punti nell'editor delle SID. *@
@@ -188,6 +192,11 @@
     private string _nuovaFamiglia = NavaidRules.FamigliaVhf;
     private string? _errore;
     private readonly Dictionary<int, string> _messaggi = new();
+
+    /// <summary>Le coordinate si scrivono solo se non le manda la sorgente: altrimenti si leggono, su una
+    /// riga sola.</summary>
+    private bool PuoScrivereCoordinate(NavaidRow r) =>
+        Editing && r.CoordinatesOrigin != NavaidFieldOrigin.Source;
 
     private static string Coordinate(NavaidRow r) =>
         NavaidText.Coordinate(r.Latitude, r.Longitude) is { Length: > 0 } s ? s : "—";

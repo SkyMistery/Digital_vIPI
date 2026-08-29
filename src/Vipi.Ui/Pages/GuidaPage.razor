@@ -1079,6 +1079,61 @@
               <p><b>Content changes</b> are not here: a document's history is read from its <b>versions</b>,
                in Documents.</p>"),
 
+        new Sec("admin-radioassistenze", "radio",
+            @"<p>La pagina (<code>/services/vsop/admin/navaids</code>) è l'<b>anagrafica di divisione</b> delle
+               radioassistenze: la stessa riga esce identica in ogni SOP che la cita, e qui si vedono tutte
+               insieme — anche quelle che nessun documento cita ancora.</p>
+              <ul>
+                <li><b>Frequenza, canale e coordinate</b> di VOR e NDB arrivano dal <b>sectorfile</b> e da qui
+                    non si toccano: dove il dato è della sorgente non c'è una casella, c'è il valore scritto.
+                    Al giro dopo tornerebbe comunque quello della sorgente.</li>
+                <li>Il <b>tipo</b> (VOR, VORTAC, TACAN, ILS…) invece lo scrive <b>una persona</b>: il sectorfile
+                    tiene VOR, TACAN e VORTAC nello stesso file e non sa dire quale sia quale, e neanche il
+                    canale lo distingue. Finché non lo dice qualcuno, sui documenti si legge un <b>trattino</b>.</li>
+                <li>Il chip <b>«senza tipo»</b> è la <b>lista di lavoro</b>: sono le righe che aspettano quella
+                    persona, e dopo un import sono più di cento.</li>
+                <li><b>Importa dal sectorfile</b> rilegge la sorgente <b>adesso</b>, senza aspettare il giro
+                    automatico delle ventiquattro ore, e dice quante righe ha creato, aggiornato e lasciato
+                    stare. Non cancella niente: quel che la sorgente non manda più resta dov'è. Se in
+                    <b>Sorgenti</b> le radioassistenze sono segnate come «manuali», il tasto lo dice e non fa
+                    nulla.</li>
+                <li>Si <b>aggiungono a mano</b> quelle che il sectorfile non ha — gli ILS, e i TACAN che non
+                    compaiono fra i punti. La <b>famiglia</b> è la banda, VHF o NDB, e serve solo a distinguere
+                    due impianti con lo stesso codice: <code>DEC</code> è un VOR <i>e</i> un NDB.</li>
+                <li>Si <b>elimina solo da qui</b>, e solo dove si può: sulle righe della sorgente il cestino non
+                    c'è, e una riga <b>citata da un documento</b> non si toglie — la pagina dice <b>quali</b>
+                    documenti, perché è l'unica informazione con cui si rimedia. Togliere una riga da un
+                    documento è un gesto su quel documento; cancellarla di qui è un gesto su un dato di tutti.</li>
+              </ul>
+              <p>Ogni scrittura finisce nel <b>registro</b> col valore di prima e quello nuovo: se due persone
+               toccano la stessa riga vince l'ultima, e il registro dice cos'è successo.</p>",
+            @"<p>This page (<code>/services/vsop/admin/navaids</code>) is the <b>division-wide catalogue</b> of
+               navaids: the same row comes out identical in every SOP that cites it, and here they are all in
+               one place — including the ones no document cites yet.</p>
+              <ul>
+                <li><b>Frequency, channel and coordinates</b> of VORs and NDBs come from the <b>sectorfile</b>
+                    and cannot be edited here: where the value belongs to the source there is no input box, just
+                    the value. The next run would bring the source's value back anyway.</li>
+                <li>The <b>type</b> (VOR, VORTAC, TACAN, ILS…) is written by <b>a person</b>: the sectorfile
+                    keeps VORs, TACANs and VORTACs in the same file and cannot tell which is which, and the
+                    channel does not settle it either. Until somebody says so, documents show a <b>dash</b>.</li>
+                <li>The <b>«no type»</b> chip is the <b>worklist</b>: those are the rows waiting for that
+                    person, and after an import there are more than a hundred of them.</li>
+                <li><b>Import from sectorfile</b> re-reads the source <b>now</b>, without waiting for the daily
+                    run, and says how many rows it created, updated and left alone. It deletes nothing: what the
+                    source no longer sends stays where it is. If navaids are marked as “manual” in
+                    <b>Sources</b>, the button says so and does nothing.</li>
+                <li>Rows the sectorfile does not have are <b>added by hand</b> — ILSs, and the TACANs that are
+                    not among the points. The <b>family</b> is the band, VHF or NDB, and it is only there to tell
+                    two installations with the same code apart: <code>DEC</code> is a VOR <i>and</i> an NDB.</li>
+                <li>Deleting happens <b>only here</b>, and only where it can work: source rows have no bin, and a
+                    row <b>cited by a document</b> cannot be removed — the page says <b>which</b> documents,
+                    because that is the only information you can act on. Removing a row from a document is an act
+                    on that document; deleting it here is an act on everybody's data.</li>
+              </ul>
+              <p>Every write goes into the <b>audit log</b> with the old value and the new one: if two people
+               touch the same row the last one wins, and the log says what happened.</p>"),
+
         new Sec("admin-sorgenti", "plug",
             @"<p>La pagina (<code>/services/vsop/admin/sources</code>) decide, per ogni <b>categoria</b> di dati, se
                arriva dalla <b>sorgente</b> (oggi IVAO) o se la gestiamo <b>a mano</b>. È una scelta globale,

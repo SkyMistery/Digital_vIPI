@@ -997,6 +997,18 @@
   <data name="Nav_AdminDeleted" xml:space="preserve"><value>Eliminata «{0}» ({1}).</value></data>
   <data name="Nav_AdminFromSourceNoDelete" xml:space="preserve"><value>Non eliminata: questa riga la manda il sectorfile, e il giro d'import successivo la ricreerebbe.</value></data>
   <data name="Nav_AdminCited" xml:space="preserve"><value>Non eliminata: la citano {0}. Prima si toglie da quelle tabelle.</value></data>
+  <data name="Nav_Shared" xml:space="preserve"><value>Anagrafica di divisione</value></data>
+  <data name="Nav_SharedTitle" xml:space="preserve"><value>Questi valori valgono per tutti i documenti che citano la radioassistenza</value></data>
+  <data name="Nav_SharedAria" xml:space="preserve"><value>Che cosa vuol dire anagrafica di divisione</value></data>
+  <data name="Nav_AdminImport" xml:space="preserve"><value>Importa dal sectorfile</value></data>
+  <data name="Nav_AdminImportTitle" xml:space="preserve"><value>Rilegge il sectorfile adesso e aggiorna l&apos;anagrafica, senza aspettare il giro automatico</value></data>
+  <data name="Nav_AdminImporting" xml:space="preserve"><value>Sto rileggendo il sectorfile…</value></data>
+  <data name="Nav_AdminImported" xml:space="preserve"><value>Import fatto: {0} create, {1} aggiornate, {2} invariate (su {3} righe dal sectorfile).</value></data>
+  <data name="Nav_AdminImportExcluded" xml:space="preserve"><value>Import non eseguito: nelle Sorgenti le radioassistenze sono segnate come «manuali», quindi le gestisce una persona.</value></data>
+  <data name="Nav_AdminImportMute" xml:space="preserve"><value>Import non eseguito: il sectorfile non ha risposto (repository spostato o rete giù). Niente è stato cambiato.</value></data>
+  <data name="Nav_AdminSearchPh" xml:space="preserve"><value>Cerca codice, tipo, frequenza…</value></data>
+  <data name="Nav_AdminNoTypeTitle" xml:space="preserve"><value>Le righe di cui nessuno ha ancora detto che tipo sono</value></data>
+  <data name="Nav_AdminDeletePrompt" xml:space="preserve"><value>Eliminare «{0}» ({1}) dall&apos;anagrafica?</value></data>
   <data name="Nav_BadChannel" xml:space="preserve"><value>Non salvato: un canale è da una a tre cifre più X o Y (per esempio 99Y) — e se esiste già una riga con quel canale, va cambiata quella.</value></data>
   <data name="Div_Airports" xml:space="preserve"><value>Aeroporti</value></data>
   <data name="Div_Navaids" xml:space="preserve"><value>Radioassistenze</value></data>
@@ -1005,6 +1017,7 @@
   <data name="Div_Icao" xml:space="preserve"><value>ICAO</value></data>
   <data name="Div_Add" xml:space="preserve"><value>Aggiungi aeroporto</value></data>
   <data name="Div_AddHint" xml:space="preserve"><value>Il nome si cerca prima fra i nostri aeroporti, poi alla sorgente IVAO: un alternato estero si scrive lo stesso. Rilevamento e distanza si scrivono come numeri.</value></data>
+  <data name="Div_AddNavaid" xml:space="preserve"><value>Cita questa radioassistenza sulla riga</value></data>
   <data name="Div_Empty" xml:space="preserve"><value>Nessun aeroporto alternato in questo documento.</value></data>
   <data name="Div_RemoveRow" xml:space="preserve"><value>Toglie l'aeroporto da questa tabella</value></data>
   <data name="Div_RemoveNavaid" xml:space="preserve"><value>Toglie questa radioassistenza dalla riga</value></data>

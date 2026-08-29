@@ -22,7 +22,19 @@ public sealed record NavaidImportReport(NavaidImportOutcome? Esito, NavaidImport
 /// <summary>Il giro che porta le radioassistenze dal sectorfile all'anagrafica (carta vSOP militari §12b).</summary>
 public interface INavaidImporter
 {
+    /// <summary>Il giro <b>gestito</b> (ogni 24h): legge il catalogo com'è, cache compresa.</summary>
     Task<NavaidImportReport> RunAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Lo stesso giro, chiesto <b>adesso</b> da una persona.
+    ///
+    /// <para>⚠️ Riscarica la sorgente <b>prima</b>, e per questo non è lo stesso metodo con un parametro:
+    /// chi preme un tasto d'import lo preme perché il sectorfile è cambiato oggi, e un giro sulla copia in
+    /// memoria — vecchia fino a ventiquattro ore — risponderebbe «0 create, 0 aggiornate» con la riga nuova
+    /// bella pronta sul repository. È il caso in cui uno strumento che «funziona» convince che il dato non
+    /// c'è.</para>
+    /// </summary>
+    Task<NavaidImportReport> RunNowAsync(CancellationToken ct = default);
 }
 
 /// <summary>
@@ -54,15 +66,29 @@ public sealed class NavaidImporter : INavaidImporter
     private readonly INavaidSource _sorgente;
     private readonly INavaidCatalog _anagrafica;
     private readonly IImportPolicyStore _policy;
+    private readonly IImportStateStore? _stati;
 
-    public NavaidImporter(INavaidSource sorgente, INavaidCatalog anagrafica, IImportPolicyStore policy)
+    /// <param name="stati">
+    /// Il registro dei giri riusciti. ⚠️ Lo timbra il <b>corpo</b>, come in <see cref="AccImportUseCase"/>:
+    /// così il tasto della pagina Radioassistenze conta quanto il giro notturno, e la pagina Sorgenti non
+    /// dice «ferma da tre giorni» di un'anagrafica riempita un minuto fa. Facoltativo perché nei test
+    /// dell'anagrafica non c'è niente da timbrare.
+    /// </param>
+    public NavaidImporter(INavaidSource sorgente, INavaidCatalog anagrafica, IImportPolicyStore policy,
+        IImportStateStore? stati = null)
     {
         _sorgente = sorgente;
         _anagrafica = anagrafica;
         _policy = policy;
+        _stati = stati;
     }
 
-    public async Task<NavaidImportReport> RunAsync(CancellationToken ct = default)
+    public Task<NavaidImportReport> RunAsync(CancellationToken ct = default) => GiroAsync(false, ct);
+
+    public Task<NavaidImportReport> RunNowAsync(CancellationToken ct = default) => GiroAsync(true, ct);
+
+    /// <param name="rileggendo">Riscarica la sorgente prima di leggerla: lo chiede solo chi preme il tasto.</param>
+    private async Task<NavaidImportReport> GiroAsync(bool rileggendo, CancellationToken ct)
     {
         // Il cancello dell'amministratore: «gestisco io le radioassistenze» spegne il giro, e da quel momento
         // i campi restano modificabili a mano perché nessuno li marca più come della sorgente.
@@ -70,7 +96,9 @@ public sealed class NavaidImporter : INavaidImporter
         if (!policy.IsImported(ImportCategory.Navaids))
             return new NavaidImportReport(null, NavaidImportSkip.Esclusa, 0);
 
-        var catalogo = await _sorgente.GetAsync(ct).ConfigureAwait(false);
+        var catalogo = rileggendo
+            ? await _sorgente.RefreshAsync(ct).ConfigureAwait(false)
+            : await _sorgente.GetAsync(ct).ConfigureAwait(false);
 
         var righe = catalogo.Righe
             .Where(e => e.Kind is NavaidKind.Vor or NavaidKind.Ndb)
@@ -86,6 +114,13 @@ public sealed class NavaidImporter : INavaidImporter
         if (righe.Count == 0) return new NavaidImportReport(null, NavaidImportSkip.SorgenteMuta, 0);
 
         var esito = await _anagrafica.ImportFromSourceAsync(righe, ct).ConfigureAwait(false);
+
+        // Il giro è arrivato in fondo: timbralo, che l'abbia chiesto una persona o l'orologio.
+        // ⚠️ Solo QUI, cioè solo quando la sorgente ha davvero parlato: i due `return` di sopra sono giri
+        // che non hanno letto niente, e timbrarli scriverebbe «ultimo giro riuscito: adesso» su un nulla.
+        if (_stati is not null)
+            await _stati.MarkSuccessAsync(ImportCategories.Navaid, DateTime.UtcNow, ct).ConfigureAwait(false);
+
         return new NavaidImportReport(esito, null, righe.Count);
     }
 }

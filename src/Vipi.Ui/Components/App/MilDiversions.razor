@@ -9,13 +9,13 @@
 @inject IStringLocalizer<SharedResource> L
 @using Vipi.Application.Content
 
-<table class="cfg-table">
+<table class="res-table mil-table div-table">
     <thead>
         <tr>
             <th>@L["Div_Airports"]</th>
-            <th>@L["Div_Navaids"]</th>
-            <th style="width:90px">@L["Div_Bearing"]</th>
-            <th style="width:90px">@L["Div_Distance"]</th>
+            <th class="c-nav">@L["Div_Navaids"]</th>
+            <th class="c-num">@L["Div_Bearing"]</th>
+            <th class="c-num">@L["Div_Distance"]</th>
         </tr>
     </thead>
     <tbody>
@@ -23,17 +23,17 @@
         {
             <tr>
                 <td><b>@r.Icao</b> @r.Name</td>
-                <td>
+                <td class="c-nav">
                     @* Una per riga: due radioassistenze di fila su una riga sola si leggono come una sola
                        stringa lunga, e questa colonna è fatta di codici che si somigliano. *@
                     @foreach (var n in r.Navaids)
                     {
-                        <div style="white-space:nowrap">@NavaidText.ConTipo(n.Code, n.Type, n.Channel, n.Frequency)</div>
+                        <div class="mil-cite">@NavaidText.ConTipo(n.Code, n.Type, n.Channel, n.Frequency)</div>
                     }
                     @if (r.Navaids.Count == 0) { <span class="muted">—</span> }
                 </td>
-                <td style="white-space:nowrap">@Vuoto(MilDiversionText.Rilevamento(r.Bearing))</td>
-                <td style="white-space:nowrap">@Vuoto(MilDiversionText.Distanza(r.DistanceNm))</td>
+                <td class="c-num c-nowrap">@Vuoto(MilDiversionText.Rilevamento(r.Bearing))</td>
+                <td class="c-num c-nowrap">@Vuoto(MilDiversionText.Distanza(r.DistanceNm))</td>
             </tr>
         }
         @if (Rows.Count == 0)

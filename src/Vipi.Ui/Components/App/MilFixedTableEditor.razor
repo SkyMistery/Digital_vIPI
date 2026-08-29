@@ -8,12 +8,15 @@
    nessun avviso da dare — a differenza delle Radioassistenze, dove quel che si scrive cambia gli altri SOP. *@
 @inject IStringLocalizer<SharedResource> L
 
-<table class="cfg-table">
+@* ⚠️ `milt-free` e non `cfg-table`: qui le colonne le decide il PROFILO — tre per i nominativi, tre
+   per i parcheggi, domani un'altra tabella con cinque — e larghezze cablate su quattro colonne sarebbero
+   sbagliate per costruzione. *@
+<table class="res-table mil-table milt-free">
     <thead>
         <tr>
-            @if (Editing) { <th style="width:76px"></th> }
+            @if (Editing) { <th class="c-move"></th> }
             @foreach (var c in Colonne) { <th>@c</th> }
-            @if (Editing) { <th style="width:40px"></th> }
+            @if (Editing) { <th class="c-act"></th> }
         </tr>
     </thead>
     <tbody>
@@ -23,10 +26,10 @@
             <tr>
                 @if (Editing)
                 {
-                    <td style="white-space:nowrap">
-                        <button type="button" class="btn ghost" style="padding:0 6px" disabled="@(idx == 0)"
+                    <td class="c-move">
+                        <button type="button" class="btn ghost" disabled="@(idx == 0)"
                                 title="@L["Common_Up"]" @onclick="() => OnMove.InvokeAsync((idx, -1))">↑</button>
-                        <button type="button" class="btn ghost" style="padding:0 6px" disabled="@(idx == Righe.Count - 1)"
+                        <button type="button" class="btn ghost" disabled="@(idx == Righe.Count - 1)"
                                 title="@L["Common_Down"]" @onclick="() => OnMove.InvokeAsync((idx, 1))">↓</button>
                     </td>
                 }
@@ -36,7 +39,7 @@
                     <td>
                         @if (Editing)
                         {
-                            <input value="@Cella(idx, col)" style="width:100%" aria-label="@Colonne[col]"
+                            <input value="@Cella(idx, col)" aria-label="@Colonne[col]"
                                    @onchange="e => OnSet.InvokeAsync((idx, col, e.Value?.ToString() ?? string.Empty))" />
                         }
                         else { @(Cella(idx, col) is { Length: > 0 } v ? v : "—") }
@@ -44,8 +47,8 @@
                 }
                 @if (Editing)
                 {
-                    <td>
-                        <button type="button" class="btn ghost" style="padding:0 6px" title="@L["Common_Delete"]"
+                    <td class="c-act">
+                        <button type="button" class="btn ghost" title="@L["Common_Delete"]"
                                 @onclick="() => OnRemove.InvokeAsync(idx)">✕</button>
                     </td>
                 }
@@ -60,9 +63,9 @@
 
 @if (Editing)
 {
-    <button type="button" class="btn primary" style="margin-top:10px" @onclick="() => OnAdd.InvokeAsync()">
-        + @L["Mil_TableAddRow"]
-    </button>
+    <div class="mil-add">
+        <button type="button" class="btn primary" @onclick="() => OnAdd.InvokeAsync()">+ @L["Mil_TableAddRow"]</button>
+    </div>
 }
 
 @code {

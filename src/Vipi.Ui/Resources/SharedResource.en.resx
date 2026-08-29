@@ -994,6 +994,18 @@
   <data name="Nav_AdminDeleted" xml:space="preserve"><value>Deleted «{0}» ({1}).</value></data>
   <data name="Nav_AdminFromSourceNoDelete" xml:space="preserve"><value>Not deleted: this row comes from the sectorfile, and the next import would recreate it.</value></data>
   <data name="Nav_AdminCited" xml:space="preserve"><value>Not deleted: it is cited by {0}. Remove it from those tables first.</value></data>
+  <data name="Nav_Shared" xml:space="preserve"><value>Division-wide catalogue</value></data>
+  <data name="Nav_SharedTitle" xml:space="preserve"><value>These values apply to every document that cites the navaid</value></data>
+  <data name="Nav_SharedAria" xml:space="preserve"><value>What a division-wide catalogue means</value></data>
+  <data name="Nav_AdminImport" xml:space="preserve"><value>Import from sectorfile</value></data>
+  <data name="Nav_AdminImportTitle" xml:space="preserve"><value>Re-reads the sectorfile now and updates the catalogue, without waiting for the automatic run</value></data>
+  <data name="Nav_AdminImporting" xml:space="preserve"><value>Re-reading the sectorfile…</value></data>
+  <data name="Nav_AdminImported" xml:space="preserve"><value>Import done: {0} created, {1} updated, {2} unchanged (out of {3} rows from the sectorfile).</value></data>
+  <data name="Nav_AdminImportExcluded" xml:space="preserve"><value>Import not run: in Sources, navaids are marked as “manual”, so a person looks after them.</value></data>
+  <data name="Nav_AdminImportMute" xml:space="preserve"><value>Import not run: the sectorfile did not answer (repository moved, or the network is down). Nothing was changed.</value></data>
+  <data name="Nav_AdminSearchPh" xml:space="preserve"><value>Search code, type, frequency…</value></data>
+  <data name="Nav_AdminNoTypeTitle" xml:space="preserve"><value>The rows nobody has yet said the type of</value></data>
+  <data name="Nav_AdminDeletePrompt" xml:space="preserve"><value>Delete “{0}” ({1}) from the catalogue?</value></data>
   <data name="Nav_BadChannel" xml:space="preserve"><value>Not saved: a channel is one to three digits plus X or Y (99Y, for instance) — and if a row with that channel already exists, that is the one to change.</value></data>
   <data name="Div_Airports" xml:space="preserve"><value>Airports</value></data>
   <data name="Div_Navaids" xml:space="preserve"><value>Navaids</value></data>
@@ -1002,6 +1014,7 @@
   <data name="Div_Icao" xml:space="preserve"><value>ICAO</value></data>
   <data name="Div_Add" xml:space="preserve"><value>Add airport</value></data>
   <data name="Div_AddHint" xml:space="preserve"><value>The name is looked up in our airports first, then at the IVAO source: a foreign diversion airfield can be added all the same. Bearing and distance are written as plain numbers.</value></data>
+  <data name="Div_AddNavaid" xml:space="preserve"><value>Cite this navaid on the row</value></data>
   <data name="Div_Empty" xml:space="preserve"><value>No diversion airfields in this document.</value></data>
   <data name="Div_RemoveRow" xml:space="preserve"><value>Removes the airport from this table</value></data>
   <data name="Div_RemoveNavaid" xml:space="preserve"><value>Removes this navaid from the row</value></data>

@@ -2,7 +2,10 @@
    (carta §12g). Le colonne le decide il profilo, il contenuto sta nel documento. *@
 @inject IStringLocalizer<SharedResource> L
 
-<table class="cfg-table">
+@* ⚠️ `milt-free`: qui il numero di colonne lo decide il PROFILO (tre per i nominativi, tre per i
+   parcheggi, domani un'altra tabella con cinque), quindi le larghezze non si possono scrivere — si torna
+   al layout automatico invece di cablarne quattro come faceva `cfg-table`. *@
+<table class="res-table mil-table milt-free">
     <thead><tr>@foreach (var c in Colonne) { <th>@c</th> }</tr></thead>
     <tbody>
         @foreach (var r in Righe)

@@ -6,6 +6,7 @@
 @using Vipi.Domain
 @inject IEditAuthorizationService Authz
 @inject INavaidCatalog Anagrafica
+@inject INavaidImporter Importatore
 @inject IStringLocalizer<SharedResource> L
 
 @* L'anagrafica delle radioassistenze: tutte, in un posto solo (carta vSOP militari §12m).
@@ -20,7 +21,11 @@
 
    ⚠️ La CANCELLAZIONE sta solo qui, e non nelle tabelle dei documenti: togliere una riga da un documento è
    un gesto su quel documento, cancellarla dall'anagrafica è un gesto su un dato di TUTTI. Con due guardie,
-   che la pagina spiega quando rifiuta. *@
+   che la pagina spiega quando rifiuta.
+
+   ⚠️ Il tasto d'import sta in TESTATA e non sopra la tabella (regola 3 delle pagine admin): agisce sulla
+   pagina intera, non su una riga — e il suo esito è un chip in testata, non una fascia che spinge in giù la
+   tabella su cui si sta lavorando (regola 5). *@
 
 <PageTitle>@L["Nav_AdminTitle"] · IVAO Italy</PageTitle>
 
@@ -35,79 +40,107 @@
             <p style="margin:0 0 6px">@L["Nav_AdminSubtitle"]</p>
             @((MarkupString)L["Nav_AdminIntro"].Value)
         </HelpHint>
+        @if (PuoScrivere)
+        {
+            <nav class="struct-nav">
+                @* Lo stesso tasto che sta in Sorgenti per il catalogo dei punti, e per la stessa ragione: fra
+                   due giri automatici passano ventiquattro ore, e chi ha appena aggiunto un impianto al
+                   sectorfile non ha nessun modo di dire «rileggilo adesso».
+                   ⚠️ Non chiede conferma: non distrugge niente — l'import non pota, e sui campi della
+                   sorgente riscrive quel che la sorgente già dice. *@
+                <button type="button" class="btn ghost" disabled="@_busy" title="@L["Nav_AdminImportTitle"]"
+                        @onclick="Importa"><Icon Name="refresh" Size="14" /> @L["Nav_AdminImport"]</button>
+            </nav>
+            <LiveRegion>
+                @if (_busy)
+                {
+                    <span class="st-msg prog"><span class="spin"></span><span class="st-msg-t">@L["Nav_AdminImporting"]</span></span>
+                }
+                else if (_messaggio is not null)
+                {
+                    <span class="st-msg @(_ok ? "ok" : "warn")">
+                        <Icon Name="@(_ok ? "check-circle" : "warning")" Size="14" />
+                        <span class="st-msg-t">@_messaggio</span>
+                        <button class="tclose" title="@L["Common_Close"]" @onclick="() => _messaggio = null">✕</button>
+                    </span>
+                }
+            </LiveRegion>
+        }
     </div>
 
-    @if (Authz.Role < VipiRole.Editor)
+    @if (!PuoScrivere)
     {
         <div class="callout danger"><span class="cic">🔒</span><div>@L["Vle_Unauthorized"]</div></div>
     }
     else
     {
-        @if (_messaggio is not null)
-        {
-            <div class="callout @(_ok ? "success" : "danger")">
-                <span class="cic"><Icon Name="@(_ok ? "check" : "octagon")" Size="18" /></span>
-                <div style="flex:1">@_messaggio</div>
-                <button class="btn ghost" style="padding:0 6px" @onclick="() => _messaggio = null">✕</button>
-            </div>
-        }
-
         <div class="block">
-            <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px">
-                <label style="display:flex;flex-direction:column;gap:2px;font-size:12px;flex:1;min-width:220px">
-                    @L["Nav_AdminSearch"]
-                    <input @bind="_cerca" @bind:event="oninput" placeholder="MNL, VOR, 115.25…" />
-                </label>
-                @* ⚠️ La chip che conta: sono le righe che aspettano una persona. *@
-                <button type="button" class="chip @(_soloSenzaTipo ? "on" : "")"
-                        @onclick="() => _soloSenzaTipo = !_soloSenzaTipo">
-                    @L["Nav_AdminNoType"] <b>@_righe.Count(r => string.IsNullOrWhiteSpace(r.Type))</b>
-                </button>
-                <span class="muted" style="font-size:12px">@L["Nav_AdminFromSource", _righe.Count(r => r.DallaSorgente)]</span>
+            @* La barra dei filtri è quella di Struttura e delle SID: campo con la lente e chip. Prima erano
+               un'etichetta e una casella inventate qui, che è il modo in cui due pagine che fanno la stessa
+               cosa finiscono per sembrare due prodotti. *@
+            <div class="struct-bar navadm-bar">
+                <input class="htree-search" placeholder="@L["Nav_AdminSearchPh"]" aria-label="@L["Nav_AdminSearch"]"
+                       @bind="_cerca" @bind:event="oninput" />
+                <span class="sb-chips">
+                    @* ⚠️ La chip che conta: sono le righe che aspettano una persona. Resta a schermo anche a
+                       zero — una chip che compare col contatore sposta quel che le sta accanto. *@
+                    <button type="button" class="sh-chip @(_soloSenzaTipo ? "on" : "")" disabled="@(SenzaTipo == 0)"
+                            title="@L["Nav_AdminNoTypeTitle"]" @onclick="() => _soloSenzaTipo = !_soloSenzaTipo">
+                        @L["Nav_AdminNoType"] <span class="chip-n">@SenzaTipo</span>
+                    </button>
+                </span>
+                <span class="muted navadm-count">@L["Nav_AdminFromSource", _righe.Count(r => r.DallaSorgente)]</span>
             </div>
 
-            <table class="cfg-table">
+            <table class="res-table mil-table navadm-table">
                 <thead>
                     <tr>
-                        <th style="width:80px">@L["Nav_Code"]</th>
-                        <th style="width:70px">@L["Nav_Kind"]</th>
-                        <th style="width:120px">@L["Nav_Type"]</th>
-                        <th style="width:110px">@L["Nav_Freq"]</th>
-                        <th style="width:90px">@L["Nav_Channel"]</th>
-                        <th>@L["Nav_Coordinates"]</th>
-                        <th style="width:150px">@L["Nav_Origin"]</th>
-                        <th style="width:40px"></th>
+                        <th class="c-code">@L["Nav_Code"]</th>
+                        <th class="c-band">@L["Nav_Kind"]</th>
+                        <th class="c-type">@L["Nav_Type"]</th>
+                        <th class="c-freq">@L["Nav_Freq"]</th>
+                        <th class="c-chan">@L["Nav_Channel"]</th>
+                        <th class="c-coord">@L["Nav_Coordinates"]</th>
+                        <th class="c-origin">@L["Nav_Origin"]</th>
+                        <th class="c-act"></th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var r in Filtrate)
                     {
                         <tr>
-                            <td><b>@r.Code</b></td>
-                            <td class="muted">@r.Kind</td>
-                            <td>
+                            <td class="c-code"><b>@r.Code</b></td>
+                            <td class="c-band muted">@r.Kind</td>
+                            <td class="c-type">
                                 @* Il TIPO si scrive sempre: non viene mai dalla sorgente. *@
-                                <input list="@TipiId" value="@r.Type" style="width:100%" aria-label="@L["Nav_Type"]"
+                                <input list="@TipiId" value="@r.Type" aria-label="@L["Nav_Type"]"
                                        @onchange="e => Scrivi(r, NavaidCampo.Tipo, e.Value?.ToString())" />
                             </td>
-                            <td>@Campo(r, NavaidCampo.Frequenza, r.Frequency, r.FrequencyOrigin, "115.25")</td>
-                            <td>@Campo(r, NavaidCampo.Canale, r.Channel, r.ChannelOrigin, "99Y")</td>
-                            <td>@Campo(r, NavaidCampo.Coordinate, NavaidText.Coordinate(r.Latitude, r.Longitude),
-                                       r.CoordinatesOrigin, "N41°32'05.07''E015°43'42.47''")</td>
-                            <td class="muted" style="font-size:12px">@Provenienza(r)</td>
-                            <td>
+                            <td class="c-freq">@Campo(r, NavaidCampo.Frequenza, r.Frequency, r.FrequencyOrigin, "115.25")</td>
+                            <td class="c-chan">@Campo(r, NavaidCampo.Canale, r.Channel, r.ChannelOrigin, "99Y")</td>
+                            <td class="c-coord @(r.CoordinatesOrigin == NavaidFieldOrigin.Source ? "c-nowrap" : null)">
+                                @Campo(r, NavaidCampo.Coordinate, NavaidText.Coordinate(r.Latitude, r.Longitude),
+                                       r.CoordinatesOrigin, "N41°32'05.07''E015°43'42.47''")
+                            </td>
+                            <td class="c-origin muted">@Provenienza(r)</td>
+                            <td class="c-act">
                                 @* Il cestino c'è solo dove può funzionare: sulle righe della sorgente non
-                                   compare affatto, invece di comparire e rifiutare. *@
+                                   compare affatto, invece di comparire e rifiutare. E chiede conferma, come
+                                   ogni eliminazione di un dato salvato. *@
                                 @if (!r.DallaSorgente)
                                 {
-                                    <button type="button" class="btn ghost" style="padding:0 6px"
-                                            title="@L["Nav_AdminDelete"]" @onclick="() => Elimina(r)">🗑</button>
+                                    <InlineConfirm TriggerClass="btn ghost" Disabled="@_busy"
+                                                   Prompt="@string.Format(L["Nav_AdminDeletePrompt"].Value, r.Code, r.Kind)"
+                                                   TriggerTitle="@L["Nav_AdminDelete"]" AriaLabel="@L["Nav_AdminDelete"]"
+                                                   OnConfirm="() => Elimina(r)">
+                                        <Trigger><Icon Name="trash" Size="13" /></Trigger>
+                                    </InlineConfirm>
                                 }
                             </td>
                         </tr>
                         @if (_note.TryGetValue(r.Id, out var nota))
                         {
-                            <tr><td colspan="8" class="muted" style="color:var(--danger-ink)">@nota</td></tr>
+                            <tr class="mil-note"><td colspan="8">@nota</td></tr>
                         }
                     }
                     @if (Filtrate.Count == 0)
@@ -117,20 +150,20 @@
                 </tbody>
             </table>
 
-            <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:12px">
-                <label style="display:flex;flex-direction:column;gap:2px;font-size:12px">
+            <div class="mil-add">
+                <label>
                     @L["Nav_Code"]
-                    <input @bind="_nuovoCodice" style="width:110px" placeholder="AMD" />
+                    <input class="w-code" @bind="_nuovoCodice" placeholder="AMD" />
                 </label>
-                <label style="display:flex;flex-direction:column;gap:2px;font-size:12px">
+                <label>
                     @L["Nav_Kind"]
-                    <select @bind="_nuovaFamiglia" style="width:110px">
+                    <select class="w-band" @bind="_nuovaFamiglia">
                         @foreach (var f in NavaidRules.Famiglie) { <option value="@f">@f</option> }
                     </select>
                 </label>
-                <button type="button" class="btn primary" @onclick="Aggiungi">+ @L["Nav_Add"]</button>
+                <button type="button" class="btn primary" disabled="@_busy" @onclick="Aggiungi">+ @L["Nav_Add"]</button>
             </div>
-            <p class="help" style="margin-top:6px">@L["Nav_AdminAddHint"]</p>
+            <p class="help mil-hint">@L["Nav_AdminAddHint"]</p>
 
             <datalist id="@TipiId">
                 @foreach (var t in NavaidRules.TipiSuggeriti) { <option value="@t" /> }
@@ -150,6 +183,14 @@
     private string _nuovaFamiglia = NavaidRules.FamigliaVhf;
     private string? _messaggio;
     private bool _ok;
+    private bool _busy;
+
+    /// <summary>La pagina è degli Editor: chi ha meno vede il rifiuto, non una tabella che non risponde.</summary>
+    private bool PuoScrivere => Authz.Role >= VipiRole.Editor;
+
+    /// <summary>Quante righe aspettano che qualcuno dica che tipo sono. È il numero della chip, ed è il senso
+    /// della pagina: dopo un import sono più di cento.</summary>
+    private int SenzaTipo => _righe.Count(r => string.IsNullOrWhiteSpace(r.Type));
 
     /// <summary>Le righe da mostrare: la ricerca guarda tutto quel che si vede, così «115.25» trova la riga
     /// come la trova «MNL».</summary>
@@ -183,7 +224,7 @@
         }
         else
         {
-            <input value="@valore" placeholder="@segnaposto" style="width:100%" aria-label="@segnaposto"
+            <input value="@valore" placeholder="@segnaposto" aria-label="@segnaposto"
                    @onchange="e => Scrivi(r, campo, e.Value?.ToString())" />
         }
     };
@@ -193,6 +234,34 @@
         if (r.DallaSorgente) return L["Nav_FromSource"].Value;
         if (r.UpdatedUtc is { } q) return string.Format(L["Nav_EditedAt"].Value, VipiTime.Z(q));
         return "—";
+    }
+
+    /// <summary>
+    /// Il giro d'import, chiesto adesso. ⚠️ Le tre risposte si distinguono: la policy lo esclude (è una
+    /// <b>decisione</b>, e si cambia in Sorgenti), la sorgente non ha risposto (è un <b>guasto</b>), oppure ha
+    /// parlato e allora si dice quanto ha portato. Riassumerle in «fatto» sarebbe il modo di non accorgersi
+    /// mai che il repository è stato spostato.
+    /// </summary>
+    private async Task Importa()
+    {
+        if (!PuoScrivere) return;
+        _busy = true; _messaggio = null; _note.Clear();
+        try
+        {
+            var r = await Importatore.RunNowAsync();
+            _ok = r.Esito is not null;
+            _messaggio = r switch
+            {
+                { Saltato: NavaidImportSkip.Esclusa } => L["Nav_AdminImportExcluded"].Value,
+                @* Il localizzatore con gli argomenti, non `string.Format` sul `.Value`: quello non
+                   interpola i segnaposto e stamperebbe la frase con dentro le graffe. *@
+                { Esito: { } e } => L["Nav_AdminImported", e.Create, e.Aggiornate, e.Invariate, r.DallaSorgente].Value,
+                _ => L["Nav_AdminImportMute"].Value,
+            };
+            await CaricaAsync();
+        }
+        catch (Exception ex) { _ok = false; _messaggio = ex.Message; }
+        finally { _busy = false; }
     }
 
     private async Task Scrivi(NavaidRow r, NavaidCampo campo, string? valore)

@@ -2914,6 +2914,94 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .struct .sorg-alias .c-act{width:64px;text-align:right}
 
 
+/* ---- Le tabelle dei vSOP MILITARI, e la pagina dell'anagrafica radioassistenze (30 agosto 2026) ----
+   Un gruppo solo per due posti — la tabella dentro il documento e la pagina admin — perche' e' la stessa
+   riga scritta in due schermate: due fogli di regole avrebbero fatto due tabelle che si somigliano.
+
+   ⚠️ Perche' esiste. Le sei tabelle nascevano `cfg-table`, che NON e' una tabella generica: e' la tabella
+   delle «Configurazioni operative» e cabla le larghezze su QUATTRO colonne (26/38/18/18%). Su una tabella
+   da otto colonne — l'anagrafica — le prime quattro prendevano tutto e le altre quattro finivano a zero,
+   e su una da tre le proporzioni erano quelle di un'altra tabella. Le larghezze scritte in linea (`style=
+   "width:76px"`) coprivano il caso a meta': valgono per il `th` e non per il `td`, quindi bastava una
+   cella lunga a rimetterle in discussione. La stessa diagnosi che le SID avevano gia' pagato (§ .sid-table).
+
+   ⚠️ E le larghezze stanno QUI e non in linea perche' sono la stessa scelta ripetuta in cinque componenti:
+   in linea, chi cambia la colonna «Coordinate» ne trova quattro su cinque.
+
+   ⚠️ Il selettore porta `.res-table.mil-table` (due classi) apposta: dentro l'editor vince `.struct
+   .res-table td`, ed e' il trabocchetto di specificita' gia' pagato dall'editor delle SID. */
+.res-table.mil-table{table-layout:fixed}
+.res-table.mil-table td{vertical-align:middle;overflow-wrap:anywhere}
+/* Una coordinata sessagesimale spezzata su due righe non si legge piu' come un punto. */
+.res-table.mil-table td.c-nowrap{white-space:nowrap}
+.res-table.mil-table input,.res-table.mil-table select{width:100%;box-sizing:border-box}
+/* ⚠️ In una cella un `.btn` intero (9px di imbottitura, 13.5px di corpo) e' alto quanto due righe di
+   tabella: le frecce e il cestino di riga sono gli stessi tasti, rimpiccioliti — non tasti diversi. */
+.res-table.mil-table td .btn{padding:3px 8px;font-size:12px;border-radius:7px}
+.res-table.mil-table th.c-move,.res-table.mil-table td.c-move{width:74px;white-space:nowrap}
+.res-table.mil-table th.c-act,.res-table.mil-table td.c-act{width:46px;text-align:right}
+/* La riga di spiegazione sotto una riga rifiutata: rossa, piccola, e sotto la riga che la riguarda. */
+.res-table.mil-table tr.mil-note td{color:var(--danger-ink);font-size:12px;padding-top:0}
+
+/* Le colonne, tabella per tabella. Una tabella a colonne LIBERE (nominativi, parcheggi) non le puo' avere:
+   li' il numero di colonne lo decide il profilo, e si torna al layout automatico. */
+.res-table.mil-table.milt-free{table-layout:auto}
+.res-table.mil-table.nav-table th.c-type,.res-table.mil-table.nav-table td.c-type{width:120px}
+.res-table.mil-table.nav-table th.c-coord,.res-table.mil-table.nav-table td.c-coord{width:34%}
+.res-table.mil-table.nav-table th.c-origin,.res-table.mil-table.nav-table td.c-origin{width:150px}
+.res-table.mil-table.div-table th.c-nav,.res-table.mil-table.div-table td.c-nav{width:38%}
+.res-table.mil-table.div-table th.c-num,.res-table.mil-table.div-table td.c-num{width:112px}
+.res-table.mil-table.milarea-table{margin-top:12px}
+.res-table.mil-table.milarea-table th.c-lim,.res-table.mil-table.milarea-table td.c-lim{width:180px}
+.res-table.mil-table.milarea-table th.c-act2,.res-table.mil-table.milarea-table td.c-act2{width:190px}
+.res-table.mil-table.thr-table th.c-rwy,.res-table.mil-table.thr-table td.c-rwy{width:90px}
+.res-table.mil-table.thr-table th.c-elev,.res-table.mil-table.thr-table td.c-elev{width:130px}
+.res-table.mil-table.navadm-table th.c-code,.res-table.mil-table.navadm-table td.c-code{width:82px}
+.res-table.mil-table.navadm-table th.c-band,.res-table.mil-table.navadm-table td.c-band{width:68px}
+.res-table.mil-table.navadm-table th.c-type,.res-table.mil-table.navadm-table td.c-type{width:120px}
+.res-table.mil-table.navadm-table th.c-freq,.res-table.mil-table.navadm-table td.c-freq{width:106px}
+.res-table.mil-table.navadm-table th.c-chan,.res-table.mil-table.navadm-table td.c-chan{width:90px}
+.res-table.mil-table.navadm-table th.c-origin,.res-table.mil-table.navadm-table td.c-origin{width:150px}
+/* ⚠️ Anche le coordinate hanno una larghezza, benche' siano la colonna piu' larga: senza, si prendevano
+   TUTTO lo spazio che avanzava — misurate 824px su 1600 per una stringa che ne vuole 230, con la
+   provenienza spinta contro il bordo destro. Con tutte le colonne dichiarate l'avanzo si distribuisce in
+   proporzione, e la tabella resta leggibile anche su un monitor largo. */
+.res-table.mil-table.navadm-table th.c-coord,.res-table.mil-table.navadm-table td.c-coord{width:300px}
+
+/* Il titoletto della seconda tabella di una sezione (le soglie pista dentro «Piste»). ⚠️ Il TAG dice la
+   struttura, la MISURA la porta la classe: un `h4` nudo e' 24px, cioe' piu' grande del titolo di sezione
+   che gli sta sopra (regola dei titoli, `titoli-tag-vs-misura`). */
+.mil-h4{margin:16px 0 6px;font-size:14px}
+
+/* La riga con cui si aggiunge: le stesse etichette maiuscole di `.se-row`, ma in colonna sopra il campo —
+   qui i campi sono corti e affiancati, e un'etichetta a sinistra li spingerebbe fuori riga. */
+.mil-add{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:10px}
+.mil-add label{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:600;color:var(--ink-soft);
+  font-family:var(--font-head);text-transform:uppercase;letter-spacing:.03em}
+.mil-add input,.mil-add select{border:1px solid var(--line);border-radius:7px;padding:6px 9px;
+  font-family:var(--font-body);font-size:13px;background:var(--surface);color:var(--ink)}
+.mil-add .w-code{width:112px}
+.mil-add .w-band{width:118px}
+/* L'esito di un tentativo rifiutato sta ACCANTO al tasto che l'ha provocato, non in una fascia sopra la
+   tabella: e' la stessa regola per cui l'esito delle pagine admin e' un chip in testata (regola 5). */
+.mil-err{color:var(--danger-ink);font-size:12px;align-self:center}
+.mil-hint{margin-top:6px;max-width:70ch}
+/* La frequenza in modifica: codice, canale e frequenza sulla stessa riga, e sotto come verra' scritta. */
+.mil-freq{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
+.mil-freq .w-chan{width:74px}
+.mil-freq .w-freq{width:84px}
+.mil-preview{font-size:12px;margin-top:3px}
+/* Una radioassistenza citata da un alternato: il nome e la crocetta non si separano andando a capo. */
+.mil-cite{display:flex;gap:6px;align-items:center;white-space:nowrap}
+.mil-cite-add{display:flex;gap:4px;align-items:center;margin-top:4px}
+.mil-cite-add input{width:94px}
+
+/* Pagina Radioassistenze (`/services/vsop/admin/navaids`): la barra dei filtri e' quella di Struttura e
+   delle SID — campo con la lente e chip — invece di etichette e caselle inventate qui. */
+.struct .navadm-bar{margin-bottom:10px}
+.struct .navadm-count{font-size:12px;align-self:center}
+
+
 /* ---- Diagnostica: tre domande, due colonne (22 agosto 2026) ----
    A sinistra i rilievi, che crescono senza tetto (otto fanno 480px di tabella, cinquanta ne farebbero
    tremila): riquadro misurato con `vipiFitViewport` — `height`, non `max-height` come su Sorgenti, perche'

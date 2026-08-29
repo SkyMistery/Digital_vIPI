@@ -9,12 +9,12 @@
 @inject IStringLocalizer<SharedResource> L
 @using Vipi.Application.Content
 
-<table class="cfg-table" style="margin-top:12px">
+<table class="res-table mil-table milarea-table">
     <thead>
         <tr>
             <th>@L["Area_Name"]</th>
-            <th style="width:180px">@L["Area_Limits"]</th>
-            <th style="width:190px">@L["Area_Activity"]</th>
+            <th class="c-lim">@L["Area_Limits"]</th>
+            <th class="c-act2">@L["Area_Activity"]</th>
         </tr>
     </thead>
     <tbody>
@@ -23,8 +23,8 @@
             var att = Attivita(a.IvaoId);
             <tr>
                 <td><b>@a.Name</b></td>
-                <td style="white-space:nowrap">@Banda(a)</td>
-                <td>
+                <td class="c-lim c-nowrap">@Banda(a)</td>
+                <td class="c-act2">
                     @if (Editing)
                     {
                         @* Gli stessi gettoni delle WTC nelle SID: il clic accende o spegne, il doppio clic

@@ -11,12 +11,15 @@
 @using Vipi.Application.Abstractions
 @using Vipi.Application.Content
 
-<table class="cfg-table">
+@* ⚠️ `res-table mil-table`, non `cfg-table`: quella cabla le larghezze su QUATTRO colonne (26/38/18/18%)
+   perche' e' la tabella delle «Configurazioni operative», e su tre colonne dava proporzioni di un'altra
+   tabella. Le larghezze di questa stanno nel foglio, accanto a quelle delle altre cinque. *@
+<table class="res-table mil-table nav-table">
     <thead>
         <tr>
-            <th>@L["Nav_Type"]</th>
+            <th class="c-type">@L["Nav_Type"]</th>
             <th>@L["Nav_Freq"]</th>
-            <th>@L["Nav_Coordinates"]</th>
+            <th class="c-coord">@L["Nav_Coordinates"]</th>
         </tr>
     </thead>
     <tbody>
@@ -26,11 +29,11 @@
                 @* ⚠️ Nessun ripiego: se nessuno ha ancora detto che tipo è, si legge un trattino. La
                    sorgente non lo sa (VOR, TACAN e VORTAC stanno nello stesso file), e stampare la
                    banda al posto suo sarebbe una classificazione che non ha fatto nessuno. *@
-                <td>@(r.Type is { Length: > 0 } t ? t : "—")</td>
+                <td class="c-type">@(r.Type is { Length: > 0 } t ? t : "—")</td>
                 <td>@NavaidText.Freq(r.Code, r.Channel, r.Frequency)</td>
                 @* Il testo non va a capo in mezzo a una coordinata: spezzata su due righe non si legge più
                    come un punto, e in tabella capita appena la colonna si stringe. *@
-                <td style="white-space:nowrap">@Coordinate(r)</td>
+                <td class="c-coord c-nowrap">@Coordinate(r)</td>
             </tr>
         }
         @if (Rows.Count == 0)

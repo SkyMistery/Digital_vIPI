@@ -10,15 +10,15 @@
 @using Vipi.Application.Abstractions
 @using Vipi.Application.Content
 
-<table class="cfg-table">
+<table class="res-table mil-table div-table">
     <thead>
         <tr>
-            @if (Editing) { <th style="width:76px"></th> }
+            @if (Editing) { <th class="c-move"></th> }
             <th>@L["Div_Airports"]</th>
-            <th>@L["Div_Navaids"]</th>
-            <th style="width:110px">@L["Div_Bearing"]</th>
-            <th style="width:110px">@L["Div_Distance"]</th>
-            @if (Editing) { <th style="width:40px"></th> }
+            <th class="c-nav">@L["Div_Navaids"]</th>
+            <th class="c-num">@L["Div_Bearing"]</th>
+            <th class="c-num">@L["Div_Distance"]</th>
+            @if (Editing) { <th class="c-act"></th> }
         </tr>
     </thead>
     <tbody>
@@ -29,23 +29,22 @@
             <tr>
                 @if (Editing)
                 {
-                    <td style="white-space:nowrap">
-                        <button type="button" class="btn ghost" style="padding:0 6px" disabled="@(idx == 0)"
+                    <td class="c-move">
+                        <button type="button" class="btn ghost" disabled="@(idx == 0)"
                                 title="@L["Common_Up"]" @onclick="() => OnMove.InvokeAsync((idx, -1))">↑</button>
-                        <button type="button" class="btn ghost" style="padding:0 6px" disabled="@(idx == Rows.Count - 1)"
+                        <button type="button" class="btn ghost" disabled="@(idx == Rows.Count - 1)"
                                 title="@L["Common_Down"]" @onclick="() => OnMove.InvokeAsync((idx, 1))">↓</button>
                     </td>
                 }
                 <td><b>@r.Icao</b> @r.Name</td>
-                <td>
+                <td class="c-nav">
                     @foreach (var n in r.Navaids)
                     {
-                        <div style="white-space:nowrap;display:flex;gap:6px;align-items:center">
+                        <div class="mil-cite">
                             <span>@NavaidText.ConTipo(n.Code, n.Type, n.Channel, n.Frequency)</span>
                             @if (Editing)
                             {
-                                <button type="button" class="btn ghost" style="padding:0 5px"
-                                        title="@L["Div_RemoveNavaid"]"
+                                <button type="button" class="btn ghost" title="@L["Div_RemoveNavaid"]"
                                         @onclick="() => OnRemoveNavaid.InvokeAsync((idx, n.Key))">✕</button>
                             }
                         </div>
@@ -53,27 +52,27 @@
                     @if (r.Navaids.Count == 0 && !Editing) { <span class="muted">—</span> }
                     @if (Editing)
                     {
-                        <div style="display:flex;gap:4px;align-items:center;margin-top:4px">
-                            <input list="@CodiciId" placeholder="@L["Nav_Code"]" style="width:90px"
+                        <div class="mil-cite-add">
+                            <input list="@CodiciId" placeholder="@L["Nav_Code"]"
                                    value="@LeggiBozza(idx)" @onchange="e => _bozzaNavaid[idx] = e.Value?.ToString() ?? string.Empty" />
-                            <button type="button" class="btn ghost" style="padding:0 6px"
+                            <button type="button" class="btn ghost" title="@L["Div_AddNavaid"]"
                                     @onclick="() => AggiungiNavaid(idx)">+</button>
                         </div>
                     }
                 </td>
-                <td>
+                <td class="c-num">
                     @if (Editing)
                     {
-                        <input type="number" min="0" max="360" value="@r.Bearing" style="width:80px" placeholder="126"
+                        <input type="number" min="0" max="360" value="@r.Bearing" placeholder="126"
                                aria-label="@L["Div_Bearing"]"
                                @onchange="e => OnSetNumber.InvokeAsync((idx, true, Numero(e.Value)))" />
                     }
                     else { @Vuoto(MilDiversionText.Rilevamento(r.Bearing)) }
                 </td>
-                <td>
+                <td class="c-num">
                     @if (Editing)
                     {
-                        <input type="number" min="0" max="9999" value="@r.DistanceNm" style="width:80px" placeholder="40"
+                        <input type="number" min="0" max="9999" value="@r.DistanceNm" placeholder="40"
                                aria-label="@L["Div_Distance"]"
                                @onchange="e => OnSetNumber.InvokeAsync((idx, false, Numero(e.Value)))" />
                     }
@@ -81,8 +80,8 @@
                 </td>
                 @if (Editing)
                 {
-                    <td>
-                        <button type="button" class="btn ghost" style="padding:0 6px" title="@L["Div_RemoveRow"]"
+                    <td class="c-act">
+                        <button type="button" class="btn ghost" title="@L["Div_RemoveRow"]"
                                 @onclick="() => OnRemove.InvokeAsync(idx)">✕</button>
                     </td>
                 }
@@ -97,17 +96,19 @@
 
 @if (Editing)
 {
-    <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:10px">
-        <label style="display:flex;flex-direction:column;gap:2px;font-size:12px">
+    <div class="mil-add">
+        <label>
             @L["Div_Icao"]
-            <input list="@AeroportiId" @bind="_nuovoIcao" style="width:110px" placeholder="LIBG" />
+            <input class="w-code" list="@AeroportiId" @bind="_nuovoIcao" placeholder="LIBG" />
         </label>
         <button type="button" class="btn primary" @onclick="Aggiungi">+ @L["Div_Add"]</button>
-        @if (_errore is not null) { <span class="muted" style="color:var(--danger-ink)">@_errore</span> }
+        @if (_errore is not null) { <span class="mil-err">@_errore</span> }
     </div>
     @* ⚠️ Lo si dice PRIMA, non dopo un fallimento: un alternato estero è il caso normale su un campo di
-       confine, e chi scrive deve sapere che il codice glielo cerchiamo anche fuori dai nostri. *@
-    <p class="help" style="margin-top:6px">@L["Div_AddHint"]</p>
+       confine, e chi scrive deve sapere che il codice glielo cerchiamo anche fuori dai nostri. Una riga
+       sotto la barra d'aggiunta, come nelle Radioassistenze — un «?» da solo, senza niente accanto, in
+       fondo a una testata di sezione già piena di comandi si legge come un segno rimasto lì per sbaglio. *@
+    <p class="help mil-hint">@L["Div_AddHint"]</p>
 
     <datalist id="@AeroportiId">
         @foreach (var a in Aeroporti) { <option value="@a.Icao">@a.Name</option> }
