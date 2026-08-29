@@ -92,6 +92,54 @@ public class AttachmentRefTests
         Assert.DoesNotContain("ref", testo);
     }
 
+    // ---- modo di resa e altezza -------------------------------------------------------------------
+
+    /// <summary>Il modo di riposo è <b>Link</b>: ogni blocco già scritto nasce così, ed è la forma che
+    /// funziona ovunque — su un telefono, su carta, e il giorno che Google chiude l'incorporamento.</summary>
+    [Fact]
+    public void Un_blocco_senza_modo_e_un_link() =>
+        Assert.Equal(AttachmentDisplayMode.Link,
+            AttachmentRef.Parse("""{"ref":"allegato:loa-lirr-lfmm"}""")!.Mode);
+
+    [Fact]
+    public void Il_modo_e_laltezza_sopravvivono_al_giro()
+    {
+        var originale = new AttachmentRef("loa-lirr-lfmm", "LoA",
+            AttachmentDisplayMode.Embedded, AttachmentEmbedHeight.Large);
+
+        Assert.Equal(originale, AttachmentRef.Parse(AttachmentRef.Serialize(originale)));
+    }
+
+    /// <summary>⚠️ Nel JSON il modo si scrive col <b>nome</b>, non con l'ordinale: questo payload lo legge
+    /// anche una persona che apre una release per capire perché una pagina fa una cosa strana, e un
+    /// <c>1</c> non le dice niente.</summary>
+    [Fact]
+    public void Il_modo_si_scrive_col_nome_non_col_numero()
+    {
+        var json = AttachmentRef.Serialize(new AttachmentRef("loa-lirr-lfmm", "LoA",
+            AttachmentDisplayMode.Embedded, AttachmentEmbedHeight.Small));
+
+        Assert.Contains("Embedded", json);
+        Assert.Contains("Small", json);
+    }
+
+    /// <summary>Un modo che questa versione non conosce torna al valore di riposo invece di far esplodere il
+    /// blocco: un documento scritto da un ramo più nuovo si legge lo stesso, come link.</summary>
+    [Theory]
+    [InlineData("""{"ref":"allegato:loa-lirr-lfmm","modo":"Olografico"}""")]
+    [InlineData("""{"ref":"allegato:loa-lirr-lfmm","modo":""}""")]
+    public void Un_modo_sconosciuto_torna_al_link(string json) =>
+        Assert.Equal(AttachmentDisplayMode.Link, AttachmentRef.Parse(json)!.Mode);
+
+    /// <summary>⚠️ Tre scaglioni e non un numero libero: un numero libero produce riquadri da 3000px, e non
+    /// se ne accorge nessuno finché non li apre un telefono.</summary>
+    [Theory]
+    [InlineData(AttachmentEmbedHeight.Small, 320)]
+    [InlineData(AttachmentEmbedHeight.Medium, 520)]
+    [InlineData(AttachmentEmbedHeight.Large, 800)]
+    public void Ogni_scaglione_ha_la_sua_altezza(AttachmentEmbedHeight scaglione, int px) =>
+        Assert.Equal(px, new AttachmentRef("x-y", null, AttachmentDisplayMode.Embedded, scaglione).HeightPx);
+
     // ---- il blocco dentro le sezioni extra --------------------------------------------------------
 
     /// <summary>Il giro completo attraverso l'envelope delle sezioni extra: è la stessa stringa che nel

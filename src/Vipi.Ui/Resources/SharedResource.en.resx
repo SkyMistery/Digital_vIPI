@@ -2816,4 +2816,11 @@
   <data name="Att_BlockLabelPh" xml:space="preserve"><value>LoA with Marseille</value></data>
   <data name="Att_BlockNotePh" xml:space="preserve"><value>Note under the link (optional)</value></data>
   <data name="Att_BlockEmptyHint" xml:space="preserve"><value>The library is empty: an attachment is uploaded in Attachments first, then cited here.</value></data>
+  <data name="Att_BlockMode" xml:space="preserve"><value>Shown as</value></data>
+  <data name="Att_BlockHeight" xml:space="preserve"><value>Height</value></data>
+  <data name="AttMode_Link" xml:space="preserve"><value>Link</value></data>
+  <data name="AttMode_Embedded" xml:space="preserve"><value>Embedded</value></data>
+  <data name="AttHeight_Small" xml:space="preserve"><value>Short</value></data>
+  <data name="AttHeight_Medium" xml:space="preserve"><value>Medium</value></data>
+  <data name="AttHeight_Large" xml:space="preserve"><value>Tall</value></data>
 </root>

@@ -145,6 +145,9 @@ public sealed class SharedResourceIntegrityTests
         // Da dove arriva una citazione: è la pillola davanti a ogni riga di «citato da», e senza la sua
         // chiave si leggerebbe il nome del valore — proprio nella schermata su cui si decide una cancellazione.
         { "AttSrc_", typeof(Vipi.Application.Abstractions.AttachmentCitationSource) },
+        // Il modo di resa di un blocco allegato e l'altezza del riquadro: sono due tendine dell'editor.
+        { "AttMode_", typeof(AttachmentDisplayMode) },
+        { "AttHeight_", typeof(AttachmentEmbedHeight) },
     };
 
     /// <summary>

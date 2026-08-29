@@ -131,6 +131,70 @@ public class BloccoAllegatoTests : TestContext
         Assert.DoesNotContain("<script>", cut.Markup);
     }
 
+    // ---- modo incorporato --------------------------------------------------------------------------
+
+    /// <summary>
+    /// ⚠️ Anche l'iframe punta alla <b>nostra</b> rotta: il 302 vale anche dentro un riquadro, e l'indirizzo
+    /// del deposito resta fuori dal documento esattamente come nel link. Nessuna eccezione.
+    /// </summary>
+    [Fact]
+    public void Il_modo_incorporato_mette_liframe_sulla_nostra_rotta()
+    {
+        Localizzatore();
+        var json = AttachmentRef.Serialize(new AttachmentRef("loa-lirr-lfmm", "LoA",
+            AttachmentDisplayMode.Embedded, AttachmentEmbedHeight.Large));
+
+        var cut = RenderComponent<BlockRenderer>(p => p.Add(x => x.Block, Block(json)));
+
+        var frame = cut.Find(".att-embed iframe");
+        Assert.Equal("/vsop/files/loa-lirr-lfmm", frame.GetAttribute("src"));
+        Assert.Contains("800px", cut.Find(".att-embed").GetAttribute("style")!);
+        Assert.DoesNotContain("drive.google.com", cut.Markup);
+    }
+
+    /// <summary>Il riquadro ha un nome: per chi naviga a tastiera o con uno screen reader un iframe senza
+    /// <c>title</c> è «frame», e basta.</summary>
+    [Fact]
+    public void Il_riquadro_ha_un_nome()
+    {
+        Localizzatore();
+        var json = AttachmentRef.Serialize(new AttachmentRef("loa-lirr-lfmm", "LoA Roma-Marseille",
+            AttachmentDisplayMode.Embedded));
+
+        var cut = RenderComponent<BlockRenderer>(p => p.Add(x => x.Block, Block(json)));
+
+        Assert.Equal("LoA Roma-Marseille", cut.Find(".att-embed iframe").GetAttribute("title"));
+    }
+
+    /// <summary>
+    /// ⚠️ <b>Il link sotto c'è LO STESSO</b>, e non è ridondanza: è il ripiego per il giorno che Google
+    /// chiude l'incorporamento — è già successo col fondo mappa CARTO — ed è l'unica cosa che sopravvive
+    /// alla stampa, dove l'iframe non esce.
+    /// </summary>
+    [Fact]
+    public void Anche_da_incorporato_il_link_sotto_ce_sempre()
+    {
+        Localizzatore();
+        var json = AttachmentRef.Serialize(new AttachmentRef("loa-lirr-lfmm", "LoA",
+            AttachmentDisplayMode.Embedded));
+
+        var cut = RenderComponent<BlockRenderer>(p => p.Add(x => x.Block, Block(json)));
+
+        Assert.Equal("/vsop/files/loa-lirr-lfmm", cut.Find("p.att-link a").GetAttribute("href"));
+    }
+
+    /// <summary>Nel modo link non c'è nessun riquadro: è il default, e deve restare leggero.</summary>
+    [Fact]
+    public void Nel_modo_link_non_ce_nessun_riquadro()
+    {
+        Localizzatore();
+        var json = AttachmentRef.Serialize(new AttachmentRef("loa-lirr-lfmm", "LoA"));
+
+        var cut = RenderComponent<BlockRenderer>(p => p.Add(x => x.Block, Block(json)));
+
+        Assert.Empty(cut.FindAll("iframe"));
+    }
+
     // ---- editor ----------------------------------------------------------------------------------------
 
     /// <summary>
@@ -212,6 +276,47 @@ public class BloccoAllegatoTests : TestContext
         var cut = RenderComponent<AttachmentBlockEditor>(p => p.Add(x => x.AttachmentJson, null));
 
         Assert.Contains("Att_BlockEmptyHint", cut.Markup);
+    }
+
+    /// <summary>Il modo si cambia dall'editor, e l'altezza compare solo dove conta: un campo che c'è ma non
+    /// fa niente si compila lo stesso, e poi qualcuno si chiede perché non è cambiato niente.</summary>
+    [Fact]
+    public void Laltezza_compare_solo_nel_modo_incorporato()
+    {
+        Localizzatore();
+        Services.AddSingleton<IAttachmentLibrary>(new BibliotecaFinta(Voce("loa-lirr-lfmm", "LoA")));
+
+        string? scritto = null;
+        var cut = RenderComponent<AttachmentBlockEditor>(p => p
+            .Add(x => x.AttachmentJson, AttachmentRef.Serialize(new AttachmentRef("loa-lirr-lfmm", "LoA")))
+            .Add(x => x.AttachmentJsonChanged, (string? j) => scritto = j));
+
+        // In modo link ci sono due tendine: l'allegato e il modo. L'altezza no.
+        Assert.Equal(2, cut.FindAll("select").Count);
+
+        cut.FindAll("select").ToArray()[1].Change(nameof(AttachmentDisplayMode.Embedded));
+
+        Assert.Equal(AttachmentDisplayMode.Embedded, AttachmentRef.Parse(scritto)!.Mode);
+    }
+
+    [Fact]
+    public void Laltezza_scelta_finisce_nel_blocco()
+    {
+        Localizzatore();
+        Services.AddSingleton<IAttachmentLibrary>(new BibliotecaFinta(Voce("loa-lirr-lfmm", "LoA")));
+
+        string? scritto = null;
+        var cut = RenderComponent<AttachmentBlockEditor>(p => p
+            .Add(x => x.AttachmentJson, AttachmentRef.Serialize(new AttachmentRef("loa-lirr-lfmm", "LoA",
+                AttachmentDisplayMode.Embedded)))
+            .Add(x => x.AttachmentJsonChanged, (string? j) => scritto = j));
+
+        var tendine = cut.FindAll("select").ToArray();
+        Assert.Equal(3, tendine.Length);   // allegato, modo, altezza
+
+        tendine[2].Change(nameof(AttachmentEmbedHeight.Small));
+
+        Assert.Equal(AttachmentEmbedHeight.Small, AttachmentRef.Parse(scritto)!.Height);
     }
 
     /// <summary>L'anteprima nell'editor è il componente vero, non un facsimile: quel che si vede è quel che

@@ -281,7 +281,7 @@ principale del sistema attuale, dove i link a Drive stanno sparsi nei documenti 
 | 3 | ✅ **FATTA il 29 agosto** — rotta `/vsop/files/{slug}` con 302 e `no-cache` | identità del link |
 | 4 | ✅ **FATTA il 29 agosto** — scanner del token `allegato:` + `DoveUsato(slug)` + filtro «mai usata» | registro |
 | 5 | ✅ **FATTA il 29 agosto** — blocco `Attachment`: enum in coda, `case` nei punti che dispatchano davvero, editor e resa condivisi — **modo Link** | link 1 |
-| 5-bis | **Modo Incorporato**: campo `Modo` + altezza a scaglioni, iframe sulla nostra rotta, link di ripiego, **`frame-src` in CSP** | resa in pagina |
+| 5-bis | ✅ **FATTA il 29 agosto** — modo Incorporato: campo `Modo` + altezza a scaglioni, iframe sulla nostra rotta, link di ripiego, **`frame-src` in CSP** | resa in pagina |
 | 6 | Link inline in `MarkdownLite`, **solo schema `allegato:`** | link 2 |
 | 7 | Sostituzione con conferma informata + audit + voce in Cambiamenti | versioni |
 | 8 | Cancellazione con guardia; ricerca; stampa; guida in-app | contorno |

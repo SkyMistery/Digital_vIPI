@@ -369,7 +369,15 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
         Assert.Equal("DENY", res.Headers.GetValues("X-Frame-Options").Single());
         Assert.Equal("strict-origin-when-cross-origin", res.Headers.GetValues("Referrer-Policy").Single());
         // Report-only finché le due `unsafe-inline` non sono state tolte: vedi Program.cs.
-        Assert.Contains("frame-ancestors 'none'", res.Headers.GetValues("Content-Security-Policy-Report-Only").Single());
+        var csp = res.Headers.GetValues("Content-Security-Policy-Report-Only").Single();
+        Assert.Contains("frame-ancestors 'none'", csp);
+
+        // ⚠️ Il visualizzatore di Drive dentro il blocco «Allegato» incorporato. Senza questa direttiva la
+        // regola cadrebbe su `default-src 'self'` e il riquadro sarebbe vuoto — ma siccome l'intestazione è
+        // Report-Only NON si vedrebbe: l'incorporato funzionerebbe oggi e morirebbe in blocco il giorno del
+        // passaggio a CSP vera. È la lezione delle tessere OpenTopoMap, mancate per giorni per lo stesso
+        // motivo, ed è per questo che il presidio sta qui e non in una prova a mano.
+        Assert.Contains("frame-src https://drive.google.com", csp);
     }
 
     /// <summary>

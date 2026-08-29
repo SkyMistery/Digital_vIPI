@@ -2824,4 +2824,11 @@
   <data name="Att_BlockLabelPh" xml:space="preserve"><value>LoA con Marsiglia</value></data>
   <data name="Att_BlockNotePh" xml:space="preserve"><value>Nota sotto il link (facoltativa)</value></data>
   <data name="Att_BlockEmptyHint" xml:space="preserve"><value>La biblioteca è vuota: un allegato si carica prima in Allegati, poi si cita da qui.</value></data>
+  <data name="Att_BlockMode" xml:space="preserve"><value>Come si vede</value></data>
+  <data name="Att_BlockHeight" xml:space="preserve"><value>Altezza</value></data>
+  <data name="AttMode_Link" xml:space="preserve"><value>Link</value></data>
+  <data name="AttMode_Embedded" xml:space="preserve"><value>Incorporato</value></data>
+  <data name="AttHeight_Small" xml:space="preserve"><value>Bassa</value></data>
+  <data name="AttHeight_Medium" xml:space="preserve"><value>Media</value></data>
+  <data name="AttHeight_Large" xml:space="preserve"><value>Alta</value></data>
 </root>

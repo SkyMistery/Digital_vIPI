@@ -33,8 +33,35 @@
                    @onchange="e => TitoloAsync(e.Value as string)" />
         </label>
 
+        <div class="att-row">
+            <label class="att-field">
+                <span class="muted">@L["Att_BlockMode"]</span>
+                <select class="app-in" value="@r.Mode" @onchange="e => ModoAsync(e.Value as string)">
+                    @foreach (var m in Enum.GetValues<AttachmentDisplayMode>())
+                    {
+                        <option value="@m">@L["AttMode_" + m]</option>
+                    }
+                </select>
+            </label>
+
+            @* L'altezza compare solo dove conta: un campo che c'è ma non fa niente si compila lo stesso, e
+               poi qualcuno si chiede perché non è cambiato niente. *@
+            @if (r.Mode == AttachmentDisplayMode.Embedded)
+            {
+                <label class="att-field">
+                    <span class="muted">@L["Att_BlockHeight"]</span>
+                    <select class="app-in" value="@r.Height" @onchange="e => AltezzaAsync(e.Value as string)">
+                        @foreach (var h in Enum.GetValues<AttachmentEmbedHeight>())
+                        {
+                            <option value="@h">@L["AttHeight_" + h]</option>
+                        }
+                    </select>
+                </label>
+            }
+        </div>
+
         @* L'anteprima è il componente vero, non un facsimile: quel che si vede qui è quel che leggerà chi
-           apre il documento. *@
+           apre il documento — riquadro incorporato compreso. *@
         <div class="att-preview"><AttachmentLink Reference="r" Note="@Note" /></div>
     }
     else if (_voci.Count == 0)
@@ -85,6 +112,22 @@
         // Il titolo nasce da quello della biblioteca: è il punto di partenza sensato, e resta modificabile.
         await AttachmentJsonChanged.InvokeAsync(
             AttachmentRef.Serialize(new AttachmentRef(voce.Slug, voce.Title)));
+    }
+
+    private async Task ModoAsync(string? modo)
+    {
+        if (Riferimento is not { } r) return;
+        if (!Enum.TryParse<AttachmentDisplayMode>(modo, out var m)) return;
+
+        await AttachmentJsonChanged.InvokeAsync(AttachmentRef.Serialize(r with { Mode = m }));
+    }
+
+    private async Task AltezzaAsync(string? altezza)
+    {
+        if (Riferimento is not { } r) return;
+        if (!Enum.TryParse<AttachmentEmbedHeight>(altezza, out var h)) return;
+
+        await AttachmentJsonChanged.InvokeAsync(AttachmentRef.Serialize(r with { Height = h }));
     }
 
     private async Task TitoloAsync(string? titolo)

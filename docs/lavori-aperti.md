@@ -2134,8 +2134,29 @@ una riga per `case`, come per le immagini. Tasto «+ Allegato» in tutti e due g
 - I punti toccati sono **sei** dei nove che dispatchano su `BlockFormat`: gli altri tre riguardano i **byte
   delle immagini** (pulizia, quota, editing) e un allegato non ne ha. Il debito del registry resta annotato.
 
-**Da dove si riparte**: slice **5-bis** — il modo **Incorporato** (campo `Modo`, altezza a scaglioni, iframe
-sulla nostra rotta, link di ripiego e **`frame-src` in CSP**).
+**✅ Slice 5-bis fatta il 29 agosto 2026**: il modo **Incorporato**. Il PDF si legge dentro la pagina, in un
+riquadro alto quanto uno dei **tre scaglioni** scelti dall'editore, **più il link sotto**.
+
+- ⚠️ **L'iframe punta alla NOSTRA rotta**: il 302 vale anche dentro un riquadro, quindi l'indirizzo del
+  deposito resta fuori dal documento esattamente come nel link. Nessuna eccezione.
+- ⚠️ **`frame-src https://drive.google.com` aggiunta alla CSP nella STESSA slice.** Senza, la direttiva
+  cadrebbe su `default-src 'self'` — ma siccome l'intestazione è **Report-Only** l'incorporato funzionerebbe
+  oggi e morirebbe **in blocco** il giorno del passaggio a CSP vera. Presidiata da `SmokeTests`, non da una
+  prova a mano: è la lezione delle tessere OpenTopoMap.
+- ⚠️ **Il link sotto c'è sempre**, anche da incorporato: è il ripiego per il giorno che Google chiude
+  l'embed (già successo col fondo mappa CARTO) ed è l'unica cosa che sopravvive alla stampa.
+- **Stampa**: `vipi-print.css` nasconde l'iframe e stampa **l'indirizzo accanto al titolo** — la regola
+  generale toglie la sottolineatura a tutti gli `<a>`, quindi senza questo un allegato stampato sarebbe una
+  riga di testo che non porta da nessuna parte.
+- **Tre scaglioni, non un numero libero** (320 / 520 / 800): un numero libero produce riquadri da 3000px e
+  non se ne accorge nessuno finché non li apre un telefono.
+- Nel JSON il modo si scrive **col nome**, non con l'ordinale, e un modo sconosciuto torna al **link**
+  invece di far esplodere il blocco.
+
+⚠️ **Da provare DAL VIVO prima di dire chiusa la 5-bis** (rischio R8): Google può togliere l'embed della
+preview quando vuole. Nessun test qui dentro apre un browser.
+
+**Da dove si riparte**: slice 6 — il link inline in `MarkdownLite`, **solo** schema `allegato:`.
 
 ⚠️ **La 5-bis non si chiude senza una prova dal vivo**: Google può togliere l'embed della preview quando
 vuole — è già successo col fondo mappa CARTO il 27 agosto — e qui dentro nessun test apre un browser.

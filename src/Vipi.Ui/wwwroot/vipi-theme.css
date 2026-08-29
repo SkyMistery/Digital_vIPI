@@ -1312,9 +1312,16 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .att-note{margin:0 0 4px}
 .att-note p{margin:0}
 
+/* riquadro del modo incorporato: il visualizzatore di Google dentro la pagina. L'altezza la scrive il
+   componente (tre scaglioni scelti dall'editore), qui c'e' solo la cornice. */
+.att-embed{margin:12px 0 6px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface-soft)}
+.att-embed iframe{width:100%;height:100%;border:0;display:block}
+
 /* editor del blocco allegato: si SCEGLIE da un elenco, non si incolla un indirizzo. */
 .att-edit{margin:6px 0;display:flex;flex-direction:column;gap:8px}
 .att-field{display:flex;flex-direction:column;gap:3px;font-size:12px}
+.att-row{display:flex;gap:10px;flex-wrap:wrap}
+.att-row .att-field{flex:1;min-width:160px}
 .att-preview{border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--surface-soft)}
 .att-preview .att-link{margin:0}
 
