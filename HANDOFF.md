@@ -1,10 +1,74 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 29 agosto 2026, notte tarda (il **convertitore di coordinate**: §W, un servizio nuovo, ramo **non fuso**).
+**Ultimo aggiornamento:** 29 agosto 2026, notte fonda (**§X — l'edizione giusta per il campo**: le due guardie gemelle su quale edizione può esistere su quale campo, le tre colonne del vSOP militare, i vSOP militari finalmente raggiungibili da quattro punti, e il buco delle **due vLOA sulla stessa coppia**. Ramo `edizione-giusta-per-il-campo`, **non fuso**, e nasce **sopra** quello del convertitore).
 
 ## Dove siamo, prima di tutto il resto
 
-🆕 **29 agosto, notte tarda — il convertitore di coordinate, un servizio nuovo.**
+🆕 **29 agosto, notte fonda — §X: l'edizione giusta per il campo, e i vSOP militari raggiungibili.**
+Carta: [`docs/feature/2026-08-27-vsop-militari.md`](docs/feature/2026-08-27-vsop-militari.md) **§11** ·
+lavori aperti **§X** · ramo `edizione-giusta-per-il-campo`, **5 commit**, spinto e ⚠️ **NON fuso**.
+
+⚠️ **Il ramo nasce SOPRA `convertitore-coordinate`, non sopra `main`**: i due si toccano su
+`SharedResource.resx` e `docs/lavori-aperti.md`, quindi staccarlo da `main` avrebbe voluto dire districare le
+risorse. **Va fuso dopo il convertitore.**
+
+Sei richieste del committente in un giro, più due difetti che la verifica ha trovato per conto suo.
+
+**1 — La regola vera, che finora stava solo nella testa di chi scrive** (§11b, la parte che conta):
+
+| campo | vIPI civile | vSOP militare |
+|---|---|---|
+| **solo militare** (Aviano, Ghedi, Decimomannu, Rivolto) | **non nasce** | nasce subito |
+| **misto** (Pisa, Linate, Ciampino) | nasce normalmente | **solo dopo** la civile |
+
+Basta che la civile **esista**, anche in bozza: pretenderla pubblicata bloccherebbe il lavoro parallelo sulle
+due edizioni. ⚠️ Le due guardie stanno nei **servizi**, non nelle tendine — `EnsureDocumentAsync` è chiamato
+dall'**apertura** dell'editor d'aeroporto, quindi bastava conoscere l'URL. ⚠️ Bloccano la **nascita**, non
+l'apertura: una civile già esistente su un campo marcato solo-militare *dopo* continua ad aprirsi, o la via
+d'uscita sarebbe murata. ⚠️ L'anagrafica si legge dal **database** (`GetMilitaryStateAsync`), non da
+`IStationResolver.Airport`, che è `scoped` e vive quanto il **circuito**.
+
+**2 — Il vSOP militare era l'unico dei cinque viewer senza `doc-layout`** (§11a): niente indice a sinistra,
+niente rail a destra, su un documento da nove sezioni radice e venti figlie. Nessuno se n'era accorto perché
+ogni viewer si legge da solo, e da solo sembrava a posto.
+
+**3 — La verifica sui duplicati su tutte e cinque le famiglie** (§11c) ha trovato **un buco vero, e non dove
+sembrava**. Quattro erano già idempotenti; la vLOA aveva **due porte che confrontavano cose diverse** —
+«Nuovo documento» la **coppia di ACC**, «ACC confinanti» i **SectorId**. Su una ACC con più settori d'area
+nascevano **due vLOA sulla stessa coppia**, e `FindVloaIdByPairAsync` fa `FirstOrDefault`: una restava
+invisibile pur potendo avere release pubblicate.
+
+**4 — I vSOP militari erano difficili da raggiungere**, e in tre punti diversi: il ponte verso la vIPI civile
+era gated su «pubblicata» invece che su «esiste» (§11e), il filtro «Tipo» di `/services/vsop/versions` non
+aveva i militari — si vedevano ma non si potevano **isolare** (§11f), la pagina di una ACC offriva tre
+famiglie e non quattro (§11g), e l'hub `/services` non li nominava affatto (§11h).
+
+**5 — `/services` è nell'ordine chiesto**: vSOP civili → **vSOP militari** → statistiche ATC → Aurora Profile
+Swapper → riga **«Staff di divisione»** → convertitore di coordinate. Dal documento allo strumento.
+⚠️ **Ribalta la decisione di §5 della carta militare** («niente card su `/services`»): quella regola era
+giusta sull'architettura e perdeva sul lettore. La scheda è marcata `a.choice.shortcut` — **non è un
+servizio, è una porta dentro a uno** — così la rete che pretende un solo segmento sotto `/services` continua
+a valere su tutte le altre. **Marcare invece di allargare**: senza il segno quel test sarebbe stato
+cancellato per far entrare un'eccezione, e da lì in poi non avrebbe più protetto nessuno.
+
+**19 test nuovi**, **nessuna migrazione**. Otto progetti su nove verdi su net8 e net10 (**3 762** su net8).
+
+⚠️ **DUE cose restano aperte, e sono in `docs/lavori-aperti.md`:**
+
+- **§X4 — `Vipi.E2E.Tests` non è stato compilato**: il `Vipi.Host` era **acceso** e blocca i `.dll`, e quel
+  progetto sparisce dal riepilogo **in silenzio** con exit code 0. Da rifare a host spento.
+- **§X5 — la verifica a schermo di §X è da fare**, sul solito campo **misto e pubblicato**.
+
+⚠️ **§X7 — un dato da sistemare, non un difetto di codice**: **LIML Linate** ha un vSOP militare
+**pubblicato** e **nessuna vIPI civile**. Il documento è del 28 agosto, di prima della guardia, e una guardia
+nuova non ripara il passato. Il caso ora si **vede** (callout sul viewer militare e pill rossa nell'elenco
+nazionale, solo per lo staff, col tasto che apre l'editor civile), ma **nessuno l'ha ancora creata**: creare
+un documento al posto di una persona è la stessa categoria di errore appena chiusa. LIBG e LIBN sono marcati
+`IsMilitaryOnly`, quindi sono a norma; LIMN è nato **nell'ordine giusto**.
+
+---
+
+**29 agosto, notte tarda — il convertitore di coordinate, un servizio nuovo.**
 Carta: [`docs/feature/2026-08-29-convertitore-coordinate.md`](docs/feature/2026-08-29-convertitore-coordinate.md) ·
 lavori aperti **§W** · ramo `convertitore-coordinate`, **13 commit**, ⚠️ **NON fuso in `main`** (la fusione è
 una decisione del committente, non un passo tecnico).
