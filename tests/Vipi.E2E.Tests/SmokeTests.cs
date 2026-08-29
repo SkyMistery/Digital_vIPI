@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
+using Vipi.Domain.Entities;
 using Vipi.Infrastructure.Persistence;
 using Xunit;
 
@@ -168,6 +169,48 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
     {
         // Una release vecchia può citare uno sha non più risolvibile: dev'essere una figura mancante, non un 500.
         var res = await _factory.CreateClient().GetAsync("/vsop/media/" + new string('a', 64));
+
+        Assert.Equal(HttpStatusCode.NotFound, res.StatusCode);
+    }
+
+    /// <summary>
+    /// Un allegato si serve col suo <b>slug</b>, e la risposta è un <b>302</b> verso il deposito: il documento
+    /// non contiene mai l'indirizzo di Drive.
+    ///
+    /// <para>⚠️ E la risposta è <c>no-cache</c>, al contrario dell'immagine qui sopra. Quella è
+    /// content-addressed — un'immagine diversa è un URL diverso — mentre qui l'URL è <b>stabile</b> e il
+    /// contenuto cambia sotto: è il senso stesso della sostituzione. Con una cache lunga si sostituirebbe il
+    /// PDF e il browser terrebbe il vecchio per un anno, cioè la sostituzione «non funzionerebbe» in modo
+    /// intermittente — a chi ha la pagina fresca funziona benissimo.</para>
+    /// </summary>
+    [Fact]
+    public async Task Files_endpoint_redirects_to_the_current_version()
+    {
+        const string ExternalId = "1A2b3C4d5E6f7G8h9I0jKlMnOpQrStUvW";
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var biblioteca = scope.ServiceProvider.GetRequiredService<IAttachmentLibrary>();
+            var (esito, _) = await biblioteca.CreateAsync(new AttachmentDraft(
+                "loa-lirr-lfmm", "LoA Roma-Marseille", AttachmentKind.Loa, AttachmentScope.Acc, "LIRR",
+                null, $"https://drive.google.com/file/d/{ExternalId}/view?usp=sharing"), 704798);
+            Assert.Equal(AttachmentCreate.Ok, esito);
+        }
+
+        // Il client non deve seguire il salto: quel che si prova è proprio il salto.
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var res = await client.GetAsync("/vsop/files/loa-lirr-lfmm");
+
+        Assert.Equal(HttpStatusCode.Found, res.StatusCode);
+        Assert.Equal($"https://drive.google.com/file/d/{ExternalId}/preview", res.Headers.Location?.ToString());
+        Assert.Contains("no-cache", res.Headers.CacheControl?.ToString() ?? "");
+        Assert.DoesNotContain("immutable", res.Headers.CacheControl?.ToString() ?? "");
+    }
+
+    /// <summary>Uno slug che non esiste è un 404, non un 500: un documento vecchio può citarne uno cancellato.</summary>
+    [Fact]
+    public async Task Files_endpoint_answers_404_for_an_unknown_slug()
+    {
+        var res = await _factory.CreateClient().GetAsync("/vsop/files/questo-slug-non-esiste");
 
         Assert.Equal(HttpStatusCode.NotFound, res.StatusCode);
     }

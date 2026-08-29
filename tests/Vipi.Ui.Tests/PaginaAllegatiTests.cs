@@ -112,6 +112,21 @@ public class PaginaAllegatiTests : TestContext
         Assert.Contains("allegato:loa-lirr-lfmm", cut.Markup);
     }
 
+    /// <summary>
+    /// ⚠️ Anche di qui si passa dalla <b>nostra</b> rotta: l'indirizzo del deposito non compare in nessun
+    /// link, nemmeno in una pagina di servizio. È la stessa ragione per cui non compare nei documenti —
+    /// il giorno che il deposito cambia, non c'è niente da riscrivere.
+    /// </summary>
+    [Fact]
+    public void Il_tasto_apri_passa_dalla_nostra_rotta()
+    {
+        var cut = Render(new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA Roma–Marseille")));
+
+        var link = cut.Find("table.res-table tbody a");
+        Assert.Equal("/vsop/files/loa-lirr-lfmm", link.GetAttribute("href"));
+        Assert.DoesNotContain("drive.google.com", cut.Markup);
+    }
+
     /// <summary>La pagina è degli Editor: chi ha meno vede il rifiuto, non una tabella che non risponde.</summary>
     [Theory]
     [InlineData(VipiRole.User)]

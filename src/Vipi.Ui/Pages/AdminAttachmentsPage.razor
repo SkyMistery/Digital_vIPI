@@ -24,9 +24,9 @@
    ⚠️ Tutto ciò che entra qui è PUBBLICO: il file su Drive è condiviso «chiunque abbia il link». Allegati
    riservati non esistono, e la pagina lo dice invece di lasciarlo scoprire.
 
-   ⚠️ Il tasto «Apri» punta ancora all'indirizzo del deposito. Dalla slice 3 punterà a /vsop/files/{slug},
-   che è la nostra identità del link: qui è una pagina di servizio, e finché la rotta non esiste un link a
-   una rotta inesistente sarebbe una pagina bianca. Nei DOCUMENTI un URL di Drive non entrerà mai. *@
+   ⚠️ Il tasto «Apri» passa dalla NOSTRA rotta, /vsop/files/{slug}, non dall'indirizzo del deposito — come
+   ogni altro link a un allegato, qui e nei documenti. Provarla di qui è anche l'unico modo di accorgersi
+   che un link è morto senza aprire il documento che lo cita. *@
 
 <PageTitle>@L["Att_Title"] · IVAO Italy</PageTitle>
 
@@ -104,14 +104,14 @@
                         <tr>
                             <td><b>@r.Title</b></td>
                             @* Lo slug si mostra come si scrive dentro un documento: è quello che si copia. *@
-                            <td><code>allegato:@r.Slug</code></td>
+                            <td><code>@AttachmentRules.TokenDi(r.Slug)</code></td>
                             <td class="muted">@L["AttKind_" + r.Kind]</td>
                             <td class="muted">@(r.Scope == AttachmentScope.Division ? L["AttScope_Division"].Value : r.ScopeLabel)</td>
                             <td class="muted">v@r.VersionNumber</td>
                             <td class="muted">@VipiTime.Z(r.VersionCreatedUtc)</td>
                             <td>
                                 <a class="btn ghost" target="_blank" rel="noopener"
-                                   href="@AttachmentRules.UrlEsterno(r.Provider, r.ExternalId)"
+                                   href="@AttachmentRules.UrlDi(r.Slug)"
                                    title="@L["Att_Open"]">@L["Att_Open"]</a>
                             </td>
                         </tr>

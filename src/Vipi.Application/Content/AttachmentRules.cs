@@ -30,6 +30,34 @@ public static class AttachmentRules
     /// </summary>
     private static readonly Regex RxExternalId = new(@"^[A-Za-z0-9_-]{10,200}$", RegexOptions.Compiled);
 
+    /// <summary>
+    /// Il prefisso della rotta che serve un allegato: <c>/vsop/files/{slug}</c> → 302 verso il deposito.
+    ///
+    /// <para>⚠️ <b>È l'identità del link, e sta scritta in un posto solo.</b> Nel documento non finisce mai
+    /// un indirizzo del deposito: cambiare deposito domani — Cloudflare R2, GitHub, di nuovo in casa se
+    /// l'hosting cambia — <b>non tocca un solo documento</b>, perché è una colonna in una tabella.</para>
+    ///
+    /// <para>Sta sotto <c>/vsop</c> e non sotto <c>/services/vsop</c> come le pagine, per la stessa ragione
+    /// di <c>/vsop/media/</c>: è un <b>endpoint macchina</b>, un indirizzo che finisce dentro contenuto già
+    /// pubblicato e che quindi non si sposta più.</para>
+    /// </summary>
+    public const string UrlPrefix = "/vsop/files/";
+
+    /// <summary>
+    /// Come un documento cita un allegato: <c>allegato:loa-lirr-lfmm</c>, sia nel JSON del blocco sia nel
+    /// link inline della prosa.
+    /// <para>⚠️ <b>Un token solo</b> per tutte e due le forme: una sola regex per lo scanner dei riferimenti,
+    /// che così si estende invece di sdoppiarsi. E resta in italiano perché è quel che scrive a mano chi
+    /// compila un documento, non un identificatore di codice.</para>
+    /// </summary>
+    public const string TokenPrefix = "allegato:";
+
+    /// <summary>La rotta che serve questo allegato. L'unica cosa che un documento deve contenere.</summary>
+    public static string UrlDi(string slug) => UrlPrefix + slug;
+
+    /// <summary>Come si cita questo allegato dentro un documento.</summary>
+    public static string TokenDi(string slug) => TokenPrefix + slug;
+
     /// <summary>Lunghezza massima dello slug: la stessa della colonna.</summary>
     public const int SlugMaxLength = 64;
 

@@ -2073,8 +2073,29 @@ voce. Sotto: `IAttachmentLibrary`/`EfAttachmentLibrary` e le regole pure di `Att
 - Guida: capitolo `admin-allegati` in `GuidaPage` **e** voce in `GuideSearchCatalog` (senza la seconda la
   ricerca globale non lo trova).
 
-**Da dove si riparte**: slice 3 — la rotta `/vsop/files/{slug}`, 302 e **`no-cache`**. Le slice sono
-**nove**: la **5-bis** (modo incorporato + `frame-src`) si è aggiunta il 29 agosto.
+**✅ Slice 3 fatta il 29 agosto 2026**: la rotta `/vsop/files/{slug}` — 302 verso il deposito, **`no-cache`**,
+404 per uno slug che non c'è. È l'identità del link: da qui in poi nessun link a un allegato porta l'indirizzo
+di Drive, nemmeno il tasto «Apri» della pagina admin.
+
+- **Sta sotto `/vsop` e non sotto `/services/vsop`** come le pagine, per la stessa ragione di `/vsop/media/`:
+  è un **endpoint macchina**, un indirizzo che finirà dentro documenti già pubblicati e che quindi non si
+  sposta più. Aggiunto `files` fra i `MachineFirstSegments` di `LegacyRoutes`, che ora lo rifiuta
+  esplicitamente invece di redirigerlo su una pagina che non esiste.
+- ⚠️ **`no-cache` e non `immutable`**, ed è la differenza con `/vsop/media/{sha}`: quello è
+  content-addressed (immagine diversa = URL diverso), qui l'URL è **stabile** e il contenuto cambia sotto.
+  Con una cache lunga si sostituirebbe il PDF e il browser terrebbe il vecchio per un anno — la sostituzione
+  «non funziona» a intermittenza, perché a chi ha la pagina fresca funziona benissimo.
+- **302 e non 301**: un permanente il browser lo tiene per sempre, e il giorno che cambia il deposito ci
+  sarebbero utenti mandati a un indirizzo morto senza modo di correggerli.
+- La rotta e il token (`allegato:`) stanno scritti in `AttachmentRules` e **da nessun'altra parte**.
+
+⚠️ **Non ancora eseguiti i due test E2E** che provano 302, destinazione e `no-cache`
+(`SmokeTests.Files_endpoint_*`): sono **scritti**, ma con l'host di sviluppo acceso `Vipi.E2E.Tests` non
+compila — tiene i `.dll` — e sparisce dal riepilogo in silenzio. Vanno lanciati a sito spento.
+
+**Da dove si riparte**: slice 4 — lo scanner esteso al token `allegato:`, `DoveUsato(slug)` e il filtro
+«mai usata». Le slice sono **nove**: la **5-bis** (modo incorporato + `frame-src`) si è aggiunta il
+29 agosto.
 
 ⚠️ **La 5-bis non si chiude senza una prova dal vivo**: Google può togliere l'embed della preview quando
 vuole — è già successo col fondo mappa CARTO il 27 agosto — e qui dentro nessun test apre un browser.

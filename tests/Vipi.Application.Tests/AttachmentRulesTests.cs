@@ -135,6 +135,33 @@ public class AttachmentRulesTests
         Assert.Equal($"https://drive.google.com/file/d/{Id}/preview",
             AttachmentRules.UrlEsterno(AttachmentProvider.Drive, Id));
 
+    // ---- l'identita' del link -----------------------------------------------------------------------
+
+    /// <summary>
+    /// ⚠️ La rotta e il token stanno scritti <b>qui</b> e da nessun'altra parte: sono ciò che finisce dentro
+    /// contenuto già pubblicato, e un secondo posto che li componesse a mano si scoprirebbe sbagliato solo
+    /// il giorno che uno dei due cambia.
+    /// </summary>
+    [Fact]
+    public void La_rotta_di_un_allegato_e_la_nostra() =>
+        Assert.Equal("/vsop/files/loa-lirr-lfmm", AttachmentRules.UrlDi("loa-lirr-lfmm"));
+
+    [Fact]
+    public void Il_token_e_come_lo_cita_un_documento() =>
+        Assert.Equal("allegato:loa-lirr-lfmm", AttachmentRules.TokenDi("loa-lirr-lfmm"));
+
+    /// <summary>
+    /// La rotta sta sotto <c>/vsop</c> come <c>/vsop/media/</c>, non sotto <c>/services/vsop</c> come le
+    /// pagine: è un endpoint macchina, un indirizzo che finisce dentro documenti già pubblicati e che quindi
+    /// non si sposta più. Spostarlo li spegnerebbe tutti insieme.
+    /// </summary>
+    [Fact]
+    public void La_rotta_e_un_endpoint_macchina_non_una_pagina()
+    {
+        Assert.StartsWith("/vsop/", AttachmentRules.UrlPrefix);
+        Assert.DoesNotContain("/services/", AttachmentRules.UrlPrefix);
+    }
+
     // ---- ambito -------------------------------------------------------------------------------------
 
     /// <summary>⚠️ La divisione non ha una chiave, e se qualcuno ne batte una si butta: una chiave su un
