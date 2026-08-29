@@ -1,8 +1,11 @@
 # Il convertitore di coordinate — carta (29 agosto 2026)
 
-> **Stato: 🟠 DA APPROVARE** — nessun codice scritto. **Seconda stesura**, dopo le correzioni del committente
-> del 29 agosto: l'uscita sectorfile è **l'elenco dei punti** (i segmenti sono l'opzione), entra
-> **KML/KMZ in ingresso**, e le aree si **scelgono da un selettore**.
+> **Stato: ✅ ESEGUITA il 29 agosto 2026**, ramo `convertitore-coordinate`. Dieci slice, **143 test nuovi**,
+> `dotnet build Vipi.slnx -c Release --no-incremental` verde su net8 e net10 con **0 avvisi**, suite a
+> **3 984** su nove progetti (baseline 3 841). Verifica dal vivo fatta, e ha trovato **cinque difetti** che
+> la suite non vedeva (§14).
+> **Seconda stesura**, dopo le correzioni del committente del 29 agosto: l'uscita sectorfile è **l'elenco dei
+> punti** (i segmenti sono l'opzione), entra **KML/KMZ in ingresso**, e le aree si **scelgono da un selettore**.
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 > Riusa: `AuroraSectorfileParser.TryParseDms` (il DMS lo sappiamo già leggere), `AorPolygonProjector` +
 > `AccAor`/`AccAor3d` + `vipi-aor.js` per la mappa (**nessun motore di mappa nuovo**), `CircleShapeBuilder`,
@@ -311,3 +314,43 @@ Un commit per slice, `dotnet build Vipi.slnx -c Release --no-incremental` verde 
 - [ ] `dotnet build Vipi.slnx -c Release --no-incremental` verde su net8 **e** net10; suite ≥ 3 841 su nove
       progetti.
 - [ ] Verifica live con traccia, `docs/lavori-aperti.md` aggiornato.
+
+## §14 — Che cosa ha trovato la verifica dal vivo (29 agosto 2026)
+
+Vale come metodo, non come cronaca: la suite era verde su tutti e nove i progetti, e **nessuno** di questi
+cinque difetti si vedeva dai test. Si vedevano tutti **guardando lo schermo**.
+
+1. **Il righello diceva «linea aperta» sotto un poligono chiuso.** `AnelloChiuso` risponde alla domanda
+   letterale — *«l'ultimo vertice ripeteva il primo?»* — e chi incolla i cinque vertici di un'area **non li
+   ripete**. Il perimetro escludeva il lato di chiusura mentre l'area lo comprendeva: due misure della stessa
+   figura in disaccordo. È nato `CoordinateArea.SiChiude`, e l'eccezione sono i **segmenti**, dove il file
+   dice dove la catena finisce (una costa è aperta davvero).
+2. **Le chip delle aree comparivano due volte** — il selettore e quelle della mappa — che è esattamente ciò
+   che §5 e §6 volevano evitare. Ora quelle della mappa si nascondono **col foglio di stile**, non
+   togliendole dal DOM: è da lì che `vipi-aor.js` legge quali forme accendere.
+3. **«5 points read from 5 lines» diventava «1 points read from 1 lines»**, e con l'incolla misto diceva
+   «4 su 4» mentre le righe erano **sei**. Ora sono tre numeri, e la forma regge anche l'uno.
+4. **Con una coordinata sola comparivano «Inverti» e «Ruota»**, che su un punto non fanno niente, e
+   «perimetro 0 NM». Un tasto inerte è una promessa non mantenuta: si toglie, non si spegne.
+5. **Il confronto acceso sembrava non fare niente**: a conversione esatta le due forme si sovrappongono al
+   pixel. Ora una riga lo dice — il silenzio lì è la buona notizia, ma va detto.
+
+**Le prove che il committente può rifare in trenta secondi**: l'area R14A cade sulla costa laziale a nord di
+Ladispoli, dove sta davvero; il giro DB → sectorfile → DB torna **carattere per carattere**; una coordinata
+sola si vede come un cerchietto; la pagina esiste in italiano e in inglese.
+
+## §15 — Le tre cose da ricordare di questo lavoro
+
+⚠️ **Il DMS e l'ordine lat/lon del JSON avevano già una casa**, e sono **traslocati** invece di essere
+riscritti: `DmsCoordinate` e `AuroraRingJson` in `Vipi.Application`, con `AuroraSectorfileParser` che delega
+in una riga. Due verità sullo stesso formato divergono sempre, e di solito in una sola.
+
+⚠️ **I test hanno trovato tre difetti prima dello schermo**, e tutti e tre nel punto in cui vertici e segmenti
+si incontrano: la continuità della catena misurata sull'ultimo punto accodato invece che sulla fine del
+segmento precedente; il vertice di un segmento che è il suo **inizio** (l'area R14A usciva con **un** punto su
+cinque); e una riga di solo commento che chiudeva il blocco anonimo, spezzando in due un'area sola.
+
+⚠️ **Il gesto «inverti» era ambiguo e il test l'ha smascherato**: rovesciare l'elenco intero cambia **due**
+cose — il verso *e* il punto di partenza — e chi ha chiesto «inverti» non ha chiesto la seconda. Su un anello
+il primo vertice resta il primo; su una linea aperta si percorre dall'altro capo, che lì è proprio il
+significato.

@@ -4226,3 +4226,37 @@ WHERE SourceLang='it' AND TargetLang='en' AND SourceText='Regole piste';
 E a schermo, sulla vIPI civile di un aeroporto **ripubblicato**, in inglese: la sezione si chiama
 *Runway rules*. Il campo di prova buono è **LIML Linate** — durante §V1 ci è stata creata e pubblicata una
 vIPI civile apposta, e la sezione «Regole piste» c'è.
+
+## W. Il convertitore di coordinate — 29 agosto 2026
+
+> **Carta:** [`docs/feature/2026-08-29-convertitore-coordinate.md`](feature/2026-08-29-convertitore-coordinate.md)
+> **Ramo:** `convertitore-coordinate`, dieci slice, **143 test nuovi** (suite a 3 984 su nove progetti).
+> Release verde su net8 e net10, 0 avvisi. Verifica dal vivo fatta (§14 della carta).
+
+### W1 ✅ CHIUSA — il servizio esiste e funziona
+
+`/services/coordinates`, riservato a **DivisionStaff** e superiori. Legge tredici forme di coordinate
+(DMS Aurora puntato e compatto, DMS coi simboli, coi due punti e a spazi, gradi e primi decimali, ARINC,
+decimali con segno o emisfero, `lat:lon` del DB, CSV, sectorfile a punti e a segmenti, JSON, KML/KMZ) e
+scrive nei due formati chiesti — col sectorfile in **due forme**, l'elenco dei punti (default) e i segmenti.
+
+Il motore è **puro** e sta in `Vipi.Application/Coordinates`: nessuna tabella, nessuna migrazione, nessuno
+stato. La mappa è quella dell'AoR, senza un motore nuovo.
+
+### W2 🟢 APERTO — il ramo NON è fuso
+
+La fusione è una decisione del committente, non un passo tecnico. Il ramo è locale: `convertitore-coordinate`,
+undici commit sopra `main`.
+
+### W3 🔵 FUTURO — le due cose rinviate dal committente
+
+Entrambe fanno parte del «ragionamento più ampio» annunciato il 29 agosto, e **non** sono accennate in pagina:
+
+- **salvare l'area convertita** fra le aree regolamentate (o mandarla al Bridge Aurora): il motore è puro e
+  non ha nulla che impedisca di chiamarlo da altrove, ma è un'altra feature con un'altra carta;
+- **incollare un `italy.restrict` intero** e scegliere l'area da un elenco: oggi il selettore compare solo se
+  l'ingresso porta davvero più aree, e il file vero ne ha 2 222 righe.
+
+⚠️ Se un giorno il convertitore avrà un **endpoint HTTP** (per il Bridge, per esempio), il cancello va messo
+lì **lo stesso giorno**: oggi la sola sede è la pagina, perché il motore non fa I/O e non c'è un servizio da
+chiudere.
