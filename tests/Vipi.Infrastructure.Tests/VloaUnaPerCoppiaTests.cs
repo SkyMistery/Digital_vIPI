@@ -163,6 +163,52 @@ public class VloaUnaPerCoppiaTests : IAsyncLifetime
         Assert.Contains("Neighbour", ex.Message);
     }
 
+    /// <summary>
+    /// ⚠️ <b>Le due porte devono fare la STESSA domanda.</b> «Nuovo documento» lascia scegliere QUALUNQUE
+    /// settore d'area dell'ACC come Home; la generazione da «ACC confinanti» sceglie da sé la radice. Finché
+    /// quest'ultima confrontava i <b>SectorId</b>, bastava che la prima vLOA fosse nata sull'altro settore
+    /// perché non la trovasse: nasceva la SECONDA vLOA sulla stessa coppia di ACC.
+    ///
+    /// <para>Da lì in poi le due non si vedono più: <c>FindVloaIdByPairAsync</c> — come l'editor e il
+    /// pubblico trovano la vLOA di una coppia — fa <c>FirstOrDefault</c> per codice ACC e ne apre una senza
+    /// un criterio. L'altra resta invisibile pur potendo avere release pubblicate.</para>
+    /// </summary>
+    [Fact]
+    public async Task La_generazione_da_confinanti_RIUSA_la_vLOA_creata_su_un_ALTRO_settore_dello_stesso_ACC()
+    {
+        // ⚠️ NON la radice: `LIRR_TS_CTR` è un settore d'area figlio, e «Nuovo documento» lo offre come Home
+        // esattamente come gli altri. È il caso che la generazione in blocco non vedeva.
+        var homeScelto = await SettoreAsync("LIRR_TS_CTR");
+        var estero = await NuovoSettoreEsteroAsync("LFFF", "Paris ACC", "LFFF_CTR");
+
+        var daNuovoDocumento = await Servizio().CreateDocumentAsync(DocumentType.Vloa, "vLOA Roma–Parigi",
+            scopeSectorIds: null, primarySectorId: null, homeSectorId: homeScelto, neighbourSectorId: estero);
+
+        // La radice che sceglierebbe la generazione in blocco: se fosse lo STESSO settore, questo test non
+        // proverebbe niente — quindi lo si verifica invece di sperarci.
+        var radice = await _db.Sectors
+            .Where(x => x.Acc!.Code == "LIRR" && x.Kind == SectorKind.Acc)
+            .OrderBy(x => x.ParentSectorId == null ? 0 : 1).ThenBy(x => x.CoverageOrder)
+            .Select(x => x.Id).FirstAsync();
+        Assert.NotEqual(homeScelto, radice);
+
+        _db.NeighbourCandidates.Add(new NeighbourCandidate
+        {
+            HomeAccCode = "LIRR", ForeignAccCode = "LFFF", ForeignAccName = "Paris ACC",
+            CountryId = "FR", ForeignRootCallsign = "LFFF_CTR",
+        });
+        await _db.SaveChangesAsync();
+        var candidato = await _db.NeighbourCandidates.Where(c => c.ForeignAccCode == "LFFF")
+            .Select(c => c.Id).FirstAsync();
+
+        var quante = await _db.Documents.CountAsync(d => d.Type == DocumentType.Vloa);
+        var generata = await new EfNeighbourRepository(_db, new AiracService())
+            .MaterializeAndCreateVloaAsync(candidato);
+
+        Assert.Equal(daNuovoDocumento, generata);
+        Assert.Equal(quante, await _db.Documents.CountAsync(d => d.Type == DocumentType.Vloa));
+    }
+
     private async Task<int> NuovoSettoreEsteroAsync(string accCode, string accName, string callsign)
     {
         var acc = new Acc { Code = accCode, Name = accName, CountryPrefix = accCode[..2], IsForeign = true };

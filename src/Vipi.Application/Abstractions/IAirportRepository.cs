@@ -90,4 +90,13 @@ public interface IAirportRepository : IAirportProfileReader
 
     /// <summary>Id del Document proiettato dell'aeroporto (via settori d'aeroporto con <c>DocumentId</c>), o null se non ancora generato.</summary>
     Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default);
+
+    /// <summary>
+    /// Anagrafica militare dello scalo e i due legami documentali. null = ICAO inesistente.
+    /// <para>⚠️ Legge il DATABASE e non la cache delle stazioni (<c>IStationResolver.Airport</c>): quella è
+    /// <c>scoped</c>, cioè vive quanto il CIRCUITO, e una guardia che decide se un documento può nascere non
+    /// può rispondere su un'anagrafica vecchia di ore. La cache resta buona per le testate, che se sbagliano
+    /// mostrano un'etichetta di troppo.</para>
+    /// </summary>
+    Task<AirportMilitaryState?> GetMilitaryStateAsync(string icao, CancellationToken ct = default);
 }

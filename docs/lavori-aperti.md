@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 29 agosto 2026, notte tarda (**§W NUOVA: il convertitore di coordinate**, un servizio nuovo in `/services` per lo staff di divisione. Tredici forme di coordinate in ingresso — KML/KMZ compresi — e le due uscite chieste, col sectorfile in **due forme**: l'elenco dei punti (default) e i segmenti. ⚠️ Il DB elenca **VERTICI**, i segmenti elencano **LATI**. Nessun modello nuovo e nessun motore nuovo: il DMS e l'ordine lat/lon del JSON **traslocano** in `Vipi.Application/Coordinates` e l'infrastruttura delega; la mappa è quella dell'AoR. **Nessuna migrazione**. ⚠️ La **verifica dal vivo** ha trovato **cinque** difetti che la suite non vedeva. Dieci slice, **143 test nuovi**, suite **3 984** su nove progetti. ⚠️ Ramo `convertitore-coordinate` **NON fuso**) · **Aggiornato:** 29 agosto 2026, notte (**§V: TREDICI voci, tredici chiuse.** Dieci le ha trovate la lettura,
+**Aggiornato:** 29 agosto 2026, notte fonda (**§X NUOVA: l'edizione giusta per il campo, e le tre colonne del vSOP militare**. Il viewer militare era l'UNICO dei cinque senza `doc-layout` — niente indice, niente rail — su un documento da nove sezioni radice e venti figlie. E la regola che finora stava solo nella testa di chi scrive: su un campo **solo militare** la vIPI civile **non nasce**, su un campo **misto** il vSOP militare nasce **solo dopo** la civile (basta che esista, anche in bozza). Due guardie gemelle **nei servizi**, non nelle tendine — `EnsureDocumentAsync` è chiamato dall'APERTURA dell'editor, quindi bastava l'URL. ⚠️ La verifica sui duplicati chiesta dal committente ha trovato un **buco vero**: le due porte che creano una vLOA confrontavano cose diverse — la coppia di **ACC** una, i **SectorId** l'altra — e su una ACC con più settori d'area nascevano **due vLOA sulla stessa coppia**, di cui una invisibile. **10 test nuovi**, nessuna migrazione. ⚠️ **X4**: `Vipi.E2E.Tests` non compilato, il Host era acceso) · **Aggiornato:** 29 agosto 2026, notte tarda (**§W NUOVA: il convertitore di coordinate**, un servizio nuovo in `/services` per lo staff di divisione. Tredici forme di coordinate in ingresso — KML/KMZ compresi — e le due uscite chieste, col sectorfile in **due forme**: l'elenco dei punti (default) e i segmenti. ⚠️ Il DB elenca **VERTICI**, i segmenti elencano **LATI**. Nessun modello nuovo e nessun motore nuovo: il DMS e l'ordine lat/lon del JSON **traslocano** in `Vipi.Application/Coordinates` e l'infrastruttura delega; la mappa è quella dell'AoR. **Nessuna migrazione**. ⚠️ La **verifica dal vivo** ha trovato **cinque** difetti che la suite non vedeva. Dieci slice, **143 test nuovi**, suite **3 984** su nove progetti. ⚠️ Ramo `convertitore-coordinate` **NON fuso**) · **Aggiornato:** 29 agosto 2026, notte (**§V: TREDICI voci, tredici chiuse.** Dieci le ha trovate la lettura,
 TRE la verifica a schermo su un campo MISTO (§V1, chiusa) — e le tre dello schermo sono le peggiori: **un vSOP
 militare pubblicato non si apriva affatto** (il bersaglio di release non si risolveva sul legame militare),
 **tre tabelle su tre erano titoli vuoti** (il corpo derivato lo disegnavano solo le sezioni radice) e **il
@@ -4260,3 +4260,82 @@ Entrambe fanno parte del «ragionamento più ampio» annunciato il 29 agosto, e 
 ⚠️ Se un giorno il convertitore avrà un **endpoint HTTP** (per il Bridge, per esempio), il cancello va messo
 lì **lo stesso giorno**: oggi la sola sede è la pagina, perché il motore non fa I/O e non c'è un servizio da
 chiudere.
+
+## X. L'edizione giusta per il campo, e le tre colonne del vSOP militare — 29 agosto 2026
+
+> **Carta:** [`docs/feature/2026-08-27-vsop-militari.md`](feature/2026-08-27-vsop-militari.md) **§11**
+> (§11a le colonne, §11b le due guardie gemelle, §11c la verifica sui duplicati, §11d le trappole).
+> **Test nuovi:** 10 (8 in `Vipi.Infrastructure.Tests`, 2 teorie in `Vipi.Ui.Tests`). **Nessuna migrazione.**
+
+Tre richieste del committente e una verifica che ne è venuta fuori.
+
+### X1 ✅ CHIUSA — il vSOP militare non aveva le due colonne laterali
+
+Era l'**unico dei cinque viewer** senza `doc-layout`: niente indice a sinistra, niente riquadro dei
+collegamenti a destra, su un documento che ha nove sezioni radice e venti figlie. Ora ha le tre colonne come
+gli altri quattro, e `reading-cap` è caduto insieme (dichiarava un tetto che `.wrap:has(.doc-layout)` toglie
+già).
+
+Il rail porta ciclo AIRAC **del documento mostrato**, ATC online sul campo (ATIS escluso) e i collegamenti,
+fra cui il ponte verso la vIPI civile — **solo se esiste**.
+
+⚠️ **Anche il rail civile ora mostra il vSOP militare in BOZZA, ma solo allo staff.** Il documento militare
+adesso nasce dall'editor civile e nasce in bozza: col gate «pubblicato» chi l'aveva appena creato non aveva
+modo di tornarci dalla pagina civile.
+
+**Presidio:** `DueColonneSuOgniDocumentoTests` — due teorie su tutti e cinque i viewer, per nome.
+
+### X2 ✅ CHIUSA — quale edizione può esistere su quale campo
+
+Due guardie **gemelle**, nei servizi e non nelle tendine:
+
+| campo | vIPI civile | vSOP militare |
+|---|---|---|
+| **solo militare** (Aviano, Ghedi, Decimomannu, Rivolto) | **non nasce** | nasce subito |
+| **misto** (Pisa, Linate, Ciampino) | nasce normalmente | **solo dopo** la civile |
+
+⚠️ La civile deve **esistere**, anche solo in bozza: pretenderla pubblicata bloccherebbe il lavoro parallelo
+sulle due edizioni.
+
+⚠️ La prima guardia blocca la **nascita**, non l'apertura: una civile già esistente su un campo marcato solo
+militare dopo continua ad aprirsi, o la via d'uscita sarebbe murata.
+
+⚠️ L'anagrafica si legge dal **database** (`IAirportRepository.GetMilitaryStateAsync`), non da
+`IStationResolver.Airport`: quella cache è `scoped`, cioè vive quanto il **circuito**, e può avere ore.
+
+Le strade, dopo: «Nuovo documento» dichiara «solo militare» **nella tendina** e su quei campi crea il vSOP e
+ci porta; l'editor della vIPI civile ha il tasto **«Crea il vSOP militare»** nel rail; `/services/vsop/mil`
+sui campi misti senza civile offre «Prima la vIPI civile» invece di un «Crea» che fallirebbe sempre;
+l'editor civile aperto su un campo solo militare **reindirizza** a quello militare; la generazione in blocco
+dei documenti d'aeroporto **salta** i campi solo militari con un motivo scritto, invece di fallire.
+
+### X3 ✅ CHIUSA — la verifica sui duplicati, e il buco che ha trovato
+
+Domanda del committente: creando un documento che esiste già, si crea un doppione o si finisce sull'esistente?
+
+Quattro famiglie su cinque erano a posto (ACC, APP standalone, aeroporto e vSOP militare sono idempotenti;
+la vLOA rifiuta e offre «Apri esistente»). **La quinta aveva un buco**, ed era la vLOA vista dall'altra porta:
+
+- «Nuovo documento» confronta la **coppia di ACC** e lascia scegliere qualunque settore d'area come Home;
+- la generazione da «ACC confinanti» confrontava i **SectorId**, e il suo Home lo sceglie da sé (la radice).
+
+Su una ACC con più settori d'area bastava che la prima vLOA fosse nata sull'altro settore perché la seconda
+porta non la trovasse: **due vLOA sulla stessa coppia**. E `FindVloaIdByPairAsync` — come l'editor e il
+pubblico trovano la vLOA di una coppia — fa `FirstOrDefault`: ne apre una senza un criterio, l'altra resta
+invisibile pur potendo avere release pubblicate.
+
+Ora le due porte fanno la stessa domanda. ⚠️ La **direzione** continua a contare: LIRR→DTTC e DTTC→LIRR sono
+due vLOA legittime, e c'era già un test a difenderlo.
+
+### X4 🟢 APERTO — `Vipi.E2E.Tests` non è stato compilato
+
+Il `Vipi.Host` era **acceso** durante il lavoro (PID 10988) e tiene bloccati i `.dll`: il progetto E2E non
+compila e, come già scritto in questo elenco, sparisce dal riepilogo **in silenzio** con exit code 0. Gli
+altri **otto** progetti sono verdi su net8 e net10. Va rifatto a host spento, insieme al riavvio già in coda.
+
+### X5 🟢 APERTO — la verifica a schermo
+
+La suite non vede le tre colonne renderizzate né i percorsi di creazione dal browser. Da provare dal vivo,
+sul solito campo **misto e pubblicato** (la lezione di §V1): la vIPI civile di Pisa con il tasto «Crea il
+vSOP militare», l'elenco militare che offre «Prima la vIPI civile» su un campo misto vergine, e
+«Nuovo documento» su un campo solo militare.

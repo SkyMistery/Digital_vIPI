@@ -44,7 +44,7 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
             .Where(a => a.HasMilitaryPresence && !a.IsHidden)
             .Select(a => new
             {
-                a.Icao, a.Name, AccCode = a.Acc!.Code, a.IsMilitaryOnly, a.MilDocumentId,
+                a.Icao, a.Name, AccCode = a.Acc!.Code, a.IsMilitaryOnly, a.MilDocumentId, a.DocumentId,
             })
             .ToListAsync(ct).ConfigureAwait(false);
 
@@ -63,7 +63,8 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
 
         var righe = campi
             .Select(c => new MilAirportRow(c.Icao, c.Name, c.AccCode, c.IsMilitaryOnly,
-                                           c.MilDocumentId, pubblicati.Contains(c.Icao)))
+                                           c.MilDocumentId, pubblicati.Contains(c.Icao),
+                                           HaCivile: c.DocumentId is not null))
             // Prima i solo-militari, poi per ICAO: su un elenco nazionale l'ordine alfabetico puro
             // mescolerebbe Aviano con Pisa, che sono due cose diverse per chi cerca.
             .OrderByDescending(r => r.SoloMilitare)
@@ -93,6 +94,24 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
             throw new Vipi.Application.Aor.ValidationException(Lingua(
                 $"{icao} non risulta avere presenza militare: la sorgente non lo dice.",
                 $"{icao} is not recorded as having a military presence: the source does not say so."));
+
+        // ---- Sui campi MISTI la vIPI civile viene PRIMA (carta vSOP militari §5-bis) -------------------
+        //
+        // Su Pisa, Linate, Ciampino il vSOP militare descrive la METÀ militare di uno scalo che ne ha due:
+        // dice cosa cambia rispetto alla vIPI civile — quale parte del sedime, quali frequenze, quali
+        // procedure sono le altre. Senza la civile non c'è il «rispetto a cosa», e il documento nasce a
+        // descrivere un campo di cui nessuno ha ancora scritto le piste.
+        //
+        // ⚠️ Vale solo per i MISTI. Su un campo solo militare la civile non esiste e non deve esistere
+        // (la guardia gemella sta in AirportEditingService.EnsureDocumentAsync): chiederla qui renderebbe
+        // Aviano e Ghedi — proprio i campi che un vSOP ce l'hanno — gli unici a non poterlo avere.
+        //
+        // ⚠️ Basta che la vIPI civile ESISTA, anche solo in bozza: pretenderla pubblicata bloccherebbe il
+        // lavoro parallelo sulle due edizioni, che è il caso normale su uno scalo appena aperto.
+        if (!campo.IsMilitaryOnly && campo.DocumentId is null)
+            throw new Vipi.Application.Aor.ValidationException(Lingua(
+                $"{icao} è uno scalo civile con presenza militare: prima si crea la vIPI civile, poi il vSOP militare.",
+                $"{icao} is a civil field with a military presence: create the civil vIPI first, then the military vSOP."));
 
         // ⚠️ Language.It, non En (carta §1d): la lingua sorgente è quella in cui si REDIGE. I quindici PDF
         // di partenza sono in inglese, ma il documento è nostro e un lettore inglese lo ottiene tradotto.

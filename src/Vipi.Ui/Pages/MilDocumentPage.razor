@@ -8,6 +8,7 @@
 @inject Vipi.Application.Translation.DocumentTranslator Translator
 @inject IReleaseService Releases
 @inject IEditAuthorizationService Authz
+@inject IOnlineAtcProvider Online
 @inject IStringLocalizer<SharedResource> L
 @inject EnglishStrings En
 @using System.Globalization
@@ -28,7 +29,7 @@
    ⚠️ Non e' la pagina dell'aeroporto con un parametro: le due edizioni hanno release, cicli AIRAC e
    contenuti indipendenti, e un collegamento salvato deve portare sempre allo stesso documento. *@
 
-<div class="wrap reading-cap">
+<div class="wrap">
     <div class="breadcrumb">
         <a href="/services/vsop">@En["Common_Home"]</a> ›
         <a href="/services/vsop/mil">@En["Mil_Title"]</a> ›
@@ -44,46 +45,106 @@
     }
     else
     {
-        <div class="doc-head">
+        @* ---- Le TRE colonne del documento, come le altre quattro famiglie -------------------------------
+
+           ⚠️ Fino al 29 agosto 2026 questa pagina era l'UNICA delle cinque senza `doc-layout`: solo
+           `.wrap.reading-cap` e il corpo. Niente indice a sinistra, niente riquadro dei collegamenti a
+           destra. Su un vSOP militare — che ha nove sezioni, alcune lunghe — voleva dire scorrere per
+           trovare le frequenze, e non avere il ponte verso l'altra edizione se non nella testata.
+
+           ⚠️ `reading-cap` è caduto insieme: `.wrap:has(.doc-layout){max-width:none}` toglie il tetto al
+           contenitore, ma la classe restava a dichiarare un limite che non vale più. Due regole che dicono
+           cose diverse sullo stesso elemento sono un difetto che aspetta. *@
+        <div class="doc-layout">
+            <aside class="toc" aria-label="@L["Doc_TocAria"]">
+                <p class="toc-h">@L["Common_Contents"]</p>
+                <ul>
+                    @foreach (var s in VisibleSections())
+                    {
+                        <li><a href="#@AnchorOf(s)">@s.Title</a></li>
+                    }
+                </ul>
+            </aside>
+
             <div>
-                <h1 class="page-h1">@_view.Title</h1>
-                @* Il ponte verso l'altra edizione dello stesso scalo: chi apre il militare deve poter
-                   arrivare al civile senza tornare indietro di due pagine.
+                <PrintMeta Title="@_view.Title" Subtitle="@L["Mil_PrintSubtitle"]" AiracCycle="@Cycle()" />
+                <div class="doc-head">
+                    <div>
+                        <h1 class="page-h1">@_view.Title</h1>
+                        @* Il ponte verso l'altra edizione dello stesso scalo: chi apre il militare deve poter
+                           arrivare al civile senza tornare indietro di due pagine.
 
-                   ⚠️ SOLO SE la vIPI civile esiste davvero, come fa la pagina civile verso di qui. Fino al
-                   29 agosto 2026 il collegamento c'era sempre, e sui campi SOLO militari — Aviano, Ghedi,
-                   Decimomannu, Rivolto, cioè proprio quelli che un vSOP ce l'hanno — portava al callout
-                   «documento non disponibile». Un ponte che a volte non porta da nessuna parte è peggio di
-                   un ponte che non c'è: la seconda volta non ci si clicca più nemmeno quando funziona. *@
-                @if (_haCivile)
+                           ⚠️ SOLO SE la vIPI civile esiste davvero, come fa la pagina civile verso di qui. Fino al
+                           29 agosto 2026 il collegamento c'era sempre, e sui campi SOLO militari — Aviano, Ghedi,
+                           Decimomannu, Rivolto, cioè proprio quelli che un vSOP ce l'hanno — portava al callout
+                           «documento non disponibile». Un ponte che a volte non porta da nessuna parte è peggio di
+                           un ponte che non c'è: la seconda volta non ci si clicca più nemmeno quando funziona. *@
+                        @if (_haCivile)
+                        {
+                            <p class="muted">
+                                <a href="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}")">
+                                    <Icon Name="book-open" Size="14" /> @L["Mil_LinkToCivil"]
+                                </a>
+                            </p>
+                        }
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px">
+                        <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
+                        @if (_canEdit)
+                        {
+                            <a class="btn primary" href="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil/editor?icao={_icao}")">@L["Common_Editor"]</a>
+                        }
+                    </div>
+                </div>
+
+                @if (_mode.IsPreview)
                 {
-                    <p class="muted">
-                        <a href="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}")">
-                            <Icon Name="book-open" Size="14" /> @L["Mil_LinkToCivil"]
-                        </a>
-                    </p>
+                    <PreviewBanner Kind="_mode.Kind" Cycle="@_relCycle"
+                                   PublicHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil?icao={_icao}")"
+                                   DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil?icao={_icao}&as=draft")" />
                 }
+
+                <AudienceChip Visibile="_haMarcate" Vista="_vista"
+                              BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil?icao={_icao}")" />
+                <TranslationNotice Coverage="_copertura" />
+
+                <DocumentSectionsView Sections="_view.Sections" Profile="SectionProfile.AirportMil"
+                                      IsDraft="@(_mode.Kind == PreviewKind.Draft)"
+                                      AnchorOf="AnchorOf"
+                                      DerivedContent="CorpoDerivato" />
             </div>
-            @if (_canEdit)
-            {
-                <a class="btn primary" href="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil/editor?icao={_icao}")">@L["Common_Editor"]</a>
-            }
+
+            @* Colonna destra sticky (desktop ≥1500px): riepilogo + collegamenti. Le voci sono quelle
+               dell'aeroporto civile con la meta cambiata — elenco militare invece di elenco aeroporti — e il
+               ponte verso l'altra edizione, che qui è il civile. *@
+            <aside class="doc-rail" aria-label="@L["Doc_RailAria"]">
+                <div class="rail-card">
+                    <h5><Icon Name="clipboard" /> @L["Common_Summary"]</h5>
+                    @* Il ciclo del DOCUMENTO mostrato, non quello di oggi (doc 13 §3h): in anteprima di
+                       release è quello della release, e lo snapshot se lo porta dietro. *@
+                    <div class="rail-line"><span class="muted">@L["Common_AiracCycle"]</span><b>@Cycle()</b></div>
+                    <div class="rail-line"><span class="muted">@L["Common_AtcOnline"]</span>
+                        @{ var n = OnlineAt(_icao); }
+                        <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n}" : "off")</span>
+                    </div>
+                </div>
+                <div class="rail-card">
+                    <h5><Icon Name="link" /> @L["Common_Links"]</h5>
+                    <ul class="rail-links">
+                        <li><a href="/services/vsop">@L["Common_Home"]</a></li>
+                        <li><a href="/services/vsop/mil">@L["Mil_Title"]</a></li>
+                        <li><a href="/services/vsop/@Acc.ToLowerInvariant()">ACC @Acc.ToUpperInvariant()</a></li>
+                        @* Stesso ponte della testata, e stesso gate: se la vIPI civile non c'è, la voce non
+                           c'è. Un elenco di collegamenti utili con dentro un vicolo cieco è peggio di uno
+                           più corto. *@
+                        @if (_haCivile)
+                        {
+                            <li><a href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao">@L["Mil_LinkToCivil"]</a></li>
+                        }
+                    </ul>
+                </div>
+            </aside>
         </div>
-
-        @if (_mode.IsPreview)
-        {
-            <PreviewBanner Kind="_mode.Kind" Cycle="@_relCycle"
-                           PublicHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil?icao={_icao}")"
-                           DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil?icao={_icao}&as=draft")" />
-        }
-
-        <AudienceChip Visibile="_haMarcate" Vista="_vista"
-                      BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil?icao={_icao}")" />
-        <TranslationNotice Coverage="_copertura" />
-
-        <DocumentSectionsView Sections="_view.Sections" Profile="SectionProfile.AirportMil"
-                              IsDraft="@(_mode.Kind == PreviewKind.Draft)"
-                              DerivedContent="CorpoDerivato" />
     }
 </div>
 
@@ -98,6 +159,26 @@
 
     /// <summary>La vista di lettura: «pilota», «atc», o assente per il documento intero.</summary>
     [SupplyParameterFromQuery(Name = "vista")] public string? Vista { get; set; }
+
+    /// <summary>Le sezioni che l'indice a sinistra elenca: le nascoste solo in anteprima bozza, dove si
+    /// vedono marcate. Stessa regola (e stessa riga) delle altre famiglie.</summary>
+    private IEnumerable<SectionView> VisibleSections() =>
+        _view!.Sections.Where(s => _mode.Kind == PreviewKind.Draft || !s.IsHidden);
+
+    /// <summary>L'ancora di una sezione: <c>s-{Id}</c> come in tutte le famiglie (doc 13 §3e). ⚠️ Deve
+    /// restare uguale al default di <c>DocumentSectionsView</c>, o l'indice punterebbe a un id che non
+    /// esiste e i suoi link non farebbero niente — senza errori.</summary>
+    private static string AnchorOf(SectionView s) => s.Id;
+
+    /// <summary>Il ciclo AIRAC MOSTRATO: quello dell'anteprima release se è una, altrimenti quello che si
+    /// porta dietro lo snapshot del documento.</summary>
+    private string Cycle() => _relCycle ?? _view?.AiracCycle ?? "";
+
+    /// <summary>Quanti ATC su questo campo adesso. ⚠️ L'ATIS è escluso, come sull'aeroporto civile: è una
+    /// frequenza registrata, non qualcuno che controlla.</summary>
+    private int OnlineAt(string icao) => Online.GetCurrent().Callsigns.Count(cs =>
+        cs.Split('_', 2)[0].Equals(icao, StringComparison.OrdinalIgnoreCase)
+        && !cs.EndsWith("_ATIS", StringComparison.OrdinalIgnoreCase));
 
     private DocumentView? _view;
     private string _icao = "";

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Application.Content;
@@ -192,7 +192,7 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
                 // l'APP non remotizzato, e uno scalo senza torre non lo trovava mai: la pagina offriva «crea»
                 // per un documento che esisteva già.
                 a.DocumentId,
-                a.HasMilitaryPresence, a.IsMilitaryOnly))
+                a.HasMilitaryPresence, a.IsMilitaryOnly, a.MilDocumentId))
             .ToListAsync(ct);
 
     public async Task SetAirportMilitaryOnlyAsync(string accCode, int airportId, bool militaryOnly, CancellationToken ct = default)

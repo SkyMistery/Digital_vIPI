@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
@@ -283,11 +283,24 @@ public sealed class EfNeighbourRepository : INeighbourRepository
             await _db.SaveChangesAsync(ct);
         }
 
-        // 4) Idempotenza per parti: se esiste già una vLOA Home↔Neighbour, riusala.
+        // 4) Idempotenza per COPPIA DI ACC: se esiste già una vLOA HomeAcc↔ForeignAcc, riusala.
+        //
+        // ⚠️ Per ACC e non per SETTORE, e la differenza è un difetto vero (trovato il 29 agosto 2026).
+        // Questa generazione sceglie da sé il settore Home — la radice dell'albero, o il primo per copertura —
+        // mentre «Nuovo documento» lascia scegliere QUALUNQUE settore d'area dell'ACC. Su una ACC con più
+        // settori d'area bastava che una vLOA fosse nata dall'altra porta su un settore diverso: il confronto
+        // per SectorId non la trovava, e nasceva la SECONDA vLOA sulla stessa coppia.
+        //
+        // Da lì in poi le due strade non si vedono più fra loro: `FindVloaIdByPairAsync` — che è come
+        // l'editor e il pubblico trovano la vLOA di una coppia — fa `FirstOrDefault` per codice ACC e ne apre
+        // una SENZA UN CRITERIO. L'altra resta invisibile pur potendo avere release pubblicate.
+        //
+        // La regola è «una vLOA per coppia di ACC» (la dichiara EditingService.CreateDocumentAsync, che con
+        // questa lettura la impone già): le due porte ora fanno la stessa domanda.
         var already = await _db.Documents
             .Where(d => d.Type == DocumentType.Vloa
-                && d.Parties.Any(p => p.Role == PartyRole.Home && p.SectorId == home.Id)
-                && d.Parties.Any(p => p.Role == PartyRole.Neighbour && p.SectorId == foreign.Id))
+                && d.Parties.Any(p => p.Role == PartyRole.Home && p.Sector!.Acc!.Code == cand.HomeAccCode)
+                && d.Parties.Any(p => p.Role == PartyRole.Neighbour && p.Sector!.Acc!.Code == fCode))
             .Select(d => d.Id)
             .FirstOrDefaultAsync(ct);
         if (already != 0)

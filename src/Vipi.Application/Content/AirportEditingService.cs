@@ -17,6 +17,14 @@ public interface IAirportEditingService
     Task<AirportData?> LoadForViewAsync(string icao, CancellationToken ct = default);
 
     /// <summary>
+    /// Anagrafica militare dello scalo e i due legami documentali. null = ICAO inesistente.
+    /// <para>Lettura libera come <see cref="LoadForViewAsync"/>: dice soltanto <b>quale edizione esiste</b>,
+    /// e serve alle pagine per mandare la gente nel posto giusto <i>prima</i> che una guardia le fermi. La
+    /// guardia vera resta <see cref="EnsureDocumentAsync"/>.</para>
+    /// </summary>
+    Task<AirportMilitaryState?> GetMilitaryStateAsync(string icao, CancellationToken ct = default);
+
+    /// <summary>
     /// Piste e regole-pista di più aeroporti in una volta: quel poco che basta a dire quale pista è in uso.
     /// La usa l'elenco degli aeroporti di una ACC, che prima chiamava <see cref="LoadForViewAsync"/> una
     /// volta per scalo — otto query a testa, in fila, per leggerne due liste.
@@ -185,10 +193,36 @@ public sealed class AirportEditingService : IAirportEditingService
         await _repo.MergeFromSourceAsync(icao, ta, runways, ct);
     }
 
+    public Task<AirportMilitaryState?> GetMilitaryStateAsync(string icao, CancellationToken ct = default) =>
+        _repo.GetMilitaryStateAsync(Norm(icao), ct);
+
     public async Task<int> EnsureDocumentAsync(string icao, CancellationToken ct = default)
     {
         await EnsureCanEditAsync(icao, ct);
-        return await _repo.EnsureDocumentAsync(Norm(icao), ct);
+        icao = Norm(icao);
+
+        // ---- La guardia dei campi SOLO MILITARI (carta vSOP militari §5-bis) --------------------------
+        //
+        // Su Aviano, Ghedi, Decimomannu, Rivolto una vIPI CIVILE non descrive niente: non c'è traffico
+        // civile da descrivere. Il documento resterebbe lì, vuoto, in un elenco dove nessuno saprebbe
+        // perché c'è — e siccome nasce dall'APERTURA dell'editor, bastava arrivare all'indirizzo per
+        // farlo nascere senza volerlo.
+        //
+        // ⚠️ La guardia sta QUI, nel servizio, e non solo nella tendina di «Nuovo documento»: una tendina
+        // filtra, non autorizza. È la stessa lezione già pagata su /services/vsop/versions il 21 agosto
+        // 2026, dove il tasto spento non impediva la creazione a chi conosceva l'URL.
+        //
+        // ⚠️ Blocca la NASCITA, non l'apertura. Se una vIPI civile su un campo solo militare esiste già —
+        // creata prima di questa regola, o perché il campo è stato marcato dopo — l'editor deve continuare
+        // ad aprirla: rifiutare qui renderebbe illeggibile un documento che c'è, e la via d'uscita
+        // (spostarne il contenuto, poi eliminarlo) passa proprio da lì.
+        var stato = await _repo.GetMilitaryStateAsync(icao, ct);
+        if (stato is { IsMilitaryOnly: true, DocumentId: null })
+            throw new ValidationException(Lingua(
+                $"{icao} è un campo solo militare: la sua edizione è il vSOP militare, non la vIPI civile.",
+                $"{icao} is a military-only field: its edition is the military vSOP, not the civil vIPI."));
+
+        return await _repo.EnsureDocumentAsync(icao, ct);
     }
 
     private async Task EnsureCanEditAsync(string icao, CancellationToken ct)

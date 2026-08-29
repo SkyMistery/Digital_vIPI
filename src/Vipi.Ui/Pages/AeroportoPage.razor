@@ -305,7 +305,14 @@ else
         // da un `?as=` qualsiasi.
         var useFrozen = _mode.Kind is not (PreviewKind.Draft or PreviewKind.Release);
         _derived = await AirportView.ResolveForViewAsync(_icao, useFrozen, ReleaseTargetType.Airport);
-        _haMilitare = await Militari.HasPublishedAsync(_icao);
+        // Il ponte verso l'altra edizione. Al PUBBLICO solo se il vSOP militare è pubblicato: un
+        // collegamento a un documento che non c'è è peggio di nessun collegamento.
+        // ⚠️ Allo STAFF anche se è solo una bozza. Dal 29 agosto 2026 il vSOP militare nasce QUI, dall'editor
+        // della vIPI civile, e nasce in bozza: senza questo, chi l'ha appena creato non avrebbe da questa
+        // pagina alcun modo di tornarci — il ponte comparirebbe solo dopo la pubblicazione, cioè quando non
+        // serve più.
+        _haMilitare = await Militari.HasPublishedAsync(_icao)
+                      || (_canEdit && await Militari.GetDocumentIdAsync(_icao) is not null);
         _runways = _derived.Runways.Rows.Count > 0
             ? _derived.Runways.Rows.Select(r => r.Ident).ToList()
             : ExtractRunways(_view);

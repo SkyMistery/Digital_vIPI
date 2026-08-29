@@ -1553,6 +1553,9 @@
   <data name="Nd_Airport" xml:space="preserve"><value>Airport</value></data>
   <data name="Nd_IcaoOption" xml:space="preserve"><value>ICAO…</value></data>
   <data name="Nd_NoAirports" xml:space="preserve"><value>No airport assigned to {0}. Assign them from &lt;a href="/vsop/admin/airports"&gt;Airport management&lt;/a&gt;.</value></data>
+  <data name="Nd_MilOnlyHint" xml:space="preserve"><value>&lt;b&gt;Military-only&lt;/b&gt; field: its single edition is the military vSOP, and the button goes there. The civil vIPI is not created, because there would be no civil traffic to describe.</value></data>
+  <data name="Nd_MilAfterCivilHint" xml:space="preserve"><value>Field with a &lt;b&gt;military presence&lt;/b&gt;: this creates the &lt;b&gt;civil&lt;/b&gt; vIPI. The military vSOP comes afterwards, from the vIPI editor or from the &lt;a href="/services/vsop/mil"&gt;military vSOP list&lt;/a&gt;.</value></data>
+  <data name="Nd_MilAfterCivilReady" xml:space="preserve"><value>Field with a &lt;b&gt;military presence&lt;/b&gt;: the civil vIPI exists, so the military vSOP can be created — from the vIPI editor or from the &lt;a href="/services/vsop/mil"&gt;military vSOP list&lt;/a&gt;.</value></data>
   <data name="Nd_SelectHomeNeigh" xml:space="preserve"><value>Select the Home sector and the Neighbour sector.</value></data>
   <data name="Nd_CannotResolveHome" xml:space="preserve"><value>Cannot resolve the vLOA Home ACC.</value></data>
   <data name="Ver_Intro" xml:space="preserve"><value>&lt;p style="margin:0 0 6px"&gt;Every row is a &lt;b&gt;document&lt;/b&gt;: the pills say whether it is public, whether a draft is open, whether a release is &lt;b&gt;effective&lt;/b&gt; or &lt;b&gt;scheduled&lt;/b&gt;, and who is editing it right now.&lt;/p&gt;&lt;p style="margin:0 0 6px"&gt;Picking a row shows, in the right-hand panel, the &lt;b&gt;versions&lt;/b&gt; (with the draft to publish or discard), the &lt;b&gt;history&lt;/b&gt; of changes and the &lt;b&gt;AIRAC releases&lt;/b&gt;, from where you publish at the chosen cycle or right away.&lt;/p&gt;&lt;p style="margin:0"&gt;The chips count: they say how many documents sit in each state, and they filter the list.&lt;/p&gt;</value></data>
@@ -2522,6 +2525,7 @@
   <data name="Aud_FilteredNotice" xml:space="preserve"><value>You are reading the {0} view. Sections meant only for the other role are hidden.</value></data>
   <data name="Mil_Title" xml:space="preserve"><value>Military vSOPs</value></data>
   <data name="Mil_EditorTitle" xml:space="preserve"><value>Military vSOP</value></data>
+  <data name="Mil_PrintSubtitle" xml:space="preserve"><value>Military vSOP</value></data>
   <data name="Mil_NotFound" xml:space="preserve"><value>This airfield has no military vSOP, and one cannot be created from here: start from the list.</value></data>
   <data name="Mil_NoEditPerm" xml:space="preserve"><value>You do not have permission to edit documents of this ACC.</value></data>
   <data name="Mil_HelpAria" xml:space="preserve"><value>Help on the military vSOP editor</value></data>
@@ -2536,6 +2540,8 @@
   <data name="Mil_Draft" xml:space="preserve"><value>draft</value></data>
   <data name="Mil_Published" xml:space="preserve"><value>published</value></data>
   <data name="Mil_Create" xml:space="preserve"><value>Create the vSOP</value></data>
+  <data name="Mil_GoCreateCivil" xml:space="preserve"><value>Civil vIPI first</value></data>
+  <data name="Mil_NeedCivilFirst" xml:space="preserve"><value>Civil field with a military presence: the military vSOP comes after the civil vIPI. This button opens the vIPI editor.</value></data>
   <data name="Mil_Empty" xml:space="preserve"><value>No military vSOP published</value></data>
   <data name="Mil_EmptyHint" xml:space="preserve"><value>When a military vSOP is published, it will appear here.</value></data>
   <data name="Mil_EmptyStaff" xml:space="preserve"><value>No airfield with military presence</value></data>
@@ -2545,6 +2551,9 @@
   <data name="Mil_LinkFromCivil" xml:space="preserve"><value>Military vSOP</value></data>
   <data name="Mil_LinkToCivil" xml:space="preserve"><value>Civil vIPI</value></data>
   <data name="Mil_Created" xml:space="preserve"><value>Military vSOP created for {0}: it is a draft now, to be filled in and published.</value></data>
+  <data name="Mil_CreateFromCivil" xml:space="preserve"><value>Create the military vSOP</value></data>
+  <data name="Mil_OpenFromCivil" xml:space="preserve"><value>Military vSOP</value></data>
+  <data name="Mil_CreatedGoEditor" xml:space="preserve"><value>Military vSOP created: it is a draft, to be written and published.</value></data>
   <data name="World_Title" xml:space="preserve"><value>ATC archive</value></data>
   <data name="World_Subtitle" xml:space="preserve"><value>Every ATC position the poller has seen, division and rest of the world: when they opened and when we last saw them. Twelve months.</value></data>
   <data name="World_StaffOnly" xml:space="preserve"><value>The connection archive is for staff.</value></data>

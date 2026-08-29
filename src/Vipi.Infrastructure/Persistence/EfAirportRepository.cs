@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
@@ -458,6 +458,19 @@ public sealed class EfAirportRepository : IAirportRepository
         // settori, uno scalo con il solo APP non remotizzato — LIBG — non trovava mai il proprio documento.
         return await _db.Airports.AsNoTracking()
             .Where(a => a.Icao == icao).Select(a => a.DocumentId).FirstOrDefaultAsync(ct);
+    }
+
+    /// <inheritdoc/>
+    public async Task<AirportMilitaryState?> GetMilitaryStateAsync(string icao, CancellationToken ct = default)
+    {
+        icao = (icao ?? "").Trim().ToUpperInvariant();
+        // ⚠️ Una proiezione sola: i quattro campi si leggono INSIEME perché insieme si decide. Vedi
+        // AirportMilitaryState.
+        return await _db.Airports.AsNoTracking()
+            .Where(a => a.Icao == icao)
+            .Select(a => new AirportMilitaryState(
+                a.HasMilitaryPresence, a.IsMilitaryOnly, a.DocumentId, a.MilDocumentId))
+            .FirstOrDefaultAsync(ct);
     }
 
         // ---- helper ----

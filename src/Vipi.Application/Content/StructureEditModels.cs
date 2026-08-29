@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -28,8 +28,12 @@ public sealed record AirportRow(int Id, string Icao, string Name, int Sectors, i
 /// <param name="HasMilitaryPresence">Dalla sorgente: c'è una base militare sull'aeroporto. ⚠️ Non vuol dire
 /// «aeroporto militare» — è vero anche per Linate, Pisa, Ciampino, Catania, Elmas, Lamezia e Rimini.</param>
 /// <param name="IsMilitaryOnly">Scelta di un amministratore: nessun traffico civile. La sorgente non lo dice.</param>
+/// <param name="MilDocumentId">Il vSOP MILITARE dello scalo, se esiste. Sta accanto a <paramref name="DocumentId"/>
+/// perché la domanda «crea o apri?» ha DUE risposte su un campo militare, e chiederle in due letture diverse
+/// vuol dire poterle vedere in due istanti diversi.</param>
 public sealed record AirportAdminRow(int Id, string Icao, string Name, string AccCode, int Sectors, bool HasTower,
-    bool IsHidden = false, int? DocumentId = null, bool HasMilitaryPresence = false, bool IsMilitaryOnly = false)
+    bool IsHidden = false, int? DocumentId = null, bool HasMilitaryPresence = false, bool IsMilitaryOnly = false,
+    int? MilDocumentId = null)
 {
     /// <summary>Vero se l'aeroporto è visibile al pubblico: non nascosto dall'admin e con almeno un settore.</summary>
     public bool IsPublic => !IsHidden && Sectors > 0;

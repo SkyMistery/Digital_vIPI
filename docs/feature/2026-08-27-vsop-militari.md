@@ -555,3 +555,135 @@ stato scritto guardando **una bozza**, e tre cose si vedono solo su un documento
 
 Dettaglio in §J dell'audit. ⚠️ Il conto delle sezioni del §9 («2 rese dalla pagina») era giusto sulla carta e
 falso a schermo: `transition` è resa dalla pagina, e a schermo non rendeva niente.
+
+## 11. 29 agosto 2026 — l'edizione giusta per il campo, e le tre colonne
+
+Tre richieste, e una verifica che ne è venuta fuori. La prima era un difetto visibile; le altre due sono la
+regola che finora stava solo nella testa di chi scriveva i documenti.
+
+### 11a. Il vSOP militare era l'unico documento senza le due colonne laterali
+
+`MilDocumentPage.razor` apriva un `<div class="wrap reading-cap">` e ci metteva dentro il corpo, e basta.
+Gli altri quattro viewer — `AccVipiPage`, `AeroportoPage`, `AppnPage`, `VloaDocumentView` — usano tutti
+`doc-layout`: indice a sinistra (`<aside class="toc">`), testo al centro, collegamenti a destra
+(`<aside class="doc-rail">`).
+
+Su un vSOP militare, che ha **nove sezioni radice e venti figlie**, voleva dire scorrere per trovare le
+frequenze, e non avere il ponte verso l'edizione civile se non nella testata.
+
+⚠️ **`reading-cap` è caduto insieme**: `.wrap:has(.doc-layout){max-width:none}` toglie già il tetto al
+contenitore, e la classe restava a dichiarare un limite che non vale più. Due regole che dicono cose diverse
+sullo stesso elemento sono un difetto che aspetta chi ne cambierà una.
+
+Il rail porta le stesse voci dell'aeroporto civile con la meta cambiata: ciclo AIRAC **del documento
+mostrato** (non quello di oggi), ATC online sul campo (ATIS escluso, come sul civile), e i collegamenti —
+casa, elenco militare, ACC, e il ponte verso la vIPI civile **solo se esiste**.
+
+**Presidio**: `DueColonneSuOgniDocumentoTests` chiede a tutti e cinque i viewer, per nome, di avere le tre
+colonne. È un test sul **sorgente** e non un render, perché il rail compare solo sopra i 1500px e l'indice è
+sticky: un test di render proverebbe il CSS, non la pagina.
+
+### 11b. Quale edizione può esistere su quale campo — §5-bis
+
+Due guardie **gemelle**, e vanno lette insieme perché una senza l'altra è sbagliata:
+
+| campo | vIPI civile | vSOP militare |
+|---|---|---|
+| **solo militare** (Aviano, Ghedi, Decimomannu, Rivolto) | **non nasce** — non c'è traffico civile da descrivere | nasce **subito**, senza prerequisiti |
+| **misto** (Pisa, Linate, Ciampino) | nasce normalmente | nasce **solo dopo** la civile |
+
+Il perché della seconda riga: su uno scalo misto il vSOP militare dice **cosa cambia** rispetto alla vIPI
+civile — quale parte del sedime, quali frequenze, quali procedure sono le altre. Senza la civile non c'è il
+«rispetto a cosa».
+
+⚠️ **Basta che la vIPI civile ESISTA, anche solo in bozza.** Pretenderla pubblicata bloccherebbe il lavoro
+parallelo sulle due edizioni, che è il caso normale su uno scalo appena aperto.
+
+⚠️ **La prima guardia blocca la NASCITA, non l'apertura.** Se una vIPI civile su un campo solo militare
+esiste già — creata prima di questa regola, o perché il campo è stato marcato dopo — l'editor continua ad
+aprirla: rifiutare renderebbe illeggibile un documento che c'è, e la via d'uscita (spostarne il contenuto,
+poi eliminarlo) passa proprio da lì.
+
+**Dove stanno, e perché lì.**
+
+| guardia | dove |
+|---|---|
+| niente vIPI civile sui campi solo militari | `AirportEditingService.EnsureDocumentAsync` |
+| niente vSOP militare prima della civile, sui misti | `EfMilitaryDocumentService.CreaAsync` |
+
+⚠️ **Nei servizi, non nelle tendine.** Una tendina filtra, non autorizza: chi conosce l'indirizzo
+dell'editor ci arriva lo stesso — è il difetto già pagato su `/services/vsop/versions` il 21 agosto 2026. E
+la vIPI d'aeroporto è particolarmente esposta, perché `EnsureDocumentAsync` è chiamato dall'**apertura**
+della pagina: bastava arrivare all'URL perché il documento nascesse.
+
+⚠️ **Si legge dal DATABASE, non da `IStationResolver.Airport`.** Quella cache è `scoped`, cioè vive quanto
+il **circuito**, e una guardia che decide se un documento può nascere non può rispondere su un'anagrafica
+vecchia di ore. La cache resta buona per le etichette in testata, che se sbagliano mostrano un pill di
+troppo. La lettura nuova è `IAirportRepository.GetMilitaryStateAsync` → `AirportMilitaryState`, e porta i
+quattro campi **insieme** perché insieme si decide.
+
+**Le strade, dopo.**
+
+- «Nuovo documento» → scheda **Aeroporto**: la tendina dichiara «solo militare» sulla riga (l'informazione
+  che cambia quale documento nascerà deve arrivare **prima** della scelta, non come sorpresa dopo). Sui
+  campi solo militari il tasto **crea il vSOP e ci porta** — ed è l'unica famiglia in cui quella pagina
+  scrive davvero oltre alla vLOA, perché l'editor militare non crea niente all'apertura. Sotto, una riga
+  dice cosa nascerà.
+- Editor della vIPI civile → tasto **«Crea il vSOP militare»** nel rail, su ogni campo con presenza
+  militare. È il punto in cui si è già: l'alternativa era ricordarsi che esiste `/services/vsop/mil` e
+  cercarci dentro il proprio scalo.
+- `/services/vsop/mil` → sui campi misti **senza** civile il tasto «Crea» non c'è: al suo posto c'è «Prima
+  la vIPI civile», che porta all'editor civile. Un tasto che fallisce sempre insegna solo a non premerlo.
+- Editor civile aperto su un campo **solo militare senza civile** → **reindirizza** all'editor militare,
+  invece di lasciare a schermo un errore che non dice dove andare.
+- Generazione in blocco dei documenti d'aeroporto (`StructureEditingService`) → i campi solo militari si
+  **saltano** con un motivo scritto, non falliscono: un'eccezione in un giro su tutti gli aeroporti di una
+  ACC farebbe perdere anche il lavoro già buono.
+
+⚠️ **Il ponte civile → militare ora si vede anche in BOZZA, ma solo allo staff.** Il vSOP militare nasce da
+lì e nasce in bozza: col gate «pubblicato» chi l'aveva appena creato non avrebbe avuto modo di tornarci —
+il ponte sarebbe comparso solo dopo la pubblicazione, cioè quando non serve più. Al pubblico il gate resta
+«pubblicato».
+
+### 11c. La verifica sui duplicati, su tutte e cinque le famiglie
+
+Domanda: creando un documento che **esiste già**, si crea un doppione o si finisce sull'esistente?
+
+| famiglia | come | esito |
+|---|---|---|
+| vIPI ACC | `AccDocumentService.EnsureAsync` | idempotente sul `DocumentId` del settore primario ✅ |
+| APP non remotizzato | `AppDocumentService.EnsureAsync` | idem ✅ |
+| vIPI d'aeroporto | `EfAirportRepository.EnsureDocumentAsync` | idempotente su `Airport.DocumentId` ✅ |
+| vSOP militare | `EfMilitaryDocumentService.CreaAsync` | ritorna l'id esistente ✅ |
+| **vLOA** | `EditingService.CreateDocumentAsync` | rifiuta e offre «Apri esistente» ✅ — **ma vedi sotto** |
+
+**Il buco trovato.** Le due porte che creano una vLOA facevano la stessa domanda in due modi diversi:
+
+- «Nuovo documento» confronta la **coppia di ACC** (`FindVloaIdByPairAsync`), e lascia scegliere
+  **qualunque** settore d'area come Home;
+- la generazione da «ACC confinanti» (`EfNeighbourRepository.MaterializeAndCreateVloaAsync`) confrontava i
+  **SectorId**, e il suo Home lo sceglie da sé — la radice dell'albero ACC.
+
+Su una ACC con più settori d'area bastava che la prima vLOA fosse nata dall'altra porta su un settore
+diverso: il confronto per `SectorId` non la trovava, e nasceva la **seconda vLOA sulla stessa coppia**.
+
+Da lì in poi le due non si vedono più fra loro: `FindVloaIdByPairAsync` — che è come l'editor e il pubblico
+trovano la vLOA di una coppia — fa `FirstOrDefault` per codice ACC e ne apre una **senza un criterio**.
+L'altra resta invisibile pur potendo avere release pubblicate. È esattamente il difetto che il commento in
+`EditingService` descriveva… per l'altra porta.
+
+Ora entrambe confrontano la **coppia di ACC**. ⚠️ La **direzione** continua a contare: LIRR→DTTC e
+DTTC→LIRR sono due vLOA legittime, una per lato, e c'era già un test a difenderlo — passare da «se ne creano
+infinite» a «la seconda non si crea mai» sarebbe stato un difetto peggiore.
+
+**Presidio**: `VloaUnaPerCoppiaTests.La_generazione_da_confinanti_RIUSA_la_vLOA_creata_su_un_ALTRO_settore_dello_stesso_ACC`.
+Il test verifica **anche** che il settore scelto sia diverso dalla radice, invece di sperarci: con lo stesso
+settore non proverebbe niente e resterebbe verde per sempre.
+
+### 11d. Trappole incontrate
+
+| | |
+|---|---|
+| `Lingua()` sceglie sulla **cultura corrente**, e nella suite è l'**inglese** | un'asserzione sulla parola italiana del messaggio passava solo per caso di ambiente |
+| `AeroportoPage` è **due schermate in una** | l'elenco degli aeroporti un `reading-cap` ce l'ha, a ragione: il test sul tetto di lettura guarda il contenitore **più vicino** a `doc-layout`, non tutto il file |
+| l'indice a sinistra usa `s.Id` come ancora | è il default di `DocumentSectionsView`: se le due si scostano, i link dell'indice non fanno niente — **senza errori** |

@@ -22,6 +22,8 @@
 @inject ILogger<AeroportoEditorPage> Logger
 @implements IAsyncDisposable
 @inject IDocRoutesRegistry DocRoutes
+@inject IMilitaryDocumentService Militari
+@inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
 @inject EnglishStrings En
 
@@ -142,6 +144,26 @@ else
                         </HelpHint>
                     }
                     <DraftPreviewLink Href="@(DocRoutes.For(ReleaseTargetType.Airport).DraftUrl(Acc.ToLowerInvariant(), _icao, null))" />
+                    @* ---- Il ponte verso l'ALTRA edizione dello stesso scalo (carta vSOP militari §5-bis) ----
+                       Su un campo con presenza militare il vSOP militare si crea DA QUI, dopo la vIPI civile:
+                       è il punto in cui si è già, e l'unica alternativa era ricordarsi che esiste
+                       /services/vsop/mil e cercarci dentro il proprio scalo.
+                       ⚠️ Il tasto compare solo dove ha senso: niente presenza militare, niente tasto. E
+                       «crea» solo a chi può editare — a chi guarda resta il collegamento, se il documento
+                       c'è. *@
+                    @if (_milState?.HasMilitaryPresence == true)
+                    {
+                        @if (_milState.MilDocumentId is not null)
+                        {
+                            <a class="btn ghost" href="@MilEditorUrl()"><Icon Name="book-open" Size="14" /> @L["Mil_OpenFromCivil"]</a>
+                        }
+                        else if (_canEdit)
+                        {
+                            <button class="btn ghost" disabled="@_busy" @onclick="CreaVsopMilitare" title="@L["Mil_CreateFromCivil"]">
+                                <Icon Name="plus" Size="14" /> @L["Mil_CreateFromCivil"]
+                            </button>
+                        }
+                    }
                     @* ✎ Modifica / ✓ Fine modifica: lo stesso gesto degli altri tre editor. Prende il lock e,
                        se la versione di lavoro è pubblicata, apre una bozza. *@
                     @if (_shell.IsEditing)
@@ -305,6 +327,10 @@ else
     // Anagrafica militare dello scalo, per l'etichetta in testata. Dal resolver, la cui mappa è già in cache
     // e scaldata dal layout: una testata non deve interrogare il database mentre si disegna.
     private Vipi.Application.Content.AirportStation? _mil;
+
+    /// <summary>Anagrafica militare LETTA DAL DATABASE (non dalla cache delle stazioni): decide se questa
+    /// pagina deve esistere per questo scalo, e se offre il ponte verso il vSOP militare.</summary>
+    private AirportMilitaryState? _milState;
     private string? _loadedIcao;
     /// <summary>Chiavi di SEZIONE con modifiche non salvate (la pagina è a scroll unico e ogni sezione ha il suo
     /// «Salva»). Erano nomi italiani di pannello — «Regole piste», «Quote transizione» —: un secondo vocabolario
@@ -612,6 +638,21 @@ else
         _secLower.Clear(); _secUpper.Clear();
         foreach (var s in _sectors) { _secLower[s.Id] = s.LowerLimit; _secUpper[s.Id] = s.UpperLimit; }
 
+        // ---- l'edizione giusta per questo scalo (carta vSOP militari §5-bis) ----
+        // ⚠️ Si legge dal DATABASE e non da `Stations.Airport` (che è la cache di circuito usata per
+        // l'etichetta in testata): qui la risposta decide se restare o andarsene, e una risposta vecchia di
+        // ore manderebbe qualcuno a scrivere nel documento sbagliato.
+        _milState = await Profile.GetMilitaryStateAsync(_icao);
+
+        // Campo SOLO militare e nessuna vIPI civile: l'edizione è un'altra. Si va lì invece di aprire un
+        // editor che non potrebbe far nascere niente (`EnsureDocumentAsync` lo rifiuterebbe), lasciando a
+        // schermo un errore che non spiega dove andare.
+        if (_milState is { IsMilitaryOnly: true, DocumentId: null } && MilEditorUrl() is { } milUrl)
+        {
+            Nav.NavigateTo(milUrl, forceLoad: true);
+            return;
+        }
+
         // ---- il documento ----
         // ⚠️ Ensure e NON «se manca crealo» scritto qui: garantisce il documento e le sue sezioni di catalogo in
         // un colpo solo, ed è idempotente. È ACC-gated, quindi solo chi può editare lo fa nascere; a chi guarda
@@ -630,6 +671,29 @@ else
             // Il lock può essere scaduto o preso da un altro mentre si stava qui: la modifica finisce con lui.
             _shell.IsEditing = _shell.IsEditing && _shell.Doc?.IsEditable == true && _shell.Lock.IsMine;
         }
+    }
+
+    /// <summary>L'indirizzo dell'editor del vSOP militare di questo scalo. Dal registry, non scritto a mano:
+    /// è la stessa rotta che usano l'elenco militare e «Nuovo documento».</summary>
+    private string? MilEditorUrl() =>
+        DocRoutes.For(ReleaseTargetType.AirportMil).EditorUrl(Acc.ToLowerInvariant(), _icao, null, null);
+
+    /// <summary>
+    /// Crea il vSOP militare di questo scalo e ci porta. ⚠️ La guardia («prima la vIPI civile») sta nel
+    /// SERVIZIO: qui si mostra soltanto il suo rifiuto, che è già scritto per essere letto da una persona.
+    /// </summary>
+    private async Task CreaVsopMilitare()
+    {
+        _busy = true;
+        _shell.Error = null;
+        try
+        {
+            await Militari.CreaAsync(_icao);
+            if (MilEditorUrl() is { } url) Nav.NavigateTo(url, forceLoad: true);
+        }
+        catch (ValidationException ex) { _shell.Error = ex.Message; }
+        catch (EditNotAllowedException ex) { _shell.Error = ex.Message; }
+        finally { _busy = false; }
     }
 
     // ---- bozza e lock: lo stesso gesto degli altri tre editor ----

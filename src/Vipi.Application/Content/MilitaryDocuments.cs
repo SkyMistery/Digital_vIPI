@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -12,8 +12,12 @@ namespace Vipi.Application.Content;
 /// amministratore, non il campo <c>military</c> della sorgente — che è vero anche su Linate e Ciampino.</param>
 /// <param name="DocumentId">Il documento militare, se esiste. null = c'è solo il candidato.</param>
 /// <param name="Pubblicato">Se ha una release effettiva: è il gate dell'elenco pubblico.</param>
+/// <param name="HaCivile">La vIPI CIVILE dello scalo esiste (anche solo in bozza). ⚠️ Sui campi MISTI è il
+/// prerequisito del vSOP militare (carta §5-bis): senza, l'elenco offrirebbe un tasto «Crea» che il servizio
+/// rifiuta — e un tasto che fallisce sempre è peggio di un tasto che non c'è.</param>
 public sealed record MilAirportRow(
-    string Icao, string Name, string? AccCode, bool SoloMilitare, int? DocumentId, bool Pubblicato);
+    string Icao, string Name, string? AccCode, bool SoloMilitare, int? DocumentId, bool Pubblicato,
+    bool HaCivile = false);
 
 /// <summary>
 /// L'elenco dei campi con un vSOP militare, e la creazione del primo (carta

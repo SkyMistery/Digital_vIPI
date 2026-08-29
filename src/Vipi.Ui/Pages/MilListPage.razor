@@ -102,6 +102,16 @@
                                 {
                                     <a class="btn ghost" href="@Editor(r)"><Icon Name="pencil" Size="14" /> @L["Ed_Edit"]</a>
                                 }
+                                @* ⚠️ Su un campo MISTO il vSOP militare arriva DOPO la vIPI civile (carta
+                                   §5-bis). Finché quella non c'è, qui non si offre «Crea» — si offre la
+                                   strada: il tasto porta all'editor civile, che è il passo che manca. Un
+                                   tasto che fallisce sempre insegna solo a non premerlo. *@
+                                else if (r.DocumentId is null && Authz.IsEditor && !r.SoloMilitare && !r.HaCivile)
+                                {
+                                    <a class="btn ghost" href="@EditorCivile(r)" title="@L["Mil_NeedCivilFirst"]">
+                                        <Icon Name="book-open" Size="14" /> @L["Mil_GoCreateCivil"]
+                                    </a>
+                                }
                                 else if (r.DocumentId is null && Authz.IsEditor)
                                 {
                                     <button class="btn ghost" disabled="@_busy" @onclick="() => CreaAsync(r.Icao)">
@@ -139,6 +149,11 @@
 
     private static string Editor(MilAirportRow r) =>
         $"/services/vsop/{(r.AccCode ?? "").ToLowerInvariant()}/mil/editor?icao={r.Icao}";
+
+    /// <summary>L'editor della vIPI CIVILE dello stesso scalo: il passo che manca sui campi misti senza
+    /// documento civile. Apre l'editor, che è anche ciò che fa nascere il documento.</summary>
+    private static string EditorCivile(MilAirportRow r) =>
+        $"/services/vsop/{(r.AccCode ?? "").ToLowerInvariant()}/airports/editor?icao={r.Icao}";
 
     private async Task CreaAsync(string icao)
     {

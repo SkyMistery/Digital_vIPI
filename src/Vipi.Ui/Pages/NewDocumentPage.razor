@@ -1,10 +1,11 @@
-@page "/services/vsop/editor/new-document"
+﻿@page "/services/vsop/editor/new-document"
 @layout SopLayout
 @rendermode InteractiveServer
 @inject INewDocumentOptionsService Options
 @inject IEditingService Editing
 @inject IEditAuthorizationService Authz
 @inject Vipi.Application.Routing.IDocRoutesRegistry DocRoutes
+@inject IMilitaryDocumentService Militari
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
 @inject IJSRuntime JS
@@ -169,7 +170,10 @@
                             <div class="field"><label>@(_kind == Kind.App ? L["Nd_StandaloneApp"] : L["Nd_Airport"])</label>
                                 <select value="@_selKey" @onchange="OnTargetChanged" disabled="@(string.IsNullOrEmpty(_selAcc))">
                                     <option value="">@(_kind == Kind.App ? L["Nd_AppOption"] : L["Nd_IcaoOption"])</option>
-                                    @foreach (var t in Bersagli()) { <option value="@t.Key">@t.Label</option> }
+                                    @* ⚠️ L'etichetta dice «solo militare» nella TENDINA e non solo dopo aver
+                                       scelto: è l'informazione che cambia quale documento nascerà, e chi
+                                       sceglie deve averla PRIMA di scegliere, non come sorpresa dopo. *@
+                                    @foreach (var t in Bersagli()) { <option value="@t.Key">@t.Label@(t.IsMilitaryOnly ? $" · {L["Mil_OnlyMilitary"].Value}" : "")</option> }
                                 </select>
                             </div>
                         }
@@ -180,7 +184,7 @@
                            tipi su quattro apre l'esistente — l'editor crea solo se manca. Non è un divieto:
                            aprire ciò che c'è è quasi sempre quello che si vuole. È un'etichetta che smette di
                            mentire. *@
-                        <button class="btn primary" disabled="@(!BersaglioScelto)" @onclick="ApriEditor">
+                        <button class="btn primary" disabled="@(_busy || !BersaglioScelto)" @onclick="ApriEditor">
                             @(EsisteGia ? L["Nd_OpenEditor"] : L["Nd_CreateOpen"])
                         </button>
                         @if (BersaglioScelto && EsisteGia)
@@ -188,6 +192,23 @@
                             <span class="pill blue nd-hint">@L["Nd_AlreadyExists"]</span>
                         }
                     </div>
+
+                    @* ---- Cosa nascerà davvero, sui campi militari (carta vSOP militari §5-bis) ----------
+                       Le due righe qui sotto non sono decorazione: la scheda si chiama «Aeroporto» e su un
+                       campo solo militare NON crea una vIPI d'aeroporto. Senza dirlo, il tasto porterebbe a
+                       un editor diverso da quello che il suo nome promette. *@
+                    @if (Militare() is { IsMilitaryOnly: true })
+                    {
+                        @* ⚠️ MarkupString: queste due frasi portano un `<b>` e un collegamento, come già
+                           `Nd_NoAirports` qui sotto. Senza, i tag si leggerebbero a schermo. *@
+                        <p class="help nd-vuoto">@((MarkupString)L["Nd_MilOnlyHint"].Value)</p>
+                    }
+                    else if (Militare() is { HasMilitaryPresence: true } m)
+                    {
+                        <p class="help nd-vuoto">
+                            @((MarkupString)(m.HasDocument ? L["Nd_MilAfterCivilReady"].Value : L["Nd_MilAfterCivilHint"].Value))
+                        </p>
+                    }
 
                     @if (!string.IsNullOrEmpty(_selAcc) && _kind == Kind.App && Bersagli().Count == 0)
                     {
@@ -317,25 +338,69 @@
         ? !string.IsNullOrEmpty(_selAcc)
         : !string.IsNullOrEmpty(_selKey);
 
-    /// <summary>Vero se il documento del bersaglio scelto c'è già: allora il tasto dice «Apri».</summary>
+    /// <summary>Il bersaglio scelto, quando ce n'è uno. Null sulla scheda ACC (il bersaglio è l'ACC).</summary>
+    private NewDocumentTarget? Scelto() => Bersagli().FirstOrDefault(t => t.Key == _selKey);
+
+    /// <summary>Il bersaglio scelto se è un AEROPORTO con qualcosa di militare da dire; null altrimenti.
+    /// ⚠️ Filtra anche sulla scheda: un APP standalone non ha edizioni, e i suoi flag stanno a riposo.</summary>
+    private NewDocumentTarget? Militare() =>
+        _kind == Kind.Airport && Scelto() is { } t && (t.HasMilitaryPresence || t.IsMilitaryOnly) ? t : null;
+
+    /// <summary>
+    /// Vero se il documento del bersaglio scelto c'è già: allora il tasto dice «Apri».
+    /// <para>⚠️ Su un campo SOLO MILITARE la domanda cambia documento: l'unica edizione è il vSOP militare,
+    /// quindi è <c>HasMilDocument</c> a decidere. Guardando <c>HasDocument</c> il tasto direbbe «Crea» su un
+    /// vSOP che esiste già, e «Apri» su una vIPI civile che non nascerà mai.</para>
+    /// </summary>
     private bool EsisteGia => _kind switch
     {
         Kind.Acc => AccScelto()?.AreaSectors.Any(s => s.HasDocument) == true,
-        _ => Bersagli().FirstOrDefault(t => t.Key == _selKey)?.HasDocument == true,
+        Kind.Airport when Scelto() is { IsMilitaryOnly: true } t => t.HasMilDocument,
+        _ => Scelto()?.HasDocument == true,
     };
 
+    // ⚠️ Cambiare ACC o bersaglio spegne il messaggio: un rifiuto riguarda IL bersaglio che l'ha causato, e
+    // lasciarlo acceso su un altro lo farebbe sembrare rifiutato anche lui.
     private void OnAccChanged(ChangeEventArgs e)
     {
         _selAcc = e.Value?.ToString() ?? "";
         _selKey = "";
+        _msg = null;
     }
 
-    private void OnTargetChanged(ChangeEventArgs e) => _selKey = e.Value?.ToString() ?? "";
+    private void OnTargetChanged(ChangeEventArgs e)
+    {
+        _selKey = e.Value?.ToString() ?? "";
+        _msg = null;
+    }
 
     // L'editor crea il documento all'apertura (EnsureAsync). Le rotte vengono dal registry doc 09.
-    private void ApriEditor()
+    //
+    // ⚠️ L'ECCEZIONE È IL CAMPO SOLO MILITARE. L'editor del vSOP militare non crea niente all'apertura — e
+    // fa bene, è una pagina che si raggiunge anche in lettura — quindi qui il documento si crea PRIMA e poi
+    // ci si va. È l'unica delle cinque famiglie in cui questa pagina scrive davvero, oltre alla vLOA.
+    private async Task ApriEditor()
     {
         var acc = _selAcc.ToLowerInvariant();
+        _msg = null;
+
+        if (_kind == Kind.Airport && Scelto() is { IsMilitaryOnly: true })
+        {
+            _busy = true;
+            try
+            {
+                // Idempotente: se il vSOP c'è già torna il suo id, e questa è anche la via dell'«Apri».
+                await Militari.CreaAsync(_selKey);
+            }
+            catch (ValidationException ex) { _msg = ex.Message; return; }
+            catch (EditNotAllowedException ex) { _msg = ex.Message; return; }
+            finally { _busy = false; }
+
+            var milUrl = DocRoutes.For(ReleaseTargetType.AirportMil).EditorUrl(acc, _selKey, null, null);
+            if (milUrl is not null) Nav.NavigateTo(milUrl, forceLoad: true);
+            return;
+        }
+
         var url = _kind switch
         {
             Kind.Acc => DocRoutes.For(ReleaseTargetType.AccVipi).EditorUrl(acc, "", null, null),

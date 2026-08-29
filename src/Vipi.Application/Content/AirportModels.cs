@@ -45,6 +45,23 @@ public sealed record FrequencyLinkRow(int Id, int SourceSectorId, string Label, 
 /// <summary>Settore selezionabile dal picker (qualunque settore con frequenza nel DB).</summary>
 public sealed record LinkableFrequencyRow(int SectorId, string? Icao, string Callsign, string FrequencyMhz, string? AtcCallsign = null);
 
+/// <summary>
+/// L'anagrafica militare di uno scalo più i due legami documentali, letti INSIEME: è tutto ciò che serve a
+/// decidere quale edizione si può creare (carta vSOP militari §5-bis).
+///
+/// <para>⚠️ Le due domande si fanno in una lettura sola perché le loro risposte si <b>condizionano</b>: un
+/// campo solo militare non ha una vIPI civile da creare, e un campo misto non ha un vSOP militare finché la
+/// civile non c'è. Chiederle separatamente vorrebbe dire poterle vedere in due istanti diversi, e decidere
+/// su una coppia che non è mai esistita.</para>
+/// </summary>
+/// <param name="HasMilitaryPresence">Dalla sorgente: c'è una base sul campo. ⚠️ Vero anche su Linate,
+/// Pisa, Ciampino: non vuol dire «aeroporto militare».</param>
+/// <param name="IsMilitaryOnly">Scelta di un amministratore: nessun traffico civile.</param>
+/// <param name="DocumentId">La vIPI CIVILE, se esiste (anche solo in bozza).</param>
+/// <param name="MilDocumentId">Il vSOP MILITARE, se esiste (anche solo in bozza).</param>
+public sealed record AirportMilitaryState(
+    bool HasMilitaryPresence, bool IsMilitaryOnly, int? DocumentId, int? MilDocumentId);
+
 /// <summary>Profilo completo dell'aeroporto per editor e viewer.</summary>
 public sealed class AirportData
 {

@@ -215,6 +215,16 @@ public sealed class StructureEditingService : IStructureEditingService
         icao = (icao ?? "").Trim().ToUpperInvariant();
         if (icao.Length != 4) throw new ValidationException(Lingua("ICAO aeroporto non valido.", "Invalid airport ICAO."));
 
+        // ⚠️ I campi SOLO MILITARI si SALTANO, non falliscono (carta vSOP militari §5-bis). La loro edizione
+        // è il vSOP militare; una vIPI civile non ha niente da descrivere e `EnsureDocumentAsync` la
+        // rifiuterebbe. Detto qui, in cima, questa generazione in blocco continua sugli altri e riporta il
+        // perché — invece di interrompersi su un'eccezione che, in un giro su tutti gli aeroporti di una
+        // ACC, farebbe perdere anche il lavoro già buono.
+        var stato = await _profile.GetMilitaryStateAsync(icao, ct);
+        if (stato is { IsMilitaryOnly: true, DocumentId: null })
+            return new AirportDocResult(icao, false, 0, null,
+                "Campo solo militare: la sua edizione è il vSOP militare, non la vIPI civile.");
+
         // Una lettura sola della policy per tutta la generazione: decide sia il catalogo settori sia cosa
         // finisce nel merge (TA e piste).
         var policy = await _policy.GetAsync(ct);
