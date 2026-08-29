@@ -863,6 +863,53 @@ profondità 1, così il test non diventa verde per il motivo sbagliato il giorno
 `SectionBlockJson_Non_Tocca_La_Prosa_E_Non_Si_Perde_Sotto_Un_Paragrafo`. Verdi: 989 + 1 555 + 852 su net8
 (Infrastructure, Application, Ui).
 
+### 12a-bis. L'indice mostra le sotto-sezioni — **chiuso** (S1)
+
+Prima richiesta del committente: *«in navigazione ci devono essere anche i sotto-settori: Dati generali dev'essere
+espandibile e escono Radioassistenze, Frequenze, ecc.»*.
+
+Vale in **due** navigazioni, e in tutt'e due l'elenco era delle sole radici:
+
+- **L'indice del viewer.** Stava scritto **quattro volte** con lo stesso corpo — aeroporto, APP, vLOA, vSOP
+  militare — e ora è un componente solo, `DocumentToc`. Una sezione con figlie diventa un `<details>` aperto
+  di default; il **titolo del padre resta un link**, il chevron apre. ⚠️ La vIPI **ACC** non passa di qui, e
+  per la stessa ragione per cui non passa da `DocumentSectionsView`: il suo indice è raggruppato per
+  **blocco**, non per sezione.
+- **Il menu-sezioni degli editor**, che è quello che l'intestazione chiama «Navigazione». Le voci figlie
+  rientrano al livello 3. ⚠️ `EditorTocItem.Level = 3` e la classe `.lvl3` **esistevano già e non le usava
+  nessuno**: era cablaggio, non disegno nuovo.
+
+**Tre cose che si sono viste solo facendola.**
+
+1. ⚠️ **Il clic sul titolo di un padre non deve chiudere l'elenco**, e non lo fa — ma non per merito del CSS:
+   `wireAnchors` in `vipi-ui.js` chiama `preventDefault` su ogni link «#id», e **commutare è l'azione di
+   default del clic su un `<summary>`**. Vale gratis, ed è un appoggio da sapere: chi togliesse quel
+   `preventDefault` romperebbe l'indice senza che niente lo colleghi.
+2. ⚠️ **Un deep-link a una figlia dentro una sezione collassata funziona già**: `openDetailsFor` apre tutti i
+   `<details>` che la contengono. Nessuna riga di JS nuova.
+3. ⚠️ **La vLOA ha dovuto passare `SlotsOf` anche all'indice.** Le due direzioni dei coordinamenti le disegna
+   il *corpo* da sé, come intestazioni: **non hanno un id**. Elencarle avrebbe dato due voci che non portano
+   da nessuna parte — e un link che non fa niente non dà errori, quindi sarebbe rimasto lì. L'ha presa
+   `A_legacy_snapshot_does_not_render_the_directions_twice`, che contava i titoli: **la rete che protegge da
+   un difetto ne ha appena preso un altro**, di un'altra forma.
+
+Ha protestato anche `DueColonneSuOgniDocumentoTests`, e a ragione: cercava `class="toc"` nel sorgente, e
+quattro viewer su cinque ora montano il componente. Ora la domanda è «c'è un indice», nelle due forme —
+con scritto perché la seconda non è un residuo da togliere.
+
+**12 test nuovi** (6 su `DocumentToc`, 6 sulla proiezione del menu). ⚠️ La proiezione del menu è stata
+**estratta in una funzione pura** (`EditorTocProjection`): montare `DocumentSectionsEditor` — che è un
+`OwningComponentBase` con servizio di editing, lock e JS — per contare le voci di un menu costerebbe una
+fixture, e proverebbe soprattutto la fixture. Stessa ragione per cui `SectionOrdering.TryDropOnto` vive da sola.
+
+⚠️ **E una quarta, dall'attrezzatura**: un carattere di **controllo** finito dentro `vipi-theme.css` (0x15, al
+posto della sequenza `B8` del chevron, mangiata dallo strumento con cui si è scritta la riga) non fa
+*fallire* un test — fa **cadere l'host dei test**: `Vipi.Assets.Tests` si è piantato senza output e poi è
+morto con *«Test host process crashed»*, cioè senza nominare né il file né la riga. Il chevron ora è il
+carattere `▸` scritto per esteso, come già faceva `details.ed-sec > summary::before` dieci righe più giù.
+**Se una suite che non c'entra niente col lavoro in corso si pianta, il sospetto è quel che il lavoro ha
+scritto su un file che quella suite legge** — qui il tema, che `Vipi.Assets.Tests` minifica davvero.
+
 ### 12b. Le decisioni del committente, prese prima di scrivere
 
 1. **Le radioassistenze diventano un'anagrafica condivisa.** Quel che si scrive nella tabella di un campo si

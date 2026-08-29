@@ -107,10 +107,10 @@ else
 
     private IReadOnlyList<EditorTocItem> BuildToc()
     {
-        var items = new List<EditorTocItem>();
-        foreach (var s in (RootSections ?? Doc.Sections))
-            items.Add(new EditorTocItem($"s-{s.Id}", s.Title, IsSectionDirty?.Invoke(s) == true,
-                SectionId: s.Id, DragGroup: TocGroup));
+        // Le voci-sezione, radici e figlie, le costruisce una funzione pura (EditorTocProjection): è la parte
+        // che si può sbagliare in silenzio, e provarla di qui vorrebbe dire montare l'editor intero.
+        var items = EditorTocProjection.DaSezioni(
+            RootSections ?? Doc.Sections, s => IsSectionDirty?.Invoke(s) == true, TocGroup).ToList();
         if (ExtraTocItems is { Count: > 0 }) items.AddRange(ExtraTocItems);
         return items;
     }

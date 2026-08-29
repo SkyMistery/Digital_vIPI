@@ -1000,6 +1000,15 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 /* ⚠️ Il nome di questa classe NON compare in nessuna sorgente: si compone a pezzi (`class="lvl@(it.Level)"` in `EditorToc.razor`).
    Una passata «classi mai citate» la dà per morta: non lo è. */
 .toc .lvl2{padding-left:14px}.toc .lvl3{padding-left:26px;font-size:12.5px}
+/* Sotto-elenco dell'indice di un documento (DocumentToc): il chevron apre, il titolo porta alla sezione.
+   ⚠️ Che il clic sul titolo NON chiuda l'elenco non e' merito di questo CSS: e' `wireAnchors` in vipi-ui.js,
+   che su ogni link "#id" chiama preventDefault -- e commutare e' l'azione di default del clic su un
+   <summary>. Toglierlo di la' romperebbe qui, senza che niente lo dica. */
+.toc .toc-sub>summary{display:flex;align-items:center;gap:2px;cursor:pointer;list-style:none}
+.toc .toc-sub>summary::-webkit-details-marker{display:none}
+.toc .toc-sub>summary::before{content:"▸";flex:0 0 auto;padding-left:6px;font-size:10px;color:var(--ink-soft);transition:transform .12s;display:inline-block}
+.toc .toc-sub[open]>summary::before{transform:rotate(90deg)}
+.toc .toc-sub>summary>a{flex:1 1 auto;padding-left:2px}
 .toc .toc-grp{margin:12px 0 4px;padding-left:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft)}
 .toc .toc-grp:first-of-type{margin-top:2px}
 .doc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:6px}

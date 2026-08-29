@@ -40,7 +40,7 @@ public sealed class DueColonneSuOgniDocumentoTests
         var sorgente = File.ReadAllText(Path.Combine(Radice(), relativo.Replace('/', Path.DirectorySeparatorChar)));
 
         Assert.Contains("doc-layout", sorgente, StringComparison.Ordinal);
-        Assert.Contains("class=\"toc\"", sorgente, StringComparison.Ordinal);
+        Assert.True(HaUnIndice(sorgente), $"{relativo}: nessun indice, ne' <DocumentToc> ne' un aside .toc scritto a mano");
         Assert.Contains("doc-rail", sorgente, StringComparison.Ordinal);
     }
 
@@ -70,6 +70,16 @@ public sealed class DueColonneSuOgniDocumentoTests
         var classi = sorgente[(wrap + "class=\"".Length)..fine];
         Assert.DoesNotContain("reading-cap", classi, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// L'indice c'e': o il componente condiviso <c>DocumentToc</c>, o un <c>aside class="toc"</c> scritto in
+    /// pagina. ⚠️ La seconda forma non e' un residuo da togliere: la vIPI <b>ACC</b> ha un indice raggruppato
+    /// per BLOCCO (Aerovia, gruppi APP) e non per sezione, quindi il componente condiviso non la descrive —
+    /// la stessa ragione per cui non passa nemmeno da <c>DocumentSectionsView</c>.
+    /// </summary>
+    private static bool HaUnIndice(string sorgente) =>
+        sorgente.Contains("<DocumentToc", StringComparison.Ordinal)
+        || sorgente.Contains("class=\"toc\"", StringComparison.Ordinal);
 
     private static string Radice()
     {

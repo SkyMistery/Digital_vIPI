@@ -9,15 +9,9 @@
 @* Vloa e VloaView risolti dallo scope DI proprio (VipiDbContext isolato dal circuito). Vedi [[EditLockBar]]. *@
 
 <div class="doc-layout">
-    <aside class="toc" aria-label="@L["Doc_TocAria"]">
-        <p class="toc-h">@L["Common_Contents"]</p>
-        <ul>
-            @foreach (var s in View.Sections)
-            {
-                @if (IsDraft || !s.IsHidden) { <li><a href="#@s.Id">@s.Title</a></li> }
-            }
-        </ul>
-    </aside>
+    @* ⚠️ `SlotsOf` va all'indice **e** al corpo, con la stessa funzione: le due direzioni le disegna il
+       corpo da sé, e nell'indice sarebbero due voci verso un id che non esiste. *@
+    <DocumentToc Sections="View.Sections" IsDraft="IsDraft" SlotsOf="SenzaDirezioni" />
 
     <div>
         <PrintMeta Title="@View.Title" AiracCycle="@View.AiracCycle" Subtitle="@SubtitleOrDefault()" />

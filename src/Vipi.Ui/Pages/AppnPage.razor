@@ -30,15 +30,7 @@ else
     <div class="wrap">
         <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@En["AccLanding_Apps"]</a> › <b>@_app</b></div>
         <div class="doc-layout">
-            <aside class="toc" aria-label="@L["Doc_TocAria"]">
-                <p class="toc-h">@L["Common_Contents"]</p>
-                <ul>
-                    @foreach (var s in VisibleSections())
-                    {
-                        <li><a href="#@AnchorOf(s)">@s.Title</a></li>
-                    }
-                </ul>
-            </aside>
+            <DocumentToc Sections="_view.Sections" IsDraft="@(_mode.Kind == PreviewKind.Draft)" AnchorOf="AnchorOf" />
             <div>
                 <PrintMeta Title="@_displayName" Subtitle="@($"{_app} · {L["Appn_Subtitle"]}")"
                            AiracCycle="@Cycle()" />
@@ -172,9 +164,6 @@ else
 
     /// <summary>La release che questa vista mostra: quella dell'anteprima, o null = la effettiva adesso.</summary>
     private int? ReleaseIdShown() => _mode.Kind == PreviewKind.Release ? _mode.ReleaseId : null;
-    private IEnumerable<SectionView> VisibleSections() =>
-        _view!.Sections.Where(s => _mode.Kind == PreviewKind.Draft || !s.IsHidden);
-
     private string PreviewTitlePrefix() => _mode.Kind switch
     {
         PreviewKind.Draft => $"{L["Common_DraftTag"]} ",

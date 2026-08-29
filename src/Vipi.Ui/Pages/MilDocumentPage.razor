@@ -56,15 +56,10 @@
            contenitore, ma la classe restava a dichiarare un limite che non vale più. Due regole che dicono
            cose diverse sullo stesso elemento sono un difetto che aspetta. *@
         <div class="doc-layout">
-            <aside class="toc" aria-label="@L["Doc_TocAria"]">
-                <p class="toc-h">@L["Common_Contents"]</p>
-                <ul>
-                    @foreach (var s in VisibleSections())
-                    {
-                        <li><a href="#@AnchorOf(s)">@s.Title</a></li>
-                    }
-                </ul>
-            </aside>
+            @* L'indice porta anche le SOTTO-sezioni: su questo documento sono venti su ventisei, e senza di
+               loro l'indice ne elencava sei. *@
+            <DocumentToc Sections="_view.Sections" IsDraft="@(_mode.Kind == PreviewKind.Draft)"
+                         AnchorOf="AnchorOf" />
 
             <div>
                 <PrintMeta Title="@_view.Title" Subtitle="@L["Mil_PrintSubtitle"]" AiracCycle="@Cycle()" />
@@ -178,11 +173,6 @@
 
     /// <summary>La vista di lettura: «pilota», «atc», o assente per il documento intero.</summary>
     [SupplyParameterFromQuery(Name = "vista")] public string? Vista { get; set; }
-
-    /// <summary>Le sezioni che l'indice a sinistra elenca: le nascoste solo in anteprima bozza, dove si
-    /// vedono marcate. Stessa regola (e stessa riga) delle altre famiglie.</summary>
-    private IEnumerable<SectionView> VisibleSections() =>
-        _view!.Sections.Where(s => _mode.Kind == PreviewKind.Draft || !s.IsHidden);
 
     /// <summary>L'ancora di una sezione: <c>s-{Id}</c> come in tutte le famiglie (doc 13 §3e). ⚠️ Deve
     /// restare uguale al default di <c>DocumentSectionsView</c>, o l'indice punterebbe a un id che non

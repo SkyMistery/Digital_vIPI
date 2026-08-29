@@ -4435,17 +4435,36 @@ in ultima istanza uno nuovo **in coda**. ⚠️ Un blocco di prosa non si tocca 
 
 **2 test nuovi**, nessuna migrazione. Verdi: 989 + 1 555 + 852 su net8.
 
-### Y1 🟢 DA FARE — le sette tabelle, nell'ordine
+### Y1 ✅ CHIUSA — l'indice mostra le sotto-sezioni (S1)
 
-`S1` navigazione con le sotto-sezioni (l'indice del viewer e il menu dell'editor elencano solo le radici;
-`EditorTocItem.Level = 3` e la classe `.lvl3` **esistono già e non le usa nessuno**) → `S2a` anagrafica
-radioassistenze → `S2` Radioassistenze → `S3` Aeroporti alternati → `S4` coordinate soglia → `S5`/`S6`/`S7`
+Vale in **due** navigazioni, e in tutt'e due l'elenco era delle sole radici: l'indice del **viewer** — che
+stava scritto **quattro volte** e ora è `DocumentToc`, un componente solo — e il **menu-sezioni degli
+editor**. Una sezione con figlie diventa un `<details>` aperto, e il titolo del padre **resta un link**.
+
+⚠️ `EditorTocItem.Level = 3` e la classe `.lvl3` **esistevano già e non le usava nessuno**: cablaggio, non
+disegno nuovo. ⚠️ Che il clic sul titolo non chiuda l'elenco è merito di `wireAnchors` (`preventDefault` su
+ogni «#id»), non del CSS: commutare è l'azione di *default* del clic su un `<summary>`. ⚠️ La **vLOA** ha
+dovuto passare `SlotsOf` anche all'indice — le due direzioni le disegna il corpo da sé e **non hanno un
+id** — e a prenderla è stata la rete che contava i titoli duplicati.
+
+⚠️ **Un carattere di controllo nel CSS non fa fallire un test: fa cadere l'host dei test.** Uno 0x15 finito
+in `vipi-theme.css` al posto del chevron ha piantato `Vipi.Assets.Tests` — che quel file lo **minifica
+davvero** — e l'ha chiuso con «Test host process crashed», senza nominare file né riga. Se una suite che non
+c'entra col lavoro in corso si pianta, il sospetto è **quel che il lavoro ha scritto su un file che quella
+suite legge**.
+
+**12 test nuovi**, la proiezione del menu estratta in funzione pura (`EditorTocProjection`).
+Verdi: Ui **864**, Application **1 555**, Infrastructure **989**, Assets **52**; Release verde su entrambi i TFM.
+
+### Y2 🟢 DA FARE — le sei tabelle, nell'ordine
+
+`S2a` anagrafica radioassistenze → `S2` Radioassistenze → `S3` Aeroporti alternati → `S4` coordinate soglia → `S5`/`S6`/`S7`
 nominativi, parcheggi, attività delle aree → reti e lingua.
 
 ⚠️ Le sezioni passano a `HostAndBlocks`, **non** a `Host`: con `Host` sparirebbe dallo schermo la prosa dei
 SOP già caricata.
 
-### Y2 🟡 DA FARE — le coordinate delle soglie: **una migrazione, e un re-import**
+### Y3 🟡 DA FARE — le coordinate delle soglie: **una migrazione, e un re-import**
 
 Verificato sul filo: `/v2/airports/{icao}/runways` manda **latitudine, longitudine ed elevazione** per ogni
 soglia, e `RunwayDto` ne mappa quattro campi su otto. ⚠️ Le migrazioni in coda al cutover MariaDB diventano
@@ -4455,9 +4474,21 @@ soglia, e `RunwayDto` ne mappa quattro campi su otto. ⚠️ Le migrazioni in co
 migrazione serve un giro col bottone bulk di `/services/vsop/admin/airports`, o le soglie non compaiono e
 sembrerà un difetto.
 
-### Y3 🔵 DECISIONE DEL COMMITTENTE — su che ramo va questo lavoro
+### Y4 ✅ CHIUSA — i due rami sono stati fusi in `main`
 
-Questo lavoro nasce su `edizione-giusta-per-il-campo`, che **non è fuso** e nasce sopra
-`convertitore-coordinate`, anch'esso **non fuso**. E usa `Vipi.Application/Coordinates` — cioè il DMS del
-convertitore — per validare le coordinate delle radioassistenze. Sarebbe il **terzo ramo impilato**.
-Consigliato: fondere i due in `main` prima di proseguire oltre S1.
+Questo lavoro nasceva su `edizione-giusta-per-il-campo`, che nasce sopra `convertitore-coordinate`: nessuno
+dei due era fuso, e S2 userà `Vipi.Application/Coordinates` — il DMS del convertitore — per validare le
+coordinate delle radioassistenze. Sarebbe stato il **terzo ramo impilato**, e il committente ha deciso di
+fondere prima.
+
+⚠️ **Non c'era niente da fondere davvero**: `main` era **interamente contenuto** nel ramo (zero commit suoi
+fuori), quindi sono stati due **avanzamenti diretti** in fila — prima il convertitore (14 commit), poi
+l'edizione (7) — senza un conflitto e senza commit di fusione finti. `main` = **`636abff6`**, spinto.
+
+⚠️ `convertitore-coordinate` era **solo locale**: su `origin` non c'era. I suoi commit erano comunque al
+sicuro, perché contenuti in `edizione-giusta-per-il-campo`, che era spinto — ma è la seconda volta che un
+ramo con dieci slice dentro vive su una macchina sola.
+
+⚠️ **La suite completa non si è potuta contare**: il `Vipi.Host` era acceso (PID 35396) e tiene i `.dll` di
+Debug, quindi `Vipi.E2E.Tests` non compila e **sparisce dal riepilogo in silenzio** con exit code 0 — è
+**X4**, ancora aperto. Verificati a mano i progetti toccati.

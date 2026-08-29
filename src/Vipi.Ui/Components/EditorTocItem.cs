@@ -1,4 +1,6 @@
-﻿namespace Vipi.Ui.Components;
+﻿using Vipi.Application.Content;
+
+namespace Vipi.Ui.Components;
 
 /// <summary>
 /// Voce del menu-sezioni laterale (TOC) degli editor. Proiezione di una sezione già in memoria:
@@ -32,3 +34,46 @@ public readonly record struct EditorTocItem(
 /// <c>SectionOrdering.TryDropOnto</c>, l'host non lo rifà.
 /// </summary>
 public readonly record struct TocReorder(int SectionId, int? BeforeSectionId);
+
+/// <summary>
+/// Da un albero di sezioni alle voci del menu-sezioni. Funzione <b>pura</b>, come
+/// <c>SectionOrdering.TryDropOnto</c>: è la parte del pannello che si può sbagliare senza che nulla protesti,
+/// e montare l'editor intero per provarla costerebbe una fixture con servizio di editing e JS.
+///
+/// <para>⚠️ Fin qui il menu elencava le sole RADICI. Su un documento a un livello solo è la stessa cosa; il
+/// vSOP militare ha <b>venti sezioni su ventisei</b> annidate, e chi doveva scrivere le Radioassistenze
+/// scorreva ventisei card per trovarle.</para>
+///
+/// <para>⚠️ Le figlie <b>non si trascinano</b> (<see cref="EditorTocItem.SectionId"/> nullo): il riordino
+/// lavora per gruppo di fratelli, e aprirlo ai figli è un lavoro suo. Mezzo lavoro qui darebbe una voce che
+/// si lascia prendere e poi non va da nessuna parte — il difetto già pagato con la voce del pannello
+/// Release. Il pallino delle modifiche non salvate invece vale anche per loro: è dove si sta scrivendo.</para>
+/// </summary>
+public static class EditorTocProjection
+{
+    /// <summary>Livello di indentazione delle sotto-sezioni. Il modello ne consente tre, l'indice ne disegna
+    /// due: da qui in giù si resta a 3, invece di rientrare all'infinito in una colonna larga 200px.</summary>
+    private const int LivelloFiglie = 3;
+
+    public static IReadOnlyList<EditorTocItem> DaSezioni(
+        IEnumerable<EditableSection> radici, Func<EditableSection, bool>? dirty, string dragGroup)
+    {
+        var items = new List<EditorTocItem>();
+        foreach (var s in radici)
+        {
+            items.Add(new EditorTocItem($"s-{s.Id}", s.Title, dirty?.Invoke(s) == true,
+                SectionId: s.Id, DragGroup: dragGroup));
+            Figlie(items, s, dirty);
+        }
+        return items;
+    }
+
+    private static void Figlie(List<EditorTocItem> items, EditableSection padre, Func<EditableSection, bool>? dirty)
+    {
+        foreach (var c in padre.Children)
+        {
+            items.Add(new EditorTocItem($"s-{c.Id}", c.Title, dirty?.Invoke(c) == true, Level: LivelloFiglie));
+            Figlie(items, c, dirty);
+        }
+    }
+}

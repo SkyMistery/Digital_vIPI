@@ -1,0 +1,79 @@
+@* L'indice a sinistra di un documento, CONDIVISO fra i viewer (carta vSOP militari §12, S1).
+
+   Stava scritto quattro volte con lo stesso corpo — aeroporto, APP, vLOA, vSOP militare — e in tutte e
+   quattro elencava le sole sezioni RADICE. Su un documento a un livello solo è la stessa cosa; sul vSOP
+   militare, dove **venti sezioni su ventisei sono figlie**, voleva dire che l'indice ne mostrava sei e le
+   Radioassistenze si trovavano solo scorrendo.
+
+   ⚠️ La vIPI ACC non passa di qui, ed è la stessa ragione per cui non passa da `DocumentSectionsView`: il
+   suo indice è raggruppato per BLOCCO (Aerovia, gruppi APP), non per sezione. Portarla qui vorrebbe dire
+   cambiare il modello che la pagina ha in mano.
+
+   ⚠️ Una sezione padre resta un LINK, non solo un interruttore: il chevron apre l'elenco, il titolo porta
+   alla sezione. Un `<summary>` di suo commuta a ogni clic, anche su un link che ha dentro — e a impedirglielo
+   è `wireAnchors` in `vipi-ui.js`, che su ogni link «#id» chiama `preventDefault`: commutare è l'azione di
+   *default* del clic su un summary. Vale già, senza una riga in più, ma è un appoggio da sapere. *@
+@inject IStringLocalizer<SharedResource> L
+
+<aside class="toc" aria-label="@L["Doc_TocAria"]">
+    <p class="toc-h">@(HeaderLabel ?? L["Common_Contents"].Value)</p>
+    <ul>
+        @foreach (var s in Visibili(Sections))
+        {
+            var figlie = Visibili((SlotsOf?.Invoke(s) ?? s).Children).ToList();
+            <li>
+                @if (figlie.Count == 0)
+                {
+                    <a href="#@Anchor(s)">@s.Title</a>
+                }
+                else
+                {
+                    @* Aperto di default: un indice che nasce chiuso costringe a due clic per sapere
+                       che cosa c'è dentro, e la colonna scorre già per conto suo. *@
+                    <details class="toc-sub" open>
+                        <summary><a href="#@Anchor(s)">@s.Title</a></summary>
+                        <ul>
+                            @foreach (var c in figlie)
+                            {
+                                <li><a class="lvl3" href="#@Anchor(c)">@c.Title</a></li>
+                            }
+                        </ul>
+                    </details>
+                }
+            </li>
+        }
+    </ul>
+</aside>
+
+@code {
+    /// <summary>Le sezioni del documento mostrato, radici comprese di figlie. Il filtro delle nascoste lo fa
+    /// questo componente: è la stessa regola dei viewer, e stava scritta in ognuno di loro.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<SectionView> Sections { get; set; } = Array.Empty<SectionView>();
+
+    /// <summary>Anteprima BOZZA: le sezioni nascoste compaiono anche nell'indice. Pubblica e anteprima
+    /// release: no. ⚠️ Default <c>false</c>, quello prudente — chi lo dimentica nasconde.</summary>
+    [Parameter] public bool IsDraft { get; set; }
+
+    /// <summary>Ancora di una sezione (default <c>s.Id</c>, come in tutte le famiglie — doc 13 §3e).
+    /// ⚠️ Deve restare uguale a quella di <c>DocumentSectionsView</c>, o le voci punterebbero a un id che non
+    /// esiste e non farebbero niente, senza errori.</summary>
+    [Parameter] public Func<SectionView, string>? AnchorOf { get; set; }
+
+    /// <summary>Intestazione della colonna (default: «Indice» localizzato).</summary>
+    [Parameter] public string? HeaderLabel { get; set; }
+
+    /// <summary>
+    /// La sezione da usare per le SOTTO-SEZIONI, quando non è quella stessa — stesso nome e stessa semantica
+    /// del parametro omonimo di <c>DocumentSectionsView</c>, e va passato <b>agli stessi due posti</b>.
+    /// <para>⚠️ Serve a chi disegna certe figlie da sé, dentro il corpo: la vLOA rende le due direzioni dei
+    /// coordinamenti come intestazioni sue, e quelle <b>non hanno un id</b> su cui atterrare. Elencarle qui
+    /// darebbe due voci che non portano da nessuna parte — il difetto che l'ancora condivisa deve evitare per
+    /// mestiere — e ripeterebbe due titoli che il lettore vede già nel corpo.</para>
+    /// </summary>
+    [Parameter] public Func<SectionView, SectionView>? SlotsOf { get; set; }
+
+    private IEnumerable<SectionView> Visibili(IReadOnlyList<SectionView> sezioni) =>
+        sezioni.Where(s => IsDraft || !s.IsHidden);
+
+    private string Anchor(SectionView s) => AnchorOf?.Invoke(s) ?? s.Id;
+}
