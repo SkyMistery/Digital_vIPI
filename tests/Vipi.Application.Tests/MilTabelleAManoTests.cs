@@ -50,13 +50,26 @@ public class MilTabelleAManoTests
         Assert.Equal(2, MilTablePayload.Leggi(json, 2).Single().Count);
     }
 
-    /// <summary>Una riga tutta vuota non è una riga: è quel che resta di una cancellata a metà.</summary>
+    /// <summary>
+    /// ⚠️ <b>Una riga vuota è una riga, e si salva.</b> Qui c'era la regola opposta, e la verifica dal vivo
+    /// del 30 agosto 2026 ha mostrato che cosa produce: «Aggiungi riga» <b>non aggiungeva niente</b>. La riga
+    /// nuova nasce vuota per definizione, il salvataggio la scartava, il ricarico non la trovava, e il tasto
+    /// sembrava rotto — senza un errore da nessuna parte.
+    /// </summary>
     [Fact]
-    public void Le_righe_vuote_non_si_salvano()
+    public void Una_riga_vuota_e_una_riga_e_si_salva()
     {
-        Assert.Null(MilTablePayload.Scrivi(MilTablePayload.Parcheggi, new[] { new[] { "", "", "" } }, 3));
-        Assert.Null(MilTablePayload.Scrivi(MilTablePayload.Parcheggi, Array.Empty<string[]>(), 3));
+        var json = MilTablePayload.Scrivi(MilTablePayload.Parcheggi, new[] { new[] { "", "", "" } }, 3);
+
+        Assert.NotNull(json);
+        var riga = Assert.Single(MilTablePayload.Leggi(json, 3));
+        Assert.Equal(new[] { "", "", "" }, riga);
     }
+
+    /// <summary>Nessuna riga, invece, è null: in archivio «la tabella è vuota» ha una forma sola.</summary>
+    [Fact]
+    public void Nessuna_riga_si_salva_come_null() =>
+        Assert.Null(MilTablePayload.Scrivi(MilTablePayload.Parcheggi, Array.Empty<string[]>(), 3));
 
     [Theory]
     [InlineData(null)]

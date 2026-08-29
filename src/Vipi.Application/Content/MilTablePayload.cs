@@ -46,17 +46,27 @@ public sealed class MilTablePayload
             var p = JsonSerializer.Deserialize<MilTablePayload>(json, Opzioni);
             return (p?.Rows ?? Array.Empty<IReadOnlyList<string>>())
                 .Select(r => Normalizza(r, colonne))
-                // Una riga tutta vuota non è una riga: è quel che resta di una cancellata a metà.
-                .Where(r => r.Any(c => c.Length > 0))
                 .ToList();
         }
         catch (JsonException) { return Array.Empty<IReadOnlyList<string>>(); }
     }
 
-    /// <summary>Il JSON da salvare, o null se non resta nessuna riga con qualcosa dentro.</summary>
+    /// <summary>
+    /// Il JSON da salvare, o null quando non c'è <b>nessuna</b> riga.
+    ///
+    /// <para>
+    /// ⚠️ <b>Una riga vuota è una riga</b>, e si salva. Qui c'era il filtro opposto — «una riga tutta vuota è
+    /// quel che resta di una cancellata a metà» — e la verifica dal vivo del 30 agosto 2026 ha mostrato che
+    /// cosa produce: <b>«Aggiungi riga» non aggiungeva niente</b>. La riga nuova nasce vuota per definizione,
+    /// il salvataggio la scartava, il ricarico non la trovava, e a schermo il tasto sembrava rotto. Nessun
+    /// errore da nessuna parte.
+    /// </para>
+    /// <para>Le righe si tolgono col <b>tasto che le toglie</b>: una potatura automatica che indovina cosa
+    /// l'utente voleva è la stessa categoria di sorpresa, solo più difficile da vedere.</para>
+    /// </summary>
     public static string? Scrivi(string variante, IReadOnlyList<IReadOnlyList<string>> righe, int colonne)
     {
-        var pulite = righe.Select(r => Normalizza(r, colonne)).Where(r => r.Any(c => c.Length > 0)).ToList();
+        var pulite = righe.Select(r => Normalizza(r, colonne)).ToList();
         return pulite.Count == 0
             ? null
             : JsonSerializer.Serialize(new MilTablePayload { Variant = variante, Rows = pulite });

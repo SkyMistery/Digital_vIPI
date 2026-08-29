@@ -117,4 +117,52 @@ public class BlockRenderingTests : TestContext
         // L'alt arriva da chi carica: dev'essere un attributo, non markup interpretato.
         Assert.Single(cut.FindAll("figure.doc-img img"));
     }
+
+    /// <summary>
+    /// ⚠️ <b>Un blocco tabella con una VARIANTE sconosciuta non è contenuto: è il payload di una sezione resa
+    /// dalla pagina</b>, e non si rende.
+    ///
+    /// <para>Trovato dal vivo il 30 agosto 2026, ed era un <b>500 sull'intera pagina</b>: appena le sezioni
+    /// del vSOP militare hanno cominciato a tenere i propri blocchi, il payload di «Nominativi» —
+    /// <c>rows</c> fatto di <i>array di stringhe</i> — è finito nella tabella generica, che legge le righe
+    /// come oggetti con <c>cells</c>. <c>TryGetProperty</c> su un array alza <c>InvalidOperationException</c>,
+    /// che non è una <c>JsonException</c> e quindi passava indenne il <c>catch</c>.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("""{"variant":"milcallsigns","rows":[["13° Gruppo","IBIS","IAM 1234","QRA 01"]]}""")]
+    [InlineData("""{"variant":"milparkings","rows":[["Piazzale Nord","1-12",""]]}""")]
+    [InlineData("""{"variant":"milnavaids","rows":[{"code":"MNL","kind":"VOR"}]}""")]
+    [InlineData("""{"variant":"mildiversion","rows":[{"icao":"LIMC"}]}""")]
+    public void BlockRenderer_non_rende_il_payload_di_una_sezione(string json)
+    {
+        var cut = RenderComponent<BlockRenderer>(p => p.Add(x => x.Block, Block(BlockFormat.Table, bodyJson: json)));
+
+        Assert.DoesNotContain("<table", cut.Markup);
+        Assert.DoesNotContain("Gruppo", cut.Markup);
+    }
+
+    /// <summary>Le tabelle generiche scritte a mano NON hanno variante, e restano contenuto: la regola sopra
+    /// non deve portarsele via.</summary>
+    [Fact]
+    public void BlockRenderer_rende_ancora_la_tabella_generica()
+    {
+        var json = """{"columns":["Colonna 1"],"rows":[{"cells":["valore"]}]}""";
+
+        var cut = RenderComponent<BlockRenderer>(p => p.Add(x => x.Block, Block(BlockFormat.Table, bodyJson: json)));
+
+        Assert.Contains("Colonna 1", cut.Markup);
+        Assert.Contains("valore", cut.Markup);
+    }
+
+    /// <summary>⚠️ Una radice ARRAY — la forma legacy della selezione delle aree — non deve far esplodere
+    /// niente: `TryGetProperty` su un array non alza una `JsonException`, e una sola riga vecchia in archivio
+    /// mandava in 500 la pagina che la mostra.</summary>
+    [Fact]
+    public void Un_payload_con_radice_array_non_esplode()
+    {
+        var cut = RenderComponent<BlockRenderer>(p => p.Add(x => x.Block,
+            Block(BlockFormat.Table, bodyJson: """["1029","1032"]""")));
+
+        Assert.DoesNotContain("<table", cut.Markup);
+    }
 }

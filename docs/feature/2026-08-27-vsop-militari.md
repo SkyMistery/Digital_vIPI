@@ -1081,11 +1081,70 @@ nuovi sarebbero rimasti fuori senza che niente lo dicesse.
 net8: Application 1 619, Ui 864, Infrastructure **1 030**.
 
 
+### 12i. La verifica a schermo, su LIMN Cameri — e i **tre difetti** che i test verdi non vedevano
+
+Campo **misto** e nato nell'ordine giusto (civile #28 alle 09:17:15, militare #29 alle 09:17:20): è il caso
+di prova che la carta prescrive da §V, e per la terza volta è quello che ha trovato le cose vere.
+
+Dati seminati nella copia del database, perché una tabella non si verifica su un archivio vuoto: quattro
+radioassistenze come le riempirebbe il sectorfile (MNL col canale, AEA, l'NDB di Novara, e un ILS **nostro**)
+e le coordinate delle due soglie di Cameri. Il resto — righe, alternati, nominativi, parcheggi, attività —
+scritto **dall'editor vero**, guidando il browser.
+
+**1. ⚠️ «Aggiungi riga» non aggiungeva niente.** «Nominativi» e «Parcheggi»: si preme, non compare nulla.
+La riga nuova nasce vuota *per definizione*, e il payload scartava le righe tutte vuote — «è quel che resta
+di una cancellata a metà», diceva il commento. Il salvataggio la buttava, il ricarico non la trovava, il
+tasto sembrava rotto. **Nessun errore da nessuna parte**, e venti test verdi sopra.
+La regola giusta è l'opposto: **una riga vuota è una riga**, e le righe si tolgono col tasto che le toglie —
+una potatura automatica che indovina cosa l'utente voleva è la stessa categoria di sorpresa, solo più
+difficile da vedere.
+
+**2. ⚠️ La tabella delle aree restava indietro di una scelta.** Si accende una chip, la selezione si salva,
+la mappa si aggiorna — e la tabella sotto continua a dire «nessuna area scelta» fino al ricarico della
+pagina. Il salvataggio ricaricava la *selezione* ma non le **aree risolte**, che sono quel che la tabella
+mostra. Chi sceglie e chi legge la tabella sono la stessa persona, nello stesso istante.
+
+**3. ⚠️ E il peggiore: un 500 sull'intero editor.** Appena le sezioni militari hanno cominciato a tenere i
+**propri blocchi**, il payload di «Nominativi» — `rows` fatto di *array di stringhe* — è finito
+nell'anteprima della **tabella generica**, che legge le righe come oggetti con `cells`.
+⚠️ `TryGetProperty` su un array alza **`InvalidOperationException`**, che **non è una `JsonException`**: il
+`catch (JsonException)` che stava lì per proteggere da un JSON malformato lo lasciava passare, e la pagina
+moriva prima di renderizzarsi. La stessa trappola aspettava chiunque avesse in archivio una selezione d'aree
+nella **forma legacy** — che è un array.
+
+La regola che chiude tutti e tre i punti sta in **un posto solo** (`BlockJson.EStruttura`) e la fanno la
+stessa domanda **viewer ed editor**: *un blocco tabella con una **variante** è il payload di una sezione resa
+dalla pagina, non contenuto* — le tabelle generiche scritte a mano una variante non ce l'hanno. Più tre
+guardie sulla radice del JSON, dove il `catch` sbagliato dava una falsa sicurezza.
+
+**Che cosa si è visto funzionare**, sulla pagina vera e nella lingua giusta:
+
+| | |
+|---|---|
+| Radioassistenze | `VORTACAN │ MNL - CH 99Y (115.25) │ N41°32'51.36''E015°41'23.28''` — e i campi **della sorgente sono pill**, non caselle |
+| | `ILS │ CAM - 110.30 │ N45°32'05.07''E008°39'42.47''` — riga nostra, tutta scrivibile |
+| Un decimale al posto del sessagesimale | **rifiutato**, con la frase che dice come si scrive |
+| Aeroporti alternati | `LIMC MIlano Malpensa │ NOV NDB - 391.0 │ 126° │ 18 NM` |
+| ⚠️ Alternato **estero** | `LSZH Zurich` — il nome l'ha trovato **IVAO**, e si è salvato nel documento |
+| Coordinate delle soglie | seconda tabella: `17 │ N45°32'20.40''E008°39'28.80'' │ 586 ft` |
+| Nominativi / Parcheggi | le righe scritte a mano, e ci restano |
+| Aree di lavoro | un clic = `A/A`; un **doppio clic vero** = `A/A - A/G` |
+| L'indice | le sotto-sezioni ci sono, nel viewer e nell'editor |
+
+⚠️ **Una trappola dell'attrezzo, per la prossima volta**: `[list="vipi-navaid-types"]` è *sia* la casella
+«Tipo» di una riga *sia* la «Natura» del modulo d'aggiunta, e il primo giro ha scritto nella riga sbagliata —
+poi ha accusato la pagina di aver perso il tipo. **Quando un dato «sparisce», il primo sospetto va al
+selettore.** E le celle con una casella hanno `innerText` **vuoto**: si legge `input.value`, o si scambia un
+campo compilato per una cella vuota.
+
 ### 12d. Ordine dei lavori
 
-`S0` payload nei figli (**fatto**) → `S1` navigazione con le sotto-sezioni → `S2a` anagrafica radioassistenze
-→ `S2` Radioassistenze → `S3` Aeroporti alternati → `S4` coordinate soglia → `S5`/`S6`/`S7` nominativi,
-parcheggi, attività delle aree → reti e lingua → verifica a schermo.
+Tutte fatte: `S0` payload nei figli, `S1` navigazione, `S2a` anagrafica radioassistenze, `S2`
+Radioassistenze, `S3` Aeroporti alternati, `S4` coordinate soglia, `S5`/`S6`/`S7` nominativi, parcheggi e
+attività delle aree, più la **verifica a schermo** su LIMN Cameri (§12i).
 
-⚠️ **Il caso di prova è LIMN Cameri**: campo **misto** e nato nell'ordine giusto. La regola l'abbiamo già
-pagata due volte — su Rivolto, che è solo militare, metà dei difetti è invisibile.
+⚠️ **Il caso di prova era LIMN Cameri**: campo **misto** e nato nell'ordine giusto. La regola l'avevamo già
+pagata due volte — su Rivolto, che è solo militare, metà dei difetti è invisibile — e per la terza volta il
+campo misto ha trovato le cose vere: **tre difetti** che i test verdi non vedevano.
+
+⚠️ **Resta il BOAT**, ritirato dal committente, e il giro di **re-import** che riempie le soglie.

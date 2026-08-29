@@ -14,6 +14,10 @@
     case BlockFormat.Table when variant == "separations":
         <SeparationsBlock Block="Block" />
         break;
+    @* Il PAYLOAD di una sezione resa dalla pagina non e' contenuto: non si rende. La domanda e' la stessa
+       che si fa l'editor (BlockJson.EStruttura), e sta in un posto solo apposta. *@
+    case BlockFormat.Table when BlockJson.EStruttura(Block.Format, Block.BodyJson):
+        break;
     case BlockFormat.Table:
         <TableBlock Block="Block" />
         break;

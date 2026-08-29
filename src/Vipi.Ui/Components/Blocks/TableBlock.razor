@@ -53,6 +53,10 @@
         {
             using var doc = JsonDocument.Parse(Block.BodyJson);
             var root = doc.RootElement;
+            // ⚠️ Radice che non e' un oggetto (la forma legacy delle aree regolamentate e' un array): non
+            // c'e' niente da leggere, e chiederglielo alza `InvalidOperationException` — che NON e' una
+            // `JsonException` e passava indenne il catch qui sotto, cioe' un 500 sulla pagina.
+            if (root.ValueKind != JsonValueKind.Object) return;
             if (root.TryGetProperty("tableId", out var tid)) _tableId = tid.GetString();
             if (root.TryGetProperty("unified", out var u)) _unified = u.GetBoolean();
             if (root.TryGetProperty("columns", out var cols) && cols.ValueKind == JsonValueKind.Array)
@@ -61,6 +65,10 @@
             {
                 foreach (var r in rows.EnumerateArray())
                 {
+                    // ⚠️ Una riga che non e' un oggetto si salta invece di far esplodere la pagina:
+                    // `TryGetProperty` su un array alza `InvalidOperationException`, che non e' una
+                    // `JsonException` e quindi passava il `catch` qui sotto.
+                    if (r.ValueKind != JsonValueKind.Object) continue;
                     var cells = r.TryGetProperty("cells", out var cs) && cs.ValueKind == JsonValueKind.Array
                         ? cs.EnumerateArray().Select(e => e.GetString() ?? "").ToArray()
                         : Array.Empty<string>();

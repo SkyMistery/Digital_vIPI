@@ -444,7 +444,11 @@ else
            redige). Il ramo `else` non basta — dovrebbero convivere, non escludersi. *@
         @if (IsDerivedSection?.Invoke(s) != true || (Profile is { } prof && SectionCatalog.KeepsOwnBlocks(prof, s.SectionKey)))
         {
-            @foreach (var b in s.Blocks)
+            @* ⚠️ Il PAYLOAD di una sezione resa dalla pagina si salta: non e' contenuto, e mostrarlo qui
+               vuol dire darlo in pasto all'anteprima della tabella generica — che su righe fatte di stringhe
+               alza `InvalidOperationException` e manda in 500 l'editor. Trovato dal vivo il 30 agosto 2026.
+               La domanda e' la stessa del viewer, e sta in un posto solo. *@
+            @foreach (var b in s.Blocks.Where(b => !BlockJson.EStruttura(b.Format, b.BodyJson)))
             {
                 @BlockEditor(s, b)
             }
@@ -572,11 +576,15 @@ else
         {
             using var doc = JsonDocument.Parse(json);
             var r = doc.RootElement;
+            // Radice che non e' un oggetto (la forma legacy delle aree e' un array): niente da leggere, e
+            // chiederglielo alza `InvalidOperationException`, che NON passa dal catch qui sotto.
+            if (r.ValueKind != JsonValueKind.Object) return (cols, rows);
             if (r.TryGetProperty("columns", out var c) && c.ValueKind == JsonValueKind.Array)
                 cols = c.EnumerateArray().Select(e => e.GetString() ?? "").ToList();
             if (r.TryGetProperty("rows", out var rr) && rr.ValueKind == JsonValueKind.Array)
                 foreach (var row in rr.EnumerateArray())
-                    rows.Add(row.TryGetProperty("cells", out var cs) && cs.ValueKind == JsonValueKind.Array
+                    rows.Add(row.ValueKind == JsonValueKind.Object
+                        && row.TryGetProperty("cells", out var cs) && cs.ValueKind == JsonValueKind.Array
                         ? cs.EnumerateArray().Select(e => e.GetString() ?? "").ToList()
                         : new List<string>());
         }

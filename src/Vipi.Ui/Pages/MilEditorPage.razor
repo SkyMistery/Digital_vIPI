@@ -550,17 +550,12 @@ else
         return copia;
     }
 
-    /// <summary>
-    /// Una riga nuova nasce con le celle vuote e si salva subito. ⚠️ La prima cella porta uno spazio: una riga
-    /// tutta vuota il payload la scarta — è quel che resta di una cancellata a metà — e senza questo la riga
-    /// appena aggiunta sparirebbe al ricarico, con l'aria di un guasto.
-    /// </summary>
+    /// <summary>Una riga nuova nasce con le celle vuote e si salva subito: una riga che esiste solo a
+    /// schermo finché non ci si scrive dentro sparisce al primo ricarico, e sembra un guasto.</summary>
     private static List<IReadOnlyList<string>> ConRigaVuota(IReadOnlyList<IReadOnlyList<string>> righe, int colonne)
     {
         var copia = Copia(righe);
-        var nuova = new List<string> { " " };
-        while (nuova.Count < colonne) nuova.Add("");
-        copia.Add(nuova);
+        copia.Add(Enumerable.Repeat("", colonne).ToList());
         return copia;
     }
 
@@ -593,6 +588,12 @@ else
     {
         await Militari.SaveRegulatedAsync(_icao, sel);
         _regulated = await Militari.GetRegulatedAsync(_icao);
+
+        // ⚠️ E le aree RISOLTE, o la tabella sotto la mappa resta indietro di una scelta. Trovato a schermo il
+        // 30 agosto 2026: la chip si accendeva, la selezione si salvava — e la tabella continuava a dire
+        // «nessuna area scelta» fino al ricarico della pagina. Chi sceglie e chi legge la tabella sono la
+        // stessa persona, nello stesso istante.
+        _areeScelte = await Militari.ResolveRegulatedAreasAsync(_regulated);
     });
 
     private string? ReleasePreviewUrl(int releaseId) =>
