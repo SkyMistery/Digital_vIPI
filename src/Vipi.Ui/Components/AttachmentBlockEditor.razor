@@ -1,0 +1,98 @@
+@* Editor di UN blocco allegato, condiviso dai due editor di blocchi (DocumentSectionsEditor sul documento,
+   DocumentBlocksEditor sulle sezioni extra): il codice nuovo di questa feature vive qui una volta sola.
+   L'host possiede la persistenza — riceve il JSON del riferimento e la nota via callback e li salva come sa.
+   È la stessa forma di ImageBlockEditor.
+
+   ⚠️ Si SCEGLIE da un elenco, non si incolla un link. La biblioteca è il posto in cui un allegato entra: se
+   di qui si potesse incollare un URL, il registro «chi cita cosa» direbbe il falso il giorno dopo — ed è
+   esattamente il difetto che questa feature esiste per chiudere.
+
+   ⚠️ Il titolo si scrive nel blocco: è una decisione editoriale del documento, non una copia della
+   biblioteca. Rinominare una voce non deve riscrivere il testo dei documenti che la citano. *@
+@using Microsoft.Extensions.DependencyInjection
+@inherits OwningComponentBase
+@inject IStringLocalizer<SharedResource> L
+
+<div class="att-edit">
+    <label class="att-field">
+        <span class="muted">@L["Att_BlockPick"]</span>
+        <select class="app-in" value="@Riferimento?.Slug" @onchange="e => ScegliAsync(e.Value as string)">
+            <option value="">@L["Att_BlockNone"]</option>
+            @foreach (var v in _voci)
+            {
+                <option value="@v.Slug">@v.Title</option>
+            }
+        </select>
+    </label>
+
+    @if (Riferimento is { } r)
+    {
+        <label class="att-field">
+            <span class="muted">@L["Att_BlockLabel"]</span>
+            <input class="app-in" value="@r.Title" placeholder="@L["Att_BlockLabelPh"]"
+                   @onchange="e => TitoloAsync(e.Value as string)" />
+        </label>
+
+        @* L'anteprima è il componente vero, non un facsimile: quel che si vede qui è quel che leggerà chi
+           apre il documento. *@
+        <div class="att-preview"><AttachmentLink Reference="r" Note="@Note" /></div>
+    }
+    else if (_voci.Count == 0)
+    {
+        @* Il catch-22 al contrario: senza questa riga, chi apre l'editor e non trova niente in tendina non ha
+           modo di sapere che il posto da cui si comincia è un'altra pagina. *@
+        <p class="help">@L["Att_BlockEmptyHint"]</p>
+    }
+</div>
+
+@code {
+    /// <summary>JSON del riferimento (<see cref="AttachmentRef"/>): sta in <c>BodyJson</c> nel documento e in
+    /// <c>ExtraBlock.AttachmentJson</c> negli extra — stessa stringa.</summary>
+    [Parameter] public string? AttachmentJson { get; set; }
+    [Parameter] public EventCallback<string?> AttachmentJsonChanged { get; set; }
+
+    /// <summary>La nota sotto il link, markdown come la prosa.</summary>
+    [Parameter] public string? Note { get; set; }
+
+    private IReadOnlyList<AttachmentRow> _voci = Array.Empty<AttachmentRow>();
+
+    private AttachmentRef? Riferimento => AttachmentRef.Parse(AttachmentJson);
+
+    // ⚠️ La biblioteca si risolve dallo scope PROPRIO (OwningComponentBase): una lettura di questo componente
+    // non deve passare per il DbContext condiviso del circuito, o due operazioni concorrenti lo fanno
+    // esplodere. Stessa ragione di ImageBlockEditor.
+    private IAttachmentLibrary Biblioteca => ScopedServices.GetRequiredService<IAttachmentLibrary>();
+
+    // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su un render mode interattivo il secondo gira una
+    // volta sola, e l'elenco resterebbe quello del primo blocco montato.
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_voci.Count == 0) _voci = await Biblioteca.ListAsync();
+    }
+
+    private async Task ScegliAsync(string? slug)
+    {
+        var scelto = (slug ?? "").Trim();
+        if (scelto.Length == 0)
+        {
+            await AttachmentJsonChanged.InvokeAsync(null);
+            return;
+        }
+
+        var voce = _voci.FirstOrDefault(v => v.Slug == scelto);
+        if (voce is null) return;
+
+        // Il titolo nasce da quello della biblioteca: è il punto di partenza sensato, e resta modificabile.
+        await AttachmentJsonChanged.InvokeAsync(
+            AttachmentRef.Serialize(new AttachmentRef(voce.Slug, voce.Title)));
+    }
+
+    private async Task TitoloAsync(string? titolo)
+    {
+        if (Riferimento is not { } r) return;
+
+        var t = (titolo ?? "").Trim();
+        await AttachmentJsonChanged.InvokeAsync(
+            AttachmentRef.Serialize(r with { Title = t.Length == 0 ? null : t }));
+    }
+}

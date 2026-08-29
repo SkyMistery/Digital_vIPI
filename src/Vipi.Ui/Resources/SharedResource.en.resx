@@ -126,7 +126,7 @@
   <data name="Cov_OutOfWindow" xml:space="preserve"><value>{0}: outside the window</value></data>
   <data name="Cov_Covered" xml:space="preserve"><value>{0}: {1}% covered ({2} minutes out of {3})</value></data>
   <data name="Cov_OnFrequency" xml:space="preserve"><value>{0}: {1} minutes on frequency out of {2} possible ({3}%)</value></data>
-  <data name="Blocks_HelpBody" xml:space="preserve"><value>Add a block: &lt;b&gt;Paragraph&lt;/b&gt; (text), &lt;b&gt;Callout&lt;/b&gt; (note/warning box), &lt;b&gt;Table&lt;/b&gt; (rows/columns), &lt;b&gt;Image&lt;/b&gt; (a photo from your device, or dragged in). Reorder with ↑/↓. Everything then has to be &lt;b&gt;saved&lt;/b&gt; and &lt;b&gt;published&lt;/b&gt;.</value></data>
+  <data name="Blocks_HelpBody" xml:space="preserve"><value>Add a block: &lt;b&gt;Paragraph&lt;/b&gt; (text), &lt;b&gt;Callout&lt;/b&gt; (note/warning box), &lt;b&gt;Table&lt;/b&gt; (rows/columns), &lt;b&gt;Image&lt;/b&gt; (a photo from your device, or dragged in), &lt;b&gt;Attachment&lt;/b&gt; (a PDF from the library, picked from the list). Reorder with ↑/↓. Everything then has to be &lt;b&gt;saved&lt;/b&gt; and &lt;b&gt;published&lt;/b&gt;.</value></data>
   <data name="Rel_PreviewCrumb" xml:space="preserve"><value>Release preview</value></data>
   <data name="TrEd_Title" xml:space="preserve"><value>Translation</value></data>
   <data name="TrEd_SameLanguage" xml:space="preserve"><value>You are reading in the language this document is written in. Switch language in the top bar to review how it reads.</value></data>
@@ -2806,4 +2806,14 @@
   <data name="AttSrc_Release" xml:space="preserve"><value>Published</value></data>
   <data name="AttSrc_AirportExtraSection" xml:space="preserve"><value>Airport section</value></data>
   <data name="AttSrc_SharedBlock" xml:space="preserve"><value>Shared block</value></data>
+  <data name="Dse_Attachment" xml:space="preserve"><value>Attachment</value></data>
+  <data name="Att_External" xml:space="preserve"><value>external</value></data>
+  <data name="Att_ExternalTitle" xml:space="preserve"><value>The file lives on the division Drive: the link opens a new tab.</value></data>
+  <data name="Att_Missing" xml:space="preserve"><value>No attachment set.</value></data>
+  <data name="Att_BlockPick" xml:space="preserve"><value>Attachment</value></data>
+  <data name="Att_BlockNone" xml:space="preserve"><value>— none —</value></data>
+  <data name="Att_BlockLabel" xml:space="preserve"><value>Shown as</value></data>
+  <data name="Att_BlockLabelPh" xml:space="preserve"><value>LoA with Marseille</value></data>
+  <data name="Att_BlockNotePh" xml:space="preserve"><value>Note under the link (optional)</value></data>
+  <data name="Att_BlockEmptyHint" xml:space="preserve"><value>The library is empty: an attachment is uploaded in Attachments first, then cited here.</value></data>
 </root>

@@ -593,6 +593,9 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
             case BlockFormat.Image when MediaRef.Parse(blk.ImageJson) is not null:
                 body = blk.Text; bodyJson = blk.ImageJson;
                 break;
+            case BlockFormat.Attachment when AttachmentRef.Parse(blk.AttachmentJson) is not null:
+                body = blk.Text; bodyJson = blk.AttachmentJson;
+                break;
             case BlockFormat.Prose or BlockFormat.List when !string.IsNullOrWhiteSpace(blk.Text):
                 body = blk.Text; format = BlockFormat.Prose;
                 break;

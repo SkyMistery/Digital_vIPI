@@ -95,7 +95,13 @@ public enum PartyRole { Home, Neighbour }
 public enum BlockTier { Reduced, Extended }
 
 /// <summary>Formato di un blocco di contenuto.</summary>
-public enum BlockFormat { Table, Prose, Image, List, AorMap, Callout }
+/// <summary>
+/// Che cosa è un blocco editoriale.
+/// <para>⚠️ I valori si aggiungono <b>IN CODA</b>. Nel payload di una release gli enum sono serializzati come
+/// ordinali, quindi inserirne uno in mezzo reinterpreterebbe in silenzio ogni release già pubblicata: un
+/// blocco tabella diventerebbe un'immagine, e nessuno lo denuncerebbe.</para>
+/// </summary>
+public enum BlockFormat { Table, Prose, Image, List, AorMap, Callout, Attachment }
 
 /// <summary>Comportamento di visibilità live (tabella di verità in SPEC_Logica_AoR §4).</summary>
 public enum BlockVisibility { Operational, Handoff, Always }

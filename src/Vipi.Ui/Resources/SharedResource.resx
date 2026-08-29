@@ -126,7 +126,7 @@
   <data name="Cov_OutOfWindow" xml:space="preserve"><value>{0}: fuori dalla finestra</value></data>
   <data name="Cov_Covered" xml:space="preserve"><value>{0}: coperta al {1}% ({2} minuti su {3})</value></data>
   <data name="Cov_OnFrequency" xml:space="preserve"><value>{0}: {1} minuti in frequenza su {2} possibili ({3}%)</value></data>
-  <data name="Blocks_HelpBody" xml:space="preserve"><value>Aggiungi un blocco: &lt;b&gt;Paragrafo&lt;/b&gt; (testo), &lt;b&gt;Callout&lt;/b&gt; (riquadro nota/attenzione), &lt;b&gt;Tabella&lt;/b&gt; (righe/colonne), &lt;b&gt;Immagine&lt;/b&gt; (foto dal dispositivo o trascinata). Riordina con ↑/↓. Tutto va poi &lt;b&gt;salvato&lt;/b&gt; e &lt;b&gt;pubblicato&lt;/b&gt;.</value></data>
+  <data name="Blocks_HelpBody" xml:space="preserve"><value>Aggiungi un blocco: &lt;b&gt;Paragrafo&lt;/b&gt; (testo), &lt;b&gt;Callout&lt;/b&gt; (riquadro nota/attenzione), &lt;b&gt;Tabella&lt;/b&gt; (righe/colonne), &lt;b&gt;Immagine&lt;/b&gt; (foto dal dispositivo o trascinata), &lt;b&gt;Allegato&lt;/b&gt; (un PDF della biblioteca, scelto dall'elenco). Riordina con ↑/↓. Tutto va poi &lt;b&gt;salvato&lt;/b&gt; e &lt;b&gt;pubblicato&lt;/b&gt;.</value></data>
   <data name="Rel_PreviewCrumb" xml:space="preserve"><value>Anteprima release</value></data>
   <data name="TrEd_Title" xml:space="preserve"><value>Traduzione</value></data>
   <data name="TrEd_SameLanguage" xml:space="preserve"><value>Stai leggendo nella lingua in cui questo documento è scritto. Passa all'altra lingua nella barra in alto per rivedere come viene letto.</value></data>
@@ -2814,4 +2814,14 @@
   <data name="AttSrc_Release" xml:space="preserve"><value>Pubblicato</value></data>
   <data name="AttSrc_AirportExtraSection" xml:space="preserve"><value>Sezione d'aeroporto</value></data>
   <data name="AttSrc_SharedBlock" xml:space="preserve"><value>Blocco condiviso</value></data>
+  <data name="Dse_Attachment" xml:space="preserve"><value>Allegato</value></data>
+  <data name="Att_External" xml:space="preserve"><value>esterno</value></data>
+  <data name="Att_ExternalTitle" xml:space="preserve"><value>Il file sta sul Drive di divisione: il link apre una scheda nuova.</value></data>
+  <data name="Att_Missing" xml:space="preserve"><value>Allegato non impostato.</value></data>
+  <data name="Att_BlockPick" xml:space="preserve"><value>Allegato</value></data>
+  <data name="Att_BlockNone" xml:space="preserve"><value>— nessuno —</value></data>
+  <data name="Att_BlockLabel" xml:space="preserve"><value>Come si legge</value></data>
+  <data name="Att_BlockLabelPh" xml:space="preserve"><value>LoA con Marsiglia</value></data>
+  <data name="Att_BlockNotePh" xml:space="preserve"><value>Nota sotto il link (facoltativa)</value></data>
+  <data name="Att_BlockEmptyHint" xml:space="preserve"><value>La biblioteca è vuota: un allegato si carica prima in Allegati, poi si cita da qui.</value></data>
 </root>

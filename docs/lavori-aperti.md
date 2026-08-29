@@ -2115,9 +2115,27 @@ sull'elenco, e chip **«mai usate»**.
   quella a ogni clic, e se «chi mi cita» fosse un campo della riga ogni apertura di un PDF pagherebbe una
   scansione di tutti i blocchi e di tutte le release.
 
-**Da dove si riparte**: slice 5 — il blocco `Attachment` (enum, `case` nei 9 punti, editor e resa condivisi,
-**modo Link**). Le slice sono **nove**: la **5-bis** (modo incorporato + `frame-src`) si è aggiunta il
-29 agosto.
+**✅ Slice 5 fatta il 29 agosto 2026**: il blocco **Allegato**. `AttachmentRef` è la fonte unica del formato
+(`{"ref":"allegato:…","titolo":…}`), `AttachmentLink` la resa condivisa e `AttachmentBlockEditor` l'editor —
+una riga per `case`, come per le immagini. Tasto «+ Allegato» in tutti e due gli editor di blocchi.
+
+- ⚠️ **`BlockFormat.Attachment` è IN CODA**, ed è la cosa da non toccare: nel payload di una release gli enum
+  sono serializzati come **ordinali**, quindi inserirne uno in mezzo reinterpreterebbe in silenzio ogni
+  release già pubblicata — un blocco tabella diventerebbe un'immagine. C'è un test che inchioda i sei valori
+  storici alle loro posizioni.
+- ⚠️ **Nel blocco finisce il TOKEN, non l'URL** — nemmeno il nostro: se ci finisse `/vsop/files/…`, spostare
+  la rotta domani vorrebbe dire riscrivere il JSON di ogni blocco già pubblicato.
+- ⚠️ **Solo lo schema `allegato:`**: un `ref` con un URL qualunque non è un riferimento, e accettarlo
+  farebbe entrare un indirizzo arbitrario — `javascript:` compreso — in un `href` costruito da noi.
+- **Si sceglie da un elenco, non si incolla un link.** Se dall'editor si potesse incollare un URL, il registro
+  «chi cita cosa» direbbe il falso il giorno dopo: è il difetto che questa feature esiste per chiudere.
+- **Il titolo sta nel blocco** ed è una decisione editoriale del documento: rinominare una voce in biblioteca
+  non riscrive il testo dei documenti che la citano. A cambiare sotto è il **file**, non il nome.
+- I punti toccati sono **sei** dei nove che dispatchano su `BlockFormat`: gli altri tre riguardano i **byte
+  delle immagini** (pulizia, quota, editing) e un allegato non ne ha. Il debito del registry resta annotato.
+
+**Da dove si riparte**: slice **5-bis** — il modo **Incorporato** (campo `Modo`, altezza a scaglioni, iframe
+sulla nostra rotta, link di ripiego e **`frame-src` in CSP**).
 
 ⚠️ **La 5-bis non si chiude senza una prova dal vivo**: Google può togliere l'embed della preview quando
 vuole — è già successo col fondo mappa CARTO il 27 agosto — e qui dentro nessun test apre un browser.

@@ -280,7 +280,7 @@ principale del sistema attuale, dove i link a Drive stanno sparsi nei documenti 
 | 2 | ✅ **FATTA il 29 agosto** — pagina `/services/vsop/admin/attachments`: elenco, filtri tipo×ambito, ricerca, crea voce | ingresso, catch-22 |
 | 3 | ✅ **FATTA il 29 agosto** — rotta `/vsop/files/{slug}` con 302 e `no-cache` | identità del link |
 | 4 | ✅ **FATTA il 29 agosto** — scanner del token `allegato:` + `DoveUsato(slug)` + filtro «mai usata» | registro |
-| 5 | Blocco `Attachment`: enum, `case` nei 9 punti, editor e resa condivisi — **modo Link** | link 1 |
+| 5 | ✅ **FATTA il 29 agosto** — blocco `Attachment`: enum in coda, `case` nei punti che dispatchano davvero, editor e resa condivisi — **modo Link** | link 1 |
 | 5-bis | **Modo Incorporato**: campo `Modo` + altezza a scaglioni, iframe sulla nostra rotta, link di ripiego, **`frame-src` in CSP** | resa in pagina |
 | 6 | Link inline in `MarkdownLite`, **solo schema `allegato:`** | link 2 |
 | 7 | Sostituzione con conferma informata + audit + voce in Cambiamenti | versioni |
