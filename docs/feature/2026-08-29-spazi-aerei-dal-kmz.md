@@ -53,8 +53,9 @@ La regola per uscirne è pulita, ed è **verificata su tutti e 1 536**:
 > **deduplica l'anello 2D** (il pavimento ripete il tetto).
 
 Esito: **esattamente un anello per volume, sempre, senza eccezioni** — 397 volumi hanno il
-pavimento, 1 139 no, e in tutti e due i casi resta un anello. Restano **146 428 punti**, circa 3 MB
-di JSON.
+pavimento, 1 139 no, e in tutti e due i casi resta un anello. Restano **144 892 punti**, circa 3 MB
+di JSON — i 146 428 del file meno il vertice di chiusura di ogni anello, che è una proprietà dell'anello e
+non un punto in più.
 
 ⚠️ E le quote **non si leggono dalle coordinate**: lì la base `GND` è la quota del *terreno*
 (`ALGHERO CTR` sta tutto a 762 m, che è il suo tetto). Si leggono dai campi `Base`/`Top`.
@@ -163,7 +164,7 @@ del file**, accendibili per famiglia. Le aree regolamentate, se ci vanno, arriva
 come già fa la mappa delle aree.
 
 ⚠️ **Il peso.** I 146 428 punti dell'intero file al browser non ci vanno. Le sole famiglie
-utilizzabili sono **363 volumi, 31 985 punti, ~625 KB** di JSON grezzo — e si mandano **per
+utilizzabili sono **362 volumi, 31 613 punti, ~620 KB** di JSON grezzo — e si mandano **per
 famiglia**, su richiesta, non tutti all'apertura.
 
 ⚠️ **Pubblicare è ridistribuire.** Il file porta un disclaimer esplicito e vieta l'uso commerciale
@@ -193,7 +194,7 @@ senza poligono, per il ripiego.
 | # | cosa | migrazioni |
 |---|---|---|
 | **S1** | **Il lettore.** Scatole → anello, `ExtendedData`, quote parsate (piedi + riferimento), famiglie, chiave naturale. Metodo **nuovo** dentro `KmlReader`, che condivide il parsing delle coordinate e **non cambia** il comportamento del convertitore. Puro, tutto in test, fixture ritagliata dal file vero. | — |
-| **S2** | **Il catalogo e il caricamento.** Le due tabelle, la pagina admin: carica, esito in chiaro («1 536 letti, 363 utilizzabili, 3 doppioni»), elenco filtrabile, anteprima in mappa. Il KMZ si conserva intero. | 1 |
+| **S2** | **Il catalogo e il caricamento.** Le due tabelle, la pagina admin: carica, esito in chiaro («1 536 letti, 362 utilizzabili, 3 doppioni»), elenco filtrabile, anteprima in mappa. Il KMZ si conserva intero. | 1 |
 | **S3** | **La sostituzione a mano.** Il legame, il servizio che lo timbra in coda alla catena, il tasto nella struttura settori con la chip «shape dall'AIP, scelta da *chi* il *quando*» e il tasto **«torna a IVAO»**. → **LIBA e LICC chiusi.** | 1 |
 | **S4** | **L'ATZ per le TWR.** Passo automatico fra il ripiego del sectorfile e il cerchio; aggancio per ICAO nel nome (42 su 46). | — |
 | **S5** | **La pagina pubblica**, per famiglia, con l'attribuzione — e la riga della fonte nelle mappe AoR che mostrano una shape sostituita. | — |
