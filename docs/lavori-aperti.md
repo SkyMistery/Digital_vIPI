@@ -4158,17 +4158,71 @@ differenza. Dove la differenza non si spiega, è un difetto.
 
 ### V4 🟢 APERTO — «Regole piste» esce «Slope rules» nella vIPI CIVILE d'aeroporto
 
-Visto di striscio durante la verifica §V1, sulla pagina inglese della vIPI civile di Linate: il titolo di
-sezione «Regole piste» è reso **«Slope rules»**.
+Visto durante la verifica §V1, sulla pagina inglese della vIPI civile di Linate: il titolo di sezione
+«Regole piste» è reso **«Slope rules»**. È la stessa resa che il 28 agosto si era chiusa per i titoli del
+profilo **militare** («Piste» → *Slopes*), seminandoli in memoria come **umani**
+(`Vipi.Application/Translation/TitoliUfficiali.cs`). Quel seme copre i **ventisei titoli militari**; i titoli
+del catalogo **civile** non li mette nessuno.
 
-È **la stessa resa sbagliata** che il 28 agosto si era chiusa per i titoli del profilo **militare** — «Piste»
-→ *Slopes* — seminandoli in memoria come **umani** (`TitoliUfficiali`). Quel seme copre i **ventisei titoli
-militari**; i titoli del catalogo **civile** (aeroporto, APP, ACC, vLOA) non li semina nessuno.
+#### ⚠️ La misura, prima di decidere quanto è grosso: è UNA voce
 
-⚠️ **Non è una sfumatura**: «Slope rules» è il nome di una sezione, ed è quello che un controllore cerca
-nell'indice. La correzione è la stessa e sta già scritta: mettere i titoli di catalogo delle altre famiglie
-fra le voci umane del glossario. ⚠️ E vale la trappola nota: le rese **già in memoria** non cambiano da sole
-— dalla pagina del glossario si preme «falle rifare», o i documenti restano com'erano
-([[glossario-fraseologia]], §Q3).
+Interrogata la memoria di traduzione del `vipi.db` di sviluppo su tutti i titoli del catalogo civile
+(29 agosto 2026):
 
-Non toccata in questo giro apposta: è il glossario, non la relazione fra le due edizioni.
+| titolo | resa in memoria | origine | |
+|---|---|---|---|
+| **Regole piste** | ***Slope rules*** | Machine | ⚠️ **sbagliata** |
+| Aree regolamentate | *Regulated areas* | Machine | ok |
+| Configurazioni | *Configurations* | Machine | ok |
+| Coordinamenti | *Coordination* | Machine | ok |
+| Frequenze | *Frequencies* | Machine | ok |
+| Separazioni | *Separations* | Machine | ok |
+| Separazioni radar | *Radar separations* | Machine | ok |
+| AOR · SID · VFR | invariati | Machine | ok, ma **per caso** |
+| MRVA | invariato | **Human** | pinnata a mano il 27-ago |
+| Procedure generali · Validità e revisione | corrette | **Human** | già seminate: coincidono con due titoli militari |
+
+**Su tredici, una sola è sbagliata.** Non è «seminare il catalogo civile»: è **una riga**, più una decisione
+sulle sigle.
+
+#### Che cosa fare
+
+1. **La riga.** In `TitoliUfficiali.Sezioni`, `("Regole piste", "Runway rules")`.
+   ⚠️ Quella tabella oggi si chiama «dai quindici SOP militari» e il suo commento lo dice: aggiungendoci un
+   titolo civile **va riscritto il commento**, o la prossima persona toglie la riga perché «non è di un SOP».
+   La ragione che le tiene insieme non è «militare», è **«di questo titolo conosciamo l'originale»**.
+2. **Le sigle — decisione da prendere, non ovvia.** `AOR`, `SID`, `VFR` oggi tornano invariate ma sono
+   `Machine`: nessuno le protegge, e a un cambio di motore possono diventare altro (`MRVA` è `Human` proprio
+   perché una volta è tornata «Minimum vectoring»). Pinnarle come umane costa tre righe e chiude la classe;
+   lasciarle com'è è una scommessa sul motore. ⚠️ Sono in `Termini`, non in `Sezioni`, se si sceglie di
+   pinnarle: `Sezioni` è documentata come «titoli di sezione», e `SID` è anche una parola dentro le tabelle.
+
+#### ⚠️ Due cose sul meccanismo, e la seconda l'avevo scritta sbagliata
+
+- ✅ **Una voce nuova SOSTITUISCE la resa della macchina, non la scavalca.** `SeminaAsync` confronta con le
+  impronte **umane** (`LoadHumanHashesAsync`) e non con tutte, apposta: «guardando *tutte* il seme non
+  avrebbe corretto niente su un sito che aveva già tradotto — cioè esattamente il caso in cui serve». E
+  `EfTranslationMemory.SaveHumanAsync` fa **upsert**: se la riga c'è, ribalta `Origin` a `Human` e riscrive
+  il testo. Il seme parte a **ogni giro** di traduzione (`TranslationFillHostedService`), prima di chiedere
+  alla macchina, ed è idempotente.
+  ⚠️ **Correzione di quanto scritto la sera del 29 agosto**: qui **NON** serve il tasto «falle rifare». Quel
+  tasto è del **glossario di fraseologia** (§Q3), che è l'altro meccanismo — i termini *dentro* una frase —
+  e lì sì che una voce nuova non tocca ciò che è già in memoria.
+- ⚠️ **I documenti già PUBBLICATI restano com'erano.** La release congela le traduzioni nello snapshot
+  (`ConTraduzioniCongelateAsync`), quindi «Slope rules» resta nelle release in vigore finché il documento non
+  si **ripubblica**. È la stessa trappola di sempre, e qui pesa poco: [[riprendere]] ricorda che **i documenti
+  vanno comunque tutti eliminati e ricreati**.
+
+#### Come si verifica che è fatto
+
+La memoria si guarda direttamente — è la prova più corta e non richiede di pubblicare niente:
+
+```sql
+SELECT SourceText, TargetText, Origin FROM TranslationUnits
+WHERE SourceLang='it' AND TargetLang='en' AND SourceText='Regole piste';
+-- atteso: Runway rules | Human
+```
+
+E a schermo, sulla vIPI civile di un aeroporto **ripubblicato**, in inglese: la sezione si chiama
+*Runway rules*. Il campo di prova buono è **LIML Linate** — durante §V1 ci è stata creata e pubblicata una
+vIPI civile apposta, e la sezione «Regole piste» c'è.

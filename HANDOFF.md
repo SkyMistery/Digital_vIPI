@@ -40,9 +40,13 @@ vSOP militare LIML_TWR  118.100   ← non ripubblicata: tiene il SUO snapshot
 ✅ **Suite: 3 841 su net8, NOVE progetti su nove** (E2E compresi) e altrettanti su net10. **Build Release
 `--no-incremental` a zero avvisi e zero errori** sull'intera soluzione.
 
-⚠️ **Nuovo lavoro aperto §V4**, visto di striscio: nella vIPI **civile** d'aeroporto il titolo «Regole piste»
-esce **«Slope rules»** in inglese — la stessa resa che il 28 agosto si era chiusa per i soli titoli militari.
-È il glossario, non la relazione fra le edizioni: non toccato apposta.
+🟢 **IL PROSSIMO PASSO È §V4, e lo fa il committente.** Nella vIPI **civile** d'aeroporto il titolo «Regole
+piste» esce **«Slope rules»** in inglese — la stessa resa che il 28 agosto si era chiusa per i soli titoli
+militari. **Misurato**: su tredici titoli del catalogo civile ne sbaglia **una**; gli altri la macchina li
+rende bene e le sigle (AOR, SID, VFR) restano invariate ma **per caso**, perché sono `Machine`. Quindi è
+**una riga** in `TitoliUfficiali.Sezioni`, più la decisione se pinnare le sigle.
+⚠️ **Non serve il tasto «falle rifare»** (quello è del glossario di fraseologia): `SeminaAsync` guarda le
+impronte **umane** e `SaveHumanAsync` fa upsert. Istruzioni complete in `docs/lavori-aperti.md` **§V4**.
 
 ✅ **UN SOLO RAMO, LOCALE E REMOTO: `main` = `e694eed0`, spinto.** Il 29 agosto sera sono stati cancellati
 anche i **sette segnalibri** `*-prima-del-merge-*`, verificati uno per uno a `git rev-list --count main..<ramo>`

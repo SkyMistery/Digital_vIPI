@@ -327,3 +327,10 @@ stessa resa sbagliata che il 28 agosto si era chiusa per i titoli del profilo **
 umani (`TitoliUfficiali`): il seme copre i ventisei titoli militari, **non** quelli del catalogo civile.
 Non l'ho toccata — è il glossario, non la relazione fra le due edizioni — ma è scritta come lavoro aperto
 (§V4), perché «Slope rules» è un titolo che un controllore non trova.
+
+⚠️ **Misurata prima di lasciarla lì**, interrogando la memoria di traduzione su tutti i titoli del catalogo
+civile: **su tredici ne sbaglia UNA**. «Aree regolamentate», «Configurazioni», «Coordinamenti»,
+«Frequenze», «Separazioni», «Separazioni radar» la macchina le rende bene; le sigle (AOR, SID, VFR) le lascia
+stare — ma **per caso**, perché sono `Machine` e nessuno le protegge (`MRVA` è `Human` proprio perché una
+volta è tornata «Minimum vectoring»). Quindi §V4 è **una riga**, più una decisione sulle sigle: il conto sta
+lì, per non farla sembrare più grossa di com'è.
