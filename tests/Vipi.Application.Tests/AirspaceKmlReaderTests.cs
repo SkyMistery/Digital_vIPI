@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using Vipi.Application.Airspace;
+using Vipi.Domain;
 
 namespace Vipi.Application.Tests;
 

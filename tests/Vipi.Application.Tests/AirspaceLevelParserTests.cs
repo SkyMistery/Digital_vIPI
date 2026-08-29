@@ -1,4 +1,5 @@
 using Vipi.Application.Airspace;
+using Vipi.Domain;
 
 namespace Vipi.Application.Tests;
 

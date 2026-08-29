@@ -1,66 +1,6 @@
+using Vipi.Domain;
+
 namespace Vipi.Application.Airspace;
-
-/// <summary>
-/// La famiglia di uno spazio aereo: che <b>cosa</b> è, non di che classe. È il perno di tutto il catalogo —
-/// decide che cosa si può agganciare a un settore e che cosa si può mostrare (<see cref="AirspaceFamilies"/>).
-///
-/// <para>⚠️ <b>In coda si aggiunge, in mezzo mai.</b> Come ogni enum di questa applicazione può finire in un
-/// payload serializzato come <b>ordinale</b>: inserire un valore in mezzo rinumera tutti quelli dopo.</para>
-/// </summary>
-public enum AirspaceFamily
-{
-    /// <summary>Zona di controllo d'aeroporto (CTR).</summary>
-    Ctr,
-
-    /// <summary>Area di controllo (CTA), incluse le classi A/C/D che non sono né CTR né ATZ.</summary>
-    Cta,
-
-    /// <summary>Area terminale di manovra (TMA).</summary>
-    Tma,
-
-    /// <summary>Zona di traffico d'aeroporto, civile (ATZ) o militare (MATZ).</summary>
-    Atz,
-
-    /// <summary>Regione informazioni volo (FIR).</summary>
-    Fir,
-
-    /// <summary>Zona a transponder obbligatorio (TMZ/FMC).</summary>
-    Tmz,
-
-    /// <summary>Area regolamentata: <c>R</c>.</summary>
-    Restricted,
-
-    /// <summary>Area vietata: <c>P</c>.</summary>
-    Prohibited,
-
-    /// <summary>Area pericolosa: <c>D</c>.</summary>
-    Danger,
-
-    /// <summary>Area di volo a vela.</summary>
-    Gliding,
-
-    /// <summary>Tutto il resto: acrobazia, airwork, parchi e riserve, TRA, e ciò che non si riconosce.</summary>
-    Other,
-}
-
-/// <summary>Rispetto a che cosa è misurata una quota.</summary>
-public enum AirspaceDatum
-{
-    /// <summary>Il suolo (<c>GND</c>/<c>SFC</c>).</summary>
-    Gnd,
-
-    /// <summary>Piedi sul livello del mare (<c>AMSL</c>).</summary>
-    Amsl,
-
-    /// <summary>Piedi sul terreno (<c>AGL</c>).</summary>
-    Agl,
-
-    /// <summary>Livello di volo (<c>FL</c>).</summary>
-    FlightLevel,
-
-    /// <summary>Illimitato (<c>UNL</c>). Nel file dell'AIP si scrive <c>FL999</c>.</summary>
-    Unlimited,
-}
 
 /// <summary>
 /// Una quota del file: che cosa dice alla lettera (<paramref name="Raw"/>) e che cosa vale.
@@ -139,10 +79,14 @@ public sealed record AirspaceVolumeRead(
 /// <paramref name="PlacemarksRead"/> conta gli spazi aerei incontrati, non i punti d'appoggio (aeroporti,
 /// VOR, NDB), che questo lettore ignora.
 /// </summary>
+/// <para><paramref name="GeneratedUtc"/> è quando AirspaceConverter ha prodotto il file, che lo scrive in
+/// testa: risponde a «di quando è questo file» senza doverlo chiedere a chi lo carica. Null se il file non
+/// lo dice.</para>
 public sealed record AirspaceReadResult(
     IReadOnlyList<AirspaceVolumeRead> Volumes,
     IReadOnlyList<AirspaceIssue> Issues,
-    int PlacemarksRead)
+    int PlacemarksRead,
+    DateTime? GeneratedUtc = null)
 {
     /// <summary>Niente da leggere.</summary>
     public static AirspaceReadResult Vuoto { get; } = new([], [], 0);

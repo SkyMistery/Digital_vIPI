@@ -927,6 +927,186 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("AirportTransitionLevels");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AirspaceImport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AiracCycle")
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("longblob");
+
+                    b.Property<int>("DuplicateKeys")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("varchar(260)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime?>("GeneratedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsCurrent")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("IssuesJson")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("PointCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("UploadedByName")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int?>("UploadedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UploadedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("VolumesRead")
+                        .HasColumnType("int");
+
+                    b.Property<int>("VolumesUsable")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsCurrent");
+
+                    b.HasIndex("Sha256");
+
+                    b.ToTable("AirspaceImports");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AirspaceVolume", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AirspaceClass")
+                        .HasMaxLength(4)
+                        .HasColumnType("varchar(4)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("BaseDatum")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int?>("BaseFeet")
+                        .HasColumnType("int");
+
+                    b.Property<string>("BaseRaw")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Family")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("ImportId")
+                        .HasColumnType("int");
+
+                    b.Property<double>("MaxLat")
+                        .HasColumnType("double");
+
+                    b.Property<double>("MaxLon")
+                        .HasColumnType("double");
+
+                    b.Property<double>("MinLat")
+                        .HasColumnType("double");
+
+                    b.Property<double>("MinLon")
+                        .HasColumnType("double");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("NaturalKey")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("Ordinal")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PointCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PolygonJson")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("RingCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TopDatum")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int?>("TopFeet")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TopRaw")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImportId", "Family");
+
+                    b.HasIndex("ImportId", "NaturalKey", "Ordinal")
+                        .IsUnique();
+
+                    b.ToTable("AirspaceVolumes");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AtcMonthRollup", b =>
                 {
                     b.Property<DateTime>("Month")
@@ -2878,6 +3058,17 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Navigation("Airport");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AirspaceVolume", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.AirspaceImport", "Import")
+                        .WithMany("Volumes")
+                        .HasForeignKey("ImportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Import");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AtcSessionRunway", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.AtcSession", "Session")
@@ -3170,6 +3361,11 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Navigation("Sids");
 
                     b.Navigation("TransitionLevels");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.AirspaceImport", b =>
+                {
+                    b.Navigation("Volumes");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.AtcSession", b =>

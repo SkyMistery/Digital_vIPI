@@ -2760,4 +2760,63 @@
   <data name="Conv_HelpAria" xml:space="preserve"><value>Help on the coordinate converter</value></data>
   <data name="Conv_HelpBody" xml:space="preserve"><value>&lt;p style='margin:0 0 6px'&gt;Paste the coordinates as they are: the format is detected for you.&lt;/p&gt;&lt;p style='margin:0'&gt;For the output pick the &lt;b&gt;IVAO database&lt;/b&gt; or the &lt;b&gt;sectorfile&lt;/b&gt; — and for the sectorfile either the point list or the segments. Lines that cannot be read are listed at the bottom with their line number.&lt;/p&gt;</value></data>
   <data name="Conv_CompareHint" xml:space="preserve"><value>If you cannot see it, the two shapes overlap: the conversion moved nothing.</value></data>
+  <data name="Asp_AdminTitle" xml:space="preserve"><value>Airspaces</value></data>
+  <data name="Asp_AdminNav" xml:space="preserve"><value>Airspaces</value></data>
+  <data name="Asp_AdminSubtitle" xml:space="preserve"><value>AIP airspaces, from the file uploaded by hand.</value></data>
+  <data name="Asp_AdminIntro" xml:space="preserve"><value>&lt;p style='margin:0 0 6px'&gt;The AIP file (KMZ) is uploaded by a person: it holds the real boundaries of CTRs, CTAs, TMAs, ATZs and FIRs.&lt;/p&gt;&lt;p style='margin:0'&gt;Regulated areas (R, P, D) and the other areas are read but &lt;b&gt;not used&lt;/b&gt;: those come from the IVAO catalogue. You declare the AIRAC cycle, because the file does not carry one.&lt;/p&gt;</value></data>
+  <data name="Asp_Upload" xml:space="preserve"><value>Upload file</value></data>
+  <data name="Asp_Reading" xml:space="preserve"><value>Reading the file...</value></data>
+  <data name="Asp_Cycle" xml:space="preserve"><value>AIRAC cycle</value></data>
+  <data name="Asp_CyclePh" xml:space="preserve"><value>AIRAC</value></data>
+  <data name="Asp_CycleTitle" xml:space="preserve"><value>The cycle this file is valid from (e.g. 2609). The file does not say: you declare it.</value></data>
+  <data name="Asp_NoImport" xml:space="preserve"><value>No file uploaded yet. Upload the AIP KMZ to fill the catalogue.</value></data>
+  <data name="Asp_NothingRead" xml:space="preserve"><value>There is no airspace in this file: check you picked the right KMZ.</value></data>
+  <data name="Asp_TooBig" xml:space="preserve"><value>The file is over the size limit</value></data>
+  <data name="Asp_Loaded" xml:space="preserve"><value>Uploaded: {0} volumes read, {1} usable, {2} duplicate keys.</value></data>
+  <data name="Asp_Search" xml:space="preserve"><value>Search an airspace</value></data>
+  <data name="Asp_SearchPh" xml:space="preserve"><value>Search by name...</value></data>
+  <data name="Asp_Family" xml:space="preserve"><value>Family</value></data>
+  <data name="Asp_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Asp_Band" xml:space="preserve"><value>Base and top</value></data>
+  <data name="Asp_Class" xml:space="preserve"><value>Class</value></data>
+  <data name="Asp_Points" xml:space="preserve"><value>Points</value></data>
+  <data name="Asp_Usable" xml:space="preserve"><value>Usable</value></data>
+  <data name="Asp_Yes" xml:space="preserve"><value>Yes</value></data>
+  <data name="Asp_No" xml:space="preserve"><value>No</value></data>
+  <data name="Asp_Empty" xml:space="preserve"><value>No airspace matches these filters.</value></data>
+  <data name="Asp_Truncated" xml:space="preserve"><value>Showing {0}: narrow it down with the search or the families.</value></data>
+  <data name="Asp_UsableOf" xml:space="preserve"><value>{0} usable out of {1} read</value></data>
+  <data name="Asp_FamilyUsable" xml:space="preserve"><value>Can be bound to a sector and displayed.</value></data>
+  <data name="Asp_FamilyNotUsable" xml:space="preserve"><value>Not used: regulated areas and the other areas come from the IVAO catalogue.</value></data>
+  <data name="Asp_Imports" xml:space="preserve"><value>Uploads</value></data>
+  <data name="Asp_File" xml:space="preserve"><value>File</value></data>
+  <data name="Asp_Generated" xml:space="preserve"><value>Generated</value></data>
+  <data name="Asp_Uploaded" xml:space="preserve"><value>Uploaded</value></data>
+  <data name="Asp_Volumes" xml:space="preserve"><value>Volumes</value></data>
+  <data name="Asp_InForce" xml:space="preserve"><value>in force</value></data>
+  <data name="Asp_SetCurrent" xml:space="preserve"><value>Put in force</value></data>
+  <data name="Asp_SetCurrentTitle" xml:space="preserve"><value>Go back to this upload: bound sectors take its boundaries again.</value></data>
+  <data name="Asp_SetCurrentDone" xml:space="preserve"><value>Upload put in force.</value></data>
+  <data name="Asp_Delete" xml:space="preserve"><value>Delete the upload</value></data>
+  <data name="Asp_DeletePrompt" xml:space="preserve"><value>Delete “{0}” and all its volumes?</value></data>
+  <data name="Asp_Deleted" xml:space="preserve"><value>Upload deleted.</value></data>
+  <data name="Asp_Issues" xml:space="preserve"><value>Reader warnings</value></data>
+  <data name="Asp_Attribution" xml:space="preserve"><value>Boundaries from AirspaceConverter (alus.it) over Italian AIP data. The data does not replace the AIP and is not for commercial use.</value></data>
+  <data name="Asp_Fam_Ctr" xml:space="preserve"><value>CTR</value></data>
+  <data name="Asp_Fam_Cta" xml:space="preserve"><value>CTA</value></data>
+  <data name="Asp_Fam_Tma" xml:space="preserve"><value>TMA</value></data>
+  <data name="Asp_Fam_Atz" xml:space="preserve"><value>ATZ/MATZ</value></data>
+  <data name="Asp_Fam_Fir" xml:space="preserve"><value>FIR</value></data>
+  <data name="Asp_Fam_Tmz" xml:space="preserve"><value>TMZ</value></data>
+  <data name="Asp_Fam_Restricted" xml:space="preserve"><value>R areas</value></data>
+  <data name="Asp_Fam_Prohibited" xml:space="preserve"><value>P areas</value></data>
+  <data name="Asp_Fam_Danger" xml:space="preserve"><value>D areas</value></data>
+  <data name="Asp_Fam_Gliding" xml:space="preserve"><value>Gliding</value></data>
+  <data name="Asp_Fam_Other" xml:space="preserve"><value>Other areas</value></data>
+  <data name="Asp_Issue_FileNonLetto" xml:space="preserve"><value>File not read</value></data>
+  <data name="Asp_Issue_VolumeSenzaAnello" xml:space="preserve"><value>Volume with no outline</value></data>
+  <data name="Asp_Issue_VolumeSenzaNome" xml:space="preserve"><value>Volume with no name</value></data>
+  <data name="Asp_Issue_ChiaveDuplicata" xml:space="preserve"><value>Duplicate key</value></data>
+  <data name="Asp_Issue_QuotaNonLetta" xml:space="preserve"><value>Level not understood</value></data>
+  <data name="Asp_Issue_VolumeAPiuAnelli" xml:space="preserve"><value>Volume with several outlines</value></data>
 </root>

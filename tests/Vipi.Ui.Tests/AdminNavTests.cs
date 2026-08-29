@@ -56,12 +56,13 @@ public class AdminNavTests : TestContext
         var cut = Render(VipiRole.Admin);
 
         var nav = cut.Find("nav.admin-nav");
-        // 15 dal 30 agosto 2026: l'anagrafica delle radioassistenze.
-        Assert.Equal(15, nav.QuerySelectorAll(".an-link").Length);
+        // 16 dal 29 agosto 2026: il catalogo degli spazi aerei dell'AIP.
+        Assert.Equal(16, nav.QuerySelectorAll(".an-link").Length);
         Assert.Contains("/services/vsop/admin/sector-structure", cut.Markup);
         Assert.Contains("/services/vsop/admin/translations", cut.Markup);
         Assert.Contains("/services/vsop/admin/glossary", cut.Markup);
         Assert.Contains("/services/vsop/admin/navaids", cut.Markup);
+        Assert.Contains("/services/vsop/admin/airspace", cut.Markup);
         Assert.Contains("/services/vsop/admin/pending", cut.Markup);
         Assert.Contains("/services/vsop/admin/diagnostics", cut.Markup);
     }
@@ -107,7 +108,7 @@ public class AdminNavTests : TestContext
 
     /// <summary>
     /// ⚠️ <b>Il cancello, pagina per pagina.</b> È la rete della slice 5: se domani qualcuno abbassa (o alza)
-    /// una voce senza volerlo, qui si vede — e si vede <b>quale</b>. Le dieci voci dell'Editor sono il
+    /// una voce senza volerlo, qui si vede — e si vede <b>quale</b>. Le undici voci dell'Editor sono il
     /// contenuto documentale; le cinque dell'admin toccano import, sicurezza e diagnosi.
     /// </summary>
     [Theory]
@@ -150,14 +151,15 @@ public class AdminNavTests : TestContext
         return ctx.RenderComponent<AdminNav>().Markup;
     }
 
-    /// <summary>Un editor vede le sue dieci voci e nessuna delle cinque dell'admin.</summary>
+    /// <summary>Un editor vede le sue undici voci e nessuna delle cinque dell'admin.</summary>
     [Fact]
-    public void Un_editor_vede_dieci_voci()
+    public void Un_editor_vede_undici_voci()
     {
         var cut = Render(VipiRole.Editor, url: "http://localhost/services/vsop/versions");
 
-        // 10 dal 30 agosto 2026: l'anagrafica delle radioassistenze, che è contenuto documentale.
-        Assert.Equal(10, cut.Find("nav.admin-nav").QuerySelectorAll(".an-link").Length);
+        // 11 dal 29 agosto 2026: il catalogo degli spazi aerei, che e' contenuto documentale come le
+        // radioassistenze: chi cura una vIPI aggancia il CTR vero al suo avvicinamento.
+        Assert.Equal(11, cut.Find("nav.admin-nav").QuerySelectorAll(".an-link").Length);
         Assert.DoesNotContain("/services/vsop/admin/permissions", cut.Markup);
         Assert.DoesNotContain("/services/vsop/admin/diagnostics", cut.Markup);
     }

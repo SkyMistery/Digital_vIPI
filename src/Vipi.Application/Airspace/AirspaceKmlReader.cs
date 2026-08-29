@@ -1,5 +1,6 @@
 using System.Xml.Linq;
 using Vipi.Application.Coordinates;
+using Vipi.Domain;
 
 namespace Vipi.Application.Airspace;
 
@@ -89,7 +90,24 @@ public static class AirspaceKmlReader
         if (quanti == 0)
             segnalazioni.Add(new AirspaceIssue(AirspaceIssueKind.FileNonLetto, "", "nessuno spazio aereo nel file"));
 
-        return new AirspaceReadResult(volumi, segnalazioni, quanti);
+        return new AirspaceReadResult(volumi, segnalazioni, quanti, DataDiGenerazione(xml));
+    }
+
+    // AirspaceConverter lo scrive in un commento in testa al file: «This file was created on: Wed 15 July
+    // 2026 at 18:30:49 UTC». Non e' un dato del dominio ma la risposta a «di quando e' questo file», e
+    // chiederla a chi carica quando il file ce l'ha gia' scritta sarebbe un modo di farsela dire sbagliata.
+    private static readonly System.Text.RegularExpressions.Regex Generato =
+        new(@"created on:\s*(?:\w{3}\s+)?(\d{1,2}\s+\w+\s+\d{4})\s+at\s+(\d{2}:\d{2}:\d{2})",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    private static DateTime? DataDiGenerazione(string xml)
+    {
+        var m = Generato.Match(xml.Length > 4096 ? xml[..4096] : xml);   // sta in testa, non si scandisce 12 MB
+        if (!m.Success) return null;
+        return DateTime.TryParse($"{m.Groups[1].Value} {m.Groups[2].Value}",
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal,
+            out var quando) ? quando : null;
     }
 
     /// <summary>
