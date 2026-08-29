@@ -2639,4 +2639,16 @@
   <data name="Conv_MapTitle" xml:space="preserve"><value>The map</value></data>
   <data name="Conv_MapHint" xml:space="preserve"><value>The chips switch areas on and off. The map does not change the coordinates: it shows them.</value></data>
   <data name="Conv_Compare" xml:space="preserve"><value>Also show the reconverted shape (dashed)</value></data>
+  <data name="Conv_Closed" xml:space="preserve"><value>closed ring</value></data>
+  <data name="Conv_Open" xml:space="preserve"><value>open line</value></data>
+  <data name="Conv_Perimeter" xml:space="preserve"><value>perimeter {0} NM</value></data>
+  <data name="Conv_Area" xml:space="preserve"><value>area {0} NM²</value></data>
+  <data name="Conv_RoundTripExact" xml:space="preserve"><value>round trip exact</value></data>
+  <data name="Conv_RoundTripError" xml:space="preserve"><value>round trip: {0} m off</value></data>
+  <data name="Conv_RoundTripCount" xml:space="preserve"><value>⚠️ reading the output back gives {0} points</value></data>
+  <data name="Conv_RoundTripLost" xml:space="preserve"><value>⚠️ the output cannot be read back</value></data>
+  <data name="Conv_Reverse" xml:space="preserve"><value>Reverse</value></data>
+  <data name="Conv_ReverseHint" xml:space="preserve"><value>Reverses the ring direction (clockwise ↔ counter-clockwise)</value></data>
+  <data name="Conv_Rotate" xml:space="preserve"><value>Rotate</value></data>
+  <data name="Conv_RotateHint" xml:space="preserve"><value>Moves the starting vertex of the list by one</value></data>
 </root>

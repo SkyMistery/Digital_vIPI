@@ -175,12 +175,33 @@
                             <textarea class="conv-ta conv-out" rows="@(_esito.Aree.Count > 1 ? 8 : 14)" readonly
                                       aria-label="@L["Conv_OutputTitle"]">@Uscita(area)</textarea>
 
+                            @* Il righello: con un errore di incolla il perimetro diventa assurdo e si vede
+                               subito, mentre un elenco di coordinate sbagliate sembra un elenco di coordinate. *@
+                            <p class="muted conv-righello">
+                                @L["Conv_Points", area.Punti.Count]
+                                · @(area.AnelloChiuso ? L["Conv_Closed"] : L["Conv_Open"])
+                                · @L["Conv_Perimeter", Misura(CoordinateGeometry.PerimetroNm(area.Punti, area.AnelloChiuso))]
+                                @if (area.Punti.Count >= 3)
+                                {
+                                    <text> · @L["Conv_Area", Misura(CoordinateGeometry.AreaNm2(area.Punti))]</text>
+                                }
+                                · @Ritorno(area)
+                            </p>
+
                             <div class="conv-actions">
                                 <button type="button" class="btn primary" @onclick="() => Copia(idx, area)">
                                     <Icon Name="copy" Size="14" /> @(_copiata == idx ? L["Conv_Copied"] : L["Conv_Copy"])
                                 </button>
                                 <button type="button" class="btn ghost" @onclick="() => Scarica(area)">
                                     <Icon Name="arrow-down" Size="14" /> @L["Conv_Download"]
+                                </button>
+                                <button type="button" class="btn ghost" title="@L["Conv_ReverseHint"]"
+                                        @onclick="() => Inverti(idx)">
+                                    <Icon Name="refresh" Size="14" /> @L["Conv_Reverse"]
+                                </button>
+                                <button type="button" class="btn ghost" title="@L["Conv_RotateHint"]"
+                                        @onclick="() => Ruota(idx)">
+                                    <Icon Name="arrow-up" Size="14" /> @L["Conv_Rotate"]
                                 </button>
                             </div>
                         </div>
@@ -273,9 +294,60 @@
     /// <summary>La prima area: serve al campo del nome, che esiste solo quando l'area è una sola.</summary>
     private CoordinateArea? Area => _esito.Aree.Count > 0 ? _esito.Aree[0] : null;
 
+    /// <summary>
+    /// I gesti applicati a ogni area: se il verso è invertito, e di quanto è ruotato il primo vertice.
+    /// ⚠️ Non si toccano i punti letti: l'esito del lettore resta quello che è, e il gesto è una LENTE sopra.
+    /// Così tornare indietro è togliere il gesto, non ricostruire il dato.
+    /// </summary>
+    private readonly Dictionary<int, (bool Inverso, int Rotazione)> _gesti = [];
+
     /// <summary>Le aree accese, in ordine, col loro indice — che è la chiave del riquadro e della chip.</summary>
     private List<(int Indice, CoordinateArea Area)> Accese =>
-        _esito.Aree.Select((a, i) => (Indice: i, Area: a)).Where(x => _accese.Contains(x.Indice)).ToList();
+        _esito.Aree.Select((a, i) => (Indice: i, Area: ConGesti(i, a)))
+                   .Where(x => _accese.Contains(x.Indice)).ToList();
+
+    /// <summary>L'area come si vede dopo i gesti. Senza gesti è la stessa, senza copie inutili.</summary>
+    private CoordinateArea ConGesti(int i, CoordinateArea a)
+    {
+        if (!_gesti.TryGetValue(i, out var g) || (!g.Inverso && g.Rotazione == 0)) return a;
+
+        var punti = g.Inverso ? CoordinateGeometry.Inverti(a.Punti, a.AnelloChiuso) : a.Punti;
+        punti = CoordinateGeometry.Ruota(punti, g.Rotazione);
+        return a with { Punti = punti };
+    }
+
+    private void Inverti(int i)
+    {
+        var g = _gesti.GetValueOrDefault(i);
+        _gesti[i] = (!g.Inverso, g.Rotazione);
+        _copiata = null;
+    }
+
+    private void Ruota(int i)
+    {
+        var g = _gesti.GetValueOrDefault(i);
+        _gesti[i] = (g.Inverso, g.Rotazione + 1);
+        _copiata = null;
+    }
+
+    /// <summary>Il numero come si legge: due decimali finché è piccolo, nessuno quando è grande.</summary>
+    private static string Misura(double v) => v >= 100 ? v.ToString("0") : v.ToString("0.##");
+
+    /// <summary>
+    /// L'andata e ritorno in una frase: si riconverte l'uscita e si dice di quanto ci si è spostati. È la
+    /// prova che il committente può fare a colpo d'occhio, senza fidarsi di me.
+    /// </summary>
+    private string Ritorno(CoordinateArea area)
+    {
+        var tornata = CoordinateParser.Parse(Uscita(area)).Aree.FirstOrDefault();
+        if (tornata is null) return L["Conv_RoundTripLost"];
+
+        var errore = CoordinateGeometry.ErroreMassimoMetri(area.Punti, tornata.Punti);
+        if (errore is null) return L["Conv_RoundTripCount", tornata.Punti.Count];
+
+        // Sotto il decimetro è «zero» per chiunque: il DMS ha la risoluzione del millisecondo d'arco (~3 cm).
+        return errore < 0.1 ? L["Conv_RoundTripExact"] : L["Conv_RoundTripError", Misura(errore.Value)];
+    }
 
     /// <summary>Il nome scritto a mano vince; altrimenti quello che l'ingresso sapeva già dire.</summary>
     private string NomeEffettivo => _nome ?? Area?.Nome ?? "";
@@ -306,6 +378,7 @@
     private void Riaccendi()
     {
         _accese.Clear();
+        _gesti.Clear();
         for (var i = 0; i < _esito.Aree.Count; i++) _accese.Add(i);
         _copiata = null;
     }

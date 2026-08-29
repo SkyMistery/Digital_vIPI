@@ -2645,4 +2645,16 @@
   <data name="Conv_MapTitle" xml:space="preserve"><value>La mappa</value></data>
   <data name="Conv_MapHint" xml:space="preserve"><value>Le chip accendono e spengono le aree. La mappa non modifica le coordinate: le mostra.</value></data>
   <data name="Conv_Compare" xml:space="preserve"><value>Mostra anche la forma riconvertita (tratteggiata)</value></data>
+  <data name="Conv_Closed" xml:space="preserve"><value>anello chiuso</value></data>
+  <data name="Conv_Open" xml:space="preserve"><value>linea aperta</value></data>
+  <data name="Conv_Perimeter" xml:space="preserve"><value>perimetro {0} NM</value></data>
+  <data name="Conv_Area" xml:space="preserve"><value>area {0} NM²</value></data>
+  <data name="Conv_RoundTripExact" xml:space="preserve"><value>andata e ritorno esatti</value></data>
+  <data name="Conv_RoundTripError" xml:space="preserve"><value>andata e ritorno: {0} m di scarto</value></data>
+  <data name="Conv_RoundTripCount" xml:space="preserve"><value>⚠️ rileggendo l'uscita i punti diventano {0}</value></data>
+  <data name="Conv_RoundTripLost" xml:space="preserve"><value>⚠️ l'uscita non si rilegge</value></data>
+  <data name="Conv_Reverse" xml:space="preserve"><value>Inverti</value></data>
+  <data name="Conv_ReverseHint" xml:space="preserve"><value>Inverte il verso dell'anello (orario ↔ antiorario)</value></data>
+  <data name="Conv_Rotate" xml:space="preserve"><value>Ruota</value></data>
+  <data name="Conv_RotateHint" xml:space="preserve"><value>Sposta di uno il vertice da cui l'elenco comincia</value></data>
 </root>

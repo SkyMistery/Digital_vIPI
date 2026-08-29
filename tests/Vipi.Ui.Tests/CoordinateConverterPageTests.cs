@@ -286,4 +286,100 @@ public class CoordinateConverterPageTests
         // ⚠️ È il caso d'uso più comune di tutti, ed è quello che il proiettore da solo non sa disegnare.
         Assert.NotEmpty(cut.FindAll(".conv-map .aor-leaflet"));
     }
+
+    // ---- Il righello, l'andata e ritorno e i gesti (slice 8) ----
+
+    private const string Triangolo = "42:11\n42.5:11.5\n41.5:11.5";
+
+    [Fact]
+    public void Il_Righello_Dice_Punti_Chiusura_Perimetro_E_Area()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+
+        cut.Find("textarea.conv-ta").Input(Triangolo);
+
+        var righello = cut.Find(".conv-righello").TextContent;
+        Assert.Contains("Conv_Points", righello);
+        Assert.Contains("Conv_Perimeter", righello);
+        Assert.Contains("Conv_Area", righello);
+    }
+
+    [Fact]
+    public void L_Andata_E_Ritorno_Dell_Esempio_Del_Committente_E_Esatta()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+
+        cut.Find("textarea.conv-ta").Input(
+            "42.00777778:11.96833333\n41.99055556:11.98333333\n41.94472222:11.98888889\n" +
+            "41.91666667:11.95833333\n41.975:11.92");
+
+        // La prova che il committente puo' fare a colpo d'occhio, senza fidarsi di me.
+        Assert.Contains("Conv_RoundTripExact", cut.Find(".conv-righello").TextContent);
+    }
+
+    [Fact]
+    public void Invertire_Un_Anello_Ne_Cambia_Il_Verso_E_Basta()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+        // ⚠️ Anello CHIUSO: l'ultimo vertice ripete il primo, ed è così che l'ingresso dice «è un anello».
+        cut.Find("textarea.conv-ta").Input(Triangolo + "\n42:11");
+        var prima = cut.Find("textarea.conv-out").TextContent.Split('\n');
+
+        cut.FindAll(".conv-actions button").ToArray()[2].Click();   // Inverti
+
+        var dopo = cut.Find("textarea.conv-out").TextContent.Split('\n');
+        Assert.Equal(prima.Length, dopo.Length);
+        // Il primo vertice resta il primo: spostarlo è l'altro gesto, e i due devono restare indipendenti.
+        Assert.Equal(prima[0], dopo[0]);
+        Assert.Equal(prima[1], dopo[^1]);
+        Assert.Equal(prima[^1], dopo[1]);
+    }
+
+    [Fact]
+    public void Invertire_Una_Linea_Aperta_La_Percorre_Dall_Altro_Capo()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+        cut.Find("textarea.conv-ta").Input(Triangolo);   // tre punti che NON tornano sul primo
+        var prima = cut.Find("textarea.conv-out").TextContent.Split('\n');
+
+        cut.FindAll(".conv-actions button").ToArray()[2].Click();   // Inverti
+
+        var dopo = cut.Find("textarea.conv-out").TextContent.Split('\n');
+        // Qui il primo punto è un CAPO, e invertire vuol dire cominciare dall'altro.
+        Assert.Equal(prima[^1], dopo[0]);
+        Assert.Equal(prima[0], dopo[^1]);
+    }
+
+    [Fact]
+    public void Ruotare_Sposta_Il_Vertice_Da_Cui_Si_Comincia()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+        cut.Find("textarea.conv-ta").Input(Triangolo);
+        var prima = cut.Find("textarea.conv-out").TextContent.Split('\n');
+
+        cut.FindAll(".conv-actions button").ToArray()[3].Click();   // Ruota
+
+        var dopo = cut.Find("textarea.conv-out").TextContent.Split('\n');
+        Assert.Equal(prima[1], dopo[0]);
+        Assert.Equal(prima[0], dopo[^1]);
+    }
+
+    [Fact]
+    public void Un_Ingresso_Nuovo_Dimentica_I_Gesti()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+        cut.Find("textarea.conv-ta").Input(Triangolo);
+        var prima = cut.Find("textarea.conv-out").TextContent;
+        cut.FindAll(".conv-actions button").ToArray()[2].Click();   // Inverti
+
+        cut.Find("textarea.conv-ta").Input(Triangolo);
+
+        Assert.Equal(prima, cut.Find("textarea.conv-out").TextContent);
+    }
 }
