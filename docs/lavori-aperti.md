@@ -4731,9 +4731,12 @@ allo stesso prezzo.
 ⚠️ Va a capo con un **flex**, senza `@media` e senza `@container`: la soglia la calcola il layout, che lo
 `zoom` dell'applicazione lo vede.
 
-### Z2 🟢 APERTO — il ramo NON è fuso
+### Z2 ✅ CHIUSA — fuso in `main`
 
-`quote-transizione-colonna-destra`, sopra `main`. Fondere è una decisione del committente.
+`quote-transizione-colonna-destra` è entrato in `main` il 29 agosto per **avanzamento diretto** (`main` era
+interamente contenuto nel ramo: zero commit suoi fuori, nessun conflitto, nessun commit di fusione finto), e
+il ramo è stato **cancellato** da locale e da `origin`. Build Release `--no-incremental` e suite completa
+verdi **dopo** la fusione, che è l'unico momento in cui la prova conta.
 
 ### Z3 ⚠️ VISTO, NON TOCCATO — due cose che stanno lì da prima
 

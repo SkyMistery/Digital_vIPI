@@ -2,7 +2,8 @@
 
 > **Da dove nasce:** osservazione del committente — «la tabella con le transition altitude occupa solo mezza
 > pagina, con l'altra metà vuota».
-> **Ramo:** `quote-transizione-colonna-destra`. **Nessuna migrazione.** **7 test nuovi.**
+> **Ramo:** `quote-transizione-colonna-destra`, ✅ **fuso in `main`** il 29 agosto (avanzamento diretto) e
+> cancellato. **Nessuna migrazione.** **7 test nuovi.**
 
 ## 1. Il difetto, misurato
 
