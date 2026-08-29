@@ -4404,7 +4404,8 @@ entrare un'eccezione, e da lì in poi non avrebbe più protetto nessuno. Carta �
 ## Y. Le tabelle del vSOP militare — 29 agosto 2026, notte
 
 > **Carta:** [`docs/feature/2026-08-27-vsop-militari.md`](feature/2026-08-27-vsop-militari.md) **§12**
-> (12a il payload nei figli, 12b le decisioni del committente, 12c le soglie pista, 12d l'ordine dei lavori).
+> (12a il payload nei figli, 12a-bis l'indice, 12b le decisioni del committente, 12c le soglie pista,
+> 12e le radioassistenze, 12f gli alternati).
 
 Otto richieste del committente sulle sezioni del vSOP militare: sette diventano **tabelle** al posto della
 prosa libera, una è l'indice. L'ottava — il BOAT — è stata **ritirata dal committente** dopo un ricontrollo,
@@ -4481,7 +4482,7 @@ Sorgenti direbbe «ultimo giro riuscito: adesso» su un giro che non ha letto ni
 **67 test nuovi**, due migrazioni (SQLite + MySQL). Verdi: Application **1 597**, Ui **864**,
 Infrastructure **1 017**, Domain 117, Assets 52, Hosting 57; Release verde su entrambi i TFM.
 
-### Y2-ter ✅ CHIUSA — gli aeroporti alternati (S3)
+### Y3 ✅ CHIUSA — gli aeroporti alternati (S3)
 
 Quattro colonne: aeroporto (ICAO e nome), radioassistenze nella forma `MNL VORTACAN - 99Y (115.25)`,
 rilevamento e distanza — scritti come **numeri**, con l'unità messa dalla resa.
@@ -4504,7 +4505,7 @@ legittima solo se lo stesso codice esiste con più nature (`DEC` è un VOR *e* u
 
 **27 test nuovi**, nessuna migrazione. Verdi: Application **1 619**, Ui **864**, Infrastructure **1 022**.
 
-### Y3 ✅ CHIUSA — le coordinate delle soglie pista (S4)
+### Y4 ✅ CHIUSA — le coordinate delle soglie pista (S4)
 
 I tre campi (lat, lon, elevazione) risalgono la catena `RunwayDto` → `SourceRunway` → entità → vista, e il
 vSOP militare li mostra in una **seconda tabella** sotto quella delle piste — a parte, perché quella ha già
@@ -4520,7 +4521,7 @@ conservazione sta nel **repository**, non nella buona memoria del chiamante.
 
 **8 test nuovi**, due migrazioni: quelle in coda diventano **VENTICINQUE**.
 
-### Y2-bis 🟢 DA FARE — le tabelle che restano
+### Y5 🟢 DA FARE — le tabelle che restano
 
 `S5`/`S6`/`S7` nominativi, parcheggi, attività delle aree → reti e lingua → verifica a schermo su
 **LIMN Cameri**, più il giro di **re-import** che riempie le soglie.
@@ -4528,17 +4529,7 @@ conservazione sta nel **repository**, non nella buona memoria del chiamante.
 ⚠️ Le sezioni passano a `HostAndBlocks`, **non** a `Host`: con `Host` sparirebbe dallo schermo la prosa dei
 SOP già caricata.
 
-### Y3 🟡 DA FARE — le coordinate delle soglie: **una migrazione, e un re-import**
-
-Verificato sul filo: `/v2/airports/{icao}/runways` manda **latitudine, longitudine ed elevazione** per ogni
-soglia, e `RunwayDto` ne mappa quattro campi su otto. ⚠️ Le migrazioni in coda al cutover MariaDB diventano
-**VENTICINQUE**, contando quella delle radioassistenze.
-
-⚠️ **La tabella nasce vuota su tutti i campi**: l'import piste è per-aeroporto e non automatico. Dopo la
-migrazione serve un giro col bottone bulk di `/services/vsop/admin/airports`, o le soglie non compaiono e
-sembrerà un difetto.
-
-### Y4 ✅ CHIUSA — i due rami sono stati fusi in `main`
+### Y6 ✅ CHIUSA — i due rami sono stati fusi in `main`
 
 Questo lavoro nasceva su `edizione-giusta-per-il-campo`, che nasce sopra `convertitore-coordinate`: nessuno
 dei due era fuso, e S2 userà `Vipi.Application/Coordinates` — il DMS del convertitore — per validare le
