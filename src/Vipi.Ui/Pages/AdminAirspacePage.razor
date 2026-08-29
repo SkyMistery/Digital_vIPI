@@ -39,8 +39,13 @@
         @if (PuoScrivere)
         {
             <nav class="struct-nav asp-upload">
+                @* ⚠️ `@bind:event="oninput"`, non il `change` di default: il `change` scatta al FUOCO PERSO,
+                   e qui il gesto successivo è scegliere un file — che apre una finestra di sistema. La
+                   verifica dal vivo del 29 agosto ha caricato il file col ciclo digitato e l'ha salvato
+                   NULLO. Lo stesso motivo per cui il campo di ricerca, due righe più sotto, lo fa già. *@
                 <input class="asp-cycle" maxlength="8" placeholder="@L["Asp_CyclePh"]"
-                       aria-label="@L["Asp_Cycle"]" title="@L["Asp_CycleTitle"]" @bind="_ciclo" />
+                       aria-label="@L["Asp_Cycle"]" title="@L["Asp_CycleTitle"]"
+                       @bind="_ciclo" @bind:event="oninput" />
                 <label class="btn ghost asp-file">
                     <Icon Name="file" Size="14" /> @L["Asp_Upload"]
                     <InputFile OnChange="CaricaAsync" accept=".kmz,.kml" disabled="@_busy"

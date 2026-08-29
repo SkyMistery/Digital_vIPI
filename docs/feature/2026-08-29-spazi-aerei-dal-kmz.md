@@ -1,6 +1,6 @@
 # Gli spazi aerei dell'AIP: un file caricato a mano (29 agosto 2026)
 
-> Stato: **carta approvata, codice da scrivere.** Ramo previsto: `spazi-aerei-aip`.
+> Stato: **S1, S2 e S3 fatte e verificate dal vivo** (29 agosto 2026). Ramo `spazi-aerei-aip`, spinto e **non fuso**. Restano S4 (l'ATZ per le torri), S5 (la pagina pubblica), S6 (il convertitore) e S7 (il rapporto radioassistenze).
 > Origine: richiesta del committente del 29 agosto 2026, e le nove risposte della stessa sera.
 
 ## 1. Perché
@@ -231,3 +231,32 @@ S1–S3 sono la richiesta e stanno in un ramo solo. **Due migrazioni**: la coda 
 - ⚠️ **`ShapeSource` è un ordinale nel payload di release**: il valore nuovo va **in coda**.
 - ⚠️ **Il `KmlReader` non deve cambiare comportamento** per il convertitore: il metodo degli spazi
   aerei è nuovo e affiancato, e i test del convertitore restano quelli.
+
+## 11. La verifica dal vivo (29 agosto 2026, sera)
+
+Host in Development su una copia del `vipi.db` reale, Edge guidato con puppeteer-core, e il **file vero**
+caricato dalla pagina.
+
+**Quel che ha funzionato**, e non era scontato:
+
+| passo | esito |
+|---|---|
+| lettura del KMZ da 1,3 MB dalla pagina | **3,2 secondi**, dalla scelta del file alla tabella a schermo |
+| conteggi | **1 536 letti, 362 utilizzabili, 3 chiavi in doppio, 144 892 punti** — gli stessi della misura |
+| famiglie in chip | CTR 114 · CTA 112 · TMA 30 · ATZ/MATZ 94 · FIR 3 · TMZ 9, più le non utilizzabili con detto perché |
+| il caso vero | cercando «CATANIA CTR» escono **sette** zone, con le loro bande |
+| l'aggancio | le sette spuntate, `LICC_APP` scelto fra 211 settori, salvato con chi e quando |
+| **la mappa** | la vIPI pubblica di Catania disegna **sette anelli**, e l'editor pure |
+| errori di console | **zero**, su tutte e quattro le pagine |
+
+**Il difetto che ha trovato.** Il **ciclo AIRAC digitato non veniva salvato**: `@bind` di default scrive al
+**fuoco perso**, e qui il gesto subito successivo è scegliere un file — che apre una finestra di sistema. Il
+caricamento è finito in archivio con `AiracCycle` nullo. Corretto con `@bind:event="oninput"`, che è quel che
+il campo di ricerca due righe più sotto faceva già. ⚠️ Nessun test lo vedeva, e non poteva: è una regola di
+quando Blazor propaga il valore, non di che cosa il codice fa con esso.
+
+**Una cosa da sapere per l'esercizio.** Su `LICC_APP` la mappa pubblica ha mostrato le sette zone
+**subito**, perché la sua release aveva la sezione AoR con `BodyJson` nullo — cioè non congelata — e il
+viewer è caduto sulla derivazione viva. Dove invece una release **congela** l'AoR, l'aggancio si vede sulla
+pagina pubblica solo dopo aver **ripubblicato**: è la stessa regola del ciclo AIRAC della vLOA, e non un
+comportamento nuovo.
