@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Vipi.Domain.Entities;
 
 namespace Vipi.Application.Abstractions;
@@ -12,10 +13,14 @@ public sealed record NavaidRow(
     NavaidFieldOrigin FrequencyOrigin, NavaidFieldOrigin ChannelOrigin, NavaidFieldOrigin CoordinatesOrigin,
     DateTime? UpdatedUtc, int? UpdatedByUserId)
 {
+    // ⚠️ Fuori dal JSON: questa riga finisce negli SNAPSHOT di release, e una proprietà calcolata scritta
+    // dentro è un valore che al ricarico non torna indietro — cioè due verità sulla stessa cosa.
+    [JsonIgnore]
     public string Type => string.IsNullOrWhiteSpace(DisplayType) ? Kind : DisplayType!;
 
     /// <summary>Vero se questa riga la manda il sectorfile, anche solo per un campo: è la riga che non si
     /// può eliminare a mano, perché il giro dopo tornerebbe.</summary>
+    [JsonIgnore]
     public bool DallaSorgente =>
         FrequencyOrigin == NavaidFieldOrigin.Source || ChannelOrigin == NavaidFieldOrigin.Source
         || CoordinatesOrigin == NavaidFieldOrigin.Source;

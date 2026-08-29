@@ -1,4 +1,5 @@
-﻿using Vipi.Domain;
+﻿using Vipi.Application.Abstractions;
+using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -116,4 +117,33 @@ public interface IMilitaryDocumentService
     /// </summary>
     Task<IReadOnlyList<AccSpecialAreaView>> ResolveRegulatedAreasAsync(
         RegulatedSelection selection, CancellationToken ct = default);
+
+    /// <summary>
+    /// Le radioassistenze citate dalla sezione «Radioassistenze», <b>nell'ordine del documento</b> e con i
+    /// valori presi dall'anagrafica di divisione. È la lettura dell'EDITOR: legge la versione di lavoro.
+    /// </summary>
+    Task<IReadOnlyList<NavaidRow>> GetNavaidsAsync(string icao, CancellationToken ct = default);
+
+    /// <summary>Salva quali radioassistenze cita il documento, e in che ordine. ⚠️ Qui <b>non</b> si salvano
+    /// i loro valori: quelli stanno nell'anagrafica, e ci si scrive con <see cref="INavaidCatalog"/> — se li
+    /// copiassimo nel documento, la stessa radioassistenza direbbe due cose in due SOP.</summary>
+    Task SaveNavaidsAsync(string icao, IReadOnlyList<NavaidKey> righe, CancellationToken ct = default);
+
+    /// <summary>
+    /// Le righe citate da un documento <b>mostrato</b> (pubblico, bozza o anteprima release), risolte
+    /// sull'anagrafica. Gemella di <see cref="ResolveRegulatedAreasAsync"/> e per la stessa ragione: le
+    /// identità le porta il documento, i valori i cataloghi correnti.
+    /// </summary>
+    Task<IReadOnlyList<NavaidRow>> ResolveNavaidsAsync(
+        IReadOnlyList<NavaidKey> righe, CancellationToken ct = default);
+
+    /// <summary>
+    /// Come sopra, ma per una vista che può essere <b>congelata</b>: con <paramref name="useFrozen"/> si legge
+    /// prima la fotografia della release, e solo in sua assenza si risolve dal vivo.
+    /// <para>⚠️ È la differenza fra un documento e una pagina: una frequenza corretta oggi <b>non</b> deve
+    /// cambiare un SOP pubblicato al ciclo scorso. Vale solo per il pubblico e per le anteprime di release —
+    /// in bozza si guarda il dato di adesso, che è quel che si sta scrivendo.</para>
+    /// </summary>
+    Task<IReadOnlyList<NavaidRow>> ResolveNavaidsForViewAsync(
+        string icao, IReadOnlyList<NavaidKey> righe, bool useFrozen, CancellationToken ct = default);
 }

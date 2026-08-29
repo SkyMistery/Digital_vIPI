@@ -959,6 +959,29 @@
   <data name="Sorg_SpecialAreasFrozen" xml:space="preserve"><value>Congelate: restano quelle già in archivio</value></data>
   <data name="Sorg_NavaidsLabel" xml:space="preserve"><value>Radioassistenze</value></data>
   <data name="Sorg_NavaidsDesc" xml:space="preserve"><value>Frequenza, canale e coordinate di VOR e NDB dal sectorfile Aurora (GitHub)</value></data>
+  <data name="Nav_Type" xml:space="preserve"><value>Tipo</value></data>
+  <data name="Nav_Freq" xml:space="preserve"><value>Freq</value></data>
+  <data name="Nav_Coordinates" xml:space="preserve"><value>Coordinate</value></data>
+  <data name="Nav_Origin" xml:space="preserve"><value>Provenienza</value></data>
+  <data name="Nav_Code" xml:space="preserve"><value>Codice</value></data>
+  <data name="Nav_Kind" xml:space="preserve"><value>Natura</value></data>
+  <data name="Nav_Channel" xml:space="preserve"><value>Canale</value></data>
+  <data name="Nav_ChannelPlaceholder" xml:space="preserve"><value>99Y</value></data>
+  <data name="Nav_FreqPlaceholder" xml:space="preserve"><value>115.25</value></data>
+  <data name="Nav_Add" xml:space="preserve"><value>Aggiungi</value></data>
+  <data name="Nav_AddHint" xml:space="preserve"><value>Un codice che non esiste ancora si crea scrivendolo: la natura serve solo la prima volta.</value></data>
+  <data name="Nav_Empty" xml:space="preserve"><value>Nessuna radioassistenza in questo documento.</value></data>
+  <data name="Nav_SharedNote" xml:space="preserve"><value>Le radioassistenze sono un'anagrafica di divisione: quel che si scrive qui cambia la stessa radioassistenza in ogni altro documento che la cita. I campi che arrivano dal sectorfile non si modificano.</value></data>
+  <data name="Nav_FromSource" xml:space="preserve"><value>dal sectorfile</value></data>
+  <data name="Nav_EditedAt" xml:space="preserve"><value>scritta il {0}</value></data>
+  <data name="Nav_RemoveFromDoc" xml:space="preserve"><value>Toglie la riga da questo documento (la radioassistenza resta in anagrafica)</value></data>
+  <data name="Nav_RefusedSource" xml:space="preserve"><value>Non salvato: quel campo arriva dal sectorfile, e la sorgente vince.</value></data>
+  <data name="Nav_BadValue" xml:space="preserve"><value>Non salvato: il valore non ha la forma giusta.</value></data>
+  <data name="Nav_BadCoords" xml:space="preserve"><value>Non salvato: le coordinate si scrivono solo in sessagesimale, per esempio N41°32'05.07''E015°43'42.47''.</value></data>
+  <data name="Nav_Gone" xml:space="preserve"><value>Non salvato: quella radioassistenza non c'è più.</value></data>
+  <data name="Nav_BadCode" xml:space="preserve"><value>Il codice non è valido: da due a cinque lettere o cifre.</value></data>
+  <data name="Nav_NeedKind" xml:space="preserve"><value>Serve la natura (VOR, NDB, ILS, TACAN...): quel codice non è ancora in anagrafica.</value></data>
+  <data name="Nav_Duplicate" xml:space="preserve"><value>Quella radioassistenza è già in tabella.</value></data>
   <data name="Sorg_StatesTitle" xml:space="preserve"><value>Stato import periodici</value></data>
   <data name="Sorg_StatesHelp" xml:space="preserve"><value>Esito dell'ultima esecuzione automatica di ogni import gated. Un errore qui significa dati potenzialmente stantii finché il retry non riesce.</value></data>
   <data name="Sorg_NoStates" xml:space="preserve"><value>Nessun import ancora eseguito (DB nuovo o job non ancora partiti).</value></data>

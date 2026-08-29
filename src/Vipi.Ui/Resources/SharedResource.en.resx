@@ -956,6 +956,29 @@
   <data name="Sorg_SpecialAreasFrozen" xml:space="preserve"><value>Frozen: the ones already stored are kept</value></data>
   <data name="Sorg_NavaidsLabel" xml:space="preserve"><value>Navaids</value></data>
   <data name="Sorg_NavaidsDesc" xml:space="preserve"><value>Frequency, channel and coordinates of VORs and NDBs from the Aurora sectorfile (GitHub)</value></data>
+  <data name="Nav_Type" xml:space="preserve"><value>Type</value></data>
+  <data name="Nav_Freq" xml:space="preserve"><value>Freq</value></data>
+  <data name="Nav_Coordinates" xml:space="preserve"><value>Coordinates</value></data>
+  <data name="Nav_Origin" xml:space="preserve"><value>Source</value></data>
+  <data name="Nav_Code" xml:space="preserve"><value>Code</value></data>
+  <data name="Nav_Kind" xml:space="preserve"><value>Nature</value></data>
+  <data name="Nav_Channel" xml:space="preserve"><value>Channel</value></data>
+  <data name="Nav_ChannelPlaceholder" xml:space="preserve"><value>99Y</value></data>
+  <data name="Nav_FreqPlaceholder" xml:space="preserve"><value>115.25</value></data>
+  <data name="Nav_Add" xml:space="preserve"><value>Add</value></data>
+  <data name="Nav_AddHint" xml:space="preserve"><value>A code that does not exist yet is created by typing it: the nature is only needed the first time.</value></data>
+  <data name="Nav_Empty" xml:space="preserve"><value>No navaids in this document.</value></data>
+  <data name="Nav_SharedNote" xml:space="preserve"><value>Navaids are a division-wide catalogue: what you write here changes the same navaid in every other document that cites it. Fields coming from the sectorfile cannot be edited.</value></data>
+  <data name="Nav_FromSource" xml:space="preserve"><value>from the sectorfile</value></data>
+  <data name="Nav_EditedAt" xml:space="preserve"><value>written on {0}</value></data>
+  <data name="Nav_RemoveFromDoc" xml:space="preserve"><value>Removes the row from this document (the navaid stays in the catalogue)</value></data>
+  <data name="Nav_RefusedSource" xml:space="preserve"><value>Not saved: that field comes from the sectorfile, and the source wins.</value></data>
+  <data name="Nav_BadValue" xml:space="preserve"><value>Not saved: the value is not in the right form.</value></data>
+  <data name="Nav_BadCoords" xml:space="preserve"><value>Not saved: coordinates are written in sexagesimal only, for example N41°32'05.07''E015°43'42.47''.</value></data>
+  <data name="Nav_Gone" xml:space="preserve"><value>Not saved: that navaid is gone.</value></data>
+  <data name="Nav_BadCode" xml:space="preserve"><value>Invalid code: two to five letters or digits.</value></data>
+  <data name="Nav_NeedKind" xml:space="preserve"><value>The nature is required (VOR, NDB, ILS, TACAN...): that code is not in the catalogue yet.</value></data>
+  <data name="Nav_Duplicate" xml:space="preserve"><value>That navaid is already in the table.</value></data>
   <data name="Sorg_StatesTitle" xml:space="preserve"><value>Periodic import status</value></data>
   <data name="Sorg_StatesHelp" xml:space="preserve"><value>Outcome of the last automatic run of each gated import. An error here means potentially stale data until the retry succeeds.</value></data>
   <data name="Sorg_NoStates" xml:space="preserve"><value>No import run yet (new DB or jobs not started).</value></data>

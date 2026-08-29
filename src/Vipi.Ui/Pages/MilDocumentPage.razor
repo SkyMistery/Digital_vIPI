@@ -224,6 +224,7 @@
     private ParsedMetar? _metar;
     private ParsedTaf? _taf;
     private IReadOnlyList<AccSpecialAreaView> _aree = Array.Empty<AccSpecialAreaView>();
+    private IReadOnlyList<NavaidRow> _radioassistenze = Array.Empty<NavaidRow>();
 
     /// <summary>
     /// Il corpo delle sezioni rese dalla pagina. ⚠️ Sono le STESSE dell'aeroporto civile perché parlano
@@ -241,6 +242,9 @@
             case "weather": <AirportWeather Icao="@_icao" Report="_wx" Metar="_metar" Taf="_taf" />; break;
             case "transition": <AirportTransition View="_derivate.Transition" CurrentQnh="_metar?.QnhHpa" />; break;
             case "frequencies": <AirportFrequencies View="_derivate.Frequencies" />; break;
+            @* Le righe le porta il DOCUMENTO, i valori l'anagrafica di divisione — e alla release si
+               congelano, o una frequenza corretta oggi cambierebbe un SOP pubblicato al ciclo scorso. *@
+            case "navaids": <MilNavaids Rows="_radioassistenze" />; break;
             case "runways": <AirportRunways View="_derivate.Runways" />; break;
             @* Le aree di lavoro: E' la mappa dell'AoR con le chip, cioe' esattamente cio' che il PDF disegna
                a mano una figura per volta. Stesso motore della vIPI ACC e dell'APP. *@
@@ -264,6 +268,21 @@
     /// ⚠️ <c>OwnAuto</c> forzato a falso: senza JSON <c>Parse</c> risponde «automatico», che qui non esiste —
     /// il modo automatico è del solo blocco Aerovia della vIPI ACC.
     /// </summary>
+    /// <summary>Una sezione del documento mostrato, per chiave e <b>a qualunque profondità</b>: nel profilo
+    /// militare le sezioni con un payload sono figlie, e cercarle fra le sole radici non ne troverebbe
+    /// nessuna — è la stessa assunzione che ha già morso tre volte.</summary>
+    private SectionView? SezioneDi(string key) => Cerca(_view!.Sections, key);
+
+    private static SectionView? Cerca(IReadOnlyList<SectionView> sezioni, string key)
+    {
+        foreach (var s in sezioni)
+        {
+            if (string.Equals(s.SectionKey, key, StringComparison.OrdinalIgnoreCase)) return s;
+            if (Cerca(s.Children, key) is { } t) return t;
+        }
+        return null;
+    }
+
     private static RegulatedSelection LeggiAree(SectionView s)
     {
         var sel = RegulatedSelectionJson.Parse(SectionPayload.Read(s));
@@ -322,11 +341,15 @@
         // ⚠️ Gli id delle aree li porta il DOCUMENTO mostrato; shape e descrizioni vengono dai cataloghi
         // correnti — come nella vIPI ACC e nell'APP. Si legge PRIMA della traduzione: la sezione tradotta
         // porta la prosa, non il JSON del blocco.
-        var aree = _view.Sections.FirstOrDefault(
-            s => string.Equals(s.SectionKey, "regulated", StringComparison.OrdinalIgnoreCase));
+        var aree = SezioneDi("regulated");
         _aree = aree is null
             ? Array.Empty<AccSpecialAreaView>()
             : await Militari.ResolveRegulatedAreasAsync(LeggiAree(aree));
+
+        // ⚠️ `_useFrozen`: in pubblica e in anteprima release si legge la FOTOGRAFIA della release, non
+        // l'anagrafica di adesso. In bozza no — lì si guarda quel che si sta scrivendo.
+        _radioassistenze = await Militari.ResolveNavaidsForViewAsync(
+            _icao, MilNavaidsPayload.Leggi(SectionPayload.Read(SezioneDi("navaids"))), _useFrozen);
 
         // ⚠️ Il vSOP militare nasce in ITALIANO (carta §1d): la lingua sorgente e' quella in cui si
         // REDIGE, non quella dei quindici PDF di partenza. Un lettore inglese lo ottiene tradotto.

@@ -32,4 +32,17 @@ public static class SectionPayload
             if (!string.IsNullOrWhiteSpace(b.BodyJson)) return b.BodyJson;
         return null;
     }
+
+    /// <summary>
+    /// Come sopra, sui blocchi <b>grezzi</b> di uno snapshot. ⚠️ Serve alla cattura Frozen, che lavora sul
+    /// documento com'è in archivio e non sulla vista: è la stessa domanda, e farla in due modi vorrebbe dire
+    /// che un giorno la release congela un payload diverso da quello che il viewer legge.
+    /// </summary>
+    public static string? Read(IReadOnlyList<RawBlock>? blocks)
+    {
+        if (blocks is null) return null;
+        foreach (var b in blocks)
+            if (!string.IsNullOrWhiteSpace(b.BodyJson)) return b.BodyJson;
+        return null;
+    }
 }

@@ -1,0 +1,234 @@
+@* L'editor della tabella «Radioassistenze» di un vSOP militare (carta vSOP militari §12).
+
+   ⚠️ Questa tabella scrive in DUE posti, e la differenza è il cuore della sezione:
+     · l'ORDINE e QUALI righe compaiono sono del DOCUMENTO (payload della sezione);
+     · i VALORI — tipo mostrato, frequenza, canale, coordinate — sono dell'ANAGRAFICA DI DIVISIONE, e quel
+       che si scrive qui cambia la stessa radioassistenza in ogni altro SOP che la cita.
+
+   ⚠️ Per questo la modifica di un valore si vede: la riga dice da dove viene il dato (dalla sorgente, o
+   scritto da qualcuno e quando). Un'anagrafica condivisa modificata da una tabella di documento, senza che
+   si veda, è la ricetta per un dato che nessuno sa più da dove viene.
+
+   ⚠️ E per questo un campo che viene dalla SORGENTE non si modifica: la casella non c'è affatto. Mostrarla
+   e poi rifiutare il salvataggio sarebbe peggio che non mostrarla — chi scrive crederebbe di aver salvato. *@
+@inject IStringLocalizer<SharedResource> L
+@using Vipi.Application.Abstractions
+@using Vipi.Application.Content
+
+<div class="callout info" style="margin:0 0 10px">
+    <span class="cic"><Icon Name="info" Size="18" /></span>
+    <div>@L["Nav_SharedNote"]</div>
+</div>
+
+<table class="cfg-table">
+    <thead>
+        <tr>
+            @if (Editing) { <th style="width:76px"></th> }
+            <th style="width:110px">@L["Nav_Type"]</th>
+            <th>@L["Nav_Freq"]</th>
+            <th>@L["Nav_Coordinates"]</th>
+            <th style="width:150px">@L["Nav_Origin"]</th>
+            @if (Editing) { <th style="width:40px"></th> }
+        </tr>
+    </thead>
+    <tbody>
+        @for (var i = 0; i < Rows.Count; i++)
+        {
+            var idx = i;
+            var r = Rows[idx];
+            <tr>
+                @if (Editing)
+                {
+                    <td style="white-space:nowrap">
+                        <button type="button" class="btn ghost" style="padding:0 6px" disabled="@(idx == 0)"
+                                title="@L["Common_Up"]" @onclick="() => Sposta(idx, -1)">↑</button>
+                        <button type="button" class="btn ghost" style="padding:0 6px" disabled="@(idx == Rows.Count - 1)"
+                                title="@L["Common_Down"]" @onclick="() => Sposta(idx, 1)">↓</button>
+                    </td>
+                }
+                <td>
+                    @* Il tipo MOSTRATO: non è mai della sorgente, perché la sorgente dice la NATURA (il file da
+                       cui la riga arriva) e questo campo esiste apposta per poter scrivere «VORTACAN» su un VOR
+                       senza cambiare identità. *@
+                    @if (Editing)
+                    {
+                        <input list="@TipiId" value="@r.Type" style="width:100px" aria-label="@L["Nav_Type"]"
+                               @onchange="e => Scrivi(r, NavaidCampo.Tipo, e.Value?.ToString())" />
+                    }
+                    else { @r.Type }
+                </td>
+                <td>
+                    @if (Editing)
+                    {
+                        <span style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap">
+                            <b>@r.Code</b>
+                            @if (r.ChannelOrigin == NavaidFieldOrigin.Source) { <span class="pill neutral">CH @r.Channel</span> }
+                            else
+                            {
+                                <input value="@r.Channel" placeholder="@L["Nav_ChannelPlaceholder"]" style="width:70px"
+                                       aria-label="@L["Nav_Channel"]"
+                                       @onchange="e => Scrivi(r, NavaidCampo.Canale, e.Value?.ToString())" />
+                            }
+                            @if (r.FrequencyOrigin == NavaidFieldOrigin.Source) { <span class="pill neutral">@r.Frequency</span> }
+                            else
+                            {
+                                <input value="@r.Frequency" placeholder="@L["Nav_FreqPlaceholder"]" style="width:80px"
+                                       aria-label="@L["Nav_Freq"]"
+                                       @onchange="e => Scrivi(r, NavaidCampo.Frequenza, e.Value?.ToString())" />
+                            }
+                        </span>
+                        <div class="muted" style="font-size:12px">@NavaidText.Freq(r.Code, r.Channel, r.Frequency)</div>
+                    }
+                    else { @NavaidText.Freq(r.Code, r.Channel, r.Frequency) }
+                </td>
+                <td>
+                    @if (Editing && r.CoordinatesOrigin != NavaidFieldOrigin.Source)
+                    {
+                        @* Solo sessagesimale, per decisione del committente: il segnaposto lo dice, e chi
+                           scrive un decimale riceve un no invece di un dato salvato in un'altra forma. *@
+                        <input value="@NavaidText.Coordinate(r.Latitude, r.Longitude)" style="width:100%;min-width:220px"
+                               placeholder="N41°32'05.07''E015°43'42.47''" aria-label="@L["Nav_Coordinates"]"
+                               @onchange="e => Scrivi(r, NavaidCampo.Coordinate, e.Value?.ToString())" />
+                    }
+                    else
+                    {
+                        <span style="white-space:nowrap">@Coordinate(r)</span>
+                    }
+                </td>
+                <td class="muted" style="font-size:12px">@Provenienza(r)</td>
+                @if (Editing)
+                {
+                    <td>
+                        @* ⚠️ Toglie la riga dal DOCUMENTO, non dall'anagrafica: la radioassistenza resta, e la
+                           citano altri SOP. Cancellarla davvero sarebbe un atto su un dato di tutti, preso
+                           dalla tabella di uno. *@
+                        <button type="button" class="btn ghost" style="padding:0 6px" title="@L["Nav_RemoveFromDoc"]"
+                                @onclick="() => Togli(idx)">✕</button>
+                    </td>
+                }
+            </tr>
+            @if (_messaggi.TryGetValue(r.Id, out var msg))
+            {
+                <tr><td colspan="@(Editing ? 6 : 4)" class="muted" style="color:var(--danger-ink)">@msg</td></tr>
+            }
+        }
+        @if (Rows.Count == 0)
+        {
+            <tr><td colspan="@(Editing ? 6 : 4)" class="muted">@L["Nav_Empty"]</td></tr>
+        }
+    </tbody>
+</table>
+
+@if (Editing)
+{
+    <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:10px">
+        <label style="display:flex;flex-direction:column;gap:2px;font-size:12px">
+            @L["Nav_Code"]
+            <input list="@CodiciId" @bind="_nuovoCodice" style="width:110px" placeholder="MNL" />
+        </label>
+        <label style="display:flex;flex-direction:column;gap:2px;font-size:12px">
+            @L["Nav_Kind"]
+            <input list="@TipiId" @bind="_nuovaNatura" style="width:120px" placeholder="VOR" />
+        </label>
+        <button type="button" class="btn primary" @onclick="Aggiungi">+ @L["Nav_Add"]</button>
+        @if (_errore is not null) { <span class="muted" style="color:var(--danger-ink)">@_errore</span> }
+    </div>
+    <p class="help" style="margin-top:6px">@L["Nav_AddHint"]</p>
+
+    @* Gli elenchi nativi: li disegna il browser fuori dalla pagina, quindi non li taglia il contenitore che
+       scorre — la stessa scelta già fatta per i punti nell'editor delle SID. *@
+    <datalist id="@CodiciId">
+        @foreach (var n in Anagrafica) { <option value="@n.Code">@n.Kind</option> }
+    </datalist>
+    <datalist id="@TipiId">
+        @foreach (var t in NavaidRules.TipiSuggeriti) { <option value="@t" /> }
+    </datalist>
+}
+
+@code {
+    private const string CodiciId = "vipi-navaid-codes";
+    private const string TipiId = "vipi-navaid-types";
+
+    /// <summary>Le righe citate dal documento, nell'ordine del documento.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<NavaidRow> Rows { get; set; } = Array.Empty<NavaidRow>();
+
+    /// <summary>Tutta l'anagrafica, per suggerire i codici già noti. Vuota = si scrive a mano lo stesso.</summary>
+    [Parameter] public IReadOnlyList<NavaidRow> Anagrafica { get; set; } = Array.Empty<NavaidRow>();
+
+    [Parameter] public bool Editing { get; set; }
+
+    /// <summary>Aggiunge al DOCUMENTO la riga con questa identità, creandola in anagrafica se non c'è.</summary>
+    [Parameter] public EventCallback<NavaidKey> OnAdd { get; set; }
+
+    /// <summary>Toglie dal documento la riga in questa posizione.</summary>
+    [Parameter] public EventCallback<int> OnRemove { get; set; }
+
+    /// <summary>Sposta la riga di uno scalino (−1 su, +1 giù).</summary>
+    [Parameter] public EventCallback<(int Indice, int Delta)> OnMove { get; set; }
+
+    /// <summary>
+    /// Scrive UN campo nell'anagrafica e torna l'esito. ⚠️ È un <c>Func</c> e non un <c>EventCallback</c>
+    /// apposta: qui la risposta serve — «la fonte vince» si racconta a chi ha appena provato a scrivere, e
+    /// un callback che non torna niente lascerebbe credere che il valore sia stato salvato.
+    /// </summary>
+    [Parameter] public Func<int, NavaidCampo, string?, Task<NavaidWrite>>? OnSet { get; set; }
+
+    private string _nuovoCodice = "";
+    private string _nuovaNatura = "";
+    private string? _errore;
+    private readonly Dictionary<int, string> _messaggi = new();
+
+    private static string Coordinate(NavaidRow r) =>
+        NavaidText.Coordinate(r.Latitude, r.Longitude) is { Length: > 0 } s ? s : "—";
+
+    /// <summary>Da dove viene il dato di questa riga, detto a chi lo sta guardando: è ciò che rende visibile
+    /// una scrittura che cambia anche gli altri documenti.</summary>
+    private string Provenienza(NavaidRow r)
+    {
+        if (r.DallaSorgente) return L["Nav_FromSource"].Value;
+        if (r.UpdatedUtc is { } q) return string.Format(L["Nav_EditedAt"].Value, VipiTime.Z(q));
+        return "—";
+    }
+
+    private async Task Aggiungi()
+    {
+        _errore = null;
+        var codice = NavaidRules.Norm(_nuovoCodice);
+        var natura = NavaidRules.Norm(_nuovaNatura);
+
+        // Se il codice è già in anagrafica con UNA sola natura, la natura si può omettere: è il caso normale,
+        // e chiederla comunque sarebbe una domanda di cui il sistema conosce già la risposta.
+        if (natura.Length == 0)
+        {
+            var candidate = Anagrafica.Where(n => n.Code == codice).Select(n => n.Kind).Distinct().ToList();
+            if (candidate.Count == 1) natura = candidate[0];
+        }
+
+        if (!NavaidRules.CodiceValido(codice)) { _errore = L["Nav_BadCode"].Value; return; }
+        if (natura.Length == 0 || !NavaidRules.TipoValido(natura)) { _errore = L["Nav_NeedKind"].Value; return; }
+        if (Rows.Any(r => r.Code == codice && r.Kind == natura)) { _errore = L["Nav_Duplicate"].Value; return; }
+
+        await OnAdd.InvokeAsync(new NavaidKey(codice, natura));
+        _nuovoCodice = _nuovaNatura = "";
+    }
+
+    private Task Togli(int i) => OnRemove.InvokeAsync(i);
+
+    private Task Sposta(int i, int delta) => OnMove.InvokeAsync((i, delta));
+
+    private async Task Scrivi(NavaidRow r, NavaidCampo campo, string? valore)
+    {
+        if (OnSet is null) return;
+        _messaggi.Remove(r.Id);
+
+        var esito = await OnSet(r.Id, campo, valore);
+        var msg = esito switch
+        {
+            NavaidWrite.DallaSorgente => L["Nav_RefusedSource"].Value,
+            NavaidWrite.NonValido => campo == NavaidCampo.Coordinate ? L["Nav_BadCoords"].Value : L["Nav_BadValue"].Value,
+            NavaidWrite.NonTrovata => L["Nav_Gone"].Value,
+            _ => null,
+        };
+        if (msg is not null) _messaggi[r.Id] = msg;
+    }
+}

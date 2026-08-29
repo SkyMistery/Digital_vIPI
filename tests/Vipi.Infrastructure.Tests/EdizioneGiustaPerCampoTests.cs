@@ -44,7 +44,7 @@ public class EdizioneGiustaPerCampoTests : IAsyncLifetime
     private EfMilitaryDocumentService Militari() =>
         new(_db, new AiracService(), new AllowAuthz(),
             new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db)),
-            new EfSpecialAreaRepository(_db));
+            new EfSpecialAreaRepository(_db), new EfNavaidCatalog(_db));
 
     private EfAirportRepository Repo() => new(_db, new EfMediaMaintenance(_db));
 

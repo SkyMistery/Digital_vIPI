@@ -936,6 +936,61 @@ scritto su un file che quella suite legge** — qui il tema, che `Vipi.Assets.Te
 5. **Rilevamento e distanza degli alternati si scrivono a mano**, non si calcolano dalle coordinate: sono i
    valori del SOP, e nessuno sa come li abbiano ricavati. Calcolarli darebbe numeri veri e **diversi dal PDF**.
 
+### 12e. L'anagrafica delle radioassistenze e la sua tabella — **chiuse** (S2a, S2)
+
+**Come è fatta.** Una tabella `Navaids` di divisione, e una sezione di documento che **non contiene i
+valori**: il documento dice *quali* radioassistenze cita e *in che ordine*, l'anagrafica dice *quanto
+valgono*. È la divisione del lavoro che il committente ha chiesto — «si memorizzano nel DB così quella
+radioassistenza esce uguale ovunque» — e ogni scelta che segue discende da lì.
+
+- **Il payload della sezione** è un elenco ordinato di **identità** (`{code, kind}`), non di id di archivio:
+  uno snapshot di release con dentro degli interi non si legge, e non sopravvivrebbe a un travaso del
+  database — che qui è già successo tre volte. ⚠️ È una **lista** e non un insieme perché in un SOP
+  **l'ordine è contenuto**: si elencano come le vuole chi scrive.
+- **La sezione è diventata `Derived`**, e non è una riclassificazione estetica: solo le derivate le cattura
+  `FrozenSectionScan`, quindi solo così una release **fotografa** la tabella. Senza, una frequenza corretta
+  oggi cambierebbe da sola un SOP pubblicato al ciclo scorso — cioè pubblicare non fisserebbe niente.
+  ⚠️ È l'**unica** sezione congelata i cui valori stanno fuori dal documento *e* fuori dal profilo dello scalo.
+- **`HostAndBlocks`, non `Host`**: sotto la tabella resta la prosa che il caricatore dei SOP ha già scritto.
+  Con `Host` puro sparirebbe dallo schermo, senza che nulla protesti.
+- **La lettura in vista guarda prima il congelato** (`ResolveNavaidsForViewAsync`), e ⚠️ **la fotografia vince
+  anche quando è vuota**: una release pubblicata senza righe è una tabella vuota, non «vai a vedere che c'è
+  adesso». Distinguere «congelato a zero» da «non congelato» è ciò che rende una release una release.
+
+**Che cosa si vede a schermo.** Tre colonne — Tipo, Freq, Coordinate — con la resa chiesta dal committente
+(`MNL - CH 99Y (115.25)`, e senza canale `MNL - 115.25`, mai «CH» seguito dal vuoto). Nell'editor le righe si
+spostano con le frecce, si aggiungono scrivendo un codice (che se non esiste **si crea**, e la natura serve
+solo la prima volta) e si tolgono **dal documento** — non dall'anagrafica, perché quella radioassistenza la
+citano altri SOP.
+
+⚠️ **Un campo che viene dalla sorgente non ha la casella**: si legge come una pill. Mostrare un campo
+modificabile e poi rifiutare il salvataggio sarebbe peggio che non mostrarlo — chi scrive crederebbe di aver
+salvato. E quando un rifiuto capita lo stesso (due persone, la sorgente che si riprende un campo), la riga lo
+**dice**, perché la scrittura torna un esito: per questo il callback è un `Func<…, Task<NavaidWrite>>` e non
+un `EventCallback`.
+
+⚠️ **La riga dice da dove viene il dato** — «dal sectorfile», oppure «scritta il …». Un'anagrafica condivisa
+che si modifica dalla tabella di un documento, senza che si veda, è la ricetta per un dato che nessuno sa più
+da dove viene.
+
+**Il tipo mostrato, e perché non si deduce.** `DisplayType` è editoriale e non entra nell'identità: MNL sta in
+`itvor.vor`, quindi la sua **natura** è VOR, ma sul SOP di Amendola si legge **VORTACAN**. Cambiare la natura
+cambierebbe l'identità e la riga tornerebbe VOR al primo import. ⚠️ E **non si deduce dal canale**: un canale
+su un VOR può essere quello del DME appaiato, e dedurlo darebbe una tabella sbagliata con l'aria di essere
+precisa.
+
+**Il giro d'import** è un servizio suo (`NavaidImportHostedService`), gemello di quello delle SID: stessi
+file, stessa cadenza, ma **chiave di stato sua**. ⚠️ Appesa a quella delle SID, un import fermo da settimane
+sarebbe indistinguibile da uno riuscito ieri — e il giro delle SID **esce prima** quando non ci sono
+aeroporti in archivio, il che terrebbe le radioassistenze ostaggio di una condizione che non le riguarda.
+⚠️ Un giro **saltato** (categoria esclusa, o catalogo vuoto) **non consuma il gate**: la pagina Sorgenti
+direbbe «ultimo giro riuscito: adesso» su un giro che non ha letto niente. Le due ragioni si distinguono nei
+log, perché una è una decisione dell'amministratore e l'altra è un guasto.
+
+**Conti**: 49 + 18 test nuovi; due migrazioni (SQLite e MySQL) — quelle in coda al cutover diventano
+**ventiquattro**. Verdi su net8: Application **1 597**, Ui **864**, Infrastructure **1 017**, Domain 117,
+Assets 52, Hosting 57; Release verde su entrambi i TFM.
+
 ### 12c. Le coordinate delle soglie pista ci sono, e non le memorizziamo
 
 Verificato **sul filo** il 29 agosto, `GET /v2/airports/LIPI/runways`:
@@ -947,7 +1002,8 @@ Verificato **sul filo** il 29 agosto, `GET /v2/airports/LIPI/runways`:
 
 Una riga **per soglia**, con latitudine, longitudine **ed elevazione**. `RunwayDto` ne mappa quattro campi su
 otto: il dato arriva e si perde in traduzione. Servono una migrazione (le in coda al cutover MariaDB
-diventano **ventiquattro**) e un `SaveRunwaysAsync` che le **preservi** nel merge editoriale.
+diventano **venticinque**, contando quella delle radioassistenze) e un `SaveRunwaysAsync` che le
+**preservi** nel merge editoriale.
 
 ⚠️ **L'elevazione si prende adesso**: viaggia nella stessa risposta, i SOP la stampano, e prenderla dopo
 sarebbe una seconda migrazione per un campo che era già nella busta.

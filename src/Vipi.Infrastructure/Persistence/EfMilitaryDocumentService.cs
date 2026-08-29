@@ -24,6 +24,8 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
     public EfMilitaryDocumentService(VipiDbContext db, IAiracService airac,
                                      Vipi.Application.Auth.IEditAuthorizationService authz,
                                      IEditingRepository editing, ISpecialAreaRepository areas,
+                                     INavaidCatalog navaids,
+                                     IFrozenSectionReader? frozen = null,
                                      Vipi.Application.Translation.TranslationLookup? traduzioni = null)
     {
         _db = db;
@@ -31,8 +33,13 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
         _authz = authz;
         _editing = editing;
         _areas = areas;
+        _navaids = navaids;
+        _frozen = frozen;
         _traduzioni = traduzioni;
     }
+
+    private readonly INavaidCatalog _navaids;
+    private readonly IFrozenSectionReader? _frozen;
 
     public async Task<IReadOnlyList<MilAirportRow>> ListAsync(bool perStaff, CancellationToken ct = default)
     {
@@ -192,6 +199,45 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
         return await _db.DocReleases.AsNoTracking()
             .AnyAsync(r => r.TargetType == tipo && r.TargetKey == icao
                            && r.ReleaseEffectiveUtc <= adesso, ct).ConfigureAwait(false);
+    }
+
+    // ---- Radioassistenze: il documento dice CHI e in che ordine, i valori li dà l'anagrafica (§12b) ----
+
+    public async Task<IReadOnlyList<NavaidRow>> GetNavaidsAsync(string icao, CancellationToken ct = default)
+    {
+        if (await GetDocumentIdAsync(icao, ct).ConfigureAwait(false) is not int docId)
+            return Array.Empty<NavaidRow>();
+        var json = await _editing.GetSectionBlockJsonAsync(docId, "navaids", ct).ConfigureAwait(false);
+        return await ResolveNavaidsAsync(MilNavaidsPayload.Leggi(json), ct).ConfigureAwait(false);
+    }
+
+    public async Task SaveNavaidsAsync(string icao, IReadOnlyList<NavaidKey> righe, CancellationToken ct = default)
+    {
+        // Come per le aree: passa da CreaAsync perché è ACC-gated e idempotente — chi non può scrivere si
+        // ferma qui, e non alla riga dopo con mezza modifica già fatta.
+        var docId = await CreaAsync(icao, ct).ConfigureAwait(false);
+        await _editing.SaveSectionBlockJsonAsync(docId, "navaids", MilNavaidsPayload.Scrivi(righe),
+            _authz.CurrentUserId ?? 0, ct).ConfigureAwait(false);
+    }
+
+    public Task<IReadOnlyList<NavaidRow>> ResolveNavaidsAsync(
+        IReadOnlyList<NavaidKey> righe, CancellationToken ct = default) =>
+        righe.Count == 0
+            ? Task.FromResult<IReadOnlyList<NavaidRow>>(Array.Empty<NavaidRow>())
+            : _navaids.GetManyAsync(righe, ct);
+
+    public async Task<IReadOnlyList<NavaidRow>> ResolveNavaidsForViewAsync(
+        string icao, IReadOnlyList<NavaidKey> righe, bool useFrozen, CancellationToken ct = default)
+    {
+        if (useFrozen && _frozen is not null)
+        {
+            var snapshot = await _frozen.LoadAsync(ReleaseTargetType.AirportMil, Norm(icao), ct).ConfigureAwait(false);
+            // ⚠️ La fotografia vince anche quando è VUOTA: una release pubblicata senza righe è una tabella
+            // vuota, non «vai a vedere che c'è adesso». Distinguere «congelato a zero» da «non congelato» è
+            // ciò che rende una release una release.
+            if (snapshot.Get<List<NavaidRow>>("navaids") is { } congelate) return congelate;
+        }
+        return await ResolveNavaidsAsync(righe, ct).ConfigureAwait(false);
     }
 
     public async Task<RegulatedSelection> GetRegulatedAsync(string icao, CancellationToken ct = default)

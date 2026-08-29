@@ -2,6 +2,7 @@
 @layout SopLayout
 @rendermode InteractiveServer
 @inject IMilitaryDocumentService Militari
+@inject Vipi.Application.Abstractions.INavaidCatalog Radioassistenze
 @inject IEditingService Editing
 @inject IStationResolver Stations
 @inject IEditAuthorizationService Authz
@@ -11,6 +12,7 @@
 @inject IStringLocalizer<SharedResource> L
 @inject EnglishStrings En
 @using Vipi.Application.Content
+@using Vipi.Application.Abstractions
 @using Vipi.Ui.Shared
 
 @* ---- Editor del vSOP MILITARE d'aeroporto (carta vSOP militari §5-6) --------------------------------
@@ -142,6 +144,11 @@ else
     /// <summary>Il guscio comune dei cinque editor (doc 14 §3d): documento, modifica, errore, lock, badge.</summary>
     private DocumentEditorShell _shell = default!;
 
+    // Radioassistenze: le righe citate dal documento (nell'ordine) e tutta l'anagrafica, per suggerire i
+    // codici già noti. ⚠️ Sono due cose diverse: la prima è contenuto del documento, la seconda è di tutti.
+    private IReadOnlyList<NavaidRow> _radioassistenze = Array.Empty<NavaidRow>();
+    private IReadOnlyList<NavaidRow> _anagrafica = Array.Empty<NavaidRow>();
+
     // Aree di lavoro: selezione salvata + i due cataloghi del picker (aree dell'ACC, aree degli altri).
     private RegulatedSelection _regulated = new() { OwnAuto = false };
     private IReadOnlyList<SpecialAreaPick> _areaPicks = Array.Empty<SpecialAreaPick>();
@@ -201,6 +208,7 @@ else
             if (_shell.Doc is null) { _notFound = true; return; }
             _shell.IsEditing = _shell.IsEditing && _shell.Doc.IsEditable && _shell.Lock.IsMine;
             _regulated = await Militari.GetRegulatedAsync(_icao);
+            await CaricaRadioassistenzeAsync();
         }
         catch (EditNotAllowedException) { _denied = true; }
     }
@@ -232,6 +240,11 @@ else
     {
         @switch (s.SectionKey)
         {
+            case "navaids":
+                <MilNavaidsEditor Rows="_radioassistenze" Anagrafica="_anagrafica" Editing="_shell.IsEditing"
+                                  OnAdd="AggiungiRadioassistenza" OnRemove="TogliRadioassistenza"
+                                  OnMove="SpostaRadioassistenza" OnSet="ScriviRadioassistenza" />
+                break;
             case "regulated":
                 @* Come l'APP: nessuna area di default, si scelgono tutte a mano. *@
                 <RegulatedAreasEditor Selection="_regulated" OwnPicks="_areaPicks" OtherPicks="_otherAreaPicks"
@@ -259,6 +272,77 @@ else
                 break;
         }
     };
+
+    // ---- Radioassistenze ------------------------------------------------------------------------------
+    //
+    // ⚠️ Due archivi, e la differenza è il punto della sezione: l'ORDINE e QUALI righe compaiono sono del
+    // DOCUMENTO (payload della sezione, versionato, congelato alla release); i VALORI sono dell'ANAGRAFICA di
+    // divisione, e scriverli qui cambia la stessa radioassistenza in ogni altro SOP che la cita.
+
+    private async Task CaricaRadioassistenzeAsync()
+    {
+        _radioassistenze = await Militari.GetNavaidsAsync(_icao);
+        _anagrafica = await Radioassistenze.ListAsync();
+    }
+
+    /// <summary>Le identità citate dal documento, nell'ordine: è la forma in cui si risalva il payload dopo
+    /// un'aggiunta, una rimozione o uno spostamento.</summary>
+    private List<NavaidKey> ChiaviCorrenti() =>
+        _radioassistenze.Select(r => new NavaidKey(r.Code, r.Kind)).ToList();
+
+    private Task AggiungiRadioassistenza(NavaidKey k) => _shell.GuardAsync(async () =>
+    {
+        // ⚠️ Prima l'anagrafica, poi il documento: `CreateAsync` è idempotente e torna la riga che c'è già, e
+        // citare nel documento un codice che non esiste darebbe una tabella con una riga fantasma.
+        await Radioassistenze.CreateAsync(k.Code, k.Kind, Authz.CurrentUserId ?? 0);
+        var chiavi = ChiaviCorrenti();
+        chiavi.Add(k);
+        await Militari.SaveNavaidsAsync(_icao, chiavi);
+        await CaricaRadioassistenzeAsync();
+    });
+
+    /// <summary>Toglie la riga dal DOCUMENTO. ⚠️ Non dall'anagrafica: quella radioassistenza la citano altri
+    /// SOP, e cancellarla davvero sarebbe un atto su un dato di tutti preso dalla tabella di uno.</summary>
+    private Task TogliRadioassistenza(int indice) => _shell.GuardAsync(async () =>
+    {
+        var chiavi = ChiaviCorrenti();
+        if (indice < 0 || indice >= chiavi.Count) return;
+        chiavi.RemoveAt(indice);
+        await Militari.SaveNavaidsAsync(_icao, chiavi);
+        await CaricaRadioassistenzeAsync();
+    });
+
+    private Task SpostaRadioassistenza((int Indice, int Delta) m) => _shell.GuardAsync(async () =>
+    {
+        var chiavi = ChiaviCorrenti();
+        var a = m.Indice;
+        var b = a + m.Delta;
+        if (a < 0 || a >= chiavi.Count || b < 0 || b >= chiavi.Count) return;
+        (chiavi[a], chiavi[b]) = (chiavi[b], chiavi[a]);
+        await Militari.SaveNavaidsAsync(_icao, chiavi);
+        await CaricaRadioassistenzeAsync();
+    });
+
+    /// <summary>
+    /// Scrive UN campo nell'anagrafica e torna l'esito a chi l'ha chiesto. ⚠️ L'esito serve: «la fonte vince»
+    /// si racconta a chi ha appena provato a scrivere, e un salvataggio muto lascerebbe credere che il valore
+    /// sia passato.
+    /// </summary>
+    private async Task<NavaidWrite> ScriviRadioassistenza(int navaidId, NavaidCampo campo, string? valore)
+    {
+        var utente = Authz.CurrentUserId ?? 0;
+        var esito = campo switch
+        {
+            NavaidCampo.Tipo => await Radioassistenze.SetDisplayTypeAsync(navaidId, valore, utente),
+            NavaidCampo.Frequenza => await Radioassistenze.SetFrequencyAsync(navaidId, valore, utente),
+            NavaidCampo.Canale => await Radioassistenze.SetChannelAsync(navaidId, valore, utente),
+            _ => await Radioassistenze.SetCoordinatesAsync(navaidId, valore, utente),
+        };
+        // Si ricarica anche quando la scrittura è stata rifiutata: la casella deve tornare al valore vero,
+        // altrimenti a schermo resta quel che l'utente ha battuto e sembra salvato.
+        await CaricaRadioassistenzeAsync();
+        return esito;
+    }
 
     private Task SaveRegulated(RegulatedSelection sel) => _shell.GuardAsync(async () =>
     {

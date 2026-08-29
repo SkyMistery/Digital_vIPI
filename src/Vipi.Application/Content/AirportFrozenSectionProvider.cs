@@ -25,6 +25,10 @@ public sealed class AirportFrozenSectionProvider : IFrozenSectionProvider
     private readonly IAirportSectorService _sectors;
     private readonly IAirportSidDerivationService _sids;
 
+    /// <summary>L'anagrafica delle radioassistenze: serve solo all'edizione militare, ed è l'unica sezione
+    /// congelata i cui valori stanno FUORI dal documento e fuori dal profilo dell'aeroporto.</summary>
+    private readonly INavaidCatalog? _navaids;
+
     /// <param name="type">
     /// La famiglia che questo provider serve. ⚠️ <b>Sono DUE</b>: la vIPI civile d'aeroporto e il vSOP
     /// <b>militare</b> dello stesso scalo, che deriva le stesse tre tabelle (<c>frequencies</c>,
@@ -39,11 +43,13 @@ public sealed class AirportFrozenSectionProvider : IFrozenSectionProvider
     /// </para>
     /// </param>
     public AirportFrozenSectionProvider(IAirportProfileReader repo, IAirportSectorService sectors,
-        IAirportSidDerivationService sids, ReleaseTargetType type = ReleaseTargetType.Airport)
+        IAirportSidDerivationService sids, ReleaseTargetType type = ReleaseTargetType.Airport,
+        INavaidCatalog? navaids = null)
     {
         _repo = repo;
         _sectors = sectors;
         _sids = sids;
+        _navaids = navaids;
         Type = type;
     }
 
@@ -72,6 +78,13 @@ public sealed class AirportFrozenSectionProvider : IFrozenSectionProvider
                 "runways" => AirportSectionProjection.Runways(data),
                 "frequencies" => AirportSectionProjection.Frequencies(await _sectors.ListByAirportAsync(key, ct), data?.Links),
                 "sids" => await _sids.DeriveAsync(key, ct),
+                // ⚠️ L'unica sezione congelata i cui valori NON stanno nel documento né nel profilo dello
+                // scalo: il documento dice quali radioassistenze cita, l'anagrafica dice quanto valgono. Senza
+                // questa cattura una frequenza corretta oggi cambierebbe da sola un SOP pubblicato al ciclo
+                // scorso — che è esattamente ciò che pubblicare deve impedire.
+                "navaids" => _navaids is null
+                    ? null
+                    : await _navaids.GetManyAsync(MilNavaidsPayload.Leggi(SectionPayload.Read(s.Blocks)), ct),
                 _ => null,
             };
             if (vm is not null) result[s.Id] = JsonSerializer.Serialize(vm);

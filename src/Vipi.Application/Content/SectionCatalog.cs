@@ -53,7 +53,12 @@ public static class SectionCatalog
             // paga dove la sorgente ha davvero il dato; qui la sorgente e' un PDF, e il confine di
             // un'estrazione si misura prima di tagliare.
             ["generaldata"] = SectionKind.Editorial,
-            ["navaids"] = SectionKind.Editorial,
+            // ⚠️ DERIVATA dal 29 agosto 2026 (carta §12): il corpo non è più prosa libera ma una TABELLA le
+            // cui righe stanno nell'anagrafica di divisione — la stessa radioassistenza esce uguale nel SOP di
+            // Amendola e in quello di Gioia. Il documento porta quali righe cita e in che ordine; i valori li
+            // porta l'anagrafica, e la release li CONGELA come le altre derivate: senza, una frequenza
+            // corretta oggi cambierebbe da sola un documento pubblicato al ciclo scorso.
+            ["navaids"] = SectionKind.Derived,
             ["diversion"] = SectionKind.Editorial,
             ["callsigns"] = SectionKind.Editorial,
             ["groundprocedures"] = SectionKind.Editorial,
@@ -224,7 +229,8 @@ public static class SectionCatalog
 
                 D("generaldata", "Dati generali", 2, new[]
                 {
-                    D("navaids", "Radioassistenze", 1),
+                    // Scheda + blocchi: la tabella in testa, e sotto la prosa che i quindici PDF hanno già.
+                    HB("navaids", "Radioassistenze", 1),
                     // Derivata: le posizioni IVAO dello scalo. Blocchi: CRC/GCI/AEW e l'APP di un altro
                     // campo, che il catalogo settori non ha. Sui campi militari i blocchi pesano PIU' della
                     // scheda -- misurato su LIPI Rivolto.

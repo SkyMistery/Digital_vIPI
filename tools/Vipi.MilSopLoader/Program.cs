@@ -65,7 +65,10 @@ if (sop is null)
 var airac = new AiracService();
 var authz = new AutorizzazioneDelloStrumento(opzioni.Autore);
 var editing = new EfEditingRepository(db, airac, new EfMediaMaintenance(db));
-var militari = new EfMilitaryDocumentService(db, airac, authz, editing, new EfSpecialAreaRepository(db));
+// L'anagrafica delle radioassistenze: il caricatore non la tocca, ma il servizio la vuole — la
+// sezione «Radioassistenze» del profilo militare si risolve di lì (carta §12b).
+var militari = new EfMilitaryDocumentService(db, airac, authz, editing, new EfSpecialAreaRepository(db),
+    new EfNavaidCatalog(db));
 
 Console.WriteLine($"SOP {sop.Icao} — fonte: {sop.Fonte}");
 Console.WriteLine($"Sezioni trascritte: {sop.Sezioni.Count}, blocchi: {sop.Sezioni.Sum(s => s.Blocchi.Count)}.");
