@@ -47,8 +47,26 @@ public class ServicesHomeTests : TestContext
         var indirizzi = cut.FindAll("a.choice").Select(a => a.GetAttribute("href")).ToList();
 
         Assert.Contains("/services/vsop", indirizzi);
+        Assert.Contains("/services/vsop/mil", indirizzi);
+        Assert.Contains("/services/stats", indirizzi);
         Assert.Contains("/services/profile-swapper", indirizzi);
         Assert.Contains("/services/coordinates", indirizzi);
+    }
+
+    /// <summary>
+    /// L'ORDINE conta, e non è alfabetico: va dal documento allo strumento — prima si legge, poi si guardano
+    /// i propri numeri, poi si usa un attrezzo. È la disposizione chiesta il 29 agosto 2026, ed è l'unica
+    /// cosa di questa pagina che un lettore percepisce senza cliccare niente.
+    /// </summary>
+    [Fact]
+    public void Le_schede_stanno_nell_ordine_deciso()
+    {
+        var cut = Render();
+        var indirizzi = cut.FindAll("a.choice").Select(a => a.GetAttribute("href")).ToList();
+
+        Assert.Equal(
+            new[] { "/services/vsop", "/services/vsop/mil", "/services/stats", "/services/profile-swapper", "/services/coordinates" },
+            indirizzi);
     }
 
     /// <summary>
@@ -69,19 +87,44 @@ public class ServicesHomeTests : TestContext
     }
 
     /// <summary>
-    /// I figli di <c>/services</c> sono tutti servizi, allo stesso livello: è la regola che rende la forma
-    /// delle URL leggibile senza spiegarla. Se un giorno qualcuno annidasse uno strumento sotto un altro —
-    /// o sotto la documentazione — questo test lo direbbe.
+    /// I <b>servizi</b> sono figli diretti di <c>/services</c>, tutti allo stesso livello: è la regola che
+    /// rende la forma delle URL leggibile senza spiegarla. Se un giorno qualcuno annidasse uno strumento
+    /// sotto un altro — o sotto la documentazione — questo test lo direbbe.
+    ///
+    /// <para>⚠️ Le <b>scorciatoie</b> (<c>a.choice.shortcut</c>) sono esentate, e l'esenzione è il punto: dal
+    /// 29 agosto 2026 l'hub porta anche i vSOP militari, che <b>non</b> sono un servizio ma una parte della
+    /// vSOP — e infatti stanno a <c>/services/vsop/mil</c>, due segmenti sotto. Marcarle invece di allargare
+    /// la regola tiene in piedi la regola: senza il segno, questo test sarebbe stato semplicemente
+    /// cancellato per far entrare un'eccezione, e da lì in poi nessuno avrebbe più notato un servizio
+    /// annidato per sbaglio.</para>
+    ///
+    /// <para>⚠️ Una scorciatoia resta comunque <b>dentro</b> <c>/services/</c>: l'hub non è un elenco di
+    /// segnalibri per il resto del sito.</para>
     /// </summary>
     [Fact]
     public void Ogni_servizio_e_figlio_diretto_di_services()
     {
         var cut = Render();
 
-        foreach (var href in cut.FindAll("a.choice").Select(a => a.GetAttribute("href")!))
+        foreach (var a in cut.FindAll("a.choice"))
         {
+            var href = a.GetAttribute("href")!;
             Assert.StartsWith("/services/", href);
+
+            if (a.ClassList.Contains("shortcut")) continue;
             Assert.Equal(2, href.Trim('/').Split('/').Length);
         }
+    }
+
+    /// <summary>
+    /// ⚠️ Una scorciatoia è un'<b>eccezione</b>, e le eccezioni si contano: se un giorno metà dell'hub fosse
+    /// marcata <c>shortcut</c>, la regola sopra non proverebbe più niente pur restando verde. Il numero non è
+    /// sacro — si alza scrivendo perché — ma va alzato <i>di proposito</i>.
+    /// </summary>
+    [Fact]
+    public void Le_scorciatoie_restano_un_eccezione_contata()
+    {
+        var cut = Render();
+        Assert.Single(cut.FindAll("a.choice.shortcut"));
     }
 }

@@ -1,4 +1,4 @@
-@page "/services"
+﻿@page "/services"
 @layout SopLayout
 @using Vipi.Application.Auth
 @inject IEditAuthorizationService Authz
@@ -21,31 +21,63 @@
         <p>@L["Services_Intro"]</p>
     </div>
 
+    @* L'ORDINE è quello che il committente ha chiesto il 29 agosto 2026, e non è alfabetico né storico: va
+       dal documento allo strumento. Prima si legge (le due edizioni della vSOP), poi si guardano i propri
+       numeri, poi si usa un attrezzo. Chi arriva qui la prima volta cerca un documento. *@
     <div class="choice-grid" style="margin-top:22px">
         <a class="choice" href="/services/vsop">
             <h2 class="h-card"><span class="ic"><Icon Name="book-open" Size="18" /></span> @L["Services_VsopTitle"]</h2>
             <p class="muted">@L["Services_VsopDesc"]</p>
         </a>
-        <a class="choice" href="/services/profile-swapper">
-            <h2 class="h-card"><span class="ic"><Icon Name="copy" Size="18" /></span> @L["Swap_Heading"]</h2>
-            <p class="muted">@L["Services_SwapperDesc"]</p>
+
+        @* ---- I vSOP militari: una SCORCIATOIA, non un servizio ------------------------------------------
+
+           ⚠️ La carta dei vSOP militari (§5) aveva deciso il contrario — «niente card su /services: non sono
+           un servizio, sono una parte della vSOP» — e la regola resta vera. Il 29 agosto 2026 il committente
+           ha chiesto lo stesso di metterla qui, e ha ragione sul fatto che conta: chi cerca un vSOP militare
+           non sa che deve prima entrare nella documentazione civile per trovarlo.
+
+           Le due cose stanno insieme perché il collegamento è marcato per quello che è: `shortcut` dice che
+           questa scheda NON è un servizio ma una porta dentro a uno, e la rete che pretende un solo segmento
+           sotto `/services` continua a valere su tutte le altre (ServicesHomeTests). Senza quel segno la
+           regola sarebbe stata semplicemente cancellata per farci stare un'eccezione. *@
+        <a class="choice shortcut" href="/services/vsop/mil">
+            <h2 class="h-card"><span class="ic"><Icon Name="shield" Size="18" /></span> @L["Mil_Title"]</h2>
+            <p class="muted">@L["Mil_Desc"]</p>
         </a>
+
         <a class="choice" href="/services/stats">
             <h2 class="h-card"><span class="ic"><Icon Name="clipboard" Size="18" /></span> @L["Stats_Title"]</h2>
             <p class="muted">@L["Services_StatsDesc"]</p>
         </a>
+        <a class="choice" href="/services/profile-swapper">
+            <h2 class="h-card"><span class="ic"><Icon Name="copy" Size="18" /></span> @L["Swap_Heading"]</h2>
+            <p class="muted">@L["Services_SwapperDesc"]</p>
+        </a>
+    </div>
 
-        @* ⚠️ Il cancello sta in DUE sedi: qui la scheda si nasconde, e la pagina rifiuta chi scrive
-           l'indirizzo a mano. Nascondere e basta è un cancello che non c'è.
+    @* ⚠️ Il cancello sta in DUE sedi: qui la sezione si nasconde, e la pagina rifiuta chi scrive
+       l'indirizzo a mano. Nascondere e basta è un cancello che non c'è.
 
-           La domanda non costa una query: il livello dell'utente è già in memoria (RoleOverrideCache), ed è
-           per questo che si può fare anche in una pagina SSR statica come questa. *@
-        @if (Authz.IsDivisionStaff)
-        {
+       La domanda non costa una query: il livello dell'utente è già in memoria (RoleOverrideCache), ed è
+       per questo che si può fare anche in una pagina SSR statica come questa.
+
+       ⚠️ La riga che separa dice ANCHE a chi appartiene quel che sta sotto. Prima la scheda dello staff
+       stava nella stessa griglia delle altre e sembrava uno strumento come gli altri: chi la vedeva non
+       aveva modo di sapere che gli altri non la vedono. *@
+    @if (Authz.IsDivisionStaff)
+    {
+        <div class="section-title" style="margin-top:26px">
+            <h2 class="h-sect">@L["Services_StaffSection"]</h2><span class="ln"></span>
+        </div>
+        <div class="choice-grid">
             <a class="choice" href="/services/coordinates">
-                <h2 class="h-card"><span class="ic"><Icon Name="map" Size="18" /></span> @L["Conv_Title"]</h2>
+                @* ⚠️ `<h3>` e non `<h2>`: sopra c'è il titolo della sezione, che è un `<h2>`. La MISURA la
+                   porta `.h-card` come prima, quindi il disegno non cambia — il tag dice la struttura, la
+                   classe dice la dimensione (regola del progetto). *@
+                <h3 class="h-card"><span class="ic"><Icon Name="map" Size="18" /></span> @L["Conv_Title"]</h3>
                 <p class="muted">@L["Services_ConvDesc"]</p>
             </a>
-        }
-    </div>
+        </div>
+    }
 </div>

@@ -2646,6 +2646,7 @@
   <data name="Conv_IssueTooMany" xml:space="preserve"><value>Too many lines: the rest was not read</value></data>
   <data name="Conv_IssueFile" xml:space="preserve"><value>File not read</value></data>
   <data name="Services_ConvDesc" xml:space="preserve"><value>Coordinates in any format, rewritten for the IVAO database or for the sectorfile.</value></data>
+  <data name="Services_StaffSection" xml:space="preserve"><value>Division staff</value></data>
   <data name="Conv_AreasOn" xml:space="preserve"><value>{0} of {1} areas on.</value></data>
   <data name="Conv_AreaN" xml:space="preserve"><value>Area {0}</value></data>
   <data name="Conv_Points" xml:space="preserve"><value>points: {0}</value></data>

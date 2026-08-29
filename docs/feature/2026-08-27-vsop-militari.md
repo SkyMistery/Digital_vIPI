@@ -776,3 +776,34 @@ MIlano Linate», e stamparlo in una riga che ha già la sua targa ICAO ripetereb
 verde, che è il difetto che quell'insieme di colori deve evitare per mestiere. ⚠️ L'inchiostro va definito in
 **tutti e tre** i blocchi di tema — chiaro, `prefers-color-scheme: dark` **e** `[data-theme="dark"]` — o metà
 dei lettori scuri prende quello chiaro.
+
+### 11h. La card su `/services` — la decisione di §5 è stata ribaltata, e come
+
+⚠️ **§5 aveva deciso il contrario**: *«niente card su `/services`: i vSOP militari non sono un servizio, sono
+una parte della vSOP, e `ServicesHomeTests` lo pretende»*. Il 29 agosto 2026 il committente ha chiesto lo
+stesso di metterla lì, e ha ragione sul fatto che conta: **chi cerca un vSOP militare non sa che deve prima
+entrare nella documentazione civile per trovarlo**. La regola di §5 era giusta sull'architettura e sbagliata
+sul lettore.
+
+Le due cose stanno insieme perché il collegamento è **marcato per quello che è**: `a.choice.shortcut` dice
+che quella scheda **non è un servizio** ma una porta dentro a uno, e la rete che pretende un solo segmento
+sotto `/services` continua a valere su tutte le altre.
+
+⚠️ **Marcare invece di allargare.** Senza quel segno, `Ogni_servizio_e_figlio_diretto_di_services` sarebbe
+stato semplicemente **cancellato** per far entrare un'eccezione — e da lì in poi nessuno avrebbe più notato
+un servizio annidato per sbaglio. Una regola che si toglie per far passare un caso non protegge più
+nemmeno gli altri. Due reti nuove la tengono in piedi: la scorciatoia deve comunque stare **dentro**
+`/services/` (l'hub non è un elenco di segnalibri per il resto del sito), e le scorciatoie si **contano** —
+se un giorno fossero metà dell'hub, la regola resterebbe verde senza provare più niente.
+
+**L'ordine dell'hub**, chiesto dal committente e ora presidiato da un test: vSOP civili → **vSOP militari** →
+statistiche ATC → Aurora Profile Swapper → *riga «Staff di divisione»* → convertitore di coordinate. Non è
+alfabetico né storico: va **dal documento allo strumento**. Chi arriva la prima volta cerca un documento.
+
+⚠️ **La riga di sezione dice anche a CHI appartiene quel che sta sotto.** Prima la scheda del convertitore
+stava nella stessa griglia delle altre e sembrava uno strumento come gli altri: chi la vedeva non aveva modo
+di sapere che gli altri non la vedono. Il cancello resta in **due sedi** — la sezione si nasconde *e* la
+pagina rifiuta chi scrive l'indirizzo a mano.
+
+⚠️ Sotto un titolo di sezione le schede diventano `<h3>`: il tag dice la **struttura**, `.h-card` porta la
+**misura**, quindi il disegno non cambia.

@@ -4387,3 +4387,16 @@ LIBG. Carta §11g.
 
 ⚠️ **Non ha un test automatico**: è presentazione su un elenco già filtrato, e il gate è la stessa espressione
 usata tre volte sopra nello stesso file. Va guardata a schermo insieme a §X5.
+
+### X10 ✅ CHIUSA — i vSOP militari su `/services`, e l'hub riordinato
+
+Ordine chiesto dal committente e ora presidiato da un test: vSOP civili → **vSOP militari** → statistiche
+ATC → Aurora Profile Swapper → riga **«Staff di divisione»** → convertitore di coordinate. Va dal documento
+allo strumento.
+
+⚠️ **Ribalta la decisione di §5 della carta militare** («niente card su `/services`»). La regola
+architetturale resta vera, ma perdeva sul lettore: chi cerca un vSOP militare non sa di dover entrare prima
+nella documentazione civile. La scheda è marcata `a.choice.shortcut` — **non è un servizio, è una porta
+dentro a uno** — così `ServicesHomeTests` continua a pretendere un solo segmento sotto `/services` per tutte
+le altre. ⚠️ **Marcare invece di allargare**: senza il segno quel test sarebbe stato cancellato per far
+entrare un'eccezione, e da lì in poi non avrebbe più protetto nessuno. Carta §11h.
