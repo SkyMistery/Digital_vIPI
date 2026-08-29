@@ -214,9 +214,12 @@ public sealed class AccCoordination
 /// Per i settori è null e la chip dice il callsign, che è il nome con cui li si chiama. Serve alle <b>aree
 /// regolamentate</b>, che riusano questa mappa (<see cref="Vipi.Application.Aor.RegulatedAreasMap"/>): lì il
 /// «callsign» è l'id IVAO, cioè un numero, e la chip deve dire il nome dell'area.</para></summary>
+/// <param name="Dashed">La forma si disegna TRATTEGGIATA e quasi senza riempimento. Serve al convertitore di
+/// coordinate, che sovrappone alla forma di partenza quella riconvertita: senza il tratteggio la seconda
+/// coprirebbe la prima e il confronto non direbbe niente.</param>
 public sealed record AccSectorAor(
     string Callsign, string Name, string Color, IReadOnlyList<AppAorPolygon> Polygons,
-    int? LowerFl = null, int? UpperFl = null, string? Label = null);
+    int? LowerFl = null, int? UpperFl = null, string? Label = null, bool Dashed = false);
 
 /// <summary>Selezione di configurazione per la mappa: quali settori accendere.</summary>
 public sealed record AccConfigSelection(string Key, string Name, IReadOnlyList<string> OpenCallsigns);

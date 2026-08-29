@@ -333,7 +333,12 @@
                 // ⚠️ anche qui il colore puo' essere il NOME di un token (lo manda ConfinantiAdminPage):
                 // va risolto, perche' Leaflet lo scrive in un attributo SVG che non sostituisce var().
                 var sc = aorColor(s.color, '--ivao-lightblue');
-                return L.polygon(r, { color: sc, weight: 2, fillColor: sc, fillOpacity: 0.16 });
+                // `dash` (facoltativo): la forma si disegna TRATTEGGIATA e quasi senza riempimento. Serve al
+                // convertitore di coordinate, che sovrappone alla forma di partenza quella riconvertita: se le
+                // due non combaciano si vede a occhio, e senza il tratteggio la seconda coprirebbe la prima.
+                return L.polygon(r, s.dash
+                    ? { color: sc, weight: 2, dashArray: '5,4', fillColor: sc, fillOpacity: 0.05 }
+                    : { color: sc, weight: 2, fillColor: sc, fillOpacity: 0.16 });
             });
             secMap[(s.sec || '').toUpperCase()] = { layers: layers, on: false };
         });

@@ -243,4 +243,47 @@ public class CoordinateConverterPageTests
 
         Assert.Equal(2, cut.FindAll("textarea.conv-out").Count);
     }
+
+    // ---- La mappa (slice 7) ----
+
+    [Fact]
+    public void La_Mappa_Compare_Con_Le_Coordinate_E_Non_Prima()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+
+        Assert.Empty(cut.FindAll(".conv-map"));
+
+        cut.Find("textarea.conv-ta").Input("42:11\n42.5:11.5\n41.5:11.5");
+
+        // È la mappa dell'AoR, non una nuova: il contenitore è lo stesso che vipi-aor.js inizializza.
+        Assert.NotEmpty(cut.FindAll(".conv-map .aor-leaflet"));
+    }
+
+    [Fact]
+    public void Il_Confronto_Aggiunge_La_Forma_Riconvertita()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+        cut.Find("textarea.conv-ta").Input("42:11\n42.5:11.5\n41.5:11.5");
+
+        var prima = cut.FindAll(".conv-map .aor-chip").Count;
+        cut.Find(".conv-map input[type=checkbox]").Change(true);
+
+        // Una chip in più per area: l'originale e la sua riconversione, tratteggiata.
+        Assert.Equal(prima * 2, cut.FindAll(".conv-map .aor-chip").Count);
+        Assert.Contains("↺", cut.Find(".conv-map").InnerHtml);
+    }
+
+    [Fact]
+    public void Un_Punto_Solo_Ha_Comunque_La_Sua_Mappa()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+
+        cut.Find("textarea.conv-ta").Input("42.00777778:11.96833333");
+
+        // ⚠️ È il caso d'uso più comune di tutti, ed è quello che il proiettore da solo non sa disegnare.
+        Assert.NotEmpty(cut.FindAll(".conv-map .aor-leaflet"));
+    }
 }

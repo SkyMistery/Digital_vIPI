@@ -2,7 +2,9 @@
 @layout SopLayout
 @rendermode InteractiveServer
 @using Vipi.Application.Auth
+@using Vipi.Application.Content
 @using Vipi.Application.Coordinates
+@using Vipi.Ui.Components.App
 @inject IEditAuthorizationService Authz
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
@@ -187,6 +189,26 @@
             </section>
         </div>
 
+        @* ---- La mappa: nessun motore nuovo, è quella dell'AoR ----
+           ⚠️ Il `@key` sulla firma dei punti è obbligatorio: il contenitore Leaflet è idempotente (`data-init`)
+           e la firma interna di AccAor guarda callsign e colore, che qui NON cambiano quando cambiano i punti.
+           Senza, si continuerebbe a vedere il poligono di due incolla fa. *@
+        @if (Accese.Count > 0)
+        {
+            <section class="panel conv-map">
+                <h2 class="h-card">@L["Conv_MapTitle"]</h2>
+
+                <label class="conv-opt conv-opt-check">
+                    <input type="checkbox" checked="@_confronto" @onchange="OnConfronto" />
+                    <span>@L["Conv_Compare"]</span>
+                </label>
+
+                <div @key="FirmaMappa()">
+                    <AccAor View="Vista()" Id="conv" Hint="@L["Conv_MapHint"].Value" />
+                </div>
+            </section>
+        }
+
         @* ---- Diagnostica: nulla si perde in silenzio ---- *@
         @if (_esito.PuntiTotali > 0 || _esito.Segnalazioni.Count > 0)
         {
@@ -240,6 +262,10 @@
 
     /// <summary>Quale riquadro ha appena detto «copiato»: uno per area, quindi un indice e non un sì/no.</summary>
     private int? _copiata;
+
+    /// <summary>Mostra sulla mappa anche la forma RICONVERTITA, tratteggiata. Spenta di default: a regime le
+    /// due combaciano, e la seconda sarebbe solo rumore.</summary>
+    private bool _confronto;
 
     /// <summary>Le aree accese, per indice. Un ingresso nuovo le riaccende tutte.</summary>
     private readonly HashSet<int> _accese = [];
@@ -369,6 +395,42 @@
         var radice = string.IsNullOrWhiteSpace(proposto) ? "coordinate" : proposto.Trim();
         var nome = $"{radice}-{(_formato == CoordinateOutput.DbIvao ? "db" : "sct")}.txt";
         await JS.InvokeVoidAsync("vipiScaricaTesto", nome, Uscita(area));
+    }
+
+    private void OnConfronto(ChangeEventArgs e) => _confronto = (bool?)e.Value ?? false;
+
+    /// <summary>La vista mappa: le aree accese, più le riconvertite quando il confronto è acceso.</summary>
+    private AccAorView Vista() => ConvertedAreasMap.Build(Accese, Etichetta, _confronto ? Riconvertite() : null);
+
+    /// <summary>
+    /// Ogni area riletta dalla PROPRIA uscita: è il giro completo (punti → testo → punti), non una copia dei
+    /// punti di partenza. Copiarli darebbe due forme identiche per costruzione, cioè una prova che non prova.
+    /// </summary>
+    private IReadOnlyDictionary<int, IReadOnlyList<(double Lat, double Lon)>> Riconvertite()
+    {
+        var d = new Dictionary<int, IReadOnlyList<(double Lat, double Lon)>>();
+        foreach (var (idx, area) in Accese)
+        {
+            var tornata = CoordinateParser.Parse(Uscita(area)).Aree.FirstOrDefault();
+            if (tornata is not null) d[idx] = tornata.Punti;
+        }
+        return d;
+    }
+
+    /// <summary>
+    /// La firma del disegno: aree accese, loro punti e stato del confronto. Cambia quando cambia ciò che si
+    /// vede, e solo allora.
+    /// </summary>
+    private string FirmaMappa()
+    {
+        var sb = new System.Text.StringBuilder(_confronto ? "c" : "s");
+        foreach (var (idx, area) in Accese)
+        {
+            sb.Append('|').Append(idx).Append(':').Append(area.Punti.Count);
+            foreach (var p in area.Punti)
+                sb.Append(';').Append(Math.Round(p.Lat, 6)).Append(',').Append(Math.Round(p.Lon, 6));
+        }
+        return sb.ToString();
     }
 
     private string Descrivi(CoordinateIssueKind k) => k switch

@@ -417,20 +417,11 @@ public static class AuroraSectorfileParser
     /// <c>RegionMapPolygon</c> di IVAO. Sta qui e non nei due provider perché l'ordine invertito è una
     /// conoscenza del formato, e scritta in due posti prima o poi diverge in uno solo.
     /// </summary>
-    public static string RingToPolygonJson(IReadOnlyList<(double Lat, double Lon)> ring)
-    {
-        var sb = new System.Text.StringBuilder("[");
-        for (var i = 0; i < ring.Count; i++)
-        {
-            if (i > 0) sb.Append(',');
-            sb.Append('[')
-              .Append(Math.Round(ring[i].Lon, 6).ToString(CultureInfo.InvariantCulture))
-              .Append(',')
-              .Append(Math.Round(ring[i].Lat, 6).ToString(CultureInfo.InvariantCulture))
-              .Append(']');
-        }
-        return sb.Append(']').ToString();
-    }
+    /// <remarks>⚠️ Come per il DMS, la scrittura vive in <c>Vipi.Application</c>
+    /// (<see cref="AuroraRingJson"/>): dal 29 agosto 2026 la usa anche il convertitore di coordinate, che
+    /// l'infrastruttura non la vede. Questa firma resta per i suoi chiamanti: è una delega.</remarks>
+    public static string RingToPolygonJson(IReadOnlyList<(double Lat, double Lon)> ring) =>
+        AuroraRingJson.Scrivi(ring);
 
     /// <summary>
     /// Converte una coordinata DMS Aurora in gradi decimali con segno (S/W negativi). Accetta <b>entrambe</b> le

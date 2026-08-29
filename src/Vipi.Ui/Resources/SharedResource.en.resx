@@ -2636,4 +2636,7 @@
   <data name="Conv_AreasOn" xml:space="preserve"><value>{0} of {1} areas on.</value></data>
   <data name="Conv_AreaN" xml:space="preserve"><value>Area {0}</value></data>
   <data name="Conv_Points" xml:space="preserve"><value>{0} points</value></data>
+  <data name="Conv_MapTitle" xml:space="preserve"><value>The map</value></data>
+  <data name="Conv_MapHint" xml:space="preserve"><value>The chips switch areas on and off. The map does not change the coordinates: it shows them.</value></data>
+  <data name="Conv_Compare" xml:space="preserve"><value>Also show the reconverted shape (dashed)</value></data>
 </root>

@@ -2642,4 +2642,7 @@
   <data name="Conv_AreasOn" xml:space="preserve"><value>{0} aree accese su {1}.</value></data>
   <data name="Conv_AreaN" xml:space="preserve"><value>Area {0}</value></data>
   <data name="Conv_Points" xml:space="preserve"><value>{0} punti</value></data>
+  <data name="Conv_MapTitle" xml:space="preserve"><value>La mappa</value></data>
+  <data name="Conv_MapHint" xml:space="preserve"><value>Le chip accendono e spengono le aree. La mappa non modifica le coordinate: le mostra.</value></data>
+  <data name="Conv_Compare" xml:space="preserve"><value>Mostra anche la forma riconvertita (tratteggiata)</value></data>
 </root>
