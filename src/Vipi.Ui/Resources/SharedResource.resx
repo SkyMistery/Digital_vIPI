@@ -2602,4 +2602,41 @@
   <data name="Roles_RemoveYes" xml:space="preserve"><value>Sì, togli</value></data>
   <data name="Roles_RemovePrompt" xml:space="preserve"><value>Togliere la promozione a {0}? Torna al livello «{1}», quello della sua posizione staff.</value></data>
   <data name="Roles_Removed" xml:space="preserve"><value>{0} torna al livello «{1}».</value></data>
+  <data name="Conv_Title" xml:space="preserve"><value>Convertitore di coordinate</value></data>
+  <data name="Conv_Intro" xml:space="preserve"><value>Coordinate in qualsiasi formato, riscritte per il DB di IVAO o per il sectorfile.</value></data>
+  <data name="Conv_StaffOnly" xml:space="preserve"><value>Il convertitore è riservato allo staff di divisione.</value></data>
+  <data name="Conv_InputTitle" xml:space="preserve"><value>Coordinate in ingresso</value></data>
+  <data name="Conv_OutputTitle" xml:space="preserve"><value>Uscita</value></data>
+  <data name="Conv_InputHint" xml:space="preserve"><value>Incolla qui le coordinate, in qualunque formato…</value></data>
+  <data name="Conv_Formats" xml:space="preserve"><value>Il formato lo riconosce da solo: DMS Aurora (puntato e compatto), DMS coi simboli, gradi e primi decimali, ARINC, decimali con segno o emisfero, lat:lon del DB, CSV, righe di sectorfile, JSON e KML.</value></data>
+  <data name="Conv_LoadFile" xml:space="preserve"><value>Carica un KML o un KMZ</value></data>
+  <data name="Conv_Clear" xml:space="preserve"><value>Togli</value></data>
+  <data name="Conv_Db" xml:space="preserve"><value>DB IVAO</value></data>
+  <data name="Conv_SfPunti" xml:space="preserve"><value>Sectorfile · punti</value></data>
+  <data name="Conv_SfSegmenti" xml:space="preserve"><value>Sectorfile · segmenti</value></data>
+  <data name="Conv_Decimals" xml:space="preserve"><value>Decimali</value></data>
+  <data name="Conv_Form" xml:space="preserve"><value>Forma DMS</value></data>
+  <data name="Conv_Dotted" xml:space="preserve"><value>Puntata</value></data>
+  <data name="Conv_Compact" xml:space="preserve"><value>Compatta</value></data>
+  <data name="Conv_Type" xml:space="preserve"><value>Tipo</value></data>
+  <data name="Conv_Name" xml:space="preserve"><value>Nome</value></data>
+  <data name="Conv_CloseRing" xml:space="preserve"><value>Chiudi l'anello</value></data>
+  <data name="Conv_Copy" xml:space="preserve"><value>Copia</value></data>
+  <data name="Conv_Copied" xml:space="preserve"><value>Copiato</value></data>
+  <data name="Conv_Download" xml:space="preserve"><value>Scarica .txt</value></data>
+  <data name="Conv_Nothing" xml:space="preserve"><value>Niente da convertire, per ora.</value></data>
+  <data name="Conv_DiagTitle" xml:space="preserve"><value>Che cosa ho letto</value></data>
+  <data name="Conv_Read" xml:space="preserve"><value>Letti {0} punti su {1} righe.</value></data>
+  <data name="Conv_Line" xml:space="preserve"><value>Riga {0}</value></data>
+  <data name="Conv_MoreIssues" xml:space="preserve"><value>…e altre {0} segnalazioni.</value></data>
+  <data name="Conv_OutsideItaly" xml:space="preserve"><value>Tutti i punti cadono fuori dall'Italia: vale la pena controllare gli emisferi.</value></data>
+  <data name="Conv_IssueUnread" xml:space="preserve"><value>Riga non riconosciuta</value></data>
+  <data name="Conv_IssueOdd" xml:space="preserve"><value>Angolo senza il suo compagno</value></data>
+  <data name="Conv_IssueRange" xml:space="preserve"><value>Fuori intervallo</value></data>
+  <data name="Conv_IssueSwapped" xml:space="preserve"><value>Latitudine e longitudine scambiate</value></data>
+  <data name="Conv_IssueChain" xml:space="preserve"><value>Catena di segmenti interrotta</value></data>
+  <data name="Conv_IssueHole" xml:space="preserve"><value>Buco del poligono scartato</value></data>
+  <data name="Conv_IssueTooMany" xml:space="preserve"><value>Troppe righe: il resto non è stato letto</value></data>
+  <data name="Conv_IssueFile" xml:space="preserve"><value>File non letto</value></data>
+  <data name="Services_ConvDesc" xml:space="preserve"><value>Coordinate in qualsiasi formato, riscritte per il DB di IVAO o per il sectorfile.</value></data>
 </root>

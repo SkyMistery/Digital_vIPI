@@ -2596,4 +2596,41 @@
   <data name="Roles_RemoveYes" xml:space="preserve"><value>Yes, remove</value></data>
   <data name="Roles_RemovePrompt" xml:space="preserve"><value>Remove {0}'s promotion? They go back to «{1}», the level of their staff position.</value></data>
   <data name="Roles_Removed" xml:space="preserve"><value>{0} goes back to the «{1}» level.</value></data>
+  <data name="Conv_Title" xml:space="preserve"><value>Coordinate converter</value></data>
+  <data name="Conv_Intro" xml:space="preserve"><value>Coordinates in any format, rewritten for the IVAO database or for the sectorfile.</value></data>
+  <data name="Conv_StaffOnly" xml:space="preserve"><value>The converter is reserved for division staff.</value></data>
+  <data name="Conv_InputTitle" xml:space="preserve"><value>Coordinates in</value></data>
+  <data name="Conv_OutputTitle" xml:space="preserve"><value>Output</value></data>
+  <data name="Conv_InputHint" xml:space="preserve"><value>Paste your coordinates here, in any format…</value></data>
+  <data name="Conv_Formats" xml:space="preserve"><value>The format is detected for you: Aurora DMS (dotted and packed), DMS with symbols, degrees and decimal minutes, ARINC, decimals with sign or hemisphere, the database lat:lon, CSV, sectorfile lines, JSON and KML.</value></data>
+  <data name="Conv_LoadFile" xml:space="preserve"><value>Load a KML or KMZ</value></data>
+  <data name="Conv_Clear" xml:space="preserve"><value>Remove</value></data>
+  <data name="Conv_Db" xml:space="preserve"><value>IVAO database</value></data>
+  <data name="Conv_SfPunti" xml:space="preserve"><value>Sectorfile · points</value></data>
+  <data name="Conv_SfSegmenti" xml:space="preserve"><value>Sectorfile · segments</value></data>
+  <data name="Conv_Decimals" xml:space="preserve"><value>Decimals</value></data>
+  <data name="Conv_Form" xml:space="preserve"><value>DMS form</value></data>
+  <data name="Conv_Dotted" xml:space="preserve"><value>Dotted</value></data>
+  <data name="Conv_Compact" xml:space="preserve"><value>Packed</value></data>
+  <data name="Conv_Type" xml:space="preserve"><value>Type</value></data>
+  <data name="Conv_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Conv_CloseRing" xml:space="preserve"><value>Close the ring</value></data>
+  <data name="Conv_Copy" xml:space="preserve"><value>Copy</value></data>
+  <data name="Conv_Copied" xml:space="preserve"><value>Copied</value></data>
+  <data name="Conv_Download" xml:space="preserve"><value>Download .txt</value></data>
+  <data name="Conv_Nothing" xml:space="preserve"><value>Nothing to convert yet.</value></data>
+  <data name="Conv_DiagTitle" xml:space="preserve"><value>What was read</value></data>
+  <data name="Conv_Read" xml:space="preserve"><value>{0} points read from {1} lines.</value></data>
+  <data name="Conv_Line" xml:space="preserve"><value>Line {0}</value></data>
+  <data name="Conv_MoreIssues" xml:space="preserve"><value>…and {0} more notices.</value></data>
+  <data name="Conv_OutsideItaly" xml:space="preserve"><value>Every point falls outside Italy: the hemispheres are worth a check.</value></data>
+  <data name="Conv_IssueUnread" xml:space="preserve"><value>Line not recognised</value></data>
+  <data name="Conv_IssueOdd" xml:space="preserve"><value>Angle without its pair</value></data>
+  <data name="Conv_IssueRange" xml:space="preserve"><value>Out of range</value></data>
+  <data name="Conv_IssueSwapped" xml:space="preserve"><value>Latitude and longitude swapped</value></data>
+  <data name="Conv_IssueChain" xml:space="preserve"><value>Broken segment chain</value></data>
+  <data name="Conv_IssueHole" xml:space="preserve"><value>Polygon hole discarded</value></data>
+  <data name="Conv_IssueTooMany" xml:space="preserve"><value>Too many lines: the rest was not read</value></data>
+  <data name="Conv_IssueFile" xml:space="preserve"><value>File not read</value></data>
+  <data name="Services_ConvDesc" xml:space="preserve"><value>Coordinates in any format, rewritten for the IVAO database or for the sectorfile.</value></data>
 </root>

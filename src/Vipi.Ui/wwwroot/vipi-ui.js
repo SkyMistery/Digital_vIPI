@@ -929,3 +929,44 @@ window.vipiScaricaFile = async function (nome, streamRef) {
     a.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
 };
+
+// Copia un testo negli appunti. Torna true/false: chi chiama deve poter dire «copiato» solo se e' vero.
+// ⚠️ `navigator.clipboard` non esiste fuori dai contesti sicuri (http:// su un indirizzo che non e'
+// localhost), e li' il ripiego e' la vecchia textarea nascosta piu' `document.execCommand`. Senza, il tasto
+// Copia sarebbe morto proprio sulle macchine di prova.
+window.vipiCopiaTesto = async function (testo) {
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(testo);
+            return true;
+        }
+    } catch (e) { /* si prova il ripiego */ }
+
+    try {
+        const ta = document.createElement('textarea');
+        ta.value = testo;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        ta.remove();
+        return ok;
+    } catch (e) {
+        return false;
+    }
+};
+
+// Consegna un testo come file. Gemello di vipiScaricaFile, ma il testo non ha bisogno di uno stream .NET:
+// e' gia' una stringa, e passarla come tale costa meno di un DotNetStreamReference.
+window.vipiScaricaTesto = function (nome, testo) {
+    const url = URL.createObjectURL(new Blob([testo], { type: 'text/plain;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nome;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+};

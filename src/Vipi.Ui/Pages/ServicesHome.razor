@@ -1,5 +1,7 @@
 @page "/services"
 @layout SopLayout
+@using Vipi.Application.Auth
+@inject IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
 
 @* La porta d'ingresso: da qui si raggiungono gli strumenti, di cui la documentazione operativa è il primo.
@@ -32,5 +34,18 @@
             <h2 class="h-card"><span class="ic"><Icon Name="clipboard" Size="18" /></span> @L["Stats_Title"]</h2>
             <p class="muted">@L["Services_StatsDesc"]</p>
         </a>
+
+        @* ⚠️ Il cancello sta in DUE sedi: qui la scheda si nasconde, e la pagina rifiuta chi scrive
+           l'indirizzo a mano. Nascondere e basta è un cancello che non c'è.
+
+           La domanda non costa una query: il livello dell'utente è già in memoria (RoleOverrideCache), ed è
+           per questo che si può fare anche in una pagina SSR statica come questa. *@
+        @if (Authz.IsDivisionStaff)
+        {
+            <a class="choice" href="/services/coordinates">
+                <h2 class="h-card"><span class="ic"><Icon Name="map" Size="18" /></span> @L["Conv_Title"]</h2>
+                <p class="muted">@L["Services_ConvDesc"]</p>
+            </a>
+        }
     </div>
 </div>

@@ -1,0 +1,293 @@
+@page "/services/coordinates"
+@layout SopLayout
+@rendermode InteractiveServer
+@using Vipi.Application.Auth
+@using Vipi.Application.Coordinates
+@inject IEditAuthorizationService Authz
+@inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
+@inject EnglishStrings En
+
+@* Il convertitore di coordinate: entra testo in qualunque formato, esce il formato del DB IVAO o quello del
+   sectorfile. Carta: docs/feature/2026-08-29-convertitore-coordinate.md.
+
+   ⚠️ Il motore (CoordinateParser / CoordinateWriter / KmlReader) è PURO e sta in Vipi.Application: qui c'è solo
+   la conversazione con chi usa la pagina. Nessuna scrittura in banca dati, nessuno stato che sopravviva alla
+   visita: entra testo, esce testo.
+
+   ⚠️ Il cancello sta in DUE sedi — la scheda in /services e questa pagina — perché un indirizzo si scrive
+   anche a mano. Qui la seconda sede è la pagina stessa: il motore non fa I/O, non c'è un servizio da chiudere.
+
+   Interattiva perché ha campi e pulsanti, ed è il caso in cui @rendermode si giustifica. *@
+
+<PageTitle>@L["Conv_Title"] · vIPI IVAO Italy</PageTitle>
+
+<div class="wrap" style="max-width:1180px">
+    <div class="breadcrumb"><a href="/services">‹ @En["Services_Title"]</a></div>
+
+    <div class="doc-head">
+        <div>
+            <h1 class="page-h1" style="margin-bottom:2px">@L["Conv_Title"]</h1>
+            <span class="muted">@L["Conv_Intro"]</span>
+        </div>
+    </div>
+
+    @if (!Authz.IsDivisionStaff)
+    {
+        <div class="callout danger">
+            <span class="cic"><Icon Name="octagon" Size="18" /></span>
+            <div><p class="ct">@L["Common_AccessReserved"]</p>@L["Conv_StaffOnly"]</div>
+        </div>
+    }
+    else
+    {
+        <div class="conv-cols">
+            @* ---- Ingresso ---- *@
+            <section class="panel">
+                <h5>@L["Conv_InputTitle"]</h5>
+
+                @if (_fileNome is not null)
+                {
+                    <div class="conv-file">
+                        <Icon Name="check-circle" Size="16" />
+                        <span class="conv-file-n">@_fileNome</span>
+                        <button type="button" class="btn ghost" @onclick="PuliscíFile">@L["Conv_Clear"]</button>
+                    </div>
+                }
+                else
+                {
+                    <textarea class="conv-ta" rows="16" spellcheck="false"
+                              placeholder="@L["Conv_InputHint"]"
+                              value="@_testo" @oninput="OnTesto" aria-label="@L["Conv_InputTitle"]"></textarea>
+
+                    <label class="conv-drop">
+                        <InputFile OnChange="CaricaFile" accept=".kml,.kmz" aria-label="@L["Conv_LoadFile"]" />
+                        <span>@L["Conv_LoadFile"]</span>
+                    </label>
+                }
+
+                <p class="muted conv-hint">@L["Conv_Formats"]</p>
+            </section>
+
+            @* ---- Uscita ---- *@
+            <section class="panel">
+                <h5>@L["Conv_OutputTitle"]</h5>
+
+                <div class="aor-toggles">
+                    <button type="button" class="aor-chip @(_formato == CoordinateOutput.DbIvao ? "on" : null)"
+                            @onclick="() => _formato = CoordinateOutput.DbIvao">@L["Conv_Db"]</button>
+                    <button type="button" class="aor-chip @(_formato == CoordinateOutput.SectorfilePunti ? "on" : null)"
+                            @onclick="() => _formato = CoordinateOutput.SectorfilePunti">@L["Conv_SfPunti"]</button>
+                    <button type="button" class="aor-chip @(_formato == CoordinateOutput.SectorfileSegmenti ? "on" : null)"
+                            @onclick="() => _formato = CoordinateOutput.SectorfileSegmenti">@L["Conv_SfSegmenti"]</button>
+                </div>
+
+                @* ⚠️ I campi che appaiono dipendono dal formato: tipo e nome valgono SOLO per i segmenti, e un
+                   campo che non ha effetto su ciò che si vede è peggio di un campo assente. *@
+                <div class="conv-opts">
+                    @if (_formato == CoordinateOutput.DbIvao)
+                    {
+                        <label class="conv-opt">
+                            <span>@L["Conv_Decimals"]</span>
+                            <select value="@_decimali" @onchange="OnDecimali">
+                                <option value="8">8</option>
+                                <option value="6">6</option>
+                            </select>
+                        </label>
+                    }
+                    else
+                    {
+                        <label class="conv-opt">
+                            <span>@L["Conv_Form"]</span>
+                            <select value="@_forma" @onchange="OnForma">
+                                <option value="@DmsCoordinate.Forma.Puntata">@L["Conv_Dotted"]</option>
+                                <option value="@DmsCoordinate.Forma.Compatta">@L["Conv_Compact"]</option>
+                            </select>
+                        </label>
+                    }
+
+                    @if (_formato == CoordinateOutput.SectorfileSegmenti)
+                    {
+                        <label class="conv-opt">
+                            <span>@L["Conv_Type"]</span>
+                            <input value="@_tipo" @oninput="OnTipo" />
+                        </label>
+                        <label class="conv-opt">
+                            <span>@L["Conv_Name"]</span>
+                            <input value="@NomeEffettivo" @oninput="OnNome" />
+                        </label>
+                        <label class="conv-opt conv-opt-check">
+                            <input type="checkbox" checked="@_chiudi" @onchange="e => _chiudi = (bool?)e.Value ?? true" />
+                            <span>@L["Conv_CloseRing"]</span>
+                        </label>
+                    }
+                </div>
+
+                @if (Area is { } area)
+                {
+                    <textarea class="conv-ta conv-out" rows="14" readonly aria-label="@L["Conv_OutputTitle"]">@Uscita(area)</textarea>
+
+                    <div class="conv-actions">
+                        <button type="button" class="btn primary" @onclick="() => Copia(area)">
+                            <Icon Name="copy" Size="14" /> @(_copiato ? L["Conv_Copied"] : L["Conv_Copy"])
+                        </button>
+                        <button type="button" class="btn ghost" @onclick="() => Scarica(area)">
+                            <Icon Name="arrow-down" Size="14" /> @L["Conv_Download"]
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <p class="muted">@L["Conv_Nothing"]</p>
+                }
+            </section>
+        </div>
+
+        @* ---- Diagnostica: nulla si perde in silenzio ---- *@
+        @if (_esito.PuntiTotali > 0 || _esito.Segnalazioni.Count > 0)
+        {
+            <section class="panel conv-diag">
+                <h5>@L["Conv_DiagTitle"]</h5>
+
+                <p class="conv-count">@L["Conv_Read", _esito.PuntiTotali, _esito.RigheLette]</p>
+
+                @if (_esito.TuttoFuoriItalia)
+                {
+                    <div class="callout warning">
+                        <span class="cic"><Icon Name="warning" Size="18" /></span>
+                        <div>@L["Conv_OutsideItaly"]</div>
+                    </div>
+                }
+
+                @if (_esito.Segnalazioni.Count > 0)
+                {
+                    <ul class="conv-issues">
+                        @foreach (var s in _esito.Segnalazioni.Take(50))
+                        {
+                            <li>
+                                <span class="pill">@(s.Riga > 0 ? L["Conv_Line", s.Riga].Value : "—")</span>
+                                <b>@Descrivi(s.Kind)</b>
+                                @if (!string.IsNullOrWhiteSpace(s.Testo)) { <code>@s.Testo</code> }
+                                @if (!string.IsNullOrWhiteSpace(s.Dettaglio)) { <span class="muted">@s.Dettaglio</span> }
+                            </li>
+                        }
+                    </ul>
+                    @if (_esito.Segnalazioni.Count > 50)
+                    {
+                        <p class="muted">@L["Conv_MoreIssues", _esito.Segnalazioni.Count - 50]</p>
+                    }
+                }
+            </section>
+        }
+    }
+</div>
+
+@code {
+    private string _testo = "";
+    private string? _fileNome;
+    private CoordinateReadResult _esito = CoordinateReadResult.Vuoto;
+
+    private CoordinateOutput _formato = CoordinateOutput.SectorfilePunti;   // il default chiesto dal committente
+    private int _decimali = 8;
+    private DmsCoordinate.Forma _forma = DmsCoordinate.Forma.Puntata;
+    private string _tipo = "RESTRICT";
+    private string? _nome;
+    private bool _chiudi = true;
+    private bool _copiato;
+
+    /// <summary>L'area su cui si lavora. Il selettore multiplo arriva con la slice successiva.</summary>
+    private CoordinateArea? Area => _esito.Aree.Count > 0 ? _esito.Aree[0] : null;
+
+    /// <summary>Il nome scritto a mano vince; altrimenti quello che l'ingresso sapeva già dire.</summary>
+    private string NomeEffettivo => _nome ?? Area?.Nome ?? "";
+
+    private void OnTesto(ChangeEventArgs e)
+    {
+        _testo = e.Value?.ToString() ?? "";
+        _fileNome = null;
+        _copiato = false;
+        _esito = CoordinateParser.Parse(_testo);
+    }
+
+    private void OnDecimali(ChangeEventArgs e) =>
+        _decimali = int.TryParse(e.Value?.ToString(), out var d) ? d : 8;
+
+    private void OnTipo(ChangeEventArgs e) => _tipo = e.Value?.ToString() ?? "";
+
+    private void OnNome(ChangeEventArgs e) => _nome = e.Value?.ToString() ?? "";
+
+    private void OnForma(ChangeEventArgs e) =>
+        _forma = Enum.TryParse<DmsCoordinate.Forma>(e.Value?.ToString(), out var f) ? f : DmsCoordinate.Forma.Puntata;
+
+    private async Task CaricaFile(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+
+        _copiato = false;
+        try
+        {
+            // ⚠️ In memoria e basta: il file non tocca mai il disco, come per il Profile Swapper. E lo stream
+            // di Blazor si legge in modo asincrono una volta sola, quindi si copia prima di guardarci dentro.
+            await using var stream = file.OpenReadStream(KmlReader.MaxByteFile);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            ms.Position = 0;
+
+            _esito = file.Name.EndsWith(".kmz", StringComparison.OrdinalIgnoreCase)
+                ? KmlReader.LeggiKmz(ms)
+                : KmlReader.LeggiKml(System.Text.Encoding.UTF8.GetString(ms.ToArray()));
+
+            _fileNome = file.Name;
+            _testo = "";
+        }
+        catch (Exception ex)
+        {
+            _esito = new CoordinateReadResult([],
+                [new CoordinateIssue(CoordinateIssueKind.FileNonLetto, 0, file.Name, ex.Message)], 0, 0);
+            _fileNome = null;
+        }
+    }
+
+    private void PuliscíFile()
+    {
+        _fileNome = null;
+        _esito = CoordinateReadResult.Vuoto;
+        _copiato = false;
+    }
+
+    private string Uscita(CoordinateArea area) =>
+        CoordinateWriter.Write(area.Punti, _formato, Opzioni(area));
+
+    private CoordinateWriteOptions Opzioni(CoordinateArea area) => new(
+        Decimali: _decimali,
+        Forma: _forma,
+        Tipo: string.IsNullOrWhiteSpace(_tipo) ? area.Tipo ?? "RESTRICT" : _tipo,
+        Nome: string.IsNullOrWhiteSpace(NomeEffettivo) ? null : NomeEffettivo,
+        ChiudiAnello: _chiudi);
+
+    private async Task Copia(CoordinateArea area)
+    {
+        _copiato = await JS.InvokeAsync<bool>("vipiCopiaTesto", Uscita(area));
+    }
+
+    private async Task Scarica(CoordinateArea area)
+    {
+        var radice = string.IsNullOrWhiteSpace(NomeEffettivo) ? "coordinate" : NomeEffettivo.Trim();
+        var nome = $"{radice}-{(_formato == CoordinateOutput.DbIvao ? "db" : "sct")}.txt";
+        await JS.InvokeVoidAsync("vipiScaricaTesto", nome, Uscita(area));
+    }
+
+    private string Descrivi(CoordinateIssueKind k) => k switch
+    {
+        CoordinateIssueKind.RigaNonLetta => L["Conv_IssueUnread"],
+        CoordinateIssueKind.AngoloSpaiato => L["Conv_IssueOdd"],
+        CoordinateIssueKind.FuoriIntervallo => L["Conv_IssueRange"],
+        CoordinateIssueKind.LatLonScambiate => L["Conv_IssueSwapped"],
+        CoordinateIssueKind.CatenaInterrotta => L["Conv_IssueChain"],
+        CoordinateIssueKind.BucoScartato => L["Conv_IssueHole"],
+        CoordinateIssueKind.TroppeRighe => L["Conv_IssueTooMany"],
+        CoordinateIssueKind.FileNonLetto => L["Conv_IssueFile"],
+        _ => k.ToString(),
+    };
+}
