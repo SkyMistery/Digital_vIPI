@@ -1,8 +1,36 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 29 agosto 2026, notte (la **supervisione dei vSOP militari**: §V, tredici voci chiuse).
+**Ultimo aggiornamento:** 29 agosto 2026, notte tarda (il **convertitore di coordinate**: §W, un servizio nuovo, ramo **non fuso**).
 
 ## Dove siamo, prima di tutto il resto
+
+🆕 **29 agosto, notte tarda — il convertitore di coordinate, un servizio nuovo.**
+Carta: [`docs/feature/2026-08-29-convertitore-coordinate.md`](docs/feature/2026-08-29-convertitore-coordinate.md) ·
+lavori aperti **§W** · ramo `convertitore-coordinate`, **13 commit**, ⚠️ **NON fuso in `main`** (la fusione è
+una decisione del committente, non un passo tecnico).
+
+**`/services/coordinates`**, riservato a **DivisionStaff** e superiori: si incolla un elenco di coordinate in
+qualunque forma e ne esce quella del **DB di IVAO** o quella del **sectorfile**, con la mappa sotto.
+
+- **Tredici forme in ingresso**, riconosciute da sole: DMS Aurora puntato e compatto, DMS coi simboli, coi due
+  punti e a spazi, gradi e primi decimali, ARINC a larghezza fissa, decimali con segno o emisfero, `lat:lon`
+  del DB, CSV/Google Maps, sectorfile a punti e a segmenti, JSON/GeoJSON, **KML/KMZ**.
+- **Due uscite**, e per il sectorfile **due forme**: l'**elenco dei punti** (il default chiesto) e i
+  **segmenti**. ⚠️ Il DB e l'elenco punti elencano **VERTICI**, i segmenti elencano **LATI**: l'ultimo lato
+  **chiude l'anello** e va generato, e tipo e nome esistono solo lì.
+- **Niente motore nuovo**: il DMS e l'ordine lat/lon del JSON **traslocano** in `Vipi.Application/Coordinates`
+  e l'infrastruttura **delega**; la mappa è quella dell'AoR; una coordinata sola diventa un cerchietto con
+  `CircleShapeBuilder`. **Nessuna tabella, nessuna migrazione, nessuno stato.**
+- ⚠️ **La verifica dal vivo ha trovato cinque difetti che la suite non vedeva** (§14 della carta): il righello
+  diceva «linea aperta» sotto un poligono chiuso con perimetro e area in disaccordo, le chip delle aree
+  comparivano **due volte**, il conto era sgrammaticato e tautologico, i gesti erano inerti con un punto solo,
+  e il confronto acceso sembrava non fare niente perché le due forme **coincidono al pixel**.
+
+**143 test nuovi**, suite a **3 984** su nove progetti (baseline 3 841), Release verde su net8 e net10, 0
+avvisi. **Restano fuori, per decisione del committente**: salvare l'area fra le aree regolamentate o mandarla
+al Bridge, e incollare un `italy.restrict` intero scegliendo l'area (lavori aperti §W3).
+
+---
 
 🆕 **29 agosto — supervisione dei vSOP militari contro la loro carta.** **Tredici voci, tredici chiuse**:
 dieci le ha trovate la lettura di [`docs/feature/2026-08-27-vsop-militari.md`](docs/feature/2026-08-27-vsop-militari.md)
