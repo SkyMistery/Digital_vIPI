@@ -150,4 +150,97 @@ public class CoordinateConverterPageTests
 
         Assert.Equal("/services", cut.Find(".breadcrumb a").GetAttribute("href"));
     }
+
+    // ---- Il selettore delle aree (slice 6) ----
+
+    /// <summary>Due aree con nome nello stesso incolla: due righe di italy.restrict con nomi diversi.</summary>
+    private const string DueAree =
+        "N042.00.28.000;E011.58.06.000;N041.59.26.000;E011.59.00.000;RESTRICT;R14A;\n" +
+        "N043.00.00.000;E012.00.00.000;N043.10.00.000;E012.10.00.000;RESTRICT;R107B;";
+
+    [Fact]
+    public void Con_Una_Sola_Area_Il_Selettore_Non_Compare()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+
+        cut.Find("textarea.conv-ta").Input("42.00777778:11.96833333\n41.975:11.92");
+
+        // ⚠️ È la regola che rende il selettore usabile: niente da scegliere, niente da cliccare.
+        Assert.Empty(cut.FindAll(".conv-aree"));
+        Assert.Single(cut.FindAll("textarea.conv-out"));
+    }
+
+    [Fact]
+    public void Con_Piu_Aree_Ci_Sono_Le_Chip_E_Un_Riquadro_Per_Area()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+
+        cut.Find("textarea.conv-ta").Input(DueAree);
+
+        var chip = cut.FindAll(".conv-aree button.aor-chip").ToArray();
+        Assert.Equal(2, chip.Length);
+        Assert.Contains("R14A", chip[0].TextContent);
+        Assert.Contains("R107B", chip[1].TextContent);
+        Assert.Equal(2, cut.FindAll("textarea.conv-out").Count);   // tutte accese all'apertura
+    }
+
+    [Fact]
+    public void Spegnere_Una_Chip_Toglie_Il_Suo_Riquadro()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+        cut.Find("textarea.conv-ta").Input(DueAree);
+
+        cut.FindAll(".conv-aree button.aor-chip").ToArray()[1].Click();
+
+        var uscite = cut.FindAll("textarea.conv-out").ToArray();
+        Assert.Single(uscite);
+        Assert.Contains("N042.00.28.000", uscite[0].TextContent);   // è rimasta R14A
+    }
+
+    [Fact]
+    public void Ogni_Area_Scrive_Il_Proprio_Nome_Nei_Segmenti()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+        cut.Find("textarea.conv-ta").Input(DueAree);
+        cut.FindAll("button.aor-chip").ToArray()[2].Click();   // Sectorfile · segmenti
+
+        var uscite = cut.FindAll("textarea.conv-out").ToArray();
+
+        // ⚠️ Con più aree il campo «nome» non c'è: scriverebbe lo stesso nome su tutte.
+        Assert.DoesNotContain("Conv_Name", cut.Markup);
+        Assert.Contains(";RESTRICT;R14A;", uscite[0].TextContent);
+        Assert.Contains(";RESTRICT;R107B;", uscite[1].TextContent);
+    }
+
+    [Fact]
+    public void Nessuna_Area_Accesa_Non_E_Un_Errore()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+        cut.Find("textarea.conv-ta").Input(DueAree);
+
+        cut.FindAll(".conv-aree .aor-all").ToArray()[1].Click();   // Nessuna
+
+        Assert.Empty(cut.FindAll("textarea.conv-out"));
+        Assert.Contains("Conv_Nothing", cut.Markup);
+    }
+
+    [Fact]
+    public void Un_Ingresso_Nuovo_Riaccende_Tutto()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+        cut.Find("textarea.conv-ta").Input(DueAree);
+        cut.FindAll(".conv-aree .aor-all").ToArray()[1].Click();   // Nessuna
+
+        // ⚠️ Gli indici delle aree di prima non valgono per le aree di dopo: la scelta si azzera, o si
+        // resterebbe con un riquadro spento che nessuno ha spento.
+        cut.Find("textarea.conv-ta").Input(DueAree.Replace("R14A", "R99Z"));
+
+        Assert.Equal(2, cut.FindAll("textarea.conv-out").Count);
+    }
 }

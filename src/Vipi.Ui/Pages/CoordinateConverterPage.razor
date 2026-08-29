@@ -112,10 +112,16 @@
                             <span>@L["Conv_Type"]</span>
                             <input value="@_tipo" @oninput="OnTipo" />
                         </label>
-                        <label class="conv-opt">
-                            <span>@L["Conv_Name"]</span>
-                            <input value="@NomeEffettivo" @oninput="OnNome" />
-                        </label>
+                        @* Con PIÙ aree il nome non è uno solo: ognuna porta il suo, e un campo unico
+                           scriverebbe lo stesso nome su tutte. Allora sparisce, come tipo e nome spariscono
+                           quando la forma è l'elenco punti. *@
+                        @if (_esito.Aree.Count <= 1)
+                        {
+                            <label class="conv-opt">
+                                <span>@L["Conv_Name"]</span>
+                                <input value="@NomeEffettivo" @oninput="OnNome" />
+                            </label>
+                        }
                         <label class="conv-opt conv-opt-check">
                             <input type="checkbox" checked="@_chiudi" @onchange="e => _chiudi = (bool?)e.Value ?? true" />
                             <span>@L["Conv_CloseRing"]</span>
@@ -123,22 +129,60 @@
                     }
                 </div>
 
-                @if (Area is { } area)
+                @* ---- Il selettore delle aree ----
+                   ⚠️ Con UNA sola area non c'è: niente da scegliere, niente da cliccare. È la regola che lo
+                   rende usabile, e vale più di ogni altra cosa in questo riquadro. *@
+                @if (_esito.Aree.Count > 1)
                 {
-                    <textarea class="conv-ta conv-out" rows="14" readonly aria-label="@L["Conv_OutputTitle"]">@Uscita(area)</textarea>
-
-                    <div class="conv-actions">
-                        <button type="button" class="btn primary" @onclick="() => Copia(area)">
-                            <Icon Name="copy" Size="14" /> @(_copiato ? L["Conv_Copied"] : L["Conv_Copy"])
-                        </button>
-                        <button type="button" class="btn ghost" @onclick="() => Scarica(area)">
-                            <Icon Name="arrow-down" Size="14" /> @L["Conv_Download"]
-                        </button>
+                    <div class="aor-toggles conv-aree">
+                        @for (var i = 0; i < _esito.Aree.Count; i++)
+                        {
+                            var idx = i;
+                            <button type="button" class="aor-chip @(_accese.Contains(idx) ? "on" : null)"
+                                    aria-pressed="@(_accese.Contains(idx) ? "true" : "false")"
+                                    @onclick="() => Accendi(idx)">@Etichetta(idx)</button>
+                        }
+                        <span class="aor-chip-actions">
+                            <button type="button" class="aor-all" @onclick="Tutte">@L["Common_All"]</button> ·
+                            <button type="button" class="aor-all" @onclick="Nessuna">@L["Common_None"]</button>
+                        </span>
                     </div>
+                    <p class="muted conv-hint">@L["Conv_AreasOn", _accese.Count, _esito.Aree.Count]</p>
+                }
+
+                @if (Accese.Count == 0)
+                {
+                    <p class="muted">@L["Conv_Nothing"]</p>
                 }
                 else
                 {
-                    <p class="muted">@L["Conv_Nothing"]</p>
+                    @* Un riquadro per area, ognuno con la sua Copia. ⚠️ Non si inventa un separatore: il
+                       formato del DB non ha commenti, e scriverci dentro «// R14A» produrrebbe un testo che
+                       IVAO non accetta. Le aree restano distinte perché stanno in riquadri distinti. *@
+                    @foreach (var (idx, area) in Accese)
+                    {
+                        <div class="conv-area" @key="idx">
+                            @if (_esito.Aree.Count > 1)
+                            {
+                                <div class="conv-area-h">
+                                    <b>@Etichetta(idx)</b>
+                                    <span class="pill">@L["Conv_Points", area.Punti.Count]</span>
+                                </div>
+                            }
+
+                            <textarea class="conv-ta conv-out" rows="@(_esito.Aree.Count > 1 ? 8 : 14)" readonly
+                                      aria-label="@L["Conv_OutputTitle"]">@Uscita(area)</textarea>
+
+                            <div class="conv-actions">
+                                <button type="button" class="btn primary" @onclick="() => Copia(idx, area)">
+                                    <Icon Name="copy" Size="14" /> @(_copiata == idx ? L["Conv_Copied"] : L["Conv_Copy"])
+                                </button>
+                                <button type="button" class="btn ghost" @onclick="() => Scarica(area)">
+                                    <Icon Name="arrow-down" Size="14" /> @L["Conv_Download"]
+                                </button>
+                            </div>
+                        </div>
+                    }
                 }
             </section>
         </div>
@@ -193,20 +237,59 @@
     private string _tipo = "RESTRICT";
     private string? _nome;
     private bool _chiudi = true;
-    private bool _copiato;
 
-    /// <summary>L'area su cui si lavora. Il selettore multiplo arriva con la slice successiva.</summary>
+    /// <summary>Quale riquadro ha appena detto «copiato»: uno per area, quindi un indice e non un sì/no.</summary>
+    private int? _copiata;
+
+    /// <summary>Le aree accese, per indice. Un ingresso nuovo le riaccende tutte.</summary>
+    private readonly HashSet<int> _accese = [];
+
+    /// <summary>La prima area: serve al campo del nome, che esiste solo quando l'area è una sola.</summary>
     private CoordinateArea? Area => _esito.Aree.Count > 0 ? _esito.Aree[0] : null;
+
+    /// <summary>Le aree accese, in ordine, col loro indice — che è la chiave del riquadro e della chip.</summary>
+    private List<(int Indice, CoordinateArea Area)> Accese =>
+        _esito.Aree.Select((a, i) => (Indice: i, Area: a)).Where(x => _accese.Contains(x.Indice)).ToList();
 
     /// <summary>Il nome scritto a mano vince; altrimenti quello che l'ingresso sapeva già dire.</summary>
     private string NomeEffettivo => _nome ?? Area?.Nome ?? "";
+
+    /// <summary>La chip dice il nome dell'area; se l'ingresso non lo diceva, il suo posto in elenco.</summary>
+    private string Etichetta(int i) =>
+        string.IsNullOrWhiteSpace(_esito.Aree[i].Nome) ? L["Conv_AreaN", i + 1].Value : _esito.Aree[i].Nome!;
+
+    private void Accendi(int i)
+    {
+        if (!_accese.Remove(i)) _accese.Add(i);
+        _copiata = null;
+    }
+
+    private void Tutte()
+    {
+        for (var i = 0; i < _esito.Aree.Count; i++) _accese.Add(i);
+        _copiata = null;
+    }
+
+    private void Nessuna()
+    {
+        _accese.Clear();
+        _copiata = null;
+    }
+
+    /// <summary>Un esito nuovo azzera la scelta: le aree di prima non esistono più, e i loro indici nemmeno.</summary>
+    private void Riaccendi()
+    {
+        _accese.Clear();
+        for (var i = 0; i < _esito.Aree.Count; i++) _accese.Add(i);
+        _copiata = null;
+    }
 
     private void OnTesto(ChangeEventArgs e)
     {
         _testo = e.Value?.ToString() ?? "";
         _fileNome = null;
-        _copiato = false;
         _esito = CoordinateParser.Parse(_testo);
+        Riaccendi();
     }
 
     private void OnDecimali(ChangeEventArgs e) =>
@@ -224,7 +307,6 @@
         var file = e.File;
         if (file is null) return;
 
-        _copiato = false;
         try
         {
             // ⚠️ In memoria e basta: il file non tocca mai il disco, come per il Profile Swapper. E lo stream
@@ -240,12 +322,14 @@
 
             _fileNome = file.Name;
             _testo = "";
+            Riaccendi();
         }
         catch (Exception ex)
         {
             _esito = new CoordinateReadResult([],
                 [new CoordinateIssue(CoordinateIssueKind.FileNonLetto, 0, file.Name, ex.Message)], 0, 0);
             _fileNome = null;
+            Riaccendi();
         }
     }
 
@@ -253,27 +337,36 @@
     {
         _fileNome = null;
         _esito = CoordinateReadResult.Vuoto;
-        _copiato = false;
+        Riaccendi();
     }
 
     private string Uscita(CoordinateArea area) =>
         CoordinateWriter.Write(area.Punti, _formato, Opzioni(area));
 
-    private CoordinateWriteOptions Opzioni(CoordinateArea area) => new(
-        Decimali: _decimali,
-        Forma: _forma,
-        Tipo: string.IsNullOrWhiteSpace(_tipo) ? area.Tipo ?? "RESTRICT" : _tipo,
-        Nome: string.IsNullOrWhiteSpace(NomeEffettivo) ? null : NomeEffettivo,
-        ChiudiAnello: _chiudi);
-
-    private async Task Copia(CoordinateArea area)
+    private CoordinateWriteOptions Opzioni(CoordinateArea area)
     {
-        _copiato = await JS.InvokeAsync<bool>("vipiCopiaTesto", Uscita(area));
+        // Con più aree ognuna scrive il PROPRIO nome: il campo unico non c'è, e prenderlo da lì scriverebbe
+        // lo stesso nome su tutte. Con una sola area vince ciò che è scritto nel campo.
+        var nome = _esito.Aree.Count > 1 ? area.Nome : NomeEffettivo;
+        return new CoordinateWriteOptions(
+            Decimali: _decimali,
+            Forma: _forma,
+            Tipo: string.IsNullOrWhiteSpace(_tipo) ? area.Tipo ?? "RESTRICT" : _tipo,
+            Nome: string.IsNullOrWhiteSpace(nome) ? null : nome,
+            ChiudiAnello: _chiudi);
+    }
+
+    private async Task Copia(int indice, CoordinateArea area)
+    {
+        // ⚠️ «Copiato» si scrive solo se lo è davvero: l'aiuto JS torna un booleano apposta, perché fuori dai
+        // contesti sicuri gli appunti non ci sono e un tasto che mente è peggio di un tasto che fallisce.
+        _copiata = await JS.InvokeAsync<bool>("vipiCopiaTesto", Uscita(area)) ? indice : null;
     }
 
     private async Task Scarica(CoordinateArea area)
     {
-        var radice = string.IsNullOrWhiteSpace(NomeEffettivo) ? "coordinate" : NomeEffettivo.Trim();
+        var proposto = _esito.Aree.Count > 1 ? area.Nome : NomeEffettivo;
+        var radice = string.IsNullOrWhiteSpace(proposto) ? "coordinate" : proposto.Trim();
         var nome = $"{radice}-{(_formato == CoordinateOutput.DbIvao ? "db" : "sct")}.txt";
         await JS.InvokeVoidAsync("vipiScaricaTesto", nome, Uscita(area));
     }

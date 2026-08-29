@@ -36,7 +36,7 @@ public static class KmlReader
     public static CoordinateReadResult LeggiKml(string? xml)
     {
         if (string.IsNullOrWhiteSpace(xml)) return CoordinateReadResult.Vuoto;
-        xml = xml.TrimStart('﻿', '​');   // stesso motivo: un BOM incollato a mano fa lo stesso danno
+        xml = xml.TrimStart('\uFEFF', '\u200B');   // stesso motivo: un BOM incollato a mano fa lo stesso danno
 
         XDocument doc;
         try

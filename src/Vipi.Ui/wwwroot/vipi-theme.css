@@ -3754,3 +3754,6 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .conv-issues{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
 .conv-issues li{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
 .conv-issues code{font-size:12px;background:var(--surface-soft);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+.conv-aree{margin:2px 0 4px}
+.conv-area{margin-top:12px}
+.conv-area-h{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:13px}

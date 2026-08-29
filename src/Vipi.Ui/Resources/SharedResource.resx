@@ -2639,4 +2639,7 @@
   <data name="Conv_IssueTooMany" xml:space="preserve"><value>Troppe righe: il resto non è stato letto</value></data>
   <data name="Conv_IssueFile" xml:space="preserve"><value>File non letto</value></data>
   <data name="Services_ConvDesc" xml:space="preserve"><value>Coordinate in qualsiasi formato, riscritte per il DB di IVAO o per il sectorfile.</value></data>
+  <data name="Conv_AreasOn" xml:space="preserve"><value>{0} aree accese su {1}.</value></data>
+  <data name="Conv_AreaN" xml:space="preserve"><value>Area {0}</value></data>
+  <data name="Conv_Points" xml:space="preserve"><value>{0} punti</value></data>
 </root>
