@@ -45,7 +45,22 @@ public sealed record CoordinateArea(
     IReadOnlyList<(double Lat, double Lon)> Punti,
     bool AnelloChiuso,
     string? Tipo = null,
-    bool DaSegmenti = false);
+    bool DaSegmenti = false)
+{
+    /// <summary>
+    /// Si comporta come un anello, anche se l'ingresso non lo diceva a chiare lettere.
+    ///
+    /// <para>⚠️ Serve perché <see cref="AnelloChiuso"/> risponde a una domanda letterale — «l'ultimo vertice
+    /// ripeteva il primo?» — e chi incolla i cinque vertici di un'area <b>non li ripete</b>. La verifica dal
+    /// vivo del 29 agosto 2026 lo ha mostrato in un colpo: la mappa disegnava un poligono chiuso e sotto
+    /// c'era scritto «linea aperta», col perimetro che escludeva il lato di chiusura mentre l'area lo
+    /// comprendeva. Due misure della stessa figura che non erano d'accordo.</para>
+    ///
+    /// <para>La riga d'eccezione è quella che viene <b>dai segmenti</b>: lì il file dice esplicitamente dove
+    /// la catena finisce, e una costa (<c>COAST</c>) è una linea aperta per davvero.</para>
+    /// </summary>
+    public bool SiChiude => AnelloChiuso || (Punti.Count >= 3 && !DaSegmenti);
+}
 
 /// <summary>
 /// L'esito della lettura: le aree, le segnalazioni e i conti. ⚠️ <b>Le due cose viaggiano insieme</b>: un

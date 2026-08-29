@@ -3758,3 +3758,5 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .conv-area{margin-top:12px}
 .conv-area-h{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:13px}
 .conv-righello{font-size:12px;margin:6px 0 0}
+/* Un elenco di chip solo: quello del convertitore, non anche quello della mappa (verifica del 29 agosto). */
+.conv-map .aor-toggles{display:none}

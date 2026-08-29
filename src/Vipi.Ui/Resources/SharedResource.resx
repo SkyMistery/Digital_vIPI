@@ -2626,7 +2626,7 @@
   <data name="Conv_Download" xml:space="preserve"><value>Scarica .txt</value></data>
   <data name="Conv_Nothing" xml:space="preserve"><value>Niente da convertire, per ora.</value></data>
   <data name="Conv_DiagTitle" xml:space="preserve"><value>Che cosa ho letto</value></data>
-  <data name="Conv_Read" xml:space="preserve"><value>Letti {0} punti su {1} righe.</value></data>
+  <data name="Conv_Read" xml:space="preserve"><value>Punti letti: {0} · righe lette: {1} di {2}.</value></data>
   <data name="Conv_Line" xml:space="preserve"><value>Riga {0}</value></data>
   <data name="Conv_MoreIssues" xml:space="preserve"><value>…e altre {0} segnalazioni.</value></data>
   <data name="Conv_OutsideItaly" xml:space="preserve"><value>Tutti i punti cadono fuori dall'Italia: vale la pena controllare gli emisferi.</value></data>
@@ -2641,7 +2641,7 @@
   <data name="Services_ConvDesc" xml:space="preserve"><value>Coordinate in qualsiasi formato, riscritte per il DB di IVAO o per il sectorfile.</value></data>
   <data name="Conv_AreasOn" xml:space="preserve"><value>{0} aree accese su {1}.</value></data>
   <data name="Conv_AreaN" xml:space="preserve"><value>Area {0}</value></data>
-  <data name="Conv_Points" xml:space="preserve"><value>{0} punti</value></data>
+  <data name="Conv_Points" xml:space="preserve"><value>punti: {0}</value></data>
   <data name="Conv_MapTitle" xml:space="preserve"><value>La mappa</value></data>
   <data name="Conv_MapHint" xml:space="preserve"><value>Le chip accendono e spengono le aree. La mappa non modifica le coordinate: le mostra.</value></data>
   <data name="Conv_Compare" xml:space="preserve"><value>Mostra anche la forma riconvertita (tratteggiata)</value></data>
@@ -2659,4 +2659,5 @@
   <data name="Conv_RotateHint" xml:space="preserve"><value>Sposta di uno il vertice da cui l'elenco comincia</value></data>
   <data name="Conv_HelpAria" xml:space="preserve"><value>Aiuto sul convertitore di coordinate</value></data>
   <data name="Conv_HelpBody" xml:space="preserve"><value>&lt;p style='margin:0 0 6px'&gt;Incolla le coordinate come sono: il formato lo riconosce da solo.&lt;/p&gt;&lt;p style='margin:0'&gt;In uscita scegli il &lt;b&gt;DB di IVAO&lt;/b&gt; o il &lt;b&gt;sectorfile&lt;/b&gt; — e per il sectorfile l'elenco dei punti oppure i segmenti. Le righe che non si leggono escono in fondo col loro numero.&lt;/p&gt;</value></data>
+  <data name="Conv_CompareHint" xml:space="preserve"><value>Se non la vedi, le due forme si sovrappongono: la conversione non ha spostato niente.</value></data>
 </root>

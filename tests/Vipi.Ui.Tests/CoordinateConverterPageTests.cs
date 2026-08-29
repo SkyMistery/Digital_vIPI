@@ -291,6 +291,11 @@ public class CoordinateConverterPageTests
 
     private const string Triangolo = "42:11\n42.5:11.5\n41.5:11.5";
 
+    /// <summary>Due righe di costa: dai segmenti, e quindi una linea aperta dichiarata dal file.</summary>
+    private const string Costa =
+        "N042.00.00.000;E011.00.00.000;N042.30.00.000;E011.30.00.000;COAST;\n" +
+        "N042.30.00.000;E011.30.00.000;N041.30.00.000;E011.30.00.000;COAST;";
+
     [Fact]
     public void Il_Righello_Dice_Punti_Chiusura_Perimetro_E_Area()
     {
@@ -303,6 +308,36 @@ public class CoordinateConverterPageTests
         Assert.Contains("Conv_Points", righello);
         Assert.Contains("Conv_Perimeter", righello);
         Assert.Contains("Conv_Area", righello);
+    }
+
+    [Fact]
+    public void Chi_Incolla_Cinque_Vertici_Legge_Anello_Chiuso_E_Area()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+
+        cut.Find("textarea.conv-ta").Input(Triangolo);
+
+        // ⚠️ Trovato SOLO a schermo: la mappa disegnava un poligono chiuso e sotto c'era scritto «linea
+        // aperta», col perimetro che escludeva il lato di chiusura mentre l'area lo comprendeva.
+        var righello = cut.Find(".conv-righello").TextContent;
+        Assert.Contains("Conv_Closed", righello);
+        Assert.DoesNotContain("Conv_Open", righello);
+        Assert.Contains("Conv_Area", righello);
+    }
+
+    [Fact]
+    public void Una_Costa_Resta_Una_Linea_Aperta_E_Non_Ha_Area()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+
+        cut.Find("textarea.conv-ta").Input(Costa);
+
+        // Dai segmenti il file dice dove la catena finisce: una costa non è un poligono, e un'area non ce l'ha.
+        var righello = cut.Find(".conv-righello").TextContent;
+        Assert.Contains("Conv_Open", righello);
+        Assert.DoesNotContain("Conv_Area", righello);
     }
 
     [Fact]
@@ -343,7 +378,9 @@ public class CoordinateConverterPageTests
     {
         using var ctx = new Contesto();
         var cut = ctx.Apri(VipiRole.DivisionStaff);
-        cut.Find("textarea.conv-ta").Input(Triangolo);   // tre punti che NON tornano sul primo
+        // ⚠️ Una linea aperta VERA: dai segmenti, con tipo COAST. Tre vertici incollati e basta si comportano
+        // da anello (CoordinateArea.SiChiude), ed è giusto così: chi incolla un'area non ripete il primo punto.
+        cut.Find("textarea.conv-ta").Input(Costa);
         var prima = cut.Find("textarea.conv-out").TextContent.Split('\n');
 
         cut.FindAll(".conv-actions button").ToArray()[2].Click();   // Inverti

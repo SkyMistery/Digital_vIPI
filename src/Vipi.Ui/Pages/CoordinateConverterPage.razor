@@ -180,11 +180,17 @@
 
                             @* Il righello: con un errore di incolla il perimetro diventa assurdo e si vede
                                subito, mentre un elenco di coordinate sbagliate sembra un elenco di coordinate. *@
+                            @* ⚠️ Perimetro e area guardano la STESSA figura: se l'area presume la chiusura,
+                               il perimetro deve comprendere il lato che chiude. Dal vivo si leggeva «linea
+                               aperta» sotto un poligono chiaramente chiuso, con due misure in disaccordo. *@
                             <p class="muted conv-righello">
                                 @L["Conv_Points", area.Punti.Count]
-                                · @(area.AnelloChiuso ? L["Conv_Closed"] : L["Conv_Open"])
-                                · @L["Conv_Perimeter", Misura(CoordinateGeometry.PerimetroNm(area.Punti, area.AnelloChiuso))]
-                                @if (area.Punti.Count >= 3)
+                                @if (area.Punti.Count >= 2)
+                                {
+                                    <text> · @(area.SiChiude ? L["Conv_Closed"] : L["Conv_Open"])</text>
+                                    <text> · @L["Conv_Perimeter", Misura(CoordinateGeometry.PerimetroNm(area.Punti, area.SiChiude))]</text>
+                                }
+                                @if (area.SiChiude)
                                 {
                                     <text> · @L["Conv_Area", Misura(CoordinateGeometry.AreaNm2(area.Punti))]</text>
                                 }
@@ -198,14 +204,19 @@
                                 <button type="button" class="btn ghost" @onclick="() => Scarica(area)">
                                     <Icon Name="arrow-down" Size="14" /> @L["Conv_Download"]
                                 </button>
-                                <button type="button" class="btn ghost" title="@L["Conv_ReverseHint"]"
-                                        @onclick="() => Inverti(idx)">
-                                    <Icon Name="refresh" Size="14" /> @L["Conv_Reverse"]
-                                </button>
-                                <button type="button" class="btn ghost" title="@L["Conv_RotateHint"]"
-                                        @onclick="() => Ruota(idx)">
-                                    <Icon Name="arrow-up" Size="14" /> @L["Conv_Rotate"]
-                                </button>
+                                @* Sotto i tre punti i due gesti non hanno effetto: un tasto inerte e' una
+                                   promessa non mantenuta, e si toglie invece di spegnerlo. *@
+                                @if (area.Punti.Count >= 3)
+                                {
+                                    <button type="button" class="btn ghost" title="@L["Conv_ReverseHint"]"
+                                            @onclick="() => Inverti(idx)">
+                                        <Icon Name="refresh" Size="14" /> @L["Conv_Reverse"]
+                                    </button>
+                                    <button type="button" class="btn ghost" title="@L["Conv_RotateHint"]"
+                                            @onclick="() => Ruota(idx)">
+                                        <Icon Name="arrow-up" Size="14" /> @L["Conv_Rotate"]
+                                    </button>
+                                }
                             </div>
                         </div>
                     }
@@ -219,6 +230,9 @@
            Senza, si continuerebbe a vedere il poligono di due incolla fa. *@
         @if (Accese.Count > 0)
         {
+            @* ⚠️ Le chip della mappa si nascondono: il selettore delle aree è QUELLO sopra, e due elenchi per
+               la stessa domanda erano proprio ciò che la carta voleva evitare. Si nascondono col foglio e non
+               togliendole dal DOM, perché è da lì che vipi-aor.js legge quali forme accendere. *@
             <section class="panel conv-map">
                 <h2 class="h-card">@L["Conv_MapTitle"]</h2>
 
@@ -226,6 +240,13 @@
                     <input type="checkbox" checked="@_confronto" @onchange="OnConfronto" />
                     <span>@L["Conv_Compare"]</span>
                 </label>
+                @if (_confronto)
+                {
+                    @* ⚠️ Senza questa riga il tasto sembra rotto: a conversione esatta le due forme si
+                       sovrappongono al pixel, e chi guarda vede una mappa che non e' cambiata. Il silenzio
+                       qui e' proprio la buona notizia, ma va detto. *@
+                    <p class="muted conv-hint">@L["Conv_CompareHint"]</p>
+                }
 
                 <div @key="FirmaMappa()">
                     <AccAor View="Vista()" Id="conv" Hint="@L["Conv_MapHint"].Value" />
@@ -239,7 +260,9 @@
             <section class="panel conv-diag">
                 <h2 class="h-card">@L["Conv_DiagTitle"]</h2>
 
-                <p class="conv-count">@L["Conv_Read", _esito.PuntiTotali, _esito.RigheLette]</p>
+                @* ⚠️ Tre numeri, non due: «letti 4 punti su 4 righe» non dice niente quando le righe erano
+                   sei. E la forma è quella che regge anche l'uno: «Punti: 1» non è sgrammaticato, «1 punti» sì. *@
+                <p class="conv-count">@L["Conv_Read", _esito.PuntiTotali, _esito.RigheLette, _esito.RigheTotali]</p>
 
                 @if (_esito.TuttoFuoriItalia)
                 {
@@ -314,7 +337,7 @@
     {
         if (!_gesti.TryGetValue(i, out var g) || (!g.Inverso && g.Rotazione == 0)) return a;
 
-        var punti = g.Inverso ? CoordinateGeometry.Inverti(a.Punti, a.AnelloChiuso) : a.Punti;
+        var punti = g.Inverso ? CoordinateGeometry.Inverti(a.Punti, a.SiChiude) : a.Punti;
         punti = CoordinateGeometry.Ruota(punti, g.Rotazione);
         return a with { Punti = punti };
     }

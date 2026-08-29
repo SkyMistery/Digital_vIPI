@@ -2620,7 +2620,7 @@
   <data name="Conv_Download" xml:space="preserve"><value>Download .txt</value></data>
   <data name="Conv_Nothing" xml:space="preserve"><value>Nothing to convert yet.</value></data>
   <data name="Conv_DiagTitle" xml:space="preserve"><value>What was read</value></data>
-  <data name="Conv_Read" xml:space="preserve"><value>{0} points read from {1} lines.</value></data>
+  <data name="Conv_Read" xml:space="preserve"><value>Points read: {0} · lines read: {1} of {2}.</value></data>
   <data name="Conv_Line" xml:space="preserve"><value>Line {0}</value></data>
   <data name="Conv_MoreIssues" xml:space="preserve"><value>…and {0} more notices.</value></data>
   <data name="Conv_OutsideItaly" xml:space="preserve"><value>Every point falls outside Italy: the hemispheres are worth a check.</value></data>
@@ -2635,7 +2635,7 @@
   <data name="Services_ConvDesc" xml:space="preserve"><value>Coordinates in any format, rewritten for the IVAO database or for the sectorfile.</value></data>
   <data name="Conv_AreasOn" xml:space="preserve"><value>{0} of {1} areas on.</value></data>
   <data name="Conv_AreaN" xml:space="preserve"><value>Area {0}</value></data>
-  <data name="Conv_Points" xml:space="preserve"><value>{0} points</value></data>
+  <data name="Conv_Points" xml:space="preserve"><value>points: {0}</value></data>
   <data name="Conv_MapTitle" xml:space="preserve"><value>The map</value></data>
   <data name="Conv_MapHint" xml:space="preserve"><value>The chips switch areas on and off. The map does not change the coordinates: it shows them.</value></data>
   <data name="Conv_Compare" xml:space="preserve"><value>Also show the reconverted shape (dashed)</value></data>
@@ -2653,4 +2653,5 @@
   <data name="Conv_RotateHint" xml:space="preserve"><value>Moves the starting vertex of the list by one</value></data>
   <data name="Conv_HelpAria" xml:space="preserve"><value>Help on the coordinate converter</value></data>
   <data name="Conv_HelpBody" xml:space="preserve"><value>&lt;p style='margin:0 0 6px'&gt;Paste the coordinates as they are: the format is detected for you.&lt;/p&gt;&lt;p style='margin:0'&gt;For the output pick the &lt;b&gt;IVAO database&lt;/b&gt; or the &lt;b&gt;sectorfile&lt;/b&gt; — and for the sectorfile either the point list or the segments. Lines that cannot be read are listed at the bottom with their line number.&lt;/p&gt;</value></data>
+  <data name="Conv_CompareHint" xml:space="preserve"><value>If you cannot see it, the two shapes overlap: the conversion moved nothing.</value></data>
 </root>
