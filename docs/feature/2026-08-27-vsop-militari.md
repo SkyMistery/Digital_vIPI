@@ -745,3 +745,34 @@ falsa che `MilDocRoutes` ha già pagato una volta.
 comparire fra i filtri, e se torna `null` allora **non** deve comparire. Chi «esiste davvero» lo dice il
 descrittore, non un elenco scritto nel test. L'etichetta del filtro viene da `KindLabel`: due elenchi che
 nominano le stesse cose in due modi diversi si scostano al primo che si tocca.
+
+### 11g. Il quarto riquadro sulla pagina di una ACC
+
+`/services/vsop/{acc}` offriva tre famiglie — Aeroporti, APP, vLOA — e i vSOP militari di quei campi non
+c'erano: per arrivarci bisognava tornare all'ingresso e passare dall'elenco nazionale. Ora c'è la quarta
+scheda, con lo **stesso gate** delle altre tre (release effettiva e non nascosto) e sullo **stesso** elenco
+`managed`, quindi **senza una query in più**.
+
+⚠️ **Compare solo se ce n'è almeno uno.** Le altre tre restano anche vuote perché sono le famiglie che *ogni*
+ACC ha; l'edizione militare no — su un ACC senza campi militari una scheda «nessun vSOP militare» direbbe a
+tutti i lettori che manca qualcosa che non deve esserci.
+
+⚠️ **Un campo misto compare in DUE schede, e non è un doppione**: sono due documenti dello stesso scalo, con
+release e cicli AIRAC indipendenti. La vIPI civile si raggiunge da «Aeroporti», il vSOP militare dalla scheda
+nuova — la stessa separazione che hanno i due elenchi.
+
+⚠️ **«Vedi tutti» porta all'elenco NAZIONALE**, non a uno per-ACC: quello per-ACC non esiste e non deve
+esistere (§5 — un pilota cerca «Ghedi», non «LIMM»). Quello nazionale è comunque raggruppato per ACC, quindi
+chi arriva di lì ritrova il suo gruppo.
+
+⚠️ **Il filtro è `IsHidden`, non `IsPublic`.** Il secondo pretende almeno un settore, e un campo solo
+militare può benissimo non averne: con `IsPublic` questa scheda avrebbe nascosto documenti che l'elenco
+nazionale mostra. Verificato in archivio: LIMS ha **zero settori**.
+
+Il nome dello scalo viene da `data.Airports` e non dal titolo del documento — quello è «vSOP MIL — LIML
+MIlano Linate», e stamparlo in una riga che ha già la sua targa ICAO ripeterebbe l'ICAO due volte.
+
+**Colore**: `--cat-mil`, verde oliva. Non `--cat-vloa` schiarito: due verdi vicini si leggono come lo stesso
+verde, che è il difetto che quell'insieme di colori deve evitare per mestiere. ⚠️ L'inchiostro va definito in
+**tutti e tre** i blocchi di tema — chiaro, `prefers-color-scheme: dark` **e** `[data-theme="dark"]` — o metà
+dei lettori scuri prende quello chiaro.

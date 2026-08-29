@@ -789,6 +789,7 @@
   <data name="AccLanding_Apps" xml:space="preserve"><value>Avvicinamenti non remotizzati</value></data>
   <data name="AccLanding_AppsDesc" xml:space="preserve"><value>APP con documentazione propria.</value></data>
   <data name="AccLanding_VloaDesc" xml:space="preserve"><value>Lettere di accordo con i centri confinanti.</value></data>
+  <data name="AccLanding_MilDesc" xml:space="preserve"><value>Le procedure operative dei campi militari di questa ACC. Un campo con traffico civile ha due documenti: la vIPI sta fra gli aeroporti, il vSOP militare qui.</value></data>
   <data name="AccLanding_OpsView" xml:space="preserve"><value>Vista operativa</value></data>
   <data name="AccLanding_OpsViewOf" xml:space="preserve"><value>Vista operativa di {0}</value></data>
   <data name="AccLanding_OpsViewDesc" xml:space="preserve"><value>Proiezione live per la tua postazione: collasso morbido di ciò che è delegato a un ente online, più i trasferimenti risolti in tempo reale.</value></data>

@@ -786,6 +786,7 @@
   <data name="AccLanding_Apps" xml:space="preserve"><value>Standalone approaches</value></data>
   <data name="AccLanding_AppsDesc" xml:space="preserve"><value>APPs with their own documentation.</value></data>
   <data name="AccLanding_VloaDesc" xml:space="preserve"><value>Letters of agreement with neighbouring centres.</value></data>
+  <data name="AccLanding_MilDesc" xml:space="preserve"><value>Operating procedures for this ACC's military fields. A field with civil traffic has two documents: the vIPI sits under Airports, the military vSOP here.</value></data>
   <data name="AccLanding_OpsView" xml:space="preserve"><value>Operational view</value></data>
   <data name="AccLanding_OpsViewOf" xml:space="preserve"><value>Operational view of {0}</value></data>
   <data name="AccLanding_OpsViewDesc" xml:space="preserve"><value>Live projection for your position: soft collapse of what is delegated to an online unit, plus transfers resolved in real time.</value></data>

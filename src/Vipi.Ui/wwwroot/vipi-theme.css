@@ -185,6 +185,11 @@
   --cat-app:#12a5b8;
   --cat-admin:#8a63d2;
   --cat-vloa:var(--ivao-color-semantic-green-500);
+  /* L'edizione militare. Verde oliva perche' deve distinguersi dalle altre quattro E dire di che cosa
+     parla: e' l'unica categoria che nomina un MONDO e non un tipo di documento. Non e' `--cat-vloa`
+     schiarito -- due verdi vicini si leggono come lo stesso verde, che e' il difetto che questo insieme
+     deve evitare per mestiere. */
+  --cat-mil:#6b7a4f;
   --cat-app-ink:color-mix(in srgb,var(--cat-app) 65%,#000);
   /* Le categorie servono a DUE cose: tingere un bordo (dove basta che si distinguano) e colorare un
      TESTO (dove devono anche leggersi). Sul testo i valori pieni non reggono: misurati su bianco,
@@ -193,6 +198,7 @@
   --cat-air-ink:var(--ivao-color-atmos-700);
   --cat-vloa-ink:var(--ivao-color-semantic-green-700);
   --cat-admin-ink:color-mix(in srgb,var(--cat-admin) 70%,#000);
+  --cat-mil-ink:color-mix(in srgb,var(--cat-mil) 70%,#000);
   /* Un colore per TIPO DI POSTAZIONE (statistiche: ciambella, pallini, striscia del turno). Come le
      categorie qui sopra sono un insieme CATEGORIALE — devono distinguersi fra loro — e scendono la
      scaletta DEL→GND→TWR→APP→CTR seguendo la stessa famiglia dei badge `.node-badge`: il grigio in basso,
@@ -943,6 +949,7 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .nav-card.c-air{--accent:var(--cat-air);--accent-ink:var(--cat-air-ink)}
 .nav-card.c-app{--accent:var(--cat-app);--accent-ink:var(--cat-app-ink)}
 .nav-card.c-vloa{--accent:var(--cat-vloa);--accent-ink:var(--cat-vloa-ink)}
+.nav-card.c-mil{--accent:var(--cat-mil);--accent-ink:var(--cat-mil-ink)}
 .nav-card.c-admin{--accent:var(--cat-admin);--accent-ink:var(--cat-admin-ink)}
 .nav-card.c-vipi{--accent:var(--ivao-blue);--accent-ink:var(--brand-ink)}
 .nav-card:hover{border-color:var(--accent);box-shadow:0 8px 22px color-mix(in srgb,var(--ivao-blue) 10%,transparent);transform:translateY(-1px)}
@@ -3574,6 +3581,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
   --cat-air-ink:var(--ivao-color-atmos-200);
   --cat-vloa-ink:var(--ivao-color-semantic-green-300);
   --cat-admin-ink:color-mix(in srgb,var(--cat-admin) 60%,var(--on-brand));
+  --cat-mil-ink:color-mix(in srgb,var(--cat-mil) 55%,var(--on-brand));
 
   /* L'ombra su fondo scuro non e' il blu di brand schiarito: e' nero. Al buio l'ombra e' assenza di
      luce, e una "ombra" blu su un pannello scuro si legge come un alone. */
@@ -3658,6 +3666,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
   --cat-air-ink:var(--ivao-color-atmos-200);
   --cat-vloa-ink:var(--ivao-color-semantic-green-300);
   --cat-admin-ink:color-mix(in srgb,var(--cat-admin) 60%,var(--on-brand));
+  --cat-mil-ink:color-mix(in srgb,var(--cat-mil) 55%,var(--on-brand));
 
   /* L'ombra su fondo scuro non e' il blu di brand schiarito: e' nero. Al buio l'ombra e' assenza di
      luce, e una "ombra" blu su un pannello scuro si legge come un alone. */

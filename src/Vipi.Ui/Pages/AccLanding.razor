@@ -122,6 +122,34 @@ else
                 </ul>
                 <a class="see-all" href="/services/vsop/@a/vloa">@L["Common_SeeAllF"]</a>
             </div>
+
+            @* ---- I vSOP MILITARI dei campi di questa ACC -------------------------------------------------
+
+               ⚠️ Compare SOLO se ce n'è almeno uno pubblicato. Le altre tre schede restano anche vuote
+               perché sono le tre famiglie che OGNI ACC ha; l'edizione militare no — su un ACC senza campi
+               militari una scheda «nessun vSOP militare» direbbe a tutti i lettori che manca qualcosa che
+               non deve esserci.
+
+               ⚠️ Un campo MISTO compare in DUE schede, e non è un doppione: sono due documenti diversi
+               dello stesso scalo, con release e cicli AIRAC indipendenti. La vIPI civile si raggiunge da
+               «Aeroporti», il vSOP militare da qui — è la stessa separazione dei due elenchi. *@
+            @if (_milTotal > 0)
+            {
+                <div class="choice nav-card c-mil">
+                    <a class="nav-head" href="/services/vsop/mil"><h3 class="h-card">@L["Mil_Title"]</h3><span class="count">@_milTotal</span></a>
+                    <p class="muted">@L["AccLanding_MilDesc"]</p>
+                    <ul class="linklist">
+                        @foreach (var m in _mil)
+                        {
+                            <li onclick="location.href='/services/vsop/@a/mil?icao=@m.Icao'"><span class="tag">@m.Icao</span><span>@m.Name</span></li>
+                        }
+                    </ul>
+                    @* ⚠️ «Vedi tutti» porta all'elenco NAZIONALE: un elenco militare per-ACC non esiste, e non
+                       deve — un pilota cerca «Ghedi», non «LIMM» (carta vSOP militari §5). Quello nazionale è
+                       comunque raggruppato per ACC, quindi chi arriva di qui ritrova il suo gruppo. *@
+                    <a class="see-all" href="/services/vsop/mil">@L["Common_SeeAll"]</a>
+                </div>
+            }
         </div>
 
         <div class="section-title"><h2 class="h-sect">@L["AccLanding_OpsView"]</h2><span class="ln"></span></div>
@@ -153,7 +181,11 @@ else
     private IReadOnlyList<AirportRow> _airports = Array.Empty<AirportRow>();
     private IReadOnlyList<SectorRow> _apps = Array.Empty<SectorRow>();
     private IReadOnlyList<VloaRow> _vloas = Array.Empty<VloaRow>();
-    private int _airportsTotal, _appsTotal, _vloasTotal;
+
+    /// <summary>I campi di questa ACC con un vSOP militare PUBBLICATO: ICAO e nome, i primi tre.</summary>
+    private IReadOnlyList<(string Icao, string Name)> _mil = Array.Empty<(string, string)>();
+
+    private int _airportsTotal, _appsTotal, _vloasTotal, _milTotal;
     private bool _vipiPublished;
 
     // I servizi che interrogano il database: presi dallo SCOPE DI QUESTA PAGINA, non da quello
@@ -197,9 +229,30 @@ else
                 .Select(m => m.DocumentId!.Value)
                 .ToHashSet();
             var vloas = data.Vloas.Where(v => publishedVloas.Contains(v.DocId)).ToList();
+            // vSOP militari: stesso gate degli altri tre (release effettiva e non nascosto), sullo STESSO
+            // elenco `managed` — nessuna query in più, e il documento militare ci sta dentro dal 29 agosto
+            // (prima mancava l'`.Include` del legame e spariva da qui come da ricerca e «Novità»).
+            //
+            // ⚠️ Il nome dello scalo viene da `data.Airports`, non dal titolo del documento: il titolo è
+            // «vSOP MIL — LIML MIlano Linate» e stamparlo dentro una riga che ha già la sua targa ICAO
+            // ripeterebbe l'ICAO due volte.
+            //
+            // ⚠️ Si filtra su `IsHidden` e NON su `IsPublic`: quest'ultimo pretende almeno un settore, e un
+            // campo solo militare può benissimo non averne — è la regola dell'elenco nazionale, che altrimenti
+            // mostrerebbe un documento che questa pagina nasconde.
+            var perIcao = data.Airports.ToDictionary(x => x.Icao, StringComparer.OrdinalIgnoreCase);
+            var mil = managed
+                .Where(m => m.Kind == ReleaseTargetType.AirportMil && m.HasEffectiveRelease && !m.IsHidden
+                            && string.Equals(m.AccCode, _acc.Code, StringComparison.OrdinalIgnoreCase))
+                .Select(m => perIcao.TryGetValue(m.Scope, out var apt) ? apt : null)
+                .Where(apt => apt is { IsHidden: false })
+                .Select(apt => apt!)
+                .ToList();
+
             _airportsTotal = airports.Count;
             _appsTotal = apps.Count;
             _vloasTotal = vloas.Count;
+            _milTotal = mil.Count;
             _airports = airports
                 .OrderBy(x => x.FeaturedRank ?? int.MaxValue).ThenBy(x => x.Icao)
                 .Take(3).ToList();
@@ -209,6 +262,9 @@ else
             _vloas = vloas
                 .OrderBy(x => x.FeaturedRank ?? int.MaxValue).ThenBy(x => x.Title)
                 .Take(3).ToList();
+            _mil = mil
+                .OrderBy(x => x.FeaturedRank ?? int.MaxValue).ThenBy(x => x.Icao, StringComparer.Ordinal)
+                .Take(3).Select(x => (x.Icao, x.Name)).ToList();
         }
     }
 

@@ -4376,3 +4376,14 @@ filtrare è governo — in scala ridotta.
 ⚠️ `AppMil` resta fuori apposta: quel documento non esiste e le sue rotte tornano `null`. Va aggiunto
 **insieme** alle sue pagine. Presidio: `FiltroPerTipoCompletoTests`, che deriva l'elenco dai **descrittori di
 rotta** invece di ricopiarlo. Carta §11f.
+
+### X9 ✅ CHIUSA — il quarto riquadro sulla pagina di una ACC
+
+`/services/vsop/{acc}` offriva Aeroporti, APP e vLOA; i vSOP militari di quei campi si raggiungevano solo
+tornando all'ingresso. Ora c'è la quarta scheda: stesso gate delle altre tre, stesso elenco `managed`,
+nessuna query in più. Compare **solo se ce n'è almeno uno**, perché l'edizione militare non è una famiglia
+che ogni ACC ha. Verificato sui dati veri: `/services/vsop/limm` mostra LIML, `/services/vsop/libb` mostra
+LIBG. Carta §11g.
+
+⚠️ **Non ha un test automatico**: è presentazione su un elenco già filtrato, e il gate è la stessa espressione
+usata tre volte sopra nello stesso file. Va guardata a schermo insieme a §X5.
