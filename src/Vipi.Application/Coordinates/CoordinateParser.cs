@@ -77,9 +77,13 @@ public static class CoordinateParser
     {
         if (string.IsNullOrWhiteSpace(testo)) return CoordinateReadResult.Vuoto;
 
+        // KML incollato come testo: è lo stesso lettore del file caricato, non un secondo dispatch. Da qui in
+        // poi un KML è aree e punti come tutto il resto (carta §10, domanda 2).
+        var trimmed = testo.TrimStart();
+        if (trimmed.StartsWith('<')) return KmlReader.LeggiKml(testo);
+
         // JSON/GeoJSON: è un contenitore intero, non una riga. ⚠️ Lì la LONGITUDINE viene prima (regola IVAO
         // regionMapPolygon), e la verità su quell'ordine sta in PolygonGeometry: qui non si riscrive.
-        var trimmed = testo.TrimStart();
         if (trimmed.StartsWith('[') || trimmed.StartsWith('{'))
         {
             var daJson = PolygonGeometry.ParsePoints(testo);
