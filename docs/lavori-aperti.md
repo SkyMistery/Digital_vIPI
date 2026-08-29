@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 30 agosto 2026, sera tardi (**§Y12 — il TASTO D'IMPORT e la FORMA delle sei tabelle**: «Importa dal sectorfile» sulla pagina Radioassistenze — ⚠️ un giro che **riscarica** la sorgente, non quello notturno che leggerebbe una copia vecchia fino a 24 ore — con l'esito in chip e le **tre risposte distinte** (policy, sorgente muta, quante righe). E la revisione della forma chiesta dal committente: ⚠️ il «rudimentale» era `cfg-table`, che **cabla le larghezze su quattro colonne**, usata da tabelle che ne hanno da tre a otto — la stessa diagnosi già pagata dalle SID. **30 test nuovi**, nessuna migrazione) · **Aggiornato:** 30 agosto 2026, sera (**§Y9 — «il nome del file non dice il tipo»**: l'osservazione del committente ha fatto cadere il modello dell'anagrafica, e sotto c'erano tre difetti — ⚠️ il **TACAN di Grosseto** non era mai arrivato in archivio e **17 NDB su 27** nemmeno, perché l'import passava dal catalogo dei punti, che toglie gli omonimi. Identità ora **codice + famiglia + canale**, tipo **editoriale**, tabella svuotata e rifatta: **149 righe** contro 132. Più la **pagina Radioassistenze** per gli Editor, unico posto da cui si elimina, con le due guardie. ⚠️ Migrazioni in coda: **VENTISEI**) · **Aggiornato:** 30 agosto 2026 (**§Y — TUTTE LE SLICE CHIUSE, verifica a schermo compresa**. Il payload di una sezione scende nei **figli** (venti su ventisei nel profilo militare) e non abita più «il primo blocco», che sulle sezioni piene di prosa si sarebbe perso al primo paragrafo scritto sopra. L'**indice** mostra le sotto-sezioni, in tutt'e due le navigazioni. E le **radioassistenze** sono diventate un'anagrafica di divisione: il documento dice quali cita e in che ordine, l'anagrafica dice quanto valgono, e la release **fotografa** la tabella. ⚠️ La sorgente quel dato **ce l'aveva già** — 128 VOR, 30 NDB, **26 col canale** — e il parser lo buttava via a ogni giro. ⚠️ La fonte vince: un campo che arriva dal sectorfile **non ha nemmeno la casella**. Gli **aeroporti alternati** citano due cataloghi diversi e si portano dietro il nome dello scalo, perché un alternato è spesso **estero** e una pagina pubblica non può chiamare IVAO per stampare una cella. E le **coordinate delle soglie pista** entrano in archivio: ⚠️ il difetto vero non era l'import ma il **salvataggio**, che cancella e riscrive le righe e se le sarebbe portate via al primo tocco di una colonna editoriale. **114 test nuovi**, quattro migrazioni: quelle in coda diventano **VENTICINQUE**. E la **verifica su LIMN Cameri** — campo misto, per la terza volta quello che trova le cose vere — ha preso **tre difetti** che i test verdi non vedevano: «Aggiungi riga» che non aggiungeva niente, la tabella delle aree indietro di una scelta, e ⚠️ un **500 sull'intero editor** perché `TryGetProperty` su un array alza `InvalidOperationException`, che **non è una `JsonException`** e passava indenne il `catch`. **149 test nuovi**, quattro migrazioni: quelle in coda diventano **VENTICINQUE**. Restano il **BOAT** (ritirato dal committente), il **re-import** delle soglie e la fusione del ramo) · **Aggiornato:** 29 agosto 2026, notte fonda (**§Y NUOVA — LE TABELLE DEL vSOP MILITARE**. Otto richieste del committente: sette sezioni oggi a prosa libera diventano **tabelle** — radioassistenze, aeroporti alternati, nominativi, parcheggi, coordinate soglia pista, attività delle aree — e l'indice impara a mostrare le **sotto-sezioni**. L'ottava (il BOAT) è stata **ritirata dal committente**. ✅ **Y0 chiusa**: il payload di una sezione cercava `ParentSectionId == null`, cioè **solo le radici**, e nel profilo militare venti sezioni su ventisei sono figlie — è la **terza** volta che la stessa assunzione si presenta con un vestito diverso. Chiuso insieme a un difetto latente: il payload nel «primo blocco» si sarebbe perso al primo paragrafo scritto sopra la tabella. ⚠️ **Misurato sul filo**: IVAO manda **lat/lon ed elevazione di ogni soglia pista** e noi ne mappiamo quattro campi su otto → **una migrazione (le in coda diventano VENTIQUATTRO) e un re-import**. ⚠️ E la sorgente ha **già** frequenza e canale delle radioassistenze — `MNL - CH 99Y (115.25)` è alla lettera una riga di `itvor.vor`, e il parser la butta via. ⚠️ **Y3**: sarebbe il **terzo ramo impilato**, decisione del committente) · **Aggiornato:** 29 agosto 2026, notte fonda (**§X — L'EDIZIONE GIUSTA PER IL CAMPO, e i vSOP militari raggiungibili**. La regola che finora stava solo nella testa di chi scrive: su un campo **solo militare** la vIPI civile **non nasce**, su un campo **misto** il vSOP militare nasce **solo dopo** la civile (basta che esista, anche in bozza). Due guardie gemelle **nei servizi**, non nelle tendine — `EnsureDocumentAsync` è chiamato dall'APERTURA dell'editor, quindi bastava l'URL — e bloccano la **nascita**, non l'apertura. Il viewer militare era l'**unico dei cinque senza `doc-layout`**. E i militari erano difficili da raggiungere in quattro punti: il ponte al civile gated su «pubblicata» invece che su «esiste», il filtro «Tipo» delle Versioni senza la loro voce, la pagina di una ACC con tre famiglie invece di quattro, l'hub `/services` che non li nominava (⚠️ **ribalta §5 della carta militare**, con la scheda marcata `shortcut` per non cancellare la regola). ⚠️ La **verifica sui duplicati** chiesta dal committente ha trovato un buco vero: le due porte che creano una vLOA confrontavano cose diverse — la **coppia di ACC** una, i **SectorId** l'altra — e nascevano **due vLOA sulla stessa coppia**, di cui una invisibile. **19 test nuovi**, nessuna migrazione, **3 762** su net8. ⚠️ **X4**: `Vipi.E2E.Tests` non compilato, il Host era acceso. ⚠️ **X5**: verifica a schermo da fare. ⚠️ **X7**: **LIML** ha un vSOP militare pubblicato e nessuna vIPI civile — dato di prima della guardia, ora si vede ma va creata a mano) · **Aggiornato:** 29 agosto 2026, notte tarda (**§W NUOVA: il convertitore di coordinate**, un servizio nuovo in `/services` per lo staff di divisione. Tredici forme di coordinate in ingresso — KML/KMZ compresi — e le due uscite chieste, col sectorfile in **due forme**: l'elenco dei punti (default) e i segmenti. ⚠️ Il DB elenca **VERTICI**, i segmenti elencano **LATI**. Nessun modello nuovo e nessun motore nuovo: il DMS e l'ordine lat/lon del JSON **traslocano** in `Vipi.Application/Coordinates` e l'infrastruttura delega; la mappa è quella dell'AoR. **Nessuna migrazione**. ⚠️ La **verifica dal vivo** ha trovato **cinque** difetti che la suite non vedeva. Dieci slice, **143 test nuovi**, suite **3 984** su nove progetti. ⚠️ Ramo `convertitore-coordinate` **NON fuso**) · **Aggiornato:** 29 agosto 2026, notte (**§V: TREDICI voci, tredici chiuse.** Dieci le ha trovate la lettura,
+**Aggiornato:** 30 agosto 2026, notte (**TUTTO FUSO IN `main` — `e99b8e14`, spinto, NESSUN ramo con lavoro fuori.** Di §Y resta aperto il solo **BOAT**, che è del committente. ⚠️ Prima del prossimo deploy si rileggono **§Y10** — la migrazione delle radioassistenze **svuota e rifà** l'anagrafica al primo avvio, il **re-import piste** va premuto anche in produzione, le migrazioni in coda sono **VENTISEI** — e **«Dove siamo, in cinque righe»**, che porta le TRE cose da fare subito dopo il deploy) · **Aggiornato:** 30 agosto 2026, sera tardi (**§Y12 — il TASTO D'IMPORT e la FORMA delle sei tabelle**: «Importa dal sectorfile» sulla pagina Radioassistenze — ⚠️ un giro che **riscarica** la sorgente, non quello notturno che leggerebbe una copia vecchia fino a 24 ore — con l'esito in chip e le **tre risposte distinte** (policy, sorgente muta, quante righe). E la revisione della forma chiesta dal committente: ⚠️ il «rudimentale» era `cfg-table`, che **cabla le larghezze su quattro colonne**, usata da tabelle che ne hanno da tre a otto — la stessa diagnosi già pagata dalle SID. **30 test nuovi**, nessuna migrazione) · **Aggiornato:** 30 agosto 2026, sera (**§Y9 — «il nome del file non dice il tipo»**: l'osservazione del committente ha fatto cadere il modello dell'anagrafica, e sotto c'erano tre difetti — ⚠️ il **TACAN di Grosseto** non era mai arrivato in archivio e **17 NDB su 27** nemmeno, perché l'import passava dal catalogo dei punti, che toglie gli omonimi. Identità ora **codice + famiglia + canale**, tipo **editoriale**, tabella svuotata e rifatta: **149 righe** contro 132. Più la **pagina Radioassistenze** per gli Editor, unico posto da cui si elimina, con le due guardie. ⚠️ Migrazioni in coda: **VENTISEI**) · **Aggiornato:** 30 agosto 2026 (**§Y — TUTTE LE SLICE CHIUSE, verifica a schermo compresa**. Il payload di una sezione scende nei **figli** (venti su ventisei nel profilo militare) e non abita più «il primo blocco», che sulle sezioni piene di prosa si sarebbe perso al primo paragrafo scritto sopra. L'**indice** mostra le sotto-sezioni, in tutt'e due le navigazioni. E le **radioassistenze** sono diventate un'anagrafica di divisione: il documento dice quali cita e in che ordine, l'anagrafica dice quanto valgono, e la release **fotografa** la tabella. ⚠️ La sorgente quel dato **ce l'aveva già** — 128 VOR, 30 NDB, **26 col canale** — e il parser lo buttava via a ogni giro. ⚠️ La fonte vince: un campo che arriva dal sectorfile **non ha nemmeno la casella**. Gli **aeroporti alternati** citano due cataloghi diversi e si portano dietro il nome dello scalo, perché un alternato è spesso **estero** e una pagina pubblica non può chiamare IVAO per stampare una cella. E le **coordinate delle soglie pista** entrano in archivio: ⚠️ il difetto vero non era l'import ma il **salvataggio**, che cancella e riscrive le righe e se le sarebbe portate via al primo tocco di una colonna editoriale. **114 test nuovi**, quattro migrazioni: quelle in coda diventano **VENTICINQUE**. E la **verifica su LIMN Cameri** — campo misto, per la terza volta quello che trova le cose vere — ha preso **tre difetti** che i test verdi non vedevano: «Aggiungi riga» che non aggiungeva niente, la tabella delle aree indietro di una scelta, e ⚠️ un **500 sull'intero editor** perché `TryGetProperty` su un array alza `InvalidOperationException`, che **non è una `JsonException`** e passava indenne il `catch`. **149 test nuovi**, quattro migrazioni: quelle in coda diventano **VENTICINQUE**. Restano il **BOAT** (ritirato dal committente), il **re-import** delle soglie e la fusione del ramo) · **Aggiornato:** 29 agosto 2026, notte fonda (**§Y NUOVA — LE TABELLE DEL vSOP MILITARE**. Otto richieste del committente: sette sezioni oggi a prosa libera diventano **tabelle** — radioassistenze, aeroporti alternati, nominativi, parcheggi, coordinate soglia pista, attività delle aree — e l'indice impara a mostrare le **sotto-sezioni**. L'ottava (il BOAT) è stata **ritirata dal committente**. ✅ **Y0 chiusa**: il payload di una sezione cercava `ParentSectionId == null`, cioè **solo le radici**, e nel profilo militare venti sezioni su ventisei sono figlie — è la **terza** volta che la stessa assunzione si presenta con un vestito diverso. Chiuso insieme a un difetto latente: il payload nel «primo blocco» si sarebbe perso al primo paragrafo scritto sopra la tabella. ⚠️ **Misurato sul filo**: IVAO manda **lat/lon ed elevazione di ogni soglia pista** e noi ne mappiamo quattro campi su otto → **una migrazione (le in coda diventano VENTIQUATTRO) e un re-import**. ⚠️ E la sorgente ha **già** frequenza e canale delle radioassistenze — `MNL - CH 99Y (115.25)` è alla lettera una riga di `itvor.vor`, e il parser la butta via. ⚠️ **Y3**: sarebbe il **terzo ramo impilato**, decisione del committente) · **Aggiornato:** 29 agosto 2026, notte fonda (**§X — L'EDIZIONE GIUSTA PER IL CAMPO, e i vSOP militari raggiungibili**. La regola che finora stava solo nella testa di chi scrive: su un campo **solo militare** la vIPI civile **non nasce**, su un campo **misto** il vSOP militare nasce **solo dopo** la civile (basta che esista, anche in bozza). Due guardie gemelle **nei servizi**, non nelle tendine — `EnsureDocumentAsync` è chiamato dall'APERTURA dell'editor, quindi bastava l'URL — e bloccano la **nascita**, non l'apertura. Il viewer militare era l'**unico dei cinque senza `doc-layout`**. E i militari erano difficili da raggiungere in quattro punti: il ponte al civile gated su «pubblicata» invece che su «esiste», il filtro «Tipo» delle Versioni senza la loro voce, la pagina di una ACC con tre famiglie invece di quattro, l'hub `/services` che non li nominava (⚠️ **ribalta §5 della carta militare**, con la scheda marcata `shortcut` per non cancellare la regola). ⚠️ La **verifica sui duplicati** chiesta dal committente ha trovato un buco vero: le due porte che creano una vLOA confrontavano cose diverse — la **coppia di ACC** una, i **SectorId** l'altra — e nascevano **due vLOA sulla stessa coppia**, di cui una invisibile. **19 test nuovi**, nessuna migrazione, **3 762** su net8. ⚠️ **X4**: `Vipi.E2E.Tests` non compilato, il Host era acceso. ⚠️ **X5**: verifica a schermo da fare. ⚠️ **X7**: **LIML** ha un vSOP militare pubblicato e nessuna vIPI civile — dato di prima della guardia, ora si vede ma va creata a mano) · **Aggiornato:** 29 agosto 2026, notte tarda (**§W NUOVA: il convertitore di coordinate**, un servizio nuovo in `/services` per lo staff di divisione. Tredici forme di coordinate in ingresso — KML/KMZ compresi — e le due uscite chieste, col sectorfile in **due forme**: l'elenco dei punti (default) e i segmenti. ⚠️ Il DB elenca **VERTICI**, i segmenti elencano **LATI**. Nessun modello nuovo e nessun motore nuovo: il DMS e l'ordine lat/lon del JSON **traslocano** in `Vipi.Application/Coordinates` e l'infrastruttura delega; la mappa è quella dell'AoR. **Nessuna migrazione**. ⚠️ La **verifica dal vivo** ha trovato **cinque** difetti che la suite non vedeva. Dieci slice, **143 test nuovi**, suite **3 984** su nove progetti. ⚠️ Ramo `convertitore-coordinate` **NON fuso**) · **Aggiornato:** 29 agosto 2026, notte (**§V: TREDICI voci, tredici chiuse.** Dieci le ha trovate la lettura,
 TRE la verifica a schermo su un campo MISTO (§V1, chiusa) — e le tre dello schermo sono le peggiori: **un vSOP
 militare pubblicato non si apriva affatto** (il bersaglio di release non si risolveva sul legame militare),
 **tre tabelle su tre erano titoli vuoti** (il corpo derivato lo disegnavano solo le sezioni radice) e **il
@@ -158,23 +158,42 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 
 ## Dove siamo, in cinque righe
 
-**Riscritto il 29 agosto 2026**, con le cifre **contate**.
+**Riscritto il 30 agosto 2026, notte**, con le cifre **contate**. È la sezione da leggere per prima
+quando si riprende senza contesto: dice dov'è il codice, cosa manca e cosa va fatto *prima* del prossimo
+deploy.
 
-✅ **Nessun ramo con lavoro fuori da `main`.** `main` = **`8d14b499`**, spinto: dentro c'è tutto, glossario
-di fraseologia (28 agosto) e **autorizzazioni a livelli** (29 agosto) compresi. Tutti i rami sono stati
-cancellati da locale e da `origin` dopo aver verificato `git rev-list --count main..origin/<ramo>` = 0.
+✅ **Nessun ramo con lavoro fuori da `main`.** `main` = **`e99b8e14`**, spinto: dentro c'è tutto — glossario
+di fraseologia e archivio ATC (28 agosto), autorizzazioni a livelli (29), convertitore di coordinate (§W),
+edizione giusta per il campo (§X) e le **tabelle del vSOP militare** con l'anagrafica delle radioassistenze
+(§Y). Tutti i rami sono stati cancellati da locale e da `origin` dopo aver verificato
+`git rev-list --count main..origin/<ramo>` = 0.
 
 Il **cutover MariaDB** è in `main` e verificato (A1–A8). Le sezioni **B**, **C**, **D**, **G**, **H** sono
 chiuse o chiuse-con-la-ragione-scritta; **I** è sospesa di proposito; **J**, **K**, **L**, **M**, **N**,
-**O**, **P**, **Q**, **Q-bis**, **R**, **S**, **T** e **U** sono chiuse.
+**O**, **P**, **Q**, **Q-bis**, **R**, **S**, **T**, **U**, **V**, **W**, **X** e **Y** sono chiuse — di
+**§Y** resta aperto il solo **BOAT** (§Y10), che è del committente.
 
-⚠️ **Le migrazioni in coda al cutover sono VENTITRÉ.** Le ultime tre: `GlossarioFraseologia` (crea
-`GlossaryTerms`), `PromozioniAMano` (crea `RoleOverrides`) e `ConcessioniPerAccRimosse`, che **droppa**
-`EditGrants` — in produzione la tabella è già vuota, le concessioni le ha cancellate il committente a mano.
-⚠️ Alcune sono datate **25-ago 15:19**, quindi su un DB già aggiornato EF le applicherà **fuori ordine** —
-lecito, ma da sapere. ✅ **La SELECT dei duplicati su `DocReleases` la fa ora l'applicazione da sé** (§T):
-non era eseguibile a mano — il 3306 del server sta sul suo `localhost` e non c'è un pannello — e ora
-`ReleaseNumberPreflight` la esegue subito prima di `Migrate()`, nominando le righe in `avvio-errore.txt`.
+⚠️ **Le migrazioni in coda al cutover sono VENTISEI.** Le ultime sei le porta §Y: anagrafica delle
+radioassistenze, coordinate delle soglie pista e la **correzione del modello**, ognuna emessa per i due
+provider. ⚠️ **Quella della correzione non è innocua**: `DELETE FROM Navaids` **e**
+`DELETE FROM ImportStates WHERE Category='Navaid'` — svuota l'anagrafica e azzera lo stato d'import, così al
+primo avvio il giro la rifà da zero (senza la seconda riga resterebbe vuota per ventiquattro ore). Ci mette
+un minuto, e nel frattempo le tabelle dei SOP che la citano sono vuote.
+⚠️ Alcune migrazioni sono datate **25-ago 15:19**, quindi su un DB già aggiornato EF le applicherà **fuori
+ordine** — lecito, ma da sapere. ✅ **La SELECT dei duplicati su `DocReleases` la fa ora l'applicazione da
+sé** (§T): non era eseguibile a mano — il 3306 del server sta sul suo `localhost` e non c'è un pannello — e
+ora `ReleaseNumberPreflight` la esegue subito prima di `Migrate()`, nominando le righe in `avvio-errore.txt`.
+
+🔴 **Le tre cose da fare SUBITO DOPO il deploy**, e nessuna la fa il codice da sé:
+
+1. **Annunciare il cambio dei permessi** (§U): gli `IT-` fuori dagli otto codici di direzione smettono di
+   editare. Si rimedia con una promozione a mano da `/services/vsop/admin/permissions`.
+2. **Premere il re-import delle piste** su `/services/vsop/admin/airports` (§Y10): in produzione le
+   coordinate delle soglie nascono vuote, e la sezione lo dice invece di non comparire.
+3. **Riempire il tipo delle radioassistenze** da `/services/vsop/admin/navaids` (§Y12): dopo l'import ne
+   restano **122 senza tipo**, e il filtro «senza tipo» è la lista di lavoro. La sorgente il tipo non lo sa —
+   `itvor.vor` tiene VOR, TACAN e VORTAC insieme — e sui documenti si legge un trattino finché non lo scrive
+   una persona.
 
 ⚠️ **Tre passi d'avvio** nuovi rispetto al 26: `LinkAirportDocumentsAsync` (dai rami fusi),
 `ClearVloaSeededAiracRowAsync` e `ClearUnpublishedCurrentVersionAsync` (§L). Tutti idempotenti e tutti si
@@ -200,10 +219,10 @@ scrivono nei log.
 orfane di LIRR) è sospesa apposta: non si sistema un albero che sta per essere rifatto.
 
 **Sezioni con lavoro aperto, oggi**: **nessuna sul codice** — `main` è l'unica cosa che conta.
-§U (le autorizzazioni a livelli) è fusa il 29 agosto; §Q-bis (la lingua), §S/§T (l'archivio ATC mondiale)
-e §P la notte del 28; §Q (bilingue, primo giro) e §R (vSOP militari) sono chiuse. Restano **I3/I4**,
-**N4**, **P1** (decisioni, non lavoro) e la lingua sorgente della vLOA **Q4** — e tutto ciò che aspetta
-qualcun altro: A9, A13, L2, B10-bis, **Q1/Q2**, **R1/R2/R3**. ✅ **I due rossi intermittenti Q5 e Q6 sono
+Le ultime fuse sono §V, §W, §X e §Y (30 agosto); prima §U, §Q-bis, §S/§T, §P, §Q e §R. Restano **I3/I4**,
+**N4**, **P1** (decisioni, non lavoro), la lingua sorgente della vLOA **Q4**, il **BOAT** di §Y10 e
+**§X7** — **LIML** ha un vSOP militare pubblicato e nessuna vIPI civile, dato di prima della guardia, da
+creare a mano — più tutto ciò che aspetta qualcun altro: A9, A13, L2, B10-bis, **Q1/Q2**, **R1/R2/R3**. ✅ **I due rossi intermittenti Q5 e Q6 sono
 chiusi** il 28 agosto: erano due contese diverse fra test paralleli, entrambe riprodotte prima di
 correggerle.
 
@@ -4608,23 +4627,31 @@ che i test non vedono: la colonna «Coordinate», unica senza larghezza, si pren
 **Nessuna migrazione** (restano **VENTISEI**). 30 test nuovi: Ui **899**, Infrastructure **1053**,
 Application 1640, Assets 52, E2E 252 — nove progetti su nove, Release verde sui due TFM.
 
-### Y10 🟢 DA FARE — quel che resta
+✅ **Fuso in `main`** (`e99b8e14`) per avanzamento diretto, ramo cancellato da locale e da `origin`.
 
-Resta il **BOAT**, ritirato dal committente e da riprendere.
+### Y10 🟢 DA FARE — quel che resta di §Y
+
+**Una cosa sola, ed è del committente: il BOAT**, che lui stesso ha ritirato («ho scoperto essere più
+complicato di quanto mi aspettassi») e che va ripreso quando avrà deciso come si scrive. Tutto il resto di
+§Y è chiuso e in `main`.
 
 ✅ Il giro di **re-import** delle piste **l'ha fatto il committente** il 30 agosto 2026: le coordinate delle
-soglie non sono più vuote. ⚠️ Ma va rifatto **sull'archivio di produzione**, dove le colonne nascono vuote
-come qui — un aeroporto importato prima di §Y4 non ha soglie finché non si preme quel tasto.
+soglie non sono più vuote qui. ⚠️ Ma **in produzione va premuto di nuovo** (`/services/vsop/admin/airports`),
+dove le colonne nascono vuote esattamente come nascevano qui: un aeroporto importato prima di §Y4 non ha
+soglie finché non si preme quel tasto, e la sezione lo dice invece di non comparire.
 
-⚠️ E le migrazioni in coda al cutover MariaDB sono **VENTISEI**: sei le porta questo giro (anagrafica
+⚠️ **Al deploy**, e vale la pena rileggerlo prima di premere: la migrazione della correzione del modello
+**svuota** l'anagrafica delle radioassistenze e azzera lo **stato d'import**, quindi il primo avvio la rifà
+da zero. Ci mette un minuto, e nel frattempo le tabelle che la citano sono vuote. Dopo, le righe VHF **senza
+tipo** (misurate **122** sul sectorfile di oggi) aspettano una persona: si trovano col filtro «senza tipo»
+della pagina Radioassistenze, o si riempiono col tasto d'import e poi a mano.
+
+⚠️ E le migrazioni in coda al cutover MariaDB sono **VENTISEI**: sei le porta §Y (anagrafica
 radioassistenze, coordinate soglia e la correzione del modello, ognuna emessa per i due provider).
 
-⚠️ **Al deploy**: la migrazione della correzione **svuota** l'anagrafica e azzera lo stato d'import, quindi
-il primo avvio la rifà da zero — ci mette un minuto, e nel frattempo le tabelle che la citano sono vuote.
-Le **121 righe VHF senza tipo** aspettano una persona: si trovano col filtro «senza tipo» della pagina.
-
-✅ **Fuso in `main`** il 30 agosto 2026 per avanzamento diretto (`main` = **`7c10f968`**), ramo cancellato da
-locale e da `origin`: **non c'è più nessun ramo con lavoro fuori**.
+✅ **Tutto fuso in `main`** — `main` = **`e99b8e14`**, spinto, e i rami di §Y (`tabelle-vsop-militari`,
+`anagrafica-radioassistenze`, `tasto-import-e-forma-tabelle`) sono **cancellati** da locale e da `origin`:
+**non c'è più nessun ramo con lavoro fuori**.
 
 ### Y7 ✅ CHIUSA — la verifica a schermo su LIMN Cameri, e i tre difetti che ha trovato
 
