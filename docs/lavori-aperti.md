@@ -4566,9 +4566,11 @@ Infrastructure 1 047, Assets 52.
 
 ### Y10 🟢 DA FARE — quel che resta
 
-Il **BOAT**, ritirato dal committente e da riprendere, e il giro di **re-import** da
-`/services/vsop/admin/airports` che riempie le coordinate delle soglie: finché non si preme, quella tabella
-è vuota su tutti i campi e la sezione lo dice.
+Resta il **BOAT**, ritirato dal committente e da riprendere.
+
+✅ Il giro di **re-import** delle piste **l'ha fatto il committente** il 30 agosto 2026: le coordinate delle
+soglie non sono più vuote. ⚠️ Ma va rifatto **sull'archivio di produzione**, dove le colonne nascono vuote
+come qui — un aeroporto importato prima di §Y4 non ha soglie finché non si preme quel tasto.
 
 ⚠️ E le migrazioni in coda al cutover MariaDB sono **VENTISEI**: sei le porta questo giro (anagrafica
 radioassistenze, coordinate soglia e la correzione del modello, ognuna emessa per i due provider).
@@ -4576,6 +4578,9 @@ radioassistenze, coordinate soglia e la correzione del modello, ognuna emessa pe
 ⚠️ **Al deploy**: la migrazione della correzione **svuota** l'anagrafica e azzera lo stato d'import, quindi
 il primo avvio la rifà da zero — ci mette un minuto, e nel frattempo le tabelle che la citano sono vuote.
 Le **121 righe VHF senza tipo** aspettano una persona: si trovano col filtro «senza tipo» della pagina.
+
+✅ **Fuso in `main`** il 30 agosto 2026 per avanzamento diretto (`main` = **`7c10f968`**), ramo cancellato da
+locale e da `origin`: **non c'è più nessun ramo con lavoro fuori**.
 
 ### Y7 ✅ CHIUSA — la verifica a schermo su LIMN Cameri, e i tre difetti che ha trovato
 
