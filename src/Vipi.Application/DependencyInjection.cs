@@ -89,7 +89,8 @@ public static class DependencyInjection
             sp.GetRequiredService<IAirportSidDerivationService>(),
             Vipi.Domain.ReleaseTargetType.AirportMil,
             // ⚠️ Solo qui: «Radioassistenze» è una sezione del profilo MILITARE, e il civile non ce l'ha.
-            sp.GetRequiredService<Abstractions.INavaidCatalog>()));
+            sp.GetRequiredService<Abstractions.INavaidCatalog>(),
+            sp.GetRequiredService<Abstractions.IAirportNameLookup>()));
         services.AddScoped<IFrozenSectionRegistry, FrozenSectionRegistry>();
         services.AddScoped<IFrozenSectionReader, FrozenSectionReader>();   // doc 10 §3d: lettura frozen al view
         services.AddScoped<IAccViewDerivationService, AccViewDerivationService>();

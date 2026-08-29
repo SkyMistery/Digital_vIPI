@@ -1,0 +1,53 @@
+@* La tabella «Aeroporti alternati» di un vSOP militare (carta vSOP militari §12f).
+
+   Quattro colonne, come le ha chieste il committente: l'AEROPORTO (ICAO e nome), le NAVAIDS nella forma
+   `MNL VORTACAN - 99Y (115.25)`, il RILEVAMENTO e la DISTANZA — che si scrivono come numeri e si leggono
+   con la loro unità.
+
+   ⚠️ Nomi e radioassistenze si risolvono sui cataloghi, non stanno nel documento: è la stessa divisione del
+   lavoro della sezione «Radioassistenze», e alla release si congela il risultato. *@
+@inject IStringLocalizer<SharedResource> L
+@using Vipi.Application.Content
+
+<table class="cfg-table">
+    <thead>
+        <tr>
+            <th>@L["Div_Airports"]</th>
+            <th>@L["Div_Navaids"]</th>
+            <th style="width:90px">@L["Div_Bearing"]</th>
+            <th style="width:90px">@L["Div_Distance"]</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var r in Rows)
+        {
+            <tr>
+                <td><b>@r.Icao</b> @r.Name</td>
+                <td>
+                    @* Una per riga: due radioassistenze di fila su una riga sola si leggono come una sola
+                       stringa lunga, e questa colonna è fatta di codici che si somigliano. *@
+                    @foreach (var n in r.Navaids)
+                    {
+                        <div style="white-space:nowrap">@NavaidText.ConTipo(n.Code, n.Type, n.Channel, n.Frequency)</div>
+                    }
+                    @if (r.Navaids.Count == 0) { <span class="muted">—</span> }
+                </td>
+                <td style="white-space:nowrap">@Vuoto(MilDiversionText.Rilevamento(r.Bearing))</td>
+                <td style="white-space:nowrap">@Vuoto(MilDiversionText.Distanza(r.DistanceNm))</td>
+            </tr>
+        }
+        @if (Rows.Count == 0)
+        {
+            <tr><td colspan="4" class="muted">@L["Div_Empty"]</td></tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    /// <summary>Le righe citate dal documento, nell'ordine del documento.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<MilDiversionView> Rows { get; set; } = Array.Empty<MilDiversionView>();
+
+    /// <summary>Un trattino al posto di una cella vuota: una cella vuota in un documento si legge come «manca
+    /// un pezzo del sito», non come «questo dato non c'è».</summary>
+    private static string Vuoto(string s) => s.Length > 0 ? s : "—";
+}

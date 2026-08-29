@@ -146,4 +146,17 @@ public interface IMilitaryDocumentService
     /// </summary>
     Task<IReadOnlyList<NavaidRow>> ResolveNavaidsForViewAsync(
         string icao, IReadOnlyList<NavaidKey> righe, bool useFrozen, CancellationToken ct = default);
+
+    /// <summary>Gli aeroporti alternati citati dal documento, risolti su archivio e anagrafica. Lettura
+    /// dell'EDITOR: legge la versione di lavoro.</summary>
+    Task<IReadOnlyList<MilDiversionView>> GetDiversionsAsync(string icao, CancellationToken ct = default);
+
+    /// <summary>Salva le righe degli alternati: scali, radioassistenze citate, rilevamento e distanza.</summary>
+    Task SaveDiversionsAsync(string icao, IReadOnlyList<MilDiversionPayload.Riga> righe,
+        CancellationToken ct = default);
+
+    /// <summary>Le righe di un documento <b>mostrato</b>, con la fotografia della release se c'è.</summary>
+    Task<IReadOnlyList<MilDiversionView>> ResolveDiversionsForViewAsync(
+        string icao, IReadOnlyList<MilDiversionPayload.Riga> righe, bool useFrozen,
+        CancellationToken ct = default);
 }

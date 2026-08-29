@@ -29,6 +29,9 @@ public sealed class AirportFrozenSectionProvider : IFrozenSectionProvider
     /// congelata i cui valori stanno FUORI dal documento e fuori dal profilo dell'aeroporto.</summary>
     private readonly INavaidCatalog? _navaids;
 
+    /// <summary>L'archivio degli scali, per i nomi degli aeroporti alternati. Militare come sopra.</summary>
+    private readonly IAirportNameLookup? _aeroporti;
+
     /// <param name="type">
     /// La famiglia che questo provider serve. ⚠️ <b>Sono DUE</b>: la vIPI civile d'aeroporto e il vSOP
     /// <b>militare</b> dello stesso scalo, che deriva le stesse tre tabelle (<c>frequencies</c>,
@@ -44,12 +47,13 @@ public sealed class AirportFrozenSectionProvider : IFrozenSectionProvider
     /// </param>
     public AirportFrozenSectionProvider(IAirportProfileReader repo, IAirportSectorService sectors,
         IAirportSidDerivationService sids, ReleaseTargetType type = ReleaseTargetType.Airport,
-        INavaidCatalog? navaids = null)
+        INavaidCatalog? navaids = null, IAirportNameLookup? aeroporti = null)
     {
         _repo = repo;
         _sectors = sectors;
         _sids = sids;
         _navaids = navaids;
+        _aeroporti = aeroporti;
         Type = type;
     }
 
@@ -85,6 +89,10 @@ public sealed class AirportFrozenSectionProvider : IFrozenSectionProvider
                 "navaids" => _navaids is null
                     ? null
                     : await _navaids.GetManyAsync(MilNavaidsPayload.Leggi(SectionPayload.Read(s.Blocks)), ct),
+                "diversion" => _navaids is null
+                    ? null
+                    : await MilDiversionResolver.ResolveAsync(
+                        MilDiversionPayload.Leggi(SectionPayload.Read(s.Blocks)), _navaids, _aeroporti, ct),
                 _ => null,
             };
             if (vm is not null) result[s.Id] = JsonSerializer.Serialize(vm);

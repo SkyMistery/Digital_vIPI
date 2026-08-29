@@ -25,6 +25,7 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
                                      Vipi.Application.Auth.IEditAuthorizationService authz,
                                      IEditingRepository editing, ISpecialAreaRepository areas,
                                      INavaidCatalog navaids,
+                                     IAirportNameLookup? aeroporti = null,
                                      IFrozenSectionReader? frozen = null,
                                      Vipi.Application.Translation.TranslationLookup? traduzioni = null)
     {
@@ -34,11 +35,13 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
         _editing = editing;
         _areas = areas;
         _navaids = navaids;
+        _aeroporti = aeroporti;
         _frozen = frozen;
         _traduzioni = traduzioni;
     }
 
     private readonly INavaidCatalog _navaids;
+    private readonly IAirportNameLookup? _aeroporti;
     private readonly IFrozenSectionReader? _frozen;
 
     public async Task<IReadOnlyList<MilAirportRow>> ListAsync(bool perStaff, CancellationToken ct = default)
@@ -238,6 +241,37 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
             if (snapshot.Get<List<NavaidRow>>("navaids") is { } congelate) return congelate;
         }
         return await ResolveNavaidsAsync(righe, ct).ConfigureAwait(false);
+    }
+
+    // ---- Aeroporti alternati (§12f) --------------------------------------------------------------------
+
+    public async Task<IReadOnlyList<MilDiversionView>> GetDiversionsAsync(string icao, CancellationToken ct = default)
+    {
+        if (await GetDocumentIdAsync(icao, ct).ConfigureAwait(false) is not int docId)
+            return Array.Empty<MilDiversionView>();
+        var json = await _editing.GetSectionBlockJsonAsync(docId, "diversion", ct).ConfigureAwait(false);
+        return await MilDiversionResolver.ResolveAsync(MilDiversionPayload.Leggi(json), _navaids, _aeroporti, ct)
+            .ConfigureAwait(false);
+    }
+
+    public async Task SaveDiversionsAsync(string icao, IReadOnlyList<MilDiversionPayload.Riga> righe,
+        CancellationToken ct = default)
+    {
+        var docId = await CreaAsync(icao, ct).ConfigureAwait(false);
+        await _editing.SaveSectionBlockJsonAsync(docId, "diversion", MilDiversionPayload.Scrivi(righe),
+            _authz.CurrentUserId ?? 0, ct).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<MilDiversionView>> ResolveDiversionsForViewAsync(
+        string icao, IReadOnlyList<MilDiversionPayload.Riga> righe, bool useFrozen, CancellationToken ct = default)
+    {
+        if (useFrozen && _frozen is not null)
+        {
+            var snapshot = await _frozen.LoadAsync(ReleaseTargetType.AirportMil, Norm(icao), ct).ConfigureAwait(false);
+            // Come per le radioassistenze: la fotografia vince anche quando è vuota.
+            if (snapshot.Get<List<MilDiversionView>>("diversion") is { } congelate) return congelate;
+        }
+        return await MilDiversionResolver.ResolveAsync(righe, _navaids, _aeroporti, ct).ConfigureAwait(false);
     }
 
     public async Task<RegulatedSelection> GetRegulatedAsync(string icao, CancellationToken ct = default)

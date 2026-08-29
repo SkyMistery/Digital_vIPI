@@ -59,7 +59,9 @@ public static class SectionCatalog
             // porta l'anagrafica, e la release li CONGELA come le altre derivate: senza, una frequenza
             // corretta oggi cambierebbe da sola un documento pubblicato al ciclo scorso.
             ["navaids"] = SectionKind.Derived,
-            ["diversion"] = SectionKind.Editorial,
+            // Derivata come «navaids», e per la stessa ragione: gli scali e le loro radioassistenze si
+            // risolvono sui cataloghi, e la release deve fotografarli.
+            ["diversion"] = SectionKind.Derived,
             ["callsigns"] = SectionKind.Editorial,
             ["groundprocedures"] = SectionKind.Editorial,
             ["parkings"] = SectionKind.Editorial,
@@ -235,7 +237,7 @@ public static class SectionCatalog
                     // campo, che il catalogo settori non ha. Sui campi militari i blocchi pesano PIU' della
                     // scheda -- misurato su LIPI Rivolto.
                     HB("frequencies", "Frequenze ATC/CRC", 2),
-                    D("diversion", "Aeroporti alternati", 3),
+                    HB("diversion", "Aeroporti alternati", 3),
                     // Derivata: ident, lunghezza e QFU dall'anagrafica. Blocchi: le coordinate delle
                     // soglie, che AirportRunway non ha.
                     HB("runways", "Piste", 4),

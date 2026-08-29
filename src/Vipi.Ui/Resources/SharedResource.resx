@@ -982,6 +982,21 @@
   <data name="Nav_BadCode" xml:space="preserve"><value>Il codice non è valido: da due a cinque lettere o cifre.</value></data>
   <data name="Nav_NeedKind" xml:space="preserve"><value>Serve la natura (VOR, NDB, ILS, TACAN...): quel codice non è ancora in anagrafica.</value></data>
   <data name="Nav_Duplicate" xml:space="preserve"><value>Quella radioassistenza è già in tabella.</value></data>
+  <data name="Div_Airports" xml:space="preserve"><value>Aeroporti</value></data>
+  <data name="Div_Navaids" xml:space="preserve"><value>Radioassistenze</value></data>
+  <data name="Div_Bearing" xml:space="preserve"><value>Rilevamento</value></data>
+  <data name="Div_Distance" xml:space="preserve"><value>Distanza</value></data>
+  <data name="Div_Icao" xml:space="preserve"><value>ICAO</value></data>
+  <data name="Div_Add" xml:space="preserve"><value>Aggiungi aeroporto</value></data>
+  <data name="Div_AddHint" xml:space="preserve"><value>Il nome si cerca prima fra i nostri aeroporti, poi alla sorgente IVAO: un alternato estero si scrive lo stesso. Rilevamento e distanza si scrivono come numeri.</value></data>
+  <data name="Div_Empty" xml:space="preserve"><value>Nessun aeroporto alternato in questo documento.</value></data>
+  <data name="Div_RemoveRow" xml:space="preserve"><value>Toglie l'aeroporto da questa tabella</value></data>
+  <data name="Div_RemoveNavaid" xml:space="preserve"><value>Toglie questa radioassistenza dalla riga</value></data>
+  <data name="Div_BadIcao" xml:space="preserve"><value>Il codice ICAO è di quattro lettere o cifre.</value></data>
+  <data name="Div_Duplicate" xml:space="preserve"><value>Quell'aeroporto è già in tabella.</value></data>
+  <data name="Div_UnknownIcao" xml:space="preserve"><value>Quel codice non è fra i nostri aeroporti e la sorgente non lo conosce: la riga è stata aggiunta senza nome.</value></data>
+  <data name="Div_UnknownNavaid" xml:space="preserve"><value>Quel codice non è in anagrafica: si aggiunge prima nella sezione Radioassistenze.</value></data>
+  <data name="Div_AmbiguousNavaid" xml:space="preserve"><value>Quel codice esiste con più nature: scriverlo per esteso nella sezione Radioassistenze.</value></data>
   <data name="Sorg_StatesTitle" xml:space="preserve"><value>Stato import periodici</value></data>
   <data name="Sorg_StatesHelp" xml:space="preserve"><value>Esito dell'ultima esecuzione automatica di ogni import gated. Un errore qui significa dati potenzialmente stantii finché il retry non riesce.</value></data>
   <data name="Sorg_NoStates" xml:space="preserve"><value>Nessun import ancora eseguito (DB nuovo o job non ancora partiti).</value></data>

@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 @inject IMilitaryDocumentService Militari
 @inject Vipi.Application.Abstractions.INavaidCatalog Radioassistenze
+@inject Vipi.Application.Abstractions.IAirportNameLookup Aeroporti
 @inject IEditingService Editing
 @inject IStationResolver Stations
 @inject IEditAuthorizationService Authz
@@ -149,6 +150,10 @@ else
     private IReadOnlyList<NavaidRow> _radioassistenze = Array.Empty<NavaidRow>();
     private IReadOnlyList<NavaidRow> _anagrafica = Array.Empty<NavaidRow>();
 
+    // Aeroporti alternati: le righe del documento e l'elenco dei NOSTRI scali, per suggerire i codici.
+    private IReadOnlyList<MilDiversionView> _alternati = Array.Empty<MilDiversionView>();
+    private IReadOnlyList<AirportName> _aeroportiNoti = Array.Empty<AirportName>();
+
     // Aree di lavoro: selezione salvata + i due cataloghi del picker (aree dell'ACC, aree degli altri).
     private RegulatedSelection _regulated = new() { OwnAuto = false };
     private IReadOnlyList<SpecialAreaPick> _areaPicks = Array.Empty<SpecialAreaPick>();
@@ -209,6 +214,7 @@ else
             _shell.IsEditing = _shell.IsEditing && _shell.Doc.IsEditable && _shell.Lock.IsMine;
             _regulated = await Militari.GetRegulatedAsync(_icao);
             await CaricaRadioassistenzeAsync();
+            await CaricaAlternatiAsync();
         }
         catch (EditNotAllowedException) { _denied = true; }
     }
@@ -244,6 +250,13 @@ else
                 <MilNavaidsEditor Rows="_radioassistenze" Anagrafica="_anagrafica" Editing="_shell.IsEditing"
                                   OnAdd="AggiungiRadioassistenza" OnRemove="TogliRadioassistenza"
                                   OnMove="SpostaRadioassistenza" OnSet="ScriviRadioassistenza" />
+                break;
+            case "diversion":
+                <MilDiversionsEditor Rows="_alternati" Aeroporti="_aeroportiNoti" Anagrafica="_anagrafica"
+                                     Editing="_shell.IsEditing"
+                                     OnAdd="AggiungiAlternato" OnRemove="TogliAlternato" OnMove="SpostaAlternato"
+                                     OnAddNavaid="AggiungiNavaidAlternato" OnRemoveNavaid="TogliNavaidAlternato"
+                                     OnSetNumber="ScriviNumeroAlternato" />
                 break;
             case "regulated":
                 @* Come l'APP: nessuna area di default, si scelgono tutte a mano. *@
@@ -342,6 +355,120 @@ else
         // altrimenti a schermo resta quel che l'utente ha battuto e sembra salvato.
         await CaricaRadioassistenzeAsync();
         return esito;
+    }
+
+    // ---- Aeroporti alternati (§12f) --------------------------------------------------------------------
+    //
+    // ⚠️ Qui si scrive SOLO nel documento: rilevamento e distanza sono di questa coppia di campi, non
+    // dell'aeroporto. Le radioassistenze citate vengono dall'anagrafica e da qui si scelgono soltanto.
+
+    private async Task CaricaAlternatiAsync()
+    {
+        _alternati = await Militari.GetDiversionsAsync(_icao);
+        _aeroportiNoti = await Aeroporti.ListAsync();
+    }
+
+    /// <summary>
+    /// Le righe salvate, ricostruite da quelle mostrate. ⚠️ Una radioassistenza citata ma non più in
+    /// anagrafica sparirebbe al primo salvataggio: è una guarigione, non una perdita — quel codice non si
+    /// poteva più stampare comunque, e tenerlo vorrebbe dire un documento che cita qualcosa che non c'è.
+    /// </summary>
+    private List<MilDiversionPayload.Riga> RigheAlternati() => _alternati.Select(v => new MilDiversionPayload.Riga
+    {
+        Icao = v.Icao,
+        Name = v.Name,
+        Navaids = v.Navaids.Select(n => new MilDiversionPayload.Nav { Code = n.Code, Kind = n.Kind }).ToList(),
+        Bearing = v.Bearing,
+        Distance = v.DistanceNm,
+    }).ToList();
+
+    private Task SalvaAlternati(List<MilDiversionPayload.Riga> righe) => _shell.GuardAsync(async () =>
+    {
+        await Militari.SaveDiversionsAsync(_icao, righe);
+        await CaricaAlternatiAsync();
+    });
+
+    private async Task AggiungiAlternato(string icao)
+    {
+        // ⚠️ L'unica chiamata alla SORGENTE di tutta la sezione, e la fa una persona premendo un tasto: il
+        // nome si salva nel documento, così la pagina pubblica non dipenderà mai da IVAO per stampare una cella.
+        var trovato = await Aeroporti.FindAsync(icao);
+        if (trovato is null) _shell.Error = L["Div_UnknownIcao"].Value;
+
+        var righe = RigheAlternati();
+        righe.Add(new MilDiversionPayload.Riga { Icao = icao, Name = trovato?.Name });
+        await SalvaAlternati(righe);
+    }
+
+    private Task TogliAlternato(int i)
+    {
+        var righe = RigheAlternati();
+        if (i < 0 || i >= righe.Count) return Task.CompletedTask;
+        righe.RemoveAt(i);
+        return SalvaAlternati(righe);
+    }
+
+    private Task SpostaAlternato((int Indice, int Delta) m)
+    {
+        var righe = RigheAlternati();
+        var (a, b) = (m.Indice, m.Indice + m.Delta);
+        if (a < 0 || a >= righe.Count || b < 0 || b >= righe.Count) return Task.CompletedTask;
+        (righe[a], righe[b]) = (righe[b], righe[a]);
+        return SalvaAlternati(righe);
+    }
+
+    /// <summary>
+    /// Cita una radioassistenza su una riga. ⚠️ Basta il CODICE: la natura la sa già l'anagrafica, e
+    /// chiederla sarebbe una domanda di cui il sistema conosce la risposta. Quando invece il codice esiste
+    /// con più nature — <c>DEC</c> è un VOR e un NDB — la domanda torna legittima, e si dice.
+    /// </summary>
+    private async Task AggiungiNavaidAlternato((int Indice, string Codice) x)
+    {
+        var candidate = _anagrafica.Where(n => n.Code == x.Codice).ToList();
+        if (candidate.Count == 0) { _shell.Error = L["Div_UnknownNavaid"].Value; return; }
+        if (candidate.Count > 1) { _shell.Error = L["Div_AmbiguousNavaid"].Value; return; }
+
+        var righe = RigheAlternati();
+        if (x.Indice < 0 || x.Indice >= righe.Count) return;
+        var riga = righe[x.Indice];
+        if (riga.Navaids.Any(n => n.Code == candidate[0].Code && n.Kind == candidate[0].Kind)) return;
+
+        righe[x.Indice] = new MilDiversionPayload.Riga
+        {
+            Icao = riga.Icao, Name = riga.Name, Bearing = riga.Bearing, Distance = riga.Distance,
+            Navaids = riga.Navaids.Append(new MilDiversionPayload.Nav
+            {
+                Code = candidate[0].Code, Kind = candidate[0].Kind,
+            }).ToList(),
+        };
+        await SalvaAlternati(righe);
+    }
+
+    private Task TogliNavaidAlternato((int Indice, NavaidKey Chiave) x)
+    {
+        var righe = RigheAlternati();
+        if (x.Indice < 0 || x.Indice >= righe.Count) return Task.CompletedTask;
+        var riga = righe[x.Indice];
+        righe[x.Indice] = new MilDiversionPayload.Riga
+        {
+            Icao = riga.Icao, Name = riga.Name, Bearing = riga.Bearing, Distance = riga.Distance,
+            Navaids = riga.Navaids.Where(n => n.Code != x.Chiave.Code || n.Kind != x.Chiave.Kind).ToList(),
+        };
+        return SalvaAlternati(righe);
+    }
+
+    private Task ScriviNumeroAlternato((int Indice, bool Rilevamento, int? Valore) x)
+    {
+        var righe = RigheAlternati();
+        if (x.Indice < 0 || x.Indice >= righe.Count) return Task.CompletedTask;
+        var riga = righe[x.Indice];
+        righe[x.Indice] = new MilDiversionPayload.Riga
+        {
+            Icao = riga.Icao, Name = riga.Name, Navaids = riga.Navaids,
+            Bearing = x.Rilevamento ? x.Valore : riga.Bearing,
+            Distance = x.Rilevamento ? riga.Distance : x.Valore,
+        };
+        return SalvaAlternati(righe);
     }
 
     private Task SaveRegulated(RegulatedSelection sel) => _shell.GuardAsync(async () =>

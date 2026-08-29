@@ -991,6 +991,48 @@ log, perché una è una decisione dell'amministratore e l'altra è un guasto.
 **ventiquattro**. Verdi su net8: Application **1 597**, Ui **864**, Infrastructure **1 017**, Domain 117,
 Assets 52, Hosting 57; Release verde su entrambi i TFM.
 
+### 12f. Gli aeroporti alternati — **chiusa** (S3)
+
+Quattro colonne: l'**aeroporto** (ICAO e nome), le **radioassistenze** nella forma
+`MNL VORTACAN - 99Y (115.25)` — col tipo in mezzo e il canale **senza** «CH», che è la forma chiesta per
+questa tabella e non per l'altra — il **rilevamento** e la **distanza**.
+
+**La differenza con le Radioassistenze, che decide tutto il resto.** Là i valori erano di un'anagrafica
+condivisa; qui **rilevamento e distanza sono del documento**: il rilevamento di Grottaglie *da Amendola* non
+è un fatto di Grottaglie, è un fatto della coppia. Nomi e radioassistenze invece vengono dai cataloghi, e
+sono due cataloghi **diversi** — l'archivio degli scali e l'anagrafica delle radioassistenze — nessuno dei
+quali appartiene al documento. Per questo anche questa sezione è `Derived`, e la release la fotografa.
+
+⚠️ **Il nome dello scalo si porta dietro nel documento**, e non è una duplicazione per pigrizia: un alternato
+è spesso **estero** (LGKR, LDDU) e il nostro archivio tiene i soli scali italiani. Una pagina pubblica non
+può dipendere da una chiamata a IVAO per stampare una cella — se la sorgente è muta o lenta, il documento non
+deve accorgersene. Quando lo scalo *è* dei nostri **vince l'archivio**: quello è il dato vero, e il nome nel
+payload resta il ripiego. Il contrario congelerebbe nel documento un nome che poi cambia.
+
+⚠️ **`IAirportNameLookup` ha due metodi e non uno**, ed è la differenza fra leggere e scrivere:
+`NamesAsync` guarda **solo l'archivio** e la usa chi mostra un documento; `FindAsync` interroga anche la
+sorgente e la usa chi **aggiunge** una riga — lì la chiamata è una sola, l'ha chiesta una persona, e il nome
+trovato si salva. Se la sorgente non risponde la riga si aggiunge **lo stesso, senza nome**: far fallire la
+compilazione di una tabella perché IVAO è giù vorrebbe dire che il documento si scrive solo quando la
+sorgente è in piedi.
+
+⚠️ **Rilevamento e distanza si scrivono come numeri**, per decisione del committente (§12b, punto 5):
+l'unità la mette la resa, così non ci finiscono dentro tre modi diversi di dire gradi, e la colonna resta
+confrontabile. Un rilevamento di 400° o una distanza negativa **non si salvano**: non sono «quasi giusti»,
+sono un refuso, e stamparli darebbe a una tabella di documento l'aria di dire una cosa precisa e falsa.
+
+⚠️ **Per citare una radioassistenza basta il CODICE**: la natura la sa già l'anagrafica, e chiederla sarebbe
+una domanda di cui il sistema conosce la risposta. La domanda torna legittima — e si fa — solo quando lo
+stesso codice esiste con più nature: `DEC` è un VOR *e* un NDB.
+
+**La risoluzione sta in un posto solo** (`MilDiversionResolver`) perché ha **due** chiamanti: il servizio che
+mostra la sezione e la cattura Frozen che la fotografa. Se stesse in tutt'e due, un giorno la release
+congelerebbe una tabella diversa da quella che il viewer disegna, e nessuno se ne accorgerebbe — perché le
+due si guardano in momenti diversi. ⚠️ E fa **due interrogazioni in tutto**, non due per riga.
+
+**Conti**: 27 test nuovi, nessuna migrazione. Verdi su net8: Application **1 619**, Ui **864**,
+Infrastructure **1 022**, Assets 52; Release verde su entrambi i TFM.
+
 ### 12c. Le coordinate delle soglie pista ci sono, e non le memorizziamo
 
 Verificato **sul filo** il 29 agosto, `GET /v2/airports/LIPI/runways`:

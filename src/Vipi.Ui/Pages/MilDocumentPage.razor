@@ -225,6 +225,7 @@
     private ParsedTaf? _taf;
     private IReadOnlyList<AccSpecialAreaView> _aree = Array.Empty<AccSpecialAreaView>();
     private IReadOnlyList<NavaidRow> _radioassistenze = Array.Empty<NavaidRow>();
+    private IReadOnlyList<MilDiversionView> _alternati = Array.Empty<MilDiversionView>();
 
     /// <summary>
     /// Il corpo delle sezioni rese dalla pagina. ⚠️ Sono le STESSE dell'aeroporto civile perché parlano
@@ -245,6 +246,7 @@
             @* Le righe le porta il DOCUMENTO, i valori l'anagrafica di divisione — e alla release si
                congelano, o una frequenza corretta oggi cambierebbe un SOP pubblicato al ciclo scorso. *@
             case "navaids": <MilNavaids Rows="_radioassistenze" />; break;
+            case "diversion": <MilDiversions Rows="_alternati" />; break;
             case "runways": <AirportRunways View="_derivate.Runways" />; break;
             @* Le aree di lavoro: E' la mappa dell'AoR con le chip, cioe' esattamente cio' che il PDF disegna
                a mano una figura per volta. Stesso motore della vIPI ACC e dell'APP. *@
@@ -350,6 +352,9 @@
         // l'anagrafica di adesso. In bozza no — lì si guarda quel che si sta scrivendo.
         _radioassistenze = await Militari.ResolveNavaidsForViewAsync(
             _icao, MilNavaidsPayload.Leggi(SectionPayload.Read(SezioneDi("navaids"))), _useFrozen);
+
+        _alternati = await Militari.ResolveDiversionsForViewAsync(
+            _icao, MilDiversionPayload.Leggi(SectionPayload.Read(SezioneDi("diversion"))), _useFrozen);
 
         // ⚠️ Il vSOP militare nasce in ITALIANO (carta §1d): la lingua sorgente e' quella in cui si
         // REDIGE, non quella dei quindici PDF di partenza. Un lettore inglese lo ottiene tradotto.
