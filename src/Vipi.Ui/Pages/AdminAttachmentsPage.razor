@@ -7,6 +7,7 @@
 @using Vipi.Domain.Entities
 @inject IEditAuthorizationService Authz
 @inject IAttachmentLibrary Biblioteca
+@inject IAttachmentUsage Uso
 @inject IStringLocalizer<SharedResource> L
 
 @* La biblioteca degli allegati: i PDF caricati in un posto solo e citabili dai documenti
@@ -20,6 +21,12 @@
    ⚠️ L'elenco mostra TUTTO, comprese le voci che non cita nessuno. È il catch-22 della regola 3 del gate:
    un elenco che mostrasse solo le voci citate renderebbe irraggiungibile la PRIMA voce caricata — è già
    successo con gli APP, dove si vedevano solo i pubblicati e il primo non si poteva creare.
+
+   ⚠️ «Citato da» si RICAVA leggendo i quattro posti in cui un riferimento può comparire — blocchi (bozze
+   comprese), sezioni extra, payload delle release e blocchi condivisi — non da una tabella di join, che si
+   desincronizza al primo percorso di scrittura che dimentica di aggiornarla e mente proprio qui.
+   ⚠️ E il chip «mai usata» è il modo di tenere pulita la biblioteca: senza, una voce caricata per sbaglio non
+   si distingue più da una che serve.
 
    ⚠️ Tutto ciò che entra qui è PUBBLICO: il file su Drive è condiviso «chiunque abbia il link». Allegati
    riservati non esistono, e la pagina lo dice invece di lasciarlo scoprire.
@@ -84,6 +91,14 @@
                         </button>
                     }
                 </span>
+                <span class="sb-chips">
+                    @* ⚠️ Resta a schermo anche a zero: un chip che compare col contatore sposta quel che gli
+                       sta accanto, e chi stava per cliccare clicca un'altra cosa. *@
+                    <button type="button" class="sh-chip @(_soloMaiUsate ? "on" : "")" disabled="@(MaiUsate == 0)"
+                            title="@L["Att_UnusedTitle"]" @onclick="() => _soloMaiUsate = !_soloMaiUsate">
+                        @L["Att_Unused"] <span class="chip-n">@MaiUsate</span>
+                    </button>
+                </span>
             </div>
 
             <table class="res-table">
@@ -95,6 +110,7 @@
                         <th>@L["Att_ColScope"]</th>
                         <th>@L["Att_ColVersion"]</th>
                         <th>@L["Att_ColUpdated"]</th>
+                        <th>@L["Att_ColUsed"]</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -110,15 +126,55 @@
                             <td class="muted">v@r.VersionNumber</td>
                             <td class="muted">@VipiTime.Z(r.VersionCreatedUtc)</td>
                             <td>
+                                @* Il conteggio è un COMANDO quando c'è qualcosa da vedere: chi sta per
+                                   sostituire o cancellare deve sapere QUALI documenti cambiano, e saperlo
+                                   senza cambiare pagina. *@
+                                @if (Citazioni(r.Slug).Count > 0)
+                                {
+                                    <button type="button" class="btn ghost"
+                                            @onclick="() => _aperta = _aperta == r.Slug ? null : r.Slug">
+                                        @L["Att_UsedBy", Citazioni(r.Slug).Count]
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="muted">@L["Att_NeverUsed"]</span>
+                                }
+                            </td>
+                            <td>
                                 <a class="btn ghost" target="_blank" rel="noopener"
                                    href="@AttachmentRules.UrlDi(r.Slug)"
                                    title="@L["Att_Open"]">@L["Att_Open"]</a>
                             </td>
                         </tr>
+                        @if (_aperta == r.Slug)
+                        {
+                            <tr class="mil-note">
+                                <td colspan="8">
+                                    <ul class="att-cited">
+                                        @foreach (var c in Citazioni(r.Slug))
+                                        {
+                                            <li>
+                                                <span class="pill neutral">@L["AttSrc_" + c.Source]</span>
+                                                @if (c.Url is { Length: > 0 } url)
+                                                {
+                                                    <a href="@url">@c.Title</a>
+                                                }
+                                                else
+                                                {
+                                                    <b>@c.Title</b>
+                                                }
+                                                <span class="muted">@Stato(c)</span>
+                                            </li>
+                                        }
+                                    </ul>
+                                </td>
+                            </tr>
+                        }
                     }
                     @if (Filtrate.Count == 0)
                     {
-                        <tr><td colspan="7" class="muted">@L["Att_Empty"]</td></tr>
+                        <tr><td colspan="8" class="muted">@L["Att_Empty"]</td></tr>
                     }
                 </tbody>
             </table>
@@ -168,9 +224,14 @@
 
 @code {
     private IReadOnlyList<AttachmentRow> _righe = Array.Empty<AttachmentRow>();
+    private IReadOnlyDictionary<string, AttachmentUsage> _uso =
+        new Dictionary<string, AttachmentUsage>(StringComparer.Ordinal);
+
     private string _cerca = "";
     private AttachmentKind? _tipo;
     private AttachmentScope? _ambito;
+    private bool _soloMaiUsate;
+    private string? _aperta;
 
     private string _nTitolo = "";
     private string _nSlug = "";
@@ -196,6 +257,7 @@
             var q = _righe.AsEnumerable();
             if (_tipo is { } k) q = q.Where(r => r.Kind == k);
             if (_ambito is { } s) q = q.Where(r => r.Scope == s);
+            if (_soloMaiUsate) q = q.Where(r => Citazioni(r.Slug).Count == 0);
 
             var testo = _cerca.Trim();
             if (testo.Length > 0)
@@ -208,7 +270,29 @@
     // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su InteractiveServer il secondo gira una volta sola.
     protected override async Task OnParametersSetAsync() => await CaricaAsync();
 
-    private async Task CaricaAsync() => _righe = await Biblioteca.ListAsync();
+    /// <summary>Chi cita questa voce. Vuoto = nessuno, ed è il filtro «mai usata».</summary>
+    private IReadOnlyList<AttachmentCitation> Citazioni(string slug) =>
+        _uso.TryGetValue(slug, out var u) ? u.Citations : Array.Empty<AttachmentCitation>();
+
+    /// <summary>Le voci che non cita nessuno: è il numero del chip, ed è il senso della pulizia.</summary>
+    private int MaiUsate => _righe.Count(r => Citazioni(r.Slug).Count == 0);
+
+    /// <summary>
+    /// Lo stato di una citazione, composto QUI e non nel servizio: la frase dipende dalla lingua, e il
+    /// servizio non sa in che lingua sta parlando chi guarda.
+    /// </summary>
+    private string Stato(AttachmentCitation c) =>
+        c.EffectiveCycle is { Length: > 0 } ciclo ? L["Att_CitedAirac", ciclo].Value
+        : c.IsPublished ? L["Att_CitedPublished"].Value
+        : L["Att_CitedDraft"].Value;
+
+    private async Task CaricaAsync()
+    {
+        _righe = await Biblioteca.ListAsync();
+        // ⚠️ Una passata sola sulle quattro sorgenti, non una per riga: con una lettura per voce la pagina
+        // farebbe una scansione di tutti i blocchi e di tutte le release per OGNI allegato in elenco.
+        _uso = await Uso.AllAsync();
+    }
 
     /// <summary>Lo slug battuto a mano: da qui in poi il titolo non lo tocca più.</summary>
     private void SlugCambiato(string? valore)

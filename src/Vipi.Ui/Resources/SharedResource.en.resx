@@ -2794,4 +2794,16 @@
   <data name="AttScope_Division" xml:space="preserve"><value>Division</value></data>
   <data name="AttScope_Acc" xml:space="preserve"><value>ACC</value></data>
   <data name="AttScope_Airport" xml:space="preserve"><value>Airport</value></data>
+  <data name="Att_ColUsed" xml:space="preserve"><value>Cited by</value></data>
+  <data name="Att_UsedBy" xml:space="preserve"><value>{0} documents</value></data>
+  <data name="Att_NeverUsed" xml:space="preserve"><value>—</value></data>
+  <data name="Att_Unused" xml:space="preserve"><value>Never used</value></data>
+  <data name="Att_UnusedTitle" xml:space="preserve"><value>The entries no document cites: this is how the library is kept clean.</value></data>
+  <data name="Att_CitedAirac" xml:space="preserve"><value>AIRAC {0}</value></data>
+  <data name="Att_CitedPublished" xml:space="preserve"><value>published</value></data>
+  <data name="Att_CitedDraft" xml:space="preserve"><value>draft</value></data>
+  <data name="AttSrc_Document" xml:space="preserve"><value>Document</value></data>
+  <data name="AttSrc_Release" xml:space="preserve"><value>Published</value></data>
+  <data name="AttSrc_AirportExtraSection" xml:space="preserve"><value>Airport section</value></data>
+  <data name="AttSrc_SharedBlock" xml:space="preserve"><value>Shared block</value></data>
 </root>

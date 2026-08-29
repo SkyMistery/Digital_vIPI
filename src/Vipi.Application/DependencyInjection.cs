@@ -118,6 +118,9 @@ public static class DependencyInjection
         // «Da fare»: il read-model che legge le segnalazioni del sistema e gli incarichi delle persone e ne
         // fa una lista sola. Non è un terzo meccanismo — non salva niente.
         services.AddScoped<IWorkListService, WorkListService>();
+        // Chi cita cosa nella biblioteca allegati: si RICAVA leggendo i testi, non si mantiene in una
+        // tabella di join — quella si desincronizza e mente proprio davanti a una cancellazione.
+        services.AddScoped<Abstractions.IAttachmentUsage, AttachmentUsageService>();
         services.AddScoped<IImpactDriftUseCase, ImpactDriftUseCase>();
         services.AddScoped<IDocumentAdminService, DocumentAdminService>();
         services.AddScoped<IAirportSectorImporter, AirportSectorImporter>();

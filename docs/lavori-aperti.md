@@ -2093,8 +2093,30 @@ di Drive, nemmeno il tasto «Apri» della pagina admin.
 (`SmokeTests.Files_endpoint_*`): sono **scritti**, ma con l'host di sviluppo acceso `Vipi.E2E.Tests` non
 compila — tiene i `.dll` — e sparisce dal riepilogo in silenzio. Vanno lanciati a sito spento.
 
-**Da dove si riparte**: slice 4 — lo scanner esteso al token `allegato:`, `DoveUsato(slug)` e il filtro
-«mai usata». Le slice sono **nove**: la **5-bis** (modo incorporato + `frame-src`) si è aggiunta il
+**✅ Slice 4 fatta il 29 agosto 2026**: il registro «chi cita cosa». `AttachmentReferenceScanner` trova il
+token `allegato:` in un testo, `EfAttachmentTextSource` legge i **quattro posti** in cui può comparire (blocchi
+di tutte le versioni, sezioni extra, payload delle release, blocchi condivisi) e `AttachmentUsageService`
+attribuisce ogni citazione al documento che la contiene. In pagina: colonna «Citato da» che si apre
+sull'elenco, e chip **«mai usate»**.
+
+- **Si RICAVA, non si mantiene.** Nessuna tabella di join: si desincronizza al primo percorso di scrittura
+  che dimentica di aggiornarla, e mente proprio davanti alla conferma di una cancellazione.
+- ⚠️ **Una release NON porta un `DocumentId`**: si identifica con la coppia *(tipo, chiave)*. Cercare solo
+  per id lascerebbe senza nome e senza link **proprio le citazioni pubblicate**, cioè quelle che il lettore
+  sta guardando adesso. Due indici, non uno.
+- ⚠️ **Confini della regex in tutte e due le direzioni**: senza quello a destra `loa-lirr` «vincerebbe» dentro
+  `loa-lirr-bis` e la guardia direbbe che è citata la voce sbagliata.
+- ⚠️ **Gli escape JSON si neutralizzano prima di cercare**, come per le immagini: dentro il payload di una
+  release il JSON di un blocco è una stringa *annidata*, e senza quel passaggio la citazione **pubblicata**
+  non si trova.
+- **Nessun riferimento in giro ⇒ non si legge nemmeno l'elenco dei documenti**: una query in meno all'apertura,
+  che è il caso normale finché la biblioteca è nuova.
+- ⚠️ `IAttachmentUsage` è **separata** da `IAttachmentLibrary` apposta: il redirect `/vsop/files/{slug}` chiama
+  quella a ogni clic, e se «chi mi cita» fosse un campo della riga ogni apertura di un PDF pagherebbe una
+  scansione di tutti i blocchi e di tutte le release.
+
+**Da dove si riparte**: slice 5 — il blocco `Attachment` (enum, `case` nei 9 punti, editor e resa condivisi,
+**modo Link**). Le slice sono **nove**: la **5-bis** (modo incorporato + `frame-src`) si è aggiunta il
 29 agosto.
 
 ⚠️ **La 5-bis non si chiude senza una prova dal vivo**: Google può togliere l'embed della preview quando

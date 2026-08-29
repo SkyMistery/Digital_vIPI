@@ -142,6 +142,9 @@ public sealed class SharedResourceIntegrityTests
         // nuovo si vede a schermo — e senza la sua riga si vedrebbe il NOME DELLA CHIAVE.
         { "AttKind_", typeof(AttachmentKind) },
         { "AttScope_", typeof(AttachmentScope) },
+        // Da dove arriva una citazione: è la pillola davanti a ogni riga di «citato da», e senza la sua
+        // chiave si leggerebbe il nome del valore — proprio nella schermata su cui si decide una cancellazione.
+        { "AttSrc_", typeof(Vipi.Application.Abstractions.AttachmentCitationSource) },
     };
 
     /// <summary>

@@ -72,6 +72,23 @@ public class PaginaAllegatiTests : TestContext
         }
     }
 
+    /// <summary>Uso finto: chi cita cosa, come lo direbbe il servizio che legge i quattro posti veri.</summary>
+    private sealed class UsoFinto : IAttachmentUsage
+    {
+        private readonly Dictionary<string, AttachmentUsage> _uso;
+
+        public UsoFinto(params (string Slug, AttachmentCitation[] Citazioni)[] righe) =>
+            _uso = righe.ToDictionary(r => r.Slug, r => new AttachmentUsage(r.Slug, r.Citazioni),
+                StringComparer.Ordinal);
+
+        public Task<IReadOnlyDictionary<string, AttachmentUsage>> AllAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<string, AttachmentUsage>>(_uso);
+
+        public Task<IReadOnlyList<AttachmentCitation>> WhereUsedAsync(string slug, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<AttachmentCitation>>(
+                _uso.TryGetValue(slug, out var u) ? u.Citations : Array.Empty<AttachmentCitation>());
+    }
+
     private static AttachmentRow Riga(int id, string slug, string titolo,
         AttachmentKind tipo = AttachmentKind.Loa, AttachmentScope ambito = AttachmentScope.Division,
         string? chiave = null, int versione = 1) =>
@@ -81,11 +98,12 @@ public class PaginaAllegatiTests : TestContext
             new DateTime(2026, 8, 29, 9, 0, 0, DateTimeKind.Utc));
 
     private IRenderedComponent<AdminAttachmentsPage> Render(
-        IAttachmentLibrary biblioteca, VipiRole livello = VipiRole.Editor)
+        IAttachmentLibrary biblioteca, VipiRole livello = VipiRole.Editor, IAttachmentUsage? uso = null)
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
         Services.AddSingleton(biblioteca);
+        Services.AddSingleton(uso ?? new UsoFinto());
         return RenderComponent<AdminAttachmentsPage>();
     }
 
@@ -266,6 +284,75 @@ public class PaginaAllegatiTests : TestContext
         Assert.Contains("ok", cut.Find(".st-msg").ClassName);
         Assert.Equal("", cut.FindAll(".mil-add input").ToArray()[0].GetAttribute("value"));
         Assert.Equal("", cut.FindAll(".mil-add input").ToArray()[1].GetAttribute("value"));
+    }
+
+    /// <summary>
+    /// ⚠️ «Citato da» dice <b>quali</b> documenti cambiano, non quanti: è l'unica informazione con cui si
+    /// decide se sostituire o cancellare, e chiederla non deve costare un cambio di pagina.
+    /// </summary>
+    [Fact]
+    public void Il_conteggio_apre_lelenco_di_chi_cita()
+    {
+        var cut = Render(
+            new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA Roma–Marseille")),
+            uso: new UsoFinto(("loa-lirr-lfmm", new[]
+            {
+                new AttachmentCitation(AttachmentCitationSource.Release, "vIPI Fiumicino",
+                    "/services/vsop/lirr/airports/editor?icao=LIRF", true, "2609"),
+            })));
+
+        Assert.Empty(cut.FindAll("ul.att-cited"));
+
+        cut.Find("table.res-table tbody button").Click();
+
+        var voce = cut.Find("ul.att-cited li");
+        Assert.Contains("vIPI Fiumicino", voce.TextContent);
+        Assert.Contains("Att_CitedAirac 2609", voce.TextContent);
+        Assert.Equal("/services/vsop/lirr/airports/editor?icao=LIRF",
+            cut.Find("ul.att-cited li a").GetAttribute("href"));
+    }
+
+    /// <summary>Il chip «mai usate» è il modo di tenere pulita la biblioteca: senza, una voce caricata per
+    /// sbaglio non si distingue più da una che serve.</summary>
+    [Fact]
+    public void Il_chip_mai_usate_lascia_solo_quelle_che_non_cita_nessuno()
+    {
+        var cut = Render(
+            new BibliotecaFinta(AttachmentCreate.Ok,
+                Riga(1, "loa-lirr-lfmm", "LoA Roma–Marseille"),
+                Riga(2, "circolare-01", "Circolare 01", AttachmentKind.Circular)),
+            uso: new UsoFinto(("loa-lirr-lfmm", new[]
+            {
+                new AttachmentCitation(AttachmentCitationSource.Document, "vIPI Fiumicino"),
+            })));
+
+        Assert.Equal(2, cut.FindAll("table.res-table tbody tr").Count);
+
+        cut.FindAll("button.sh-chip").ToArray()[^1].Click();
+
+        // ⚠️ Si materializza prima di indicizzare: con questa coppia bUnit/AngleSharp l'indicizzatore della
+        // collezione aggiornabile non esiste a runtime, e il test morirebbe con un MissingMethodException
+        // che non dice niente di quel che sta provando.
+        var righe = cut.FindAll("table.res-table tbody tr").ToArray();
+        Assert.Single(righe);
+        Assert.Contains("Circolare 01", righe[0].TextContent);
+    }
+
+    /// <summary>⚠️ Il chip resta a schermo anche a zero, disabilitato: uno che compare col contatore sposta
+    /// quel che gli sta accanto, e chi stava per cliccare clicca un'altra cosa.</summary>
+    [Fact]
+    public void Il_chip_mai_usate_resta_a_schermo_anche_a_zero()
+    {
+        var cut = Render(
+            new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA Roma–Marseille")),
+            uso: new UsoFinto(("loa-lirr-lfmm", new[]
+            {
+                new AttachmentCitation(AttachmentCitationSource.Document, "vIPI Fiumicino"),
+            })));
+
+        var chip = cut.FindAll("button.sh-chip").ToArray()[^1];
+        Assert.Contains("Att_Unused", chip.TextContent);
+        Assert.True(chip.HasAttribute("disabled"));
     }
 
     /// <summary>La chiave d'ambito compare solo quando serve: la divisione non ne ha una, e un campo che

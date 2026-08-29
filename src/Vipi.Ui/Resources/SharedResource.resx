@@ -2802,4 +2802,16 @@
   <data name="AttScope_Division" xml:space="preserve"><value>Divisione</value></data>
   <data name="AttScope_Acc" xml:space="preserve"><value>ACC</value></data>
   <data name="AttScope_Airport" xml:space="preserve"><value>Scalo</value></data>
+  <data name="Att_ColUsed" xml:space="preserve"><value>Citato da</value></data>
+  <data name="Att_UsedBy" xml:space="preserve"><value>{0} documenti</value></data>
+  <data name="Att_NeverUsed" xml:space="preserve"><value>—</value></data>
+  <data name="Att_Unused" xml:space="preserve"><value>Mai usate</value></data>
+  <data name="Att_UnusedTitle" xml:space="preserve"><value>Le voci che non cita nessun documento: è da qui che si tiene pulita la biblioteca.</value></data>
+  <data name="Att_CitedAirac" xml:space="preserve"><value>AIRAC {0}</value></data>
+  <data name="Att_CitedPublished" xml:space="preserve"><value>pubblicato</value></data>
+  <data name="Att_CitedDraft" xml:space="preserve"><value>bozza</value></data>
+  <data name="AttSrc_Document" xml:space="preserve"><value>Documento</value></data>
+  <data name="AttSrc_Release" xml:space="preserve"><value>Pubblicato</value></data>
+  <data name="AttSrc_AirportExtraSection" xml:space="preserve"><value>Sezione d'aeroporto</value></data>
+  <data name="AttSrc_SharedBlock" xml:space="preserve"><value>Blocco condiviso</value></data>
 </root>
