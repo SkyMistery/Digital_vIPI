@@ -139,21 +139,36 @@ Due innesti, e due nature diverse:
   su 46 portano l'ICAO nel nome** (`ATZ CROTONE LIBC`), e i quattro che non ce l'hanno sono tre
   MATZ e un campo di airwork, che se servono si agganciano come al punto 1.
 
-- **La sostituzione (decisione 1) è una scelta**, e va **ultima**: vince su tutto, compreso l'import
-  IVAO che ogni notte riscriverebbe il poligono di sorgente. È il motivo per cui la scelta vive in
-  una **tabella sua** e viene **ritimbrata** dopo ogni giro, invece di essere scritta una volta e
-  sperare: è lo stesso schema con cui già lavorano il ripiego da GitHub e quello dal sectorfile.
+- **La sostituzione (decisione 1) è una scelta**, e la fa una persona.
 
-⚠️ **Perché non un «override» letto dai lettori**: `RegionMapPolygon` è citato in **113 punti**.
-Infilare un `override ?? sorgente` in ognuno significa che il primo dimenticato mostra il confine
-sbagliato in silenzio. Scrivendo invece nella colonna che tutti già leggono, i 113 lettori non
-cambiano di una riga.
+### 6-bis. ⚠️ Correzione alla carta: la sostituzione NON si scrive nella colonna della shape
 
-⚠️ **Il cancello AIRAC non si tocca.** `ShapeAiracGate` differisce **solo** le shape di provenienza
-`Sectorfile`, e per una ragione precisa: il sectorfile lo scriviamo **noi in anticipo** sul ciclo.
-Il file dell'AIP descrive quel che è **già pubblicato**, quindi `Aip` passa come `Source`: nessun
-differimento, zero righe cambiate nel cancello. Il ciclo dichiarato al caricamento serve a **dire da
-dove viene un confine**, non a rimandarlo.
+La prima stesura di questa carta diceva di scrivere il volume scelto dentro `RegionMapPolygon`, il
+campo che tutti già leggono, per non toccare i 113 punti che lo citano. **Quel piano regge solo per
+un volume solo, e i due casi che hanno fatto nascere la richiesta non lo sono**: Amendola sono
+**due** zone, Catania **sette**.
+
+La colonna tiene **un anello**, e `PolygonGeometry.ParsePoints` di fronte a un annidamento in più
+scende su `items[0]` — c'è scritto nel suo commento, con la misura che lo giustificava: *zero casi su
+1 338 poligoni reali*. Mettere sette anelli in quella colonna vorrebbe dire pubblicare **una zona su
+sette**, disegnata benissimo, senza un errore da nessuna parte. È esattamente il modo di sbagliare
+che questa applicazione ha già pagato tre volte.
+
+Quindi la scelta **non scrive la shape del settore**: sta in una tabella sua e viene **letta dove
+l'AoR si costruisce**, cioè dove i poligoni di un settore sono già una **lista**
+(`AccSectorAor.Polygons`). I posti che la leggono sono **due** — la vista AoR dell'APP e quella
+dell'ACC — e da lì scendono da sé in mappa 2D, viewer 3D, SVG e stampa.
+
+**Che cosa continua a stare sulla shape IVAO**, e non per dimenticanza: i **confinanti**,
+l'**attribuzione del traffico** e la **vLOA**. Sono motori tarati su quel poligono, e cambiarglielo
+sotto vorrebbe dire cambiare in silenzio chi confina con chi e quali voli contano per una postazione
+— cioè molto più di quel che il committente ha chiesto. La pagina lo scrive: *l'AoR pubblicata è
+quella dell'AIP; i confinanti e le statistiche restano sulla forma di IVAO.*
+
+**Il legame cita la CHIAVE NATURALE, non l'id della riga.** Un caricamento nuovo crea righe nuove:
+con l'id, ogni aggancio si romperebbe a ogni ri-caricamento. Con la chiave, l'aggancio sopravvive
+finché quel volume esiste — e quando non esiste più il settore **torna alla forma di IVAO** e la
+pagina dice quali agganci sono rimasti scoperti.
 
 ## 7. La pagina pubblica (decisione 4)
 
@@ -195,7 +210,7 @@ senza poligono, per il ripiego.
 |---|---|---|
 | **S1** | **Il lettore.** Scatole → anello, `ExtendedData`, quote parsate (piedi + riferimento), famiglie, chiave naturale. Metodo **nuovo** dentro `KmlReader`, che condivide il parsing delle coordinate e **non cambia** il comportamento del convertitore. Puro, tutto in test, fixture ritagliata dal file vero. | — |
 | **S2** | **Il catalogo e il caricamento.** Le due tabelle, la pagina admin: carica, esito in chiaro («1 536 letti, 362 utilizzabili, 3 doppioni»), elenco filtrabile, anteprima in mappa. Il KMZ si conserva intero. | 1 |
-| **S3** | **La sostituzione a mano.** Il legame, il servizio che lo timbra in coda alla catena, il tasto nella struttura settori con la chip «shape dall'AIP, scelta da *chi* il *quando*» e il tasto **«torna a IVAO»**. → **LIBA e LICC chiusi.** | 1 |
+| **S3** | **La sostituzione a mano.** Il legame (per chiave naturale), la sua lettura nelle due viste AoR, e il blocco «Settori agganciati» nella pagina degli spazi aerei — dove stanno i volumi, perché la scelta è *quali volumi*, non *quale settore*. Con «torna a IVAO» e l'avviso sugli agganci scoperti. → **LIBA e LICC chiusi.** | 1 |
 | **S4** | **L'ATZ per le TWR.** Passo automatico fra il ripiego del sectorfile e il cerchio; aggancio per ICAO nel nome (42 su 46). | — |
 | **S5** | **La pagina pubblica**, per famiglia, con l'attribuzione — e la riga della fonte nelle mappe AoR che mostrano una shape sostituita. | — |
 | **S6** | **Il convertitore**: sorgente «dal catalogo spazi aerei» accanto alle tredici che già legge. | — |

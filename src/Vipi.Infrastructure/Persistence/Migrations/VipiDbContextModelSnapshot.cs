@@ -2226,6 +2226,56 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("Sectors");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.SectorAirspaceBinding", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Callsign")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Catalog")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedByName")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("CreatedByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SectorId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("VolumeKey")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("VolumeOrdinal")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Callsign");
+
+                    b.HasIndex("Catalog", "SectorId", "VolumeKey", "VolumeOrdinal")
+                        .IsUnique();
+
+                    b.ToTable("SectorAirspaceBindings");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.SharedBlock", b =>
                 {
                     b.Property<int>("Id")

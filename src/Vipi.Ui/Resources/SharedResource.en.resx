@@ -2819,4 +2819,21 @@
   <data name="Asp_Issue_ChiaveDuplicata" xml:space="preserve"><value>Duplicate key</value></data>
   <data name="Asp_Issue_QuotaNonLetta" xml:space="preserve"><value>Level not understood</value></data>
   <data name="Asp_Issue_VolumeAPiuAnelli" xml:space="preserve"><value>Volume with several outlines</value></data>
+  <data name="Asp_Picked" xml:space="preserve"><value>{0} picked</value></data>
+  <data name="Asp_BindSector" xml:space="preserve"><value>Sector to bind to</value></data>
+  <data name="Asp_BindPick" xml:space="preserve"><value>Pick the sector…</value></data>
+  <data name="Asp_Bind" xml:space="preserve"><value>Bind</value></data>
+  <data name="Asp_BindTitle" xml:space="preserve"><value>This sector will draw its AoR with the picked volumes.</value></data>
+  <data name="Asp_ClearPick" xml:space="preserve"><value>Clear the picks</value></data>
+  <data name="Asp_Bound" xml:space="preserve"><value>{0}: {1} volumes bound.</value></data>
+  <data name="Asp_Bindings" xml:space="preserve"><value>Bound sectors</value></data>
+  <data name="Asp_BindScope" xml:space="preserve"><value>The binding applies to the AoR map — the published chart, the 3D view and print. Neighbours, traffic attribution and the vLOA stay on the IVAO shape.</value></data>
+  <data name="Asp_NoBindings" xml:space="preserve"><value>No sector bound: every sector draws the shape IVAO gives it.</value></data>
+  <data name="Asp_Sector" xml:space="preserve"><value>Sector</value></data>
+  <data name="Asp_BoundVolumes" xml:space="preserve"><value>Volumes</value></data>
+  <data name="Asp_ChosenBy" xml:space="preserve"><value>Chosen by</value></data>
+  <data name="Asp_Unbind" xml:space="preserve"><value>Back to IVAO</value></data>
+  <data name="Asp_UnbindPrompt" xml:space="preserve"><value>Should “{0}” go back to drawing the IVAO shape?</value></data>
+  <data name="Asp_Unbound" xml:space="preserve"><value>{0} is back to the IVAO shape.</value></data>
+  <data name="Asp_Missing" xml:space="preserve"><value>{0} bindings with no volume in the file in force</value></data>
 </root>

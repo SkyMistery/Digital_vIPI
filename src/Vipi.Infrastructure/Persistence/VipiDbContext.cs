@@ -131,6 +131,9 @@ public class VipiDbContext : DbContext
     /// <summary>I volumi di spazio aereo letti dal file caricato.</summary>
     public DbSet<AirspaceVolume> AirspaceVolumes => Set<AirspaceVolume>();
 
+    /// <summary>Gli agganci settore → volumi dell'AIP: la scelta di una persona (carta §6-bis).</summary>
+    public DbSet<SectorAirspaceBinding> SectorAirspaceBindings => Set<SectorAirspaceBinding>();
+
     /// <summary>
     /// Lettura tollerante dell'azione di registro: un valore che questa versione non conosce diventa
     /// <see cref="AuditAction.Unknown"/> invece di far esplodere la query. Metodo e non lambda in linea perché
@@ -813,6 +816,22 @@ public class VipiDbContext : DbContext
             // Cancellare un caricamento porta via i suoi volumi: sono suoi, non hanno vita propria.
             e.HasOne(x => x.Import).WithMany(i => i.Volumes)
                 .HasForeignKey(x => x.ImportId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<SectorAirspaceBinding>(e =>
+        {
+            // Un settore non aggancia due volte lo stesso volume. L'identita' del settore e' la coppia
+            // catalogo+id, quella del volume e' chiave+ordinale.
+            e.HasIndex(x => new { x.Catalog, x.SectorId, x.VolumeKey, x.VolumeOrdinal }).IsUnique();
+            e.HasIndex(x => x.Callsign);   // la risoluzione in fase di disegno parte dal callsign
+
+            e.Property(x => x.Catalog).HasMaxLength(16);      // enum -> stringa (SPEC §6), ed e' indicizzato
+            e.Property(x => x.Callsign).HasMaxLength(32);     // misura vera piu' lunga: LIMM_WS2_CTR
+            e.Property(x => x.VolumeKey).HasMaxLength(300);   // come AirspaceVolume.NaturalKey
+            e.Property(x => x.CreatedByName).HasMaxLength(128);
+
+            // ⚠️ Nessuna FK verso AirspaceVolume: l'aggancio cita la CHIAVE, non la riga, e deve sopravvivere
+            // al ri-caricamento del file — che le righe le rifa' tutte.
         });
 
         // Due aggiustamenti che valgono SOLO su MySQL, entrambi indispensabili e per motivi diversi:

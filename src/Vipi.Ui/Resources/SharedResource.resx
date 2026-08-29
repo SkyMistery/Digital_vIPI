@@ -2827,4 +2827,21 @@
   <data name="Asp_Issue_ChiaveDuplicata" xml:space="preserve"><value>Chiave in doppio</value></data>
   <data name="Asp_Issue_QuotaNonLetta" xml:space="preserve"><value>Quota non letta</value></data>
   <data name="Asp_Issue_VolumeAPiuAnelli" xml:space="preserve"><value>Volume a più contorni</value></data>
+  <data name="Asp_Picked" xml:space="preserve"><value>{0} scelti</value></data>
+  <data name="Asp_BindSector" xml:space="preserve"><value>Settore a cui agganciare</value></data>
+  <data name="Asp_BindPick" xml:space="preserve"><value>Scegli il settore…</value></data>
+  <data name="Asp_Bind" xml:space="preserve"><value>Aggancia</value></data>
+  <data name="Asp_BindTitle" xml:space="preserve"><value>Questo settore disegnerà la sua AoR con i volumi scelti.</value></data>
+  <data name="Asp_ClearPick" xml:space="preserve"><value>Togli la scelta</value></data>
+  <data name="Asp_Bound" xml:space="preserve"><value>{0}: agganciati {1} volumi.</value></data>
+  <data name="Asp_Bindings" xml:space="preserve"><value>Settori agganciati</value></data>
+  <data name="Asp_BindScope" xml:space="preserve"><value>L'aggancio vale sulla mappa dell'AoR — la carta pubblicata, il 3D e la stampa. I confinanti, l'attribuzione del traffico e la vLOA restano sulla forma di IVAO.</value></data>
+  <data name="Asp_NoBindings" xml:space="preserve"><value>Nessun settore agganciato: ogni settore disegna la forma che gli dà IVAO.</value></data>
+  <data name="Asp_Sector" xml:space="preserve"><value>Settore</value></data>
+  <data name="Asp_BoundVolumes" xml:space="preserve"><value>Volumi</value></data>
+  <data name="Asp_ChosenBy" xml:space="preserve"><value>Scelto da</value></data>
+  <data name="Asp_Unbind" xml:space="preserve"><value>Torna a IVAO</value></data>
+  <data name="Asp_UnbindPrompt" xml:space="preserve"><value>«{0}» torna a disegnare la forma di IVAO?</value></data>
+  <data name="Asp_Unbound" xml:space="preserve"><value>{0} è tornato alla forma di IVAO.</value></data>
+  <data name="Asp_Missing" xml:space="preserve"><value>{0} agganci senza volume nel file in vigore</value></data>
 </root>

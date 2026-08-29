@@ -6,6 +6,8 @@
 @using Vipi.Domain
 @inject IEditAuthorizationService Authz
 @inject IAirspaceCatalog Catalogo
+@inject ISectorAirspaceBindings Agganci
+@inject Vipi.Application.Content.ISectorShapeRepository Settori
 @inject IStringLocalizer<SharedResource> L
 
 @* Gli spazi aerei dell'AIP: il caricamento del file e il catalogo che ne esce (carta del 29 agosto 2026).
@@ -94,6 +96,7 @@
             <table class="res-table asp-table">
                 <thead>
                     <tr>
+                        <th class="c-pick"></th>
                         <th class="c-fam">@L["Asp_Family"]</th>
                         <th class="c-name">@L["Asp_Name"]</th>
                         <th class="c-band">@L["Asp_Band"]</th>
@@ -105,7 +108,16 @@
                 <tbody>
                     @foreach (var v in Filtrati)
                     {
-                        <tr>
+                        <tr class="@(_scelti.Contains(Chiave(v)) ? "asp-picked" : null)">
+                            <td class="c-pick">
+                                @* La spunta c'e' solo dove puo' servire: un'area regolamentata non si aggancia. *@
+                                @if (v.IsUsable)
+                                {
+                                    <input type="checkbox" aria-label="@v.Name"
+                                           checked="@_scelti.Contains(Chiave(v))"
+                                           @onchange="e => Spunta(v, (bool?)e.Value == true)" />
+                                }
+                            </td>
                             <td class="c-fam muted">@Nome(v.Family)</td>
                             <td class="c-name"><b>@v.Name</b></td>
                             <td class="c-band c-nowrap">@v.BandLabel</td>
@@ -125,13 +137,92 @@
                     }
                     @if (Filtrati.Count == 0)
                     {
-                        <tr><td colspan="6" class="muted">@L["Asp_Empty"]</td></tr>
+                        <tr><td colspan="7" class="muted">@L["Asp_Empty"]</td></tr>
                     }
                 </tbody>
             </table>
             @if (_volumi.Count >= Tetto)
             {
                 <p class="muted asp-more">@L["Asp_Truncated", Tetto]</p>
+            }
+
+            @* La barra dell'aggancio compare solo quando c'e' qualcosa di scelto: una barra sempre a schermo
+               con una tendina vuota sarebbe un comando che non fa niente per il 99% del tempo. *@
+            @if (_scelti.Count > 0)
+            {
+                <div class="struct-bar asp-bind">
+                    <span class="muted">@L["Asp_Picked", _scelti.Count]</span>
+                    <select @bind="_settore" aria-label="@L["Asp_BindSector"]">
+                        <option value="">@L["Asp_BindPick"]</option>
+                        @foreach (var st in _settori)
+                        {
+                            <option value="@st.Catalog|@st.Id|@st.Callsign">@st.Callsign</option>
+                        }
+                    </select>
+                    <button type="button" class="btn" disabled="@(_busy || _settore.Length == 0)"
+                            title="@L["Asp_BindTitle"]" @onclick="Aggancia">@L["Asp_Bind"]</button>
+                    <button type="button" class="btn ghost" @onclick="() => _scelti.Clear()">@L["Asp_ClearPick"]</button>
+                </div>
+            }
+        </div>
+
+        <div class="block">
+            <h2 class="h-sect">@L["Asp_Bindings"]&nbsp;<span class="pill">@_agganci.Count</span></h2>
+            @* La riga che dice il perimetro, e non e' pignoleria: chi aggancia deve sapere che cambia la
+               MAPPA pubblicata, non chi confina con chi ne' quali voli contano per quella postazione. *@
+            <p class="muted asp-scope">@L["Asp_BindScope"]</p>
+            @if (_agganci.Count == 0)
+            {
+                <p class="muted">@L["Asp_NoBindings"]</p>
+            }
+            else
+            {
+                <table class="res-table asp-bindings">
+                    <thead>
+                        <tr>
+                            <th>@L["Asp_Sector"]</th>
+                            <th>@L["Asp_BoundVolumes"]</th>
+                            <th>@L["Asp_ChosenBy"]</th>
+                            <th class="c-act"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in _agganci)
+                        {
+                            <tr>
+                                <td><b>@a.Callsign</b></td>
+                                <td>
+                                    @string.Join(", ", a.Volumes.Select(v => v.Name))
+                                    @if (a.Missing.Count > 0)
+                                    {
+                                        @* Un aggancio scoperto NON si cancella da se': il settore torna alla
+                                           forma di IVAO e qui si vede quale volume e' sparito dal file. *@
+                                        <div class="asp-missing">
+                                            <Icon Name="warning" Size="12" />
+                                            @L["Asp_Missing", a.Missing.Count]:
+                                            @string.Join("; ", a.Missing.Select(m => m.Key))
+                                        </div>
+                                    }
+                                </td>
+                                <td class="muted c-nowrap">
+                                    @(a.ChosenByName ?? "—")
+                                    @if (a.ChosenUtc is { } q)
+                                    {
+                                        <text> · </text><span data-utc="@VipiTime.Iso(q)" data-utc-fmt="dhm">@VipiTime.DayZ(q)</span>
+                                    }
+                                </td>
+                                <td class="c-act">
+                                    <InlineConfirm TriggerClass="btn ghost" Disabled="@_busy"
+                                                   Prompt="@string.Format(L["Asp_UnbindPrompt"].Value, a.Callsign)"
+                                                   TriggerTitle="@L["Asp_Unbind"]" AriaLabel="@L["Asp_Unbind"]"
+                                                   OnConfirm="() => Sgancia(a)">
+                                        <Trigger>@L["Asp_Unbind"]</Trigger>
+                                    </InlineConfirm>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             }
         </div>
 
@@ -219,6 +310,11 @@
     private IReadOnlyList<AirspaceIssue> _segnalazioni = Array.Empty<AirspaceIssue>();
     private IReadOnlyDictionary<AirspaceFamily, int> _perFamiglia = new Dictionary<AirspaceFamily, int>();
     private readonly HashSet<AirspaceFamily> _famiglie = new();
+    private readonly HashSet<string> _scelti = new(StringComparer.Ordinal);
+    private IReadOnlyList<SectorAirspaceBindingRow> _agganci = Array.Empty<SectorAirspaceBindingRow>();
+    private IReadOnlyList<Vipi.Application.Content.SectorShapeRow> _settori =
+        Array.Empty<Vipi.Application.Content.SectorShapeRow>();
+    private string _settore = "";
     private string _cerca = "";
     private string _ciclo = "";
     private string? _messaggio;
@@ -260,6 +356,60 @@
         _segnalazioni = _corrente is null
             ? Array.Empty<AirspaceIssue>()
             : await Catalogo.GetIssuesAsync(_corrente.Id);
+        _agganci = await Agganci.ListAsync();
+
+        // I settori che possono avere un'area: CTR e FSS dai subcenter, APP e DEP dalle postazioni.
+        // Le TWR restano fuori — hanno il loro ripiego, e agganciarle a mano qui vorrebbe dire due strade
+        // che scrivono la stessa cosa con regole diverse.
+        _settori = (await Settori.ListShapeCandidatesAsync())
+            .OrderBy(x => x.Callsign, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    /// <summary>L'identita' di un volume in una stringa: e' quel che l'aggancio cita.</summary>
+    private static string Chiave(AirspaceVolumeRow v) => $"{v.NaturalKey}#{v.Ordinal}";
+
+    private void Spunta(AirspaceVolumeRow v, bool acceso)
+    {
+        if (acceso) _scelti.Add(Chiave(v));
+        else _scelti.Remove(Chiave(v));
+    }
+
+    private async Task Aggancia()
+    {
+        var pezzi = _settore.Split('|');
+        if (pezzi.Length != 3 || !Enum.TryParse<SourceCatalog>(pezzi[0], out var catalogo)
+            || !int.TryParse(pezzi[1], out var id)) return;
+
+        _busy = true;
+        try
+        {
+            // Nell'ORDINE IN CUI SONO IN TABELLA, non in quello in cui sono stati spuntati: la tabella e'
+            // ordinata per famiglia e nome, ed e' l'ordine che chi guarda si aspetta di ritrovare in mappa.
+            var volumi = _volumi.Where(v => _scelti.Contains(Chiave(v)))
+                .Select(v => new AirspaceVolumeKey(v.NaturalKey, v.Ordinal)).ToList();
+
+            await Agganci.SetAsync(catalogo, id, pezzi[2], volumi, Authz.CurrentUserId, Authz.CurrentName);
+            _scelti.Clear();
+            _settore = "";
+            await RicaricaAsync();
+            _ok = true;
+            _messaggio = string.Format(L["Asp_Bound"].Value, pezzi[2], volumi.Count);
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task Sgancia(SectorAirspaceBindingRow a)
+    {
+        _busy = true;
+        try
+        {
+            await Agganci.SetAsync(a.Catalog, a.SectorId, a.Callsign, Array.Empty<AirspaceVolumeKey>(),
+                Authz.CurrentUserId, Authz.CurrentName);
+            await RicaricaAsync();
+            _ok = true;
+            _messaggio = string.Format(L["Asp_Unbound"].Value, a.Callsign);
+        }
+        finally { _busy = false; }
     }
 
     private void Alterna(AirspaceFamily f)

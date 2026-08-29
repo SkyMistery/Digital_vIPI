@@ -134,3 +134,48 @@ public class AirspaceVolume
     public double MaxLat { get; set; }
     public double MaxLon { get; set; }
 }
+
+/// <summary>
+/// «Questo settore disegna la sua AoR con questi volumi dell'AIP». La scelta di una persona, non un import.
+///
+/// <para>⚠️ <b>Cita la CHIAVE NATURALE, non l'id della riga.</b> Un caricamento nuovo crea righe nuove: con
+/// l'id ogni aggancio si romperebbe a ogni ri-caricamento del file. Con la chiave l'aggancio sopravvive
+/// finché quel volume esiste nel caricamento in vigore — e quando non esiste più il settore torna alla
+/// forma di IVAO, e la pagina dice quali agganci sono rimasti scoperti.</para>
+///
+/// <para>⚠️ <b>L'indirizzo del settore è la coppia catalogo + id</b>, non il callsign: alla sorgente i due
+/// cataloghi sono due sequenze che si sovrappongono, e un callsign si può rinominare. Il callsign si
+/// conserva accanto perché è come lo si cerca e come lo si mostra, e perché la risoluzione in fase di
+/// disegno parte da lì.</para>
+///
+/// <para>⚠️ <b>Non scrive la shape del settore.</b> Vale sull'AoR — mappa, 3D, stampa — e non sui
+/// confinanti, sull'attribuzione del traffico e sulla vLOA, che restano sulla forma di IVAO. Il perché sta
+/// nella carta, §6-bis: la colonna della shape tiene UN anello, e Catania sono sette zone.</para>
+/// </summary>
+public class SectorAirspaceBinding
+{
+    public int Id { get; set; }
+
+    /// <summary>Da quale catalogo viene il settore: subcenter di un ACC o postazione d'aeroporto.</summary>
+    public SourceCatalog Catalog { get; set; }
+
+    public int SectorId { get; set; }
+
+    /// <summary>Il callsign, maiuscolo: come si cerca, come si mostra, e da dove parte il disegno.</summary>
+    public string Callsign { get; set; } = default!;
+
+    /// <summary>La chiave naturale del volume: <c>FAMIGLIA|NOME|BASE|TETTO</c>.</summary>
+    public string VolumeKey { get; set; } = default!;
+
+    /// <summary>L'ordinale del volume dentro la sua chiave (0, salvo i doppioni esatti del file).</summary>
+    public int VolumeOrdinal { get; set; }
+
+    /// <summary>L'ordine in cui i volumi sono stati scelti: è l'ordine in cui si disegnano.</summary>
+    public int Position { get; set; }
+
+    public DateTime CreatedUtc { get; set; }
+    public int? CreatedByUserId { get; set; }
+
+    /// <summary>Chi ha scelto, congelato: la pagina deve poterlo dire anche fra un anno.</summary>
+    public string? CreatedByName { get; set; }
+}

@@ -132,7 +132,8 @@ public sealed class AppDocumentService : IAppDocumentService
         IEditAuthorizationService authz, ITopologyProvider topology, IAgreementService transfers,
         ICoordinationSentenceTemplate sentence, IDocumentProfileRepository docProfiles, Aor.IAorService aor,
         IVectoringMinimaSource minima, ReadingLanguageContext? lingua = null,
-        Translation.TranslationLookup? traduzioni = null)
+        Translation.TranslationLookup? traduzioni = null,
+        Airspace.ISectorAirspaceBindings? agganciAip = null)
     {
         _apps = apps;
         _areas = areas;
@@ -146,7 +147,15 @@ public sealed class AppDocumentService : IAppDocumentService
         _minima = minima;
         _lingua = lingua;
         _traduzioni = traduzioni;
+        _agganciAip = agganciAip;
     }
+
+    /// <summary>
+    /// Gli agganci agli spazi aerei dell'AIP: dove un settore ha una forma scelta a mano, l'AoR disegna
+    /// quella. ⚠️ Facoltativa apposta — senza catalogo caricato il documento si costruisce esattamente come
+    /// prima, e i test che montano il servizio a mano non devono conoscere una porta che non usano.
+    /// </summary>
+    private readonly Airspace.ISectorAirspaceBindings? _agganciAip;
 
     private static string Norm(string s) => (s ?? "").Trim().ToUpperInvariant();
 
@@ -269,12 +278,35 @@ public sealed class AppDocumentService : IAppDocumentService
 
         var appCsList = appCallsigns.ToList();
         var limits = await _apps.GetSectorLimitsByCallsignAsync(appCsList, ct);
+
+        // Gli agganci all'AIP: un avvicinamento che controlla esattamente il suo CTR disegna QUEL confine,
+        // non il blocco unico dell'anagrafica. La scelta l'ha fatta una persona (carta §6-bis).
+        var agganci = _agganciAip is null ? null : await _agganciAip.ResolveAsync(appCsList, ct);
+
         foreach (var cs in appCsList)
         {
-            var poly = Aor.AorPolygonProjector.Project(await _apps.GetAorPolygonRawAsync(cs, ct));
-            if (poly is null) continue;
-            var (lo, hi) = FlBandOf(cs, limits);
-            sectors.Add(new AccSectorAor(cs, cs, Aor.AorColorScheme.Resolve(cs, custom.Colors), new[] { poly }, lo, hi));
+            var daAip = agganci is not null && agganci.TryGetValue(cs, out var a)
+                ? Airspace.AirspaceAor.Shape(a)
+                : null;
+
+            IReadOnlyList<AppAorPolygon> poligoni;
+            int? lo, hi;
+            if (daAip is not null)
+            {
+                poligoni = daAip.Polygons;
+                (lo, hi) = (daAip.LowerFl, daAip.UpperFl);
+            }
+            else
+            {
+                // ⚠️ Nessun aggancio, o aggancio scoperto: si resta sulla forma di IVAO. Un aggancio che non
+                // si risolve non deve cancellare l'area che il settore già mostrava.
+                var poly = Aor.AorPolygonProjector.Project(await _apps.GetAorPolygonRawAsync(cs, ct));
+                if (poly is null) continue;
+                poligoni = new[] { poly };
+                (lo, hi) = FlBandOf(cs, limits);
+            }
+
+            sectors.Add(new AccSectorAor(cs, cs, Aor.AorColorScheme.Resolve(cs, custom.Colors), poligoni, lo, hi));
         }
 
         // Shape extra scelte a mano (settori DB, anche torri/esteri): sostituiscono l'overlay torri automatico.
