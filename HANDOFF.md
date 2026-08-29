@@ -1,8 +1,33 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 29 agosto 2026, notte fonda (**§X — l'edizione giusta per il campo**: le due guardie gemelle su quale edizione può esistere su quale campo, le tre colonne del vSOP militare, i vSOP militari finalmente raggiungibili da quattro punti, e il buco delle **due vLOA sulla stessa coppia**. Ramo `edizione-giusta-per-il-campo`, **non fuso**, e nasce **sopra** quello del convertitore).
+**Ultimo aggiornamento:** 29 agosto 2026 (**§Z — la colonna destra delle «Quote di transizione»**, fusa in `main` `3b305831`. ⚠️ Tutto ciò che segue nella sezione «Dove siamo» è **storia**: i rami che vi si citano come «non fusi» sono in `main` da giorni e sono stati cancellati — vedi il riquadro qui sotto, che vale su tutto il resto del file).
 
 ## Dove siamo, prima di tutto il resto
+
+> ### 🆕 LO STATO VERO, 29 agosto 2026 — questo riquadro batte tutto il resto del file
+>
+> ✅ **`main` = `3b305831`, spinto. Nessun ramo con lavoro fuori**, né in locale né su `origin`. I rami
+> nominati più sotto (`convertitore-coordinate`, `edizione-giusta-per-il-campo`, `glossario-fraseologia`,
+> `archivio-atc-mondiale`…) sono **tutti fusi e cancellati**: dove il testo dice «non fuso», sta raccontando
+> com'era quel giorno.
+>
+> ✅ **L'ultimo lavoro entrato è §Z — la colonna destra delle «Quote di transizione»**: la tabella dei
+> livelli ha un tetto di 420px e lasciava **402px vuoti** su una sezione da 822 (misurati a schermo).
+> Accanto ci sono ora «**TL adesso**» — il verdetto sul QNH del METAR, ⚠️ **`noprint`** come il meteo — e
+> «**Dati del campo**» (quota, variazione magnetica **con l'emisfero**, IATA, coordinate), **centrate**
+> sull'altezza della tabella. ⚠️ I quattro dati vengono dall'anagrafica **in cache** (`AirportStation`,
+> zero query nuove) e **non** dallo snapshot di release, dove sarebbero trattini su ogni documento già
+> pubblicato. Carta: [`docs/feature/2026-08-29-quote-transizione-colonna-destra.md`](docs/feature/2026-08-29-quote-transizione-colonna-destra.md),
+> lavori aperti **§Z**. **7 test nuovi, nessuna migrazione.**
+>
+> ⚠️ **Le migrazioni in coda al cutover MariaDB sono VENTISEI**, non ventitré: le ultime sei le porta §Y
+> (anagrafica delle radioassistenze, coordinate delle soglie pista, correzione del modello), e §Z non ne
+> aggiunge nessuna.
+>
+> ⚠️ **Dopo un `clear` si riparte da [`docs/lavori-aperti.md`](docs/lavori-aperti.md) §«Dove siamo, in cinque
+> righe»**, che è la sola pagina tenuta allineata riga per riga e porta le **tre cose da fare subito dopo il
+> deploy** (annunciare i permessi, premere il re-import piste in produzione, riempire il tipo delle 122
+> radioassistenze).
 
 🆕 **29 agosto, notte fonda — §X: l'edizione giusta per il campo, e i vSOP militari raggiungibili.**
 Carta: [`docs/feature/2026-08-27-vsop-militari.md`](docs/feature/2026-08-27-vsop-militari.md) **§11** ·
@@ -273,21 +298,24 @@ chiave e distinguere i **quattro** motivi per cui una sezione resta vuota.
 
 ## Prima del prossimo deploy
 
-⚠️ **VENTITRÉ migrazioni in coda** al cutover MariaDB (la ventitreesima è `ConcessioniPerAccRimosse`, che
-DROPPA `EditGrants` — in produzione già vuota; la ventiduesima è `PromozioniAMano`, additiva: crea
-`RoleOverrides`; la ventunesima è `GlossarioFraseologia`, che
-è ancora **sul ramo**, non in `main`). ✅ La **SELECT dei duplicati su `DocReleases`** non
+⚠️ **VENTISEI migrazioni in coda** al cutover MariaDB. Le ultime sei le porta §Y — anagrafica delle
+radioassistenze, coordinate delle soglie pista e la **correzione del modello**, ognuna emessa per i due
+provider — e ⚠️ **quella della correzione non è innocua**: `DELETE FROM Navaids` **e** `DELETE FROM
+ImportStates WHERE Category='Navaid'`, cioè anagrafica svuotata e stato d'import azzerato perché il primo
+giro la rifaccia da zero. Prima di loro: `ConcessioniPerAccRimosse` (DROPPA `EditGrants`, in produzione già
+vuota), `PromozioniAMano` (additiva, crea `RoleOverrides`) e `GlossarioFraseologia` — tutte **in `main`**,
+non più su un ramo. ✅ La **SELECT dei duplicati su `DocReleases`** non
 va più fatta a mano — non era nemmeno eseguibile, il 3306 del server sta sul suo `localhost`:
 `ReleaseNumberPreflight` la esegue all'avvio, subito prima di `Migrate()`, e se trova doppioni ferma la
 migrazione **nominando le righe** in `avvio-errore.txt` invece di lasciar fallire il `CREATE UNIQUE INDEX`
 con un «Duplicate entry» che dice solo la chiave. ⚠️ **Tre passi d'avvio** idempotenti:
 `LinkAirportDocumentsAsync`, `ClearVloaSeededAiracRowAsync`, `ClearUnpublishedCurrentVersionAsync`.
 
-⚠️ **Due rossi intermittenti hanno un nome** (`docs/lavori-aperti.md` §Q5 e §Q6):
-`CronometroAvvioTests.Lavvio_vero_lascia_il_riepilogo_nel_file_di_diagnostica`, che fa un avvio vero e
-rilegge il file di *quell'* avvio, e `SqliteTuningTests.Interceptor_enables_wal_and_busy_timeout`, rosso
-una volta sola e non riprodotto. Finché restano, «tutto verde» va letto come «tutto verde salvo uno che non
-c'entra» — ed è il modo in cui un rosso vero passa inosservato.
+✅ **I due rossi intermittenti sono CHIUSI** dal 28 agosto (`docs/lavori-aperti.md` §Q5 e §Q6): erano **due
+contese diverse fra test paralleli**, non difetti di produzione — il file di diagnostica dell'avvio, uno solo
+per processo, riscritto da un altro host nella finestra fra scrittura e rilettura; e un test che passava per
+via del **pool** di SQLite invece che per via dell'interceptor, e che un `ClearAllPools()` — che è di
+**processo** — chiamato da un altro test faceva cadere. Da allora «tutto verde» si legge alla lettera.
 
 ## Come si conta la suite
 
