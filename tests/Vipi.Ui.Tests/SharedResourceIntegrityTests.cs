@@ -4,6 +4,7 @@ using Vipi.Application.Content;
 using Vipi.Application.Diagnostics;
 using Vipi.Application.Stats;
 using Vipi.Domain;
+using Vipi.Domain.Entities;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -137,6 +138,10 @@ public sealed class SharedResourceIntegrityTests
         // della riga «da rivedere».
         { "ImpactKind_", typeof(ImpactKind) },
         { "Impact_", typeof(ImpactKind) },
+        // I due assi della biblioteca allegati: sono chip, colonne e voci di tendina, quindi ogni valore
+        // nuovo si vede a schermo — e senza la sua riga si vedrebbe il NOME DELLA CHIAVE.
+        { "AttKind_", typeof(AttachmentKind) },
+        { "AttScope_", typeof(AttachmentScope) },
     };
 
     /// <summary>

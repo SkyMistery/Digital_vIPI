@@ -1134,6 +1134,49 @@
               <p>Every write goes into the <b>audit log</b> with the old value and the new one: if two people
                touch the same row the last one wins, and the log says what happened.</p>"),
 
+        new Sec("admin-allegati", "paperclip",
+            @"<p>La pagina (<code>/services/vsop/admin/attachments</code>) è la <b>biblioteca degli allegati</b>:
+               i PDF che i documenti citano — LoA firmate, circolari, carte, manuali — caricati in un posto solo
+               e con un registro di chi li cita.</p>
+              <ul>
+                <li><b>I file non stanno sul sito.</b> Il piano di hosting non ammette il formato PDF, e IVAO HQ
+                    indica di tenere i documenti sul <b>Drive di divisione</b>: si carica lì e qui si incolla il
+                    link. Di quel link si tiene l'<b>id del file</b>, non l'indirizzo, così cambiare deposito
+                    domani non tocca un solo documento.</li>
+                <li>⚠️ <b>Tutto ciò che entra in biblioteca è pubblico</b>: il file su Drive è condiviso con
+                    «chiunque abbia il link». Allegati riservati allo staff <b>non esistono</b> — un controllo
+                    d'accesso davanti a un indirizzo pubblico non protegge niente.</li>
+                <li>Lo <b>slug</b> (<code>loa-lirr-lfmm</code>) è l'identità e <b>non si cambia mai</b>: è quello
+                    che i documenti citano, e cambiarlo spegnerebbe ogni citazione già scritta. Si propone dal
+                    titolo, ma chi lo scrive comanda.</li>
+                <li>La biblioteca si sfoglia per <b>due assi</b>, tipo e ambito, non per cartelle: «le LoA di
+                    Roma» sono due filtri. L'elenco mostra <b>tutto</b>, comprese le voci che non cita ancora
+                    nessuno.</li>
+                <li><b>Sostituire il PDF</b> si potrà: il link segue <b>sempre</b> la versione corrente, release
+                    pubblicate comprese — una scansione sbagliata si corregge una volta sola, senza riaprire i
+                    documenti che la citano.</li>
+              </ul>",
+            @"<p>This page (<code>/services/vsop/admin/attachments</code>) is the <b>attachment library</b>: the
+               PDFs documents cite — signed LoAs, circulars, charts, manuals — uploaded in one place, with a
+               register of who cites them.</p>
+              <ul>
+                <li><b>The files do not live on the site.</b> The hosting plan does not allow the PDF format, and
+                    IVAO HQ asks for the documents to live on the <b>division Drive</b>: upload them there and
+                    paste the link here. From that link we keep the <b>file id</b>, not the address, so changing
+                    storage tomorrow does not touch a single document.</li>
+                <li>⚠️ <b>Everything in the library is public</b>: the Drive file is shared with «anyone with the
+                    link». Staff-only attachments <b>do not exist</b> — an access check in front of a public
+                    address protects nothing.</li>
+                <li>The <b>slug</b> (<code>loa-lirr-lfmm</code>) is the identity and <b>never changes</b>: it is
+                    what documents cite, and changing it would silence every citation already written. It is
+                    proposed from the title, but whoever types it wins.</li>
+                <li>The library is browsed along <b>two axes</b>, kind and scope, not folders: «Rome's LoAs» is
+                    two filters. The list shows <b>everything</b>, including entries nobody cites yet.</li>
+                <li><b>Replacing the PDF</b> will be possible: the link <b>always</b> follows the current
+                    version, published releases included — a bad scan is fixed once, without reopening the
+                    documents that cite it.</li>
+              </ul>"),
+
         new Sec("admin-sorgenti", "plug",
             @"<p>La pagina (<code>/services/vsop/admin/sources</code>) decide, per ogni <b>categoria</b> di dati, se
                arriva dalla <b>sorgente</b> (oggi IVAO) o se la gestiamo <b>a mano</b>. È una scelta globale,

@@ -1,0 +1,268 @@
+using Bunit;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
+using Vipi.Application.Abstractions;
+using Vipi.Application.Auth;
+using Vipi.Domain;
+using Vipi.Domain.Entities;
+using Vipi.Ui.Pages;
+using Xunit;
+
+namespace Vipi.Ui.Tests;
+
+/// <summary>
+/// La pagina «Biblioteca allegati» (<c>/services/vsop/admin/attachments</c>), slice 2 della carta del
+/// 25 agosto 2026.
+///
+/// <para>Presidia le quattro cose che a occhio sembrano dettagli e non lo sono: l'elenco mostra <b>tutto</b>
+/// (il catch-22 già pagato con gli APP, dove si vedevano solo i pubblicati e il primo non si poteva creare);
+/// i due assi filtrano <b>in AND</b>; lo slug si <b>propone</b> dal titolo ma chi lo scrive comanda; e i
+/// rifiuti restano <b>distinti</b>, perché slug occupato e link illeggibile si correggono in due modi
+/// diversi.</para>
+/// </summary>
+public class PaginaAllegatiTests : TestContext
+{
+    private sealed class KeyLocalizer : IStringLocalizer<SharedResource>
+    {
+        public LocalizedString this[string name] => new(name, name, resourceNotFound: false);
+        public LocalizedString this[string name, params object[] arguments] =>
+            new(name, name + string.Concat(arguments.Select(a => " " + a)), resourceNotFound: false);
+        public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
+    }
+
+    private sealed class FakeAuthz : IEditAuthorizationService
+    {
+        public FakeAuthz(VipiRole livello) => Role = livello;
+        public VipiRole Role { get; }
+        public bool IsAdmin => Role >= VipiRole.Admin;
+        public int? CurrentUserId => 704798;
+        public string? CurrentName => "Tizio";
+        public void EnsureAdmin() { }
+    }
+
+    /// <summary>Biblioteca finta: tiene l'elenco, e ricorda l'ultima bozza che le è stata passata.</summary>
+    private sealed class BibliotecaFinta : IAttachmentLibrary
+    {
+        private readonly List<AttachmentRow> _righe;
+        private readonly AttachmentCreate _esito;
+
+        public BibliotecaFinta(AttachmentCreate esito = AttachmentCreate.Ok, params AttachmentRow[] righe)
+        {
+            _esito = esito;
+            _righe = righe.ToList();
+        }
+
+        public AttachmentDraft? Ultima { get; private set; }
+
+        public Task<IReadOnlyList<AttachmentRow>> ListAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<AttachmentRow>>(_righe);
+
+        public Task<AttachmentRow?> BySlugAsync(string slug, CancellationToken ct = default) =>
+            Task.FromResult(_righe.FirstOrDefault(r => r.Slug == slug));
+
+        public Task<(AttachmentCreate Esito, AttachmentRow? Riga)> CreateAsync(
+            AttachmentDraft draft, int userId, CancellationToken ct = default)
+        {
+            Ultima = draft;
+            if (_esito != AttachmentCreate.Ok) return Task.FromResult<(AttachmentCreate, AttachmentRow?)>((_esito, null));
+
+            var riga = Riga(_righe.Count + 1, draft.Slug, draft.Title, draft.Kind, draft.Scope, draft.ScopeKey);
+            _righe.Add(riga);
+            return Task.FromResult<(AttachmentCreate, AttachmentRow?)>((AttachmentCreate.Ok, riga));
+        }
+    }
+
+    private static AttachmentRow Riga(int id, string slug, string titolo,
+        AttachmentKind tipo = AttachmentKind.Loa, AttachmentScope ambito = AttachmentScope.Division,
+        string? chiave = null, int versione = 1) =>
+        new(id, slug, titolo, tipo, ambito, chiave, null, versione, versione,
+            AttachmentProvider.Drive, "1A2b3C4d5E6f7G8h9I0jKlMnOpQrStUvW",
+            new DateTime(2026, 8, 29, 9, 0, 0, DateTimeKind.Utc),
+            new DateTime(2026, 8, 29, 9, 0, 0, DateTimeKind.Utc));
+
+    private IRenderedComponent<AdminAttachmentsPage> Render(
+        IAttachmentLibrary biblioteca, VipiRole livello = VipiRole.Editor)
+    {
+        Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
+        Services.AddSingleton(biblioteca);
+        return RenderComponent<AdminAttachmentsPage>();
+    }
+
+    /// <summary>
+    /// ⚠️ L'elenco mostra anche la voce che non cita nessuno. Un elenco delle sole voci citate renderebbe
+    /// irraggiungibile la <b>prima</b> voce caricata: è il catch-22 già pagato con l'elenco degli APP.
+    /// </summary>
+    [Fact]
+    public void Lelenco_mostra_anche_la_voce_che_non_cita_nessuno()
+    {
+        var cut = Render(new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA Roma–Marseille")));
+
+        Assert.Contains("LoA Roma–Marseille", cut.Markup);
+        Assert.Single(cut.FindAll("table.res-table tbody tr"));
+    }
+
+    /// <summary>Lo slug si mostra <b>come si cita</b>: è quello che si copia dentro un documento, e mostrarlo
+    /// nudo vorrebbe dire lasciar indovinare il prefisso.</summary>
+    [Fact]
+    public void Lo_slug_si_mostra_come_si_cita()
+    {
+        var cut = Render(new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA Roma–Marseille")));
+
+        Assert.Contains("allegato:loa-lirr-lfmm", cut.Markup);
+    }
+
+    /// <summary>La pagina è degli Editor: chi ha meno vede il rifiuto, non una tabella che non risponde.</summary>
+    [Theory]
+    [InlineData(VipiRole.User)]
+    [InlineData(VipiRole.IvaoStaff)]
+    [InlineData(VipiRole.DivisionStaff)]
+    public void Chi_non_edita_vede_il_rifiuto_non_la_tabella(VipiRole livello)
+    {
+        var cut = Render(new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA Roma–Marseille")), livello);
+
+        Assert.Empty(cut.FindAll("table.res-table"));
+        Assert.Contains("Vle_Unauthorized", cut.Markup);
+    }
+
+    /// <summary>I due assi sono due filtri, e si compongono in AND: «le LoA di Roma» è tipo + ambito.</summary>
+    [Fact]
+    public void I_due_assi_filtrano_insieme()
+    {
+        var cut = Render(new BibliotecaFinta(AttachmentCreate.Ok,
+            Riga(1, "loa-lirr-lfmm", "LoA Roma–Marseille", AttachmentKind.Loa, AttachmentScope.Acc, "LIRR"),
+            Riga(2, "loa-limm-lsas", "LoA Milano–Svizzera", AttachmentKind.Loa, AttachmentScope.Acc, "LIMM"),
+            Riga(3, "circolare-01", "Circolare 01", AttachmentKind.Circular, AttachmentScope.Division)));
+
+        Assert.Equal(3, cut.FindAll("table.res-table tbody tr").Count);
+
+        // Tipo «LoA»: la circolare esce.
+        cut.FindAll("button.sh-chip").ToArray()[(int)AttachmentKind.Loa].Click();
+        Assert.Equal(2, cut.FindAll("table.res-table tbody tr").Count);
+
+        // …più l'ambito «ACC»: restano le due LoA, che sono entrambe d'ACC.
+        var chipAmbito = cut.FindAll("button.sh-chip").ToArray();
+        chipAmbito[Enum.GetValues<AttachmentKind>().Length + (int)AttachmentScope.Acc].Click();
+        Assert.Equal(2, cut.FindAll("table.res-table tbody tr").Count);
+        Assert.DoesNotContain("Circolare 01", cut.Markup);
+    }
+
+    /// <summary>Un chip già acceso si spegne al secondo clic: senza, un filtro scelto per sbaglio non si toglie
+    /// più se non ricaricando la pagina.</summary>
+    [Fact]
+    public void Il_chip_si_spegne_al_secondo_clic()
+    {
+        var cut = Render(new BibliotecaFinta(AttachmentCreate.Ok,
+            Riga(1, "loa-lirr-lfmm", "LoA Roma–Marseille"),
+            Riga(2, "circolare-01", "Circolare 01", AttachmentKind.Circular)));
+
+        cut.FindAll("button.sh-chip").ToArray()[(int)AttachmentKind.Loa].Click();
+        Assert.Single(cut.FindAll("table.res-table tbody tr"));
+
+        cut.FindAll("button.sh-chip").ToArray()[(int)AttachmentKind.Loa].Click();
+        Assert.Equal(2, cut.FindAll("table.res-table tbody tr").Count);
+    }
+
+    /// <summary>La ricerca guarda tutto quel che si legge: «Marseille» trova la LoA tanto quanto «loa-lirr».</summary>
+    [Fact]
+    public void La_ricerca_guarda_titolo_e_slug()
+    {
+        var cut = Render(new BibliotecaFinta(AttachmentCreate.Ok,
+            Riga(1, "loa-lirr-lfmm", "LoA Roma–Marseille"),
+            Riga(2, "circolare-01", "Circolare 01", AttachmentKind.Circular)));
+
+        cut.Find("input.htree-search").Input("marseille");
+        Assert.Single(cut.FindAll("table.res-table tbody tr"));
+
+        cut.Find("input.htree-search").Input("circolare-01");
+        Assert.Single(cut.FindAll("table.res-table tbody tr"));
+    }
+
+    /// <summary>Lo slug si propone dal titolo: chi carica non deve inventarsi una forma che poi la pagina rifiuta.</summary>
+    [Fact]
+    public void Il_titolo_propone_lo_slug()
+    {
+        var biblioteca = new BibliotecaFinta();
+        var cut = Render(biblioteca);
+
+        // Il campo slug non si tocca: resta la proposta.
+        cut.FindAll(".mil-add input").ToArray()[0].Input("LoA Roma–Marseille");
+
+        cut.Find(".mil-add input[placeholder='Att_LinkPh']")
+           .Change("https://drive.google.com/file/d/1A2b3C4d5E6f7G8h9I0jKlMnOpQrStUvW/view");
+        cut.Find(".mil-add button.primary").Click();
+
+        Assert.Equal("loa-roma-marseille", biblioteca.Ultima!.Slug);
+    }
+
+    /// <summary>⚠️ …ma chi lo scrive comanda: dopo che lo slug è stato battuto a mano, il titolo non lo tocca
+    /// più. Lo slug è definitivo, e riscriverlo sotto le dita sarebbe il modo di citare una voce diversa da
+    /// quella che si credeva.</summary>
+    [Fact]
+    public void Lo_slug_scritto_a_mano_non_viene_riscritto_dal_titolo()
+    {
+        var biblioteca = new BibliotecaFinta();
+        var cut = Render(biblioteca);
+
+        cut.FindAll(".mil-add input").ToArray()[1].Input("loa-lirr-lfmm");
+        cut.FindAll(".mil-add input").ToArray()[0].Input("LoA Roma–Marseille");
+
+        cut.Find(".mil-add input[placeholder='Att_LinkPh']")
+           .Change("https://drive.google.com/file/d/1A2b3C4d5E6f7G8h9I0jKlMnOpQrStUvW/view");
+        cut.Find(".mil-add button.primary").Click();
+
+        Assert.Equal("loa-lirr-lfmm", biblioteca.Ultima!.Slug);
+        Assert.Equal("LoA Roma–Marseille", biblioteca.Ultima.Title);
+    }
+
+    /// <summary>
+    /// ⚠️ I rifiuti restano distinti. Uno slug occupato si corregge cambiando slug, un link illeggibile
+    /// ricopiando il link: un «non valido» solo li manderebbe a indovinare quale delle due cose sistemare.
+    /// </summary>
+    [Theory]
+    [InlineData(AttachmentCreate.SlugOccupato, "Att_ErrSlugTaken")]
+    [InlineData(AttachmentCreate.SlugNonValido, "Att_ErrSlug")]
+    [InlineData(AttachmentCreate.LinkNonValido, "Att_ErrLink")]
+    [InlineData(AttachmentCreate.TitoloMancante, "Att_ErrTitle")]
+    [InlineData(AttachmentCreate.AmbitoNonValido, "Att_ErrScope")]
+    public void Ogni_rifiuto_dice_la_sua_cosa(AttachmentCreate esito, string chiave)
+    {
+        var cut = Render(new BibliotecaFinta(esito));
+
+        cut.Find(".mil-add button.primary").Click();
+
+        Assert.Contains(chiave, cut.Find(".st-msg").TextContent);
+        Assert.Contains("warn", cut.Find(".st-msg").ClassName);
+    }
+
+    /// <summary>Andata bene, la voce compare nell'elenco e i campi si svuotano: altrimenti il secondo
+    /// caricamento parte con dentro i dati del primo.</summary>
+    [Fact]
+    public void La_voce_creata_compare_e_i_campi_si_svuotano()
+    {
+        var cut = Render(new BibliotecaFinta());
+
+        cut.FindAll(".mil-add input").ToArray()[0].Input("LoA Roma–Marseille");
+        cut.Find(".mil-add input[placeholder='Att_LinkPh']")
+           .Change("https://drive.google.com/file/d/1A2b3C4d5E6f7G8h9I0jKlMnOpQrStUvW/view");
+        cut.Find(".mil-add button.primary").Click();
+
+        Assert.Contains("LoA Roma–Marseille", cut.Find("table.res-table").TextContent);
+        Assert.Contains("ok", cut.Find(".st-msg").ClassName);
+        Assert.Equal("", cut.FindAll(".mil-add input").ToArray()[0].GetAttribute("value"));
+        Assert.Equal("", cut.FindAll(".mil-add input").ToArray()[1].GetAttribute("value"));
+    }
+
+    /// <summary>La chiave d'ambito compare solo quando serve: la divisione non ne ha una, e un campo che
+    /// c'è ma non conta si compila lo stesso.</summary>
+    [Fact]
+    public void Il_codice_dambito_compare_solo_per_acc_e_scalo()
+    {
+        var cut = Render(new BibliotecaFinta());
+
+        Assert.Empty(cut.FindAll(".mil-add input[placeholder='LIRR']"));
+
+        cut.FindAll(".mil-add select").ToArray()[1].Change(nameof(AttachmentScope.Acc));
+        Assert.Single(cut.FindAll(".mil-add input[placeholder='LIRR']"));
+    }
+}

@@ -2768,4 +2768,38 @@
   <data name="Conv_HelpAria" xml:space="preserve"><value>Aiuto sul convertitore di coordinate</value></data>
   <data name="Conv_HelpBody" xml:space="preserve"><value>&lt;p style='margin:0 0 6px'&gt;Incolla le coordinate come sono: il formato lo riconosce da solo.&lt;/p&gt;&lt;p style='margin:0'&gt;In uscita scegli il &lt;b&gt;DB di IVAO&lt;/b&gt; o il &lt;b&gt;sectorfile&lt;/b&gt; — e per il sectorfile l'elenco dei punti oppure i segmenti. Le righe che non si leggono escono in fondo col loro numero.&lt;/p&gt;</value></data>
   <data name="Conv_CompareHint" xml:space="preserve"><value>Se non la vedi, le due forme si sovrappongono: la conversione non ha spostato niente.</value></data>
+  <data name="Att_Title" xml:space="preserve"><value>Biblioteca allegati</value></data>
+  <data name="Att_Nav" xml:space="preserve"><value>Allegati</value></data>
+  <data name="Att_Subtitle" xml:space="preserve"><value>I PDF caricati in un posto solo e citabili da qualunque documento.</value></data>
+  <data name="Att_Intro" xml:space="preserve"><value>&lt;p&gt;I file stanno sul &lt;b&gt;Drive di divisione&lt;/b&gt;: il piano di hosting non ammette il formato PDF, e IVAO HQ vuole i documenti lì. Qui sta il registro — titolo, tipo, ambito, versione e link.&lt;/p&gt;&lt;p&gt;⚠️ &lt;b&gt;Tutto ciò che entra in biblioteca è pubblico&lt;/b&gt;: il file su Drive è condiviso «chiunque abbia il link». Allegati riservati allo staff non esistono.&lt;/p&gt;&lt;p&gt;Lo &lt;b&gt;slug&lt;/b&gt; è l'identità e &lt;b&gt;non si cambia mai&lt;/b&gt;: è quello che i documenti citano. Sostituire il PDF, invece, si può: il link segue sempre la versione corrente.&lt;/p&gt;</value></data>
+  <data name="Att_Search" xml:space="preserve"><value>Cerca in biblioteca</value></data>
+  <data name="Att_SearchPh" xml:space="preserve"><value>Cerca per titolo, slug o ambito…</value></data>
+  <data name="Att_ColTitle" xml:space="preserve"><value>Titolo</value></data>
+  <data name="Att_ColSlug" xml:space="preserve"><value>Slug</value></data>
+  <data name="Att_ColKind" xml:space="preserve"><value>Tipo</value></data>
+  <data name="Att_ColScope" xml:space="preserve"><value>Ambito</value></data>
+  <data name="Att_ColVersion" xml:space="preserve"><value>Versione</value></data>
+  <data name="Att_ColUpdated" xml:space="preserve"><value>Caricata</value></data>
+  <data name="Att_ScopeKey" xml:space="preserve"><value>Codice</value></data>
+  <data name="Att_Link" xml:space="preserve"><value>Link</value></data>
+  <data name="Att_LinkPh" xml:space="preserve"><value>Incolla il link di Drive</value></data>
+  <data name="Att_TitlePh" xml:space="preserve"><value>LoA Roma–Marseille</value></data>
+  <data name="Att_Open" xml:space="preserve"><value>Apri</value></data>
+  <data name="Att_Add" xml:space="preserve"><value>Aggiungi</value></data>
+  <data name="Att_AddHint" xml:space="preserve"><value>Carica prima il file sul Drive di divisione, poi incolla qui il suo link: si tiene l'id del file, non l'indirizzo.</value></data>
+  <data name="Att_Empty" xml:space="preserve"><value>Nessuna voce con questi filtri.</value></data>
+  <data name="Att_Added" xml:space="preserve"><value>Aggiunta «{0}», citabile come allegato:{1}</value></data>
+  <data name="Att_ErrSlug" xml:space="preserve"><value>Lo slug vuole minuscole, cifre e trattini singoli: «loa-lirr-lfmm».</value></data>
+  <data name="Att_ErrSlugTaken" xml:space="preserve"><value>Lo slug «{0}» è già di un'altra voce, e due voci con lo stesso slug renderebbero ambiguo il link.</value></data>
+  <data name="Att_ErrTitle" xml:space="preserve"><value>Manca il titolo: è quel che si legge dentro il documento.</value></data>
+  <data name="Att_ErrLink" xml:space="preserve"><value>Da quel link non si ricava nessun id di file. Serve il link di condivisione di Drive.</value></data>
+  <data name="Att_ErrScope" xml:space="preserve"><value>L'ambito e il suo codice non stanno insieme: la divisione non vuole un codice, un ACC o uno scalo lo pretendono.</value></data>
+  <data name="AttKind_Loa" xml:space="preserve"><value>LoA</value></data>
+  <data name="AttKind_Circular" xml:space="preserve"><value>Circolare</value></data>
+  <data name="AttKind_Chart" xml:space="preserve"><value>Carta</value></data>
+  <data name="AttKind_Manual" xml:space="preserve"><value>Manuale</value></data>
+  <data name="AttKind_Other" xml:space="preserve"><value>Altro</value></data>
+  <data name="AttScope_Division" xml:space="preserve"><value>Divisione</value></data>
+  <data name="AttScope_Acc" xml:space="preserve"><value>ACC</value></data>
+  <data name="AttScope_Airport" xml:space="preserve"><value>Scalo</value></data>
 </root>

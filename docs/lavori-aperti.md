@@ -2057,8 +2057,24 @@ voce **nasce con la v1**, lo stato «voce senza file» non esiste.
 due assi `Kind` e `Scope` stanno nello stesso indice. Due righe aggiunte, stessa forma di
 `DocumentImpact.Kind`.
 
-**Da dove si riparte**: slice 2 — la pagina `/services/vsop/admin/attachments`. Le slice sono **nove**: la
-**5-bis** (modo incorporato + `frame-src`) si è aggiunta il 29 agosto.
+**✅ Slice 2 fatta il 29 agosto 2026**: la pagina `/services/vsop/admin/attachments` (livello **Editor**,
+voce nella barra admin), con l'elenco, i due assi come chip che contano, la ricerca e la creazione di una
+voce. Sotto: `IAttachmentLibrary`/`EfAttachmentLibrary` e le regole pure di `AttachmentRules`.
+
+- **Dal link si tiene l'ID, non l'URL.** `AttachmentRules.ExternalIdDa` legge tutte le forme che Drive
+  produce davvero (`/file/d/<id>/view`, `?id=`, l'id nudo) e l'indirizzo lo ricostruisce **un posto solo**,
+  nella forma `/preview` — che è anche l'unica che funzionerà dentro l'iframe della 5-bis.
+- **Lo slug si propone dal titolo** e gli accenti si **traslitterano**: «Forlì» → `forli`, non `forl`.
+  Ma appena qualcuno lo batte a mano, il titolo non lo tocca più: lo slug è definitivo.
+- ⚠️ **I rifiuti restano cinque, distinti**: slug occupato e link illeggibile si correggono in due modi
+  diversi, e un «non valido» solo manderebbe a indovinare.
+- ⚠️ **La pagina linka ancora l'indirizzo di Drive** nel tasto «Apri»: dalla slice 3 punterà a
+  `/vsop/files/{slug}`. Nei **documenti** un URL di Drive non entrerà mai.
+- Guida: capitolo `admin-allegati` in `GuidaPage` **e** voce in `GuideSearchCatalog` (senza la seconda la
+  ricerca globale non lo trova).
+
+**Da dove si riparte**: slice 3 — la rotta `/vsop/files/{slug}`, 302 e **`no-cache`**. Le slice sono
+**nove**: la **5-bis** (modo incorporato + `frame-src`) si è aggiunta il 29 agosto.
 
 ⚠️ **La 5-bis non si chiude senza una prova dal vivo**: Google può togliere l'embed della preview quando
 vuole — è già successo col fondo mappa CARTO il 27 agosto — e qui dentro nessun test apre un browser.

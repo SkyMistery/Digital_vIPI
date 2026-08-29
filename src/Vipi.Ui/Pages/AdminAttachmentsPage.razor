@@ -1,0 +1,258 @@
+@page "/services/vsop/admin/attachments"
+@layout SopLayout
+@rendermode InteractiveServer
+@using Vipi.Application.Abstractions
+@using Vipi.Application.Content
+@using Vipi.Domain
+@using Vipi.Domain.Entities
+@inject IEditAuthorizationService Authz
+@inject IAttachmentLibrary Biblioteca
+@inject IStringLocalizer<SharedResource> L
+
+@* La biblioteca degli allegati: i PDF caricati in un posto solo e citabili dai documenti
+   (carta docs/feature/2026-08-25-biblioteca-allegati.md, slice 2).
+
+   ⚠️ Perché esiste. I byte NON stanno da noi — il piano di hosting non ammette il formato PDF (vincolo
+   contrattuale) e IVAO HQ vuole i documenti sul Drive di divisione. Quel che manca, oggi, è il registro: i
+   link a Drive stanno sparsi dentro i documenti, nessuno sa quali siano né dove, e quando uno muore non se
+   ne accorge nessuno.
+
+   ⚠️ L'elenco mostra TUTTO, comprese le voci che non cita nessuno. È il catch-22 della regola 3 del gate:
+   un elenco che mostrasse solo le voci citate renderebbe irraggiungibile la PRIMA voce caricata — è già
+   successo con gli APP, dove si vedevano solo i pubblicati e il primo non si poteva creare.
+
+   ⚠️ Tutto ciò che entra qui è PUBBLICO: il file su Drive è condiviso «chiunque abbia il link». Allegati
+   riservati non esistono, e la pagina lo dice invece di lasciarlo scoprire.
+
+   ⚠️ Il tasto «Apri» punta ancora all'indirizzo del deposito. Dalla slice 3 punterà a /vsop/files/{slug},
+   che è la nostra identità del link: qui è una pagina di servizio, e finché la rotta non esiste un link a
+   una rotta inesistente sarebbe una pagina bianca. Nei DOCUMENTI un URL di Drive non entrerà mai. *@
+
+<PageTitle>@L["Att_Title"] · IVAO Italy</PageTitle>
+
+<div class="wrap struct">
+    <AdminNav />
+
+    <div class="doc-head st-head">
+        <h1 class="st-h2 page-h1">
+            @L["Att_Title"]&nbsp;<span class="pill blue">@_righe.Count</span>
+        </h1>
+        <HelpHint Href="/services/vsop/guide#admin-allegati" AriaLabel="@L["Att_Title"]" ExtraClass="wide">
+            <p style="margin:0 0 6px">@L["Att_Subtitle"]</p>
+            @((MarkupString)L["Att_Intro"].Value)
+        </HelpHint>
+        <LiveRegion>
+            @if (_messaggio is not null)
+            {
+                <span class="st-msg @(_ok ? "ok" : "warn")">
+                    <Icon Name="@(_ok ? "check-circle" : "warning")" Size="14" />
+                    <span class="st-msg-t">@_messaggio</span>
+                    <button class="tclose" title="@L["Common_Close"]" @onclick="() => _messaggio = null">✕</button>
+                </span>
+            }
+        </LiveRegion>
+    </div>
+
+    @if (!PuoScrivere)
+    {
+        <div class="callout danger"><span class="cic">🔒</span><div>@L["Vle_Unauthorized"]</div></div>
+    }
+    else
+    {
+        <div class="block">
+            @* I due assi della biblioteca sono DUE FILTRI, non una cartella: «le LoA di Roma» si ottengono
+               scegliendo un tipo e un ambito. Un albero di cartelle a 50+ file si riempie di roba archiviata
+               male e nessuno la ritrova. *@
+            <div class="struct-bar">
+                <input class="htree-search" placeholder="@L["Att_SearchPh"]" aria-label="@L["Att_Search"]"
+                       @bind="_cerca" @bind:event="oninput" />
+                <span class="sb-chips">
+                    @foreach (var k in Enum.GetValues<AttachmentKind>())
+                    {
+                        <button type="button" class="sh-chip @(_tipo == k ? "on" : "")"
+                                @onclick="() => _tipo = _tipo == k ? null : k">
+                            @L["AttKind_" + k] <span class="chip-n">@_righe.Count(r => r.Kind == k)</span>
+                        </button>
+                    }
+                </span>
+                <span class="sb-chips">
+                    @foreach (var s in Enum.GetValues<AttachmentScope>())
+                    {
+                        <button type="button" class="sh-chip @(_ambito == s ? "on" : "")"
+                                @onclick="() => _ambito = _ambito == s ? null : s">
+                            @L["AttScope_" + s] <span class="chip-n">@_righe.Count(r => r.Scope == s)</span>
+                        </button>
+                    }
+                </span>
+            </div>
+
+            <table class="res-table">
+                <thead>
+                    <tr>
+                        <th>@L["Att_ColTitle"]</th>
+                        <th>@L["Att_ColSlug"]</th>
+                        <th>@L["Att_ColKind"]</th>
+                        <th>@L["Att_ColScope"]</th>
+                        <th>@L["Att_ColVersion"]</th>
+                        <th>@L["Att_ColUpdated"]</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Filtrate)
+                    {
+                        <tr>
+                            <td><b>@r.Title</b></td>
+                            @* Lo slug si mostra come si scrive dentro un documento: è quello che si copia. *@
+                            <td><code>allegato:@r.Slug</code></td>
+                            <td class="muted">@L["AttKind_" + r.Kind]</td>
+                            <td class="muted">@(r.Scope == AttachmentScope.Division ? L["AttScope_Division"].Value : r.ScopeLabel)</td>
+                            <td class="muted">v@r.VersionNumber</td>
+                            <td class="muted">@VipiTime.Z(r.VersionCreatedUtc)</td>
+                            <td>
+                                <a class="btn ghost" target="_blank" rel="noopener"
+                                   href="@AttachmentRules.UrlEsterno(r.Provider, r.ExternalId)"
+                                   title="@L["Att_Open"]">@L["Att_Open"]</a>
+                            </td>
+                        </tr>
+                    }
+                    @if (Filtrate.Count == 0)
+                    {
+                        <tr><td colspan="7" class="muted">@L["Att_Empty"]</td></tr>
+                    }
+                </tbody>
+            </table>
+
+            @* La voce nuova. Lo slug si propone dal titolo ma resta modificabile: è DEFINITIVO, e una volta
+               citato in un documento non si cambia più — cambiarlo spegnerebbe ogni citazione già scritta. *@
+            <div class="mil-add">
+                <label>
+                    @L["Att_ColTitle"]
+                    <input value="@_nTitolo" placeholder="@L["Att_TitlePh"]"
+                           @oninput="e => TitoloCambiato(e.Value?.ToString())" />
+                </label>
+                <label>
+                    @L["Att_ColSlug"]
+                    <input value="@_nSlug" placeholder="loa-lirr-lfmm"
+                           @oninput="e => SlugCambiato(e.Value?.ToString())" />
+                </label>
+                <label>
+                    @L["Att_ColKind"]
+                    <select @bind="_nTipo">
+                        @foreach (var k in Enum.GetValues<AttachmentKind>()) { <option value="@k">@L["AttKind_" + k]</option> }
+                    </select>
+                </label>
+                <label>
+                    @L["Att_ColScope"]
+                    <select @bind="_nAmbito">
+                        @foreach (var s in Enum.GetValues<AttachmentScope>()) { <option value="@s">@L["AttScope_" + s]</option> }
+                    </select>
+                </label>
+                @if (_nAmbito != AttachmentScope.Division)
+                {
+                    <label>
+                        @L["Att_ScopeKey"]
+                        <input class="w-code" @bind="_nChiave" placeholder="LIRR" />
+                    </label>
+                }
+                <label>
+                    @L["Att_Link"]
+                    <input @bind="_nLink" placeholder="@L["Att_LinkPh"]" />
+                </label>
+                <button type="button" class="btn primary" disabled="@_busy" @onclick="Aggiungi">+ @L["Att_Add"]</button>
+            </div>
+            <p class="help mil-hint">@L["Att_AddHint"]</p>
+        </div>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<AttachmentRow> _righe = Array.Empty<AttachmentRow>();
+    private string _cerca = "";
+    private AttachmentKind? _tipo;
+    private AttachmentScope? _ambito;
+
+    private string _nTitolo = "";
+    private string _nSlug = "";
+    private bool _slugToccato;
+    private AttachmentKind _nTipo = AttachmentKind.Loa;
+    private AttachmentScope _nAmbito = AttachmentScope.Division;
+    private string _nChiave = "";
+    private string _nLink = "";
+
+    private string? _messaggio;
+    private bool _ok;
+    private bool _busy;
+
+    /// <summary>La pagina è degli Editor: chi ha meno vede il rifiuto, non una tabella che non risponde.</summary>
+    private bool PuoScrivere => Authz.Role >= VipiRole.Editor;
+
+    /// <summary>Le righe da mostrare: i due assi in AND, più una ricerca che guarda tutto quel che si legge —
+    /// così «Marseille» trova la LoA tanto quanto «loa-lirr».</summary>
+    private IReadOnlyList<AttachmentRow> Filtrate
+    {
+        get
+        {
+            var q = _righe.AsEnumerable();
+            if (_tipo is { } k) q = q.Where(r => r.Kind == k);
+            if (_ambito is { } s) q = q.Where(r => r.Scope == s);
+
+            var testo = _cerca.Trim();
+            if (testo.Length > 0)
+                q = q.Where(r => new[] { r.Title, r.Slug, r.ScopeKey, r.Notes }
+                    .Any(c => c is not null && c.Contains(testo, StringComparison.OrdinalIgnoreCase)));
+            return q.ToList();
+        }
+    }
+
+    // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su InteractiveServer il secondo gira una volta sola.
+    protected override async Task OnParametersSetAsync() => await CaricaAsync();
+
+    private async Task CaricaAsync() => _righe = await Biblioteca.ListAsync();
+
+    /// <summary>Lo slug battuto a mano: da qui in poi il titolo non lo tocca più.</summary>
+    private void SlugCambiato(string? valore)
+    {
+        _slugToccato = true;
+        _nSlug = valore ?? "";
+    }
+
+    /// <summary>Il titolo propone lo slug finché nessuno l'ha scritto a mano: dopo, comanda la persona.</summary>
+    private void TitoloCambiato(string? valore)
+    {
+        _nTitolo = valore ?? "";
+        if (!_slugToccato) _nSlug = AttachmentRules.SlugDa(_nTitolo);
+    }
+
+    private async Task Aggiungi()
+    {
+        if (!PuoScrivere) return;
+        _busy = true; _messaggio = null;
+        try
+        {
+            var draft = new AttachmentDraft(_nSlug, _nTitolo, _nTipo, _nAmbito, _nChiave, null, _nLink);
+            var (esito, riga) = await Biblioteca.CreateAsync(draft, Authz.CurrentUserId ?? 0);
+
+            _ok = esito == AttachmentCreate.Ok;
+            // ⚠️ I rifiuti restano distinti: chi ha incollato un link sbagliato e chi ha scelto uno slug già
+            // preso devono correggere due cose diverse, e un «non valido» solo li manda a indovinare.
+            _messaggio = esito switch
+            {
+                AttachmentCreate.Ok => string.Format(L["Att_Added"].Value, riga!.Title, riga.Slug),
+                AttachmentCreate.SlugNonValido => L["Att_ErrSlug"].Value,
+                AttachmentCreate.SlugOccupato => string.Format(L["Att_ErrSlugTaken"].Value, _nSlug.Trim()),
+                AttachmentCreate.TitoloMancante => L["Att_ErrTitle"].Value,
+                AttachmentCreate.LinkNonValido => L["Att_ErrLink"].Value,
+                _ => L["Att_ErrScope"].Value,
+            };
+
+            if (esito == AttachmentCreate.Ok)
+            {
+                _nTitolo = ""; _nSlug = ""; _nChiave = ""; _nLink = ""; _slugToccato = false;
+                await CaricaAsync();
+            }
+        }
+        catch (Exception ex) { _ok = false; _messaggio = ex.Message; }
+        finally { _busy = false; }
+    }
+}

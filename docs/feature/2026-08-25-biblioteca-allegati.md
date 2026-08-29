@@ -79,7 +79,7 @@ Come per le immagini, il corpo di ogni `case` è **una riga** che monta un compo
 
 **3. Ingressi + verifica**
 
-- Ingresso biblioteca: `/services/vsop/admin/attachments`, voce nel menù admin.
+- Ingresso biblioteca: `/services/vsop/admin/attachments`, voce nel menù admin (livello **Editor**: è contenuto documentale, come le radioassistenze).
 - Ingresso link: pulsante **«+ Allegato»** accanto agli altri, in entrambi gli editor; più la sintassi inline
   nella prosa.
 - **Catch-22 da evitare**: l'elenco deve mostrare le voci **anche se non le cita nessuno**, altrimenti la
@@ -277,7 +277,7 @@ principale del sistema attuale, dove i link a Drive stanno sparsi nei documenti 
 | # | Slice | Chiude |
 |---|---|---|
 | 1 | ✅ **FATTA il 29 agosto** — entità `Attachment` + `AttachmentVersion`, migrazioni **×2** (SQLite + MySQL) | modello |
-| 2 | Pagina `/services/vsop/admin/attachments`: elenco, filtri tipo×ambito, ricerca, crea voce | ingresso, catch-22 |
+| 2 | ✅ **FATTA il 29 agosto** — pagina `/services/vsop/admin/attachments`: elenco, filtri tipo×ambito, ricerca, crea voce | ingresso, catch-22 |
 | 3 | Rotta `/vsop/files/{slug}` con 302 e `no-cache` | identità del link |
 | 4 | Scanner esteso al token `allegato:` + `DoveUsato(slug)` + filtro «mai usata» | registro |
 | 5 | Blocco `Attachment`: enum, `case` nei 9 punti, editor e resa condivisi — **modo Link** | link 1 |
