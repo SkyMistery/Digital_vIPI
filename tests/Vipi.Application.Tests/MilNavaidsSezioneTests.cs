@@ -23,22 +23,23 @@ public class MilNavaidsSezioneTests
     {
         var json = MilNavaidsPayload.Scrivi(new[]
         {
-            new NavaidKey("MNL", "VOR"), new NavaidKey("AEA", "VOR"), new NavaidKey("AVI", "NDB"),
+            new NavaidKey("MNL", "VHF", "99Y"), new NavaidKey("AEA", "VHF", "54Y"), new NavaidKey("AVI", "NDB", null),
         });
 
         Assert.Equal(new[] { "MNL", "AEA", "AVI" }, MilNavaidsPayload.Leggi(json).Select(k => k.Code));
     }
 
-    /// <summary>Codice e natura si normalizzano <b>alla scrittura</b>: <c>mnl</c> e <c>MNL</c> non sono due
-    /// radioassistenze, e un payload che le distingue troverebbe l'anagrafica vuota.</summary>
+    /// <summary>I tre pezzi dell'identità si normalizzano <b>alla scrittura</b>: <c>mnl</c> e <c>MNL</c> non
+    /// sono due radioassistenze, e un payload che le distingue troverebbe l'anagrafica vuota.</summary>
     [Fact]
     public void Il_payload_normalizza_le_identita()
     {
-        var json = MilNavaidsPayload.Scrivi(new[] { new NavaidKey(" mnl ", "vor") });
+        var json = MilNavaidsPayload.Scrivi(new[] { new NavaidKey(" mnl ", "vhf", " 99y ") });
 
         var k = Assert.Single(MilNavaidsPayload.Leggi(json));
         Assert.Equal("MNL", k.Code);
-        Assert.Equal("VOR", k.Kind);
+        Assert.Equal("VHF", k.Kind);
+        Assert.Equal("99Y", k.Channel);
     }
 
     /// <summary>Nessuna riga ⇒ <c>null</c>: null e «lista vuota» devono essere la stessa cosa in archivio, o
@@ -47,7 +48,7 @@ public class MilNavaidsSezioneTests
     public void Nessuna_riga_non_si_salva_come_lista_vuota()
     {
         Assert.Null(MilNavaidsPayload.Scrivi(Array.Empty<NavaidKey>()));
-        Assert.Null(MilNavaidsPayload.Scrivi(new[] { new NavaidKey("", "VOR"), new NavaidKey("MNL", "  ") }));
+        Assert.Null(MilNavaidsPayload.Scrivi(new[] { new NavaidKey("", "VHF", null), new NavaidKey("MNL", "  ", null) }));
     }
 
     /// <summary>Un payload illeggibile è una tabella vuota, non un errore in faccia a chi legge: un documento
@@ -66,7 +67,7 @@ public class MilNavaidsSezioneTests
     [Fact]
     public void Il_payload_si_riconosce_dalla_variante()
     {
-        var json = MilNavaidsPayload.Scrivi(new[] { new NavaidKey("MNL", "VOR") });
+        var json = MilNavaidsPayload.Scrivi(new[] { new NavaidKey("MNL", "VHF", "99Y") });
 
         Assert.Contains("\"variant\":\"milnavaids\"", json);
     }

@@ -31,11 +31,16 @@ public sealed class MilNavaidsPayload
     [JsonPropertyName("rows")]
     public IReadOnlyList<Riga> Rows { get; init; } = Array.Empty<Riga>();
 
-    /// <summary>Una riga citata: l'identità, e nient'altro.</summary>
+    /// <summary>
+    /// Una riga citata: l'identità, e nient'altro.
+    /// <para>⚠️ Tre campi e non due: il <b>canale</b> è nell'identità perché lo stesso codice, nella stessa
+    /// famiglia, è legittimamente due impianti — Grosseto ha un VOR e un TACAN puro nello stesso file.</para>
+    /// </summary>
     public sealed class Riga
     {
         [JsonPropertyName("code")] public string Code { get; init; } = "";
         [JsonPropertyName("kind")] public string Kind { get; init; } = "";
+        [JsonPropertyName("channel")] public string? Channel { get; init; }
     }
 
     private static readonly JsonSerializerOptions Opzioni = new() { PropertyNameCaseInsensitive = true };
@@ -52,7 +57,8 @@ public sealed class MilNavaidsPayload
             var p = JsonSerializer.Deserialize<MilNavaidsPayload>(json, Opzioni);
             return (p?.Rows ?? Array.Empty<Riga>())
                 .Where(r => !string.IsNullOrWhiteSpace(r.Code) && !string.IsNullOrWhiteSpace(r.Kind))
-                .Select(r => new NavaidKey(NavaidRules.Norm(r.Code), NavaidRules.Norm(r.Kind)))
+                .Select(r => new NavaidKey(NavaidRules.Norm(r.Code), NavaidRules.Norm(r.Kind),
+                    NavaidRules.Valore(r.Channel)))
                 .ToList();
         }
         catch (JsonException) { return Array.Empty<NavaidKey>(); }
@@ -64,7 +70,11 @@ public sealed class MilNavaidsPayload
     {
         var pulite = righe
             .Where(k => !string.IsNullOrWhiteSpace(k.Code) && !string.IsNullOrWhiteSpace(k.Kind))
-            .Select(k => new Riga { Code = NavaidRules.Norm(k.Code), Kind = NavaidRules.Norm(k.Kind) })
+            .Select(k => new Riga
+            {
+                Code = NavaidRules.Norm(k.Code), Kind = NavaidRules.Norm(k.Kind),
+                Channel = NavaidRules.Valore(k.Channel),
+            })
             .ToList();
         return pulite.Count == 0 ? null : JsonSerializer.Serialize(new MilNavaidsPayload { Rows = pulite });
     }

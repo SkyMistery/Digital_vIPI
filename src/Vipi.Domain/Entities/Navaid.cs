@@ -55,26 +55,40 @@ public class Navaid
     public string Code { get; set; } = default!;
 
     /// <summary>
-    /// La <b>natura</b>, e con <see cref="Code"/> è l'identità della riga: <c>VOR</c>, <c>NDB</c>,
-    /// <c>ILS</c>, <c>TACAN</c>, <c>VORTACAN</c>…
-    /// <para>⚠️ Per le righe che vengono dalla sorgente è il <b>file</b> da cui arrivano (<c>itvor</c> →
-    /// <c>VOR</c>), quindi non si cambia: cambiarla vorrebbe dire cambiare identità, e il giro d'import
-    /// successivo ricreerebbe la riga di prima. Chi deve <i>dire</i> che quel VOR è un VORTAC usa
-    /// <see cref="DisplayType"/>.</para>
+    /// La <b>famiglia</b>: <c>VHF</c> (108–118 MHz) o <c>NDB</c> (kHz). È la sola cosa che la sorgente sa
+    /// davvero, e con <see cref="Code"/> e <see cref="Channel"/> forma l'identità della riga.
+    ///
+    /// <para>
+    /// ⚠️ <b>Non è il tipo, e il nome del file non lo dice.</b> <c>itvor.vor</c> contiene VOR, TACAN
+    /// <b>e</b> VORTAC insieme — Grosseto ci sta due volte, un VOR a 109.85 e un TACAN puro col solo canale
+    /// 35Y — e nemmeno il canale distingue: <c>115.25</c> è la frequenza <i>appaiata</i> del canale 99Y, e
+    /// ce l'ha anche un VOR/DME. Fino al 30 agosto 2026 questa colonna teneva «il file da cui la riga
+    /// arriva» spacciandolo per la natura dell'impianto: era una classificazione inventata.
+    /// </para>
+    /// <para>Che tipo sia — VOR, TACAN, VORTAC, ILS — lo dice una <b>persona</b>: <see cref="Type"/>.</para>
     /// </summary>
     public string Kind { get; set; } = default!;
 
     /// <summary>
-    /// Il tipo <b>mostrato</b> in tabella, quando la natura della sorgente è più grossolana della realtà.
-    /// Null = si mostra <see cref="Kind"/>.
-    ///
-    /// <para>⚠️ Esiste per un caso vero, non per completezza: MNL sta in <c>itvor.vor</c> col canale
-    /// <c>99Y</c>, e sul SOP di Amendola si legge <b>VORTACAN</b>. Senza questo campo l'unico modo di
-    /// scriverlo sarebbe cambiare la natura, cioè l'identità — e la riga tornerebbe VOR al primo import.
-    /// ⚠️ E non si <i>deduce</i> dal canale: un canale su un VOR può essere quello del DME appaiato, non di
-    /// un TACAN. Dedurlo darebbe una tabella sbagliata con l'aria di essere precisa.</para>
+    /// L'identità in una stringa sola: <c>CODICE|FAMIGLIA|CANALE</c>. Esiste come colonna perché l'indice
+    /// unico deve poter comprendere il <b>canale</b>, che è nullable — e in SQLite come in MySQL due NULL
+    /// non si considerano uguali, quindi un indice su una colonna nullable <b>non</b> impedirebbe i
+    /// doppioni proprio dove servono (le righe senza canale, che sono la maggioranza).
+    /// <para>Stessa scelta di <c>GlossaryTerm.SourceKey</c>: la chiave si scrive, non si lascia decidere al
+    /// confronto del database.</para>
     /// </summary>
-    public string? DisplayType { get; set; }
+    public string NaturalKey { get; set; } = default!;
+
+    /// <summary>
+    /// Il tipo: <c>VOR</c>, <c>TACAN</c>, <c>VORTACAN</c>, <c>ILS</c>, <c>NDB</c>… È <b>editoriale</b> e non
+    /// entra nell'identità: lo scrive una persona, e la sorgente non lo tocca mai.
+    ///
+    /// <para>⚠️ <b>Null è una risposta legittima</b> — «nessuno l'ha ancora detto» — e in tabella si legge
+    /// come un trattino. Metterci un ripiego (il nome del file, la banda) vorrebbe dire stampare su un SOP
+    /// una classificazione che non ha fatto nessuno, con l'aria di essere un dato.</para>
+    /// <para>Sulle righe in kHz nasce già a <c>NDB</c>: lì il tipo è uno solo, e quello la sorgente lo sa.</para>
+    /// </summary>
+    public string? Type { get; set; }
 
     /// <summary>La frequenza come si scrive: <c>115.25</c>, <c>390.0</c>. Null = non si sa.</summary>
     public string? Frequency { get; set; }

@@ -29,13 +29,23 @@ public interface INavaidImporter
 /// Dal catalogo punti della divisione all'anagrafica delle radioassistenze.
 ///
 /// <para>
-/// ⚠️ <b>Passano solo VOR e NDB.</b> I <i>fix</i> sono punti di riporto: non hanno frequenza, non hanno
-/// canale e non sono radioassistenze — metterli qui riempirebbe l'anagrafica di tremila righe che nessuna
-/// tabella di SOP citerà mai, e la tendina da cui si sceglie diventerebbe inservibile.
+/// ⚠️ <b>Passano solo le radioassistenze.</b> I <i>fix</i> sono punti di riporto: non hanno frequenza, non
+/// hanno canale e non sono radioassistenze — metterli qui riempirebbe l'anagrafica di tremila righe che
+/// nessuna tabella di SOP citerà mai, e la tendina da cui si sceglie diventerebbe inservibile.
 /// </para>
 /// <para>
-/// ⚠️ <b>ILS e TACAN non arrivano da qui, e non è un buco</b>: il sectorfile ha tre famiglie di file di punti
-/// e nessuna è la loro. Quelle righe le scrive una persona, e restano sue — è il motivo per cui l'import non
+/// ⚠️ <b>Si leggono le righe GREZZE, non il catalogo deduplicato.</b> Quello toglie gli omonimi tenendo la
+/// prima occorrenza — giusto per suggerire nomi, dove un nome è un punto; disastroso per un'anagrafica:
+/// il 30 agosto 2026 il <b>TACAN di Grosseto</b> non arrivava mai (nello stesso file c'è anche il VOR) e
+/// degli NDB ne arrivavano <b>dieci su ventisette</b>, perché diciassette codici stanno in tutt'e due i file.
+/// </para>
+/// <para>
+/// ⚠️ <b>La sorgente non dice il TIPO</b>, e non si prova a dedurlo: <c>itvor.vor</c> contiene VOR, TACAN e
+/// VORTAC insieme, e <c>115.25</c> è la frequenza appaiata del canale <c>99Y</c> — ce l'ha anche un VOR/DME.
+/// Si importa la <b>famiglia</b> (la banda, che il file attesta davvero) e il tipo lo scrive una persona.
+/// </para>
+/// <para>
+/// ⚠️ <b>ILS e TACAN scritti a mano restano nostri</b>: il sectorfile non li ha, e per questo l'import non
 /// pota mai quel che non trova.
 /// </para>
 /// </summary>
@@ -62,11 +72,11 @@ public sealed class NavaidImporter : INavaidImporter
 
         var catalogo = await _sorgente.GetAsync(ct).ConfigureAwait(false);
 
-        var righe = catalogo.Entries
+        var righe = catalogo.Righe
             .Where(e => e.Kind is NavaidKind.Vor or NavaidKind.Ndb)
             .Select(e => new SourceNavaid(
                 e.Name,
-                e.Kind == NavaidKind.Vor ? NavaidRules.NaturaVor : NavaidRules.NaturaNdb,
+                e.Kind == NavaidKind.Vor ? NavaidRules.FamigliaVhf : NavaidRules.FamigliaNdb,
                 e.Frequency, e.Channel, e.Lat, e.Lon))
             .ToList();
 

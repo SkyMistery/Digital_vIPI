@@ -979,6 +979,22 @@
   <data name="Nav_BadCode" xml:space="preserve"><value>Invalid code: two to five letters or digits.</value></data>
   <data name="Nav_NeedKind" xml:space="preserve"><value>The nature is required (VOR, NDB, ILS, TACAN...): that code is not in the catalogue yet.</value></data>
   <data name="Nav_Duplicate" xml:space="preserve"><value>That navaid is already in the table.</value></data>
+  <data name="Nav_Ambiguous" xml:space="preserve"><value>«{0}» is more than one station ({1}): pick which one from the drop-down, or add it from the Navaids page.</value></data>
+  <data name="Nav_AdminTitle" xml:space="preserve"><value>Navaids</value></data>
+  <data name="Nav_AdminNav" xml:space="preserve"><value>Navaids</value></data>
+  <data name="Nav_AdminSubtitle" xml:space="preserve"><value>The division-wide catalogue: the same navaid in every document that cites it.</value></data>
+  <data name="Nav_AdminIntro" xml:space="preserve"><value>&lt;p&gt;Frequency, channel and coordinates of VORs and NDBs come from the &lt;b&gt;sectorfile&lt;/b&gt; and cannot be edited here: the source wins. The &lt;b&gt;type&lt;/b&gt;, instead, is written by a person — the sectorfile keeps VORs, TACANs and VORTACs in the same file and cannot tell which is which.&lt;/p&gt;&lt;p&gt;Only &lt;b&gt;our own&lt;/b&gt; rows can be deleted, and only if &lt;b&gt;no document cites them&lt;/b&gt;: a row vanishing from under a published table is a hole nobody can explain.&lt;/p&gt;</value></data>
+  <data name="Nav_AdminSearch" xml:space="preserve"><value>Search</value></data>
+  <data name="Nav_AdminNoType" xml:space="preserve"><value>Without a type</value></data>
+  <data name="Nav_AdminFromSource" xml:space="preserve"><value>{0} from the sectorfile</value></data>
+  <data name="Nav_AdminEmpty" xml:space="preserve"><value>No navaid matches these filters.</value></data>
+  <data name="Nav_AdminAddHint" xml:space="preserve"><value>Add by hand the navaids the sectorfile does not have: ILS, and the TACANs that are not among the points. The family is the band: VHF (108–118 MHz) or NDB (kHz).</value></data>
+  <data name="Nav_AdminAdded" xml:space="preserve"><value>Added «{0}» ({1}). Now fill in type, frequency and coordinates.</value></data>
+  <data name="Nav_AdminDelete" xml:space="preserve"><value>Delete from the catalogue</value></data>
+  <data name="Nav_AdminDeleted" xml:space="preserve"><value>Deleted «{0}» ({1}).</value></data>
+  <data name="Nav_AdminFromSourceNoDelete" xml:space="preserve"><value>Not deleted: this row comes from the sectorfile, and the next import would recreate it.</value></data>
+  <data name="Nav_AdminCited" xml:space="preserve"><value>Not deleted: it is cited by {0}. Remove it from those tables first.</value></data>
+  <data name="Nav_BadChannel" xml:space="preserve"><value>Not saved: a channel is one to three digits plus X or Y (99Y, for instance) — and if a row with that channel already exists, that is the one to change.</value></data>
   <data name="Div_Airports" xml:space="preserve"><value>Airports</value></data>
   <data name="Div_Navaids" xml:space="preserve"><value>Navaids</value></data>
   <data name="Div_Bearing" xml:space="preserve"><value>Bearing</value></data>

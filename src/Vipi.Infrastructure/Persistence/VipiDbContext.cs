@@ -630,17 +630,19 @@ public class VipiDbContext : DbContext
         // campi diversi.
         b.Entity<Navaid>(e =>
         {
-            // L'identità decisa dal committente: codice + natura. Due `DEC`, uno VOR e uno NDB, sono due righe.
-            // ⚠️ Unico, e non «tanto non capita»: senza, il giro d'import creerebbe un doppione a ogni passata
-            // in cui la ricerca fallisse per un dettaglio di maiuscole, e nessuno se ne accorgerebbe finché la
-            // tabella di un SOP non mostra due volte lo stesso VOR.
-            e.HasIndex(x => new { x.Code, x.Kind }).IsUnique();
+            // L'identità: codice + famiglia + canale, scritta in una colonna sola.
+            // ⚠️ In una colonna sola perché il canale è NULLABLE, e in SQLite come in MySQL due NULL non si
+            // considerano uguali: un indice unico su (Code, Kind, Channel) non impedirebbe i doppioni
+            // proprio sulle righe senza canale, che sono la maggioranza. Stessa scelta di
+            // `GlossaryTerm.SourceKey`. La chiave la compone `EfNavaidCatalog.Chiave`, in un posto solo.
+            e.HasIndex(x => x.NaturalKey).IsUnique();
 
             // Lunghezze dichiarate: senza, MySQL non riesce a costruire l'indice unico (stessa ragione del
             // glossario). Misure vere del sectorfile: codici di 2-3 lettere, canali `99Y`, frequenze `115.25`.
             e.Property(x => x.Code).HasMaxLength(8);
             e.Property(x => x.Kind).HasMaxLength(16);
-            e.Property(x => x.DisplayType).HasMaxLength(16);
+            e.Property(x => x.NaturalKey).HasMaxLength(32);
+            e.Property(x => x.Type).HasMaxLength(16);
             e.Property(x => x.Frequency).HasMaxLength(16);
             e.Property(x => x.Channel).HasMaxLength(8);
         });

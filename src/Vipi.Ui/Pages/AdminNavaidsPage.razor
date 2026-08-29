@@ -1,0 +1,266 @@
+@page "/services/vsop/admin/navaids"
+@layout SopLayout
+@rendermode InteractiveServer
+@using Vipi.Application.Abstractions
+@using Vipi.Application.Content
+@using Vipi.Domain
+@inject IEditAuthorizationService Authz
+@inject INavaidCatalog Anagrafica
+@inject IStringLocalizer<SharedResource> L
+
+@* L'anagrafica delle radioassistenze: tutte, in un posto solo (carta vSOP militari §12m).
+
+   ⚠️ Perché esiste. Un'anagrafica condivisa senza una pagina sua si vede SOLO attraverso un documento: per
+   accorgersi che il TACAN di Grosseto non c'era, o che DEC aveva perso il suo NDB, bisognava aprire un SOP
+   che li citasse — e se non li citava nessuno, non lo si scopriva mai.
+
+   ⚠️ E qui c'è la lista di lavoro: dopo un import, le righe VHF non hanno un TIPO — la sorgente non lo sa,
+   perché `itvor.vor` contiene VOR, TACAN e VORTAC insieme. Il filtro «senza tipo» le raduna, ed è l'unico
+   modo di vederle tutte senza inciampare in un trattino dentro un SOP.
+
+   ⚠️ La CANCELLAZIONE sta solo qui, e non nelle tabelle dei documenti: togliere una riga da un documento è
+   un gesto su quel documento, cancellarla dall'anagrafica è un gesto su un dato di TUTTI. Con due guardie,
+   che la pagina spiega quando rifiuta. *@
+
+<PageTitle>@L["Nav_AdminTitle"] · IVAO Italy</PageTitle>
+
+<div class="wrap struct">
+    <AdminNav />
+
+    <div class="doc-head st-head">
+        <h1 class="st-h2 page-h1">
+            @L["Nav_AdminTitle"]&nbsp;<span class="pill blue">@_righe.Count</span>
+        </h1>
+        <HelpHint Href="/services/vsop/guide#admin-radioassistenze" AriaLabel="@L["Nav_AdminTitle"]" ExtraClass="wide">
+            <p style="margin:0 0 6px">@L["Nav_AdminSubtitle"]</p>
+            @((MarkupString)L["Nav_AdminIntro"].Value)
+        </HelpHint>
+    </div>
+
+    @if (Authz.Role < VipiRole.Editor)
+    {
+        <div class="callout danger"><span class="cic">🔒</span><div>@L["Vle_Unauthorized"]</div></div>
+    }
+    else
+    {
+        @if (_messaggio is not null)
+        {
+            <div class="callout @(_ok ? "success" : "danger")">
+                <span class="cic"><Icon Name="@(_ok ? "check" : "octagon")" Size="18" /></span>
+                <div style="flex:1">@_messaggio</div>
+                <button class="btn ghost" style="padding:0 6px" @onclick="() => _messaggio = null">✕</button>
+            </div>
+        }
+
+        <div class="block">
+            <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px">
+                <label style="display:flex;flex-direction:column;gap:2px;font-size:12px;flex:1;min-width:220px">
+                    @L["Nav_AdminSearch"]
+                    <input @bind="_cerca" @bind:event="oninput" placeholder="MNL, VOR, 115.25…" />
+                </label>
+                @* ⚠️ La chip che conta: sono le righe che aspettano una persona. *@
+                <button type="button" class="chip @(_soloSenzaTipo ? "on" : "")"
+                        @onclick="() => _soloSenzaTipo = !_soloSenzaTipo">
+                    @L["Nav_AdminNoType"] <b>@_righe.Count(r => string.IsNullOrWhiteSpace(r.Type))</b>
+                </button>
+                <span class="muted" style="font-size:12px">@L["Nav_AdminFromSource", _righe.Count(r => r.DallaSorgente)]</span>
+            </div>
+
+            <table class="cfg-table">
+                <thead>
+                    <tr>
+                        <th style="width:80px">@L["Nav_Code"]</th>
+                        <th style="width:70px">@L["Nav_Kind"]</th>
+                        <th style="width:120px">@L["Nav_Type"]</th>
+                        <th style="width:110px">@L["Nav_Freq"]</th>
+                        <th style="width:90px">@L["Nav_Channel"]</th>
+                        <th>@L["Nav_Coordinates"]</th>
+                        <th style="width:150px">@L["Nav_Origin"]</th>
+                        <th style="width:40px"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Filtrate)
+                    {
+                        <tr>
+                            <td><b>@r.Code</b></td>
+                            <td class="muted">@r.Kind</td>
+                            <td>
+                                @* Il TIPO si scrive sempre: non viene mai dalla sorgente. *@
+                                <input list="@TipiId" value="@r.Type" style="width:100%" aria-label="@L["Nav_Type"]"
+                                       @onchange="e => Scrivi(r, NavaidCampo.Tipo, e.Value?.ToString())" />
+                            </td>
+                            <td>@Campo(r, NavaidCampo.Frequenza, r.Frequency, r.FrequencyOrigin, "115.25")</td>
+                            <td>@Campo(r, NavaidCampo.Canale, r.Channel, r.ChannelOrigin, "99Y")</td>
+                            <td>@Campo(r, NavaidCampo.Coordinate, NavaidText.Coordinate(r.Latitude, r.Longitude),
+                                       r.CoordinatesOrigin, "N41°32'05.07''E015°43'42.47''")</td>
+                            <td class="muted" style="font-size:12px">@Provenienza(r)</td>
+                            <td>
+                                @* Il cestino c'è solo dove può funzionare: sulle righe della sorgente non
+                                   compare affatto, invece di comparire e rifiutare. *@
+                                @if (!r.DallaSorgente)
+                                {
+                                    <button type="button" class="btn ghost" style="padding:0 6px"
+                                            title="@L["Nav_AdminDelete"]" @onclick="() => Elimina(r)">🗑</button>
+                                }
+                            </td>
+                        </tr>
+                        @if (_note.TryGetValue(r.Id, out var nota))
+                        {
+                            <tr><td colspan="8" class="muted" style="color:var(--danger-ink)">@nota</td></tr>
+                        }
+                    }
+                    @if (Filtrate.Count == 0)
+                    {
+                        <tr><td colspan="8" class="muted">@L["Nav_AdminEmpty"]</td></tr>
+                    }
+                </tbody>
+            </table>
+
+            <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:12px">
+                <label style="display:flex;flex-direction:column;gap:2px;font-size:12px">
+                    @L["Nav_Code"]
+                    <input @bind="_nuovoCodice" style="width:110px" placeholder="AMD" />
+                </label>
+                <label style="display:flex;flex-direction:column;gap:2px;font-size:12px">
+                    @L["Nav_Kind"]
+                    <select @bind="_nuovaFamiglia" style="width:110px">
+                        @foreach (var f in NavaidRules.Famiglie) { <option value="@f">@f</option> }
+                    </select>
+                </label>
+                <button type="button" class="btn primary" @onclick="Aggiungi">+ @L["Nav_Add"]</button>
+            </div>
+            <p class="help" style="margin-top:6px">@L["Nav_AdminAddHint"]</p>
+
+            <datalist id="@TipiId">
+                @foreach (var t in NavaidRules.TipiSuggeriti) { <option value="@t" /> }
+            </datalist>
+        </div>
+    }
+</div>
+
+@code {
+    private const string TipiId = "vipi-navaid-admin-types";
+
+    private IReadOnlyList<NavaidRow> _righe = Array.Empty<NavaidRow>();
+    private readonly Dictionary<int, string> _note = new();
+    private string _cerca = "";
+    private bool _soloSenzaTipo;
+    private string _nuovoCodice = "";
+    private string _nuovaFamiglia = NavaidRules.FamigliaVhf;
+    private string? _messaggio;
+    private bool _ok;
+
+    /// <summary>Le righe da mostrare: la ricerca guarda tutto quel che si vede, così «115.25» trova la riga
+    /// come la trova «MNL».</summary>
+    private IReadOnlyList<NavaidRow> Filtrate
+    {
+        get
+        {
+            var q = _righe.AsEnumerable();
+            if (_soloSenzaTipo) q = q.Where(r => string.IsNullOrWhiteSpace(r.Type));
+            var testo = _cerca.Trim();
+            if (testo.Length > 0)
+                q = q.Where(r => new[] { r.Code, r.Kind, r.Type, r.Frequency, r.Channel }
+                    .Any(c => c is not null && c.Contains(testo, StringComparison.OrdinalIgnoreCase)));
+            return q.ToList();
+        }
+    }
+
+    // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su InteractiveServer il secondo gira una volta sola.
+    protected override async Task OnParametersSetAsync() => await CaricaAsync();
+
+    private async Task CaricaAsync() => _righe = await Anagrafica.ListAsync();
+
+    /// <summary>Un campo: casella se è nostro, testo se lo manda la sorgente. ⚠️ Non una casella disabilitata
+    /// — una casella che non risponde al clic si legge come un guasto, non come una regola.</summary>
+    private RenderFragment Campo(NavaidRow r, NavaidCampo campo, string? valore, NavaidFieldOrigin origine,
+        string segnaposto) => __builder =>
+    {
+        if (origine == NavaidFieldOrigin.Source)
+        {
+            <span class="pill neutral">@(valore is { Length: > 0 } v ? v : "—")</span>
+        }
+        else
+        {
+            <input value="@valore" placeholder="@segnaposto" style="width:100%" aria-label="@segnaposto"
+                   @onchange="e => Scrivi(r, campo, e.Value?.ToString())" />
+        }
+    };
+
+    private string Provenienza(NavaidRow r)
+    {
+        if (r.DallaSorgente) return L["Nav_FromSource"].Value;
+        if (r.UpdatedUtc is { } q) return string.Format(L["Nav_EditedAt"].Value, VipiTime.Z(q));
+        return "—";
+    }
+
+    private async Task Scrivi(NavaidRow r, NavaidCampo campo, string? valore)
+    {
+        _note.Remove(r.Id);
+        var utente = Authz.CurrentUserId ?? 0;
+        var esito = campo switch
+        {
+            NavaidCampo.Tipo => await Anagrafica.SetTypeAsync(r.Id, valore, utente),
+            NavaidCampo.Frequenza => await Anagrafica.SetFrequencyAsync(r.Id, valore, utente),
+            NavaidCampo.Canale => await Anagrafica.SetChannelAsync(r.Id, valore, utente),
+            _ => await Anagrafica.SetCoordinatesAsync(r.Id, valore, utente),
+        };
+
+        var msg = esito switch
+        {
+            NavaidWrite.DallaSorgente => L["Nav_RefusedSource"].Value,
+            NavaidWrite.NonValido => campo == NavaidCampo.Coordinate ? L["Nav_BadCoords"].Value
+                : campo == NavaidCampo.Canale ? L["Nav_BadChannel"].Value : L["Nav_BadValue"].Value,
+            NavaidWrite.NonTrovata => L["Nav_Gone"].Value,
+            _ => null,
+        };
+        if (msg is not null) _note[r.Id] = msg;
+
+        // Si ricarica anche dopo un rifiuto: la casella deve tornare al valore vero, o a schermo resta quel
+        // che si è battuto e sembra salvato.
+        await CaricaAsync();
+    }
+
+    private async Task Aggiungi()
+    {
+        _messaggio = null;
+        var codice = NavaidRules.Norm(_nuovoCodice);
+        if (!NavaidRules.CodiceValido(codice)) { _messaggio = L["Nav_BadCode"].Value; _ok = false; return; }
+
+        var riga = await Anagrafica.CreateAsync(codice, NavaidRules.Norm(_nuovaFamiglia), Authz.CurrentUserId ?? 0);
+        _nuovoCodice = "";
+        await CaricaAsync();
+        _ok = true;
+        _messaggio = string.Format(L["Nav_AdminAdded"].Value, riga.Code, riga.Kind);
+    }
+
+    /// <summary>
+    /// Elimina, o dice perché no. ⚠️ Le due ragioni non sono la stessa cosa e non si riassumono: «la manda la
+    /// sorgente» è definitiva, «la cita un documento» si risolve togliendola di lì — e per farlo bisogna
+    /// sapere <b>quale</b>.
+    /// </summary>
+    private async Task Elimina(NavaidRow r)
+    {
+        _messaggio = null;
+        _note.Remove(r.Id);
+
+        var citata = await Anagrafica.CitataDaAsync(r.Id);
+        if (citata.Count > 0)
+        {
+            _note[r.Id] = string.Format(L["Nav_AdminCited"].Value, string.Join(" · ", citata));
+            return;
+        }
+
+        var esito = await Anagrafica.DeleteAsync(r.Id, Authz.CurrentUserId ?? 0);
+        _ok = esito == NavaidDelete.Ok;
+        _messaggio = esito switch
+        {
+            NavaidDelete.Ok => string.Format(L["Nav_AdminDeleted"].Value, r.Code, r.Kind),
+            NavaidDelete.DallaSorgente => L["Nav_AdminFromSourceNoDelete"].Value,
+            NavaidDelete.Citata => string.Format(L["Nav_AdminCited"].Value, ""),
+            _ => L["Nav_Gone"].Value,
+        };
+        await CaricaAsync();
+    }
+}

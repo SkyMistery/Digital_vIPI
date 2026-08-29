@@ -324,19 +324,45 @@ else
 
     /// <summary>Le identità citate dal documento, nell'ordine: è la forma in cui si risalva il payload dopo
     /// un'aggiunta, una rimozione o uno spostamento.</summary>
-    private List<NavaidKey> ChiaviCorrenti() =>
-        _radioassistenze.Select(r => new NavaidKey(r.Code, r.Kind)).ToList();
+    private List<NavaidKey> ChiaviCorrenti() => _radioassistenze.Select(r => r.Key).ToList();
 
-    private Task AggiungiRadioassistenza(NavaidKey k) => _shell.GuardAsync(async () =>
+    /// <summary>
+    /// Aggiunge una radioassistenza al documento partendo dal solo <b>codice</b>.
+    ///
+    /// <para>⚠️ Le tre risposte possibili, e nessuna si indovina: il codice è già in anagrafica <b>una</b>
+    /// volta e si cita quella; ci sta <b>più</b> volte — <c>DEC</c> è un VOR e un NDB, <c>GRO</c> un VOR e un
+    /// TACAN — e allora bisogna dire quale, perché sceglierne una a caso metterebbe su un SOP la frequenza
+    /// dell'impianto sbagliato; <b>non</b> c'è, e allora si crea con la famiglia scelta.</para>
+    /// <para>⚠️ Fino al 30 agosto 2026 non c'era la seconda risposta: scrivendo un codice con un tipo diverso
+    /// nasceva un <b>gemello vuoto</b>, che l'import non avrebbe mai riempito.</para>
+    /// </summary>
+    private Task AggiungiRadioassistenza((string Codice, string Famiglia) x) => _shell.GuardAsync(async () =>
     {
-        // ⚠️ Prima l'anagrafica, poi il documento: `CreateAsync` è idempotente e torna la riga che c'è già, e
-        // citare nel documento un codice che non esiste darebbe una tabella con una riga fantasma.
-        await Radioassistenze.CreateAsync(k.Code, k.Kind, Authz.CurrentUserId ?? 0);
+        var candidate = _anagrafica.Where(n => n.Code == x.Codice).ToList();
+        if (candidate.Count > 1)
+        {
+            _shell.Error = string.Format(L["Nav_Ambiguous"].Value, x.Codice,
+                string.Join(", ", candidate.Select(n => Descrivi(n))));
+            return;
+        }
+
+        // ⚠️ Prima l'anagrafica, poi il documento: citare un codice che non esiste darebbe una riga fantasma.
+        var riga = candidate.Count == 1
+            ? candidate[0]
+            : await Radioassistenze.CreateAsync(x.Codice, x.Famiglia, Authz.CurrentUserId ?? 0);
+
         var chiavi = ChiaviCorrenti();
-        chiavi.Add(k);
+        if (chiavi.Contains(riga.Key)) { _shell.Error = L["Nav_Duplicate"].Value; return; }
+        chiavi.Add(riga.Key);
         await Militari.SaveNavaidsAsync(_icao, chiavi);
         await CaricaRadioassistenzeAsync();
     });
+
+    /// <summary>Come si nomina una riga quando bisogna sceglierne una fra omonime.</summary>
+    private static string Descrivi(NavaidRow n) => string.Join(" ", new[]
+    {
+        n.Kind, n.Type, n.Channel is { Length: > 0 } c ? "ch " + c : null, n.Frequency,
+    }.Where(x => !string.IsNullOrWhiteSpace(x)));
 
     /// <summary>Toglie la riga dal DOCUMENTO. ⚠️ Non dall'anagrafica: quella radioassistenza la citano altri
     /// SOP, e cancellarla davvero sarebbe un atto su un dato di tutti preso dalla tabella di uno.</summary>
@@ -370,7 +396,7 @@ else
         var utente = Authz.CurrentUserId ?? 0;
         var esito = campo switch
         {
-            NavaidCampo.Tipo => await Radioassistenze.SetDisplayTypeAsync(navaidId, valore, utente),
+            NavaidCampo.Tipo => await Radioassistenze.SetTypeAsync(navaidId, valore, utente),
             NavaidCampo.Frequenza => await Radioassistenze.SetFrequencyAsync(navaidId, valore, utente),
             NavaidCampo.Canale => await Radioassistenze.SetChannelAsync(navaidId, valore, utente),
             _ => await Radioassistenze.SetCoordinatesAsync(navaidId, valore, utente),
@@ -450,19 +476,22 @@ else
     {
         var candidate = _anagrafica.Where(n => n.Code == x.Codice).ToList();
         if (candidate.Count == 0) { _shell.Error = L["Div_UnknownNavaid"].Value; return; }
+        // ⚠️ Qui il codice ambiguo si RIFIUTA e basta: la riga di un alternato non è il posto dove si sceglie
+        // fra due impianti omonimi — si va nella sezione Radioassistenze, dove si vedono tutt'e due.
         if (candidate.Count > 1) { _shell.Error = L["Div_AmbiguousNavaid"].Value; return; }
 
         var righe = RigheAlternati();
         if (x.Indice < 0 || x.Indice >= righe.Count) return;
         var riga = righe[x.Indice];
-        if (riga.Navaids.Any(n => n.Code == candidate[0].Code && n.Kind == candidate[0].Kind)) return;
+        if (riga.Navaids.Any(n => n.Code == candidate[0].Code && n.Kind == candidate[0].Kind
+                                  && n.Channel == candidate[0].Channel)) return;
 
         righe[x.Indice] = new MilDiversionPayload.Riga
         {
             Icao = riga.Icao, Name = riga.Name, Bearing = riga.Bearing, Distance = riga.Distance,
             Navaids = riga.Navaids.Append(new MilDiversionPayload.Nav
             {
-                Code = candidate[0].Code, Kind = candidate[0].Kind,
+                Code = candidate[0].Code, Kind = candidate[0].Kind, Channel = candidate[0].Channel,
             }).ToList(),
         };
         await SalvaAlternati(righe);
@@ -476,7 +505,9 @@ else
         righe[x.Indice] = new MilDiversionPayload.Riga
         {
             Icao = riga.Icao, Name = riga.Name, Bearing = riga.Bearing, Distance = riga.Distance,
-            Navaids = riga.Navaids.Where(n => n.Code != x.Chiave.Code || n.Kind != x.Chiave.Kind).ToList(),
+            Navaids = riga.Navaids
+                .Where(n => n.Code != x.Chiave.Code || n.Kind != x.Chiave.Kind || n.Channel != x.Chiave.Channel)
+                .ToList(),
         };
         return SalvaAlternati(righe);
     }

@@ -16,9 +16,22 @@ public static class NavaidRules
     /// </summary>
     public static readonly IReadOnlyList<string> TipiSuggeriti = new[] { "ILS", "VOR", "VORTACAN", "TACAN", "NDB" };
 
-    /// <summary>Le nature che manda il sectorfile. Sono anche le sole identità che l'import crea.</summary>
-    public const string NaturaVor = "VOR";
-    public const string NaturaNdb = "NDB";
+    /// <summary>
+    /// Le <b>famiglie</b>, cioè la sola classificazione che la sorgente sa davvero: la <b>banda</b>.
+    /// <para>⚠️ <c>VHF</c> non è «VOR»: in <c>itvor.vor</c> ci stanno VOR, TACAN e VORTAC insieme, e il
+    /// nome del file non dice il tipo dell'impianto. Il tipo lo scrive una persona.</para>
+    /// </summary>
+    public const string FamigliaVhf = "VHF";
+
+    public const string FamigliaNdb = "NDB";
+
+    /// <summary>Le due famiglie, per chi deve offrirle.</summary>
+    public static readonly IReadOnlyList<string> Famiglie = new[] { FamigliaVhf, FamigliaNdb };
+
+    /// <summary>Vero se è una delle due famiglie. ⚠️ Chiuso, al contrario dei tipi: la banda non è
+    /// un'opinione, e una terza famiglia vorrebbe dire che la sorgente è cambiata.</summary>
+    public static bool FamigliaValida(string? v) =>
+        Famiglie.Contains(Norm(v), StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Una frequenza: <c>115.25</c>, <c>390.0</c>, <c>117</c>. VHF e NDB stanno nella stessa forma —
     /// due o tre cifre, eventualmente coi decimali.</summary>

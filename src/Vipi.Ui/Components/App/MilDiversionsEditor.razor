@@ -46,7 +46,7 @@
                             {
                                 <button type="button" class="btn ghost" style="padding:0 5px"
                                         title="@L["Div_RemoveNavaid"]"
-                                        @onclick="() => OnRemoveNavaid.InvokeAsync((idx, new NavaidKey(n.Code, n.Kind)))">✕</button>
+                                        @onclick="() => OnRemoveNavaid.InvokeAsync((idx, n.Key))">✕</button>
                             }
                         </div>
                     }

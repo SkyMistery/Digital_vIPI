@@ -23,7 +23,10 @@
         @foreach (var r in Rows)
         {
             <tr>
-                <td>@r.Type</td>
+                @* ⚠️ Nessun ripiego: se nessuno ha ancora detto che tipo è, si legge un trattino. La
+                   sorgente non lo sa (VOR, TACAN e VORTAC stanno nello stesso file), e stampare la
+                   banda al posto suo sarebbe una classificazione che non ha fatto nessuno. *@
+                <td>@(r.Type is { Length: > 0 } t ? t : "—")</td>
                 <td>@NavaidText.Freq(r.Code, r.Channel, r.Frequency)</td>
                 @* Il testo non va a capo in mezzo a una coordinata: spezzata su due righe non si legge più
                    come un punto, e in tabella capita appena la colonna si stringe. *@

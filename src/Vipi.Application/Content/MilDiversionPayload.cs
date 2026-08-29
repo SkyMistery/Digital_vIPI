@@ -64,10 +64,12 @@ public sealed class MilDiversionPayload
         [JsonPropertyName("distance")] public int? Distance { get; init; }
     }
 
+    /// <summary>⚠️ Tre campi come nelle Radioassistenze: il canale è nell'identità.</summary>
     public sealed class Nav
     {
         [JsonPropertyName("code")] public string Code { get; init; } = "";
         [JsonPropertyName("kind")] public string Kind { get; init; } = "";
+        [JsonPropertyName("channel")] public string? Channel { get; init; }
     }
 
     private static readonly JsonSerializerOptions Opzioni = new() { PropertyNameCaseInsensitive = true };
@@ -107,7 +109,11 @@ public sealed class MilDiversionPayload
         Name = string.IsNullOrWhiteSpace(r.Name) ? null : r.Name!.Trim(),
         Navaids = r.Navaids
             .Where(n => !string.IsNullOrWhiteSpace(n.Code) && !string.IsNullOrWhiteSpace(n.Kind))
-            .Select(n => new Nav { Code = NavaidRules.Norm(n.Code), Kind = NavaidRules.Norm(n.Kind) })
+            .Select(n => new Nav
+            {
+                Code = NavaidRules.Norm(n.Code), Kind = NavaidRules.Norm(n.Kind),
+                Channel = NavaidRules.Valore(n.Channel),
+            })
             .ToList(),
         Bearing = r.Bearing is { } b and >= 0 and <= 360 ? b : null,
         Distance = r.Distance is { } d and >= 0 and <= 9999 ? d : null,
@@ -116,5 +122,6 @@ public sealed class MilDiversionPayload
     /// <summary>Le identità di radioassistenza citate da tutte le righe, senza ripetizioni: è la lettura che
     /// serve a risolverle in <b>una</b> interrogazione invece di una per riga.</summary>
     public static IReadOnlyList<NavaidKey> ChiaviNavaid(IEnumerable<Riga> righe) =>
-        righe.SelectMany(r => r.Navaids).Select(n => new NavaidKey(n.Code, n.Kind)).Distinct().ToList();
+        righe.SelectMany(r => r.Navaids).Select(n => new NavaidKey(n.Code, n.Kind, n.Channel))
+            .Distinct().ToList();
 }

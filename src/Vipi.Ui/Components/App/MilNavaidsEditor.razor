@@ -128,7 +128,11 @@
         </label>
         <label style="display:flex;flex-direction:column;gap:2px;font-size:12px">
             @L["Nav_Kind"]
-            <input list="@TipiId" @bind="_nuovaNatura" style="width:120px" placeholder="VOR" />
+            @* ⚠️ La FAMIGLIA (la banda), non il tipo: serve solo quando il codice non è ancora in
+               anagrafica, ed è la sola classificazione che la sorgente sa dare. *@
+            <select @bind="_nuovaFamiglia" style="width:120px">
+                @foreach (var f in NavaidRules.Famiglie) { <option value="@f">@f</option> }
+            </select>
         </label>
         <button type="button" class="btn primary" @onclick="Aggiungi">+ @L["Nav_Add"]</button>
         @if (_errore is not null) { <span class="muted" style="color:var(--danger-ink)">@_errore</span> }
@@ -138,7 +142,9 @@
     @* Gli elenchi nativi: li disegna il browser fuori dalla pagina, quindi non li taglia il contenitore che
        scorre — la stessa scelta già fatta per i punti nell'editor delle SID. *@
     <datalist id="@CodiciId">
-        @foreach (var n in Anagrafica) { <option value="@n.Code">@n.Kind</option> }
+        @* Il testo dell'opzione distingue gli omonimi: `GRO` è due impianti, e il browser mostra
+           questa riga accanto al codice. *@
+        @foreach (var n in Anagrafica) { <option value="@n.Code">@Descrizione(n)</option> }
     </datalist>
     <datalist id="@TipiId">
         @foreach (var t in NavaidRules.TipiSuggeriti) { <option value="@t" /> }
@@ -157,8 +163,13 @@
 
     [Parameter] public bool Editing { get; set; }
 
-    /// <summary>Aggiunge al DOCUMENTO la riga con questa identità, creandola in anagrafica se non c'è.</summary>
-    [Parameter] public EventCallback<NavaidKey> OnAdd { get; set; }
+    /// <summary>
+    /// Aggiunge al DOCUMENTO la radioassistenza con questo codice. ⚠️ Chi decide <i>quale</i> è l'host, che
+    /// ha l'anagrafica in mano: un codice può essere una riga sola (e allora non si chiede niente), due — DEC
+    /// è un VOR e un NDB, GRO un VOR e un TACAN — e allora bisogna dirlo, o nessuna, e allora si crea.
+    /// La <b>famiglia</b> serve solo in quest'ultimo caso.
+    /// </summary>
+    [Parameter] public EventCallback<(string Codice, string Famiglia)> OnAdd { get; set; }
 
     /// <summary>Toglie dal documento la riga in questa posizione.</summary>
     [Parameter] public EventCallback<int> OnRemove { get; set; }
@@ -174,12 +185,18 @@
     [Parameter] public Func<int, NavaidCampo, string?, Task<NavaidWrite>>? OnSet { get; set; }
 
     private string _nuovoCodice = "";
-    private string _nuovaNatura = "";
+    private string _nuovaFamiglia = NavaidRules.FamigliaVhf;
     private string? _errore;
     private readonly Dictionary<int, string> _messaggi = new();
 
     private static string Coordinate(NavaidRow r) =>
         NavaidText.Coordinate(r.Latitude, r.Longitude) is { Length: > 0 } s ? s : "—";
+
+    /// <summary>Come si riconosce una riga fra gli omonimi: famiglia, tipo se c'è, canale e frequenza.</summary>
+    private static string Descrizione(NavaidRow n) => string.Join(" ", new[]
+    {
+        n.Kind, n.Type, n.Channel is { Length: > 0 } c ? "ch " + c : null, n.Frequency,
+    }.Where(x => !string.IsNullOrWhiteSpace(x)));
 
     /// <summary>Da dove viene il dato di questa riga, detto a chi lo sta guardando: è ciò che rende visibile
     /// una scrittura che cambia anche gli altri documenti.</summary>
@@ -194,22 +211,10 @@
     {
         _errore = null;
         var codice = NavaidRules.Norm(_nuovoCodice);
-        var natura = NavaidRules.Norm(_nuovaNatura);
-
-        // Se il codice è già in anagrafica con UNA sola natura, la natura si può omettere: è il caso normale,
-        // e chiederla comunque sarebbe una domanda di cui il sistema conosce già la risposta.
-        if (natura.Length == 0)
-        {
-            var candidate = Anagrafica.Where(n => n.Code == codice).Select(n => n.Kind).Distinct().ToList();
-            if (candidate.Count == 1) natura = candidate[0];
-        }
-
         if (!NavaidRules.CodiceValido(codice)) { _errore = L["Nav_BadCode"].Value; return; }
-        if (natura.Length == 0 || !NavaidRules.TipoValido(natura)) { _errore = L["Nav_NeedKind"].Value; return; }
-        if (Rows.Any(r => r.Code == codice && r.Kind == natura)) { _errore = L["Nav_Duplicate"].Value; return; }
 
-        await OnAdd.InvokeAsync(new NavaidKey(codice, natura));
-        _nuovoCodice = _nuovaNatura = "";
+        await OnAdd.InvokeAsync((codice, NavaidRules.Norm(_nuovaFamiglia)));
+        _nuovoCodice = "";
     }
 
     private Task Togli(int i) => OnRemove.InvokeAsync(i);

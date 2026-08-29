@@ -1843,10 +1843,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("DisplayType")
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Frequency")
                         .HasMaxLength(16)
                         .HasColumnType("TEXT");
@@ -1869,6 +1865,15 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<double?>("Longitude")
                         .HasColumnType("REAL");
 
+                    b.Property<string>("NaturalKey")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Type")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("UpdatedByUserId")
                         .HasColumnType("INTEGER");
 
@@ -1877,7 +1882,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Code", "Kind")
+                    b.HasIndex("NaturalKey")
                         .IsUnique();
 
                     b.ToTable("Navaids");

@@ -86,8 +86,8 @@ public class MilDiversionTests
     {
         var righe = new[]
         {
-            Riga("LIBG", ("MNL", "VOR"), ("AEA", "VOR")),
-            Riga("LGKR", ("MNL", "VOR")),
+            Riga("LIBG", ("MNL", "VHF", "99Y"), ("AEA", "VHF", "54Y")),
+            Riga("LGKR", ("MNL", "VHF", "99Y")),
         };
 
         Assert.Equal(2, MilDiversionPayload.ChiaviNavaid(righe).Count);
@@ -133,7 +133,7 @@ public class MilDiversionTests
     public async Task Le_radioassistenze_si_risolvono_e_si_rendono_col_tipo()
     {
         var viste = await MilDiversionResolver.ResolveAsync(
-            new[] { Riga("LIBG", ("MNL", "VOR")) }, new AnagraficaFinta(), new AeroportiFinti());
+            new[] { Riga("LIBG", ("MNL", "VHF", "99Y")) }, new AnagraficaFinta(), new AeroportiFinti());
 
         var n = Assert.Single(viste[0].Navaids);
         Assert.Equal("MNL VORTACAN - 99Y (115.25)", NavaidText.ConTipo(n.Code, n.Type, n.Channel, n.Frequency));
@@ -145,7 +145,7 @@ public class MilDiversionTests
     public async Task Una_radioassistenza_sconosciuta_non_si_stampa()
     {
         var viste = await MilDiversionResolver.ResolveAsync(
-            new[] { Riga("LIBG", ("XXX", "VOR")) }, new AnagraficaFinta(), new AeroportiFinti());
+            new[] { Riga("LIBG", ("XXX", "VHF", null)) }, new AnagraficaFinta(), new AeroportiFinti());
 
         Assert.Empty(viste[0].Navaids);
     }
@@ -182,15 +182,19 @@ public class MilDiversionTests
 
     // ---- Aiutanti --------------------------------------------------------------------------------------
 
-    private static MilDiversionPayload.Riga Riga(string icao, params (string Code, string Kind)[] nav) => new()
+    private static MilDiversionPayload.Riga Riga(string icao,
+        params (string Code, string Kind, string? Channel)[] nav) => new()
     {
         Icao = icao,
-        Navaids = nav.Select(n => new MilDiversionPayload.Nav { Code = n.Code, Kind = n.Kind }).ToList(),
+        Navaids = nav.Select(n => new MilDiversionPayload.Nav
+        {
+            Code = n.Code, Kind = n.Kind, Channel = n.Channel,
+        }).ToList(),
     };
 
     private sealed class AnagraficaFinta : INavaidCatalog
     {
-        private static readonly NavaidRow Mnl = new(1, "MNL", "VOR", "VORTACAN", "115.25", "99Y", 41.5, 15.7,
+        private static readonly NavaidRow Mnl = new(1, "MNL", "VHF", "VORTACAN", "115.25", "99Y", 41.5, 15.7,
             NavaidFieldOrigin.Source, NavaidFieldOrigin.Source, NavaidFieldOrigin.Source, null, null);
 
         public Task<IReadOnlyList<NavaidRow>> ListAsync(CancellationToken ct = default) =>
@@ -202,7 +206,11 @@ public class MilDiversionTests
 
         public Task<NavaidRow> CreateAsync(string code, string kind, int userId, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task<NavaidWrite> SetDisplayTypeAsync(int id, string? tipo, int userId, CancellationToken ct = default) =>
+        public Task<NavaidDelete> DeleteAsync(int id, int userId, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<IReadOnlyList<string>> CitataDaAsync(int id, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<NavaidWrite> SetTypeAsync(int id, string? tipo, int userId, CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task<NavaidWrite> SetFrequencyAsync(int id, string? f, int userId, CancellationToken ct = default) =>
             throw new NotSupportedException();

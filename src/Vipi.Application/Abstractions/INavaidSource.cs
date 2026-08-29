@@ -56,13 +56,22 @@ public sealed class NavaidCatalog
     /// per nome.</summary>
     public NavaidCatalog(IEnumerable<NavaidName> entries)
     {
+        // ⚠️ Le righe TUTTE, omonimi compresi e nell'ordine dei file. Servono all'ANAGRAFICA delle
+        // radioassistenze, dove lo stesso codice è legittimamente due impianti: Grosseto ha un VOR (109.85)
+        // e un TACAN (canale 35Y) nello stesso file, venti metri l'uno dall'altro, e diciassette codici
+        // stanno sia fra i VHF sia fra gli NDB.
+        // ⚠️ Il 30 agosto 2026 l'import passava dalla vista deduplicata qui sotto: il TACAN di Grosseto non
+        // è mai arrivato in archivio, e degli NDB ne arrivavano DIECI su ventisette. Un contenitore fatto
+        // per suggerire nomi (dove un nome è un punto) non è un'anagrafica.
+        // ⚠️ Materializzata UNA volta: `entries` può essere pigra, e scorrerla due volte vorrebbe dire
+        // rileggere (o peggio, ottenere due sequenze diverse).
+        var tutte = entries.Where(e => !string.IsNullOrWhiteSpace(e.Name))
+            .Select(e => e with { Name = e.Name.Trim() }).ToList();
+        Righe = tutte;
+
         var seen = new Dictionary<string, NavaidName>(StringComparer.OrdinalIgnoreCase);
-        foreach (var e in entries)
-        {
-            var name = (e.Name ?? "").Trim();
-            if (name.Length == 0) continue;
-            if (!seen.ContainsKey(name)) seen[name] = e with { Name = name };
-        }
+        foreach (var e in tutte)
+            if (!seen.ContainsKey(e.Name)) seen[e.Name] = e;
 
         Entries = seen.Values.OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase).ToList();
         Names = new HashSet<string>(seen.Keys, StringComparer.OrdinalIgnoreCase);
@@ -87,8 +96,15 @@ public sealed class NavaidCatalog
     /// di leggere le coordinate e i poligoni di settore spariscono in silenzio).</summary>
     public int PointsWithPosition => _points.Count;
 
-    /// <summary>I punti in ordine alfabetico, senza ripetizioni.</summary>
+    /// <summary>I punti in ordine alfabetico, senza ripetizioni. È la vista per chi <b>suggerisce un
+    /// nome</b>: lì un nome è un punto, e due omonimi confonderebbero e basta.</summary>
     public IReadOnlyList<NavaidName> Entries { get; }
+
+    /// <summary>
+    /// <b>Tutte</b> le righe dei file, omonimi compresi e nell'ordine in cui stanno. È la vista per chi
+    /// costruisce un'<b>anagrafica</b>: lì lo stesso codice è legittimamente due impianti.
+    /// </summary>
+    public IReadOnlyList<NavaidName> Righe { get; }
 
     /// <summary>I soli nomi, confronto senza distinzione di maiuscole: la forma che serve alla completion SID.</summary>
     public IReadOnlySet<string> Names { get; }

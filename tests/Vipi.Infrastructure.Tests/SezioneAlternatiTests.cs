@@ -54,7 +54,7 @@ public class SezioneAlternatiTests : IAsyncLifetime
 
         await new EfNavaidCatalog(_db).ImportFromSourceAsync(new[]
         {
-            new SourceNavaid("MNL", "VOR", "115.25", "99Y", 41.5476, 15.6898),
+            new SourceNavaid("MNL", "VHF", "115.25", "99Y", 41.5476, 15.6898),
         });
     }
 
@@ -65,10 +65,13 @@ public class SezioneAlternatiTests : IAsyncLifetime
     }
 
     private static MilDiversionPayload.Riga Riga(string icao, string? nome = null, int? b = null, int? d = null,
-        params (string Code, string Kind)[] nav) => new()
+        params (string Code, string Kind, string? Channel)[] nav) => new()
     {
         Icao = icao, Name = nome, Bearing = b, Distance = d,
-        Navaids = nav.Select(n => new MilDiversionPayload.Nav { Code = n.Code, Kind = n.Kind }).ToList(),
+        Navaids = nav.Select(n => new MilDiversionPayload.Nav
+        {
+            Code = n.Code, Kind = n.Kind, Channel = n.Channel,
+        }).ToList(),
     };
 
     /// <summary>Il giro completo, con dentro i due casi che contano: uno scalo nostro e uno estero.</summary>
@@ -80,7 +83,7 @@ public class SezioneAlternatiTests : IAsyncLifetime
 
         await m.SaveDiversionsAsync("LIBA", new[]
         {
-            Riga("LIBG", "un nome vecchio", 126, 40, ("MNL", "VOR")),
+            Riga("LIBG", "un nome vecchio", 126, 40, ("MNL", "VHF", "99Y")),
             Riga("LGKR", "Kerkyra", 95, 210),
         });
 

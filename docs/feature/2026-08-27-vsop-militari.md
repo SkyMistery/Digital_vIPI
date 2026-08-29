@@ -912,6 +912,9 @@ scritto su un file che quella suite legge** — qui il tema, che `Vipi.Assets.Te
 
 ### 12b. Le decisioni del committente, prese prima di scrivere
 
+⚠️ **La prima e la terza sono state CORRETTE dal committente il 30 agosto: vedi §12l.** Il tipo non lo sa
+la sorgente, e l'identità non può contenerlo.
+
 1. **Le radioassistenze diventano un'anagrafica condivisa.** Quel che si scrive nella tabella di un campo si
    memorizza, e quella radioassistenza esce uguale ovunque. ⚠️ E la sorgente quel dato **ce l'ha già**: il
    parser del sectorfile legge `AEA;111.65;N040.38.17.400;E008.17.30.400;0;2;54Y;` e **butta via frequenza e
@@ -1136,6 +1139,95 @@ guardie sulla radice del JSON, dove il `catch` sbagliato dava una falsa sicurezz
 poi ha accusato la pagina di aver perso il tipo. **Quando un dato «sparisce», il primo sospetto va al
 selettore.** E le celle con una casella hanno `innerText` **vuoto**: si legge `input.value`, o si scambia un
 campo compilato per una cella vuota.
+
+### 12l. «Il nome del file non dice il tipo» — il modello di §12b era sbagliato
+
+L'ha detto il committente il 30 agosto 2026, guardando la tabella: *«nella cartella .vor ci sono i vor, i
+tacan e i vortac: il nome del file non è affidabile per derivare il tipo»*. Aveva ragione, e sotto
+quell'osservazione c'erano **tre** difetti, di cui uno grosso.
+
+**La prova, misurata sui file veri.** In `itvor.vor` Grosseto compare **due volte**, venti metri l'una
+dall'altra:
+
+```
+riga 25   GRO;109.85;N042.45.39.200;E011.04.38.300;;;;      ← VOR: frequenza, nessun canale
+riga 81   GRO;;N042.45.37.200;E011.04.38.600;0;3;35Y        ← TACAN puro: canale, NESSUNA frequenza
+```
+
+Due impianti diversi, nello stesso file. E il canale non aiuta a distinguerli: `MNL 115.23 ch 99Y` —
+**115.25 è la frequenza appaiata del canale 99Y**, e ce l'ha anche un VOR/DME. L'unica cosa che la sorgente
+attesta è la **banda**: 121 righe su 122 in VHF (108–118 MHz), tutte e 27 le NDB in kHz.
+
+**⚠️ E i due difetti che quella riga di Grosseto ha scoperto.**
+
+1. **Il TACAN di Grosseto non era mai arrivato in archivio**, e **diciassette NDB** nemmeno. L'import passava
+   dal catalogo dei punti condiviso (`NavaidCatalog`), che **toglie gli omonimi tenendo la prima
+   occorrenza** — giusto per suggerire i nomi nelle SID, dove un nome è un punto; disastroso per
+   un'anagrafica, dove lo stesso codice è legittimamente due impianti. In archivio c'erano **10 NDB su 27**:
+   i mancanti erano esattamente i codici presenti in tutt'e due i file (AVI, DEC, FAL, GRA, LPD, MMP, NOV,
+   ORF, OST, PAN, PES, PIS, PTC, RIV, SIG, TRP, VIE).
+   ⚠️ **Il difetto vero era architetturale**: avevo riusato per un'ANAGRAFICA il contenitore fatto per la
+   COMPLETION, e quello per mestiere schiaccia gli omonimi. Ora `NavaidCatalog` offre due viste dello stesso
+   dato — `Entries` (deduplicata, per chi suggerisce) e `Righe` (tutte, per chi costruisce un'anagrafica).
+2. **Un gemello vuoto creato in silenzio**: scrivendo `MNL` con tipo `TACAN` nasceva una seconda riga, che
+   l'import non avrebbe mai riempito — perché per la sorgente MNL è VHF. Ora un codice che esiste già si
+   **cita**, e se esiste più volte si dice **quale**, con frequenza e canale a distinguerle.
+
+**Il modello corretto.**
+
+| | prima | adesso |
+|---|---|---|
+| identità | codice + **tipo** | codice + **famiglia** + **canale** |
+| famiglia | il *file* (`itvor` → «VOR») | la **banda**: `VHF` o `NDB`, che il file attesta davvero |
+| tipo | dedotto dal file, con `DisplayType` come toppa | **editoriale**, una colonna sola, e null è una risposta |
+
+⚠️ **Il canale è nell'identità** perché senza di lui GRO diventa **una riga sola** con la frequenza di un
+impianto e il canale dell'altro: una chimera, stampata su un SOP. Il prezzo è che l'identità citata in un
+documento ha tre campi invece di due — si legge in chiaro nel JSON, ed è un prezzo giusto.
+
+⚠️ **Il tipo non si deduce, e non si mette un ripiego**: in tabella si legge un **trattino** finché non lo
+dice una persona. Stampare la banda al posto suo vorrebbe dire mettere su un SOP una classificazione che non
+ha fatto nessuno, con l'aria di essere un dato.
+
+**La tabella si è SVUOTATA e rifatta** (decisione del committente): le righe di prima nascevano da una
+classificazione sbagliata, e convertirle voleva dire portarsi dietro l'errore. ⚠️ E la migrazione azzera
+anche lo **stato dell'import**, o il giro gestito non sarebbe ripartito per ventiquattro ore — lasciando
+l'anagrafica vuota per un giorno intero, con le tabelle dei SOP che non trovano più le righe che citano.
+**Lo svuotamento e il riempimento sono lo stesso atto.**
+
+**La misura dopo la correzione**, sul sectorfile vero: **149 righe** (122 VHF + 27 NDB) contro le 132 di
+prima, GRO in **due** righe (`GRO|VHF|` con 109.85 e `GRO|VHF|35Y` col solo canale), DEC in due (VHF e NDB),
+e **27 righe col tipo** — gli NDB, l'unica famiglia in cui il tipo è uno solo.
+
+### 12m. La pagina «Radioassistenze», e la cancellazione con due guardie
+
+Chiesta dal committente: un posto solo da cui si vedono tutte, accessibile agli **Editor**, e l'**unico** da
+cui si eliminano.
+
+⚠️ **Perché serve.** Un'anagrafica condivisa senza una pagina sua si vede solo attraverso un documento: per
+accorgersi che il TACAN di Grosseto non c'era, o che DEC aveva perso il suo NDB, bisognava aprire un SOP che
+li citasse — e se non li citava nessuno, non lo si scopriva mai.
+
+⚠️ **Ed è la lista di lavoro**: dopo l'import **121 righe VHF non hanno un tipo**, e il filtro «senza tipo»
+le raduna. Senza la pagina, l'unico modo di trovarle sarebbe inciampare in un trattino dentro un SOP.
+
+**La cancellazione, e perché sta solo lì.** Togliere una riga da un documento è un gesto su *quel* documento;
+cancellarla dall'anagrafica è un gesto su **un dato di tutti**, e non si fa dalla tabella di uno. Con due
+guardie:
+
+- ⚠️ **Una riga che manda la sorgente non si elimina**: il giro dopo tornerebbe, e chi l'ha «eliminata»
+  crederebbe di averlo fatto. Il cestino su quelle righe **non compare affatto** — meglio che comparire e
+  rifiutare.
+- ⚠️ **Una riga citata da un documento nemmeno**: sparirebbe da sotto una tabella già scritta. La pagina dice
+  **chi** la cita, perché è l'unica informazione con cui si rimedia.
+
+⚠️ **Non si chiama «fix»**, e non è pedanteria: nel prodotto «fix» sono i **punti di riporto** di
+`itfix.fix`, 3 732 nomi che suggeriscono i punti nelle SID. Una pagina «Fix» piena di VOR e NDB sarebbe
+esattamente l'ambiguità che ha fatto perdere questo giro.
+
+**Verificata dal vivo** (l'import vero, dal sectorfile vero): 149 righe, GRO in due righe distinte con le
+loro coordinate, i campi della sorgente in **pill** e non in caselle, il tipo scritto a mano che fa scendere
+la chip «senza tipo» da 122 a 121.
 
 ### 12d. Ordine dei lavori
 

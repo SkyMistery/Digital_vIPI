@@ -982,6 +982,22 @@
   <data name="Nav_BadCode" xml:space="preserve"><value>Il codice non è valido: da due a cinque lettere o cifre.</value></data>
   <data name="Nav_NeedKind" xml:space="preserve"><value>Serve la natura (VOR, NDB, ILS, TACAN...): quel codice non è ancora in anagrafica.</value></data>
   <data name="Nav_Duplicate" xml:space="preserve"><value>Quella radioassistenza è già in tabella.</value></data>
+  <data name="Nav_Ambiguous" xml:space="preserve"><value>«{0}» è più di un impianto ({1}): scegli quale dall'elenco a discesa, o aggiungilo dalla pagina Radioassistenze.</value></data>
+  <data name="Nav_AdminTitle" xml:space="preserve"><value>Radioassistenze</value></data>
+  <data name="Nav_AdminNav" xml:space="preserve"><value>Radioassist.</value></data>
+  <data name="Nav_AdminSubtitle" xml:space="preserve"><value>L'anagrafica di divisione: la stessa radioassistenza in tutti i documenti che la citano.</value></data>
+  <data name="Nav_AdminIntro" xml:space="preserve"><value>&lt;p&gt;Frequenza, canale e coordinate di VOR e NDB arrivano dal &lt;b&gt;sectorfile&lt;/b&gt; e da qui non si toccano: la sorgente vince. Il &lt;b&gt;tipo&lt;/b&gt; invece lo scrive una persona — il sectorfile tiene VOR, TACAN e VORTAC nello stesso file e non sa dire quale sia quale.&lt;/p&gt;&lt;p&gt;Si eliminano solo le righe &lt;b&gt;nostre&lt;/b&gt; e solo se &lt;b&gt;nessun documento le cita&lt;/b&gt;: una riga che sparisce da sotto una tabella pubblicata è un buco che non si spiega.&lt;/p&gt;</value></data>
+  <data name="Nav_AdminSearch" xml:space="preserve"><value>Cerca</value></data>
+  <data name="Nav_AdminNoType" xml:space="preserve"><value>Senza tipo</value></data>
+  <data name="Nav_AdminFromSource" xml:space="preserve"><value>{0} dal sectorfile</value></data>
+  <data name="Nav_AdminEmpty" xml:space="preserve"><value>Nessuna radioassistenza con questi filtri.</value></data>
+  <data name="Nav_AdminAddHint" xml:space="preserve"><value>Si aggiungono a mano le radioassistenze che il sectorfile non ha: ILS, e i TACAN che non compaiono fra i punti. La famiglia è la banda: VHF (108–118 MHz) o NDB (kHz).</value></data>
+  <data name="Nav_AdminAdded" xml:space="preserve"><value>Aggiunta «{0}» ({1}). Adesso si compilano tipo, frequenza e coordinate.</value></data>
+  <data name="Nav_AdminDelete" xml:space="preserve"><value>Elimina dall'anagrafica</value></data>
+  <data name="Nav_AdminDeleted" xml:space="preserve"><value>Eliminata «{0}» ({1}).</value></data>
+  <data name="Nav_AdminFromSourceNoDelete" xml:space="preserve"><value>Non eliminata: questa riga la manda il sectorfile, e il giro d'import successivo la ricreerebbe.</value></data>
+  <data name="Nav_AdminCited" xml:space="preserve"><value>Non eliminata: la citano {0}. Prima si toglie da quelle tabelle.</value></data>
+  <data name="Nav_BadChannel" xml:space="preserve"><value>Non salvato: un canale è da una a tre cifre più X o Y (per esempio 99Y) — e se esiste già una riga con quel canale, va cambiata quella.</value></data>
   <data name="Div_Airports" xml:space="preserve"><value>Aeroporti</value></data>
   <data name="Div_Navaids" xml:space="preserve"><value>Radioassistenze</value></data>
   <data name="Div_Bearing" xml:space="preserve"><value>Rilevamento</value></data>
