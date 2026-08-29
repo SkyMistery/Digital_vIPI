@@ -4,9 +4,9 @@
 
 ## Dove siamo, prima di tutto il resto
 
-🆕 **29 agosto, sera — supervisione dei vSOP militari contro la loro carta.** Dieci voci trovate leggendo
-[`docs/feature/2026-08-27-vsop-militari.md`](docs/feature/2026-08-27-vsop-militari.md) **contro il codice**;
-dieci chiuse. Esito: [`docs/history/audit-2026-08-29-vsop-militari-relazione.md`](docs/history/audit-2026-08-29-vsop-militari-relazione.md),
+🆕 **29 agosto — supervisione dei vSOP militari contro la loro carta.** **Tredici voci, tredici chiuse**:
+dieci le ha trovate la lettura di [`docs/feature/2026-08-27-vsop-militari.md`](docs/feature/2026-08-27-vsop-militari.md)
+**contro il codice**, tre la verifica a schermo (§V1, più sotto). Esito: [`docs/history/audit-2026-08-29-vsop-militari-relazione.md`](docs/history/audit-2026-08-29-vsop-militari-relazione.md),
 lavori aperti **§V**. Il filo: il documento militare era agganciato al motore di **lettura** e non a quello
 di **governo**. Le quattro grosse:
 
@@ -44,7 +44,22 @@ vSOP militare LIML_TWR  118.100   ← non ripubblicata: tiene il SUO snapshot
 esce **«Slope rules»** in inglese — la stessa resa che il 28 agosto si era chiusa per i soli titoli militari.
 È il glossario, non la relazione fra le edizioni: non toccato apposta.
 
-✅ **NESSUN RAMO CON LAVORO FUORI.** `main` = **`8d14b499`**, spinto: dentro ci sono il glossario di
+✅ **UN SOLO RAMO, LOCALE E REMOTO: `main` = `e694eed0`, spinto.** Il 29 agosto sera sono stati cancellati
+anche i **sette segnalibri** `*-prima-del-merge-*`, verificati uno per uno a `git rev-list --count main..<ramo>`
+= 0: erano punti di ritorno, non lavoro. ⚠️ **Gli SHA restano scritti qui**, perché i punti di ritorno servono
+per SHA e non per nome — i commit sono tutti antenati di `main`, quindi raggiungibili:
+
+| segnalibro cancellato | SHA | era il `main` prima di |
+|---|---|---|
+| `main-prima-del-merge-20260822` | `3f4bfb38` | login (nome e cognome veri) |
+| `statistiche-atc-prima-del-merge-20260825` | `410a1ebb` | statistiche ATC |
+| `main-prima-del-merge-20260827` | `963e9aa9` | fusione del 27 |
+| `main-prima-del-merge-20260828` | `48de826d` | i due rossi intermittenti |
+| `main-prima-del-merge-20260828-lingua` | `f120d5c9` | archivio ATC mondiale |
+| `main-prima-del-merge-20260828-glossario` | `0a4f92e4` | glossario di fraseologia |
+| `main-prima-del-merge-20260829-autorizzazioni` | `332f8814` | autorizzazioni a livelli |
+
+Storia precedente: `main` era **`8d14b499`**, e dentro c'erano già dentro ci sono il glossario di
 fraseologia (28 agosto) e le **autorizzazioni a livelli** (29 agosto). Entrambi i rami sono stati cancellati
 da locale e da `origin` dopo aver verificato `git rev-list --count main..origin/<ramo>` = 0. Build Release
 `--no-incremental` e suite intera verdi **dopo** ogni fusione, che è l'unico momento in cui la prova conta.
