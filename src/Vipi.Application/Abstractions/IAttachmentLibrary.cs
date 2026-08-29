@@ -74,6 +74,15 @@ public enum AttachmentReplace
     Invariato,
 }
 
+/// <summary>Esito del tentativo di eliminare una voce.</summary>
+public enum AttachmentDelete
+{
+    Ok,
+
+    /// <summary>La voce non c'è (o non c'è più: qualcuno l'ha già eliminata).</summary>
+    NonTrovata,
+}
+
 /// <summary>
 /// La biblioteca degli allegati (carta <c>docs/feature/2026-08-25-biblioteca-allegati.md</c>): i PDF stanno
 /// sul Drive di divisione, qui stanno <b>identità, organizzazione e versioni</b>.
@@ -119,6 +128,20 @@ public interface IAttachmentLibrary
     /// </summary>
     Task<(AttachmentReplace Esito, AttachmentRow? Riga)> ReplaceAsync(
         string slug, string link, string? note, int userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Elimina una voce e tutte le sue versioni.
+    ///
+    /// <para>⚠️ <b>Non tocca il file sul deposito</b>, e non è una dimenticanza: i byte non sono nostri, e
+    /// cancellare da qui un PDF che qualcuno ha caricato sul Drive di divisione sarebbe un gesto su un dato
+    /// di altri fatto per conto d'altri. Qui si toglie il <b>puntatore</b>.</para>
+    ///
+    /// <para>⚠️ <b>E non si rifiuta se la voce è citata.</b> Il rifiuto sarebbe la scelta giusta se ci fosse
+    /// un modo automatico di rimediare — e non c'è: le citazioni stanno dentro testo scritto da persone.
+    /// Chi decide vede <b>quali</b> documenti restano col link morto e conferma; a segnalarli ci pensa chi
+    /// orchestra, come per la sostituzione.</para>
+    /// </summary>
+    Task<AttachmentDelete> DeleteAsync(string slug, int userId, CancellationToken ct = default);
 
     /// <summary>
     /// Crea una voce e la sua <b>v1</b> in un colpo solo.

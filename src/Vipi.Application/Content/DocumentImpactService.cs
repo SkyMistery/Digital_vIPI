@@ -133,6 +133,7 @@ public sealed class DocumentImpactService : IDocumentImpactService
         public const string ReleaseKeyMoved = "Impact_ReleaseKeyMoved";
         public const string BrokenTarget = "Impact_BrokenTarget";
         public const string AttachmentReplaced = "Impact_AttachmentReplaced";
+        public const string AttachmentDeleted = "Impact_AttachmentDeleted";
 
         public static string For(ImpactKind kind) => kind switch
         {
@@ -147,6 +148,7 @@ public sealed class DocumentImpactService : IDocumentImpactService
             ImpactKind.ReleaseDrift => ReleaseDrift,
             ImpactKind.ReleaseKeyMoved => ReleaseKeyMoved,
             ImpactKind.AttachmentReplaced => AttachmentReplaced,
+            ImpactKind.AttachmentDeleted => AttachmentDeleted,
             _ => BrokenTarget,
         };
     }

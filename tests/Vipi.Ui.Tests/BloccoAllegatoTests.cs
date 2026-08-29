@@ -41,6 +41,8 @@ public class BloccoAllegatoTests : TestContext
             AttachmentDraft draft, int userId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<(AttachmentReplace Esito, AttachmentRow? Riga)> ReplaceAsync(
             string slug, string link, string? note, int userId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<AttachmentDelete> DeleteAsync(string slug, int userId, CancellationToken ct = default) =>
+            throw new NotSupportedException();
     }
 
     private static AttachmentRow Voce(string slug, string titolo) =>

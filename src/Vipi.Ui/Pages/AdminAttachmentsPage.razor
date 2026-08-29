@@ -8,7 +8,7 @@
 @inject IEditAuthorizationService Authz
 @inject IAttachmentLibrary Biblioteca
 @inject IAttachmentUsage Uso
-@inject IAttachmentReplacement Sostituzione
+@inject IAttachmentCuration Cura
 @inject IStringLocalizer<SharedResource> L
 
 @* La biblioteca degli allegati: i PDF caricati in un posto solo e citabili dai documenti
@@ -33,6 +33,10 @@
    documenti che cambiano, con lo stato di ciascuno. È l'unica informazione con cui si decide, e il link segue
    sempre la versione corrente — quindi un documento già PUBBLICATO mostra il file nuovo senza che nessuno
    l'abbia toccato.
+
+   ⚠️ L'eliminazione NON si rifiuta quando la voce è citata, e non è una svista: rifiutare avrebbe senso se
+   ci fosse un modo automatico di rimediare, e non c'è — le citazioni stanno dentro testo scritto da persone.
+   Si vede QUALI documenti resteranno col link morto, si conferma, e quei documenti vengono segnalati.
 
    ⚠️ Tutto ciò che entra qui è PUBBLICO: il file su Drive è condiviso «chiunque abbia il link». Allegati
    riservati non esistono, e la pagina lo dice invece di lasciarlo scoprire.
@@ -155,9 +159,64 @@
                                         title="@L["Att_Replace"]" @onclick="() => ApriSostituzione(r)">
                                     @L["Att_Replace"]
                                 </button>
+                                <button type="button" class="btn ghost" disabled="@_busy"
+                                        title="@L["Att_Delete"]" @onclick="() => ApriEliminazione(r)">
+                                    <Icon Name="trash" Size="13" />
+                                </button>
                             </td>
                         </tr>
-                        @if (_sostituisce == r.Slug)
+                        @if (_elimina == r.Slug)
+                        {
+                            <tr class="mil-note">
+                                <td colspan="8">
+                                    <div class="att-replace">
+                                        <p class="att-replace-h"><b>@L["Att_DeleteTitle", r.Title]</b></p>
+
+                                        @* ⚠️ Prima si dice che cosa RESTA rotto, poi si chiede conferma. Un
+                                           «sei sicuro?» senza questo elenco è una domanda a cui non si può
+                                           rispondere. *@
+                                        @if (Citazioni(r.Slug).Count > 0)
+                                        {
+                                            <div class="callout warning">
+                                                <span class="cic"><Icon Name="warning" Size="18" /></span>
+                                                <div>@L["Att_DeleteImpact", Citazioni(r.Slug).Count]</div>
+                                            </div>
+                                            <ul class="att-cited">
+                                                @foreach (var c in Citazioni(r.Slug))
+                                                {
+                                                    <li>
+                                                        <span class="pill neutral">@L["AttSrc_" + c.Source]</span>
+                                                        @if (c.Url is { Length: > 0 } durl)
+                                                        {
+                                                            <a href="@durl">@c.Title</a>
+                                                        }
+                                                        else
+                                                        {
+                                                            <b>@c.Title</b>
+                                                        }
+                                                        <span class="muted">@Stato(c)</span>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        }
+                                        else
+                                        {
+                                            <p class="muted">@L["Att_DeleteNoImpact"]</p>
+                                        }
+
+                                        <p class="help">@L["Att_DeleteKeepsFile"]</p>
+
+                                        <div class="att-replace-actions">
+                                            <button type="button" class="btn danger" disabled="@_busy"
+                                                    @onclick="() => Elimina(r)">@L["Att_DeleteConfirm"]</button>
+                                            <button type="button" class="btn ghost" disabled="@_busy"
+                                                    @onclick="() => _elimina = null">@L["Common_Cancel"]</button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        else if (_sostituisce == r.Slug)
                         {
                             <tr class="mil-note">
                                 <td colspan="8">
@@ -302,6 +361,7 @@
     private bool _soloMaiUsate;
     private string? _aperta;
     private string? _sostituisce;
+    private string? _elimina;
     private string _nuovoLink = "";
     private string _nuovaNota = "";
 
@@ -386,9 +446,40 @@
     {
         _messaggio = null;
         _aperta = null;
+        _elimina = null;
         _sostituisce = r.Slug;
         _nuovoLink = "";
         _nuovaNota = "";
+    }
+
+    /// <summary>Apre la guardia. ⚠️ Chiude l'altro pannello: due conferme aperte insieme sulla stessa riga
+    /// sono due domande diverse che sembrano una sola.</summary>
+    private void ApriEliminazione(AttachmentRow r)
+    {
+        _messaggio = null;
+        _aperta = null;
+        _sostituisce = null;
+        _elimina = r.Slug;
+    }
+
+    private async Task Elimina(AttachmentRow r)
+    {
+        if (!PuoScrivere) return;
+        _busy = true; _messaggio = null;
+        try
+        {
+            var esito = await Cura.DeleteAsync(r.Slug, Authz.CurrentUserId ?? 0);
+
+            _ok = esito.Esito == AttachmentDelete.Ok;
+            _messaggio = esito.Esito == AttachmentDelete.Ok
+                ? L["Att_Deleted", r.Title, esito.Orfani.Count(c => c.DocumentId is not null)].Value
+                : L["Att_ReplaceGone"].Value;
+
+            _elimina = null;
+            await CaricaAsync();
+        }
+        catch (Exception ex) { _ok = false; _messaggio = ex.Message; }
+        finally { _busy = false; }
     }
 
     private void ChiudiSostituzione()
@@ -404,7 +495,7 @@
         _busy = true; _messaggio = null;
         try
         {
-            var esito = await Sostituzione.ReplaceAsync(r.Slug, _nuovoLink, _nuovaNota, Authz.CurrentUserId ?? 0);
+            var esito = await Cura.ReplaceAsync(r.Slug, _nuovoLink, _nuovaNota, Authz.CurrentUserId ?? 0);
 
             _ok = esito.Esito == AttachmentReplace.Ok;
             _messaggio = esito.Esito switch

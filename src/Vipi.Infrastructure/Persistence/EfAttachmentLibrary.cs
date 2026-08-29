@@ -137,6 +137,33 @@ public sealed class EfAttachmentLibrary : IAttachmentLibrary
         return (AttachmentReplace.Ok, Riga(voce));
     }
 
+    public async Task<AttachmentDelete> DeleteAsync(string slug, int userId, CancellationToken ct = default)
+    {
+        var chiave = AttachmentRules.Norm(slug).ToLowerInvariant();
+
+        var voce = await _db.Attachments.Include(a => a.Versions).FirstOrDefaultAsync(a => a.Slug == chiave, ct);
+        if (voce is null) return AttachmentDelete.NonTrovata;
+
+        // Il registro tiene quel che la riga portava: titolo, ambito e l'id del file corrente. Dopo la
+        // cancellazione è l'unico posto dove è rimasto scritto CHE COSA è stato tolto — e se qualcuno
+        // dovesse rimetterla, è di qui che si riprende l'id.
+        var corrente = voce.Versions.OrderByDescending(v => v.Number).FirstOrDefault();
+        AuditScribe.Write(_db, userId, AuditAction.Delete, "Attachment", chiave, new
+        {
+            Titolo = voce.Title,
+            Tipo = voce.Kind.ToString(),
+            Ambito = voce.ScopeKey ?? voce.Scope.ToString(),
+            Versioni = voce.Versions.Count,
+            IdCorrente = corrente?.ExternalId,
+        });
+
+        // Le versioni se ne vanno in cascata (vedi VipiDbContext): non hanno vita propria.
+        // ⚠️ Il file sul deposito NON si tocca: i byte non sono nostri.
+        _db.Attachments.Remove(voce);
+        await _db.SaveChangesAsync(ct);
+        return AttachmentDelete.Ok;
+    }
+
     /// <summary>
     /// La voce più la sua versione corrente, che è quella col <c>Number</c> più alto.
     /// <para>Torna <c>null</c> per una voce senza nemmeno una versione: non dovrebbe esistere — nascono

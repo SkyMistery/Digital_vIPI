@@ -2834,4 +2834,13 @@
   <data name="Att_ReplaceGone" xml:space="preserve"><value>The entry is gone: somebody deleted it while you were replacing it.</value></data>
   <data name="Impact_AttachmentReplaced" xml:space="preserve"><value>The attachment «{0}» was replaced: the document already shows the new file, so it needs re-reading.</value></data>
   <data name="ImpactKind_AttachmentReplaced" xml:space="preserve"><value>Attachment replaced</value></data>
+  <data name="Att_Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Att_DeleteTitle" xml:space="preserve"><value>Delete «{0}» from the library</value></data>
+  <data name="Att_DeleteImpact" xml:space="preserve"><value>These {0} documents will be left with a link that leads nowhere. They will be flagged for review.</value></data>
+  <data name="Att_DeleteNoImpact" xml:space="preserve"><value>No document cites it: nothing is left to fix.</value></data>
+  <data name="Att_DeleteKeepsFile" xml:space="preserve"><value>The file on the division Drive stays where it is: only the entry is removed here.</value></data>
+  <data name="Att_DeleteConfirm" xml:space="preserve"><value>Delete the entry</value></data>
+  <data name="Att_Deleted" xml:space="preserve"><value>«{0}» deleted; {1} documents to fix, flagged.</value></data>
+  <data name="Impact_AttachmentDeleted" xml:space="preserve"><value>The attachment «{0}» was deleted from the library: the citation in the document no longer leads anywhere.</value></data>
+  <data name="ImpactKind_AttachmentDeleted" xml:space="preserve"><value>Attachment deleted</value></data>
 </root>

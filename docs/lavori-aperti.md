@@ -2192,7 +2192,28 @@ deduplicazione su *(documento, tipo, origine)*.
 - La sostituzione è un **servizio a parte** (`IAttachmentReplacement`): scrivere è una riga, sapere chi cita
   costa una scansione — e quella non la devono pagare né il redirect né l'elenco.
 
-**Da dove si riparte**: slice 8 — cancellazione con guardia, ricerca, stampa e guida in-app. È l'ultima.
+**✅ Slice 8 fatta il 29 agosto 2026 — la feature è COMPLETA, tutte e nove le slice.**
+
+- **Cancellazione con guardia**: si vede **quali** documenti resteranno col link morto, si conferma, e quei
+  documenti vengono segnalati (`ImpactKind.AttachmentDeleted`, in coda). ⚠️ **Non si rifiuta**: rifiutare
+  avrebbe senso se ci fosse un modo automatico di rimediare, e non c'è. ⚠️ E il **file sul Drive resta**: i
+  byte non sono nostri.
+- **Ricerca**: presidiata — cercare «Marseille» trova la LoA dal titolo del blocco, e lo **slug non è testo**
+  (cercarlo non pesca il blocco, né mostra JSON nel risultato).
+- **Stampa**: già chiusa nella 5-bis.
+- **Guida**: sostituzione ed eliminazione scritte nel capitolo dei blocchi, in italiano e in inglese.
+- 🔧 `IAttachmentReplacement` è diventato **`IAttachmentCuration`**: fa due atti, non uno. Un nome che
+  descrive metà di quel che c'è dentro mente a chi legge fra sei mesi, e rinominarlo prima che qualcuno lo
+  citi costava una riga.
+
+⚠️ **RESTA una sola cosa, e i test non possono darla**: il rischio **R8** — l'embed di Drive **non è mai
+stato provato dal vivo**. Google può togliere l'incorporamento della preview quando vuole (è già successo col
+fondo mappa CARTO il 27 agosto). Serve il sito acceso **e un PDF vero sul Drive di divisione** di cui
+incollare il link. Il modo *Link* non ne dipende: a cadere sarebbe solo l'*Incorporato*, che ha comunque il
+link sotto come ripiego.
+
+**Da fare al deploy**: le due migrazioni `BibliotecaAllegati` (SQLite + MySQL) e l'annuncio agli staffisti
+che la pagina **Allegati** esiste — il primo caricamento è a mano sul Drive.
 
 ⚠️ **La 5-bis non si chiude senza una prova dal vivo**: Google può togliere l'embed della preview quando
 vuole — è già successo col fondo mappa CARTO il 27 agosto — e qui dentro nessun test apre un browser.

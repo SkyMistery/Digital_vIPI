@@ -2842,4 +2842,13 @@
   <data name="Att_ReplaceGone" xml:space="preserve"><value>La voce non c'è più: qualcuno l'ha eliminata mentre la stavi sostituendo.</value></data>
   <data name="Impact_AttachmentReplaced" xml:space="preserve"><value>L'allegato «{0}» è stato sostituito: il documento mostra già il file nuovo, da rileggere.</value></data>
   <data name="ImpactKind_AttachmentReplaced" xml:space="preserve"><value>Allegato sostituito</value></data>
+  <data name="Att_Delete" xml:space="preserve"><value>Elimina</value></data>
+  <data name="Att_DeleteTitle" xml:space="preserve"><value>Elimina «{0}» dalla biblioteca</value></data>
+  <data name="Att_DeleteImpact" xml:space="preserve"><value>Questi {0} documenti resteranno con un link che non porta da nessuna parte. Verranno segnalati come da rivedere.</value></data>
+  <data name="Att_DeleteNoImpact" xml:space="preserve"><value>Non la cita nessun documento: non resta niente da correggere.</value></data>
+  <data name="Att_DeleteKeepsFile" xml:space="preserve"><value>Il file sul Drive di divisione resta dov'è: qui si toglie solo la voce.</value></data>
+  <data name="Att_DeleteConfirm" xml:space="preserve"><value>Elimina la voce</value></data>
+  <data name="Att_Deleted" xml:space="preserve"><value>«{0}» eliminata; {1} documenti da correggere, segnalati.</value></data>
+  <data name="Impact_AttachmentDeleted" xml:space="preserve"><value>L'allegato «{0}» è stato eliminato dalla biblioteca: la citazione nel documento non porta più da nessuna parte.</value></data>
+  <data name="ImpactKind_AttachmentDeleted" xml:space="preserve"><value>Allegato eliminato</value></data>
 </root>

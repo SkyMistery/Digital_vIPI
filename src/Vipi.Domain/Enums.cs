@@ -305,6 +305,16 @@ public enum ImpactKind
     /// più — una frase che descrive la LoA vecchia resta lì, e nessun calcolo la sa riscrivere.</para>
     /// </summary>
     AttachmentReplaced,
+
+    /// <summary>
+    /// Un <b>allegato citato dal documento è stato eliminato</b> dalla biblioteca: la citazione è rimasta e
+    /// adesso non porta da nessuna parte.
+    ///
+    /// <para>Non è <see cref="AttachmentReplaced"/>: là il link funziona e mostra un file diverso, qui il
+    /// link è <b>morto</b>. E il documento non se ne accorge da solo — un <c>allegato:</c> che non risolve
+    /// più è un 404 che vede solo chi ci clicca sopra, cioè un lettore.</para>
+    /// </summary>
+    AttachmentDeleted,
 }
 
 /// <summary>Regole trasversali su <see cref="ImpactKind"/>: stanno qui e non in tre <c>switch</c> sparsi.</summary>

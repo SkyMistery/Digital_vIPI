@@ -65,6 +65,9 @@ public class PaginaAllegatiTests : TestContext
             string slug, string link, string? note, int userId, CancellationToken ct = default) =>
             throw new NotSupportedException();   // la pagina passa dal servizio, non da qui
 
+        public Task<AttachmentDelete> DeleteAsync(string slug, int userId, CancellationToken ct = default) =>
+            throw new NotSupportedException();   // idem
+
         public Task<(AttachmentCreate Esito, AttachmentRow? Riga)> CreateAsync(
             AttachmentDraft draft, int userId, CancellationToken ct = default)
         {
@@ -94,22 +97,26 @@ public class PaginaAllegatiTests : TestContext
                 _uso.TryGetValue(slug, out var u) ? u.Citations : Array.Empty<AttachmentCitation>());
     }
 
-    /// <summary>Sostituzione finta: ricorda che cosa le è stato chiesto, e con che link.</summary>
-    private sealed class SostituzioneFinta : IAttachmentReplacement
+    /// <summary>Cura finta: ricorda che cosa le è stato chiesto, e con che link.</summary>
+    private sealed class CuraFinta : IAttachmentCuration
     {
         private readonly AttachmentReplace _esito;
+        private readonly AttachmentDelete _esitoDelete;
         private readonly AttachmentCitation[] _impattati;
 
-        public SostituzioneFinta(AttachmentReplace esito = AttachmentReplace.Ok,
+        public CuraFinta(AttachmentReplace esito = AttachmentReplace.Ok,
+            AttachmentDelete esitoDelete = AttachmentDelete.Ok,
             params AttachmentCitation[] impattati)
         {
             _esito = esito;
+            _esitoDelete = esitoDelete;
             _impattati = impattati;
         }
 
         public string? Slug { get; private set; }
         public string? Link { get; private set; }
         public string? Nota { get; private set; }
+        public string? Eliminato { get; private set; }
 
         public Task<IReadOnlyList<AttachmentCitation>> ImpactPreviewAsync(string slug, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<AttachmentCitation>>(_impattati);
@@ -121,6 +128,12 @@ public class PaginaAllegatiTests : TestContext
 
             var riga = _esito == AttachmentReplace.Ok ? Riga(1, slug, "LoA Roma–Marseille", versione: 3) : null;
             return Task.FromResult(new AttachmentReplacementOutcome(_esito, riga, _impattati));
+        }
+
+        public Task<AttachmentDeletionOutcome> DeleteAsync(string slug, int userId, CancellationToken ct = default)
+        {
+            Eliminato = slug;
+            return Task.FromResult(new AttachmentDeletionOutcome(_esitoDelete, _impattati));
         }
     }
 
@@ -134,13 +147,13 @@ public class PaginaAllegatiTests : TestContext
 
     private IRenderedComponent<AdminAttachmentsPage> Render(
         IAttachmentLibrary biblioteca, VipiRole livello = VipiRole.Editor, IAttachmentUsage? uso = null,
-        IAttachmentReplacement? sostituzione = null)
+        IAttachmentCuration? cura = null)
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
         Services.AddSingleton(biblioteca);
         Services.AddSingleton(uso ?? new UsoFinto());
-        Services.AddSingleton(sostituzione ?? new SostituzioneFinta());
+        Services.AddSingleton(cura ?? new CuraFinta());
         return RenderComponent<AdminAttachmentsPage>();
     }
 
@@ -410,7 +423,7 @@ public class PaginaAllegatiTests : TestContext
                     "/services/vsop/lirr/airports/editor?icao=LIRF", true, "2609", 7),
             })));
 
-        cut.FindAll("table.res-table tbody button").ToArray()[^1].Click();
+        cut.Find("button[title='Att_Replace']").Click();
 
         var pannello = cut.Find(".att-replace");
         Assert.Contains("Att_ReplaceImpact 1", pannello.TextContent);
@@ -425,7 +438,7 @@ public class PaginaAllegatiTests : TestContext
     {
         var cut = Render(new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA")));
 
-        cut.FindAll("table.res-table tbody button").ToArray()[^1].Click();
+        cut.Find("button[title='Att_Replace']").Click();
 
         Assert.Contains("Att_ReplaceNoImpact", cut.Find(".att-replace").TextContent);
     }
@@ -433,12 +446,12 @@ public class PaginaAllegatiTests : TestContext
     [Fact]
     public void La_sostituzione_passa_link_e_nota_al_servizio()
     {
-        var sostituzione = new SostituzioneFinta();
+        var cura = new CuraFinta();
         var cut = Render(
             new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA")),
-            sostituzione: sostituzione);
+            cura: cura);
 
-        cut.FindAll("table.res-table tbody button").ToArray()[^1].Click();
+        cut.Find("button[title='Att_Replace']").Click();
 
         // ⚠️ Si ricerca l'elemento DOPO ogni render: il primo `Change` rende di nuovo il componente, e la
         // collezione presa prima porta gestori che nel nuovo albero non esistono più.
@@ -447,9 +460,9 @@ public class PaginaAllegatiTests : TestContext
         cut.FindAll(".att-replace input").ToArray()[1].Change("rifirmata dopo modifica CoP");
         cut.Find(".att-replace-actions button.primary").Click();
 
-        Assert.Equal("loa-lirr-lfmm", sostituzione.Slug);
-        Assert.Contains("1A2b3C4d5E6f7G8h9I0jKlMnOpQrStUvW", sostituzione.Link);
-        Assert.Equal("rifirmata dopo modifica CoP", sostituzione.Nota);
+        Assert.Equal("loa-lirr-lfmm", cura.Slug);
+        Assert.Contains("1A2b3C4d5E6f7G8h9I0jKlMnOpQrStUvW", cura.Link);
+        Assert.Equal("rifirmata dopo modifica CoP", cura.Nota);
     }
 
     /// <summary>L'esito dice la versione nuova e <b>quanti documenti sono stati segnalati</b>: è la metà utile
@@ -461,9 +474,9 @@ public class PaginaAllegatiTests : TestContext
             null, true, "2609", 7);
         var cut = Render(
             new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA Roma–Marseille")),
-            sostituzione: new SostituzioneFinta(AttachmentReplace.Ok, impattato));
+            cura: new CuraFinta(AttachmentReplace.Ok, AttachmentDelete.Ok, impattato));
 
-        cut.FindAll("table.res-table tbody button").ToArray()[^1].Click();
+        cut.Find("button[title='Att_Replace']").Click();
         cut.Find(".att-replace-actions button.primary").Click();
 
         var msg = cut.Find(".st-msg");
@@ -482,9 +495,9 @@ public class PaginaAllegatiTests : TestContext
     {
         var cut = Render(
             new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA")),
-            sostituzione: new SostituzioneFinta(esito));
+            cura: new CuraFinta(esito));
 
-        cut.FindAll("table.res-table tbody button").ToArray()[^1].Click();
+        cut.Find("button[title='Att_Replace']").Click();
         cut.Find(".att-replace-actions button.primary").Click();
 
         Assert.Contains(chiave, cut.Find(".st-msg").TextContent);
@@ -500,14 +513,96 @@ public class PaginaAllegatiTests : TestContext
     {
         var cut = Render(new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA")));
 
-        cut.FindAll("table.res-table tbody button").ToArray()[^1].Click();
+        cut.Find("button[title='Att_Replace']").Click();
         cut.FindAll(".att-replace input").ToArray()[0].Change("https://drive.google.com/file/d/AAAAAAAAAAAA/view");
         cut.Find(".att-replace-actions button.ghost").Click();
 
         Assert.Empty(cut.FindAll(".att-replace"));
 
-        cut.FindAll("table.res-table tbody button").ToArray()[^1].Click();
+        cut.Find("button[title='Att_Replace']").Click();
         Assert.Equal("", cut.FindAll(".att-replace input").ToArray()[0].GetAttribute("value"));
+    }
+
+    // ---- eliminazione ------------------------------------------------------------------------------
+
+    /// <summary>
+    /// ⚠️ La guardia dice <b>che cosa resta rotto</b> prima di chiedere conferma. Un «sei sicuro?» senza
+    /// questo elenco è una domanda a cui non si può rispondere — e qui la risposta cambia: un conto è togliere
+    /// una voce che non cita nessuno, un altro lasciare tre documenti con un link morto.
+    /// </summary>
+    [Fact]
+    public void La_guardia_elenca_chi_resta_col_link_morto()
+    {
+        var cut = Render(
+            new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA Roma–Marseille")),
+            uso: new UsoFinto(("loa-lirr-lfmm", new[]
+            {
+                new AttachmentCitation(AttachmentCitationSource.Release, "vIPI Fiumicino", null, true, "2609", 7),
+            })));
+
+        cut.Find("button[title='Att_Delete']").Click();
+
+        var pannello = cut.Find(".att-replace");
+        Assert.Contains("Att_DeleteImpact 1", pannello.TextContent);
+        Assert.Contains("vIPI Fiumicino", pannello.TextContent);
+        // E si dice che il file sul deposito resta: è la domanda che si fa chiunque prema quel tasto.
+        Assert.Contains("Att_DeleteKeepsFile", pannello.TextContent);
+    }
+
+    [Fact]
+    public void Senza_citazioni_la_guardia_lo_dice()
+    {
+        var cut = Render(new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA")));
+
+        cut.Find("button[title='Att_Delete']").Click();
+
+        Assert.Contains("Att_DeleteNoImpact", cut.Find(".att-replace").TextContent);
+    }
+
+    /// <summary>Niente si elimina al primo clic: il tasto apre la guardia, la conferma è un secondo gesto.</summary>
+    [Fact]
+    public void Il_primo_clic_apre_la_guardia_e_non_elimina()
+    {
+        var cura = new CuraFinta();
+        var cut = Render(new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA")), cura: cura);
+
+        cut.Find("button[title='Att_Delete']").Click();
+
+        Assert.Null(cura.Eliminato);
+        Assert.Single(cut.FindAll(".att-replace"));
+    }
+
+    [Fact]
+    public void La_conferma_elimina_e_dice_quanti_restano_da_correggere()
+    {
+        var orfano = new AttachmentCitation(AttachmentCitationSource.Release, "vIPI Fiumicino", null, true, "2609", 7);
+        var cura = new CuraFinta(AttachmentReplace.Ok, AttachmentDelete.Ok, orfano);
+        var cut = Render(
+            new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA Roma–Marseille")),
+            cura: cura);
+
+        cut.Find("button[title='Att_Delete']").Click();
+        cut.Find(".att-replace-actions button.danger").Click();
+
+        Assert.Equal("loa-lirr-lfmm", cura.Eliminato);
+        var msg = cut.Find(".st-msg");
+        Assert.Contains("Att_Deleted", msg.TextContent);
+        Assert.Contains("ok", msg.ClassName);
+    }
+
+    /// <summary>Le due conferme non stanno aperte insieme sulla stessa riga: sono due domande diverse, e viste
+    /// insieme sembrano una sola.</summary>
+    [Fact]
+    public void Aprire_una_conferma_chiude_laltra()
+    {
+        var cut = Render(new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA")));
+
+        cut.Find("button[title='Att_Replace']").Click();
+        Assert.Single(cut.FindAll(".att-replace-fields"));
+
+        cut.Find("button[title='Att_Delete']").Click();
+        Assert.Empty(cut.FindAll(".att-replace-fields"));
+        Assert.Single(cut.FindAll(".att-replace-actions button.danger"));
     }
 
     /// <summary>La chiave d'ambito compare solo quando serve: la divisione non ne ha una, e un campo che

@@ -14,7 +14,7 @@ namespace Vipi.Application.Tests;
 /// già <b>pubblicato</b> mostra il file nuovo <i>senza che nessuno l'abbia toccato</i>. Chi lo cura deve
 /// saperlo, e queste prove presidiano proprio quello.</para>
 /// </summary>
-public class AttachmentReplacementServiceTests
+public class AttachmentCurationServiceTests
 {
     // ---- impalcatura -----------------------------------------------------------------------------------
 
@@ -22,6 +22,7 @@ public class AttachmentReplacementServiceTests
     {
         private readonly AttachmentReplace _esito;
         public BibliotecaFinta(AttachmentReplace esito = AttachmentReplace.Ok) => _esito = esito;
+
 
         public string? Slug { get; private set; }
         public string? Link { get; private set; }
@@ -46,6 +47,15 @@ public class AttachmentReplacementServiceTests
             Task.FromResult<AttachmentRow?>(null);
         public Task<(AttachmentCreate Esito, AttachmentRow? Riga)> CreateAsync(
             AttachmentDraft draft, int userId, CancellationToken ct = default) => throw new NotSupportedException();
+
+        public AttachmentDelete EsitoDelete { get; init; } = AttachmentDelete.Ok;
+        public string? Eliminato { get; private set; }
+
+        public Task<AttachmentDelete> DeleteAsync(string slug, int userId, CancellationToken ct = default)
+        {
+            Eliminato = slug;
+            return Task.FromResult(EsitoDelete);
+        }
     }
 
     private sealed class UsoFinto : IAttachmentUsage
@@ -102,7 +112,7 @@ public class AttachmentReplacementServiceTests
     public async Task Ogni_documento_che_la_cita_riceve_la_riga_da_rivedere()
     {
         var impatti = new ImpattiFinti();
-        var servizio = new AttachmentReplacementService(
+        var servizio = new AttachmentCurationService(
             new BibliotecaFinta(), new UsoFinto(Cita("vIPI Fiumicino", 7), Cita("vLOA LIRR-LFMM", 9)), impatti);
 
         await servizio.ReplaceAsync("loa-lirr-lfmm", "https://drive.google.com/file/d/AAAAAAAAAAAA/view", null, 704798);
@@ -122,7 +132,7 @@ public class AttachmentReplacementServiceTests
     public async Task Un_documento_citato_due_volte_riceve_una_riga_sola()
     {
         var impatti = new ImpattiFinti();
-        var servizio = new AttachmentReplacementService(
+        var servizio = new AttachmentCurationService(
             new BibliotecaFinta(), new UsoFinto(Cita("vIPI Fiumicino", 7), Cita("vIPI Fiumicino", 7)), impatti);
 
         await servizio.ReplaceAsync("loa-lirr-lfmm", "https://drive.google.com/file/d/AAAAAAAAAAAA/view", null, 1);
@@ -136,7 +146,7 @@ public class AttachmentReplacementServiceTests
     public async Task Una_citazione_senza_documento_non_apre_niente()
     {
         var impatti = new ImpattiFinti();
-        var servizio = new AttachmentReplacementService(
+        var servizio = new AttachmentCurationService(
             new BibliotecaFinta(), new UsoFinto(Cita("minime-generali", null)), impatti);
 
         await servizio.ReplaceAsync("loa-lirr-lfmm", "https://drive.google.com/file/d/AAAAAAAAAAAA/view", null, 1);
@@ -148,7 +158,7 @@ public class AttachmentReplacementServiceTests
     public async Task Se_non_la_cita_nessuno_non_si_apre_niente()
     {
         var impatti = new ImpattiFinti();
-        var servizio = new AttachmentReplacementService(new BibliotecaFinta(), new UsoFinto(), impatti);
+        var servizio = new AttachmentCurationService(new BibliotecaFinta(), new UsoFinto(), impatti);
 
         var esito = await servizio.ReplaceAsync("loa-lirr-lfmm", "https://drive.google.com/file/d/AAAAAAAAAAAA/view", null, 1);
 
@@ -168,7 +178,7 @@ public class AttachmentReplacementServiceTests
     public async Task Una_sostituzione_non_riuscita_non_segnala_niente(AttachmentReplace esito)
     {
         var impatti = new ImpattiFinti();
-        var servizio = new AttachmentReplacementService(
+        var servizio = new AttachmentCurationService(
             new BibliotecaFinta(esito), new UsoFinto(Cita("vIPI Fiumicino", 7)), impatti);
 
         var risultato = await servizio.ReplaceAsync("loa-lirr-lfmm", "qualunque", null, 1);
@@ -182,7 +192,7 @@ public class AttachmentReplacementServiceTests
     [Fact]
     public async Task Lanteprima_dice_chi_cambia()
     {
-        var servizio = new AttachmentReplacementService(
+        var servizio = new AttachmentCurationService(
             new BibliotecaFinta(), new UsoFinto(Cita("vIPI Fiumicino", 7)), new ImpattiFinti());
 
         var citazioni = await servizio.ImpactPreviewAsync("loa-lirr-lfmm");
@@ -196,7 +206,7 @@ public class AttachmentReplacementServiceTests
     public async Task Link_e_nota_arrivano_alla_biblioteca()
     {
         var biblioteca = new BibliotecaFinta();
-        var servizio = new AttachmentReplacementService(biblioteca, new UsoFinto(), new ImpattiFinti());
+        var servizio = new AttachmentCurationService(biblioteca, new UsoFinto(), new ImpattiFinti());
 
         await servizio.ReplaceAsync("loa-lirr-lfmm", "https://drive.google.com/file/d/AAAAAAAAAAAA/view",
             "rifirmata dopo modifica CoP", 704798);
@@ -204,6 +214,69 @@ public class AttachmentReplacementServiceTests
         Assert.Equal("loa-lirr-lfmm", biblioteca.Slug);
         Assert.Equal("https://drive.google.com/file/d/AAAAAAAAAAAA/view", biblioteca.Link);
         Assert.Equal("rifirmata dopo modifica CoP", biblioteca.Nota);
+    }
+
+    // ---- eliminazione ----------------------------------------------------------------------------
+
+    /// <summary>
+    /// ⚠️ <b>Eliminare una voce citata non si rifiuta</b>, e la scelta è deliberata: rifiutare avrebbe senso
+    /// se ci fosse un modo automatico di rimediare, e non c'è — le citazioni stanno dentro testo scritto da
+    /// persone. Quel che si può garantire è che quei documenti non restino col link morto <i>in silenzio</i>.
+    /// </summary>
+    [Fact]
+    public async Task Eliminare_una_voce_citata_segnala_i_documenti_rimasti_col_link_morto()
+    {
+        var impatti = new ImpattiFinti();
+        var servizio = new AttachmentCurationService(
+            new BibliotecaFinta(), new UsoFinto(Cita("vIPI Fiumicino", 7), Cita("vLOA LIRR-LFMM", 9)), impatti);
+
+        var esito = await servizio.DeleteAsync("loa-lirr-lfmm", 704798);
+
+        Assert.Equal(AttachmentDelete.Ok, esito.Esito);
+        var aperto = Assert.Single(impatti.Aperti);
+        // ⚠️ Un tipo suo, non AttachmentReplaced: là il link funziona e mostra un file diverso, qui è MORTO.
+        Assert.Equal(ImpactKind.AttachmentDeleted, aperto.Kind);
+        Assert.Equal(new[] { 7, 9 }, aperto.Documenti);
+        Assert.Equal("loa-lirr-lfmm", aperto.SourceKey);
+    }
+
+    /// <summary>Gli orfani tornano al chiamante: sono quelli che la conferma aveva mostrato, e il messaggio
+    /// finale li conta.</summary>
+    [Fact]
+    public async Task Leliminazione_torna_chi_resta_da_correggere()
+    {
+        var servizio = new AttachmentCurationService(
+            new BibliotecaFinta(), new UsoFinto(Cita("vIPI Fiumicino", 7)), new ImpattiFinti());
+
+        var esito = await servizio.DeleteAsync("loa-lirr-lfmm", 1);
+
+        Assert.Equal("vIPI Fiumicino", Assert.Single(esito.Orfani).Title);
+    }
+
+    [Fact]
+    public async Task Eliminare_una_voce_che_non_cita_nessuno_non_segnala_niente()
+    {
+        var impatti = new ImpattiFinti();
+        var servizio = new AttachmentCurationService(new BibliotecaFinta(), new UsoFinto(), impatti);
+
+        Assert.Equal(AttachmentDelete.Ok, (await servizio.DeleteAsync("loa-lirr-lfmm", 1)).Esito);
+        Assert.Empty(impatti.Aperti);
+    }
+
+    /// <summary>Se la voce non c'era più, non si segnala niente: il link morto ce l'ha già fatto qualcun altro,
+    /// e una riga in più direbbe che è successo adesso.</summary>
+    [Fact]
+    public async Task Se_la_voce_non_ce_piu_non_si_segnala_niente()
+    {
+        var impatti = new ImpattiFinti();
+        var servizio = new AttachmentCurationService(
+            new BibliotecaFinta { EsitoDelete = AttachmentDelete.NonTrovata },
+            new UsoFinto(Cita("vIPI Fiumicino", 7)), impatti);
+
+        var esito = await servizio.DeleteAsync("loa-lirr-lfmm", 1);
+
+        Assert.Equal(AttachmentDelete.NonTrovata, esito.Esito);
+        Assert.Empty(impatti.Aperti);
     }
 
     /// <summary>
@@ -215,7 +288,7 @@ public class AttachmentReplacementServiceTests
     public async Task Chi_cita_si_legge_una_volta_sola_e_prima_di_scrivere()
     {
         var uso = new UsoFinto(Cita("vIPI Fiumicino", 7));
-        var servizio = new AttachmentReplacementService(new BibliotecaFinta(), uso, new ImpattiFinti());
+        var servizio = new AttachmentCurationService(new BibliotecaFinta(), uso, new ImpattiFinti());
 
         await servizio.ReplaceAsync("loa-lirr-lfmm", "https://drive.google.com/file/d/AAAAAAAAAAAA/view", null, 1);
 

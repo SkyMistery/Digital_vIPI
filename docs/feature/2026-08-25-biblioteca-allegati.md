@@ -1,6 +1,6 @@
 # Feature — Biblioteca allegati (PDF su Drive di divisione, linkati nei documenti)
 
-Data: 2026-08-25 · Aggiornata: **2026-08-29** (modo *incorporato*) · Stato: **CARTA** (nessuna slice avviata) · Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md)
+Data: 2026-08-25 · Aggiornata: **2026-08-29** · Stato: ✅ **TUTTE E NOVE LE SLICE FATTE** (ramo `biblioteca-allegati`) · Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md)
 
 ## Obiettivo
 
@@ -270,6 +270,11 @@ questo — la rilettura può concludersi con «va bene così», e allora si chiu
 Cancellare una voce citata mostra l'elenco delle citazioni con i link, e chiede conferma esplicita.
 Cancellare **non** tocca il file su Drive: toglie la voce e lascia i link da correggere, elencati.
 
+⚠️ **Non si rifiuta**, e la scelta è deliberata: rifiutare avrebbe senso se ci fosse un modo automatico di
+rimediare, e non c'è — le citazioni stanno dentro testo scritto da persone. Quel che si può garantire è che
+quei documenti non restino col link morto **in silenzio**: da qui `ImpactKind.AttachmentDeleted`, un tipo
+suo e non `AttachmentReplaced` — là il link funziona e mostra un file diverso, qui è **morto**.
+
 ### 7. Salute dei link
 
 Giro giornaliero, dentro `ImportPolicyService` come gli altri: il file Drive risponde ancora? Link morto →
@@ -296,7 +301,7 @@ principale del sistema attuale, dove i link a Drive stanno sparsi nei documenti 
 | 5-bis | ✅ **FATTA il 29 agosto** — modo Incorporato: campo `Modo` + altezza a scaglioni, iframe sulla nostra rotta, link di ripiego, **`frame-src` in CSP** | resa in pagina |
 | 6 | ✅ **FATTA il 29 agosto** — link inline in `MarkdownLite`, **solo schema `allegato:`** | link 2 |
 | 7 | ✅ **FATTA il 29 agosto** — sostituzione con conferma informata + audit + riga «da rivedere» | versioni |
-| 8 | Cancellazione con guardia; ricerca; stampa; guida in-app | contorno |
+| 8 | ✅ **FATTA il 29 agosto** — cancellazione con guardia; ricerca; stampa (già in 5-bis); guida in-app | contorno |
 
 Un commit per slice, `dotnet build` verde a ogni commit.
 
