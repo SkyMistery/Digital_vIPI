@@ -2651,4 +2651,6 @@
   <data name="Conv_ReverseHint" xml:space="preserve"><value>Reverses the ring direction (clockwise ↔ counter-clockwise)</value></data>
   <data name="Conv_Rotate" xml:space="preserve"><value>Rotate</value></data>
   <data name="Conv_RotateHint" xml:space="preserve"><value>Moves the starting vertex of the list by one</value></data>
+  <data name="Conv_HelpAria" xml:space="preserve"><value>Help on the coordinate converter</value></data>
+  <data name="Conv_HelpBody" xml:space="preserve"><value>&lt;p style='margin:0 0 6px'&gt;Paste the coordinates as they are: the format is detected for you.&lt;/p&gt;&lt;p style='margin:0'&gt;For the output pick the &lt;b&gt;IVAO database&lt;/b&gt; or the &lt;b&gt;sectorfile&lt;/b&gt; — and for the sectorfile either the point list or the segments. Lines that cannot be read are listed at the bottom with their line number.&lt;/p&gt;</value></data>
 </root>

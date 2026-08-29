@@ -32,6 +32,9 @@
             <h1 class="page-h1" style="margin-bottom:2px">@L["Conv_Title"]</h1>
             <span class="muted">@L["Conv_Intro"]</span>
         </div>
+        <HelpHint Href="/services/vsop/guide#convertitore-coordinate" AriaLabel="@L["Conv_HelpAria"]" ExtraClass="wide">
+            @((MarkupString)L["Conv_HelpBody"].Value)
+        </HelpHint>
     </div>
 
     @if (!Authz.IsDivisionStaff)

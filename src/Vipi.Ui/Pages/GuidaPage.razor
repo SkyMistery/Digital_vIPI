@@ -245,6 +245,55 @@
               <p>Profiles reach the server, where they are processed <b>in memory</b>: they are never written to
                disk nor kept.</p>"),
 
+        new Sec("convertitore-coordinate", "map",
+            @"<p>Converte un elenco di coordinate <b>da qualunque formato</b> a quello del <b>DB di IVAO</b> o a
+               quello del <b>sectorfile</b>. Sta in <code>/services/coordinates</code> ed &egrave; riservato allo
+               <b>staff di divisione</b> e ai livelli superiori.</p>
+              <ul>
+                <li>Il formato d'ingresso lo <b>riconosce da solo</b>: DMS Aurora (<code>N041.59.26.000</code> e
+                    <code>N0413728965</code>), DMS coi simboli, gradi e primi decimali, ARINC
+                    (<code>4159N01159E</code>), decimali con segno o emisfero, <code>lat:lon</code> del DB, CSV,
+                    righe di sectorfile (a punti e a segmenti), JSON e <b>KML/KMZ</b>.</li>
+                <li>In uscita ci sono due formati. Il sectorfile ha <b>due forme</b>: l'<b>elenco dei punti</b>
+                    (<code>N042.00.28.000;E011.58.06.000;</code>, un vertice per riga) e i <b>segmenti</b>
+                    (<code>latA;lonA;latB;lonB;TIPO;NOME;</code>), che sono un lato per riga e chiudono l'anello.</li>
+                <li>Se l'ingresso contiene <b>pi&ugrave; aree</b> — un KML con pi&ugrave; Placemark, un pezzo di
+                    <code>italy.restrict</code> con pi&ugrave; nomi — compaiono le <b>chip</b> per sceglierle, e
+                    ogni area ha il suo riquadro d'uscita. Con una sola area le chip non ci sono.</li>
+                <li>La <b>mappa</b> mostra ci&ograve; che &egrave; stato convertito. Una coordinata singola si
+                    vede come un cerchietto. Il tasto <b>&laquo;mostra anche la forma riconvertita&raquo;</b>
+                    ridisegna tratteggiata l'area riletta dall'uscita: se le due non combaciano, si vede.</li>
+                <li>Sotto ogni uscita: quanti punti, se l'anello &egrave; chiuso, perimetro, area e
+                    l'<b>andata e ritorno</b> in metri. <b>Inverti</b> cambia il verso dell'anello,
+                    <b>Ruota</b> sposta il vertice da cui l'elenco comincia.</li>
+              </ul>
+              <p>Le righe che non si riescono a leggere <b>non spariscono</b>: escono in fondo col loro numero di
+               riga. Il convertitore non scrive niente in banca dati e non ricorda nulla fra una visita e
+               l'altra.</p>",
+            @"<p>It rewrites a list of coordinates <b>from any format</b> into the <b>IVAO database</b> format or
+               the <b>sectorfile</b> one. It lives at <code>/services/coordinates</code> and is reserved for
+               <b>division staff</b> and above.</p>
+              <ul>
+                <li>The input format is <b>detected for you</b>: Aurora DMS (<code>N041.59.26.000</code> and
+                    <code>N0413728965</code>), DMS with symbols, degrees and decimal minutes, ARINC
+                    (<code>4159N01159E</code>), decimals with sign or hemisphere, the database
+                    <code>lat:lon</code>, CSV, sectorfile lines (points and segments), JSON and <b>KML/KMZ</b>.</li>
+                <li>There are two output formats. The sectorfile one has <b>two shapes</b>: the <b>point list</b>
+                    (<code>N042.00.28.000;E011.58.06.000;</code>, one vertex per line) and the <b>segments</b>
+                    (<code>latA;lonA;latB;lonB;TYPE;NAME;</code>), one side per line, closing the ring.</li>
+                <li>If the input holds <b>several areas</b> — a KML with several Placemarks, a slice of
+                    <code>italy.restrict</code> with several names — <b>chips</b> appear to pick them, and each
+                    area gets its own output box. With a single area there are no chips.</li>
+                <li>The <b>map</b> shows what was converted. A single coordinate appears as a small circle. The
+                    <b>&laquo;also show the reconverted shape&raquo;</b> switch draws, dashed, the area read back
+                    from the output: if the two do not match, you see it.</li>
+                <li>Under each output: how many points, whether the ring is closed, perimeter, area and the
+                    <b>round trip</b> in metres. <b>Reverse</b> flips the ring direction, <b>Rotate</b> moves the
+                    vertex the list starts from.</li>
+              </ul>
+              <p>Lines that cannot be read <b>do not vanish</b>: they are listed at the bottom with their line
+               number. The converter writes nothing to the database and remembers nothing between visits.</p>"),
+
         new Sec("statistiche", "activity",
             @"<p><code>/services/stats</code> raccoglie quanto e cosa hai controllato: <b>ore</b>, <b>turni</b>,
                <b>movimenti</b> e <b>presenze</b>, con il confronto rispetto al periodo precedente. Le chip in alto

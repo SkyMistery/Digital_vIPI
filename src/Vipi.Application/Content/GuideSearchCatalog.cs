@@ -186,6 +186,10 @@ public static class GuideSearchCatalog
         // ⚠️ Questa voce esisteva già, ma puntava a un'ancora che nella Guida NON c'era: cercare
         // «statistiche» dava un risultato che portava a una pagina senza quel capitolo. Il capitolo è stato
         // scritto il 25 agosto 2026 — una voce di ricerca senza la sua sezione è peggio di nessuna voce.
+        new Entry("convertitore-coordinate", "Convertitore di coordinate", "Coordinate converter",
+            "coordinate coordinata convertire conversione convertitore formato formati dms gradi primi secondi decimali sectorfile aurora restrict geo db ivao lat lon latitudine longitudine kml kmz google earth arinc poligono anello area punti vertici mappa perimetro coordinates convert conversion converter format degrees minutes seconds decimal database latitude longitude polygon ring points vertices map perimeter",
+            "Coordinate in qualsiasi formato riscritte per il DB di IVAO o per il sectorfile, con la mappa.",
+            "Coordinates in any format rewritten for the IVAO database or the sectorfile, with the map."),
         new Entry("statistiche", "Statistiche ATC", "ATC statistics",
             "statistiche statistica ore movimenti traffico gestito turni sessioni connessioni classifica divisione quanto ho controllato aerei presenze mie personali quando controlli costanza settimane aeroporti gestiti visti copertura coperto scoperto vid cerca controllore periodo utc statistics hours movements traffic handled shifts sessions connections leaderboard division coverage covered uncovered",
             "Le mie ore e il traffico gestito, il dettaglio di una sessione, la classifica e la copertura di divisione.",

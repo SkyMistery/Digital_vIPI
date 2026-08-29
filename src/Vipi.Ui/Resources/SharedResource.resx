@@ -2657,4 +2657,6 @@
   <data name="Conv_ReverseHint" xml:space="preserve"><value>Inverte il verso dell'anello (orario ↔ antiorario)</value></data>
   <data name="Conv_Rotate" xml:space="preserve"><value>Ruota</value></data>
   <data name="Conv_RotateHint" xml:space="preserve"><value>Sposta di uno il vertice da cui l'elenco comincia</value></data>
+  <data name="Conv_HelpAria" xml:space="preserve"><value>Aiuto sul convertitore di coordinate</value></data>
+  <data name="Conv_HelpBody" xml:space="preserve"><value>&lt;p style='margin:0 0 6px'&gt;Incolla le coordinate come sono: il formato lo riconosce da solo.&lt;/p&gt;&lt;p style='margin:0'&gt;In uscita scegli il &lt;b&gt;DB di IVAO&lt;/b&gt; o il &lt;b&gt;sectorfile&lt;/b&gt; — e per il sectorfile l'elenco dei punti oppure i segmenti. Le righe che non si leggono escono in fondo col loro numero.&lt;/p&gt;</value></data>
 </root>
