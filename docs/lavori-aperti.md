@@ -4537,8 +4537,12 @@ avrebbe cancellato tutte le attività, senza un errore e senza che chi le ha scr
 
 ### Y6 🟢 DA FARE — quel che resta
 
-Il **BOAT**, ritirato dal committente e da riprendere; il giro di **re-import** che riempie le coordinate
-delle soglie; e la **fusione** di questo ramo.
+Il **BOAT**, ritirato dal committente e da riprendere, e il giro di **re-import** da
+`/services/vsop/admin/airports` che riempie le coordinate delle soglie: finché non si preme, quella tabella
+è vuota su tutti i campi e la sezione lo dice.
+
+⚠️ E le migrazioni in coda al cutover MariaDB sono **VENTICINQUE**: quattro le porta questo giro (anagrafica
+radioassistenze e coordinate soglia, ognuna emessa per i due provider).
 
 ### Y7 ✅ CHIUSA — la verifica a schermo su LIMN Cameri, e i tre difetti che ha trovato
 
@@ -4562,7 +4566,19 @@ Visto funzionare sulla pagina vera: le tre colonne delle radioassistenze coi cam
 il decimale **rifiutato**, l'alternato **estero** col nome trovato da IVAO (`LSZH Zurich`), le coordinate
 delle soglie, nominativi e parcheggi, e i gettoni `A/A` / `A/A - A/G` col **doppio clic vero**.
 
-### Y8 ✅ CHIUSA — i due rami sono stati fusi in `main`
+### Y8 ✅ CHIUSA — tutto fuso in `main`, e i rami cancellati
+
+I due rami di partenza (`convertitore-coordinate`, `edizione-giusta-per-il-campo`) erano già stati portati
+dentro; il 30 agosto 2026 è stato fuso anche `tabelle-vsop-militari` — **avanzamento diretto**, perché `main`
+era interamente contenuto nel ramo — e **tutti e tre sono stati cancellati**, locale e `origin`, dopo aver
+verificato `git rev-list --count main..<ramo>` = 0 su ognuno. `main` = **`34ee5595`**, spinto: non c'è più
+nessun ramo con lavoro fuori.
+
+⚠️ **Verde DOPO la fusione**, che è l'unico momento in cui la prova conta: Release su entrambi i TFM, e
+**otto progetti su nove**. Il nono — `Vipi.E2E.Tests` — non si è potuto compilare perché un `Vipi.Host` era
+acceso e teneva i `.dll`: è **X4**, e il conteggio si legge contando i progetti, non le righe «Passed!».
+
+### Y9 ✅ STORIA — come erano nati i due rami di partenza
 
 Questo lavoro nasceva su `edizione-giusta-per-il-campo`, che nasce sopra `convertitore-coordinate`: nessuno
 dei due era fuso, e S2 userà `Vipi.Application/Coordinates` — il DMS del convertitore — per validare le
