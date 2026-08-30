@@ -940,12 +940,25 @@ Due script, generati dai dump e **provati end-to-end** su una copia del loro dat
 39 tabelle/4162 righe → copia → import (57/40 078) → ripristino → **di nuovo 39 e 4162, esatte, zero
 residui**. Il ripristino sono `RENAME`, cioè metadati: dura secondi.
 
-⚠️ **La prova ha trovato due difetti che leggere non avrebbe trovato.** (1) La lista da *salvare* e quella
-da *togliere* non sono la stessa: loro hanno lo schema del 23 agosto (39 tabelle), il nuovo ne crea 57, e
-generarle entrambe dal dump nuovo faceva fallire il passo 1 su diciannove tabelle inesistenti. (2) Da
-togliere serve l'**unione**: `EditGrants` (caduta con `ConcessioniPerAccRimosse`) sopravviveva all'import e
-occupava il nome, e il `RENAME` del ripristino sarebbe morto con «table already exists» — cioè la rete si
-sarebbe strappata proprio nel momento in cui serviva.
+⚠️ **La prova ha trovato quattro difetti che leggere non avrebbe trovato**, e i due peggiori li ha trovati
+solo la seconda prova, quella sulla **struttura**:
+
+1. la lista da *salvare* e quella da *togliere* non sono la stessa: loro hanno lo schema del 23 agosto (39
+   tabelle), il nuovo ne crea 57, e generarle entrambe dal dump nuovo faceva fallire il passo 1 su
+   diciannove tabelle inesistenti;
+2. da togliere serve l'**unione**: `EditGrants` (caduta con `ConcessioniPerAccRimosse`) sopravviveva
+   all'import e occupava il nome, e il `RENAME` del ripristino sarebbe morto con «table already exists» —
+   la rete si sarebbe strappata proprio nel momento in cui serviva;
+3. ⚠️ **`CREATE TABLE … LIKE` non copia le foreign key.** Il ripristino restituiva righe e indici esatti e
+   **zero vincoli su trentotto**. Il confronto dei conteggi diceva verde: contava le righe, e le righe
+   c'erano tutte. Ora il ripristino le riemette una per una, testuali, prese dal dump del 23;
+4. ⚠️ **e la cura ovvia era peggiore del male.** Sostituire la copia con un `RENAME TABLE` conserverebbe
+   tutto — è la stessa tabella — ma **si porta dietro i nomi dei vincoli**, che in InnoDB sono globali per
+   schema: l'import che ricrea `FK_AccSectors_Accs_CenterId` trova il nome occupato dalla tabella spostata e
+   muore con **errno 121**. Scoperto eseguendolo, un minuto dopo averlo scritto.
+
+ℹ️ Ne resta una regola: **un ripristino si verifica su due assi, i dati e la forma.** Un solo asse dà un
+verde che non significa niente, ed è il verde che si guarda proprio nel momento peggiore.
 
 ℹ️ Sul banco di prova alcune copie tornano **minuscole**: è `lower-case-table-names=2` di Windows
 (§1 di `../deploy/mariadb/README.md`). Sul loro Linux vale `0` e i nomi si conservano esatti — sorgente e

@@ -49,11 +49,17 @@ public class MigrazioniDellaFinestraCiecaTests
     public MigrazioniDellaFinestraCiecaTests(ITestOutputHelper output) => _out = output;
 
     /// <summary>
-    /// Primo id di migrazione dentro la finestra. Il dump del 30 agosto porta con sé lo schema <b>e</b>
-    /// <c>__EFMigrationsHistory</c>: tutto ciò che è datato fino a quel giorno arriva in produzione già
-    /// applicato e non gira. Il rischio comincia dalla prima migrazione emessa dopo.
+    /// L'<b>ultima migrazione che il dump del 30 agosto porta con sé</b>. Il dump contiene anche
+    /// <c>__EFMigrationsHistory</c>, quindi tutto ciò che arriva fino a qui risulta già applicato e in
+    /// produzione non gira. Il rischio comincia dalla prima migrazione emessa <b>dopo</b> questa.
+    ///
+    /// <para>⚠️ <b>È un id per intero, non una data</b>, e non è pedanteria: EF timbra l'id con l'istante
+    /// della generazione. Una migrazione creata stanotte dopo il dump — alle 23:40 del 30 agosto — avrebbe
+    /// id <c>20260830234000…</c>, cioè <b>minore</b> di un confine scritto come <c>"20260831"</c>: sarebbe
+    /// fuori dal dump <i>e</i> fuori dalla guardia, che è esattamente la combinazione che non deve esistere.
+    /// Il confine giusto non è «da domani», è «dopo l'ultima che abbiamo consegnato».</para>
     /// </summary>
-    private const string PrimoIdDellaFinestra = "20260831";
+    private const string UltimoIdConsegnato = "20260830132810_FormaCheHaContato";
 
     /// <summary>
     /// Primo id <b>fuori</b> dalla finestra: il 16 settembre si può consegnare di nuovo un database, quindi
@@ -117,13 +123,21 @@ public class MigrazioniDellaFinestraCiecaTests
 
         foreach (var (id, tipo) in assembly.Migrations.OrderBy(m => m.Key, StringComparer.Ordinal))
         {
-            if (string.CompareOrdinal(id, PrimoIdDellaFinestra) < 0) continue;
-            if (string.CompareOrdinal(id, PrimoIdDopoLaFinestra) >= 0) continue;
+            if (!DentroLaFinestra(id)) continue;
             if (RevisionateAMano.Contains(id)) continue;
 
             yield return (id, assembly.CreateMigration(tipo, provider));
         }
     }
+
+    /// <summary>
+    /// Se quell'id cade nel periodo scoperto: dopo l'ultima migrazione consegnata, e prima che si possa
+    /// consegnare di nuovo. Estratto perché è il confine, ed è il pezzo che ho già sbagliato una volta —
+    /// va provato, non riletto.
+    /// </summary>
+    private static bool DentroLaFinestra(string id) =>
+        string.CompareOrdinal(id, UltimoIdConsegnato) > 0
+        && string.CompareOrdinal(id, PrimoIdDopoLaFinestra) < 0;
 
     /// <summary>
     /// Vero se la colonna aggiunta è una stringa NOT NULL che nasce senza un valore di riposo vero. È il
@@ -172,7 +186,7 @@ public class MigrazioniDellaFinestraCiecaTests
         }
 
         Assert.True(colpevoli.Count == 0,
-            $"{colpevoli.Count} migrazioni della finestra cieca ({PrimoIdDellaFinestra}–{PrimoIdDopoLaFinestra}) " +
+            $"{colpevoli.Count} migrazioni della finestra cieca (dopo {UltimoIdConsegnato}, fino a {PrimoIdDopoLaFinestra}) " +
             "fanno operazioni che su MariaDB non si annullano e che nessuno può riparare fino al 16 settembre " +
             "2026. In quel periodo le migrazioni girano DA SOLE all'avvio in produzione, il DDL non è " +
             "transazionale e non c'è nessuno che possa ripristinare il database.\n  " +
@@ -259,10 +273,23 @@ public class MigrazioniDellaFinestraCiecaTests
     [Fact]
     public void La_finestra_e_un_intervallo_vero()
     {
-        Assert.True(string.CompareOrdinal(PrimoIdDellaFinestra, PrimoIdDopoLaFinestra) < 0,
-            $"la finestra cieca è vuota ({PrimoIdDellaFinestra} ≥ {PrimoIdDopoLaFinestra}): i controlli di " +
+        Assert.True(string.CompareOrdinal(UltimoIdConsegnato, PrimoIdDopoLaFinestra) < 0,
+            $"la finestra cieca è vuota ({UltimoIdConsegnato} ≥ {PrimoIdDopoLaFinestra}): i controlli di " +
             "questa classe non guarderebbero nessuna migrazione. Se la finestra è finita, cancellare il file " +
             "invece di svuotarlo.");
+
+        // ⚠️ Il caso per cui il confine è un id e non una data. Una migrazione generata stanotte, DOPO il
+        // dump ma ancora il 30 agosto, sta fuori dalla consegna: dev'essere dentro la guardia. Con il
+        // confine scritto «20260831» ci sarebbe passata sotto — fuori dal dump e fuori dal controllo.
+        Assert.True(DentroLaFinestra("20260830234000_UnaMigrazioneNataStanotte"));
+        Assert.True(DentroLaFinestra("20260901090000_UnaMigrazioneDiSettembre"));
+
+        // Ciò che il dump porta con sé è già applicato in produzione: fuori.
+        Assert.False(DentroLaFinestra(UltimoIdConsegnato));
+        Assert.False(DentroLaFinestra("20260829160251_BibliotecaAllegati"));
+
+        // Dal 17 settembre si può consegnare di nuovo un database: fuori.
+        Assert.False(DentroLaFinestra("20260917100000_DopoLaFinestra"));
     }
 
     /// <summary>
