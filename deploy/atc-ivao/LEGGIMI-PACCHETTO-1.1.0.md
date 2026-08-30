@@ -85,8 +85,15 @@ silenzio, e l'avviso «stai per perdere le modifiche» adesso copre tutti i camp
 
 ## I file da caricare
 
+Nello zip ci sono **due cartelle**, e vanno tenute distinte:
+
+| | |
+|---|---|
+| `solo-18-file-1.1.0/` | **quel che si carica.** Dentro non c'è niente da leggere: solo i file e le loro impronte |
+| `docs/` | **quel che si legge** — questo foglio e gli altri tre. Sul server non servono a nessuno: **non caricateli** |
+
 Tutti i percorsi sono **relativi alla cartella dell'applicazione** (`public_atc`), che è anche la radice
-dell'FTP. La cartella del pacchetto ha la stessa struttura: si può trascinare rispettando i percorsi.
+dell'FTP, e `solo-18-file-1.1.0/` ha la stessa struttura: si può trascinare rispettando i percorsi.
 
 **18 file, 12,4 MB.** (Il pacchetto completo sarebbe 474 file e 52 MB: qui ci sono solo i cinque assiemi
 che cambiano davvero, le loro mappe di debug, e i due file di `wwwroot`.)

@@ -211,10 +211,22 @@ Il primo pacchetto che porta un **numero** invece di una lettera, e il primo **i
 |---|---|
 | **Timbro** | `1.1.0 · aaaeddb` (il foglio con questo timbro è nel commit **dopo**: il timbro nasce dal commit al momento del publish) |
 | **Da caricare** | **18 file, 12,4 MB** — `artifacts/publish/solo-18-file-1.1.0/` |
-| **Zip da spedire** | `artifacts/publish/vipi-1.1.0-solo-file-cambiati.zip`, **4,07 MB**, sha256 `3cc8a329…3b20daa` |
+| **Zip da spedire** | `artifacts/publish/vipi-1.1.0-solo-file-cambiati.zip`, **4,07 MB**, sha256 `b0d9437e…1ed0a4ce`. Dentro **due rami**: `solo-18-file-1.1.0/` (si carica) e `docs/` (si legge) |
+| **Fogli** | `artifacts/publish/docs/`, copiati da `deploy/atc-ivao/` che resta la sorgente |
 | **Pacchetto completo** | `artifacts/publish/linux-x64-20260831/` (460 file), tenuto come riferimento e per il prossimo diff |
 | **Database** | **non si tocca.** Nessuna migrazione in nessuno dei due rami fusi |
 | **Foglio** | [`../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.1.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.1.0.md) |
+
+**Come sono organizzati gli artifacts** (dal 31 agosto, e il foglio è `artifacts/publish/LEGGIMI-CARTELLE.md`):
+in **`publish/`** sta **solo la consegna corrente** — il publish completo, il pacchetto da caricare, i fogli in
+`docs/` e lo zip; in **`publish_old/<data>/`** sta **una cartella per consegna passata**, con dentro il suo
+publish, il suo pacchetto incrementale, il suo zip e i **suoi** `docs/`.
+⚠️ **I `docs/` di una cartella vecchia non si aggiornano**: sono la fotografia di quel che dicevamo allora,
+ed è l'unico modo di rispondere fra sei mesi a «cosa gli avevamo detto di fare?».
+⚠️ I `.md` non stanno **mai** dentro la cartella dei file da caricare: se uno finisse sul server non farebbe
+danno, ma quella cartella diventerebbe un misto di due cose — ed è così che si carica quella sbagliata.
+ℹ️ `publish_old/solo-2-file/` sta alla radice e non in un gruppo: **non ha un suffisso di versione**, e
+attribuirlo per data sarebbe stata un'ipotesi travestita da riordino.
 
 **Perché 18 e non 474.** Solo cinque assiemi cambiano davvero (`Host`, `Ui`, `Hosting`, `Application`,
 `Infrastructure`): gli altri differiscono solo per l'MVID di una ricompilazione, e ricaricarli sarebbe
