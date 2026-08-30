@@ -60,11 +60,11 @@
 
         <div class="panel" style="margin-bottom:12px">
             <div class="inline-form">
-                <input class="in" placeholder="@L["Gl_PhSource"]" disabled="@_busy"
+                <input class="app-in" placeholder="@L["Gl_PhSource"]" disabled="@_busy"
                        maxlength="@GlossarioFraseologia.LunghezzaMassimaSorgente"
                        @bind="_nuovaSorgente" @bind:event="oninput" />
                 <span class="muted">→</span>
-                <input class="in" placeholder="@L["Gl_PhTarget"]" disabled="@_busy"
+                <input class="app-in" placeholder="@L["Gl_PhTarget"]" disabled="@_busy"
                        maxlength="@GlossarioFraseologia.LunghezzaMassimaResa"
                        @bind="_nuovaResa" @bind:event="oninput" />
                 <button class="btn" disabled="@(_busy || RifiutoNuova is not null)" @onclick="AggiungiAsync">
@@ -118,7 +118,7 @@
                             <td>
                                 @if (_apertaId == v.Id)
                                 {
-                                    <input class="in" disabled="@_busy"
+                                    <input class="app-in" disabled="@_busy"
                                            maxlength="@GlossarioFraseologia.LunghezzaMassimaResa"
                                            @bind="_bozza" @bind:event="oninput" />
 

@@ -518,6 +518,11 @@
 .struct .perm-add{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:10px;
   border-top:1px solid var(--line)}
 .struct .perm-add .app-in{flex:1 1 180px;min-width:140px}
+/* Stessa medicina per i moduli in riga di glossario e traduzioni: `.app-in` porta `width:100%`, che dentro
+   una riga flex manda ogni campo su una riga sua. ⚠️ Quei campi erano `class="in"`, una classe che NON
+   ESISTE in questo foglio: nudi, coi colori del browser. Vestirli è stato il primo passo; questo è il
+   secondo, o si vestivano e andavano a capo. */
+.struct .inline-form .app-in{flex:1 1 200px;min-width:140px;width:auto}
 /* Le sezioni del pannello di destra (storia, release) e la barra di pubblicazione: erano ventisette
    blocchi di stile in linea, cioe' la forma della pagina scritta in nessun foglio. */
 .struct .ver-sec{margin-top:8px}
