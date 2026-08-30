@@ -201,7 +201,7 @@ trovato **tre difetti** che la suite non vedeva — un 500 sulla pagina Struttur
 (`OrphanSectorService` chiedeva ancora l'admin), due pagine senza cancello, e due falsi allarmi della sonda.
 Tutti corretti e riverificati.
 
-⚠️ **Resta il DEPLOY, e va annunciato.** Quando questo `main` arriva in produzione, tutti gli `IT-` fuori
+⚠️ **Resta il DEPLOY** — ✅ **l'annuncio è stato fatto** dal committente il 30 agosto 2026. Quando questo `main` arriva in produzione, tutti gli `IT-` fuori
 dagli otto codici di direzione (`IT-T01`, `IT-T03`, `IT-FOC`, `IT-FOAC`, `IT-AOA1`…) **smettono di editare**:
 vedono le statistiche e basta. La risposta è una promozione a mano da `/services/vsop/admin/permissions`,
 trenta secondi a persona — ma è meglio che lo sappiano prima loro che dopo.
