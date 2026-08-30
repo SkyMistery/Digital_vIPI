@@ -15,7 +15,7 @@
 > shape vuote del 26 agosto con un vestito nuovo. Per questo in §3d non è una raccomandazione ma una **firma
 > di metodo**.
 
-**Stato:** 🟡 **in esecuzione** · target approvato dall'owner il 30 agosto 2026 · S0→S7 fatte, vedi §4.
+**Stato:** 🟡 **in esecuzione** · target approvato dall'owner il 30 agosto 2026 · **S0→S10 fatte**, resta S11 e la verifica dal vivo (§5).
 
 ---
 
@@ -247,15 +247,26 @@ continua a congelare; la vIPI e la vLOA restano documenti derivati. Cambia **da 
 | S5 | `ISectorShapeResolver` + implementazione EF | — | prima |
 | S6 | AoR ACC + APP passano dal risolutore (comportamento invariato, un percorso solo invece di due) | — | prima |
 | S7 | vLOA dal risolutore | — | prima |
-| S8 | UI: provenienza a schermo su Struttura ACC ed editor aeroporto | — | prima |
-| S9 | **Traffico**: risolutore + N pezzi + invalidazione della cache + timbro della fonte | **1** | **dopo** |
-| S10 | **Confinanti**: risolutore + adiacenza su un pezzo qualunque + ricalcolo al bind/unbind | — | **dopo** |
+| S8 | ✅ UI: provenienza a schermo (`ShapeSourcePill`) e limiti scavalcati sbiaditi | — | fatta |
+| S9 | ✅ **Traffico**: risolutore + N pezzi + `ShapeChangeStamp` (≤ 60 s) + timbro della fonte sulla tratta | **1** | fatta |
+| S10 | ✅ **Confinanti**: adiacenza su un pezzo qualunque, dedup per coppia, ricalcolo dall'archivio al bind/unbind | — | fatta |
 | S11 | Pulizia: le colonne gemelle del gate escono di scena | **1**, differita | **un rilascio dopo** |
 
 ### Stato dell'esecuzione — 30 agosto 2026
 
-✅ **S0 · S1 · S2 · S3 · S4 · S5 · S6 · S7 fatte**, ramo `shape-una-porta-sola`, un commit per slice.
-🟡 Resta **S8** (provenienza a schermo) prima della consegna; **S9**, **S10** e **S11** dopo.
+✅ **S0 → S10 fatte**, ramo `shape-una-porta-sola`, un commit per slice. 🟡 Resta la sola **S11** (le colonne
+gemelle del gate escono di scena), che va **un rilascio dopo** — e la **verifica dal vivo** su LIBA e LICC.
+
+**Tutti e sei i motori passano dalla porta unica.** La tabella §1b si legge adesso così:
+
+| Motore | Onora l'aggancio |
+|---|---|
+| AoR vIPI ACC · AoR vIPI APP · viewer 3D | ✅ S6, con la banda **per pezzo** |
+| Mappa della vLOA | ✅ S7 |
+| Attribuzione del traffico | ✅ S9, e ogni tratta scrive **con quale forma** è stata contata |
+| Confinanti | ✅ S10, adiacente se lo è **un pezzo**, e si ricalcola al bind/unbind |
+| ATZ delle torri | ✅ S3, non abita più la colonna: è reversibile e prende **tutte** le zone |
+| Struttura ACC · editor aeroporto | ✅ S8, la provenienza si **vede** e i limiti scavalcati si sbiadiscono |
 
 Quel che è cambiato rispetto alla carta, e perché:
 
@@ -273,8 +284,13 @@ Quel che è cambiato rispetto alla carta, e perché:
 sbagliano **senza che si veda a schermo**. Un settore che rivendica meno cielo produce numeri più bassi, e
 sembrano solo un mese fiacco.
 
-⚠️ Le migrazioni in coda al cutover MariaDB passano da **34** a **36** (S2 e S9); la S11 è la trentasettesima e
-va **un rilascio dopo**, mai insieme.
+⚠️ Le migrazioni in coda al cutover MariaDB sono passate da **34** a **36** (`PezziDiForma` in S2,
+`FormaCheHaContato` in S9); la S11 sarà la trentasettesima e va **un rilascio dopo**, mai insieme.
+
+⚠️ **La trappola del valore di partenza, evitata sul filo**: EF genera `defaultValue: ""` per una colonna
+`enum`-a-stringa, e le **1 853** tratte già in archivio sarebbero diventate illeggibili al primo caricamento.
+Tutt'e due le migrazioni portano `Source` scritto a mano — che è anche la verità: sono state contate con la
+forma dell'anagrafica. È la gemella della trappola del `bool` che nasce `false` ovunque.
 
 ---
 
