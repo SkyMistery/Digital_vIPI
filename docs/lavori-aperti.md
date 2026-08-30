@@ -5167,3 +5167,51 @@ tabella. Nessuna asserzione l'avrebbe vista.
   **congelamento di release**, un backfill e due migrazioni (§4-bis della carta). Si esegue **dopo** la
   consegna del 1° settembre.
 - **Le 13 torri ATZ**, da guardare al primo deploy: vedi il punto 3 della lista rossa in §«Dove siamo».
+
+## AC. L'intro di pagina — 30 agosto 2026
+
+Carta: [`feature/2026-08-30-intro-di-pagina.md`](feature/2026-08-30-intro-di-pagina.md).
+Ramo **`intro-di-pagina`**, da `main`. **Nessuna migrazione**, e la cosa conta: siamo nella finestra cieca
+fino al 16 settembre. **Verificata dal vivo.** **29 test nuovi.**
+
+Chiesta dal committente sull'elenco dei vSOP militari: «in alto una sezione intro dove mettere alcuni PDF,
+come se fosse un documento, usando la funzione link delle sezioni». **Tradotta**, su richiesta esplicita
+del SOD.
+
+### Dove si salva, e perché senza DDL
+
+`SharedBlocks`, chiave `page-intro:{pagina}`. La tabella esiste dall'`InitialCreate` — quindi è già in
+produzione su tutti e due i provider — e **nessuno la scriveva**. È contenuto **senza padrone**, chiavato su
+una stringa: la forma che serve a una zona di pagina, che un padrone non ce l'ha.
+
+⚠️ **Un `Document` non andava bene**, e non per gusto: senza aeroporto né settori cade fuori da **tutti** i
+descrittori di `IReleaseTarget` — invisibile all'elenco admin, al motore di release, agli impatti. Sarebbe
+stato irraggiungibile **in silenzio**, che è il guasto già pagato col catch-all dell'aeroporto.
+
+### Che cosa c'è
+
+- `PageIntro` — modello e proiezione. Salvato c'è **un modello solo** (titolo + `ExtraBlock`, cioè quel che
+  `DocumentBlocksEditor` sa già scrivere); la `DocumentView` si **calcola** a ogni resa e non si salva mai.
+- `IPageIntroStore` / `EfPageIntroStore` — una porta, col cancello **dentro** (Editor). Svuotare **cancella
+  la riga**: una riga col JSON nullo sarebbe un secondo modo di essere vuota.
+- `PageIntroZone.razor` — isola sua: si carica, si edita e si salva da sé, col lock (`editor:page-intro:…`).
+  Vuota, al pubblico **non si rende affatto** — nemmeno un contenitore.
+- Traduzione: le frasi entrano nel **corpus** (`EfTranslatableCorpus`, giro `it`) come già fanno le aree
+  regolamentate dal lato inglese. Senza quel pezzo la pagina avrebbe chiesto alla memoria frasi che nessuno
+  le aveva mai messo dentro, e sarebbe rimasta italiana **senza che nulla protestasse**.
+- Capitolo di Guida `#intro-di-pagina` + voce di ricerca: un «?» che punta a un capitolo assente è un
+  collegamento morto, e nessuno lo denuncia.
+
+### La prova dal vivo
+
+Su una copia del `vipi.db` reale, guidando Edge: lock preso, sezione «Documenti generali» con un paragrafo e
+un **blocco allegato** scelto dalla biblioteca (`MIL abbriviation`), salvata; ricaricata, la sezione si legge
+e il link è **la nostra rotta** (`/vsop/files/mil-abbriviation`); riletta in inglese, esce tradotta
+(«General documents»). Zero errori di pagina, zero letterali Razor.
+
+### Quel che resta
+
+- **Una pagina sola.** L'intro è agganciata solo a `/services/vsop/mil`: le altre landing ne registrano una
+  **chiave** quando servirà, non un secondo meccanismo.
+- ⚠️ **Nessun congelamento.** Quel che si salva è subito pubblico e non c'è una versione precedente da
+  riaprire. È scritto nella Guida e nel «?», ma è la cosa da ricordare se qualcuno ci mette del normativo.

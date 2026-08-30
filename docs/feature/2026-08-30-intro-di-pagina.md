@@ -5,6 +5,8 @@
 > delle sezioni».
 > **Ramo:** `intro-di-pagina`, da `main`. **Nessuna migrazione**, e non per prudenza: il contenitore c'è già.
 > **Tradotta**, su richiesta esplicita del SOD.
+> **Stato: fatta e verificata dal vivo** il 30 agosto 2026. **29 test nuovi** (14 sul modello, 12 sul
+> deposito e sul corpus, 4 sulla zona a schermo). Release verde su tutti e due i TFM.
 
 ## 1. Il vincolo di partenza: niente schema nuovo
 
@@ -79,4 +81,17 @@ non ripetuta a ogni chiamante.
 ## 6. Verifica
 
 Guidando il flusso vero, non solo i test: creare una sezione, metterci un blocco allegato che punta a un PDF
-della biblioteca, salvare, ricaricare **da sloggato**, e rileggere la pagina in inglese.
+della biblioteca, salvare, ricaricare, e rileggere la pagina in inglese.
+
+**Fatto il 30 agosto 2026** su una copia del `vipi.db` reale, con Edge:
+
+| passo | esito |
+|---|---|
+| staff, intro vuota | la zona si vede solo a lui, con «Sola lettura · Inizia modifica» |
+| lock preso | compaiono «Aggiungi sezione» e «Salva» |
+| sezione + paragrafo + **blocco allegato** | la tendina offre la biblioteca vera (`MIL abbriviation`) |
+| salvato e ricaricato | «Documenti generali» si legge, e il link è **la nostra rotta**: `/vsop/files/mil-abbriviation` |
+| riletto in inglese | «General documents», «Read before…» — tradotto |
+
+Zero errori di pagina, zero letterali Razor, nessuna richiesta in 4xx. In archivio: **una riga** in
+`SharedBlocks`, e le migrazioni applicate restano **111** — nessuna nuova.
