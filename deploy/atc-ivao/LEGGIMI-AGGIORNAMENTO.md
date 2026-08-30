@@ -35,16 +35,24 @@ IVAO, impostazioni di MariaDB).
 
 ---
 
-## ⛔ Le tre cose da NON cancellare
+## ⛔ Le quattro cose da NON cancellare
 
-L'aggiornamento sovrascrive i file dell'applicazione. Dentro la stessa cartella ce ne sono **tre** che non
-vengono da noi e che, se spariscono, non si recuperano:
+L'aggiornamento sovrascrive i file dell'applicazione. Dentro la stessa cartella ce ne sono **quattro** che
+non vengono da noi e che, se spariscono, non si recuperano:
 
 | Cosa | Dove | Se sparisce |
 |---|---|---|
-| **`appsettings.Production.json`** | nella radice dell'applicazione | contiene la **password del database** e le credenziali IVAO. Senza, il sito riparte lo stesso — **su un database SQLite vuoto**, e sembra che si siano persi tutti i dati |
+| **`segreti/`** | `…/public_atc/segreti` | contiene la **password del database** e le credenziali IVAO. Senza, il sito riparte lo stesso — **su un database SQLite vuoto**, e sembra che si siano persi tutti i dati. ⚠️ Il file dentro ha un nome scelto da voi e scritto da nessuna parte: se lo perdete non lo ricostruiamo noi |
+| **`appsettings.Production.json`** | nella radice dell'applicazione | dice quale motore usare (`MySql`), su quale nome risponde il sito e dove sta il key-ring. Senza, l'applicazione ricade sui default e parte su uno SQLite vuoto, con lo stesso sintomo |
 | **`vipi-keys/`** | `…/public_atc/vipi-keys` | sono le chiavi che firmano le sessioni: perderle **slogga tutti**, una volta sola |
 | **`tmp/`** | `…/public_atc/tmp` | è la cartella con cui si riavvia Passenger (`restart.txt`) |
+
+> ⚠️ **Fino al 30 agosto 2026 questa tabella ne elencava tre, e `segreti/` non c'era** — né qui né in
+> [`LEGGIMI-AGGIORNARE-VIA-FTP.md`](LEGGIMI-AGGIORNARE-VIA-FTP.md). La cartella è nata il 24 agosto
+> ([`LEGGIMI-SEGRETI.md`](LEGGIMI-SEGRETI.md)) e i fogli d'aggiornamento non sono stati rifatti: la voce
+> «password del database» è rimasta attaccata al file sbagliato per sei giorni. Chi avesse seguito la
+> tabella alla lettera avrebbe protetto il file che *non* ha più la password e lasciato scoperto quello
+> che ce l'ha.
 
 ℹ️ Nel pacchetto **non c'è** `appsettings.Production.json`, apposta: c'è
 `deploy/appsettings.Production.json.esempio`, che serve solo da riferimento — ed è **nella cartella

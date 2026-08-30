@@ -106,7 +106,8 @@ FileZilla, tasto destro sul file nel riquadro remoto → **Permessi file…** �
 |---|---|---|
 | `Vipi.Host` | `755` | è l'eseguibile; senza il bit x `systemd` risponde `Permission denied` |
 | `createdump` | `755` | serve solo alla diagnostica dei crash, ma tanto vale |
-| `appsettings.Production.json` | `600` | contiene password e segreti IVAO |
+| `segreti/` e il file dentro | `700` / `600` | **è qui che stanno la password del database e le credenziali IVAO** (dal 24 agosto 2026) |
+| `appsettings.Production.json` | `600` | non ha più segreti dentro, ma descrive nome del database, utente e percorso del key-ring |
 
 ⚠️ Se il server è FTP puro e non accetta `SITE CHMOD`, la voce «Permessi file…» non compare o fallisce: in
 quel caso il `chmod` lo deve fare chi ha la shell. Non c'è modo di aggirarlo dal client.

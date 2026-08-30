@@ -57,15 +57,26 @@ voi**, cioè a trasferimento finito invece che nel mezzo.
 **Trasferimento → Tipo di trasferimento → Binario.** Non «Auto». Il perché è in
 [`LEGGIMI-FTP.md`](LEGGIMI-FTP.md) §2.
 
-### 2. Le tre cose da NON cancellare
+### 2. Le quattro cose da NON cancellare
 
 Si sovrascrive **senza svuotare** la cartella dell'applicazione:
 
 | Cosa | Dove | Se sparisce |
 |---|---|---|
-| `appsettings.Production.json` | radice dell'applicazione | contiene la password del database: senza, il sito riparte su un SQLite vuoto e sembra che i dati siano persi |
+| `segreti/` | `…/public_atc/segreti` | **la password del database e le credenziali IVAO**. Senza, il sito non raggiunge l'archivio: riparte su uno SQLite vuoto e *sembra che i dati siano spariti*. ⚠️ Il file dentro ha un nome scelto da voi e scritto da nessuna parte: se lo perdete, non lo ricostruiamo noi |
+| `appsettings.Production.json` | radice dell'applicazione | dice quale motore usare (`MySql`), su quale nome risponde il sito e dove sta il key-ring. Senza, l'applicazione ricade sui default e parte su uno SQLite vuoto, con lo stesso sintomo |
 | `vipi-keys/` | `…/public_atc/vipi-keys` | sono le chiavi che firmano le sessioni: **ogni** login fallisce |
 | `tmp/` | `…/public_atc/tmp` | serve per il riavvio |
+
+> ⚠️ **Fino al 30 agosto 2026 questa tabella ne elencava tre, e `segreti/` non c'era.** La cartella è nata
+> il 24 agosto ([`LEGGIMI-SEGRETI.md`](LEGGIMI-SEGRETI.md)) e questo foglio non è stato aggiornato: chi lo
+> avesse seguito alla lettera per un pacchetto intero avrebbe potuto perdere la password del database
+> **senza che niente lo avvertisse**. E il sintomo è il peggiore possibile — il sito riparte, sembra
+> funzionare, e l'archivio è vuoto.
+>
+> La riga di `appsettings.Production.json` diceva anche «contiene la password del database»: **non è più
+> vero dal 24 agosto**, la password sta in `segreti/`. Il file resta comunque da non cancellare, per le
+> ragioni scritte nella tabella.
 
 ⚠️ La cartella `deploy/` del pacchetto **non va caricata**.
 
