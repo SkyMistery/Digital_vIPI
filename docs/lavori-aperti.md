@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 30 agosto 2026, pomeriggio (**§AB — LA SHAPE DI UN SETTORE HA UNA PORTA SOLA**, carta [refactor/15](refactor/15-shape-del-settore-una-porta-sola.md), **S0→S10 fuse in `main` e SPINTE** (merge `--no-ff`, quattordici commit; ramo cancellato). Un settore agganciato agli spazi aerei dell'AIP **disegnava** quel confine e **rivendicava** il traffico dentro il monoblocco di IVAO: sei motori, due lo sapevano. Adesso la forma — **anello E quote insieme** — si chiede a `ISectorShapeResolver`, e le quote stanno **DENTRO il pezzo**, così «laterale da una fonte, verticale da un'altra» non è una cosa da evitare ma una cosa che **non si può scrivere**. ⚠️ La **prova dal vivo**: agganciato `LIRR_EW_CTR` — in frequenza — alla FIR ROMA `GND→FL195`, in **un giro del poller** le tratte nuove sono uscite col timbro `Aip` e i quattro voli **sopra FL195** hanno smesso di essere rivendicati. ⚠️ **S11 resta fuori**: non è una slice, è la seconda metà della cura — otto siti di scrittura e il percorso del **congelamento di release** — e non si fa il giorno prima della consegna (§4-bis della carta). ⚠️ Migrazioni in coda: **TRENTASEI**) · **Aggiornato:** 30 agosto 2026 (**I DUE RAMI SONO FUSI IN `main`, CHE È STATO SPINTO** — `biblioteca-allegati` (§E10) e `spazi-aerei-aip` (§AA), in quest'ordine. Sette conflitti, e la regola era quasi sempre «servono tutti e due»: registrazioni DI, DbSet, voce nella barra admin, chiavi di traduzione. ⚠️ **L'eccezione non l'ha segnalata git**: i due rami dicevano tutti e due «16 voci nella barra admin» perché ognuno ne aggiungeva UNA a quindici — fuse sono **DUE**, quindi 17 e 12 — e git ha fuso due numeri identici senza chiamarlo conflitto. Se n'è accorto solo `AdminNavTests`. ⚠️ I due **ModelSnapshot** git li ha fusi da solo e stavolta bene: la prova non è che i nomi ci siano ma che una migrazione di prova esca **VUOTA**, e su tutti e due i provider lo è. **Release verde e quindici assiemi su quindici verdi DOPO la fusione.** ⚠️ Le migrazioni in coda al cutover MariaDB sono ora **TRENTAQUATTRO**. ✅ **R8 CHIUSO**: l'embed provato dal vivo con due PDF veri del committente — il documento si vede davvero nel riquadro. ⚠️ E ha trovato che in `frame-src` mancava **`'self'`**: l'iframe punta alla NOSTRA rotta, non a Drive, e col solo Drive il riquadro sarebbe rimasto vuoto al passaggio a CSP vera. ⚠️ Più un difetto in produzione: la colonna versione della biblioteca stampava `v@r.VersionNumber` alla lettera, che è la regola di Razor per gli indirizzi email) · **Aggiornato:** 29 agosto 2026, notte (**§E10 — LA BIBLIOTECA ALLEGATI, TUTTE E NOVE LE SLICE FATTE**, ramo
+**Aggiornato:** 30 agosto 2026, **sera** — 🔴 **CONSEGNA A METÀ**: pacchetto `j` caricato via FTP, database `.sql` pronto e **in attesa che Ivao.It lo importi**; ⚠️ **nove commit sul ramo `consegna-db-20260830` DA SPINGERE**; ⚠️ la consegna **riparta da zero sul contenuto** (il `vipi.db` di sviluppo è intatto); 🔒 **dal 31 agosto al 16 settembre non si consegna database** e una migrazione girerebbe da sola in produzione — presidio in `MigrazioniDellaFinestraCiecaTests`, **da cancellare a finestra chiusa**. Tutto in **§A14** e nel riquadro di «Dove siamo». · **Aggiornato:** 30 agosto 2026, pomeriggio (**§AB — LA SHAPE DI UN SETTORE HA UNA PORTA SOLA**, carta [refactor/15](refactor/15-shape-del-settore-una-porta-sola.md), **S0→S10 fuse in `main` e SPINTE** (merge `--no-ff`, quattordici commit; ramo cancellato). Un settore agganciato agli spazi aerei dell'AIP **disegnava** quel confine e **rivendicava** il traffico dentro il monoblocco di IVAO: sei motori, due lo sapevano. Adesso la forma — **anello E quote insieme** — si chiede a `ISectorShapeResolver`, e le quote stanno **DENTRO il pezzo**, così «laterale da una fonte, verticale da un'altra» non è una cosa da evitare ma una cosa che **non si può scrivere**. ⚠️ La **prova dal vivo**: agganciato `LIRR_EW_CTR` — in frequenza — alla FIR ROMA `GND→FL195`, in **un giro del poller** le tratte nuove sono uscite col timbro `Aip` e i quattro voli **sopra FL195** hanno smesso di essere rivendicati. ⚠️ **S11 resta fuori**: non è una slice, è la seconda metà della cura — otto siti di scrittura e il percorso del **congelamento di release** — e non si fa il giorno prima della consegna (§4-bis della carta). ⚠️ Migrazioni in coda: **TRENTASEI**) · **Aggiornato:** 30 agosto 2026 (**I DUE RAMI SONO FUSI IN `main`, CHE È STATO SPINTO** — `biblioteca-allegati` (§E10) e `spazi-aerei-aip` (§AA), in quest'ordine. Sette conflitti, e la regola era quasi sempre «servono tutti e due»: registrazioni DI, DbSet, voce nella barra admin, chiavi di traduzione. ⚠️ **L'eccezione non l'ha segnalata git**: i due rami dicevano tutti e due «16 voci nella barra admin» perché ognuno ne aggiungeva UNA a quindici — fuse sono **DUE**, quindi 17 e 12 — e git ha fuso due numeri identici senza chiamarlo conflitto. Se n'è accorto solo `AdminNavTests`. ⚠️ I due **ModelSnapshot** git li ha fusi da solo e stavolta bene: la prova non è che i nomi ci siano ma che una migrazione di prova esca **VUOTA**, e su tutti e due i provider lo è. **Release verde e quindici assiemi su quindici verdi DOPO la fusione.** ⚠️ Le migrazioni in coda al cutover MariaDB sono ora **TRENTAQUATTRO**. ✅ **R8 CHIUSO**: l'embed provato dal vivo con due PDF veri del committente — il documento si vede davvero nel riquadro. ⚠️ E ha trovato che in `frame-src` mancava **`'self'`**: l'iframe punta alla NOSTRA rotta, non a Drive, e col solo Drive il riquadro sarebbe rimasto vuoto al passaggio a CSP vera. ⚠️ Più un difetto in produzione: la colonna versione della biblioteca stampava `v@r.VersionNumber` alla lettera, che è la regola di Razor per gli indirizzi email) · **Aggiornato:** 29 agosto 2026, notte (**§E10 — LA BIBLIOTECA ALLEGATI, TUTTE E NOVE LE SLICE FATTE**, ramo
 `biblioteca-allegati` **spinto e NON fuso**. I PDF non possono stare da noi — il piano di hosting non ammette
 il formato, ed è un vincolo **contrattuale** — quindi stanno sul **Drive di divisione**, e da noi stanno
 identità, organizzazione, versioni e il registro dei link. Il documento cita uno **slug** e passa da
@@ -175,7 +175,58 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 **Riscritto il 30 agosto 2026**, con le cifre **contate**. È la sezione da leggere per prima quando si
 riprende senza contesto: dice dov'è il codice, cosa manca e cosa va fatto *prima* del prossimo deploy.
 
-✅ **NON C'È NESSUN RAMO CON LAVORO FUORI**, e `main` è **allineato con `origin/main`**. Il 30 agosto sono
+---
+
+### 🔴 30 agosto, sera — LA CONSEGNA È A METÀ, E QUESTO VIENE PRIMA DI TUTTO
+
+**Nove commit sul ramo `consegna-db-20260830`, NON SPINTI.** Albero pulito, 15 assiemi su 15 verdi.
+Prima cosa da fare riprendendo: `git push -u origin consegna-db-20260830`.
+
+**Stato della consegna** (cronaca completa in **§A14**):
+
+| | |
+|---|---|
+| **Pacchetto `j`** | ✅ pubblicato *e caricato* dal committente via FileZilla (457 file). **Non ancora riavviato.** |
+| **Database** | ✅ `.sql` 985 KB + `.gz` 186 KB in `_mariadb/dump/`, con i due script di rete in `artifacts/`. ⏳ **in attesa che Ivao.It lo importi** |
+
+⚠️ **La finestra scoperta è adesso.** I file nuovi sono sul server e il database è ancora quello vecchio: se
+Passenger rigenera il processo da solo — **è già successo il 23 agosto senza che nessuno toccasse
+`tmp/restart.txt`** — il pacchetto `j` applica **in produzione, da solo, le 36 migrazioni** che il dump
+avrebbe portato già fatte. Il rilevatore c'è ed è la query in cima a `passo1`: se elenca tabelle, il sito è
+ripartito prima.
+
+⚠️⚠️ **QUESTA CONSEGNA RIPARTE DA ZERO SUL CONTENUTO**, per decisione del committente: dentro ci sono le
+anagrafiche, la memoria di traduzione (274 unità) e il glossario, **e nient'altro**. Niente vIPI, niente
+accordi, niente release, niente spazi aerei, niente statistiche. Il `vipi.db` di sviluppo **è intatto**
+(40 144 righe, 25 documenti) e non è stato toccato: è da lì che si riscrive.
+
+**Cosa resta al committente:** `tmp/restart.txt` **solo a database dentro** → prima riga di
+`diagnostica/avvio-diagnostica.txt` con la data di adesso → il push del ramo.
+
+### 🔒 Dal 31 agosto al 16 settembre non si consegna database
+
+Chi lo amministra in Ivao.It è via. ⚠️ **Lo schema però NON è congelato**: in produzione gira
+`Database.Migrate()` all'avvio, sul pacchetto che il committente carica via FTP. Quindi una migrazione in
+quella finestra gira **da sola, su DDL non transazionale, senza nessuno che possa ripristinare**.
+
+Il presidio è `tests/Vipi.Infrastructure.Tests/MigrazioniDellaFinestraCiecaTests.cs` — e **va cancellato
+quando la finestra si chiude**, non aggiornato spostando le date. ⚠️ **S11 non va spedita in questa
+finestra.**
+
+---
+
+✅ **Fino al pomeriggio del 30 agosto non c'era nessun ramo con lavoro fuori**, e `main` era allineato con
+`origin/main` a **`30363753`**. ⚠️ Da quella sera i **nove commit di `consegna-db-20260830` sono da
+spingere** (riquadro qui sopra).
+
+> ℹ️ **Quale codice sta sul server, e non è la testa del ramo.** Il pacchetto `j` è stato costruito da
+> **`2e96bbc8`**, e a quel commit `src/` era **identico a `main`**: fino a lì il ramo toccava solo test e
+> documentazione. I due commit successivi — il passaggio della versione da lettera a numero — cambiano
+> `src/Vipi.Host/VersioneBuild.cs` e `Vipi.Host.csproj`, quindi **la testa del ramo non è più ciò che gira**.
+> Non è un problema (quel codice va nel prossimo pacchetto, che sarà `1.0.0`), ma chi confronta deve
+> confrontare con `2e96bbc8`, non con `HEAD`.
+
+Il 30 agosto sono
 stati fusi e spinti, in quest'ordine: **`biblioteca-allegati`** (§E10), **`spazi-aerei-aip`** (§AA) e
 **`shape-una-porta-sola`** (§AB, carta [refactor/15](refactor/15-shape-del-settore-una-porta-sola.md),
 quattordici commit); tutti e tre cancellati dopo la fusione. **Release verde e nove assiemi su nove verdi
