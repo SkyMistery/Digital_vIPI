@@ -172,55 +172,70 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 
 ## Dove siamo, in cinque righe
 
-**Riscritto il 30 agosto 2026, notte**, con le cifre **contate**. È la sezione da leggere per prima
-quando si riprende senza contesto: dice dov'è il codice, cosa manca e cosa va fatto *prima* del prossimo
-deploy.
+**Riscritto il 30 agosto 2026**, con le cifre **contate**. È la sezione da leggere per prima quando si
+riprende senza contesto: dice dov'è il codice, cosa manca e cosa va fatto *prima* del prossimo deploy.
 
-⚠️ **C'È UN RAMO CON LAVORO FUORI: `biblioteca-allegati`** (spinto, **non fuso**), la **biblioteca
-allegati** — §E10, tutte e nove le slice, 29 agosto. Build Release verde su entrambi i TFM e **tutti** i
-progetti di test verdi, E2E compresi. ⚠️ Porta **due migrazioni**: la coda passa da ventisei a **VENTOTTO**.
-⚠️ E resta una verifica che nessun test può dare: **l'embed di Drive non è mai stato provato dal vivo**
-(rischio R8) — serve il sito acceso e un PDF vero sul Drive di divisione. Il modo *Link* non ne dipende.
+✅ **NON C'È NESSUN RAMO CON LAVORO FUORI.** `main` = **`8b554dca`**, spinto. Il 30 agosto sono stati fusi i
+due che c'erano, in quest'ordine: **`biblioteca-allegati`** (§E10) e **`spazi-aerei-aip`** (§AA), poi
+cancellati da locale e da `origin`. **Release verde e quindici assiemi su quindici verdi DOPO la fusione**,
+E2E compresi; le migrazioni si applicano in ordine su una copia del `vipi.db` vero, e otto pagine su otto
+rispondono 200.
 
-Tolto quello, `main` = **`3b305831`**, spinto: dentro c'è tutto — glossario
-di fraseologia e archivio ATC (28 agosto), autorizzazioni a livelli (29), convertitore di coordinate (§W),
-edizione giusta per il campo (§X), le **tabelle del vSOP militare** con l'anagrafica delle radioassistenze
-(§Y) e la **colonna destra delle quote di transizione** (§Z, 29 agosto). Tutti i rami sono stati cancellati
-da locale e da `origin` dopo aver verificato `git rev-list --count main..origin/<ramo>` = 0.
+⚠️ **La trappola della fusione, che git non segnala.** I due rami dicevano tutti e due «16 voci nella barra
+admin» perché ognuno ne aggiungeva **una** a quindici. Git ha fuso due numeri identici senza chiamarlo un
+conflitto — il conflitto era sui **commenti** accanto — e fuse le voci sono **due**: 17 e 12. Se n'è accorto
+solo `AdminNavTests`. ⚠️ I due **ModelSnapshot** git li ha fusi bene, ma la prova non è che i nomi ci siano:
+è che una **migrazione di prova esca VUOTA** su tutti e due i provider.
+
+### Che cosa è entrato il 30 agosto
+
+- **§AA — gli spazi aerei dell'AIP**, tutte e sette le slice ([carta](feature/2026-08-29-spazi-aerei-dal-kmz.md)).
+  Il file KMZ si carica a mano, e un avvicinamento può disegnare il **CTR che controlla davvero**: Catania
+  sono sette zone, e da IVAO arriva un poligono solo. ⚠️ Il file contiene **scatole 3D**, non contorni.
+  ⚠️ **§6-bis**: l'aggancio **non scrive** la shape — quella colonna tiene **un anello**. Più l'ATZ al posto
+  del cerchio (**13 torri su 84**), la pagina pubblica `/services/airspace`, il convertitore che pesca dal
+  catalogo e il rapporto radioassistenze.
+- **§E10 — la biblioteca allegati**, e ✅ **R8 chiuso**: l'embed di Drive provato dal vivo con due PDF veri.
+  ⚠️ E ha trovato che in `frame-src` mancava **`'self'`** (l'iframe punta alla **nostra** rotta, non a
+  Drive): sarebbe morto al passaggio a CSP vera. Più `v@r.VersionNumber` stampato alla lettera in ogni riga
+  — la regola di Razor per gli indirizzi email.
+- **§Q16 chiusa tutta**: le frasi di partenza di una vLOA sono **parola nostra** e si seminano invece di
+  comprarle (una tornava rotta a ogni giro, 155 caratteri ogni quarto d'ora), e la spesa ora si **conta**
+  (`TranslationSpends`) invece di dedurla dalla memoria. ⚠️ Con la **fotografia iniziale**, o il tetto
+  ripartirebbe da zero.
 
 Il **cutover MariaDB** è in `main` e verificato (A1–A8). Le sezioni **B**, **C**, **D**, **G**, **H** sono
-chiuse o chiuse-con-la-ragione-scritta; **I** è sospesa di proposito; **J**, **K**, **L**, **M**, **N**,
-**O**, **P**, **Q**, **Q-bis**, **R**, **S**, **T**, **U**, **V**, **W**, **X**, **Y** e **Z** sono chiuse —
-di **§Y** resta aperto il solo **BOAT** (§Y10), che è del committente. ⚠️ **§Z non ha migrazioni**; **§E10
-sì, due**. Anche **§E10** è chiusa, ma il suo ramo **non è fuso**.
+chiuse o chiuse-con-la-ragione-scritta; **I** è sospesa di proposito; **J**–**Z**, **§AA** ed **§E10** sono
+chiuse — di **§Y** resta aperto il solo **BOAT** (§Y10), che è del committente.
 
-⚠️ **Le migrazioni in coda al cutover sono VENTOTTO** — ventisei in `main`, più le **due** che porta il
-ramo `biblioteca-allegati` (`BibliotecaAllegati`, emessa per i due provider: crea `Attachments` e
-`AttachmentVersions`, **additiva**, non tocca nessuna tabella esistente). Le sei prima di quelle le porta §Y: anagrafica delle
-radioassistenze, coordinate delle soglie pista e la **correzione del modello**, ognuna emessa per i due
-provider. ⚠️ **Quella della correzione non è innocua**: `DELETE FROM Navaids` **e**
+⚠️ **Le migrazioni in coda al cutover sono TRENTAQUATTRO**: ventisei erano in `main`, più due della
+biblioteca (`BibliotecaAllegati`), quattro degli spazi aerei (`CatalogoSpaziAerei`, `AgganciSpaziAerei`) e
+due del registro della spesa (`RegistroSpesaTraduzione`). Tutte **additive**. Le sei prima di quelle le
+porta §Y. ⚠️ **Quella della correzione delle radioassistenze non è innocua**: `DELETE FROM Navaids` **e**
 `DELETE FROM ImportStates WHERE Category='Navaid'` — svuota l'anagrafica e azzera lo stato d'import, così al
-primo avvio il giro la rifà da zero (senza la seconda riga resterebbe vuota per ventiquattro ore). Ci mette
-un minuto, e nel frattempo le tabelle dei SOP che la citano sono vuote.
+primo avvio il giro la rifà da zero. Ci mette un minuto, e nel frattempo le tabelle dei SOP sono vuote.
 ⚠️ Alcune migrazioni sono datate **25-ago 15:19**, quindi su un DB già aggiornato EF le applicherà **fuori
-ordine** — lecito, ma da sapere. ✅ **La SELECT dei duplicati su `DocReleases` la fa ora l'applicazione da
-sé** (§T): non era eseguibile a mano — il 3306 del server sta sul suo `localhost` e non c'è un pannello — e
-ora `ReleaseNumberPreflight` la esegue subito prima di `Migrate()`, nominando le righe in `avvio-errore.txt`.
+ordine** — lecito, ma da sapere. ✅ La SELECT dei duplicati su `DocReleases` la fa l'applicazione da sé (§T).
 
-🔴 **Le tre cose da fare SUBITO DOPO il deploy**, e nessuna la fa il codice da sé:
+🔴 **Le due cose da fare SUBITO DOPO il deploy**, e nessuna la fa il codice da sé:
 
-1. **Annunciare il cambio dei permessi** (§U): gli `IT-` fuori dagli otto codici di direzione smettono di
-   editare. Si rimedia con una promozione a mano da `/services/vsop/admin/permissions`.
-2. **Premere il re-import delle piste** su `/services/vsop/admin/airports` (§Y10): in produzione le
+1. **Premere il re-import delle piste** su `/services/vsop/admin/airports` (§Y10): in produzione le
    coordinate delle soglie nascono vuote, e la sezione lo dice invece di non comparire.
-3. **Riempire il tipo delle radioassistenze** da `/services/vsop/admin/navaids` (§Y12): dopo l'import ne
+2. **Riempire il tipo delle radioassistenze** da `/services/vsop/admin/navaids` (§Y12): dopo l'import ne
    restano **122 senza tipo**, e il filtro «senza tipo» è la lista di lavoro. La sorgente il tipo non lo sa —
    `itvor.vor` tiene VOR, TACAN e VORTAC insieme — e sui documenti si legge un trattino finché non lo scrive
-   una persona.
-4. 🆕 **Solo se `biblioteca-allegati` viene fuso**: annunciare agli staffisti che la pagina **Allegati**
-   esiste, e che un PDF si carica **prima** sul Drive di divisione e poi si incolla il link. La biblioteca
-   nasce vuota, e l'editor lo dice invece di mostrare una tendina muta.
+   una persona. 🆕 Il **rapporto degli spazi aerei** ne propone **53**: dice che cosa ne pensa l'AIP, non lo
+   scrive.
 
+✅ **La terza è caduta**: l'annuncio del cambio dei permessi (§U) l'ha fatto il committente il 30 agosto.
+Resta il **fatto**: al deploy gli `IT-` fuori dagli otto codici di direzione smettono di editare, e chi deve
+editare si promuove a mano da `/services/vsop/admin/permissions`.
+
+🆕 **Da annunciare quando il deploy va**: la pagina **Allegati** esiste, e un PDF si carica **prima** sul
+Drive di divisione e poi se ne incolla il link. ⚠️ E lo slug proposto **non si cambia col triplo clic** —
+lascia il valore vecchio attaccato al nuovo; con **Ctrl+A** o col Backspace funziona. È il comportamento dei
+campi «controllati» (`value=@…` + `@oninput`), che in questa applicazione sono **19 file**: non è della
+biblioteca, ed è un lavoro a sé, mai aperto.
 ⚠️ **Tre passi d'avvio** nuovi rispetto al 26: `LinkAirportDocumentsAsync` (dai rami fusi),
 `ClearVloaSeededAiracRowAsync` e `ClearUnpublishedCurrentVersionAsync` (§L). Tutti idempotenti e tutti si
 scrivono nei log.
@@ -230,6 +245,7 @@ scrivono nei log.
 | Cosa | Dove |
 |---|---|
 | **Ripubblicare le quattro vLOA** — quattro clic, la lista «Da fare» le indica | §L |
+| 🆕 **Caricare il file dell'AIP** in produzione, e agganciare i CTR agli avvicinamenti che li controllano | **§AA** |
 | Le risposte di Ivao.It, fra cui **chi fa il backup** | A9 / A13 |
 | La **rotazione** dei segreti esposti il 24-25 agosto | A13 |
 | Le decisioni di contenuto (LIBB: due sezioni nascoste a mano; l'elenco aeroporti da 75 righe) | K / statistiche |
@@ -239,7 +255,7 @@ scrivono nei log.
 | I **termini di ritenzione** del piano gratuito Azure, e la domanda a IVAO HQ sul trattamento esterno | Q1 / Q2 |
 | **Rileggere la trascrizione di LIPI** e le **figure** dei SOP da estrarre dai PDF | R1 / R2 |
 | Gli altri **quattordici SOP** militari, e su quattro campi la sezione QRA da riempire | R3 |
-| **Avvisare lo staff prima del deploy**: gli `IT-` fuori dagli otto codici di direzione smettono di editare | **U** |
+| ~~Avvisare lo staff prima del deploy~~ — ✅ **FATTO il 30-ago**: resta il fatto, non l'annuncio | **U** |
 
 🔵 **Resta deciso**: il database si ripulisce un'ultima volta prima di popolarlo — quindi **I1** (le radici
 orfane di LIRR) è sospesa apposta: non si sistema un albero che sta per essere rifatto.
