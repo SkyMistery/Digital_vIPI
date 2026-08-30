@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Content;
 using Vipi.Application.Translation;
 using Vipi.Domain;
 
@@ -83,6 +84,27 @@ public sealed class EfTranslatableCorpus : ITranslatableCorpus
                 segmenti.Add(TranslationText.Normalize(a.Description));
                 segmenti.Add(TranslationText.Normalize(a.ActivationDetails));
             }
+        }
+
+        // ⚠️ Le INTRO DI PAGINA non stanno in un documento: vivono in `SharedBlocks`, chiavate sulla pagina
+        // (carta intro-di-pagina §4). Non hanno una `Document.Language` da interrogare — la lingua in cui
+        // sono scritte la dichiara `PageIntro.Sorgente`, e sta in un posto solo.
+        //
+        // Senza questo pezzo la pagina chiederebbe alla memoria delle frasi che nessuno le ha mai messo
+        // dentro: l'intro resterebbe italiana sopra un elenco inglese, e nulla protesterebbe — per il
+        // riempimento non manca niente, perché quelle frasi non gli sono mai passate davanti. È lo stesso
+        // guasto delle aree regolamentate qui sopra, dall'altro lato della lingua.
+        if (lingua == PageIntro.Sorgente)
+        {
+            var intro = await _db.SharedBlocks.AsNoTracking()
+                .Where(b => b.Key.StartsWith(PageIntro.Prefisso) && b.BodyJson != null)
+                .Select(b => b.BodyJson)
+                .ToListAsync(ct).ConfigureAwait(false);
+
+            foreach (var json in intro)
+                foreach (var sezione in PageIntro.ToView(PageIntro.Parse(json)).Sections)
+                    foreach (var s in DocumentTranslator.SegmentiSezione(sezione))
+                        segmenti.Add(s);
         }
 
         segmenti.Remove("");

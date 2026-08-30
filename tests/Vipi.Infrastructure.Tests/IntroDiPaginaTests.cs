@@ -133,6 +133,65 @@ public class IntroDiPaginaTests : IAsyncLifetime
         Assert.Single(await Deposito(VipiRole.User).LeggiAsync("mil"));
     }
 
+    // ---- La traduzione (carta §4) --------------------------------------------------------------------
+
+    /// <summary>
+    /// ⚠️ È la prova che l'intro <b>si tradurrà</b>. Senza il pezzo nel corpus la pagina chiederebbe alla
+    /// memoria delle frasi che nessuno le ha mai messo dentro: l'intro resterebbe italiana sopra un elenco
+    /// inglese e <b>nulla protesterebbe</b>, perché per il riempimento non manca niente.
+    /// </summary>
+    [Fact]
+    public async Task Le_frasi_dell_intro_entrano_nel_giro_della_traduzione()
+    {
+        await Deposito().SalvaAsync("mil", Una("Documenti generali", "Leggere prima di controllare."), "Intro");
+
+        var segmenti = await new EfTranslatableCorpus(_db).SegmentiAsync("it");
+
+        Assert.Contains("Documenti generali", segmenti);
+        Assert.Contains("Leggere prima di controllare.", segmenti);
+    }
+
+    /// <summary>L'intro nasce in italiano: nel giro inglese non ci va, o si pagherebbero caratteri per
+    /// tradurre l'italiano <i>verso</i> l'italiano.</summary>
+    [Fact]
+    public async Task Nel_giro_inglese_l_intro_non_entra()
+    {
+        await Deposito().SalvaAsync("mil", Una("Documenti generali", "Leggere prima di controllare."), "Intro");
+
+        var segmenti = await new EfTranslatableCorpus(_db).SegmentiAsync("en");
+
+        Assert.DoesNotContain("Documenti generali", segmenti);
+    }
+
+    /// <summary>⚠️ Il testo di un blocco ALLEGATO è la nota sotto il link, e si legge: deve tradursi. Lo
+    /// slug no — è un identificatore, e tradurlo spegnerebbe il link.</summary>
+    [Fact]
+    public async Task Del_blocco_allegato_si_traduce_la_nota_e_non_lo_slug()
+    {
+        var sezioni = new List<PageIntroSection>
+        {
+            new()
+            {
+                Title = "Documenti",
+                Blocks = new List<ExtraBlock>
+                {
+                    new()
+                    {
+                        Format = BlockFormat.Attachment,
+                        Text = "In vigore dal primo settembre.",
+                        AttachmentJson = AttachmentRef.Serialize(new AttachmentRef("circolare-01", null)),
+                    },
+                },
+            },
+        };
+        await Deposito().SalvaAsync("mil", sezioni, "Intro");
+
+        var segmenti = await new EfTranslatableCorpus(_db).SegmentiAsync("it");
+
+        Assert.Contains("In vigore dal primo settembre.", segmenti);
+        Assert.DoesNotContain(segmenti, s => s.Contains("circolare-01", StringComparison.Ordinal));
+    }
+
     private sealed class Authz : IEditAuthorizationService
     {
         private readonly VipiRole _livello;

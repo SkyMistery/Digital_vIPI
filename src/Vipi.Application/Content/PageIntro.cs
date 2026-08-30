@@ -41,10 +41,14 @@ public static class PageIntro
     /// </summary>
     public const Language Sorgente = Language.It;
 
+    /// <summary>Il prefisso di ogni chiave d'intro: è quello che permette al giro della traduzione di
+    /// riconoscere le intro fra i blocchi condivisi senza sapere quali pagine ne hanno una.</summary>
+    public const string Prefisso = "page-intro:";
+
     /// <summary>La chiave del <see cref="SharedBlock"/> che porta l'intro di una pagina.
     /// <para>Il prefisso non è decorativo: la seconda pagina che vorrà un'intro registra una <b>chiave</b>,
     /// non un secondo meccanismo.</para></summary>
-    public static string Chiave(string pagina) => "page-intro:" + pagina.Trim().ToLowerInvariant();
+    public static string Chiave(string pagina) => Prefisso + pagina.Trim().ToLowerInvariant();
 
     private static readonly JsonSerializerOptions Opts = new() { WriteIndented = false };
 
