@@ -1051,6 +1051,18 @@ destinazione del `RENAME` vengono dallo stesso script con la stessa grafia, quin
 `MySqlServerSettingsProbe` all'avvio e finisce nella diagnostica insieme a `sql_mode`. Restano il backup
 loro (che ora è un di più, non un prerequisito) e il limite di caricamento di phpMyAdmin.
 
+⚠️ **La query sui permessi è stata TOLTA dal foglio, ed è una lezione sul verificare le premesse.** Per
+tre consegne il foglio ha chiesto a Ivao.It di mandarci `SELECT * FROM RoleOverrides` prima dell'import,
+«per non perdere le promozioni date a mano». Ma quella tabella **in produzione non esiste**: nasce con
+`20260828212039_PromozioniAMano`, cinque giorni dopo l'ultima consegna, e nel dump del 23 agosto — che è il
+loro database di oggi — non c'è. Il meccanismo precedente, `EditGrants`, c'è ed è **vuoto**. La query
+sarebbe morta con «table doesn't exist» in mezzo a una procedura delicata, facendo dubitare di aver rotto
+qualcosa, e non avrebbe salvato niente perché non c'era niente da salvare.
+ℹ️ L'ordine dei passi era anche sbagliato — la query stava **dopo** lo script che toglie le tabelle. Due
+domande di fila del committente, due difetti nello stesso passo: prima l'ordine, poi il fatto che non
+servisse affatto. **Una premessa non verificata sopravvive alle riletture**, perché rileggere conferma che
+la frase è coerente, non che è vera.
+
 ℹ️ Le nove righe «da rivedere» restano accese nel database consegnato anche per i sette ripubblicati: il
 ricalcolo della deriva è un giro gestito con cancello a 24h e il periodo è una **costante nel codice**
 (`ImpactDriftHostedService.Periodo`), non una configurazione. Si richiudono da sole al primo giro in
