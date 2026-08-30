@@ -192,6 +192,28 @@ public static class VipiModuleExtensions
             Predicate = r => r.Tags.Contains(ReadinessTag),
         });
 
+        // Il colpetto che tiene sveglio il processo. Lo chiama il browser di chi ha una scheda aperta, ogni
+        // due minuti e mezzo (vipi-riconnessione.js).
+        //
+        // ⚠️ NON è una sonda e non deve diventarlo: non guarda il database, non guarda niente, risponde 204 e
+        // basta. Su questo hosting (Plesk + Passenger) il processo viene spento quando nessuno lo usa, e con
+        // lui muoiono tutti i circuiti Blazor: è il «Attempting to reconnect to the server…» che si vede
+        // mentre si sta leggendo una pagina senza toccarla. A Passenger per non spegnere serve UNA richiesta
+        // qualsiasi — non una risposta interessante — e questa costa quanto un 404.
+        //
+        // Chi volesse sapere se il sito sta bene usa /vsop/health, che per questo fa le query: se le facesse
+        // anche questo, terremmo sveglio il processo pagandolo in interrogazioni al database ogni due minuti
+        // e mezzo PER SCHEDA APERTA, che è il modo di risolvere un problema comprandone un altro.
+        // ⚠️ Anche HEAD, e non è pignoleria: i servizi di sorveglianza esterni (UptimeRobot e simili, che è
+        // il modo previsto di tenere caldo il processo anche quando non c'è nessuno) bussano in HEAD per
+        // default. Con il solo GET risponderebbe 405 — un «non funziona» che somiglia a un guasto nostro.
+        // Visto dal vivo il 31 agosto 2026, provando l'endpoint appena scritto.
+        endpoints.MapMethods("/vsop/ping", new[] { "GET", "HEAD" }, (HttpContext ctx) =>
+        {
+            ctx.Response.Headers.CacheControl = "no-store";
+            return Results.NoContent();
+        });
+
         // F3: transport live SSE. Emette un evento a ogni cambio della cache ATC (+ heartbeat anti-timeout).
         // ADR-0003. Read-only, nessun dato sensibile.
         endpoints.MapGet("/vsop/live/atc", async (HttpContext ctx, OnlineAtcCache cache, CancellationToken ct) =>

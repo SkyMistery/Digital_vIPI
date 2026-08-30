@@ -2966,4 +2966,9 @@
   <data name="Shape_None" xml:space="preserve"><value>nessuna</value></data>
   <data name="Shape_NoneTitle" xml:space="preserve"><value>Questa posizione non ha un'area: DEL e GND non ne hanno una.</value></data>
   <data name="Shape_LimitsOverridden" xml:space="preserve"><value>scavalcati dall'AIP</value></data>
+  <data name="Reconnect_Title" xml:space="preserve"><value>Collegamento interrotto</value></data>
+  <data name="Reconnect_Retrying" xml:space="preserve"><value>Il collegamento con il server si è interrotto. Riprovo da solo, senza perdere la pagina.</value></data>
+  <data name="Reconnect_Rejected" xml:space="preserve"><value>Il server è ripartito: ricarico la pagina.</value></data>
+  <data name="Reconnect_Failed" xml:space="preserve"><value>Non riesco a ricollegarmi. Controlla la connessione, poi ricarica la pagina.</value></data>
+  <data name="Reconnect_Reload" xml:space="preserve"><value>Ricarica la pagina</value></data>
 </root>

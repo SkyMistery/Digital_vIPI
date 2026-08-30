@@ -14,7 +14,7 @@ namespace Vipi.Host;
 /// </para>
 /// <para>
 /// ⚠️ <b>Gli endpoint macchina non sono qui e non si spostano</b>: <c>/vsop/health</c>, <c>/vsop/health/ready</c>,
-/// <c>/vsop/api/v1/*</c>, <c>/vsop/live/atc</c>, <c>/vsop/media/*</c> e <c>/vsop/files/*</c> restano ai loro
+/// <c>/vsop/ping</c>, <c>/vsop/api/v1/*</c>, <c>/vsop/live/atc</c>, <c>/vsop/media/*</c> e <c>/vsop/files/*</c> restano ai loro
 /// indirizzi, perché li
 /// conoscono <c>render.yaml</c> e la dashboard Render, lo smoke della CI, i binari del bridge Aurora già
 /// distribuiti e l'HTML in cache dei browser. Nessun essere umano li digita. Il routing li protegge da sé —
@@ -37,7 +37,7 @@ public static class LegacyRoutes
     /// Primo segmento che indica un endpoint macchina: non è una pagina, non si sposta, non si redirige.
     /// </summary>
     private static readonly HashSet<string> MachineFirstSegments =
-        new(StringComparer.OrdinalIgnoreCase) { "health", "api", "media", "files" };
+        new(StringComparer.OrdinalIgnoreCase) { "health", "ping", "api", "media", "files" };
 
     /// <summary>
     /// I segmenti tradotti il 22 agosto 2026. <c>struttura</c> è più vecchia (Round 12) e finisce qui perché

@@ -3932,3 +3932,52 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .conv-righello{font-size:12px;margin:6px 0 0}
 /* Un elenco di chip solo: quello del convertitore, non anche quello della mappa (verifica del 29 agosto). */
 .conv-map .aor-toggles{display:none}
+
+/* ---- Riconnessione del circuito -------------------------------------------------------------------
+   Il riquadro che compare quando il server si stacca. Il markup e' in App.razor, la regola di quando
+   ricaricare da soli in vipi-riconnessione.js; qui c'e' solo l'aspetto e QUALE frase si vede in quale
+   stato. Gli stati arrivano come classi messe da Blazor sul contenitore:
+
+     components-reconnect-show      sta riprovando            -> la frase con il contatore dei tentativi
+     components-reconnect-rejected  il processo e' ripartito  -> la frase «ricarico», mentre si ricarica
+     components-reconnect-failed    tentativi finiti          -> la frase «non ci riesco» e il tasto
+     components-reconnect-hide      e' tornato                -> via tutto
+
+   ⚠️ Il riquadro sta in fondo a OGNI pagina, comprese quelle SSR statiche che un circuito non ce l'hanno
+   nemmeno: e' nascosto e non costa niente, ma per questo `display:none` dev'essere il valore di partenza
+   e non una regola che qualcun altro possa vincere. */
+.vipi-rec{display:none}
+.vipi-rec.components-reconnect-show,
+.vipi-rec.components-reconnect-rejected,
+.vipi-rec.components-reconnect-failed{display:flex;position:fixed;inset:0;z-index:3000;align-items:center;
+  justify-content:center;padding:20px;background:color-mix(in srgb,var(--ivao-color-fuselage-950) 55%,transparent)}
+.vipi-rec.components-reconnect-hide{display:none}
+.vipi-rec-box{max-width:420px;background:var(--surface);color:var(--ink);border:1px solid var(--line);
+  border-radius:12px;padding:20px 22px;box-shadow:0 18px 44px rgba(0,0,0,.28);font-family:var(--font-body);
+  font-size:13.5px;line-height:1.55;text-align:center}
+.vipi-rec-t{margin:0 0 8px;font-family:var(--font-head);font-size:15px;font-weight:700}
+/* Le tre frasi stanno tutte nel markup e se ne vede UNA: quale, lo decide lo stato. */
+.vipi-rec-p{display:none;margin:0;color:var(--ink-soft)}
+.vipi-rec.components-reconnect-show .vipi-rec-attesa{display:block}
+.vipi-rec.components-reconnect-rejected .vipi-rec-rifiutata{display:block}
+.vipi-rec.components-reconnect-failed .vipi-rec-fallita{display:block}
+.vipi-rec-n{font-family:var(--font-mono,ui-monospace,SFMono-Regular,Consolas,monospace);font-size:12.5px;
+  color:var(--ink-faint);white-space:nowrap}
+/* ⚠️ I due contatori li riempie Blazor, e SOLO mentre sta riprovando: prima sono vuoti, e quel che resta
+   nel markup e' una barra sola in mezzo alla frase. Visto dal vivo il 31 agosto 2026 («Retrying: /»).
+   Con `:has` non supportato si torna a vedere la barra: e' il peggio che possa succedere, e vale piu' del
+   codice che servirebbe a evitarlo. */
+.vipi-rec-n:has(#components-reconnect-current-attempt:empty){display:none}
+/* Il tasto solo quando serve davvero premerlo: mentre si sta riprovando non c'e' niente da fare a mano. */
+.vipi-rec-b{display:none;margin-top:14px;padding:8px 16px;border:1px solid var(--line-strong);border-radius:8px;
+  background:var(--surface-soft);color:var(--ink);font-family:var(--font-head);font-size:13px;font-weight:600;
+  cursor:pointer}
+.vipi-rec-b:hover{background:var(--surface-muted)}
+.vipi-rec.components-reconnect-failed .vipi-rec-b{display:inline-block}
+/* La resa: tre ricariche automatiche in un minuto non hanno risolto, quindi si smette e si chiede all'utente.
+   Lo stato sotto e' «rejected», che da solo ricaricherebbe ancora: queste due righe lo trasformano nel
+   riquadro con il tasto. Vedi la funzione `ricarica` in vipi-riconnessione.js. */
+.vipi-rec.vipi-riconnessione-arresa .vipi-rec-rifiutata{display:none}
+.vipi-rec.vipi-riconnessione-arresa .vipi-rec-fallita,
+.vipi-rec.vipi-riconnessione-arresa .vipi-rec-b{display:block}
+.vipi-rec.vipi-riconnessione-arresa .vipi-rec-b{display:inline-block}
