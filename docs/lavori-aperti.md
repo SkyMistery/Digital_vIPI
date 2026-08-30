@@ -926,9 +926,34 @@ indici unici. Un presidio che non si è mai visto fallire non è un presidio.
   la riga che diceva di averlo escluso non aveva misurato niente.
 - suite `Vipi.Infrastructure.Tests` su net8: **1118 su 1118**.
 
-⚠️ **Resta aperto, e non è tecnico:** il passo 1 del foglio è un backup fatto da loro, e **nessuno ha mai
-confermato che siano in grado di produrlo**. Fino al 16 settembre è l'unica rete sotto a un
-`DROP DATABASE`. Se la risposta non arriva, l'aggiornamento non va cominciato.
+**La rete non gliela chiediamo più: gliela diamo.** Per tre consegne il passo 1 è stato «fate un
+`mysqldump`», e per tre consegne nessuno ha confermato di saperlo fare — una dipendenza da una capacità mai
+verificata, sotto un `DROP DATABASE`. Dal 30 agosto la procedura **non droppa più il database**: copia ogni
+tabella in una gemella `bak30_…` **dentro `itivao_atc`**, toglie le originali, importa. Servono solo i
+permessi con cui lavorano già; niente `DROP`/`CREATE DATABASE`, niente shell, niente pannello, e la scheda
+SQL di phpMyAdmin basta. Costa lo spazio dei dati attuali (pochi MB), e l'app quelle tabelle non le vede —
+su MySQL **nessuno enumera le tabelle**: `ISchemaDriftProbe` si spegne fuori da Npgsql, EF tocca solo il suo
+modello.
+
+Due script, generati dai dump e **provati end-to-end** su una copia del loro database:
+`artifacts/CONSEGNA-DB-20260830-passo1-copia-di-sicurezza.sql` e `…-ripristino.sql`. La prova:
+39 tabelle/4162 righe → copia → import (57/40 078) → ripristino → **di nuovo 39 e 4162, esatte, zero
+residui**. Il ripristino sono `RENAME`, cioè metadati: dura secondi.
+
+⚠️ **La prova ha trovato due difetti che leggere non avrebbe trovato.** (1) La lista da *salvare* e quella
+da *togliere* non sono la stessa: loro hanno lo schema del 23 agosto (39 tabelle), il nuovo ne crea 57, e
+generarle entrambe dal dump nuovo faceva fallire il passo 1 su diciannove tabelle inesistenti. (2) Da
+togliere serve l'**unione**: `EditGrants` (caduta con `ConcessioniPerAccRimosse`) sopravviveva all'import e
+occupava il nome, e il `RENAME` del ripristino sarebbe morto con «table already exists» — cioè la rete si
+sarebbe strappata proprio nel momento in cui serviva.
+
+ℹ️ Sul banco di prova alcune copie tornano **minuscole**: è `lower-case-table-names=2` di Windows
+(§1 di `../deploy/mariadb/README.md`). Sul loro Linux vale `0` e i nomi si conservano esatti — sorgente e
+destinazione del `RENAME` vengono dallo stesso script con la stessa grafia, quindi lì la cosa non si pone.
+
+ℹ️ Una delle tre domande **si ritira**: `max_allowed_packet` non serve chiederlo, lo legge
+`MySqlServerSettingsProbe` all'avvio e finisce nella diagnostica insieme a `sql_mode`. Restano il backup
+loro (che ora è un di più, non un prerequisito) e il limite di caricamento di phpMyAdmin.
 
 ℹ️ Le nove righe «da rivedere» restano accese nel database consegnato anche per i sette ripubblicati: il
 ricalcolo della deriva è un giro gestito con cancello a 24h e il periodo è una **costante nel codice**
