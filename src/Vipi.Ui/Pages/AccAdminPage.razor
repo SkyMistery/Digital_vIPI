@@ -67,7 +67,9 @@
                 }
             </LiveRegion>
             @* ⚠️ I margini di fascia della .lockbar si azzerano nel CSS di .st-head, non nel componente. *@
-            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged" />
+            @* «Fine modifica» SALVA i limiti digitati e non ancora salvati: vedi SalvaPendentiAsync. *@
+            <EditLockBar ResourceKey="@ResourceLockKeys.Structure" LockChanged="OnLockChanged"
+                         BeforeRelease="SalvaPendentiAsync" />
         }
     </div>
 
@@ -625,6 +627,24 @@
 
     /// <summary>Salva in un giro tutti i limiti modificati. Una riga che fallisce non ferma le altre e RESTA
     /// pendente: sparire dal contatore senza essere stata scritta sarebbe la stessa perdita silenziosa di prima.</summary>
+    /// <summary>
+    /// «Fine modifica»: i limiti digitati e non ancora salvati si <b>salvano</b>, invece di restare orfani.
+    ///
+    /// <para>⚠️ Prima il rilascio del lock non guardava niente. I campi restavano a schermo, marcati come
+    /// modificati, con «Salva limiti (N)» <b>spento</b> perché il lock non era più nostro: non si salvavano
+    /// più, e al primo ricarico sparivano. Non un errore — una pagina che tornava com'era.</para>
+    ///
+    /// <para>⚠️ Se qualcuno non passa, <see cref="SaveAllLimits"/> lo lascia in <c>_dirtyLimits</c> e scrive il
+    /// perché in <c>_msg</c>: qui si risponde <b>no</b>, così <c>EditLockBar</c> non rilascia il lock e chi ha
+    /// scritto può riprovare. Senza lock non potrebbe.</para>
+    /// </summary>
+    private async Task<bool> SalvaPendentiAsync()
+    {
+        if (_dirtyLimits.Count == 0) return true;
+        await SaveAllLimits();
+        return _dirtyLimits.Count == 0;
+    }
+
     private async Task SaveAllLimits()
     {
         _busy = true; _msg = null; _ok = null;

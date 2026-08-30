@@ -68,10 +68,14 @@
     /// sopra al lavoro di chi il lock ce l'ha adesso. Premere il tasto è l'unico caso in cui l'intenzione è
     /// dichiarata.</para>
     ///
-    /// <para>⚠️ <b>Se solleva, il lock NON si rilascia.</b> Un salvataggio fallito che lascia andare il lock è
-    /// il modo più rapido di perdere del lavoro: la barra resta com'è e chi ha scritto può riprovare.</para>
+    /// <para>⚠️ <b>Torna <c>false</c> per NON rilasciare il lock.</b> Un salvataggio fallito che lascia andare
+    /// il lock è il modo più rapido di perdere del lavoro: senza lock chi ha scritto non può nemmeno
+    /// riprovare. La barra resta com'è, e chi ha detto no ha già spiegato perché nella sua pagina.</para>
+    ///
+    /// <para>⚠️ È un <b>valore</b> e non un'eccezione, e la differenza non è di stile: un'eccezione che esce da
+    /// un gestore d'evento Blazor <b>abbatte il circuito</b> — la pagina sparisce invece di dire di no.</para>
     /// </summary>
-    [Parameter] public Func<Task>? BeforeRelease { get; set; }
+    [Parameter] public Func<Task<bool>>? BeforeRelease { get; set; }
 
     private LockInfo _lock = LockInfo.Free();
     private CancellationTokenSource? _beat;
@@ -109,8 +113,8 @@
     private async Task Release()
     {
         // ⚠️ PRIMA di fermare il battito e di lasciare il lock: chi salva qui dentro deve poterlo fare
-        // mentre il lock è ancora suo. Se solleva, non si rilascia niente — vedi BeforeRelease.
-        if (BeforeRelease is not null) await BeforeRelease();
+        // mentre il lock è ancora suo. Se risponde `false`, non si rilascia niente — vedi BeforeRelease.
+        if (BeforeRelease is not null && !await BeforeRelease()) return;
 
         StopHeartbeat();
         await Locks.ReleaseAsync(ResourceKey);

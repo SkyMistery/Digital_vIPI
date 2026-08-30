@@ -202,7 +202,13 @@ else
     /// forzato, cioè i due casi in cui il lock <b>non è più nostro</b> e scrivere vorrebbe dire coprire il
     /// lavoro di chi ce l'ha adesso.</para>
     /// </summary>
-    private Task SalvaSeSporcoAsync() => _sporco ? SalvaAsync() : Task.CompletedTask;
+    private async Task<bool> SalvaSeSporcoAsync()
+    {
+        if (!_sporco) return true;
+        await SalvaAsync();
+        // Salvataggio fallito: il lock RESTA, o chi ha scritto non potrebbe nemmeno riprovare.
+        return !_sporco;
+    }
 
     private async Task OnLockChanged(bool mio)
     {

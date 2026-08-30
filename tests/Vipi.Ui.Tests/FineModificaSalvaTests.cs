@@ -74,7 +74,7 @@ public class FineModificaSalvaTests : TestContext
         var locks = Monta();
         var cut = RenderComponent<EditLockBar>(p => p
             .Add(x => x.ResourceKey, "editor:page-intro:mil")
-            .Add(x => x.BeforeRelease, () => { locks.Ordine.Add("salvataggio"); return Task.CompletedTask; }));
+            .Add(x => x.BeforeRelease, () => { locks.Ordine.Add("salvataggio"); return Task.FromResult(true); }));
 
         FineModifica(cut);
 
@@ -89,10 +89,22 @@ public class FineModificaSalvaTests : TestContext
         var locks = Monta();
         var cut = RenderComponent<EditLockBar>(p => p
             .Add(x => x.ResourceKey, "editor:page-intro:mil")
-            .Add(x => x.BeforeRelease, () => throw new InvalidOperationException("archivio irraggiungibile")));
+            .Add(x => x.BeforeRelease, () => { locks.Ordine.Add("salvataggio fallito"); return Task.FromResult(false); }));
 
-        Assert.Throws<InvalidOperationException>(() => FineModifica(cut));
-        Assert.Empty(locks.Ordine);
+        FineModifica(cut);
+
+        Assert.Equal(new[] { "salvataggio fallito" }, locks.Ordine);
+    }
+
+    /// <summary>⚠️ Il rifiuto è un VALORE, non un'eccezione: un'eccezione che esce da un gestore d'evento
+    /// Blazor abbatte il circuito — la pagina sparirebbe invece di dire di no. Il test tiene ferma la firma,
+    /// che è l'unica cosa che impedisce di riscriverlo «col throw» fra sei mesi.</summary>
+    [Fact]
+    public void Il_rifiuto_si_dice_con_un_valore()
+    {
+        var tipo = typeof(EditLockBar).GetProperty(nameof(EditLockBar.BeforeRelease))!.PropertyType;
+
+        Assert.Equal(typeof(Func<Task<bool>>), tipo);
     }
 
     /// <summary>Chi non aggancia niente non cambia di una virgola: è la prova che il parametro è additivo.</summary>
