@@ -77,6 +77,14 @@ public sealed class VloaDerivationService : IVloaDerivationService
     private readonly IEditAuthorizationService _authz;
     private readonly NeighboursOptions _neighbours;
 
+    /// <summary>
+    /// La <b>porta unica</b> per la forma di un settore (carta refactor 15). ⚠️ Prima la mappa della vLOA
+    /// leggeva i poligoni dal catalogo per conto suo: un settore agganciato al suo CTR disegnava il confine
+    /// dell'AIP nella vIPI e il monoblocco di IVAO qui, cioè due forme diverse per la stessa area, nello
+    /// stesso pacchetto di documenti.
+    /// </summary>
+    private readonly Airspace.ISectorShapeResolver _forme;
+
     /// <summary>La lingua in cui comporre la prosa generata. Opzionale: senza, resta il comportamento di
     /// prima — italiano per ACC/APP, inglese per la vLOA.</summary>
     private readonly ReadingLanguageContext? _lingua;
@@ -84,10 +92,11 @@ public sealed class VloaDerivationService : IVloaDerivationService
 
     public VloaDerivationService(IVloaDerivationRepository repo, IAccDerivationRepository accRepo, IAgreementService transfers,
         ICoordinationSentenceTemplate sentence, IEditAuthorizationService authz, IOptions<NeighboursOptions> neighbours,
-        ReadingLanguageContext? lingua = null)
+        Airspace.ISectorShapeResolver forme, ReadingLanguageContext? lingua = null)
     {
         _repo = repo;
         _accRepo = accRepo;
+        _forme = forme;
         _transfers = transfers;
         _sentence = sentence;
         _authz = authz;
@@ -133,8 +142,11 @@ public sealed class VloaDerivationService : IVloaDerivationService
         var (homeConf, foreignConf) = await ComputeConfiningAsync(pair, ct);
 
         var all = homeConf.Concat(foreignConf).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        var raw = await _accRepo.GetSectorPolygonsRawByCallsignAsync(all, ct);
-        var limits = await _accRepo.GetSectorLimitsByCallsignAsync(all, ct);
+
+        // ⚠️ La STESSA porta della vIPI (carta refactor 15): un settore agganciato al suo CTR disegna qui
+        // quel confine, con le sue quote per zona. Prima questa mappa leggeva il catalogo per conto suo, e
+        // la stessa area appariva in due forme diverse in due documenti dello stesso pacchetto.
+        var forme = await _forme.ResolveAsync(all, ct);
 
         var toggles = new List<VloaAorSectorToggle>();
         var mapSectors = new List<AccSectorAor>();
@@ -145,12 +157,11 @@ public sealed class VloaDerivationService : IVloaDerivationService
             var color = isForeign ? ForeignColor : HomeColor;
             var isHidden = hidden.Contains(cs);
             toggles.Add(new VloaAorSectorToggle(cs, name, color, isForeign, isHidden));
-            if (isHidden || !raw.TryGetValue(cs, out var poly)) return;
-            var projected = AorPolygonProjector.Project(poly);
-            if (projected is null) return;
-            int? lo = null, hi = null;
-            if (limits.TryGetValue(cs, out var l)) (lo, hi) = AorFlBand.Normalize(l.Lower, l.Upper);
-            mapSectors.Add(new AccSectorAor(cs, name, color, new[] { projected }, lo, hi));
+            if (isHidden) return;
+            var proiezione = AorShapeProjection.Project(forme.GetValueOrDefault(cs));
+            if (proiezione.IsEmpty) return;
+            mapSectors.Add(new AccSectorAor(cs, name, color,
+                proiezione.Polygons, proiezione.LowerFl, proiezione.UpperFl));
         }
 
         foreach (var cs in homeConf) Add(cs, false);

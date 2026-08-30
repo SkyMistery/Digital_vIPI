@@ -12,8 +12,9 @@ namespace Vipi.Infrastructure.Tests;
 
 /// <summary>
 /// <b>Caratterizzazione</b> (carta <c>docs/refactor/15-shape-del-settore-una-porta-sola.md</c>, S1): fotografa
-/// il comportamento di <b>oggi</b> dei tre motori che <b>non</b> conoscono l'aggancio agli spazi aerei
-/// dell'AIP — attribuzione del traffico, confinanti, mappa della vLOA.
+/// il comportamento dei motori che <b>non</b> conoscono l'aggancio agli spazi aerei dell'AIP —
+/// attribuzione del traffico e confinanti. ✅ La <b>mappa della vLOA</b> è stata portata sulla porta unica
+/// da <b>S7</b>: il suo test qui sotto è già stato ribaltato, ed è la traccia del cambio.
 ///
 /// <para>⚠️ <b>Questi test asseriscono un difetto, non un contratto.</b> Servono da rete: quando S9, S10 e S7
 /// porteranno quei motori sul risolutore, sono i test che devono <b>cambiare</b>, e il cambio si vede nel
@@ -159,16 +160,26 @@ public class CaratterizzazioneAggancioTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// ⚠️ <b>OGGI</b>: la mappa della vLOA legge le shape da <c>GetSectorPolygonsRawByCallsignAsync</c>, che
-    /// dà il poligono di IVAO — è la cucitura che <b>S7</b> sposta sul risolutore.
+    /// ✅ <b>RIBALTATO da S7.</b> La mappa della vLOA leggeva le shape da
+    /// <c>GetSectorPolygonsRawByCallsignAsync</c> — il poligono di IVAO — e la stessa area appariva in due
+    /// forme diverse in due documenti dello stesso pacchetto. Ora passa dalla porta unica e vede l'AIP.
+    ///
+    /// <para>La cucitura vecchia resta com'era, ed è giusto: la usa ancora il congelamento di release, che
+    /// ha bisogno del grezzo del catalogo. Quel che è cambiato è <b>chi la chiama</b>.</para>
     /// </summary>
     [Fact]
-    public async Task Oggi_La_Cucitura_Della_vLOA_Da_Il_Poligono_Di_Ivao()
+    public async Task La_vLOA_Ora_Legge_Dalla_Porta_Unica_E_Vede_L_Aip()
     {
         await AgganciaAsync(SourceCatalog.AirportPosition, App);
 
-        var raw = await new EfAccDerivationRepository(_db).GetSectorPolygonsRawByCallsignAsync(new[] { App });
+        var risolutore = new EfSectorShapeResolver(_db, _agganci, new EfSectorShapeParts(_db));
+        var forma = (await risolutore.ResolveAsync(new[] { App }))[App];
 
+        Assert.Equal(ShapeSource.Aip, forma.Source);
+        Assert.Equal(2, forma.Parts.Count);
+
+        // La cucitura di prima esiste ancora, e dà ancora IVAO: non è morta, è solo un'altra domanda.
+        var raw = await new EfAccDerivationRepository(_db).GetSectorPolygonsRawByCallsignAsync(new[] { App });
         Assert.Equal(MonobloccoIvao, raw[App]);
     }
 
