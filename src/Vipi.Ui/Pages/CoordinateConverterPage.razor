@@ -1,11 +1,13 @@
-@page "/services/coordinates"
+﻿@page "/services/coordinates"
 @layout SopLayout
 @rendermode InteractiveServer
 @using Vipi.Application.Auth
 @using Vipi.Application.Content
+@using Vipi.Application.Airspace
 @using Vipi.Application.Coordinates
 @using Vipi.Ui.Components.App
 @inject IEditAuthorizationService Authz
+@inject IAirspaceCatalog SpaziAerei
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
 @inject EnglishStrings En
@@ -69,6 +71,29 @@
                         <InputFile OnChange="CaricaFile" accept=".kml,.kmz" aria-label="@L["Conv_LoadFile"]" />
                         <span>@L["Conv_LoadFile"]</span>
                     </label>
+
+                    @* La terza via d'ingresso: un'area che e' gia' in casa. Compare SOLO se il catalogo degli
+                       spazi aerei e' stato caricato — un comando che pesca da un archivio vuoto e' un comando
+                       che non fa niente, e chi lo prova pensa che sia rotto. *@
+                    @if (_volumi.Count > 0)
+                    {
+                        <label class="conv-opt conv-catalogo">
+                            <span>@L["Conv_FromCatalog"]</span>
+                            <select value="@_volumeScelto" @onchange="PrendiDalCatalogo"
+                                    aria-label="@L["Conv_FromCatalog"]">
+                                <option value="">@L["Conv_FromCatalogPick"]</option>
+                                @foreach (var gruppo in _volumi.GroupBy(v => v.Family))
+                                {
+                                    <optgroup label="@gruppo.Key.ToString().ToUpperInvariant()">
+                                        @foreach (var v in gruppo)
+                                        {
+                                            <option value="@v.Id">@v.Name (@v.BandLabel)</option>
+                                        }
+                                    </optgroup>
+                                }
+                            </select>
+                        </label>
+                    }
                 }
 
                 <p class="muted conv-hint">@L["Conv_Formats"]</p>
@@ -298,6 +323,12 @@
 @code {
     private string _testo = "";
     private string? _fileNome;
+
+    /// <summary>Le aree del catalogo che si possono prendere: solo quelle utilizzabili, e solo se c'e' un file
+    /// caricato. Vuoto = la tendina non compare affatto.</summary>
+    private IReadOnlyList<AirspaceVolumeRow> _volumi = Array.Empty<AirspaceVolumeRow>();
+
+    private string _volumeScelto = "";
     private CoordinateReadResult _esito = CoordinateReadResult.Vuoto;
 
     private CoordinateOutput _formato = CoordinateOutput.SectorfilePunti;   // il default chiesto dal committente
@@ -427,6 +458,41 @@
     private void OnForma(ChangeEventArgs e) =>
         _forma = Enum.TryParse<DmsCoordinate.Forma>(e.Value?.ToString(), out var f) ? f : DmsCoordinate.Forma.Puntata;
 
+    // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su InteractiveServer il secondo gira una volta sola.
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Authz.IsDivisionStaff) return;
+        _volumi = await SpaziAerei.ListVolumesAsync(new AirspaceVolumeQuery(UsableOnly: true, Take: 2000));
+    }
+
+    /// <summary>
+    /// Prende un'area dal catalogo degli spazi aerei e la mette in ingresso, come se fosse stata incollata.
+    ///
+    /// <para>⚠️ Il poligono in archivio e' nella forma di IVAO — <c>[[lng,lat],…]</c>, longitudine PRIMA — e si
+    /// legge con lo stesso <see cref="Vipi.Application.Aor.PolygonGeometry.ParsePoints"/> che legge le shape
+    /// dei settori. Rileggerlo qui a mano vorrebbe dire un secondo posto dove sbagliare l'ordine, e un
+    /// poligono con lat e lon scambiati non si lamenta: si disegna ruotato di 90 gradi.</para>
+    /// </summary>
+    private void PrendiDalCatalogo(ChangeEventArgs e)
+    {
+        _volumeScelto = e.Value?.ToString() ?? "";
+        if (!int.TryParse(_volumeScelto, out var id)) return;
+
+        var v = _volumi.FirstOrDefault(x => x.Id == id);
+        if (v is null) return;
+
+        var punti = Vipi.Application.Aor.PolygonGeometry.ParsePoints(v.PolygonJson);
+        if (punti.Count < 3) return;
+
+        // L'anello del catalogo non ripete il vertice di chiusura: e' una proprieta' dell'anello.
+        _esito = new CoordinateReadResult(
+            [new CoordinateArea(v.Name, punti, AnelloChiuso: true)], [], punti.Count, punti.Count);
+        _fileNome = v.Name;
+        _testo = "";
+        _nome ??= v.Name;   // il nome del segmento, che nel sectorfile e' una colonna: si propone, non si impone
+        Riaccendi();
+    }
+
     private async Task CaricaFile(InputFileChangeEventArgs e)
     {
         var file = e.File;
@@ -460,6 +526,7 @@
 
     private void PuliscíFile()
     {
+        _volumeScelto = "";
         _fileNome = null;
         _esito = CoordinateReadResult.Vuoto;
         Riaccendi();

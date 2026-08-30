@@ -132,6 +132,7 @@ public static class DependencyInjection
         // Il perimetro dei ripieghi shape (solo enti della divisione): uno solo, condiviso dai tre.
         services.AddSingleton<ShapeFallbackScope>();
         services.AddScoped<IGithubTowerShapeService, GithubTowerShapeService>();
+        services.AddScoped<IAtzTowerShapeService, AtzTowerShapeService>();
         services.AddScoped<ITowerShapeFallbackService, TowerShapeFallbackService>();
         // Il gemello per CTR/APP/MIL/FSS: le TWR hanno GitHub + cerchio, gli altri enti il sectorfile.
         services.AddScoped<ISectorShapeFallbackService, SectorShapeFallbackService>();

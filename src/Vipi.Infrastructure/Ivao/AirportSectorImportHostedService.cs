@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -87,6 +87,23 @@ public sealed class AirportSectorImportHostedService : BackgroundService
         }
         catch (Exception ex) { _log.LogDebug(ex, "Ripiego shape settori saltato."); }
 
+        // ATZ dell'AIP per le TWR ancora senza area: un confine vero al posto del cerchio. Fonte SECONDARIA,
+        // quindi dopo il sectorfile e prima del cerchio. Isolato come gli altri: senza catalogo caricato non
+        // fa nulla, e non deve impedire il cerchio.
+        Vipi.Application.Content.AtzTowerShapeResult? atz = null;
+        try
+        {
+            var svc = sp.GetRequiredService<Vipi.Application.Content.IAtzTowerShapeService>();
+            atz = await svc.ApplyAsync(ct);
+            // ⚠️ Gli ICAO con PIU' di un ATZ si dicono per nome: sono quelli che il ripiego automatico non può
+            // servire — la colonna tiene un anello — e che vanno agganciati a mano dalla pagina degli spazi aerei.
+            if (atz.Ambiguous.Count > 0)
+                _log.LogWarning(
+                    "ATZ dell'AIP: {Icao} hanno più di un ATZ nel file — niente ripiego automatico, si agganciano a mano.",
+                    string.Join(", ", atz.Ambiguous));
+        }
+        catch (Exception ex) { _log.LogDebug(ex, "Ripiego ATZ dall'AIP saltato."); }
+
         // Fallback shape tonda 5 NM per le TWR senza poligono (marcata sintetica; mai sovrascrive shape reali).
         int circles = 0;
         try
@@ -98,9 +115,10 @@ public sealed class AirportSectorImportHostedService : BackgroundService
 
         _log.LogInformation(
             "Import settori aeroporto automatico: {Airports} aeroporti, settori {Created}/{Updated}, shape TWR GitHub {Github}, "
-            + "shape settori dal sectorfile {Sectors} (restano senza area {Without}), cerchi sintetici {Circles}. "
-            + "Documento non generato (scollegato, doc 03).",
-            airports, created, updated, githubShapes, settori?.Applied ?? 0, settori?.StillWithout ?? 0, circles);
+            + "shape settori dal sectorfile {Sectors} (restano senza area {Without}), ATZ dall'AIP {Atz}, "
+            + "cerchi sintetici {Circles}. Documento non generato (scollegato, doc 03).",
+            airports, created, updated, githubShapes, settori?.Applied ?? 0, settori?.StillWithout ?? 0,
+            atz?.Applied ?? 0, circles);
         return true;
     }
 }

@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Auth;
@@ -36,6 +36,45 @@ public class CoordinateConverterPageTests
         public void EnsureAdmin() { }
     }
 
+    /// <summary>
+    /// Un catalogo degli spazi aerei VUOTO: la tendina «prendi un'area dal catalogo» non compare, ed è la
+    /// condizione normale finché nessuno ha caricato il file dell'AIP.
+    /// </summary>
+    private sealed class CatalogoVuoto : Vipi.Application.Airspace.IAirspaceCatalog
+    {
+        public Task<IReadOnlyList<Vipi.Application.Airspace.AirspaceImportRow>> ListImportsAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Vipi.Application.Airspace.AirspaceImportRow>>([]);
+
+        public Task<Vipi.Application.Airspace.AirspaceImportRow?> GetCurrentAsync(CancellationToken ct = default) =>
+            Task.FromResult<Vipi.Application.Airspace.AirspaceImportRow?>(null);
+
+        public Task<Vipi.Application.Airspace.AirspaceImportRow> SaveAsync(
+            Vipi.Application.Airspace.NewAirspaceImport header, Vipi.Application.Airspace.AirspaceReadResult read,
+            DateTime nowUtc, CancellationToken ct = default) => throw new NotSupportedException();
+
+        public Task<IReadOnlyList<Vipi.Application.Airspace.AirspaceVolumeRow>> ListVolumesAsync(
+            Vipi.Application.Airspace.AirspaceVolumeQuery query, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Vipi.Application.Airspace.AirspaceVolumeRow>>([]);
+
+        public Task<IReadOnlyList<Vipi.Application.Airspace.AirspaceVolumeRow>> GetVolumesAsync(
+            IReadOnlyList<int> ids, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Vipi.Application.Airspace.AirspaceVolumeRow>>([]);
+
+        public Task<IReadOnlyDictionary<AirspaceFamily, int>> CountByFamilyAsync(
+            int? importId = null, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<AirspaceFamily, int>>(new Dictionary<AirspaceFamily, int>());
+
+        public Task<IReadOnlyList<Vipi.Application.Airspace.AirspaceIssue>> GetIssuesAsync(int importId, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Vipi.Application.Airspace.AirspaceIssue>>([]);
+
+        public Task<(string FileName, byte[] Content)?> GetFileAsync(int importId, CancellationToken ct = default) =>
+            Task.FromResult<(string, byte[])?>(null);
+
+        public Task SetCurrentAsync(int importId, CancellationToken ct = default) => Task.CompletedTask;
+
+        public Task DeleteAsync(int importId, CancellationToken ct = default) => Task.CompletedTask;
+    }
+
     private sealed class Contesto : TestContext
     {
         public IRenderedComponent<CoordinateConverterPage> Apri(VipiRole livello)
@@ -43,6 +82,7 @@ public class CoordinateConverterPageTests
             Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
             Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
             Services.AddSingleton(new EnglishStrings());
+            Services.AddSingleton<Vipi.Application.Airspace.IAirspaceCatalog>(new CatalogoVuoto());
             return RenderComponent<CoordinateConverterPage>();
         }
     }

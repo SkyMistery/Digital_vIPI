@@ -2851,4 +2851,108 @@
   <data name="Att_Deleted" xml:space="preserve"><value>«{0}» eliminata; {1} documenti da correggere, segnalati.</value></data>
   <data name="Impact_AttachmentDeleted" xml:space="preserve"><value>L'allegato «{0}» è stato eliminato dalla biblioteca: la citazione nel documento non porta più da nessuna parte.</value></data>
   <data name="ImpactKind_AttachmentDeleted" xml:space="preserve"><value>Allegato eliminato</value></data>
+  <data name="Asp_AdminTitle" xml:space="preserve"><value>Spazi aerei</value></data>
+  <data name="Asp_AdminNav" xml:space="preserve"><value>Spazi aerei</value></data>
+  <data name="Asp_AdminSubtitle" xml:space="preserve"><value>Gli spazi aerei dell'AIP, dal file caricato a mano.</value></data>
+  <data name="Asp_AdminIntro" xml:space="preserve"><value>&lt;p style='margin:0 0 6px'&gt;Il file dell'AIP (KMZ) lo carica una persona: dentro ci sono i confini veri di CTR, CTA, TMA, ATZ e FIR.&lt;/p&gt;&lt;p style='margin:0'&gt;Le aree regolamentate (R, P, D) e le altre aree si leggono ma &lt;b&gt;non si usano&lt;/b&gt;: quelle vengono dal catalogo IVAO. Il ciclo AIRAC lo dichiari tu, perché il file non lo porta.&lt;/p&gt;</value></data>
+  <data name="Asp_Upload" xml:space="preserve"><value>Carica il file</value></data>
+  <data name="Asp_Reading" xml:space="preserve"><value>Sto leggendo il file...</value></data>
+  <data name="Asp_Cycle" xml:space="preserve"><value>Ciclo AIRAC</value></data>
+  <data name="Asp_CyclePh" xml:space="preserve"><value>AIRAC</value></data>
+  <data name="Asp_CycleTitle" xml:space="preserve"><value>Il ciclo dal quale vale questo file (es. 2609). Il file non lo dice: lo dichiari tu.</value></data>
+  <data name="Asp_NoImport" xml:space="preserve"><value>Nessun file caricato. Carica il KMZ dell'AIP per riempire il catalogo.</value></data>
+  <data name="Asp_NothingRead" xml:space="preserve"><value>Nel file non c'e' nessuno spazio aereo: controlla di aver scelto il KMZ giusto.</value></data>
+  <data name="Asp_TooBig" xml:space="preserve"><value>Il file supera il tetto consentito</value></data>
+  <data name="Asp_Loaded" xml:space="preserve"><value>Caricato: {0} volumi letti, {1} utilizzabili, {2} chiavi in doppio.</value></data>
+  <data name="Asp_Search" xml:space="preserve"><value>Cerca uno spazio aereo</value></data>
+  <data name="Asp_SearchPh" xml:space="preserve"><value>Cerca per nome...</value></data>
+  <data name="Asp_Family" xml:space="preserve"><value>Famiglia</value></data>
+  <data name="Asp_Name" xml:space="preserve"><value>Nome</value></data>
+  <data name="Asp_Band" xml:space="preserve"><value>Base e tetto</value></data>
+  <data name="Asp_Class" xml:space="preserve"><value>Classe</value></data>
+  <data name="Asp_Points" xml:space="preserve"><value>Punti</value></data>
+  <data name="Asp_Usable" xml:space="preserve"><value>Si usa</value></data>
+  <data name="Asp_Yes" xml:space="preserve"><value>Si'</value></data>
+  <data name="Asp_No" xml:space="preserve"><value>No</value></data>
+  <data name="Asp_Empty" xml:space="preserve"><value>Nessuno spazio aereo con questi filtri.</value></data>
+  <data name="Asp_Truncated" xml:space="preserve"><value>Se ne mostrano {0}: restringi con la ricerca o con le famiglie.</value></data>
+  <data name="Asp_UsableOf" xml:space="preserve"><value>{0} utilizzabili su {1} letti</value></data>
+  <data name="Asp_FamilyUsable" xml:space="preserve"><value>Si può agganciare a un settore e mostrare.</value></data>
+  <data name="Asp_FamilyNotUsable" xml:space="preserve"><value>Non si usa: le aree regolamentate e le altre aree vengono dal catalogo IVAO.</value></data>
+  <data name="Asp_Imports" xml:space="preserve"><value>Caricamenti</value></data>
+  <data name="Asp_File" xml:space="preserve"><value>File</value></data>
+  <data name="Asp_Generated" xml:space="preserve"><value>Generato</value></data>
+  <data name="Asp_Uploaded" xml:space="preserve"><value>Caricato</value></data>
+  <data name="Asp_Volumes" xml:space="preserve"><value>Volumi</value></data>
+  <data name="Asp_InForce" xml:space="preserve"><value>in vigore</value></data>
+  <data name="Asp_SetCurrent" xml:space="preserve"><value>Metti in vigore</value></data>
+  <data name="Asp_SetCurrentTitle" xml:space="preserve"><value>Torna a questo caricamento: i settori agganciati riprendono i suoi confini.</value></data>
+  <data name="Asp_SetCurrentDone" xml:space="preserve"><value>Caricamento messo in vigore.</value></data>
+  <data name="Asp_Delete" xml:space="preserve"><value>Elimina il caricamento</value></data>
+  <data name="Asp_DeletePrompt" xml:space="preserve"><value>Elimini «{0}» e tutti i suoi volumi?</value></data>
+  <data name="Asp_Deleted" xml:space="preserve"><value>Caricamento eliminato.</value></data>
+  <data name="Asp_Issues" xml:space="preserve"><value>Segnalazioni della lettura</value></data>
+  <data name="Asp_Attribution" xml:space="preserve"><value>Confini da AirspaceConverter (alus.it) sui dati dell'AIP Italia. Il dato non sostituisce l'AIP e non è utilizzabile a fini commerciali.</value></data>
+  <data name="Asp_Fam_Ctr" xml:space="preserve"><value>CTR</value></data>
+  <data name="Asp_Fam_Cta" xml:space="preserve"><value>CTA</value></data>
+  <data name="Asp_Fam_Tma" xml:space="preserve"><value>TMA</value></data>
+  <data name="Asp_Fam_Atz" xml:space="preserve"><value>ATZ/MATZ</value></data>
+  <data name="Asp_Fam_Fir" xml:space="preserve"><value>FIR</value></data>
+  <data name="Asp_Fam_Tmz" xml:space="preserve"><value>TMZ</value></data>
+  <data name="Asp_Fam_Restricted" xml:space="preserve"><value>Aree R</value></data>
+  <data name="Asp_Fam_Prohibited" xml:space="preserve"><value>Aree P</value></data>
+  <data name="Asp_Fam_Danger" xml:space="preserve"><value>Aree D</value></data>
+  <data name="Asp_Fam_Gliding" xml:space="preserve"><value>Volo a vela</value></data>
+  <data name="Asp_Fam_Other" xml:space="preserve"><value>Altre aree</value></data>
+  <data name="Asp_Issue_FileNonLetto" xml:space="preserve"><value>File non letto</value></data>
+  <data name="Asp_Issue_VolumeSenzaAnello" xml:space="preserve"><value>Volume senza contorno</value></data>
+  <data name="Asp_Issue_VolumeSenzaNome" xml:space="preserve"><value>Volume senza nome</value></data>
+  <data name="Asp_Issue_ChiaveDuplicata" xml:space="preserve"><value>Chiave in doppio</value></data>
+  <data name="Asp_Issue_QuotaNonLetta" xml:space="preserve"><value>Quota non letta</value></data>
+  <data name="Asp_Issue_VolumeAPiuAnelli" xml:space="preserve"><value>Volume a più contorni</value></data>
+  <data name="Asp_Picked" xml:space="preserve"><value>{0} scelti</value></data>
+  <data name="Asp_BindSector" xml:space="preserve"><value>Settore a cui agganciare</value></data>
+  <data name="Asp_BindPick" xml:space="preserve"><value>Scegli il settore…</value></data>
+  <data name="Asp_Bind" xml:space="preserve"><value>Aggancia</value></data>
+  <data name="Asp_BindTitle" xml:space="preserve"><value>Questo settore disegnerà la sua AoR con i volumi scelti.</value></data>
+  <data name="Asp_ClearPick" xml:space="preserve"><value>Togli la scelta</value></data>
+  <data name="Asp_Bound" xml:space="preserve"><value>{0}: agganciati {1} volumi.</value></data>
+  <data name="Asp_Bindings" xml:space="preserve"><value>Settori agganciati</value></data>
+  <data name="Asp_BindScope" xml:space="preserve"><value>L'aggancio vale sulla mappa dell'AoR — la carta pubblicata, il 3D e la stampa. I confinanti, l'attribuzione del traffico e la vLOA restano sulla forma di IVAO.</value></data>
+  <data name="Asp_NoBindings" xml:space="preserve"><value>Nessun settore agganciato: ogni settore disegna la forma che gli dà IVAO.</value></data>
+  <data name="Asp_Sector" xml:space="preserve"><value>Settore</value></data>
+  <data name="Asp_BoundVolumes" xml:space="preserve"><value>Volumi</value></data>
+  <data name="Asp_ChosenBy" xml:space="preserve"><value>Scelto da</value></data>
+  <data name="Asp_Unbind" xml:space="preserve"><value>Torna a IVAO</value></data>
+  <data name="Asp_UnbindPrompt" xml:space="preserve"><value>«{0}» torna a disegnare la forma di IVAO?</value></data>
+  <data name="Asp_Unbound" xml:space="preserve"><value>{0} è tornato alla forma di IVAO.</value></data>
+  <data name="Asp_Missing" xml:space="preserve"><value>{0} agganci senza volume nel file in vigore</value></data>
+  <data name="Conv_FromCatalog" xml:space="preserve"><value>Oppure prendi un'area dal catalogo</value></data>
+  <data name="Conv_FromCatalogPick" xml:space="preserve"><value>Scegli un'area…</value></data>
+  <data name="Asp_NavReport" xml:space="preserve"><value>Radioassistenze: AIP contro anagrafica</value></data>
+  <data name="Asp_NavReportScope" xml:space="preserve"><value>Il confronto SEGNALA e basta: le correzioni si fanno nel sectorfile, e da lì si reimportano. Nessun valore dell'anagrafica viene toccato.</value></data>
+  <data name="Asp_NavReportRun" xml:space="preserve"><value>Confronta con l'anagrafica</value></data>
+  <data name="Asp_NavReportNone" xml:space="preserve"><value>Nessuna differenza: l'AIP e l'anagrafica dicono la stessa cosa.</value></data>
+  <data name="Asp_NavWhat" xml:space="preserve"><value>Che cosa</value></data>
+  <data name="Asp_NavCode" xml:space="preserve"><value>Codice</value></data>
+  <data name="Asp_NavAip" xml:space="preserve"><value>Dice l'AIP</value></data>
+  <data name="Asp_NavOurs" xml:space="preserve"><value>Dice l'anagrafica</value></data>
+  <data name="Asp_Nav_SoloNellAip" xml:space="preserve"><value>Solo nell'AIP</value></data>
+  <data name="Asp_Nav_SoloInAnagrafica" xml:space="preserve"><value>Solo in anagrafica</value></data>
+  <data name="Asp_Nav_FrequenzaDiversa" xml:space="preserve"><value>Frequenza diversa</value></data>
+  <data name="Asp_Nav_CanaleDiverso" xml:space="preserve"><value>Canale diverso</value></data>
+  <data name="Asp_Nav_PosizioneDiversa" xml:space="preserve"><value>Posizione diversa</value></data>
+  <data name="Asp_Nav_TipoMancante" xml:space="preserve"><value>Tipo non scritto</value></data>
+  <data name="Asp_Nav_DaGuardareAMano" xml:space="preserve"><value>Da guardare a mano</value></data>
+  <data name="Asp_PubTitle" xml:space="preserve"><value>Spazi aerei</value></data>
+  <data name="Asp_PubSubtitle" xml:space="preserve"><value>I confini dell'AIP e i settori nostri, sulla stessa mappa.</value></data>
+  <data name="Asp_PubIntro" xml:space="preserve"><value>&lt;p style='margin:0 0 6px'&gt;Accendi una famiglia per volta: CTR, CTA, TMA, ATZ, FIR, TMZ. La chip «settori» aggiunge le aree dei nostri enti, così si vedono a confronto.&lt;/p&gt;&lt;p style='margin:0'&gt;Le aree regolamentate (R, P, D) non stanno qui: vengono dal catalogo IVAO e si vedono nella sezione «Aree regolamentate» dei documenti.&lt;/p&gt;</value></data>
+  <data name="Asp_PubEmpty" xml:space="preserve"><value>Il catalogo degli spazi aerei non è ancora stato caricato.</value></data>
+  <data name="Asp_PubShow" xml:space="preserve"><value>Mostra:</value></data>
+  <data name="Asp_PubOurSectors" xml:space="preserve"><value>Settori nostri</value></data>
+  <data name="Asp_PubLoading" xml:space="preserve"><value>Carico…</value></data>
+  <data name="Asp_PubPreset" xml:space="preserve"><value>Solo:</value></data>
+  <data name="Asp_PubRegulated" xml:space="preserve"><value>Le aree regolamentate (R, P, D) e le altre aree vengono dal catalogo IVAO e si vedono nei documenti, non qui.</value></data>
+  <data name="Services_AirspaceDesc" xml:space="preserve"><value>I confini dell'AIP — CTR, CTA, TMA, ATZ, FIR — e i settori nostri, sulla stessa mappa.</value></data>
+  <data name="Asp_Nav_CanaleMancante" xml:space="preserve"><value>Canale non scritto</value></data>
 </root>

@@ -1,0 +1,586 @@
+@page "/services/vsop/admin/airspace"
+@layout SopLayout
+@rendermode InteractiveServer
+@using Vipi.Application.Abstractions
+@using Vipi.Application.Airspace
+@using Vipi.Domain
+@inject IEditAuthorizationService Authz
+@inject IAirspaceCatalog Catalogo
+@inject ISectorAirspaceBindings Agganci
+@inject Vipi.Application.Content.ISectorShapeRepository Settori
+@inject Vipi.Application.Abstractions.INavaidCatalog Radioassistenze
+@inject IStringLocalizer<SharedResource> L
+
+@* Gli spazi aerei dell'AIP: il caricamento del file e il catalogo che ne esce (carta del 29 agosto 2026).
+
+   ⚠️ Il file non arriva da una sorgente che si interroga: lo porta una persona. Non c'è nessun giro notturno
+   da premere, c'è un file da scegliere — e per questo il comando in testata è un `<InputFile>` e non un
+   bottone «importa».
+
+   ⚠️ Il ciclo AIRAC lo DICHIARA chi carica, perché il file non lo porta: dice solo la data in cui è stato
+   generato, che infatti la pagina mostra da sola. Non è un cancello — il file dell'AIP descrive quel che è
+   già pubblicato — è la risposta a «di quando è questo confine».
+
+   ⚠️ Le famiglie non utilizzabili si vedono lo stesso, con scritto perché. Nasconderle darebbe un catalogo
+   che dice 362 dove il file ne ha 1 536, e la prima domanda di chiunque sarebbe «e le altre?». *@
+
+<PageTitle>@L["Asp_AdminTitle"] · IVAO Italy</PageTitle>
+
+<div class="wrap struct">
+    <AdminNav />
+
+    <div class="doc-head st-head">
+        <h1 class="st-h2 page-h1">
+            @L["Asp_AdminTitle"]&nbsp;<span class="pill blue">@_volumi.Count</span>
+        </h1>
+        <HelpHint Href="/services/vsop/guide#admin-spazi-aerei" AriaLabel="@L["Asp_AdminTitle"]" ExtraClass="wide">
+            <p style="margin:0 0 6px">@L["Asp_AdminSubtitle"]</p>
+            @((MarkupString)L["Asp_AdminIntro"].Value)
+        </HelpHint>
+        @if (PuoScrivere)
+        {
+            <nav class="struct-nav asp-upload">
+                @* ⚠️ `@bind:event="oninput"`, non il `change` di default: il `change` scatta al FUOCO PERSO,
+                   e qui il gesto successivo è scegliere un file — che apre una finestra di sistema. La
+                   verifica dal vivo del 29 agosto ha caricato il file col ciclo digitato e l'ha salvato
+                   NULLO. Lo stesso motivo per cui il campo di ricerca, due righe più sotto, lo fa già. *@
+                <input class="asp-cycle" maxlength="8" placeholder="@L["Asp_CyclePh"]"
+                       aria-label="@L["Asp_Cycle"]" title="@L["Asp_CycleTitle"]"
+                       @bind="_ciclo" @bind:event="oninput" />
+                <label class="btn ghost asp-file">
+                    <Icon Name="file" Size="14" /> @L["Asp_Upload"]
+                    <InputFile OnChange="CaricaAsync" accept=".kmz,.kml" disabled="@_busy"
+                               aria-label="@L["Asp_Upload"]" />
+                </label>
+            </nav>
+            <LiveRegion>
+                @if (_busy)
+                {
+                    <span class="st-msg prog"><span class="spin"></span><span class="st-msg-t">@L["Asp_Reading"]</span></span>
+                }
+                else if (_messaggio is not null)
+                {
+                    <span class="st-msg @(_ok ? "ok" : "warn")">
+                        <Icon Name="@(_ok ? "check-circle" : "warning")" Size="14" />
+                        <span class="st-msg-t">@_messaggio</span>
+                        <button class="tclose" title="@L["Common_Close"]" @onclick="() => _messaggio = null">✕</button>
+                    </span>
+                }
+            </LiveRegion>
+        }
+    </div>
+
+    @if (!PuoScrivere)
+    {
+        <div class="callout danger"><span class="cic">🔒</span><div>@L["Vle_Unauthorized"]</div></div>
+    }
+    else if (_corrente is null)
+    {
+        <div class="callout"><span class="cic">🗺️</span><div>@L["Asp_NoImport"]</div></div>
+    }
+    else
+    {
+        <div class="block">
+            <div class="struct-bar asp-bar">
+                <input class="htree-search" placeholder="@L["Asp_SearchPh"]" aria-label="@L["Asp_Search"]"
+                       @bind="_cerca" @bind:event="oninput" />
+                <span class="sb-chips">
+                    @foreach (var f in _perFamiglia.OrderByDescending(k => AirspaceFamilies.IsUsable(k.Key)).ThenBy(k => (int)k.Key))
+                    {
+                        var famiglia = f.Key;
+                        var usabile = AirspaceFamilies.IsUsable(famiglia);
+                        <button type="button" class="sh-chip @(_famiglie.Contains(famiglia) ? "on" : "") @(usabile ? "" : "off")"
+                                title="@(usabile ? L["Asp_FamilyUsable"] : L["Asp_FamilyNotUsable"])"
+                                @onclick="() => Alterna(famiglia)">
+                            @Nome(famiglia) <span class="chip-n">@f.Value</span>
+                        </button>
+                    }
+                </span>
+                <span class="muted asp-count">@L["Asp_UsableOf", _corrente.VolumesUsable, _corrente.VolumesRead]</span>
+            </div>
+
+            <table class="res-table asp-table">
+                <thead>
+                    <tr>
+                        <th class="c-pick"></th>
+                        <th class="c-fam">@L["Asp_Family"]</th>
+                        <th class="c-name">@L["Asp_Name"]</th>
+                        <th class="c-band">@L["Asp_Band"]</th>
+                        <th class="c-class">@L["Asp_Class"]</th>
+                        <th class="c-pts">@L["Asp_Points"]</th>
+                        <th class="c-use">@L["Asp_Usable"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var v in Filtrati)
+                    {
+                        <tr class="@(_scelti.Contains(Chiave(v)) ? "asp-picked" : null)">
+                            <td class="c-pick">
+                                @* La spunta c'e' solo dove puo' servire: un'area regolamentata non si aggancia. *@
+                                @if (v.IsUsable)
+                                {
+                                    <input type="checkbox" aria-label="@v.Name"
+                                           checked="@_scelti.Contains(Chiave(v))"
+                                           @onchange="e => Spunta(v, (bool?)e.Value == true)" />
+                                }
+                            </td>
+                            <td class="c-fam muted">@Nome(v.Family)</td>
+                            <td class="c-name"><b>@v.Name</b></td>
+                            <td class="c-band c-nowrap">@v.BandLabel</td>
+                            <td class="c-class muted">@(v.AirspaceClass ?? "—")</td>
+                            <td class="c-pts num">@v.PointCount</td>
+                            <td class="c-use">
+                                @if (v.IsUsable)
+                                {
+                                    <span class="pill green">@L["Asp_Yes"]</span>
+                                }
+                                else
+                                {
+                                    <span class="muted" title="@L["Asp_FamilyNotUsable"]">@L["Asp_No"]</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (Filtrati.Count == 0)
+                    {
+                        <tr><td colspan="7" class="muted">@L["Asp_Empty"]</td></tr>
+                    }
+                </tbody>
+            </table>
+            @if (_volumi.Count >= Tetto)
+            {
+                <p class="muted asp-more">@L["Asp_Truncated", Tetto]</p>
+            }
+
+            @* La barra dell'aggancio compare solo quando c'e' qualcosa di scelto: una barra sempre a schermo
+               con una tendina vuota sarebbe un comando che non fa niente per il 99% del tempo. *@
+            @if (_scelti.Count > 0)
+            {
+                <div class="struct-bar asp-bind">
+                    <span class="muted">@L["Asp_Picked", _scelti.Count]</span>
+                    <select @bind="_settore" aria-label="@L["Asp_BindSector"]">
+                        <option value="">@L["Asp_BindPick"]</option>
+                        @foreach (var st in _settori)
+                        {
+                            <option value="@st.Catalog|@st.Id|@st.Callsign">@st.Callsign</option>
+                        }
+                    </select>
+                    <button type="button" class="btn" disabled="@(_busy || _settore.Length == 0)"
+                            title="@L["Asp_BindTitle"]" @onclick="Aggancia">@L["Asp_Bind"]</button>
+                    <button type="button" class="btn ghost" @onclick="() => _scelti.Clear()">@L["Asp_ClearPick"]</button>
+                </div>
+            }
+        </div>
+
+        <div class="block">
+            <h2 class="h-sect">@L["Asp_Bindings"]&nbsp;<span class="pill">@_agganci.Count</span></h2>
+            @* La riga che dice il perimetro, e non e' pignoleria: chi aggancia deve sapere che cambia la
+               MAPPA pubblicata, non chi confina con chi ne' quali voli contano per quella postazione. *@
+            <p class="muted asp-scope">@L["Asp_BindScope"]</p>
+            @if (_agganci.Count == 0)
+            {
+                <p class="muted">@L["Asp_NoBindings"]</p>
+            }
+            else
+            {
+                <table class="res-table asp-bindings">
+                    <thead>
+                        <tr>
+                            <th>@L["Asp_Sector"]</th>
+                            <th>@L["Asp_BoundVolumes"]</th>
+                            <th>@L["Asp_ChosenBy"]</th>
+                            <th class="c-act"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in _agganci)
+                        {
+                            <tr>
+                                <td><b>@a.Callsign</b></td>
+                                <td>
+                                    @string.Join(", ", a.Volumes.Select(v => v.Name))
+                                    @if (a.Missing.Count > 0)
+                                    {
+                                        @* Un aggancio scoperto NON si cancella da se': il settore torna alla
+                                           forma di IVAO e qui si vede quale volume e' sparito dal file. *@
+                                        <div class="asp-missing">
+                                            <Icon Name="warning" Size="12" />
+                                            @L["Asp_Missing", a.Missing.Count]:
+                                            @string.Join("; ", a.Missing.Select(m => m.Key))
+                                        </div>
+                                    }
+                                </td>
+                                <td class="muted c-nowrap">
+                                    @(a.ChosenByName ?? "—")
+                                    @if (a.ChosenUtc is { } q)
+                                    {
+                                        <text> · </text><span data-utc="@VipiTime.Iso(q)" data-utc-fmt="dhm">@VipiTime.DayZ(q)</span>
+                                    }
+                                </td>
+                                <td class="c-act">
+                                    <InlineConfirm TriggerClass="btn ghost" Disabled="@_busy"
+                                                   Prompt="@string.Format(L["Asp_UnbindPrompt"].Value, a.Callsign)"
+                                                   TriggerTitle="@L["Asp_Unbind"]" AriaLabel="@L["Asp_Unbind"]"
+                                                   OnConfirm="() => Sgancia(a)">
+                                        <Trigger>@L["Asp_Unbind"]</Trigger>
+                                    </InlineConfirm>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+
+        <div class="block">
+            <h2 class="h-sect">@L["Asp_Imports"]</h2>
+            <table class="res-table asp-imports">
+                <thead>
+                    <tr>
+                        <th>@L["Asp_File"]</th>
+                        <th>@L["Asp_Cycle"]</th>
+                        <th>@L["Asp_Generated"]</th>
+                        <th>@L["Asp_Uploaded"]</th>
+                        <th>@L["Asp_Volumes"]</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var i in _caricamenti)
+                    {
+                        <tr class="@(i.IsCurrent ? "asp-current" : null)">
+                            <td>
+                                <b>@i.FileName</b>
+                                @if (i.IsCurrent)
+                                {
+                                    <span class="pill green">@L["Asp_InForce"]</span>
+                                }
+                            </td>
+                            <td class="c-nowrap">@(i.AiracCycle ?? "—")</td>
+                            <td class="c-nowrap muted">@(i.GeneratedUtc is { } g ? VipiTime.DayZ(g) : "—")</td>
+                            <td class="c-nowrap muted">
+                                <span data-utc="@VipiTime.Iso(i.UploadedUtc)" data-utc-fmt="dhm">@VipiTime.DayZ(i.UploadedUtc)</span>
+                                @if (!string.IsNullOrWhiteSpace(i.UploadedByName))
+                                {
+                                    <text> · @i.UploadedByName</text>
+                                }
+                            </td>
+                            <td class="num">@i.VolumesUsable / @i.VolumesRead</td>
+                            <td class="c-act">
+                                @if (!i.IsCurrent)
+                                {
+                                    <button type="button" class="btn ghost" disabled="@_busy"
+                                            title="@L["Asp_SetCurrentTitle"]" @onclick="() => MettiInVigore(i.Id)">
+                                        @L["Asp_SetCurrent"]
+                                    </button>
+                                    <InlineConfirm TriggerClass="btn ghost" Disabled="@_busy"
+                                                   Prompt="@string.Format(L["Asp_DeletePrompt"].Value, i.FileName)"
+                                                   TriggerTitle="@L["Asp_Delete"]" AriaLabel="@L["Asp_Delete"]"
+                                                   OnConfirm="() => Elimina(i.Id)">
+                                        <Trigger><Icon Name="trash" Size="13" /></Trigger>
+                                    </InlineConfirm>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (_segnalazioni.Count > 0)
+        {
+            <div class="block">
+                <h2 class="h-sect">@L["Asp_Issues"]&nbsp;<span class="pill">@_segnalazioni.Count</span></h2>
+                <ul class="asp-issues">
+                    @foreach (var s in _segnalazioni.Take(50))
+                    {
+                        <li><b>@Nome(s.Kind)</b> — @s.Volume @(s.Dettaglio is null ? "" : $"({s.Dettaglio})")</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <div class="block">
+            <h2 class="h-sect">
+                @L["Asp_NavReport"]&nbsp;<span class="pill">@_rapporto.Count</span>
+            </h2>
+            @* ⚠️ La riga che dice a che cosa serve, e che cosa NON fa. Il committente e' stato esplicito: si
+               segnala, e la correzione si fa nel SECTORFILE — da cui poi si reimporta. Un tasto «applica» qui
+               farebbe nascere le radioassistenze da un secondo posto, che e' la seconda anagrafica che il
+               modello ha gia' pagato una volta. *@
+            <p class="muted asp-scope">@L["Asp_NavReportScope"]</p>
+
+            @if (!_rapportoFatto)
+            {
+                <button type="button" class="btn ghost" disabled="@_busy" @onclick="Confronta">
+                    <Icon Name="radio" Size="14" /> @L["Asp_NavReportRun"]
+                </button>
+            }
+            else if (_rapporto.Count == 0)
+            {
+                <p class="muted">@L["Asp_NavReportNone"]</p>
+            }
+            else
+            {
+                <table class="res-table asp-nav">
+                    <thead>
+                        <tr>
+                            <th>@L["Asp_NavWhat"]</th>
+                            <th>@L["Asp_NavCode"]</th>
+                            <th>@L["Asp_NavAip"]</th>
+                            <th>@L["Asp_NavOurs"]</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in _rapporto.Take(200))
+                        {
+                            <tr>
+                                <td>@Nome(d.Kind)</td>
+                                <td class="c-nowrap"><b>@d.Code</b> <span class="muted">@d.Family</span></td>
+                                <td>@(d.Aip ?? "—")</td>
+                                <td>@(d.Nostro ?? "—")</td>
+                                <td class="muted">@d.Nota</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+
+        @* ⚠️ L'attribuzione non è cortesia: il file porta un disclaimer esplicito e vieta l'uso commerciale
+           del dato. Sta dove il dato si vede — qui, e nelle mappe pubbliche che ne mostrano un confine. *@
+        <p class="muted asp-credit">@L["Asp_Attribution"]</p>
+    }
+</div>
+
+@code {
+    /// <summary>Quanti volumi si mostrano: la tabella è per guardare, non per scorrere 1 536 righe.</summary>
+    private const int Tetto = 500;
+
+    private AirspaceImportRow? _corrente;
+    private IReadOnlyList<AirspaceImportRow> _caricamenti = Array.Empty<AirspaceImportRow>();
+    private IReadOnlyList<AirspaceVolumeRow> _volumi = Array.Empty<AirspaceVolumeRow>();
+    private IReadOnlyList<AirspaceIssue> _segnalazioni = Array.Empty<AirspaceIssue>();
+    private IReadOnlyDictionary<AirspaceFamily, int> _perFamiglia = new Dictionary<AirspaceFamily, int>();
+    private readonly HashSet<AirspaceFamily> _famiglie = new();
+    private readonly HashSet<string> _scelti = new(StringComparer.Ordinal);
+    private IReadOnlyList<SectorAirspaceBindingRow> _agganci = Array.Empty<SectorAirspaceBindingRow>();
+    private IReadOnlyList<Vipi.Application.Content.SectorShapeRow> _settori =
+        Array.Empty<Vipi.Application.Content.SectorShapeRow>();
+    private string _settore = "";
+    private IReadOnlyList<NavaidDiff> _rapporto = Array.Empty<NavaidDiff>();
+    private bool _rapportoFatto;
+    private string _cerca = "";
+    private string _ciclo = "";
+    private string? _messaggio;
+    private bool _ok;
+    private bool _busy;
+
+    /// <summary>La pagina è degli Editor, come le altre che toccano dati di tutti.</summary>
+    private bool PuoScrivere => Authz.Role >= VipiRole.Editor;
+
+    private IReadOnlyList<AirspaceVolumeRow> Filtrati
+    {
+        get
+        {
+            var q = _volumi.AsEnumerable();
+            if (_famiglie.Count > 0) q = q.Where(v => _famiglie.Contains(v.Family));
+            var testo = _cerca.Trim();
+            if (testo.Length > 0)
+                q = q.Where(v => v.Name.Contains(testo, StringComparison.OrdinalIgnoreCase)
+                              || v.Category.Contains(testo, StringComparison.OrdinalIgnoreCase));
+            return q.ToList();
+        }
+    }
+
+    // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su InteractiveServer il secondo gira una volta sola.
+    protected override async Task OnParametersSetAsync() => await RicaricaAsync();
+
+    private async Task RicaricaAsync()
+    {
+        if (!PuoScrivere) return;
+
+        _caricamenti = await Catalogo.ListImportsAsync();
+        _corrente = _caricamenti.FirstOrDefault(i => i.IsCurrent);
+        _volumi = _corrente is null
+            ? Array.Empty<AirspaceVolumeRow>()
+            : await Catalogo.ListVolumesAsync(new AirspaceVolumeQuery(Take: Tetto));
+        _perFamiglia = _corrente is null
+            ? new Dictionary<AirspaceFamily, int>()
+            : await Catalogo.CountByFamilyAsync();
+        _segnalazioni = _corrente is null
+            ? Array.Empty<AirspaceIssue>()
+            : await Catalogo.GetIssuesAsync(_corrente.Id);
+        _agganci = await Agganci.ListAsync();
+
+        // I settori che possono avere un'area: CTR e FSS dai subcenter, APP e DEP dalle postazioni.
+        // Le TWR restano fuori — hanno il loro ripiego, e agganciarle a mano qui vorrebbe dire due strade
+        // che scrivono la stessa cosa con regole diverse.
+        _settori = (await Settori.ListShapeCandidatesAsync())
+            .OrderBy(x => x.Callsign, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    /// <summary>L'identita' di un volume in una stringa: e' quel che l'aggancio cita.</summary>
+    private static string Chiave(AirspaceVolumeRow v) => $"{v.NaturalKey}#{v.Ordinal}";
+
+    private void Spunta(AirspaceVolumeRow v, bool acceso)
+    {
+        if (acceso) _scelti.Add(Chiave(v));
+        else _scelti.Remove(Chiave(v));
+    }
+
+    private async Task Aggancia()
+    {
+        var pezzi = _settore.Split('|');
+        if (pezzi.Length != 3 || !Enum.TryParse<SourceCatalog>(pezzi[0], out var catalogo)
+            || !int.TryParse(pezzi[1], out var id)) return;
+
+        _busy = true;
+        try
+        {
+            // Nell'ORDINE IN CUI SONO IN TABELLA, non in quello in cui sono stati spuntati: la tabella e'
+            // ordinata per famiglia e nome, ed e' l'ordine che chi guarda si aspetta di ritrovare in mappa.
+            var volumi = _volumi.Where(v => _scelti.Contains(Chiave(v)))
+                .Select(v => new AirspaceVolumeKey(v.NaturalKey, v.Ordinal)).ToList();
+
+            await Agganci.SetAsync(catalogo, id, pezzi[2], volumi, Authz.CurrentUserId, Authz.CurrentName);
+            _scelti.Clear();
+            _settore = "";
+            await RicaricaAsync();
+            _ok = true;
+            _messaggio = string.Format(L["Asp_Bound"].Value, pezzi[2], volumi.Count);
+        }
+        finally { _busy = false; }
+    }
+
+    /// <summary>
+    /// Il confronto fra le radioassistenze dell'AIP e la nostra anagrafica. ⚠️ Si preme, non gira da solo:
+    /// rilegge il KMZ in archivio (1,3 MB da spacchettare) e il suo esito non serve a nessuna pagina finché
+    /// qualcuno non lo chiede.
+    /// </summary>
+    private async Task Confronta()
+    {
+        if (_corrente is null) return;
+
+        _busy = true;
+        try
+        {
+            var file = await Catalogo.GetFileAsync(_corrente.Id);
+            if (file is null) return;
+
+            using var flusso = new MemoryStream(file.Value.Content);
+            var daAip = AirspaceNavaidReader.LeggiKmz(flusso);
+            _rapporto = NavaidAipReport.Confronta(daAip, await Radioassistenze.ListAsync());
+            _rapportoFatto = true;
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task Sgancia(SectorAirspaceBindingRow a)
+    {
+        _busy = true;
+        try
+        {
+            await Agganci.SetAsync(a.Catalog, a.SectorId, a.Callsign, Array.Empty<AirspaceVolumeKey>(),
+                Authz.CurrentUserId, Authz.CurrentName);
+            await RicaricaAsync();
+            _ok = true;
+            _messaggio = string.Format(L["Asp_Unbound"].Value, a.Callsign);
+        }
+        finally { _busy = false; }
+    }
+
+    private void Alterna(AirspaceFamily f)
+    {
+        if (!_famiglie.Remove(f)) _famiglie.Add(f);
+    }
+
+    private async Task CaricaAsync(InputFileChangeEventArgs e)
+    {
+        if (!PuoScrivere) return;
+
+        _busy = true;
+        _messaggio = null;
+        try
+        {
+            var file = e.File;
+
+            // ⚠️ Il tetto sta qui E nel lettore, e non è una ripetizione oziosa: qui evita di tirare in
+            // memoria un file enorme, là protegge chiunque altro chiami il lettore.
+            await using var flusso = file.OpenReadStream(Vipi.Application.Coordinates.KmlReader.MaxByteFile);
+            using var memoria = new MemoryStream();
+            await flusso.CopyToAsync(memoria);
+            var byteFile = memoria.ToArray();
+
+            memoria.Position = 0;
+            var lettura = file.Name.EndsWith(".kml", StringComparison.OrdinalIgnoreCase)
+                ? AirspaceKmlReader.LeggiKml(System.Text.Encoding.UTF8.GetString(byteFile))
+                : AirspaceKmlReader.LeggiKmz(memoria);
+
+            if (lettura.Volumes.Count == 0)
+            {
+                _ok = false;
+                _messaggio = L["Asp_NothingRead"];
+                return;
+            }
+
+            var salvato = await Catalogo.SaveAsync(
+                new NewAirspaceImport(file.Name, byteFile, _ciclo, Authz.CurrentUserId, Authz.CurrentName),
+                lettura, DateTime.UtcNow);
+
+            _ok = true;
+            _messaggio = string.Format(L["Asp_Loaded"].Value,
+                salvato.VolumesRead, salvato.VolumesUsable, salvato.DuplicateKeys);
+            await RicaricaAsync();
+        }
+        catch (IOException ex)
+        {
+            // Il tetto di `OpenReadStream` esce di qui: è la risposta a un file troppo grosso, non un guasto.
+            _ok = false;
+            _messaggio = $"{L["Asp_TooBig"]} ({ex.Message})";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task MettiInVigore(int id)
+    {
+        _busy = true;
+        try
+        {
+            await Catalogo.SetCurrentAsync(id);
+            await RicaricaAsync();
+            _ok = true;
+            _messaggio = L["Asp_SetCurrentDone"];
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task Elimina(int id)
+    {
+        _busy = true;
+        try
+        {
+            await Catalogo.DeleteAsync(id);
+            await RicaricaAsync();
+            _ok = true;
+            _messaggio = L["Asp_Deleted"];
+        }
+        catch (Vipi.Application.Aor.ValidationException ex)
+        {
+            _ok = false;
+            _messaggio = ex.Message;
+        }
+        finally { _busy = false; }
+    }
+
+    /// <summary>Il nome della famiglia nelle due lingue. Le sigle restano sigle: CTR è CTR ovunque.</summary>
+    private string Nome(AirspaceFamily f) => L[$"Asp_Fam_{f}"];
+
+    private string Nome(AirspaceIssueKind k) => L[$"Asp_Issue_{k}"];
+
+    private string Nome(NavaidDiffKind k) => L[$"Asp_Nav_{k}"];
+}

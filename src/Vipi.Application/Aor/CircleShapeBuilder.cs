@@ -9,6 +9,8 @@ namespace Vipi.Application.Aor;
 /// <see cref="AorPolygonProjector"/>), anello chiuso. Usato come fallback disegnabile per i settori TWR privi di
 /// poligono reale. Approssimazione equirettangolare locale: 1 NM = 1852 m, 1° lat ≈ 111320 m, 1° lon scalato per
 /// cos(lat). Adeguato a raggi piccoli (≈5 NM) alle latitudini italiane.
+/// <para>La scrittura della coppia <c>[lng,lat]</c> la fa <see cref="IvaoPolygonJson"/>, che è il posto dove
+/// quella forma si scrive.</para>
 /// </summary>
 public static class CircleShapeBuilder
 {
@@ -32,21 +34,12 @@ public static class CircleShapeBuilder
             var lat = centerLat + dLat * Math.Sin(theta);
             var lon = centerLon + dLon * Math.Cos(theta);
             if (i > 0) sb.Append(',');
-            Append(sb, lon, lat);
+            IvaoPolygonJson.Append(sb, lon, lat);
         }
         // Chiude l'anello ripetendo il primo vertice (theta = 0 → lon = centerLon + dLon, lat = centerLat).
         sb.Append(',');
-        Append(sb, centerLon + dLon, centerLat);
+        IvaoPolygonJson.Append(sb, centerLon + dLon, centerLat);
         sb.Append(']');
         return sb.ToString();
-    }
-
-    private static void Append(StringBuilder sb, double lon, double lat)
-    {
-        sb.Append('[')
-          .Append(Math.Round(lon, 6).ToString(CultureInfo.InvariantCulture))
-          .Append(',')
-          .Append(Math.Round(lat, 6).ToString(CultureInfo.InvariantCulture))
-          .Append(']');
     }
 }

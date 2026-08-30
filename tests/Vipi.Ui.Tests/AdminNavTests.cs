@@ -56,13 +56,17 @@ public class AdminNavTests : TestContext
         var cut = Render(VipiRole.Admin);
 
         var nav = cut.Find("nav.admin-nav");
-        // 16 dal 29 agosto 2026: la biblioteca allegati (15 dal 30 agosto, le radioassistenze).
-        Assert.Equal(16, nav.QuerySelectorAll(".an-link").Length);
+        // ⚠️ 17 dalla fusione del 29 agosto 2026: la biblioteca allegati E il catalogo degli spazi
+        // aerei, che sono arrivati da due rami diversi. Ognuno dei due diceva «16», perché ognuno
+        // aggiungeva UNA voce a quindici: git ha fuso i due numeri identici senza chiamarlo un
+        // conflitto, e solo questo test si è accorto che le voci nuove erano due.
+        Assert.Equal(17, nav.QuerySelectorAll(".an-link").Length);
         Assert.Contains("/services/vsop/admin/sector-structure", cut.Markup);
         Assert.Contains("/services/vsop/admin/translations", cut.Markup);
         Assert.Contains("/services/vsop/admin/glossary", cut.Markup);
         Assert.Contains("/services/vsop/admin/navaids", cut.Markup);
         Assert.Contains("/services/vsop/admin/attachments", cut.Markup);
+        Assert.Contains("/services/vsop/admin/airspace", cut.Markup);
         Assert.Contains("/services/vsop/admin/pending", cut.Markup);
         Assert.Contains("/services/vsop/admin/diagnostics", cut.Markup);
     }
@@ -108,7 +112,7 @@ public class AdminNavTests : TestContext
 
     /// <summary>
     /// ⚠️ <b>Il cancello, pagina per pagina.</b> È la rete della slice 5: se domani qualcuno abbassa (o alza)
-    /// una voce senza volerlo, qui si vede — e si vede <b>quale</b>. Le undici voci dell'Editor sono il
+    /// una voce senza volerlo, qui si vede — e si vede <b>quale</b>. Le dodici voci dell'Editor sono il
     /// contenuto documentale; le cinque dell'admin toccano import, sicurezza e diagnosi.
     /// </summary>
     [Theory]
@@ -152,15 +156,15 @@ public class AdminNavTests : TestContext
         return ctx.RenderComponent<AdminNav>().Markup;
     }
 
-    /// <summary>Un editor vede le sue undici voci e nessuna delle cinque dell'admin.</summary>
+    /// <summary>Un editor vede le sue dodici voci e nessuna delle cinque dell'admin.</summary>
     [Fact]
-    public void Un_editor_vede_undici_voci()
+    public void Un_editor_vede_dodici_voci()
     {
         var cut = Render(VipiRole.Editor, url: "http://localhost/services/vsop/versions");
 
-        // 11 dal 29 agosto 2026: la biblioteca allegati, che è contenuto documentale come le
-        // radioassistenze (che avevano portato a 10 il 30 agosto).
-        Assert.Equal(11, cut.Find("nav.admin-nav").QuerySelectorAll(".an-link").Length);
+        // ⚠️ 12 dalla fusione: la biblioteca allegati e il catalogo degli spazi aerei sono tutt'e due
+        // contenuto documentale, come le radioassistenze. Vedi la nota sul conteggio dell'admin.
+        Assert.Equal(12, cut.Find("nav.admin-nav").QuerySelectorAll(".an-link").Length);
         Assert.DoesNotContain("/services/vsop/admin/permissions", cut.Markup);
         Assert.DoesNotContain("/services/vsop/admin/diagnostics", cut.Markup);
     }

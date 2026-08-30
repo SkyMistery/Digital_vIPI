@@ -352,6 +352,18 @@ public enum ShapeSource
 
     /// <summary>Cerchio di ripiego generato da noi (solo TWR). Nessun gate: non è un confine.</summary>
     Synthetic,
+
+    /// <summary>
+    /// Spazio aereo dell'<b>AIP</b>, dal file caricato a mano (l'ATZ di una torre senza area).
+    /// <b>Nessun gate</b>: l'AIP descrive quel che è <b>già pubblicato</b>, a differenza del sectorfile che
+    /// scriviamo noi in anticipo sul ciclo.
+    ///
+    /// <para>⚠️ <b>In coda</b>, come ogni valore nuovo: nel payload di release gli enum sono <b>ordinali</b>,
+    /// e infilarne uno in mezzo rinumera tutti quelli dopo.</para>
+    /// <para>Serve a due cose che senza non si potrebbero fare: <b>riconoscere</b> una shape nostra da
+    /// aggiornare quando il file cambia, e lasciare che il sectorfile e l'anagrafica se la riprendano.</para>
+    /// </summary>
+    Aip,
 }
 
 /// <summary>
@@ -411,4 +423,70 @@ public enum VipiRole
 
     /// <summary>Direzione della divisione e fondatori: sorgenti, incarichi, audit, diagnostica, permessi.</summary>
     Admin = 4,
+}
+
+// --- Spazi aerei dell'AIP (carta del 29 agosto 2026) ---------------------------------------------
+// Stanno qui e non accanto al lettore perche' le entita' del catalogo li usano come colonne, e il
+// Dominio non puo' guardare in su verso Vipi.Application.
+
+/// <summary>
+/// La famiglia di uno spazio aereo: che <b>cosa</b> è, non di che classe. È il perno di tutto il catalogo —
+/// decide che cosa si può agganciare a un settore e che cosa si può mostrare (la lista bianca sta in <c>AirspaceFamilies</c>, in Vipi.Application).
+///
+/// <para>⚠️ <b>In coda si aggiunge, in mezzo mai.</b> Come ogni enum di questa applicazione può finire in un
+/// payload serializzato come <b>ordinale</b>: inserire un valore in mezzo rinumera tutti quelli dopo.</para>
+/// </summary>
+public enum AirspaceFamily
+{
+    /// <summary>Zona di controllo d'aeroporto (CTR).</summary>
+    Ctr,
+
+    /// <summary>Area di controllo (CTA), incluse le classi A/C/D che non sono né CTR né ATZ.</summary>
+    Cta,
+
+    /// <summary>Area terminale di manovra (TMA).</summary>
+    Tma,
+
+    /// <summary>Zona di traffico d'aeroporto, civile (ATZ) o militare (MATZ).</summary>
+    Atz,
+
+    /// <summary>Regione informazioni volo (FIR).</summary>
+    Fir,
+
+    /// <summary>Zona a transponder obbligatorio (TMZ/FMC).</summary>
+    Tmz,
+
+    /// <summary>Area regolamentata: <c>R</c>.</summary>
+    Restricted,
+
+    /// <summary>Area vietata: <c>P</c>.</summary>
+    Prohibited,
+
+    /// <summary>Area pericolosa: <c>D</c>.</summary>
+    Danger,
+
+    /// <summary>Area di volo a vela.</summary>
+    Gliding,
+
+    /// <summary>Tutto il resto: acrobazia, airwork, parchi e riserve, TRA, e ciò che non si riconosce.</summary>
+    Other,
+}
+
+/// <summary>Rispetto a che cosa è misurata una quota.</summary>
+public enum AirspaceDatum
+{
+    /// <summary>Il suolo (<c>GND</c>/<c>SFC</c>).</summary>
+    Gnd,
+
+    /// <summary>Piedi sul livello del mare (<c>AMSL</c>).</summary>
+    Amsl,
+
+    /// <summary>Piedi sul terreno (<c>AGL</c>).</summary>
+    Agl,
+
+    /// <summary>Livello di volo (<c>FL</c>).</summary>
+    FlightLevel,
+
+    /// <summary>Illimitato (<c>UNL</c>). Nel file dell'AIP si scrive <c>FL999</c>.</summary>
+    Unlimited,
 }

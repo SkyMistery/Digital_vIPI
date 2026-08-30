@@ -56,15 +56,108 @@ public class AppDocumentServiceTests : IAsyncLifetime
         var transfers = new AgreementService(new EfAgreementRepository(_db), authz, topo);
         var editing = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
         var docProfiles = new EfDocumentProfileRepository(_db);
+        _agganciAip = new EfSectorAirspaceBindings(_db);
         _service = new AppDocumentService(repo, new EfSpecialAreaRepository(_db), editing, authz, topo, transfers,
             new StubCoordinationSentenceTemplate(), docProfiles, new Vipi.Application.Aor.AorService(),
-            new NoMinimaSource());
+            new NoMinimaSource(), agganciAip: _agganciAip);
     }
 
     public async Task DisposeAsync()
     {
         await _db.DisposeAsync();
         await _conn.DisposeAsync();
+    }
+
+    private EfSectorAirspaceBindings _agganciAip = default!;
+
+    /// <summary>
+    /// Carica un catalogo di spazi aerei con le zone date e le aggancia tutte al settore APP primario.
+    /// Le zone sono triangoli distinti: quel che conta è quanti poligoni escono, non la loro forma.
+    /// </summary>
+    private async Task<IReadOnlyList<Vipi.Application.Airspace.AirspaceVolumeRow>> AgganciaZoneAsync(
+        params (string Nome, string Base, string Top, double Lon)[] zone)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<?xml version=\"1.0\" encoding=\"UTF-8\"?><kml xmlns=\"http://www.opengis.net/kml/2.2\"><Document>");
+        foreach (var z in zone)
+            sb.Append($"<Placemark><ExtendedData><SchemaData>"
+                + $"<SimpleData name=\"Name\">{z.Nome}</SimpleData>"
+                + $"<SimpleData name=\"Category\">Control Traffic Region</SimpleData>"
+                + $"<SimpleData name=\"Base\">{z.Base}</SimpleData>"
+                + $"<SimpleData name=\"Top\">{z.Top}</SimpleData>"
+                + "</SchemaData></ExtendedData><Polygon><outerBoundaryIs><LinearRing><coordinates>"
+                + $"{z.Lon},43.6,762 {z.Lon + 0.1},43.6,762 {z.Lon + 0.05},43.7,762 {z.Lon},43.6,762"
+                + "</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>");
+        sb.Append("</Document></kml>");
+        var kml = sb.ToString();
+
+        var catalogo = new EfAirspaceCatalog(_db);
+        await catalogo.SaveAsync(
+            new Vipi.Application.Airspace.NewAirspaceImport(
+                "it.kmz", System.Text.Encoding.UTF8.GetBytes(kml), "2609", 1, "Chi carica"),
+            Vipi.Application.Airspace.AirspaceKmlReader.LeggiKml(kml), DateTime.UtcNow);
+
+        var volumi = await catalogo.ListVolumesAsync(new Vipi.Application.Airspace.AirspaceVolumeQuery());
+        var idSettore = (await _db.AirportSectors.FirstAsync(x => x.ComposePosition == App)).Id;
+        await _agganciAip.SetAsync(Vipi.Domain.SourceCatalog.AirportPosition, idSettore, App,
+            volumi.Select(v => new Vipi.Application.Airspace.AirspaceVolumeKey(v.NaturalKey, v.Ordinal)).ToList(),
+            1, "Chi sceglie");
+        return volumi;
+    }
+
+    /// <summary>
+    /// La richiesta del committente, provata sul flusso vero: un avvicinamento agganciato al suo CTR a più
+    /// zone pubblica QUELLE zone, non il blocco unico dell'anagrafica.
+    ///
+    /// <para>⚠️ Il monoblocco di IVAO è un quadrato solo; le zone agganciate sono tre. Se la sostituzione
+    /// passasse dalla colonna della shape — come diceva la prima stesura della carta — ne uscirebbe UNA,
+    /// disegnata benissimo: `PolygonGeometry.ParsePoints` di fronte a più anelli scende sul primo.</para>
+    /// </summary>
+    [Fact]
+    public async Task AorView_Un_Avvicinamento_Agganciato_Pubblica_Le_Zone_Del_Ctr()
+    {
+        (await _db.AirportSectors.FirstAsync(s => s.ComposePosition == App)).RegionMapPolygon =
+            "[[10.4,43.6],[10.5,43.6],[10.5,43.7],[10.4,43.7]]";
+        await _db.SaveChangesAsync();
+
+        var prima = await _service.GetAorViewAsync(App);
+        Assert.Single(prima.Sectors.Single(x => x.Callsign == App).Polygons);   // il monoblocco
+
+        await AgganciaZoneAsync(
+            ("CTR Z1", "GND", "3500 FT AMSL", 10.4),
+            ("CTR Z2", "GND", "3500 FT AMSL", 10.6),
+            ("CTR Z3", "3500 FT AMSL", "FL195", 10.8));
+
+        var dopo = await _service.GetAorViewAsync(App);
+        var settore = dopo.Sectors.Single(x => x.Callsign == App);
+        Assert.Equal(3, settore.Polygons.Count);
+        Assert.Equal(0, settore.LowerFl);      // l'inviluppo: GND
+        Assert.Equal(195, settore.UpperFl);    // ... fino a FL195
+    }
+
+    /// <summary>
+    /// ⚠️ Un aggancio che non si risolve NON cancella l'area che il settore già mostrava: si torna alla
+    /// forma di IVAO. Il caso vero è un file nuovo che non contiene più quel volume.
+    /// </summary>
+    [Fact]
+    public async Task AorView_Un_Aggancio_Scoperto_Torna_Alla_Forma_Di_Ivao()
+    {
+        (await _db.AirportSectors.FirstAsync(s => s.ComposePosition == App)).RegionMapPolygon =
+            "[[10.4,43.6],[10.5,43.6],[10.5,43.7],[10.4,43.7]]";
+        await _db.SaveChangesAsync();
+
+        await AgganciaZoneAsync(("CTR Z1", "GND", "3500 FT AMSL", 10.4));
+        await AgganciaZoneAsync(("ALTRO CTR", "GND", "FL100", 12.0));   // il file nuovo non ha piu' la Z1
+
+        // Il secondo caricamento riaggancia il settore all'ALTRO CTR: per provare lo scoperto si toglie
+        // quel volume dal caricamento in vigore lasciando l'aggancio dov'e'.
+        var inVigore = await _db.AirspaceImports.FirstAsync(i => i.IsCurrent);
+        _db.AirspaceVolumes.RemoveRange(_db.AirspaceVolumes.Where(v => v.ImportId == inVigore.Id));
+        await _db.SaveChangesAsync();
+
+        var view = await _service.GetAorViewAsync(App);
+        var settore = view.Sectors.Single(x => x.Callsign == App);
+        Assert.Single(settore.Polygons);   // il monoblocco di IVAO, non un settore sparito
     }
 
     [Fact]

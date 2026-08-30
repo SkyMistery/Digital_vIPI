@@ -130,6 +130,8 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.INavaidCatalog, EfNavaidCatalog>();
         services.AddScoped<Vipi.Application.Abstractions.IAttachmentLibrary, EfAttachmentLibrary>();
         services.AddScoped<Vipi.Application.Abstractions.IAttachmentTextSource, EfAttachmentTextSource>();
+        services.AddScoped<Vipi.Application.Airspace.IAirspaceCatalog, EfAirspaceCatalog>();
+        services.AddScoped<Vipi.Application.Airspace.ISectorAirspaceBindings, EfSectorAirspaceBindings>();
         services.AddScoped<Vipi.Application.Abstractions.IAirportNameLookup, EfAirportNameLookup>();
         services.AddScoped<Vipi.Application.Abstractions.IImportStateStore, EfImportStateStore>();
         // Cadenza dei giri automatici, dalle opzioni della sorgente: la pagina admin la legge da qui

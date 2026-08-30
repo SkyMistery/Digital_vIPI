@@ -2843,4 +2843,108 @@
   <data name="Att_Deleted" xml:space="preserve"><value>«{0}» deleted; {1} documents to fix, flagged.</value></data>
   <data name="Impact_AttachmentDeleted" xml:space="preserve"><value>The attachment «{0}» was deleted from the library: the citation in the document no longer leads anywhere.</value></data>
   <data name="ImpactKind_AttachmentDeleted" xml:space="preserve"><value>Attachment deleted</value></data>
+  <data name="Asp_AdminTitle" xml:space="preserve"><value>Airspaces</value></data>
+  <data name="Asp_AdminNav" xml:space="preserve"><value>Airspaces</value></data>
+  <data name="Asp_AdminSubtitle" xml:space="preserve"><value>AIP airspaces, from the file uploaded by hand.</value></data>
+  <data name="Asp_AdminIntro" xml:space="preserve"><value>&lt;p style='margin:0 0 6px'&gt;The AIP file (KMZ) is uploaded by a person: it holds the real boundaries of CTRs, CTAs, TMAs, ATZs and FIRs.&lt;/p&gt;&lt;p style='margin:0'&gt;Regulated areas (R, P, D) and the other areas are read but &lt;b&gt;not used&lt;/b&gt;: those come from the IVAO catalogue. You declare the AIRAC cycle, because the file does not carry one.&lt;/p&gt;</value></data>
+  <data name="Asp_Upload" xml:space="preserve"><value>Upload file</value></data>
+  <data name="Asp_Reading" xml:space="preserve"><value>Reading the file...</value></data>
+  <data name="Asp_Cycle" xml:space="preserve"><value>AIRAC cycle</value></data>
+  <data name="Asp_CyclePh" xml:space="preserve"><value>AIRAC</value></data>
+  <data name="Asp_CycleTitle" xml:space="preserve"><value>The cycle this file is valid from (e.g. 2609). The file does not say: you declare it.</value></data>
+  <data name="Asp_NoImport" xml:space="preserve"><value>No file uploaded yet. Upload the AIP KMZ to fill the catalogue.</value></data>
+  <data name="Asp_NothingRead" xml:space="preserve"><value>There is no airspace in this file: check you picked the right KMZ.</value></data>
+  <data name="Asp_TooBig" xml:space="preserve"><value>The file is over the size limit</value></data>
+  <data name="Asp_Loaded" xml:space="preserve"><value>Uploaded: {0} volumes read, {1} usable, {2} duplicate keys.</value></data>
+  <data name="Asp_Search" xml:space="preserve"><value>Search an airspace</value></data>
+  <data name="Asp_SearchPh" xml:space="preserve"><value>Search by name...</value></data>
+  <data name="Asp_Family" xml:space="preserve"><value>Family</value></data>
+  <data name="Asp_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Asp_Band" xml:space="preserve"><value>Base and top</value></data>
+  <data name="Asp_Class" xml:space="preserve"><value>Class</value></data>
+  <data name="Asp_Points" xml:space="preserve"><value>Points</value></data>
+  <data name="Asp_Usable" xml:space="preserve"><value>Usable</value></data>
+  <data name="Asp_Yes" xml:space="preserve"><value>Yes</value></data>
+  <data name="Asp_No" xml:space="preserve"><value>No</value></data>
+  <data name="Asp_Empty" xml:space="preserve"><value>No airspace matches these filters.</value></data>
+  <data name="Asp_Truncated" xml:space="preserve"><value>Showing {0}: narrow it down with the search or the families.</value></data>
+  <data name="Asp_UsableOf" xml:space="preserve"><value>{0} usable out of {1} read</value></data>
+  <data name="Asp_FamilyUsable" xml:space="preserve"><value>Can be bound to a sector and displayed.</value></data>
+  <data name="Asp_FamilyNotUsable" xml:space="preserve"><value>Not used: regulated areas and the other areas come from the IVAO catalogue.</value></data>
+  <data name="Asp_Imports" xml:space="preserve"><value>Uploads</value></data>
+  <data name="Asp_File" xml:space="preserve"><value>File</value></data>
+  <data name="Asp_Generated" xml:space="preserve"><value>Generated</value></data>
+  <data name="Asp_Uploaded" xml:space="preserve"><value>Uploaded</value></data>
+  <data name="Asp_Volumes" xml:space="preserve"><value>Volumes</value></data>
+  <data name="Asp_InForce" xml:space="preserve"><value>in force</value></data>
+  <data name="Asp_SetCurrent" xml:space="preserve"><value>Put in force</value></data>
+  <data name="Asp_SetCurrentTitle" xml:space="preserve"><value>Go back to this upload: bound sectors take its boundaries again.</value></data>
+  <data name="Asp_SetCurrentDone" xml:space="preserve"><value>Upload put in force.</value></data>
+  <data name="Asp_Delete" xml:space="preserve"><value>Delete the upload</value></data>
+  <data name="Asp_DeletePrompt" xml:space="preserve"><value>Delete “{0}” and all its volumes?</value></data>
+  <data name="Asp_Deleted" xml:space="preserve"><value>Upload deleted.</value></data>
+  <data name="Asp_Issues" xml:space="preserve"><value>Reader warnings</value></data>
+  <data name="Asp_Attribution" xml:space="preserve"><value>Boundaries from AirspaceConverter (alus.it) over Italian AIP data. The data does not replace the AIP and is not for commercial use.</value></data>
+  <data name="Asp_Fam_Ctr" xml:space="preserve"><value>CTR</value></data>
+  <data name="Asp_Fam_Cta" xml:space="preserve"><value>CTA</value></data>
+  <data name="Asp_Fam_Tma" xml:space="preserve"><value>TMA</value></data>
+  <data name="Asp_Fam_Atz" xml:space="preserve"><value>ATZ/MATZ</value></data>
+  <data name="Asp_Fam_Fir" xml:space="preserve"><value>FIR</value></data>
+  <data name="Asp_Fam_Tmz" xml:space="preserve"><value>TMZ</value></data>
+  <data name="Asp_Fam_Restricted" xml:space="preserve"><value>R areas</value></data>
+  <data name="Asp_Fam_Prohibited" xml:space="preserve"><value>P areas</value></data>
+  <data name="Asp_Fam_Danger" xml:space="preserve"><value>D areas</value></data>
+  <data name="Asp_Fam_Gliding" xml:space="preserve"><value>Gliding</value></data>
+  <data name="Asp_Fam_Other" xml:space="preserve"><value>Other areas</value></data>
+  <data name="Asp_Issue_FileNonLetto" xml:space="preserve"><value>File not read</value></data>
+  <data name="Asp_Issue_VolumeSenzaAnello" xml:space="preserve"><value>Volume with no outline</value></data>
+  <data name="Asp_Issue_VolumeSenzaNome" xml:space="preserve"><value>Volume with no name</value></data>
+  <data name="Asp_Issue_ChiaveDuplicata" xml:space="preserve"><value>Duplicate key</value></data>
+  <data name="Asp_Issue_QuotaNonLetta" xml:space="preserve"><value>Level not understood</value></data>
+  <data name="Asp_Issue_VolumeAPiuAnelli" xml:space="preserve"><value>Volume with several outlines</value></data>
+  <data name="Asp_Picked" xml:space="preserve"><value>{0} picked</value></data>
+  <data name="Asp_BindSector" xml:space="preserve"><value>Sector to bind to</value></data>
+  <data name="Asp_BindPick" xml:space="preserve"><value>Pick the sector…</value></data>
+  <data name="Asp_Bind" xml:space="preserve"><value>Bind</value></data>
+  <data name="Asp_BindTitle" xml:space="preserve"><value>This sector will draw its AoR with the picked volumes.</value></data>
+  <data name="Asp_ClearPick" xml:space="preserve"><value>Clear the picks</value></data>
+  <data name="Asp_Bound" xml:space="preserve"><value>{0}: {1} volumes bound.</value></data>
+  <data name="Asp_Bindings" xml:space="preserve"><value>Bound sectors</value></data>
+  <data name="Asp_BindScope" xml:space="preserve"><value>The binding applies to the AoR map — the published chart, the 3D view and print. Neighbours, traffic attribution and the vLOA stay on the IVAO shape.</value></data>
+  <data name="Asp_NoBindings" xml:space="preserve"><value>No sector bound: every sector draws the shape IVAO gives it.</value></data>
+  <data name="Asp_Sector" xml:space="preserve"><value>Sector</value></data>
+  <data name="Asp_BoundVolumes" xml:space="preserve"><value>Volumes</value></data>
+  <data name="Asp_ChosenBy" xml:space="preserve"><value>Chosen by</value></data>
+  <data name="Asp_Unbind" xml:space="preserve"><value>Back to IVAO</value></data>
+  <data name="Asp_UnbindPrompt" xml:space="preserve"><value>Should “{0}” go back to drawing the IVAO shape?</value></data>
+  <data name="Asp_Unbound" xml:space="preserve"><value>{0} is back to the IVAO shape.</value></data>
+  <data name="Asp_Missing" xml:space="preserve"><value>{0} bindings with no volume in the file in force</value></data>
+  <data name="Conv_FromCatalog" xml:space="preserve"><value>Or take an area from the catalogue</value></data>
+  <data name="Conv_FromCatalogPick" xml:space="preserve"><value>Pick an area…</value></data>
+  <data name="Asp_NavReport" xml:space="preserve"><value>Navaids: AIP against our register</value></data>
+  <data name="Asp_NavReportScope" xml:space="preserve"><value>The comparison only REPORTS: fixes go into the sectorfile, and are imported from there. No register value is touched.</value></data>
+  <data name="Asp_NavReportRun" xml:space="preserve"><value>Compare with the register</value></data>
+  <data name="Asp_NavReportNone" xml:space="preserve"><value>No differences: the AIP and the register say the same thing.</value></data>
+  <data name="Asp_NavWhat" xml:space="preserve"><value>What</value></data>
+  <data name="Asp_NavCode" xml:space="preserve"><value>Code</value></data>
+  <data name="Asp_NavAip" xml:space="preserve"><value>The AIP says</value></data>
+  <data name="Asp_NavOurs" xml:space="preserve"><value>The register says</value></data>
+  <data name="Asp_Nav_SoloNellAip" xml:space="preserve"><value>Only in the AIP</value></data>
+  <data name="Asp_Nav_SoloInAnagrafica" xml:space="preserve"><value>Only in the register</value></data>
+  <data name="Asp_Nav_FrequenzaDiversa" xml:space="preserve"><value>Different frequency</value></data>
+  <data name="Asp_Nav_CanaleDiverso" xml:space="preserve"><value>Different channel</value></data>
+  <data name="Asp_Nav_PosizioneDiversa" xml:space="preserve"><value>Different position</value></data>
+  <data name="Asp_Nav_TipoMancante" xml:space="preserve"><value>Type not written</value></data>
+  <data name="Asp_Nav_DaGuardareAMano" xml:space="preserve"><value>To look at by hand</value></data>
+  <data name="Asp_PubTitle" xml:space="preserve"><value>Airspaces</value></data>
+  <data name="Asp_PubSubtitle" xml:space="preserve"><value>AIP boundaries and our own sectors, on the same map.</value></data>
+  <data name="Asp_PubIntro" xml:space="preserve"><value>&lt;p style='margin:0 0 6px'&gt;Turn on one family at a time: CTR, CTA, TMA, ATZ, FIR, TMZ. The «sectors» chip adds our own units' areas, so you can compare them.&lt;/p&gt;&lt;p style='margin:0'&gt;Regulated areas (R, P, D) are not here: they come from the IVAO catalogue and appear in the «Regulated areas» section of the documents.&lt;/p&gt;</value></data>
+  <data name="Asp_PubEmpty" xml:space="preserve"><value>The airspace catalogue has not been uploaded yet.</value></data>
+  <data name="Asp_PubShow" xml:space="preserve"><value>Show:</value></data>
+  <data name="Asp_PubOurSectors" xml:space="preserve"><value>Our sectors</value></data>
+  <data name="Asp_PubLoading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="Asp_PubPreset" xml:space="preserve"><value>Only:</value></data>
+  <data name="Asp_PubRegulated" xml:space="preserve"><value>Regulated areas (R, P, D) and the other areas come from the IVAO catalogue and appear in the documents, not here.</value></data>
+  <data name="Services_AirspaceDesc" xml:space="preserve"><value>AIP boundaries — CTR, CTA, TMA, ATZ, FIR — and our own sectors, on the same map.</value></data>
+  <data name="Asp_Nav_CanaleMancante" xml:space="preserve"><value>Channel not written</value></data>
 </root>

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vipi.Infrastructure.Persistence;
 
@@ -10,12 +11,14 @@ using Vipi.Infrastructure.Persistence;
 namespace Vipi.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(VipiDbContext))]
-    partial class VipiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260829211138_CatalogoSpaziAerei")]
+    partial class CatalogoSpaziAerei
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
+            modelBuilder.HasAnnotation("ProductVersion", "8.0.30");
 
             modelBuilder.Entity("Vipi.Domain.Entities.Acc", b =>
                 {
@@ -1176,99 +1179,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("AtcSessionTraffic");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.Attachment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("CreatedByUserId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Kind")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Scope")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ScopeKey")
-                        .HasMaxLength(8)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Slug")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("UpdatedByUserId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("UpdatedUtc")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Slug")
-                        .IsUnique();
-
-                    b.HasIndex("Kind", "Scope", "ScopeKey");
-
-                    b.ToTable("Attachments");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AttachmentVersion", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AttachmentId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("CreatedByUserId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ExternalId")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Number")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Provider")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AttachmentId", "Number")
-                        .IsUnique();
-
-                    b.ToTable("AttachmentVersions");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<long>("Id")
@@ -2319,56 +2229,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("Sectors");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.SectorAirspaceBinding", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Callsign")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Catalog")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CreatedByName")
-                        .HasMaxLength(128)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("CreatedByUserId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Position")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("SectorId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("VolumeKey")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("VolumeOrdinal")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Callsign");
-
-                    b.HasIndex("Catalog", "SectorId", "VolumeKey", "VolumeOrdinal")
-                        .IsUnique();
-
-                    b.ToTable("SectorAirspaceBindings");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.SharedBlock", b =>
                 {
                     b.Property<int>("Id")
@@ -2829,17 +2689,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Session");
                 });
 
-            modelBuilder.Entity("Vipi.Domain.Entities.AttachmentVersion", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.Attachment", "Attachment")
-                        .WithMany("Versions")
-                        .HasForeignKey("AttachmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Attachment");
-                });
-
             modelBuilder.Entity("Vipi.Domain.Entities.CallsignAlias", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Sector", "Sector")
@@ -3122,11 +2971,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Runways");
 
                     b.Navigation("Traffic");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.Attachment", b =>
-                {
-                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.CoordinationAgreement", b =>

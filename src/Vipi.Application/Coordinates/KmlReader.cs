@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.IO.Compression;
 using System.Xml;
 using System.Xml.Linq;
@@ -36,22 +36,11 @@ public static class KmlReader
     public static CoordinateReadResult LeggiKml(string? xml)
     {
         if (string.IsNullOrWhiteSpace(xml)) return CoordinateReadResult.Vuoto;
-        xml = xml.TrimStart('\uFEFF', '\u200B');   // stesso motivo: un BOM incollato a mano fa lo stesso danno
 
-        XDocument doc;
-        try
-        {
-            // ⚠️ DTD spenta e nessun resolver: un XML arriva da fuori, e le entità esterne sono la via classica
-            // per farsi leggere un file del server.
-            using var reader = XmlReader.Create(new StringReader(xml),
-                new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null });
-            doc = XDocument.Load(reader);
-        }
-        catch (XmlException e)
-        {
+        var doc = CaricaXml(xml, out var errore);
+        if (doc is null)
             return new CoordinateReadResult([],
-                [new CoordinateIssue(CoordinateIssueKind.FileNonLetto, 0, "", e.Message)], 0, 0);
-        }
+                [new CoordinateIssue(CoordinateIssueKind.FileNonLetto, 0, "", errore)], 0, 0);
 
         var aree = new List<CoordinateArea>();
         var segnalazioni = new List<CoordinateIssue>();
@@ -87,44 +76,11 @@ public static class KmlReader
     }
 
     /// <summary>Il KMZ: uno zip che dentro ha <c>doc.kml</c>, o in sua assenza il primo <c>*.kml</c>.</summary>
+    /// <summary>Il KMZ: uno zip che dentro ha <c>doc.kml</c>, o in sua assenza il primo <c>*.kml</c>.</summary>
     public static CoordinateReadResult LeggiKmz(Stream zip)
     {
-        try
-        {
-            using var archivio = new ZipArchive(zip, ZipArchiveMode.Read, leaveOpen: true);
-
-            // ⚠️ I tre tetti stanno QUI e non nella pagina: uno zip che si dichiara piccolo e si apre enorme è
-            // il più vecchio dei trucchi, e questo codice non sa chi gli ha passato il file.
-            if (archivio.Entries.Count > MaxVociZip)
-                return Guasto($"{archivio.Entries.Count} > {MaxVociZip} voci");
-
-            var voce = archivio.Entries.FirstOrDefault(e => e.Name.Equals("doc.kml", StringComparison.OrdinalIgnoreCase))
-                       ?? archivio.Entries.FirstOrDefault(e => e.Name.EndsWith(".kml", StringComparison.OrdinalIgnoreCase));
-            if (voce is null) return Guasto("nessun .kml nello zip");
-            if (voce.Length > MaxByteDecompresso) return Guasto($"{voce.Length} byte decompressi");
-
-            using var flusso = voce.Open();
-            using var limitato = new MemoryStream();
-            var buffer = new byte[81920];
-            int letti;
-            while ((letti = flusso.Read(buffer, 0, buffer.Length)) > 0)
-            {
-                if (limitato.Length + letti > MaxByteDecompresso) return Guasto("supera il tetto decompresso");
-                limitato.Write(buffer, 0, letti);
-            }
-
-            // ⚠️ Il BOM: `Encoding.UTF8.GetString` lo lascia in testa alla stringa, e un XML che comincia con
-            // U+FEFF non si apre («Data at the root level is invalid»). Google Earth e mezzo mondo lo scrivono.
-            // Lo StreamReader col riconoscimento dell'ordine dei byte lo toglie, e in più legge gli UTF-16.
-            limitato.Position = 0;
-            using var lettore = new StreamReader(limitato, System.Text.Encoding.UTF8,
-                detectEncodingFromByteOrderMarks: true);
-            return LeggiKml(lettore.ReadToEnd());
-        }
-        catch (InvalidDataException e)
-        {
-            return Guasto(e.Message);
-        }
+        var xml = ApriKmz(zip, out var guasto);
+        return xml is null ? Guasto(guasto!) : LeggiKml(xml);
     }
 
     private static CoordinateReadResult Guasto(string dettaglio) =>
@@ -164,9 +120,19 @@ public static class KmlReader
     }
 
     /// <summary>Il contenuto di <c>&lt;coordinates&gt;</c>: terne <c>lon,lat[,alt]</c> separate da spazi o a capo.</summary>
-    private static List<(double Lat, double Lon)> Coordinate(string? testo)
+    private static List<(double Lat, double Lon)> Coordinate(string? testo) =>
+        CoordinateConQuota(testo).Select(p => (p.Lat, p.Lon)).ToList();
+
+    /// <summary>
+    /// Le stesse terne, <b>con la quota</b>. Esiste perche' agli spazi aerei la quota serve per davvero:
+    /// <see cref="Vipi.Application.Airspace.AirspaceKmlReader"/> la usa per distinguere il tetto e il pavimento
+    /// di un volume dalle sue pareti, che sono l'unica cosa che ha due quote diverse nello stesso poligono.
+    /// <para>Il caso d'uso di questa classe resta 2D e la butta via subito (<see cref="Coordinate"/>): qui la
+    /// terna si legge una volta sola, e chi la vuole intera la trova gia' letta.</para>
+    /// </summary>
+    internal static List<(double Lat, double Lon, double Alt)> CoordinateConQuota(string? testo)
     {
-        var punti = new List<(double Lat, double Lon)>();
+        var punti = new List<(double Lat, double Lon, double Alt)>();
         if (string.IsNullOrWhiteSpace(testo)) return punti;
 
         foreach (var terna in testo.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
@@ -176,8 +142,82 @@ public static class KmlReader
             if (!double.TryParse(pezzi[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var lon)) continue;
             if (!double.TryParse(pezzi[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var lat)) continue;
             if (Math.Abs(lat) > 90 || Math.Abs(lon) > 180) continue;
-            punti.Add((lat, lon));
+            var alt = pezzi.Length > 2 && double.TryParse(pezzi[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var a) ? a : 0.0;
+            punti.Add((lat, lon, alt));
         }
         return punti;
+    }
+
+    /// <summary>
+    /// Apre l'XML in sicurezza. ⚠️ DTD spenta e nessun resolver: un XML arriva da fuori, e le entita' esterne
+    /// sono la via classica per farsi leggere un file del server. Il BOM in testa si toglie: un XML che comincia
+    /// con U+FEFF non si apre («Data at the root level is invalid»), e mezzo mondo lo scrive.
+    /// <para>null = non si e' aperto, e <paramref name="errore"/> dice perche'.</para>
+    /// </summary>
+    internal static XDocument? CaricaXml(string? xml, out string? errore)
+    {
+        errore = null;
+        if (string.IsNullOrWhiteSpace(xml)) { errore = "vuoto"; return null; }
+
+        try
+        {
+            using var reader = XmlReader.Create(new StringReader(xml.TrimStart('﻿', '​')),
+                new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null });
+            return XDocument.Load(reader);
+        }
+        catch (XmlException e)
+        {
+            errore = e.Message;
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Il KML dentro un KMZ, come testo: lo zip ha <c>doc.kml</c>, o in sua assenza il primo <c>*.kml</c>.
+    /// null = non si e' aperto, e <paramref name="guasto"/> dice perche'.
+    ///
+    /// <para>⚠️ I tre tetti stanno QUI e non nella pagina: uno zip che si dichiara piccolo e si apre enorme e'
+    /// il piu' vecchio dei trucchi, e questo codice non sa chi gli ha passato il file.</para>
+    /// </summary>
+    internal static string? ApriKmz(Stream zip, out string? guasto)
+    {
+        guasto = null;
+        try
+        {
+            using var archivio = new ZipArchive(zip, ZipArchiveMode.Read, leaveOpen: true);
+
+            if (archivio.Entries.Count > MaxVociZip)
+            {
+                guasto = $"{archivio.Entries.Count} > {MaxVociZip} voci";
+                return null;
+            }
+
+            var voce = archivio.Entries.FirstOrDefault(e => e.Name.Equals("doc.kml", StringComparison.OrdinalIgnoreCase))
+                       ?? archivio.Entries.FirstOrDefault(e => e.Name.EndsWith(".kml", StringComparison.OrdinalIgnoreCase));
+            if (voce is null) { guasto = "nessun .kml nello zip"; return null; }
+            if (voce.Length > MaxByteDecompresso) { guasto = $"{voce.Length} byte decompressi"; return null; }
+
+            using var flusso = voce.Open();
+            using var limitato = new MemoryStream();
+            var buffer = new byte[81920];
+            int letti;
+            while ((letti = flusso.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                if (limitato.Length + letti > MaxByteDecompresso) { guasto = "supera il tetto decompresso"; return null; }
+                limitato.Write(buffer, 0, letti);
+            }
+
+            // ⚠️ Il BOM: `Encoding.UTF8.GetString` lo lascia in testa alla stringa. Lo StreamReader col
+            // riconoscimento dell'ordine dei byte lo toglie, e in piu' legge gli UTF-16.
+            limitato.Position = 0;
+            using var lettore = new StreamReader(limitato, System.Text.Encoding.UTF8,
+                detectEncodingFromByteOrderMarks: true);
+            return lettore.ReadToEnd();
+        }
+        catch (InvalidDataException e)
+        {
+            guasto = e.Message;
+            return null;
+        }
     }
 }

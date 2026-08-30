@@ -90,7 +90,8 @@ public sealed class AccDerivationService : IAccDerivationService
     public AccDerivationService(IAccDerivationRepository repo, ISpecialAreaRepository areas, IAgreementService transfers,
         ITopologyProvider topology, Aor.IAorService aor, ICoordinationSentenceTemplate sentence,
         IVectoringMinimaSource minima, ReadingLanguageContext? lingua = null,
-        Translation.TranslationLookup? traduzioni = null)
+        Translation.TranslationLookup? traduzioni = null,
+        Airspace.ISectorAirspaceBindings? agganciAip = null)
     {
         _repo = repo;
         _areas = areas;
@@ -101,7 +102,14 @@ public sealed class AccDerivationService : IAccDerivationService
         _minima = minima;
         _lingua = lingua;
         _traduzioni = traduzioni;
+        _agganciAip = agganciAip;
     }
+
+    /// <summary>
+    /// Gli agganci agli spazi aerei dell'AIP: dove un settore ha una forma scelta a mano, l'AoR disegna
+    /// quella. ⚠️ Facoltativa apposta — senza catalogo caricato la derivazione è quella di prima.
+    /// </summary>
+    private readonly Airspace.ISectorAirspaceBindings? _agganciAip;
 
     public Task<IReadOnlyList<AccTreeRoot>> ListTreeRootsAsync(string accCode, CancellationToken ct = default) =>
         _repo.ListTreeRootsAsync(Norm(accCode), ct);
@@ -193,13 +201,29 @@ public sealed class AccDerivationService : IAccDerivationService
         var limits = await _repo.GetSectorLimitsByCallsignAsync(callsigns, ct);
         var names = await NameMapAsync(accCode, ct);
 
+        // Gli agganci all'AIP: dove qualcuno ha scelto a mano quale spazio aereo un settore controlla, si
+        // disegna quello. La scelta non tocca la shape del settore (carta §6-bis): vale sull'AoR.
+        var agganci = _agganciAip is null ? null : await _agganciAip.ResolveAsync(callsigns, ct);
+
         var sectors = new List<AccSectorAor>();
         foreach (var cs in callsigns)
         {
+            var name = names.TryGetValue(cs, out var n) ? n : cs;
+            var daAip = agganci is not null && agganci.TryGetValue(cs, out var a)
+                ? Airspace.AirspaceAor.Shape(a)
+                : null;
+
+            if (daAip is not null)
+            {
+                sectors.Add(new AccSectorAor(cs, name, Aor.AorColorScheme.Resolve(cs, block.AorColorOverrides),
+                    daAip.Polygons, daAip.LowerFl, daAip.UpperFl));
+                continue;
+            }
+
+            // ⚠️ Nessun aggancio, o aggancio scoperto: si resta sulla forma di IVAO.
             if (!rawByCs.TryGetValue(cs, out var raw)) continue;
             var poly = Aor.AorPolygonProjector.Project(raw);
             if (poly is null) continue;
-            var name = names.TryGetValue(cs, out var n) ? n : cs;
             var (lo, hi) = FlBandOf(cs, limits);
             sectors.Add(new AccSectorAor(cs, name, Aor.AorColorScheme.Resolve(cs, block.AorColorOverrides), new[] { poly }, lo, hi));
         }

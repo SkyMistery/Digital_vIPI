@@ -45,7 +45,12 @@ public sealed class GithubTowerShapeService : IGithubTowerShapeService
             // ⚠️ Solo aeroporti della divisione: la TWR di un campo estero prende l'area da IVAO o resta senza
             // (ShapeFallbackScope). Vale anche col bottone manuale: se qualcuno passa un ICAO estero, non succede nulla.
             .Where(t => _scope.IsDomestic(t.AirportIcao))
-            .Where(t => t.IsShapeSynthetic || AorPolygonProjector.Project(t.RawPolygon) is null)
+            // ⚠️ E anche una shape presa dall'AIP: fra i due il sectorfile è la fonte primaria (decisione 2
+            // del committente: l'AIP è secondaria, «solo se non la trovi nel sectorfile»). Senza questa riga
+            // l'ATZ resterebbe al suo posto anche il giorno che `twrs.tfl` impara quella torre.
+            .Where(t => t.IsShapeSynthetic
+                        || t.ShapeSource == Vipi.Domain.ShapeSource.Aip
+                        || AorPolygonProjector.Project(t.RawPolygon) is null)
             .ToList();
         if (targets.Count == 0) return 0;
 

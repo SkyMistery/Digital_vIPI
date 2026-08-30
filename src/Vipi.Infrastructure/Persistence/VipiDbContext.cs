@@ -131,6 +131,14 @@ public class VipiDbContext : DbContext
 
     /// <summary>Dove stanno i byte di ogni versione di un allegato, e perché ce li ha messi qualcuno.</summary>
     public DbSet<AttachmentVersion> AttachmentVersions => Set<AttachmentVersion>();
+    /// <summary>I caricamenti del file dell'AIP: uno solo e' quello in vigore (carta del 29 agosto 2026).</summary>
+    public DbSet<AirspaceImport> AirspaceImports => Set<AirspaceImport>();
+
+    /// <summary>I volumi di spazio aereo letti dal file caricato.</summary>
+    public DbSet<AirspaceVolume> AirspaceVolumes => Set<AirspaceVolume>();
+
+    /// <summary>Gli agganci settore → volumi dell'AIP: la scelta di una persona (carta §6-bis).</summary>
+    public DbSet<SectorAirspaceBinding> SectorAirspaceBindings => Set<SectorAirspaceBinding>();
 
     /// <summary>
     /// Lettura tollerante dell'azione di registro: un valore che questa versione non conosce diventa
@@ -814,6 +822,65 @@ public class VipiDbContext : DbContext
             e.HasOne(x => x.Acc).WithMany()
                 .HasForeignKey(x => x.CenterId).HasPrincipalKey(a => a.Code)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // --- Spazi aerei dell'AIP (carta del 29 agosto 2026) -------------------------------------------
+        // Il catalogo della GEOMETRIA dell'AIP. Non e' un gemello di SpecialArea: le aree regolamentate
+        // restano di IVAO, e dal file arrivano lette ma non utilizzabili.
+        b.Entity<AirspaceImport>(e =>
+        {
+            e.HasIndex(x => x.Sha256);        // «e' lo stesso file di prima?»
+            e.HasIndex(x => x.IsCurrent);     // il caricamento in vigore, che e' uno solo
+
+            // Lunghezze dichiarate per TUTTI i provider e non nella mappa MySQL: la tabella nasce ADESSO,
+            // quindi su Postgres non c'e' nessun `text` da convertire (il caso che il reconciler non sa
+            // fare) e su MySQL non nasce `longtext`, che poi non si indicizzerebbe. Stessa scelta di
+            // `MediaAsset.Sha256` e di `AtcSession.Callsign`.
+            e.Property(x => x.FileName).HasMaxLength(260);
+            e.Property(x => x.Sha256).HasMaxLength(64);
+            e.Property(x => x.AiracCycle).HasMaxLength(8);
+            e.Property(x => x.UploadedByName).HasMaxLength(128);
+        });
+
+        b.Entity<AirspaceVolume>(e =>
+        {
+            // L'identita' dentro un caricamento. ⚠️ Ci vuole l'ordinale: nel file ci sono TRE chiavi in
+            // doppio (`CTA ROMA Z9 GOLFO MANFREDONIA` e due aree di airwork), e senza ordinale il secondo
+            // volume non entrerebbe — o peggio cancellerebbe il primo.
+            e.HasIndex(x => new { x.ImportId, x.NaturalKey, x.Ordinal }).IsUnique();
+            e.HasIndex(x => new { x.ImportId, x.Family });   // l'elenco per famiglia, che e' come si guarda
+
+            // ⚠️ La famiglia e' un ENUM, quindi in colonna e' una STRINGA (SPEC §6) — e sta in un indice.
+            // Senza lunghezza su MySQL nasce longtext e InnoDB non lo indicizza: il CREATE TABLE fallisce.
+            // Non e' un ragionamento da rifare a mente: l'ha respinta `IndexedStringLengthTests`.
+            e.Property(x => x.Family).HasMaxLength(32);
+
+            e.Property(x => x.NaturalKey).HasMaxLength(300);   // misurato: la piu' lunga del file e' 142
+            e.Property(x => x.Name).HasMaxLength(200);         // misurato: 113
+            e.Property(x => x.Category).HasMaxLength(64);      // misurato: 26
+            e.Property(x => x.AirspaceClass).HasMaxLength(4);
+            e.Property(x => x.BaseRaw).HasMaxLength(32);
+            e.Property(x => x.TopRaw).HasMaxLength(32);
+
+            // Cancellare un caricamento porta via i suoi volumi: sono suoi, non hanno vita propria.
+            e.HasOne(x => x.Import).WithMany(i => i.Volumes)
+                .HasForeignKey(x => x.ImportId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<SectorAirspaceBinding>(e =>
+        {
+            // Un settore non aggancia due volte lo stesso volume. L'identita' del settore e' la coppia
+            // catalogo+id, quella del volume e' chiave+ordinale.
+            e.HasIndex(x => new { x.Catalog, x.SectorId, x.VolumeKey, x.VolumeOrdinal }).IsUnique();
+            e.HasIndex(x => x.Callsign);   // la risoluzione in fase di disegno parte dal callsign
+
+            e.Property(x => x.Catalog).HasMaxLength(16);      // enum -> stringa (SPEC §6), ed e' indicizzato
+            e.Property(x => x.Callsign).HasMaxLength(32);     // misura vera piu' lunga: LIMM_WS2_CTR
+            e.Property(x => x.VolumeKey).HasMaxLength(300);   // come AirspaceVolume.NaturalKey
+            e.Property(x => x.CreatedByName).HasMaxLength(128);
+
+            // ⚠️ Nessuna FK verso AirspaceVolume: l'aggancio cita la CHIAVE, non la riga, e deve sopravvivere
+            // al ri-caricamento del file — che le righe le rifa' tutte.
         });
 
         // Due aggiustamenti che valgono SOLO su MySQL, entrambi indispensabili e per motivi diversi:

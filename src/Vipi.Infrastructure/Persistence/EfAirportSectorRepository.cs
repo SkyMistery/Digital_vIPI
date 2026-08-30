@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Application.Content;
@@ -123,7 +123,8 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
         await _db.AirportSectors.AsNoTracking()
             .Where(s => s.Position == "TWR" && !s.IsHidden)
             .Join(_db.Airports.AsNoTracking(), s => s.AirportIcao, a => a.Icao,
-                (s, a) => new TwrShapeRow(s.Id, s.ComposePosition, s.AirportIcao, a.Latitude, a.Longitude, s.RegionMapPolygon, s.IsShapeSynthetic))
+                (s, a) => new TwrShapeRow(s.Id, s.ComposePosition, s.AirportIcao, a.Latitude, a.Longitude,
+                    s.RegionMapPolygon, s.IsShapeSynthetic, s.ShapeSource))
             .ToListAsync(ct);
 
     public async Task SetSyntheticShapeAsync(int sectorId, string polygonJson, CancellationToken ct = default)
@@ -141,6 +142,16 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
                 ?? throw new InvalidOperationException(Lingua($"Settore d'aeroporto id {sectorId} inesistente.", $"Airport sector id {sectorId} does not exist."));
         s.RegionMapPolygon = polygonJson;
         s.IsShapeSynthetic = false;   // poligono reale (GitHub): non è un cerchio di ripiego
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task SetAipShapeAsync(int sectorId, string polygonJson, CancellationToken ct = default)
+    {
+        var s = await _db.AirportSectors.FirstOrDefaultAsync(x => x.Id == sectorId, ct)
+                ?? throw new InvalidOperationException(Lingua($"Settore d'aeroporto id {sectorId} inesistente.", $"Airport sector id {sectorId} does not exist."));
+        s.RegionMapPolygon = polygonJson;
+        s.IsShapeSynthetic = false;          // è un confine vero, non un cerchio
+        s.ShapeSource = ShapeSource.Aip;     // e si sa da dove viene: si aggiorna, e la si può riprendere
         await _db.SaveChangesAsync(ct);
     }
 
