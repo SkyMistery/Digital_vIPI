@@ -131,9 +131,9 @@ public sealed class AppDocumentService : IAppDocumentService
     public AppDocumentService(IAppDerivationRepository apps, ISpecialAreaRepository areas, IEditingRepository editing,
         IEditAuthorizationService authz, ITopologyProvider topology, IAgreementService transfers,
         ICoordinationSentenceTemplate sentence, IDocumentProfileRepository docProfiles, Aor.IAorService aor,
-        IVectoringMinimaSource minima, ReadingLanguageContext? lingua = null,
-        Translation.TranslationLookup? traduzioni = null,
-        Airspace.ISectorAirspaceBindings? agganciAip = null)
+        IVectoringMinimaSource minima, Airspace.ISectorShapeResolver forme,
+        ReadingLanguageContext? lingua = null,
+        Translation.TranslationLookup? traduzioni = null)
     {
         _apps = apps;
         _areas = areas;
@@ -147,15 +147,14 @@ public sealed class AppDocumentService : IAppDocumentService
         _minima = minima;
         _lingua = lingua;
         _traduzioni = traduzioni;
-        _agganciAip = agganciAip;
+        _forme = forme;
     }
 
     /// <summary>
-    /// Gli agganci agli spazi aerei dell'AIP: dove un settore ha una forma scelta a mano, l'AoR disegna
-    /// quella. ⚠️ Facoltativa apposta — senza catalogo caricato il documento si costruisce esattamente come
-    /// prima, e i test che montano il servizio a mano non devono conoscere una porta che non usano.
+    /// La <b>porta unica</b> per la forma di un settore: anello e quote, sempre della stessa fonte
+    /// (carta refactor 15). Chi vuole una forma la chiede qui.
     /// </summary>
-    private readonly Airspace.ISectorAirspaceBindings? _agganciAip;
+    private readonly Airspace.ISectorShapeResolver _forme;
 
     private static string Norm(string s) => (s ?? "").Trim().ToUpperInvariant();
 
@@ -277,53 +276,37 @@ public sealed class AppDocumentService : IAppDocumentService
             .ThenBy(cs => cs, StringComparer.OrdinalIgnoreCase);
 
         var appCsList = appCallsigns.ToList();
-        var limits = await _apps.GetSectorLimitsByCallsignAsync(appCsList, ct);
 
-        // Gli agganci all'AIP: un avvicinamento che controlla esattamente il suo CTR disegna QUEL confine,
-        // non il blocco unico dell'anagrafica. La scelta l'ha fatta una persona (carta §6-bis).
-        var agganci = _agganciAip is null ? null : await _agganciAip.ResolveAsync(appCsList, ct);
+        // ⚠️ UNA PORTA SOLA (carta refactor 15): un avvicinamento agganciato al suo CTR disegna QUEL confine
+        // con LE SUE quote — una banda per zona, non l'inviluppo — e uno non agganciato resta su IVAO. La
+        // precedenza la sa il risolutore, qui non si sceglie più niente.
+        var forme = await _forme.ResolveAsync(appCsList, ct);
 
         foreach (var cs in appCsList)
         {
-            var daAip = agganci is not null && agganci.TryGetValue(cs, out var a)
-                ? Airspace.AirspaceAor.Shape(a)
-                : null;
+            var proiezione = Aor.AorShapeProjection.Project(forme.GetValueOrDefault(cs));
+            if (proiezione.IsEmpty) continue;
 
-            IReadOnlyList<AppAorPolygon> poligoni;
-            int? lo, hi;
-            if (daAip is not null)
-            {
-                poligoni = daAip.Polygons;
-                (lo, hi) = (daAip.LowerFl, daAip.UpperFl);
-            }
-            else
-            {
-                // ⚠️ Nessun aggancio, o aggancio scoperto: si resta sulla forma di IVAO. Un aggancio che non
-                // si risolve non deve cancellare l'area che il settore già mostrava.
-                var poly = Aor.AorPolygonProjector.Project(await _apps.GetAorPolygonRawAsync(cs, ct));
-                if (poly is null) continue;
-                poligoni = new[] { poly };
-                (lo, hi) = FlBandOf(cs, limits);
-            }
-
-            sectors.Add(new AccSectorAor(cs, cs, Aor.AorColorScheme.Resolve(cs, custom.Colors), poligoni, lo, hi));
+            sectors.Add(new AccSectorAor(cs, cs, Aor.AorColorScheme.Resolve(cs, custom.Colors),
+                proiezione.Polygons, proiezione.LowerFl, proiezione.UpperFl));
         }
 
         // Shape extra scelte a mano (settori DB, anche torri/esteri): sostituiscono l'overlay torri automatico.
         // Appese come anelli toggleabili dopo i settori APP, dedup su quanto già presente.
         if (custom.Callsigns.Count > 0)
         {
-            var rawByCs = await _apps.GetSectorPolygonsRawByCallsignAsync(custom.Callsigns, ct);
-            var extraLimits = await _apps.GetSectorLimitsByCallsignAsync(custom.Callsigns, ct);
+            // Le shape extra passano dalla STESSA porta: una torre agganciata al suo ATZ lo disegna anche qui.
+            var extra = await _forme.ResolveAsync(custom.Callsigns, ct);
             var present = new HashSet<string>(sectors.Select(s => s.Callsign), StringComparer.OrdinalIgnoreCase);
             var names = await _apps.GetSectorNameMapAsync(ct);
             foreach (var cs in custom.Callsigns.Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                if (present.Contains(cs) || !rawByCs.TryGetValue(cs, out var raw)) continue;
-                var poly = Aor.AorPolygonProjector.Project(raw);
-                if (poly is null) continue;
-                var (lo, hi) = FlBandOf(cs, extraLimits);
-                sectors.Add(new AccSectorAor(cs, names.GetValueOrDefault(cs, cs), Aor.AorColorScheme.Resolve(cs, custom.Colors), new[] { poly }, lo, hi));
+                if (present.Contains(cs)) continue;
+                var proiezione = Aor.AorShapeProjection.Project(extra.GetValueOrDefault(cs));
+                if (proiezione.IsEmpty) continue;
+                sectors.Add(new AccSectorAor(cs, names.GetValueOrDefault(cs, cs),
+                    Aor.AorColorScheme.Resolve(cs, custom.Colors),
+                    proiezione.Polygons, proiezione.LowerFl, proiezione.UpperFl));
                 present.Add(cs);
             }
         }
@@ -336,13 +319,6 @@ public sealed class AppDocumentService : IAppDocumentService
         return new AccAorView(sectors, selections);
     }
 
-    // Banda FL (Lower/Upper) normalizzata per l'estrusione 3D; callsign assente dai limiti = default GND/UNL.
-    private static (int? Lower, int? Upper) FlBandOf(string cs, IReadOnlyDictionary<string, SectorFlLimits> limits)
-    {
-        if (!limits.TryGetValue(cs, out var l)) return (null, null);
-        var (bottom, top) = Aor.AorFlBand.Normalize(l.Lower, l.Upper);
-        return (bottom, top);
-    }
 
     public Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default) =>
         _apps.ListLinkableFrequenciesAsync(ct);

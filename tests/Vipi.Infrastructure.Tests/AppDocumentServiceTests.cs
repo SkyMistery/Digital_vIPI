@@ -57,9 +57,10 @@ public class AppDocumentServiceTests : IAsyncLifetime
         var editing = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
         var docProfiles = new EfDocumentProfileRepository(_db);
         _agganciAip = new EfSectorAirspaceBindings(_db);
+        var forme = new EfSectorShapeResolver(_db, _agganciAip, new EfSectorShapeParts(_db));
         _service = new AppDocumentService(repo, new EfSpecialAreaRepository(_db), editing, authz, topo, transfers,
             new StubCoordinationSentenceTemplate(), docProfiles, new Vipi.Application.Aor.AorService(),
-            new NoMinimaSource(), agganciAip: _agganciAip);
+            new NoMinimaSource(), forme);
     }
 
     public async Task DisposeAsync()
@@ -131,7 +132,13 @@ public class AppDocumentServiceTests : IAsyncLifetime
         var dopo = await _service.GetAorViewAsync(App);
         var settore = dopo.Sectors.Single(x => x.Callsign == App);
         Assert.Equal(3, settore.Polygons.Count);
-        Assert.Equal(0, settore.LowerFl);      // l'inviluppo: GND
+
+        // ⚠️ Carta refactor 15: ogni zona porta LA SUA banda. Con l'inviluppo solo, il 3D estrudeva un
+        // parallelepipedo unico GND → FL195 — cioè il monoblocco che l'aggancio serviva a togliere.
+        Assert.Equal(new int?[] { 0, 0, 35 }, settore.Polygons.Select(p => p.LowerFl).ToArray());
+        Assert.Equal(new int?[] { 35, 35, 195 }, settore.Polygons.Select(p => p.UpperFl).ToArray());
+
+        Assert.Equal(0, settore.LowerFl);      // l'inviluppo, che resta per la legenda: GND
         Assert.Equal(195, settore.UpperFl);    // ... fino a FL195
     }
 

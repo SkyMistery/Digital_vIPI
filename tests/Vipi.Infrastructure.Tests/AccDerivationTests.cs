@@ -44,8 +44,9 @@ public class AccProfileTests : IAsyncLifetime
         var authz = new AllowAuthz();
         var topo = new TopologyBuilder(_db);
         var transfers = new AgreementService(new EfAgreementRepository(_db), authz, topo);
+        var forme = new EfSectorShapeResolver(_db, new EfSectorAirspaceBindings(_db), new EfSectorShapeParts(_db));
         _service = new AccDerivationService(_repo, new EfSpecialAreaRepository(_db), transfers, topo,
-            new Vipi.Application.Aor.AorService(), new StubCoordinationSentenceTemplate(), new NoMinimaSource());
+            new Vipi.Application.Aor.AorService(), new StubCoordinationSentenceTemplate(), new NoMinimaSource(), forme);
     }
 
     public async Task DisposeAsync()
