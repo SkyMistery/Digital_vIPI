@@ -296,14 +296,37 @@ forma dell'anagrafica. È la gemella della trappola del `bool` che nasce `false`
 
 ## 5. Impatto e verifica
 
-**Verifica dal vivo, obbligatoria** — la suite verde non ha mai visto i difetti veri di questo capitolo:
+### ✅ Verifica dal vivo — eseguita il 30 agosto 2026
 
-1. `LIBA_APP` — due zone, bande diverse: il 3D deve mostrare **due gradini**, non un blocco `GND → FL195`.
-2. `LICC_APP` — sette zone: sette anelli, sette bande.
-3. Le **13 torri** ATZ: forma invariata dopo il backfill, e adesso **sganciabile**, col cerchio che torna.
-4. Un **unbind** su `LIBA_APP`: la forma IVAO torna al primo render, senza re-import.
-5. `AtcTrafficRecorder`: un giro con l'aggancio acceso e uno con l'aggancio spento, a confronto sui `claims`.
-6. I **33** candidati confinanti: nessuna sparizione che non sappiamo spiegare.
+App vera su una **copia** del `vipi.db` (skill `verifica-live`), guidata con Edge+puppeteer. Otto controlli.
+
+| # | Cosa | Esito |
+|---|---|---|
+| 1 | `LIBA_APP`, agganciato a due zone | **2 anelli**, `ringFl [[0,105],[70,195]]` contro l'inviluppo `[0,195]`: **due gradini**, non un blocco |
+| 2 | `LICC_APP` agganciato **dal vivo** alle sue sette zone, dalla pagina | **7 anelli**, `[[0,35],[0,35],[35,195],[45,195],[130,195],[20,195],[65,115]]` |
+| 3 | **Sgancio** di `LIBA_APP` dalla pagina | 1 anello, `[[0,195]]` — la forma di IVAO al primo render, **senza ri-importare niente** |
+| 4 | **Il traffico**: `LIRR_EW_CTR` (in frequenza, 4 aerei) agganciato alla **FIR ROMA** `GND→FL195` alle 14:06:57Z | vedi sotto |
+| 5 | **Confinanti**: ricalcolo dall'archivio | due giri, `27 domestici × 21 ACC esteri → 33 coppie`; i **33** candidati invariati |
+| 6 | **Struttura ACC**, la colonna della provenienza | 153 righe: **142 «IVAO» + 11 «nessuna»**, esattamente le cifre di §1c |
+| 7 | **Editor aeroporto** di LIBA | `LIBA_APP` → **«AIP · 2»** con le due caselle dei limiti **barrate e sbiadite**; `LIBA_TWR` → «IVAO», caselle normali |
+| 8 | **Un documento già PUBBLICATO** (`LIBA_APP` v1, congelato *prima* di questa carta) | 200, disegna, `ringFl [[0,195]]`: lo snapshot vecchio non ha le bande per poligono e **ricade sull'inviluppo**, come previsto |
+
+⚠️ **Il controllo 4 è quello che vale il capitolo.** Entro **un solo giro del poller** le tratte nuove sono
+uscite col timbro `Aip`, e sono i quattro voli **sotto** FL195 (16, 2 613, 91, 3 652 ft). I quattro
+**sopra** — 39 081, 43 006, 21 661, 28 049 ft — hanno smesso di essere rivendicati: il settore ha tetto
+**UNL** nell'anagrafica, la FIR si ferma a FL195. È il difetto di ⚠1, visto dal verso giusto, sui dati veri
+della rete. E prova insieme le tre cose: i pezzi con la loro banda, il timbro in archivio e il gettone
+(≤ 60 s invece di «fra zero e sessanta minuti»).
+
+⚠️ **Quel che la verifica ha corretto**: la pastiglia della provenienza andava **a capo** («AIP · 2» su due
+righe) e alzava la riga della tabella. Si vede solo guardando lo screenshot, ed è il motivo per cui il
+runbook chiede di guardarli.
+
+⚠️ **Non verificato dal vivo**: la conversione delle **13 torri ATZ** (S3). Il giro d'import delle posizioni
+d'aeroporto — che è chi la esegue — non è partito in questa sessione, e forzarlo avrebbe voluto dire una
+ri-lettura completa dell'anagrafica IVAO. La coprono nove test, fra cui lo sgancio che **riporta il cerchio**;
+resta da **guardare al primo deploy**: le 13 righe con `ShapeSource='Aip'` in colonna devono diventare pezzi,
+e la colonna deve tornare libera.
 
 **Rollback**: fino a S8 compresa nessun dato di IVAO viene toccato — si torna indietro cancellando i pezzi
 `Aip`. Da S9 in poi il rollback non riscrive le tratte già attribuite: è voluto, e il timbro di §3h dice sempre

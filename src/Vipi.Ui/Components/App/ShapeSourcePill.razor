@@ -15,25 +15,25 @@
 
 @if (Shape is null)
 {
-    <span class="pill neutral" title="@L["Shape_NoneTitle"]">@L["Shape_None"]</span>
+    <span class="pill neutral shape-pill" title="@L["Shape_NoneTitle"]">@L["Shape_None"]</span>
 }
 else if (Shape.Source == ShapeSource.Aip)
 {
-    <span class="pill blue" title="@L["Shape_FromAipTitle", Shape.Parts.Count]">
+    <span class="pill blue shape-pill" title="@L["Shape_FromAipTitle", Shape.Parts.Count]">
         @L["Shape_FromAip"] · @Shape.Parts.Count
     </span>
 }
 else if (Shape.Source == ShapeSource.Sectorfile)
 {
-    <span class="pill" title="@L["Shape_FromSectorfileTitle"]">@L["Shape_FromSectorfile"]</span>
+    <span class="pill shape-pill" title="@L["Shape_FromSectorfileTitle"]">@L["Shape_FromSectorfile"]</span>
 }
 else if (Shape.Source == ShapeSource.Synthetic)
 {
-    <span class="pill neutral" title="@L["Shape_SyntheticTitle"]">@L["Shape_Synthetic"]</span>
+    <span class="pill neutral shape-pill" title="@L["Shape_SyntheticTitle"]">@L["Shape_Synthetic"]</span>
 }
 else
 {
-    <span class="pill green" title="@L["Shape_FromSourceTitle"]">@L["Shape_FromSource"]</span>
+    <span class="pill green shape-pill" title="@L["Shape_FromSourceTitle"]">@L["Shape_FromSource"]</span>
 }
 
 @code {
