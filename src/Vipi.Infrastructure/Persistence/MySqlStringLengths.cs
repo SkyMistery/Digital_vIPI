@@ -173,6 +173,17 @@ public static class MySqlStringLengths
             // Id numerico IVAO tenuto come stringa: misurato 5.
             [("SpecialArea", "IvaoId")] = 64,
 
+            // --- Biblioteca allegati -------------------------------------------------------------------
+            // I due assi della biblioteca stanno INSIEME nello stesso indice (Kind, Scope, ScopeKey), e sono
+            // enum-stringa: la regola generale su EnumChars li dimensionerebbe comunque, ma il presidio
+            // pretende una voce esplicita per ogni colonna indicizzata — stessa ragione, e stessa forma, di
+            // DocumentImpact.Kind qui sopra. Valori più lunghi: `Circular` (8) e `Division` (8).
+            [("Attachment", "Kind")] = EnumChars,
+            [("Attachment", "Scope")] = EnumChars,
+            // ⚠️ Le altre colonne della biblioteca NON stanno qui: le due tabelle nascono adesso, quindi le
+            // lunghezze sono dichiarate nel modello per TUTTI i provider (come le statistiche ATC), e su
+            // Postgres non c'è nessun `text` da convertire. Vedi VipiDbContext, sezione «Biblioteca allegati».
+
             // NB: MediaAsset.Sha256 non è qui perché ha già HasMaxLength(64) nel modello, per tutti i
             // provider — è content-addressed, la lunghezza è fissa per definizione dell'algoritmo.
         };

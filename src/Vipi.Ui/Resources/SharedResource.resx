@@ -126,7 +126,7 @@
   <data name="Cov_OutOfWindow" xml:space="preserve"><value>{0}: fuori dalla finestra</value></data>
   <data name="Cov_Covered" xml:space="preserve"><value>{0}: coperta al {1}% ({2} minuti su {3})</value></data>
   <data name="Cov_OnFrequency" xml:space="preserve"><value>{0}: {1} minuti in frequenza su {2} possibili ({3}%)</value></data>
-  <data name="Blocks_HelpBody" xml:space="preserve"><value>Aggiungi un blocco: &lt;b&gt;Paragrafo&lt;/b&gt; (testo), &lt;b&gt;Callout&lt;/b&gt; (riquadro nota/attenzione), &lt;b&gt;Tabella&lt;/b&gt; (righe/colonne), &lt;b&gt;Immagine&lt;/b&gt; (foto dal dispositivo o trascinata). Riordina con ↑/↓. Tutto va poi &lt;b&gt;salvato&lt;/b&gt; e &lt;b&gt;pubblicato&lt;/b&gt;.</value></data>
+  <data name="Blocks_HelpBody" xml:space="preserve"><value>Aggiungi un blocco: &lt;b&gt;Paragrafo&lt;/b&gt; (testo), &lt;b&gt;Callout&lt;/b&gt; (riquadro nota/attenzione), &lt;b&gt;Tabella&lt;/b&gt; (righe/colonne), &lt;b&gt;Immagine&lt;/b&gt; (foto dal dispositivo o trascinata), &lt;b&gt;Allegato&lt;/b&gt; (un PDF della biblioteca, scelto dall'elenco). Riordina con ↑/↓. Tutto va poi &lt;b&gt;salvato&lt;/b&gt; e &lt;b&gt;pubblicato&lt;/b&gt;.</value></data>
   <data name="Rel_PreviewCrumb" xml:space="preserve"><value>Anteprima release</value></data>
   <data name="TrEd_Title" xml:space="preserve"><value>Traduzione</value></data>
   <data name="TrEd_SameLanguage" xml:space="preserve"><value>Stai leggendo nella lingua in cui questo documento è scritto. Passa all'altra lingua nella barra in alto per rivedere come viene letto.</value></data>
@@ -2768,4 +2768,87 @@
   <data name="Conv_HelpAria" xml:space="preserve"><value>Aiuto sul convertitore di coordinate</value></data>
   <data name="Conv_HelpBody" xml:space="preserve"><value>&lt;p style='margin:0 0 6px'&gt;Incolla le coordinate come sono: il formato lo riconosce da solo.&lt;/p&gt;&lt;p style='margin:0'&gt;In uscita scegli il &lt;b&gt;DB di IVAO&lt;/b&gt; o il &lt;b&gt;sectorfile&lt;/b&gt; — e per il sectorfile l'elenco dei punti oppure i segmenti. Le righe che non si leggono escono in fondo col loro numero.&lt;/p&gt;</value></data>
   <data name="Conv_CompareHint" xml:space="preserve"><value>Se non la vedi, le due forme si sovrappongono: la conversione non ha spostato niente.</value></data>
+  <data name="Att_Title" xml:space="preserve"><value>Biblioteca allegati</value></data>
+  <data name="Att_Nav" xml:space="preserve"><value>Allegati</value></data>
+  <data name="Att_Subtitle" xml:space="preserve"><value>I PDF caricati in un posto solo e citabili da qualunque documento.</value></data>
+  <data name="Att_Intro" xml:space="preserve"><value>&lt;p&gt;I file stanno sul &lt;b&gt;Drive di divisione&lt;/b&gt;: il piano di hosting non ammette il formato PDF, e IVAO HQ vuole i documenti lì. Qui sta il registro — titolo, tipo, ambito, versione e link.&lt;/p&gt;&lt;p&gt;⚠️ &lt;b&gt;Tutto ciò che entra in biblioteca è pubblico&lt;/b&gt;: il file su Drive è condiviso «chiunque abbia il link». Allegati riservati allo staff non esistono.&lt;/p&gt;&lt;p&gt;Lo &lt;b&gt;slug&lt;/b&gt; è l'identità e &lt;b&gt;non si cambia mai&lt;/b&gt;: è quello che i documenti citano. Sostituire il PDF, invece, si può: il link segue sempre la versione corrente.&lt;/p&gt;&lt;p&gt;Per citarlo dentro una frase copia lo slug che vedi in tabella e scrivi &lt;code&gt;[come si legge](allegato:lo-slug)&lt;/code&gt;.&lt;/p&gt;</value></data>
+  <data name="Att_Search" xml:space="preserve"><value>Cerca in biblioteca</value></data>
+  <data name="Att_SearchPh" xml:space="preserve"><value>Cerca per titolo, slug o ambito…</value></data>
+  <data name="Att_ColTitle" xml:space="preserve"><value>Titolo</value></data>
+  <data name="Att_ColSlug" xml:space="preserve"><value>Slug</value></data>
+  <data name="Att_ColKind" xml:space="preserve"><value>Tipo</value></data>
+  <data name="Att_ColScope" xml:space="preserve"><value>Ambito</value></data>
+  <data name="Att_ColVersion" xml:space="preserve"><value>Versione</value></data>
+  <data name="Att_ColUpdated" xml:space="preserve"><value>Caricata</value></data>
+  <data name="Att_ScopeKey" xml:space="preserve"><value>Codice</value></data>
+  <data name="Att_Link" xml:space="preserve"><value>Link</value></data>
+  <data name="Att_LinkPh" xml:space="preserve"><value>Incolla il link di Drive</value></data>
+  <data name="Att_TitlePh" xml:space="preserve"><value>LoA Roma–Marseille</value></data>
+  <data name="Att_Open" xml:space="preserve"><value>Apri</value></data>
+  <data name="Att_Add" xml:space="preserve"><value>Aggiungi</value></data>
+  <data name="Att_AddHint" xml:space="preserve"><value>Carica prima il file sul Drive di divisione, poi incolla qui il suo link: si tiene l'id del file, non l'indirizzo.</value></data>
+  <data name="Att_Empty" xml:space="preserve"><value>Nessuna voce con questi filtri.</value></data>
+  <data name="Att_Added" xml:space="preserve"><value>Aggiunta «{0}», citabile come allegato:{1}</value></data>
+  <data name="Att_ErrSlug" xml:space="preserve"><value>Lo slug vuole minuscole, cifre e trattini singoli: «loa-lirr-lfmm».</value></data>
+  <data name="Att_ErrSlugTaken" xml:space="preserve"><value>Lo slug «{0}» è già di un'altra voce, e due voci con lo stesso slug renderebbero ambiguo il link.</value></data>
+  <data name="Att_ErrTitle" xml:space="preserve"><value>Manca il titolo: è quel che si legge dentro il documento.</value></data>
+  <data name="Att_ErrLink" xml:space="preserve"><value>Da quel link non si ricava nessun id di file. Serve il link di condivisione di Drive.</value></data>
+  <data name="Att_ErrScope" xml:space="preserve"><value>L'ambito e il suo codice non stanno insieme: la divisione non vuole un codice, un ACC o uno scalo lo pretendono.</value></data>
+  <data name="AttKind_Loa" xml:space="preserve"><value>LoA</value></data>
+  <data name="AttKind_Circular" xml:space="preserve"><value>Circolare</value></data>
+  <data name="AttKind_Chart" xml:space="preserve"><value>Carta</value></data>
+  <data name="AttKind_Manual" xml:space="preserve"><value>Manuale</value></data>
+  <data name="AttKind_Other" xml:space="preserve"><value>Altro</value></data>
+  <data name="AttScope_Division" xml:space="preserve"><value>Divisione</value></data>
+  <data name="AttScope_Acc" xml:space="preserve"><value>ACC</value></data>
+  <data name="AttScope_Airport" xml:space="preserve"><value>Scalo</value></data>
+  <data name="Att_ColUsed" xml:space="preserve"><value>Citato da</value></data>
+  <data name="Att_UsedBy" xml:space="preserve"><value>{0} documenti</value></data>
+  <data name="Att_NeverUsed" xml:space="preserve"><value>—</value></data>
+  <data name="Att_Unused" xml:space="preserve"><value>Mai usate</value></data>
+  <data name="Att_UnusedTitle" xml:space="preserve"><value>Le voci che non cita nessun documento: è da qui che si tiene pulita la biblioteca.</value></data>
+  <data name="Att_CitedAirac" xml:space="preserve"><value>AIRAC {0}</value></data>
+  <data name="Att_CitedPublished" xml:space="preserve"><value>pubblicato</value></data>
+  <data name="Att_CitedDraft" xml:space="preserve"><value>bozza</value></data>
+  <data name="AttSrc_Document" xml:space="preserve"><value>Documento</value></data>
+  <data name="AttSrc_Release" xml:space="preserve"><value>Pubblicato</value></data>
+  <data name="AttSrc_AirportExtraSection" xml:space="preserve"><value>Sezione d'aeroporto</value></data>
+  <data name="AttSrc_SharedBlock" xml:space="preserve"><value>Blocco condiviso</value></data>
+  <data name="Dse_Attachment" xml:space="preserve"><value>Allegato</value></data>
+  <data name="Att_External" xml:space="preserve"><value>esterno</value></data>
+  <data name="Att_ExternalTitle" xml:space="preserve"><value>Il file sta sul Drive di divisione: il link apre una scheda nuova.</value></data>
+  <data name="Att_Missing" xml:space="preserve"><value>Allegato non impostato.</value></data>
+  <data name="Att_BlockPick" xml:space="preserve"><value>Allegato</value></data>
+  <data name="Att_BlockNone" xml:space="preserve"><value>— nessuno —</value></data>
+  <data name="Att_BlockLabel" xml:space="preserve"><value>Come si legge</value></data>
+  <data name="Att_BlockLabelPh" xml:space="preserve"><value>LoA con Marsiglia</value></data>
+  <data name="Att_BlockNotePh" xml:space="preserve"><value>Nota sotto il link (facoltativa)</value></data>
+  <data name="Att_BlockEmptyHint" xml:space="preserve"><value>La biblioteca è vuota: un allegato si carica prima in Allegati, poi si cita da qui.</value></data>
+  <data name="Att_BlockMode" xml:space="preserve"><value>Come si vede</value></data>
+  <data name="Att_BlockHeight" xml:space="preserve"><value>Altezza</value></data>
+  <data name="AttMode_Link" xml:space="preserve"><value>Link</value></data>
+  <data name="AttMode_Embedded" xml:space="preserve"><value>Incorporato</value></data>
+  <data name="AttHeight_Small" xml:space="preserve"><value>Bassa</value></data>
+  <data name="AttHeight_Medium" xml:space="preserve"><value>Media</value></data>
+  <data name="AttHeight_Large" xml:space="preserve"><value>Alta</value></data>
+  <data name="Att_Replace" xml:space="preserve"><value>Sostituisci</value></data>
+  <data name="Att_ReplaceTitle" xml:space="preserve"><value>Sostituisci «{0}» (v{1} → v{2})</value></data>
+  <data name="Att_ReplaceImpact" xml:space="preserve"><value>Cambia ciò che vedono {0} documenti:</value></data>
+  <data name="Att_ReplaceNoImpact" xml:space="preserve"><value>Non la cita nessun documento: cambia solo la biblioteca.</value></data>
+  <data name="Att_ReplaceNote" xml:space="preserve"><value>Nota di versione</value></data>
+  <data name="Att_ReplaceNotePh" xml:space="preserve"><value>rifirmata dopo modifica CoP</value></data>
+  <data name="Att_Replaced" xml:space="preserve"><value>«{0}» ora è alla v{1}; segnalata su {2} documenti da rivedere.</value></data>
+  <data name="Att_ReplaceSame" xml:space="preserve"><value>È lo stesso file di adesso: non c'è niente da sostituire.</value></data>
+  <data name="Att_ReplaceGone" xml:space="preserve"><value>La voce non c'è più: qualcuno l'ha eliminata mentre la stavi sostituendo.</value></data>
+  <data name="Impact_AttachmentReplaced" xml:space="preserve"><value>L'allegato «{0}» è stato sostituito: il documento mostra già il file nuovo, da rileggere.</value></data>
+  <data name="ImpactKind_AttachmentReplaced" xml:space="preserve"><value>Allegato sostituito</value></data>
+  <data name="Att_Delete" xml:space="preserve"><value>Elimina</value></data>
+  <data name="Att_DeleteTitle" xml:space="preserve"><value>Elimina «{0}» dalla biblioteca</value></data>
+  <data name="Att_DeleteImpact" xml:space="preserve"><value>Questi {0} documenti resteranno con un link che non porta da nessuna parte. Verranno segnalati come da rivedere.</value></data>
+  <data name="Att_DeleteNoImpact" xml:space="preserve"><value>Non la cita nessun documento: non resta niente da correggere.</value></data>
+  <data name="Att_DeleteKeepsFile" xml:space="preserve"><value>Il file sul Drive di divisione resta dov'è: qui si toglie solo la voce.</value></data>
+  <data name="Att_DeleteConfirm" xml:space="preserve"><value>Elimina la voce</value></data>
+  <data name="Att_Deleted" xml:space="preserve"><value>«{0}» eliminata; {1} documenti da correggere, segnalati.</value></data>
+  <data name="Impact_AttachmentDeleted" xml:space="preserve"><value>L'allegato «{0}» è stato eliminato dalla biblioteca: la citazione nel documento non porta più da nessuna parte.</value></data>
+  <data name="ImpactKind_AttachmentDeleted" xml:space="preserve"><value>Allegato eliminato</value></data>
 </root>

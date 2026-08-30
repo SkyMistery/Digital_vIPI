@@ -382,6 +382,35 @@ public static class VipiModuleExtensions
                 entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{media.Sha256}\""));
         });
 
+        // Un allegato della biblioteca: 302 verso il deposito dove stanno i byte (oggi il Drive di divisione).
+        //
+        // ⚠️ È QUESTA la rotta che finisce dentro i documenti, mai l'indirizzo del deposito. Il documento cita
+        // lo slug, e dove stiano i byte lo decide una colonna: cambiare deposito domani non tocca un solo
+        // documento. È l'unica scelta che rende reversibile un vincolo che non controlliamo — i PDF non
+        // possono stare da noi per contratto, non per tecnica.
+        //
+        // ⚠️ `no-cache` e NON `immutable` come /vsop/media/{sha}, e la differenza è tutta qui: quello è
+        // content-addressed, cioè cambiare immagine significa cambiare URL. Qui l'URL è STABILE e il
+        // contenuto cambia sotto — è il senso della sostituzione. Con una cache lunga si sostituirebbe il PDF
+        // e il browser terrebbe il vecchio per un anno: la sostituzione «non funziona» in modo intermittente
+        // e inspiegabile, perché a chi ha la pagina fresca funziona benissimo.
+        //
+        // Pubblico come i documenti che lo citano: tutto ciò che entra in biblioteca è pubblico per
+        // costruzione, perché il file sul Drive è condiviso «chiunque abbia il link».
+        endpoints.MapGet(Vipi.Application.Content.AttachmentRules.UrlPrefix + "{slug}",
+            async (string slug, IAttachmentLibrary library, HttpContext ctx, CancellationToken ct) =>
+        {
+            var voce = await library.BySlugAsync(slug, ct);
+            if (voce is null) return Results.NotFound();
+
+            ctx.Response.Headers.CacheControl = "no-cache";
+            // 302 e non 301: un permanente lo tiene il browser per sempre, e il giorno che cambia il deposito
+            // ci sarebbero utenti mandati a un indirizzo morto senza modo di correggerli.
+            return Results.Redirect(
+                Vipi.Application.Content.AttachmentRules.UrlEsterno(voce.Provider, voce.ExternalId),
+                permanent: false);
+        });
+
         return endpoints;
     }
 

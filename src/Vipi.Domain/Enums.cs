@@ -95,7 +95,13 @@ public enum PartyRole { Home, Neighbour }
 public enum BlockTier { Reduced, Extended }
 
 /// <summary>Formato di un blocco di contenuto.</summary>
-public enum BlockFormat { Table, Prose, Image, List, AorMap, Callout }
+/// <summary>
+/// Che cosa è un blocco editoriale.
+/// <para>⚠️ I valori si aggiungono <b>IN CODA</b>. Nel payload di una release gli enum sono serializzati come
+/// ordinali, quindi inserirne uno in mezzo reinterpreterebbe in silenzio ogni release già pubblicata: un
+/// blocco tabella diventerebbe un'immagine, e nessuno lo denuncerebbe.</para>
+/// </summary>
+public enum BlockFormat { Table, Prose, Image, List, AorMap, Callout, Attachment }
 
 /// <summary>Comportamento di visibilità live (tabella di verità in SPEC_Logica_AoR §4).</summary>
 public enum BlockVisibility { Operational, Handoff, Always }
@@ -284,6 +290,31 @@ public enum ImpactKind
 
     /// <summary>Il documento è gestito ma il suo bersaglio di release non risolve più. <b>Calcolato.</b></summary>
     BrokenTarget,
+
+    /// <summary>
+    /// Un <b>allegato citato dal documento è stato sostituito</b>: stesso slug, file nuovo.
+    ///
+    /// <para>⚠️ È l'unico impatto in cui <b>non c'è niente di rotto e niente da ripubblicare</b>: il link
+    /// segue sempre la versione corrente, quindi la copia pubblicata mostra già il file nuovo — <i>senza che
+    /// nessuno l'abbia toccata</i>. Ed è esattamente per questo che la riga serve: il contenuto sotto un
+    /// documento pubblicato è cambiato, e chi lo cura deve <b>saperlo</b>, non scoprirlo. La rilettura può
+    /// concludersi con «va bene così», e allora la riga si chiude a mano.</para>
+    ///
+    /// <para>Non è <see cref="ReleaseDrift"/>: quello dice «la copia pubblicata è indietro rispetto alla
+    /// bozza». Qui la copia pubblicata è aggiornata; è la <i>decisione editoriale</i> che potrebbe non valere
+    /// più — una frase che descrive la LoA vecchia resta lì, e nessun calcolo la sa riscrivere.</para>
+    /// </summary>
+    AttachmentReplaced,
+
+    /// <summary>
+    /// Un <b>allegato citato dal documento è stato eliminato</b> dalla biblioteca: la citazione è rimasta e
+    /// adesso non porta da nessuna parte.
+    ///
+    /// <para>Non è <see cref="AttachmentReplaced"/>: là il link funziona e mostra un file diverso, qui il
+    /// link è <b>morto</b>. E il documento non se ne accorge da solo — un <c>allegato:</c> che non risolve
+    /// più è un 404 che vede solo chi ci clicca sopra, cioè un lettore.</para>
+    /// </summary>
+    AttachmentDeleted,
 }
 
 /// <summary>Regole trasversali su <see cref="ImpactKind"/>: stanno qui e non in tre <c>switch</c> sparsi.</summary>

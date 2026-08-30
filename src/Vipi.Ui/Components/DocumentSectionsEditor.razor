@@ -476,6 +476,7 @@ else
                         <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Callout)">Callout</button>
                         <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Table)">@L["Dse_Table"]</button>
                         <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Image)">@L["Dse_Image"]</button>
+                        <button class="btn ghost" @onclick="() => AddBlock(s.Id, BlockFormat.Attachment)">@L["Dse_Attachment"]</button>
                     </div>
                 </details>
             }
@@ -524,6 +525,14 @@ else
                         <ImageBlockEditor DocumentId="Doc.DocumentId" ImageJson="@b.BodyJson" ImageJsonChanged="j => SaveBlock(b, bodyJson: j ?? string.Empty)"
                                           Caption="@b.Body" CaptionChanged="c => SaveBlock(b, body: c ?? string.Empty)" />
                         break;
+                    case BlockFormat.Attachment:
+                        @* Come sopra: stringa vuota = «togli l'allegato». Il corpo del case è UNA riga che
+                           monta il componente condiviso, come per l'immagine. *@
+                        <AttachmentBlockEditor AttachmentJson="@b.BodyJson" AttachmentJsonChanged="j => SaveBlock(b, bodyJson: j ?? string.Empty)"
+                                               Note="@b.Body" />
+                        <textarea class="app-ta" rows="2" value="@b.Body" placeholder="@L["Att_BlockNotePh"]"
+                                  @onchange="e => SaveBlock(b, body: AsString(e.Value))"></textarea>
+                        break;
                     default:
                         <p class="muted">@(string.Format(L["Dse_BlockNotEditable"].Value, b.Format))</p>
                         break;
@@ -554,6 +563,9 @@ else
                 break;
             case BlockFormat.Image:
                 <ImageFigure Media="MediaRef.Parse(b.BodyJson)" Caption="@b.Body" />
+                break;
+            case BlockFormat.Attachment:
+                <AttachmentLink Reference="AttachmentRef.Parse(b.BodyJson)" Note="@b.Body" />
                 break;
             default:
                 @if (!string.IsNullOrWhiteSpace(b.Body)) { <div class="prose">@MarkdownLite.Render(b.Body)</div> }

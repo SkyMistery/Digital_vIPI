@@ -126,7 +126,7 @@
   <data name="Cov_OutOfWindow" xml:space="preserve"><value>{0}: outside the window</value></data>
   <data name="Cov_Covered" xml:space="preserve"><value>{0}: {1}% covered ({2} minutes out of {3})</value></data>
   <data name="Cov_OnFrequency" xml:space="preserve"><value>{0}: {1} minutes on frequency out of {2} possible ({3}%)</value></data>
-  <data name="Blocks_HelpBody" xml:space="preserve"><value>Add a block: &lt;b&gt;Paragraph&lt;/b&gt; (text), &lt;b&gt;Callout&lt;/b&gt; (note/warning box), &lt;b&gt;Table&lt;/b&gt; (rows/columns), &lt;b&gt;Image&lt;/b&gt; (a photo from your device, or dragged in). Reorder with ↑/↓. Everything then has to be &lt;b&gt;saved&lt;/b&gt; and &lt;b&gt;published&lt;/b&gt;.</value></data>
+  <data name="Blocks_HelpBody" xml:space="preserve"><value>Add a block: &lt;b&gt;Paragraph&lt;/b&gt; (text), &lt;b&gt;Callout&lt;/b&gt; (note/warning box), &lt;b&gt;Table&lt;/b&gt; (rows/columns), &lt;b&gt;Image&lt;/b&gt; (a photo from your device, or dragged in), &lt;b&gt;Attachment&lt;/b&gt; (a PDF from the library, picked from the list). Reorder with ↑/↓. Everything then has to be &lt;b&gt;saved&lt;/b&gt; and &lt;b&gt;published&lt;/b&gt;.</value></data>
   <data name="Rel_PreviewCrumb" xml:space="preserve"><value>Release preview</value></data>
   <data name="TrEd_Title" xml:space="preserve"><value>Translation</value></data>
   <data name="TrEd_SameLanguage" xml:space="preserve"><value>You are reading in the language this document is written in. Switch language in the top bar to review how it reads.</value></data>
@@ -2760,4 +2760,87 @@
   <data name="Conv_HelpAria" xml:space="preserve"><value>Help on the coordinate converter</value></data>
   <data name="Conv_HelpBody" xml:space="preserve"><value>&lt;p style='margin:0 0 6px'&gt;Paste the coordinates as they are: the format is detected for you.&lt;/p&gt;&lt;p style='margin:0'&gt;For the output pick the &lt;b&gt;IVAO database&lt;/b&gt; or the &lt;b&gt;sectorfile&lt;/b&gt; — and for the sectorfile either the point list or the segments. Lines that cannot be read are listed at the bottom with their line number.&lt;/p&gt;</value></data>
   <data name="Conv_CompareHint" xml:space="preserve"><value>If you cannot see it, the two shapes overlap: the conversion moved nothing.</value></data>
+  <data name="Att_Title" xml:space="preserve"><value>Attachment library</value></data>
+  <data name="Att_Nav" xml:space="preserve"><value>Attachments</value></data>
+  <data name="Att_Subtitle" xml:space="preserve"><value>PDFs uploaded in one place and citable from any document.</value></data>
+  <data name="Att_Intro" xml:space="preserve"><value>&lt;p&gt;The files live on the &lt;b&gt;division Drive&lt;/b&gt;: the hosting plan does not allow the PDF format, and IVAO HQ wants the documents there. What lives here is the register — title, kind, scope, version and link.&lt;/p&gt;&lt;p&gt;⚠️ &lt;b&gt;Everything in the library is public&lt;/b&gt;: the Drive file is shared with «anyone with the link». Staff-only attachments do not exist.&lt;/p&gt;&lt;p&gt;The &lt;b&gt;slug&lt;/b&gt; is the identity and &lt;b&gt;never changes&lt;/b&gt;: it is what documents cite. Replacing the PDF, on the other hand, is fine: the link always follows the current version.&lt;/p&gt;&lt;p&gt;To cite it inside a sentence, copy the slug shown in the table and write &lt;code&gt;[what it reads as](allegato:the-slug)&lt;/code&gt;.&lt;/p&gt;</value></data>
+  <data name="Att_Search" xml:space="preserve"><value>Search the library</value></data>
+  <data name="Att_SearchPh" xml:space="preserve"><value>Search by title, slug or scope…</value></data>
+  <data name="Att_ColTitle" xml:space="preserve"><value>Title</value></data>
+  <data name="Att_ColSlug" xml:space="preserve"><value>Slug</value></data>
+  <data name="Att_ColKind" xml:space="preserve"><value>Kind</value></data>
+  <data name="Att_ColScope" xml:space="preserve"><value>Scope</value></data>
+  <data name="Att_ColVersion" xml:space="preserve"><value>Version</value></data>
+  <data name="Att_ColUpdated" xml:space="preserve"><value>Uploaded</value></data>
+  <data name="Att_ScopeKey" xml:space="preserve"><value>Code</value></data>
+  <data name="Att_Link" xml:space="preserve"><value>Link</value></data>
+  <data name="Att_LinkPh" xml:space="preserve"><value>Paste the Drive link</value></data>
+  <data name="Att_TitlePh" xml:space="preserve"><value>LoA Rome–Marseille</value></data>
+  <data name="Att_Open" xml:space="preserve"><value>Open</value></data>
+  <data name="Att_Add" xml:space="preserve"><value>Add</value></data>
+  <data name="Att_AddHint" xml:space="preserve"><value>Upload the file to the division Drive first, then paste its link here: we keep the file id, not the address.</value></data>
+  <data name="Att_Empty" xml:space="preserve"><value>No entry matches these filters.</value></data>
+  <data name="Att_Added" xml:space="preserve"><value>Added «{0}», citable as allegato:{1}</value></data>
+  <data name="Att_ErrSlug" xml:space="preserve"><value>A slug takes lowercase letters, digits and single hyphens: «loa-lirr-lfmm».</value></data>
+  <data name="Att_ErrSlugTaken" xml:space="preserve"><value>The slug «{0}» already belongs to another entry, and two entries sharing a slug would make the link ambiguous.</value></data>
+  <data name="Att_ErrTitle" xml:space="preserve"><value>The title is missing: it is what people read inside the document.</value></data>
+  <data name="Att_ErrLink" xml:space="preserve"><value>No file id can be read from that link. A Drive sharing link is what is needed.</value></data>
+  <data name="Att_ErrScope" xml:space="preserve"><value>The scope and its code do not go together: the division wants no code, an ACC or an airport requires one.</value></data>
+  <data name="AttKind_Loa" xml:space="preserve"><value>LoA</value></data>
+  <data name="AttKind_Circular" xml:space="preserve"><value>Circular</value></data>
+  <data name="AttKind_Chart" xml:space="preserve"><value>Chart</value></data>
+  <data name="AttKind_Manual" xml:space="preserve"><value>Manual</value></data>
+  <data name="AttKind_Other" xml:space="preserve"><value>Other</value></data>
+  <data name="AttScope_Division" xml:space="preserve"><value>Division</value></data>
+  <data name="AttScope_Acc" xml:space="preserve"><value>ACC</value></data>
+  <data name="AttScope_Airport" xml:space="preserve"><value>Airport</value></data>
+  <data name="Att_ColUsed" xml:space="preserve"><value>Cited by</value></data>
+  <data name="Att_UsedBy" xml:space="preserve"><value>{0} documents</value></data>
+  <data name="Att_NeverUsed" xml:space="preserve"><value>—</value></data>
+  <data name="Att_Unused" xml:space="preserve"><value>Never used</value></data>
+  <data name="Att_UnusedTitle" xml:space="preserve"><value>The entries no document cites: this is how the library is kept clean.</value></data>
+  <data name="Att_CitedAirac" xml:space="preserve"><value>AIRAC {0}</value></data>
+  <data name="Att_CitedPublished" xml:space="preserve"><value>published</value></data>
+  <data name="Att_CitedDraft" xml:space="preserve"><value>draft</value></data>
+  <data name="AttSrc_Document" xml:space="preserve"><value>Document</value></data>
+  <data name="AttSrc_Release" xml:space="preserve"><value>Published</value></data>
+  <data name="AttSrc_AirportExtraSection" xml:space="preserve"><value>Airport section</value></data>
+  <data name="AttSrc_SharedBlock" xml:space="preserve"><value>Shared block</value></data>
+  <data name="Dse_Attachment" xml:space="preserve"><value>Attachment</value></data>
+  <data name="Att_External" xml:space="preserve"><value>external</value></data>
+  <data name="Att_ExternalTitle" xml:space="preserve"><value>The file lives on the division Drive: the link opens a new tab.</value></data>
+  <data name="Att_Missing" xml:space="preserve"><value>No attachment set.</value></data>
+  <data name="Att_BlockPick" xml:space="preserve"><value>Attachment</value></data>
+  <data name="Att_BlockNone" xml:space="preserve"><value>— none —</value></data>
+  <data name="Att_BlockLabel" xml:space="preserve"><value>Shown as</value></data>
+  <data name="Att_BlockLabelPh" xml:space="preserve"><value>LoA with Marseille</value></data>
+  <data name="Att_BlockNotePh" xml:space="preserve"><value>Note under the link (optional)</value></data>
+  <data name="Att_BlockEmptyHint" xml:space="preserve"><value>The library is empty: an attachment is uploaded in Attachments first, then cited here.</value></data>
+  <data name="Att_BlockMode" xml:space="preserve"><value>Shown as</value></data>
+  <data name="Att_BlockHeight" xml:space="preserve"><value>Height</value></data>
+  <data name="AttMode_Link" xml:space="preserve"><value>Link</value></data>
+  <data name="AttMode_Embedded" xml:space="preserve"><value>Embedded</value></data>
+  <data name="AttHeight_Small" xml:space="preserve"><value>Short</value></data>
+  <data name="AttHeight_Medium" xml:space="preserve"><value>Medium</value></data>
+  <data name="AttHeight_Large" xml:space="preserve"><value>Tall</value></data>
+  <data name="Att_Replace" xml:space="preserve"><value>Replace</value></data>
+  <data name="Att_ReplaceTitle" xml:space="preserve"><value>Replace «{0}» (v{1} → v{2})</value></data>
+  <data name="Att_ReplaceImpact" xml:space="preserve"><value>Changes what {0} documents show:</value></data>
+  <data name="Att_ReplaceNoImpact" xml:space="preserve"><value>No document cites it: only the library changes.</value></data>
+  <data name="Att_ReplaceNote" xml:space="preserve"><value>Version note</value></data>
+  <data name="Att_ReplaceNotePh" xml:space="preserve"><value>re-signed after the CoP change</value></data>
+  <data name="Att_Replaced" xml:space="preserve"><value>«{0}» is now at v{1}; flagged for review on {2} documents.</value></data>
+  <data name="Att_ReplaceSame" xml:space="preserve"><value>That is the same file as now: there is nothing to replace.</value></data>
+  <data name="Att_ReplaceGone" xml:space="preserve"><value>The entry is gone: somebody deleted it while you were replacing it.</value></data>
+  <data name="Impact_AttachmentReplaced" xml:space="preserve"><value>The attachment «{0}» was replaced: the document already shows the new file, so it needs re-reading.</value></data>
+  <data name="ImpactKind_AttachmentReplaced" xml:space="preserve"><value>Attachment replaced</value></data>
+  <data name="Att_Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Att_DeleteTitle" xml:space="preserve"><value>Delete «{0}» from the library</value></data>
+  <data name="Att_DeleteImpact" xml:space="preserve"><value>These {0} documents will be left with a link that leads nowhere. They will be flagged for review.</value></data>
+  <data name="Att_DeleteNoImpact" xml:space="preserve"><value>No document cites it: nothing is left to fix.</value></data>
+  <data name="Att_DeleteKeepsFile" xml:space="preserve"><value>The file on the division Drive stays where it is: only the entry is removed here.</value></data>
+  <data name="Att_DeleteConfirm" xml:space="preserve"><value>Delete the entry</value></data>
+  <data name="Att_Deleted" xml:space="preserve"><value>«{0}» deleted; {1} documents to fix, flagged.</value></data>
+  <data name="Impact_AttachmentDeleted" xml:space="preserve"><value>The attachment «{0}» was deleted from the library: the citation in the document no longer leads anywhere.</value></data>
+  <data name="ImpactKind_AttachmentDeleted" xml:space="preserve"><value>Attachment deleted</value></data>
 </root>

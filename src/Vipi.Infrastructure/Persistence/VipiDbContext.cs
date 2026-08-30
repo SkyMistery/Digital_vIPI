@@ -125,6 +125,13 @@ public class VipiDbContext : DbContext
     /// documenti che la citano (carta vSOP militari §12b).</summary>
     public DbSet<Navaid> Navaids => Set<Navaid>();
 
+    /// <summary>La biblioteca allegati: una riga per DOCUMENTO ESTERNO citabile, non per citazione
+    /// (carta del 25 agosto 2026).</summary>
+    public DbSet<Attachment> Attachments => Set<Attachment>();
+
+    /// <summary>Dove stanno i byte di ogni versione di un allegato, e perché ce li ha messi qualcuno.</summary>
+    public DbSet<AttachmentVersion> AttachmentVersions => Set<AttachmentVersion>();
+
     /// <summary>
     /// Lettura tollerante dell'azione di registro: un valore che questa versione non conosce diventa
     /// <see cref="AuditAction.Unknown"/> invece di far esplodere la query. Metodo e non lambda in linea perché
@@ -645,6 +652,49 @@ public class VipiDbContext : DbContext
             e.Property(x => x.Type).HasMaxLength(16);
             e.Property(x => x.Frequency).HasMaxLength(16);
             e.Property(x => x.Channel).HasMaxLength(8);
+        });
+
+        // --- Biblioteca allegati (carta del 25 agosto 2026) ---------------------------------------------
+        // I byte NON stanno da noi: il piano di hosting non ammette il formato PDF (vincolo contrattuale) e
+        // IVAO HQ vuole i documenti sul Drive di divisione. Qui stanno identità, organizzazione, versioni e
+        // il puntatore al deposito — e il documento cita SEMPRE lo slug, mai il file.
+        //
+        // Nessuna FK verso documenti, sezioni o blocchi, come per MediaAsset e per la stessa ragione: una
+        // release pubblicata continua a citare lo slug, quindi l'allegato deve sopravvivere al blocco che lo
+        // cita. Chi cita cosa si RICAVA leggendo i blocchi (slice 4), mai da una tabella di join.
+        b.Entity<Attachment>(e =>
+        {
+            // ⚠️ UNICO: lo slug È l'identità, ed è ciò che finisce dentro i documenti. Due righe con lo
+            // stesso slug vorrebbero dire che `/vsop/files/{slug}` serve «la prima che capita».
+            e.HasIndex(x => x.Slug).IsUnique();
+
+            // Lunghezze dichiarate per TUTTI i provider e non nella mappa MySQL: la tabella nasce ora, quindi
+            // su Postgres non c'è nessun `text` da convertire (il caso che il reconciler non sa fare) e su
+            // MySQL non nasce `longtext`, che poi non si indicizzerebbe senza riscrivere la tabella.
+            // ⚠️ 64 per lo slug non è generosità al contrario: uno slug è un nome da citare a mano dentro la
+            // prosa, e uno più lungo di così non lo scriverebbe nessuno correttamente.
+            e.Property(x => x.Slug).HasMaxLength(64);
+            e.Property(x => x.Title).HasMaxLength(200);
+            e.Property(x => x.ScopeKey).HasMaxLength(8);   // ICAO di ACC o scalo, con margine
+            e.Property(x => x.Notes).HasMaxLength(1000);
+
+            // L'elenco della biblioteca è filtrato per i due assi: è la query della pagina.
+            e.HasIndex(x => new { x.Kind, x.Scope, x.ScopeKey });
+        });
+
+        b.Entity<AttachmentVersion>(e =>
+        {
+            // ⚠️ UNICO sulla coppia: il progressivo è PER ALLEGATO, e due righe con lo stesso numero
+            // renderebbero ambigua proprio la domanda che il redirect fa a ogni clic — «qual è la corrente?».
+            e.HasIndex(x => new { x.AttachmentId, x.Number }).IsUnique();
+
+            e.Property(x => x.ExternalId).HasMaxLength(200);
+            e.Property(x => x.Note).HasMaxLength(500);
+
+            // Cascade: le versioni non hanno vita propria. Cancellare la voce non tocca comunque il file sul
+            // deposito — toglie il puntatore e lascia i link da correggere, elencati dalla guardia (slice 8).
+            e.HasOne(x => x.Attachment).WithMany(x => x.Versions)
+             .HasForeignKey(x => x.AttachmentId).OnDelete(DeleteBehavior.Cascade);
         });
 
         // --- Statistiche ATC (servizio /services/stats, carta del 24 agosto 2026) -----------------------

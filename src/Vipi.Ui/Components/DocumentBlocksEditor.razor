@@ -40,6 +40,12 @@
                         <ImageBlockEditor DocumentId="DocumentId" ImageJson="@blk.ImageJson" ImageJsonChanged="j => SetImage(blk, j)"
                                           Caption="@blk.Text" CaptionChanged="c => SetText(blk, c ?? string.Empty)" />
                         break;
+                    case BlockFormat.Attachment:
+                        <AttachmentBlockEditor AttachmentJson="@blk.AttachmentJson" AttachmentJsonChanged="j => SetAttachment(blk, j)"
+                                               Note="@blk.Text" />
+                        <textarea class="app-ta" rows="2" value="@blk.Text" placeholder="@L["Att_BlockNotePh"]"
+                                  @onchange="e => SetText(blk, AsString(e.Value))"></textarea>
+                        break;
                 }
             </div>
             <div style="display:flex;flex-direction:column;gap:4px">
@@ -58,6 +64,7 @@
         <button class="btn ghost" @onclick="() => Add(BlockFormat.Callout)">+ Callout</button>
         <button class="btn ghost" @onclick="() => Add(BlockFormat.Table)">+ @L["Dse_Table"]</button>
         <button class="btn ghost" @onclick="() => Add(BlockFormat.Image)">+ @L["Dse_Image"]</button>
+        <button class="btn ghost" @onclick="() => Add(BlockFormat.Attachment)">+ @L["Dse_Attachment"]</button>
         <HelpHint Href="/services/vsop/guide#editor-blocchi" AriaLabel="@L["Blocks_HelpAria"]">
             @((MarkupString)L["Blocks_HelpBody"].Value)
         </HelpHint>
@@ -81,6 +88,7 @@
     private Task SetText(ExtraBlock b, string v) { b.Text = v; return Changed(); }
     private Task SetKind(ExtraBlock b, CalloutKind k) { b.CalloutKind = k; return Changed(); }
     private Task SetImage(ExtraBlock b, string? json) { b.ImageJson = json; return Changed(); }
+    private Task SetAttachment(ExtraBlock b, string? json) { b.AttachmentJson = json; return Changed(); }
 
     private Task Add(BlockFormat format)
     {
@@ -117,6 +125,9 @@
                 break;
             case BlockFormat.Image:
                 <ImageFigure Media="MediaRef.Parse(b.ImageJson)" Caption="@b.Text" />
+                break;
+            case BlockFormat.Attachment:
+                <AttachmentLink Reference="AttachmentRef.Parse(b.AttachmentJson)" Note="@b.Text" />
                 break;
             default:
                 @if (!string.IsNullOrWhiteSpace(b.Text)) { <div class="prose">@MarkdownLite.Render(b.Text)</div> }

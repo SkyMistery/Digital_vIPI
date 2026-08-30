@@ -89,7 +89,7 @@ public sealed class EfSearchRepository : ISearchRepository
         var q = query.ToLowerInvariant();
         var blocks = await _db.ContentBlocks
             .Where(b => versionIds.Contains(b.DocumentVersionId))
-            .Where(b => b.Format == BlockFormat.Image
+            .Where(b => b.Format == BlockFormat.Image || b.Format == BlockFormat.Attachment
                         || (b.Body != null && b.Body.ToLower().Contains(q))
                         || (b.BodyJson != null && b.BodyJson.ToLower().Contains(q)))
             .AsNoTracking().ToListAsync(ct);
@@ -132,9 +132,13 @@ public sealed class EfSearchRepository : ISearchRepository
                 if (hiddenSections.Contains(b.SectionId)) continue;
                 // Un blocco immagine ha per testo il suo alternativo e la didascalia: il BodyJson porta lo sha, e
                 // cercare "abc" non deve pescare un'immagine il cui sha contiene "abc" né mostrare JSON nel risultato.
+                // Un blocco allegato ha per testo il TITOLO e la nota: il BodyJson porta lo slug, e cercare
+                // «loa» non deve mostrare una riga di JSON nel risultato.
                 var searchable = b.Format == BlockFormat.Image
                     ? MediaRef.TextOf(b.BodyJson, b.Body)
-                    : Has(b.Body) ? b.Body : Has(b.BodyJson) ? b.BodyJson : null;
+                    : b.Format == BlockFormat.Attachment
+                        ? AttachmentRef.TextOf(b.BodyJson, b.Body)
+                        : Has(b.Body) ? b.Body : Has(b.BodyJson) ? b.BodyJson : null;
                 if (Has(searchable))
                     hits.Add(Hit(m, secById, b.SectionId, Snippet(searchable!, query), $"{url}#s-{b.SectionId}"));
             }

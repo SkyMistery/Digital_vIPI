@@ -76,6 +76,7 @@ public sealed class LegacyRoutesTests
     [InlineData("/vsop/api/v1/transfers/resolve")]
     [InlineData("/vsop/live/atc")]
     [InlineData("/vsop/media/abc123")]
+    [InlineData("/vsop/files/loa-lirr-lfmm")]
     public void Gli_endpoint_macchina_non_si_redirigono(string macchina) =>
         Assert.Null(Resolve(macchina));
 

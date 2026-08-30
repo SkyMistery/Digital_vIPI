@@ -1,0 +1,56 @@
+@inject IStringLocalizer<SharedResource> L
+
+@* Il link a un allegato, reso allo stesso modo ovunque: nel blocco del documento, nell'anteprima degli
+   editor e nella pagina d'aeroporto.
+
+   ⚠️ L'href è SEMPRE la nostra rotta /vsop/files/{slug}: nel documento non finisce mai un indirizzo del
+   deposito, così cambiare deposito domani non tocca un solo documento. Vale anche per l'iframe.
+
+   ⚠️ E si dice che il clic PORTA FUORI dal sito, prima del clic. Il file sta sul Drive di divisione e si
+   apre nel visualizzatore di Google: scoprirlo dopo, con la pagina già cambiata, è il modo in cui un lettore
+   si perde e torna indietro. `target="_blank"` per la stessa ragione — un documento aperto per consultarlo
+   non deve sparire da sotto chi lo stava leggendo.
+
+   ⚠️ Nel modo INCORPORATO il link sotto c'è LO STESSO, e non è ridondanza: è il ripiego per il giorno che
+   Google chiude l'incorporamento (è già successo col fondo mappa CARTO), ed è l'unica cosa che sopravvive
+   alla stampa — su carta l'iframe non esce. *@
+
+@if (Reference is { } r)
+{
+    @if (r.Mode == AttachmentDisplayMode.Embedded)
+    {
+        @* L'iframe punta alla NOSTRA rotta: il 302 vale anche qui dentro, e l'id del deposito resta fuori
+           dal documento esattamente come nel link. Nessuna eccezione.
+           `title` non è decorativo: per chi naviga a tastiera o con uno screen reader un riquadro senza nome
+           è «frame», e basta. *@
+        <div class="att-embed" style="height:@(r.HeightPx)px">
+            <iframe src="@r.Url" title="@(r.Title is { Length: > 0 } et ? et : r.Slug)" loading="lazy"></iframe>
+        </div>
+    }
+
+    <p class="att-link">
+        <a href="@r.Url" target="_blank" rel="noopener">
+            <Icon Name="paperclip" Size="14" /> @(r.Title is { Length: > 0 } t ? t : r.Slug)
+        </a>
+        <span class="muted att-ext" title="@L["Att_ExternalTitle"]">
+            <Icon Name="link" Size="12" /> @L["Att_External"]
+        </span>
+    </p>
+    @if (!string.IsNullOrWhiteSpace(Note))
+    {
+        <div class="prose att-note">@MarkdownLite.Render(Note)</div>
+    }
+}
+else
+{
+    @* Un riferimento illeggibile non è un'eccezione in mezzo a un documento: è un posto vuoto che si vede,
+       e che dice a chi edita che c'è qualcosa da sistemare. *@
+    <p class="att-link muted">@L["Att_Missing"]</p>
+}
+
+@code {
+    [Parameter] public AttachmentRef? Reference { get; set; }
+
+    /// <summary>La nota sotto il link: markdown, come la prosa.</summary>
+    [Parameter] public string? Note { get; set; }
+}

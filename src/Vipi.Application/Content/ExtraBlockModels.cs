@@ -20,6 +20,11 @@ public sealed class ExtraBlock
     /// <summary>{"mediaId":…,"alt":…} — stessa stringa che nel documento sta in <c>ContentBlock.BodyJson</c>, letta e
     /// scritta da <see cref="MediaRef"/>: un formato solo per entrambi i mondi, come già fa <see cref="TableJson"/>.</summary>
     public string? ImageJson { get; set; }
+
+    /// <summary>{"ref":"allegato:…","titolo":…} — stessa stringa che nel documento sta in
+    /// <c>ContentBlock.BodyJson</c>, letta e scritta da <see cref="AttachmentRef"/>. Usato solo se
+    /// Format=Attachment, e lì <see cref="Text"/> è la nota sotto il link.</summary>
+    public string? AttachmentJson { get; set; }
 }
 
 /// <summary>Serializzazione robusta dei blocchi di una sezione extra dentro il campo Body (JSON), con fallback legacy.</summary>
@@ -62,17 +67,22 @@ public static class ExtraBlocks
             {
                 BlockFormat.Prose or BlockFormat.List or BlockFormat.Callout => b.Text,
                 BlockFormat.Image => MediaRef.TextOf(b.ImageJson, b.Text),
+                // Il titolo e la nota, mai il JSON: cercare «Marseille» deve trovare la LoA, e cercare un
+                // pezzo di slug non deve far comparire una riga di JSON in un'anteprima.
+                BlockFormat.Attachment => AttachmentRef.TextOf(b.AttachmentJson, b.Text),
                 _ => null,
             })
             .Where(s => !string.IsNullOrWhiteSpace(s)));
 
     private static ExtraBlock Normalize(ExtraBlock b) => new()
     {
-        Format = b.Format is BlockFormat.Prose or BlockFormat.List or BlockFormat.Callout or BlockFormat.Table or BlockFormat.Image ? b.Format : BlockFormat.Prose,
+        Format = b.Format is BlockFormat.Prose or BlockFormat.List or BlockFormat.Callout or BlockFormat.Table
+            or BlockFormat.Image or BlockFormat.Attachment ? b.Format : BlockFormat.Prose,
         Text = b.Text,
         CalloutKind = b.CalloutKind,
         TableJson = b.TableJson,
         ImageJson = b.ImageJson,
+        AttachmentJson = b.AttachmentJson,
     };
 
     // Un blocco «vuoto» non viene salvato. Per l'immagine il contenuto è il riferimento, non il testo: una foto senza
@@ -81,6 +91,9 @@ public static class ExtraBlocks
     {
         BlockFormat.Table => !string.IsNullOrWhiteSpace(b.TableJson),
         BlockFormat.Image => MediaRef.Parse(b.ImageJson) is not null,
+        // Come per l'immagine: il contenuto è il RIFERIMENTO, non il testo. Un allegato senza nota è
+        // legittimo, una nota senza allegato no.
+        BlockFormat.Attachment => AttachmentRef.Parse(b.AttachmentJson) is not null,
         _ => !string.IsNullOrWhiteSpace(b.Text),
     };
 }

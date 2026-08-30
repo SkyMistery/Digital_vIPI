@@ -1,6 +1,19 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 29 agosto 2026 (**§Z — LA COLONNA DESTRA DELLE «QUOTE DI TRANSIZIONE»**, chiesta dal committente e **già in `main`** (`3b305831`, ramo cancellato): la tabella dei livelli ha un tetto di 420px — giusto, sono due colonne di numeri — e su una sezione da 822 lasciava **402px vuoti**, misurati a schermo. Fra sei proposte il committente ha scelto le due che usano dati **già in casa**: «**TL adesso**» (il verdetto sul QNH del METAR scritto grande, con l'ora del bollettino — ⚠️ **`noprint`**, come il meteo) e «**Dati del campo**» (elevazione in piedi e metri, variazione magnetica **con l'emisfero**, IATA, coordinate). ⚠️ I quattro dati il database **ce li aveva già** e nessuna pagina pubblica li mostrava: arrivano dall'anagrafica **in cache** (`AirportStation`, **zero query nuove**) e **non** dallo snapshot di release — non sono dati di release, e nello snapshot sarebbero **trattini** su ogni documento già pubblicato finché qualcuno non ripubblica; il vSOP militare li ha allo stesso prezzo. ⚠️ Le schede stanno al **centro** dell'altezza della tabella, non appese in alto (correzione del committente): il caso che contava è **una scheda sola**, campo senza METAR. **7 test nuovi, nessuna migrazione**, verifica dal vivo nei due temi. **Coda migrazioni invariata: VENTISEI**) · **Aggiornato:** 30 agosto 2026, notte (**TUTTO FUSO IN `main` — `e99b8e14`, spinto, NESSUN ramo con lavoro fuori.** Di §Y resta aperto il solo **BOAT**, che è del committente. ⚠️ Prima del prossimo deploy si rileggono **§Y10** — la migrazione delle radioassistenze **svuota e rifà** l'anagrafica al primo avvio, il **re-import piste** va premuto anche in produzione, le migrazioni in coda sono **VENTISEI** — e **«Dove siamo, in cinque righe»**, che porta le TRE cose da fare subito dopo il deploy) · **Aggiornato:** 30 agosto 2026, sera tardi (**§Y12 — il TASTO D'IMPORT e la FORMA delle sei tabelle**: «Importa dal sectorfile» sulla pagina Radioassistenze — ⚠️ un giro che **riscarica** la sorgente, non quello notturno che leggerebbe una copia vecchia fino a 24 ore — con l'esito in chip e le **tre risposte distinte** (policy, sorgente muta, quante righe). E la revisione della forma chiesta dal committente: ⚠️ il «rudimentale» era `cfg-table`, che **cabla le larghezze su quattro colonne**, usata da tabelle che ne hanno da tre a otto — la stessa diagnosi già pagata dalle SID. **30 test nuovi**, nessuna migrazione) · **Aggiornato:** 30 agosto 2026, sera (**§Y9 — «il nome del file non dice il tipo»**: l'osservazione del committente ha fatto cadere il modello dell'anagrafica, e sotto c'erano tre difetti — ⚠️ il **TACAN di Grosseto** non era mai arrivato in archivio e **17 NDB su 27** nemmeno, perché l'import passava dal catalogo dei punti, che toglie gli omonimi. Identità ora **codice + famiglia + canale**, tipo **editoriale**, tabella svuotata e rifatta: **149 righe** contro 132. Più la **pagina Radioassistenze** per gli Editor, unico posto da cui si elimina, con le due guardie. ⚠️ Migrazioni in coda: **VENTISEI**) · **Aggiornato:** 30 agosto 2026 (**§Y — TUTTE LE SLICE CHIUSE, verifica a schermo compresa**. Il payload di una sezione scende nei **figli** (venti su ventisei nel profilo militare) e non abita più «il primo blocco», che sulle sezioni piene di prosa si sarebbe perso al primo paragrafo scritto sopra. L'**indice** mostra le sotto-sezioni, in tutt'e due le navigazioni. E le **radioassistenze** sono diventate un'anagrafica di divisione: il documento dice quali cita e in che ordine, l'anagrafica dice quanto valgono, e la release **fotografa** la tabella. ⚠️ La sorgente quel dato **ce l'aveva già** — 128 VOR, 30 NDB, **26 col canale** — e il parser lo buttava via a ogni giro. ⚠️ La fonte vince: un campo che arriva dal sectorfile **non ha nemmeno la casella**. Gli **aeroporti alternati** citano due cataloghi diversi e si portano dietro il nome dello scalo, perché un alternato è spesso **estero** e una pagina pubblica non può chiamare IVAO per stampare una cella. E le **coordinate delle soglie pista** entrano in archivio: ⚠️ il difetto vero non era l'import ma il **salvataggio**, che cancella e riscrive le righe e se le sarebbe portate via al primo tocco di una colonna editoriale. **114 test nuovi**, quattro migrazioni: quelle in coda diventano **VENTICINQUE**. E la **verifica su LIMN Cameri** — campo misto, per la terza volta quello che trova le cose vere — ha preso **tre difetti** che i test verdi non vedevano: «Aggiungi riga» che non aggiungeva niente, la tabella delle aree indietro di una scelta, e ⚠️ un **500 sull'intero editor** perché `TryGetProperty` su un array alza `InvalidOperationException`, che **non è una `JsonException`** e passava indenne il `catch`. **149 test nuovi**, quattro migrazioni: quelle in coda diventano **VENTICINQUE**. Restano il **BOAT** (ritirato dal committente), il **re-import** delle soglie e la fusione del ramo) · **Aggiornato:** 29 agosto 2026, notte fonda (**§Y NUOVA — LE TABELLE DEL vSOP MILITARE**. Otto richieste del committente: sette sezioni oggi a prosa libera diventano **tabelle** — radioassistenze, aeroporti alternati, nominativi, parcheggi, coordinate soglia pista, attività delle aree — e l'indice impara a mostrare le **sotto-sezioni**. L'ottava (il BOAT) è stata **ritirata dal committente**. ✅ **Y0 chiusa**: il payload di una sezione cercava `ParentSectionId == null`, cioè **solo le radici**, e nel profilo militare venti sezioni su ventisei sono figlie — è la **terza** volta che la stessa assunzione si presenta con un vestito diverso. Chiuso insieme a un difetto latente: il payload nel «primo blocco» si sarebbe perso al primo paragrafo scritto sopra la tabella. ⚠️ **Misurato sul filo**: IVAO manda **lat/lon ed elevazione di ogni soglia pista** e noi ne mappiamo quattro campi su otto → **una migrazione (le in coda diventano VENTIQUATTRO) e un re-import**. ⚠️ E la sorgente ha **già** frequenza e canale delle radioassistenze — `MNL - CH 99Y (115.25)` è alla lettera una riga di `itvor.vor`, e il parser la butta via. ⚠️ **Y3**: sarebbe il **terzo ramo impilato**, decisione del committente) · **Aggiornato:** 29 agosto 2026, notte fonda (**§X — L'EDIZIONE GIUSTA PER IL CAMPO, e i vSOP militari raggiungibili**. La regola che finora stava solo nella testa di chi scrive: su un campo **solo militare** la vIPI civile **non nasce**, su un campo **misto** il vSOP militare nasce **solo dopo** la civile (basta che esista, anche in bozza). Due guardie gemelle **nei servizi**, non nelle tendine — `EnsureDocumentAsync` è chiamato dall'APERTURA dell'editor, quindi bastava l'URL — e bloccano la **nascita**, non l'apertura. Il viewer militare era l'**unico dei cinque senza `doc-layout`**. E i militari erano difficili da raggiungere in quattro punti: il ponte al civile gated su «pubblicata» invece che su «esiste», il filtro «Tipo» delle Versioni senza la loro voce, la pagina di una ACC con tre famiglie invece di quattro, l'hub `/services` che non li nominava (⚠️ **ribalta §5 della carta militare**, con la scheda marcata `shortcut` per non cancellare la regola). ⚠️ La **verifica sui duplicati** chiesta dal committente ha trovato un buco vero: le due porte che creano una vLOA confrontavano cose diverse — la **coppia di ACC** una, i **SectorId** l'altra — e nascevano **due vLOA sulla stessa coppia**, di cui una invisibile. **19 test nuovi**, nessuna migrazione, **3 762** su net8. ⚠️ **X4**: `Vipi.E2E.Tests` non compilato, il Host era acceso. ⚠️ **X5**: verifica a schermo da fare. ⚠️ **X7**: **LIML** ha un vSOP militare pubblicato e nessuna vIPI civile — dato di prima della guardia, ora si vede ma va creata a mano) · **Aggiornato:** 29 agosto 2026, notte tarda (**§W NUOVA: il convertitore di coordinate**, un servizio nuovo in `/services` per lo staff di divisione. Tredici forme di coordinate in ingresso — KML/KMZ compresi — e le due uscite chieste, col sectorfile in **due forme**: l'elenco dei punti (default) e i segmenti. ⚠️ Il DB elenca **VERTICI**, i segmenti elencano **LATI**. Nessun modello nuovo e nessun motore nuovo: il DMS e l'ordine lat/lon del JSON **traslocano** in `Vipi.Application/Coordinates` e l'infrastruttura delega; la mappa è quella dell'AoR. **Nessuna migrazione**. ⚠️ La **verifica dal vivo** ha trovato **cinque** difetti che la suite non vedeva. Dieci slice, **143 test nuovi**, suite **3 984** su nove progetti. ⚠️ Ramo `convertitore-coordinate` **NON fuso**) · **Aggiornato:** 29 agosto 2026, notte (**§V: TREDICI voci, tredici chiuse.** Dieci le ha trovate la lettura,
+**Aggiornato:** 29 agosto 2026, notte (**§E10 — LA BIBLIOTECA ALLEGATI, TUTTE E NOVE LE SLICE FATTE**, ramo
+`biblioteca-allegati` **spinto e NON fuso**. I PDF non possono stare da noi — il piano di hosting non ammette
+il formato, ed è un vincolo **contrattuale** — quindi stanno sul **Drive di divisione**, e da noi stanno
+identità, organizzazione, versioni e il registro dei link. Il documento cita uno **slug** e passa da
+`/vsop/files/{slug}`: **302** e ⚠️ **`no-cache`** (non `immutable` come le immagini — lì l'URL è il
+contenuto, qui l'URL è stabile e il contenuto cambia sotto, che è il senso della sostituzione). Blocco
+«Allegato» in **due modi**, Link e **Incorporato** (⚠️ senza `frame-src` in CSP l'incorporato funziona
+**oggi** — l'intestazione è Report-Only — e muore in blocco al passaggio a CSP vera), più il link inline
+`[testo](allegato:slug)`, che è l'**unico** che `MarkdownLite` riconosce. Il registro «chi cita cosa» si
+**ricava** dai quattro posti, mai da una tabella di join; sostituzione ed eliminazione mostrano **quali**
+documenti cambiano e aprono una riga nella **casella degli impatti** — ⚠️ **non** in «Cambiamenti», che è
+pubblica e si ricava dal ciclo AIRAC. ⚠️ Enum **IN CODA**: nel payload di release sono ordinali. **Due
+migrazioni**: quelle in coda diventano **VENTOTTO**. ⚠️ **Resta R8**: l'embed di Drive **mai provato dal
+vivo**, serve un PDF vero sul Drive) · **Aggiornato:** 29 agosto 2026 (**§Z — LA COLONNA DESTRA DELLE «QUOTE DI TRANSIZIONE»**, chiesta dal committente e **già in `main`** (`3b305831`, ramo cancellato): la tabella dei livelli ha un tetto di 420px — giusto, sono due colonne di numeri — e su una sezione da 822 lasciava **402px vuoti**, misurati a schermo. Fra sei proposte il committente ha scelto le due che usano dati **già in casa**: «**TL adesso**» (il verdetto sul QNH del METAR scritto grande, con l'ora del bollettino — ⚠️ **`noprint`**, come il meteo) e «**Dati del campo**» (elevazione in piedi e metri, variazione magnetica **con l'emisfero**, IATA, coordinate). ⚠️ I quattro dati il database **ce li aveva già** e nessuna pagina pubblica li mostrava: arrivano dall'anagrafica **in cache** (`AirportStation`, **zero query nuove**) e **non** dallo snapshot di release — non sono dati di release, e nello snapshot sarebbero **trattini** su ogni documento già pubblicato finché qualcuno non ripubblica; il vSOP militare li ha allo stesso prezzo. ⚠️ Le schede stanno al **centro** dell'altezza della tabella, non appese in alto (correzione del committente): il caso che contava è **una scheda sola**, campo senza METAR. **7 test nuovi, nessuna migrazione**, verifica dal vivo nei due temi. **Coda migrazioni invariata: VENTISEI**) · **Aggiornato:** 30 agosto 2026, notte (**TUTTO FUSO IN `main` — `e99b8e14`, spinto, NESSUN ramo con lavoro fuori.** Di §Y resta aperto il solo **BOAT**, che è del committente. ⚠️ Prima del prossimo deploy si rileggono **§Y10** — la migrazione delle radioassistenze **svuota e rifà** l'anagrafica al primo avvio, il **re-import piste** va premuto anche in produzione, le migrazioni in coda sono **VENTISEI** — e **«Dove siamo, in cinque righe»**, che porta le TRE cose da fare subito dopo il deploy) · **Aggiornato:** 30 agosto 2026, sera tardi (**§Y12 — il TASTO D'IMPORT e la FORMA delle sei tabelle**: «Importa dal sectorfile» sulla pagina Radioassistenze — ⚠️ un giro che **riscarica** la sorgente, non quello notturno che leggerebbe una copia vecchia fino a 24 ore — con l'esito in chip e le **tre risposte distinte** (policy, sorgente muta, quante righe). E la revisione della forma chiesta dal committente: ⚠️ il «rudimentale» era `cfg-table`, che **cabla le larghezze su quattro colonne**, usata da tabelle che ne hanno da tre a otto — la stessa diagnosi già pagata dalle SID. **30 test nuovi**, nessuna migrazione) · **Aggiornato:** 30 agosto 2026, sera (**§Y9 — «il nome del file non dice il tipo»**: l'osservazione del committente ha fatto cadere il modello dell'anagrafica, e sotto c'erano tre difetti — ⚠️ il **TACAN di Grosseto** non era mai arrivato in archivio e **17 NDB su 27** nemmeno, perché l'import passava dal catalogo dei punti, che toglie gli omonimi. Identità ora **codice + famiglia + canale**, tipo **editoriale**, tabella svuotata e rifatta: **149 righe** contro 132. Più la **pagina Radioassistenze** per gli Editor, unico posto da cui si elimina, con le due guardie. ⚠️ Migrazioni in coda: **VENTISEI**) · **Aggiornato:** 30 agosto 2026 (**§Y — TUTTE LE SLICE CHIUSE, verifica a schermo compresa**. Il payload di una sezione scende nei **figli** (venti su ventisei nel profilo militare) e non abita più «il primo blocco», che sulle sezioni piene di prosa si sarebbe perso al primo paragrafo scritto sopra. L'**indice** mostra le sotto-sezioni, in tutt'e due le navigazioni. E le **radioassistenze** sono diventate un'anagrafica di divisione: il documento dice quali cita e in che ordine, l'anagrafica dice quanto valgono, e la release **fotografa** la tabella. ⚠️ La sorgente quel dato **ce l'aveva già** — 128 VOR, 30 NDB, **26 col canale** — e il parser lo buttava via a ogni giro. ⚠️ La fonte vince: un campo che arriva dal sectorfile **non ha nemmeno la casella**. Gli **aeroporti alternati** citano due cataloghi diversi e si portano dietro il nome dello scalo, perché un alternato è spesso **estero** e una pagina pubblica non può chiamare IVAO per stampare una cella. E le **coordinate delle soglie pista** entrano in archivio: ⚠️ il difetto vero non era l'import ma il **salvataggio**, che cancella e riscrive le righe e se le sarebbe portate via al primo tocco di una colonna editoriale. **114 test nuovi**, quattro migrazioni: quelle in coda diventano **VENTICINQUE**. E la **verifica su LIMN Cameri** — campo misto, per la terza volta quello che trova le cose vere — ha preso **tre difetti** che i test verdi non vedevano: «Aggiungi riga» che non aggiungeva niente, la tabella delle aree indietro di una scelta, e ⚠️ un **500 sull'intero editor** perché `TryGetProperty` su un array alza `InvalidOperationException`, che **non è una `JsonException`** e passava indenne il `catch`. **149 test nuovi**, quattro migrazioni: quelle in coda diventano **VENTICINQUE**. Restano il **BOAT** (ritirato dal committente), il **re-import** delle soglie e la fusione del ramo) · **Aggiornato:** 29 agosto 2026, notte fonda (**§Y NUOVA — LE TABELLE DEL vSOP MILITARE**. Otto richieste del committente: sette sezioni oggi a prosa libera diventano **tabelle** — radioassistenze, aeroporti alternati, nominativi, parcheggi, coordinate soglia pista, attività delle aree — e l'indice impara a mostrare le **sotto-sezioni**. L'ottava (il BOAT) è stata **ritirata dal committente**. ✅ **Y0 chiusa**: il payload di una sezione cercava `ParentSectionId == null`, cioè **solo le radici**, e nel profilo militare venti sezioni su ventisei sono figlie — è la **terza** volta che la stessa assunzione si presenta con un vestito diverso. Chiuso insieme a un difetto latente: il payload nel «primo blocco» si sarebbe perso al primo paragrafo scritto sopra la tabella. ⚠️ **Misurato sul filo**: IVAO manda **lat/lon ed elevazione di ogni soglia pista** e noi ne mappiamo quattro campi su otto → **una migrazione (le in coda diventano VENTIQUATTRO) e un re-import**. ⚠️ E la sorgente ha **già** frequenza e canale delle radioassistenze — `MNL - CH 99Y (115.25)` è alla lettera una riga di `itvor.vor`, e il parser la butta via. ⚠️ **Y3**: sarebbe il **terzo ramo impilato**, decisione del committente) · **Aggiornato:** 29 agosto 2026, notte fonda (**§X — L'EDIZIONE GIUSTA PER IL CAMPO, e i vSOP militari raggiungibili**. La regola che finora stava solo nella testa di chi scrive: su un campo **solo militare** la vIPI civile **non nasce**, su un campo **misto** il vSOP militare nasce **solo dopo** la civile (basta che esista, anche in bozza). Due guardie gemelle **nei servizi**, non nelle tendine — `EnsureDocumentAsync` è chiamato dall'APERTURA dell'editor, quindi bastava l'URL — e bloccano la **nascita**, non l'apertura. Il viewer militare era l'**unico dei cinque senza `doc-layout`**. E i militari erano difficili da raggiungere in quattro punti: il ponte al civile gated su «pubblicata» invece che su «esiste», il filtro «Tipo» delle Versioni senza la loro voce, la pagina di una ACC con tre famiglie invece di quattro, l'hub `/services` che non li nominava (⚠️ **ribalta §5 della carta militare**, con la scheda marcata `shortcut` per non cancellare la regola). ⚠️ La **verifica sui duplicati** chiesta dal committente ha trovato un buco vero: le due porte che creano una vLOA confrontavano cose diverse — la **coppia di ACC** una, i **SectorId** l'altra — e nascevano **due vLOA sulla stessa coppia**, di cui una invisibile. **19 test nuovi**, nessuna migrazione, **3 762** su net8. ⚠️ **X4**: `Vipi.E2E.Tests` non compilato, il Host era acceso. ⚠️ **X5**: verifica a schermo da fare. ⚠️ **X7**: **LIML** ha un vSOP militare pubblicato e nessuna vIPI civile — dato di prima della guardia, ora si vede ma va creata a mano) · **Aggiornato:** 29 agosto 2026, notte tarda (**§W NUOVA: il convertitore di coordinate**, un servizio nuovo in `/services` per lo staff di divisione. Tredici forme di coordinate in ingresso — KML/KMZ compresi — e le due uscite chieste, col sectorfile in **due forme**: l'elenco dei punti (default) e i segmenti. ⚠️ Il DB elenca **VERTICI**, i segmenti elencano **LATI**. Nessun modello nuovo e nessun motore nuovo: il DMS e l'ordine lat/lon del JSON **traslocano** in `Vipi.Application/Coordinates` e l'infrastruttura delega; la mappa è quella dell'AoR. **Nessuna migrazione**. ⚠️ La **verifica dal vivo** ha trovato **cinque** difetti che la suite non vedeva. Dieci slice, **143 test nuovi**, suite **3 984** su nove progetti. ⚠️ Ramo `convertitore-coordinate` **NON fuso**) · **Aggiornato:** 29 agosto 2026, notte (**§V: TREDICI voci, tredici chiuse.** Dieci le ha trovate la lettura,
 TRE la verifica a schermo su un campo MISTO (§V1, chiusa) — e le tre dello schermo sono le peggiori: **un vSOP
 militare pubblicato non si apriva affatto** (il bersaglio di release non si risolveva sul legame militare),
 **tre tabelle su tre erano titoli vuoti** (il corpo derivato lo disegnavano solo le sezioni radice) e **il
@@ -162,7 +175,13 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 quando si riprende senza contesto: dice dov'è il codice, cosa manca e cosa va fatto *prima* del prossimo
 deploy.
 
-✅ **Nessun ramo con lavoro fuori da `main`.** `main` = **`3b305831`**, spinto: dentro c'è tutto — glossario
+⚠️ **C'È UN RAMO CON LAVORO FUORI: `biblioteca-allegati`** (spinto, **non fuso**), la **biblioteca
+allegati** — §E10, tutte e nove le slice, 29 agosto. Build Release verde su entrambi i TFM e **tutti** i
+progetti di test verdi, E2E compresi. ⚠️ Porta **due migrazioni**: la coda passa da ventisei a **VENTOTTO**.
+⚠️ E resta una verifica che nessun test può dare: **l'embed di Drive non è mai stato provato dal vivo**
+(rischio R8) — serve il sito acceso e un PDF vero sul Drive di divisione. Il modo *Link* non ne dipende.
+
+Tolto quello, `main` = **`3b305831`**, spinto: dentro c'è tutto — glossario
 di fraseologia e archivio ATC (28 agosto), autorizzazioni a livelli (29), convertitore di coordinate (§W),
 edizione giusta per il campo (§X), le **tabelle del vSOP militare** con l'anagrafica delle radioassistenze
 (§Y) e la **colonna destra delle quote di transizione** (§Z, 29 agosto). Tutti i rami sono stati cancellati
@@ -171,10 +190,12 @@ da locale e da `origin` dopo aver verificato `git rev-list --count main..origin/
 Il **cutover MariaDB** è in `main` e verificato (A1–A8). Le sezioni **B**, **C**, **D**, **G**, **H** sono
 chiuse o chiuse-con-la-ragione-scritta; **I** è sospesa di proposito; **J**, **K**, **L**, **M**, **N**,
 **O**, **P**, **Q**, **Q-bis**, **R**, **S**, **T**, **U**, **V**, **W**, **X**, **Y** e **Z** sono chiuse —
-di **§Y** resta aperto il solo **BOAT** (§Y10), che è del committente. ⚠️ **§Z non ha migrazioni**: la coda
-resta di ventisei.
+di **§Y** resta aperto il solo **BOAT** (§Y10), che è del committente. ⚠️ **§Z non ha migrazioni**; **§E10
+sì, due**. Anche **§E10** è chiusa, ma il suo ramo **non è fuso**.
 
-⚠️ **Le migrazioni in coda al cutover sono VENTISEI.** Le ultime sei le porta §Y: anagrafica delle
+⚠️ **Le migrazioni in coda al cutover sono VENTOTTO** — ventisei in `main`, più le **due** che porta il
+ramo `biblioteca-allegati` (`BibliotecaAllegati`, emessa per i due provider: crea `Attachments` e
+`AttachmentVersions`, **additiva**, non tocca nessuna tabella esistente). Le sei prima di quelle le porta §Y: anagrafica delle
 radioassistenze, coordinate delle soglie pista e la **correzione del modello**, ognuna emessa per i due
 provider. ⚠️ **Quella della correzione non è innocua**: `DELETE FROM Navaids` **e**
 `DELETE FROM ImportStates WHERE Category='Navaid'` — svuota l'anagrafica e azzera lo stato d'import, così al
@@ -195,6 +216,9 @@ ora `ReleaseNumberPreflight` la esegue subito prima di `Migrate()`, nominando le
    restano **122 senza tipo**, e il filtro «senza tipo» è la lista di lavoro. La sorgente il tipo non lo sa —
    `itvor.vor` tiene VOR, TACAN e VORTAC insieme — e sui documenti si legge un trattino finché non lo scrive
    una persona.
+4. 🆕 **Solo se `biblioteca-allegati` viene fuso**: annunciare agli staffisti che la pagina **Allegati**
+   esiste, e che un PDF si carica **prima** sul Drive di divisione e poi si incolla il link. La biblioteca
+   nasce vuota, e l'editor lo dice invece di mostrare una tendina muta.
 
 ⚠️ **Tre passi d'avvio** nuovi rispetto al 26: `LinkAirportDocumentsAsync` (dai rami fusi),
 `ClearVloaSeededAiracRowAsync` e `ClearUnpublishedCurrentVersionAsync` (§L). Tutti idempotenti e tutti si
@@ -1953,10 +1977,18 @@ sé e toglie una fonte possibile — **ma non è provato che sia LA causa**, e v
 **Resta da chiudere la voce**: serve un socio senza incarichi che apra `/services/vsop/{acc}` e la pagina di
 un aeroporto dopo il caricamento di «i». ⚠️ Da admin non prova niente.
 
-### E10 📋 CARTA — Biblioteca allegati: i PDF su Drive, linkati dai documenti
+### E10 ✅ FATTA il 29 agosto 2026 (ramo `biblioteca-allegati`, **NON fuso**) — Biblioteca allegati: i PDF su Drive, linkati dai documenti
 
-Chiesto dal committente il **25 agosto 2026**. Carta scritta e approvata nelle decisioni,
-**nessuna slice avviata**, nessuna riga di codice: `docs/feature/2026-08-25-biblioteca-allegati.md`.
+Chiesto dal committente il **25 agosto 2026**, carta `docs/feature/2026-08-25-biblioteca-allegati.md`.
+**Tutte e nove le slice fatte il 29 agosto**, un commit per slice, build Release verde su entrambi i TFM a
+ogni passo e tutti i progetti di test verdi alla fine — **E2E compresi**.
+
+⚠️ **Il ramo è spinto e NON fuso**: la fusione è una decisione del committente.
+
+⚠️ **Resta il rischio R8, e nessun test può darlo**: l'**embed di Drive non è mai stato provato dal vivo**.
+Google può togliere l'incorporamento della preview quando vuole — è già successo col fondo mappa CARTO il 27
+agosto. Serve il sito acceso **e un PDF vero sul Drive di divisione**. A cadere sarebbe il solo modo
+*Incorporato*, che ha comunque il link sotto come ripiego.
 
 **Il vincolo che ha deciso il deposito.** I byte **non stanno da noi**: il piano di hosting **non ammette il
 formato PDF** — ⚠️ vincolo **contrattuale**, quindi *non* si aggira mettendoli in MariaDB come blob, sarebbe
@@ -1983,9 +2015,16 @@ Drive pubblico sarebbe teatro. Confermato dal committente che non servono.
    archiviata male;
 6. **due** modi di linkare: blocco «Allegato» e `[testo](allegato:slug)` inline, con **un token solo** in
    entrambi → una sola regex per lo scanner;
-7. v1 = caricamento **a mano** su Drive; l'API Drive (service account sul drive condiviso) è rimandata.
+7. v1 = caricamento **a mano** su Drive; l'API Drive (service account sul drive condiviso) è rimandata;
+8. 🆕 **29 agosto**: il blocco rende in **due modi**, scelti blocco per blocco — **Link** (default, porta
+   fuori dal sito) e **Incorporato** (`<iframe>` col visualizzatore Drive *dentro* la pagina, **più il link
+   sotto** come ripiego). L'iframe punta alla **nostra** rotta `/vsop/files/{slug}`, quindi neanche lì l'ID
+   Drive entra nei documenti. Altezza a **tre scaglioni**, non un numero libero;
+9. 🆕 **29 agosto**: i campi si chiamano **`Provider` + `ExternalId`**, non `DriveFileId`. La decisione 2
+   dice che il deposito è una colonna: un nome che dice «Drive» la richiuderebbe. Costa zero adesso e tiene
+   aperte **Cloudflare R2** (c'è già Cloudflare davanti al sito) e GitHub senza migrazione.
 
-**Le due trappole trovate leggendo il codice:**
+**Le trappole trovate leggendo il codice:**
 
 - ⚠️ **`MarkdownLite.cs` non ha link di NESSUN tipo.** Il link inline va aperto **solo** allo schema
   `allegato:`: il renderer fa HTML-encode e poi regex, quindi aprirlo a `[testo](url)` qualunque farebbe
@@ -1993,6 +2032,13 @@ Drive pubblico sarebbe teatro. Confermato dal committente che non servono.
 - ⚠️ `/vsop/files/{slug}` **non può essere `immutable`** come `/vsop/media/{sha}`: sostituisci il PDF e il
   browser tiene il vecchio per un anno. Va `no-cache`. È ciò che renderebbe la sostituzione «non
   funzionante» in modo intermittente e inspiegabile.
+- ⚠️ 🆕 **La CSP non ha `frame-src`** (`VipiStartup.cs:213`) ⇒ cade su `default-src 'self'`, che l'iframe
+  Drive non passa. E siccome l'intestazione è **Report-Only**, oggi l'incorporato **funzionerebbe lo
+  stesso**, con la violazione solo segnalata: il difetto resterebbe invisibile fino al passaggio a CSP vera,
+  quando la resa incorporata morirebbe **in blocco**. La riga va aggiunta **nella stessa slice**. Stessa
+  lezione delle tessere OpenTopoMap, mancanti per giorni per lo stesso motivo.
+- ✅ 🆕 `X-Frame-Options: DENY` (`VipiStartup.cs:187`) **non è un ostacolo**: vieta che *le nostre* pagine
+  stiano in un iframe altrui, non che noi ne incorporiamo uno.
 
 **Debito annotato, non aperto**: i punti di dispatch su `BlockFormat` sono **9 file**, e questa è la
 **seconda** feature che vi aggiunge un `case` (la prima furono le immagini). La regola del 2 del gate è
@@ -2011,10 +2057,198 @@ che il gate vieta. **Alla terza volta si apre.**
   solo i byte delle versioni passate, già fuori perimetro (`AllegatoVersione` registra **chi, quando e
   perché**, non promette di riscaricare la v1).
 
-**Resta da chiedere a Ivao.It**: il drive condiviso ha politiche di **pulizia periodica**?
+**Risposto dal committente il 29 agosto 2026:**
 
-**Da dove si riparte**: slice 1 della carta — entità `Allegato` + `AllegatoVersione` e migrazioni **×2**
-(SQLite + MySQL). ⚠️ Additive: una colonna nuova non la riempie nessuno da sola.
+- ✅ **Nessuna pulizia periodica** sul drive condiviso: non scade niente per policy. Restano solo le regole di
+  piattaforma già misurate qui sopra, e la **revisione di testa non è mai purgata**.
+- ✅ **Accesso alla cartella**: c'è, con l'**account IVAO del committente** (dominio `ivao.aero`). Basta per
+  la v1, dove il caricamento è **a mano** e il sito non parla con Drive: tiene solo l'`ExternalId`.
+
+⚠️ **Due cose che restano da non riscoprire:**
+
+1. l'accesso è **di una persona, non del sito**. Il giorno del caricamento via API (fuori perimetro v1) non si
+   usa quell'account: serve un **service account** membro del drive condiviso, o i caricamenti muoiono al
+   primo cambio d'incarico;
+2. ✅ **confermato il 29 agosto**: è una cartella dentro un **Drive condiviso**. I byte sono quindi
+   dell'**organizzazione** e sopravvivono a qualunque cambio d'incarico; niente da spostare prima della
+   slice 1. È anche la precondizione del caricamento via API, perché un service account si aggiunge come
+   **membro** di un Drive condiviso e in un «Mio Drive» non si potrebbe.
+
+**✅ Slice 1 fatta il 29 agosto 2026** (ramo `biblioteca-allegati`): entità `Attachment` e
+`AttachmentVersion` — nomi **inglesi** come tutti i tipi di casa, mentre il blocco e il token restano
+`allegato:` — più le migrazioni **×2** (`BibliotecaAllegati`, SQLite e MySQL). Additive: nessuna tabella
+esistente toccata.
+
+⚠️ **Una decisione della carta ribaltata scrivendo il modello**: l'id del file **non sta anche sulla voce**,
+come diceva la carta del 25, ma **solo sulla versione**. Due posti che dicono la stessa cosa un giorno
+dicono cose diverse, e quello sbagliato sarebbe proprio quello che serve il link. Conseguenza voluta: una
+voce **nasce con la v1**, lo stato «voce senza file» non esiste.
+
+⚠️ **Trappola pagata subito**: `IndexedStringLengthTests` pretende una voce **esplicita** in
+`MySqlStringLengths.Map` per ogni colonna **indicizzata**, e la regola generale sugli enum non le basta — i
+due assi `Kind` e `Scope` stanno nello stesso indice. Due righe aggiunte, stessa forma di
+`DocumentImpact.Kind`.
+
+**✅ Slice 2 fatta il 29 agosto 2026**: la pagina `/services/vsop/admin/attachments` (livello **Editor**,
+voce nella barra admin), con l'elenco, i due assi come chip che contano, la ricerca e la creazione di una
+voce. Sotto: `IAttachmentLibrary`/`EfAttachmentLibrary` e le regole pure di `AttachmentRules`.
+
+- **Dal link si tiene l'ID, non l'URL.** `AttachmentRules.ExternalIdDa` legge tutte le forme che Drive
+  produce davvero (`/file/d/<id>/view`, `?id=`, l'id nudo) e l'indirizzo lo ricostruisce **un posto solo**,
+  nella forma `/preview` — che è anche l'unica che funzionerà dentro l'iframe della 5-bis.
+- **Lo slug si propone dal titolo** e gli accenti si **traslitterano**: «Forlì» → `forli`, non `forl`.
+  Ma appena qualcuno lo batte a mano, il titolo non lo tocca più: lo slug è definitivo.
+- ⚠️ **I rifiuti restano cinque, distinti**: slug occupato e link illeggibile si correggono in due modi
+  diversi, e un «non valido» solo manderebbe a indovinare.
+- ⚠️ **La pagina linka ancora l'indirizzo di Drive** nel tasto «Apri»: dalla slice 3 punterà a
+  `/vsop/files/{slug}`. Nei **documenti** un URL di Drive non entrerà mai.
+- Guida: capitolo `admin-allegati` in `GuidaPage` **e** voce in `GuideSearchCatalog` (senza la seconda la
+  ricerca globale non lo trova).
+
+**✅ Slice 3 fatta il 29 agosto 2026**: la rotta `/vsop/files/{slug}` — 302 verso il deposito, **`no-cache`**,
+404 per uno slug che non c'è. È l'identità del link: da qui in poi nessun link a un allegato porta l'indirizzo
+di Drive, nemmeno il tasto «Apri» della pagina admin.
+
+- **Sta sotto `/vsop` e non sotto `/services/vsop`** come le pagine, per la stessa ragione di `/vsop/media/`:
+  è un **endpoint macchina**, un indirizzo che finirà dentro documenti già pubblicati e che quindi non si
+  sposta più. Aggiunto `files` fra i `MachineFirstSegments` di `LegacyRoutes`, che ora lo rifiuta
+  esplicitamente invece di redirigerlo su una pagina che non esiste.
+- ⚠️ **`no-cache` e non `immutable`**, ed è la differenza con `/vsop/media/{sha}`: quello è
+  content-addressed (immagine diversa = URL diverso), qui l'URL è **stabile** e il contenuto cambia sotto.
+  Con una cache lunga si sostituirebbe il PDF e il browser terrebbe il vecchio per un anno — la sostituzione
+  «non funziona» a intermittenza, perché a chi ha la pagina fresca funziona benissimo.
+- **302 e non 301**: un permanente il browser lo tiene per sempre, e il giorno che cambia il deposito ci
+  sarebbero utenti mandati a un indirizzo morto senza modo di correggerli.
+- La rotta e il token (`allegato:`) stanno scritti in `AttachmentRules` e **da nessun'altra parte**.
+
+⚠️ **Non ancora eseguiti i due test E2E** che provano 302, destinazione e `no-cache`
+(`SmokeTests.Files_endpoint_*`): sono **scritti**, ma con l'host di sviluppo acceso `Vipi.E2E.Tests` non
+compila — tiene i `.dll` — e sparisce dal riepilogo in silenzio. Vanno lanciati a sito spento.
+
+**✅ Slice 4 fatta il 29 agosto 2026**: il registro «chi cita cosa». `AttachmentReferenceScanner` trova il
+token `allegato:` in un testo, `EfAttachmentTextSource` legge i **quattro posti** in cui può comparire (blocchi
+di tutte le versioni, sezioni extra, payload delle release, blocchi condivisi) e `AttachmentUsageService`
+attribuisce ogni citazione al documento che la contiene. In pagina: colonna «Citato da» che si apre
+sull'elenco, e chip **«mai usate»**.
+
+- **Si RICAVA, non si mantiene.** Nessuna tabella di join: si desincronizza al primo percorso di scrittura
+  che dimentica di aggiornarla, e mente proprio davanti alla conferma di una cancellazione.
+- ⚠️ **Una release NON porta un `DocumentId`**: si identifica con la coppia *(tipo, chiave)*. Cercare solo
+  per id lascerebbe senza nome e senza link **proprio le citazioni pubblicate**, cioè quelle che il lettore
+  sta guardando adesso. Due indici, non uno.
+- ⚠️ **Confini della regex in tutte e due le direzioni**: senza quello a destra `loa-lirr` «vincerebbe» dentro
+  `loa-lirr-bis` e la guardia direbbe che è citata la voce sbagliata.
+- ⚠️ **Gli escape JSON si neutralizzano prima di cercare**, come per le immagini: dentro il payload di una
+  release il JSON di un blocco è una stringa *annidata*, e senza quel passaggio la citazione **pubblicata**
+  non si trova.
+- **Nessun riferimento in giro ⇒ non si legge nemmeno l'elenco dei documenti**: una query in meno all'apertura,
+  che è il caso normale finché la biblioteca è nuova.
+- ⚠️ `IAttachmentUsage` è **separata** da `IAttachmentLibrary` apposta: il redirect `/vsop/files/{slug}` chiama
+  quella a ogni clic, e se «chi mi cita» fosse un campo della riga ogni apertura di un PDF pagherebbe una
+  scansione di tutti i blocchi e di tutte le release.
+
+**✅ Slice 5 fatta il 29 agosto 2026**: il blocco **Allegato**. `AttachmentRef` è la fonte unica del formato
+(`{"ref":"allegato:…","titolo":…}`), `AttachmentLink` la resa condivisa e `AttachmentBlockEditor` l'editor —
+una riga per `case`, come per le immagini. Tasto «+ Allegato» in tutti e due gli editor di blocchi.
+
+- ⚠️ **`BlockFormat.Attachment` è IN CODA**, ed è la cosa da non toccare: nel payload di una release gli enum
+  sono serializzati come **ordinali**, quindi inserirne uno in mezzo reinterpreterebbe in silenzio ogni
+  release già pubblicata — un blocco tabella diventerebbe un'immagine. C'è un test che inchioda i sei valori
+  storici alle loro posizioni.
+- ⚠️ **Nel blocco finisce il TOKEN, non l'URL** — nemmeno il nostro: se ci finisse `/vsop/files/…`, spostare
+  la rotta domani vorrebbe dire riscrivere il JSON di ogni blocco già pubblicato.
+- ⚠️ **Solo lo schema `allegato:`**: un `ref` con un URL qualunque non è un riferimento, e accettarlo
+  farebbe entrare un indirizzo arbitrario — `javascript:` compreso — in un `href` costruito da noi.
+- **Si sceglie da un elenco, non si incolla un link.** Se dall'editor si potesse incollare un URL, il registro
+  «chi cita cosa» direbbe il falso il giorno dopo: è il difetto che questa feature esiste per chiudere.
+- **Il titolo sta nel blocco** ed è una decisione editoriale del documento: rinominare una voce in biblioteca
+  non riscrive il testo dei documenti che la citano. A cambiare sotto è il **file**, non il nome.
+- I punti toccati sono **sei** dei nove che dispatchano su `BlockFormat`: gli altri tre riguardano i **byte
+  delle immagini** (pulizia, quota, editing) e un allegato non ne ha. Il debito del registry resta annotato.
+
+**✅ Slice 5-bis fatta il 29 agosto 2026**: il modo **Incorporato**. Il PDF si legge dentro la pagina, in un
+riquadro alto quanto uno dei **tre scaglioni** scelti dall'editore, **più il link sotto**.
+
+- ⚠️ **L'iframe punta alla NOSTRA rotta**: il 302 vale anche dentro un riquadro, quindi l'indirizzo del
+  deposito resta fuori dal documento esattamente come nel link. Nessuna eccezione.
+- ⚠️ **`frame-src https://drive.google.com` aggiunta alla CSP nella STESSA slice.** Senza, la direttiva
+  cadrebbe su `default-src 'self'` — ma siccome l'intestazione è **Report-Only** l'incorporato funzionerebbe
+  oggi e morirebbe **in blocco** il giorno del passaggio a CSP vera. Presidiata da `SmokeTests`, non da una
+  prova a mano: è la lezione delle tessere OpenTopoMap.
+- ⚠️ **Il link sotto c'è sempre**, anche da incorporato: è il ripiego per il giorno che Google chiude
+  l'embed (già successo col fondo mappa CARTO) ed è l'unica cosa che sopravvive alla stampa.
+- **Stampa**: `vipi-print.css` nasconde l'iframe e stampa **l'indirizzo accanto al titolo** — la regola
+  generale toglie la sottolineatura a tutti gli `<a>`, quindi senza questo un allegato stampato sarebbe una
+  riga di testo che non porta da nessuna parte.
+- **Tre scaglioni, non un numero libero** (320 / 520 / 800): un numero libero produce riquadri da 3000px e
+  non se ne accorge nessuno finché non li apre un telefono.
+- Nel JSON il modo si scrive **col nome**, non con l'ordinale, e un modo sconosciuto torna al **link**
+  invece di far esplodere il blocco.
+
+⚠️ **Da provare DAL VIVO prima di dire chiusa la 5-bis** (rischio R8): Google può togliere l'embed della
+preview quando vuole. Nessun test qui dentro apre un browser.
+
+**✅ Slice 6 fatta il 29 agosto 2026**: il link inline. Nella prosa si scrive
+`[come si legge](allegato:lo-slug)` e diventa un'ancora verso `/vsop/files/{slug}`. **Chiude R1 della carta.**
+
+- ⚠️ **È l'UNICO link che la prosa riconosce**, e non è una mancanza da colmare: `MarkdownLite` encoda e poi
+  sostituisce con delle regex, quindi aprirlo a `[testo](url)` qualunque farebbe entrare un indirizzo
+  arbitrario — `javascript:` compreso — dentro un `href` che costruiamo noi.
+- ⚠️ **Lo slug è vincolato alla sua forma**, non è «qualunque cosa dopo i due punti»: senza,
+  `allegato:../../qualcosa` passerebbe per uno slug e finirebbe dentro l'indirizzo che componiamo.
+- La sostituzione gira **dopo** grassetto e corsivo (così il testo del link può portarli) e **prima** degli
+  a capo (un'ancora non deve spezzarsi su una riga).
+- Il registro «chi cita cosa» copriva già questa forma: lo scanner legge anche il `Body` in prosa, non solo
+  il `BodyJson` dei blocchi.
+
+**✅ Verificati i presidi rimasti indietro** (sito di sviluppo spento il 29 agosto): `Vipi.E2E.Tests` gira di
+nuovo — **255 verdi** — e dentro ci sono i due test della slice 3 (302, destinazione, `no-cache`, 404), la
+riga `frame-src` della 5-bis e `/vsop/files` fra gli endpoint macchina.
+
+**✅ Slice 7 fatta il 29 agosto 2026**: la sostituzione. Il pannello mostra **prima** l'elenco dei documenti
+che cambiano, con lo stato di ciascuno; poi il link e la nota di versione. Nasce la versione successiva, il
+registro porta **id vecchio e nuovo**, e su ogni documento che cita la voce si apre una riga **«da rivedere»**.
+
+⚠️ **La carta diceva «voce in Cambiamenti», e non era il posto giusto.** *Cambiamenti* è **pubblica** e si
+ricava dai documenti col ciclo AIRAC corrente: una voce d'allegato lì sarebbe di natura diversa e rivolta al
+pubblico, mentre la frase serve a **chi cura il documento**. È andata nella **casella degli impatti**
+(`ImpactKind.AttachmentReplaced`, in coda), che è già «un fatto a monte tocca un documento» e ha la
+deduplicazione su *(documento, tipo, origine)*.
+
+- ⚠️ È l'**unico impatto in cui non c'è niente di rotto**: la copia pubblicata mostra già il file nuovo,
+  perché il link segue la versione corrente. La riga serve a **farlo sapere**, e si chiude a mano.
+- ⚠️ **Il non-evento non si registra**: rimettere lo stesso file torna `Invariato` e **non** apre righe —
+  altrimenti si manderebbero delle persone a rileggere un documento che non è cambiato.
+- ⚠️ **Chi cita si legge una volta sola, PRIMA di scrivere**: rileggere dopo vorrebbe dire che un salvataggio
+  in un'altra scheda cambia l'elenco fra la conferma e la segnalazione.
+- La sostituzione è un **servizio a parte** (`IAttachmentReplacement`): scrivere è una riga, sapere chi cita
+  costa una scansione — e quella non la devono pagare né il redirect né l'elenco.
+
+**✅ Slice 8 fatta il 29 agosto 2026 — la feature è COMPLETA, tutte e nove le slice.**
+
+- **Cancellazione con guardia**: si vede **quali** documenti resteranno col link morto, si conferma, e quei
+  documenti vengono segnalati (`ImpactKind.AttachmentDeleted`, in coda). ⚠️ **Non si rifiuta**: rifiutare
+  avrebbe senso se ci fosse un modo automatico di rimediare, e non c'è. ⚠️ E il **file sul Drive resta**: i
+  byte non sono nostri.
+- **Ricerca**: presidiata — cercare «Marseille» trova la LoA dal titolo del blocco, e lo **slug non è testo**
+  (cercarlo non pesca il blocco, né mostra JSON nel risultato).
+- **Stampa**: già chiusa nella 5-bis.
+- **Guida**: sostituzione ed eliminazione scritte nel capitolo dei blocchi, in italiano e in inglese.
+- 🔧 `IAttachmentReplacement` è diventato **`IAttachmentCuration`**: fa due atti, non uno. Un nome che
+  descrive metà di quel che c'è dentro mente a chi legge fra sei mesi, e rinominarlo prima che qualcuno lo
+  citi costava una riga.
+
+⚠️ **RESTA una sola cosa, e i test non possono darla**: il rischio **R8** — l'embed di Drive **non è mai
+stato provato dal vivo**. Google può togliere l'incorporamento della preview quando vuole (è già successo col
+fondo mappa CARTO il 27 agosto). Serve il sito acceso **e un PDF vero sul Drive di divisione** di cui
+incollare il link. Il modo *Link* non ne dipende: a cadere sarebbe solo l'*Incorporato*, che ha comunque il
+link sotto come ripiego.
+
+**Da fare al deploy**: le due migrazioni `BibliotecaAllegati` (SQLite + MySQL) e l'annuncio agli staffisti
+che la pagina **Allegati** esiste — il primo caricamento è a mano sul Drive.
+
+⚠️ **La 5-bis non si chiude senza una prova dal vivo**: Google può togliere l'embed della preview quando
+vuole — è già successo col fondo mappa CARTO il 27 agosto — e qui dentro nessun test apre un browser.
 
 **Fuori perimetro, deciso**: `RealDOCS/IPI Roma ACC.pdf` (**180 MB**) e gli altri monoliti — sono i documenti
 che il sito **sostituisce**, non allegati.

@@ -1,0 +1,10 @@
+@* Blocco allegato del documento: legge il riferimento dal BodyJson e delega la resa ad AttachmentLink, che è
+   la stessa usata dalle anteprime degli editor. Stessa forma del blocco immagine, e per la stessa ragione. *@
+
+<AttachmentLink Reference="Reference" Note="@Block.Body" />
+
+@code {
+    [Parameter, EditorRequired] public BlockView Block { get; set; } = default!;
+
+    private AttachmentRef? Reference => AttachmentRef.Parse(Block.BodyJson);
+}

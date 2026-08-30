@@ -225,6 +225,14 @@ internal static class VipiStartup
                 "img-src 'self' data: blob: https://server.arcgisonline.com https://*.tile.opentopomap.org; " +
                 "font-src 'self'; " +
                 "connect-src 'self'; " +
+                // Il visualizzatore PDF di Drive, dentro il riquadro del blocco «Allegato» in modo
+                // incorporato. I byte non stanno da noi per vincolo contrattuale, quindi l'unico modo di
+                // mostrarli nella pagina è ospitare il loro visualizzatore.
+                // ⚠️ Senza questa riga la direttiva cadrebbe su `default-src 'self'` e il riquadro sarebbe
+                // vuoto — ma siccome l'intestazione è Report-Only NON si vedrebbe: l'incorporato
+                // funzionerebbe oggi e morirebbe in blocco il giorno del passaggio a CSP vera. È la lezione
+                // delle tessere OpenTopoMap, mancate per giorni proprio perché segnala e non blocca.
+                "frame-src https://drive.google.com; " +
                 "frame-ancestors 'none'; " +
                 "base-uri 'self'; " +
                 "form-action 'self'";

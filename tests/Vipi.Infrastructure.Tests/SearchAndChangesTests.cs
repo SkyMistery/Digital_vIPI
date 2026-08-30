@@ -153,6 +153,41 @@ public class SearchAndChangesTests : IAsyncLifetime
         Assert.Empty(await _search.SearchAsync("beef5678", SearchScope.All, 50));
     }
 
+    /// <summary>
+    /// Un blocco allegato ha per testo il <b>titolo</b> e la nota: cercare «Marseille» deve trovare la LoA.
+    ///
+    /// <para>⚠️ E lo <b>slug non è testo</b>: cercarne un pezzo non deve pescare il blocco né, peggio, far
+    /// comparire una riga di JSON nel risultato di ricerca — che è quel che succedeva alle immagini prima che
+    /// la ricerca imparasse a leggerne l'envelope.</para>
+    /// </summary>
+    [Fact]
+    public async Task Search_Indexes_Attachment_Title_And_Note_Not_The_Json()
+    {
+        var section = await _db.DocumentSections.FirstAsync();
+        _db.ContentBlocks.Add(new Vipi.Domain.Entities.ContentBlock
+        {
+            DocumentVersionId = section.DocumentVersionId,
+            SectionId = section.Id,
+            Order = 98,
+            Format = Vipi.Domain.BlockFormat.Attachment,
+            Tier = Vipi.Domain.BlockTier.Extended,
+            Visibility = Vipi.Domain.BlockVisibility.Always,
+            Body = "Firmata il tre giugno",
+            BodyJson = AttachmentRef.Serialize(new AttachmentRef("loa-lirr-lfmm", "LoA Roma-Marseille")),
+        });
+        await _db.SaveChangesAsync();
+
+        var perTitolo = await _search.SearchAsync("Marseille", SearchScope.All, 50);
+        Assert.Contains(perTitolo, h => h.Snippet.Contains("LoA Roma-Marseille"));
+        Assert.DoesNotContain(perTitolo, h => h.Snippet.Contains("allegato:"));
+
+        var perNota = await _search.SearchAsync("tre giugno", SearchScope.All, 50);
+        Assert.Contains(perNota, h => h.Snippet.Contains("Firmata il tre giugno"));
+
+        // Lo slug non è testo da leggere: cercarlo non deve pescare il blocco.
+        Assert.Empty(await _search.SearchAsync("loa-lirr", SearchScope.All, 50));
+    }
+
     [Fact]
     public async Task Changed_Lists_Documents_In_Current_Cycle()
     {

@@ -464,6 +464,19 @@
                     vede e finisce nella ricerca) e, se serve, una <b>didascalia</b>. Formati ammessi PNG, JPEG,
                     WebP e GIF; le foto grandi vengono rimpicciolite dal browser prima di partire, e oltre il limite
                     indicato sotto l'area il caricamento viene rifiutato.</li>
+                <li><b>Allegato</b> — un link a un PDF della <b>biblioteca</b> (una LoA firmata, una circolare,
+                    una carta). Si <b>sceglie</b> dall'elenco, non si incolla un indirizzo: è così che il sito sa
+                    quali documenti citano quel file, e può dirtelo il giorno che lo sostituisci. Il file sta sul
+                    Drive di divisione e il link apre una scheda nuova; il testo del link lo decidi tu, e non
+                    cambia se in biblioteca la voce viene rinominata. Se non trovi niente in tendina, l'allegato
+                    va caricato prima in <b>Allegati</b>. Il blocco si vede in due modi: <b>Link</b> (una riga
+                    con il titolo) oppure <b>Incorporato</b>, cioè il PDF <b>dentro</b> la pagina, in un
+                    riquadro di cui scegli l'altezza — e il link resta comunque sotto.</li>
+                <li><b>Un allegato dentro una frase</b> — nella prosa si scrive
+                    <code>[come si legge](allegato:lo-slug)</code>: lo slug è quello che la pagina
+                    <b>Allegati</b> mostra accanto a ogni voce, pronto da copiare. È l'<b>unico</b> link che
+                    la prosa riconosce: un indirizzo qualunque resta testo, e non per dimenticanza — è quel
+                    che impedisce a un link scritto in un documento di portare dove non deve.</li>
                 <li><b>Separazioni</b> — regole di separazione formattate.</li>
                 <li><b>Mappa AOR / Area</b> — porzione di spazio aereo resa graficamente.</li>
               </ul>
@@ -478,6 +491,19 @@
                     and feeds the search) and, if useful, a <b>caption</b>. PNG, JPEG, WebP and GIF are accepted;
                     large photos are shrunk by the browser before upload, and anything above the limit shown under
                     the area is rejected.</li>
+                <li><b>Attachment</b> — a link to a PDF from the <b>library</b> (a signed LoA, a circular, a
+                    chart). You <b>pick</b> it from the list rather than pasting an address: that is how the site
+                    knows which documents cite that file, and can tell you the day you replace it. The file lives
+                    on the division Drive and the link opens a new tab; the link text is yours to choose, and it
+                    does not change if the library entry is renamed. If the dropdown is empty, the attachment has
+                    to be uploaded in <b>Attachments</b> first. The block comes in two shapes: <b>Link</b>
+                    (a single line with the title) or <b>Embedded</b>, the PDF <b>inside</b> the page, in a
+                    box whose height you choose — and the link stays underneath anyway.</li>
+                <li><b>An attachment inside a sentence</b> — in prose you write
+                    <code>[what it reads as](allegato:the-slug)</code>: the slug is the one the
+                    <b>Attachments</b> page shows next to each entry, ready to copy. It is the <b>only</b>
+                    link prose recognises: any other address stays plain text, and not by oversight — that is
+                    what stops a link written in a document from leading somewhere it should not.</li>
                 <li><b>Separations</b> — formatted separation rules.</li>
                 <li><b>AOR / Area map</b> — a portion of airspace rendered graphically.</li>
               </ul>
@@ -1133,6 +1159,59 @@
               </ul>
               <p>Every write goes into the <b>audit log</b> with the old value and the new one: if two people
                touch the same row the last one wins, and the log says what happened.</p>"),
+
+        new Sec("admin-allegati", "paperclip",
+            @"<p>La pagina (<code>/services/vsop/admin/attachments</code>) è la <b>biblioteca degli allegati</b>:
+               i PDF che i documenti citano — LoA firmate, circolari, carte, manuali — caricati in un posto solo
+               e con un registro di chi li cita.</p>
+              <ul>
+                <li><b>I file non stanno sul sito.</b> Il piano di hosting non ammette il formato PDF, e IVAO HQ
+                    indica di tenere i documenti sul <b>Drive di divisione</b>: si carica lì e qui si incolla il
+                    link. Di quel link si tiene l'<b>id del file</b>, non l'indirizzo, così cambiare deposito
+                    domani non tocca un solo documento.</li>
+                <li>⚠️ <b>Tutto ciò che entra in biblioteca è pubblico</b>: il file su Drive è condiviso con
+                    «chiunque abbia il link». Allegati riservati allo staff <b>non esistono</b> — un controllo
+                    d'accesso davanti a un indirizzo pubblico non protegge niente.</li>
+                <li>Lo <b>slug</b> (<code>loa-lirr-lfmm</code>) è l'identità e <b>non si cambia mai</b>: è quello
+                    che i documenti citano, e cambiarlo spegnerebbe ogni citazione già scritta. Si propone dal
+                    titolo, ma chi lo scrive comanda.</li>
+                <li>La biblioteca si sfoglia per <b>due assi</b>, tipo e ambito, non per cartelle: «le LoA di
+                    Roma» sono due filtri. L'elenco mostra <b>tutto</b>, comprese le voci che non cita ancora
+                    nessuno.</li>
+                <li><b>Sostituire il PDF</b>: il link segue <b>sempre</b> la versione corrente, release
+                    pubblicate comprese — una scansione sbagliata si corregge una volta sola, senza riaprire i
+                    documenti che la citano. Prima di confermare si vede l'elenco dei documenti che cambiano,
+                    e quei documenti finiscono fra i <b>da rivedere</b>: non c'è niente di rotto, ma il
+                    contenuto sotto un documento pubblicato è cambiato e chi lo cura deve saperlo.</li>
+                <li><b>Eliminare una voce</b> non si rifiuta nemmeno se qualcuno la cita: la guardia dice
+                    <b>quali</b> documenti resteranno con un link che non porta da nessuna parte, e li segnala.
+                    ⚠️ Il file sul Drive <b>resta dov'è</b>: qui si toglie solo la voce.</li>
+              </ul>",
+            @"<p>This page (<code>/services/vsop/admin/attachments</code>) is the <b>attachment library</b>: the
+               PDFs documents cite — signed LoAs, circulars, charts, manuals — uploaded in one place, with a
+               register of who cites them.</p>
+              <ul>
+                <li><b>The files do not live on the site.</b> The hosting plan does not allow the PDF format, and
+                    IVAO HQ asks for the documents to live on the <b>division Drive</b>: upload them there and
+                    paste the link here. From that link we keep the <b>file id</b>, not the address, so changing
+                    storage tomorrow does not touch a single document.</li>
+                <li>⚠️ <b>Everything in the library is public</b>: the Drive file is shared with «anyone with the
+                    link». Staff-only attachments <b>do not exist</b> — an access check in front of a public
+                    address protects nothing.</li>
+                <li>The <b>slug</b> (<code>loa-lirr-lfmm</code>) is the identity and <b>never changes</b>: it is
+                    what documents cite, and changing it would silence every citation already written. It is
+                    proposed from the title, but whoever types it wins.</li>
+                <li>The library is browsed along <b>two axes</b>, kind and scope, not folders: «Rome's LoAs» is
+                    two filters. The list shows <b>everything</b>, including entries nobody cites yet.</li>
+                <li><b>Replacing the PDF</b>: the link <b>always</b> follows the current version, published
+                    releases included — a bad scan is fixed once, without reopening the documents that cite
+                    it. Before confirming you see the list of documents that change, and those documents are
+                    flagged <b>for review</b>: nothing is broken, but the content under a published document
+                    changed and whoever curates it must know.</li>
+                <li><b>Deleting an entry</b> is not refused even when something cites it: the guard says
+                    <b>which</b> documents will be left with a link that leads nowhere, and flags them.
+                    ⚠️ The file on the Drive <b>stays where it is</b>: only the entry is removed here.</li>
+              </ul>"),
 
         new Sec("admin-sorgenti", "plug",
             @"<p>La pagina (<code>/services/vsop/admin/sources</code>) decide, per ogni <b>categoria</b> di dati, se
