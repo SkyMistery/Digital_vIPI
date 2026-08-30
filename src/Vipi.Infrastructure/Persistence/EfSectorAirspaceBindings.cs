@@ -17,7 +17,18 @@ public sealed class EfSectorAirspaceBindings : ISectorAirspaceBindings
 {
     private readonly VipiDbContext _db;
 
-    public EfSectorAirspaceBindings(VipiDbContext db) => _db = db;
+    private readonly Vipi.Application.Airspace.ShapeChangeStamp? _gettone;
+
+    /// <param name="gettone">
+    /// Il gettone dei cambi di forma: agganciare e sganciare cambiano quel che i motori disegnano e contano
+    /// <b>adesso</b>, non al prossimo giro d'import. ⚠️ Facoltativo perché i test montano questa porta da
+    /// sé, e senza si comporta come prima.
+    /// </param>
+    public EfSectorAirspaceBindings(VipiDbContext db, Vipi.Application.Airspace.ShapeChangeStamp? gettone = null)
+    {
+        _db = db;
+        _gettone = gettone;
+    }
 
     public async Task<IReadOnlyDictionary<string, SectorAirspaceBindingRow>> ResolveAsync(
         IReadOnlyList<string> callsigns, CancellationToken ct = default)
@@ -70,6 +81,9 @@ public sealed class EfSectorAirspaceBindings : ISectorAirspaceBindings
         }
 
         await _db.SaveChangesAsync(ct);
+
+        // ⚠️ Il gettone si alza DOPO la scrittura: chi lo legge deve trovare il database già cambiato.
+        _gettone?.Touch();
     }
 
     /// <summary>

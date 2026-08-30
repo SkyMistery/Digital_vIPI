@@ -12,9 +12,9 @@ namespace Vipi.Infrastructure.Tests;
 
 /// <summary>
 /// <b>Caratterizzazione</b> (carta <c>docs/refactor/15-shape-del-settore-una-porta-sola.md</c>, S1): fotografa
-/// il comportamento dei motori che <b>non</b> conoscono l'aggancio agli spazi aerei dell'AIP —
-/// attribuzione del traffico e confinanti. ✅ La <b>mappa della vLOA</b> è stata portata sulla porta unica
-/// da <b>S7</b>: il suo test qui sotto è già stato ribaltato, ed è la traccia del cambio.
+/// il comportamento dei motori davanti all'aggancio agli spazi aerei dell'AIP. ✅ <b>Tre su tre ribaltati</b>:
+/// la mappa della vLOA da <b>S7</b>, l'attribuzione del traffico da <b>S9</b>, i confinanti da <b>S10</b> —
+/// e ogni test porta accanto la ragione del cambio, che è il motivo per cui questa classe esiste.
 ///
 /// <para>⚠️ <b>Questi test asseriscono un difetto, non un contratto.</b> Servono da rete: quando S9, S10 e S7
 /// porteranno quei motori sul risolutore, sono i test che devono <b>cambiare</b>, e il cambio si vede nel
@@ -117,31 +117,41 @@ public class CaratterizzazioneAggancioTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// ⚠️ <b>OGGI</b>: l'attribuzione del traffico rivendica il monoblocco di IVAO anche su un settore
-    /// agganciato — e con esso un punto che nell'AIP <b>non è suo</b>, e il cielo fino a FL195 anche dove il
-    /// CTR si ferma a FL105.
+    /// ✅ <b>RIBALTATO da S9</b>, ed è l'assert che vale tutta la carta: l'attribuzione del traffico non
+    /// rivendica più il monoblocco di IVAO su un settore agganciato. Il volume è l'insieme dei <b>pezzi</b>,
+    /// ognuno con la sua banda, quindi:
+    /// <list type="bullet">
+    ///   <item>un punto dentro il monoblocco e <b>fuori</b> dalle due zone dell'AIP <b>non è più suo</b>;</item>
+    ///   <item>il cielo <b>sopra la Z1</b> (che finisce a FL105) nemmeno, anche se l'inviluppo arriva a FL195;</item>
+    ///   <item>quel che è davvero dentro una zona, alla sua quota, resta suo.</item>
+    /// </list>
     ///
-    /// <para>Si ribalta in <b>S9</b>: il volume diventa l'insieme dei pezzi, e questo punto non si rivendica più.</para>
+    /// <para>⚠️ Le tratte già scritte in archivio non si toccano: l'attribuzione si decide al giro del poller
+    /// e si conserva. La non-retroattività è nella macchina, non nell'attenzione di chi aggancia.</para>
     /// </summary>
     [Fact]
-    public async Task Oggi_Il_Traffico_Rivendica_Il_Monoblocco_Di_Ivao_Anche_Se_Il_Settore_E_Agganciato()
+    public async Task Il_Traffico_Rivendica_I_Pezzi_Agganciati_E_Non_Il_Monoblocco()
     {
         var volumi = await AgganciaAsync(SourceCatalog.AirportPosition, App);
-        Assert.Equal(2, volumi.Count);   // le due zone ci sono, e l'aggancio le cita
+        Assert.Equal(2, volumi.Count);
 
-        var righe = await new EfSectorVolumeCatalog(_db).GetAllAsync();
+        var righe = await new EfSectorVolumeCatalog(_db, new EfSectorShapeResolver(_db, new EfSectorAirspaceBindings(_db), new EfSectorShapeParts(_db))).GetAllAsync();
         var riga = righe.Single(r => r.Callsign == App);
-        Assert.Equal(MonobloccoIvao, riga.RegionMapPolygon);   // ⚠️ il catalogo non sa niente dell'aggancio
-        Assert.Equal(0, riga.LowerLimit);
-        Assert.Equal(19500, riga.UpperLimit);
+        Assert.Equal(2, riga.Parts.Count);
+        Assert.Equal(ShapeSource.Aip, riga.Source);   // e in archivio finirà scritto da dove veniva
 
         var claims = SectorVolumeMap.BuildClaims(righe, new HashSet<string>(new[] { App }, StringComparer.OrdinalIgnoreCase));
         var volume = Assert.Single(claims).Volume;
 
-        // Un punto dentro il monoblocco e fuori da tutte e due le zone dell'AIP: oggi si rivendica.
-        Assert.True(volume.Contains(FuoriLat, FuoriLon, 5_000));
-        // E il cielo sopra la Z1, che il CTR non ha: pure.
-        Assert.True(volume.Contains(37.2, 15.2, 15_000));
+        // Un punto dentro il monoblocco e fuori da tutte e due le zone: NON è suo.
+        Assert.False(volume.Contains(FuoriLat, FuoriLon, 5_000));
+        // Il cielo sopra la Z1, che il CTR non ha: nemmeno.
+        Assert.False(volume.Contains(37.2, 15.2, 15_000));
+        // Ma dentro la Z1, alla sua quota, sì.
+        Assert.True(volume.Contains(37.2, 15.2, 5_000));
+        // E dentro la Z2, che comincia a 7000 ft.
+        Assert.True(volume.Contains(37.2, 15.7, 15_000));
+        Assert.False(volume.Contains(37.2, 15.7, 3_000));
     }
 
     /// <summary>

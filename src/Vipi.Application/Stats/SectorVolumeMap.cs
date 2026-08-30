@@ -48,7 +48,7 @@ public static class SectorVolumeMap
     /// </summary>
     private static SectorVolume? VolumeOf(SectorVolumeRow s, IReadOnlyList<SectorVolumeRow> tutti)
     {
-        var proprio = SectorVolume.From(s.Callsign, s.RegionMapPolygon, s.LowerLimit, s.UpperLimit);
+        var proprio = Volume(s.Callsign, s);
         if (proprio is not null) return proprio;
 
         if (s.Type is not (SectorType.Del or SectorType.Gnd) || string.IsNullOrWhiteSpace(s.AirportIcao))
@@ -57,17 +57,25 @@ public static class SectorVolumeMap
         var torre = tutti
             .Where(t => t.Type is SectorType.Twr or SectorType.ITwr
                         && string.Equals(t.AirportIcao, s.AirportIcao, StringComparison.OrdinalIgnoreCase)
-                        && !string.IsNullOrWhiteSpace(t.RegionMapPolygon))
+                        && t.Parts.Count > 0)
             // Fra più torri dello stesso campo vince quella col callsign senza infisso (`LIRF_TWR` prima di
             // `LIRF_E_TWR`): è la convenzione di divisione per la posizione principale.
             .OrderBy(t => t.Callsign.Count(ch => ch == '_'))
             .ThenBy(t => t.Callsign, StringComparer.OrdinalIgnoreCase)
             .FirstOrDefault();
 
-        return torre is null
-            ? null
-            : SectorVolume.From(s.Callsign, torre.RegionMapPolygon, torre.LowerLimit, torre.UpperLimit);
+        // ⚠️ Il volume è quello della TORRE, ma il callsign resta quello della GND/DEL: è lei che rivendica.
+        return torre is null ? null : Volume(s.Callsign, torre);
     }
+
+    /// <summary>Un volume dai pezzi di una riga, col callsign che si vuole dargli.</summary>
+    private static SectorVolume? Volume(string callsign, SectorVolumeRow riga) =>
+        riga.Parts.Count == 0
+            ? null
+            : SectorVolume.From(
+                callsign,
+                riga.Parts.Select(p => ((string?)p.PolygonJson, p.BaseFeet, p.TopFeet)).ToList(),
+                riga.Source);
 
     /// <summary>
     /// Profondità di ogni settore nell'albero (0 = radice). La guardia sui nodi già visti chiude i cicli:

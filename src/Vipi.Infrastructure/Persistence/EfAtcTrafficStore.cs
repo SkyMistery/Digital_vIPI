@@ -98,6 +98,9 @@ public sealed class EfAtcTrafficStore : IAtcTrafficStore
             riga.EntryAltitudeFt = l.EntryAltitudeFt;
             riga.ExitAltitudeFt = l.ExitAltitudeFt;
             riga.MaxAltitudeFt = l.MaxAltitudeFt;
+            // Con quale forma è stato contato: si riscrive a ogni flush, come le altre misure dell'ultimo
+            // avvistamento (carta refactor 15 §3h).
+            riga.ShapeSource = l.ShapeSource;
 
             // ⚠️ La consegna si scrive solo quando c'è: il registro la conosce dal giro in cui è avvenuta e
             // la ripete nei flush successivi, ma una riga riletta dall'archivio dopo un riavvio la riporta
@@ -127,7 +130,7 @@ public sealed class EfAtcTrafficStore : IAtcTrafficStore
         new DateTimeOffset(DateTime.SpecifyKind(t.LastSeenUtc, DateTimeKind.Utc)),
         t.SeenMinutes, t.SawMovement, t.HasObservationGap,
         t.FirstPhase, t.LastPhase, t.SawAirborne, t.EntryAltitudeFt, t.ExitAltitudeFt, t.MaxAltitudeFt,
-        t.HandoffToSessionId, t.HandoffFromSessionId);
+        t.HandoffToSessionId, t.HandoffFromSessionId, t.ShapeSource);
 
     public async Task<(IReadOnlyList<AirportSessionWindow> ToFill, IReadOnlyList<AirportSessionWindow> Concurrent)>
         GetAirportSessionsToFillAsync(DateTimeOffset notBefore, int max, CancellationToken ct = default)
@@ -226,6 +229,9 @@ public sealed class EfAtcTrafficStore : IAtcTrafficStore
                     SawMovement = true,          // un arrivo, una partenza o un sorvolo si è mosso per definizione
                     HasObservationGap = false,
                     Origin = TrafficOrigin.AirportApi,
+                    // ⚠️ Questa tratta non l'ha contata nessuna forma: la dà la sorgente. `Source` qui vuol
+                    // dire «l'anagrafica», ed è la lettura giusta — non c'è nessun confine nostro di mezzo.
+                    ShapeSource = Vipi.Domain.ShapeSource.Source,
                 });
                 scritte++;
             }

@@ -10,7 +10,15 @@ public sealed class EfSectorShapeParts : ISectorShapeParts
 {
     private readonly VipiDbContext _db;
 
-    public EfSectorShapeParts(VipiDbContext db) => _db = db;
+    private readonly Vipi.Application.Airspace.ShapeChangeStamp? _gettone;
+
+    /// <param name="gettone">Il gettone dei cambi di forma: scrivere o togliere pezzi cambia quel che i
+    /// motori disegnano e contano <b>adesso</b>. ⚠️ Facoltativo, come nella porta degli agganci.</param>
+    public EfSectorShapeParts(VipiDbContext db, Vipi.Application.Airspace.ShapeChangeStamp? gettone = null)
+    {
+        _db = db;
+        _gettone = gettone;
+    }
 
     public async Task<IReadOnlyList<ShapePart>> ListAsync(
         SourceCatalog catalog, int sectorId, ShapeSource source, ShapePartState state,
@@ -102,6 +110,7 @@ public sealed class EfSectorShapeParts : ISectorShapeParts
             });
 
         await _db.SaveChangesAsync(ct);
+        _gettone?.Touch();
         return new ShapePartsWriteResult(parts.Count, false);
     }
 
@@ -120,6 +129,7 @@ public sealed class EfSectorShapeParts : ISectorShapeParts
 
         _db.SectorShapeParts.RemoveRange(righe);
         await _db.SaveChangesAsync(ct);
+        _gettone?.Touch();
         return righe.Count;
     }
 

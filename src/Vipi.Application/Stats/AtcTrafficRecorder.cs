@@ -47,7 +47,18 @@ public sealed class AtcTrafficRecorder
     /// </summary>
     public static readonly TimeSpan HandoffWindow = TimeSpan.FromMinutes(2.5);
 
-    public AtcTrafficRecorder(ISectorVolumeCatalog catalogo) => _catalogo = catalogo;
+    /// <param name="forme">
+    /// Il gettone dei cambi di forma. ⚠️ Facoltativo: senza, la cache dura il suo TTL e basta — è il
+    /// comportamento di prima, e i test che montano il registratore a mano non devono conoscerlo.
+    /// </param>
+    public AtcTrafficRecorder(ISectorVolumeCatalog catalogo, Airspace.ShapeChangeStamp? forme = null)
+    {
+        _catalogo = catalogo;
+        _forme = forme;
+    }
+
+    /// <summary>Il gettone che dice «le forme sono cambiate»: vedi <see cref="Airspace.ShapeChangeStamp"/>.</summary>
+    private readonly Airspace.ShapeChangeStamp? _forme;
 
     /// <summary>Esito di un giro, per il log e per i test.</summary>
     public sealed record Result(int Attributed, int NewLegs, int WrittenLegs, int Sessions);
@@ -87,14 +98,18 @@ public sealed class AtcTrafficRecorder
         foreach (var p in snapshot.Pilots)
         {
             var fase = FlightPhases.Of(p.OnGround, p.GroundSpeed, p.State, p.DepartureDistanceNm);
-            var sessione = TrafficAttribution.Attribute(claims, p.Latitude, p.Longitude, p.AltitudeFt, fase);
+            // ⚠️ Serve la PRETESA, non il solo callsign: da lì si sa con quale forma è stato contato, e la
+            // tratta se lo porta in archivio (carta refactor 15 §3h).
+            var pretesa = TrafficAttribution.AttributeClaim(claims, p.Latitude, p.Longitude, p.AltitudeFt, fase);
+            var sessione = pretesa?.SessionCallsign;
             if (sessione is null || !perCallsign.TryGetValue(sessione, out var sessionId)) continue;
 
             attribuiti++;
             conTraffico.Add(sessionId);
 
             var obs = new LegObservation(
-                p.Callsign, p.UserId, p.FlightPlanId, p.DepIcao, p.ArrIcao, p.AircraftIcao, fase, p.AltitudeFt);
+                p.Callsign, p.UserId, p.FlightPlanId, p.DepIcao, p.ArrIcao, p.AircraftIcao, fase, p.AltitudeFt,
+                pretesa!.Value.Volume.Source);
 
             if (_registro.Observe(sessionId, obs, snapshot.AsOf))
             {
@@ -141,7 +156,14 @@ public sealed class AtcTrafficRecorder
 
     private async Task<IReadOnlyList<SectorVolumeRow>> SettoriAsync(DateTimeOffset now, CancellationToken ct)
     {
-        if (_settori is not null && now - _settoriLetti < CatalogTtl) return _settori;
+        // ⚠️ Due ragioni per rileggere, e sono diverse: il TEMPO (i cataloghi cambiano coi giri d'import,
+        // una volta al giorno) e un CAMBIO DI FORMA (qualcuno ha agganciato o sganciato, adesso). Senza la
+        // seconda, «da adesso conta il CTR e non il monoblocco» entrerebbe in vigore fra zero e sessanta
+        // minuti — un comportamento che nessuno può spiegare a chi lo guarda.
+        var scaduta = _settori is null || now - _settoriLetti >= CatalogTtl;
+        var vecchia = _forme?.IsStale(_settoriLetti) == true;
+        if (!scaduta && !vecchia) return _settori!;
+
         _settori = await _catalogo.GetAllAsync(ct);
         _settoriLetti = now;
         return _settori;

@@ -1346,6 +1346,12 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<int>("SeenMinutes")
                         .HasColumnType("int");
 
+                    b.Property<string>("ShapeSource")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
                     b.HasKey("SessionId", "PilotCallsign", "LegOrdinal");
 
                     b.HasIndex("PilotCallsign");

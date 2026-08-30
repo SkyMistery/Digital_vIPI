@@ -27,10 +27,11 @@ public sealed class SectorVolume
     /// <summary>Un pezzo: un anello con la <b>sua</b> banda. Le due cose non si separano mai.</summary>
     public sealed record Part(PolygonGeometry.Ring Ring, int BottomFl, int TopFl);
 
-    private SectorVolume(string callsign, IReadOnlyList<Part> parts)
+    private SectorVolume(string callsign, IReadOnlyList<Part> parts, Vipi.Domain.ShapeSource source)
     {
         Callsign = callsign;
         Parts = parts;
+        Source = source;
         BottomFl = parts.Min(p => p.BottomFl);
         TopFl = parts.Max(p => p.TopFl);
         MinLat = parts.Min(p => p.Ring.MinLat);
@@ -44,6 +45,13 @@ public sealed class SectorVolume
 
     /// <summary>I pezzi, in ordine di disegno. Almeno uno: un volume senza pezzi non nasce.</summary>
     public IReadOnlyList<Part> Parts { get; }
+
+    /// <summary>
+    /// Da dove viene questa forma. ⚠️ Non serve ad attribuire — serve a <b>spiegare</b>: finisce accanto alla
+    /// tratta in archivio, perché il giorno che un settore passa dal monoblocco di IVAO al suo CTR i numeri
+    /// cambiano, e un gradino nel grafico dev'essere leggibile anche fra sei mesi.
+    /// </summary>
+    public Vipi.Domain.ShapeSource Source { get; }
 
     /// <summary>Pavimento in FL dell'<b>inviluppo</b> (0 = suolo). ⚠️ Serve a <b>ordinare</b> due volumi
     /// quando si contendono un aeroplano, non a decidere se un aeroplano è dentro: quello lo fa
@@ -65,8 +73,10 @@ public sealed class SectorVolume
     /// se il poligono manca o è degenere (&lt; 3 punti, JSON malformato): un settore senza shape non
     /// attribuisce traffico — vale per gli 11 settori ACC e i 50 d'aeroporto che oggi ne sono privi.
     /// </summary>
-    public static SectorVolume? From(string callsign, string? regionMapPolygon, int? lowerLimit, int? upperLimit) =>
-        From(callsign, new[] { (regionMapPolygon, lowerLimit, upperLimit) });
+    public static SectorVolume? From(
+        string callsign, string? regionMapPolygon, int? lowerLimit, int? upperLimit,
+        Vipi.Domain.ShapeSource source = Vipi.Domain.ShapeSource.Source) =>
+        From(callsign, new[] { (regionMapPolygon, lowerLimit, upperLimit) }, source);
 
     /// <summary>
     /// Volume di un settore da <b>N pezzi</b>, ognuno col suo poligono e le sue quote. I pezzi che non si
@@ -74,7 +84,8 @@ public sealed class SectorVolume
     /// il volume è <c>null</c>, cioè «questo settore non rivendica niente», mai «rivendica tutto».
     /// </summary>
     public static SectorVolume? From(
-        string callsign, IReadOnlyList<(string? PolygonJson, int? Lower, int? Upper)> parts)
+        string callsign, IReadOnlyList<(string? PolygonJson, int? Lower, int? Upper)> parts,
+        Vipi.Domain.ShapeSource source = Vipi.Domain.ShapeSource.Source)
     {
         if (parts.Count == 0) return null;
 
@@ -87,7 +98,7 @@ public sealed class SectorVolume
             pezzi.Add(new Part(ring, bottom, top));
         }
 
-        return pezzi.Count == 0 ? null : new SectorVolume(callsign, pezzi);
+        return pezzi.Count == 0 ? null : new SectorVolume(callsign, pezzi, source);
     }
 
     /// <summary>
