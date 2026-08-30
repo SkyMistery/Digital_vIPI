@@ -3750,7 +3750,7 @@ nessun motore l'avesse tradotta ha `Engine` nullo e non conta per nessuno, che �
 sua riga umana non era mai passata da un motore — `Engine` nullo, quindi fuori dal conto in tutti e due i
 modi. Ora c'è quello che manca: macchina, **poi** correzione, e il conto non cala.
 
-**b) 🟢 APERTO — i segmenti scartati si ripagano a ogni giro.** Quando il motore restituisce un segmento
+**b) 🟡 METÀ CHIUSA — i segmenti scartati si ripagano a ogni giro.** Quando il motore restituisce un segmento
 rotto (un segnaposto mangiato), `TranslationFillUseCase` **non lo salva**, per non mettere in memoria una
 frase che sembra giusta e non lo è. Conseguenza: quei caratteri sono stati **pagati**, non entrano in
 questa somma (che si deduce da ciò che è rimasto in tabella), e **il giro dopo li rispedisce** — ogni
@@ -3764,6 +3764,30 @@ cosa diversa e lo sarà sempre. In attesa, la perdita **non è più invisibile**
 ⚠️ Sui volumi misurati (98 000 caratteri di semina contro il milione di DeepL) il tetto non si avvicina
 nemmeno. Diventa urgente se il corpus cresce di un ordine di grandezza, o se un segmento comincia a tornare
 rotto sistematicamente — ed è per quello che ora si vede nei log.
+
+### ✅ 30 agosto 2026 — è successo, ed era una frase NOSTRA
+
+Il registro diceva **155 caratteri per 1 segmento** a ogni giro. Cercato interrogando il corpus, era il
+testo di partenza di una vLOA — quello che scriviamo noi quando la vLOA nasce:
+
+> `Both areas of responsibility are imported from the IVAO database; the common boundary is the LIBB/LGGG ACC limit.`
+
+⚠️ **Due segnaposti attaccati** (`LIBB/LGGG`), che è il costrutto che un motore tende a fondere. Circa
+**446 000 caratteri al mese** per una frase di cui sapevamo già la traduzione.
+
+**Due cure, tutt'e due fatte.**
+
+1. **Le sette frasi di `VloaSections` hanno il loro italiano accanto all'inglese**, nello stesso file, e
+   `FrasiVloa.SeminaAsync` le mette in memoria prima di chiedere alla macchina — la stessa scelta di
+   `TitoliUfficiali`, un gradino più in là. ⚠️ Le coppie di ACC sono quelle dei **confinanti**, cioè la
+   sorgente da cui la vLOA è nata: il testo seminato è **identico** a quello nei documenti, e un test lo
+   prova confrontandolo con `VloaSections.Canonical`. Dal vivo: **135 frasi seminate**, e il giro dopo non
+   ha più niente da tradurre né da scartare.
+2. **L'avviso dice QUALI sono.** «1 segmento tornato rotto» non si può cercare — il corpus ne ha decine — e
+   il testo ce l'avevamo in mano proprio nel punto in cui lo buttavamo.
+
+⚠️ **Resta aperto il contatore vero**: la spesa si continua a dedurre da ciò che è rimasto in memoria, che è
+una cosa diversa dai caratteri spediti e lo sarà sempre. Serve schema, e non c'è ancora.
 
 ### Q17 ✅ CHIUSA — due chiavi mancanti, e il buco della guardia che le ha lasciate passare
 
