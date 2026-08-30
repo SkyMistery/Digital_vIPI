@@ -176,25 +176,59 @@ public class SectorShapeResolverTests : IAsyncLifetime
         Assert.Empty(forma.UncoveredKeys);
     }
 
-    /// <summary>I pezzi in archivio stanno in mezzo: battono il catalogo, perdono contro l'aggancio.</summary>
-    [Fact]
-    public async Task I_pezzi_in_archivio_battono_il_catalogo_e_perdono_contro_l_aggancio()
-    {
-        var atz = new ShapePart("[[15.05,37.45],[15.15,37.45],[15.15,37.55],[15.05,37.55]]",
-            null, 3_000, AirspaceDatum.Gnd, AirspaceDatum.Amsl, "GND", "3000 FT AMSL", "ATZ|LICC|GND|3000 FT AMSL");
-        await _pezzi.ReplacePartsAsync(SourceCatalog.AirportPosition, _idApp, App, ShapeSource.Aip,
-            ShapePartState.InForce, new[] { atz });
+    private ShapePart Atz() => new("[[15.05,37.45],[15.15,37.45],[15.15,37.55],[15.05,37.55]]",
+        null, 3_000, AirspaceDatum.Gnd, AirspaceDatum.Amsl, "GND", "3000 FT AMSL", "ATZ|LICC|GND|3000 FT AMSL");
 
-        var conArchivio = await RisolviAsync();
-        Assert.Equal(ShapeSource.Aip, conArchivio.Source);
-        Assert.Equal("ATZ|LICC|GND|3000 FT AMSL", Assert.Single(conArchivio.Parts).SourceRef);
+    /// <summary>
+    /// ⚠️ <b>I pezzi in archivio sono un RIPIEGO</b>, e la fila lo dice: una shape <b>vera</b> del catalogo
+    /// — sectorfile o anagrafica — sta sopra. È la decisione del committente del 29 agosto 2026: l'AIP è
+    /// fonte secondaria, <i>solo se non ce l'hai</i>.
+    /// </summary>
+    [Fact]
+    public async Task Una_shape_vera_del_catalogo_batte_i_pezzi_in_archivio()
+    {
+        await _pezzi.ReplacePartsAsync(SourceCatalog.AirportPosition, _idApp, App, ShapeSource.Aip,
+            ShapePartState.InForce, new[] { Atz() });
+
+        var forma = await RisolviAsync();
+
+        Assert.Equal(ShapeSource.Source, forma.Source);
+        Assert.Equal(MonobloccoIvao, Assert.Single(forma.Parts).PolygonJson);
+    }
+
+    /// <summary>Ma sopra un <b>cerchio di ripiego</b> i pezzi vincono: fra due ripieghi, quello vero.</summary>
+    [Fact]
+    public async Task I_pezzi_in_archivio_battono_il_cerchio_sintetico()
+    {
+        var riga = await _db.AirportSectors.FirstAsync(x => x.ComposePosition == App);
+        riga.RegionMapPolygon = Vipi.Application.Aor.CircleShapeBuilder.Build(37.5, 15.1);
+        riga.IsShapeSynthetic = true;
+        await _db.SaveChangesAsync();
+
+        await _pezzi.ReplacePartsAsync(SourceCatalog.AirportPosition, _idApp, App, ShapeSource.Aip,
+            ShapePartState.InForce, new[] { Atz() });
+
+        var forma = await RisolviAsync();
+
+        Assert.Equal(ShapeSource.Aip, forma.Source);
+        Assert.Equal("ATZ|LICC|GND|3000 FT AMSL", Assert.Single(forma.Parts).SourceRef);
+    }
+
+    /// <summary>E l'aggancio scelto a mano vince su tutti e due: è il gesto di una persona.</summary>
+    [Fact]
+    public async Task L_aggancio_a_mano_vince_sui_pezzi_e_sul_catalogo()
+    {
+        await _pezzi.ReplacePartsAsync(SourceCatalog.AirportPosition, _idApp, App, ShapeSource.Aip,
+            ShapePartState.InForce, new[] { Atz() });
 
         var volumi = await CaricaAsync();
         await _agganci.SetAsync(SourceCatalog.AirportPosition, _idApp, App,
             volumi.Select(v => new AirspaceVolumeKey(v.NaturalKey, v.Ordinal)).ToList(), 1, "Chi sceglie");
 
-        var conAggancio = await RisolviAsync();
-        Assert.Equal(2, conAggancio.Parts.Count);   // vince la scelta umana, fatta adesso
+        var forma = await RisolviAsync();
+
+        Assert.Equal(ShapeSource.Aip, forma.Source);
+        Assert.Equal(2, forma.Parts.Count);   // le due zone scelte, non l'ATZ del ripiego
     }
 
     /// <summary>

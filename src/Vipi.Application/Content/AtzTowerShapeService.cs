@@ -7,9 +7,14 @@ using Vipi.Domain;
 namespace Vipi.Application.Content;
 
 /// <param name="Applied">Torri che hanno ricevuto l'ATZ.</param>
-/// <param name="Ambiguous">ICAO con <b>più di un</b> ATZ nel file: saltati apposta, vedi sotto.</param>
+/// <param name="MultiZone">
+/// ICAO il cui ATZ è fatto di <b>più zone</b> — Guidonia due, Torino Aeritalia tre. ⚠️ <b>Non si saltano
+/// più</b>: prima la colonna della shape ne teneva una sola e prenderne una vorrebbe dire disegnare mezza
+/// zona di traffico, quindi si rinunciava; dall'aggancio (carta refactor 15) si prendono <b>tutte</b>. Restano
+/// in elenco perché sono i campi che vale la pena guardare a schermo.
+/// </param>
 /// <param name="StillWithout">Torri bersaglio per cui il file non ha nessun ATZ: le prende il cerchio.</param>
-public sealed record AtzTowerShapeResult(int Applied, IReadOnlyList<string> Ambiguous, int StillWithout)
+public sealed record AtzTowerShapeResult(int Applied, IReadOnlyList<string> MultiZone, int StillWithout)
 {
     public static AtzTowerShapeResult Empty { get; } = new(0, Array.Empty<string>(), 0);
 }
@@ -30,11 +35,21 @@ public interface IAtzTowerShapeService
 /// shape vera l'upsert dell'anagrafica riprenderà il comando per intero — <c>ShapeSource</c> torna
 /// <see cref="ShapeSource.Source"/> e questa riga smette di essere sua.</para>
 ///
-/// <para>⚠️ <b>Un ICAO con più di un ATZ si SALTA, e lo si dice.</b> La colonna della shape tiene <b>un
-/// anello</b>: di Guidonia (<c>LIRG</c>, due zone) e di Torino Aeritalia (<c>LIMA</c>, tre settori) prenderne
-/// uno vorrebbe dire disegnare una torre con metà della sua zona di traffico, senza un errore da nessuna
-/// parte. È lo stesso motivo per cui l'aggancio a mano non passa da questa colonna (carta §6-bis) — e quei
-/// due campi, se servono, si agganciano proprio così.</para>
+/// <para>⚠️ <b>Non scrive più la colonna della shape: scrive dei PEZZI</b> (carta
+/// <c>docs/refactor/15-shape-del-settore-una-porta-sola.md</c>), con la fonte <see cref="ShapeSource.Aip"/>.
+/// Tre conseguenze, tutt'e tre volute: <b>è reversibile</b> — togliere i pezzi riporta la torre al suo
+/// cerchio, mentre la shape scritta in colonna cancellava per sempre quel che c'era — <b>un ICAO con più
+/// zone non si salta più</b> (Guidonia due, Torino Aeritalia tre: si prendono <b>intere</b>, perché i pezzi
+/// sono una lista mentre la colonna teneva un anello) e la torre si porta dietro le <b>quote</b> dell'ATZ,
+/// che il cerchio non ha mai avuto.</para>
+///
+/// <para>⚠️ <b>Resta un ripiego, e la precedenza lo dice.</b> Il risolutore mette una shape <i>vera</i>
+/// del catalogo — sectorfile o anagrafica — <b>sopra</b> questi pezzi, e li tiene sopra al solo cerchio
+/// sintetico. Un aggancio scelto <b>a mano</b> vince su tutto: quello è il gesto di una persona.</para>
+///
+/// <para>⚠️ E quando trova una torre con un'ATZ scritta in colonna dal giro vecchio, la <b>restituisce</b>
+/// (<c>ClearAipShapeAsync</c>) prima di scrivere i pezzi: se restasse sotto, togliere i pezzi non riporterebbe
+/// il cerchio ma la stessa ATZ di prima, e la reversibilità sarebbe finta.</para>
 ///
 /// <para>⚠️ <b>L'ICAO si riconosce solo fra quelli che stiamo cercando.</b> Un nome come
 /// <c>MATZ CERVIA-TWR</c> contiene il gruppo di quattro lettere <c>MATZ</c>, e una regola che prendesse
@@ -46,16 +61,19 @@ public sealed class AtzTowerShapeService : IAtzTowerShapeService
 {
     private readonly IAirportSectorRepository _repo;
     private readonly IAirspaceCatalog _catalogo;
+    private readonly ISectorShapeParts _pezzi;
     private readonly ShapeFallbackScope _scope;
 
     private static readonly Regex QuattroLettere =
         new(@"\b[A-Z]{4}\b", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     public AtzTowerShapeService(
-        IAirportSectorRepository repo, IAirspaceCatalog catalogo, ShapeFallbackScope? scope = null)
+        IAirportSectorRepository repo, IAirspaceCatalog catalogo, ISectorShapeParts pezzi,
+        ShapeFallbackScope? scope = null)
     {
         _repo = repo;
         _catalogo = catalogo;
+        _pezzi = pezzi;
         _scope = scope ?? new ShapeFallbackScope();
     }
 
@@ -80,29 +98,33 @@ public sealed class AtzTowerShapeService : IAtzTowerShapeService
         var perIcao = PerIcao(atz, cercati);
 
         var applicate = 0;
-        var ambigui = new List<string>();
+        var piuZone = new List<string>();
         var senza = 0;
 
         foreach (var t in bersagli)
         {
             if (!perIcao.TryGetValue(t.AirportIcao.ToUpperInvariant(), out var volumi)) { senza++; continue; }
 
-            if (volumi.Count > 1)
-            {
-                // Più di un ATZ: si salta e si dice quale. Mezza zona di traffico è peggio di nessuna.
-                if (!ambigui.Contains(t.AirportIcao)) ambigui.Add(t.AirportIcao);
-                senza++;
-                continue;
-            }
+            // Gli anelli degeneri si scartano uno per uno: uno rotto non porta via le altre zone del campo.
+            var buoni = volumi.Where(v => AorPolygonProjector.Project(v.PolygonJson) is not null).ToList();
+            if (buoni.Count == 0) { senza++; continue; }
 
-            var json = volumi[0].PolygonJson;
-            if (AorPolygonProjector.Project(json) is null) { senza++; continue; }   // anello degenere: non si disegna
+            if (buoni.Count > 1 && !piuZone.Contains(t.AirportIcao)) piuZone.Add(t.AirportIcao);
 
-            await _repo.SetAipShapeAsync(t.SectorId, json, ct);
+            // ⚠️ Prima si RESTITUISCE la colonna scritta dal giro vecchio, poi si scrivono i pezzi: se la
+            // vecchia ATZ restasse sotto, toglierli non riporterebbe il cerchio ma la stessa forma di prima.
+            if (t.ShapeSource == ShapeSource.Aip) await _repo.ClearAipShapeAsync(t.SectorId, ct);
+
+            await _pezzi.ReplacePartsAsync(SourceCatalog.AirportPosition, t.SectorId, t.ComposePosition,
+                ShapeSource.Aip, ShapePartState.InForce,
+                buoni.Select(v => new ShapePart(
+                    v.PolygonJson, v.BaseFeet, v.TopFeet, v.BaseDatum, v.TopDatum, v.BaseRaw, v.TopRaw,
+                    v.NaturalKey)).ToList(),
+                ct: ct);
             applicate++;
         }
 
-        return new AtzTowerShapeResult(applicate, ambigui, senza);
+        return new AtzTowerShapeResult(applicate, piuZone, senza);
     }
 
     /// <summary>

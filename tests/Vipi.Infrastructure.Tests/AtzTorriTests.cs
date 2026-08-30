@@ -21,6 +21,9 @@ public class AtzTorriTests : IAsyncLifetime
     private EfAirportSectorRepository _repo = default!;
     private EfAirspaceCatalog _catalogo = default!;
     private AtzTowerShapeService _atz = default!;
+    private EfSectorAirspaceBindings _agganci = default!;
+    private EfSectorShapeParts _pezzi = default!;
+    private EfSectorShapeResolver _forme = default!;
 
     public async Task InitializeAsync()
     {
@@ -29,7 +32,10 @@ public class AtzTorriTests : IAsyncLifetime
         await _db.Database.EnsureCreatedAsync();
         _repo = new EfAirportSectorRepository(_db);
         _catalogo = new EfAirspaceCatalog(_db);
-        _atz = new AtzTowerShapeService(_repo, _catalogo);
+        _agganci = new EfSectorAirspaceBindings(_db);
+        _pezzi = new EfSectorShapeParts(_db);
+        _forme = new EfSectorShapeResolver(_db, _agganci, _pezzi);
+        _atz = new AtzTowerShapeService(_repo, _catalogo, _pezzi);
     }
 
     public async Task DisposeAsync()
@@ -105,14 +111,25 @@ public class AtzTorriTests : IAsyncLifetime
         var esito = await _atz.ApplyAsync();
 
         Assert.Equal(1, esito.Applied);
+
+        // ⚠️ Carta refactor 15: l'ATZ NON abita più la colonna della shape — è un aggancio, e si legge
+        // dalla porta unica. È quel che la rende reversibile.
+        var forma = (await _forme.ResolveAsync(["LIBC_TWR"]))["LIBC_TWR"];
+        Assert.Equal(ShapeSource.Aip, forma.Source);
+        Assert.NotNull(AorPolygonProjector.Project(Assert.Single(forma.Parts).PolygonJson));
+
         var torre = await RicaricaAsync(id);
-        Assert.NotNull(AorPolygonProjector.Project(torre.RegionMapPolygon));
-        Assert.False(torre.IsShapeSynthetic);              // è un confine vero, non un cerchio
-        Assert.Equal(ShapeSource.Aip, torre.ShapeSource);  // e si sa da dove viene
+        Assert.Null(torre.RegionMapPolygon);                  // la colonna resta libera: la riempirà il cerchio
+        Assert.Equal(ShapeSource.Source, torre.ShapeSource);
     }
 
+    /// <summary>
+    /// Il cerchio cede il posto al confine vero — ma <b>resta sotto</b>, ed è la differenza che conta: dalla
+    /// carta refactor 15 sganciare l'ATZ riporta la torre al suo cerchio, mentre prima la shape scritta in
+    /// colonna se l'era portato via per sempre.
+    /// </summary>
     [Fact]
-    public async Task Il_Cerchio_Sintetico_Cede_Il_Posto_A_Un_Confine_Vero()
+    public async Task Il_Cerchio_Cede_Il_Posto_Al_Confine_Vero_E_Torna_Se_Si_Sgancia()
     {
         var cerchio = CircleShapeBuilder.Build(42.0, 12.0);
         var id = await TorreSenzaAreaAsync("LIBC", cerchio, sintetica: true);
@@ -120,9 +137,20 @@ public class AtzTorriTests : IAsyncLifetime
 
         Assert.Equal(1, (await _atz.ApplyAsync()).Applied);
 
+        var conAtz = (await _forme.ResolveAsync(["LIBC_TWR"]))["LIBC_TWR"];
+        Assert.Equal(ShapeSource.Aip, conAtz.Source);
+        Assert.NotEqual(cerchio, conAtz.Parts[0].PolygonJson);
+
+        // Il cerchio non è mai stato toccato: sta ancora in colonna, e lo sgancio lo rimette in vista.
         var torre = await RicaricaAsync(id);
-        Assert.NotEqual(cerchio, torre.RegionMapPolygon);
-        Assert.False(torre.IsShapeSynthetic);
+        Assert.Equal(cerchio, torre.RegionMapPolygon);
+        Assert.True(torre.IsShapeSynthetic);
+
+        await _pezzi.ClearPartsAsync(SourceCatalog.AirportPosition, id, ShapeSource.Aip);
+
+        var dopoSgancio = (await _forme.ResolveAsync(["LIBC_TWR"]))["LIBC_TWR"];
+        Assert.Equal(ShapeSource.Source, dopoSgancio.Source);
+        Assert.Equal(cerchio, dopoSgancio.Parts[0].PolygonJson);
     }
 
     [Fact]
@@ -137,11 +165,14 @@ public class AtzTorriTests : IAsyncLifetime
         Assert.Equal(ivao, (await RicaricaAsync(id)).RegionMapPolygon);
     }
 
+    /// <summary>
+    /// ✅ <b>RIBALTATO dalla carta refactor 15.</b> Guidonia (<c>LIRG</c>) ha DUE zone e Torino Aeritalia
+    /// (<c>LIMA</c>) TRE: prima si <b>saltavano</b>, perché la colonna della shape tiene un anello e mezza
+    /// zona di traffico è peggio di nessuna. Un aggancio tiene una <b>lista</b>: adesso si prendono intere.
+    /// </summary>
     [Fact]
-    public async Task Un_Icao_Con_Piu_Di_Un_Atz_Si_Salta_E_Lo_Dice()
+    public async Task Un_Icao_Con_Piu_Zone_Le_Prende_Tutte()
     {
-        // ⚠️ Il caso vero: Guidonia (LIRG) ha DUE zone e Torino Aeritalia (LIMA) TRE. La colonna della shape
-        // tiene un anello: metà zona di traffico è peggio di nessuna. Si agganciano a mano.
         var id = await TorreSenzaAreaAsync("LIRG");
         await CaricaAsync(Kml(
             ("ATZ ATZ 1 GUIDONIA LIRG", "Airspace class G"),
@@ -149,10 +180,13 @@ public class AtzTorriTests : IAsyncLifetime
 
         var esito = await _atz.ApplyAsync();
 
-        Assert.Equal(0, esito.Applied);
-        Assert.Equal(["LIRG"], esito.Ambiguous);
-        Assert.Equal(1, esito.StillWithout);
-        Assert.Null((await RicaricaAsync(id)).RegionMapPolygon);   // la prende il cerchio, dopo
+        Assert.Equal(1, esito.Applied);
+        Assert.Equal(["LIRG"], esito.MultiZone);   // si dicono lo stesso: sono i campi da guardare
+        Assert.Equal(0, esito.StillWithout);
+
+        var forma = (await _forme.ResolveAsync(["LIRG_TWR"]))["LIRG_TWR"];
+        Assert.Equal(2, forma.Parts.Count);
+        Assert.Null((await RicaricaAsync(id)).RegionMapPolygon);   // la colonna resta libera
     }
 
     [Fact]
@@ -166,7 +200,7 @@ public class AtzTorriTests : IAsyncLifetime
         var esito = await _atz.ApplyAsync();
 
         Assert.Equal(0, esito.Applied);
-        Assert.Empty(esito.Ambiguous);
+        Assert.Empty(esito.MultiZone);
         Assert.Equal(1, esito.StillWithout);
         Assert.Null((await RicaricaAsync(id)).RegionMapPolygon);
     }
@@ -175,17 +209,17 @@ public class AtzTorriTests : IAsyncLifetime
     public async Task Un_File_Nuovo_Aggiorna_Latz_Gia_Messa()
     {
         // Una shape che non si aggiorna mai è una shape che invecchia in silenzio.
-        var id = await TorreSenzaAreaAsync("LIBC");
+        await TorreSenzaAreaAsync("LIBC");
         await CaricaAsync(Kml(("ATZ CROTONE LIBC", "Airspace class G")));
         await _atz.ApplyAsync();
-        var prima = (await RicaricaAsync(id)).RegionMapPolygon;
+        var prima = (await _forme.ResolveAsync(["LIBC_TWR"]))["LIBC_TWR"].Parts[0].PolygonJson;
 
         // Il file nuovo ha lo stesso ATZ ma spostato: il volume è preceduto da un altro, quindi cade su
         // un'altra longitudine.
         await CaricaAsync(Kml(("ATZ ALTRO LIRZ", "Airspace class G"), ("ATZ CROTONE LIBC", "Airspace class G")));
         Assert.Equal(1, (await _atz.ApplyAsync()).Applied);
 
-        Assert.NotEqual(prima, (await RicaricaAsync(id)).RegionMapPolygon);
+        Assert.NotEqual(prima, (await _forme.ResolveAsync(["LIBC_TWR"]))["LIBC_TWR"].Parts[0].PolygonJson);
     }
 
     [Fact]
@@ -222,7 +256,13 @@ public class AtzTorriTests : IAsyncLifetime
 
         var torre = await RicaricaAsync(id);
         Assert.Equal(daSectorfile, torre.RegionMapPolygon);
-        Assert.Equal(ShapeSource.Aip, torre.ShapeSource);   // il marchio resta finché non lo cambia l'anagrafica
+
+        // ⚠️ Carta refactor 15: la precedenza la dice il risolutore, e una shape VERA del catalogo sta
+        // sopra il ripiego dell'AIP. I pezzi dell'ATZ restano in archivio — non si cancellano da sé, e
+        // tornerebbero utili se il sectorfile si ritirasse — ma non si vedono più.
+        var forma = (await _forme.ResolveAsync(["LIBC_TWR"]))["LIBC_TWR"];
+        Assert.Equal(ShapeSource.Source, forma.Source);
+        Assert.Equal(daSectorfile, Assert.Single(forma.Parts).PolygonJson);
     }
 
     /// <summary>Una sorgente di poligoni TWR finta: quel che <c>twrs.tfl</c> darebbe.</summary>

@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Airspace;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -48,6 +49,11 @@ public sealed class EfSectorShapeResolver : ISectorShapeResolver
             _db, cercati, ct, _release, _airac);
         var limiti = await EfAccDerivationRepository.SectorLimitsByCallsignAsync(_db, cercati, ct);
 
+        // ⚠️ Quali di quelle shape sono un CERCHIO DI RIPIEGO. Serve a mettere in fila i due ripieghi:
+        // un confine vero del catalogo (sectorfile o anagrafica) sta SOPRA l'ATZ automatica — è la decisione
+        // del committente, «l'AIP solo se non ce l'hai» — mentre il cerchio ci sta SOTTO.
+        var sintetiche = await SinteticheAsync(cercati, ct);
+
         foreach (var cs in cercati)
         {
             var scoperti = agganci.TryGetValue(cs, out var a)
@@ -56,8 +62,15 @@ public sealed class EfSectorShapeResolver : ISectorShapeResolver
 
             // ⚠️ L'ORDINE È LA REGOLA, e sta solo qui. Ogni gradino che non dà niente fa scendere a quello
             // sotto: un aggancio scoperto, o una fonte muta, NON cancellano l'area che il settore mostrava.
+            //
+            //   1. l'aggancio scelto a MANO                                        — il gesto di una persona
+            //   2. una shape VERA del catalogo (sectorfile o anagrafica)           — fonte primaria
+            //   3. i pezzi in archivio (l'ATZ automatica dell'AIP)                 — ripiego
+            //   4. il cerchio sintetico da 5 NM                                    — ripiego dell'ultimo minuto
+            var vera = !sintetiche.Contains(cs);
             var forma =
                 DaAggancio(cs, a, scoperti)
+                ?? (vera ? DaCatalogo(cs, grezzi, limiti, scoperti) : null)
                 ?? DaArchivio(cs, inArchivio, scoperti)
                 ?? DaCatalogo(cs, grezzi, limiti, scoperti);
 
@@ -108,6 +121,20 @@ public sealed class EfSectorShapeResolver : ISectorShapeResolver
 
     private static string Testo(int? quota, string seAssente) =>
         quota is { } q ? q.ToString(System.Globalization.CultureInfo.InvariantCulture) : seAssente;
+
+    /// <summary>
+    /// I callsign la cui shape in colonna è un <b>cerchio di ripiego</b> (<c>IsShapeSynthetic</c>). Solo le
+    /// posizioni d'aeroporto ce l'hanno: un subcenter di ACC non ha cerchi, quindi non compare mai qui.
+    /// </summary>
+    private async Task<HashSet<string>> SinteticheAsync(IReadOnlyList<string> callsigns, CancellationToken ct)
+    {
+        var righe = await _db.AirportSectors.AsNoTracking()
+            .Where(x => callsigns.Contains(x.ComposePosition) && x.IsShapeSynthetic)
+            .Select(x => x.ComposePosition)
+            .ToListAsync(ct);
+
+        return new HashSet<string>(righe, StringComparer.OrdinalIgnoreCase);
+    }
 
     private static string Norm(string? s) => (s ?? "").Trim().ToUpperInvariant();
 }
