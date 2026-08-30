@@ -192,7 +192,7 @@ Prima cosa da fare riprendendo: `git push -u origin consegna-db-20260830`.
 ⚠️ **La finestra scoperta è adesso.** I file nuovi sono sul server e il database è ancora quello vecchio: se
 Passenger rigenera il processo da solo — **è già successo il 23 agosto senza che nessuno toccasse
 `tmp/restart.txt`** — il pacchetto `j` applica **in produzione, da solo, le 36 migrazioni** che il dump
-avrebbe portato già fatte. Il rilevatore c'è ed è la query in cima a `passo1`: se elenca tabelle, il sito è
+avrebbe portato già fatte. Il rilevatore c'è ed è la query in cima allo script di copia: se elenca tabelle, il sito è
 ripartito prima.
 
 ⚠️⚠️ **QUESTA CONSEGNA RIPARTE DA ZERO SUL CONTENUTO**, per decisione del committente: dentro ci sono le
@@ -931,7 +931,7 @@ release, niente spazi aerei, niente statistiche: si riscrive dal sito nei giorni
 |---|---|---|---|
 | **Database** | `vipi-atc-it-ivao-aero-2026-08-30.sql` — **985 KB** (1 008 594 byte), 3546 righe | `_mariadb/dump/` (**fuori dal repo**) | `5C4BC0BC…F1E5C8AB` |
 | **Lo stesso, compresso** | `…​.sql.gz` — **186 KB** | idem | `2F3AA500…9474E36C` |
-| **Foglio + i due script di rete** | [`../artifacts/`](../artifacts/) — `CONSEGNA-DB-20260830.md`, `-passo1-…​.sql`, `-ripristino.sql` | fuori da git | — |
+| **Foglio + i due script di rete** | [`../artifacts/`](../artifacts/) — `CONSEGNA-DB-20260830.md`, `-copia-di-sicurezza.sql`, `-ripristino.sql` | fuori da git | — |
 | **Sito** | `vipi-linux-x64-mariadb-20260830.zip` — 50,4 MB, 474 file, self-contained net8, pacchetto **`j`** | `artifacts/publish/` | `08335127…55FAB922` |
 
 ⚠️ **Il timbro del pacchetto è `j · 2e96bbc`, e quel commit sta solo in locale**: è la testa del ramo
@@ -1019,7 +1019,7 @@ su MySQL **nessuno enumera le tabelle**: `ISchemaDriftProbe` si spegne fuori da 
 modello.
 
 Due script, generati dai dump e **provati end-to-end** su una copia del loro database:
-`artifacts/CONSEGNA-DB-20260830-passo1-copia-di-sicurezza.sql` e `…-ripristino.sql`. La prova:
+`artifacts/CONSEGNA-DB-20260830-copia-di-sicurezza.sql` e `…-ripristino.sql`. La prova:
 39 tabelle/4162 righe → copia → import (57/40 078) → ripristino → **di nuovo 39 e 4162, esatte, zero
 residui**. Il ripristino sono `RENAME`, cioè metadati: dura secondi.
 
