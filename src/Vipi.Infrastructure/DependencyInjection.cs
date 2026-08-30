@@ -130,6 +130,7 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.INavaidCatalog, EfNavaidCatalog>();
         services.AddScoped<Vipi.Application.Abstractions.IAttachmentLibrary, EfAttachmentLibrary>();
         services.AddScoped<Vipi.Application.Abstractions.IAttachmentTextSource, EfAttachmentTextSource>();
+        services.AddScoped<Vipi.Application.Abstractions.IPageIntroStore, EfPageIntroStore>();
         services.AddScoped<Vipi.Application.Airspace.IAirspaceCatalog, EfAirspaceCatalog>();
         services.AddScoped<Vipi.Application.Airspace.ISectorAirspaceBindings, EfSectorAirspaceBindings>();
         // ⚠️ SINGLETON, e va prima delle due porte che lo alzano: il gettone dei cambi di forma vive quanto il
