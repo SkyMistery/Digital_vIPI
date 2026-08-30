@@ -698,6 +698,13 @@
     /// senza essere stata scritta è la stessa perdita di non averla mai provata — e a fine giornata nessuno
     /// saprebbe quali riprovare.
     /// </summary>
+    /// <summary>
+    /// Lo stesso salvataggio del tasto, per la PAGINA: «Fine modifica» lo chiama prima di mollare il lock, o
+    /// le righe corrette qui dentro resterebbero fuori — sono un buffer di questo componente, e la pagina non
+    /// ha modo di scriverle da sé.
+    /// </summary>
+    public Task SalvaSporcheAsync() => _dirtySid.Count == 0 ? Task.CompletedTask : SalvaImportateSporche();
+
     private Task SalvaImportateSporche() => RunGuarded(async () =>
     {
         var bersagli = Imported.Where(e => _dirtySid.Contains(e.Id)).ToList();

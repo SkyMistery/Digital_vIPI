@@ -1942,6 +1942,7 @@
   <data name="Ape_SidDiscardConfirm" xml:space="preserve"><value>Ci sono {0} SID modificate e non salvate: il ri-prelievo le scarta. Continuare?</value></data>
   <data name="Ape_SidDiscardConfirmOne" xml:space="preserve"><value>C'è 1 SID modificata e non salvata: il ri-prelievo la scarta. Continuare?</value></data>
   <data name="Ape_SaveAllTitle" xml:space="preserve"><value>Salva tutte le sezioni modificate nella bozza — Ctrl+S</value></data>
+  <data name="Ape_ExitBlocked" xml:space="preserve"><value>Restano modifiche non salvate: correggile o salvale, poi esci dalla modifica.</value></data>
   <data name="Ape_SaveAllN" xml:space="preserve"><value>Salva tutto ({0})</value></data>
   <data name="Ape_SaveHelpAria" xml:space="preserve"><value>Aiuto sul salvataggio</value></data>
   <data name="Ape_SaveHelpBody" xml:space="preserve"><value>Salva tutte le sezioni modificate nella &lt;b&gt;bozza&lt;/b&gt; (anche con &lt;span class="guida-kbd"&gt;Ctrl&lt;/span&gt;+&lt;span class="guida-kbd"&gt;S&lt;/span&gt;). Il pubblico le vede solo dopo la &lt;b&gt;pubblicazione&lt;/b&gt;.</value></data>
