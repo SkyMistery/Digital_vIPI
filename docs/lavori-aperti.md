@@ -211,7 +211,7 @@ Il primo pacchetto che porta un **numero** invece di una lettera, e il primo **i
 |---|---|
 | **Timbro** | `1.1.0 · aaaeddb` (il foglio con questo timbro è nel commit **dopo**: il timbro nasce dal commit al momento del publish) |
 | **Da caricare** | **18 file, 12,4 MB** — `artifacts/publish/solo-18-file-1.1.0/` |
-| **Zip da spedire** | `artifacts/publish/vipi-1.1.0-solo-file-cambiati.zip`, **4,07 MB**, sha256 `b0d9437e…1ed0a4ce`. Dentro **due rami**: `solo-18-file-1.1.0/` (si carica) e `docs/` (si legge) |
+| **Zip da spedire** | `artifacts/publish/vipi-1.1.0-solo-file-cambiati.zip`, **4,07 MB**, sha256 `ad943395…6f14d7a3c`. Dentro **due rami**: `solo-18-file-1.1.0/` (si carica) e `docs/` (si legge) |
 | **Fogli** | `artifacts/publish/docs/`, copiati da `deploy/atc-ivao/` che resta la sorgente |
 | **Pacchetto completo** | `artifacts/publish/linux-x64-20260831/` (460 file), tenuto come riferimento e per il prossimo diff |
 | **Database** | **non si tocca.** Nessuna migrazione in nessuno dei due rami fusi |
@@ -227,6 +227,15 @@ ed è l'unico modo di rispondere fra sei mesi a «cosa gli avevamo detto di fare
 danno, ma quella cartella diventerebbe un misto di due cose — ed è così che si carica quella sbagliata.
 ℹ️ `publish_old/solo-2-file/` sta alla radice e non in un gruppo: **non ha un suffisso di versione**, e
 attribuirlo per data sarebbe stata un'ipotesi travestita da riordino.
+
+🔴 **E il riordino ha scoperto una cosa che andava scoperta**: nella cartella dei file da caricare era
+comparso **`k7f3a91c4atce8b2.json`**, cioè il file dei **segreti** di produzione (connection string con la
+password, `ClientSecret` di IVAO e di VipiAuth). Costruendo lo zip **camminando la cartella**, ci era finito
+dentro — nel file che si spedisce per posta. Quel file è protetto **solo** dal nome non indovinabile
+([[host-reale-plesk-passenger]]): dentro un allegato non è protetto da niente. ⚠️ **Non è la prima volta**:
+la stessa cosa è in `publish_old/20260824-i/solo-4-file-i/`, del 24 agosto.
+**La cura non è «stare attenti»**: lo zip ora si costruisce dall'elenco di `IMPRONTE.txt` — cioè da quel che
+il foglio **dichiara** — e ogni file presente ma non dichiarato viene elencato e lasciato fuori.
 
 **Perché 18 e non 474.** Solo cinque assiemi cambiano davvero (`Host`, `Ui`, `Hosting`, `Application`,
 `Infrastructure`): gli altri differiscono solo per l'MVID di una ricompilazione, e ricaricarli sarebbe
