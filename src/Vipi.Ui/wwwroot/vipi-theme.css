@@ -851,6 +851,10 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .pill.green{background:var(--tint-green);color:var(--ok-ink)}
 .pill.future{background:var(--tint-yellow);color:var(--warn-ink);border:1px dashed var(--line-yellow)}
 .pill.neutral{background:var(--tint-atmos);color:var(--ink-mid)}  /* pill grigio-azzurra (condizione/nascosta), U8: prima inline */
+/* Cella dei limiti verticali SCAVALCATA da un aggancio all'AIP: le quote vere le portano i pezzi della forma
+   agganciata (carta refactor 15). Si sbiadisce invece di sparire — il giorno che si sgancia torna a valere. */
+.lim-overridden{opacity:.45}
+.lim-overridden input{text-decoration:line-through}
 .pill.red{background:var(--tint-orange);color:var(--danger-ink)}      /* stato negativo (nascosto dall'admin): prima in linea */
 .pill.amber{background:var(--tint-yellow);color:var(--warn-ink-orange)}    /* avviso su una riga (senza torre): prima in linea */
 

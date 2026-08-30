@@ -149,7 +149,7 @@ public class AtzTorriTests : IAsyncLifetime
         await _pezzi.ClearPartsAsync(SourceCatalog.AirportPosition, id, ShapeSource.Aip);
 
         var dopoSgancio = (await _forme.ResolveAsync(["LIBC_TWR"]))["LIBC_TWR"];
-        Assert.Equal(ShapeSource.Source, dopoSgancio.Source);
+        Assert.Equal(ShapeSource.Synthetic, dopoSgancio.Source);   // ed è un cerchio, e lo dice
         Assert.Equal(cerchio, dopoSgancio.Parts[0].PolygonJson);
     }
 

@@ -25,6 +25,7 @@
 @inject IMilitaryDocumentService Militari
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
+@inject Vipi.Application.Airspace.ISectorShapeResolver Forme
 @inject EnglishStrings En
 
 @if (_acc is null)
@@ -243,14 +244,19 @@ else
                                                     }
                                                     else { <span class="muted">—</span> }
                                                 </td>
-                                                <td>@(hasLimits ? (s.HasPolygon ? "✓" : "—") : "—")</td>
+                                                <td>@if (hasLimits) { <ShapeSourcePill Shape="@FormaDi(s.ComposePosition)" /> } else { <span class="muted">—</span> }</td>
                                                 @if (hasLimits)
                                                 {
-                                                    <td>
+                                                    @* ⚠️ Con la forma agganciata all'AIP le quote le portano i PEZZI: queste due caselle
+                                                       restano quelle dell'anagrafica e non le usa nessuno finché l'aggancio dura. *@
+                                                    <td class="@(Scavalcati(s.ComposePosition) ? "lim-overridden" : null)"
+                                                        title="@(Scavalcati(s.ComposePosition) ? L["Shape_LimitsOverridden"].Value : null)">
                                                         <input style="width:70px" value="@FmtLower(_secLower.GetValueOrDefault(s.Id))" @onchange="e => _secLower[s.Id] = ParseLower(e.Value)" title="@L["AccAdmin_LowerHint"]" disabled="@(!_canEdit || s.LimitsFromSource)" />
                                                         @if (s.LimitsFromSource) { <span class="pill" style="background:var(--surface-muted);color:var(--ink-soft);margin-left:4px" title="@L["Ape_LimitsFromSourceTitle"]">🔒</span> }
                                                     </td>
-                                                    <td><input style="width:70px" value="@FmtUpper(_secUpper.GetValueOrDefault(s.Id))" @onchange="e => _secUpper[s.Id] = ParseUpper(e.Value)" title="@L["AccAdmin_UpperHint"]" disabled="@(!_canEdit || s.LimitsFromSource)" /></td>
+                                                    <td class="@(Scavalcati(s.ComposePosition) ? "lim-overridden" : null)"
+                                                        title="@(Scavalcati(s.ComposePosition) ? L["Shape_LimitsOverridden"].Value : null)">
+                                                        <input style="width:70px" value="@FmtUpper(_secUpper.GetValueOrDefault(s.Id))" @onchange="e => _secUpper[s.Id] = ParseUpper(e.Value)" title="@L["AccAdmin_UpperHint"]" disabled="@(!_canEdit || s.LimitsFromSource)" /></td>
                                                 }
                                                 else
                                                 {
@@ -637,6 +643,9 @@ else
         _sectors = await Sectors.ListByAirportAsync(_icao);
         _secLower.Clear(); _secUpper.Clear();
         foreach (var s in _sectors) { _secLower[s.Id] = s.LowerLimit; _secUpper[s.Id] = s.UpperLimit; }
+        // Da dove viene la forma di ognuno: UNA domanda per tutta la tabella, in sequenza col resto del
+        // caricamento (il DbContext del circuito è uno solo).
+        _formeSettori = await Forme.ResolveAsync(_sectors.Select(x => x.ComposePosition).ToList());
 
         // ---- l'edizione giusta per questo scalo (carta vSOP militari §5-bis) ----
         // ⚠️ Si legge dal DATABASE e non da `Stations.Airport` (che è la cache di circuito usata per
@@ -920,6 +929,9 @@ else
         _sectors = await Sectors.ListByAirportAsync(_icao);
         _secLower.Clear(); _secUpper.Clear();
         foreach (var s in _sectors) { _secLower[s.Id] = s.LowerLimit; _secUpper[s.Id] = s.UpperLimit; }
+        // Da dove viene la forma di ognuno: UNA domanda per tutta la tabella, in sequenza col resto del
+        // caricamento (il DbContext del circuito è uno solo).
+        _formeSettori = await Forme.ResolveAsync(_sectors.Select(x => x.ComposePosition).ToList());
     }
 
     // --- Configurazioni: piste reali + toggle CSV/giorni, riordino, conversioni tempo ---
@@ -1071,4 +1083,14 @@ else
         ProgrammaChiusuraInformativa();
     }
 
+
+    /// <summary>La forma risolta di ogni posizione: da dove viene, e di quanti pezzi è fatta (carta refactor 15).</summary>
+    private IReadOnlyDictionary<string, Vipi.Application.Airspace.SectorShape> _formeSettori =
+        new Dictionary<string, Vipi.Application.Airspace.SectorShape>();
+
+    private Vipi.Application.Airspace.SectorShape? FormaDi(string callsign) =>
+        _formeSettori.TryGetValue(callsign, out var f) ? f : null;
+
+    /// <summary>Vero se le quote di questa riga non le usa nessuno: le porta l'aggancio all'AIP.</summary>
+    private bool Scavalcati(string callsign) => FormaDi(callsign)?.FromAip == true;
 }

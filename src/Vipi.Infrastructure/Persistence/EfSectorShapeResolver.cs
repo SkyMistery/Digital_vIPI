@@ -67,12 +67,12 @@ public sealed class EfSectorShapeResolver : ISectorShapeResolver
             //   2. una shape VERA del catalogo (sectorfile o anagrafica)           — fonte primaria
             //   3. i pezzi in archivio (l'ATZ automatica dell'AIP)                 — ripiego
             //   4. il cerchio sintetico da 5 NM                                    — ripiego dell'ultimo minuto
-            var vera = !sintetiche.Contains(cs);
+            var sintetica = sintetiche.Contains(cs);
             var forma =
                 DaAggancio(cs, a, scoperti)
-                ?? (vera ? DaCatalogo(cs, grezzi, limiti, scoperti) : null)
+                ?? (sintetica ? null : DaCatalogo(cs, grezzi, limiti, scoperti, sintetica: false))
                 ?? DaArchivio(cs, inArchivio, scoperti)
-                ?? DaCatalogo(cs, grezzi, limiti, scoperti);
+                ?? DaCatalogo(cs, grezzi, limiti, scoperti, sintetica);
 
             if (forma is not null) esito[cs] = forma;
         }
@@ -107,7 +107,7 @@ public sealed class EfSectorShapeResolver : ISectorShapeResolver
     /// </summary>
     private static SectorShape? DaCatalogo(
         string cs, IReadOnlyDictionary<string, string> grezzi,
-        IReadOnlyDictionary<string, SectorFlLimits> limiti, IReadOnlyList<string> scoperti)
+        IReadOnlyDictionary<string, SectorFlLimits> limiti, IReadOnlyList<string> scoperti, bool sintetica)
     {
         if (!grezzi.TryGetValue(cs, out var raw) || string.IsNullOrWhiteSpace(raw)) return null;
 
@@ -116,7 +116,10 @@ public sealed class EfSectorShapeResolver : ISectorShapeResolver
             raw, l?.Lower, l?.Upper, AirspaceDatum.Amsl, AirspaceDatum.Amsl,
             Testo(l?.Lower, "GND"), Testo(l?.Upper, "UNL"));
 
-        return new SectorShape(cs, ShapeSource.Source, new[] { pezzo }, scoperti);
+        // ⚠️ Un cerchio di ripiego lo dice: chi guarda una pagina deve poter distinguere un confine da un
+        // disegno nostro. È la stessa informazione che il risolutore usa per metterlo all'ultimo gradino.
+        var fonte = sintetica ? ShapeSource.Synthetic : ShapeSource.Source;
+        return new SectorShape(cs, fonte, new[] { pezzo }, scoperti);
     }
 
     private static string Testo(int? quota, string seAssente) =>

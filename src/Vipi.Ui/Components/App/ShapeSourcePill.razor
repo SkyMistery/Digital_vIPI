@@ -1,0 +1,42 @@
+@using Vipi.Application.Airspace
+@using Vipi.Domain
+@inject IStringLocalizer<SharedResource> L
+
+@*
+    Da dove viene la forma di questo settore, in una pastiglia sola.
+
+    ⚠️ Sta in un componente e non in due tabelle: le pagine che mostrano i limiti verticali sono DUE
+    (Struttura ACC ed editor aeroporto), e due copie diventerebbero due comportamenti diversi il giorno che
+    una delle due cambia. Stessa ragione per cui il risolutore è uno (carta refactor 15).
+
+    ⚠️ La pastiglia dice anche QUANTI pezzi: «AIP · 2» è l'unica cosa a schermo che distingue un CTR di due
+    zone da uno solo, e il numero è il motivo per cui questa storia è cominciata.
+*@
+
+@if (Shape is null)
+{
+    <span class="pill neutral" title="@L["Shape_NoneTitle"]">@L["Shape_None"]</span>
+}
+else if (Shape.Source == ShapeSource.Aip)
+{
+    <span class="pill blue" title="@L["Shape_FromAipTitle", Shape.Parts.Count]">
+        @L["Shape_FromAip"] · @Shape.Parts.Count
+    </span>
+}
+else if (Shape.Source == ShapeSource.Sectorfile)
+{
+    <span class="pill" title="@L["Shape_FromSectorfileTitle"]">@L["Shape_FromSectorfile"]</span>
+}
+else if (Shape.Source == ShapeSource.Synthetic)
+{
+    <span class="pill neutral" title="@L["Shape_SyntheticTitle"]">@L["Shape_Synthetic"]</span>
+}
+else
+{
+    <span class="pill green" title="@L["Shape_FromSourceTitle"]">@L["Shape_FromSource"]</span>
+}
+
+@code {
+    /// <summary>La forma risolta del settore; <c>null</c> = non ne ha nessuna (DEL e GND).</summary>
+    [Parameter] public SectorShape? Shape { get; set; }
+}
