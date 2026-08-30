@@ -64,6 +64,18 @@ public interface IAirportSectorRepository
     /// </summary>
     Task SetAipShapeAsync(int sectorId, string polygonJson, CancellationToken ct = default);
 
+    /// <summary>
+    /// Restituisce la colonna: toglie una shape scritta dall'<b>AIP</b> e rimette la riga com'era prima —
+    /// nessun poligono, fonte <c>Source</c> — così il cerchio di ripiego può rifarla e l'anagrafica riprendere
+    /// il comando.
+    ///
+    /// <para>⚠️ Non tocca una riga che l'AIP non ha scritto: una shape vera, sintetica o dal sectorfile resta
+    /// dov'è. Serve alla carta refactor 15, dove l'ATZ smette di abitare la colonna e diventa un
+    /// <b>aggancio</b>: senza questo passo la forma vecchia resterebbe sotto, e lo sgancio non riporterebbe
+    /// niente.</para>
+    /// </summary>
+    Task<bool> ClearAipShapeAsync(int sectorId, CancellationToken ct = default);
+
     /// <summary>Poligoni grezzi NON sintetici di tutti i settori d'aeroporto (per ICAO), per derivare un centro di
     /// ripiego dal poligono di un settore fratello (es. APP) quando le coordinate aeroporto non sono note.</summary>
     Task<IReadOnlyList<AirportPolygonRow>> ListNonSyntheticPolygonsAsync(CancellationToken ct = default);

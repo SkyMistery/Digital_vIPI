@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Airspace;
 using Vipi.Application.Stats;
 using Vipi.Domain;
 using Xunit;
@@ -17,14 +18,23 @@ public class SectorVolumeMapTests
     private const string Fir = "[[10,40],[14,40],[14,44],[10,44]]";
     private const string Campo = "[[11.5,41.5],[12.5,41.5],[12.5,42.5],[11.5,42.5]]";
 
+    /// <summary>Una riga con un pezzo solo: la forma di IVAO, come la dà la porta unica.</summary>
+    private static SectorVolumeRow Riga(string cs, string? padre, SectorType tipo, string? icao,
+        string? poligono, int? basso, int? alto) =>
+        new(cs, padre, tipo, icao,
+            poligono is null
+                ? Array.Empty<ShapePart>()
+                : new[] { new ShapePart(poligono, basso, alto, AirspaceDatum.Amsl, AirspaceDatum.Amsl, "", "") },
+            ShapeSource.Source);
+
     private static readonly List<SectorVolumeRow> Roma = new()
     {
-        new("LIRR_NE1_CTR", null, SectorType.Ctr, null, Fir, 0, null),
-        new("LIRF_TW1_APP", "LIRR_NE1_CTR", SectorType.App, "LIRF", Campo, 0, 19500),
-        new("LIRF_TWR", "LIRF_TW1_APP", SectorType.Twr, "LIRF", Campo, 0, 3000),
+        Riga("LIRR_NE1_CTR", null, SectorType.Ctr, null, Fir, 0, null),
+        Riga("LIRF_TW1_APP", "LIRR_NE1_CTR", SectorType.App, "LIRF", Campo, 0, 19500),
+        Riga("LIRF_TWR", "LIRF_TW1_APP", SectorType.Twr, "LIRF", Campo, 0, 3000),
         // ⚠️ DEL e GND non hanno poligono: nel vipi.db reale sono 0 su 5 e 0 su 20.
-        new("LIRF_GND", "LIRF_TWR", SectorType.Gnd, "LIRF", null, null, null),
-        new("LIRF_DEL", "LIRF_GND", SectorType.Del, "LIRF", null, null, null),
+        Riga("LIRF_GND", "LIRF_TWR", SectorType.Gnd, "LIRF", null, null, null),
+        Riga("LIRF_DEL", "LIRF_GND", SectorType.Del, "LIRF", null, null, null),
     };
 
     private static IReadOnlySet<string> Online(params string[] cs) =>
@@ -96,8 +106,8 @@ public class SectorVolumeMapTests
     {
         var ciclo = new List<SectorVolumeRow>
         {
-            new("A_CTR", "B_CTR", SectorType.Ctr, null, Fir, 0, null),
-            new("B_CTR", "A_CTR", SectorType.Ctr, null, Fir, 0, null),
+            Riga("A_CTR", "B_CTR", SectorType.Ctr, null, Fir, 0, null),
+            Riga("B_CTR", "A_CTR", SectorType.Ctr, null, Fir, 0, null),
         };
         var claims = SectorVolumeMap.BuildClaims(ciclo, Online("A_CTR"));
         Assert.NotEmpty(claims);

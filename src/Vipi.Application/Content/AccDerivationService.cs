@@ -89,9 +89,9 @@ public sealed class AccDerivationService : IAccDerivationService
 
     public AccDerivationService(IAccDerivationRepository repo, ISpecialAreaRepository areas, IAgreementService transfers,
         ITopologyProvider topology, Aor.IAorService aor, ICoordinationSentenceTemplate sentence,
-        IVectoringMinimaSource minima, ReadingLanguageContext? lingua = null,
-        Translation.TranslationLookup? traduzioni = null,
-        Airspace.ISectorAirspaceBindings? agganciAip = null)
+        IVectoringMinimaSource minima, Airspace.ISectorShapeResolver forme,
+        ReadingLanguageContext? lingua = null,
+        Translation.TranslationLookup? traduzioni = null)
     {
         _repo = repo;
         _areas = areas;
@@ -102,14 +102,15 @@ public sealed class AccDerivationService : IAccDerivationService
         _minima = minima;
         _lingua = lingua;
         _traduzioni = traduzioni;
-        _agganciAip = agganciAip;
+        _forme = forme;
     }
 
     /// <summary>
-    /// Gli agganci agli spazi aerei dell'AIP: dove un settore ha una forma scelta a mano, l'AoR disegna
-    /// quella. ⚠️ Facoltativa apposta — senza catalogo caricato la derivazione è quella di prima.
+    /// La <b>porta unica</b> per la forma di un settore: anello e quote, sempre della stessa fonte. Non è
+    /// facoltativa — è il punto della carta 15: chi vuole una forma la chiede qui, e nessuno se la va a
+    /// prendere per conto suo.
     /// </summary>
-    private readonly Airspace.ISectorAirspaceBindings? _agganciAip;
+    private readonly Airspace.ISectorShapeResolver _forme;
 
     public Task<IReadOnlyList<AccTreeRoot>> ListTreeRootsAsync(string accCode, CancellationToken ct = default) =>
         _repo.ListTreeRootsAsync(Norm(accCode), ct);
@@ -197,71 +198,52 @@ public sealed class AccDerivationService : IAccDerivationService
         var callsigns = configs.SelectMany(c => c.OpenCallsigns).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         if (callsigns.Count == 0) callsigns = (await MembersOfAsync(accCode, block, rootCallsign, ct)).ToList();
 
-        var rawByCs = await _repo.GetSectorPolygonsRawByCallsignAsync(callsigns, ct);
-        var limits = await _repo.GetSectorLimitsByCallsignAsync(callsigns, ct);
         var names = await NameMapAsync(accCode, ct);
 
-        // Gli agganci all'AIP: dove qualcuno ha scelto a mano quale spazio aereo un settore controlla, si
-        // disegna quello. La scelta non tocca la shape del settore (carta §6-bis): vale sull'AoR.
-        var agganci = _agganciAip is null ? null : await _agganciAip.ResolveAsync(callsigns, ct);
+        // ⚠️ UNA PORTA SOLA (carta refactor 15): il risolutore sa già la precedenza — l'aggancio all'AIP
+        // scelto a mano, poi i pezzi in archivio, poi le colonne del catalogo col gate AIRAC. Qui non si
+        // decide più niente: si disegna quel che risponde.
+        var forme = await _forme.ResolveAsync(callsigns, ct);
 
         var sectors = new List<AccSectorAor>();
         foreach (var cs in callsigns)
         {
             var name = names.TryGetValue(cs, out var n) ? n : cs;
-            var daAip = agganci is not null && agganci.TryGetValue(cs, out var a)
-                ? Airspace.AirspaceAor.Shape(a)
-                : null;
+            var proiezione = Aor.AorShapeProjection.Project(forme.GetValueOrDefault(cs));
+            if (proiezione.IsEmpty) continue;   // nessuna forma da nessuna fonte: DEL e GND stanno qui
 
-            if (daAip is not null)
-            {
-                sectors.Add(new AccSectorAor(cs, name, Aor.AorColorScheme.Resolve(cs, block.AorColorOverrides),
-                    daAip.Polygons, daAip.LowerFl, daAip.UpperFl));
-                continue;
-            }
-
-            // ⚠️ Nessun aggancio, o aggancio scoperto: si resta sulla forma di IVAO.
-            if (!rawByCs.TryGetValue(cs, out var raw)) continue;
-            var poly = Aor.AorPolygonProjector.Project(raw);
-            if (poly is null) continue;
-            var (lo, hi) = FlBandOf(cs, limits);
-            sectors.Add(new AccSectorAor(cs, name, Aor.AorColorScheme.Resolve(cs, block.AorColorOverrides), new[] { poly }, lo, hi));
+            sectors.Add(new AccSectorAor(cs, name, Aor.AorColorScheme.Resolve(cs, block.AorColorOverrides),
+                proiezione.Polygons, proiezione.LowerFl, proiezione.UpperFl));
         }
 
         // Shape extra scelte a mano (settori DB, anche esteri): appese come anelli toggleabili dopo i settori
         // principali, dedup su quanto già presente. Nome = da NameMap se noto, altrimenti il callsign.
         if (block.ExtraAorCallsigns.Count > 0)
         {
-            var extraRaw = await _repo.GetSectorPolygonsRawByCallsignAsync(block.ExtraAorCallsigns, ct);
-            var extraLimits = await _repo.GetSectorLimitsByCallsignAsync(block.ExtraAorCallsigns, ct);
-            AppendExtraShapes(sectors, block.ExtraAorCallsigns, extraRaw, extraLimits, names, block.AorColorOverrides);
+            // Le shape extra passano dalla STESSA porta: se una di quelle è agganciata, si disegna la forma
+            // agganciata anche lì — altrimenti la stessa area direbbe due cose in due punti della pagina.
+            var extra = await _forme.ResolveAsync(block.ExtraAorCallsigns, ct);
+            AppendExtraShapes(sectors, block.ExtraAorCallsigns, extra, names, block.AorColorOverrides);
         }
 
         return new AccAorView(sectors, configs);
     }
 
-    // Banda FL (Lower/Upper) di un settore per l'estrusione 3D, normalizzata; assente = default GND/UNL.
-    private static (int? Lower, int? Upper) FlBandOf(string cs, IReadOnlyDictionary<string, SectorFlLimits> limits)
-    {
-        if (!limits.TryGetValue(cs, out var l)) return (null, null);
-        var (bottom, top) = Aor.AorFlBand.Normalize(l.Lower, l.Upper);
-        return (bottom, top);
-    }
 
-    // Appende gli anelli delle shape extra (settori DB) non già presenti; colore per tipo-ente + override; banda FL.
+    // Appende gli anelli delle shape extra (settori DB) non già presenti; colore per tipo-ente + override.
     private static void AppendExtraShapes(List<AccSectorAor> sectors, IReadOnlyList<string> extra,
-        IReadOnlyDictionary<string, string> rawByCs, IReadOnlyDictionary<string, SectorFlLimits> limits,
+        IReadOnlyDictionary<string, Airspace.SectorShape> forme,
         IReadOnlyDictionary<string, string> names, IReadOnlyDictionary<string, string> colorOverrides)
     {
         var present = new HashSet<string>(sectors.Select(s => s.Callsign), StringComparer.OrdinalIgnoreCase);
         foreach (var cs in extra.Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            if (present.Contains(cs) || !rawByCs.TryGetValue(cs, out var raw)) continue;
-            var poly = Aor.AorPolygonProjector.Project(raw);
-            if (poly is null) continue;
+            if (present.Contains(cs)) continue;
+            var proiezione = Aor.AorShapeProjection.Project(forme.GetValueOrDefault(cs));
+            if (proiezione.IsEmpty) continue;
             var name = names.TryGetValue(cs, out var n) ? n : cs;
-            var (lo, hi) = FlBandOf(cs, limits);
-            sectors.Add(new AccSectorAor(cs, name, Aor.AorColorScheme.Resolve(cs, colorOverrides), new[] { poly }, lo, hi));
+            sectors.Add(new AccSectorAor(cs, name, Aor.AorColorScheme.Resolve(cs, colorOverrides),
+                proiezione.Polygons, proiezione.LowerFl, proiezione.UpperFl));
             present.Add(cs);
         }
     }

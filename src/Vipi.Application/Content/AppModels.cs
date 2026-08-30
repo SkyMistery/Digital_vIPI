@@ -119,10 +119,23 @@ public sealed class AppCoordination
         new() { TowardAcc = Array.Empty<AppCoordGroup>(), TowardTowers = Array.Empty<AppCoordGroup>() };
 }
 
-/// <summary>Poligono AoR: punti reali [lat,lon] (per overlay su mappa) + path SVG di fallback + bounding box/centro. null = nessuna shape.</summary>
+/// <summary>
+/// Poligono AoR: punti reali [lat,lon] (per overlay su mappa) + path SVG di fallback + bounding box/centro.
+/// null = nessuna shape.
+///
+/// <para>⚠️ <b>La banda è del POLIGONO, non del settore</b> (carta
+/// <c>docs/refactor/15-shape-del-settore-una-porta-sola.md</c>): un CTR di più zone ha una quota per zona —
+/// misurato, <c>LIBA_APP</c> è <c>GND → FL105</c> su una e <c>7000 FT AMSL → FL195</c> sull'altra — e un
+/// inviluppo unico disegnerebbe un parallelepipedo che rivendica cielo che il CTR non ha.</para>
+///
+/// <para><c>null</c> su tutt'e due = «la banda la dice il settore», ed è il caso di ogni forma che viene
+/// dalle colonne del catalogo. ⚠️ Sono in coda e facoltativi <b>di proposito</b>: gli snapshot di release
+/// già congelati non li hanno, e devono continuare a leggersi.</para>
+/// </summary>
 public sealed record AppAorPolygon(
     string ViewBox, string Path, IReadOnlyList<double[]> Points,
-    double MinLat, double MinLon, double MaxLat, double MaxLon, double CenterLat, double CenterLon);
+    double MinLat, double MinLon, double MaxLat, double MaxLon, double CenterLat, double CenterLon,
+    int? LowerFl = null, int? UpperFl = null);
 
 /// <summary>Riga della tabella VFR (trasferimento VFR APP↔torre): situazione → procedura.</summary>
 public sealed record AppVfrRow(string Situation, string Procedure);

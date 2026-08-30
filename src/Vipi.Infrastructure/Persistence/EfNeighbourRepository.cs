@@ -17,16 +17,80 @@ public sealed class EfNeighbourRepository : INeighbourRepository
 {
     private readonly VipiDbContext _db;
     private readonly IAiracService _airac;
-    public EfNeighbourRepository(VipiDbContext db, IAiracService airac) { _db = db; _airac = airac; }
+    private readonly Vipi.Application.Airspace.ISectorShapeResolver? _forme;
 
-    public async Task<IReadOnlyList<DomesticSectorPoly>> ListDomesticSectorPolygonsAsync(CancellationToken ct = default) =>
-        await _db.AccSectors.AsNoTracking()
+    /// <param name="forme">
+    /// La porta unica per la forma di un settore (carta refactor 15). ⚠️ Facoltativa: senza, i confinanti si
+    /// calcolano sulla colonna del catalogo, che è il comportamento di prima — serve ai test che montano
+    /// questo repository da sé.
+    /// </param>
+    public EfNeighbourRepository(
+        VipiDbContext db, IAiracService airac, Vipi.Application.Airspace.ISectorShapeResolver? forme = null)
+    {
+        _db = db;
+        _airac = airac;
+        _forme = forme;
+    }
+
+    public async Task<IReadOnlyList<DomesticSectorPoly>> ListDomesticSectorPolygonsAsync(CancellationToken ct = default)
+    {
+        // I settori domestici visibili. ⚠️ Il filtro resta sulla colonna — «ha una forma di qualche tipo» —
+        // perché un settore senza niente in colonna non ha nemmeno un aggancio: gli agganci si fanno da una
+        // pagina che elenca settori esistenti.
+        var righe = await _db.AccSectors.AsNoTracking()
             .Where(s => s.RegionMapPolygon != null && !s.IsHidden && !s.Acc!.IsHidden && !s.Acc!.IsForeign)
-            .Select(s => new DomesticSectorPoly(s.CenterId, s.ComposePosition, s.RegionMapPolygon!))
+            .Select(s => new { s.CenterId, s.ComposePosition, s.RegionMapPolygon })
             .ToListAsync(ct);
+
+        if (_forme is null)
+            return righe.Select(r => new DomesticSectorPoly(r.CenterId, r.ComposePosition, r.RegionMapPolygon!)).ToList();
+
+        // ⚠️ La forma è quella che si vede nei documenti, non la colonna: un CTR agganciato al suo spazio
+        // dell'AIP confina con chi tocca le SUE zone. Prima disegnava un confine e ne confrontava un altro.
+        var forme = await _forme.ResolveAsync(righe.Select(r => r.ComposePosition).ToList(), ct);
+
+        return righe.Select(r =>
+        {
+            var pezzi = forme.TryGetValue(r.ComposePosition, out var f)
+                ? f.Parts.Select(x => x.PolygonJson).ToList()
+                : new List<string> { r.RegionMapPolygon! };
+            return new DomesticSectorPoly(r.CenterId, r.ComposePosition, pezzi);
+        }).ToList();
+    }
 
     public async Task<IReadOnlyList<string>> ListDomesticAccCodesAsync(CancellationToken ct = default) =>
         await _db.Accs.AsNoTracking().Where(a => !a.IsForeign).Select(a => a.Code).ToListAsync(ct);
+
+    public async Task<IReadOnlyList<Vipi.Application.Content.ForeignAccData>> ListForeignAccDataAsync(
+        CancellationToken ct = default)
+    {
+        var accs = await _db.Accs.AsNoTracking().Where(a => a.IsForeign)
+            .Select(a => new { a.Code, a.Name, a.CountryPrefix })
+            .ToListAsync(ct);
+        if (accs.Count == 0) return Array.Empty<Vipi.Application.Content.ForeignAccData>();
+
+        var codici = accs.Select(a => a.Code).ToList();
+        var settori = await _db.AccSectors.AsNoTracking()
+            .Where(s => codici.Contains(s.CenterId) && s.RegionMapPolygon != null)
+            .Select(s => new
+            {
+                s.CenterId, s.ComposePosition, s.Position, s.MiddleIdentifier, s.Frequency,
+                s.RegionMapPolygon, s.AtcCallsign, s.LowerLimit, s.UpperLimit,
+            })
+            .ToListAsync(ct);
+
+        var perAcc = settori.GroupBy(s => s.CenterId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
+        return accs.Select(a => new Vipi.Application.Content.ForeignAccData(
+            a.Code, a.Name, a.CountryPrefix,
+            (perAcc.TryGetValue(a.Code, out var righe) ? righe : new())
+                .Select(s => new SourceSubcenter(
+                    s.ComposePosition, s.CenterId, s.Position, s.MiddleIdentifier, s.Frequency,
+                    s.RegionMapPolygon, s.AtcCallsign, s.LowerLimit, s.UpperLimit))
+                .ToList()))
+            .ToList();
+    }
 
     public async Task PersistForeignCatalogAsync(IReadOnlyList<ForeignAccImport> accs, bool manuale = false, CancellationToken ct = default)
     {

@@ -325,7 +325,8 @@ public static class IvaoServiceCollectionExtensions
         // Attribuzione del traffico: SINGLETON, perche' il registro delle tratte in corso vive in memoria fra
         // un giro e l'altro (e' quello che evita di riscrivere ogni riga ogni minuto). Lo usa il solo poller.
         services.AddSingleton<AtcTrafficRecorder>(sp => new AtcTrafficRecorder(
-            new Persistence.ScopedSectorVolumeCatalog(sp.GetRequiredService<IServiceScopeFactory>())));
+            new Persistence.ScopedSectorVolumeCatalog(sp.GetRequiredService<IServiceScopeFactory>()),
+            sp.GetRequiredService<Vipi.Application.Airspace.ShapeChangeStamp>()));
 
         // Profilo del singolo utente (il roster staff si popola dai login, non dall'elenco membri divisione).
         services.AddScoped<IvaoUserClient>();

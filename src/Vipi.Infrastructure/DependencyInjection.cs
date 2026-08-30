@@ -132,6 +132,11 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IAttachmentTextSource, EfAttachmentTextSource>();
         services.AddScoped<Vipi.Application.Airspace.IAirspaceCatalog, EfAirspaceCatalog>();
         services.AddScoped<Vipi.Application.Airspace.ISectorAirspaceBindings, EfSectorAirspaceBindings>();
+        // ⚠️ SINGLETON, e va prima delle due porte che lo alzano: il gettone dei cambi di forma vive quanto il
+        // processo, perché la cache che protegge (i volumi del poller) vive lì.
+        services.AddSingleton<Vipi.Application.Airspace.ShapeChangeStamp>();
+        services.AddScoped<Vipi.Application.Airspace.ISectorShapeParts, EfSectorShapeParts>();
+        services.AddScoped<Vipi.Application.Airspace.ISectorShapeResolver, EfSectorShapeResolver>();
         services.AddScoped<Vipi.Application.Abstractions.IAirportNameLookup, EfAirportNameLookup>();
         services.AddScoped<Vipi.Application.Abstractions.IImportStateStore, EfImportStateStore>();
         // Cadenza dei giri automatici, dalle opzioni della sorgente: la pagina admin la legge da qui

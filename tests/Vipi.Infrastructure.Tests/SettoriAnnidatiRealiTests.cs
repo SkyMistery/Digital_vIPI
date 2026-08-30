@@ -58,7 +58,7 @@ public class SettoriAnnidatiRealiTests : IAsyncLifetime
 
     private async Task<IReadOnlyList<SectorClaim>> Claims(params string[] online) =>
         SectorVolumeMap.BuildClaims(
-            await new EfSectorVolumeCatalog(_db).GetAllAsync(),
+            await new EfSectorVolumeCatalog(_db, new EfSectorShapeResolver(_db, new EfSectorAirspaceBindings(_db), new EfSectorShapeParts(_db))).GetAllAsync(),
             new HashSet<string>(online, StringComparer.OrdinalIgnoreCase));
 
     [Fact]

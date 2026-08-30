@@ -10,17 +10,21 @@ namespace Vipi.Application.Abstractions;
 /// cataloghi: solo lì DEL/GND/TWR hanno un padre, derivato dalla scaletta.</param>
 /// <param name="Type">Tipo di posizione: decide quali fasi di volo la posizione dichiara di gestire.</param>
 /// <param name="AirportIcao">Aeroporto di appartenenza, se è una posizione d'aeroporto.</param>
-/// <param name="RegionMapPolygon">Poligono grezzo dal catalogo; <c>null</c> per DEL e GND, che non ne hanno.</param>
-/// <param name="LowerLimit">Limite inferiore grezzo (l'unità la interpreta <c>AorFlBand</c>).</param>
-/// <param name="UpperLimit">Limite superiore grezzo; <c>null</c> = senza tetto.</param>
+/// <param name="Parts">
+/// I <b>pezzi</b> della forma, ognuno con le sue quote, come li dà la porta unica
+/// (<c>ISectorShapeResolver</c>, carta refactor 15). Vuoto per DEL e GND, che un'area non ce l'hanno.
+/// ⚠️ Erano un poligono e due quote sciolte: con un CTR di più zone quel modello rivendicava il cielo
+/// fra una zona e l'altra, e sopra quella più bassa.
+/// </param>
+/// <param name="Source">Da dove viene la forma: finisce in archivio accanto alla tratta, perché un gradino
+/// nei numeri dev'essere spiegabile fra sei mesi.</param>
 public sealed record SectorVolumeRow(
     string Callsign,
     string? ParentCallsign,
     SectorType Type,
     string? AirportIcao,
-    string? RegionMapPolygon,
-    int? LowerLimit,
-    int? UpperLimit);
+    IReadOnlyList<Vipi.Application.Airspace.ShapePart> Parts,
+    ShapeSource Source);
 
 /// <summary>
 /// Da dove l'attribuzione del traffico prende la mappa dei settori: albero di copertura più volumi.

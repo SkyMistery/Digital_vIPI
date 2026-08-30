@@ -1169,6 +1169,10 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int>("SeenMinutes")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ShapeSource")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.HasKey("SessionId", "PilotCallsign", "LegOrdinal");
 
                     b.HasIndex("PilotCallsign");
@@ -2367,6 +2371,92 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("SectorAirspaceBindings");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.SectorShapePart", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AiracCycle")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BaseDatum")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("BaseFeet")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("BaseRaw")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Callsign")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Catalog")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("ForcePublished")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Ordinal")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PolygonJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SectorId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceRef")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TopDatum")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("TopFeet")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("TopRaw")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("WrittenUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Callsign", "State");
+
+                    b.HasIndex("Catalog", "SectorId", "Source", "State", "Ordinal")
+                        .IsUnique();
+
+                    b.ToTable("SectorShapeParts");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.SharedBlock", b =>

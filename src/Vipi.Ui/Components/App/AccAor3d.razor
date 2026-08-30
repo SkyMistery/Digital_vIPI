@@ -52,8 +52,12 @@
     private const double ZDefault = 0.5;
     private static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
 
-    // Firma (callsign+colore+banda) per il @key: cambia → Blazor sostituisce il nodo → vipi-aor3d.js re-inizializza.
-    private string Signature() => string.Join("|", View.Sectors.Select(s => $"{s.Callsign}:{s.Color}:{s.LowerFl}:{s.UpperFl}"));
+    // Firma (callsign+colore+banda, anelli compresi) per il @key: cambia → Blazor sostituisce il nodo →
+    // vipi-aor3d.js re-inizializza. ⚠️ Ci vanno anche le bande dei singoli anelli: due zone che si scambiano
+    // le quote lasciano l'inviluppo identico, e senza questo il viewer resterebbe su quello di prima.
+    private string Signature() => string.Join("|", View.Sectors.Select(s =>
+        $"{s.Callsign}:{s.Color}:{s.LowerFl}:{s.UpperFl}:" +
+        string.Join(",", s.Polygons.Select(p => $"{p.LowerFl}-{p.UpperFl}"))));
 
     private string SectorsJson() => JsonSerializer.Serialize(
         View.Sectors.Select(s => new
@@ -63,5 +67,14 @@
             color = s.Color,
             rings = s.Polygons.Select(p => p.Points),
             fl = new[] { s.LowerFl ?? AorFlBand.Ground, s.UpperFl ?? AorFlBand.Unlimited },
+            // ⚠️ La banda di OGNI anello: un CTR di piu' zone ne ha una per zona, e l'inviluppo `fl` da solo
+            // disegnerebbe un parallelepipedo che rivendica cielo che il settore non ha (carta refactor 15).
+            // Gli snapshot di release congelati prima non le hanno: li' i due valori sono null e si ricade
+            // sull'inviluppo, che e' esattamente il comportamento di prima.
+            ringFl = s.Polygons.Select(p => new[]
+            {
+                p.LowerFl ?? s.LowerFl ?? AorFlBand.Ground,
+                p.UpperFl ?? s.UpperFl ?? AorFlBand.Unlimited,
+            }),
         }));
 }

@@ -4,7 +4,20 @@ using Vipi.Domain.Entities;
 namespace Vipi.Application.Abstractions;
 
 /// <summary>Settore ACC domestico (della divisione) col suo poligono shape, per il calcolo di adiacenza.</summary>
-public sealed record DomesticSectorPoly(string CenterId, string ComposePosition, string RegionMapPolygon);
+/// <summary>
+/// Un settore domestico come lo vede il calcolo dei confinanti: l'ACC, il callsign e i <b>pezzi</b> della sua
+/// forma — quella che dà la porta unica, non la colonna del catalogo (carta refactor 15).
+///
+/// <para>⚠️ <b>Sono N.</b> Un CTR agganciato al suo spazio dell'AIP può essere di sette zone: con un anello
+/// solo, un confinante che tocca la settima non lo si vedrebbe — e non ci sarebbe nessun errore da nessuna
+/// parte, solo una coppia mancante nell'elenco.</para>
+/// </summary>
+public sealed record DomesticSectorPoly(string CenterId, string ComposePosition, IReadOnlyList<string> Polygons)
+{
+    /// <summary>Comodità per chi ne ha uno solo (i test, e le sorgenti che danno un poligono).</summary>
+    public DomesticSectorPoly(string centerId, string composePosition, string polygon)
+        : this(centerId, composePosition, new[] { polygon }) { }
+}
 
 /// <summary>Dati per fare upsert di una coppia ACC confinante candidata (solo le righe Pending vengono aggiornate).</summary>
 public sealed record NeighbourCandidateUpsert(
@@ -30,6 +43,15 @@ public interface INeighbourRepository
 
     /// <summary>Codici degli ACC domestici (Acc non esteri), per distinguere «casa» da estero.</summary>
     Task<IReadOnlyList<string>> ListDomesticAccCodesAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Gli ACC esteri <b>già in archivio</b> coi loro subcenter, nella stessa forma che dà la sorgente.
+    ///
+    /// <para>⚠️ Serve a <b>ricalcolare senza chiamare IVAO</b>: quando cambia la forma di un settore nostro
+    /// — qualcuno aggancia o sgancia — le adiacenze vanno rifatte <b>adesso</b>, e l'altra metà del confronto
+    /// non è cambiata. Il giro completo, che scarica, resta quello notturno.</para>
+    /// </summary>
+    Task<IReadOnlyList<Vipi.Application.Content.ForeignAccData>> ListForeignAccDataAsync(CancellationToken ct = default);
 
     /// <summary>Persiste il catalogo degli ACC esteri confinanti: upsert <c>Acc</c> (IsForeign=true) + i loro subcenter
     /// come <c>AccSector</c> (preservando ParentCallsign/IsHidden impostati dall'admin). Idempotente per chiave naturale.</summary>

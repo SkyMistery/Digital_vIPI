@@ -155,6 +155,18 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task<bool> ClearAipShapeAsync(int sectorId, CancellationToken ct = default)
+    {
+        var s = await _db.AirportSectors.FirstOrDefaultAsync(x => x.Id == sectorId, ct);
+        if (s is null || s.ShapeSource != ShapeSource.Aip) return false;   // scritta da altri: non è roba nostra
+
+        s.RegionMapPolygon = null;
+        s.ShapeSource = ShapeSource.Source;   // torna a essere una riga che aspetta l'anagrafica
+        s.IsShapeSynthetic = false;
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
     public async Task<IReadOnlyList<AirportPolygonRow>> ListNonSyntheticPolygonsAsync(CancellationToken ct = default) =>
         await _db.AirportSectors.AsNoTracking()
             .Where(s => !s.IsShapeSynthetic && s.RegionMapPolygon != null && s.RegionMapPolygon != "")

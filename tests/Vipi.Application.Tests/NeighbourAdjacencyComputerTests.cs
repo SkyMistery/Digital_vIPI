@@ -120,4 +120,59 @@ public class NeighbourAdjacencyComputerTests
 
     private static SourceSubcenter Sub(string compose, string? polygon) =>
         new(compose, compose.Split('_')[0], null, null, null, polygon);
+
+    // --- Settori a PIU' PEZZI (carta refactor 15, S10) ------------------------------------------
+    //
+    // Un CTR agganciato al suo spazio dell'AIP puo' essere di piu' zone. Prima ne entrava UNA sola nel
+    // calcolo, e un confinante attaccato a un'altra semplicemente non compariva: nessun errore, solo una
+    // coppia mancante dall'elenco.
+
+    private const string ZonaLontana = "[[5,43],[6,43],[6,44],[5,44]]";      // non tocca niente
+    private const string ZonaCheTocca = "[[10,43],[11,43],[11,44],[10,44]]"; // = SquareA, confina con B
+
+    [Fact]
+    public void Basta_UN_pezzo_a_toccare_perche_la_coppia_esista()
+    {
+        // La prima zona e' lontanissima, la seconda confina: la coppia c'e'.
+        var domestic = new[]
+        {
+            new DomesticSectorPoly("LIRR", "LIRR_CTR", new[] { ZonaLontana, ZonaCheTocca }),
+        };
+        var foreign = new[] { new ForeignAccData("LFFF", "France", "FR", new[] { Sub("LFFF_CTR", SquareB_Touching) }) };
+
+        var r = _sut.ComputeImport(domestic, foreign, thresholdNm: 8.0);
+
+        var cand = Assert.Single(r.Candidates);
+        Assert.Equal("LFFF", cand.ForeignAccCode);
+        Assert.Equal(new[] { "LIRR_CTR" }, cand.AdjacentHomeCallsigns);
+    }
+
+    [Fact]
+    public void Due_pezzi_che_toccano_lo_stesso_vicino_restano_UNA_adiacenza()
+    {
+        // ⚠️ Il conteggio delle coppie e' quel che si guarda a schermo: due zone dello stesso settore
+        // attaccate allo stesso vicino non sono due confinanti, sono uno.
+        var domestic = new[]
+        {
+            new DomesticSectorPoly("LIRR", "LIRR_CTR", new[] { ZonaCheTocca, ZonaCheTocca }),
+        };
+        var foreign = new[] { new ForeignAccData("LFFF", "France", "FR", new[] { Sub("LFFF_CTR", SquareB_Touching) }) };
+
+        var r = _sut.ComputeImport(domestic, foreign, thresholdNm: 8.0);
+
+        Assert.Single(r.Hits);
+        Assert.Equal(1, Assert.Single(r.Candidates).AdjacentSectorCount);
+    }
+
+    [Fact]
+    public void Un_pezzo_rotto_non_si_porta_via_gli_altri()
+    {
+        var domestic = new[]
+        {
+            new DomesticSectorPoly("LIRR", "LIRR_CTR", new[] { "[[10,43],[11,43]]", ZonaCheTocca }),
+        };
+        var foreign = new[] { new ForeignAccData("LFFF", "France", "FR", new[] { Sub("LFFF_CTR", SquareB_Touching) }) };
+
+        Assert.Single(_sut.ComputeImport(domestic, foreign, thresholdNm: 8.0).Candidates);
+    }
 }

@@ -75,7 +75,7 @@ public class AtcTrafficRecorderTests : IAsyncLifetime
 
         _traffico = new EfAtcTrafficStore(_db);
         _sessioni = new EfAtcSessionStore(_db);
-        _recorder = new AtcTrafficRecorder(new EfSectorVolumeCatalog(_db));
+        _recorder = new AtcTrafficRecorder(new EfSectorVolumeCatalog(_db, new EfSectorShapeResolver(_db, new EfSectorAirspaceBindings(_db), new EfSectorShapeParts(_db))));
     }
 
     public async Task DisposeAsync()
@@ -246,7 +246,7 @@ public class AtcTrafficRecorderTests : IAsyncLifetime
         await _recorder.FlushAsync(_traffico, T0.AddMinutes(11));                // 12 minuti in archivio
 
         // Riavvio: registratore nuovo, memoria vuota, stesso archivio.
-        _recorder = new AtcTrafficRecorder(new EfSectorVolumeCatalog(_db));
+        _recorder = new AtcTrafficRecorder(new EfSectorVolumeCatalog(_db, new EfSectorShapeResolver(_db, new EfSectorAirspaceBindings(_db), new EfSectorShapeParts(_db))));
         await Giro(T0.AddMinutes(12), atc, volo);
         await _recorder.FlushAsync(_traffico, T0.AddMinutes(12));
         _db.ChangeTracker.Clear();

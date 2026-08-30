@@ -144,6 +144,9 @@ public class VipiDbContext : DbContext
     /// <summary>Gli agganci settore → volumi dell'AIP: la scelta di una persona (carta §6-bis).</summary>
     public DbSet<SectorAirspaceBinding> SectorAirspaceBindings => Set<SectorAirspaceBinding>();
 
+    /// <summary>I pezzi di forma di un settore, per fonte (carta refactor 15).</summary>
+    public DbSet<SectorShapePart> SectorShapeParts => Set<SectorShapePart>();
+
     /// <summary>
     /// Lettura tollerante dell'azione di registro: un valore che questa versione non conosce diventa
     /// <see cref="AuditAction.Unknown"/> invece di far esplodere la query. Metodo e non lambda in linea perché
@@ -885,6 +888,34 @@ public class VipiDbContext : DbContext
 
             // ⚠️ Nessuna FK verso AirspaceVolume: l'aggancio cita la CHIAVE, non la riga, e deve sopravvivere
             // al ri-caricamento del file — che le righe le rifa' tutte.
+        });
+
+        b.Entity<SectorShapePart>(e =>
+        {
+            // Un pezzo per (settore, fonte, stato, ordine): l'indice unico e' anche il contratto della
+            // regola d'oro — due fonti convivono sullo stesso settore SENZA scavalcarsi.
+            e.HasIndex(x => new { x.Catalog, x.SectorId, x.Source, x.State, x.Ordinal }).IsUnique();
+
+            // La lettura vera parte dal callsign, e chiede i pezzi in vigore di piu' settori insieme.
+            e.HasIndex(x => new { x.Callsign, x.State });
+
+            // ⚠️ Enum -> STRINGA (SPEC §6), e sono tutti dentro un indice: senza lunghezza, su MySQL nascono
+            // longtext e InnoDB non li indicizza. Non e' un ragionamento da rifare a mente: l'ha gia'
+            // respinta `IndexedStringLengthTests`.
+            e.Property(x => x.Catalog).HasMaxLength(16);
+            e.Property(x => x.Source).HasMaxLength(16);
+            e.Property(x => x.State).HasMaxLength(16);
+            e.Property(x => x.BaseDatum).HasMaxLength(16);
+            e.Property(x => x.TopDatum).HasMaxLength(16);
+
+            e.Property(x => x.Callsign).HasMaxLength(32);    // misura vera piu' lunga: LIMM_WS2_CTR
+            e.Property(x => x.BaseRaw).HasMaxLength(32);     // come AirspaceVolume.BaseRaw
+            e.Property(x => x.TopRaw).HasMaxLength(32);
+            e.Property(x => x.AiracCycle).HasMaxLength(8);
+            e.Property(x => x.SourceRef).HasMaxLength(300);  // come AirspaceVolume.NaturalKey
+
+            // ⚠️ Nessuna FK verso AccSector/AirportSector: il settore e' la COPPIA catalogo+id, che nessuna
+            // FK sa esprimere. Stessa scelta, e stesso motivo, di SectorAirspaceBinding.
         });
 
         // --- Il registro della spesa di traduzione (lavori aperti §Q16b) --------------------------------

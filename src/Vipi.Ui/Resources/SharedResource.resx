@@ -2955,4 +2955,15 @@
   <data name="Asp_PubRegulated" xml:space="preserve"><value>Le aree regolamentate (R, P, D) e le altre aree vengono dal catalogo IVAO e si vedono nei documenti, non qui.</value></data>
   <data name="Services_AirspaceDesc" xml:space="preserve"><value>I confini dell'AIP — CTR, CTA, TMA, ATZ, FIR — e i settori nostri, sulla stessa mappa.</value></data>
   <data name="Asp_Nav_CanaleMancante" xml:space="preserve"><value>Canale non scritto</value></data>
+  <data name="Shape_FromAip" xml:space="preserve"><value>AIP</value></data>
+  <data name="Shape_FromAipTitle" xml:space="preserve"><value>Forma presa dagli spazi aerei dell'AIP: {0} pezzi, ognuno con le sue quote. I limiti qui accanto restano quelli dell'anagrafica e non si usano finché l'aggancio dura.</value></data>
+  <data name="Shape_FromSectorfile" xml:space="preserve"><value>sectorfile</value></data>
+  <data name="Shape_FromSectorfileTitle" xml:space="preserve"><value>Forma presa dal sectorfile Aurora.</value></data>
+  <data name="Shape_FromSource" xml:space="preserve"><value>IVAO</value></data>
+  <data name="Shape_FromSourceTitle" xml:space="preserve"><value>Forma dell'anagrafica IVAO, con i limiti verticali qui accanto.</value></data>
+  <data name="Shape_Synthetic" xml:space="preserve"><value>cerchio</value></data>
+  <data name="Shape_SyntheticTitle" xml:space="preserve"><value>Nessuna forma vera: un cerchio di ripiego da 5 NM attorno al campo.</value></data>
+  <data name="Shape_None" xml:space="preserve"><value>nessuna</value></data>
+  <data name="Shape_NoneTitle" xml:space="preserve"><value>Questa posizione non ha un'area: DEL e GND non ne hanno una.</value></data>
+  <data name="Shape_LimitsOverridden" xml:space="preserve"><value>scavalcati dall'AIP</value></data>
 </root>

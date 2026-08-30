@@ -2,7 +2,10 @@
 // Ogni settore è un prisma estruso: base = poligono shape reale proiettato su piano XY (Web Mercator centrato
 // sul bbox), altezza = banda FL (bottom→top). Legenda toggle, orbita drag, zoom rotella, reset.
 // Idempotente: ogni .aor3d-stage[data-sectors3d] è inizializzato una sola volta (data-init). Fallback se manca WebGL/THREE.
-// Guidato dagli stessi dati dell'AoR 2D (vedi AccAor3d.razor): data-sectors3d = [{sec,name,color,rings:[[[lat,lon],…]],fl:[bottom,top]}].
+// Guidato dagli stessi dati dell'AoR 2D (vedi AccAor3d.razor): data-sectors3d = [{sec,name,color,rings:[[[lat,lon],…]],fl:[bottom,top],ringFl:[[bottom,top],…]}].
+// ⚠️ `ringFl` è la banda DI OGNI ANELLO, e quando c'è comanda lei: un CTR di piu' zone ha una quota per zona
+// (LIBA_APP e' GND→FL105 su una e 7000 ft→FL195 sull'altra) e `fl`, che e' l'inviluppo, disegnerebbe un
+// parallelepipedo unico che rivendica cielo che il settore non ha. Vedi docs/refactor/15-shape-del-settore-una-porta-sola.md.
 // three.js NON è nel <head>: sono 592 KB per il solo tab 3D. Lo carica loadThree() alla prima apertura di uno stage.
 (function () {
     // URL di three.js (con l'impronta di MapStaticAssets) dal data attribute sul nostro <script>.
@@ -213,27 +216,33 @@
         order.forEach(function (idx) {
             var s = sectors[idx];
             var band = s.fl || [0, 660];
-            var bottom = band[0] || 0, top = band[1] || 660;
-            var depth = Math.max(1, (top - bottom)) * flz;
             var col = new THREE.Color(hex(s.color));
             var edgeCol = inkSettore(THREE, col, temaScuro());
             s._col = col; s._edges = [];   // conservati per ricolorare al cambio di tema, senza ricostruire la scena
-            var secGroup = new THREE.Group(); secGroup.position.z = bottom * flz;
+            // ⚠️ Il gruppo sta a terra: la quota di base e' DELL'ANELLO, non del settore. Prima era
+            // secGroup.position.z = bottom, che e' giusto solo finche' gli anelli hanno tutti la stessa banda.
+            var secGroup = new THREE.Group();
 
-            var cxSum = 0, cySum = 0, n = 0;
-            (s.rings || []).forEach(function (r) {
+            var cxSum = 0, cySum = 0, n = 0, topMax = 0;
+            (s.rings || []).forEach(function (r, ri) {
                 var pts = (r || []).map(function (p) { return project(p[0], p[1]); });
                 if (pts.length < 3) return;
+                var rb = (s.ringFl && s.ringFl[ri]) || band;
+                var rBottom = rb[0] || 0, rTop = rb[1] || 660;
+                var rDepth = Math.max(1, (rTop - rBottom)) * flz;
+                if (rTop > topMax) topMax = rTop;
                 var shape = new THREE.Shape();
                 pts.forEach(function (p, i) { i ? shape.lineTo(p[0], p[1]) : shape.moveTo(p[0], p[1]); });
                 shape.closePath();
-                var geo = new THREE.ExtrudeGeometry(shape, { depth: depth, bevelEnabled: false });
+                var geo = new THREE.ExtrudeGeometry(shape, { depth: rDepth, bevelEnabled: false });
                 var mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: col, transparent: true, opacity: 0.16, depthWrite: false }));
                 var edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: edgeCol, transparent: true, opacity: 0.9 }));
+                mesh.position.z = rBottom * flz; edges.position.z = rBottom * flz;
                 secGroup.add(mesh); secGroup.add(edges); s._edges.push(edges);
                 pts.forEach(function (p) { cxSum += p[0]; cySum += p[1]; n++; });
             });
             if (n === 0) return;
+            var depth = Math.max(1, topMax) * flz;   // l'etichetta sta in cima al pezzo piu' alto
             // Ancora dell'etichetta HTML (vedi layoutLabels): oggetto vuoto sul centroide, in cima al prisma. Sta DENTRO
             // secGroup, quindi segue la scala verticale del gruppo; il testo è HTML e non si deforma con essa.
             var anchor = new THREE.Object3D();

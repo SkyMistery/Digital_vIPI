@@ -367,6 +367,23 @@ public enum ShapeSource
 }
 
 /// <summary>
+/// Lo stato di un insieme di pezzi di forma (<c>SectorShapePart</c>): quello che si <b>pubblica</b> oggi, o
+/// quello che <b>aspetta</b> il suo ciclo AIRAC.
+///
+/// <para>Prende il posto delle due colonne gemelle <c>RegionMapPolygon</c>/<c>RegionMapPolygonInForce</c>,
+/// che reggevano solo per <b>una</b> forma: con N pezzi diventerebbero due elenchi paralleli. Vedi
+/// <c>docs/refactor/15-shape-del-settore-una-porta-sola.md</c> §3b.</para>
+/// </summary>
+public enum ShapePartState
+{
+    /// <summary>In vigore: è questo l'insieme che si disegna, si pubblica e attribuisce il traffico.</summary>
+    InForce,
+
+    /// <summary>In attesa del ciclo AIRAC dichiarato in <c>AiracCycle</c>. Non lo legge nessun motore.</summary>
+    Pending,
+}
+
+/// <summary>
 /// Quale dei due cataloghi di sorgente: i <b>subcenter</b> di un ACC (<c>AccSector</c>) o le <b>postazioni</b>
 /// di un aeroporto (<c>AirportSector</c>).
 ///

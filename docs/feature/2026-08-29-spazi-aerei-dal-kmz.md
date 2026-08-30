@@ -145,6 +145,14 @@ Due innesti, e due nature diverse:
 
 ### 6-bis. ⚠️ Correzione alla carta: la sostituzione NON si scrive nella colonna della shape
 
+> ⚠️ **SUPERATA IN PARTE il 30 agosto 2026** dalla carta
+> [refactor/15 — La shape di un settore: una porta sola](../refactor/15-shape-del-settore-una-porta-sola.md).
+> Resta vero, ed è il motivo per cui la 15 esiste, che **la colonna tiene un anello** e che scriverci dentro
+> sette zone ne pubblicherebbe una. Cambia la conseguenza: invece di lasciare l'aggancio confinato alle due
+> viste AoR, la colonna viene **sostituita da una tabella di pezzi con una fonte** (`SectorShapeParts`), e
+> l'aggancio vale per **tutti** i motori. Il capoverso qui sotto su confinanti, traffico e vLOA è quindi
+> **decaduto**: dalla 15 in poi leggono anche loro dal risolutore.
+
 La prima stesura di questa carta diceva di scrivere il volume scelto dentro `RegionMapPolygon`, il
 campo che tutti già leggono, per non toccare i 113 punti che lo citano. **Quel piano regge solo per
 un volume solo, e i due casi che hanno fatto nascere la richiesta non lo sono**: Amendola sono
@@ -161,7 +169,7 @@ l'AoR si costruisce**, cioè dove i poligoni di un settore sono già una **lista
 (`AccSectorAor.Polygons`). I posti che la leggono sono **due** — la vista AoR dell'APP e quella
 dell'ACC — e da lì scendono da sé in mappa 2D, viewer 3D, SVG e stampa.
 
-**Che cosa continua a stare sulla shape IVAO**, e non per dimenticanza: i **confinanti**,
+**Che cosa continuava a stare sulla shape IVAO** (⚠️ decaduto dalla carta 15, vedi il riquadro sopra): i **confinanti**,
 l'**attribuzione del traffico** e la **vLOA**. Sono motori tarati su quel poligono, e cambiarglielo
 sotto vorrebbe dire cambiare in silenzio chi confina con chi e quali voli contano per una postazione
 — cioè molto più di quel che il committente ha chiesto. La pagina lo scrive: *l'AoR pubblicata è

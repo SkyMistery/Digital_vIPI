@@ -31,7 +31,13 @@ public class AtcPollingShutdownTests
             Task.FromResult<IReadOnlyList<SectorVolumeRow>>(new[]
             {
                 new SectorVolumeRow("LIRR_NE1_CTR", null, SectorType.Ctr, null,
-                    "[[10,40],[14,40],[14,44],[10,44]]", 0, null),
+                    new[]
+                    {
+                        new Vipi.Application.Airspace.ShapePart(
+                            "[[10,40],[14,40],[14,44],[10,44]]", 0, null,
+                            AirspaceDatum.Amsl, AirspaceDatum.Amsl, "", ""),
+                    },
+                    ShapeSource.Source),
             });
     }
 

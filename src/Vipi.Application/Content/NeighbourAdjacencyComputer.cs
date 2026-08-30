@@ -33,10 +33,13 @@ public sealed class NeighbourAdjacencyComputer
         IReadOnlyList<ForeignAccData> foreign,
         double thresholdNm)
     {
-        // Poligoni domestici di confine, pre-parsati in Ring (scarta i non-confine e i non-parsabili).
+        // Anelli domestici di confine, pre-parsati (scarta i non-confine e i non-parsabili).
+        // ⚠️ UNA RIGA PER PEZZO: un settore di sette zone entra sette volte, e basta che UNA tocchi il
+        // confinante perché la coppia esista. Con un anello solo, un vicino attaccato alla settima zona
+        // sarebbe semplicemente mancato dall'elenco, senza nessun errore da nessuna parte.
         var domesticRings = domestic
             .Where(d => IsAccBoundaryPosition(d.ComposePosition))
-            .Select(d => (d.CenterId, d.ComposePosition, Ring: PolygonGeometry.ToRing(d.RegionMapPolygon)))
+            .SelectMany(d => d.Polygons.Select(poly => (d.CenterId, d.ComposePosition, Ring: PolygonGeometry.ToRing(poly))))
             .Where(x => x.Ring is not null)
             .ToList();
 
@@ -54,14 +57,26 @@ public sealed class NeighbourAdjacencyComputer
                 if (fRing is null) continue;   // senza poligono → non calcolabile qui (fallback manuale in UI)
 
                 var subHit = false;
+                // ⚠️ Due pezzi dello stesso settore che toccano lo stesso vicino sono UNA adiacenza, non due:
+                // si tiene la distanza minore. Senza, un CTR di sette zone gonfierebbe l'elenco di sette
+                // righe uguali — e il conteggio delle coppie, che è quel che si guarda, direbbe il falso.
+                var vicine = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
                 foreach (var (homeCode, homeSect, homeRing) in domesticRings)
                 {
                     if (!PolygonGeometry.AreAdjacent(homeRing, fRing, thresholdNm)) continue;
                     var dist = PolygonGeometry.MinEdgeDistanceNm(homeRing!.Points, fRing.Points);
-                    var home = homeCode.ToUpperInvariant();
+                    var chiave = homeCode.ToUpperInvariant() + "|" + homeSect;
+                    if (!vicine.TryGetValue(chiave, out var gia) || dist < gia) vicine[chiave] = dist;
+                    subHit = true;
+                }
+
+                foreach (var (chiave, dist) in vicine)
+                {
+                    var pezzi = chiave.Split('|');
+                    var home = pezzi[0];
+                    var homeSect = pezzi[1];
                     hitTuples.Add((home, homeSect, fa.Code, sub.ComposePosition, fa.Name, fa.Country, dist, sub.RegionMapPolygon));
                     hits.Add(new NeighbourHit(home, homeSect, fa.Code, sub.ComposePosition, Math.Round(dist, 1)));
-                    subHit = true;
                 }
                 if (subHit)
                 {
@@ -123,10 +138,13 @@ public sealed class NeighbourAdjacencyComputer
         var warnings = new List<string>(seedWarnings ?? Array.Empty<string>());
 
         // Settori domestici (solo di questo ACC, solo confini CTR/FSS) col loro grezzo + Ring.
+        // ⚠️ Una riga per PEZZO, come nel giro d'import: la mappa deve disegnare tutte le zone di un settore
+        // agganciato, non la prima.
         var domestic = allDomestic
             .Where(d => string.Equals(d.CenterId, home, StringComparison.OrdinalIgnoreCase)
                         && IsAccBoundaryPosition(d.ComposePosition))
-            .Select(d => (Sect: d.ComposePosition, Raw: d.RegionMapPolygon, Ring: PolygonGeometry.ToRing(d.RegionMapPolygon)))
+            .SelectMany(d => d.Polygons.Select(poly =>
+                (Sect: d.ComposePosition, Raw: poly, Ring: PolygonGeometry.ToRing(poly))))
             .Where(x => x.Ring is not null)
             .ToList();
 
@@ -138,19 +156,25 @@ public sealed class NeighbourAdjacencyComputer
             .ToList();
 
         // Adiacenze settore↔settore.
-        var adj = new List<NeighbourAdjacency>();
         var usedHome = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var usedForeign = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        // Coppia settore↔settore → distanza minima fra i loro pezzi: due zone dello stesso settore che
+        // toccano lo stesso vicino restano UNA riga.
+        var perCoppia = new Dictionary<(string H, string F), double>();
         foreach (var f in foreignSects)
             foreach (var h in domestic)
             {
                 if (!PolygonGeometry.AreAdjacent(h.Ring, f.Ring, thresholdNm)) continue;
                 var dist = PolygonGeometry.MinEdgeDistanceNm(h.Ring!.Points, f.Ring!.Points);
-                adj.Add(new NeighbourAdjacency(h.Sect, f.Sect, Math.Round(dist, 1)));
+                var chiave = (h.Sect, f.Sect);
+                if (!perCoppia.TryGetValue(chiave, out var gia) || dist < gia) perCoppia[chiave] = dist;
                 usedHome.Add(h.Sect);
                 usedForeign.Add(f.Sect);
             }
-        adj = adj.OrderBy(a => a.DistanceNm).ThenBy(a => a.HomeSector).ToList();
+
+        var adj = perCoppia
+            .Select(kv => new NeighbourAdjacency(kv.Key.H, kv.Key.F, Math.Round(kv.Value, 1)))
+            .OrderBy(a => a.DistanceNm).ThenBy(a => a.HomeSector).ToList();
 
         // Mappa: disegna i settori coinvolti nell'adiacenza; se nessuno confina, mostra tutti (per far vedere il perché).
         var homeShown = domestic.Where(d => usedHome.Contains(d.Sect)).ToList();

@@ -43,6 +43,15 @@ public static class TrafficAttribution
     /// <paramref name="altitudeFt"/> è la quota del tracciato IVAO, in piedi.
     /// </summary>
     public static string? Attribute(
+        IReadOnlyList<SectorClaim> claims, double lat, double lon, double altitudeFt, FlightPhase phase) =>
+        AttributeClaim(claims, lat, lon, altitudeFt, phase)?.SessionCallsign;
+
+    /// <summary>
+    /// La <b>pretesa</b> che ha vinto, non solo il callsign: serve a chi deve scrivere in archivio <b>con
+    /// quale forma</b> ha contato quell'aeroplano (carta refactor 15 §3h). Un gradino nei numeri, il giorno
+    /// che un settore passa dal monoblocco di IVAO al suo CTR, dev'essere spiegabile anche fra sei mesi.
+    /// </summary>
+    public static SectorClaim? AttributeClaim(
         IReadOnlyList<SectorClaim> claims, double lat, double lon, double altitudeFt, FlightPhase phase)
     {
         SectorClaim? best = null;
@@ -59,7 +68,7 @@ public static class TrafficAttribution
                 bestHandles = handles;
             }
         }
-        return best?.SessionCallsign;
+        return best;
     }
 
     /// <summary>Tutti gli aerei di un elenco, attribuiti in un colpo: callsign pilota → callsign sessione.</summary>
@@ -91,7 +100,9 @@ public static class TrafficAttribution
         return string.CompareOrdinal(a.Volume.Callsign, b.Volume.Callsign) < 0;
     }
 
-    /// <summary>Area del bounding box in gradi quadri: serve solo a ordinare due volumi, non a misurare.</summary>
+    /// <summary>Area del bounding box in gradi quadri: serve solo a ordinare due volumi, non a misurare.
+    /// ⚠️ Con più pezzi è il box che li contiene TUTTI — un volume di sette zone è più grande di una sola,
+    /// ed è quel che serve al confronto.</summary>
     private static double BboxArea(SectorVolume v) =>
-        (v.Ring.MaxLat - v.Ring.MinLat) * (v.Ring.MaxLon - v.Ring.MinLon);
+        (v.MaxLat - v.MinLat) * (v.MaxLon - v.MinLon);
 }

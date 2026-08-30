@@ -1346,6 +1346,12 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<int>("SeenMinutes")
                         .HasColumnType("int");
 
+                    b.Property<string>("ShapeSource")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
                     b.HasKey("SessionId", "PilotCallsign", "LegOrdinal");
 
                     b.HasIndex("PilotCallsign");
@@ -2747,6 +2753,105 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .IsUnique();
 
                     b.ToTable("SectorAirspaceBindings");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.SectorShapePart", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AiracCycle")
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("BaseDatum")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int?>("BaseFeet")
+                        .HasColumnType("int");
+
+                    b.Property<string>("BaseRaw")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Callsign")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Catalog")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<bool>("ForcePublished")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("Ordinal")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PolygonJson")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("SectorId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("SourceRef")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("TopDatum")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int?>("TopFeet")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TopRaw")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime>("WrittenUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Callsign", "State");
+
+                    b.HasIndex("Catalog", "SectorId", "Source", "State", "Ordinal")
+                        .IsUnique();
+
+                    b.ToTable("SectorShapeParts");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.SharedBlock", b =>

@@ -27,7 +27,8 @@ public sealed record TrafficLegRow(
     int? ExitAltitudeFt = null,
     int? MaxAltitudeFt = null,
     long? HandoffToSessionId = null,
-    long? HandoffFromSessionId = null);
+    long? HandoffFromSessionId = null,
+    Vipi.Domain.ShapeSource ShapeSource = Vipi.Domain.ShapeSource.Source);
 
 /// <summary>
 /// Un aeroplano visto in un giro, come lo passa il poller: chi è, cosa dice il suo piano di volo, in che
@@ -44,7 +45,8 @@ public sealed record LegObservation(
     string? ArrIcao,
     string? AircraftIcao,
     FlightPhase Phase,
-    double AltitudeFt);
+    double AltitudeFt,
+    Vipi.Domain.ShapeSource ShapeSource = Vipi.Domain.ShapeSource.Source);
 
 /// <summary>Contatori di una sessione, ricalcolati dalle sue tratte.</summary>
 public sealed record SessionCounters(long SessionId, int TrafficCount, int MovementCount, int TrafficMinutes);
@@ -104,6 +106,9 @@ public sealed class TrafficLedger
         public int? MaxAltitudeFt { get; set; }
         public long? HandoffToSessionId { get; set; }
         public long? HandoffFromSessionId { get; set; }
+
+        /// <summary>Con quale forma è stato contato l'ultimo avvistamento: si scrive accanto alla tratta.</summary>
+        public Vipi.Domain.ShapeSource ShapeSource { get; set; }
     }
 
     /// <summary>Sessioni di cui il registro sa già qualcosa: il chiamante non deve rileggerle dall'archivio.</summary>
@@ -141,6 +146,7 @@ public sealed class TrafficLedger
                 MaxAltitudeFt = l.MaxAltitudeFt,
                 HandoffToSessionId = l.HandoffToSessionId,
                 HandoffFromSessionId = l.HandoffFromSessionId,
+                ShapeSource = l.ShapeSource,
             });
         _sessioni[sessionId] = s;
     }
@@ -151,7 +157,8 @@ public sealed class TrafficLedger
     /// </summary>
     public bool Observe(long sessionId, LegObservation obs, DateTimeOffset now)
     {
-        var (pilotCallsign, pilotUserId, flightPlanId, depIcao, arrIcao, aircraftIcao, phase, altitudeFt) = obs;
+        var (pilotCallsign, pilotUserId, flightPlanId, depIcao, arrIcao, aircraftIcao, phase, altitudeFt,
+             shapeSource) = obs;
 
         if (!_sessioni.TryGetValue(sessionId, out var s))
             _sessioni[sessionId] = s = new Sessione { UltimaScrittura = now };
@@ -209,6 +216,11 @@ public sealed class TrafficLedger
         // rientrato al parcheggio rullando.
         leg.LastPhase = phase;
         if (phase == FlightPhase.Airborne) leg.SawAirborne = true;
+
+        // ⚠️ La forma con cui è stato contato: quella dell'ULTIMO avvistamento. Se un settore viene agganciato
+        // mentre un volo è dentro, la tratta finisce marcata con la forma che l'ha contata per ultima — che è
+        // la risposta giusta a «con quale confine è stato contato questo?», visto che i minuti si sommano.
+        leg.ShapeSource = shapeSource;
 
         var quota = Piedi(altitudeFt);
         leg.EntryAltitudeFt ??= quota;
@@ -320,7 +332,7 @@ public sealed class TrafficLedger
         sessionId, l.PilotCallsign, l.LegOrdinal, l.PilotUserId, l.FlightPlanId, l.DepIcao, l.ArrIcao,
         l.AircraftIcao, l.FirstSeenUtc, l.LastSeenUtc, l.SeenMinutes, l.SawMovement, l.HasObservationGap,
         l.FirstPhase, l.LastPhase, l.SawAirborne, l.EntryAltitudeFt, l.ExitAltitudeFt, l.MaxAltitudeFt,
-        l.HandoffToSessionId, l.HandoffFromSessionId);
+        l.HandoffToSessionId, l.HandoffFromSessionId, l.ShapeSource);
 
     private static SessionCounters Counters(long sessionId, Sessione s) => new(
         sessionId,

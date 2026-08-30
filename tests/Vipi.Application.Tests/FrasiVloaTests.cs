@@ -38,6 +38,10 @@ public class FrasiVloaTests
             Task.FromResult<IReadOnlyList<DomesticSectorPoly>>(Array.Empty<DomesticSectorPoly>());
         public Task<IReadOnlyList<string>> ListDomesticAccCodesAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+        public Task<IReadOnlyList<Vipi.Application.Content.ForeignAccData>> ListForeignAccDataAsync(
+            CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Vipi.Application.Content.ForeignAccData>>(
+                Array.Empty<Vipi.Application.Content.ForeignAccData>());
         public Task<(int Created, int Updated)> UpsertCandidatesAsync(
             IReadOnlyList<NeighbourCandidateUpsert> items, CancellationToken ct = default) => Task.FromResult((0, 0));
         public Task<NeighbourCandidate?> GetAsync(int id, CancellationToken ct = default) =>

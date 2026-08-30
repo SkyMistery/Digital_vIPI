@@ -5,6 +5,7 @@
 @inject IAccAdminService Acc
 @inject IEditAuthorizationService Authz
 @inject IAccDerivationService AccDeriv
+@inject Vipi.Application.Airspace.ISectorShapeResolver Forme
 @inject ILogger<AccAdminPage> Logger
 @inject IStringLocalizer<SharedResource> L
 @inject IJSRuntime JS
@@ -231,10 +232,17 @@
                                 <td>@(s.Position ?? "—")</td>
                                 <td>@(s.MiddleIdentifier ?? "—")</td>
                                 <td>@(s.Frequency ?? "—")</td>
-                                <td>@(s.HasPolygon ? "✓" : "—")</td>
-                                <td><input style="width:70px" class="@DirtyClass(s.Id)" disabled="@(!_canEdit)" value="@FmtLower(_lower.GetValueOrDefault(s.Id))"
+                                <td><ShapeSourcePill Shape="@FormaDi(s.ComposePosition)" /></td>
+                                @* ⚠️ Con la forma agganciata all'AIP le quote le portano i PEZZI: queste due caselle
+                                   restano quelle dell'anagrafica e non le usa nessuno finché l'aggancio dura. Si
+                                   sbiadiscono invece di sparire — il giorno che si sgancia tornano a valere. *@
+                                <td class="@(Scavalcati(s.ComposePosition) ? "lim-overridden" : null)"
+                                    title="@(Scavalcati(s.ComposePosition) ? L["Shape_LimitsOverridden"].Value : null)">
+                                    <input style="width:70px" class="@DirtyClass(s.Id)" disabled="@(!_canEdit)" value="@FmtLower(_lower.GetValueOrDefault(s.Id))"
                                            @onchange="e => SetLower(s.Id, e.Value)" title="@(IsDirty(s.Id) ? L["AccAdmin_LimitDirtyTitle"].Value : L["AccAdmin_LowerHint"].Value)" /></td>
-                                <td><input style="width:70px" class="@DirtyClass(s.Id)" disabled="@(!_canEdit)" value="@FmtUpper(_upper.GetValueOrDefault(s.Id))"
+                                <td class="@(Scavalcati(s.ComposePosition) ? "lim-overridden" : null)"
+                                    title="@(Scavalcati(s.ComposePosition) ? L["Shape_LimitsOverridden"].Value : null)">
+                                    <input style="width:70px" class="@DirtyClass(s.Id)" disabled="@(!_canEdit)" value="@FmtUpper(_upper.GetValueOrDefault(s.Id))"
                                            @onchange="e => SetUpper(s.Id, e.Value)" title="@(IsDirty(s.Id) ? L["AccAdmin_LimitDirtyTitle"].Value : L["AccAdmin_UpperHint"].Value)" /></td>
                                 <td>
                                     @if (s.AccHidden)
@@ -364,6 +372,11 @@
 
         _accs = await Acc.ListAccsAsync();
         _subs = await Acc.ListSubcentersAsync();
+
+        // Da dove viene la forma di ognuno: UNA domanda per tutta la tabella, non una per riga.
+        // ⚠️ In sequenza dentro il ricarico, mai in parallelo con le altre query: il DbContext del circuito
+        // è uno solo e due operazioni insieme lo fanno saltare.
+        _forme = await Forme.ResolveAsync(_subs.Select(x => x.ComposePosition).ToList());
         _lower.Clear(); _upper.Clear();
         foreach (var s in _subs) { _lower[s.Id] = s.LowerLimit; _upper[s.Id] = s.UpperLimit; }
 
@@ -376,6 +389,16 @@
             _upper[id] = pendingUpper.GetValueOrDefault(id);
         }
     }
+
+    /// <summary>La forma risolta di ogni callsign: da dove viene, e di quanti pezzi è fatta.</summary>
+    private IReadOnlyDictionary<string, Vipi.Application.Airspace.SectorShape> _forme =
+        new Dictionary<string, Vipi.Application.Airspace.SectorShape>();
+
+    private Vipi.Application.Airspace.SectorShape? FormaDi(string callsign) =>
+        _forme.TryGetValue(callsign, out var f) ? f : null;
+
+    /// <summary>Vero se le quote di questa riga non le usa nessuno: le porta l'aggancio all'AIP.</summary>
+    private bool Scavalcati(string callsign) => FormaDi(callsign)?.FromAip == true;
 
     // --- Limiti: scrittura, stato «modificato», salvataggio in un giro ---
     private void SetLower(int id, object? v)

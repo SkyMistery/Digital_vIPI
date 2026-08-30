@@ -95,12 +95,12 @@ public sealed class AirportSectorImportHostedService : BackgroundService
         {
             var svc = sp.GetRequiredService<Vipi.Application.Content.IAtzTowerShapeService>();
             atz = await svc.ApplyAsync(ct);
-            // ⚠️ Gli ICAO con PIU' di un ATZ si dicono per nome: sono quelli che il ripiego automatico non può
-            // servire — la colonna tiene un anello — e che vanno agganciati a mano dalla pagina degli spazi aerei.
-            if (atz.Ambiguous.Count > 0)
-                _log.LogWarning(
-                    "ATZ dell'AIP: {Icao} hanno più di un ATZ nel file — niente ripiego automatico, si agganciano a mano.",
-                    string.Join(", ", atz.Ambiguous));
+            // Gli ICAO il cui ATZ è fatto di più zone si dicono per nome. ⚠️ Non sono più un problema — dalla
+            // carta refactor 15 l'ATZ è un AGGANCIO, che tiene una lista — ma restano i campi da guardare.
+            if (atz.MultiZone.Count > 0)
+                _log.LogInformation(
+                    "ATZ dell'AIP: {Icao} hanno più di una zona nel file, agganciate tutte.",
+                    string.Join(", ", atz.MultiZone));
         }
         catch (Exception ex) { _log.LogDebug(ex, "Ripiego ATZ dall'AIP saltato."); }
 

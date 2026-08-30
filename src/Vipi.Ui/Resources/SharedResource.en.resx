@@ -2947,4 +2947,15 @@
   <data name="Asp_PubRegulated" xml:space="preserve"><value>Regulated areas (R, P, D) and the other areas come from the IVAO catalogue and appear in the documents, not here.</value></data>
   <data name="Services_AirspaceDesc" xml:space="preserve"><value>AIP boundaries — CTR, CTA, TMA, ATZ, FIR — and our own sectors, on the same map.</value></data>
   <data name="Asp_Nav_CanaleMancante" xml:space="preserve"><value>Channel not written</value></data>
+  <data name="Shape_FromAip" xml:space="preserve"><value>AIP</value></data>
+  <data name="Shape_FromAipTitle" xml:space="preserve"><value>Shape taken from the AIP airspaces: {0} pieces, each with its own levels. The limits next to this stay the ones from the registry and are unused while the binding lasts.</value></data>
+  <data name="Shape_FromSectorfile" xml:space="preserve"><value>sectorfile</value></data>
+  <data name="Shape_FromSectorfileTitle" xml:space="preserve"><value>Shape taken from the Aurora sectorfile.</value></data>
+  <data name="Shape_FromSource" xml:space="preserve"><value>IVAO</value></data>
+  <data name="Shape_FromSourceTitle" xml:space="preserve"><value>Shape from the IVAO registry, with the vertical limits next to this.</value></data>
+  <data name="Shape_Synthetic" xml:space="preserve"><value>circle</value></data>
+  <data name="Shape_SyntheticTitle" xml:space="preserve"><value>No real shape: a 5 NM fallback circle around the field.</value></data>
+  <data name="Shape_None" xml:space="preserve"><value>none</value></data>
+  <data name="Shape_NoneTitle" xml:space="preserve"><value>This position has no area: DEL and GND do not have one.</value></data>
+  <data name="Shape_LimitsOverridden" xml:space="preserve"><value>overridden by the AIP</value></data>
 </root>

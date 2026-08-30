@@ -17,6 +17,7 @@ public class AgganciSpaziAereiTests : IAsyncLifetime
     private VipiDbContext _db = default!;
     private EfAirspaceCatalog _catalogo = default!;
     private EfSectorAirspaceBindings _agganci = default!;
+    private EfSectorShapeResolver _forme = default!;
 
     public async Task InitializeAsync()
     {
@@ -25,6 +26,7 @@ public class AgganciSpaziAereiTests : IAsyncLifetime
         await _db.Database.EnsureCreatedAsync();
         _catalogo = new EfAirspaceCatalog(_db);
         _agganci = new EfSectorAirspaceBindings(_db);
+        _forme = new EfSectorShapeResolver(_db, _agganci, new EfSectorShapeParts(_db));
     }
 
     public async Task DisposeAsync()
@@ -94,23 +96,32 @@ public class AgganciSpaziAereiTests : IAsyncLifetime
         var volumi = await CaricaAsync(Kml(Catania));
         await _agganci.SetAsync(SourceCatalog.AirportPosition, 42, "LICC_APP", Chiavi(volumi), 7, "Chi sceglie");
 
-        var forma = AirspaceAor.Shape((await _agganci.ResolveAsync(["LICC_APP"]))["LICC_APP"]);
+        var forma = Vipi.Application.Aor.AorShapeProjection.Project(
+            (await _forme.ResolveAsync(["LICC_APP"]))["LICC_APP"]);
 
-        Assert.NotNull(forma);
         Assert.Equal(3, forma.Polygons.Count);
     }
 
+    /// <summary>
+    /// ⚠️ <b>Cambiato dalla carta refactor 15</b>: prima la banda era UNA, l'inviluppo delle zone, e il 3D
+    /// estrudeva un parallelepipedo unico. Ora ogni poligono porta la <b>sua</b>, e l'inviluppo resta solo
+    /// come dato del settore — per la legenda e per ordinare due volumi, non per disegnare.
+    /// </summary>
     [Fact]
-    public async Task La_Banda_Del_Tre_D_E_Linviluppo_Delle_Zone()
+    public async Task Ogni_Zona_Porta_La_Sua_Banda_E_L_Inviluppo_Resta_Del_Settore()
     {
-        // Z1/Z2 vanno da terra a 3500 ft, Z3 da 3500 a FL195: l'inviluppo è GND → FL195.
+        // Z1/Z2 vanno da terra a 3500 ft, Z3 da 3500 a FL195.
         var volumi = await CaricaAsync(Kml(Catania));
         await _agganci.SetAsync(SourceCatalog.AirportPosition, 42, "LICC_APP", Chiavi(volumi), 7, "Chi sceglie");
 
-        var forma = AirspaceAor.Shape((await _agganci.ResolveAsync(["LICC_APP"]))["LICC_APP"])!;
+        var forma = Vipi.Application.Aor.AorShapeProjection.Project(
+            (await _forme.ResolveAsync(["LICC_APP"]))["LICC_APP"]);
 
-        Assert.Equal(0, forma.LowerFl);      // GND
-        Assert.Equal(195, forma.UpperFl);    // FL195
+        Assert.Equal(new int?[] { 0, 0, 35 }, forma.Polygons.Select(p => p.LowerFl).ToArray());
+        Assert.Equal(new int?[] { 35, 35, 195 }, forma.Polygons.Select(p => p.UpperFl).ToArray());
+
+        Assert.Equal(0, forma.LowerFl);      // l'inviluppo: GND
+        Assert.Equal(195, forma.UpperFl);    // ... fino a FL195
     }
 
     [Fact]
@@ -121,8 +132,11 @@ public class AgganciSpaziAereiTests : IAsyncLifetime
             ("PROVA Z2", "GND", "FL999", 15.6)));
         await _agganci.SetAsync(SourceCatalog.AirportPosition, 1, "LIXX_APP", Chiavi(volumi), 7, "Tizio");
 
-        var forma = AirspaceAor.Shape((await _agganci.ResolveAsync(["LIXX_APP"]))["LIXX_APP"])!;
+        var forma = Vipi.Application.Aor.AorShapeProjection.Project(
+            (await _forme.ResolveAsync(["LIXX_APP"]))["LIXX_APP"]);
 
+        // Il tetto illimitato resta del SUO pezzo, e si vede nell'inviluppo del settore.
+        Assert.Equal(Vipi.Application.Aor.AorFlBand.Unlimited, forma.Polygons[1].UpperFl);
         Assert.Equal(Vipi.Application.Aor.AorFlBand.Unlimited, forma.UpperFl);
     }
 
@@ -197,7 +211,11 @@ public class AgganciSpaziAereiTests : IAsyncLifetime
         Assert.Empty(riga.Volumes);
         Assert.Equal(3, riga.Missing.Count);
         Assert.False(riga.HasShape);
-        Assert.Null(AirspaceAor.Shape(riga));
+        // ⚠️ E il risolutore non lascia il settore senza area: qui il catalogo non ha una riga per LICC_APP,
+        // quindi non c'e' proprio nessuna forma — con la riga ci sarebbe quella di IVAO (vedi
+        // SectorShapeResolverTests).
+        Assert.Empty(Vipi.Application.Aor.AorShapeProjection.Project(
+            (await _forme.ResolveAsync(["LICC_APP"])).GetValueOrDefault("LICC_APP")).Polygons);
     }
 
     [Fact]

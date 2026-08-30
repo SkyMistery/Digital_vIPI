@@ -173,6 +173,20 @@ public class AtcSessionTraffic
     public int SeenMinutes { get; set; }
 
     /// <summary>
+    /// Con quale <b>forma</b> è stato contato questo traffico: l'anagrafica IVAO, il sectorfile, un cerchio di
+    /// ripiego o gli spazi aerei dell'<b>AIP</b>.
+    ///
+    /// <para>⚠️ Non serve a contare — serve a <b>spiegare</b>. Il giorno che un settore passa dal monoblocco
+    /// generoso di IVAO al suo CTR vero, i numeri cambiano di colpo: senza questa colonna, nel grafico
+    /// resterebbe un gradino che fra sei mesi nessuno saprebbe leggere. Carta
+    /// <c>docs/refactor/15-shape-del-settore-una-porta-sola.md</c> §3h.</para>
+    ///
+    /// <para>⚠️ È la forma dell'<b>ultimo</b> avvistamento: i minuti si sommano, e se un settore viene
+    /// agganciato mentre un volo è dentro, la risposta utile è con che confine lo si stava contando.</para>
+    /// </summary>
+    public ShapeSource ShapeSource { get; set; }
+
+    /// <summary>
     /// Vero se l'aeroplano si è mosso almeno una volta (non è rimasto parcheggiato per tutta la sessione).
     /// Separa i <b>movimenti</b> dalle <b>presenze</b>: un ACC senza nessuno sotto gestisce anche il traffico
     /// a terra — e quindi la riga si scrive — ma il piazzale fermo non è traffico gestito.
