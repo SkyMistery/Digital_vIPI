@@ -871,16 +871,30 @@ la ripara**.
 Chi amministra il database di Ivao.It è via fino al **16 settembre**: questo `.sql` è l'ultimo travaso
 possibile per diciassette giorni.
 
+⚠️ **Decisione del committente, la sera del 30**: in produzione si riparte **da zero sul contenuto**. Il
+`.sql` consegnato non è il travaso del `vipi.db` di sviluppo — è un archivio nuovo con dentro **le
+anagrafiche, la memoria di traduzione e il glossario, e nient'altro**. Niente vIPI, niente accordi, niente
+release, niente spazi aerei, niente statistiche: si riscrive dal sito nei giorni successivi.
+
 | | Cosa | Dove | sha256 |
 |---|---|---|---|
-| **Database** | `vipi-atc-it-ivao-aero-2026-08-30.sql` — 13,4 MB (14 091 458 byte), schema + dati + `__EFMigrationsHistory` | `_mariadb/dump/` (**fuori dal repo**) | `9ACB8ACA…8F1D7FCA` |
-| **Lo stesso, compresso** | `…​.sql.gz` — 3,4 MB | idem | `8907BEC9…07D3B187E` |
-| **Foglio per chi importa** | [`../artifacts/CONSEGNA-DB-20260830.md`](../artifacts/CONSEGNA-DB-20260830.md) | nel repo | — |
+| **Database** | `vipi-atc-it-ivao-aero-2026-08-30.sql` — **985 KB** (1 008 594 byte), 3546 righe | `_mariadb/dump/` (**fuori dal repo**) | `5C4BC0BC…F1E5C8AB` |
+| **Lo stesso, compresso** | `…​.sql.gz` — **186 KB** | idem | `2F3AA500…9474E36C` |
+| **Foglio + i due script di rete** | [`../artifacts/`](../artifacts/) — `CONSEGNA-DB-20260830.md`, `-passo1-…​.sql`, `-ripristino.sql` | fuori da git | — |
 
-⚠️ **Il `.gz` non è un vezzo.** Il dump è **4,5 volte** quello del 23 agosto (3,1 MB): `AirspaceVolumes`
-2,68 MB, `AtcSessions` 2,45, `AirspaceImports` 1,25. Il limite di caricamento del loro phpMyAdmin non l'ha
-mai chiesto nessuno, e stavolta scoprirlo tardi non si può rimediare. Compresso pesa **quanto quello di
-agosto che è già passato di lì**.
+ℹ️ Il timore sul limite di caricamento di phpMyAdmin **è caduto da sé**: 186 KB compressi contro i 3,1 MB
+di agosto, che erano già passati.
+
+⚠️ **La trappola della policy, e come si è disinnescata.** Le statistiche ATC si sono tenute fuori
+spegnendo `ImportCategory.AtcSessions` — un flag solo che governa poller, storico, traffico aeroporti e
+riassunto mensile. Ma **la policy viaggia nel dump**: consegnata spenta, in produzione l'archivio non
+sarebbe mai partito. Riaccesa come ultimo gesto prima di fermare l'host, e verificata **sul database** e non
+a schermo.
+ℹ️ E spegnerla dall'interfaccia a giro avviato **non basta**: il recupero dei 365 giorni legge la policy una
+volta sola, all'inizio, e in quel primo tentativo sono entrate **21 109 sessioni**. Il database di consegna
+è stato rifatto seminando la riga di policy **prima** dell'avvio, dove nessuna corsa è possibile.
+ℹ️ `AtcHistory` resta senza un giro riuscito in `ImportStates`, quindi in produzione al primo avvio parte il
+**recupero completo dei 365 giorni**: l'archivio si ricostruisce di là invece di viaggiare nel file.
 
 **Che cosa si congela davvero, e che cosa no** — la domanda che ha guidato tutto il resto. Lo **schema
 non** si congela: il provider di produzione è MySQL, `MigrateVipiDatabase` chiama `Database.Migrate()`
@@ -907,6 +921,8 @@ indici unici. Un presidio che non si è mai visto fallire non è un presidio.
   `vipi.db.bak-pre-consegna-20260830`, poi allineato;
 - **sette documenti ripubblicati** dei nove in deriva (`/services/vsop/admin/pending`), guidando l'app:
   `LIBD #4`, `LIBR #4`, `LIPA #2`, `LIRN #6`, `LIBA_APP #2`, vLOA `LGGG #2`, vLOA `LYBA #2`.
+  ℹ️ Quel lavoro vive nel `vipi.db` di **sviluppo** e **non è entrato in questa consegna**, che riparte da
+  zero sul contenuto. Non è sprecato: è lo stato da cui si riscriverà.
   ⚠️ **Due tenuti fermi apposta**: `vIPI Brindisi` e `Pescara Approach` portano tre sezioni intitolate
   «Nuova sezione» (due vuote, una con dentro solo un'immagine). Ripubblicarli le avrebbe messe **in
   pubblico per diciassette giorni**. Si sistemano dall'editor, poi si ripubblicano.
@@ -914,11 +930,13 @@ indici unici. Un presidio che non si è mai visto fallire non è un presidio.
 **Che cosa è stato verificato, e come:**
 - le **45 migrazioni MySQL** applicate a un MariaDB 11.4.10 vero, da database vuoto: sono le prime 36 a
   vederne uno davvero (finora erano solo state generate);
-- `Vipi.DbSeed`: 40 033 righe lette, 40 048 scritte, **56 tabelle su 56 riconciliate**, 48 contatori
-  `AUTO_INCREMENT` riportati oltre il massimo; e il controllo del 7 agosto che era sfuggito —
-  `SpecialAreaCenters` (247) **>** `SpecialAreas` (230);
-- il `.sql` **reimportato in un database vuoto** e confrontato tabella per tabella: **57/57**, 40 033
-  righe, `__EFMigrationsHistory` a 45;
+- `Vipi.DbSeed`: **56 tabelle su 56 riconciliate**, 3546 righe, 48 contatori `AUTO_INCREMENT` riportati
+  oltre il massimo; e il controllo del 7 agosto che era sfuggito — `SpecialAreaCenters` (247) **>**
+  `SpecialAreas` (230);
+- il `.sql` **reimportato in un database vuoto** e confrontato tabella per tabella: **57/57**, 3546 righe,
+  `__EFMigrationsHistory` a 45;
+- **l'host avviato sul database reimportato**: `Now listening`, **zero `Applying migration`**, cinque
+  pagine 200 e nessun errore — è la prova che il 23 agosto si faceva e che al primo giro avevo saltato;
 - collation `utf8mb4_uca1400_as_cs` su **266 colonne**; le due fuori regola sono `MigrationId` e
   `ProductVersion`, che la tabella la crea EF;
 - `.gz` riaperto e ricontato: 14 091 458 byte, gli stessi;
