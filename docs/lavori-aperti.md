@@ -881,6 +881,16 @@ release, niente spazi aerei, niente statistiche: si riscrive dal sito nei giorni
 | **Database** | `vipi-atc-it-ivao-aero-2026-08-30.sql` — **985 KB** (1 008 594 byte), 3546 righe | `_mariadb/dump/` (**fuori dal repo**) | `5C4BC0BC…F1E5C8AB` |
 | **Lo stesso, compresso** | `…​.sql.gz` — **186 KB** | idem | `2F3AA500…9474E36C` |
 | **Foglio + i due script di rete** | [`../artifacts/`](../artifacts/) — `CONSEGNA-DB-20260830.md`, `-passo1-…​.sql`, `-ripristino.sql` | fuori da git | — |
+| **Sito** | `vipi-linux-x64-mariadb-20260830.zip` — 50,4 MB, 474 file, self-contained net8, pacchetto **`j`** | `artifacts/publish/` | `08335127…55FAB922` |
+
+⚠️ **Il timbro del pacchetto è `j · 2e96bbc`, e quel commit sta solo in locale**: è la testa del ramo
+`consegna-db-20260830`. La barra lo mostra all'admin, e finché il ramo non è spinto quel numero non si può
+risalire. Il codice di runtime è identico a `main` (`30363753`) — oggi sono stati toccati solo test e
+documentazione — quindi non è un problema di *cosa* gira, ma di *rintracciabilità*: si chiude spingendo il
+ramo.
+
+ℹ️ Le lettere dei pacchetti erano arrivate a **`i`**, non a `g`: `g` era solo l'ultima *consegnata*, e le
+correzioni del 24 agosto hanno consumato h e i. Guardare `artifacts/publish/`, non la memoria.
 
 ℹ️ Il timore sul limite di caricamento di phpMyAdmin **è caduto da sé**: 186 KB compressi contro i 3,1 MB
 di agosto, che erano già passati.
