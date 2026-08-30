@@ -1,6 +1,6 @@
 # Feature — Biblioteca allegati (PDF su Drive di divisione, linkati nei documenti)
 
-Data: 2026-08-25 · Aggiornata: **2026-08-29** · Stato: ✅ **CHIUSA E FUSA IN `main`** il 30 agosto 2026 (merge `cdeeb163`) · ⚠️ **resta R8**: l'embed di Drive mai provato dal vivo · Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md)
+Data: 2026-08-25 · Aggiornata: **2026-08-29** · Stato: ✅ **CHIUSA E FUSA IN `main`** il 30 agosto 2026 (merge `cdeeb163`) · ✅ **R8 CHIUSO** il 30 agosto 2026: embed provato dal vivo con due PDF veri · Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md)
 
 ## Obiettivo
 
@@ -371,3 +371,53 @@ reale, con traccia:
    all'**organizzazione**, non a una persona: sopravvivono a qualunque cambio d'incarico, e non c'è niente da
    spostare prima della slice 1. È anche la precondizione del caricamento via API: un service account si
    aggiunge come **membro** di un Drive condiviso, cosa che in un «Mio Drive» non si può fare.
+
+## R8 — l'embed di Drive, provato dal vivo (30 agosto 2026)
+
+Il committente ha portato **due PDF veri** sul Drive di divisione. Esito:
+
+| che cosa | esito |
+|---|---|
+| il link condiviso (`/view?usp=sharing`) | l'id si estrae, e diventa `/preview` |
+| la nostra rotta `/vsop/files/{slug}` | **302** verso `.../preview`, che risponde **200** |
+| **il riquadro incorporato** | ✅ **il documento si vede davvero**: l'elenco delle abbreviazioni IVAO.IT e la carta di atterraggio di Alghero |
+| `/view` dentro un iframe | **403** — conferma che la scelta di `/preview` era quella giusta, e non era ovvia |
+
+### ⚠️ Il difetto che ha trovato: mancava `'self'` in `frame-src`
+
+La carta prevedeva il rischio giusto — «senza `frame-src` in CSP l'incorporato funziona oggi e muore al
+passaggio a CSP vera» — ma non il **motivo**. La direttiva c'era già:
+
+```
+frame-src https://drive.google.com;
+```
+
+e non basta, perché **l'iframe non punta a Drive: punta alla NOSTRA rotta**. È tutto il senso del disegno
+— l'id del deposito non entra mai in un documento — e `frame-src` guarda l'indirizzo a cui il riquadro
+**naviga**, che al primo passo è `http://…/vsop/files/{slug}`. Il browser lo diceva:
+
+> Framing 'http://localhost:5034/vsop/files/prova-drive-due' violates the following **report-only**
+> Content Security Policy directive: "frame-src https://drive.google.com"
+
+Report-Only, cioè invisibile finché qualcuno non guarda la console. Ora la direttiva è
+`frame-src 'self' https://drive.google.com`, e la violazione sparisce — verificato dal vivo.
+
+⚠️ **E il presidio asseriva la direttiva incompleta**, quindi passava mentre il browser segnalava la
+violazione. Un test che ricopia il codice invece di descrivere quel che deve succedere non presidia niente.
+
+⚠️ Resta una violazione, e **non è nostra**: Drive che inquadra `ogs.google.com` dentro il proprio
+documento, governato dalla CSP di Google.
+
+### ⚠️ Un secondo difetto, che era in produzione: `v@r.VersionNumber`
+
+La colonna della versione mostrava **il testo dell'espressione** su ogni riga. È la regola di Razor per gli
+**indirizzi email**: una chiocciola con un carattere attaccato a sinistra e un punto a destra viene presa per
+un indirizzo e stampata alla lettera. Ci vogliono le parentesi — `v@(r.VersionNumber)`. Cercato in tutta la
+UI: era l'unico caso. Ora c'è un test che lo presidia.
+
+### Una cosa da sapere per chi prova a mano
+
+⚠️ Lo slug proposto dal titolo si può cambiare, ma **non col triplo clic**: quel gesto lascia il valore
+vecchio attaccato al nuovo (`prova-dmio-slug`). Con **Ctrl+A** o cancellando col Backspace funziona. È il
+comportamento dei campi «controllati» (`value=@…` + `@oninput`), che in questa applicazione sono **19 file**:
+non è della biblioteca, ed è un lavoro a sé.
