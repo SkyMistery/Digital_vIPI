@@ -203,6 +203,45 @@ accordi, niente release, niente spazi aerei, niente statistiche. Il `vipi.db` di
 **Cosa resta al committente:** `tmp/restart.txt` **solo a database dentro** → prima riga di
 `diagnostica/avvio-diagnostica.txt` con la data di adesso → il push del ramo.
 
+### 📦 A15 — Pacchetto 1.1.0, 31 agosto 2026: solo i file cambiati
+
+Il primo pacchetto che porta un **numero** invece di una lettera, e il primo **incrementale**.
+
+| | |
+|---|---|
+| **Timbro** | `1.1.0 · aaaeddb` (il foglio con questo timbro è nel commit **dopo**: il timbro nasce dal commit al momento del publish) |
+| **Da caricare** | **18 file, 12,4 MB** — `artifacts/publish/solo-18-file-1.1.0/` |
+| **Zip da spedire** | `artifacts/publish/vipi-1.1.0-solo-file-cambiati.zip`, **4,07 MB**, sha256 `d836cf46…ef9e561d` |
+| **Pacchetto completo** | `artifacts/publish/linux-x64-20260831/` (460 file), tenuto come riferimento e per il prossimo diff |
+| **Database** | **non si tocca.** Nessuna migrazione in nessuno dei due rami fusi |
+| **Foglio** | [`../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.1.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.1.0.md) |
+
+**Perché 18 e non 474.** Solo cinque assiemi cambiano davvero (`Host`, `Ui`, `Hosting`, `Application`,
+`Infrastructure`): gli altri differiscono solo per l'MVID di una ricompilazione, e ricaricarli sarebbe
+rischio senza guadagno — ogni `.dll` in più è una rinomina in più su un file che il processo tiene aperto.
+Con loro vanno le mappe `.pdb` (o `errori-richieste.txt` perde il numero di riga), `en/Vipi.Ui.resources.dll`,
+l'indice `staticwebassets` e i due file di `wwwroot` con i loro `.br`/`.gz`.
+
+⚠️ **Il rischio nuovo di questo pacchetto**: da qui `blazor.web.js` parte con `autostart="false"`, quindi un
+caricamento senza `vipi-riconnessione.js` (o senza l'indice) dà un sito che **si vede intero e non risponde
+a niente**. Nel foglio è il primo dei due avvisi, e il controllo finale non è «la pagina si apre» ma
+**«premete un tasto»**.
+
+✅ **Verificato sul PACCHETTO, non sul sorgente** — è l'unico giro in cui si vede l'effetto
+dell'ottimizzatore, che minifica il JavaScript: pubblicato per `win-x64`, avviato, e guidato con Edge.
+Il file servito è quello minificato (2 400 B), il circuito si apre, le frasi sono in italiano, `/vsop/ping`
+risponde `204`, il timbro dice `1.1.0 · aaaeddb`. Poi il processo è stato **ucciso e riavviato**: la pagina
+si è **ricaricata da sola in 4 secondi**.
+
+✅ E il registro degli avvii ha scritto, da solo, tutte e due le righe che deve saper scrivere: l'`ARRESTO`
+sullo spegnimento ordinato (novanta volte, nei giri della suite E2E) e il verdetto **«⚠ il processo
+precedente NON si è spento in modo ordinato»** dopo l'uccisione secca — che è la forma che hanno un crash,
+una memoria esaurita e una `.dll` sovrascritta mentre gira.
+
+⚠️ **Trovato dal pacchetto e non dai test**: la riga `AVVIO` portava il *dettaglio* della versione, che
+finisce con «in servizio dal \<data\>» — cioè la stessa ora già scritta a inizio riga. Ora porta
+l'etichetta corta. I test guardavano che la riga ci fosse, non come suonasse.
+
 ### 🔒 Dal 31 agosto al 16 settembre non si consegna database
 
 Chi lo amministra in Ivao.It è via. ⚠️ **Lo schema però NON è congelato**: in produzione gira

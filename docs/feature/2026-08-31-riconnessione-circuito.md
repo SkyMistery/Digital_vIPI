@@ -142,6 +142,22 @@ sarebbe stato il rimedio sbagliato allo stesso sintomo.
    resta una barra sola in mezzo alla frase. Nascosta con `:has(#components-reconnect-current-attempt:empty)`;
    dove `:has` non arrivasse, si torna a vedere la barra, che è il peggio che possa succedere.
 
+✅ **E una seconda verifica sul PACCHETTO**, che è un'altra cosa: lì il JavaScript passa per
+l'ottimizzatore, che lo **minifica** — e da questo pacchetto quel file è l'unico che avvia Blazor, quindi
+una minificazione che ne cambiasse il comportamento darebbe un sito che si vede e non risponde. Pubblicato
+per `win-x64`, avviato e guidato con Edge (`Accept-Language: it-IT`): file servito minificato (2 400 B),
+circuito aperto, frasi in italiano, `/vsop/ping` `204`, timbro `1.1.0 · aaaeddb`, e dopo l'uccisione del
+processo la pagina si è **ricaricata da sola in 4 secondi**.
+
+✅ Il registro ha scritto da sé **tutte e due** le righe che deve saper scrivere: l'`ARRESTO` sullo
+spegnimento ordinato (novanta volte nei giri della suite E2E) e il verdetto **«NON si è spento in modo
+ordinato»** dopo l'uccisione secca — la forma che hanno un crash, una memoria esaurita e una `.dll`
+sovrascritta mentre gira.
+
+⚠️ **Il pacchetto ha trovato una terza cosa**: la riga `AVVIO` portava il *dettaglio* della versione, che
+finisce con «in servizio dal \<data\>», cioè la stessa ora già scritta a inizio riga. Ora porta l'etichetta
+corta. I test guardavano che la riga ci fosse, non come suonasse.
+
 ℹ️ Nella prova le frasi sono uscite **in inglese**: Edge manda `Accept-Language: en-US` e la pagina lo
 rispetta. È il comportamento giusto — l'italiano è coperto dal test con `?culture=it`.
 

@@ -15,6 +15,12 @@ cancellati — vale il riquadro qui sotto).
 > quattro mosse contro «Attempting to reconnect to the server…»). **Nessuno dei due porta migrazioni**, che
 > dentro la finestra cieca è il punto: il pacchetto si consegna da solo via FTP. Versione **1.1.0**.
 >
+> 📦 **Il pacchetto per l'FTP è pronto**: `artifacts/publish/vipi-1.1.0-solo-file-cambiati.zip` (4,07 MB) —
+> **18 file**, non i 474 dello zip completo, perché solo cinque assiemi cambiano davvero. Foglio:
+> `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.1.0.md`. Timbro `1.1.0 · aaaeddb`. **Il database non si tocca.**
+> Verificato sul pacchetto vero (JavaScript minificato compreso): processo ucciso e riavviato, pagina
+> ricaricata da sola in 4 secondi. Cronaca in **§A15**.
+>
 > ⚠️ **Il pacchetto porta un `.js` OBBLIGATORIO**: da qui in poi `blazor.web.js` parte con
 > `autostart="false"` e ad avviarlo è `vipi-riconnessione.js`. Un caricamento senza quel file — o con
 > l'indice `staticwebassets` scambiato senza i `.js` — dà un sito che **si vede intero e non risponde a
