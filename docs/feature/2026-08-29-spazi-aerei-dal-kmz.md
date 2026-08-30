@@ -1,6 +1,7 @@
 # Gli spazi aerei dell'AIP: un file caricato a mano (29 agosto 2026)
 
-> Stato: **S1, S2 e S3 fatte e verificate dal vivo** (29 agosto 2026). Ramo `spazi-aerei-aip`, spinto e **non fuso**. Restano S4 (l'ATZ per le torri), S5 (la pagina pubblica), S6 (il convertitore) e S7 (il rapporto radioassistenze).
+> Stato: **TUTTE E SETTE LE SLICE FATTE**, verifica dal vivo compresa (29 agosto 2026). Ramo
+> `spazi-aerei-aip`, spinto e **non fuso**.
 > Origine: richiesta del committente del 29 agosto 2026, e le nove risposte della stessa sera.
 
 ## 1. Perché
@@ -135,9 +136,10 @@ Due innesti, e due nature diverse:
 - **L'ATZ (decisione 2) è un ripiego**: riempie solo i settori che non hanno un'area che si disegni,
   esattamente come il cerchio, e sta **dopo** il sectorfile — che è quel che il committente ha
   chiesto: *fonte secondaria, solo se non la trovi nel sectorfile*. Se domani IVAO manda una shape
-  vera, IVAO vince, come deve essere per un ripiego. Nessun aggancio da mantenere a mano: **42 ATZ
-  su 46 portano l'ICAO nel nome** (`ATZ CROTONE LIBC`), e i quattro che non ce l'hanno sono tre
-  MATZ e un campo di airwork, che se servono si agganciano come al punto 1.
+  vera, IVAO vince, come deve essere per un ripiego. Nessun aggancio da mantenere a mano: **74 ATZ
+  su 91 portano l'ICAO nel nome** (`ATZ CROTONE LIBC`) — la misura «42 su 46» della prima stesura
+  guardava la sola classe G, e gli ATZ stanno in due classi. I **17** che non ce l'hanno sono quasi
+  tutti MATZ di basi militari (Amendola, Aviano, Cameri, Decimomannu…), che si agganciano a mano.
 
 - **La sostituzione (decisione 1) è una scelta**, e la fa una persona.
 
@@ -211,10 +213,10 @@ senza poligono, per il ripiego.
 | **S1** | **Il lettore.** Scatole → anello, `ExtendedData`, quote parsate (piedi + riferimento), famiglie, chiave naturale. Metodo **nuovo** dentro `KmlReader`, che condivide il parsing delle coordinate e **non cambia** il comportamento del convertitore. Puro, tutto in test, fixture ritagliata dal file vero. | — |
 | **S2** | **Il catalogo e il caricamento.** Le due tabelle, la pagina admin: carica, esito in chiaro («1 536 letti, 362 utilizzabili, 3 doppioni»), elenco filtrabile, anteprima in mappa. Il KMZ si conserva intero. | 1 |
 | **S3** | **La sostituzione a mano.** Il legame (per chiave naturale), la sua lettura nelle due viste AoR, e il blocco «Settori agganciati» nella pagina degli spazi aerei — dove stanno i volumi, perché la scelta è *quali volumi*, non *quale settore*. Con «torna a IVAO» e l'avviso sugli agganci scoperti. → **LIBA e LICC chiusi.** | 1 |
-| **S4** | **L'ATZ per le TWR.** Passo automatico fra il ripiego del sectorfile e il cerchio; aggancio per ICAO nel nome (42 su 46). | — |
-| **S5** | **La pagina pubblica**, per famiglia, con l'attribuzione — e la riga della fonte nelle mappe AoR che mostrano una shape sostituita. | — |
-| **S6** | **Il convertitore**: sorgente «dal catalogo spazi aerei» accanto alle tredici che già legge. | — |
-| **S7** | **Il rapporto radioassistenze e campi**: che cosa il file dice e l'anagrafica no (e viceversa). **Solo segnalazione, nessuna scrittura**: si corregge nel sectorfile e si reimporta. | — |
+| **S4** | ✅ **L'ATZ per le TWR.** Passo automatico fra il ripiego del sectorfile e il cerchio; aggancio per ICAO nel nome (74 su 91). ⚠️ Un ICAO con **più di un ATZ si salta**: la colonna tiene un anello. | — |
+| **S5** | ✅ **La pagina pubblica** `/services/airspace`, per famiglia, con l'attribuzione. Riusa `AccAor` per intero. | — |
+| **S6** | ✅ **Il convertitore**: sorgente «dal catalogo spazi aerei» accanto alle tredici che già legge. | — |
+| **S7** | ✅ **Il rapporto radioassistenze**: che cosa il file dice e l'anagrafica no (e viceversa). **Solo segnalazione**: si corregge nel sectorfile e si reimporta. | — |
 
 S1–S3 sono la richiesta e stanno in un ramo solo. **Due migrazioni**: la coda cresce di due.
 
@@ -260,3 +262,30 @@ quando Blazor propaga il valore, non di che cosa il codice fa con esso.
 viewer è caduto sulla derivazione viva. Dove invece una release **congela** l'AoR, l'aggancio si vede sulla
 pagina pubblica solo dopo aver **ripubblicato**: è la stessa regola del ciclo AIRAC della vLOA, e non un
 comportamento nuovo.
+
+## 12. La verifica dal vivo di S4–S7 (29 agosto 2026, notte)
+
+Stesso banco: host in Development su una copia del `vipi.db` reale, il **file vero** caricato dalla pagina.
+
+| che cosa | esito misurato |
+|---|---|
+| **S4 · l'ATZ per le torri** | **13 torri su 84** hanno ricevuto la loro ATZ dal giro automatico dell'host — il log lo dice a chiare lettere — e restano **tre cerchi** (`LIAA_I`, `LIEF_MIL`, `LILA_I`), che nel file un ATZ non ce l'hanno |
+| **S5 · la pagina pubblica** | i CTR si accendono all'apertura (**114 anelli**), le ATZ si aggiungono a richiesta (**208**), chip e preset ci sono, l'attribuzione in fondo |
+| **S6 · il convertitore** | tendina con **363 voci** in sei gruppi; presa un'ATZ, escono **150 righe** in forma sectorfile |
+| **S7 · il rapporto** | **218 differenze** su 115 radioassistenze |
+| il ciclo AIRAC | ✅ **si salva**: la correzione di ieri sera regge |
+| errori di console | **zero**, su tutte le pagine |
+
+### ⚠️ Il difetto che ha trovato: il rapporto seppelliva i cinque che contano
+
+Al primo giro il rapporto diceva **54 «canale diverso»**. Guardandoli: **49 erano «l'AIP ha un canale e noi
+no»** — una **lacuna**, non una discordanza — e solo **5** erano canali davvero diversi fra i due archivi.
+Quei cinque sono esattamente quel che il rapporto deve far vedere: `AEA 53Y↔54Y`, `ELB 94X↔88X`,
+`ISA 54X↔80X`, `PNZ 93X↔87X`, `VIL 105X↔102X`.
+
+Ora le due cose sono due codici distinti, e **l'ordine delle voci è la gravità**: prima le discordanze
+(1 frequenza, 5 canali, 2 posizioni — fra cui `DEC` a **1,7 NM**), poi le assenze, poi le lacune. Con le
+lacune in mezzo, otto righe vere stavano annegate in centouno.
+
+⚠️ E il «da guardare a mano» è **uno solo**, ed è `GRO`: Grosseto è un VOR **e** un TACAN, in tutti e due gli
+archivi. È il caso che la regola dell'accoppiamento uno-a-uno esiste per non sbagliare.

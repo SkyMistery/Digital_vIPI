@@ -2,29 +2,45 @@ using Vipi.Application.Abstractions;
 
 namespace Vipi.Application.Airspace;
 
-/// <summary>Che cosa non torna fra l'AIP e la nostra anagrafica. ⚠️ È un <b>codice</b>: il testo lo scrive la UI.</summary>
+/// <summary>
+/// Che cosa non torna fra l'AIP e la nostra anagrafica. ⚠️ È un <b>codice</b>: il testo lo scrive la UI.
+///
+/// <para>⚠️ <b>L'ordine è la gravità</b>, e il rapporto ci si appoggia per ordinare le righe. Prima le
+/// <b>discordanze</b> — i due archivi dicono cose diverse, e uno dei due sbaglia — poi le <b>assenze</b>, poi
+/// le <b>lacune</b>, che non sono errori ma cose che nessuno ha ancora scritto.</para>
+///
+/// <para>Questo enum si può riordinare, a differenza di quasi tutti gli altri: non finisce in nessun payload
+/// di release e non si scrive da nessuna parte — il rapporto si calcola quando qualcuno lo chiede.</para>
+/// </summary>
 public enum NavaidDiffKind
 {
+    /// <summary>Stessa radioassistenza, frequenza diversa. <b>Uno dei due archivi sbaglia.</b></summary>
+    FrequenzaDiversa,
+
+    /// <summary>Stessa radioassistenza, canale diverso: <b>tutti e due</b> lo dicono, e non è lo stesso.</summary>
+    CanaleDiverso,
+
+    /// <summary>Stessa radioassistenza, posizione lontana più della soglia.</summary>
+    PosizioneDiversa,
+
     /// <summary>L'AIP ce l'ha, l'anagrafica no.</summary>
     SoloNellAip,
 
     /// <summary>L'anagrafica ce l'ha, l'AIP no.</summary>
     SoloInAnagrafica,
 
-    /// <summary>Stessa radioassistenza, frequenza diversa.</summary>
-    FrequenzaDiversa,
-
-    /// <summary>Stessa radioassistenza, canale diverso — o presente da una parte sola.</summary>
-    CanaleDiverso,
-
-    /// <summary>Stessa radioassistenza, posizione lontana più della soglia.</summary>
-    PosizioneDiversa,
-
-    /// <summary>L'anagrafica non dice che tipo è, e l'AIP lo dice.</summary>
-    TipoMancante,
-
     /// <summary>Più di una riga con lo stesso codice da una parte o dall'altra: si guarda a mano.</summary>
     DaGuardareAMano,
+
+    /// <summary>
+    /// L'AIP dice il canale e noi no. <b>È una lacuna, non una discordanza</b>, e sta separata apposta:
+    /// misurato dal vivo il 29 agosto 2026, su 54 righe di canale <b>49 erano questa</b> e solo <b>5</b> erano
+    /// canali davvero diversi. Tenendole insieme, i cinque che contano sparivano in mezzo agli altri.
+    /// </summary>
+    CanaleMancante,
+
+    /// <summary>L'anagrafica non dice che tipo è, e l'AIP lo dice. Lacuna, come sopra.</summary>
+    TipoMancante,
 }
 
 /// <summary>Una differenza, col codice e i due valori messi a confronto.</summary>
@@ -104,11 +120,18 @@ public static class NavaidAipReport
         if (fAip is not null && fNostra is not null && fAip != fNostra)
             yield return new NavaidDiff(NavaidDiffKind.FrequenzaDiversa, a.Code, a.Kind, fAip, fNostra);
 
+        // ⚠️ Un canale che noi non abbiamo NON è la stessa cosa di un canale diverso, e tenerli insieme
+        // nascondeva i cinque che contano dietro quarantanove che non dicono niente di nuovo.
         var cAip = Norm(a.Channel);
         var cNostro = Norm(n.Channel);
-        if (cAip != cNostro && (cAip.Length > 0 || cNostro.Length > 0))
-            yield return new NavaidDiff(NavaidDiffKind.CanaleDiverso, a.Code, a.Kind,
+        if (cAip != cNostro)
+        {
+            var quale = cAip.Length > 0 && cNostro.Length > 0
+                ? NavaidDiffKind.CanaleDiverso
+                : NavaidDiffKind.CanaleMancante;
+            yield return new NavaidDiff(quale, a.Code, a.Kind,
                 cAip.Length > 0 ? cAip : null, cNostro.Length > 0 ? cNostro : null);
+        }
 
         if (a.Latitude is { } la && a.Longitude is { } lo && n.Latitude is { } ln && n.Longitude is { } lgn)
         {

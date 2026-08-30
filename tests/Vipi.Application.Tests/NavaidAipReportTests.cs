@@ -124,6 +124,40 @@ public class NavaidAipReportTests
     }
 
     [Fact]
+    public void Un_Canale_Che_Noi_Non_Abbiamo_E_Una_LACUNA_Non_Una_Discordanza()
+    {
+        // ⚠️ Misurato dal vivo il 29 agosto 2026: su 54 righe di canale, 49 erano «l'AIP ce l'ha e noi no» e
+        // solo 5 erano canali davvero diversi. Tenendole insieme, i cinque che contano sparivano.
+        var aip = AirspaceNavaidReader.LeggiKml(Kml);
+
+        var esito = NavaidAipReport.Confronta(aip, [Nostra("AHO", "VHF", "TACAN", "109.3", null, 40.6361, 8.28944)]);
+
+        var d = Assert.Single(esito, x => x.Kind == NavaidDiffKind.CanaleMancante);
+        Assert.Equal("30X", d.Aip);
+        Assert.Null(d.Nostro);
+        Assert.DoesNotContain(esito, x => x.Kind == NavaidDiffKind.CanaleDiverso);
+    }
+
+    [Fact]
+    public void Due_Canali_Diversi_Sono_Una_DISCORDANZA_E_Vengono_Prima()
+    {
+        var aip = AirspaceNavaidReader.LeggiKml(Kml);
+
+        var esito = NavaidAipReport.Confronta(aip, [
+            Nostra("AHO", "VHF", "TACAN", "109.3", "31X", 40.6361, 8.28944),
+            Nostra("ZZZ", "NDB", null, "400"),
+        ]);
+
+        var d = Assert.Single(esito, x => x.Kind == NavaidDiffKind.CanaleDiverso);
+        Assert.Equal("30X", d.Aip);
+        Assert.Equal("31X", d.Nostro);
+        // ⚠️ L'ordine è la gravità: una discordanza sta prima di un'assenza.
+        var iDiscordanza = esito.ToList().IndexOf(d);
+        var iAssenza = esito.ToList().FindIndex(x => x.Kind == NavaidDiffKind.SoloInAnagrafica);
+        Assert.True(iDiscordanza < iAssenza, $"discordanza in {iDiscordanza}, assenza in {iAssenza}");
+    }
+
+    [Fact]
     public void Una_Posizione_Lontana_Si_Dice_Con_Quanto()
     {
         var aip = AirspaceNavaidReader.LeggiKml(Kml);

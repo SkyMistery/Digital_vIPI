@@ -2871,4 +2871,5 @@
   <data name="Asp_PubPreset" xml:space="preserve"><value>Solo:</value></data>
   <data name="Asp_PubRegulated" xml:space="preserve"><value>Le aree regolamentate (R, P, D) e le altre aree vengono dal catalogo IVAO e si vedono nei documenti, non qui.</value></data>
   <data name="Services_AirspaceDesc" xml:space="preserve"><value>I confini dell'AIP — CTR, CTA, TMA, ATZ, FIR — e i settori nostri, sulla stessa mappa.</value></data>
+  <data name="Asp_Nav_CanaleMancante" xml:space="preserve"><value>Canale non scritto</value></data>
 </root>

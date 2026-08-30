@@ -2863,4 +2863,5 @@
   <data name="Asp_PubPreset" xml:space="preserve"><value>Only:</value></data>
   <data name="Asp_PubRegulated" xml:space="preserve"><value>Regulated areas (R, P, D) and the other areas come from the IVAO catalogue and appear in the documents, not here.</value></data>
   <data name="Services_AirspaceDesc" xml:space="preserve"><value>AIP boundaries — CTR, CTA, TMA, ATZ, FIR — and our own sectors, on the same map.</value></data>
+  <data name="Asp_Nav_CanaleMancante" xml:space="preserve"><value>Channel not written</value></data>
 </root>
