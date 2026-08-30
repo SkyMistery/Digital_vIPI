@@ -211,7 +211,7 @@ Il primo pacchetto che porta un **numero** invece di una lettera, e il primo **i
 |---|---|
 | **Timbro** | `1.1.0 · aaaeddb` (il foglio con questo timbro è nel commit **dopo**: il timbro nasce dal commit al momento del publish) |
 | **Da caricare** | **18 file, 12,4 MB** — `artifacts/publish/solo-18-file-1.1.0/` |
-| **Zip da spedire** | `artifacts/publish/vipi-1.1.0-solo-file-cambiati.zip`, **4,07 MB**, sha256 `d836cf46…ef9e561d` |
+| **Zip da spedire** | `artifacts/publish/vipi-1.1.0-solo-file-cambiati.zip`, **4,07 MB**, sha256 `a31f623f…804ca26e` |
 | **Pacchetto completo** | `artifacts/publish/linux-x64-20260831/` (460 file), tenuto come riferimento e per il prossimo diff |
 | **Database** | **non si tocca.** Nessuna migrazione in nessuno dei due rami fusi |
 | **Foglio** | [`../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.1.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.1.0.md) |

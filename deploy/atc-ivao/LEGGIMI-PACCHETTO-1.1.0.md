@@ -12,6 +12,22 @@
 > [`LEGGIMI-AGGIORNARE-VIA-FTP.md`](LEGGIMI-AGGIORNARE-VIA-FTP.md); qui c'è **solo che cosa** caricare, e
 > le due cose nuove da sapere.
 
+> ## 🔴 PRIMA: il database del 30 agosto è già stato importato?
+>
+> Il `.sql` consegnato il 30 agosto è **in attesa** che Ivao.It lo importi. Finché non è dentro, sul server
+> c'è il **codice nuovo** e il **database vecchio**, e **il riavvio è la cosa da non fare**: all'avvio
+> l'applicazione applica da sola le **36 migrazioni** che quel dump avrebbe portato già fatte.
+>
+> | Situazione | Che cosa fare |
+> |---|---|
+> | Il `.sql` **è stato importato** | caricate 1.1.0 e riavviate: la procedura qui sotto vale così com'è |
+> | Il `.sql` **NON è ancora importato** | **caricate pure i file** (caricarli non fa partire niente), ma **NON riavviate**: aspettate l'import, e fate un riavvio solo |
+>
+> ⚠️ **Il riavvio potrebbe però arrivare da solo**: Passenger rigenera il processo quando gli pare — è già
+> successo il 23 agosto senza che nessuno toccasse `tmp/restart.txt`. Questo vale già oggi, con il pacchetto
+> `j` che è sul server: non è una novità di 1.1.0. Se succede, le migrazioni girano; l'import successivo
+> **sostituisce comunque** il database, quindi non si perde niente di ciò che il dump porta.
+
 ## Che cosa cambia, per chi usa il sito
 
 **1. Il sito non resta più piantato su «Attempting to reconnect to the server…».**
@@ -94,7 +110,7 @@ un caricamento va a metà, sono il modo di scoprirlo **prima** di riavviare.
 2. **Rinominate**, dal più profondo al più superficiale: prima i file di `wwwroot/`, poi l'indice
    `staticwebassets`, poi i `.dll`. ⚠️ I `.dll` per ultimi: appena il processo riparte, deve trovare
    `wwwroot` già a posto.
-3. **Riavviate** con `tmp/restart.txt`, **poi aprite il sito una volta** — è la richiesta che fa accorgere
+3. **Riavviate** con `tmp/restart.txt` — ⚠️ **solo se il database del 30 è già dentro**, vedi il riquadro rosso in testa — **poi aprite il sito una volta** — è la richiesta che fa accorgere
    Passenger del file.
 4. **Controllate** che sia partita la versione nuova: `diagnostica/avvio-diagnostica.txt`, prima riga, con
    l'ora di adesso; e nella barra in alto (da amministratore) il timbro dice **`1.1.0`**.
