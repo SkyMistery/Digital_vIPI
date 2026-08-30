@@ -148,9 +148,10 @@ ce n'era uno del 16 agosto 2026, rimasto per otto giorni.)
 |---|---|
 | `https://atc.it.ivao.aero/services/vsop` | la pagina si apre con gli ACC: LIRR, LIMM, LIBB |
 | Il login IVAO | entrate, e in alto compare il vostro nome |
-| Un tasto qualsiasi di una pagina (il selettore della lingua in alto, per esempio) | **deve rispondere.** Vedi l'avviso qui sotto: è l'unico modo di accorgersi del guasto che non lascia tracce |
+| `https://atc.it.ivao.aero/services/vsop/search`, scrivendo `LI` nel campo | la riga sotto il campo deve **cambiare** in «N risultati per LI». Se resta «Digita almeno 2 caratteri», il sito è quello mezzo caricato — vedi l'avviso qui sotto |
+| `https://atc.it.ivao.aero/_content/Vipi.Ui/vipi-riconnessione.js` | deve comparire del testo, non un **404** |
 
-> ### ⚠️ Il guasto che si vede solo provando un tasto
+> ### ⚠️ Il guasto che si vede solo provando la Ricerca
 >
 > Dal pacchetto del 31 agosto 2026 la pagina **non avvia più Blazor da sola**: lo fa un file nostro,
 > `wwwroot/_content/Vipi.Ui/vipi-riconnessione.js`, e serve per poter scrivere i tempi di riconnessione.
@@ -160,7 +161,11 @@ ce n'era uno del 16 agosto 2026, rimasto per otto giorni.)
 > il sito **si vede intero e non risponde a niente**: nessun errore in pagina, nessuna riga nei log, solo
 > tasti che non fanno nulla. Un controllo che guardi soltanto se le pagine si aprono **non lo vede**.
 >
-> Perciò: dopo ogni aggiornamento, premete **un** tasto e guardate che succeda qualcosa.
+> ⚠️ **E non basta «premere un tasto qualsiasi»**: il selettore della lingua, lo zoom e il tema
+> chiaro/scuro sono collegamenti e codice che vive dentro la pagina, e **funzionano lo stesso** su un
+> sito morto. Il controllo che distingue davvero i due casi è la **Ricerca**, qui sopra: quella la
+> calcola il server a ogni lettera che si scrive. Provata in tutt'e due i modi il 31 agosto 2026 —
+> col pacchetto completo la riga cambia, col file mancante no.
 
 ### 9. Quanto spesso riparte il processo — `diagnostica/avvii.txt`
 

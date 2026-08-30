@@ -24,7 +24,9 @@ cancellati — vale il riquadro qui sotto).
 > ⚠️ **Il pacchetto porta un `.js` OBBLIGATORIO**: da qui in poi `blazor.web.js` parte con
 > `autostart="false"` e ad avviarlo è `vipi-riconnessione.js`. Un caricamento senza quel file — o con
 > l'indice `staticwebassets` scambiato senza i `.js` — dà un sito che **si vede intero e non risponde a
-> niente**, senza errori in pagina. Carta:
+> niente**. Il controllo dopo il caricamento è la **Ricerca** (`/services/vsop/search`): due lettere, e la
+> riga sotto il campo deve cambiare. ⚠️ Il selettore della lingua, lo zoom e il tema **non servono**:
+> funzionano anche a sito morto. Carta:
 > [`docs/feature/2026-08-31-riconnessione-circuito.md`](docs/feature/2026-08-31-riconnessione-circuito.md).
 >
 > ✅ **`main` è allineato con `origin/main`**, e il 30 agosto ci sono stati fusi e spinti, in quest'ordine:

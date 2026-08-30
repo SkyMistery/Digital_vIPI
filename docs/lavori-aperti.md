@@ -211,7 +211,7 @@ Il primo pacchetto che porta un **numero** invece di una lettera, e il primo **i
 |---|---|
 | **Timbro** | `1.1.0 · aaaeddb` (il foglio con questo timbro è nel commit **dopo**: il timbro nasce dal commit al momento del publish) |
 | **Da caricare** | **18 file, 12,4 MB** — `artifacts/publish/solo-18-file-1.1.0/` |
-| **Zip da spedire** | `artifacts/publish/vipi-1.1.0-solo-file-cambiati.zip`, **4,07 MB**, sha256 `a31f623f…804ca26e` |
+| **Zip da spedire** | `artifacts/publish/vipi-1.1.0-solo-file-cambiati.zip`, **4,07 MB**, sha256 `3cc8a329…3b20daa` |
 | **Pacchetto completo** | `artifacts/publish/linux-x64-20260831/` (460 file), tenuto come riferimento e per il prossimo diff |
 | **Database** | **non si tocca.** Nessuna migrazione in nessuno dei due rami fusi |
 | **Foglio** | [`../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.1.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.1.0.md) |
@@ -224,8 +224,16 @@ l'indice `staticwebassets` e i due file di `wwwroot` con i loro `.br`/`.gz`.
 
 ⚠️ **Il rischio nuovo di questo pacchetto**: da qui `blazor.web.js` parte con `autostart="false"`, quindi un
 caricamento senza `vipi-riconnessione.js` (o senza l'indice) dà un sito che **si vede intero e non risponde
-a niente**. Nel foglio è il primo dei due avvisi, e il controllo finale non è «la pagina si apre» ma
-**«premete un tasto»**.
+a niente**. Nel foglio è il primo dei due avvisi, e il controllo finale non è «la pagina si apre» ma la **Ricerca**
+(`/services/vsop/search`): si scrivono due lettere e la riga sotto il campo deve cambiare.
+
+⚠️ **La prima versione del foglio diceva «premete un tasto qualsiasi, il selettore della lingua va
+benissimo», e sarebbe stato un controllo che dice sempre «a posto»**: il selettore è un `<a>`, lo zoom e il
+tema sono JavaScript di pagina — tutti e tre funzionano su un sito in cui Blazor non è mai partito. Il
+controllo giusto è stato **cercato e provato nei due modi** (pacchetto completo, e con
+`vipi-riconnessione.js` bloccato dal browser): con il file, digitando `LIRF` la riga diventa «0 risultati
+per LIRF»; senza, resta «Digita almeno 2 caratteri» **col campo pieno**. Sulle pagine pubbliche non c'è
+nessun altro comando che passi dal circuito — la ricerca è una pagina interattiva intera.
 
 ✅ **Verificato sul PACCHETTO, non sul sorgente** — è l'unico giro in cui si vede l'effetto
 dell'ottimizzatore, che minifica il JavaScript: pubblicato per `win-x64`, avviato, e guidato con Edge.

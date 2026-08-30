@@ -48,7 +48,7 @@ silenzio, e l'avviso «stai per perdere le modifiche» adesso copre tutti i camp
 
 ## ⚠️ Le due cose nuove da sapere
 
-> ### 1. Dopo il caricamento, premete UN TASTO
+> ### 1. Dopo il caricamento, provate la RICERCA
 >
 > Da questo pacchetto la pagina **non avvia più da sola** la parte interattiva del sito: lo fa un file
 > nostro, `wwwroot/_content/Vipi.Ui/vipi-riconnessione.js`.
@@ -57,8 +57,23 @@ silenzio, e l'avviso «stai per perdere le modifiche» adesso copre tutti i camp
 > intero e non risponde a niente**: nessun errore in pagina, nessuna riga nei log, solo tasti che non fanno
 > nulla. Aprire una pagina e vederla comparire **non basta** per accorgersene.
 >
-> Perciò, come ultimo controllo: aprite una pagina e **premete un tasto qualsiasi** (il selettore della
-> lingua in alto va benissimo). Se risponde, il caricamento è completo.
+> ### I due controlli, in trenta secondi
+>
+> **A. Il file c'è?** Aprite nel browser:
+> `https://atc.it.ivao.aero/_content/Vipi.Ui/vipi-riconnessione.js`
+> Deve comparire una paginata di testo che comincia con `(function(){"use strict";`. Se dà **404 · pagina
+> non trovata**, il file non è arrivato: ricaricatelo, e ricaricate con lui l'indice
+> `Vipi.Host.staticwebassets.endpoints.json`.
+>
+> **B. Il sito risponde?** Aprite `https://atc.it.ivao.aero/services/vsop/search` e scrivete **`LI`** nel
+> campo di ricerca. La riga sotto il campo deve **cambiare** da «Digita almeno 2 caratteri» a «*N* risultati
+> per LI». Se resta «Digita almeno 2 caratteri» mentre nel campo c'è scritto qualcosa, **il sito è quello
+> mezzo caricato**: fate il controllo A.
+>
+> ⚠️ **Non usate il selettore della lingua, né i tasti dello zoom, né il tema chiaro/scuro**: sono
+> collegamenti e codice che vive nella pagina, e **funzionano lo stesso** anche quando il sito è morto. Il
+> controllo B è stato provato in tutt'e due i modi — con il pacchetto completo la riga cambia, con il file
+> mancante no — ed è l'unico di cui si sa che distingue davvero i due casi.
 
 > ### 2. I file di `wwwroot` e l'indice viaggiano INSIEME
 >
@@ -114,7 +129,7 @@ un caricamento va a metà, sono il modo di scoprirlo **prima** di riavviare.
    Passenger del file.
 4. **Controllate** che sia partita la versione nuova: `diagnostica/avvio-diagnostica.txt`, prima riga, con
    l'ora di adesso; e nella barra in alto (da amministratore) il timbro dice **`1.1.0`**.
-5. **Premete un tasto** (vedi l'avviso 1).
+5. **Fate i due controlli** dell'avviso 1: il file si scarica, e la Ricerca risponde.
 
 ## Le quattro cose che NON vanno cancellate
 
