@@ -2628,6 +2628,7 @@
   <data name="Mil_Desc" xml:space="preserve"><value>Standard operating procedures of the Italian military airfields: read by both pilots and controllers.</value></data>
   <data name="Mil_Intro" xml:space="preserve"><value>These are the SOPs of the Italian military airfields. Readers can filter by audience using the chip at the top of the document.</value></data>
   <data name="PageIntro_Title" xml:space="preserve"><value>Page intro</value></data>
+  <data name="PageIntro_Unsaved" xml:space="preserve"><value>Unsaved changes</value></data>
   <data name="PageIntro_Empty" xml:space="preserve"><value>No sections yet: whatever you write here shows at the top of the page, to signed-out readers too.</value></data>
   <data name="PageIntro_AddSection" xml:space="preserve"><value>Add section</value></data>
   <data name="PageIntro_SectionTitle" xml:space="preserve"><value>Section title</value></data>

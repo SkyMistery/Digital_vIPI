@@ -69,6 +69,37 @@ documenti-bilingue §4):
 scelta dichiarata qui — la divisione scrive in italiano — e sta in **un posto solo** (`PageIntro.Sorgente`),
 non ripetuta a ogni chiamante.
 
+## 4-bis. «Fine modifica» salva — e il difetto che ha scoperto
+
+Chiesto dal committente il 30 agosto sera: «voglio che sia segnalato che ho modificato senza salvare, o,
+ancora meglio, che Fine modifica salvi direttamente».
+
+⚠️ **La seconda metà non era una comodità: era un difetto.** Il rilascio del lock faceva **rileggere da
+archivio**, quindi chi scriveva una sezione e premeva «Fine modifica» — che è la strada naturale per «ho
+finito» — perdeva tutto **in silenzio**. Non dava nessun errore: dava una pagina che tornava com'era.
+
+E la prima metà è vera comunque: **un tasto «Salva» spento non è un avviso**. Dice che non c'è niente da
+salvare, cioè l'opposto di quel che succede.
+
+Quindi tutt'e due:
+
+1. finché c'è da salvare, la testata porta la pastiglia **«Modifiche non salvate»** (`st-msg warn`, la stessa
+   del resto del prodotto);
+2. **«Fine modifica» salva** prima di lasciare il lock, e la pastiglia **«Salvato» sopravvive all'uscita** —
+   un salvataggio che non si vede è indistinguibile da uno che non è avvenuto.
+
+L'aggancio è un parametro nuovo e **additivo** su `EditLockBar`: `BeforeRelease`. Chi non lo passa non cambia
+di una virgola.
+
+- ⚠️ **Solo sul tasto**, non su ogni strada che toglie il lock. Scadenza e sblocco forzato di un admin
+  significano «questo lock non è più tuo»: salvare lì vorrebbe dire **scrivere sopra al lavoro di chi ce
+  l'ha adesso**. Premere il tasto è l'unico caso in cui l'intenzione è dichiarata.
+- ⚠️ **Se il salvataggio fallisce, il lock non si rilascia.** Lasciarlo andare è il modo più rapido di
+  perdere il lavoro appena scritto: chi ha scritto non avrebbe più il permesso di riprovare.
+- ⚠️ Non si è scelta la strada «chiedi cosa fare» (salva / esci senza salvare): qui **non c'è una bozza**, e
+  l'alternativa al salvataggio è esattamente la perdita silenziosa di prima. Chi si pente ha ancora la
+  sezione a schermo e il cestino accanto.
+
 ## 5. Ingressi (pre-flight §3)
 
 - **Raggiungere**: la zona sta in cima a `/services/vsop/mil`, sopra la testata. Se non c'è contenuto, per il

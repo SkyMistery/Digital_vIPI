@@ -2636,6 +2636,7 @@
   <data name="Mil_Desc" xml:space="preserve"><value>Procedure operative dei campi militari italiani: le leggono sia i piloti sia i controllori.</value></data>
   <data name="Mil_Intro" xml:space="preserve"><value>Sono i SOP dei campi militari italiani. Un lettore può filtrare per destinatario con la chip in cima al documento.</value></data>
   <data name="PageIntro_Title" xml:space="preserve"><value>Intro della pagina</value></data>
+  <data name="PageIntro_Unsaved" xml:space="preserve"><value>Modifiche non salvate</value></data>
   <data name="PageIntro_Empty" xml:space="preserve"><value>Nessuna sezione: quel che si scrive qui compare in cima alla pagina, anche a chi non è loggato.</value></data>
   <data name="PageIntro_AddSection" xml:space="preserve"><value>Aggiungi sezione</value></data>
   <data name="PageIntro_SectionTitle" xml:space="preserve"><value>Titolo della sezione</value></data>

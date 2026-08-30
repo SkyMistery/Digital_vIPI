@@ -59,6 +59,20 @@
     /// lo aggancia non cambia comportamento.</summary>
     [Parameter] public EventCallback<DateTime?> ExpiresChanged { get; set; }
 
+    /// <summary>
+    /// Chiamato <b>prima</b> di rilasciare il lock col tasto «Fine modifica»: è dove una pagina salva quel che
+    /// ha in mano. Additivo — chi non lo aggancia non cambia di una virgola.
+    ///
+    /// <para>⚠️ <b>Solo sul tasto</b>, e non sulle altre strade che tolgono il lock: la scadenza e lo sblocco
+    /// forzato di un admin significano «questo lock non è più tuo», e salvare <i>lì</i> vorrebbe dire scrivere
+    /// sopra al lavoro di chi il lock ce l'ha adesso. Premere il tasto è l'unico caso in cui l'intenzione è
+    /// dichiarata.</para>
+    ///
+    /// <para>⚠️ <b>Se solleva, il lock NON si rilascia.</b> Un salvataggio fallito che lascia andare il lock è
+    /// il modo più rapido di perdere del lavoro: la barra resta com'è e chi ha scritto può riprovare.</para>
+    /// </summary>
+    [Parameter] public Func<Task>? BeforeRelease { get; set; }
+
     private LockInfo _lock = LockInfo.Free();
     private CancellationTokenSource? _beat;
 
@@ -94,6 +108,10 @@
 
     private async Task Release()
     {
+        // ⚠️ PRIMA di fermare il battito e di lasciare il lock: chi salva qui dentro deve poterlo fare
+        // mentre il lock è ancora suo. Se solleva, non si rilascia niente — vedi BeforeRelease.
+        if (BeforeRelease is not null) await BeforeRelease();
+
         StopHeartbeat();
         await Locks.ReleaseAsync(ResourceKey);
         _lock = LockInfo.Free();

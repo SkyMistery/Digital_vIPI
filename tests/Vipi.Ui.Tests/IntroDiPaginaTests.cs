@@ -40,16 +40,44 @@ public class IntroDiPaginaTests : TestContext
         public string? CurrentName => null;
     }
 
+    /// <summary>Chi ha il permesso di scrivere: serve alle prove sull'editor.</summary>
+    private sealed class Editore : IEditAuthorizationService
+    {
+        public VipiRole Role => VipiRole.Editor;
+        public bool IsAdmin => false;
+        public int? CurrentUserId => 1;
+        public string? CurrentName => "test";
+    }
+
+    /// <summary>Un lock già nostro: la zona si apre in modifica senza passare da «Inizia».</summary>
+    private sealed class LockFinto : IResourceLockService
+    {
+        private static LockInfo Mio => new() { Locked = true, IsMine = true, ByUserId = 1, ByName = "test" };
+        public Task<LockInfo> InspectAsync(string k, CancellationToken ct = default) => Task.FromResult(Mio);
+        public Task<LockInfo> AcquireAsync(string k, CancellationToken ct = default) => Task.FromResult(Mio);
+        public Task<LockInfo> HeartbeatAsync(string k, CancellationToken ct = default) => Task.FromResult(Mio);
+        public Task ReleaseAsync(string k, CancellationToken ct = default) => Task.CompletedTask;
+        public Task ForceUnlockAsync(string k, CancellationToken ct = default) => Task.CompletedTask;
+        public Task EnsureHeldAsync(string k, CancellationToken ct = default) => Task.CompletedTask;
+    }
+
     private sealed class DepositoFinto : IPageIntroStore
     {
         private readonly List<PageIntroSection> _sezioni;
         public DepositoFinto(params PageIntroSection[] sezioni) => _sezioni = sezioni.ToList();
 
+        /// <summary>Quante volte è stato chiesto di salvare.</summary>
+        public int Salvataggi { get; private set; }
+
         public Task<IReadOnlyList<PageIntroSection>> LeggiAsync(string pagina, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<PageIntroSection>>(_sezioni);
 
         public Task SalvaAsync(string pagina, IReadOnlyList<PageIntroSection> sezioni, string etichetta,
-            CancellationToken ct = default) => throw new NotSupportedException();
+            CancellationToken ct = default)
+        {
+            Salvataggi++;
+            return Task.CompletedTask;
+        }
     }
 
     /// <summary>Una memoria che sa quel che le si è detto, e niente rete.</summary>
@@ -152,6 +180,64 @@ public class IntroDiPaginaTests : TestContext
             Assert.DoesNotContain("Leggere prima di controllare.", cut.Markup);
         }
         finally { CultureInfo.CurrentUICulture = prima; }
+    }
+
+    // ---- L'editor: quel che non è salvato si vede, e uscendo non si perde ---------------------------
+
+    private DepositoFinto MontaEditor(params PageIntroSection[] sezioni)
+    {
+        var deposito = new DepositoFinto(sezioni);
+        Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<IEditAuthorizationService>(new Editore());
+        Services.AddScoped<IResourceLockService>(_ => new LockFinto());
+        Services.AddScoped<IPageIntroStore>(_ => deposito);
+        Services.AddScoped(_ => new DocumentTranslator(new MemoriaFinta()));
+        return deposito;
+    }
+
+    private static void Clicca(IRenderedComponent<PageIntroZone> cut, string testo) =>
+        cut.FindAll("button").First(b => b.TextContent.Contains(testo)).Click();
+
+    /// <summary>⚠️ Un tasto «Salva» spento non è un avviso: dice che non c'è niente da salvare, non il
+    /// contrario. Finché lo stato non si vede, chi scrive non ha modo di sapere che deve salvare.</summary>
+    [Fact]
+    public void Quel_che_non_e_salvato_si_vede()
+    {
+        MontaEditor();
+        var cut = RenderComponent<PageIntroZone>(p => p.Add(x => x.Pagina, "mil"));
+
+        Assert.DoesNotContain("PageIntro_Unsaved", cut.Markup);
+
+        Clicca(cut, "PageIntro_AddSection");
+
+        Assert.Contains("PageIntro_Unsaved", cut.Markup);
+    }
+
+    /// <summary>⚠️ Il difetto che questo chiude: «Fine modifica» è la strada naturale per «ho finito», e
+    /// prima buttava via tutto <b>in silenzio</b> — il rilascio del lock faceva rileggere da archivio, e la
+    /// pagina tornava com'era senza dire niente.</summary>
+    [Fact]
+    public void Fine_modifica_salva_invece_di_buttare_via()
+    {
+        var deposito = MontaEditor();
+        var cut = RenderComponent<PageIntroZone>(p => p.Add(x => x.Pagina, "mil"));
+        Clicca(cut, "PageIntro_AddSection");
+
+        Clicca(cut, "Lock_FinishEdit");
+
+        Assert.Equal(1, deposito.Salvataggi);
+    }
+
+    /// <summary>Senza modifiche non si scrive niente: uscire da una lettura non deve toccare l'archivio.</summary>
+    [Fact]
+    public void Fine_modifica_senza_modifiche_non_salva()
+    {
+        var deposito = MontaEditor();
+        var cut = RenderComponent<PageIntroZone>(p => p.Add(x => x.Pagina, "mil"));
+
+        Clicca(cut, "Lock_FinishEdit");
+
+        Assert.Equal(0, deposito.Salvataggi);
     }
 
     /// <summary>Quel che la memoria non copre resta nella lingua d'origine: un'intro a chiazze si legge male

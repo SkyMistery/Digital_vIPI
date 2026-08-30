@@ -51,7 +51,14 @@ else
                    già. ⚠️ `.ln` vive solo dentro `.section-title`, come `.st-msg` vive solo dentro
                    `.st-head`: servono tutt'e due le classi, e nessuna delle due protesta se manca. *@
                 <span class="ln"></span>
+                @* ⚠️ Un tasto «Salva» spento NON è un avviso: dice che non c'è niente da salvare, non che c'è.
+                   La pastiglia dice il contrario ad alta voce, ed è la stessa che il resto del prodotto usa
+                   per lo stato di un'operazione. *@
                 <LiveRegion>
+                    @if (_sporco)
+                    {
+                        <span class="st-msg warn"><Icon Name="warning" Size="14" /><span class="st-msg-t">@L["PageIntro_Unsaved"]</span></span>
+                    }
                     @if (_msg is { } m)
                     {
                         <span class="st-msg ok"><Icon Name="check-circle" Size="14" /><span class="st-msg-t">@m</span></span>
@@ -61,7 +68,8 @@ else
                         <span class="st-msg warn"><Icon Name="warning" Size="14" /><span class="st-msg-t">@er</span></span>
                     }
                 </LiveRegion>
-                <EditLockBar ResourceKey="@ChiaveLock" LockChanged="OnLockChanged" />
+                @* «Fine modifica» SALVA, invece di buttare via. Vedi SalvaSeSporcoAsync. *@
+                <EditLockBar ResourceKey="@ChiaveLock" LockChanged="OnLockChanged" BeforeRelease="SalvaSeSporcoAsync" />
             </div>
         }
 
@@ -179,14 +187,38 @@ else
         _vista = tradotto.View.Sections;
     }
 
+    /// <summary>
+    /// Il tasto «Fine modifica»: se c'è qualcosa da salvare, <b>lo salva</b>.
+    ///
+    /// <para>⚠️ Prima buttava via. Non è una comodità in più: chi scriveva una sezione e premeva «Fine
+    /// modifica» — che è la strada naturale per «ho finito» — perdeva tutto <b>in silenzio</b>, perché il
+    /// rilascio del lock faceva rileggere da archivio. Fra perdere lavoro in silenzio e salvarlo, la scelta
+    /// non è fra due comodità.</para>
+    ///
+    /// <para>⚠️ Il salvataggio resta <b>visibile</b>: la pastiglia «Salvato» sopravvive all'uscita dalla
+    /// modifica. Un salvataggio che non si vede è indistinguibile da uno che non è avvenuto.</para>
+    ///
+    /// <para>⚠️ Non si aggancia a <see cref="OnLockChanged"/>: lì passano anche la scadenza e lo sblocco
+    /// forzato, cioè i due casi in cui il lock <b>non è più nostro</b> e scrivere vorrebbe dire coprire il
+    /// lavoro di chi ce l'ha adesso.</para>
+    /// </summary>
+    private Task SalvaSeSporcoAsync() => _sporco ? SalvaAsync() : Task.CompletedTask;
+
     private async Task OnLockChanged(bool mio)
     {
         _modifica = mio;
-        _msg = null;
         _errore = null;
-        // Chi molla il lock ha finito: si rilegge da archivio, così quel che resta a schermo è quel che è
-        // salvato davvero — e non le modifiche non salvate di chi se n'è andato.
-        if (!mio) await CaricaAsync();
+        // Chi RIENTRA in modifica non deve trovarsi addosso il «Salvato» della volta scorsa: direbbe che
+        // quel che sta per scrivere è già salvato.
+        if (mio) _msg = null;
+        if (!mio)
+        {
+            // Chi molla il lock ha finito. Se c'era da salvare l'ha già fatto BeforeRelease; quel che resta
+            // — un lock scaduto o tolto da un admin mentre si scriveva — si rilegge da archivio, perché a
+            // schermo deve restare quel che è salvato davvero.
+            if (_sporco) await CaricaAsync();
+            _sporco = false;
+        }
     }
 
     private void Sporca()

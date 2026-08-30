@@ -5225,6 +5225,21 @@ in un posto solo. Misurato in tutt'e due i temi; `sweep.js`: 16 sospetti, tutti 
 
 *Un campo che non dichiara i propri colori non ne ha di sbagliati: ne ha di altrui.*
 
+### «Fine modifica» salva (30 agosto, sera)
+
+Chiesto dal committente. ⚠️ **La seconda metà della richiesta non era una comodità: era un difetto.** Il
+rilascio del lock faceva **rileggere da archivio**, quindi chi scriveva e premeva «Fine modifica» — la strada
+naturale per «ho finito» — perdeva tutto **in silenzio**. E la prima metà vale comunque: **un tasto «Salva»
+spento non è un avviso**, dice l'opposto di quel che succede.
+
+Adesso: pastiglia **«Modifiche non salvate»** finché c'è da salvare, e **«Fine modifica» salva** prima di
+lasciare il lock, con il **«Salvato» che sopravvive all'uscita**. L'aggancio è un parametro **additivo** su
+`EditLockBar` (`BeforeRelease`): chi non lo passa non cambia di una virgola.
+
+- ⚠️ **Solo sul tasto.** Scadenza e sblocco forzato vogliono dire «il lock non è più tuo»: salvare lì
+  coprirebbe il lavoro di chi ce l'ha adesso.
+- ⚠️ **Salvataggio fallito ⇒ lock NON rilasciato**, o chi ha scritto non avrebbe più il permesso di riprovare.
+
 ### Quel che resta
 
 - **Una pagina sola.** L'intro è agganciata solo a `/services/vsop/mil`: le altre landing ne registrano una
