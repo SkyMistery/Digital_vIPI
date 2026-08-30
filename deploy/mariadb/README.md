@@ -192,7 +192,7 @@ agosto — hanno il BOM**, quindi il difetto era nella ricetta, non in una svist
 i byte grezzi (Git Bash, `cmd`), oppure `[System.IO.File]::WriteAllBytes`.
 
 ```sh
-# 2. MariaDB locale → .sql   (Git Bash o cmd: redirezione a byte grezzi, niente BOM, fine riga LF)
+# 2. MariaDB locale → .sql   (Git Bash o cmd: redirezione a byte grezzi, niente BOM)
 "<bin>/mariadb-dump.exe" -u itivao_atc -p'<password>' -h 127.0.0.1 -P 3399 \
   --no-tablespaces --single-transaction --hex-blob --default-character-set=utf8mb4 \
   --ignore-table=itivao_atc.DataProtectionKeys itivao_atc > vipi-atc-it-ivao-aero-<data>.sql
@@ -248,7 +248,21 @@ migrazione viene riapplicata**. Esito del 6 agosto: 38 tabelle, 4808 righe, cont
 39 tabelle su 39 con **zero differenze** di conteggio (4162 righe da una parte e dall'altra), collation
 `utf8mb4_uca1400_as_cs` su 168 colonne, `ZZZZ`/`zzzz` che convivono nell'indice unico, host avviato sul
 database riletto con `/services/vsop` **200** e **zero** `Applying migration`. Primi quattro byte
-`2f 2a 4d 21`, nessun CRLF.
+`2f 2a 4d 21`.
+
+⚠️ **«Nessun CRLF» era falso, e per nove giorni è stato scritto qui come se fosse stato misurato.** Il
+dump del 23 agosto ha CRLF su **tutte e 5512** le righe — e in produzione è stato importato senza un
+inciampo. Misurato il 30 agosto 2026 confrontando i due file
+(`grep -c $'\r'` contro `wc -l`: coincidono su entrambi).
+
+**Il CRLF non è la trappola: la trappola è il BOM, e solo quello.** I fine riga li scrive `mariadb-dump.exe`,
+che è un binario Windows e apre lo stdout in *text mode*; non dipende dalla shell, e **`--result-file` non
+cambia niente** — provato, esce un file byte per byte identico. Il parser di MariaDB li ingoia.
+
+Quindi: il controllo da fare prima di consegnare è **uno**, i primi quattro byte. Contare i CRLF va bene
+per curiosità, ma un dump che li ha non va «corretto»: togliere i `\r` da un file di consegna significa
+applicare all'unico artefatto irripetibile una trasformazione che nessuno ha mai provato, per riparare un
+guasto che non esiste.
 
 ℹ️ Il confronto tabella per tabella non si fa a occhio: si costruisce **una** query che mette in fila i due
 conteggi per ogni tabella e si guarda solo dove differiscono. Quattromila righe con una tabella vuota in

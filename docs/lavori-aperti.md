@@ -693,7 +693,13 @@ file non è di runtime, la risposta giusta non è rinominarlo ma **non metterlo 
   `Applying migration`;
 - collation `utf8mb4_uca1400_as_cs` su **168 colonne** (le 2 rimanenti sono `__EFMigrationsHistory`), e la
   prova che conta — `ZZZZ` e `zzzz` convivono nell'indice unico e il `WHERE` li distingue;
-- primi quattro byte `2f 2a 4d 21` (`/*M!`) e **nessun CRLF**: la trappola del BOM di A3 non si è ripetuta.
+- primi quattro byte `2f 2a 4d 21` (`/*M!`): la trappola del BOM di A3 non si è ripetuta.
+  ⚠️ **La seconda metà di questa riga diceva anche «e nessun CRLF», ed era falsa.** Rimisurato il 30 agosto
+  2026: quel file ha CRLF su **tutte e 5512** le righe, ed è lo stesso che Ivao.It ha importato senza un
+  inciampo (A12). Non è un difetto scampato per fortuna: i fine riga li mette `mariadb-dump.exe`, che su
+  Windows apre lo stdout in text mode, e MariaDB li ingoia. La lezione non è sul CRLF ma sul metodo —
+  **una verifica si scrive dopo averla eseguita**, e questa è stata elencata insieme a quattro misure vere
+  senza essere una di loro. Dettagli in `../deploy/mariadb/README.md` §6.
 
 ⚠️ **Due trappole ripagate, entrambe già scritte e comunque incontrate.** `Vipi.DbSeed` non è in
 `Vipi.slnx`, quindi il suo `packages.lock.json` era rimasto a EF 8.0.29 mentre `Vipi.Infrastructure` è a
@@ -859,6 +865,75 @@ scaricabile, e scriverci il nome vanificherebbe l'unica protezione che c'è. Si 
 `diagnostica/` (che da E8 contengono stack trace e VID). Nessuna credenziale, ma una mappa del server.
 E i segreti già scaricati nelle settimane scorse restano scaricati: **questo rimedio ferma l'emorragia, non
 la ripara**.
+
+### A14 ✅ Consegna del 30 agosto 2026 — l'ultimo database prima del 16 settembre
+
+Chi amministra il database di Ivao.It è via fino al **16 settembre**: questo `.sql` è l'ultimo travaso
+possibile per diciassette giorni.
+
+| | Cosa | Dove | sha256 |
+|---|---|---|---|
+| **Database** | `vipi-atc-it-ivao-aero-2026-08-30.sql` — 13,4 MB (14 091 458 byte), schema + dati + `__EFMigrationsHistory` | `_mariadb/dump/` (**fuori dal repo**) | `9ACB8ACA…8F1D7FCA` |
+| **Lo stesso, compresso** | `…​.sql.gz` — 3,4 MB | idem | `8907BEC9…07D3B187E` |
+| **Foglio per chi importa** | [`../artifacts/CONSEGNA-DB-20260830.md`](../artifacts/CONSEGNA-DB-20260830.md) | nel repo | — |
+
+⚠️ **Il `.gz` non è un vezzo.** Il dump è **4,5 volte** quello del 23 agosto (3,1 MB): `AirspaceVolumes`
+2,68 MB, `AtcSessions` 2,45, `AirspaceImports` 1,25. Il limite di caricamento del loro phpMyAdmin non l'ha
+mai chiesto nessuno, e stavolta scoprirlo tardi non si può rimediare. Compresso pesa **quanto quello di
+agosto che è già passato di lì**.
+
+**Che cosa si congela davvero, e che cosa no** — la domanda che ha guidato tutto il resto. Lo **schema
+non** si congela: il provider di produzione è MySQL, `MigrateVipiDatabase` chiama `Database.Migrate()`
+all'avvio, e il pacchetto lo carica il committente via FTP (A12). Si congelano **i dati** — questo è
+l'ultimo carico — e soprattutto **la rete**: dal 31 agosto una migrazione gira da sola, su DDL non
+transazionale, senza nessuno che possa ripristinare. Da qui il presidio, non da una preferenza di stile.
+
+**Il presidio:** `tests/Vipi.Infrastructure.Tests/MigrazioniDellaFinestraCiecaTests.cs`. Legge le
+migrazioni **MySQL** datate fra `20260831` e `20260917` e ne guarda le `UpOperations` **strutturate** — non
+il testo del `.cs`, che conterebbe anche i `Down`, dove una `DropTable` è l'inverso innocuo di una
+`CreateTable`. Vieta `DropTable`/`DropColumn`/`RenameTable`/`RenameColumn`/`AlterColumn`/`Sql`; pretende un
+valore di riposo vero su ogni colonna stringa NOT NULL (la trappola dell'enum che `FormaCheHaContato` ha
+schivato a mano); rifiuta un indice unico nuovo su una tabella già popolata. Uscita esplicita:
+`RevisionateAMano`, dove l'id si scrive **con la ragione**.
+⚠️ **Va cancellato quando la finestra si chiude**, non aggiornato spostando le date: sarebbe una regola
+permanente travestita da eccezione.
+ℹ️ Provato che morde allargando la finestra all'indietro: rosso su `ConcessioniPerAccRimosse` (DropTable),
+`RadioassistenzeFamigliaETipo` (due `Sql` + RenameColumn), `Navaids.NaturalKey` (default vuoto) e due
+indici unici. Un presidio che non si è mai visto fallire non è un presidio.
+
+**Preparazione della sorgente, prima del travaso:**
+- il `vipi.db` era **indietro di tre migrazioni** (108 su 111): `SectorShapeParts` e `TranslationSpends`
+  non esistevano, e `Vipi.DbSeed` legge dal modello — la catena sarebbe morta in lettura. Backup in
+  `vipi.db.bak-pre-consegna-20260830`, poi allineato;
+- **sette documenti ripubblicati** dei nove in deriva (`/services/vsop/admin/pending`), guidando l'app:
+  `LIBD #4`, `LIBR #4`, `LIPA #2`, `LIRN #6`, `LIBA_APP #2`, vLOA `LGGG #2`, vLOA `LYBA #2`.
+  ⚠️ **Due tenuti fermi apposta**: `vIPI Brindisi` e `Pescara Approach` portano tre sezioni intitolate
+  «Nuova sezione» (due vuote, una con dentro solo un'immagine). Ripubblicarli le avrebbe messe **in
+  pubblico per diciassette giorni**. Si sistemano dall'editor, poi si ripubblicano.
+
+**Che cosa è stato verificato, e come:**
+- le **45 migrazioni MySQL** applicate a un MariaDB 11.4.10 vero, da database vuoto: sono le prime 36 a
+  vederne uno davvero (finora erano solo state generate);
+- `Vipi.DbSeed`: 40 033 righe lette, 40 048 scritte, **56 tabelle su 56 riconciliate**, 48 contatori
+  `AUTO_INCREMENT` riportati oltre il massimo; e il controllo del 7 agosto che era sfuggito —
+  `SpecialAreaCenters` (247) **>** `SpecialAreas` (230);
+- il `.sql` **reimportato in un database vuoto** e confrontato tabella per tabella: **57/57**, 40 033
+  righe, `__EFMigrationsHistory` a 45;
+- collation `utf8mb4_uca1400_as_cs` su **266 colonne**; le due fuori regola sono `MigrationId` e
+  `ProductVersion`, che la tabella la crea EF;
+- `.gz` riaperto e ricontato: 14 091 458 byte, gli stessi;
+- primi quattro byte `2f 2a 4d 21`. **Sul CRLF vedi la correzione in A11**: non è mai stato un problema, e
+  la riga che diceva di averlo escluso non aveva misurato niente.
+- suite `Vipi.Infrastructure.Tests` su net8: **1118 su 1118**.
+
+⚠️ **Resta aperto, e non è tecnico:** il passo 1 del foglio è un backup fatto da loro, e **nessuno ha mai
+confermato che siano in grado di produrlo**. Fino al 16 settembre è l'unica rete sotto a un
+`DROP DATABASE`. Se la risposta non arriva, l'aggiornamento non va cominciato.
+
+ℹ️ Le nove righe «da rivedere» restano accese nel database consegnato anche per i sette ripubblicati: il
+ricalcolo della deriva è un giro gestito con cancello a 24h e il periodo è una **costante nel codice**
+(`ImpactDriftHostedService.Periodo`), non una configurazione. Si richiudono da sole al primo giro in
+produzione. È cosmetico, ma sapere perché evita di cercare un guasto che non c'è.
 
 ## B. Branch non fusi — decisioni, non lavoro
 
