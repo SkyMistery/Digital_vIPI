@@ -1,5 +1,8 @@
 ﻿# Pacchetto 1.1.0 — solo i file cambiati
 
+> **Timbro:** `1.1.0 · ff88bbd` (31 agosto 2026). È quel che compare nella barra in alto agli amministratori,
+> e in `diagnostica/avvio-diagnostica.txt`.
+
 > **Aggiornamento del 31 agosto 2026.** Sostituisce **`j`** (30 agosto), che è quello attualmente sul
 > server. **Il database non si tocca**: nessuna migrazione, nessun `.sql`, niente da chiedere a Ivao.It.
 >
@@ -54,7 +57,34 @@ silenzio, e l'avviso «stai per perdere le modifiche» adesso copre tutti i camp
 Tutti i percorsi sono **relativi alla cartella dell'applicazione** (`public_atc`), che è anche la radice
 dell'FTP. La cartella del pacchetto ha la stessa struttura: si può trascinare rispettando i percorsi.
 
-<!-- TABELLA-FILE -->
+**17 file, 12,4 MB.** (Il pacchetto completo sarebbe 474 file e 52 MB: qui ci sono solo i cinque assiemi
+che cambiano davvero, le loro mappe di debug, e i due file di `wwwroot`.)
+
+| # | File | Che cos'è |
+|---|---|---|
+| 1 | `Vipi.Host.dll` | il sito |
+| 2 | `Vipi.Host.pdb` | la sua mappa di debug: serve a far uscire il **numero di riga** in `diagnostica/errori-richieste.txt` |
+| 3 | `Vipi.Ui.dll` | le pagine |
+| 4 | `Vipi.Ui.pdb` | idem |
+| 5 | `Vipi.Hosting.dll` | l'aggancio dei servizi (qui dentro c'è `/vsop/ping`) |
+| 6 | `Vipi.Hosting.pdb` | idem |
+| 7 | `Vipi.Application.dll` | la logica |
+| 8 | `Vipi.Application.pdb` | idem |
+| 9 | `Vipi.Infrastructure.dll` | il database |
+| 10 | `Vipi.Infrastructure.pdb` | idem |
+| 11 | `en/Vipi.Ui.resources.dll` | le frasi in inglese ⚠️ **è dentro la cartella `en`**, non alla radice |
+| 12 | `Vipi.Host.staticwebassets.endpoints.json` | l'indice degli asset **(insieme)** |
+| 13 | `wwwroot/_content/Vipi.Ui/vipi-riconnessione.js` | il file nuovo, quello **obbligatorio** **(insieme)** |
+| 14 | `wwwroot/_content/Vipi.Ui/vipi-riconnessione.js.br` | la sua copia compressa **(insieme)** |
+| 15 | `wwwroot/_content/Vipi.Ui/vipi-riconnessione.js.gz` | idem **(insieme)** |
+| 16 | `wwwroot/_content/Vipi.Ui/vipi-theme.css` | il foglio di stile **(insieme)** |
+| 17 | `wwwroot/_content/Vipi.Ui/vipi-theme.css.br` + `.css.gz` | le sue copie compresse **(insieme)** |
+
+ℹ️ Le impronte `sha256` di tutti e diciassette sono in `IMPRONTE.txt`, dentro la cartella del pacchetto: se
+un caricamento va a metà, sono il modo di scoprirlo **prima** di riavviare.
+
+ℹ️ **Gli altri 443 file del sito non cambiano** e non vanno ricaricati. Le librerie di sistema, il runtime
+.NET e il resto di `wwwroot` sono identici a quelli del pacchetto `j`.
 
 ## L'ordine
 

@@ -64,7 +64,10 @@ internal static class VipiStartup
         // una riga per avvio e una per arresto (l'aggancio allo spegnimento è più sotto, dopo builder.Build).
         // È la misura che serve per sapere se «Attempting to reconnect…» sul browser è Passenger che spegne per
         // inattività — fisiologico qui — o qualcosa che si rompe. Vedi RegistroAvvii.
-        RegistroAvvii.RegistraAvvio(VersioneBuild.Leggi().Dettaglio);
+        // ⚠️ L'etichetta corta («1.1.0 · ff88bbd»), non il dettaglio: quello finisce con «in servizio dal
+        // <data>», e in un file dove ogni riga comincia già con il proprio orario sarebbe la stessa ora
+        // scritta due volte. Visto nel registro del pacchetto vero, non nei test.
+        RegistroAvvii.RegistraAvvio(VersioneBuild.Leggi().Etichetta);
 
         // La password c'è davvero? Se manca, l'applicazione ripiegherebbe su un file SQLite vuoto e il sito
         // ripartirebbe con l'aria di aver perso i dati: il modo peggiore di sbagliare. Meglio non partire.
