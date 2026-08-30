@@ -29,6 +29,11 @@
         <p class="muted">@L["Mil_Intro"]</p>
     </div>
 
+    @* L'intro editabile: i documenti che valgono per TUTTI i campi militari, e i PDF della biblioteca.
+       Sta sopra l'elenco perché si legge prima di scegliere un campo — e sotto la testata perché il titolo
+       della pagina viene prima di tutto. Vuota, al pubblico non si rende affatto. *@
+    <PageIntroZone Pagina="mil" Etichetta="Intro dell'elenco vSOP militari" />
+
     <LiveRegion>
         @if (_msg is { } m)
         {

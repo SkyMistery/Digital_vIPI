@@ -7,12 +7,19 @@ cancellati — vale il riquadro qui sotto).
 
 ## Dove siamo, prima di tutto il resto
 
-> ### 🆕 LO STATO VERO, 30 agosto 2026 — questo riquadro batte tutto il resto del file
+> ### 🆕 LO STATO VERO, 30 agosto 2026 (sera) — questo riquadro batte tutto il resto del file
 >
-> ✅ **`main` è allineato con `origin/main`. Nessun ramo con lavoro fuori**, né in locale né su `origin`.
-> Il 30 agosto sono stati fusi e spinti, in quest'ordine: **`biblioteca-allegati`** (§E10),
-> **`spazi-aerei-aip`** (§AA) e **`shape-una-porta-sola`** (§AB, quattordici commit); tutti e tre cancellati
-> dopo la fusione. Dove più sotto si legge «non fuso», si sta raccontando com'era quel giorno.
+> ✅ **`main` è allineato con `origin/main`**, e il 30 agosto ci sono stati fusi e spinti, in quest'ordine:
+> **`biblioteca-allegati`** (§E10), **`spazi-aerei-aip`** (§AA) e **`shape-una-porta-sola`** (§AB,
+> quattordici commit); tutti e tre cancellati dopo la fusione. Dove più sotto si legge «non fuso», si sta
+> raccontando com'era quel giorno.
+>
+> ⚠️ **Ma ci sono DUE rami con lavoro fuori da `main`**, e sono cose diverse:
+> **`consegna-db-20260830`** (undici commit, **SOLO LOCALE, da spingere**: il pacchetto della consegna a
+> Ivao.It) e **`intro-di-pagina`** (quattordici commit, **spinto e non fuso**: §AC l'intro di pagina e §AD la
+> verifica «uscire non butta via»; **nessuna migrazione**, suite e release verdi). I due **non si
+> sovrappongono**: il primo tocca `Directory.Build.props` e `deploy/`, il secondo `src/Vipi.Ui` e
+> `src/Vipi.Application`. ⚠️ Guardare `git branch --show-current` prima di committare.
 >
 > ⚠️ **La trappola della fusione, che git non segnala.** I due rami dicevano tutti e due «16 voci nella
 > barra admin» perché ognuno ne aggiungeva **una** a quindici: git ha fuso due numeri identici senza

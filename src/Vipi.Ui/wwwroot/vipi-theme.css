@@ -518,6 +518,11 @@
 .struct .perm-add{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:10px;
   border-top:1px solid var(--line)}
 .struct .perm-add .app-in{flex:1 1 180px;min-width:140px}
+/* Stessa medicina per i moduli in riga di glossario e traduzioni: `.app-in` porta `width:100%`, che dentro
+   una riga flex manda ogni campo su una riga sua. ⚠️ Quei campi erano `class="in"`, una classe che NON
+   ESISTE in questo foglio: nudi, coi colori del browser. Vestirli è stato il primo passo; questo è il
+   secondo, o si vestivano e andavano a capo. */
+.struct .inline-form .app-in{flex:1 1 200px;min-width:140px;width:auto}
 /* Le sezioni del pannello di destra (storia, release) e la barra di pubblicazione: erano ventisette
    blocchi di stile in linea, cioe' la forma della pagina scritta in nessun foglio. */
 .struct .ver-sec{margin-top:8px}
@@ -928,6 +933,11 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .section-title{display:flex;align-items:center;gap:12px;margin:34px 0 16px}
 .section-title :is(h2,h3){margin:0}
 .section-title .ln{flex:1;height:1px;background:var(--line)}
+/* ---- Intro di pagina (carta docs/feature/2026-08-30-intro-di-pagina.md) ----
+   Le sezioni dell'intro sono le STESSE card dei documenti: qui non si decide come si vede una sezione, o
+   sarebbero due posti a deciderlo e quello sbagliato sarebbe questo. Resta il respiro sotto, che separa
+   l'intro dall'elenco che introduce. */
+.page-intro{margin:0 0 18px}
 .staff-sec>summary{cursor:pointer;list-style:none;user-select:none}
 .staff-sec>summary::-webkit-details-marker{display:none}
 .staff-sec>summary .chev{display:inline-block;font-size:14px;color:var(--muted);transition:.2s}
@@ -2128,8 +2138,22 @@ button.sh-chip.warn:hover{background:var(--tint-gold)}
 /* ---- Editor/viewer APP non remotizzato (sezioni condivise) ---- */
 .app-sec-drag{opacity:.6;outline:2px dashed var(--ivao-lightblue);border-radius:11px}
 .app-drag{cursor:grab;color:var(--ink-soft,var(--ink-soft));font-size:18px;user-select:none}
-.app-in{width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font:inherit}
-.app-ta{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;resize:vertical}
+/* ⚠️ FONDO E INCHIOSTRO DICHIARATI, e non è pignoleria: senza, questi campi prendono i colori del
+   BROWSER. Nel tema chiaro non si vedeva — il bianco di serie e `--surface` combaciano — ma nel tema scuro
+   il fondo usciva `rgb(59,59,59)` contro un `--surface` di `#21212e`: un rettangolo grigio in mezzo a
+   riquadri blu-notte, su OGNI editor che usa questi campi. Misurato il 30 agosto 2026.
+   Un campo che non dichiara i propri colori non ne ha di sbagliati: ne ha di altrui. */
+.app-in{width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font:inherit;
+  background:var(--surface);color:var(--ink)}
+.app-ta{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;resize:vertical;
+  background:var(--surface);color:var(--ink)}
+.app-in:focus,.app-ta:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px var(--line-atmos-soft)}
+/* Una tendina si veste come le altre tendine di casa (`.se-row select`): senza `appearance:none` resta
+   quella del sistema operativo — angoli vivi e freccia sua — e in mezzo all'editor si legge come un pezzo
+   di un'altra applicazione. Stessa freccia, stessi stati. */
+select.app-in{padding-right:28px;cursor:pointer;-webkit-appearance:none;appearance:none;transition:.12s;
+  background:var(--surface) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235b6470' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 9px center}
+select.app-in:hover{border-color:var(--line-ocean)}
 .app-lbl{display:block;font-size:13px;color:var(--ink-soft,var(--ink-mid));margin:8px 0}
 .app-block-edit{display:flex;gap:6px;align-items:flex-start;margin-bottom:6px}
 .app-block-edit .app-ta{flex:1}

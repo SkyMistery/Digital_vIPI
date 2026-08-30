@@ -1937,6 +1937,7 @@
   <data name="Ape_SidDiscardConfirm" xml:space="preserve"><value>There are {0} changed and unsaved SIDs: re-importing discards them. Continue?</value></data>
   <data name="Ape_SidDiscardConfirmOne" xml:space="preserve"><value>There is 1 changed and unsaved SID: re-importing discards it. Continue?</value></data>
   <data name="Ape_SaveAllTitle" xml:space="preserve"><value>Save every changed section to the draft — Ctrl+S</value></data>
+  <data name="Ape_ExitBlocked" xml:space="preserve"><value>Some changes are still unsaved: fix or save them, then finish editing.</value></data>
   <data name="Ape_SaveAllN" xml:space="preserve"><value>Save all ({0})</value></data>
   <data name="Ape_SaveHelpAria" xml:space="preserve"><value>Help on saving</value></data>
   <data name="Ape_SaveHelpBody" xml:space="preserve"><value>Saves every changed section to the &lt;b&gt;draft&lt;/b&gt; (also with &lt;span class="guida-kbd"&gt;Ctrl&lt;/span&gt;+&lt;span class="guida-kbd"&gt;S&lt;/span&gt;). The public sees them only after &lt;b&gt;publishing&lt;/b&gt;.</value></data>
@@ -2627,6 +2628,14 @@
   <data name="Mil_DerivedLink" xml:space="preserve"><value>airport editor</value></data>
   <data name="Mil_Desc" xml:space="preserve"><value>Standard operating procedures of the Italian military airfields: read by both pilots and controllers.</value></data>
   <data name="Mil_Intro" xml:space="preserve"><value>These are the SOPs of the Italian military airfields. Readers can filter by audience using the chip at the top of the document.</value></data>
+  <data name="PageIntro_Title" xml:space="preserve"><value>Page intro</value></data>
+  <data name="PageIntro_Unsaved" xml:space="preserve"><value>Unsaved changes</value></data>
+  <data name="PageIntro_Empty" xml:space="preserve"><value>No sections yet: whatever you write here shows at the top of the page, to signed-out readers too.</value></data>
+  <data name="PageIntro_AddSection" xml:space="preserve"><value>Add section</value></data>
+  <data name="PageIntro_SectionTitle" xml:space="preserve"><value>Section title</value></data>
+  <data name="PageIntro_NotAllowed" xml:space="preserve"><value>You are not allowed to write here.</value></data>
+  <data name="PageIntro_HelpAria" xml:space="preserve"><value>What the page intro is</value></data>
+  <data name="PageIntro_HelpBody" xml:space="preserve"><value>Free-form sections at the top of the page, to introduce the list and link PDFs from the attachment library.&lt;br/&gt;⚠️ It is not a document: it has no AIRAC cycle and is not frozen to a release, so it goes live as soon as you save it. Normative content belongs in a document.</value></data>
   <data name="Mil_OnlyMilitary" xml:space="preserve"><value>military only</value></data>
   <data name="Mil_JointField" xml:space="preserve"><value>joint civil/military</value></data>
   <data name="Mil_NoDoc" xml:space="preserve"><value>no document</value></data>

@@ -1942,6 +1942,7 @@
   <data name="Ape_SidDiscardConfirm" xml:space="preserve"><value>Ci sono {0} SID modificate e non salvate: il ri-prelievo le scarta. Continuare?</value></data>
   <data name="Ape_SidDiscardConfirmOne" xml:space="preserve"><value>C'è 1 SID modificata e non salvata: il ri-prelievo la scarta. Continuare?</value></data>
   <data name="Ape_SaveAllTitle" xml:space="preserve"><value>Salva tutte le sezioni modificate nella bozza — Ctrl+S</value></data>
+  <data name="Ape_ExitBlocked" xml:space="preserve"><value>Restano modifiche non salvate: correggile o salvale, poi esci dalla modifica.</value></data>
   <data name="Ape_SaveAllN" xml:space="preserve"><value>Salva tutto ({0})</value></data>
   <data name="Ape_SaveHelpAria" xml:space="preserve"><value>Aiuto sul salvataggio</value></data>
   <data name="Ape_SaveHelpBody" xml:space="preserve"><value>Salva tutte le sezioni modificate nella &lt;b&gt;bozza&lt;/b&gt; (anche con &lt;span class="guida-kbd"&gt;Ctrl&lt;/span&gt;+&lt;span class="guida-kbd"&gt;S&lt;/span&gt;). Il pubblico le vede solo dopo la &lt;b&gt;pubblicazione&lt;/b&gt;.</value></data>
@@ -2635,6 +2636,14 @@
   <data name="Mil_DerivedLink" xml:space="preserve"><value>editor dell'aeroporto</value></data>
   <data name="Mil_Desc" xml:space="preserve"><value>Procedure operative dei campi militari italiani: le leggono sia i piloti sia i controllori.</value></data>
   <data name="Mil_Intro" xml:space="preserve"><value>Sono i SOP dei campi militari italiani. Un lettore può filtrare per destinatario con la chip in cima al documento.</value></data>
+  <data name="PageIntro_Title" xml:space="preserve"><value>Intro della pagina</value></data>
+  <data name="PageIntro_Unsaved" xml:space="preserve"><value>Modifiche non salvate</value></data>
+  <data name="PageIntro_Empty" xml:space="preserve"><value>Nessuna sezione: quel che si scrive qui compare in cima alla pagina, anche a chi non è loggato.</value></data>
+  <data name="PageIntro_AddSection" xml:space="preserve"><value>Aggiungi sezione</value></data>
+  <data name="PageIntro_SectionTitle" xml:space="preserve"><value>Titolo della sezione</value></data>
+  <data name="PageIntro_NotAllowed" xml:space="preserve"><value>Non hai il permesso di scrivere qui.</value></data>
+  <data name="PageIntro_HelpAria" xml:space="preserve"><value>Che cos’è l’intro della pagina</value></data>
+  <data name="PageIntro_HelpBody" xml:space="preserve"><value>Sezioni libere in cima alla pagina, per presentare l’elenco e collegare i PDF della biblioteca allegati.&lt;br/&gt;⚠️ Non è un documento: non ha ciclo AIRAC e non si congela a una release, quindi è pubblicata appena la salvi. Il contenuto normativo va in un documento.</value></data>
   <data name="Mil_OnlyMilitary" xml:space="preserve"><value>solo militare</value></data>
   <data name="Mil_JointField" xml:space="preserve"><value>civile e militare</value></data>
   <data name="Mil_NoDoc" xml:space="preserve"><value>nessun documento</value></data>

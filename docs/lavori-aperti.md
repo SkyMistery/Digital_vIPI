@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 30 agosto 2026, **sera** — 🔴 **CONSEGNA A METÀ**: pacchetto `j` caricato via FTP, database `.sql` pronto e **in attesa che Ivao.It lo importi**; ⚠️ **nove commit sul ramo `consegna-db-20260830` DA SPINGERE**; ⚠️ la consegna **riparta da zero sul contenuto** (il `vipi.db` di sviluppo è intatto); 🔒 **dal 31 agosto al 16 settembre non si consegna database** e una migrazione girerebbe da sola in produzione — presidio in `MigrazioniDellaFinestraCiecaTests`, **da cancellare a finestra chiusa**. Tutto in **§A14** e nel riquadro di «Dove siamo». · **Aggiornato:** 30 agosto 2026, pomeriggio (**§AB — LA SHAPE DI UN SETTORE HA UNA PORTA SOLA**, carta [refactor/15](refactor/15-shape-del-settore-una-porta-sola.md), **S0→S10 fuse in `main` e SPINTE** (merge `--no-ff`, quattordici commit; ramo cancellato). Un settore agganciato agli spazi aerei dell'AIP **disegnava** quel confine e **rivendicava** il traffico dentro il monoblocco di IVAO: sei motori, due lo sapevano. Adesso la forma — **anello E quote insieme** — si chiede a `ISectorShapeResolver`, e le quote stanno **DENTRO il pezzo**, così «laterale da una fonte, verticale da un'altra» non è una cosa da evitare ma una cosa che **non si può scrivere**. ⚠️ La **prova dal vivo**: agganciato `LIRR_EW_CTR` — in frequenza — alla FIR ROMA `GND→FL195`, in **un giro del poller** le tratte nuove sono uscite col timbro `Aip` e i quattro voli **sopra FL195** hanno smesso di essere rivendicati. ⚠️ **S11 resta fuori**: non è una slice, è la seconda metà della cura — otto siti di scrittura e il percorso del **congelamento di release** — e non si fa il giorno prima della consegna (§4-bis della carta). ⚠️ Migrazioni in coda: **TRENTASEI**) · **Aggiornato:** 30 agosto 2026 (**I DUE RAMI SONO FUSI IN `main`, CHE È STATO SPINTO** — `biblioteca-allegati` (§E10) e `spazi-aerei-aip` (§AA), in quest'ordine. Sette conflitti, e la regola era quasi sempre «servono tutti e due»: registrazioni DI, DbSet, voce nella barra admin, chiavi di traduzione. ⚠️ **L'eccezione non l'ha segnalata git**: i due rami dicevano tutti e due «16 voci nella barra admin» perché ognuno ne aggiungeva UNA a quindici — fuse sono **DUE**, quindi 17 e 12 — e git ha fuso due numeri identici senza chiamarlo conflitto. Se n'è accorto solo `AdminNavTests`. ⚠️ I due **ModelSnapshot** git li ha fusi da solo e stavolta bene: la prova non è che i nomi ci siano ma che una migrazione di prova esca **VUOTA**, e su tutti e due i provider lo è. **Release verde e quindici assiemi su quindici verdi DOPO la fusione.** ⚠️ Le migrazioni in coda al cutover MariaDB sono ora **TRENTAQUATTRO**. ✅ **R8 CHIUSO**: l'embed provato dal vivo con due PDF veri del committente — il documento si vede davvero nel riquadro. ⚠️ E ha trovato che in `frame-src` mancava **`'self'`**: l'iframe punta alla NOSTRA rotta, non a Drive, e col solo Drive il riquadro sarebbe rimasto vuoto al passaggio a CSP vera. ⚠️ Più un difetto in produzione: la colonna versione della biblioteca stampava `v@r.VersionNumber` alla lettera, che è la regola di Razor per gli indirizzi email) · **Aggiornato:** 29 agosto 2026, notte (**§E10 — LA BIBLIOTECA ALLEGATI, TUTTE E NOVE LE SLICE FATTE**, ramo
+**Aggiornato:** 31 agosto 2026 — 📦 **RAMO DI CONSEGNA `consegna-20260831`**: dentro ci sono la consegna del 30 (pacchetto `j`), **`intro-di-pagina`** e **§AE — la riconnessione del circuito**. **Nessuna migrazione** in nessuno dei due rami fusi, che dentro la finestra cieca è il punto. Il pacchetto per l'FTP è **incrementale** (solo i file cambiati) e la versione è **1.1.0**. ⚠️ Da qui in avanti `blazor.web.js` parte con `autostart="false"`: un caricamento senza `vipi-riconnessione.js` dà un sito che **si vede e non risponde**. · **Aggiornato:** 30 agosto 2026, **sera** — 🔴 **CONSEGNA A METÀ**: pacchetto `j` caricato via FTP, database `.sql` pronto e **in attesa che Ivao.It lo importi**; ⚠️ **nove commit sul ramo `consegna-db-20260830` DA SPINGERE**; ⚠️ la consegna **riparta da zero sul contenuto** (il `vipi.db` di sviluppo è intatto); 🔒 **dal 31 agosto al 16 settembre non si consegna database** e una migrazione girerebbe da sola in produzione — presidio in `MigrazioniDellaFinestraCiecaTests`, **da cancellare a finestra chiusa**. Tutto in **§A14** e nel riquadro di «Dove siamo». · **Aggiornato:** 30 agosto 2026, sera (**§AC — L'INTRO DI PAGINA** e **§AD — «USCIRE NON BUTTA VIA»**, ramo **`intro-di-pagina`** (da `main`), **spinto e NON fuso**, quattordici commit. Sezioni editabili in cima all'elenco dei vSOP militari, con i PDF della biblioteca: vivono in **`SharedBlocks`** — tabella dell'`InitialCreate` che **non usava nessuno** — quindi **ZERO migrazioni**, che dentro la finestra cieca è il punto. ⚠️ **Non è un documento**: niente ciclo AIRAC, niente release, quel che si salva è **subito pubblico**. Tradotta su richiesta del SOD, e la traduzione regge solo perché le frasi entrano nel **corpus**. Poi la verifica chiesta dal committente su **tutto ciò che si modifica**: i quattro editor documentali salvano **a ogni gesto** e sono sani; il difetto era sull'editor **aeroporto** — l'unico che accumula — dove «Fine modifica» usciva **senza guardare**, e su `AccAdminPage`. ⚠️ E la guardia `beforeunload` copriva **un buffer su tre**. **Release verde e suite verde su tutt'e due i TFM.**) · **Aggiornato:** 30 agosto 2026, pomeriggio (**§AB — LA SHAPE DI UN SETTORE HA UNA PORTA SOLA**, carta [refactor/15](refactor/15-shape-del-settore-una-porta-sola.md), **S0→S10 fuse in `main` e SPINTE** (merge `--no-ff`, quattordici commit; ramo cancellato). Un settore agganciato agli spazi aerei dell'AIP **disegnava** quel confine e **rivendicava** il traffico dentro il monoblocco di IVAO: sei motori, due lo sapevano. Adesso la forma — **anello E quote insieme** — si chiede a `ISectorShapeResolver`, e le quote stanno **DENTRO il pezzo**, così «laterale da una fonte, verticale da un'altra» non è una cosa da evitare ma una cosa che **non si può scrivere**. ⚠️ La **prova dal vivo**: agganciato `LIRR_EW_CTR` — in frequenza — alla FIR ROMA `GND→FL195`, in **un giro del poller** le tratte nuove sono uscite col timbro `Aip` e i quattro voli **sopra FL195** hanno smesso di essere rivendicati. ⚠️ **S11 resta fuori**: non è una slice, è la seconda metà della cura — otto siti di scrittura e il percorso del **congelamento di release** — e non si fa il giorno prima della consegna (§4-bis della carta). ⚠️ Migrazioni in coda: **TRENTASEI**) · **Aggiornato:** 30 agosto 2026 (**I DUE RAMI SONO FUSI IN `main`, CHE È STATO SPINTO** — `biblioteca-allegati` (§E10) e `spazi-aerei-aip` (§AA), in quest'ordine. Sette conflitti, e la regola era quasi sempre «servono tutti e due»: registrazioni DI, DbSet, voce nella barra admin, chiavi di traduzione. ⚠️ **L'eccezione non l'ha segnalata git**: i due rami dicevano tutti e due «16 voci nella barra admin» perché ognuno ne aggiungeva UNA a quindici — fuse sono **DUE**, quindi 17 e 12 — e git ha fuso due numeri identici senza chiamarlo conflitto. Se n'è accorto solo `AdminNavTests`. ⚠️ I due **ModelSnapshot** git li ha fusi da solo e stavolta bene: la prova non è che i nomi ci siano ma che una migrazione di prova esca **VUOTA**, e su tutti e due i provider lo è. **Release verde e quindici assiemi su quindici verdi DOPO la fusione.** ⚠️ Le migrazioni in coda al cutover MariaDB sono ora **TRENTAQUATTRO**. ✅ **R8 CHIUSO**: l'embed provato dal vivo con due PDF veri del committente — il documento si vede davvero nel riquadro. ⚠️ E ha trovato che in `frame-src` mancava **`'self'`**: l'iframe punta alla NOSTRA rotta, non a Drive, e col solo Drive il riquadro sarebbe rimasto vuoto al passaggio a CSP vera. ⚠️ Più un difetto in produzione: la colonna versione della biblioteca stampava `v@r.VersionNumber` alla lettera, che è la regola di Razor per gli indirizzi email) · **Aggiornato:** 29 agosto 2026, notte (**§E10 — LA BIBLIOTECA ALLEGATI, TUTTE E NOVE LE SLICE FATTE**, ramo
 `biblioteca-allegati` **spinto e NON fuso**. I PDF non possono stare da noi — il piano di hosting non ammette
 il formato, ed è un vincolo **contrattuale** — quindi stanno sul **Drive di divisione**, e da noi stanno
 identità, organizzazione, versioni e il registro dei link. Il documento cita uno **slug** e passa da
@@ -227,6 +227,24 @@ spingere** (riquadro qui sopra).
 > confrontare con `2e96bbc8`, non con `HEAD`.
 
 Il 30 agosto sono
+
+### 📦 31 agosto — i due rami fuori sono confluiti in `consegna-20260831`
+
+Il ramo di consegna parte da `consegna-db-20260830` (cioè dal codice del pacchetto `j`, che è quello online)
+e ci fonde sopra:
+
+- **`intro-di-pagina`** — quindici commit, §AC e §AD. Sezioni editabili in cima agli elenchi + la verifica
+  «uscire non butta via». **Zero migrazioni** (vivono in `SharedBlocks`, tabella dell'`InitialCreate`).
+- **`riconnessione-circuito`** — §AE. Le quattro mosse contro «Attempting to reconnect to the server…».
+  **Zero migrazioni.**
+
+⚠️ **Dentro la finestra cieca questo è il punto**: il pacchetto si consegna da solo, via FTP, e non tocca lo
+schema. Versione **1.1.0** (funzionalità nuove, nessuna migrazione).
+
+⚠️ **Il pacchetto è INCREMENTALE**: solo i file cambiati rispetto a `j`, non i 474 dello zip. Il foglio è
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.1.0.md`, e ⚠️ **l'indice `staticwebassets` va caricato INSIEME ai
+`.js`**, o il sito chiede file col nome vecchio.
+
 stati fusi e spinti, in quest'ordine: **`biblioteca-allegati`** (§E10), **`spazi-aerei-aip`** (§AA) e
 **`shape-una-porta-sola`** (§AB, carta [refactor/15](refactor/15-shape-del-settore-una-porta-sola.md),
 quattordici commit); tutti e tre cancellati dopo la fusione. **Release verde e nove assiemi su nove verdi
@@ -240,6 +258,15 @@ solo `AdminNavTests`. ⚠️ I due **ModelSnapshot** git li ha fusi bene, ma la 
 
 ### Che cosa è entrato il 30 agosto
 
+- 🆕 **§AC — l'intro di pagina** ([carta](feature/2026-08-30-intro-di-pagina.md)), sul **ramo**. Sezioni
+  editabili in cima a `/services/vsop/mil`, con i **PDF della biblioteca** dentro. Vivono in
+  **`SharedBlocks`** — c'era dall'`InitialCreate` e **non la scriveva nessuno** — quindi **zero DDL** dentro
+  la finestra cieca. ⚠️ **Non è un documento**: si salva ed è **pubblico**, niente release da riaprire; il
+  normativo va in un documento. Tradotta, e regge solo perché le frasi entrano nel **corpus**.
+- 🆕 **§AD — «uscire non butta via»**, la verifica su tutto ciò che si modifica, sullo stesso ramo. I quattro
+  editor documentali **salvano a ogni gesto** (sani); l'**aeroporto** è l'unico che accumula, e l'uscita non
+  guardava niente. ⚠️ La guardia `beforeunload` copriva **un buffer su tre**, e il pannello settori si
+  marcava sporco **per sempre**: due difetti opposti nello stesso posto.
 - **§AB — la shape di un settore ha una porta sola**, S0→S10
   ([carta](refactor/15-shape-del-settore-una-porta-sola.md)). L'aggancio agli spazi aerei dell'AIP era
   onorato da **due motori su sei**: un settore agganciato **disegnava** il confine dell'AIP nel documento e
@@ -5399,3 +5426,144 @@ tabella. Nessuna asserzione l'avrebbe vista.
   **congelamento di release**, un backfill e due migrazioni (§4-bis della carta). Si esegue **dopo** la
   consegna del 1° settembre.
 - **Le 13 torri ATZ**, da guardare al primo deploy: vedi il punto 3 della lista rossa in §«Dove siamo».
+
+## AC. L'intro di pagina — 30 agosto 2026
+
+Carta: [`feature/2026-08-30-intro-di-pagina.md`](feature/2026-08-30-intro-di-pagina.md).
+Ramo **`intro-di-pagina`**, da `main`. **Nessuna migrazione**, e la cosa conta: siamo nella finestra cieca
+fino al 16 settembre. **Verificata dal vivo.** **29 test nuovi.**
+
+Chiesta dal committente sull'elenco dei vSOP militari: «in alto una sezione intro dove mettere alcuni PDF,
+come se fosse un documento, usando la funzione link delle sezioni». **Tradotta**, su richiesta esplicita
+del SOD.
+
+### Dove si salva, e perché senza DDL
+
+`SharedBlocks`, chiave `page-intro:{pagina}`. La tabella esiste dall'`InitialCreate` — quindi è già in
+produzione su tutti e due i provider — e **nessuno la scriveva**. È contenuto **senza padrone**, chiavato su
+una stringa: la forma che serve a una zona di pagina, che un padrone non ce l'ha.
+
+⚠️ **Un `Document` non andava bene**, e non per gusto: senza aeroporto né settori cade fuori da **tutti** i
+descrittori di `IReleaseTarget` — invisibile all'elenco admin, al motore di release, agli impatti. Sarebbe
+stato irraggiungibile **in silenzio**, che è il guasto già pagato col catch-all dell'aeroporto.
+
+### Che cosa c'è
+
+- `PageIntro` — modello e proiezione. Salvato c'è **un modello solo** (titolo + `ExtraBlock`, cioè quel che
+  `DocumentBlocksEditor` sa già scrivere); la `DocumentView` si **calcola** a ogni resa e non si salva mai.
+- `IPageIntroStore` / `EfPageIntroStore` — una porta, col cancello **dentro** (Editor). Svuotare **cancella
+  la riga**: una riga col JSON nullo sarebbe un secondo modo di essere vuota.
+- `PageIntroZone.razor` — isola sua: si carica, si edita e si salva da sé, col lock (`editor:page-intro:…`).
+  Vuota, al pubblico **non si rende affatto** — nemmeno un contenitore.
+- Traduzione: le frasi entrano nel **corpus** (`EfTranslatableCorpus`, giro `it`) come già fanno le aree
+  regolamentate dal lato inglese. Senza quel pezzo la pagina avrebbe chiesto alla memoria frasi che nessuno
+  le aveva mai messo dentro, e sarebbe rimasta italiana **senza che nulla protestasse**.
+- Capitolo di Guida `#intro-di-pagina` + voce di ricerca: un «?» che punta a un capitolo assente è un
+  collegamento morto, e nessuno lo denuncia.
+
+### La prova dal vivo
+
+Su una copia del `vipi.db` reale, guidando Edge: lock preso, sezione «Documenti generali» con un paragrafo e
+un **blocco allegato** scelto dalla biblioteca (`MIL abbriviation`), salvata; ricaricata, la sezione si legge
+e il link è **la nostra rotta** (`/vsop/files/mil-abbriviation`); riletta in inglese, esce tradotta
+(«General documents»). Zero errori di pagina, zero letterali Razor.
+
+### La passata sulla forma, e il difetto che ha scoperto
+
+Guardando la pagina, il committente ha visto «parti che non coincidono col resto della UI». Erano **tre
+classi che cadevano in silenzio perché SCOPED** sotto un antenato che una pagina pubblica non ha:
+`.st-msg` vive dentro `.st-head`, `.ln` dentro `.section-title`, e **`.in` non esiste affatto** — il campo
+del titolo era un `<input>` nudo. La testata è ora quella di casa (`.section-title .doc-head .st-head`) e la
+riga di sezione quella dell'editor documento, `InlineConfirm` sull'eliminazione compreso.
+
+⚠️ **Ma il difetto vero è più largo di questa pagina.** `.app-in` e `.app-ta` **non dichiaravano né fondo né
+inchiostro**: prendevano quelli del browser. Nel tema chiaro non si vedeva — il bianco di serie e
+`--surface` combaciano — ma nel **tema scuro** uscivano `rgb(59,59,59)` contro un `--surface` di `#21212e`,
+**su ogni editor che usa quei campi**, e la tendina restava quella del sistema operativo. Corretto sui token
+in un posto solo. Misurato in tutt'e due i temi; `sweep.js`: 16 sospetti, tutti i falsi positivi noti.
+
+*Un campo che non dichiara i propri colori non ne ha di sbagliati: ne ha di altrui.*
+
+### «Fine modifica» salva (30 agosto, sera)
+
+Chiesto dal committente. ⚠️ **La seconda metà della richiesta non era una comodità: era un difetto.** Il
+rilascio del lock faceva **rileggere da archivio**, quindi chi scriveva e premeva «Fine modifica» — la strada
+naturale per «ho finito» — perdeva tutto **in silenzio**. E la prima metà vale comunque: **un tasto «Salva»
+spento non è un avviso**, dice l'opposto di quel che succede.
+
+Adesso: pastiglia **«Modifiche non salvate»** finché c'è da salvare, e **«Fine modifica» salva** prima di
+lasciare il lock, con il **«Salvato» che sopravvive all'uscita**. L'aggancio è un parametro **additivo** su
+`EditLockBar` (`BeforeRelease`): chi non lo passa non cambia di una virgola.
+
+- ⚠️ **Solo sul tasto.** Scadenza e sblocco forzato vogliono dire «il lock non è più tuo»: salvare lì
+  coprirebbe il lavoro di chi ce l'ha adesso.
+- ⚠️ **Salvataggio fallito ⇒ lock NON rilasciato**, o chi ha scritto non avrebbe più il permesso di riprovare.
+
+### Quel che resta
+
+- **Una pagina sola.** L'intro è agganciata solo a `/services/vsop/mil`: le altre landing ne registrano una
+  **chiave** quando servirà, non un secondo meccanismo.
+- ⚠️ **Nessun congelamento.** Quel che si salva è subito pubblico e non c'è una versione precedente da
+  riaprire. È scritto nella Guida e nel «?», ma è la cosa da ricordare se qualcuno ci mette del normativo.
+
+## AD. «Uscire non butta via» — la verifica su tutto ciò che si modifica, 30 agosto 2026
+
+Chiesta dal committente dopo l'intro: «puoi fare questa verifica dovunque si possa modificare qualcosa?
+Secondo me abbiamo questo difetto anche altrove». Aveva ragione, e non dove ci si aspettava.
+
+### Dove il difetto NON c'era
+
+I quattro editor documentali — **ACC, APP, vSOP militare, vLOA** — **salvano a ogni gesto**: non hanno niente
+in sospeso da perdere. Sta scritto in `DocumentSectionsEditor.IsSectionDirty`, ed è il motivo per cui il
+pallino d'indice è opt-in e lo usa il solo aeroporto. Sane anche le altre pagine di struttura, che agiscono
+per bottone e non accumulano.
+
+### 🔴 Editor AEROPORTO — l'unico che accumula, e usciva senza guardare
+
+`«Fine modifica»` chiamava `FinishEditingAsync()` e basta. Il lock se ne andava, i pannelli tornavano in sola
+lettura, e i valori digitati restavano **a schermo ma non salvabili** — «Salva tutto» spento perché il lock
+non era più nostro — per sparire al primo ricarico. Nessun errore: una pagina che tornava com'era.
+
+⚠️ **Ironia**: l'aeroporto la guardia ce l'aveva già in due punti — conferma prima di **pubblicare** e prima
+del **re-import**. Mancava proprio sull'uscita.
+
+Ora l'uscita salva i **tre** buffer (sezioni in blocco, limiti di settore riga per riga, SID importate che le
+possiede il loro editor) e, se qualcosa non passa la validazione, **non esce** e lo dice.
+
+### 🔴 La guardia del browser copriva un buffer su tre
+
+`beforeunload` si accendeva solo dalle sezioni. Le **SID importate e corrette** non l'accendevano affatto: il
+conteggio c'era (`_sidNonSalvate`) e non serviva a niente — chiudere la scheda le perdeva **senza prompt**.
+⚠️ *Una guardia che copre due terzi di quel che protegge è peggio di nessuna guardia, perché la si crede
+accesa.* Ora la porta è una sola (`AggiornaGuardiaAsync`).
+
+### 🟠 E il difetto opposto, nello stesso pannello
+
+Il blocco dei settori si marcava sporco con un `@onchange` **sul contenitore**, che **nessuno puliva mai**:
+bastava toccare un interruttore che salva da sé — nascondi, primario — perché il browser chiedesse «uscire
+davvero?» per il resto della sessione, **con tutto salvato**. Un avviso che si accende sempre è un avviso che
+si impara a ignorare. Ora la marcatura è sui due campi che si compilano e si spegne quando la riga si salva.
+
+### 🟠 `AccAdminPage` — i limiti pendenti restavano orfani
+
+Stessa forma dell'aeroporto: `_dirtyLimits` bufferizzato, `OnLockChanged` che non guardava niente. Ora
+«Fine modifica» li salva (`EditLockBar.BeforeRelease`); se qualcuno non passa, il lock **resta**.
+
+### Il contratto, corretto in corsa
+
+`BeforeRelease` era `Func<Task>` con la regola «se solleva, il lock non si rilascia»: un invito a lanciare da
+dentro un gestore d'evento Blazor, cioè ad **abbattere il circuito** — la pagina sparisce invece di dire di
+no. Ora torna un `bool`, e un test tiene ferma la firma.
+
+### Fuori tema, stessa classe di errore
+
+`class="in"` **non esiste nel foglio**: la portavano ancora tre campi del Glossario e uno delle Traduzioni,
+nudi coi colori del browser. Passati a `app-in`/`app-ta`, con la regola di riga che `.perm-add` aveva già.
+
+### Quel che resta, per scelta
+
+- **StrutturaPage** (`_pendingParent`) e **AdminTrasferimentiPage** (form `_editPair`/`_sectionForm`): stessa
+  famiglia, ma sono una scelta singola e un modulo corto, **entrambi a vista**. Lasciati come sono.
+- **`AccAdminPage` non ha un `beforeunload`**: chiudere la scheda con dei limiti digitati li perde ancora,
+  senza prompt. L'aeroporto ce l'ha; qui vorrebbe dire portare la guardia fuori dall'editor aeroporto, ed è
+  un lavoro suo.

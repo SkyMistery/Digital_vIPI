@@ -169,7 +169,9 @@ else
                        se la versione di lavoro è pubblicata, apre una bozza. *@
                     @if (_shell.IsEditing)
                     {
-                        <button class="btn ghost" @onclick="() => _shell.FinishEditingAsync()">✓ @L["Lock_FinishEdit"]</button>
+                        @* ⚠️ Non `FinishEditingAsync` diretto: prima si salva quel che è in sospeso.
+                           Vedi FineModificaAsync. *@
+                        <button class="btn ghost" disabled="@_busy" @onclick="FineModificaAsync">✓ @L["Lock_FinishEdit"]</button>
                     }
                     else if (_shell.Lock is { Locked: true, IsMine: false })
                     {
@@ -195,7 +197,7 @@ else
                        Non passa quindi da `DocumentSectionsEditor` — non si riordina, non si nasconde, non finisce
                        nella vIPI pubblicata — ma sta nella sua STESSA colonna, e si aggancia all'indice come voce
                        extra, la strada che l'editor APP usa già per il pannello Release. *@
-                    <div id="sec-settori" class="block" @onchange='() => MarkDirty("settori")'>
+                    <div id="sec-settori" class="block">
                             <div class="section-title" style="margin-top:0">
                                 <h2 class="h-sect" style="margin:0">@L["Ape_AtcSectors"] <span class="pill blue">@_sectors.Count</span></h2>
                                 <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SectorsNoteAria"]" ExtraClass="wide">@L["Ape_SectorsNote"]</HelpHint><span class="ln"></span>
@@ -251,12 +253,12 @@ else
                                                        restano quelle dell'anagrafica e non le usa nessuno finché l'aggancio dura. *@
                                                     <td class="@(Scavalcati(s.ComposePosition) ? "lim-overridden" : null)"
                                                         title="@(Scavalcati(s.ComposePosition) ? L["Shape_LimitsOverridden"].Value : null)">
-                                                        <input style="width:70px" value="@FmtLower(_secLower.GetValueOrDefault(s.Id))" @onchange="e => _secLower[s.Id] = ParseLower(e.Value)" title="@L["AccAdmin_LowerHint"]" disabled="@(!_canEdit || s.LimitsFromSource)" />
+                                                        <input style="width:70px" value="@FmtLower(_secLower.GetValueOrDefault(s.Id))" @onchange="e => LimiteDigitato(s.Id, () => _secLower[s.Id] = ParseLower(e.Value))" title="@L["AccAdmin_LowerHint"]" disabled="@(!_canEdit || s.LimitsFromSource)" />
                                                         @if (s.LimitsFromSource) { <span class="pill" style="background:var(--surface-muted);color:var(--ink-soft);margin-left:4px" title="@L["Ape_LimitsFromSourceTitle"]">🔒</span> }
                                                     </td>
                                                     <td class="@(Scavalcati(s.ComposePosition) ? "lim-overridden" : null)"
                                                         title="@(Scavalcati(s.ComposePosition) ? L["Shape_LimitsOverridden"].Value : null)">
-                                                        <input style="width:70px" value="@FmtUpper(_secUpper.GetValueOrDefault(s.Id))" @onchange="e => _secUpper[s.Id] = ParseUpper(e.Value)" title="@L["AccAdmin_UpperHint"]" disabled="@(!_canEdit || s.LimitsFromSource)" /></td>
+                                                        <input style="width:70px" value="@FmtUpper(_secUpper.GetValueOrDefault(s.Id))" @onchange="e => LimiteDigitato(s.Id, () => _secUpper[s.Id] = ParseUpper(e.Value))" title="@L["AccAdmin_UpperHint"]" disabled="@(!_canEdit || s.LimitsFromSource)" /></td>
                                                 }
                                                 else
                                                 {
@@ -342,6 +344,18 @@ else
     /// «Salva»). Erano nomi italiani di pannello — «Regole piste», «Quote transizione» —: un secondo vocabolario
     /// accanto a quello del catalogo, per indicare le stesse cose.</summary>
     private readonly HashSet<string> _dirtySections = new();
+
+    /// <summary>
+    /// I settori di cui sono stati digitati dei limiti e non ancora salvati (il ✓ è per RIGA).
+    ///
+    /// <para>⚠️ Prima il pannello si marcava sporco con un <c>@onchange</c> sul contenitore, e <b>nessuno lo
+    /// puliva mai</b>: bastava toccare un interruttore che salva da sé — nascondi, primario — perché la
+    /// guardia del browser restasse accesa per il resto della sessione, e la pagina chiedesse «vuoi
+    /// davvero uscire?» con tutto salvato. Un avviso che si accende sempre è un avviso che si impara a
+    /// ignorare. Ora la marcatura è sui DUE campi che si compilano, e si spegne quando la riga si salva.</para>
+    /// </summary>
+    private readonly HashSet<int> _dirtyLimiti = new();
+
     private DotNetObjectReference<AeroportoEditorPage>? _selfRef;
     private AirportData? _data;
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
@@ -429,13 +443,13 @@ else
 
     /// <summary>Etichetta leggibile di una chiave sporca, per il riepilogo del salvataggio in blocco.</summary>
     private string DirtyLabel(string key) =>
-        SectionCatalog.Find(SectionProfile.Airport, key)?.Title ?? (key == "settori" ? L["Ape_PanelSectors"].Value : key);
+        SectionCatalog.Find(SectionProfile.Airport, key)?.Title ?? key;
 
     // Voci d'indice per i due pannelli che NON sono contenuto del documento: il catalogo dei settori ATC e il
     // pannello Release. L'editor APP fa lo stesso col solo Release.
     private IReadOnlyList<EditorTocItem> _tocExtra => new[]
     {
-        new EditorTocItem("sec-settori", L["Ape_PanelSectors"], _dirtySections.Contains("settori")),
+        new EditorTocItem("sec-settori", L["Ape_PanelSectors"], _dirtyLimiti.Count > 0),
         new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]),
     };
 
@@ -458,6 +472,7 @@ else
         if (_loadedIcao != _icao)
         {
             _dirtySections.Clear();
+            _dirtyLimiti.Clear();
             _loadedIcao = _icao;
             await LoadAsync();
         }
@@ -509,16 +524,46 @@ else
         catch (InvalidOperationException) { }
     }
 
-    // --- Stato "sporco" per sezione (scroll unico): la guardia beforeunload è attiva se almeno una è sporca ---
+    // --- Stato "sporco" per sezione (scroll unico): la guardia beforeunload è attiva se c'è qualcosa da salvare ---
+
+    /// <summary>
+    /// C'è qualcosa che il server non ha ancora: una sezione in blocco, dei limiti di settore digitati, o delle
+    /// righe SID importate e non salvate.
+    ///
+    /// <para>⚠️ <b>I buffer sono TRE, non uno.</b> Fino al 30 agosto 2026 la guardia guardava le sole sezioni:
+    /// chi correggeva delle SID importate e chiudeva la scheda le perdeva <b>senza il prompt del browser</b> —
+    /// il conteggio c'era (<c>_sidNonSalvate</c>) ma non accendeva niente. Una guardia che copre due terzi di
+    /// quel che protegge è peggio di nessuna guardia, perché la si crede accesa.</para>
+    /// </summary>
+    private bool CeQualcosaDaSalvare => _dirtySections.Count > 0 || _dirtyLimiti.Count > 0 || _sidNonSalvate > 0;
+
+    /// <summary>Accende o spegne la guardia del browser secondo <see cref="CeQualcosaDaSalvare"/>. È l'UNICA
+    /// porta: chi cambia uno dei tre buffer chiama questa, e non decide da sé.</summary>
+    private async Task AggiornaGuardiaAsync()
+    {
+        if (!_shell.JsReady) return;
+        try { await JS.InvokeVoidAsync("vipiSetDirty", CeQualcosaDaSalvare); }
+        catch (JSDisconnectedException) { }
+        catch (InvalidOperationException) { }
+    }
+
     private async Task MarkDirty(string section)
     {
-        if (_dirtySections.Add(section)) await JS.InvokeVoidAsync("vipiSetDirty", true);
+        _dirtySections.Add(section);
+        await AggiornaGuardiaAsync();
     }
 
     private async Task ClearDirty(string section)
     {
-        if (_dirtySections.Remove(section) && _dirtySections.Count == 0)
-            await JS.InvokeVoidAsync("vipiSetDirty", false);
+        _dirtySections.Remove(section);
+        await AggiornaGuardiaAsync();
+    }
+
+    /// <summary>Il conteggio delle SID importate non salvate, che lo tiene <c>AirportSidsEditor</c>.</summary>
+    private async Task SidNonSalvateAsync(int quante)
+    {
+        _sidNonSalvate = quante;
+        await AggiornaGuardiaAsync();
     }
 
     private async Task<bool> Confirm(string message) => await JS.InvokeAsync<bool>("confirm", message);
@@ -545,7 +590,6 @@ else
             // ⚠️ Stessa regola del tasto dentro la sezione: con un errore aperto non si salva. La domanda la
                 // fa il cuore condiviso, non una copia (doc 14 §3g).
                 if (s == "runwayrules" && AirportRuleValidation.Issues(_rules, RwIdents()).Errors.Count > 0) { skipped.Add(s); continue; }
-            if (s == "settori") continue;   // salvataggio per-riga, non in blocco
 
             Func<Task>? save = s switch
             {
@@ -562,6 +606,46 @@ else
             if (_dirtySections.Contains(s)) skipped.Add(s); else saved.Add(s);
         }
         ShowSaveSummary(saved, skipped);
+    }
+
+    /// <summary>
+    /// «Fine modifica»: <b>salva quel che è in sospeso</b>, e solo dopo molla il lock.
+    ///
+    /// <para>⚠️ Prima usciva e basta. Il lock se ne andava, i pannelli tornavano in sola lettura e i valori
+    /// digitati restavano <b>a schermo, non salvabili</b> — «Salva tutto» spento perché non si tiene più il
+    /// lock — per sparire al primo ricarico. Non dava nessun errore: dava una pagina che tornava com'era.</para>
+    ///
+    /// <para>⚠️ <b>I buffer sono tre</b> e vanno tutti e tre: le sezioni in blocco, i limiti di settore (che si
+    /// salvano per RIGA) e le SID importate (che le possiede il loro editor). Salvarne due su tre lascerebbe
+    /// il terzo a perdersi, con l'aggravante che adesso l'utente si fida.</para>
+    ///
+    /// <para>⚠️ <b>Se qualcosa non passa, NON si esce.</b> Una sezione con un errore di validazione non si
+    /// salva — è la regola del tasto «Salva tutto», non un'invenzione di qui — e uscire lo stesso vorrebbe dire
+    /// buttarla via dopo aver detto che si salvava. Il riepilogo dice già che cosa è rimasto indietro.</para>
+    /// </summary>
+    private async Task FineModificaAsync()
+    {
+        if (_busy) return;
+
+        if (_dirtySections.Count > 0) await SaveAllClicked();
+        foreach (var id in _dirtyLimiti.ToList()) await SaveSectorLimits(id);
+        if (_editorSid is not null) await _editorSid.SalvaSporcheAsync();
+
+        if (CeQualcosaDaSalvare)
+        {
+            // Il perché sta già nel riepilogo di SaveAllClicked quando è lui ad aver saltato qualcosa; se il
+            // resto è altrove (limiti o SID) lo si dice qui, o la pressione sul tasto sembrerebbe non aver
+            // fatto niente.
+            if (_saveInfo is null)
+            {
+                _saveInfo = L["Ape_ExitBlocked"].Value;
+                _saveInfoWarn = true;
+                ProgrammaChiusuraInformativa();
+            }
+            return;
+        }
+
+        await _shell.FinishEditingAsync();
     }
 
     private void ShowSaveSummary(List<string> saved, List<string> skipped)
@@ -584,9 +668,11 @@ else
             private async Task LoadAsync()
     {
         _shell.Error = null;
-        // Reload totale = i buffer tornano allo stato server: nessuna sezione è più "sporca".
+        // Reload totale = i buffer tornano allo stato server: non c'è più niente di "sporco".
         _dirtySections.Clear();
-        if (_shell.JsReady) { try { await JS.InvokeVoidAsync("vipiSetDirty", false); } catch (JSDisconnectedException) { } catch (InvalidOperationException) { } }
+        _dirtyLimiti.Clear();
+        _sidNonSalvate = 0;
+        await AggiornaGuardiaAsync();
         try
         {
             _data = await Profile.LoadForEditAsync(_icao);
@@ -847,8 +933,23 @@ else
             : L["Ape_ImportTwrShapesNone"].Value;
         _saveInfoWarn = n == 0;
     });
-    private Task SaveSectorLimits(int id) => Guarded(() =>
-        Sectors.SetLimitsAsync(id, _secLower.GetValueOrDefault(id), _secUpper.GetValueOrDefault(id)));
+    /// <summary>Un limite digitato: nel buffer, e la riga diventa pendente finché non la si salva.</summary>
+    private Task LimiteDigitato(int sectorId, Action scrivi)
+    {
+        scrivi();
+        _dirtyLimiti.Add(sectorId);
+        return AggiornaGuardiaAsync();
+    }
+
+    private async Task SaveSectorLimits(int id)
+    {
+        // ⚠️ Si spegne SOLO a salvataggio riuscito, come per le sezioni: `Guarded` torna false se il servizio
+        // ha rifiutato, e una riga che il server non ha preso deve restare pendente — o l'avviso mentirebbe.
+        if (!await Guarded(() => Sectors.SetLimitsAsync(id, _secLower.GetValueOrDefault(id), _secUpper.GetValueOrDefault(id))))
+            return;
+        _dirtyLimiti.Remove(id);
+        await AggiornaGuardiaAsync();
+    }
     private Task ToggleSectorHidden(int id, bool hidden) => Guarded(async () => { await Sectors.SetHiddenAsync(id, hidden); await ReloadSectorsAsync(); });
     private Task SetSectorPrimary(int id) => Guarded(async () => { await Sectors.SetPrimaryAsync(id); await ReloadSectorsAsync(); });
     private Task SetSectorAccApp(int id, bool v) => Guarded(async () => { await Sectors.SetAccAppAsync(id, v); await ReloadSectorsAsync(); });
@@ -1062,17 +1163,21 @@ else
     /// componente (doc 14 §3g). Qui restano le sole cose che toccano il database.</summary>
     private RenderFragment SidsEditor => __builder =>
     {
-        <AirportSidsEditor Imported="_imported" Manual="_sids" RunwayIdents="RwIdents()"
+        <AirportSidsEditor @ref="_editorSid" Imported="_imported" Manual="_sids" RunwayIdents="RwIdents()"
                            Navaids="_navaids" Icao="@_icao" Busy="_busy" CanEdit="_canEdit"
                            Wide="_wide" WideChanged="v => _wide = v"
                            OnChanged='() => MarkDirty("sids")' OnSaveManual="SaveSids" OnReimport="ReimportSids"
                            PersistImported="PersistImported" RunGuarded="Guarded"
                            ConfirmAsync="Confirm" OnInfo="MostraInformativa"
-                           OnDirtyCountChanged="n => _sidNonSalvate = n" />
+                           OnDirtyCountChanged="SidNonSalvateAsync" />
     };
 
     /// <summary>Quante SID importate sono modificate e non salvate, come lo dice l'editor SID.</summary>
     private int _sidNonSalvate;
+
+    /// <summary>L'editor SID, per chiedergli di salvare le sue righe quando si esce dalla modifica: quel
+    /// buffer è suo, e la pagina non ha modo di scriverlo da sé.</summary>
+    private AirportSidsEditor? _editorSid;
 
     /// <summary>Il riquadro informativo in cima («applicato a N righe», «pubblicate N»): lo possiede questa
     /// pagina, e l'editor SID le chiede di mostrarlo.</summary>
