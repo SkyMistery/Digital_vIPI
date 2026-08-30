@@ -226,8 +226,6 @@ spingere** (riquadro qui sopra).
 > Non è un problema (quel codice va nel prossimo pacchetto, che sarà `1.0.0`), ma chi confronta deve
 > confrontare con `2e96bbc8`, non con `HEAD`.
 
-Il 30 agosto sono
-
 ### 📦 31 agosto — i due rami fuori sono confluiti in `consegna-20260831`
 
 Il ramo di consegna parte da `consegna-db-20260830` (cioè dal codice del pacchetto `j`, che è quello online)
@@ -245,6 +243,7 @@ schema. Versione **1.1.0** (funzionalità nuove, nessuna migrazione).
 `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.1.0.md`, e ⚠️ **l'indice `staticwebassets` va caricato INSIEME ai
 `.js`**, o il sito chiede file col nome vecchio.
 
+Il 30 agosto sono
 stati fusi e spinti, in quest'ordine: **`biblioteca-allegati`** (§E10), **`spazi-aerei-aip`** (§AA) e
 **`shape-una-porta-sola`** (§AB, carta [refactor/15](refactor/15-shape-del-settore-una-porta-sola.md),
 quattordici commit); tutti e tre cancellati dopo la fusione. **Release verde e nove assiemi su nove verdi
