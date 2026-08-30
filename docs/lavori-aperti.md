@@ -5209,6 +5209,22 @@ un **blocco allegato** scelto dalla biblioteca (`MIL abbriviation`), salvata; ri
 e il link è **la nostra rotta** (`/vsop/files/mil-abbriviation`); riletta in inglese, esce tradotta
 («General documents»). Zero errori di pagina, zero letterali Razor.
 
+### La passata sulla forma, e il difetto che ha scoperto
+
+Guardando la pagina, il committente ha visto «parti che non coincidono col resto della UI». Erano **tre
+classi che cadevano in silenzio perché SCOPED** sotto un antenato che una pagina pubblica non ha:
+`.st-msg` vive dentro `.st-head`, `.ln` dentro `.section-title`, e **`.in` non esiste affatto** — il campo
+del titolo era un `<input>` nudo. La testata è ora quella di casa (`.section-title .doc-head .st-head`) e la
+riga di sezione quella dell'editor documento, `InlineConfirm` sull'eliminazione compreso.
+
+⚠️ **Ma il difetto vero è più largo di questa pagina.** `.app-in` e `.app-ta` **non dichiaravano né fondo né
+inchiostro**: prendevano quelli del browser. Nel tema chiaro non si vedeva — il bianco di serie e
+`--surface` combaciano — ma nel **tema scuro** uscivano `rgb(59,59,59)` contro un `--surface` di `#21212e`,
+**su ogni editor che usa quei campi**, e la tendina restava quella del sistema operativo. Corretto sui token
+in un posto solo. Misurato in tutt'e due i temi; `sweep.js`: 16 sospetti, tutti i falsi positivi noti.
+
+*Un campo che non dichiara i propri colori non ne ha di sbagliati: ne ha di altrui.*
+
 ### Quel che resta
 
 - **Una pagina sola.** L'intro è agganciata solo a `/services/vsop/mil`: le altre landing ne registrano una
