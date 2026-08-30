@@ -1,34 +1,44 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 29 agosto 2026 (**§Z — la colonna destra delle «Quote di transizione»**, fusa in `main` `3b305831`. ⚠️ Tutto ciò che segue nella sezione «Dove siamo» è **storia**: i rami che vi si citano come «non fusi» sono in `main` da giorni e sono stati cancellati — vedi il riquadro qui sotto, che vale su tutto il resto del file).
+**Ultimo aggiornamento:** 30 agosto 2026 (**i due rami fusi in `main`**, che è stato spinto; **§AA** gli
+spazi aerei dell'AIP, **R8** chiuso, **§Q16** chiusa. ⚠️ Tutto ciò che segue nella sezione «Dove siamo» è
+**storia**: i rami che vi si citano come «non fusi» sono in `main` e sono stati cancellati — vale il
+riquadro qui sotto).
 
 ## Dove siamo, prima di tutto il resto
 
-> ### 🆕 LO STATO VERO, 29 agosto 2026 — questo riquadro batte tutto il resto del file
+> ### 🆕 LO STATO VERO, 30 agosto 2026 — questo riquadro batte tutto il resto del file
 >
-> ✅ **`main` = `3b305831`, spinto. Nessun ramo con lavoro fuori**, né in locale né su `origin`. I rami
-> nominati più sotto (`convertitore-coordinate`, `edizione-giusta-per-il-campo`, `glossario-fraseologia`,
-> `archivio-atc-mondiale`…) sono **tutti fusi e cancellati**: dove il testo dice «non fuso», sta raccontando
-> com'era quel giorno.
+> ✅ **`main` = `7744ec1f`, spinto. Nessun ramo con lavoro fuori**, né in locale né su `origin`. Il 30
+> agosto sono stati fusi gli ultimi due — **`biblioteca-allegati`** e **`spazi-aerei-aip`** — e cancellati.
+> Dove più sotto si legge «non fuso», si sta raccontando com'era quel giorno.
 >
-> ✅ **L'ultimo lavoro entrato è §Z — la colonna destra delle «Quote di transizione»**: la tabella dei
-> livelli ha un tetto di 420px e lasciava **402px vuoti** su una sezione da 822 (misurati a schermo).
-> Accanto ci sono ora «**TL adesso**» — il verdetto sul QNH del METAR, ⚠️ **`noprint`** come il meteo — e
-> «**Dati del campo**» (quota, variazione magnetica **con l'emisfero**, IATA, coordinate), **centrate**
-> sull'altezza della tabella. ⚠️ I quattro dati vengono dall'anagrafica **in cache** (`AirportStation`,
-> zero query nuove) e **non** dallo snapshot di release, dove sarebbero trattini su ogni documento già
-> pubblicato. Carta: [`docs/feature/2026-08-29-quote-transizione-colonna-destra.md`](docs/feature/2026-08-29-quote-transizione-colonna-destra.md),
-> lavori aperti **§Z**. **7 test nuovi, nessuna migrazione.**
+> ⚠️ **La trappola della fusione, che git non segnala.** I due rami dicevano tutti e due «16 voci nella
+> barra admin» perché ognuno ne aggiungeva **una** a quindici: git ha fuso due numeri identici senza
+> chiamarlo un conflitto — quello era sui **commenti** accanto — e fuse le voci sono **due**. Se n'è accorto
+> solo `AdminNavTests`. ⚠️ E per i due **ModelSnapshot** la prova non è che i nomi ci siano: è che una
+> **migrazione di prova esca VUOTA** su tutti e due i provider.
 >
-> ⚠️ **Le migrazioni in coda al cutover MariaDB sono VENTISEI**, non ventitré: le ultime sei le porta §Y
-> (anagrafica delle radioassistenze, coordinate delle soglie pista, correzione del modello), e §Z non ne
-> aggiunge nessuna.
+> ✅ **Che cosa è entrato il 30 agosto:**
+>
+> - **§AA — gli spazi aerei dell'AIP**, tutte e sette le slice. Il KMZ si carica a mano e un avvicinamento
+>   può disegnare il **CTR che controlla davvero** (Catania sono **sette** zone, IVAO ne dà una).
+>   ⚠️ Il file contiene **scatole 3D**, non contorni: 26 989 poligoni per 1 536 volumi. ⚠️ **§6-bis**:
+>   l'aggancio **non scrive** la shape del settore — quella colonna tiene **un anello**.
+>   Carta: [`docs/feature/2026-08-29-spazi-aerei-dal-kmz.md`](docs/feature/2026-08-29-spazi-aerei-dal-kmz.md).
+> - **§E10 — la biblioteca allegati**, e **R8 chiuso**: l'embed di Drive provato con due PDF veri. ⚠️ Ha
+>   trovato che in `frame-src` mancava **`'self'`** — l'iframe punta alla **nostra** rotta, non a Drive — e
+>   sarebbe morto al passaggio a CSP vera.
+> - **§Q16 chiusa**: le frasi di partenza di una vLOA si **seminano** (una tornava rotta a ogni giro, 155
+>   caratteri ogni quarto d'ora), e la spesa di traduzione si **conta** invece di dedurla dalla memoria.
+>
+> ⚠️ **Le migrazioni in coda al cutover MariaDB sono TRENTAQUATTRO**: ventisei erano in `main`, più due
+> della biblioteca, quattro degli spazi aerei e due del registro della spesa. Tutte **additive**.
 >
 > ⚠️ **Dopo un `clear` si riparte da [`docs/lavori-aperti.md`](docs/lavori-aperti.md) §«Dove siamo, in cinque
-> righe»**, che è la sola pagina tenuta allineata riga per riga e porta le **tre cose da fare subito dopo il
-> deploy** (annunciare i permessi, premere il re-import piste in produzione, riempire il tipo delle 122
-> radioassistenze).
-
+> righe»**, che è la sola pagina tenuta allineata riga per riga e porta le **due cose da fare subito dopo il
+> deploy**: premere il re-import piste in produzione, e riempire il tipo delle 122 radioassistenze.
+> ✅ **La terza è caduta**: l'annuncio dei permessi l'ha fatto il committente il 30 agosto.
 🆕 **29 agosto, notte fonda — §X: l'edizione giusta per il campo, e i vSOP militari raggiungibili.**
 Carta: [`docs/feature/2026-08-27-vsop-militari.md`](docs/feature/2026-08-27-vsop-militari.md) **§11** ·
 lavori aperti **§X** · ramo `edizione-giusta-per-il-campo`, **5 commit**, spinto e ⚠️ **NON fuso**.
