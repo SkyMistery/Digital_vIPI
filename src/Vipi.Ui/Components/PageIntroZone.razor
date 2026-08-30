@@ -31,15 +31,36 @@ else
     <div class="page-intro">
         @if (Authz.IsEditor)
         {
-            @* `.section-title` e non una testata admin: questa è una pagina PUBBLICA con una zona di
-               scrittura dentro, non una pagina di struttura. La riga col filetto è quella che l'elenco
-               qui sotto usa già per i suoi gruppi. *@
-            <div class="section-title" style="margin-top:0">
-                <h2 class="h-sect">@L["PageIntro_Title"]</h2>
+            @* ---- Testata in UNA riga: titolo · «?» · esito · lock ----
+               `.doc-head .st-head` è la testata di casa, la stessa di Struttura e degli Accordi. Non è una
+               scelta di gusto: `.st-head` è ciò che spinge la `.lockbar` a destra (`margin-left:auto`, e le
+               azzera i margini da fascia) e ciò che dà forma all'esito (`.st-msg`).
+               ⚠️ Quelle regole sono SCOPED sotto `.st-head`: scritte a mano con un `<div>` flex qualunque
+               non perdono forma con un errore — non ne prendono nessuna, in silenzio. Costava una riga di
+               messaggio senza pastiglia e una barra del lock incollata al titolo.
+               ⚠️ Niente `sticky`: quella fascia è per le pagine admin lunghe, dove i comandi devono restare
+               a schermo. Qui la zona è in cima e si vede già. *@
+            <div class="section-title doc-head st-head">
+                <h2 class="st-h2 h-sect">@L["PageIntro_Title"]</h2>
                 <HelpHint Href="/services/vsop/guide#intro-di-pagina" AriaLabel="@L["PageIntro_HelpAria"]">
                     @((MarkupString)L["PageIntro_HelpBody"].Value)
                 </HelpHint>
+                @* Il filetto: l'intro è una SEZIONE di questa pagina, e le sezioni qui sotto (i gruppi per
+                   ACC) ce l'hanno. Senza, la sua testata era l'unica riga della pagina senza. Il filetto
+                   prende la larghezza che avanza e spinge lock ed esito a destra, dove `.st-head` li vuole
+                   già. ⚠️ `.ln` vive solo dentro `.section-title`, come `.st-msg` vive solo dentro
+                   `.st-head`: servono tutt'e due le classi, e nessuna delle due protesta se manca. *@
                 <span class="ln"></span>
+                <LiveRegion>
+                    @if (_msg is { } m)
+                    {
+                        <span class="st-msg ok"><Icon Name="check-circle" Size="14" /><span class="st-msg-t">@m</span></span>
+                    }
+                    @if (_errore is { } er)
+                    {
+                        <span class="st-msg warn"><Icon Name="warning" Size="14" /><span class="st-msg-t">@er</span></span>
+                    }
+                </LiveRegion>
                 <EditLockBar ResourceKey="@ChiaveLock" LockChanged="OnLockChanged" />
             </div>
         }
@@ -52,33 +73,35 @@ else
             @foreach (var s in _sezioni)
             {
                 var sez = s;
+                @* La riga d'intestazione della sezione è quella dell'editor documento: `app-in` per il campo
+                   (che è la classe GLOBALE, non `.se-row input` né una `.in` che non esiste), le stesse due
+                   frecce, e l'eliminazione dietro `InlineConfirm` — una sezione con dentro dei blocchi non se
+                   ne va a un clic solo. Le etichette sono quelle di casa (`Common_Up`/`Common_Down`,
+                   `Dse_DeleteSection…`): l'atto è lo stesso, e due frasi diverse per lo stesso atto sono due
+                   cose da tradurre e da tenere allineate. *@
                 <div class="panel" style="margin:8px 0">
-                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-                        <input class="in" style="flex:1" value="@sez.Title" placeholder="@L["PageIntro_SectionTitle"]"
+                    <div class="app-block-edit" style="align-items:center">
+                        <input class="app-in" style="font-weight:700;flex:1;max-width:420px" value="@sez.Title"
+                               placeholder="@L["PageIntro_SectionTitle"]"
                                @onchange="e => Titolo(sez, e.Value as string ?? string.Empty)" />
-                        <button class="btn ghost" title="@L["PageIntro_MoveUp"]"
+                        <button class="btn ghost" title="@L["Common_Up"]"
                                 disabled="@(_sezioni.IndexOf(sez) == 0)" @onclick="() => Sposta(sez, -1)">↑</button>
-                        <button class="btn ghost" title="@L["PageIntro_MoveDown"]"
+                        <button class="btn ghost" title="@L["Common_Down"]"
                                 disabled="@(_sezioni.IndexOf(sez) == _sezioni.Count - 1)" @onclick="() => Sposta(sez, 1)">↓</button>
-                        <button class="btn ghost" @onclick="() => Togli(sez)">@L["Common_Delete"]</button>
+                        <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Dse_DeleteSection"]"
+                                       TriggerTitle="@L["Dse_DeleteSection"]" Prompt="@L["Dse_DeleteSectionPrompt"]"
+                                       OnConfirm="() => Togli(sez)"><Trigger><Icon Name="x" /></Trigger></InlineConfirm>
                     </div>
                     <DocumentBlocksEditor Blocks="sez.Blocks" Editing="true" OnChanged="Sporca" />
                 </div>
             }
 
+            @* I due comandi in fondo, con lo stesso vocabolario dell'editor blocchi qui sopra («+ …» ghost) e
+               il salvataggio in primario. L'esito NON sta qui: sta in testata, dove lo mette il resto del
+               prodotto — comparendo in fondo spingerebbe in giù l'elenco che si sta leggendo. *@
             <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px">
                 <button class="btn ghost" @onclick="Aggiungi">+ @L["PageIntro_AddSection"]</button>
                 <button class="btn primary" disabled="@(!_sporco || _salvando)" @onclick="SalvaAsync">@L["Common_Save"]</button>
-                <LiveRegion>
-                    @if (_msg is { } m)
-                    {
-                        <span class="st-msg ok"><Icon Name="check-circle" Size="14" /><span class="st-msg-t">@m</span></span>
-                    }
-                    @if (_errore is { } er)
-                    {
-                        <span class="st-msg warn"><Icon Name="warning" Size="14" /><span class="st-msg-t">@er</span></span>
-                    }
-                </LiveRegion>
             </div>
         }
         else if (_vista.Count > 0)

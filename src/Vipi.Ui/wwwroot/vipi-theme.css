@@ -2133,8 +2133,22 @@ button.sh-chip.warn:hover{background:var(--tint-gold)}
 /* ---- Editor/viewer APP non remotizzato (sezioni condivise) ---- */
 .app-sec-drag{opacity:.6;outline:2px dashed var(--ivao-lightblue);border-radius:11px}
 .app-drag{cursor:grab;color:var(--ink-soft,var(--ink-soft));font-size:18px;user-select:none}
-.app-in{width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font:inherit}
-.app-ta{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;resize:vertical}
+/* ⚠️ FONDO E INCHIOSTRO DICHIARATI, e non è pignoleria: senza, questi campi prendono i colori del
+   BROWSER. Nel tema chiaro non si vedeva — il bianco di serie e `--surface` combaciano — ma nel tema scuro
+   il fondo usciva `rgb(59,59,59)` contro un `--surface` di `#21212e`: un rettangolo grigio in mezzo a
+   riquadri blu-notte, su OGNI editor che usa questi campi. Misurato il 30 agosto 2026.
+   Un campo che non dichiara i propri colori non ne ha di sbagliati: ne ha di altrui. */
+.app-in{width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font:inherit;
+  background:var(--surface);color:var(--ink)}
+.app-ta{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;resize:vertical;
+  background:var(--surface);color:var(--ink)}
+.app-in:focus,.app-ta:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px var(--line-atmos-soft)}
+/* Una tendina si veste come le altre tendine di casa (`.se-row select`): senza `appearance:none` resta
+   quella del sistema operativo — angoli vivi e freccia sua — e in mezzo all'editor si legge come un pezzo
+   di un'altra applicazione. Stessa freccia, stessi stati. */
+select.app-in{padding-right:28px;cursor:pointer;-webkit-appearance:none;appearance:none;transition:.12s;
+  background:var(--surface) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235b6470' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 9px center}
+select.app-in:hover{border-color:var(--line-ocean)}
 .app-lbl{display:block;font-size:13px;color:var(--ink-soft,var(--ink-mid));margin:8px 0}
 .app-block-edit{display:flex;gap:6px;align-items:flex-start;margin-bottom:6px}
 .app-block-edit .app-ta{flex:1}

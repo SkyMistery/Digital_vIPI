@@ -2639,8 +2639,6 @@
   <data name="PageIntro_Empty" xml:space="preserve"><value>Nessuna sezione: quel che si scrive qui compare in cima alla pagina, anche a chi non è loggato.</value></data>
   <data name="PageIntro_AddSection" xml:space="preserve"><value>Aggiungi sezione</value></data>
   <data name="PageIntro_SectionTitle" xml:space="preserve"><value>Titolo della sezione</value></data>
-  <data name="PageIntro_MoveUp" xml:space="preserve"><value>Sposta su</value></data>
-  <data name="PageIntro_MoveDown" xml:space="preserve"><value>Sposta giù</value></data>
   <data name="PageIntro_NotAllowed" xml:space="preserve"><value>Non hai il permesso di scrivere qui.</value></data>
   <data name="PageIntro_HelpAria" xml:space="preserve"><value>Che cos’è l’intro della pagina</value></data>
   <data name="PageIntro_HelpBody" xml:space="preserve"><value>Sezioni libere in cima alla pagina, per presentare l’elenco e collegare i PDF della biblioteca allegati.&lt;br/&gt;⚠️ Non è un documento: non ha ciclo AIRAC e non si congela a una release, quindi è pubblicata appena la salvi. Il contenuto normativo va in un documento.</value></data>
