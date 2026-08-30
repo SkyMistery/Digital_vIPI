@@ -121,6 +121,18 @@ public sealed class TranslationFillHostedService : BackgroundService
         // memoria a mano, o il giro li traduce e paga per una risposta sbagliata («Piste» → «Slopes», visto
         // dal vivo il 28 agosto 2026). Idempotente: dal secondo giro non scrive niente.
         var memoria = sp.GetRequiredService<ITranslationMemory>();
+
+        // ⚠️ E prima ancora: la fotografia di quel che era già stato speso quando il registro non c'era.
+        // Senza, il primo giro dopo la migrazione troverebbe il contatore a ZERO e crederebbe di avere tutta
+        // la franchigia davanti — e per DeepL la franchigia non si rinnova. Idempotente, e la domanda «l'ho
+        // già fatta?» la fa al database, non a un campo: il processo si riavvia.
+        var fotografie = await memoria
+            .FotografaSpesaPregressaAsync(motori.Select(m => m.Name).ToList(), DateTime.UtcNow, ct)
+            .ConfigureAwait(false);
+        if (fotografie > 0)
+            _log.LogInformation(
+                "Registro della spesa: scritta la fotografia iniziale per {Quanti} motori. Da qui in poi la " +
+                "spesa si conta, non si deduce.", fotografie);
         var seminati = await TitoliUfficiali.SeminaAsync(memoria, ct).ConfigureAwait(false);
         if (seminati > 0)
             _log.LogInformation("Titoli ufficiali messi in memoria: {Quanti}.", seminati);

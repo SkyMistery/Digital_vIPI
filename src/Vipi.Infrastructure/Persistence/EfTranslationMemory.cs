@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Translation;
 using Vipi.Domain.Entities;
@@ -311,8 +311,64 @@ public sealed class EfTranslationMemory : ITranslationMemory
                         && u.Origin == TranslationOrigin.Machine
                         && u.SourceText.ToLower().Contains(agoMinuscolo));
 
-    public async Task<long> CaratteriSpesiStimatiAsync(string engine, CancellationToken ct = default) =>
-        await _db.TranslationUnits.AsNoTracking()
-            .Where(u => u.Engine == engine)
-            .SumAsync(u => (long)u.SourceText.Length, ct).ConfigureAwait(false);
+    public async Task<long> CaratteriSpesiAsync(string engine, CancellationToken ct = default) =>
+        await _db.TranslationSpends.AsNoTracking()
+            .Where(s => s.Engine == engine)
+            .SumAsync(s => s.Characters, ct).ConfigureAwait(false);
+
+    public async Task RegistraSpesaAsync(
+        string engine, string sourceLang, string targetLang, long caratteri, int segmenti,
+        int scartati, long caratteriScartati, DateTime nowUtc, CancellationToken ct = default)
+    {
+        _db.TranslationSpends.Add(new TranslationSpend
+        {
+            Engine = engine,
+            Kind = TranslationSpendKind.Dispatch,
+            SourceLang = sourceLang,
+            TargetLang = targetLang,
+            Characters = caratteri,
+            Segments = segmenti,
+            Discarded = scartati,
+            DiscardedCharacters = caratteriScartati,
+            AtUtc = nowUtc,
+        });
+        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task<int> FotografaSpesaPregressaAsync(
+        IReadOnlyList<string> engines, DateTime nowUtc, CancellationToken ct = default)
+    {
+        // ⚠️ «Una volta sola per motore» si chiede al DATABASE, non a un flag in memoria: il giro gira in
+        // un processo che si riavvia, e un flag ricomincerebbe da capo a ogni riavvio scrivendo una
+        // fotografia in più — cioè gonfiando la spesa, che è il verso opposto ma altrettanto sbagliato.
+        var gia = await _db.TranslationSpends.AsNoTracking()
+            .Where(s => s.Kind == TranslationSpendKind.Baseline)
+            .Select(s => s.Engine)
+            .ToListAsync(ct).ConfigureAwait(false);
+
+        var scritte = 0;
+        foreach (var engine in engines.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (gia.Contains(engine, StringComparer.OrdinalIgnoreCase)) continue;
+
+            // La sola misura disponibile per il passato: la somma dei sorgenti che quel motore ha tradotto.
+            // ⚠️ È una STIMA per difetto — non conta quel che è tornato rotto, che è proprio ciò che il
+            // registro esiste per vedere — e la riga lo dice, perché si chiama Baseline.
+            var stima = await _db.TranslationUnits.AsNoTracking()
+                .Where(u => u.Engine == engine)
+                .SumAsync(u => (long)u.SourceText.Length, ct).ConfigureAwait(false);
+
+            _db.TranslationSpends.Add(new TranslationSpend
+            {
+                Engine = engine,
+                Kind = TranslationSpendKind.Baseline,
+                Characters = stima,
+                AtUtc = nowUtc,
+            });
+            scritte++;
+        }
+
+        if (scritte > 0) await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+        return scritte;
+    }
 }

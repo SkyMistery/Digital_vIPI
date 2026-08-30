@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Translation;
 using Vipi.Domain.Entities;
@@ -177,9 +177,14 @@ public class EfTranslationMemoryTests : IAsyncLifetime
     }
 
     // ---- La guardia sul budget -------------------------------------------------------------------------
+    //
+    // ⚠️ Dal 30 agosto 2026 la spesa si CONTA (tabella `TranslationSpends`) invece di dedurla dai testi
+    // rimasti in memoria: un segmento tornato rotto non si salva, quindi i suoi caratteri — pagati — erano
+    // invisibili al tetto (§Q16b). La deduzione non e' sparita: e' rimasta dov'e' l'unica cosa che sa dire
+    // del passato, cioe' la FOTOGRAFIA iniziale, ed e' li' che i due test di prima ora guardano.
 
     [Fact]
-    public async Task I_caratteri_spesi_sono_quelli_di_QUEL_motore_e_di_nessun_altro()
+    public async Task La_fotografia_iniziale_conta_QUEL_motore_e_nessun_altro()
     {
         const string pagata = "Contatta la torre.";
         await _memoria.SaveMachineAsync(It, En, "deepl", Una(pagata, "Contact the tower."));
@@ -191,9 +196,12 @@ public class EfTranslationMemoryTests : IAsyncLifetime
 
         // L'attesa e' legata alla LUNGHEZZA VERA e non a un numero battuto a mano: contarlo a occhio e'
         // gia' costato un rosso.
-        Assert.Equal(pagata.Length, await _memoria.CaratteriSpesiStimatiAsync("deepl"));
-        Assert.Equal("un altro motore".Length, await _memoria.CaratteriSpesiStimatiAsync("altro"));
-        Assert.Equal(0, await _memoria.CaratteriSpesiStimatiAsync("mai-usato"));
+        Assert.Equal(3, await _memoria.FotografaSpesaPregressaAsync(
+            new[] { "deepl", "altro", "mai-usato" }, DateTime.UtcNow));
+
+        Assert.Equal(pagata.Length, await _memoria.CaratteriSpesiAsync("deepl"));
+        Assert.Equal("un altro motore".Length, await _memoria.CaratteriSpesiAsync("altro"));
+        Assert.Equal(0, await _memoria.CaratteriSpesiAsync("mai-usato"));
     }
 
     /// <summary>
@@ -212,12 +220,69 @@ public class EfTranslationMemoryTests : IAsyncLifetime
     {
         const string frase = "Riporta sottovento.";
         await _memoria.SaveMachineAsync(It, En, "azure", Una(frase, "Report downwind leg."));
-        var prima = await _memoria.CaratteriSpesiStimatiAsync("azure");
-        Assert.Equal(frase.Length, prima);
 
         // Una persona rilegge e corregge: il testo cambia padrone, i caratteri restano spesi.
         await _memoria.SaveHumanAsync(It, En, frase, "Report downwind.", reviewerUserId: 123456);
 
-        Assert.Equal(prima, await _memoria.CaratteriSpesiStimatiAsync("azure"));
+        await _memoria.FotografaSpesaPregressaAsync(new[] { "azure" }, DateTime.UtcNow);
+        Assert.Equal(frase.Length, await _memoria.CaratteriSpesiAsync("azure"));
+    }
+
+    // ---- Il registro vero ------------------------------------------------------------------------------
+
+    /// <summary>
+    /// ⚠️ <b>Il difetto per cui il registro esiste.</b> I caratteri di un segmento tornato rotto sono stati
+    /// pagati, ma quel segmento non entra in memoria — e la spesa dedotta dalla memoria non li vedeva. Il
+    /// 30 agosto 2026 una frase tornava rotta a ogni giro: 155 caratteri ogni quindici minuti, invisibili.
+    /// </summary>
+    [Fact]
+    public async Task La_spesa_conta_ANCHE_i_segmenti_tornati_rotti()
+    {
+        await _memoria.RegistraSpesaAsync("azure", En, It,
+            caratteri: 1000, segmenti: 5, scartati: 1, caratteriScartati: 155, DateTime.UtcNow);
+
+        // In memoria non c'e' NIENTE — nessuna resa e' stata salvata — e il conto e' comunque mille.
+        Assert.Equal(1000, await _memoria.CaratteriSpesiAsync("azure"));
+    }
+
+    [Fact]
+    public async Task Le_spedizioni_si_sommano_per_motore()
+    {
+        await _memoria.RegistraSpesaAsync("azure", En, It, 100, 1, 0, 0, DateTime.UtcNow);
+        await _memoria.RegistraSpesaAsync("azure", It, En, 250, 2, 0, 0, DateTime.UtcNow);
+        await _memoria.RegistraSpesaAsync("deepl", It, En, 900, 3, 0, 0, DateTime.UtcNow);
+
+        Assert.Equal(350, await _memoria.CaratteriSpesiAsync("azure"));
+        Assert.Equal(900, await _memoria.CaratteriSpesiAsync("deepl"));
+    }
+
+    /// <summary>
+    /// ⚠️ La fotografia si scrive <b>una volta sola</b>, e la domanda si fa al DATABASE: il giro vive in un
+    /// processo che si riavvia, e un flag in memoria ricomincerebbe da capo scrivendo una fotografia in più
+    /// — cioè gonfiando la spesa, che è il verso opposto ma altrettanto sbagliato.
+    /// </summary>
+    [Fact]
+    public async Task La_fotografia_si_scrive_una_volta_sola()
+    {
+        await _memoria.SaveMachineAsync(It, En, "azure", Una("Contatta la torre.", "Contact the tower."));
+
+        Assert.Equal(1, await _memoria.FotografaSpesaPregressaAsync(new[] { "azure" }, DateTime.UtcNow));
+        var dopoLaPrima = await _memoria.CaratteriSpesiAsync("azure");
+
+        Assert.Equal(0, await _memoria.FotografaSpesaPregressaAsync(new[] { "azure" }, DateTime.UtcNow));
+        Assert.Equal(dopoLaPrima, await _memoria.CaratteriSpesiAsync("azure"));
+    }
+
+    /// <summary>La fotografia e le spedizioni si sommano: il passato non si perde, il presente si aggiunge.</summary>
+    [Fact]
+    public async Task Il_passato_e_il_presente_si_sommano()
+    {
+        const string frase = "Contatta la torre.";
+        await _memoria.SaveMachineAsync(It, En, "azure", Una(frase, "Contact the tower."));
+        await _memoria.FotografaSpesaPregressaAsync(new[] { "azure" }, DateTime.UtcNow);
+
+        await _memoria.RegistraSpesaAsync("azure", It, En, 500, 2, 0, 0, DateTime.UtcNow);
+
+        Assert.Equal(frase.Length + 500, await _memoria.CaratteriSpesiAsync("azure"));
     }
 }

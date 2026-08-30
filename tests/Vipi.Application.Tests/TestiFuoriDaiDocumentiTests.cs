@@ -66,7 +66,13 @@ public class TestiFuoriDaiDocumentiTests
         public Task<int> DimenticaAutomaticheConLaFormulaAsync(
             string s, string t, string f, CancellationToken ct = default) => Task.FromResult(0);
 
-        public Task<long> CaratteriSpesiStimatiAsync(string e, CancellationToken ct = default) => Task.FromResult(0L);
+        public Task<long> CaratteriSpesiAsync(string e, CancellationToken ct = default) => Task.FromResult(0L);
+
+        public Task RegistraSpesaAsync(string e, string s, string t, long c, int seg, int sc, long csc,
+            DateTime now, CancellationToken ct = default) => Task.CompletedTask;
+
+        public Task<int> FotografaSpesaPregressaAsync(
+            IReadOnlyList<string> engines, DateTime now, CancellationToken ct = default) => Task.FromResult(0);
     }
 
     /// <summary>Un testo vero, copiato dal database: le aree le scrive IVAO, in inglese.</summary>

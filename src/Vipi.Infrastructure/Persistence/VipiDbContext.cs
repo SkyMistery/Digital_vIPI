@@ -118,6 +118,10 @@ public class VipiDbContext : DbContext
     /// <summary>La memoria di traduzione: una riga per FRASE, non per documento. Carta del 27 agosto 2026.</summary>
     public DbSet<TranslationUnit> TranslationUnits => Set<TranslationUnit>();
 
+    /// <summary>Il registro della spesa di traduzione: una riga per invio, piu' la fotografia iniziale.
+    /// ⚠️ Esiste perché la spesa DEDOTTA dalla memoria non vede i segmenti tornati rotti (§Q16b).</summary>
+    public DbSet<TranslationSpend> TranslationSpends => Set<TranslationSpend>();
+
     /// <summary>Il glossario di fraseologia: una riga per FORMULA, che vive dentro le frasi. §Q3.</summary>
     public DbSet<GlossaryTerm> GlossaryTerms => Set<GlossaryTerm>();
 
@@ -881,6 +885,22 @@ public class VipiDbContext : DbContext
 
             // ⚠️ Nessuna FK verso AirspaceVolume: l'aggancio cita la CHIAVE, non la riga, e deve sopravvivere
             // al ri-caricamento del file — che le righe le rifa' tutte.
+        });
+
+        // --- Il registro della spesa di traduzione (lavori aperti §Q16b) --------------------------------
+        b.Entity<TranslationSpend>(e =>
+        {
+            // La domanda che si fa a questa tabella e' una sola, e la fa il tetto PRIMA di ogni invio:
+            // «quanto ha speso questo motore». Un indice sul motore, e basta.
+            e.HasIndex(x => x.Engine);
+
+            // ⚠️ Lunghezze per TUTTI i provider e non nella mappa MySQL: la tabella nasce ADESSO, quindi su
+            // Postgres non c'e' nessun `text` da convertire e su MySQL non nasce `longtext`, che poi non si
+            // indicizzerebbe. Stessa scelta di AtcSession.Callsign.
+            e.Property(x => x.Engine).HasMaxLength(32);
+            e.Property(x => x.Kind).HasMaxLength(16);      // enum -> stringa (SPEC §6)
+            e.Property(x => x.SourceLang).HasMaxLength(8);
+            e.Property(x => x.TargetLang).HasMaxLength(8);
         });
 
         // Due aggiustamenti che valgono SOLO su MySQL, entrambi indispensabili e per motivi diversi:

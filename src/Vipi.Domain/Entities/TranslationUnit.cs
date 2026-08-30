@@ -83,3 +83,67 @@ public class TranslationUnit
     /// personale, e la carta §3b lo vieta.</summary>
     public int? ReviewedByUserId { get; set; }
 }
+
+/// <summary>
+/// Che cosa registra una riga di spesa: la <b>fotografia iniziale</b> o una <b>spedizione</b>.
+/// <para>⚠️ In coda si aggiunge, in mezzo mai: come ogni enum, in colonna è una stringa e in un payload
+/// sarebbe un ordinale.</para>
+/// </summary>
+public enum TranslationSpendKind
+{
+    /// <summary>
+    /// La stima di quel che era già stato speso <b>prima</b> che il contatore esistesse, scritta una volta
+    /// sola per motore al primo avvio dopo la migrazione.
+    ///
+    /// <para>⚠️ Senza di lei il contatore ripartirebbe da zero e il tetto crederebbe di avere tutta la
+    /// franchigia davanti — e per DeepL la franchigia <b>non si rinnova</b>. Sottostimare è il verso
+    /// sbagliato: si sfonda una riserva che non torna.</para>
+    /// </summary>
+    Baseline,
+
+    /// <summary>Un invio vero al motore: i caratteri sono partiti, e sono stati pagati.</summary>
+    Dispatch,
+}
+
+/// <summary>
+/// Un invio al motore di traduzione, e quanto è costato. <b>Il registro della spesa</b>.
+///
+/// <para><b>Perché esiste, e perché non bastava contare la memoria.</b> Fino al 30 agosto 2026 la spesa si
+/// <i>deduceva</i> dai testi rimasti in <see cref="TranslationUnit"/>. È una cosa diversa, e lo sarà sempre:
+/// un segmento che torna <b>rotto</b> non si salva — giustamente — quindi i suoi caratteri, pagati, non
+/// comparivano da nessuna parte. Il 30 agosto una frase tornava rotta a ogni giro: <b>155 caratteri ogni
+/// quindici minuti</b>, circa 446 000 al mese, invisibili al tetto. Vedi lavori aperti §Q16b.</para>
+///
+/// <para>⚠️ <b>Si registra quel che è PARTITO, non quel che è tornato buono</b>: è l'unica misura che
+/// corrisponde a ciò che il fornitore fattura. Il conto di quel che si è dovuto buttare sta accanto, perché
+/// è la cosa che vuole una persona.</para>
+/// </summary>
+public class TranslationSpend
+{
+    public int Id { get; set; }
+
+    /// <summary>Il motore che ha speso: <c>azure</c>, <c>deepl</c>. Il tetto è <b>per motore</b>.</summary>
+    public string Engine { get; set; } = default!;
+
+    public TranslationSpendKind Kind { get; set; }
+
+    /// <summary>Il verso della spedizione. Null sulla fotografia iniziale, che non ne ha uno solo.</summary>
+    public string? SourceLang { get; set; }
+
+    public string? TargetLang { get; set; }
+
+    /// <summary>I caratteri <b>spediti</b>: la somma dei testi protetti, che è quel che viaggia davvero.</summary>
+    public long Characters { get; set; }
+
+    /// <summary>Quanti segmenti erano in quella spedizione.</summary>
+    public int Segments { get; set; }
+
+    /// <summary>Di quelli, quanti sono tornati rotti — e quindi si rispediranno.</summary>
+    public int Discarded { get; set; }
+
+    /// <summary>I caratteri di quelli tornati rotti: <b>pagati e buttati</b>. Sono un sottoinsieme di
+    /// <see cref="Characters"/>, non si sommano a loro.</summary>
+    public long DiscardedCharacters { get; set; }
+
+    public DateTime AtUtc { get; set; }
+}

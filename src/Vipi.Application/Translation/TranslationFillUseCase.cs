@@ -154,11 +154,11 @@ public sealed class TranslationFillUseCase
             var tetto = _opt.TettoDi(motore.Name);
             if (tetto > 0)
             {
-                var spesi = await _memoria.CaratteriSpesiStimatiAsync(motore.Name, ct).ConfigureAwait(false);
+                var spesi = await _memoria.CaratteriSpesiAsync(motore.Name, ct).ConfigureAwait(false);
                 if (spesi + caratteri > tetto)
                 {
                     ultimoEsito = TranslationOutcome.QuotaExceeded;
-                    ultimoDettaglio = $"{motore.Name}: tetto di {tetto} caratteri, stimati {spesi} gia' spesi, "
+                    ultimoDettaglio = $"{motore.Name}: tetto di {tetto} caratteri, {spesi} gia' spesi, "
                                       + $"questo giro ne chiede {caratteri}";
                     continue;
                 }
@@ -209,6 +209,13 @@ public sealed class TranslationFillUseCase
                 rotti.Add(originale);
             }
         }
+
+        // ⚠️ La spesa si registra PRIMA di salvare le buone, e comprende anche le rotte: sono partite, e
+        // sono state pagate. È tutta la ragione per cui questo registro esiste invece di dedurre la spesa da
+        // quel che è rimasto in memoria — le rotte in memoria non ci arrivano mai.
+        await _memoria.RegistraSpesaAsync(
+            motoreUsato, sourceLang, targetLang, caratteri, daSpedire.Count, scartati, caratteriScartati,
+            DateTime.UtcNow, ct).ConfigureAwait(false);
 
         var scritte = buone.Count == 0
             ? 0

@@ -77,8 +77,22 @@ public class TranslationFillUseCaseTests
         public Task<int> DimenticaAutomaticheConLaFormulaAsync(
             string s, string t, string f, CancellationToken ct = default) => Task.FromResult(0);
 
-        public Task<long> CaratteriSpesiStimatiAsync(string engine, CancellationToken ct = default) =>
+        public Task<long> CaratteriSpesiAsync(string engine, CancellationToken ct = default) =>
             Task.FromResult(Spesi);
+
+        /// <summary>L'ultima spesa registrata: serve a provare che si registra quel che e' PARTITO.</summary>
+        public (string Motore, long Caratteri, int Segmenti, int Scartati, long CaratteriScartati)? Spesa
+        { get; private set; }
+
+        public Task RegistraSpesaAsync(string e, string s, string t, long c, int seg, int sc, long csc,
+            DateTime now, CancellationToken ct = default)
+        {
+            Spesa = (e, c, seg, sc, csc);
+            return Task.CompletedTask;
+        }
+
+        public Task<int> FotografaSpesaPregressaAsync(
+            IReadOnlyList<string> engines, DateTime now, CancellationToken ct = default) => Task.FromResult(0);
     }
 
     private sealed class MotoreFinto : ITranslationEngine
@@ -254,6 +268,37 @@ public class TranslationFillUseCaseTests
         Assert.Equal(1, rapporto.Tradotti);
         Assert.Single(memoria.Scritte);
         Assert.Equal("Riporta sottovento.", memoria.Scritte[0].Sorgente);
+
+        // ⚠️ E il rapporto dice QUALE si e' buttata. Senza, l'avviso nel registro dice «1 segmento» e nessuno
+        // puo' fare niente: il corpus ne ha decine, e il testo ce l'avevamo in mano proprio dove lo buttavamo.
+        Assert.Equal(new[] { "Contatta LIRF_TWR" }, rapporto.Rotti);
+    }
+
+    /// <summary>
+    /// ⚠️ <b>La spesa si registra su quel che e' PARTITO, rotto compreso.</b> E' tutta la ragione per cui il
+    /// registro esiste invece di dedurre il conto da quel che e' rimasto in memoria: una frase tornata rotta
+    /// non si salva — giustamente — quindi i suoi caratteri, pagati, erano invisibili al tetto. Il 30 agosto
+    /// 2026 una frase tornava rotta a ogni giro: 155 caratteri ogni quindici minuti (§Q16b).
+    /// </summary>
+    [Fact]
+    public async Task La_spesa_registra_anche_i_caratteri_di_quel_che_si_e_buttato()
+    {
+        var memoria = new MemoriaFinta();
+        var motore = new MotoreFinto(traduci: t => t.Contains("<x id=", StringComparison.Ordinal)
+            ? "Contact the tower"
+            : "EN:" + t);
+
+        await Giro(new CorpusFinto("Contatta LIRF_TWR", "Riporta sottovento."), memoria, motore)
+            .EseguiAsync("it", "en");
+
+        Assert.NotNull(memoria.Spesa);
+        var spesa = memoria.Spesa!.Value;
+        Assert.Equal(2, spesa.Segmenti);              // tutt'e due sono partite
+        Assert.Equal(1, spesa.Scartati);
+        Assert.True(spesa.CaratteriScartati > 0);
+        // I caratteri contati sono quelli SPEDITI, quindi comprendono anche la frase buttata.
+        Assert.True(spesa.Caratteri > spesa.CaratteriScartati,
+            $"spediti {spesa.Caratteri}, buttati {spesa.CaratteriScartati}");
     }
 
     [Fact]

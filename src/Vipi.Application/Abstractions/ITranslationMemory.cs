@@ -1,4 +1,4 @@
-using Vipi.Domain.Entities;
+﻿using Vipi.Domain.Entities;
 
 namespace Vipi.Application.Abstractions;
 
@@ -135,14 +135,37 @@ public interface ITranslationMemory
         string sourceLang, string targetLang, string formula, CancellationToken ct = default);
 
     /// <summary>
-    /// Stima dei caratteri già spesi col motore: la somma dei testi sorgente delle voci prodotte dalla
-    /// macchina.
-    /// <para>⚠️ È una <b>stima</b>, e va detto: non conta i tentativi falliti, e il testo che viaggia è
-    /// quello <i>protetto</i>, che è un po' più corto dell'originale. Il dato autorevole lo dà il motore
-    /// (<see cref="ITranslationEngine"/>); questa serve come guardia prima di partire, quando il motore non
-    /// sa rispondere.</para>
+    /// I caratteri già spesi col motore, dal <b>registro della spesa</b>: la somma di quel che è davvero
+    /// partito, più la fotografia di quel che era stato speso prima che il registro esistesse.
+    ///
+    /// <para>⚠️ <b>Non si deduce più dalla memoria</b>, e la differenza non è accademica: un segmento che
+    /// torna rotto non si salva, quindi i suoi caratteri — pagati — erano invisibili. Il 30 agosto 2026 una
+    /// frase tornava rotta a ogni giro, 155 caratteri ogni quarto d'ora che il tetto non vedeva
+    /// (lavori aperti §Q16b).</para>
+    ///
+    /// <para>Resta una misura NOSTRA: il dato autorevole lo dà il motore. Questa è la guardia prima di
+    /// partire, quando il motore non sa rispondere.</para>
     /// </summary>
-    Task<long> CaratteriSpesiStimatiAsync(string engine, CancellationToken ct = default);
+    Task<long> CaratteriSpesiAsync(string engine, CancellationToken ct = default);
+
+    /// <summary>
+    /// Scrive nel registro un invio: i caratteri <b>partiti</b>, quanti segmenti erano, e quanti sono
+    /// tornati rotti. ⚠️ Si registra quel che è partito, non quel che è tornato buono: è l'unica misura che
+    /// corrisponde a ciò che il fornitore fattura.
+    /// </summary>
+    Task RegistraSpesaAsync(
+        string engine, string sourceLang, string targetLang, long caratteri, int segmenti,
+        int scartati, long caratteriScartati, DateTime nowUtc, CancellationToken ct = default);
+
+    /// <summary>
+    /// Scrive, <b>una volta sola per motore</b>, la fotografia di quel che era già stato speso prima che il
+    /// registro esistesse — dedotta dalla memoria, che è il solo dato disponibile per il passato.
+    ///
+    /// <para>⚠️ Senza, il contatore ripartirebbe da zero e il tetto crederebbe di avere tutta la franchigia
+    /// davanti. Per DeepL la franchigia <b>non si rinnova</b>: sottostimare è il verso in cui si perde.</para>
+    /// </summary>
+    /// <returns>Quante fotografie ha scritto: 0 dal secondo giro in poi.</returns>
+    Task<int> FotografaSpesaPregressaAsync(IReadOnlyList<string> engines, DateTime nowUtc, CancellationToken ct = default);
 }
 
 /// <summary>

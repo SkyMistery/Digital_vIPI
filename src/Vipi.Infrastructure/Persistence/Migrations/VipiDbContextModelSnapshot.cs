@@ -15,7 +15,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
+            modelBuilder.HasAnnotation("ProductVersion", "8.0.30");
 
             modelBuilder.Entity("Vipi.Domain.Entities.Acc", b =>
                 {
@@ -2539,6 +2539,52 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("StatsSettings");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.TranslationSpend", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("AtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Characters")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Discarded")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("DiscardedCharacters")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Engine")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Segments")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SourceLang")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TargetLang")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Engine");
+
+                    b.ToTable("TranslationSpends");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.TranslationUnit", b =>
