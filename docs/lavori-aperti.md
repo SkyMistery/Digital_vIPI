@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 30 agosto 2026, pomeriggio (**§AB — LA SHAPE DI UN SETTORE HA UNA PORTA SOLA**, carta [refactor/15](refactor/15-shape-del-settore-una-porta-sola.md), **S0→S10 fuse in `main` in locale** (merge `--no-ff`, quattordici commit) — ⚠️ **il push su `main` NON è stato fatto**: lo blocca il classificatore sul branch di default, e va dato a mano. Un settore agganciato agli spazi aerei dell'AIP **disegnava** quel confine e **rivendicava** il traffico dentro il monoblocco di IVAO: sei motori, due lo sapevano. Adesso la forma — **anello E quote insieme** — si chiede a `ISectorShapeResolver`, e le quote stanno **DENTRO il pezzo**, così «laterale da una fonte, verticale da un'altra» non è una cosa da evitare ma una cosa che **non si può scrivere**. ⚠️ La **prova dal vivo**: agganciato `LIRR_EW_CTR` — in frequenza — alla FIR ROMA `GND→FL195`, in **un giro del poller** le tratte nuove sono uscite col timbro `Aip` e i quattro voli **sopra FL195** hanno smesso di essere rivendicati. ⚠️ **S11 resta fuori**: non è una slice, è la seconda metà della cura — otto siti di scrittura e il percorso del **congelamento di release** — e non si fa il giorno prima della consegna (§4-bis della carta). ⚠️ Migrazioni in coda: **TRENTASEI**) · **Aggiornato:** 30 agosto 2026 (**I DUE RAMI SONO FUSI IN `main`, CHE È STATO SPINTO** — `biblioteca-allegati` (§E10) e `spazi-aerei-aip` (§AA), in quest'ordine. Sette conflitti, e la regola era quasi sempre «servono tutti e due»: registrazioni DI, DbSet, voce nella barra admin, chiavi di traduzione. ⚠️ **L'eccezione non l'ha segnalata git**: i due rami dicevano tutti e due «16 voci nella barra admin» perché ognuno ne aggiungeva UNA a quindici — fuse sono **DUE**, quindi 17 e 12 — e git ha fuso due numeri identici senza chiamarlo conflitto. Se n'è accorto solo `AdminNavTests`. ⚠️ I due **ModelSnapshot** git li ha fusi da solo e stavolta bene: la prova non è che i nomi ci siano ma che una migrazione di prova esca **VUOTA**, e su tutti e due i provider lo è. **Release verde e quindici assiemi su quindici verdi DOPO la fusione.** ⚠️ Le migrazioni in coda al cutover MariaDB sono ora **TRENTAQUATTRO**. ✅ **R8 CHIUSO**: l'embed provato dal vivo con due PDF veri del committente — il documento si vede davvero nel riquadro. ⚠️ E ha trovato che in `frame-src` mancava **`'self'`**: l'iframe punta alla NOSTRA rotta, non a Drive, e col solo Drive il riquadro sarebbe rimasto vuoto al passaggio a CSP vera. ⚠️ Più un difetto in produzione: la colonna versione della biblioteca stampava `v@r.VersionNumber` alla lettera, che è la regola di Razor per gli indirizzi email) · **Aggiornato:** 29 agosto 2026, notte (**§E10 — LA BIBLIOTECA ALLEGATI, TUTTE E NOVE LE SLICE FATTE**, ramo
+**Aggiornato:** 30 agosto 2026, pomeriggio (**§AB — LA SHAPE DI UN SETTORE HA UNA PORTA SOLA**, carta [refactor/15](refactor/15-shape-del-settore-una-porta-sola.md), **S0→S10 fuse in `main` e SPINTE** (merge `--no-ff`, quattordici commit; ramo cancellato). Un settore agganciato agli spazi aerei dell'AIP **disegnava** quel confine e **rivendicava** il traffico dentro il monoblocco di IVAO: sei motori, due lo sapevano. Adesso la forma — **anello E quote insieme** — si chiede a `ISectorShapeResolver`, e le quote stanno **DENTRO il pezzo**, così «laterale da una fonte, verticale da un'altra» non è una cosa da evitare ma una cosa che **non si può scrivere**. ⚠️ La **prova dal vivo**: agganciato `LIRR_EW_CTR` — in frequenza — alla FIR ROMA `GND→FL195`, in **un giro del poller** le tratte nuove sono uscite col timbro `Aip` e i quattro voli **sopra FL195** hanno smesso di essere rivendicati. ⚠️ **S11 resta fuori**: non è una slice, è la seconda metà della cura — otto siti di scrittura e il percorso del **congelamento di release** — e non si fa il giorno prima della consegna (§4-bis della carta). ⚠️ Migrazioni in coda: **TRENTASEI**) · **Aggiornato:** 30 agosto 2026 (**I DUE RAMI SONO FUSI IN `main`, CHE È STATO SPINTO** — `biblioteca-allegati` (§E10) e `spazi-aerei-aip` (§AA), in quest'ordine. Sette conflitti, e la regola era quasi sempre «servono tutti e due»: registrazioni DI, DbSet, voce nella barra admin, chiavi di traduzione. ⚠️ **L'eccezione non l'ha segnalata git**: i due rami dicevano tutti e due «16 voci nella barra admin» perché ognuno ne aggiungeva UNA a quindici — fuse sono **DUE**, quindi 17 e 12 — e git ha fuso due numeri identici senza chiamarlo conflitto. Se n'è accorto solo `AdminNavTests`. ⚠️ I due **ModelSnapshot** git li ha fusi da solo e stavolta bene: la prova non è che i nomi ci siano ma che una migrazione di prova esca **VUOTA**, e su tutti e due i provider lo è. **Release verde e quindici assiemi su quindici verdi DOPO la fusione.** ⚠️ Le migrazioni in coda al cutover MariaDB sono ora **TRENTAQUATTRO**. ✅ **R8 CHIUSO**: l'embed provato dal vivo con due PDF veri del committente — il documento si vede davvero nel riquadro. ⚠️ E ha trovato che in `frame-src` mancava **`'self'`**: l'iframe punta alla NOSTRA rotta, non a Drive, e col solo Drive il riquadro sarebbe rimasto vuoto al passaggio a CSP vera. ⚠️ Più un difetto in produzione: la colonna versione della biblioteca stampava `v@r.VersionNumber` alla lettera, che è la regola di Razor per gli indirizzi email) · **Aggiornato:** 29 agosto 2026, notte (**§E10 — LA BIBLIOTECA ALLEGATI, TUTTE E NOVE LE SLICE FATTE**, ramo
 `biblioteca-allegati` **spinto e NON fuso**. I PDF non possono stare da noi — il piano di hosting non ammette
 il formato, ed è un vincolo **contrattuale** — quindi stanno sul **Drive di divisione**, e da noi stanno
 identità, organizzazione, versioni e il registro dei link. Il documento cita uno **slug** e passa da
@@ -175,14 +175,11 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 **Riscritto il 30 agosto 2026**, con le cifre **contate**. È la sezione da leggere per prima quando si
 riprende senza contesto: dice dov'è il codice, cosa manca e cosa va fatto *prima* del prossimo deploy.
 
-✅ **NON C'È NESSUN RAMO CON LAVORO FUORI**, ma ⚠️ **`main` È AVANTI A `origin/main`**: la fusione di
-§AB (carta [refactor/15](refactor/15-shape-del-settore-una-porta-sola.md), quattordici commit) è stata fatta
-**in locale** e il **push non è partito** — lo blocca il classificatore sul branch di default. È la prima
-cosa da fare: `git push origin main`.
-
-Il 30 agosto sono stati fusi, in quest'ordine: **`biblioteca-allegati`** (§E10), **`spazi-aerei-aip`**
-(§AA) — tutti e due già spinti — e **`shape-una-porta-sola`** (§AB), che aspetta il push. **Release verde e
-nove assiemi su nove verdi DOPO l'ultima fusione**, E2E compresi (255).
+✅ **NON C'È NESSUN RAMO CON LAVORO FUORI**, e `main` è **allineato con `origin/main`**. Il 30 agosto sono
+stati fusi e spinti, in quest'ordine: **`biblioteca-allegati`** (§E10), **`spazi-aerei-aip`** (§AA) e
+**`shape-una-porta-sola`** (§AB, carta [refactor/15](refactor/15-shape-del-settore-una-porta-sola.md),
+quattordici commit); tutti e tre cancellati dopo la fusione. **Release verde e nove assiemi su nove verdi
+DOPO l'ultima fusione**, E2E compresi (255).
 
 ⚠️ **La trappola della fusione, che git non segnala.** I due rami dicevano tutti e due «16 voci nella barra
 admin» perché ognuno ne aggiungeva **una** a quindici. Git ha fuso due numeri identici senza chiamarlo un
@@ -5111,9 +5108,8 @@ diventano **trentaquattro**: due per il catalogo, due per gli agganci.
 ## AB. La shape di un settore: una porta sola — 30 agosto 2026
 
 Carta: [`refactor/15-shape-del-settore-una-porta-sola.md`](refactor/15-shape-del-settore-una-porta-sola.md).
-Ramo **`shape-una-porta-sola`**, **fuso in `main` in locale** (merge `--no-ff`, quattordici commit).
-⚠️ **Il push su `main` non è partito**: lo blocca il classificatore sul branch di default, e va dato a mano.
-**S0→S10 fatte e verificate dal vivo**; **S11 resta fuori** (§4-bis della carta).
+Ramo **`shape-una-porta-sola`**, **fuso in `main` e spinto** (merge `--no-ff`, quattordici commit), poi
+cancellato. **S0→S10 fatte e verificate dal vivo**; **S11 resta fuori** (§4-bis della carta).
 
 ### Il difetto, e perché non si vedeva
 
@@ -5171,4 +5167,3 @@ tabella. Nessuna asserzione l'avrebbe vista.
   **congelamento di release**, un backfill e due migrazioni (§4-bis della carta). Si esegue **dopo** la
   consegna del 1° settembre.
 - **Le 13 torri ATZ**, da guardare al primo deploy: vedi il punto 3 della lista rossa in §«Dove siamo».
-- Il **push di `main`**.

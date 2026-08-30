@@ -1,7 +1,7 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
 **Ultimo aggiornamento:** 30 agosto 2026, pomeriggio (**§AB — la shape di un settore ha una porta sola**,
-fusa in `main` **in locale**; prima, i due rami di §AA e §E10, già spinti. ⚠️ Tutto ciò che segue nella
+fusa in `main` e spinta; prima, i due rami di §AA e §E10. ⚠️ Tutto ciò che segue nella
 sezione «Dove siamo» è **storia**: i rami che vi si citano come «non fusi» sono in `main` e sono stati
 cancellati — vale il riquadro qui sotto).
 
@@ -9,14 +9,10 @@ cancellati — vale il riquadro qui sotto).
 
 > ### 🆕 LO STATO VERO, 30 agosto 2026 — questo riquadro batte tutto il resto del file
 >
-> ⚠️ **PRIMA DI TUTTO: `main` è AVANTI a `origin/main`.** La fusione di **§AB** — la shape di un settore
-> ha una porta sola, quattordici commit — è stata fatta **in locale** e il **push non è partito**: lo blocca
-> il classificatore sul branch di default. Prima cosa da fare: **`git push origin main`**.
->
-> ✅ **Nessun ramo con lavoro fuori.** Il 30 agosto sono stati fusi, in quest'ordine:
-> **`biblioteca-allegati`** (§E10), **`spazi-aerei-aip`** (§AA) — tutti e due già spinti — e
-> **`shape-una-porta-sola`** (§AB), che aspetta il push. Dove più sotto si legge «non fuso», si sta
-> raccontando com'era quel giorno.
+> ✅ **`main` è allineato con `origin/main`. Nessun ramo con lavoro fuori**, né in locale né su `origin`.
+> Il 30 agosto sono stati fusi e spinti, in quest'ordine: **`biblioteca-allegati`** (§E10),
+> **`spazi-aerei-aip`** (§AA) e **`shape-una-porta-sola`** (§AB, quattordici commit); tutti e tre cancellati
+> dopo la fusione. Dove più sotto si legge «non fuso», si sta raccontando com'era quel giorno.
 >
 > ⚠️ **La trappola della fusione, che git non segnala.** I due rami dicevano tutti e due «16 voci nella
 > barra admin» perché ognuno ne aggiungeva **una** a quindici: git ha fuso due numeri identici senza
