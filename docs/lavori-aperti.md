@@ -181,6 +181,10 @@ stati fusi e spinti, in quest'ordine: **`biblioteca-allegati`** (§E10), **`spaz
 quattordici commit); tutti e tre cancellati dopo la fusione. **Release verde e nove assiemi su nove verdi
 DOPO l'ultima fusione**, E2E compresi (255).
 
+⚠️ **Dal 31 agosto 2026 un ramo fuori c'è: `riconnessione-circuito`**, aperto da `main` — le quattro mosse
+contro «Attempting to reconnect to the server…» (§AC). **Nessuna migrazione**, quindi non tocca la finestra
+cieca sullo schema; ma porta un `.js` nuovo che il pacchetto **deve** contenere, vedi l'avviso in §AC punto 2.
+
 ⚠️ **La trappola della fusione, che git non segnala.** I due rami dicevano tutti e due «16 voci nella barra
 admin» perché ognuno ne aggiungeva **una** a quindici. Git ha fuso due numeri identici senza chiamarlo un
 conflitto — il conflitto era sui **commenti** accanto — e fuse le voci sono **due**: 17 e 12. Se n'è accorto
@@ -5167,3 +5171,61 @@ tabella. Nessuna asserzione l'avrebbe vista.
   **congelamento di release**, un backfill e due migrazioni (§4-bis della carta). Si esegue **dopo** la
   consegna del 1° settembre.
 - **Le 13 torri ATZ**, da guardare al primo deploy: vedi il punto 3 della lista rossa in §«Dove siamo».
+
+## AC. «Attempting to reconnect to the server…» — 31 agosto 2026
+
+Carta: [`feature/2026-08-31-riconnessione-circuito.md`](feature/2026-08-31-riconnessione-circuito.md).
+Ramo **`riconnessione-circuito`**, aperto da `main`. Build Release 0 avvisi, suite verde, 18 test nuovi,
+**nessuna migrazione**.
+
+### Il fatto
+
+Sul sito vero compare, mentre si legge o si scrive, un riquadro nero in inglese: *«Attempting to reconnect
+to the server…»*. Non vuol dire che il sito sia giù — vuol dire che è morto il **circuito**, cioè lo stato
+che il server tiene in memoria per quella singola pagina. Le cause sono due e vogliono rimedi **opposti**:
+un **buco di rete** (il circuito di là c'è ancora: **riprovare**, e si ritrova la pagina esatta) e il
+**processo morto e rinato** — che qui succede **da solo**, perché Plesk + Passenger spegne per inattività e
+rigenera alla richiesta dopo (il circuito non esiste più da nessuna parte: **ricaricare**).
+
+⚠️ Il difetto era che il **secondo caso finiva nel comportamento del primo**: si riprovava, si falliva, e
+restava sullo schermo un messaggio inglese con un tasto da premere.
+
+### Che cosa c'è adesso
+
+1. **`diagnostica/avvii.txt`** (`RegistroAvvii`): una riga per avvio, una per arresto, **in coda**.
+   `avvio-diagnostica.txt` è *riscritto* a ogni avvio, quindi tre riavvii al giorno e quaranta producevano
+   lì lo stesso file. ⚠️ **Un AVVIO che segue un altro AVVIO è un processo morto male**: lo spegnimento per
+   inattività fa in tempo a scrivere la sua riga, un crash o una `.dll` sovrascritta via FTP no.
+2. **Ricarica da soli quando riconnettersi è impossibile**: `blazor.web.js` parte con `autostart="false"`
+   e ad avviarlo è `vipi-riconnessione.js` — l'unico modo di scrivere i tempi. 55 tentativi ogni 5 s,
+   riquadro **nostro** tradotto e dentro il tema, e sullo stato `rejected` (è il **server** a dire «quel
+   circuito non lo conosco») si ricarica, con un tetto di **3 ricariche al minuto**. Sullo stato `failed`
+   no: quasi sempre è la rete dell'utente, e una pagina ricaricata senza rete è una pagina d'errore del
+   browser.
+   ⚠️ **`autostart="false"` e quel file sono una cosa sola.** Un pacchetto col primo e senza il secondo dà
+   un sito che si vede **intero e non risponde a niente**, senza errori in pagina. Presidio:
+   `RiconnessioneTests.Chi_spegne_lavvio_automatico_deve_riaccenderlo`, che guarda anche l'**ordine** dei tag.
+3. **`/vsop/ping`**, `204` e basta, chiamato ogni 2,5 minuti dalle schede **visibili**: a Passenger per non
+   spegnere serve *una richiesta qualsiasi*. ⚠️ **Non deve diventare una sonda**: `/vsop/health/ready` fa
+   due query, e lì sarebbe carico continuo **per scheda aperta**.
+4. **I tempi, dai due capi**: retention dei circuiti staccati **2 → 5 min**, `ClientTimeoutInterval`
+   **30 → 60 s**, `KeepAliveInterval` 15 s **scritto**, `HandshakeTimeout` **15 → 30 s**; gli stessi due
+   numeri stanno in `vipi-riconnessione.js`. ⚠️ La retention **non serve a niente quando muore il
+   processo**: i circuiti trattenuti muoiono con lui.
+
+### 🟡 Quel che resta
+
+- **AC1 — leggere `avvii.txt` dopo il primo deploy.** È la misura per cui esiste il punto 1: pochi riavvii
+  nelle ore vuote = Passenger, fisiologico; tanti, o nelle ore di punta, = c'è un difetto da cercare.
+  Finché quel file non è stato letto, **ogni altra mossa su questo fronte è un'ipotesi**.
+- **AC2 🔵 Il pinger esterno.** UptimeRobot (o simile) ogni 5 minuti su `/vsop/ping` terrebbe il processo
+  caldo **anche quando non c'è nessuno**, e direbbe a noi quando il sito è giù davvero. È fuori dal nostro
+  codice: va deciso con Ivao.It, insieme a §A9.
+- **AC3 — meno circuiti in giro.** Una pagina SSR statica non ha circuito e quel riquadro non può vederlo.
+  Le pagine pubbliche lo sono già (doc 14); resta da rivedere **quali schermate admin** abbiano davvero
+  bisogno di `InteractiveServer`. Da fare **dopo** AC1, o si ottimizza al buio.
+- ✅ **AC4 — la verifica dal vivo: FATTA il 31 agosto 2026.** Edge guidato con puppeteer-core
+  (`riconn-verifica.js`), processo **ucciso e riavviato** con una pagina aperta: si è **ricaricata da sola
+  in 10 secondi**. E ha trovato due cose che i test non vedevano — `/vsop/ping` rispondeva **405 a HEAD**
+  (i pinger esterni bussano così: corretto, con un test suo) e la frase dei tentativi mostrava una **barra
+  sola** finché Blazor non riempie i contatori. Dettaglio nella carta, §Verifica.

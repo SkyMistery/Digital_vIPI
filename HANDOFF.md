@@ -1,6 +1,6 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 30 agosto 2026, pomeriggio (**§AB — la shape di un settore ha una porta sola**,
+**Ultimo aggiornamento:** 31 agosto 2026 (**§AC — riconnessione del circuito**, ramo `riconnessione-circuito`); prima, 30 agosto pomeriggio (**§AB — la shape di un settore ha una porta sola**,
 fusa in `main` e spinta; prima, i due rami di §AA e §E10. ⚠️ Tutto ciò che segue nella
 sezione «Dove siamo» è **storia**: i rami che vi si citano come «non fusi» sono in `main` e sono stati
 cancellati — vale il riquadro qui sotto).
@@ -9,7 +9,16 @@ cancellati — vale il riquadro qui sotto).
 
 > ### 🆕 LO STATO VERO, 30 agosto 2026 — questo riquadro batte tutto il resto del file
 >
-> ✅ **`main` è allineato con `origin/main`. Nessun ramo con lavoro fuori**, né in locale né su `origin`.
+> ⚠️ **31 agosto 2026 — un ramo fuori c'è: `riconnessione-circuito`**, aperto da `main`. Le quattro mosse
+> contro «Attempting to reconnect to the server…»: il registro degli avvii (`diagnostica/avvii.txt`, che
+> conta i riavvii invece di raccontare solo l'ultimo), la ricarica automatica quando il server dice che quel
+> circuito non esiste più, `/vsop/ping` che tiene sveglio il processo, e i tempi del circuito scritti dai due
+> capi. **Nessuna migrazione.** ⚠️ Porta un `.js` **obbligatorio**: da qui in poi `blazor.web.js` parte con
+> `autostart="false"` e un pacchetto senza `vipi-riconnessione.js` dà un sito che si vede e non risponde a
+> niente. Carta: [`docs/feature/2026-08-31-riconnessione-circuito.md`](docs/feature/2026-08-31-riconnessione-circuito.md),
+> lavori aperti **§AC**.
+>
+> ✅ **Al 30 agosto `main` era allineato con `origin/main`, senza rami con lavoro fuori**, né in locale né su `origin`.
 > Il 30 agosto sono stati fusi e spinti, in quest'ordine: **`biblioteca-allegati`** (§E10),
 > **`spazi-aerei-aip`** (§AA) e **`shape-una-porta-sola`** (§AB, quattordici commit); tutti e tre cancellati
 > dopo la fusione. Dove più sotto si legge «non fuso», si sta raccontando com'era quel giorno.
