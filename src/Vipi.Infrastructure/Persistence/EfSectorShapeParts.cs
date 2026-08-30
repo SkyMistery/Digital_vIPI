@@ -24,6 +24,36 @@ public sealed class EfSectorShapeParts : ISectorShapeParts
         return righe.Select(Pezzo).ToList();
     }
 
+    /// <summary>
+    /// ⚠️ La precedenza fra fonti sta in UN posto, ed è questo: più specifica vince. Scritta come dato
+    /// (un elenco) e non come catena di <c>if</c>, perché una fonte nuova deve aggiungersi qui e basta.
+    /// </summary>
+    private static readonly ShapeSource[] Precedenza =
+        { ShapeSource.Aip, ShapeSource.Sectorfile, ShapeSource.Source, ShapeSource.Synthetic };
+
+    public async Task<IReadOnlyDictionary<string, (ShapeSource Source, IReadOnlyList<ShapePart> Parts)>>
+        ListInForceByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default)
+    {
+        var esito = new Dictionary<string, (ShapeSource, IReadOnlyList<ShapePart>)>(StringComparer.OrdinalIgnoreCase);
+        if (callsigns.Count == 0) return esito;
+
+        var cercati = callsigns.Select(c => (c ?? "").Trim().ToUpperInvariant()).Distinct().ToList();
+
+        var righe = await _db.SectorShapeParts.AsNoTracking()
+            .Where(x => cercati.Contains(x.Callsign) && x.State == ShapePartState.InForce)
+            .OrderBy(x => x.Ordinal)
+            .ToListAsync(ct);
+
+        foreach (var gruppo in righe.GroupBy(x => x.Callsign, StringComparer.OrdinalIgnoreCase))
+        {
+            var fonte = Precedenza.FirstOrDefault(f => gruppo.Any(x => x.Source == f));
+            var pezzi = gruppo.Where(x => x.Source == fonte).OrderBy(x => x.Ordinal).Select(Pezzo).ToList();
+            if (pezzi.Count > 0) esito[gruppo.Key] = (fonte, pezzi);
+        }
+
+        return esito;
+    }
+
     public async Task<ShapePartsWriteResult> ReplacePartsAsync(
         SourceCatalog catalog, int sectorId, string callsign, ShapeSource source, ShapePartState state,
         IReadOnlyList<ShapePart> parts, string? airacCycle = null, bool forcePublished = false,

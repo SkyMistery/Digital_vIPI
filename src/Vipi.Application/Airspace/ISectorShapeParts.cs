@@ -49,6 +49,17 @@ public interface ISectorShapeParts
         CancellationToken ct = default);
 
     /// <summary>
+    /// I pezzi <b>in vigore</b> di più callsign in un colpo solo: è la lettura che serve al risolutore, e
+    /// quella per cui esiste l'indice <c>(Callsign, State)</c>. Chiave = callsign maiuscolo.
+    ///
+    /// <para>Se per uno stesso settore ci fossero pezzi di più fonti, vince la <b>più specifica</b> —
+    /// <c>Aip</c>, poi <c>Sectorfile</c>, poi <c>Source</c>, poi <c>Synthetic</c> — che è l'ordine in cui le
+    /// fonti si scavalcano dappertutto: il cerchio di ripiego perde contro un confine vero.</para>
+    /// </summary>
+    Task<IReadOnlyDictionary<string, (ShapeSource Source, IReadOnlyList<ShapePart> Parts)>> ListInForceByCallsignAsync(
+        IReadOnlyList<string> callsigns, CancellationToken ct = default);
+
+    /// <summary>
     /// Riscrive i pezzi di <b>una fonte sola</b>: l'elenco dato sostituisce quello di prima per quella
     /// coppia (fonte, stato), e <b>non tocca nessun'altra fonte</b>.
     ///
