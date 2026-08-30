@@ -50,6 +50,14 @@ public static class PageIntro
     /// non un secondo meccanismo.</para></summary>
     public static string Chiave(string pagina) => Prefisso + pagina.Trim().ToLowerInvariant();
 
+    /// <summary>
+    /// La chiave del lock di editing dell'intro di una pagina, nel vocabolario di
+    /// <see cref="ResourceLockKeys"/> (<c>editor:</c> = lo prende chi ha il permesso di scrivere).
+    /// <para>⚠️ <b>Diversa</b> dalla chiave d'archivio: sono due spazi di nomi distinti, e farli coincidere
+    /// vorrebbe dire che rinominare l'uno sposta l'altro senza che nessuno se ne accorga.</para>
+    /// </summary>
+    public static string ChiaveLock(string pagina) => "editor:page-intro:" + pagina.Trim().ToLowerInvariant();
+
     private static readonly JsonSerializerOptions Opts = new() { WriteIndented = false };
 
     private sealed class Envelope { public List<PageIntroSection> sections { get; set; } = new(); }

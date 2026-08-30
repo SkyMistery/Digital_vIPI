@@ -2627,6 +2627,15 @@
   <data name="Mil_DerivedLink" xml:space="preserve"><value>airport editor</value></data>
   <data name="Mil_Desc" xml:space="preserve"><value>Standard operating procedures of the Italian military airfields: read by both pilots and controllers.</value></data>
   <data name="Mil_Intro" xml:space="preserve"><value>These are the SOPs of the Italian military airfields. Readers can filter by audience using the chip at the top of the document.</value></data>
+  <data name="PageIntro_Title" xml:space="preserve"><value>Page intro</value></data>
+  <data name="PageIntro_Empty" xml:space="preserve"><value>No sections yet: whatever you write here shows at the top of the page, to signed-out readers too.</value></data>
+  <data name="PageIntro_AddSection" xml:space="preserve"><value>Add section</value></data>
+  <data name="PageIntro_SectionTitle" xml:space="preserve"><value>Section title</value></data>
+  <data name="PageIntro_MoveUp" xml:space="preserve"><value>Move up</value></data>
+  <data name="PageIntro_MoveDown" xml:space="preserve"><value>Move down</value></data>
+  <data name="PageIntro_NotAllowed" xml:space="preserve"><value>You are not allowed to write here.</value></data>
+  <data name="PageIntro_HelpAria" xml:space="preserve"><value>What the page intro is</value></data>
+  <data name="PageIntro_HelpBody" xml:space="preserve"><value>Free-form sections at the top of the page, to introduce the list and link PDFs from the attachment library.&lt;br/&gt;⚠️ It is not a document: it has no AIRAC cycle and is not frozen to a release, so it goes live as soon as you save it. Normative content belongs in a document.</value></data>
   <data name="Mil_OnlyMilitary" xml:space="preserve"><value>military only</value></data>
   <data name="Mil_JointField" xml:space="preserve"><value>joint civil/military</value></data>
   <data name="Mil_NoDoc" xml:space="preserve"><value>no document</value></data>

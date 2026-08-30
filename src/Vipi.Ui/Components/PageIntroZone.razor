@@ -1,0 +1,223 @@
+@* ---- L'intro di una pagina: sezioni editabili in cima a un elenco -----------------------------------
+   Carta: docs/feature/2026-08-30-intro-di-pagina.md
+
+   ⚠️ NON È UN DOCUMENTO. Niente release, niente ciclo AIRAC, niente congelamento: si pubblica salvando.
+   Contenuto normativo qui non ci va — quello vuole una release che lo dati.
+
+   ⚠️ Lo stato vive DENTRO l'isola: la zona si carica, si edita e si salva da sé. Il genitore le passa solo
+   quale pagina è, e non sa se c'è un'intro né quante sezioni ha.
+*@
+@using Microsoft.Extensions.DependencyInjection
+@using System.Globalization
+@using Vipi.Application.Abstractions
+@using Vipi.Application.Content
+@using Vipi.Application.Translation
+@using Vipi.Domain
+@inherits OwningComponentBase
+@inject IEditAuthorizationService Authz
+@inject IStringLocalizer<SharedResource> L
+
+@if (_sezioni is null)
+{
+    @* Prima lettura: niente, nemmeno uno scheletro. Sopra un elenco, un segnaposto che sparisce fa
+       saltare la pagina a chi sta già leggendo. *@
+}
+else if (_sezioni.Count == 0 && !Authz.IsEditor)
+{
+    @* Pubblico e nessuna intro: non si rende niente, nemmeno un contenitore vuoto. *@
+}
+else
+{
+    <div class="page-intro">
+        @if (Authz.IsEditor)
+        {
+            @* `.section-title` e non una testata admin: questa è una pagina PUBBLICA con una zona di
+               scrittura dentro, non una pagina di struttura. La riga col filetto è quella che l'elenco
+               qui sotto usa già per i suoi gruppi. *@
+            <div class="section-title" style="margin-top:0">
+                <h2 class="h-sect">@L["PageIntro_Title"]</h2>
+                <HelpHint Href="/services/vsop/guide#intro-di-pagina" AriaLabel="@L["PageIntro_HelpAria"]">
+                    @((MarkupString)L["PageIntro_HelpBody"].Value)
+                </HelpHint>
+                <span class="ln"></span>
+                <EditLockBar ResourceKey="@ChiaveLock" LockChanged="OnLockChanged" />
+            </div>
+        }
+
+        @if (_modifica)
+        {
+            @* ---- EDITOR ------------------------------------------------------------------------------
+               ⚠️ Si edita SEMPRE l'originale italiano, mai la vista tradotta: salvare una traduzione
+               vorrebbe dire riscrivere il documento nella lingua di chi passava di lì. *@
+            @foreach (var s in _sezioni)
+            {
+                var sez = s;
+                <div class="panel" style="margin:8px 0">
+                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                        <input class="in" style="flex:1" value="@sez.Title" placeholder="@L["PageIntro_SectionTitle"]"
+                               @onchange="e => Titolo(sez, e.Value as string ?? string.Empty)" />
+                        <button class="btn ghost" title="@L["PageIntro_MoveUp"]"
+                                disabled="@(_sezioni.IndexOf(sez) == 0)" @onclick="() => Sposta(sez, -1)">↑</button>
+                        <button class="btn ghost" title="@L["PageIntro_MoveDown"]"
+                                disabled="@(_sezioni.IndexOf(sez) == _sezioni.Count - 1)" @onclick="() => Sposta(sez, 1)">↓</button>
+                        <button class="btn ghost" @onclick="() => Togli(sez)">@L["Common_Delete"]</button>
+                    </div>
+                    <DocumentBlocksEditor Blocks="sez.Blocks" Editing="true" OnChanged="Sporca" />
+                </div>
+            }
+
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px">
+                <button class="btn ghost" @onclick="Aggiungi">+ @L["PageIntro_AddSection"]</button>
+                <button class="btn primary" disabled="@(!_sporco || _salvando)" @onclick="SalvaAsync">@L["Common_Save"]</button>
+                <LiveRegion>
+                    @if (_msg is { } m)
+                    {
+                        <span class="st-msg ok"><Icon Name="check-circle" Size="14" /><span class="st-msg-t">@m</span></span>
+                    }
+                    @if (_errore is { } er)
+                    {
+                        <span class="st-msg warn"><Icon Name="warning" Size="14" /><span class="st-msg-t">@er</span></span>
+                    }
+                </LiveRegion>
+            </div>
+        }
+        else if (_vista.Count > 0)
+        {
+            @foreach (var s in _vista)
+            {
+                <SectionNode Section="s" />
+            }
+        }
+        else
+        {
+            @* Solo lo staff arriva qui: al pubblico la zona vuota non si rende affatto. *@
+            <p class="muted" style="margin:6px 0">@L["PageIntro_Empty"]</p>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>Quale pagina è: la chiave dell'intro. Una pagina nuova ne registra una, non un secondo
+    /// meccanismo.</summary>
+    [Parameter, EditorRequired] public string Pagina { get; set; } = default!;
+
+    /// <summary>Come si chiama questa intro nell'elenco dei contenuti condivisi: la legge chi un giorno
+    /// guarderà la tabella e dovrà capire di che pagina è la riga.</summary>
+    [Parameter] public string Etichetta { get; set; } = "";
+
+    /// <summary>Le sezioni come sono SCRITTE (italiano). null = non ancora lette.</summary>
+    private List<PageIntroSection>? _sezioni;
+
+    /// <summary>Le sezioni come si LEGGONO: tradotte nella lingua di chi guarda.</summary>
+    private IReadOnlyList<SectionView> _vista = Array.Empty<SectionView>();
+
+    private bool _modifica;    // questa sessione tiene il lock
+    private bool _sporco;
+    private bool _salvando;
+    private string? _msg;
+    private string? _errore;
+    private string _caricata = "";
+
+    private string ChiaveLock => PageIntro.ChiaveLock(Pagina);
+
+    // ⚠️ Dallo scope DI PROPRIO del componente, non da @inject: la zona sta in cima a una pagina che sta
+    // caricando le sue righe, e due query sullo stesso DbContext di circuito sono il guasto «second
+    // operation» già pagato sei volte su questo prodotto.
+    private IPageIntroStore Deposito => ScopedServices.GetRequiredService<IPageIntroStore>();
+    private DocumentTranslator Traduttore => ScopedServices.GetRequiredService<DocumentTranslator>();
+
+    // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su InteractiveServer il secondo gira UNA VOLTA SOLA.
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_caricata == Pagina) return;
+        _caricata = Pagina;
+        await CaricaAsync();
+    }
+
+    private async Task CaricaAsync()
+    {
+        _sezioni = (await Deposito.LeggiAsync(Pagina)).ToList();
+        await RicalcolaVistaAsync();
+    }
+
+    /// <summary>
+    /// La vista che il lettore vede: la proiezione delle sezioni, tradotta.
+    ///
+    /// <para>⚠️ La traduzione si rifà a ogni ricalcolo e non si conserva: l'intro non ha una release che la
+    /// congeli, quindi la sola fotografia possibile sarebbe una copia che invecchia da sola.</para>
+    /// </summary>
+    private async Task RicalcolaVistaAsync()
+    {
+        if (_sezioni is null || _sezioni.Count == 0) { _vista = Array.Empty<SectionView>(); return; }
+
+        var view = PageIntro.ToView(_sezioni);
+        var lettore = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+        var tradotto = await Traduttore.TranslateAsync(view, PageIntro.Sorgente, lettore);
+        _vista = tradotto.View.Sections;
+    }
+
+    private async Task OnLockChanged(bool mio)
+    {
+        _modifica = mio;
+        _msg = null;
+        _errore = null;
+        // Chi molla il lock ha finito: si rilegge da archivio, così quel che resta a schermo è quel che è
+        // salvato davvero — e non le modifiche non salvate di chi se n'è andato.
+        if (!mio) await CaricaAsync();
+    }
+
+    private void Sporca()
+    {
+        _sporco = true;
+        _msg = null;
+    }
+
+    private void Titolo(PageIntroSection s, string valore)
+    {
+        s.Title = valore;
+        Sporca();
+    }
+
+    private void Aggiungi()
+    {
+        _sezioni!.Add(new PageIntroSection());
+        Sporca();
+    }
+
+    private void Togli(PageIntroSection s)
+    {
+        _sezioni!.Remove(s);
+        Sporca();
+    }
+
+    private void Sposta(PageIntroSection s, int verso)
+    {
+        var i = _sezioni!.IndexOf(s);
+        var j = i + verso;
+        if (j < 0 || j >= _sezioni.Count) return;
+        (_sezioni[i], _sezioni[j]) = (_sezioni[j], _sezioni[i]);
+        Sporca();
+    }
+
+    private async Task SalvaAsync()
+    {
+        _salvando = true;
+        _msg = null;
+        _errore = null;
+        try
+        {
+            await Deposito.SalvaAsync(Pagina, _sezioni!, Etichetta);
+            // Si rilegge: il servizio scarta le sezioni vuote e i blocchi senza contenuto, e a schermo deve
+            // restare quel che è finito in archivio — non quel che si sperava di aver salvato.
+            await CaricaAsync();
+            _sporco = false;
+            _msg = L["Ed_Saved"].Value;
+        }
+        catch (EditNotAllowedException)
+        {
+            // ⚠️ Si cattura l'eccezione dell'Application: senza, il circuito muore e la pagina sparisce.
+            _errore = L["PageIntro_NotAllowed"].Value;
+        }
+        finally { _salvando = false; }
+    }
+}

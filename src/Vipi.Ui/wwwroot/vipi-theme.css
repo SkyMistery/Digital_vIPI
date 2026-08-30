@@ -928,6 +928,11 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .section-title{display:flex;align-items:center;gap:12px;margin:34px 0 16px}
 .section-title :is(h2,h3){margin:0}
 .section-title .ln{flex:1;height:1px;background:var(--line)}
+/* ---- Intro di pagina (carta docs/feature/2026-08-30-intro-di-pagina.md) ----
+   Le sezioni dell'intro sono le STESSE card dei documenti: qui non si decide come si vede una sezione, o
+   sarebbero due posti a deciderlo e quello sbagliato sarebbe questo. Resta il respiro sotto, che separa
+   l'intro dall'elenco che introduce. */
+.page-intro{margin:0 0 18px}
 .staff-sec>summary{cursor:pointer;list-style:none;user-select:none}
 .staff-sec>summary::-webkit-details-marker{display:none}
 .staff-sec>summary .chev{display:inline-block;font-size:14px;color:var(--muted);transition:.2s}
