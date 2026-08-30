@@ -924,7 +924,11 @@ indici unici. Un presidio che non si è mai visto fallire non è un presidio.
 - `.gz` riaperto e ricontato: 14 091 458 byte, gli stessi;
 - primi quattro byte `2f 2a 4d 21`. **Sul CRLF vedi la correzione in A11**: non è mai stato un problema, e
   la riga che diceva di averlo escluso non aveva misurato niente.
-- suite `Vipi.Infrastructure.Tests` su net8: **1118 su 1118**.
+- **quindici assiemi su quindici verdi**, 8796 test, E2E compresi (255) — e misurati con l'host **spento**,
+  che è la condizione senza la quale `Vipi.E2E.Tests` sparisce dal riepilogo in silenzio.
+  ⚠️ Il primo giro sembrava dire che cinque progetti non erano nemmeno partiti: era la misura, non il
+  software — il comando finiva in `| tail -30` e il file conservava solo la coda. **Un riepilogo di test si
+  legge intero o non si legge**, e vale la pena dirlo perché la conclusione sbagliata era già scritta.
 
 **La rete non gliela chiediamo più: gliela diamo.** Per tre consegne il passo 1 è stato «fate un
 `mysqldump`», e per tre consegne nessuno ha confermato di saperlo fare — una dipendenza da una capacità mai
