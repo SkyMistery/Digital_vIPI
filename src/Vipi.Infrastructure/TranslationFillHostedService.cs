@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -45,6 +45,17 @@ public sealed class TranslationFillHostedService : BackgroundService
 {
     /// <summary>Vedi il commento di classe: qui il metro è l'attesa del lettore, non il ritmo di una sorgente.</summary>
     private static readonly TimeSpan Periodo = TimeSpan.FromMinutes(15);
+
+    /// <summary>Quanto di un segmento rotto si scrive nel registro: quel che basta a riconoscerlo.</summary>
+    private const int TagliaSegmento = 120;
+
+    /// <summary>I segmenti rotti su una riga sola, tagliati e separati. Vuoto = «(nessuno)», mai una riga muta.</summary>
+    private static string Elenca(IReadOnlyList<string>? rotti)
+    {
+        if (rotti is null || rotti.Count == 0) return "(non registrati)";
+        return string.Join(" · ", rotti.Select(r =>
+            r.Length <= TagliaSegmento ? r : r[..TagliaSegmento] + "…"));
+    }
 
     private readonly IServiceScopeFactory _scopes;
     private readonly ILogger<TranslationFillHostedService> _log;
@@ -118,6 +129,13 @@ public sealed class TranslationFillHostedService : BackgroundService
         // traduzione sbagliata di un titolo, qui una frase che SEMBRA giusta («bring it back downwind») e che
         // nessuno correggerà mai leggendo. Semina solo se il glossario è ancora vuoto: da quando lo tocca una
         // persona, questo codice non ci scrive più (lavori-aperti §Q3).
+        // ⚠️ E le frasi di partenza delle vLOA, per la stessa ragione dei titoli: sono parola nostra, e una
+        // di loro tornava rotta a ogni giro — 155 caratteri buttati ogni quarto d'ora (lavori aperti §Q16b).
+        var semiVloa = await FrasiVloa
+            .SeminaAsync(memoria, sp.GetRequiredService<INeighbourRepository>(), ct).ConfigureAwait(false);
+        if (semiVloa > 0)
+            _log.LogInformation("Frasi di partenza delle vLOA messe in memoria: {Quante}.", semiVloa);
+
         var glossarioStore = sp.GetRequiredService<IGlossaryStore>();
         var semiGlossario = await GlossarioFraseologia
             .SeminaAsync(glossarioStore, ct: ct).ConfigureAwait(false);
@@ -170,10 +188,16 @@ public sealed class TranslationFillHostedService : BackgroundService
                     // sono zero non c'è niente da dire; quando non lo sono, questa riga è l'unico posto in cui
                     // la perdita si vede. È un Warning perché vuole una persona: vedi lavori-aperti §Q16.
                     if (esito.CaratteriScartati > 0)
+                        // ⚠️ E si dice QUALI, per esteso. «1 segmento tornato rotto» non si puo' cercare: il
+                        // corpus ne ha decine, e per trovare quello giusto bisognava interrogare il database a
+                        // mano — fatto il 30 agosto 2026, e il colpevole era una frase NOSTRA che ora si semina
+                        // (FrasiVloa). Il testo si taglia a 120 caratteri: serve a riconoscerlo, non a rileggerlo.
                         _log.LogWarning(
                             "Traduzione {Da}→{A} ({Motore}): {Caratteri} caratteri spesi per {Scartati} segmenti " +
-                            "tornati rotti. Non entrano nel conto della spesa e il prossimo giro li rispedisce.",
-                            sorgente, bersaglio, esito.Motore, esito.CaratteriScartati, esito.Scartati);
+                            "tornati rotti. Non entrano nel conto della spesa e il prossimo giro li rispedisce. " +
+                            "Sono: {Rotti}",
+                            sorgente, bersaglio, esito.Motore, esito.CaratteriScartati, esito.Scartati,
+                            Elenca(esito.Rotti));
                     continue;
                 }
 

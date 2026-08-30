@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Translation;
 using Vipi.Domain.Entities;
 
@@ -62,9 +62,27 @@ internal sealed class MemoriaDiTraduzioneFinta : ITranslationMemory
     /// <summary>L'ultima correzione salvata: coppia di lingue, testo sorgente, resa e chi l'ha scritta.</summary>
     public (string Da, string A, string Sorgente, string Tradotto, int Utente)? UltimaCorrezione { get; private set; }
 
+    /// <summary>
+    /// Tutte le rese umane scritte, sorgente → bersaglio. ⚠️ <see cref="UltimaCorrezione"/> tiene solo
+    /// l'ultima, e a chi semina serve sapere che cosa c'è già: un seme idempotente si prova solo se la
+    /// memoria ricorda più di una riga.
+    /// </summary>
+    public readonly Dictionary<string, string> Umane = new(StringComparer.Ordinal);
+
+    private readonly HashSet<string> _improteUmane = new(StringComparer.Ordinal);
+
+    /// <summary>Dichiara che una resa umana c'è già, senza passare da un salvataggio.</summary>
+    public MemoriaDiTraduzioneFinta GiaUmana(string sorgente)
+    {
+        _improteUmane.Add(TranslationText.Hash(sorgente));
+        return this;
+    }
+
     public Task SaveHumanAsync(string s, string t, string a, string b, int u, CancellationToken ct = default)
     {
         UltimaCorrezione = (s, t, a, b, u);
+        Umane[a] = b;
+        _improteUmane.Add(TranslationText.Hash(a));
         return Task.CompletedTask;
     }
 
@@ -79,7 +97,7 @@ internal sealed class MemoriaDiTraduzioneFinta : ITranslationMemory
 
     public Task<IReadOnlySet<string>> LoadHumanHashesAsync(
         string s, string t, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlySet<string>>(new HashSet<string>(StringComparer.Ordinal));
+        Task.FromResult<IReadOnlySet<string>>(_improteUmane);
 
     public Task<(int Totale, int DaRileggere)> ContaAsync(string s, string t, CancellationToken ct = default) =>
         Task.FromResult((0, 0));

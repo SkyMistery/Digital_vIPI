@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 
 namespace Vipi.Application.Translation;
 
@@ -11,6 +11,9 @@ namespace Vipi.Application.Translation;
 /// <param name="Scartati">Segmenti che il motore ha restituito rotti (un segnaposto mangiato o inventato).</param>
 /// <param name="Esito">Come è finita la parte automatica.</param>
 /// <param name="Dettaglio">Che cosa ha detto il motore, per il registro. Non contiene mai la chiave.</param>
+/// <param name="Rotti">I segmenti tornati rotti, come sono partiti. ⚠️ Senza questo elenco l'avviso dice
+/// «1 segmento» e nessuno può fare niente: il corpus ne ha decine, e trovare quello giusto vorrebbe dire
+/// interrogare il database a mano. Il testo ce l'abbiamo in mano proprio nel punto in cui lo buttiamo.</param>
 /// <param name="CaratteriScartati">I caratteri spesi per i segmenti tornati rotti: <b>pagati e buttati</b>.
 /// ⚠️ Non entrano nel conto della spesa (quello si deduce da quel che è rimasto in memoria, e questi in
 /// memoria non ci vanno) e il giro dopo si rispediscono. Finché sono zero non c'è niente da dire; quando
@@ -20,7 +23,8 @@ namespace Vipi.Application.Translation;
 /// primario e' fermo <b>senza</b> che il servizio si sia fermato con lui.</param>
 public sealed record TranslationFillReport(
     int Segmenti, int GiaInMemoria, int Tradotti, int DaTradurreAMano, int Scartati,
-    TranslationOutcome Esito, string? Dettaglio = null, string? Motore = null, long CaratteriScartati = 0)
+    TranslationOutcome Esito, string? Dettaglio = null, string? Motore = null, long CaratteriScartati = 0,
+    IReadOnlyList<string>? Rotti = null)
 {
     /// <summary>Quanti mancano ancora, dopo questo giro.</summary>
     public int Mancanti => Segmenti - GiaInMemoria - Tradotti;
@@ -185,6 +189,8 @@ public sealed class TranslationFillUseCase
         var scartati = 0;
         // I caratteri di quel che si butta: gia' spesi, e il giro dopo si rispendono.
         var caratteriScartati = 0L;
+        // ⚠️ E QUALI sono: il testo ce l'abbiamo qui, e senza portarlo fuori l'avviso resta inservibile.
+        var rotti = new List<string>();
         for (var i = 0; i < daSpedire.Count; i++)
         {
             var (originale, protetto) = daSpedire[i];
@@ -200,6 +206,7 @@ public sealed class TranslationFillUseCase
                 // comparire da nessuna parte: qui si contano almeno, o la perdita resta invisibile.
                 scartati++;
                 caratteriScartati += protetto.Text.Length;
+                rotti.Add(originale);
             }
         }
 
@@ -213,6 +220,6 @@ public sealed class TranslationFillUseCase
 
         return new TranslationFillReport(
             segmenti.Count, giaInMemoria, scritte, aMano, scartati, TranslationOutcome.Ok, null, motoreUsato,
-            caratteriScartati);
+            caratteriScartati, rotti);
     }
 }
