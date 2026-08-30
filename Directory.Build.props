@@ -83,7 +83,13 @@
 
       La forma è presidiata da un test: tre numeri separati da punti, niente «v» davanti, niente suffissi.
     -->
-    <VipiVersione>1.0.0</VipiVersione>
+    <!--
+      ⚠️ 1.0.0 non è mai stato consegnato: è il numero che sarebbe toccato al pacchetto «j» (30 agosto), che
+      però era già stato costruito quando la regola è stata scritta. Il primo pacchetto che porta un numero
+      è questo, e porta MINOR perché sopra «j» ci sono funzionalità nuove — l'intro di pagina (§AC) e la
+      riconnessione del circuito (§AE) — senza nessuna migrazione: si consegna da solo, via FTP.
+    -->
+    <VipiVersione>1.1.0</VipiVersione>
   </PropertyGroup>
 
 </Project>

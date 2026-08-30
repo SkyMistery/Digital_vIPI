@@ -1,7 +1,9 @@
 @using System.Globalization
+@using Microsoft.Extensions.Localization
 @using Vipi.Application.Content
 @using Vipi.Ui
 @inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> L
 <!DOCTYPE html>
 @* La lingua della pagina è quella risolta da UseRequestLocalization, non «it» fisso: il modulo è
    localizzato in it/en, e con lang sbagliato uno screen reader pronuncia l'inglese con le regole
@@ -69,7 +71,31 @@
 
 <body>
     <Routes />
-    <script src="_framework/blazor.web.js"></script>
+    @* Il riquadro che compare quando il circuito si stacca. È NOSTRO — Blazor ne disegnerebbe uno suo, in
+       inglese e con un tasto che riprova quel che ha già smesso di funzionare — e Blazor si limita a
+       mettergli e togliergli le classi `components-reconnect-*`. Il perché di ognuna delle due che contano
+       (`rejected` = il processo è ripartito, `failed` = i tentativi sono finiti) sta in
+       vipi-riconnessione.js, insieme alla regola: sulla prima si ricarica da soli, sulla seconda no.
+       ⚠️ Gli id `components-reconnect-modal`, `-current-attempt` e `-max-retries` li cerca Blazor per nome:
+       cambiarli vuol dire tornare al riquadro suo, senza nessun errore da nessuna parte. *@
+    <div id="components-reconnect-modal" class="vipi-rec">
+        <div class="vipi-rec-box" role="alertdialog" aria-live="assertive">
+            <p class="vipi-rec-t">@L["Reconnect_Title"]</p>
+            <p class="vipi-rec-p vipi-rec-attesa">
+                @L["Reconnect_Retrying"]
+                <span class="vipi-rec-n"><span id="components-reconnect-current-attempt"></span>/<span id="components-reconnect-max-retries"></span></span>
+            </p>
+            <p class="vipi-rec-p vipi-rec-rifiutata">@L["Reconnect_Rejected"]</p>
+            <p class="vipi-rec-p vipi-rec-fallita">@L["Reconnect_Failed"]</p>
+            <button id="vipi-riconnessione-ricarica" class="vipi-rec-b" type="button">@L["Reconnect_Reload"]</button>
+        </div>
+    </div>
+    @* ⚠️ `autostart="false"`: chi avvia Blazor è vipi-riconnessione.js, la riga dopo, perché i tempi di
+       riconnessione e quelli del canale SignalR si possono scrivere SOLO passandoli a `Blazor.start`.
+       Le due righe vanno insieme: separarle — o caricare un pacchetto senza il secondo file — lascia un
+       sito che si vede e non risponde a niente, senza un errore in pagina. *@
+    <script src="_framework/blazor.web.js" autostart="false"></script>
+    <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-riconnessione.js")"></script>
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-ui.js")"></script>
     @* Ora locale del lettore accanto agli orari UTC. Non serve riagganciarlo da vipi-boot.js: si tiene
        aggiornato da solo con un MutationObserver, che copre sia la navigazione «enhanced» sia i redisegni

@@ -1,6 +1,6 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 30 agosto 2026, pomeriggio (**§AB — la shape di un settore ha una porta sola**,
+**Ultimo aggiornamento:** 31 agosto 2026 (**ramo di consegna `consegna-20260831`**: §AC/§AD l'intro di pagina, **§AE la riconnessione del circuito**); prima, 30 agosto pomeriggio (**§AB — la shape di un settore ha una porta sola**,
 fusa in `main` e spinta; prima, i due rami di §AA e §E10. ⚠️ Tutto ciò che segue nella
 sezione «Dove siamo» è **storia**: i rami che vi si citano come «non fusi» sono in `main` e sono stati
 cancellati — vale il riquadro qui sotto).
@@ -9,17 +9,22 @@ cancellati — vale il riquadro qui sotto).
 
 > ### 🆕 LO STATO VERO, 30 agosto 2026 (sera) — questo riquadro batte tutto il resto del file
 >
+> 📦 **31 agosto 2026 — tutto quel che era fuori sta nel ramo di consegna `consegna-20260831`**, che parte
+> da `consegna-db-20260830` (il codice del pacchetto `j`, cioè quello online) e ci fonde sopra
+> **`intro-di-pagina`** (§AC l'intro, §AD «uscire non butta via») e **`riconnessione-circuito`** (§AE, le
+> quattro mosse contro «Attempting to reconnect to the server…»). **Nessuno dei due porta migrazioni**, che
+> dentro la finestra cieca è il punto: il pacchetto si consegna da solo via FTP. Versione **1.1.0**.
+>
+> ⚠️ **Il pacchetto porta un `.js` OBBLIGATORIO**: da qui in poi `blazor.web.js` parte con
+> `autostart="false"` e ad avviarlo è `vipi-riconnessione.js`. Un caricamento senza quel file — o con
+> l'indice `staticwebassets` scambiato senza i `.js` — dà un sito che **si vede intero e non risponde a
+> niente**, senza errori in pagina. Carta:
+> [`docs/feature/2026-08-31-riconnessione-circuito.md`](docs/feature/2026-08-31-riconnessione-circuito.md).
+>
 > ✅ **`main` è allineato con `origin/main`**, e il 30 agosto ci sono stati fusi e spinti, in quest'ordine:
 > **`biblioteca-allegati`** (§E10), **`spazi-aerei-aip`** (§AA) e **`shape-una-porta-sola`** (§AB,
 > quattordici commit); tutti e tre cancellati dopo la fusione. Dove più sotto si legge «non fuso», si sta
-> raccontando com'era quel giorno.
->
-> ⚠️ **Ma ci sono DUE rami con lavoro fuori da `main`**, e sono cose diverse:
-> **`consegna-db-20260830`** (undici commit, **SOLO LOCALE, da spingere**: il pacchetto della consegna a
-> Ivao.It) e **`intro-di-pagina`** (quattordici commit, **spinto e non fuso**: §AC l'intro di pagina e §AD la
-> verifica «uscire non butta via»; **nessuna migrazione**, suite e release verdi). I due **non si
-> sovrappongono**: il primo tocca `Directory.Build.props` e `deploy/`, il secondo `src/Vipi.Ui` e
-> `src/Vipi.Application`. ⚠️ Guardare `git branch --show-current` prima di committare.
+> raccontando com'era quel giorno. ⚠️ Guardare `git branch --show-current` prima di committare.
 >
 > ⚠️ **La trappola della fusione, che git non segnala.** I due rami dicevano tutti e due «16 voci nella
 > barra admin» perché ognuno ne aggiungeva **una** a quindici: git ha fuso due numeri identici senza

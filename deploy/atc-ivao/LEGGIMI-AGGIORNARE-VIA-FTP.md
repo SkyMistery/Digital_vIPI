@@ -148,6 +148,38 @@ ce n'era uno del 16 agosto 2026, rimasto per otto giorni.)
 |---|---|
 | `https://atc.it.ivao.aero/services/vsop` | la pagina si apre con gli ACC: LIRR, LIMM, LIBB |
 | Il login IVAO | entrate, e in alto compare il vostro nome |
+| Un tasto qualsiasi di una pagina (il selettore della lingua in alto, per esempio) | **deve rispondere.** Vedi l'avviso qui sotto: è l'unico modo di accorgersi del guasto che non lascia tracce |
+
+> ### ⚠️ Il guasto che si vede solo provando un tasto
+>
+> Dal pacchetto del 31 agosto 2026 la pagina **non avvia più Blazor da sola**: lo fa un file nostro,
+> `wwwroot/_content/Vipi.Ui/vipi-riconnessione.js`, e serve per poter scrivere i tempi di riconnessione.
+>
+> Se un caricamento porta i `.dll` **senza** i file di `wwwroot` — o scambia l'indice
+> `Vipi.Host.staticwebassets.endpoints.json` senza i `.js` che nomina, ed è già successo il 24 agosto —
+> il sito **si vede intero e non risponde a niente**: nessun errore in pagina, nessuna riga nei log, solo
+> tasti che non fanno nulla. Un controllo che guardi soltanto se le pagine si aprono **non lo vede**.
+>
+> Perciò: dopo ogni aggiornamento, premete **un** tasto e guardate che succeda qualcosa.
+
+### 9. Quanto spesso riparte il processo — `diagnostica/avvii.txt`
+
+Questo file non serve all'aggiornamento: serve **dopo**. Passenger spegne l'applicazione quando per un po'
+nessuno la usa e la rigenera alla richiesta successiva — è normale, e l'unica conseguenza è che chi aveva
+una pagina aperta la vede ricaricarsi da sola. Il file scrive **una riga per avvio e una per arresto**, in
+coda, e permette di distinguere quel caso da un'applicazione che invece **si rompe**:
+
+| Cosa leggete | Significa |
+|---|---|
+| poche righe, nelle ore vuote, ognuna con «il precedente si era spento in modo ordinato» | è Passenger: fisiologico, non c'è niente da fare |
+| tante righe, o raggruppate nelle ore di punta | qualcosa si rompe: mandatecelo |
+| una riga `AVVIO` con «⚠ il processo precedente NON si è spento in modo ordinato» | il processo di prima è **morto male** — crash, memoria esaurita, oppure una `.dll` sovrascritta mentre girava (vedi la regola in cima a questo foglio). Mandateci anche `avvio-errore.txt` |
+
+⚠️ **Una riga `AVVIO` «non ordinato» subito dopo un aggiornamento è attesa e non è un guasto**: è
+l'applicazione vecchia che è stata sostituita. Contano quelle che arrivano **nei giorni dopo**.
+
+ℹ️ Il file si pota da solo e non supera qualche centinaio di kilobyte: **non va cancellato**, ma se lo
+cancellate non si rompe niente — ricomincia da capo, e si perde solo la storia.
 
 ---
 

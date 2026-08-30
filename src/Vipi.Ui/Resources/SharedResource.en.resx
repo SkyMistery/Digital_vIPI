@@ -2967,4 +2967,9 @@
   <data name="Shape_None" xml:space="preserve"><value>none</value></data>
   <data name="Shape_NoneTitle" xml:space="preserve"><value>This position has no area: DEL and GND do not have one.</value></data>
   <data name="Shape_LimitsOverridden" xml:space="preserve"><value>overridden by the AIP</value></data>
+  <data name="Reconnect_Title" xml:space="preserve"><value>Connection lost</value></data>
+  <data name="Reconnect_Retrying" xml:space="preserve"><value>The link to the server dropped. Retrying on its own, without losing the page.</value></data>
+  <data name="Reconnect_Rejected" xml:space="preserve"><value>The server restarted: reloading the page.</value></data>
+  <data name="Reconnect_Failed" xml:space="preserve"><value>Cannot reconnect. Check your connection, then reload the page.</value></data>
+  <data name="Reconnect_Reload" xml:space="preserve"><value>Reload the page</value></data>
 </root>

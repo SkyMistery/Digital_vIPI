@@ -59,6 +59,13 @@ internal static class VipiStartup
         // builder, perché serva anche quando l'avvio muore più avanti: dice con QUALE configurazione ci ha provato.
         StartupDiagnostics.WriteConfigurationSummary(builder, segreti);
 
+        // ⚠️ RISCRITTO non vuol dire REGISTRATO: la riga qui sopra sovrascrive il suo file a ogni avvio, quindi
+        // dice quando è ripartito l'ULTIMO processo e mai quanti ce ne sono stati. Questa invece scrive in coda,
+        // una riga per avvio e una per arresto (l'aggancio allo spegnimento è più sotto, dopo builder.Build).
+        // È la misura che serve per sapere se «Attempting to reconnect…» sul browser è Passenger che spegne per
+        // inattività — fisiologico qui — o qualcosa che si rompe. Vedi RegistroAvvii.
+        RegistroAvvii.RegistraAvvio(VersioneBuild.Leggi().Dettaglio);
+
         // La password c'è davvero? Se manca, l'applicazione ripiegherebbe su un file SQLite vuoto e il sito
         // ripartirebbe con l'aria di aver perso i dati: il modo peggiore di sbagliare. Meglio non partire.
         SegretiFuoriDalWeb.EnsureConnessioneUsabile(
@@ -79,10 +86,44 @@ internal static class VipiStartup
                 // ⚠️ Numeri stimati sul traffico atteso (decine di persone, non migliaia): da rivedere dopo il primo
                 // ciclo AIRAC pubblicato dal server nuovo, quando ci sarà una misura al posto di una stima.
                 o.DisconnectedCircuitMaxRetained = 25;
-                o.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(2);
+
+                // ⚠️ Da 2 a 5 minuti il 31 agosto 2026, e la ragione è precisa: QUESTA finestra è l'unica cosa
+                // che distingue «mi si è staccato un attimo e ritrovo la pagina com'era» da «ricarico e riparto
+                // dall'inizio». Il circuito trattenuto conserva lo stato della pagina — la bozza dell'editor
+                // compresa — e il browser, con i tempi di riconnessione scritti in App.razor, continua a
+                // ritentare per circa quattro minuti: una retention di due li rendeva inutili, perché a metà dei
+                // tentativi non c'era più niente da riagganciare.
+                //
+                // ⚠️ Non serve a niente quando a morire è il PROCESSO (Passenger che spegne per inattività): lì
+                // i circuiti trattenuti muoiono con lui, e l'unica via d'uscita è ricaricare la pagina — cosa
+                // che il gestore di riconnessione in App.razor fa da solo. Vale per i buchi di rete, che sono
+                // l'altra metà dei casi.
+                o.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(5);
 
                 // Scritto, non ereditato: con true le eccezioni non gestite arrivano al browser con lo stack.
                 o.DetailedErrors = builder.Environment.IsDevelopment();
+            })
+            // I tempi del canale SignalR sotto il circuito. I default (30 s di attesa del client, keep-alive
+            // ogni 15 s) sono tarati su una rete diretta; qui in mezzo ci sono Cloudflare e nginx, e ogni
+            // apparato che sta nel mezzo chiude le connessioni che tacciono.
+            .AddHubOptions(o =>
+            {
+                // Quanto il server aspetta un segno di vita dal browser prima di dichiarare morto il circuito.
+                // Raddoppiato: un telefono che cambia cella o un portatile che si risveglia stanno zitti più di
+                // trenta secondi, e con il default quella pausa costava una pagina intera.
+                o.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
+
+                // Il polso che il server manda quando non ha nient'altro da dire. ⚠️ Deve restare ben sotto la
+                // metà del timeout appena scritto — è la regola di SignalR — e sotto la soglia di inattività di
+                // chi sta nel mezzo: è questo traffico, e solo questo, che impedisce a un proxy di chiudere un
+                // WebSocket aperto su una pagina che nessuno sta toccando.
+                o.KeepAliveInterval = TimeSpan.FromSeconds(15);
+
+                // La stretta di mano iniziale: 15 s di default. Il primo visitatore dopo una pausa di Passenger
+                // la paga mentre il processo sta ancora finendo di avviarsi (~1,3 s misurati, ma su un host
+                // condiviso il picco è un'altra cosa). Trenta secondi tolgono di mezzo il caso in cui la prima
+                // visita della giornata fallisce e la seconda va.
+                o.HandshakeTimeout = TimeSpan.FromSeconds(30);
             });
 
         // Compressione asset di testo (CSS/JS/SignalR). NIENTE text/event-stream: la rotta SSE /vsop/live/atc
@@ -151,6 +192,12 @@ internal static class VipiStartup
 
         var app = builder.Build();
         crono.Segna("builder.Build");
+
+        // L'altra metà del registro degli avvii. È l'ASSENZA di questa riga a raccontare il crash: uno
+        // spegnimento per inattività passa di qui (Passenger manda il segnale e l'host chiude in ordine), un
+        // processo ucciso o esploso no. Su ApplicationStopping e non su ApplicationStopped: il secondo arriva
+        // dopo la chiusura dei servizi, e su un host che tronca lo spegnimento può non arrivare affatto.
+        app.Lifetime.ApplicationStopping.Register(RegistroAvvii.RegistraArresto);
 
         // Dietro il proxy TLS di Fly.io/Render (TLS al bordo, HTTP interno): fidati di X-Forwarded-Proto/For così
         // UseHttpsRedirection non entra in loop e OIDC costruisce il redirect_uri in https. KnownIPNetworks/Proxies
