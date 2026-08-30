@@ -15,7 +15,7 @@
 > shape vuote del 26 agosto con un vestito nuovo. Per questo in §3d non è una raccomandazione ma una **firma
 > di metodo**.
 
-**Stato:** 🟡 target in bozza · **owner ha approvato il target il 30 agosto 2026** · esecuzione S0→S11.
+**Stato:** 🟡 **in esecuzione** · target approvato dall'owner il 30 agosto 2026 · S0→S7 fatte, vedi §4.
 
 ---
 
@@ -163,12 +163,23 @@ public sealed record SectorShape(
 
 Tre regole, in un posto solo:
 
-1. **Precedenza**: se esiste un aggancio risolto → i pezzi `Aip`. Altrimenti i pezzi `InForce` della fonte del
-   settore (`Sectorfile` se c'è, `Source` altrimenti, `Synthetic` per il ripiego TWR).
-2. **L'assenza non cancella**: zero pezzi utilizzabili → si scende alla fonte sotto, mai a «nessuna forma». Un
-   aggancio scoperto lascia `UncoveredKeys` pieno e la pagina lo dice.
-3. **Le quote seguono l'anello**, sempre. Nessun inviluppo: chi ha bisogno di una banda sola (il 3D di oggi) se
-   la calcola sapendo che sta approssimando.
+1. **La precedenza**, quattro gradini — ⚠️ **corretta in esecuzione da un test rosso**: la prima stesura metteva
+   i pezzi dell'AIP sopra il catalogo, e così l'ATZ automatica avrebbe scavalcato il **sectorfile**, che è fonte
+   primaria per decisione del committente (*«l'AIP solo se non ce l'hai»*, 29 agosto 2026).
+
+   | # | Gradino | Perché lì |
+   |---|---|---|
+   | 1 | **L'aggancio all'AIP**, risolto sul caricamento in vigore | è il gesto di una **persona** |
+   | 2 | Una shape **vera** del catalogo (sectorfile o anagrafica) | fonte primaria |
+   | 3 | I **pezzi in archivio** (`SectorShapeParts`: oggi l'ATZ automatica) | ripiego |
+   | 4 | Il **cerchio sintetico** da 5 NM in colonna | ripiego dell'ultimo minuto |
+
+   «Vera» vuol dire *non `IsShapeSynthetic`*. Il gate AIRAC vale sui gradini 2 e 4: durante il congelamento di
+   una release danno la geometria in vigore **a quel ciclo**, non l'ultima disegnata.
+2. **L'assenza non cancella**: un gradino che non dà niente fa scendere a quello sotto, mai a «nessuna forma».
+   Un aggancio scoperto lascia `UncoveredKeys` pieno e la pagina lo dice.
+3. **Le quote seguono l'anello**, sempre. Nessun inviluppo: chi ha bisogno di una banda sola (la legenda, o
+   l'ordinamento fra due volumi che si contendono un aeroplano) se la calcola sapendo che sta approssimando.
 
 ### 3d. La porta di scrittura non sa esprimere la violazione (🔸7)
 
@@ -231,7 +242,7 @@ continua a congelare; la vIPI e la vLOA restano documenti derivati. Cambia **da 
 | S0 | Questa carta + riscrittura della §6-bis di §AA, che oggi dice l'opposto | — | prima della consegna |
 | S1 | Test di **caratterizzazione** sui quattro motori, coi dati del `vipi.db` vero | — | prima |
 | S2 | `SectorShapeParts` + `ShapePartState` + repository con le due firme di §3d + i **tre test della regola d'oro** | **1** | prima |
-| S3 | Backfill: i cataloghi diventano pezzi `Source`/`Sectorfile`/`Synthetic`; le 13 ATZ diventano pezzi `Aip` **con l'aggancio** (⚠️3 chiuso) | (nella S2) | prima |
+| S3 | L'**ATZ delle torri** smette di abitare la colonna e diventa un insieme di pezzi `Aip` (⚠️3 chiuso): reversibile, N zone, e con le **quote** che il cerchio non aveva. ⚠️ Le colonne del catalogo restano dove sono fino a S11, e il risolutore le legge di lì | — | prima |
 | S4 | `SectorVolumeSet`: geometria a N pezzi, pura, test-first | — | prima |
 | S5 | `ISectorShapeResolver` + implementazione EF | — | prima |
 | S6 | AoR ACC + APP passano dal risolutore (comportamento invariato, un percorso solo invece di due) | — | prima |
@@ -240,6 +251,23 @@ continua a congelare; la vIPI e la vLOA restano documenti derivati. Cambia **da 
 | S9 | **Traffico**: risolutore + N pezzi + invalidazione della cache + timbro della fonte | **1** | **dopo** |
 | S10 | **Confinanti**: risolutore + adiacenza su un pezzo qualunque + ricalcolo al bind/unbind | — | **dopo** |
 | S11 | Pulizia: le colonne gemelle del gate escono di scena | **1**, differita | **un rilascio dopo** |
+
+### Stato dell'esecuzione — 30 agosto 2026
+
+✅ **S0 · S1 · S2 · S3 · S4 · S5 · S6 · S7 fatte**, ramo `shape-una-porta-sola`, un commit per slice.
+🟡 Resta **S8** (provenienza a schermo) prima della consegna; **S9**, **S10** e **S11** dopo.
+
+Quel che è cambiato rispetto alla carta, e perché:
+
+- **§3c**: la precedenza è di **quattro** gradini, non tre (vedi sopra). L'ha imposta un test rosso, non un
+  ripensamento: `Il_Sectorfile_Si_Riprende_Una_Torre_Che_Laip_Aveva_Riempito`.
+- **S3**: l'ATZ scrive **pezzi**, non un aggancio. Un aggancio è la scelta di una persona e sta al primo
+  gradino; l'ATZ automatica è un ripiego e deve stare sotto il sectorfile.
+- **La tabella `SectorShapeParts` ha già un abitante** (l'ATZ). Le colonne del catalogo restano al loro posto
+  fino a S11: fino ad allora il risolutore le legge come quarto e secondo gradino.
+- **`AppAorPolygon`** ha guadagnato `LowerFl`/`UpperFl` — in coda e facoltativi, perché gli snapshot di
+  release già congelati non li hanno e devono continuare a leggersi — e il viewer 3D estrude **ogni anello**
+  alla sua quota (`ringFl`).
 
 ⚠️ **S9 e S10 stanno dopo la consegna del 1° settembre** per una ragione sola: cambiano **dati derivati** e
 sbagliano **senza che si veda a schermo**. Un settore che rivendica meno cielo produce numeri più bassi, e
