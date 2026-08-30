@@ -1,0 +1,154 @@
+@page "/services/airspace"
+@layout SopLayout
+@rendermode InteractiveServer
+@using Vipi.Application.Airspace
+@using Vipi.Application.Aor
+@using Vipi.Application.Content
+@using Vipi.Domain
+@using Vipi.Ui.Components.App
+@inject IAirspaceCatalog Catalogo
+@inject ISectorShapeRepository Settori
+@inject IStringLocalizer<SharedResource> L
+
+@* Gli spazi aerei su una mappa sola: i settori nostri e i volumi dell'AIP, insieme (decisione 4 del
+   committente, 29 agosto 2026).
+
+   ⚠️ Pubblica, e quindi l'ATTRIBUZIONE va scritta: il file porta un disclaimer esplicito e vieta l'uso
+   commerciale del dato. Sta in fondo, dove il dato si vede.
+
+   ⚠️ Le famiglie si accendono UNA PER VOLTA, e non è una scelta estetica: le sole famiglie utilizzabili sono
+   362 volumi e 31 613 punti, e mandarli tutti al primo caricamento vorrebbe dire ~620 KB di JSON per una
+   pagina che si apre. Chi arriva vede i CTR, e aggiunge quel che gli serve.
+
+   ⚠️ Le aree regolamentate (R, P, D) NON stanno qui: vengono dal catalogo IVAO e si vedono nella sezione
+   «Aree regolamentate» dei documenti. È la decisione 3, e la pagina lo dice invece di lasciare la domanda. *@
+
+<PageTitle>@L["Asp_PubTitle"] · vIPI IVAO Italy</PageTitle>
+
+<div class="wrap">
+    <div class="doc-head">
+        <h1 class="page-h1">@L["Asp_PubTitle"]</h1>
+        <HelpHint Href="/services/vsop/guide#spazi-aerei" AriaLabel="@L["Asp_PubTitle"]" ExtraClass="wide">
+            <p style="margin:0 0 6px">@L["Asp_PubSubtitle"]</p>
+            @((MarkupString)L["Asp_PubIntro"].Value)
+        </HelpHint>
+    </div>
+
+    @if (_corrente is null)
+    {
+        <div class="callout"><span class="cic">🗺️</span><div>@L["Asp_PubEmpty"]</div></div>
+    }
+    else
+    {
+        <section class="panel">
+            <div class="struct-bar asp-pub-bar">
+                <span class="muted">@L["Asp_PubShow"]</span>
+
+                @* I settori nostri: una chip a sé, perché non sono una famiglia dell'AIP ma l'altro archivio. *@
+                <button type="button" class="sh-chip @(_mostraSettori ? "on" : "")"
+                        disabled="@_busy" @onclick="AlternaSettori">
+                    @L["Asp_PubOurSectors"] <span class="chip-n">@_settori.Count</span>
+                </button>
+
+                @foreach (var f in AirspaceFamilies.Usable)
+                {
+                    var famiglia = f;
+                    var quanti = _perFamiglia.GetValueOrDefault(famiglia);
+                    if (quanti == 0) continue;
+                    <button type="button" class="sh-chip @(_famiglie.Contains(famiglia) ? "on" : "")"
+                            disabled="@_busy" @onclick="() => AlternaAsync(famiglia)">
+                        @Nome(famiglia) <span class="chip-n">@quanti</span>
+                    </button>
+                }
+
+                @if (_busy)
+                {
+                    <span class="st-msg prog"><span class="spin"></span><span class="st-msg-t">@L["Asp_PubLoading"]</span></span>
+                }
+            </div>
+
+            @* ⚠️ La chiave del riquadro cambia con la selezione: senza, Blazor riuserebbe il nodo e la mappa
+               resterebbe quella di prima — è la stessa trappola del `@key` in AccAor. *@
+            <AccAor @key="Firma()" View="_vista" Id="spazi-aerei" BlockClass="aor-many"
+                    ConfigLabel="@L["Asp_PubPreset"]" />
+
+            <p class="muted asp-scope">@L["Asp_PubRegulated"]</p>
+        </section>
+
+        <p class="muted asp-credit">
+            @L["Asp_Attribution"]
+            @if (_corrente.AiracCycle is { } ciclo)
+            {
+                <text> · AIRAC @ciclo</text>
+            }
+        </p>
+    }
+</div>
+
+@code {
+    private AirspaceImportRow? _corrente;
+    private IReadOnlyDictionary<AirspaceFamily, int> _perFamiglia = new Dictionary<AirspaceFamily, int>();
+    private readonly HashSet<AirspaceFamily> _famiglie = new();
+    private readonly List<AirspaceVolumeRow> _volumi = new();
+    private IReadOnlyList<SectorShapeRow> _settori = Array.Empty<SectorShapeRow>();
+    private bool _mostraSettori;
+    private AccAorView _vista = AccAorView.Empty;
+    private bool _busy;
+
+    /// <summary>La famiglia che si accende all'apertura: è quella che la richiesta riguardava.</summary>
+    private const AirspaceFamily Prima = AirspaceFamily.Ctr;
+
+    // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su InteractiveServer il secondo gira una volta sola.
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_corrente is not null) return;   // già caricata: il rendering successivo non rifà tutto
+
+        _corrente = await Catalogo.GetCurrentAsync();
+        if (_corrente is null) return;
+
+        _perFamiglia = await Catalogo.CountByFamilyAsync();
+        _settori = (await Settori.ListShapeCandidatesAsync())
+            .Where(s => s.HasUsableShape)
+            .OrderBy(s => s.Callsign, StringComparer.OrdinalIgnoreCase).ToList();
+
+        if (_perFamiglia.GetValueOrDefault(Prima) > 0) await AlternaAsync(Prima);
+        else Ricomponi();
+    }
+
+    /// <summary>
+    /// Accende o spegne una famiglia. ⚠️ I volumi si chiedono <b>solo quando servono</b> e restano poi in
+    /// memoria di circuito: riaccendere una famiglia già vista non ripassa dal database.
+    /// </summary>
+    private async Task AlternaAsync(AirspaceFamily f)
+    {
+        _busy = true;
+        try
+        {
+            if (!_famiglie.Remove(f))
+            {
+                _famiglie.Add(f);
+                if (!_volumi.Any(v => v.Family == f))
+                    _volumi.AddRange(await Catalogo.ListVolumesAsync(
+                        new AirspaceVolumeQuery(Families: [f], Take: 2000)));
+            }
+            Ricomponi();
+        }
+        finally { _busy = false; }
+    }
+
+    private void AlternaSettori()
+    {
+        _mostraSettori = !_mostraSettori;
+        Ricomponi();
+    }
+
+    private void Ricomponi() => _vista = AirspaceMap.Build(
+        _mostraSettori ? _settori : Array.Empty<SectorShapeRow>(),
+        _volumi.Where(v => _famiglie.Contains(v.Family)).ToList());
+
+    /// <summary>Che cosa è acceso adesso: cambia quando cambia la mappa, e non prima.</summary>
+    private string Firma() =>
+        (_mostraSettori ? "s" : "") + string.Join(",", _famiglie.OrderBy(f => (int)f));
+
+    private string Nome(AirspaceFamily f) => L[$"Asp_Fam_{f}"];
+}

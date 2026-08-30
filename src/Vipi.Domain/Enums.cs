@@ -321,6 +321,18 @@ public enum ShapeSource
 
     /// <summary>Cerchio di ripiego generato da noi (solo TWR). Nessun gate: non è un confine.</summary>
     Synthetic,
+
+    /// <summary>
+    /// Spazio aereo dell'<b>AIP</b>, dal file caricato a mano (l'ATZ di una torre senza area).
+    /// <b>Nessun gate</b>: l'AIP descrive quel che è <b>già pubblicato</b>, a differenza del sectorfile che
+    /// scriviamo noi in anticipo sul ciclo.
+    ///
+    /// <para>⚠️ <b>In coda</b>, come ogni valore nuovo: nel payload di release gli enum sono <b>ordinali</b>,
+    /// e infilarne uno in mezzo rinumera tutti quelli dopo.</para>
+    /// <para>Serve a due cose che senza non si potrebbero fare: <b>riconoscere</b> una shape nostra da
+    /// aggiornare quando il file cambia, e lasciare che il sectorfile e l'anagrafica se la riprendano.</para>
+    /// </summary>
+    Aip,
 }
 
 /// <summary>

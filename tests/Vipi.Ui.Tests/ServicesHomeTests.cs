@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Auth;
@@ -65,7 +65,8 @@ public class ServicesHomeTests : TestContext
         var indirizzi = cut.FindAll("a.choice").Select(a => a.GetAttribute("href")).ToList();
 
         Assert.Equal(
-            new[] { "/services/vsop", "/services/vsop/mil", "/services/stats", "/services/profile-swapper", "/services/coordinates" },
+            new[] { "/services/vsop", "/services/vsop/mil", "/services/stats", "/services/airspace",
+                    "/services/profile-swapper", "/services/coordinates" },
             indirizzi);
     }
 

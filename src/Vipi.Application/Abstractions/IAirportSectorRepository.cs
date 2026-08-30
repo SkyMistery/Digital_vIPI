@@ -1,4 +1,6 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
+
+using Vipi.Domain;
 
 namespace Vipi.Application.Abstractions;
 
@@ -54,6 +56,14 @@ public interface IAirportSectorRepository
     /// È un poligono vero (non un cerchio), quindi il fallback tondo non deve poi rimpiazzarlo.</summary>
     Task SetRealShapeAsync(int sectorId, string polygonJson, CancellationToken ct = default);
 
+    /// <summary>
+    /// Scrive la shape presa dall'<b>AIP</b> (l'ATZ di una torre): reale, non sintetica, e marcata
+    /// <see cref="ShapeSource.Aip"/>.
+    /// <para>⚠️ Il marchio non è cosmesi: è quel che permette al giro successivo di <b>aggiornarla</b> quando
+    /// il file cambia, e al sectorfile e all'anagrafica di <b>riprendersela</b> — la loro è meglio.</para>
+    /// </summary>
+    Task SetAipShapeAsync(int sectorId, string polygonJson, CancellationToken ct = default);
+
     /// <summary>Poligoni grezzi NON sintetici di tutti i settori d'aeroporto (per ICAO), per derivare un centro di
     /// ripiego dal poligono di un settore fratello (es. APP) quando le coordinate aeroporto non sono note.</summary>
     Task<IReadOnlyList<AirportPolygonRow>> ListNonSyntheticPolygonsAsync(CancellationToken ct = default);
@@ -61,7 +71,7 @@ public interface IAirportSectorRepository
 
 /// <summary>Riga di lavoro per il fallback shape TWR: settore (+ callsign per il match GitHub) + coord aeroporto
 /// (null = ignote) + poligono grezzo attuale + se la shape attuale è sintetica (cerchio di ripiego).</summary>
-public sealed record TwrShapeRow(int SectorId, string ComposePosition, string AirportIcao, double? Latitude, double? Longitude, string? RawPolygon, bool IsShapeSynthetic);
+public sealed record TwrShapeRow(int SectorId, string ComposePosition, string AirportIcao, double? Latitude, double? Longitude, string? RawPolygon, bool IsShapeSynthetic, ShapeSource ShapeSource);
 
 /// <summary>Poligono grezzo di un settore d'aeroporto (per derivare un centro di ripiego).</summary>
 public sealed record AirportPolygonRow(string AirportIcao, string RawPolygon);

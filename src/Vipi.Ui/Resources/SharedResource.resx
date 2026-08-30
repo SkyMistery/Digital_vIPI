@@ -2844,4 +2844,31 @@
   <data name="Asp_UnbindPrompt" xml:space="preserve"><value>«{0}» torna a disegnare la forma di IVAO?</value></data>
   <data name="Asp_Unbound" xml:space="preserve"><value>{0} è tornato alla forma di IVAO.</value></data>
   <data name="Asp_Missing" xml:space="preserve"><value>{0} agganci senza volume nel file in vigore</value></data>
+  <data name="Conv_FromCatalog" xml:space="preserve"><value>Oppure prendi un'area dal catalogo</value></data>
+  <data name="Conv_FromCatalogPick" xml:space="preserve"><value>Scegli un'area…</value></data>
+  <data name="Asp_NavReport" xml:space="preserve"><value>Radioassistenze: AIP contro anagrafica</value></data>
+  <data name="Asp_NavReportScope" xml:space="preserve"><value>Il confronto SEGNALA e basta: le correzioni si fanno nel sectorfile, e da lì si reimportano. Nessun valore dell'anagrafica viene toccato.</value></data>
+  <data name="Asp_NavReportRun" xml:space="preserve"><value>Confronta con l'anagrafica</value></data>
+  <data name="Asp_NavReportNone" xml:space="preserve"><value>Nessuna differenza: l'AIP e l'anagrafica dicono la stessa cosa.</value></data>
+  <data name="Asp_NavWhat" xml:space="preserve"><value>Che cosa</value></data>
+  <data name="Asp_NavCode" xml:space="preserve"><value>Codice</value></data>
+  <data name="Asp_NavAip" xml:space="preserve"><value>Dice l'AIP</value></data>
+  <data name="Asp_NavOurs" xml:space="preserve"><value>Dice l'anagrafica</value></data>
+  <data name="Asp_Nav_SoloNellAip" xml:space="preserve"><value>Solo nell'AIP</value></data>
+  <data name="Asp_Nav_SoloInAnagrafica" xml:space="preserve"><value>Solo in anagrafica</value></data>
+  <data name="Asp_Nav_FrequenzaDiversa" xml:space="preserve"><value>Frequenza diversa</value></data>
+  <data name="Asp_Nav_CanaleDiverso" xml:space="preserve"><value>Canale diverso</value></data>
+  <data name="Asp_Nav_PosizioneDiversa" xml:space="preserve"><value>Posizione diversa</value></data>
+  <data name="Asp_Nav_TipoMancante" xml:space="preserve"><value>Tipo non scritto</value></data>
+  <data name="Asp_Nav_DaGuardareAMano" xml:space="preserve"><value>Da guardare a mano</value></data>
+  <data name="Asp_PubTitle" xml:space="preserve"><value>Spazi aerei</value></data>
+  <data name="Asp_PubSubtitle" xml:space="preserve"><value>I confini dell'AIP e i settori nostri, sulla stessa mappa.</value></data>
+  <data name="Asp_PubIntro" xml:space="preserve"><value>&lt;p style='margin:0 0 6px'&gt;Accendi una famiglia per volta: CTR, CTA, TMA, ATZ, FIR, TMZ. La chip «settori» aggiunge le aree dei nostri enti, così si vedono a confronto.&lt;/p&gt;&lt;p style='margin:0'&gt;Le aree regolamentate (R, P, D) non stanno qui: vengono dal catalogo IVAO e si vedono nella sezione «Aree regolamentate» dei documenti.&lt;/p&gt;</value></data>
+  <data name="Asp_PubEmpty" xml:space="preserve"><value>Il catalogo degli spazi aerei non è ancora stato caricato.</value></data>
+  <data name="Asp_PubShow" xml:space="preserve"><value>Mostra:</value></data>
+  <data name="Asp_PubOurSectors" xml:space="preserve"><value>Settori nostri</value></data>
+  <data name="Asp_PubLoading" xml:space="preserve"><value>Carico…</value></data>
+  <data name="Asp_PubPreset" xml:space="preserve"><value>Solo:</value></data>
+  <data name="Asp_PubRegulated" xml:space="preserve"><value>Le aree regolamentate (R, P, D) e le altre aree vengono dal catalogo IVAO e si vedono nei documenti, non qui.</value></data>
+  <data name="Services_AirspaceDesc" xml:space="preserve"><value>I confini dell'AIP — CTR, CTA, TMA, ATZ, FIR — e i settori nostri, sulla stessa mappa.</value></data>
 </root>

@@ -2836,4 +2836,31 @@
   <data name="Asp_UnbindPrompt" xml:space="preserve"><value>Should “{0}” go back to drawing the IVAO shape?</value></data>
   <data name="Asp_Unbound" xml:space="preserve"><value>{0} is back to the IVAO shape.</value></data>
   <data name="Asp_Missing" xml:space="preserve"><value>{0} bindings with no volume in the file in force</value></data>
+  <data name="Conv_FromCatalog" xml:space="preserve"><value>Or take an area from the catalogue</value></data>
+  <data name="Conv_FromCatalogPick" xml:space="preserve"><value>Pick an area…</value></data>
+  <data name="Asp_NavReport" xml:space="preserve"><value>Navaids: AIP against our register</value></data>
+  <data name="Asp_NavReportScope" xml:space="preserve"><value>The comparison only REPORTS: fixes go into the sectorfile, and are imported from there. No register value is touched.</value></data>
+  <data name="Asp_NavReportRun" xml:space="preserve"><value>Compare with the register</value></data>
+  <data name="Asp_NavReportNone" xml:space="preserve"><value>No differences: the AIP and the register say the same thing.</value></data>
+  <data name="Asp_NavWhat" xml:space="preserve"><value>What</value></data>
+  <data name="Asp_NavCode" xml:space="preserve"><value>Code</value></data>
+  <data name="Asp_NavAip" xml:space="preserve"><value>The AIP says</value></data>
+  <data name="Asp_NavOurs" xml:space="preserve"><value>The register says</value></data>
+  <data name="Asp_Nav_SoloNellAip" xml:space="preserve"><value>Only in the AIP</value></data>
+  <data name="Asp_Nav_SoloInAnagrafica" xml:space="preserve"><value>Only in the register</value></data>
+  <data name="Asp_Nav_FrequenzaDiversa" xml:space="preserve"><value>Different frequency</value></data>
+  <data name="Asp_Nav_CanaleDiverso" xml:space="preserve"><value>Different channel</value></data>
+  <data name="Asp_Nav_PosizioneDiversa" xml:space="preserve"><value>Different position</value></data>
+  <data name="Asp_Nav_TipoMancante" xml:space="preserve"><value>Type not written</value></data>
+  <data name="Asp_Nav_DaGuardareAMano" xml:space="preserve"><value>To look at by hand</value></data>
+  <data name="Asp_PubTitle" xml:space="preserve"><value>Airspaces</value></data>
+  <data name="Asp_PubSubtitle" xml:space="preserve"><value>AIP boundaries and our own sectors, on the same map.</value></data>
+  <data name="Asp_PubIntro" xml:space="preserve"><value>&lt;p style='margin:0 0 6px'&gt;Turn on one family at a time: CTR, CTA, TMA, ATZ, FIR, TMZ. The «sectors» chip adds our own units' areas, so you can compare them.&lt;/p&gt;&lt;p style='margin:0'&gt;Regulated areas (R, P, D) are not here: they come from the IVAO catalogue and appear in the «Regulated areas» section of the documents.&lt;/p&gt;</value></data>
+  <data name="Asp_PubEmpty" xml:space="preserve"><value>The airspace catalogue has not been uploaded yet.</value></data>
+  <data name="Asp_PubShow" xml:space="preserve"><value>Show:</value></data>
+  <data name="Asp_PubOurSectors" xml:space="preserve"><value>Our sectors</value></data>
+  <data name="Asp_PubLoading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="Asp_PubPreset" xml:space="preserve"><value>Only:</value></data>
+  <data name="Asp_PubRegulated" xml:space="preserve"><value>Regulated areas (R, P, D) and the other areas come from the IVAO catalogue and appear in the documents, not here.</value></data>
+  <data name="Services_AirspaceDesc" xml:space="preserve"><value>AIP boundaries — CTR, CTA, TMA, ATZ, FIR — and our own sectors, on the same map.</value></data>
 </root>

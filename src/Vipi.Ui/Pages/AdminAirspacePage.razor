@@ -8,6 +8,7 @@
 @inject IAirspaceCatalog Catalogo
 @inject ISectorAirspaceBindings Agganci
 @inject Vipi.Application.Content.ISectorShapeRepository Settori
+@inject Vipi.Application.Abstractions.INavaidCatalog Radioassistenze
 @inject IStringLocalizer<SharedResource> L
 
 @* Gli spazi aerei dell'AIP: il caricamento del file e il catalogo che ne esce (carta del 29 agosto 2026).
@@ -299,6 +300,54 @@
             </div>
         }
 
+        <div class="block">
+            <h2 class="h-sect">
+                @L["Asp_NavReport"]&nbsp;<span class="pill">@_rapporto.Count</span>
+            </h2>
+            @* ⚠️ La riga che dice a che cosa serve, e che cosa NON fa. Il committente e' stato esplicito: si
+               segnala, e la correzione si fa nel SECTORFILE — da cui poi si reimporta. Un tasto «applica» qui
+               farebbe nascere le radioassistenze da un secondo posto, che e' la seconda anagrafica che il
+               modello ha gia' pagato una volta. *@
+            <p class="muted asp-scope">@L["Asp_NavReportScope"]</p>
+
+            @if (!_rapportoFatto)
+            {
+                <button type="button" class="btn ghost" disabled="@_busy" @onclick="Confronta">
+                    <Icon Name="radio" Size="14" /> @L["Asp_NavReportRun"]
+                </button>
+            }
+            else if (_rapporto.Count == 0)
+            {
+                <p class="muted">@L["Asp_NavReportNone"]</p>
+            }
+            else
+            {
+                <table class="res-table asp-nav">
+                    <thead>
+                        <tr>
+                            <th>@L["Asp_NavWhat"]</th>
+                            <th>@L["Asp_NavCode"]</th>
+                            <th>@L["Asp_NavAip"]</th>
+                            <th>@L["Asp_NavOurs"]</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in _rapporto.Take(200))
+                        {
+                            <tr>
+                                <td>@Nome(d.Kind)</td>
+                                <td class="c-nowrap"><b>@d.Code</b> <span class="muted">@d.Family</span></td>
+                                <td>@(d.Aip ?? "—")</td>
+                                <td>@(d.Nostro ?? "—")</td>
+                                <td class="muted">@d.Nota</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+
         @* ⚠️ L'attribuzione non è cortesia: il file porta un disclaimer esplicito e vieta l'uso commerciale
            del dato. Sta dove il dato si vede — qui, e nelle mappe pubbliche che ne mostrano un confine. *@
         <p class="muted asp-credit">@L["Asp_Attribution"]</p>
@@ -320,6 +369,8 @@
     private IReadOnlyList<Vipi.Application.Content.SectorShapeRow> _settori =
         Array.Empty<Vipi.Application.Content.SectorShapeRow>();
     private string _settore = "";
+    private IReadOnlyList<NavaidDiff> _rapporto = Array.Empty<NavaidDiff>();
+    private bool _rapportoFatto;
     private string _cerca = "";
     private string _ciclo = "";
     private string? _messaggio;
@@ -399,6 +450,29 @@
             await RicaricaAsync();
             _ok = true;
             _messaggio = string.Format(L["Asp_Bound"].Value, pezzi[2], volumi.Count);
+        }
+        finally { _busy = false; }
+    }
+
+    /// <summary>
+    /// Il confronto fra le radioassistenze dell'AIP e la nostra anagrafica. ⚠️ Si preme, non gira da solo:
+    /// rilegge il KMZ in archivio (1,3 MB da spacchettare) e il suo esito non serve a nessuna pagina finché
+    /// qualcuno non lo chiede.
+    /// </summary>
+    private async Task Confronta()
+    {
+        if (_corrente is null) return;
+
+        _busy = true;
+        try
+        {
+            var file = await Catalogo.GetFileAsync(_corrente.Id);
+            if (file is null) return;
+
+            using var flusso = new MemoryStream(file.Value.Content);
+            var daAip = AirspaceNavaidReader.LeggiKmz(flusso);
+            _rapporto = NavaidAipReport.Confronta(daAip, await Radioassistenze.ListAsync());
+            _rapportoFatto = true;
         }
         finally { _busy = false; }
     }
@@ -507,4 +581,6 @@
     private string Nome(AirspaceFamily f) => L[$"Asp_Fam_{f}"];
 
     private string Nome(AirspaceIssueKind k) => L[$"Asp_Issue_{k}"];
+
+    private string Nome(NavaidDiffKind k) => L[$"Asp_Nav_{k}"];
 }
