@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 30 agosto 2026 (**I DUE RAMI SONO FUSI IN `main`, CHE È STATO SPINTO** — `biblioteca-allegati` (§E10) e `spazi-aerei-aip` (§AA), in quest'ordine. Sette conflitti, e la regola era quasi sempre «servono tutti e due»: registrazioni DI, DbSet, voce nella barra admin, chiavi di traduzione. ⚠️ **L'eccezione non l'ha segnalata git**: i due rami dicevano tutti e due «16 voci nella barra admin» perché ognuno ne aggiungeva UNA a quindici — fuse sono **DUE**, quindi 17 e 12 — e git ha fuso due numeri identici senza chiamarlo conflitto. Se n'è accorto solo `AdminNavTests`. ⚠️ I due **ModelSnapshot** git li ha fusi da solo e stavolta bene: la prova non è che i nomi ci siano ma che una migrazione di prova esca **VUOTA**, e su tutti e due i provider lo è. **Release verde e quindici assiemi su quindici verdi DOPO la fusione.** ⚠️ Le migrazioni in coda al cutover MariaDB sono ora **TRENTAQUATTRO**. ✅ **R8 CHIUSO**: l'embed provato dal vivo con due PDF veri del committente — il documento si vede davvero nel riquadro. ⚠️ E ha trovato che in `frame-src` mancava **`'self'`**: l'iframe punta alla NOSTRA rotta, non a Drive, e col solo Drive il riquadro sarebbe rimasto vuoto al passaggio a CSP vera. ⚠️ Più un difetto in produzione: la colonna versione della biblioteca stampava `v@r.VersionNumber` alla lettera, che è la regola di Razor per gli indirizzi email) · **Aggiornato:** 29 agosto 2026, notte (**§E10 — LA BIBLIOTECA ALLEGATI, TUTTE E NOVE LE SLICE FATTE**, ramo
+**Aggiornato:** 30 agosto 2026, pomeriggio (**§AB — LA SHAPE DI UN SETTORE HA UNA PORTA SOLA**, carta [refactor/15](refactor/15-shape-del-settore-una-porta-sola.md), **S0→S10 fuse in `main` in locale** (merge `--no-ff`, quattordici commit) — ⚠️ **il push su `main` NON è stato fatto**: lo blocca il classificatore sul branch di default, e va dato a mano. Un settore agganciato agli spazi aerei dell'AIP **disegnava** quel confine e **rivendicava** il traffico dentro il monoblocco di IVAO: sei motori, due lo sapevano. Adesso la forma — **anello E quote insieme** — si chiede a `ISectorShapeResolver`, e le quote stanno **DENTRO il pezzo**, così «laterale da una fonte, verticale da un'altra» non è una cosa da evitare ma una cosa che **non si può scrivere**. ⚠️ La **prova dal vivo**: agganciato `LIRR_EW_CTR` — in frequenza — alla FIR ROMA `GND→FL195`, in **un giro del poller** le tratte nuove sono uscite col timbro `Aip` e i quattro voli **sopra FL195** hanno smesso di essere rivendicati. ⚠️ **S11 resta fuori**: non è una slice, è la seconda metà della cura — otto siti di scrittura e il percorso del **congelamento di release** — e non si fa il giorno prima della consegna (§4-bis della carta). ⚠️ Migrazioni in coda: **TRENTASEI**) · **Aggiornato:** 30 agosto 2026 (**I DUE RAMI SONO FUSI IN `main`, CHE È STATO SPINTO** — `biblioteca-allegati` (§E10) e `spazi-aerei-aip` (§AA), in quest'ordine. Sette conflitti, e la regola era quasi sempre «servono tutti e due»: registrazioni DI, DbSet, voce nella barra admin, chiavi di traduzione. ⚠️ **L'eccezione non l'ha segnalata git**: i due rami dicevano tutti e due «16 voci nella barra admin» perché ognuno ne aggiungeva UNA a quindici — fuse sono **DUE**, quindi 17 e 12 — e git ha fuso due numeri identici senza chiamarlo conflitto. Se n'è accorto solo `AdminNavTests`. ⚠️ I due **ModelSnapshot** git li ha fusi da solo e stavolta bene: la prova non è che i nomi ci siano ma che una migrazione di prova esca **VUOTA**, e su tutti e due i provider lo è. **Release verde e quindici assiemi su quindici verdi DOPO la fusione.** ⚠️ Le migrazioni in coda al cutover MariaDB sono ora **TRENTAQUATTRO**. ✅ **R8 CHIUSO**: l'embed provato dal vivo con due PDF veri del committente — il documento si vede davvero nel riquadro. ⚠️ E ha trovato che in `frame-src` mancava **`'self'`**: l'iframe punta alla NOSTRA rotta, non a Drive, e col solo Drive il riquadro sarebbe rimasto vuoto al passaggio a CSP vera. ⚠️ Più un difetto in produzione: la colonna versione della biblioteca stampava `v@r.VersionNumber` alla lettera, che è la regola di Razor per gli indirizzi email) · **Aggiornato:** 29 agosto 2026, notte (**§E10 — LA BIBLIOTECA ALLEGATI, TUTTE E NOVE LE SLICE FATTE**, ramo
 `biblioteca-allegati` **spinto e NON fuso**. I PDF non possono stare da noi — il piano di hosting non ammette
 il formato, ed è un vincolo **contrattuale** — quindi stanno sul **Drive di divisione**, e da noi stanno
 identità, organizzazione, versioni e il registro dei link. Il documento cita uno **slug** e passa da
@@ -175,12 +175,14 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 **Riscritto il 30 agosto 2026**, con le cifre **contate**. È la sezione da leggere per prima quando si
 riprende senza contesto: dice dov'è il codice, cosa manca e cosa va fatto *prima* del prossimo deploy.
 
-✅ **NON C'È NESSUN RAMO CON LAVORO FUORI.** `main` = **`8b554dca`** (l'ultimo commit di CODICE; i
-commit di documentazione che seguono lo spostano), spinto. Il 30 agosto sono stati fusi i
-due che c'erano, in quest'ordine: **`biblioteca-allegati`** (§E10) e **`spazi-aerei-aip`** (§AA), poi
-cancellati da locale e da `origin`. **Release verde e quindici assiemi su quindici verdi DOPO la fusione**,
-E2E compresi; le migrazioni si applicano in ordine su una copia del `vipi.db` vero, e otto pagine su otto
-rispondono 200.
+✅ **NON C'È NESSUN RAMO CON LAVORO FUORI**, ma ⚠️ **`main` È AVANTI A `origin/main`**: la fusione di
+§AB (carta [refactor/15](refactor/15-shape-del-settore-una-porta-sola.md), quattordici commit) è stata fatta
+**in locale** e il **push non è partito** — lo blocca il classificatore sul branch di default. È la prima
+cosa da fare: `git push origin main`.
+
+Il 30 agosto sono stati fusi, in quest'ordine: **`biblioteca-allegati`** (§E10), **`spazi-aerei-aip`**
+(§AA) — tutti e due già spinti — e **`shape-una-porta-sola`** (§AB), che aspetta il push. **Release verde e
+nove assiemi su nove verdi DOPO l'ultima fusione**, E2E compresi (255).
 
 ⚠️ **La trappola della fusione, che git non segnala.** I due rami dicevano tutti e due «16 voci nella barra
 admin» perché ognuno ne aggiungeva **una** a quindici. Git ha fuso due numeri identici senza chiamarlo un
@@ -190,6 +192,13 @@ solo `AdminNavTests`. ⚠️ I due **ModelSnapshot** git li ha fusi bene, ma la 
 
 ### Che cosa è entrato il 30 agosto
 
+- **§AB — la shape di un settore ha una porta sola**, S0→S10
+  ([carta](refactor/15-shape-del-settore-una-porta-sola.md)). L'aggancio agli spazi aerei dell'AIP era
+  onorato da **due motori su sei**: un settore agganciato **disegnava** il confine dell'AIP nel documento e
+  **rivendicava** il traffico dentro il monoblocco di IVAO. Adesso la forma — **anello e quote insieme** —
+  la dà `ISectorShapeResolver`, e ogni pezzo porta **la sua banda**: su `LIBA_APP` l'inviluppo
+  (`GND → FL195`) coincideva col monoblocco, quindi il 3D disegnava un parallelepipedo dove il cielo vero ha
+  **due gradini**. ⚠️ **Resta S11** (§4-bis della carta): non è una slice.
 - **§AA — gli spazi aerei dell'AIP**, tutte e sette le slice ([carta](feature/2026-08-29-spazi-aerei-dal-kmz.md)).
   Il file KMZ si carica a mano, e un avvicinamento può disegnare il **CTR che controlla davvero**: Catania
   sono sette zone, e da IVAO arriva un poligono solo. ⚠️ Il file contiene **scatole 3D**, non contorni.
@@ -209,16 +218,20 @@ Il **cutover MariaDB** è in `main` e verificato (A1–A8). Le sezioni **B**, **
 chiuse o chiuse-con-la-ragione-scritta; **I** è sospesa di proposito; **J**–**Z**, **§AA** ed **§E10** sono
 chiuse — di **§Y** resta aperto il solo **BOAT** (§Y10), che è del committente.
 
-⚠️ **Le migrazioni in coda al cutover sono TRENTAQUATTRO**: ventisei erano in `main`, più due della
-biblioteca (`BibliotecaAllegati`), quattro degli spazi aerei (`CatalogoSpaziAerei`, `AgganciSpaziAerei`) e
-due del registro della spesa (`RegistroSpesaTraduzione`). Tutte **additive**. Le sei prima di quelle le
+⚠️ **Le migrazioni in coda al cutover sono TRENTASEI**: ventisei erano in `main`, più due della
+biblioteca (`BibliotecaAllegati`), quattro degli spazi aerei (`CatalogoSpaziAerei`, `AgganciSpaziAerei`),
+due del registro della spesa (`RegistroSpesaTraduzione`) e **due di §AB** (`PezziDiForma`,
+`FormaCheHaContato`). ⚠️ Quella di §AB sul traffico porta un valore di partenza **scritto a mano**
+(`Source`): EF genera `defaultValue: ""` per una colonna enum-a-stringa, e le 1 853 tratte già in archivio
+sarebbero diventate **illeggibili** al primo caricamento. Tutte **additive**. Le sei prima di quelle le
 porta §Y. ⚠️ **Quella della correzione delle radioassistenze non è innocua**: `DELETE FROM Navaids` **e**
 `DELETE FROM ImportStates WHERE Category='Navaid'` — svuota l'anagrafica e azzera lo stato d'import, così al
 primo avvio il giro la rifà da zero. Ci mette un minuto, e nel frattempo le tabelle dei SOP sono vuote.
 ⚠️ Alcune migrazioni sono datate **25-ago 15:19**, quindi su un DB già aggiornato EF le applicherà **fuori
 ordine** — lecito, ma da sapere. ✅ La SELECT dei duplicati su `DocReleases` la fa l'applicazione da sé (§T).
 
-🔴 **Le due cose da fare SUBITO DOPO il deploy**, e nessuna la fa il codice da sé:
+🔴 **Le cose da fare SUBITO DOPO il deploy** — le prime due nessuna le fa il codice da sé, la terza la fa
+lui e va **guardata**:
 
 1. **Premere il re-import delle piste** su `/services/vsop/admin/airports` (§Y10): in produzione le
    coordinate delle soglie nascono vuote, e la sezione lo dice invece di non comparire.
@@ -227,8 +240,14 @@ ordine** — lecito, ma da sapere. ✅ La SELECT dei duplicati su `DocReleases` 
    `itvor.vor` tiene VOR, TACAN e VORTAC insieme — e sui documenti si legge un trattino finché non lo scrive
    una persona. 🆕 Il **rapporto degli spazi aerei** ne propone **53**: dice che cosa ne pensa l'AIP, non lo
    scrive.
+3. 🆕 **Guardare la conversione delle 13 torri ATZ** (§AB, S3). Al primo giro d'import delle posizioni
+   d'aeroporto le 13 righe con `ShapeSource='Aip'` in colonna devono diventare **pezzi**, e la colonna
+   tornare **libera** — è quel che rende l'ATZ sganciabile. Nove test la coprono, ma dal vivo non è mai
+   girata: il giro d'import non è partito nella sessione di verifica. Si controlla così:
+   `select ShapeSource, count(*) from AirportSectors group by 1` deve perdere le 13 `Aip`, e
+   `select Source, count(*) from SectorShapeParts group by 1` deve guadagnarle.
 
-✅ **La terza è caduta**: l'annuncio del cambio dei permessi (§U) l'ha fatto il committente il 30 agosto.
+✅ **Quella dei permessi è caduta**: l'annuncio del cambio (§U) l'ha fatto il committente il 30 agosto.
 Resta il **fatto**: al deploy gli `IT-` fuori dagli otto codici di direzione smettono di editare, e chi deve
 editare si promuove a mano da `/services/vsop/admin/permissions`.
 
@@ -5086,3 +5105,70 @@ delle voci è la gravità: le otto righe che contano stanno in cima, le centouno
 
 Il ramo è **il secondo fuori** insieme a `biblioteca-allegati`. ⚠️ Le migrazioni in coda al cutover MariaDB
 diventano **trentaquattro**: due per il catalogo, due per gli agganci.
+
+---
+
+## AB. La shape di un settore: una porta sola — 30 agosto 2026
+
+Carta: [`refactor/15-shape-del-settore-una-porta-sola.md`](refactor/15-shape-del-settore-una-porta-sola.md).
+Ramo **`shape-una-porta-sola`**, **fuso in `main` in locale** (merge `--no-ff`, quattordici commit).
+⚠️ **Il push su `main` non è partito**: lo blocca il classificatore sul branch di default, e va dato a mano.
+**S0→S10 fatte e verificate dal vivo**; **S11 resta fuori** (§4-bis della carta).
+
+### Il difetto, e perché non si vedeva
+
+L'aggancio agli spazi aerei dell'AIP (§AA) era onorato da **due motori su sei**. Un avvicinamento agganciato
+al suo CTR **disegnava** quel confine nel documento e **rivendicava** il traffico dentro il monoblocco di
+IVAO: due verità sullo stesso oggetto, e quella sbagliata non dava nessun errore — dava **numeri**.
+
+⚠️ E l'inviluppo mentiva: `LIBA_APP` è `GND→FL105` su una zona e `7000 FT AMSL→FL195` sull'altra, quindi
+base minima + tetto massimo danno `GND→FL195`, cioè **esattamente il monoblocco generoso dell'anagrafica**.
+Il viewer 3D disegnava un parallelepipedo unico dove il cielo vero ha **due gradini**.
+
+### Che cosa c'è adesso
+
+- **`SectorShapeParts`**: la forma di un settore è un **elenco di pezzi con una fonte**, e ⚠️ **le quote
+  stanno DENTRO il pezzo**. «Laterale da una fonte e verticale da un'altra» non è una cosa da evitare con
+  attenzione: è una cosa che **non si può scrivere**.
+- **`ISectorShapeResolver`**, la porta unica, con la precedenza in **un posto solo**: aggancio a mano →
+  shape **vera** del catalogo → pezzi in archivio → cerchio sintetico. ⚠️ Quest'ordine l'ha **corretto un
+  test rosso**: col primo, l'ATZ automatica scavalcava il **sectorfile**, che è fonte primaria per decisione
+  del committente.
+- **La regola d'oro in una firma**: `ReplacePartsAsync`/`ClearPartsAsync` prendono una `ShapeSource`
+  **obbligatoria** e cancellano solo dentro quella; un elenco vuoto è «sorgente muta» e non cancella. È ciò
+  che rende lo **sgancio reversibile** — e senza, si romperebbe **in silenzio**.
+- **N pezzi dappertutto**: il volume del traffico è «dentro **un** pezzo», l'adiacenza dei confinanti è vera
+  se lo è **un** pezzo, e il 3D estrude **ogni anello alla sua quota**.
+- **L'ATZ delle torri** non abita più la colonna: è reversibile, prende **tutte** le zone (Guidonia due,
+  Torino Aeritalia tre, che prima si **saltavano**) e porta le **quote** che il cerchio non ha mai avuto.
+- **Il gettone** `ShapeChangeStamp`: un aggancio entra in vigore in **≤ 60 s** invece che «fra zero e sessanta
+  minuti», e i **confinanti** si ricalcolano dall'archivio senza chiamare IVAO.
+- **Il timbro**: ogni tratta scrive **con quale forma** è stata contata, perché un gradino nei numeri
+  dev'essere leggibile anche fra sei mesi.
+- **A schermo**: `ShapeSourcePill` dice la fonte **e quanti pezzi** («AIP · 2»), e dove l'aggancio comanda le
+  caselle dei limiti si **sbiadiscono** invece di sparire.
+
+### ✅ La verifica dal vivo — otto controlli
+
+Quello che vale il capitolo: agganciato **`LIRR_EW_CTR`** — in frequenza, quattro aerei — alla **FIR ROMA**
+`GND→FL195`, in **un solo giro del poller** le tratte nuove sono uscite col timbro `Aip`, e sono i quattro
+voli **sotto** FL195 (16, 2 613, 91, 3 652 ft); i quattro **sopra** (39 081, 43 006, 21 661, 28 049 ft) hanno
+**smesso di essere rivendicati**, perché il settore ha tetto **UNL** nell'anagrafica e la FIR si ferma a
+FL195. È il difetto visto dal verso giusto, sui dati veri della rete.
+
+Il resto: LIBA due anelli con bande diverse; **LICC agganciato dalla pagina** → sette anelli, sette bande;
+lo **sgancio** di LIBA → forma IVAO al primo render **senza ri-importare niente**; confinanti ricalcolati
+(33 coppie invariate); Struttura ACC **142 «IVAO» + 11 «nessuna»**, esattamente le cifre del database; e un
+documento **già pubblicato** — congelato *prima* di questa carta — che si rilegge e **ricade
+sull'inviluppo**: la compatibilità all'indietro, provata invece che sperata.
+
+⚠️ **Guardare gli screenshot serviva**: la pastiglia «AIP · 2» andava **a capo** e alzava la riga della
+tabella. Nessuna asserzione l'avrebbe vista.
+
+### Quel che resta
+
+- **S11** — le colonne gemelle del gate. ⚠️ **Non è una slice**: otto siti di scrittura, le letture del
+  **congelamento di release**, un backfill e due migrazioni (§4-bis della carta). Si esegue **dopo** la
+  consegna del 1° settembre.
+- **Le 13 torri ATZ**, da guardare al primo deploy: vedi il punto 3 della lista rossa in §«Dove siamo».
+- Il **push di `main`**.

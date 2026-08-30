@@ -250,7 +250,7 @@ continua a congelare; la vIPI e la vLOA restano documenti derivati. Cambia **da 
 | S8 | ✅ UI: provenienza a schermo (`ShapeSourcePill`) e limiti scavalcati sbiaditi | — | fatta |
 | S9 | ✅ **Traffico**: risolutore + N pezzi + `ShapeChangeStamp` (≤ 60 s) + timbro della fonte sulla tratta | **1** | fatta |
 | S10 | ✅ **Confinanti**: adiacenza su un pezzo qualunque, dedup per coppia, ricalcolo dall'archivio al bind/unbind | — | fatta |
-| S11 | Pulizia: le colonne gemelle del gate escono di scena | **1**, differita | **un rilascio dopo** |
+| S11 | Le colonne gemelle del gate escono di scena — ⚠️ **non è una slice, è un capitolo**: vedi §4-bis | **2** | **dopo la consegna** |
 
 ### Stato dell'esecuzione — 30 agosto 2026
 
@@ -293,6 +293,48 @@ Tutt'e due le migrazioni portano `Source` scritto a mano — che è anche la ver
 forma dell'anagrafica. È la gemella della trappola del `bool` che nasce `false` ovunque.
 
 ---
+
+## 4-bis. S11 — le colonne gemelle, e perché non è una slice
+
+**Misurato il 30 agosto 2026, non stimato.** Le colonne del catalogo spariscono solo se **ogni** fonte scrive
+i pezzi: finché una sola continua a scrivere `RegionMapPolygon`, il risolutore deve continuare a leggerlo, e
+la coppia `RegionMapPolygon`/`RegionMapPolygonInForce` resta dov'è.
+
+### I siti di scrittura — otto, contati
+
+| # | Chi scrive | Dove | Diventa |
+|---|---|---|---|
+| 1 | Import ACC (anagrafica IVAO) | `EfAccAdminRepository` (upsert, 4 punti) | pezzi `Source` |
+| 2 | Import posizioni d'aeroporto | `EfAirportSectorRepository.ImportForAirportAsync` + `AirportSectorImporter` | pezzi `Source` |
+| 3 | Sectorfile Aurora | `EfSectorShapeRepository.ApplyShapeAsync` | pezzi `Sectorfile`, **`Pending` + ciclo** se la geometria è nuova |
+| 4 | Torri da GitHub (`twrs.tfl`) | `EfAirportSectorRepository.SetRealShapeAsync` | pezzi `Sectorfile` |
+| 5 | Cerchio di ripiego 5 NM | `EfAirportSectorRepository.SetSyntheticShapeAsync` | pezzi `Synthetic` |
+| 6 | Settori esteri (import confinanti) | `EfNeighbourRepository.PersistForeignCatalogAsync` | pezzi `Source` |
+| 7 | Poligono incollato a mano (candidato) | `EfNeighbourRepository.SetPolygonAsync` | resta dov'è: è del **candidato**, non di un settore |
+| 8 | ATZ dell'AIP | `AtzTowerShapeService` | ✅ **già fatto in S3** |
+
+### Le letture che vanno spostate
+
+- `EfAccDerivationRepository.SectorPolygonsRawByCallsignAsync` — ⚠️ **è la lettura del congelamento di
+  release**: decide quale geometria finisce dentro un documento **pubblicato**. È il punto più delicato di
+  tutta la carta, e sbagliarlo non si vede a schermo: si vede quando qualcuno pubblica.
+- `ShapeAiracGate` + `ShapeGateNotice` + `EfShapeGateRepository` — il gate diventa lo `State` (§3b), e
+  `PromoteDueShapesAsync` promuove **insiemi** invece di righe.
+- `SectorShapeFallbackService` e `ReleaseService`, che citano il gate.
+
+### L'ordine, e le due migrazioni
+
+1. **Backfill**: ogni riga di catalogo con una shape diventa un insieme di pezzi della sua fonte
+   (`ShapeSource` ce l'ha già in colonna) — e la geometria in attesa diventa un insieme `Pending`.
+2. Le otto scritture passano alla porta dei pezzi, **una per volta**, con la sua verifica.
+3. Le letture passano ai pezzi; il risolutore perde il gradino del catalogo e `SinteticheAsync`.
+4. **Una release dopo**, la migrazione che **droppa** le colonne. Mai insieme al resto: è la regola già
+   pagata con `AirportExtraSection`.
+
+⚠️ **Perché non è stata fatta insieme alle altre**: tocca il percorso che decide cosa contiene un documento
+pubblicato, il giorno prima della consegna del 1° settembre. Le altre dieci slice si vedono a schermo e sono
+state verificate dal vivo; questa no. Si esegue **dopo** la consegna, con la stessa disciplina: una slice per
+sito, e una pubblicazione vera guardata nella copia del `vipi.db`.
 
 ## 5. Impatto e verifica
 

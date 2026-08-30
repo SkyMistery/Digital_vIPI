@@ -1,17 +1,22 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 30 agosto 2026 (**i due rami fusi in `main`**, che è stato spinto; **§AA** gli
-spazi aerei dell'AIP, **R8** chiuso, **§Q16** chiusa. ⚠️ Tutto ciò che segue nella sezione «Dove siamo» è
-**storia**: i rami che vi si citano come «non fusi» sono in `main` e sono stati cancellati — vale il
-riquadro qui sotto).
+**Ultimo aggiornamento:** 30 agosto 2026, pomeriggio (**§AB — la shape di un settore ha una porta sola**,
+fusa in `main` **in locale**; prima, i due rami di §AA e §E10, già spinti. ⚠️ Tutto ciò che segue nella
+sezione «Dove siamo» è **storia**: i rami che vi si citano come «non fusi» sono in `main` e sono stati
+cancellati — vale il riquadro qui sotto).
 
 ## Dove siamo, prima di tutto il resto
 
 > ### 🆕 LO STATO VERO, 30 agosto 2026 — questo riquadro batte tutto il resto del file
 >
-> ✅ **`main` = `7744ec1f`, spinto. Nessun ramo con lavoro fuori**, né in locale né su `origin`. Il 30
-> agosto sono stati fusi gli ultimi due — **`biblioteca-allegati`** e **`spazi-aerei-aip`** — e cancellati.
-> Dove più sotto si legge «non fuso», si sta raccontando com'era quel giorno.
+> ⚠️ **PRIMA DI TUTTO: `main` è AVANTI a `origin/main`.** La fusione di **§AB** — la shape di un settore
+> ha una porta sola, quattordici commit — è stata fatta **in locale** e il **push non è partito**: lo blocca
+> il classificatore sul branch di default. Prima cosa da fare: **`git push origin main`**.
+>
+> ✅ **Nessun ramo con lavoro fuori.** Il 30 agosto sono stati fusi, in quest'ordine:
+> **`biblioteca-allegati`** (§E10), **`spazi-aerei-aip`** (§AA) — tutti e due già spinti — e
+> **`shape-una-porta-sola`** (§AB), che aspetta il push. Dove più sotto si legge «non fuso», si sta
+> raccontando com'era quel giorno.
 >
 > ⚠️ **La trappola della fusione, che git non segnala.** I due rami dicevano tutti e due «16 voci nella
 > barra admin» perché ognuno ne aggiungeva **una** a quindici: git ha fuso due numeri identici senza
@@ -20,6 +25,13 @@ riquadro qui sotto).
 > **migrazione di prova esca VUOTA** su tutti e due i provider.
 >
 > ✅ **Che cosa è entrato il 30 agosto:**
+>
+> - **§AB — la shape di un settore ha una porta sola** (S0→S10). L'aggancio agli spazi aerei dell'AIP era
+>   onorato da **due motori su sei**: un settore agganciato **disegnava** quel confine e **rivendicava** il
+>   traffico dentro il monoblocco di IVAO. Ora la forma — **anello e quote insieme** — la dà
+>   `ISectorShapeResolver`, e ogni pezzo porta **la sua banda**. ⚠️ **S11 resta fuori**: non è una slice, è
+>   la seconda metà della cura, e tocca il **congelamento di release**.
+>   Carta: [`docs/refactor/15-shape-del-settore-una-porta-sola.md`](docs/refactor/15-shape-del-settore-una-porta-sola.md).
 >
 > - **§AA — gli spazi aerei dell'AIP**, tutte e sette le slice. Il KMZ si carica a mano e un avvicinamento
 >   può disegnare il **CTR che controlla davvero** (Catania sono **sette** zone, IVAO ne dà una).
