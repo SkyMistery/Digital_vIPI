@@ -46,6 +46,7 @@ un tipo per file, porte/adapter puliti, commenti che citano i doc per nome/§.
 | 12 | [12-vista-live-unificata.md](12-vista-live-unificata.md) | Vista live: due pagine gemelle → una, keyed sul callsign + registry per tipo di ente | ✅ eseguito, suite 702, verify live su 12 postazioni |
 | 13 | [13-audit-tre-documenti.md](13-audit-tre-documenti.md) | Audit dei tre documenti: catalogo fonte unica anche di «chi rende il corpo» e «obbligatoria», vLOA dal catalogo, gate pubblico su ricerca/«Cosa è cambiato», pannello release unico, una sola resa per sezione comune | ✅ eseguito (S1→S19), suite 1391, verify live ok |
 | 14 | [14-quattro-documenti.md](14-quattro-documenti.md) | I **quattro** documenti (l'aeroporto entra nel confronto): guardia release nel servizio, ciclo AIRAC via dalla vLOA, snapshot una volta per pagina, guscio unico degli editor, ciclo unico dei viewer, sezioni dal catalogo alla nascita, un enum solo — **+ prove di parità sui cinque profili** | ✅ **CHIUSO** (P1→P8 + §3i + editor SID), suite 5714, verifica live sull'app vera quattro volte |
+| 15 | [15-shape-del-settore-una-porta-sola.md](15-shape-del-settore-una-porta-sola.md) | La **shape di un settore** — anello **e** quote insieme — da colonna a **elenco di pezzi con una fonte**, letta da **una porta sola**: l'aggancio all'AIP vale per tutti i motori, non per due su sei | 🟡 in esecuzione (S0 fatta) |
 
 ## Il grafo delle dipendenze (perché i 12 punti non sono indipendenti)
 
