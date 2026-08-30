@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Abstractions;
@@ -168,6 +168,25 @@ public class PaginaAllegatiTests : TestContext
 
         Assert.Contains("LoA Roma–Marseille", cut.Markup);
         Assert.Single(cut.FindAll("table.res-table tbody tr"));
+    }
+
+    /// <summary>
+    /// Il numero di versione si vede come <b>numero</b>: <c>v3</c>, non il testo dell'espressione.
+    ///
+    /// <para>⚠️ Sembra un test per niente, e invece presidia una trappola di Razor che è costata una riga
+    /// sbagliata su OGNI voce della biblioteca, in produzione: <c>v@r.VersionNumber</c> — la chiocciola con
+    /// un carattere attaccato a sinistra e un punto a destra — Razor la prende per un <b>indirizzo email</b>
+    /// e la stampa alla lettera. Ci vogliono le parentesi: <c>v@(r.VersionNumber)</c>. Trovata solo
+    /// guardando la pagina dal vivo, il 30 agosto 2026.</para>
+    /// </summary>
+    [Fact]
+    public void Il_numero_di_versione_e_un_numero_non_il_nome_del_campo()
+    {
+        var cut = Render(new BibliotecaFinta(AttachmentCreate.Ok,
+            Riga(1, "loa-lirr-lfmm", "LoA Roma–Marseille", versione: 3)));
+
+        Assert.Contains("v3", cut.Markup);
+        Assert.DoesNotContain("VersionNumber", cut.Markup);
     }
 
     /// <summary>Lo slug si mostra <b>come si cita</b>: è quello che si copia dentro un documento, e mostrarlo

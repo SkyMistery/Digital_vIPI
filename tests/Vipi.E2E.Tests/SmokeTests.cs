@@ -377,7 +377,13 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
         // Report-Only NON si vedrebbe: l'incorporato funzionerebbe oggi e morirebbe in blocco il giorno del
         // passaggio a CSP vera. È la lezione delle tessere OpenTopoMap, mancate per giorni per lo stesso
         // motivo, ed è per questo che il presidio sta qui e non in una prova a mano.
-        Assert.Contains("frame-src https://drive.google.com", csp);
+        // ⚠️ E `'self'` PRIMA di Drive: l'iframe punta alla NOSTRA rotta `/vsop/files/{slug}`, non a Drive —
+        // l'id del deposito non entra mai in un documento — e `frame-src` guarda l'indirizzo a cui il riquadro
+        // naviga, che al primo passo è il nostro. Questa riga asseriva la direttiva SENZA `'self'` e passava
+        // mentre il browser segnalava la violazione: un presidio che ricopia il codice invece di descrivere
+        // quel che deve succedere non presidia niente. Trovata dal vivo il 30 agosto 2026, provando l'embed
+        // con due PDF veri.
+        Assert.Contains("frame-src 'self' https://drive.google.com", csp);
     }
 
     /// <summary>

@@ -232,7 +232,14 @@ internal static class VipiStartup
                 // vuoto — ma siccome l'intestazione è Report-Only NON si vedrebbe: l'incorporato
                 // funzionerebbe oggi e morirebbe in blocco il giorno del passaggio a CSP vera. È la lezione
                 // delle tessere OpenTopoMap, mancate per giorni proprio perché segnala e non blocca.
-                "frame-src https://drive.google.com; " +
+                //
+                // ⚠️⚠️ E ci vuole `'self'` PRIMA di Drive, che è la cosa che non si indovina: l'iframe non
+                // punta a Drive, punta alla NOSTRA rotta `/vsop/files/{slug}` — è tutto il senso del disegno,
+                // l'id del deposito non entra mai in un documento — e `frame-src` guarda l'indirizzo a cui il
+                // riquadro naviga, che al primo passo è il nostro. Con la sola voce di Drive il browser
+                // segnalava «Framing 'http://…/vsop/files/…' violates frame-src https://drive.google.com»:
+                // misurato dal vivo il 30 agosto 2026, e visibile solo perché l'intestazione è Report-Only.
+                "frame-src 'self' https://drive.google.com; " +
                 "frame-ancestors 'none'; " +
                 "base-uri 'self'; " +
                 "form-action 'self'";

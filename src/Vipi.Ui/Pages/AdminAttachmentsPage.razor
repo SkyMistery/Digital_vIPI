@@ -1,4 +1,4 @@
-@page "/services/vsop/admin/attachments"
+﻿@page "/services/vsop/admin/attachments"
 @layout SopLayout
 @rendermode InteractiveServer
 @using Vipi.Application.Abstractions
@@ -133,7 +133,11 @@
                             <td><code>@AttachmentRules.TokenDi(r.Slug)</code></td>
                             <td class="muted">@L["AttKind_" + r.Kind]</td>
                             <td class="muted">@(r.Scope == AttachmentScope.Division ? L["AttScope_Division"].Value : r.ScopeLabel)</td>
-                            <td class="muted">v@r.VersionNumber</td>
+                            @* ⚠️ Le parentesi ci vogliono: `v@r.VersionNumber` Razor lo prende per un
+                               INDIRIZZO EMAIL — la regola vale quando la chiocciola ha un carattere
+                               attaccato a sinistra e qualcosa che somiglia a un dominio a destra — e lo
+                               stampa alla lettera. Ogni riga della biblioteca diceva «v@@r.VersionNumber». *@
+                            <td class="muted">v@(r.VersionNumber)</td>
                             <td class="muted">@VipiTime.Z(r.VersionCreatedUtc)</td>
                             <td>
                                 @* Il conteggio è un COMANDO quando c'è qualcosa da vedere: chi sta per
