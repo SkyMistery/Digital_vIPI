@@ -5246,3 +5246,65 @@ lasciare il lock, con il **«Salvato» che sopravvive all'uscita**. L'aggancio �
   **chiave** quando servirà, non un secondo meccanismo.
 - ⚠️ **Nessun congelamento.** Quel che si salva è subito pubblico e non c'è una versione precedente da
   riaprire. È scritto nella Guida e nel «?», ma è la cosa da ricordare se qualcuno ci mette del normativo.
+
+## AD. «Uscire non butta via» — la verifica su tutto ciò che si modifica, 30 agosto 2026
+
+Chiesta dal committente dopo l'intro: «puoi fare questa verifica dovunque si possa modificare qualcosa?
+Secondo me abbiamo questo difetto anche altrove». Aveva ragione, e non dove ci si aspettava.
+
+### Dove il difetto NON c'era
+
+I quattro editor documentali — **ACC, APP, vSOP militare, vLOA** — **salvano a ogni gesto**: non hanno niente
+in sospeso da perdere. Sta scritto in `DocumentSectionsEditor.IsSectionDirty`, ed è il motivo per cui il
+pallino d'indice è opt-in e lo usa il solo aeroporto. Sane anche le altre pagine di struttura, che agiscono
+per bottone e non accumulano.
+
+### 🔴 Editor AEROPORTO — l'unico che accumula, e usciva senza guardare
+
+`«Fine modifica»` chiamava `FinishEditingAsync()` e basta. Il lock se ne andava, i pannelli tornavano in sola
+lettura, e i valori digitati restavano **a schermo ma non salvabili** — «Salva tutto» spento perché il lock
+non era più nostro — per sparire al primo ricarico. Nessun errore: una pagina che tornava com'era.
+
+⚠️ **Ironia**: l'aeroporto la guardia ce l'aveva già in due punti — conferma prima di **pubblicare** e prima
+del **re-import**. Mancava proprio sull'uscita.
+
+Ora l'uscita salva i **tre** buffer (sezioni in blocco, limiti di settore riga per riga, SID importate che le
+possiede il loro editor) e, se qualcosa non passa la validazione, **non esce** e lo dice.
+
+### 🔴 La guardia del browser copriva un buffer su tre
+
+`beforeunload` si accendeva solo dalle sezioni. Le **SID importate e corrette** non l'accendevano affatto: il
+conteggio c'era (`_sidNonSalvate`) e non serviva a niente — chiudere la scheda le perdeva **senza prompt**.
+⚠️ *Una guardia che copre due terzi di quel che protegge è peggio di nessuna guardia, perché la si crede
+accesa.* Ora la porta è una sola (`AggiornaGuardiaAsync`).
+
+### 🟠 E il difetto opposto, nello stesso pannello
+
+Il blocco dei settori si marcava sporco con un `@onchange` **sul contenitore**, che **nessuno puliva mai**:
+bastava toccare un interruttore che salva da sé — nascondi, primario — perché il browser chiedesse «uscire
+davvero?» per il resto della sessione, **con tutto salvato**. Un avviso che si accende sempre è un avviso che
+si impara a ignorare. Ora la marcatura è sui due campi che si compilano e si spegne quando la riga si salva.
+
+### 🟠 `AccAdminPage` — i limiti pendenti restavano orfani
+
+Stessa forma dell'aeroporto: `_dirtyLimits` bufferizzato, `OnLockChanged` che non guardava niente. Ora
+«Fine modifica» li salva (`EditLockBar.BeforeRelease`); se qualcuno non passa, il lock **resta**.
+
+### Il contratto, corretto in corsa
+
+`BeforeRelease` era `Func<Task>` con la regola «se solleva, il lock non si rilascia»: un invito a lanciare da
+dentro un gestore d'evento Blazor, cioè ad **abbattere il circuito** — la pagina sparisce invece di dire di
+no. Ora torna un `bool`, e un test tiene ferma la firma.
+
+### Fuori tema, stessa classe di errore
+
+`class="in"` **non esiste nel foglio**: la portavano ancora tre campi del Glossario e uno delle Traduzioni,
+nudi coi colori del browser. Passati a `app-in`/`app-ta`, con la regola di riga che `.perm-add` aveva già.
+
+### Quel che resta, per scelta
+
+- **StrutturaPage** (`_pendingParent`) e **AdminTrasferimentiPage** (form `_editPair`/`_sectionForm`): stessa
+  famiglia, ma sono una scelta singola e un modulo corto, **entrambi a vista**. Lasciati come sono.
+- **`AccAdminPage` non ha un `beforeunload`**: chiudere la scheda con dei limiti digitati li perde ancora,
+  senza prompt. L'aeroporto ce l'ha; qui vorrebbe dire portare la guardia fuori dall'editor aeroporto, ed è
+  un lavoro suo.
