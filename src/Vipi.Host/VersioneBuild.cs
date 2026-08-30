@@ -13,8 +13,14 @@ namespace Vipi.Host;
 /// prova che si smentisce da sé.</para>
 ///
 /// <para>Il timbro lo mette la build (<c>VipiTimbroVersione</c> in <c>Vipi.Host.csproj</c>) e porta il
-/// <b>commit</b>, non l'ora di compilazione: ricompilare lo stesso codice deve dare la stessa versione. La
-/// lettera del pacchetto è l'etichetta con cui il committente lo chiama, e si passa al publish.</para>
+/// <b>commit</b>, non l'ora di compilazione: ricompilare lo stesso codice deve dare la stessa versione.</para>
+///
+/// <para>Accanto al commit c'è la <b>versione</b> (<c>VipiVersione</c> in <c>Directory.Build.props</c>, dove
+/// stanno anche le tre regole che le danno un significato). Fino al 30 agosto 2026 era una <i>lettera</i>
+/// («e», «f», … fino a «j») passata al publish. ⚠️ I due pezzi non sono intercambiabili e servono a due cose
+/// diverse: <b>il numero è il nome che diamo noi, il commit è l'unica cosa che identifica il codice</b>. Un
+/// numero da solo riporterebbe al problema che ha fatto nascere questa classe — <c>AssemblyVersion</c> è
+/// <c>1.0.0</c> in ogni pacchetto, e non dice niente.</para>
 /// </summary>
 internal static class VersioneBuild
 {
@@ -25,7 +31,7 @@ internal static class VersioneBuild
 
     /// <summary>Le due stringhe, calcolate una volta.</summary>
     internal static (string Etichetta, string Dettaglio) Leggi() =>
-        _cache ??= Componi(Metadato("VipiPacchetto"), Metadato("VipiCommit"), Metadato("VipiDataCommit"), AvvioUtc);
+        _cache ??= Componi(Metadato("VipiVersione"), Metadato("VipiCommit"), Metadato("VipiDataCommit"), AvvioUtc);
 
     private static string? Metadato(string chiave) =>
         typeof(VersioneBuild).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
@@ -38,17 +44,17 @@ internal static class VersioneBuild
     /// peggio di nessuna versione, perché a una versione si crede.</para>
     /// </summary>
     internal static (string Etichetta, string Dettaglio) Componi(
-        string? pacchetto, string? commit, string? dataCommit, DateTime avvioUtc)
+        string? versione, string? commit, string? dataCommit, DateTime avvioUtc)
     {
-        pacchetto = Pulisci(pacchetto);
+        versione = Pulisci(versione);
         commit = Pulisci(commit);
         dataCommit = Pulisci(dataCommit);
 
-        var etichetta = string.Join(" · ", new[] { pacchetto, commit }.Where(x => x is not null));
+        var etichetta = string.Join(" · ", new[] { versione, commit }.Where(x => x is not null));
         if (etichetta.Length == 0) etichetta = "sviluppo";
 
         var pezzi = new List<string>();
-        if (pacchetto is not null) pezzi.Add($"pacchetto «{pacchetto}»");
+        if (versione is not null) pezzi.Add($"versione {versione}");
         if (commit is not null) pezzi.Add(dataCommit is null ? $"commit {commit}" : $"commit {commit} del {dataCommit}");
         if (pezzi.Count == 0) pezzi.Add("build di sviluppo, senza timbro");
         pezzi.Add($"in servizio dal {avvioUtc:yyyy-MM-dd HH:mm} UTC");

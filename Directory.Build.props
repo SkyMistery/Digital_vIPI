@@ -52,4 +52,38 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <!--
+      LA VERSIONE DEL SITO, e le tre regole che le danno un significato.
+
+      Fino al 30 agosto 2026 i pacchetti si chiamavano con una LETTERA («e», «f», … fino a «j»), passata al
+      publish come `-p:VipiPacchetto=g`. Una lettera è un nome e basta: non promette niente, e infatti non
+      mentiva mai. Un numero invece PROMETTE una regola, e una versione a cui si crede senza che dica niente
+      è peggio di nessuna versione — è lo stesso motivo per cui esiste il timbro del commit.
+
+      Quindi la regola, e vale per il numero che sta qui sotto:
+
+        PATCH  1.0.x  solo correzioni: nessuna migrazione, nessuna pagina o sezione nuova.
+        MINOR  1.x.0  funzionalità nuove, e/o migrazioni ADDITIVE.
+        MAJOR  x.0.0  il pacchetto NON si può consegnare da solo: serve una sostituzione del database,
+                      oppure il codice nuovo non sa leggere l'archivio che c'è in produzione.
+
+      ⚠️ Il maggiore non è un giudizio sull'importanza: è la risposta a «basta l'FTP, o serve anche il
+      database?». È l'unica domanda che in questo progetto costa una consegna coordinata con Ivao.It, e il
+      23 agosto 2026 è costata una serata (voce A11: «due metà della stessa consegna, non separabili»).
+
+      ⚠️ IL NUMERO STA QUI, NON SULLA RIGA DI COMANDO. La lettera si passava al publish e non viveva da
+      nessuna parte: nessuno poteva vedere in un diff che era cambiata, né sapere da quale codice venisse la
+      «g». Un numero che promette una regola dev'essere rivedibile come il codice che descrive — si alza in
+      un commit, e chi rivede quel commit vede la promessa insieme a ciò che la giustifica.
+
+      ⚠️ Il timbro NON è questo da solo: la barra dice «1.0.0 · <commit>». Il numero è il nome che gli diamo
+      noi, il commit è l'unica cosa che identifica il codice senza ambiguità. Toglierlo riporterebbe al
+      problema del 24 agosto — `AssemblyVersion` è 1.0.0 in ogni pacchetto, e non dice niente.
+
+      La forma è presidiata da un test: tre numeri separati da punti, niente «v» davanti, niente suffissi.
+    -->
+    <VipiVersione>1.0.0</VipiVersione>
+  </PropertyGroup>
+
 </Project>

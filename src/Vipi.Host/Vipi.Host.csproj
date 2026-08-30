@@ -111,9 +111,15 @@
     quando è RIPARTITO, non che cosa è ripartito.
 
     Si timbra il COMMIT e non l'ora di compilazione: ricompilare lo stesso commit deve dare la stessa
-    versione, o il numero racconta la macchina di chi compila invece del codice. La lettera del pacchetto
-    («e», «f», …) è l'etichetta con cui il committente lo chiama e si passa al publish:
-        dotnet publish … -p:VipiPacchetto=g
+    versione, o il numero racconta la macchina di chi compila invece del codice.
+
+    Accanto al commit va la VERSIONE, che sta in `Directory.Build.props` (`VipiVersione`) insieme alle tre
+    regole che le danno un significato — non sulla riga di comando. Fino al 30 agosto 2026 era una LETTERA
+    passata al publish (`-p:VipiPacchetto=g`): un nome che non viveva in nessun file, quindi che nessuno
+    poteva vedere cambiare in un diff.
+
+    ⚠️ Chi cerca `-p:VipiPacchetto=` in un foglio vecchio non lo trova più: la proprietà si chiama
+    `VipiVersione` e non si passa, si modifica.
 
     ⚠️ Niente marcatore «albero sporco»: `git status` in forma breve elenca anche i file che differiscono
     per i soli fine riga (un worktree nuovo li checkouta in CRLF), e un allarme che suona sempre non è un
@@ -134,7 +140,7 @@
     <ItemGroup>
       <AssemblyMetadata Include="VipiCommit" Value="$(VipiCommit.Trim())" Condition="'$(VipiCommit)' != ''" />
       <AssemblyMetadata Include="VipiDataCommit" Value="$(VipiDataCommit.Trim())" Condition="'$(VipiDataCommit)' != ''" />
-      <AssemblyMetadata Include="VipiPacchetto" Value="$(VipiPacchetto)" Condition="'$(VipiPacchetto)' != ''" />
+      <AssemblyMetadata Include="VipiVersione" Value="$(VipiVersione)" Condition="'$(VipiVersione)' != ''" />
     </ItemGroup>
   </Target>
 

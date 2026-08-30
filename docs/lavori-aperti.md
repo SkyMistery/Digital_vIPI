@@ -2093,6 +2093,30 @@ col **commit** (non con l'ora di compilazione: ricompilare lo stesso codice deve
 con la **lettera del pacchetto**, passata al publish come `-p:VipiPacchetto=g`. In barra `g · e8fc4a2`, il
 resto nel `title`; la stessa riga apre `avvio-diagnostica.txt`.
 
+> ✅ **Superato il 30 agosto 2026: la lettera è diventata un numero.** Le lettere erano arrivate a **`j`**, e
+> un nome che non promette niente non mente mai — ma non dice nemmeno se un pacchetto si può caricare da
+> solo. Ora è `VipiVersione` in `Directory.Build.props`, **con la regola scritta accanto**:
+>
+> | | Quando |
+> |---|---|
+> | **PATCH** `1.0.→1` | solo correzioni: nessuna migrazione, nessuna pagina o sezione nuova |
+> | **MINOR** `1.→1.0` | funzionalità nuove, e/o migrazioni **additive** |
+> | **MAJOR** `→2.0.0` | il pacchetto **non si consegna da solo**: serve una sostituzione del database, o il codice nuovo non sa leggere l'archivio in produzione |
+>
+> ⚠️ Il maggiore non misura l'importanza: risponde a «basta l'FTP, o serve anche il database?» — l'unica
+> domanda che qui costa una consegna coordinata con Ivao.It, e che il 23 agosto è costata una serata (A11).
+>
+> ⚠️ **Il numero sta in un file, non sulla riga di comando.** La lettera si passava al publish e non viveva
+> da nessuna parte: nessuno poteva vederla cambiare in un diff, né sapere da quale codice venisse la «g».
+> Una promessa si rivede insieme a ciò che la giustifica.
+>
+> ⚠️ **Il commit resta**, e la barra dice `1.0.0 · <commit>`. Il numero è il nome che diamo noi; il commit è
+> l'unica cosa che identifica il codice. Un test lo presidia (`Il_numero_non_sostituisce_il_commit_in_barra`),
+> perché toglierlo per accorciare l'etichetta riporterebbe esattamente al 24 agosto.
+>
+> ℹ️ La forma è verificata **sul binario compilato**, non sul file di build: è l'unico modo di sapere che il
+> numero è arrivato fin dove il sito lo legge. Provato che morde — con `v1.0` il test è rosso.
+
 ⚠️ Tre scelte, tutte a difesa di qualcosa: **solo admin** (a un socio non dice niente, a chi passa dice con
 quale build sta parlando); **prima cosa a uscire** dalla barra quando lo spazio manca, che è già a corto;
 e senza timbro si scrive **«sviluppo»** invece di inventare un numero — a una versione si crede.
