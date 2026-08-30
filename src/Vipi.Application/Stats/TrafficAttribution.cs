@@ -91,7 +91,9 @@ public static class TrafficAttribution
         return string.CompareOrdinal(a.Volume.Callsign, b.Volume.Callsign) < 0;
     }
 
-    /// <summary>Area del bounding box in gradi quadri: serve solo a ordinare due volumi, non a misurare.</summary>
+    /// <summary>Area del bounding box in gradi quadri: serve solo a ordinare due volumi, non a misurare.
+    /// ⚠️ Con più pezzi è il box che li contiene TUTTI — un volume di sette zone è più grande di una sola,
+    /// ed è quel che serve al confronto.</summary>
     private static double BboxArea(SectorVolume v) =>
-        (v.Ring.MaxLat - v.Ring.MinLat) * (v.Ring.MaxLon - v.Ring.MinLon);
+        (v.MaxLat - v.MinLat) * (v.MaxLon - v.MinLon);
 }

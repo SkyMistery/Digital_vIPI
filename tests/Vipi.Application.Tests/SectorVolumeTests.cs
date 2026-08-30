@@ -192,4 +192,75 @@ public class PolygonContainsTests
         Assert.Equal(PolygonGeometry.Contains(aperto, 42, 11.2), PolygonGeometry.Contains(chiuso, 42, 11.2));
         Assert.True(PolygonGeometry.Contains(aperto, 42, 11.2));
     }
+
+    // --- N pezzi, ognuno con la SUA banda (carta refactor 15, S4) -------------------------------------
+    //
+    // Il caso è quello vero di Amendola, misurato sul vipi.db: due zone di CTR affiancate, una che va da
+    // terra a FL105 e una che parte da 7000 ft e arriva a FL195. IVAO ne dà UNA, GND → FL195.
+
+    private const string Z1 = "[[15.0,37.0],[15.4,37.0],[15.4,37.4],[15.0,37.4]]";   // ovest
+    private const string Z2 = "[[15.5,37.0],[15.9,37.0],[15.9,37.4],[15.5,37.4]]";   // est
+
+    private static SectorVolume DueZone() => SectorVolume.From("LIBA_APP", new (string?, int?, int?)[]
+    {
+        (Z1, null, 10_500),      // GND  → FL105
+        (Z2, 7_000, 19_500),     // 7000 → FL195
+    })!;
+
+    [Fact]
+    public void Ogni_pezzo_porta_la_sua_banda_e_non_quella_dell_inviluppo()
+    {
+        var v = DueZone();
+
+        // Sopra la Z1 a FL150: dentro l'inviluppo (GND → FL195), FUORI dal pezzo, che finisce a FL105.
+        Assert.False(v.Contains(37.2, 15.2, altitudeFt: 15_000));
+        // Sotto la Z2 a 3000 ft: dentro l'inviluppo, fuori dal pezzo, che comincia a 7000.
+        Assert.False(v.Contains(37.2, 15.7, altitudeFt: 3_000));
+
+        // E dentro i rispettivi pezzi, sì.
+        Assert.True(v.Contains(37.2, 15.2, altitudeFt: 5_000));
+        Assert.True(v.Contains(37.2, 15.7, altitudeFt: 15_000));
+    }
+
+    [Fact]
+    public void Fra_i_due_pezzi_non_c_e_niente_da_rivendicare()
+    {
+        // Il corridoio fra le due zone (lon 15.45) è dentro il bounding box e fuori da tutti e due gli
+        // anelli: è esattamente il cielo che il monoblocco di IVAO regalava.
+        Assert.False(DueZone().Contains(37.2, 15.45, altitudeFt: 5_000));
+    }
+
+    [Fact]
+    public void L_inviluppo_serve_a_ordinare_e_dice_il_minimo_e_il_massimo()
+    {
+        var v = DueZone();
+
+        Assert.Equal(0, v.BottomFl);      // la base più bassa
+        Assert.Equal(195, v.TopFl);       // il tetto più alto
+        Assert.Equal(2, v.Parts.Count);
+
+        // Il bounding box li contiene tutti e due.
+        Assert.Equal(15.0, v.MinLon, 3);
+        Assert.Equal(15.9, v.MaxLon, 3);
+    }
+
+    [Fact]
+    public void Un_pezzo_rotto_non_si_porta_via_gli_altri()
+    {
+        var v = SectorVolume.From("LICC_APP", new (string?, int?, int?)[]
+        {
+            ("[[15,37],[15.4,37]]", 0, 10_500),   // due soli punti: degenere
+            (Z2, 7_000, 19_500),
+        })!;
+
+        Assert.Single(v.Parts);
+        Assert.True(v.Contains(37.2, 15.7, altitudeFt: 15_000));
+    }
+
+    [Fact]
+    public void Nessun_pezzo_parsabile_vuol_dire_nessuna_rivendicazione()
+    {
+        Assert.Null(SectorVolume.From("LICC_APP", new (string?, int?, int?)[] { (null, 0, 19_500) }));
+        Assert.Null(SectorVolume.From("LICC_APP", System.Array.Empty<(string?, int?, int?)>()));
+    }
 }
