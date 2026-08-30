@@ -1,6 +1,6 @@
 # Feature — Biblioteca allegati (PDF su Drive di divisione, linkati nei documenti)
 
-Data: 2026-08-25 · Aggiornata: **2026-08-29** · Stato: ✅ **TUTTE E NOVE LE SLICE FATTE** (ramo `biblioteca-allegati`) · Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md)
+Data: 2026-08-25 · Aggiornata: **2026-08-29** · Stato: ✅ **CHIUSA E FUSA IN `main`** il 30 agosto 2026 (merge `cdeeb163`) · ⚠️ **resta R8**: l'embed di Drive mai provato dal vivo · Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md)
 
 ## Obiettivo
 

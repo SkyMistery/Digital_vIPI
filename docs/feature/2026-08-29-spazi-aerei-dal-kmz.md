@@ -1,7 +1,7 @@
 # Gli spazi aerei dell'AIP: un file caricato a mano (29 agosto 2026)
 
-> Stato: **TUTTE E SETTE LE SLICE FATTE**, verifica dal vivo compresa (29 agosto 2026). Ramo
-> `spazi-aerei-aip`, spinto e **non fuso**.
+> Stato: ✅ **CHIUSA E FUSA IN `main`** il 30 agosto 2026 (merge `86576ecc`, ramo `spazi-aerei-aip`).
+> Tutte e sette le slice, verifica dal vivo compresa.
 > Origine: richiesta del committente del 29 agosto 2026, e le nove risposte della stessa sera.
 
 ## 1. Perché
