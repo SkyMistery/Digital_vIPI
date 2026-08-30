@@ -155,18 +155,29 @@ public class CaratterizzazioneAggancioTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// ⚠️ <b>OGGI</b>: i confinanti leggono il poligono di IVAO dal catalogo, aggancio o no.
-    /// Si ribalta in <b>S10</b>, dove l'adiacenza è vera se lo è <b>un pezzo qualunque</b>.
+    /// ✅ <b>RIBALTATO da S10</b>: i confinanti vedono la forma agganciata, a pezzi. Un CTR di due zone confina
+    /// con chi tocca <b>una qualunque</b> delle sue, e prima disegnava un confine nei documenti e ne
+    /// confrontava un altro nel calcolo.
+    ///
+    /// <para>⚠️ Senza risolutore — i test che montano il repository da sé — resta la colonna, cioè il
+    /// comportamento di prima: è il secondo assert.</para>
     /// </summary>
     [Fact]
-    public async Task Oggi_I_Confinanti_Leggono_Il_Poligono_Di_Ivao()
+    public async Task I_Confinanti_Vedono_La_Forma_Agganciata_A_Pezzi()
     {
         await AgganciaAsync(SourceCatalog.Subcenter, Ctr);
 
-        var domestici = await new EfNeighbourRepository(_db, new AiracService()).ListDomesticSectorPolygonsAsync();
-        var riga = domestici.Single(d => d.ComposePosition == Ctr);
+        var risolutore = new EfSectorShapeResolver(_db, _agganci, new EfSectorShapeParts(_db));
+        var conForme = await new EfNeighbourRepository(_db, new AiracService(), risolutore)
+            .ListDomesticSectorPolygonsAsync();
+        var riga = conForme.Single(d => d.ComposePosition == Ctr);
 
-        Assert.Equal(MonobloccoIvao, riga.RegionMapPolygon);
+        Assert.Equal(2, riga.Polygons.Count);                  // le due zone, non il monoblocco
+        Assert.DoesNotContain(MonobloccoIvao, riga.Polygons);
+
+        var senzaForme = await new EfNeighbourRepository(_db, new AiracService())
+            .ListDomesticSectorPolygonsAsync();
+        Assert.Equal(MonobloccoIvao, senzaForme.Single(d => d.ComposePosition == Ctr).Polygons.Single());
     }
 
     /// <summary>

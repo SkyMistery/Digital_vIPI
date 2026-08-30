@@ -19,6 +19,18 @@ namespace Vipi.Application.Content;
 public interface INeighbourImportService : INeighbourReader
 {
     /// <param name="progress">Facoltativo: avanzamento delle GET di dettaglio (la parte lunga).</param>
+    /// <summary>
+    /// Rifà le adiacenze <b>senza chiamare IVAO</b>: i settori nostri li rilegge (le forme possono essere
+    /// cambiate: qualcuno ha agganciato o sganciato), gli esteri li prende dall'archivio.
+    ///
+    /// <para>⚠️ Esiste perché le adiacenze sono <b>calcolate e salvate</b>, non derivate al volo: senza
+    /// questo, un aggancio si sarebbe visto sui confinanti al prossimo giro notturno o alla pressione del
+    /// tasto — fino a 24 ore dopo. Carta refactor 15 §3g.</para>
+    ///
+    /// <para>Ritorna quante coppie sono state create e aggiornate.</para>
+    /// </summary>
+    Task<(int Created, int Updated)> RecomputeFromArchiveAsync(CancellationToken ct = default);
+
     Task<NeighbourImportResult> ImportAndComputeAsync(CancellationToken ct = default,
         IProgress<ForeignAccFetchProgress>? progress = null);
 
@@ -96,7 +108,7 @@ public sealed class NeighbourImportService : INeighbourImportService
         var domestic = await repo.ListDomesticSectorPolygonsAsync(ct);
         NeighbourDebugLog.Log($"Domestic sectors with polygon: {domestic.Count}");
         var hasDomesticRings = domestic.Any(d => NeighbourAdjacencyComputer.IsAccBoundaryPosition(d.ComposePosition)
-            && PolygonGeometry.ToRing(d.RegionMapPolygon) is not null);
+            && d.Polygons.Any(poly => PolygonGeometry.ToRing(poly) is not null));
         if (!hasDomesticRings)
             warnings.Add("Nessun settore domestico con poligono: importa prima gli ACC italiani (pagina ACC).");
 
@@ -139,6 +151,26 @@ public sealed class NeighbourImportService : INeighbourImportService
         var countries = _opt.CountryIds.Select(c => c.Trim())
             .Where(c => c.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).Count();
         return new NeighbourImportResult(countries, foreign.Count, created, updated, warnings);
+    }
+
+    public async Task<(int Created, int Updated)> RecomputeFromArchiveAsync(CancellationToken ct = default)
+    {
+        _authz.EnsureAtLeast(VipiRole.Editor);
+
+        using var dbScope = _scopeFactory.CreateScope();
+        var repo = dbScope.ServiceProvider.GetRequiredService<INeighbourRepository>();
+
+        var domestic = await repo.ListDomesticSectorPolygonsAsync(ct);
+        var foreign = await repo.ListForeignAccDataAsync(ct);
+        if (domestic.Count == 0 || foreign.Count == 0) return (0, 0);
+
+        // ⚠️ Solo il ricalcolo: il catalogo estero è già in archivio e non si ripersiste. Qui l'unica cosa
+        // che può essere cambiata è la forma dei settori NOSTRI.
+        var computed = _computer.ComputeImport(domestic, foreign, _opt.AdjacencyThresholdNm);
+        NeighbourDebugLog.Log(
+            $"Recompute da archivio: {domestic.Count} domestici × {foreign.Count} ACC esteri → {computed.Candidates.Count} coppie");
+
+        return await repo.UpsertCandidatesAsync(computed.Candidates, ct);
     }
 
     public async Task<IReadOnlyList<NeighbourCandidateRow>> ListAsync(CancellationToken ct = default)

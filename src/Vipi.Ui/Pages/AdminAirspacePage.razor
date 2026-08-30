@@ -10,6 +10,8 @@
 @inject Vipi.Application.Content.ISectorShapeRepository Settori
 @inject Vipi.Application.Abstractions.INavaidCatalog Radioassistenze
 @inject IStringLocalizer<SharedResource> L
+@inject Vipi.Application.Content.INeighbourImportService Confinanti
+@inject Microsoft.Extensions.Logging.ILogger<AdminAirspacePage> Logger
 
 @* Gli spazi aerei dell'AIP: il caricamento del file e il catalogo che ne esce (carta del 29 agosto 2026).
 
@@ -445,6 +447,7 @@
                 .Select(v => new AirspaceVolumeKey(v.NaturalKey, v.Ordinal)).ToList();
 
             await Agganci.SetAsync(catalogo, id, pezzi[2], volumi, Authz.CurrentUserId, Authz.CurrentName);
+            await RifaiConfinantiAsync();
             _scelti.Clear();
             _settore = "";
             await RicaricaAsync();
@@ -484,11 +487,27 @@
         {
             await Agganci.SetAsync(a.Catalog, a.SectorId, a.Callsign, Array.Empty<AirspaceVolumeKey>(),
                 Authz.CurrentUserId, Authz.CurrentName);
+            await RifaiConfinantiAsync();
             await RicaricaAsync();
             _ok = true;
             _messaggio = string.Format(L["Asp_Unbound"].Value, a.Callsign);
         }
         finally { _busy = false; }
+    }
+
+    /// <summary>
+    /// Rifà le adiacenze dei confinanti dopo un aggancio o uno sgancio, <b>senza chiamare IVAO</b>: i settori
+    /// nostri hanno cambiato forma, gli esteri no.
+    ///
+    /// <para>⚠️ Le adiacenze sono <b>calcolate e salvate</b>, non derivate al volo: senza questa riga un
+    /// aggancio si sarebbe visto sui confinanti al prossimo giro notturno — fino a 24 ore dopo (carta refactor
+    /// 15 §3g). E ⚠️ se fallisce, l'aggancio resta: è un ricalcolo, non parte del gesto, e il giro notturno
+    /// lo rifà comunque.</para>
+    /// </summary>
+    private async Task RifaiConfinantiAsync()
+    {
+        try { await Confinanti.RecomputeFromArchiveAsync(); }
+        catch (Exception ex) { Logger.LogWarning(ex, "Ricalcolo confinanti dopo l'aggancio non riuscito."); }
     }
 
     private void Alterna(AirspaceFamily f)
