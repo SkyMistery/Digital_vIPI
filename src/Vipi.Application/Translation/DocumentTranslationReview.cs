@@ -31,7 +31,12 @@ public sealed record RigaDaRivedere(
 /// <param name="LinguaSorgente">Il codice di due lettere della lingua in cui il documento è scritto.</param>
 /// <param name="Righe">Le frasi da rivedere. Vuoto se non c'è niente da tradurre <b>o</b> se la lingua di
 /// lettura è già <paramref name="LinguaSorgente"/>.</param>
-public sealed record RevisioneDocumento(string LinguaSorgente, IReadOnlyList<RigaDaRivedere> Righe)
+/// <param name="Bloccata">Il documento si legge in una lingua sola (carta
+/// <c>docs/feature/2026-08-31-lingua-bloccata.md</c>): non c'è nessun giro di revisione da fare, ed è un
+/// TERZO vuoto — diverso da «niente da tradurre» e da «lo stai leggendo nella sua lingua». Detto con le
+/// parole di quegli altri due, chi guarda penserebbe che il pannello sia rotto.</param>
+public sealed record RevisioneDocumento(string LinguaSorgente, IReadOnlyList<RigaDaRivedere> Righe,
+    bool Bloccata = false)
 {
     /// <summary>Vero se si sta leggendo nella lingua in cui il documento è scritto: lì non c'è niente da rivedere.</summary>
     public bool StessaLingua(string linguaDiLettura) =>
@@ -104,6 +109,11 @@ public sealed class DocumentTranslationReview : IDocumentTranslationReview
         if (doc is null) return new RevisioneDocumento(targetLang, Array.Empty<RigaDaRivedere>());
 
         var sourceLang = DocumentTranslator.CodiceSorgente(doc.Language, Language.It);
+        // Lingua bloccata: il documento non si traduce in nessuna direzione, quindi non c'è niente da
+        // rivedere — e nemmeno una lettura di memoria da fare.
+        if (doc.LanguageLocked)
+            return new RevisioneDocumento(sourceLang, Array.Empty<RigaDaRivedere>(), Bloccata: true);
+
         if (string.Equals(sourceLang, targetLang, StringComparison.OrdinalIgnoreCase))
             return new RevisioneDocumento(sourceLang, Array.Empty<RigaDaRivedere>());
 

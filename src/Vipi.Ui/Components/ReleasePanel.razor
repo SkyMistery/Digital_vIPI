@@ -95,6 +95,27 @@
         </div>
     }
 
+    @* ---- Lingua di pubblicazione (carta 2026-08-31-lingua-bloccata.md §6) ------------------------------
+       ⚠️ STA QUI, accanto ai tasti che pubblicano, e non in un pannello suo: la domanda è «in che lingua
+       esce questo documento», e ci si pensa nel momento in cui lo si manda fuori. *@
+    @if (_lingua is { } stato)
+    {
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px">
+            <b><Icon Name="globe" /> @L["Lang_LockLabel"]</b>
+            <select class="app-in" style="max-width:180px" disabled="@_busy"
+                    value="@(stato.Language == Vipi.Domain.Language.En ? "en" : "it")"
+                    @onchange="CambiaLingua">
+                <option value="it">@L["Lang_NameIt"]</option>
+                <option value="en">@L["Lang_NameEn"]</option>
+            </select>
+            <label style="display:flex;align-items:center;gap:6px">
+                <input type="checkbox" checked="@stato.Locked" disabled="@_busy" @onchange="CambiaBlocco" />
+                @L["Lang_LockToggle"]
+            </label>
+        </div>
+        <p class="help" style="margin:4px 0 0">@L["Lang_LockHelp"]</p>
+    }
+
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px">
         <select class="app-in" style="min-width:270px;max-width:340px" @bind="_cycle" @bind:after="RicaricaAvviso">
             @foreach (var c in _upcoming)
@@ -240,6 +261,10 @@
     private IReadOnlyList<ReleaseInfo> Vecchie =>
         _rels.Where(r => !r.IsEffectiveNow && r.Status != ReleaseStatus.Scheduled).Skip(3).ToList();
 
+    /// <summary>Lingua e blocco del documento di questo bersaglio; null = non risolto (o servizio assente),
+    /// e allora il controllo non si mostra invece di mostrarne uno che non salva.</summary>
+    private Vipi.Application.Content.DocumentLanguageState? _lingua;
+
     private IReadOnlyList<ReleaseInfo> _rels = Array.Empty<ReleaseInfo>();
     private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
     private string _currentCycle = "";
@@ -289,6 +314,10 @@
             ? new Dictionary<int, string>()
             : await roster.GetDisplayNamesAsync(vid);
         _diffOpen.Clear(); _diffs.Clear();
+        // ⚠️ Il servizio si RISOLVE, come il roster qui sopra e per la stessa ragione: questo pannello lo
+        // montano cinque editor più i test, e renderlo obbligatorio lo renderebbe non montabile per chi non
+        // l'ha registrato. Assente ⇒ niente controllo della lingua, non un errore.
+        _lingua = Admin is null ? null : await Admin.GetLanguageAsync(Documento());
         await RicaricaAvviso();
     }
 
@@ -298,6 +327,40 @@
     /// troppo, sbagliare per difetto costa un confine vecchio pubblicato senza che nessuno l'abbia saputo.
     /// </summary>
     private string[] CicliInGioco() => new[] { _currentCycle, _cycle ?? _currentCycle };
+
+    /// <summary>Il documento di questo bersaglio. L'Id lo risolve il repository dalla chiave di release: qui
+    /// si conoscono bersaglio e chiave, che è come il pannello è keyed in tutti e cinque gli editor.</summary>
+    private Vipi.Application.Content.ManagedDocRef Documento() => new(Target, Key, null);
+
+    private Vipi.Application.Content.IDocumentAdminService? Admin =>
+        Servizi.GetService(typeof(Vipi.Application.Content.IDocumentAdminService))
+            as Vipi.Application.Content.IDocumentAdminService;
+
+    /// <summary>La lingua in cui il documento si REDIGE. ⚠️ Cambiarla non traduce niente e non pretende di
+    /// farlo: dice da quale lingua si parte, e su un documento già scritto va cambiata sapendolo.</summary>
+    private Task CambiaLingua(ChangeEventArgs e) =>
+        SalvaLingua(
+            (e.Value?.ToString() ?? "it") == "en" ? Vipi.Domain.Language.En : Vipi.Domain.Language.It,
+            _lingua?.Locked ?? false);
+
+    private Task CambiaBlocco(ChangeEventArgs e) =>
+        SalvaLingua(_lingua?.Language ?? Vipi.Domain.Language.It, e.Value is true);
+
+    private async Task SalvaLingua(Vipi.Domain.Language lingua, bool bloccata)
+    {
+        if (Admin is not { } admin) return;
+        _busy = true; _error = _ok = null;
+        try
+        {
+            await admin.SetLanguageAsync(Documento(), lingua, bloccata);
+            _lingua = await admin.GetLanguageAsync(Documento());
+            _ok = L["Lang_Saved"];
+            // L'host ridisegna: la pagina che ospita l'editor mostra la lingua anche altrove.
+            await Published.InvokeAsync();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
 
     private async Task RicaricaAvviso()
     {

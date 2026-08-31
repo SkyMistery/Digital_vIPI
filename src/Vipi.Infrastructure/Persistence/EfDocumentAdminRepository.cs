@@ -97,6 +97,40 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
         return await _targets.For(doc.Kind).AuthAccCodeAsync(key, ct);
     }
 
+    /// <summary>
+    /// L'Id del documento: quello del riferimento, o risolto dalla chiave di release col descrittore.
+    /// <para>⚠️ La risoluzione serve perché il pannello di rilascio conosce <b>bersaglio e chiave</b>, non
+    /// l'Id: è così che è keyed in tutti e cinque gli editor. Chiedergli l'Id vorrebbe dire farlo passare a
+    /// mano da cinque pagine, e la prima che se lo dimenticasse spegnerebbe il controllo senza un errore.</para>
+    /// </summary>
+    private async Task<int?> IdDelDocumentoAsync(ManagedDocRef doc, CancellationToken ct) =>
+        doc.DocumentId ?? await _targets.For(doc.Kind).ResolveDocumentIdAsync(doc.ReleaseKey, ct);
+
+    public async Task<DocumentLanguageState?> GetLanguageAsync(ManagedDocRef doc, CancellationToken ct = default)
+    {
+        if (await IdDelDocumentoAsync(doc, ct) is not int id) return null;
+        return await _db.Documents.AsNoTracking().Where(d => d.Id == id)
+            .Select(d => new DocumentLanguageState(d.Language, d.LanguageLocked))
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task SetLanguageAsync(ManagedDocRef doc, Vipi.Domain.Language language, bool locked, int actorUserId,
+        CancellationToken ct = default)
+    {
+        if (await IdDelDocumentoAsync(doc, ct) is not int id) return;
+        var d = await _db.Documents.FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (d is null) return;
+        // Il non-evento non si scrive, come per «nascosto»: riconfermare quel che c'è già non è un atto.
+        if (d.Language == language && d.LanguageLocked == locked) return;
+
+        d.Language = language;
+        d.LanguageLocked = locked;
+        AuditScribe.Write(_db, actorUserId, AuditAction.Update, "Document", id.ToString(),
+            new { d.Title, Kind = doc.Kind.ToString(), Acc = await GetAccCodeAsync(doc, ct),
+                  Language = language.ToString(), LanguageLocked = locked });
+        await _db.SaveChangesAsync(ct);
+    }
+
     public async Task SetHiddenAsync(ManagedDocRef doc, bool hidden, int actorUserId, CancellationToken ct = default)
     {
         // Post-08 tutti i tipi sono su Document → un solo ramo: il flag vive sul Document.

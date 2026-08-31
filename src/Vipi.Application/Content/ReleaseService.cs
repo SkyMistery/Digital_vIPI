@@ -455,6 +455,11 @@ public sealed class ReleaseService : IReleaseService
     {
         if (_memoriaTraduzioni is null || _traduzione is null || !_traduzione.Enabled) return raw;
         if (raw.Language is not { } sorgente) return raw;
+        // ⚠️ Documento a lingua BLOCCATA: non c'è niente da congelare, perché non c'è niente da tradurre.
+        // Congelare lo stesso non sarebbe innocuo: lo snapshot porterebbe delle rese che il viewer non
+        // mostrerà mai, e chi lo aprisse fra un anno leggerebbe una fotografia che dichiara il contrario di
+        // quel che quella release faceva vedere (carta 2026-08-31-lingua-bloccata.md §6).
+        if (raw.LanguageLocked) return raw;
 
         var da = sorgente == Vipi.Domain.Language.En ? "en" : "it";
         var segmenti = SegmentiDi(raw).Distinct(StringComparer.Ordinal).ToList();

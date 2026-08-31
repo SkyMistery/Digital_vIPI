@@ -14,6 +14,12 @@ public interface IDocumentAdminService
 {
     Task<IReadOnlyList<ManagedDoc>> ListAsync(CancellationToken ct = default);
     Task SetHiddenAsync(ManagedDocRef doc, bool hidden, CancellationToken ct = default);
+
+    /// <inheritdoc cref="IDocumentAdminRepository.GetLanguageAsync"/>
+    Task<DocumentLanguageState?> GetLanguageAsync(ManagedDocRef doc, CancellationToken ct = default);
+
+    /// <inheritdoc cref="IDocumentAdminRepository.SetLanguageAsync"/>
+    Task SetLanguageAsync(ManagedDocRef doc, Language language, bool locked, CancellationToken ct = default);
     Task DeleteAsync(ManagedDocRef doc, CancellationToken ct = default);
 }
 
@@ -32,6 +38,18 @@ public sealed class DocumentAdminService : IDocumentAdminService
     }
 
     public Task<IReadOnlyList<ManagedDoc>> ListAsync(CancellationToken ct = default) => _repo.ListAsync(ct);
+
+    public Task<DocumentLanguageState?> GetLanguageAsync(ManagedDocRef doc, CancellationToken ct = default) =>
+        _repo.GetLanguageAsync(doc, ct);
+
+    public async Task SetLanguageAsync(ManagedDocRef doc, Language language, bool locked, CancellationToken ct = default)
+    {
+        // Gli stessi due cancelli di «nascondi», e per la stessa ragione: bloccare la lingua di un documento
+        // pubblicato cambia quel che il pubblico legge, e non si fa mentre un'altra persona lo sta scrivendo.
+        await EnsureCanEditAsync(doc, ct);
+        await EnsureNotLockedByOtherAsync(doc, ct);
+        await _repo.SetLanguageAsync(doc, language, locked, _authz.CurrentUserId ?? 0, ct);
+    }
 
     public async Task SetHiddenAsync(ManagedDocRef doc, bool hidden, CancellationToken ct = default)
     {

@@ -201,6 +201,10 @@ public class ImpactDriftTests : IAsyncLifetime
             Task.FromResult<ManagedDocRef?>(null);
         public Task<IReadOnlyDictionary<int, string>> GetTitlesAsync(IReadOnlyCollection<int> documentIds, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyDictionary<int, string>>(new Dictionary<int, string>());
+        public Task<Vipi.Application.Content.DocumentLanguageState?> GetLanguageAsync(ManagedDocRef doc, CancellationToken ct = default) =>
+            Task.FromResult<Vipi.Application.Content.DocumentLanguageState?>(null);
+        public Task SetLanguageAsync(ManagedDocRef doc, Vipi.Domain.Language language, bool locked, int actorUserId, CancellationToken ct = default) =>
+            throw new NotSupportedException();
         public Task<string?> GetAccCodeAsync(ManagedDocRef doc, CancellationToken ct = default) =>
             Task.FromResult<string?>("LIRR");
         public Task SetHiddenAsync(ManagedDocRef doc, bool hidden, int actorUserId, CancellationToken ct = default) => Task.CompletedTask;

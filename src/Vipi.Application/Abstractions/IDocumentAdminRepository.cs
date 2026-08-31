@@ -19,6 +19,17 @@ public interface IDocumentAdminRepository
     /// <summary>Codice ACC del documento (per l'autorizzazione ACC-scoped). null se non risolvibile.</summary>
     Task<string?> GetAccCodeAsync(ManagedDocRef doc, CancellationToken ct = default);
 
+    /// <summary>La lingua del documento e se è <b>bloccata</b>; null se il documento non si risolve.</summary>
+    Task<DocumentLanguageState?> GetLanguageAsync(ManagedDocRef doc, CancellationToken ct = default);
+
+    /// <summary>
+    /// Cambia la lingua di redazione del documento e/o il blocco (carta
+    /// <c>docs/feature/2026-08-31-lingua-bloccata.md</c> §6). <paramref name="actorUserId"/> finisce nel
+    /// registro di audit: da chi lo legge, bloccare la lingua di un documento pubblicato si vede eccome.
+    /// </summary>
+    Task SetLanguageAsync(ManagedDocRef doc, Vipi.Domain.Language language, bool locked, int actorUserId,
+        CancellationToken ct = default);
+
     /// <summary>Imposta/azzera il flag nascosto (reversibile). <paramref name="actorUserId"/> finisce nel registro
     /// di audit: cambiare la visibilità pubblica di un documento è un atto amministrativo, non una preferenza.</summary>
     Task SetHiddenAsync(ManagedDocRef doc, bool hidden, int actorUserId, CancellationToken ct = default);

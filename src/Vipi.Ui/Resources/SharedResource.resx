@@ -2612,6 +2612,7 @@
   <data name="Work_AssignMe" xml:space="preserve"><value>me</value></data>
   <data name="Work_AssignDue" xml:space="preserve"><value>entro</value></data>
   <data name="Work_AssignConfirm" xml:space="preserve"><value>Assegna</value></data>
+  <data name="TrEd_Locked" xml:space="preserve"><value>Questo documento si legge in una lingua sola: non c’è niente da tradurre, e quindi niente da rivedere. Il blocco si toglie dal pannello «Versioni e release».</value></data>
   <data name="Lang_LockedTitle" xml:space="preserve"><value>Documento in una lingua sola</value></data>
   <data name="Lang_LockedBody" xml:space="preserve"><value>Questo documento è pubblicato solo in {0} e non viene tradotto. Il selettore IT/EN cambia la lingua del sito, non quella del documento.</value></data>
   <data name="Lang_NameIt" xml:space="preserve"><value>italiano</value></data>

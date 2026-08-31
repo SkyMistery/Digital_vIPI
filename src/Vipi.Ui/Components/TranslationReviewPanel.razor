@@ -55,7 +55,11 @@
         </h3>
     </Header>
     <ChildContent>
-        @if (_stessaLingua)
+        @if (_bloccata)
+        {
+            <p class="help">@L["TrEd_Locked"]</p>
+        }
+        else if (_stessaLingua)
         {
             <p class="help">@L["TrEd_SameLanguage"]</p>
         }
@@ -145,6 +149,9 @@
     /// <summary>Il servizio della LETTURA, su un contesto tutto suo. Vedi il riquadro in cima al file.</summary>
     private IDocumentTranslationReview _lettura = default!;
 
+    /// <summary>Il documento si legge in una lingua sola: niente da rivedere, e va detto con parole sue.</summary>
+    private bool _bloccata;
+
     /// <summary>Con quali (documento, lingua) sono state caricate le righe che si stanno mostrando.</summary>
     private (int Doc, string Lingua)? _caricatoPer;
 
@@ -176,6 +183,7 @@
         // modi diversi, o chi guarda pensa che il pannello sia rotto. La risposta arriva dalla STESSA
         // lettura: prima si ricaricava il documento con l'altra lingua solo per dedurla.
         _stessaLingua = revisione.StessaLingua(_lettore);
+        _bloccata = revisione.Bloccata;
         _righe = revisione.Righe;
     }
 
