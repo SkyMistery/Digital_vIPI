@@ -31,7 +31,11 @@ public static class DependencyInjection
         // Singleton: dice a TUTTE le sessioni che il catalogo ACC e' cambiato. Vedi IStationCatalogVersion —
         // senza, la cache del resolver (scoped = per CIRCUITO in Blazor Server) invecchia per ore.
         services.AddSingleton<IStationCatalogVersion, StationCatalogVersion>();
-        services.AddScoped<IStationResolver, StationResolver>();   // scoped: legge le ACC dal DB
+        // Il catalogo vero e proprio: SINGLETON, cioe' una copia per processo. Vedi CatalogoStazioni.
+        services.AddSingleton<ICatalogoStazioni, CatalogoStazioni>();
+        // Il resolver resta scoped perche' porta il COME si legge (IStationDirectory, che ha il DbContext
+        // dello scope). Le copie non le tiene piu' lui.
+        services.AddScoped<IStationResolver, StationResolver>();
         services.AddScoped<IVipiViewService, VipiViewService>();
         services.AddScoped<Auth.IEditAuthorizationService, Auth.EditAuthorizationService>();
         // Da posizione staff IVAO a livello: funzione PURA, e singleton perché i pattern si compilano una

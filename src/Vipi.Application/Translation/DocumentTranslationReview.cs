@@ -19,6 +19,26 @@ public sealed record RigaDaRivedere(
     string Sorgente, string Tradotto, TranslationOrigin Origine, bool Riletta, string Dove);
 
 /// <summary>
+/// Le righe di un documento <b>più</b> la lingua in cui il documento è scritto, da una lettura sola.
+///
+/// <para>⚠️ La seconda metà non è un lusso. Chi mostra le righe deve saper distinguere due vuoti che si
+/// somigliano — «non c'è niente da tradurre» e «lo stai già leggendo nella sua lingua» — e fino al 31 agosto
+/// 2026 li distingueva <b>richiamando <see cref="IDocumentTranslationReview.RigheAsync"/> con l'altra
+/// lingua</b>: cioè ricaricando il documento intero una seconda volta, a ogni ridisegno dell'editor, per
+/// dedurre un dato che la prima lettura aveva già in mano. Oltre a costare il doppio dava anche la risposta
+/// sbagliata su un documento vuoto, dove nessuna delle due lingue ha righe.</para>
+/// </summary>
+/// <param name="LinguaSorgente">Il codice di due lettere della lingua in cui il documento è scritto.</param>
+/// <param name="Righe">Le frasi da rivedere. Vuoto se non c'è niente da tradurre <b>o</b> se la lingua di
+/// lettura è già <paramref name="LinguaSorgente"/>.</param>
+public sealed record RevisioneDocumento(string LinguaSorgente, IReadOnlyList<RigaDaRivedere> Righe)
+{
+    /// <summary>Vero se si sta leggendo nella lingua in cui il documento è scritto: lì non c'è niente da rivedere.</summary>
+    public bool StessaLingua(string linguaDiLettura) =>
+        string.Equals(LinguaSorgente, linguaDiLettura, StringComparison.OrdinalIgnoreCase);
+}
+
+/// <summary>
 /// Le frasi di un documento e la loro traduzione, per chi lo sta scrivendo (carta bilingue §5, slice 7).
 ///
 /// <para>
@@ -39,10 +59,18 @@ public sealed record RigaDaRivedere(
 public interface IDocumentTranslationReview
 {
     /// <summary>
-    /// Le frasi del documento in lavorazione, con la loro resa in <paramref name="targetLang"/>. Vuoto se
-    /// la lingua di lettura è quella in cui il documento è scritto: lì non c'è niente da rivedere.
+    /// Le frasi del documento in lavorazione, con la loro resa in <paramref name="targetLang"/>, <b>e</b> la
+    /// lingua in cui il documento è scritto. È la porta da usare: una lettura del documento, non due.
     /// </summary>
-    Task<IReadOnlyList<RigaDaRivedere>> RigheAsync(int documentId, string targetLang, CancellationToken ct = default);
+    Task<RevisioneDocumento> RevisioneAsync(int documentId, string targetLang, CancellationToken ct = default);
+
+    /// <summary>
+    /// Le sole frasi. Vuoto se la lingua di lettura è quella in cui il documento è scritto: lì non c'è
+    /// niente da rivedere. ⚠️ Chi ha bisogno anche di sapere <i>quale</i> sia quella lingua deve chiamare
+    /// <see cref="RevisioneAsync"/>, non questa due volte con due lingue diverse.
+    /// </summary>
+    async Task<IReadOnlyList<RigaDaRivedere>> RigheAsync(int documentId, string targetLang, CancellationToken ct = default)
+        => (await RevisioneAsync(documentId, targetLang, ct).ConfigureAwait(false)).Righe;
 
     /// <summary>Quanti altri documenti contengono questa frase: si dice a chi corregge, prima che salvi.</summary>
     Task<int> DocumentiToccatiAsync(string sorgente, CancellationToken ct = default);
@@ -67,15 +95,17 @@ public sealed class DocumentTranslationReview : IDocumentTranslationReview
         _authz = authz;
     }
 
-    public async Task<IReadOnlyList<RigaDaRivedere>> RigheAsync(
+    public async Task<RevisioneDocumento> RevisioneAsync(
         int documentId, string targetLang, CancellationToken ct = default)
     {
         var doc = await _editing.LoadForEditAsync(documentId, ct);
-        if (doc is null) return Array.Empty<RigaDaRivedere>();
+        // Senza documento non c'è nemmeno una lingua sorgente: si risponde con quella di lettura, che è il
+        // modo di dire «non c'è niente da rivedere» senza far credere a chi guarda di aver sbagliato lingua.
+        if (doc is null) return new RevisioneDocumento(targetLang, Array.Empty<RigaDaRivedere>());
 
         var sourceLang = DocumentTranslator.CodiceSorgente(doc.Language, Language.It);
         if (string.Equals(sourceLang, targetLang, StringComparison.OrdinalIgnoreCase))
-            return Array.Empty<RigaDaRivedere>();
+            return new RevisioneDocumento(sourceLang, Array.Empty<RigaDaRivedere>());
 
         // ⚠️ Le frasi si raccolgono col LORO POSTO: senza, chi corregge vede un elenco di frasi sciolte e
         // non sa quale sezione sta guardando. Il titolo della sezione è l'ancora più economica che c'è.
@@ -88,14 +118,14 @@ public sealed class DocumentTranslationReview : IDocumentTranslationReview
             .GroupBy(x => x.Testo, StringComparer.Ordinal)
             .Select(g => (Testo: g.Key, Dove: g.First().Dove))
             .ToList();
-        if (distinti.Count == 0) return Array.Empty<RigaDaRivedere>();
+        if (distinti.Count == 0) return new RevisioneDocumento(sourceLang, Array.Empty<RigaDaRivedere>());
 
         // Una lettura sola per tutto il documento: una query per frase sarebbe una corsa sul DbContext.
         var note = await _memoria.LookupAsync(sourceLang, targetLang,
             distinti.Select(x => TranslationText.Hash(x.Testo)).Distinct(StringComparer.Ordinal).ToList(), ct)
             .ConfigureAwait(false);
 
-        return distinti.Select(x =>
+        var righe = distinti.Select(x =>
         {
             note.TryGetValue(TranslationText.Hash(x.Testo), out var t);
             return new RigaDaRivedere(
@@ -105,6 +135,8 @@ public sealed class DocumentTranslationReview : IDocumentTranslationReview
                 t?.Reviewed ?? false,
                 x.Dove);
         }).ToList();
+
+        return new RevisioneDocumento(sourceLang, righe);
     }
 
     public Task<int> DocumentiToccatiAsync(string sorgente, CancellationToken ct = default) =>

@@ -23,22 +23,30 @@ public static class DependencyInjection
         // quindi una sola istanza per tutti e tre i provider.
         var Tracciante = new Persistence.TracciaCollisioniInterceptor();
 
+        // Spinge IStationCatalogVersion quando qualcuno scrive un Acc o un Airport, cosi' la copia di
+        // processo del catalogo (CatalogoStazioni) si rilegge. Sta QUI e non nei servizi perche' il conto
+        // del 31 agosto 2026 era impietoso: Bump() in quattro punti, scritture in undici.
+        // ⚠️ Va montato su TUTTI E TRE i provider: dimenticarne uno vuol dire un ambiente in cui il
+        // catalogo non si aggiorna piu', e non lo direbbe nessun test che gira sull'altro.
+        static Persistence.BumpCatalogoStazioniInterceptor Bump(IServiceProvider sp) =>
+            new(sp.GetRequiredService<Vipi.Application.Content.IStationCatalogVersion>());
+
         switch (provider)
         {
             case Persistence.PersistenceProvider.Sqlite:
                 // Tampone concorrenza SQLite (A1): WAL + busy_timeout a ogni apertura connessione. Vedi SqliteTuningInterceptor.
-                services.AddDbContext<VipiDbContext>(o => o
+                services.AddDbContext<VipiDbContext>((sp, o) => o
                     // Query con >1 Include di collection: split in più SELECT (default consigliato MS) invece del
                     // JOIN cartesiano di SingleQuery. Toglie il warning EF 20504 e migliora la perf su tali query.
                     .UseSqlite(connectionString, sql => sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
-                    .AddInterceptors(new Persistence.SqliteTuningInterceptor(), Tracciante));
+                    .AddInterceptors(new Persistence.SqliteTuningInterceptor(), Tracciante, Bump(sp)));
                 break;
 
             case Persistence.PersistenceProvider.Postgres:
                 // Deploy hostato (Render + Neon): le 60 migrazioni sono SQLite-flavored e non girano su Postgres,
                 // quindi lo schema si crea via EnsureCreated in MigrateVipiDatabase (no cronologia migrazioni).
                 // Adeguato a un DB test/fresco; NON usare EnsureCreated e Migrate insieme sullo stesso DB.
-                services.AddDbContext<VipiDbContext>(o => o
+                services.AddDbContext<VipiDbContext>((sp, o) => o
                     .UseNpgsql(connectionString, npg => npg
                         .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
                         // Neon (serverless) sospende il compute e chiude le connessioni idle: la prima query
@@ -46,7 +54,7 @@ public static class DependencyInjection
                         // Retry-safe: EfUnitOfWork avvolge le transazioni in CreateExecutionStrategy() E azzera il
                         // change-tracker a ogni tentativo (il rollback non lo ripulisce). Vedi EfUnitOfWork.
                         .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null))
-                    .AddInterceptors(Tracciante));
+                    .AddInterceptors(Tracciante, Bump(sp)));
                 break;
 
             case Persistence.PersistenceProvider.MySql:
@@ -62,7 +70,7 @@ public static class DependencyInjection
                 var versioneServer = Persistence.MySqlSchema.ResolveServerVersion(
                     configuration?[Persistence.MySqlSchema.ServerVersionConfigKey]);
 
-                services.AddDbContext<VipiDbContext>(o => o
+                services.AddDbContext<VipiDbContext>((sp, o) => o
                     .UseMySql(connectionString, versioneServer, my => my
                         .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
                         // Senza questa riga EF cercherebbe le migrazioni in Vipi.Infrastructure e ci
@@ -82,7 +90,7 @@ public static class DependencyInjection
                         // e azzera il change-tracker a ogni tentativo. Prima di aprire una transazione
                         // altrove, rileggere quel file.
                         .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null))
-                    .AddInterceptors(Tracciante));
+                    .AddInterceptors(Tracciante, Bump(sp)));
                 break;
 #else
                 // Su net10 il provider non esiste: Pomelo non ha una build per EF Core 10 e non l'avrà a

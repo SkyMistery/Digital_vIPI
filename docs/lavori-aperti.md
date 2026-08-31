@@ -1,6 +1,7 @@
 ﻿# Lavori aperti — elenco unico
 
 **Aggiornato:** 1 settembre 2026, sera — **§AL: I VSOP MILITARI NON PUBBLICATI — VERIFICATO** (nessuna modifica al prodotto). Domanda del committente: i documenti non pubblicati si vedono solo con i permessi? **Sì**, misurato impersonando un utente senza permessi: elenco a 3 righe (le sole pubblicate), indirizzo diretto di una bozza → «No military vSOP published» con **zero sezioni**, `?as=draft` che **degrada**, `?as=rel:` di un'altra release **rifiutata**. ⚠️ «Con i permessi» qui vuol dire **Editor**, non staff di divisione. ⚠️ E per impersonare un livello più basso **va cambiato anche il VID**: 704798 è un **fondatore** e resta Admin qualunque posizione gli si dia — il primo tentativo ha misurato il livello sbagliato. Scritto nella skill `verifica-live`. · **§AK: GLI SPAZI AEREI CHIUDONO ALLO STAFF E PASSANO SOTTO LA VSOP** (stesso ramo). `/services/airspace` → **`/services/vsop/airspace`**, riservata allo **staff di divisione** e superiori («per ora», decisione del committente). Il cancello sta in **due sedi** come per il convertitore — la scheda dell'hub si **sposta** nella sezione dello staff, la pagina rifiuta chi scrive l'indirizzo a mano — e ⚠️ **rifiuta prima delle query**. ⚠️ Il vecchio indirizzo è stato **tolto** (decisione del committente): era il percorso con cui la mappa girava senza cancello, e risponde 404 come qualunque altro percorso inesistente. ⚠️ La scheda è marcata `shortcut`: sotto `/services/vsop/` la mappa ha smesso di essere un servizio a sé, come i vSOP militari, e il conto delle scorciatoie sale da uno a due **di proposito**. · **§AJ: «DA FARE» NON PARLAVA LA LINGUA DEL SITO** (stesso ramo). Verificata la segnalazione su `/services/vsop/tasks`: quattro cose fuori posto, una delle quali un difetto vero. L'elenco stava **nudo** sul fondo della pagina mentre «Da sistemare» rende le **stesse righe** dentro un `.panel`; «My tasks» era un `<details>` **senza una riga di CSS** (triangolino del browser); ⚠️ **la lavagna era BIANCA nel tema scuro** — `var(--paper, var(--on-brand))` con `--paper` **inesistente**, quindi vinceva il bianco del testo sul blu: schede illeggibili, stessa classe della legenda 3D del 22 agosto; e le due sezioni chiuse non avevano **nessun** segno d'apertura. ⚠️ **Era sfuggito perché `/tasks` non era in `sweep.js`** — e non sarebbe bastato aggiungercelo: la lavagna nasce chiusa. Ora lo script apre anche i titoli-maniglia `.sect-toggle` prima di misurare. · **BIBLIOTECA ALLEGATI: il tipo «PIV»** (§E10, stesso ramo). ⚠️ **Non si tocca il database**: gli enum di questo modello si scrivono in colonna come **stringhe** (`SetProviderClrType(string)`), la colonna è `TEXT` su SQLite e `varchar(32)` **senza vincolo di dominio** su MySQL — niente migrazione, il che dentro la finestra cieca conta doppio. Chip e tendina compaiono da soli (la pagina cicla `Enum.GetValues`); serviva solo la riga nelle risorse, che `SharedResourceIntegrityTests` pretende. Trovato e corretto **nel solo commento**: `Other` diceva di essere lo zero dell'enum e non lo è (lo è `Loa`). · **§AI: RADIOASSISTENZE** (stesso ramo). Chip per **tipo** costruiti dal **dato** (non da `TipiSuggeriti`, che è un elenco aperto: un chip fisso a zero prometterebbe un filtro che non filtra), e si **sommano** — «senza tipo» sta nello stesso insieme. Il modulo d'aggiunta sale **in cima** (149 righe da scorrere per aggiungerne una) e **chiede ogni volta**: una riga scritta a mano è nostra per sempre, mentre lo stesso impianto nel sectorfile arriva a tutti e si aggiorna da sé. ⚠️ La domanda la pone la pagina e non un `InlineConfirm` — quello non si apre da codice, e con l'Invio servirebbe un secondo meccanismo. Più intestazione appiccicata, **ordinamento a tre stati** (il terzo clic torna all'ordine dell'anagrafica; le frequenze si ordinano da numero), «N di M», testo cercato marcato col nuovo componente `<Marca>` e Invio che aggiunge rimettendo il fuoco nel campo. **8 test nuovi.** · **§AH: FRASEOLOGIA E TRADUZIONI IN UNA PAGINA SOLA** (stesso ramo). Le due pagine `admin/translations` e `admin/glossary` diventano una, a sezioni richiudibili e con **una** tendina di direzione; il vecchio indirizzo è una seconda rotta della stessa pagina e la barra admin passa da 17 a 16 voci. ⚠️ **La ricerca sta sul database**: il registro mostrava **cento righe su 176 senza dirlo**, e un filtro sulle righe caricate mentirebbe proprio quando la memoria è lunga. Nuovo **«dove si usa»** a due livelli (formula → frasi → documenti, col **dove**: prosa/tabella/titolo e il collegamento all'editor): ⚠️ il corpus editoriale si legge **una volta per lotto**, non una per riga. Più «N di M» + «carica altre», tastiera (Invio / Ctrl+Invio / Esc) e testo cercato **marcato**. **15 test nuovi**, Release 0 avvisi, suite verde. · **§AG: LA MAPPA BIANCA DEI CONFINANTI** — non era la basemap, era `vipi-boot.js` che guardava il DOM solo al primo render e alle navigazioni, mentre lì la mappa nasce da un render **interattivo**. · **§AF4: IL GIRO SULLA PAGINA STRUTTURA** (stesso ramo). Tre richieste del committente, guardando la pagina **in inglese**: la **finestra di eliminazione** parlava italiano *dentro* (la finestra passa dalle risorse, il **piano** lo scrive l'applicazione — `Messaggio.Lingua` era messo **a metà**: ~20 frasi di `DeletionRules`, il motivo di `SogliaEliminazione`, **tutti** i verdetti della sonda IVAO); **«Coverage hierarchy» e «Orphan sectors» ora si chiudono** dal titolo; il piede e il tetto di un ripiego si scrivono **anche in piedi** (tendina FL/ft come nei Trasferimenti) — prima una fascia da 2 500 piedi **non si poteva scrivere**. ⚠️ **L'unità non si salva**: due colonne sarebbero state una **seconda migrazione nella finestra cieca**, quindi alla rilettura si **deduce** e «FL30» rilegge «3 000 ft». ⚠️ **La cultura di questa macchina è inglese**: cinque test sono diventati rossi appena le frasi hanno avuto due versioni — vanno ancorati con `CulturaDiProva`. · **Aggiornato:** 31 agosto 2026, tarda notte — **§AF NUOVA: LA RICADUTA GUARDA ANCHE IN ALTO, E UN SETTORE NON È PIÙ NIPOTE DI SÉ STESSO** (ramo `ricaduta-verticale-e-cicli`, tre commit, **NON fuso**). Difetto **visto in produzione** su `atc.it.ivao.aero`: `LIMF_WW0_APP` compariva come radice **e** come proprio nipote. ⚠️ Nessuna guardia poteva vederlo, perché `EnsureNoCycle` guardava i soli padri **scritti** mentre tutti leggono `EffectiveParentCallsign` — e scegliere «eredita» **non passava da nessun controllo**. E non esplodeva: ogni lettore ha la sua guardia sui nodi visti, quindi la catena si **tronca in silenzio**. **0 anelli attivi** in sviluppo ma **19 aeroporti** pendono da una PROPRIA APP: erano 19 inneschi a un clic. Poi la **ricaduta verticale**: misurato che Milano è divisa a **FL325** e che i due alti stanno **uno sotto l'altro**, quindi con **WS5** chiuso il traffico alto d'ovest finiva su WS2, che sopra FL325 non ha niente. `SectorFallbacks` porta righe con **fascia di quota**, consultate **prima** del padre — che resta la **coda implicita**, e per questo la tabella nasce **vuota**: nessun travaso, nessun `Sql` in migrazione (vietato nella finestra cieca). ⚠️ **Migrazione additiva, due provider: quelle in coda diventano TRENTASETTE.** ⚠️ La **verifica dal vivo** ha trovato **quattro** difetti che i test non vedevano, fra cui **155 proposte** (mancava del tutto un criterio geografico) e una riga che *sembrava* vuota e alla riscrittura **si sarebbe mangiata il dato**. **56 test nuovi**, Release 0 avvisi, suite **4 734**. · **Aggiornato:** 31 agosto 2026, notte — ✅ **1.1.0 È IN PRODUZIONE**, caricato dal committente e **verificato dal vivo dall'esterno** (§A15): `/vsop/ping` risponde `204` — indirizzo che nel pacchetto `j` non esisteva — la Ricerca risponde («33 risultati per LI») e la console è pulita. ✅ **La chiave Microsoft è caricata** dal file dei segreti. ✅ **Il `.sql` del 30 era già dentro** (la vIPI di LIBB dice «Aeroporti 0»: è l'archivio nuovo). ⚠️ Restano il **KMZ degli spazi aerei da caricare** e `errori-richieste.txt` da cancellare. · **Aggiornato:** 31 agosto 2026 — 📦 **RAMO DI CONSEGNA `consegna-20260831`**: dentro ci sono la consegna del 30 (pacchetto `j`), **`intro-di-pagina`** e **§AE — la riconnessione del circuito**. **Nessuna migrazione** in nessuno dei due rami fusi, che dentro la finestra cieca è il punto. Il pacchetto per l'FTP è **incrementale** (solo i file cambiati) e la versione è **1.1.0**. ⚠️ Da qui in avanti `blazor.web.js` parte con `autostart="false"`: un caricamento senza `vipi-riconnessione.js` dà un sito che **si vede e non risponde**. · **Aggiornato:** 30 agosto 2026, **sera** — 🔴 **CONSEGNA A METÀ**: pacchetto `j` caricato via FTP, database `.sql` pronto e **in attesa che Ivao.It lo importi**; ⚠️ **nove commit sul ramo `consegna-db-20260830` DA SPINGERE**; ⚠️ la consegna **riparta da zero sul contenuto** (il `vipi.db` di sviluppo è intatto); 🔒 **dal 31 agosto al 16 settembre non si consegna database** e una migrazione girerebbe da sola in produzione — presidio in `MigrazioniDellaFinestraCiecaTests`, **da cancellare a finestra chiusa**. Tutto in **§A14** e nel riquadro di «Dove siamo». · **Aggiornato:** 30 agosto 2026, sera (**§AC — L'INTRO DI PAGINA** e **§AD — «USCIRE NON BUTTA VIA»**, ramo **`intro-di-pagina`** (da `main`), **spinto e NON fuso**, quattordici commit. Sezioni editabili in cima all'elenco dei vSOP militari, con i PDF della biblioteca: vivono in **`SharedBlocks`** — tabella dell'`InitialCreate` che **non usava nessuno** — quindi **ZERO migrazioni**, che dentro la finestra cieca è il punto. ⚠️ **Non è un documento**: niente ciclo AIRAC, niente release, quel che si salva è **subito pubblico**. Tradotta su richiesta del SOD, e la traduzione regge solo perché le frasi entrano nel **corpus**. Poi la verifica chiesta dal committente su **tutto ciò che si modifica**: i quattro editor documentali salvano **a ogni gesto** e sono sani; il difetto era sull'editor **aeroporto** — l'unico che accumula — dove «Fine modifica» usciva **senza guardare**, e su `AccAdminPage`. ⚠️ E la guardia `beforeunload` copriva **un buffer su tre**. **Release verde e suite verde su tutt'e due i TFM.**) · **Aggiornato:** 30 agosto 2026, pomeriggio (**§AB — LA SHAPE DI UN SETTORE HA UNA PORTA SOLA**, carta [refactor/15](refactor/15-shape-del-settore-una-porta-sola.md), **S0→S10 fuse in `main` e SPINTE** (merge `--no-ff`, quattordici commit; ramo cancellato). Un settore agganciato agli spazi aerei dell'AIP **disegnava** quel confine e **rivendicava** il traffico dentro il monoblocco di IVAO: sei motori, due lo sapevano. Adesso la forma — **anello E quote insieme** — si chiede a `ISectorShapeResolver`, e le quote stanno **DENTRO il pezzo**, così «laterale da una fonte, verticale da un'altra» non è una cosa da evitare ma una cosa che **non si può scrivere**. ⚠️ La **prova dal vivo**: agganciato `LIRR_EW_CTR` — in frequenza — alla FIR ROMA `GND→FL195`, in **un giro del poller** le tratte nuove sono uscite col timbro `Aip` e i quattro voli **sopra FL195** hanno smesso di essere rivendicati. ⚠️ **S11 resta fuori**: non è una slice, è la seconda metà della cura — otto siti di scrittura e il percorso del **congelamento di release** — e non si fa il giorno prima della consegna (§4-bis della carta). ⚠️ Migrazioni in coda: **TRENTASEI**) · **Aggiornato:** 30 agosto 2026 (**I DUE RAMI SONO FUSI IN `main`, CHE È STATO SPINTO** — `biblioteca-allegati` (§E10) e `spazi-aerei-aip` (§AA), in quest'ordine. Sette conflitti, e la regola era quasi sempre «servono tutti e due»: registrazioni DI, DbSet, voce nella barra admin, chiavi di traduzione. ⚠️ **L'eccezione non l'ha segnalata git**: i due rami dicevano tutti e due «16 voci nella barra admin» perché ognuno ne aggiungeva UNA a quindici — fuse sono **DUE**, quindi 17 e 12 — e git ha fuso due numeri identici senza chiamarlo conflitto. Se n'è accorto solo `AdminNavTests`. ⚠️ I due **ModelSnapshot** git li ha fusi da solo e stavolta bene: la prova non è che i nomi ci siano ma che una migrazione di prova esca **VUOTA**, e su tutti e due i provider lo è. **Release verde e quindici assiemi su quindici verdi DOPO la fusione.** ⚠️ Le migrazioni in coda al cutover MariaDB sono ora **TRENTAQUATTRO**. ✅ **R8 CHIUSO**: l'embed provato dal vivo con due PDF veri del committente — il documento si vede davvero nel riquadro. ⚠️ E ha trovato che in `frame-src` mancava **`'self'`**: l'iframe punta alla NOSTRA rotta, non a Drive, e col solo Drive il riquadro sarebbe rimasto vuoto al passaggio a CSP vera. ⚠️ Più un difetto in produzione: la colonna versione della biblioteca stampava `v@r.VersionNumber` alla lettera, che è la regola di Razor per gli indirizzi email) · **Aggiornato:** 29 agosto 2026, notte (**§E10 — LA BIBLIOTECA ALLEGATI, TUTTE E NOVE LE SLICE FATTE**, ramo
+**Aggiornato:** 31 agosto 2026, pomeriggio — 🔴 **§AM: la diagnostica di produzione ha smentito §A16 in poche ore.** Tre errori nuovi e **due morti male del processo** (10:57 e 13:05). Quattro difetti, e ⚠️ **il primo era lo strumento di diagnosi**: `CollisioniDbContext` aggiungeva un riferimento a un elenco **a ogni query** e non lo potava mai. Gli altri tre: il registro allegava venti fotografie a ogni errore (634 kB per **tre** voci, su un tetto di 512), il pannello delle traduzioni caricava il documento **due volte a ogni ridisegno** dell'editor sul contesto del circuito, e la home moriva su una lettura che la barra sopra proteggeva gia'. ✅ E il **rimedio alla radice** è nello stesso giro (AM-E): il catalogo delle stazioni si legge **una volta per processo**, e la spinta di invalidazione è passata dai servizi — dove mancava in **sei metodi su sette** — a un intercettore sul salvataggio. Ramo `corse-e-perdita-diagnostica` da **`consegna-20260831`**, **23 test nuovi**, **nessuna migrazione** — consegnabile nella finestra cieca · **Aggiornato:** 31 agosto 2026, notte — ✅ **1.1.0 È IN PRODUZIONE**, caricato dal committente e **verificato dal vivo dall'esterno** (§A15): `/vsop/ping` risponde `204` — indirizzo che nel pacchetto `j` non esisteva — la Ricerca risponde («33 risultati per LI») e la console è pulita. ✅ **La chiave Microsoft è caricata** dal file dei segreti. ✅ **Il `.sql` del 30 era già dentro** (la vIPI di LIBB dice «Aeroporti 0»: è l'archivio nuovo). ⚠️ Restano il **KMZ degli spazi aerei da caricare** e `errori-richieste.txt` da cancellare. · **Aggiornato:** 31 agosto 2026 — 📦 **RAMO DI CONSEGNA `consegna-20260831`**: dentro ci sono la consegna del 30 (pacchetto `j`), **`intro-di-pagina`** e **§AE — la riconnessione del circuito**. **Nessuna migrazione** in nessuno dei due rami fusi, che dentro la finestra cieca è il punto. Il pacchetto per l'FTP è **incrementale** (solo i file cambiati) e la versione è **1.1.0**. ⚠️ Da qui in avanti `blazor.web.js` parte con `autostart="false"`: un caricamento senza `vipi-riconnessione.js` dà un sito che **si vede e non risponde**. · **Aggiornato:** 30 agosto 2026, **sera** — 🔴 **CONSEGNA A METÀ**: pacchetto `j` caricato via FTP, database `.sql` pronto e **in attesa che Ivao.It lo importi**; ⚠️ **nove commit sul ramo `consegna-db-20260830` DA SPINGERE**; ⚠️ la consegna **riparta da zero sul contenuto** (il `vipi.db` di sviluppo è intatto); 🔒 **dal 31 agosto al 16 settembre non si consegna database** e una migrazione girerebbe da sola in produzione — presidio in `MigrazioniDellaFinestraCiecaTests`, **da cancellare a finestra chiusa**. Tutto in **§A14** e nel riquadro di «Dove siamo». · **Aggiornato:** 30 agosto 2026, sera (**§AC — L'INTRO DI PAGINA** e **§AD — «USCIRE NON BUTTA VIA»**, ramo **`intro-di-pagina`** (da `main`), **spinto e NON fuso**, quattordici commit. Sezioni editabili in cima all'elenco dei vSOP militari, con i PDF della biblioteca: vivono in **`SharedBlocks`** — tabella dell'`InitialCreate` che **non usava nessuno** — quindi **ZERO migrazioni**, che dentro la finestra cieca è il punto. ⚠️ **Non è un documento**: niente ciclo AIRAC, niente release, quel che si salva è **subito pubblico**. Tradotta su richiesta del SOD, e la traduzione regge solo perché le frasi entrano nel **corpus**. Poi la verifica chiesta dal committente su **tutto ciò che si modifica**: i quattro editor documentali salvano **a ogni gesto** e sono sani; il difetto era sull'editor **aeroporto** — l'unico che accumula — dove «Fine modifica» usciva **senza guardare**, e su `AccAdminPage`. ⚠️ E la guardia `beforeunload` copriva **un buffer su tre**. **Release verde e suite verde su tutt'e due i TFM.**) · **Aggiornato:** 30 agosto 2026, pomeriggio (**§AB — LA SHAPE DI UN SETTORE HA UNA PORTA SOLA**, carta [refactor/15](refactor/15-shape-del-settore-una-porta-sola.md), **S0→S10 fuse in `main` e SPINTE** (merge `--no-ff`, quattordici commit; ramo cancellato). Un settore agganciato agli spazi aerei dell'AIP **disegnava** quel confine e **rivendicava** il traffico dentro il monoblocco di IVAO: sei motori, due lo sapevano. Adesso la forma — **anello E quote insieme** — si chiede a `ISectorShapeResolver`, e le quote stanno **DENTRO il pezzo**, così «laterale da una fonte, verticale da un'altra» non è una cosa da evitare ma una cosa che **non si può scrivere**. ⚠️ La **prova dal vivo**: agganciato `LIRR_EW_CTR` — in frequenza — alla FIR ROMA `GND→FL195`, in **un giro del poller** le tratte nuove sono uscite col timbro `Aip` e i quattro voli **sopra FL195** hanno smesso di essere rivendicati. ⚠️ **S11 resta fuori**: non è una slice, è la seconda metà della cura — otto siti di scrittura e il percorso del **congelamento di release** — e non si fa il giorno prima della consegna (§4-bis della carta). ⚠️ Migrazioni in coda: **TRENTASEI**) · **Aggiornato:** 30 agosto 2026 (**I DUE RAMI SONO FUSI IN `main`, CHE È STATO SPINTO** — `biblioteca-allegati` (§E10) e `spazi-aerei-aip` (§AA), in quest'ordine. Sette conflitti, e la regola era quasi sempre «servono tutti e due»: registrazioni DI, DbSet, voce nella barra admin, chiavi di traduzione. ⚠️ **L'eccezione non l'ha segnalata git**: i due rami dicevano tutti e due «16 voci nella barra admin» perché ognuno ne aggiungeva UNA a quindici — fuse sono **DUE**, quindi 17 e 12 — e git ha fuso due numeri identici senza chiamarlo conflitto. Se n'è accorto solo `AdminNavTests`. ⚠️ I due **ModelSnapshot** git li ha fusi da solo e stavolta bene: la prova non è che i nomi ci siano ma che una migrazione di prova esca **VUOTA**, e su tutti e due i provider lo è. **Release verde e quindici assiemi su quindici verdi DOPO la fusione.** ⚠️ Le migrazioni in coda al cutover MariaDB sono ora **TRENTAQUATTRO**. ✅ **R8 CHIUSO**: l'embed provato dal vivo con due PDF veri del committente — il documento si vede davvero nel riquadro. ⚠️ E ha trovato che in `frame-src` mancava **`'self'`**: l'iframe punta alla NOSTRA rotta, non a Drive, e col solo Drive il riquadro sarebbe rimasto vuoto al passaggio a CSP vera. ⚠️ Più un difetto in produzione: la colonna versione della biblioteca stampava `v@r.VersionNumber` alla lettera, che è la regola di Razor per gli indirizzi email) · **Aggiornato:** 29 agosto 2026, notte (**§E10 — LA BIBLIOTECA ALLEGATI, TUTTE E NOVE LE SLICE FATTE**, ramo
 `biblioteca-allegati` **spinto e NON fuso**. I PDF non possono stare da noi — il piano di hosting non ammette
 il formato, ed è un vincolo **contrattuale** — quindi stanno sul **Drive di divisione**, e da noi stanno
 identità, organizzazione, versioni e il registro dei link. Il documento cita uno **slug** e passa da
@@ -348,7 +349,23 @@ una memoria esaurita e una `.dll` sovrascritta mentre gira.
 finisce con «in servizio dal \<data\>» — cioè la stessa ora già scritta a inizio riga. Ora porta
 l'etichetta corta. I test guardavano che la riga ci fosse, non come suonasse.
 
-### 🔴 A17 — `main` è indietro rispetto a ciò che GIRA: va fuso
+### ✅ A17 — CHIUSA: `main` è stato allineato, e i sei rami sono stati cancellati
+
+✅ Fatto su richiesta del committente. `main` contiene ora `consegna-db-20260830`, `intro-di-pagina`,
+`riconnessione-circuito`, `consegna-20260831` (= **1.1.0, il codice online**), `ricaduta-verticale-e-cicli`
+(§AF–§AL) e `corse-e-perdita-diagnostica` (§AM). I sei rami sono stati cancellati, locali e remoti.
+Build Release **0 avvisi** su net8 e net10, suite verde (**4 807** / 4 473).
+
+🔴 **Ma «fondere» non è «consegnare», e adesso in `main` c'è una migrazione.** `CatenaDiRipiego`
+(`20260831014235` + la gemella MySql `20260831014248`) arriva da §AF, e siamo nella **finestra cieca fino
+al 16 settembre**: in produzione gira `Database.Migrate()` all'avvio, quindi una migrazione spedita in
+questa finestra **gira da sola, su DDL non transazionale, senza nessuno che possa ripristinare**. È additiva
+e passa il presidio, ma chi costruisce il prossimo pacchetto **da `main`** se la porta dietro. Per
+consegnare i soli quattro difetti di §AM — che di migrazioni non ne hanno — si apre un ramo di consegna da
+**`bfb2c056`** con sopra i due commit `8a540bb2` e `7ad5df21`.
+
+<details><summary>Com'era la voce, prima</summary>
+
 
 Il codice in produzione è **`consegna-20260831`** (spinto). `main` è fermo a **`30363753`** e **non contiene**
 né la consegna del 30, né l'intro di pagina, né la riconnessione: sono **41 commit** di distanza.
@@ -363,6 +380,8 @@ git checkout main && git merge --no-ff consegna-20260831 && git push
 ```
 Poi si possono cancellare i tre rami assorbiti: `consegna-db-20260830`, `intro-di-pagina`,
 `riconnessione-circuito` (tutti e tre già dentro `consegna-20260831`, e tutti e tre spinti).
+
+</details>
 
 ### 🟡 A16 — Dopo il deploy: cosa dice la diagnostica di produzione
 
@@ -410,6 +429,11 @@ solo per dire che **senza** quella riparazione quel settore avrebbe traffico zer
 
 299 righe, ma **sette voci sole e tutte del 24 agosto** (17:43–17:44 UTC, VID 713322, la pagina aeroporti di
 LIBB): il residuo dell'epoca delle corse sul `DbContext`. **Nessun errore nuovo dopo l'1.1.0.**
+
+> 🔴 **Smentito il 31 agosto, in giornata.** La frase qui sopra e' rimasta vera per poche ore: lo
+> stesso giorno il file e' tornato a **634 kB** con **tre** errori nuovi (11:31→11:40 UTC), e `avvii.txt`
+> ha registrato **due morti male del processo**. Vedi **§AM** — e ⚠️ il primo dei quattro difetti era
+> proprio lo strumento che scrive questo file.
 
 ⚠️ Vale la regola già imparata con `avvio-errore.txt`: un file di errori vecchi che resta lì fa suonare un
 allarme a **ogni** controllo futuro — è già costato otto giorni a inseguire un guasto del 16 agosto.
@@ -6263,3 +6287,116 @@ Col primo tentativo — VID invariato, posizione `XX-ZZ9` — l'elenco mostrava 
 misura sarebbe stata sbagliata credendola giusta. Serve **anche** `DevIdentity__UserId`. E le promozioni a
 mano (`RoleOverrides`) non servono al contrario: possono solo **alzare** il livello. Scritto in
 `.claude/skills/verifica-live/SKILL.md`.
+---
+
+## AM. Quattro difetti letti nella diagnostica, e uno era la diagnostica — 31 agosto 2026
+
+Carta: [`feature/2026-08-31-corse-dbcontext-e-diagnostica.md`](feature/2026-08-31-corse-dbcontext-e-diagnostica.md).
+Ramo **`corse-e-perdita-diagnostica`**, aperto da **`consegna-20260831`** — cioe' da **cio' che gira**, non
+da `main`, che e' 41 commit indietro. Build Release **0 avvisi** su net8 e net10, **14 test nuovi**,
+⚠️ **nessuna migrazione**: consegnabile dentro la finestra cieca.
+
+### Il fatto
+
+Due sintomi dal committente, senza uno schema evidente: la pagina **«This page did not open»** (da cui
+bisogna tornare alla documentazione a mano), e **«A second operation was started on this context
+instance»** sotto un documento su cui sta lavorando — ⚠️ **pur essendo l'unico a lavorarci**. Piu' la
+cartella `diagnostica/` scaricata via FTP.
+
+⚠️ **La direzione l'ha data `avvii.txt`, non il registro degli errori.** Due righe:
+
+```
+10:57:28Z  AVVIO  il processo precedente NON si e' spento in modo ordinato — era partito 03:01:56 prima
+13:05:22Z  AVVIO  il processo precedente NON si e' spento in modo ordinato — era partito 02:07:54 prima
+```
+
+Due morti male in una giornata, a due-tre ore l'una dall'altra: una cadenza cosi' regolare non e' un difetto
+che scatta su un gesto, e' **qualcosa che cresce**. `avvii.txt` esiste da un giorno solo (§AE) ed e' il file
+che ha risolto l'indagine — **un registro di *stato* vale piu' di un registro di *errori***.
+
+### I quattro difetti
+
+- 🔴 **AM-A · `CollisioniDbContext` perdeva memoria a ogni query.** Lo strumento scritto il 24 agosto
+  *per capire* le corse sul `DbContext` teneva, accanto alla tabella debole, un elenco delle liste vive
+  (`Viventi`) e ci aggiungeva un riferimento **dentro `Apre()`**, cioe' **a ogni comando SQL del processo**;
+  la potatura stava solo nello scatto della fotografia, che gira quasi mai. Con quattordici `HostedService`
+  piu' il traffico sono milioni di oggetti in poche ore. **La prova a occhio nudo**: dentro una sola
+  fotografia la stessa lista compare **34, 38 e 44 volte**, identica riga per riga — non erano trentotto
+  query concorrenti, era una lista sola stampata trentotto volte.
+  **Adesso**: `Viventi` non esiste piu' (`ConditionalWeakTable` si enumera da se'), tetto di 64 operazioni
+  per contesto, interruttore `VIPI_DIAGNOSTICA_COLLISIONI=0`, e via `DataReaderClosing` dall'intercettore
+  (EF chiama *sia* Closing *sia* Disposing: la seconda chiusura toglieva la riga di un'**altra** operazione
+  con lo stesso SQL, cioe' proprio quella che raccontava la collisione).
+  ⚠️ **La regola che resta**: *uno strumento di diagnosi non puo' tenere stato che cresce con il
+  traffico.*
+
+- **AM-B · Il registro allegava a ogni errore venti fotografie, quasi tutte di altri guasti.** 634 kB per
+  **tre** errori, su un tetto di rotazione di 512 kB: il file si metteva da parte dopo tre voci e la storia
+  che serviva non c'era gia' piu'. E la voce delle **11:40:17** portava uno scatto delle **11:37:06** — di
+  un'altra richiesta, con dentro query che con quella pagina non c'entravano. ⚠️ Una scena di un altro
+  guasto allegata al tuo **la prima volta la si legge come se fosse la tua**: e' il modo di sbagliare che il
+  24 agosto era gia' costato un giro di deploy. **Adesso**: una sola fotografia, l'ultima, e solo se
+  scattata **entro dieci secondi**.
+
+- **AM-C · Il pannello delle traduzioni correva contro l'editor che lo contiene** — e' il «second
+  operation» che il committente vedeva «pur essendo l'unico». La corsa non era fra due persone: era fra il
+  pannello e chi scrive. Tre difetti nello stesso metodo, ⚠️ **ognuno gia' scritto nero su bianco
+  altrove**: non isolato (scope del circuito), lettura **non condizionata al cambio dei parametri**
+  (`ReleasePanel`, 1 agosto: *il pericolo e' il RI-render, non il montaggio*), e **documento caricato DUE
+  volte** — la seconda con l'altra lingua, solo per dedurre se il vuoto significasse «stessa lingua» — per
+  un blocco **chiuso di suo** che nessuno stava guardando.
+  **Adesso**: `_lettura` dallo scope proprio per il ciclo di vita, guardia su `(DocumentId, lingua)`, e
+  `RevisioneAsync` che **dice** la lingua sorgente invece di farla dedurre (la deduzione vecchia sbagliava
+  anche: su un documento senza frasi rispondeva «no» a chi leggeva proprio nella lingua del documento).
+  ⚠️ **`Revisione` resta `@inject` per la SCRITTURA, e non va «uniformato»**: `CorreggiAsync` passa da
+  `IEditAuthorizationService`, che legge l'identita' dall'`HttpContext`; in uno scope creato dopo la
+  richiesta risponderebbe «anonimo» e **il salvataggio verrebbe rifiutato a tutti**.
+
+- **AM-D · La home moriva su una lettura che la barra sopra proteggeva gia'.** `SopHome.OnInitialized()`
+  era `=> Stations.Prewarm();`, nudo. ⚠️ La parte istruttiva: il rimedio c'era, e stava **un piano
+  sopra**. La barra quella lettura la protegge dal 24 agosto — ma **ingoiare lascia la cache vuota**, e la
+  pagina sotto ritenta sullo stesso contesto rotto. Il presidio della barra proteggeva la barra e non cio'
+  che le sta dentro. **Adesso**: stesso gesto nella pagina, catalogo in un campo suo (la proprieta' pigra
+  del servizio **lancia dentro il markup**, dove non si cattura niente), e un avviso **suo** — dire «il
+  database e' vuoto» a chi ha avuto un singhiozzo manda a cercare un guasto che non c'e'.
+
+- **AM-E · Il rimedio alla radice: il catalogo si legge una volta per PROCESSO.** C e D sono due modi
+  diversi di proteggersi dalla **stessa** lettura — ACC e mappa aeroporti, che `IStationResolver`
+  (`scoped` = per circuito) rileggeva per ogni sessione aperta e per ogni richiesta SSR. In una settimana
+  quella lettura e' finita nello stack di **tre** guasti. Adesso sta in `CatalogoStazioni`, singleton: il
+  **cosa** nel singleton, il **come si legge** nel resolver, che ha l'`IStationDirectory` del suo scope
+  (⚠️ un singleton con dentro un `DbContext` sarebbe una dipendenza prigioniera, cioe' il difetto
+  spostato invece che tolto). Copia e versione in **un oggetto solo** — due campi non si leggono insieme e
+  si terrebbe per buona una copia scaduta per sempre; versione letta **prima** della query; lettura
+  fallita **non** messa in cache; serratura tenuta **durante** la lettura, cosi' venti circuiti a freddo
+  fanno una query invece di venti (con `MaximumPoolSize=20` erano il pool intero per sette righe).
+  `Prewarm()` **resta**: qualcuno dev'essere il primo, e su Passenger — che spegne per inattivita' — il
+  primo capita a ogni risveglio.
+
+  🔴 **E il difetto che questa modifica avrebbe CREATO, se non lo si fosse cercato prima.** Allargare la
+  cache sposta il peso su `IStationCatalogVersion`. Conto fatto prima di scrivere una riga: **4** chiamate a
+  `Bump()` contro **11** posti che scrivono `Acc` o `Airport`. Mancava in `CreateAcc`, `DeleteAcc`,
+  `CreateAirport`, `DeleteAirport`, `MoveAirport`, `SetAirportHidden`, in tutta la catena di eliminazione e
+  nella scrittura delle **coordinate** dell'aeroporto. ⚠️ Nessuno se n'era accorto perche' la copia era
+  scoped: il dato vecchio durava un istante. Con la copia di processo, un amministratore che crea un ACC
+  non lo vedrebbe comparire — ne' lui ne' nessun altro. Rimedio: **non** ricordarsi la riga in sei posti in
+  piu', ma spingere **dove avviene la scrittura** — `BumpCatalogoStazioniInterceptor`, un
+  `SaveChangesInterceptor` che guarda il change-tracker. Le quattro chiamate a mano sono state tolte.
+  ⚠️ `Modified` conta quanto `Added`/`Deleted` (quota, IATA, coordinate e i segni militari cambiano con un
+  `UPDATE`: un filtro sul solo inserimento avrebbe lasciato fuori il giro notturno); si spinge **prima** del
+  salvataggio, perche' una spinta di troppo costa una rilettura e una mancata costa un dato falso fino al
+  riavvio; e l'intercettore va montato su **tutti e tre** i provider, o si ottiene un ambiente in cui il
+  catalogo non si aggiorna piu' e nessun test dell'altro lo direbbe.
+
+### Quel che resta
+
+- **AM1 ✅ FATTA nello stesso giro** — il catalogo in memoria di **processo**. Vedi **AM-E** qui sopra:
+  la misura da fare prima c'era davvero, ed e' servita (`Bump()` mancava in sei metodi su sette).
+- **AM2 🔴 La verifica dal vivo, che i test non possono fare.** Le corse si aprono con la **latenza di
+  un database remoto**: in locale la finestra e' quasi nulla. Serve un'identita' con permessi di editor, su
+  `/services/vsop/libb/editor` e `/services/vsop`, **subito dopo un riavvio** (memoria fredda).
+- **AM3 🟡 Rileggere `avvii.txt` fra qualche giorno.** La perdita di memoria di AM-A si vede **solo in
+  esercizio**: la conferma e' **l'assenza** di righe «NON si e' spento in modo ordinato». Da fare insieme
+  ad **AE1**, che chiede la stessa rilettura per un altro motivo.
+- **AM4 🟡 Cancellare `errori-richieste.txt` sul server** dopo il deploy, come gia' chiedeva §A16: un
+  file di errori vecchi che resta li' fa suonare un allarme a ogni controllo futuro.

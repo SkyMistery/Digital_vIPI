@@ -1,11 +1,34 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
 **Ultimo aggiornamento:** 1 settembre 2026, sera (**§AK — gli spazi aerei**: da `/services/airspace` a **`/services/vsop/airspace`**, riservata allo **staff di divisione**; cancello in due sedi, vecchio indirizzo **tolto** (404); **§AJ — «Da fare» non parlava la lingua del sito**: elenco senza riquadro, sezione senza CSS e ⚠️ **lavagna bianca nel tema scuro** (`--paper` non esiste); `sweep.js` ora copre `/tasks` e apre le sezioni richiudibili; **biblioteca allegati — il tipo «PIV»**: nessuna migrazione, gli enum stanno in colonna come stringhe; **§AI — radioassistenze**: chip per tipo costruiti dal dato, aggiunta in cima che **chiede ogni volta** (meglio nel sectorfile), ordinamento a tre stati e intestazione appiccicata; **§AH — fraseologia e traduzioni in una pagina sola**: `admin/translations` e `admin/glossary` diventano una pagina a sezioni richiudibili, con ricerca **sul database** — il registro mostrava cento righe su 176 senza dirlo — e un **«dove si usa»** a due livelli; **§AG — la mappa bianca dei Confinanti**: non era la basemap, era `vipi-boot.js` che guardava il DOM solo al primo render e alle navigazioni, mentre lì la mappa nasce da un render **interattivo**; **§AF4 — il giro sulla pagina Struttura**: la finestra di eliminazione parla inglese anche **dentro**, le due sezioni si chiudono, e il piede/tetto di un ripiego si scrivono anche **in piedi**); prima, 1 settembre 2026 (**§AF — la ricaduta verticale**: alle tre slice di ieri si sono aggiunte la **schermata di dettaglio** e il **bersaglio a digitazione**; ramo `ricaduta-verticale-e-cicli`, **sette commit, spinto e NON fuso**); prima, 31 agosto tarda notte (**§AF — la ricaduta guarda anche in alto, e un settore non è più nipote di sé stesso**: ramo `ricaduta-verticale-e-cicli`); prima, 31 agosto notte (**1.1.0 È IN PRODUZIONE**, verificato dal vivo — §A15; cosa dice la diagnostica del server e cosa resta — §A16); prima, 30 agosto pomeriggio (**§AB — la shape di un settore ha una porta sola**,
+**Ultimo aggiornamento:** 31 agosto 2026, pomeriggio (**§AM — quattro difetti letti nella diagnostica del server, e il primo era la diagnostica stessa**: ramo `corse-e-perdita-diagnostica`, non fuso); prima, 31 agosto notte (**1.1.0 È IN PRODUZIONE**, verificato dal vivo — §A15; cosa dice la diagnostica del server e cosa resta — §A16); prima, 30 agosto pomeriggio (**§AB — la shape di un settore ha una porta sola**,
 fusa in `main` e spinta; prima, i due rami di §AA e §E10. ⚠️ Tutto ciò che segue nella
 sezione «Dove siamo» è **storia**: i rami che vi si citano come «non fusi» sono in `main` e sono stati
 cancellati — vale il riquadro qui sotto).
 
 ## Dove siamo, prima di tutto il resto
+
+> ### 🆕 DOPO LA FUSIONE — questo riquadro batte tutto il resto del file
+>
+> ✅ **`main` è finalmente ciò che vale.** Erano 41 commit indietro rispetto a ciò che gira in produzione
+> (§A17), e adesso contiene tutto: `consegna-db-20260830`, `intro-di-pagina`, `riconnessione-circuito`,
+> `consegna-20260831` (= **1.1.0, il codice online**), `ricaduta-verticale-e-cicli` (§AF–§AL) e
+> `corse-e-perdita-diagnostica` (§AM). I sei rami sono stati **cancellati**, locali e remoti.
+>
+> ⚠️ **Tutto ciò che segue e dice «ramo X, non fuso» è STORIA.** Le due schede qui sotto restano perché
+> raccontano *che cosa* è entrato e *perché*, non dove stava.
+>
+> 🔴 **E UNA COSA VA DECISA PRIMA DEL PROSSIMO PACCHETTO.** In `main` adesso c'è la migrazione
+> **`CatenaDiRipiego`** (`20260831014235`, più la gemella MySql `20260831014248`), che arriva da §AF. Siamo
+> nella **finestra cieca fino al 16 settembre**: in produzione gira `Database.Migrate()` all'avvio, quindi
+> una migrazione spedita in questa finestra **gira da sola, su DDL non transazionale, senza nessuno che
+> possa ripristinare**. È additiva e passa il presidio
+> (`MigrazioniDellaFinestraCiecaTests`), ma **fondere non è consegnare**: chi costruisce il prossimo
+> pacchetto da `main` se la porta dietro. Se serve consegnare **solo** §AM — i quattro difetti della
+> diagnostica, che non hanno migrazioni — va costruito un ramo di consegna da `bfb2c056`
+> (`consegna-20260831`, il codice online) con sopra i **due soli commit** di §AM.
+>
+
 
 > ### 🆕 LO STATO VERO, 1 settembre 2026 (sera) — questo riquadro batte tutto il resto del file
 >
@@ -151,6 +174,36 @@ cancellati — vale il riquadro qui sotto).
 > aver troncato il file e **`MEMORY.md` è rimasto vuoto**. I 130 file di memoria sono intatti; l'indice è
 > stato **ricostruito dal loro frontmatter** (130 righe, 21,8 KB — ora rientra nel limite che sforava). I
 > ganci sono più asciutti di come erano scritti a mano.
+> ### 🔴 31 agosto 2026, pomeriggio — IL PROCESSO E' MORTO DUE VOLTE, E LA COLPA ERA DELLA DIAGNOSTICA
+>
+> Il committente ha scaricato `diagnostica/` dal server e ha segnalato due sintomi: la pagina **«This page
+> did not open»** e **«A second operation was started on this context instance»** sotto un documento su cui
+> stava lavorando **da solo**. Dentro c'erano **quattro** difetti — carta
+> [`docs/feature/2026-08-31-corse-dbcontext-e-diagnostica.md`](docs/feature/2026-08-31-corse-dbcontext-e-diagnostica.md),
+> lavori aperti **§AM**. Ramo **`corse-e-perdita-diagnostica`** da `consegna-20260831`, **NON fuso, NON
+> consegnato**. Build Release 0 avvisi su net8 e net10, **23 test nuovi**, ✅ **nessuna migrazione**.
+>
+> ✅ **E il rimedio alla radice è dentro lo stesso ramo** (AM-E): il catalogo delle stazioni si legge **una
+> volta per processo** invece che una per circuito — sparisce la lettura su cui sono nati C e D. ⚠️ Ha
+> richiesto di chiudere prima un buco che nessuno vedeva: `Bump()` mancava in **sei metodi su sette**, e con
+> la cache scoped il dato vecchio durava un istante mentre con quella di processo durerebbe fino al riavvio.
+> La spinta adesso la dà un intercettore sul salvataggio, non i servizi.
+>
+> ⚠️ **La direzione l'ha data `avvii.txt`, il file nato ieri per un altro motivo** (§AE): due AVVII con
+> «il processo precedente NON si e' spento in modo ordinato», alle 10:57 e alle 13:05, a due-tre ore l'uno
+> dall'altro. Una cadenza cosi' regolare non e' un difetto che scatta su un gesto: **e' qualcosa che
+> cresce**. Era `CollisioniDbContext` — lo strumento scritto il 24 agosto *per capire* le corse sul
+> `DbContext` — che aggiungeva un riferimento a un elenco **a ogni comando SQL** e lo potava solo quando
+> scattava una fotografia, cioe' quasi mai.
+>
+> 🔴 **§A16 diceva «nessun errore nuovo dopo l'1.1.0», ed e' rimasto vero per poche ore.** La riga
+> e' stata corretta sul posto.
+>
+> 🟡 **Quel che resta** (§AM2–AM4): la **verifica dal vivo** (queste corse si aprono solo con la latenza
+> di un database remoto), rileggere `avvii.txt` fra qualche giorno per vedere sparire le morti male, e
+> cancellare `errori-richieste.txt` sul server.
+
+> ### 🆕 LO STATO VERO, 31 agosto 2026 (notte) — questo riquadro batte tutto il resto del file
 >
 > 📦 **31 agosto 2026 — tutto quel che era fuori sta nel ramo di consegna `consegna-20260831`**, che parte
 > da `consegna-db-20260830` (il codice del pacchetto `j`, cioè quello online) e ci fonde sopra

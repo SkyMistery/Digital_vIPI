@@ -26,8 +26,15 @@ public class DocumentTranslationReviewTests
     {
         private readonly EditableDocument? _doc;
         public EditingFinto(EditableDocument? doc) => _doc = doc;
-        public Task<EditableDocument?> LoadForEditAsync(int documentId, CancellationToken ct = default) =>
-            Task.FromResult(_doc);
+
+        /// <summary>Quante volte il documento è stato caricato. È il conto che rende visibile la lettura doppia.</summary>
+        public int Letture { get; private set; }
+
+        public Task<EditableDocument?> LoadForEditAsync(int documentId, CancellationToken ct = default)
+        {
+            Letture++;
+            return Task.FromResult(_doc);
+        }
     }
 
     private sealed class AuthzFinto : IEditAuthorizationService
@@ -63,9 +70,12 @@ public class DocumentTranslationReviewTests
         Children = figlie,
     };
 
-    private static DocumentTranslationReview Servizio(
+    // ⚠️ Il tipo di ritorno è l'INTERFACCIA, non la classe: `RigheAsync` ha un'implementazione di default
+    // (è `RevisioneAsync` privata della lingua sorgente), e le implementazioni di default si vedono solo
+    // attraverso l'interfaccia. Chiamarla sulla classe concreta non compila.
+    private static IDocumentTranslationReview Servizio(
         EditableDocument? doc, MemoriaDiTraduzioneFinta memoria, AuthzFinto? authz = null) =>
-        new(new EditingFinto(doc), memoria, authz ?? new AuthzFinto());
+        new DocumentTranslationReview(new EditingFinto(doc), memoria, authz ?? new AuthzFinto());
 
     [Fact]
     public async Task Elenca_le_frasi_del_documento_con_la_loro_resa()
@@ -169,5 +179,61 @@ public class DocumentTranslationReviewTests
         await Servizio(doc, memoria).RigheAsync(7, "en");
 
         Assert.Equal(1, memoria.Letture);
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────────────────────────
+    // 31 agosto 2026 — la lettura era DOPPIA, e il vuoto si leggeva per esclusione
+    // ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Il documento si carica <b>una volta sola</b> per risposta.
+    ///
+    /// <para>⚠️ Fino al 31 agosto 2026 il pannello dell'editor chiamava <c>RigheAsync</c>, e quando tornava
+    /// vuoto la richiamava con l'<b>altra</b> lingua per capire se il vuoto significasse «stessa lingua»:
+    /// due <c>LoadForEditAsync</c> — cioè due letture del documento intero — a ogni ridisegno dell'editor,
+    /// su un pannello che è chiuso di suo. Questo test è il presidio di quel conto.</para>
+    /// </summary>
+    [Fact]
+    public async Task La_revisione_carica_il_documento_una_volta_sola()
+    {
+        var doc = Documento(Language.It, Sezione("Regole piste", "Contatta la torre."));
+        var editing = new EditingFinto(doc);
+        var servizio = new DocumentTranslationReview(editing, new MemoriaDiTraduzioneFinta(), new AuthzFinto());
+
+        await servizio.RevisioneAsync(7, "en");
+
+        Assert.Equal(1, editing.Letture);
+    }
+
+    /// <summary>La lingua sorgente si <b>dice</b>, non si deduce da un secondo giro.</summary>
+    [Fact]
+    public async Task La_revisione_dice_in_che_lingua_e_scritto_il_documento()
+    {
+        var doc = Documento(Language.It, Sezione("Regole piste", "Contatta la torre."));
+        var servizio = Servizio(doc, new MemoriaDiTraduzioneFinta());
+
+        var inInglese = await servizio.RevisioneAsync(7, "en");
+        Assert.Equal("it", inInglese.LinguaSorgente);
+        Assert.False(inInglese.StessaLingua("en"));
+        Assert.NotEmpty(inInglese.Righe);
+
+        var inItaliano = await servizio.RevisioneAsync(7, "it");
+        Assert.True(inItaliano.StessaLingua("it"));
+        Assert.Empty(inItaliano.Righe);
+    }
+
+    /// <summary>
+    /// ⚠️ Il caso che la vecchia deduzione sbagliava: un documento <b>senza niente da tradurre</b>. Lì
+    /// nessuna delle due lingue ha righe, quindi «se l'altra lingua ne ha, allora è stessa lingua»
+    /// rispondeva <b>no</b> anche a chi stava leggendo proprio nella lingua del documento.
+    /// </summary>
+    [Fact]
+    public async Task Un_documento_senza_frasi_dice_lo_stesso_la_sua_lingua()
+    {
+        var doc = Documento(Language.It);   // nessuna sezione: niente da tradurre in nessuna lingua
+        var servizio = Servizio(doc, new MemoriaDiTraduzioneFinta());
+
+        Assert.True((await servizio.RevisioneAsync(7, "it")).StessaLingua("it"));
+        Assert.False((await servizio.RevisioneAsync(7, "en")).StessaLingua("en"));
     }
 }

@@ -14,18 +14,15 @@ public sealed class AccAdminService : IAccAdminService
     private readonly ISpecialAreaImportUseCase _specialAreas;
     private readonly IEditAuthorizationService _authz;
     private readonly ISectorProjectionService _projection;
-    private readonly IStationCatalogVersion _catalog;
 
     public AccAdminService(IAccAdminRepository repo, IAccImportUseCase import,
-        ISpecialAreaImportUseCase specialAreas, IEditAuthorizationService authz, ISectorProjectionService projection,
-        IStationCatalogVersion catalog)
+        ISpecialAreaImportUseCase specialAreas, IEditAuthorizationService authz, ISectorProjectionService projection)
     {
         _repo = repo;
         _import = import;
         _specialAreas = specialAreas;
         _authz = authz;
         _projection = projection;
-        _catalog = catalog;
     }
 
     public Task<IReadOnlyList<AccAdminRow>> ListAccsAsync(CancellationToken ct = default) => _repo.ListAccsAsync(ct);
@@ -36,7 +33,6 @@ public sealed class AccAdminService : IAccAdminService
     {
         _authz.EnsureAtLeast(VipiRole.Editor);                        // solo il manual applica il guard
         var result = await _import.RunAsync(ct);     // core ACC + subcenter (condiviso con l'auto)
-        _catalog.Bump();                             // l'import puo' aggiungere ACC: l'elenco in giro e' vecchio
         var special = await _specialAreas.RunAsync(ct);   // aree speciali: manual = auto, stesso stato DB (doc 02 §4.4)
         // I fallimenti aree speciali per-ACC risalgono alla UI, che li logga (direttiva logging, invariante #7).
         return new AccImportOutcome(result, special.Failures);
@@ -70,11 +66,10 @@ public sealed class AccAdminService : IAccAdminService
         _authz.EnsureAtLeast(VipiRole.Editor);
         await _repo.SetHiddenAsync(accId, hidden, ct);
         await _projection.SyncFromCatalogsAsync(ct);   // nascondere un ACC disattiva i suoi settori proiettati
-        // ⚠️ E dirlo a chi ha l'elenco in mano. La cache del resolver vive quanto il CIRCUITO (Blazor Server),
-        // non quanto una richiesta: senza questa riga chi nasconde o rimostra un ACC continua a vedere
-        // l'elenco di prima in ogni pagina interattiva finché non ricarica il browser — e se l'ACC che stava
-        // guardando è proprio quello, la pagina resta vuota senza dire perché.
-        _catalog.Bump();
+        // ⚠️ Qui NON si chiama piu' IStationCatalogVersion.Bump(): la spinta la da'
+        // BumpCatalogoStazioniInterceptor, sul salvataggio, per chiunque scriva un Acc o un Airport.
+        // Il motivo del trasloco e' un conto: al 31 agosto 2026 le chiamate a mano erano QUATTRO e i
+        // posti che scrivono quelle due tabelle UNDICI. Vedi CatalogoStazioni.
     }
 
     public async Task SetSubcenterHiddenAsync(int id, bool hidden, CancellationToken ct = default)
