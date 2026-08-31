@@ -1,4 +1,4 @@
-<Project>
+﻿<Project>
 
   <!--
     Impostazioni comuni a TUTTI i progetti del repository (src, tests, tools): MSBuild importa questo file
@@ -86,10 +86,25 @@
     <!--
       ⚠️ 1.0.0 non è mai stato consegnato: è il numero che sarebbe toccato al pacchetto «j» (30 agosto), che
       però era già stato costruito quando la regola è stata scritta. Il primo pacchetto che porta un numero
-      è questo, e porta MINOR perché sopra «j» ci sono funzionalità nuove — l'intro di pagina (§AC) e la
-      riconnessione del circuito (§AE) — senza nessuna migrazione: si consegna da solo, via FTP.
+      è stato 1.1.0, e portava MINOR perché sopra «j» c'erano funzionalità nuove — l'intro di pagina (§AC) e
+      la riconnessione del circuito (§AE) — senza nessuna migrazione.
     -->
-    <VipiVersione>1.1.0</VipiVersione>
+    <!--
+      1.2.0 — 31 agosto 2026. MINOR, e stavolta per tutt'e due i motivi che la tabella ammette: funzionalità
+      nuove (§AF–§AL: la ricaduta verticale, i cicli nell'albero di copertura, il giro su sette pagine) e
+      **una migrazione ADDITIVA**, `CatenaDiRipiego`. Dentro c'è anche §AM, i quattro difetti letti nella
+      diagnostica del server — fra cui quello che faceva morire il processo ogni due-tre ore.
+
+      🔴 NON è MAJOR: il pacchetto si consegna da solo via FTP, e il codice nuovo legge l'archivio che c'è
+      in produzione. Il maggiore risponde a «basta l'FTP, o serve anche il database?», e qui basta l'FTP.
+
+      ⚠️ MA LA MIGRAZIONE VA SPEDITA CON GLI OCCHI APERTI, e la finestra cieca lo vieterebbe. In produzione
+      `Database.Migrate()` gira all'avvio, da solo, su DDL non transazionale. Questo pacchetto parte lo
+      stesso perché il committente ha detto (31 agosto) che chi amministra il database **può ancora
+      ripristinare entro stasera**: è una deroga a tempo, non la fine della finestra.
+      🔴 Quindi il caricamento e la verifica vanno fatti **stasera**, finché quella rete c'è.
+    -->
+    <VipiVersione>1.2.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
