@@ -53,21 +53,37 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     nota('nessun avviso «catalogo non disponibile»', !avvisoCatalogo, avvisoCatalogo ? 'AVVISO PRESENTE' : 'assente');
 
     // 3. IL controllo che distingue un sito vivo da uno mezzo caricato: la Ricerca passa dal SERVER.
-    await page.goto(BASE + '/services/vsop/search', { waitUntil: 'networkidle2' });
-    for (let i = 0; i < 60; i++) { if (await page.evaluate(() => !!window.Blazor)) break; await sleep(1000); }
-    // L'input della Ricerca non dichiara un type: si prende il primo input della pagina.
-    await page.waitForSelector('.wrap input', { timeout: 30000 });
-    const campo = await page.$('.wrap input');
-    const prima = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' ').slice(0, 400));
-    await campo.type('LI', { delay: 120 });
-    let cambiata = false, dopo = prima;
-    for (let i = 0; i < 30 && !cambiata; i++) {
-      await sleep(500);
-      dopo = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' ').slice(0, 400));
-      cambiata = dopo !== prima;
+    //
+    // ⚠️ SI RIPROVA UNA VOLTA, e non e' indulgenza. Il 31 agosto 2026, lanciato SUBITO dopo il caricamento
+    // di 1.3.0, questo controllo e' uscito ROSSO — «sito mezzo caricato» — su un sito perfettamente sano:
+    // il processo era appena partito (l'avvio dura ~6 s e apre il database), e la prima interazione col
+    // circuito e' arrivata oltre la finestra d'attesa. Al secondo giro, e misurando a mano, la Ricerca
+    // rispondeva in 746 ms con 50 risultati.
+    //
+    // Un falso rosso QUI e' la cosa piu' cara che questa sonda possa fare: e' il controllo su cui si decide
+    // se tornare indietro, e tornare indietro da una consegna sana e' peggio che non averla verificata. Il
+    // secondo tentativo ricarica la pagina — cioe' riapre il circuito — invece di aspettare piu' a lungo
+    // sullo stesso, perche' il caso da coprire e' «il primo circuito e' nato mentre l'app si scaldava».
+    let cambiata = false, quantiGiri = 0;
+    for (let giro = 1; giro <= 2 && !cambiata; giro++) {
+      quantiGiri = giro;
+      await page.goto(BASE + '/services/vsop/search', { waitUntil: 'networkidle2' });
+      for (let i = 0; i < 60; i++) { if (await page.evaluate(() => !!window.Blazor)) break; await sleep(1000); }
+      // L'input della Ricerca non dichiara un type: si prende il primo input della pagina.
+      await page.waitForSelector('.wrap input', { timeout: 30000 });
+      const campo = await page.$('.wrap input');
+      const prima = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' ').slice(0, 400));
+      await campo.type('LI', { delay: 120 });
+      for (let i = 0; i < 30 && !cambiata; i++) {
+        await sleep(500);
+        const dopo = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' ').slice(0, 400));
+        cambiata = dopo !== prima;
+      }
     }
     nota('la RICERCA risponde (passa dal server)', cambiata,
-      cambiata ? 'la riga sotto il campo e cambiata' : 'NESSUN cambiamento: sito mezzo caricato');
+      cambiata
+        ? (quantiGiri === 1 ? 'la riga sotto il campo e cambiata' : 'la riga e cambiata al SECONDO giro (processo appena avviato)')
+        : 'NESSUN cambiamento in due giri: sito mezzo caricato');
 
     if (!process.env.SOLO_PUBBLICO) {
     // 4. Una pagina di editor: e' li' che vivevano le corse di §AM.
