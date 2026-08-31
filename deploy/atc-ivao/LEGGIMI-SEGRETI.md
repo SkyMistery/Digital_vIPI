@@ -41,7 +41,8 @@ indovinabile e non va scritto da nessuna parte che finisca sul server.
 - ✅ va bene: `k7f3a91c4e8b2.json`, `mario-ha-scelto-questo-nome-lungo-e-strano-42.json`
 - ❌ non va: `segreti.json`, `password.json`, `config.json`, `produzione.json` — sono le prime che si provano
 
-**3. Contenuto del file** (è configurazione normale: vince su `appsettings.Production.json`):
+**3. Contenuto del file** — il modello pronto è [`segreti.esempio.json`](segreti.esempio.json), qui accanto:
+si copia, si riempie e si **rinomina**. È configurazione normale, e vince su `appsettings.Production.json`:
 
 ```json
 {
@@ -56,6 +57,10 @@ indovinabile e non va scritto da nessuna parte che finisca sul server.
   }
 }
 ```
+
+⚠️ **I segnaposti non sono decorativi**: `METTI-QUI-LA-PASSWORD` lo riconosce l'applicazione, che **si
+rifiuta di partire** invece di ripiegare su un database vuoto. Caricare il modello senza riempirlo dà quindi
+un errore chiaro in `diagnostica/avvio-errore.txt`, non un sito che sembra aver perso i dati.
 
 La sezione `Translation` è **facoltativa**: senza, il sito funziona e mostra i documenti nella lingua in
 cui sono stati scritti. Serve solo alla traduzione automatica della prosa dei documenti, e ha un foglio

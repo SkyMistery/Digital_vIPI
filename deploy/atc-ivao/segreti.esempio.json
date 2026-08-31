@@ -1,0 +1,23 @@
+{
+  "ConnectionStrings": {
+    "Vipi": "Server=localhost;Port=3306;Database=itivao_atc;User Id=itivao_atc;Password=METTI-QUI-LA-PASSWORD;MaximumPoolSize=20;ConnectionIdleTimeout=60;DefaultCommandTimeout=30"
+  },
+
+  "VipiAuth": {
+    "ClientId": "METTI-QUI-IL-CLIENT-ID-IVAO",
+    "ClientSecret": "METTI-QUI-IL-CLIENT-SECRET-IVAO"
+  },
+
+  "Ivao": {
+    "ClientId": "METTI-QUI-IL-CLIENT-ID-IVAO",
+    "ClientSecret": "METTI-QUI-IL-CLIENT-SECRET-IVAO"
+  },
+
+  "Translation": {
+    "Enabled": true,
+    "Azure": {
+      "ApiKey": "METTI-QUI-LA-CHIAVE-MICROSOFT",
+      "Region": "italynorth"
+    }
+  }
+}

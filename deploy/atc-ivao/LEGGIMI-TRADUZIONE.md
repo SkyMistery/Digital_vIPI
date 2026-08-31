@@ -74,6 +74,9 @@ nostra è **`italynorth`**. Per DeepL basta la chiave.
 ⚠️ Se dovete crearne una nuova: **West Europe rifiuta le risorse Cognitive Services nuove**
 («region not accepting new customers»). Non è un errore vostro, è quella regione.
 
+ℹ️ Il modello del file, con il posto già pronto per la chiave, è
+[`segreti.esempio.json`](segreti.esempio.json).
+
 **2. Aggiungetela al file `.json` della cartella `segreti`** — lo stesso file dove stanno già la password
 del database e le credenziali IVAO, quello dal nome non indovinabile
 (vedi [LEGGIMI-SEGRETI](LEGGIMI-SEGRETI.md)). Si aggiunge una sezione, non si tocca il resto:

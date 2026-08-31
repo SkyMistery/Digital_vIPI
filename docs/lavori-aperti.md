@@ -234,6 +234,22 @@ danno, ma quella cartella diventerebbe un misto di due cose — ed è così che 
 ℹ️ `publish_old/solo-2-file/` sta alla radice e non in un gruppo: **non ha un suffisso di versione**, e
 attribuirlo per data sarebbe stata un'ipotesi travestita da riordino.
 
+✅ **La chiave Microsoft: provato che il sito la pesca da `segreti/`.** Il modello del file è
+`deploy/atc-ivao/segreti.esempio.json` (solo segnaposti), e la catena è verificata in due tratti che si
+toccano:
+1. **file → configurazione**, dal vivo *sul pacchetto pubblicato*: messo un file con una chiave finta in
+   `segreti/`, `diagnostica/avvio-diagnostica.txt` ha scritto `Cartella «segreti» ... 1 file letti`,
+   `Translation:Enabled ... True` e `Translation:Azure:ApiKey ... valorizzato (32 caratteri) (regione:
+   italynorth)`;
+2. **configurazione → intestazioni HTTP**, presidiato da `AzureTranslationEngineTests`, che asserisce
+   `Ocp-Apim-Subscription-Key` e `-Region` presi da `TranslationOptions.Azure`.
+
+⚠️ **Non è stata fatta nessuna chiamata vera a Microsoft**, ed è voluto: l'endpoint della prova puntava a
+una porta morta locale, così nessun testo dei documenti è uscito per una verifica.
+ℹ️ Il segnaposto `METTI-QUI-LA-PASSWORD` è quello che `SegretiFuoriDalWeb` riconosce: caricare il modello
+senza riempirlo **ferma l'avvio** con un errore scritto, invece di far ripartire il sito su un database
+vuoto — che sembrerebbe «abbiamo perso tutto».
+
 🔴 **E il riordino ha scoperto una cosa che andava scoperta**: nella cartella dei file da caricare era
 comparso **`k7f3a91c4atce8b2.json`**, cioè il file dei **segreti** di produzione (connection string con la
 password, `ClientSecret` di IVAO e di VipiAuth). Costruendo lo zip **camminando la cartella**, ci era finito
