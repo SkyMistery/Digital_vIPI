@@ -298,10 +298,17 @@
     @if (Authz.IsEditor && _pickedAcc is not null)
     {
         <div class="section-title">
-            <h2 class="h-sect">@L["AccAdmin_AreasTitle"] <span class="pill blue">@_aree.Count</span></h2>
+            <h2 class="h-sect">
+                <button type="button" class="sect-toggle" aria-expanded="@_areeAperte.ToString().ToLowerInvariant()"
+                        aria-label="@L["Struct_ToggleSection", L["AccAdmin_AreasTitle"].Value]"
+                        @onclick="() => _areeAperte = !_areeAperte">
+                    <span class="grp-chev">@(_areeAperte ? "▾" : "▸")</span>@L["AccAdmin_AreasTitle"]
+                </button>
+                <span class="pill blue">@_aree.Count</span>
+            </h2>
             <span class="ln"></span>
         </div>
-        <div class="panel">
+        <div class="panel" hidden="@(!_areeAperte)">
             @if (_aree.Count == 0)
             {
                 <p class="help">@L["AccAdmin_NoAreas"]</p>
@@ -356,6 +363,9 @@
     // (28 ACC + 152 settori) e le due tabelle si guardano una per volta.
     private bool _accAperti = true;
     private bool _settoriAperti = true;
+    // ⚠️ Le aree si vedono solo con un ACC scelto: il riquadro compare e sparisce da sé, e questo dice
+    // soltanto come compare. Resta aperto fra un ACC e l'altro, come gli altri due.
+    private bool _areeAperte = true;
     private string _q = "";
     private string _qSub = "";
     private string _country = "";   // filtro nazione (prefisso ICAO, "" = tutte) condiviso dalle due tabelle
