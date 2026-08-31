@@ -68,7 +68,15 @@ public static class AirportLegacySections
     /// sezioni libere le leggeva <b>dal profilo</b>, non dal documento pubblicato.
     /// </para>
     /// </summary>
-    public static IReadOnlyList<SectionView> ForView(IReadOnlyList<SectionView>? sections)
+    /// <param name="lingua">
+    /// La lingua in cui si sta leggendo («it»/«en»), per i titoli di catalogo.
+    /// <para>⚠️ <b>Serve perché quei titoli non passano dal traduttore</b>: non sono segmenti del documento,
+    /// quindi la passata di traduzione non li conosce e ripassarli da lì non li tocca. Fino al 31 agosto
+    /// 2026 questo metodo riportava il titolo ITALIANO di catalogo su un documento appena tradotto — indice
+    /// e testate «Regole piste / Quote di transizione» in mezzo a una pagina inglese, con la copertura che
+    /// dichiarava «tutto tradotto» perché al traduttore quei titoli non erano mai passati davanti.</para>
+    /// </param>
+    public static IReadOnlyList<SectionView> ForView(IReadOnlyList<SectionView>? sections, string? lingua = null)
     {
         var risultato = new List<SectionView>();
         var presenti = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -95,7 +103,7 @@ public static class AirportLegacySections
             risultato.Add(new SectionView
             {
                 Id = s.Id,
-                Title = desc.Title,
+                Title = desc.TitleIn(lingua),
                 Depth = s.Depth,
                 SectionKey = chiave,
                 IsHidden = s.IsHidden,
@@ -119,7 +127,7 @@ public static class AirportLegacySections
             {
                 // Ancora stabile e senza collisioni: gli id veri sono «s-{numero}».
                 Id = $"s-{d.Key}",
-                Title = d.Title,
+                Title = d.TitleIn(lingua),
                 Depth = 0,
                 SectionKey = d.Key,
                 Blocks = Array.Empty<BlockView>(),

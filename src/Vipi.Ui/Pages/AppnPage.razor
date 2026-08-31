@@ -10,6 +10,7 @@
 @inject IAiracService Airac
 @inject IStringLocalizer<SharedResource> L
 @inject Vipi.Application.Translation.DocumentTranslator Translator
+@inject Vipi.Application.Content.ReadingLanguageContext Lingua
 @inject EnglishStrings En
 @using System.Text.Json
 @using System.Globalization
@@ -63,12 +64,17 @@ else
 
                 @* Tradotto a macchina e non ancora riletto, o tradotto a metà: chi legge deve saperlo. *@
                 <TranslationNotice Coverage="_copertura" />
+                @* Oppure il contrario: NON tradotto, e voluto. *@
+                <LinguaBloccataNotice Lingua="@_bloccata" />
 
                 @* Il ciclo delle sezioni lo fa il componente condiviso (doc 14 §3e). Qui resta il solo corpo
                    derivato, per chiave: quello che l'APP disegna e le altre famiglie no. *@
-                <DocumentSectionsView Sections="_view.Sections" Profile="SectionProfile.App"
-                                      IsDraft="@(_mode.Kind == PreviewKind.Draft)"
-                                      AnchorOf="AnchorOf" DerivedContent="CorpoDerivato" />
+                @* `lang` sul CONTENITORE: il chrome parla la lingua del sito, il documento la sua. *@
+                <div lang="@_bloccata">
+                    <DocumentSectionsView Sections="_view.Sections" Profile="SectionProfile.App"
+                                          IsDraft="@(_mode.Kind == PreviewKind.Draft)"
+                                          AnchorOf="AnchorOf" DerivedContent="CorpoDerivato" />
+                </div>
             </div>
 
             <aside class="doc-rail" aria-label="@L["Doc_RailAria"]">
@@ -126,6 +132,10 @@ else
     // Storage APP su Document (doc 08e): struttura + editoriale dal DocumentView; derivate frozen (release effettiva) o
     // live (bozza/anteprima) via AppViewDerivationService.
     private DocumentView? _view;
+
+    /// <summary>La lingua in cui questo documento è BLOCCATO, o null se segue chi legge: serve all'avviso e
+    /// all'attributo <c>lang</c> del contenitore (carta lingua-bloccata §5).</summary>
+    private string? _bloccata;
     private Vipi.Application.Translation.TranslationCoverage _copertura =
         Vipi.Application.Translation.TranslationCoverage.Nessuna;
     private bool _useFrozen;   // vista pubblica: leggi le derivate frozen dalla release effettiva (doc 10 §3d)
@@ -219,6 +229,14 @@ else
         }
         if (_view is null) return;
 
+        // ---- In che lingua si legge QUESTO documento (carta 2026-08-31-lingua-bloccata.md §3-4) ---------
+        // ⚠️ SUBITO, appena si sa qual è il documento, e non in fondo insieme alla traduzione: se è
+        // bloccato la lingua vale anche per le DERIVAZIONI che partono qui sotto, che compongono prosa ed
+        // etichette. Deciderla in fondo vorrebbe dire derivare nella lingua di chi guarda e tradurre il resto
+        // nell'altra — mezza schermata per lingua, e nessun errore da nessuna parte.
+        var lettore = LinguaDelDocumento.Prepara(Lingua, _view.LanguageLocked, _view.Language, Vipi.Domain.Language.It);
+        _bloccata = _view.LanguageLocked ? lettore : null;
+
         // Derivate: frozen dalla release effettiva nella vista pubblica, live in bozza/anteprima (doc 10 §3d).
         // Il documento mostrato viaggia col resolver: la tabella «Configurazioni» si deriva dalle configurazioni
         // di QUESTA versione, non da quella di lavoro — prima la pagina pubblica mostrava quelle della bozza.
@@ -247,7 +265,6 @@ else
         // ⚠️ IN FONDO, dopo le derivate e le aree: quelle si leggono dall'originale (gli id stanno nel JSON
         // dei blocchi), la traduzione porta la PROSA. Tradurre prima vorrebbe dire cercare «regulated» in un
         // documento che nel frattempo dice altro.
-        var lettore = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
         var tradotto = await Translator.TranslateAsync(_view, Vipi.Domain.Language.It, lettore);
         _view = tradotto.View;
         _copertura = tradotto.Coverage;
@@ -260,7 +277,7 @@ else
             _view = new DocumentView
             {
                 Title = _view.Title, AiracCycle = _view.AiracCycle, Sections = filtrate,
-                Language = _view.Language, Translations = _view.Translations,
+                Language = _view.Language, LanguageLocked = _view.LanguageLocked, Translations = _view.Translations,
             };
     }
 

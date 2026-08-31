@@ -9,6 +9,7 @@
 @inject IAiracService Airac
 @inject IStringLocalizer<SharedResource> L
 @inject Vipi.Application.Translation.AccVipiTranslator Translator
+@inject Vipi.Application.Content.ReadingLanguageContext Lingua
 @inject EnglishStrings En
 @using System.Globalization
 @using Vipi.Ui.Shared
@@ -68,6 +69,8 @@ else
 
                 @* Tradotto a macchina e non ancora riletto, o tradotto a metà: chi legge deve saperlo. *@
                 <TranslationNotice Coverage="_copertura" />
+                @* Oppure il contrario: NON tradotto, e voluto. *@
+                <LinguaBloccataNotice Lingua="@_bloccata" />
 
                 @* Il filtro di lettura pilota/ATC (carta vSOP militari §3). ⚠️ Vale su TUTTE le famiglie, non
                    solo sul vSOP militare: il flag è per-sezione e l'editor lo offre ovunque, quindi una
@@ -76,6 +79,8 @@ else
                 <AudienceChip Visibile="_haMarcate" Vista="_vista"
                               BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vipi" + (_mode.Kind == PreviewKind.Draft ? "?as=draft" : ""))" />
 
+                @* `lang` sul CONTENITORE dei blocchi: il chrome parla la lingua del sito, il documento la sua. *@
+                <div lang="@_bloccata">
                 @foreach (var block in _data.Blocks)
                 {
                     <h2 class="acc-block-h">@(block.Kind == AccBlockKind.Aerovia ? L["AccVipi_AirwaySectors"] : block.Title)</h2>
@@ -99,6 +104,7 @@ else
                         </CollapsibleBlock>
                     }
                 }
+                </div>
             </div>
 
             <aside class="doc-rail" aria-label="@L["Doc_RailAria"]">
@@ -156,6 +162,13 @@ else
     // release ha congelato. Nulle in bozza — una bozza non ha ancora congelato niente, e la sorgente è quella
     // in cui la famiglia nasce.
     private Vipi.Domain.Language? _lingua;
+
+    /// <summary>Vero se questa vIPI si legge SEMPRE nella lingua in cui è scritta (carta lingua-bloccata).</summary>
+    private bool _bloccato;
+
+    /// <summary>La lingua del blocco, o null se il documento segue chi legge: serve all'avviso e al
+    /// <c>lang</c> del contenitore.</summary>
+    private string? _bloccata;
     private Dictionary<string, Dictionary<string, FrozenTranslation>>? _congelate;
     private Vipi.Application.Translation.TranslationCoverage _copertura =
         Vipi.Application.Translation.TranslationCoverage.Nessuna;
@@ -190,6 +203,7 @@ else
         _useFrozen = false;
         _notAvailable = false;
         _lingua = null;
+        _bloccato = false;
         _congelate = null;
         _copertura = Vipi.Application.Translation.TranslationCoverage.Nessuna;
         switch (_mode.Kind)
@@ -203,7 +217,7 @@ else
                 AccReleaseView? rv = null;
                 try { rv = await AccDoc.LoadForReleaseAsync(Acc, _mode.ReleaseId); }
                 catch (EditNotAllowedException) { }
-                if (rv is not null) { _data = rv.Data; _relCycle = rv.AiracCycle; _lingua = rv.Language; _congelate = rv.Translations; }   // anteprima release: derive live (no ids)
+                if (rv is not null) { _data = rv.Data; _relCycle = rv.AiracCycle; _lingua = rv.Language; _bloccato = rv.LanguageLocked; _congelate = rv.Translations; }   // anteprima release: derive live (no ids)
                 else { _mode = default; LoadViewModel(await AccDoc.LoadForViewAsync(Acc)); }
                 break;
             default:
@@ -211,6 +225,13 @@ else
                 break;
         }
         _canEdit = Authz.IsEditor;
+
+        // ---- In che lingua si legge QUESTA vIPI (carta 2026-08-31-lingua-bloccata.md §3-4) --------------
+        // ⚠️ PRIMA delle derivazioni, che qui sono parecchie e compongono prosa: frasi di coordinamento,
+        // etichette delle AoR, intestazioni. Deciderla in fondo, insieme alla traduzione, vorrebbe dire
+        // derivare nella lingua di chi guarda e tradurre il resto nell'altra.
+        var lettore = LinguaDelDocumento.Prepara(Lingua, _bloccato, _lingua, Vipi.Domain.Language.It);
+        _bloccata = _bloccato ? lettore : null;
 
         _freqs.Clear(); _coord.Clear(); _aors.Clear(); _areas.Clear(); _configTables.Clear();
         if (_blocks is not null)
@@ -251,7 +272,6 @@ else
         // configurazioni e le chiavi, e il traduttore i blocchi li modifica sul posto. Le sezioni derivate si
         // traducono per conto loro, dalla parte dell'anagrafica (TranslationLookup): qui passa solo la prosa
         // editoriale, che è la parte che questa pagina mostrava ancora in italiano soltanto.
-        var lettore = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
         _copertura = await Translator.TranslateAsync(_data, _lingua, lettore, _congelate);
 
         // Il filtro di lettura, DOPO la traduzione: si filtra la vista che il lettore vedrà davvero.
@@ -270,6 +290,7 @@ else
         _blocks = model.Blocks;
         _docCycle = model.AiracCycle;
         _lingua = model.Language;
+        _bloccato = model.LanguageLocked;
         _congelate = model.Translations;
         _useFrozen = true;
     }

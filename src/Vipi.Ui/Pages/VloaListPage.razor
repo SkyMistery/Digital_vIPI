@@ -9,6 +9,7 @@
 @inject IDocumentAdminService Docs
 @inject IStringLocalizer<SharedResource> L
 @inject Vipi.Application.Translation.DocumentTranslator Translator
+@inject Vipi.Application.Content.ReadingLanguageContext Lingua
 @inject EnglishStrings En
 @using Vipi.Ui.Shared
 @using System.Globalization
@@ -43,9 +44,13 @@ else if (_foreign.Length > 0)
             <AudienceChip Visibile="_haMarcate" Vista="_vista"
                           BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}")" />
             <TranslationNotice Coverage="_copertura" />
-            <VloaDocumentView View="_view" DocId="_viewDocId" UseFrozen="_useFrozen" IsDraft="@(_mode.Kind == PreviewKind.Draft)"
-                              ReleaseId="@(_mode.Kind == PreviewKind.Release ? _mode.ReleaseId : null)"
-                              Subtitle="@_viewSubtitle" HomeAcc="@_acc.Code" ForeignAcc="@_foreign" />
+            <LinguaBloccataNotice Lingua="@_bloccata" />
+            @* `lang` sul CONTENITORE: il chrome parla la lingua del sito, il documento la sua. *@
+            <div lang="@_bloccata">
+                <VloaDocumentView View="_view" DocId="_viewDocId" UseFrozen="_useFrozen" IsDraft="@(_mode.Kind == PreviewKind.Draft)"
+                                  ReleaseId="@(_mode.Kind == PreviewKind.Release ? _mode.ReleaseId : null)"
+                                  Subtitle="@_viewSubtitle" HomeAcc="@_acc.Code" ForeignAcc="@_foreign" />
+            </div>
         </div>
     }
 }
@@ -105,6 +110,9 @@ else
     private int? _viewDocId;
     private string? _viewSubtitle;
     private bool _useFrozen;   // vista pubblica vLOA: derivate frozen dalla release effettiva (doc 10 §3d)
+    /// <summary>La lingua in cui questo documento è BLOCCATO, o null se segue chi legge (carta §5).</summary>
+    private string? _bloccata;
+
     private Vipi.Application.Translation.TranslationCoverage _copertura =
         Vipi.Application.Translation.TranslationCoverage.Nessuna;
     private Vipi.Domain.SectionAudience? _vista;
@@ -172,9 +180,15 @@ else
             // esistesse. Cablarla qui vorrebbe dire tradurre una vLOA redatta in italiano come se fosse
             // inglese, e far mancare la memoria su ogni frase senza che si capisca perche'.
             _copertura = Vipi.Application.Translation.TranslationCoverage.Nessuna;
+            _bloccata = null;
             if (_view is not null)
             {
-                var lettore = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+                // ⚠️ Bloccato: si legge nella lingua del documento e la traduzione non parte affatto. Nello
+                // stesso gesto la lingua si impone alle intestazioni di tabella e alla prosa generata
+                // (carta 2026-08-31-lingua-bloccata.md §4). Qui il caso non è teorico: una vLOA nasce inglese,
+                // ed è la famiglia per cui «non tradurla» si chiede per prima.
+                var lettore = LinguaDelDocumento.Prepara(Lingua, _view.LanguageLocked, _view.Language, Vipi.Domain.Language.En);
+                _bloccata = _view.LanguageLocked ? lettore : null;
                 var tradotto = await Translator.TranslateAsync(_view, Vipi.Domain.Language.En, lettore);
                 _view = tradotto.View;
                 _copertura = tradotto.Coverage;
@@ -193,7 +207,8 @@ else
                     _view = new DocumentView
                     {
                         Title = _view.Title, AiracCycle = _view.AiracCycle, Sections = filtrate,
-                        Language = _view.Language, Translations = _view.Translations,
+                        Language = _view.Language, LanguageLocked = _view.LanguageLocked,
+                        Translations = _view.Translations,
                     };
             }
 

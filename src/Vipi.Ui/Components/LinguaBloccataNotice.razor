@@ -1,0 +1,41 @@
+@inject StringheDelSito Sito
+
+@* Che cosa deve sapere chi apre un documento pubblicato in UNA lingua sola (carta
+   docs/feature/2026-08-31-lingua-bloccata.md §5).
+
+   ⚠️ QUESTA NOTA NON SEGUE IL DOCUMENTO, segue chi guarda: la legge un italiano che si è trovato davanti
+   una pagina inglese e vuole sapere perché. Detta in inglese non servirebbe proprio a lui. Per questo
+   chiede a StringheDelSito e non a `L`, che dentro una pagina bloccata risponde nella lingua del documento.
+
+   ⚠️ Non è l'avviso di traduzione automatica ed è il suo opposto: là si dice «questa pagina l'ha tradotta
+   una macchina», qui «questa pagina NON è tradotta, ed è voluto». TranslationNotice si spegne da sé su un
+   documento bloccato, perché la copertura è zero segmenti.
+
+   Nessun @rendermode: è testo, quindi SSR statico come il resto del chrome. *@
+
+@if (Lingua is { Length: > 0 } lingua)
+{
+    <div class="callout tr-notice" lang="@SiteLang()">
+        <span class="cic"><Icon Name="info" Size="18" /></span>
+        <div>
+            <p class="ct">@Sito["Lang_LockedTitle"]</p>
+            <p>@Sito.Formatta("Lang_LockedBody", NomeLingua(lingua))</p>
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>Il codice della lingua in cui il documento è bloccato («it»/«en»); null = non bloccato,
+    /// niente avviso.</summary>
+    [Parameter] public string? Lingua { get; set; }
+
+    /// <summary>La lingua in cui il documento è pubblicato, detta nella lingua di chi legge: «inglese» a un
+    /// italiano, «English» a un inglese. Due chiavi e non un nome di cultura, perché
+    /// <c>CultureInfo.DisplayName</c> dipende dalla lingua di WINDOWS della macchina che serve la pagina —
+    /// su questo host direbbe «Italian» dentro una frase italiana.</summary>
+    private string NomeLingua(string codice) =>
+        Sito[codice.Equals("en", StringComparison.OrdinalIgnoreCase) ? "Lang_NameEn" : "Lang_NameIt"];
+
+    /// <summary>La lingua del sito: sta sull'avviso perché il resto della pagina è nell'altra.</summary>
+    private static string SiteLang() => Vipi.Application.Content.LinguaDiLettura.DelLettore();
+}

@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
 using Vipi.Domain.Services;
@@ -79,8 +79,12 @@ public static class DocumentBirth
 
         var live = nasceLive ?? SectionCatalog.IsAlwaysLive;
         var order = 1;
+        // ⚠️ I titoli nascono nella LINGUA DEL DOCUMENTO, non nella lingua del catalogo: un documento
+        // creato in inglese con le sezioni intitolate in italiano nascerebbe già mezzo tradotto, e sulle
+        // famiglie dove il titolo di catalogo non viene ri-applicato a view-time resterebbe così per sempre.
+        var lingua = language == Language.En ? "en" : "it";
         foreach (var d in SectionCatalog.For(profile).OrderBy(d => d.Order))
-            Semina(db, version, profile, d, genitore: null, profondita: 0, ordine: order++, live, conSegnaposto);
+            Semina(db, version, profile, d, genitore: null, profondita: 0, ordine: order++, live, conSegnaposto, lingua);
 
         // ⚠️ `CurrentVersionId` NON si imposta qui, e non è una dimenticanza: Document e DocumentVersion si
         // puntano a vicenda, e assegnarlo prima del salvataggio fa vedere a EF una dipendenza CIRCOLARE fra
@@ -104,13 +108,14 @@ public static class DocumentBirth
     /// </summary>
     private static void Semina(
         VipiDbContext db, DocumentVersion version, SectionProfile profile, SectionDescriptor d,
-        DocumentSection? genitore, int profondita, int ordine, Func<string, bool> live, bool conSegnaposto)
+        DocumentSection? genitore, int profondita, int ordine, Func<string, bool> live, bool conSegnaposto,
+        string lingua)
     {
         var section = new DocumentSection
         {
             DocumentVersion = version,
             ParentSection = genitore,
-            Title = d.Title,
+            Title = d.TitleIn(lingua),
             Order = ordine,
             Depth = profondita,
             SectionKey = d.Key,
@@ -143,6 +148,6 @@ public static class DocumentBirth
 
         var ordineFiglio = 1;
         foreach (var f in figli.OrderBy(x => x.Order))
-            Semina(db, version, profile, f, section, profondita + 1, ordineFiglio++, live, conSegnaposto);
+            Semina(db, version, profile, f, section, profondita + 1, ordineFiglio++, live, conSegnaposto, lingua);
     }
 }

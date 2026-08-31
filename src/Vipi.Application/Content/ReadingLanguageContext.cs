@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 
 namespace Vipi.Application.Content;
 
@@ -38,6 +38,33 @@ public sealed class ReadingLanguageContext
     /// </summary>
     public string Corrente =>
         _forzata ?? CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+
+    /// <summary>
+    /// La lingua imposta, se qualcuno l'ha imposta: <c>null</c> = si segue chi legge. La interroga chi deve
+    /// sapere non <i>quale</i> lingua, ma se ce n'è una <b>diversa</b> da quella dell'interfaccia — il
+    /// localizzatore dei resx, che senza imposizione deve restare quello di sempre.
+    /// </summary>
+    public string? Fissata => _forzata;
+
+    /// <summary>
+    /// Impone una lingua per il <b>resto della richiesta</b>, senza un blocco che la chiuda: la chiama la
+    /// pagina di un documento <b>bloccato</b> (carta <c>2026-08-31-lingua-bloccata.md</c> §4).
+    ///
+    /// <para>
+    /// ⚠️ <b>Perché non basta <see cref="Rendering"/>.</b> Quello vale finché il <c>using</c> è aperto, e
+    /// una pagina Blazor <b>rende dopo</b> che <c>OnInitializedAsync</c> è tornato: il blocco sarebbe già
+    /// chiuso quando la prima intestazione di tabella chiede la sua stringa. Qui si accende e basta.
+    /// </para>
+    ///
+    /// <para>
+    /// ⚠️ <b>Si può, perché le cinque pagine documentali sono SSR STATICHE</b> (nessun <c>@rendermode</c>,
+    /// scelto e commentato a suo tempo): il servizio è scoped, quindi «il resto della richiesta» finisce con
+    /// la richiesta. Su una pagina interattiva sarebbe uno stato che invecchia dentro il circuito, e la
+    /// pagina dopo si troverebbe la lingua di quella prima — che è la classe di guasto già pagata con le
+    /// cache scoped (<c>AddScoped</c> in Blazor Server = per CIRCUITO, non per richiesta).
+    /// </para>
+    /// </summary>
+    public void Fissa(string lingua) => _forzata = lingua.ToLowerInvariant();
 
     /// <summary>
     /// Impone una lingua per la durata del blocco: serve al <b>congelamento</b>, dove non c'è nessun

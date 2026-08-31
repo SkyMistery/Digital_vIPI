@@ -30,6 +30,7 @@
 @inject IStringLocalizer<SharedResource> L
 @inject IMilitaryDocumentService Militari
 @inject EnglishStrings En
+@inject Vipi.Application.Content.ReadingLanguageContext Lingua
 
 @if (_acc is null)
 {
@@ -100,6 +101,7 @@ else
                               BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}" + (_mode.Kind == PreviewKind.Draft ? "&as=draft" : ""))" />
 
                 <TranslationNotice Coverage="_copertura" />
+                <LinguaBloccataNotice Lingua="@_bloccata" />
 
                 @* ---------- Le sezioni, nell'ORDINE DEL DOCUMENTO ----------
                    Come nelle altre tre famiglie: si itera `_view.Sections` e si dispaccia per chiave. Fino alla
@@ -112,11 +114,14 @@ else
                    → SID → extra) e ritrovava le sezioni con `Title.Contains("transi")`: riordinare o
                    nascondere non aveva alcun effetto. Ora l'ordine è quello del documento, e le regole di
                    contorno sono le stesse delle altre famiglie perché sono lo STESSO componente. *@
-                <DocumentSectionsView Sections="_sezioni" Profile="SectionProfile.Airport"
-                                      IsDraft="@(_mode.Kind == PreviewKind.Draft)"
-                                      AnchorOf="AnchorOf"
-                                      ExtraClass="ClasseExtra" HeaderContent="Intestazione"
-                                      DerivedContent="CorpoDerivato" />
+                @* `lang` sul CONTENITORE: il chrome parla la lingua del sito, il documento la sua. *@
+                <div lang="@_bloccata">
+                    <DocumentSectionsView Sections="_sezioni" Profile="SectionProfile.Airport"
+                                          IsDraft="@(_mode.Kind == PreviewKind.Draft)"
+                                          AnchorOf="AnchorOf"
+                                          ExtraClass="ClasseExtra" HeaderContent="Intestazione"
+                                          DerivedContent="CorpoDerivato" />
+                </div>
             </div>
 
             @* Colonna destra sticky (desktop ≥1500px): riepilogo + link + eventuali sezioni extra del profilo. *@
@@ -166,6 +171,10 @@ else
 
     private AccInfo? _acc;
     private DocumentView? _view;
+
+    /// <summary>La lingua in cui questo documento è BLOCCATO, o null se segue chi legge: serve all'avviso e
+    /// all'attributo <c>lang</c> del contenitore (carta lingua-bloccata §5).</summary>
+    private string? _bloccata;
     private Vipi.Application.Translation.TranslationCoverage _copertura =
         Vipi.Application.Translation.TranslationCoverage.Nessuna;
     // La passata di traduzione di QUESTA vista: serve una seconda volta sulle sezioni, dopo che
@@ -284,6 +293,19 @@ else
         if (_view is null) return;
         _canEdit = Authz.IsEditor;   // tasto Editor solo a chi può editare l'ACC
 
+        // ---- In che lingua si legge QUESTO documento (carta 2026-08-31-lingua-bloccata.md §3-4) ---------
+        // ⚠️ SUBITO, appena si sa qual è il documento, e non in fondo insieme alla traduzione: se è
+        // bloccato la lingua vale anche per le DERIVAZIONI, che partono qui sotto e compongono prosa ed
+        // etichette. Deciderla in fondo vorrebbe dire derivare nella lingua di chi guarda e tradurre il resto
+        // nell'altra — mezza schermata per lingua, e nessun errore da nessuna parte.
+        // ⚠️ DUE contesti, e non è un di più: questa pagina possiede uno scope di DI suo
+        // (OwningComponentBase), quindi i servizi presi da ScopedServices vedono un'istanza diversa da quella
+        // iniettata nella pagina.
+        var lettore = LinguaDelDocumento.Prepara(
+            Lingua, _view.LanguageLocked, _view.Language, Vipi.Domain.Language.It,
+            ScopedServices.GetService<Vipi.Application.Content.ReadingLanguageContext>());
+        _bloccata = _view.LanguageLocked ? lettore : null;
+
         _wx = await Weather.GetAsync(_icao);
         _metar = string.IsNullOrWhiteSpace(_wx?.Metar) ? null : MetarParser.ParseMetar(_wx!.Metar!);
         _taf = string.IsNullOrWhiteSpace(_wx?.Taf) ? null : MetarParser.ParseTaf(_wx!.Taf!);
@@ -333,7 +355,6 @@ else
         // dall'originale (ids, identificatori, JSON dei blocchi), la traduzione porta la PROSA. È la stessa
         // sequenza del vSOP militare, ed è misurata: tradurre prima significherebbe cercare «regulated» in
         // un documento che nel frattempo dice altro.
-        var lettore = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
         var tradotto = await Translator.TranslateAsync(_view, Vipi.Domain.Language.It, lettore);
         _view = tradotto.View;
         _copertura = tradotto.Coverage;
@@ -347,7 +368,11 @@ else
         // inglese, con la copertura che dichiarava «tutto tradotto». Ripassare la sezione dalla stessa passata
         // costa zero query (la memoria è già in mano) e ritraduce dalla stessa impronta; su un testo già
         // tradotto non trova nulla e lo lascia dov'è.
-        _sezioni = AirportLegacySections.ForView(_view.Sections).Select(_passata.Sezione).ToList();
+        // ⚠️ `ForView` vuole la LINGUA: i titoli di catalogo non sono segmenti del documento, quindi la
+        // passata non li conosce e ripassarli da lì non basta — su un aeroporto importato, che ha titoli di
+        // sezione inglesi, il catalogo li riportava comunque in italiano. Ora il catalogo li porta in tutte e
+        // due le lingue e si sceglie qui (carta lingua-bloccata §4; chiude anche §Q18a della carta bilingue).
+        _sezioni = AirportLegacySections.ForView(_view.Sections, lettore).Select(_passata.Sezione).ToList();
 
         // Il filtro di lettura, DOPO la traduzione e DOPO i titoli di catalogo: si filtra la vista che il
         // lettore vedrà davvero, e la chip si accende solo se c'è qualcosa da filtrare.
