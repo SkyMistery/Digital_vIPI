@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using AngleSharp.Dom;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,8 +25,11 @@ public class EditorTocDragTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
-    public EditorTocDragTests() =>
+    public EditorTocDragTests()
+    {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+    }
 
     /// <summary>Due gruppi (due blocchi di una vIPI ACC) più la voce del pannello Release, che sezione non è.</summary>
     private static readonly EditorTocItem[] Items =

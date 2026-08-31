@@ -1,4 +1,4 @@
-@* L'indice a sinistra di un documento, CONDIVISO fra i viewer (carta vSOP militari §12, S1).
+﻿@* L'indice a sinistra di un documento, CONDIVISO fra i viewer (carta vSOP militari §12, S1).
 
    Stava scritto quattro volte con lo stesso corpo — aeroporto, APP, vLOA, vSOP militare — e in tutte e
    quattro elencava le sole sezioni RADICE. Su un documento a un livello solo è la stessa cosa; sul vSOP
@@ -13,10 +13,10 @@
    alla sezione. Un `<summary>` di suo commuta a ogni clic, anche su un link che ha dentro — e a impedirglielo
    è `wireAnchors` in `vipi-ui.js`, che su ogni link «#id» chiama `preventDefault`: commutare è l'azione di
    *default* del clic su un summary. Vale già, senza una riga in più, ma è un appoggio da sapere. *@
-@inject IStringLocalizer<SharedResource> L
+@inject StringheDelSito Sito
 
-<aside class="toc" aria-label="@L["Doc_TocAria"]">
-    <p class="toc-h">@(HeaderLabel ?? L["Common_Contents"].Value)</p>
+<aside class="toc" aria-label="@Sito["Doc_TocAria"]">
+    <p class="toc-h">@(HeaderLabel ?? Sito["Common_Contents"])</p>
     <ul>
         @foreach (var s in Visibili(Sections))
         {

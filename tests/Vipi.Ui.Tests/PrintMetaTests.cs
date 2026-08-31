@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Ui;
@@ -23,8 +23,11 @@ public class PrintMetaTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
-    public PrintMetaTests() =>
+    public PrintMetaTests()
+    {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+    }
 
     [Fact]
     public void PrintMeta_renders_print_only_header_with_title_subtitle_airac_and_url()

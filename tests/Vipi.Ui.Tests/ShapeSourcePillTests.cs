@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Airspace;
@@ -27,8 +27,11 @@ public class ShapeSourcePillTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
-    public ShapeSourcePillTests() =>
+    public ShapeSourcePillTests()
+    {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+    }
 
     private static ShapePart Pezzo(int? baseFt = 0, int? topFt = 3_000) =>
         new("[[15.0,37.0],[15.4,37.0],[15.4,37.4],[15.0,37.4]]",

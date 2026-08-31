@@ -25,8 +25,11 @@ public class InlineConfirmTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
-    public InlineConfirmTests() =>
+    public InlineConfirmTests()
+    {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+    }
 
     private IRenderedComponent<InlineConfirm> Render(Func<Task<bool>>? canOpen, Action? onConfirm = null) =>
         RenderComponent<InlineConfirm>(p =>

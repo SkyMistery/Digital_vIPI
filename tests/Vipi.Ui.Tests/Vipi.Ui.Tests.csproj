@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Razor">
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
     <!-- Multi-target come Vipi.Ui: la RCL va in produzione su net8. -->
@@ -23,6 +23,13 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- La cultura di prova si FISSA, come negli altri tre progetti di test: la cultura di UI di questa
+         macchina e' inglese (lingua di Windows, non il formato regionale), e un test che si fidasse di
+         quella asserirebbe cose diverse su macchine diverse. -->
+    <Compile Include="..\Vipi.Application.Tests\CulturaDiProva.cs" Link="CulturaDiProva.cs" />
   </ItemGroup>
 
   <ItemGroup>

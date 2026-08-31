@@ -10,7 +10,11 @@
 @inject IReleaseService Releases
 @inject IEditAuthorizationService Authz
 @inject IOnlineAtcProvider Online
+@* ⚠️ DUE localizzatori, e la differenza è il confine della lingua bloccata (carta §4):
+   `L` è la lingua del DOCUMENTO — le intestazioni delle tabelle del vSOP passano di lì (ColonneNominativi,
+   ColonneParcheggi) — e `Sito` è quella di chi guarda il sito, per l'arredamento della pagina. *@
 @inject IStringLocalizer<SharedResource> L
+@inject StringheDelSito Sito
 @inject EnglishStrings En
 @using System.Globalization
 @using Vipi.Application.Content
@@ -20,7 +24,7 @@
 @using Vipi.Application.Weather
 @using Vipi.Domain
 
-<PageTitle>@(_view?.Title ?? L["Mil_Title"].Value) · IVAO Italy</PageTitle>
+<PageTitle>@(_view?.Title ?? Sito["Mil_Title"]) · IVAO Italy</PageTitle>
 
 @* ---- Il vSOP militare di un campo (carta vSOP militari §5) -------------------------------------------
 
@@ -41,7 +45,7 @@
     {
         <div class="callout warning">
             <span class="cic"><Icon Name="warning" Size="18" /></span>
-            <div><p class="ct">@L["Mil_Empty"]</p>@L["Mil_EmptyHint"]</div>
+            <div><p class="ct">@Sito["Mil_Empty"]</p>@Sito["Mil_EmptyHint"]</div>
         </div>
     }
     else
@@ -63,7 +67,7 @@
                          AnchorOf="AnchorOf" />
 
             <div>
-                <PrintMeta Title="@_view.Title" Subtitle="@L["Mil_PrintSubtitle"]" AiracCycle="@Cycle()" />
+                <PrintMeta Title="@_view.Title" Subtitle="@Sito["Mil_PrintSubtitle"]" AiracCycle="@Cycle()" />
                 <div class="doc-head">
                     <div>
                         <h1 class="page-h1">@_view.Title</h1>
@@ -79,16 +83,16 @@
                         {
                             <p class="muted">
                                 <a href="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}")">
-                                    <Icon Name="book-open" Size="14" /> @L["Mil_LinkToCivil"]
+                                    <Icon Name="book-open" Size="14" /> @Sito["Mil_LinkToCivil"]
                                 </a>
                             </p>
                         }
                     </div>
                     <div style="display:flex;align-items:center;gap:10px">
-                        <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
+                        <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>
                         @if (_canEdit)
                         {
-                            <a class="btn primary" href="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil/editor?icao={_icao}")">@L["Common_Editor"]</a>
+                            <a class="btn primary" href="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil/editor?icao={_icao}")">@Sito["Common_Editor"]</a>
                         }
                     </div>
                 </div>
@@ -108,11 +112,11 @@
                     <div class="callout warning">
                         <span class="cic"><Icon Name="warning" Size="18" /></span>
                         <div>
-                            <p class="ct">@L["Mil_MissingCivilTitle"]</p>
-                            @L["Mil_MissingCivilBody"]
+                            <p class="ct">@Sito["Mil_MissingCivilTitle"]</p>
+                            @Sito["Mil_MissingCivilBody"]
                             <p style="margin:8px 0 0">
                                 <a class="btn ghost" href="/services/vsop/@Acc.ToLowerInvariant()/airports/editor?icao=@_icao">
-                                    <Icon Name="plus" Size="14" /> @L["Mil_MissingCivilAction"]
+                                    <Icon Name="plus" Size="14" /> @Sito["Mil_MissingCivilAction"]
                                 </a>
                             </p>
                         </div>
@@ -138,29 +142,29 @@
             @* Colonna destra sticky (desktop ≥1500px): riepilogo + collegamenti. Le voci sono quelle
                dell'aeroporto civile con la meta cambiata — elenco militare invece di elenco aeroporti — e il
                ponte verso l'altra edizione, che qui è il civile. *@
-            <aside class="doc-rail" aria-label="@L["Doc_RailAria"]">
+            <aside class="doc-rail" aria-label="@Sito["Doc_RailAria"]">
                 <div class="rail-card">
-                    <h5><Icon Name="clipboard" /> @L["Common_Summary"]</h5>
+                    <h5><Icon Name="clipboard" /> @Sito["Common_Summary"]</h5>
                     @* Il ciclo del DOCUMENTO mostrato, non quello di oggi (doc 13 §3h): in anteprima di
                        release è quello della release, e lo snapshot se lo porta dietro. *@
-                    <div class="rail-line"><span class="muted">@L["Common_AiracCycle"]</span><b>@Cycle()</b></div>
-                    <div class="rail-line"><span class="muted">@L["Common_AtcOnline"]</span>
+                    <div class="rail-line"><span class="muted">@Sito["Common_AiracCycle"]</span><b>@Cycle()</b></div>
+                    <div class="rail-line"><span class="muted">@Sito["Common_AtcOnline"]</span>
                         @{ var n = OnlineAt(_icao); }
                         <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n}" : "off")</span>
                     </div>
                 </div>
                 <div class="rail-card">
-                    <h5><Icon Name="link" /> @L["Common_Links"]</h5>
+                    <h5><Icon Name="link" /> @Sito["Common_Links"]</h5>
                     <ul class="rail-links">
-                        <li><a href="/services/vsop">@L["Common_Home"]</a></li>
-                        <li><a href="/services/vsop/mil">@L["Mil_Title"]</a></li>
+                        <li><a href="/services/vsop">@Sito["Common_Home"]</a></li>
+                        <li><a href="/services/vsop/mil">@Sito["Mil_Title"]</a></li>
                         <li><a href="/services/vsop/@Acc.ToLowerInvariant()">ACC @Acc.ToUpperInvariant()</a></li>
                         @* Stesso ponte della testata, e stesso gate: se la vIPI civile non c'è, la voce non
                            c'è. Un elenco di collegamenti utili con dentro un vicolo cieco è peggio di uno
                            più corto. *@
                         @if (MostraPonteCivile)
                         {
-                            <li><a href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao">@L["Mil_LinkToCivil"]</a></li>
+                            <li><a href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao">@Sito["Mil_LinkToCivil"]</a></li>
                         }
                     </ul>
                 </div>
@@ -265,7 +269,7 @@
     {
         @switch (sec.SectionKey)
         {
-            case "weather": <AirportWeather Icao="@_icao" Report="_wx" Metar="_metar" Taf="_taf" />; break;
+            case "weather": <AirportWeather Icao="@_icao" Report="_wx" Metar="_metar" Taf="_taf" Lingua="@_bloccata" />; break;
             case "transition":
                 <AirportTransition View="_derivate.Transition" CurrentQnh="_metar?.QnhHpa"
                                    MetarTimeRaw="@_metar?.TimeRaw" Station="_station" />;

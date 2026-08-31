@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -67,6 +67,7 @@ public class ImageBlockEditorTests : TestContext
     public ImageBlockEditorTests()
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddScoped<IMediaStore>(_ => _store);
         Services.AddScoped<IMediaMaintenance>(_ => _manutenzione);
         Services.AddSingleton<IOptions<MediaOptions>>(Options.Create(

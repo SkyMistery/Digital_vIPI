@@ -1,4 +1,5 @@
-@using System.Text.Json
+﻿@using System.Text.Json
+@inject IStringLocalizer<SharedResource> L
 
 <div class="callout @Kind">
     <span class="cic"><Icon Name="@IconName" Size="18" /></span>
@@ -37,12 +38,16 @@
                 }
                 catch (JsonException) { }
             }
+            // ⚠️ DAI RESX, non letterali: questa etichetta sta DENTRO il documento, e cablata in italiano
+            // restava italiana anche in una pagina inglese — «Nota» in mezzo a cinque callout tradotti.
+            // Si vedeva già prima della lingua bloccata, su qualunque lettura in inglese; col blocco si vede
+            // di più, perché lì intorno non c'è più una parola d'italiano.
             return K switch
             {
-                CalloutKind.Success => "OK",
-                CalloutKind.Warning => "Attenzione",
-                CalloutKind.Danger => "Importante",
-                _ => "Nota",
+                CalloutKind.Success => L["Callout_Ok"].Value,
+                CalloutKind.Warning => L["Callout_Warning"].Value,
+                CalloutKind.Danger => L["Callout_Danger"].Value,
+                _ => L["Callout_Note"].Value,
             };
         }
     }

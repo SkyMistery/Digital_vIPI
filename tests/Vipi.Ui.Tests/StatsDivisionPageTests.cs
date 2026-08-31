@@ -133,6 +133,7 @@ public class StatsDivisionPageTests : TestContext
         bool staff, bool classificaPubblica, IAirportCoverageQueries aeroporti, string? gruppo = null)
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddSingleton<IAtcStatsQueries>(_archivio);
         Services.AddSingleton<IStatsSettingsStore>(new FakeSettings { Pubblica = classificaPubblica });
         Services.AddSingleton<ICurrentUserProvider>(new FakeUser

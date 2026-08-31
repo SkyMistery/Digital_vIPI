@@ -1,4 +1,4 @@
-using System.Xml.Linq;
+﻿using System.Xml.Linq;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -27,8 +27,11 @@ public class VidTextTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
-    public VidTextTests() =>
+    public VidTextTests()
+    {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new FormatLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+    }
 
     // ---- il taglio, provato da solo -------------------------------------------------------------------
 

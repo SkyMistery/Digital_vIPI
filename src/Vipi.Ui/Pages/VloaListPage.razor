@@ -8,6 +8,7 @@
 @inject IOnlineAtcProvider Online
 @inject IDocumentAdminService Docs
 @inject IStringLocalizer<SharedResource> L
+@inject StringheDelSito Sito
 @inject Vipi.Application.Translation.DocumentTranslator Translator
 @inject Vipi.Application.Content.ReadingLanguageContext Lingua
 @inject EnglishStrings En
@@ -17,7 +18,7 @@
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Common_UnknownAcc"]</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@Sito["Common_UnknownAcc"]</p>@Acc</div></div></div>
 }
 else if (_foreign.Length > 0)
 {
@@ -27,7 +28,7 @@ else if (_foreign.Length > 0)
         <div class="wrap">
             <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/vloa">@En["Vloa_Title"]</a> › <b>—</b></div>
             @* Stesse stringhe già localizzate del vecchio viewer vLOA su AppnPage (rotta rimossa, doc 11 §3f). *@
-            <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Appn_VloaNotAvailTitle"]</p>@((MarkupString)string.Format(L["Appn_VloaNotAvailBody"], $"{_acc.Code} ↔ {_foreign}"))</div></div>
+            <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@Sito["Appn_VloaNotAvailTitle"]</p>@((MarkupString)string.Format(Sito["Appn_VloaNotAvailBody"], $"{_acc.Code} ↔ {_foreign}"))</div></div>
         </div>
     }
     else
@@ -57,15 +58,15 @@ else if (_foreign.Length > 0)
 else
 {
     @* ---- elenco vLOA della ACC ---- *@
-    <PageTitle>@L["Vloa_Title"] @_acc.Code · vIPI IVAO Italy</PageTitle>
+    <PageTitle>@Sito["Vloa_Title"] @_acc.Code · vIPI IVAO Italy</PageTitle>
     <div class="wrap reading-cap">
         <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@En["Vloa_Title"]</b></div>
         <div class="doc-head">
-            <div><h1 class="page-h1" style="margin-bottom:2px">@L["Vloa_Title"] — @_acc.Name - @_acc.Code</h1></div>
+            <div><h1 class="page-h1" style="margin-bottom:2px">@Sito["Vloa_Title"] — @_acc.Name - @_acc.Code</h1></div>
         </div>
         @if (_visibleVloas.Count == 0)
         {
-            <EmptyState Title="@L["Vloa_EmptyTitle"]">@L["Vloa_EmptyBody"]</EmptyState>
+            <EmptyState Title="@Sito["Vloa_EmptyTitle"]">@Sito["Vloa_EmptyBody"]</EmptyState>
         }
         else
         {
@@ -83,7 +84,7 @@ else
                                 <h3 class="h-card">@neigh</h3>
                                 <span class="country-tag">@g.Key</span>
                             </div>
-                            <p class="muted">@(v.Neighbour ?? L["Vloa_BilateralDefault"].Value)</p>
+                            <p class="muted">@(v.Neighbour ?? Sito["Vloa_BilateralDefault"])</p>
                             <div class="vloa-online">
                                 <span class="onl-badge @(homeOnline > 0 ? "on" : "off")"><span class="dot"></span> @_acc.Code@(homeOnline > 0 ? $" · {homeOnline}" : "")</span>
                                 <span class="onl-badge @(neighOnline > 0 ? "on" : "off")"><span class="dot"></span> @neigh@(neighOnline > 0 ? $" · {neighOnline}" : "")</span>
@@ -244,8 +245,8 @@ else
 
     private string PreviewTitlePrefix() => _mode.Kind switch
     {
-        PreviewKind.Draft => $"{L["Common_DraftTag"]} ",
-        PreviewKind.Release => $"{L["Common_PreviewTag"]} ",
+        PreviewKind.Draft => $"{Sito["Common_DraftTag"]} ",
+        PreviewKind.Release => $"{Sito["Common_PreviewTag"]} ",
         _ => "",
     };
 

@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Translation;
@@ -29,8 +29,11 @@ public class TranslationNoticeTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
-    public TranslationNoticeTests() =>
+    public TranslationNoticeTests()
+    {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+    }
 
     private IRenderedComponent<TranslationNotice> Rendi(TranslationCoverage c) =>
         RenderComponent<TranslationNotice>(p => p.Add(x => x.Coverage, c));

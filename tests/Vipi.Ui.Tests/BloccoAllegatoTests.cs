@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Abstractions;
@@ -55,8 +55,11 @@ public class BloccoAllegatoTests : TestContext
         Id = 1, Format = BlockFormat.Attachment, State = RenderState.Expanded, Body = body, BodyJson = bodyJson,
     };
 
-    private void Localizzatore() =>
+    private void Localizzatore()
+    {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+    }
 
     // ---- resa ------------------------------------------------------------------------------------------
 

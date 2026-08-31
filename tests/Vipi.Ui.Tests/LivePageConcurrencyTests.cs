@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Abstractions;
@@ -70,6 +70,7 @@ public class LivePageConcurrencyTests : TestContext
         Services.AddSingleton<ILiveViewService>(servizio);
         Services.AddSingleton<IDocRoutesRegistry>(new DocRoutesRegistry(Array.Empty<IDocKindRoutes>()));
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         // La briciola di pane legge le stringhe in INGLESE FISSO (regole-lingua R3): senza questo
         // servizio la pagina non si costruisce nemmeno.
         Services.AddSingleton(new EnglishStrings());

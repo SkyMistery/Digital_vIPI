@@ -22,8 +22,11 @@ public class StructureComponentsTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
-    public StructureComponentsTests() =>
+    public StructureComponentsTests()
+    {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new ChiaveComeValore());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+    }
     private static IReadOnlyList<IReadOnlyList<FallbackChainRow>> Passi(params IReadOnlyList<FallbackChainRow>[] p) => p;
 
     [Fact]

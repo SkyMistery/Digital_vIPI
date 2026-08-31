@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Content;
 
@@ -17,6 +17,15 @@ namespace Vipi.Ui;
 /// romperebbe niente, lascerebbe solo una tabella con l'intestazione nella lingua sbagliata in mezzo a un
 /// documento nell'altra. Non è un errore, è una sfumatura — cioè il difetto che nessuno segnala.
 /// </para>
+///
+/// <para>
+/// ⚠️ <b>Vale per tutto ciò che rende DOPO, e apposta.</b> Il primo tentativo lo accendeva il componente del
+/// corpo, contando sull'ordine di render per lasciare fuori l'arredamento della pagina: a schermo è uscita
+/// una pagina a chiazze — «Print / SUMMARY / LINKS» inglesi accanto a «Ciclo AIRAC» italiano, e dentro il
+/// documento un callout «Nota» rimasto in italiano. In Blazor una pagina può rendersi <b>più volte</b>, e
+/// l'ordine fra genitore e figli non è una leva su cui appoggiare una regola di prodotto.
+/// L'arredamento resta nella lingua del sito perché lo chiede a <see cref="StringheDelSito"/>, non perché
+/// rende prima.
 ///
 /// <para>
 /// ⚠️ <b>Fuori da un documento bloccato non fa NIENTE</b>, e non «quasi niente»: senza lingua imposta

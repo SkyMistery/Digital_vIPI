@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -145,6 +145,7 @@ public class IntroDiPaginaTests : TestContext
     private void Monta(IPageIntroStore deposito, ITranslationMemory? memoria = null)
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddSingleton<IEditAuthorizationService>(new Pubblico());
         Services.AddScoped(_ => deposito);
         Services.AddScoped(_ => new DocumentTranslator(memoria ?? new MemoriaFinta()));
@@ -202,6 +203,7 @@ public class IntroDiPaginaTests : TestContext
     {
         var deposito = new DepositoFinto(sezioni);
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddSingleton<IEditAuthorizationService>(new Editore());
         Services.AddScoped<IResourceLockService>(_ => new LockFinto());
         Services.AddScoped<IPageIntroStore>(_ => deposito);

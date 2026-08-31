@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Abstractions;
@@ -44,6 +44,7 @@ public class LiveBadgeTests : TestContext
         var online = new FakeOnline();
         Services.AddSingleton<IOnlineAtcProvider>(online);
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         JSInterop.Mode = JSRuntimeMode.Loose;   // vipiLive.subscribe/unsubscribe: qui non c'è browser
         return online;
     }

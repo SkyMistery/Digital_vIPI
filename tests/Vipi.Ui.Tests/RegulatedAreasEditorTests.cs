@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Content;
@@ -25,6 +25,7 @@ public class RegulatedAreasEditorTests : TestContext
     public RegulatedAreasEditorTests()
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
     }
 
     private static IReadOnlyList<SpecialAreaPick> Areas(string acc, int count, string prefix) =>

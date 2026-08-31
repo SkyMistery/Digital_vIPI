@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Abstractions;
@@ -35,8 +35,11 @@ public class SezioniAeroportoTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
-    public SezioniAeroportoTests() =>
+    public SezioniAeroportoTests()
+    {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new ChiaveComeValore());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+    }
 
     // ---------------------------------------------------------------------------------------------------
     // Regole piste — «quale sta valendo adesso» è l'informazione operativa della sezione.

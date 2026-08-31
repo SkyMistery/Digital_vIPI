@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Domain;
@@ -28,8 +28,11 @@ public class AudienceChipTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
-    public AudienceChipTests() =>
+    public AudienceChipTests()
+    {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+    }
 
     // ⚠️ Sempre .ToList() dopo FindAll: indicizzare direttamente il risultato di bUnit esplode con
     // «Method not found: IHtmlCollection.get_Item» sulla coppia bUnit/AngleSharp di questo repository.

@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Airspace;
@@ -104,6 +104,7 @@ public class PaginaSpaziAereiTests : TestContext
         var catalogo = new CatalogoFinto();
         var forme = new FormeFinte();
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
         Services.AddSingleton<IAirspaceCatalog>(catalogo);
         Services.AddSingleton<ISectorShapeRepository>(forme);

@@ -80,6 +80,7 @@ public class CoordinateConverterPageTests
         public IRenderedComponent<CoordinateConverterPage> Apri(VipiRole livello)
         {
             Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+            Services.AddSingleton<Vipi.Ui.StringheDelSito>();
             Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
             Services.AddSingleton(new EnglishStrings());
             Services.AddSingleton<Vipi.Application.Airspace.IAirspaceCatalog>(new CatalogoVuoto());

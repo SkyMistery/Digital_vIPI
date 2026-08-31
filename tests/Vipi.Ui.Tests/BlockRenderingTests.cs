@@ -1,4 +1,6 @@
-using Bunit;
+﻿using Bunit;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Ui.Components;
@@ -13,6 +15,22 @@ namespace Vipi.Ui.Tests;
 /// </summary>
 public class BlockRenderingTests : TestContext
 {
+    /// <summary>Localizzatore che rende la chiave stessa: dal 31 agosto 2026 anche l'etichetta di un callout
+    /// («Nota», «Attenzione») viene dai resx invece che da un letterale italiano, perché sta DENTRO il
+    /// documento e in una pagina inglese restava italiana.</summary>
+    private sealed class ChiaveComeValore : IStringLocalizer<SharedResource>
+    {
+        public LocalizedString this[string name] => new(name, name, resourceNotFound: false);
+        public LocalizedString this[string name, params object[] arguments] => new(name, name, resourceNotFound: false);
+        public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
+    }
+
+    public BlockRenderingTests()
+    {
+        Services.AddSingleton<IStringLocalizer<SharedResource>>(new ChiaveComeValore());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+    }
+
     private static BlockView Block(BlockFormat format, string? body = null, string? bodyJson = null,
         CalloutKind? callout = null) => new()
     {

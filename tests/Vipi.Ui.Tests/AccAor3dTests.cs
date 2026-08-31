@@ -20,8 +20,11 @@ public class AccAor3dTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
-    public AccAor3dTests() =>
+    public AccAor3dTests()
+    {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+    }
 
     private static AppAorPolygon Poly() => new(
         "0 0 100 100", "M0 0L10 0L10 10Z",

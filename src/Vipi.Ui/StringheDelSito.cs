@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 
 namespace Vipi.Ui;
 
@@ -12,6 +12,22 @@ namespace Vipi.Ui;
 /// vuole per le intestazioni delle tabelle — sono parte del documento — e quello che NON si vuole per il
 /// chrome che <b>parla del</b> documento: la nota «questo è pubblicato solo in inglese» deve leggerla chi
 /// sta guardando il sito in italiano, o non le serve a niente.
+/// </para>
+///
+/// <para>
+/// ⚠️ <b>LA REGOLA, in una riga: dentro una pagina documentale <c>L</c> è la lingua del DOCUMENTO,
+/// <c>Sito</c> è quella di chi guarda.</b> Nelle cinque pagine viewer quasi tutto è arredamento — il tasto
+/// «Stampa», la colonna di destra, la fascia dell'anteprima, l'indice — e va a <c>Sito</c>; restano a
+/// <c>L</c> le poche stringhe che appartengono al documento mostrato (le intestazioni delle tabelle di un
+/// vSOP, «(live · NOAA)» accanto alla testata METAR, il titolo di un blocco della vIPI ACC).
+/// </para>
+///
+/// <para>
+/// ⚠️ <b>Il confine NON si può ottenere dall'ordine di render.</b> Il primo tentativo accendeva la lingua
+/// nel componente del corpo, contando sul fatto che la pagina rende prima dei figli: a schermo è uscita una
+/// pagina a chiazze — «Print / SUMMARY / LINKS» accanto a «Ciclo AIRAC», e un callout «Nota» rimasto
+/// italiano dentro un documento inglese. In Blazor una pagina si rende <b>più volte</b>: chi lo dà per
+/// scontato scrive una regola che funziona finché qualcuno non aggiunge un ridisegno.
 /// </para>
 ///
 /// <para>

@@ -127,6 +127,7 @@ public class ReleasePanelTests : TestContext
         Services.AddSingleton<IReleaseService>(fake);
         Services.AddSingleton<IShapeGateNoticeService>(_gate);
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         return fake;
     }
 

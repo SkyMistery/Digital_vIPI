@@ -8,7 +8,7 @@
 @inject IReleaseService Releases
 @inject IOnlineAtcProvider Online
 @inject IAiracService Airac
-@inject IStringLocalizer<SharedResource> L
+@inject StringheDelSito Sito
 @inject Vipi.Application.Translation.DocumentTranslator Translator
 @inject Vipi.Application.Content.ReadingLanguageContext Lingua
 @inject EnglishStrings En
@@ -18,11 +18,11 @@
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Common_UnknownAcc"]</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@Sito["Common_UnknownAcc"]</p>@Acc</div></div></div>
 }
 else if (_view is null)
 {
-    <div class="wrap"><div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["Appn_AppNotAvailTitle"]</p>@((MarkupString)string.Format(L["Appn_AppNotFoundBody"], _app, $"/services/vsop/{Acc.ToLowerInvariant()}/apps/editor?app={_app}"))</div></div></div>
+    <div class="wrap"><div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@Sito["Appn_AppNotAvailTitle"]</p>@((MarkupString)string.Format(Sito["Appn_AppNotFoundBody"], _app, $"/services/vsop/{Acc.ToLowerInvariant()}/apps/editor?app={_app}"))</div></div></div>
 }
 else
 {
@@ -33,19 +33,19 @@ else
         <div class="doc-layout">
             <DocumentToc Sections="_view.Sections" IsDraft="@(_mode.Kind == PreviewKind.Draft)" AnchorOf="AnchorOf" />
             <div>
-                <PrintMeta Title="@_displayName" Subtitle="@($"{_app} · {L["Appn_Subtitle"]}")"
+                <PrintMeta Title="@_displayName" Subtitle="@($"{_app} · {Sito["Appn_Subtitle"]}")"
                            AiracCycle="@Cycle()" />
                 <div class="doc-head">
                     @* L'APP di uno scalo militare porta la stessa etichetta del suo aeroporto: chi legge questo
                        documento sta guardando quel campo, e l'informazione non deve dipendere da quale dei due
                        documenti ha aperto. *@
-                    <div><h1 class="page-h1" style="margin-bottom:2px">@_displayName <MilitaryTag HasMilitaryPresence="_mil?.HasMilitaryPresence ?? false" IsMilitaryOnly="_mil?.IsMilitaryOnly ?? false" /></h1><span class="muted">@_app · @L["Appn_Subtitle"]</span></div>
+                    <div><h1 class="page-h1" style="margin-bottom:2px">@_displayName <MilitaryTag HasMilitaryPresence="_mil?.HasMilitaryPresence ?? false" IsMilitaryOnly="_mil?.IsMilitaryOnly ?? false" /></h1><span class="muted">@_app · @Sito["Appn_Subtitle"]</span></div>
                     <div style="display:flex;align-items:center;gap:10px">
-                        <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
-                        <a class="btn ghost" href="/services/vsop/live/@_app.ToLowerInvariant()">@L["Common_Operational"]</a>
+                        <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>
+                        <a class="btn ghost" href="/services/vsop/live/@_app.ToLowerInvariant()">@Sito["Common_Operational"]</a>
                         @if (_canEdit)
                         {
-                            <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/apps/editor?app=@_app">@L["Common_Editor"]</a>
+                            <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/apps/editor?app=@_app">@Sito["Common_Editor"]</a>
                         }
                     </div>
                 </div>
@@ -55,7 +55,7 @@ else
                                    PublicHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}")"
                                    DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=draft")" />
                 }
-                <div class="callout info"><span class="cic"><Icon Name="radio" Size="18" /></span><div><p class="ct">@L["Appn_InfoTitle"]</p>@L["Appn_InfoBody"]</div></div>
+                <div class="callout info"><span class="cic"><Icon Name="radio" Size="18" /></span><div><p class="ct">@Sito["Appn_InfoTitle"]</p>@Sito["Appn_InfoBody"]</div></div>
 
                 @* Il filtro di lettura pilota/ATC (carta vSOP militari §3): vale su tutte le famiglie,
                    perché il flag è per-sezione e l'editor lo offre ovunque. *@
@@ -77,23 +77,23 @@ else
                 </div>
             </div>
 
-            <aside class="doc-rail" aria-label="@L["Doc_RailAria"]">
+            <aside class="doc-rail" aria-label="@Sito["Doc_RailAria"]">
                 <div class="rail-card">
-                    <h5><Icon Name="clipboard" /> @L["Common_Summary"]</h5>
+                    <h5><Icon Name="clipboard" /> @Sito["Common_Summary"]</h5>
                     @* Il ciclo del DOCUMENTO che si sta guardando, non quello di oggi (doc 13 §3h): lo snapshot
                        lo porta con sé, e la pagina ce l'aveva sotto mano senza usarlo. *@
-                    <div class="rail-line"><span class="muted">@L["Common_AiracCycle"]</span><b>@Cycle()</b></div>
-                    <div class="rail-line"><span class="muted">@L["Common_AtcOnline"]</span>
+                    <div class="rail-line"><span class="muted">@Sito["Common_AiracCycle"]</span><b>@Cycle()</b></div>
+                    <div class="rail-line"><span class="muted">@Sito["Common_AtcOnline"]</span>
                         @{ var n = OnlineApp(); }
                         <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n}" : "off")</span>
                     </div>
                 </div>
                 <div class="rail-card">
-                    <h5><Icon Name="link" /> @L["Common_Links"]</h5>
+                    <h5><Icon Name="link" /> @Sito["Common_Links"]</h5>
                     <ul class="rail-links">
-                        <li><a href="/services/vsop">@L["Common_Home"]</a></li>
+                        <li><a href="/services/vsop">@Sito["Common_Home"]</a></li>
                         <li><a href="/services/vsop/@Acc.ToLowerInvariant()">ACC @_acc.Code</a></li>
-                        <li><a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@L["AccLanding_Apps"]</a></li>
+                        <li><a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@Sito["AccLanding_Apps"]</a></li>
                     </ul>
                 </div>
             </aside>
@@ -176,8 +176,8 @@ else
     private int? ReleaseIdShown() => _mode.Kind == PreviewKind.Release ? _mode.ReleaseId : null;
     private string PreviewTitlePrefix() => _mode.Kind switch
     {
-        PreviewKind.Draft => $"{L["Common_DraftTag"]} ",
-        PreviewKind.Release => $"{L["Common_PreviewTag"]} ",
+        PreviewKind.Draft => $"{Sito["Common_DraftTag"]} ",
+        PreviewKind.Release => $"{Sito["Common_PreviewTag"]} ",
         _ => "",
     };
 
