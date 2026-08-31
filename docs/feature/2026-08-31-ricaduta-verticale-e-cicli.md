@@ -392,6 +392,51 @@ padre: la catena ha la sua guardia sui nodi già visti, e l'albero non lo tocca.
 
    Due voci per il disegno, **un candidato solo** per chi risolve: `Candidates` distingue, `Sequence` no.
 
+### Il giro sulla pagina — 1 settembre 2026
+
+Tre richieste del committente sulla pagina `admin/sector-structure`, guardata **in inglese** in produzione.
+
+**1. La finestra di eliminazione parlava italiano dentro una pagina inglese.** La finestra sì — titolo,
+intestazioni, tasti: quelli passano dalle risorse. Ma il **piano** che ci sta dentro lo scrive
+l'applicazione, e l'applicazione non può leggere i `.resx` (vivono in `Vipi.Ui`): si porta dietro tutte e
+due le lingue con `Messaggio.Lingua`, ed era stato fatto **a metà** — circa venti frasi di
+`DeletionRules` erano rimaste italiane per tutti, insieme a `SogliaEliminazione.MotivoDelRifiuto` e a
+**tutti** i verdetti di `IvaoSourcePresenceProbe` («chiedi alla sorgente adesso»). Risultato a schermo:
+*«Delete LIBB_ES_CTR?»* e sotto *«elimina prima l'accordo di coordinamento…»*.
+
+⚠️ Le **tracce** della sonda restano in italiano di proposito: sono diagnostica (`GET`, status, conteggi),
+non prosa da leggere.
+
+⚠️ **I test che asserivano quelle frasi vanno ancorati alla lingua.** La cultura di questa macchina è
+**inglese**: un'asserzione sul testo italiano, senza `CulturaDiProva`, passa in Italia e cade qui — ed è
+successo, cinque test di `SourcePresenceProbeTests` sono diventati rossi appena le frasi hanno avuto due
+versioni. Non è una fragilità nuova: è una fragilità vecchia che si vede.
+
+**2. Le due sezioni si chiudono.** «Coverage hierarchy» e «Orphan sectors» nascono aperte e si richiudono
+dal titolo, che **è** la maniglia. Il chevron è `.grp-chev`, lo stesso delle card dell'albero: stesso gesto
+sulla stessa pagina, stesso segno. Serve a lavorare — la gerarchia è alta quanto lo schermo, e mentre si
+sistema un orfano sta in mezzo. ⚠️ `hidden` da solo non bastava: `.gerarchia-2col` ha un `display:grid`
+suo, e la regola dell'attributo sta nel foglio del **browser**, che perde contro il nostro.
+
+**3. Il piede e il tetto si scrivono anche in piedi.** C'era il solo FL, e una fascia che comincia a
+**2 500 piedi non si poteva scrivere**: si batteva 25 e usciva FL25. Ora accanto al numero c'è la tendina
+**FL/ft**, la stessa dei Trasferimenti — e come lì, **cambiare unità non converte**: il numero battuto resta
+quello e cambia di significato.
+
+⚠️ **L'unità non si salva**, ed è una scelta: in archivio ci sono solo i piedi (come nelle forme dei settori
+e nelle bande dell'AoR), e aggiungere due colonne avrebbe voluto dire una **seconda migrazione dentro la
+finestra cieca** per una comodità di scrittura. Alla rilettura l'unità si **deduce** con la convenzione che
+il sito usa già in `StatsView.Livello`: sotto i 10 000 piedi — o se non è un multiplo di cento — si legge in
+piedi, sopra in livelli di volo. Non è fedele a quel che fu battuto (chi scrive «FL30» rilegge «3 000 ft»),
+ed è il prezzo dichiarato: **la quota è la stessa, cambia come la si legge**.
+
+E la **fascia disegnata** segue la stessa convenzione: `2,500 ft–FL195`, non più `FL25–FL195`.
+
+**Verificato dal vivo** (Edge+CDP, copia del DB): le due sezioni si chiudono e si riaprono (`aria-expanded`
+e chevron seguono), la riga `LIBB_ES_CTR → LIBB_EU_CTR 2 500 ft–FL195` si salva e **si rilegge com'è stata
+scritta** (2500 in ft, 195 in FL) dopo un ricaricamento completo, e la finestra di eliminazione è inglese da
+cima a fondo, verdetto della sorgente compreso.
+
 ### Cosa resta aperto
 
 - **Statistiche per pezzo di forma** (vedi il dettaglio 2 qui sopra): finché le pretese sono per settore, le

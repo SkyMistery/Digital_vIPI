@@ -64,4 +64,35 @@ public class MessaggiBilingueTests
         Assert.Contains("una torre si elimina solo insieme", Motivo(inglese: false));
         Assert.Contains("a tower can only be deleted together", Motivo(inglese: true));
     }
+
+    /// <summary>
+    /// ⚠️ Non solo i <b>blocchi</b>: anche l'elenco di cosa muore e di cosa si sposta. Fino al
+    /// 1 settembre 2026 quelle righe erano italiane per tutti, e la finestra di eliminazione della pagina
+    /// inglese era mezza tradotta — titolo e tasti in inglese, il piano in italiano.
+    /// </summary>
+    [Fact]
+    public void Anche_il_piano_esce_nella_lingua_di_chi_legge()
+    {
+        var fatti = new SectorFacts(
+            SectorId: 2, Callsign: "LIMM_W_CTR", Name: "Milano West", AccCode: "LIMM",
+            Type: SectorType.Ctr, Kind: SectorKind.Acc,
+            AirportId: null, AirportIcao: null, ParentSectorId: 9, ParentCallsign: "LIMM_CTR",
+            IsProjected: false, CatalogoManuale: true, ImportedAtUtc: null,
+            Figli: new[] { new ChildFacts(3, "LIMM_W1_CTR") },
+            FigliDiCatalogo: Array.Empty<CatalogChildFacts>(),
+            Documenti: Array.Empty<DocRefFacts>(),
+            Accordi: Array.Empty<AgreementFacts>());
+
+        DeletionPlan Piano(bool inglese)
+        {
+            using var _ = inglese ? CulturaDiProva.Inglese() : CulturaDiProva.Italiana();
+            return DeletionRules.PerSettore(fatti, penultimoGiro: null);
+        }
+
+        Assert.Contains("il settore LIMM_W_CTR", Piano(inglese: false).Muore[0]);
+        Assert.Contains("the sector LIMM_W_CTR", Piano(inglese: true).Muore[0]);
+
+        Assert.Equal("LIMM_W1_CTR passa sotto LIMM_CTR", Piano(inglese: false).SiSposta[0]);
+        Assert.Equal("LIMM_W1_CTR moves under LIMM_CTR", Piano(inglese: true).SiSposta[0]);
+    }
 }

@@ -678,6 +678,7 @@
   <data name="Struct_Fallback_To" xml:space="preserve"><value>to</value></data>
   <data name="Struct_Fallback_Sfc" xml:space="preserve"><value>SFC</value></data>
   <data name="Struct_Fallback_Unl" xml:space="preserve"><value>UNL</value></data>
+  <data name="Struct_Fallback_Unit" xml:space="preserve"><value>Level unit: FL or feet</value></data>
   <data name="Struct_Fallback_Remove" xml:space="preserve"><value>Remove this row</value></data>
   <data name="Struct_Fallback_Suggested" xml:space="preserve"><value>Suggested by geometry:</value></data>
   <data name="Struct_Fallback_NoSuggestions" xml:space="preserve"><value>No suggestion: no other sector shares altitude with this one.</value></data>
@@ -2170,6 +2171,7 @@
   <data name="Apt_SelectAll" xml:space="preserve"><value>Select all shown rows</value></data>
   <data name="Struct_ToggleNode" xml:space="preserve"><value>Expand or collapse {0}</value></data>
   <data name="Struct_ToggleCard" xml:space="preserve"><value>Expand or collapse ACC {0}</value></data>
+  <data name="Struct_ToggleSection" xml:space="preserve"><value>Expand or collapse the {0} section</value></data>
   <data name="Xfer_ColCondition" xml:space="preserve"><value>Condition</value></data>
   <data name="Xfer_PanelEmptyTitle" xml:space="preserve"><value>No clause open</value></data>
   <data name="Xfer_PanelEmptyBody" xml:space="preserve"><value>Pick «✎» on a clause to edit it, or «+ Clause» to add one. Fields, sentence preview and actions appear here.</value></data>

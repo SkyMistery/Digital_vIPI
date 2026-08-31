@@ -108,10 +108,29 @@ public class SogliaEliminazioneTests
     [Fact]
     public void Il_rifiuto_si_spiega_in_una_frase()
     {
+        // ⚠️ La lingua si fissa: da quando la frase ha due versioni, un'asserzione sul testo italiano
+        // passerebbe su una macchina italiana e cadrebbe su una inglese.
+        using var _ = CulturaDiProva.Italiana();
+
         Assert.Contains("meno di due volte",
             SogliaEliminazione.MotivoDelRifiuto(Adesso.AddDays(-9), null, isManual: false));
         Assert.Contains("la manda ancora",
             SogliaEliminazione.MotivoDelRifiuto(Adesso, Adesso.AddDays(-1), isManual: false));
         Assert.Null(SogliaEliminazione.MotivoDelRifiuto(Adesso.AddDays(-3), Adesso.AddDays(-1), isManual: false));
+    }
+
+    /// <summary>
+    /// La stessa frase per chi legge in inglese. Era italiana per tutti fino al 1 settembre 2026, e
+    /// finiva così com'era dentro la finestra di eliminazione della pagina inglese.
+    /// </summary>
+    [Fact]
+    public void Il_rifiuto_si_spiega_anche_a_chi_legge_in_inglese()
+    {
+        using var _ = CulturaDiProva.Inglese();
+
+        Assert.Contains("fewer than two times",
+            SogliaEliminazione.MotivoDelRifiuto(Adesso.AddDays(-9), null, isManual: false));
+        Assert.Contains("still sends it",
+            SogliaEliminazione.MotivoDelRifiuto(Adesso, Adesso.AddDays(-1), isManual: false));
     }
 }

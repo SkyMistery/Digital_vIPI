@@ -683,6 +683,7 @@
   <data name="Struct_Fallback_To" xml:space="preserve"><value>a</value></data>
   <data name="Struct_Fallback_Sfc" xml:space="preserve"><value>SFC</value></data>
   <data name="Struct_Fallback_Unl" xml:space="preserve"><value>UNL</value></data>
+  <data name="Struct_Fallback_Unit" xml:space="preserve"><value>Unità del livello: FL o piedi</value></data>
   <data name="Struct_Fallback_Remove" xml:space="preserve"><value>Togli questa riga</value></data>
   <data name="Struct_Fallback_Suggested" xml:space="preserve"><value>Proposte dalla geometria:</value></data>
   <data name="Struct_Fallback_NoSuggestions" xml:space="preserve"><value>Nessuna proposta: nessun altro settore condivide quota con questo.</value></data>
@@ -2178,6 +2179,7 @@
   <data name="Apt_SelectAll" xml:space="preserve"><value>Seleziona tutte le righe mostrate</value></data>
   <data name="Struct_ToggleNode" xml:space="preserve"><value>Espandi o richiudi {0}</value></data>
   <data name="Struct_ToggleCard" xml:space="preserve"><value>Espandi o richiudi l’ACC {0}</value></data>
+  <data name="Struct_ToggleSection" xml:space="preserve"><value>Espandi o richiudi la sezione {0}</value></data>
   <data name="Xfer_ColCondition" xml:space="preserve"><value>Condizione</value></data>
   <data name="Xfer_PanelEmptyTitle" xml:space="preserve"><value>Nessuna clausola aperta</value></data>
   <data name="Xfer_PanelEmptyBody" xml:space="preserve"><value>Scegli «✎» su una clausola per modificarla, oppure «+ Clausola» per aggiungerne una. Qui compaiono i campi, l&apos;anteprima della frase e le azioni.</value></data>

@@ -1,3 +1,5 @@
+using static Vipi.Application.Messaggio;
+
 namespace Vipi.Application.Content;
 
 /// <summary>
@@ -82,9 +84,12 @@ public static class SogliaEliminazione
     {
         if (Consentita(importedAtUtc, prevSuccessUtc, isManual, provaDiAssenza)) return null;
         if (prevSuccessUtc is null)
-            return "la sorgente è stata interrogata con successo meno di due volte: non c'è ancora abbastanza storia per dire che è sparita";
+            return Lingua(
+                "la sorgente è stata interrogata con successo meno di due volte: non c'è ancora abbastanza storia per dire che è sparita",
+                "the source has been queried successfully fewer than two times: there is not enough history yet to say it is gone");
         return importedAtUtc is { } t
-            ? $"la sorgente la manda ancora (vista l'ultima volta il {t:yyyy-MM-dd HH:mm}Z)"
-            : "la sorgente la manda ancora";
+            ? Lingua($"la sorgente la manda ancora (vista l'ultima volta il {t:yyyy-MM-dd HH:mm}Z)",
+                     $"the source still sends it (last seen on {t:yyyy-MM-dd HH:mm}Z)")
+            : Lingua("la sorgente la manda ancora", "the source still sends it");
     }
 }

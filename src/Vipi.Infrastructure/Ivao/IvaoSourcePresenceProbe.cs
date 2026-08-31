@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Infrastructure.Ivao;
 
@@ -47,11 +48,12 @@ public sealed class IvaoSourcePresenceProbe : ISourcePresenceProbe
     {
         var chiave = (b.Key ?? "").Trim().ToUpperInvariant();
         if (chiave.Length == 0)
-            return SourceProbeResult.NonSiSa("non c'è niente da chiedere: chiave vuota");
+            return SourceProbeResult.NonSiSa(Lingua("non c'è niente da chiedere: chiave vuota", "there is nothing to ask about: empty key"));
 
         if (!_http.IsConfigured)
             return SourceProbeResult.NonSiSa(
-                "credenziali IVAO non configurate: la sorgente non si può interrogare",
+                Lingua("credenziali IVAO non configurate: la sorgente non si può interrogare",
+                       "IVAO credentials are not configured: the source cannot be queried"),
                 "nessuna chiamata: Ivao:ClientId assente");
 
         try
@@ -62,7 +64,7 @@ public sealed class IvaoSourcePresenceProbe : ISourcePresenceProbe
                 SourceProbeKind.AirportSector => await SettoreAeroportoAsync(chiave, b.Owner, ct),
                 SourceProbeKind.Airport => await AeroportoAsync(chiave, ct),
                 SourceProbeKind.Acc => await EnteAsync(chiave, ct),
-                _ => SourceProbeResult.NonSiSa($"non so come chiedere di un {b.Kind}"),
+                _ => SourceProbeResult.NonSiSa(Lingua($"non so come chiedere di un {b.Kind}", $"I do not know how to ask about a {b.Kind}")),
             };
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -75,7 +77,8 @@ public sealed class IvaoSourcePresenceProbe : ISourcePresenceProbe
             // di non lanciare, perché chi chiama sta già mostrando una finestra — e un'eccezione lì sarebbe
             // un messaggio d'errore al posto di un verdetto.
             return SourceProbeResult.NonSiSa(
-                $"la sorgente non ha risposto: {ex.Message}", $"eccezione: {ex.GetType().Name}");
+                Lingua($"la sorgente non ha risposto: {ex.Message}", $"the source did not answer: {ex.Message}"),
+                $"eccezione: {ex.GetType().Name}");
         }
     }
 
@@ -91,7 +94,8 @@ public sealed class IvaoSourcePresenceProbe : ISourcePresenceProbe
 
         if (string.IsNullOrWhiteSpace(acc))
             return SourceProbeResult.NonSiSa(
-                $"{callsign} non risulta, ma non so di quale ACC chiedere conferma",
+                Lingua($"{callsign} non risulta, ma non so di quale ACC chiedere conferma",
+                       $"{callsign} is not there, but I do not know which ACC to ask for confirmation"),
                 esito.Traccia);
 
         var elenco = string.Format(_opt.SubcentersPathFormat, Uri.EscapeDataString(acc.ToUpperInvariant()));
@@ -109,7 +113,8 @@ public sealed class IvaoSourcePresenceProbe : ISourcePresenceProbe
 
         if (string.IsNullOrWhiteSpace(icao))
             return SourceProbeResult.NonSiSa(
-                $"{callsign} non risulta, ma non so di quale aeroporto chiedere conferma",
+                Lingua($"{callsign} non risulta, ma non so di quale aeroporto chiedere conferma",
+                       $"{callsign} is not there, but I do not know which airport to ask for confirmation"),
                 esito.Traccia);
 
         var elenco = $"{_opt.AirportsPath}/{Uri.EscapeDataString(icao.ToUpperInvariant())}/ATCPositions";
@@ -136,16 +141,20 @@ public sealed class IvaoSourcePresenceProbe : ISourcePresenceProbe
 
         if (!vivo.Trovato)
             return SourceProbeResult.NonSiSa(
-                $"{icao} non risulta, ma nemmeno l'anagrafica risponde: non si può concludere niente", traccia);
+                Lingua($"{icao} non risulta, ma nemmeno l'anagrafica risponde: non si può concludere niente",
+                       $"{icao} is not there, but the directory does not answer either: nothing can be concluded"),
+                traccia);
 
         if (vivo.Elementi == 0)
             return SourceProbeResult.NonSiSa(
-                $"{icao} non risulta, ma l'anagrafica ha risposto vuota: è la risposta ambigua che la regola " +
-                "dei due giri esiste per non credere", traccia);
+                Lingua($"{icao} non risulta, ma l'anagrafica ha risposto vuota: è la risposta ambigua che la regola dei due giri esiste per non credere",
+                       $"{icao} is not there, but the directory answered empty: this is the ambiguous answer the two-pass rule exists not to believe"),
+                traccia);
 
         return SourceProbeResult.Assente(
-            $"{icao} non c'è più: la sorgente lo dà per introvabile e l'anagrafica del paese risponde " +
-            $"regolarmente ({vivo.Elementi} aeroporti nella prima pagina)", traccia);
+            Lingua($"{icao} non c'è più: la sorgente lo dà per introvabile e l'anagrafica del paese risponde regolarmente ({vivo.Elementi} aeroporti nella prima pagina)",
+                   $"{icao} is gone: the source reports it as not found and the country directory answers normally ({vivo.Elementi} airports on the first page)"),
+            traccia);
     }
 
     /// <summary>
@@ -163,15 +172,20 @@ public sealed class IvaoSourcePresenceProbe : ISourcePresenceProbe
         catch (Exception ex)
         {
             return SourceProbeResult.NonSiSa(
-                $"l'anagrafica degli enti non ha risposto: {ex.Message}",
+                Lingua($"l'anagrafica degli enti non ha risposto: {ex.Message}",
+                       $"the units directory did not answer: {ex.Message}"),
                 $"GET {_opt.CentersPath}?countryId={_opt.AirportsCountryId} → {ex.GetType().Name}");
         }
 
         var traccia = $"GET {_opt.CentersPath}?countryId={_opt.AirportsCountryId} → 200, {centers.Count} center";
         return centers.Any(c => string.Equals(c.CenterId, code, StringComparison.OrdinalIgnoreCase))
-            ? SourceProbeResult.Presente($"{code} c'è ancora: la sorgente lo elenca fra i center del paese", traccia)
+            ? SourceProbeResult.Presente(
+                Lingua($"{code} c'è ancora: la sorgente lo elenca fra i center del paese",
+                       $"{code} is still there: the source lists it among the country's centers"),
+                traccia)
             : SourceProbeResult.Assente(
-                $"{code} non c'è più: la sorgente elenca {centers.Count} center del paese e questo non è fra loro",
+                Lingua($"{code} non c'è più: la sorgente elenca {centers.Count} center del paese e questo non è fra loro",
+                       $"{code} is gone: the source lists {centers.Count} centers for the country and this is not one of them"),
                 traccia);
     }
 
@@ -193,29 +207,37 @@ public sealed class IvaoSourcePresenceProbe : ISourcePresenceProbe
 
         if (!elenco.Trovato)
             return SourceProbeResult.NonSiSa(
-                $"{callsign} non risulta, ma nemmeno l'elenco di {owner} risponde: non si può concludere niente",
+                Lingua($"{callsign} non risulta, ma nemmeno l'elenco di {owner} risponde: non si può concludere niente",
+                       $"{callsign} is not there, but the list of {owner} does not answer either: nothing can be concluded"),
                 traccia);
 
         if (elenco.Contiene)
             return SourceProbeResult.Presente(
-                $"{callsign} c'è ancora: l'elenco di {owner} lo nomina (anche se il dettaglio non l'ha trovato)",
+                Lingua($"{callsign} c'è ancora: l'elenco di {owner} lo nomina (anche se il dettaglio non l'ha trovato)",
+                       $"{callsign} is still there: the list of {owner} names it (even though the detail call did not find it)"),
                 traccia);
 
         if (elenco.Elementi == 0)
             return SourceProbeResult.NonSiSa(
-                $"{callsign} non risulta, ma l'elenco di {owner} è vuoto: è la risposta ambigua che la regola " +
-                "dei due giri esiste per non credere", traccia);
+                Lingua($"{callsign} non risulta, ma l'elenco di {owner} è vuoto: è la risposta ambigua che la regola dei due giri esiste per non credere",
+                       $"{callsign} is not there, but the list of {owner} is empty: this is the ambiguous answer the two-pass rule exists not to believe"),
+                traccia);
 
         return SourceProbeResult.Assente(
-            $"{callsign} non c'è più: {owner} ne elenca {elenco.Elementi} e questo non è fra loro", traccia);
+            Lingua($"{callsign} non c'è più: {owner} ne elenca {elenco.Elementi} e questo non è fra loro",
+                   $"{callsign} is gone: {owner} lists {elenco.Elementi} of them and this is not one of them"),
+            traccia);
     }
 
     private static SourceProbeResult Presente(string chiave, Esito e) =>
-        SourceProbeResult.Presente($"{chiave} c'è ancora: la sorgente lo manda", e.Traccia);
+        SourceProbeResult.Presente(
+            Lingua($"{chiave} c'è ancora: la sorgente lo manda", $"{chiave} is still there: the source sends it"),
+            e.Traccia);
 
     private static SourceProbeResult Guasto(string chiave, Esito e) =>
         SourceProbeResult.NonSiSa(
-            $"non si sa: la sorgente ha risposto {(int)e.Status} {e.Status} — non è «non c'è», è «non lo dice»",
+            Lingua($"non si sa: la sorgente ha risposto {(int)e.Status} {e.Status} — non è «non c'è», è «non lo dice»",
+                   $"unknown: the source answered {(int)e.Status} {e.Status} — that is not «it is gone», it is «it does not say»"),
             e.Traccia);
 
     // ── La chiamata, con lo status davanti ───────────────────────────────────────────────────────────

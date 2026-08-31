@@ -14,8 +14,15 @@ namespace Vipi.Infrastructure.Tests;
 ///
 /// <para>Carta: <c>docs/feature/2026-08-26-chiedere-alla-sorgente.md</c>.</para>
 /// </summary>
-public class SourcePresenceProbeTests
+public class SourcePresenceProbeTests : IDisposable
 {
+    // ⚠️ Questi test leggono i MOTIVI, e dal 1 settembre 2026 i motivi hanno due lingue
+    // (Messaggio.Lingua): finiscono nella finestra di eliminazione, che in inglese era mezza tradotta.
+    // La cultura si fissa qui una volta per la classe — quella di questa macchina è inglese.
+    private readonly Vipi.Application.Tests.CulturaDiProva _lingua = Vipi.Application.Tests.CulturaDiProva.Italiana();
+
+    public void Dispose() => _lingua.Dispose();
+
     // ── Settore di ACC: dettaglio + elenco dei subcenter dell'ente ───────────────────────────────────
 
     [Fact]
@@ -278,6 +285,29 @@ public class SourcePresenceProbeTests
     private static (HttpStatusCode Status, string Body) Ok(string body) => (HttpStatusCode.OK, body);
     private static (HttpStatusCode Status, string Body) NotFound() => (HttpStatusCode.NotFound, "");
     private static (HttpStatusCode Status, string Body) Stato(HttpStatusCode s) => (s, "");
+
+    /// <summary>
+    /// Lo stesso verdetto per chi legge in inglese: è il giro che il difetto del 1 settembre 2026 lasciava
+    /// scoperto — la finestra tradotta e dentro, in italiano, la risposta della sorgente.
+    /// </summary>
+    [Fact]
+    public async Task Il_verdetto_esce_nella_lingua_di_chi_legge()
+    {
+        using var _ = Vipi.Application.Tests.CulturaDiProva.Inglese();
+
+        var probe = Probe(new()
+        {
+            ["/v2/subcenters/LIRR_W_CTR"] = NotFound(),
+            ["/v2/centers/LIRR/subcenters"] = Ok(SUBCENTERS),
+        });
+
+        var r = await probe.ChiediAsync(new SourceProbeTarget(SourceProbeKind.AccSector, "LIRR_W_CTR", "LIRR"));
+
+        Assert.Equal(SourcePresence.Assente, r.Esito);
+        Assert.Contains("LIRR lists 2 of them", r.Motivo);
+    }
+
+    private const string SUBCENTERS = "[{ \"composePosition\": \"LIRR_E_CTR\" }, { \"composePosition\": \"LIRR_N_CTR\" }]";
 
     private static IvaoSourcePresenceProbe Probe(
         Dictionary<string, (HttpStatusCode Status, string Body)> risposte,

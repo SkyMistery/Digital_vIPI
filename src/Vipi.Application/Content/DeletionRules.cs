@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
@@ -238,8 +238,15 @@ public static class DeletionRules
         // proiezione lo ricalcola da lì a ogni sync: riappendere il solo `Sector` sarebbe una promessa che
         // dura fino a stanotte, e poi i figli diventerebbero radici senza che nessuno l'abbia chiesto.
         var nonnoCs = f.ParentCallsign;
+
+        // La stessa frase serve due volte (i figli della proiezione e quelli del catalogo): scritta una
+        // volta sola non può divergere in una lingua e restare com'era nell'altra.
+        string Riappeso(string figlio) => nonnoCs is { } n
+            ? Lingua($"{figlio} passa sotto {n}", $"{figlio} moves under {n}")
+            : Lingua($"{figlio} diventa radice", $"{figlio} becomes a root");
+
         foreach (var c in f.Figli)
-            sposta.Add(nonnoCs is { } n1 ? $"{c.Callsign} passa sotto {n1}" : $"{c.Callsign} diventa radice");
+            sposta.Add(Riappeso(c.Callsign));
 
         var riaggancio = new List<CatalogReparent>();
         foreach (var c in f.FigliDiCatalogo)
@@ -248,7 +255,7 @@ public static class DeletionRules
             // Chi è già stato nominato come figlio della proiezione non si ripete: è la stessa cosa vista
             // da due parti, e a schermo sarebbe una riga doppia.
             if (f.Figli.Any(x => string.Equals(x.Callsign, c.Callsign, StringComparison.OrdinalIgnoreCase))) continue;
-            sposta.Add(nonnoCs is { } n2 ? $"{c.Callsign} passa sotto {n2}" : $"{c.Callsign} diventa radice");
+            sposta.Add(Riappeso(c.Callsign));
         }
 
         // D6 — la torre cade solo con lo scalo.
@@ -281,7 +288,8 @@ public static class DeletionRules
             if (!d.RestaAncorato)
             {
                 blocca.Add(new DeletionBlocker(
-                    $"elimina prima il documento «{d.Titolo}»: {f.Callsign} è il suo ultimo aggancio " +
+                    Lingua($"elimina prima il documento «{d.Titolo}»: {f.Callsign} è il suo ultimo aggancio ",
+                           $"delete the document «{d.Titolo}» first: {f.Callsign} is its last anchor ") +
                     Lingua("(in Documenti, o in «Da sistemare» se lì non compare)", "(under Documents, or under «To fix» if it is not listed there)"),
                     "/services/vsop/versions"));
                 continue;
@@ -292,7 +300,9 @@ public static class DeletionRules
             if (d.Parti.Count > 0)
             {
                 parti.AddRange(d.Parti);
-                pezzi.Add(d.Parti.Count == 1 ? "perde una parte" : $"perde {d.Parti.Count} parti");
+                pezzi.Add(d.Parti.Count == 1
+                    ? Lingua("perde una parte", "loses one party")
+                    : Lingua($"perde {d.Parti.Count} parti", $"loses {d.Parti.Count} parties"));
             }
 
             var estremi = d.Blocchi.Where(b => b.Estremo).ToList();
@@ -301,8 +311,10 @@ public static class DeletionRules
             {
                 blocchiVia.AddRange(estremi.Select(b => b.BlockId));
                 muore.Add(estremi.Count == 1
-                    ? $"un blocco di «{d.Titolo}» che raccontava un passaggio da o verso {f.Callsign}"
-                    : $"{estremi.Count} blocchi di «{d.Titolo}» che raccontavano passaggi da o verso {f.Callsign}");
+                    ? Lingua($"un blocco di «{d.Titolo}» che raccontava un passaggio da o verso {f.Callsign}",
+                             $"one block of «{d.Titolo}» that described a handoff to or from {f.Callsign}")
+                    : Lingua($"{estremi.Count} blocchi di «{d.Titolo}» che raccontavano passaggi da o verso {f.Callsign}",
+                             $"{estremi.Count} blocks of «{d.Titolo}» that described handoffs to or from {f.Callsign}"));
             }
             if (soloAmbito.Count > 0)
             {
@@ -315,7 +327,7 @@ public static class DeletionRules
             if (pezzi.Count > 0 || estremi.Count > 0)
             {
                 daMarcare.Add(d.DocumentId);
-                rivedere.Add($"«{d.Titolo}» — {string.Join(", ", pezzi.Count > 0 ? pezzi : new List<string> { "va riletto" })}");
+                rivedere.Add($"«{d.Titolo}» — {string.Join(", ", pezzi.Count > 0 ? pezzi : new List<string> { Lingua("va riletto", "needs re-reading") })}");
             }
         }
 
@@ -362,7 +374,8 @@ public static class DeletionRules
         // Il documento dello scalo: si elimina prima, a mano. Non lo si porta via di straforo.
         if (f.DocumentId is not null)
             blocca.Add(new DeletionBlocker(
-                $"elimina prima il documento «{f.DocumentTitolo}»: è la vIPI di {f.Icao}",
+                Lingua($"elimina prima il documento «{f.DocumentTitolo}»: è la vIPI di {f.Icao}",
+                       $"delete the document «{f.DocumentTitolo}» first: it is the vIPI of {f.Icao}"),
                 "/services/vsop/versions"));
 
         // ⚠️ E l'EDIZIONE MILITARE, che è un secondo documento con un secondo legame
@@ -372,7 +385,8 @@ public static class DeletionRules
         // descrittore lo riconosce più, e le sue righe in `DocReleases` restano in tabella sull'ICAO.
         if (f.MilDocumentId is not null)
             blocca.Add(new DeletionBlocker(
-                $"elimina prima il documento «{f.MilDocumentTitolo}»: è il vSOP militare di {f.Icao}",
+                Lingua($"elimina prima il documento «{f.MilDocumentTitolo}»: è il vSOP militare di {f.Icao}",
+                       $"delete the document «{f.MilDocumentTitolo}» first: it is the military vSOP of {f.Icao}"),
                 "/services/vsop/versions"));
 
         var settori = new List<int>();
@@ -465,11 +479,11 @@ public static class DeletionRules
             blocca.Add(new DeletionBlocker(
                 f.Aeroporti == 1
                     ? Lingua($"{f.Code} ha ancora un aeroporto: eliminalo o spostalo prima", $"{f.Code} still has an airport: delete it, or move it first")
-                    : $"{f.Code} ha ancora {f.Aeroporti} aeroporti: eliminali o spostali prima",
+                    : Lingua($"{f.Code} ha ancora {f.Aeroporti} aeroporti: eliminali o spostali prima", $"{f.Code} still has {f.Aeroporti} airports: delete them, or move them first"),
                 "/services/vsop/admin/airports"));
 
         return new DeletionPlan(DeletionTarget.Acc(f.Code), f.Code,
-            new[] { $"la ACC {f.Code} ({f.Name})" }, Array.Empty<string>(), Array.Empty<string>(), blocca,
+            new[] { Lingua($"la ACC {f.Code} ({f.Name})", $"the ACC {f.Code} ({f.Name})") }, Array.Empty<string>(), Array.Empty<string>(), blocca,
             DeletionActions.Nessuna with { AccDaEliminare = f.Code });
     }
 
@@ -479,9 +493,11 @@ public static class DeletionRules
     /// </summary>
     public static DeletionPlan PerDocumento(DocumentFacts f)
     {
-        var muore = new List<string> { $"il documento «{f.Titolo}»" };
+        var muore = new List<string> { Lingua($"il documento «{f.Titolo}»", $"the document «{f.Titolo}»") };
         if (f.Release > 0)
-            muore.Add(f.Release == 1 ? "la sua pubblicazione" : $"le sue {f.Release} pubblicazioni");
+            muore.Add(f.Release == 1
+                ? Lingua("la sua pubblicazione", "its release")
+                : Lingua($"le sue {f.Release} pubblicazioni", $"its {f.Release} releases"));
         foreach (var s in f.SettoriCheLoPerdono) muore.Add(Lingua($"il legame con il settore {s}", $"the link to sector {s}"));
         if (f.AeroportoCheLoPerde is { } icao) muore.Add(Lingua($"il legame con l'aeroporto {icao}", $"the link to airport {icao}"));
 
@@ -511,7 +527,11 @@ public static class DeletionRules
     /// </summary>
     public static DeletionPlan PerConfinante(NeighbourFacts f)
     {
-        var muore = new List<string> { $"il candidato confinante {f.HomeAccCode} ↔ {f.ForeignAccCode} ({f.ForeignAccName})" };
+        var muore = new List<string>
+        {
+            Lingua($"il candidato confinante {f.HomeAccCode} ↔ {f.ForeignAccCode} ({f.ForeignAccName})",
+                   $"the neighbour candidate {f.HomeAccCode} ↔ {f.ForeignAccCode} ({f.ForeignAccName})"),
+        };
         var blocca = new List<DeletionBlocker>();
         var note = new List<string>();
 
@@ -524,7 +544,9 @@ public static class DeletionRules
             note.Add(Lingua($"il settore estero {f.ForeignRootCallsign} resta in archivio: si elimina dalla Struttura, non da qui", $"the foreign sector {f.ForeignRootCallsign} stays in the archive: it is deleted from Structure, not from here"));
 
         if (f.Confermato)
-            note.Add("era un confinante CONFERMATO: al prossimo giro dei confinanti la coppia può ricomparire fra i candidati in attesa");
+            note.Add(Lingua(
+                "era un confinante CONFERMATO: al prossimo giro dei confinanti la coppia può ricomparire fra i candidati in attesa",
+                "it was a CONFIRMED neighbour: at the next neighbours pass the pair may show up again among the pending candidates"));
 
         return new DeletionPlan(DeletionTarget.Neighbour(f.Id), $"{f.HomeAccCode} ↔ {f.ForeignAccCode}",
             muore, Array.Empty<string>(), Array.Empty<string>(), blocca,
@@ -541,7 +563,7 @@ public static class DeletionRules
     /// </summary>
     public static DeletionPlan PerArea(AreaFacts f)
     {
-        var muore = new List<string> { $"l'area regolamentata «{f.Nome}» ({f.IvaoId})" };
+        var muore = new List<string> { Lingua($"l'area regolamentata «{f.Nome}» ({f.IvaoId})", $"the regulated area «{f.Nome}» ({f.IvaoId})") };
         if (f.Enti > 0)
             muore.Add(f.Enti == 1 ? Lingua("il legame con l'ente che la elenca", "the link to the unit that lists it") : Lingua($"i legami con i {f.Enti} enti che la elencano", $"the links to the {f.Enti} units that list it"));
 
@@ -559,7 +581,7 @@ public static class DeletionRules
         var note = new List<string>();
         if (f.Enti > 1)
             note.Add(Lingua($"la elencano {f.Enti} enti: sparisce per tutti, non solo per quello da cui stai guardando", $"{f.Enti} units list it: it disappears for all of them, not just for the one you are looking from"));
-        note.Add("se la sorgente la rimanda, il prossimo import la ricrea");
+        note.Add(Lingua("se la sorgente la rimanda, il prossimo import la ricrea", "if the source sends it back, the next import recreates it"));
 
         return new DeletionPlan(DeletionTarget.Area(f.IvaoId), f.Nome,
             muore, Array.Empty<string>(), rivedere, Array.Empty<DeletionBlocker>(),

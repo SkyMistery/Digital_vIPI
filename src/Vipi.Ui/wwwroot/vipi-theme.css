@@ -933,6 +933,14 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .section-title{display:flex;align-items:center;gap:12px;margin:34px 0 16px}
 .section-title :is(h2,h3){margin:0}
 .section-title .ln{flex:1;height:1px;background:var(--line)}
+/* Titolo di sezione che apre e chiude: il titolo È la maniglia, e il chevron è quello delle card
+   dell'albero (.grp-chev) perché è lo stesso gesto sulla stessa pagina. */
+.sect-toggle{display:inline-flex;align-items:center;gap:8px;background:none;border:0;padding:0;
+             font:inherit;color:inherit;cursor:pointer;text-align:left}
+.sect-toggle:hover .grp-chev{color:var(--brand-ink-2)}
+/* ⚠️ `hidden` da solo non basta a chi ha un display proprio: la griglia a due colonne resterebbe a
+   schermo, perché la regola dell'attributo sta nel foglio del browser e quella della classe nel nostro. */
+.gerarchia-2col[hidden],.panel[hidden]{display:none}
 /* ---- Intro di pagina (carta docs/feature/2026-08-30-intro-di-pagina.md) ----
    Le sezioni dell'intro sono le STESSE card dei documenti: qui non si decide come si vede una sezione, o
    sarebbero due posti a deciderlo e quello sbagliato sarebbe questo. Resta il respiro sotto, che separa
@@ -1971,7 +1979,12 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
 .struct .fb-edit-h .ln{flex:1;height:1px;background:var(--line)}
 .struct .fb-form{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px}
 .struct .fb-form .field{margin-bottom:0;min-width:140px;flex:1}
-.struct .fb-form .field.narrow{min-width:74px;max-width:88px;flex:0 0 auto}
+/* Piede e tetto: numero e unità sono UN campo solo, largo abbastanza da tenerli in riga. Era `.narrow`,
+   che bastava quando il numero era per forza un FL. */
+.struct .fb-form .field.lvl{min-width:118px;max-width:132px;flex:0 0 auto}
+.struct .fb-lvl{display:flex;gap:4px;align-items:center}
+.struct .fb-lvl input{min-width:0;flex:1}
+.struct .fb-lvl select{flex:0 0 auto;width:58px;padding-left:8px;padding-right:4px}
 .struct .fb-form .field label{font-family:var(--font-body);text-transform:none;letter-spacing:normal;font-size:12.5px}
 .struct .fb-form .btn.sm{padding:8px 12px;font-size:12.5px}
 /* Il campo a digitazione porta con se' il proprio .field: si comporta come gli altri della riga. */

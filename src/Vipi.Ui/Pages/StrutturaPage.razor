@@ -67,15 +67,27 @@
 
     @* Il testo dell'albero di fallback è lo stesso di prima, parola per parola: cambia solo dove si legge —
        dal clic sul «?» invece che da tre righe di prosa sempre a schermo. *@
+    @* ---- Le due sezioni si chiudono ------------------------------------------------------------------
+       Nascono aperte, e si richiudono col titolo. Serve a lavorare: gli orfani si guardano una volta e poi
+       stanno in mezzo, e la gerarchia — che è alta quanto lo schermo — va tolta di torno quando si sta
+       sistemando un orfano. ⚠️ Il chevron è `.grp-chev`, lo stesso delle card dell'albero: stesso gesto
+       sulla stessa pagina, stesso segno. *@
     <div class="section-title">
-        <h2 class="h-sect">@L["Struct_CoverageHierarchy"] <span class="pill blue">@L["Struct_Division"]</span></h2>
+        <h2 class="h-sect">
+            <button type="button" class="sect-toggle" aria-expanded="@_gerarchiaAperta.ToString().ToLowerInvariant()"
+                    aria-label="@L["Struct_ToggleSection", L["Struct_CoverageHierarchy"].Value]"
+                    @onclick="() => _gerarchiaAperta = !_gerarchiaAperta">
+                <span class="grp-chev">@(_gerarchiaAperta ? "▾" : "▸")</span>@L["Struct_CoverageHierarchy"]
+            </button>
+            <span class="pill blue">@L["Struct_Division"]</span>
+        </h2>
         <HelpHint Href="/services/vsop/guide#struttura" AriaLabel="@L["Struct_HierarchyHelpAria"]" ExtraClass="wide">
             @((MarkupString)L["Struct_HierarchyHelp"].Value)
         </HelpHint>
         <span class="ln"></span>
     </div>
 
-    <div class="gerarchia-2col">
+    <div class="gerarchia-2col" hidden="@(!_gerarchiaAperta)">
         @* --- Settori per ACC (card con alberi) --- *@
         <div class="panel st-pane">
             <div class="sub-h">@L["Struct_TreesByAcc"]<span class="ln" style="flex:1"></span></div>
@@ -295,15 +307,38 @@
                                            pagata sul ciclo AIRAC degli spazi aerei. Il campo del bersaglio non
                                            l'aveva perche' il picker usa gia' `oninput`: erano questi due i
                                            dispari. *@
-                                        <div class="field narrow">
+                                        @* ⚠️ Il livello si scrive in FL <b>o in piedi</b>, con la tendina
+                                           accanto al numero — la stessa dei Trasferimenti, dove la stessa
+                                           quota si scriveva già nelle due unità. Prima qui c'era il solo FL,
+                                           e una fascia che comincia a 2 500 piedi non si poteva scrivere: si
+                                           batteva 25 e diventava FL25, cioè 2 500 piedi solo per caso, e
+                                           «3 500» diventava FL35.
+                                           ⚠️ Cambiare unità NON converte: il numero battuto resta quello e
+                                           cambia di significato, come nei Trasferimenti. *@
+                                        @{ var u = UnitaDellaRiga(idx); }
+                                        <div class="field lvl">
                                             <label>@L["Struct_Fallback_From"]</label>
-                                            <input type="number" min="0" max="660" placeholder="@L["Struct_Fallback_Sfc"]" disabled="@_busy"
-                                                   value="@FlDi(_ripieghi[idx].BaseFeet)" @oninput="e => CambiaPiede(idx, e.Value?.ToString())" />
+                                            <div class="fb-lvl">
+                                                <input type="number" min="0" max="@MassimoDi(u.Piede)" placeholder="@L["Struct_Fallback_Sfc"]" disabled="@_busy"
+                                                       value="@NumeroDi(_ripieghi[idx].BaseFeet, u.Piede)" @oninput="e => CambiaPiede(idx, e.Value?.ToString())" />
+                                                <select disabled="@_busy" title="@L["Struct_Fallback_Unit"]" value="@u.Piede"
+                                                        @onchange="e => CambiaUnitaPiede(idx, e.Value?.ToString())">
+                                                    <option value="@LevelUnit.Fl">FL</option>
+                                                    <option value="@LevelUnit.Feet">ft</option>
+                                                </select>
+                                            </div>
                                         </div>
-                                        <div class="field narrow">
+                                        <div class="field lvl">
                                             <label>@L["Struct_Fallback_To"]</label>
-                                            <input type="number" min="0" max="660" placeholder="@L["Struct_Fallback_Unl"]" disabled="@_busy"
-                                                   value="@FlDi(_ripieghi[idx].TopFeet)" @oninput="e => CambiaTetto(idx, e.Value?.ToString())" />
+                                            <div class="fb-lvl">
+                                                <input type="number" min="0" max="@MassimoDi(u.Tetto)" placeholder="@L["Struct_Fallback_Unl"]" disabled="@_busy"
+                                                       value="@NumeroDi(_ripieghi[idx].TopFeet, u.Tetto)" @oninput="e => CambiaTetto(idx, e.Value?.ToString())" />
+                                                <select disabled="@_busy" title="@L["Struct_Fallback_Unit"]" value="@u.Tetto"
+                                                        @onchange="e => CambiaUnitaTetto(idx, e.Value?.ToString())">
+                                                    <option value="@LevelUnit.Fl">FL</option>
+                                                    <option value="@LevelUnit.Feet">ft</option>
+                                                </select>
+                                            </div>
                                         </div>
                                         <button class="btn ghost sm" disabled="@_busy" title="@L["Struct_Fallback_Remove"]" @onclick="() => TogliRipiego(idx)">@L["Common_Remove"]</button>
                                     </div>
@@ -399,10 +434,17 @@
     @if (Authz.IsEditor && _orfani.Count > 0)
     {
         <div class="section-title">
-            <h2 class="h-sect">@L["Orph_Title"] <span class="pill amber">@_orfani.Count</span></h2>
+            <h2 class="h-sect">
+                <button type="button" class="sect-toggle" aria-expanded="@_orfaniAperti.ToString().ToLowerInvariant()"
+                        aria-label="@L["Struct_ToggleSection", L["Orph_Title"].Value]"
+                        @onclick="() => _orfaniAperti = !_orfaniAperti">
+                    <span class="grp-chev">@(_orfaniAperti ? "▾" : "▸")</span>@L["Orph_Title"]
+                </button>
+                <span class="pill amber">@_orfani.Count</span>
+            </h2>
             <span class="ln"></span>
         </div>
-        <div class="panel">
+        <div class="panel" hidden="@(!_orfaniAperti)">
             <p class="muted" style="margin:0 0 10px">@L["Orph_Intro"]</p>
             <table class="res-table">
                 <thead>
@@ -663,6 +705,10 @@
 
     // --- Compressione card (per ACC) e rami (per callsign) ---
     private readonly HashSet<string> _collapsed = new(StringComparer.OrdinalIgnoreCase);       // rami compressi (callsign)
+    // Le due sezioni della pagina: aperte all'arrivo, richiudibili dal titolo.
+    private bool _gerarchiaAperta = true;
+    private bool _orfaniAperti = true;
+
     private readonly HashSet<string> _collapsedCards = new(StringComparer.OrdinalIgnoreCase);   // card compresse (codice ACC)
     private void Toggle(string callsign) { if (!_collapsed.Add(callsign)) _collapsed.Remove(callsign); }
     private void ToggleCard(string code) { if (!_collapsedCards.Add(code)) _collapsedCards.Remove(code); }
@@ -1023,6 +1069,16 @@
 
     private List<FallbackRowEdit> _ripieghi = new();
     private List<FallbackRowEdit> _ripieghiSalvati = new();
+
+    /// <summary>
+    /// L'unità con cui si sta scrivendo il piede e il tetto di ogni riga, in passo con <c>_ripieghi</c>.
+    ///
+    /// <para>⚠️ Vive <b>solo a schermo</b>: in archivio ci sono i piedi e basta, come nelle forme dei
+    /// settori e nelle bande dell'AoR. Alla rilettura l'unità si <b>deduce</b> (<see cref="UnitaDedotta"/>),
+    /// e non è fedele a quel che fu battuto — «FL30» torna «3 000 ft». È il prezzo scelto per non aggiungere
+    /// una colonna: la quota è la stessa, cambia solo come la si legge.</para>
+    /// </summary>
+    private readonly List<(LevelUnit Piede, LevelUnit Tetto)> _unita = new();
     private IReadOnlyList<FallbackSuggestion> _proposte = Array.Empty<FallbackSuggestion>();
     private bool _proposteChieste;
 
@@ -1036,10 +1092,13 @@
         _proposteChieste = false;
 
         var cs = Selected()?.Callsign;
-        if (cs is null) { _ripieghi = new(); _ripieghiSalvati = new(); return; }
+        if (cs is null) { _ripieghi = new(); _ripieghiSalvati = new(); _unita.Clear(); return; }
 
         _ripieghiSalvati = (await Fallbacks.ListAsync(cs)).ToList();
         _ripieghi = _ripieghiSalvati.ToList();
+
+        _unita.Clear();
+        foreach (var r in _ripieghi) _unita.Add((UnitaDedotta(r.BaseFeet), UnitaDedotta(r.TopFeet)));
     }
 
     /// <summary>
@@ -1074,8 +1133,17 @@
     private bool BersaglioSconosciuto(string cs) =>
         cs.Length > 0 && !NodesByCallsign().ContainsKey(cs);
 
-    private void AggiungiRipiego() => _ripieghi.Add(new FallbackRowEdit("", null, null));
-    private void TogliRipiego(int i) => _ripieghi.RemoveAt(i);
+    private void AggiungiRipiego()
+    {
+        _ripieghi.Add(new FallbackRowEdit("", null, null));
+        _unita.Add((LevelUnit.Fl, LevelUnit.Fl));
+    }
+
+    private void TogliRipiego(int i)
+    {
+        _ripieghi.RemoveAt(i);
+        if (i < _unita.Count) _unita.RemoveAt(i);
+    }
 
     /// <summary>
     /// Il bersaglio battuto a mano si normalizza in MAIUSCOLO: i callsign lo sono, e una riga scritta
@@ -1084,15 +1152,73 @@
     /// </summary>
     private void CambiaBersaglio(int i, string? cs) =>
         _ripieghi[i] = _ripieghi[i] with { TargetCallsign = (cs ?? "").Trim().ToUpperInvariant() };
-    private void CambiaPiede(int i, string? fl) => _ripieghi[i] = _ripieghi[i] with { BaseFeet = PiediDa(fl) };
-    private void CambiaTetto(int i, string? fl) => _ripieghi[i] = _ripieghi[i] with { TopFeet = PiediDa(fl) };
+    private void CambiaPiede(int i, string? n) =>
+        _ripieghi[i] = _ripieghi[i] with { BaseFeet = PiediDa(n, UnitaDellaRiga(i).Piede) };
 
-    /// <summary>A schermo si scrivono i FL — è l'unità in cui l'admin pensa — e in archivio vanno i piedi.</summary>
-    private static int? PiediDa(string? fl) => int.TryParse(fl, out var v) && v >= 0 ? v * 100 : null;
-    private static string FlDi(int? feet) => feet is int f ? (f / 100).ToString() : "";
+    private void CambiaTetto(int i, string? n) =>
+        _ripieghi[i] = _ripieghi[i] with { TopFeet = PiediDa(n, UnitaDellaRiga(i).Tetto) };
 
+    /// <summary>
+    /// Cambiare unità <b>non converte</b> la quota: il numero battuto resta quello e cambia di significato,
+    /// esattamente come la tendina FL/ft dei Trasferimenti. Chi scrive «195» e poi sceglie ft intende
+    /// 195 piedi — se convertissimo, il campo si riempirebbe di 19 500 sotto le dita di chi lo guarda.
+    /// </summary>
+    private void CambiaUnitaPiede(int i, string? u)
+    {
+        var numero = NumeroDi(_ripieghi[i].BaseFeet, UnitaDellaRiga(i).Piede);
+        _unita[i] = (Unita(u), _unita[i].Tetto);
+        _ripieghi[i] = _ripieghi[i] with { BaseFeet = PiediDa(numero, _unita[i].Piede) };
+    }
+
+    private void CambiaUnitaTetto(int i, string? u)
+    {
+        var numero = NumeroDi(_ripieghi[i].TopFeet, UnitaDellaRiga(i).Tetto);
+        _unita[i] = (_unita[i].Piede, Unita(u));
+        _ripieghi[i] = _ripieghi[i] with { TopFeet = PiediDa(numero, _unita[i].Tetto) };
+    }
+
+    /// <summary>Le unità della riga i-esima. Se la lista fosse rimasta indietro si allunga qui, invece di
+    /// far cadere il render su un indice.</summary>
+    private (LevelUnit Piede, LevelUnit Tetto) UnitaDellaRiga(int i)
+    {
+        while (_unita.Count <= i && _unita.Count < _ripieghi.Count)
+        {
+            var r = _ripieghi[_unita.Count];
+            _unita.Add((UnitaDedotta(r.BaseFeet), UnitaDedotta(r.TopFeet)));
+        }
+        return i < _unita.Count ? _unita[i] : (LevelUnit.Fl, LevelUnit.Fl);
+    }
+
+    /// <summary>
+    /// Con quale unità rileggere una quota salvata: in archivio ci sono solo i piedi. Sotto i 10 000 — o se
+    /// non è un multiplo di cento, e allora un FL non la direbbe — si legge in piedi; sopra, in livelli di
+    /// volo. È la convenzione che il sito usa già in <see cref="StatsView.Livello"/>.
+    /// </summary>
+    private static LevelUnit UnitaDedotta(int? feet) =>
+        feet is int f && (f < 10_000 || f % 100 != 0) ? LevelUnit.Feet : LevelUnit.Fl;
+
+    private static LevelUnit Unita(string? scelta) =>
+        string.Equals(scelta, nameof(LevelUnit.Feet), StringComparison.OrdinalIgnoreCase) ? LevelUnit.Feet : LevelUnit.Fl;
+
+    /// <summary>Quanti piedi vale un'unità del campo: cento per un FL, uno per un piede.</summary>
+    private static int Fattore(LevelUnit u) => u == LevelUnit.Fl ? 100 : 1;
+
+    /// <summary>Il massimo ammesso nel campo: FL660 è l'illimitato convenzionale, e sono 66 000 piedi.</summary>
+    private static int MassimoDi(LevelUnit u) => 66_000 / Fattore(u);
+
+    /// <summary>Il numero che si legge nel campo, nell'unità scelta. In archivio ci sono i piedi.</summary>
+    private static string NumeroDi(int? feet, LevelUnit u) => feet is int f ? (f / Fattore(u)).ToString() : "";
+
+    /// <summary>Dal numero battuto ai piedi che vanno in archivio.</summary>
+    private static int? PiediDa(string? numero, LevelUnit u) =>
+        int.TryParse(numero, out var v) && v >= 0 ? v * Fattore(u) : null;
+
+    /// <summary>
+    /// La fascia come la scrive un controllore: FL sopra i 10 000 piedi, piedi sotto — la stessa
+    /// convenzione delle statistiche. ⚠️ Prima era FL sempre, e una fascia da 2 500 piedi si leggeva «FL25».
+    /// </summary>
     private string FasciaTesto(int? baseFt, int? topFt) =>
-        $"{(baseFt is int b ? "FL" + b / 100 : L["Struct_Fallback_Sfc"].Value)}–{(topFt is int t ? "FL" + t / 100 : L["Struct_Fallback_Unl"].Value)}";
+        $"{(baseFt is int b ? StatsView.Livello(b) : L["Struct_Fallback_Sfc"].Value)}–{(topFt is int t ? StatsView.Livello(t) : L["Struct_Fallback_Unl"].Value)}";
 
     private async Task ProponiAsync(HierarchyNode sel)
     {
@@ -1104,6 +1230,7 @@
     private void AccettaProposta(FallbackSuggestion g)
     {
         _ripieghi.Add(new FallbackRowEdit(g.TargetCallsign, g.BaseFeet, g.TopFeet));
+        _unita.Add((UnitaDedotta(g.BaseFeet), UnitaDedotta(g.TopFeet)));
         _proposte = _proposte.Where(p => p.TargetCallsign != g.TargetCallsign).ToList();
     }
 

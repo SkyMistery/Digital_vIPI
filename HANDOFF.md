@@ -1,6 +1,6 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 1 settembre 2026 (**§AF — la ricaduta verticale**: alle tre slice di ieri si sono aggiunte la **schermata di dettaglio** e il **bersaglio a digitazione**; ramo `ricaduta-verticale-e-cicli`, **sette commit, spinto e NON fuso**); prima, 31 agosto tarda notte (**§AF — la ricaduta guarda anche in alto, e un settore non è più nipote di sé stesso**: ramo `ricaduta-verticale-e-cicli`); prima, 31 agosto notte (**1.1.0 È IN PRODUZIONE**, verificato dal vivo — §A15; cosa dice la diagnostica del server e cosa resta — §A16); prima, 30 agosto pomeriggio (**§AB — la shape di un settore ha una porta sola**,
+**Ultimo aggiornamento:** 1 settembre 2026, sera (**§AF4 — il giro sulla pagina Struttura**: la finestra di eliminazione parla inglese anche **dentro**, le due sezioni si chiudono, e il piede/tetto di un ripiego si scrivono anche **in piedi**); prima, 1 settembre 2026 (**§AF — la ricaduta verticale**: alle tre slice di ieri si sono aggiunte la **schermata di dettaglio** e il **bersaglio a digitazione**; ramo `ricaduta-verticale-e-cicli`, **sette commit, spinto e NON fuso**); prima, 31 agosto tarda notte (**§AF — la ricaduta guarda anche in alto, e un settore non è più nipote di sé stesso**: ramo `ricaduta-verticale-e-cicli`); prima, 31 agosto notte (**1.1.0 È IN PRODUZIONE**, verificato dal vivo — §A15; cosa dice la diagnostica del server e cosa resta — §A16); prima, 30 agosto pomeriggio (**§AB — la shape di un settore ha una porta sola**,
 fusa in `main` e spinta; prima, i due rami di §AA e §E10. ⚠️ Tutto ciò che segue nella
 sezione «Dove siamo» è **storia**: i rami che vi si citano come «non fusi» sono in `main` e sono stati
 cancellati — vale il riquadro qui sotto).
@@ -37,6 +37,18 @@ cancellati — vale il riquadro qui sotto).
 > (vietato dal presidio della finestra cieca) e, a tabella vuota, **comportamento identico a prima riga per
 > riga**. La migrazione è una sola `CreateTable` additiva. 🔴 **Le migrazioni in coda al cutover MariaDB
 > diventano TRENTASETTE.**
+>
+> **E il giro sulla pagina, 1 settembre sera (§AF4).** Tre richieste del committente, guardando la pagina
+> **in inglese**: ⓵ la **finestra di eliminazione** parlava italiano *dentro* (la finestra passa dalle
+> risorse, il **piano** lo scrive l'applicazione — `Messaggio.Lingua` era stato messo **a metà**: ~20 frasi
+> di `DeletionRules`, il motivo di `SogliaEliminazione` e **tutti** i verdetti della sonda IVAO);
+> ⓶ **«Coverage hierarchy» e «Orphan sectors» si chiudono** dal titolo, che è la maniglia; ⓷ il piede e il
+> tetto di un ripiego si scrivono **anche in piedi** (tendina FL/ft come nei Trasferimenti), perché una
+> fascia da 2 500 piedi prima **non si poteva scrivere**. ⚠️ **L'unità non si salva** — in archivio ci sono
+> solo i piedi, e due colonne sarebbero state una **seconda migrazione dentro la finestra cieca**: alla
+> rilettura si deduce, quindi «FL30» rilegge «3 000 ft». ⚠️ E i test che asserivano quelle frasi vanno
+> ancorati con `CulturaDiProva`: **la cultura di questa macchina è inglese**, e cinque sono diventati rossi
+> appena le frasi hanno avuto due versioni.
 >
 > ⚠️ **La verifica dal vivo ha trovato quattro difetti che i test non vedevano**, e due valgono in generale:
 > **155 proposte** invece di una (accoppiare per sola banda candida ogni settore alto d'Europa — mancava del
