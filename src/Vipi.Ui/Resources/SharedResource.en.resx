@@ -1025,6 +1025,12 @@
   <data name="Nav_AdminNoType" xml:space="preserve"><value>Without a type</value></data>
   <data name="Nav_AdminFromSource" xml:space="preserve"><value>{0} from the sectorfile</value></data>
   <data name="Nav_AdminEmpty" xml:space="preserve"><value>No navaid matches these filters.</value></data>
+  <data name="Nav_AdminTypeTitle" xml:space="preserve"><value>Show only the {0} ones. Filters add up.</value></data>
+  <data name="Nav_AdminSortTitle" xml:space="preserve"><value>Sort by {0}</value></data>
+  <data name="Nav_AdminAddTitle" xml:space="preserve"><value>Add a navaid by hand</value></data>
+  <data name="Nav_AdminAddWarnTitle" xml:space="preserve"><value>Better in the sectorfile</value></data>
+  <data name="Nav_AdminAddWarn" xml:space="preserve"><value>A row written here is ours forever: the import no longer touches it, and whoever uses the sectorfile does not see it. If the facility really exists, the better way is to add it to the sectorfile and then import it — that way it reaches everyone and keeps itself up to date. Here you write the navaids the sectorfile does not have (the ILSs, the TACANs that are not among the points).</value></data>
+  <data name="Nav_AdminAddAnyway" xml:space="preserve"><value>Add anyway</value></data>
   <data name="Nav_AdminAddHint" xml:space="preserve"><value>Add by hand the navaids the sectorfile does not have: ILS, and the TACANs that are not among the points. The family is the band: VHF (108–118 MHz) or NDB (kHz).</value></data>
   <data name="Nav_AdminAdded" xml:space="preserve"><value>Added «{0}» ({1}). Now fill in type, frequency and coordinates.</value></data>
   <data name="Nav_AdminDelete" xml:space="preserve"><value>Delete from the catalogue</value></data>

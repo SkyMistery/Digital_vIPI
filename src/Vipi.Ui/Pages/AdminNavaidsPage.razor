@@ -34,7 +34,9 @@
 
     <div class="doc-head st-head">
         <h1 class="st-h2 page-h1">
-            @L["Nav_AdminTitle"]&nbsp;<span class="pill blue">@_righe.Count</span>
+            @* Con un filtro acceso la pastiglia dice quante se ne stanno guardando su quante ce n'è: prima
+               diceva sempre il totale, e chi filtrava non sapeva quanto avesse ristretto. *@
+            @L["Nav_AdminTitle"]&nbsp;<span class="pill blue">@(Filtrando ? $"{Filtrate.Count} / {_righe.Count}" : _righe.Count.ToString())</span>
         </h1>
         <HelpHint Href="/services/vsop/guide#admin-radioassistenze" AriaLabel="@L["Nav_AdminTitle"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@L["Nav_AdminSubtitle"]</p>
@@ -74,6 +76,55 @@
     }
     else
     {
+        @* ---- Aggiungere una radioassistenza ------------------------------------------------------------
+           ⚠️ STA IN CIMA e non in fondo: con 149 righe, per aggiungerne una bisognava scorrere l'intera
+           tabella — e chi aggiunge di solito ne aggiunge parecchie di fila, leggendole da una carta.
+
+           ⚠️ E CHIEDE CONFERMA OGNI VOLTA, che è la sola ragione per cui il tasto non salva al primo clic:
+           una riga scritta qui è nostra per sempre — l'import non la tocca — mentre la stessa impianto
+           messo nel sectorfile arriva a tutti e si aggiorna da sé. La domanda non impedisce niente: dice
+           qual è la strada migliore nel momento in cui si sta per non prenderla. *@
+        <div class="block navadm-new">
+            <div class="mil-add">
+                <label>
+                    @L["Nav_Code"]
+                    <input class="w-code" @bind="_nuovoCodice" @bind:event="oninput"
+                           @ref="_campoCodice" @onkeydown="TastoNuovo" placeholder="AMD" />
+                </label>
+                <label>
+                    @L["Nav_Kind"]
+                    <select class="w-band" @bind="_nuovaFamiglia">
+                        @foreach (var f in NavaidRules.Famiglie) { <option value="@f">@f</option> }
+                    </select>
+                </label>
+                <button type="button" class="btn primary" disabled="@_busy"
+                        title="@L["Nav_AdminAddTitle"]" @onclick="ChiediConfermaAsync">+ @L["Nav_Add"]</button>
+            </div>
+
+            @* ⚠️ La domanda la pone la PAGINA e non un `InlineConfirm`: quello non si apre da codice, e con
+               l'Invio da tastiera servirebbe un secondo meccanismo — due modi di porre la stessa domanda
+               che un giorno diranno due cose diverse. Qui la strada è una sola, e il mouse e la tastiera
+               arrivano tutt'e due qui. *@
+            @if (_chiediConferma)
+            {
+                <div class="callout warning navadm-warn">
+                    <span class="cic"><Icon Name="warning" Size="18" /></span>
+                    <div>
+                        <p class="ct">@L["Nav_AdminAddWarnTitle"]</p>
+                        @L["Nav_AdminAddWarn"]
+                        <div class="navadm-warn-acts">
+                            <button type="button" class="btn primary" disabled="@_busy"
+                                    @onclick="Aggiungi">@L["Nav_AdminAddAnyway"]</button>
+                            <button type="button" class="btn ghost" disabled="@_busy"
+                                    @onclick="() => _chiediConferma = false">@L["Common_Cancel"]</button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <p class="help mil-hint">@L["Nav_AdminAddHint"]</p>
+        </div>
+
         <div class="block">
             @* La barra dei filtri è quella di Struttura e delle SID: campo con la lente e chip. Prima erano
                un'etichetta e una casella inventate qui, che è il modo in cui due pagine che fanno la stessa
@@ -81,24 +132,44 @@
             <div class="struct-bar navadm-bar">
                 <input class="htree-search" placeholder="@L["Nav_AdminSearchPh"]" aria-label="@L["Nav_AdminSearch"]"
                        @bind="_cerca" @bind:event="oninput" />
+                @* ⚠️ I chip si costruiscono DAL DATO, non da un elenco fisso: `TipiSuggeriti` è un
+                   suggerimento aperto (un campo può avere un DME o un VOR/DME che lì non c'è), e un chip
+                   fisso a zero prometterebbe un filtro che non filtra niente. Compaiono man mano che i tipi
+                   si compilano — che è poi il lavoro di questa pagina.
+                   ⚠️ Si sommano: chiedere «TACAN e VORTACAN» è una domanda sola, e due chip che si
+                   escludessero costringerebbero a guardarli in due passate. *@
                 <span class="sb-chips">
-                    @* ⚠️ La chip che conta: sono le righe che aspettano una persona. Resta a schermo anche a
-                       zero — una chip che compare col contatore sposta quel che le sta accanto. *@
-                    <button type="button" class="sh-chip @(_soloSenzaTipo ? "on" : "")" disabled="@(SenzaTipo == 0)"
-                            title="@L["Nav_AdminNoTypeTitle"]" @onclick="() => _soloSenzaTipo = !_soloSenzaTipo">
+                    @* ⚠️ Il chip che conta: sono le righe che aspettano una persona. Resta a schermo anche a
+                       zero — un chip che compare col contatore sposta quel che gli sta accanto. *@
+                    <button type="button" class="sh-chip @(_tipi.Contains(SenzaTipoChiave) ? "on" : "")"
+                            disabled="@(SenzaTipo == 0)"
+                            title="@L["Nav_AdminNoTypeTitle"]" @onclick="() => AlternaTipo(SenzaTipoChiave)">
                         @L["Nav_AdminNoType"] <span class="chip-n">@SenzaTipo</span>
                     </button>
+                    @foreach (var t in TipiPresenti)
+                    {
+                        <button type="button" class="sh-chip @(_tipi.Contains(t.Tipo) ? "on" : "")"
+                                title="@L["Nav_AdminTypeTitle", t.Tipo]" @onclick="() => AlternaTipo(t.Tipo)">
+                            @t.Tipo <span class="chip-n">@t.Quante</span>
+                        </button>
+                    }
+                    @if (Filtrando)
+                    {
+                        <button type="button" class="lnk-mini" @onclick="PulisciFiltri">@L["Gt_ClearSearch"]</button>
+                    }
                 </span>
                 <span class="muted navadm-count">@L["Nav_AdminFromSource", _righe.Count(r => r.DallaSorgente)]</span>
             </div>
 
-            <table class="res-table mil-table navadm-table">
+            @* `sticky-head`: 149 righe, e nelle celle si SCRIVE. Appena si scorre, senza, l'intestazione
+               sparisce e non si sa più quale colonna si sta compilando. *@
+            <table class="res-table mil-table navadm-table sticky-head">
                 <thead>
                     <tr>
-                        <th class="c-code">@L["Nav_Code"]</th>
-                        <th class="c-band">@L["Nav_Kind"]</th>
-                        <th class="c-type">@L["Nav_Type"]</th>
-                        <th class="c-freq">@L["Nav_Freq"]</th>
+                        <th class="c-code">@Ordina(NavaidCol.Codice, L["Nav_Code"].Value)</th>
+                        <th class="c-band">@Ordina(NavaidCol.Banda, L["Nav_Kind"].Value)</th>
+                        <th class="c-type">@Ordina(NavaidCol.Tipo, L["Nav_Type"].Value)</th>
+                        <th class="c-freq">@Ordina(NavaidCol.Frequenza, L["Nav_Freq"].Value)</th>
                         <th class="c-chan">@L["Nav_Channel"]</th>
                         <th class="c-coord">@L["Nav_Coordinates"]</th>
                         <th class="c-origin">@L["Nav_Origin"]</th>
@@ -109,8 +180,8 @@
                     @foreach (var r in Filtrate)
                     {
                         <tr>
-                            <td class="c-code"><b>@r.Code</b></td>
-                            <td class="c-band muted">@r.Kind</td>
+                            <td class="c-code"><b><Marca Testo="@r.Code" Cerca="@_cerca" /></b></td>
+                            <td class="c-band muted"><Marca Testo="@r.Kind" Cerca="@_cerca" /></td>
                             <td class="c-type">
                                 @* Il TIPO si scrive sempre: non viene mai dalla sorgente. *@
                                 <input list="@TipiId" value="@r.Type" aria-label="@L["Nav_Type"]"
@@ -150,21 +221,6 @@
                 </tbody>
             </table>
 
-            <div class="mil-add">
-                <label>
-                    @L["Nav_Code"]
-                    <input class="w-code" @bind="_nuovoCodice" placeholder="AMD" />
-                </label>
-                <label>
-                    @L["Nav_Kind"]
-                    <select class="w-band" @bind="_nuovaFamiglia">
-                        @foreach (var f in NavaidRules.Famiglie) { <option value="@f">@f</option> }
-                    </select>
-                </label>
-                <button type="button" class="btn primary" disabled="@_busy" @onclick="Aggiungi">+ @L["Nav_Add"]</button>
-            </div>
-            <p class="help mil-hint">@L["Nav_AdminAddHint"]</p>
-
             <datalist id="@TipiId">
                 @foreach (var t in NavaidRules.TipiSuggeriti) { <option value="@t" /> }
             </datalist>
@@ -178,15 +234,102 @@
     private IReadOnlyList<NavaidRow> _righe = Array.Empty<NavaidRow>();
     private readonly Dictionary<int, string> _note = new();
     private string _cerca = "";
-    private bool _soloSenzaTipo;
+
+    /// <summary>
+    /// I tipi scelti fra i chip. Vuoto = tutti. La chiave <see cref="SenzaTipoChiave"/> sta dentro questo
+    /// stesso insieme, e non in un booleano suo: «senza tipo» è un tipo come gli altri per chi guarda, e
+    /// tenerlo a parte vorrebbe dire due regole per lo stesso filtro.
+    /// </summary>
+    private readonly HashSet<string> _tipi = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>La colonna su cui si ordina, e da che parte. Null = l'ordine dell'anagrafica.</summary>
+    private NavaidCol? _ordine;
+    private bool _discendente;
+
     private string _nuovoCodice = "";
     private string _nuovaFamiglia = NavaidRules.FamigliaVhf;
     private string? _messaggio;
     private bool _ok;
     private bool _busy;
 
+    /// <summary>Il campo del codice: dopo un'aggiunta il cursore ci torna dentro, per la prossima.</summary>
+    private ElementReference _campoCodice;
+
+    /// <summary>Vero appena finita un'aggiunta: al render successivo si rimette il fuoco e si azzera.</summary>
+    private bool _rimettiIlFuoco;
+
+    /// <summary>Le colonne su cui ha senso ordinare: quelle che si leggono per confrontare righe fra loro.
+    /// Canale, coordinate e provenienza no — non si cerca «tutte quelle che stanno a nord».</summary>
+    private enum NavaidCol { Codice, Banda, Tipo, Frequenza }
+
     /// <summary>La pagina è degli Editor: chi ha meno vede il rifiuto, non una tabella che non risponde.</summary>
     private bool PuoScrivere => Authz.Role >= VipiRole.Editor;
+
+    /// <summary>La chiave del chip «senza tipo». Non è un tipo vero, e infatti non può esserlo: i tipi
+    /// veri sono normalizzati in maiuscolo e non sono mai vuoti.</summary>
+    private const string SenzaTipoChiave = "";
+
+    /// <summary>Vero se qualcosa restringe l'elenco: lo dice la pastiglia in testata e lo dice il tasto
+    /// per togliere tutto.</summary>
+    private bool Filtrando => _tipi.Count > 0 || _cerca.Trim().Length > 0;
+
+    /// <summary>
+    /// I tipi che ci sono davvero, col loro conteggio, nell'ordine dei suggeriti e poi in alfabetico.
+    ///
+    /// <para>⚠️ Dal <b>dato</b>, non da <c>NavaidRules.TipiSuggeriti</c>: quello è un elenco aperto — un
+    /// campo può avere un DME o un VOR/DME che lì non compare — e un chip fisso a zero prometterebbe un
+    /// filtro che non filtra niente. Così invece i chip nascono man mano che i tipi si compilano, che è
+    /// esattamente il lavoro di questa pagina.</para>
+    /// </summary>
+    private IReadOnlyList<(string Tipo, int Quante)> TipiPresenti =>
+        _righe.Where(r => !string.IsNullOrWhiteSpace(r.Type))
+            .GroupBy(r => r.Type!.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Select(g => (Tipo: g.Key.ToUpperInvariant(), Quante: g.Count()))
+            .OrderBy(t => Suggerito(t.Tipo))
+            .ThenBy(t => t.Tipo, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    /// <summary>La posizione fra i tipi suggeriti, o in coda se non è uno di quelli.</summary>
+    private static int Suggerito(string tipo)
+    {
+        var i = NavaidRules.TipiSuggeriti.ToList()
+            .FindIndex(t => string.Equals(t, tipo, StringComparison.OrdinalIgnoreCase));
+        return i < 0 ? int.MaxValue : i;
+    }
+
+    private void AlternaTipo(string tipo)
+    {
+        if (!_tipi.Add(tipo)) _tipi.Remove(tipo);
+    }
+
+    private void PulisciFiltri()
+    {
+        _tipi.Clear();
+        _cerca = "";
+    }
+
+    /// <summary>
+    /// L'intestazione di una colonna che ordina. Il verso si ribalta al secondo clic sulla stessa, e la
+    /// freccia dice quale comanda: senza, due colonne ordinate «al contrario» sono indistinguibili.
+    /// </summary>
+    private RenderFragment Ordina(NavaidCol col, string titolo) => __builder =>
+    {
+        var attiva = _ordine == col;
+        <button type="button" class="navadm-sort @(attiva ? "on" : "")"
+                title="@L["Nav_AdminSortTitle", titolo]" @onclick="() => Riordina(col)">
+            @titolo<span class="navadm-arrow">@(attiva ? (_discendente ? "▾" : "▴") : "")</span>
+        </button>
+    };
+
+    /// <summary>Primo clic: crescente. Secondo: decrescente. Terzo: si torna all'ordine dell'anagrafica —
+    /// che è uno stato vero (è l'ordine in cui la sorgente le manda) e non deve essere irraggiungibile.</summary>
+    private void Riordina(NavaidCol col)
+    {
+        if (_ordine != col) { _ordine = col; _discendente = false; return; }
+        if (!_discendente) { _discendente = true; return; }
+        _ordine = null;
+        _discendente = false;
+    }
 
     /// <summary>Quante righe aspettano che qualcuno dica che tipo sono. È il numero della chip, ed è il senso
     /// della pagina: dopo un import sono più di cento.</summary>
@@ -199,14 +342,46 @@
         get
         {
             var q = _righe.AsEnumerable();
-            if (_soloSenzaTipo) q = q.Where(r => string.IsNullOrWhiteSpace(r.Type));
+
+            // I chip si SOMMANO: nessuno scelto = tutti, e «senza tipo» è uno di loro.
+            if (_tipi.Count > 0)
+                q = q.Where(r => _tipi.Contains(string.IsNullOrWhiteSpace(r.Type) ? SenzaTipoChiave : r.Type!.Trim()));
+
             var testo = _cerca.Trim();
             if (testo.Length > 0)
                 q = q.Where(r => new[] { r.Code, r.Kind, r.Type, r.Frequency, r.Channel }
                     .Any(c => c is not null && c.Contains(testo, StringComparison.OrdinalIgnoreCase)));
+
+            if (_ordine is { } col)
+            {
+                // ⚠️ Il codice come chiave SECONDARIA sempre: ordinando per banda ci sono 122 righe con lo
+                // stesso valore, e senza un secondo criterio il loro ordine è quello che capita.
+                Func<NavaidRow, string> chiave = col switch
+                {
+                    NavaidCol.Banda => r => r.Kind ?? "",
+                    NavaidCol.Tipo => r => r.Type ?? "",
+                    NavaidCol.Frequenza => r => Frequenza(r),
+                    _ => r => r.Code ?? "",
+                };
+                q = _discendente
+                    ? q.OrderByDescending(chiave, StringComparer.OrdinalIgnoreCase).ThenBy(r => r.Code, StringComparer.OrdinalIgnoreCase)
+                    : q.OrderBy(chiave, StringComparer.OrdinalIgnoreCase).ThenBy(r => r.Code, StringComparer.OrdinalIgnoreCase);
+            }
+
             return q.ToList();
         }
     }
+
+    /// <summary>
+    /// La frequenza in una forma che si ordina come un numero pur restando testo: <c>115.25</c> e
+    /// <c>75</c> in ordine alfabetico darebbero «115» prima di «75», che è l'ordine di due stringhe e non
+    /// di due frequenze. Le righe senza frequenza vanno in fondo, non in cima.
+    /// </summary>
+    private static string Frequenza(NavaidRow r) =>
+        double.TryParse(r.Frequency, System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out var v)
+            ? v.ToString("0000.000", System.Globalization.CultureInfo.InvariantCulture)
+            : "zzzz";
 
     // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su InteractiveServer il secondo gira una volta sola.
     protected override async Task OnParametersSetAsync() => await CaricaAsync();
@@ -291,9 +466,41 @@
         await CaricaAsync();
     }
 
+    /// <summary>
+    /// Pone la domanda, se c'è qualcosa da chiedere. ⚠️ Il codice si controlla PRIMA: chiedere «sei sicuro»
+    /// su un codice che il servizio rifiuterà un istante dopo è far confermare un'operazione impossibile —
+    /// lo stesso difetto per cui la finestra di eliminazione calcola prima di chiedere.
+    /// </summary>
+    private Task ChiediConfermaAsync()
+    {
+        _messaggio = null;
+        if (NavaidRules.CodiceValido(NavaidRules.Norm(_nuovoCodice)))
+        {
+            _chiediConferma = true;
+            return Task.CompletedTask;
+        }
+
+        _chiediConferma = false;
+        _messaggio = L["Nav_BadCode"].Value;
+        _ok = false;
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Invio nel campo del codice pone la domanda, invece di costringere al mouse: chi ne inserisce
+    /// cinque di fila da una carta li batte uno dietro l'altro.</summary>
+    private async Task TastoNuovo(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") { _chiediConferma = false; return; }
+        if (e.Key == "Enter" && !_busy) await ChiediConfermaAsync();
+    }
+
+    /// <summary>Vero mentre la domanda è a schermo. Ci arrivano tutt'e due le strade, mouse e tastiera.</summary>
+    private bool _chiediConferma;
+
     private async Task Aggiungi()
     {
         _messaggio = null;
+        _chiediConferma = false;
         var codice = NavaidRules.Norm(_nuovoCodice);
         if (!NavaidRules.CodiceValido(codice)) { _messaggio = L["Nav_BadCode"].Value; _ok = false; return; }
 
@@ -302,6 +509,16 @@
         await CaricaAsync();
         _ok = true;
         _messaggio = string.Format(L["Nav_AdminAdded"].Value, riga.Code, riga.Kind);
+
+        // Il cursore torna nel campo: la prossima si batte senza toccare il mouse.
+        _rimettiIlFuoco = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool primo)
+    {
+        if (!_rimettiIlFuoco) return;
+        _rimettiIlFuoco = false;
+        try { await _campoCodice.FocusAsync(); } catch (Exception) { }
     }
 
     /// <summary>

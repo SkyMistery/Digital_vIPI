@@ -169,7 +169,7 @@
                         @foreach (var v in _voci)
                         {
                             <tr class="@(v.Id == _apertaId ? "on" : "")">
-                                <td><span class="muted">@Evidenzia(v.SourceText)</span></td>
+                                <td><span class="muted"><Marca Testo="@v.SourceText" Cerca="@_cerca" /></span></td>
                                 <td>
                                     @if (_apertaId == v.Id)
                                     {
@@ -209,7 +209,7 @@
                                     else
                                     {
                                         <button class="btn ghost" style="text-align:left;width:100%"
-                                                disabled="@_busy" @onclick="() => ApriVoceAsync(v)">@Evidenzia(v.TargetText)</button>
+                                                disabled="@_busy" @onclick="() => ApriVoceAsync(v)"><Marca Testo="@v.TargetText" Cerca="@_cerca" /></button>
                                     }
                                 </td>
                                 <td>
@@ -262,7 +262,7 @@
                                                 @foreach (var f in _frasi)
                                                 {
                                                     <li>
-                                                        <span class="gt-use-src">@Evidenzia(f.SourceText)</span>
+                                                        <span class="gt-use-src"><Marca Testo="@f.SourceText" Cerca="@_cerca" /></span>
                                                         <span class="gt-use-arrow">→</span>
                                                         <span class="muted">@f.TargetText</span>
                                                         @if (f.Origin == TranslationOrigin.Human)
@@ -351,7 +351,7 @@
                         @foreach (var r in _righe)
                         {
                             <tr class="@(r.Id == _apertaTrId ? "on" : "")">
-                                <td><span class="muted">@Evidenzia(r.SourceText)</span></td>
+                                <td><span class="muted"><Marca Testo="@r.SourceText" Cerca="@_cerca" /></span></td>
                                 <td>
                                     @if (_apertaTrId == r.Id)
                                     {
@@ -381,7 +381,7 @@
                                     else
                                     {
                                         <button class="btn ghost" style="text-align:left;width:100%"
-                                                disabled="@_busy" @onclick="() => ApriFraseAsync(r)">@Evidenzia(r.TargetText)</button>
+                                                disabled="@_busy" @onclick="() => ApriFraseAsync(r)"><Marca Testo="@r.TargetText" Cerca="@_cerca" /></button>
                                     }
                                 </td>
                                 <td>
@@ -644,36 +644,6 @@
     {
         if (e.Key == "Escape" && Cercando) await PulisciRicercaAsync();
     }
-
-    /// <summary>
-    /// Il testo con la parte cercata marcata. ⚠️ Si costruisce a mano invece di comporre HTML: qui dentro
-    /// passano frasi scritte da persone, e una <c>MarkupString</c> le renderebbe eseguibili.
-    /// <c>AddContent</c> le tratta come testo, che è quello che sono.
-    /// </summary>
-    private RenderFragment Evidenzia(string testo) => builder =>
-    {
-        var ago = _cerca.Trim();
-        if (ago.Length == 0 || testo.Length == 0)
-        {
-            builder.AddContent(0, testo);
-            return;
-        }
-
-        var seq = 0;
-        var da = 0;
-        while (true)
-        {
-            var trovato = testo.IndexOf(ago, da, StringComparison.CurrentCultureIgnoreCase);
-            if (trovato < 0) break;
-
-            if (trovato > da) builder.AddContent(seq++, testo[da..trovato]);
-            builder.OpenElement(seq++, "mark");
-            builder.AddContent(seq++, testo.Substring(trovato, ago.Length));
-            builder.CloseElement();
-            da = trovato + ago.Length;
-        }
-        if (da < testo.Length) builder.AddContent(seq, testo[da..]);
-    };
 
     // ---- Comandi condivisi -------------------------------------------------------------------------
 

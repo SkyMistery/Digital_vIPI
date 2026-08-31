@@ -1030,6 +1030,12 @@
   <data name="Nav_AdminNoType" xml:space="preserve"><value>Senza tipo</value></data>
   <data name="Nav_AdminFromSource" xml:space="preserve"><value>{0} dal sectorfile</value></data>
   <data name="Nav_AdminEmpty" xml:space="preserve"><value>Nessuna radioassistenza con questi filtri.</value></data>
+  <data name="Nav_AdminTypeTitle" xml:space="preserve"><value>Mostra solo le {0}. I filtri si sommano.</value></data>
+  <data name="Nav_AdminSortTitle" xml:space="preserve"><value>Ordina per {0}</value></data>
+  <data name="Nav_AdminAddTitle" xml:space="preserve"><value>Aggiungi una radioassistenza a mano</value></data>
+  <data name="Nav_AdminAddWarnTitle" xml:space="preserve"><value>Meglio nel sectorfile</value></data>
+  <data name="Nav_AdminAddWarn" xml:space="preserve"><value>Una riga scritta qui è nostra per sempre: l'import non la tocca più, e chi usa il sectorfile non la vede. Se l'impianto esiste davvero, la strada migliore è aggiungerlo al sectorfile e poi importarlo — così arriva a tutti e si aggiorna da sé. Qui si scrivono le radioassistenze che il sectorfile non ha (gli ILS, i TACAN che non compaiono fra i punti).</value></data>
+  <data name="Nav_AdminAddAnyway" xml:space="preserve"><value>Aggiungi comunque</value></data>
   <data name="Nav_AdminAddHint" xml:space="preserve"><value>Si aggiungono a mano le radioassistenze che il sectorfile non ha: ILS, e i TACAN che non compaiono fra i punti. La famiglia è la banda: VHF (108–118 MHz) o NDB (kHz).</value></data>
   <data name="Nav_AdminAdded" xml:space="preserve"><value>Aggiunta «{0}» ({1}). Adesso si compilano tipo, frequenza e coordinate.</value></data>
   <data name="Nav_AdminDelete" xml:space="preserve"><value>Elimina dall'anagrafica</value></data>

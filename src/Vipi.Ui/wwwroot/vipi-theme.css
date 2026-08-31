@@ -933,6 +933,21 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .section-title{display:flex;align-items:center;gap:12px;margin:34px 0 16px}
 .section-title :is(h2,h3){margin:0}
 .section-title .ln{flex:1;height:1px;background:var(--line)}
+/* ---- Radioassistenze: aggiunta in cima, intestazioni che ordinano ------------------------------------
+   Il riquadro d'aggiunta è il PRIMO della pagina, e va distinto dalla tabella che gli sta sotto senza
+   gridare: è un modulo, non un avviso. */
+.navadm-new{padding-bottom:14px}
+.navadm-warn{margin:10px 0 0}
+.navadm-warn-acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+/* L'intestazione che ordina è un tasto, non un titolo cliccabile travestito: si raggiunge con il TAB e
+   dice da sé che si può premere. La freccia occupa il posto anche quando non c'è, o la colonna si
+   allarga di due pixel al primo clic. */
+.navadm-sort{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;
+             display:inline-flex;align-items:center;gap:3px;text-align:left}
+.navadm-sort:hover{color:var(--brand-ink-2)}
+.navadm-sort.on{color:var(--brand-ink)}
+.navadm-arrow{display:inline-block;min-width:9px;font-size:10px;color:var(--brand-ink)}
+
 /* Titolo di sezione che apre e chiude: il titolo È la maniglia, e il chevron è quello delle card
    dell'albero (.grp-chev) perché è lo stesso gesto sulla stessa pagina. */
 /* ---- Fraseologia e traduzioni: «dove si usa» e il piede dell'elenco ---------------------------------
