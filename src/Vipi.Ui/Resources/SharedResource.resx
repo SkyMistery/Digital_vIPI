@@ -2621,6 +2621,28 @@
   <data name="Tr_Saved" xml:space="preserve"><value>Correzione salvata. Vale per {0} documenti e la macchina non la tocca più.</value></data>
   <data name="Tr_SavedOne" xml:space="preserve"><value>Correzione salvata. Vale per questo documento e la macchina non la tocca più.</value></data>
   <data name="Tr_SavedNone" xml:space="preserve"><value>Correzione salvata: la macchina non la tocca più. Nessun documento contiene questa frase in questo momento.</value></data>
+  <data name="Gt_Title" xml:space="preserve"><value>Fraseologia e traduzioni</value></data>
+  <data name="Gt_Subtitle" xml:space="preserve"><value>Il glossario delle formule e il registro delle frasi già tradotte</value></data>
+  <data name="Gt_Pair" xml:space="preserve"><value>Direzione: vale per tutt'e due gli elenchi</value></data>
+  <data name="Gt_SearchPh" xml:space="preserve"><value>🔍 cerca una parola o una frase…</value></data>
+  <data name="Gt_ClearSearch" xml:space="preserve"><value>✕ pulisci</value></data>
+  <data name="Gt_FoundNM" xml:space="preserve"><value>{0} formule · {1} frasi</value></data>
+  <data name="Gt_NoMatch" xml:space="preserve"><value>Niente che contenga «{0}».</value></data>
+  <data name="Gt_ColUsedIn" xml:space="preserve"><value>Dove si usa</value></data>
+  <data name="Gt_UsedInTitle" xml:space="preserve"><value>Apri l'elenco: la stessa correzione vale per tutti quelli che vedi qui.</value></data>
+  <data name="Gt_DocsN" xml:space="preserve"><value>{0} doc</value></data>
+  <data name="Gt_Phrase1" xml:space="preserve"><value>1 frase</value></data>
+  <data name="Gt_PhrasesN" xml:space="preserve"><value>{0} frasi</value></data>
+  <data name="Gt_NoUse" xml:space="preserve"><value>nessun documento</value></data>
+  <data name="Gt_NoPhrase" xml:space="preserve"><value>nessuna frase</value></data>
+  <data name="Gt_Open" xml:space="preserve"><value>apri →</value></data>
+  <data name="Gt_WhereProse" xml:space="preserve"><value>prosa</value></data>
+  <data name="Gt_WhereTable" xml:space="preserve"><value>tabella</value></data>
+  <data name="Gt_WhereTitle" xml:space="preserve"><value>titolo</value></data>
+  <data name="Gt_NofM" xml:space="preserve"><value>{0} di {1}</value></data>
+  <data name="Gt_LoadMore" xml:space="preserve"><value>Carica altre {0}</value></data>
+  <data name="Gt_KeysEnter" xml:space="preserve"><value>Invio salva · Esc annulla</value></data>
+  <data name="Gt_KeysCtrlEnter" xml:space="preserve"><value>Ctrl+Invio salva · Esc annulla</value></data>
   <data name="Gl_Title" xml:space="preserve"><value>Glossario</value></data>
   <data name="Gl_Subtitle" xml:space="preserve"><value>Glossario di fraseologia: le formule che si dicono in un modo solo</value></data>
   <data name="Gl_Intro" xml:space="preserve"><value>Qui si decide come va detta una formula in inglese, dentro qualunque frase la contenga. La resa entra nel documento parola per parola come è scritta qui: nessun motore la tocca e nessuno la declina. Vanno bene le formule fisse della fraseologia standard; una parola comune che cambia forma no.</value></data>

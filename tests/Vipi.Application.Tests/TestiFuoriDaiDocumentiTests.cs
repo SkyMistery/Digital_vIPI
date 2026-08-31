@@ -55,8 +55,26 @@ public class TestiFuoriDaiDocumentiTests
             IReadOnlyList<(string SourceText, string TargetText)> v, CancellationToken ct = default) => Task.FromResult(0);
         public Task SaveHumanAsync(string s, string t, string a, string b, int u, CancellationToken ct = default) => Task.CompletedTask;
         public Task<IReadOnlyList<TranslationReviewRow>> ListForReviewAsync(
-            string s, string t, bool solo, int limite, CancellationToken ct = default) =>
+            string s, string t, bool solo, int limite, string? cerca = null, int salta = 0,
+            CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<TranslationReviewRow>>(Array.Empty<TranslationReviewRow>());
+
+        public Task<int> ContaPerRevisioneAsync(
+            string s, string t, bool solo, string? cerca = null, CancellationToken ct = default) =>
+            Task.FromResult(0);
+
+        public Task<IReadOnlyDictionary<string, IReadOnlyList<UsoInDocumento>>> DoveSiUsanoAsync(
+            IReadOnlyCollection<string> frasi, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<string, IReadOnlyList<UsoInDocumento>>>(
+                new Dictionary<string, IReadOnlyList<UsoInDocumento>>());
+
+        public Task<IReadOnlyList<FraseConFormula>> FrasiConLaFormulaAsync(
+            string s, string t, string formula, int limite, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<FraseConFormula>>(Array.Empty<FraseConFormula>());
+
+        public Task<IReadOnlyDictionary<string, int>> ContaFrasiPerFormuleAsync(
+            string s, string t, IReadOnlyCollection<string> formule, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<string, int>>(new Dictionary<string, int>());
         public Task<(int Totale, int DaRileggere)> ContaAsync(string s, string t, CancellationToken ct = default) =>
             Task.FromResult((0, 0));
         public Task<int> DocumentiToccatiAsync(string s, CancellationToken ct = default) => Task.FromResult(0);

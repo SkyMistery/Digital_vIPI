@@ -13,13 +13,23 @@ public sealed class EfGlossaryStore : IGlossaryStore
     public EfGlossaryStore(VipiDbContext db) => _db = db;
 
     public async Task<IReadOnlyList<GlossaryTerm>> ListAsync(
-        string sourceLang, string targetLang, CancellationToken ct = default) =>
-        await _db.GlossaryTerms.AsNoTracking()
-            .Where(t => t.SourceLang == sourceLang && t.TargetLang == targetLang)
+        string sourceLang, string targetLang, string? cerca = null, CancellationToken ct = default)
+    {
+        var q = _db.GlossaryTerms.AsNoTracking()
+            .Where(t => t.SourceLang == sourceLang && t.TargetLang == targetLang);
+
+        // ⚠️ Si cerca nei DUE lati. Chi cura il glossario ricorda a volte la formula e a volte come l'ha
+        // resa, e una ricerca che guardasse solo la sorgente direbbe «non c'è» di una voce che c'è.
+        var ago = (cerca ?? "").Trim().ToLowerInvariant();
+        if (ago.Length > 0)
+            q = q.Where(t => t.SourceText.ToLower().Contains(ago) || t.TargetText.ToLower().Contains(ago));
+
+        return await q
             // Le più recenti in cima: chi apre la pagina vuole rivedere quello che ha appena scritto.
             .OrderByDescending(t => t.UpdatedUtc ?? t.CreatedUtc)
             .ThenBy(t => t.SourceKey)
             .ToListAsync(ct).ConfigureAwait(false);
+    }
 
     public async Task<bool> UpsertAsync(
         string sourceLang, string targetLang, string sourceText, string targetText,

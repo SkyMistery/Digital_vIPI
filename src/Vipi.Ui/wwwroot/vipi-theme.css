@@ -935,6 +935,19 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .section-title .ln{flex:1;height:1px;background:var(--line)}
 /* Titolo di sezione che apre e chiude: il titolo È la maniglia, e il chevron è quello delle card
    dell'albero (.grp-chev) perché è lo stesso gesto sulla stessa pagina. */
+/* ---- Fraseologia e traduzioni: «dove si usa» e il piede dell'elenco ---------------------------------
+   L'elenco degli usi vive DENTRO una riga di tabella, aperto sotto quella che lo ha chiesto: una finestra
+   separata perderebbe il legame con la riga, che è tutto ciò che quel numero significa. */
+.gt-uses{list-style:none;margin:0;padding:2px 0 2px 18px;display:flex;flex-direction:column;gap:5px}
+.gt-uses li{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px}
+.gt-use-src{max-width:52ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gt-use-arrow{color:var(--ink-soft)}
+/* Il piede sta DENTRO il riquadro, sotto la tabella: «N di M» è una proprietà di quell'elenco, non della pagina. */
+.gt-more{display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:12.5px}
+/* La parte cercata, marcata nel testo. Il fondo è il giallo dei tint, non il `mark` del browser: quello è
+   una tinta piena che nel tema scuro resta chiara con sopra scritte chiare. */
+.res-table mark,.gt-uses mark{background:var(--tint-yellow);color:inherit;border-radius:3px;padding:0 1px}
+
 .sect-toggle{display:inline-flex;align-items:center;gap:8px;background:none;border:0;padding:0;
              font:inherit;color:inherit;cursor:pointer;text-align:left}
 .sect-toggle:hover .grp-chev{color:var(--brand-ink-2)}

@@ -116,7 +116,38 @@ public sealed class EfTranslationMemory : ITranslationMemory
     }
 
     public async Task<IReadOnlyList<TranslationReviewRow>> ListForReviewAsync(
-        string sourceLang, string targetLang, bool soloDaRileggere, int limite, CancellationToken ct = default)
+        string sourceLang, string targetLang, bool soloDaRileggere, int limite,
+        string? cerca = null, int salta = 0, CancellationToken ct = default) =>
+        // ⚠️ Le mai riviste PRIME, non le piu' recenti: chi apre la pagina di revisione vuole vedere cio'
+        // che nessuno ha ancora guardato. Ordinare per data di inserimento gli metterebbe in cima le
+        // ultime tradotte, che non sono ne' le piu' urgenti ne' le piu' lette.
+        //
+        // ⚠️ L'ordinamento deve essere TOTALE, o il «carica altre» salta e ripete righe: `ThenBy(Id)` non
+        // è cosmesi, è ciò che rende `Skip` ripetibile.
+        await PerRevisione(sourceLang, targetLang, soloDaRileggere, cerca)
+            .OrderBy(u => u.ReviewedUtc == null ? 0 : 1)
+            .ThenBy(u => u.Id)
+            .Skip(salta)
+            .Take(limite)
+            .Select(u => new TranslationReviewRow(
+                u.Id, u.SourceText, u.TargetText, u.Origin, u.ReviewedUtc, u.ReviewedByUserId))
+            .ToListAsync(ct).ConfigureAwait(false);
+
+    public Task<int> ContaPerRevisioneAsync(
+        string sourceLang, string targetLang, bool soloDaRileggere, string? cerca = null,
+        CancellationToken ct = default) =>
+        PerRevisione(sourceLang, targetLang, soloDaRileggere, cerca).CountAsync(ct);
+
+    /// <summary>
+    /// La stessa domanda per l'elenco e per il conteggio: due filtri scritti due volte divergono, e il
+    /// «N di M» direbbe un M che non è il numero delle righe che si possono scorrere.
+    ///
+    /// <para>⚠️ Si cerca nei <b>due</b> lati — la frase e la sua resa: chi rivede ricorda a volte l'una e a
+    /// volte l'altra. E si cerca <b>sul database</b>: la pagina carica un lotto per volta, e un filtro
+    /// applicato al lotto direbbe «non c'è» di una frase che sta alla riga 101.</para>
+    /// </summary>
+    private IQueryable<TranslationUnit> PerRevisione(
+        string sourceLang, string targetLang, bool soloDaRileggere, string? cerca)
     {
         var q = _db.TranslationUnits.AsNoTracking()
             .Where(u => u.SourceLang == sourceLang && u.TargetLang == targetLang);
@@ -124,16 +155,11 @@ public sealed class EfTranslationMemory : ITranslationMemory
         if (soloDaRileggere)
             q = q.Where(u => u.ReviewedUtc == null);
 
-        // ⚠️ Le mai riviste PRIME, non le piu' recenti: chi apre la pagina di revisione vuole vedere cio'
-        // che nessuno ha ancora guardato. Ordinare per data di inserimento gli metterebbe in cima le
-        // ultime tradotte, che non sono ne' le piu' urgenti ne' le piu' lette.
-        return await q
-            .OrderBy(u => u.ReviewedUtc == null ? 0 : 1)
-            .ThenBy(u => u.Id)
-            .Take(limite)
-            .Select(u => new TranslationReviewRow(
-                u.Id, u.SourceText, u.TargetText, u.Origin, u.ReviewedUtc, u.ReviewedByUserId))
-            .ToListAsync(ct).ConfigureAwait(false);
+        var ago = (cerca ?? "").Trim().ToLowerInvariant();
+        if (ago.Length > 0)
+            q = q.Where(u => u.SourceText.ToLower().Contains(ago) || u.TargetText.ToLower().Contains(ago));
+
+        return q;
     }
 
     public async Task<IReadOnlyDictionary<string, string>> LoadAllAsync(
@@ -205,42 +231,136 @@ public sealed class EfTranslationMemory : ITranslationMemory
     /// risposte diverse alla stessa domanda.
     /// </para>
     /// </summary>
-    public async Task<int> DocumentiToccatiAsync(string sourceText, CancellationToken ct = default)
-    {
-        if (TranslationText.Normalize(sourceText).Length == 0) return 0;
-        var impronta = TranslationText.Hash(sourceText);
+    public async Task<int> DocumentiToccatiAsync(string sourceText, CancellationToken ct = default) =>
+        // ⚠️ Poggia sulla stessa passata di <see cref="DoveSiUsanoAsync"/>, e non ne ha una sua: il numero
+        // e l'elenco devono venire dallo stesso conto, o un giorno la pastiglia dirà «2» e il pannello
+        // aprirà tre righe.
+        (await DoveSiUsanoAsync(new[] { sourceText }, ct).ConfigureAwait(false))
+            .TryGetValue(TranslationText.Hash(sourceText), out var usi) ? usi.Count : 0;
 
-        // Due letture in blocco, come le fa il corpus: non una query per documento.
+    /// <inheritdoc />
+    /// <remarks>
+    /// ⚠️ <b>Il corpus si legge UNA volta per tutte le frasi chieste.</b> È la stessa lettura che serviva a
+    /// contare i documenti di una frase sola — 499 campi per 23 344 caratteri, misurati sul <c>vipi.db</c>
+    /// reale — e ripeterla per ognuna delle cento righe a schermo sarebbe cento volte quel giro. È anche il
+    /// motivo per cui la pastiglia col numero si può mostrare in elenco.
+    ///
+    /// <para>⚠️ Le chiavi tornate sono le <b>impronte</b>, non i testi: la stessa frase scritta con
+    /// l'apostrofo tipografico è la stessa frase, ed è tutto il punto della memoria. Chi chiama ritrova la
+    /// sua riga con <c>TranslationText.Hash</c>.</para>
+    /// </remarks>
+    public async Task<IReadOnlyDictionary<string, IReadOnlyList<UsoInDocumento>>> DoveSiUsanoAsync(
+        IReadOnlyCollection<string> sourceTexts, CancellationToken ct = default)
+    {
+        var cercate = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var t in sourceTexts)
+            if (TranslationText.Normalize(t).Length > 0)
+                cercate.Add(TranslationText.Hash(t));
+
+        // Le frasi vuote non si cercano, ma la chiave torna lo stesso: «zero» è una risposta.
+        var esito = new Dictionary<string, Dictionary<int, UsoInDocumento>>(StringComparer.Ordinal);
+        foreach (var impronta in cercate) esito[impronta] = new Dictionary<int, UsoInDocumento>();
+        if (cercate.Count == 0) return Vuoto(esito);
+
+        // Due letture in blocco, come le fa il corpus: non una query per documento. Il titolo del documento
+        // arriva con loro — senza, servirebbe una terza query per dare un nome alle righe del pannello.
         var blocchi = await _db.ContentBlocks.AsNoTracking()
             .Where(b => b.Body != null || b.BodyJson != null)
-            .Select(b => new { b.Body, b.BodyJson, b.DocumentVersion!.DocumentId })
+            .Select(b => new
+            {
+                b.Body,
+                b.BodyJson,
+                b.DocumentVersion!.DocumentId,
+                Titolo = b.DocumentVersion!.Document!.Title,
+            })
             .ToListAsync(ct).ConfigureAwait(false);
 
         var titoli = await _db.DocumentSections.AsNoTracking()
-            .Select(s => new { s.Title, s.DocumentVersion!.DocumentId })
+            .Select(s => new
+            {
+                s.Title,
+                s.DocumentVersion!.DocumentId,
+                Documento = s.DocumentVersion!.Document!.Title,
+            })
             .ToListAsync(ct).ConfigureAwait(false);
 
-        var documenti = new HashSet<int>();
+        // ⚠️ Un documento compare UNA volta per frase, e con il primo posto in cui la si è trovata: la
+        // domanda è «quali documenti tocco», non «quante volte».
+        void Segna(string impronta, int documentId, string titolo, UsoDelTesto dove)
+        {
+            if (!esito.TryGetValue(impronta, out var perDocumento)) return;
+            if (perDocumento.ContainsKey(documentId)) return;
+            perDocumento[documentId] = new UsoInDocumento(documentId, titolo, dove);
+        }
 
         foreach (var b in blocchi)
         {
-            if (documenti.Contains(b.DocumentId)) continue;   // un documento si conta una volta sola
-            if (Contiene(TextSegmenter.SplitProse(b.Body), impronta) ||
-                Contiene(TextSegmenter.SplitJson(b.BodyJson), impronta))
-                documenti.Add(b.DocumentId);
+            foreach (var seg in TextSegmenter.SplitProse(b.Body))
+                Segna(TranslationText.Hash(seg), b.DocumentId, b.Titolo, UsoDelTesto.Prosa);
+            foreach (var seg in TextSegmenter.SplitJson(b.BodyJson))
+                Segna(TranslationText.Hash(seg), b.DocumentId, b.Titolo, UsoDelTesto.Tabella);
         }
 
         foreach (var t in titoli)
-            if (!documenti.Contains(t.DocumentId) && TranslationText.Hash(t.Title) == impronta)
-                documenti.Add(t.DocumentId);
+            Segna(TranslationText.Hash(t.Title), t.DocumentId, t.Documento, UsoDelTesto.Titolo);
 
-        return documenti.Count;
+        return Vuoto(esito);
     }
 
-    /// <summary>Vero se uno di questi segmenti ha questa impronta. <c>Hash</c> normalizza da sé, quindi la
-    /// grafia non conta — che è tutto il punto.</summary>
-    private static bool Contiene(IEnumerable<string> segmenti, string impronta) =>
-        segmenti.Any(s => TranslationText.Hash(s) == impronta);
+    /// <summary>Dai dizionari di lavoro alle liste che escono dalla porta, ordinate per titolo.</summary>
+    private static IReadOnlyDictionary<string, IReadOnlyList<UsoInDocumento>> Vuoto(
+        Dictionary<string, Dictionary<int, UsoInDocumento>> lavoro) =>
+        lavoro.ToDictionary(
+            r => r.Key,
+            r => (IReadOnlyList<UsoInDocumento>)r.Value.Values
+                .OrderBy(u => u.Titolo, StringComparer.CurrentCultureIgnoreCase)
+                .ThenBy(u => u.DocumentId)
+                .ToList(),
+            StringComparer.Ordinal);
+
+    public async Task<IReadOnlyList<FraseConFormula>> FrasiConLaFormulaAsync(
+        string sourceLang, string targetLang, string formula, int limite, CancellationToken ct = default)
+    {
+        var ago = formula.Trim().ToLowerInvariant();
+        if (ago.Length == 0) return Array.Empty<FraseConFormula>();
+
+        return await _db.TranslationUnits.AsNoTracking()
+            .Where(u => u.SourceLang == sourceLang && u.TargetLang == targetLang
+                        && u.SourceText.ToLower().Contains(ago))
+            .OrderByDescending(u => u.CreatedUtc)
+            .ThenBy(u => u.Id)
+            .Take(limite)
+            .Select(u => new FraseConFormula(u.SourceText, u.TargetText, u.Origin))
+            .ToListAsync(ct).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// ⚠️ <b>Una lettura sola, e il conto si fa in memoria.</b> Una query per formula sarebbe una query per
+    /// riga del glossario; e un <c>LIKE</c> per ognuna, messe in <c>OR</c>, non direbbe comunque QUALE
+    /// formula ha corrisposto. I testi sorgente di una coppia sono decine — misurati: 274 righe per una
+    /// media di 77 caratteri — e stanno in una lista.
+    /// </remarks>
+    public async Task<IReadOnlyDictionary<string, int>> ContaFrasiPerFormuleAsync(
+        string sourceLang, string targetLang, IReadOnlyCollection<string> formule,
+        CancellationToken ct = default)
+    {
+        var esito = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var f in formule) esito[f] = 0;
+        if (esito.Count == 0) return esito;
+
+        var sorgenti = await _db.TranslationUnits.AsNoTracking()
+            .Where(u => u.SourceLang == sourceLang && u.TargetLang == targetLang)
+            .Select(u => u.SourceText)
+            .ToListAsync(ct).ConfigureAwait(false);
+
+        foreach (var testo in sorgenti)
+            foreach (var f in formule)
+                if (f.Trim().Length > 0 && testo.Contains(f.Trim(), StringComparison.OrdinalIgnoreCase))
+                    esito[f]++;
+
+        return esito;
+    }
 
     /// <summary>
     /// I caratteri già spesi con questo motore: la somma dei testi sorgente delle voci che <b>lui</b> ha

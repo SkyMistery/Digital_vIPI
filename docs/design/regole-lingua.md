@@ -159,7 +159,7 @@ ripubblica — la regola di ogni altra correzione editoriale.
 Nell'editor c'è il pannello **Traduzione**: le frasi di *quel* documento, con la loro resa nella lingua
 scelta in barra, e la correzione sul posto.
 
-⚠️ Il **Registro** (`/services/vsop/admin/translations`) resta dov'è e non è un doppione: quello elenca le
+⚠️ Il **Registro** (dal 1 settembre 2026 nella stessa pagina del glossario, `/services/vsop/admin/glossary`; il vecchio indirizzo ci porta) non è un doppione: quello elenca le
 frasi di **tutta la divisione** in ordine di quanto sono state riviste — è il posto per chi fa un giro di
 revisione. Il pannello è per chi ha appena scritto un documento e vuole sapere **come viene letto**: chi
 scrive conosce la fraseologia del suo scalo, ed è l'unico che può dire se «riporta sottovento» è diventato

@@ -2613,6 +2613,28 @@
   <data name="Tr_Saved" xml:space="preserve"><value>Correction saved. It applies to {0} documents and the machine will not overwrite it.</value></data>
   <data name="Tr_SavedOne" xml:space="preserve"><value>Correction saved. It applies to this document and the machine will not overwrite it.</value></data>
   <data name="Tr_SavedNone" xml:space="preserve"><value>Correction saved: the machine will not overwrite it. No document currently contains this sentence.</value></data>
+  <data name="Gt_Title" xml:space="preserve"><value>Phraseology and translations</value></data>
+  <data name="Gt_Subtitle" xml:space="preserve"><value>The glossary of formulas and the register of already translated phrases</value></data>
+  <data name="Gt_Pair" xml:space="preserve"><value>Direction: it applies to both lists</value></data>
+  <data name="Gt_SearchPh" xml:space="preserve"><value>🔍 search a word or a phrase…</value></data>
+  <data name="Gt_ClearSearch" xml:space="preserve"><value>✕ clear</value></data>
+  <data name="Gt_FoundNM" xml:space="preserve"><value>{0} formulas · {1} phrases</value></data>
+  <data name="Gt_NoMatch" xml:space="preserve"><value>Nothing contains «{0}».</value></data>
+  <data name="Gt_ColUsedIn" xml:space="preserve"><value>Where used</value></data>
+  <data name="Gt_UsedInTitle" xml:space="preserve"><value>Open the list: the same correction applies to everything you see here.</value></data>
+  <data name="Gt_DocsN" xml:space="preserve"><value>{0} doc</value></data>
+  <data name="Gt_Phrase1" xml:space="preserve"><value>1 phrase</value></data>
+  <data name="Gt_PhrasesN" xml:space="preserve"><value>{0} phrases</value></data>
+  <data name="Gt_NoUse" xml:space="preserve"><value>no document</value></data>
+  <data name="Gt_NoPhrase" xml:space="preserve"><value>no phrase</value></data>
+  <data name="Gt_Open" xml:space="preserve"><value>open →</value></data>
+  <data name="Gt_WhereProse" xml:space="preserve"><value>prose</value></data>
+  <data name="Gt_WhereTable" xml:space="preserve"><value>table</value></data>
+  <data name="Gt_WhereTitle" xml:space="preserve"><value>heading</value></data>
+  <data name="Gt_NofM" xml:space="preserve"><value>{0} of {1}</value></data>
+  <data name="Gt_LoadMore" xml:space="preserve"><value>Load {0} more</value></data>
+  <data name="Gt_KeysEnter" xml:space="preserve"><value>Enter saves · Esc cancels</value></data>
+  <data name="Gt_KeysCtrlEnter" xml:space="preserve"><value>Ctrl+Enter saves · Esc cancels</value></data>
   <data name="Gl_Title" xml:space="preserve"><value>Glossary</value></data>
   <data name="Gl_Subtitle" xml:space="preserve"><value>Phraseology glossary: the formulas that are said one way only</value></data>
   <data name="Gl_Intro" xml:space="preserve"><value>This is where you decide how a formula must be said in English, inside any sentence containing it. The rendering goes into the document word for word as written here: no engine touches it and nobody inflects it. Fixed formulas of standard phraseology belong here; a common word that changes form does not.</value></data>

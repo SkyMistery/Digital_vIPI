@@ -60,9 +60,10 @@ public class AdminNavTests : TestContext
         // aerei, che sono arrivati da due rami diversi. Ognuno dei due diceva «16», perché ognuno
         // aggiungeva UNA voce a quindici: git ha fuso i due numeri identici senza chiamarlo un
         // conflitto, e solo questo test si è accorto che le voci nuove erano due.
-        Assert.Equal(17, nav.QuerySelectorAll(".an-link").Length);
+        // ⚠️ 16 dal 1 settembre 2026: il registro delle traduzioni e il glossario sono UNA pagina, e il
+        // vecchio indirizzo del registro ci porta come rotta della stessa pagina — non come voce di barra.
+        Assert.Equal(16, nav.QuerySelectorAll(".an-link").Length);
         Assert.Contains("/services/vsop/admin/sector-structure", cut.Markup);
-        Assert.Contains("/services/vsop/admin/translations", cut.Markup);
         Assert.Contains("/services/vsop/admin/glossary", cut.Markup);
         Assert.Contains("/services/vsop/admin/navaids", cut.Markup);
         Assert.Contains("/services/vsop/admin/attachments", cut.Markup);
@@ -112,7 +113,7 @@ public class AdminNavTests : TestContext
 
     /// <summary>
     /// ⚠️ <b>Il cancello, pagina per pagina.</b> È la rete della slice 5: se domani qualcuno abbassa (o alza)
-    /// una voce senza volerlo, qui si vede — e si vede <b>quale</b>. Le dodici voci dell'Editor sono il
+    /// una voce senza volerlo, qui si vede — e si vede <b>quale</b>. Le undici voci dell'Editor sono il
     /// contenuto documentale; le cinque dell'admin toccano import, sicurezza e diagnosi.
     /// </summary>
     [Theory]
@@ -123,7 +124,6 @@ public class AdminNavTests : TestContext
     [InlineData("/services/vsop/admin/transfers", VipiRole.Editor)]
     [InlineData("/services/vsop/versions", VipiRole.Editor)]
     [InlineData("/services/vsop/admin/pending", VipiRole.Editor)]
-    [InlineData("/services/vsop/admin/translations", VipiRole.Editor)]
     [InlineData("/services/vsop/admin/glossary", VipiRole.Editor)]
     [InlineData("/services/vsop/admin/navaids", VipiRole.Editor)]
     [InlineData("/services/vsop/admin/attachments", VipiRole.Editor)]
@@ -156,15 +156,16 @@ public class AdminNavTests : TestContext
         return ctx.RenderComponent<AdminNav>().Markup;
     }
 
-    /// <summary>Un editor vede le sue dodici voci e nessuna delle cinque dell'admin.</summary>
+    /// <summary>Un editor vede le sue undici voci e nessuna delle cinque dell'admin.</summary>
     [Fact]
-    public void Un_editor_vede_dodici_voci()
+    public void Un_editor_vede_undici_voci()
     {
         var cut = Render(VipiRole.Editor, url: "http://localhost/services/vsop/versions");
 
         // ⚠️ 12 dalla fusione: la biblioteca allegati e il catalogo degli spazi aerei sono tutt'e due
         // contenuto documentale, come le radioassistenze. Vedi la nota sul conteggio dell'admin.
-        Assert.Equal(12, cut.Find("nav.admin-nav").QuerySelectorAll(".an-link").Length);
+        // ⚠️ 11 dal 1 settembre 2026: glossario e registro delle traduzioni sono una pagina sola.
+        Assert.Equal(11, cut.Find("nav.admin-nav").QuerySelectorAll(".an-link").Length);
         Assert.DoesNotContain("/services/vsop/admin/permissions", cut.Markup);
         Assert.DoesNotContain("/services/vsop/admin/diagnostics", cut.Markup);
     }

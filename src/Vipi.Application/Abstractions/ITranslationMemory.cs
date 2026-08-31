@@ -9,6 +9,29 @@ public sealed record TranslationReviewRow(
     int Id, string SourceText, string TargetText, TranslationOrigin Origin,
     DateTime? ReviewedUtc, int? ReviewedByUserId);
 
+/// <summary>In che veste un documento contiene una frase.</summary>
+public enum UsoDelTesto
+{
+    /// <summary>Nella prosa di un blocco.</summary>
+    Prosa,
+
+    /// <summary>In una cella di tabella (<c>BodyJson</c>).</summary>
+    Tabella,
+
+    /// <summary>Come titolo di una sezione.</summary>
+    Titolo,
+}
+
+/// <summary>
+/// Un documento che contiene una certa frase, e dove. Una riga <b>per documento</b>: se la frase ci sta in
+/// tre posti resta una riga sola, perché la domanda di chi corregge è «quali documenti tocco», non «quante
+/// volte».
+/// </summary>
+public sealed record UsoInDocumento(int DocumentId, string Titolo, UsoDelTesto Dove);
+
+/// <summary>Una frase della memoria che contiene una formula di glossario.</summary>
+public sealed record FraseConFormula(string SourceText, string TargetText, TranslationOrigin Origin);
+
 /// <summary>Una traduzione già in memoria: il testo e da chi viene.</summary>
 /// <param name="TargetText">La traduzione.</param>
 /// <param name="Origin">Macchina o persona. <see cref="TranslationOrigin.Human"/> è definitivo.</param>
@@ -55,8 +78,26 @@ public interface ITranslationMemory
     /// pagina vuole vedere cio' che nessuno ha ancora guardato, non l'ordine di inserimento.
     /// </summary>
     /// <param name="soloDaRileggere">Solo quelle prodotte dalla macchina e mai riviste.</param>
+    /// <param name="cerca">
+    /// Testo da cercare nella frase o nella sua resa, senza distinzione di maiuscole. <c>null</c> o vuoto =
+    /// nessun filtro.
+    /// <para>⚠️ La ricerca è <b>qui</b> e non a valle sulle righe già caricate, ed è la differenza fra una
+    /// funzione e una bugia: la pagina ne mostra <see cref="ListForReviewAsync"/> un lotto per volta, e un
+    /// filtro applicato al lotto direbbe «non c'è» di una frase che c'è, alla riga 101.</para>
+    /// </param>
+    /// <param name="salta">Quante righe saltare: è la paginazione del «carica altre».</param>
     Task<IReadOnlyList<TranslationReviewRow>> ListForReviewAsync(
-        string sourceLang, string targetLang, bool soloDaRileggere, int limite, CancellationToken ct = default);
+        string sourceLang, string targetLang, bool soloDaRileggere, int limite,
+        string? cerca = null, int salta = 0, CancellationToken ct = default);
+
+    /// <summary>
+    /// Quante righe risponderebbero a questi stessi filtri: il <b>M</b> di «N di M».
+    /// <para>⚠️ Non è <see cref="ContaAsync"/>: quello conta la coppia di lingue intera e serve alla
+    /// pastiglia in testata; questo conta ciò che si sta guardando, filtro e ricerca compresi.</para>
+    /// </summary>
+    Task<int> ContaPerRevisioneAsync(
+        string sourceLang, string targetLang, bool soloDaRileggere, string? cerca = null,
+        CancellationToken ct = default);
 
     /// <summary>
     /// <b>Tutte</b> le traduzioni di una coppia di lingue: impronta → testo tradotto.
@@ -99,6 +140,44 @@ public interface ITranslationMemory
     /// memoria è indicizzata così.</para>
     /// </summary>
     Task<int> DocumentiToccatiAsync(string sourceText, CancellationToken ct = default);
+
+    /// <summary>
+    /// <b>Dove si usa</b>: per ognuna delle frasi chieste, i documenti che la contengono.
+    ///
+    /// <para>
+    /// ⚠️ <b>Si chiede per un LOTTO di frasi, non per una.</b> <see cref="DocumentiToccatiAsync"/> legge il
+    /// corpus editoriale intero per rispondere di <i>una</i> frase: chiamarlo cento volte, una per riga a
+    /// schermo, sarebbe cento letture dello stesso corpus. Qui il corpus si legge <b>una volta</b> e si
+    /// risponde per tutte — che è anche la ragione per cui la pastiglia col numero si può mostrare in
+    /// elenco invece che solo aprendo una riga.
+    /// </para>
+    ///
+    /// <para>⚠️ Le frasi senza nessun documento <b>compaiono lo stesso</b>, con la lista vuota: «zero» è una
+    /// risposta, e una chiave mancante costringerebbe ogni chiamante a distinguere «non l'ho chiesto» da
+    /// «non c'è».</para>
+    /// </summary>
+    Task<IReadOnlyDictionary<string, IReadOnlyList<UsoInDocumento>>> DoveSiUsanoAsync(
+        IReadOnlyCollection<string> sourceTexts, CancellationToken ct = default);
+
+    /// <summary>
+    /// Le frasi della memoria che contengono questa formula di glossario, dalla più recente.
+    ///
+    /// <para>⚠️ <b>Tutte</b>, non solo le automatiche: la domanda è «dove compare questa formula», e una
+    /// frase corretta a mano la contiene esattamente come una tradotta dalla macchina. È una domanda
+    /// diversa da quella di <see cref="ContaConLaFormulaAsync"/>, che chiede invece quante traduzioni
+    /// <i>cambierebbero</i> rifacendole — e per quello le umane non contano, perché non si rifanno.</para>
+    /// </summary>
+    Task<IReadOnlyList<FraseConFormula>> FrasiConLaFormulaAsync(
+        string sourceLang, string targetLang, string formula, int limite, CancellationToken ct = default);
+
+    /// <summary>
+    /// Quante frasi contengono ciascuna di queste formule: la pastiglia di ogni riga del glossario, in una
+    /// lettura sola. Le formule senza nessuna frase compaiono con zero, per la stessa ragione di
+    /// <see cref="DoveSiUsanoAsync"/>.
+    /// </summary>
+    Task<IReadOnlyDictionary<string, int>> ContaFrasiPerFormuleAsync(
+        string sourceLang, string targetLang, IReadOnlyCollection<string> formule,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Quante voci <b>prodotte dalla macchina</b> contengono questa formula nel testo sorgente.

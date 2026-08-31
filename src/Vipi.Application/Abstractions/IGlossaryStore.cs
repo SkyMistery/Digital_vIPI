@@ -16,8 +16,13 @@ namespace Vipi.Application.Abstractions;
 public interface IGlossaryStore
 {
     /// <summary>Le voci di una direzione, dalla più recente. Vuoto se non ne è mai stata scritta nessuna.</summary>
+    /// <param name="cerca">
+    /// Testo da cercare nella formula o nella sua resa, senza distinzione di maiuscole. <c>null</c> o vuoto
+    /// = nessun filtro. Sta qui e non nel chiamante per la stessa ragione della memoria: il giorno che le
+    /// voci non ci stanno più in una schermata, un filtro a valle risponderebbe sul pezzo caricato.
+    /// </param>
     Task<IReadOnlyList<GlossaryTerm>> ListAsync(
-        string sourceLang, string targetLang, CancellationToken ct = default);
+        string sourceLang, string targetLang, string? cerca = null, CancellationToken ct = default);
 
     /// <summary>
     /// Scrive o corregge una voce. La chiave è la frase sorgente <b>senza distinzione di maiuscole</b>:

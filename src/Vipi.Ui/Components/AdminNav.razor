@@ -68,8 +68,10 @@
         new("/services/vsop/versions",              "file",           "Nav_Docs",            "Grants_DocsDesc", VipiRole.Editor),
         new("/services/vsop/admin/pending",         "warning",        "Pend_Title",          "Pend_Title", VipiRole.Editor),
         new("/services/vsop/admin/tasks",           "clipboard",      "Nav_Tasks",           "Grants_TasksDesc"),
-        new("/services/vsop/admin/translations",    "book-open",      "Tr_AdminTitle",       "Tr_AdminTitle", VipiRole.Editor),
-        new("/services/vsop/admin/glossary",        "radio",           "Gl_Title",            "Gl_Subtitle", VipiRole.Editor),
+        // ⚠️ UNA voce sola dal 1 settembre 2026: il glossario e il registro delle traduzioni sono la stessa
+        // pagina, e il vecchio indirizzo del registro porta lì. Due voci per un indirizzo solo sarebbero due
+        // modi di dire la stessa cosa in una barra che esiste per dire dove si è.
+        new("/services/vsop/admin/glossary",        "book-open",      "Gt_Title",            "Gt_Subtitle", VipiRole.Editor),
         new("/services/vsop/admin/navaids",         "radio",          "Nav_AdminNav",        "Nav_AdminSubtitle", VipiRole.Editor),
         new("/services/vsop/admin/attachments",     "paperclip",      "Att_Nav",             "Att_Subtitle", VipiRole.Editor),
         new("/services/vsop/admin/airspace",        "map",            "Asp_AdminNav",        "Asp_AdminSubtitle", VipiRole.Editor),
