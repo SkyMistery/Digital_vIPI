@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -34,8 +34,11 @@ public class ParitaQuattroDocumentiTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
-    public ParitaQuattroDocumentiTests() =>
+    public ParitaQuattroDocumentiTests()
+    {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new ChiaveComeValore());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+    }
 
     /// <summary>I profili dei quattro documenti previsti da direttiva. La vIPI ACC ne ha due — è l'unica a
     /// blocchi — e ci sono tutti e due: quel che vale per un documento deve valere per entrambi i suoi.</summary>

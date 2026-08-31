@@ -77,6 +77,7 @@ public class VloaDocumentViewTests : TestContext
     {
         var fake = new FakeDerivation();
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddSingleton<IOnlineAtcProvider>(new NoOneOnline());
         Services.AddSingleton<IEditAuthorizationService>(new NoEditor());
         Services.AddSingleton<IVloaDerivationService>(fake);

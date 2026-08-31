@@ -32,25 +32,25 @@
         <div class="wx-view">
             <div class="metar"><span class="metar-live"><span class="dot"></span> LIVE</span> @Metar.Raw</div>
             <div class="metar-parse">
-                <span class="mp"><span class="muted">@L["Airport_Wind"]</span><b>@(Metar.Wind?.Label ?? "—")</b></span>
-                <span class="mp"><span class="muted">@L["Airport_Visibility"]</span><b>@(Metar.Visibility ?? "—")</b></span>
-                <span class="mp"><span class="muted">@L["Airport_Clouds"]</span><b>@Metar.CloudsLabel</b></span>
+                <span class="mp"><span class="muted">@T("Airport_Wind")</span><b>@(Metar.Wind?.Label ?? "—")</b></span>
+                <span class="mp"><span class="muted">@T("Airport_Visibility")</span><b>@(Metar.Visibility ?? "—")</b></span>
+                <span class="mp"><span class="muted">@T("Airport_Clouds")</span><b>@Metar.CloudsLabel</b></span>
                 <span class="mp"><span class="muted">QNH</span><b>@(Metar.QnhHpa is int q ? $"{q} hPa" : "—")</b></span>
                 <span class="mp"><span class="muted">Temp/DP</span><b>@(Metar.TempC is int t ? $"{t} / {Metar.DewpointC} °C" : "—")</b></span>
                 @if (Metar.Weather is not null)
                 {
-                    <span class="mp"><span class="muted">@L["Airport_Weather"]</span><b>@Metar.Weather</b></span>
+                    <span class="mp"><span class="muted">@T("Airport_Weather")</span><b>@Metar.Weather</b></span>
                 }
                 @if (Metar.Trend is not null)
                 {
-                    <span class="mp"><span class="muted">@L["Airport_Trend"]</span><b>@Metar.Trend</b></span>
+                    <span class="mp"><span class="muted">@T("Airport_Trend")</span><b>@Metar.Trend</b></span>
                 }
             </div>
         </div>
     }
     else if (_tab == "metar")
     {
-        <div class="empty-ph"><span class="ei">🌫️</span><div><b>@string.Format(L["Airport_MetarNA"], Icao)</b></div></div>
+        <div class="empty-ph"><span class="ei">🌫️</span><div><b>@string.Format(T("Airport_MetarNA"), Icao)</b></div></div>
     }
 
     @if (_tab == "taf" && Taf is not null)
@@ -59,7 +59,7 @@
             <div class="metar"><span class="metar-live"><span class="dot"></span> LIVE</span> @Taf.Raw</div>
             @if (Taf.ValidityRaw is not null)
             {
-                <div class="taf-valid"><Icon Name="clock" /> @L["Airport_Validity"]: <b style="margin:0 4px">@TafPeriod.Format(Taf.ValidityRaw, DateTime.UtcNow)</b></div>
+                <div class="taf-valid"><Icon Name="clock" /> @T("Airport_Validity"): <b style="margin:0 4px">@TafPeriod.Format(Taf.ValidityRaw, DateTime.UtcNow)</b></div>
             }
             <div class="taf-tl">
                 @foreach (var seg in Taf.Segments)
@@ -68,29 +68,29 @@
                     <div class="taf-row @cls">
                         <div class="taf-head">
                             <span class="taf-kind @cls">@TafLabel(seg)</span>
-                            <span class="taf-when">@(seg.PeriodRaw is null ? L["Airport_FromValidityStart"].Value : TafPeriod.Format(seg.PeriodRaw, DateTime.UtcNow))</span>
+                            <span class="taf-when">@(seg.PeriodRaw is null ? T("Airport_FromValidityStart") : TafPeriod.Format(seg.PeriodRaw, DateTime.UtcNow))</span>
                             <span class="taf-raw">@seg.Raw</span>
                         </div>
                         <div class="taf-parse">
                             @if (seg.Wind is not null)
                             {
-                                <span class="mp"><span class="muted">@L["Airport_Wind"]</span><b>@seg.Wind.Label</b></span>
+                                <span class="mp"><span class="muted">@T("Airport_Wind")</span><b>@seg.Wind.Label</b></span>
                             }
                             @if (seg.Wind?.GustKt is int g)
                             {
-                                <span class="mp"><span class="muted">@L["Airport_Gusts"]</span><b>@g kt</b></span>
+                                <span class="mp"><span class="muted">@T("Airport_Gusts")</span><b>@g kt</b></span>
                             }
                             @if (seg.Visibility is not null)
                             {
-                                <span class="mp"><span class="muted">@L["Airport_Visibility"]</span><b>@seg.Visibility</b></span>
+                                <span class="mp"><span class="muted">@T("Airport_Visibility")</span><b>@seg.Visibility</b></span>
                             }
                             @if (seg.Clouds.Count > 0)
                             {
-                                <span class="mp"><span class="muted">@L["Airport_Clouds"]</span><b>@string.Join(" · ", seg.Clouds.Select(c => c.Label))</b></span>
+                                <span class="mp"><span class="muted">@T("Airport_Clouds")</span><b>@string.Join(" · ", seg.Clouds.Select(c => c.Label))</b></span>
                             }
                             @if (seg.Weather is not null)
                             {
-                                <span class="mp"><span class="muted">@L["Airport_Weather"]</span><b>@seg.Weather</b></span>
+                                <span class="mp"><span class="muted">@T("Airport_Weather")</span><b>@seg.Weather</b></span>
                             }
                         </div>
                     </div>
@@ -99,14 +99,35 @@
         </div>
     }
 
-    <p class="muted" style="font-size:12px;margin:10px 0 0" data-utc="@VipiTime.Iso(Report.AsOf?.UtcDateTime)" data-utc-fmt="hms">@L["AppLive_UpdatedAt", (Report.AsOf is { } agg ? VipiTime.Zs(agg.UtcDateTime) : "—")]</p>
+    <p class="muted" style="font-size:12px;margin:10px 0 0" data-utc="@VipiTime.Iso(Report.AsOf?.UtcDateTime)" data-utc-fmt="hms">@string.Format(T("AppLive_UpdatedAt"), (Report.AsOf is { } agg ? VipiTime.Zs(agg.UtcDateTime) : "—"))</p>
 }
 else
 {
-    <div class="empty-ph"><span class="ei">🌫️</span><div><b>@string.Format(L["Airport_WxNA"], Icao)</b></div><div class="muted" style="font-size:12.5px">@L["Airport_WxNAHint"]</div></div>
+    <div class="empty-ph"><span class="ei">🌫️</span><div><b>@string.Format(T("Airport_WxNA"), Icao)</b></div><div class="muted" style="font-size:12.5px">@T("Airport_WxNAHint")</div></div>
 }
 
 @code {
+    /// <summary>
+    /// La lingua in cui il documento è <b>bloccato</b>, o null se segue chi legge (carta
+    /// <c>docs/feature/2026-08-31-lingua-bloccata.md</c> §4).
+    ///
+    /// <para>⚠️ <b>Un'isola interattiva non lo sa da sé.</b> Questo componente ha un <c>@@rendermode</c>: vive
+    /// in un CIRCUITO suo, con uno scope di DI suo, e la lingua imposta alla richiesta della pagina lì non
+    /// arriva. Misurato a schermo il 31 agosto 2026 su LIBD bloccato in inglese: il documento era tutto
+    /// inglese e il riquadro METAR diceva ancora «VENTO / VISIBILITÀ / NUBI».</para>
+    ///
+    /// <para>⚠️ E si risolve <b>a mano</b> invece di imporre la lingua al contesto del circuito: in Blazor
+    /// Server uno scoped vive quanto il circuito, non quanto la pagina, e imporla lì la lascerebbe accesa
+    /// anche sulle pagine visitate dopo.</para>
+    /// </summary>
+    [Parameter] public string? Lingua { get; set; }
+
+    /// <summary>Una stringa nella lingua del documento se è bloccato, altrimenti in quella di chi legge.</summary>
+    private string T(string chiave) =>
+        Lingua is { Length: > 0 } l
+            ? Vipi.Ui.RisorseCondivise.Testo(chiave, System.Globalization.CultureInfo.GetCultureInfo(l))
+            : L[chiave].Value;
+
     [Parameter, EditorRequired] public string Icao { get; set; } = "";
     [Parameter] public WeatherReport? Report { get; set; }
     [Parameter] public ParsedMetar? Metar { get; set; }

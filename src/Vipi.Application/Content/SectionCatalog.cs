@@ -1,4 +1,4 @@
-namespace Vipi.Application.Content;
+﻿namespace Vipi.Application.Content;
 
 /// <summary>
 /// Catalogo UNIFICATO delle sezioni documentali (doc refactor 08a). Fonte unica per: la natura di ogni sezione
@@ -117,18 +117,23 @@ public static class SectionCatalog
 
     // Corpo prodotto dalla PAGINA (doc 13 §3a): derivate + editoriali-strutturate. Scritto per esteso su ogni
     // voce perché non è deducibile dalla natura — «regulated» è un picker sulla vIPI ACC/APP e prosa sulla vLOA.
+    // ⚠️ `en:` è il titolo INGLESE, e si scrive per esteso su ogni voce italiana: un titolo di catalogo non
+    // passa mai dal traduttore automatico (non è un segmento del documento), quindi se non sta qui non esiste
+    // in inglese da nessuna parte — e una vIPI d'aeroporto letta in inglese torna ad avere le testate in
+    // italiano a copertura dichiarata completa. `en: null` vuol dire «uguale nelle due lingue» ed è una
+    // risposta legittima solo per le SIGLE (AOR, SID, MRVA); ProfiloBilingueTests non accetta altro.
     private static SectionDescriptor D(string key, string title, int order,
-                                       IReadOnlyList<SectionDescriptor>? children = null) =>
-        new(key, title, order, KindOf(key), SectionBodySource.Blocks, children);
+                                       IReadOnlyList<SectionDescriptor>? children = null, string? en = null) =>
+        new(key, title, order, KindOf(key), SectionBodySource.Blocks, children, en);
 
     private static SectionDescriptor H(string key, string title, int order,
-                                       IReadOnlyList<SectionDescriptor>? children = null) =>
-        new(key, title, order, KindOf(key), SectionBodySource.Host, children);
+                                       IReadOnlyList<SectionDescriptor>? children = null, string? en = null) =>
+        new(key, title, order, KindOf(key), SectionBodySource.Host, children, en);
 
     /// <summary>Scheda dalla pagina IN TESTA, e sotto i blocchi editoriali della sezione.</summary>
     private static SectionDescriptor HB(string key, string title, int order,
-                                        IReadOnlyList<SectionDescriptor>? children = null) =>
-        new(key, title, order, KindOf(key), SectionBodySource.HostAndBlocks, children);
+                                        IReadOnlyList<SectionDescriptor>? children = null, string? en = null) =>
+        new(key, title, order, KindOf(key), SectionBodySource.HostAndBlocks, children, en);
 
     // Membership per profilo (key, titolo, ordine). Universali a tutti: aor/frequencies/coordination/regulated/
     // operationaltechnique/validity. ACC/APP in italiano, vLOA in inglese (lettera di accordo bilaterale).
@@ -141,16 +146,16 @@ public static class SectionCatalog
     /// </summary>
     private static readonly IReadOnlyList<SectionDescriptor> Registry_App = new[]
     {
-        H("separations", "Separazioni", 1),
-        H("configurations", "Configurazioni", 2),
+        H("separations", "Separazioni", 1, en: "Separations"),
+        H("configurations", "Configurazioni", 2, en: "Configurations"),
         H("aor", "AOR", 3),
-        H("frequencies", "Frequenze", 4),
+        H("frequencies", "Frequenze", 4, en: "Frequencies"),
         H("minima", "MRVA", 5),
         H("vfr", "VFR", 6),
-        H("coordination", "Coordinamenti", 7),
-        H("regulated", "Aree regolamentate", 8),
-        D("operationaltechnique", "Procedure generali", 9),
-        HB("validity", "Validità e revisione", 10),
+        H("coordination", "Coordinamenti", 7, en: "Coordination"),
+        H("regulated", "Aree regolamentate", 8, en: "Regulated areas"),
+        D("operationaltechnique", "Procedure generali", 9, en: "General procedures"),
+        HB("validity", "Validità e revisione", 10, en: "Validity and revision"),
     };
 
     private static readonly IReadOnlyDictionary<SectionProfile, IReadOnlyList<SectionDescriptor>> Registry =
@@ -159,28 +164,28 @@ public static class SectionCatalog
             [SectionProfile.App] = Registry_App,
             [SectionProfile.AccAerovia] = new[]
             {
-                H("separations", "Separazioni radar", 1),
-                H("configurations", "Configurazioni", 2),
+                H("separations", "Separazioni radar", 1, en: "Radar separation"),
+                H("configurations", "Configurazioni", 2, en: "Configurations"),
                 H("aor", "AOR", 3),
-                H("frequencies", "Frequenze", 4),
+                H("frequencies", "Frequenze", 4, en: "Frequencies"),
                 H("minima", "MRVA", 5),
-                H("coordination", "Coordinamenti", 7),
-                H("regulated", "Aree regolamentate", 8),
-                D("operationaltechnique", "Procedure generali", 9),
-                HB("validity", "Validità e revisione", 10),
+                H("coordination", "Coordinamenti", 7, en: "Coordination"),
+                H("regulated", "Aree regolamentate", 8, en: "Regulated areas"),
+                D("operationaltechnique", "Procedure generali", 9, en: "General procedures"),
+                HB("validity", "Validità e revisione", 10, en: "Validity and revision"),
             },
             [SectionProfile.AccAppBlock] = new[]
             {
-                H("separations", "Separazioni", 1),
-                H("configurations", "Configurazioni", 2),
+                H("separations", "Separazioni", 1, en: "Separations"),
+                H("configurations", "Configurazioni", 2, en: "Configurations"),
                 H("aor", "AOR", 3),
-                H("frequencies", "Frequenze", 4),
+                H("frequencies", "Frequenze", 4, en: "Frequencies"),
                 H("minima", "MRVA", 5),
                 H("vfr", "VFR", 6),
-                H("coordination", "Coordinamenti", 7),
-                H("regulated", "Aree regolamentate", 8),
-                D("operationaltechnique", "Procedure generali", 9),
-                HB("validity", "Validità e revisione", 10),
+                H("coordination", "Coordinamenti", 7, en: "Coordination"),
+                H("regulated", "Aree regolamentate", 8, en: "Regulated areas"),
+                D("operationaltechnique", "Procedure generali", 9, en: "General procedures"),
+                HB("validity", "Validità e revisione", 10, en: "Validity and revision"),
             },
             // vLOA: titoli e ORDINE sono quelli del documento reale (doc 13 §3c). Fino al doc 13 questo profilo non
             // lo leggeva nessuno — la struttura nasceva da VloaSections — e i due elenchi erano divergenti: mancava
@@ -203,13 +208,13 @@ public static class SectionCatalog
             [SectionProfile.Airport] = new[]
             {
                 H("weather", "METAR & TAF", 1),
-                H("runwayrules", "Regole piste", 2),
-                H("transition", "Quote di transizione", 3),
-                H("frequencies", "Frequenze", 4),
-                H("runways", "Piste", 5),
+                H("runwayrules", "Regole piste", 2, en: "Runway selection rules"),
+                H("transition", "Quote di transizione", 3, en: "Transition altitude and levels"),
+                H("frequencies", "Frequenze", 4, en: "Frequencies"),
+                H("runways", "Piste", 5, en: "Runways"),
                 H("sids", "SID", 6),
-                D("operationaltechnique", "Procedure generali", 7),
-                HB("validity", "Validità e revisione", 8),
+                D("operationaltechnique", "Procedure generali", 7, en: "General procedures"),
+                HB("validity", "Validità e revisione", 8, en: "Validity and revision"),
             },
 
             // --- vSOP MILITARE d'aeroporto (carta 2026-08-27) ------------------------------------------
@@ -229,42 +234,42 @@ public static class SectionCatalog
                 // ✚ Non e' nel PDF: meteo live, sempre-live, costo zero, nascondibile.
                 H("weather", "METAR & TAF", 1),
 
-                D("generaldata", "Dati generali", 2, new[]
+                D("generaldata", "Dati generali", 2, en: "General data", children: new[]
                 {
                     // Scheda + blocchi: la tabella in testa, e sotto la prosa che i quindici PDF hanno già.
-                    HB("navaids", "Radioassistenze", 1),
+                    HB("navaids", "Radioassistenze", 1, en: "Navigation aids"),
                     // Derivata: le posizioni IVAO dello scalo. Blocchi: CRC/GCI/AEW e l'APP di un altro
                     // campo, che il catalogo settori non ha. Sui campi militari i blocchi pesano PIU' della
                     // scheda -- misurato su LIPI Rivolto.
-                    HB("frequencies", "Frequenze ATC/CRC", 2),
-                    HB("diversion", "Aeroporti alternati", 3),
+                    HB("frequencies", "Frequenze ATC/CRC", 2, en: "ATC/CRC frequencies"),
+                    HB("diversion", "Aeroporti alternati", 3, en: "Diversion airfields"),
                     // Derivata: ident, lunghezza e QFU dall'anagrafica. Blocchi: le coordinate delle
                     // soglie, che AirportRunway non ha.
-                    HB("runways", "Piste", 4),
+                    HB("runways", "Piste", 4, en: "Runways"),
                     // ✚ Non e' nel PDF: TA e tabella dei livelli per fascia QNH.
-                    H("transition", "Quote di transizione", 5),
+                    H("transition", "Quote di transizione", 5, en: "Transition altitude and levels"),
                     // Scheda + blocchi. ⚠️ Restano EDITORIALI: il contenuto è tutto nel payload, quindi la
                     // release lo fotografa già copiando i blocchi — non c'è nessuna derivazione da congelare.
-                    HB("callsigns", "Nominativi", 6),
+                    HB("callsigns", "Nominativi", 6, en: "Callsigns"),
                 }),
 
-                D("groundprocedures", "Procedure di terra", 3, new[]
+                D("groundprocedures", "Procedure di terra", 3, en: "Ground procedures", children: new[]
                 {
-                    HB("parkings", "Parcheggi", 1),
-                    D("enginestart", "Messa in moto", 2),
-                    D("taxiing", "Rullaggio", 3),
-                    D("arming", "Armamento/disarmo", 4),
+                    HB("parkings", "Parcheggi", 1, en: "Parking"),
+                    D("enginestart", "Messa in moto", 2, en: "Engine start"),
+                    D("taxiing", "Rullaggio", 3, en: "Taxiing"),
+                    D("arming", "Armamento/disarmo", 4, en: "Arming/de-arming"),
                 }),
 
-                D("flightprocedures", "Procedure di volo", 4, new[]
+                D("flightprocedures", "Procedure di volo", 4, en: "Flight procedures", children: new[]
                 {
-                    D("takeoff", "Restrizioni al decollo", 1),
-                    D("sfo", "Circuito SFO/precauzionale", 2),
-                    D("commfail", "Avaria comunicazioni", 3),
-                    D("gca", "Circuito GCA", 4),
-                    D("vfrjet", "Porte e circuiti VFR jet", 5),
-                    D("ifrsignificant", "Punti significativi strumentali", 6),
-                    D("gat", "Partenze/arrivi IFR GAT", 7),
+                    D("takeoff", "Restrizioni al decollo", 1, en: "Take-off restrictions"),
+                    D("sfo", "Circuito SFO/precauzionale", 2, en: "SFO/precautionary pattern"),
+                    D("commfail", "Avaria comunicazioni", 3, en: "Radio failure"),
+                    D("gca", "Circuito GCA", 4, en: "GCA pattern"),
+                    D("vfrjet", "Porte e circuiti VFR jet", 5, en: "VFR jet gates and patterns"),
+                    D("ifrsignificant", "Punti significativi strumentali", 6, en: "IFR significant points"),
+                    D("gat", "Partenze/arrivi IFR GAT", 7, en: "GAT IFR departures/arrivals"),
                     // ⚠️ CONTENUTO NUOVO, non trascrizione: una sezione QRA/Scramble non esiste in nessuno
                     // dei quindici PDF -- QRA compare solo come colonna, e solo sulle quattro basi di
                     // difesa aerea (Amendola, Gioia, Istrana, Grosseto). Si semina su tutti perche'
@@ -274,15 +279,15 @@ public static class SectionCatalog
 
                 // La mappa AoR con le chip per area E' GIA' quello che il PDF disegna a mano, una figura
                 // per volta: qui il riuso porta il motore, non solo la chiave.
-                HB("regulated", "Aree di lavoro", 5, new[]
+                HB("regulated", "Aree di lavoro", 5, en: "Working areas", children: new[]
                 {
-                    D("operationaltechnique", "Procedure generali", 1),
+                    D("operationaltechnique", "Procedure generali", 1, en: "General procedures"),
                     // Aree tattiche dove si vola il BOAT: parla di AREE, quindi sta sotto la sezione che le
                     // disegna. Presente in 9 SOP su 15.
-                    D("lowlevel", "Bassa quota (BOAT)", 2),
+                    D("lowlevel", "Bassa quota (BOAT)", 2, en: "Low level (BOAT)"),
                 }),
 
-                HB("validity", "Validità e revisione", 6),
+                HB("validity", "Validità e revisione", 6, en: "Validity and revision"),
             },
 
             // vSOP militare di un APP non remotizzato: PER ORA le stesse sezioni del civile. Vedi sotto il

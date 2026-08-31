@@ -2612,6 +2612,21 @@
   <data name="Work_AssignMe" xml:space="preserve"><value>me</value></data>
   <data name="Work_AssignDue" xml:space="preserve"><value>entro</value></data>
   <data name="Work_AssignConfirm" xml:space="preserve"><value>Assegna</value></data>
+  <data name="TrEd_Locked" xml:space="preserve"><value>Questo documento si legge in una lingua sola: non c’è niente da tradurre, e quindi niente da rivedere. Il blocco si toglie dal pannello «Versioni e release».</value></data>
+  <data name="Callout_Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="Callout_Warning" xml:space="preserve"><value>Attenzione</value></data>
+  <data name="Callout_Danger" xml:space="preserve"><value>Importante</value></data>
+  <data name="Callout_Note" xml:space="preserve"><value>Nota</value></data>
+  <data name="Lang_LockedTitle" xml:space="preserve"><value>Documento in una lingua sola</value></data>
+  <data name="Lang_LockedBody" xml:space="preserve"><value>Questo documento è pubblicato solo in {0} e non viene tradotto. Il selettore IT/EN cambia la lingua del sito, non quella del documento.</value></data>
+  <data name="Lang_NameIt" xml:space="preserve"><value>italiano</value></data>
+  <data name="Lang_NameEn" xml:space="preserve"><value>inglese</value></data>
+  <data name="Lang_LockLabel" xml:space="preserve"><value>Lingua di pubblicazione</value></data>
+  <data name="Lang_LockToggle" xml:space="preserve"><value>Pubblica in questa lingua soltanto</value></data>
+  <data name="Lang_LockHelp" xml:space="preserve"><value>Bloccata, la vIPI si legge sempre nella lingua in cui è scritta: niente traduzione automatica, in nessuna direzione. Il blocco spegne la traduzione, non la fa — un documento scritto in italiano non diventa inglese bloccandolo.</value></data>
+  <data name="Lang_SourceLabel" xml:space="preserve"><value>Lingua di redazione</value></data>
+  <data name="Lang_SourceHelp" xml:space="preserve"><value>La lingua in cui il documento si scrive. Cambiarla non traduce niente: dice da quale lingua si parte.</value></data>
+  <data name="Lang_Saved" xml:space="preserve"><value>Lingua aggiornata.</value></data>
   <data name="Tr_NoticeTitle" xml:space="preserve"><value>Pagina tradotta automaticamente</value></data>
   <data name="Tr_NoticeMachine" xml:space="preserve"><value>La traduzione l'ha fatta una macchina e nessuno l'ha ancora riletta. Verifica la fraseologia sull'originale prima di usarla in servizio.</value></data>
   <data name="Tr_NoticePartial" xml:space="preserve"><value>{0} frasi su {1} non sono ancora tradotte e restano nella lingua originale.</value></data>

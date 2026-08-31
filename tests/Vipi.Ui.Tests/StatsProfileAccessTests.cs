@@ -139,6 +139,7 @@ public class StatsProfileAccessTests : TestContext
                                                  int io = 704798)
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddSingleton<IAtcStatsQueries>(archivio);
         Services.AddSingleton<IStatsSettingsStore>(new FakeSettings());
         Services.AddSingleton<ICurrentUserProvider>(new FakeUser

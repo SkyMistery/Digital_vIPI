@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Application.Translation;
@@ -37,13 +37,21 @@ public sealed class EfTranslatableCorpus : ITranslatableCorpus
         var lingua = sourceLang.Equals("en", StringComparison.OrdinalIgnoreCase) ? Language.En : Language.It;
 
         // Due letture, non una per documento: il corpus si prende in blocco.
+        // ⚠️ I documenti a lingua BLOCCATA restano fuori: la loro prosa non si mostrerà mai tradotta, e
+        // mandarla al motore vorrebbe dire pagare dei caratteri per una risposta che nessuno leggerà — più
+        // righe nel Registro che chi rivede non saprebbe dove vanno a finire. È la stessa regola per cui il
+        // titolo del documento non è nel corpus.
+        // ⚠️ Una frase presente ANCHE in un documento non bloccato si traduce lo stesso: la memoria è
+        // indicizzata sulla frase, non sul documento. Qui non si nasconde un testo, si smette di chiederlo.
         var blocchi = await _db.ContentBlocks.AsNoTracking()
-            .Where(b => b.DocumentVersion!.Document!.Language == lingua)
+            .Where(b => b.DocumentVersion!.Document!.Language == lingua
+                        && !b.DocumentVersion!.Document!.LanguageLocked)
             .Select(b => new { b.Body, b.BodyJson })
             .ToListAsync(ct).ConfigureAwait(false);
 
         var titoliSezione = await _db.DocumentSections.AsNoTracking()
-            .Where(s => s.DocumentVersion!.Document!.Language == lingua)
+            .Where(s => s.DocumentVersion!.Document!.Language == lingua
+                        && !s.DocumentVersion!.Document!.LanguageLocked)
             .Select(s => s.Title)
             .ToListAsync(ct).ConfigureAwait(false);
 

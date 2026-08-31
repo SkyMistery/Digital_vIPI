@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -156,6 +156,7 @@ public sealed class EfEditingRepository : IEditingRepository
             Title = doc.Title,
             Sections = roots,
             Language = doc.Language,
+            LanguageLocked = doc.LanguageLocked,
         };
     }
 

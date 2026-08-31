@@ -1798,6 +1798,9 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("varchar(32)")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
+                    b.Property<bool>("LanguageLocked")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<string>("LastUpdatedAiracCycle")
                         .IsRequired()
                         .HasColumnType("longtext")

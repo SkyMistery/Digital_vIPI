@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Translation;
@@ -79,6 +79,7 @@ public class TranslationReviewPanelTests : TestContext
         // sbagliato. Registrando l'istanza come scoped si copre entrambe le strade.
         Services.AddScoped<IDocumentTranslationReview>(_ => revisione);
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         JSInterop.Mode = JSRuntimeMode.Loose;
         return revisione;
     }

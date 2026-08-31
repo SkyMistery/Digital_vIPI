@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Vipi.Domain;
 
 namespace Vipi.Application.Content;
@@ -18,11 +18,18 @@ public sealed record AccAssembledBlock(int BlockSectionId, AccBlock Block, IRead
 /// </summary>
 public static class AccDocumentAssembler
 {
-    public static IReadOnlyList<AccAssembledBlock> Assemble(EditableDocument doc) => Assemble(doc.Sections);
+    public static IReadOnlyList<AccAssembledBlock> Assemble(EditableDocument doc) =>
+        Assemble(doc.Sections, Codice(doc.Language));
 
     /// <summary>Assembla i blocchi da uno snapshot di release (RawDocument): mappa l'albero grezzo a EditableSection e
     /// riusa l'assemblaggio. Gli Id sezione dello snapshot non servono ai salvataggi (vista sola-lettura). Doc 08e-acc.</summary>
-    public static IReadOnlyList<AccAssembledBlock> Assemble(RawDocument raw) => Assemble(raw.Roots.Select(ToEditable).ToList());
+    public static IReadOnlyList<AccAssembledBlock> Assemble(RawDocument raw) =>
+        Assemble(raw.Roots.Select(ToEditable).ToList(), Codice(raw.Language));
+
+    /// <summary>La lingua del documento come codice, per i titoli di catalogo delle sezioni mai scritte.
+    /// Nulla → italiano, che è la lingua in cui nasce la vIPI ACC.</summary>
+    private static string Codice(Vipi.Domain.Language? lingua) =>
+        lingua == Vipi.Domain.Language.En ? "en" : "it";
 
     private static EditableSection ToEditable(RawSection s) => new()
     {
@@ -37,7 +44,10 @@ public static class AccDocumentAssembler
         Children = s.Children.OrderBy(c => c.Order).Select(ToEditable).ToList(),
     };
 
-    public static IReadOnlyList<AccAssembledBlock> Assemble(IReadOnlyList<EditableSection> roots)
+    /// <param name="lingua">La lingua del documento, per i titoli delle sezioni di catalogo che il documento
+    /// non ha mai scritto: quelle non stanno nel documento, quindi non le tocca né il traduttore né
+    /// l'editor.</param>
+    public static IReadOnlyList<AccAssembledBlock> Assemble(IReadOnlyList<EditableSection> roots, string lingua = "it")
     {
         var result = new List<AccAssembledBlock>();
         foreach (var blockSection in roots.OrderBy(s => s.Order))
@@ -74,7 +84,7 @@ public static class AccDocumentAssembler
                 Regulated = regulated,
                 Separations = separations,
                 VfrJson = vfrJson,
-                Sections = SectionsOf(blockSection, kind),
+                Sections = SectionsOf(blockSection, kind, lingua),
             };
             result.Add(new AccAssembledBlock(blockSection.Id, block, childIds));
         }
@@ -84,7 +94,7 @@ public static class AccDocumentAssembler
     // Sezioni del blocco nell'ordine del documento (doc 11 §3b). Ogni voce porta anche la vista editoriale
     // (blocchi + sotto-sezioni) per la resa condivisa: prima le sezioni libere erano appiattite a sola prosa —
     // tabelle, callout e sotto-sezioni sparivano dal documento pubblicato.
-    private static List<AccBlockSection> SectionsOf(EditableSection blockSection, AccBlockKind kind)
+    private static List<AccBlockSection> SectionsOf(EditableSection blockSection, AccBlockKind kind, string lingua)
     {
         var sections = blockSection.Children.OrderBy(c => c.Order)
             .Select(c => new AccBlockSection(c.Id, c.SectionKey, c.Title, c.IsHidden, ToSectionView(c), c.Audience))
@@ -97,7 +107,7 @@ public static class AccDocumentAssembler
         foreach (var desc in SectionCatalog.For(profile).OrderBy(d => d.Order))
             if (!present.Contains(desc.Key))
                 // Sezione di catalogo mai scritta: nasce «per tutti», come ogni sezione esistente.
-                sections.Add(new AccBlockSection(0, desc.Key, desc.Title, false, null, SectionAudience.Both));
+                sections.Add(new AccBlockSection(0, desc.Key, desc.TitleIn(lingua), false, null, SectionAudience.Both));
 
         return sections;
     }

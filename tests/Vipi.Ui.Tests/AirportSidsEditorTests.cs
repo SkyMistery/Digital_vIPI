@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Ui.Components.App;
@@ -30,6 +30,7 @@ public class AirportSidsEditorTests : TestContext
     public AirportSidsEditorTests()
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new ChiaveComeValore());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddLogging();
     }
 

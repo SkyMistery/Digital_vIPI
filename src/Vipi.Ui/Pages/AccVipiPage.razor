@@ -8,20 +8,22 @@
 @inject IOnlineAtcProvider Online
 @inject IAiracService Airac
 @inject IStringLocalizer<SharedResource> L
+@inject StringheDelSito Sito
 @inject Vipi.Application.Translation.AccVipiTranslator Translator
+@inject Vipi.Application.Content.ReadingLanguageContext Lingua
 @inject EnglishStrings En
 @using System.Globalization
 @using Vipi.Ui.Shared
 
 @if (_acc is null)
 {
-    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Common_UnknownAcc"]</p>@Acc</div></div></div>
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@Sito["Common_UnknownAcc"]</p>@Acc</div></div></div>
 }
 else if (_notAvailable)
 {
     <div class="wrap">
         <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>vIPI</b></div>
-        <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@L["AccVipi_NotAvailTitle"]</p>@((MarkupString)string.Format(L["AccVipi_NotAvailBody"], _acc.Code, $"/services/vsop/{Acc.ToLowerInvariant()}/editor"))</div></div>
+        <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@Sito["AccVipi_NotAvailTitle"]</p>@((MarkupString)string.Format(Sito["AccVipi_NotAvailBody"], _acc.Code, $"/services/vsop/{Acc.ToLowerInvariant()}/editor"))</div></div>
     </div>
 }
 else
@@ -30,8 +32,8 @@ else
     <div class="wrap">
         <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_data.AccCode</a> › <b>vIPI</b></div>
         <div class="doc-layout">
-            <aside class="toc" aria-label="@L["Doc_TocAria"]">
-                <p class="toc-h">@L["Common_Navigation"]</p>
+            <aside class="toc" aria-label="@Sito["Doc_TocAria"]">
+                <p class="toc-h">@Sito["Common_Navigation"]</p>
                 @foreach (var block in _data.Blocks)
                 {
                     <p class="toc-grp">@(block.Kind == AccBlockKind.Aerovia ? L["AccVipi_AirwaySectors"] : block.Title)</p>
@@ -45,16 +47,16 @@ else
             </aside>
 
             <div>
-                <PrintMeta Title="@($"vIPI — {_data.AccName}")" Subtitle="@L["AccVipi_Subtitle"]"
+                <PrintMeta Title="@($"vIPI — {_data.AccName}")" Subtitle="@Sito["AccVipi_Subtitle"]"
                            AiracCycle="@Cycle()" />
                 <div class="doc-head">
-                    <div><h1 class="page-h1" style="margin-bottom:2px">vIPI — @_data.AccName</h1><span class="muted">@L["AccVipi_Subtitle"]</span></div>
+                    <div><h1 class="page-h1" style="margin-bottom:2px">vIPI — @_data.AccName</h1><span class="muted">@Sito["AccVipi_Subtitle"]</span></div>
                     <div style="display:flex;align-items:center;gap:10px">
-                        <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
-                        <a class="btn ghost" href="/services/vsop/live">@L["Common_Operational"]</a>
+                        <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>
+                        <a class="btn ghost" href="/services/vsop/live">@Sito["Common_Operational"]</a>
                         @if (_canEdit)
                         {
-                            <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/editor@(TreeQuery())">@L["Common_Editor"]</a>
+                            <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/editor@(TreeQuery())">@Sito["Common_Editor"]</a>
                         }
                     </div>
                 </div>
@@ -68,6 +70,8 @@ else
 
                 @* Tradotto a macchina e non ancora riletto, o tradotto a metà: chi legge deve saperlo. *@
                 <TranslationNotice Coverage="_copertura" />
+                @* Oppure il contrario: NON tradotto, e voluto. *@
+                <LinguaBloccataNotice Lingua="@_bloccata" />
 
                 @* Il filtro di lettura pilota/ATC (carta vSOP militari §3). ⚠️ Vale su TUTTE le famiglie, non
                    solo sul vSOP militare: il flag è per-sezione e l'editor lo offre ovunque, quindi una
@@ -76,6 +80,8 @@ else
                 <AudienceChip Visibile="_haMarcate" Vista="_vista"
                               BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vipi" + (_mode.Kind == PreviewKind.Draft ? "?as=draft" : ""))" />
 
+                @* `lang` sul CONTENITORE dei blocchi: il chrome parla la lingua del sito, il documento la sua. *@
+                <div lang="@_bloccata">
                 @foreach (var block in _data.Blocks)
                 {
                     <h2 class="acc-block-h">@(block.Kind == AccBlockKind.Aerovia ? L["AccVipi_AirwaySectors"] : block.Title)</h2>
@@ -99,26 +105,27 @@ else
                         </CollapsibleBlock>
                     }
                 }
+                </div>
             </div>
 
-            <aside class="doc-rail" aria-label="@L["Doc_RailAria"]">
+            <aside class="doc-rail" aria-label="@Sito["Doc_RailAria"]">
                 <div class="rail-card">
-                    <h5><Icon Name="clipboard" /> @L["Common_Summary"]</h5>
+                    <h5><Icon Name="clipboard" /> @Sito["Common_Summary"]</h5>
                     @* Il ciclo del DOCUMENTO che si sta guardando, non quello di oggi (doc 13 §3h): il corpo è lo
                        snapshot congelato di una release, e scriverci accanto il ciclo corrente è un dato falso. *@
-                    <div class="rail-line"><span class="muted">@L["Common_AiracCycle"]</span><b>@Cycle()</b></div>
-                    <div class="rail-line"><span class="muted">@L["Common_AtcOnline"]</span>
+                    <div class="rail-line"><span class="muted">@Sito["Common_AiracCycle"]</span><b>@Cycle()</b></div>
+                    <div class="rail-line"><span class="muted">@Sito["Common_AtcOnline"]</span>
                         @{ var n = OnlineCount(); }
                         <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n}" : "off")</span>
                     </div>
                 </div>
                 <div class="rail-card">
-                    <h5><Icon Name="link" /> @L["Common_Links"]</h5>
+                    <h5><Icon Name="link" /> @Sito["Common_Links"]</h5>
                     <ul class="rail-links">
-                        <li><a href="/services/vsop">@L["Common_Home"]</a></li>
+                        <li><a href="/services/vsop">@Sito["Common_Home"]</a></li>
                         <li><a href="/services/vsop/@Acc.ToLowerInvariant()">ACC @_data.AccCode</a></li>
-                        <li><a href="/services/vsop/@Acc.ToLowerInvariant()/airports">@L["AccLanding_Airports"]</a></li>
-                        <li><a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@L["AccLanding_Apps"]</a></li>
+                        <li><a href="/services/vsop/@Acc.ToLowerInvariant()/airports">@Sito["AccLanding_Airports"]</a></li>
+                        <li><a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@Sito["AccLanding_Apps"]</a></li>
                         <li><a href="/services/vsop/@Acc.ToLowerInvariant()/vloa">vLoA</a></li>
                     </ul>
                 </div>
@@ -156,6 +163,13 @@ else
     // release ha congelato. Nulle in bozza — una bozza non ha ancora congelato niente, e la sorgente è quella
     // in cui la famiglia nasce.
     private Vipi.Domain.Language? _lingua;
+
+    /// <summary>Vero se questa vIPI si legge SEMPRE nella lingua in cui è scritta (carta lingua-bloccata).</summary>
+    private bool _bloccato;
+
+    /// <summary>La lingua del blocco, o null se il documento segue chi legge: serve all'avviso e al
+    /// <c>lang</c> del contenitore.</summary>
+    private string? _bloccata;
     private Dictionary<string, Dictionary<string, FrozenTranslation>>? _congelate;
     private Vipi.Application.Translation.TranslationCoverage _copertura =
         Vipi.Application.Translation.TranslationCoverage.Nessuna;
@@ -190,6 +204,7 @@ else
         _useFrozen = false;
         _notAvailable = false;
         _lingua = null;
+        _bloccato = false;
         _congelate = null;
         _copertura = Vipi.Application.Translation.TranslationCoverage.Nessuna;
         switch (_mode.Kind)
@@ -203,7 +218,7 @@ else
                 AccReleaseView? rv = null;
                 try { rv = await AccDoc.LoadForReleaseAsync(Acc, _mode.ReleaseId); }
                 catch (EditNotAllowedException) { }
-                if (rv is not null) { _data = rv.Data; _relCycle = rv.AiracCycle; _lingua = rv.Language; _congelate = rv.Translations; }   // anteprima release: derive live (no ids)
+                if (rv is not null) { _data = rv.Data; _relCycle = rv.AiracCycle; _lingua = rv.Language; _bloccato = rv.LanguageLocked; _congelate = rv.Translations; }   // anteprima release: derive live (no ids)
                 else { _mode = default; LoadViewModel(await AccDoc.LoadForViewAsync(Acc)); }
                 break;
             default:
@@ -211,6 +226,13 @@ else
                 break;
         }
         _canEdit = Authz.IsEditor;
+
+        // ---- In che lingua si legge QUESTA vIPI (carta 2026-08-31-lingua-bloccata.md §3-4) --------------
+        // ⚠️ PRIMA delle derivazioni, che qui sono parecchie e compongono prosa: frasi di coordinamento,
+        // etichette delle AoR, intestazioni. Deciderla in fondo, insieme alla traduzione, vorrebbe dire
+        // derivare nella lingua di chi guarda e tradurre il resto nell'altra.
+        var lettore = LinguaDelDocumento.Prepara(Lingua, _bloccato, _lingua, Vipi.Domain.Language.It);
+        _bloccata = _bloccato ? lettore : null;
 
         _freqs.Clear(); _coord.Clear(); _aors.Clear(); _areas.Clear(); _configTables.Clear();
         if (_blocks is not null)
@@ -251,7 +273,6 @@ else
         // configurazioni e le chiavi, e il traduttore i blocchi li modifica sul posto. Le sezioni derivate si
         // traducono per conto loro, dalla parte dell'anagrafica (TranslationLookup): qui passa solo la prosa
         // editoriale, che è la parte che questa pagina mostrava ancora in italiano soltanto.
-        var lettore = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
         _copertura = await Translator.TranslateAsync(_data, _lingua, lettore, _congelate);
 
         // Il filtro di lettura, DOPO la traduzione: si filtra la vista che il lettore vedrà davvero.
@@ -270,14 +291,15 @@ else
         _blocks = model.Blocks;
         _docCycle = model.AiracCycle;
         _lingua = model.Language;
+        _bloccato = model.LanguageLocked;
         _congelate = model.Translations;
         _useFrozen = true;
     }
 
     private string PreviewTitlePrefix() => _mode.Kind switch
     {
-        PreviewKind.Draft => $"{L["Common_DraftTag"]} ",
-        PreviewKind.Release => $"{L["Common_PreviewTag"]} ",
+        PreviewKind.Draft => $"{Sito["Common_DraftTag"]} ",
+        PreviewKind.Release => $"{Sito["Common_PreviewTag"]} ",
         _ => "",
     };
 

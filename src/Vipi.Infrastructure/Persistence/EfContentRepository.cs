@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
@@ -90,7 +90,8 @@ public sealed class EfContentRepository : IContentRepository
             if (eff is not null)
             {
                 var payload = JsonSerializer.Deserialize<DocReleasePayload>(eff.PayloadJson);
-                if (payload?.Doc is not null) return payload.Doc;   // AiracCycle già = ciclo di rilascio (fissato allo snapshot)
+                // AiracCycle già = ciclo di rilascio (fissato allo snapshot); la LINGUA no, viene dal documento vivo.
+                if (payload?.Doc is not null) return ConLinguaDelDocumento(payload.Doc, doc);
             }
         }
 
@@ -165,8 +166,36 @@ public sealed class EfContentRepository : IContentRepository
             AiracCycle = doc.LastUpdatedAiracCycle,
             Roots = roots,
             Language = doc.Language,
+            LanguageLocked = doc.LanguageLocked,
         };
     }
+
+    /// <summary>
+    /// Lo snapshot di release con la lingua del documento <b>vivo</b>: quale lingua parla e se si legge in
+    /// quella sola (carta <c>2026-08-31-lingua-bloccata.md</c> §2/§3).
+    ///
+    /// <para>
+    /// ⚠️ <b>Gli snapshot non la portano</b>, e non è un caso raro da coprire: fino al 31 agosto 2026
+    /// <see cref="BuildRawFromVersionAsync"/> non copiava <c>Language</c>, quindi TUTTE le release scritte
+    /// prima dicono <c>"Language":null</c> — misurato sul <c>vipi.db</c> vero, 13 su 13. Un lettore che si
+    /// fidasse dello snapshot tradurrebbe una vLOA inglese come se fosse italiana.
+    /// </para>
+    ///
+    /// <para>
+    /// ⚠️ E anche a snapshot corretti resterebbe giusto chiedere al documento: il <b>blocco</b> è una regola
+    /// di servizio, non un contenuto pubblicato. Accendendolo, un documento già in vigore smette di mostrarsi
+    /// tradotto <b>subito</b>, senza aspettare una ripubblicazione che potrebbe essere fra quattro settimane.
+    /// </para>
+    /// </summary>
+    private static RawDocument ConLinguaDelDocumento(RawDocument snapshot, Document doc) => new()
+    {
+        Title = snapshot.Title,
+        AiracCycle = snapshot.AiracCycle,
+        Roots = snapshot.Roots,
+        Translations = snapshot.Translations,
+        Language = doc.Language,
+        LanguageLocked = doc.LanguageLocked,
+    };
 
     private static RawBlock MapBlock(ContentBlock b) => new()
     {
@@ -234,7 +263,8 @@ public sealed class EfContentRepository : IContentRepository
     /// <summary>Costruisce un <see cref="RawDocument"/> dall'albero sezioni/blocchi di una versione. Riusato dal
     /// viewer (versione pubblicata) e dallo snapshot delle release (versione working). AiracCycle passato dal chiamante.</summary>
     public static async Task<RawDocument?> BuildRawFromVersionAsync(
-        VipiDbContext db, int versionId, string title, string airacCycle, CancellationToken ct)
+        VipiDbContext db, int versionId, string title, string airacCycle, CancellationToken ct,
+        Document? doc = null)
     {
         var sections = await db.DocumentSections
             .Where(s => s.DocumentVersionId == versionId).AsNoTracking().ToListAsync(ct);
@@ -260,6 +290,19 @@ public sealed class EfContentRepository : IContentRepository
         };
 
         var roots = sections.Where(s => s.ParentSectionId is null).OrderBy(s => s.Order).Select(Build).ToList();
-        return new RawDocument { Title = title, AiracCycle = airacCycle, Roots = roots };
+        return new RawDocument
+        {
+            Title = title,
+            AiracCycle = airacCycle,
+            Roots = roots,
+            // ⚠️ LA LINGUA MANCAVA, e nessuno se ne accorgeva perché non dà errore. Misurato sul vipi.db
+            // vero il 31 agosto 2026: 13 snapshot su 13 con "Language":null. Due conseguenze silenziose,
+            // entrambe a valle di questa riga: ReleaseService.ConTraduzioniCongelateAsync esce subito quando
+            // la lingua è nulla (⇒ nessuna release ha MAI portato una traduzione congelata, con tutta la
+            // §6 della carta bilingue scritta e testata), e la cattura della prosa derivata ricadeva su
+            // «it» anche per una vLOA, che nasce inglese.
+            Language = doc?.Language,
+            LanguageLocked = doc?.LanguageLocked ?? false,
+        };
     }
 }

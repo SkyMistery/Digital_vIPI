@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Content;
@@ -21,8 +21,11 @@ public class ReleaseDiffTableTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
-    public ReleaseDiffTableTests() =>
+    public ReleaseDiffTableTests()
+    {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+    }
 
     private IRenderedComponent<ReleaseDiffTable> Render(ReleaseDiff? diff) =>
         RenderComponent<ReleaseDiffTable>(p => p.Add(x => x.Diff, diff));

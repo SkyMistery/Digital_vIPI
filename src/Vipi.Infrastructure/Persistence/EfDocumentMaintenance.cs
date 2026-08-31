@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Content;
@@ -404,7 +404,9 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
                 {
                     DocumentVersion = version,
                     ParentSection = null,
-                    Title = desc.Title,
+                    // ⚠️ Nella lingua del DOCUMENTO: una sezione che arriva dopo non deve nascere in una
+                    // lingua diversa dalle sue sorelle.
+                    Title = desc.TitleIn(doc.Language == Vipi.Domain.Language.En ? "en" : "it"),
                     Order = 0,   // riassegnato sotto, insieme a tutti
                     Depth = 0,
                     SectionKey = desc.Key,
@@ -441,7 +443,7 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
     public async Task<int> ReconcileAirportSectionKeysAsync(CancellationToken ct = default)
     {
         var scali = await _db.Airports.Where(a => a.DocumentId != null)
-            .Select(a => new { a.Id, DocumentId = a.DocumentId!.Value }).ToListAsync(ct);
+            .Select(a => new { a.Id, DocumentId = a.DocumentId!.Value, a.Document!.Language }).ToListAsync(ct);
         if (scali.Count == 0) return 0;
 
         var toccate = 0;
@@ -457,7 +459,10 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
                 .Where(x => x.DocumentVersionId == vid && x.ParentSectionId == null)
                 .OrderBy(x => x.Order).ToListAsync(ct);
 
-            toccate += ReconcileCookedSections(roots);
+            // ⚠️ La LINGUA del documento, non quella del catalogo: questo passo riscrive i titoli col titolo
+            // di catalogo, e su un documento redatto in inglese li riporterebbe tutti in italiano — a ogni
+            // avvio, in silenzio, disfacendo quel che l'editor aveva scritto.
+            toccate += ReconcileCookedSections(roots, scalo.Language == Vipi.Domain.Language.En ? "en" : "it");
             toccate += await MoveExtraSectionsIntoDocumentAsync(scalo.Id, version, roots, ct);
         }
 
@@ -473,7 +478,7 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
     /// chiave di catalogo gia' presente non si tocca, e una seconda sezione con lo stesso titolo nemmeno: la
     /// riconciliazione ne rivendica <b>una sola</b> per chiave.</para>
     /// </summary>
-    private int ReconcileCookedSections(List<DocumentSection> roots)
+    private int ReconcileCookedSections(List<DocumentSection> roots, string lingua)
     {
         var gia = roots.Select(x => x.SectionKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var fatte = 0;
@@ -489,7 +494,7 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
                 && gia.Add(key))
             {
                 s.SectionKey = key;
-                s.Title = SectionCatalog.Find(SectionProfile.Airport, key)?.Title ?? titolo;
+                s.Title = SectionCatalog.Find(SectionProfile.Airport, key)?.TitleIn(lingua) ?? titolo;
                 toccata = true;
             }
 
@@ -497,9 +502,9 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
             // che la chiave giusta ce l'avevano già: «Frequencies» e «SID» non passano dal rinomina di sopra, e
             // senza questo ramo il documento resterebbe metà in italiano e metà in inglese. Una sezione fissa non
             // si rinomina a mano (IsMandatory lo vieta), quindi non c'è nessuna scelta editoriale da rispettare.
-            if (SectionCatalog.Find(SectionProfile.Airport, s.SectionKey) is { } desc && s.Title != desc.Title)
+            if (SectionCatalog.Find(SectionProfile.Airport, s.SectionKey) is { } desc && s.Title != desc.TitleIn(lingua))
             {
-                s.Title = desc.Title;
+                s.Title = desc.TitleIn(lingua);
                 toccata = true;
             }
 

@@ -20,6 +20,16 @@ public sealed class RawDocument
     public Language? Language { get; init; }
 
     /// <summary>
+    /// Il documento si legge <b>sempre</b> in <see cref="Language"/> (carta
+    /// <c>docs/feature/2026-08-31-lingua-bloccata.md</c>): niente traduzione, in nessuna direzione.
+    ///
+    /// <para>⚠️ Nello snapshot ci viaggia perché una fotografia deve descriversi da sé, ma a decidere che
+    /// cosa vede il lettore è il documento <b>vivo</b>: il blocco è una regola di servizio e vale dal
+    /// momento in cui si accende, non dalla ripubblicazione successiva.</para>
+    /// </summary>
+    public bool LanguageLocked { get; init; }
+
+    /// <summary>
     /// Le traduzioni <b>congelate</b> con questa release: lingua bersaglio → (impronta del testo sorgente →
     /// traduzione).
     ///
@@ -92,6 +102,9 @@ public sealed class DocumentView
 
     /// <inheritdoc cref="RawDocument.Language"/>
     public Language? Language { get; init; }
+
+    /// <inheritdoc cref="RawDocument.LanguageLocked"/>
+    public bool LanguageLocked { get; init; }
 
     /// <inheritdoc cref="RawDocument.Translations"/>
     public Dictionary<string, Dictionary<string, FrozenTranslation>>? Translations { get; init; }

@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Content;
@@ -24,8 +24,11 @@ public class CoordinationCollapseTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
-    public CoordinationCollapseTests() =>
+    public CoordinationCollapseTests()
+    {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+    }
 
     private static AppCoordRow Row(string cop) => new(cop, "FL200", "LIRR_CTR", TransferFlowKind.Arrival);
 

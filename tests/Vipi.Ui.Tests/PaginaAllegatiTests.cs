@@ -150,6 +150,7 @@ public class PaginaAllegatiTests : TestContext
         IAttachmentCuration? cura = null)
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
         Services.AddSingleton(biblioteca);
         Services.AddSingleton(uso ?? new UsoFinto());

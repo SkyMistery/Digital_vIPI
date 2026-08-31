@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Auth;
@@ -58,6 +58,7 @@ public class FineModificaSalvaTests : TestContext
     {
         var locks = new LockFinto();
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddSingleton<IEditAuthorizationService>(new Editore());
         Services.AddScoped<IResourceLockService>(_ => locks);
         return locks;

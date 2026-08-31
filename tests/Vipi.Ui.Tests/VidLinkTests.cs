@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Ui.Components;
@@ -36,8 +36,11 @@ public class VidLinkTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
-    public VidLinkTests() =>
+    public VidLinkTests()
+    {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new FormatLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+    }
 
     private IRenderedComponent<VidLink> Render(int vid, string? nome = null, bool soloNumero = false) =>
         RenderComponent<VidLink>(p =>

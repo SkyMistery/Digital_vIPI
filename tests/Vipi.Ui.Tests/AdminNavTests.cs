@@ -45,6 +45,7 @@ public class AdminNavTests : TestContext
     private IRenderedComponent<AdminNav> Render(VipiRole livello, string url = "http://localhost/services/vsop/admin/audit")
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
         Services.GetRequiredService<NavigationManager>().NavigateTo(url);
         return RenderComponent<AdminNav>();
@@ -149,6 +150,7 @@ public class AdminNavTests : TestContext
     {
         using var ctx = new TestContext();
         ctx.Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        ctx.Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         ctx.Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
         // ⚠️ Un indirizzo che NON è nessuna delle voci: la voce della pagina corrente è uno <span> senza
         // href, e cercandola per URL non la si troverebbe.

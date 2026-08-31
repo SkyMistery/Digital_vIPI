@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Ui;
@@ -31,6 +31,7 @@ public class ProfileSwapperPageTests : TestContext
     private IRenderedComponent<ProfileSwapperPage> Render()
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         // La briciola di pane legge le stringhe in INGLESE FISSO (regole-lingua R3): senza questo
         // servizio la pagina non si costruisce nemmeno.
         Services.AddSingleton(new EnglishStrings());

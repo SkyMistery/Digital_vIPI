@@ -1,6 +1,6 @@
-@using Vipi.Application.Content
+﻿@using Vipi.Application.Content
 @using Vipi.Domain
-@inject IStringLocalizer<SharedResource> L
+@inject StringheDelSito Sito
 
 @* ---- Tutto · Pilota · ATC (carta vSOP militari §3) --------------------------------------------------
 
@@ -18,13 +18,13 @@
 
 @if (Visibile)
 {
-    <nav class="aud-chip" aria-label="@L["Aud_ChipAria"]">
+    <nav class="aud-chip" aria-label="@Sito["Aud_ChipAria"]">
         <a class="btn ghost @(Vista is null ? "on" : "")" href="@Href(null)"
-           aria-current="@(Vista is null ? "true" : null)">@L["Aud_All"]</a>
+           aria-current="@(Vista is null ? "true" : null)">@Sito["Aud_All"]</a>
         <a class="btn ghost @(Vista == SectionAudience.Pilots ? "on" : "")" href="@Href(SectionAudience.Pilots)"
-           aria-current="@(Vista == SectionAudience.Pilots ? "true" : null)">@L["Aud_Pilots"]</a>
+           aria-current="@(Vista == SectionAudience.Pilots ? "true" : null)">@Sito["Aud_Pilots"]</a>
         <a class="btn ghost @(Vista == SectionAudience.Controllers ? "on" : "")" href="@Href(SectionAudience.Controllers)"
-           aria-current="@(Vista == SectionAudience.Controllers ? "true" : null)">@L["Aud_Controllers"]</a>
+           aria-current="@(Vista == SectionAudience.Controllers ? "true" : null)">@Sito["Aud_Controllers"]</a>
     </nav>
 }
 

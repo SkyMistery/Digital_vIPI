@@ -38,6 +38,29 @@ public enum SectionBodySource
 /// hanno quattro contenitori con figli — «Dati generali» con dentro radioassistenze, frequenze, alternati —
 /// e senza questo campo il documento nascerebbe piatto, con venti sezioni di primo livello al posto di
 /// sei.</para></param>
+/// <param name="TitleEn">
+/// Lo stesso titolo in inglese (carta <c>docs/feature/2026-08-31-lingua-bloccata.md</c> §4, strato 4).
+///
+/// <para>⚠️ <b>Il titolo di catalogo non passa mai dal traduttore</b>, e per questo serve qui: non è un
+/// segmento del documento — è una stringa del prodotto — quindi non entra nel corpus e la passata di
+/// traduzione non lo conosce. Fino al 31 agosto 2026 una vIPI d'aeroporto letta in inglese aveva le testate
+/// in italiano («Quote di transizione», «Regole piste») <b>a copertura dichiarata completa</b>: al
+/// traduttore quei titoli non erano mai passati davanti, quindi per lui non mancava niente.</para>
+///
+/// <para>⚠️ Nullo = <b>uguale in tutte e due le lingue</b>, ed è una risposta legittima: «AOR», «SID»,
+/// «MRVA», «METAR &amp; TAF» sono sigle, e una sigla non si traduce (decisione del committente,
+/// <c>docs/design/regole-lingua.md</c>). Vale anche per il profilo vLOA, che nasce già in inglese.</para>
+/// </param>
 public sealed record SectionDescriptor(
     string Key, string Title, int Order, SectionKind Kind, SectionBodySource BodySource,
-    IReadOnlyList<SectionDescriptor>? Children = null);
+    IReadOnlyList<SectionDescriptor>? Children = null, string? TitleEn = null)
+{
+    /// <summary>
+    /// Il titolo nella lingua in cui si sta leggendo. Sconosciuta o senza traduzione ⇒ quello italiano: un
+    /// titolo nella lingua sbagliata si legge, un titolo vuoto no.
+    /// </summary>
+    public string TitleIn(string? lingua) =>
+        lingua is not null && lingua.StartsWith("en", StringComparison.OrdinalIgnoreCase)
+            ? (string.IsNullOrWhiteSpace(TitleEn) ? Title : TitleEn)
+            : Title;
+}

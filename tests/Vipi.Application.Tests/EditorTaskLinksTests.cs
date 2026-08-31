@@ -160,6 +160,10 @@ public class EditorTaskLinksTests
 
         public Task<IReadOnlyDictionary<int, string>> GetTitlesAsync(IReadOnlyCollection<int> documentIds, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<string?> GetAccCodeAsync(ManagedDocRef doc, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<DocumentLanguageState?> GetLanguageAsync(ManagedDocRef doc, CancellationToken ct = default) =>
+            Task.FromResult<DocumentLanguageState?>(null);
+        public Task SetLanguageAsync(ManagedDocRef doc, Vipi.Domain.Language language, bool locked, int actorUserId, CancellationToken ct = default) =>
+            throw new NotSupportedException();
         public Task SetHiddenAsync(ManagedDocRef doc, bool hidden, int actorUserId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task DeleteAsync(ManagedDocRef doc, int actorUserId, CancellationToken ct = default) => throw new NotSupportedException();
     }

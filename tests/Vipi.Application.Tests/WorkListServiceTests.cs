@@ -382,6 +382,10 @@ public class WorkListServiceTests
         private readonly IReadOnlyList<ManagedDoc> _docs;
         public DocumentiFinti(IReadOnlyList<ManagedDoc> docs) => _docs = docs;
         public Task<IReadOnlyList<ManagedDoc>> ListAsync(CancellationToken ct = default) => Task.FromResult(_docs);
+        public Task<DocumentLanguageState?> GetLanguageAsync(ManagedDocRef doc, CancellationToken ct = default) =>
+            Task.FromResult<DocumentLanguageState?>(null);
+        public Task SetLanguageAsync(ManagedDocRef doc, Vipi.Domain.Language language, bool locked, CancellationToken ct = default) =>
+            throw new NotSupportedException();
         public Task SetHiddenAsync(ManagedDocRef doc, bool hidden, CancellationToken ct = default) => throw new NotSupportedException();
         public Task DeleteAsync(ManagedDocRef doc, CancellationToken ct = default) => throw new NotSupportedException();
     }

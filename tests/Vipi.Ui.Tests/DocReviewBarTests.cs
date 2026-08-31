@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Abstractions;
@@ -69,6 +69,7 @@ public class DocReviewBarTests : TestContext
         var fake = new FakeImpacts();
         fake.Righe.AddRange(righe);
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddScoped<IDocumentImpactService>(_ => fake);
         Services.AddScoped<IEditorTaskService>(_ => new IncarichiFinti());
         // Il banner passa dal read-model: qui gli si dà una vista che traduce le stesse righe di prova,

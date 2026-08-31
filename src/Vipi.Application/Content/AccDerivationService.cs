@@ -9,9 +9,12 @@ namespace Vipi.Application.Content;
 /// <param name="Language">La lingua in cui il documento è redatto; la lettura bilingue parte da lì (carta
 /// <c>docs/feature/2026-08-27-documenti-bilingue.md</c> §7).</param>
 /// <param name="Translations">Le traduzioni congelate in QUESTA release: se ci sono vincono sulla memoria viva.</param>
+/// <param name="LanguageLocked">Il documento si legge SEMPRE in <paramref name="Language"/>: niente traduzione
+/// (carta <c>docs/feature/2026-08-31-lingua-bloccata.md</c>).</param>
 public sealed record AccReleaseView(
     AccVipiData Data, string AiracCycle,
-    Language? Language = null, Dictionary<string, Dictionary<string, FrozenTranslation>>? Translations = null);
+    Language? Language = null, Dictionary<string, Dictionary<string, FrozenTranslation>>? Translations = null,
+    bool LanguageLocked = false);
 
 /// <summary>
 /// Use-case di authoring della vIPI ACC: documento a blocchi (Aerovia/CTR + gruppi APP). Le parti editoriali

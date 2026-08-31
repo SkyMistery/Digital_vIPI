@@ -1,4 +1,4 @@
-@* Il ciclo delle sezioni di un documento pubblicato, CONDIVISO (doc 14 §3e).
+﻿@* Il ciclo delle sezioni di un documento pubblicato, CONDIVISO (doc 14 §3e).
 
    Le regole che applica sono le stesse in tutte le famiglie, e stavano scritte quattro volte con quattro
    sintassi diverse:
@@ -94,6 +94,7 @@
 
 @code {
     [Inject] private IStringLocalizer<SharedResource> L { get; set; } = default!;
+
 
     /// <summary>Le sezioni del documento mostrato, NELL'ORDINE del documento (doc 11 §3b).</summary>
     [Parameter, EditorRequired] public IReadOnlyList<SectionView> Sections { get; set; } = Array.Empty<SectionView>();

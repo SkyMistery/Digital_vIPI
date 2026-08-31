@@ -1,4 +1,7 @@
-@using Vipi.Application.Translation
+﻿@using Vipi.Application.Translation
+@* ⚠️ `L` e non `Sito`, e la ragione è che qui NON fa differenza: questo avviso compare solo dove c'è una
+   traduzione automatica, cioè mai su un documento a lingua bloccata — dove è l'unico posto in cui i due
+   localizzatori risponderebbero diverso. Meno oggetti in ballo, e i test continuano a leggere le chiavi. *@
 @inject IStringLocalizer<SharedResource> L
 
 @* Che cosa il lettore deve sapere di una pagina tradotta a macchina (carta bilingue §5).

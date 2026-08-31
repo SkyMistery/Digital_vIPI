@@ -48,7 +48,11 @@ public sealed class EfReleaseRepository : IReleaseRepository
         var versionId = await WorkingVersionIdAsync(doc, ct);
         if (versionId is null) return null;
 
-        var raw = await EfContentRepository.BuildRawFromVersionAsync(_db, versionId.Value, doc.Title, airacCycle, ct);
+        // ⚠️ `doc` NON è un di più: senza, lo snapshot esce con `Language` nulla — e allora il congelamento
+        // delle traduzioni non scatta (ReleaseService esce subito) e la prosa derivata si cattura in
+        // italiano anche per una vLOA. È così da sempre, e si vede solo guardando dentro un payload:
+        // 13 release su 13 nel vipi.db del 31 agosto 2026 dicono "Language":null.
+        var raw = await EfContentRepository.BuildRawFromVersionAsync(_db, versionId.Value, doc.Title, airacCycle, ct, doc);
         if (raw is null) return null;
 
         // Fotografia editoriale della struttura; l'output derivato Frozen lo aggiunge ReleaseService (doc 10 §3c). La

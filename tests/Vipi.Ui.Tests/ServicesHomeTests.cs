@@ -36,6 +36,7 @@ public class ServicesHomeTests : TestContext
     private IRenderedComponent<ServicesHome> Render(VipiRole livello = VipiRole.DivisionStaff)
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
         return RenderComponent<ServicesHome>();
     }

@@ -6527,3 +6527,45 @@ che ha risolto l'indagine — **un registro di *stato* vale piu' di un registro 
   ad **AE1**, che chiede la stessa rilettura per un altro motivo.
 - **AM4 🟡 Cancellare `errori-richieste.txt` sul server** dopo il deploy, come gia' chiedeva §A16: un
   file di errori vecchi che resta li' fa suonare un allarme a ogni controllo futuro.
+
+## AN. Lingua bloccata: un documento in una lingua sola, e il canale che era rotto — 31 agosto 2026
+
+Carta: [`docs/feature/2026-08-31-lingua-bloccata.md`](feature/2026-08-31-lingua-bloccata.md) ✅.
+Ramo `lingua-bloccata`. `Document.LanguageLocked` + migrazione additiva sui due provider (`AddColumn`,
+default `0`: passa la guardia della finestra cieca). L'interruttore sta in `ReleasePanel`, accanto ai tasti
+che pubblicano, insieme alla **lingua di redazione** — che fino a ieri era cablata (`Vloa → En`, il resto
+`It`) e quindi un vSOP inglese non si poteva nemmeno dichiarare.
+
+⚠️ **Il canale su cui doveva viaggiare era rotto da sempre, e si è visto solo guardando dentro un payload.**
+`EfContentRepository.BuildRawFromVersionAsync` non copiava `Document.Language` nello snapshot di release:
+**13 payload su 13** nel `vipi.db` vero dicono `"Language":null` (confermato su una seconda copia, 5 su 5).
+Da lì, in silenzio: il congelamento delle traduzioni non è **mai** scattato — tutta la §6 della carta
+bilingue, scritta e testata, in produzione non girava — e la prosa derivata si è sempre congelata in
+italiano, anche per una vLOA che nasce inglese. I test coprivano il lato del **lettore** e mai quello di chi
+**scatta la fotografia**: un modello di prova che si costruisce da sé non può accorgersi di un campo che la
+produzione non riempie.
+
+⚠️ **Il confine «documento sì, pagina no» non si ottiene dall'ordine di render.** Primo tentativo: lingua
+imposta alla richiesta → il documento usciva giusto e l'arredamento lo seguiva («Print / SUMMARY / LINKS»
+dentro un sito italiano). Secondo: accenderla nel componente del corpo, contando sul fatto che la pagina
+rende prima dei figli → pagina **a chiazze**, «Ciclo AIRAC» accanto a «Print» e un callout «Nota» italiano
+dentro un documento inglese. In Blazor una pagina si rende **più volte**. Il confine ora è esplicito e sta
+in un posto solo (`StringheDelSito`): **dentro una pagina documentale `L` è la lingua del DOCUMENTO,
+`Sito` è quella di chi guarda.**
+
+⚠️ **Le isole interattive non vedono la lingua della richiesta**: `@rendermode` = circuito suo, scope suo.
+Sono due e stanno dentro un documento (METAR, SID): ricevono la lingua come parametro e risolvono le
+stringhe a mano. **Non** si impone al contesto del circuito — lì uno scoped vive quanto il circuito, non
+quanto la pagina, e resterebbe acceso sulle pagine visitate dopo.
+
+Chiusi per strada, ed erano difetti **già visibili** prima di questa carta: le testate di catalogo di una
+vIPI d'aeroporto non si traducevano mai (§Q18a della carta bilingue — ora `SectionDescriptor.TitleEn` su
+tutti e 72 i descrittori, con guardia strutturale) e le etichette dei callout erano letterali italiani
+(«Nota», «Attenzione») dentro un componente del corpo.
+
+Verificato **a schermo** su copia del `vipi.db` (LIBD, sito italiano, documento bloccato in inglese),
+bloccando e sbloccando dall'editor vero. Suite 9192 verdi su entrambi i TFM.
+
+⚠️ **Aperto**: la spesa. Un documento bloccato esce dal corpus (`EfTranslatableCorpus`), ma una frase
+presente **anche** in un documento non bloccato si traduce lo stesso — la memoria è indicizzata sulla frase,
+non sul documento. È giusto così, e va detto a chi guarda il conto dei caratteri.

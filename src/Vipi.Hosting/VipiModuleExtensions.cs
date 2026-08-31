@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Localization;
 using Vipi.Application;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
@@ -143,6 +144,20 @@ public static class VipiModuleExtensions
         // committente non segue la lingua (docs/design/regole-lingua.md R3). Singleton: non ha stato, e il
         // ResourceManager che c'è dentro è già suo di natura.
         services.AddSingleton<Vipi.Ui.EnglishStrings>();
+
+        // Le stesse stringhe nella lingua di CHI GUARDA, anche dentro un documento bloccato in un'altra:
+        // le chiede il chrome che PARLA del documento («questo è pubblicato solo in inglese»), che se lo
+        // dicesse in inglese non servirebbe a chi non lo legge.
+        services.AddSingleton<Vipi.Ui.StringheDelSito>();
+
+        // ⚠️ DOPO AddLocalization, e non è un dettaglio d'ordine: questa registrazione prende il posto del
+        // localizzatore per SharedResource (il generico aperto resta per tutti gli altri), e vince perché
+        // arriva dopo. È il modo di far seguire la lingua del documento alle 2.487 etichette dei resx —
+        // intestazioni di tabella comprese — senza toccare i 126 razor che le chiedono.
+        // Scoped: dipende dal contesto di lingua, che vale per una richiesta sola.
+        services.AddScoped<IStringLocalizer<Vipi.Ui.SharedResource>>(sp => new Vipi.Ui.LocalizzatoreDiLingua(
+            new StringLocalizer<Vipi.Ui.SharedResource>(sp.GetRequiredService<IStringLocalizerFactory>()),
+            sp.GetRequiredService<ReadingLanguageContext>()));
 
         return services;
     }

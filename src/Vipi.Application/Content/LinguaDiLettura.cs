@@ -1,4 +1,4 @@
-namespace Vipi.Application.Content;
+﻿namespace Vipi.Application.Content;
 
 /// <summary>
 /// Quali lingue esistono, e come si chiede all'indirizzo di cambiarle (carta
@@ -45,4 +45,36 @@ public static class LinguaDiLettura
     public static bool Supportata(string? lingua) =>
         lingua is not null &&
         Supportate.Contains(lingua, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// La lingua di chi sta guardando: quella scelta con la chip in barra, che il circuito porta nella
+    /// cultura di interfaccia.
+    /// <para>Stava scritta a mano — <c>CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLower…</c> —
+    /// in sei pagine. Una copia sola sbagliata non dà errore: rende una pagina nella lingua di ieri.</para>
+    /// </summary>
+    public static string DelLettore() =>
+        System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+
+    /// <summary>
+    /// In che lingua si legge QUESTO documento: la sua, se è <b>bloccato</b>; quella di chi guarda,
+    /// altrimenti (carta <c>docs/feature/2026-08-31-lingua-bloccata.md</c> §3).
+    ///
+    /// <para>
+    /// ⚠️ <b>È l'unico posto che decide.</b> La lingua di una pagina documentale esce da quattro strati
+    /// diversi — la prosa del documento, la prosa generata dal backend, le etichette dei resx, i titoli di
+    /// catalogo — e un blocco che ne prendesse tre lascerebbe una schermata mezza tradotta: esattamente il
+    /// difetto che questa funzione esiste per evitare. Un secondo posto che risponde alla stessa domanda
+    /// prima o poi risponde diverso, e in silenzio.
+    /// </para>
+    /// </summary>
+    /// <param name="bloccato">Vero se il documento si legge sempre nella lingua in cui è scritto.</param>
+    /// <param name="sorgente">La lingua del documento; nulla su quelli salvati prima che il campo esistesse.</param>
+    /// <param name="predefinita">La lingua in cui nasce questa famiglia di documenti, per quando la prima è nulla.</param>
+    public static string PerIlDocumento(bool bloccato, Vipi.Domain.Language? sorgente, Vipi.Domain.Language predefinita) =>
+        bloccato
+            // ⚠️ La conversione lingua → codice non si riscrive: la fa già CodiceSorgente, ed è lì che sta
+            // la regola dei documenti salvati senza lingua. Due conversioni gemelle divergono al primo
+            // giorno in cui il sito serve una terza lingua.
+            ? Translation.DocumentTranslator.CodiceSorgente(sorgente, predefinita)
+            : DelLettore();
 }

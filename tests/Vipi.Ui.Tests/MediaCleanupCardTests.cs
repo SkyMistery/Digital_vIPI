@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Media;
@@ -60,6 +60,7 @@ public class MediaCleanupCardTests : TestContext
     public MediaCleanupCardTests()
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddScoped<IMediaMaintenance>(_ => _servizio);
     }
 
