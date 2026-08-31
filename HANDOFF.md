@@ -1,6 +1,6 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 31 agosto 2026, notte (**1.1.0 È IN PRODUZIONE**, verificato dal vivo — §A15; cosa dice la diagnostica del server e cosa resta — §A16); prima, 30 agosto pomeriggio (**§AB — la shape di un settore ha una porta sola**,
+**Ultimo aggiornamento:** 31 agosto 2026, **tarda notte** (**§AF — la ricaduta guarda anche in alto, e un settore non è più nipote di sé stesso**: ramo `ricaduta-verticale-e-cicli`, quattro commit, **spinto e NON fuso**); prima, 31 agosto notte (**1.1.0 È IN PRODUZIONE**, verificato dal vivo — §A15; cosa dice la diagnostica del server e cosa resta — §A16); prima, 30 agosto pomeriggio (**§AB — la shape di un settore ha una porta sola**,
 fusa in `main` e spinta; prima, i due rami di §AA e §E10. ⚠️ Tutto ciò che segue nella
 sezione «Dove siamo» è **storia**: i rami che vi si citano come «non fusi» sono in `main` e sono stati
 cancellati — vale il riquadro qui sotto).
@@ -8,6 +8,67 @@ cancellati — vale il riquadro qui sotto).
 ## Dove siamo, prima di tutto il resto
 
 > ### 🆕 LO STATO VERO, 31 agosto 2026 (notte) — questo riquadro batte tutto il resto del file
+>
+> ### 🔽 DA QUI SI RIPRENDE — 31 agosto, tarda notte: §AF
+>
+> 🟢 **Ramo `ricaduta-verticale-e-cicli`** (da `consegna-20260831`), **quattro commit, spinto e NON fuso**.
+> Build Release **0 avvisi** su tutti e due i TFM, suite **4 734 verdi**, **56 test nuovi**.
+> Carta: [`docs/feature/2026-08-31-ricaduta-verticale-e-cicli.md`](docs/feature/2026-08-31-ricaduta-verticale-e-cicli.md) · lavori aperti **§AF**.
+>
+> **Due cose, e sono la stessa: l'albero di copertura.**
+>
+> 1. **Il ciclo, visto in produzione.** Su `atc.it.ivao.aero` `LIMF_WW0_APP` compariva come radice **e**
+>    come proprio nipote. ⚠️ La causa che conta non è il caso singolo: **`EnsureNoCycle` guardava i soli
+>    padri SCRITTI** mentre tutti leggono `EffectiveParentCallsign`, e la validazione stava **dentro**
+>    `if (parentCallsign is not null)` — scegliere «eredita» non passava da nessun controllo, ed è il gesto
+>    che l'ha armato. ⚠️ E non esplodeva: ogni lettore ha una guardia sui nodi visti, quindi la catena si
+>    **tronca in silenzio**. Ora la porta unica è `EffectiveHierarchy.ParentMap`, la guardia valida una
+>    **simulazione** della modifica e rifiuta gli anelli che essa **crea** (non quelli che trova, o in
+>    produzione non si potrebbe riparare niente). **Misurato: 0 anelli attivi, ma 19 aeroporti pendono da
+>    una PROPRIA APP** — erano 19 inneschi a un clic.
+>
+> 2. **La ricaduta verticale.** ⚠️ **Il dato ha smentito la prima stesura della carta**: Milano è divisa a
+>    **FL325** (non FL305) e i due alti stanno **uno sotto l'altro** (`ES5 → WS5 → WS2`). Quindi il verso
+>    rotto è quello con **WS5 chiuso**: il traffico alto d'ovest finiva su WS2, che sopra FL325 non ha
+>    niente. `SectorFallbacks` porta righe con **fascia di quota**, lette **prima** del padre, che resta la
+>    **coda implicita**.
+>
+> ⚠️ **LA TABELLA NASCE VUOTA, ed è voluto**: nessun travaso dal padre, quindi nessun `Sql` in migrazione
+> (vietato dal presidio della finestra cieca) e, a tabella vuota, **comportamento identico a prima riga per
+> riga**. La migrazione è una sola `CreateTable` additiva. 🔴 **Le migrazioni in coda al cutover MariaDB
+> diventano TRENTASETTE.**
+>
+> ⚠️ **La verifica dal vivo ha trovato quattro difetti che i test non vedevano**, e due valgono in generale:
+> **155 proposte** invece di una (accoppiare per sola banda candida ogni settore alto d'Europa — mancava del
+> tutto un criterio geografico, ora la proposta si ferma all'**ACC**), e un `<select>` Blazor con `value` ma
+> **senza `selected`** che mostrava la riga vuota — e una riga che *sembra* senza bersaglio, alla riscrittura
+> successiva, **viene scartata**: il difetto si mangiava il dato.
+>
+> **🔽 COSA FARE DOMANI, in ordine**
+>
+> 1. **Decidere se fondere.** Il ramo parte da `consegna-20260831` (la produzione), non da `main`. Non l'ho
+>    fuso: è una tua decisione, come sempre. ⚠️ Se si fonde e si consegna, **entra una migrazione** — e siamo
+>    dentro la finestra cieca fino al 16 settembre. È additiva e presidiata, ma va deciso apposta.
+> 2. **Guardare in produzione i 19 aeroporti** che pendono da una propria APP: ora sono innocui, ma è il
+>    posto da cui guardare se un anello ricomparisse. Il rilievo «Gerarchia ciclica» è in **Diagnostica**.
+> 3. **Scrivere le righe di ripiego che servono davvero**, in `/services/vsop/admin/sector-structure`:
+>    su `LIMM_WS5_CTR` una riga `FL325–UNL → LIMM_ES5_CTR`, e la simmetrica su ES5. Il tasto «proponi» le
+>    trova da solo. Finché nessuno le scrive, **non cambia niente** rispetto a oggi.
+>
+> **🔽 COSA HO LASCIATO FUORI, e perché**
+>
+> - **Statistiche**: `CoverageResolver` resta fuori **di proposito**. Farlo bene vuol dire pretese **per
+>   pezzo di forma** invece che per settore, ed è una slice sua. Lo scarto che resta è di **conteggio**, non
+>   operativo: a FL350 con ES5 aperto la vista live manda a ES5 e le statistiche accreditano WS2.
+> - **Fuori perimetro, trovato e non corretto**: `StructureCoverage` stampa «Copre (dominio):» e «N
+>   aeroporti coperti» in italiano **in tutte e due le lingue**.
+> - **Le `UnificationRule`** restano un motore senza editor. La ricaduta ora ha la sua strada; sovrapporle
+>   sarebbe un secondo meccanismo per la stessa cosa.
+>
+> ⚠️ **Nota di servizio, non di codice**: aggiornando l'indice della memoria una scrittura è fallita dopo
+> aver troncato il file e **`MEMORY.md` è rimasto vuoto**. I 130 file di memoria sono intatti; l'indice è
+> stato **ricostruito dal loro frontmatter** (130 righe, 21,8 KB — ora rientra nel limite che sforava). I
+> ganci sono più asciutti di come erano scritti a mano.
 >
 > 📦 **31 agosto 2026 — tutto quel che era fuori sta nel ramo di consegna `consegna-20260831`**, che parte
 > da `consegna-db-20260830` (il codice del pacchetto `j`, cioè quello online) e ci fonde sopra
