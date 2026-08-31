@@ -20,7 +20,28 @@ public enum AttachmentKind
     /// <summary>Manuale.</summary>
     Manual,
 
-    /// <summary>Tutto il resto. È lo zero dell'enum, quindi una voce nasce così finché non la si classifica.</summary>
+    /// <summary>
+    /// PIV: il documento di divisione che va sotto quel nome. Chiesto dal committente il 1 settembre 2026.
+    ///
+    /// <para>⚠️ <b>Non è servito toccare il database</b>, ed è per costruzione: gli enum di questo modello
+    /// si scrivono in colonna come <b>stringhe</b> (<c>VipiDbContext</c>, <c>SetProviderClrType(string)</c>
+    /// su ogni proprietà di tipo enum), quindi un valore nuovo è una riga nuova che scrive <c>"Piv"</c> —
+    /// nessuna migrazione, nessun numero da riallineare. È anche la ragione per cui l'<b>ordine</b> di
+    /// questa lista si può cambiare senza toccare quel che è già in archivio: l'ordine decide solo come
+    /// compaiono i chip a schermo.</para>
+    /// </summary>
+    Piv,
+
+    /// <summary>
+    /// Tutto il resto.
+    ///
+    /// <para>⚠️ Fino al 1 settembre 2026 qui c'era scritto «è lo zero dell'enum, quindi una voce nasce così
+    /// finché non la si classifica»: <b>non è vero</b>, e non lo è mai stato. <c>Other</c> è dichiarato per
+    /// ultimo, quindi lo zero è <see cref="Loa"/> — una riga creata senza scegliere il tipo nasce «LoA».
+    /// Oggi non capita, perché il modulo della biblioteca un tipo lo impone sempre; resta scritto qui perché
+    /// il giorno che qualcuno creasse un allegato da codice, il default non è quello che il commento
+    /// prometteva.</para>
+    /// </summary>
     Other,
 }
 

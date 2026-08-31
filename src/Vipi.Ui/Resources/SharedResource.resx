@@ -2875,6 +2875,7 @@
   <data name="AttKind_Circular" xml:space="preserve"><value>Circolare</value></data>
   <data name="AttKind_Chart" xml:space="preserve"><value>Carta</value></data>
   <data name="AttKind_Manual" xml:space="preserve"><value>Manuale</value></data>
+  <data name="AttKind_Piv" xml:space="preserve"><value>PIV</value></data>
   <data name="AttKind_Other" xml:space="preserve"><value>Altro</value></data>
   <data name="AttScope_Division" xml:space="preserve"><value>Divisione</value></data>
   <data name="AttScope_Acc" xml:space="preserve"><value>ACC</value></data>
