@@ -55,6 +55,15 @@
 
         var el = document.createElement('script');
         el.src = indirizzo;
+        // ⚠️ Un modulo che arriva adesso si aggancia da sé al proprio `DOMContentLoaded`, che a questo
+        // punto è GIÀ passato: nessuno lo chiamerebbe. Lo si chiama qui, appena è in piedi.
+        el.onload = function () {
+            try {
+                if (window[m[2]]) window[m[2]]();
+            } catch (e) {
+                console.warn('[vipi] il modulo «' + chiave + '» è arrivato ma non si è agganciato', e);
+            }
+        };
         // Gli indirizzi delle librerie vendorizzate viaggiano sul tag, come prima: è il modulo a decidere
         // QUANDO tirarsele dentro (Leaflet alla prima mappa, three.js alla prima apertura del 3D).
         for (var i = 0; i < m[3].length; i++) {
@@ -64,13 +73,52 @@
         document.head.appendChild(el);
     }
 
+    // Vero finché c'è almeno un modulo dichiarato in pagina e non ancora caricato. Un modulo che il tag
+    // NON dichiara non arriverà mai: non conta come lavoro in sospeso, o l'osservatore qui sotto non si
+    // spegnerebbe più.
+    function restaDaCaricare() {
+        for (var i = 0; i < moduli.length; i++) {
+            var chiave = moduli[i][0];
+            if (caricati[chiave]) continue;
+            if (qui && qui.getAttribute('data-' + chiave + '-src')) return true;
+        }
+        return false;
+    }
+
     function caricaQuelliCheServono() {
         for (var i = 0; i < moduli.length; i++) {
+            if (caricati[moduli[i][0]]) continue;   // già in pagina: non si interroga il DOM per nulla
             try {
                 if (document.querySelector(moduli[i][1])) carica(moduli[i]);
             } catch (e) {
                 console.warn('[vipi] non ho potuto caricare il modulo «' + moduli[i][0] + '»', e);
             }
+        }
+    }
+
+    // ⚠️ Il bersaglio può comparire DOPO il primo render, e senza che ci sia stata una navigazione: sulla
+    // pagina Confinanti la mappa nasce dal clic su «verifica adiacenza», che è un render INTERATTIVO di
+    // Blazor — non un `enhancedload`. Senza questo osservatore il contenitore restava a schermo vuoto:
+    // misurato il 1 settembre 2026, `.aor-leaflet` alto 320px con zero figli e `vipi-aor.js` mai chiesto,
+    // benché il tag lo dichiarasse. E non è un caso singolo: vale per ogni pagina che riveli una mappa,
+    // una carta delle minime o uno stage 3D dopo un gesto.
+    //
+    // Si spegne appena non c'è più niente da caricare: i moduli sono quattro e si prendono una volta sola,
+    // quindi la sorveglianza è a termine e non un costo che la pagina si porta dietro per sempre.
+    var attesa = false;
+    var osservatore = new MutationObserver(function () {
+        if (attesa) return;
+        attesa = true;
+        setTimeout(function () {
+            attesa = false;
+            caricaQuelliCheServono();
+            if (!restaDaCaricare()) osservatore.disconnect();
+        }, 150);
+    });
+
+    function sorveglia() {
+        if (document.body && restaDaCaricare()) {
+            osservatore.observe(document.body, { childList: true, subtree: true });
         }
     }
 
@@ -85,6 +133,7 @@
     for (var i = 0; i < moduli.length; i++) passi.push([moduli[i][2], 'modulo ' + moduli[i][0]]);
 
     caricaQuelliCheServono();
+    sorveglia();
 
     Blazor.addEventListener('enhancedload', function () {
         // ⚠️ PRIMA il caricamento: dopo una navigazione la pagina nuova può mostrare una mappa dove quella
@@ -92,6 +141,7 @@
         // che è già passato — quindi lo riprende comunque il giro di riagganci qui sotto, al più tardi alla
         // navigazione successiva; e l'osservatore di mutazioni delle minime copre l'intervallo.
         caricaQuelliCheServono();
+        sorveglia();
 
         for (var i = 0; i < passi.length; i++) {
             var nome = passi[i][0];

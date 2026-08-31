@@ -5930,3 +5930,49 @@ sorgente; sulla pagina ACC, **8 627 px → 1 500 px** con tutto chiuso, testata 
 (`--st-head-h` la segue), riapertura automatica dei settori alla scelta di un ACC e le **105 aree** di LIRR
 che chiudendosi portano la pagina da **7 025 px a 2 537 px**. Build Release **0 avvisi** su tutt'e due i
 TFM, suite verde, **3 test nuovi**.
+
+## AG. La mappa bianca dei Confinanti: un modulo pigro che il gesto non svegliava — 1 settembre 2026
+
+Segnalazione del committente su `admin/neighbours`: **«verify adjacency» apre una mappa bianca**. Il
+sospetto naturale era la basemap — CARTO ha chiuso il fondo anonimo il 27 agosto e il sito è passato a Esri — e invece la mappa **non veniva disegnata affatto**.
+
+**Misurato dal vivo** (Edge+CDP, 1 settembre): dopo il clic il contenitore `.aor-leaflet` c'è, alto 320 px,
+con le sue 5 chip — e **zero figli**, `data-init` assente, `window.L` non definito, `vipi-aor.js` **mai
+chiesto** benché il tag in `App.razor` lo dichiari. Nessun errore in console: il modulo semplicemente non
+arrivava.
+
+### La causa, che non è di questa pagina
+
+`vipi-boot.js` carica i quattro moduli pesanti **guardando il DOM** — «se il bersaglio c'è, serve» — e lo
+guarda in due momenti: al primo render e a ogni `enhancedload`. ⚠️ **Un render interattivo di Blazor non è
+né l'uno né l'altro.** Sui Confinanti la mappa nasce dal clic su «verifica adiacenza», cioè da un render
+interattivo: al caricamento il bersaglio non c'era, e dopo nessuno guardava più.
+
+Non è il caso singolo che conta: vale per **ogni** pagina che riveli una mappa, una carta delle minime o
+uno stage 3D dopo un gesto. Il criterio «guarda il DOM» era giusto; era l'elenco dei momenti in cui
+guardarlo a essere incompleto.
+
+### Il rimedio
+
+Un `MutationObserver` sul `body`, con la stessa forma che `vipi-aor.js` ha già al suo interno: strozzato a
+150 ms, ri-scandisce e carica quel che ora serve. ⚠️ **Si spegne da solo** appena non resta niente da
+caricare (i moduli sono quattro e si prendono una volta sola), così la sorveglianza è a termine e non un
+costo che ogni pagina si porta dietro per sempre. Un modulo **non dichiarato** dal tag non conta come
+lavoro in sospeso, o l'osservatore non si spegnerebbe mai.
+
+E un secondo difetto che si vedeva solo insieme al primo: **un modulo che arriva in ritardo si aggancia da
+sé al proprio `DOMContentLoaded`, che a quel punto è già passato**. Ora `vipi-boot.js` chiama la sua
+funzione di riaggancio sull'`onload` dello script, invece di sperare nella mutazione successiva.
+
+### Verifica
+
+`lazy-verifica.js` della skill `verifica-live` — quello scritto apposta per questo file — **quattro prove su
+quattro**: la guida e l'hub restano senza nessuno dei quattro moduli (l'osservatore non li tira dentro per
+sbaglio), la vIPI ACC monta 66 tessere e 177 poligoni, e la navigazione «guida → vIPI ACC» continua a
+portarsi dietro il modulo. Sui Confinanti, dopo «verify adjacency»: `vipi-aor.js` e Leaflet caricati,
+`data-init="1"`, **12 tessere** Esri (`World_Light_Gray_Base` + `Reference`) tutte `200`, console pulita.
+
+⚠️ **Un rosso intermittente** in `Vipi.Ui.Tests` (net8.0) al primo giro della suite, **verde ai due giri
+successivi** e non riproducibile; il nome del test non è stato catturato. Non tocca nulla di questo lavoro
+(qui cambia un `.js`), ma è della stessa famiglia dei rossi da contesa già visti — se ricompare, va preso
+col nome.
