@@ -1,8 +1,18 @@
-// Verifica del PACCHETTO 1.2.0 (non del sorgente): qui il JavaScript e' minificato, e da 1.1.0 uno di
+// Verifica del PACCHETTO (non del sorgente): nel publish il JavaScript e' minificato, e da 1.1.0 uno di
 // quei file e' l'unico che avvia Blazor. Vedi docs/guide/preparare-un-pacchetto.md §6.
+//
+// Due modi, tutti e due usati per 1.2.0 il 31 agosto 2026:
+//   node pacchetto-verifica.js
+//       sul publish win-x64 avviato dalla sua cartella su :5199 (dieci controlli, editor compreso)
+//   BASE=https://atc.it.ivao.aero SOLO_PUBBLICO=1 node pacchetto-verifica.js
+//       su PRODUZIONE, da anonimo: salta l'editor, che da fuori non si raggiunge (otto controlli)
+//
+// ⚠️ Il controllo che conta e' LA RICERCA: passa dal server, quindi distingue un sito vivo da uno
+// mezzo caricato. Il selettore della lingua, lo zoom e il tema NON valgono — funzionano anche a sito morto.
+// ⚠️ Il campo della Ricerca non dichiara un `type`: si prende `.wrap input`, non `input[type=search]`.
 const puppeteer = require('puppeteer-core');
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
-const BASE = 'http://localhost:5199';
+const BASE = process.env.BASE || 'http://localhost:5199';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 (async () => {
@@ -59,6 +69,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     nota('la RICERCA risponde (passa dal server)', cambiata,
       cambiata ? 'la riga sotto il campo e cambiata' : 'NESSUN cambiamento: sito mezzo caricato');
 
+    if (!process.env.SOLO_PUBBLICO) {
     // 4. Una pagina di editor: e' li' che vivevano le corse di §AM.
     await page.goto(BASE + '/services/vsop/libb/editor', { waitUntil: 'networkidle2' });
     for (let i = 0; i < 60; i++) { if (await page.evaluate(() => !!window.Blazor)) break; await sleep(1000); }
@@ -69,6 +80,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const pannelloTr = await page.evaluate(() => !!document.querySelector('#tr-review'));
     nota('editor ACC LIBB si apre', editorVivo, editorVivo ? 'nessuna pagina d\'errore' : 'PAGINA D\'ERRORE');
     nota('pannello traduzioni presente', pannelloTr, pannelloTr ? '#tr-review nel DOM' : '#tr-review assente');
+    }
 
     // 5. Il tema (che l'asset cambiato tocca) e' arrivato: il CSS deve avere effetto.
     const sfondo = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);

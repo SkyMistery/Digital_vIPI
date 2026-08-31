@@ -1,29 +1,49 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
 **Ultimo aggiornamento:** 1 settembre 2026, sera (**§AK — gli spazi aerei**: da `/services/airspace` a **`/services/vsop/airspace`**, riservata allo **staff di divisione**; cancello in due sedi, vecchio indirizzo **tolto** (404); **§AJ — «Da fare» non parlava la lingua del sito**: elenco senza riquadro, sezione senza CSS e ⚠️ **lavagna bianca nel tema scuro** (`--paper` non esiste); `sweep.js` ora copre `/tasks` e apre le sezioni richiudibili; **biblioteca allegati — il tipo «PIV»**: nessuna migrazione, gli enum stanno in colonna come stringhe; **§AI — radioassistenze**: chip per tipo costruiti dal dato, aggiunta in cima che **chiede ogni volta** (meglio nel sectorfile), ordinamento a tre stati e intestazione appiccicata; **§AH — fraseologia e traduzioni in una pagina sola**: `admin/translations` e `admin/glossary` diventano una pagina a sezioni richiudibili, con ricerca **sul database** — il registro mostrava cento righe su 176 senza dirlo — e un **«dove si usa»** a due livelli; **§AG — la mappa bianca dei Confinanti**: non era la basemap, era `vipi-boot.js` che guardava il DOM solo al primo render e alle navigazioni, mentre lì la mappa nasce da un render **interattivo**; **§AF4 — il giro sulla pagina Struttura**: la finestra di eliminazione parla inglese anche **dentro**, le due sezioni si chiudono, e il piede/tetto di un ripiego si scrivono anche **in piedi**); prima, 1 settembre 2026 (**§AF — la ricaduta verticale**: alle tre slice di ieri si sono aggiunte la **schermata di dettaglio** e il **bersaglio a digitazione**; ramo `ricaduta-verticale-e-cicli`, **sette commit, spinto e NON fuso**); prima, 31 agosto tarda notte (**§AF — la ricaduta guarda anche in alto, e un settore non è più nipote di sé stesso**: ramo `ricaduta-verticale-e-cicli`); prima, 31 agosto notte (**1.1.0 È IN PRODUZIONE**, verificato dal vivo — §A15; cosa dice la diagnostica del server e cosa resta — §A16); prima, 30 agosto pomeriggio (**§AB — la shape di un settore ha una porta sola**,
-**Ultimo aggiornamento:** 31 agosto 2026, sera (**pacchetto 1.2.0 pronto, da caricare stasera** — §A18); prima, 31 agosto pomeriggio (**§AM — quattro difetti letti nella diagnostica del server, e il primo era la diagnostica stessa**: ramo `corse-e-perdita-diagnostica`, non fuso); prima, 31 agosto notte (**1.1.0 È IN PRODUZIONE**, verificato dal vivo — §A15; cosa dice la diagnostica del server e cosa resta — §A16); prima, 30 agosto pomeriggio (**§AB — la shape di un settore ha una porta sola**,
+**Ultimo aggiornamento:** 31 agosto 2026, sera (✅ **1.2.0 È IN PRODUZIONE** — §A18 — 🔴 con il verdetto sul difetto da leggere stasera dopo le 19:48, §A18-bis); prima, 31 agosto pomeriggio (**§AM — quattro difetti letti nella diagnostica del server, e il primo era la diagnostica stessa**: ramo `corse-e-perdita-diagnostica`, non fuso); prima, 31 agosto notte (**1.1.0 È IN PRODUZIONE**, verificato dal vivo — §A15; cosa dice la diagnostica del server e cosa resta — §A16); prima, 30 agosto pomeriggio (**§AB — la shape di un settore ha una porta sola**,
 fusa in `main` e spinta; prima, i due rami di §AA e §E10. ⚠️ Tutto ciò che segue nella
 sezione «Dove siamo» è **storia**: i rami che vi si citano come «non fusi» sono in `main` e sono stati
 cancellati — vale il riquadro qui sotto).
 
 ## Dove siamo, prima di tutto il resto
 
-> ### 📦 PACCHETTO 1.2.0 PRONTO — 🔴 SI CARICA STASERA
+> ### ✅ 1.2.0 È IN PRODUZIONE — 🔴 ma il verdetto sul difetto è per stasera
 >
-> `artifacts/publish/vipi-1.2.0-solo-file-cambiati.zip`, **4,37 MB, 20 file**, timbro `1.2.0 · 9d5d902`.
-> Foglio per chi carica: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.2.0.md`. Cronaca in **§A18**.
+> Caricato alle **14:46 UTC** del 31 agosto. `avvio-diagnostica.txt`: `1.2.0 · 9d5d902`, **Production**,
+> avvio 7 276 ms, **migrazione girata** (3 403 ms, erano 2 935), ✅ **nessun `avvio-errore.txt`**.
+> Cronaca in **§A18**; il verdetto pendente in **§A18-bis**.
 >
-> 🔴 **Porta una migrazione** (`CatenaDiRipiego`, additiva), e in produzione `Database.Migrate()` gira
-> all'avvio da solo su DDL non transazionale. Il runbook lo vieterebbe dentro la finestra cieca: parte lo
-> stesso perché il committente ha detto che chi amministra il database **può ancora ripristinare entro
-> stasera**. ⚠️ **Deroga a tempo, non fine della finestra**: caricamento e controlli vanno fatti mentre
-> quella rete c'è. Se non si fa in tempo, **non si carica** — ma finché non sale, il processo continua a
-> morire ogni due-tre ore (§AM-A).
+> ✅ **Otto controlli dal vivo su `atc.it.ivao.aero`, da ANONIMO, con un browser vero**: il file che avvia
+> Blazor servito e minificato, circuito aperto, home con 4 schede ACC, **la Ricerca risponde** — il solo
+> controllo che distingue un sito vivo da uno mezzo caricato — foglio di stile in vigore, console pulita.
+> Più due prove che gira il codice nuovo e non solo che il timbro lo dice: `/services/airspace` → **404**
+> (§AK), e il cancello di `/services/vsop/airspace` scatta.
+> Driver: `.claude/skills/verifica-live/pacchetto-verifica.js`, con `BASE=… SOLO_PUBBLICO=1`.
 >
-> ✅ **Verificato sul pacchetto pubblicato**, non sul sorgente: dieci controlli verdi in Edge, migrazione
-> vista applicarsi, la Ricerca risponde. ⚠️ La prova gira su **SQLite**: la gemella MySql non è stata vista
-> girare su una MariaDB vera — in locale non ce n'era una. È il motivo in più per la copia di sicurezza
-> **prima** del riavvio.
+> ⚠️ **Un 200 su una pagina riservata non vuol dire che sia aperta**: in questo prodotto i cancelli si
+> **disegnano** («Accesso riservato» + zero dati), non si restituiscono come stato HTTP. Controllato.
+>
+> ### 🔴 QUEL CHE MANCA, E HA UNA SCADENZA
+>
+> **1. Il verdetto sulla perdita di memoria non è ancora dato.** In `avvii.txt` c'è una riga ⚠ alle 14:46,
+> **ma riguarda il processo VECCHIO**: il «precedente» era 1.1.0, terzo di una serie **3h02 → 2h08 → 1h41**.
+> Di 1.2.0 non dice niente, perché quando i file sono stati scaricati era acceso da **un minuto**.
+> La prova è l'**assenza** di una riga ⚠ nuova, e prima di una certa ora non vuol dire niente:
+>
+> | rileggere `avvii.txt` | |
+> |---|---|
+> | 18:27 locali | 1h41 — supera solo la vita **più corta** di 1.1.0: **non basta** |
+> | **19:48 locali** | 3h02 — supera anche la **più lunga**. Primo momento in cui un «niente» vale |
+> | 20:46 locali | 4h — margine comodo |
+>
+> **2. `errori-richieste.txt` non era fra i file mandati**, e le due letture sono **opposte**: o è stato
+> cancellato e **non si è ricreato** (zero richieste fallite da 1.2.0 in poi), o è ancora sul server e non
+> è stato scaricato. È la seconda metà del verdetto: **va chiesto**.
+>
+> **3. §AM2 non si chiude da fuori.** Le corse sul `DbContext` si vedono solo da **collegati**, su
+> `/services/vsop/libb/editor`, perché è lì che si aprono con la latenza del database remoto. Il gesto:
+> entrare col proprio VID, aprire l'editor di LIBB, salvare qualcosa.
 >
 > ### 🆕 DOPO LA FUSIONE — questo riquadro batte tutto il resto del file
 >

@@ -134,6 +134,27 @@ senza CSS né JS) e si guida con Edge — skill `verifica-live`. Cosa guardare, 
 - il processo **ucciso e riavviato** → la pagina si ricarica da sola;
 - `diagnostica/avvio-diagnostica.txt` dice la **versione giusta**.
 
+### 6-bis. E dopo il caricamento, rifare la stessa prova su PRODUZIONE
+
+Lo stesso driver, puntato fuori. Da anonimo l'editor non si raggiunge, quindi si salta:
+
+```powershell
+$env:BASE = 'https://atc.it.ivao.aero'; $env:SOLO_PUBBLICO = '1'
+node .claude/skills/verifica-live/pacchetto-verifica.js
+```
+
+⚠️ **Non fermarsi al timbro.** `avvio-diagnostica.txt` dice quale versione è partita, non che il sito
+**funzioni**: da 1.1.0 un caricamento incompleto dà un sito che si vede intero e non risponde a niente, e
+il timbro lì sarebbe giusto lo stesso. Il controllo che conta è **la Ricerca**, perché passa dal server.
+
+⚠️ **E un `200` su una pagina riservata non vuol dire che sia aperta.** In questo prodotto i cancelli si
+**disegnano** — «Accesso riservato» nel corpo, e nessun dato — non si restituiscono come stato HTTP. Chi
+controlla una pagina di staff da fuori deve guardare il **corpo**, non il codice di risposta: fermarsi al
+200 fa gridare a una falla che non c'è. Misurato su `/services/vsop/airspace` il 31 agosto 2026.
+
+ℹ️ Va fatto **mentre chi ha caricato è ancora al telefono**: è il momento in cui un file dimenticato si
+rimette in trenta secondi.
+
 ### 7. Il foglio per chi carica
 
 `deploy/atc-ivao/LEGGIMI-PACCHETTO-<versione>.md`, e dentro **non basta l'elenco dei file**: ci vanno le
@@ -163,3 +184,5 @@ binario: il timbro nasce dal commit al momento del publish, e va scritto quale.
 | il timbro | nasce dal commit: si pubblica **dopo** aver committato |
 | la prova | si fa sul pacchetto pubblicato, non sul sorgente |
 | il riavvio | `tmp/restart.txt` **e poi si apre il sito una volta**, o Passenger non se ne accorge |
+| il timbro non basta | dice quale versione è partita, non che il sito risponda: il controllo è **la Ricerca** |
+| un 200 su una pagina riservata | i cancelli si **disegnano**: si guarda il corpo, non lo stato HTTP |
