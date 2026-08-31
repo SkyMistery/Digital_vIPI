@@ -1,4 +1,4 @@
-# Lingua bloccata — carta 🟣
+# Lingua bloccata — carta ✅
 
 > Un documento può dichiarare che **si legge in una lingua sola**: quella in cui è scritto. Il sito resta
 > bilingue, il documento no.
@@ -98,7 +98,7 @@ schermata mezza tradotta, che è il difetto che questa funzione esiste per evita
 | 3 | **Intestazioni delle tabelle derivate**, etichette, chip | `SharedResource.resx`, `L["…"]` in **126 razor** | localizzatore avvolto in DI |
 | 4 | Titoli di sezione **di catalogo** | `SectionCatalog`, 72 descrittori italiani cablati | `SectionDescriptor.TitleEn` |
 
-### Strato 3 — il localizzatore avvolto
+### Strato 3 — il localizzatore avvolto, e IL CONFINE
 
 Modificare 126 file razor sarebbe il modo sbagliato: la prossima pagina scritta se ne dimenticherebbe, e
 nessuno se ne accorgerebbe (una tabella con l'intestazione nella lingua sbagliata non è un errore, è una
@@ -116,10 +116,28 @@ qui va ignorato.
 ⚠️ **Lettura sincrona, nessun `await` dentro**: la cultura non si sposta e non ci sono continuazioni che
 possano vederla a metà.
 
-⚠️ **Perché il chrome non ne risente.** Le cinque pagine documentali sono **SSR statiche** (nessun
-`@rendermode`, scelto e commentato a suo tempo): il servizio è scoped **per richiesta**, il layout rende
-prima del corpo, e il flag lo accende la pagina in `OnInitializedAsync` — cioè *dopo* che la barra ha già
-chiesto le sue stringhe. Niente stato che invecchia in un circuito, perché non c'è circuito.
+⚠️ **E il chrome NON si salva da sé.** Questa carta lo dava per fatto — «il layout rende prima del corpo» —
+e a schermo era falso: su LIBD bloccato in inglese la pagina mostrava «Print / SUMMARY / LINKS» dentro un
+sito italiano. Il secondo tentativo, accendere la lingua nel componente del corpo per lasciare fuori
+l'arredamento, ha prodotto una pagina **a chiazze**: «Ciclo AIRAC» italiano accanto a «Print» inglese, e un
+callout «Nota» rimasto italiano dentro un documento inglese.
+
+⚠️ **In Blazor una pagina si rende PIÙ VOLTE**, e l'ordine fra genitore e figli non è una leva su cui
+appoggiare una regola di prodotto. Il confine è **esplicito**, e sta scritto in un posto solo
+(`StringheDelSito`):
+
+> **Dentro una pagina documentale, `L` è la lingua del DOCUMENTO e `Sito` è quella di chi guarda.**
+
+Nelle cinque pagine viewer quasi tutto è arredamento — il tasto «Stampa», la colonna di destra, l'indice, la
+fascia dell'anteprima — e passa a `Sito`; restano a `L` le poche stringhe che appartengono al documento (le
+intestazioni delle tabelle di un vSOP, «(live · NOAA)» accanto alla testata METAR, il titolo di un blocco
+della vIPI ACC).
+
+⚠️ **Le ISOLE non vedono niente di tutto questo.** Un componente con `@rendermode` vive in un **circuito
+suo**, con uno scope di DI suo: la lingua imposta alla richiesta della pagina lì non arriva. Sono due, e
+stanno tutte e due dentro un documento — il riquadro METAR e la tabella SID: ricevono la lingua come
+**parametro** e risolvono le stringhe a mano. ⚠️ Non si impone al contesto del circuito: in Blazor Server
+uno scoped vive quanto il **circuito**, non quanto la pagina, e resterebbe acceso sulle pagine visitate dopo.
 
 ### Strato 4 — il catalogo diventa bilingue
 
@@ -128,6 +146,10 @@ strato, stesso modo, nessun meccanismo nuovo. Chiude anche un difetto **già ape
 (§Q18a): su una vIPI d'aeroporto le testate di catalogo non si traducevano mai, perché non sono segmenti
 del documento e il traduttore non le vede passare. A schermo: pagina inglese con indice «Quote di
 transizione / Frequenze / Piste».
+
+✅ E le etichette dei **callout** («Nota», «Attenzione», «Importante») erano **letterali italiani** dentro
+un componente del corpo: si vedevano già prima di questa carta, su qualunque lettura in inglese. Ora vengono
+dai resx.
 
 ⚠️ `EfDocumentMaintenance.ReconcileCookedSections` **riscrive** i titoli delle sezioni d'aeroporto col
 titolo di catalogo a ogni avvio. Il titolo memorizzato resta quello italiano di catalogo; è
@@ -179,4 +201,19 @@ editoriale. Più il contrario: documento non bloccato, che deve continuare a tra
 | 6 | Nota al lettore + `lang` sul contenitore | 🟡 |
 | 7 | Interruttore in `ReleasePanel` + lingua scegliibile + audit | 🟡 |
 | 8 | Corpus, congelamento, pannello di revisione | 🟡 |
-| 9 | Test + `dotnet build -c Release --no-incremental` + verifica live | 🟡 |
+| 9 | Test + `dotnet build -c Release --no-incremental` + verifica live | ✅ |
+
+Tutte ✅. Suite: **9192 verdi** su entrambi i TFM, `dotnet build Vipi.slnx -c Release --no-incremental`
+pulita.
+
+## 9. Che cosa ha detto lo schermo
+
+Guidato con Edge su copia del `vipi.db` (LIBD, ACC LIBB), bloccando e sbloccando **dall'editor vero**:
+
+| | sito IT | sito EN |
+|---|---|---|
+| **bloccato (EN)** | documento tutto inglese — indice, testate, intestazioni di tabella, chip METAR («WIND / VISIBILITY / CLOUDS»), chip SID, callout «Note», prosa derivata; chrome italiano — «Stampa», «SOMMARIO», «RIEPILOGO», «Ciclo AIRAC»; avviso «Documento in una lingua sola» **in italiano** | tutto inglese, stesso avviso in inglese |
+| **sbloccato** | documento italiano, nessun avviso: com'era ieri | documento tradotto a macchina, con l'avviso di sempre |
+
+⚠️ Tre difetti li ha trovati **solo lo schermo**, e nessuno di loro faceva cadere un test: il chrome che
+seguiva il documento, il callout «Nota», e le due isole rimaste nella lingua di chi guarda.
