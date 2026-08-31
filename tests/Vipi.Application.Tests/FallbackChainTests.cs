@@ -218,6 +218,35 @@ public class FallbackChainTests
         Assert.True(primo[1].FromParent);      // il padre: nessuno lo scrive e non si toglie
     }
 
+    /// <summary>
+    /// ⚠️ Allo stesso passo un settore puo' comparire DUE volte, e non e' un doppione: sono due motivi per
+    /// arrivarci. ES5 dichiara «sopra FL325 -> WS5» E ha WS5 come padre; mostrarne uno solo direbbe che sotto
+    /// FL325 WS5 non c'e', mentre c'e' — come padre. Visto dal vivo il 1 settembre 2026.
+    /// </summary>
+    [Fact]
+    public void Allo_stesso_passo_si_vedono_tutti_i_motivi_per_arrivarci()
+    {
+        var passi = FallbackChain.Sequence(Es5, Dichiarate, Padre);
+
+        var primo = passi[0];
+        Assert.Equal(2, primo.Count);
+        Assert.All(primo, e => Assert.Equal(Ws5, e.TargetCallsign));
+
+        Assert.Equal(Split, primo[0].BaseFeet);      // la riga dichiarata: sopra FL325
+        Assert.False(primo[0].FromParent);
+        Assert.Null(primo[1].BaseFeet);              // e il padre: a ogni quota
+        Assert.True(primo[1].FromParent);
+    }
+
+    /// <summary>Ma chi RISOLVE lo conta una volta sola: due motivi, un candidato.</summary>
+    [Fact]
+    public void I_due_motivi_restano_un_candidato_solo()
+    {
+        var c = FallbackChain.Candidates(Es5, 35000, Dichiarate, Padre);
+
+        Assert.Equal(new[] { Es5, Ws5, Ws2 }, c);
+    }
+
     /// <summary>Il settore di partenza non e' un ripiego di se' stesso: e' l'intestazione, non una voce.</summary>
     [Fact]
     public void La_sequenza_non_contiene_il_settore_di_partenza() =>
@@ -235,6 +264,16 @@ public class FallbackChainTests
         Assert.Equal(Ws2, Assert.Single(passi[1]).TargetCallsign);
     }
 
+    /// <summary>Un settore preso a un passo non torna ai successivi: e' quel che chiude i cicli.</summary>
+    [Fact]
+    public void Un_settore_gia_preso_non_torna_ai_passi_successivi()
+    {
+        var tutte = FallbackChain.Sequence(Es5, Dichiarate, Padre)
+            .SelectMany(p => p).Select(e => e.TargetCallsign).ToList();
+
+        Assert.Equal(tutte.Distinct(StringComparer.OrdinalIgnoreCase).Count() + 1, tutte.Count);   // il solo WS5 doppio, nello stesso passo
+    }
+
     /// <summary>Senza righe e senza padre non c'e' nessun passo: la catena finisce sul settore stesso.</summary>
     [Fact]
     public void Una_radice_senza_righe_non_ha_passi() =>
@@ -248,9 +287,11 @@ public class FallbackChainTests
     [Fact]
     public void La_sequenza_e_i_candidati_dicono_la_stessa_cosa()
     {
-        // A una quota dentro la fascia, i candidati sono il settore piu' tutte le voci della sequenza.
+        // A una quota dentro la fascia, i candidati sono il settore piu' le voci della sequenza, DISTINTE:
+        // allo stesso passo lo stesso settore puo' comparire per due motivi, ma resta un candidato solo.
         var attesi = new[] { Ws5 }.Concat(
-            FallbackChain.Sequence(Ws5, Dichiarate, Padre).SelectMany(p => p).Select(e => e.TargetCallsign));
+            FallbackChain.Sequence(Ws5, Dichiarate, Padre).SelectMany(p => p).Select(e => e.TargetCallsign))
+            .Distinct(StringComparer.OrdinalIgnoreCase);
 
         Assert.Equal(attesi, FallbackChain.Candidates(Ws5, 35000, Dichiarate, Padre));
     }

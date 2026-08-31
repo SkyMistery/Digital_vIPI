@@ -1974,6 +1974,13 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
 .struct .fb-form .field.narrow{min-width:74px;max-width:88px;flex:0 0 auto}
 .struct .fb-form .field label{font-family:var(--font-body);text-transform:none;letter-spacing:normal;font-size:12.5px}
 .struct .fb-form .btn.sm{padding:8px 12px;font-size:12.5px}
+/* Il campo a digitazione porta con se' il proprio .field: si comporta come gli altri della riga. */
+.struct .fb-form .sector-pick-wrap{position:relative}
+/* Le voci suggerite scorrono invece di allungare il pannello: il dettaglio e' una colonna stretta. */
+.struct .fb-form .sector-pick{max-height:132px;overflow-y:auto;align-content:flex-start}
+/* Spia «non nei cataloghi»: mentre si batte lo e' quasi sempre, quindi tenue - e' un avviso, non un errore. */
+.struct .fb-warn{display:inline-block;margin-top:4px;font-size:11px;font-family:var(--font-head);font-weight:700;
+                 background:var(--tint-yellow);color:var(--warn-ink);border:1px solid var(--line-yellow);border-radius:5px;padding:1px 6px}
 .struct .fb-sug{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:8px 0}
 .struct .fb-sug .muted{font-size:11.5px}
 .struct .fb-acts{display:flex;gap:8px;align-items:center;margin-top:10px}

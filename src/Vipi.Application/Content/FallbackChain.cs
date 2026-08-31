@@ -77,10 +77,16 @@ public static class FallbackChain
         var risultato = new List<string>();
         if (string.IsNullOrWhiteSpace(sector)) return risultato;
 
+        // ⚠️ Distinti: allo stesso passo si può arrivare a un settore per DUE motivi — una riga con fascia e
+        // il padre — e sono due voci per il disegno, ma un candidato solo per chi risolve.
+        var visti = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         risultato.Add(sector.Trim());
+        visti.Add(sector.Trim());
+
         foreach (var passo in Cammina(sector, declared, parentOf, r => r.AppliesAt(levelFeet)))
             foreach (var e in passo)
-                risultato.Add(e.TargetCallsign);
+                if (visti.Add(e.TargetCallsign))
+                    risultato.Add(e.TargetCallsign);
 
         return risultato;
     }
@@ -106,6 +112,14 @@ public static class FallbackChain
     /// <summary>
     /// La camminata in ampiezza, sola e condivisa. Ogni giro produce <b>un passo</b>: tutte le voci a quella
     /// distanza dal settore di partenza, nell'ordine in cui la risoluzione le guarderebbe.
+    ///
+    /// <para>⚠️ <b>Allo stesso passo un settore può comparire due volte</b>, e non è un doppione: sono due
+    /// <i>motivi</i> diversi per arrivarci. ES5 dichiara «sopra FL325 → WS5» <b>e</b> ha WS5 come padre —
+    /// tenerne una sola direbbe che sotto FL325 WS5 non c'è, mentre c'è, come padre. Chi risolve le conta
+    /// una volta sola (<see cref="Candidates"/> distingue); chi disegna le mostra tutte e due.</para>
+    ///
+    /// <para>La difesa dai cicli è <c>vistiPrima</c>: un settore raggiunto a un passo non torna ai
+    /// successivi. Dentro lo <b>stesso</b> passo, invece, i motivi convivono.</para>
     /// </summary>
     /// <param name="accetta">Quali righe dichiarate contano. Con la quota, la ricaduta; sempre vero, il disegno.</param>
     private static List<IReadOnlyList<FallbackStep>> Cammina(
@@ -117,36 +131,40 @@ public static class FallbackChain
         var passi = new List<IReadOnlyList<FallbackStep>>();
         if (string.IsNullOrWhiteSpace(sector)) return passi;
 
-        var visti = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { sector.Trim() };
+        var vistiPrima = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { sector.Trim() };
         var fronte = new List<string> { sector.Trim() };
 
-        // Il tetto non è una difesa dai cicli — quelli li chiude `visti` — ma dalla catena lunghissima che
-        // un dato sporco potrebbe produrre in una pagina che deve restare leggibile.
+        // Il tetto non è una difesa dai cicli — quelli li chiude `vistiPrima` — ma dalla catena lunghissima
+        // che un dato sporco potrebbe produrre in una pagina che deve restare leggibile.
         for (var giro = 0; giro < 24 && fronte.Count > 0; giro++)
         {
             var passo = new List<FallbackStep>();
             var prossimo = new List<string>();
+            var giaInQuestoPasso = new HashSet<FallbackStep>();
+
+            void Aggiungi(FallbackStep voce)
+            {
+                if (vistiPrima.Contains(voce.TargetCallsign)) return;   // preso a un passo prima: ha la precedenza
+                if (!giaInQuestoPasso.Add(voce)) return;                // stesso motivo da due rami: una volta sola
+                passo.Add(voce);
+                if (!prossimo.Contains(voce.TargetCallsign, StringComparer.OrdinalIgnoreCase))
+                    prossimo.Add(voce.TargetCallsign);
+            }
 
             foreach (var x in fronte)
             {
                 if (declared.TryGetValue(x, out var righe))
                     foreach (var r in righe)
-                    {
-                        if (!accetta(r) || string.IsNullOrWhiteSpace(r.TargetCallsign)) continue;
-                        if (!visti.Add(r.TargetCallsign)) continue;
-                        passo.Add(new FallbackStep(r.TargetCallsign, r.BaseFeet, r.TopFeet, FromParent: false));
-                        prossimo.Add(r.TargetCallsign);
-                    }
+                        if (accetta(r) && !string.IsNullOrWhiteSpace(r.TargetCallsign))
+                            Aggiungi(new FallbackStep(r.TargetCallsign, r.BaseFeet, r.TopFeet, FromParent: false));
 
-                if (parentOf(x) is { Length: > 0 } padre && visti.Add(padre))
-                {
-                    passo.Add(new FallbackStep(padre, null, null, FromParent: true));
-                    prossimo.Add(padre);
-                }
+                if (parentOf(x) is { Length: > 0 } padre)
+                    Aggiungi(new FallbackStep(padre, null, null, FromParent: true));
             }
 
             if (passo.Count == 0) break;
             passi.Add(passo);
+            foreach (var n in prossimo) vistiPrima.Add(n);
             fronte = prossimo;
         }
 

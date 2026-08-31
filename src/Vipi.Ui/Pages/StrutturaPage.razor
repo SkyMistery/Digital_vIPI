@@ -263,31 +263,47 @@
                                 {
                                     var idx = i;
                                     <div class="fb-form">
-                                        <div class="field">
-                                            <label>@L["Struct_Fallback_Target"]</label>
-                                            @* ⚠️ `selected` ESPLICITO su ogni opzione, non il solo `value` sul select:
-                                               con le opzioni rese dopo, il browser non applica il valore e la riga
-                                               compare VUOTA. Visto dal vivo il 31 agosto 2026 - e una riga che sembra
-                                               senza bersaglio, al salvataggio successivo, viene scartata: il difetto
-                                               si mangia il dato. Per la stessa ragione il bersaglio corrente entra
-                                               sempre nell'elenco, anche se non e' fra i padri ammissibili. *@
-                                            <select disabled="@_busy" @onchange="e => CambiaBersaglio(idx, e.Value?.ToString())">
-                                                <option value="" selected="@(_ripieghi[idx].TargetCallsign.Length == 0)">@L["Struct_Fallback_PickTarget"]</option>
-                                                @foreach (var cs in BersagliPossibili(sel, _ripieghi[idx].TargetCallsign))
-                                                {
-                                                    <option value="@cs" selected="@(cs == _ripieghi[idx].TargetCallsign)">@cs</option>
-                                                }
-                                            </select>
-                                        </div>
+                                        @* ⚠️ Campo a DIGITAZIONE, non una tendina: i bersagli possibili sono
+                                           tutti i settori dei cataloghi, e scorrerne centinaia per trovarne uno
+                                           non e' una scelta, e' una ricerca fatta a mano. Il componente e' lo
+                                           stesso dell'editor trasferimenti, dove lo stesso problema era gia'
+                                           stato risolto (tastiera compresa).
+                                           ⚠️ Si puo' anche scrivere il callsign per intero senza scegliere
+                                           dall'elenco: quel che si batte E' il bersaglio. Se non e' nei cataloghi
+                                           lo dice subito la spia qui accanto, e il servizio lo rifiuta al
+                                           salvataggio - meglio due volte che una riga muta. *@
+                                        <TypeaheadPicker Label="@L["Struct_Fallback_Target"]"
+                                                         Hint="@L["Struct_Fallback_TypeHint"]"
+                                                         Placeholder="LIMM_ES5_CTR"
+                                                         Disabled="@_busy"
+                                                         Max="12"
+                                                         NoMatch="@L["Struct_Fallback_NoMatch"]"
+                                                         Items="BersagliPossibili(sel, _ripieghi[idx].TargetCallsign)"
+                                                         Text="@_ripieghi[idx].TargetCallsign"
+                                                         TextChanged="t => CambiaBersaglio(idx, t)"
+                                                         OnPick="i => CambiaBersaglio(idx, i?.Value)">
+                                            @if (BersaglioSconosciuto(_ripieghi[idx].TargetCallsign))
+                                            {
+                                                <span class="fb-warn" title="@L["Struct_Fallback_UnknownTitle"]">@L["Struct_Fallback_Unknown"]</span>
+                                            }
+                                        </TypeaheadPicker>
+                                        @* ⚠️ `@oninput`, NON `@onchange`. `change` su un campo di testo scatta al
+                                           fuoco PERSO: chi scrive la quota e va dritto su «Applica» con la
+                                           tastiera perde il numero, e la riga si salva senza fascia — cioe'
+                                           valida a ogni quota, che e' il contrario di quel che aveva scritto.
+                                           Visto dal vivo il 1 settembre 2026, ed e' la stessa trappola gia'
+                                           pagata sul ciclo AIRAC degli spazi aerei. Il campo del bersaglio non
+                                           l'aveva perche' il picker usa gia' `oninput`: erano questi due i
+                                           dispari. *@
                                         <div class="field narrow">
                                             <label>@L["Struct_Fallback_From"]</label>
                                             <input type="number" min="0" max="660" placeholder="@L["Struct_Fallback_Sfc"]" disabled="@_busy"
-                                                   value="@FlDi(_ripieghi[idx].BaseFeet)" @onchange="e => CambiaPiede(idx, e.Value?.ToString())" />
+                                                   value="@FlDi(_ripieghi[idx].BaseFeet)" @oninput="e => CambiaPiede(idx, e.Value?.ToString())" />
                                         </div>
                                         <div class="field narrow">
                                             <label>@L["Struct_Fallback_To"]</label>
                                             <input type="number" min="0" max="660" placeholder="@L["Struct_Fallback_Unl"]" disabled="@_busy"
-                                                   value="@FlDi(_ripieghi[idx].TopFeet)" @onchange="e => CambiaTetto(idx, e.Value?.ToString())" />
+                                                   value="@FlDi(_ripieghi[idx].TopFeet)" @oninput="e => CambiaTetto(idx, e.Value?.ToString())" />
                                         </div>
                                         <button class="btn ghost sm" disabled="@_busy" title="@L["Struct_Fallback_Remove"]" @onclick="() => TogliRipiego(idx)">@L["Common_Remove"]</button>
                                     </div>
@@ -1027,22 +1043,47 @@
     }
 
     /// <summary>
-    /// I callsign scegliibili in una riga: i padri ammissibili, piu' il bersaglio gia' scritto anche quando
-    /// non e' fra loro. Senza quest'ultimo, una riga verso un settore di un altro ACC comparirebbe vuota e la
-    /// prima riscrittura la butterebbe via.
+    /// I bersagli proposti mentre si scrive: tutti i settori dell'albero tranne sé stesso, filtrati sul testo
+    /// battuto.
+    ///
+    /// <para>⚠️ <b>NON</b> si usa <c>EligibleParents</c>, ed è una differenza di sostanza. Quella lista
+    /// esclude i <b>discendenti</b>, che per il <i>padre</i> è la regola anti-ciclo — ma un <b>ripiego</b> su
+    /// un proprio discendente è legittimo, ed è precisamente il caso di Milano: ES5 è figlio di WS5, e quando
+    /// WS5 chiude è ES5 a tenere quel cielo. Con la lista dei padri quel bersaglio non era proponibile:
+    /// compariva solo perché già salvato.</para>
+    ///
+    /// <para>Un ripiego non può creare un anello di copertura come lo crea un padre: la catena ha la sua
+    /// guardia sui nodi già visti, e l'albero non lo tocca.</para>
     /// </summary>
-    private IEnumerable<string> BersagliPossibili(HierarchyNode sel, string corrente)
+    private IReadOnlyList<TypeaheadPicker.Item> BersagliPossibili(HierarchyNode sel, string testo)
     {
-        var elenco = EligibleParents(sel).Select(p => p.Callsign!).ToList();
-        if (corrente.Length > 0 && !elenco.Contains(corrente, StringComparer.OrdinalIgnoreCase))
-            elenco.Insert(0, corrente);
-        return elenco;
+        var t = (testo ?? "").Trim();
+        return _tree
+            .Where(n => n.Callsign is not null
+                        && !string.Equals(n.Callsign, sel.Callsign, StringComparison.OrdinalIgnoreCase)
+                        && (t.Length == 0 || n.Callsign.Contains(t, StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(n => n.Callsign, StringComparer.OrdinalIgnoreCase)
+            .Select(n => new TypeaheadPicker.Item(n.Callsign!, n.AccCode))
+            .ToList();
     }
+
+    /// <summary>
+    /// Vero se quel che è scritto non è (ancora) un callsign dei cataloghi: mentre si batte lo è quasi sempre,
+    /// e la spia serve a non arrivare al salvataggio credendo di aver finito.
+    /// </summary>
+    private bool BersaglioSconosciuto(string cs) =>
+        cs.Length > 0 && !NodesByCallsign().ContainsKey(cs);
 
     private void AggiungiRipiego() => _ripieghi.Add(new FallbackRowEdit("", null, null));
     private void TogliRipiego(int i) => _ripieghi.RemoveAt(i);
 
-    private void CambiaBersaglio(int i, string? cs) => _ripieghi[i] = _ripieghi[i] with { TargetCallsign = cs ?? "" };
+    /// <summary>
+    /// Il bersaglio battuto a mano si normalizza in MAIUSCOLO: i callsign lo sono, e una riga scritta
+    /// «limm_es5_ctr» sarebbe accettata dal servizio (che confronta senza distinzione) ma poi si leggerebbe
+    /// diversa da tutte le altre in tabella.
+    /// </summary>
+    private void CambiaBersaglio(int i, string? cs) =>
+        _ripieghi[i] = _ripieghi[i] with { TargetCallsign = (cs ?? "").Trim().ToUpperInvariant() };
     private void CambiaPiede(int i, string? fl) => _ripieghi[i] = _ripieghi[i] with { BaseFeet = PiediDa(fl) };
     private void CambiaTetto(int i, string? fl) => _ripieghi[i] = _ripieghi[i] with { TopFeet = PiediDa(fl) };
 

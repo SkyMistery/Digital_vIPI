@@ -276,6 +276,7 @@ contenimento e dell'AoR): si aggiunge la catena accanto come sorgente della *ric
 | 2 | C: `SectorFallback`, risolutore con la quota, due chiamate + editor in Struttura | ✅ |
 | 3 | B: proposte geometriche nell'editor | ✅ |
 | 4 | La schermata di dettaglio: sequenza per passi + form allineato | ✅ |
+| 5 | Bersaglio a digitazione, e i due difetti che ha fatto cadere | ✅ |
 
 ### Verifica live (31 agosto 2026)
 
@@ -351,6 +352,45 @@ vincono per specificità — è la trappola già pagata su `.res-table`.
 inglese — nello stesso riquadro che si stava allineando. Chiuso: due chiavi distinte per singolare e plurale,
 perché in inglese la parola che cambia non è in fondo e una regola sulle desinenze italiane l'avrebbe rotta.
 Era la voce «fuori perimetro» dell'elenco qui sotto, ed è caduta perché il perimetro se l'è tirata dentro.
+
+### Il bersaglio si scrive, non si scorre — 1 settembre 2026
+
+Richiesta del committente: **«deve consentire anche l'inserimento manuale, così da non dover scorrere una
+lista enorme ogni volta»**. Aveva ragione: i bersagli possibili sono tutti i settori dei cataloghi, e
+scorrerne centinaia per trovarne uno non è una scelta, è una ricerca fatta a mano.
+
+Il campo è ora a **digitazione**, con `TypeaheadPicker` — lo stesso componente dell'editor trasferimenti,
+dove lo stesso problema era già stato risolto, tastiera compresa. Si può **scrivere il callsign per intero
+senza scegliere dall'elenco**: quel che si batte *è* il bersaglio, normalizzato in maiuscolo. Se non è nei
+cataloghi lo dice subito una spia ambra accanto al campo, e il servizio lo rifiuta comunque al salvataggio —
+meglio due volte che una riga muta.
+
+**E ha fatto cadere un difetto mio.** La tendina si costruiva su `EligibleParents`, che **esclude i
+discendenti**: regola giusta per il *padre* (è l'anti-ciclo), sbagliata per un **ripiego**. È letteralmente
+il caso di Milano — ES5 è figlio di WS5, e quando WS5 chiude è ES5 a tenere quel cielo. Con quella lista il
+bersaglio giusto **non era proponibile**: compariva solo perché già salvato. Ora i candidati sono tutti i
+settori dell'albero tranne sé stesso. Un ripiego non può creare un anello di copertura come lo crea un
+padre: la catena ha la sua guardia sui nodi già visti, e l'albero non lo tocca.
+
+**Due difetti in più, trovati guidando l'app.**
+
+1. ⚠️ **La fascia FL non si salvava senza togliere il fuoco dal campo.** I due input usavano `@onchange`,
+   che su un campo di testo scatta al **fuoco perso**: chi scrive la quota e va dritto su «Applica» perdeva
+   il numero, e la riga si salvava **senza fascia** — cioè valida a ogni quota, il contrario di quel che
+   aveva scritto. Passati a `@oninput`. È la stessa trappola già pagata sul ciclo AIRAC degli spazi aerei; il
+   campo del bersaglio non l'aveva perché il picker usa già `oninput`, erano questi due i dispari.
+
+2. ⚠️ **La sequenza mentiva in un caso.** ES5 dichiara «sopra FL325 → WS5» **e** ha WS5 come padre: il
+   disegno mostrava solo la riga con la fascia, facendo credere che sotto FL325 WS5 non ci fosse — mentre
+   c'è, come padre. Ora allo stesso passo si vedono **tutti i motivi** per cui ci si arriva:
+
+   ```
+    ①  FL325–UNL  → LIMM_WS5_CTR
+       ogni quota → LIMM_WS5_CTR  PADRE
+    ②  ogni quota → LIMM_WS2_CTR  PADRE
+   ```
+
+   Due voci per il disegno, **un candidato solo** per chi risolve: `Candidates` distingue, `Sequence` no.
 
 ### Cosa resta aperto
 
