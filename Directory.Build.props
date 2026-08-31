@@ -104,7 +104,27 @@
       ripristinare entro stasera**: è una deroga a tempo, non la fine della finestra.
       🔴 Quindi il caricamento e la verifica vanno fatti **stasera**, finché quella rete c'è.
     -->
-    <VipiVersione>1.2.0</VipiVersione>
+    <!--
+      1.3.0 — 31 agosto 2026, notte. MINOR per gli stessi due motivi di 1.2.0: una funzionalità nuova
+      (§AN, «lingua bloccata»: un documento si legge in UNA lingua sola) e **una migrazione ADDITIVA**,
+      `LinguaBloccata` — una sola colonna, `Documents.LanguageLocked`, `bool NOT NULL DEFAULT 0`.
+
+      Dentro ci sono anche le cinque correzioni della sera (merge `8fa5eaf5`), che di loro sarebbero state
+      una PATCH: il 3D delle aree regolamentate che diceva l'id invece del nome, la pagina degli spazi aerei
+      che aveva quindici classi senza una regola nel foglio, i campi delle regole piste illeggibili a tema
+      scuro, e l'anteprima di una release che mostrava le SID del ciclo di OGGI invece di quelle del ciclo
+      che sta per uscire.
+
+      🔴 NON è MAJOR, per la stessa ragione di 1.2.0: basta l'FTP, il codice nuovo legge l'archivio che c'è.
+
+      ⚠️ E LA MIGRAZIONE, DI NUOVO, VA SPEDITA CON GLI OCCHI APERTI. Siamo ancora dentro la finestra cieca
+      (fino al 16 settembre): in produzione `Database.Migrate()` gira all'avvio, da solo, su DDL non
+      transazionale, e nessuno può ripristinare il database. Il committente ha deciso il 31 agosto sera di
+      spedirla lo stesso. Passa il presidio `MigrazioniDellaFinestraCiecaTests` — è additiva e ha un default
+      vero — ma «passa il presidio» non è «non può fare danno»: il caricamento va fatto quando c'è ancora
+      qualcuno raggiungibile.
+    -->
+    <VipiVersione>1.3.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
