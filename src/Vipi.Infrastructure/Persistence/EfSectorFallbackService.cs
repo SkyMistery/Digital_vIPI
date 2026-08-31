@@ -98,7 +98,26 @@ public sealed class EfSectorFallbackService : ISectorFallbackService
     {
         if (string.IsNullOrWhiteSpace(sectorCallsign)) return Array.Empty<FallbackSuggestion>();
 
+        // ⚠️ SOLO i settori dello STESSO ACC. La sovrapposizione in quota, da sola, non è un criterio: tutti i
+        // settori alti d'Europa stanno nella stessa fascia. Misurato dal vivo il 31 agosto 2026 su
+        // LIMM_WS5_CTR — 155 proposte, con Algeri, Vienna, Zurigo e Belgrado in cima all'elenco. Un elenco
+        // così non è una proposta, è rumore che nasconde l'unica riga che serviva (LIMM_ES5_CTR).
+        //
+        // Il confine è l'ACC e non l'adiacenza geometrica perché è quello che il gesto significa: quando un
+        // settore chiude, a raccoglierlo è un collega dello stesso centro. Un ripiego verso un altro ACC
+        // resta possibile — si scrive a mano, come si scrive a mano un padre cross-ACC.
+        var accDi = await AccPerCallsignAsync(ct);
+        if (!accDi.TryGetValue(sectorCallsign, out var mioAcc)) return Array.Empty<FallbackSuggestion>();
+
+        // ⚠️ E solo chi una forma ce l'ha. Senza pezzi la banda risulta aperta da tutte e due le parti, cioè
+        // sovrapposta a chiunque: DEL e GND, che un poligono non ce l'hanno per costruzione (sono posizioni a
+        // terra, misurato zero su 5 e zero su 20), venivano proposti come ripiego di un settore d'area a
+        // FL325. «Non ho una forma» non è «prendo tutto il cielo»: è «non lo so», e chi non lo sa non si
+        // propone. Visto dal vivo il 31 agosto 2026 su LIMM_WS5_CTR (LIMC_DEL, LIML_GND, LIMF_GND).
         var bande = (await _volumi.GetAllAsync(ct))
+            .Where(v => v.Parts.Count > 0)
+            .Where(v => accDi.TryGetValue(v.Callsign, out var a)
+                        && string.Equals(a, mioAcc, StringComparison.OrdinalIgnoreCase))
             .Select(v => FallbackSuggestions.BandOf(v.Callsign, v.Parts.Select(p => (p.BaseFeet, p.TopFeet))))
             .ToList();
 
@@ -112,6 +131,19 @@ public sealed class EfSectorFallbackService : ISectorFallbackService
         return FallbackSuggestions.For(sectorCallsign, bande, antenati)
             .Where(p => !gia.Contains(p.TargetCallsign))
             .ToList();
+    }
+
+    /// <summary>callsign → codice ACC di appartenenza, dai due cataloghi.</summary>
+    private async Task<Dictionary<string, string>> AccPerCallsignAsync(CancellationToken ct)
+    {
+        var mappa = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var s in await _db.AccSectors.AsNoTracking()
+                     .Select(s => new { s.ComposePosition, Acc = s.CenterId }).ToListAsync(ct))
+            mappa[s.ComposePosition] = s.Acc;
+        foreach (var s in await _db.AirportSectors.AsNoTracking()
+                     .Select(s => new { s.ComposePosition, Acc = s.AccCode }).ToListAsync(ct))
+            mappa[s.ComposePosition] = s.Acc;
+        return mappa;
     }
 
     /// <summary>I callsign che possono comparire in una riga: le chiavi naturali dei due cataloghi.</summary>

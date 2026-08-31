@@ -5,34 +5,43 @@ using Xunit;
 namespace Vipi.Application.Tests;
 
 /// <summary>
-/// La catena di ripiego con la quota. Lo scenario è quello della carta
-/// (<c>docs/feature/2026-08-31-ricaduta-verticale-e-cicli.md</c> §2): Milano divisa in due su due strati.
+/// La catena di ripiego con la quota. Lo scenario e' quello della carta
+/// (<c>docs/feature/2026-08-31-ricaduta-verticale-e-cicli.md</c> §2), e ⚠️ <b>e' MISURATO sul
+/// <c>vipi.db</c> reale</b>, non assunto: la prima stesura della carta dava per buono un albero diverso
+/// (ES5 figlio di ES2) e uno split a FL305, e il dato l'ha smentita su tutti e due i punti.
 ///
 /// <list type="table">
-/// <item><term>WS2</term><description>ovest, SFC – FL305</description></item>
-/// <item><term>ES2</term><description>est, SFC – FL305</description></item>
-/// <item><term>WS5</term><description>ovest, FL305 – UNL</description></item>
-/// <item><term>ES5</term><description>est, FL305 – UNL</description></item>
+/// <item><term>WS2</term><description>ovest, SFC – FL325, radice</description></item>
+/// <item><term>ES2</term><description>est, SFC – FL325, figlio di WS2</description></item>
+/// <item><term>WS5</term><description>ovest, FL325 – UNL, figlio di WS2</description></item>
+/// <item><term>ES5</term><description>est, FL325 – UNL, figlio di <b>WS5</b></description></item>
 /// </list>
 ///
-/// Albero: WS2 radice, ES2 e WS5 figli di WS2, ES5 figlio di ES2.
+/// <para>E' questa forma dell'albero a decidere quale caso e' rotto. Con <b>ES5</b> chiuso la catena passa
+/// comunque da WS5 e la risposta e' giusta — ma <i>per caso</i>, perche' l'albero mette per l'appunto
+/// l'altro settore alto sulla strada. Con <b>WS5</b> chiuso la catena salta diritta a WS2, che sopra FL325
+/// non ha niente, mentre quel cielo lo tiene ES5 — e l'albero <b>non puo'</b> dirlo, perche' ES5 sta
+/// <b>sotto</b> WS5, e un figlio non e' mai un ripiego per suo padre.</para>
 /// </summary>
 public class FallbackChainTests
 {
     private const string Ws2 = "LIMM_WS2_CTR", Es2 = "LIMM_ES2_CTR", Ws5 = "LIMM_WS5_CTR", Es5 = "LIMM_ES5_CTR";
 
+    /// <summary>FL325: il piede MISURATO dello strato alto di Milano sul vipi.db reale.</summary>
+    private const int Split = 32500;
+
     private static readonly Dictionary<string, string?> Padri = new(StringComparer.OrdinalIgnoreCase)
     {
-        [Ws2] = null, [Es2] = Ws2, [Ws5] = Ws2, [Es5] = Es2,
+        [Ws2] = null, [Es2] = Ws2, [Ws5] = Ws2, [Es5] = Ws5,
     };
 
     private static string? Padre(string cs) => Padri.GetValueOrDefault(cs);
 
-    /// <summary>Le due righe che l'admin conferma su proposta di B: sopra FL305 il sostituto è l'altro alto.</summary>
+    /// <summary>Le due righe che l'admin conferma su proposta di B: sopra FL325 il sostituto è l'altro alto.</summary>
     private static readonly Dictionary<string, IReadOnlyList<FallbackRow>> Dichiarate = new(StringComparer.OrdinalIgnoreCase)
     {
-        [Es5] = new[] { new FallbackRow(Ws5, BaseFeet: 30500, TopFeet: null) },
-        [Ws5] = new[] { new FallbackRow(Es5, BaseFeet: 30500, TopFeet: null) },
+        [Es5] = new[] { new FallbackRow(Ws5, BaseFeet: Split, TopFeet: null) },
+        [Ws5] = new[] { new FallbackRow(Es5, BaseFeet: Split, TopFeet: null) },
     };
 
     private static IReadOnlyDictionary<string, IReadOnlyList<FallbackRow>> Nessuna =>
@@ -47,41 +56,67 @@ public class FallbackChainTests
     //  I quattro casi della carta
     // =====================================================================================================
 
-    /// <summary>Caso 1 — il difetto. A FL350 il traffico dell'alto est va all'alto ovest, non al basso est.</summary>
+    /// <summary>
+    /// Caso 1 — <b>il difetto vero</b>. WS5 chiuso ed ES5 aperto: senza la riga il traffico dell'alto ovest
+    /// va a WS2, che sopra FL325 non ha niente. Con la riga va a ES5, che quel cielo lo sta tenendo.
+    /// </summary>
     [Fact]
-    public void A_FL350_con_WS5_aperto_il_traffico_di_ES5_va_a_WS5()
+    public void A_FL350_con_ES5_aperto_il_traffico_di_WS5_va_a_ES5()
     {
-        var (handler, online) = Risolvi(Es5, quotaFt: 35000, Ws2, Es2, Ws5);
+        var (handler, online) = Risolvi(Ws5, quotaFt: 35000, Ws2, Es2, Es5);
 
-        Assert.Equal(Ws5, handler);
+        Assert.Equal(Es5, handler);
         Assert.True(online);
     }
 
-    /// <summary>Caso 2 — il punto della carta: la stessa tabella dà una risposta diversa a quota diversa.</summary>
+    /// <summary>Senza la riga dichiarata lo stesso caso finisce su WS2: e' la fotografia del difetto.</summary>
     [Fact]
-    public void A_FL250_lo_stesso_punto_va_a_ES2()
+    public void Senza_la_riga_lo_stesso_caso_finiva_su_WS2()
     {
-        var (handler, _) = Risolvi(Es5, quotaFt: 25000, Ws2, Es2, Ws5);
-
-        Assert.Equal(Es2, handler);
-    }
-
-    /// <summary>Caso 3 — con solo il capo online il risultato è quello di sempre: nessuna regressione.</summary>
-    [Fact]
-    public void Con_solo_WS2_online_si_ricade_su_WS2_come_prima()
-    {
-        var (handler, _) = Risolvi(Es5, quotaFt: 35000, Ws2);
+        var (handler, _) = TransferOnlineResolver.Resolve(
+            FallbackChain.Candidates(Ws5, 35000, Nessuna, Padre),
+            new HashSet<string>(new[] { Ws2, Es2, Es5 }, StringComparer.OrdinalIgnoreCase));
 
         Assert.Equal(Ws2, handler);
     }
 
-    /// <summary>Caso 4 — un punto senza quota non si risolve in verticale, e va bene così.</summary>
+    /// <summary>Caso 2 — il punto della carta: la stessa tabella da' una risposta diversa a quota diversa.</summary>
+    [Fact]
+    public void A_FL250_lo_stesso_punto_va_a_WS2()
+    {
+        var (handler, _) = Risolvi(Ws5, quotaFt: 25000, Ws2, Es2, Es5);
+
+        Assert.Equal(Ws2, handler);
+    }
+
+    /// <summary>Caso 3 — con solo il capo online il risultato e' quello di sempre: nessuna regressione.</summary>
+    [Fact]
+    public void Con_solo_WS2_online_si_ricade_su_WS2_come_prima()
+    {
+        var (handler, _) = Risolvi(Ws5, quotaFt: 35000, Ws2);
+
+        Assert.Equal(Ws2, handler);
+    }
+
+    /// <summary>Caso 4 — un punto senza quota non si risolve in verticale, e va bene cosi'.</summary>
     [Fact]
     public void Senza_quota_le_righe_con_fascia_si_saltano()
     {
-        var (handler, _) = Risolvi(Es5, quotaFt: null, Ws2, Es2, Ws5);
+        var (handler, _) = Risolvi(Ws5, quotaFt: null, Ws2, Es2, Es5);
 
-        Assert.Equal(Es2, handler);
+        Assert.Equal(Ws2, handler);
+    }
+
+    /// <summary>
+    /// Il verso che l'albero gia' copriva: ES5 chiuso con WS5 aperto. Funzionava <b>per caso</b> — perche'
+    /// WS5 e' il padre di ES5 — e con la riga dichiarata continua a funzionare, ora <b>per costruzione</b>.
+    /// </summary>
+    [Fact]
+    public void Il_verso_che_gia_funzionava_continua_a_funzionare()
+    {
+        var (handler, _) = Risolvi(Es5, quotaFt: 35000, Ws2, Es2, Ws5);
+
+        Assert.Equal(Ws5, handler);
     }
 
     /// <summary>Nessuno online: il traffico va su UNICOM, come prima.</summary>
@@ -99,15 +134,22 @@ public class FallbackChainTests
     // =====================================================================================================
 
     /// <summary>
-    /// ⚠️ In ampiezza, non in profondità. In profondità l'ordine sarebbe <c>ES5, WS5, WS2, ES2</c> e con WS2
-    /// ed ES2 entrambi online il traffico dell'est finirebbe a ovest, scavalcando il proprio padre.
+    /// ⚠️ In ampiezza, non in profondita'. Sull'albero reale — dove i due alti stanno uno sotto l'altro — la
+    /// differenza non si vede; si vede su quello che la carta descriveva all'inizio, ES5 figlio di ES2, ed e'
+    /// il motivo per cui la visita e' scritta cosi': in profondita' si esaurirebbe tutto il ramo del primo
+    /// ripiego — il suo padre compreso — prima di guardare il proprio.
     /// </summary>
     [Fact]
     public void I_candidati_escono_per_distanza_non_per_ramo()
     {
-        var c = FallbackChain.Candidates(Es5, 35000, Dichiarate, Padre);
+        var altroAlbero = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+        {
+            [Ws2] = null, [Es2] = Ws2, [Ws5] = Ws2, [Es5] = Es2,
+        };
 
-        Assert.Equal(new[] { Es5, Ws5, Es2, Ws2 }, c);
+        var c = FallbackChain.Candidates(Es5, 35000, Dichiarate, cs => altroAlbero.GetValueOrDefault(cs));
+
+        Assert.Equal(new[] { Es5, Ws5, Es2, Ws2 }, c);   // in profondita' sarebbe ES5, WS5, WS2, ES2
     }
 
     [Fact]
@@ -141,7 +183,7 @@ public class FallbackChainTests
     [Fact]
     public void A_tabella_vuota_la_catena_e_quella_dei_padri()
     {
-        Assert.Equal(new[] { Es5, Es2, Ws2 }, FallbackChain.Candidates(Es5, 35000, Nessuna, Padre));
+        Assert.Equal(new[] { Es5, Ws5, Ws2 }, FallbackChain.Candidates(Es5, 35000, Nessuna, Padre));
     }
 
     [Fact]
@@ -156,18 +198,18 @@ public class FallbackChainTests
 
     /// <summary>Piede incluso, tetto escluso: FL305 va all'alta, non alla bassa.</summary>
     [Theory]
-    [InlineData(30400, false)]
-    [InlineData(30500, true)]
+    [InlineData(32400, false)]
+    [InlineData(32500, true)]
     [InlineData(35000, true)]
     public void Il_piede_della_fascia_e_incluso(int quotaFt, bool atteso) =>
-        Assert.Equal(atteso, new FallbackRow("X", 30500, null).AppliesAt(quotaFt));
+        Assert.Equal(atteso, new FallbackRow("X", 32500, null).AppliesAt(quotaFt));
 
     [Theory]
     [InlineData(0, true)]
-    [InlineData(30400, true)]
-    [InlineData(30500, false)]
+    [InlineData(32400, true)]
+    [InlineData(32500, false)]
     public void Il_tetto_della_fascia_e_escluso(int quotaFt, bool atteso) =>
-        Assert.Equal(atteso, new FallbackRow("X", null, 30500).AppliesAt(quotaFt));
+        Assert.Equal(atteso, new FallbackRow("X", null, 32500).AppliesAt(quotaFt));
 
     [Fact]
     public void Una_riga_senza_fascia_vale_sempre_anche_senza_quota()
@@ -179,8 +221,8 @@ public class FallbackChainTests
     [Fact]
     public void Una_riga_con_fascia_non_si_valuta_senza_quota()
     {
-        Assert.False(new FallbackRow("X", 30500, null).AppliesAt(null));
-        Assert.False(new FallbackRow("X", null, 30500).AppliesAt(null));
+        Assert.False(new FallbackRow("X", 32500, null).AppliesAt(null));
+        Assert.False(new FallbackRow("X", null, 32500).AppliesAt(null));
     }
 
     // =====================================================================================================

@@ -111,24 +111,36 @@ controllo).
 
 ### Il fatto
 
-L'ACC di Milano si divide in due su due strati:
+L'ACC di Milano si divide in due su due strati. ⚠️ **Questa tabella è misurata sul `vipi.db` reale**, non
+assunta: la prima stesura di questa carta dava per buono un albero diverso (ES5 figlio di ES2) e uno split a
+FL305, e il dato l'ha smentita su tutti e due i punti.
 
-| Settore | Pianta | Banda |
-|---|---|---|
-| WS2 | ovest | SFC – FL305 |
-| ES2 | est | SFC – FL305 |
-| WS5 | ovest | FL305 – UNL |
-| ES5 | est | FL305 – UNL |
+| Settore | Pianta | Banda (misurata) | Padre (misurato) |
+|---|---|---|---|
+| `LIMM_WS2_CTR` | ovest | SFC – FL325 | — (radice) |
+| `LIMM_ES2_CTR` | est | SFC – FL325 | WS2 |
+| `LIMM_WS5_CTR` | ovest | FL325 – UNL | WS2 |
+| `LIMM_ES5_CTR` | est | FL325 – UNL | **WS5** |
 
-Albero di oggi: `WS2` radice, `ES2` e `WS5` figli di WS2, `ES5` figlio di ES2.
+L'albero mette quindi i due alti **uno sotto l'altro**: `ES5 → WS5 → WS2`. E questo cambia quale dei due
+casi è rotto.
 
-Con online `{WS2, ES2, WS5}` — cioè i due bassi divisi e l'alto tutto a WS5 — un punto di trasferimento
-diretto a **ES5 a FL350** oggi risolve così: catena `[ES5, ES2, WS2]`, ES5 chiuso, primo online **ES2**.
-Sbagliato: a FL350 quel cielo è di **WS5**, che infatti non vede niente. Nessun avviso, perché la ricaduta
-è **riuscita** — solo verso il settore sbagliato.
+**Il caso che già funziona.** ES5 chiuso, online `{WS2, ES2, WS5}`: catena `[ES5, WS5, WS2]`, primo online
+**WS5**. Giusto — per fortuna, non per costruzione: funziona perché l'albero mette per caso l'altro settore
+alto sulla strada.
+
+**Il caso rotto è lo specchio.** WS5 chiuso, ES5 aperto — online `{WS2, ES2, ES5}` — e un punto diretto a
+**WS5 a FL350**: catena `[WS5, WS2]`, primo online **WS2**. Sbagliato: WS2 arriva a FL325, sopra non ha
+niente, mentre quel cielo lo sta tenendo **ES5**, che non vede arrivare nulla. E l'albero **non può**
+dirlo, perché ES5 sta *sotto* WS5: un figlio non è mai un ripiego per suo padre.
+
+Nessun avviso in nessuno dei due casi, perché la ricaduta **riesce sempre**: al massimo verso il settore
+sbagliato.
 
 La causa è strutturale: **la ricaduta è un albero a un padre solo, senza dimensione verticale**. Le quote
-esistono (`ShapePart.BaseFeet/TopFeet`) ma le usa solo l'attribuzione del traffico, mai la ricaduta.
+esistono (`ShapePart.BaseFeet/TopFeet`) ma le usa solo l'attribuzione del traffico, mai la ricaduta. E un
+albero a un padre solo non può esprimere «questi due si sostituiscono a vicenda»: uno dei due deve per forza
+stare sotto l'altro.
 
 ### C — la catena di ripiego dichiarata
 
@@ -189,28 +201,33 @@ cielo che il sostituto può davvero prendere.
 pianta non si toccano mai. È lo *strato* che li rende sostituti l'uno dell'altro. L'adiacenza in pianta è
 solo un criterio di ordinamento fra pari.
 
-Per ES5 (FL305–UNL) B trova: WS5 si sovrappone in banda al **100 %**, ES2 allo **0 %**. Propone:
+Per WS5 (FL325–UNL) B trova: ES5 si sovrappone in banda al **100 %**, ES2 e WS2 allo **0 %** (stanno tutti
+sotto FL325). Propone **una riga sola**:
 
-| # | Bersaglio | Banda | Da dove |
+| # | Bersaglio | Fascia | Da dove |
 |---|---|---|---|
-| 1 | WS5 | FL305 – UNL | proposta da B (stesso strato) |
-| 2 | ES2 | — | il padre di oggi |
+| 1 | ES5 | FL325 – UNL | proposta da B (stesso strato) |
+| — | WS2 | — | il padre, che resta la coda e non si scrive |
 
-**Due righe, non una regola per ogni combinazione di split.**
+**Una riga per settore, non una regola per ogni combinazione di split.** E su ES5 la simmetrica, «sopra
+FL325 → WS5», che rende esplicito il caso che oggi funziona per caso.
 
 ### I casi, per intero
 
-| # | Online | Punto | Oggi | Con C+B |
-|---|---|---|---|---|
-| 1 | WS2, ES2, WS5 | ES5 @ **FL350** | ES2 ❌ | riga 1 (banda contiene FL350) → **WS5** ✅ |
-| 2 | WS2, ES2, WS5 | ES5 @ **FL250** | ES2 | riga 1 scartata, riga 2 → **ES2** ✅ |
-| 3 | solo WS2 | ES5 @ FL350 | WS2 | riga 1 → WS5 offline → ricorsione → **WS2** ✅ (invariato) |
-| 4 | WS2, ES2, WS5 | ES5 **senza quota** | ES2 | righe con banda non valutabili → **ES2** (invariato) |
+Con su WS5 la riga «FL325–UNL → ES5»:
 
-Il caso 2 è il punto della carta: **la stessa tabella dà due risposte diverse perché la quota è diversa**.
-Il caso 4 è onesto, non è un difetto — un punto che non dichiara la quota non può essere risolto in
-verticale; in interfaccia va **detto** («quota non specificata: ricaduta non verticale»), o l'admin penserà
-a un guasto.
+| # | Online | Punto diretto a | Oggi | Con C+B |
+|---|---|---|---|---|
+| 1 | WS2, ES2, **ES5** | WS5 @ **FL350** | WS2 ❌ | riga 1 (la banda contiene FL350) → **ES5** ✅ |
+| 2 | WS2, ES2, **ES5** | WS5 @ **FL250** | WS2 | riga 1 scartata (fuori banda) → il padre → **WS2** ✅ |
+| 3 | solo WS2 | WS5 @ FL350 | WS2 | riga 1 → ES5 offline → il padre → **WS2** ✅ (invariato) |
+| 4 | WS2, ES2, ES5 | WS5 **senza quota** | WS2 | righe con banda non valutabili → **WS2** (invariato) |
+
+Il caso 2 è il punto della carta: **la stessa tabella dà due risposte diverse perché la quota è diversa** —
+a FL250 il traffico dell'ovest è davvero di WS2, che quella quota ce l'ha.
+
+Il caso 4 è onesto, non è un difetto: un punto che non dichiara la quota non può essere risolto in
+verticale. In interfaccia va **detto**, o l'admin lo legge come un guasto.
 
 ### Tre dettagli che decidono se funziona
 
@@ -259,12 +276,47 @@ contenimento e dell'AoR): si aggiunge la catena accanto come sorgente della *ric
 | 2 | C: `SectorFallback`, risolutore con la quota, due chiamate + editor in Struttura | ✅ |
 | 3 | B: proposte geometriche nell'editor | ✅ |
 
+### Verifica live (31 agosto 2026)
+
+App avviata su una **copia** del `vipi.db`, con `LIMF_WW0_APP.ParentCallsign` azzerato per riprodurre
+esattamente la configurazione di produzione. Guidata in Edge con puppeteer-core (skill `verifica-live`).
+
+**Cosa si è confermato.** In `/services/vsop/admin/sector-structure`, `LIMF_WW0_APP` compare **una volta
+sola**, come radice, con `LIMF_WN0_APP` figlio suo e **nessun secondo WW0 sotto di lui**. La sua catena dice
+«Root (no parent)» — orfano e visibile, non ciclico e muto, come la mossa 1 prometteva. Il pannello della
+catena di ripiego c'è, la riga si scrive, si salva e **sopravvive a un ricarico completo**. Zero errori in
+console, zero risposte ≥ 400.
+
+⚠️ Il rifiuto lato server dell'anello **non** si è potuto provare dal browser: la tendina dei padri esclude
+già i discendenti, quindi il caso non è nemmeno proponibile da lì. Resta coperto dai test
+(`GerarchiaSenzaAnelliTests`), che è dove deve stare — la guardia serve per le porte che *non* sono la
+tendina.
+
+**Quattro difetti trovati solo qui, nessuno dei quali sarebbe uscito dai test.**
+
+| | Cosa si vedeva | Perché |
+|---|---|---|
+| 1 | Due titoli, uno in italiano dentro la pagina inglese | `StructureFallbackChain` aveva un letterale «Catena di fallback:» scritto a mano. Innocuo finché era solo; con l'intestazione nuova sopra, diventava un doppione nella lingua sbagliata |
+| 2 | **155 proposte** su `LIMM_WS5_CTR`: Algeri, Vienna, Zurigo, Belgrado | Accoppiando per sola banda, **ogni settore alto d'Europa** è candidato. La proposta si ferma all'ACC: quando un settore chiude, a raccoglierlo è un collega dello stesso centro |
+| 3 | La riga accettata mostrava il bersaglio **vuoto** | `value` su un `<select>` con opzioni rese dopo non seleziona niente: serve `selected` esplicito. ⚠️ E una riga che *sembra* senza bersaglio, al salvataggio successivo, **viene scartata**: il difetto si mangiava il dato |
+| 4 | Proposti `LIMC_DEL`, `LIML_GND` come ripiego a FL325 | DEL e GND non hanno poligono, e `BandOf` senza pezzi torna «tutta aperta». **«Non ho una forma» non è «prendo tutto il cielo»**: è «non lo so», e chi non lo sa non si propone |
+
+Dopo le correzioni, su `LIMM_WS5_CTR` le proposte sono **due**: `LIMM_ES5_CTR` (quella che serve, per prima)
+e `LIMM_MIL_CTR`, che una banda aperta ce l'ha davvero e che l'admin scarta guardandola.
+
+> Il difetto 2 è anche la smentita della nota qui sopra su B: l'adiacenza in pianta non era «un raffinamento
+> da fare dopo», era il fatto che **mancava del tutto un criterio geografico**. Il confine giusto si è
+> rivelato l'ACC, non la geometria — più semplice e più vicino a cosa significa il gesto.
+
 ### Cosa resta aperto
 
 - **Statistiche per pezzo di forma** (vedi il dettaglio 2 qui sopra): finché le pretese sono per settore, le
   righe dichiarate non entrano nell'attribuzione del traffico.
 - **I 19 aeroporti che pendono da una propria APP** restano tali: è la configurazione normale, e ora è
   innocua. Non c'è niente da riparare, ma è il posto da cui guardare se un anello ricomparisse.
+- **Testo italiano nella pagina inglese**, trovato accanto al difetto 1 e **non corretto** perché fuori
+  perimetro: `StructureCoverage` stampa «Copre (dominio):» e «N aeroporti coperti» a mano, in italiano, in
+  tutte e due le lingue. Stessa famiglia del difetto 1, altro componente.
 - **Le `UnificationRule`** restano un motore senza editor (le applica solo `AorService`, per la mappa AoR).
   Questa carta non le tocca: la ricaduta ora ha la sua strada, e sovrapporre le due sarebbe il secondo
   meccanismo che il pre-flight §1 vieta.

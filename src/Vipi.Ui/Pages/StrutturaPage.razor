@@ -251,12 +251,18 @@
                             var idx = i;
                             <div class="fb-row">
                                 <span class="fb-n">@(idx + 1).</span>
-                                <select value="@_ripieghi[idx].TargetCallsign" disabled="@(!Authz.IsEditor || !_canEdit || _busy)"
+                                @* ⚠️ `selected` ESPLICITO su ogni opzione, non il solo `value` sul select: con le
+                                   opzioni rese dopo, il browser non applica il valore e la riga compare VUOTA.
+                                   Visto dal vivo il 31 agosto 2026 — e una riga che sembra senza bersaglio,
+                                   al salvataggio successivo, viene scartata: il difetto si mangia il dato.
+                                   Per la stessa ragione il bersaglio corrente entra sempre nell'elenco, anche
+                                   se non e' fra i padri ammissibili (una riga cross-ACC scritta a mano). *@
+                                <select disabled="@(!Authz.IsEditor || !_canEdit || _busy)"
                                         @onchange="e => CambiaBersaglio(idx, e.Value?.ToString())">
-                                    <option value="">@L["Struct_Fallback_PickTarget"]</option>
-                                    @foreach (var p in EligibleParents(sel))
+                                    <option value="" selected="@(_ripieghi[idx].TargetCallsign.Length == 0)">@L["Struct_Fallback_PickTarget"]</option>
+                                    @foreach (var cs in BersagliPossibili(sel, _ripieghi[idx].TargetCallsign))
                                     {
-                                        <option value="@p.Callsign">@p.Callsign</option>
+                                        <option value="@cs" selected="@(cs == _ripieghi[idx].TargetCallsign)">@cs</option>
                                     }
                                 </select>
                                 <span class="fb-lbl">@L["Struct_Fallback_From"]</span>
@@ -1001,6 +1007,19 @@
 
         _ripieghiSalvati = (await Fallbacks.ListAsync(cs)).ToList();
         _ripieghi = _ripieghiSalvati.ToList();
+    }
+
+    /// <summary>
+    /// I callsign scegliibili in una riga: i padri ammissibili, piu' il bersaglio gia' scritto anche quando
+    /// non e' fra loro. Senza quest'ultimo, una riga verso un settore di un altro ACC comparirebbe vuota e la
+    /// prima riscrittura la butterebbe via.
+    /// </summary>
+    private IEnumerable<string> BersagliPossibili(HierarchyNode sel, string corrente)
+    {
+        var elenco = EligibleParents(sel).Select(p => p.Callsign!).ToList();
+        if (corrente.Length > 0 && !elenco.Contains(corrente, StringComparer.OrdinalIgnoreCase))
+            elenco.Insert(0, corrente);
+        return elenco;
     }
 
     private void AggiungiRipiego() => _ripieghi.Add(new FallbackRowEdit("", null, null));
