@@ -95,22 +95,43 @@
         }
         else
         {
-            <ul class="wi-list">
-                @foreach (var r in _lavoro)
-                {
-                    <WorkItemRow @key="r.Chiave" Item="r" Busy="_busy" ShowAssign="Authz.IsAdmin"
-                                 Roster="_staff" Cycles="_upcoming" MyUserId="User.Get()?.UserId"
-                                 OnDone="ChiudiLavoro" OnStart="AvviaLavoro" OnAssign="PrendiInCarico" />
-                }
-            </ul>
+            @* ⚠️ Dentro un `.panel`, come in «Da sistemare», che rende LE STESSE righe con lo stesso
+               componente. Qui l'elenco stava nudo sul fondo della pagina: senza bordo, senza ombra e a
+               tutta larghezza, mentre ogni altro elenco del sito sta in un riquadro. Due cornici diverse
+               per la stessa lista sono due prodotti, non due pagine. *@
+            <div class="panel">
+                <ul class="wi-list">
+                    @foreach (var r in _lavoro)
+                    {
+                        <WorkItemRow @key="r.Chiave" Item="r" Busy="_busy" ShowAssign="Authz.IsAdmin"
+                                     Roster="_staff" Cycles="_upcoming" MyUserId="User.Get()?.UserId"
+                                     OnDone="ChiudiLavoro" OnStart="AvviaLavoro" OnAssign="PrendiInCarico" />
+                    }
+                </ul>
+            </div>
         }
 
         @* ---- La lavagna per stato ---------------------------------------------------------------------
            Resta, e sta sotto: serve a un'altra domanda. L'elenco qui sopra dice COSA FARE ADESSO; questa
            dice DOVE SONO i miei incarichi — compresi «Fatto» e «Bloccato», che dall'elenco sono fuori per
            costruzione. Chiusa di default: chi apre la pagina vuole la prima domanda. *@
-        <details class="tk-board-wrap">
-            <summary class="h-sect">@L["Tasks_MyTasks"] <span class="chip-n">@(_tasks?.Count ?? 0)</span></summary>
+        @* ⚠️ Era un `<details>` SENZA UNA RIGA DI CSS: si vedeva il triangolino nero del browser accanto a
+           un titolo grande, e nessuna delle due cose appartiene a questo sito. Ora è la sezione di casa —
+           `.section-title` col titolo che fa da maniglia e il chevron `.grp-chev` — la stessa di Struttura,
+           ACC e Fraseologia. Nasce CHIUSA, come prima: chi apre la pagina vuole la prima domanda. *@
+        <div class="section-title">
+            <h2 class="h-sect">
+                <button type="button" class="sect-toggle" aria-expanded="@_lavagnaAperta.ToString().ToLowerInvariant()"
+                        aria-label="@L["Struct_ToggleSection", L["Tasks_MyTasks"].Value]"
+                        @onclick="() => _lavagnaAperta = !_lavagnaAperta">
+                    <span class="grp-chev">@(_lavagnaAperta ? "▾" : "▸")</span>@L["Tasks_MyTasks"]
+                </button>
+                <span class="pill blue">@(_tasks?.Count ?? 0)</span>
+            </h2>
+            <span class="ln"></span>
+        </div>
+
+        <div hidden="@(!_lavagnaAperta)">
         @if (_tasks is null) { <LoadingState /> }
         else if (_tasks.Count == 0) { <p class="help">@L["Tasks_NoneAssigned"]</p> }
         else
@@ -137,8 +158,11 @@
 
             @foreach (var col in Chiuse)
             {
+                @* Il chevron è quello dei blocchi collassabili (`.cb-chev`, ruotato dal CSS su `[open]`):
+                   è l'idioma di casa per un `<details>`, e qui non c'era NESSUN segno — un `summary`
+                   in `display:flex` perde anche il triangolo del browser, quindi non si vedeva che si apre. *@
                 <details class="tk-closed">
-                    <summary>@ColLabel(col) <span class="chip-n">@Count(col)</span></summary>
+                    <summary><span class="cb-chev" aria-hidden="true">▸</span>@ColLabel(col) <span class="chip-n">@Count(col)</span></summary>
                     <div class="tk-closed-body">
                         @foreach (var t in _tasks.Where(t => t.Status == col))
                         {
@@ -149,7 +173,7 @@
                 </details>
             }
         }
-        </details>
+        </div>
     }
 </div>
 
@@ -168,6 +192,9 @@
     private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
     private string _currentCycle = "";
     private bool _busy, _newOpen;
+
+    /// <summary>La lavagna per stato: chiusa all'arrivo, come il `&lt;details&gt;` che ha sostituito.</summary>
+    private bool _lavagnaAperta;
     private string? _status, _error;
 
     private string _newTitle = "";

@@ -19,7 +19,19 @@ const PAGINE=['/services','/services/profile-swapper',
   '/services/vsop','/services/vsop/lirr','/services/vsop/lirr/airports','/services/vsop/admin/sector-structure',
   '/services/vsop/guide','/services/vsop/aor3d/acc/libb','/services/vsop/aor3d/acc/limm',
   '/services/vsop/live','/services/vsop/versions','/services/vsop/admin/neighbours',
+  // ⚠️ `/tasks` non c'era, ed è il motivo per cui la lavagna bianca nel tema scuro è rimasta lì per
+  // giorni: la passata non guardava quella pagina. E non basta aprirla — vedi APRI qui sotto.
+  '/services/vsop/tasks',
   '/services/vsop/admin/airports','/services/vsop/search?q=li'];
+
+// ⚠️ Le sezioni RICHIUDIBILI vanno aperte, o si misura una pagina a metà. Il sito ne ha due forme: i
+// `<details>` (Struttura, incarichi) e — dal 1 settembre 2026 — il titolo-maniglia `.sect-toggle`, che
+// nasconde il corpo con `hidden` e che nessuno script apriva. La lavagna degli incarichi nasce chiusa:
+// senza questo, il fondo bianco lì dentro resterebbe invisibile anche con la pagina in elenco.
+const APRI = () => {
+  document.querySelectorAll('details:not([open])').forEach(d => { d.open = true; });
+  document.querySelectorAll('.sect-toggle[aria-expanded="false"]').forEach(b => b.click());
+};
 const TROVA=()=>{
   const val=(c)=>{ if(!c) return null;
     if(c[0]==='#'){let h=c.slice(1); if(h.length===3)h=[...h].map(x=>x+x).join(''); return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16));}
@@ -54,6 +66,9 @@ for(const u of PAGINE){
   try{
     await p.goto('http://localhost:'+(process.env.VIPI_PORT||'5034')+u,{waitUntil:'networkidle2',timeout:40000});
     await new Promise(r=>setTimeout(r,u.includes('aor3d')?3500:1000));
+    // Prima si apre tutto quel che si può aprire, poi si misura: un corpo nascosto non ha un fondo.
+    await p.evaluate(APRI);
+    await new Promise(r=>setTimeout(r,900));
     const r=await p.evaluate(TROVA);
     const uniq=[...new Map(r.map(x=>[x.cls+x.tag,x])).values()];
     tot+=uniq.length;

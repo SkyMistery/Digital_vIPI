@@ -968,6 +968,9 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .sect-toggle{display:inline-flex;align-items:center;gap:8px;background:none;border:0;padding:0;
              font:inherit;color:inherit;cursor:pointer;text-align:left}
 .sect-toggle:hover .grp-chev{color:var(--brand-ink-2)}
+/* ⚠️ Il chevron delle card dell'albero è fisso a 11px, che accanto a un titolo di sezione si legge come
+   un puntino. Qui cresce col titolo — è lo stesso segno, alla misura del posto in cui sta. */
+.section-title .sect-toggle .grp-chev{width:auto;font-size:.62em}
 /* ⚠️ `hidden` da solo non basta a chi ha un display proprio: la griglia a due colonne resterebbe a
    schermo, perché la regola dell'attributo sta nel foglio del browser e quella della classe nel nostro. */
 .gerarchia-2col[hidden],.panel[hidden],.block[hidden]{display:none}
@@ -3329,7 +3332,12 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .struct.tasks-mine.pw-900 .tk-board{grid-template-columns:1fr;max-height:none}
 .struct.tasks-mine .tk-col{display:flex;flex-direction:column;min-width:0;min-height:0}
 /* L'intestazione della colonna resta ferma: e' l'unica cosa che dice DOVE si sta guardando quando si scorre. */
-.struct.tasks-mine .tk-col-head{position:sticky;top:0;z-index:1;background:var(--paper,var(--on-brand));
+/* ⚠️ Era `var(--paper, var(--on-brand))`, e `--paper` NON ESISTE in nessun foglio: il ripiego vinceva
+   sempre, e `--on-brand` è il colore del testo SOPRA il blu, cioè bianco. Nel tema scuro l'intestazione
+   di colonna e le schede erano due rettangoli bianchi con sopra scritte quasi bianche — illeggibili.
+   È la stessa classe di errore della legenda del visore 3D (22 agosto): un fondo scritto a mano che alla
+   passata sui token è sfuggito. Il token giusto è `--surface`, quello di ogni altra scheda del sito. */
+.struct.tasks-mine .tk-col-head{position:sticky;top:0;z-index:1;background:var(--surface);
   display:flex;align-items:center;gap:6px;font-family:var(--font-head);font-size:13.5px;
   padding:4px 0 6px;border-bottom:2px solid var(--line)}
 .struct.tasks-mine .tk-col-body{flex:1;min-height:0;overflow:auto;padding:8px 4px 0;margin:0 -4px}
@@ -3337,7 +3345,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 
 /* La card: quattro tasti «-> stato» diventano un avanzamento + un menu, e la fila non va piu' a capo. */
 .struct.tasks-mine .tk-card{border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin-bottom:8px;
-  background:var(--paper,var(--on-brand))}
+  background:var(--surface)}
 .struct.tasks-mine .tk-card.late{border-color:var(--ivao-red)}
 .struct.tasks-mine .tk-card-pills{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px}
 .struct.tasks-mine .tk-card-desc{font-size:12px;color:var(--ink-soft);margin-top:2px}
@@ -3354,6 +3362,11 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .struct.tasks-mine .tk-closed{margin-top:12px;border:1px solid var(--line);border-radius:8px;padding:8px 12px}
 .struct.tasks-mine .tk-closed>summary{cursor:pointer;font-family:var(--font-head);font-size:13px;
   display:flex;align-items:center;gap:6px}
+/* ⚠️ `display:flex` su un `summary` toglie anche il triangolo del browser: senza un segno nostro, quelle
+   due sezioni non dicevano affatto di potersi aprire. Il chevron è quello dei blocchi collassabili. */
+.struct.tasks-mine .tk-closed>summary .cb-chev{flex:none;color:var(--brand-ink);font-size:13px;line-height:1;
+  transition:transform .18s}
+.struct.tasks-mine .tk-closed[open]>summary .cb-chev{transform:rotate(90deg)}
 .struct.tasks-mine .tk-closed-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
   gap:8px;margin-top:10px}
 .struct.tasks-mine .tk-closed-body .tk-card{margin-bottom:0}
