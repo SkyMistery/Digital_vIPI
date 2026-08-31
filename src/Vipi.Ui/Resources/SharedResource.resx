@@ -2788,6 +2788,7 @@
   <data name="Roles_Removed" xml:space="preserve"><value>{0} torna al livello «{1}».</value></data>
   <data name="Conv_Title" xml:space="preserve"><value>Convertitore di coordinate</value></data>
   <data name="Conv_Intro" xml:space="preserve"><value>Coordinate in qualsiasi formato, riscritte per il DB di IVAO o per il sectorfile.</value></data>
+  <data name="Asp_PubStaffOnly" xml:space="preserve"><value>La mappa degli spazi aerei è riservata allo staff di divisione.</value></data>
   <data name="Conv_StaffOnly" xml:space="preserve"><value>Il convertitore è riservato allo staff di divisione.</value></data>
   <data name="Conv_InputTitle" xml:space="preserve"><value>Coordinate in ingresso</value></data>
   <data name="Conv_OutputTitle" xml:space="preserve"><value>Uscita</value></data>

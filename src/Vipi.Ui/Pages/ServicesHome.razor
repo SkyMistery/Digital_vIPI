@@ -50,10 +50,6 @@
             <h2 class="h-card"><span class="ic"><Icon Name="clipboard" Size="18" /></span> @L["Stats_Title"]</h2>
             <p class="muted">@L["Services_StatsDesc"]</p>
         </a>
-        <a class="choice" href="/services/airspace">
-            <h2 class="h-card"><span class="ic"><Icon Name="map" Size="18" /></span> @L["Asp_PubTitle"]</h2>
-            <p class="muted">@L["Services_AirspaceDesc"]</p>
-        </a>
         <a class="choice" href="/services/profile-swapper">
             <h2 class="h-card"><span class="ic"><Icon Name="copy" Size="18" /></span> @L["Swap_Heading"]</h2>
             <p class="muted">@L["Services_SwapperDesc"]</p>
@@ -75,6 +71,19 @@
             <h2 class="h-sect">@L["Services_StaffSection"]</h2><span class="ln"></span>
         </div>
         <div class="choice-grid">
+            @* ⚠️ Gli spazi aerei stavano nella griglia pubblica fino al 1 settembre 2026: il committente li
+               ha chiusi allo staff di divisione, «per ora». La scheda si SPOSTA di sezione invece di
+               sparire — chi la vede sa anche che gli altri non la vedono, che è quel che la riga di
+               separazione dice.
+
+               ⚠️ Ed è marcata `shortcut`, come i vSOP militari: spostandosi sotto `/services/vsop/` la
+               mappa ha smesso di essere un SERVIZIO a sé ed è diventata una parte della documentazione.
+               Il segno dice esattamente questo, e tiene in piedi la regola «un servizio è figlio diretto
+               di /services» invece di allargarla per farci stare un'eccezione. *@
+            <a class="choice shortcut" href="/services/vsop/airspace">
+                <h3 class="h-card"><span class="ic"><Icon Name="map" Size="18" /></span> @L["Asp_PubTitle"]</h3>
+                <p class="muted">@L["Services_AirspaceDesc"]</p>
+            </a>
             <a class="choice" href="/services/coordinates">
                 @* ⚠️ `<h3>` e non `<h2>`: sopra c'è il titolo della sezione, che è un `<h2>`. La MISURA la
                    porta `.h-card` come prima, quindi il disegno non cambia — il tag dice la struttura, la

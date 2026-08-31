@@ -64,9 +64,12 @@ public class ServicesHomeTests : TestContext
         var cut = Render();
         var indirizzi = cut.FindAll("a.choice").Select(a => a.GetAttribute("href")).ToList();
 
+        // ⚠️ Gli spazi aerei sono usciti dalla griglia pubblica il 1 settembre 2026 (staff di divisione) e
+        // stanno ora nella sezione dello staff, PRIMA del convertitore: è una mappa da leggere, e il
+        // convertitore è un attrezzo — lo stesso ordine «prima si guarda, poi si usa» del resto dell'hub.
         Assert.Equal(
-            new[] { "/services/vsop", "/services/vsop/mil", "/services/stats", "/services/airspace",
-                    "/services/profile-swapper", "/services/coordinates" },
+            new[] { "/services/vsop", "/services/vsop/mil", "/services/stats",
+                    "/services/profile-swapper", "/services/vsop/airspace", "/services/coordinates" },
             indirizzi);
     }
 
@@ -121,11 +124,36 @@ public class ServicesHomeTests : TestContext
     /// ⚠️ Una scorciatoia è un'<b>eccezione</b>, e le eccezioni si contano: se un giorno metà dell'hub fosse
     /// marcata <c>shortcut</c>, la regola sopra non proverebbe più niente pur restando verde. Il numero non è
     /// sacro — si alza scrivendo perché — ma va alzato <i>di proposito</i>.
+    ///
+    /// <para>⚠️ <b>Due dal 1 settembre 2026</b>, e il perché è lo stesso della prima: la mappa degli spazi
+    /// aerei è passata sotto <c>/services/vsop/airspace</c> per decisione del committente, quindi ha smesso
+    /// di essere un servizio a sé ed è diventata una parte della documentazione — esattamente come i vSOP
+    /// militari. Marcarla è dire questo; non marcarla sarebbe stato allargare la regola.</para>
     /// </summary>
     [Fact]
     public void Le_scorciatoie_restano_un_eccezione_contata()
     {
         var cut = Render();
-        Assert.Single(cut.FindAll("a.choice.shortcut"));
+        Assert.Equal(2, cut.FindAll("a.choice.shortcut").Count);
+    }
+
+    /// <summary>
+    /// La mappa degli spazi aerei è per lo staff di divisione, come il convertitore: chi non lo è non deve
+    /// nemmeno vedere la porta. ⚠️ Il cancello sta in DUE sedi — qui e nella pagina — perché un indirizzo si
+    /// scrive anche a mano.
+    /// </summary>
+    [Theory]
+    [InlineData(VipiRole.User, false)]
+    [InlineData(VipiRole.IvaoStaff, false)]
+    [InlineData(VipiRole.DivisionStaff, true)]
+    [InlineData(VipiRole.Admin, true)]
+    public void Gli_spazi_aerei_si_vedono_solo_dallo_staff_di_divisione(VipiRole livello, bool atteso)
+    {
+        var cut = Render(livello);
+        var indirizzi = cut.FindAll("a.choice").Select(a => a.GetAttribute("href")).ToList();
+
+        Assert.Equal(atteso, indirizzi.Contains("/services/vsop/airspace"));
+        // E il vecchio indirizzo pubblico non compare più in nessun caso.
+        Assert.DoesNotContain("/services/airspace", indirizzi);
     }
 }

@@ -1,11 +1,17 @@
+@page "/services/vsop/airspace"
+@* ⚠️ Il vecchio indirizzo resta VIVO come seconda rotta della stessa pagina: è stato pubblico per giorni,
+   sta nella scheda dell'hub di chi ha aperto il sito ieri e nei collegamenti già scritti. Una rotta in più
+   costa una riga; un 404 costa una segnalazione. *@
 @page "/services/airspace"
 @layout SopLayout
 @rendermode InteractiveServer
 @using Vipi.Application.Airspace
 @using Vipi.Application.Aor
+@using Vipi.Application.Auth
 @using Vipi.Application.Content
 @using Vipi.Domain
 @using Vipi.Ui.Components.App
+@inject IEditAuthorizationService Authz
 @inject IAirspaceCatalog Catalogo
 @inject ISectorShapeRepository Settori
 @inject IStringLocalizer<SharedResource> L
@@ -13,8 +19,13 @@
 @* Gli spazi aerei su una mappa sola: i settori nostri e i volumi dell'AIP, insieme (decisione 4 del
    committente, 29 agosto 2026).
 
-   ⚠️ Pubblica, e quindi l'ATTRIBUZIONE va scritta: il file porta un disclaimer esplicito e vieta l'uso
-   commerciale del dato. Sta in fondo, dove il dato si vede.
+   ⚠️ NON è più pubblica: dal 1 settembre 2026 la apre lo staff di divisione e chi sta più in su (decisione
+   del committente, «per ora»). Il cancello sta in DUE sedi, come per il convertitore di coordinate: la
+   scheda nell'hub si sposta nella sezione dello staff, e questa pagina rifiuta chi scrive l'indirizzo a
+   mano. Nascondere e basta è un cancello che non c'è.
+
+   ⚠️ L'ATTRIBUZIONE resta scritta anche adesso che la pagina non è pubblica: il file porta un disclaimer
+   esplicito e vieta l'uso commerciale del dato, e quel vincolo non dipende da chi guarda.
 
    ⚠️ Le famiglie si accendono UNA PER VOLTA, e non è una scelta estetica: le sole famiglie utilizzabili sono
    362 volumi e 31 613 punti, e mandarli tutti al primo caricamento vorrebbe dire ~620 KB di JSON per una
@@ -34,7 +45,14 @@
         </HelpHint>
     </div>
 
-    @if (_corrente is null)
+    @if (!Authz.IsDivisionStaff)
+    {
+        <div class="callout danger">
+            <span class="cic"><Icon Name="octagon" Size="18" /></span>
+            <div><p class="ct">@L["Common_AccessReserved"]</p>@L["Asp_PubStaffOnly"]</div>
+        </div>
+    }
+    else if (_corrente is null)
     {
         <div class="callout"><span class="cic">🗺️</span><div>@L["Asp_PubEmpty"]</div></div>
     }
@@ -101,6 +119,9 @@
     // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su InteractiveServer il secondo gira una volta sola.
     protected override async Task OnParametersSetAsync()
     {
+        // ⚠️ Il cancello sta anche QUI e non solo nel markup: a chi non può vedere la pagina non si fanno
+        // nemmeno le query. Un rifiuto disegnato sopra un dato già letto è un dato già letto.
+        if (!Authz.IsDivisionStaff) return;
         if (_corrente is not null) return;   // già caricata: il rendering successivo non rifà tutto
 
         _corrente = await Catalogo.GetCurrentAsync();

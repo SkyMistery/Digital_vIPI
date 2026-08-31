@@ -212,7 +212,7 @@ nessun re-import.
 
 | Consumatore | Ritardo |
 |---|---|
-| AoR ACC/APP, vLOA, `/services/airspace`, Struttura, editor | al primo render |
+| AoR ACC/APP, vLOA, `/services/vsop/airspace`, Struttura, editor | al primo render |
 | Traffico | **≤ 60 s**: la cache del catalogo (`AtcTrafficRecorder.CatalogTtl`, un'ora) viene **invalidata** alla scrittura |
 | Confinanti | **secondi**: bind e unbind ricalcolano le adiacenze **dal catalogo estero già in archivio**, senza richiamare IVAO |
 | Documenti pubblicati | alla **ripubblicazione** (la release congela): un aggancio alza una riga in «Documenti da rivedere» |
