@@ -7,13 +7,19 @@ cancellati — vale il riquadro qui sotto).
 
 ## Dove siamo, prima di tutto il resto
 
-> ### 🆕 LO STATO VERO, 31 agosto 2026 (notte) — questo riquadro batte tutto il resto del file
+> ### 🆕 LO STATO VERO, 1 settembre 2026 (sera) — questo riquadro batte tutto il resto del file
 >
-> ### 🔽 DA QUI SI RIPRENDE — 1 settembre 2026: §AF
+> ### 🔽 DA QUI SI RIPRENDE — §AF (la funzione) e §AF4→§AL (il giro sulle pagine)
 >
-> 🟢 **Ramo `ricaduta-verticale-e-cicli`** (da `consegna-20260831`), **sette commit, spinto e NON fuso**.
-> Build Release **0 avvisi** su tutti e due i TFM, suite **4 744 verdi**, **70 test nuovi**.
-> Carta: [`docs/feature/2026-08-31-ricaduta-verticale-e-cicli.md`](docs/feature/2026-08-31-ricaduta-verticale-e-cicli.md) · lavori aperti **§AF**.
+> 🟢 **Ramo `ricaduta-verticale-e-cicli`** (da `consegna-20260831`), **venti commit, spinti e NON fusi**.
+> Build Release **0 avvisi** su tutti e due i TFM, suite **4 784 verdi** su net8 (4 361 su net10).
+> Carta: [`docs/feature/2026-08-31-ricaduta-verticale-e-cicli.md`](docs/feature/2026-08-31-ricaduta-verticale-e-cicli.md)
+> e [`docs/feature/2026-09-01-fraseologia-e-traduzioni.md`](docs/feature/2026-09-01-fraseologia-e-traduzioni.md) ·
+> lavori aperti **§AF**, **§AG**, **§AH**, **§AI**, **§AJ**, **§AK**, **§AL**.
+>
+> ⚠️ **Le prime tre cose da fare non sono cambiate**: decidere se fondere (entra **una** migrazione, dentro
+> la finestra cieca), guardare in produzione i 19 aeroporti che pendono da una propria APP, e **scrivere le
+> righe di ripiego** — finché nessuno le scrive, la tabella resta vuota e non cambia niente.
 >
 > **Due cose, e sono la stessa: l'albero di copertura.**
 >
@@ -51,6 +57,52 @@ cancellati — vale il riquadro qui sotto).
 > rilettura si deduce, quindi «FL30» rilegge «3 000 ft». ⚠️ E i test che asserivano quelle frasi vanno
 > ancorati con `CulturaDiProva`: **la cultura di questa macchina è inglese**, e cinque sono diventati rossi
 > appena le frasi hanno avuto due versioni.
+>
+> ---
+>
+> ### Il giro sulle pagine, 1 settembre (§AG → §AL). Sette richieste, tre difetti veri.
+>
+> **§AG — la mappa bianca dei Confinanti.** ⚠️ **Non era la basemap**: `vipi-boot.js` guardava il DOM solo
+> al primo render e alle navigazioni «enhanced», mentre lì la mappa nasce da un render **interattivo**. Il
+> modulo non veniva **mai chiesto**. Ora un `MutationObserver` (che si spegne da solo) ri-scandisce, e chi
+> arriva in ritardo viene **chiamato** — il suo `DOMContentLoaded` è già passato.
+>
+> **§AH — fraseologia e traduzioni in una pagina sola.** `admin/translations` e `admin/glossary` sono la
+> stessa pagina, a sezioni richiudibili e con **una** tendina di direzione. ⚠️ La **ricerca sta sul
+> database**: il registro mostrava **cento righe su 176 senza dirlo**, e un filtro sulle righe caricate
+> mentirebbe proprio quando serve. **«Dove si usa»** a due livelli (formula → frasi → documenti, col
+> **dove**: prosa/tabella/titolo). ⚠️ Il corpus editoriale si legge **una volta per lotto**, non per riga.
+> ⚠️ E gli **id di sezione sono per VERSIONE**: l'ancora di «vedi» presa dalla versione sbagliata apre la
+> pagina giusta su un punto che lì non esiste (trovato dal vivo).
+>
+> **§AI — radioassistenze.** Chip per tipo costruiti **dal dato**; il modulo d'aggiunta sale in cima e
+> **chiede ogni volta** («meglio nel sectorfile»: una riga scritta a mano è nostra per sempre); ordinamento
+> a **tre** stati; intestazione appiccicata; «N di M»; testo cercato marcato (nuovo componente `<Marca>`).
+>
+> **Biblioteca allegati — il tipo «PIV».** ⚠️ **Nessuna migrazione, per costruzione**: gli enum di questo
+> modello stanno in colonna come **stringhe** (`SetProviderClrType(string)`), `TEXT` su SQLite e
+> `varchar(32)` **senza vincolo di dominio** su MySQL. Chip e tendina compaiono da soli (`Enum.GetValues`):
+> serviva solo la riga nelle risorse, che `SharedResourceIntegrityTests` pretende.
+>
+> **§AJ — «Da fare» non parlava la lingua del sito.** L'elenco stava **nudo** mentre «Da sistemare» rende
+> le **stesse righe** in un `.panel`; «My tasks» era un `<details>` **senza una riga di CSS**; ⚠️ e la
+> lavagna era **BIANCA nel tema scuro** — `var(--paper, var(--on-brand))` con **`--paper` inesistente**,
+> quindi vinceva il bianco del testo sul blu. ⚠️ Era sfuggito perché `/tasks` non era in `sweep.js` **e**
+> la lavagna nasce chiusa: ora lo script apre anche i titoli-maniglia `.sect-toggle` prima di misurare.
+>
+> **§AK — gli spazi aerei.** Da `/services/airspace` a **`/services/vsop/airspace`**, riservata allo
+> **staff di divisione** («per ora»). Cancello in **due sedi** (l'hub sposta la scheda, la pagina rifiuta —
+> e rifiuta **prima delle query**). ⚠️ Il vecchio indirizzo è stato **tolto** su richiesta: era il percorso
+> con cui la mappa girava **senza cancello**. La scheda è marcata `shortcut` — sotto `/services/vsop/` non
+> è più un servizio ma una parte della documentazione.
+>
+> **§AL — verifica, nessuna modifica.** I vSOP militari non pubblicati si vedono **solo con i permessi**:
+> misurato impersonando un utente senza. ⚠️ «Con i permessi» = **Editor**, non staff di divisione.
+> ⚠️ E per impersonare un livello più basso **va cambiato anche il VID**: 704798 è un **fondatore** e resta
+> Admin qualunque posizione gli si dia — il primo tentativo ha misurato il livello sbagliato credendolo
+> giusto.
+>
+> ---
 >
 > ⚠️ **La verifica dal vivo ha trovato quattro difetti che i test non vedevano**, e due valgono in generale:
 > **155 proposte** invece di una (accoppiare per sola banda candida ogni settore alto d'Europa — mancava del
