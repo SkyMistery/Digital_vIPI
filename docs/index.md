@@ -35,6 +35,7 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 | [guide/integrazione-ivao-it-da-fare.md](guide/integrazione-ivao-it-da-fare.md) | **Lavoro aperto** per far girare il modulo dentro Ivao.It: bloccanti, verifiche mai eseguite, decisioni loro. |
 | [guide/config.md](guide/config.md) | Reference completa della configurazione runtime (Division/DataSource/Ivao/Auth/segreti/policy import). |
 | [guide/dev-bootstrap.md](guide/dev-bootstrap.md) | Checklist «da DB vuoto a sito popolato» in sviluppo (sequenza import ACC→settori→aeroporti→SID→gerarchia→documenti). |
+| [guide/preparare-un-pacchetto.md](guide/preparare-un-pacchetto.md) | 🟢 **La regola, ogni volta che si consegna.** L'ordine dei passi (verde → ruota → publish → scelta dei file → zip → prova sul PACCHETTO → foglio → si scrive dove si è arrivati) e le trappole che nessuno script può decidere: `main` non è ciò che gira, il diff per impronta **gonfia** (gli assiemi ricompilati differiscono per l'MVID: comanda `git diff -- src`), `wwwroot` e l'indice `staticwebassets` viaggiano **insieme**, i `.md` non stanno coi file da caricare, **i segreti non entrano in nessun pacchetto**. Lo script dei passi meccanici è `tools/prepara-pacchetto.ps1`, con le due reti: lo zip si costruisce dall'elenco **dichiarato** e i file di testo si guardano **dentro**. |
 | [guide/aurora-bridge.md](guide/aurora-bridge.md) | **Guida per il controllore** al tool desktop Aurora: prerequisiti, scrittura del livello, scorciatoia, limiti, dove guardare quando non va. |
 
 ## Reference — `reference/` 🔵

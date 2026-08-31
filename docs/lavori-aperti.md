@@ -211,11 +211,17 @@ Il primo pacchetto che porta un **numero** invece di una lettera, e il primo **i
 |---|---|
 | **Timbro** | `1.1.0 · aaaeddb` (il foglio con questo timbro è nel commit **dopo**: il timbro nasce dal commit al momento del publish) |
 | **Da caricare** | **18 file, 12,4 MB** — `artifacts/publish/solo-18-file-1.1.0/` |
-| **Zip da spedire** | `artifacts/publish/vipi-1.1.0-solo-file-cambiati.zip`, **4,07 MB**, sha256 `ad943395…6f14d7a3c`. Dentro **due rami**: `solo-18-file-1.1.0/` (si carica) e `docs/` (si legge) |
+| **Zip da spedire** | `artifacts/publish/vipi-1.1.0-solo-file-cambiati.zip`, **4,03 MB**, sha256 `4ea7458d…d1ee9f88`. Dentro **due rami**: `solo-18-file-1.1.0/` (si carica) e `docs/` (si legge) |
 | **Fogli** | `artifacts/publish/docs/`, copiati da `deploy/atc-ivao/` che resta la sorgente |
 | **Pacchetto completo** | `artifacts/publish/linux-x64-20260831/` (460 file), tenuto come riferimento e per il prossimo diff |
 | **Database** | **non si tocca.** Nessuna migrazione in nessuno dei due rami fusi |
 | **Foglio** | [`../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.1.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.1.0.md) |
+
+📋 **Da qui in avanti la consegna ha un runbook**: [`guide/preparare-un-pacchetto.md`](guide/preparare-un-pacchetto.md),
+e i passi meccanici li fa `tools/prepara-pacchetto.ps1`. ⚠️ **Lo script ha avuto lui stesso il difetto che
+presidia**: con **un solo** file sospetto PowerShell 5.1 torna uno scalare, `.Count` non vale 1, e la rete
+restava muta — cioè taceva esattamente nel caso per cui esiste (con due file parlava). Chiuso con `@()`,
+e provato in tutt'e due i versi.
 
 **Come sono organizzati gli artifacts** (dal 31 agosto, e il foglio è `artifacts/publish/LEGGIMI-CARTELLE.md`):
 in **`publish/`** sta **solo la consegna corrente** — il publish completo, il pacchetto da caricare, i fogli in
