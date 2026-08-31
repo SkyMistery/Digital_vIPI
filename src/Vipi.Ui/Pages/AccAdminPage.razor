@@ -35,7 +35,16 @@
        salvare i limiti si risaliva tutta la tabella. L'altezza della fascia la misura vipiStickyOffset, perché
        il `thead` delle tabelle deve appiccicarsi SOTTO di lei e quell'altezza cambia da sola. *@
     <div class="doc-head st-head sticky">
-        <h1 class="st-h2 page-h1">ACC <span class="pill blue">@CountLabel(ShownAccs().Count(), _accs.Count)</span></h1>
+        @* ⚠️ La maniglia per chiudere l'elenco degli ACC è QUESTO titolo, e non un titolo di sezione
+           rimesso apposta: quello era stato tolto perché ripeteva l'H1 tre righe più sotto, e il primo
+           riquadro È l'elenco degli ACC. Il chevron è `.grp-chev`, lo stesso di Struttura. *@
+        <h1 class="st-h2 page-h1">
+            <button type="button" class="sect-toggle" aria-expanded="@_accAperti.ToString().ToLowerInvariant()"
+                    aria-label="@L["Struct_ToggleSection", "ACC"]" @onclick="() => _accAperti = !_accAperti">
+                <span class="grp-chev">@(_accAperti ? "▾" : "▸")</span>ACC
+            </button>
+            <span class="pill blue">@CountLabel(ShownAccs().Count(), _accs.Count)</span>
+        </h1>
         <HelpHint Href="/services/vsop/guide#struttura" AriaLabel="@L["AccAdmin_HelpAria"]" ExtraClass="wide">
             @((MarkupString)L["AccAdmin_HelpBody"].Value)
         </HelpHint>
@@ -82,7 +91,7 @@
         @* La EditLockBar sta nella TESTATA, vedi in cima. Anche il titolo di sezione «ACC» è sparito: ripeteva
            il titolo della pagina tre righe più sotto, e il suo conteggio è salito accanto a quello. Il primo
            riquadro È l'elenco degli ACC; il secondo ha il suo titolo perché lì comincia un'altra cosa. *@
-        <div class="block">
+        <div class="block" hidden="@(!_accAperti)">
             @* Stessi campi di Struttura (.htree-search/.htree-select): la lente è disegnata nel campo, non
                scritta nel testo del segnaposto. *@
             <div class="struct-bar">
@@ -187,14 +196,21 @@
         </div>
 
         <div class="section-title" id="settori-acc">
-            <h2 class="h-sect">@L["AccAdmin_SubsTitle"] <span class="pill blue">@CountLabel(ShownSubs().Count(), _subs.Count)</span></h2>
+            <h2 class="h-sect">
+                <button type="button" class="sect-toggle" aria-expanded="@_settoriAperti.ToString().ToLowerInvariant()"
+                        aria-label="@L["Struct_ToggleSection", L["AccAdmin_SubsTitle"].Value]"
+                        @onclick="() => _settoriAperti = !_settoriAperti">
+                    <span class="grp-chev">@(_settoriAperti ? "▾" : "▸")</span>@L["AccAdmin_SubsTitle"]
+                </button>
+                <span class="pill blue">@CountLabel(ShownSubs().Count(), _subs.Count)</span>
+            </h2>
             @* La nota che stava qui sotto in prosa: la dice il «?» al clic, identica. *@
             <HelpHint Href="/services/vsop/guide#struttura" AriaLabel="@L["AccAdmin_SubsHelpAria"]" ExtraClass="wide">
                 @L["AccAdmin_SubsNote"]
             </HelpHint>
             <span class="ln"></span>
         </div>
-        <div class="block">
+        <div class="block" hidden="@(!_settoriAperti)">
             <div class="struct-bar">
                 <input class="htree-search" placeholder="@L["AccAdmin_FilterSub"]" @bind="_qSub" @bind:event="oninput" />
                 <select class="htree-select" @bind="_country" title="@L["AccAdmin_FilterCountryTitle"]">
@@ -335,6 +351,11 @@
 
     private string? _pickedAcc;   // ACC scelto nella tabella di sopra: sotto si vedono solo i suoi settori
     private bool _scrollToSubs;   // dopo la scelta: porta in vista la tabella di sotto
+
+    // I due riquadri della pagina: aperti all'arrivo, richiudibili dal loro titolo. La pagina è lunga
+    // (28 ACC + 152 settori) e le due tabelle si guardano una per volta.
+    private bool _accAperti = true;
+    private bool _settoriAperti = true;
     private string _q = "";
     private string _qSub = "";
     private string _country = "";   // filtro nazione (prefisso ICAO, "" = tutte) condiviso dalle due tabelle
@@ -448,6 +469,9 @@
         var wasPicked = IsPicked(accCode);
         _pickedAcc = wasPicked ? null : accCode;
         _scrollToSubs = !wasPicked;
+        // ⚠️ Scegliere un ACC vuol dire «fammi vedere i suoi settori»: se il riquadro è chiuso, lo scorrimento
+        // porterebbe in vista un titolo e basta.
+        if (_scrollToSubs) _settoriAperti = true;
         await CaricaAreeAsync();
     }
 

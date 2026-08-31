@@ -432,10 +432,19 @@ ed è il prezzo dichiarato: **la quota è la stessa, cambia come la si legge**.
 
 E la **fascia disegnata** segue la stessa convenzione: `2,500 ft–FL195`, non più `FL25–FL195`.
 
+**E lo stesso gesto sulla pagina ACC** (`admin/acc`, seconda richiesta dello stesso giro): «ACC» e «ACC
+sectors» si chiudono dal loro titolo. ⚠️ Il riquadro degli ACC un titolo di sezione **non ce l'ha** — era
+stato tolto apposta perché ripeteva l'H1 tre righe sopra — quindi la maniglia è **l'H1 stesso**, che è già
+il titolo di quel riquadro: non se ne rimette uno solo per avere dove cliccare. ⚠️ E scegliere un ACC
+**riapre** il riquadro dei settori: `TogglePick` porta in vista `#settori-acc`, e su una sezione chiusa lo
+scorrimento avrebbe mostrato un titolo e basta.
+
 **Verificato dal vivo** (Edge+CDP, copia del DB): le due sezioni si chiudono e si riaprono (`aria-expanded`
 e chevron seguono), la riga `LIBB_ES_CTR → LIBB_EU_CTR 2 500 ft–FL195` si salva e **si rilegge com'è stata
 scritta** (2500 in ft, 195 in FL) dopo un ricaricamento completo, e la finestra di eliminazione è inglese da
-cima a fondo, verdetto della sorgente compreso.
+cima a fondo, verdetto della sorgente compreso. Sulla pagina ACC: pagina da **8 627 px a 1 500 px** con
+tutt'e due i riquadri chiusi, testata `sticky` sempre a **una riga** (71 px, `--st-head-h` la segue), e
+scegliendo un ACC il riquadro dei settori si riapre da sé con le sue 11 righe.
 
 ### Cosa resta aperto
 

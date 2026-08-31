@@ -940,7 +940,7 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .sect-toggle:hover .grp-chev{color:var(--brand-ink-2)}
 /* ⚠️ `hidden` da solo non basta a chi ha un display proprio: la griglia a due colonne resterebbe a
    schermo, perché la regola dell'attributo sta nel foglio del browser e quella della classe nel nostro. */
-.gerarchia-2col[hidden],.panel[hidden]{display:none}
+.gerarchia-2col[hidden],.panel[hidden],.block[hidden]{display:none}
 /* ---- Intro di pagina (carta docs/feature/2026-08-30-intro-di-pagina.md) ----
    Le sezioni dell'intro sono le STESSE card dei documenti: qui non si decide come si vede una sezione, o
    sarebbero due posti a deciderlo e quello sbagliato sarebbe questo. Resta il respiro sotto, che separa

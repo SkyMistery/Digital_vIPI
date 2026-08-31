@@ -5913,6 +5913,9 @@ Tre richieste del committente su `admin/sector-structure`, guardata **in inglese
    macchina è **inglese**, e cinque test sono diventati rossi appena le frasi hanno avuto due versioni.
 2. **Le due sezioni si chiudono** dal titolo (nascono aperte). ⚠️ `hidden` da solo non basta a
    `.gerarchia-2col`, che ha un `display:grid` suo: la regola dell'attributo sta nel foglio del browser.
+   **Stesso gesto su `admin/acc`**: «ACC» e «ACC sectors». ⚠️ Il riquadro degli ACC un titolo di sezione
+   non ce l'ha (era stato tolto perché ripeteva l'H1), quindi la maniglia è **l'H1**; e scegliere un ACC
+   **riapre** il riquadro dei settori, o lo scorrimento a `#settori-acc` mostrerebbe un titolo e basta.
 3. **Il piede e il tetto si scrivono anche in piedi** (tendina FL/ft, come nei Trasferimenti; cambiare
    unità **non converte**). ⚠️ **L'unità non si salva**: in archivio ci sono solo i piedi, e due colonne
    nuove sarebbero una **seconda migrazione nella finestra cieca** per una comodità di scrittura. Alla
@@ -5921,4 +5924,9 @@ Tre richieste del committente su `admin/sector-structure`, guardata **in inglese
 
 **Verificato dal vivo** (Edge+CDP, copia del DB): sezioni, salvataggio e **rilettura** della riga
 `LIBB_ES_CTR → LIBB_EU_CTR 2 500 ft–FL195`, finestra di eliminazione inglese fino al verdetto della
-sorgente. Build Release **0 avvisi** su tutt'e due i TFM, suite verde, **3 test nuovi**.
+sorgente; sulla pagina ACC, **8 627 px → 1 500 px** con tutto chiuso, testata `sticky` sempre a una riga
+(`--st-head-h` la segue) e riapertura automatica dei settori alla scelta di un ACC. Build Release
+**0 avvisi** su tutt'e due i TFM, suite verde, **3 test nuovi**.
+
+⚠️ **Resta fuori**: la terza sezione di `admin/acc` — «Regulated areas» — **non** è richiudibile. Non è
+stata chiesta e si vede solo con un ACC scelto; se la si vuole, è la stessa riga di codice.

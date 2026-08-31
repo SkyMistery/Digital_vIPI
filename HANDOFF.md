@@ -42,7 +42,9 @@ cancellati — vale il riquadro qui sotto).
 > **in inglese**: ⓵ la **finestra di eliminazione** parlava italiano *dentro* (la finestra passa dalle
 > risorse, il **piano** lo scrive l'applicazione — `Messaggio.Lingua` era stato messo **a metà**: ~20 frasi
 > di `DeletionRules`, il motivo di `SogliaEliminazione` e **tutti** i verdetti della sonda IVAO);
-> ⓶ **«Coverage hierarchy» e «Orphan sectors» si chiudono** dal titolo, che è la maniglia; ⓷ il piede e il
+> ⓶ **«Coverage hierarchy» e «Orphan sectors» si chiudono** dal titolo, che è la maniglia — e con loro
+> **«ACC» e «ACC sectors»** su `admin/acc`, dove la maniglia del primo riquadro è **l'H1** (un titolo di
+> sezione lì non c'è, era stato tolto perché ripeteva l'H1); ⓷ il piede e il
 > tetto di un ripiego si scrivono **anche in piedi** (tendina FL/ft come nei Trasferimenti), perché una
 > fascia da 2 500 piedi prima **non si poteva scrivere**. ⚠️ **L'unità non si salva** — in archivio ci sono
 > solo i piedi, e due colonne sarebbero state una **seconda migrazione dentro la finestra cieca**: alla
