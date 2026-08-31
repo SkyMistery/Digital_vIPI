@@ -1930,6 +1930,9 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
 .acc-row-parent{margin-left:auto;font-size:11.5px;color:var(--ink-soft);font-family:var(--font-head);white-space:nowrap}
 /* Padre dedotto dalla scaletta, non scritto: si distingue da un legame vero senza gridare «errore» — non lo è. */
 .acc-row-parent.inherited{font-style:italic;opacity:.8}
+/* Anello: qui invece è un errore, e va gridato. Il nodo è antenato di sé stesso e ogni catena di ricaduta
+   che ci passa si tronca in silenzio: senza questa etichetta il difetto si vede solo disegnando l'albero. */
+.acc-row-parent.ciclo{background:var(--tint-red);color:var(--danger-ink);font-weight:600;border-radius:4px;padding:1px 6px}
 /* Badge delle posizioni d'aeroporto: stessa famiglia dell'APP, tono più tenue scendendo la scaletta. */
 .node-badge.twr{background:var(--tint-atmos);color:var(--brand-ink-2)}
 .node-badge.gnd{background:var(--bg);color:var(--ink-soft)}

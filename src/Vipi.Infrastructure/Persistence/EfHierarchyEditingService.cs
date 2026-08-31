@@ -61,26 +61,15 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
             .Where(s => s.Position == null || s.Position.ToUpper() != "ATIS")
             .OrderBy(s => s.AccCode).ThenBy(s => s.ComposePosition).ToListAsync(ct);
 
-        var airportParentByIcao = await _db.Airports.AsNoTracking()
-            .Where(a => a.ParentCallsign != null)
-            .ToDictionaryAsync(a => a.Icao, a => a.ParentCallsign!, StringComparer.OrdinalIgnoreCase, ct);
-
-        // Stessa scaletta della proiezione (servizio di dominio condiviso): l'editor deve mostrare il padre che
-        // il sistema usa davvero, non «da assegnare».
-        var ladderByIcao = positions
-            .Where(s => !s.IsHidden)
-            .GroupBy(s => s.AirportIcao, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.Select(ToLadder).ToList(), StringComparer.OrdinalIgnoreCase);
+        // Stesso albero effettivo che valida l'anti-ciclo e che costruisce la proiezione: l'editor deve mostrare
+        // il padre che il sistema usa davvero, non «da assegnare». ⚠️ Ricavarlo qui una seconda volta, a mano,
+        // è precisamente il modo in cui i due alberi tornano a divergere.
+        var effettivi = await EffectiveParentMapAsync(null, ct);
 
         foreach (var s in positions)
         {
             var (f, p) = Meta(s.AccCode);
-            var derived = s.ParentCallsign is null
-                ? AirportPositionLadder.ParentOf(
-                    ToLadder(s),
-                    ladderByIcao.GetValueOrDefault(s.AirportIcao) ?? new List<LadderPosition>(),
-                    airportParentByIcao.GetValueOrDefault(s.AirportIcao), s.AirportIcao)
-                : null;
+            var derived = s.ParentCallsign is null ? effettivi.GetValueOrDefault(s.ComposePosition) : null;
 
             nodes.Add(new HierarchyNode(
                 HierarchyNodeKind.AirportPosition, s.Id, s.ComposePosition,
@@ -189,9 +178,32 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
             {
                 if (string.Equals(parentCallsign, childCallsign, StringComparison.OrdinalIgnoreCase))
                     throw new ValidationException(Lingua("Un nodo non può essere padre di sé stesso.", "A node cannot be its own parent."));
-                HierarchyRules.EnsureNoCycle(childCallsign, parentCallsign, internalParents);
                 await EnsureParentIsNotLowerAsync(childCallsign, parentCallsign, ct);
             }
+        }
+
+        // 2-bis. Anti-ciclo sull'albero EFFETTIVO, e SEMPRE — anche quando `parentCallsign` è null.
+        //
+        // ⚠️ Questo controllo stava dentro il blocco qui sopra, e guardava i soli padri SCRITTI. Due buchi in
+        // uno, ed è la coppia che ha prodotto in produzione un settore nipote di sé stesso (LIMF, 31 agosto
+        // 2026): scegliere «eredita» — cioè scrivere null — non passava da nessun controllo, e il padre che
+        // ne nasceva era quello DERIVATO dalla scaletta, che quella mappa non conteneva.
+        //
+        // Si valida una SIMULAZIONE e non lo stato attuale, perché azzerare un padre scritto cambia anche il
+        // padre derivato di ALTRE posizioni dello stesso scalo: `PickOnRung` sceglie la radice del gruppo
+        // guardando proprio i padri scritti. Controllare il nodo toccato su una mappa vecchia direbbe di sì a
+        // un anello che si chiude fra due sorelle.
+        // Si rifiutano gli anelli che questa modifica CREA, non quelli che già esistono: in produzione un
+        // anello c'è, e una guardia che rifiutasse ogni albero ciclico impedirebbe di ripararlo — la pagina
+        // Struttura è l'unico posto da cui si scioglie.
+        var dopo = await EffectiveParentMapAsync(new ModificaInSospeso(kind, nodeId, parentCallsign), ct);
+        var anelliDopo = HierarchyRules.FindAllCycles(dopo);
+        if (anelliDopo.Count > 0)
+        {
+            var giaNoti = HierarchyRules.FindAllCycles(await EffectiveParentMapAsync(null, ct))
+                .Select(FirmaAnello).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var creato = anelliDopo.FirstOrDefault(a => !giaNoti.Contains(FirmaAnello(a)));
+            if (creato is not null) HierarchyRules.EnsureNoCycle(creato[0], dopo);
         }
 
         // 3. Scrivi il ParentCallsign sull'entità giusta, e registra il cambio (da → a).
@@ -259,7 +271,7 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
 
         int RungOf(string callsign) => rungs
             .Where(r => string.Equals(r.ComposePosition, callsign, StringComparison.OrdinalIgnoreCase))
-            .Select(r => AirportPositionLadder.Rung(MapPositionType(r.Position)))
+            .Select(r => AirportPositionLadder.Rung(EffectiveHierarchy.TypeOfPosition(r.Position)))
             .DefaultIfEmpty(0)   // non è una posizione d'aeroporto ⇒ settore d'area, in cima
             .First();
 
@@ -273,17 +285,62 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
                 "(DEL → GND → TWR → APP)."));
     }
 
-    private static LadderPosition ToLadder(AirportSector s) =>
-        new(s.ComposePosition, MapPositionType(s.Position), s.ParentCallsign);
 
-    /// <summary>Suffisso di catalogo → tipo, per il solo calcolo della scaletta.</summary>
-    private static SectorType MapPositionType(string? position) => (position?.Trim().ToUpperInvariant()) switch
+    /// <summary>Una modifica non ancora salvata, da applicare in memoria prima di validare.</summary>
+    private sealed record ModificaInSospeso(HierarchyNodeKind Kind, int NodeId, string? Parent);
+
+    /// <summary>
+    /// Firma canonica di un anello, indipendente dal nodo da cui lo si è imboccato: si ruota l'elenco sul
+    /// callsign minore. Senza, lo stesso anello letto da due nodi diversi sembrerebbe due anelli, e la
+    /// guardia direbbe «ne hai creato uno nuovo» su uno che c'era già.
+    /// </summary>
+    private static string FirmaAnello(IReadOnlyList<string> anello)
     {
-        "DEL" => SectorType.Del,
-        "GND" => SectorType.Gnd,
-        "TWR" => SectorType.Twr,
-        _ => SectorType.App,
-    };
+        var normalizzato = anello.Select(c => c.ToUpperInvariant()).ToList();
+        var perno = normalizzato.IndexOf(normalizzato.Min()!);
+        return string.Join("→", normalizzato.Skip(perno).Concat(normalizzato.Take(perno)));
+    }
+
+    /// <summary>
+    /// Mappa callsign → padre <b>EFFETTIVO</b> di ogni nodo interno: quello scritto se c'è, altrimenti quello
+    /// derivato dalla scaletta d'aeroporto. È l'albero che leggono davvero la proiezione, la ricaduta dei
+    /// trasferimenti e la pagina Struttura — e quindi l'unico su cui abbia senso cercare un anello.
+    ///
+    /// <para><paramref name="modifica"/> applica in memoria un cambio non ancora salvato (<c>null</c> = stato
+    /// attuale). Serve perché azzerare un padre scritto non cambia solo quel nodo: <c>PickOnRung</c> sceglie
+    /// la radice del gruppo guardando i padri scritti delle sorelle, quindi la derivazione di ALTRE posizioni
+    /// dello stesso scalo si sposta. Validare il solo nodo toccato, su una mappa vecchia, direbbe di sì a un
+    /// anello che si chiude fra due sorelle.</para>
+    /// </summary>
+    private async Task<Dictionary<string, string?>> EffectiveParentMapAsync(
+        ModificaInSospeso? modifica, CancellationToken ct)
+    {
+        string? PadreDi(HierarchyNodeKind kind, int id, string? scritto) =>
+            modifica is not null && modifica.Kind == kind && modifica.NodeId == id ? modifica.Parent : scritto;
+
+        var righe = new List<HierarchyCatalogRow>();
+
+        foreach (var s in await _db.AccSectors.AsNoTracking()
+                     .Select(s => new { s.Id, s.ComposePosition, s.ParentCallsign }).ToListAsync(ct))
+            righe.Add(new HierarchyCatalogRow(s.ComposePosition,
+                PadreDi(HierarchyNodeKind.Acc, s.Id, s.ParentCallsign), null, SectorType.Ctr, IsHidden: false));
+
+        // Le stesse righe di LoadTreeAsync: l'ATIS non è una posizione di controllo e non è un nodo.
+        foreach (var s in await _db.AirportSectors.AsNoTracking()
+                     .Where(s => s.Position == null || s.Position.ToUpper() != "ATIS")
+                     .Select(s => new { s.Id, s.ComposePosition, s.AirportIcao, s.Position, s.ParentCallsign, s.IsHidden })
+                     .ToListAsync(ct))
+            righe.Add(new HierarchyCatalogRow(s.ComposePosition,
+                PadreDi(HierarchyNodeKind.AirportPosition, s.Id, s.ParentCallsign),
+                s.AirportIcao, EffectiveHierarchy.TypeOfPosition(s.Position), s.IsHidden));
+
+        var padreScalo = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var a in await _db.Airports.AsNoTracking()
+                     .Select(a => new { a.Id, a.Icao, a.ParentCallsign }).ToListAsync(ct))
+            padreScalo[a.Icao] = PadreDi(HierarchyNodeKind.Airport, a.Id, a.ParentCallsign);
+
+        return EffectiveHierarchy.ParentMap(righe, padreScalo);
+    }
 
     /// <summary>Mappa callsign → ParentCallsign per i nodi interni (settori ACC + posizioni d'aeroporto).</summary>
     private async Task<Dictionary<string, string?>> InternalNodeParentMapAsync(CancellationToken ct)

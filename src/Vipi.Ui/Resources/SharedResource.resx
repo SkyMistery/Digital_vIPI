@@ -557,6 +557,8 @@
   <data name="Diag_Msg_AreaFantasma" xml:space="preserve"><value>Area «{0}» non presente fra le aree regolamentate: rinominata o rimossa.</value></data>
   <data name="Diag_Cat_GerarchiaDangling" xml:space="preserve"><value>Gerarchia interrotta</value></data>
   <data name="Diag_Msg_GerarchiaDangling" xml:space="preserve"><value>Il padre «{0}» non esiste nei cataloghi: la catena di copertura si interrompe qui.</value></data>
+  <data name="Diag_Cat_GerarchiaCiclica" xml:space="preserve"><value>Gerarchia ciclica</value></data>
+  <data name="Diag_Msg_GerarchiaCiclica" xml:space="preserve"><value>Il settore è antenato di sé stesso ({0}): ogni catena di ricaduta che ci passa si interrompe qui.</value></data>
   <data name="Diag_Cat_AreaRegDangling" xml:space="preserve"><value>Area regolamentata sparita</value></data>
   <data name="Diag_Msg_AreaRegDangling" xml:space="preserve"><value>Aree scelte che non esistono più: {0}. Rimosse dalla sorgente e potate dall’import; nel documento restano citate ma non si vedono.</value></data>
   <data name="Diag_Cat_CallsignAmbiguo" xml:space="preserve"><value>Callsign ambiguo</value></data>
@@ -658,6 +660,8 @@
   <data name="Struct_AccRootsN" xml:space="preserve"><value>{0} radici ACC</value></data>
   <data name="Struct_AccRootsTitle" xml:space="preserve"><value>Radici ACC (nessun padre — copertura top-down)</value></data>
   <data name="Struct_Inherited" xml:space="preserve"><value>ereditato</value></data>
+  <data name="Struct_Ciclo" xml:space="preserve"><value>ciclo</value></data>
+  <data name="Struct_CicloTitle" xml:space="preserve"><value>Gerarchia ciclica: questo settore è antenato di sé stesso. La catena di ricaduta si interrompe qui. Assegnargli un padre valido, o toglierlo al figlio che lo cita.</value></data>
   <data name="Struct_InheritedTitle" xml:space="preserve"><value>Padre non scritto: dedotto dalla scaletta dell'aeroporto (DEL → GND → TWR → APP). Assegnane uno per fissarlo.</value></data>
   <data name="Struct_OptInherit" xml:space="preserve"><value>eredita dalla scaletta ({0})</value></data>
   <data name="Struct_ShowPositions" xml:space="preserve"><value>Posizioni d'aeroporto</value></data>

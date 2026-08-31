@@ -30,6 +30,19 @@ public static class AirportPositionLadder
     /// Padre ereditato di <paramref name="position"/>. Sale i gradini sopra di sé fermandosi al primo che dà UNA
     /// risposta sola (<see cref="PickOnRung"/>); esaurita la scaletta esce su <paramref name="airportParent"/>.
     /// Null = nessun padre derivabile (l'aeroporto non ha un padre configurato).
+    ///
+    /// <para>⚠️ <b>Un candidato che pende dalla posizione stessa non viene mai restituito.</b> È il difetto
+    /// visto in produzione il 31 agosto 2026 su LIMF: l'aeroporto pendeva da <c>LIMF_WN0_APP</c>, che a sua
+    /// volta aveva scritto come padre <c>LIMF_WW0_APP</c>; quest'ultima non aveva padre scritto e, essendo un
+    /// APP (<c>Rung = 5</c>, nessun gradino sopra), usciva diritta su <paramref name="airportParent"/> —
+    /// cioè su una propria discendente. Albero effettivo <c>WW0 → WN0 → WW0</c>: un settore nipote di sé
+    /// stesso. Nessuna guardia poteva vederlo, perché tutte guardavano i soli padri <b>scritti</b>, dove
+    /// <c>WW0</c> non ne aveva.</para>
+    ///
+    /// <para>La risposta, in quel caso, è <c>null</c>: <b>meglio una posizione orfana e visibile che ciclica
+    /// e muta</b>. Orfana compare nel filtro «da agganciare» della pagina Struttura e qualcuno la sistema;
+    /// ciclica tronca in silenzio ogni catena di ricaduta che ci passa. Carta
+    /// <c>docs/feature/2026-08-31-ricaduta-verticale-e-cicli.md</c> §1.</para>
     /// </summary>
     public static string? ParentOf(
         LadderPosition position,
@@ -43,13 +56,40 @@ public static class AirportPositionLadder
             .ToList();
 
         // Gradini sopra di me, dal più vicino al più lontano: se uno è ambiguo si sale, invece di tirare a sorte.
+        // Un gradino che dà una risposta ciclica vale come ambiguo: si sale, non si chiude l'anello.
         foreach (var rung in siblings.Select(p => Rung(p.Type)).Where(o => o < mine).Distinct().OrderByDescending(o => o))
         {
             var pick = PickOnRung(siblings.Where(p => Rung(p.Type) == rung).ToList(), icao);
-            if (pick is not null) return pick;
+            if (pick is not null && !DiscendeDa(pick, position.Callsign, airportPositions)) return pick;
         }
 
-        return airportParent;
+        return airportParent is not null && DiscendeDa(airportParent, position.Callsign, airportPositions)
+            ? null
+            : airportParent;
+    }
+
+    /// <summary>
+    /// Vero se <paramref name="candidato"/> pende — per padri <b>scritti</b>, dentro le posizioni dello stesso
+    /// aeroporto — da <paramref name="antenato"/>. Prenderlo come padre chiuderebbe un anello.
+    ///
+    /// <para>Guarda solo il gruppo dell'aeroporto perché è lì che l'anello si chiude: un candidato che esce
+    /// dallo scalo (un CTR, un APP di un altro campo) non può tornare a una posizione di questo senza
+    /// passare da una sua sorella, e quella sorella è in questo elenco. Gli anelli che si chiudono più
+    /// lontano li prende la guardia sull'albero effettivo, in <c>EfHierarchyEditingService</c>.</para>
+    /// </summary>
+    private static bool DiscendeDa(string candidato, string antenato, IReadOnlyList<LadderPosition> airportPositions)
+    {
+        var padri = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in airportPositions) padri[p.Callsign] = p.ParentCallsign;
+
+        var visti = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var corrente = (string?)candidato;
+        while (corrente is not null && visti.Add(corrente))
+        {
+            if (string.Equals(corrente, antenato, StringComparison.OrdinalIgnoreCase)) return true;
+            corrente = padri.GetValueOrDefault(corrente);
+        }
+        return false;
     }
 
     /// <summary>

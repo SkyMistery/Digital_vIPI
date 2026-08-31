@@ -268,6 +268,25 @@ public sealed class ConsistencyReportService : IConsistencyReportService
             }
         }
 
+        // 4-bis) Gerarchia ciclica: un settore è antenato di sé stesso nell'albero EFFETTIVO.
+        //
+        // ⚠️ È la rete, non la guardia. La guardia sta in `EfHierarchyEditingService` e impedisce di crearne
+        // uno dall'interfaccia; qui si prendono quelli che entrano da tutte le altre porte — import, seed, DB
+        // toccato a mano, il riaggancio dell'eliminazione, la rinomina — che padri li scrivono senza chiedere
+        // niente a nessuno. Serve perché un anello NON si manifesta come un errore: tutti i lettori hanno una
+        // guardia sui nodi già visti, quindi la catena di ricaduta si tronca in silenzio dove l'anello si
+        // richiude, e il traffico finisce su un antenato arbitrario senza che una riga di log lo dica.
+        foreach (var anello in Aor.HierarchyRules.FindAllCycles(d.EffectiveParents))
+        {
+            var percorso = string.Join(" → ", anello) + " → " + anello[0];
+            findings.Add(new ConsistencyFinding("Gerarchia ciclica", ConsistencySeverity.Error,
+                anello[0],
+                $"Il settore è antenato di sé stesso ({percorso}): ogni catena di ricaduta che ci passa si interrompe qui.",
+                ConsistencyArea.Dati, DoveStruttura,
+                CategoryKey: "Diag_Cat_GerarchiaCiclica", DetailKey: "Diag_Msg_GerarchiaCiclica",
+                DetailArgs: new object[] { percorso }));
+        }
+
         // 5) Area regolamentata dangling: un id salvato in una sezione «regulated» che non è più nei cataloghi.
         //    Il prune dell'import cancella le aree sparite dalla sorgente, ma la selezione salvata nel documento le
         //    cita ancora: il viewer le salta in silenzio (SpecialAreaProjection) e l'area sparisce senza dirlo.

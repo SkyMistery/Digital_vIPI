@@ -1,4 +1,4 @@
-using Vipi.Application.Diagnostics;
+﻿using Vipi.Application.Diagnostics;
 using Xunit;
 
 namespace Vipi.Application.Tests;
@@ -27,6 +27,66 @@ public class ConsistencyReportTests
     public void Clean_dataset_has_no_findings()
     {
         Assert.Empty(ConsistencyReportService.Analyze(Clean()));
+    }
+
+    // =====================================================================================================
+    //  Gerarchia ciclica — la rete per gli anelli che entrano da porte diverse dall'interfaccia
+    // =====================================================================================================
+
+    /// <summary>
+    /// Il caso di produzione del 31 agosto 2026: <c>LIMF_WW0_APP</c> antenato di sé stesso. ⚠️ L'anello vive
+    /// nell'albero EFFETTIVO — nei padri SCRITTI (<c>ParentRefs</c>) non c'è, ed è per questo che nessuna
+    /// guardia lo vedeva.
+    /// </summary>
+    [Fact]
+    public void Gerarchia_ciclica_viene_segnalata_col_percorso()
+    {
+        var d = new ConsistencyDataset
+        {
+            EffectiveParents = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["LIMF_WW0_APP"] = "LIMF_WN0_APP",
+                ["LIMF_WN0_APP"] = "LIMF_WW0_APP",
+            },
+        };
+
+        var f = Assert.Single(ConsistencyReportService.Analyze(d), x => x.Category == "Gerarchia ciclica");
+
+        Assert.Equal(ConsistencySeverity.Error, f.Severity);
+        Assert.Equal(ConsistencyArea.Dati, f.Area);
+        Assert.Contains("LIMF_WW0_APP", f.Detail);
+        Assert.Contains("LIMF_WN0_APP", f.Detail);
+    }
+
+    /// <summary>Un anello si segnala UNA volta, non una per ogni nodo che ci finisce dentro.</summary>
+    [Fact]
+    public void Un_anello_produce_un_rilievo_solo()
+    {
+        var d = new ConsistencyDataset
+        {
+            EffectiveParents = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["A"] = "B", ["B"] = "C", ["C"] = "A",
+                ["X"] = "A",     // ci arriva ma non ne fa parte
+            },
+        };
+
+        Assert.Single(ConsistencyReportService.Analyze(d), x => x.Category == "Gerarchia ciclica");
+    }
+
+    /// <summary>Un albero sano non produce il rilievo: la rete non deve fare rumore tutti i giorni.</summary>
+    [Fact]
+    public void Un_albero_sano_non_produce_il_rilievo_di_ciclo()
+    {
+        var d = new ConsistencyDataset
+        {
+            EffectiveParents = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["LIRF_TWR"] = "LIRR_APP", ["LIRR_APP"] = null, ["LIRF_GND"] = "LIRF_TWR",
+            },
+        };
+
+        Assert.DoesNotContain(ConsistencyReportService.Analyze(d), x => x.Category == "Gerarchia ciclica");
     }
 
     /// <summary>

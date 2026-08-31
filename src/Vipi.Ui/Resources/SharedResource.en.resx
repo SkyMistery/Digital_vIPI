@@ -552,6 +552,8 @@
   <data name="Diag_Msg_AreaFantasma" xml:space="preserve"><value>Area «{0}» is not among the regulated areas: renamed or removed.</value></data>
   <data name="Diag_Cat_GerarchiaDangling" xml:space="preserve"><value>Broken hierarchy</value></data>
   <data name="Diag_Msg_GerarchiaDangling" xml:space="preserve"><value>Parent «{0}» does not exist in the catalogues: the coverage chain stops here.</value></data>
+  <data name="Diag_Cat_GerarchiaCiclica" xml:space="preserve"><value>Cyclic hierarchy</value></data>
+  <data name="Diag_Msg_GerarchiaCiclica" xml:space="preserve"><value>The sector is its own ancestor ({0}): every fallback chain going through it stops here.</value></data>
   <data name="Diag_Cat_AreaRegDangling" xml:space="preserve"><value>Regulated area gone</value></data>
   <data name="Diag_Msg_AreaRegDangling" xml:space="preserve"><value>Selected areas that no longer exist: {0}. Removed from the source and pruned by the import; the document still cites them but they are not shown.</value></data>
   <data name="Diag_Cat_CallsignAmbiguo" xml:space="preserve"><value>Ambiguous callsign</value></data>
@@ -653,6 +655,8 @@
   <data name="Struct_AccRootsN" xml:space="preserve"><value>{0} ACC roots</value></data>
   <data name="Struct_AccRootsTitle" xml:space="preserve"><value>ACC roots (no parent — top-down coverage)</value></data>
   <data name="Struct_Inherited" xml:space="preserve"><value>inherited</value></data>
+  <data name="Struct_Ciclo" xml:space="preserve"><value>cycle</value></data>
+  <data name="Struct_CicloTitle" xml:space="preserve"><value>Cyclic hierarchy: this sector is its own ancestor. The fallback chain stops here. Give it a valid parent, or remove it from the child that points at it.</value></data>
   <data name="Struct_InheritedTitle" xml:space="preserve"><value>No parent set: derived from the airport ladder (DEL → GND → TWR → APP). Assign one to pin it.</value></data>
   <data name="Struct_OptInherit" xml:space="preserve"><value>inherit from the ladder ({0})</value></data>
   <data name="Struct_ShowPositions" xml:space="preserve"><value>Airport positions</value></data>

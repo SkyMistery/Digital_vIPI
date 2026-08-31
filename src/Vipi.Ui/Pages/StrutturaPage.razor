@@ -176,6 +176,7 @@
                                     @if (n.Callsign is not null && _online.Contains(n.Callsign)) { <span class="onl-dot" title="@L["Struct_OnlineNow"]"></span> }
                                     <span class="node-badge @FacilityClass(n.Kind, n.Callsign)">@FacilityBadge(n.Kind, n.Callsign)</span>
                                     <span class="acc-row-label">@n.Label</span>
+                                    @if (n.InAnello) { <span class="acc-row-parent ciclo" title="@L["Struct_CicloTitle"]">@L["Struct_Ciclo"]</span> }
                                     @if (n.AccCode != g.Code) { <span class="acc-tag" title="@L["Struct_CrossAcc"]">@n.AccCode</span> }
                                     @if (n.IsHidden) { <span class="muted" style="font-size:11px">@L["Struct_Hidden"]</span> }
                                     @if (n.HasChildren && _collapsed.Contains(n.Callsign!) && !_filtering)
@@ -567,7 +568,7 @@
 
     // --- Alberi raggruppati per ACC della radice ---
     private sealed record RootGroup(string Code, string Name, List<HierarchyNode> Roots);
-    private sealed record FlatNode(HierarchyNodeKind Kind, int Id, string Label, string AccCode, bool IsHidden, string? ParentCallsign, int Depth, string? Callsign, bool HasChildren, bool IsInherited);
+    private sealed record FlatNode(HierarchyNodeKind Kind, int Id, string Label, string AccCode, bool IsHidden, string? ParentCallsign, int Depth, string? Callsign, bool HasChildren, bool IsInherited, bool InAnello);
 
     /// <summary>Radici (nodi senza padre risolvibile), raggruppate per ACC della radice. Con la ricerca attiva tiene solo le radici che hanno almeno un nodo visibile nel proprio albero.</summary>
     private List<RootGroup> RootGroups()
@@ -584,8 +585,15 @@
             return r.Callsign is not null && DescendantNodes(r.Callsign).Any(d => vis.Contains(NodeKey(d.Kind, d.Id)));
         }
 
+        var (_, capofila) = Anelli();
+
         return _tree
-            .Where(n => n.ParentCallsign is null || !byCs.ContainsKey(n.ParentCallsign))   // radici
+            // Radici col padre EFFETTIVO, come i figli (`ChildrenOf`). Con quello scritto un nodo senza padre
+            // proprio ma agganciato dalla scaletta era radice E discendente insieme: è così che LIMF_WW0_APP
+            // compariva due volte, una in cima e una sotto il proprio figlio. Due criteri, due alberi.
+            // Più il capofila di ogni anello, che altrimenti non avrebbe modo di comparire (vedi `Anelli`).
+            .Where(n => n.EffectiveParentCallsign is null || !byCs.ContainsKey(n.EffectiveParentCallsign)
+                        || (n.Callsign is not null && capofila.Contains(n.Callsign)))   // radici
             .Where(n => string.IsNullOrEmpty(_countryFilter) || string.Equals(n.CountryPrefix, _countryFilter, StringComparison.OrdinalIgnoreCase))
             .Where(RootVisible)
             .GroupBy(r => r.AccCode, StringComparer.OrdinalIgnoreCase)
@@ -606,13 +614,14 @@
         var list = new List<FlatNode>();
         var vis = VisibleKeys();
         var guard = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var (inAnello, _) = Anelli();
 
         void Walk(HierarchyNode n, int depth)
         {
             if (IsCollapsedPosition(n)) return;
             var hasChildren = n.Callsign is not null && ChildrenOf(n.Callsign).Any(c => !IsCollapsedPosition(c));
             if (vis is null || vis.Contains(NodeKey(n.Kind, n.Id)))
-                list.Add(new FlatNode(n.Kind, n.Id, n.Label, n.AccCode, n.IsHidden, n.ParentCallsign, depth, n.Callsign, hasChildren, n.IsInherited));
+                list.Add(new FlatNode(n.Kind, n.Id, n.Label, n.AccCode, n.IsHidden, n.ParentCallsign, depth, n.Callsign, hasChildren, n.IsInherited, n.Callsign is not null && inAnello.Contains(n.Callsign)));
             if (n.Callsign is null || !guard.Add(n.Callsign)) return;
             if (vis is null && _collapsed.Contains(n.Callsign)) return;   // ramo compresso (ignorato in ricerca)
             foreach (var c in ChildrenOf(n.Callsign)) Walk(c, depth + 1);
@@ -820,6 +829,33 @@
         _tree.Where(n => n.Callsign is not null)
              .GroupBy(n => n.Callsign!, StringComparer.OrdinalIgnoreCase)
              .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// I nodi che stanno in un anello dell'albero <b>effettivo</b>, e il capofila di ciascun anello (il
+    /// callsign minore, scelta stabile fra un render e l'altro).
+    ///
+    /// <para><b>Perché il capofila diventa una radice.</b> Da quando le radici si scelgono col padre effettivo,
+    /// un anello non ne contiene nessuna: ogni suo nodo ha un padre, ed è un altro nodo dell'anello. Senza
+    /// questa aggiunta l'anello — e tutto ciò che gli pende sotto — <b>sparirebbe dalla pagina</b>, cioè
+    /// proprio dall'unico posto da cui lo si scioglie. Il capofila lo riporta in cima, con la sua etichetta
+    /// rossa.</para>
+    /// </summary>
+    private (HashSet<string> InAnello, HashSet<string> Capofila) Anelli()
+    {
+        var padri = _tree.Where(n => n.Callsign is not null)
+            .GroupBy(n => n.Callsign!, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().EffectiveParentCallsign, StringComparer.OrdinalIgnoreCase);
+
+        var anelli = Vipi.Application.Aor.HierarchyRules.FindAllCycles(padri);
+        var dentro = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var capi = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var a in anelli)
+        {
+            foreach (var c in a) dentro.Add(c);
+            capi.Add(a.OrderBy(c => c, StringComparer.OrdinalIgnoreCase).First());
+        }
+        return (dentro, capi);
+    }
 
     /// <summary>
     /// Torre/ground/delivery nascoste dall'interruttore. Restano visibili quando si sta cercando (una ricerca per

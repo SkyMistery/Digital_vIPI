@@ -2,6 +2,7 @@
 using Vipi.Application.Abstractions;
 using Vipi.Application.Diagnostics;
 using Vipi.Domain;
+using Vipi.Domain.Services;
 
 namespace Vipi.Infrastructure.Persistence;
 
@@ -44,6 +45,25 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
             .Where(a => a.ParentCallsign != null)
             .Select(a => new ParentRefRow("Aeroporto", a.Icao, a.ParentCallsign!, "Diag_Ent_Aeroporto")).ToListAsync(ct));
 
+        // L'albero EFFETTIVO, dalla porta unica: è quello su cui si cercano gli anelli. Costruirlo qui a mano
+        // sarebbe la terza copia della scaletta, cioè il terzo posto da cui la divergenza può ricominciare.
+        var righeGerarchia = new List<HierarchyCatalogRow>();
+        righeGerarchia.AddRange((await _db.AccSectors.AsNoTracking()
+                .Select(x => new { x.ComposePosition, x.ParentCallsign }).ToListAsync(ct))
+            .Select(x => new HierarchyCatalogRow(x.ComposePosition, x.ParentCallsign, null, SectorType.Ctr, false)));
+        righeGerarchia.AddRange((await _db.AirportSectors.AsNoTracking()
+                .Where(x => x.Position == null || x.Position.ToUpper() != "ATIS")
+                .Select(x => new { x.ComposePosition, x.ParentCallsign, x.AirportIcao, x.Position, x.IsHidden })
+                .ToListAsync(ct))
+            .Select(x => new HierarchyCatalogRow(x.ComposePosition, x.ParentCallsign, x.AirportIcao,
+                EffectiveHierarchy.TypeOfPosition(x.Position), x.IsHidden)));
+
+        var padreScalo = (await _db.Airports.AsNoTracking()
+                .Select(a => new { a.Icao, a.ParentCallsign }).ToListAsync(ct))
+            .ToDictionary(a => a.Icao, a => a.ParentCallsign, StringComparer.OrdinalIgnoreCase);
+
+        var effectiveParents = EffectiveHierarchy.ParentMap(righeGerarchia, padreScalo);
+
         // Callsign validi come padre = chiavi naturali dei cataloghi (ACC + aeroporto).
         var valid = (await _db.AccSectors.AsNoTracking().Select(s => s.ComposePosition).ToListAsync(ct))
             .Concat(await _db.AirportSectors.AsNoTracking().Select(s => s.ComposePosition).ToListAsync(ct))
@@ -68,6 +88,7 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
             RunwayIdents = runwayIdents,
             AreaNames = areaNames,
             ParentRefs = parentRefs,
+            EffectiveParents = effectiveParents,
             ValidCallsigns = valid,
             RegulatedRefs = await LoadRegulatedRefsAsync(ct),
             SpecialAreaIds = (await _db.SpecialAreas.AsNoTracking().Select(s => s.IvaoId).ToListAsync(ct))

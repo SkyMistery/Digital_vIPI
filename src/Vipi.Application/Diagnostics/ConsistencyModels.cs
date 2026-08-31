@@ -1,4 +1,4 @@
-namespace Vipi.Application.Diagnostics;
+﻿namespace Vipi.Application.Diagnostics;
 
 /// <summary>Gravità di un'incongruenza rilevata (solo diagnosi: nessun dato viene modificato).</summary>
 public enum ConsistencySeverity { Warning, Error }
@@ -125,6 +125,14 @@ public sealed class ConsistencyDataset
 
     /// <summary>Nodi che dichiarano un padre di copertura.</summary>
     public IReadOnlyList<ParentRefRow> ParentRefs { get; init; } = Array.Empty<ParentRefRow>();
+
+    /// <summary>
+    /// callsign → padre <b>EFFETTIVO</b> (scritto se c'è, altrimenti derivato dalla scaletta d'aeroporto).
+    /// È l'albero che leggono davvero proiezione, ricaduta e pagina Struttura: è l'unico su cui abbia senso
+    /// cercare un anello. ⚠️ Non confonderlo con <see cref="ParentRefs"/>, che porta i soli padri SCRITTI ed
+    /// esiste per un controllo diverso (il padre che non risolve a nessun nodo).
+    /// </summary>
+    public IReadOnlyDictionary<string, string?> EffectiveParents { get; init; } = new Dictionary<string, string?>();
 
     /// <summary>Callsign validi come padre (union delle chiavi naturali dei cataloghi ACC/aeroporto).</summary>
     public IReadOnlySet<string> ValidCallsigns { get; init; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
