@@ -1,0 +1,88 @@
+// Verifica del PACCHETTO 1.2.0 (non del sorgente): qui il JavaScript e' minificato, e da 1.1.0 uno di
+// quei file e' l'unico che avvia Blazor. Vedi docs/guide/preparare-un-pacchetto.md §6.
+const puppeteer = require('puppeteer-core');
+const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
+const BASE = 'http://localhost:5199';
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+(async () => {
+  const esiti = [];
+  const nota = (nome, ok, dettaglio) => {
+    esiti.push({ nome, ok, dettaglio });
+    console.log(`${ok ? 'OK  ' : 'ROSSO'} ${nome} — ${dettaglio}`);
+  };
+
+  const browser = await puppeteer.launch({ executablePath: EDGE, headless: 'new', args: ['--no-sandbox'] });
+  const page = await browser.newPage();
+  const erroriConsole = [];
+  page.on('console', (m) => { if (m.type() === 'error') erroriConsole.push(m.text()); });
+  page.on('pageerror', (e) => erroriConsole.push('pageerror: ' + e.message));
+
+  try {
+    // 1. Il file che avvia Blazor arriva, ed e' minificato.
+    const r = await page.goto(BASE + '/_content/Vipi.Ui/vipi-riconnessione.js', { waitUntil: 'domcontentloaded' });
+    const js = await page.evaluate(() => document.body.innerText);
+    nota('vipi-riconnessione.js servito', r.status() === 200 && js.length > 100,
+      `HTTP ${r.status()}, ${js.length} caratteri, comincia con: ${js.slice(0, 40).replace(/\n/g, ' ')}`);
+    // Minificato = quasi niente a capo rispetto alla lunghezza.
+    const righe = js.split('\n').length;
+    nota('e minificato', righe < 20, `${righe} righe per ${js.length} caratteri`);
+
+    // 2. La home si apre e il circuito Blazor parte davvero (non il solo prerender).
+    await page.goto(BASE + '/services/vsop', { waitUntil: 'networkidle2' });
+    let blazor = false;
+    for (let i = 0; i < 60 && !blazor; i++) {
+      blazor = await page.evaluate(() => !!window.Blazor);
+      if (!blazor) await sleep(1000);
+    }
+    nota('circuito Blazor avviato', blazor, blazor ? 'window.Blazor presente' : 'window.Blazor MAI comparso in 60 s');
+
+    const schede = await page.evaluate(() => document.querySelectorAll('.acc-card').length);
+    nota('la home mostra le schede ACC', schede > 0, `${schede} schede`);
+    const avvisoCatalogo = await page.evaluate(() => !!document.querySelector('.callout.warning'));
+    nota('nessun avviso «catalogo non disponibile»', !avvisoCatalogo, avvisoCatalogo ? 'AVVISO PRESENTE' : 'assente');
+
+    // 3. IL controllo che distingue un sito vivo da uno mezzo caricato: la Ricerca passa dal SERVER.
+    await page.goto(BASE + '/services/vsop/search', { waitUntil: 'networkidle2' });
+    for (let i = 0; i < 60; i++) { if (await page.evaluate(() => !!window.Blazor)) break; await sleep(1000); }
+    // L'input della Ricerca non dichiara un type: si prende il primo input della pagina.
+    await page.waitForSelector('.wrap input', { timeout: 30000 });
+    const campo = await page.$('.wrap input');
+    const prima = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' ').slice(0, 400));
+    await campo.type('LI', { delay: 120 });
+    let cambiata = false, dopo = prima;
+    for (let i = 0; i < 30 && !cambiata; i++) {
+      await sleep(500);
+      dopo = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' ').slice(0, 400));
+      cambiata = dopo !== prima;
+    }
+    nota('la RICERCA risponde (passa dal server)', cambiata,
+      cambiata ? 'la riga sotto il campo e cambiata' : 'NESSUN cambiamento: sito mezzo caricato');
+
+    // 4. Una pagina di editor: e' li' che vivevano le corse di §AM.
+    await page.goto(BASE + '/services/vsop/libb/editor', { waitUntil: 'networkidle2' });
+    for (let i = 0; i < 60; i++) { if (await page.evaluate(() => !!window.Blazor)) break; await sleep(1000); }
+    const editorVivo = await page.evaluate(() =>
+      !document.body.innerText.includes('second operation') &&
+      !document.body.innerText.includes('This page did not open') &&
+      document.querySelectorAll('.wrap').length > 0);
+    const pannelloTr = await page.evaluate(() => !!document.querySelector('#tr-review'));
+    nota('editor ACC LIBB si apre', editorVivo, editorVivo ? 'nessuna pagina d\'errore' : 'PAGINA D\'ERRORE');
+    nota('pannello traduzioni presente', pannelloTr, pannelloTr ? '#tr-review nel DOM' : '#tr-review assente');
+
+    // 5. Il tema (che l'asset cambiato tocca) e' arrivato: il CSS deve avere effetto.
+    const sfondo = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    nota('il foglio di stile e in vigore', sfondo && sfondo !== 'rgba(0, 0, 0, 0)', `body background = ${sfondo}`);
+
+    nota('console del browser pulita', erroriConsole.length === 0,
+      erroriConsole.length ? erroriConsole.slice(0, 3).join(' | ') : 'nessun errore');
+  } catch (e) {
+    nota('ECCEZIONE NEL DRIVER', false, e.message);
+  } finally {
+    await browser.close();
+  }
+
+  const rossi = esiti.filter((e) => !e.ok);
+  console.log('\n===== ' + (rossi.length ? `${rossi.length} ROSSI` : 'TUTTO VERDE') + ' =====');
+  process.exit(rossi.length ? 1 : 0);
+})();
