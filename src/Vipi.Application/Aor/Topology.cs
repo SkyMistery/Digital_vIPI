@@ -1,4 +1,4 @@
-namespace Vipi.Application.Aor;
+﻿namespace Vipi.Application.Aor;
 
 /// <summary>
 /// Vista in-memory, pura e DB-agnostica, della topologia di una ACC: contenimento (albero) + regole.
@@ -15,6 +15,20 @@ public sealed class Topology
 
     /// <summary>Regole di unificazione ordinabili per Priority.</summary>
     public required IReadOnlyList<UnificationRuleSpec> Rules { get; init; }
+
+    /// <summary>
+    /// Le righe di ripiego <b>dichiarate</b> di ogni settore, già in ordine: la catena che sta DAVANTI al
+    /// padre quando si cerca chi riceve un trasferimento. Vuota = ricaduta per soli padri, com'era prima.
+    ///
+    /// <para>Sta qui, e non in un servizio a parte, perché è topologia quanto il padre: chi ha già in mano una
+    /// <see cref="Topology"/> ha già tutto quel che serve a risolvere una ricaduta, e non c'è modo di
+    /// dimenticarsi di chiederla. Vedi <see cref="Content.FallbackChain"/>.</para>
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<Content.FallbackRow>> Fallbacks { get; init; }
+        = new Dictionary<string, IReadOnlyList<Content.FallbackRow>>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Padre di copertura, o <c>null</c> se è una radice o non è nella topologia.</summary>
+    public string? ParentOf(string callsign) => Parent.TryGetValue(callsign, out var p) ? p : null;
 
     /// <summary>Settori nel dominio top-down di P (P + chiusura transitiva dei figli).</summary>
     public IReadOnlySet<string> DomainOf(string p)

@@ -2373,6 +2373,38 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("SectorAirspaceBindings");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.SectorFallback", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("BaseFeet")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SectorCallsign")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TargetCallsign")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("TopFeet")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SectorCallsign", "Order");
+
+                    b.ToTable("SectorFallbacks");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.SectorShapePart", b =>
                 {
                     b.Property<int>("Id")

@@ -1,7 +1,8 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
+using Vipi.Application.Content;
 using Vipi.Infrastructure.Persistence;
 
 namespace Vipi.Infrastructure.Aor;
@@ -40,6 +41,7 @@ public sealed class TopologyBuilder : ITopologyProvider
             Sectors = sectors.Select(s => s.Callsign).ToList(),
             Parent = parent,
             Rules = Array.Empty<UnificationRuleSpec>(),
+            Fallbacks = await RipieghiAsync(ct),
         };
     }
 
@@ -73,7 +75,34 @@ public sealed class TopologyBuilder : ITopologyProvider
             Sectors = allCallsigns,
             Parent = parent,
             Rules = ruleSpecs,
+            Fallbacks = await RipieghiAsync(ct),
         };
+    }
+
+    /// <summary>
+    /// Le righe di ripiego dichiarate, per settore e già in ordine.
+    ///
+    /// <para>⚠️ Si leggono <b>tutte</b>, anche costruendo la topologia di una sola ACC: una riga può mandare
+    /// il traffico a un settore di un altro centro, esattamente come il padre di copertura, che è cross-ACC
+    /// dal Round 20. Filtrarle per ACC vorrebbe dire perdere proprio i ripieghi di confine.</para>
+    ///
+    /// <para>La tabella nasce vuota e resta piccola (una manciata di righe per divisione): non c'è niente da
+    /// paginare né da mettere in cache.</para>
+    /// </summary>
+    private async Task<IReadOnlyDictionary<string, IReadOnlyList<FallbackRow>>> RipieghiAsync(CancellationToken ct)
+    {
+        var righe = await _db.SectorFallbacks.AsNoTracking()
+            .OrderBy(r => r.SectorCallsign).ThenBy(r => r.Order)
+            .Select(r => new { r.SectorCallsign, r.TargetCallsign, r.BaseFeet, r.TopFeet })
+            .ToListAsync(ct);
+
+        return righe
+            .GroupBy(r => r.SectorCallsign, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<FallbackRow>)g
+                    .Select(r => new FallbackRow(r.TargetCallsign, r.BaseFeet, r.TopFeet)).ToList(),
+                StringComparer.OrdinalIgnoreCase);
     }
 
     private static IReadOnlyCollection<string> ParseRequiredOnline(string json)

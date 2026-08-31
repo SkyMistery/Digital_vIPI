@@ -444,6 +444,47 @@ public class Sector
     public bool IsPrimary { get; set; }                // settore principale del proprio documento
 }
 
+/// <summary>
+/// Una riga della <b>catena di ripiego</b> di un settore: chi ne raccoglie il traffico quando è chiuso, e in
+/// quale fascia di quota.
+///
+/// <para><b>Perché non basta il padre.</b> La ricaduta è sempre stata la sola catena dei <c>ParentCallsign</c>,
+/// che è un albero <b>senza dimensione verticale</b>. Su Milano, con WS2 ed ES2 divisi fino a FL305 e WS5
+/// aperto sopra, un trasferimento diretto a ES5 a FL350 finiva sul padre ES2 — mentre quel cielo è di WS5, che
+/// non vedeva niente. Nessun avviso, perché la ricaduta <b>riusciva</b>: solo verso il settore sbagliato.</para>
+///
+/// <para>⚠️ <b>Queste righe non sostituiscono il padre: gli stanno davanti.</b> Si consultano per prime, e
+/// quando sono esaurite la catena prosegue sul padre come ha sempre fatto. È il motivo per cui la tabella
+/// nasce <b>vuota</b> e non c'è nessun travaso da fare: a tabella vuota il risultato è identico, riga per
+/// riga, a quello di prima. Carta <c>docs/feature/2026-08-31-ricaduta-verticale-e-cicli.md</c> §2.</para>
+///
+/// <para>⚠️ Il legame è per <b>callsign</b>, come tutto il resto della gerarchia di copertura (nessuna chiave
+/// esterna): chi rinomina un settore deve riscrivere anche queste due colonne — <c>EfCallsignRenameService</c>
+/// ne tocca già altre tre per la stessa ragione.</para>
+/// </summary>
+public class SectorFallback
+{
+    public int Id { get; set; }
+
+    /// <summary>Il settore che ricade (<c>ComposePosition</c> del catalogo).</summary>
+    public string SectorCallsign { get; set; } = default!;
+
+    /// <summary>Ordine di consultazione fra le righe dello stesso settore: più basso = prima.</summary>
+    public int Order { get; set; }
+
+    /// <summary>Chi raccoglie il traffico.</summary>
+    public string TargetCallsign { get; set; } = default!;
+
+    /// <summary>Piede della fascia in <b>piedi</b>, incluso. Null = nessun limite in basso.</summary>
+    public int? BaseFeet { get; set; }
+
+    /// <summary>
+    /// Tetto della fascia in <b>piedi</b>, <b>escluso</b>. Null = nessun limite in alto.
+    /// Il tetto escluso e il piede incluso fanno sì che «SFC–FL305» e «FL305–UNL» non si contendano FL305.
+    /// </summary>
+    public int? TopFeet { get; set; }
+}
+
 /// <summary>Regola dichiarativa editabile che riassegna l'ownership dei settori in base ai callsign online. SPEC §3.7, PIANO §20.5.</summary>
 public class UnificationRule
 {

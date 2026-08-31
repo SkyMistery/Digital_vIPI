@@ -4,6 +4,7 @@
 @inject IStructureEditingService Struct
 @inject IOrphanSectorService Orphans
 @inject IHierarchyEditingService Hierarchy
+@inject ISectorFallbackService Fallbacks
 @inject IEditAuthorizationService Authz
 @inject IOnlineAtcProvider Online
 @inject Microsoft.JSInterop.IJSRuntime JS
@@ -220,6 +221,86 @@
                 @if (sel.Kind == HierarchyNodeKind.Airport)
                 {
                     <p class="muted" style="font-size:12px;margin:0 0 10px">@L["Struct_LeafHint"]</p>
+                }
+                @* ---- Catena di ripiego: le righe DICHIARATE, poi i padri ----
+                   Le due metà sono una lista sola, e vanno lette in quest'ordine: prima ciò che qualcuno ha
+                   scritto (con la fascia di quota), poi ciò che il sistema deduce dall'albero. Mostrarle
+                   separate direbbe che sono due meccanismi; mostrarle mescolate nasconderebbe che solo la
+                   prima metà si edita. *@
+                @if (sel.Callsign is not null)
+                {
+                    <div class="fb-edit">
+                        <div class="fb-head">
+                            <span class="fb-t">@L["Struct_Fallback_Title"]</span>
+                            <HelpHint Href="/services/vsop/guide#struttura" AriaLabel="@L["Struct_Fallback_HelpAria"]" ExtraClass="wide">
+                                @((MarkupString)L["Struct_Fallback_Help"].Value)
+                            </HelpHint>
+                            @if (Authz.IsEditor && _canEdit)
+                            {
+                                <button class="lnk-mini" disabled="@_busy" @onclick="() => ProponiAsync(sel)">@L["Struct_Fallback_Suggest"]</button>
+                                <button class="lnk-mini" disabled="@_busy" @onclick="AggiungiRipiego">@L["Struct_Fallback_Add"]</button>
+                            }
+                        </div>
+
+                        @if (_ripieghi.Count == 0)
+                        {
+                            <div class="help">@L["Struct_Fallback_Empty"]</div>
+                        }
+                        @for (var i = 0; i < _ripieghi.Count; i++)
+                        {
+                            var idx = i;
+                            <div class="fb-row">
+                                <span class="fb-n">@(idx + 1).</span>
+                                <select value="@_ripieghi[idx].TargetCallsign" disabled="@(!Authz.IsEditor || !_canEdit || _busy)"
+                                        @onchange="e => CambiaBersaglio(idx, e.Value?.ToString())">
+                                    <option value="">@L["Struct_Fallback_PickTarget"]</option>
+                                    @foreach (var p in EligibleParents(sel))
+                                    {
+                                        <option value="@p.Callsign">@p.Callsign</option>
+                                    }
+                                </select>
+                                <span class="fb-lbl">@L["Struct_Fallback_From"]</span>
+                                <input class="fb-fl" type="number" min="0" max="660" placeholder="@L["Struct_Fallback_Sfc"]"
+                                       disabled="@(!Authz.IsEditor || !_canEdit || _busy)"
+                                       value="@FlDi(_ripieghi[idx].BaseFeet)" @onchange="e => CambiaPiede(idx, e.Value?.ToString())" />
+                                <span class="fb-lbl">@L["Struct_Fallback_To"]</span>
+                                <input class="fb-fl" type="number" min="0" max="660" placeholder="@L["Struct_Fallback_Unl"]"
+                                       disabled="@(!Authz.IsEditor || !_canEdit || _busy)"
+                                       value="@FlDi(_ripieghi[idx].TopFeet)" @onchange="e => CambiaTetto(idx, e.Value?.ToString())" />
+                                @if (Authz.IsEditor && _canEdit)
+                                {
+                                    <button class="tclose" title="@L["Struct_Fallback_Remove"]" disabled="@_busy" @onclick="() => TogliRipiego(idx)">✕</button>
+                                }
+                            </div>
+                        }
+
+                        @if (_proposte.Count > 0)
+                        {
+                            <div class="fb-sug">
+                                <span class="muted">@L["Struct_Fallback_Suggested"]</span>
+                                @foreach (var g in _proposte)
+                                {
+                                    <button class="sh-chip" disabled="@_busy" @onclick="() => AccettaProposta(g)">
+                                        @g.TargetCallsign · @FasciaTesto(g.BaseFeet, g.TopFeet)
+                                    </button>
+                                }
+                            </div>
+                        }
+                        else if (_proposteChieste)
+                        {
+                            <div class="help">@L["Struct_Fallback_NoSuggestions"]</div>
+                        }
+
+                        @if (Authz.IsEditor && _canEdit && _ripieghiSporchi)
+                        {
+                            <div class="fb-actions">
+                                <button class="btn primary" disabled="@_busy" @onclick="() => SalvaRipieghiAsync(sel)">@L["Common_Apply"]</button>
+                                <button class="btn ghost" disabled="@_busy" @onclick="CaricaRipieghiAsync">@L["Common_Cancel"]</button>
+                                <span class="muted" style="font-size:12px">@L["Common_Unsaved"]</span>
+                            </div>
+                        }
+                        <div class="fb-then">@L["Struct_Fallback_ThenParent"]</div>
+                    </div>
                 }
                 <StructureFallbackChain Rows="ChainRows(sel)" />
                 <StructureCoverage IsLeaf="sel.Callsign is null" Rows="CoverageRows(sel)" AirportsCovered="AirportsCovered(sel)" />
@@ -885,12 +966,77 @@
         return sel.Kind == HierarchyNodeKind.Acc ? L["Struct_OptRoot"].Value : L["Struct_OptToAssign"].Value;
     }
 
-    private void Select(HierarchyNodeKind kind, int id)
+    private async Task Select(HierarchyNodeKind kind, int id)
     {
         _selKind = kind; _selId = id; _parentFilter = "";
         _pendingParent = _tree.FirstOrDefault(n => n.Kind == kind && n.Id == id)?.ParentCallsign;
+        await CaricaRipieghiAsync();
     }
     private bool IsSelected(HierarchyNodeKind kind, int id) => _selKind == kind && _selId == id;
+
+    // =====================================================================================================
+    //  Catena di ripiego dichiarata
+    //
+    //  ⚠️ Lo stato è UNA lista di lavoro, non le righe salvate: si edita a schermo e si applica in un colpo,
+    //  perché l'ORDINE è parte del significato (la prima riga che vale vince) e salvare riga per riga
+    //  vorrebbe dire poter lasciare in archivio un ordine che nessuno ha mai voluto.
+    // =====================================================================================================
+
+    private List<FallbackRowEdit> _ripieghi = new();
+    private List<FallbackRowEdit> _ripieghiSalvati = new();
+    private IReadOnlyList<FallbackSuggestion> _proposte = Array.Empty<FallbackSuggestion>();
+    private bool _proposteChieste;
+
+    private bool _ripieghiSporchi =>
+        _ripieghi.Count != _ripieghiSalvati.Count
+        || _ripieghi.Where((r, i) => !r.Equals(_ripieghiSalvati[i])).Any();
+
+    private async Task CaricaRipieghiAsync()
+    {
+        _proposte = Array.Empty<FallbackSuggestion>();
+        _proposteChieste = false;
+
+        var cs = Selected()?.Callsign;
+        if (cs is null) { _ripieghi = new(); _ripieghiSalvati = new(); return; }
+
+        _ripieghiSalvati = (await Fallbacks.ListAsync(cs)).ToList();
+        _ripieghi = _ripieghiSalvati.ToList();
+    }
+
+    private void AggiungiRipiego() => _ripieghi.Add(new FallbackRowEdit("", null, null));
+    private void TogliRipiego(int i) => _ripieghi.RemoveAt(i);
+
+    private void CambiaBersaglio(int i, string? cs) => _ripieghi[i] = _ripieghi[i] with { TargetCallsign = cs ?? "" };
+    private void CambiaPiede(int i, string? fl) => _ripieghi[i] = _ripieghi[i] with { BaseFeet = PiediDa(fl) };
+    private void CambiaTetto(int i, string? fl) => _ripieghi[i] = _ripieghi[i] with { TopFeet = PiediDa(fl) };
+
+    /// <summary>A schermo si scrivono i FL — è l'unità in cui l'admin pensa — e in archivio vanno i piedi.</summary>
+    private static int? PiediDa(string? fl) => int.TryParse(fl, out var v) && v >= 0 ? v * 100 : null;
+    private static string FlDi(int? feet) => feet is int f ? (f / 100).ToString() : "";
+
+    private string FasciaTesto(int? baseFt, int? topFt) =>
+        $"{(baseFt is int b ? "FL" + b / 100 : L["Struct_Fallback_Sfc"].Value)}–{(topFt is int t ? "FL" + t / 100 : L["Struct_Fallback_Unl"].Value)}";
+
+    private async Task ProponiAsync(HierarchyNode sel)
+    {
+        if (sel.Callsign is null) return;
+        _proposteChieste = true;
+        _proposte = await Fallbacks.SuggestAsync(sel.Callsign);
+    }
+
+    private void AccettaProposta(FallbackSuggestion g)
+    {
+        _ripieghi.Add(new FallbackRowEdit(g.TargetCallsign, g.BaseFeet, g.TopFeet));
+        _proposte = _proposte.Where(p => p.TargetCallsign != g.TargetCallsign).ToList();
+    }
+
+    private async Task SalvaRipieghiAsync(HierarchyNode sel)
+    {
+        if (sel.Callsign is null) return;
+        await Guarded(() => Fallbacks.ReplaceAsync(sel.Callsign, _ripieghi));
+        if (_msg is null) await CaricaRipieghiAsync();
+    }
+
     private HierarchyNode? Selected() => _selKind is HierarchyNodeKind k
         ? _tree.FirstOrDefault(n => n.Kind == k && n.Id == _selId) : null;
 

@@ -70,6 +70,9 @@ public class VipiDbContext : DbContext
     public DbSet<Airport> Airports => Set<Airport>();
     public DbSet<Sector> Sectors => Set<Sector>();
     public DbSet<UnificationRule> UnificationRules => Set<UnificationRule>();
+
+    /// <summary>Righe di ripiego con fascia di quota: la catena che sta DAVANTI al padre. Nasce vuota.</summary>
+    public DbSet<SectorFallback> SectorFallbacks => Set<SectorFallback>();
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<DocumentParty> DocumentParties => Set<DocumentParty>();
     public DbSet<DocumentVersion> DocumentVersions => Set<DocumentVersion>();
@@ -205,6 +208,18 @@ public class VipiDbContext : DbContext
             e.Property(x => x.ImportSpecialAreas).HasDefaultValue(true);
             e.Property(x => x.ImportAtcSessions).HasDefaultValue(true);
             e.Property(x => x.ImportNavaids).HasDefaultValue(true);
+        });
+
+        b.Entity<SectorFallback>(e =>
+        {
+            // Legame per CALLSIGN, come tutta la gerarchia di copertura: nessuna chiave esterna, perché la
+            // riga può citare un settore di un altro catalogo (ACC o aeroporto) e persino di un altro ACC.
+            e.Property(x => x.SectorCallsign).IsRequired().HasMaxLength(32);
+            e.Property(x => x.TargetCallsign).IsRequired().HasMaxLength(32);
+            // L'indice è (settore, ordine): si legge sempre «tutte le righe di X, in ordine».
+            e.HasIndex(x => new { x.SectorCallsign, x.Order });
+            // ⚠️ NON unico su (settore, bersaglio): lo stesso bersaglio può comparire due volte con due fasce
+            // diverse — «sotto FL195 → A» e «sopra FL305 → A» è una configurazione legittima, non un doppione.
         });
 
         b.Entity<AccSector>(e =>

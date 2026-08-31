@@ -171,6 +171,15 @@ public sealed class EfCallsignRenameService : ICallsignRenameService
         foreach (var x in await _db.Airports.Where(x => x.ParentCallsign == vecchio).ToListAsync(ct))
             x.ParentCallsign = nuovo;
 
+        // 3-bis. La catena di ripiego, che vive per callsign come la gerarchia — e da DUE lati: il settore che
+        //        ricade e il settore che raccoglie. Saltarne uno lascerebbe una riga che punta a un nominativo
+        //        che non esiste più: la ricaduta la scavalcherebbe in silenzio, che è il difetto che questa
+        //        tabella esiste per evitare.
+        foreach (var x in await _db.SectorFallbacks.Where(x => x.SectorCallsign == vecchio).ToListAsync(ct))
+            x.SectorCallsign = nuovo;
+        foreach (var x in await _db.SectorFallbacks.Where(x => x.TargetCallsign == vecchio).ToListAsync(ct))
+            x.TargetCallsign = nuovo;
+
         // 4. Le chiavi di release e degli incarichi (vedi il commento del tipo sul perché si riscrivono).
         var suffissoAcc = "|" + vecchio;
         foreach (var rel in await _db.DocReleases

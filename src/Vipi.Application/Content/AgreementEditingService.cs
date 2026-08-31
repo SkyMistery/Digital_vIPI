@@ -33,18 +33,22 @@ public sealed class AgreementService : IAgreementService
         var flows = await ListFlowsByAccAsync(accCode, ct);
         var topo = await _topology.BuildGlobalAsync(ct);
 
-        // Catena di candidati di un settore: sé stesso + antenati di copertura (cross-ACC), in ordine di priorità.
-        IReadOnlyList<string> Chain(string? callsign) =>
+        // Catena di candidati di un settore A UNA QUOTA: sé stesso, i ripieghi dichiarati che valgono lì, poi
+        // gli antenati di copertura (cross-ACC). ⚠️ La quota è quella del PUNTO, non del flusso: un flusso una
+        // quota non ce l'ha, e due punti dello stesso flusso possono ricadere su due settori diversi.
+        IReadOnlyList<string> Chain(string? callsign, int? quotaFt) =>
             string.IsNullOrWhiteSpace(callsign)
                 ? Array.Empty<string>()
-                : new[] { callsign }.Concat(topo.Ancestors(callsign)).ToList();
+                : FallbackChain.Candidates(callsign, quotaFt, topo.Fallbacks, topo.ParentOf);
 
         return flows.Select(f =>
         {
-            var ownerHit = TransferOnlineResolver.FirstOnline(Chain(f.OwningSectorCallsign), online);
+            // Il proprietario del flusso non ha una quota da opporre: si risolve senza, cioè per soli padri.
+            var ownerHit = TransferOnlineResolver.FirstOnline(Chain(f.OwningSectorCallsign, null), online);
             var points = f.Points.Select(p =>
             {
-                var (handler, isOnline) = TransferOnlineResolver.Resolve(Chain(p.NextSectorCallsign), online);
+                var quota = FallbackChain.FeetOf(p.LevelValue, p.LevelUnit);
+                var (handler, isOnline) = TransferOnlineResolver.Resolve(Chain(p.NextSectorCallsign, quota), online);
                 return new ResolvedTransferPoint { Point = p, ResolvedHandler = handler, IsOnline = isOnline };
             }).ToList();
 

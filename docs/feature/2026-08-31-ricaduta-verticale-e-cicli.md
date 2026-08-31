@@ -1,4 +1,4 @@
-# La ricaduta guarda anche in alto — e un settore non è più nipote di sé stesso
+﻿# La ricaduta guarda anche in alto — e un settore non è più nipote di sé stesso
 
 **31 agosto 2026.** Carta di lavoro. Due cose che sembrano diverse e sono la stessa: **l'albero di
 copertura**. Prima si chiude il buco che lo rende ciclico (difetto **visto in produzione**, su
@@ -135,12 +135,26 @@ esistono (`ShapePart.BaseFeet/TopFeet`) ma le usa solo l'attribuzione del traffi
 Il padre singolo diventa una **lista ordinata**, dove ogni riga può portare una banda:
 
 ```
-SectorFallback(SectorId, Order, TargetCallsign, BaseFeet?, TopFeet?, Origin)
+SectorFallback(SectorCallsign, Order, TargetCallsign, BaseFeet?, TopFeet?)
 ```
 
-Quote nulle = **riga sempre valida**. Il padre di oggi *è* precisamente questo: una riga sola, senza banda,
-in fondo. **C non affianca un meccanismo al padre: lo sostituisce** (pre-flight §1), e la migrazione è
-meccanica — una riga per ogni `ParentCallsign` esistente.
+Quote nulle = **riga sempre valida**.
+
+> 🔄 **Decisione cambiata in esecuzione, e vale la pena dire perché.** La carta diceva «la migrazione semina
+> una riga per ogni `ParentCallsign`, e il padre sparisce dalla ricaduta». Non si fa: **il padre resta la coda
+> implicita della catena**, e la tabella nasce **vuota**.
+>
+> Due ragioni, e la seconda è quella che decide. La prima: seminare le righe richiede un `Sql` in migrazione,
+> che è fra le operazioni **vietate** dal presidio della finestra cieca (`MigrazioniDellaFinestraCiecaTests`)
+> proprio perché è codice che nessun tipo controlla, eseguito su un archivio diverso da quello su cui è stato
+> provato. La seconda: **a tabella vuota il comportamento è identico a quello di prima, riga per riga**. Una
+> feature che entra in produzione senza poter cambiare niente finché qualcuno non scrive una riga è una
+> feature che si può consegnare dentro una finestra cieca; una che riscrive la sorgente della ricaduta di
+> tutti i settori, no.
+>
+> Il pre-flight §1 resta rispettato: chi cerca «dove si decide chi riceve un trasferimento» trova **una**
+> funzione — `FallbackChain.Candidates` — che legge le righe dichiarate e poi i padri. Non due sorgenti in
+> concorrenza: una lista sola, di cui il padre è la coda.
 
 Risoluzione, dato un ricevente `S` e una quota `L`:
 
@@ -161,8 +175,15 @@ al posto della catena dei padri.
 **B non gira a runtime.** Gira nell'editor Struttura e **propone** le righe che l'admin conferma.
 
 Regola di proposta: per il settore `S`, i sostituti candidati sono gli altri settori la cui **banda
-verticale si sovrappone** a quella di `S`, ordinati per frazione di sovrapposizione in quota → adiacenza in
-pianta → distanza gerarchica.
+verticale si sovrappone** a quella di `S`, ordinati per quanta quota condividono davvero. Restano fuori il
+settore stesso e i suoi **antenati** — quelli sono già la coda della catena, e riproporli vorrebbe dire
+scrivere a mano ciò che il sistema fa da sé. La fascia proposta è l'**intersezione** delle due bande: solo il
+cielo che il sostituto può davvero prendere.
+
+> 🔄 La carta prevedeva anche l'**adiacenza in pianta** come secondo criterio d'ordine. Non è stata fatta: la
+> misura richiede i poligoni di tutti i settori a ogni apertura del pannello, e sui casi veri non cambia
+> l'ordine — chi condivide banda con un settore d'area della stessa ACC gli è quasi sempre anche accanto. Si
+> aggiunge il giorno che una proposta esce nell'ordine sbagliato, non prima.
 
 ⚠️ **B accoppia per BANDA, non per sovrapposizione in pianta.** ES5 e WS5 sono affiancati, non impilati: in
 pianta non si toccano mai. È lo *strato* che li rende sostituti l'uno dell'altro. L'adiacenza in pianta è
@@ -197,10 +218,17 @@ a un guasto.
    flusso è mio adesso?». Con la banda la domanda diventa **per punto**: WS5 vede il flusso di ES5 se
    *almeno un punto* gli ricade addosso, e in tabella vede **solo quei punti**. Altrimenti si ritrova
    davanti anche i punti a FL250, che sono di ES2.
-2. **Una porta sola.** `AgreementEditingService`, `TransferMatcher`, `CoverageResolver` (dove la quota è
-   quella vera del velivolo, che l'attribuzione già maneggia) e `ConsistencyReportService` chiamano **la
-   stessa funzione**. Tre su quattro significa che la vista live e l'elenco dei flussi si contraddicono in
-   silenzio.
+2. **Una porta sola** — per i due che contano. `AgreementEditingService` (vista live, quota **del punto**)
+   e `TransferMatcher` (flussi e suggerimento Aurora, quota **di crociera del volo**) chiamano la stessa
+   `FallbackChain.Candidates`. Erano loro due a potersi contraddire in silenzio: la vista live che dice «vai
+   a WS5» mentre il flusso resta sullo schermo di ES2.
+
+   ⚠️ **`CoverageResolver` (statistiche) resta fuori, di proposito.** Lì la domanda è un'altra — a chi si
+   accredita il traffico — e la risposta la dà già la **geometria**: `SectorVolumeMap` confronta la quota
+   vera del velivolo con i volumi. Portarci dentro le righe dichiarate significherebbe rendere le pretese
+   **per pezzo di forma** invece che per settore, perché è il pezzo ad avere una banda: è una fetta sua, non
+   una riga da aggiungere qui. Finché non si fa, resta questo scarto: con ES5 chiuso e WS5 aperto, a FL350 la
+   vista live manda a WS5 e le statistiche accreditano ES2. È uno scarto di **conteggio**, non operativo.
 3. **Serve una migrazione, e siamo nella finestra cieca.** Fino al 16 settembre `Migrate()` gira all'avvio
    sul pacchetto FTP: una migrazione sbagliata è il sito giù, e giù resta. Va sotto
    `MigrazioniDellaFinestraCiecaTests` prima di partire.
@@ -227,6 +255,16 @@ contenimento e dell'AoR): si aggiunge la catena accanto come sorgente della *ric
 
 | # | Slice | Stato |
 |---|---|---|
-| 1 | Ciclo: derivazione sicura, guardia sull'albero effettivo, radici effettive, rilievo | 🟡 |
-| 2 | C: `SectorFallback`, migrazione dal padre, risolutore, quattro chiamate | 🟡 |
-| 3 | B: proposte geometriche nell'editor | 🟡 |
+| 1 | Ciclo: derivazione sicura, guardia sull'albero effettivo, radici effettive, rilievo | ✅ |
+| 2 | C: `SectorFallback`, risolutore con la quota, due chiamate + editor in Struttura | ✅ |
+| 3 | B: proposte geometriche nell'editor | ✅ |
+
+### Cosa resta aperto
+
+- **Statistiche per pezzo di forma** (vedi il dettaglio 2 qui sopra): finché le pretese sono per settore, le
+  righe dichiarate non entrano nell'attribuzione del traffico.
+- **I 19 aeroporti che pendono da una propria APP** restano tali: è la configurazione normale, e ora è
+  innocua. Non c'è niente da riparare, ma è il posto da cui guardare se un anello ricomparisse.
+- **Le `UnificationRule`** restano un motore senza editor (le applica solo `AorService`, per la mappa AoR).
+  Questa carta non le tocca: la ricaduta ora ha la sua strada, e sovrapporre le due sarebbe il secondo
+  meccanismo che il pre-flight §1 vieta.

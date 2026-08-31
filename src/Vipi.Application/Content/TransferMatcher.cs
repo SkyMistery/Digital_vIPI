@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.RegularExpressions;
 using Vipi.Application.Aor;
 using Vipi.AuroraBridge.Contracts;
@@ -90,7 +90,9 @@ public static class TransferMatcher
         // cache ATC è indietro di un poll: la aggiungo esplicitamente, altrimenti i suoi stessi flussi le sfuggono.
         var effectiveOnline = new HashSet<string>(online, StringComparer.OrdinalIgnoreCase) { owner };
 
-        var mine = flows.Where(f => IsCoveredBy(f.OwningSectorCallsign, owner, topology, effectiveOnline)).ToList();
+        // `CruiseLevel` è in FL, già normalizzato dal formato ICAO (F330 → 330).
+        var quotaVolo = FallbackChain.FeetOf(request.CruiseLevel, LevelUnit.Fl);
+        var mine = flows.Where(f => IsCoveredBy(f.OwningSectorCallsign, owner, quotaVolo, topology, effectiveOnline)).ToList();
         if (mine.Count == 0)
         {
             response.Warnings.Add($"Nessun flusso di trasferimento per {owner}" +
@@ -154,12 +156,18 @@ public static class TransferMatcher
             .FirstOrDefault();
     }
 
-    /// <summary>Vero se il flusso ricade su di me ORA: o è mio, o il suo proprietario è chiuso e sono il primo
-    /// antenato online (top-down). Se un sotto-settore online lo assorbe, il flusso non è mio.</summary>
-    private static bool IsCoveredBy(string flowOwner, string me, Topology topology, IReadOnlySet<string> online)
+    /// <summary>
+    /// Vero se il flusso ricade su di me ORA per <b>questo volo</b>: o è mio, o il suo proprietario è chiuso e
+    /// sono il primo dei suoi ripieghi a essere online. Se un sotto-settore online lo assorbe, non è mio.
+    ///
+    /// <para>⚠️ La quota è quella di <b>crociera del volo</b>, non del flusso: un flusso una quota non ce l'ha.
+    /// Ed è la quota giusta da usare qui, perché la domanda è «di chi è questo traffico adesso», e il traffico
+    /// è quel singolo volo. Con ES5 chiuso e WS5 aperto, i flussi dell'alto est arrivano a WS5 per un volo a
+    /// FL350 e a ES2 per uno a FL250 — dalla stessa tabella.</para>
+    /// </summary>
+    private static bool IsCoveredBy(string flowOwner, string me, int? levelFeet, Topology topology, IReadOnlySet<string> online)
     {
-        var chain = new List<string> { flowOwner };
-        chain.AddRange(topology.Ancestors(flowOwner));
+        var chain = FallbackChain.Candidates(flowOwner, levelFeet, topology.Fallbacks, topology.ParentOf);
         var first = TransferOnlineResolver.FirstOnline(chain, online);
         return first is not null && first.Equals(me, StringComparison.OrdinalIgnoreCase);
     }
@@ -224,7 +232,7 @@ public static class TransferMatcher
         else if (condition.Match == "unmatched") reasons.Add($"condizione «{condition.Display}» NON soddisfatta");
 
         // --- ente successivo già impostato dal controllore in Aurora ---
-        var (handler, handlerOnline) = ResolveHandler(p.NextSectorCallsign, topology, online);
+        var (handler, handlerOnline) = ResolveHandler(p.NextSectorCallsign, FallbackChain.FeetOf(p.LevelValue, p.LevelUnit), topology, online);
         if (!string.IsNullOrWhiteSpace(req.NextStation) && !string.IsNullOrWhiteSpace(p.NextSectorCallsign) &&
             Same(req.NextStation, p.NextSectorCallsign))
         {
@@ -367,12 +375,17 @@ public static class TransferMatcher
         return false;
     }
 
-    private static (string Handler, bool Online) ResolveHandler(string? next, Topology topology, IReadOnlySet<string> online)
+    /// <summary>
+    /// Chi riceve davvero, adesso: il ricevente nominale se è online, altrimenti il primo dei suoi ripieghi.
+    /// ⚠️ La <b>quota del punto</b> entra nel conto: un ripiego dichiarato «sopra FL305» non vale per un
+    /// punto a FL250, e lo stesso ricevente chiuso manda quindi a due settori diversi a due quote diverse.
+    /// </summary>
+    private static (string Handler, bool Online) ResolveHandler(
+        string? next, int? levelFeet, Topology topology, IReadOnlySet<string> online)
     {
         if (string.IsNullOrWhiteSpace(next)) return (TransferOnlineResolver.Unicom, false);
-        var chain = new List<string> { next! };
-        chain.AddRange(topology.Ancestors(next!));
-        return TransferOnlineResolver.Resolve(chain, online);
+        return TransferOnlineResolver.Resolve(
+            FallbackChain.Candidates(next!, levelFeet, topology.Fallbacks, topology.ParentOf), online);
     }
 
     /// <summary>

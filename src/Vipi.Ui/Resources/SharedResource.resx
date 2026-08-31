@@ -660,6 +660,21 @@
   <data name="Struct_AccRootsN" xml:space="preserve"><value>{0} radici ACC</value></data>
   <data name="Struct_AccRootsTitle" xml:space="preserve"><value>Radici ACC (nessun padre — copertura top-down)</value></data>
   <data name="Struct_Inherited" xml:space="preserve"><value>ereditato</value></data>
+  <data name="Struct_Fallback_Title" xml:space="preserve"><value>Catena di ripiego</value></data>
+  <data name="Struct_Fallback_HelpAria" xml:space="preserve"><value>Come funziona la catena di ripiego</value></data>
+  <data name="Struct_Fallback_Help" xml:space="preserve"><value>&lt;b&gt;Chi riceve il traffico di questo settore quando è chiuso.&lt;/b&gt; Le righe qui sotto si consultano &lt;b&gt;in ordine&lt;/b&gt;, e ognuna può valere solo in una fascia di quota: la prima che vale e il cui bersaglio è online si prende il traffico. Esaurite le righe, la ricaduta prosegue sul &lt;b&gt;padre&lt;/b&gt; come ha sempre fatto — per questo un settore senza righe si comporta esattamente come prima.&lt;br/&gt;&lt;br/&gt;Serve quando la divisione dello spazio aereo è &lt;b&gt;verticale&lt;/b&gt;: con Milano divisa in due fino a FL305 e un solo settore aperto sopra, il traffico alto dell'est va all'alto dell'ovest, non al basso dell'est che è il suo padre.&lt;br/&gt;&lt;br/&gt;⚠️ Un punto di trasferimento che &lt;b&gt;non dichiara la quota&lt;/b&gt; non può essere risolto in verticale: per lui valgono solo le righe senza fascia.</value></data>
+  <data name="Struct_Fallback_Suggest" xml:space="preserve"><value>proponi</value></data>
+  <data name="Struct_Fallback_Add" xml:space="preserve"><value>aggiungi</value></data>
+  <data name="Struct_Fallback_Empty" xml:space="preserve"><value>Nessun ripiego dichiarato: la ricaduta segue i soli padri, qui sotto.</value></data>
+  <data name="Struct_Fallback_PickTarget" xml:space="preserve"><value>— scegli —</value></data>
+  <data name="Struct_Fallback_From" xml:space="preserve"><value>da</value></data>
+  <data name="Struct_Fallback_To" xml:space="preserve"><value>a</value></data>
+  <data name="Struct_Fallback_Sfc" xml:space="preserve"><value>SFC</value></data>
+  <data name="Struct_Fallback_Unl" xml:space="preserve"><value>UNL</value></data>
+  <data name="Struct_Fallback_Remove" xml:space="preserve"><value>Togli questa riga</value></data>
+  <data name="Struct_Fallback_Suggested" xml:space="preserve"><value>Proposte dalla geometria:</value></data>
+  <data name="Struct_Fallback_NoSuggestions" xml:space="preserve"><value>Nessuna proposta: nessun altro settore condivide quota con questo.</value></data>
+  <data name="Struct_Fallback_ThenParent" xml:space="preserve"><value>poi, il padre:</value></data>
   <data name="Struct_Ciclo" xml:space="preserve"><value>ciclo</value></data>
   <data name="Struct_CicloTitle" xml:space="preserve"><value>Gerarchia ciclica: questo settore è antenato di sé stesso. La catena di ricaduta si interrompe qui. Assegnargli un padre valido, o toglierlo al figlio che lo cita.</value></data>
   <data name="Struct_InheritedTitle" xml:space="preserve"><value>Padre non scritto: dedotto dalla scaletta dell'aeroporto (DEL → GND → TWR → APP). Assegnane uno per fissarlo.</value></data>
