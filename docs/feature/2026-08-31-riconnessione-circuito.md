@@ -1,6 +1,15 @@
 # «Attempting to reconnect to the server…» — quattro mosse
 
-**31 agosto 2026.** Eseguita; fusa nel ramo di consegna `consegna-20260831` insieme a `intro-di-pagina`. Lavori aperti **§AE**. Build Release 0 avvisi, suite verde.
+**31 agosto 2026.** ✅ **IN PRODUZIONE** con il pacchetto **1.1.0** (ramo `consegna-20260831`, insieme a
+`intro-di-pagina`). Lavori aperti **§AE**, esito del deploy in **§A15**. Build Release 0 avvisi, suite verde.
+
+> ✅ **E in produzione si è visto succedere davvero.** Il registro degli avvii ha fotografato il fenomeno per
+> cui questa carta esiste: fra le 00:30:45 e le 00:36:38 del 31 agosto il processo **era spento**, ed è
+> ripartito **alla prima richiesta** (7,7 s di avvio a freddo). Sei minuti senza visite, e chi avesse avuto
+> una pagina aperta si sarebbe visto il riquadro — che adesso si ricarica da solo.
+>
+> ✅ E gli arresti su quel server risultano **ordinati**: il verdetto «NON si è spento in modo ordinato» del
+> registro è quindi un fatto quando compare, non rumore di fondo.
 
 ## Il fatto
 

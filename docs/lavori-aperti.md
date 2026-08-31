@@ -1,6 +1,6 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 31 agosto 2026 — 📦 **RAMO DI CONSEGNA `consegna-20260831`**: dentro ci sono la consegna del 30 (pacchetto `j`), **`intro-di-pagina`** e **§AE — la riconnessione del circuito**. **Nessuna migrazione** in nessuno dei due rami fusi, che dentro la finestra cieca è il punto. Il pacchetto per l'FTP è **incrementale** (solo i file cambiati) e la versione è **1.1.0**. ⚠️ Da qui in avanti `blazor.web.js` parte con `autostart="false"`: un caricamento senza `vipi-riconnessione.js` dà un sito che **si vede e non risponde**. · **Aggiornato:** 30 agosto 2026, **sera** — 🔴 **CONSEGNA A METÀ**: pacchetto `j` caricato via FTP, database `.sql` pronto e **in attesa che Ivao.It lo importi**; ⚠️ **nove commit sul ramo `consegna-db-20260830` DA SPINGERE**; ⚠️ la consegna **riparta da zero sul contenuto** (il `vipi.db` di sviluppo è intatto); 🔒 **dal 31 agosto al 16 settembre non si consegna database** e una migrazione girerebbe da sola in produzione — presidio in `MigrazioniDellaFinestraCiecaTests`, **da cancellare a finestra chiusa**. Tutto in **§A14** e nel riquadro di «Dove siamo». · **Aggiornato:** 30 agosto 2026, sera (**§AC — L'INTRO DI PAGINA** e **§AD — «USCIRE NON BUTTA VIA»**, ramo **`intro-di-pagina`** (da `main`), **spinto e NON fuso**, quattordici commit. Sezioni editabili in cima all'elenco dei vSOP militari, con i PDF della biblioteca: vivono in **`SharedBlocks`** — tabella dell'`InitialCreate` che **non usava nessuno** — quindi **ZERO migrazioni**, che dentro la finestra cieca è il punto. ⚠️ **Non è un documento**: niente ciclo AIRAC, niente release, quel che si salva è **subito pubblico**. Tradotta su richiesta del SOD, e la traduzione regge solo perché le frasi entrano nel **corpus**. Poi la verifica chiesta dal committente su **tutto ciò che si modifica**: i quattro editor documentali salvano **a ogni gesto** e sono sani; il difetto era sull'editor **aeroporto** — l'unico che accumula — dove «Fine modifica» usciva **senza guardare**, e su `AccAdminPage`. ⚠️ E la guardia `beforeunload` copriva **un buffer su tre**. **Release verde e suite verde su tutt'e due i TFM.**) · **Aggiornato:** 30 agosto 2026, pomeriggio (**§AB — LA SHAPE DI UN SETTORE HA UNA PORTA SOLA**, carta [refactor/15](refactor/15-shape-del-settore-una-porta-sola.md), **S0→S10 fuse in `main` e SPINTE** (merge `--no-ff`, quattordici commit; ramo cancellato). Un settore agganciato agli spazi aerei dell'AIP **disegnava** quel confine e **rivendicava** il traffico dentro il monoblocco di IVAO: sei motori, due lo sapevano. Adesso la forma — **anello E quote insieme** — si chiede a `ISectorShapeResolver`, e le quote stanno **DENTRO il pezzo**, così «laterale da una fonte, verticale da un'altra» non è una cosa da evitare ma una cosa che **non si può scrivere**. ⚠️ La **prova dal vivo**: agganciato `LIRR_EW_CTR` — in frequenza — alla FIR ROMA `GND→FL195`, in **un giro del poller** le tratte nuove sono uscite col timbro `Aip` e i quattro voli **sopra FL195** hanno smesso di essere rivendicati. ⚠️ **S11 resta fuori**: non è una slice, è la seconda metà della cura — otto siti di scrittura e il percorso del **congelamento di release** — e non si fa il giorno prima della consegna (§4-bis della carta). ⚠️ Migrazioni in coda: **TRENTASEI**) · **Aggiornato:** 30 agosto 2026 (**I DUE RAMI SONO FUSI IN `main`, CHE È STATO SPINTO** — `biblioteca-allegati` (§E10) e `spazi-aerei-aip` (§AA), in quest'ordine. Sette conflitti, e la regola era quasi sempre «servono tutti e due»: registrazioni DI, DbSet, voce nella barra admin, chiavi di traduzione. ⚠️ **L'eccezione non l'ha segnalata git**: i due rami dicevano tutti e due «16 voci nella barra admin» perché ognuno ne aggiungeva UNA a quindici — fuse sono **DUE**, quindi 17 e 12 — e git ha fuso due numeri identici senza chiamarlo conflitto. Se n'è accorto solo `AdminNavTests`. ⚠️ I due **ModelSnapshot** git li ha fusi da solo e stavolta bene: la prova non è che i nomi ci siano ma che una migrazione di prova esca **VUOTA**, e su tutti e due i provider lo è. **Release verde e quindici assiemi su quindici verdi DOPO la fusione.** ⚠️ Le migrazioni in coda al cutover MariaDB sono ora **TRENTAQUATTRO**. ✅ **R8 CHIUSO**: l'embed provato dal vivo con due PDF veri del committente — il documento si vede davvero nel riquadro. ⚠️ E ha trovato che in `frame-src` mancava **`'self'`**: l'iframe punta alla NOSTRA rotta, non a Drive, e col solo Drive il riquadro sarebbe rimasto vuoto al passaggio a CSP vera. ⚠️ Più un difetto in produzione: la colonna versione della biblioteca stampava `v@r.VersionNumber` alla lettera, che è la regola di Razor per gli indirizzi email) · **Aggiornato:** 29 agosto 2026, notte (**§E10 — LA BIBLIOTECA ALLEGATI, TUTTE E NOVE LE SLICE FATTE**, ramo
+**Aggiornato:** 31 agosto 2026, notte — ✅ **1.1.0 È IN PRODUZIONE**, caricato dal committente e **verificato dal vivo dall'esterno** (§A15): `/vsop/ping` risponde `204` — indirizzo che nel pacchetto `j` non esisteva — la Ricerca risponde («33 risultati per LI») e la console è pulita. ✅ **La chiave Microsoft è caricata** dal file dei segreti. ✅ **Il `.sql` del 30 era già dentro** (la vIPI di LIBB dice «Aeroporti 0»: è l'archivio nuovo). ⚠️ Restano il **KMZ degli spazi aerei da caricare** e `errori-richieste.txt` da cancellare. · **Aggiornato:** 31 agosto 2026 — 📦 **RAMO DI CONSEGNA `consegna-20260831`**: dentro ci sono la consegna del 30 (pacchetto `j`), **`intro-di-pagina`** e **§AE — la riconnessione del circuito**. **Nessuna migrazione** in nessuno dei due rami fusi, che dentro la finestra cieca è il punto. Il pacchetto per l'FTP è **incrementale** (solo i file cambiati) e la versione è **1.1.0**. ⚠️ Da qui in avanti `blazor.web.js` parte con `autostart="false"`: un caricamento senza `vipi-riconnessione.js` dà un sito che **si vede e non risponde**. · **Aggiornato:** 30 agosto 2026, **sera** — 🔴 **CONSEGNA A METÀ**: pacchetto `j` caricato via FTP, database `.sql` pronto e **in attesa che Ivao.It lo importi**; ⚠️ **nove commit sul ramo `consegna-db-20260830` DA SPINGERE**; ⚠️ la consegna **riparta da zero sul contenuto** (il `vipi.db` di sviluppo è intatto); 🔒 **dal 31 agosto al 16 settembre non si consegna database** e una migrazione girerebbe da sola in produzione — presidio in `MigrazioniDellaFinestraCiecaTests`, **da cancellare a finestra chiusa**. Tutto in **§A14** e nel riquadro di «Dove siamo». · **Aggiornato:** 30 agosto 2026, sera (**§AC — L'INTRO DI PAGINA** e **§AD — «USCIRE NON BUTTA VIA»**, ramo **`intro-di-pagina`** (da `main`), **spinto e NON fuso**, quattordici commit. Sezioni editabili in cima all'elenco dei vSOP militari, con i PDF della biblioteca: vivono in **`SharedBlocks`** — tabella dell'`InitialCreate` che **non usava nessuno** — quindi **ZERO migrazioni**, che dentro la finestra cieca è il punto. ⚠️ **Non è un documento**: niente ciclo AIRAC, niente release, quel che si salva è **subito pubblico**. Tradotta su richiesta del SOD, e la traduzione regge solo perché le frasi entrano nel **corpus**. Poi la verifica chiesta dal committente su **tutto ciò che si modifica**: i quattro editor documentali salvano **a ogni gesto** e sono sani; il difetto era sull'editor **aeroporto** — l'unico che accumula — dove «Fine modifica» usciva **senza guardare**, e su `AccAdminPage`. ⚠️ E la guardia `beforeunload` copriva **un buffer su tre**. **Release verde e suite verde su tutt'e due i TFM.**) · **Aggiornato:** 30 agosto 2026, pomeriggio (**§AB — LA SHAPE DI UN SETTORE HA UNA PORTA SOLA**, carta [refactor/15](refactor/15-shape-del-settore-una-porta-sola.md), **S0→S10 fuse in `main` e SPINTE** (merge `--no-ff`, quattordici commit; ramo cancellato). Un settore agganciato agli spazi aerei dell'AIP **disegnava** quel confine e **rivendicava** il traffico dentro il monoblocco di IVAO: sei motori, due lo sapevano. Adesso la forma — **anello E quote insieme** — si chiede a `ISectorShapeResolver`, e le quote stanno **DENTRO il pezzo**, così «laterale da una fonte, verticale da un'altra» non è una cosa da evitare ma una cosa che **non si può scrivere**. ⚠️ La **prova dal vivo**: agganciato `LIRR_EW_CTR` — in frequenza — alla FIR ROMA `GND→FL195`, in **un giro del poller** le tratte nuove sono uscite col timbro `Aip` e i quattro voli **sopra FL195** hanno smesso di essere rivendicati. ⚠️ **S11 resta fuori**: non è una slice, è la seconda metà della cura — otto siti di scrittura e il percorso del **congelamento di release** — e non si fa il giorno prima della consegna (§4-bis della carta). ⚠️ Migrazioni in coda: **TRENTASEI**) · **Aggiornato:** 30 agosto 2026 (**I DUE RAMI SONO FUSI IN `main`, CHE È STATO SPINTO** — `biblioteca-allegati` (§E10) e `spazi-aerei-aip` (§AA), in quest'ordine. Sette conflitti, e la regola era quasi sempre «servono tutti e due»: registrazioni DI, DbSet, voce nella barra admin, chiavi di traduzione. ⚠️ **L'eccezione non l'ha segnalata git**: i due rami dicevano tutti e due «16 voci nella barra admin» perché ognuno ne aggiungeva UNA a quindici — fuse sono **DUE**, quindi 17 e 12 — e git ha fuso due numeri identici senza chiamarlo conflitto. Se n'è accorto solo `AdminNavTests`. ⚠️ I due **ModelSnapshot** git li ha fusi da solo e stavolta bene: la prova non è che i nomi ci siano ma che una migrazione di prova esca **VUOTA**, e su tutti e due i provider lo è. **Release verde e quindici assiemi su quindici verdi DOPO la fusione.** ⚠️ Le migrazioni in coda al cutover MariaDB sono ora **TRENTAQUATTRO**. ✅ **R8 CHIUSO**: l'embed provato dal vivo con due PDF veri del committente — il documento si vede davvero nel riquadro. ⚠️ E ha trovato che in `frame-src` mancava **`'self'`**: l'iframe punta alla NOSTRA rotta, non a Drive, e col solo Drive il riquadro sarebbe rimasto vuoto al passaggio a CSP vera. ⚠️ Più un difetto in produzione: la colonna versione della biblioteca stampava `v@r.VersionNumber` alla lettera, che è la regola di Razor per gli indirizzi email) · **Aggiornato:** 29 agosto 2026, notte (**§E10 — LA BIBLIOTECA ALLEGATI, TUTTE E NOVE LE SLICE FATTE**, ramo
 `biblioteca-allegati` **spinto e NON fuso**. I PDF non possono stare da noi — il piano di hosting non ammette
 il formato, ed è un vincolo **contrattuale** — quindi stanno sul **Drive di divisione**, e da noi stanno
 identità, organizzazione, versioni e il registro dei link. Il documento cita uno **slug** e passa da
@@ -203,9 +203,64 @@ accordi, niente release, niente spazi aerei, niente statistiche. Il `vipi.db` di
 **Cosa resta al committente:** `tmp/restart.txt` **solo a database dentro** → prima riga di
 `diagnostica/avvio-diagnostica.txt` con la data di adesso → il push del ramo.
 
-### 📦 A15 — Pacchetto 1.1.0, 31 agosto 2026: solo i file cambiati
+### 📦 A15 — Pacchetto 1.1.0, 31 agosto 2026: solo i file cambiati — ✅ **IN PRODUZIONE**
 
 Il primo pacchetto che porta un **numero** invece di una lettera, e il primo **incrementale**.
+
+#### ✅ Caricato e verificato dal vivo, la notte del 31
+
+Il committente ha caricato i 18 file, i segreti e `tmp/restart.txt`. Verifica **dall'esterno**, senza login:
+
+| Controllo | Esito |
+|---|---|
+| `/vsop/ping` | **204** — e nel pacchetto `j` quell'indirizzo **non esisteva**: è la prova che gira il codice nuovo |
+| prima chiamata | **7,7 s**, poi istantanea → avvio a freddo |
+| `_content/Vipi.Ui/vipi-riconnessione.js` | **200, 2 400 B**, impronta `ed2c64e7` = quella del pacchetto |
+| markup | `autostart="false"` ✅, riquadro di riconnessione presente ✅, circuito aperto ✅ |
+| **la Ricerca** | «Digita almeno 2 caratteri» → **«33 risultati per LI»** — il controllo del foglio, passato sul sito vero |
+| console / rete | zero errori, zero risposte ≥ 400 |
+
+#### ✅ Il registro degli avvii, al primo giro vero
+
+```
+00:28:23  AVVIO    1.1.0 · aaaeddb   (primo avvio registrato in questo file)
+00:28:45  ARRESTO  acceso per 00:00:21
+00:28:54  AVVIO    1.1.0 · aaaeddb   (il precedente si era spento in modo ordinato)
+00:30:45  ARRESTO  acceso per 00:01:50
+00:36:38  AVVIO    1.1.0 · aaaeddb   (il precedente si era spento in modo ordinato)
+```
+
+✅ **Tutti gli arresti sono ORDINATI**, ed è la conferma che serviva: su quel server Passenger chiude in
+modo pulito, quindi il giorno che la riga dirà «NON si è spento in modo ordinato» sarà un **fatto**, non
+rumore. Finora quel comportamento si era visto solo nei test e uccidendo il processo a mano.
+
+✅ **E c'è la fotografia del fenomeno che ha originato tutta §AE**: fra le **00:30:45 e le 00:36:38 il
+processo era spento**, ed è ripartito **alla prima richiesta** — il `/vsop/ping` da 7,7 s della verifica.
+Sei minuti senza visite e il processo non c'è più: è esattamente ciò che faceva comparire «Attempting to
+reconnect» a chi aveva una pagina aperta.
+
+#### ✅ I segreti, e la chiave Microsoft
+
+```
+Cartella «segreti» ....... 1 file letti (i nomi non si riportano)
+  Translation:Enabled ........ True
+  Translation:Azure:ApiKey ... valorizzato (84 caratteri)  (regione: italynorth)
+```
+Più: ambiente **Production**, `appsettings.Production.json` presente, provider **MySql**, password non in
+chiaro, e **nessun `avvio-errore.txt`** — l'avvio non è mai fallito.
+
+#### ✅ Il `.sql` del 30 ERA già stato importato
+
+Non lo dice un file, lo dice il contenuto: la vIPI di **LIBB annuncia «Aeroporti 0»**, che è esattamente
+l'archivio consegnato il 30 (anagrafiche + memoria di traduzione + glossario, e nient'altro). Con il
+database vecchio ci sarebbero stati i documenti del 16 agosto. ⚠️ È un'**inferenza dal contenuto**, non una
+lettura diretta: la conferma definitiva è una riga di `/services/vsop/admin/diagnostics`.
+
+ℹ️ **Il numero da confrontare al prossimo avvio**: `migrazione del database 2 872 ms` + `manutenzioni
+2 099 ms` su **5 715 ms** totali. In sviluppo erano ~1 300 ms in tutto: su MySQL costa di più, ma se un
+domani quella voce cambia di molto vuol dire che qualcosa è stato applicato.
+
+#### Il pacchetto
 
 | | |
 |---|---|
@@ -293,6 +348,76 @@ una memoria esaurita e una `.dll` sovrascritta mentre gira.
 finisce con «in servizio dal \<data\>» — cioè la stessa ora già scritta a inizio riga. Ora porta
 l'etichetta corta. I test guardavano che la riga ci fosse, non come suonasse.
 
+### 🔴 A17 — `main` è indietro rispetto a ciò che GIRA: va fuso
+
+Il codice in produzione è **`consegna-20260831`** (spinto). `main` è fermo a **`30363753`** e **non contiene**
+né la consegna del 30, né l'intro di pagina, né la riconnessione: sono **41 commit** di distanza.
+
+⚠️ **È esattamente la trappola che questo progetto ha già pagato due volte** — «si parte da `main`» quando
+`main` non è ciò che gira. Finché dura, chiunque apra un ramo da `main` costruisce un pacchetto che
+**riporta indietro il sito**, e il runbook lo dice in testa ([`guide/preparare-un-pacchetto.md`](guide/preparare-un-pacchetto.md)).
+
+**Da fare** (decisione del committente, non si spinge su `main` senza chiederlo):
+```
+git checkout main && git merge --no-ff consegna-20260831 && git push
+```
+Poi si possono cancellare i tre rami assorbiti: `consegna-db-20260830`, `intro-di-pagina`,
+`riconnessione-circuito` (tutti e tre già dentro `consegna-20260831`, e tutti e tre spinti).
+
+### 🟡 A16 — Dopo il deploy: cosa dice la diagnostica di produzione
+
+`/vsop/health` risponde **Degraded** e `/vsop/health/ready` **Healthy**: le condizioni critiche stanno
+bene, e a far scattare il degrado è il **report di consistenza** — **26 avvisi, zero errori**. Letti uno per
+uno il 31 agosto, si dividono in tre gruppi con tre destini diversi.
+
+#### Nove settori «senza poligono» — ✅ non c'è niente da riparare
+
+`LIZZ_AEW_CTR` · `LIZZ_JTA_CTR` · `LIZZ_NVY_CTR` · `LIZZ_AAR_CTR` · `LIVK_CRC_CTR` · `LIVK_RCC_CTR` ·
+`LIRO_CRC_CTR` · `LIPP_PLN_CTR` · `LIRR_PLN_FSS`
+
+Sono **enti che un'area geografica non ce l'hanno**: early warning, Navy, rifornimento in volo, Control and
+Reporting Centre, Rescue Coordination Centre, planning, FSS. Non è una lacuna della sorgente — il ripiego
+dal sectorfile è **automatico** e ci ha già provato: quel poligono non esiste da nessuna parte.
+
+⚠️ **La conseguenza da ricordare è nelle statistiche**: per quegli enti le **ore contano** e i **movimenti
+saranno sempre zero**. Chi un giorno confronterà le due colonne non deve leggerci «non hanno lavorato».
+
+#### Sedici torri sul cerchio sintetico — 🟡 una parte si chiude caricando il KMZ
+
+`LIAA_I` `LIAP_I` `LIBC_I` `LIDH_I` `LIEF_MIL` `LIER_I` `LILA_I` `LILE_I` `LILG_I` `LILN_I` `LIMB_I`
+`LIMC_E` `LIPN_I` `LIQS_I` `LIQW` `LIRF_E`
+
+Il giro automatico prova quattro fonti in ordine — IVAO → poligoni GitHub (`twrs.tfl`) → sectorfile →
+**ATZ dell'AIP** → e solo alla fine il cerchio da 5 NM. Che siano finite sul cerchio vuol dire che le prime
+tre non le avevano.
+
+⚠️ **Ma la quarta oggi non può girare**: gli ATZ vengono dal catalogo degli spazi aerei dell'AIP, che si
+carica **a mano** da un KMZ (§AA), e in produzione l'archivio è ripartito da zero — quel catalogo è **vuoto**.
+Alla misura del 29 agosto quel file dava un contorno vero a **13 torri su 84**.
+
+**🟡 Da fare, quando si vuole**: caricare il KMZ da `/services/vsop/admin/airspace`. **Nessuna migrazione**,
+quindi si può fare dentro la finestra cieca. Oltre alle torri restituisce gli **agganci CTR** degli
+avvicinamenti (Catania sette zone, Amendola due), che è il motivo per cui §AA esiste.
+Le torri che nemmeno l'AIP copre restano sul cerchio, ed è la risposta giusta: meglio un cerchio
+**dichiarato per quello che è** che nessuna area.
+
+#### `LIRR_TS_CTR`, anello ripetuto — ✅ difetto della sorgente
+
+IVAO manda lo stesso anello due volte (66 punti). L'applicazione lo ripara in lettura, e l'avviso esiste
+solo per dire che **senza** quella riparazione quel settore avrebbe traffico zero. Nessuna azione.
+
+#### 🗑️ `errori-richieste.txt` va cancellato
+
+299 righe, ma **sette voci sole e tutte del 24 agosto** (17:43–17:44 UTC, VID 713322, la pagina aeroporti di
+LIBB): il residuo dell'epoca delle corse sul `DbContext`. **Nessun errore nuovo dopo l'1.1.0.**
+
+⚠️ Vale la regola già imparata con `avvio-errore.txt`: un file di errori vecchi che resta lì fa suonare un
+allarme a **ogni** controllo futuro — è già costato otto giorni a inseguire un guasto del 16 agosto.
+
+ℹ️ La copia della cartella `diagnostica/` presa dal server sta in **`vIPI Ivao Italy\diagnostica`**, cioè
+**fuori** dalla cartella del repository: non finisce in git. Dentro non ci sono credenziali (di ogni valore
+si dice *se* c'è, mai quale), ma ci sono stack trace e un VID.
+
 ### 🔒 Dal 31 agosto al 16 settembre non si consegna database
 
 Chi lo amministra in Ivao.It è via. ⚠️ **Lo schema però NON è congelato**: in produzione gira
@@ -329,9 +454,8 @@ e ci fonde sopra:
 ⚠️ **Dentro la finestra cieca questo è il punto**: il pacchetto si consegna da solo, via FTP, e non tocca lo
 schema. Versione **1.1.0** (funzionalità nuove, nessuna migrazione).
 
-⚠️ **Il pacchetto è INCREMENTALE**: solo i file cambiati rispetto a `j`, non i 474 dello zip. Il foglio è
-`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.1.0.md`, e ⚠️ **l'indice `staticwebassets` va caricato INSIEME ai
-`.js`**, o il sito chiede file col nome vecchio.
+✅ **CARICATO IL 31 AGOSTO, e il sito gira su 1.1.0.** La verifica dall'esterno e la lettura della
+cartella `diagnostica/` stanno in **§A15**. Quel che resta da fare dopo il deploy è **§A16**.
 
 Il 30 agosto sono
 stati fusi e spinti, in quest'ordine: **`biblioteca-allegati`** (§E10), **`spazi-aerei-aip`** (§AA) e
@@ -5703,9 +5827,10 @@ restava sullo schermo un messaggio inglese con un tasto da premere.
 
 ### 🟡 Quel che resta
 
-- **AE1 — leggere `avvii.txt` dopo il primo deploy.** È la misura per cui esiste il punto 1: pochi riavvii
-  nelle ore vuote = Passenger, fisiologico; tanti, o nelle ore di punta, = c'è un difetto da cercare.
-  Finché quel file non è stato letto, **ogni altra mossa su questo fronte è un'ipotesi**.
+- ✅ **AE1 — la prima lettura è stata fatta** (31 agosto, §A15): tre avvii e due arresti, **tutti
+  ordinati**, e un'attesa di sei minuti da spento finita alla prima richiesta. 🟡 **Resta da rileggerlo fra
+  qualche giorno**, quando le righe saranno quelle di un uso normale: è lì che si vede se i riavvii sono
+  pochi e nelle ore vuote (Passenger, fisiologico) o tanti e nelle ore di punta (un difetto da cercare).
 - **AE2 🔵 Il pinger esterno.** UptimeRobot (o simile) ogni 5 minuti su `/vsop/ping` terrebbe il processo
   caldo **anche quando non c'è nessuno**, e direbbe a noi quando il sito è giù davvero. È fuori dal nostro
   codice: va deciso con Ivao.It, insieme a §A9.

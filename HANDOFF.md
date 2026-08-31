@@ -1,13 +1,13 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 31 agosto 2026 (**ramo di consegna `consegna-20260831`**: §AC/§AD l'intro di pagina, **§AE la riconnessione del circuito**); prima, 30 agosto pomeriggio (**§AB — la shape di un settore ha una porta sola**,
+**Ultimo aggiornamento:** 31 agosto 2026, notte (**1.1.0 È IN PRODUZIONE**, verificato dal vivo — §A15; cosa dice la diagnostica del server e cosa resta — §A16); prima, 30 agosto pomeriggio (**§AB — la shape di un settore ha una porta sola**,
 fusa in `main` e spinta; prima, i due rami di §AA e §E10. ⚠️ Tutto ciò che segue nella
 sezione «Dove siamo» è **storia**: i rami che vi si citano come «non fusi» sono in `main` e sono stati
 cancellati — vale il riquadro qui sotto).
 
 ## Dove siamo, prima di tutto il resto
 
-> ### 🆕 LO STATO VERO, 30 agosto 2026 (sera) — questo riquadro batte tutto il resto del file
+> ### 🆕 LO STATO VERO, 31 agosto 2026 (notte) — questo riquadro batte tutto il resto del file
 >
 > 📦 **31 agosto 2026 — tutto quel che era fuori sta nel ramo di consegna `consegna-20260831`**, che parte
 > da `consegna-db-20260830` (il codice del pacchetto `j`, cioè quello online) e ci fonde sopra
@@ -15,11 +15,25 @@ cancellati — vale il riquadro qui sotto).
 > quattro mosse contro «Attempting to reconnect to the server…»). **Nessuno dei due porta migrazioni**, che
 > dentro la finestra cieca è il punto: il pacchetto si consegna da solo via FTP. Versione **1.1.0**.
 >
-> 📦 **Il pacchetto per l'FTP è pronto**: `artifacts/publish/vipi-1.1.0-solo-file-cambiati.zip` (4,07 MB) —
-> **18 file**, non i 474 dello zip completo, perché solo cinque assiemi cambiano davvero. Foglio:
-> `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.1.0.md`. Timbro `1.1.0 · aaaeddb`. **Il database non si tocca.**
-> Verificato sul pacchetto vero (JavaScript minificato compreso): processo ucciso e riavviato, pagina
-> ricaricata da sola in 4 secondi. Cronaca in **§A15**.
+> ✅ **CARICATO LA NOTTE DEL 31, E IL SITO GIRA SU 1.1.0** (timbro `1.1.0 · aaaeddb`). Verificato
+> dall'esterno senza login: `/vsop/ping` risponde **204** — indirizzo che nel pacchetto `j` **non esisteva**,
+> quindi è la prova che gira il codice nuovo — la **Ricerca risponde** («33 risultati per LI»), la console è
+> pulita e non c'è nessun `avvio-errore.txt`. **La chiave Microsoft è caricata** dal file dei segreti
+> (`ApiKey valorizzato (84 caratteri), regione italynorth`). Cronaca completa in **§A15**.
+>
+> ✅ **Il `.sql` del 30 era già stato importato**: la vIPI di LIBB dice «Aeroporti 0», che è l'archivio
+> consegnato il 30 e non quello vecchio. ⚠️ È un'inferenza dal contenuto, non una lettura diretta.
+>
+> ✅ **Il registro degli avvii ha fatto il suo primo giro vero**, e dice due cose: gli arresti su quel
+> server sono **ordinati** (quindi il verdetto «morto male» è affidabile), e fra le 00:30 e le 00:36 il
+> processo **era spento** — è ripartito alla prima richiesta. È la fotografia del fenomeno per cui esiste
+> §AE.
+>
+> 🟡 **Quel che resta dopo il deploy, in §A16**: caricare il **KMZ degli spazi aerei** (chiude una parte
+> delle 16 torri sul cerchio sintetico e restituisce gli agganci CTR; **nessuna migrazione**), cancellare
+> `errori-richieste.txt` (sette voci, **tutte del 24 agosto**), e rileggere `avvii.txt` fra qualche giorno.
+> ℹ️ Il `Degraded` di `/vsop/health` è **solo quello**: 26 avvisi, zero errori, e nove sono enti che
+> un'area non ce l'hanno per natura (CRC, RCC, AEW, Navy, rifornimento, planning, FSS).
 >
 > ⚠️ **Il pacchetto porta un `.js` OBBLIGATORIO**: da qui in poi `blazor.web.js` parte con
 > `autostart="false"` e ad avviarlo è `vipi-riconnessione.js`. Un caricamento senza quel file — o con
@@ -29,7 +43,11 @@ cancellati — vale il riquadro qui sotto).
 > funzionano anche a sito morto. Carta:
 > [`docs/feature/2026-08-31-riconnessione-circuito.md`](docs/feature/2026-08-31-riconnessione-circuito.md).
 >
-> ✅ **`main` è allineato con `origin/main`**, e il 30 agosto ci sono stati fusi e spinti, in quest'ordine:
+> 🔴 **`main` NON è più ciò che gira**: la produzione è `consegna-20260831`, e `main` è fermo a `30363753`,
+> **41 commit indietro**. È la trappola già pagata due volte — chi apre un ramo da `main` costruisce un
+> pacchetto che riporta indietro il sito. La fusione è una decisione del committente: vedi **§A17**.
+>
+> ✅ **Al 30 agosto `main` era allineato con `origin/main`**, e ci sono stati fusi e spinti, in quest'ordine:
 > **`biblioteca-allegati`** (§E10), **`spazi-aerei-aip`** (§AA) e **`shape-una-porta-sola`** (§AB,
 > quattordici commit); tutti e tre cancellati dopo la fusione. Dove più sotto si legge «non fuso», si sta
 > raccontando com'era quel giorno. ⚠️ Guardare `git branch --show-current` prima di committare.
