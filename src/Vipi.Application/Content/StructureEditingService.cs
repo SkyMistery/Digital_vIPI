@@ -87,16 +87,13 @@ public sealed class StructureEditingService : IStructureEditingService
 
     /// <summary>Dice a TUTTE le sessioni che la mappa degli aeroporti è cambiata: la loro cache è scoped al
     /// circuito e senza una spinta invecchierebbe per ore. Vedi <see cref="SetAirportMilitaryOnlyAsync"/>.</summary>
-    private readonly IStationCatalogVersion _catalog;
 
     public StructureEditingService(
         IStructureEditingRepository repo, IAirportRepository profile, IEditAuthorizationService authz,
         IAirportDirectory directory, IAirportDetailProvider details, IImportPolicyStore policy,
         IAirportSectorRepository airportSectors, IAirportSectorImporter sectorImporter,
-        ISectorProjectionService projection, IAirportImportUseCase airportImport,
-        IStationCatalogVersion catalog)
+        ISectorProjectionService projection, IAirportImportUseCase airportImport)
     {
-        _catalog = catalog;
         _repo = repo;
         _profile = profile;
         _authz = authz;
@@ -180,10 +177,10 @@ public sealed class StructureEditingService : IStructureEditingService
     {
         _authz.EnsureAtLeast(VipiRole.Editor);
         await _repo.SetAirportMilitaryOnlyAsync(accCode, airportId, militaryOnly, ct);
-        // ⚠️ Senza questo il segno resterebbe vecchio per ORE. La mappa degli aeroporti sta in una cache
-        // SCOPED, e in Blazor Server lo scope è il circuito, cioè l'intera sessione: chi ha la pagina aperta
-        // continuerebbe a vedere l'etichetta di prima, senza modo di capire perché.
-        _catalog.Bump();
+        // ⚠️ Qui NON si chiama piu' IStationCatalogVersion.Bump(): la spinta la da'
+        // BumpCatalogoStazioniInterceptor, sul salvataggio, per chiunque scriva un Acc o un Airport.
+        // Il motivo del trasloco e' un conto: al 31 agosto 2026 le chiamate a mano erano QUATTRO e i
+        // posti che scrivono quelle due tabelle UNDICI. Vedi CatalogoStazioni.
     }
 
     public Task<IReadOnlyList<SectorBriefRow>> ListAllSectorsAsync(CancellationToken ct = default)

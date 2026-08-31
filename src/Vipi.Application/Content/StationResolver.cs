@@ -83,57 +83,43 @@ public interface IStationResolver
     /// </summary>
     AirportStation? AirportOfCallsign(string? callsign);
 
-    /// <summary>Forza il caricamento delle cache (ACC + mappa aeroporti→ACC) FUORI dal render. Va chiamato dal
-    /// ciclo di vita async della pagina prima di usare <see cref="ResolveByCallsign"/> nel render: evita che il
-    /// lazy-load colpisca il DbContext condiviso durante il render (crash "second operation" su Postgres).</summary>
+    /// <summary>
+    /// Forza il caricamento del catalogo (ACC + mappa aeroporti) <b>fuori dal render</b>.
+    ///
+    /// <para>⚠️ <b>Serve ancora, anche adesso che la cache è di processo</b>
+    /// (<see cref="ICatalogoStazioni"/>), e serve per la stessa ragione di sempre: qualcuno dev'essere il
+    /// <b>primo</b>. Dopo un riavvio — e su Plesk+Passenger il processo si spegne per inattività, quindi
+    /// spesso — la prima pagina che chiede il catalogo paga la lettura, e se la paga <b>dentro il render</b>
+    /// cade sullo stesso <c>DbContext</c> che la pagina sta già usando. Quel che è cambiato è <b>quante
+    /// volte</b> capita: prima una per circuito, adesso una per processo.</para>
+    ///
+    /// <para>⚠️ E resta vero che può <b>lanciare</b>: chi la chiama nel ciclo di vita la avvolga, o un
+    /// intoppo del database diventa una pagina d'errore — vedi <c>SopHome</c> e <c>SopLayout</c>.</para>
+    /// </summary>
     void Prewarm();
 }
 
 /// <inheritdoc cref="IStationResolver"/>
+///
+/// <para><b>Non tiene piu' cache sue.</b> Fino al 31 agosto 2026 questa classe teneva le due copie in campi
+/// d'istanza, e siccome e' <c>scoped</c> — e in Blazor Server lo scope e' il <b>circuito</b>, cioe' l'intera
+/// sessione — ogni sessione aperta rileggeva ACC e aeroporti dal database per conto suo. Adesso le copie
+/// stanno in <see cref="ICatalogoStazioni"/>, che e' singleton: qui resta il <b>come si legge</b>, che ha
+/// bisogno del <c>DbContext</c> dello scope e quindi non puo' stare in un singleton.</para>
 public sealed class StationResolver : IStationResolver
 {
     private readonly IStationDirectory _dir;
-    private readonly IStationCatalogVersion _version;
-    private IReadOnlyList<AccInfo>? _cache;
-    private Dictionary<string, AirportStation>? _airports;   // ICAO → aeroporto (ACC + anagrafica militare)
-    private int _cachedAt = -1;                          // versione del catalogo con cui le cache furono riempite
+    private readonly ICatalogoStazioni _catalogo;
 
-    public StationResolver(IStationDirectory dir, IStationCatalogVersion version)
+    public StationResolver(IStationDirectory dir, ICatalogoStazioni catalogo)
     {
         _dir = dir;
-        _version = version;
+        _catalogo = catalogo;
     }
 
-    /// <summary>
-    /// ⚠️ La cache NON dura una richiesta: questo servizio è scoped e in Blazor Server lo scope è il
-    /// <b>circuito</b>, cioè l'intera sessione. Prima di leggere si controlla la versione del catalogo: se
-    /// qualcuno ha nascosto o importato un ACC — anche in un'altra sessione — le cache si buttano e si
-    /// rilegge. Costa un confronto di interi per lettura; il caso normale resta senza query.
-    /// </summary>
-    private void ScadiSeVecchia()
-    {
-        var v = _version.Current;
-        if (v == _cachedAt) return;
-        _cache = null;
-        _airports = null;
-        _cachedAt = v;
-    }
+    public IReadOnlyList<AccInfo> Accs => _catalogo.Accs(_dir.ListAccs);
 
-    public IReadOnlyList<AccInfo> Accs
-    {
-        get { ScadiSeVecchia(); return _cache ??= _dir.ListAccs(); }
-    }
-
-    private Dictionary<string, AirportStation> Airports
-    {
-        get
-        {
-            ScadiSeVecchia();
-            return _airports ??= _dir.ListAirports()
-                .GroupBy(a => a.Icao, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
-        }
-    }
+    private IReadOnlyDictionary<string, AirportStation> Airports => _catalogo.Aeroporti(_dir.ListAirports);
 
     public AirportStation? Airport(string? icao) =>
         string.IsNullOrWhiteSpace(icao) ? null : Airports.GetValueOrDefault(icao.Trim().ToUpperInvariant());
@@ -149,7 +135,7 @@ public sealed class StationResolver : IStationResolver
     public AccInfo? Resolve(string accCode) =>
         Accs.FirstOrDefault(a => a.Code.Equals(accCode, StringComparison.OrdinalIgnoreCase));
 
-    // Scalda entrambe le cache in una volta (chiamata dal ciclo di vita async, context libero e sequenziale).
+    // Scalda tutt'e due le copie in una volta, dal ciclo di vita: contesto libero e sequenziale.
     public void Prewarm() { _ = Accs; _ = Airports; }
 
     public AccInfo? ResolveByCallsign(string callsign)

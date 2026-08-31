@@ -1,8 +1,10 @@
-# Quattro difetti letti nella diagnostica del 31 agosto — e uno era la diagnostica
+# Quattro difetti letti nella diagnostica del 31 agosto, e uno era la diagnostica
+
+*Piu' il rimedio alla radice: il catalogo delle stazioni in memoria di processo.*
 
 **31 agosto 2026.** Ramo **`corse-e-perdita-diagnostica`**, aperto da **`consegna-20260831`** (cioè da
 **ciò che gira**, non da `main`, che è 41 commit indietro). Build Release **0 avvisi** su net8 e net10,
-suite verde, **14 test nuovi**, **nessuna migrazione** — quindi consegnabile dentro la finestra cieca fino
+suite verde, **23 test nuovi**, **nessuna migrazione** — quindi consegnabile dentro la finestra cieca fino
 al 16 settembre. Lavori aperti **§AM**.
 
 > ⚠️ **La prima cosa da sapere, se si legge questo file di fretta.** Uno dei quattro difetti è
@@ -235,29 +237,94 @@ dal file di quel giorno: la fotografia allegata a quell'errore era di tre minuti
 **esattamente** il buco che B chiude: alla prossima occorrenza la fotografia sarà quella giusta o non ci
 sarà nessuna fotografia, e in entrambi i casi non si andrà a caccia del sospettato sbagliato.
 
-🟡 **Il rimedio alla radice resta da fare** ed è **§AM1**: il catalogo delle ACC e la mappa degli aeroporti
-sono dati di divisione, uguali per tutti, e oggi si rileggono dal database **una volta per circuito**
-(`IStationResolver` è scoped). Con `IStationCatalogVersion` — che è già singleton e già sa quando il
-catalogo cambia — quella lettura può diventare **una per processo**, in memoria: sparirebbe l'intera classe
-di corse su cui questa carta è tornata due volte in una settimana, invece di proteggerne i chiamanti uno
-per uno. È una slice sua, con una misura da fare prima.
+✅ **Il rimedio alla radice è stato fatto nello stesso giro**: è la sezione **E** qui sotto. La misura da
+fare prima c'era davvero, ed è servita: ha trovato che `Bump()` mancava in sei metodi su sette.
 
 ---
+
+## E · Il rimedio alla radice: il catalogo si legge **una volta per processo**
+
+`src/Vipi.Application/Content/CatalogoStazioni.cs` ·
+`src/Vipi.Infrastructure/Persistence/BumpCatalogoStazioniInterceptor.cs`
+
+I difetti C e D sono due modi diversi di proteggersi dalla **stessa** lettura: ACC e mappa aeroporti, che
+`IStationResolver` rileggeva dal database **una volta per circuito** — cioè per ogni sessione aperta e per
+ogni richiesta SSR. Proteggere i chiamanti uno per uno funziona, ma va rifatto a ogni pagina nuova e si
+dimentica: in una settimana quella lettura è finita nello stack di **tre** guasti.
+
+Sono dati di **divisione**: sette ACC e novantatré aeroporti, uguali per tutti, che cambiano quando un
+amministratore tocca la struttura o quando passa il giro notturno. Adesso stanno in `CatalogoStazioni`, che
+è **singleton**.
+
+- Il **cosa** sta nel singleton; il **come si legge** resta nel resolver, che è `scoped` e ha
+  l'`IStationDirectory` del suo scope. ⚠️ Un singleton che si tenesse un `DbContext` sarebbe una
+  dipendenza prigioniera — esattamente il difetto da togliere, non da spostare.
+- La copia e la versione con cui è stata riempita stanno in **un oggetto solo**, scambiato con
+  `Volatile.Write`. ⚠️ Due campi separati non si possono leggere insieme: chi legge potrebbe vedere il dato
+  vecchio e la versione nuova, e da lì in poi terrebbe per buona una copia scaduta **per sempre**.
+- La versione si legge **prima** della query, non dopo: una scrittura che arriva mentre la lettura è in volo
+  fa nascere la copia già vecchia, e il prossimo rilegge.
+- Una lettura **fallita** non si mette in cache: il prossimo ritenta. Senza, un singhiozzo del database
+  durante la prima lettura dopo un riavvio spegnerebbe il catalogo per tutti e fino al riavvio dopo.
+- La serratura si tiene **mentre** si legge, ed è voluto: alla partenza a freddo venti circuiti facevano
+  venti letture uguali, e con `MaximumPoolSize=20` era il modo di prendersi il pool intero per un elenco di
+  sette righe. Adesso ne parte una e le altre aspettano quella.
+
+`Prewarm()` **resta**, e serve ancora: qualcuno dev'essere il primo, e se paga la lettura dentro il render
+cade sullo stesso `DbContext` della pagina. Quel che cambia è **quante volte** capita — una per processo
+invece di una per circuito — e su Passenger, che spegne per inattività, capita a ogni risveglio.
+
+### 🔴 Il difetto che questa modifica avrebbe creato, se non lo si fosse cercato prima
+
+Allargare la cache sposta il peso su `IStationCatalogVersion`: prima una spinta mancata costava un dato
+vecchio per il tempo di un circuito, adesso costerebbe un dato vecchio **finché qualcuno non riavvia**.
+Quindi, prima di scrivere una riga, si è contato chi spinge e chi scrive:
+
+| | |
+|---|---|
+| chiamate a `Bump()` | **4** |
+| posti che scrivono `Acc` o `Airport` | **11** |
+
+Mancava in `CreateAcc`, `DeleteAcc`, `CreateAirport`, `DeleteAirport`, `MoveAirport`, `SetAirportHidden`,
+in tutta la catena di eliminazione (`DeletionService`) e nella scrittura delle **coordinate**
+dell'aeroporto (`EfAirportSectorRepository`). ⚠️ **Nessuno se n'era accorto**, e la ragione è istruttiva:
+la copia era `scoped`, quindi una richiesta SSR ne apriva una nuova ogni volta e il dato vecchio durava un
+istante. Con la cache di processo, un amministratore che crea un ACC non lo vedrebbe comparire — né lui né
+nessun altro.
+
+Il rimedio non poteva quindi essere «ricordarsi la riga in sei posti in più»: la spinta è andata **dove
+avviene la scrittura**, cioè in un `SaveChangesInterceptor` che guarda il change-tracker. Un posto solo, e
+nessuno se ne può dimenticare — nemmeno il codice che nessuno ha ancora scritto. Le quattro chiamate a mano
+sono state **tolte**, con le loro dipendenze.
+
+- ⚠️ `Modified` conta quanto `Added` e `Deleted`: quota, variazione magnetica, IATA, coordinate e i due
+  segni militari cambiano con un `UPDATE`, e un filtro sul solo inserimento avrebbe lasciato fuori proprio
+  il giro notturno.
+- ⚠️ Si spinge **prima** del salvataggio, non dopo. Il segnale è un numero da invalidare, non un evento da
+  consegnare: una spinta di troppo costa **una rilettura** di sette ACC, una spinta mancata costa un dato
+  sbagliato a schermo fino al riavvio. Fra i due errori si sceglie il primo, apposta.
+- ⚠️ L'intercettore va montato su **tutti e tre** i provider (SQLite, Postgres, MySql): dimenticarne uno
+  vuol dire un ambiente in cui il catalogo non si aggiorna più, e non lo direbbe nessun test che gira
+  sull'altro. Sono tre righe in `Vipi.Infrastructure/DependencyInjection.cs`, e ci sono tutte e tre.
 
 ## Verifica
 
 - Build Release `--no-incremental` su **net8 e net10**: **0 avvisi, 0 errori**.
   ⚠️ Regola già pagata: `dotnet test` verde non vale se la build è fallita, e `Directory.Build.props` rende
   gli avvisi errori mentre `dotnet test` non applica quel flag.
-- Suite completa **verde**: 4 672 su net8, 4 338 su net10.
+- Suite completa **verde**: 4 681 su net8, 4 347 su net10.
   ⚠️ In un primo giro su net8 era rosso `DelayedUiActionTests.La_nuova_annulla_la_precedente` — misura una
   tempistica di 40 ms in una finestra di 250 ms; passa da solo e nei giri successivi è tornato verde. È
   contesa di macchina, non una regressione di questo ramo, ma va scritto invece che nascosto: un rosso
   intermittente che nessuno annota è il modo in cui si perde un difetto vero.
-- **14 test nuovi**, e uno di essi provato **al contrario**: tolta la guardia da
+- **23 test nuovi**, e due di essi provati **al contrario**: tolta la guardia da
   `TranslationReviewPanel.OnParametersSetAsync`, `Un_ridisegno_del_genitore_non_rilegge_il_documento`
-  diventa rosso e gli altri due restano verdi. Un presidio che non fallisce quando il difetto torna non è un
-  presidio.
+  diventa rosso e gli altri due restano verdi; spento il filtro di `BumpCatalogoStazioniInterceptor`,
+  **quattro** dei cinque test del bump diventano rossi. Un presidio che non fallisce quando il difetto torna
+  non è un presidio.
+  ⚠️ E la prima controprova sull'intercettore è stata **buttata**: la modifica non compilava (nullable), il
+  test è girato sui **binari vecchi** e ha detto verde. È la regola già scritta — `dotnet test` verde non
+  vale se la build è fallita — e vale anche quando si sta cercando un rosso.
 
 ### 🔴 Quel che i test NON possono dire
 
@@ -281,7 +348,14 @@ per uno. È una slice sua, con una misura da fare prima.
 | `src/Vipi.Ui/Components/TranslationReviewPanel.razor` | C — scope proprio in lettura, guardia sul cambio |
 | `src/Vipi.Ui/Pages/SopHome.razor` | D — il catalogo non decide se la pagina esiste |
 | `src/Vipi.Ui/Resources/SharedResource*.resx` | D — `Home_CatalogDownTitle`, `Home_CatalogDownBody` |
+| `src/Vipi.Application/Content/CatalogoStazioni.cs` | E — la copia di processo, con serratura e versione |
+| `src/Vipi.Application/Content/StationResolver.cs` | E — non tiene piu' cache sue: porta solo il *come si legge* |
+| `src/Vipi.Infrastructure/Persistence/BumpCatalogoStazioniInterceptor.cs` | E — la spinta dove avviene la scrittura |
+| `src/Vipi.Infrastructure/DependencyInjection.cs` | E — l'intercettore su tutti e tre i provider |
+| `AccAdminService`, `AirportImportUseCase`, `StructureEditingService` | E — tolte le quattro `Bump()` a mano e le loro dipendenze |
 | `tests/Vipi.Application.Tests/CollisioniSenzaPerditaTests.cs` | A, B — 5 test |
 | `tests/Vipi.Application.Tests/DocumentTranslationReviewTests.cs` | C — 3 test (una lettura sola, lingua sorgente, documento vuoto) |
 | `tests/Vipi.Ui.Tests/TranslationReviewPanelTests.cs` | C — 3 test (montaggio, ridisegno, cambio documento) |
 | `tests/Vipi.Ui.Tests/CatalogoNonAffondaLaHomeTests.cs` | D — 3 test |
+| `tests/Vipi.Application.Tests/StationResolverCacheTests.cs` | E — 8 test (4 riscritti, 4 nuovi: venti sessioni una lettura, la corsa alla partenza, la lettura fallita, la scrittura in volo) |
+| `tests/Vipi.Infrastructure.Tests/BumpCatalogoStazioniTests.cs` | E — 5 test sul bump (e uno che dice che NON si spinge a sproposito) |

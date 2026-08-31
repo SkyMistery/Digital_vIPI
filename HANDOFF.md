@@ -14,7 +14,13 @@ cancellati — vale il riquadro qui sotto).
 > stava lavorando **da solo**. Dentro c'erano **quattro** difetti — carta
 > [`docs/feature/2026-08-31-corse-dbcontext-e-diagnostica.md`](docs/feature/2026-08-31-corse-dbcontext-e-diagnostica.md),
 > lavori aperti **§AM**. Ramo **`corse-e-perdita-diagnostica`** da `consegna-20260831`, **NON fuso, NON
-> consegnato**. Build Release 0 avvisi su net8 e net10, **14 test nuovi**, ✅ **nessuna migrazione**.
+> consegnato**. Build Release 0 avvisi su net8 e net10, **23 test nuovi**, ✅ **nessuna migrazione**.
+>
+> ✅ **E il rimedio alla radice è dentro lo stesso ramo** (AM-E): il catalogo delle stazioni si legge **una
+> volta per processo** invece che una per circuito — sparisce la lettura su cui sono nati C e D. ⚠️ Ha
+> richiesto di chiudere prima un buco che nessuno vedeva: `Bump()` mancava in **sei metodi su sette**, e con
+> la cache scoped il dato vecchio durava un istante mentre con quella di processo durerebbe fino al riavvio.
+> La spinta adesso la dà un intercettore sul salvataggio, non i servizi.
 >
 > ⚠️ **La direzione l'ha data `avvii.txt`, il file nato ieri per un altro motivo** (§AE): due AVVII con
 > «il processo precedente NON si e' spento in modo ordinato», alle 10:57 e alle 13:05, a due-tre ore l'uno
@@ -26,8 +32,7 @@ cancellati — vale il riquadro qui sotto).
 > 🔴 **§A16 diceva «nessun errore nuovo dopo l'1.1.0», ed e' rimasto vero per poche ore.** La riga
 > e' stata corretta sul posto.
 >
-> 🟡 **Quel che resta** (§AM1–AM4): il catalogo delle ACC in memoria di **processo** invece che per
-> circuito — il rimedio alla radice —, la **verifica dal vivo** (queste corse si aprono solo con la latenza
+> 🟡 **Quel che resta** (§AM2–AM4): la **verifica dal vivo** (queste corse si aprono solo con la latenza
 > di un database remoto), rileggere `avvii.txt` fra qualche giorno per vedere sparire le morti male, e
 > cancellare `errori-richieste.txt` sul server.
 
