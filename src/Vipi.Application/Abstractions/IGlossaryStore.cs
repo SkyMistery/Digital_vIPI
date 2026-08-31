@@ -21,8 +21,15 @@ public interface IGlossaryStore
     /// = nessun filtro. Sta qui e non nel chiamante per la stessa ragione della memoria: il giorno che le
     /// voci non ci stanno più in una schermata, un filtro a valle risponderebbe sul pezzo caricato.
     /// </param>
+    /// <param name="alfabetico">
+    /// Vero: in ordine di formula (A→Z). Falso (default): le più recenti in cima, che è quel che serve
+    /// subito dopo aver scritto una voce. ⚠️ L'ordine si sceglie <b>qui</b> e non riordinando la lista a
+    /// valle: il giorno che le voci non ci stanno in una schermata, un ordinamento a valle ordinerebbe il
+    /// pezzo caricato — cioè direbbe «A» a una lettera scelta dal database.
+    /// </param>
     Task<IReadOnlyList<GlossaryTerm>> ListAsync(
-        string sourceLang, string targetLang, string? cerca = null, CancellationToken ct = default);
+        string sourceLang, string targetLang, string? cerca = null, bool alfabetico = false,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Scrive o corregge una voce. La chiave è la frase sorgente <b>senza distinzione di maiuscole</b>:

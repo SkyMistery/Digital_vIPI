@@ -6013,6 +6013,22 @@ copia del DB): vecchio indirizzo → pagina fusa; sezioni; ricerca «runway» �
 **inserendo una frase apposta** nella copia: nel dato di sviluppo nessuna delle 98 frasi `it→en` contiene una
 delle 22 formule — misurato prima di chiamarlo difetto.
 
-**Resta fuori**: il filtro per origine (c'è «solo da rileggere», che è la domanda vera), un collegamento al
-**punto esatto** dentro il documento (oggi porta all'editor, e il pannello dice dove guardare), e
-l'ordinamento alfabetico del glossario (con la ricerca serve meno).
+**Le tre aggiunte del giro dopo** (carta §6), chieste dal committente e fatte tutt'e tre:
+
+1. ⚠️ **Il filtro per origine è UN comando a tre stati, non un secondo interruttore.** Misurato: 192 righe
+   umane **tutte** riviste e 82 automatiche **tutte** mai riviste, **zero** miste — `SaveHumanAsync` scrive
+   `ReviewedUtc` e ribalta `Origin` nello stesso gesto. «Solo da rileggere» e «solo automatiche» erano la
+   stessa domanda. Ora tre chip col conteggio (*tutte 99 · macchina 41 · persona 58*), e si guadagna lo
+   stato che prima non si poteva chiedere: **solo le corrette da una persona**.
+2. ⚠️ **«Vedi» porta al PUNTO**, all'ancora della sezione (`s-{id}`), e il pannello nomina la sezione. La
+   trappola, trovata **dal vivo**: gli id di sezione sono **per versione** — la stessa «Remarks» di LIBC è
+   la 611 nella pubblicata e la 651 nella bozza, e il primo collegamento apriva la pagina giusta su
+   un'ancora inesistente. Vince l'occorrenza della versione **corrente**; se la frase sta solo in una
+   vecchia, l'ancora **non si offre** (il titolo sì). Il **conto** resta su tutte le versioni: è la portata
+   del corpus.
+3. **Il glossario si ordina**: recenti (default) o A→Z — alfabetico per `SourceKey`, o «Riporta» finirebbe
+   prima di «attendi».
+
+Verificate dal vivo tutt'e tre; **9 test nuovi** (24 in `RicercaEDoveSiUsaTests`). **Resta fuori**: il
+collegamento alla **cella** esatta di una tabella e l'ordinamento del registro (resta «le mai riviste
+prime», che è l'ordine del lavoro).

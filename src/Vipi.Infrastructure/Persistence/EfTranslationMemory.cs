@@ -116,7 +116,7 @@ public sealed class EfTranslationMemory : ITranslationMemory
     }
 
     public async Task<IReadOnlyList<TranslationReviewRow>> ListForReviewAsync(
-        string sourceLang, string targetLang, bool soloDaRileggere, int limite,
+        string sourceLang, string targetLang, TranslationOrigin? origine, int limite,
         string? cerca = null, int salta = 0, CancellationToken ct = default) =>
         // ⚠️ Le mai riviste PRIME, non le piu' recenti: chi apre la pagina di revisione vuole vedere cio'
         // che nessuno ha ancora guardato. Ordinare per data di inserimento gli metterebbe in cima le
@@ -124,7 +124,7 @@ public sealed class EfTranslationMemory : ITranslationMemory
         //
         // ⚠️ L'ordinamento deve essere TOTALE, o il «carica altre» salta e ripete righe: `ThenBy(Id)` non
         // è cosmesi, è ciò che rende `Skip` ripetibile.
-        await PerRevisione(sourceLang, targetLang, soloDaRileggere, cerca)
+        await PerRevisione(sourceLang, targetLang, origine, cerca)
             .OrderBy(u => u.ReviewedUtc == null ? 0 : 1)
             .ThenBy(u => u.Id)
             .Skip(salta)
@@ -134,9 +134,9 @@ public sealed class EfTranslationMemory : ITranslationMemory
             .ToListAsync(ct).ConfigureAwait(false);
 
     public Task<int> ContaPerRevisioneAsync(
-        string sourceLang, string targetLang, bool soloDaRileggere, string? cerca = null,
+        string sourceLang, string targetLang, TranslationOrigin? origine, string? cerca = null,
         CancellationToken ct = default) =>
-        PerRevisione(sourceLang, targetLang, soloDaRileggere, cerca).CountAsync(ct);
+        PerRevisione(sourceLang, targetLang, origine, cerca).CountAsync(ct);
 
     /// <summary>
     /// La stessa domanda per l'elenco e per il conteggio: due filtri scritti due volte divergono, e il
@@ -147,13 +147,16 @@ public sealed class EfTranslationMemory : ITranslationMemory
     /// applicato al lotto direbbe «non c'è» di una frase che sta alla riga 101.</para>
     /// </summary>
     private IQueryable<TranslationUnit> PerRevisione(
-        string sourceLang, string targetLang, bool soloDaRileggere, string? cerca)
+        string sourceLang, string targetLang, TranslationOrigin? origine, string? cerca)
     {
         var q = _db.TranslationUnits.AsNoTracking()
             .Where(u => u.SourceLang == sourceLang && u.TargetLang == targetLang);
 
-        if (soloDaRileggere)
-            q = q.Where(u => u.ReviewedUtc == null);
+        // ⚠️ Si filtra su Origin, non su ReviewedUtc. Oggi le due cose coincidono — SaveHumanAsync scrive
+        // l'una e ribalta l'altra nello stesso gesto — ma è `Origin` a portare il significato che si chiede
+        // a schermo («macchina» / «persona»), e a reggere se un giorno qualcuno rileggesse senza correggere.
+        if (origine is { } o)
+            q = q.Where(u => u.Origin == o);
 
         var ago = (cerca ?? "").Trim().ToLowerInvariant();
         if (ago.Length > 0)
@@ -272,37 +275,66 @@ public sealed class EfTranslationMemory : ITranslationMemory
                 b.BodyJson,
                 b.DocumentVersion!.DocumentId,
                 Titolo = b.DocumentVersion!.Document!.Title,
+                // La sezione viaggia con il blocco: è l'ancora del viewer, e senza di lei il collegamento
+                // porta «al documento» invece che al punto.
+                SezioneId = b.SectionId,
+                Sezione = b.Section!.Title,
+                // ⚠️ E con lei il numero di versione. Gli id di sezione sono PER VERSIONE: la stessa
+                // «Remarks» è la 611 nella pubblicata e la 651 nella bozza, e un'ancora presa dalla
+                // versione sbagliata porta a un punto che in quella pagina non esiste. Visto dal vivo.
+                Versione = b.DocumentVersion!.VersionNumber,
             })
             .ToListAsync(ct).ConfigureAwait(false);
 
         var titoli = await _db.DocumentSections.AsNoTracking()
             .Select(s => new
             {
+                s.Id,
                 s.Title,
                 s.DocumentVersion!.DocumentId,
                 Documento = s.DocumentVersion!.Document!.Title,
+                Versione = s.DocumentVersion!.VersionNumber,
             })
             .ToListAsync(ct).ConfigureAwait(false);
 
-        // ⚠️ Un documento compare UNA volta per frase, e con il primo posto in cui la si è trovata: la
-        // domanda è «quali documenti tocco», non «quante volte».
-        void Segna(string impronta, int documentId, string titolo, UsoDelTesto dove)
+        // ⚠️ L'ULTIMA versione di ogni documento, fra quelle che hanno contenuto. Serve solo all'ancora:
+        // il conto dei documenti guarda TUTTE le versioni — è la stessa portata del corpus, e cambiarla
+        // qui vorrebbe dire far dire a questa domanda una cosa diversa da quella che dice la memoria.
+        var ultima = new Dictionary<int, int>();
+        void Alza(int documentId, int versione) =>
+            ultima[documentId] = ultima.TryGetValue(documentId, out var v) ? Math.Max(v, versione) : versione;
+
+        foreach (var b in blocchi) Alza(b.DocumentId, b.Versione);
+        foreach (var t in titoli) Alza(t.DocumentId, t.Versione);
+
+        // ⚠️ Un documento compare UNA volta per frase: la domanda è «quali documenti tocco», non «quante
+        // volte». Fra due occorrenze nello stesso documento vince quella della versione CORRENTE, perché è
+        // l'unica la cui ancora esiste nella pagina a cui il collegamento porta.
+        void Segna(string impronta, int documentId, string titolo, UsoDelTesto dove,
+            int versione, int? sezioneId, string? sezione)
         {
             if (!esito.TryGetValue(impronta, out var perDocumento)) return;
-            if (perDocumento.ContainsKey(documentId)) return;
-            perDocumento[documentId] = new UsoInDocumento(documentId, titolo, dove);
+
+            var corrente = !ultima.TryGetValue(documentId, out var max) || versione == max;
+            if (perDocumento.TryGetValue(documentId, out var gia) && (gia.SezioneId is not null || !corrente))
+                return;
+
+            // La sezione si nomina comunque — dice dove guardare — ma l'ancora si offre solo se è quella
+            // della versione che la pagina rende: un collegamento in meno è meglio di uno che non arriva.
+            perDocumento[documentId] =
+                new UsoInDocumento(documentId, titolo, dove, corrente ? sezioneId : null, sezione);
         }
 
         foreach (var b in blocchi)
         {
             foreach (var seg in TextSegmenter.SplitProse(b.Body))
-                Segna(TranslationText.Hash(seg), b.DocumentId, b.Titolo, UsoDelTesto.Prosa);
+                Segna(TranslationText.Hash(seg), b.DocumentId, b.Titolo, UsoDelTesto.Prosa, b.Versione, b.SezioneId, b.Sezione);
             foreach (var seg in TextSegmenter.SplitJson(b.BodyJson))
-                Segna(TranslationText.Hash(seg), b.DocumentId, b.Titolo, UsoDelTesto.Tabella);
+                Segna(TranslationText.Hash(seg), b.DocumentId, b.Titolo, UsoDelTesto.Tabella, b.Versione, b.SezioneId, b.Sezione);
         }
 
         foreach (var t in titoli)
-            Segna(TranslationText.Hash(t.Title), t.DocumentId, t.Documento, UsoDelTesto.Titolo);
+            Segna(TranslationText.Hash(t.Title), t.DocumentId, t.Documento, UsoDelTesto.Titolo, t.Versione, t.Id, t.Title);
 
         return Vuoto(esito);
     }

@@ -130,7 +130,7 @@ public class EfTranslationMemoryTests : IAsyncLifetime
         await _memoria.SaveMachineAsync(It, En, "azure", Una("Seconda.", "Second."));
         await _memoria.SaveHumanAsync(It, En, "Prima.", "First one.", reviewerUserId: 7);
 
-        var righe = await _memoria.ListForReviewAsync(It, En, soloDaRileggere: false, limite: 10);
+        var righe = await _memoria.ListForReviewAsync(It, En, origine: null, limite: 10);
 
         Assert.Equal(2, righe.Count);
         Assert.Equal("Seconda.", righe[0].SourceText);          // mai riletta: prima
@@ -143,7 +143,7 @@ public class EfTranslationMemoryTests : IAsyncLifetime
         await _memoria.SaveMachineAsync(It, En, "azure", Una("Prima.", "First."));
         await _memoria.SaveHumanAsync(It, En, "Seconda.", "Second.", reviewerUserId: 7);
 
-        var righe = await _memoria.ListForReviewAsync(It, En, soloDaRileggere: true, limite: 10);
+        var righe = await _memoria.ListForReviewAsync(It, En, origine: TranslationOrigin.Machine, limite: 10);
         Assert.Single(righe);
         Assert.Equal("Prima.", righe[0].SourceText);
     }
@@ -169,7 +169,7 @@ public class EfTranslationMemoryTests : IAsyncLifetime
         await _memoria.SaveMachineAsync(It, En, "azure", Una("Riporta sottovento.", "Bring it back downwind."));
         await _memoria.SaveHumanAsync(It, En, "Riporta sottovento.", "Report downwind.", reviewerUserId: 123456);
 
-        var riga = (await _memoria.ListForReviewAsync(It, En, false, 10)).Single();
+        var riga = (await _memoria.ListForReviewAsync(It, En, origine: null, 10)).Single();
         Assert.Equal("Report downwind.", riga.TargetText);
         Assert.Equal(TranslationOrigin.Human, riga.Origin);
         Assert.NotNull(riga.ReviewedUtc);

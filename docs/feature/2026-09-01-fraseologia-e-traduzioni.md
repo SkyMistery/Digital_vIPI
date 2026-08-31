@@ -113,10 +113,56 @@ Build Release **0 avvisi** su tutt'e due i TFM, suite verde, **15 test nuovi**
 database: nel dato di sviluppo **nessuna** delle 98 frasi `it→en` contiene una delle 22 formule, quindi la
 strada sarebbe rimasta non percorsa. Misurato prima di concludere che fosse un difetto.
 
-## 6. Cosa resta fuori
+## 6. Le tre aggiunte del giro dopo
 
-- **Il filtro per origine** (macchina / persona) nel registro: c'è quello «solo da rileggere», che è la
-  domanda che si fa davvero.
-- **Un collegamento che porti al punto esatto** del documento (la sezione, la cella): oggi porta all'editor
-  del documento. Il pannello dice **dove** (prosa · tabella · titolo), che è quanto basta per trovarlo.
-- **L'ordinamento del glossario**: resta «i più recenti in cima». Con la ricerca, l'alfabetico serve meno.
+Richieste dal committente subito dopo, e tutt'e tre fatte. Due sono quel che sembravano; la prima no.
+
+### 6a. Il filtro per origine è UN comando a tre stati, non un secondo interruttore
+
+⚠️ **Misurato prima di costruirlo**: nel `vipi.db` reale ci sono **192 righe umane, tutte riviste** e **82
+automatiche, tutte mai riviste**. **Zero** miste — e non per caso: `SaveHumanAsync` è l'unico che scrive
+`ReviewedUtc`, e nello stesso gesto ribalta `Origin` a `Human`. «Solo da rileggere» e «solo automatiche»
+erano **la stessa domanda**, e metterle come due comandi sarebbe stato un secondo interruttore per lo stesso
+stato.
+
+Quindi il booleano diventa **tre chip col loro conteggio** — *tutte 99 · macchina 41 · persona 58* — e si
+guadagna lo stato che prima **non si poteva chiedere**: *solo le corrette da una persona*, che serve a
+rileggere il lavoro di qualcun altro o a copiare una resa già decisa. Il filtro è sulla colonna `Origin`,
+che è quella che porta il significato che si legge a schermo.
+
+⚠️ I conteggi delle chip rispettano la **ricerca** ma non l'origine scelta: dicono «quante ce n'è di ognuna
+fra quelle che stai cercando». Se rispettassero anche l'origine, due chip su tre direbbero sempre zero.
+
+### 6b. «Vedi» porta al punto, non al documento
+
+Il pannello ora dice anche **§ la sezione**, e offre due strade: **vedi →** apre l'anteprima bozza
+**all'ancora della sezione** (`s-{id}`, la stessa che usano l'indice e i deep-link di tutte le famiglie), e
+**modifica →** apre l'editor come prima.
+
+⚠️ **La trappola, trovata dal vivo e non dai test**: gli id di sezione sono **per versione**. La stessa
+«Remarks» di LIBC è la **611** nella pubblicata e la **651** nella bozza: il primo collegamento apriva la
+pagina giusta su un'ancora che lì dentro **non esiste**, e la pagina restava in cima senza dire niente.
+
+Ora, fra due occorrenze nello stesso documento, vince quella della **versione corrente**; e se la frase sta
+**solo** in una versione vecchia l'ancora **non si offre** — il titolo della sezione sì, perché dice dove
+guardare. ⚠️ Il **conto** dei documenti resta su **tutte** le versioni: è la portata del corpus, e cambiarla
+farebbe dire a questa domanda una cosa diversa da quella che dice la memoria. Due test lo presidiano.
+
+### 6c. Il glossario si ordina
+
+Un interruttore accanto al titolo: **recenti** (default, quel che serve subito dopo aver scritto una voce) o
+**A→Z** (quando si controlla se una formula c'è già). ⚠️ Alfabetico per `SourceKey`, cioè la formula in
+minuscolo: sul testo così com'è stato battuto, «Riporta» finirebbe prima di «attendi» — un ordine deciso dal
+tasto maiuscolo.
+
+**Verifica dal vivo delle tre**: chip *all 99 · machine 41 · human 58* con la colonna Origin coerente a ogni
+scelta (41 sole «Machine», 58 sole «Person», 99 miste); l'ordine del glossario passa da
+*libera la pista · circuito di traffico · punto attesa* ad *allinea e attendi · armamento e disarmo ·
+attendi a punto attesa*; e «vedi →» porta a `…?as=draft#s-651`, dove l'ancora **esiste** e contiene la
+frase. **9 test nuovi** (24 in tutto in `RicercaEDoveSiUsaTests`).
+
+## 7. Cosa resta fuori davvero
+
+- Un collegamento alla **cella** esatta di una tabella: si arriva alla sezione, e dentro la sezione la frase
+  si trova a occhio.
+- L'ordinamento del **registro**: resta «le mai riviste per prime», che è l'ordine del lavoro.

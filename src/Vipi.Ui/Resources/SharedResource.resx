@@ -2621,6 +2621,14 @@
   <data name="Tr_Saved" xml:space="preserve"><value>Correzione salvata. Vale per {0} documenti e la macchina non la tocca più.</value></data>
   <data name="Tr_SavedOne" xml:space="preserve"><value>Correzione salvata. Vale per questo documento e la macchina non la tocca più.</value></data>
   <data name="Tr_SavedNone" xml:space="preserve"><value>Correzione salvata: la macchina non la tocca più. Nessun documento contiene questa frase in questo momento.</value></data>
+  <data name="Gt_SortTitle" xml:space="preserve"><value>Cambia l'ordine delle voci</value></data>
+  <data name="Gt_SortAz" xml:space="preserve"><value>A→Z</value></data>
+  <data name="Gt_SortRecent" xml:space="preserve"><value>recenti</value></data>
+  <data name="Gt_OriginAll" xml:space="preserve"><value>tutte {0}</value></data>
+  <data name="Gt_OriginMachineN" xml:space="preserve"><value>macchina {0}</value></data>
+  <data name="Gt_OriginHumanN" xml:space="preserve"><value>persona {0}</value></data>
+  <data name="Gt_See" xml:space="preserve"><value>vedi →</value></data>
+  <data name="Gt_Edit" xml:space="preserve"><value>modifica →</value></data>
   <data name="Gt_Title" xml:space="preserve"><value>Fraseologia e traduzioni</value></data>
   <data name="Gt_Subtitle" xml:space="preserve"><value>Il glossario delle formule e il registro delle frasi già tradotte</value></data>
   <data name="Gt_Pair" xml:space="preserve"><value>Direzione: vale per tutt'e due gli elenchi</value></data>

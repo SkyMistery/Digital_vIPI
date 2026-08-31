@@ -95,6 +95,10 @@
                 }
             </h2>
             <span class="ln"></span>
+            @* L'ordine si sceglie, e la scelta si vede: «recenti» serve subito dopo aver scritto una voce,
+               «A→Z» quando si controlla se una formula c'è già. *@
+            <button class="lnk-mini @(_alfabetico ? "on" : "")" disabled="@_busy" @onclick="AlternaOrdineAsync"
+                    title="@L["Gt_SortTitle"]">@(_alfabetico ? L["Gt_SortAz"] : L["Gt_SortRecent"])</button>
         </div>
 
         <div hidden="@(!_glossarioAperto)">
@@ -292,15 +296,25 @@
                         @onclick="() => _traduzioniAperte = !_traduzioniAperte">
                     <span class="grp-chev">@(_traduzioniAperte ? "▾" : "▸")</span>@L["Tr_AdminTitle"]
                 </button>
-                @if (_conteggio is { } c)
+                @if (_perOrigine.Totale > 0)
                 {
-                    <span class="pill @(c.DaRileggere > 0 ? "amber" : "blue")">@c.DaRileggere / @c.Totale</span>
+                    <span class="pill @(_perOrigine.Macchina > 0 ? "amber" : "blue")">@_perOrigine.Macchina / @_perOrigine.Totale</span>
                 }
             </h2>
             <span class="ln"></span>
-            <button class="lnk-mini @(_soloDaRileggere ? "on" : "")" disabled="@_busy" @onclick="AlternaFiltroAsync">
-                @L["Tr_OnlyUnreviewed"]
-            </button>
+            @* ⚠️ TRE stati di un comando solo, non due comandi. «Da rileggere» era un booleano su
+               `ReviewedUtc`, e l'origine sarebbe stata un secondo interruttore per lo stesso stato: nel
+               `vipi.db` reale ci sono 192 righe umane tutte riviste e 82 automatiche tutte mai riviste,
+               zero miste. Come tre stati, invece, si guadagna quello che prima non si poteva chiedere:
+               SOLO le corrette da una persona. I conteggi sono sulle chip, così lo stato si vede. *@
+            <span class="sb-chips">
+                <button class="sh-chip @(_origine is null ? "on" : "")" disabled="@_busy"
+                        @onclick="() => CambiaOrigineAsync(null)">@L["Gt_OriginAll", _perOrigine.Totale]</button>
+                <button class="sh-chip @(_origine == TranslationOrigin.Machine ? "on" : "")" disabled="@_busy"
+                        @onclick="() => CambiaOrigineAsync(TranslationOrigin.Machine)">@L["Gt_OriginMachineN", _perOrigine.Macchina]</button>
+                <button class="sh-chip @(_origine == TranslationOrigin.Human ? "on" : "")" disabled="@_busy"
+                        @onclick="() => CambiaOrigineAsync(TranslationOrigin.Human)">@L["Gt_OriginHumanN", _perOrigine.Persona]</button>
+            </span>
         </div>
 
         <div hidden="@(!_traduzioniAperte)">
@@ -409,10 +423,21 @@
                                             {
                                                 <li>
                                                     <b>@u.Titolo</b>
+                                                    @if (u.Sezione is { } sez)
+                                                    {
+                                                        <span class="gt-use-sec">§ @sez</span>
+                                                    }
                                                     <span class="pill neutral">@L[ChiaveDove(u.Dove)]</span>
+                                                    @* Due strade, e dicono due cose diverse: «vedi» porta al
+                                                       PUNTO nella bozza (l'ancora della sezione è la stessa
+                                                       dell'indice), «modifica» apre l'editor del documento. *@
+                                                    @if (Vedi(u) is { } dove)
+                                                    {
+                                                        <a class="lnk-mini" href="@dove">@L["Gt_See"]</a>
+                                                    }
                                                     @if (Apri(u.DocumentId) is { } href)
                                                     {
-                                                        <a class="lnk-mini" href="@href">@L["Gt_Open"]</a>
+                                                        <a class="lnk-mini" href="@href">@L["Gt_Edit"]</a>
                                                     }
                                                 </li>
                                             }
@@ -458,6 +483,9 @@
     private bool _glossarioAperto = true;
     private bool _traduzioniAperte = true;
 
+    /// <summary>Il glossario in ordine alfabetico invece che dal più recente.</summary>
+    private bool _alfabetico;
+
     private bool Cercando => !string.IsNullOrWhiteSpace(_cerca);
 
     // ---- Glossario ---------------------------------------------------------------------------------
@@ -477,9 +505,16 @@
 
     // ---- Registro ----------------------------------------------------------------------------------
     private List<TranslationReviewRow>? _righe;
-    private (int Totale, int DaRileggere)? _conteggio;
     private int _traduzioniFiltrate;
-    private bool _soloDaRileggere = true;
+
+    /// <summary>Quante righe ci sono per origine: sono i numeri sulle tre chip, e insieme lo stato.</summary>
+    private (int Totale, int Macchina, int Persona) _perOrigine;
+
+    /// <summary>
+    /// Che cosa si sta guardando: <c>null</c> tutte, <c>Machine</c> da rileggere, <c>Human</c> già corrette.
+    /// Si parte da <c>Machine</c>, che era il default del vecchio «solo da rileggere».
+    /// </summary>
+    private TranslationOrigin? _origine = TranslationOrigin.Machine;
     private int? _apertaTrId;
     private string _bozzaTr = "";
     private int? _usiApertiId;
@@ -506,14 +541,21 @@
         _busy = true;
         try
         {
-            _voci = await Glossario.ListAsync(_da, _a, _cerca);
+            _voci = await Glossario.ListAsync(_da, _a, _cerca, _alfabetico);
             _conteggioGlossario = await Glossario.ContaAsync(_da, _a);
             _frasiPerFormula = await Memoria.ContaFrasiPerFormuleAsync(
                 _da, _a, _voci.Select(v => v.SourceText).ToList());
 
-            _conteggio = await Memoria.ContaAsync(_da, _a);
-            _traduzioniFiltrate = await Memoria.ContaPerRevisioneAsync(_da, _a, _soloDaRileggere, _cerca);
-            _righe = (await Memoria.ListForReviewAsync(_da, _a, _soloDaRileggere, PerPagina, _cerca)).ToList();
+            // ⚠️ I conteggi delle chip rispettano la RICERCA ma non l'origine scelta: dicono «quante ce ne
+            // sono di ognuna fra quelle che stai cercando», che è ciò che serve per decidere dove guardare.
+            // Se rispettassero anche l'origine, due chip su tre direbbero sempre zero.
+            _perOrigine = (
+                await Memoria.ContaPerRevisioneAsync(_da, _a, null, _cerca),
+                await Memoria.ContaPerRevisioneAsync(_da, _a, TranslationOrigin.Machine, _cerca),
+                await Memoria.ContaPerRevisioneAsync(_da, _a, TranslationOrigin.Human, _cerca));
+
+            _traduzioniFiltrate = await Memoria.ContaPerRevisioneAsync(_da, _a, _origine, _cerca);
+            _righe = (await Memoria.ListForReviewAsync(_da, _a, _origine, PerPagina, _cerca)).ToList();
             await ImparaGliUsiAsync();
 
             Chiudi();
@@ -541,7 +583,7 @@
         try
         {
             var altre = await Memoria.ListForReviewAsync(
-                _da, _a, _soloDaRileggere, PerPagina, _cerca, _righe.Count);
+                _da, _a, _origine, PerPagina, _cerca, _righe.Count);
             _righe.AddRange(altre);
             await ImparaGliUsiAsync();
         }
@@ -643,9 +685,15 @@
         await CaricaAsync();
     }
 
-    private async Task AlternaFiltroAsync()
+    private async Task CambiaOrigineAsync(TranslationOrigin? origine)
     {
-        _soloDaRileggere = !_soloDaRileggere;
+        _origine = origine;
+        await CaricaAsync();
+    }
+
+    private async Task AlternaOrdineAsync()
+    {
+        _alfabetico = !_alfabetico;
         await CaricaAsync();
     }
 
@@ -861,12 +909,39 @@
     /// </summary>
     private string? Apri(int documentId)
     {
-        var d = _documenti?.FirstOrDefault(x => x.DocumentId == documentId);
+        var d = Documento(documentId);
         if (d is null) return null;
 
         var acc = (d.AccCode ?? "lirr").ToLowerInvariant();
         return Rotte.For(d.Kind).EditorUrl(acc, d.ReleaseKey, d.NeighbourCode, d.DocumentId);
     }
+
+    /// <summary>
+    /// Il <b>punto</b>: l'anteprima bozza del documento, all'ancora della sezione in cui la frase è stata
+    /// trovata.
+    ///
+    /// <para>⚠️ L'ancora è <c>s-{id della sezione}</c>, la stessa che il viewer mette su ogni sezione e che
+    /// usa il suo indice: non è una convenzione inventata qui, è quella di tutte le famiglie di documento.
+    /// Senza la sezione il collegamento non si offre — meglio uno in meno che uno che porta in cima a un
+    /// documento lungo facendo credere di aver trovato il punto.</para>
+    ///
+    /// <para>⚠️ Si punta alla <b>bozza</b> e non al pubblico: la frase che si sta correggendo può stare in
+    /// una sezione che non è ancora pubblicata, e in quel caso il viewer pubblico non la mostrerebbe.</para>
+    /// </summary>
+    private string? Vedi(UsoInDocumento u)
+    {
+        if (u.SezioneId is not { } sezione) return null;
+
+        var d = Documento(u.DocumentId);
+        if (d is null) return null;
+
+        var acc = (d.AccCode ?? "lirr").ToLowerInvariant();
+        var bozza = Rotte.For(d.Kind).DraftUrl(acc, d.ReleaseKey, d.NeighbourCode);
+        return bozza is null ? null : $"{bozza}#s-{sezione}";
+    }
+
+    private ManagedDoc? Documento(int documentId) =>
+        _documenti?.FirstOrDefault(x => x.DocumentId == documentId);
 
     /// <summary>
     /// L'elenco dei documenti si carica alla PRIMA apertura di un pannello «dove si usa», e una volta sola:

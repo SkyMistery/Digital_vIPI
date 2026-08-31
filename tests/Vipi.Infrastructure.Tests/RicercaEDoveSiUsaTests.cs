@@ -64,11 +64,11 @@ public class RicercaEDoveSiUsaTests : IAsyncLifetime
             ("Mantieni la quota.", "Maintain altitude."));
 
         // La parola sta nella SORGENTE di una riga...
-        var perSorgente = await _memoria.ListForReviewAsync(It, En, soloDaRileggere: false, 50, "sottovento");
+        var perSorgente = await _memoria.ListForReviewAsync(It, En, origine: null, 50, "sottovento");
         Assert.Equal("Riporta sottovento pista 16.", Assert.Single(perSorgente).SourceText);
 
         // ...e nella RESA di un'altra. Chi rivede ricorda a volte l'una e a volte l'altra.
-        var perResa = await _memoria.ListForReviewAsync(It, En, soloDaRileggere: false, 50, "tower");
+        var perResa = await _memoria.ListForReviewAsync(It, En, origine: null, 50, "tower");
         Assert.Equal("Contatta la torre.", Assert.Single(perResa).SourceText);
     }
 
@@ -77,8 +77,8 @@ public class RicercaEDoveSiUsaTests : IAsyncLifetime
     {
         await Macchina(("Riporta SOTTOVENTO.", "Report downwind."));
 
-        Assert.Single(await _memoria.ListForReviewAsync(It, En, soloDaRileggere: false, 50, "sottovento"));
-        Assert.Single(await _memoria.ListForReviewAsync(It, En, soloDaRileggere: false, 50, "SottoVento"));
+        Assert.Single(await _memoria.ListForReviewAsync(It, En, origine: null, 50, "sottovento"));
+        Assert.Single(await _memoria.ListForReviewAsync(It, En, origine: null, 50, "SottoVento"));
     }
 
     [Fact]
@@ -91,8 +91,8 @@ public class RicercaEDoveSiUsaTests : IAsyncLifetime
             ("Riporta sottovento pista 34.", "Report downwind runway 34."),
             ("Contatta la torre.", "Contact the tower."));
 
-        var quante = await _memoria.ContaPerRevisioneAsync(It, En, soloDaRileggere: false, "sottovento");
-        var righe = await _memoria.ListForReviewAsync(It, En, soloDaRileggere: false, 50, "sottovento");
+        var quante = await _memoria.ContaPerRevisioneAsync(It, En, origine: null, "sottovento");
+        var righe = await _memoria.ListForReviewAsync(It, En, origine: null, 50, "sottovento");
 
         Assert.Equal(2, quante);
         Assert.Equal(quante, righe.Count);
@@ -103,8 +103,8 @@ public class RicercaEDoveSiUsaTests : IAsyncLifetime
     {
         await Macchina(("Una.", "One."), ("Due.", "Two."));
 
-        Assert.Equal(2, (await _memoria.ListForReviewAsync(It, En, soloDaRileggere: false, 50)).Count);
-        Assert.Equal(2, (await _memoria.ListForReviewAsync(It, En, soloDaRileggere: false, 50, "   ")).Count);
+        Assert.Equal(2, (await _memoria.ListForReviewAsync(It, En, origine: null, 50)).Count);
+        Assert.Equal(2, (await _memoria.ListForReviewAsync(It, En, origine: null, 50, "   ")).Count);
     }
 
     // ---- «Carica altre» ------------------------------------------------------------------------------
@@ -117,9 +117,9 @@ public class RicercaEDoveSiUsaTests : IAsyncLifetime
             .ToList();
         await _memoria.SaveMachineAsync(It, En, "prova", righe);
 
-        var primo = await _memoria.ListForReviewAsync(It, En, soloDaRileggere: false, 10);
-        var secondo = await _memoria.ListForReviewAsync(It, En, soloDaRileggere: false, 10, salta: 10);
-        var terzo = await _memoria.ListForReviewAsync(It, En, soloDaRileggere: false, 10, salta: 20);
+        var primo = await _memoria.ListForReviewAsync(It, En, origine: null, 10);
+        var secondo = await _memoria.ListForReviewAsync(It, En, origine: null, 10, salta: 10);
+        var terzo = await _memoria.ListForReviewAsync(It, En, origine: null, 10, salta: 20);
 
         var tutte = primo.Concat(secondo).Concat(terzo).Select(r => r.Id).ToList();
         Assert.Equal(25, tutte.Count);
@@ -136,9 +136,9 @@ public class RicercaEDoveSiUsaTests : IAsyncLifetime
             .ToList();
         await _memoria.SaveMachineAsync(It, En, "prova", righe);
 
-        var quante = await _memoria.ContaPerRevisioneAsync(It, En, soloDaRileggere: false, "sottovento");
-        var primo = await _memoria.ListForReviewAsync(It, En, soloDaRileggere: false, 2, "sottovento");
-        var secondo = await _memoria.ListForReviewAsync(It, En, soloDaRileggere: false, 2, "sottovento", salta: 2);
+        var quante = await _memoria.ContaPerRevisioneAsync(It, En, origine: null, "sottovento");
+        var primo = await _memoria.ListForReviewAsync(It, En, origine: null, 2, "sottovento");
+        var secondo = await _memoria.ListForReviewAsync(It, En, origine: null, 2, "sottovento", salta: 2);
 
         Assert.Equal(4, quante);
         Assert.All(primo.Concat(secondo), r => Assert.Contains("sottovento", r.SourceText));
@@ -159,13 +159,23 @@ public class RicercaEDoveSiUsaTests : IAsyncLifetime
             Status = DocumentStatus.Draft,
             LastUpdatedAiracCycle = "2609",
         };
+        _db.Documents.Add(doc);
+        await _db.SaveChangesAsync();
+
+        await VersioneAsync(doc, 1, titoloSezione, prosa, bodyJson);
+        return doc.Id;
+    }
+
+    /// <summary>Una versione in più dello stesso documento, con il suo contenuto.</summary>
+    private async Task<int> VersioneAsync(
+        Document doc, int numero, string titoloSezione, string? prosa = null, string? bodyJson = null)
+    {
         var ver = new DocumentVersion
         {
-            Document = doc, VersionNumber = 1, Status = DocumentStatus.Draft,
+            Document = doc, VersionNumber = numero, Status = DocumentStatus.Draft,
             AiracCycle = "2609", CreatedUtc = DateTime.UtcNow,
         };
         doc.Versions.Add(ver);
-        _db.Documents.Add(doc);
         await _db.SaveChangesAsync();
 
         var sez = new DocumentSection
@@ -189,7 +199,7 @@ public class RicercaEDoveSiUsaTests : IAsyncLifetime
             await _db.SaveChangesAsync();
         }
 
-        return doc.Id;
+        return sez.Id;
     }
 
     [Fact]
@@ -302,6 +312,142 @@ public class RicercaEDoveSiUsaTests : IAsyncLifetime
 
         // E il conto «quante si rifarebbero» resta l'altro, con l'umana esclusa.
         Assert.Equal(1, await _memoria.ContaConLaFormulaAsync(It, En, "riporta sottovento"));
+    }
+
+    // ---- Il filtro per origine: TRE stati di un comando solo -----------------------------------------
+
+    [Fact]
+    public async Task Le_tre_chip_dicono_tutte_macchina_e_persona()
+    {
+        await Macchina(
+            ("Prima.", "First."),
+            ("Seconda.", "Second."),
+            ("Terza.", "Third."));
+        await _memoria.SaveHumanAsync(It, En, "Terza.", "The third one.", reviewerUserId: 42);
+
+        Assert.Equal(3, await _memoria.ContaPerRevisioneAsync(It, En, null));
+        Assert.Equal(2, await _memoria.ContaPerRevisioneAsync(It, En, TranslationOrigin.Machine));
+        Assert.Equal(1, await _memoria.ContaPerRevisioneAsync(It, En, TranslationOrigin.Human));
+    }
+
+    [Fact]
+    public async Task Chiedere_le_corrette_da_una_persona_e_lo_stato_che_prima_non_si_poteva_chiedere()
+    {
+        // ⚠️ Il vecchio comando era un booleano «solo da rileggere»: acceso mostrava le automatiche,
+        // spento mostrava tutto MESCOLATO. Non c'era modo di vedere le sole umane — che è ciò che serve per
+        // rileggere le correzioni di qualcun altro, o per copiare una resa già decisa.
+        await Macchina(("Prima.", "First."), ("Seconda.", "Second."));
+        await _memoria.SaveHumanAsync(It, En, "Seconda.", "The second one.", reviewerUserId: 42);
+
+        var umane = await _memoria.ListForReviewAsync(It, En, TranslationOrigin.Human, 50);
+
+        Assert.Equal("Seconda.", Assert.Single(umane).SourceText);
+        Assert.Equal(TranslationOrigin.Human, umane[0].Origin);
+    }
+
+    [Fact]
+    public async Task L_origine_e_la_ricerca_si_sommano()
+    {
+        await Macchina(("Riporta sottovento.", "Report downwind."), ("Contatta la torre.", "Contact tower."));
+        await _memoria.SaveHumanAsync(It, En, "Riporta sottovento in finale.", "Report downwind then final.", 42);
+
+        var umaneConSottovento = await _memoria.ListForReviewAsync(It, En, TranslationOrigin.Human, 50, "sottovento");
+        var macchinaConSottovento = await _memoria.ListForReviewAsync(It, En, TranslationOrigin.Machine, 50, "sottovento");
+
+        Assert.Equal("Riporta sottovento in finale.", Assert.Single(umaneConSottovento).SourceText);
+        Assert.Equal("Riporta sottovento.", Assert.Single(macchinaConSottovento).SourceText);
+    }
+
+    // ---- L'ordine del glossario ----------------------------------------------------------------------
+
+    [Fact]
+    public async Task Il_glossario_si_ordina_alfabeticamente_o_per_ultima_scrittura()
+    {
+        await _glossario.UpsertAsync(It, En, "zulu time", "zulu time", 1);
+        await _glossario.UpsertAsync(It, En, "attendi a punto attesa", "hold short", 1);
+
+        var recenti = await _glossario.ListAsync(It, En);
+        var alfabetico = await _glossario.ListAsync(It, En, cerca: null, alfabetico: true);
+
+        Assert.Equal("zulu time", recenti[1].SourceText);          // scritta per prima: sta sotto
+        Assert.Equal("attendi a punto attesa", alfabetico[0].SourceText);
+        Assert.Equal("zulu time", alfabetico[1].SourceText);
+    }
+
+    [Fact]
+    public async Task L_ordine_alfabetico_non_dipende_dalle_maiuscole_di_chi_ha_scritto()
+    {
+        // ⚠️ Si ordina per SourceKey (la formula in minuscolo): sul testo così com'è stato battuto,
+        // «Riporta» finirebbe prima di «attendi» — un ordine deciso dal tasto maiuscolo.
+        await _glossario.UpsertAsync(It, En, "Riporta sottovento", "report downwind", 1);
+        await _glossario.UpsertAsync(It, En, "attendi a punto attesa", "hold short", 1);
+
+        var alfabetico = await _glossario.ListAsync(It, En, cerca: null, alfabetico: true);
+
+        Assert.Equal("attendi a punto attesa", alfabetico[0].SourceText);
+    }
+
+    // ---- Il punto esatto -----------------------------------------------------------------------------
+
+    [Fact]
+    public async Task L_uso_dice_in_quale_SEZIONE_sta_la_frase()
+    {
+        // È l'ancora del viewer (s-{id}): senza, il collegamento porta in cima a un documento lungo.
+        await DocumentoAsync("vIPI Roma", titoloSezione: "Circuito di traffico", prosa: "Riporta sottovento.");
+
+        var uso = Assert.Single(
+            (await _memoria.DoveSiUsanoAsync(new[] { "Riporta sottovento." }))[TranslationText.Hash("Riporta sottovento.")]);
+
+        Assert.Equal("Circuito di traffico", uso.Sezione);
+        Assert.NotNull(uso.SezioneId);
+
+        // ...ed è la sezione VERA, quella a cui il blocco appartiene.
+        var sezione = _db.DocumentSections.Single();
+        Assert.Equal(sezione.Id, uso.SezioneId);
+    }
+
+    [Fact]
+    public async Task L_ancora_e_quella_della_versione_CORRENTE_non_di_una_vecchia()
+    {
+        // ⚠️ La trappola, vista dal vivo il 1 settembre 2026: gli id di sezione sono PER VERSIONE. La
+        // stessa «Remarks» era la 611 nella pubblicata e la 651 nella bozza, e il collegamento — costruito
+        // con l'id della vecchia — apriva la pagina giusta su un'ancora che lì dentro non esiste.
+        await DocumentoAsync("vIPI Roma", titoloSezione: "Remarks", prosa: "Riporta sottovento.");
+        var doc = _db.Documents.Single();
+        var sezioneNuova = await VersioneAsync(doc, 2, "Remarks", prosa: "Riporta sottovento.");
+
+        var uso = Assert.Single(
+            (await _memoria.DoveSiUsanoAsync(new[] { "Riporta sottovento." }))[TranslationText.Hash("Riporta sottovento.")]);
+
+        Assert.Equal(sezioneNuova, uso.SezioneId);
+    }
+
+    [Fact]
+    public async Task Se_la_frase_sta_SOLO_in_una_versione_vecchia_l_ancora_non_si_offre()
+    {
+        // Il documento la conta lo stesso — la portata è quella del corpus, tutte le versioni — ma il
+        // collegamento al punto non si dà: porterebbe a un'ancora che quella pagina non ha.
+        await DocumentoAsync("vIPI Roma", titoloSezione: "Remarks", prosa: "Frase poi riscritta.");
+        var doc = _db.Documents.Single();
+        await VersioneAsync(doc, 2, "Remarks", prosa: "Tutt'altra cosa.");
+
+        var uso = Assert.Single(
+            (await _memoria.DoveSiUsanoAsync(new[] { "Frase poi riscritta." }))[TranslationText.Hash("Frase poi riscritta.")]);
+
+        Assert.Null(uso.SezioneId);
+        Assert.Equal("Remarks", uso.Sezione);   // dove guardare si dice comunque
+    }
+
+    [Fact]
+    public async Task Una_frase_trovata_in_un_TITOLO_punta_alla_sezione_di_quel_titolo()
+    {
+        await DocumentoAsync("vIPI Milano", titoloSezione: "Riporta sottovento.");
+
+        var uso = Assert.Single(
+            (await _memoria.DoveSiUsanoAsync(new[] { "Riporta sottovento." }))[TranslationText.Hash("Riporta sottovento.")]);
+
+        Assert.Equal(UsoDelTesto.Titolo, uso.Dove);
+        Assert.Equal(_db.DocumentSections.Single().Id, uso.SezioneId);
     }
 
     [Fact]

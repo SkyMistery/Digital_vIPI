@@ -102,11 +102,11 @@ public class IntroDiPaginaTests : TestContext
         public Task SaveHumanAsync(string s, string t, string a, string b, int u, CancellationToken ct = default) =>
             Task.CompletedTask;
         public Task<IReadOnlyList<TranslationReviewRow>> ListForReviewAsync(
-            string s, string t, bool solo, int limite, string? cerca = null, int salta = 0,
+            string s, string t, TranslationOrigin? origine, int limite, string? cerca = null, int salta = 0,
             CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<TranslationReviewRow>>(Array.Empty<TranslationReviewRow>());
         public Task<int> ContaPerRevisioneAsync(
-            string s, string t, bool solo, string? cerca = null, CancellationToken ct = default) =>
+            string s, string t, TranslationOrigin? origine, string? cerca = null, CancellationToken ct = default) =>
             Task.FromResult(0);
         public Task<IReadOnlyDictionary<string, IReadOnlyList<UsoInDocumento>>> DoveSiUsanoAsync(
             IReadOnlyCollection<string> frasi, CancellationToken ct = default) =>

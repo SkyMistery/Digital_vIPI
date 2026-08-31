@@ -27,7 +27,17 @@ public enum UsoDelTesto
 /// tre posti resta una riga sola, perché la domanda di chi corregge è «quali documenti tocco», non «quante
 /// volte».
 /// </summary>
-public sealed record UsoInDocumento(int DocumentId, string Titolo, UsoDelTesto Dove);
+/// <param name="SezioneId">
+/// La sezione in cui la frase è stata trovata. È l'<b>ancora</b> del viewer (<c>s-{id}</c>, la stessa che
+/// usano l'indice e i deep-link di tutte le famiglie): con lei il collegamento non porta più «al documento»
+/// ma <b>al punto</b>. <c>null</c> quando l'ancora non varrebbe: gli id di sezione sono <b>per versione</b>,
+/// e se la frase compare solo in una versione <i>vecchia</i> del documento quell'ancora non esiste
+/// nella pagina a cui il collegamento porterebbe. Il titolo della sezione si dice lo stesso — dice
+/// dove guardare — perché un collegamento in meno è meglio di uno che non arriva.
+/// </param>
+/// <param name="Sezione">Il titolo della sezione, per dirlo a schermo accanto al documento.</param>
+public sealed record UsoInDocumento(
+    int DocumentId, string Titolo, UsoDelTesto Dove, int? SezioneId = null, string? Sezione = null);
 
 /// <summary>Una frase della memoria che contiene una formula di glossario.</summary>
 public sealed record FraseConFormula(string SourceText, string TargetText, TranslationOrigin Origin);
@@ -77,7 +87,18 @@ public interface ITranslationMemory
     /// Le voci di memoria per la pagina di revisione, le <b>meno riviste per prime</b>: chi apre quella
     /// pagina vuole vedere cio' che nessuno ha ancora guardato, non l'ordine di inserimento.
     /// </summary>
-    /// <param name="soloDaRileggere">Solo quelle prodotte dalla macchina e mai riviste.</param>
+    /// <param name="origine">
+    /// Chi ha prodotto la resa: <see cref="TranslationOrigin.Machine"/> = da rileggere,
+    /// <see cref="TranslationOrigin.Human"/> = già corretta da una persona, <c>null</c> = tutte.
+    ///
+    /// <para>⚠️ <b>Era un booleano «solo da rileggere»</b>, cioè <c>ReviewedUtc == null</c>. Le due domande
+    /// oggi sono la <b>stessa</b>: <see cref="SaveHumanAsync"/> è l'unico che scrive <c>ReviewedUtc</c> e
+    /// nello stesso gesto ribalta <c>Origin</c> a <c>Human</c> — misurato sul <c>vipi.db</c> reale, 192
+    /// righe umane tutte riviste e 82 automatiche tutte mai riviste, <b>zero</b> righe miste. Averle come
+    /// due comandi separati sarebbe stato un secondo interruttore per lo stesso stato; averle come tre
+    /// stati di <b>uno</b> aggiunge invece quello che prima non si poteva chiedere: <i>solo le corrette da
+    /// una persona</i>.</para>
+    /// </param>
     /// <param name="cerca">
     /// Testo da cercare nella frase o nella sua resa, senza distinzione di maiuscole. <c>null</c> o vuoto =
     /// nessun filtro.
@@ -87,7 +108,7 @@ public interface ITranslationMemory
     /// </param>
     /// <param name="salta">Quante righe saltare: è la paginazione del «carica altre».</param>
     Task<IReadOnlyList<TranslationReviewRow>> ListForReviewAsync(
-        string sourceLang, string targetLang, bool soloDaRileggere, int limite,
+        string sourceLang, string targetLang, TranslationOrigin? origine, int limite,
         string? cerca = null, int salta = 0, CancellationToken ct = default);
 
     /// <summary>
@@ -96,7 +117,7 @@ public interface ITranslationMemory
     /// pastiglia in testata; questo conta ciò che si sta guardando, filtro e ricerca compresi.</para>
     /// </summary>
     Task<int> ContaPerRevisioneAsync(
-        string sourceLang, string targetLang, bool soloDaRileggere, string? cerca = null,
+        string sourceLang, string targetLang, TranslationOrigin? origine, string? cerca = null,
         CancellationToken ct = default);
 
     /// <summary>

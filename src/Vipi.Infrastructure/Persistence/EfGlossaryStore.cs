@@ -13,7 +13,8 @@ public sealed class EfGlossaryStore : IGlossaryStore
     public EfGlossaryStore(VipiDbContext db) => _db = db;
 
     public async Task<IReadOnlyList<GlossaryTerm>> ListAsync(
-        string sourceLang, string targetLang, string? cerca = null, CancellationToken ct = default)
+        string sourceLang, string targetLang, string? cerca = null, bool alfabetico = false,
+        CancellationToken ct = default)
     {
         var q = _db.GlossaryTerms.AsNoTracking()
             .Where(t => t.SourceLang == sourceLang && t.TargetLang == targetLang);
@@ -24,10 +25,13 @@ public sealed class EfGlossaryStore : IGlossaryStore
         if (ago.Length > 0)
             q = q.Where(t => t.SourceText.ToLower().Contains(ago) || t.TargetText.ToLower().Contains(ago));
 
-        return await q
-            // Le più recenti in cima: chi apre la pagina vuole rivedere quello che ha appena scritto.
-            .OrderByDescending(t => t.UpdatedUtc ?? t.CreatedUtc)
-            .ThenBy(t => t.SourceKey)
+        // ⚠️ Alfabetico per SourceKey e non per SourceText: la chiave è la formula in minuscolo, e ordinare
+        // sul testo così com'è stato scritto metterebbe «Riporta» prima di «attendi» — cioè un ordine che
+        // dipende da come chi ha scritto la voce ha premuto il maiuscolo.
+        return await (alfabetico
+                ? q.OrderBy(t => t.SourceKey).ThenBy(t => t.Id)
+                // Le più recenti in cima: chi apre la pagina vuole rivedere quello che ha appena scritto.
+                : q.OrderByDescending(t => t.UpdatedUtc ?? t.CreatedUtc).ThenBy(t => t.SourceKey))
             .ToListAsync(ct).ConfigureAwait(false);
     }
 

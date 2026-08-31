@@ -208,7 +208,7 @@ public sealed class GlossarioFraseologia
     public static async Task<GlossarioFraseologia> CaricaAsync(
         IGlossaryStore deposito, string sourceLang, string targetLang, CancellationToken ct = default)
     {
-        var voci = await deposito.ListAsync(sourceLang, targetLang, cerca: null, ct).ConfigureAwait(false);
+        var voci = await deposito.ListAsync(sourceLang, targetLang, cerca: null, alfabetico: false, ct).ConfigureAwait(false);
         return voci.Count == 0
             ? Vuoto
             : new GlossarioFraseologia(voci.Select(v => new VoceGlossario(v.SourceText, v.TargetText)));

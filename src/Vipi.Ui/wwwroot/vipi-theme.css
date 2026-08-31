@@ -942,6 +942,8 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .gt-uses li{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px}
 .gt-use-src{max-width:52ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gt-use-arrow{color:var(--ink-soft)}
+/* La sezione dentro il documento: è il PUNTO a cui porta «vedi», e si legge come un riferimento. */
+.gt-use-sec{color:var(--ink-soft);font-family:var(--font-head);font-size:11.5px}
 /* Il piede sta DENTRO il riquadro, sotto la tabella: «N di M» è una proprietà di quell'elenco, non della pagina. */
 .gt-more{display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:12.5px}
 /* La parte cercata, marcata nel testo. Il fondo è il giallo dei tint, non il `mark` del browser: quello è
