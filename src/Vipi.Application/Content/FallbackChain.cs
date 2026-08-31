@@ -29,6 +29,16 @@ public readonly record struct FallbackRow(string TargetCallsign, int? BaseFeet, 
 }
 
 /// <summary>
+/// Una voce della catena come si <b>mostra</b>: chi raccoglie, in quale fascia, e se è una riga scritta da
+/// qualcuno o il padre di copertura — che nessuno scrive e che non si può togliere.
+/// </summary>
+/// <param name="TargetCallsign">Chi raccoglie.</param>
+/// <param name="BaseFeet">Piede della fascia in piedi (incluso). Null = nessun limite.</param>
+/// <param name="TopFeet">Tetto della fascia in piedi (escluso). Null = nessun limite.</param>
+/// <param name="FromParent">Vero se è il padre di copertura, cioè la coda implicita della catena.</param>
+public readonly record struct FallbackStep(string TargetCallsign, int? BaseFeet, int? TopFeet, bool FromParent);
+
+/// <summary>
 /// La catena di ripiego di un settore <b>a una data quota</b>: i candidati a ricevere il suo traffico, in
 /// ordine di priorità, che <c>TransferOnlineResolver</c> poi confronta con chi è online.
 ///
@@ -67,26 +77,80 @@ public static class FallbackChain
         var risultato = new List<string>();
         if (string.IsNullOrWhiteSpace(sector)) return risultato;
 
-        var visti = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var coda = new Queue<string>();
-        coda.Enqueue(sector.Trim());
-
-        while (coda.Count > 0)
-        {
-            var x = coda.Dequeue();
-            if (!visti.Add(x)) continue;
-            risultato.Add(x);
-
-            if (declared.TryGetValue(x, out var righe))
-                foreach (var r in righe)
-                    if (r.AppliesAt(levelFeet) && !string.IsNullOrWhiteSpace(r.TargetCallsign))
-                        coda.Enqueue(r.TargetCallsign);
-
-            if (parentOf(x) is { Length: > 0 } padre && !string.IsNullOrWhiteSpace(padre))
-                coda.Enqueue(padre);
-        }
+        risultato.Add(sector.Trim());
+        foreach (var passo in Cammina(sector, declared, parentOf, r => r.AppliesAt(levelFeet)))
+            foreach (var e in passo)
+                risultato.Add(e.TargetCallsign);
 
         return risultato;
+    }
+
+    /// <summary>
+    /// La stessa catena, ma <b>per mostrarla</b>: raggruppata per passo e con la fascia di ogni voce, senza
+    /// filtrare su una quota — perché a schermo si vogliono vedere <b>tutte</b> le fasce insieme, ed è
+    /// esattamente la domanda «chi si dividerebbe il traffico, e a quali quote».
+    ///
+    /// <para>⚠️ <b>Passa dalla stessa camminata di <see cref="Candidates"/></b>, con l'unica differenza del
+    /// filtro sulla fascia. Ricalcolarla a parte per il disegno vorrebbe dire avere due catene che possono
+    /// divergere — cioè un pannello che mostra una cosa e una ricaduta che ne fa un'altra. È il difetto che
+    /// questa carta esiste per chiudere, e sarebbe ridicolo riaprirlo nella schermata che lo racconta.</para>
+    ///
+    /// <para>Il settore di partenza <b>non</b> è nel risultato: è l'intestazione, non un ripiego.</para>
+    /// </summary>
+    public static IReadOnlyList<IReadOnlyList<FallbackStep>> Sequence(
+        string sector,
+        IReadOnlyDictionary<string, IReadOnlyList<FallbackRow>> declared,
+        Func<string, string?> parentOf) =>
+        Cammina(sector, declared, parentOf, _ => true);
+
+    /// <summary>
+    /// La camminata in ampiezza, sola e condivisa. Ogni giro produce <b>un passo</b>: tutte le voci a quella
+    /// distanza dal settore di partenza, nell'ordine in cui la risoluzione le guarderebbe.
+    /// </summary>
+    /// <param name="accetta">Quali righe dichiarate contano. Con la quota, la ricaduta; sempre vero, il disegno.</param>
+    private static List<IReadOnlyList<FallbackStep>> Cammina(
+        string sector,
+        IReadOnlyDictionary<string, IReadOnlyList<FallbackRow>> declared,
+        Func<string, string?> parentOf,
+        Func<FallbackRow, bool> accetta)
+    {
+        var passi = new List<IReadOnlyList<FallbackStep>>();
+        if (string.IsNullOrWhiteSpace(sector)) return passi;
+
+        var visti = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { sector.Trim() };
+        var fronte = new List<string> { sector.Trim() };
+
+        // Il tetto non è una difesa dai cicli — quelli li chiude `visti` — ma dalla catena lunghissima che
+        // un dato sporco potrebbe produrre in una pagina che deve restare leggibile.
+        for (var giro = 0; giro < 24 && fronte.Count > 0; giro++)
+        {
+            var passo = new List<FallbackStep>();
+            var prossimo = new List<string>();
+
+            foreach (var x in fronte)
+            {
+                if (declared.TryGetValue(x, out var righe))
+                    foreach (var r in righe)
+                    {
+                        if (!accetta(r) || string.IsNullOrWhiteSpace(r.TargetCallsign)) continue;
+                        if (!visti.Add(r.TargetCallsign)) continue;
+                        passo.Add(new FallbackStep(r.TargetCallsign, r.BaseFeet, r.TopFeet, FromParent: false));
+                        prossimo.Add(r.TargetCallsign);
+                    }
+
+                if (parentOf(x) is { Length: > 0 } padre && visti.Add(padre))
+                {
+                    passo.Add(new FallbackStep(padre, null, null, FromParent: true));
+                    prossimo.Add(padre);
+                }
+            }
+
+            if (passo.Count == 0) break;
+            passi.Add(passo);
+            fronte = prossimo;
+        }
+
+        return passi;
     }
 
     /// <summary>Quota di un punto di trasferimento in piedi. <c>FL350</c> → 35000; <c>null</c> resta null.</summary>

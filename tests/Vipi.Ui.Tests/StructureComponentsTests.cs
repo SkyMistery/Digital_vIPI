@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Ui;
@@ -24,25 +24,68 @@ public class StructureComponentsTests : TestContext
 
     public StructureComponentsTests() =>
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new ChiaveComeValore());
+    private static IReadOnlyList<IReadOnlyList<FallbackChainRow>> Passi(params IReadOnlyList<FallbackChainRow>[] p) => p;
+
     [Fact]
-    public void FallbackChain_root_shows_help_when_no_ancestors()
+    public void FallbackChain_senza_passi_dice_che_si_finisce_su_UNICOM()
     {
-        var cut = RenderComponent<StructureFallbackChain>(p =>
-            p.Add(x => x.Rows, Array.Empty<FallbackChainRow>()));
-        Assert.Contains("Struct_RootNoParent", cut.Markup);
+        var cut = RenderComponent<StructureFallbackChain>(p => p
+            .Add(x => x.SelfCallsign, "LIMM_WS2_CTR")
+            .Add(x => x.Steps, Passi()));
+
+        Assert.Contains("Struct_Fallback_Seq_None", cut.Markup);
+        Assert.Contains("LIMM_WS2_CTR", cut.Markup);
+    }
+
+    /// <summary>
+    /// Il punto del componente: le voci di UNO STESSO passo stanno nello stesso gruppo, perche' sono i
+    /// settori che a quel punto si dividono il traffico per fascia — non tentativi in fila.
+    /// </summary>
+    [Fact]
+    public void FallbackChain_mette_sullo_stesso_passo_chi_si_divide_il_traffico()
+    {
+        var cut = RenderComponent<StructureFallbackChain>(p => p
+            .Add(x => x.SelfCallsign, "LIMM_WS5_CTR")
+            .Add(x => x.Steps, Passi(new[]
+            {
+                new FallbackChainRow("LIMM_ES5_CTR", "ACC", "acc", "LIMM", Banda: "FL325-UNL"),
+                new FallbackChainRow("LIMM_WS2_CTR", "ACC", "acc", "LIMM", DalPadre: true),
+            })));
+
+        // Un solo passo, e dentro due voci.
+        Assert.Single(cut.FindAll(".fb-seq-step"));
+        Assert.Equal(2, cut.FindAll(".fb-seq-step .fb-seq-alt").Count);
+        Assert.Contains("FL325-UNL", cut.Markup);
+        Assert.Contains("Struct_Fallback_Seq_FromParent", cut.Markup);   // il padre e' etichettato
+        Assert.Contains("Struct_Fallback_Seq_AnyLevel", cut.Markup);     // e vale a ogni quota
     }
 
     [Fact]
-    public void FallbackChain_renders_ancestors_in_order()
+    public void FallbackChain_numera_i_passi()
     {
-        var rows = new[]
-        {
-            new FallbackChainRow("LIRR_APP", "APP", "app", "LIRR"),
-            new FallbackChainRow("LIRR_CTR", "ACC", "acc", "LIRR"),
-        };
-        var cut = RenderComponent<StructureFallbackChain>(p => p.Add(x => x.Rows, rows));
-        Assert.Contains("LIRR_APP", cut.Markup);
-        Assert.Contains("LIRR_CTR", cut.Markup);
+        var cut = RenderComponent<StructureFallbackChain>(p => p
+            .Add(x => x.SelfCallsign, "LIMM_ES5_CTR")
+            .Add(x => x.Steps, Passi(
+                new[] { new FallbackChainRow("LIMM_WS5_CTR", "ACC", "acc", "LIMM", DalPadre: true) },
+                new[] { new FallbackChainRow("LIMM_WS2_CTR", "ACC", "acc", "LIMM", DalPadre: true) })));
+
+        var numeri = cut.FindAll(".fb-seq-n").Select(n => n.TextContent.Trim()).ToList();
+        Assert.Equal(new[] { "1", "2" }, numeri);
+    }
+
+    /// <summary>Chi e' in frequenza adesso si distingue: e' la voce che il traffico prenderebbe davvero.</summary>
+    [Fact]
+    public void FallbackChain_segna_chi_e_online()
+    {
+        var cut = RenderComponent<StructureFallbackChain>(p => p
+            .Add(x => x.SelfCallsign, "LIMM_WS5_CTR")
+            .Add(x => x.Steps, Passi(new[]
+            {
+                new FallbackChainRow("LIMM_ES5_CTR", "ACC", "acc", "LIMM", Banda: "FL325-UNL", Online: true),
+                new FallbackChainRow("LIMM_WS2_CTR", "ACC", "acc", "LIMM", DalPadre: true),
+            })));
+
+        Assert.Single(cut.FindAll(".fb-seq-alt.live"));
     }
 
     [Fact]
@@ -64,17 +107,23 @@ public class StructureComponentsTests : TestContext
             .Add(x => x.AirportsCovered, 1));
         Assert.Contains("LIRF_TWR", cut.Markup);
         Assert.Contains("+2", cut.Markup);
-        Assert.Contains("1 aeroporto coperto", cut.Markup);   // singolare
+        Assert.Contains("Struct_Coverage_Airport1", cut.Markup);   // singolare: chiave sua, non una desinenza
     }
 
     // Garanzia di regressione per C1: un callsign malevolo esce ESCAPED, non eseguibile.
     [Fact]
     public void FallbackChain_html_encodes_dynamic_values()
     {
-        var rows = new[] { new FallbackChainRow("<script>alert(1)</script>", "ACC", "acc", "LI<b>") };
-        var cut = RenderComponent<StructureFallbackChain>(p => p.Add(x => x.Rows, rows));
+        var cut = RenderComponent<StructureFallbackChain>(p => p
+            .Add(x => x.SelfCallsign, "LIRR_CTR")
+            .Add(x => x.Steps, Passi(new[]
+            {
+                new FallbackChainRow("<script>alert(1)</script>", "ACC", "acc", "LI<b>", Banda: "<i>FL325</i>"),
+            })));
+
         Assert.DoesNotContain("<script>", cut.Markup);
         Assert.Contains("&lt;script&gt;", cut.Markup);
+        Assert.DoesNotContain("<i>FL325</i>", cut.Markup);
     }
 
     [Fact]

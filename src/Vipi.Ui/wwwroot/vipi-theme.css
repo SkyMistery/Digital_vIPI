@@ -1934,22 +1934,49 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
    che ci passa si tronca in silenzio: senza questa etichetta il difetto si vede solo disegnando l'albero. */
 .acc-row-parent.ciclo{background:var(--tint-red);color:var(--danger-ink);font-weight:600;border-radius:4px;padding:1px 6px}
 
-/* ---- Catena di ripiego dichiarata (pannello dettaglio della pagina Struttura) --------------------------
-   Righe fitte su una riga sola ciascuna: qui l'altezza è albero, e ogni riga che si allarga sono nodi in
-   meno a schermo. Il select del bersaglio si restringe da solo, i due FL hanno larghezza fissa perche' un
-   campo che cambia misura mentre si scrive fa saltare l'allineamento della colonna. */
-.fb-edit{margin-top:10px;padding-top:8px;border-top:1px solid var(--line)}
-.fb-head{display:flex;align-items:center;gap:6px;margin-bottom:6px}
-.fb-head .fb-t{font-size:12px;font-weight:600;color:var(--ink-soft);font-family:var(--font-head)}
-.fb-row{display:flex;align-items:center;gap:5px;margin-bottom:4px}
-.fb-row .fb-n{font-size:11px;color:var(--ink-soft);min-width:14px}
-.fb-row select{flex:1 1 auto;min-width:0}
-.fb-row .fb-lbl{font-size:11px;color:var(--ink-soft)}
-.fb-row .fb-fl{width:56px;flex:0 0 auto}
-.fb-sug{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:6px 0}
-.fb-sug .muted{font-size:11.5px}
-.fb-actions{display:flex;gap:8px;align-items:center;margin-top:8px}
-.fb-then{font-size:11.5px;color:var(--ink-soft);margin-top:8px}
+/* ---- Catena di ripiego (pannello dettaglio della pagina Struttura) -------------------------------------
+   Due pezzi con due lavori diversi. La SEQUENZA e' la stessa carta di `.fallback-chain` — il linguaggio che
+   questo pannello parla gia' — perche' e' cio' che si viene a leggere. L'EDITOR usa `field` + `label` come
+   `.inline-form`, che e' il vocabolario dei form di questa pagina: prima erano controlli nudi in fila, e si
+   vedeva che venivano da un'altra parte.
+   ⚠️ I selettori dell'editor stanno sotto `.struct`: senza, le regole di `.inline-form` scritte piu' su
+   vincono per specificita' (la trappola gia' pagata su `.res-table`). */
+.struct .fb-block{margin-top:12px}
+.struct .fb-block-h{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.struct .fb-block-t{font-size:12px;font-weight:600;color:var(--ink-soft);font-family:var(--font-head);text-transform:uppercase;letter-spacing:.03em}
+
+.fb-seq{background:var(--surface-soft);border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:13px}
+.fb-seq-me{display:flex;align-items:center;gap:6px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.fb-seq-tag{font-size:10.5px;color:var(--ink-soft);font-family:var(--font-head);font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+/* Un PASSO della catena: il numero a sinistra, e a destra tutte le voci di quel passo incolonnate. Sono i
+   settori che a quel punto si dividono il traffico per fascia: stanno alla stessa altezza perche' non si
+   provano una dopo l'altra — decide la quota quale delle due vale. */
+.fb-seq-step{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.fb-seq-step:last-of-type{border-bottom:0}
+.fb-seq-n{flex:none;width:18px;height:18px;border-radius:50%;background:var(--surface-muted);color:var(--ink-soft);
+          font-family:var(--font-head);font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.fb-seq-alts{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.fb-seq-alt{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.fb-seq-alt.live b{color:var(--brand-ink)}
+/* La fascia ha larghezza fissa: incolonnata si legge come una colonna di quote, sfilata no. */
+.fb-band{flex:none;font-size:10.5px;font-family:var(--font-head);font-weight:700;letter-spacing:.02em;
+         background:var(--tint-atmos);color:var(--brand-ink-2);border-radius:5px;padding:1px 6px;min-width:78px;text-align:center}
+.fb-band.any{background:var(--surface-muted);color:var(--ink-soft)}
+.fb-arrow{color:var(--ink-soft)}
+.fb-seq-end{font-size:11.5px;color:var(--ink-soft);padding-top:6px;border-top:1px solid var(--line);margin-top:2px}
+
+.struct .fb-edit{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.struct .fb-edit-h{display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:12px;font-weight:600;
+                   color:var(--ink-soft);font-family:var(--font-head);text-transform:uppercase;letter-spacing:.03em}
+.struct .fb-edit-h .ln{flex:1;height:1px;background:var(--line)}
+.struct .fb-form{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px}
+.struct .fb-form .field{margin-bottom:0;min-width:140px;flex:1}
+.struct .fb-form .field.narrow{min-width:74px;max-width:88px;flex:0 0 auto}
+.struct .fb-form .field label{font-family:var(--font-body);text-transform:none;letter-spacing:normal;font-size:12.5px}
+.struct .fb-form .btn.sm{padding:8px 12px;font-size:12.5px}
+.struct .fb-sug{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:8px 0}
+.struct .fb-sug .muted{font-size:11.5px}
+.struct .fb-acts{display:flex;gap:8px;align-items:center;margin-top:10px}
 /* Badge delle posizioni d'aeroporto: stessa famiglia dell'APP, tono più tenue scendendo la scaletta. */
 .node-badge.twr{background:var(--tint-atmos);color:var(--brand-ink-2)}
 .node-badge.gnd{background:var(--bg);color:var(--ink-soft)}

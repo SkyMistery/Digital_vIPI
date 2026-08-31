@@ -222,93 +222,110 @@
                 {
                     <p class="muted" style="font-size:12px;margin:0 0 10px">@L["Struct_LeafHint"]</p>
                 }
-                @* ---- Catena di ripiego: le righe DICHIARATE, poi i padri ----
-                   Le due metà sono una lista sola, e vanno lette in quest'ordine: prima ciò che qualcuno ha
-                   scritto (con la fascia di quota), poi ciò che il sistema deduce dall'albero. Mostrarle
-                   separate direbbe che sono due meccanismi; mostrarle mescolate nasconderebbe che solo la
-                   prima metà si edita. *@
+                @* ---- Catena di ripiego ----------------------------------------------------------------
+                   Prima la SEQUENZA, che e' quel che si viene a leggere: chi raccoglie il traffico di questo
+                   settore quando e' chiuso, passo per passo, con chi si divide il traffico alla stessa
+                   altezza. Poi, e solo per chi puo' scrivere, l'editor delle righe.
+                   ⚠️ La sequenza contiene GIA' i padri: il riquadro separato che li elencava e' sparito
+                   perche' diceva meta' della stessa cosa, e due riquadri per una catena sola si leggono
+                   come due meccanismi. *@
                 @if (sel.Callsign is not null)
                 {
-                    <div class="fb-edit">
-                        <div class="fb-head">
-                            <span class="fb-t">@L["Struct_Fallback_Title"]</span>
+                    <div class="fb-block">
+                        <div class="fb-block-h">
+                            <span class="fb-block-t">@L["Struct_Fallback_Title"]</span>
                             <HelpHint Href="/services/vsop/guide#struttura" AriaLabel="@L["Struct_Fallback_HelpAria"]" ExtraClass="wide">
                                 @((MarkupString)L["Struct_Fallback_Help"].Value)
                             </HelpHint>
-                            @if (Authz.IsEditor && _canEdit)
-                            {
-                                <button class="lnk-mini" disabled="@_busy" @onclick="() => ProponiAsync(sel)">@L["Struct_Fallback_Suggest"]</button>
-                                <button class="lnk-mini" disabled="@_busy" @onclick="AggiungiRipiego">@L["Struct_Fallback_Add"]</button>
-                            }
                         </div>
 
-                        @if (_ripieghi.Count == 0)
+                        <StructureFallbackChain SelfCallsign="@sel.Callsign"
+                                                SelfBadge="@FacilityBadge(sel.Kind, sel.Callsign)"
+                                                SelfBadgeClass="@FacilityClass(sel.Kind, sel.Callsign)"
+                                                SelfOnline="@_online.Contains(sel.Callsign)"
+                                                Steps="SequenzaRighe(sel)" />
+
+                        @if (Authz.IsEditor && _canEdit)
                         {
-                            <div class="help">@L["Struct_Fallback_Empty"]</div>
-                        }
-                        @for (var i = 0; i < _ripieghi.Count; i++)
-                        {
-                            var idx = i;
-                            <div class="fb-row">
-                                <span class="fb-n">@(idx + 1).</span>
-                                @* ⚠️ `selected` ESPLICITO su ogni opzione, non il solo `value` sul select: con le
-                                   opzioni rese dopo, il browser non applica il valore e la riga compare VUOTA.
-                                   Visto dal vivo il 31 agosto 2026 — e una riga che sembra senza bersaglio,
-                                   al salvataggio successivo, viene scartata: il difetto si mangia il dato.
-                                   Per la stessa ragione il bersaglio corrente entra sempre nell'elenco, anche
-                                   se non e' fra i padri ammissibili (una riga cross-ACC scritta a mano). *@
-                                <select disabled="@(!Authz.IsEditor || !_canEdit || _busy)"
-                                        @onchange="e => CambiaBersaglio(idx, e.Value?.ToString())">
-                                    <option value="" selected="@(_ripieghi[idx].TargetCallsign.Length == 0)">@L["Struct_Fallback_PickTarget"]</option>
-                                    @foreach (var cs in BersagliPossibili(sel, _ripieghi[idx].TargetCallsign))
+                            <div class="fb-edit">
+                                <div class="fb-edit-h">
+                                    <span>@L["Struct_Fallback_EditTitle"]</span>
+                                    <span class="ln"></span>
+                                    <button class="lnk-mini" disabled="@_busy" @onclick="() => ProponiAsync(sel)">@L["Struct_Fallback_Suggest"]</button>
+                                    <button class="lnk-mini" disabled="@_busy" @onclick="AggiungiRipiego">@L["Struct_Fallback_Add"]</button>
+                                </div>
+
+                                @if (_ripieghi.Count == 0)
+                                {
+                                    <p class="help" style="margin:0">@L["Struct_Fallback_Empty"]</p>
+                                }
+                                @for (var i = 0; i < _ripieghi.Count; i++)
+                                {
+                                    var idx = i;
+                                    <div class="fb-form">
+                                        <div class="field">
+                                            <label>@L["Struct_Fallback_Target"]</label>
+                                            @* ⚠️ `selected` ESPLICITO su ogni opzione, non il solo `value` sul select:
+                                               con le opzioni rese dopo, il browser non applica il valore e la riga
+                                               compare VUOTA. Visto dal vivo il 31 agosto 2026 - e una riga che sembra
+                                               senza bersaglio, al salvataggio successivo, viene scartata: il difetto
+                                               si mangia il dato. Per la stessa ragione il bersaglio corrente entra
+                                               sempre nell'elenco, anche se non e' fra i padri ammissibili. *@
+                                            <select disabled="@_busy" @onchange="e => CambiaBersaglio(idx, e.Value?.ToString())">
+                                                <option value="" selected="@(_ripieghi[idx].TargetCallsign.Length == 0)">@L["Struct_Fallback_PickTarget"]</option>
+                                                @foreach (var cs in BersagliPossibili(sel, _ripieghi[idx].TargetCallsign))
+                                                {
+                                                    <option value="@cs" selected="@(cs == _ripieghi[idx].TargetCallsign)">@cs</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="field narrow">
+                                            <label>@L["Struct_Fallback_From"]</label>
+                                            <input type="number" min="0" max="660" placeholder="@L["Struct_Fallback_Sfc"]" disabled="@_busy"
+                                                   value="@FlDi(_ripieghi[idx].BaseFeet)" @onchange="e => CambiaPiede(idx, e.Value?.ToString())" />
+                                        </div>
+                                        <div class="field narrow">
+                                            <label>@L["Struct_Fallback_To"]</label>
+                                            <input type="number" min="0" max="660" placeholder="@L["Struct_Fallback_Unl"]" disabled="@_busy"
+                                                   value="@FlDi(_ripieghi[idx].TopFeet)" @onchange="e => CambiaTetto(idx, e.Value?.ToString())" />
+                                        </div>
+                                        <button class="btn ghost sm" disabled="@_busy" title="@L["Struct_Fallback_Remove"]" @onclick="() => TogliRipiego(idx)">@L["Common_Remove"]</button>
+                                    </div>
+                                }
+
+                                @if (_proposte.Count > 0)
+                                {
+                                    <div class="fb-sug">
+                                        <span class="muted">@L["Struct_Fallback_Suggested"]</span>
+                                        @foreach (var g in _proposte)
+                                        {
+                                            <button class="sh-chip" disabled="@_busy" @onclick="() => AccettaProposta(g)">
+                                                @g.TargetCallsign · @FasciaTesto(g.BaseFeet, g.TopFeet)
+                                            </button>
+                                        }
+                                    </div>
+                                }
+                                else if (_proposteChieste)
+                                {
+                                    <p class="help" style="margin:6px 0 0">@L["Struct_Fallback_NoSuggestions"]</p>
+                                }
+
+                                <div class="fb-acts">
+                                    <button class="btn primary" disabled="@(_busy || !_ripieghiSporchi)" @onclick="() => SalvaRipieghiAsync(sel)">@L["Common_Apply"]</button>
+                                    @if (_ripieghiSporchi)
                                     {
-                                        <option value="@cs" selected="@(cs == _ripieghi[idx].TargetCallsign)">@cs</option>
+                                        <button class="btn ghost" disabled="@_busy" @onclick="CaricaRipieghiAsync">@L["Common_Cancel"]</button>
+                                        <span class="muted" style="font-size:12px">@L["Common_Unsaved"]</span>
                                     }
-                                </select>
-                                <span class="fb-lbl">@L["Struct_Fallback_From"]</span>
-                                <input class="fb-fl" type="number" min="0" max="660" placeholder="@L["Struct_Fallback_Sfc"]"
-                                       disabled="@(!Authz.IsEditor || !_canEdit || _busy)"
-                                       value="@FlDi(_ripieghi[idx].BaseFeet)" @onchange="e => CambiaPiede(idx, e.Value?.ToString())" />
-                                <span class="fb-lbl">@L["Struct_Fallback_To"]</span>
-                                <input class="fb-fl" type="number" min="0" max="660" placeholder="@L["Struct_Fallback_Unl"]"
-                                       disabled="@(!Authz.IsEditor || !_canEdit || _busy)"
-                                       value="@FlDi(_ripieghi[idx].TopFeet)" @onchange="e => CambiaTetto(idx, e.Value?.ToString())" />
-                                @if (Authz.IsEditor && _canEdit)
-                                {
-                                    <button class="tclose" title="@L["Struct_Fallback_Remove"]" disabled="@_busy" @onclick="() => TogliRipiego(idx)">✕</button>
-                                }
+                                    else
+                                    {
+                                        <span class="muted" style="font-size:12px">@L["Common_NoChange"]</span>
+                                    }
+                                </div>
                             </div>
                         }
-
-                        @if (_proposte.Count > 0)
-                        {
-                            <div class="fb-sug">
-                                <span class="muted">@L["Struct_Fallback_Suggested"]</span>
-                                @foreach (var g in _proposte)
-                                {
-                                    <button class="sh-chip" disabled="@_busy" @onclick="() => AccettaProposta(g)">
-                                        @g.TargetCallsign · @FasciaTesto(g.BaseFeet, g.TopFeet)
-                                    </button>
-                                }
-                            </div>
-                        }
-                        else if (_proposteChieste)
-                        {
-                            <div class="help">@L["Struct_Fallback_NoSuggestions"]</div>
-                        }
-
-                        @if (Authz.IsEditor && _canEdit && _ripieghiSporchi)
-                        {
-                            <div class="fb-actions">
-                                <button class="btn primary" disabled="@_busy" @onclick="() => SalvaRipieghiAsync(sel)">@L["Common_Apply"]</button>
-                                <button class="btn ghost" disabled="@_busy" @onclick="CaricaRipieghiAsync">@L["Common_Cancel"]</button>
-                                <span class="muted" style="font-size:12px">@L["Common_Unsaved"]</span>
-                            </div>
-                        }
-                        <div class="fb-then">@L["Struct_Fallback_ThenParent"]</div>
                     </div>
                 }
-                <StructureFallbackChain Rows="ChainRows(sel)" />
                 <StructureCoverage IsLeaf="sel.Callsign is null" Rows="CoverageRows(sel)" AirportsCovered="AirportsCovered(sel)" />
                 <div class="field" style="margin-top:10px">
                     <label>@L["Struct_ParentLabel"]</label>
@@ -1087,21 +1104,43 @@
         return result;
     }
 
-    /// <summary>Catena di fallback del nodo selezionato (antenati per callsign fino alla radice): dati per &lt;StructureFallbackChain&gt;.</summary>
-    private IReadOnlyList<FallbackChainRow> ChainRows(HierarchyNode sel)
+    /// <summary>
+    /// La catena di ripiego del nodo selezionato, per passi, come la disegna &lt;StructureFallbackChain&gt;.
+    ///
+    /// <para>⚠️ Viene dalla STESSA camminata che risolve la ricaduta (<c>FallbackChain.Sequence</c>), non da
+    /// una risalita dei padri scritta qui: erano due catene, e due catene divergono. Le voci di uno stesso
+    /// passo sono i settori che a quel punto **si dividono il traffico per fascia di quota**.</para>
+    ///
+    /// <para>⚠️ I ripieghi dichiarati sono quelli SALVATI (<c>_ripieghiSalvati</c>), non quelli in
+    /// lavorazione: la sequenza racconta cosa succede adesso al traffico vero, non cosa succederebbe se si
+    /// premesse «Applica». Le modifiche non salvate stanno nell'editor, dove si vedono per quello che sono.</para>
+    /// </summary>
+    private IReadOnlyList<IReadOnlyList<FallbackChainRow>> SequenzaRighe(HierarchyNode sel)
     {
+        if (sel.Callsign is null) return Array.Empty<IReadOnlyList<FallbackChainRow>>();
+
         var byCs = NodesByCallsign();
-        var rows = new List<FallbackChainRow>();
-        var guard = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        // Padre EFFETTIVO, come l'albero: con quello scritto la catena direbbe «radice» su una posizione che il
-        // sistema aggancia davvero — e il pannello contraddirebbe la riga che l'ha appena selezionata.
-        var pcs = sel.EffectiveParentCallsign;
-        while (pcs is not null && guard.Add(pcs) && byCs.TryGetValue(pcs, out var p))
-        {
-            rows.Add(new FallbackChainRow(p.Callsign ?? "", FacilityBadge(p.Kind, p.Callsign),
-                FacilityClass(p.Kind, p.Callsign), p.AccCode));
-            pcs = p.EffectiveParentCallsign;
-        }
-        return rows;
+        var dichiarate = new Dictionary<string, IReadOnlyList<FallbackRow>>(StringComparer.OrdinalIgnoreCase);
+        if (_ripieghiSalvati.Count > 0)
+            dichiarate[sel.Callsign] = _ripieghiSalvati
+                .Where(r => r.TargetCallsign.Length > 0)
+                .Select(r => new FallbackRow(r.TargetCallsign, r.BaseFeet, r.TopFeet)).ToList();
+
+        string? Padre(string cs) => byCs.TryGetValue(cs, out var n) ? n.EffectiveParentCallsign : null;
+
+        return FallbackChain.Sequence(sel.Callsign, dichiarate, Padre)
+            .Select(passo => (IReadOnlyList<FallbackChainRow>)passo.Select(e =>
+            {
+                var n = byCs.GetValueOrDefault(e.TargetCallsign);
+                return new FallbackChainRow(
+                    e.TargetCallsign,
+                    FacilityBadge(n?.Kind ?? HierarchyNodeKind.Acc, e.TargetCallsign),
+                    FacilityClass(n?.Kind ?? HierarchyNodeKind.Acc, e.TargetCallsign),
+                    n?.AccCode ?? "",
+                    Banda: e.BaseFeet is null && e.TopFeet is null ? null : FasciaTesto(e.BaseFeet, e.TopFeet),
+                    DalPadre: e.FromParent,
+                    Online: _online.Contains(e.TargetCallsign));
+            }).ToList())
+            .ToList();
     }
 }

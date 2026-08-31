@@ -275,6 +275,7 @@ contenimento e dell'AoR): si aggiunge la catena accanto come sorgente della *ric
 | 1 | Ciclo: derivazione sicura, guardia sull'albero effettivo, radici effettive, rilievo | ✅ |
 | 2 | C: `SectorFallback`, risolutore con la quota, due chiamate + editor in Struttura | ✅ |
 | 3 | B: proposte geometriche nell'editor | ✅ |
+| 4 | La schermata di dettaglio: sequenza per passi + form allineato | ✅ |
 
 ### Verifica live (31 agosto 2026)
 
@@ -308,15 +309,55 @@ e `LIMM_MIL_CTR`, che una banda aperta ce l'ha davvero e che l'admin scarta guar
 > da fare dopo», era il fatto che **mancava del tutto un criterio geografico**. Il confine giusto si è
 > rivelato l'ACC, non la geometria — più semplice e più vicino a cosa significa il gesto.
 
+### La schermata di dettaglio — 1 settembre 2026
+
+Due richieste del committente dopo aver letto il meccanismo: **il form non combaciava con il resto della UI**,
+e **mancava la sequenza intera** con, alla stessa altezza, i settori che si dividono il traffico per quota.
+
+**La sequenza.** Il riquadro «Catena di ripiego» mostra ora tutta la catena, **per passi**, e le voci di uno
+stesso passo stanno alla stessa altezza:
+
+```
+LIMM_WS5_CTR  CTR   QUESTO SETTORE
+ ①  FL325–UNL  → LIMM_ES5_CTR  CTR  LIMM
+    ogni quota → LIMM_WS2_CTR  CTR  LIMM  PADRE
+ esauriti tutti, il traffico va su UNICOM
+```
+
+⚠️ **L'altezza è il punto.** Un elenco piatto direbbe che si provano una dopo l'altra, ed è falso: «sopra
+FL325 ES5, altrimenti WS2» **non è una sequenza di tentativi, è una divisione** — decide la quota quale
+delle due vale. Chi è in frequenza adesso si distingue, perché è la voce che il traffico prenderebbe davvero.
+
+⚠️ **E viene dalla STESSA camminata che risolve** (`FallbackChain.Sequence` e `FallbackChain.Candidates`
+condividono `Cammina`, con l'unica differenza del filtro sulla fascia). Disegnarla a parte vorrebbe dire due
+catene che possono divergere — cioè un pannello che mostra una cosa e una ricaduta che ne fa un'altra: il
+difetto che questa carta esiste per chiudere, riaperto proprio nella schermata che lo racconta.
+
+⚠️ La sequenza legge i ripieghi **salvati**, non quelli in lavorazione: racconta cosa succede adesso al
+traffico vero, non cosa succederebbe premendo «Applica». Le modifiche non salvate stanno nell'editor, dove
+si vedono per quello che sono.
+
+Il riquadro separato che elencava i soli padri **è sparito**: diceva metà della stessa cosa, e due riquadri
+per una catena sola si leggono come due meccanismi.
+
+**Il form.** Prima erano controlli nudi in fila, con la propria misura e i propri tasti: si vedeva che
+venivano da un'altra parte. Ora usa il vocabolario di questa pagina — `field` + `label` come `.inline-form`,
+`.btn` per le azioni, la carta a superficie morbida per la sequenza come `.fallback-chain`.
+⚠️ I selettori stanno sotto `.struct`: senza, le regole di `.inline-form` scritte più in alto nel foglio
+vincono per specificità — è la trappola già pagata su `.res-table`.
+
+**Un terzo difetto, trovato dallo screenshot mentre si guardava il resto.** `StructureCoverage` stampava
+«Copre (dominio):» e «N aeroporti coperti» **scritti a mano in italiano**, quindi così anche nella pagina
+inglese — nello stesso riquadro che si stava allineando. Chiuso: due chiavi distinte per singolare e plurale,
+perché in inglese la parola che cambia non è in fondo e una regola sulle desinenze italiane l'avrebbe rotta.
+Era la voce «fuori perimetro» dell'elenco qui sotto, ed è caduta perché il perimetro se l'è tirata dentro.
+
 ### Cosa resta aperto
 
 - **Statistiche per pezzo di forma** (vedi il dettaglio 2 qui sopra): finché le pretese sono per settore, le
   righe dichiarate non entrano nell'attribuzione del traffico.
 - **I 19 aeroporti che pendono da una propria APP** restano tali: è la configurazione normale, e ora è
   innocua. Non c'è niente da riparare, ma è il posto da cui guardare se un anello ricomparisse.
-- **Testo italiano nella pagina inglese**, trovato accanto al difetto 1 e **non corretto** perché fuori
-  perimetro: `StructureCoverage` stampa «Copre (dominio):» e «N aeroporti coperti» a mano, in italiano, in
-  tutte e due le lingue. Stessa famiglia del difetto 1, altro componente.
 - **Le `UnificationRule`** restano un motore senza editor (le applica solo `AorService`, per la mappa AoR).
   Questa carta non le tocca: la ricaduta ora ha la sua strada, e sovrapporre le due sarebbe il secondo
   meccanismo che il pre-flight §1 vieta.

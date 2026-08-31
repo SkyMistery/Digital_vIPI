@@ -193,6 +193,69 @@ public class FallbackChainTests
     }
 
     // =====================================================================================================
+    //  Sequence — la catena come si MOSTRA
+    // =====================================================================================================
+
+    /// <summary>
+    /// Il pannello deve poter dire «a questo passo, sopra FL325 c'e' ES5, altrimenti il padre WS2»: quindi
+    /// la sequenza raggruppa per PASSO e porta la fascia di ogni voce, senza filtrare su una quota.
+    /// </summary>
+    [Fact]
+    public void La_sequenza_mette_sullo_stesso_passo_chi_si_divide_il_traffico()
+    {
+        var passi = FallbackChain.Sequence(Ws5, Dichiarate, Padre);
+
+        var primo = Assert.Single(passi);
+        Assert.Equal(2, primo.Count);
+
+        Assert.Equal(Es5, primo[0].TargetCallsign);
+        Assert.Equal(Split, primo[0].BaseFeet);
+        Assert.Null(primo[0].TopFeet);
+        Assert.False(primo[0].FromParent);
+
+        Assert.Equal(Ws2, primo[1].TargetCallsign);
+        Assert.Null(primo[1].BaseFeet);
+        Assert.True(primo[1].FromParent);      // il padre: nessuno lo scrive e non si toglie
+    }
+
+    /// <summary>Il settore di partenza non e' un ripiego di se' stesso: e' l'intestazione, non una voce.</summary>
+    [Fact]
+    public void La_sequenza_non_contiene_il_settore_di_partenza() =>
+        Assert.DoesNotContain(FallbackChain.Sequence(Ws5, Dichiarate, Padre).SelectMany(p => p),
+            e => e.TargetCallsign == Ws5);
+
+    /// <summary>Piu' passi: da ES5 si arriva a WS2 al secondo giro, passando per WS5.</summary>
+    [Fact]
+    public void La_sequenza_conta_i_passi()
+    {
+        var passi = FallbackChain.Sequence(Es5, Nessuna, Padre);
+
+        Assert.Equal(2, passi.Count);
+        Assert.Equal(Ws5, Assert.Single(passi[0]).TargetCallsign);
+        Assert.Equal(Ws2, Assert.Single(passi[1]).TargetCallsign);
+    }
+
+    /// <summary>Senza righe e senza padre non c'e' nessun passo: la catena finisce sul settore stesso.</summary>
+    [Fact]
+    public void Una_radice_senza_righe_non_ha_passi() =>
+        Assert.Empty(FallbackChain.Sequence(Ws2, Nessuna, Padre));
+
+    /// <summary>
+    /// ⚠️ Il vincolo che tiene insieme le due facce: quel che il pannello DISEGNA e quel che la ricaduta
+    /// RISOLVE vengono dalla stessa camminata. Se divergessero, il pannello racconterebbe una catena e il
+    /// traffico ne seguirebbe un'altra — cioe' il difetto che questa carta esiste per chiudere.
+    /// </summary>
+    [Fact]
+    public void La_sequenza_e_i_candidati_dicono_la_stessa_cosa()
+    {
+        // A una quota dentro la fascia, i candidati sono il settore piu' tutte le voci della sequenza.
+        var attesi = new[] { Ws5 }.Concat(
+            FallbackChain.Sequence(Ws5, Dichiarate, Padre).SelectMany(p => p).Select(e => e.TargetCallsign));
+
+        Assert.Equal(attesi, FallbackChain.Candidates(Ws5, 35000, Dichiarate, Padre));
+    }
+
+    // =====================================================================================================
     //  La fascia
     // =====================================================================================================
 

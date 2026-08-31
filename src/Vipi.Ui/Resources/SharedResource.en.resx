@@ -105,7 +105,6 @@
   <data name="Help_OpenGuide" xml:space="preserve"><value>Open the Guide</value></data>
   <data name="Struct_LeafAirport" xml:space="preserve"><value>An airport is a leaf: no subtree.</value></data>
   <data name="Struct_NoSubtree" xml:space="preserve"><value>No subtree (it covers only itself).</value></data>
-  <data name="Struct_RootNoParent" xml:space="preserve"><value>Root (no parent): it covers itself top-down.</value></data>
   <data name="Apt_OpenFullVipi" xml:space="preserve"><value>Open the full vIPI</value></data>
   <data name="Apt_Wind" xml:space="preserve"><value>Wind</value></data>
   <data name="Apt_SuggestedRunways" xml:space="preserve"><value>Suggested runways</value></data>
@@ -656,6 +655,16 @@
   <data name="Struct_AccRootsTitle" xml:space="preserve"><value>ACC roots (no parent — top-down coverage)</value></data>
   <data name="Struct_Inherited" xml:space="preserve"><value>inherited</value></data>
   <data name="Struct_Fallback_Title" xml:space="preserve"><value>Fallback chain</value></data>
+  <data name="Struct_Coverage_Covers" xml:space="preserve"><value>Covers (domain):</value></data>
+  <data name="Struct_Coverage_Airport1" xml:space="preserve"><value>1 airport covered</value></data>
+  <data name="Struct_Coverage_AirportsN" xml:space="preserve"><value>{0} airports covered</value></data>
+  <data name="Struct_Fallback_EditTitle" xml:space="preserve"><value>Edit the rows</value></data>
+  <data name="Struct_Fallback_Target" xml:space="preserve"><value>fallback</value></data>
+  <data name="Struct_Fallback_Seq_Self" xml:space="preserve"><value>this sector</value></data>
+  <data name="Struct_Fallback_Seq_None" xml:space="preserve"><value>No fallback and no parent: when this sector is offline, traffic goes to UNICOM.</value></data>
+  <data name="Struct_Fallback_Seq_AnyLevel" xml:space="preserve"><value>any level</value></data>
+  <data name="Struct_Fallback_Seq_FromParent" xml:space="preserve"><value>parent</value></data>
+  <data name="Struct_Fallback_Seq_Unicom" xml:space="preserve"><value>all exhausted, traffic goes to UNICOM</value></data>
   <data name="Struct_Fallback_HelpAria" xml:space="preserve"><value>How the fallback chain works</value></data>
   <data name="Struct_Fallback_Help" xml:space="preserve"><value>&lt;b&gt;Who takes this sector's traffic when it is offline.&lt;/b&gt; The rows below are read &lt;b&gt;in order&lt;/b&gt;, and each one may apply only within an altitude band: the first row that applies and whose target is online takes the traffic. Once the rows run out, the fallback continues up the &lt;b&gt;parent&lt;/b&gt; chain as it always did — which is why a sector with no rows behaves exactly as before.&lt;br/&gt;&lt;br/&gt;It matters when the airspace split is &lt;b&gt;vertical&lt;/b&gt;: with Milan split in two up to FL305 and a single sector open above, upper-east traffic goes to upper-west, not to lower-east, which is its parent.&lt;br/&gt;&lt;br/&gt;⚠️ A transfer point that &lt;b&gt;does not state an altitude&lt;/b&gt; cannot be resolved vertically: only rows without a band apply to it.</value></data>
   <data name="Struct_Fallback_Suggest" xml:space="preserve"><value>suggest</value></data>
@@ -669,7 +678,6 @@
   <data name="Struct_Fallback_Remove" xml:space="preserve"><value>Remove this row</value></data>
   <data name="Struct_Fallback_Suggested" xml:space="preserve"><value>Suggested by geometry:</value></data>
   <data name="Struct_Fallback_NoSuggestions" xml:space="preserve"><value>No suggestion: no other sector shares altitude with this one.</value></data>
-  <data name="Struct_Fallback_ThenParent" xml:space="preserve"><value>then, the parent:</value></data>
   <data name="Struct_Ciclo" xml:space="preserve"><value>cycle</value></data>
   <data name="Struct_CicloTitle" xml:space="preserve"><value>Cyclic hierarchy: this sector is its own ancestor. The fallback chain stops here. Give it a valid parent, or remove it from the child that points at it.</value></data>
   <data name="Struct_InheritedTitle" xml:space="preserve"><value>No parent set: derived from the airport ladder (DEL → GND → TWR → APP). Assign one to pin it.</value></data>

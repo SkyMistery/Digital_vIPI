@@ -1,25 +1,62 @@
 @inject IStringLocalizer<SharedResource> L
-@* Catena di fallback (antenati per callsign) di un nodo di struttura. Markup dichiarativo: Blazor encoda i
-   valori dinamici (no MarkupString, no XSS). Le righe sono già calcolate dalla pagina. *@
+@* La catena di ripiego di un nodo, per intero e in ordine di lettura.
 
-@* ⚠️ Qui c'era un titolo scritto a mano — «Catena di fallback:» — in italiano anche nella pagina inglese.
-   Se n'è accorto lo screenshot della verifica live del 31 agosto 2026, non un test: da quando sopra c'è
-   l'editor delle righe dichiarate (con la sua intestazione tradotta), il letterale compariva come SECONDO
-   titolo della stessa cosa, e per giunta nella lingua sbagliata. Il titolo lo dà il chiamante. *@
-<div class="fallback-chain">
-    @if (Rows.Count == 0)
+   ⚠️ Le voci sono raggruppate per PASSO, e le voci di uno stesso passo stanno alla stessa altezza: sono i
+   settori che, a quel punto della catena, **si dividono il traffico per fascia di quota**. Un elenco piatto
+   direbbe che si provano una dopo l'altra, che è falso — «sopra FL325 ES5, altrimenti WS2» non è una
+   sequenza di tentativi, è una divisione.
+
+   Markup dichiarativo: Blazor encoda i valori dinamici (no MarkupString, no XSS). I passi li calcola la
+   pagina, dalla STESSA camminata che risolve la ricaduta (`FallbackChain.Sequence`). *@
+
+<div class="fb-seq">
+    <div class="fb-seq-me">
+        @if (SelfOnline) { <span class="onl-dot" title="@L["Struct_OnlineNow"]"></span> }
+        <b>@SelfCallsign</b>
+        <span class="node-badge @SelfBadgeClass">@SelfBadge</span>
+        <span class="fb-seq-tag">@L["Struct_Fallback_Seq_Self"]</span>
+    </div>
+
+    @if (Steps.Count == 0)
     {
-        <div class="help">@L["Struct_RootNoParent"]</div>
+        <div class="fb-seq-end">@L["Struct_Fallback_Seq_None"]</div>
     }
     else
     {
-        @foreach (var r in Rows)
+        @for (var i = 0; i < Steps.Count; i++)
         {
-            <div>→ <b>@r.Callsign</b> <span class="node-badge @r.BadgeClass">@r.Badge</span> <span class="acc-tag">@r.AccCode</span></div>
+            var passo = Steps[i];
+            <div class="fb-seq-step">
+                <span class="fb-seq-n">@(i + 1)</span>
+                <div class="fb-seq-alts">
+                    @foreach (var r in passo)
+                    {
+                        <div class="fb-seq-alt @(r.Online ? "live" : null)">
+                            <span class="fb-band @(r.Banda is null ? "any" : null)">@(r.Banda ?? L["Struct_Fallback_Seq_AnyLevel"].Value)</span>
+                            <span class="fb-arrow">→</span>
+                            @if (r.Online) { <span class="onl-dot" title="@L["Struct_OnlineNow"]"></span> }
+                            <b>@r.Callsign</b>
+                            <span class="node-badge @r.BadgeClass">@r.Badge</span>
+                            <span class="acc-tag">@r.AccCode</span>
+                            @if (r.DalPadre) { <span class="fb-seq-tag">@L["Struct_Fallback_Seq_FromParent"]</span> }
+                        </div>
+                    }
+                </div>
+            </div>
         }
     }
+
+    <div class="fb-seq-end">@L["Struct_Fallback_Seq_Unicom"]</div>
 </div>
 
 @code {
-    [Parameter, EditorRequired] public IReadOnlyList<FallbackChainRow> Rows { get; set; } = Array.Empty<FallbackChainRow>();
+    /// <summary>Il nodo di cui si sta guardando la catena.</summary>
+    [Parameter, EditorRequired] public string SelfCallsign { get; set; } = "";
+    [Parameter] public string SelfBadge { get; set; } = "";
+    [Parameter] public string SelfBadgeClass { get; set; } = "";
+    [Parameter] public bool SelfOnline { get; set; }
+
+    /// <summary>Un elenco per passo; le voci di uno stesso passo si dividono il traffico per fascia.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<IReadOnlyList<FallbackChainRow>> Steps { get; set; } = Array.Empty<IReadOnlyList<FallbackChainRow>>();
 }

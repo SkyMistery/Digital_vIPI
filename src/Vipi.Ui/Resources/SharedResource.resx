@@ -105,7 +105,6 @@
   <data name="Help_OpenGuide" xml:space="preserve"><value>Apri la Guida</value></data>
   <data name="Struct_LeafAirport" xml:space="preserve"><value>L'aeroporto è una foglia: nessun sottoalbero.</value></data>
   <data name="Struct_NoSubtree" xml:space="preserve"><value>Nessun sottoalbero (copre solo sé stesso).</value></data>
-  <data name="Struct_RootNoParent" xml:space="preserve"><value>Radice (nessun padre): copre sé stesso top-down.</value></data>
   <data name="Apt_OpenFullVipi" xml:space="preserve"><value>Apri vIPI completa</value></data>
   <data name="Apt_Wind" xml:space="preserve"><value>Vento</value></data>
   <data name="Apt_SuggestedRunways" xml:space="preserve"><value>Piste suggerite</value></data>
@@ -661,6 +660,16 @@
   <data name="Struct_AccRootsTitle" xml:space="preserve"><value>Radici ACC (nessun padre — copertura top-down)</value></data>
   <data name="Struct_Inherited" xml:space="preserve"><value>ereditato</value></data>
   <data name="Struct_Fallback_Title" xml:space="preserve"><value>Catena di ripiego</value></data>
+  <data name="Struct_Coverage_Covers" xml:space="preserve"><value>Copre (dominio):</value></data>
+  <data name="Struct_Coverage_Airport1" xml:space="preserve"><value>1 aeroporto coperto</value></data>
+  <data name="Struct_Coverage_AirportsN" xml:space="preserve"><value>{0} aeroporti coperti</value></data>
+  <data name="Struct_Fallback_EditTitle" xml:space="preserve"><value>Modifica le righe</value></data>
+  <data name="Struct_Fallback_Target" xml:space="preserve"><value>ripiego</value></data>
+  <data name="Struct_Fallback_Seq_Self" xml:space="preserve"><value>questo settore</value></data>
+  <data name="Struct_Fallback_Seq_None" xml:space="preserve"><value>Nessun ripiego e nessun padre: se questo settore e' chiuso, il traffico va su UNICOM.</value></data>
+  <data name="Struct_Fallback_Seq_AnyLevel" xml:space="preserve"><value>ogni quota</value></data>
+  <data name="Struct_Fallback_Seq_FromParent" xml:space="preserve"><value>padre</value></data>
+  <data name="Struct_Fallback_Seq_Unicom" xml:space="preserve"><value>esauriti tutti, il traffico va su UNICOM</value></data>
   <data name="Struct_Fallback_HelpAria" xml:space="preserve"><value>Come funziona la catena di ripiego</value></data>
   <data name="Struct_Fallback_Help" xml:space="preserve"><value>&lt;b&gt;Chi riceve il traffico di questo settore quando è chiuso.&lt;/b&gt; Le righe qui sotto si consultano &lt;b&gt;in ordine&lt;/b&gt;, e ognuna può valere solo in una fascia di quota: la prima che vale e il cui bersaglio è online si prende il traffico. Esaurite le righe, la ricaduta prosegue sul &lt;b&gt;padre&lt;/b&gt; come ha sempre fatto — per questo un settore senza righe si comporta esattamente come prima.&lt;br/&gt;&lt;br/&gt;Serve quando la divisione dello spazio aereo è &lt;b&gt;verticale&lt;/b&gt;: con Milano divisa in due fino a FL305 e un solo settore aperto sopra, il traffico alto dell'est va all'alto dell'ovest, non al basso dell'est che è il suo padre.&lt;br/&gt;&lt;br/&gt;⚠️ Un punto di trasferimento che &lt;b&gt;non dichiara la quota&lt;/b&gt; non può essere risolto in verticale: per lui valgono solo le righe senza fascia.</value></data>
   <data name="Struct_Fallback_Suggest" xml:space="preserve"><value>proponi</value></data>
@@ -674,7 +683,6 @@
   <data name="Struct_Fallback_Remove" xml:space="preserve"><value>Togli questa riga</value></data>
   <data name="Struct_Fallback_Suggested" xml:space="preserve"><value>Proposte dalla geometria:</value></data>
   <data name="Struct_Fallback_NoSuggestions" xml:space="preserve"><value>Nessuna proposta: nessun altro settore condivide quota con questo.</value></data>
-  <data name="Struct_Fallback_ThenParent" xml:space="preserve"><value>poi, il padre:</value></data>
   <data name="Struct_Ciclo" xml:space="preserve"><value>ciclo</value></data>
   <data name="Struct_CicloTitle" xml:space="preserve"><value>Gerarchia ciclica: questo settore è antenato di sé stesso. La catena di ricaduta si interrompe qui. Assegnargli un padre valido, o toglierlo al figlio che lo cita.</value></data>
   <data name="Struct_InheritedTitle" xml:space="preserve"><value>Padre non scritto: dedotto dalla scaletta dell'aeroporto (DEL → GND → TWR → APP). Assegnane uno per fissarlo.</value></data>

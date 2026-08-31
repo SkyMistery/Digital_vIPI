@@ -1,9 +1,11 @@
-@inject IStringLocalizer<SharedResource> L
+﻿@inject IStringLocalizer<SharedResource> L
 @* Anteprima copertura (dominio giù: figli diretti + aeroporti coperti) di un nodo di struttura. Markup
    dichiarativo: Blazor encoda i valori dinamici (no MarkupString, no XSS). Dati già calcolati dalla pagina. *@
 
 <div class="fallback-chain">
-    <div class="muted" style="font-size:12px;margin:8px 0 4px">Copre (dominio):</div>
+    @* ⚠️ Il titolo era scritto a mano, in italiano, e usciva cosi' anche nella pagina inglese. Stessa
+       famiglia del letterale che stava in StructureFallbackChain: se n'e' accorto uno screenshot, non un test. *@
+    <div class="muted" style="font-size:12px;margin:8px 0 4px">@L["Struct_Coverage_Covers"]</div>
     @if (IsLeaf)
     {
         <div class="help">@L["Struct_LeafAirport"]</div>
@@ -21,7 +23,9 @@
                 {<span class="muted" style="font-size:11px"> +@r.DescendantCount</span>}
             </div>
         }
-        <div style="margin-top:6px;font-family:var(--font-head);font-weight:700;color:var(--brand-ink)">@AirportsCovered aeroport@(AirportsCovered == 1 ? "o" : "i") copert@(AirportsCovered == 1 ? "o" : "i")</div>
+        @* Il singolare e il plurale sono DUE chiavi, non una desinenza incollata: in inglese la parola che
+           cambia non e' in fondo, e una regola scritta sulle desinenze italiane l'avrebbe rotta. *@
+        <div style="margin-top:6px;font-family:var(--font-head);font-weight:700;color:var(--brand-ink)">@(AirportsCovered == 1 ? L["Struct_Coverage_Airport1"] : L["Struct_Coverage_AirportsN", AirportsCovered])</div>
     }
 </div>
 
