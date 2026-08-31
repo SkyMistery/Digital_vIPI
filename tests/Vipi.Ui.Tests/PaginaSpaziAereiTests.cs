@@ -138,12 +138,13 @@ public class PaginaSpaziAereiTests : TestContext
     }
 
     /// <summary>
-    /// ⚠️ Il <b>vecchio</b> indirizzo pubblico resta una rotta della stessa pagina: è stato pubblico per
-    /// giorni, sta nei collegamenti già scritti, e una rotta in più costa una riga mentre un 404 costa una
-    /// segnalazione. Chi ci arriva trova la stessa pagina — quindi anche lo stesso rifiuto.
+    /// ⚠️ <b>Un indirizzo solo.</b> Il vecchio <c>/services/airspace</c> è stato tolto per decisione del
+    /// committente (1 settembre 2026): era il percorso con cui la mappa girava <b>senza cancello</b>, e
+    /// tenerlo in vita avrebbe voluto dire lasciarlo in giro. Chi ce l'ha nei segnalibri trova un 404, che
+    /// è la risposta giusta — la pagina non sta più lì.
     /// </summary>
     [Fact]
-    public void I_due_indirizzi_portano_alla_stessa_pagina()
+    public void C_e_un_indirizzo_solo_e_non_e_quello_pubblico_di_prima()
     {
         var rotte = typeof(AirspacePage)
             .GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), false)
@@ -151,7 +152,6 @@ public class PaginaSpaziAereiTests : TestContext
             .Select(r => r.Template)
             .ToList();
 
-        Assert.Contains("/services/vsop/airspace", rotte);
-        Assert.Contains("/services/airspace", rotte);
+        Assert.Equal(new[] { "/services/vsop/airspace" }, rotte);
     }
 }

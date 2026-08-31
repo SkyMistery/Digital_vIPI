@@ -186,7 +186,8 @@ pagina dice quali agganci sono rimasti scoperti.
 ⚠️ **Aggiornato il 1 settembre 2026**: nasceva pubblica e a `/services/airspace`. Il committente l'ha
 chiusa allo staff di divisione «per ora» e spostata sotto `/services/vsop/`, dove ha smesso di essere
 un servizio a sé ed è diventata una parte della documentazione (scheda marcata `shortcut`, come i vSOP
-militari). Il vecchio indirizzo resta una **seconda rotta** della stessa pagina.
+militari). ⚠️ Il vecchio indirizzo è stato **tolto**: era il percorso con cui la mappa girava **senza
+cancello**, e risponde 404 come qualunque altro percorso inesistente.
 
 Si vedono **i settori nostri** (da IVAO, dal sectorfile, sintetici — con scritto quale) **e i volumi
 del file**, accendibili per famiglia. Le aree regolamentate, se ci vanno, arrivano **dal DB IVAO**
@@ -226,7 +227,7 @@ senza poligono, per il ripiego.
 | **S2** | **Il catalogo e il caricamento.** Le due tabelle, la pagina admin: carica, esito in chiaro («1 536 letti, 362 utilizzabili, 3 doppioni»), elenco filtrabile, anteprima in mappa. Il KMZ si conserva intero. | 1 |
 | **S3** | **La sostituzione a mano.** Il legame (per chiave naturale), la sua lettura nelle due viste AoR, e il blocco «Settori agganciati» nella pagina degli spazi aerei — dove stanno i volumi, perché la scelta è *quali volumi*, non *quale settore*. Con «torna a IVAO» e l'avviso sugli agganci scoperti. → **LIBA e LICC chiusi.** | 1 |
 | **S4** | ✅ **L'ATZ per le TWR.** Passo automatico fra il ripiego del sectorfile e il cerchio; aggancio per ICAO nel nome (74 su 91). ⚠️ Un ICAO con **più di un ATZ si salta**: la colonna tiene un anello. | — |
-| **S5** | ✅ **La pagina** `/services/vsop/airspace`, per famiglia, con l'attribuzione. Riusa `AccAor` per intero. ⚠️ Nata **pubblica** a `/services/airspace`; dal 1 settembre 2026 è dello **staff di divisione**, e il vecchio indirizzo è una seconda rotta. | — |
+| **S5** | ✅ **La pagina** `/services/vsop/airspace`, per famiglia, con l'attribuzione. Riusa `AccAor` per intero. ⚠️ Nata **pubblica** a `/services/airspace`; dal 1 settembre 2026 è dello **staff di divisione**, e il vecchio indirizzo è stato tolto. | — |
 | **S6** | ✅ **Il convertitore**: sorgente «dal catalogo spazi aerei» accanto alle tredici che già legge. | — |
 | **S7** | ✅ **Il rapporto radioassistenze**: che cosa il file dice e l'anagrafica no (e viceversa). **Solo segnalazione**: si corregge nel sectorfile e si reimporta. | — |
 
