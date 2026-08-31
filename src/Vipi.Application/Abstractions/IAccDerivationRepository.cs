@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 using Vipi.Domain;
 
 namespace Vipi.Application.Abstractions;
@@ -9,8 +9,12 @@ namespace Vipi.Application.Abstractions;
 /// deciso PRIMA di leggere la release: gli altri tipi lo applicano nel predicato di caricamento
 /// (<c>EfContentRepository.LoadVipiAsync</c>), l'ACC non ha quel predicato e lo legge da qui.
 /// Analogo ACC di <see cref="AppDocumentIdentity"/>.</summary>
+/// <param name="Language">La lingua in cui il documento è redatto, e <paramref name="LanguageLocked"/> se si
+/// legge in quella sola. ⚠️ Viaggiano QUI e non solo nello snapshot: gli snapshot ACC già pubblicati portano
+/// <c>Language</c> nulla (difetto §2 della carta lingua-bloccata) e il blocco è una regola di servizio, che
+/// vale dal momento in cui si accende. Null = documento non ancora creato.</param>
 public sealed record AccDocumentIdentity(int SectorId, string RootCallsign, string AccCode, string AccName, int? DocumentId,
-    bool IsDocumentHidden = false);
+    bool IsDocumentHidden = false, Language? Language = null, bool LanguageLocked = false);
 
 /// <summary>L'ACC di appartenenza di un settore, per l'albero dei coordinamenti: come si chiama, com'è
 /// identificato e se è di casa.

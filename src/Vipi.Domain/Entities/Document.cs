@@ -6,7 +6,23 @@ public class Document
     public int Id { get; set; }
     public DocumentType Type { get; set; }
     public string Title { get; set; } = default!;
-    public Language Language { get; set; }             // It (vIPI) | En (vLOA) — fisso
+    public Language Language { get; set; }             // la lingua in cui il documento si REDIGE
+
+    /// <summary>
+    /// Il documento si legge <b>sempre</b> in <see cref="Language"/>, anche a chi sta guardando il sito
+    /// nell'altra lingua (carta <c>docs/feature/2026-08-31-lingua-bloccata.md</c>).
+    ///
+    /// <para>⚠️ <b>Spegne la traduzione, non la fa.</b> Un documento scritto in italiano non diventa inglese
+    /// bloccandolo: va scritto in inglese. È la decisione del committente, ed è quella che rende il blocco
+    /// una funzione a costo zero — nessun carattere pagato al motore, nessuna resa plausibile-e-sbagliata da
+    /// rileggere.</para>
+    ///
+    /// <para>⚠️ Si legge dal documento <b>vivo</b>, non dallo snapshot di release: accendere il blocco vale
+    /// subito anche su un documento già pubblicato. È una regola di SERVIZIO — «questo si legge in inglese»
+    /// — non un contenuto congelato, e un ciclo AIRAC dura quattro settimane.</para>
+    /// </summary>
+    public bool LanguageLocked { get; set; }
+
     public DocumentStatus Status { get; set; } = DocumentStatus.Draft;
 
     /// <summary>

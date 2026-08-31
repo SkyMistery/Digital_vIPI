@@ -1551,6 +1551,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("LanguageLocked")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("LastUpdatedAiracCycle")
                         .IsRequired()
                         .HasColumnType("TEXT");

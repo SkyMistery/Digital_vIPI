@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
@@ -127,7 +127,12 @@ public sealed class DocumentTranslator
             Sections = view.Sections.Select(passata.Sezione).ToList(),
             // La vista tradotta resta una vista dello STESSO documento, e deve continuare a sapere in che
             // lingua e' scritto l'originale e che cosa la release aveva congelato.
+            // ⚠️ Anche il BLOCCO, per la stessa ragione per cui si ricopia `Audience` sulle sezioni: ogni campo
+            // che questa classe non ricopia lo azzera in silenzio, e il default è sempre quello «buono», quindi
+            // la pagina continua a rendersi e nessun test cade. Qui vorrebbe dire dire «non bloccato» di un
+            // documento bloccato, alla riga dopo averlo tradotto.
             Language = view.Language,
+            LanguageLocked = view.LanguageLocked,
             Translations = view.Translations,
         };
 

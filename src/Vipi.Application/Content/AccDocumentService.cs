@@ -123,7 +123,8 @@ public sealed class AccDocumentService : IAccDocumentService
             ?? throw new Aor.ValidationException(Lingua($"vIPI ACC {accCode} senza versione di lavoro.", $"ACC vIPI {accCode} has no working version."));
 
         var blocks = AccDocumentAssembler.Assemble(doc);
-        return new AccDocumentModel(doc.DocumentId, doc.VersionId, doc.IsEditable, accCode, id.AccName, blocks);
+        return new AccDocumentModel(doc.DocumentId, doc.VersionId, doc.IsEditable, accCode, id.AccName, blocks,
+            Language: doc.Language, LanguageLocked: doc.LanguageLocked);
     }
 
     public async Task<AccDocumentModel?> LoadForViewAsync(string accCode, CancellationToken ct = default)
@@ -145,10 +146,13 @@ public sealed class AccDocumentService : IAccDocumentService
         if (rel is not null && DeserializeSnapshot(rel.PayloadJson) is { } snapRaw)
         {
             var blocks = AccDocumentAssembler.Assemble(snapRaw);
-            // Lingua e traduzioni congelate viaggiano con lo snapshot: la pagina deve poter sapere da che
-            // lingua si parte e che cosa era già tradotto quando si è pubblicato (carta bilingue §7-8).
+            // Le traduzioni congelate viaggiano con lo SNAPSHOT (sono ciò che quella release ha pubblicato);
+            // la lingua e il blocco vengono invece dal documento VIVO. ⚠️ Non è una preferenza di stile: gli
+            // snapshot scritti prima del 31 agosto 2026 portano `Language` nulla — misurato, 13 su 13 — e il
+            // blocco è una regola di servizio, che deve valere dal momento in cui si accende e non dalla
+            // ripubblicazione successiva (carta lingua-bloccata §2/§3).
             return new AccDocumentModel(id.DocumentId ?? 0, 0, IsDraft: false, accCode, id.AccName, blocks,
-                rel.ReleaseAiracCycle, snapRaw.Language, snapRaw.Translations);
+                rel.ReleaseAiracCycle, id.Language ?? snapRaw.Language, snapRaw.Translations, id.LanguageLocked);
         }
 
         return null;
@@ -163,10 +167,12 @@ public sealed class AccDocumentService : IAccDocumentService
         if (!rel.TargetKey.StartsWith(accCode + "|", StringComparison.OrdinalIgnoreCase)) return null;
         if (DeserializeSnapshot(rel.PayloadJson) is not { } raw) return null;
 
-        var name = (await _repo.ResolveAccDocumentIdentityAsync(accCode, ct))?.AccName ?? accCode;
+        var ident = await _repo.ResolveAccDocumentIdentityAsync(accCode, ct);
+        var name = ident?.AccName ?? accCode;
         var blocks = AccDocumentAssembler.Assemble(raw);
         var data = new AccVipiData { AccCode = accCode, AccName = name, Blocks = blocks.Select(b => b.Block).ToList() };
-        return new AccReleaseView(data, rel.ReleaseAiracCycle, raw.Language, raw.Translations);
+        return new AccReleaseView(data, rel.ReleaseAiracCycle, ident?.Language ?? raw.Language, raw.Translations,
+            ident?.LanguageLocked ?? raw.LanguageLocked);
     }
 
     // Snapshot release ACC = DocReleasePayload (ramo Document, doc 08e-acc): estrae il RawDocument congelato.

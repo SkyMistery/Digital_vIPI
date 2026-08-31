@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;
 using Vipi.Domain;
 
@@ -80,6 +80,7 @@ public sealed class VipiViewService : IVipiViewService
             AiracCycle = raw.AiracCycle,
             Sections = sections,
             Language = raw.Language,
+            LanguageLocked = raw.LanguageLocked,
             Translations = raw.Translations,
         };
     }

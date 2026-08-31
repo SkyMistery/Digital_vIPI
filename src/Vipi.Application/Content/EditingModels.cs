@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -49,6 +49,13 @@ public sealed class EditableDocument
     /// la lingua in cui quella famiglia nasce (<c>DocumentTranslator.CodiceSorgente</c>).
     /// </summary>
     public Vipi.Domain.Language? Language { get; init; }
+
+    /// <summary>
+    /// Il documento si legge <b>sempre</b> in <see cref="Language"/>, anche a chi guarda il sito nell'altra
+    /// (carta <c>docs/feature/2026-08-31-lingua-bloccata.md</c>). Lo decide chi pubblica, dal pannello di
+    /// rilascio.
+    /// </summary>
+    public bool LanguageLocked { get; init; }
 
     /// <summary>Vero se la versione di lavoro è una bozza editabile.</summary>
     public bool IsEditable => VersionStatus == DocumentStatus.Draft;
