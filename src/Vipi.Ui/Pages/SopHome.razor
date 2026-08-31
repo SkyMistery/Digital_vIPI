@@ -18,6 +18,7 @@
 @inject IStationResolver Stations
 @inject IEditAuthorizationService Authz
 @inject IOnlineAtcProvider Online
+@inject ILogger<SopHome> Log
 @inject IStringLocalizer<SharedResource> L
 @inject EnglishStrings En
 
@@ -32,7 +33,17 @@
     </div>
 
     <div class="section-title"><h2 class="h-sect">Virtual Area Control Center</h2><span class="ln"></span></div>
-    @if (Stations.Accs.Count == 0)
+    @* ⚠️ `_accs`, non `Stations.Accs`: la proprieta' del servizio e' a caricamento pigro e LANCIA se il
+       database non risponde. Dentro il markup non si puo' catturare niente, quindi il catalogo si legge una
+       volta sola nel ciclo di vita (LeggiCatalogo) e qui si guarda solo un campo. *@
+    @if (!_catalogo)
+    {
+        <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div>
+            <p class="ct">@L["Home_CatalogDownTitle"]</p>
+            @L["Home_CatalogDownBody"]
+        </div></div>
+    }
+    else if (_accs.Count == 0)
     {
         <div class="callout info"><span class="cic"><Icon Name="inbox" Size="18" /></span><div>
             <p class="ct">@L["Home_NoAccTitle"]</p>
@@ -46,7 +57,7 @@
     else
     {
         <div class="acc-grid">
-            @foreach (var acc in Stations.Accs)
+            @foreach (var acc in _accs)
             {
                 var n = OnlineCount(acc.Code);
                 <a class="acc-card @(n > 0 ? "on" : "off")" href="/services/vsop/@acc.Code.ToLowerInvariant()" style="text-decoration:none">
@@ -88,15 +99,47 @@
 </div>
 
 @code {
+    private IReadOnlyList<AccInfo> _accs = Array.Empty<AccInfo>();
+
+    /// <summary>Vero se il catalogo si e' letto. Falso = intoppo del database, non «zero ACC».</summary>
+    private bool _catalogo;
+
     // Scalda le cache del resolver (ACC + mappa aeroporti) prima del render: la home itera tutte le ACC e per
     // ognuna chiama OnlineCount()→ResolveByCallsign. Senza prewarm il lazy-load colpirebbe il DbContext condiviso
     // durante il render → crash "second operation" su Postgres.
-    protected override void OnInitialized() => Stations.Prewarm();
+    //
+    // ⚠️ E IL CATALOGO NON DECIDE SE LA PAGINA ESISTE. Fino al 31 agosto 2026 questa riga era
+    // `=> Stations.Prewarm();`, nuda: una lettura del database che se falliva buttava giu' l'INGRESSO del
+    // sito con un 500. E' successo — codice 00-c4cd7224…, 11:40:17 UTC del 31 agosto,
+    // «Cannot Open when State is Connecting» — e la sequenza e' istruttiva:
+    //   1. la barra (SopLayout.LeggiCatalogo) prova per prima, fallisce, INGOIA l'eccezione e prosegue;
+    //   2. la cache del resolver resta quindi vuota;
+    //   3. la home ritenta la stessa lettura sullo stesso contesto rotto, e qui non c'era rete.
+    // Cioe' il rimedio della barra, messo il 24 agosto, proteggeva la barra e non la pagina sotto. Ora sono
+    // due volte lo stesso gesto, ed e' lo stesso motivo: il contorno si spegne, il contenuto esce.
+    protected override void OnInitialized()
+    {
+        try
+        {
+            Stations.Prewarm();
+            _accs = Stations.Accs;
+            _catalogo = true;
+        }
+        catch (Exception ex)
+        {
+            Log.LogWarning(ex, "Home: il catalogo delle ACC non si e' potuto leggere. La pagina esce senza "
+                             + "le schede ACC e con l'avviso, invece di rispondere 500.");
+        }
+    }
 
     // Conteggio one-shot al render: ATC online del dato ACC. Include sia i settori d'area (es. LIRR_NE_CTR)
     // sia le postazioni d'aeroporto sotto quell'ACC (es. LIRP_TWR / LIEO_EW0_APP → l'ACC dell'aeroporto).
+    //
+    // ⚠️ La guardia su `_catalogo` non e' ridondante con l'`@if` del markup: `ResolveByCallsign` legge ANCHE
+    // la mappa degli aeroporti, che e' una seconda lettura pigra e lancia per conto suo.
     private int OnlineCount(string accCode)
     {
+        if (!_catalogo) return 0;
         var snap = Online.GetCurrent();
         return snap.Callsigns.Count(cs =>
             Stations.ResolveByCallsign(cs)?.Code.Equals(accCode, StringComparison.OrdinalIgnoreCase) == true);

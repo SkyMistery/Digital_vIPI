@@ -1,11 +1,35 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 31 agosto 2026, notte (**1.1.0 È IN PRODUZIONE**, verificato dal vivo — §A15; cosa dice la diagnostica del server e cosa resta — §A16); prima, 30 agosto pomeriggio (**§AB — la shape di un settore ha una porta sola**,
+**Ultimo aggiornamento:** 31 agosto 2026, pomeriggio (**§AM — quattro difetti letti nella diagnostica del server, e il primo era la diagnostica stessa**: ramo `corse-e-perdita-diagnostica`, non fuso); prima, 31 agosto notte (**1.1.0 È IN PRODUZIONE**, verificato dal vivo — §A15; cosa dice la diagnostica del server e cosa resta — §A16); prima, 30 agosto pomeriggio (**§AB — la shape di un settore ha una porta sola**,
 fusa in `main` e spinta; prima, i due rami di §AA e §E10. ⚠️ Tutto ciò che segue nella
 sezione «Dove siamo» è **storia**: i rami che vi si citano come «non fusi» sono in `main` e sono stati
 cancellati — vale il riquadro qui sotto).
 
 ## Dove siamo, prima di tutto il resto
+
+> ### 🔴 31 agosto 2026, pomeriggio — IL PROCESSO E' MORTO DUE VOLTE, E LA COLPA ERA DELLA DIAGNOSTICA
+>
+> Il committente ha scaricato `diagnostica/` dal server e ha segnalato due sintomi: la pagina **«This page
+> did not open»** e **«A second operation was started on this context instance»** sotto un documento su cui
+> stava lavorando **da solo**. Dentro c'erano **quattro** difetti — carta
+> [`docs/feature/2026-08-31-corse-dbcontext-e-diagnostica.md`](docs/feature/2026-08-31-corse-dbcontext-e-diagnostica.md),
+> lavori aperti **§AM**. Ramo **`corse-e-perdita-diagnostica`** da `consegna-20260831`, **NON fuso, NON
+> consegnato**. Build Release 0 avvisi su net8 e net10, **14 test nuovi**, ✅ **nessuna migrazione**.
+>
+> ⚠️ **La direzione l'ha data `avvii.txt`, il file nato ieri per un altro motivo** (§AE): due AVVII con
+> «il processo precedente NON si e' spento in modo ordinato», alle 10:57 e alle 13:05, a due-tre ore l'uno
+> dall'altro. Una cadenza cosi' regolare non e' un difetto che scatta su un gesto: **e' qualcosa che
+> cresce**. Era `CollisioniDbContext` — lo strumento scritto il 24 agosto *per capire* le corse sul
+> `DbContext` — che aggiungeva un riferimento a un elenco **a ogni comando SQL** e lo potava solo quando
+> scattava una fotografia, cioe' quasi mai.
+>
+> 🔴 **§A16 diceva «nessun errore nuovo dopo l'1.1.0», ed e' rimasto vero per poche ore.** La riga
+> e' stata corretta sul posto.
+>
+> 🟡 **Quel che resta** (§AM1–AM4): il catalogo delle ACC in memoria di **processo** invece che per
+> circuito — il rimedio alla radice —, la **verifica dal vivo** (queste corse si aprono solo con la latenza
+> di un database remoto), rileggere `avvii.txt` fra qualche giorno per vedere sparire le morti male, e
+> cancellare `errori-richieste.txt` sul server.
 
 > ### 🆕 LO STATO VERO, 31 agosto 2026 (notte) — questo riquadro batte tutto il resto del file
 >

@@ -1,8 +1,32 @@
+﻿@inherits OwningComponentBase
 @inject Vipi.Application.Translation.IDocumentTranslationReview Revisione
 @inject IStringLocalizer<SharedResource> L
 @using System.Globalization
+@using Microsoft.Extensions.DependencyInjection
 @using Vipi.Application.Translation
 @using Vipi.Domain.Entities
+
+@*  ⚠️ DUE ISTANZE DELLO STESSO SERVIZIO, E LA DIFFERENZA CONTA (31 agosto 2026).
+
+    `_lettura` viene dallo scope DI PROPRIO del componente (OwningComponentBase.ScopedServices), quindi
+    lavora su un `VipiDbContext` isolato: la si usa per TUTTO ciò che parte dal ciclo di vita, cioè mentre
+    l'editor genitore ha ancora le sue query in volo. Senza, succede questo — ed è successo, due volte in
+    dieci secondi, codici 00-bea549b1… e 00-a0ff0695… su /services/vsop/libb/editor:
+
+        A second operation was started on this context instance
+           at EfEditingRepository.LoadForEditAsync ← DocumentTranslationReview.RigheAsync
+           ← TranslationReviewPanel.OnParametersSetAsync
+
+    Blazor disegna l'albero mentre `OnInitializedAsync` della pagina è ancora in volo: il pannello si monta
+    lì dentro, e la sua lettura cade sullo stesso contesto di quella dell'editor.
+
+    `Revisione` resta invece `@@inject`, cioè sul contesto del circuito, e serve alla SCRITTURA
+    (`CorreggiAsync`). ⚠️ Non è una svista ed è la parte da non «uniformare»: `CorreggiAsync` passa da
+    `IEditAuthorizationService`, che risolve l'identità da `IHttpContextAccessor`. In uno scope creato
+    dopo la richiesta quell'HttpContext non c'è più: il servizio risponderebbe «anonimo» e il salvataggio
+    verrebbe rifiutato a tutti. È la stessa regola già scritta per gli altri sei componenti isolati —
+    i servizi che leggono i claim restano quelli del circuito. E la scrittura non ha comunque la corsa da
+    evitare: parte da un clic, non dal render. *@
 
 @* ---- Il correttore delle traduzioni, dentro l'editor (carta bilingue §5) -----------------------------
 
@@ -118,28 +142,41 @@
 
     private int DaRileggere => _righe?.Count(r => r.Origine != TranslationOrigin.Human) ?? 0;
 
+    /// <summary>Il servizio della LETTURA, su un contesto tutto suo. Vedi il riquadro in cima al file.</summary>
+    private IDocumentTranslationReview _lettura = default!;
+
+    /// <summary>Con quali (documento, lingua) sono state caricate le righe che si stanno mostrando.</summary>
+    private (int Doc, string Lingua)? _caricatoPer;
+
+    protected override void OnInitialized()
+        => _lettura = ScopedServices.GetRequiredService<IDocumentTranslationReview>();
+
     protected override async Task OnParametersSetAsync()
     {
         // ⚠️ La lingua è quella della barra, la stessa di tutto il resto: il pannello non ha un selettore
         // suo. Due comandi per la stessa cosa sono il difetto che la Guida ha già pagato.
         _lettore = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+
+        // ⚠️ LA LETTURA È CONDIZIONATA AL CAMBIO, e non è un'ottimizzazione: è la regola pagata il
+        // 1 agosto 2026 con ReleasePanel, riscritta qui parola per parola perché questo file l'aveva persa.
+        // `OnParametersSetAsync` NON scatta solo al montaggio: scatta a OGNI ridisegno del genitore, e
+        // l'editor si ridisegna al primo `await` di qualunque suo gestore — cioè ogni volta che si salva,
+        // si aggiunge una sezione, si apre un blocco. Senza questa riga, ogni gesto dell'editor ricaricava
+        // il documento INTERO per un pannello che è chiuso di suo e che nessuno stava guardando.
+        // Non è l'`@if` sui dati caricati a proteggere: il pericolo è il RI-render, non il primo montaggio.
+        if (_caricatoPer == (DocumentId, _lettore)) return;
+
+        _caricatoPer = (DocumentId, _lettore);
         _righe = null;
         _aperta = null;
         _esito = null;
 
-        var righe = await Revisione.RigheAsync(DocumentId, _lettore);
+        var revisione = await _lettura.RevisioneAsync(DocumentId, _lettore);
         // Vuoto vuol dire due cose diverse — «stessa lingua» e «niente da tradurre» — e vanno dette in due
-        // modi diversi, o chi guarda pensa che il pannello sia rotto.
-        _stessaLingua = righe.Count == 0 && await StessaLinguaAsync();
-        _righe = righe;
-    }
-
-    /// <summary>Vero se si sta leggendo nella lingua in cui il documento è scritto.</summary>
-    private async Task<bool> StessaLinguaAsync()
-    {
-        // Se in un'altra lingua ci sarebbe qualcosa da rivedere, allora il vuoto di adesso è «stessa lingua».
-        var altra = _lettore == "en" ? "it" : "en";
-        return (await Revisione.RigheAsync(DocumentId, altra)).Count > 0;
+        // modi diversi, o chi guarda pensa che il pannello sia rotto. La risposta arriva dalla STESSA
+        // lettura: prima si ricaricava il documento con l'altra lingua solo per dedurla.
+        _stessaLingua = revisione.StessaLingua(_lettore);
+        _righe = revisione.Righe;
     }
 
     private async Task ApriAsync(RigaDaRivedere r)
@@ -147,7 +184,7 @@
         _aperta = r.Sorgente;
         _bozza = r.Tradotto;
         _esito = null;
-        _toccati = await Revisione.DocumentiToccatiAsync(r.Sorgente);
+        _toccati = await _lettura.DocumentiToccatiAsync(r.Sorgente);
     }
 
     private void Chiudi()
@@ -172,7 +209,10 @@
                 _ => L["Tr_Saved", _toccati],
             };
             Chiudi();
-            _righe = await Revisione.RigheAsync(DocumentId, _lettore);
+            // La rilettura passa dal contesto isolato: la scrittura qui sopra è appena finita su quello del
+            // circuito, e riprendere da lì significherebbe rimetterci sopra una query mentre il genitore si
+            // ridisegna per il `StateHasChanged` di questo stesso gestore.
+            _righe = (await _lettura.RevisioneAsync(DocumentId, _lettore)).Righe;
         }
         catch (Vipi.Application.Aor.ValidationException ex)
         {

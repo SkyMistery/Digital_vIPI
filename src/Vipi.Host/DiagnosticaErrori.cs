@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Diagnostics;
@@ -42,6 +42,13 @@ public static class DiagnosticaErrori
     /// <summary>Le richieste che falliscono insieme sono richieste diverse: si scrive una alla volta.</summary>
     private static readonly object Serratura = new();
 
+    /// <summary>
+    /// Quanto può essere vecchia una fotografia delle collisioni perché valga ancora la pena di allegarla a
+    /// QUESTO errore. Dieci secondi: una corsa sul <c>DbContext</c> e l'eccezione che ne esce distano
+    /// millisecondi, non minuti — se la fotografia è più vecchia è di un altro guasto.
+    /// </summary>
+    private static readonly TimeSpan Freschezza = TimeSpan.FromSeconds(10);
+
     /// <summary>Categoria di log dei guasti di richiesta. Nome fisso: è la stringa da cercare nei log del
     /// server, quando i log del server si possono leggere. Fratello di <c>Vipi.Auth.Ivao</c>.</summary>
     public const string CategoriaLog = "Vipi.Errori";
@@ -65,11 +72,20 @@ public static class DiagnosticaErrori
             // ⚠️ L'altra metà della storia. Lo stack dell'eccezione dice chi è MORTO; queste righe dicono chi
             // stava GIÀ CORRENDO sullo stesso DbContext. Senza, «A second operation was started» resta una
             // domanda — è successo il 24 agosto 2026, ed è costato un giro di deploy su un sospettato
-            // sbagliato. Si stampano solo se ce ne sono.
-            if (CollisioniDbContext.Scatti_() is { Count: > 0 } collisioni)
+            // sbagliato.
+            //
+            // 🔴 31 agosto 2026: qui si stampavano TUTTE le fotografie in coda, venti, a OGNI errore. Due
+            // conseguenze, tutt'e due misurate sul file sceso dal server quel giorno:
+            //   · 634 kB per TRE errori soli. Il tetto è 512 kB, quindi il file ruotava via dopo tre voci e
+            //     la storia che serviva a capire non c'era già più.
+            //   · la voce delle 11:40:17 portava fotografie delle 11:37:06 — di un'altra richiesta, con
+            //     dentro query che con quella pagina non c'entravano. Una scena di un altro guasto allegata
+            //     al tuo si legge come se fosse la tua: depista, e depista con l'aria del fatto.
+            // Quindi: UNA fotografia, l'ultima, e solo se è di POCO PRIMA di questo errore.
+            if (CollisioniDbContext.UltimoScatto(Freschezza) is { Length: > 0 } collisione)
             {
-                sb.AppendLine().AppendLine("Che cosa era aperto sul DbContext quando è successo (il più recente per ultimo):");
-                foreach (var c in collisioni) sb.AppendLine(c);
+                sb.AppendLine().AppendLine("Che cosa era aperto sul DbContext quando è successo:");
+                sb.AppendLine(collisione);
             }
 
             var voce = sb.ToString();

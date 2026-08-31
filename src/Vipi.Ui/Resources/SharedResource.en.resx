@@ -802,6 +802,8 @@
   <data name="Home_Intro" xml:space="preserve"><value>Pick an ACC to browse its vIPI, airports and approaches. Or search a position directly from the top bar.</value></data>
   <data name="Home_NoAccTitle" xml:space="preserve"><value>No ACC yet</value></data>
   <data name="Home_DbEmpty" xml:space="preserve"><value>The database is empty.</value></data>
+  <data name="Home_CatalogDownTitle" xml:space="preserve"><value>ACC list unavailable</value></data>
+  <data name="Home_CatalogDownBody" xml:space="preserve"><value>A passing hiccup, not a change: reload in a moment. Everything else on this page still works.</value></data>
   <data name="Home_CreateFirstAdmin" xml:space="preserve"><value>Create the first ACC to start adding positions, topology and documents.</value></data>
   <data name="Home_CreateFirstUser" xml:space="preserve"><value>Staff hasn't created any ACC yet: check back later.</value></data>
   <data name="Home_CreateAccBtn" xml:space="preserve"><value>+ Create ACC / structure</value></data>

@@ -807,6 +807,8 @@
   <data name="Home_Intro" xml:space="preserve"><value>Seleziona un ACC per consultare le vIPI, gli aeroporti e gli avvicinamenti. Oppure cerca direttamente una postazione dalla barra in alto.</value></data>
   <data name="Home_NoAccTitle" xml:space="preserve"><value>Nessuna ACC ancora</value></data>
   <data name="Home_DbEmpty" xml:space="preserve"><value>Il database è vuoto.</value></data>
+  <data name="Home_CatalogDownTitle" xml:space="preserve"><value>Elenco delle ACC non disponibile</value></data>
+  <data name="Home_CatalogDownBody" xml:space="preserve"><value>È un intoppo momentaneo, non una modifica: ricarica fra poco. Tutto il resto di questa pagina funziona.</value></data>
   <data name="Home_CreateFirstAdmin" xml:space="preserve"><value>Crea la prima ACC per iniziare a inserire posizioni, topologia e documenti.</value></data>
   <data name="Home_CreateFirstUser" xml:space="preserve"><value>Lo staff non ha ancora creato ACC: torna più tardi.</value></data>
   <data name="Home_CreateAccBtn" xml:space="preserve"><value>+ Crea ACC / struttura</value></data>

@@ -1,4 +1,4 @@
-using System.Data.Common;
+﻿using System.Data.Common;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Vipi.Application.Diagnostica;
 
@@ -42,12 +42,10 @@ public sealed class TracciaCollisioniInterceptor : DbCommandInterceptor
         return result;
     }
 
-    public override InterceptionResult DataReaderClosing(
-        DbCommand command, DataReaderClosingEventData eventData, InterceptionResult result)
-    {
-        if (Contesto(eventData) is { } c) CollisioniDbContext.Chiude(c, command.CommandText);
-        return result;
-    }
+    // ⚠️ NIENTE `DataReaderClosing`, ed è una scelta: EF chiude E POI dispone lo stesso lettore, quindi
+    // l'override chiudeva DUE VOLTE lo stesso comando. La seconda chiusura non trova più la sua riga e
+    // `FindLastIndex` toglie quella di un'ALTRA operazione con lo stesso SQL — cioè proprio la riga che
+    // avrebbe dovuto raccontare la collisione. Misurato il 31 agosto 2026.
 
     public override void CommandFailed(DbCommand command, CommandErrorEventData eventData)
     {
