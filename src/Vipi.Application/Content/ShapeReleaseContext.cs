@@ -1,8 +1,13 @@
 namespace Vipi.Application.Content;
 
 /// <summary>
-/// «Sto congelando una release per <b>questo</b> ciclo AIRAC»: l'unico posto in cui la lettura delle shape
-/// non deve dare la geometria più recente ma quella <b>in vigore</b> a quel ciclo.
+/// «Sto congelando una release per <b>questo</b> ciclo AIRAC»: l'unico posto in cui una derivazione non deve
+/// dare lo stato più recente ma quello <b>in vigore</b> a quel ciclo.
+///
+/// <para>Sono <b>due</b> le cose che lo chiedono, e il nome del tipo ne ricorda una sola per ragioni
+/// storiche: le <b>shape</b> dei settori (la geometria in vigore a quel ciclo) e le <b>SID</b> d'aeroporto,
+/// che compaiono solo dal ciclo successivo al prelievo — quindi «quali SID ci sono» ha risposte diverse a
+/// cicli diversi, esattamente come la geometria.</para>
 ///
 /// <para><b>Perché un oggetto e non un parametro.</b> Il ciclo lo conosce <c>ReleaseService</c>, e la
 /// geometria la legge il repository di derivazione: in mezzo ci sono i provider di cattura e i servizi di

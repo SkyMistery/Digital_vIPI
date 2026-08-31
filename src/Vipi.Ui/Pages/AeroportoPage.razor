@@ -325,7 +325,13 @@ else
         // lasciare che un ramo di fallback dimenticasse il flag, renderebbe il congelamento AIRAC aggirabile
         // da un `?as=` qualsiasi.
         var useFrozen = _mode.Kind is not (PreviewKind.Draft or PreviewKind.Release);
-        _derived = await AirportView.ResolveForViewAsync(_icao, useFrozen, ReleaseTargetType.Airport);
+        // ⚠️ In anteprima di release si guarda al CICLO DI QUELLA RELEASE, non a quello di oggi. Le derivate
+        // qui si rendono live (useFrozen è false), e una di loro — le SID — ha una regola che dipende dal
+        // ciclo: una SID importata compare dal ciclo successivo al prelievo. Chiedendo sempre «adesso»,
+        // l'anteprima di una release programmata al 2608 mostrava la tabella di oggi e non quella che
+        // uscirà: le SID prelevate nel ciclo in corso mancavano dall'anteprima e poi comparivano da sole
+        // in pubblico. Fuori dall'anteprima `_relCycle` è nullo e non cambia niente.
+        _derived = await AirportView.ResolveForViewAsync(_icao, useFrozen, ReleaseTargetType.Airport, _relCycle);
         // Il ponte verso l'altra edizione. Al PUBBLICO solo se il vSOP militare è pubblicato: un
         // collegamento a un documento che non c'è è peggio di nessun collegamento.
         // ⚠️ Allo STAFF anche se è solo una bozza. Dal 29 agosto 2026 il vSOP militare nasce QUI, dall'editor

@@ -2201,11 +2201,15 @@ button.sh-chip.warn:hover{background:var(--tint-gold)}
 .rule-grid input, .rule-grid select {
   border: 1px solid var(--line); border-radius: 7px; padding: 6px 9px;
   font-family: var(--font-body); font-size: 13px; text-transform: none; color: var(--ink);
-  background: var(--on-brand); transition: .12s;
+  /* ⚠️ `--surface`, NON `--on-brand`: quest'ultimo e' il testo sui fondi di brand e per progetto resta
+     bianco in ogni tema (vedi il commento su --brand-ink). Su un campo faceva --ink chiaro su fondo
+     bianco, cioe' scrivere in bianco su bianco a tema scuro. Tutti gli altri campi del foglio
+     (.field, .xfe-table, .struct .res-table, .se-row, .conv-opt) usano gia' --surface. */
+  background: var(--surface); transition: .12s;
 }
 .rule-grid select {
   padding-right: 28px; cursor: pointer; -webkit-appearance: none; appearance: none;
-  background: var(--on-brand) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235b6470' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 9px center;
+  background: var(--surface) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235b6470' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 9px center;
 }
 .rule-grid input:hover, .rule-grid select:hover { border-color: var(--line-ocean); }
 .rule-grid input:focus, .rule-grid select:focus { outline: 0; border-color: var(--ivao-blue); box-shadow: 0 0 0 2px var(--line-atmos-soft); }
@@ -3190,6 +3194,79 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    delle SID — campo con la lente e chip — invece di etichette e caselle inventate qui. */
 .struct .navadm-bar{margin-bottom:10px}
 .struct .navadm-count{font-size:12px;align-self:center}
+
+/* ---- Pagina Spazi aerei (`/services/vsop/admin/airspace`) ----
+   ⚠️ Perche' esiste. Le classi `asp-*` erano scritte nel markup e NON nel foglio: zero regole, tutte e
+   quindici. Le quattro tabelle stavano su `.res-table` nudo e le colonne portavano i nomi di casa
+   (`c-name`, `c-band`, `c-act`, `c-nowrap`) senza sapere che quelle regole sono SCOPED ad altre tabelle
+   (`.mil-table`, `.conf-table`, `.sorg-alias`): qui non ne arrivava nessuna. Niente larghezze, niente
+   colonna azioni a destra, niente `nowrap` sulle date. La pagina non era «un po' diversa»: era senza
+   foglio.
+
+   ⚠️ E la base e' `.mil-table`, che nonostante il nome e' ORMAI la tabella admin del sito — la usa gia'
+   l'anagrafica radioassistenze, che militare non e'. Scriverne una terza qui avrebbe voluto dire tre
+   tabelle che si somigliano e divergono (Regola del 2). Il nome resta storico; se un giorno si rinomina,
+   si rinomina in un posto solo. */
+.struct .asp-bar{margin-bottom:10px}
+.struct .asp-count{font-size:12px;align-self:center;margin-left:auto}
+/* La barra dell'aggancio sta SOTTO la tabella e compare a scelta fatta: staccata, o si legge come l'ultima
+   riga della tabella stessa. */
+.struct .asp-bind{margin:12px 0 0;padding-top:12px;border-top:1px solid var(--line);margin-bottom:0}
+.struct .asp-bind .htree-select{flex:1 1 200px;max-width:320px}
+.struct .asp-more{font-size:12px;margin:8px 0 0}
+/* La riga che dice il perimetro di un comando: sotto il titolo, stretta come le altre righe d'aiuto. */
+.struct .asp-scope{font-size:12.5px;margin:0 0 10px;max-width:70ch}
+.struct .asp-credit{font-size:12px;margin:16px 0 40px;max-width:70ch}
+.struct .asp-issues{margin:0;padding-left:20px;font-size:13px}
+.struct .asp-issues li{margin:4px 0}
+/* Il volume sparito dal file, sotto l'aggancio che lo cita: e' un avviso, non una nota. */
+.struct .asp-missing{display:flex;align-items:flex-start;gap:5px;margin-top:4px;font-size:12px;color:var(--warn-ink)}
+/* La riga in vigore e quelle spuntate: un tinto, non un bordo — il bordo dentro una tabella fa una riga in
+   piu' che non c'e'. */
+.struct .asp-imports tr.asp-current>td{background:var(--tint-green)}
+.struct .asp-table tr.asp-picked>td{background:var(--tint-atmos)}
+
+/* Il ciclo AIRAC in testata: e' un campo, quindi si veste da campo. Nudo era l'unico input della pagina
+   disegnato dal browser, in fila a un `.btn ghost` che invece e' di casa. */
+.st-head .asp-upload{align-items:center;gap:6px}
+.st-head .asp-cycle{width:92px;border:1px solid var(--line);border-radius:8px;padding:5px 9px;
+  font-family:var(--font-body);font-size:12.5px;background:var(--surface);color:var(--ink)}
+.st-head .asp-cycle:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px var(--line-atmos-soft)}
+/* ⚠️ L'`<InputFile>` e' un `<input type=file>` vero dentro l'etichetta: si nasconde, non si toglie — e'
+   lui a ricevere il clic e ad aprire la finestra di sistema. */
+.st-head .asp-file{position:relative;overflow:hidden;cursor:pointer}
+.st-head .asp-file input[type=file]{position:absolute;inset:0;opacity:0;width:100%;cursor:pointer}
+
+/* Le colonne, tabella per tabella: `.mil-table` e' `table-layout:fixed`, quindi senza dichiararle le
+   sette colonne dei volumi verrebbero larghe uguali e il nome — l'unica che si legge — starebbe stretto
+   come «Punti». */
+.res-table.mil-table.asp-table th.c-pick,.res-table.mil-table.asp-table td.c-pick{width:36px;text-align:center}
+.res-table.mil-table.asp-table th.c-fam,.res-table.mil-table.asp-table td.c-fam{width:92px}
+.res-table.mil-table.asp-table th.c-name,.res-table.mil-table.asp-table td.c-name{width:auto}
+.res-table.mil-table.asp-table th.c-band,.res-table.mil-table.asp-table td.c-band{width:150px}
+.res-table.mil-table.asp-table th.c-class,.res-table.mil-table.asp-table td.c-class{width:70px}
+.res-table.mil-table.asp-table th.c-pts,.res-table.mil-table.asp-table td.c-pts{width:78px;text-align:right}
+.res-table.mil-table.asp-table th.c-use,.res-table.mil-table.asp-table td.c-use{width:104px}
+.res-table.mil-table.asp-bindings th.c-sec,.res-table.mil-table.asp-bindings td.c-sec{width:150px}
+.res-table.mil-table.asp-bindings th.c-vols,.res-table.mil-table.asp-bindings td.c-vols{width:auto}
+.res-table.mil-table.asp-bindings th.c-who,.res-table.mil-table.asp-bindings td.c-who{width:250px}
+.res-table.mil-table.asp-bindings th.c-act2,.res-table.mil-table.asp-bindings td.c-act2{width:130px;text-align:right}
+.res-table.mil-table.asp-imports th.c-file,.res-table.mil-table.asp-imports td.c-file{width:auto}
+.res-table.mil-table.asp-imports th.c-cycle,.res-table.mil-table.asp-imports td.c-cycle{width:78px}
+/* ⚠️ 160px e non 118: `15 Jul 2026 · 18:30Z` NON si spezza (il `·` non è un punto d'a capo), e sotto
+   `table-layout:fixed` una cella troppo stretta non allarga la colonna — il testo ESCE e finisce sopra
+   la colonna accanto. Misurato: la data generata si sovrapponeva a quella di caricamento, e il tasto
+   «Metti in vigore» copriva il conteggio dei volumi. Stessa ragione per c-up e c-who: le due celle che
+   portano data PIÙ nome hanno perso il `c-nowrap` che avevano nel markup, così il nome va a capo. */
+.res-table.mil-table.asp-imports th.c-gen,.res-table.mil-table.asp-imports td.c-gen{width:160px}
+.res-table.mil-table.asp-imports th.c-up,.res-table.mil-table.asp-imports td.c-up{width:250px}
+.res-table.mil-table.asp-imports th.c-vol,.res-table.mil-table.asp-imports td.c-vol{width:104px;text-align:right}
+.res-table.mil-table.asp-imports th.c-act2,.res-table.mil-table.asp-imports td.c-act2{width:168px;text-align:right}
+.res-table.mil-table.asp-nav th.c-what,.res-table.mil-table.asp-nav td.c-what{width:180px}
+.res-table.mil-table.asp-nav th.c-code,.res-table.mil-table.asp-nav td.c-code{width:150px}
+.res-table.mil-table.asp-nav th.c-aip,.res-table.mil-table.asp-nav td.c-aip{width:130px}
+.res-table.mil-table.asp-nav th.c-ours,.res-table.mil-table.asp-nav td.c-ours{width:130px}
+.res-table.mil-table.asp-nav th.c-note,.res-table.mil-table.asp-nav td.c-note{width:auto}
 
 
 /* ---- Diagnostica: tre domande, due colonne (22 agosto 2026) ----

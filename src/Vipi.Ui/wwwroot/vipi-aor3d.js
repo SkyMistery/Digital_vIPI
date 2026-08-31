@@ -2,7 +2,9 @@
 // Ogni settore è un prisma estruso: base = poligono shape reale proiettato su piano XY (Web Mercator centrato
 // sul bbox), altezza = banda FL (bottom→top). Legenda toggle, orbita drag, zoom rotella, reset.
 // Idempotente: ogni .aor3d-stage[data-sectors3d] è inizializzato una sola volta (data-init). Fallback se manca WebGL/THREE.
-// Guidato dagli stessi dati dell'AoR 2D (vedi AccAor3d.razor): data-sectors3d = [{sec,name,color,rings:[[[lat,lon],…]],fl:[bottom,top],ringFl:[[bottom,top],…]}].
+// Guidato dagli stessi dati dell'AoR 2D (vedi AccAor3d.razor): data-sectors3d = [{sec,name,label,color,rings:[[[lat,lon],…]],fl:[bottom,top],ringFl:[[bottom,top],…]}].
+// ⚠️ `sec` è la CHIAVE (data-sec, _secMap, setSec) e `label` è il TESTO: per un'area regolamentata la chiave è
+// l'id IVAO e il nome sta in `label`. Ovunque si SCRIVA qualcosa a schermo va `label || sec`, come le chip 2D.
 // ⚠️ `ringFl` è la banda DI OGNI ANELLO, e quando c'è comanda lei: un CTR di piu' zone ha una quota per zona
 // (LIBA_APP e' GND→FL105 su una e 7000 ft→FL195 sull'altra) e `fl`, che e' l'inviluppo, disegnerebbe un
 // parallelepipedo unico che rivendica cielo che il settore non ha. Vedi docs/refactor/15-shape-del-settore-una-porta-sola.md.
@@ -269,7 +271,8 @@
     // tagliati e i doppioni per nome saltati). Una .aor3d-lab per settore, riposizionata a ogni render proiettando
     // l'ancora 3D in coordinate schermo. Declutter greedy: priorità al footprint più grande, chi collide prova
     // qualche offset verticale e poi sparisce — meglio nessuna etichetta che una pila illeggibile.
-    // Testo = callsign (come le chip del 2D), sotto la banda FL; il nome esteso è nel title.
+    // Testo = `label || sec`, cioè la stessa regola delle chip del 2D: callsign per un settore, nome per
+    // un'area regolamentata (dove `sec` è l'id IVAO). Sotto, la banda FL; il nome esteso è nel title.
     function buildLabels(stage, sectors, onToggle) {
         var THREE = window.THREE;
         var layer = document.createElement('div');
@@ -283,8 +286,8 @@
             var el = document.createElement('div');
             el.className = 'aor3d-lab';
             el.style.color = s._ink || '';
-            el.title = s.name || s.sec || '';
-            var nm = document.createElement('b'); nm.textContent = s.sec || s.name || '';
+            el.title = s.name || s.label || s.sec || '';
+            var nm = document.createElement('b'); nm.textContent = s.label || s.sec || s.name || '';
             var fl = document.createElement('i'); fl.textContent = 'FL' + (b[0] || 0) + '–' + (b[1] || 660);
             el.appendChild(nm); el.appendChild(fl);
             // Il pointerdown NON deve arrivare allo stage: là parte l'orbita e con essa setPointerCapture, che
@@ -467,8 +470,8 @@
             if (legend) legend.addEventListener('pointerdown', function (ev) { ev.stopPropagation(); });
             box.innerHTML = sectors.map(function (s, i) {
                 var b = s.fl || [0, 660];
-                return '<div class="lg-row" data-i="' + i + '" title="' + esc(s.name || '') + '"><span class="sw" style="background:' + hex(s.color) +
-                    '"></span>' + esc(s.sec || s.name || '') + '<span class="fl">FL' + (b[0] || 0) + '–' + (b[1] || 660) + '</span></div>';
+                return '<div class="lg-row" data-i="' + i + '" title="' + esc(s.name || s.label || '') + '"><span class="sw" style="background:' + hex(s.color) +
+                    '"></span>' + esc(s.label || s.sec || s.name || '') + '<span class="fl">FL' + (b[0] || 0) + '–' + (b[1] || 660) + '</span></div>';
             }).join('');
             box.querySelectorAll('.lg-row').forEach(function (r) {
                 r.addEventListener('click', function () {

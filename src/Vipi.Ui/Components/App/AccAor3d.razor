@@ -1,5 +1,5 @@
 ﻿@* Viewer 3D dell'AoR: ogni settore = prisma estruso (base = shape reale, altezza = banda FL). L'interattività
-   (orbita/zoom/legenda) è client-side (vipi-aor3d.js); data-sectors3d = [{sec,name,color,rings:[[[lat,lon],…]],fl:[b,t]}].
+   (orbita/zoom/legenda) è client-side (vipi-aor3d.js); data-sectors3d = [{sec,name,label,color,rings:[[[lat,lon],…]],fl:[b,t]}].
    Riuso: tab 2D/3D del blocco AoR (AccAor.razor) + pagina fullscreen. Fallback testuale se manca WebGL.
 
    Le chip settore sono le STESSE del 2D (.aor-block > .aor-toggles > .aor-chip): le pilota `onAorClick` in
@@ -56,7 +56,7 @@
     // vipi-aor3d.js re-inizializza. ⚠️ Ci vanno anche le bande dei singoli anelli: due zone che si scambiano
     // le quote lasciano l'inviluppo identico, e senza questo il viewer resterebbe su quello di prima.
     private string Signature() => string.Join("|", View.Sectors.Select(s =>
-        $"{s.Callsign}:{s.Color}:{s.LowerFl}:{s.UpperFl}:" +
+        $"{s.Callsign}:{s.Label}:{s.Color}:{s.LowerFl}:{s.UpperFl}:" +
         string.Join(",", s.Polygons.Select(p => $"{p.LowerFl}-{p.UpperFl}"))));
 
     private string SectorsJson() => JsonSerializer.Serialize(
@@ -64,6 +64,13 @@
         {
             sec = s.Callsign,
             name = s.Name,
+            // ⚠️ Il testo che si LEGGE, quando c'è: per un'area regolamentata `Callsign` è l'id IVAO (chiave
+            // tecnica, quella che finisce in `data-sec`) e il nome sta qui — senza, legenda ed etichette del 3D
+            // dicevano «LI-R301B» dove le chip 2D dicono già il nome. Per un settore vero `Label` è null e il
+            // callsign resta il testo giusto: è la stessa regola delle chip (`Label ?? Callsign`).
+            // ⚠️ NON si ripiega su `name`: sull'AoR quello è il nome esteso del settore, e in legenda
+            // sostituirebbe il callsign — che lì è proprio ciò che si vuole leggere. `name` resta nel title.
+            label = s.Label,
             color = s.Color,
             rings = s.Polygons.Select(p => p.Points),
             fl = new[] { s.LowerFl ?? AorFlBand.Ground, s.UpperFl ?? AorFlBand.Unlimited },
