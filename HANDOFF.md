@@ -1,6 +1,6 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 31 agosto 2026, **tarda notte** (**§AF — la ricaduta guarda anche in alto, e un settore non è più nipote di sé stesso**: ramo `ricaduta-verticale-e-cicli`, quattro commit, **spinto e NON fuso**); prima, 31 agosto notte (**1.1.0 È IN PRODUZIONE**, verificato dal vivo — §A15; cosa dice la diagnostica del server e cosa resta — §A16); prima, 30 agosto pomeriggio (**§AB — la shape di un settore ha una porta sola**,
+**Ultimo aggiornamento:** 1 settembre 2026 (**§AF — la ricaduta verticale**: alle tre slice di ieri si sono aggiunte la **schermata di dettaglio** e il **bersaglio a digitazione**; ramo `ricaduta-verticale-e-cicli`, **sette commit, spinto e NON fuso**); prima, 31 agosto tarda notte (**§AF — la ricaduta guarda anche in alto, e un settore non è più nipote di sé stesso**: ramo `ricaduta-verticale-e-cicli`); prima, 31 agosto notte (**1.1.0 È IN PRODUZIONE**, verificato dal vivo — §A15; cosa dice la diagnostica del server e cosa resta — §A16); prima, 30 agosto pomeriggio (**§AB — la shape di un settore ha una porta sola**,
 fusa in `main` e spinta; prima, i due rami di §AA e §E10. ⚠️ Tutto ciò che segue nella
 sezione «Dove siamo» è **storia**: i rami che vi si citano come «non fusi» sono in `main` e sono stati
 cancellati — vale il riquadro qui sotto).
@@ -9,10 +9,10 @@ cancellati — vale il riquadro qui sotto).
 
 > ### 🆕 LO STATO VERO, 31 agosto 2026 (notte) — questo riquadro batte tutto il resto del file
 >
-> ### 🔽 DA QUI SI RIPRENDE — 31 agosto, tarda notte: §AF
+> ### 🔽 DA QUI SI RIPRENDE — 1 settembre 2026: §AF
 >
-> 🟢 **Ramo `ricaduta-verticale-e-cicli`** (da `consegna-20260831`), **quattro commit, spinto e NON fuso**.
-> Build Release **0 avvisi** su tutti e due i TFM, suite **4 734 verdi**, **56 test nuovi**.
+> 🟢 **Ramo `ricaduta-verticale-e-cicli`** (da `consegna-20260831`), **sette commit, spinto e NON fuso**.
+> Build Release **0 avvisi** su tutti e due i TFM, suite **4 744 verdi**, **70 test nuovi**.
 > Carta: [`docs/feature/2026-08-31-ricaduta-verticale-e-cicli.md`](docs/feature/2026-08-31-ricaduta-verticale-e-cicli.md) · lavori aperti **§AF**.
 >
 > **Due cose, e sono la stessa: l'albero di copertura.**
@@ -43,6 +43,22 @@ cancellati — vale il riquadro qui sotto).
 > tutto un criterio geografico, ora la proposta si ferma all'**ACC**), e un `<select>` Blazor con `value` ma
 > **senza `selected`** che mostrava la riga vuota — e una riga che *sembra* senza bersaglio, alla riscrittura
 > successiva, **viene scartata**: il difetto si mangiava il dato.
+>
+> 3. **La schermata di dettaglio** (1 settembre). Il riquadro «Catena di ripiego» mostra tutta la catena
+>    **per passi**, e le voci di uno stesso passo stanno **alla stessa altezza**: sono i settori che a quel
+>    punto **si dividono il traffico per fascia**. ⚠️ Non è grafica: un elenco piatto direbbe che si provano
+>    una dopo l'altra, mentre «sopra FL325 ES5, altrimenti WS2» è una **divisione**. E viene dalla **stessa
+>    camminata che risolve** — disegnarla a parte sarebbe il difetto di §AF riaperto nella schermata che lo
+>    racconta. Il form usa ora il vocabolario della pagina, e il bersaglio **si scrive** invece di scorrere
+>    una tendina di centinaia di voci (`TypeaheadPicker`, lo stesso dell'editor trasferimenti).
+>
+> ⚠️ **Tre difetti trovati solo guidando l'app, e due si mangiavano il dato:** la **fascia FL non si salvava**
+> senza togliere il fuoco dal campo (`@onchange` scatta al fuoco perso: chi scriveva la quota e andava dritto
+> su «Applica» salvava la riga **senza fascia**, cioè valida a ogni quota — il contrario di quel che aveva
+> scritto; ora `@oninput`); la **tendina escludeva i discendenti**, perché costruita su `EligibleParents`, che
+> è la regola anti-ciclo del **padre** e non vale per un **ripiego** — ed è letteralmente il caso di Milano,
+> ES5 figlio di WS5; e la **sequenza mentiva** quando a un settore si arrivava per due motivi (riga con fascia
+> **e** padre), mostrandone uno solo.
 >
 > **🔽 COSA FARE DOMANI, in ordine**
 >
