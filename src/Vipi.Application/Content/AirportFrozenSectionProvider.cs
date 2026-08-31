@@ -32,6 +32,18 @@ public sealed class AirportFrozenSectionProvider : IFrozenSectionProvider
     /// <summary>L'archivio degli scali, per i nomi degli aeroporti alternati. Militare come sopra.</summary>
     private readonly IAirportNameLookup? _aeroporti;
 
+    /// <summary>
+    /// Il ciclo AIRAC per cui si sta congelando, che <c>ReleaseService</c> apre attorno alla cattura.
+    /// <para>
+    /// ⚠️ Serve alle SID e per la stessa ragione delle shape: una SID importata compare solo dal ciclo
+    /// <b>successivo</b> al prelievo, quindi «quali SID ci sono» è una domanda che ha risposte diverse a
+    /// cicli diversi. Congelando al ciclo di OGGI una release programmata al 2608 ci si scriveva dentro la
+    /// tabella di adesso — e la release usciva con meno SID di quante ne avrà.
+    /// </para>
+    /// <para>Nullo fuori dal congelamento: lì si guarda al ciclo corrente, che è il comportamento di sempre.</para>
+    /// </summary>
+    private readonly ShapeReleaseContext? _cicloDiRilascio;
+
     /// <param name="type">
     /// La famiglia che questo provider serve. ⚠️ <b>Sono DUE</b>: la vIPI civile d'aeroporto e il vSOP
     /// <b>militare</b> dello stesso scalo, che deriva le stesse tre tabelle (<c>frequencies</c>,
@@ -47,13 +59,15 @@ public sealed class AirportFrozenSectionProvider : IFrozenSectionProvider
     /// </param>
     public AirportFrozenSectionProvider(IAirportProfileReader repo, IAirportSectorService sectors,
         IAirportSidDerivationService sids, ReleaseTargetType type = ReleaseTargetType.Airport,
-        INavaidCatalog? navaids = null, IAirportNameLookup? aeroporti = null)
+        INavaidCatalog? navaids = null, IAirportNameLookup? aeroporti = null,
+        ShapeReleaseContext? cicloDiRilascio = null)
     {
         _repo = repo;
         _sectors = sectors;
         _sids = sids;
         _navaids = navaids;
         _aeroporti = aeroporti;
+        _cicloDiRilascio = cicloDiRilascio;
         Type = type;
     }
 
@@ -81,7 +95,8 @@ public sealed class AirportFrozenSectionProvider : IFrozenSectionProvider
                 "transition" => AirportSectionProjection.Transition(data),
                 "runways" => AirportSectionProjection.Runways(data),
                 "frequencies" => AirportSectionProjection.Frequencies(await _sectors.ListByAirportAsync(key, ct), data?.Links),
-                "sids" => await _sids.DeriveAsync(key, ct),
+                // ⚠️ Al ciclo della RELEASE, non a quello di oggi (vedi _cicloDiRilascio).
+                "sids" => await _sids.DeriveAsync(key, _cicloDiRilascio?.Cycle, ct),
                 // ⚠️ L'unica sezione congelata i cui valori NON stanno nel documento né nel profilo dello
                 // scalo: il documento dice quali radioassistenze cita, l'anagrafica dice quanto valgono. Senza
                 // questa cattura una frequenza corretta oggi cambierebbe da sola un SOP pubblicato al ciclo

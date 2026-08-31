@@ -1929,3 +1929,61 @@ Pezzi nuovi: `tools/Vipi.Assets` (passo del publish), `AssetPrecompressi`, `Cach
 `StartupDiagnostics.CronometroAvvio`. Nessuna migrazione.
 
 Carta: [`audit-2026-08-27-prestazioni.md`](audit-2026-08-27-prestazioni.md). Suite **5981**.
+
+## 31 agosto 2026 — cinque correzioni chieste a voce: il 3D, gli spazi aerei, le regole piste, l'anteprima
+
+Cinque richieste del committente, indipendenti, chiuse in un giro. Le tengo insieme perché tre su cinque
+hanno la **stessa forma**: qualcosa che *sembra* scritto e non lo è.
+
+**A — Il 3D diceva l'id, non il nome.** Nella vista 3D delle aree regolamentate la legenda e le etichette sui
+prismi mostravano `LI-R301B` dove le chip 2D dicono già il nome. ⚠️ Non era un difetto di resa: il payload
+`data-sectors3d` **non emetteva affatto** il campo. Per un'area `Callsign` è l'id IVAO — la chiave, quella che
+finisce in `data-sec` — e il nome vive in `Label` (vedi `RegulatedAreasMap`). Ora il JSON porta `label` e i due
+punti che *scrivono* usano `label || sec`, cioè la stessa regola delle chip. ⚠️ **Non** si ripiega su `name`:
+sull'AoR vera `Label` è null e il callsign è proprio il testo che si vuole leggere.
+
+**B — La pagina degli spazi aerei era senza foglio.** Tutte e quindici le classi `asp-*` erano scritte nel
+markup e **non esistevano nel CSS**: zero regole ciascuna. Peggio, le colonne portavano i nomi di casa
+(`c-name`, `c-band`, `c-act`, `c-nowrap`) senza sapere che quelle regole sono **scoped** ad altre tabelle
+(`.mil-table`, `.conf-table`, `.sorg-alias`), quindi qui non ne arrivava nessuna. Anche l'`<input type=file>`
+dentro l'etichetta «Carica» era **visibile**, perché nasconderlo è una regola che nessuno aveva scritto.
+Le quattro tabelle passano ora su `.mil-table` — che nonostante il nome è la tabella admin del sito, la usa
+già l'anagrafica radioassistenze — più le larghezze di colonna. I cinque blocchi diventano
+`CollapsibleBlock` con `data-persist`; il rapporto radioassistenze **nasce chiuso**.
+⚠️ **Due difetti si sono visti solo a schermo**, e sono lo stesso difetto: sotto `table-layout:fixed` una
+cella `c-nowrap` troppo stretta **non allarga la colonna, esce** — la data generata finiva sopra quella di
+caricamento e il tasto «Metti in vigore» copriva il conteggio dei volumi. Larghezze vere, e via il `nowrap`
+dalle due celle che portano data *più* nome.
+
+**C — «Regole piste» invisibili al lettore: era già possibile, e non rompe niente.** Nessuna riga di codice.
+`DocumentSection.IsHidden` c'è dal doc 11, l'editor aeroporto monta `DocumentSectionsEditor` e il tasto occhio
+è offerto anche sulle sezioni obbligatorie. Verificato dal vivo su LIBD: nascosta e ripubblicata, la sezione
+sparisce dal documento pubblico **e** la sezione «Piste» continua a dire *«recommended by the active rule
+"Prova nascosta"»* marcando 07 con 🛫🛬. ⚠️ Il motivo per cui regge sta in `AeroportoPage`: `_profile` si
+carica **sempre**, fuori dal render delle sezioni, e `_ruleResult` esce da lì — non dalla sezione.
+
+**D — Bianco su bianco al buio.** I campi dell'editor regole avevano `background: var(--on-brand)`, che è il
+testo sui fondi di brand e **per progetto non si gira mai**: fondo bianco fisso più `--ink` chiaro. Erano le
+**uniche due** regole di campo del foglio a usarlo; tutte le altre usano `var(--surface)`. Due righe.
+
+**E — L'anteprima di una release mostrava le SID di oggi.** `AirportSidDerivationService` chiedeva
+`GetCycle(DateTime.UtcNow)`, cablato. In anteprima le derivate si rendono **live** (giustamente), ma una SID
+importata compare solo dal ciclo *successivo* al prelievo: l'anteprima di una release programmata al 2609
+mostrava la tabella del 2608, e quelle righe comparivano poi **da sole** in pubblico al rollover. Ora il ciclo
+è un parametro della **vista** (`atCycle`, che la pagina prende da `_relCycle` — già in pagina, mai usato per
+questo), e per la **cattura** lo porta il `ShapeReleaseContext` che `ReleaseService` apre già attorno allo
+snapshot. ⚠️ Il buffer di un ciclo **resta**: una SID prelevata *dentro* il 2609 non compare nemmeno nella sua
+anteprima, e deve essere così — l'anteprima non promette righe che al rilascio non ci saranno.
+⚠️ E la trappola del giro: `ShapeReleaseContext` **va passato a mano** nella registrazione dell'edizione
+militare, che costruisce il provider da sé (nell'altra lo riempie il contenitore) — senza, i vSOP militari
+avrebbero congelato al ciclo di oggi, e in silenzio.
+
+Misurato dal vivo su LIBD (istanza su copia del DB): pubblica al 2608 **18** SID, anteprima della release
+2609 **20** — compaiono `PERA5W` e `PERA7D` —, bozza invariata a 18.
+
+⚠️ **Il metodo, di nuovo**: B è stato *diagnosticato* con un grep (quindici classi, zero regole) ma
+**corretto due volte**, perché le sovrapposizioni delle tabelle si vedono solo guardando. E la prima
+verifica di E ha detto «nessuna differenza» perché girava sul binario **pubblicato prima** della modifica —
+la trappola del processo, già scritta due volte in queste pagine.
+
+Nessuna migrazione. Suite verde su tutti i progetti.

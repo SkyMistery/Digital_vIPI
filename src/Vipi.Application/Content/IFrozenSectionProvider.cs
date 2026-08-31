@@ -14,6 +14,9 @@ public interface IFrozenSectionProvider
 
     /// <summary>Per ogni sezione Frozen+derivabile trovata in <paramref name="doc"/>, deriva e serializza l'output
     /// (view-model già renderizzato). Chiave del dizionario = Id della sezione (== <see cref="RawSection.Id"/>).</summary>
+    /// <remarks>⚠️ Il CICLO per cui si sta congelando non passa di qui: lo porta <c>ShapeReleaseContext</c>,
+    /// che <c>ReleaseService</c> apre attorno alla cattura. Vale per le shape e — dalla stessa ragione — per
+    /// le SID d'aeroporto, che compaiono dal ciclo successivo al prelievo.</remarks>
     Task<IReadOnlyDictionary<int, string>> CaptureFrozenAsync(string key, RawDocument doc, CancellationToken ct = default);
 }
 

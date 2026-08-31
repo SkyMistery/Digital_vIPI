@@ -85,6 +85,60 @@ public class AirportFrozenAndViewTests
         Assert.Empty(await Provider(Profilo()).CaptureFrozenAsync("LIRF", doc));
     }
 
+    /// <summary>
+    /// La cattura congela le SID al ciclo della RELEASE, non a quello di oggi: lo dice il
+    /// <c>ShapeReleaseContext</c> che <c>ReleaseService</c> apre attorno allo snapshot. Una SID compare solo
+    /// dal ciclo successivo al prelievo, quindi congelando «adesso» una release programmata al 2610 ci si
+    /// scriveva dentro la tabella di oggi — e la release usciva con meno righe di quante ne avrà.
+    /// </summary>
+    [Fact]
+    public async Task Capture_Freezes_Sids_At_The_Release_Cycle()
+    {
+        var sid = new FakeSid();
+        var ciclo = new ShapeReleaseContext();
+        var provider = new AirportFrozenSectionProvider(new FakeProfilo(null), new FakeSettori(), sid,
+            ReleaseTargetType.Airport, cicloDiRilascio: ciclo);
+        var doc = Doc(Sec(10, "sids", RenderMode.Frozen));
+
+        using (ciclo.Capturing("2610"))
+            await provider.CaptureFrozenAsync("LIRF", doc);
+
+        Assert.Equal("2610", sid.CicloChiesto);
+    }
+
+    /// <summary>Fuori dal congelamento il contesto è nullo e si guarda al ciclo corrente: il comportamento
+    /// di sempre, che nessuna release già scritta deve vedersi cambiare sotto.</summary>
+    [Fact]
+    public async Task Capture_Outside_A_Release_Asks_For_The_Current_Cycle()
+    {
+        var sid = new FakeSid();
+        var provider = new AirportFrozenSectionProvider(new FakeProfilo(null), new FakeSettori(), sid);
+
+        await provider.CaptureFrozenAsync("LIRF", Doc(Sec(10, "sids", RenderMode.Frozen)));
+
+        Assert.Null(sid.CicloChiesto);
+    }
+
+    /// <summary>
+    /// L'anteprima di una release passa il SUO ciclo alla derivazione live. È il caso vero: le derivate in
+    /// anteprima si rendono live, e senza il ciclo la tabella SID era quella di oggi invece di quella che
+    /// uscirà — chi guarda un'anteprima chiede «come sarà», non «com'è».
+    /// </summary>
+    [Fact]
+    public async Task View_Forwards_The_Preview_Cycle_To_The_Live_Derivation()
+    {
+        var sid = new FakeSid();
+        var derivazione = new AirportViewDerivationService(new FakeProfilo(Profilo()), new FakeSettori(), sid,
+            new FakeReader());
+
+        await derivazione.ResolveForViewAsync("LIRF", useFrozen: false, ReleaseTargetType.Airport, atCycle: "2610");
+        Assert.Equal("2610", sid.CicloChiesto);
+
+        // Vista pubblica e bozza: nessun ciclo chiesto, si guarda ad «adesso».
+        await derivazione.ResolveForViewAsync("LIRF", useFrozen: false, ReleaseTargetType.Airport);
+        Assert.Null(sid.CicloChiesto);
+    }
+
     [Fact]
     public async Task View_Frozen_Wins_When_UseFrozen_And_Captured()
     {
@@ -257,8 +311,14 @@ public class AirportFrozenAndViewTests
 
     private sealed class FakeSid : IAirportSidDerivationService
     {
-        public Task<AirportSidView> DeriveAsync(string icao, CancellationToken ct = default) =>
-            Task.FromResult(Sid("ALAXI"));
+        /// <summary>A quale ciclo e' stata chiesta l'ultima derivazione (null = «adesso»).</summary>
+        public string? CicloChiesto { get; private set; }
+
+        public Task<AirportSidView> DeriveAsync(string icao, string? atCycle = null, CancellationToken ct = default)
+        {
+            CicloChiesto = atCycle;
+            return Task.FromResult(Sid("ALAXI"));
+        }
     }
 
     private sealed class FakeReader : IFrozenSectionReader

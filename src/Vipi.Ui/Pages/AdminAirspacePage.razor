@@ -82,7 +82,19 @@
     }
     else
     {
-        <div class="block">
+        @* ⚠️ Comprimibile come ogni altra card del sito (CollapsibleBlock = <details> nativo): la pagina ha
+           cinque blocchi e quello dei volumi ne vale cinquecento righe: chi viene qui per agganciare un
+           settore o per leggere il rapporto se lo scorreva tutto. `data-persist` (l'Id) ricorda aperto e
+           chiuso fra una visita e l'altra. *@
+        <CollapsibleBlock Id="asp-volumi">
+            <Header>
+                <h2 class="h-sect">
+                    @* ⚠️ La pastiglia c'è SOLO filtrando, e dice quante se ne stanno guardando su quante ce
+                       n'è: a filtri spenti ripeteva parola per parola quella del titolo di pagina. *@
+                    @L["Asp_Volumes"]@if (Filtrando) { <text>&nbsp;</text><span class="pill blue">@Filtrati.Count / @_volumi.Count</span> }
+                </h2>
+            </Header>
+            <ChildContent>
             <div class="struct-bar asp-bar">
                 <input class="htree-search" placeholder="@L["Asp_SearchPh"]" aria-label="@L["Asp_Search"]"
                        @bind="_cerca" @bind:event="oninput" />
@@ -97,11 +109,20 @@
                             @Nome(famiglia) <span class="chip-n">@f.Value</span>
                         </button>
                     }
+                    @* Con un filtro acceso serve la strada per tornare indietro: è lo stesso tasto della barra
+                       di Struttura, delle SID e dell'anagrafica radioassistenze. Qui mancava, e con dodici
+                       chip di famiglia più il testo si finiva per ricaricare la pagina. *@
+                    @if (Filtrando)
+                    {
+                        <button type="button" class="lnk-mini" @onclick="PulisciFiltri">@L["Gt_ClearSearch"]</button>
+                    }
                 </span>
                 <span class="muted asp-count">@L["Asp_UsableOf", _corrente.VolumesUsable, _corrente.VolumesRead]</span>
             </div>
 
-            <table class="res-table asp-table">
+            @* `sticky-head`: fino a cinquecento righe, e la colonna che si guarda è quasi sempre l'ultima
+               («utilizzabile»). Senza, scorrendo si perde di vista quale colonna si sta leggendo. *@
+            <table class="res-table mil-table asp-table sticky-head">
                 <thead>
                     <tr>
                         <th class="c-pick"></th>
@@ -130,7 +151,7 @@
                             <td class="c-name"><b>@v.Name</b></td>
                             <td class="c-band c-nowrap">@v.BandLabel</td>
                             <td class="c-class muted">@(v.AirspaceClass ?? "—")</td>
-                            <td class="c-pts num">@v.PointCount</td>
+                            <td class="c-pts">@v.PointCount</td>
                             <td class="c-use">
                                 @if (v.IsUsable)
                                 {
@@ -160,7 +181,9 @@
             {
                 <div class="struct-bar asp-bind">
                     <span class="muted">@L["Asp_Picked", _scelti.Count]</span>
-                    <select @bind="_settore" aria-label="@L["Asp_BindSector"]">
+                    @* `htree-select` e non un <select> nudo: è la tendina di casa (bordo, freccia, fondo che
+                       segue il tema). Nuda, era l'unico controllo della pagina disegnato dal browser. *@
+                    <select class="htree-select" @bind="_settore" aria-label="@L["Asp_BindSector"]">
                         <option value="">@L["Asp_BindPick"]</option>
                         @foreach (var st in _settori)
                         {
@@ -172,10 +195,14 @@
                     <button type="button" class="btn ghost" @onclick="() => _scelti.Clear()">@L["Asp_ClearPick"]</button>
                 </div>
             }
-        </div>
+            </ChildContent>
+        </CollapsibleBlock>
 
-        <div class="block">
-            <h2 class="h-sect">@L["Asp_Bindings"]&nbsp;<span class="pill">@_agganci.Count</span></h2>
+        <CollapsibleBlock Id="asp-agganci">
+            <Header>
+                <h2 class="h-sect">@L["Asp_Bindings"]&nbsp;<span class="pill">@_agganci.Count</span></h2>
+            </Header>
+            <ChildContent>
             @* La riga che dice il perimetro, e non e' pignoleria: chi aggancia deve sapere che cambia la
                MAPPA pubblicata, non chi confina con chi ne' quali voli contano per quella postazione. *@
             <p class="muted asp-scope">@L["Asp_BindScope"]</p>
@@ -185,21 +212,21 @@
             }
             else
             {
-                <table class="res-table asp-bindings">
+                <table class="res-table mil-table asp-bindings">
                     <thead>
                         <tr>
-                            <th>@L["Asp_Sector"]</th>
-                            <th>@L["Asp_BoundVolumes"]</th>
-                            <th>@L["Asp_ChosenBy"]</th>
-                            <th class="c-act"></th>
+                            <th class="c-sec">@L["Asp_Sector"]</th>
+                            <th class="c-vols">@L["Asp_BoundVolumes"]</th>
+                            <th class="c-who">@L["Asp_ChosenBy"]</th>
+                            <th class="c-act2"></th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var a in _agganci)
                         {
                             <tr>
-                                <td><b>@a.Callsign</b></td>
-                                <td>
+                                <td class="c-sec"><b>@a.Callsign</b></td>
+                                <td class="c-vols">
                                     @string.Join(", ", a.Volumes.Select(v => v.Name))
                                     @if (a.Missing.Count > 0)
                                     {
@@ -212,14 +239,14 @@
                                         </div>
                                     }
                                 </td>
-                                <td class="muted c-nowrap">
+                                <td class="c-who muted">
                                     @(a.ChosenByName ?? "—")
                                     @if (a.ChosenUtc is { } q)
                                     {
                                         <text> · </text><span data-utc="@VipiTime.Iso(q)" data-utc-fmt="dhm">@VipiTime.DayZ(q)</span>
                                     }
                                 </td>
-                                <td class="c-act">
+                                <td class="c-act2">
                                     <InlineConfirm TriggerClass="btn ghost" Disabled="@_busy"
                                                    Prompt="@string.Format(L["Asp_UnbindPrompt"].Value, a.Callsign)"
                                                    TriggerTitle="@L["Asp_Unbind"]" AriaLabel="@L["Asp_Unbind"]"
@@ -232,43 +259,47 @@
                     </tbody>
                 </table>
             }
-        </div>
+            </ChildContent>
+        </CollapsibleBlock>
 
-        <div class="block">
-            <h2 class="h-sect">@L["Asp_Imports"]</h2>
-            <table class="res-table asp-imports">
+        <CollapsibleBlock Id="asp-caricamenti">
+            <Header>
+                <h2 class="h-sect">@L["Asp_Imports"]&nbsp;<span class="pill">@_caricamenti.Count</span></h2>
+            </Header>
+            <ChildContent>
+            <table class="res-table mil-table asp-imports">
                 <thead>
                     <tr>
-                        <th>@L["Asp_File"]</th>
-                        <th>@L["Asp_Cycle"]</th>
-                        <th>@L["Asp_Generated"]</th>
-                        <th>@L["Asp_Uploaded"]</th>
-                        <th>@L["Asp_Volumes"]</th>
-                        <th></th>
+                        <th class="c-file">@L["Asp_File"]</th>
+                        <th class="c-cycle">@L["Asp_Cycle"]</th>
+                        <th class="c-gen">@L["Asp_Generated"]</th>
+                        <th class="c-up">@L["Asp_Uploaded"]</th>
+                        <th class="c-vol">@L["Asp_Volumes"]</th>
+                        <th class="c-act2"></th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var i in _caricamenti)
                     {
                         <tr class="@(i.IsCurrent ? "asp-current" : null)">
-                            <td>
+                            <td class="c-file">
                                 <b>@i.FileName</b>
                                 @if (i.IsCurrent)
                                 {
                                     <span class="pill green">@L["Asp_InForce"]</span>
                                 }
                             </td>
-                            <td class="c-nowrap">@(i.AiracCycle ?? "—")</td>
-                            <td class="c-nowrap muted">@(i.GeneratedUtc is { } g ? VipiTime.DayZ(g) : "—")</td>
-                            <td class="c-nowrap muted">
+                            <td class="c-cycle c-nowrap">@(i.AiracCycle ?? "—")</td>
+                            <td class="c-gen c-nowrap muted">@(i.GeneratedUtc is { } g ? VipiTime.DayZ(g) : "—")</td>
+                            <td class="c-up muted">
                                 <span data-utc="@VipiTime.Iso(i.UploadedUtc)" data-utc-fmt="dhm">@VipiTime.DayZ(i.UploadedUtc)</span>
                                 @if (!string.IsNullOrWhiteSpace(i.UploadedByName))
                                 {
                                     <text> · @i.UploadedByName</text>
                                 }
                             </td>
-                            <td class="num">@i.VolumesUsable / @i.VolumesRead</td>
-                            <td class="c-act">
+                            <td class="c-vol c-nowrap">@i.VolumesUsable / @i.VolumesRead</td>
+                            <td class="c-act2">
                                 @if (!i.IsCurrent)
                                 {
                                     <button type="button" class="btn ghost" disabled="@_busy"
@@ -287,25 +318,36 @@
                     }
                 </tbody>
             </table>
-        </div>
+            </ChildContent>
+        </CollapsibleBlock>
 
         @if (_segnalazioni.Count > 0)
         {
-            <div class="block">
-                <h2 class="h-sect">@L["Asp_Issues"]&nbsp;<span class="pill">@_segnalazioni.Count</span></h2>
+            <CollapsibleBlock Id="asp-segnalazioni">
+                <Header>
+                    <h2 class="h-sect">@L["Asp_Issues"]&nbsp;<span class="pill">@_segnalazioni.Count</span></h2>
+                </Header>
+                <ChildContent>
                 <ul class="asp-issues">
                     @foreach (var s in _segnalazioni.Take(50))
                     {
                         <li><b>@Nome(s.Kind)</b> — @s.Volume @(s.Dettaglio is null ? "" : $"({s.Dettaglio})")</li>
                     }
                 </ul>
-            </div>
+                </ChildContent>
+            </CollapsibleBlock>
         }
 
-        <div class="block">
-            <h2 class="h-sect">
-                @L["Asp_NavReport"]&nbsp;<span class="pill">@_rapporto.Count</span>
-            </h2>
+        @* ⚠️ Nasce CHIUSO, ed è l'unico: è il blocco più lungo (fino a duecento righe) e non è quello per cui
+           si apre questa pagina — chi carica un file o aggancia un settore se lo trovava davanti ogni volta.
+           Chi lo apre, poi, se lo ritrova aperto: `data-persist` ricorda la scelta. *@
+        <CollapsibleBlock Id="asp-rapporto" InitiallyOpen="false">
+            <Header>
+                <h2 class="h-sect">
+                    @L["Asp_NavReport"]&nbsp;<span class="pill">@_rapporto.Count</span>
+                </h2>
+            </Header>
+            <ChildContent>
             @* ⚠️ La riga che dice a che cosa serve, e che cosa NON fa. Il committente e' stato esplicito: si
                segnala, e la correzione si fa nel SECTORFILE — da cui poi si reimporta. Un tasto «applica» qui
                farebbe nascere le radioassistenze da un secondo posto, che e' la seconda anagrafica che il
@@ -324,31 +366,32 @@
             }
             else
             {
-                <table class="res-table asp-nav">
+                <table class="res-table mil-table asp-nav">
                     <thead>
                         <tr>
-                            <th>@L["Asp_NavWhat"]</th>
-                            <th>@L["Asp_NavCode"]</th>
-                            <th>@L["Asp_NavAip"]</th>
-                            <th>@L["Asp_NavOurs"]</th>
-                            <th></th>
+                            <th class="c-what">@L["Asp_NavWhat"]</th>
+                            <th class="c-code">@L["Asp_NavCode"]</th>
+                            <th class="c-aip">@L["Asp_NavAip"]</th>
+                            <th class="c-ours">@L["Asp_NavOurs"]</th>
+                            <th class="c-note"></th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var d in _rapporto.Take(200))
                         {
                             <tr>
-                                <td>@Nome(d.Kind)</td>
-                                <td class="c-nowrap"><b>@d.Code</b> <span class="muted">@d.Family</span></td>
-                                <td>@(d.Aip ?? "—")</td>
-                                <td>@(d.Nostro ?? "—")</td>
-                                <td class="muted">@d.Nota</td>
+                                <td class="c-what">@Nome(d.Kind)</td>
+                                <td class="c-code c-nowrap"><b>@d.Code</b> <span class="muted">@d.Family</span></td>
+                                <td class="c-aip">@(d.Aip ?? "—")</td>
+                                <td class="c-ours">@(d.Nostro ?? "—")</td>
+                                <td class="c-note muted">@d.Nota</td>
                             </tr>
                         }
                     </tbody>
                 </table>
             }
-        </div>
+            </ChildContent>
+        </CollapsibleBlock>
 
         @* ⚠️ L'attribuzione non è cortesia: il file porta un disclaimer esplicito e vieta l'uso commerciale
            del dato. Sta dove il dato si vede — qui, e nelle mappe pubbliche che ne mostrano un confine. *@
@@ -381,6 +424,16 @@
 
     /// <summary>La pagina è degli Editor, come le altre che toccano dati di tutti.</summary>
     private bool PuoScrivere => Authz.Role >= VipiRole.Editor;
+
+    /// <summary>C'è un filtro acceso? Decide la pastiglia «visti / totali» sulla testata del blocco e la
+    /// comparsa del tasto che li spegne.</summary>
+    private bool Filtrando => _famiglie.Count > 0 || _cerca.Trim().Length > 0;
+
+    private void PulisciFiltri()
+    {
+        _famiglie.Clear();
+        _cerca = "";
+    }
 
     private IReadOnlyList<AirspaceVolumeRow> Filtrati
     {

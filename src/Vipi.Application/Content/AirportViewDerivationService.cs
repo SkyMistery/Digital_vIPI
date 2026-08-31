@@ -39,11 +39,20 @@ public interface IAirportViewDerivationService
     /// esatta del difetto che si sta correggendo.
     /// </para>
     /// </param>
+    /// <param name="atCycle">
+    /// Il ciclo AIRAC a cui guardare le sezioni derivate LIVE; <c>null</c> = quello corrente. Lo passa
+    /// l'anteprima di una release (il suo ciclo), perché lì la domanda è «come sarà quando esce» e non
+    /// «com'è adesso». Oggi lo usa la sola sezione SID — è l'unica derivazione d'aeroporto che ha una
+    /// regola dipendente dal ciclo — ma sta sulla porta e non sulle SID perché è una proprietà della
+    /// VISTA, non di quella tabella.
+    /// </param>
     Task<AirportDerived> ResolveForViewAsync(string icao, bool useFrozen, ReleaseTargetType edizione,
-        CancellationToken ct = default);
+        string? atCycle = null, CancellationToken ct = default);
 
     /// <summary>Le sole SID. Resta a parte perché la pagina le ri-filtra per pista scelta dal lettore.</summary>
-    Task<AirportSidView> ResolveSidsForViewAsync(string icao, bool useFrozen, CancellationToken ct = default);
+    /// <param name="atCycle">Come sopra: il ciclo a cui si guarda, <c>null</c> = quello corrente.</param>
+    Task<AirportSidView> ResolveSidsForViewAsync(string icao, bool useFrozen, string? atCycle = null,
+        CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IAirportViewDerivationService"/>
@@ -64,7 +73,7 @@ public sealed class AirportViewDerivationService : IAirportViewDerivationService
     }
 
     public async Task<AirportDerived> ResolveForViewAsync(string icao, bool useFrozen, ReleaseTargetType edizione,
-        CancellationToken ct = default)
+        string? atCycle = null, CancellationToken ct = default)
     {
         icao = Norm(icao);
 
@@ -92,14 +101,15 @@ public sealed class AirportViewDerivationService : IAirportViewDerivationService
 
         // Le SID dallo STESSO lotto: chiamare qui il metodo pubblico rileggerebbe lo snapshot una sesta volta.
         return new AirportDerived(rules, transition, freqs, runways,
-            frozen.Get<AirportSidView>("sids") ?? await _sids.DeriveAsync(icao, ct));
+            frozen.Get<AirportSidView>("sids") ?? await _sids.DeriveAsync(icao, atCycle, ct));
     }
 
-    public async Task<AirportSidView> ResolveSidsForViewAsync(string icao, bool useFrozen, CancellationToken ct = default)
+    public async Task<AirportSidView> ResolveSidsForViewAsync(string icao, bool useFrozen, string? atCycle = null,
+        CancellationToken ct = default)
     {
         icao = Norm(icao);
         var frozen = useFrozen ? await _frozen.LoadAsync(ReleaseTargetType.Airport, icao, ct) : FrozenSections.Empty;
-        return frozen.Get<AirportSidView>("sids") ?? await _sids.DeriveAsync(icao, ct);
+        return frozen.Get<AirportSidView>("sids") ?? await _sids.DeriveAsync(icao, atCycle, ct);
     }
 
     private static string Norm(string? icao) => (icao ?? "").Trim().ToUpperInvariant();

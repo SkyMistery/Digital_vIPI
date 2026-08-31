@@ -24,7 +24,22 @@ public sealed record AirportSidView(IReadOnlyList<AirportSidRowView> Rows)
 /// </summary>
 public interface IAirportSidDerivationService
 {
-    Task<AirportSidView> DeriveAsync(string icao, CancellationToken ct = default);
+    /// <param name="atCycle">
+    /// A che CICLO AIRAC si guarda la tabella. <c>null</c> = quello corrente, cioè «adesso»: è la vista
+    /// pubblica e la bozza.
+    /// <para>
+    /// ⚠️ Serve perché una SID importata compare solo dal ciclo <b>successivo</b> al prelievo
+    /// (<see cref="SidRow.IsPublicAt"/>, buffer di un ciclo). Chiedendo sempre il ciclo di oggi,
+    /// l'ANTEPRIMA di una release programmata al 2608 mostrava le SID come sono adesso e non come saranno
+    /// quando quella release entrerà in vigore: quelle prelevate nel ciclo in corso restavano fuori
+    /// dall'anteprima e poi comparivano da sole in pubblico. Chi guarda un'anteprima chiede «come sarà»,
+    /// non «come è».
+    /// </para>
+    /// <para>⚠️ Non sposta il confine, lo SPOSTA NEL TEMPO: il buffer di un ciclo resta: una SID prelevata
+    /// <i>dentro</i> il 2608 non compare nemmeno nell'anteprima del 2608 — uscirà al 2609, ed è giusto che
+    /// l'anteprima lo dica.</para>
+    /// </param>
+    Task<AirportSidView> DeriveAsync(string icao, string? atCycle = null, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IAirportSidDerivationService"/>
@@ -39,12 +54,13 @@ public sealed class AirportSidDerivationService : IAirportSidDerivationService
         _airac = airac;
     }
 
-    public async Task<AirportSidView> DeriveAsync(string icao, CancellationToken ct = default)
+    public async Task<AirportSidView> DeriveAsync(string icao, string? atCycle = null, CancellationToken ct = default)
     {
         var data = await _repo.LoadAsync((icao ?? "").Trim().ToUpperInvariant(), ct);
         if (data is null) return AirportSidView.Empty;
 
-        var cycle = _airac.GetCycle(DateTime.UtcNow);
+        // Il ciclo a cui si guarda: quello chiesto (anteprima/cattura di una release) o quello di adesso.
+        var cycle = string.IsNullOrWhiteSpace(atCycle) ? _airac.GetCycle(DateTime.UtcNow) : atCycle!.Trim();
         // I Sids arrivano già ordinati per Order dal repo; l'OrderBy stabile lo preserva come ultimo criterio a parità
         // di FIX e priorità. Le importate compaiono solo dal ciclo successivo al prelievo (o se forzate): IsPublicAt.
         var rows = data.Sids
