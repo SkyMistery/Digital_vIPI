@@ -57,6 +57,23 @@ il **login OIDC IVAO reale** e l'identità di sviluppo non si attiva: non entri.
 `DevCurrentUserProvider` (VID 704798); senza credenziali IVAO nei user-secrets cade sul fallback statico
 (staff `IT-AOA1`/`IT-T03`, `CanEdit=true`), che basta per editare.
 
+**⚠️ Guidare l'app a un livello PIÙ BASSO (1 settembre 2026).** Per provare che cosa vede il *pubblico* —
+documenti non pubblicati, pagine riservate — non basta cambiare le posizioni staff:
+
+```
+$env:DevIdentity__UserId            = "123456"   # ⚠️ NON 704798
+$env:DevIdentity__StaffPositions__0 = "XX-ZZ9"   # un codice che nessun pattern riconosce
+```
+
+⚠️ **Il VID va cambiato**, ed è la parte che costa un giro a vuoto: `RoleResolver.Resolve` comincia con
+`if (_founders.Contains(userId)) return VipiRole.Admin`, e **704798 è un fondatore**. Con quel VID si resta
+Admin qualunque cosa si scriva nelle posizioni — misurato: con `XX-ZZ9` l'elenco dei vSOP militari mostrava
+ancora le bozze e i tasti «Modifica». ⚠️ E le promozioni a mano (`RoleOverrides`) non servono al contrario:
+possono solo **alzare** il livello (`o > daStaff`).
+
+Il log lo dice all'avvio: `DevCurrentUserProvider: identità da config, VID …, posizioni …` — leggerlo prima
+di misurare, o si misura il livello sbagliato credendolo giusto.
+
 `Sectorfile__RawBaseUrl=""` evita che il job d'avvio richiami GitHub: la verifica non deve dipendere dalla rete.
 
 ⚠️ **Deroga**: se è proprio il sectorfile che si sta verificando (catalogo dei punti, import SID, shape TWR),
