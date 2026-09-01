@@ -6855,6 +6855,22 @@ la famiglia dove il difetto si vede di più.
 - Nuova **R9** in [`design/regole-lingua.md`](design/regole-lingua.md), e corretto lì il paragrafo che
   diceva «serve un passo di manutenzione all'avvio»: vale per **rinominare** una sezione, non per mostrarla
   nella lingua giusta.
-- 🟡 **Verifica live** ancora da fare guidando un documento bloccato in inglese (le suite sono verdi:
-  `Vipi.Application.Tests` 2004, `Vipi.Ui.Tests` 1070).
+- ✅ **Verificato dal vivo** (Edge headless su copia del `vipi.db`, tre documenti messi a `Language='En'`,
+  `LanguageLocked=1`): **sito in italiano** (`<html lang="it">`, barra e avvisi italiani) e documento
+  bloccato in inglese ⇒ testate e indice **tutti inglesi**. Il vSOP di Grottaglie ha dato 26 voci d'indice
+  in inglese comprese le venti annidate; l'APP di Amendola dieci; la vIPI ACC di Brindisi entrambi i blocchi
+  (con «Radar separation» sull'Aerovia e «Separations» sul gruppo APP — profili diversi, sulla stessa
+  pagina); l'editor del vSOP le stesse ventisei fra card e indice. **Nessun errore di pagina, nessuna
+  console.error, nessun 4xx.**
+- ✅ **Nessuna regressione sui NON bloccati**, che è la metà che poteva rompersi: APP di Pescara e vIPI di
+  LIBD letti in italiano restano italiani e in inglese vengono inglesi; una **vLOA non bloccata letta in
+  italiano** mostra ancora «Scopo / Aree di Responsabilità / Validità e revisione», cioè la resa del
+  traduttore — quella che imporre il catalogo avrebbe **cancellato**. Il verso opposto, la vLOA bloccata in
+  inglese dentro un sito italiano, mostra i titoli inglesi e l'avviso «Documento in una lingua sola» in
+  italiano: il confine di §AN, intatto.
+- Suite verdi: `Vipi.Application.Tests` 2004, `Vipi.Ui.Tests` 1070, `Vipi.Infrastructure.Tests` 1190;
+  `dotnet build Vipi.slnx -c Release --no-incremental` pulita.
+- 🟡 **Trovato per strada, e NON è di questo giro**: i passi del **giro guidato** (`vipi-tour.js`) hanno
+  titoli e testi **cablati in italiano** — «Indice del documento», con l'interfaccia in inglese. È
+  un'eccezione non dichiarata a R7, e vale per tutte le pagine che montano il tour.
 - 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** insieme a §AO e §AP.
