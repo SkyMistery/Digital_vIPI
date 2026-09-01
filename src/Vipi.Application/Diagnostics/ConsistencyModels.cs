@@ -38,6 +38,21 @@ public enum ConsistencyArea
     /// un occhio umano su una vista 3D.</para>
     /// </summary>
     Sorgente,
+
+    /// <summary>
+    /// Il <b>sectorfile Aurora</b> della divisione e i cataloghi IVAO non dicono la stessa cosa. Da qui non si
+    /// ripara: si ripara nel sectorfile, e lo scrive l'IT-AOD.
+    ///
+    /// <para>Serve un'area sua per la ragione per cui l'enum esiste — <b>il destinatario è una terza
+    /// persona</b>. Non chi apre un editor (<see cref="Dati"/>), non chi amministra la macchina
+    /// (<see cref="Server"/>, <see cref="Schema"/>), non «ci conviviamo» (<see cref="Sorgente"/>): qui c'è
+    /// qualcuno da avvisare, fuori da questa applicazione.</para>
+    ///
+    /// <para>⚠️ I rilievi di quest'area sono <b>esclusi dal conteggio dell'health check</b>: ce ne sono
+    /// sempre alcuni — le due sorgenti hanno cadenze diverse — e un endpoint di salute perennemente
+    /// «Degraded» è un endpoint spento. Vedi <c>VipiHealthCheck</c>.</para>
+    /// </summary>
+    Sectorfile,
 }
 
 /// <summary>

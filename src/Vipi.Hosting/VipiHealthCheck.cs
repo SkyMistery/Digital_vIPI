@@ -29,6 +29,24 @@ public sealed class VipiHealthCheck : IHealthCheck
         _reportCache = reportCache;
     }
 
+    /// <summary>
+    /// Quante incongruenze <b>contano</b> per la salute dell'istanza.
+    ///
+    /// <para>⚠️ Una funzione a sé, e con un test suo, perché è una <b>decisione</b> e non un conteggio: i
+    /// rilievi dell'area <see cref="ConsistencyArea.Sectorfile"/> dicono che il sectorfile Aurora e i
+    /// cataloghi IVAO non concordano — vero, utile, e che non riguarda lo stato di questa istanza. Ce n'è
+    /// sempre qualcuno, perché le due sorgenti hanno cadenze diverse (IVAO in continuo, il sectorfile per
+    /// ciclo AIRAC): contarli qui vorrebbe dire un endpoint di salute perennemente «Degraded», cioè un
+    /// monitor che qualcuno impara a ignorare — e con lui i guasti veri.</para>
+    /// </summary>
+    public static int ContaIncongruenze(IReadOnlyList<ConsistencyFinding> findings) =>
+        findings.Count(f => f.Area != ConsistencyArea.Sectorfile);
+
+    /// <summary>Le divergenze col sectorfile: non muovono il verdetto, ma restano nel corpo della risposta —
+    /// saperlo è comodo per chi guarda, e non costa niente.</summary>
+    public static int ContaDivergenzeSectorfile(IReadOnlyList<ConsistencyFinding> findings) =>
+        findings.Count(f => f.Area == ConsistencyArea.Sectorfile);
+
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken ct = default)
     {
         // Le condizioni critiche sono le stesse della sonda: se il DB non c'è o lo schema è indietro, il resto
@@ -65,11 +83,22 @@ public sealed class VipiHealthCheck : IHealthCheck
                 "Report di consistenza non eseguibile: le condizioni critiche sono a posto, ma le " +
                 "incongruenze dati non sono state verificate.", ex, data);
         }
-        if (findings.Count > 0)
+        // ⚠️ I rilievi di COERENZA COL SECTORFILE non contano ai fini della salute, ed è una decisione, non
+        // una dimenticanza: dicono che il sectorfile Aurora e i cataloghi IVAO non concordano — una cosa
+        // vera, utile, e che NON riguarda lo stato di questa istanza. Ce n'è sempre qualcuno (le due
+        // sorgenti hanno cadenze diverse: IVAO in continuo, il sectorfile per ciclo AIRAC), quindi
+        // contarli qui vorrebbe dire un endpoint di salute perennemente «Degraded» — cioè un monitor che
+        // qualcuno impara a ignorare, e con lui i guasti veri. Restano nel corpo come numero, perché
+        // saperlo è comodo, ma non muovono il verdetto.
+        var divergenzeSectorfile = ContaDivergenzeSectorfile(findings);
+        if (divergenzeSectorfile > 0) data["sectorfileDivergences"] = divergenzeSectorfile;
+
+        var incongruenze = ContaIncongruenze(findings);
+        if (incongruenze > 0)
         {
-            data["dataConsistencyFindings"] = findings.Count;
+            data["dataConsistencyFindings"] = incongruenze;
             return HealthCheckResult.Degraded(
-                $"{findings.Count} incongruenze dati rilevate (vedi /services/vsop/admin/diagnostics).", data: data);
+                $"{incongruenze} incongruenze dati rilevate (vedi /services/vsop/admin/diagnostics).", data: data);
         }
 
         // Snapshot mai aggiornato o troppo vecchio: degradato (il DB e la consultazione funzionano comunque).

@@ -473,4 +473,117 @@ public static class AuroraSectorfileParser
     /// </remarks>
     public static bool TryParseDms(string? token, out double degrees) =>
         DmsCoordinate.TryParse(token, out degrees);
+
+    // ---------------------------------------------------------------------------------------------------
+    // I tre file che descrivono le cose che ANCHE vIPI tiene: posizioni, aeroporti, piste.
+    //
+    // Nessuno dei tre si importa — la sorgente autoritativa resta l'API IVAO (ADR-0006). Si leggono per
+    // CONFRONTARLI, ed è tutta un'altra cosa: carta docs/design/piano-coerenza-sectorfile.md.
+    // ---------------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Righe utili di un file del sectorfile: niente vuote, niente commenti <c>//</c>, campi già ritagliati.
+    /// </summary>
+    /// <remarks>⚠️ I commenti ci sono davvero e non sono decorativi: <c>itfreq.frq</c> e <c>itrw.rw</c> li
+    /// usano per intestare i blocchi (<c>//MILANO ACC</c>, <c>//MENU MAPPE</c>).</remarks>
+    private static IEnumerable<string[]> RigheUtili(string? testo)
+    {
+        if (string.IsNullOrEmpty(testo)) yield break;
+        foreach (var raw in testo.Split('\n'))
+        {
+            var line = raw.Trim();
+            if (line.Length == 0 || line.StartsWith("//", StringComparison.Ordinal)) continue;
+            yield return line.Split(';', StringSplitOptions.TrimEntries);
+        }
+    }
+
+    /// <summary>Un intero, o null se il campo non lo è.</summary>
+    private static int? Intero(string? campo) =>
+        int.TryParse((campo ?? "").Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v : null;
+
+    /// <summary>Una coordinata DMS, o null se il campo non lo è.</summary>
+    private static double? Coordinata(string? campo) =>
+        TryParseDms((campo ?? "").Trim(), out var v) ? v : null;
+
+    /// <summary>
+    /// Le posizioni ATC di <c>OTHER/itfreq.frq</c>: <c>callsign ; freq ; visibilità ; profilo ; atis ; …</c>.
+    /// </summary>
+    public static IReadOnlyList<SectorfilePosition> ParseAtcPositions(string? testo)
+    {
+        var result = new List<SectorfilePosition>();
+        foreach (var c in RigheUtili(testo))
+        {
+            if (c.Length < 2) continue;
+            var callsign = c[0].ToUpperInvariant();
+            if (callsign.Length == 0) continue;
+            result.Add(new SectorfilePosition(callsign, Frequenza(c[1])));
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Gli aeroporti di <c>OTHER/itap.ap</c>: <c>ICAO ; elev ; TA ; lat ; lon ; nome ;</c>.
+    /// </summary>
+    /// <remarks>⚠️ La TA a <b>0</b> nel file significa «non dichiarata» — 24 aeroporti su 130 — e qui diventa
+    /// <c>null</c>: chi confronta non deve poter scambiare «non lo dice» per «dice zero piedi».</remarks>
+    public static IReadOnlyList<SectorfileAirport> ParseAirports(string? testo)
+    {
+        var result = new List<SectorfileAirport>();
+        foreach (var c in RigheUtili(testo))
+        {
+            if (c.Length < 5) continue;
+            var icao = c[0].ToUpperInvariant();
+            if (icao.Length == 0) continue;
+            var ta = Intero(c[2]);
+            result.Add(new SectorfileAirport(icao, Intero(c[1]), ta is 0 ? null : ta,
+                Coordinata(c[3]), Coordinata(c[4]), c.Length > 5 ? Blank(c[5]) : null));
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Le estremità di pista di <c>OTHER/itrw.rw</c>:
+    /// <c>ICAO ; ident ; ident opposto ; elev soglia 1 ; elev soglia 2 ; QFU 1 ; QFU 2 ; lat1 ; lon1 ; lat2 ; lon2 ;</c>.
+    /// Ogni riga produce <b>due</b> estremità.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ <b>Le 96 righe <c>MAPS</c> non sono piste</b>: sono l'hack italiano che costruisce le voci di menu
+    /// delle mappe (§6.1 di <c>STATO_SECTORFILE_ITALIANO.md</c>), hanno coordinate a zero e stanno sotto
+    /// <c>//MENU MAPPE</c>. Chi non le scarta apre 96 rilievi falsi al primo giro.
+    /// <para>⚠️ I campi 4 e 5 sono le <b>elevazioni delle soglie</b>, non le lunghezze di pista: quelle in
+    /// questo file non ci sono affatto.</para>
+    /// </remarks>
+    public static IReadOnlyList<SectorfileRunwayEnd> ParseRunwayEnds(string? testo)
+    {
+        var result = new List<SectorfileRunwayEnd>();
+        foreach (var c in RigheUtili(testo))
+        {
+            if (c.Length < 11) continue;
+            var icao = c[0].ToUpperInvariant();
+            if (icao.Length == 0) continue;
+            if (c[1].StartsWith("MAPS", StringComparison.OrdinalIgnoreCase)) continue;
+
+            Aggiungi(c[1], Intero(c[3]), Coordinata(c[7]), Coordinata(c[8]));
+            Aggiungi(c[2], Intero(c[4]), Coordinata(c[9]), Coordinata(c[10]));
+
+            void Aggiungi(string ident, int? elev, double? lat, double? lon)
+            {
+                var id = NormalizzaIdentPista(ident);
+                if (id.Length > 0) result.Add(new SectorfileRunwayEnd(icao, id, elev, lat, lon));
+            }
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Il designatore di una pista in forma confrontabile: maiuscolo e <b>senza zero iniziale</b>.
+    /// </summary>
+    /// <remarks>⚠️ Serve perché il sectorfile scrive <c>09</c> e IVAO <c>9</c>: senza questa riga ~40 piste
+    /// risultano «assenti da una parte» per una cifra, e le dodici divergenze <b>vere</b> — le rinumerazioni
+    /// applicate da una parte sola — spariscono nel rumore. Misurato il 1 settembre 2026.</remarks>
+    public static string NormalizzaIdentPista(string? ident)
+    {
+        var v = (ident ?? "").Trim().ToUpperInvariant();
+        return v.Length > 1 && v[0] == '0' ? v[1..] : v;
+    }
 }

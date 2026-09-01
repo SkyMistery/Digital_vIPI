@@ -311,6 +311,19 @@ public static class DependencyInjection
             c.Timeout = TimeSpan.FromSeconds(15);
             c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
         });
+
+        // Coerenza col sectorfile: i tre file che descrivono posizioni, aeroporti e piste — le stesse cose
+        // che i cataloghi IVAO tengono. ⚠️ NON è un import: nessuna di queste righe entra in una tabella, si
+        // leggono per confrontarle. Carta docs/design/piano-coerenza-sectorfile.md.
+        services.AddHttpClient<Vipi.Application.Abstractions.ISectorfileFactsSource,
+            Sectorfile.AuroraSectorfileFactsProvider>(c =>
+        {
+            c.Timeout = TimeSpan.FromSeconds(30);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
+        });
+        services.AddScoped<Vipi.Application.Abstractions.ISectorfileComparisonRepository,
+            EfSectorfileComparisonRepository>();
+        services.AddHostedService<Sectorfile.SectorfileComparisonHostedService>();
         return services;
     }
 }

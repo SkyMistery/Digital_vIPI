@@ -208,6 +208,35 @@ public sealed class SharedResourceIntegrityTests
             string.Join("\n  ", mancanti));
     }
 
+    /// <summary>
+    /// Ogni rilievo del confronto col sectorfile ha le sue <b>tre</b> righe nelle risorse: la categoria, la
+    /// spiegazione e il bersaglio.
+    ///
+    /// <para>⚠️ Sono chiavi che il sorgente non nomina mai come letterali — stanno in costanti
+    /// (<c>SectorfileComparison.CatFrequenza</c>) e nel campo <c>DetailKey</c> di un record — quindi
+    /// <see cref="Ogni_chiave_usata_nel_codice_esiste_nelle_risorse"/> non le vede. È lo stesso buco da cui
+    /// erano passati <c>ImpactKind_SectorRenamed</c> e <c>ImpactKind_SectorDetached</c>: chiavi mancanti che
+    /// non rompono niente e fanno comparire il <b>nome della chiave</b> a schermo, in tutte e due le lingue,
+    /// solo quando quel rilievo capita davvero.</para>
+    /// </summary>
+    [Fact]
+    public void Ogni_rilievo_di_coerenza_sectorfile_ha_le_sue_righe()
+    {
+        var it = Chiavi(PercorsoIt).ToHashSet(StringComparer.Ordinal);
+        var en = Chiavi(PercorsoEn).ToHashSet(StringComparer.Ordinal);
+
+        var attese = Vipi.Application.Diagnostics.SectorfileComparison.Categorie
+            .SelectMany(c => new[] { c, c.Replace("Diag_Cat_", "Diag_Msg_", StringComparison.Ordinal) })
+            .Concat(new[] { "Diag_Ent_SfPosizione", "Diag_Ent_SfAeroporto", "Diag_Ent_SfPista" })
+            .ToList();
+
+        var mancanti = attese.Where(k => !it.Contains(k) || !en.Contains(k)).ToList();
+
+        Assert.True(mancanti.Count == 0,
+            $"{mancanti.Count} chiavi del confronto col sectorfile senza riga nelle risorse.\n  " +
+            string.Join("\n  ", mancanti));
+    }
+
     private static IReadOnlyList<string> Chiavi(string percorsoRelativo)
     {
         var percorso = Path.Combine(RadiceDelRepo(), percorsoRelativo.Replace('/', Path.DirectorySeparatorChar));

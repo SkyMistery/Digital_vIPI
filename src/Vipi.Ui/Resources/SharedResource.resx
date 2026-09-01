@@ -535,7 +535,7 @@
   <data name="Audit_VidN" xml:space="preserve"><value>VID {0}</value></data>
   <!-- Diagnostica (/vsop/admin/diagnostica) -->
   <data name="Diag_Title" xml:space="preserve"><value>Diagnostica dati</value></data>
-  <data name="Diag_Subtitle" xml:space="preserve"><value>Quello che non torna, in sei aree: dati, schema, server, avvio, configurazione, sorgente</value></data>
+  <data name="Diag_Subtitle" xml:space="preserve"><value>Quello che non torna, in sette aree: dati, schema, server, avvio, configurazione, sorgente, sectorfile</value></data>
   <data name="Diag_Area_Sorgente" xml:space="preserve"><value>Sorgente</value></data>
   <data name="Diag_Cat_ShapeAssente" xml:space="preserve"><value>Settore senza poligono</value></data>
   <data name="Diag_Msg_ShapeAssente" xml:space="preserve"><value>La sorgente non espone una shape per questo settore: non compare nelle mappe e non puo attribuire traffico. Le sue ore restano contate, i suoi movimenti saranno sempre zero.</value></data>
@@ -607,6 +607,46 @@
   <data name="Diag_Pezzo_Server" xml:space="preserve"><value>Impostazioni del server</value></data>
   <data name="Diag_Pezzo_Avvio" xml:space="preserve"><value>Manutenzioni d’avvio</value></data>
   <data name="Diag_Pezzo_Policy" xml:space="preserve"><value>Policy di import</value></data>
+  <data name="Diag_Area_Sectorfile" xml:space="preserve"><value>Sectorfile</value></data>
+  <data name="Diag_Pezzo_Sectorfile" xml:space="preserve"><value>Coerenza col sectorfile</value></data>
+  <data name="Diag_Cat_SfFrequenza" xml:space="preserve"><value>Frequenza divergente</value></data>
+  <data name="Diag_Msg_SfFrequenza" xml:space="preserve"><value>{0}: i cataloghi IVAO dicono {1} MHz, il sectorfile {2} MHz.</value></data>
+  <data name="Diag_Cat_SfPosSoloSf" xml:space="preserve"><value>Posizione assente in vIPI</value></data>
+  <data name="Diag_Msg_SfPosSoloSf" xml:space="preserve"><value>Il sectorfile offre la posizione {0}, che i cataloghi IVAO non hanno.</value></data>
+  <data name="Diag_Cat_SfPosSoloVipi" xml:space="preserve"><value>Posizione assente nel sectorfile</value></data>
+  <data name="Diag_Msg_SfPosSoloVipi" xml:space="preserve"><value>La posizione {0} esiste nei cataloghi IVAO ma il sectorfile non la offre: chi si connette li non trova ne profilo radar ne mappa.</value></data>
+  <data name="Diag_Cat_SfTa" xml:space="preserve"><value>TA divergente</value></data>
+  <data name="Diag_Msg_SfTa" xml:space="preserve"><value>{0}: la transition altitude e {1} ft per i cataloghi IVAO e {2} ft nel sectorfile. E il numero che un controllore legge sul documento e che Aurora stampa nel suo.</value></data>
+  <data name="Diag_Cat_SfElevazione" xml:space="preserve"><value>Elevazione divergente</value></data>
+  <data name="Diag_Msg_SfElevazione" xml:space="preserve"><value>{0}: elevazione {1} ft per i cataloghi IVAO, {2} ft nel sectorfile.</value></data>
+  <data name="Diag_Cat_SfCoordinate" xml:space="preserve"><value>Riferimento aeroporto divergente</value></data>
+  <data name="Diag_Msg_SfCoordinate" xml:space="preserve"><value>{0}: il punto di riferimento dell'aeroporto dista {1} NM fra le due sorgenti.</value></data>
+  <data name="Diag_Cat_SfAptSoloVipi" xml:space="preserve"><value>Aeroporto assente nel sectorfile</value></data>
+  <data name="Diag_Msg_SfAptSoloVipi" xml:space="preserve"><value>Documentiamo l'aeroporto {0}, che il sectorfile non elenca.</value></data>
+  <data name="Diag_Cat_SfPiste" xml:space="preserve"><value>Designatori pista divergenti</value></data>
+  <data name="Diag_Msg_SfPiste" xml:space="preserve"><value>{0}: solo nei cataloghi IVAO {1}; solo nel sectorfile {2}. Di solito e una rinumerazione per deriva magnetica applicata da una parte sola.</value></data>
+  <data name="Diag_Cat_SfSoglia" xml:space="preserve"><value>Soglia divergente</value></data>
+  <data name="Diag_Msg_SfSoglia" xml:space="preserve"><value>{0}/{1}: le due sorgenti mettono la soglia a {2} m di distanza.</value></data>
+  <data name="Diag_Ent_SfPosizione" xml:space="preserve"><value>Posizione {0}</value></data>
+  <data name="Diag_Ent_SfAeroporto" xml:space="preserve"><value>Aeroporto {0}</value></data>
+  <data name="Diag_Ent_SfPista" xml:space="preserve"><value>Pista {0}/{1}</value></data>
+  <data name="Sf_Title" xml:space="preserve"><value>Coerenza col sectorfile</value></data>
+  <data name="Sf_Subtitle" xml:space="preserve"><value>Dove i cataloghi IVAO e il sectorfile Aurora non dicono la stessa cosa</value></data>
+  <data name="Sf_Intro" xml:space="preserve"><value>&lt;p&gt;Due sorgenti indipendenti descrivono le stesse cose: l'&lt;b&gt;API IVAO&lt;/b&gt;, da cui questo sito prende posizioni, frequenze, aeroporti e piste, e il &lt;b&gt;sectorfile Aurora&lt;/b&gt; della divisione, che scrive l'IT-AOD. Questa pagina le mette a confronto.&lt;/p&gt;&lt;p&gt;Dice soltanto &lt;b&gt;che non concordano&lt;/b&gt;: chi abbia ragione non lo sa, e da qui non si ripara nulla. La correzione sta nel sectorfile, oppure nei dati IVAO. Il tasto in fondo copia l'elenco in un testo da mandare a chi il sectorfile lo scrive.&lt;/p&gt;&lt;p&gt;Il confronto gira da se ogni 24 ore. Una parte delle divergenze e &lt;b&gt;fisiologica&lt;/b&gt;: il sectorfile si scrive prima che il ciclo AIRAC entri in vigore, quindi puo essere avanti. Quelle che restano per due cicli non lo sono.&lt;/p&gt;</value></data>
+  <data name="Sf_StaffOnly" xml:space="preserve"><value>Questa pagina e riservata a chi cura i documenti (livello Editor e superiori).</value></data>
+  <data name="Sf_Never" xml:space="preserve"><value>Il confronto non e ancora girato: la prima fotografia si prende pochi minuti dopo l'avvio.</value></data>
+  <data name="Sf_Off" xml:space="preserve"><value>La sorgente sectorfile non e configurata, quindi non c'e niente da confrontare.</value></data>
+  <data name="Sf_LastRun" xml:space="preserve"><value>Ultimo confronto: {0}</value></data>
+  <data name="Sf_Error" xml:space="preserve"><value>L'ultimo tentativo non e riuscito ({0}). Quel che si vede qui sotto e la fotografia precedente.</value></data>
+  <data name="Sf_None" xml:space="preserve"><value>Nessuna divergenza: le due sorgenti concordano su tutto cio che si confronta.</value></data>
+  <data name="Sf_Copy" xml:space="preserve"><value>Copia l'elenco per l'AOD</value></data>
+  <data name="Sf_Now" xml:space="preserve"><value>Confronta adesso</value></data>
+  <data name="Sf_Copied" xml:space="preserve"><value>Elenco copiato.</value></data>
+  <data name="Sf_GroupPositions" xml:space="preserve"><value>Posizioni e frequenze</value></data>
+  <data name="Sf_GroupAirports" xml:space="preserve"><value>Aeroporti</value></data>
+  <data name="Sf_GroupRunways" xml:space="preserve"><value>Piste</value></data>
+  <data name="Sf_N" xml:space="preserve"><value>{0} divergenze</value></data>
+  <data name="Services_SectorfileDesc" xml:space="preserve"><value>Dove i cataloghi IVAO e il sectorfile Aurora non dicono la stessa cosa: frequenze, TA, designatori di pista.</value></data>
   <data name="Diag_Ent_PolicyImport" xml:space="preserve"><value>Policy di import</value></data>
   <data name="Diag_Cat_PolicyAssente" xml:space="preserve"><value>Policy di import assente</value></data>
   <data name="Diag_Msg_PolicyAssente" xml:space="preserve"><value>La riga della policy non c’è: vale il default «tutto da sorgente», e nessuno l’ha scelto. Se qualche categoria era manuale, il prossimo giro di import la sovrascrive senza dirlo. Si chiude salvando la policy dalla pagina Sorgenti.</value></data>
