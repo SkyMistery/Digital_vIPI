@@ -1987,3 +1987,62 @@ verifica di E ha detto «nessuna differenza» perché girava sul binario **pubbl
 la trappola del processo, già scritta due volte in queste pagine.
 
 Nessuna migrazione. Suite verde su tutti i progetti.
+
+---
+
+## 1 settembre 2026 — l'avviso di simulazione, su ogni schermata e su ogni foglio stampato
+
+Richiesta del committente, parola sua: **«in tutti, nessuno escluso»**.
+
+> **ONLY FOR SIMULATION: DO NOT USE FOR REAL LIFE NAVIGATION**
+
+Rosso e grassetto **sotto il titolo** delle sette schermate pubbliche — le cinque famiglie documentali
+(vIPI ACC, vIPI d'aeroporto, APP non remotizzato, vLOA, vSOP militare) più la **vista live** e la mappa
+degli **spazi aerei** — e a **piè di ogni foglio stampato di ogni pagina del sito**, dal layout.
+
+**Il testo vive in un posto solo**: `Components/SimDisclaimer.razor`, una costante. Nove sedi: scritto a
+mano in nove posti diventerebbe nove testi leggermente diversi al primo ritocco, che è il **vocabolario
+parallelo** già pagato coi titoli della Guida. Un test conta le copie in `src/Vipi.Ui` e ne pretende una.
+**Non si traduce** — è la nuova **R8** di `design/regole-lingua.md`, eccezione dichiarata a R7 e stessa
+ragione di R3: non è prosa del sito, è un cartello. Il rosso è `var(--danger-ink)`, non un letterale:
+misurato **7,6:1** a tema chiaro e **7,1:1** a tema scuro.
+
+### Le due cose che non si leggono nel codice
+
+**⚠️ In stampa `.doc-head` è NASCOSTO** (`vipi-print.css`, `.print-meta + .doc-head`): la riga che si vede
+a schermo sotto il titolo, **sul foglio non esiste**. Per questo l'avviso sta **anche** dentro `PrintMeta`
+(`.pm-sim`) — non è un doppione del piè di pagina, e chi togliesse quella riga credendola tale la
+toglierebbe dalla prima pagina di ogni documento stampato.
+
+**⚠️ Il `bottom` del piè di pagina è un numero MISURATO, e sta fra due muri.** `position:fixed` non è
+stile ma **meccanismo**: è l'unico modo che il CSS ha di ripetere una riga su ogni foglio — le margin box
+di `@page` (`@bottom-center{content:…}`) non le implementa nessun browser, e l'alternativa sarebbe
+riavvolgere il contenuto di tutto il sito in `<table><tfoot>`.
+
+| `bottom` | esito, misurato con `printToPDF` |
+|---|---|
+| `0` | esce su tutti i fogli, ma **tocca** l'ultima riga di un foglio pieno (−1,1mm su 21 fogli) |
+| `-2mm`, **`-4mm`** | ✅ tutti i fogli; a −4mm la distanza dal testo è **+2,9mm** |
+| `-6mm`, `-8mm` | ⚠️ **Chrome non lo disegna sulla PRIMA pagina** (dalla seconda sì) |
+
+Scelto **−4mm**, con `@page{margin:14mm 12mm 18mm}`. Il muro dipende da `height`/`line-height` (8mm): la
+riga sparisce quando la sua **base** esce dall'area di pagina — chi cambia l'altezza rimisuri, non deduca.
+⚠️ **Il secondo muro è il difetto insidioso**: sui cinque documenti la prima pagina l'avviso ce l'ha
+comunque da `PrintMeta`, quindi un valore sbagliato si vedrebbe **solo stampando un elenco o la home**.
+Un test blocca i due numeri e dice perché. ⚠️ Safari ripete i `position:fixed` solo sulla prima pagina:
+ragione in più perché l'avviso stia anche in `PrintMeta` e sotto il titolo.
+
+### Verifica
+
+`dotnet build Vipi.slnx -c Release --no-incremental` verde sui due TFM, suite intera verde (13 test
+nuovi in `AvvisoDiSimulazioneTests`). **Dal vivo**, generando i PDF veri con `printToPDF` e leggendoli
+pagina per pagina: **10 pagine, 54 fogli, l'avviso su tutti**.
+
+⚠️ **APP standalone e vSOP militare non sono stati guidati a schermo**: il `vipi.db` di sviluppo **non
+contiene documenti di quei due tipi** (`select Type,count(*) from Documents` → solo `Vipi` 21 e `Vloa` 4,
+e le pagine APP mostrano tutte «documento non disponibile»). Li copre il test sul sorgente, e il costrutto
+è identico a quello delle schermate guidate — ma è un limite da ricordare per **qualunque** verifica live
+su quei due documenti.
+
+Nessuna migrazione. 🔴 Cambiano `vipi-theme.css` e `vipi-print.css`: impronte nuove, quindi serve un
+pacchetto (1.3.1) prima che si veda in produzione.

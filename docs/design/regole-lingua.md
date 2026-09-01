@@ -1,4 +1,4 @@
-# Regole della lingua (28 agosto 2026)
+﻿# Regole della lingua (28 agosto 2026)
 
 > Gemello di [regole-brand](regole-brand.md) e [regole-ui-pagine-admin](regole-ui-pagine-admin.md): quelle
 > governano colori e densità, questa governa **che cosa cambia quando si cambia lingua**.
@@ -9,7 +9,7 @@
 > eccezioni come dimenticanze e le «corregge» — un marchio tradotto sembra un miglioramento, finché non si
 > sa perché stava fermo.
 
-## Le sei regole
+## Le otto regole
 
 | | Regola | Dove sta |
 |---|---|---|
@@ -20,6 +20,7 @@
 | **R5** | Gli **indirizzi** non si localizzano | nessuna rotta per lingua, ed è così da sempre |
 | **R6** | **Tutto il resto** segue la lingua scelta nella barra | i `.resx`, e la memoria di traduzione per i documenti |
 | **R7** | Le stringhe **dell'applicazione** si traducono **a mano** nei `.resx`; al motore automatico va **solo la prosa dei documenti** | `SharedResource.resx` / `.en.resx` |
+| **R8** | L'**avviso di simulazione** («ONLY FOR SIMULATION: DO NOT USE FOR REAL LIFE NAVIGATION») è **sempre in inglese**, in entrambe le versioni del sito | `SimDisclaimer.razor` |
 
 ## Il perché, regola per regola
 
@@ -68,6 +69,25 @@ codice** dalle risorse, scegliendo il template e non traducendo l'uscita (`Readi
 Un'etichetta di interfaccia la si scrive una volta e resta lì per anni: mandarla a un motore automatico
 costa franchigia, e restituisce una resa che nessuno ha scelto. La prosa dei documenti è l'opposto: la
 scrive lo staff, cambia a ogni ciclo AIRAC, e nessuno può ritradurla ogni volta a mano.
+
+### R8 — l'avviso di simulazione è un cartello, non prosa
+
+> ONLY FOR SIMULATION: DO NOT USE FOR REAL LIFE NAVIGATION
+
+Sta sotto il titolo di ogni documento pubblico, della vista live e della mappa degli spazi aerei, e a piè di
+**ogni foglio stampato di ogni pagina del sito**. È dell'1 settembre 2026, ed è una richiesta del
+committente: *«in tutti, nessuno escluso»*.
+
+⚠️ **Non passa dai `.resx`**, e quindi è un'eccezione dichiarata a R7. La ragione è la stessa di R3: non è
+prosa del sito, è un **cartello**. Dice che cosa NON si può fare con questa documentazione, e lo dice a
+chiunque abbia il foglio in mano — compreso chi legge la pagina italiana, compreso chi trova il foglio
+stampato senza sapere da dove venga. Una frase del genere si riconosce a colpo d'occhio solo se è sempre la
+stessa; tradotta, diventerebbe due frasi da confrontare.
+
+⚠️ **E il testo vive in un posto solo**, `Components/SimDisclaimer.razor`, in una costante. Ha nove sedi:
+scritto a mano in nove posti diventerebbe nove testi leggermente diversi al primo ritocco — che è la
+trappola del *vocabolario parallelo* già pagata con i titoli della Guida (vedi in fondo). C'è un test che
+conta le copie e ne pretende **una**.
 
 ## Le trappole già pagate
 
@@ -206,5 +226,7 @@ mente:
 - `SelettoreLinguaTests` (E2E): il selettore c'è, segna la lingua corrente, non perde la query e non somma
   due `culture=`.
 - `DocumentTranslatorTests`: il titolo del documento non si traduce e non conta nella copertura.
+- `AvvisoDiSimulazioneTests`: l'avviso c'è sulle sette schermate pubbliche e nel layout, il rosso viene dal
+  token del tema, e il testo è scritto **una volta sola** in tutto `src/Vipi.Ui`.
 - **A schermo**: cambiare lingua su una pagina con isole interattive (l'aeroporto ha il meteo) e guardare
   che cambino anche quelle. È l'unico modo di vedere la trappola del circuito.
