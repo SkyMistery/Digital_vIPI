@@ -133,7 +133,18 @@ public sealed class DocumentEditorShell : IDisposable
             Error = ex.Message;
             Save = SaveState.Idle;
             // Qualcun altro ha il lock: si rilegge chi, o la barra resterebbe a dire che è nostro.
-            if (DocumentId is int id) Lock = await _editing.InspectLockAsync(id);
+            // ⚠️ E se anche QUESTA lettura fallisce non se ne fa niente: siamo già dentro la gestione di un
+            // guasto, e un'eccezione sollevata da un `catch` esce dal guardiano intatta — abbatte il circuito
+            // proprio mentre stavamo scrivendo all'utente che cos'era andato storto. Il nome di chi tiene il
+            // lock è la parte che si può perdere.
+            if (DocumentId is int id)
+            {
+                try { Lock = await _editing.InspectLockAsync(id); }
+                catch (Exception letturaLock)
+                {
+                    _log.LogWarning(letturaLock, "Rilettura del lock fallita dopo un conflitto (documento {DocId}).", id);
+                }
+            }
         }
         catch (Vipi.Application.Aor.ValidationException ex) { Error = ex.Message; Save = SaveState.Idle; }
         // I salvataggi di dati strutturati dell'aeroporto la usano per dire «questo stato non si può salvare».
@@ -145,6 +156,17 @@ public sealed class DocumentEditorShell : IDisposable
             Error = _l["Common_UnexpectedError"] + ex.Message;
             Save = SaveState.Idle;
             _log.LogError(ex, "Azione editor {Famiglia} fallita (documento {DocId}).", _famiglia, DocumentId);
+        }
+        finally
+        {
+            // ⚠️ IL RIDISEGNO SI CHIEDE SEMPRE, e prima non si chiedeva: si accendeva «Salvataggio…» e poi si
+            // contava sul render automatico dell'evento per farlo tornare indietro. Quel render ridisegna il
+            // componente che l'evento l'ha RICEVUTO — e il badge, come il messaggio d'errore, li disegna la
+            // PAGINA. Un gesto nato dentro un componente figlio (il blocco allegato, l'immagine, gli editor
+            // strutturati) lasciava quindi il badge inchiodato su «Salvataggio…» e l'errore invisibile: a
+            // schermo la pagina sembrava bloccata, e l'unica via d'uscita era ricaricarla — anche se il
+            // lavoro era già salvato. Segnalato dal campo il 1 settembre 2026.
+            await _ridisegna();
         }
         return false;
     }
@@ -165,12 +187,34 @@ public sealed class DocumentEditorShell : IDisposable
         }, silenziosa: true);
     }
 
-    /// <summary>Esce dalla modifica e molla il lock, così un altro editore può entrare senza aspettarne la scadenza.</summary>
+    /// <summary>
+    /// Esce dalla modifica e molla il lock, così un altro editore può entrare senza aspettarne la scadenza.
+    ///
+    /// <para>
+    /// ⚠️ <b>TUTTO dentro il guardiano, riletura del lock compresa.</b> Prima la rilettura stava fuori, ed era
+    /// l'unico <c>await</c> non protetto di tutta la classe: una sua eccezione — una corsa sul DbContext del
+    /// circuito, un guasto passeggero del database — non la prendeva nessuno, usciva dal gestore dell'evento e
+    /// abbatteva il circuito Blazor. A schermo: si preme «Fine modifica» e la pagina non risponde più, senza
+    /// un errore, con il badge fermo sull'ultimo salvataggio. Il lavoro era al sicuro — i gesti dell'editor
+    /// salvano uno per uno — quindi bastava ricaricare, ed è così che la segnalazione è arrivata: «si blocca
+    /// in salvataggio e si deve ricaricare la pagina per farla salvare» (1 settembre 2026).
+    /// </para>
+    ///
+    /// <para>
+    /// ⚠️ E <see cref="IsEditing"/> si spegne <b>comunque</b>, anche se il rilascio è fallito: restare «in
+    /// modifica» dopo aver chiesto di uscire è lo stato peggiore dei tre — chi guarda crede di avere il lock e
+    /// continua a scrivere. Se il rilascio non è passato il lock resta nostro e scade da sé; l'errore è a
+    /// schermo, e rientrare in modifica è un clic.
+    /// </para>
+    /// </summary>
     public async Task FinishEditingAsync()
     {
         if (DocumentId is not int id) return;
-        await GuardCoreAsync(() => _editing.ReleaseLockAsync(id), silenziosa: true);
-        Lock = await _editing.InspectLockAsync(id);
+        await GuardCoreAsync(async () =>
+        {
+            await _editing.ReleaseLockAsync(id);
+            Lock = await _editing.InspectLockAsync(id);
+        }, silenziosa: true);
         IsEditing = false;
     }
 
