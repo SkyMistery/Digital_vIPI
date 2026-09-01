@@ -29,6 +29,19 @@ public class EditorTocProjectionTests
         Children = figlie,
     };
 
+    /// <summary>Come <see cref="Sez"/>, ma con la CHIAVE di catalogo vera: quella che decide il titolo.</summary>
+    private static EditableSection ConChiave(int id, string titolo, string chiave, int depth,
+                                             params EditableSection[] figlie) => new()
+    {
+        Id = id,
+        Title = titolo,
+        SectionKey = chiave,
+        Depth = depth,
+        Order = id,
+        Blocks = Array.Empty<EditableBlock>(),
+        Children = figlie,
+    };
+
     private static IReadOnlyList<EditorTocItem> Voci(params EditableSection[] radici) =>
         EditorTocProjection.DaSezioni(radici, dirty: null, dragGroup: "root");
 
@@ -103,5 +116,30 @@ public class EditorTocProjectionTests
         Assert.Equal(2, voci.Count);
         Assert.All(voci, v => Assert.Equal(2, v.Level));
         Assert.All(voci, v => Assert.NotNull(v.SectionId));
+    }
+
+    /// <summary>
+    /// L'indice chiama le sezioni come le chiamano le card: <b>a fondo</b>, non con quel che il documento si
+    /// porta dietro.
+    ///
+    /// <para>⚠️ Il titolo di una sezione di catalogo sta scritto nel documento nella lingua che aveva alla
+    /// NASCITA e nessuno lo aggiorna quando la lingua cambia; le card lo risolvono dal catalogo
+    /// (<c>DocumentSectionsEditor.Titolo</c>), e senza lo stesso passo qui l'indice direbbe «Dati generali»
+    /// accanto a una card intitolata «General data» — sulla stessa schermata, e nessun test lo vedrebbe.</para>
+    /// </summary>
+    [Fact]
+    public void L_indice_usa_il_titolo_che_la_pagina_mostra()
+    {
+        var figlia = ConChiave(2, "Radioassistenze", "navaids", depth: 1);
+        var radice = ConChiave(1, "Dati generali", "generaldata", depth: 0, figlia);
+
+        var voci = EditorTocProjection.DaSezioni(
+            new[] { radice }, dirty: null, dragGroup: "root",
+            titolo: s => TitoliDiCatalogo.Titolo(SectionProfile.AirportMil, s.SectionKey, s.Title, "en"));
+
+        // ⚠️ Anche la FIGLIA: il vSOP militare ha venti sezioni su ventisei annidate, ed è lì che il difetto
+        // si vede.
+        Assert.Equal("General data", voci[0].Label);
+        Assert.Equal("Navigation aids", voci[1].Label);
     }
 }

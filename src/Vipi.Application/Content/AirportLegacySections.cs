@@ -100,10 +100,16 @@ public static class AirportLegacySections
             // non passano dal riconoscimento per titolo, e senza questo ramo il documento resterebbe metà in
             // italiano e metà in inglese. Una sezione fissa non si rinomina a mano, quindi non c'è nessuna
             // scelta editoriale da rispettare.
+            // ⚠️ La REGOLA sta in TitoliDiCatalogo, non qui: dal 1 settembre 2026 la stessa risoluzione vale
+            // per tutte e cinque le famiglie — l'aeroporto era l'unica coperta, e su un vSOP o un APP
+            // dichiarati inglesi le testate restavano italiane. Qui resta solo il PERCORSO d'aeroporto, che
+            // fa anche altro (riconosce le sezioni cotte, ne butta i blocchi, accoda le sempre-live).
+            // ⚠️ Non serve scendere nei figli: il profilo Airport è piatto, e le sotto-sezioni di un
+            // documento d'aeroporto sono libere — cioè prosa, che la traduce il traduttore.
             risultato.Add(new SectionView
             {
                 Id = s.Id,
-                Title = desc.TitleIn(lingua),
+                Title = TitoliDiCatalogo.Titolo(SectionProfile.Airport, chiave, s.Title, lingua),
                 Depth = s.Depth,
                 SectionKey = chiave,
                 IsHidden = s.IsHidden,

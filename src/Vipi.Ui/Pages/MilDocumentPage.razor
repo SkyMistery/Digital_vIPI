@@ -432,15 +432,32 @@
         _view = tradotto.View;
         _copertura = tradotto.Coverage;
 
+        // I titoli delle sezioni di CATALOGO nella lingua di lettura, DOPO la traduzione.
+        //
+        // ⚠️ Non è un doppione della passata: quei titoli stanno scritti nel documento nella lingua che
+        // aveva alla NASCITA, e la passata li copre solo finché c'è una passata. Su un documento BLOCCATO
+        // la traduzione è spenta per definizione (sorgente == bersaglio) e senza questo passo un vSOP
+        // dichiarato inglese mostrava «Dati generali / Procedure di terra / Piste».
+        // ⚠️ DOPO, e non prima: il catalogo è la resa DECISA, la memoria quella plausibile — applicarlo
+        // per ultimo è quel che impedisce a «MRVA» di tornare «Minimum vectoring».
+        _view = ConSezioni(TitoliDiCatalogo.Applica(_view.Sections, SectionProfile.AirportMil, lettore));
+
         // Il filtro DOPO la traduzione: si filtra la vista che il lettore vedra' davvero.
         _vista = AudienceFilter.Leggi(Vista);
         _haMarcate = AudienceFilter.HaSezioniMarcate(_view.Sections);
-        var filtrate = AudienceFilter.Filtra(_view.Sections, _vista);
-        if (!ReferenceEquals(filtrate, _view.Sections))
-            _view = new DocumentView
+        _view = ConSezioni(AudienceFilter.Filtra(_view.Sections, _vista));
+    }
+
+    /// <summary>Lo stesso documento con altre sezioni.
+    /// <para>⚠️ Ogni campo si ricopia: <c>DocumentView</c> è una classe con <c>init</c>, e quello che non si
+    /// ricopia torna al default in silenzio — «non bloccato» su un documento bloccato, «niente congelato» su
+    /// una release. La pagina si renderebbe lo stesso.</para></summary>
+    private DocumentView ConSezioni(IReadOnlyList<SectionView> sezioni) =>
+        ReferenceEquals(sezioni, _view!.Sections)
+            ? _view
+            : new DocumentView
             {
-                Title = _view.Title, AiracCycle = _view.AiracCycle, Sections = filtrate,
+                Title = _view.Title, AiracCycle = _view.AiracCycle, Sections = sezioni,
                 Language = _view.Language, LanguageLocked = _view.LanguageLocked, Translations = _view.Translations,
             };
-    }
 }

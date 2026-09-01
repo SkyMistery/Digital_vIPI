@@ -55,25 +55,32 @@ public static class EditorTocProjection
     /// due: da qui in giù si resta a 3, invece di rientrare all'infinito in una colonna larga 200px.</summary>
     private const int LivelloFiglie = 3;
 
+    /// <param name="titolo">Come si chiama una sezione a schermo. Null = quel che porta il documento.
+    /// <para>⚠️ Serve perché il titolo di una sezione di CATALOGO sta scritto nel documento nella lingua che
+    /// aveva alla nascita, e nessuno lo aggiorna quando la lingua cambia: senza questo, l'indice di un vSOP
+    /// dichiarato inglese dice «Dati generali» accanto a card intitolate «General data».</para></param>
     public static IReadOnlyList<EditorTocItem> DaSezioni(
-        IEnumerable<EditableSection> radici, Func<EditableSection, bool>? dirty, string dragGroup)
+        IEnumerable<EditableSection> radici, Func<EditableSection, bool>? dirty, string dragGroup,
+        Func<EditableSection, string>? titolo = null)
     {
         var items = new List<EditorTocItem>();
         foreach (var s in radici)
         {
-            items.Add(new EditorTocItem($"s-{s.Id}", s.Title, dirty?.Invoke(s) == true,
+            items.Add(new EditorTocItem($"s-{s.Id}", titolo?.Invoke(s) ?? s.Title, dirty?.Invoke(s) == true,
                 SectionId: s.Id, DragGroup: dragGroup));
-            Figlie(items, s, dirty);
+            Figlie(items, s, dirty, titolo);
         }
         return items;
     }
 
-    private static void Figlie(List<EditorTocItem> items, EditableSection padre, Func<EditableSection, bool>? dirty)
+    private static void Figlie(List<EditorTocItem> items, EditableSection padre, Func<EditableSection, bool>? dirty,
+                               Func<EditableSection, string>? titolo)
     {
         foreach (var c in padre.Children)
         {
-            items.Add(new EditorTocItem($"s-{c.Id}", c.Title, dirty?.Invoke(c) == true, Level: LivelloFiglie));
-            Figlie(items, c, dirty);
+            items.Add(new EditorTocItem($"s-{c.Id}", titolo?.Invoke(c) ?? c.Title, dirty?.Invoke(c) == true,
+                Level: LivelloFiglie));
+            Figlie(items, c, dirty, titolo);
         }
     }
 }
