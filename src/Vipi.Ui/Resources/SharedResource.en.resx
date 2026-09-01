@@ -628,7 +628,7 @@
   <data name="Sf_Title" xml:space="preserve"><value>Sector file consistency</value></data>
   <data name="Sf_Subtitle" xml:space="preserve"><value>Where the IVAO catalogues and the Aurora sector file disagree</value></data>
   <data name="Sf_Intro" xml:space="preserve"><value>&lt;p&gt;Two independent sources describe the same things: the &lt;b&gt;IVAO API&lt;/b&gt;, where this site gets positions, frequencies, airports and runways from, and the division's &lt;b&gt;Aurora sector file&lt;/b&gt;, written by IT-AOD. This page compares them.&lt;/p&gt;&lt;p&gt;It only says &lt;b&gt;that they disagree&lt;/b&gt;: which one is right it does not know, and nothing is repaired from here. The fix belongs in the sector file, or in the IVAO data. The button at the bottom copies the list as text to send to whoever maintains the sector file.&lt;/p&gt;&lt;p&gt;The comparison runs by itself every 24 hours. Some of the differences are &lt;b&gt;expected&lt;/b&gt;: the sector file is written before the AIRAC cycle takes effect, so it can be ahead. The ones that survive two cycles are not.&lt;/p&gt;</value></data>
-  <data name="Sf_StaffOnly" xml:space="preserve"><value>This page is reserved for division staff.</value></data>
+  <data name="Sf_StaffOnly" xml:space="preserve"><value>This page is reserved for document editors (Editor level and above).</value></data>
   <data name="Sf_Never" xml:space="preserve"><value>The comparison has not run yet: the first snapshot is taken a few minutes after startup.</value></data>
   <data name="Sf_Off" xml:space="preserve"><value>The sector file source is not configured, so there is nothing to compare.</value></data>
   <data name="Sf_LastRun" xml:space="preserve"><value>Last comparison: {0}</value></data>

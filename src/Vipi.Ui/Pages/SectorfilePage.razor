@@ -22,12 +22,14 @@
    ⚠️ È una SCORCIATOIA, non un servizio: sta sotto `/services/vsop/` e nell'hub la sua scheda è marcata
    `shortcut`, come gli spazi aerei e i vSOP militari. Regola P5 di docs/design/regole-perimetro-servizi.md.
 
-   ⚠️ Il cancello sta in DUE sedi — qui nel markup e in `Rilievi`, che non calcola niente per chi non è
-   staff. Nascondere e basta è un cancello che non c'è.
+   ⚠️ Il cancello è EDITOR, non staff di divisione (decisione del committente, 1 settembre 2026): questi
+   rilievi parlano del contenuto dei documenti — frequenze, TA, designatori di pista — e chi li legge deve
+   poterci fare qualcosa. Sta in DUE sedi, qui nel markup e in `Rilievi`, che non calcola niente per chi
+   non è autorizzato: nascondere e basta è un cancello che non c'è.
 
    ⚠️ Gli stessi rilievi si vedono anche in /services/vsop/admin/diagnostics, sotto il chip dell'area
-   «Sectorfile»: una verità, due porte. Quella pagina la apre solo l'admin, e il destinatario di queste
-   righe è l'AOD, che è staff di divisione. *@
+   «Sectorfile»: una verità, due porte. Quella pagina la apre solo l'admin, e questa scende di un gradino
+   perché la aprano anche i chief d'ACC. *@
 
 <PageTitle>@L["Sf_Title"] · vIPI IVAO Italy</PageTitle>
 
@@ -40,7 +42,7 @@
         </HelpHint>
     </div>
 
-    @if (!Authz.IsDivisionStaff)
+    @if (!Authz.IsEditor)
     {
         <div class="callout danger">
             <span class="cic"><Icon Name="octagon" Size="18" /></span>
@@ -169,10 +171,10 @@
         new(SectorfileComparison.Famiglia.Piste, "Sf_GroupRunways"),
     };
 
-    /// <summary>⚠️ Il cancello anche qui, non solo nel markup: chi non è staff non ottiene i rilievi
+    /// <summary>⚠️ Il cancello anche qui, non solo nel markup: chi non è Editor non ottiene i rilievi
     /// nemmeno scrivendo l'indirizzo a mano.</summary>
     private IReadOnlyList<ConsistencyFinding> Rilievi =>
-        Authz.IsDivisionStaff ? Report.Findings : Array.Empty<ConsistencyFinding>();
+        Authz.IsEditor ? Report.Findings : Array.Empty<ConsistencyFinding>();
 
     /// <summary>Se la sorgente non è configurata il giro non parte affatto, e «zero divergenze» sarebbe una
     /// risposta falsa a una domanda che non è stata posta.</summary>
@@ -182,11 +184,11 @@
 
     /// <summary>
     /// Rifà il confronto adesso. ⚠️ Il cancello anche qui: è l'unica azione della pagina che tocca la rete,
-    /// e chi non è staff non deve poterla far partire nemmeno chiamando il metodo.
+    /// e chi non è Editor non deve poterla far partire nemmeno chiamando il metodo.
     /// </summary>
     private async Task Confronta()
     {
-        if (_confronto || !Authz.IsDivisionStaff) return;
+        if (_confronto || !Authz.IsEditor) return;
         _confronto = true;
         try { await Runner.RunAsync(); }
         finally { _confronto = false; }

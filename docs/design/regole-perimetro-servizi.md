@@ -37,7 +37,7 @@ convertendoli altrove. Una regola scritta dopo non si usa per demolire ciò che 
 |---|---|---|---|
 | 1 | **Briefing di apertura posizione** (METAR, TL, piste, chi è online, che cosa è cambiato) | 🟡 **ASSORBITA** nella vista live — non è un servizio nuovo | P5 |
 | 2 | Presa visione delle release + quiz sui documenti | 🔴 **NO** | P3 |
-| 3 | **Coerenza vIPI ↔ sectorfile** | 🟢 **SÌ**, e **visibile** come scorciatoia (`/services/vsop/sectorfile`, scheda nella sezione staff) → [piano-coerenza-sectorfile.md](piano-coerenza-sectorfile.md) | P1 + P5 |
+| 3 | **Coerenza vIPI ↔ sectorfile** | 🟢 **SÌ**, e **visibile** come scorciatoia (`/services/vsop/sectorfile`, scheda nella sezione staff, **livello Editor**) → [piano-coerenza-sectorfile.md](piano-coerenza-sectorfile.md) | P1 + P5 |
 | 4 | Copertura eventi / turni ATC | 🔴 **NO** | P2 |
 | 5 | **Segnalazioni dal campo** | 🟢 **SÌ** → [piano-segnalazioni.md](piano-segnalazioni.md) | P1 |
 | 6 | Cassetta degli attrezzi (calcolatori vari) | 🔴 **NO** | P4 |

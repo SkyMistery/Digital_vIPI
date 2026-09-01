@@ -1994,7 +1994,7 @@ Due sorgenti indipendenti descrivono le stesse cose — l'**API IVAO**, da cui v
 frequenze, aeroporti, TA e piste, e il **sectorfile Aurora** della divisione — e nessuno le confrontava. Un
 giro ogni 24 ore legge `OTHER/itfreq.frq`, `OTHER/itap.ap`, `OTHER/itrw.rw` e produce rilievi
 `ConsistencyFinding` in un'area nuova (`ConsistencyArea.Sectorfile`), letti dalla Diagnostica e da una pagina
-propria — `/services/vsop/sectorfile`, staff di divisione, scheda **`shortcut`** nell'hub — col tasto
+propria — `/services/vsop/sectorfile`, **livello Editor**, scheda **`shortcut`** nell'hub — col tasto
 «confronta adesso» (stesso codice del giro) e «copia l'elenco per l'AOD».
 
 **Nessuna entità, nessuna migrazione**: la fotografia vive in memoria per il processo, come

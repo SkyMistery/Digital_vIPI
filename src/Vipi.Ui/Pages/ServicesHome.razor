@@ -97,12 +97,17 @@
                Il segno tiene in piedi la regola «un servizio è figlio diretto di /services» invece di
                allargarla per farci stare un'eccezione (P5 di docs/design/regole-perimetro-servizi.md).
 
-               ⚠️ E sta in questa sezione, non nella griglia pubblica: la pagina rifiuta chi non è staff di
-               divisione, e una scheda che porta a una porta chiusa è peggio di nessuna scheda. *@
-            <a class="choice shortcut" href="/services/vsop/sectorfile">
-                <h3 class="h-card"><span class="ic"><Icon Name="activity" Size="18" /></span> @L["Sf_Title"]</h3>
-                <p class="muted">@L["Services_SectorfileDesc"]</p>
-            </a>
+               ⚠️ E chiede un gradino IN PIÙ delle altre due schede di questa sezione: **Editor**, non staff
+               di divisione (decisione del committente, 1 settembre 2026). Sta comunque qui dentro — un
+               Editor è anche staff — ma con la sua guardia, perché la pagina rifiuta chi non è Editor e una
+               scheda che porta a una porta chiusa è peggio di nessuna scheda. *@
+            @if (Authz.IsEditor)
+            {
+                <a class="choice shortcut" href="/services/vsop/sectorfile">
+                    <h3 class="h-card"><span class="ic"><Icon Name="activity" Size="18" /></span> @L["Sf_Title"]</h3>
+                    <p class="muted">@L["Services_SectorfileDesc"]</p>
+                </a>
+            }
         </div>
     }
 </div>

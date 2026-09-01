@@ -106,14 +106,17 @@ capire cosa non va, **e** una pagina propria sotto la vSOP raggiunta dall'hub (�
 su `/services`, ma una **pagina sotto `/services/vsop/`** raggiunta da una scheda marcata `shortcut`, come
 gli spazi aerei e i vSOP militari.
 
-- **Pagina:** `/services/vsop/sectorfile`, cancello `IsDivisionStaff` **in due sedi** (markup e caricamento),
-  esattamente come `AirspacePage` e il convertitore di coordinate — *nascondere e basta è un cancello che
-  non c'è*.
-- **Scheda:** nella sezione **staff** dell'hub, con `class="choice shortcut"`.
+- **Pagina:** `/services/vsop/sectorfile`, cancello **`IsEditor`** in due sedi (markup e caricamento) —
+  *nascondere e basta è un cancello che non c'è*.
+- **Scheda:** nella sezione **staff** dell'hub, con `class="choice shortcut"` e una **guardia propria**.
+- ⚠️ **Il livello è `Editor`, non `DivisionStaff`** (committente, 1 settembre 2026, dopo il primo giro): è un
+  gradino **più su** delle altre due schede di quella sezione — spazi aerei e convertitore — e la ragione è
+  che questi rilievi parlano del **contenuto dei documenti** (frequenze, TA, designatori di pista). Chi li
+  legge deve poterci fare qualcosa: aprire l'editor, o scrivere all'AOD con l'autorità per farlo.
+  Uno staffista di divisione qualsiasi vede le altre due schede e **non** questa.
 - ⚠️ **Perché una pagina propria e non solo il chip nella diagnostica:** la diagnostica la apre **solo
-  l'`Admin`**, e il destinatario di questi rilievi è **l'AOD**, che è staff di divisione. Una scheda che
-  porta a una pagina che ti rifiuta è peggio di nessuna scheda. In più questi rilievi si leggono **per
-  famiglia** (frequenze · aeroporti · piste), che una tabella generica non sa fare.
+  l'`Admin`**, e questa scende di un gradino perché la aprano anche i **chief d'ACC**. In più questi rilievi
+  si leggono **per famiglia** (frequenze · aeroporti · piste), che una tabella generica non sa fare.
 - **Una verità, due porte:** gli stessi rilievi restano nella diagnostica sotto il chip dell'area nuova,
   perché è lì che si guarda lo stato complessivo. Nessun secondo calcolo: entrambe leggono la **stessa
   fotografia** (§2/D6).
@@ -328,6 +331,16 @@ deroga prevista dalla skill `verifica-live`: se è il sectorfile che si verifica
 | Salute | `/vsop/health` conta **30**, non 66: le divergenze non muovono il verdetto |
 | «Copia per l'AOD» | 5 961 caratteri negli appunti, e la conferma compare **solo** perché la copia è riuscita |
 | Larghezza | nessuno sforo orizzontale a 1440 |
+
+**Il cancello, guidato ai due livelli** (identità di sviluppo abbassata, VID **non** fondatore):
+
+| chi | hub | pagina scritta a mano |
+|---|---|---|
+| `IT-XYZ9` → **DivisionStaff** | vede spazi aerei e convertitore, **non** la coerenza | «Accesso riservato… livello Editor e superiori», **zero** tabelle, nessun tasto «confronta adesso» |
+| `LIRR-CH` → **Editor** | vede tutte e tre le scorciatoie | pagina aperta, tasto presente |
+
+⚠️ Il VID va cambiato e non basta la posizione: `RoleResolver` comincia con `if (_founders.Contains(userId))`
+e **704798 è un fondatore** — con quello si resta Admin qualunque cosa si scriva.
 
 ### ⚠️ Il difetto trovato **solo** a schermo, e non dai test
 

@@ -33,7 +33,13 @@ public class ServicesHomeTests : TestContext
         public void EnsureAdmin() { }
     }
 
-    private IRenderedComponent<ServicesHome> Render(VipiRole livello = VipiRole.DivisionStaff)
+    /// <summary>
+    /// ⚠️ Il livello di default è <b>Editor</b> e non staff di divisione dal 1 settembre 2026: la scheda
+    /// della coerenza col sectorfile chiede un gradino in più delle altre due della sezione staff, e con
+    /// <c>DivisionStaff</c> i test sull'elenco completo proverebbero un elenco a cui manca una scheda.
+    /// Le prove <i>per livello</i> restano i <c>Theory</c> qui sotto, che il livello lo dichiarano.
+    /// </summary>
+    private IRenderedComponent<ServicesHome> Render(VipiRole livello = VipiRole.Editor)
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
@@ -149,15 +155,19 @@ public class ServicesHomeTests : TestContext
     }
 
     /// <summary>
-    /// La coerenza col sectorfile è per lo staff di divisione, come il convertitore e gli spazi aerei: il suo
-    /// destinatario è l'IT-AOD, non il pubblico. ⚠️ Il cancello sta in DUE sedi, qui e nella pagina.
+    /// La coerenza col sectorfile chiede <b>Editor</b>, un gradino più su delle altre due schede di quella
+    /// sezione (decisione del committente, 1 settembre 2026): i suoi rilievi parlano del contenuto dei
+    /// documenti — frequenze, TA, designatori di pista — e chi li legge deve poterci fare qualcosa.
+    /// ⚠️ Il cancello sta in DUE sedi, qui e nella pagina. ⚠️ E <c>DivisionStaff</c> è il caso che conta:
+    /// vede le altre due schede della sezione e <b>non</b> questa.
     /// </summary>
     [Theory]
     [InlineData(VipiRole.User, false)]
     [InlineData(VipiRole.IvaoStaff, false)]
-    [InlineData(VipiRole.DivisionStaff, true)]
+    [InlineData(VipiRole.DivisionStaff, false)]
+    [InlineData(VipiRole.Editor, true)]
     [InlineData(VipiRole.Admin, true)]
-    public void La_coerenza_sectorfile_si_vede_solo_dallo_staff_di_divisione(VipiRole livello, bool atteso)
+    public void La_coerenza_sectorfile_si_vede_solo_dall_editor_in_su(VipiRole livello, bool atteso)
     {
         var cut = Render(livello);
         var indirizzi = cut.FindAll("a.choice").Select(a => a.GetAttribute("href")).ToList();
