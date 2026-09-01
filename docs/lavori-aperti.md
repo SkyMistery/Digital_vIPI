@@ -1,5 +1,7 @@
 ﻿# Lavori aperti — elenco unico
 
+**Aggiornato:** 1 settembre 2026 — **§AQ: I TITOLI DELLE SEZIONI SEGUONO LA LINGUA DEL DOCUMENTO.** Segnalazione del committente: un documento **bloccato in inglese** mostrava le testate in italiano. Non era la traduzione a mancare — era la **stampella**: i titoli delle sezioni di catalogo stanno scritti nel documento nella lingua che aveva alla NASCITA, e finora arrivavano in inglese **di rimbalzo**, perché sono segmenti e passavano dal traduttore. Bloccare la lingua **spegne** la traduzione, e la stampella è caduta. Ora i titoli si risolvono dal catalogo **dove si legge** (`TitoliDiCatalogo`), in tutte e cinque le famiglie, a ogni profondità e anche nell'editor — dove una sezione fissa **non si può rinominare a mano**, quindi non c'era nessun rimedio. ⚠️ Il catalogo vince anche sulla **memoria di traduzione**: è la resa DECISA contro quella plausibile, ed è quel che impedisce a «MRVA» di tornare «Minimum vectoring». ⚠️ La vLOA va nel verso opposto e **non ha una resa italiana**: letta in italiano il catalogo non impone niente e il titolo resta al traduttore. Nuova **R9** in `design/regole-lingua.md`. **Nessuna entità, nessuna migrazione.**
+
 **Aggiornato:** 1 settembre 2026, fuso in `main` — **§AP: COERENZA COL SECTORFILE.** Due sorgenti indipendenti descrivono le stesse cose (API IVAO e sectorfile Aurora) e nessuno le confrontava: ora un giro ogni 24 ore legge `itfreq.frq`, `itap.ap` e `itrw.rw` e dice **dove non concordano** — 36 rilievi sui dati veri, fra cui due frequenze che divergono di **5 e 3 MHz** e dodici aeroporti con **designatori di pista diversi**. **Nessuna entità, nessuna migrazione.** 🔴 Tre decisioni la reggono: l'health check **ignora** l'area nuova (contarla = `/vsop/health` giallo per sempre), il confronto **non gira dentro la richiesta** (I/O di rete su un endpoint anonimo) e la prima slice è stata **misurare** — che ha ucciso il controllo sul QFU (115 falsi a 1°, zero a 5°) e aggiunto quattro filtri. Visibile come **scorciatoia** `/services/vsop/sectorfile` a chi è **Editor** e oltre (non allo staff di divisione: i rilievi parlano del contenuto dei documenti). ⚠️ Un difetto visto solo a schermo: la testata della tabella finiva **sotto** la prima riga — `sticky-head` dentro `.st-scroll` trasforma `top:62px` in uno spostamento in giù.
 
 **Aggiornato:** 1 settembre 2026, fuso in `main` — **§AO: L'AVVISO DI SIMULAZIONE, OVUNQUE.** Richiesta del committente: «ONLY FOR SIMULATION: DO NOT USE FOR REAL LIFE NAVIGATION» in rosso e grassetto **sotto il titolo** di ogni documento pubblico (le cinque famiglie) più **vista live** e **spazi aerei**, e a **piè di ogni foglio stampato di ogni pagina del sito** — *«in tutti, nessuno escluso»*. Il testo vive in UN posto (`Components/SimDisclaimer.razor`, costante) e **non si traduce**: è un cartello, non prosa, ed è la nuova **R8** di `docs/design/regole-lingua.md`. ⚠️ **In stampa `.doc-head` è NASCOSTO** (`.print-meta + .doc-head`), quindi la riga che si vede a schermo sul foglio non esiste: l'avviso è **anche** in `PrintMeta`, e chi togliesse quella riga credendola un doppione la toglierebbe dalla prima pagina di ogni documento stampato. ⚠️ **E il piè di pagina è un numero MISURATO, non scelto**: `position:fixed` è l'unico modo che il CSS ha di ripetere una riga su ogni foglio (le margin box di `@page` non le implementa nessun browser), e `bottom` sta fra due muri — a `0` l'avviso e l'ultima riga di un foglio pieno **si toccano** (−1,1mm su 21 fogli), da **−6mm in giù Chrome non lo disegna sulla PRIMA pagina**. Scelto **−4mm** (distanza +2,9mm), con `@page` a `14mm 12mm 18mm`. ⚠️ Il secondo muro è il difetto insidioso: sui cinque documenti la prima pagina l'avviso ce l'ha comunque da `PrintMeta`, quindi un valore sbagliato si vedrebbe **solo stampando un elenco o la home**. **Verificato dal vivo** generando i PDF veri con `printToPDF`: 10 pagine, **54 fogli, tutti con l'avviso**; contrasto 7,6:1 chiaro e 7,1:1 scuro. ⚠️ **Non verificati a schermo APP e vSOP militare**: il `vipi.db` di sviluppo non contiene nessun documento di quei due tipi (solo `Vipi` e `Vloa`) — li copre `AvvisoDiSimulazioneTests` sul sorgente, e il costrutto è identico a quello delle altre schermate, che sono state guidate. 🔴 **Da consegnare**: cambiano `vipi-theme.css` e `vipi-print.css`, quindi servono impronte nuove e un pacchetto (1.3.1). ⚠️ **§AO non ha una sezione sua in questo file**: la cronaca per intero sta in `history/rounds.md`, alla voce del 1 settembre.
@@ -6785,3 +6787,74 @@ test lo vede — il DOM era corretto.
 - 🔴 **Non è in produzione**: serve il pacchetto **1.3.1**, che porta anche §AO.
 - 🟡 Alla **seconda** ricognizione varrà la pena guardare quali divergenze sono sopravvissute a un ciclo
   AIRAC: quelle sono le vere, le altre erano il sectorfile in anticipo (§4 della carta).
+
+## AQ. I titoli delle sezioni seguono la lingua del documento — 1 settembre 2026
+
+Ramo `titoli-di-catalogo-bilingui`. Nessuna carta: è un **difetto**, segnalato dal committente in una riga —
+*«quando si blocca la lingua in inglese e si flagga per non tradurre, i titoli delle sezioni rimangono in
+italiano»*.
+
+### Che cos'era davvero
+
+Non mancava una traduzione: mancava il **proprietario** di quel titolo. Le sezioni fisse di un documento
+prendono il titolo dal profilo (`SectionCatalog`) ma se lo portano **scritto dentro**
+(`DocumentSection.Title`, seminato da `DocumentBirth` con `TitleIn(lingua)`), nella lingua che il documento
+aveva **in quel momento**. `SetLanguageAsync` cambia lingua e blocco e non tocca nient'altro; l'editor non
+può rimediare perché una sezione fissa **non si rinomina a mano** — il campo di rinomina esiste solo per le
+sezioni libere. Vicolo cieco: nessuno, in nessun modo, poteva mettere quei titoli in inglese.
+
+⚠️ **Perché non se n'era accorto nessuno.** I titoli **sono** segmenti del documento
+(`DocumentTranslator.SegmentiSezione` parte proprio da lì), quindi un lettore inglese li otteneva dalla
+memoria di traduzione: la copertura diceva «tutto tradotto» ed era vero. Poi è arrivata la lingua bloccata
+(§AN): bloccare **spegne** la traduzione — sorgente e bersaglio coincidono, `PreparaAsync` esce a
+`TranslationPass.Nessuna` — e con la traduzione è caduta la stampella. **Un difetto vecchio reso visibile da
+una funzione nuova**, non un difetto della funzione nuova.
+
+⚠️ **Ed era già stato trovato una volta, in una famiglia sola.** La §Q18a della carta bilingue è
+esattamente questo, visto sulla vIPI di Crotone il 28 agosto: fu riparato dentro
+`AirportLegacySections.ForView`, cioè nel percorso dell'**aeroporto**. Le altre quattro famiglie rendevano
+il titolo che il documento portava — `SectionNode` mostra `Section.Title` — e l'assembler ACC risolve dal
+catalogo **solo** le sezioni che il documento non ha mai scritto. Una riparazione locale a un difetto
+generale non lascia niente che protesti.
+
+### Come si è chiuso
+
+`TitoliDiCatalogo` (in `Vipi.Application.Content`): una risoluzione sola, **a view-time**, ricorsiva.
+Agganciata ai quattro viewer che non ce l'avevano (`MilDocumentPage`, `AppnPage`, `VloaListPage`,
+`AccVipiPage` — quest'ultima sul posto, come fa il suo traduttore) e a `DocumentSectionsEditor`, che la
+applica **in sola visualizzazione**: card e indice, senza scrivere niente nel modello.
+
+⚠️ **A view-time e non riscrivendo il DB**, ed è la decisione che regge tutto: riscrivere i titoli quando
+cambia la lingua sistemerebbe la sola bozza di lavoro, mentre le release **già pubblicate** portano i loro
+dentro lo snapshot e non si toccano (doc 13 §9). Il lettore le vedrebbe italiane per un ciclo AIRAC intero.
+Il blocco è una regola di **servizio**: vale appena si accende — stesso ragionamento della §AN, dove il
+lettore chiede lingua e blocco al documento **vivo** e non allo snapshot.
+
+⚠️ **Il catalogo vince sulla memoria di traduzione**, quindi il passo si applica **dopo** la traduzione: è
+la resa **decisa** contro quella **plausibile**, ed è quel che impedisce a «MRVA» di tornare «Minimum
+vectoring» — che è successo davvero, ed è il motivo per cui quella sezione si chiama MRVA.
+
+⚠️ **La vLOA va nel verso opposto, e ha imposto una distinzione nuova.** I suoi titoli di catalogo sono già
+**inglesi** — è una lettera d'accordo bilaterale — quindi «risolvi dal catalogo» letto in italiano avrebbe
+imposto «Purpose» a chi legge in italiano, **cancellando** l'unica resa italiana che quel titolo può avere:
+quella del traduttore. Il catalogo scrive solo **dove ha davvero una resa** in quella lingua, e la lingua
+nativa dei titoli la dice `SectionCatalog.TitoliInInglese`. ⚠️ Stava scritta a mano dentro
+`CatalogoBilingueTests` (l'elenco dei «profili italiani»): ora la guardia la **legge** dal catalogo, o un
+profilo nuovo ne resterebbe fuori in silenzio — il modo esatto in cui una guardia smette di guardare.
+
+⚠️ **Un titolo di catalogo VUOTO non è una resa**: le due sezioni di coordinamento della vLOA stanno nel
+`ChildRegistry` con titolo «» perché il loro dipende dai codici della coppia e lo compone la pagina.
+Imporlo vorrebbe dire cancellarlo.
+
+⚠️ **Ricorsivo, e non è teoria**: il vSOP militare ha **venti sezioni di catalogo su ventisei** dentro
+quattro contenitori. Una risoluzione ferma al primo livello avrebbe lasciato italiane proprio quelle — ed è
+la famiglia dove il difetto si vede di più.
+
+### Che cosa resta
+
+- Nuova **R9** in [`design/regole-lingua.md`](design/regole-lingua.md), e corretto lì il paragrafo che
+  diceva «serve un passo di manutenzione all'avvio»: vale per **rinominare** una sezione, non per mostrarla
+  nella lingua giusta.
+- 🟡 **Verifica live** ancora da fare guidando un documento bloccato in inglese (le suite sono verdi:
+  `Vipi.Application.Tests` 2004, `Vipi.Ui.Tests` 1070).
+- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** insieme a §AO e §AP.

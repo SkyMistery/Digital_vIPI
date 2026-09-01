@@ -9,7 +9,7 @@
 > eccezioni come dimenticanze e le «corregge» — un marchio tradotto sembra un miglioramento, finché non si
 > sa perché stava fermo.
 
-## Le otto regole
+## Le nove regole
 
 | | Regola | Dove sta |
 |---|---|---|
@@ -21,6 +21,7 @@
 | **R6** | **Tutto il resto** segue la lingua scelta nella barra | i `.resx`, e la memoria di traduzione per i documenti |
 | **R7** | Le stringhe **dell'applicazione** si traducono **a mano** nei `.resx`; al motore automatico va **solo la prosa dei documenti** | `SharedResource.resx` / `.en.resx` |
 | **R8** | L'**avviso di simulazione** («ONLY FOR SIMULATION: DO NOT USE FOR REAL LIFE NAVIGATION») è **sempre in inglese**, in entrambe le versioni del sito | `SimDisclaimer.razor` |
+| **R9** | I **titoli delle sezioni di catalogo** seguono la lingua in cui si **legge il documento**, e li decide il **catalogo** — non la memoria di traduzione, e non quel che il documento si porta scritto | `TitoliDiCatalogo`, `SectionCatalog` |
 
 ## Il perché, regola per regola
 
@@ -89,6 +90,39 @@ scritto a mano in nove posti diventerebbe nove testi leggermente diversi al prim
 trappola del *vocabolario parallelo* già pagata con i titoli della Guida (vedi in fondo). C'è un test che
 conta le copie e ne pretende **una**.
 
+### R9 — il titolo di una sezione di catalogo lo decide il catalogo
+
+Le sezioni **fisse** di un documento — «Frequenze», «Dati generali», «Aree regolamentate» — non hanno un
+titolo scelto da chi scrive: ce l'hanno dal **profilo**, e nell'editor non si possono nemmeno rinominare. Il
+titolo però sta scritto **dentro il documento**, seminato alla nascita nella lingua che il documento aveva
+**in quel momento**, e da lì non si muove: dichiarare inglese un documento italiano non lo tocca.
+
+Perciò **si risolve dove si legge** (`TitoliDiCatalogo`), in tutte e cinque le famiglie e a ogni profondità:
+la lingua è quella in cui il documento si sta leggendo, la resa la porta il catalogo
+(`SectionDescriptor.TitleEn`), e vince su quel che il documento porta scritto.
+
+⚠️ **Vince anche sulla memoria di traduzione**, ed è il punto: il catalogo è la resa **decisa**, la memoria
+quella **plausibile**. È quel che impedisce a «MRVA» di tornare «Minimum vectoring» — succede davvero — e
+per questo il passo si applica **dopo** la traduzione, non prima.
+
+⚠️ **Fino al 1 settembre 2026 la copertura era per rimbalzo**, e nessuno poteva accorgersene: i titoli sono
+segmenti del documento, quindi un lettore inglese li otteneva dal traduttore. Poi è arrivata la **lingua
+bloccata** (R6, `LanguageLocked`): bloccare **spegne** la traduzione — sorgente e bersaglio coincidono — e
+con la traduzione è caduta la stampella. Un vSOP dichiarato inglese e bloccato mostrava «Dati generali /
+Procedure di terra / Piste», con la copertura che diceva «niente da tradurre» — cioè esattamente quel che ci
+si aspetta da un documento bloccato. L'aeroporto era l'unica famiglia già coperta, perché lì il difetto era
+stato trovato prima (§Q18a della carta bilingue).
+
+⚠️ **La vLOA va nel verso opposto e non ha una resa italiana**: i suoi titoli di catalogo sono già inglesi —
+è una lettera d'accordo bilaterale — quindi letta in italiano il catalogo **non impone niente** e il titolo
+resta al traduttore, che è l'unico che può renderlo. Lo dice `SectionCatalog.TitoliInInglese`, in un posto
+solo: stava scritto a mano dentro la guardia bilingue, e due posti che dichiarano la stessa cosa si
+contraddicono al primo profilo nuovo.
+
+⚠️ **Un titolo di catalogo VUOTO non è una resa**: le due sezioni di coordinamento della vLOA stanno nel
+catalogo con titolo «» perché il loro dipende dai codici della coppia e lo compone la pagina. Imporlo
+vorrebbe dire cancellarlo — una testata vuota è peggio di una nella lingua sbagliata.
+
 ## Le trappole già pagate
 
 - ⚠️ **Cambiare lingua deve RICARICARE la pagina.** La navigazione «enhanced» di `blazor.web.js` non
@@ -98,9 +132,12 @@ conta le copie e ne pretende **una**.
 - ⚠️ **Un solo selettore.** La Guida aveva il suo, `?lang=it|en`, con una chip IT/EN accanto al titolo: due
   comandi sulla stessa schermata che dicevano cose diverse — `?lang=` non scriveva il cookie, quindi
   bastava andare altrove per ritrovare l'altra lingua. Ora `?lang=` **reindirizza** a `?culture=`.
-- ⚠️ **Un titolo di catalogo non passa dal traduttore.** `AirportLegacySections.ForView` riporta ogni
-  sezione di catalogo al suo titolo cablato: se lo si chiama **dopo** aver tradotto, butta via la
-  traduzione. Il viewer d'aeroporto ripassa le sezioni dalla stessa passata.
+- ⚠️ **Un titolo di catalogo non passa dal traduttore**, e per un po' è sembrato il contrario. Prima
+  `AirportLegacySections.ForView` riportava ogni sezione al suo titolo **cablato in italiano**, buttando via
+  la traduzione appena fatta; poi il catalogo è diventato bilingue e il titolo si è scelto lì. Dal 1
+  settembre 2026 la regola vale per tutte le famiglie ed è **R9**: il titolo lo decide il catalogo, nella
+  lingua in cui si legge, **dopo** la traduzione. La stampella del traduttore restava in piedi solo finché
+  la traduzione girava — cioè fino al primo documento bloccato.
 - ⚠️ **`IStringLocalizer` non sa leggere in un'altra lingua**: risolve sempre sulla cultura corrente. Per
   R3 serve il `ResourceManager`.
 
@@ -169,10 +206,15 @@ coerente.
 prima diceva «Minime di vettoramento», che il motore rendeva «Minimum vectoring»: giusto a metà, e comunque
 non la sigla.
 
-⚠️ **Il titolo di una sezione di catalogo sta NEL DOCUMENTO**, non nel catalogo: cambiare `SectionCatalog`
-vale per i documenti nuovi, e su quelli già scritti non cambia niente. Serve un passo di manutenzione
-all'avvio (`RenameMinimaSectionsAsync`), e **le release già pubblicate restano com'erano** finché non si
-ripubblica — la regola di ogni altra correzione editoriale.
+⚠️ **Il titolo di una sezione di catalogo sta NEL DOCUMENTO**: cambiare `SectionCatalog` vale per i
+documenti nuovi, e su quelli già scritti non cambia il dato. Per **rinominare** una sezione ovunque serve
+ancora un passo di manutenzione all'avvio (`RenameMinimaSectionsAsync`), e le release già pubblicate
+restano com'erano finché non si ripubblica — la regola di ogni altra correzione editoriale.
+
+⚠️ Per la **LINGUA**, invece, dal 1 settembre 2026 non si aspetta più niente: il titolo si risolve dal
+catalogo **dove si legge** (R9), quindi vale anche sulle release già pubblicate e dall'istante in cui si
+cambia la lingua del documento. È la differenza fra rinominare una sezione — che è una scelta editoriale, e
+va scritta — e mostrarla nella lingua giusta, che è una regola di servizio.
 
 ### Chi scrive corregge la sua traduzione
 
