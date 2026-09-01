@@ -162,6 +162,66 @@ public class MilDiversionTests
         Assert.Equal("Grottaglie", Assert.Single(viste).Name);
     }
 
+    /// <summary>
+    /// ⚠️ Il caso che il 1° settembre 2026 non stava in piedi: <c>GRO</c> è un VOR <b>e</b> un TACAN, e
+    /// l'identità che li separa è il <b>canale</b>. Con l'indice fatto su codice+famiglia i due si
+    /// confondevano — e citati tutt'e due nella stessa tabella non si costruiva nemmeno il dizionario, così
+    /// che a saltare non era una cella ma l'intera sezione.
+    /// </summary>
+    [Fact]
+    public async Task Due_impianti_con_lo_stesso_codice_non_si_confondono()
+    {
+        var viste = await MilDiversionResolver.ResolveAsync(
+            new[] { Riga("LIBG", ("GRO", "VHF", null), ("GRO", "VHF", "35Y")) },
+            new AnagraficaFinta(), new AeroportiFinti());
+
+        var nav = Assert.Single(viste).Navaids;
+        Assert.Equal(2, nav.Count);
+        Assert.Equal(new[] { "VOR", "TACAN" }, nav.Select(n => n.Type));
+        Assert.Equal(new string?[] { null, "35Y" }, nav.Select(n => n.Channel));
+    }
+
+    // ---- Il ritorno: da quel che si vede a quel che si salva --------------------------------------------
+
+    /// <summary>
+    /// ⚠️ Il difetto che faceva sparire le radioassistenze: l'editor rimonta le righe salvate da quelle
+    /// mostrate a <b>ogni</b> gesto — aggiungi uno scalo, spostalo, scrivi un rilevamento — e il canale non
+    /// tornava indietro. Alla lettura successiva <c>GRO|VHF|null</c> non è in anagrafica, la risoluzione lo
+    /// scarta in silenzio, e la cella si svuota da sola.
+    /// </summary>
+    [Fact]
+    public async Task Il_ritorno_conserva_il_canale()
+    {
+        var partenza = new[] { Riga("LIBG", ("MNL", "VHF", "99Y")) };
+        var viste = await MilDiversionResolver.ResolveAsync(partenza, new AnagraficaFinta(), new AeroportiFinti());
+
+        var ritorno = viste.Select(MilDiversionPayload.Da).ToList();
+
+        Assert.Equal("99Y", Assert.Single(ritorno[0].Navaids).Channel);
+
+        // E il giro si chiude: quel che si rimonta si rilegge uguale.
+        var riletti = await MilDiversionResolver.ResolveAsync(
+            MilDiversionPayload.Leggi(MilDiversionPayload.Scrivi(ritorno)),
+            new AnagraficaFinta(), new AeroportiFinti());
+        Assert.Equal("MNL", Assert.Single(riletti[0].Navaids).Code);
+    }
+
+    /// <summary>Il nome del documento si porta indietro anche quando l'archivio non ne ha uno: è il ripiego
+    /// degli scali esteri, e perderlo al primo salvataggio lascerebbe la cella vuota per sempre.</summary>
+    [Fact]
+    public async Task Il_ritorno_conserva_nome_rilevamento_e_distanza()
+    {
+        var viste = await MilDiversionResolver.ResolveAsync(
+            new[] { new MilDiversionPayload.Riga { Icao = "LGKR", Name = "Kerkyra", Bearing = 95, Distance = 210 } },
+            new AnagraficaFinta(), new AeroportiFinti());
+
+        var r = Assert.Single(viste.Select(MilDiversionPayload.Da));
+        Assert.Equal("LGKR", r.Icao);
+        Assert.Equal("Kerkyra", r.Name);
+        Assert.Equal(95, r.Bearing);
+        Assert.Equal(210, r.Distance);
+    }
+
     // ---- Il catalogo -----------------------------------------------------------------------------------
 
     /// <summary>
@@ -192,17 +252,32 @@ public class MilDiversionTests
         }).ToList(),
     };
 
+    /// <summary>
+    /// ⚠️ Cerca per <b>identità intera</b>, come quella vera: se cercasse per codice — o per codice e
+    /// famiglia — questi test direbbero verde su un catalogo che nella realtà separa <c>GRO</c> VOR da
+    /// <c>GRO</c> TACAN, e il difetto passerebbe di qui senza farsi vedere.
+    /// </summary>
     private sealed class AnagraficaFinta : INavaidCatalog
     {
         private static readonly NavaidRow Mnl = new(1, "MNL", "VHF", "VORTACAN", "115.25", "99Y", 41.5, 15.7,
             NavaidFieldOrigin.Source, NavaidFieldOrigin.Source, NavaidFieldOrigin.Source, null, null);
 
+        /// <summary>GRO sta DUE volte fra i VHF: un VOR senza canale e un TACAN col solo canale.</summary>
+        private static readonly NavaidRow GroVor = new(2, "GRO", "VHF", "VOR", "109.85", null, 40.5, 17.4,
+            NavaidFieldOrigin.Source, NavaidFieldOrigin.Empty, NavaidFieldOrigin.Source, null, null);
+
+        private static readonly NavaidRow GroTacan = new(3, "GRO", "VHF", "TACAN", null, "35Y", 40.5, 17.4,
+            NavaidFieldOrigin.Empty, NavaidFieldOrigin.Source, NavaidFieldOrigin.Source, null, null);
+
+        private static readonly NavaidRow[] Catalogo = { Mnl, GroVor, GroTacan };
+
         public Task<IReadOnlyList<NavaidRow>> ListAsync(CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<NavaidRow>>(new[] { Mnl });
+            Task.FromResult<IReadOnlyList<NavaidRow>>(Catalogo);
 
         public Task<IReadOnlyList<NavaidRow>> GetManyAsync(IReadOnlyList<NavaidKey> keys, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<NavaidRow>>(
-                keys.Where(k => k.Code == "MNL").Select(_ => Mnl).ToList());
+                keys.Select(k => Catalogo.FirstOrDefault(n => n.Key == k))
+                    .Where(n => n is not null).Select(n => n!).ToList());
 
         public Task<NavaidRow> CreateAsync(string code, string kind, int userId, CancellationToken ct = default) =>
             throw new NotSupportedException();

@@ -141,6 +141,25 @@
         <button type="button" class="btn primary" @onclick="Aggiungi">+ @L["Nav_Add"]</button>
         @if (_errore is not null) { <span class="mil-err">@_errore</span> }
     </div>
+    @* ⚠️ Un codice che è di PIÙ impianti si chiede, non si rifiuta: la banda in tendina separa i diciassette
+       che stanno sia fra i VHF sia fra gli NDB, ma non GRO, che si sdoppia DENTRO i VHF. Rifiutare voleva
+       dire che quel codice non si poteva citare da nessuna parte — nemmeno dalla pagina dove il messaggio
+       mandava. *@
+    @if (_scelta is { Count: > 0 } cand)
+    {
+        <div class="mil-cite-pick">
+            <select aria-label="@L["Nav_Pick"]" @onchange="e => Scegli(e.Value?.ToString())">
+                <option value="">@L["Nav_Pick"]</option>
+                @for (var c = 0; c < cand.Count; c++)
+                {
+                    var n = cand[c];
+                    <option value="@c">@Descrizione(n)</option>
+                }
+            </select>
+            <button type="button" class="btn ghost" title="@L["Common_Cancel"]"
+                    @onclick="() => _scelta = null">✕</button>
+        </div>
+    }
     <p class="help mil-hint">@L["Nav_AddHint"]</p>
 
     @* Gli elenchi nativi: li disegna il browser fuori dalla pagina, quindi non li taglia il contenitore che
@@ -168,12 +187,13 @@
     [Parameter] public bool Editing { get; set; }
 
     /// <summary>
-    /// Aggiunge al DOCUMENTO la radioassistenza con questo codice. ⚠️ Chi decide <i>quale</i> è l'host, che
-    /// ha l'anagrafica in mano: un codice può essere una riga sola (e allora non si chiede niente), due — DEC
-    /// è un VOR e un NDB, GRO un VOR e un TACAN — e allora bisogna dirlo, o nessuna, e allora si crea.
-    /// La <b>famiglia</b> serve solo in quest'ultimo caso.
+    /// Aggiunge al DOCUMENTO la radioassistenza con questo codice.
+    /// <para>⚠️ <b>Scelta</b> è l'identità già decisa, e c'è solo quando serviva deciderla: un codice che in
+    /// anagrafica è una riga sola non fa nessuna domanda, uno che è più righe — <c>DEC</c> è un VOR e un NDB,
+    /// <c>GRO</c> un VOR e un TACAN — la fa <b>qui</b>, prima di chiamare. Null = «non c'era da scegliere»,
+    /// e allora l'host cita quella che c'è o la crea con la <b>famiglia</b>: la banda serve solo lì.</para>
     /// </summary>
-    [Parameter] public EventCallback<(string Codice, string Famiglia)> OnAdd { get; set; }
+    [Parameter] public EventCallback<(string Codice, string Famiglia, NavaidKey? Scelta)> OnAdd { get; set; }
 
     /// <summary>Toglie dal documento la riga in questa posizione.</summary>
     [Parameter] public EventCallback<int> OnRemove { get; set; }
@@ -192,6 +212,10 @@
     private string _nuovaFamiglia = NavaidRules.FamigliaVhf;
     private string? _errore;
     private readonly Dictionary<int, string> _messaggi = new();
+
+    /// <summary>Le candidate in attesa di scelta. ⚠️ Una sola per tutta la tabella, perché la barra
+    /// d'aggiunta è una sola: qui non si cita per riga come negli alternati.</summary>
+    private IReadOnlyList<NavaidRow>? _scelta;
 
     /// <summary>Le coordinate si scrivono solo se non le manda la sorgente: altrimenti si leggono, su una
     /// riga sola.</summary>
@@ -216,13 +240,45 @@
         return "—";
     }
 
+    /// <summary>
+    /// Le tre risposte al codice, e nessuna si indovina: è di <b>più</b> impianti e si apre la tendina,
+    /// perché sceglierne uno a caso metterebbe su un SOP la frequenza di quello sbagliato; è di <b>uno</b> o
+    /// di <b>nessuno</b>, e allora non c'è niente da chiedere — decide l'host, che ha l'anagrafica vera.
+    /// </summary>
     private async Task Aggiungi()
     {
         _errore = null;
+        _scelta = null;
         var codice = NavaidRules.Norm(_nuovoCodice);
         if (!NavaidRules.CodiceValido(codice)) { _errore = L["Nav_BadCode"].Value; return; }
 
-        await OnAdd.InvokeAsync((codice, NavaidRules.Norm(_nuovaFamiglia)));
+        var candidate = Anagrafica.Where(n => n.Code == codice).ToList();
+        if (candidate.Count > 1)
+        {
+            _scelta = candidate;
+            _errore = string.Format(L["Nav_PickWhich"].Value, codice);
+            return;
+        }
+
+        await Cita(codice, null);
+    }
+
+    /// <summary>La candidata scelta in tendina. Il valore è la posizione nell'elenco che si sta mostrando:
+    /// l'identità la rilegge l'host, che ha l'anagrafica vera.</summary>
+    private async Task Scegli(string? posizione)
+    {
+        if (_scelta is not { } cand) return;
+        if (!int.TryParse(posizione, out var c) || c < 0 || c >= cand.Count) return;
+
+        var chiave = cand[c].Key;
+        _scelta = null;
+        await Cita(cand[c].Code, chiave);
+    }
+
+    private async Task Cita(string codice, NavaidKey? scelta)
+    {
+        _errore = null;
+        await OnAdd.InvokeAsync((codice, NavaidRules.Norm(_nuovaFamiglia), scelta));
         _nuovoCodice = "";
     }
 

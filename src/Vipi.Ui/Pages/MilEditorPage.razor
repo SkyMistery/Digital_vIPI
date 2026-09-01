@@ -327,29 +327,55 @@ else
     private List<NavaidKey> ChiaviCorrenti() => _radioassistenze.Select(r => r.Key).ToList();
 
     /// <summary>
-    /// Aggiunge una radioassistenza al documento partendo dal solo <b>codice</b>.
+    /// Aggiunge una radioassistenza al documento.
     ///
     /// <para>⚠️ Le tre risposte possibili, e nessuna si indovina: il codice è già in anagrafica <b>una</b>
     /// volta e si cita quella; ci sta <b>più</b> volte — <c>DEC</c> è un VOR e un NDB, <c>GRO</c> un VOR e un
     /// TACAN — e allora bisogna dire quale, perché sceglierne una a caso metterebbe su un SOP la frequenza
     /// dell'impianto sbagliato; <b>non</b> c'è, e allora si crea con la famiglia scelta.</para>
-    /// <para>⚠️ Fino al 30 agosto 2026 non c'era la seconda risposta: scrivendo un codice con un tipo diverso
-    /// nasceva un <b>gemello vuoto</b>, che l'import non avrebbe mai riempito.</para>
+    /// <para>⚠️ La seconda risposta arriva <b>già data</b>: la sceglie una persona nell'editor, che le
+    /// candidate le ha in mano, e qui torna come identità intera. Fino al 1° settembre 2026 non arrivava
+    /// affatto — il messaggio diceva «scegli quale dall'elenco a discesa» e la tendina della banda non
+    /// veniva letta, così il codice ambiguo restava fuori da ogni tabella.</para>
+    /// <para>⚠️ Fino al 30 agosto 2026 non c'era la seconda risposta per niente: scrivendo un codice con un
+    /// tipo diverso nasceva un <b>gemello vuoto</b>, che l'import non avrebbe mai riempito.</para>
     /// </summary>
-    private Task AggiungiRadioassistenza((string Codice, string Famiglia) x) => _shell.GuardAsync(async () =>
+    private Task AggiungiRadioassistenza((string Codice, string Famiglia, NavaidKey? Scelta) x) =>
+        _shell.GuardAsync(async () =>
     {
-        var candidate = _anagrafica.Where(n => n.Code == x.Codice).ToList();
-        if (candidate.Count > 1)
+        NavaidRow riga;
+        if (x.Scelta is { } chiave)
         {
-            _shell.Error = string.Format(L["Nav_Ambiguous"].Value, x.Codice,
-                string.Join(", ", candidate.Select(n => Descrivi(n))));
-            return;
+            // La scelta si ricontrolla sull'anagrafica: quel che arriva dal browser è una proposta, non un fatto.
+            if (_anagrafica.FirstOrDefault(n => n.Key == chiave) is not { } scelta)
+            {
+                _shell.Error = L["Nav_Gone"].Value;
+                return;
+            }
+            riga = scelta;
         }
+        else
+        {
+            var candidate = _anagrafica.Where(n => n.Code == x.Codice).ToList();
 
-        // ⚠️ Prima l'anagrafica, poi il documento: citare un codice che non esiste darebbe una riga fantasma.
-        var riga = candidate.Count == 1
-            ? candidate[0]
-            : await Radioassistenze.CreateAsync(x.Codice, x.Famiglia, Authz.CurrentUserId ?? 0);
+            // ⚠️ Qui non ci si arriva dall'editor, che la scelta la chiede prima: è la rete sotto, per un
+            // chiamante che non l'avesse chiesta. Rifiutare senza offrire una via d'uscita è quello che si
+            // faceva fino al 1° settembre 2026, e teneva fuori GRO e i sedici omonimi di banda.
+            if (candidate.Count > 1)
+            {
+                _shell.Error = string.Format(L["Nav_Ambiguous"].Value, x.Codice,
+                    string.Join(", ", candidate.Select(n => Descrivi(n))));
+                return;
+            }
+
+            // ⚠️ Prima l'anagrafica, poi il documento: citare un codice che non esiste darebbe una riga
+            // fantasma. ⚠️ E con UNA sola candidata vince quella anche se è di un'altra banda: creare il
+            // gemello della banda chiesta darebbe una riga vuota che l'import non riempirebbe mai
+            // (lezione del 30 agosto).
+            riga = candidate.Count == 1
+                ? candidate[0]
+                : await Radioassistenze.CreateAsync(x.Codice, x.Famiglia, Authz.CurrentUserId ?? 0);
+        }
 
         var chiavi = ChiaviCorrenti();
         if (chiavi.Contains(riga.Key)) { _shell.Error = L["Nav_Duplicate"].Value; return; }
@@ -422,15 +448,12 @@ else
     /// Le righe salvate, ricostruite da quelle mostrate. ⚠️ Una radioassistenza citata ma non più in
     /// anagrafica sparirebbe al primo salvataggio: è una guarigione, non una perdita — quel codice non si
     /// poteva più stampare comunque, e tenerlo vorrebbe dire un documento che cita qualcosa che non c'è.
+    /// <para>⚠️ Il rimontaggio vero sta in <see cref="MilDiversionPayload.Da"/>, non qui: il canale fa parte
+    /// dell'identità, e una riga rimessa insieme senza faceva sparire in silenzio ogni TACAN al primo gesto
+    /// successivo — questo metodo lo chiamano TUTTI i comandi della sezione, non solo l'aggiunta.</para>
     /// </summary>
-    private List<MilDiversionPayload.Riga> RigheAlternati() => _alternati.Select(v => new MilDiversionPayload.Riga
-    {
-        Icao = v.Icao,
-        Name = v.Name,
-        Navaids = v.Navaids.Select(n => new MilDiversionPayload.Nav { Code = n.Code, Kind = n.Kind }).ToList(),
-        Bearing = v.Bearing,
-        Distance = v.DistanceNm,
-    }).ToList();
+    private List<MilDiversionPayload.Riga> RigheAlternati() =>
+        _alternati.Select(MilDiversionPayload.Da).ToList();
 
     private Task SalvaAlternati(List<MilDiversionPayload.Riga> righe) => _shell.GuardAsync(async () =>
     {
@@ -468,30 +491,36 @@ else
     }
 
     /// <summary>
-    /// Cita una radioassistenza su una riga. ⚠️ Basta il CODICE: la natura la sa già l'anagrafica, e
-    /// chiederla sarebbe una domanda di cui il sistema conosce la risposta. Quando invece il codice esiste
-    /// con più nature — <c>DEC</c> è un VOR e un NDB — la domanda torna legittima, e si dice.
+    /// Cita una radioassistenza su una riga. ⚠️ Arriva l'<b>identità intera</b>, non il codice: quando il
+    /// codice è di un impianto solo la sceglie l'editor senza chiedere niente, e quando è di più — i
+    /// diciassette che stanno sia fra i VHF sia fra gli NDB, e <c>GRO</c> che sta due volte fra i VHF — la
+    /// domanda la fa lì, in tabella, dove si vedono tutt'e due.
+    /// <para>⚠️ Fino al 1° settembre 2026 il codice ambiguo si rifiutava e basta, mandando chi scriveva
+    /// «nella sezione Radioassistenze» — che lo rifiutava allo stesso modo. Su un campo militare, dove
+    /// VORTAC e NDB condividono l'ident, restavano citabili quasi solo i codici unici in tutta l'anagrafica:
+    /// due o tre per aeroporto.</para>
     /// </summary>
-    private async Task AggiungiNavaidAlternato((int Indice, string Codice) x)
+    private async Task AggiungiNavaidAlternato((int Indice, NavaidKey Chiave) x)
     {
-        var candidate = _anagrafica.Where(n => n.Code == x.Codice).ToList();
-        if (candidate.Count == 0) { _shell.Error = L["Div_UnknownNavaid"].Value; return; }
-        // ⚠️ Qui il codice ambiguo si RIFIUTA e basta: la riga di un alternato non è il posto dove si sceglie
-        // fra due impianti omonimi — si va nella sezione Radioassistenze, dove si vedono tutt'e due.
-        if (candidate.Count > 1) { _shell.Error = L["Div_AmbiguousNavaid"].Value; return; }
+        // La scelta si ricontrolla sull'anagrafica: quel che arriva dal browser è una proposta, non un fatto.
+        if (_anagrafica.FirstOrDefault(n => n.Key == x.Chiave) is not { } scelta)
+        {
+            _shell.Error = L["Div_UnknownNavaid"].Value;
+            return;
+        }
 
         var righe = RigheAlternati();
         if (x.Indice < 0 || x.Indice >= righe.Count) return;
         var riga = righe[x.Indice];
-        if (riga.Navaids.Any(n => n.Code == candidate[0].Code && n.Kind == candidate[0].Kind
-                                  && n.Channel == candidate[0].Channel)) return;
+        if (riga.Navaids.Any(n => n.Code == scelta.Code && n.Kind == scelta.Kind
+                                  && n.Channel == scelta.Channel)) return;
 
         righe[x.Indice] = new MilDiversionPayload.Riga
         {
             Icao = riga.Icao, Name = riga.Name, Bearing = riga.Bearing, Distance = riga.Distance,
             Navaids = riga.Navaids.Append(new MilDiversionPayload.Nav
             {
-                Code = candidate[0].Code, Kind = candidate[0].Kind, Channel = candidate[0].Channel,
+                Code = scelta.Code, Kind = scelta.Kind, Channel = scelta.Channel,
             }).ToList(),
         };
         await SalvaAlternati(righe);

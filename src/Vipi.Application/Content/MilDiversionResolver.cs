@@ -34,7 +34,15 @@ public static class MilDiversionResolver
         var navaid = chiavi.Count == 0
             ? Array.Empty<NavaidRow>()
             : await anagrafica.GetManyAsync(chiavi, ct).ConfigureAwait(false);
-        var perChiave = navaid.ToDictionary(n => (n.Code, n.Kind), n => n);
+
+        // ⚠️ L'indice si fa sulla TERNA, non su codice+famiglia: GRO sta due volte fra i VHF — un VOR senza
+        // canale e un TACAN col solo 35Y — e una chiave a due campi li confonde. Confonderli qui vorrebbe dire
+        // stampare su un SOP la frequenza dell'impianto sbagliato, e con due righe citate nella stessa tabella
+        // il dizionario non si sarebbe nemmeno costruito.
+        // ⚠️ E si scrive con l'indicizzatore, non con ToDictionary: due chiavi che si normalizzano allo stesso
+        // impianto tornano due volte, e sarebbe un'eccezione al posto di una tabella.
+        var perChiave = new Dictionary<NavaidKey, NavaidRow>();
+        foreach (var n in navaid) perChiave[n.Key] = n;
 
         return righe.Select(r => new MilDiversionView(
             r.Icao,
@@ -42,7 +50,7 @@ public static class MilDiversionResolver
             // esteri che non abbiamo. Il contrario congelerebbe nel documento un nome che poi cambia.
             nomi.TryGetValue(r.Icao, out var nome) ? nome : (r.Name ?? ""),
             r.Navaids
-                .Select(n => perChiave.TryGetValue((n.Code, n.Kind), out var v) ? v : null)
+                .Select(n => perChiave.TryGetValue(new NavaidKey(n.Code, n.Kind, n.Channel), out var v) ? v : null)
                 .Where(v => v is not null).Select(v => v!).ToList(),
             r.Bearing, r.Distance)).ToList();
     }

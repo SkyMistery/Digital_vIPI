@@ -1063,7 +1063,7 @@
   <data name="Nav_BadCode" xml:space="preserve"><value>Il codice non è valido: da due a cinque lettere o cifre.</value></data>
   <data name="Nav_NeedKind" xml:space="preserve"><value>Serve la natura (VOR, NDB, ILS, TACAN...): quel codice non è ancora in anagrafica.</value></data>
   <data name="Nav_Duplicate" xml:space="preserve"><value>Quella radioassistenza è già in tabella.</value></data>
-  <data name="Nav_Ambiguous" xml:space="preserve"><value>«{0}» è più di un impianto ({1}): scegli quale dall'elenco a discesa, o aggiungilo dalla pagina Radioassistenze.</value></data>
+  <data name="Nav_Ambiguous" xml:space="preserve"><value>«{0}» è più di un impianto ({1}): scegli quale.</value></data>
   <data name="Nav_AdminTitle" xml:space="preserve"><value>Radioassistenze</value></data>
   <data name="Nav_AdminNav" xml:space="preserve"><value>Radioassist.</value></data>
   <data name="Nav_AdminSubtitle" xml:space="preserve"><value>L'anagrafica di divisione: la stessa radioassistenza in tutti i documenti che la citano.</value></data>
@@ -1112,7 +1112,8 @@
   <data name="Div_Duplicate" xml:space="preserve"><value>Quell'aeroporto è già in tabella.</value></data>
   <data name="Div_UnknownIcao" xml:space="preserve"><value>Quel codice non è fra i nostri aeroporti e la sorgente non lo conosce: la riga è stata aggiunta senza nome.</value></data>
   <data name="Div_UnknownNavaid" xml:space="preserve"><value>Quel codice non è in anagrafica: si aggiunge prima nella sezione Radioassistenze.</value></data>
-  <data name="Div_AmbiguousNavaid" xml:space="preserve"><value>Quel codice esiste con più nature: scriverlo per esteso nella sezione Radioassistenze.</value></data>
+  <data name="Nav_Pick" xml:space="preserve"><value>Scegli l’impianto…</value></data>
+  <data name="Nav_PickWhich" xml:space="preserve"><value>«{0}» è più di un impianto: scegli quale.</value></data>
   <data name="Rwy_ThresholdsTitle" xml:space="preserve"><value>Coordinate delle soglie</value></data>
   <data name="Rwy_ThresholdsEmpty" xml:space="preserve"><value>Le coordinate delle soglie non sono ancora arrivate dalla sorgente: si prendono ri-importando l'aeroporto da IVAO.</value></data>
   <data name="Rwy_ThresholdElev" xml:space="preserve"><value>Elevazione</value></data>

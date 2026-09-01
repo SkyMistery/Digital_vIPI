@@ -55,6 +55,10 @@ public class SezioneAlternatiTests : IAsyncLifetime
         await new EfNavaidCatalog(_db).ImportFromSourceAsync(new[]
         {
             new SourceNavaid("MNL", "VHF", "115.25", "99Y", 41.5476, 15.6898),
+            // ⚠️ GRO sta DUE volte fra i VHF, come nell'anagrafica vera: un VOR senza canale e un TACAN col
+            // solo canale. È il caso che separa un'identità a tre campi da una a due.
+            new SourceNavaid("GRO", "VHF", "109.85", null, 40.5178, 17.4031),
+            new SourceNavaid("GRO", "VHF", null, "35Y", 40.5178, 17.4031),
         });
     }
 
@@ -99,6 +103,49 @@ public class SezioneAlternatiTests : IAsyncLifetime
         Assert.Equal(40, righe[0].DistanceNm);
         Assert.Equal("MNL", Assert.Single(righe[0].Navaids).Code);
         Assert.Empty(righe[1].Navaids);
+    }
+
+    /// <summary>
+    /// Due impianti con lo stesso codice citati sulla STESSA riga, contro l'anagrafica vera. ⚠️ È il caso
+    /// che il 1° settembre 2026 non reggeva: l'indice della risoluzione si faceva su codice+famiglia, e due
+    /// chiavi che ci cadevano dentro insieme non facevano una cella sbagliata — facevano saltare la sezione.
+    /// </summary>
+    [Fact]
+    public async Task Due_impianti_omonimi_sulla_stessa_riga_restano_distinti()
+    {
+        var m = Militari();
+        await m.CreaAsync("LIBA");
+
+        await m.SaveDiversionsAsync("LIBA", new[]
+        {
+            Riga("LIBG", "Grottaglie", 126, 40, ("GRO", "VHF", null), ("GRO", "VHF", "35Y")),
+        });
+
+        var nav = Assert.Single(await m.GetDiversionsAsync("LIBA")).Navaids;
+
+        Assert.Equal(2, nav.Count);
+        Assert.Equal(new[] { "GRO", "GRO" }, nav.Select(n => n.Code));
+        Assert.Equal(new string?[] { null, "35Y" }, nav.Select(n => n.Channel));
+        Assert.Equal(new string?[] { "109.85", null }, nav.Select(n => n.Frequency));
+    }
+
+    /// <summary>Il canale sopravvive al giro completo scrittura → lettura: è quello che identifica
+    /// l'impianto, e perderlo per strada lo fa sparire dalla tabella senza dire niente.</summary>
+    [Fact]
+    public async Task Il_canale_sopravvive_al_giro()
+    {
+        var m = Militari();
+        await m.CreaAsync("LIBA");
+
+        await m.SaveDiversionsAsync("LIBA", new[] { Riga("LIBG", null, null, null, ("MNL", "VHF", "99Y")) });
+
+        // Il rimontaggio dell'editor: si rilegge quel che si vede e lo si risalva tale e quale.
+        var ritorno = (await m.GetDiversionsAsync("LIBA")).Select(MilDiversionPayload.Da).ToList();
+        await m.SaveDiversionsAsync("LIBA", ritorno);
+
+        var nav = Assert.Single(Assert.Single(await m.GetDiversionsAsync("LIBA")).Navaids);
+        Assert.Equal("MNL", nav.Code);
+        Assert.Equal("99Y", nav.Channel);
     }
 
     /// <summary>La sezione è una figlia di «Dati generali», come le Radioassistenze: se il payload smettesse
