@@ -22,6 +22,7 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     private readonly IServerSettingsProbe? _server;
     private readonly IStartupMaintenanceReport? _startup;
     private readonly IImportPolicyStore? _policy;
+    private readonly ISectorfileComparisonReport? _sectorfile;
 
     /// <param name="schema">
     /// Opzionale: se c'è, al report si aggiunge il drift fra modello EF e schema fisico. Sta qui e non in
@@ -52,9 +53,15 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     /// se sparisce l'applicazione torna a «tutto da sorgente» <b>in silenzio</b>. Agganciato qui per la
     /// ragione degli altri: è il punto letto sia dalla diagnostica sia dall'health check.
     /// </param>
+    /// <param name="sectorfile">
+    /// Opzionale: la fotografia dell'ultimo confronto fra i cataloghi IVAO e il <b>sectorfile Aurora</b>.
+    /// Come <paramref name="startup"/> non è una sonda — il confronto è già successo, per conto suo, e qui si
+    /// legge soltanto: fa I/O di rete, e questo report lo legge anche <c>/vsop/health</c>, che è anonimo.
+    /// </param>
     public ConsistencyReportService(IConsistencyReportRepository repo, ISchemaDriftProbe? schema = null,
         Auth.IAdminCoverageService? admin = null, IServerSettingsProbe? server = null,
-        IStartupMaintenanceReport? startup = null, IImportPolicyStore? policy = null)
+        IStartupMaintenanceReport? startup = null, IImportPolicyStore? policy = null,
+        ISectorfileComparisonReport? sectorfile = null)
     {
         _repo = repo;
         _schema = schema;
@@ -62,6 +69,7 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         _server = server;
         _startup = startup;
         _policy = policy;
+        _sectorfile = sectorfile;
     }
 
     /// <summary>
@@ -120,6 +128,11 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         if (_policy is not null)
             await Raccogli(findings, "policy di import", "Diag_Pezzo_Policy", ConsistencyArea.Dati,
                 async () => PolicyDiImport(await _policy.GetInfoAsync(ct)), ct);
+        // Come le manutenzioni d'avvio: qui NON si confronta, si legge la fotografia che il giro periodico ha
+        // gia' preso. Passa dallo stesso cancello per non doversi ricordare che non fa I/O.
+        if (_sectorfile is not null)
+            await Raccogli(findings, "coerenza col sectorfile", "Diag_Pezzo_Sectorfile", ConsistencyArea.Sectorfile,
+                () => Task.FromResult(_sectorfile.Findings), ct);
 
         return findings;
     }

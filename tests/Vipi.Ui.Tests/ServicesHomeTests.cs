@@ -52,6 +52,7 @@ public class ServicesHomeTests : TestContext
         Assert.Contains("/services/stats", indirizzi);
         Assert.Contains("/services/profile-swapper", indirizzi);
         Assert.Contains("/services/coordinates", indirizzi);
+        Assert.Contains("/services/vsop/sectorfile", indirizzi);
     }
 
     /// <summary>
@@ -68,9 +69,13 @@ public class ServicesHomeTests : TestContext
         // ⚠️ Gli spazi aerei sono usciti dalla griglia pubblica il 1 settembre 2026 (staff di divisione) e
         // stanno ora nella sezione dello staff, PRIMA del convertitore: è una mappa da leggere, e il
         // convertitore è un attrezzo — lo stesso ordine «prima si guarda, poi si usa» del resto dell'hub.
+        // ⚠️ La coerenza col sectorfile entra ULTIMA (1 settembre 2026): non è un documento da leggere né un
+        // attrezzo che si usa mentre si lavora — è una verifica che si guarda ogni tanto. L'ordine «prima si
+        // legge, poi si guarda, poi si usa» la mette in coda, dov'è.
         Assert.Equal(
             new[] { "/services/vsop", "/services/vsop/mil", "/services/stats",
-                    "/services/profile-swapper", "/services/vsop/airspace", "/services/coordinates" },
+                    "/services/profile-swapper", "/services/vsop/airspace", "/services/coordinates",
+                    "/services/vsop/sectorfile" },
             indirizzi);
     }
 
@@ -130,12 +135,34 @@ public class ServicesHomeTests : TestContext
     /// aerei è passata sotto <c>/services/vsop/airspace</c> per decisione del committente, quindi ha smesso
     /// di essere un servizio a sé ed è diventata una parte della documentazione — esattamente come i vSOP
     /// militari. Marcarla è dire questo; non marcarla sarebbe stato allargare la regola.</para>
+    ///
+    /// <para>⚠️ <b>Tre</b>, sempre dal 1 settembre: la coerenza col sectorfile
+    /// (<c>/services/vsop/sectorfile</c>) è una lente sui dati che i documenti già usano, non uno strumento a
+    /// sé — il committente l'ha voluta <i>visibile</i>, e questa è la forma in cui esserlo senza sfondare la
+    /// regola. Vedi <c>docs/design/regole-perimetro-servizi.md</c> §P5.</para>
     /// </summary>
     [Fact]
     public void Le_scorciatoie_restano_un_eccezione_contata()
     {
         var cut = Render();
-        Assert.Equal(2, cut.FindAll("a.choice.shortcut").Count);
+        Assert.Equal(3, cut.FindAll("a.choice.shortcut").Count);
+    }
+
+    /// <summary>
+    /// La coerenza col sectorfile è per lo staff di divisione, come il convertitore e gli spazi aerei: il suo
+    /// destinatario è l'IT-AOD, non il pubblico. ⚠️ Il cancello sta in DUE sedi, qui e nella pagina.
+    /// </summary>
+    [Theory]
+    [InlineData(VipiRole.User, false)]
+    [InlineData(VipiRole.IvaoStaff, false)]
+    [InlineData(VipiRole.DivisionStaff, true)]
+    [InlineData(VipiRole.Admin, true)]
+    public void La_coerenza_sectorfile_si_vede_solo_dallo_staff_di_divisione(VipiRole livello, bool atteso)
+    {
+        var cut = Render(livello);
+        var indirizzi = cut.FindAll("a.choice").Select(a => a.GetAttribute("href")).ToList();
+
+        Assert.Equal(atteso, indirizzi.Contains("/services/vsop/sectorfile"));
     }
 
     /// <summary>

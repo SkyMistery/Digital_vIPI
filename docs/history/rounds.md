@@ -1987,3 +1987,34 @@ verifica di E ha detto «nessuna differenza» perché girava sul binario **pubbl
 la trappola del processo, già scritta due volte in queste pagine.
 
 Nessuna migrazione. Suite verde su tutti i progetti.
+
+## 1 settembre 2026 — Coerenza col sectorfile (`coerenza-sectorfile`)
+
+Due sorgenti indipendenti descrivono le stesse cose — l'**API IVAO**, da cui vIPI prende posizioni,
+frequenze, aeroporti, TA e piste, e il **sectorfile Aurora** della divisione — e nessuno le confrontava. Un
+giro ogni 24 ore legge `OTHER/itfreq.frq`, `OTHER/itap.ap`, `OTHER/itrw.rw` e produce rilievi
+`ConsistencyFinding` in un'area nuova (`ConsistencyArea.Sectorfile`), letti dalla Diagnostica e da una pagina
+propria — `/services/vsop/sectorfile`, staff di divisione, scheda **`shortcut`** nell'hub — col tasto
+«confronta adesso» (stesso codice del giro) e «copia l'elenco per l'AOD».
+
+**Nessuna entità, nessuna migrazione**: la fotografia vive in memoria per il processo, come
+`IStartupMaintenanceReport`, ed è deliberato — il confronto fa I/O di rete e il report lo legge anche
+`/vsop/health`, che è anonimo. ⚠️ E **niente riga in `ImportStates`**: quello è il registro di ciò che
+**scrive**, e qui non si scrive niente.
+
+🔴 **L'health check ignora l'area nuova.** Con `findings.Count > 0 ⇒ Degraded`, una famiglia che produce
+rilievi tutti i giorni avrebbe reso `/vsop/health` giallo per sempre — cioè un monitor che qualcuno impara a
+ignorare. Il conteggio è una funzione pura con un test suo.
+
+**La prima slice è stata misurare**, e ha cambiato il disegno prima di scrivere codice: il controllo sul
+**QFU è stato eliminato** (115 divergenze a 1°, zero a 5°: solo rumore), `itrw.rw` non contiene le lunghezze
+di pista, e sono entrati quattro filtri — confinanti esteri (142), ATIS (25), zero iniziale degli ident,
+codici ACC fra gli aeroporti. Sui dati veri: **36 rilievi**, fra cui due frequenze che divergono di **5 e 3
+MHz**, tre TA e dodici aeroporti con designatori di pista diversi.
+
+⚠️ Un difetto visto **solo a schermo**: la testata della tabella si disegnava sotto la prima riga —
+`.res-table.sticky-head` dentro `.st-scroll` trasforma `top:62px` (l'altezza della topbar) in uno spostamento
+in giù di 62px, perché il riferimento dello sticky diventa il contenitore. Tolto il wrapper.
+
+Carta: `docs/design/piano-coerenza-sectorfile.md`. Perimetro dei servizi e motivi dei «no» alle altre
+proposte del 1 settembre: `docs/design/regole-perimetro-servizi.md`. Suite verde su tutti i progetti.

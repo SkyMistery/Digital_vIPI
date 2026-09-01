@@ -1,0 +1,218 @@
+@page "/services/vsop/sectorfile"
+@layout SopLayout
+@rendermode InteractiveServer
+@using System.Text
+@using Vipi.Application.Abstractions
+@using Vipi.Application.Auth
+@using Vipi.Application.Diagnostics
+@inject IEditAuthorizationService Authz
+@inject ISectorfileComparisonReport Report
+@inject ISectorfileComparisonRunner Runner
+@inject Microsoft.Extensions.Options.IOptions<Vipi.Application.DivisionOptions> Division
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
+
+@* Dove i cataloghi IVAO e il sectorfile Aurora non dicono la stessa cosa.
+   Carta: docs/design/piano-coerenza-sectorfile.md.
+
+   ⚠️ Questa pagina NON confronta: legge la fotografia che il giro periodico ha già preso
+   (ISectorfileComparisonReport). Il confronto scarica tre file da GitHub, e una pagina che lo rifacesse a
+   ogni apertura sarebbe una chiamata di rete per ogni F5.
+
+   ⚠️ È una SCORCIATOIA, non un servizio: sta sotto `/services/vsop/` e nell'hub la sua scheda è marcata
+   `shortcut`, come gli spazi aerei e i vSOP militari. Regola P5 di docs/design/regole-perimetro-servizi.md.
+
+   ⚠️ Il cancello sta in DUE sedi — qui nel markup e in `Rilievi`, che non calcola niente per chi non è
+   staff. Nascondere e basta è un cancello che non c'è.
+
+   ⚠️ Gli stessi rilievi si vedono anche in /services/vsop/admin/diagnostics, sotto il chip dell'area
+   «Sectorfile»: una verità, due porte. Quella pagina la apre solo l'admin, e il destinatario di queste
+   righe è l'AOD, che è staff di divisione. *@
+
+<PageTitle>@L["Sf_Title"] · vIPI IVAO Italy</PageTitle>
+
+<div class="wrap">
+    <div class="doc-head">
+        <div><h1 class="page-h1">@L["Sf_Title"]</h1></div>
+        <HelpHint Href="/services/vsop/guide" AriaLabel="@L["Sf_Title"]" ExtraClass="wide">
+            <p style="margin:0 0 6px">@L["Sf_Subtitle"]</p>
+            @((MarkupString)L["Sf_Intro"].Value)
+        </HelpHint>
+    </div>
+
+    @if (!Authz.IsDivisionStaff)
+    {
+        <div class="callout danger">
+            <span class="cic"><Icon Name="octagon" Size="18" /></span>
+            <div><p class="ct">@L["Common_AccessReserved"]</p>@L["Sf_StaffOnly"]</div>
+        </div>
+    }
+    else
+    {
+        var rilievi = Rilievi;
+
+        <div class="struct-bar">
+            @if (Report.LastRunUtc is { } quando)
+            {
+                <span class="muted" data-utc="@VipiTime.Iso(quando)">
+                    @L["Sf_LastRun", VipiTime.DayZ(quando)]
+                </span>
+            }
+            @* ⚠️ Chi corregge il sectorfile vuole sapere ADESSO se è tornato a posto: aspettare il giro di
+               domani vorrebbe dire non riguardarlo mai più. È lo stesso ragionamento del «chiedi alla
+               sorgente adesso» delle sorgenti d'import — e il confronto è lo STESSO codice del giro
+               periodico (ISectorfileComparisonRunner), non una seconda copia. *@
+            <button type="button" class="btn ghost" disabled="@_confronto" @onclick="Confronta">
+                <Icon Name="refresh" Size="16" /> @L["Sf_Now"]
+            </button>
+            <span class="sb-chips">
+                @foreach (var g in Gruppi)
+                {
+                    var n = rilievi.Count(f => SectorfileComparison.FamigliaDi(f) == g.Famiglia);
+                    <button type="button" class="sh-chip @(_famiglia == g.Famiglia ? "on" : "")"
+                            disabled="@(n == 0)" @onclick="() => Alterna(g.Famiglia)">
+                        @L[g.Chiave] <span class="chip-n">@n</span>
+                    </button>
+                }
+                <button class="lnk-mini" disabled="@(_famiglia is null)" @onclick="() => _famiglia = null"
+                        aria-label="@L["Diag_Clear"]">✕</button>
+            </span>
+        </div>
+
+        @if (Report.LastError is { } errore)
+        {
+            <div class="callout warning">
+                <span class="cic"><Icon Name="warning" Size="18" /></span>
+                <div>@L["Sf_Error", errore]</div>
+            </div>
+        }
+
+        @if (!Configurato)
+        {
+            <div class="callout"><span class="cic"><Icon Name="info" Size="18" /></span><div>@L["Sf_Off"]</div></div>
+        }
+        else if (Report.LastRunUtc is null)
+        {
+            <div class="callout"><span class="cic"><Icon Name="info" Size="18" /></span><div>@L["Sf_Never"]</div></div>
+        }
+        else if (rilievi.Count == 0)
+        {
+            <div class="callout">
+                <span class="cic"><Icon Name="check-circle" Size="18" /></span><div>@L["Sf_None"]</div>
+            </div>
+        }
+        else
+        {
+            @foreach (var g in Gruppi)
+            {
+                var righe = rilievi.Where(f => SectorfileComparison.FamigliaDi(f) == g.Famiglia).ToList();
+                if (righe.Count == 0 || (_famiglia is { } sel && sel != g.Famiglia)) continue;
+
+                <div class="section-title" style="margin-top:22px">
+                    <h2 class="h-sect">@L[g.Chiave]</h2><span class="ln"></span>
+                    <span class="muted" style="font-size:13px">@L["Sf_N", righe.Count]</span>
+                </div>
+                @* ⚠️ NIENTE `.st-scroll` attorno a una tabella `sticky-head`, ed e' una regola del foglio, non
+                   una preferenza: un `overflow` diverso da `visible` rende quel contenitore il riferimento
+                   dello sticky, e il `top:62px` — pensato per la topbar appiccicata — diventa uno SPOSTAMENTO
+                   IN GIU' di 62px. Misurato a schermo: testata a 320, prima riga a 295, cioe' l'intestazione
+                   sotto la riga che dovrebbe intestare. Lo dice anche il commento della regola globale
+                   `.wrap *:has(> table)`, che infatti esclude le tabelle a intestazione appiccicata. *@
+                <table class="res-table sticky-head diag-table">
+                    <thead>
+                        <tr>
+                            <th class="c-cat">@L["Diag_Category"]</th>
+                            <th class="c-ent">@L["Diag_Entity"]</th>
+                            <th class="c-det">@L["Diag_Detail"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var f in righe)
+                        {
+                            <tr>
+                                <td class="c-cat"><div class="diag-cat">@ConsistencyNarrator.Categoria(f, L)</div></td>
+                                <td class="c-ent">@ConsistencyNarrator.Bersaglio(f, L)</td>
+                                <td class="c-det muted">@ConsistencyNarrator.Dettaglio(f, L)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+
+            @* Il destinatario di questi rilievi NON ha accesso a questa pagina: l'elenco deve poter uscire
+               di qui in una forma che si incolla in Discord o in una mail. Dieci righe, ed è ciò che
+               trasforma una diagnosi in una correzione. *@
+            <div class="struct-bar" style="margin-top:18px">
+                <button type="button" class="btn" @onclick="Copia">
+                    <Icon Name="copy" Size="16" /> @L["Sf_Copy"]
+                </button>
+                @if (_copiato)
+                {
+                    <span class="muted">@L["Sf_Copied"]</span>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private SectorfileComparison.Famiglia? _famiglia;
+    private bool _copiato;
+    private bool _confronto;
+
+    private sealed record Gruppo(SectorfileComparison.Famiglia Famiglia, string Chiave);
+
+    private static readonly Gruppo[] Gruppi =
+    {
+        new(SectorfileComparison.Famiglia.Posizioni, "Sf_GroupPositions"),
+        new(SectorfileComparison.Famiglia.Aeroporti, "Sf_GroupAirports"),
+        new(SectorfileComparison.Famiglia.Piste, "Sf_GroupRunways"),
+    };
+
+    /// <summary>⚠️ Il cancello anche qui, non solo nel markup: chi non è staff non ottiene i rilievi
+    /// nemmeno scrivendo l'indirizzo a mano.</summary>
+    private IReadOnlyList<ConsistencyFinding> Rilievi =>
+        Authz.IsDivisionStaff ? Report.Findings : Array.Empty<ConsistencyFinding>();
+
+    /// <summary>Se la sorgente non è configurata il giro non parte affatto, e «zero divergenze» sarebbe una
+    /// risposta falsa a una domanda che non è stata posta.</summary>
+    private bool Configurato => Report.LastRunUtc is not null || Report.LastError is not null;
+
+    private void Alterna(SectorfileComparison.Famiglia f) => _famiglia = _famiglia == f ? null : f;
+
+    /// <summary>
+    /// Rifà il confronto adesso. ⚠️ Il cancello anche qui: è l'unica azione della pagina che tocca la rete,
+    /// e chi non è staff non deve poterla far partire nemmeno chiamando il metodo.
+    /// </summary>
+    private async Task Confronta()
+    {
+        if (_confronto || !Authz.IsDivisionStaff) return;
+        _confronto = true;
+        try { await Runner.RunAsync(); }
+        finally { _confronto = false; }
+    }
+
+    private async Task Copia()
+    {
+        var sb = new StringBuilder();
+        sb.Append("Coerenza vIPI <-> sectorfile · ").Append(Division.Value.Name).AppendLine();
+        if (Report.LastRunUtc is { } q) sb.Append("Confronto del ").Append(VipiTime.DayZ(q)).AppendLine();
+        sb.AppendLine();
+
+        foreach (var g in Gruppi)
+        {
+            var righe = Rilievi.Where(f => SectorfileComparison.FamigliaDi(f) == g.Famiglia).ToList();
+            if (righe.Count == 0) continue;
+            sb.Append("== ").Append(L[g.Chiave].Value).Append(" (").Append(righe.Count).AppendLine(")");
+            foreach (var f in righe)
+                sb.Append("- ").Append(ConsistencyNarrator.Bersaglio(f, L)).Append(" — ")
+                  .Append(ConsistencyNarrator.Categoria(f, L)).Append(": ")
+                  .AppendLine(ConsistencyNarrator.Dettaglio(f, L));
+            sb.AppendLine();
+        }
+
+        // ⚠️ «Copiato» si dice solo se è vero: vipiCopiaTesto torna false fuori dai contesti sicuri e col
+        // ripiego fallito.
+        _copiato = await JS.InvokeAsync<bool>("vipiCopiaTesto", sb.ToString());
+    }
+}

@@ -105,6 +105,13 @@ public static class VipiModuleExtensions
         services.AddSingleton<Vipi.Application.Diagnostics.IStartupMaintenanceReport,
             Vipi.Application.Diagnostics.StartupMaintenanceReport>();
 
+        // Fotografia dell'ultimo confronto coi file del sectorfile Aurora. Singleton per la stessa ragione
+        // del registro qui sopra: la scrive un giro periodico, la leggono più richieste insieme — e la
+        // domanda a cui risponde («le due sorgenti concordano adesso?») non ha niente da conservare fra un
+        // avvio e l'altro.
+        services.AddSingleton<Vipi.Application.Diagnostics.ISectorfileComparisonReport,
+            Vipi.Application.Diagnostics.SectorfileComparisonReport>();
+
         // Bridge Aurora (F1): matching read-only + limitatore dell'endpoint anonimo.
         services.Configure<AuroraBridgeOptions>(configuration.GetSection(AuroraBridgeOptions.SectionName));
         services.AddSingleton<RequestRateLimiter>();
