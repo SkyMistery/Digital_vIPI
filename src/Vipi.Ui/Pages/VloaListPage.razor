@@ -193,6 +193,21 @@ else
                 var tradotto = await Translator.TranslateAsync(_view, Vipi.Domain.Language.En, lettore);
                 _view = tradotto.View;
                 _copertura = tradotto.Coverage;
+
+                // I titoli delle sezioni di CATALOGO nella lingua di lettura, DOPO la traduzione.
+                //
+                // ⚠️ Quei titoli stanno scritti nel documento nella lingua che aveva alla NASCITA, e la
+                // passata li copre solo finché c'è una passata: su un documento BLOCCATO la traduzione è
+                // spenta per definizione (sorgente == bersaglio). Qui il verso è l'opposto delle altre
+                // famiglie — una vLOA nasce INGLESE, quindi è una vLOA bloccata in italiano a mostrare
+                // «Purpose / Frequencies / Validity and Revision» dentro un documento italiano.
+                _view = new DocumentView
+                {
+                    Title = _view.Title, AiracCycle = _view.AiracCycle,
+                    Sections = TitoliDiCatalogo.Applica(_view.Sections, SectionProfile.Vloa, lettore),
+                    Language = _view.Language, LanguageLocked = _view.LanguageLocked,
+                    Translations = _view.Translations,
+                };
             }
 
             // ---- Filtro pilota / ATC (carta vSOP militari §3) ---------------------------------------

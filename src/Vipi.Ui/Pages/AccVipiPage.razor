@@ -275,6 +275,17 @@ else
         // editoriale, che è la parte che questa pagina mostrava ancora in italiano soltanto.
         _copertura = await Translator.TranslateAsync(_data, _lingua, lettore, _congelate);
 
+        // I titoli delle sezioni di CATALOGO nella lingua di lettura, DOPO la traduzione e sul posto come
+        // lei.
+        //
+        // ⚠️ Non è un doppione: quei titoli stanno scritti nel documento nella lingua che aveva alla
+        // NASCITA — l'assembler risolve dal catalogo solo le sezioni che il documento non ha MAI scritto —
+        // e la passata li copre solo finché c'è una passata. Su una vIPI BLOCCATA la traduzione è spenta per
+        // definizione (sorgente == bersaglio), e senza questo passo una vIPI dichiarata inglese mostrava
+        // «Separazioni radar / Configurazioni / Aree regolamentate».
+        // ⚠️ Il profilo lo dice il BLOCCO, non la pagina: Aerovia e gruppo-APP hanno cataloghi diversi.
+        TitoliDiCatalogo.Applica(_data, lettore);
+
         // Il filtro di lettura, DOPO la traduzione: si filtra la vista che il lettore vedrà davvero.
         _vista = AudienceFilter.Leggi(Vista);
         _haMarcate = _data.Blocks.Any(b => b.Sections.Any(

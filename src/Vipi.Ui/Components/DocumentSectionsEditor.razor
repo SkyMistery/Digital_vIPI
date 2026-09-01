@@ -105,12 +105,37 @@ else
     // Release) restano senza Id: non sono sezioni, e non si trascinano.
     private const string TocGroup = "root";
 
+    /// <summary>
+    /// Come si chiama una sezione a schermo: il titolo di CATALOGO nella lingua in cui il documento è
+    /// redatto, o quello che porta il documento se la sezione è libera.
+    ///
+    /// <para>
+    /// ⚠️ <b>Non è cosmesi, ed è l'unico rimedio possibile qui dentro.</b> Il titolo di una sezione fissa
+    /// sta scritto nel documento nella lingua che aveva alla NASCITA, e cambiare la lingua dal pannello di
+    /// rilascio non lo tocca; ma una sezione fissa <b>non si rinomina a mano</b> — il campo qui sotto esiste
+    /// solo per le libere — quindi chi dichiara inglese un documento italiano non avrebbe nessun modo di
+    /// correggerle. Restavano «Dati generali», «Piste», «Procedure generali» dentro un documento inglese.
+    /// </para>
+    /// <para>⚠️ Solo per MOSTRARE: non si scrive niente nel modello. Riscrivere i titoli in bozza
+    /// sistemerebbe la sola versione di lavoro, mentre le release già pubblicate portano i loro dentro lo
+    /// snapshot e non si toccano — per quelle vale la stessa risoluzione, a view-time
+    /// (<see cref="TitoliDiCatalogo"/>).</para>
+    /// </summary>
+    private string Titolo(EditableSection s) =>
+        Profile is { } p ? TitoliDiCatalogo.Titolo(p, s.SectionKey, s.Title, LinguaDelDocumento) : s.Title;
+
+    /// <summary>La lingua in cui il documento è redatto. ⚠️ Quella del DOCUMENTO, non quella di chi guarda
+    /// il sito: l'editor mostra il documento com'è scritto, e chi scrive sceglie la lingua una volta sola.
+    /// Nulla sui documenti salvati prima che il campo esistesse — allora vale l'italiano, che è la lingua in
+    /// cui nascono tutte le famiglie tranne la vLOA (che i titoli li ha già in inglese).</summary>
+    private string LinguaDelDocumento => Doc.Language == Vipi.Domain.Language.En ? "en" : "it";
+
     private IReadOnlyList<EditorTocItem> BuildToc()
     {
         // Le voci-sezione, radici e figlie, le costruisce una funzione pura (EditorTocProjection): è la parte
         // che si può sbagliare in silenzio, e provarla di qui vorrebbe dire montare l'editor intero.
         var items = EditorTocProjection.DaSezioni(
-            RootSections ?? Doc.Sections, s => IsSectionDirty?.Invoke(s) == true, TocGroup).ToList();
+            RootSections ?? Doc.Sections, s => IsSectionDirty?.Invoke(s) == true, TocGroup, Titolo).ToList();
         if (ExtraTocItems is { Count: > 0 }) items.AddRange(ExtraTocItems);
         return items;
     }
@@ -320,7 +345,7 @@ else
             }
             else
             {
-                @if (depth0) { <h3 style="margin:0">@s.Title</h3> } else { <h4 style="margin:0">@s.Title</h4> }
+                @if (depth0) { <h3 style="margin:0">@Titolo(s)</h3> } else { <h4 style="margin:0">@Titolo(s)</h4> }
                 @if (mand) { <span class="pill grey" title="@L["Dse_MandatoryTitle"]">@L["Dse_Mandatory"]</span> }
                 @OffsetPill(offset)
                 @HelpFor(s)
