@@ -34,17 +34,18 @@ public class CatalogoBilingueTests
         "AOR", "MRVA", "VFR", "SID", "METAR & TAF", "QRA / Scramble",
     };
 
-    /// <summary>I profili i cui titoli sono scritti in italiano. La vLOA no: nasce in inglese, ed è una
-    /// lettera d'accordo bilaterale — i suoi titoli sono già la versione inglese.</summary>
-    public static TheoryData<SectionProfile> ProfiliItaliani => new()
-    {
-        SectionProfile.App,
-        SectionProfile.AccAerovia,
-        SectionProfile.AccAppBlock,
-        SectionProfile.Airport,
-        SectionProfile.AirportMil,
-        SectionProfile.AppMil,
-    };
+    /// <summary>
+    /// I profili i cui titoli sono scritti in italiano. La vLOA no: nasce in inglese, ed è una lettera
+    /// d'accordo bilaterale — i suoi titoli sono già la versione inglese.
+    ///
+    /// <para>⚠️ <b>L'elenco lo dice il CATALOGO</b> (<see cref="SectionCatalog.TitoliInInglese"/>), non
+    /// questa riga: stava scritto a mano qui e a quel punto un profilo nuovo restava fuori dalla guardia in
+    /// silenzio — il modo esatto in cui la guardia smette di guardare. Da qui esce anche la regola che i
+    /// titoli si risolvono a view-time (<c>TitoliDiCatalogo</c>), quindi i due posti devono dire la stessa
+    /// cosa per costruzione.</para>
+    /// </summary>
+    public static TheoryData<SectionProfile> ProfiliItaliani =>
+        new(Enum.GetValues<SectionProfile>().Where(p => !SectionCatalog.TitoliInInglese(p)));
 
     [Theory]
     [MemberData(nameof(ProfiliItaliani))]

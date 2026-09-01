@@ -332,6 +332,23 @@ public static class SectionCatalog
     /// <summary>Sezioni fisse del profilo, in ordine di default.</summary>
     public static IReadOnlyList<SectionDescriptor> For(SectionProfile profile) => Registry[profile];
 
+    /// <summary>
+    /// Vero se i titoli di catalogo di questo profilo sono scritti in <b>inglese</b>: la vLOA, che è una
+    /// lettera d'accordo bilaterale e nasce così.
+    ///
+    /// <para>⚠️ Non è un dettaglio di presentazione, è la lingua NATIVA del catalogo, e serve a chi risolve
+    /// i titoli a view-time (<see cref="TitoliDiCatalogo"/>): per gli altri profili
+    /// <see cref="SectionDescriptor.Title"/> è la resa italiana e <see cref="SectionDescriptor.TitleEn"/>
+    /// quella inglese, qui <c>Title</c> è già l'inglese e <b>la resa italiana non esiste</b>. Trattarla come
+    /// le altre vorrebbe dire imporre «Purpose» a chi legge in italiano, scavalcando la traduzione — che per
+    /// una vLOA è l'unica cosa che quel titolo può tradurlo.</para>
+    ///
+    /// <para>⚠️ La stessa distinzione era scritta a mano dentro <c>CatalogoBilingueTests</c> (l'elenco dei
+    /// «profili italiani»): due posti che dichiarano la stessa cosa sono due posti che possono
+    /// contraddirsi, e il primo ad aggiungere un profilo se ne accorgerebbe solo a schermo.</para>
+    /// </summary>
+    public static bool TitoliInInglese(SectionProfile profile) => profile == SectionProfile.Vloa;
+
     /// <summary>Descrittore della sezione fissa con questa chiave: di primo livello o sotto-sezione fissa
     /// (<see cref="ChildRegistry"/>). Null = sezione libera.</summary>
     /// <summary>
