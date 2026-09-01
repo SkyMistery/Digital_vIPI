@@ -52,12 +52,34 @@
                     @if (r.Navaids.Count == 0 && !Editing) { <span class="muted">—</span> }
                     @if (Editing)
                     {
-                        <div class="mil-cite-add">
-                            <input list="@CodiciId" placeholder="@L["Nav_Code"]"
-                                   value="@LeggiBozza(idx)" @onchange="e => _bozzaNavaid[idx] = e.Value?.ToString() ?? string.Empty" />
-                            <button type="button" class="btn ghost" title="@L["Div_AddNavaid"]"
-                                    @onclick="() => AggiungiNavaid(idx)">+</button>
-                        </div>
+                        @* ⚠️ Un codice che è di PIÙ impianti non si rifiuta: si chiede quale. Su un campo
+                           militare VORTAC e NDB condividono l'ident, e rifiutare voleva dire lasciare
+                           citabili quasi solo i codici unici in tutta l'anagrafica. *@
+                        @if (Candidate(idx) is { Count: > 0 } cand)
+                        {
+                            <div class="mil-cite-pick">
+                                <select aria-label="@L["Nav_Pick"]"
+                                        @onchange="e => Scegli(idx, e.Value?.ToString())">
+                                    <option value="">@L["Nav_Pick"]</option>
+                                    @for (var c = 0; c < cand.Count; c++)
+                                    {
+                                        var n = cand[c];
+                                        <option value="@c">@NavaidText.ConTipo(n.Code, n.Type, n.Channel, n.Frequency)</option>
+                                    }
+                                </select>
+                                <button type="button" class="btn ghost" title="@L["Common_Cancel"]"
+                                        @onclick="() => _scelta.Remove(idx)">✕</button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="mil-cite-add">
+                                <input list="@CodiciId" placeholder="@L["Nav_Code"]"
+                                       value="@LeggiBozza(idx)" @onchange="e => _bozzaNavaid[idx] = e.Value?.ToString() ?? string.Empty" />
+                                <button type="button" class="btn ghost" title="@L["Div_AddNavaid"]"
+                                        @onclick="() => AggiungiNavaid(idx)">+</button>
+                            </div>
+                        }
                     }
                 </td>
                 <td class="c-num">
@@ -139,10 +161,11 @@
     [Parameter] public EventCallback<int> OnRemove { get; set; }
     [Parameter] public EventCallback<(int Indice, int Delta)> OnMove { get; set; }
 
-    /// <summary>Cita una radioassistenza su questa riga. ⚠️ Il codice basta: se in anagrafica ce n'è una sola
-    /// con quel codice, la natura la sa già il sistema — chiederla sarebbe una domanda di cui conosce la
-    /// risposta.</summary>
-    [Parameter] public EventCallback<(int Indice, string Codice)> OnAddNavaid { get; set; }
+    /// <summary>Cita una radioassistenza su questa riga. ⚠️ Si manda l'<b>identità intera</b>: se in
+    /// anagrafica c'è un impianto solo con quel codice la sceglie questo editor senza chiedere niente —
+    /// sarebbe una domanda di cui il sistema conosce la risposta — e se ce n'è più d'uno la scelta la fa una
+    /// persona <b>qui</b>, prima di chiamare.</summary>
+    [Parameter] public EventCallback<(int Indice, NavaidKey Chiave)> OnAddNavaid { get; set; }
 
     [Parameter] public EventCallback<(int Indice, NavaidKey Chiave)> OnRemoveNavaid { get; set; }
 
@@ -152,6 +175,22 @@
     private string _nuovoIcao = "";
     private string? _errore;
     private readonly Dictionary<int, string> _bozzaNavaid = new();
+
+    /// <summary>Le candidate in attesa di scelta, per riga. ⚠️ Vive per indice come la bozza, quindi si
+    /// butta quando le righe cambiano: dopo un salvataggio, uno spostamento o una cancellazione l'indice 2
+    /// non è più la riga di prima, e una tendina rimasta aperta citerebbe l'aeroporto sbagliato.</summary>
+    private readonly Dictionary<int, IReadOnlyList<NavaidRow>> _scelta = new();
+
+    private IReadOnlyList<MilDiversionView>? _righeViste;
+
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(Rows, _righeViste)) return;
+        _righeViste = Rows;
+        _scelta.Clear();
+    }
+
+    private IReadOnlyList<NavaidRow>? Candidate(int i) => _scelta.TryGetValue(i, out var v) ? v : null;
 
     private static string Vuoto(string s) => s.Length > 0 ? s : "—";
 
@@ -171,13 +210,45 @@
         _nuovoIcao = "";
     }
 
+    /// <summary>
+    /// Le tre risposte al codice battuto a mano, e nessuna si indovina: <b>non</b> è in anagrafica e lo si
+    /// dice; è di <b>un</b> impianto e si cita quello; è di <b>più</b> impianti — <c>DEC</c> è un VOR e un
+    /// NDB, <c>GRO</c> un VOR e un TACAN — e allora si apre la tendina, perché sceglierne uno a caso
+    /// metterebbe su un SOP la frequenza dell'impianto sbagliato.
+    /// </summary>
     private async Task AggiungiNavaid(int i)
     {
         _errore = null;
         var codice = NavaidRules.Norm(LeggiBozza(i));
         if (!NavaidRules.CodiceValido(codice)) { _errore = L["Nav_BadCode"].Value; return; }
 
-        await OnAddNavaid.InvokeAsync((i, codice));
+        var candidate = Anagrafica.Where(n => n.Code == codice).ToList();
+        if (candidate.Count == 0) { _errore = L["Div_UnknownNavaid"].Value; return; }
+        if (candidate.Count > 1)
+        {
+            _scelta[i] = candidate;
+            _errore = string.Format(L["Nav_PickWhich"].Value, codice);
+            return;
+        }
+
+        await CitaNavaid(i, candidate[0].Key);
+    }
+
+    /// <summary>La candidata scelta in tendina. Il valore è la posizione nell'elenco che si sta mostrando:
+    /// l'identità la rilegge il chiamante, che ha l'anagrafica vera.</summary>
+    private async Task Scegli(int i, string? posizione)
+    {
+        if (Candidate(i) is not { } cand) return;
+        if (!int.TryParse(posizione, out var c) || c < 0 || c >= cand.Count) return;
+
+        _scelta.Remove(i);
+        await CitaNavaid(i, cand[c].Key);
+    }
+
+    private async Task CitaNavaid(int i, NavaidKey chiave)
+    {
+        _errore = null;
+        await OnAddNavaid.InvokeAsync((i, chiave));
         _bozzaNavaid[i] = "";
     }
 }

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Vipi.Application.Abstractions;
@@ -117,6 +117,28 @@ public sealed class MilDiversionPayload
             .ToList(),
         Bearing = r.Bearing is { } b and >= 0 and <= 360 ? b : null,
         Distance = r.Distance is { } d and >= 0 and <= 9999 ? d : null,
+    };
+
+    /// <summary>
+    /// Da quel che si vede a quel che si salva: la riga di ritorno, pronta per un'altra scrittura.
+    ///
+    /// <para>⚠️ <b>Il canale si porta indietro</b>, e non è un dettaglio: l'identità di una radioassistenza è
+    /// la terna <c>codice+famiglia+canale</c> (vedi <see cref="NavaidKey"/>), e una riga rimessa insieme
+    /// senza canale cita un impianto che non esiste — <c>GRO|VHF|null</c> quando in anagrafica c'è
+    /// <c>GRO|VHF|35Y</c>. La risoluzione non lo trova, lo scarta in silenzio, e la radioassistenza sparisce
+    /// dalla tabella al primo salvataggio successivo.</para>
+    /// <para>⚠️ Un posto solo, perché di rimontaggi ce n'è uno per ogni gesto dell'editor — aggiungere uno
+    /// scalo, spostarlo, scrivere un rilevamento — e ognuno di quelli riscriveva <b>tutte</b> le righe.</para>
+    /// </summary>
+    public static Riga Da(MilDiversionView v) => new()
+    {
+        Icao = v.Icao,
+        Name = v.Name,
+        Navaids = v.Navaids
+            .Select(n => new Nav { Code = n.Code, Kind = n.Kind, Channel = n.Channel })
+            .ToList(),
+        Bearing = v.Bearing,
+        Distance = v.DistanceNm,
     };
 
     /// <summary>Le identità di radioassistenza citate da tutte le righe, senza ripetizioni: è la lettura che

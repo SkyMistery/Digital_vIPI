@@ -3201,6 +3201,10 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .mil-cite{display:flex;gap:6px;align-items:center;white-space:nowrap}
 .mil-cite-add{display:flex;gap:4px;align-items:center;margin-top:4px}
 .mil-cite-add input{width:94px}
+/* La scelta fra impianti omonimi (GRO VOR o GRO TACAN): sta nella stessa cella e non la allarga -- la
+   tendina si accorcia da sola, perche' quella colonna e' larga il 38% e ha gia' i suoi codici dentro. */
+.mil-cite-pick{display:flex;gap:4px;align-items:center;margin-top:4px}
+.mil-cite-pick select{max-width:100%;min-width:0;flex:1 1 auto}
 
 /* Pagina Radioassistenze (`/services/vsop/admin/navaids`): la barra dei filtri e' quella di Struttura e
    delle SID — campo con la lente e chip — invece di etichette e caselle inventate qui. */
