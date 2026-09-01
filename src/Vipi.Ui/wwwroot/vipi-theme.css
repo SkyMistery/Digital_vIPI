@@ -1070,6 +1070,18 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .toc .toc-grp{margin:12px 0 4px;padding-left:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft)}
 .toc .toc-grp:first-of-type{margin-top:2px}
 .doc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:6px}
+/* L'AVVISO DI SIMULAZIONE (SimDisclaimer). Rosso e grassetto, sotto il titolo di ogni documento pubblico,
+   della vista live e della mappa degli spazi aerei.
+   ⚠️ Il rosso viene dal token e non da un letterale: e' lo stesso `--danger-ink` dei callout, quindi gira
+   col tema scuro invece di restare un rosso da fondo bianco su fondo nero (regole-brand).
+   ⚠️ `.sim-disc` sta DENTRO una riga `.muted` in quattro documenti su cinque: il colore lo deve vincere,
+   e lo vince perche' e' una classe sull'elemento stesso contro un colore ereditato. */
+.sim-disc{color:var(--danger-ink);font-weight:800}
+/* La riga propria, per le tre testate che un sottotitolo non ce l'hanno (vSOP militare, vista live, spazi
+   aerei). ⚠️ `flex-basis:100%` non e' decorazione: in `.reduced-top` (vista live) la testata e' una riga
+   flex, e senza questo l'avviso si infilerebbe fra l'orologio UTC e i tasti stringendo il titolo. Fuori da
+   un contenitore flex la dichiarazione e' inerte, quindi la stessa classe vale nei tre posti. */
+.sim-line{flex-basis:100%;margin:2px 0 0;font-size:13px}
 .struct-nav{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;max-width:560px}
 .struct-nav .btn{padding:7px 12px;font-size:12.5px;white-space:nowrap}
 .doc card,.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}

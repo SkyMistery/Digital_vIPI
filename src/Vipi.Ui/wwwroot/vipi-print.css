@@ -17,7 +17,10 @@
    sono due modi di dire «questo elemento non è per questo mezzo». */
 
 @media print {
-  @page { size: A4 portrait; margin: 14mm 12mm; }
+  /* ⚠️ Il margine INFERIORE è 18mm e non 14mm: quei 4mm in più sono la fascia in cui atterra il piè di
+     pagina fisso (`.sim-foot`, in fondo a questo foglio). Chi lo riporta a 14mm si riprende la fascia e
+     il testo dell'ultima riga di ogni pagina finisce sopra l'avviso. */
+  @page { size: A4 portrait; margin: 14mm 12mm 18mm; }
 
   /* Lo zoom di pagina è applicato inline su <html> da App.razor (localStorage): in stampa va neutralizzato,
      altrimenti al 130% il documento esce tagliato. La dichiarazione !important d'autore batte l'inline. */
@@ -95,6 +98,42 @@
   .vipi-root .print-meta .pm-sub { margin: 2px 0 0; font-size: 9pt; color: var(--ink-strong); }
   .vipi-root .print-meta .pm-line { display: flex; flex-wrap: wrap; gap: 3mm; margin: 4px 0 0; font-size: 8.5pt; color: var(--ink-mid); }
   .vipi-root .print-meta .pm-url { word-break: break-all; }
+
+  /* ── L'avviso di simulazione ───────────────────────────────────────────────────
+     Due sedi sulla carta, e non e' un doppione:
+       · `.pm-sim` — sotto il titolo, nell'intestazione di stampa. Serve perche' `.doc-head` sul foglio
+         e' nascosto (regola qui sopra): la riga che a schermo sta sotto il titolo, in stampa non c'e'.
+       · `.sim-foot` — a pie' di OGNI foglio, da SopLayout.
+     ⚠️ Il rosso e il grassetto li porta `.sim-disc` (vipi-theme.css) e valgono anche qui: la carta li
+     stampa perche' `print-color-adjust:exact` e' gia' dichiarato per tutto `.vipi-root` piu' sopra. */
+  .vipi-root .print-meta .pm-sim { margin: 3px 0 0; font-size: 9pt; }
+
+  /* ⚠️ `position:fixed` E' IL MECCANISMO CHE RIPETE LA RIGA SU OGNI FOGLIO. Non e' un ripiego di stile:
+     le margin box di `@page` (`@bottom-center{content:...}`) non le implementa nessun browser, e l'unica
+     altra strada — riavvolgere il contenuto di ogni pagina in `<table><tfoot>` — costerebbe il markup di
+     tutto il sito. Chrome, Edge e Firefox la ripetono; Safari la stampa solo sulla prima pagina, ed e' il
+     motivo per cui l'avviso sta anche in `.pm-sim` e sotto il titolo a schermo.
+
+     ⚠️ I -4mm SONO UN NUMERO MISURATO, non scelto a occhio, e stanno fra due muri. Un elemento fisso si
+     posiziona sull'area di pagina, cioe' dentro i margini: a `bottom:0` sta esattamente dove finisce il
+     testo, e su un foglio pieno le due righe si toccano (misurato sulla vIPI di LIBB, 21 fogli: -1,1mm,
+     cioe' sovrapposte). Scendendo si guadagna distanza, ma sotto una certa soglia Chrome NON DISEGNA PIU'
+     IL PIE' SULLA PRIMA PAGINA — la ridisegna dalla seconda in poi, e il difetto e' invisibile su ogni
+     documento che ha anche `PrintMeta`. Misurato con printToPDF su una pagina di una pagina sola
+     (`/services/vsop/libb/mil`) e sulla home: 0, -2mm e -4mm escono su tutti i fogli; -6mm e -8mm
+     saltano il PRIMO. A -4mm la distanza dal testo e' +2,9mm.
+
+     ⚠️ Il muro dipende da `height`/`line-height`: la riga sparisce quando la sua BASE esce dall'area di
+     pagina, e con 8mm di riga questo accade fra -4mm e -6mm. Chi cambia l'altezza rimisuri, non deduca.
+
+     ⚠️ Il fondo bianco e' la rete: se un giorno una riga di testo arrivasse comunque fin qui, a perdersi
+     sarebbe quella riga e non l'avviso. */
+  .vipi-root .sim-foot {
+    position: fixed; left: 0; right: 0; bottom: -4mm;
+    height: 8mm; line-height: 8mm;
+    margin: 0; text-align: center; font-size: 8.5pt;
+    background: #fff;
+  }
 
   /* ── Geometria: da layout a colonne a flusso singolo ──────────────────────────── */
   .vipi-root .wrap { max-width: none !important; padding: 0 !important; }

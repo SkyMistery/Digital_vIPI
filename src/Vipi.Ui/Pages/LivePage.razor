@@ -41,6 +41,9 @@
         {
             <a class="btn ghost" href="@href">@L["Live_ExtendedDoc"]</a>
         }
+        @* La testata della vista live e' una riga sola in flex: `.sim-line` porta `flex-basis:100%` e
+           l'avviso scende sotto invece di stringere il titolo. *@
+        <p class="sim-line"><SimDisclaimer /></p>
     </div>
 
     @if (_view is null)

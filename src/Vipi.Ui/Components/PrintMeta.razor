@@ -1,4 +1,4 @@
-@* Intestazione di SOLA STAMPA (classe .print-only, vedi vipi-print.css): a schermo non esiste, sul foglio dà
+﻿@* Intestazione di SOLA STAMPA (classe .print-only, vedi vipi-print.css): a schermo non esiste, sul foglio dà
    al documento l'identità che il chrome nascosto (topbar, briciole, riepilogo del rail) non può più dare —
    titolo, ambito, ciclo AIRAC, quando è stato stampato e da quale indirizzo.
 
@@ -19,6 +19,11 @@
     {
         <p class="pm-sub">@Subtitle</p>
     }
+    @* ⚠️ L'avviso di simulazione lo rende ANCHE questa intestazione, e non è un doppione del piè di pagina:
+       sul foglio `.doc-head` è NASCOSTO (vipi-print.css, `.print-meta + .doc-head`), quindi la riga che si
+       vede a schermo sotto il titolo sulla carta non esiste. Senza questa, la prima pagina di un documento
+       stampato avrebbe l'avviso solo in fondo, staccato dal titolo a cui si riferisce. *@
+    <p class="pm-sim"><SimDisclaimer /></p>
     <p class="pm-line">
         @if (!string.IsNullOrWhiteSpace(AiracCycle))
         {

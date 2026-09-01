@@ -199,6 +199,20 @@
 }
 
 <main id="vipi-main">@Body</main>
+@* IL PIE' DI OGNI FOGLIO STAMPATO. A schermo non esiste (`.print-only`).
+
+   ⚠️ Sta nel LAYOUT e non nei documenti perche' vale per OGNI pagina del sito, non solo per i cinque
+   documenti: chiunque stampi qualunque cosa da qui si porta a casa un foglio che dice che cos'e'.
+
+   ⚠️ `position:fixed` e' l'unico modo che il CSS ha di RIPETERE una riga su ogni foglio: le margin box
+   di `@@page` (`@@bottom-center`) non le implementa nessun browser, e l'alternativa — riavvolgere tutto
+   il contenuto dentro un `<table><tfoot>` — vorrebbe dire cambiare il markup di tutto il sito per una
+   riga sola. Si ripete su ogni pagina in Chrome, Edge e Firefox; ⚠️ Safari la stampa solo sulla PRIMA
+   pagina, ed e' il motivo per cui l'avviso sta ANCHE nell'intestazione (`PrintMeta`) e sotto il titolo.
+
+   Lo spazio in cui atterra lo apre `@@page{margin-bottom}` in vipi-print.css: senza, il testo del
+   documento gli scorrerebbe sotto. *@
+<footer class="print-only sim-foot"><SimDisclaimer /></footer>
 </div>
 
 @code {

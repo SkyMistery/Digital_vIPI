@@ -50,7 +50,7 @@ else
                 <PrintMeta Title="@($"vIPI — {_data.AccName}")" Subtitle="@Sito["AccVipi_Subtitle"]"
                            AiracCycle="@Cycle()" />
                 <div class="doc-head">
-                    <div><h1 class="page-h1" style="margin-bottom:2px">vIPI — @_data.AccName</h1><span class="muted">@Sito["AccVipi_Subtitle"]</span></div>
+                    <div><h1 class="page-h1" style="margin-bottom:2px">vIPI — @_data.AccName</h1><span class="muted">@Sito["AccVipi_Subtitle"] · <SimDisclaimer /></span></div>
                     <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>
                         <a class="btn ghost" href="/services/vsop/live">@Sito["Common_Operational"]</a>
