@@ -1,5 +1,7 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
+**Ultimo aggiornamento:** 1 settembre 2026 — 🔴 **L'AVVISO DI SIMULAZIONE È PRONTO MA NON È IN PRODUZIONE** (ramo `avviso-simulazione`, `d88f5d30`, spinto e **non fuso**). «ONLY FOR SIMULATION: DO NOT USE FOR REAL LIFE NAVIGATION» sotto il titolo di **sette schermate** e a **piè di ogni foglio stampato di ogni pagina del sito**; il testo vive in **un posto solo** e **non si traduce** (nuova **R8** in `docs/design/regole-lingua.md`). ⚠️ **In stampa `.doc-head` è NASCOSTO**: la riga che si vede a schermo sul foglio non esiste, per questo l'avviso è **anche** in `PrintMeta`. ⚠️ E il `bottom` del piè di pagina è **misurato**, fra due muri: a `0` tocca l'ultima riga di un foglio pieno, da `-6mm` in giù **Chrome non lo disegna sulla prima pagina** — scelto `-4mm`. Verificato su **54 fogli di PDF veri**. 🔴 Serve il **pacchetto 1.3.1**: cambiano due fogli di stile.
+
 **Ultimo aggiornamento:** 31 agosto 2026, notte — ✅ **1.3.0 È IN PRODUZIONE E VERIFICATA** (§A19) e **§AM È CHIUSA PER INTERO**. Vedi il riquadro qui sotto: batte tutto il resto del file.
 
 **Ultimo aggiornamento:** 1 settembre 2026, sera (**§AK — gli spazi aerei**: da `/services/airspace` a **`/services/vsop/airspace`**, riservata allo **staff di divisione**; cancello in due sedi, vecchio indirizzo **tolto** (404); **§AJ — «Da fare» non parlava la lingua del sito**: elenco senza riquadro, sezione senza CSS e ⚠️ **lavagna bianca nel tema scuro** (`--paper` non esiste); `sweep.js` ora copre `/tasks` e apre le sezioni richiudibili; **biblioteca allegati — il tipo «PIV»**: nessuna migrazione, gli enum stanno in colonna come stringhe; **§AI — radioassistenze**: chip per tipo costruiti dal dato, aggiunta in cima che **chiede ogni volta** (meglio nel sectorfile), ordinamento a tre stati e intestazione appiccicata; **§AH — fraseologia e traduzioni in una pagina sola**: `admin/translations` e `admin/glossary` diventano una pagina a sezioni richiudibili, con ricerca **sul database** — il registro mostrava cento righe su 176 senza dirlo — e un **«dove si usa»** a due livelli; **§AG — la mappa bianca dei Confinanti**: non era la basemap, era `vipi-boot.js` che guardava il DOM solo al primo render e alle navigazioni, mentre lì la mappa nasce da un render **interattivo**; **§AF4 — il giro sulla pagina Struttura**: la finestra di eliminazione parla inglese anche **dentro**, le due sezioni si chiudono, e il piede/tetto di un ripiego si scrivono anche **in piedi**); prima, 1 settembre 2026 (**§AF — la ricaduta verticale**: alle tre slice di ieri si sono aggiunte la **schermata di dettaglio** e il **bersaglio a digitazione**; ramo `ricaduta-verticale-e-cicli`, **sette commit, spinto e NON fuso**); prima, 31 agosto tarda notte (**§AF — la ricaduta guarda anche in alto, e un settore non è più nipote di sé stesso**: ramo `ricaduta-verticale-e-cicli`); prima, 31 agosto notte (**1.1.0 È IN PRODUZIONE**, verificato dal vivo — §A15; cosa dice la diagnostica del server e cosa resta — §A16); prima, 30 agosto pomeriggio (**§AB — la shape di un settore ha una porta sola**,
@@ -10,6 +12,14 @@ cancellati — vale il riquadro qui sotto).
 
 ## Dove siamo, prima di tutto il resto
 
+> ### 🔴 PRIMA DI TUTTO: c'è un ramo pronto che non è ancora online
+>
+> `avviso-simulazione` (`d88f5d30`), **spinto e non fuso**. Porta l'avviso di simulazione ovunque
+> (§AO in `docs/lavori-aperti.md`, cronaca in `docs/history/rounds.md`). Build Release verde sui due
+> TFM, suite intera verde, verificato dal vivo generando i PDF veri: **54 fogli, l'avviso su tutti**.
+> 🔴 **Cambiano `vipi-theme.css` e `vipi-print.css`** → impronte nuove → senza un pacchetto (**1.3.1**)
+> in produzione non si vede niente.
+>
 > ### ✅ 1.3.0 È IN PRODUZIONE, VERIFICATA — E §AM È CHIUSA PER INTERO
 >
 > Timbro **`1.3.0 · 1ade0db`**, caricato dal committente la notte del 31 agosto. Cronaca in **§A19**.
