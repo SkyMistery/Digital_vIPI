@@ -1604,6 +1604,11 @@ produzione. È cosmetico, ma sapere perché evita di cercare un guasto che non c
 
 ## B. Branch non fusi — decisioni, non lavoro
 
+> ✅ **Al 1 settembre 2026 non esiste NESSUN ramo non fuso.** `main` è a `50028edc` e ha assorbito gli
+> ultimi due (`avviso-simulazione` §AO, `coerenza-sectorfile` §AP); tutti e tre i rami rimasti sono stati
+> cancellati, locale e remoto. Quel che segue è **storia**: serve per le lezioni sulle fusioni, non per
+> cercare lavoro da fondere. L'unica voce ancora aperta qui dentro è **B10-bis**.
+
 ### B12 ✅ FUSO — i tre rami in fila, fusi il 27 agosto 2026
 
 **Il committente ha deciso: fondere.** I tre rami — `statistiche-atc` → `identita-settori` →
@@ -4491,6 +4496,8 @@ liberare un file, si evita il pool alla radice con `Pooling=False`.
 ## Q-bis. La lingua, per intero — 28 agosto 2026, sera
 
 Ramo **`bilingue-tutte-le-pagine`**, sei commit, **spinto e non fuso**. Regole:
+
+⚠️ **Aggiornamento del 1 settembre 2026**: il ramo `bilingue-tutte-le-pagine` **non esiste più** e il suo contenuto è in `main` da tempo (il sito è bilingue in produzione). Questa riga resta come storia: non c'è niente da fondere.
 [design/regole-lingua.md](design/regole-lingua.md).
 
 Nasce da una domanda del committente — «sono sulla vIPI di Crotone e non c'è traccia della traduzione» — e
@@ -6710,7 +6717,7 @@ non sul documento. È giusto così, e va detto a chi guarda il conto dei caratte
 
 ## AP. Coerenza col sectorfile: due sorgenti a confronto — 1 settembre 2026
 
-> ✅ **ESEGUITO**, ramo `coerenza-sectorfile` (da `main`). Carta:
+> ✅ **ESEGUITO e FUSO IN `main`** (`50028edc`; ramo cancellato). Carta:
 > [`design/piano-coerenza-sectorfile.md`](design/piano-coerenza-sectorfile.md). Perimetro e motivi dei «no»
 > alle altre proposte: [`design/regole-perimetro-servizi.md`](design/regole-perimetro-servizi.md).
 > **Nessuna entità, nessuna migrazione** — si poteva fare dentro la finestra cieca, e infatti è stato fatto.
@@ -6775,6 +6782,6 @@ test lo vede — il DOM era corretto.
 
 ### Quel che resta
 
-- 🟡 Il ramo è **spinto e non fuso**: da fondere quando il committente decide.
+- 🔴 **Non è in produzione**: serve il pacchetto **1.3.1**, che porta anche §AO.
 - 🟡 Alla **seconda** ricognizione varrà la pena guardare quali divergenze sono sopravvissute a un ciclo
   AIRAC: quelle sono le vere, le altre erano il sectorfile in anticipo (§4 della carta).

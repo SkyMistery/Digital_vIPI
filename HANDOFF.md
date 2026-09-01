@@ -16,13 +16,23 @@ cancellati — vale il riquadro qui sotto).
 
 ## Dove siamo, prima di tutto il resto
 
-> ### 🔴 PRIMA DI TUTTO: c'è un ramo pronto che non è ancora online
+> ### 🔴 PRIMA DI TUTTO: `main` ha due lavori pronti che NON sono online
 >
-> `avviso-simulazione` (`d88f5d30`), **spinto e non fuso**. Porta l'avviso di simulazione ovunque
-> (§AO in `docs/lavori-aperti.md`, cronaca in `docs/history/rounds.md`). Build Release verde sui due
-> TFM, suite intera verde, verificato dal vivo generando i PDF veri: **54 fogli, l'avviso su tutti**.
-> 🔴 **Cambiano `vipi-theme.css` e `vipi-print.css`** → impronte nuove → senza un pacchetto (**1.3.1**)
-> in produzione non si vede niente.
+> `main` è a **`50028edc`** (1 settembre 2026): ha assorbito **`avviso-simulazione`** (§AO) e
+> **`coerenza-sectorfile`** (§AP), e **tutti e tre i rami sono stati cancellati** — locale e remoto.
+> Non ne resta nessuno: quel che c'è, è in `main`.
+>
+> Build Release verde sui due TFM (`--no-incremental`, 0 avvisi) e **suite intera verde, E2E compresi**
+> (276/276), misurate **sul risultato della fusione**, non sui rami separati.
+>
+> 🔴 **Il prossimo passo è il pacchetto 1.3.1.** In produzione gira ancora **1.3.0**, quindi né l'avviso
+> di simulazione né la coerenza col sectorfile si vedono. ⚠️ Dentro ci sono **due fogli di stile
+> cambiati** (`vipi-theme.css`, `vipi-print.css`): impronte nuove, e `wwwroot` insieme all'indice
+> `staticwebassets.endpoints.json` — la regola sta in `docs/guide/preparare-un-pacchetto.md`, lo script
+> dei passi meccanici in `tools/prepara-pacchetto.ps1`.
+>
+> ⚠️ **La coerenza col sectorfile non tocca il database**: nessuna entità, nessuna migrazione, quindi la
+> finestra cieca (fino al 16 settembre) non la riguarda.
 >
 > ### ✅ 1.3.0 È IN PRODUZIONE, VERIFICATA — E §AM È CHIUSA PER INTERO
 >

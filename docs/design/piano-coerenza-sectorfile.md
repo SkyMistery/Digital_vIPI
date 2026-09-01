@@ -1,7 +1,8 @@
 # Piano — coerenza vIPI ↔ sectorfile 🟣
 
-**Stato:** ✅ **ESEGUITA il 1 settembre 2026**, ramo `coerenza-sectorfile` (da `main`). Build Release pulita
-sui due TFM (0 avvisi), test verdi, e **provata a schermo** (§9). · **Aggiornato:** 1 settembre 2026
+**Stato:** ✅ **ESEGUITA e FUSA IN `main`** il 1 settembre 2026 (`50028edc`; il ramo `coerenza-sectorfile`
+è stato cancellato). Build Release pulita sui due TFM (0 avvisi), suite verde **E2E compresi**, e **provata
+a schermo** (§9). 🔴 **Non è in produzione**: gira ancora 1.3.0, serve il pacchetto 1.3.1. · **Aggiornato:** 1 settembre 2026
 **Metodo:** [FEATURE-PROCESS](../FEATURE-PROCESS.md) · **Perimetro:** [regole-perimetro-servizi](regole-perimetro-servizi.md) §P1
 **Richiesta del committente (1 set 2026):** *«sì, molto utile, completerebbe la serie di strumenti a disposizione»*
 

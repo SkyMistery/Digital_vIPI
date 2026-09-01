@@ -451,4 +451,6 @@ Far dipendere il correttore da tutto `IEditingService` vorrebbe dire dargli in m
 lettura, e obbligare ogni suo test a implementare trenta metodi che non chiamerà mai.
 
 **Stato**: ramo `bilingue-tutte-le-pagine` (`2af3a39`), sei commit, spinto e non fuso. Suite verde su net8 e
+
+⚠️ **Aggiornamento del 1 settembre 2026**: il ramo `bilingue-tutte-le-pagine` **non esiste più** e il suo contenuto è in `main` da tempo (il sito è bilingue in produzione). Questa riga resta come storia: non c'è niente da fondere.
 net10, build Release senza avvisi. Il seguito sta in `docs/lavori-aperti.md` §Q-bis.
