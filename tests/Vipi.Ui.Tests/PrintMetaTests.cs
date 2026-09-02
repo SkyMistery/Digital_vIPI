@@ -57,4 +57,45 @@ public class PrintMetaTests : TestContext
         Assert.DoesNotContain("Common_AiracCycle", cut.Markup);
         Assert.NotNull(cut.Find(".pm-line [data-print-time]"));
     }
+
+    /// <summary>
+    /// ⚠️ <b>L'avviso di traduzione automatica sul FOGLIO.</b> Dal 2 settembre 2026 a schermo è un gettone
+    /// dentro <c>.doc-head</c>, e <c>.doc-head</c> in stampa è nascosto (<c>vipi-print.css</c>): senza
+    /// questa riga un documento tradotto a macchina si stamperebbe <b>senza dirlo</b>. È l'avviso che pesa
+    /// di più proprio su carta, dove non c'è nessun «?» da aprire né l'originale a portata di clic — per
+    /// questo qui va il testo per esteso, non l'etichetta corta del gettone.
+    /// </summary>
+    [Fact]
+    public void PrintMeta_stampa_l_avviso_di_traduzione_automatica_per_esteso()
+    {
+        var cut = RenderComponent<PrintMeta>(p => p
+            .Add(x => x.Title, "LIRF — Roma Fiumicino")
+            .Add(x => x.Coverage, new Vipi.Application.Translation.TranslationCoverage(
+                Segmenti: 10, Tradotti: 6, Riletti: 0)));
+
+        var righe = cut.FindAll(".pm-tr");
+        Assert.Equal(2, righe.Count);                                   // «a macchina» e «ne mancano 4»
+        Assert.Contains("Tr_NoticeMachine", cut.Markup);                // per esteso, non `Tr_ChipMachine`
+        Assert.Contains("Tr_NoticePartial", cut.Markup);
+        Assert.DoesNotContain("Tr_ChipMachine", cut.Markup);
+    }
+
+    [Fact]
+    public void PrintMeta_senza_traduzione_non_stampa_nessun_avviso()
+    {
+        // Il default è «nessuna traduzione»: una pagina che non passa la copertura resta com'era.
+        var cut = RenderComponent<PrintMeta>(p => p.Add(x => x.Title, "vIPI — Roma"));
+
+        Assert.Empty(cut.FindAll(".pm-tr"));
+    }
+
+    [Fact]
+    public void PrintMeta_su_un_documento_riletto_non_stampa_l_avviso()
+    {
+        var cut = RenderComponent<PrintMeta>(p => p
+            .Add(x => x.Title, "vIPI — Roma")
+            .Add(x => x.Coverage, new Vipi.Application.Translation.TranslationCoverage(10, 10, 10)));
+
+        Assert.Empty(cut.FindAll(".pm-tr"));
+    }
 }

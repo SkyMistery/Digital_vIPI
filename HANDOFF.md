@@ -1,5 +1,11 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
+**Ultimo aggiornamento:** 2 settembre 2026, sera — 🟡 **UN RAMO APERTO: `dati-scalo-solo-militare` (`7bef3c3e`), spinto e NON fuso.** `main` resta a **`b8e6b22c`**. Il ramo porta **DUE** lavori, entrambi da segnalazione del committente, **nessuna entità e nessuna migrazione**: **§AS** (i dati dello scalo scrivibili nell'editor del vSOP sui campi solo militari) e **§AT** (l'avviso di traduzione automatica diventa un gettone). 🔴 **Vanno nel pacchetto 1.3.1 insieme agli altri quattro** — che diventano **sei**. ⚠️ §AT cambia **`vipi-theme.css` e `vipi-print.css`**, cioè gli stessi due fogli che il pacchetto già portava: impronte nuove, `wwwroot` insieme all'indice `staticwebassets`.
+
+**§AS — su un campo SOLO militare il rimando «editor dell'aeroporto» era un GIRO CHIUSO.** Le sezioni derivate del vSOP militare dicevano «per cambiarli: editor dell'aeroporto», ma su un campo solo militare senza vIPI civile `AeroportoEditorPage` **rimanda indietro** all'editor militare — `EnsureDocumentAsync` rifiuterebbe di far nascere il documento (§11b). Il clic tornava sulla stessa pagina, senza errore: **livelli di transizione, colonne editoriali delle piste e collegamenti di frequenza non avevano NESSUNA porta di scrittura in tutto il sito**. ⚠️ Lo stato c'era già (`CivilEdition`) e viewer ed elenco lo interrogavano: **mancava la domanda**, non l'informazione. Ora l'editor monta i tre editor dell'aeroporto — già estratti e indipendenti dalla pagina che li ospita, quindi **un secondo ospite, non un secondo editor** — quando `ScaloSenzaCivile`. ⚠️ La condizione è **la stessa** che fa la pagina che rimanda indietro («solo militare **E** nessun documento civile»): `SoloMilitare` da solo lascerebbe fuori il campo marcato solo militare *dopo* che la civile era già nata. ⚠️ E i due servizi dello scalo si prendono dallo **scope proprio** della pagina, non da `@inject`: scrivono, quindi vale il blocco di §AR. 🔴 Trovato di striscio e riparato: **il meteo prendeva la nota sbagliata su tutti e 26 i campi militari** — il METAR/TAF è live dal NOAA e non si compila in nessun editor.
+
+**§AT — l'avviso «tradotta a macchina» diventa un gettone.** Il riquadro a piena larghezza si mangiava **un quarto della prima schermata** e il documento cominciava sotto la piega: un avviso che costringe a scorrere è un avviso che si impara a saltare. Ora è un gettone nella riga sotto il titolo, **insieme all'avviso di simulazione e su una riga loro** (`.sim-line`, su tutte e cinque le testate), col testo per esteso dietro il «?». ⚠️ **Due trappole, e nessuna si vede leggendo la pagina.** (1) Il gettone sta in `.doc-head`, che **sul foglio è nascosto**: senza una riga in `PrintMeta` il documento stampato perdeva l'avviso — stesso inciampo di §AO, e su carta il testo va **per esteso**. (2) **Un `<p>` non può contenere un `<details>`**: il parser chiude il `<p>` da solo e sposta il «?» **fuori**, che a schermo atterrava su una riga sua come un glifo perso. `.sim-line` è passata da `<p>` a `<div>` in **tutti e sette** i posti, anche dove il gettone oggi non c'è.
+
 **Ultimo aggiornamento:** 2 settembre 2026 — 🟢 **QUATTRO LAVORI IN `main`, NESSUN RAMO APERTO.** `main` è a **`bb265c44`**; agli §AO/§AP di ieri si sono aggiunti **§AQ** (i titoli delle sezioni seguono la lingua del documento) e **§AR** (l'editor che si bloccava in salvataggio). 🔴 **Nessuno dei quattro è in produzione**: gira ancora **1.3.0**, e serve il **pacchetto 1.3.1** — dentro ci sono **due fogli di stile cambiati** (`vipi-theme.css`, `vipi-print.css`), quindi impronte nuove e `wwwroot` che viaggia insieme all'indice `staticwebassets`. **Nessuna migrazione** in §AQ e §AR.
 
 **§AQ — il titolo di una sezione di catalogo lo decide il catalogo, nella lingua in cui si legge.** Segnalazione del committente: un documento **bloccato in inglese** mostrava le testate in italiano. Non mancava una traduzione: quei titoli stanno scritti **nel documento** nella lingua che aveva alla nascita, e arrivavano in inglese **di rimbalzo** dal traduttore — bloccare la lingua **spegne** la traduzione, e la stampella è caduta. Ora si risolvono **dove si legge** (`TitoliDiCatalogo`), in tutte e cinque le famiglie, a ogni profondità e anche nell'editor, dove una sezione fissa **non si può rinominare a mano**. ⚠️ Il catalogo vince anche sulla **memoria di traduzione** (resa decisa contro plausibile: «MRVA» non torna «Minimum vectoring»), ma scrive **solo dove ha davvero una resa**: la vLOA ha i titoli in inglese e nessuna resa italiana, e imporgliela cancellerebbe quella del traduttore. Nuova **R9** in `docs/design/regole-lingua.md`.
@@ -22,12 +28,19 @@ cancellati — vale il riquadro qui sotto).
 
 ## Dove siamo, prima di tutto il resto
 
-> ### 🔴 PRIMA DI TUTTO: `main` ha QUATTRO lavori pronti che NON sono online
+> ### 🔴 PRIMA DI TUTTO: ci sono SEI lavori pronti che NON sono online
 >
-> `main` è a **`bb265c44`** (2 settembre 2026): ha assorbito **`avviso-simulazione`** (§AO),
+> `main` è a **`b8e6b22c`** (2 settembre 2026): ha assorbito **`avviso-simulazione`** (§AO),
 > **`coerenza-sectorfile`** (§AP), **`titoli-di-catalogo-bilingui`** (§AQ, `c3ad9dab`) e
-> **`editor-non-si-blocca`** (§AR, `bb265c44`). **Nessun ramo resta aperto** — locale o remoto: quel che
-> c'è, è in `main`.
+> **`editor-non-si-blocca`** (§AR, `bb265c44`); l'ultimo commit — `b8e6b22c` — è il **record** rimesso in
+> pari dopo le due fusioni.
+>
+> 🟡 **E c'è UN ramo aperto**, spinto e **non fuso**: **`dati-scalo-solo-militare`** → **`7bef3c3e`**, che
+> porta **§AS** (i dati dello scalo scrivibili nell'editor del vSOP sui campi solo militari — `44c13bd4`) e
+> **§AT** (l'avviso di traduzione automatica come gettone — `f0fabb29`, poi `7bef3c3e`). **Nessuna entità,
+> nessuna migrazione**, e tutt'e due verificati dal vivo. Build Release verde sui due TFM
+> (`--no-incremental`, 0 avvisi) e **4629 test verdi su sette progetti**. 🟡 **Gli E2E non sono stati
+> girati sul ramo**: vogliono l'host vivo e vanno fatti **sul risultato della fusione**.
 >
 > ⚠️ Dentro `bb265c44` viaggia anche `60a8823f`, **il piè di stampa di §AO**: era rimasto in lavorazione
 > nell'albero e un `git add -A <cartella>` l'ha rastrellato dentro un commit che parlava d'altro. Rimesso
@@ -36,9 +49,10 @@ cancellati — vale il riquadro qui sotto).
 > Build Release verde sui due TFM (`--no-incremental`, 0 avvisi) e **suite intera verde, E2E compresi**
 > (276/276), misurate **sul risultato della fusione**, non sui rami separati.
 >
-> 🔴 **Il prossimo passo è il pacchetto 1.3.1.** In produzione gira ancora **1.3.0**, quindi né l'avviso
-> di simulazione né la coerenza col sectorfile si vedono. ⚠️ Dentro ci sono **due fogli di stile
-> cambiati** (`vipi-theme.css`, `vipi-print.css`): impronte nuove, e `wwwroot` insieme all'indice
+> 🔴 **Il prossimo passo è il pacchetto 1.3.1**, e ora porta **sei** lavori: §AO, §AP, §AQ, §AR **più
+> §AS e §AT del ramo aperto**, che va fuso prima. In produzione gira ancora **1.3.0**, quindi niente di
+> tutto questo si vede. ⚠️ Dentro ci sono **due fogli di stile cambiati** (`vipi-theme.css`,
+> `vipi-print.css`) — li toccano sia §AO sia §AT: impronte nuove, e `wwwroot` insieme all'indice
 > `staticwebassets.endpoints.json` — la regola sta in `docs/guide/preparare-un-pacchetto.md`, lo script
 > dei passi meccanici in `tools/prepara-pacchetto.ps1`.
 >

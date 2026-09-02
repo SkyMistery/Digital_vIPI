@@ -44,13 +44,15 @@ else if (_foreign.Length > 0)
             }
             <AudienceChip Visibile="_haMarcate" Vista="_vista"
                           BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}")" />
-            <TranslationNotice Coverage="_copertura" />
+            @* ⚠️ «Tradotto a macchina» sta nella riga sotto il titolo, che è dentro VloaDocumentView: la
+               copertura si passa a lui, non si disegna qui. *@
             <LinguaBloccataNotice Lingua="@_bloccata" />
             @* `lang` sul CONTENITORE: il chrome parla la lingua del sito, il documento la sua. *@
             <div lang="@_bloccata">
                 <VloaDocumentView View="_view" DocId="_viewDocId" UseFrozen="_useFrozen" IsDraft="@(_mode.Kind == PreviewKind.Draft)"
                                   ReleaseId="@(_mode.Kind == PreviewKind.Release ? _mode.ReleaseId : null)"
-                                  Subtitle="@_viewSubtitle" HomeAcc="@_acc.Code" ForeignAcc="@_foreign" />
+                                  Subtitle="@_viewSubtitle" HomeAcc="@_acc.Code" ForeignAcc="@_foreign"
+                                  Coverage="_copertura" />
             </div>
         </div>
     }

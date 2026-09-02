@@ -1,5 +1,7 @@
 ﻿# Lavori aperti — elenco unico
 
+**Aggiornato:** 2 settembre 2026, sera — **§AS e §AT, dal ramo `dati-scalo-solo-militare` (`7bef3c3e`), spinto e NON fuso.** Due segnalazioni del committente, nessuna entità e nessuna migrazione. **§AS:** su un campo **solo militare** il rimando «per cambiarli: editor dell'aeroporto» era un **giro chiuso** — quella pagina rimanda indietro qui, perché `EnsureDocumentAsync` rifiuterebbe di far nascere la vIPI civile — e livelli di transizione, colonne editoriali delle piste e collegamenti di frequenza non avevano **nessuna** porta di scrittura in tutto il sito. ⚠️ Lo stato c'era già (`CivilEdition`): mancava la **domanda**, e va fatta **uguale** a quella della pagina che rimanda indietro. Riparato di striscio anche il **meteo**, che prendeva la nota sbagliata su tutti e 26 i campi. **§AT:** l'avviso «tradotta a macchina» era un riquadro che si mangiava **un quarto della prima schermata**; ora è un gettone nella riga sotto il titolo, insieme all'avviso di simulazione e su una riga loro. ⚠️ Due trappole invisibili leggendo la pagina: `.doc-head` **sul foglio è nascosto** (serve la riga in `PrintMeta`, col testo per esteso), e **un `<p>` non può contenere un `<details>`** — il parser sposta il «?» fuori. 🔴 **Il pacchetto 1.3.1 ora porta SEI lavori**, e §AT tocca gli stessi due fogli di stile di §AO.
+
 **Aggiornato:** 2 settembre 2026 — **§AR: LA PAGINA CHE SI BLOCCA IN SALVATAGGIO.** Segnalazione dal sito vero, sul gesto **«Fine modifica»**. ⚠️ **Non si riproduce in locale** (dieci giri con clic veri, log pulito): il difetto è una **corsa**, e su SQLite la finestra è di millisecondi — in produzione c'è MariaDB. Due buchi trovati leggendo quel gesto: `FinishEditingAsync` rileggeva il lock **fuori dal guardiano** (l'unico `await` scoperto della classe → eccezione che abbatte il circuito, pagina da ricaricare, lavoro già salvato), e il guardiano **non chiedeva il ridisegno alla fine** (badge inchiodato su «Salvataggio…» ed errore invisibile per i gesti nati in un componente figlio). Sotto c'è la corsa vera: `@inject IEditingService` prende il `DbContext` **del circuito** → sei pagine passano a `OwningComponentBase`. ⚠️ Due trappole silenziose nella conversione: un `public void Dispose()` non viene più chiamato, e una pagina `IAsyncDisposable` non riceve mai il Dispose che chiude lo scope. Cinque test sul guscio (quattro rossi prima) + guardia strutturale. **Nessuna entità, nessuna migrazione.**
 
 **Aggiornato:** 1 settembre 2026 — **§AQ: I TITOLI DELLE SEZIONI SEGUONO LA LINGUA DEL DOCUMENTO.** Segnalazione del committente: un documento **bloccato in inglese** mostrava le testate in italiano. Non era la traduzione a mancare — era la **stampella**: i titoli delle sezioni di catalogo stanno scritti nel documento nella lingua che aveva alla NASCITA, e finora arrivavano in inglese **di rimbalzo**, perché sono segmenti e passavano dal traduttore. Bloccare la lingua **spegne** la traduzione, e la stampella è caduta. Ora i titoli si risolvono dal catalogo **dove si legge** (`TitoliDiCatalogo`), in tutte e cinque le famiglie, a ogni profondità e anche nell'editor — dove una sezione fissa **non si può rinominare a mano**, quindi non c'era nessun rimedio. ⚠️ Il catalogo vince anche sulla **memoria di traduzione**: è la resa DECISA contro quella plausibile, ed è quel che impedisce a «MRVA» di tornare «Minimum vectoring». ⚠️ La vLOA va nel verso opposto e **non ha una resa italiana**: letta in italiano il catalogo non impone niente e il titolo resta al traduttore. Nuova **R9** in `design/regole-lingua.md`. **Nessuna entità, nessuna migrazione.**
@@ -6876,7 +6878,7 @@ la famiglia dove il difetto si vede di più.
 - 🟡 **Trovato per strada, e NON è di questo giro**: i passi del **giro guidato** (`vipi-tour.js`) hanno
   titoli e testi **cablati in italiano** — «Indice del documento», con l'interfaccia in inglese. È
   un'eccezione non dichiarata a R7, e vale per tutte le pagine che montano il tour.
-- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** insieme a §AO, §AP e §AR.
+- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** insieme a §AO, §AP, §AR, §AS e §AT.
 
 ## AR. La pagina che si blocca in salvataggio: due buchi e una corsa — 1/2 settembre 2026
 
@@ -6963,8 +6965,8 @@ Suite intera verde, E2E compresi (276/276), Release pulita sui due TFM.
 - 🟡 Trovato per strada e **non riparato**: `/services/vsop/admin/versions` mostra «Nessun documento
   corrisponde ai filtri» con tutti i conteggi a zero. **Identico su `main`**, quindi preesistente e fuori da
   questo giro.
-- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** con §AO, §AP e §AQ — quattro lavori in un solo
-  pacchetto, ed è il prossimo passo.
+- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** con §AO, §AP, §AQ, §AS e §AT — SEI lavori in un
+  solo pacchetto, ed è il prossimo passo.
 
 ### ⚠️ Un lavoro che ha viaggiato dentro alla fusione, e non doveva
 
@@ -6976,3 +6978,198 @@ chiunque: **i file si aggiungono per nome**, e prima di committare si guarda `gi
 ⚠️ E porta con sé una **correzione di rotta** già scritta nel CSS ma non nei documenti: il `bottom` del piè
 di pagina **non può essere negativo**. Le tre sedi che dicevano «scelto −4mm» — la riga §AO in cima a questo
 file, `history/rounds.md` e `HANDOFF.md` — sono state corrette nello stesso giro.
+
+## AS. Il giro chiuso dei campi solo militari: i dati dello scalo senza una porta — 2 settembre 2026
+
+🟡 **In lavorazione**, ramo da aprire su `main` (`b8e6b22c`). Nessuna carta: è un **difetto**, segnalato dal
+committente — *«C'è un problema sui military only, che non hanno vIPI: in assenza di vIPI le cose che
+normalmente sono in “This card is drawn by the document from the airport data. To change it: airport editor”
+vanno direttamente qui»* — con l'indirizzo del caso, l'editor del vSOP di **LIBG Grottaglie**.
+
+### Il fatto, e perché era peggio di un testo sbagliato
+
+Nell'editor del vSOP militare le sezioni derivate mostravano «per cambiarli: **editor dell'aeroporto**». Su
+un campo **solo militare** quel collegamento è un **giro chiuso**: `AeroportoEditorPage` legge lo stato
+militare e, se il campo è solo militare **e** la vIPI civile non esiste, **rimanda indietro** all'editor
+militare — perché `AirportEditingService.EnsureDocumentAsync` rifiuterebbe di far nascere il documento
+(§11b). Verificato a schermo: il clic torna sulla **stessa pagina**, senza errore e senza spiegazione.
+
+⚠️ La conseguenza non è cosmetica. **Livelli di transizione, colonne editoriali delle piste (TORA/LDA/APP/
+Patterns/Circling) e collegamenti di frequenza non avevano NESSUNA porta di scrittura in tutto il sito.** Su
+LIBG quei dati esistono solo perché ce li ha messi l'import IVAO; tutto ciò che è editoriale era
+irraggiungibile per sempre. Campi colpiti oggi: **LIBG** (pubblicato) e **LIBN** (bozza); in arrivo LIBV,
+LIPA, LIBA.
+
+### ⚠️ L'asimmetria che lo dimostra: lo stato c'era già, la pagina non lo chiedeva
+
+`CivilEdition(Esiste, Pubblicata, SoloMilitare)` esiste dal giro §X, e **viewer** (`MilDocumentPage`) ed
+**elenco** (`MilListPage`) erano già gated su di esso. Solo la nota dell'**editor** era incondizionata. Non
+mancava un'informazione: mancava la **domanda**.
+
+### La regola, e le due risposte opposte
+
+- Campo **misto** (o che una vIPI civile deve averla): si **rimanda**, come prima. Due editor sullo stesso
+  dato sarebbero due verità che divergono, ed è la ragione per cui la nota è nata.
+- Campo **solo militare SENZA vIPI civile**: si **scrive qui**. Là il secondo editor non esiste, quindi non
+  c'è nessuna verità da far divergere.
+
+⚠️ **La domanda è la STESSA che fa la pagina che rimanda indietro** — «solo militare **E** nessun documento
+civile» — e non una che le somiglia. `SoloMilitare` da solo **non basta**: un campo marcato solo militare
+*dopo* che la sua vIPI civile era nata continua ad aprirla (la guardia blocca la **nascita**, non
+l'apertura), e lì il rimando è quello giusto. Due porte che decidono la stessa cosa devono chiedere la
+stessa cosa, o una manda dove l'altra non lascia entrare. La guardia strutturale sta in
+`DatiDelloScaloMilitareTests`.
+
+### ⚠️ E il meteo non è un dato dell'aeroporto — su TUTTI i campi, non solo su questi
+
+`weather` cadeva nel ramo generico e prendeva la stessa nota: «per cambiarlo, editor dell'aeroporto». Il
+METAR/TAF è **live dal NOAA** e non si compila in nessun editor — nemmeno in quello dell'aeroporto, dove
+infatti c'è la nota «non c'è nulla da compilare». Ora ha il suo ramo e **quella** nota
+(`Ape_WeatherTitle`/`Ape_WeatherBody`, riusate: non una seconda stesura). Era sbagliato su tutti e ventisei
+i campi militari, e nessuno l'aveva visto perché il campo di prova non aveva mai fatto quella domanda.
+
+### Come si è chiuso
+
+- `MilEditorPage` legge `GetCivilEditionAsync` **una volta per aeroporto**, e monta i tre editor
+  dell'aeroporto — `AirportTransitionEditor`, `AirportRunwaysEditor`, `AirportFrequenciesEditor` — quando
+  `ScaloSenzaCivile`. ⚠️ **Nessuna seconda stesura**: quei tre sono già componenti estratti e indipendenti
+  dalla pagina che li ospita (doc 14 §3g), quindi qui c'è un secondo **ospite**, non un secondo editor.
+- ⚠️ **`IAirportEditingService` e `IAirportSectorService` dallo scope PROPRIO della pagina**
+  (`ScopedServices`), non da `@inject`: scrivono sul database, quindi vale parola per parola il blocco già
+  scritto per `IEditingService` — con `@inject` arriverebbero dal `DbContext` del **circuito**, e il
+  salvataggio di una pista correrebbe contro il `LoadAsync` di questa stessa pagina.
+- ⚠️ **Il carico sta FUORI da `LoadAsync`**, che rigira a ogni salvataggio di blocco (`OnChanged` di
+  `DocumentSectionsEditor`): questi tre editor hanno buffer a **salvataggio esplicito**, e rileggerli lì
+  butterebbe via quel che si stava scrivendo perché *un'altra* sezione si è salvata da sé. Dopo i
+  salvataggi di qui non si rilegge: il repository sostituisce in blocco, quindi i buffer **sono** già lo
+  stato salvato.
+- ⚠️ **La scrittura segue il RUOLO (`_canEditScalo`), non il lock del documento** (decisione del
+  committente): quel lock governa il vSOP, l'anagrafica dell'aeroporto è un'altra cosa e si possiede
+  separatamente. Legarli darebbe un editor spento a chi ha il permesso di scrivere.
+- Guardia «modifiche non salvate» del browser (`vipiSetDirty`) aggiunta per queste tre sole sezioni: i
+  blocchi del documento si salvano da sé, questi no.
+- Testo: `Mil_HelpBody` perde la frase sul meteo; la riga su dove si cambiano i dati diventa condizionale
+  (`Mil_HelpDataCivil` / `Mil_HelpDataOwn`), e la nota in pagina è `Mil_OwnDataNote`.
+
+### Verificato dal vivo, sui dati veri
+
+App pubblicata in scratchpad e guidata su una **copia** del `vipi.db` (porta libera: l'app di chi lavora
+resta in piedi, e i `bin/` restano suoi).
+
+- **LIBG** (solo militare): **zero** collegamenti all'editor d'aeroporto, tre note «dati dell'anagrafica»,
+  la nota giusta sul meteo. Piste 17/35 con le colonne editoriali scrivibili, tabella livelli con le fasce
+  QNH, TA col lucchetto «di sorgente». **Giro di andata e ritorno**: LDA di 17 scritta, «Salva piste»,
+  ricaricata la pagina, valore **persistito**.
+- **LIML** (misto): tre note di rimando coi collegamenti, **nessun** editor in pagina, e il collegamento
+  **apre davvero** l'editor d'aeroporto. La nota del meteo è quella nuova anche qui.
+
+### Quel che resta
+
+- 🟡 **La TA resta di sorgente**, e il rifiuto che si prende scrivendola è quello di «Sorgenti dati» — lo
+  stesso che si prende su Linate. **Non è una regola dei campi militari**, e confonderla con la guardia
+  dell'edizione vorrebbe dire credere risolto un blocco che sta altrove. Il test lo pretende per iscritto.
+- 🟡 **`SaveFrequencyLinksAsync` non è provata** nel test di scrittura (vuole un catalogo settori): è lo
+  stesso servizio con la stessa chiave, ma è l'unica delle tre a fidarsi.
+- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** con §AO, §AP, §AQ, §AR e §AT — sei in tutto.
+
+## AT. L'avviso di traduzione automatica diventa un gettone — 2 settembre 2026
+
+🟡 **In lavorazione**, stesso ramo di §AS. Nessuna carta: richiesta del committente — *«questa può andare
+nella riga … dopo ONLY FOR SIMULATION …? Così da occupare meno spazio, ora visivamente si mangia 1/4 del
+documento a schermo»*.
+
+### Il fatto
+
+Il riquadro «Pagina tradotta automaticamente» era un `callout warning` a piena larghezza sopra il documento,
+su tutte e cinque le famiglie. Su una schermata da 750px si prendeva circa un quarto dell'altezza utile:
+il documento cominciava sotto la piega. ⚠️ **E un avviso che costringe a scorrere per arrivare a quel che si
+è venuti a leggere è un avviso che si impara a saltare** — cioè il contrario di quel che serve, perché
+questo non è una formalità: misurato contro il servizio vero, «riporta sottovento» torna *«bring it back
+downwind»*, che è plausibile, grammaticalmente giusto e **non è fraseologia**.
+
+### La forma nuova
+
+Un **gettone** nella riga sotto il titolo, subito dopo l'avviso di simulazione, con il testo per esteso
+dietro il «?» (`HelpHint`, che si apre al clic — [[help-hint-click-only]]).
+
+⚠️ **Che cosa NON si perde**: che l'avviso esista e **quale** dei due problemi ci sia restano scritti in
+chiaro — «tradotta a macchina» e «4/10 frasi non tradotte» sono due difetti diversi, e chi
+legge deve poter decidere se il pezzo che gli serve è fra i quattro. Dietro il «?» va **solo** la frase
+lunga, che è un'istruzione, non una notizia.
+
+⚠️ **Giallo e non rosso**, e non è un dettaglio di gusto: il rosso in quella riga è già preso dall'avviso di
+simulazione, che è l'unica cosa che deve gridare. Due rossi accanto non fanno due allarmi, ne fanno zero.
+
+### La seconda passata, stessa sera: la riga era ordinata a metà
+
+⚠️ **Appeso in coda al sottotitolo, il gettone stava in una riga che andava a capo in mezzo alla frase.**
+Sulla vIPI ACC — dove il sottotitolo è lungo — si leggeva «…DO NOT USE FOR REAL LIFE / NAVIGATION», e il
+gettone atterrava dopo quel troncone come se ci fosse finito per sbaglio. Segnalato dal committente, che
+proponeva di spostare tutto sulla riga delle briciole.
+
+Scelta (sua, fra tre proposte): **l'avviso e il gettone prendono una riga LORO**, sotto il sottotitolo — la
+forma che il vSOP militare aveva già (`.sim-line`), che ora vale su tutte e cinque le testate. Le briciole
+sono state scartate perché parlano del **sito**, non di quel documento: l'avviso deve restare attaccato al
+titolo a cui si riferisce. Etichetta accorciata a «tradotta a macchina» / «machine-translated» — «non
+riletta» resta dietro il «?».
+
+⚠️ E il gettone sta nella **stessa** riga dell'avviso di simulazione, non su una terza: due righe di
+cartelli sopra il documento sono di nuovo il problema che si stava togliendo.
+
+### 🔴 E lì è saltato fuori un difetto che il Razor non mostra
+
+⚠️ **Un `<p>` NON può contenere un `<details>`.** Il gettone porta dentro di sé il «?», che è un
+`<details>`: il parser del browser **chiude il `<p>` da solo** e sposta il `<details>` **fuori**. A schermo
+il «?» atterrava su una riga sua, sotto e a sinistra del gettone, come un glifo perso.
+
+⚠️ **Non si vede leggendo il sorgente**: il markup scritto è giusto, è il **DOM** a essere un altro. Prima
+non capitava perché il gettone stava dentro uno `<span>`, e solo il `<p>` ha quella regola di chiusura
+automatica del parser. Chiuso portando `.sim-line` da `<p>` a `<div>` in **tutti e sette** i posti — anche
+vista live e mappa degli spazi aerei, che il gettone oggi non ce l'hanno: chi ce lo aggiungesse domani
+ricadrebbe dentro senza che niente lo avvisi. `AvvisoTraduzioneSuOgniSedeTests` lo pretende su tutti e sette.
+
+### ⚠️ La trappola che lo spostamento porta con sé, e che non si vede leggendo la pagina
+
+Il gettone sta dentro `.doc-head`, e **sul foglio `.doc-head` è nascosto**
+(`.print-meta + .doc-head{display:none}`): spostandolo lì, **il documento stampato perdeva l'avviso** senza
+che niente lo dicesse. È lo stesso inciampo già pagato con l'avviso di simulazione (§AO), e si chiude allo
+stesso modo — una riga `.pm-tr` dentro `PrintMeta`, **col testo per esteso**: davanti a un foglio non c'è
+nessun «?» da aprire né l'originale a portata di clic.
+
+Il patto è quindi **doppio**, e `AvvisoTraduzioneSuOgniSedeTests` fa le due domande insieme su tutte e
+cinque le testate: c'è il gettone? **e** la copertura arriva a `PrintMeta`? Lo stesso test pretende anche
+che nessuna pagina tenga *anche* il riquadro pieno — basta lasciarne indietro uno in fondo a una pagina,
+dove nessuno guarda, per riavere ciò che si voleva togliere.
+
+⚠️ **`tr-notice` resta sull'elemento in ENTRAMBE le forme**: la rete che pretende «l'avviso c'è» non sa
+quale forma sia, e così continua a proteggerle tutt'e due invece di diventare cieca su una.
+
+⚠️ **La vLOA non ha una pagina con una riga sotto il titolo**: la testata è di `VloaDocumentView`, quindi la
+copertura si passa al *componente*, non si disegna nella pagina. Un elenco che guardasse solo `Pages/` la
+salterebbe in silenzio — la stessa nota vale già per l'avviso di simulazione.
+
+### Verificato dal vivo
+
+Stessa ricetta di §AS (scratchpad, porta libera, copia del DB). Sulla **vIPI ACC di Brindisi** e sulla
+**vIPI d'aeroporto di LIBD**, lette in inglese: gettone nella riga giusta, documento che comincia subito
+sotto il titolo, «?» che apre la frase intera, riga `.pm-tr` presente nell'intestazione di stampa. Provato
+anche in **tema chiaro**. Sulle altre tre famiglie il gettone non compare perché quei documenti non hanno
+traduzioni memorizzate — coperte dal test strutturale e dai test del componente. Riverificato dopo la
+seconda passata: riga alta 24px (una sola), «?» dentro il gettone, e su finestra stretta il gettone scende
+INTERO invece di spezzarsi.
+
+### Lo stato del ramo, misurato
+
+Build **Release** verde sui due TFM (`--no-incremental`, 0 avvisi) e suite verde su **sette progetti**:
+1129 (Ui) + 2004 (Application) + 1191 (Infrastructure) + 130 (Domain) + 63 (AuroraProfiles) + 58 (Hosting)
++ 54 (Assets) = **4629**. 🟡 **Gli E2E non sono stati girati** in questo giro: vogliono l'host vivo, e vanno
+fatti sul risultato della fusione — non sul ramo.
+
+### Quel che resta
+
+- 🟡 **Non provato a schermo su vLOA, APP e vSOP militare**: nel `vipi.db` di sviluppo nessuno dei tre ha
+  segmenti tradotti, quindi l'avviso non compare — né prima né dopo. Il markup è pinnato dal test
+  strutturale, ma una prova a schermo su quelle tre resta da fare quando ci sarà un documento tradotto.
+- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** con §AO, §AP, §AQ, §AR e §AS — sei in tutto.
+- ⚠️ **Tocca `vipi-theme.css` E `vipi-print.css`**, cioè gli stessi due fogli di §AO: impronte nuove, e
+  `wwwroot` viaggia insieme all'indice `staticwebassets`.

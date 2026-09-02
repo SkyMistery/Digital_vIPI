@@ -48,9 +48,16 @@ else
 
             <div>
                 <PrintMeta Title="@($"vIPI — {_data.AccName}")" Subtitle="@Sito["AccVipi_Subtitle"]"
-                           AiracCycle="@Cycle()" />
+                           AiracCycle="@Cycle()" Coverage="_copertura" />
                 <div class="doc-head">
-                    <div><h1 class="page-h1" style="margin-bottom:2px">vIPI — @_data.AccName</h1><span class="muted">@Sito["AccVipi_Subtitle"] · <SimDisclaimer /></span></div>
+                    @* ⚠️ L'avviso di simulazione ha una RIGA PROPRIA, non la coda del sottotitolo: qui il
+                       sottotitolo è lungo, e sottotitolo + avviso + gettone su una riga sola andavano a capo
+                       in mezzo alla frase («…REAL LIFE / NAVIGATION»). Vedi `.sim-line`. *@
+                    <div>
+                        <h1 class="page-h1" style="margin-bottom:2px">vIPI — @_data.AccName</h1>
+                        <span class="muted">@Sito["AccVipi_Subtitle"]</span>
+                        <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_copertura" Compatto="true" /></div>
+                    </div>
                     <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>
                         <a class="btn ghost" href="/services/vsop/live">@Sito["Common_Operational"]</a>
@@ -68,9 +75,8 @@ else
                                    DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vipi?as=draft")" />
                 }
 
-                @* Tradotto a macchina e non ancora riletto, o tradotto a metà: chi legge deve saperlo. *@
-                <TranslationNotice Coverage="_copertura" />
-                @* Oppure il contrario: NON tradotto, e voluto. *@
+                @* ⚠️ «Tradotto a macchina» sta nella riga sotto il titolo, non qui: vedi TranslationNotice. *@
+                @* Il contrario: NON tradotto, e voluto. *@
                 <LinguaBloccataNotice Lingua="@_bloccata" />
 
                 @* Il filtro di lettura pilota/ATC (carta vSOP militari §3). ⚠️ Vale su TUTTE le famiglie, non

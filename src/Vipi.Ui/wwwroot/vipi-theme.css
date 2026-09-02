@@ -1077,11 +1077,34 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
    ⚠️ `.sim-disc` sta DENTRO una riga `.muted` in quattro documenti su cinque: il colore lo deve vincere,
    e lo vince perche' e' una classe sull'elemento stesso contro un colore ereditato. */
 .sim-disc{color:var(--danger-ink);font-weight:800}
-/* La riga propria, per le tre testate che un sottotitolo non ce l'hanno (vSOP militare, vista live, spazi
-   aerei). ⚠️ `flex-basis:100%` non e' decorazione: in `.reduced-top` (vista live) la testata e' una riga
+/* La riga propria dell'avviso. Nata per le tre testate che un sottotitolo non ce l'hanno (vSOP militare,
+   vista live, spazi aerei), dal 2 settembre 2026 la usano TUTTE: appeso in coda al sottotitolo, l'avviso
+   mandava la riga a capo in mezzo alla frase dove il sottotitolo era lungo — sulla vIPI ACC si leggeva
+   «…DO NOT USE FOR REAL LIFE / NAVIGATION», e il gettone della traduzione atterrava dopo quel troncone
+   come se fosse finito li' per sbaglio.
+   ⚠️ `flex-basis:100%` non e' decorazione: in `.reduced-top` (vista live) la testata e' una riga
    flex, e senza questo l'avviso si infilerebbe fra l'orologio UTC e i tasti stringendo il titolo. Fuori da
-   un contenitore flex la dichiarazione e' inerte, quindi la stessa classe vale nei tre posti. */
+   un contenitore flex la dichiarazione e' inerte, quindi la stessa classe vale in tutti i posti.
+   ⚠️ E si scrive su un <div>, MAI su un <p>: il gettone della traduzione porta dentro di se' il «?», che
+   e' un <details>, e un <p> non puo' contenerlo. Il parser del browser CHIUDE il <p> da solo e sposta il
+   <details> FUORI -- a schermo il «?» atterrava su una riga sua, sotto e a sinistra del gettone, come un
+   glifo perso. Non e' un errore che si veda leggendo il Razor: il markup e' quello che si e' scritto, e' il
+   DOM a essere un altro. */
 .sim-line{flex-basis:100%;margin:2px 0 0;font-size:13px}
+/* IL GETTONE «TRADOTTA A MACCHINA» (TranslationNotice Compatto="true"). Sta nella riga sotto il titolo,
+   dopo l'avviso di simulazione, e ha preso il posto di un riquadro pieno che si mangiava un quarto della
+   prima schermata (2 settembre 2026).
+   ⚠️ Giallo e NON rosso, e non e' un dettaglio: il rosso in questa riga e' gia' preso dall'avviso di
+   simulazione, che e' l'unica cosa che deve gridare. Due rossi accanto non fanno due allarmi, ne fanno
+   zero.
+   ⚠️ `vertical-align:middle` sul gettone E `align-items:center` dentro: ci sta un <details> (il «?»), che
+   senza allineamento esplicito si siede sulla linea di base e alza la riga di due pixel su ogni documento
+   tradotto. */
+.tr-chip{display:inline-flex;align-items:center;gap:4px;vertical-align:middle;margin-left:4px;padding:1px 7px;border-radius:999px;background:var(--tint-yellow-soft);border:1px solid var(--line-yellow);color:var(--warn-ink);font-weight:600;white-space:nowrap}
+.tr-chip .tr-hh>summary{color:var(--warn-ink)}
+/* ⚠️ Il popover del «?» non eredita il nowrap del gettone: senza questo la frase lunga uscirebbe su una
+   riga sola larga quanto la finestra. */
+.tr-chip .help-pop{white-space:normal;font-weight:400}
 .struct-nav{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;max-width:560px}
 .struct-nav .btn{padding:7px 12px;font-size:12.5px;white-space:nowrap}
 .doc card,.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}

@@ -12,29 +12,78 @@
    di assente, perche' nessuno se ne accorge leggendo. Finche' un umano non ha riletto, chi legge deve
    saperlo.
 
-   Nessun @rendermode: e' testo, quindi SSR statico come il resto del chrome. *@
+   Nessun @rendermode: e' testo, quindi SSR statico come il resto del chrome.
 
-@if (Coverage.Segmenti > 0 && (Coverage.DaRileggere || !Coverage.Completa))
+   ⚠️ DUE FORME, e la ragione della seconda (2 settembre 2026). Il riquadro pieno si mangiava un quarto della
+   prima schermata su ogni documento tradotto -- segnalato dal committente -- e un avviso che costringe a
+   scorrere per arrivare al documento e' un avviso che si impara a saltare. La forma COMPATTA e' un gettone
+   nella riga sotto il titolo, dopo l'avviso di simulazione, e il testo per esteso sta nel "?" accanto.
+
+   ⚠️ Quel che NON si perde nel gettone: che l'avviso esista e quante frasi mancano. La frase lunga -- che e'
+   un'istruzione, non una notizia -- e' l'unica cosa che si apre a richiesta. E resta `tr-notice` sull'elemento
+   in ENTRAMBE le forme, cosi' la rete che pretende «l'avviso c'e'» non si accorge della differenza e continua
+   a proteggere tutt'e due. *@
+
+@if (Visibile)
 {
-    <div class="callout warning tr-notice">
-        <span class="cic"><Icon Name="warning" Size="18" /></span>
-        <div>
-            <p class="ct">@L["Tr_NoticeTitle"]</p>
-            @if (Coverage.DaRileggere)
-            {
-                <p>@L["Tr_NoticeMachine"]</p>
-            }
-            @if (!Coverage.Completa)
-            {
-                @* Un documento a chiazze si legge male ma si legge; uno coi buchi mente. Meglio dire QUANTE
-                   frasi sono rimaste nella lingua d'origine che lasciarle scoprire una per una. *@
-                <p>@L["Tr_NoticePartial", Coverage.Mancanti, Coverage.Segmenti]</p>
-            }
+    if (Compatto)
+    {
+        <span class="tr-notice tr-chip">
+            <Icon Name="warning" Size="13" />
+            <span>@Etichetta</span>
+            <HelpHint AriaLabel="@L["Tr_NoticeTitle"].Value" Size="13" ExtraClass="tr-hh">@Dettaglio</HelpHint>
+        </span>
+    }
+    else
+    {
+        <div class="callout warning tr-notice">
+            <span class="cic"><Icon Name="warning" Size="18" /></span>
+            <div>
+                <p class="ct">@L["Tr_NoticeTitle"]</p>
+                @Dettaglio
+            </div>
         </div>
-    </div>
+    }
 }
 
 @code {
     /// <summary>Quanto e' tradotto e quanto e' stato riletto. Con zero segmenti l'avviso non compare.</summary>
     [Parameter, EditorRequired] public TranslationCoverage Coverage { get; set; } = TranslationCoverage.Nessuna;
+
+    /// <summary>
+    /// Gettone da riga di testata invece del riquadro pieno. ⚠️ Dove si mette conta: dentro <c>.doc-head</c>
+    /// il gettone <b>non si stampa</b> (il foglio nasconde quella riga, vedi <c>vipi-print.css</c>), quindi
+    /// chi lo usa li' deve passare la stessa copertura a <c>PrintMeta</c>, che sulla carta la rende.
+    /// </summary>
+    [Parameter] public bool Compatto { get; set; }
+
+    /// <summary>C'e' qualcosa da dichiarare: tradotto e non riletto, oppure tradotto a meta'.</summary>
+    private bool Visibile => Coverage.Segmenti > 0 && (Coverage.DaRileggere || !Coverage.Completa);
+
+    /// <summary>
+    /// L'etichetta del gettone: corta, e dice <b>quale</b> dei due problemi c'e'. ⚠️ Quando ci sono
+    /// entrambi si scrivono entrambi — «tradotta a macchina» e «4/10 non tradotte» sono due difetti diversi,
+    /// e chi legge deve poter decidere se il pezzo che gli serve e' fra i quattro.
+    /// </summary>
+    private string Etichetta => string.Join(" · ", new[]
+    {
+        Coverage.DaRileggere ? L["Tr_ChipMachine"].Value : null,
+        Coverage.Completa ? null : L["Tr_ChipPartial", Coverage.Mancanti, Coverage.Segmenti].Value,
+    }.Where(x => x is not null));
+
+    /// <summary>Il testo per esteso, uguale nelle due forme: nel riquadro sta in chiaro, nel gettone dietro
+    /// il «?». ⚠️ Scritto una volta sola — due copie diventano due testi al primo ritocco.</summary>
+    private RenderFragment Dettaglio => __builder =>
+    {
+        @if (Coverage.DaRileggere)
+        {
+            <p>@L["Tr_NoticeMachine"]</p>
+        }
+        @if (!Coverage.Completa)
+        {
+            @* Un documento a chiazze si legge male ma si legge; uno coi buchi mente. Meglio dire QUANTE
+               frasi sono rimaste nella lingua d'origine che lasciarle scoprire una per una. *@
+            <p>@L["Tr_NoticePartial", Coverage.Mancanti, Coverage.Segmenti]</p>
+        }
+    };
 }

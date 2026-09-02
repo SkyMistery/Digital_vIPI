@@ -38,6 +38,9 @@ public class TranslationNoticeTests : TestContext
     private IRenderedComponent<TranslationNotice> Rendi(TranslationCoverage c) =>
         RenderComponent<TranslationNotice>(p => p.Add(x => x.Coverage, c));
 
+    private IRenderedComponent<TranslationNotice> Gettone(TranslationCoverage c) =>
+        RenderComponent<TranslationNotice>(p => p.Add(x => x.Coverage, c).Add(x => x.Compatto, true));
+
     [Fact]
     public void Su_un_documento_non_tradotto_non_compare_niente()
     {
@@ -79,6 +82,70 @@ public class TranslationNoticeTests : TestContext
         var cut = Rendi(new TranslationCoverage(Segmenti: 10, Tradotti: 6, Riletti: 2));
         Assert.Contains("Tr_NoticeMachine", cut.Markup);
         Assert.Contains("Tr_NoticePartial:4,10", cut.Markup);
+    }
+
+    // ---- La forma COMPATTA (2 settembre 2026) ---------------------------------------------------------
+    //
+    // Il riquadro pieno si mangiava un quarto della prima schermata su ogni documento tradotto, e un avviso
+    // che costringe a scorrere per arrivare al documento e' un avviso che si impara a saltare. Il gettone
+    // sta nella riga sotto il titolo, dopo l'avviso di simulazione.
+
+    /// <summary>
+    /// ⚠️ <b>La regola che tiene in piedi la rete esistente</b>: `tr-notice` resta sull'elemento in
+    /// entrambe le forme. I test che pretendono «l'avviso c'e'» non sanno quale forma sia, e continuano a
+    /// proteggerle tutt'e due — se un domani il gettone perdesse la classe, quei test resterebbero verdi
+    /// su un documento senza avviso.
+    /// </summary>
+    [Fact]
+    public void Il_gettone_porta_la_stessa_classe_del_riquadro()
+    {
+        var cut = Gettone(new TranslationCoverage(Segmenti: 10, Tradotti: 10, Riletti: 0));
+
+        Assert.Contains("tr-notice", cut.Markup);
+        Assert.Contains("tr-chip", cut.Markup);
+        Assert.Empty(cut.FindAll(".callout"));      // niente riquadro
+    }
+
+    /// <summary>
+    /// ⚠️ <b>Che cosa il gettone NON perde.</b> Che l'avviso esista e QUALE dei due problemi ci sia resta
+    /// scritto in chiaro; a scomparire dietro il «?» è la frase lunga, che è un'istruzione e non una
+    /// notizia. Un gettone che dicesse solo «tradotta» avrebbe risparmiato spazio buttando via il
+    /// contenuto.
+    /// </summary>
+    [Fact]
+    public void Il_gettone_dice_QUALE_problema_e_tiene_la_frase_lunga_dietro_il_punto_interrogativo()
+    {
+        var cut = Gettone(new TranslationCoverage(Segmenti: 10, Tradotti: 6, Riletti: 2));
+
+        // In chiaro: le due etichette corte, tutte e due — sono due difetti diversi.
+        var chip = cut.Find(".tr-chip>span");
+        Assert.Contains("Tr_ChipMachine", chip.TextContent);
+        Assert.Contains("Tr_ChipPartial:4,10", chip.TextContent);
+
+        // La frase lunga c'è, ma dentro il popover del «?».
+        Assert.Contains("Tr_NoticeMachine", cut.Find(".help-pop").InnerHtml);
+        Assert.Contains("Tr_NoticePartial:4,10", cut.Find(".help-pop").InnerHtml);
+    }
+
+    [Fact]
+    public void Il_gettone_con_UN_solo_problema_non_scrive_l_altro()
+    {
+        var soloMacchina = Gettone(new TranslationCoverage(Segmenti: 10, Tradotti: 10, Riletti: 0));
+        Assert.Contains("Tr_ChipMachine", soloMacchina.Find(".tr-chip>span").TextContent);
+        Assert.DoesNotContain("Tr_ChipPartial", soloMacchina.Find(".tr-chip>span").TextContent);
+
+        var soloParziale = Gettone(new TranslationCoverage(Segmenti: 10, Tradotti: 4, Riletti: 4));
+        Assert.Contains("Tr_ChipPartial:6,10", soloParziale.Find(".tr-chip>span").TextContent);
+        Assert.DoesNotContain("Tr_ChipMachine", soloParziale.Find(".tr-chip>span").TextContent);
+    }
+
+    [Fact]
+    public void Il_gettone_sparisce_esattamente_quando_spariva_il_riquadro()
+    {
+        // La condizione di comparsa e' UNA, condivisa dalle due forme: se si sdoppiasse, un documento
+        // potrebbe avere l'avviso in una forma e non nell'altra a seconda della pagina che lo mostra.
+        Assert.DoesNotContain("tr-notice", Gettone(TranslationCoverage.Nessuna).Markup);
+        Assert.DoesNotContain("tr-notice", Gettone(new TranslationCoverage(10, 10, 10)).Markup);
     }
 
     [Fact]

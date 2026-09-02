@@ -108,6 +108,13 @@
      stampa perche' `print-color-adjust:exact` e' gia' dichiarato per tutto `.vipi-root` piu' sopra. */
   .vipi-root .print-meta .pm-sim { margin: 3px 0 0; font-size: 9pt; }
 
+  /* ── L'avviso di traduzione automatica ─────────────────────────────────────────
+     Stessa ragione di `.pm-sim`, e stessa trappola: dal 2 settembre 2026 a schermo e' un gettone dentro
+     `.doc-head`, e `.doc-head` sul foglio e' nascosto. Senza questa riga un documento tradotto a macchina
+     si stamperebbe senza dirlo — ed e' l'avviso che conta di piu' proprio su carta, dove chi legge non ha
+     nessun «?» da aprire e nessun originale a portata di clic. Per questo qui il testo va per ESTESO. */
+  .vipi-root .print-meta .pm-tr { margin: 2px 0 0; font-size: 8.5pt; font-weight: 600; color: var(--warn-ink); }
+
   /* ⚠️ `position:fixed` E' IL MECCANISMO CHE RIPETE LA RIGA SU OGNI FOGLIO. Non e' un ripiego di stile:
      le margin box di `@page` (`@bottom-center{content:...}`) non le implementa nessun browser, e l'unica
      altra strada — riavvolgere il contenuto di ogni pagina in `<table><tfoot>` — costerebbe il markup di
