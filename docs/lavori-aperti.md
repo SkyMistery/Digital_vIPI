@@ -1,5 +1,7 @@
 ﻿# Lavori aperti — elenco unico
 
+**Aggiornato:** 2 settembre 2026, sera — **§AS e §AT, dal ramo `dati-scalo-solo-militare` (`7bef3c3e`), spinto e NON fuso.** Due segnalazioni del committente, nessuna entità e nessuna migrazione. **§AS:** su un campo **solo militare** il rimando «per cambiarli: editor dell'aeroporto» era un **giro chiuso** — quella pagina rimanda indietro qui, perché `EnsureDocumentAsync` rifiuterebbe di far nascere la vIPI civile — e livelli di transizione, colonne editoriali delle piste e collegamenti di frequenza non avevano **nessuna** porta di scrittura in tutto il sito. ⚠️ Lo stato c'era già (`CivilEdition`): mancava la **domanda**, e va fatta **uguale** a quella della pagina che rimanda indietro. Riparato di striscio anche il **meteo**, che prendeva la nota sbagliata su tutti e 26 i campi. **§AT:** l'avviso «tradotta a macchina» era un riquadro che si mangiava **un quarto della prima schermata**; ora è un gettone nella riga sotto il titolo, insieme all'avviso di simulazione e su una riga loro. ⚠️ Due trappole invisibili leggendo la pagina: `.doc-head` **sul foglio è nascosto** (serve la riga in `PrintMeta`, col testo per esteso), e **un `<p>` non può contenere un `<details>`** — il parser sposta il «?» fuori. 🔴 **Il pacchetto 1.3.1 ora porta SEI lavori**, e §AT tocca gli stessi due fogli di stile di §AO.
+
 **Aggiornato:** 2 settembre 2026 — **§AR: LA PAGINA CHE SI BLOCCA IN SALVATAGGIO.** Segnalazione dal sito vero, sul gesto **«Fine modifica»**. ⚠️ **Non si riproduce in locale** (dieci giri con clic veri, log pulito): il difetto è una **corsa**, e su SQLite la finestra è di millisecondi — in produzione c'è MariaDB. Due buchi trovati leggendo quel gesto: `FinishEditingAsync` rileggeva il lock **fuori dal guardiano** (l'unico `await` scoperto della classe → eccezione che abbatte il circuito, pagina da ricaricare, lavoro già salvato), e il guardiano **non chiedeva il ridisegno alla fine** (badge inchiodato su «Salvataggio…» ed errore invisibile per i gesti nati in un componente figlio). Sotto c'è la corsa vera: `@inject IEditingService` prende il `DbContext` **del circuito** → sei pagine passano a `OwningComponentBase`. ⚠️ Due trappole silenziose nella conversione: un `public void Dispose()` non viene più chiamato, e una pagina `IAsyncDisposable` non riceve mai il Dispose che chiude lo scope. Cinque test sul guscio (quattro rossi prima) + guardia strutturale. **Nessuna entità, nessuna migrazione.**
 
 **Aggiornato:** 1 settembre 2026 — **§AQ: I TITOLI DELLE SEZIONI SEGUONO LA LINGUA DEL DOCUMENTO.** Segnalazione del committente: un documento **bloccato in inglese** mostrava le testate in italiano. Non era la traduzione a mancare — era la **stampella**: i titoli delle sezioni di catalogo stanno scritti nel documento nella lingua che aveva alla NASCITA, e finora arrivavano in inglese **di rimbalzo**, perché sono segmenti e passavano dal traduttore. Bloccare la lingua **spegne** la traduzione, e la stampella è caduta. Ora i titoli si risolvono dal catalogo **dove si legge** (`TitoliDiCatalogo`), in tutte e cinque le famiglie, a ogni profondità e anche nell'editor — dove una sezione fissa **non si può rinominare a mano**, quindi non c'era nessun rimedio. ⚠️ Il catalogo vince anche sulla **memoria di traduzione**: è la resa DECISA contro quella plausibile, ed è quel che impedisce a «MRVA» di tornare «Minimum vectoring». ⚠️ La vLOA va nel verso opposto e **non ha una resa italiana**: letta in italiano il catalogo non impone niente e il titolo resta al traduttore. Nuova **R9** in `design/regole-lingua.md`. **Nessuna entità, nessuna migrazione.**
@@ -6876,7 +6878,7 @@ la famiglia dove il difetto si vede di più.
 - 🟡 **Trovato per strada, e NON è di questo giro**: i passi del **giro guidato** (`vipi-tour.js`) hanno
   titoli e testi **cablati in italiano** — «Indice del documento», con l'interfaccia in inglese. È
   un'eccezione non dichiarata a R7, e vale per tutte le pagine che montano il tour.
-- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** insieme a §AO, §AP e §AR.
+- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** insieme a §AO, §AP, §AR, §AS e §AT.
 
 ## AR. La pagina che si blocca in salvataggio: due buchi e una corsa — 1/2 settembre 2026
 
@@ -6963,8 +6965,8 @@ Suite intera verde, E2E compresi (276/276), Release pulita sui due TFM.
 - 🟡 Trovato per strada e **non riparato**: `/services/vsop/admin/versions` mostra «Nessun documento
   corrisponde ai filtri» con tutti i conteggi a zero. **Identico su `main`**, quindi preesistente e fuori da
   questo giro.
-- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** con §AO, §AP e §AQ — quattro lavori in un solo
-  pacchetto, ed è il prossimo passo.
+- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** con §AO, §AP, §AQ, §AS e §AT — SEI lavori in un
+  solo pacchetto, ed è il prossimo passo.
 
 ### ⚠️ Un lavoro che ha viaggiato dentro alla fusione, e non doveva
 
@@ -7068,7 +7070,7 @@ resta in piedi, e i `bin/` restano suoi).
   dell'edizione vorrebbe dire credere risolto un blocco che sta altrove. Il test lo pretende per iscritto.
 - 🟡 **`SaveFrequencyLinksAsync` non è provata** nel test di scrittura (vuole un catalogo settori): è lo
   stesso servizio con la stessa chiave, ma è l'unica delle tre a fidarsi.
-- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** con §AO, §AP e §AQ.
+- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** con §AO, §AP, §AQ, §AR e §AT — sei in tutto.
 
 ## AT. L'avviso di traduzione automatica diventa un gettone — 2 settembre 2026
 
@@ -7156,9 +7158,18 @@ traduzioni memorizzate — coperte dal test strutturale e dai test del component
 seconda passata: riga alta 24px (una sola), «?» dentro il gettone, e su finestra stretta il gettone scende
 INTERO invece di spezzarsi.
 
+### Lo stato del ramo, misurato
+
+Build **Release** verde sui due TFM (`--no-incremental`, 0 avvisi) e suite verde su **sette progetti**:
+1129 (Ui) + 2004 (Application) + 1191 (Infrastructure) + 130 (Domain) + 63 (AuroraProfiles) + 58 (Hosting)
++ 54 (Assets) = **4629**. 🟡 **Gli E2E non sono stati girati** in questo giro: vogliono l'host vivo, e vanno
+fatti sul risultato della fusione — non sul ramo.
+
 ### Quel che resta
 
 - 🟡 **Non provato a schermo su vLOA, APP e vSOP militare**: nel `vipi.db` di sviluppo nessuno dei tre ha
   segmenti tradotti, quindi l'avviso non compare — né prima né dopo. Il markup è pinnato dal test
   strutturale, ma una prova a schermo su quelle tre resta da fare quando ci sarà un documento tradotto.
-- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1**.
+- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** con §AO, §AP, §AQ, §AR e §AS — sei in tutto.
+- ⚠️ **Tocca `vipi-theme.css` E `vipi-print.css`**, cioè gli stessi due fogli di §AO: impronte nuove, e
+  `wwwroot` viaggia insieme all'indice `staticwebassets`.
