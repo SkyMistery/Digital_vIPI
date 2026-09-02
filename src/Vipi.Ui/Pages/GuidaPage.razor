@@ -685,8 +685,10 @@
                 <li><b>Runways</b> — imported from IVAO per single airport; the runway/area rules drive the transfer
                     conditions.</li>
                 <li><b>Frequencies</b> — a section derived from the airport's ATC sectors.</li>
-                <li><b>SIDs</b> — imported from Aurora on the first fetch of the AIRAC cycle; manually added fixes are
-                    carried over. The import is locked per-ICAO during the operation.</li>
+                <li><b>SIDs</b> — imported from Aurora, and <b>in force from the AIRAC cycle the source itself
+                    declares</b> (the sector file keeps a changelog per cycle). Until that cycle arrives the row
+                    waits, and the right-hand column says when it will appear; it can be forced row by row.
+                    Manually added fixes are carried over, and the import is locked per-ICAO during the operation.</li>
                 <li><b>ATC sectors</b> — show/hide the imported sectors and set the limits.</li>
               </ul>
               <p>The <b>imported SIDs</b> table is where most of the work happens, and it has its own rules:</p>
