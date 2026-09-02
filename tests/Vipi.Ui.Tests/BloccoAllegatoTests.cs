@@ -45,6 +45,55 @@ public class BloccoAllegatoTests : TestContext
             throw new NotSupportedException();
     }
 
+    /// <summary>
+    /// Una biblioteca che si può <b>trattenere</b>: la lettura non finisce finché non la si lascia andare, e
+    /// intanto si conta quante ne sono partite. È l'unico modo di riprodurre una corsa senza sperare nei tempi.
+    /// </summary>
+    private sealed class BibliotecaTrattenuta : IAttachmentLibrary
+    {
+        private readonly TaskCompletionSource<IReadOnlyList<AttachmentRow>> _cancello = new();
+        public int Letture { get; private set; }
+
+        public Task<IReadOnlyList<AttachmentRow>> ListAsync(CancellationToken ct = default)
+        {
+            Letture++;
+            return _cancello.Task;
+        }
+
+        public void Lascia(params AttachmentRow[] righe) =>
+            _cancello.TrySetResult(righe);
+
+        public Task<AttachmentRow?> BySlugAsync(string slug, CancellationToken ct = default) =>
+            Task.FromResult<AttachmentRow?>(null);
+        public Task<(AttachmentCreate Esito, AttachmentRow? Riga)> CreateAsync(
+            AttachmentDraft draft, int userId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<(AttachmentReplace Esito, AttachmentRow? Riga)> ReplaceAsync(
+            string slug, string link, string? note, int userId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<AttachmentDelete> DeleteAsync(string slug, int userId, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+    }
+
+    /// <summary>Una biblioteca che non risponde: serve a provare che il guasto non si porta via la pagina.</summary>
+    private sealed class BibliotecaRotta : IAttachmentLibrary
+    {
+        public int Letture { get; private set; }
+
+        public Task<IReadOnlyList<AttachmentRow>> ListAsync(CancellationToken ct = default)
+        {
+            Letture++;
+            throw new InvalidOperationException("database irraggiungibile");
+        }
+
+        public Task<AttachmentRow?> BySlugAsync(string slug, CancellationToken ct = default) =>
+            Task.FromResult<AttachmentRow?>(null);
+        public Task<(AttachmentCreate Esito, AttachmentRow? Riga)> CreateAsync(
+            AttachmentDraft draft, int userId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<(AttachmentReplace Esito, AttachmentRow? Riga)> ReplaceAsync(
+            string slug, string link, string? note, int userId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<AttachmentDelete> DeleteAsync(string slug, int userId, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+    }
+
     private static AttachmentRow Voce(string slug, string titolo) =>
         new(1, slug, titolo, AttachmentKind.Loa, AttachmentScope.Division, null, null, 1, 1,
             AttachmentProvider.Drive, "1A2b3C4d5E6f7G8h9I0jKlMnOpQrStUvW",
@@ -339,5 +388,81 @@ public class BloccoAllegatoTests : TestContext
 
         Assert.Equal("/vsop/files/loa-lirr-lfmm",
             cut.Find(".att-preview p.att-link a").GetAttribute("href"));
+    }
+
+    // ---- la corsa che ha abbattuto tre circuiti in produzione (2 settembre 2026) --------------------------
+
+    /// <summary>
+    /// 🔴 <b>Il difetto, riprodotto.</b> La guardia era <c>if (_voci.Count == 0)</c>: si controllava
+    /// <b>prima</b> dell'<c>await</c> e si scriveva <b>dopo</b>, e siccome <c>OnParametersSetAsync</c> scatta a
+    /// <b>ogni</b> ridisegno del genitore, finché la prima lettura era in volo ne partiva una nuova a ogni giro
+    /// — tutte sullo <b>stesso</b> <c>DbContext</c>. In produzione la fotografia delle collisioni mostrava
+    /// <b>quattro</b> SELECT identiche aperte insieme, e dietro venivano il renderer corrotto e le
+    /// <c>ObjectDisposedException</c>.
+    /// <para>⚠️ Lo scope proprio (<c>OwningComponentBase</c>) non bastava: protegge dal contesto <b>del
+    /// circuito</b>, non da <b>sé stessi</b>.</para>
+    /// </summary>
+    [Fact]
+    public void Ridisegni_mentre_la_lettura_e_in_volo_non_ne_fanno_partire_altre()
+    {
+        Localizzatore();
+        var biblioteca = new BibliotecaTrattenuta();
+        Services.AddSingleton<IAttachmentLibrary>(biblioteca);
+
+        var cut = RenderComponent<AttachmentBlockEditor>(p => p.Add(x => x.AttachmentJson, null));
+
+        // Tre ridisegni del genitore mentre la prima lettura è ancora in volo.
+        for (var i = 0; i < 3; i++)
+            cut.SetParametersAndRender(p => p.Add(x => x.Note, "nota " + i));
+
+        Assert.Equal(1, biblioteca.Letture);
+
+        biblioteca.Lascia(Voce("loa-lirr-lfmm", "LoA Roma-Marseille"));
+        cut.WaitForAssertion(() => Assert.Contains("LoA Roma-Marseille", cut.Markup));
+
+        // E nemmeno dopo: la lettura è una per montaggio.
+        cut.SetParametersAndRender(p => p.Add(x => x.Note, "e poi"));
+        Assert.Equal(1, biblioteca.Letture);
+    }
+
+    /// <summary>
+    /// ⚠️ Il difetto minore che nessuno aveva notato, e che aveva la stessa causa: con la guardia
+    /// sull'<b>esito</b>, una biblioteca <b>legittimamente vuota</b> faceva rileggere il database a ogni
+    /// ridisegno, per sempre. La riga d'aiuto è la stessa: quel che cambia è quante volte si chiede.
+    /// </summary>
+    [Fact]
+    public void Una_biblioteca_vuota_non_si_rilegge_a_ogni_ridisegno()
+    {
+        Localizzatore();
+        var biblioteca = new BibliotecaTrattenuta();
+        Services.AddSingleton<IAttachmentLibrary>(biblioteca);
+
+        var cut = RenderComponent<AttachmentBlockEditor>(p => p.Add(x => x.AttachmentJson, null));
+        biblioteca.Lascia();   // nessuna voce: è uno stato normale, non un guasto
+        cut.WaitForAssertion(() => Assert.Contains("Att_BlockEmptyHint", cut.Markup));
+
+        for (var i = 0; i < 4; i++)
+            cut.SetParametersAndRender(p => p.Add(x => x.Note, "nota " + i));
+
+        Assert.Equal(1, biblioteca.Letture);
+    }
+
+    /// <summary>
+    /// ⚠️ Un'eccezione in un metodo del <b>ciclo di vita</b> non è catturabile dall'host e si porta via il
+    /// <b>circuito</b>, cioè la pagina. Meglio la tendina con un errore visibile (stessa scelta di
+    /// <c>ReleasePanel</c>) — e una tendina vuota senza spiegazione somiglierebbe a una biblioteca vuota,
+    /// che è un'altra cosa.
+    /// </summary>
+    [Fact]
+    public void Un_guasto_della_biblioteca_si_dice_e_non_abbatte_la_pagina()
+    {
+        Localizzatore();
+        Services.AddSingleton<IAttachmentLibrary>(new BibliotecaRotta());
+
+        var cut = RenderComponent<AttachmentBlockEditor>(p => p.Add(x => x.AttachmentJson, null));
+
+        Assert.Contains("database irraggiungibile", cut.Markup);
+        Assert.NotEmpty(cut.FindAll("select"));            // la pagina è viva
+        Assert.DoesNotContain("Att_BlockEmptyHint", cut.Markup);   // non è «vuota», è rotta
     }
 }
