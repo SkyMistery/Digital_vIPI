@@ -1,11 +1,13 @@
 ﻿@page "/services/vsop/{Acc}/editor"
 @layout SopLayout
 @rendermode InteractiveServer
-@implements IDisposable
+@* ⚠️ OwningComponentBase per lo SCOPE: IEditingService (e con lui il DbContext) non deve venire dal
+   circuito, che lo condivide con barra, isole e pannelli. Vedi il blocco su `Editing`. *@
+@inherits OwningComponentBase
+@using Microsoft.Extensions.DependencyInjection
 @using System.Text.Json
 @inject IAccDocumentService AccDoc
 @inject IAccDerivationService Profile
-@inject IEditingService Editing
 @inject IStationResolver Stations
 @inject IEditAuthorizationService Authz
 @inject IJSRuntime JS
@@ -238,9 +240,24 @@ else
     /// e per questo monta un DocumentSectionsEditor per blocco invece di uno solo.</summary>
     private DocumentEditorShell _shell = default!;
 
-    protected override void OnInitialized() =>
+    /// <summary>
+    /// Il servizio di editing, risolto dallo scope PROPRIO di questa pagina (<c>OwningComponentBase</c>):
+    /// contesto isolato da quello del circuito.
+    ///
+    /// <para>⚠️ <b>Con <c>@@inject</c> veniva dal circuito</b>, cioè dal <c>DbContext</c> che la sessione
+    /// condivide con tutto il resto — barra, isole, pannelli, e il <c>LoadAsync</c> di questa pagina. Basta
+    /// che due di quelle operazioni si sovrappongano perché esca
+    /// «<c>A second operation was started on this context</c>» e il circuito muoia: a schermo una pagina che
+    /// non risponde più, da ricaricare. Vedi <c>DocumentEditorShell.FinishEditingAsync</c>.</para>
+    /// </summary>
+    private IEditingService Editing = default!;
+
+    protected override void OnInitialized()
+    {
+        Editing = ScopedServices.GetRequiredService<IEditingService>();
         _shell = new DocumentEditorShell(Editing, JS, L, Logger, "ACC", "Acc_NoPerm",
             () => InvokeAsync(StateHasChanged));
+    }
 
     // Menu-sezioni laterale (TOC): raggruppato per blocco (Aerovia / gruppi APP); voci = sezioni figlie (anchor s-{Id}).
     private IReadOnlyList<EditorTocItem> BuildToc()
@@ -528,7 +545,14 @@ else
     // Firma a 1 parametro preservata: passata come Run= a DocumentSectionsEditor (Func<Func<Task>,Task>).
     // silent = azione non-di-contenuto (es. acquisizione/rilascio lock): nessun badge "Saved", ma stessa gestione errori.
         /// <summary>Ferma il badge che si spegne da solo: dopo lo smontaggio non c'è più un renderer da avvisare.</summary>
-    public void Dispose() => _shell.Dispose();
+    /// <para>⚠️ <c>override</c> e non più <c>public void Dispose()</c>: <c>OwningComponentBase</c> implementa
+    /// <c>IDisposable</c> in modo ESPLICITO, quindi un metodo pubblico con quel nome non lo chiamerebbe
+    /// nessuno.</para>
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _shell.Dispose();
+        base.Dispose(disposing);
+    }
     private static string AsString(object? v) => v as string ?? "";
     private async Task<bool> Confirm(string message) => await JS.InvokeAsync<bool>("confirm", message);
 

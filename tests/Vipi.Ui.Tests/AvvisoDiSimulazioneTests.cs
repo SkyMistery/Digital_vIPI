@@ -77,23 +77,61 @@ public sealed class AvvisoDiSimulazioneTests
     }
 
     /// <summary>
-    /// ⚠️ I 18mm di margine inferiore e i -4mm del piè di pagina sono UNA COPPIA MISURATA, e i numeri stanno
-    /// fra due muri: a <c>bottom:0</c> l'avviso e l'ultima riga di un foglio pieno si toccano (−1,1mm,
-    /// misurato su 21 fogli), e da −6mm in giù Chrome smette di disegnarlo <b>sulla prima pagina</b>.
+    /// ⚠️ <b>La regola è una sola: <c>bottom</c> non può essere negativo.</b> Un elemento fisso si posiziona
+    /// sull'area di pagina, e la parte che finisce <b>sotto</b> il suo bordo inferiore Chrome non la taglia —
+    /// la <b>ridisegna in cima al foglio successivo</b>. Per chi legge, l'avviso appare tagliato per il lungo
+    /// fra due fogli, e il fondo bianco della metà di sopra cancella la prima riga di quel foglio.
     ///
-    /// <para>⚠️ Il secondo muro è il difetto insidioso: sui cinque documenti la prima pagina l'avviso ce
-    /// l'ha comunque, perché glielo dà <c>PrintMeta</c> — quindi un valore sbagliato si vedrebbe solo
-    /// stampando un elenco o la home, cioè quasi mai. Il test tiene fermi i due numeri; chi ha ragione di
-    /// cambiarli rimisuri con printToPDF, non deduca.</para>
+    /// <para>⚠️ E <b>non si ripara calibrando i millimetri</b>: è la lezione pagata due volte. Una sporgenza
+    /// di 2mm sembrava innocua su A4 coi margini di questo foglio, ma bastano la scala al 90% — il «adatta
+    /// alla pagina» del dialogo di stampa — o i margini scelti a mano e il difetto torna. Misurato sulla vIPI
+    /// di Brindisi, su sei modi di stampare: −4mm/8mm sbaglia su 20 fogli di 21, −2mm/5mm su 11 alla scala
+    /// 90%, <c>bottom:0</c> su nessuno in nessun modo.</para>
+    ///
+    /// <para>⚠️ Il prezzo di <c>bottom:0</c>, dichiarato: la scatola sta dentro l'area di pagina, dove scorre
+    /// il testo, e il suo fondo bianco morde le descendenti dell'ultima riga di un foglio pieno. Con
+    /// <c>position:fixed</c> non è eliminabile; si limita tenendo la riga <b>bassa</b>. Per questo l'altezza
+    /// ha un tetto.</para>
     /// </summary>
+    [Theory]
+    [InlineData(0.0, 3.5, true)]     // quel che c'è oggi
+    [InlineData(-4.0, 8.0, false)]   // la prima consegna: avviso spezzato su 20 fogli di 21
+    [InlineData(-2.0, 5.0, false)]   // il primo rimedio: regge su A4 al 100%, cade alla scala 90%
+    [InlineData(0.0, 8.0, false)]    // non sporge, ma con 8mm il morso sull'ultima riga è una riga intera
+    public void La_regola_del_pie_di_pagina(double bottom, double height, bool valida)
+    {
+        Assert.Equal(valida, bottom >= 0 && height <= 4.0);
+    }
+
+    /// <summary>E i numeri che stanno davvero nel foglio devono passare quella regola.</summary>
     [Fact]
-    public void La_fascia_del_pie_di_pagina_e_aperta_dal_margine()
+    public void Il_pie_di_pagina_del_foglio_rispetta_la_regola()
     {
         var stampa = Leggi("wwwroot/vipi-print.css");
+        var regola = stampa.IndexOf(".sim-foot {", StringComparison.Ordinal);
+        Assert.True(regola > 0, "vipi-print.css: nessuna regola per .sim-foot");
+        var corpo = stampa[regola..(stampa.IndexOf('}', regola) + 1)];
+
         Assert.Contains("margin: 14mm 12mm 18mm", stampa, StringComparison.Ordinal);
-        Assert.Contains("bottom: -4mm", stampa, StringComparison.Ordinal);
-        // L'altezza della riga sposta il muro: la base dell'avviso deve restare dentro l'area di pagina.
-        Assert.Contains("height: 8mm; line-height: 8mm", stampa, StringComparison.Ordinal);
+
+        var bottom = Mm(corpo, "bottom:");
+        var height = Mm(corpo, "height:");
+
+        Assert.True(bottom >= 0,
+            $"il piè sporge {-bottom}mm sotto l'area di pagina: Chrome ridisegna la sporgenza in cima al foglio dopo, "
+            + "e l'avviso esce tagliato fra due fogli");
+        Assert.True(height <= 4.0,
+            $"la riga del piè è alta {height}mm: sta dentro l'area di testo, e più è alta più mangia l'ultima riga");
+    }
+
+    /// <summary>Il primo valore in mm della proprietà dentro il corpo di una regola.</summary>
+    private static double Mm(string corpo, string proprieta)
+    {
+        var i = corpo.IndexOf(proprieta, StringComparison.Ordinal);
+        Assert.True(i > 0, $"proprietà assente: {proprieta}");
+        var m = System.Text.RegularExpressions.Regex.Match(corpo[i..], @"(-?\d+(?:\.\d+)?)mm");
+        Assert.True(m.Success, $"{proprieta} non è in mm");
+        return double.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
     }
 
     /// <summary>

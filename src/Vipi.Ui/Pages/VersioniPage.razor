@@ -2,7 +2,9 @@
 @page "/services/vsop/{Acc}/versions"
 @layout SopLayout
 @rendermode InteractiveServer
-@inject IEditingService Editing
+@* ⚠️ OwningComponentBase per lo SCOPE: il servizio di editing (e il suo DbContext) non viene dal circuito. *@
+@inherits OwningComponentBase
+@using Microsoft.Extensions.DependencyInjection
 @inject IReleaseService Releases
 @inject IDocumentAdminService DocAdmin
 @inject IDocumentImpactService Impacts
@@ -371,8 +373,17 @@
         try { await JS.InvokeVoidAsync("vipiFitViewport", ".ver-layout", 900); } catch (Exception) { }
     }
 
+    /// <summary>
+    /// Risolto dallo scope PROPRIO della pagina (<c>OwningComponentBase</c>): contesto isolato da quello del
+    /// circuito, che la sessione condivide con barra, isole e pannelli. Due operazioni sovrapposte sullo
+    /// stesso contesto danno «<c>A second operation was started on this context</c>» e uccidono il circuito.
+    /// </summary>
+    private IEditingService Editing = default!;
+
     protected override async Task OnInitializedAsync()
     {
+        Editing = ScopedServices.GetRequiredService<IEditingService>();
+
         // ⚠️ Fino al 29 agosto 2026 questa pagina non aveva un cancello, ed era una scelta: l'elenco si
         // leggeva e i tasti li abilitava la concessione. Con le concessioni morte quella scelta non ha più
         // un meccanismo dietro — e l'elenco porta bozze e documenti nascosti, che non sono roba pubblica.

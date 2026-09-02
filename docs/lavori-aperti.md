@@ -1,5 +1,7 @@
 ﻿# Lavori aperti — elenco unico
 
+**Aggiornato:** 2 settembre 2026 — **§AR: LA PAGINA CHE SI BLOCCA IN SALVATAGGIO.** Segnalazione dal sito vero, sul gesto **«Fine modifica»**. ⚠️ **Non si riproduce in locale** (dieci giri con clic veri, log pulito): il difetto è una **corsa**, e su SQLite la finestra è di millisecondi — in produzione c'è MariaDB. Due buchi trovati leggendo quel gesto: `FinishEditingAsync` rileggeva il lock **fuori dal guardiano** (l'unico `await` scoperto della classe → eccezione che abbatte il circuito, pagina da ricaricare, lavoro già salvato), e il guardiano **non chiedeva il ridisegno alla fine** (badge inchiodato su «Salvataggio…» ed errore invisibile per i gesti nati in un componente figlio). Sotto c'è la corsa vera: `@inject IEditingService` prende il `DbContext` **del circuito** → sei pagine passano a `OwningComponentBase`. ⚠️ Due trappole silenziose nella conversione: un `public void Dispose()` non viene più chiamato, e una pagina `IAsyncDisposable` non riceve mai il Dispose che chiude lo scope. Cinque test sul guscio (quattro rossi prima) + guardia strutturale. **Nessuna entità, nessuna migrazione.**
+
 **Aggiornato:** 1 settembre 2026 — **§AQ: I TITOLI DELLE SEZIONI SEGUONO LA LINGUA DEL DOCUMENTO.** Segnalazione del committente: un documento **bloccato in inglese** mostrava le testate in italiano. Non era la traduzione a mancare — era la **stampella**: i titoli delle sezioni di catalogo stanno scritti nel documento nella lingua che aveva alla NASCITA, e finora arrivavano in inglese **di rimbalzo**, perché sono segmenti e passavano dal traduttore. Bloccare la lingua **spegne** la traduzione, e la stampella è caduta. Ora i titoli si risolvono dal catalogo **dove si legge** (`TitoliDiCatalogo`), in tutte e cinque le famiglie, a ogni profondità e anche nell'editor — dove una sezione fissa **non si può rinominare a mano**, quindi non c'era nessun rimedio. ⚠️ Il catalogo vince anche sulla **memoria di traduzione**: è la resa DECISA contro quella plausibile, ed è quel che impedisce a «MRVA» di tornare «Minimum vectoring». ⚠️ La vLOA va nel verso opposto e **non ha una resa italiana**: letta in italiano il catalogo non impone niente e il titolo resta al traduttore. Nuova **R9** in `design/regole-lingua.md`. **Nessuna entità, nessuna migrazione.**
 
 **Aggiornato:** 1 settembre 2026, fuso in `main` — **§AP: COERENZA COL SECTORFILE.** Due sorgenti indipendenti descrivono le stesse cose (API IVAO e sectorfile Aurora) e nessuno le confrontava: ora un giro ogni 24 ore legge `itfreq.frq`, `itap.ap` e `itrw.rw` e dice **dove non concordano** — 36 rilievi sui dati veri, fra cui due frequenze che divergono di **5 e 3 MHz** e dodici aeroporti con **designatori di pista diversi**. **Nessuna entità, nessuna migrazione.** 🔴 Tre decisioni la reggono: l'health check **ignora** l'area nuova (contarla = `/vsop/health` giallo per sempre), il confronto **non gira dentro la richiesta** (I/O di rete su un endpoint anonimo) e la prima slice è stata **misurare** — che ha ucciso il controllo sul QFU (115 falsi a 1°, zero a 5°) e aggiunto quattro filtri. Visibile come **scorciatoia** `/services/vsop/sectorfile` a chi è **Editor** e oltre (non allo staff di divisione: i rilievi parlano del contenuto dei documenti). ⚠️ Un difetto visto solo a schermo: la testata della tabella finiva **sotto** la prima riga — `sticky-head` dentro `.st-scroll` trasforma `top:62px` in uno spostamento in giù.
@@ -6874,3 +6876,88 @@ la famiglia dove il difetto si vede di più.
   titoli e testi **cablati in italiano** — «Indice del documento», con l'interfaccia in inglese. È
   un'eccezione non dichiarata a R7, e vale per tutte le pagine che montano il tour.
 - 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** insieme a §AO e §AP.
+
+## AR. La pagina che si blocca in salvataggio: due buchi e una corsa — 1/2 settembre 2026
+
+Ramo `editor-non-si-blocca`. Nessuna carta: è un **difetto**, segnalato dal committente — *«quando si crea
+una sezione per un documento la pagina si blocca in salvataggio e si deve ricaricare la pagina per farla
+salvare»*, sul gesto **«Fine modifica»**, **sul sito vero**.
+
+### ⚠️ Non si riproduce, e il primo lavoro è stato ammetterlo
+
+Guidato dal vivo l'editor del vSOP di Grottaglie — copia del `vipi.db`, browser vero, gesti veri: sezione
+nuova, blocco allegato senza sceglierne uno, nota, tendina rimessa su «nessuno», **biblioteca svuotata** (così
+il link non si *può* mettere), tre blocchi vuoti di fila, scritture ravvicinate a 150 ms sullo stesso blocco,
+anteprima bozza, pubblicazione, e **dieci giri** del ciclo completo con clic veri. Sempre pulito: badge
+«Salvataggio…» → «Salvato», zero `pageerror`, zero 4xx, log del server senza una riga.
+
+⚠️ **Su SQLite in locale la finestra è di millisecondi.** Il difetto è una CORSA, e in produzione gira
+MariaDB: la latenza vera apre la finestra. Dai file di diagnostica presi via FTP: nessun
+`errori-richieste.txt` — ma quello registra gli errori di **richiesta**, e un'eccezione di **circuito** non
+passa di lì. Il registro degli avvii però dice che il processo è morto male **il 1 settembre alle 18:57Z**,
+dopo dodici minuti di vita.
+
+### I due buchi, trovati leggendo il gesto indicato
+
+**1) `FinishEditingAsync` rileggeva il lock FUORI dal guardiano** — l'unico `await` non protetto della
+classe. Un'eccezione lì non la prende nessuno: esce dal gestore dell'evento e **abbatte il circuito**. A
+schermo: si preme «Fine modifica» e la pagina non risponde più, senza errore. Il lavoro era già salvato — i
+gesti dell'editor salvano uno per uno — quindi ricaricare «lo faceva salvare». Ora tutto dentro il guardiano,
+e si esce dalla modifica **comunque**: restare «in modifica» dopo aver chiesto di uscire è lo stato peggiore
+dei tre.
+
+**2) Il guardiano non chiedeva il ridisegno alla fine.** Accendeva «Salvataggio…» chiedendolo, poi contava sul
+render automatico dell'evento — che ridisegna il componente che l'evento l'ha **ricevuto**, mentre badge ed
+errore li disegna la **pagina**. Un gesto nato dentro un componente figlio (allegato, immagine, editor
+strutturati) lasciava il badge inchiodato e il messaggio invisibile. Ora il ridisegno si chiede sempre, in
+`finally`. ⚠️ E la rilettura del lock dentro il `catch` del conflitto non solleva più: un'eccezione lanciata da
+un `catch` esce dal guardiano intatta, proprio mentre si stava scrivendo che cos'era andato storto.
+
+⚠️ **Test-first**: cinque test nuovi sul guscio, **quattro rossi** prima della riparazione — e quello
+sull'eccezione che scappa falliva perché l'eccezione scappava davvero.
+
+### La corsa sotto, e il rimedio strutturale
+
+In Blazor Server **«scoped» vuol dire per CIRCUITO** — per sessione, per ore, non per richiesta
+(`blazor-scoped-is-session-cache`). Un `@inject IEditingService` in una pagina prende quindi il `DbContext`
+che la sessione condivide con barra, isole e pannelli. «Fine modifica» fa due operazioni di fila (rilascia il
+lock, rileggilo) **proprio mentre** il campo di testo che stavi scrivendo perde il fuoco e fa partire il
+salvataggio del blocco, che a sua volta richiama il `LoadAsync` della pagina: due operazioni sullo stesso
+contesto = `A second operation was started on this context`.
+
+✅ **Sei pagine** passano a `OwningComponentBase` + `ScopedServices`, come già facevano `DocumentSectionsEditor`
+e `VloaEditor`: i quattro editor documentali, «Nuovo documento» e «Bozze & versioni».
+
+⚠️ **Due trappole della conversione, tutte e due silenziose:**
+- un `public void Dispose()` con `OwningComponentBase` **non lo chiama nessuno** — la base implementa
+  `IDisposable` in modo *esplicito* — e la pulizia salta senza un errore: va scritto
+  `protected override void Dispose(bool)`;
+- una pagina `IAsyncDisposable` **non riceve mai** il `Dispose` sincrono, che è quello che chiude lo scope:
+  l'editor aeroporto lo chiude a mano, in un `finally`. Senza, ogni visita lasciava in piedi uno scope con
+  dentro un `DbContext`.
+
+E il vSOP militare il guscio non lo chiudeva affatto: era l'unico dei quattro senza `Dispose`.
+
+`ScopeDellEditingTests` è la guardia strutturale: chi scrive documenti non prende il servizio di editing dal
+circuito, non ha un `Dispose` pubblico, e la pagina async-disposable chiude lo scope a mano. ⚠️ La prima
+stesura della guardia ha acceso **due rossi falsi**: cercava `public void Dispose()` col `Contains`, e quella
+frase compare dentro il commento che spiega perché non si scrive. Una scansione sul testo vede anche i
+commenti.
+
+### Verificato dal vivo, dopo
+
+Tutti e quattro gli editor guidati con clic veri sul ciclo intero — entra in modifica, aggiungi una sezione,
+scrivi con il fuoco vero, esci: vSOP militare (21→22 sezioni), APP di Amendola (12→13), aeroporto di LIBD
+(10→12), vIPI ACC di Brindisi (21→23). Nessun errore, nessuna pagina morta, lock rilasciato ogni volta.
+Suite intera verde, E2E compresi (276/276), Release pulita sui due TFM.
+
+### Quel che resta
+
+- 🟡 **La corsa non è dimostrata, è dedotta.** Il rimedio la toglie e il guardiano ora la sopravvivrebbe
+  comunque, ma se il blocco si ripresenta in produzione la prossima prova è il **registro degli avvii**: se
+  accanto all'ora del blocco c'è un ⚠ «non si è spento in modo ordinato», allora non era una corsa — era il
+  processo che moriva, e si guarda la memoria.
+- 🟡 Trovato per strada e **non riparato**: `/services/vsop/admin/versions` mostra «Nessun documento
+  corrisponde ai filtri» con tutti i conteggi a zero. **Identico su `main`**, quindi preesistente e fuori da
+  questo giro.
+- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** con §AO, §AP e §AQ.
