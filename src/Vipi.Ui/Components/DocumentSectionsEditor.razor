@@ -262,7 +262,7 @@ else
             await Editing.UpdateBlockAsync(id, new BlockEdit
             {
                 Tier = BlockTier.Extended, Visibility = BlockVisibility.Always,
-                BodyJson = """{"columns":["Colonna 1","Colonna 2"],"rows":[]}""",
+                BodyJson = TabellaGenerica.Nuova(),
             });
         await OnChanged.InvokeAsync();
     });
@@ -604,33 +604,15 @@ else
     };
 
     // ---- editor tabella (columns + rows di celle) ----
-    private (List<string> Cols, List<List<string>> Rows) ParseTable(string? json)
-    {
-        var cols = new List<string>();
-        var rows = new List<List<string>>();
-        if (string.IsNullOrWhiteSpace(json)) return (cols, rows);
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            var r = doc.RootElement;
-            // Radice che non e' un oggetto (la forma legacy delle aree e' un array): niente da leggere, e
-            // chiederglielo alza `InvalidOperationException`, che NON passa dal catch qui sotto.
-            if (r.ValueKind != JsonValueKind.Object) return (cols, rows);
-            if (r.TryGetProperty("columns", out var c) && c.ValueKind == JsonValueKind.Array)
-                cols = c.EnumerateArray().Select(e => e.GetString() ?? "").ToList();
-            if (r.TryGetProperty("rows", out var rr) && rr.ValueKind == JsonValueKind.Array)
-                foreach (var row in rr.EnumerateArray())
-                    rows.Add(row.ValueKind == JsonValueKind.Object
-                        && row.TryGetProperty("cells", out var cs) && cs.ValueKind == JsonValueKind.Array
-                        ? cs.EnumerateArray().Select(e => e.GetString() ?? "").ToList()
-                        : new List<string>());
-        }
-        catch (JsonException) { }
-        return (cols, rows);
-    }
+    //
+    // La forma del payload sta in UN posto solo (`TabellaGenerica`): stava qui e in `DocumentBlocksEditor`,
+    // con tanto di commento «stesso formato JSON di», e due copie sono due posti dove correggere la prossima
+    // trappola di questo JSON.
+    private static (List<string> Cols, List<List<string>> Rows) ParseTable(string? json) =>
+        TabellaGenerica.Leggi(json);
 
     private static string SerializeTable(List<string> cols, List<List<string>> rows) =>
-        JsonSerializer.Serialize(new { columns = cols, rows = rows.Select(r => new { cells = r }) });
+        TabellaGenerica.Scrivi(cols, rows);
 
     // Ogni mutazione ri-parsa il BodyJson corrente, applica, serializza e salva (nessuno stato catturato tra render).
     private Task SetTableCol(EditableBlock b, int ci, string val)

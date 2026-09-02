@@ -93,7 +93,7 @@
     private Task Add(BlockFormat format)
     {
         var b = new ExtraBlock { Format = format };
-        if (format == BlockFormat.Table) b.TableJson = """{"columns":["Colonna 1","Colonna 2"],"rows":[]}""";
+        if (format == BlockFormat.Table) b.TableJson = TabellaGenerica.Nuova();
         Blocks.Add(b);
         return Changed();
     }
@@ -140,30 +140,14 @@
         CalloutKind.Success => "check-circle", CalloutKind.Warning => "warning", CalloutKind.Danger => "octagon", _ => "info",
     };
 
-    // ---- editor tabella (columns + rows di celle) — stesso formato JSON di DocumentSectionsEditor ----
-    private (List<string> Cols, List<List<string>> Rows) ParseTable(string? json)
-    {
-        var cols = new List<string>();
-        var rows = new List<List<string>>();
-        if (string.IsNullOrWhiteSpace(json)) return (cols, rows);
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            var r = doc.RootElement;
-            if (r.TryGetProperty("columns", out var c) && c.ValueKind == JsonValueKind.Array)
-                cols = c.EnumerateArray().Select(e => e.GetString() ?? "").ToList();
-            if (r.TryGetProperty("rows", out var rr) && rr.ValueKind == JsonValueKind.Array)
-                foreach (var row in rr.EnumerateArray())
-                    rows.Add(row.TryGetProperty("cells", out var cs) && cs.ValueKind == JsonValueKind.Array
-                        ? cs.EnumerateArray().Select(e => e.GetString() ?? "").ToList()
-                        : new List<string>());
-        }
-        catch (JsonException) { }
-        return (cols, rows);
-    }
+    // ---- editor tabella (columns + rows di celle) ----
+    //
+    // La forma del payload sta in UN posto solo (`TabellaGenerica`), condivisa con `DocumentSectionsEditor`.
+    private static (List<string> Cols, List<List<string>> Rows) ParseTable(string? json) =>
+        TabellaGenerica.Leggi(json);
 
     private static string SerializeTable(List<string> cols, List<List<string>> rows) =>
-        JsonSerializer.Serialize(new { columns = cols, rows = rows.Select(r => new { cells = r }) });
+        TabellaGenerica.Scrivi(cols, rows);
 
     private Task SetTableCol(ExtraBlock b, int ci, string val)
     {
