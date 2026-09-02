@@ -124,7 +124,29 @@
       vero — ma «passa il presidio» non è «non può fare danno»: il caricamento va fatto quando c'è ancora
       qualcuno raggiungibile.
     -->
-    <VipiVersione>1.3.0</VipiVersione>
+    <!--
+      1.4.0 — 2 settembre 2026, sera. **MINOR**, e per il primo dei due motivi della tabella: funzionalità
+      nuove. **NESSUNA migrazione** — è la prima consegna da tre a non toccare la struttura del database, e
+      si vede nel foglio: niente copia di sicurezza, niente finestra da concordare.
+
+      Dentro ci sono SETTE lavori: §AO l'avviso di simulazione ovunque, §AP la coerenza col sectorfile,
+      §AQ i titoli di sezione nella lingua del documento, §AR la pagina che si bloccava in salvataggio,
+      §AS i dati dello scalo sui campi solo militari, §AT l'avviso di traduzione automatica come gettone,
+      §AU **importare una tabella** invece di ridigitarla.
+
+      ⚠️ NON è 1.3.1, e il numero è stato corretto qui: una PATCH è «solo correzioni, nessuna pagina o
+      sezione nuova», e §AU aggiunge un pannello, sei comandi e una porta d'ingresso ai documenti. Il
+      record lo chiamava 1.3.1 da quando conteneva i soli §AO–§AR; il contenuto è cambiato, il numero
+      doveva seguirlo. Un numero che promette una regola vale solo finché la regola si applica davvero.
+
+      🔴 NON è MAJOR: il pacchetto si consegna da solo via FTP, e il codice nuovo legge l'archivio che c'è
+      in produzione. ⚠️ Il contrario però ha un limite da scrivere nel foglio: la distanza di un aeroporto
+      alternato è passata da intero a decimale DENTRO il `BodyJson`, e un `72.2` scritto con questa
+      versione, riletto da BINARI VECCHI, alza un errore che la lettura cattura restituendo NESSUNA riga —
+      la tabella sparirebbe a schermo senza un messaggio. Tornare indietro dopo che qualcuno ha scritto un
+      decimale non è gratis.
+    -->
+    <VipiVersione>1.4.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
