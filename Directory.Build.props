@@ -146,7 +146,21 @@
       la tabella sparirebbe a schermo senza un messaggio. Tornare indietro dopo che qualcuno ha scritto un
       decimale non è gratis.
     -->
-    <VipiVersione>1.4.0</VipiVersione>
+    <!--
+      1.4.1 — 2 settembre 2026, notte. **PATCH**, e stavolta la tabella si applica alla lettera: solo
+      correzioni, nessuna migrazione, nessuna pagina o sezione nuova. Dentro c'è §AV soltanto.
+
+      Due cose, e la seconda è quella che mancava per capire la prima:
+        · il **tornello** nel guscio dei cinque editor — una operazione per volta sul contesto della pagina.
+          La corsa non era un servizio iniettato male: erano DUE catene di caricamento della stessa pagina,
+          un gesto che ricarica e il `OnParametersSetAsync` del ridisegno che segue;
+        · **DiagnosticaCircuito**: un guasto dentro un circuito Blazor non passa dal middleware delle
+          richieste, quindi finiva in nessun file. Barra rossa a schermo e `diagnostica/` vuota.
+
+      ⚠️ Quattro file soli: sono cambiati solo `Vipi.Host` e `Vipi.Ui`. Niente `wwwroot`, niente frasi,
+      niente indice degli asset — e quindi niente della trappola del 24 agosto.
+    -->
+    <VipiVersione>1.4.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
