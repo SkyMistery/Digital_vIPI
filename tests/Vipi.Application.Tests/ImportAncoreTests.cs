@@ -101,4 +101,31 @@ public class ImportAncoreTests
 
         Assert.True(MappaturaColonne.Proponi(Spec, g).Intestazione);
     }
+
+    /// <summary>
+    /// ⚠️ Il difetto trovato guidando l'app il 2 settembre 2026: incollando la tabella copiata dal PDF, la
+    /// riga «AIRPORT NAVAIDS BEARING DISTANCE» non si spezza — le ancore cercano un ICAO e due numeri, e
+    /// un'intestazione non ne ha — quindi restava UNA cella sola, finiva fra i dati e si vedeva ROSSA. Chi
+    /// importava vedeva una riga illeggibile che era solo il titolo della tabella.
+    /// </summary>
+    [Fact]
+    public void L_intestazione_si_riconosce_anche_quando_resta_in_una_cella_sola()
+    {
+        var g = new Griglia(
+            new IReadOnlyList<string>[] { new[] { "AIRPORT NAVAIDS BEARING DISTANCE" }, new[] { "LIBA Amendola", "MNL", "308", "72.2" } },
+            FormaGriglia.RigaIntera);
+
+        Assert.True(MappaturaColonne.Proponi(Spec, g).Intestazione);
+    }
+
+    /// <summary>Ma una riga di DATI rimasta in una cella sola non diventa un'intestazione per comodita': non
+    /// nomina nessuna colonna, e va vista rossa.</summary>
+    [Fact]
+    public void Una_riga_di_dati_non_spezzata_resta_un_dato()
+    {
+        var g = new Griglia(
+            new IReadOnlyList<string>[] { new[] { "LIBA Amendola MNL TAC" } }, FormaGriglia.RigaIntera);
+
+        Assert.False(MappaturaColonne.Proponi(Spec, g).Intestazione);
+    }
 }

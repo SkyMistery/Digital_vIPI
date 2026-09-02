@@ -254,6 +254,14 @@
             _griglia, Spec, _proposta.Mappatura.Con(colonnaSpec, g), Risolutore);
     }
 
+    /// <summary>Applica la scelta fatta in una cella ambigua. Non si rilegge e non si ricostruisce niente:
+    /// la lettura era gia' giusta, mancava solo QUALE.</summary>
+    private void Scegli(int riga, int colonna, string? valore)
+    {
+        if (_proposta is null || !int.TryParse(valore, out var k) || k < 0) return;
+        _proposta = _proposta.ConScelta(riga, colonna, k);
+    }
+
     private Task Consegna(bool sostituisci) =>
         _proposta is null ? Task.CompletedTask : OnImporta.InvokeAsync(new RichiestaImport(_proposta, sostituisci));
 
@@ -365,12 +373,16 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var riga in p.Righe)
+                @for (var r = 0; r < p.Righe.Count; r++)
                 {
+                    var ri = r;
+                    var riga = p.Righe[ri];
                     <tr class="@(riga.Ok ? null : "imp-bad")">
                         <td class="muted imp-n">@riga.Numero</td>
-                        @foreach (var cella in riga.Celle)
+                        @for (var c = 0; c < riga.Celle.Count; c++)
                         {
+                            var ci = c;
+                            var cella = riga.Celle[ci];
                             <td class="@Classe(cella.Esito)" title="@Titolo(cella)">
                                 @if (cella.Esito == EsitoCella.Vuota)
                                 {
@@ -380,10 +392,21 @@
                                 {
                                     <span class="imp-raw">@cella.Grezzo</span>
                                 }
-                                else if (cella.Esito == EsitoCella.DaScegliere)
+                                else if (cella.Esito == EsitoCella.DaScegliere && cella.Candidati is { Count: > 0 } scelte)
                                 {
-                                    <span class="imp-raw">@cella.Grezzo</span>
-                                    <span class="muted"> @L["Imp_Choose"]</span>
+                                    @* ⚠️ La scelta si fa QUI. Dire «da scegliere» senza dare il modo di
+                                       scegliere lascerebbe la riga fuori per sempre: la regola e' «un codice
+                                       che e' di piu' impianti non si rifiuta, si chiede quale», e una domanda
+                                       senza risposta possibile e' un rifiuto scritto in modo gentile. *@
+                                    <select class="app-in imp-pick" aria-label="@L["Imp_Choose"]"
+                                            @onchange="e => Scegli(ri, ci, e.Value?.ToString())">
+                                        <option value="-1" selected>@L["Imp_Choose"]</option>
+                                        @for (var k = 0; k < scelte.Count; k++)
+                                        {
+                                            var ki = k;
+                                            <option value="@ki">@scelte[ki].Valore</option>
+                                        }
+                                    </select>
                                 }
                                 else
                                 {
@@ -411,7 +434,7 @@
         var note = new List<string>();
         if (cella.Grezzo.Length > 0 && cella.Grezzo != cella.Valore) note.Add(cella.Grezzo);
         if (cella.Nota is { Length: > 0 }) note.Add(cella.Nota);
-        if (cella.Candidati is { Count: > 0 }) note.Add(string.Join(" / ", cella.Candidati));
+        if (cella.Candidati is { Count: > 0 }) note.Add(string.Join(" / ", cella.Candidati.Select(x => x.Valore)));
         return string.Join(" — ", note);
     }
 

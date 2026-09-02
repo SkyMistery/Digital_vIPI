@@ -136,7 +136,7 @@ public sealed class RisolutoreCelle : IRisolutoreCelle
             esiti[cella] = scelte.Count == 1
                 ? new EsitoRisoluzione(Testo(scelte[0]), EsitoCella.Risolta, Chiave(scelte[0]))
                 : new EsitoRisoluzione("", EsitoCella.DaScegliere, null, "piu' impianti con questo codice",
-                    scelte.Select(Testo).ToList());
+                    scelte.Select(n => new Candidato(Testo(n), Chiave(n))).ToList());
         }
 
         return esiti;

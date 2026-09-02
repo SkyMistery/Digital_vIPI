@@ -25,6 +25,14 @@ public enum EsitoCella
     NonLetta,
 }
 
+/// <summary>
+/// Una delle scelte possibili per una cella ambigua.
+/// <para>⚠️ Porta la sua <b>identita'</b> e non solo il testo: sceglierne una deve bastare a scriverla, e un
+/// elenco di sole etichette costringerebbe a ricercarla — cioe' a poter scrivere qualcosa di diverso da
+/// quello che e' stato scelto.</para>
+/// </summary>
+public sealed record Candidato(string Valore, string? Chiave = null);
+
 /// <summary>Una cella dopo la lettura.</summary>
 /// <param name="Grezzo">Il testo com'era: l'anteprima lo mostra accanto all'esito.</param>
 /// <param name="Valore">Il valore che si salvera'. Per una cella risolta e' quello del catalogo.</param>
@@ -38,9 +46,13 @@ public sealed record CellaProposta(
     EsitoCella Esito,
     string? Chiave = null,
     string? Nota = null,
-    IReadOnlyList<string>? Candidati = null)
+    IReadOnlyList<Candidato>? Candidati = null)
 {
     public static CellaProposta Vuota(string grezzo = "") => new(grezzo, "", EsitoCella.Vuota);
+
+    /// <summary>La cella con la scelta fatta: diventa risolta, e si porta dietro l'identita' scelta.</summary>
+    public CellaProposta Scelta(Candidato c) =>
+        this with { Valore = c.Valore, Chiave = c.Chiave, Esito = EsitoCella.Risolta, Nota = null, Candidati = null };
 }
 
 /// <summary>Una riga letta: le sue celle, e da quale riga del testo incollato viene.</summary>
@@ -77,6 +89,29 @@ public sealed record Proposta(
 
     /// <summary>Le righe che restano fuori, con il loro perche' gia' dentro le celle.</summary>
     public IReadOnlyList<RigaProposta> Scartate => Righe.Where(r => !r.Ok).ToList();
+
+    /// <summary>
+    /// La proposta in cui la cella (<paramref name="riga"/>, <paramref name="colonna"/>) ha ricevuto la sua
+    /// scelta. ⚠️ Non si ricostruisce niente: la lettura era gia' giusta, mancava solo <b>quale</b> dei due
+    /// impianti — e ricostruire vorrebbe dire rifare le interrogazioni ai cataloghi a ogni tendina toccata.
+    /// </summary>
+    public Proposta ConScelta(int riga, int colonna, int candidato)
+    {
+        if (riga < 0 || riga >= Righe.Count) return this;
+        var r = Righe[riga];
+        if (colonna < 0 || colonna >= r.Celle.Count) return this;
+
+        var cella = r.Celle[colonna];
+        if (cella.Candidati is not { Count: > 0 } scelte
+            || candidato < 0 || candidato >= scelte.Count) return this;
+
+        var celle = r.Celle.ToArray();
+        celle[colonna] = cella.Scelta(scelte[candidato]);
+
+        var righe = Righe.ToArray();
+        righe[riga] = r with { Celle = celle };
+        return this with { Righe = righe };
+    }
 }
 
 /// <summary>Che cosa il catalogo sa dire di un valore incollato.</summary>
@@ -87,7 +122,7 @@ public sealed record EsitoRisoluzione(
     EsitoCella Esito,
     string? Chiave = null,
     string? Nota = null,
-    IReadOnlyList<string>? Candidati = null);
+    IReadOnlyList<Candidato>? Candidati = null);
 
 /// <summary>
 /// Chi sa cercare un valore incollato su un catalogo (aeroporti, radioassistenze).

@@ -73,13 +73,26 @@ public sealed record MappaturaColonne(IReadOnlyList<int> Colonne, bool Intestazi
         return new MappaturaColonne(mappa, intestazione);
     }
 
-    /// <summary>Vero se questa riga nomina almeno meta' delle colonne dichiarate.</summary>
+    /// <summary>
+    /// Vero se questa riga nomina almeno meta' delle colonne dichiarate.
+    ///
+    /// <para>⚠️ Vale anche per una riga rimasta <b>tutta in una cella</b>, e la verifica dal vivo del
+    /// 2 settembre 2026 ha mostrato perche': incollando una tabella copiata da un PDF, la riga
+    /// «AIRPORT NAVAIDS BEARING DISTANCE» non si spezza — le ancore cercano un ICAO e due numeri, e
+    /// un'intestazione non ne ha — quindi restava una cella sola e finiva fra i dati, <b>rossa</b>. Chi
+    /// importava vedeva una riga illeggibile che era solo il titolo della tabella.</para>
+    /// </summary>
     private static bool SembraIntestazione(SpecImport spec, IReadOnlyList<string> riga)
     {
         if (spec.ColonneLibere || spec.Colonne.Count == 0 || riga.Count == 0) return false;
 
         var combacianti = spec.Colonne.Count(c => riga.Any(cella => Combacia(c, cella)));
-        return combacianti * 2 >= spec.Colonne.Count;
+        if (combacianti * 2 >= spec.Colonne.Count) return true;
+
+        if (riga.Count > 1) return false;
+        var parole = (riga[0] ?? "").Split(new[] { ' ', '	' }, StringSplitOptions.RemoveEmptyEntries);
+        var nominate = spec.Colonne.Count(c => parole.Any(pa => Combacia(c, pa)));
+        return nominate * 2 >= spec.Colonne.Count;
     }
 
     /// <summary>

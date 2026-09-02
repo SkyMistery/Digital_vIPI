@@ -133,9 +133,33 @@ public class ImportPropostaTests
 
         var riga = Assert.Single(p.Righe);
         Assert.Equal(EsitoCella.DaScegliere, riga.Celle[1].Esito);
-        Assert.Equal(new[] { "GRO VOR", "GRO TACAN 35Y" }, riga.Celle[1].Candidati);
+        Assert.Equal(new[] { "GRO VOR", "GRO TACAN 35Y" },
+            riga.Celle[1].Candidati!.Select(c => c.Valore));
         Assert.False(riga.Ok);
         Assert.Empty(p.Buone);
+    }
+
+    /// <summary>
+    /// ⚠️ «Si chiede quale» deve avere una risposta possibile, o e' un rifiuto scritto in modo gentile: fatta
+    /// la scelta, la riga entra — e si porta dietro l'IDENTITA' scelta, non la sua etichetta.
+    /// </summary>
+    [Fact]
+    public async Task Fatta_la_scelta_la_riga_entra()
+    {
+        var g = Griglia.Leggi("LIBG\tGRO\t120\t30");
+        var p = await CostruttoreProposta.CostruisciAsync(g, Alternati, new RisolutoreFinto());
+
+        var scelto = p.ConScelta(0, 1, 1);
+
+        var cella = scelto.Righe[0].Celle[1];
+        Assert.Equal(EsitoCella.Risolta, cella.Esito);
+        Assert.Equal("GRO TACAN 35Y", cella.Valore);
+        Assert.Equal("GRO|VHF|35Y", cella.Chiave);
+        Assert.Single(scelto.Buone);
+
+        // ⚠️ E la proposta di partenza non e' cambiata: le righe si sostituiscono, non si mutano sotto i piedi
+        // di chi le sta guardando.
+        Assert.Equal(EsitoCella.DaScegliere, p.Righe[0].Celle[1].Esito);
     }
 
     [Fact]
@@ -230,7 +254,8 @@ public class ImportPropostaTests
                     (TipoCella.Radioassistenza, "MNL") => new EsitoRisoluzione("MNL TACAN 99Y", EsitoCella.Risolta, "MNL|TCN|99Y"),
                     (TipoCella.Radioassistenza, "BRD") => new EsitoRisoluzione("BRD TACAN 79X", EsitoCella.Risolta, "BRD|TCN|79X"),
                     (TipoCella.Radioassistenza, "GRO") => new EsitoRisoluzione("", EsitoCella.DaScegliere, null,
-                        "due impianti con questo codice", new[] { "GRO VOR", "GRO TACAN 35Y" }),
+                        "due impianti con questo codice",
+                        new[] { new Candidato("GRO VOR", "GRO|VHF|"), new Candidato("GRO TACAN 35Y", "GRO|VHF|35Y") }),
                     _ => null,
                 };
                 if (e is not null) esiti[v] = e;

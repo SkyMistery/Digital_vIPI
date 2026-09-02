@@ -4231,6 +4231,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .imp-ok{background:var(--tint-green-soft)}
 .imp-wait{background:var(--tint-yellow-soft)}
 .imp-ko{background:var(--tint-red)}
+.imp-pick{max-width:220px;font-size:12px}
 .imp-raw{text-decoration:underline wavy var(--line-red-strong);text-underline-offset:3px}
 tr.imp-bad td{opacity:.85}
 
