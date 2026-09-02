@@ -2,7 +2,9 @@ namespace Vipi.Application.Diagnostics;
 
 /// <summary>
 /// Registro dei guasti delle manutenzioni d'avvio non critiche (riconciliazioni documentali, proiezione dei
-/// settori, backfill e potatura delle release).
+/// settori, backfill delle release). ⚠️ La <b>potatura</b> delle release non è più fra queste dal 2 settembre
+/// 2026: la fa <c>ReleaseSweepHostedService</c> ogni 24 ore, perché all'avvio girava una volta sola e gli
+/// stati delle release invecchiano da soli al rollover AIRAC.
 ///
 /// <para><b>Perché esiste.</b> Quelle passate giravano senza protezione, e con <c>Restart=always</c> nel
 /// servizio systemd un loro guasto non era un degrado ma un <b>ciclo di riavvii</b>: il sito non parte, e il

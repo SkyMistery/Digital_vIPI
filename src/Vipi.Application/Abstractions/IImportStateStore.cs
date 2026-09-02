@@ -133,4 +133,13 @@ public static class ImportCategories
     /// aree di un ACC estero che l'admin ha appena abilitato.
     /// </summary>
     public const string SpecialAreaForeignOptOut = "SpecialAreaForeignOptOut";
+
+    /// <summary>
+    /// Lo sweep delle release (<c>ReleaseSweepHostedService</c>, dal 2 settembre 2026): ricalcolo degli stati
+    /// e potatura di quel che è scaduto. ⚠️ <b>Non è un import</b> e non compare in Sorgenti, come
+    /// <see cref="ImpactDrift"/>: non interroga nessuna sorgente. Chiave sua perché il fatto che lo muove —
+    /// il <b>rollover AIRAC</b> — non scrive niente da sé, e senza «quando ha girato l'ultima volta» uno
+    /// sweep fermo da settimane è indistinguibile da uno passato stanotte.
+    /// </summary>
+    public const string ReleaseSweep = "ReleaseSweep";
 }
