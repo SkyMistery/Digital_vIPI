@@ -1,6 +1,6 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 2 settembre 2026, sera — 🔴 **§AV: UNA CORSA TROVATA SU 1.4.0 E CHIUSA** (da consegnare come 1.4.1). Prima: ✅ **1.4.0 È IN PRODUZIONE** (timbro `1.4.0 · 669762f`, caricata alle 16:28 UTC, otto controlli pubblici verdi). Prima di quello: 🟢 **TUTTO IN `main`, NESSUN RAMO APERTO.** Fusi `dati-scalo-solo-militare` (§AS, §AT) e `import-tabelle` (§AU). Il pacchetto 1.3.1 sale a **SETTE** lavori: §AO §AP §AQ §AR §AS §AT §AU. Vedi il riquadro sotto «Dove siamo».
+**Ultimo aggiornamento:** 2 settembre 2026, notte — 📦 **PACCHETTO 1.4.1 PRONTO DA CARICARE** (§AV: la corsa, e la barra che sulle pagine dei documenti non c'era). Timbro `1.4.1 · 42f23f9`, 9 file, sha256 `f408bb3c…`, nessuna migrazione. Prima: ✅ **1.4.0 È IN PRODUZIONE** (timbro `1.4.0 · 669762f`, caricata alle 16:28 UTC, otto controlli pubblici verdi). Prima di quello: 🟢 **TUTTO IN `main`, NESSUN RAMO APERTO.** Fusi `dati-scalo-solo-militare` (§AS, §AT) e `import-tabelle` (§AU). Il pacchetto 1.3.1 sale a **SETTE** lavori: §AO §AP §AQ §AR §AS §AT §AU. Vedi il riquadro sotto «Dove siamo».
 
 **Ultimo aggiornamento:** 2 settembre 2026, sera — 🟡 **UN RAMO APERTO: `dati-scalo-solo-militare` (`7bef3c3e`), spinto e NON fuso.** `main` resta a **`b8e6b22c`**. Il ramo porta **DUE** lavori, entrambi da segnalazione del committente, **nessuna entità e nessuna migrazione**: **§AS** (i dati dello scalo scrivibili nell'editor del vSOP sui campi solo militari) e **§AT** (l'avviso di traduzione automatica diventa un gettone). 🔴 **Vanno nel pacchetto 1.3.1 insieme agli altri quattro** — che diventano **sei**. ⚠️ §AT cambia **`vipi-theme.css` e `vipi-print.css`**, cioè gli stessi due fogli che il pacchetto già portava: impronte nuove, `wwwroot` insieme all'indice `staticwebassets`.
 
@@ -42,8 +42,12 @@ cancellati — vale il riquadro qui sotto).
 >
 > ✅ Il pannello d'import è stato guardato dal vivo su produzione dal committente: funziona.
 >
-> 🔴 **Ma su 1.4.0 è tornata la corsa sul `DbContext`** (§AV), aggiungendo una sotto-sezione: **corretta in
-> `main`, non ancora consegnata**. Serve un **1.4.1** (PATCH: nessuna migrazione, nessuna pagina nuova).
+> 📦 **Il pacchetto 1.4.1 è costruito e provato**: `artifacts/publish/vipi-1.4.1-solo-file-cambiati.zip`,
+> 9 file, timbro `1.4.1 · 42f23f9`, **nessuna migrazione**. Foglio:
+> `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.4.1.md`. Dentro c'è §AV — il tornello contro la corsa — e la cosa
+> che il collaudo ha scoperto: 🔴 **sulle pagine dei documenti la barra «qualcosa è andato storto» non
+> esisteva** (`#blazor-error-ui` stava solo in `MainLayout`), quindi un circuito morto era **muto**. Era la
+> forma della seconda segnalazione della sera.
 >
 > ### I SETTE lavori che porta (§AO §AP §AQ §AR §AS §AT §AU)
 >
