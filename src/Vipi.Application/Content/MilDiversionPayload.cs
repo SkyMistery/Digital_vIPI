@@ -1,8 +1,8 @@
 ﻿using System.Globalization;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Import;
 
 namespace Vipi.Application.Content;
 
@@ -39,33 +39,12 @@ public static class MilDiversionText
     /// <para>⚠️ Accetta anche l'unita' scritta a mano (<c>72.2NM</c>): e' quel che si incolla da un PDF, e
     /// rifiutarla vorrebbe dire far ripulire a mano la colonna che l'import esiste per non far ridigitare.</para>
     /// </summary>
-    public static decimal? LeggiDistanza(string? testo) => Numero(testo);
+    public static decimal? LeggiDistanza(string? testo) => TestoTabellare.Numero(testo);
 
     /// <summary>L'inverso di <see cref="Rilevamento"/>: <c>308</c>, <c>308 gradi</c> o il numero col simbolo danno 308.</summary>
     public static int? LeggiRilevamento(string? testo) =>
-        Numero(testo) is { } n && n >= 0 && n <= 360 ? (int)decimal.Round(n) : null;
+        TestoTabellare.Numero(testo) is { } n && n >= 0 && n <= 360 ? (int)decimal.Round(n) : null;
 
-    /// <summary>Il primo numero scritto nel testo, con la virgola letta come punto e le unita' ignorate.</summary>
-    private static decimal? Numero(string? testo)
-    {
-        if (string.IsNullOrWhiteSpace(testo)) return null;
-
-        var cifre = new StringBuilder();
-        var visto = false;
-        foreach (var c in testo!)
-        {
-            if (c >= '0' && c <= '9') { cifre.Append(c); visto = true; continue; }
-            if ((c == '.' || c == ',') && visto && cifre.ToString().IndexOf('.') < 0) { cifre.Append('.'); continue; }
-            if (c == '-' && cifre.Length == 0) { cifre.Append('-'); continue; }
-            if (visto) break;   // finito il numero: quel che segue e' l'unita'
-        }
-
-        var t = cifre.ToString().TrimEnd('.');
-        return t.Length > 0 && t != "-"
-               && decimal.TryParse(t, NumberStyles.Number, CultureInfo.InvariantCulture, out var v)
-            ? v
-            : null;
-    }
 }
 
 /// <summary>

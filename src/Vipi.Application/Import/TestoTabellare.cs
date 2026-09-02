@@ -63,6 +63,39 @@ public static class TestoTabellare
         return sb.ToString().Trim();
     }
 
+    /// <summary>
+    /// Il <b>primo numero</b> scritto nel testo, con la virgola letta come punto e l'unita' ignorata:
+    /// <c>72.2</c>, <c>72,2</c>, <c>72.2NM</c> e <c>308 gradi</c> danno tutti il loro numero.
+    ///
+    /// <para>⚠️ La virgola vale come il punto perche' chi scrive in italiano digita «72,2»: con la sola
+    /// lettura invariante quel valore diventa <c>null</c> in silenzio, e la cella si svuota da sola dopo
+    /// essere stata compilata.</para>
+    /// <para>⚠️ L'unita' si ignora invece di far fallire la lettura: <c>72.2NM</c> e' esattamente quel che si
+    /// incolla da un PDF, e rifiutarlo vorrebbe dire far ripulire a mano la colonna che l'import esiste per
+    /// non far ridigitare.</para>
+    /// </summary>
+    public static decimal? Numero(string? testo)
+    {
+        if (string.IsNullOrWhiteSpace(testo)) return null;
+
+        var cifre = new StringBuilder();
+        var visto = false;
+        foreach (var c in testo!)
+        {
+            if (c >= '0' && c <= '9') { cifre.Append(c); visto = true; continue; }
+            if ((c == '.' || c == ',') && visto && cifre.ToString().IndexOf('.') < 0) { cifre.Append('.'); continue; }
+            if (c == '-' && cifre.Length == 0) { cifre.Append('-'); continue; }
+            if (visto) break;   // finito il numero: quel che segue e' l'unita'
+        }
+
+        var t = cifre.ToString().TrimEnd('.');
+        return t.Length > 0 && t != "-"
+               && decimal.TryParse(t, System.Globalization.NumberStyles.Number,
+                   System.Globalization.CultureInfo.InvariantCulture, out var v)
+            ? v
+            : null;
+    }
+
     /// <summary>Le righe non vuote del testo, già normalizzate.</summary>
     public static IReadOnlyList<string> Righe(string? testo) =>
         Normalizza(testo).Split('\n').Where(r => r.Trim().Length > 0).ToList();
