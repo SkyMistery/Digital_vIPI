@@ -114,23 +114,41 @@
      tutto il sito. Chrome, Edge e Firefox la ripetono; Safari la stampa solo sulla prima pagina, ed e' il
      motivo per cui l'avviso sta anche in `.pm-sim` e sotto il titolo a schermo.
 
-     ⚠️ I -4mm SONO UN NUMERO MISURATO, non scelto a occhio, e stanno fra due muri. Un elemento fisso si
-     posiziona sull'area di pagina, cioe' dentro i margini: a `bottom:0` sta esattamente dove finisce il
-     testo, e su un foglio pieno le due righe si toccano (misurato sulla vIPI di LIBB, 21 fogli: -1,1mm,
-     cioe' sovrapposte). Scendendo si guadagna distanza, ma sotto una certa soglia Chrome NON DISEGNA PIU'
-     IL PIE' SULLA PRIMA PAGINA — la ridisegna dalla seconda in poi, e il difetto e' invisibile su ogni
-     documento che ha anche `PrintMeta`. Misurato con printToPDF su una pagina di una pagina sola
-     (`/services/vsop/libb/mil`) e sulla home: 0, -2mm e -4mm escono su tutti i fogli; -6mm e -8mm
-     saltano il PRIMO. A -4mm la distanza dal testo e' +2,9mm.
+     ⚠️ LA REGOLA E' UNA SOLA: `bottom` NON PUO' ESSERE NEGATIVO. Un elemento fisso si posiziona sull'area
+     di pagina (dentro i margini), e la parte che finisce SOTTO il suo bordo inferiore Chrome non la taglia:
+     la RIDISEGNA IN CIMA AL FOGLIO SUCCESSIVO. Con `bottom:-4mm` e riga da 8mm il lettore vedeva l'avviso
+     tagliato per il lungo fra due fogli — meta' alta delle lettere in fondo a un foglio, meta' bassa in cima
+     al successivo — e il fondo bianco della meta' di sopra cancellava la prima riga di quel foglio,
+     intestazioni di tabella comprese. Misurato: 41 fogli su 50, su nove pagine.
 
-     ⚠️ Il muro dipende da `height`/`line-height`: la riga sparisce quando la sua BASE esce dall'area di
-     pagina, e con 8mm di riga questo accade fra -4mm e -6mm. Chi cambia l'altezza rimisuri, non deduca.
+     ⚠️ E NON SI RIPARA CALIBRANDO I MILLIMETRI. Una sporgenza di 2mm sembra innocua con A4 e i margini di
+     questo foglio, ma la stampa vera non e' una sola: bastano la scala al 90% (il «adatta alla pagina» del
+     dialogo) o i margini scelti a mano e il muro si sposta. Misurato sulla vIPI di Brindisi:
 
-     ⚠️ Il fondo bianco e' la rete: se un giorno una riga di testo arrivasse comunque fin qui, a perdersi
-     sarebbe quella riga e non l'avviso. */
+     | bottom | height | cssPage | dialogo | margini 0 | scala 90% | scala 110% | Letter |
+     |--------|--------|---------|---------|-----------|-----------|------------|--------|
+     | -4mm   | 8mm    | 20/21   | 20      | 20        | 18/19     | 23/24      | 20     |
+     | -2mm   | 5mm    | 0       | **2**   | **2**     | **11**    | **8**      | **2**  |
+     | **0**  | 3.5mm  | **0**   | **0**   | **0**     | **0**     | **0**      | **0**  |
+
+     Solo `bottom:0` regge a tutte e sei: e' un invariante, non una taratura. (`transform:translateY` non
+     serve: Chrome frammenta quel che DIPINGE, non il box di layout — provato, 20 fogli su 21.)
+
+     ⚠️ IL PREZZO, dichiarato: stando dentro l'area di pagina la scatola sta dove scorre il testo, e il suo
+     fondo bianco mangia le descendenti dell'ultima riga di un foglio pieno. Non e' eliminabile con
+     `position:fixed` — il margine di pagina non aiuta, perche' il testo arriva comunque fino al bordo
+     dell'area, e la scatola e' ancorata a QUEL bordo. Si limita tenendo la riga BASSA: 3.5mm e' il minimo
+     che contiene un 8.5pt. Chi la alza, allarga il morso.
+
+     ⚠️ E si misura guardando i PIXEL del foglio (printToPDF, poi pdfjs reso su canvas dentro Edge e
+     screenshot), non il testo estratto: il testo estratto dice «l'avviso c'e'» anche quando ne e' stampata
+     meta', ed e' cosi' che il difetto e' passato per verde alla prima consegna.
+
+     ⚠️ Il fondo bianco resta la rete: se una riga arrivasse comunque fin qui, a perdersi sarebbe quella
+     riga e non l'avviso. */
   .vipi-root .sim-foot {
-    position: fixed; left: 0; right: 0; bottom: -4mm;
-    height: 8mm; line-height: 8mm;
+    position: fixed; left: 0; right: 0; bottom: 0;
+    height: 3.5mm; line-height: 3.5mm;
     margin: 0; text-align: center; font-size: 8.5pt;
     background: #fff;
   }
