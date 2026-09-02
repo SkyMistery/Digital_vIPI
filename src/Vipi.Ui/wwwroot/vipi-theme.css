@@ -3271,10 +3271,8 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .st-head .asp-cycle{width:92px;border:1px solid var(--line);border-radius:8px;padding:5px 9px;
   font-family:var(--font-body);font-size:12.5px;background:var(--surface);color:var(--ink)}
 .st-head .asp-cycle:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px var(--line-atmos-soft)}
-/* ⚠️ L'`<InputFile>` e' un `<input type=file>` vero dentro l'etichetta: si nasconde, non si toglie — e'
-   lui a ricevere il clic e ad aprire la finestra di sistema. */
-.st-head .asp-file{position:relative;overflow:hidden;cursor:pointer}
-.st-head .asp-file input[type=file]{position:absolute;inset:0;opacity:0;width:100%;cursor:pointer}
+/* La regola del file caricato sta in `.btn-file` (vedi «Scegliere un file»): era qui, scoped alla testata
+   della pagina spazi aerei, ed e' servita una seconda volta all'import delle tabelle. */
 
 /* Le colonne, tabella per tabella: `.mil-table` e' `table-layout:fixed`, quindi senza dichiararle le
    sette colonne dei volumi verrebbero larghe uguali e il nome — l'unica che si legge — starebbe stretto
@@ -4233,6 +4231,19 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .vipi-rec.vipi-riconnessione-arresa .vipi-rec-b{display:inline-block}
 
 
+
+/* ── Scegliere un file, con l'aspetto dell'applicazione ─────────────────────────────────────────────────
+   ⚠️ Un `<input type=file>` nudo disegna il bottone del SISTEMA: «Choose File / No file chosen», in
+   inglese qualunque sia la lingua della pagina, con il suo carattere e la sua altezza. In una barra di
+   comandi nostri si vede da tre metri che non e' nostro.
+
+   La cura e' un'etichetta con l'aspetto di un bottone e l'input VERO dentro, invisibile ma sovrapposto:
+   si nasconde, non si toglie — e' lui a ricevere il clic e ad aprire la finestra di sistema, quindi
+   niente JavaScript e niente `click()` simulati. */
+.btn-file{position:relative;overflow:hidden;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn-file input[type=file]{position:absolute;inset:0;opacity:0;width:100%;cursor:pointer}
+.btn-file:has(input:disabled){opacity:.5;cursor:not-allowed}
+
 /* ── Import di una tabella ──────────────────────────────────────────────────────────────────────────────
    Un pannello che si apre DENTRO l'editor, non una finestra sopra: l'anteprima va confrontata con la
    tabella che c'e' gia', e una modale la coprirebbe proprio mentre serve.
@@ -4243,8 +4254,20 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .imp-ta{width:100%;font-family:var(--font-mono,ui-monospace,monospace);font-size:12.5px}
 .imp-soft{font-weight:400}
 .imp-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}
-.imp-check{display:inline-flex;gap:4px;align-items:center;font-size:12.5px}
-.imp-sheet{max-width:180px}
+/* ⚠️ Tutti i comandi della barra alla STESSA altezza. Lasciati alle loro misure naturali erano un file a
+   21px, una tendina a 39px e due caselle a 19px: verticalmente centrati — quello lo faceva gia'
+   `align-items:center` — ma di tre pesi diversi, e una riga di comandi cosi' sembra montata a caso. */
+.imp-tools > *{height:32px;box-sizing:border-box}
+.imp-tools .btn{padding:0 12px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px}
+.imp-tools .app-in{padding:0 10px;font-size:12.5px}
+.imp-tools .pill{display:inline-flex;align-items:center}
+/* Le due caselle sono comandi come gli altri e ne portano la cornice: una spunta col testo nudo, in mezzo
+   a un bottone e a una tendina, si legge come un'etichetta e non come qualcosa da premere. */
+.imp-check{display:inline-flex;gap:6px;align-items:center;padding:0 10px;font-size:12.5px;cursor:pointer;
+  border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink)}
+.imp-check input{margin:0;cursor:pointer}
+.imp-check:has(input:checked){background:var(--tint-atmos);border-color:var(--line-atmos);color:var(--brand-ink)}
+.imp-sheet{max-width:200px}
 .imp-foot{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
 .imp-map{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
 .imp-map-one{display:flex;flex-direction:column;gap:2px;font-size:12px}

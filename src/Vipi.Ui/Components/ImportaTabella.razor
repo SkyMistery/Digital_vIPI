@@ -22,7 +22,14 @@
     </div>
 
     <div class="imp-tools">
-        <InputFile OnChange="CaricaFile" accept=".csv,.tsv,.txt,.xlsx" aria-label="@L["Imp_LoadFile"]" />
+        @* ⚠️ Un `<input type=file>` nudo disegna il bottone del SISTEMA — «Choose File», in inglese
+           qualunque sia la lingua della pagina. L'etichetta ha l'aspetto nostro e l'input vero ci sta
+           dentro, invisibile ma sovrapposto: e' lui a ricevere il clic. Stessa tecnica della testata degli
+           spazi aerei, ora in una classe sola (`.btn-file`). *@
+        <label class="btn ghost btn-file" title="@L["Imp_LoadFileTitle"]">
+            <Icon Name="file" Size="14" /> @L["Imp_LoadFile"]
+            <InputFile OnChange="CaricaFile" accept=".csv,.tsv,.txt,.xlsx" aria-label="@L["Imp_LoadFile"]" />
+        </label>
 
         @* ⚠️ Non e' un formato: e' la stessa tabella scritta in un altro documento. Sul corpus vero (quindici
            SOP con le stesse sezioni) e' il guadagno piu' grosso dell'import, e non ha niente da riconoscere. *@

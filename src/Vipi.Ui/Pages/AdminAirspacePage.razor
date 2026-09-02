@@ -49,7 +49,7 @@
                 <input class="asp-cycle" maxlength="8" placeholder="@L["Asp_CyclePh"]"
                        aria-label="@L["Asp_Cycle"]" title="@L["Asp_CycleTitle"]"
                        @bind="_ciclo" @bind:event="oninput" />
-                <label class="btn ghost asp-file">
+                <label class="btn ghost btn-file">
                     <Icon Name="file" Size="14" /> @L["Asp_Upload"]
                     <InputFile OnChange="CaricaAsync" accept=".kmz,.kml" disabled="@_busy"
                                aria-label="@L["Asp_Upload"]" />

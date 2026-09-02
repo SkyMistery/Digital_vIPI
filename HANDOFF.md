@@ -40,7 +40,7 @@ cancellati — vale il riquadro qui sotto).
 >
 > ✅ Misurato **sul risultato della fusione**, non sui rami separati: build Release verde sui due TFM
 > (`--no-incremental`, **0 avvisi**) e **suite intera verde su NOVE progetti, E2E compresi** —
-> **5058 test**, di cui **276 E2E**. ⚠️ Il verde si legge **contando i progetti** nel riepilogo, non
+> **5061 test**, di cui **276 E2E**. ⚠️ Il verde si legge **contando i progetti** nel riepilogo, non
 > dall'exit code: `dotnet test` esce 0 anche quando `Vipi.E2E.Tests` non si è costruito perché l'host era
 > acceso.
 >

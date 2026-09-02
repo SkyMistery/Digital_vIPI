@@ -3116,7 +3116,8 @@
   <data name="Imp_PasteLabel" xml:space="preserve"><value>Paste the table</value></data>
   <data name="Imp_PasteHint" xml:space="preserve"><value>from Excel, a CSV or a PDF; or load a file</value></data>
   <data name="Imp_PastePh" xml:space="preserve"><value>AIRPORT&#9;NAVAIDS&#9;BEARING&#9;DISTANCE</value></data>
-  <data name="Imp_LoadFile" xml:space="preserve"><value>Load a .csv or .xlsx file</value></data>
+  <data name="Imp_LoadFileTitle" xml:space="preserve"><value>A .csv or .xlsx: the table is read and previewed before anything is written</value></data>
+  <data name="Imp_LoadFile" xml:space="preserve"><value>Load a file</value></data>
   <data name="Imp_Sheet" xml:space="preserve"><value>Sheet</value></data>
   <data name="Imp_HeaderRow" xml:space="preserve"><value>First row is the header</value></data>
   <data name="Imp_FixedWidth" xml:space="preserve"><value>Fixed-width columns</value></data>
