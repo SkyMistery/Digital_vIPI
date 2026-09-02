@@ -3109,6 +3109,8 @@
   <data name="Reconnect_Failed" xml:space="preserve"><value>Non riesco a ricollegarmi. Controlla la connessione, poi ricarica la pagina.</value></data>
   <data name="Reconnect_Reload" xml:space="preserve"><value>Ricarica la pagina</value></data>
   <!-- Import di una tabella: incolla, CSV, XLSX, anteprima -->
+  <data name="Imp_Export" xml:space="preserve"><value>Esporta CSV</value></data>
+  <data name="Imp_ExportTitle" xml:space="preserve"><value>Scarica la tabella come CSV, da sistemare nel foglio di calcolo e reimportare</value></data>
   <data name="Imp_Open" xml:space="preserve"><value>Importa</value></data>
   <data name="Imp_PasteLabel" xml:space="preserve"><value>Incolla la tabella</value></data>
   <data name="Imp_PasteHint" xml:space="preserve"><value>da Excel, da un CSV o da un PDF; oppure carica un file</value></data>

@@ -24,11 +24,19 @@ namespace Vipi.Application.Import;
 /// </summary>
 public static class TestoTabellare
 {
-    /// <summary>Fine-riga a <c>\n</c> e spazi unificatori a spazio normale. Si applica sempre.</summary>
+    /// <summary>
+    /// Fine-riga a <c>\n</c>, spazi unificatori a spazio normale, e via il segno d'ordine dei byte in testa.
+    /// Si applica sempre.
+    ///
+    /// <para>⚠️ Il segno d'ordine dei byte e' <b>invisibile</b> e apre ogni CSV scritto per Excel — compreso
+    /// il nostro. Lasciato dentro diventa parte della PRIMA cella: l'intestazione «Nome» si chiama
+    /// «(segno)Nome», non combacia con nessun nome di colonna, e l'unica cosa che si vede e' una mappatura
+    /// che «non funziona» su un file che sembra giusto. Trovato chiudendo il giro esporta-reimporta.</para>
+    /// </summary>
     public static string Normalizza(string? testo) =>
         string.IsNullOrEmpty(testo)
             ? ""
-            : testo!.Replace("\r\n", "\n").Replace('\r', '\n')
+            : testo!.TrimStart('\uFEFF').Replace("\r\n", "\n").Replace('\r', '\n')
                 .Replace('\u00A0', ' ')    // spazio unificatore: esce da Word e dal web
                 .Replace('\u202F', ' ')    // unificatore stretto
                 .Replace('\u2009', ' ');   // spazio sottile
@@ -104,9 +112,9 @@ public static class TestoTabellare
     /// I tagli di colonna <b>suggeriti</b> per il modo a larghezza fissa: le posizioni dove <b>tutte</b> le
     /// righe hanno uno spazio (o sono già finite) e subito dopo almeno una riga riprende a scrivere.
     ///
-    /// <para>⚠️ È un suggerimento, non una lettura: i tagli l'utente li trascina. Una tabella copiata da un
-    /// PDF con una colonna piena su tutte le righe non ha nessun taglio da suggerire, e va bene così — è il
-    /// motivo per cui il modo esiste con le maniglie invece che da solo.</para>
+    /// <para>⚠️ È un suggerimento, non una lettura: i tagli si mettono e si tolgono cliccando il righello.
+    /// Una tabella copiata da un PDF con una colonna piena su tutte le righe non ha nessun taglio da
+    /// suggerire, e va bene così — è il motivo per cui il modo esiste con il righello invece che da solo.</para>
     /// </summary>
     public static IReadOnlyList<int> TagliSuggeriti(string? testo)
     {

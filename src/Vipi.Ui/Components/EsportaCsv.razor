@@ -1,0 +1,31 @@
+@* Il tasto che porta via una tabella come CSV.
+
+   ⚠️ Sta accanto all'import e non altrove: sono i due versi dello stesso giro — si esporta, si sistema nel
+   foglio di calcolo, si reimporta con «sostituisci». Un'esportazione nascosta in un menu farebbe rifare a
+   mano proprio il lavoro che l'import esiste per evitare.
+
+   ⚠️ Il file lo consegna il browser (`vipiScaricaTesto`): il testo e' gia' una stringa, e passarla come tale
+   costa meno di uno stream .NET. *@
+@using Vipi.Application.Import
+@inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
+
+@if (Righe.Count > 0)
+{
+    <button type="button" class="btn ghost" title="@L["Imp_ExportTitle"]" @onclick="Scarica">
+        ⤒ @L["Imp_Export"]
+    </button>
+}
+
+@code {
+    /// <summary>Come si chiamera' il file, senza estensione.</summary>
+    [Parameter] public string Nome { get; set; } = "tabella";
+
+    [Parameter] public IReadOnlyList<string> Colonne { get; set; } = Array.Empty<string>();
+
+    [Parameter] public IReadOnlyList<IReadOnlyList<string>> Righe { get; set; } =
+        Array.Empty<IReadOnlyList<string>>();
+
+    private async Task Scarica() =>
+        await JS.InvokeVoidAsync("vipiScaricaTesto", Csv.NomeFile(Nome), Csv.Scrivi(Colonne, Righe));
+}

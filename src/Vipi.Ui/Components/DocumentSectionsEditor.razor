@@ -695,6 +695,7 @@ else
             @* ⚠️ L'import sta ACCANTO a «+ riga»: e' l'alternativa allo scriverle una per una, ed e' li' che
                se ne sente il bisogno. *@
             <button class="btn ghost" @onclick="() => ApriImport(b)">⤓ @L["Imp_Open"]</button>
+            <EsportaCsv Nome="tabella" Colonne="cols" Righe="rows.Select(r => (IReadOnlyList<string>)r).ToList()" />
         </div>
         @if (_importBlockId == b.Id)
         {

@@ -42,7 +42,7 @@ Puro, senza IO. Da testo o da file a `string[][]`. Le porte:
 | **CSV** | `;` o `,` con conteggio stabile | virgolette RFC4180, doppio apice = apice |
 | **Markdown** | righe che iniziano e finiscono con `\|` | si salta la riga `\|---\|` |
 | **HTML** | contiene `<table` | ⚠️ **la porta a fedeltà più alta**: è ciò che Excel/Word/browser mettono davvero in clipboard come `text/html`. Le celle sono celle: niente separatore da indovinare, niente multi-parola ambiguo |
-| **Larghezza fissa** | scelta a mano | separatori di colonna trascinabili sull'anteprima |
+| **Larghezza fissa** | scelta a mano | i tagli di colonna si mettono cliccando un righello sull'anteprima |
 | **Ancore di spec** | ripiego | la spec fornisce il suo `SplitLine` (vedi §Ancore) |
 | **XLSX** | file | zip + `xl/worksheets/sheet*.xml` + `xl/sharedStrings.xml`, **zero pacchetti** |
 
@@ -93,7 +93,7 @@ generalizzata.
 ### Stadio 4 — Approvazione (`ImportaTabella.razor`)
 
 Un solo componente, aperto da qualunque editor con la chiave della spec. Griglia d'anteprima con
-pastiglia per cella: **risolto dal DB** · **testo com'era** · **non letto** (correggibile in linea).
+colore per cella: **risolto dal catalogo** · **testo com'era** · **non letto** (il testo originale e il perché stanno nel fumetto).
 Poi «Importa N righe», con **in coda** (default) o **sostituisci**.
 
 ⚠️ **Prima del tasto non si scrive niente.** Un incolla che salvasse metterebbe in archivio la propria

@@ -194,4 +194,50 @@ public class ImportGrigliaTests
         Assert.Single(g.Righe);
         Assert.Equal(new[] { "a", "b" }, g.Riga(0));
     }
+
+    // ---- il giro si chiude -----------------------------------------------------------------------------
+
+    /// <summary>
+    /// ⚠️ L'esportazione e' il verso opposto dell'import, e deve chiudere il giro: quel che esce da
+    /// <c>Csv.Scrivi</c> si rilegge con <c>Griglia.Leggi</c> senza che nessuno scelga niente. Il punto e
+    /// virgola non e' una preferenza: e' il primo separatore che la lettura prova, ed e' quello che apre
+    /// bene in un foglio di calcolo italiano.
+    /// </summary>
+    [Fact]
+    public void Quel_che_si_esporta_si_rilegge()
+    {
+        var csv = Vipi.Application.Import.Csv.Scrivi(
+            new[] { "Nome", "Note" },
+            new[]
+            {
+                new[] { "Alfa", "uno; due" },
+                new[] { "Beta", "con \"virgolette\"" },
+                new[] { "Gamma", "riga\nspezzata" },
+            });
+
+        var g = Griglia.Leggi(csv);
+
+        Assert.Equal(FormaGriglia.Csv, g.Forma);
+        Assert.Equal(new[] { "Nome", "Note" }, g.Riga(0));
+        Assert.Equal(new[] { "Alfa", "uno; due" }, g.Riga(1));
+        Assert.Equal(new[] { "Beta", "con \"virgolette\"" }, g.Riga(2));
+        Assert.Equal(new[] { "Gamma", "riga\nspezzata" }, g.Riga(3));
+    }
+
+    /// <summary>Il segno d'ordine dei byte in testa non deve diventare parte della prima cella: senza la
+    /// pulizia, l'intestazione «Nome» si chiamerebbe «﻿Nome» e non combacerebbe con niente.</summary>
+    [Fact]
+    public void Il_segno_d_ordine_dei_byte_non_entra_nella_prima_cella()
+    {
+        var csv = Vipi.Application.Import.Csv.Scrivi(new[] { "Nome", "Note" }, new[] { new[] { "a", "b" } });
+
+        Assert.Equal("Nome", Griglia.Leggi(csv).Riga(0)[0]);
+    }
+
+    [Fact]
+    public void Il_nome_del_file_non_fa_arrabbiare_nessun_sistema()
+    {
+        Assert.Equal("Aeroporti-alternati-LIBA.csv",
+            Vipi.Application.Import.Csv.NomeFile("Aeroporti alternati / LIBA"));
+    }
 }
