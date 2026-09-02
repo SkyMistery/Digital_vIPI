@@ -3113,4 +3113,35 @@
   <data name="Reconnect_Rejected" xml:space="preserve"><value>Il server è ripartito: ricarico la pagina.</value></data>
   <data name="Reconnect_Failed" xml:space="preserve"><value>Non riesco a ricollegarmi. Controlla la connessione, poi ricarica la pagina.</value></data>
   <data name="Reconnect_Reload" xml:space="preserve"><value>Ricarica la pagina</value></data>
+  <!-- Import di una tabella: incolla, CSV, XLSX, anteprima -->
+  <data name="Imp_Export" xml:space="preserve"><value>Esporta CSV</value></data>
+  <data name="Imp_ExportTitle" xml:space="preserve"><value>Scarica la tabella come CSV, da sistemare nel foglio di calcolo e reimportare</value></data>
+  <data name="Imp_ImportAppendOne" xml:space="preserve"><value>Aggiungi 1 riga in coda</value></data>
+  <data name="Imp_ImportReplaceOne" xml:space="preserve"><value>Sostituisci con 1 riga</value></data>
+  <data name="Imp_SkippedOne" xml:space="preserve"><value>1 riga resta fuori</value></data>
+  <data name="Imp_FromDoc" xml:space="preserve"><value>Da un altro documento…</value></data>
+  <data name="Imp_Open" xml:space="preserve"><value>Importa</value></data>
+  <data name="Imp_PasteLabel" xml:space="preserve"><value>Incolla la tabella</value></data>
+  <data name="Imp_PasteHint" xml:space="preserve"><value>da Excel, da un CSV o da un PDF; oppure carica un file</value></data>
+  <data name="Imp_PastePh" xml:space="preserve"><value>AIRPORT&#9;NAVAIDS&#9;BEARING&#9;DISTANCE</value></data>
+  <data name="Imp_LoadFile" xml:space="preserve"><value>Carica un file .csv o .xlsx</value></data>
+  <data name="Imp_Sheet" xml:space="preserve"><value>Foglio</value></data>
+  <data name="Imp_HeaderRow" xml:space="preserve"><value>La prima riga e' l'intestazione</value></data>
+  <data name="Imp_FixedWidth" xml:space="preserve"><value>Colonne a larghezza fissa</value></data>
+  <data name="Imp_FormTitle" xml:space="preserve"><value>Come e' stato letto il testo</value></data>
+  <data name="Imp_FormTabs" xml:space="preserve"><value>tabulazioni</value></data>
+  <data name="Imp_FormCsv" xml:space="preserve"><value>CSV</value></data>
+  <data name="Imp_FormMarkdown" xml:space="preserve"><value>Markdown</value></data>
+  <data name="Imp_FormHtml" xml:space="preserve"><value>tabella HTML</value></data>
+  <data name="Imp_FormXlsx" xml:space="preserve"><value>foglio di calcolo</value></data>
+  <data name="Imp_FormFixed" xml:space="preserve"><value>larghezza fissa</value></data>
+  <data name="Imp_FormLines" xml:space="preserve"><value>righe intere</value></data>
+  <data name="Imp_CutsHint" xml:space="preserve"><value>Clicca il righello per mettere o togliere un taglio di colonna.</value></data>
+  <data name="Imp_CutsSuggest" xml:space="preserve"><value>Tagli suggeriti</value></data>
+  <data name="Imp_NoColumn" xml:space="preserve"><value>(nessuna)</value></data>
+  <data name="Imp_ColumnN" xml:space="preserve"><value>Colonna {0}</value></data>
+  <data name="Imp_Choose" xml:space="preserve"><value>(da scegliere)</value></data>
+  <data name="Imp_ImportAppend" xml:space="preserve"><value>Aggiungi {0} righe in coda</value></data>
+  <data name="Imp_ImportReplace" xml:space="preserve"><value>Sostituisci con {0} righe</value></data>
+  <data name="Imp_Skipped" xml:space="preserve"><value>{0} righe restano fuori</value></data>
 </root>

@@ -8,6 +8,8 @@
 @inject IMilitaryDocumentService Militari
 @inject Vipi.Application.Abstractions.INavaidCatalog Radioassistenze
 @inject Vipi.Application.Abstractions.IAirportNameLookup Aeroporti
+@using Vipi.Application.Import
+@inject Vipi.Application.Import.IRisolutoreCelle RisolutoreCelle
 @inject IStationResolver Stations
 @inject IEditAuthorizationService Authz
 @inject IJSRuntime JS
@@ -366,6 +368,7 @@ else
             await CaricaRadioassistenzeAsync();
             await CaricaAlternatiAsync();
             await CaricaTabelleAsync();
+            await CaricaAltriSopAsync();
             _areeScelte = await Militari.ResolveRegulatedAreasAsync(_regulated);
         }
         catch (EditNotAllowedException) { _denied = true; }
@@ -408,7 +411,10 @@ else
                                      Editing="_shell.IsEditing"
                                      OnAdd="AggiungiAlternato" OnRemove="TogliAlternato" OnMove="SpostaAlternato"
                                      OnAddNavaid="AggiungiNavaidAlternato" OnRemoveNavaid="TogliNavaidAlternato"
-                                     OnSetNumber="ScriviNumeroAlternato" />
+                                     OnSetRilevamento="ScriviRilevamentoAlternato"
+                                     OnSetDistanza="ScriviDistanzaAlternato"
+                                     Risolutore="RisolutoreCelle" OnImporta="ImportaAlternati"
+                                     Sorgenti="_altriSop" CaricaSorgente="AlternatiDiUnAltroSop" />
                 break;
             case "regulated":
                 @* Come l'APP: nessuna area di default, si scelgono tutte a mano. Sotto, la tabella: nome e
@@ -421,13 +427,19 @@ else
                 break;
             case "callsigns":
                 <MilFixedTableEditor Colonne="MilDocumentPage.ColonneNominativi(L)" Righe="_nominativi"
-                                     Editing="_shell.IsEditing" OnAdd="AggiungiNominativo" OnRemove="TogliNominativo"
-                                     OnMove="SpostaNominativo" OnSet="ScriviNominativo" />
+                                     Chiave="milcallsigns" Editing="_shell.IsEditing"
+                                     OnAdd="AggiungiNominativo" OnRemove="TogliNominativo"
+                                     OnMove="SpostaNominativo" OnSet="ScriviNominativo"
+                                     OnImporta="ImportaNominativi"
+                                     Sorgenti="_altriSop" CaricaSorgente="NominativiDiUnAltroSop" />
                 break;
             case "parkings":
                 <MilFixedTableEditor Colonne="MilDocumentPage.ColonneParcheggi(L)" Righe="_parcheggi"
-                                     Editing="_shell.IsEditing" OnAdd="AggiungiParcheggio" OnRemove="TogliParcheggio"
-                                     OnMove="SpostaParcheggio" OnSet="ScriviParcheggio" />
+                                     Chiave="milparkings" Editing="_shell.IsEditing"
+                                     OnAdd="AggiungiParcheggio" OnRemove="TogliParcheggio"
+                                     OnMove="SpostaParcheggio" OnSet="ScriviParcheggio"
+                                     OnImporta="ImportaParcheggi"
+                                     Sorgenti="_altriSop" CaricaSorgente="ParcheggiDiUnAltroSop" />
                 break;
             case "validity":
                 <div class="callout info" style="margin:0 0 10px">
@@ -824,17 +836,80 @@ else
         return SalvaAlternati(righe);
     }
 
-    private Task ScriviNumeroAlternato((int Indice, bool Rilevamento, int? Valore) x)
-    {
-        var righe = RigheAlternati();
-        if (x.Indice < 0 || x.Indice >= righe.Count) return Task.CompletedTask;
-        var riga = righe[x.Indice];
-        righe[x.Indice] = new MilDiversionPayload.Riga
+    private Task ScriviRilevamentoAlternato((int Indice, int? Gradi) x) =>
+        ScriviNumeroAlternato(x.Indice, riga => new MilDiversionPayload.Riga
         {
             Icao = riga.Icao, Name = riga.Name, Navaids = riga.Navaids,
-            Bearing = x.Rilevamento ? x.Valore : riga.Bearing,
-            Distance = x.Rilevamento ? riga.Distance : x.Valore,
-        };
+            Bearing = x.Gradi, Distance = riga.Distance,
+        });
+
+    private Task ScriviDistanzaAlternato((int Indice, decimal? Nm) x) =>
+        ScriviNumeroAlternato(x.Indice, riga => new MilDiversionPayload.Riga
+        {
+            Icao = riga.Icao, Name = riga.Name, Navaids = riga.Navaids,
+            Bearing = riga.Bearing, Distance = x.Nm,
+        });
+
+    /// <summary>
+    /// Scrive le righe approvate nell'anteprima d'import.
+    ///
+    /// <para>⚠️ L'ICAO e l'identita' della radioassistenza <b>non si ricercano una seconda volta</b>: la
+    /// proposta le porta gia' (<c>CellaProposta.Chiave</c>), risolte sui cataloghi mentre l'anteprima le
+    /// mostrava. Rifare la ricerca qui vorrebbe dire poter scrivere qualcosa di diverso da cio' che chi
+    /// importa ha approvato.</para>
+    /// <para>⚠️ Il <b>nome</b> dello scalo si porta dietro solo per gli alternati esteri, che in archivio non
+    /// ci sono: e' il ripiego previsto dal payload, e quando lo scalo c'e' vince comunque l'archivio.</para>
+    /// </summary>
+    private Task ImportaAlternati(RichiestaImport r)
+    {
+        var nuove = new List<MilDiversionPayload.Riga>();
+        foreach (var riga in r.Proposta.Buone)
+        {
+            var scalo = riga.Celle.Count > 0 ? riga.Celle[0] : null;
+            if (scalo?.Chiave is not { Length: 4 } icao) continue;
+
+            var nav = riga.Celle.Count > 1 ? riga.Celle[1] : null;
+            var impianti = new List<MilDiversionPayload.Nav>();
+            if (nav?.Chiave is { Length: > 0 } chiave)
+            {
+                var parti = chiave.Split('|');
+                if (parti.Length >= 2 && parti[0].Length > 0 && parti[1].Length > 0)
+                    impianti.Add(new MilDiversionPayload.Nav
+                    {
+                        Code = parti[0],
+                        Kind = parti[1],
+                        Channel = parti.Length > 2 && parti[2].Length > 0 ? parti[2] : null,
+                    });
+            }
+
+            nuove.Add(new MilDiversionPayload.Riga
+            {
+                Icao = icao,
+                Name = NomeIncollato(scalo.Valore, icao),
+                Navaids = impianti,
+                Bearing = riga.Celle.Count > 2 ? MilDiversionText.LeggiRilevamento(riga.Celle[2].Valore) : null,
+                Distance = riga.Celle.Count > 3 ? MilDiversionText.LeggiDistanza(riga.Celle[3].Valore) : null,
+            });
+        }
+
+        var righe = r.Sostituisci ? nuove : RigheAlternati().Concat(nuove).ToList();
+        return SalvaAlternati(righe);
+    }
+
+    /// <summary>Il nome dentro «LIBA Amendola», senza il codice. Vuoto = nessun nome da tenere.</summary>
+    private static string? NomeIncollato(string valore, string icao)
+    {
+        var resto = valore.Length > icao.Length && valore.StartsWith(icao, StringComparison.OrdinalIgnoreCase)
+            ? valore.Substring(icao.Length).Trim()
+            : valore.Trim();
+        return resto.Length > 0 ? resto : null;
+    }
+
+    private Task ScriviNumeroAlternato(int indice, Func<MilDiversionPayload.Riga, MilDiversionPayload.Riga> cambia)
+    {
+        var righe = RigheAlternati();
+        if (indice < 0 || indice >= righe.Count) return Task.CompletedTask;
+        righe[indice] = cambia(righe[indice]);
         return SalvaAlternati(righe);
     }
 
@@ -919,6 +994,64 @@ else
         SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, Spostata(_parcheggi, m.Indice, m.Delta));
     private Task ScriviParcheggio((int Riga, int Colonna, string Testo) c) =>
         SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, ConCella(_parcheggi, c.Riga, c.Colonna, c.Testo));
+
+    // ---- prendere una tabella da un ALTRO vSOP ---------------------------------------------------------
+    //
+    // ⚠️ Quindici SOP militari hanno le stesse sezioni, e meta' delle righe di uno somiglia a quelle di un
+    // altro: e' il guadagno piu' grosso dell'import su questo corpus, e non ha niente da riconoscere. Passa
+    // comunque dall'anteprima, perche' la domanda che l'anteprima fa non e' «ho letto bene?» ma «e' questo
+    // che volevi?» — e copiando da un altro campo quella domanda pesa di piu'.
+
+    private IReadOnlyList<SorgenteTabella> _altriSop = Array.Empty<SorgenteTabella>();
+
+    /// <summary>Gli altri campi che HANNO un documento: da uno senza documento non c'e' niente da prendere.</summary>
+    private async Task CaricaAltriSopAsync()
+    {
+        var tutti = await Militari.ListAsync(perStaff: true);
+        _altriSop = tutti
+            .Where(a => a.DocumentId is not null
+                        && !string.Equals(a.Icao, _icao, StringComparison.OrdinalIgnoreCase))
+            .Select(a => new SorgenteTabella(a.Icao, $"{a.Icao} {a.Name}"))
+            .ToList();
+    }
+
+    /// <summary>Gli alternati di un altro SOP, rimessi in forma di griglia: quattro colonne come la tabella.</summary>
+    private async Task<Griglia> AlternatiDiUnAltroSop(string icao)
+    {
+        var righe = await Militari.GetDiversionsAsync(icao);
+        return new Griglia(
+            righe.Select(r => (IReadOnlyList<string>)new[]
+            {
+                $"{r.Icao} {r.Name}".Trim(),
+                r.Navaids.Count > 0
+                    ? NavaidText.ConTipo(r.Navaids[0].Code, r.Navaids[0].Type, r.Navaids[0].Channel, r.Navaids[0].Frequency)
+                    : "",
+                MilDiversionText.Rilevamento(r.Bearing),
+                MilDiversionText.Distanza(r.DistanceNm),
+            }).ToList(),
+            FormaGriglia.RigaIntera);
+    }
+
+    private Task<Griglia> NominativiDiUnAltroSop(string icao) =>
+        TabellaFissaDiUnAltroSop(icao, "callsigns", ColNominativi);
+
+    private Task<Griglia> ParcheggiDiUnAltroSop(string icao) =>
+        TabellaFissaDiUnAltroSop(icao, "parkings", ColParcheggi);
+
+    private async Task<Griglia> TabellaFissaDiUnAltroSop(string icao, string chiave, int colonne)
+    {
+        var righe = await Militari.GetFixedTableAsync(icao, chiave, colonne);
+        return new Griglia(righe.ToList(), FormaGriglia.RigaIntera);
+    }
+
+    // ⚠️ L'import consegna la tabella INTERA (le vecchie piu' le nuove, o solo le nuove se si e' scelto
+    // «sostituisci»): la fusione l'ha gia' fatta l'anteprima, che e' l'unico posto dove chi importa ha visto
+    // che cosa stava per succedere.
+    private Task ImportaNominativi(IReadOnlyList<IReadOnlyList<string>> righe) =>
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, righe);
+
+    private Task ImportaParcheggi(IReadOnlyList<IReadOnlyList<string>> righe) =>
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, righe);
 
     /// <summary>L'attività di UN'area (§12h): una alla volta, come i campi delle radioassistenze.</summary>
     private Task ScriviAttivitaArea((string AreaId, MilActivity Attivita) x) => _shell.GuardAsync(async () =>

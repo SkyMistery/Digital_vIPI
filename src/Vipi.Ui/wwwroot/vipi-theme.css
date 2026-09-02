@@ -4231,3 +4231,41 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .vipi-rec.vipi-riconnessione-arresa .vipi-rec-fallita,
 .vipi-rec.vipi-riconnessione-arresa .vipi-rec-b{display:block}
 .vipi-rec.vipi-riconnessione-arresa .vipi-rec-b{display:inline-block}
+
+
+/* ── Import di una tabella ──────────────────────────────────────────────────────────────────────────────
+   Un pannello che si apre DENTRO l'editor, non una finestra sopra: l'anteprima va confrontata con la
+   tabella che c'e' gia', e una modale la coprirebbe proprio mentre serve.
+   I tre colori delle celle sono i tre esiti, e vengono dai token: verde = il valore viene dall'ARCHIVIO,
+   giallo = manca una scelta, rosso = non si e' letta. Il testo com'era sta nel fumetto, perche' la colonna
+   e' larga quanto un valore e non quanto una spiegazione. */
+.imp-box{margin:0 0 8px;background:var(--tint-atmos-soft);border-radius:6px;padding:8px}
+.imp-ta{width:100%;font-family:var(--font-mono,ui-monospace,monospace);font-size:12.5px}
+.imp-soft{font-weight:400}
+.imp-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}
+.imp-check{display:inline-flex;gap:4px;align-items:center;font-size:12.5px}
+.imp-sheet{max-width:180px}
+.imp-foot{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.imp-map{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
+.imp-map-one{display:flex;flex-direction:column;gap:2px;font-size:12px}
+.imp-preview{font-size:12.5px}
+.imp-preview .imp-n{width:34px;text-align:right}
+.imp-preview td{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.imp-ok{background:var(--tint-green-soft)}
+.imp-wait{background:var(--tint-yellow-soft)}
+.imp-ko{background:var(--tint-red)}
+.imp-pick{max-width:220px;font-size:12px}
+.imp-raw{text-decoration:underline wavy var(--line-red-strong);text-underline-offset:3px}
+tr.imp-bad td{opacity:.85}
+
+/* Il righello dei tagli: una casella per posizione, e sotto le prime righe con il segno del taglio dentro.
+   Contare i caratteri a mano sarebbe far fare a una persona il lavoro che il righello fa gratis. */
+.imp-ruler{margin:6px 0;padding:6px;background:var(--surface);border:1px solid var(--line-soft, var(--line));border-radius:6px;overflow-x:auto}
+.imp-ruler-hint{font-size:12px;margin-bottom:4px}
+.imp-ruler-line{display:flex;gap:0;white-space:nowrap}
+.imp-tick{width:9px;min-width:9px;padding:0;border:0;background:transparent;color:var(--muted);
+  font-family:var(--font-mono,ui-monospace,monospace);font-size:11px;line-height:14px;cursor:pointer}
+.imp-tick:hover{background:var(--tint-yellow-soft)}
+.imp-tick.on{background:var(--tint-green);color:var(--ok-ink);font-weight:700}
+.imp-ruler-sample{font-family:var(--font-mono,ui-monospace,monospace);font-size:12px;white-space:pre}
+.imp-cuts{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}

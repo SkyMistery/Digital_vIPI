@@ -3105,4 +3105,35 @@
   <data name="Reconnect_Rejected" xml:space="preserve"><value>The server restarted: reloading the page.</value></data>
   <data name="Reconnect_Failed" xml:space="preserve"><value>Cannot reconnect. Check your connection, then reload the page.</value></data>
   <data name="Reconnect_Reload" xml:space="preserve"><value>Reload the page</value></data>
+  <!-- Import di una tabella: incolla, CSV, XLSX, anteprima -->
+  <data name="Imp_Export" xml:space="preserve"><value>Export CSV</value></data>
+  <data name="Imp_ExportTitle" xml:space="preserve"><value>Download the table as CSV, to edit in a spreadsheet and import back</value></data>
+  <data name="Imp_ImportAppendOne" xml:space="preserve"><value>Append 1 row</value></data>
+  <data name="Imp_ImportReplaceOne" xml:space="preserve"><value>Replace with 1 row</value></data>
+  <data name="Imp_SkippedOne" xml:space="preserve"><value>1 row left out</value></data>
+  <data name="Imp_FromDoc" xml:space="preserve"><value>From another document…</value></data>
+  <data name="Imp_Open" xml:space="preserve"><value>Import</value></data>
+  <data name="Imp_PasteLabel" xml:space="preserve"><value>Paste the table</value></data>
+  <data name="Imp_PasteHint" xml:space="preserve"><value>from Excel, a CSV or a PDF; or load a file</value></data>
+  <data name="Imp_PastePh" xml:space="preserve"><value>AIRPORT&#9;NAVAIDS&#9;BEARING&#9;DISTANCE</value></data>
+  <data name="Imp_LoadFile" xml:space="preserve"><value>Load a .csv or .xlsx file</value></data>
+  <data name="Imp_Sheet" xml:space="preserve"><value>Sheet</value></data>
+  <data name="Imp_HeaderRow" xml:space="preserve"><value>First row is the header</value></data>
+  <data name="Imp_FixedWidth" xml:space="preserve"><value>Fixed-width columns</value></data>
+  <data name="Imp_FormTitle" xml:space="preserve"><value>How the text was read</value></data>
+  <data name="Imp_FormTabs" xml:space="preserve"><value>tabs</value></data>
+  <data name="Imp_FormCsv" xml:space="preserve"><value>CSV</value></data>
+  <data name="Imp_FormMarkdown" xml:space="preserve"><value>Markdown</value></data>
+  <data name="Imp_FormHtml" xml:space="preserve"><value>HTML table</value></data>
+  <data name="Imp_FormXlsx" xml:space="preserve"><value>spreadsheet</value></data>
+  <data name="Imp_FormFixed" xml:space="preserve"><value>fixed width</value></data>
+  <data name="Imp_FormLines" xml:space="preserve"><value>whole lines</value></data>
+  <data name="Imp_CutsHint" xml:space="preserve"><value>Click the ruler to add or remove a column cut.</value></data>
+  <data name="Imp_CutsSuggest" xml:space="preserve"><value>Suggested cuts</value></data>
+  <data name="Imp_NoColumn" xml:space="preserve"><value>(none)</value></data>
+  <data name="Imp_ColumnN" xml:space="preserve"><value>Column {0}</value></data>
+  <data name="Imp_Choose" xml:space="preserve"><value>(pick one)</value></data>
+  <data name="Imp_ImportAppend" xml:space="preserve"><value>Append {0} rows</value></data>
+  <data name="Imp_ImportReplace" xml:space="preserve"><value>Replace with {0} rows</value></data>
+  <data name="Imp_Skipped" xml:space="preserve"><value>{0} rows left out</value></data>
 </root>

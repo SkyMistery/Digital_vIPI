@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Vipi.Application.Import;
 using Vipi.Domain;
 
 namespace Vipi.Application.Content;
@@ -35,40 +36,91 @@ public sealed record PastedClause(int Line, string Raw, AgreementClauseInput? Cl
 /// </summary>
 public static class ClausePaste
 {
-    /// <summary>I separatori accettati, in ordine di preferenza. Il TAB per primo perché è quello che esce da
-    /// un foglio di calcolo e da un PDF selezionato per colonne; il punto e virgola e la barra verticale perché
-    /// si scrivono a mano senza ambiguità. <b>La virgola no</b>: separa già i punti dentro una cella
-    /// («EKMUR, PISIP»), e usarla anche fra colonne renderebbe le due cose indistinguibili.</summary>
-    private static readonly char[] Separators = { '\t', ';', '|' };
+    /// <summary>
+    /// La specifica di questa tabella dentro l'elenco delle tabelle importabili. I titoli sono neutri perché
+    /// qui non c'è una lingua: a riconoscere l'intestazione ci pensano i <b>sinonimi</b>, che coprono anche
+    /// l'inglese delle LoA.
+    /// </summary>
+    public static SpecImport Spec { get; } =
+        SpecTabelle.ClausoleAccordo("Punti", "Livello", "Ricevente", "Condizione");
 
     /// <summary>
     /// Legge il testo incollato. Ogni riga è «punti · livello [· ricevente] [· condizione]»; le righe vuote si
     /// saltano, quelle che non si leggono restano nell'esito con il loro errore.
+    ///
+    /// <para>
+    /// ⚠️ <b>Lo spezzamento non è più di questa classe.</b> Lo fa <see cref="Griglia"/>, che è il primo
+    /// stadio di ogni altra tabella importabile: così questo incolla capisce anche il Markdown, la tabella
+    /// HTML che Excel mette davvero in clipboard e il CSV con le virgolette, senza che qui viva una seconda
+    /// grammatica da tenere d'accordo con la prima. Qui resta ciò che è <b>di dominio</b>: che cos'è una
+    /// clausola, e che il ricevente non ci va dentro.
+    /// </para>
+    /// <para>
+    /// ⚠️ <b>La virgola resta esclusa</b>, e ora lo dice chi legge (<c>virgola: false</c>): separa già i punti
+    /// dentro una cella («EKMUR, PISIP»), e usarla anche fra le colonne renderebbe le due cose
+    /// indistinguibili.
+    /// </para>
+    /// <para>
+    /// ⚠️ E un'<b>intestazione</b> incollata insieme alle righe adesso si riconosce e si salta, invece di
+    /// diventare una clausola con i punti «POINTS».
+    /// </para>
     /// </summary>
     public static IReadOnlyList<PastedClause> Parse(string? text)
     {
         var result = new List<PastedClause>();
         if (string.IsNullOrWhiteSpace(text)) return result;
 
-        var lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
-        for (var i = 0; i < lines.Length; i++)
+        var griglia = Griglia.Leggi(text, virgola: false);
+        if (!griglia.Piena) return result;
+
+        var mappatura = MappaturaColonne.Proponi(Spec, griglia);
+        var salta = mappatura.Intestazione ? 1 : 0;
+
+        // I numeri di riga sono quelli del TESTO INCOLLATO, righe vuote comprese: dicono DOVE, e chi rilegge
+        // conta le righe sullo schermo da cui ha copiato.
+        //
+        // ⚠️ Valgono finché la lettura non ha UNITO o SALTATO righe, e succede in due casi veri: una cella
+        // fra virgolette che contiene un a-capo (due righe diventano una) e la riga di trattini di una
+        // tabella Markdown, che è impaginazione e sparisce. Allora si numera in ordine — visto dal vivo il
+        // 2 settembre 2026 su un incolla Markdown: le clausole erano alle righe 3 e 4 e l'anteprima diceva
+        // 2 e 3. È il meglio che si possa promettere senza far portare a ogni cella la riga da cui viene.
+        var numeri = NumeriDiRiga(text!);
+        var allineati = numeri.Count == griglia.Righe.Count;
+
+        for (var i = salta; i < griglia.Righe.Count; i++)
         {
-            var raw = lines[i];
-            if (string.IsNullOrWhiteSpace(raw)) continue;
-            result.Add(ParseLine(i + 1, raw));
+            var celle = griglia.Righe[i];
+            var numero = allineati ? numeri[i] : i + 1;
+            result.Add(ParseLine(numero, string.Join(" · ", celle), Colonne(celle, mappatura)));
         }
         return result;
     }
 
-    private static PastedClause ParseLine(int line, string raw)
+    /// <summary>Le posizioni (da 1) delle righe non vuote nel testo incollato.</summary>
+    private static IReadOnlyList<int> NumeriDiRiga(string testo)
     {
-        var sep = Separators.FirstOrDefault(c => raw.Contains(c));
-        // Senza separatore la riga è un campo solo: la si legge come i soli PUNTI, che è il caso di chi incolla
-        // una colonna di fix. Un errore qui rifiuterebbe l'uso più semplice di tutti.
-        var cols = sep == default
-            ? new[] { raw.Trim() }
-            : raw.Split(sep).Select(c => c.Trim()).ToArray();
+        var numeri = new List<int>();
+        var righe = testo.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        for (var i = 0; i < righe.Length; i++)
+            if (!string.IsNullOrWhiteSpace(righe[i]))
+                numeri.Add(i + 1);
+        return numeri;
+    }
 
+    /// <summary>Le quattro colonne della clausola, prese dove la mappatura dice che stanno.</summary>
+    private static string[] Colonne(IReadOnlyList<string> celle, MappaturaColonne mappatura)
+    {
+        var fuori = new string[Spec.Colonne.Count];
+        for (var c = 0; c < fuori.Length; c++)
+        {
+            var g = c < mappatura.Colonne.Count ? mappatura.Colonne[c] : -1;
+            fuori[c] = g >= 0 && g < celle.Count ? (celle[g] ?? "").Trim() : "";
+        }
+        return fuori;
+    }
+
+    private static PastedClause ParseLine(int line, string raw, string[] cols)
+    {
         var points = cols.Length > 0 ? cols[0] : "";
         var levelText = cols.Length > 1 ? cols[1] : "";
         var receiver = cols.Length > 2 ? NullIfBlank(cols[2]) : null;

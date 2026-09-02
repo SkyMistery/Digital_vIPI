@@ -7,6 +7,7 @@
 @inherits OwningComponentBase
 @inject IStringLocalizer<SharedResource> L
 @using System.Text.Json
+@using Vipi.Application.Import
 @using RenderMode = Vipi.Domain.RenderMode
 @* Editing risolto dallo scope DI proprio (VipiDbContext isolato dal circuito). Vedi [[EditLockBar]]. *@
 
@@ -262,7 +263,7 @@ else
             await Editing.UpdateBlockAsync(id, new BlockEdit
             {
                 Tier = BlockTier.Extended, Visibility = BlockVisibility.Always,
-                BodyJson = """{"columns":["Colonna 1","Colonna 2"],"rows":[]}""",
+                BodyJson = TabellaGenerica.Nuova(),
             });
         await OnChanged.InvokeAsync();
     });
@@ -604,33 +605,15 @@ else
     };
 
     // ---- editor tabella (columns + rows di celle) ----
-    private (List<string> Cols, List<List<string>> Rows) ParseTable(string? json)
-    {
-        var cols = new List<string>();
-        var rows = new List<List<string>>();
-        if (string.IsNullOrWhiteSpace(json)) return (cols, rows);
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            var r = doc.RootElement;
-            // Radice che non e' un oggetto (la forma legacy delle aree e' un array): niente da leggere, e
-            // chiederglielo alza `InvalidOperationException`, che NON passa dal catch qui sotto.
-            if (r.ValueKind != JsonValueKind.Object) return (cols, rows);
-            if (r.TryGetProperty("columns", out var c) && c.ValueKind == JsonValueKind.Array)
-                cols = c.EnumerateArray().Select(e => e.GetString() ?? "").ToList();
-            if (r.TryGetProperty("rows", out var rr) && rr.ValueKind == JsonValueKind.Array)
-                foreach (var row in rr.EnumerateArray())
-                    rows.Add(row.ValueKind == JsonValueKind.Object
-                        && row.TryGetProperty("cells", out var cs) && cs.ValueKind == JsonValueKind.Array
-                        ? cs.EnumerateArray().Select(e => e.GetString() ?? "").ToList()
-                        : new List<string>());
-        }
-        catch (JsonException) { }
-        return (cols, rows);
-    }
+    //
+    // La forma del payload sta in UN posto solo (`TabellaGenerica`): stava qui e in `DocumentBlocksEditor`,
+    // con tanto di commento «stesso formato JSON di», e due copie sono due posti dove correggere la prossima
+    // trappola di questo JSON.
+    private static (List<string> Cols, List<List<string>> Rows) ParseTable(string? json) =>
+        TabellaGenerica.Leggi(json);
 
     private static string SerializeTable(List<string> cols, List<List<string>> rows) =>
-        JsonSerializer.Serialize(new { columns = cols, rows = rows.Select(r => new { cells = r }) });
+        TabellaGenerica.Scrivi(cols, rows);
 
     // Ogni mutazione ri-parsa il BodyJson corrente, applica, serializza e salva (nessuno stato catturato tra render).
     private Task SetTableCol(EditableBlock b, int ci, string val)
@@ -707,8 +690,50 @@ else
                 }
             </tbody>
         </table>
-        <button class="btn ghost" style="margin-top:6px" @onclick="() => AddTableRow(b)">+ @L["Dse_Row"]</button>
+        <div style="display:flex;gap:6px;margin-top:6px">
+            <button class="btn ghost" @onclick="() => AddTableRow(b)">+ @L["Dse_Row"]</button>
+            @* ⚠️ L'import sta ACCANTO a «+ riga»: e' l'alternativa allo scriverle una per una, ed e' li' che
+               se ne sente il bisogno. *@
+            <button class="btn ghost" @onclick="() => ApriImport(b)">⤓ @L["Imp_Open"]</button>
+            <EsportaCsv Nome="tabella" Colonne="cols" Righe="rows.Select(r => (IReadOnlyList<string>)r).ToList()" />
+        </div>
+        @if (_importBlockId == b.Id)
+        {
+            <ImportaTabella Spec="@SpecTabella" OnImporta="r => Importa(b, r)"
+                            OnAnnulla="() => { _importBlockId = null; return Task.CompletedTask; }" />
+        }
     };
+
+    // ---- import di una tabella -------------------------------------------------------------------------
+
+    private static readonly SpecImport SpecTabella = SpecImport.Generica();
+
+    /// <summary>Su quale blocco l'import e' aperto; null = nessuno. ⚠️ E' l'ID del blocco e non un flag: due
+    /// tabelle nella stessa sezione avrebbero due import aperti insieme, e le righe finirebbero in quella
+    /// sbagliata.</summary>
+    private int? _importBlockId;
+
+    private void ApriImport(EditableBlock b) => _importBlockId = _importBlockId == b.Id ? null : b.Id;
+
+    /// <summary>
+    /// Scrive le righe approvate. ⚠️ Le righe si <b>pareggiano</b> al numero di colonne: in una tabella HTML
+    /// una riga corta non lascia una cella vuota, sposta tutto a sinistra — il dato sembrerebbe sbagliato
+    /// invece che incompleto.
+    /// </summary>
+    private Task Importa(EditableBlock b, RichiestaImport r)
+    {
+        var (cols, rows) = ParseTable(b.BodyJson);
+
+        // Le COLONNE si prendono da chi incolla solo se la tabella non ne ha gia' di sue: sovrascrivere le
+        // intestazioni di una tabella compilata sarebbe una perdita che nessuno ha chiesto.
+        if (cols.Count == 0 && r.Proposta.Colonne.Count > 0) cols = r.Proposta.Colonne.ToList();
+
+        var nuove = r.Proposta.Buone.Select(x => (IReadOnlyList<string>)x.Celle.Select(c => c.Valore).ToList());
+        var tutte = r.Sostituisci ? nuove.ToList() : rows.Select(x => (IReadOnlyList<string>)x).Concat(nuove).ToList();
+
+        _importBlockId = null;
+        return SaveBlock(b, bodyJson: TabellaGenerica.Scrivi(cols, TabellaGenerica.Pareggia(tutte, cols.Count)));
+    }
 
     private RenderFragment RenderTablePreview(EditableBlock b) => __builder =>
     {

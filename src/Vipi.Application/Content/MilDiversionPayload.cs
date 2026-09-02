@@ -2,6 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Import;
 
 namespace Vipi.Application.Content;
 
@@ -10,7 +11,7 @@ namespace Vipi.Application.Content;
 /// radioassistenze risolte sull'anagrafica, il rilevamento e la distanza.
 /// </summary>
 public sealed record MilDiversionView(
-    string Icao, string Name, IReadOnlyList<NavaidRow> Navaids, int? Bearing, int? DistanceNm);
+    string Icao, string Name, IReadOnlyList<NavaidRow> Navaids, int? Bearing, decimal? DistanceNm);
 
 /// <summary>
 /// Come si scrivono rilevamento e distanza in tabella. ⚠️ Chi compila scrive <b>solo il numero</b> — è la
@@ -22,8 +23,28 @@ public static class MilDiversionText
     public static string Rilevamento(int? gradi) =>
         gradi is { } g ? g.ToString("000", CultureInfo.InvariantCulture) + "°" : "";
 
-    public static string Distanza(int? nm) =>
-        nm is { } d ? d.ToString(CultureInfo.InvariantCulture) + " NM" : "";
+    /// <summary>
+    /// La distanza, con <b>un</b> decimale al massimo e senza lo zero inutile: <c>72.2 NM</c> e
+    /// <c>40 NM</c>, mai <c>40.0 NM</c>.
+    /// </summary>
+    public static string Distanza(decimal? nm) =>
+        nm is { } d ? d.ToString("0.#", CultureInfo.InvariantCulture) + " NM" : "";
+
+    /// <summary>
+    /// L'inverso esatto di <see cref="Distanza"/>: quel che si scrive nella cella, riletto.
+    ///
+    /// <para>⚠️ Accetta la <b>virgola</b> oltre al punto. Chi scrive in italiano digita «72,2», e con la sola
+    /// lettura invariante quel valore diventava <c>null</c> in silenzio: la cella si svuotava da sola dopo
+    /// averla compilata, senza un errore da nessuna parte.</para>
+    /// <para>⚠️ Accetta anche l'unita' scritta a mano (<c>72.2NM</c>): e' quel che si incolla da un PDF, e
+    /// rifiutarla vorrebbe dire far ripulire a mano la colonna che l'import esiste per non far ridigitare.</para>
+    /// </summary>
+    public static decimal? LeggiDistanza(string? testo) => TestoTabellare.Numero(testo);
+
+    /// <summary>L'inverso di <see cref="Rilevamento"/>: <c>308</c>, <c>308 gradi</c> o il numero col simbolo danno 308.</summary>
+    public static int? LeggiRilevamento(string? testo) =>
+        TestoTabellare.Numero(testo) is { } n && n >= 0 && n <= 360 ? (int)decimal.Round(n) : null;
+
 }
 
 /// <summary>
@@ -61,7 +82,7 @@ public sealed class MilDiversionPayload
 
         [JsonPropertyName("navaids")] public IReadOnlyList<Nav> Navaids { get; init; } = Array.Empty<Nav>();
         [JsonPropertyName("bearing")] public int? Bearing { get; init; }
-        [JsonPropertyName("distance")] public int? Distance { get; init; }
+        [JsonPropertyName("distance")] public decimal? Distance { get; init; }
     }
 
     /// <summary>⚠️ Tre campi come nelle Radioassistenze: il canale è nell'identità.</summary>
@@ -116,7 +137,7 @@ public sealed class MilDiversionPayload
             })
             .ToList(),
         Bearing = r.Bearing is { } b and >= 0 and <= 360 ? b : null,
-        Distance = r.Distance is { } d and >= 0 and <= 9999 ? d : null,
+        Distance = r.Distance is { } d and >= 0 and <= 9999 ? decimal.Round(d, 1, MidpointRounding.AwayFromZero) : null,
     };
 
     /// <summary>

@@ -1,0 +1,496 @@
+@* Importare una tabella: incolla, CSV, XLSX, e l'anteprima che si guarda PRIMA di scrivere.
+
+   ⚠️ Questo componente non scrive niente e non sa dove si scriverebbe. Costruisce una proposta e la
+   consegna a chi l'ha aperto (`OnImporta`), che e' l'editor che sa gia' salvare le proprie righe. Un
+   import che salvasse da se' metterebbe in archivio la propria interpretazione di un testo che nessuno ha
+   riletto — e l'interpretazione di una tabella copiata da un PDF sbaglia, non «potrebbe sbagliare».
+
+   ⚠️ La proposta si ricostruisce sul CAMBIO del testo (a fuoco perso), non a ogni tasto: la risoluzione
+   delle celle interroga i cataloghi, e farlo a ogni carattere digitato vorrebbe dire una interrogazione
+   per battuta. *@
+@using Vipi.Application.Import
+@inject IStringLocalizer<SharedResource> L
+
+<div class="imp-box">
+    <div class="field">
+        <label>
+            @L["Imp_PasteLabel"]
+            <span class="muted imp-soft">@L["Imp_PasteHint"]</span>
+        </label>
+        <textarea rows="6" spellcheck="false" class="imp-ta" placeholder="@L["Imp_PastePh"]"
+                  value="@_testo" @onchange="ScriviTesto" aria-label="@L["Imp_PasteLabel"]"></textarea>
+    </div>
+
+    <div class="imp-tools">
+        <InputFile OnChange="CaricaFile" accept=".csv,.tsv,.txt,.xlsx" aria-label="@L["Imp_LoadFile"]" />
+
+        @* ⚠️ Non e' un formato: e' la stessa tabella scritta in un altro documento. Sul corpus vero (quindici
+           SOP con le stesse sezioni) e' il guadagno piu' grosso dell'import, e non ha niente da riconoscere. *@
+        @if (Sorgenti is { Count: > 0 } sorgenti)
+        {
+            <select class="app-in imp-sheet" aria-label="@L["Imp_FromDoc"]"
+                    @onchange="e => DaDocumento(e.Value?.ToString())">
+                <option value="" selected>@L["Imp_FromDoc"]</option>
+                @foreach (var so in sorgenti)
+                {
+                    <option value="@so.Chiave">@so.Etichetta</option>
+                }
+            </select>
+        }
+
+        @* Un file con piu' fogli: quale si legge lo dice chi importa, non il caso. *@
+        @if (_fogli.Count > 1)
+        {
+            <select class="app-in imp-sheet" aria-label="@L["Imp_Sheet"]"
+                    @onchange="e => CambiaFoglio(e.Value?.ToString())">
+                @for (var i = 0; i < _fogli.Count; i++)
+                {
+                    var idx = i;
+                    <option value="@idx" selected="@(idx == _foglio)">@_fogli[idx]</option>
+                }
+            </select>
+        }
+
+        <label class="imp-check">
+            <input type="checkbox" checked="@_intestazione" @onchange="CambiaIntestazione" />
+            @L["Imp_HeaderRow"]
+        </label>
+
+        @* ⚠️ Il modo a larghezza fissa serve a cio' che arriva da un PDF: nessun separatore, celle
+           multi-parola. I tagli si mettono cliccando il righello — contare i caratteri a mano sarebbe
+           chiedere a una persona di fare il lavoro che il righello fa gratis. *@
+        <label class="imp-check">
+            <input type="checkbox" checked="@_larghezzaFissa" @onchange="CambiaLarghezzaFissa" />
+            @L["Imp_FixedWidth"]
+        </label>
+
+        @if (_griglia.Piena)
+        {
+            <span class="pill neutral" title="@L["Imp_FormTitle"]">@Forma(_griglia.Forma)</span>
+        }
+        @if (_guasto is { Length: > 0 })
+        {
+            <span class="pill red">@_guasto</span>
+        }
+    </div>
+
+    @if (_larghezzaFissa)
+    {
+        @RighelloTagli
+    }
+
+    @if (_proposta is { } p && p.Righe.Count > 0)
+    {
+        @if (!Spec.ColonneLibere && Spec.Colonne.Count > 0)
+        {
+            @Mappatura(p)
+        }
+        @Anteprima(p)
+
+        <div class="imp-foot">
+            <button class="btn primary" disabled="@(Occupato || p.Buone.Count == 0)"
+                    @onclick="() => Consegna(false)">
+                @Conta(p.Buone.Count, "Imp_ImportAppendOne", "Imp_ImportAppend")
+            </button>
+            <button class="btn" disabled="@(Occupato || p.Buone.Count == 0)"
+                    @onclick="() => Consegna(true)">
+                @Conta(p.Buone.Count, "Imp_ImportReplaceOne", "Imp_ImportReplace")
+            </button>
+            <button class="btn ghost" disabled="@Occupato" @onclick="OnAnnulla">@L["Common_Cancel"]</button>
+            @if (p.Scartate.Count > 0)
+            {
+                <span class="muted imp-soft">@Conta(p.Scartate.Count, "Imp_SkippedOne", "Imp_Skipped")</span>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="imp-foot">
+            <button class="btn ghost" disabled="@Occupato" @onclick="OnAnnulla">@L["Common_Cancel"]</button>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Che tabella si sta importando: colonne, tipi di cella, ancore.</summary>
+    [Parameter, EditorRequired] public SpecImport Spec { get; set; } = SpecImport.Generica();
+
+    /// <summary>Chi cerca sui cataloghi. Null = nessuna colonna si risolve (tabella tutta testuale).</summary>
+    [Parameter] public IRisolutoreCelle? Risolutore { get; set; }
+
+    /// <summary>La proposta approvata, con la scelta fra «in coda» e «sostituisci».</summary>
+    [Parameter] public EventCallback<RichiestaImport> OnImporta { get; set; }
+
+    [Parameter] public EventCallback OnAnnulla { get; set; }
+
+    /// <summary>Vero mentre l'editor sta salvando: i tasti si spengono.</summary>
+    [Parameter] public bool Occupato { get; set; }
+
+    /// <summary>Gli altri documenti da cui si puo' prendere questa stessa tabella. Vuoto = niente tendina.</summary>
+    [Parameter] public IReadOnlyList<SorgenteTabella>? Sorgenti { get; set; }
+
+    /// <summary>Come si legge la tabella di una di quelle sorgenti. Serve solo se <see cref="Sorgenti"/> c'e'.</summary>
+    [Parameter] public Func<string, Task<Griglia>>? CaricaSorgente { get; set; }
+
+    private string _testo = "";
+    private string? _guasto;
+    private bool _intestazione;
+    private bool _larghezzaFissa;
+    private List<int> _tagli = new();
+    private Griglia _griglia = Griglia.Vuota;
+    private Proposta? _proposta;
+
+    // Il file caricato resta in memoria: cambiare foglio non deve far ricaricare il file a chi importa.
+    private byte[]? _xlsx;
+    private List<string> _fogli = new();
+    private int _foglio;
+
+    private async Task ScriviTesto(ChangeEventArgs e)
+    {
+        _testo = e.Value?.ToString() ?? "";
+        _xlsx = null;
+        _fogli = new();
+        _guasto = null;
+        await Rileggi();
+    }
+
+    private async Task CambiaIntestazione(ChangeEventArgs e)
+    {
+        _intestazione = e.Value is bool b && b;
+        await Ricostruisci(forzaIntestazione: true);
+    }
+
+    private async Task CambiaLarghezzaFissa(ChangeEventArgs e)
+    {
+        _larghezzaFissa = e.Value is bool b && b;
+        if (_larghezzaFissa && _tagli.Count == 0)
+            _tagli = TestoTabellare.TagliSuggeriti(_testo).ToList();
+        await Rileggi();
+    }
+
+    private async Task CambiaFoglio(string? valore)
+    {
+        if (!int.TryParse(valore, out var i) || _xlsx is null) return;
+        _foglio = i;
+        await LeggiXlsx();
+    }
+
+    /// <summary>
+    /// Carica un file. ⚠️ Il tetto di <c>OpenReadStream</c> esce di qui come <i>risposta</i>, non come
+    /// guasto: a chi ha appena scelto un file troppo grosso si dice che e' troppo grosso.
+    /// </summary>
+    private async Task CaricaFile(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+
+        _guasto = null;
+        _xlsx = null;
+        _fogli = new();
+        _foglio = 0;
+
+        try
+        {
+            if (file.Name.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+            {
+                using var memoria = new MemoryStream();
+                await using (var flusso = file.OpenReadStream(LettoreXlsx.MaxByteFile))
+                    await flusso.CopyToAsync(memoria);
+                _xlsx = memoria.ToArray();
+                _testo = "";
+                await LeggiXlsx();
+                return;
+            }
+
+            await using var testo = file.OpenReadStream(LettoreXlsx.MaxByteFile);
+            using var lettore = new StreamReader(testo, System.Text.Encoding.UTF8,
+                detectEncodingFromByteOrderMarks: true);
+            _testo = await lettore.ReadToEndAsync();
+            await Rileggi();
+        }
+        catch (IOException guasto) { _guasto = guasto.Message; }
+    }
+
+    /// <summary>
+    /// Prende la tabella da un altro documento. ⚠️ Passa <b>dalla stessa anteprima</b> di tutto il resto,
+    /// anche se qui non c'e' niente da indovinare: la domanda che l'anteprima fa non e' «ho letto bene?», e'
+    /// «e' questo che volevi?» — e su una tabella copiata da un altro campo quella domanda pesa di piu', non
+    /// di meno.
+    /// </summary>
+    private async Task DaDocumento(string? chiave)
+    {
+        if (string.IsNullOrWhiteSpace(chiave) || CaricaSorgente is null) return;
+
+        _guasto = null;
+        _xlsx = null;
+        _fogli = new();
+        _testo = "";
+        _larghezzaFissa = false;
+        _griglia = await CaricaSorgente(chiave!);
+        _proposta = null;                       // la mappatura si riparte da zero: colonne diverse, ordine diverso
+        await Ricostruisci();
+    }
+
+    private async Task LeggiXlsx()
+    {
+        if (_xlsx is null) return;
+
+        using var flusso = new MemoryStream(_xlsx);
+        var esito = LettoreXlsx.Leggi(flusso, _foglio);
+        _guasto = esito.Guasto;
+        _fogli = esito.Fogli.ToList();
+        _foglio = esito.FoglioLetto;
+        _griglia = esito.Griglia;
+        await Ricostruisci();
+    }
+
+    /// <summary>Rilegge il testo con il modo scelto, poi ricostruisce la proposta.</summary>
+    private async Task Rileggi()
+    {
+        _griglia = _larghezzaFissa
+            ? Griglia.LeggiLarghezzaFissa(_testo, _tagli)
+            : Griglia.Leggi(_testo);
+
+        // Nessun separatore riconosciuto ma la specifica ha le sue ancore: e' il caso della tabella copiata
+        // da un PDF, e le ancore sono l'unica cosa che sa dove finisce una cella multi-parola.
+        if (_griglia.Forma == FormaGriglia.RigaIntera && Spec.SpezzaRiga is not null)
+            _griglia = ConAncore(_griglia);
+
+        await Ricostruisci();
+    }
+
+    /// <summary>Le righe spezzate dalle ancore della specifica; quelle che non si spezzano restano intere e
+    /// sara' l'anteprima a dire che non si leggono.</summary>
+    private Griglia ConAncore(Griglia griglia)
+    {
+        var righe = new List<IReadOnlyList<string>>();
+        foreach (var r in griglia.Righe)
+        {
+            var riga = TestoTabellare.NormalizzaSegni(r.Count > 0 ? r[0] : "");
+            var celle = Spec.SpezzaRiga!(riga);
+            righe.Add(celle ?? new[] { riga });
+        }
+        return new Griglia(righe, FormaGriglia.RigaIntera);
+    }
+
+    private async Task Ricostruisci(bool forzaIntestazione = false)
+    {
+        if (!_griglia.Piena) { _proposta = null; return; }
+
+        var mappatura = MappaturaColonne.Proponi(Spec, _griglia);
+        if (forzaIntestazione || _proposta is not null)
+            mappatura = mappatura with { Intestazione = _intestazione };
+        else
+            _intestazione = mappatura.Intestazione;
+
+        _proposta = await CostruttoreProposta.CostruisciAsync(_griglia, Spec, mappatura, Risolutore);
+    }
+
+    /// <summary>L'utente rimappa una colonna a mano: si ricostruisce senza rileggere il testo.</summary>
+    private async Task Rimappa(int colonnaSpec, string? valore)
+    {
+        if (_proposta is null || !int.TryParse(valore, out var g)) return;
+        _proposta = await CostruttoreProposta.CostruisciAsync(
+            _griglia, Spec, _proposta.Mappatura.Con(colonnaSpec, g), Risolutore);
+    }
+
+    /// <summary>Applica la scelta fatta in una cella ambigua. Non si rilegge e non si ricostruisce niente:
+    /// la lettura era gia' giusta, mancava solo QUALE.</summary>
+    private void Scegli(int riga, int colonna, string? valore)
+    {
+        if (_proposta is null || !int.TryParse(valore, out var k) || k < 0) return;
+        _proposta = _proposta.ConScelta(riga, colonna, k);
+    }
+
+    private Task Consegna(bool sostituisci) =>
+        _proposta is null ? Task.CompletedTask : OnImporta.InvokeAsync(new RichiestaImport(_proposta, sostituisci));
+
+    // ---- tagli a larghezza fissa -----------------------------------------------------------------------
+
+    /// <summary>Oltre questa larghezza il righello diventa un muro di caselle: si torna ai soli gettoni.</summary>
+    private const int MaxRighello = 200;
+
+    private RenderFragment RighelloTagli => __builder =>
+    {
+        var righe = TestoTabellare.Righe(_testo);
+        var larghezza = righe.Count == 0 ? 0 : Math.Min(righe.Max(r => r.Length), MaxRighello);
+
+        <div class="imp-ruler">
+            <div class="imp-ruler-hint muted">@L["Imp_CutsHint"]</div>
+            <div class="imp-ruler-line">
+                @for (var x = 0; x < larghezza; x++)
+                {
+                    var pos = x;
+                    <button type="button" class="imp-tick @(_tagli.Contains(pos) ? "on" : null)"
+                            title="@pos" @onclick="() => Taglia(pos)">@(pos % 10)</button>
+                }
+            </div>
+            @foreach (var riga in righe.Take(4))
+            {
+                <div class="imp-ruler-sample">@ConTagli(riga)</div>
+            }
+            <div class="imp-cuts">
+                @foreach (var t in _tagli)
+                {
+                    var pos = t;
+                    <button type="button" class="pill neutral" @onclick="() => Taglia(pos)">@pos ✕</button>
+                }
+                <button type="button" class="btn ghost" @onclick="Suggerisci">@L["Imp_CutsSuggest"]</button>
+            </div>
+        </div>
+    };
+
+    /// <summary>La riga con un segno dove passano i tagli: e' l'unico modo di vedere se il taglio cade
+    /// dentro una parola.</summary>
+    private string ConTagli(string riga)
+    {
+        if (_tagli.Count == 0) return riga;
+        var sb = new System.Text.StringBuilder();
+        for (var i = 0; i < riga.Length; i++)
+        {
+            if (_tagli.Contains(i)) sb.Append('│');
+            sb.Append(riga[i]);
+        }
+        return sb.ToString();
+    }
+
+    private async Task Taglia(int posizione)
+    {
+        if (!_tagli.Remove(posizione)) _tagli.Add(posizione);
+        _tagli.Sort();
+        await Rileggi();
+    }
+
+    private async Task Suggerisci()
+    {
+        _tagli = TestoTabellare.TagliSuggeriti(_testo).ToList();
+        await Rileggi();
+    }
+
+    // ---- mappatura e anteprima -------------------------------------------------------------------------
+
+    private RenderFragment Mappatura(Proposta p) => __builder =>
+    {
+        <div class="imp-map">
+            @for (var c = 0; c < Spec.Colonne.Count; c++)
+            {
+                var idx = c;
+                var col = Spec.Colonne[idx];
+                var scelta = idx < p.Mappatura.Colonne.Count ? p.Mappatura.Colonne[idx] : -1;
+                <label class="imp-map-one">
+                    <span>@col.Titolo@(col.Obbligatoria ? " *" : "")</span>
+                    <select class="app-in" @onchange="e => Rimappa(idx, e.Value?.ToString())">
+                        <option value="-1" selected="@(scelta < 0)">@L["Imp_NoColumn"]</option>
+                        @for (var g = 0; g < _griglia.Colonne; g++)
+                        {
+                            var gi = g;
+                            <option value="@gi" selected="@(scelta == gi)">@Etichetta(gi)</option>
+                        }
+                    </select>
+                </label>
+            }
+        </div>
+    };
+
+    /// <summary>Come si chiama la colonna g della griglia: la sua intestazione se c'e', o il suo numero.</summary>
+    private string Etichetta(int g)
+    {
+        if (_intestazione)
+        {
+            var prima = _griglia.Riga(0);
+            if (g < prima.Count && prima[g].Length > 0) return prima[g];
+        }
+        return string.Format(L["Imp_ColumnN"].Value, g + 1);
+    }
+
+    private RenderFragment Anteprima(Proposta p) => __builder =>
+    {
+        <table class="res-table imp-preview">
+            <thead>
+                <tr>
+                    <th class="imp-n">#</th>
+                    @foreach (var c in p.Colonne) { <th>@c</th> }
+                </tr>
+            </thead>
+            <tbody>
+                @for (var r = 0; r < p.Righe.Count; r++)
+                {
+                    var ri = r;
+                    var riga = p.Righe[ri];
+                    <tr class="@(riga.Ok ? null : "imp-bad")">
+                        <td class="muted imp-n">@riga.Numero</td>
+                        @for (var c = 0; c < riga.Celle.Count; c++)
+                        {
+                            var ci = c;
+                            var cella = riga.Celle[ci];
+                            <td class="@Classe(cella.Esito)" title="@Titolo(cella)">
+                                @if (cella.Esito == EsitoCella.Vuota)
+                                {
+                                    <span class="muted">—</span>
+                                }
+                                else if (cella.Esito == EsitoCella.NonLetta)
+                                {
+                                    <span class="imp-raw">@cella.Grezzo</span>
+                                }
+                                else if (cella.Esito == EsitoCella.DaScegliere && cella.Candidati is { Count: > 0 } scelte)
+                                {
+                                    @* ⚠️ La scelta si fa QUI. Dire «da scegliere» senza dare il modo di
+                                       scegliere lascerebbe la riga fuori per sempre: la regola e' «un codice
+                                       che e' di piu' impianti non si rifiuta, si chiede quale», e una domanda
+                                       senza risposta possibile e' un rifiuto scritto in modo gentile. *@
+                                    <select class="app-in imp-pick" aria-label="@L["Imp_Choose"]"
+                                            @onchange="e => Scegli(ri, ci, e.Value?.ToString())">
+                                        <option value="-1" selected>@L["Imp_Choose"]</option>
+                                        @for (var k = 0; k < scelte.Count; k++)
+                                        {
+                                            var ki = k;
+                                            <option value="@ki">@scelte[ki].Valore</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    @cella.Valore
+                                }
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    };
+
+    private static string? Classe(EsitoCella esito) => esito switch
+    {
+        EsitoCella.Risolta => "imp-ok",
+        EsitoCella.NonLetta => "imp-ko",
+        EsitoCella.DaScegliere => "imp-wait",
+        _ => null,
+    };
+
+    /// <summary>Il fumetto della cella: il testo com'era, e il perche' quando c'e'.</summary>
+    private string Titolo(CellaProposta cella)
+    {
+        var note = new List<string>();
+        if (cella.Grezzo.Length > 0 && cella.Grezzo != cella.Valore) note.Add(cella.Grezzo);
+        if (cella.Nota is { Length: > 0 }) note.Add(cella.Nota);
+        if (cella.Candidati is { Count: > 0 }) note.Add(string.Join(" / ", cella.Candidati.Select(x => x.Valore)));
+        return string.Join(" — ", note);
+    }
+
+    /// <summary>«1 riga» e «3 righe»: il singolare ha una chiave sua. Un «1 righe» in un tasto e' la prima
+    /// cosa che si nota, e la prima che fa sembrare improvvisato tutto il resto.</summary>
+    private string Conta(int quante, string uno, string molti) =>
+        quante == 1 ? L[uno].Value : string.Format(L[molti].Value, quante);
+
+    private string Forma(FormaGriglia forma) => forma switch
+    {
+        FormaGriglia.Tabulazioni => L["Imp_FormTabs"],
+        FormaGriglia.Csv => L["Imp_FormCsv"],
+        FormaGriglia.Markdown => L["Imp_FormMarkdown"],
+        FormaGriglia.Html => L["Imp_FormHtml"],
+        FormaGriglia.Xlsx => L["Imp_FormXlsx"],
+        FormaGriglia.LarghezzaFissa => L["Imp_FormFixed"],
+        _ => L["Imp_FormLines"],
+    };
+}

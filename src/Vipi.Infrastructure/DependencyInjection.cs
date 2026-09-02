@@ -147,6 +147,10 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Airspace.ISectorShapeParts, EfSectorShapeParts>();
         services.AddScoped<Vipi.Application.Airspace.ISectorShapeResolver, EfSectorShapeResolver>();
         services.AddScoped<Vipi.Application.Abstractions.IAirportNameLookup, EfAirportNameLookup>();
+
+        // Chi cerca sui cataloghi le celle di una tabella importata (scali, radioassistenze). Scoped come i
+        // due cataloghi che usa: vive quanto loro, non di piu'.
+        services.AddScoped<Vipi.Application.Import.IRisolutoreCelle, Vipi.Application.Import.RisolutoreCelle>();
         services.AddScoped<Vipi.Application.Abstractions.IImportStateStore, EfImportStateStore>();
         // Cadenza dei giri automatici, dalle opzioni della sorgente: la pagina admin la legge da qui
         // perche' Vipi.Ui non vede IvaoOptions (ne' deve: la sorgente e' sostituibile).

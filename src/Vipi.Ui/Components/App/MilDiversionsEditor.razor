@@ -9,6 +9,7 @@
 @inject IStringLocalizer<SharedResource> L
 @using Vipi.Application.Abstractions
 @using Vipi.Application.Content
+@using Vipi.Application.Import
 
 <table class="res-table mil-table div-table">
     <thead>
@@ -87,16 +88,19 @@
                     {
                         <input type="number" min="0" max="360" value="@r.Bearing" placeholder="126"
                                aria-label="@L["Div_Bearing"]"
-                               @onchange="e => OnSetNumber.InvokeAsync((idx, true, Numero(e.Value)))" />
+                               @onchange="e => OnSetRilevamento.InvokeAsync((idx, MilDiversionText.LeggiRilevamento(Testo(e.Value))))" />
                     }
                     else { @Vuoto(MilDiversionText.Rilevamento(r.Bearing)) }
                 </td>
                 <td class="c-num">
                     @if (Editing)
                     {
-                        <input type="number" min="0" max="9999" value="@r.DistanceNm" placeholder="40"
-                               aria-label="@L["Div_Distance"]"
-                               @onchange="e => OnSetNumber.InvokeAsync((idx, false, Numero(e.Value)))" />
+                        @* ⚠️ Il valore si scrive INVARIANTE anche quando la pagina e' in italiano: un
+                           `<input type="number">` con dentro «72,2» e' un campo VUOTO per il browser, e la
+                           distanza appena salvata sparirebbe dalla casella al primo render. *@
+                        <input type="number" min="0" max="9999" step="0.1" placeholder="40"
+                               value="@Invariante(r.DistanceNm)" aria-label="@L["Div_Distance"]"
+                               @onchange="e => OnSetDistanza.InvokeAsync((idx, MilDiversionText.LeggiDistanza(Testo(e.Value))))" />
                     }
                     else { @Vuoto(MilDiversionText.Distanza(r.DistanceNm)) }
                 </td>
@@ -124,8 +128,21 @@
             <input class="w-code" list="@AeroportiId" @bind="_nuovoIcao" placeholder="LIBG" />
         </label>
         <button type="button" class="btn primary" @onclick="Aggiungi">+ @L["Div_Add"]</button>
+        @* ⚠️ L'import sta accanto all'aggiunta a mano, che e' il gesto che sostituisce: cinque righe di SOP
+           sono cinque codici, cinque impianti e dieci numeri da ridigitare. *@
+        @if (OnImporta.HasDelegate)
+        {
+            <button type="button" class="btn ghost" @onclick="() => _import = !_import">⤓ @L["Imp_Open"]</button>
+        }
         @if (_errore is not null) { <span class="mil-err">@_errore</span> }
     </div>
+
+    @if (_import)
+    {
+        <ImportaTabella Spec="@Spec" Risolutore="@Risolutore" Sorgenti="@Sorgenti"
+                        CaricaSorgente="@CaricaSorgente" OnImporta="Importa"
+                        OnAnnulla="() => { _import = false; return Task.CompletedTask; }" />
+    }
     @* ⚠️ Lo si dice PRIMA, non dopo un fallimento: un alternato estero è il caso normale su un campo di
        confine, e chi scrive deve sapere che il codice glielo cerchiamo anche fuori dai nostri. Una riga
        sotto la barra d'aggiunta, come nelle Radioassistenze — un «?» da solo, senza niente accanto, in
@@ -155,6 +172,19 @@
 
     [Parameter] public bool Editing { get; set; }
 
+    /// <summary>Chi cerca scali e radioassistenze sui cataloghi, per l'import. Null = niente import.</summary>
+    [Parameter] public IRisolutoreCelle? Risolutore { get; set; }
+
+    /// <summary>Le righe approvate nell'anteprima, con la scelta fra «in coda» e «sostituisci». La
+    /// costruzione delle righe del payload la fa la pagina, che e' quella che sa salvarle.</summary>
+    [Parameter] public EventCallback<RichiestaImport> OnImporta { get; set; }
+
+    /// <summary>Gli altri vSOP militari da cui si puo' prendere questa stessa tabella.</summary>
+    [Parameter] public IReadOnlyList<SorgenteTabella>? Sorgenti { get; set; }
+
+    /// <summary>Come si legge la tabella degli alternati di uno di quelli.</summary>
+    [Parameter] public Func<string, Task<Griglia>>? CaricaSorgente { get; set; }
+
     /// <summary>Aggiunge lo scalo con questo ICAO. Il nome lo risolve l'host (archivio, poi sorgente).</summary>
     [Parameter] public EventCallback<string> OnAdd { get; set; }
 
@@ -169,8 +199,31 @@
 
     [Parameter] public EventCallback<(int Indice, NavaidKey Chiave)> OnRemoveNavaid { get; set; }
 
-    /// <summary>Rilevamento (<c>true</c>) o distanza (<c>false</c>) della riga; null = si svuota.</summary>
-    [Parameter] public EventCallback<(int Indice, bool Rilevamento, int? Valore)> OnSetNumber { get; set; }
+    /// <summary>Il rilevamento della riga, in gradi; null = si svuota.</summary>
+    [Parameter] public EventCallback<(int Indice, int? Gradi)> OnSetRilevamento { get; set; }
+
+    /// <summary>
+    /// La distanza della riga, in miglia; null = si svuota.
+    /// <para>⚠️ Sta in una voce SUA e non insieme al rilevamento con un flag: i due numeri non hanno piu' lo
+    /// stesso tipo — gradi interi, miglia con un decimale — e una voce sola costringerebbe a farne passare
+    /// uno travestito dall'altro.</para>
+    /// </summary>
+    [Parameter] public EventCallback<(int Indice, decimal? Nm)> OnSetDistanza { get; set; }
+
+    private bool _import;
+
+    /// <summary>
+    /// La specifica dell'import, con i titoli gia' nella lingua della pagina: sono anche i nomi con cui si
+    /// riconosce l'intestazione incollata, insieme ai sinonimi inglesi dei SOP veri.
+    /// </summary>
+    private SpecImport Spec => SpecTabelle.AeroportiAlternati(
+        L["Div_Airports"], L["Div_Navaids"], L["Div_Bearing"], L["Div_Distance"]);
+
+    private Task Importa(RichiestaImport r)
+    {
+        _import = false;
+        return OnImporta.InvokeAsync(r);
+    }
 
     private string _nuovoIcao = "";
     private string? _errore;
@@ -194,8 +247,11 @@
 
     private static string Vuoto(string s) => s.Length > 0 ? s : "—";
 
-    private static int? Numero(object? v) =>
-        int.TryParse(v?.ToString(), out var n) ? n : null;
+    private static string? Testo(object? v) => v?.ToString();
+
+    /// <summary>Il numero come lo vuole un campo <c>number</c> del browser: punto decimale, sempre.</summary>
+    private static string? Invariante(decimal? v) =>
+        v?.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
 
     private string LeggiBozza(int i) => _bozzaNavaid.TryGetValue(i, out var v) ? v : "";
 

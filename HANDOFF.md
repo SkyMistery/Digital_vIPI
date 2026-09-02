@@ -1,5 +1,7 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
+**Ultimo aggiornamento:** 2 settembre 2026, sera — 🟢 **TUTTO IN `main`, NESSUN RAMO APERTO.** Fusi `dati-scalo-solo-militare` (§AS, §AT) e `import-tabelle` (§AU). Il pacchetto 1.3.1 sale a **SETTE** lavori: §AO §AP §AQ §AR §AS §AT §AU. Vedi il riquadro sotto «Dove siamo».
+
 **Ultimo aggiornamento:** 2 settembre 2026, sera — 🟡 **UN RAMO APERTO: `dati-scalo-solo-militare` (`7bef3c3e`), spinto e NON fuso.** `main` resta a **`b8e6b22c`**. Il ramo porta **DUE** lavori, entrambi da segnalazione del committente, **nessuna entità e nessuna migrazione**: **§AS** (i dati dello scalo scrivibili nell'editor del vSOP sui campi solo militari) e **§AT** (l'avviso di traduzione automatica diventa un gettone). 🔴 **Vanno nel pacchetto 1.3.1 insieme agli altri quattro** — che diventano **sei**. ⚠️ §AT cambia **`vipi-theme.css` e `vipi-print.css`**, cioè gli stessi due fogli che il pacchetto già portava: impronte nuove, `wwwroot` insieme all'indice `staticwebassets`.
 
 **§AS — su un campo SOLO militare il rimando «editor dell'aeroporto» era un GIRO CHIUSO.** Le sezioni derivate del vSOP militare dicevano «per cambiarli: editor dell'aeroporto», ma su un campo solo militare senza vIPI civile `AeroportoEditorPage` **rimanda indietro** all'editor militare — `EnsureDocumentAsync` rifiuterebbe di far nascere il documento (§11b). Il clic tornava sulla stessa pagina, senza errore: **livelli di transizione, colonne editoriali delle piste e collegamenti di frequenza non avevano NESSUNA porta di scrittura in tutto il sito**. ⚠️ Lo stato c'era già (`CivilEdition`) e viewer ed elenco lo interrogavano: **mancava la domanda**, non l'informazione. Ora l'editor monta i tre editor dell'aeroporto — già estratti e indipendenti dalla pagina che li ospita, quindi **un secondo ospite, non un secondo editor** — quando `ScaloSenzaCivile`. ⚠️ La condizione è **la stessa** che fa la pagina che rimanda indietro («solo militare **E** nessun documento civile»): `SoloMilitare` da solo lascerebbe fuori il campo marcato solo militare *dopo* che la civile era già nata. ⚠️ E i due servizi dello scalo si prendono dallo **scope proprio** della pagina, non da `@inject`: scrivono, quindi vale il blocco di §AR. 🔴 Trovato di striscio e riparato: **il meteo prendeva la nota sbagliata su tutti e 26 i campi militari** — il METAR/TAF è live dal NOAA e non si compila in nessun editor.
@@ -28,7 +30,7 @@ cancellati — vale il riquadro qui sotto).
 
 ## Dove siamo, prima di tutto il resto
 
-> ### 🔴 PRIMA DI TUTTO: ci sono SEI lavori pronti che NON sono online
+> ### 🔴 PRIMA DI TUTTO: ci sono SETTE lavori pronti che NON sono online
 >
 > `main` è a **`b8e6b22c`** (2 settembre 2026): ha assorbito **`avviso-simulazione`** (§AO),
 > **`coerenza-sectorfile`** (§AP), **`titoli-di-catalogo-bilingui`** (§AQ, `c3ad9dab`) e

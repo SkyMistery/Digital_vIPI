@@ -2,6 +2,7 @@
    DocumentSectionsEditor (Prosa/Callout/Tabella), ma su una lista <ExtraBlock> mutata in loco: l'host decide
    come persistere (OnChanged → salva/marca dirty). *@
 @using System.Text.Json
+@using Vipi.Application.Import
 @inject IStringLocalizer<SharedResource> L
 
 @foreach (var b in Blocks)
@@ -93,7 +94,7 @@
     private Task Add(BlockFormat format)
     {
         var b = new ExtraBlock { Format = format };
-        if (format == BlockFormat.Table) b.TableJson = """{"columns":["Colonna 1","Colonna 2"],"rows":[]}""";
+        if (format == BlockFormat.Table) b.TableJson = TabellaGenerica.Nuova();
         Blocks.Add(b);
         return Changed();
     }
@@ -140,30 +141,14 @@
         CalloutKind.Success => "check-circle", CalloutKind.Warning => "warning", CalloutKind.Danger => "octagon", _ => "info",
     };
 
-    // ---- editor tabella (columns + rows di celle) — stesso formato JSON di DocumentSectionsEditor ----
-    private (List<string> Cols, List<List<string>> Rows) ParseTable(string? json)
-    {
-        var cols = new List<string>();
-        var rows = new List<List<string>>();
-        if (string.IsNullOrWhiteSpace(json)) return (cols, rows);
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            var r = doc.RootElement;
-            if (r.TryGetProperty("columns", out var c) && c.ValueKind == JsonValueKind.Array)
-                cols = c.EnumerateArray().Select(e => e.GetString() ?? "").ToList();
-            if (r.TryGetProperty("rows", out var rr) && rr.ValueKind == JsonValueKind.Array)
-                foreach (var row in rr.EnumerateArray())
-                    rows.Add(row.TryGetProperty("cells", out var cs) && cs.ValueKind == JsonValueKind.Array
-                        ? cs.EnumerateArray().Select(e => e.GetString() ?? "").ToList()
-                        : new List<string>());
-        }
-        catch (JsonException) { }
-        return (cols, rows);
-    }
+    // ---- editor tabella (columns + rows di celle) ----
+    //
+    // La forma del payload sta in UN posto solo (`TabellaGenerica`), condivisa con `DocumentSectionsEditor`.
+    private static (List<string> Cols, List<List<string>> Rows) ParseTable(string? json) =>
+        TabellaGenerica.Leggi(json);
 
     private static string SerializeTable(List<string> cols, List<List<string>> rows) =>
-        JsonSerializer.Serialize(new { columns = cols, rows = rows.Select(r => new { cells = r }) });
+        TabellaGenerica.Scrivi(cols, rows);
 
     private Task SetTableCol(ExtraBlock b, int ci, string val)
     {
@@ -245,8 +230,51 @@
                 }
             </tbody>
         </table>
-        <button class="btn ghost" style="margin-top:6px" @onclick="() => AddTableRow(b)">+ @L["Dse_Row"]</button>
+        <div style="display:flex;gap:6px;margin-top:6px">
+            <button class="btn ghost" @onclick="() => AddTableRow(b)">+ @L["Dse_Row"]</button>
+            @* ⚠️ L'import sta ACCANTO a «+ riga» e non altrove: e' l'alternativa allo scriverle una per una,
+               ed e' li' che se ne sente il bisogno. *@
+            <button class="btn ghost" @onclick="() => ApriImport(b)">⤓ @L["Imp_Open"]</button>
+            <EsportaCsv Nome="tabella" Colonne="cols" Righe="rows.Select(r => (IReadOnlyList<string>)r).ToList()" />
+        </div>
+        @if (ReferenceEquals(_importBlock, b))
+        {
+            <ImportaTabella Spec="@SpecTabella" OnImporta="r => Importa(b, r)"
+                            OnAnnulla="() => { _importBlock = null; return Task.CompletedTask; }" />
+        }
     };
+
+    // ---- import di una tabella -------------------------------------------------------------------------
+
+    private static readonly SpecImport SpecTabella = SpecImport.Generica();
+
+    /// <summary>Il blocco su cui l'import e' aperto; null = nessuno. ⚠️ E' il BLOCCO e non un flag: due
+    /// tabelle nella stessa sezione avrebbero due import aperti insieme, e le righe finirebbero in quella
+    /// sbagliata.</summary>
+    private ExtraBlock? _importBlock;
+
+    private void ApriImport(ExtraBlock b) => _importBlock = ReferenceEquals(_importBlock, b) ? null : b;
+
+    /// <summary>
+    /// Scrive le righe approvate. ⚠️ Le righe si <b>pareggiano</b> al numero di colonne: in una tabella HTML
+    /// una riga corta non lascia una cella vuota, sposta tutto a sinistra — il dato sembrerebbe sbagliato
+    /// invece che incompleto.
+    /// </summary>
+    private Task Importa(ExtraBlock b, RichiestaImport r)
+    {
+        var (cols, rows) = ParseTable(b.TableJson);
+
+        // La tabella generica prende anche le COLONNE da chi incolla, ma solo quando non ne ha gia' di sue:
+        // sovrascrivere le intestazioni di una tabella compilata sarebbe una perdita che nessuno ha chiesto.
+        if (cols.Count == 0 && r.Proposta.Colonne.Count > 0) cols = r.Proposta.Colonne.ToList();
+
+        var nuove = r.Proposta.Buone.Select(x => (IReadOnlyList<string>)x.Celle.Select(c => c.Valore).ToList());
+        var tutte = r.Sostituisci ? nuove.ToList() : rows.Select(x => (IReadOnlyList<string>)x).Concat(nuove).ToList();
+
+        b.TableJson = TabellaGenerica.Scrivi(cols, TabellaGenerica.Pareggia(tutte, cols.Count));
+        _importBlock = null;
+        return OnChanged.InvokeAsync();
+    }
 
     private RenderFragment RenderTablePreview(ExtraBlock b) => __builder =>
     {

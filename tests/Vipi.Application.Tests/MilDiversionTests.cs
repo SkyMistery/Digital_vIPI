@@ -27,11 +27,44 @@ public class MilDiversionTests
     public void Il_rilevamento_si_scrive_col_grado(int? gradi, string atteso) =>
         Assert.Equal(atteso, MilDiversionText.Rilevamento(gradi));
 
+    /// <summary>⚠️ Un decimale quando c'e' («72.2 NM») e nessuno quando non c'e' («40 NM», mai «40.0 NM»):
+    /// il PDF da cui si copia scrive il primo, e una tabella di documento non deve inventare una precisione
+    /// che il SOP non dichiara.</summary>
     [Theory]
-    [InlineData(40, "40 NM")]
+    [InlineData("40", "40 NM")]
+    [InlineData("72.2", "72.2 NM")]
+    [InlineData("72.25", "72.3 NM")]
     [InlineData(null, "")]
-    public void La_distanza_si_scrive_con_NM(int? nm, string atteso) =>
-        Assert.Equal(atteso, MilDiversionText.Distanza(nm));
+    public void La_distanza_si_scrive_con_NM(string? nm, string atteso) =>
+        Assert.Equal(atteso, MilDiversionText.Distanza(Dec(nm)));
+
+    /// <summary>
+    /// La rilettura e' l'inverso esatto della scrittura, e prende quel che si incolla da un PDF.
+    /// <para>⚠️ La <b>virgola</b> vale come il punto: chi scrive in italiano digita «72,2», e la sola lettura
+    /// invariante rendeva quel valore <c>null</c> in silenzio — la cella si svuotava da sola.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("72.2", "72.2")]
+    [InlineData("72,2", "72.2")]
+    [InlineData("72.2NM", "72.2")]
+    [InlineData(" 72.2 NM ", "72.2")]
+    [InlineData("40", "40")]
+    [InlineData("", null)]
+    [InlineData("niente", null)]
+    public void La_distanza_si_rilegge_come_si_scrive(string testo, string? atteso) =>
+        Assert.Equal(Dec(atteso), MilDiversionText.LeggiDistanza(testo));
+
+    [Theory]
+    [InlineData("308", 308)]
+    [InlineData("308°", 308)]
+    [InlineData("072", 72)]
+    [InlineData("400", null)]
+    [InlineData("", null)]
+    public void Il_rilevamento_si_rilegge_come_si_scrive(string testo, int? atteso) =>
+        Assert.Equal(atteso, MilDiversionText.LeggiRilevamento(testo));
+
+    private static decimal? Dec(string? s) =>
+        s is null ? null : decimal.Parse(s, System.Globalization.CultureInfo.InvariantCulture);
 
     // ---- Il payload ------------------------------------------------------------------------------------
 
@@ -41,20 +74,36 @@ public class MilDiversionTests
     /// alla scrittura, dove ancora si può.
     /// </summary>
     [Theory]
-    [InlineData(400, 40, null, 40)]
-    [InlineData(-1, 40, null, 40)]
-    [InlineData(126, -5, 126, null)]
-    [InlineData(126, 40, 126, 40)]
-    public void I_numeri_fuori_scala_non_si_salvano(int b, int d, int? attesoB, int? attesoD)
+    [InlineData(400, "40", null, "40")]
+    [InlineData(-1, "40", null, "40")]
+    [InlineData(126, "-5", 126, null)]
+    [InlineData(126, "40", 126, "40")]
+    [InlineData(126, "72.2", 126, "72.2")]
+    [InlineData(126, "72.26", 126, "72.3")]
+    public void I_numeri_fuori_scala_non_si_salvano(int b, string d, int? attesoB, string? attesoD)
     {
         var json = MilDiversionPayload.Scrivi(new[]
         {
-            new MilDiversionPayload.Riga { Icao = "LIBG", Bearing = b, Distance = d },
+            new MilDiversionPayload.Riga { Icao = "LIBG", Bearing = b, Distance = Dec(d) },
         });
 
         var r = Assert.Single(MilDiversionPayload.Leggi(json));
         Assert.Equal(attesoB, r.Bearing);
-        Assert.Equal(attesoD, r.Distance);
+        Assert.Equal(Dec(attesoD), r.Distance);
+    }
+
+    /// <summary>
+    /// ⚠️ Un archivio scritto prima che la distanza avesse i decimali si rilegge senza accorgersene: il JSON
+    /// vecchio dice <c>72</c>, e <c>72</c> e' un decimale come un altro. E' la meta' che funziona della
+    /// nota di consegna — l'altra meta' (binari vecchi che leggono un JSON nuovo) non si puo' provare qui.
+    /// </summary>
+    [Fact]
+    public void Una_distanza_intera_gia_in_archivio_si_rilegge()
+    {
+        var r = Assert.Single(MilDiversionPayload.Leggi(
+            """{"variant":"mildiversion","rows":[{"icao":"LIBG","bearing":126,"distance":72}]}"""));
+
+        Assert.Equal(72m, r.Distance);
     }
 
     [Fact]
