@@ -6,6 +6,7 @@
 @inherits OwningComponentBase
 @using Microsoft.Extensions.DependencyInjection
 @inject IReleaseService Releases
+@inject IProssimoAiracService ProssimoAirac
 @inject IDocumentAdminService DocAdmin
 @inject IDocumentImpactService Impacts
 @inject IEditAuthorizationService Authz
@@ -86,6 +87,75 @@
             }
         </LiveRegion>
     </div>
+
+    @* ---- «Prossimo AIRAC»: che cosa manca al ciclo entrante, e il gesto per metterlo a posto in blocco ----
+       Carta docs/feature/2026-09-02-il-ciclo-entrante.md §AW3.
+       ⚠️ NON e' una lista nuova: le righe di lavoro le porta gia' «Da fare» (ImpactKind.ReleaseDriftNextCycle),
+       e la §1 del FEATURE-PROCESS dice di estendere e mai affiancare. Qui c'e' il quadro d'insieme.
+       ⚠️ Chiuso di suo: e' una cosa che si guarda una volta a ciclo, e aperto spingerebbe l'elenco -- che e'
+       il motivo per cui si apre questa pagina -- sotto la piega ogni giorno dell'anno (regola 5). *@
+    @if (Authz.IsEditor && _airac is { } q)
+    {
+        @* ⚠️ Stile in riga e nessuna classe nuova: un foglio toccato vuol dire impronta nuova e quindi un
+           pacchetto che porta il CSS. Qui bastano quattro proprieta' di disposizione. *@
+        <details class="block">
+            <summary style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;cursor:pointer">
+                <b><Icon Name="calendar" /> @L["Airac_NextTitle"]</b>
+                <span class="pill grey">AIRAC @q.CicloEntrante</span>
+                <span class="muted">@(string.Format(L["Airac_NextFrom"].Value, q.EfficaceUtc.ToString("dd MMM yyyy")))</span>
+                <span class="pill @(q.GiorniAllEntrata <= 3 ? "amber" : "")">
+                    @(q.GiorniAllEntrata == 0 ? L["Airac_NextToday"].Value : string.Format(L["Airac_NextInDays"].Value, q.GiorniAllEntrata))
+                </span>
+                @if (q.DaProgrammare > 0)
+                {
+                    <span class="pill blue">@(string.Format(L["Airac_NextMissing"].Value, q.DaProgrammare))</span>
+                }
+            </summary>
+
+            <p class="help" style="margin:6px 0">@((MarkupString)L["Airac_NextHelp"].Value)</p>
+
+            @if (q.DaProgrammare == 0)
+            {
+                <p class="help" style="margin:0"><Icon Name="check-circle" Size="14" /> @L["Airac_NextAllDone"]</p>
+            }
+            else
+            {
+                <p style="margin:0 0 6px">
+                    @(string.Format(L["Airac_NextCounts"].Value, q.Programmati, q.DaProgrammare))
+                </p>
+                <ul style="margin:0 0 6px 18px;padding:0">
+                    @foreach (var d in q.Documenti.Where(x => !x.GiaProgrammato).Take(MaxDaMostrare))
+                    {
+                        <li>@d.Titolo @if (d.AccCode is { Length: > 0 } a) { <span class="muted">— @a</span> }</li>
+                    }
+                </ul>
+                @if (q.DaProgrammare > MaxDaMostrare)
+                {
+                    <p class="muted" style="margin:0 0 6px">@(string.Format(L["Airac_NextAndMore"].Value, q.DaProgrammare - MaxDaMostrare))</p>
+                }
+                <button class="btn primary" disabled="@_busy" @onclick="ProgrammaMancantiAsync"
+                        title="@L["Airac_NextScheduleAllTitle"]">
+                    <Icon Name="calendar" /> @(string.Format(L["Airac_NextScheduleAll"].Value, q.CicloEntrante))
+                </button>
+            }
+
+            @if (_airacSaltati.Count > 0)
+            {
+                <div class="callout warning" style="margin:8px 0 0">
+                    <span class="cic"><Icon Name="warning" Size="18" /></span>
+                    <div>
+                        <p class="ct">@(string.Format(L["Airac_NextSkipped"].Value, _airacSaltati.Count))</p>
+                        <ul style="margin:4px 0 0 18px;padding:0">
+                            @foreach (var (titolo, motivo) in _airacSaltati)
+                            {
+                                <li><b>@titolo</b> — @motivo</li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            }
+        </details>
+    }
 
     @if (_docs is null)
     {
@@ -327,6 +397,20 @@
     private readonly Dictionary<string, IReadOnlyList<Vipi.Application.Abstractions.AuditEntry>> _history = new();
     private IReadOnlyList<AiracCycleInfo> _upcoming = Array.Empty<AiracCycleInfo>();
     private string _currentCycle = "";
+
+    /// <summary>Il quadro del ciclo entrante (§AW3). null = non ancora letto, o lettura fallita: la sezione
+    /// semplicemente non compare — è un di più, e non deve poter rompere la pagina che la ospita.</summary>
+    private QuadroCicloEntrante? _airac;
+
+    /// <summary>Chi il giro in blocco non è riuscito a programmare, e perché. ⚠️ Sta a schermo finché non si
+    /// ricarica: un giro riuscito a metà in silenzio è peggio di uno fallito, perché chi l'ha premuto crede
+    /// di aver finito.</summary>
+    private List<(string Titolo, string Motivo)> _airacSaltati = new();
+
+    /// <summary>Quanti documenti mancanti si elencano prima di dire «e altri N». Dieci: è un promemoria di
+    /// che cosa manca, non l'elenco — quello è il pannello sotto, con i suoi filtri.</summary>
+    private const int MaxDaMostrare = 10;
+
     private bool _busy;
     private string? _status, _error, _errorTitle;
 
@@ -393,13 +477,47 @@
         _upcoming = Releases.UpcomingCycles(14);
         ReadFiltersFromUrl();
         await LoadAsync();
+        await LeggiCicloEntranteAsync();
     }
 
     /// <summary>Ricarica l'elenco: i lock nascono e muoiono mentre la pagina sta aperta, e con essi i cicli release.</summary>
     private async Task ReloadAsync()
     {
         _busy = true; _status = _error = _errorTitle = null;
-        try { await LoadAsync(); }
+        try { await LoadAsync(); await LeggiCicloEntranteAsync(); }
+        finally { _busy = false; }
+    }
+
+    /// <summary>
+    /// Il quadro del ciclo entrante. ⚠️ Un guasto qui <b>non</b> deve portarsi via la pagina: la sezione è un
+    /// di più sopra l'elenco, e l'elenco è il motivo per cui questa pagina si apre.
+    /// </summary>
+    private async Task LeggiCicloEntranteAsync()
+    {
+        try { _airac = await ProssimoAirac.LeggiAsync(); }
+        catch { _airac = null; }
+    }
+
+    /// <summary>
+    /// Programma in blocco le release mancanti al ciclo entrante. ⚠️ Dopo, si <b>rilegge</b>: la sezione dice
+    /// quanti mancano, e lasciarla ferma sui numeri di prima le farebbe dire il falso proprio nell'istante in
+    /// cui si è appena agito.
+    /// </summary>
+    private async Task ProgrammaMancantiAsync()
+    {
+        _busy = true; _status = _error = _errorTitle = null; _airacSaltati = new();
+        try
+        {
+            // ⚠️ Nota NULL, e non una frase nostra: la nota di una release è testo che finisce in archivio e
+            // si rilegge in timeline. Scritta qui, sarebbe nella lingua di chi ha premuto il tasto e ci
+            // resterebbe per sempre — è la regola già pagata dagli impatti (le frasi restano chiave+argomenti).
+            var esito = await ProssimoAirac.ProgrammaMancantiAsync();
+            _airacSaltati = esito.Saltati.ToList();
+            _status = string.Format(L["Airac_NextDone"].Value, esito.Programmati, _airac?.CicloEntrante ?? "");
+            await LoadAsync();
+            await LeggiCicloEntranteAsync();
+        }
+        catch (Exception ex) { _error = ex.Message; }
         finally { _busy = false; }
     }
 
