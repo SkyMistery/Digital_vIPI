@@ -262,4 +262,55 @@ public class EdizioneGiustaPerCampoTests : IAsyncLifetime
         // Un ICAO che non c'è risponde «non c'è», non un oggetto a zero: sono due risposte diverse.
         Assert.Null(await Repo().GetMilitaryStateAsync("ZZZZ"));
     }
+
+    // ---- I dati dell'ANAGRAFICA su un campo solo militare ---------------------------------------------
+
+    /// <summary>
+    /// ⚠️ <b>La guardia rifiuta la vIPI civile, non i dati dell'aeroporto.</b>
+    ///
+    /// <para>Quote di transizione, piste e collegamenti di frequenza sono dell'<b>anagrafica dello
+    /// scalo</b>: si salvano sul solo ICAO, e nessuno di quei metodi chiede un documento (i collegamenti
+    /// non si provano qui perché vogliono un catalogo settori, ma sono lo stesso servizio con la stessa
+    /// chiave). È ciò che rende
+    /// scrivibili dall'editor del <b>vSOP militare</b> — l'unica pagina che su un campo solo militare si
+    /// apra — dati che fino al 2 settembre 2026 non avevano <b>nessuna</b> porta di scrittura in tutto il
+    /// sito: l'editor d'aeroporto, l'unico che li mostrava, lì rimanda indietro, quindi il rimando era un
+    /// giro chiuso.</para>
+    ///
+    /// <para>Se un giorno una di queste pretendesse il documento civile, questo test diventa rosso — ed è
+    /// l'unico posto che se ne accorgerebbe, perché la pagina che li ospita non ha altra rete.</para>
+    /// </summary>
+    [Fact]
+    public async Task Su_un_campo_SOLO_militare_i_dati_dell_aeroporto_restano_scrivibili()
+    {
+        var rivolto = await _db.Airports.SingleAsync(a => a.Icao == "LIPI");
+
+        // La pista come la lascia l'import IVAO: ident, lunghezza e rotta di SORGENTE, colonne editoriali vuote.
+        _db.AirportRunways.Add(new AirportRunway { AirportId = rivolto.Id, Ident = "05", LengthM = 2990, Bearing = 50 });
+        await _db.SaveChangesAsync();
+
+        var civile = Civile();
+        await civile.SaveTransitionLevelsAsync("LIPI", new[] { new TlRow(0, null, 1013, "FL60") });
+
+        // ⚠️ Solo le colonne EDITORIALI: con la policy d'import di default le piste sono di sorgente, quindi
+        // ident/lunghezza/rotta si ripassano identiche — è esattamente ciò che fa l'editor a schermo.
+        await civile.SaveRunwaysAsync("LIPI",
+            new[] { new RunwayRow(0, "05", 2990, 50, "2990", "2850", "ILS Z", null, null) });
+
+        // ⚠️ La TA è di SORGENTE con la policy di default, e il rifiuto che si prende qui è quello di
+        // «Sorgenti dati» — lo stesso che si prende su Linate. Non è una regola dei campi militari, ed è il
+        // motivo per cui questo test non la scrive: confonderla con la guardia dell'edizione vorrebbe dire
+        // credere risolto un blocco che sta altrove.
+        var sorgente = await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
+            () => civile.SetTransitionAltitudeAsync("LIPI", 5000));
+        Assert.Contains("source", sorgente.Message, StringComparison.OrdinalIgnoreCase);
+
+        var dati = await civile.LoadForViewAsync("LIPI");
+        Assert.NotNull(dati);
+        Assert.Equal("FL60", Assert.Single(dati!.TransitionLevels).Level);
+        Assert.Equal("2850", Assert.Single(dati.Runways).LdaM);
+
+        // E la vIPI civile continua a NON esistere: si sono scritti dati dello SCALO, non un'edizione.
+        Assert.Null((await _db.Airports.AsNoTracking().SingleAsync(a => a.Icao == "LIPI")).DocumentId);
+    }
 }

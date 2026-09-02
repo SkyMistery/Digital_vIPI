@@ -22,9 +22,16 @@
 @* ---- Editor del vSOP MILITARE d'aeroporto (carta vSOP militari §5-6) --------------------------------
 
    ⚠️ È l'editor più magro dei cinque, e apposta: delle 26 sezioni, 20 sono PROSA e le altre sei le
-   disegna la pagina da dati che sono dell'aeroporto CIVILE. Quei dati non si toccano da qui — piste,
-   quote di transizione e frequenze di LIPI sono quelle, qualunque documento le mostri, e due editor sullo
-   stesso dato sono due verità che divergono. Qui si scrive, e si scelgono le aree di lavoro.
+   disegna la pagina da dati che sono dell'ANAGRAFICA dello scalo. Su un campo MISTO quei dati non si
+   toccano da qui — piste, quote di transizione e frequenze di LIPI sono quelle, qualunque documento le
+   mostri, e due editor sullo stesso dato sono due verità che divergono. Qui si scrive, e si scelgono le
+   aree di lavoro.
+
+   ⚠️ Su un campo SOLO MILITARE SENZA vIPI civile l'eccezione è obbligata: là il secondo editor non
+   esiste, quindi non c'è nessuna verità da far divergere — e fino al 2 settembre 2026 il rimando
+   all'editor d'aeroporto era un GIRO CHIUSO (quella pagina rimandava indietro qui), cioè TA, livelli di
+   transizione, colonne editoriali delle piste e collegamenti di frequenza non avevano nessuna porta di
+   scrittura in tutto il sito. Vedi `DatiDelloScalo`.
 
    ⚠️ Nessun `AirportProfile`: il documento è ACC-gated come il gemello civile, ma il suo contenuto sta
    tutto nei blocchi. *@
@@ -66,6 +73,9 @@ else
                     <HelpHint Href="/services/vsop/guide#editor-mil" AriaLabel="@L["Mil_HelpAria"]" ExtraClass="wide">
                         <p>@_icao · @_acc.Name</p>
                         @((MarkupString)L["Mil_HelpBody"].Value)
+                        @* ⚠️ Dove si cambiano piste, frequenze e quote di transizione dipende dal campo, e
+                           le due risposte sono opposte: la frase non può stare dentro `Mil_HelpBody`. *@
+                        <p>@(ScaloSenzaCivile ? L["Mil_HelpDataOwn"] : L["Mil_HelpDataCivil"])</p>
                     </HelpHint>
                     <span class="pill @(_shell.Doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
                         @(_shell.Doc.VersionStatus == DocumentStatus.Draft ? L["Ed_DraftVN", _shell.Doc.VersionNumber] : L["Ed_PublishedVN", _shell.Doc.VersionNumber])
@@ -171,6 +181,44 @@ else
     /// non esiste nessun secondo posto dove riscriverli.</summary>
     private IReadOnlyList<AccSpecialAreaView> _areeScelte = Array.Empty<AccSpecialAreaView>();
 
+    // ---- l'anagrafica dello scalo (frequenze, piste, quote di transizione) ----------------------------
+    //
+    // ⚠️ Non è contenuto del documento: è il dato dell'AEROPORTO, che questo vSOP mostra. Ci sta qui solo
+    // perché su un campo solo militare senza vIPI civile non esiste nessun'altra pagina che lo scriva.
+
+    /// <summary>Quale edizione civile esiste per questo scalo. Serve a decidere DOVE si cambiano i dati
+    /// dell'aeroporto, e va letta anche sui campi misti (la nota di rimando la usa lo stesso).</summary>
+    private CivilEdition _civile = new(false, false, false);
+
+    /// <summary>
+    /// Il campo è solo militare e la vIPI civile <b>non esiste</b>: allora l'editor d'aeroporto non è
+    /// raggiungibile e i suoi dati si scrivono qui.
+    ///
+    /// <para>⚠️ <c>SoloMilitare</c> da solo <b>non basta</b>, ed è l'errore facile: un campo marcato solo
+    /// militare <i>dopo</i> che la sua vIPI civile era nata continua ad aprirla — la guardia blocca la
+    /// nascita, non l'apertura. Là il rimando funziona e va lasciato, o gli editor diventerebbero due.</para>
+    /// </summary>
+    private bool ScaloSenzaCivile => _civile is { SoloMilitare: true, Esiste: false };
+
+    /// <summary>Chi guarda può scrivere sull'anagrafica di questo scalo: è il RUOLO sulla sua ACC, non il
+    /// lock del documento.</summary>
+    private bool _canEditScalo;
+
+    /// <summary>Un salvataggio dell'anagrafica è in corso: i tasti di quei tre editor si spengono.</summary>
+    private bool _busyScalo;
+
+    private ImportPolicySnapshot _policy = ImportPolicySnapshot.AllImported;
+    private int? _ta;
+    private List<TlEdit> _tls = new();
+    private List<RwEdit> _rwys = new();
+    private List<int> _linkIds = new();
+    private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
+    private IReadOnlyList<AirportSectorRow> _sectors = Array.Empty<AirportSectorRow>();
+
+    /// <summary>Le sezioni dell'anagrafica con modifiche non salvate: sono a salvataggio ESPLICITO, al
+    /// contrario dei blocchi del documento, quindi senza la guardia si perderebbero uscendo dalla pagina.</summary>
+    private readonly HashSet<string> _scaloDaSalvare = new(StringComparer.OrdinalIgnoreCase);
+
     // Voce del menu-sezioni per il pannello Release, che sta FUORI da DocumentSectionsEditor: senza, con
     // ventisei sezioni il pannello si raggiunge solo scorrendo fino in fondo. Come negli altri quattro.
     private IReadOnlyList<EditorTocItem> _tocExtra =>
@@ -191,9 +239,25 @@ else
     /// </summary>
     private IEditingService Editing = default!;
 
+    /// <summary>
+    /// L'anagrafica dello scalo, dallo <b>stesso scope proprio</b> di <see cref="Editing"/>.
+    ///
+    /// <para>⚠️ Scrive sul database (TA, livelli, piste, collegamenti di frequenza), quindi vale parola per
+    /// parola il blocco qui sopra: con <c>@@inject</c> arriverebbe dallo scope del CIRCUITO, cioè dal
+    /// <c>DbContext</c> che la sessione condivide con barra, isole e pannelli — e il salvataggio di una
+    /// pista finirebbe per correre contro il <c>LoadAsync</c> di questa stessa pagina.</para>
+    /// </summary>
+    private IAirportEditingService Scalo = default!;
+
+    /// <summary>Il catalogo settori dello scalo: la tabella (in sola lettura) della sezione «Frequenze».
+    /// Stesso scope, perché si legge nello stesso giro in cui l'altro scrive.</summary>
+    private IAirportSectorService Settori = default!;
+
     protected override void OnInitialized()
     {
         Editing = ScopedServices.GetRequiredService<IEditingService>();
+        Scalo = ScopedServices.GetRequiredService<IAirportEditingService>();
+        Settori = ScopedServices.GetRequiredService<IAirportSectorService>();
         _shell = new DocumentEditorShell(Editing, JS, L, Logger, "vSOP militare", "Mil_NoEditPerm",
             () => InvokeAsync(StateHasChanged));
     }
@@ -238,7 +302,55 @@ else
 
         _areaPicks = await Militari.ListSpecialAreasAsync(_icao);
         _otherAreaPicks = await Militari.ListOtherAccSpecialAreasAsync(_icao);
+        await CaricaDatiScaloAsync();
         await LoadAsync();
+    }
+
+    /// <summary>
+    /// I dati dell'anagrafica dello scalo, letti UNA VOLTA per aeroporto.
+    ///
+    /// <para>⚠️ Deliberatamente <b>fuori</b> da <see cref="LoadAsync"/>, che rigira a ogni salvataggio di
+    /// blocco (<c>OnChanged</c> di <c>DocumentSectionsEditor</c>): questi tre editor hanno buffer a
+    /// salvataggio esplicito, e rileggerli lì butterebbe via quel che si stava scrivendo perché <i>un'altra
+    /// sezione</i> si è salvata da sé. Dopo i salvataggi di qui non serve rileggere: il repository fa
+    /// sostituzione totale, quindi i buffer sono già lo stato salvato.</para>
+    /// </summary>
+    private async Task CaricaDatiScaloAsync()
+    {
+        _civile = await Militari.GetCivilEditionAsync(_icao);
+        _scaloDaSalvare.Clear();
+        await AggiornaGuardiaScaloAsync();
+
+        // Su un campo che una vIPI civile ce l'ha (o deve averla) quei dati si scrivono nell'altro editor:
+        // qui non si disegnano, e leggerli sarebbe lavoro per niente.
+        if (!ScaloSenzaCivile) return;
+
+        AirportData? dati;
+        try
+        {
+            dati = await Scalo.LoadForEditAsync(_icao);
+            _canEditScalo = dati is not null;
+        }
+        catch (EditNotAllowedException)
+        {
+            dati = await Scalo.LoadForViewAsync(_icao);
+            _canEditScalo = false;
+        }
+        if (dati is null) return;
+
+        _policy = await Scalo.GetImportPolicyAsync();
+        _linkable = await Scalo.ListLinkableFrequenciesAsync();
+        _sectors = await Settori.ListByAirportAsync(_icao);
+
+        _ta = dati.TransitionAltitudeFt;
+        _tls = dati.TransitionLevels
+            .Select(t => new TlEdit { Id = t.Id, From = t.QnhFrom, To = t.QnhTo, Level = t.Level }).ToList();
+        _rwys = dati.Runways.Select(r => new RwEdit
+        {
+            Id = r.Id, Ident = r.Ident, LengthM = r.LengthM, Bearing = r.Bearing,
+            Tora = r.ToraM, Lda = r.LdaM, App = r.AppProcedures, Patterns = r.Patterns, Circling = r.Circling,
+        }).ToList();
+        _linkIds = dati.Links.Select(l => l.SourceSectorId).ToList();
     }
 
     private async Task LoadAsync()
@@ -324,20 +436,162 @@ else
                 </div>
                 <ValidityStamp Target="ReleaseTargetType.AirportMil" Key="@_icao" />
                 break;
-            default:
-                @* weather, frequencies, runways, transition: la scheda la disegna il VIEWER dai dati
-                   dell'aeroporto civile. Qui si dice dove si cambiano, e sotto si scrivono i blocchi —
-                   che su un campo militare pesano più della scheda (misurato su LIPI). *@
-                <div class="callout info" style="margin:0 0 10px">
-                    <span class="cic"><Icon Name="info" Size="18" /></span>
-                    <div>
-                        @L["Mil_DerivedNote"]
-                        <a href="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports/editor?icao={_icao}")">@L["Mil_DerivedLink"]</a>
-                    </div>
+            @* ⚠️ Il meteo NON è un dato dell'aeroporto: è il METAR/TAF live dal NOAA, e non si compila in
+               nessun editor — nemmeno in quello dell'aeroporto, dove infatti c'è questa stessa nota. Fino
+               al 2 settembre 2026 cadeva nel `default:` e mandava la gente a cambiarlo in una pagina che
+               non può cambiarlo: su TUTTI i campi, non solo sui solo militari. *@
+            case "weather":
+                <div class="callout info" style="margin:0">
+                    <span class="cic"><Icon Name="cloud" Size="18" /></span>
+                    <div><p class="ct">@L["Ape_WeatherTitle"]</p>@L["Ape_WeatherBody"]</div>
                 </div>
+                break;
+            default:
+                @* frequencies, runways, transition: la scheda la disegna il VIEWER dai dati
+                   dell'anagrafica dello scalo. Qui si dice dove si cambiano — o si cambiano, quando non
+                   c'è nessun altro posto dove farlo — e sotto si scrivono i blocchi, che su un campo
+                   militare pesano più della scheda (misurato su LIPI). *@
+                @DatiDelloScalo(s)
                 break;
         }
     };
+
+    /// <summary>
+    /// Le tre sezioni il cui dato è dell'<b>anagrafica dello scalo</b> e non del documento: frequenze,
+    /// piste, quote di transizione.
+    ///
+    /// <para>⚠️ <b>Dove si scrivono dipende da quale altra edizione esiste, e le due risposte sono
+    /// opposte.</b> Campo con una vIPI civile (o che deve averne una): l'editor di quei dati è il suo, e un
+    /// secondo editor sullo stesso dato sarebbe la seconda verità che diverge — qui si rimanda e basta.
+    /// Campo <b>solo militare senza vIPI civile</b>: quell'editor <b>non è raggiungibile</b>, perché
+    /// <c>AirportEditingService.EnsureDocumentAsync</c> rifiuta di far nascere il documento e
+    /// <c>AeroportoEditorPage</c> rimanda indietro qui — il rimando era un giro chiuso, e quei dati non
+    /// avevano <b>nessuna</b> porta di scrittura in tutto il sito. Allora si scrivono qui.</para>
+    ///
+    /// <para>⚠️ La domanda è la <b>stessa</b> che fa la pagina che rimanda indietro — «solo militare E
+    /// nessun documento civile» — e non una che le somiglia: due porte che decidono la stessa cosa devono
+    /// chiedere la stessa cosa, o una manda dove l'altra non lascia entrare.</para>
+    ///
+    /// <para>⚠️ Il dato resta <b>dell'aeroporto</b> anche quando si scrive di qui: le stesse piste e la
+    /// stessa TA le legge chiunque altro citi lo scalo. Non è una copia dentro il vSOP.</para>
+    /// </summary>
+    private RenderFragment DatiDelloScalo(EditableSection s) =>
+        ScaloSenzaCivile ? EditorDelloScalo(s) : NotaEditorCivile;
+
+    /// <summary>Dove si cambiano: il rimando all'editor della vIPI civile dello stesso scalo.</summary>
+    private RenderFragment NotaEditorCivile => __builder =>
+    {
+        <div class="callout info" style="margin:0 0 10px">
+            <span class="cic"><Icon Name="info" Size="18" /></span>
+            <div>
+                @L["Mil_DerivedNote"]
+                <a href="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports/editor?icao={_icao}")">@L["Mil_DerivedLink"]</a>
+            </div>
+        </div>
+    };
+
+    /// <summary>
+    /// I dati dello scalo scritti <b>qui</b>, con gli stessi tre componenti dell'editor d'aeroporto: quelli
+    /// sono già estratti e non sanno da quale pagina sono montati (doc 14 §3g), quindi non c'è nessuna
+    /// seconda stesura dell'editor — solo un secondo ospite.
+    ///
+    /// <para>⚠️ La scrittura segue <c>_canEditScalo</c> — il <b>ruolo</b> sulla ACC dello scalo — e non
+    /// <c>_shell.IsEditing</c>, che è il lock del <b>documento</b>: quel lock governa il vSOP, non
+    /// l'anagrafica dell'aeroporto, e sono due cose che si possiedono separatamente.</para>
+    /// </summary>
+    private RenderFragment EditorDelloScalo(EditableSection s) => __builder =>
+    {
+        <div class="callout info" style="margin:0 0 10px">
+            <span class="cic"><Icon Name="info" Size="18" /></span>
+            <div>@L["Mil_OwnDataNote"]</div>
+        </div>
+        @switch (s.SectionKey)
+        {
+            case "transition":
+                <AirportTransitionEditor Rows="_tls" TransitionAltitudeFt="_ta" TransitionAltitudeFtChanged="v => _ta = v"
+                                         SourceLocked="_policy.TransitionAltitude" Busy="_busyScalo" CanEdit="_canEditScalo"
+                                         OnChanged='() => SegnaScaloDaSalvare("transition")'
+                                         OnSaveTa="SalvaTa" OnSaveRows="SalvaLivelli"
+                                         ConfirmRemove="ConfermaRimozioneRiga" />
+                break;
+            case "runways":
+                <AirportRunwaysEditor Rows="_rwys" SourceLocked="_policy.Runways" Busy="_busyScalo" CanEdit="_canEditScalo"
+                                      OnChanged='() => SegnaScaloDaSalvare("runways")' OnSaveRows="SalvaPiste"
+                                      ConfirmRemove="ConfermaRimozionePista" />
+                break;
+            case "frequencies":
+                <AirportFrequenciesEditor Catalogo="FreqRows().ToList()" LinkIds="_linkIds" Linkable="_linkable"
+                                          Busy="_busyScalo" CanEdit="_canEditScalo"
+                                          OnChanged='() => SegnaScaloDaSalvare("frequencies")' OnSaveLinks="SalvaLink" />
+                break;
+        }
+    };
+
+    // ---- l'anagrafica dello scalo: letture d'appoggio, guardia e salvataggi ---------------------------
+
+    /// <summary>Le frequenze del catalogo settori, nell'ordine ATIS·DEL·GND·TWR·APP/DEP: solo quelle che
+    /// hanno una frequenza e non sono nascoste. Sola lettura — il catalogo si scrive in «Struttura».</summary>
+    private IEnumerable<AirportSectorRow> FreqRows()
+    {
+        string[] ordine = { "ATIS", "DEL", "GND", "TWR", "APP", "DEP" };
+        return _sectors
+            .Where(s => !s.IsHidden && !string.IsNullOrWhiteSpace(s.Frequency))
+            .OrderBy(s => { var i = Array.IndexOf(ordine, (s.Position ?? "").Trim().ToUpperInvariant()); return i < 0 ? 99 : i; })
+            .ThenByDescending(s => s.IsPrimary)
+            .ThenBy(s => s.ComposePosition);
+    }
+
+    private Task<bool> Conferma(string messaggio) => JS.InvokeAsync<bool>("confirm", messaggio).AsTask();
+    private Task<bool> ConfermaRimozioneRiga() => Conferma(L["Ape_RemoveRowConfirm"].Value);
+    private Task<bool> ConfermaRimozionePista() => Conferma(L["Ape_RemoveRwConfirm"].Value);
+
+    /// <summary>
+    /// La guardia «hai modifiche non salvate» del browser.
+    ///
+    /// <para>⚠️ Serve <b>solo</b> a questi tre editor: i blocchi del documento si salvano da sé a ogni
+    /// gesto, quelli dell'anagrafica no — hanno il loro tasto «salva», e chi esce senza premerlo perde
+    /// quel che ha scritto.</para>
+    /// </summary>
+    private async Task AggiornaGuardiaScaloAsync()
+    {
+        if (!_shell.JsReady) return;
+        try { await JS.InvokeVoidAsync("vipiSetDirty", _scaloDaSalvare.Count > 0); }
+        catch (JSDisconnectedException) { }
+        catch (InvalidOperationException) { }
+    }
+
+    private async Task SegnaScaloDaSalvare(string sezione)
+    {
+        _scaloDaSalvare.Add(sezione);
+        await AggiornaGuardiaScaloAsync();
+    }
+
+    /// <summary>Esegue un salvataggio dell'anagrafica col badge e gli errori tradotti del guscio comune, e
+    /// a buon fine pulisce il «da salvare» della sola sezione toccata.</summary>
+    private async Task SalvaScalo(string sezione, Func<Task> azione)
+    {
+        _busyScalo = true;
+        bool fatto;
+        try { fatto = await _shell.GuardedAsync(azione); }
+        finally { _busyScalo = false; }
+
+        // ⚠️ Nessuna rilettura: il repository sostituisce in blocco, quindi i buffer SONO già lo stato
+        // salvato — e una rilettura totale butterebbe via le modifiche non salvate delle ALTRE sezioni.
+        if (!fatto) return;
+        _scaloDaSalvare.Remove(sezione);
+        await AggiornaGuardiaScaloAsync();
+    }
+
+    private Task SalvaTa() => SalvaScalo("transition", () => Scalo.SetTransitionAltitudeAsync(_icao, _ta));
+
+    private Task SalvaLivelli() => SalvaScalo("transition", () => Scalo.SaveTransitionLevelsAsync(_icao,
+        _tls.Select(t => new TlRow(t.Id, t.From, t.To, t.Level ?? "")).ToList()));
+
+    private Task SalvaPiste() => SalvaScalo("runways", () => Scalo.SaveRunwaysAsync(_icao,
+        _rwys.Select(r => new RunwayRow(r.Id, r.Ident ?? "", r.LengthM, r.Bearing,
+            r.Tora, r.Lda, r.App, r.Patterns, r.Circling)).ToList()));
+
+    private Task SalvaLink() => SalvaScalo("frequencies", () => Scalo.SaveFrequencyLinksAsync(_icao, _linkIds.ToList()));
 
     // ---- Radioassistenze ------------------------------------------------------------------------------
     //

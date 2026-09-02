@@ -6976,3 +6976,96 @@ chiunque: **i file si aggiungono per nome**, e prima di committare si guarda `gi
 ⚠️ E porta con sé una **correzione di rotta** già scritta nel CSS ma non nei documenti: il `bottom` del piè
 di pagina **non può essere negativo**. Le tre sedi che dicevano «scelto −4mm» — la riga §AO in cima a questo
 file, `history/rounds.md` e `HANDOFF.md` — sono state corrette nello stesso giro.
+
+## AS. Il giro chiuso dei campi solo militari: i dati dello scalo senza una porta — 2 settembre 2026
+
+🟡 **In lavorazione**, ramo da aprire su `main` (`b8e6b22c`). Nessuna carta: è un **difetto**, segnalato dal
+committente — *«C'è un problema sui military only, che non hanno vIPI: in assenza di vIPI le cose che
+normalmente sono in “This card is drawn by the document from the airport data. To change it: airport editor”
+vanno direttamente qui»* — con l'indirizzo del caso, l'editor del vSOP di **LIBG Grottaglie**.
+
+### Il fatto, e perché era peggio di un testo sbagliato
+
+Nell'editor del vSOP militare le sezioni derivate mostravano «per cambiarli: **editor dell'aeroporto**». Su
+un campo **solo militare** quel collegamento è un **giro chiuso**: `AeroportoEditorPage` legge lo stato
+militare e, se il campo è solo militare **e** la vIPI civile non esiste, **rimanda indietro** all'editor
+militare — perché `AirportEditingService.EnsureDocumentAsync` rifiuterebbe di far nascere il documento
+(§11b). Verificato a schermo: il clic torna sulla **stessa pagina**, senza errore e senza spiegazione.
+
+⚠️ La conseguenza non è cosmetica. **Livelli di transizione, colonne editoriali delle piste (TORA/LDA/APP/
+Patterns/Circling) e collegamenti di frequenza non avevano NESSUNA porta di scrittura in tutto il sito.** Su
+LIBG quei dati esistono solo perché ce li ha messi l'import IVAO; tutto ciò che è editoriale era
+irraggiungibile per sempre. Campi colpiti oggi: **LIBG** (pubblicato) e **LIBN** (bozza); in arrivo LIBV,
+LIPA, LIBA.
+
+### ⚠️ L'asimmetria che lo dimostra: lo stato c'era già, la pagina non lo chiedeva
+
+`CivilEdition(Esiste, Pubblicata, SoloMilitare)` esiste dal giro §X, e **viewer** (`MilDocumentPage`) ed
+**elenco** (`MilListPage`) erano già gated su di esso. Solo la nota dell'**editor** era incondizionata. Non
+mancava un'informazione: mancava la **domanda**.
+
+### La regola, e le due risposte opposte
+
+- Campo **misto** (o che una vIPI civile deve averla): si **rimanda**, come prima. Due editor sullo stesso
+  dato sarebbero due verità che divergono, ed è la ragione per cui la nota è nata.
+- Campo **solo militare SENZA vIPI civile**: si **scrive qui**. Là il secondo editor non esiste, quindi non
+  c'è nessuna verità da far divergere.
+
+⚠️ **La domanda è la STESSA che fa la pagina che rimanda indietro** — «solo militare **E** nessun documento
+civile» — e non una che le somiglia. `SoloMilitare` da solo **non basta**: un campo marcato solo militare
+*dopo* che la sua vIPI civile era nata continua ad aprirla (la guardia blocca la **nascita**, non
+l'apertura), e lì il rimando è quello giusto. Due porte che decidono la stessa cosa devono chiedere la
+stessa cosa, o una manda dove l'altra non lascia entrare. La guardia strutturale sta in
+`DatiDelloScaloMilitareTests`.
+
+### ⚠️ E il meteo non è un dato dell'aeroporto — su TUTTI i campi, non solo su questi
+
+`weather` cadeva nel ramo generico e prendeva la stessa nota: «per cambiarlo, editor dell'aeroporto». Il
+METAR/TAF è **live dal NOAA** e non si compila in nessun editor — nemmeno in quello dell'aeroporto, dove
+infatti c'è la nota «non c'è nulla da compilare». Ora ha il suo ramo e **quella** nota
+(`Ape_WeatherTitle`/`Ape_WeatherBody`, riusate: non una seconda stesura). Era sbagliato su tutti e ventisei
+i campi militari, e nessuno l'aveva visto perché il campo di prova non aveva mai fatto quella domanda.
+
+### Come si è chiuso
+
+- `MilEditorPage` legge `GetCivilEditionAsync` **una volta per aeroporto**, e monta i tre editor
+  dell'aeroporto — `AirportTransitionEditor`, `AirportRunwaysEditor`, `AirportFrequenciesEditor` — quando
+  `ScaloSenzaCivile`. ⚠️ **Nessuna seconda stesura**: quei tre sono già componenti estratti e indipendenti
+  dalla pagina che li ospita (doc 14 §3g), quindi qui c'è un secondo **ospite**, non un secondo editor.
+- ⚠️ **`IAirportEditingService` e `IAirportSectorService` dallo scope PROPRIO della pagina**
+  (`ScopedServices`), non da `@inject`: scrivono sul database, quindi vale parola per parola il blocco già
+  scritto per `IEditingService` — con `@inject` arriverebbero dal `DbContext` del **circuito**, e il
+  salvataggio di una pista correrebbe contro il `LoadAsync` di questa stessa pagina.
+- ⚠️ **Il carico sta FUORI da `LoadAsync`**, che rigira a ogni salvataggio di blocco (`OnChanged` di
+  `DocumentSectionsEditor`): questi tre editor hanno buffer a **salvataggio esplicito**, e rileggerli lì
+  butterebbe via quel che si stava scrivendo perché *un'altra* sezione si è salvata da sé. Dopo i
+  salvataggi di qui non si rilegge: il repository sostituisce in blocco, quindi i buffer **sono** già lo
+  stato salvato.
+- ⚠️ **La scrittura segue il RUOLO (`_canEditScalo`), non il lock del documento** (decisione del
+  committente): quel lock governa il vSOP, l'anagrafica dell'aeroporto è un'altra cosa e si possiede
+  separatamente. Legarli darebbe un editor spento a chi ha il permesso di scrivere.
+- Guardia «modifiche non salvate» del browser (`vipiSetDirty`) aggiunta per queste tre sole sezioni: i
+  blocchi del documento si salvano da sé, questi no.
+- Testo: `Mil_HelpBody` perde la frase sul meteo; la riga su dove si cambiano i dati diventa condizionale
+  (`Mil_HelpDataCivil` / `Mil_HelpDataOwn`), e la nota in pagina è `Mil_OwnDataNote`.
+
+### Verificato dal vivo, sui dati veri
+
+App pubblicata in scratchpad e guidata su una **copia** del `vipi.db` (porta libera: l'app di chi lavora
+resta in piedi, e i `bin/` restano suoi).
+
+- **LIBG** (solo militare): **zero** collegamenti all'editor d'aeroporto, tre note «dati dell'anagrafica»,
+  la nota giusta sul meteo. Piste 17/35 con le colonne editoriali scrivibili, tabella livelli con le fasce
+  QNH, TA col lucchetto «di sorgente». **Giro di andata e ritorno**: LDA di 17 scritta, «Salva piste»,
+  ricaricata la pagina, valore **persistito**.
+- **LIML** (misto): tre note di rimando coi collegamenti, **nessun** editor in pagina, e il collegamento
+  **apre davvero** l'editor d'aeroporto. La nota del meteo è quella nuova anche qui.
+
+### Quel che resta
+
+- 🟡 **La TA resta di sorgente**, e il rifiuto che si prende scrivendola è quello di «Sorgenti dati» — lo
+  stesso che si prende su Linate. **Non è una regola dei campi militari**, e confonderla con la guardia
+  dell'edizione vorrebbe dire credere risolto un blocco che sta altrove. Il test lo pretende per iscritto.
+- 🟡 **`SaveFrequencyLinksAsync` non è provata** nel test di scrittura (vuole un catalogo settori): è lo
+  stesso servizio con la stessa chiave, ma è l'unica delle tre a fidarsi.
+- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** con §AO, §AP e §AQ.
