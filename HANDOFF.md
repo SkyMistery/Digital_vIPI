@@ -1,6 +1,6 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 2 settembre 2026, sera — 🟢 **TUTTO IN `main`, NESSUN RAMO APERTO.** Fusi `dati-scalo-solo-militare` (§AS, §AT) e `import-tabelle` (§AU). Il pacchetto 1.3.1 sale a **SETTE** lavori: §AO §AP §AQ §AR §AS §AT §AU. Vedi il riquadro sotto «Dove siamo».
+**Ultimo aggiornamento:** 2 settembre 2026, sera — 📦 **PACCHETTO 1.4.0 PRONTO DA CARICARE** (timbro `1.4.0 · 669762f`, 21 file, sha256 `b8f680bc…`, **nessuna migrazione**). Prima di quello: 🟢 **TUTTO IN `main`, NESSUN RAMO APERTO.** Fusi `dati-scalo-solo-militare` (§AS, §AT) e `import-tabelle` (§AU). Il pacchetto 1.3.1 sale a **SETTE** lavori: §AO §AP §AQ §AR §AS §AT §AU. Vedi il riquadro sotto «Dove siamo».
 
 **Ultimo aggiornamento:** 2 settembre 2026, sera — 🟡 **UN RAMO APERTO: `dati-scalo-solo-militare` (`7bef3c3e`), spinto e NON fuso.** `main` resta a **`b8e6b22c`**. Il ramo porta **DUE** lavori, entrambi da segnalazione del committente, **nessuna entità e nessuna migrazione**: **§AS** (i dati dello scalo scrivibili nell'editor del vSOP sui campi solo militari) e **§AT** (l'avviso di traduzione automatica diventa un gettone). 🔴 **Vanno nel pacchetto 1.3.1 insieme agli altri quattro** — che diventano **sei**. ⚠️ §AT cambia **`vipi-theme.css` e `vipi-print.css`**, cioè gli stessi due fogli che il pacchetto già portava: impronte nuove, `wwwroot` insieme all'indice `staticwebassets`.
 
@@ -30,7 +30,19 @@ cancellati — vale il riquadro qui sotto).
 
 ## Dove siamo, prima di tutto il resto
 
-> ### 🔴 PRIMA DI TUTTO: `main` ha SETTE lavori pronti che NON sono online
+> ### 📦 PRIMA DI TUTTO: il pacchetto 1.4.0 è COSTRUITO e aspetta solo l'FTP
+>
+> `artifacts/publish/vipi-1.4.0-solo-file-cambiati.zip` — 21 file, 4,28 MB, sha256
+> `b8f680bc477c0f0683a5bf51729d186597de0ef8af2dfae74566092c75d7b6e4`, timbro **`1.4.0 · 669762f`**.
+> Foglio per chi carica: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.4.0.md`.
+>
+> 🟢 **Nessuna migrazione**: si carica quando si vuole. ⚠️ Ma il ritorno a 1.3.0 non legge una distanza di
+> alternato scritta **coi decimali**: quella tabella sparirebbe a schermo.
+>
+> 🔴 Dopo il caricamento vanno rifatti i tre controlli **su produzione**, mentre chi ha caricato è ancora
+> raggiungibile: timbro, **Ricerca**, e il riquadro d'import con i comandi in italiano.
+>
+> ### I SETTE lavori che porta
 >
 > `main` è a **`fb2c6212`** (2 settembre 2026, sera) e ha assorbito **tutto**: `avviso-simulazione` (§AO),
 > `coerenza-sectorfile` (§AP), `titoli-di-catalogo-bilingui` (§AQ), `editor-non-si-blocca` (§AR),
