@@ -40,6 +40,33 @@ public sealed class DocumentEditorShell : IDisposable
     private readonly Func<Task> _ridisegna;
     private readonly DelayedUiAction _spegniSalvato = new();
 
+    /// <summary>
+    /// Il <b>tornello</b>: sul contesto di questa pagina passa <b>una operazione per volta</b>.
+    ///
+    /// <para>⚠️ Il 2 settembre 2026, aggiungendo una sotto-sezione alle Separazioni della vIPI di LIBB, è
+    /// ricomparso «A second operation was started on this context». Non era un servizio iniettato male:
+    /// erano <b>due catene di caricamento della stessa pagina</b> sovrapposte. Un gesto chiama
+    /// <c>OnChanged</c> → il ricarico parte e <b>cede</b> al primo <c>await</c>; il ridisegno che segue fa
+    /// scattare <c>OnParametersSetAsync</c>, che ricarica <b>di nuovo</b>. Due catene, lo stesso
+    /// <c>DbContext</c>, e chi arriva secondo muore — portandosi via il circuito, perché un'eccezione nel
+    /// ciclo di vita non la cattura nessuno.</para>
+    ///
+    /// <para>⚠️ <b>Non si risolve isolando altri servizi.</b> Il pannello release <b>deve</b> condividere il
+    /// contesto della pagina — il publish è un'operazione sola composta con <c>BeforePublishAsync</c>, e
+    /// spezzarla su due contesti la manda in stallo (sta scritto in testa a <c>ReleasePanel</c>). Qui non si
+    /// separano i contesti: si mette in fila chi li usa.</para>
+    /// </summary>
+    private readonly SemaphoreSlim _tornello = new(1, 1);
+
+    /// <summary>
+    /// Vero quando il flusso corrente è <b>già dentro</b> il tornello.
+    /// <para>⚠️ Serve perché il tornello non è rientrante e le nostre catene si annidano davvero:
+    /// <c>StartEditingAsync</c> è un gesto (in fila) che <b>chiama il ricarico della pagina</b> (in fila).
+    /// Senza questa memoria si aspetterebbe se stessi, per sempre: l'editor si pianterebbe invece di
+    /// morire — che è peggio, perché sembra lentezza.</para>
+    /// </summary>
+    private readonly AsyncLocal<bool> _inFila = new();
+
     /// <param name="famiglia">Come si chiama questo documento nei log: «ACC», «APP», «vLOA», «aeroporto».</param>
     /// <param name="chiaveNoPermesso">Chiave di traduzione del «non hai il permesso» di questa famiglia: è la
     /// sola frase che le quattro non condividono, perché nomina il tipo di documento.</param>
@@ -85,6 +112,21 @@ public sealed class DocumentEditorShell : IDisposable
     /// Esegue un'azione mostrandone l'esito: badge «salvataggio…», poi «salvato» che si spegne da solo, e gli
     /// errori tradotti al posto di un circuito caduto.
     /// </summary>
+    /// <summary>
+    /// Esegue <paramref name="azione"/> <b>una per volta</b> su questa pagina. Ci passano i gesti (dal
+    /// guardiano) e i <b>caricamenti</b> — che non sono gesti, e sono l'altra metà della corsa.
+    /// <para>Chi è già in fila non si rimette in coda: eseguirebbe l'attesa di se stesso.</para>
+    /// </summary>
+    public async Task InFilaAsync(Func<Task> azione)
+    {
+        if (_inFila.Value) { await azione(); return; }
+
+        await _tornello.WaitAsync().ConfigureAwait(false);
+        _inFila.Value = true;
+        try { await azione(); }
+        finally { _inFila.Value = false; _tornello.Release(); }
+    }
+
     public Task GuardAsync(Func<Task> azione) => GuardCoreAsync(azione, silenziosa: false);
 
     /// <summary>
@@ -106,6 +148,15 @@ public sealed class DocumentEditorShell : IDisposable
     public Task<bool> GuardedAsync(Func<Task> azione) => EseguiAsync(azione, silenziosa: false);
 
     private async Task<bool> EseguiAsync(Func<Task> azione, bool silenziosa)
+    {
+        // ⚠️ Anche i gesti passano dal tornello: due salvataggi lanciati a raffica sono due catene sullo
+        // stesso contesto quanto lo sono un gesto e un ricarico.
+        var esito = false;
+        await InFilaAsync(async () => esito = await EseguiCoreAsync(azione, silenziosa));
+        return esito;
+    }
+
+    private async Task<bool> EseguiCoreAsync(Func<Task> azione, bool silenziosa)
     {
         Error = null;
         if (!silenziosa) { Save = SaveState.Saving; await _ridisegna(); }
@@ -231,5 +282,9 @@ public sealed class DocumentEditorShell : IDisposable
     }
 
     /// <summary>Ferma il badge che si spegne da solo: dopo lo smontaggio non c'è più un renderer da avvisare.</summary>
-    public void Dispose() => _spegniSalvato.Dispose();
+    public void Dispose()
+    {
+        _spegniSalvato.Dispose();
+        _tornello.Dispose();
+    }
 }

@@ -197,4 +197,86 @@ public class DocumentEditorShellTests
         Assert.Equal("rotto", guscio.Error);
         Assert.Single(ridisegni);   // niente badge da accendere: resta il ridisegno dell'errore
     }
+
+    // ---- il tornello: una operazione per volta su questo contesto -------------------------------------
+
+    /// <summary>
+    /// ⚠️ <b>La segnalazione del 2 settembre 2026, riprodotta.</b> Aggiungendo una sotto-sezione tornava
+    /// «A second operation was started on this context»: non un servizio iniettato male, ma <b>due catene
+    /// di caricamento della stessa pagina</b> sovrapposte — un gesto che ricarica cede al primo
+    /// <c>await</c>, il ridisegno che segue fa scattare <c>OnParametersSetAsync</c>, che ricarica di nuovo.
+    /// Qui il secondo <b>aspetta</b> invece di partire in parallelo.
+    /// </summary>
+    [Fact]
+    public async Task Due_caricamenti_insieme_non_si_sovrappongono()
+    {
+        var (guscio, _) = Guscio(new EditingFinto());
+        var dentro = 0;
+        var massimoInsieme = 0;
+        var apri = new TaskCompletionSource();
+
+        async Task Lento()
+        {
+            var quanti = Interlocked.Increment(ref dentro);
+            massimoInsieme = Math.Max(massimoInsieme, quanti);
+            await apri.Task;
+            Interlocked.Decrement(ref dentro);
+        }
+
+        var primo = guscio.InFilaAsync(Lento);
+        var secondo = guscio.InFilaAsync(Lento);
+
+        Assert.False(secondo.IsCompleted);      // il secondo e' in coda, non in volo
+        apri.SetResult();
+        await Task.WhenAll(primo, secondo);
+
+        Assert.Equal(1, massimoInsieme);
+    }
+
+    /// <summary>
+    /// ⚠️ E il tornello <b>non deve chiudersi in faccia a se stesso</b>: le catene si annidano davvero —
+    /// «inizia modifica» è un gesto (in fila) che chiama il ricarico della pagina (in fila). Senza la
+    /// memoria del flusso corrente l'editor si pianterebbe invece di morire, che è peggio: sembra lentezza.
+    /// </summary>
+    [Fact]
+    public async Task Una_catena_annidata_non_aspetta_se_stessa()
+    {
+        var (guscio, _) = Guscio(new EditingFinto());
+        var passi = new List<string>();
+
+        var lavoro = guscio.InFilaAsync(async () =>
+        {
+            passi.Add("fuori");
+            await guscio.InFilaAsync(() => { passi.Add("dentro"); return Task.CompletedTask; });
+            passi.Add("fine");
+        });
+
+        await lavoro.WaitAsync(TimeSpan.FromSeconds(5));   // senza la guardia, qui si aspetterebbe per sempre
+        Assert.Equal(new[] { "fuori", "dentro", "fine" }, passi);
+    }
+
+    /// <summary>Anche i GESTI passano dal tornello: due salvataggi a raffica sono due catene sullo stesso
+    /// contesto quanto lo sono un gesto e un ricarico.</summary>
+    [Fact]
+    public async Task Anche_i_gesti_stanno_in_fila()
+    {
+        var (guscio, _) = Guscio(new EditingFinto());
+        var insieme = 0;
+        var massimo = 0;
+        var apri = new TaskCompletionSource();
+
+        async Task Gesto()
+        {
+            massimo = Math.Max(massimo, Interlocked.Increment(ref insieme));
+            await apri.Task;
+            Interlocked.Decrement(ref insieme);
+        }
+
+        var a = guscio.GuardAsync(Gesto);
+        var b = guscio.GuardAsync(Gesto);
+        apri.SetResult();
+        await Task.WhenAll(a, b);
+
+        Assert.Equal(1, massimo);
+    }
 }

@@ -322,7 +322,14 @@ else
     private readonly Dictionary<int, string> _freqSearch = new();   // per blocco (BlockSectionId)
     private (int Block, int Index)? _freqDrag;
 
-    protected override async Task OnParametersSetAsync()
+    /// <summary>
+    /// ⚠️ Anche questo passa dal <b>tornello</b>: qui si legge dal database <i>prima</i> di arrivare al
+    /// caricamento, e <c>OnParametersSetAsync</c> scatta a ogni ridisegno — compreso quello che un gesto
+    /// provoca mentre il suo ricarico è ancora in volo. Erano le due catene che si sovrapponevano.
+    /// </summary>
+    protected override Task OnParametersSetAsync() => _shell.InFilaAsync(ParametriAsync);
+
+    private async Task ParametriAsync()
     {
         _acc = Stations.Resolve(Acc);
         if (_acc is null) return;
@@ -345,7 +352,15 @@ else
         await LoadAsync();
     }
 
-    private async Task LoadAsync()
+    /// <summary>
+    /// ⚠️ Il caricamento passa dal <b>tornello</b> del guscio (<c>InFilaAsync</c>): su questo contesto ci sta
+    /// una operazione per volta. Senza, un gesto che ricarica e il <c>OnParametersSetAsync</c> che segue il
+    /// suo ridisegno diventano DUE catene sullo stesso <c>DbContext</c> — «A second operation was started»,
+    /// e il circuito muore. Visto il 2 settembre 2026 aggiungendo una sotto-sezione.
+    /// </summary>
+    private Task LoadAsync() => _shell.InFilaAsync(LoadAsyncCore);
+
+    private async Task LoadAsyncCore()
     {
         if (_shell.DocumentId is not int id) return;
         try

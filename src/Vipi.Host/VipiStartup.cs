@@ -165,6 +165,11 @@ internal static class VipiStartup
         // legge nessuno: vedi DiagnosticaErrori.
         builder.Services.AddExceptionHandler<DiagnosticaErrori.Gancio>();
 
+        // ⚠️ E la meta' che il gestore NON vede: un guasto dentro un circuito Blazor non passa dal middleware
+        // delle richieste. Il 2 settembre 2026 un «A second operation was started» premendo un tasto ha
+        // lasciato l'utente con la barra rossa e la cartella diagnostica VUOTA. Vedi DiagnosticaCircuito.
+        builder.Logging.AddProvider(new DiagnosticaCircuito());
+
         // Modulo login IVAO standalone (scenario C). STACCABILE: attivo solo se VipiAuth:Enabled=true.
         // Se attivo, il ClaimsPrincipal lo produce questo modulo e HostIdentityCurrentUserProvider lo legge.
         var authEnabled = builder.AddVipiStandaloneAuth();
