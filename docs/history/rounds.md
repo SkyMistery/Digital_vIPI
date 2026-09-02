@@ -2014,22 +2014,39 @@ a schermo sotto il titolo, **sul foglio non esiste**. Per questo l'avviso sta **
 (`.pm-sim`) — non è un doppione del piè di pagina, e chi togliesse quella riga credendola tale la
 toglierebbe dalla prima pagina di ogni documento stampato.
 
-**⚠️ Il `bottom` del piè di pagina è un numero MISURATO, e sta fra due muri.** `position:fixed` non è
+**⚠️ Il `bottom` del piè di pagina: la regola è che NON PUÒ ESSERE NEGATIVO.** `position:fixed` non è
 stile ma **meccanismo**: è l'unico modo che il CSS ha di ripetere una riga su ogni foglio — le margin box
 di `@page` (`@bottom-center{content:…}`) non le implementa nessun browser, e l'alternativa sarebbe
 riavvolgere il contenuto di tutto il sito in `<table><tfoot>`.
 
-| `bottom` | esito, misurato con `printToPDF` |
-|---|---|
-| `0` | esce su tutti i fogli, ma **tocca** l'ultima riga di un foglio pieno (−1,1mm su 21 fogli) |
-| `-2mm`, **`-4mm`** | ✅ tutti i fogli; a −4mm la distanza dal testo è **+2,9mm** |
-| `-6mm`, `-8mm` | ⚠️ **Chrome non lo disegna sulla PRIMA pagina** (dalla seconda sì) |
+⚠️ **CORRETTO IL 1 SETTEMBRE 2026, sera, e due volte.** Questa voce diceva «numero misurato fra due muri,
+scelto −4mm». Era misurato davvero, ma **sul foglio sbagliato**: contando in quali fogli l'avviso *compare*,
+non guardando com'è fatto. Un elemento fisso si posiziona sull'area di pagina, e la parte che finisce
+**sotto** il suo bordo inferiore Chrome non la taglia: la **ridisegna in cima al foglio successivo**. Con
+`bottom:-4mm` e riga da 8mm l'avviso usciva **tagliato per il lungo fra due fogli** — metà alta delle lettere
+in fondo a uno, metà bassa in cima all'altro — e il fondo bianco della metà di sopra **cancellava la prima
+riga** di quel foglio, intestazioni di tabella comprese. Misurato: **41 fogli su 50**, su nove pagine.
 
-Scelto **−4mm**, con `@page{margin:14mm 12mm 18mm}`. Il muro dipende da `height`/`line-height` (8mm): la
-riga sparisce quando la sua **base** esce dall'area di pagina — chi cambia l'altezza rimisuri, non deduca.
-⚠️ **Il secondo muro è il difetto insidioso**: sui cinque documenti la prima pagina l'avviso ce l'ha
-comunque da `PrintMeta`, quindi un valore sbagliato si vedrebbe **solo stampando un elenco o la home**.
-Un test blocca i due numeri e dice perché. ⚠️ Safari ripete i `position:fixed` solo sulla prima pagina:
+⚠️ **E non si ripara calibrando i millimetri.** Una sporgenza di 2mm sembra innocua con A4 e questi margini,
+ma la stampa vera non è una sola: la scala al 90% («adatta alla pagina») o i margini scelti a mano spostano
+il muro. Misurato sulla vIPI di Brindisi, fogli con l'avviso rotto:
+
+| `bottom` | `height` | cssPage | dialogo | margini 0 | scala 90% | scala 110% | Letter |
+|---|---|---|---|---|---|---|---|
+| `-4mm` | 8mm | 20/21 | 20 | 20 | 18/19 | 23/24 | 20 |
+| `-2mm` | 5mm | 0 | **2** | **2** | **11** | **8** | **2** |
+| **`0`** | 3.5mm | **0** | **0** | **0** | **0** | **0** | **0** |
+
+Solo `bottom:0` regge a tutte e sei: è un **invariante**, non una taratura. (`transform:translateY` non
+serve: Chrome frammenta quel che **dipinge**, non il box di layout — provato, 20 fogli su 21.)
+
+⚠️ **Il prezzo, dichiarato**: dentro l'area di pagina la scatola sta dove scorre il testo, e il suo fondo
+bianco mangia le discendenti dell'ultima riga di un foglio pieno. Si limita tenendo la riga **bassa** — 3.5mm
+è il minimo che contiene un 8.5pt — e chi la alza allarga il morso.
+
+⚠️ **E si misura guardando i PIXEL del foglio** (`printToPDF`, poi pdfjs reso su canvas e screenshot), non il
+testo estratto: il testo estratto dice «l'avviso c'è» anche quando ne è stampata metà, ed è così che il
+difetto è passato per verde alla prima consegna. ⚠️ Safari ripete i `position:fixed` solo sulla prima pagina:
 ragione in più perché l'avviso stia anche in `PrintMeta` e sotto il titolo.
 
 ### Verifica

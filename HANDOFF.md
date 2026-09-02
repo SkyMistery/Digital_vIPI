@@ -1,8 +1,14 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
+**Ultimo aggiornamento:** 2 settembre 2026 — 🟢 **QUATTRO LAVORI IN `main`, NESSUN RAMO APERTO.** `main` è a **`bb265c44`**; agli §AO/§AP di ieri si sono aggiunti **§AQ** (i titoli delle sezioni seguono la lingua del documento) e **§AR** (l'editor che si bloccava in salvataggio). 🔴 **Nessuno dei quattro è in produzione**: gira ancora **1.3.0**, e serve il **pacchetto 1.3.1** — dentro ci sono **due fogli di stile cambiati** (`vipi-theme.css`, `vipi-print.css`), quindi impronte nuove e `wwwroot` che viaggia insieme all'indice `staticwebassets`. **Nessuna migrazione** in §AQ e §AR.
+
+**§AQ — il titolo di una sezione di catalogo lo decide il catalogo, nella lingua in cui si legge.** Segnalazione del committente: un documento **bloccato in inglese** mostrava le testate in italiano. Non mancava una traduzione: quei titoli stanno scritti **nel documento** nella lingua che aveva alla nascita, e arrivavano in inglese **di rimbalzo** dal traduttore — bloccare la lingua **spegne** la traduzione, e la stampella è caduta. Ora si risolvono **dove si legge** (`TitoliDiCatalogo`), in tutte e cinque le famiglie, a ogni profondità e anche nell'editor, dove una sezione fissa **non si può rinominare a mano**. ⚠️ Il catalogo vince anche sulla **memoria di traduzione** (resa decisa contro plausibile: «MRVA» non torna «Minimum vectoring»), ma scrive **solo dove ha davvero una resa**: la vLOA ha i titoli in inglese e nessuna resa italiana, e imporgliela cancellerebbe quella del traduttore. Nuova **R9** in `docs/design/regole-lingua.md`.
+
+**§AR — la pagina che si bloccava in salvataggio.** Segnalazione **dal sito vero**, sul gesto «Fine modifica»: la pagina smetteva di rispondere e bisognava ricaricarla, col lavoro già salvato. ⚠️ **Non si riproduce in locale** — su SQLite la finestra della corsa è di millisecondi, in produzione c'è MariaDB. Due buchi dimostrati: `FinishEditingAsync` rileggeva il lock **fuori dal guardiano** (l'unico `await` scoperto della classe → eccezione che abbatte il circuito), e il guardiano **non chiedeva il ridisegno alla fine** (badge inchiodato su «Salvataggio…» ed errore invisibile per i gesti nati in un componente figlio). Sotto c'era la corsa: `@inject IEditingService` prende il `DbContext` **del circuito** → sei pagine passano a `OwningComponentBase`. ⚠️ Due trappole silenziose nella conversione: un `public void Dispose()` non viene più chiamato, e una pagina `IAsyncDisposable` **non riceve mai** il Dispose che chiude lo scope. 🟡 **La corsa resta dedotta, non dimostrata**: se il blocco si ripresenta, la prima prova è `diagnostica/avvii.txt` all'ora del guasto — un ⚠ «non si è spento in modo ordinato» vuol dire che era il processo a morire, non il circuito.
+
 **Ultimo aggiornamento:** 1 settembre 2026 — 🟢 **DUE RAMI FUSI IN `main`**: l'avviso di simulazione (§AO) e la coerenza col sectorfile (§AP). 🔴 **Nessuno dei due è in produzione**: serve il **pacchetto 1.3.1**, e ci sono dentro **due fogli di stile cambiati** (`vipi-theme.css`, `vipi-print.css`) — quindi `wwwroot` e l'indice `staticwebassets` viaggiano insieme, come sempre.
 
-**§AO — l'avviso di simulazione.** «ONLY FOR SIMULATION: DO NOT USE FOR REAL LIFE NAVIGATION» sotto il titolo di **sette schermate** e a **piè di ogni foglio stampato di ogni pagina del sito**; il testo vive in **un posto solo** e **non si traduce** (nuova **R8** in `docs/design/regole-lingua.md`). ⚠️ **In stampa `.doc-head` è NASCOSTO**: la riga che si vede a schermo sul foglio non esiste, per questo l'avviso è **anche** in `PrintMeta`. ⚠️ E il `bottom` del piè di pagina è **misurato**, fra due muri: a `0` tocca l'ultima riga di un foglio pieno, da `-6mm` in giù **Chrome non lo disegna sulla prima pagina** — scelto `-4mm`. Verificato su **54 fogli di PDF veri**.
+**§AO — l'avviso di simulazione.** «ONLY FOR SIMULATION: DO NOT USE FOR REAL LIFE NAVIGATION» sotto il titolo di **sette schermate** e a **piè di ogni foglio stampato di ogni pagina del sito**; il testo vive in **un posto solo** e **non si traduce** (nuova **R8** in `docs/design/regole-lingua.md`). ⚠️ **In stampa `.doc-head` è NASCOSTO**: la riga che si vede a schermo sul foglio non esiste, per questo l'avviso è **anche** in `PrintMeta`. ⚠️ E il `bottom` del piè di pagina **non può essere negativo** — corretto la sera del 1 settembre, due volte: la parte che finisce **sotto** il bordo dell'area di pagina Chrome non la taglia, la **ridisegna in cima al foglio successivo**, e con `-4mm` l'avviso usciva tagliato per il lungo su **41 fogli su 50**, col fondo bianco che cancellava la prima riga del foglio dopo. Non si ripara a millimetri (la scala al 90% sposta il muro): solo **`bottom:0`** regge a tutte e sei le stampe misurate. E si misura sui **pixel** del foglio, non sul testo estratto — il testo dice «l'avviso c'è» anche quando ne è stampata metà.
 
 **§AP — la coerenza col sectorfile.** I cataloghi IVAO e il sectorfile Aurora a confronto ogni 24 ore: **36 rilievi** sui dati veri, fra cui due frequenze che divergono di **5 e 3 MHz**, tre TA e dodici aeroporti con **designatori di pista diversi**. Pagina `/services/vsop/sectorfile` per **Editor e superiori** (scheda `shortcut` nell'hub) più il chip nella Diagnostica. **Nessuna entità, nessuna migrazione**, quindi spedibile anche nella finestra cieca. 🔴 L'health check **ignora** l'area nuova, o `/vsop/health` sarebbe giallo per sempre. Carta in `docs/design/piano-coerenza-sectorfile.md`; nello stesso giro il **perimetro dei servizi** (`docs/design/regole-perimetro-servizi.md`): che cosa entra in questo sito e i motivi scritti dei cinque «no» del 1 settembre.
 
@@ -16,11 +22,16 @@ cancellati — vale il riquadro qui sotto).
 
 ## Dove siamo, prima di tutto il resto
 
-> ### 🔴 PRIMA DI TUTTO: `main` ha due lavori pronti che NON sono online
+> ### 🔴 PRIMA DI TUTTO: `main` ha QUATTRO lavori pronti che NON sono online
 >
-> `main` è a **`50028edc`** (1 settembre 2026): ha assorbito **`avviso-simulazione`** (§AO) e
-> **`coerenza-sectorfile`** (§AP), e **tutti e tre i rami sono stati cancellati** — locale e remoto.
-> Non ne resta nessuno: quel che c'è, è in `main`.
+> `main` è a **`bb265c44`** (2 settembre 2026): ha assorbito **`avviso-simulazione`** (§AO),
+> **`coerenza-sectorfile`** (§AP), **`titoli-di-catalogo-bilingui`** (§AQ, `c3ad9dab`) e
+> **`editor-non-si-blocca`** (§AR, `bb265c44`). **Nessun ramo resta aperto** — locale o remoto: quel che
+> c'è, è in `main`.
+>
+> ⚠️ Dentro `bb265c44` viaggia anche `60a8823f`, **il piè di stampa di §AO**: era rimasto in lavorazione
+> nell'albero e un `git add -A <cartella>` l'ha rastrellato dentro un commit che parlava d'altro. Rimesso
+> in un commit suo prima di fondere. **I file si aggiungono per nome.**
 >
 > Build Release verde sui due TFM (`--no-incremental`, 0 avvisi) e **suite intera verde, E2E compresi**
 > (276/276), misurate **sul risultato della fusione**, non sui rami separati.
