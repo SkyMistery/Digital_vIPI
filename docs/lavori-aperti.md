@@ -7069,3 +7069,66 @@ resta in piedi, e i `bin/` restano suoi).
 - 🟡 **`SaveFrequencyLinksAsync` non è provata** nel test di scrittura (vuole un catalogo settori): è lo
   stesso servizio con la stessa chiave, ma è l'unica delle tre a fidarsi.
 - 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** con §AO, §AP e §AQ.
+
+## AT. L'avviso di traduzione automatica diventa un gettone — 2 settembre 2026
+
+🟡 **In lavorazione**, stesso ramo di §AS. Nessuna carta: richiesta del committente — *«questa può andare
+nella riga … dopo ONLY FOR SIMULATION …? Così da occupare meno spazio, ora visivamente si mangia 1/4 del
+documento a schermo»*.
+
+### Il fatto
+
+Il riquadro «Pagina tradotta automaticamente» era un `callout warning` a piena larghezza sopra il documento,
+su tutte e cinque le famiglie. Su una schermata da 750px si prendeva circa un quarto dell'altezza utile:
+il documento cominciava sotto la piega. ⚠️ **E un avviso che costringe a scorrere per arrivare a quel che si
+è venuti a leggere è un avviso che si impara a saltare** — cioè il contrario di quel che serve, perché
+questo non è una formalità: misurato contro il servizio vero, «riporta sottovento» torna *«bring it back
+downwind»*, che è plausibile, grammaticalmente giusto e **non è fraseologia**.
+
+### La forma nuova
+
+Un **gettone** nella riga sotto il titolo, subito dopo l'avviso di simulazione, con il testo per esteso
+dietro il «?» (`HelpHint`, che si apre al clic — [[help-hint-click-only]]).
+
+⚠️ **Che cosa NON si perde**: che l'avviso esista e **quale** dei due problemi ci sia restano scritti in
+chiaro — «tradotta a macchina, non riletta» e «4/10 frasi non tradotte» sono due difetti diversi, e chi
+legge deve poter decidere se il pezzo che gli serve è fra i quattro. Dietro il «?» va **solo** la frase
+lunga, che è un'istruzione, non una notizia.
+
+⚠️ **Giallo e non rosso**, e non è un dettaglio di gusto: il rosso in quella riga è già preso dall'avviso di
+simulazione, che è l'unica cosa che deve gridare. Due rossi accanto non fanno due allarmi, ne fanno zero.
+
+### ⚠️ La trappola che lo spostamento porta con sé, e che non si vede leggendo la pagina
+
+Il gettone sta dentro `.doc-head`, e **sul foglio `.doc-head` è nascosto**
+(`.print-meta + .doc-head{display:none}`): spostandolo lì, **il documento stampato perdeva l'avviso** senza
+che niente lo dicesse. È lo stesso inciampo già pagato con l'avviso di simulazione (§AO), e si chiude allo
+stesso modo — una riga `.pm-tr` dentro `PrintMeta`, **col testo per esteso**: davanti a un foglio non c'è
+nessun «?» da aprire né l'originale a portata di clic.
+
+Il patto è quindi **doppio**, e `AvvisoTraduzioneSuOgniSedeTests` fa le due domande insieme su tutte e
+cinque le testate: c'è il gettone? **e** la copertura arriva a `PrintMeta`? Lo stesso test pretende anche
+che nessuna pagina tenga *anche* il riquadro pieno — basta lasciarne indietro uno in fondo a una pagina,
+dove nessuno guarda, per riavere ciò che si voleva togliere.
+
+⚠️ **`tr-notice` resta sull'elemento in ENTRAMBE le forme**: la rete che pretende «l'avviso c'è» non sa
+quale forma sia, e così continua a proteggerle tutt'e due invece di diventare cieca su una.
+
+⚠️ **La vLOA non ha una pagina con una riga sotto il titolo**: la testata è di `VloaDocumentView`, quindi la
+copertura si passa al *componente*, non si disegna nella pagina. Un elenco che guardasse solo `Pages/` la
+salterebbe in silenzio — la stessa nota vale già per l'avviso di simulazione.
+
+### Verificato dal vivo
+
+Stessa ricetta di §AS (scratchpad, porta libera, copia del DB). Sulla **vIPI ACC di Brindisi** e sulla
+**vIPI d'aeroporto di LIBD**, lette in inglese: gettone nella riga giusta, documento che comincia subito
+sotto il titolo, «?» che apre la frase intera, riga `.pm-tr` presente nell'intestazione di stampa. Provato
+anche in **tema chiaro**. Sulle altre tre famiglie il gettone non compare perché quei documenti non hanno
+traduzioni memorizzate — coperte dal test strutturale e dai test del componente.
+
+### Quel che resta
+
+- 🟡 **Non provato a schermo su vLOA, APP e vSOP militare**: nel `vipi.db` di sviluppo nessuno dei tre ha
+  segmenti tradotti, quindi l'avviso non compare — né prima né dopo. Il markup è pinnato dal test
+  strutturale, ma una prova a schermo su quelle tre resta da fare quando ci sarà un documento tradotto.
+- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1**.

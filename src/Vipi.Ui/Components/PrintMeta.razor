@@ -24,6 +24,18 @@
        vede a schermo sotto il titolo sulla carta non esiste. Senza questa, la prima pagina di un documento
        stampato avrebbe l'avviso solo in fondo, staccato dal titolo a cui si riferisce. *@
     <p class="pm-sim"><SimDisclaimer /></p>
+    @* ⚠️ L'avviso di traduzione automatica, e per la STESSA ragione del precedente: dal 2 settembre 2026 a
+       schermo è un gettone dentro `.doc-head`, e `.doc-head` sul foglio è nascosto. Senza questa riga un
+       documento tradotto a macchina si stamperebbe senza dire di esserlo — e su carta non c'è nessun «?»
+       da aprire, quindi qui il testo va per ESTESO. *@
+    @if (Coverage.Segmenti > 0 && Coverage.DaRileggere)
+    {
+        <p class="pm-tr">@L["Tr_NoticeTitle"] — @L["Tr_NoticeMachine"]</p>
+    }
+    @if (Coverage.Segmenti > 0 && !Coverage.Completa)
+    {
+        <p class="pm-tr">@L["Tr_NoticePartial", Coverage.Mancanti, Coverage.Segmenti]</p>
+    }
     <p class="pm-line">
         @if (!string.IsNullOrWhiteSpace(AiracCycle))
         {
@@ -43,4 +55,14 @@
 
     /// <summary>Ciclo AIRAC del documento stampato; omesso se sconosciuto.</summary>
     [Parameter] public string? AiracCycle { get; set; }
+
+    /// <summary>
+    /// La copertura di traduzione del documento, per l'avviso di traduzione automatica sul foglio.
+    /// <para>⚠️ Va passata da <b>ogni</b> pagina che mostra <c>TranslationNotice</c> in forma compatta
+    /// dentro <c>.doc-head</c>: quella riga sul foglio non c'è, e senza questa il documento stampato non
+    /// direbbe di essere tradotto a macchina. Il default («nessuna traduzione») non stampa niente, quindi
+    /// una pagina che non la passa resta come prima.</para>
+    /// </summary>
+    [Parameter] public Vipi.Application.Translation.TranslationCoverage Coverage { get; set; }
+        = Vipi.Application.Translation.TranslationCoverage.Nessuna;
 }

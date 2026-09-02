@@ -69,14 +69,14 @@ else
 
             <div>
                 <PrintMeta Title="@_view.Title" Subtitle="@($"{Sito["Airport_SubtitlePrefix"]} · {_acc.Name}")"
-                           AiracCycle="@(_relCycle ?? _view.AiracCycle)" />
+                           AiracCycle="@(_relCycle ?? _view.AiracCycle)" Coverage="_copertura" />
                 <div class="doc-head">
                     <div>
                         <h2 style="margin-bottom:2px">
                             @_view.Title
                             <MilitaryTag HasMilitaryPresence="_militaryPresence" IsMilitaryOnly="_militaryOnly" />
                         </h2>
-                        <span class="muted">@Sito["Airport_SubtitlePrefix"] · @_acc.Name · <SimDisclaimer /></span>
+                        <span class="muted">@Sito["Airport_SubtitlePrefix"] · @_acc.Name · <SimDisclaimer /> <TranslationNotice Coverage="_copertura" Compatto="true" /></span>
                     </div>
                     <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>
@@ -94,14 +94,13 @@ else
                                    DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}&as=draft")" />
                 }
 
-                @* Tradotto a macchina e non ancora riletto, o tradotto a metà: chi legge deve saperlo. *@
+                @* ⚠️ «Tradotto a macchina» sta nella riga sotto il titolo, non qui: vedi TranslationNotice. *@
                 @* Il filtro di lettura pilota/ATC (carta vSOP militari §3): vale su tutte le famiglie,
                    perché il flag è per-sezione e l'editor lo offre ovunque. Invisibile finché nessuno ha
                    marcato niente. *@
                 <AudienceChip Visibile="_haMarcate" Vista="_vista"
                               BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}" + (_mode.Kind == PreviewKind.Draft ? "&as=draft" : ""))" />
 
-                <TranslationNotice Coverage="_copertura" />
                 <LinguaBloccataNotice Lingua="@_bloccata" />
 
                 @* ---------- Le sezioni, nell'ORDINE DEL DOCUMENTO ----------

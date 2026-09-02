@@ -67,13 +67,14 @@
                          AnchorOf="AnchorOf" />
 
             <div>
-                <PrintMeta Title="@_view.Title" Subtitle="@Sito["Mil_PrintSubtitle"]" AiracCycle="@Cycle()" />
+                <PrintMeta Title="@_view.Title" Subtitle="@Sito["Mil_PrintSubtitle"]" AiracCycle="@Cycle()"
+                           Coverage="_copertura" />
                 <div class="doc-head">
                     <div>
                         <h1 class="page-h1">@_view.Title</h1>
                         @* Il vSOP militare e' l'unico dei cinque senza una riga di sottotitolo: l'avviso si porta la
                            propria riga invece di appendersi a una che non c'e'. *@
-                        <p class="sim-line"><SimDisclaimer /></p>
+                        <p class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_copertura" Compatto="true" /></p>
                         @* Il ponte verso l'altra edizione dello stesso scalo: chi apre il militare deve poter
                            arrivare al civile senza tornare indietro di due pagine.
 
@@ -128,7 +129,7 @@
 
                 <AudienceChip Visibile="_haMarcate" Vista="_vista"
                               BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil?icao={_icao}")" />
-                <TranslationNotice Coverage="_copertura" />
+                @* ⚠️ «Tradotto a macchina» sta nella riga sotto il titolo, non qui: vedi TranslationNotice. *@
                 <LinguaBloccataNotice Lingua="@_bloccata" />
 
                 @* ⚠️ `lang` sul CONTENITORE e non sulla pagina: il chrome parla la lingua del sito, il

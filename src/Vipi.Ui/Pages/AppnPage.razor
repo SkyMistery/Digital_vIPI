@@ -34,12 +34,12 @@ else
             <DocumentToc Sections="_view.Sections" IsDraft="@(_mode.Kind == PreviewKind.Draft)" AnchorOf="AnchorOf" />
             <div>
                 <PrintMeta Title="@_displayName" Subtitle="@($"{_app} · {Sito["Appn_Subtitle"]}")"
-                           AiracCycle="@Cycle()" />
+                           AiracCycle="@Cycle()" Coverage="_copertura" />
                 <div class="doc-head">
                     @* L'APP di uno scalo militare porta la stessa etichetta del suo aeroporto: chi legge questo
                        documento sta guardando quel campo, e l'informazione non deve dipendere da quale dei due
                        documenti ha aperto. *@
-                    <div><h1 class="page-h1" style="margin-bottom:2px">@_displayName <MilitaryTag HasMilitaryPresence="_mil?.HasMilitaryPresence ?? false" IsMilitaryOnly="_mil?.IsMilitaryOnly ?? false" /></h1><span class="muted">@_app · @Sito["Appn_Subtitle"] · <SimDisclaimer /></span></div>
+                    <div><h1 class="page-h1" style="margin-bottom:2px">@_displayName <MilitaryTag HasMilitaryPresence="_mil?.HasMilitaryPresence ?? false" IsMilitaryOnly="_mil?.IsMilitaryOnly ?? false" /></h1><span class="muted">@_app · @Sito["Appn_Subtitle"] · <SimDisclaimer /> <TranslationNotice Coverage="_copertura" Compatto="true" /></span></div>
                     <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>
                         <a class="btn ghost" href="/services/vsop/live/@_app.ToLowerInvariant()">@Sito["Common_Operational"]</a>
@@ -62,9 +62,8 @@ else
                 <AudienceChip Visibile="_haMarcate" Vista="_vista"
                               BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}" + (_mode.Kind == PreviewKind.Draft ? "&as=draft" : ""))" />
 
-                @* Tradotto a macchina e non ancora riletto, o tradotto a metà: chi legge deve saperlo. *@
-                <TranslationNotice Coverage="_copertura" />
-                @* Oppure il contrario: NON tradotto, e voluto. *@
+                @* ⚠️ «Tradotto a macchina» sta nella riga sotto il titolo, non qui: vedi TranslationNotice. *@
+                @* Il contrario: NON tradotto, e voluto. *@
                 <LinguaBloccataNotice Lingua="@_bloccata" />
 
                 @* Il ciclo delle sezioni lo fa il componente condiviso (doc 14 §3e). Qui resta il solo corpo

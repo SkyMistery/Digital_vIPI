@@ -14,11 +14,11 @@
     <DocumentToc Sections="View.Sections" IsDraft="IsDraft" SlotsOf="SenzaDirezioni" />
 
     <div>
-        <PrintMeta Title="@View.Title" AiracCycle="@View.AiracCycle" Subtitle="@SubtitleOrDefault()" />
+        <PrintMeta Title="@View.Title" AiracCycle="@View.AiracCycle" Subtitle="@SubtitleOrDefault()" Coverage="Coverage" />
         <div class="doc-head">
             <div>
                 <h2 style="margin-bottom:2px">@View.Title</h2>
-                <span class="muted">@SubtitleOrDefault() · <SimDisclaimer /></span>
+                <span class="muted">@SubtitleOrDefault() · <SimDisclaimer /> <TranslationNotice Coverage="Coverage" Compatto="true" /></span>
             </div>
             <div style="display:flex;align-items:center;gap:10px">
                 <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
@@ -87,6 +87,16 @@
 
     /// <summary>Anteprima di una release precisa; null = la release effettiva adesso.</summary>
     [Parameter] public int? ReleaseId { get; set; }
+
+    /// <summary>
+    /// La copertura di traduzione: il gettone «tradotta a macchina» sotto il titolo e, sul foglio, la riga
+    /// per esteso in <c>PrintMeta</c>.
+    /// <para>⚠️ Sta QUI e non nella pagina perché la testata è di questo componente: la pagina non ha una
+    /// riga sotto il titolo a cui appendere il gettone. Il default («nessuna traduzione») non mostra
+    /// niente.</para>
+    /// </summary>
+    [Parameter] public Vipi.Application.Translation.TranslationCoverage Coverage { get; set; }
+        = Vipi.Application.Translation.TranslationCoverage.Nessuna;
 
     private bool _canEdit;
     private VloaAorData _aor = VloaAorData.Empty;

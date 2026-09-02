@@ -2663,6 +2663,8 @@
   <data name="Tr_NoticeTitle" xml:space="preserve"><value>Machine-translated page</value></data>
   <data name="Tr_NoticeMachine" xml:space="preserve"><value>This translation was produced by a machine and nobody has reviewed it yet. Check the phraseology against the original before using it on position.</value></data>
   <data name="Tr_NoticePartial" xml:space="preserve"><value>{0} of {1} sentences are not translated yet and are shown in the original language.</value></data>
+  <data name="Tr_ChipMachine" xml:space="preserve"><value>machine-translated, not reviewed</value></data>
+  <data name="Tr_ChipPartial" xml:space="preserve"><value>{0}/{1} sentences untranslated</value></data>
   <data name="Tr_ReadInSource" xml:space="preserve"><value>Read the original</value></data>
   <data name="Tr_AdminTitle" xml:space="preserve"><value>Translations</value></data>
   <data name="Tr_OnlyUnreviewed" xml:space="preserve"><value>Unreviewed only</value></data>
