@@ -1,4 +1,4 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Vipi.Application.Abstractions;
@@ -53,9 +53,19 @@ public sealed class ReleaseSweepHostedService : BackgroundService
             RunOnceAsync,
             _log,
             stoppingToken,
-            // Dopo la deriva (100s): quella può ripuntare release sotto la chiave viva, e potare prima
-            // vorrebbe dire potare un archivio che sta per cambiare di posto.
-            bootDelay: TimeSpan.FromSeconds(130));
+            // ⚠️ 45s, e NON 130 come nella prima stesura. Misurato sul server vero il 2 settembre 2026,
+            // in `diagnostica/avvii.txt`: il processo vive **un minuto, uno e cinquanta, quattro e
+            // cinquantadue** — Passenger lo spegne per inattività appena il traffico si ferma. Un giro che
+            // aspetta 130 secondi, su quel ritmo, non parte quasi mai: due dei tre avvii osservati erano
+            // già finiti. E se non parte non lascia traccia — `GatedImportLoop` registra solo gli esiti,
+            // non le attese interrotte, quindi il silenzio somiglia a `va tutto bene`.
+            //
+            // ⚠️ Il prezzo dichiarato: si perde l'ordine con la deriva (che gira a 100s e può ripuntare
+            // release sotto la chiave viva). È accettabile, e vale la pena scrivere perché: la potatura
+            // tocca solo le release **superate oltre soglia**, cioè righe già destinate a sparire; potarne
+            // qualcuna prima di un ripuntamento fa perdere storia che sarebbe stata cancellata comunque.
+            // Contro: un giro che non gira mai. Non è un pareggio.
+            bootDelay: TimeSpan.FromSeconds(45));
 
     private async Task<bool> RunOnceAsync(IServiceProvider sp, CancellationToken ct)
     {
