@@ -9,9 +9,12 @@ using Xunit;
 namespace Vipi.Infrastructure.Tests;
 
 /// <summary>
-/// Derivazione a view-time della sezione SID (doc 10 §3e): merge editoriali+importate, importate differite al ciclo
-/// successivo al prelievo (o forzate), ordine per FIX + priorità. Fu la PRIMA sezione d'aeroporto a
-/// smettere di essere cotta nel documento; dalla carta 2026-08-26 lo sono tutte.
+/// Derivazione a view-time della sezione SID (doc 10 §3e): merge editoriali+importate, importate in attesa
+/// finché il ciclo non raggiunge quello DA CUI valgono (o forzate), ordine per FIX + priorità. Fu la PRIMA
+/// sezione d'aeroporto a smettere di essere cotta nel documento; dalla carta 2026-08-26 lo sono tutte.
+/// <para>⚠️ Dalla carta 2026-09-02 §AW2 il ciclo passato a <c>ReplaceImportedSidsAsync</c> è «il ciclo DAL
+/// QUALE la riga vale», non «il ciclo in cui l'ho presa»: il buffer di uno non si somma più qui — lo decide
+/// <c>SidStampCycle</c>, e solo dove la sorgente il ciclo non lo dichiara.</para>
 /// </summary>
 public class AirportSidDerivationServiceTests : IAsyncLifetime
 {
@@ -41,7 +44,7 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
     [Fact]
     public async Task Manual_Public_Imported_Deferred_Then_Forced()
     {
-        // Manuale (sempre pubblica) + importata prelevata a un ciclo FUTURO (differita: non ancora pubblica).
+        // Manuale (sempre pubblica) + importata che entra a un ciclo FUTURO (in attesa: non ancora pubblica).
         await _repo.SaveSidsAsync("LIRF", new[] { new SidRow(0, "07", "OSTIA", "OST7A", null, "5000ft", "CONV", null, null, null) });
         await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "3512");
 
@@ -67,22 +70,22 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// Il ciclo a cui si guarda è un PARAMETRO, e serve all'anteprima di una release programmata: una SID
-    /// prelevata nel ciclo corrente non è pubblica adesso — compare dal ciclo dopo — ma nell'anteprima della
-    /// release che esce a quel ciclo dopo ci deve essere, perché è quello che il lettore vedrà.
-    /// <para>⚠️ Senza, l'anteprima del 2608 mostrava la tabella di oggi: le SID prelevate nel ciclo in corso
-    /// mancavano dall'anteprima e poi comparivano da sole in pubblico al rollover.</para>
+    /// Il ciclo a cui si guarda è un PARAMETRO, e serve all'anteprima di una release programmata: una SID che
+    /// entra al ciclo prossimo non è pubblica adesso, ma nell'anteprima della release che esce a quel ciclo
+    /// ci deve essere, perché è quello che il lettore vedrà.
+    /// <para>⚠️ Senza, l'anteprima del 2609 mostrava la tabella di oggi: le SID del ciclo entrante mancavano
+    /// dall'anteprima e poi comparivano da sole in pubblico al rollover.</para>
     /// </summary>
     [Fact]
-    public async Task Imported_This_Cycle_Shows_In_The_Preview_Of_The_Next_One()
+    public async Task Imported_For_The_Next_Cycle_Shows_In_Its_Preview()
     {
         var airac = new AiracService();
         var cicli = airac.NextCycles(DateTime.UtcNow, 3);
         var oggi = cicli[0].Cycle;
         var prossimo = cicli[1].Cycle;
 
-        // Prelevata ORA: differita al ciclo successivo.
-        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, oggi);
+        // In vigore DAL ciclo prossimo.
+        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, prossimo);
 
         Assert.Empty((await _sut.DeriveAsync("LIRF")).Rows);                       // «adesso»: non ancora
         Assert.Empty((await _sut.DeriveAsync("LIRF", oggi)).Rows);                 // idem, chiedendolo per nome
@@ -90,19 +93,22 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// ⚠️ Il ciclo sposta la domanda nel tempo, non abolisce il differimento: una SID prelevata DENTRO il
-    /// ciclo di rilascio non compare nemmeno nella sua anteprima — uscirà a quello dopo, ed è giusto che
-    /// l'anteprima lo dica invece di promettere una riga che al rilascio non ci sarà.
+    /// ⚠️ <b>Il ciclo d'entrata è quello, e non «quello dopo»</b> — è il cuore della carta §AW2. Una release
+    /// programmata al ciclo entrante deve contenere le SID che entrano <b>a quel ciclo</b>: prima
+    /// l'anteprima le nascondeva ancora (il buffer si sommava una seconda volta qui) e uscivano al ciclo
+    /// successivo, cioè con un mese di ritardo su quanto scritto nel changelog della sorgente.
     /// </summary>
     [Fact]
-    public async Task Imported_In_The_Release_Cycle_Stays_Deferred_Even_In_Its_Preview()
+    public async Task Imported_For_A_Cycle_Is_In_The_Release_Of_That_Cycle()
     {
         var cicli = new AiracService().NextCycles(DateTime.UtcNow, 3);
+        var oggi = cicli[0].Cycle;
         var prossimo = cicli[1].Cycle;
 
         await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, prossimo);
 
-        Assert.Empty((await _sut.DeriveAsync("LIRF", prossimo)).Rows);             // il buffer di un ciclo resta
-        Assert.Single((await _sut.DeriveAsync("LIRF", cicli[2].Cycle)).Rows);      // e cade a quello dopo
+        Assert.Empty((await _sut.DeriveAsync("LIRF", oggi)).Rows);                 // al ciclo di oggi ancora no
+        Assert.Single((await _sut.DeriveAsync("LIRF", prossimo)).Rows);            // al SUO ciclo, sì
+        Assert.Single((await _sut.DeriveAsync("LIRF", cicli[2].Cycle)).Rows);      // e ci resta
     }
 }

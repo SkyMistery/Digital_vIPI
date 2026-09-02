@@ -106,7 +106,35 @@ public sealed class SectorfileCache
     }
 
     /// <summary>
-    /// Butta via le tre fette: il prossimo chiamante riscarica.
+    /// <b>Che cosa dice di sé la sorgente delle SID</b> — ciclo dichiarato e ultimo cambiamento — chiesto una
+    /// volta sola per processo (carta 2026-09-02 §AW2). Il giro d'import chiama <c>ImportAsync</c> <b>una
+    /// volta per aeroporto</b> — decine — e questa risposta non dipende dall'ICAO: senza cache sarebbe una
+    /// chiamata alla API di GitHub per ogni scalo, cioè la quota anonima esaurita a metà giro.
+    ///
+    /// <para>⚠️ <b>Anche il «non lo so» si mette in cache</b>: <see cref="SidSourceRelease.Muta"/> è un valore
+    /// come gli altri e si distingue dal «non ancora chiesto», che è il <c>null</c> del campo. Se la sorgente
+    /// ha risposto 403, richiederglielo altre trentanove volte nello stesso giro dà trentanove 403.</para>
+    /// </summary>
+    public async Task<SidSourceRelease> GetSidSourceReleaseAsync(
+        Func<CancellationToken, Task<SidSourceRelease>> load, CancellationToken ct = default)
+    {
+        if (Volatile.Read(ref _sidStamp) is { } hit) return hit;
+        await _stampGate.WaitAsync(ct);
+        try
+        {
+            if (Volatile.Read(ref _sidStamp) is { } cached) return cached;
+            var loaded = await load(ct);
+            Volatile.Write(ref _sidStamp, loaded);
+            return loaded;
+        }
+        finally { _stampGate.Release(); }
+    }
+
+    private readonly SemaphoreSlim _stampGate = new(1, 1);
+    private SidSourceRelease? _sidStamp;
+
+    /// <summary>
+    /// Butta via le fette: il prossimo chiamante riscarica.
     ///
     /// <para>Serve perché questa cache non scade mai. Finché conteneva solo dati d'import andava bene — il ciclo
     /// delle 24h li rileggeva comunque — ma il catalogo dei punti lo legge anche chi <b>scrive</b>: senza questo,
@@ -121,6 +149,7 @@ public sealed class SectorfileCache
         InvalidateNavaids();
         Volatile.Write(ref _towerPolygons, null);
         Volatile.Write(ref _sectorShapes, null);
+        Volatile.Write(ref _sidStamp, null);
         _mvaCharts.Clear();
     }
 

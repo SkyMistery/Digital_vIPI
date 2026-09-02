@@ -253,7 +253,7 @@ public sealed class EfAirportRepository : IAirportRepository
     {
         var id = await AirportIdAsync(icao, ct);
         // Snapshot per StableKey di TUTTE le righe (manuali + importate): serve a riapplicare priorità/forzatura,
-        // il fix risolto a mano e il ciclo di PRIMO prelievo alle righe con StableKey coincidente.
+        // il fix risolto a mano e il PRIMO ciclo d'entrata alle righe con StableKey coincidente.
         //
         // First-wins sulla chiave, in ordine di Id. La StableKey esclude di proposito la cifra della revisione,
         // quindi un file .sid che contiene DUE revisioni della stessa SID (es. ROBO1H e ROBO2H) produce due righe
@@ -280,9 +280,10 @@ public sealed class EfAirportRepository : IAirportRepository
             var r = rows[i];
             var found = prior.TryGetValue(r.StableKey, out var p);
 
-            // Il ciclo-sorgente è la data di PRIMO prelievo. Se il contenuto è invariato dall'import precedente,
-            // conserva quel ciclo: così, superato il ciclo, la SID diventa pubblica (IsPublicAt) e ci RESTA. Solo un
-            // contenuto cambiato (nuova revisione) riparte dal ciclo corrente, riottenendo il buffer di un ciclo.
+            // `airacCycle` è il ciclo DAL QUALE la riga vale, deciso da SidStampCycle su quel che la sorgente
+            // dichiara (carta §AW2). Se il contenuto è invariato dall'import precedente si conserva il PRIMO:
+            // così, raggiunto quel ciclo, la SID diventa pubblica (IsPublicAt) e ci RESTA. Solo un contenuto
+            // cambiato — una revisione nuova — riparte dal ciclo d'entrata appena calcolato.
             var sourceCycle = found && ContentUnchanged(p!, r) ? (p!.SourceAiracCycle ?? airacCycle) : airacCycle;
 
             // Se la sorgente ripropone il prefisso grezzo (NeedsFixReview) ma quel fix era già stato risolto a mano,

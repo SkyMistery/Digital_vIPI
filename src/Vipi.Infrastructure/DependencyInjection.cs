@@ -288,6 +288,16 @@ public static class DependencyInjection
             c.Timeout = TimeSpan.FromSeconds(15);
             c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
         });
+        // Che cosa dice di sé la sorgente delle SID: il CICLO che dichiara, e in ripiego quando è cambiata
+        // (carta §AW2). Client suo perché parla con un ALTRO host — api.github.com, non
+        // raw.githubusercontent.com — e perché quelle API vogliono un Accept loro. ⚠️ Timeout corto: è una
+        // domanda di contorno, e un import non deve rallentare per una risposta che ha già due ripieghi.
+        services.AddHttpClient<Vipi.Application.Abstractions.ISidSourceRelease, Sectorfile.GitHubSidSourceRelease>(c =>
+        {
+            c.Timeout = TimeSpan.FromSeconds(10);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
+            c.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+        });
         services.AddHostedService<Sectorfile.SidImportHostedService>();
         // Le radioassistenze escono dagli STESSI file delle SID (§12b): stessa cadenza, chiave di stato sua.
         services.AddHostedService<Sectorfile.NavaidImportHostedService>();

@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Content;
 using Vipi.Domain.Entities;
@@ -123,8 +123,10 @@ public class SidImportRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task Reimport_Unchanged_Keeps_First_SourceCycle()
     {
-        // Stesso contenuto SID prelevato a due cicli diversi: conserva il ciclo di PRIMO prelievo, così passato
-        // quel ciclo la SID diventa pubblica (IsPublicAt) e ci resta — il re-timbro non la ri-nasconde.
+        // Stesso contenuto SID visto a due cicli d'entrata diversi: conserva il PRIMO, così raggiunto quel
+        // ciclo la SID diventa pubblica (IsPublicAt) e ci RESTA — il re-timbro non la ri-nasconde. Vale anche
+        // dopo la carta §AW2, che ha cambiato che cosa significa il valore ma non questa regola: solo un
+        // contenuto CAMBIATO riparte dal ciclo d'entrata nuovo.
         await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2606");
         await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2607");
 

@@ -23,6 +23,26 @@ public sealed class SectorfileOptions
 
     /// <summary>Path del file poligoni TWR (twrs.tfl) relativo a <see cref="RawBaseUrl"/>.</summary>
     public string TwrShapePath { get; set; } = "DYNAMIC_SEC/twrs.tfl";
+    /// <summary>
+    /// URL <b>intero</b> dell'elenco dei file di changelog della sorgente: da lì si legge il <b>ciclo AIRAC
+    /// dichiarato</b>, che è il ciclo dal quale valgono le SID prelevate (carta 2026-09-02 §AW2). Il repo
+    /// Aurora tiene un <c>CHANGELOG/&lt;ciclo&gt;.txt</c> per AIRAC, e il nome più alto è il ciclo pubblicato.
+    /// <para>⚠️ Non è un path relativo a <see cref="RawBaseUrl"/> — è un altro host, <c>api.github.com</c> —
+    /// per la stessa ragione di <see cref="SectorIndexUrl"/>. Vuoto = non si chiede, e il ciclo scende ai
+    /// ripieghi: è una caduta dichiarata, non un guasto.</para>
+    /// </summary>
+    public string SidChangelogUrl { get; set; } =
+        "https://api.github.com/repos/ivao-italy/it-aurora-sector/contents/SectorFiles/Include/IT/CHANGELOG";
+
+    /// <summary>
+    /// URL <b>intero</b> della API dei commit che dice <b>quando è cambiata l'ultima volta</b> la cartella dei
+    /// file <c>.sid</c>. ⚠️ È il <b>ripiego</b> di <see cref="SidChangelogUrl"/>, e si chiede solo se il ciclo
+    /// dichiarato non si è potuto leggere: dice quando i dati si sono mossi, non a quale ciclo appartengono.
+    /// Vuoto = non si chiede.
+    /// </summary>
+    public string SidCommitsUrl { get; set; } =
+        "https://api.github.com/repos/ivao-italy/it-aurora-sector/commits?path=SectorFiles/Include/IT&per_page=1";
+
     /// <summary>Ogni quante ore rilanciare l'import automatico.</summary>
     public int ImportHours { get; set; } = 24;
 }
