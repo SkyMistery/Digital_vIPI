@@ -1,6 +1,6 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 2 settembre 2026, sera — 📦 **PACCHETTO 1.4.0 PRONTO DA CARICARE** (timbro `1.4.0 · 669762f`, 21 file, sha256 `b8f680bc…`, **nessuna migrazione**). Prima di quello: 🟢 **TUTTO IN `main`, NESSUN RAMO APERTO.** Fusi `dati-scalo-solo-militare` (§AS, §AT) e `import-tabelle` (§AU). Il pacchetto 1.3.1 sale a **SETTE** lavori: §AO §AP §AQ §AR §AS §AT §AU. Vedi il riquadro sotto «Dove siamo».
+**Ultimo aggiornamento:** 2 settembre 2026, sera — ✅ **1.4.0 È IN PRODUZIONE** (timbro `1.4.0 · 669762f`, caricata alle 16:28 UTC, otto controlli pubblici verdi). Prima di quello: 🟢 **TUTTO IN `main`, NESSUN RAMO APERTO.** Fusi `dati-scalo-solo-militare` (§AS, §AT) e `import-tabelle` (§AU). Il pacchetto 1.3.1 sale a **SETTE** lavori: §AO §AP §AQ §AR §AS §AT §AU. Vedi il riquadro sotto «Dove siamo».
 
 **Ultimo aggiornamento:** 2 settembre 2026, sera — 🟡 **UN RAMO APERTO: `dati-scalo-solo-militare` (`7bef3c3e`), spinto e NON fuso.** `main` resta a **`b8e6b22c`**. Il ramo porta **DUE** lavori, entrambi da segnalazione del committente, **nessuna entità e nessuna migrazione**: **§AS** (i dati dello scalo scrivibili nell'editor del vSOP sui campi solo militari) e **§AT** (l'avviso di traduzione automatica diventa un gettone). 🔴 **Vanno nel pacchetto 1.3.1 insieme agli altri quattro** — che diventano **sei**. ⚠️ §AT cambia **`vipi-theme.css` e `vipi-print.css`**, cioè gli stessi due fogli che il pacchetto già portava: impronte nuove, `wwwroot` insieme all'indice `staticwebassets`.
 
@@ -30,19 +30,21 @@ cancellati — vale il riquadro qui sotto).
 
 ## Dove siamo, prima di tutto il resto
 
-> ### 📦 PRIMA DI TUTTO: il pacchetto 1.4.0 è COSTRUITO e aspetta solo l'FTP
+> ### ✅ PRIMA DI TUTTO: 1.4.0 È ONLINE
 >
-> `artifacts/publish/vipi-1.4.0-solo-file-cambiati.zip` — 21 file, 4,28 MB, sha256
-> `b8f680bc477c0f0683a5bf51729d186597de0ef8af2dfae74566092c75d7b6e4`, timbro **`1.4.0 · 669762f`**.
-> Foglio per chi carica: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.4.0.md`.
+> Caricata dal committente il 2 settembre 2026 e verificata dall'esterno. `avvio-diagnostica.txt` dice
+> **`1.4.0 · 669762f`**, Production, avvio alle **16:28:32 UTC** in 6,8 s, **nessun `avvio-errore.txt`**.
 >
-> 🟢 **Nessuna migrazione**: si carica quando si vuole. ⚠️ Ma il ritorno a 1.3.0 non legge una distanza di
-> alternato scritta **coi decimali**: quella tabella sparirebbe a schermo.
+> **Otto controlli pubblici verdi** (`pacchetto-verifica.js` su `atc.it.ivao.aero`), compresa **la Ricerca**
+> — l'unica che passa dal server e distingue un sito vivo da uno mezzo caricato. I tre file di `wwwroot`
+> sono saliti **col loro indice**: serviti 200 con impronte nuove, e il `vipi-ui.js` servito porta davvero
+> il gestore del Tab.
 >
-> 🔴 Dopo il caricamento vanno rifatti i tre controlli **su produzione**, mentre chi ha caricato è ancora
-> raggiungibile: timbro, **Ricerca**, e il riquadro d'import con i comandi in italiano.
+> 🔴 **Quel che resta da guardare**: il pannello d'import **dal vivo su produzione**, da un account che può
+> modificare. Da fuori non si raggiunge, quindi da qui si è provato solo che il CSS e il JS che lo fanno
+> funzionare sono arrivati.
 >
-> ### I SETTE lavori che porta
+> ### I SETTE lavori che porta (§AO §AP §AQ §AR §AS §AT §AU)
 >
 > `main` è a **`fb2c6212`** (2 settembre 2026, sera) e ha assorbito **tutto**: `avviso-simulazione` (§AO),
 > `coerenza-sectorfile` (§AP), `titoli-di-catalogo-bilingui` (§AQ), `editor-non-si-blocca` (§AR),
