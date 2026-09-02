@@ -1,7 +1,8 @@
 # Importare una tabella — incolla, CSV, XLSX
 
 > Carta prima del codice ([FEATURE-PROCESS](../FEATURE-PROCESS.md)). Decisa il 2 settembre 2026.
-> Stato: **in esecuzione**.
+> Stato: ✅ **eseguita** (ramo `import-tabelle`, dieci fette). Le decisioni che l'esecuzione ha cambiato
+> sono scritte qui sotto dove stavano quelle vecchie — non in fondo.
 
 ## Context
 
@@ -56,10 +57,16 @@ una cella di un CSV sono contenuto scritto da qualcuno, e riscriverlo sarebbe ca
 lo si importa. Nelle cinque righe d'esempio degli «Aeroporti alternati» convivono `–` e `-`, e una riga ha
 un doppio spazio.
 
-### Stadio 2 — Mappatura (`TableImportSpec` + registry)
+### Stadio 2 — Mappatura (`SpecImport`, senza registry)
 
-Ogni tabella importabile dichiara **un descrittore**; il registry li tiene. Aggiungere una tabella
-importabile = registrare una spec, **zero `switch` toccati** (domanda 2 — regola del 2).
+Ogni tabella importabile dichiara **un descrittore**. Aggiungere una tabella importabile = scrivere una
+fabbrica e passarla al pannello, **zero `switch` toccati** (domanda 2 — regola del 2).
+
+⚠️ **Il registry non c'è, ed è una decisione dell'esecuzione.** L'elenco statico avrebbe dovuto tenere una
+copia **neutra** dei titoli di colonna, perché quelli veri stanno nella lingua di chi guarda e arrivano dal
+localizzatore della pagina: due definizioni degli stessi nomi, cioè il difetto che il registry doveva
+evitare. Le specifiche vivono nelle fabbriche di `SpecTabelle` e `SpecImport`, che sono un posto solo. La
+ragione è scritta in fondo a `SpecImport.cs`, dove il registry stava.
 
 ```csharp
 sealed record TableImportSpec(
@@ -92,9 +99,13 @@ generalizzata.
 
 ### Stadio 4 — Approvazione (`ImportaTabella.razor`)
 
-Un solo componente, aperto da qualunque editor con la chiave della spec. Griglia d'anteprima con
-colore per cella: **risolto dal catalogo** · **testo com'era** · **non letto** (il testo originale e il perché stanno nel fumetto).
-Poi «Importa N righe», con **in coda** (default) o **sostituisci**.
+Un solo componente, aperto da qualunque editor con la sua spec. Griglia d'anteprima con colore per cella:
+**risolto dal catalogo** · **testo com'era** · **non letto** (il testo originale e il perché stanno nel
+fumetto). Poi «Importa N righe», con **in coda** (default) o **sostituisci**.
+
+⚠️ Una cella **ambigua** porta una tendina con i candidati, e ognuno si porta dietro la propria
+**identità**: «si chiede quale» deve avere una risposta possibile, o è un rifiuto scritto in modo gentile —
+e sceglierne uno deve bastare a scriverlo, senza ricercarlo.
 
 ⚠️ **Prima del tasto non si scrive niente.** Un incolla che salvasse metterebbe in archivio la propria
 interpretazione di un testo che nessuno ha riletto — e l'interpretazione di una tabella copiata da un PDF

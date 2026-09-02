@@ -1,6 +1,6 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 2 settembre 2026 — 🟢 **QUATTRO LAVORI IN `main`, NESSUN RAMO APERTO.** `main` è a **`bb265c44`**; agli §AO/§AP di ieri si sono aggiunti **§AQ** (i titoli delle sezioni seguono la lingua del documento) e **§AR** (l'editor che si bloccava in salvataggio). 🔴 **Nessuno dei quattro è in produzione**: gira ancora **1.3.0**, e serve il **pacchetto 1.3.1** — dentro ci sono **due fogli di stile cambiati** (`vipi-theme.css`, `vipi-print.css`), quindi impronte nuove e `wwwroot` che viaggia insieme all'indice `staticwebassets`. **Nessuna migrazione** in §AQ e §AR.
+**Ultimo aggiornamento:** 2 settembre 2026 — 🟡 **UN RAMO APERTO: `import-tabelle`** (§AU, vedi il riquadro sotto «Dove siamo»). Prima di quello: `main` è a **`bb265c44`**; agli §AO/§AP di ieri si sono aggiunti **§AQ** (i titoli delle sezioni seguono la lingua del documento) e **§AR** (l'editor che si bloccava in salvataggio). 🔴 **Nessuno dei quattro è in produzione**: gira ancora **1.3.0**, e serve il **pacchetto 1.3.1** — dentro ci sono **due fogli di stile cambiati** (`vipi-theme.css`, `vipi-print.css`), quindi impronte nuove e `wwwroot` che viaggia insieme all'indice `staticwebassets`. **Nessuna migrazione** in §AQ e §AR.
 
 **§AQ — il titolo di una sezione di catalogo lo decide il catalogo, nella lingua in cui si legge.** Segnalazione del committente: un documento **bloccato in inglese** mostrava le testate in italiano. Non mancava una traduzione: quei titoli stanno scritti **nel documento** nella lingua che aveva alla nascita, e arrivavano in inglese **di rimbalzo** dal traduttore — bloccare la lingua **spegne** la traduzione, e la stampella è caduta. Ora si risolvono **dove si legge** (`TitoliDiCatalogo`), in tutte e cinque le famiglie, a ogni profondità e anche nell'editor, dove una sezione fissa **non si può rinominare a mano**. ⚠️ Il catalogo vince anche sulla **memoria di traduzione** (resa decisa contro plausibile: «MRVA» non torna «Minimum vectoring»), ma scrive **solo dove ha davvero una resa**: la vLOA ha i titoli in inglese e nessuna resa italiana, e imporgliela cancellerebbe quella del traduttore. Nuova **R9** in `docs/design/regole-lingua.md`.
 
@@ -21,6 +21,21 @@ sezione «Dove siamo» è **storia**: i rami che vi si citano come «non fusi» 
 cancellati — vale il riquadro qui sotto).
 
 ## Dove siamo, prima di tutto il resto
+
+> ### 🟡 Ramo aperto: `import-tabelle` (2 settembre 2026)
+>
+> Nato da `main` (`b8e6b22c`). **Importare una tabella** invece di ridigitarla: incolla, CSV, XLSX,
+> Markdown, tabella HTML, larghezza fissa e ancore per il PDF, con **anteprima da approvare** prima di
+> scrivere. Dieci fette, carta in [`docs/design/piano-import-tabelle.md`](docs/design/piano-import-tabelle.md),
+> dettaglio in `docs/lavori-aperti.md` §AU.
+>
+> **Nessuna entità, nessuna migrazione.** 🔴 Ma la distanza degli alternati diventa `decimal` dentro il
+> `BodyJson`: un rollback dei binari **dopo** che qualcuno ha scritto un decimale fa sparire la tabella a
+> schermo, senza errore. Va scritto nella nota di consegna.
+>
+> Build Release verde sui due TFM (`--no-incremental`, 0 avvisi), **4739 test verdi**; E2E **non** girati
+> sul ramo. Verificato dal vivo l'import degli alternati su LIBG e LIMS; ⚠️ **non** verificato dal vivo
+> l'incolla clausole dell'admin trasferimenti.
 
 > ### 🔴 PRIMA DI TUTTO: `main` ha QUATTRO lavori pronti che NON sono online
 >
