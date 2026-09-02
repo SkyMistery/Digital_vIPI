@@ -76,7 +76,9 @@ else
                             @_view.Title
                             <MilitaryTag HasMilitaryPresence="_militaryPresence" IsMilitaryOnly="_militaryOnly" />
                         </h2>
-                        <span class="muted">@Sito["Airport_SubtitlePrefix"] · @_acc.Name · <SimDisclaimer /> <TranslationNotice Coverage="_copertura" Compatto="true" /></span>
+                        @* ⚠️ Riga propria per l'avviso, come nelle altre quattro testate: vedi `.sim-line`. *@
+                        <span class="muted">@Sito["Airport_SubtitlePrefix"] · @_acc.Name</span>
+                        <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_copertura" Compatto="true" /></div>
                     </div>
                     <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>

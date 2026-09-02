@@ -1077,10 +1077,19 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
    ⚠️ `.sim-disc` sta DENTRO una riga `.muted` in quattro documenti su cinque: il colore lo deve vincere,
    e lo vince perche' e' una classe sull'elemento stesso contro un colore ereditato. */
 .sim-disc{color:var(--danger-ink);font-weight:800}
-/* La riga propria, per le tre testate che un sottotitolo non ce l'hanno (vSOP militare, vista live, spazi
-   aerei). ⚠️ `flex-basis:100%` non e' decorazione: in `.reduced-top` (vista live) la testata e' una riga
+/* La riga propria dell'avviso. Nata per le tre testate che un sottotitolo non ce l'hanno (vSOP militare,
+   vista live, spazi aerei), dal 2 settembre 2026 la usano TUTTE: appeso in coda al sottotitolo, l'avviso
+   mandava la riga a capo in mezzo alla frase dove il sottotitolo era lungo — sulla vIPI ACC si leggeva
+   «…DO NOT USE FOR REAL LIFE / NAVIGATION», e il gettone della traduzione atterrava dopo quel troncone
+   come se fosse finito li' per sbaglio.
+   ⚠️ `flex-basis:100%` non e' decorazione: in `.reduced-top` (vista live) la testata e' una riga
    flex, e senza questo l'avviso si infilerebbe fra l'orologio UTC e i tasti stringendo il titolo. Fuori da
-   un contenitore flex la dichiarazione e' inerte, quindi la stessa classe vale nei tre posti. */
+   un contenitore flex la dichiarazione e' inerte, quindi la stessa classe vale in tutti i posti.
+   ⚠️ E si scrive su un <div>, MAI su un <p>: il gettone della traduzione porta dentro di se' il «?», che
+   e' un <details>, e un <p> non puo' contenerlo. Il parser del browser CHIUDE il <p> da solo e sposta il
+   <details> FUORI -- a schermo il «?» atterrava su una riga sua, sotto e a sinistra del gettone, come un
+   glifo perso. Non e' un errore che si veda leggendo il Razor: il markup e' quello che si e' scritto, e' il
+   DOM a essere un altro. */
 .sim-line{flex-basis:100%;margin:2px 0 0;font-size:13px}
 /* IL GETTONE «TRADOTTA A MACCHINA» (TranslationNotice Compatto="true"). Sta nella riga sotto il titolo,
    dopo l'avviso di simulazione, e ha preso il posto di un riquadro pieno che si mangiava un quarto della

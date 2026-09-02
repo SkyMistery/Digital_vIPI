@@ -55,6 +55,55 @@ public sealed class AvvisoTraduzioneSuOgniSedeTests
     }
 
     /// <summary>
+    /// ⚠️ <b>L'avviso ha una riga PROPRIA, e non è una scelta di gusto.</b> Appeso in coda al sottotitolo
+    /// mandava la riga a capo in mezzo alla frase dove il sottotitolo era lungo: sulla vIPI ACC si leggeva
+    /// «…DO NOT USE FOR REAL LIFE / NAVIGATION», col gettone atterrato dopo quel troncone come se ci fosse
+    /// finito per sbaglio. Segnalato dal committente il 2 settembre 2026, e la forma scelta è quella che il
+    /// vSOP militare aveva già.
+    ///
+    /// <para>⚠️ Il gettone sta <b>nella stessa riga</b> dell'avviso di simulazione, non su una terza: due
+    /// righe di cartelli sopra il documento sono di nuovo il problema che si stava togliendo.</para>
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Testate))]
+    public void L_avviso_e_il_gettone_stanno_su_una_riga_LORO(string relativo)
+    {
+        var sorgente = Leggi(relativo);
+
+        var riga = System.Text.RegularExpressions.Regex.Match(
+            sorgente, @"<div class=""sim-line"">(?<c>.*?)</div>", System.Text.RegularExpressions.RegexOptions.Singleline);
+
+        Assert.True(riga.Success, $"{relativo}: l'avviso non è su una riga propria (<div class=\"sim-line\">).");
+        Assert.Contains("<SimDisclaimer", riga.Groups["c"].Value, StringComparison.Ordinal);
+        Assert.Contains("<TranslationNotice", riga.Groups["c"].Value, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// ⚠️ <b>La riga dell'avviso è un <c>&lt;div&gt;</c>, mai un <c>&lt;p&gt;</c>, e non è pignoleria.</b>
+    /// Il gettone porta dentro di sé il «?», che è un <c>&lt;details&gt;</c>, e <b>un <c>&lt;p&gt;</c> non
+    /// può contenerlo</b>: il parser del browser chiude il <c>&lt;p&gt;</c> da solo e sposta il
+    /// <c>&lt;details&gt;</c> <b>fuori</b>. A schermo il «?» atterrava su una riga sua, sotto e a sinistra
+    /// del gettone, come un glifo perso — misurato il 2 settembre 2026, alla prima stesura di questa riga.
+    ///
+    /// <para>⚠️ È un difetto che <b>non si vede leggendo il Razor</b>: il markup scritto è giusto, è il DOM
+    /// a essere un altro. Per questo la guardia sta sul sorgente e vale anche per la vista live e la mappa
+    /// degli spazi aerei, che oggi il gettone non ce l'hanno — chi ce lo aggiungesse domani ricadrebbe
+    /// dentro senza che niente lo avvisi.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("Pages/AccVipiPage.razor")]
+    [InlineData("Pages/AeroportoPage.razor")]
+    [InlineData("Pages/AppnPage.razor")]
+    [InlineData("Pages/MilDocumentPage.razor")]
+    [InlineData("Components/VloaDocumentView.razor")]
+    [InlineData("Pages/LivePage.razor")]
+    [InlineData("Pages/AirspacePage.razor")]
+    public void La_riga_dell_avviso_non_e_MAI_un_paragrafo(string relativo)
+    {
+        Assert.DoesNotContain("<p class=\"sim-line\"", Leggi(relativo), StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// ⚠️ <b>Il gettone e il riquadro non devono convivere.</b> Finché la pagina mostrava tutt'e due si
     /// vedeva subito; ma basta lasciare indietro un <c>&lt;TranslationNotice Coverage="…" /&gt;</c> senza
     /// <c>Compatto</c> in fondo a una pagina — dove nessuno guarda — per riavere il riquadro che si voleva

@@ -18,7 +18,9 @@
         <div class="doc-head">
             <div>
                 <h2 style="margin-bottom:2px">@View.Title</h2>
-                <span class="muted">@SubtitleOrDefault() · <SimDisclaimer /> <TranslationNotice Coverage="Coverage" Compatto="true" /></span>
+                @* ⚠️ Riga propria per l'avviso, come nelle altre quattro testate: vedi `.sim-line`. *@
+                <span class="muted">@SubtitleOrDefault()</span>
+                <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="Coverage" Compatto="true" /></div>
             </div>
             <div style="display:flex;align-items:center;gap:10px">
                 <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>

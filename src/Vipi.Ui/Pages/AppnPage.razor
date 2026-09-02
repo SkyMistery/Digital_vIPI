@@ -39,7 +39,12 @@ else
                     @* L'APP di uno scalo militare porta la stessa etichetta del suo aeroporto: chi legge questo
                        documento sta guardando quel campo, e l'informazione non deve dipendere da quale dei due
                        documenti ha aperto. *@
-                    <div><h1 class="page-h1" style="margin-bottom:2px">@_displayName <MilitaryTag HasMilitaryPresence="_mil?.HasMilitaryPresence ?? false" IsMilitaryOnly="_mil?.IsMilitaryOnly ?? false" /></h1><span class="muted">@_app · @Sito["Appn_Subtitle"] · <SimDisclaimer /> <TranslationNotice Coverage="_copertura" Compatto="true" /></span></div>
+                    @* ⚠️ Riga propria per l'avviso, come nelle altre quattro testate: vedi `.sim-line`. *@
+                    <div>
+                        <h1 class="page-h1" style="margin-bottom:2px">@_displayName <MilitaryTag HasMilitaryPresence="_mil?.HasMilitaryPresence ?? false" IsMilitaryOnly="_mil?.IsMilitaryOnly ?? false" /></h1>
+                        <span class="muted">@_app · @Sito["Appn_Subtitle"]</span>
+                        <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_copertura" Compatto="true" /></div>
+                    </div>
                     <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>
                         <a class="btn ghost" href="/services/vsop/live/@_app.ToLowerInvariant()">@Sito["Common_Operational"]</a>

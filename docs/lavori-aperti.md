@@ -7091,12 +7091,40 @@ Un **gettone** nella riga sotto il titolo, subito dopo l'avviso di simulazione, 
 dietro il «?» (`HelpHint`, che si apre al clic — [[help-hint-click-only]]).
 
 ⚠️ **Che cosa NON si perde**: che l'avviso esista e **quale** dei due problemi ci sia restano scritti in
-chiaro — «tradotta a macchina, non riletta» e «4/10 frasi non tradotte» sono due difetti diversi, e chi
+chiaro — «tradotta a macchina» e «4/10 frasi non tradotte» sono due difetti diversi, e chi
 legge deve poter decidere se il pezzo che gli serve è fra i quattro. Dietro il «?» va **solo** la frase
 lunga, che è un'istruzione, non una notizia.
 
 ⚠️ **Giallo e non rosso**, e non è un dettaglio di gusto: il rosso in quella riga è già preso dall'avviso di
 simulazione, che è l'unica cosa che deve gridare. Due rossi accanto non fanno due allarmi, ne fanno zero.
+
+### La seconda passata, stessa sera: la riga era ordinata a metà
+
+⚠️ **Appeso in coda al sottotitolo, il gettone stava in una riga che andava a capo in mezzo alla frase.**
+Sulla vIPI ACC — dove il sottotitolo è lungo — si leggeva «…DO NOT USE FOR REAL LIFE / NAVIGATION», e il
+gettone atterrava dopo quel troncone come se ci fosse finito per sbaglio. Segnalato dal committente, che
+proponeva di spostare tutto sulla riga delle briciole.
+
+Scelta (sua, fra tre proposte): **l'avviso e il gettone prendono una riga LORO**, sotto il sottotitolo — la
+forma che il vSOP militare aveva già (`.sim-line`), che ora vale su tutte e cinque le testate. Le briciole
+sono state scartate perché parlano del **sito**, non di quel documento: l'avviso deve restare attaccato al
+titolo a cui si riferisce. Etichetta accorciata a «tradotta a macchina» / «machine-translated» — «non
+riletta» resta dietro il «?».
+
+⚠️ E il gettone sta nella **stessa** riga dell'avviso di simulazione, non su una terza: due righe di
+cartelli sopra il documento sono di nuovo il problema che si stava togliendo.
+
+### 🔴 E lì è saltato fuori un difetto che il Razor non mostra
+
+⚠️ **Un `<p>` NON può contenere un `<details>`.** Il gettone porta dentro di sé il «?», che è un
+`<details>`: il parser del browser **chiude il `<p>` da solo** e sposta il `<details>` **fuori**. A schermo
+il «?» atterrava su una riga sua, sotto e a sinistra del gettone, come un glifo perso.
+
+⚠️ **Non si vede leggendo il sorgente**: il markup scritto è giusto, è il **DOM** a essere un altro. Prima
+non capitava perché il gettone stava dentro uno `<span>`, e solo il `<p>` ha quella regola di chiusura
+automatica del parser. Chiuso portando `.sim-line` da `<p>` a `<div>` in **tutti e sette** i posti — anche
+vista live e mappa degli spazi aerei, che il gettone oggi non ce l'hanno: chi ce lo aggiungesse domani
+ricadrebbe dentro senza che niente lo avvisi. `AvvisoTraduzioneSuOgniSedeTests` lo pretende su tutti e sette.
 
 ### ⚠️ La trappola che lo spostamento porta con sé, e che non si vede leggendo la pagina
 
@@ -7124,7 +7152,9 @@ Stessa ricetta di §AS (scratchpad, porta libera, copia del DB). Sulla **vIPI AC
 **vIPI d'aeroporto di LIBD**, lette in inglese: gettone nella riga giusta, documento che comincia subito
 sotto il titolo, «?» che apre la frase intera, riga `.pm-tr` presente nell'intestazione di stampa. Provato
 anche in **tema chiaro**. Sulle altre tre famiglie il gettone non compare perché quei documenti non hanno
-traduzioni memorizzate — coperte dal test strutturale e dai test del componente.
+traduzioni memorizzate — coperte dal test strutturale e dai test del componente. Riverificato dopo la
+seconda passata: riga alta 24px (una sola), «?» dentro il gettone, e su finestra stretta il gettone scende
+INTERO invece di spezzarsi.
 
 ### Quel che resta
 

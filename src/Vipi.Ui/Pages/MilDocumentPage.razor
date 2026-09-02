@@ -72,9 +72,11 @@
                 <div class="doc-head">
                     <div>
                         <h1 class="page-h1">@_view.Title</h1>
-                        @* Il vSOP militare e' l'unico dei cinque senza una riga di sottotitolo: l'avviso si porta la
-                           propria riga invece di appendersi a una che non c'e'. *@
-                        <p class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_copertura" Compatto="true" /></p>
+                        @* Il vSOP militare e' l'unico dei cinque senza una riga di sottotitolo, ed e' per
+                           questo che l'avviso qui si porto' per primo la propria riga. ⚠️ Dal 2 settembre
+                           2026 ce l'hanno TUTTE E CINQUE: appesa al sottotitolo, la riga andava a capo in
+                           mezzo alla frase dove il sottotitolo era lungo. *@
+                        <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_copertura" Compatto="true" /></div>
                         @* Il ponte verso l'altra edizione dello stesso scalo: chi apre il militare deve poter
                            arrivare al civile senza tornare indietro di due pagine.
 
