@@ -296,7 +296,8 @@ else
                                      Editing="_shell.IsEditing"
                                      OnAdd="AggiungiAlternato" OnRemove="TogliAlternato" OnMove="SpostaAlternato"
                                      OnAddNavaid="AggiungiNavaidAlternato" OnRemoveNavaid="TogliNavaidAlternato"
-                                     OnSetNumber="ScriviNumeroAlternato" />
+                                     OnSetRilevamento="ScriviRilevamentoAlternato"
+                                     OnSetDistanza="ScriviDistanzaAlternato" />
                 break;
             case "regulated":
                 @* Come l'APP: nessuna area di default, si scelgono tutte a mano. Sotto, la tabella: nome e
@@ -570,17 +571,25 @@ else
         return SalvaAlternati(righe);
     }
 
-    private Task ScriviNumeroAlternato((int Indice, bool Rilevamento, int? Valore) x)
-    {
-        var righe = RigheAlternati();
-        if (x.Indice < 0 || x.Indice >= righe.Count) return Task.CompletedTask;
-        var riga = righe[x.Indice];
-        righe[x.Indice] = new MilDiversionPayload.Riga
+    private Task ScriviRilevamentoAlternato((int Indice, int? Gradi) x) =>
+        ScriviNumeroAlternato(x.Indice, riga => new MilDiversionPayload.Riga
         {
             Icao = riga.Icao, Name = riga.Name, Navaids = riga.Navaids,
-            Bearing = x.Rilevamento ? x.Valore : riga.Bearing,
-            Distance = x.Rilevamento ? riga.Distance : x.Valore,
-        };
+            Bearing = x.Gradi, Distance = riga.Distance,
+        });
+
+    private Task ScriviDistanzaAlternato((int Indice, decimal? Nm) x) =>
+        ScriviNumeroAlternato(x.Indice, riga => new MilDiversionPayload.Riga
+        {
+            Icao = riga.Icao, Name = riga.Name, Navaids = riga.Navaids,
+            Bearing = riga.Bearing, Distance = x.Nm,
+        });
+
+    private Task ScriviNumeroAlternato(int indice, Func<MilDiversionPayload.Riga, MilDiversionPayload.Riga> cambia)
+    {
+        var righe = RigheAlternati();
+        if (indice < 0 || indice >= righe.Count) return Task.CompletedTask;
+        righe[indice] = cambia(righe[indice]);
         return SalvaAlternati(righe);
     }
 
