@@ -9,6 +9,7 @@
 @inject IStringLocalizer<SharedResource> L
 @using Vipi.Application.Abstractions
 @using Vipi.Application.Content
+@using Vipi.Application.Import
 
 <table class="res-table mil-table div-table">
     <thead>
@@ -127,8 +128,20 @@
             <input class="w-code" list="@AeroportiId" @bind="_nuovoIcao" placeholder="LIBG" />
         </label>
         <button type="button" class="btn primary" @onclick="Aggiungi">+ @L["Div_Add"]</button>
+        @* ⚠️ L'import sta accanto all'aggiunta a mano, che e' il gesto che sostituisce: cinque righe di SOP
+           sono cinque codici, cinque impianti e dieci numeri da ridigitare. *@
+        @if (OnImporta.HasDelegate)
+        {
+            <button type="button" class="btn ghost" @onclick="() => _import = !_import">⤓ @L["Imp_Open"]</button>
+        }
         @if (_errore is not null) { <span class="mil-err">@_errore</span> }
     </div>
+
+    @if (_import)
+    {
+        <ImportaTabella Spec="@Spec" Risolutore="@Risolutore" OnImporta="Importa"
+                        OnAnnulla="() => { _import = false; return Task.CompletedTask; }" />
+    }
     @* ⚠️ Lo si dice PRIMA, non dopo un fallimento: un alternato estero è il caso normale su un campo di
        confine, e chi scrive deve sapere che il codice glielo cerchiamo anche fuori dai nostri. Una riga
        sotto la barra d'aggiunta, come nelle Radioassistenze — un «?» da solo, senza niente accanto, in
@@ -158,6 +171,13 @@
 
     [Parameter] public bool Editing { get; set; }
 
+    /// <summary>Chi cerca scali e radioassistenze sui cataloghi, per l'import. Null = niente import.</summary>
+    [Parameter] public IRisolutoreCelle? Risolutore { get; set; }
+
+    /// <summary>Le righe approvate nell'anteprima, con la scelta fra «in coda» e «sostituisci». La
+    /// costruzione delle righe del payload la fa la pagina, che e' quella che sa salvarle.</summary>
+    [Parameter] public EventCallback<RichiestaImport> OnImporta { get; set; }
+
     /// <summary>Aggiunge lo scalo con questo ICAO. Il nome lo risolve l'host (archivio, poi sorgente).</summary>
     [Parameter] public EventCallback<string> OnAdd { get; set; }
 
@@ -182,6 +202,21 @@
     /// uno travestito dall'altro.</para>
     /// </summary>
     [Parameter] public EventCallback<(int Indice, decimal? Nm)> OnSetDistanza { get; set; }
+
+    private bool _import;
+
+    /// <summary>
+    /// La specifica dell'import, con i titoli gia' nella lingua della pagina: sono anche i nomi con cui si
+    /// riconosce l'intestazione incollata, insieme ai sinonimi inglesi dei SOP veri.
+    /// </summary>
+    private SpecImport Spec => SpecTabelle.AeroportiAlternati(
+        L["Div_Airports"], L["Div_Navaids"], L["Div_Bearing"], L["Div_Distance"]);
+
+    private Task Importa(RichiestaImport r)
+    {
+        _import = false;
+        return OnImporta.InvokeAsync(r);
+    }
 
     private string _nuovoIcao = "";
     private string? _errore;

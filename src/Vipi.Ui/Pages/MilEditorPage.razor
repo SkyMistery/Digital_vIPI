@@ -8,6 +8,8 @@
 @inject IMilitaryDocumentService Militari
 @inject Vipi.Application.Abstractions.INavaidCatalog Radioassistenze
 @inject Vipi.Application.Abstractions.IAirportNameLookup Aeroporti
+@using Vipi.Application.Import
+@inject Vipi.Application.Import.IRisolutoreCelle RisolutoreCelle
 @inject IStationResolver Stations
 @inject IEditAuthorizationService Authz
 @inject IJSRuntime JS
@@ -297,7 +299,8 @@ else
                                      OnAdd="AggiungiAlternato" OnRemove="TogliAlternato" OnMove="SpostaAlternato"
                                      OnAddNavaid="AggiungiNavaidAlternato" OnRemoveNavaid="TogliNavaidAlternato"
                                      OnSetRilevamento="ScriviRilevamentoAlternato"
-                                     OnSetDistanza="ScriviDistanzaAlternato" />
+                                     OnSetDistanza="ScriviDistanzaAlternato"
+                                     Risolutore="RisolutoreCelle" OnImporta="ImportaAlternati" />
                 break;
             case "regulated":
                 @* Come l'APP: nessuna area di default, si scelgono tutte a mano. Sotto, la tabella: nome e
@@ -588,6 +591,61 @@ else
             Icao = riga.Icao, Name = riga.Name, Navaids = riga.Navaids,
             Bearing = riga.Bearing, Distance = x.Nm,
         });
+
+    /// <summary>
+    /// Scrive le righe approvate nell'anteprima d'import.
+    ///
+    /// <para>⚠️ L'ICAO e l'identita' della radioassistenza <b>non si ricercano una seconda volta</b>: la
+    /// proposta le porta gia' (<c>CellaProposta.Chiave</c>), risolte sui cataloghi mentre l'anteprima le
+    /// mostrava. Rifare la ricerca qui vorrebbe dire poter scrivere qualcosa di diverso da cio' che chi
+    /// importa ha approvato.</para>
+    /// <para>⚠️ Il <b>nome</b> dello scalo si porta dietro solo per gli alternati esteri, che in archivio non
+    /// ci sono: e' il ripiego previsto dal payload, e quando lo scalo c'e' vince comunque l'archivio.</para>
+    /// </summary>
+    private Task ImportaAlternati(RichiestaImport r)
+    {
+        var nuove = new List<MilDiversionPayload.Riga>();
+        foreach (var riga in r.Proposta.Buone)
+        {
+            var scalo = riga.Celle.Count > 0 ? riga.Celle[0] : null;
+            if (scalo?.Chiave is not { Length: 4 } icao) continue;
+
+            var nav = riga.Celle.Count > 1 ? riga.Celle[1] : null;
+            var impianti = new List<MilDiversionPayload.Nav>();
+            if (nav?.Chiave is { Length: > 0 } chiave)
+            {
+                var parti = chiave.Split('|');
+                if (parti.Length >= 2 && parti[0].Length > 0 && parti[1].Length > 0)
+                    impianti.Add(new MilDiversionPayload.Nav
+                    {
+                        Code = parti[0],
+                        Kind = parti[1],
+                        Channel = parti.Length > 2 && parti[2].Length > 0 ? parti[2] : null,
+                    });
+            }
+
+            nuove.Add(new MilDiversionPayload.Riga
+            {
+                Icao = icao,
+                Name = NomeIncollato(scalo.Valore, icao),
+                Navaids = impianti,
+                Bearing = riga.Celle.Count > 2 ? MilDiversionText.LeggiRilevamento(riga.Celle[2].Valore) : null,
+                Distance = riga.Celle.Count > 3 ? MilDiversionText.LeggiDistanza(riga.Celle[3].Valore) : null,
+            });
+        }
+
+        var righe = r.Sostituisci ? nuove : RigheAlternati().Concat(nuove).ToList();
+        return SalvaAlternati(righe);
+    }
+
+    /// <summary>Il nome dentro «LIBA Amendola», senza il codice. Vuoto = nessun nome da tenere.</summary>
+    private static string? NomeIncollato(string valore, string icao)
+    {
+        var resto = valore.Length > icao.Length && valore.StartsWith(icao, StringComparison.OrdinalIgnoreCase)
+            ? valore.Substring(icao.Length).Trim()
+            : valore.Trim();
+        return resto.Length > 0 ? resto : null;
+    }
 
     private Task ScriviNumeroAlternato(int indice, Func<MilDiversionPayload.Riga, MilDiversionPayload.Riga> cambia)
     {
