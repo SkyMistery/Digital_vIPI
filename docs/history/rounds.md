@@ -2141,3 +2141,44 @@ scritta, e a trovarlo è stato il test.
 
 **7 test nuovi**, tutti verificati **rossi** ripristinando il codice di prima — senza quella prova sarebbero
 ornamenti, non guardie. Build Release verde sui due TFM, **nessuna migrazione**.
+
+---
+
+## Il rosso intermittente era il registro eventi di Windows (2 settembre 2026)
+
+Segnalati due rossi **intermittenti** nelle passate a soluzione intera. Uno è stato chiuso; l'altro resta
+senza nome, e vale la pena scrivere anche quello.
+
+**Quello chiuso.** `CorsaDbContextPagineTests` cadeva nello **spegnimento** dell'host di prova, non nel
+test: `WebApplicationFactory.Dispose` → `Host.StopAsync` → `AtcPollingHostedService.StopAsync` → una
+`LogWarning` → `ObjectDisposedException` su un `SafeEventLogWriteHandle`.
+
+La causa è un provider che **non abbiamo mai scelto**: `WebApplication.CreateBuilder` aggiunge da sé
+`EventLogLoggerProvider` quando gira su Windows. Costa due volte:
+
+- **rumore**: misurato sul registro della macchina, **535 voci** nel log Applicazione in **tre ore** di
+  suite — sorgente «.NET Runtime», id 1000, una decina di host per giro. In produzione (Linux) quel canale
+  non esiste nemmeno: non è mai stato né scelto né letto, e quel che si legge sta in `diagnostica/`;
+- **il rosso**: il provider tiene un handle che muore quando il provider viene disposto, e una riga di log
+  scritta **tardi** nello spegnimento lo trova già chiuso. `Logger.Log` raccoglie le eccezioni dei provider
+  e le rilancia, quindi l'errore risaliva dentro `Host.StopAsync` e faceva fallire il `Dispose` — cioè il
+  test. Servivano **due** condizioni insieme (il salvataggio finale che fallisce **e** l'handle già chiuso):
+  è la ragione dell'intermittenza, due volte su undici passate.
+
+⚠️ Si toglie **solo** quel provider: `ClearProviders()` porterebbe via anche console, debug e
+`DiagnosticaCircuito`, cioè la diagnostica che serve. E il tipo si **nomina** invece di cercarlo per
+stringa — se cambiasse nome, la riga non compila, invece di smettere di funzionare in silenzio.
+
+✅ **E si è controllato che la nostra catena non possa fare lo stesso danno**: `DiagnosticaCircuito` →
+`DiagnosticaErrori.Registra` è tutto dentro un `try/catch` che ingoia («non c'è un piano C, e non deve
+esserci»). Per questo **non** è stato aggiunto nessun `try` attorno alla riga di log di `StopAsync`: senza
+un trigger noto sarebbe impiastro difensivo, e la regola giusta è l'altra — *un provider di log non deve
+poter sollevare*.
+
+**Quello aperto.** Due apparizioni in `Vipi.Ui.Tests`, sempre dentro una passata a **soluzione intera** e
+mai isolando il progetto (diciotto giri in parallelo a sei vie, tutti verdi), e in nessuna delle due è
+stato catturato il **nome** del test. Escluse per misura tre piste: gli asset (`Vipi.Assets.Tests` lavora
+in una cartella temporanea sua), `Vipi.Hosting.Tests` e `Vipi.Infrastructure.Tests` (zero voci nel registro
+eventi, quindi non è la stessa causa), e `AssetVersion` (è una `ConcurrentDictionary`, e comunque la usa
+solo `App.razor`, che bUnit non rende). Finché non ricompare col suo nome **non si tocca niente**: una
+correzione a un difetto che non si sa nominare è solo un altro cambiamento.
