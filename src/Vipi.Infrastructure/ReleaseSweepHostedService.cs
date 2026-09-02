@@ -53,18 +53,28 @@ public sealed class ReleaseSweepHostedService : BackgroundService
             RunOnceAsync,
             _log,
             stoppingToken,
-            // ⚠️ 45s, e NON 130 come nella prima stesura. Misurato sul server vero il 2 settembre 2026,
-            // in `diagnostica/avvii.txt`: il processo vive **un minuto, uno e cinquanta, quattro e
-            // cinquantadue** — Passenger lo spegne per inattività appena il traffico si ferma. Un giro che
-            // aspetta 130 secondi, su quel ritmo, non parte quasi mai: due dei tre avvii osservati erano
-            // già finiti. E se non parte non lascia traccia — `GatedImportLoop` registra solo gli esiti,
-            // non le attese interrotte, quindi il silenzio somiglia a `va tutto bene`.
+            // ⚠️ 45s, e NON 130 come nella prima stesura. Il perché va letto per intero, perché la prima
+            // ragione scritta qui era SBAGLIATA e la correzione è istruttiva.
             //
-            // ⚠️ Il prezzo dichiarato: si perde l'ordine con la deriva (che gira a 100s e può ripuntare
-            // release sotto la chiave viva). È accettabile, e vale la pena scrivere perché: la potatura
-            // tocca solo le release **superate oltre soglia**, cioè righe già destinate a sparire; potarne
-            // qualcuna prima di un ripuntamento fa perdere storia che sarebbe stata cancellata comunque.
-            // Contro: un giro che non gira mai. Non è un pareggio.
+            // Il fatto: sul server vero il processo vive poco. In `diagnostica/avvii.txt` del 2 settembre
+            // 2026, tre avvii di fila da **1:00, 1:49 e 4:52** — Passenger lo spegne per inattività appena
+            // il traffico si ferma (ogni arresto è ORDINATO: non sono crash).
+            //
+            // ⚠️ Da lì avevo dedotto che i giri oltre il minuto «non partono mai». È FALSO, e a smentirlo
+            // è stata la pagina Sorgenti: le aree regolamentate (45s), i navaid (60s) e soprattutto la
+            // DERIVA (100s) hanno tutte un ultimo esito fresco. Su una giornata gli avvii lunghi capitano,
+            // e il gate delle 24 ore ha bisogno che ne capiti uno solo. Tre avvii non sono una giornata:
+            // dedurre da tre campioni presi in dieci minuti era la misura sbagliata.
+            //
+            // Quel che resta vero, ed è la ragione buona: questa potatura prima girava a OGNI AVVIO
+            // (`PruneVipiReleases`, sincrona), e spostandola in un giro l'ho resa la più lontana della
+            // scaletta dopo la retention del traffico. Su un host con avvii di un minuto, 130 secondi è il
+            // posto più facile da mancare, e non c'è niente da guadagnare a stare lì.
+            //
+            // ⚠️ Il prezzo dichiarato: si perde l'ordine con la deriva, che può ripuntare release sotto la
+            // chiave viva. Vale poco: la potatura tocca solo le release **superate oltre soglia**, cioè
+            // righe già destinate a sparire; potarne qualcuna prima di un ripuntamento fa perdere storia
+            // che sarebbe stata cancellata comunque.
             bootDelay: TimeSpan.FromSeconds(45));
 
     private async Task<bool> RunOnceAsync(IServiceProvider sp, CancellationToken ct)
