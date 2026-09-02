@@ -130,7 +130,7 @@ public sealed class DocumentImpactService : IDocumentImpactService
         public const string AreaGone = "Impact_AreaGone";
         public const string AreaChanged = "Impact_AreaChanged";
         public const string ReleaseDrift = "Impact_ReleaseDrift";
-        public const string ReleaseDriftNextCycle = "Impact_ReleaseDriftNext";
+        public const string ReleaseDriftNextCycle = "Impact_ReleaseDriftNextCycle";
         public const string ReleaseKeyMoved = "Impact_ReleaseKeyMoved";
         public const string BrokenTarget = "Impact_BrokenTarget";
         public const string AttachmentReplaced = "Impact_AttachmentReplaced";

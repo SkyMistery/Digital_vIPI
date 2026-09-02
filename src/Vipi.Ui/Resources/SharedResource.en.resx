@@ -1547,6 +1547,7 @@
   <data name="ImpactKind_AreaGone" xml:space="preserve"><value>Area gone</value></data>
   <data name="ImpactKind_AreaChanged" xml:space="preserve"><value>Area changed</value></data>
   <data name="ImpactKind_ReleaseDrift" xml:space="preserve"><value>Published copy behind</value></data>
+  <data name="ImpactKind_ReleaseDriftNextCycle" xml:space="preserve"><value>To prepare for the incoming cycle</value></data>
   <data name="ImpactKind_ReleaseKeyMoved" xml:space="preserve"><value>Target moved</value></data>
   <data name="ImpactKind_BrokenTarget" xml:space="preserve"><value>Broken target</value></data>
   <data name="ImpactKind_SectorRenamed" xml:space="preserve"><value>Sector renamed</value></data>
@@ -1616,7 +1617,7 @@
   <data name="Impact_AreaGone" xml:space="preserve"><value>Regulated area {0} is no longer in the catalogues: the document cites it but it is not shown.</value></data>
   <data name="Impact_AreaChanged" xml:space="preserve"><value>Regulated area {0} has changed: re-read what the document says about it.</value></data>
   <data name="Impact_ReleaseDrift" xml:space="preserve"><value>The published copy is behind the draft: {0}.</value></data>
-  <data name="Impact_ReleaseDriftNext" xml:space="preserve"><value>At AIRAC cycle {0} the published copy will no longer be accurate: {1}. Schedule a release for that cycle.</value></data>
+  <data name="Impact_ReleaseDriftNextCycle" xml:space="preserve"><value>At AIRAC cycle {0} the published copy will no longer be accurate: {1}. Schedule a release for that cycle.</value></data>
   <data name="Airac_NextTitle" xml:space="preserve"><value>Next AIRAC</value></data>
   <data name="Airac_NextFrom" xml:space="preserve"><value>effective from {0}</value></data>
   <data name="Airac_NextToday" xml:space="preserve"><value>starts today</value></data>

@@ -1552,6 +1552,7 @@
   <data name="ImpactKind_AreaGone" xml:space="preserve"><value>Area sparita</value></data>
   <data name="ImpactKind_AreaChanged" xml:space="preserve"><value>Area cambiata</value></data>
   <data name="ImpactKind_ReleaseDrift" xml:space="preserve"><value>Copia pubblicata indietro</value></data>
+  <data name="ImpactKind_ReleaseDriftNextCycle" xml:space="preserve"><value>Da preparare al ciclo entrante</value></data>
   <data name="ImpactKind_ReleaseKeyMoved" xml:space="preserve"><value>Bersaglio spostato</value></data>
   <data name="ImpactKind_BrokenTarget" xml:space="preserve"><value>Bersaglio rotto</value></data>
   <data name="ImpactKind_SectorRenamed" xml:space="preserve"><value>Settore rinominato</value></data>
@@ -1621,7 +1622,7 @@
   <data name="Impact_AreaGone" xml:space="preserve"><value>L'area regolamentata {0} non è più nei cataloghi: il documento la cita ma non viene mostrata.</value></data>
   <data name="Impact_AreaChanged" xml:space="preserve"><value>L'area regolamentata {0} è cambiata: rileggi quel che il documento ne dice.</value></data>
   <data name="Impact_ReleaseDrift" xml:space="preserve"><value>La copia pubblicata è indietro rispetto alla bozza: {0}.</value></data>
-  <data name="Impact_ReleaseDriftNext" xml:space="preserve"><value>Al ciclo AIRAC {0} la copia pubblicata non dirà più il vero: {1}. Programmare una release a quel ciclo.</value></data>
+  <data name="Impact_ReleaseDriftNextCycle" xml:space="preserve"><value>Al ciclo AIRAC {0} la copia pubblicata non dirà più il vero: {1}. Programmare una release a quel ciclo.</value></data>
   <data name="Airac_NextTitle" xml:space="preserve"><value>Prossimo AIRAC</value></data>
   <data name="Airac_NextFrom" xml:space="preserve"><value>in vigore dal {0}</value></data>
   <data name="Airac_NextToday" xml:space="preserve"><value>entra oggi</value></data>
