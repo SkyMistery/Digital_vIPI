@@ -134,6 +134,21 @@ li ricopia da `deploy/atc-ivao/`, che resta la sorgente — una copia sola invec
 > sotto il mezzo mega e accusava `Vipi.Host.dll`, dove «ClientSecret» compare perché è il **nome** di una
 > chiave di configurazione scritta nel codice. Un allarme che suona a ogni consegna su un file che
 > dev'esserci è il modo in cui si smette di leggere gli allarmi.
+>
+> ### 🔴 E quando la rete suona su un falso allarme, la domanda non è «come la zittisco»
+>
+> Il 2 settembre 2026, consegna **1.5.0**: la rete ha fermato il pacchetto su `appsettings.json`, che
+> contiene la parola `ClientSecret`. Guardato con i propri occhi, come dice la riga qui sopra:
+> `ClientId`, `ClientSecret` e le due `ApiKey` sono stringhe **vuote** — ci sono solo i **nomi** delle
+> chiavi. Falso allarme, della famiglia già nota.
+>
+> **Ma la mossa giusta non era forzare: era chiedersi se quel file servisse.** Non serviva — le due chiavi
+> nuove avevano gli stessi valori dei default scritti nel codice — ed è **rimasto fuori**: da 14 file a 13.
+> Un file in meno, una rinomina in meno su un file che il processo tiene aperto, la configurazione del
+> server non toccata, e nessuna rete scavalcata.
+>
+> **Regola:** davanti a un allarme, prima di decidere *come* zittirlo si decide **se quel file deve
+> esserci**. Quasi sempre la risposta toglie il problema invece di aggirarlo.
 
 ### 6. Provare il PACCHETTO, non il sorgente
 
@@ -199,6 +214,7 @@ binario: il timbro nasce dal commit al momento del publish, e va scritto quale.
 | `wwwroot` e l'indice | viaggiano **insieme**, o il sito chiede nomi che non esistono |
 | i `.md` | non stanno con i file da caricare: nello zip sono un ramo a parte |
 | i segreti | non entrano in nessun pacchetto. Vanno da soli in `public_atc/segreti/` |
+| la rete che suona | prima di chiedersi **come** zittirla, ci si chiede **se quel file deve esserci** |
 | il timbro | nasce dal commit: si pubblica **dopo** aver committato |
 | la prova | si fa sul pacchetto pubblicato, non sul sorgente |
 | il riavvio | `tmp/restart.txt` **e poi si apre il sito una volta**, o Passenger non se ne accorge |
