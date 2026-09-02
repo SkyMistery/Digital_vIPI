@@ -7,6 +7,7 @@
 @inherits OwningComponentBase
 @inject IStringLocalizer<SharedResource> L
 @using System.Text.Json
+@using Vipi.Application.Import
 @using RenderMode = Vipi.Domain.RenderMode
 @* Editing risolto dallo scope DI proprio (VipiDbContext isolato dal circuito). Vedi [[EditLockBar]]. *@
 
@@ -689,8 +690,49 @@ else
                 }
             </tbody>
         </table>
-        <button class="btn ghost" style="margin-top:6px" @onclick="() => AddTableRow(b)">+ @L["Dse_Row"]</button>
+        <div style="display:flex;gap:6px;margin-top:6px">
+            <button class="btn ghost" @onclick="() => AddTableRow(b)">+ @L["Dse_Row"]</button>
+            @* ⚠️ L'import sta ACCANTO a «+ riga»: e' l'alternativa allo scriverle una per una, ed e' li' che
+               se ne sente il bisogno. *@
+            <button class="btn ghost" @onclick="() => ApriImport(b)">⤓ @L["Imp_Open"]</button>
+        </div>
+        @if (_importBlockId == b.Id)
+        {
+            <ImportaTabella Spec="@SpecTabella" OnImporta="r => Importa(b, r)"
+                            OnAnnulla="() => { _importBlockId = null; return Task.CompletedTask; }" />
+        }
     };
+
+    // ---- import di una tabella -------------------------------------------------------------------------
+
+    private static readonly SpecImport SpecTabella = SpecImport.Generica();
+
+    /// <summary>Su quale blocco l'import e' aperto; null = nessuno. ⚠️ E' l'ID del blocco e non un flag: due
+    /// tabelle nella stessa sezione avrebbero due import aperti insieme, e le righe finirebbero in quella
+    /// sbagliata.</summary>
+    private int? _importBlockId;
+
+    private void ApriImport(EditableBlock b) => _importBlockId = _importBlockId == b.Id ? null : b.Id;
+
+    /// <summary>
+    /// Scrive le righe approvate. ⚠️ Le righe si <b>pareggiano</b> al numero di colonne: in una tabella HTML
+    /// una riga corta non lascia una cella vuota, sposta tutto a sinistra — il dato sembrerebbe sbagliato
+    /// invece che incompleto.
+    /// </summary>
+    private Task Importa(EditableBlock b, RichiestaImport r)
+    {
+        var (cols, rows) = ParseTable(b.BodyJson);
+
+        // Le COLONNE si prendono da chi incolla solo se la tabella non ne ha gia' di sue: sovrascrivere le
+        // intestazioni di una tabella compilata sarebbe una perdita che nessuno ha chiesto.
+        if (cols.Count == 0 && r.Proposta.Colonne.Count > 0) cols = r.Proposta.Colonne.ToList();
+
+        var nuove = r.Proposta.Buone.Select(x => (IReadOnlyList<string>)x.Celle.Select(c => c.Valore).ToList());
+        var tutte = r.Sostituisci ? nuove.ToList() : rows.Select(x => (IReadOnlyList<string>)x).Concat(nuove).ToList();
+
+        _importBlockId = null;
+        return SaveBlock(b, bodyJson: TabellaGenerica.Scrivi(cols, TabellaGenerica.Pareggia(tutte, cols.Count)));
+    }
 
     private RenderFragment RenderTablePreview(EditableBlock b) => __builder =>
     {

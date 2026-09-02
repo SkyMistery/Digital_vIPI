@@ -2,6 +2,7 @@
    DocumentSectionsEditor (Prosa/Callout/Tabella), ma su una lista <ExtraBlock> mutata in loco: l'host decide
    come persistere (OnChanged → salva/marca dirty). *@
 @using System.Text.Json
+@using Vipi.Application.Import
 @inject IStringLocalizer<SharedResource> L
 
 @foreach (var b in Blocks)
@@ -229,8 +230,50 @@
                 }
             </tbody>
         </table>
-        <button class="btn ghost" style="margin-top:6px" @onclick="() => AddTableRow(b)">+ @L["Dse_Row"]</button>
+        <div style="display:flex;gap:6px;margin-top:6px">
+            <button class="btn ghost" @onclick="() => AddTableRow(b)">+ @L["Dse_Row"]</button>
+            @* ⚠️ L'import sta ACCANTO a «+ riga» e non altrove: e' l'alternativa allo scriverle una per una,
+               ed e' li' che se ne sente il bisogno. *@
+            <button class="btn ghost" @onclick="() => ApriImport(b)">⤓ @L["Imp_Open"]</button>
+        </div>
+        @if (ReferenceEquals(_importBlock, b))
+        {
+            <ImportaTabella Spec="@SpecTabella" OnImporta="r => Importa(b, r)"
+                            OnAnnulla="() => { _importBlock = null; return Task.CompletedTask; }" />
+        }
     };
+
+    // ---- import di una tabella -------------------------------------------------------------------------
+
+    private static readonly SpecImport SpecTabella = SpecImport.Generica();
+
+    /// <summary>Il blocco su cui l'import e' aperto; null = nessuno. ⚠️ E' il BLOCCO e non un flag: due
+    /// tabelle nella stessa sezione avrebbero due import aperti insieme, e le righe finirebbero in quella
+    /// sbagliata.</summary>
+    private ExtraBlock? _importBlock;
+
+    private void ApriImport(ExtraBlock b) => _importBlock = ReferenceEquals(_importBlock, b) ? null : b;
+
+    /// <summary>
+    /// Scrive le righe approvate. ⚠️ Le righe si <b>pareggiano</b> al numero di colonne: in una tabella HTML
+    /// una riga corta non lascia una cella vuota, sposta tutto a sinistra — il dato sembrerebbe sbagliato
+    /// invece che incompleto.
+    /// </summary>
+    private Task Importa(ExtraBlock b, RichiestaImport r)
+    {
+        var (cols, rows) = ParseTable(b.TableJson);
+
+        // La tabella generica prende anche le COLONNE da chi incolla, ma solo quando non ne ha gia' di sue:
+        // sovrascrivere le intestazioni di una tabella compilata sarebbe una perdita che nessuno ha chiesto.
+        if (cols.Count == 0 && r.Proposta.Colonne.Count > 0) cols = r.Proposta.Colonne.ToList();
+
+        var nuove = r.Proposta.Buone.Select(x => (IReadOnlyList<string>)x.Celle.Select(c => c.Valore).ToList());
+        var tutte = r.Sostituisci ? nuove.ToList() : rows.Select(x => (IReadOnlyList<string>)x).Concat(nuove).ToList();
+
+        b.TableJson = TabellaGenerica.Scrivi(cols, TabellaGenerica.Pareggia(tutte, cols.Count));
+        _importBlock = null;
+        return OnChanged.InvokeAsync();
+    }
 
     private RenderFragment RenderTablePreview(ExtraBlock b) => __builder =>
     {

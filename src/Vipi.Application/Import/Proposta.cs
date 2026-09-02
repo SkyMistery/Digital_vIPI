@@ -103,3 +103,14 @@ public interface IRisolutoreCelle
     Task<IReadOnlyDictionary<string, EsitoRisoluzione>> RisolviAsync(
         TipoCella tipo, IReadOnlyCollection<string> valori, CancellationToken ct = default);
 }
+
+/// <summary>
+/// Che cosa l'anteprima consegna all'editor quando qualcuno preme «importa»: la proposta approvata e dove
+/// vanno le righe.
+/// </summary>
+/// <param name="Sostituisci">
+/// Vero: le righe importate prendono il posto di quelle che c'erano. Falso: si aggiungono in coda.
+/// <para>⚠️ Sono due tasti e non un'impostazione nascosta, perche' sono due gesti diversi e uno dei due
+/// butta via del lavoro: chi importa deve poter vedere quale sta premendo.</para>
+/// </param>
+public sealed record RichiestaImport(Proposta Proposta, bool Sostituisci);
