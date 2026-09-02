@@ -2096,3 +2096,48 @@ in giù di 62px, perché il riferimento dello sticky diventa il contenitore. Tol
 
 Carta: `docs/design/piano-coerenza-sectorfile.md`. Perimetro dei servizi e motivi dei «no» alle altre
 proposte del 1 settembre: `docs/design/regole-perimetro-servizi.md`. Suite verde su tutti i progetti.
+
+---
+
+## La corsa del blocco allegato (2 settembre 2026)
+
+Segnalazione: guai sulla versione pubblica, e la cartella `diagnostica/` in mano. **Il file che ha detto
+tutto è `errori-richieste.txt`**: quindici voci, tre raffiche su **tre circuiti diversi** fra le 18:07 e le
+18:08, e **tutte e quindici** con gli stessi due fotogrammi —
+`AttachmentBlockEditor.OnParametersSetAsync` → `EfAttachmentLibrary.ListAsync`. Un componente solo, non
+quindici difetti.
+
+**La causa.** La guardia era `if (_voci.Count == 0) _voci = await Biblioteca.ListAsync();`: si controlla
+**prima** dell'`await` e si scrive **dopo**. `OnParametersSetAsync` scatta a **ogni** ridisegno del
+genitore, non solo quando i parametri cambiano, quindi finché la prima lettura era in volo `_voci` restava
+vuota e ogni ridisegno ne faceva partire un'altra — **sullo stesso `DbContext`**. La fotografia delle
+collisioni (§AV, 31 agosto) lo mostra a occhio nudo: **quattro** `SELECT` identiche sulla tabella allegati
+aperte insieme, a 53, 39, 36 e 35 ms. Il resto della raffica è conseguenza: il renderer che si corrompe
+(`NotImplementedException: Encountered unsupported frame type during diffing: None`) e le
+`ObjectDisposedException` di chi arriva mentre il circuito muore.
+
+⚠️ **Lo scope proprio non bastava, e il commento in cima al file prometteva il contrario.**
+`OwningComponentBase` protegge dal contesto **del circuito** — che è il difetto per cui era stato messo —
+ma non da **sé stessi**: un componente che rientra mentre la sua lettura è in volo collide col proprio
+contesto. È la riga che mancava, ed è stata scritta in tutti e tre i posti.
+
+**Il rimedio** è memorizzare il **compito** e non l'esito, scrivendolo **prima** di aspettarlo: chi arriva
+dopo aspetta *la stessa* lettura invece di farne una sua. È il pattern che gli altri pannelli avevano già
+(`ReleasePanel`, `DocReviewBar`, `PageIntroZone` scrivono la sentinella prima dell'`await`).
+
+**E la stessa forma aveva due fratelli**, cercati apposta dopo aver capito il primo — e messi peggio,
+perché una guardia non ce l'avevano affatto: **`ValidityStamp`**, che compare in **ogni** documento e su una
+vIPI ACC **una volta per blocco**, e **`VloaDocumentView`**. Guardie su (Target, Key, ReleaseId) e su
+(DocId, UseFrozen) — tutte scritte prima dell'`await`. ⚠️ In `VloaDocumentView` il calcolo di `_canEdit`
+resta **fuori** dalla guardia: non tocca il database e deve seguire i parametri a ogni giro.
+
+**Due cose in più, dalla stessa causa.** Una biblioteca **legittimamente vuota** faceva rileggere il
+database a ogni ridisegno, per sempre (la guardia era sull'esito). E un guasto della lettura **si portava
+via il circuito**, perché un'eccezione in un metodo del ciclo di vita non è catturabile dall'host: ora si
+dice in pagina, e la riga «la biblioteca è vuota, caricane uno» **non** compare — manderebbe a caricare un
+allegato che c'è già. ⚠️ Il `??=` sta **dentro** il `try`, perché una porta può sollevare in modo
+**sincrono**, prima ancora di restituire un compito: è il primo modo in cui questa correzione era stata
+scritta, e a trovarlo è stato il test.
+
+**7 test nuovi**, tutti verificati **rossi** ripristinando il codice di prima — senza quella prova sarebbero
+ornamenti, non guardie. Build Release verde sui due TFM, **nessuna migrazione**.
