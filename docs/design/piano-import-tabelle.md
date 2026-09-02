@@ -49,9 +49,12 @@ Puro, senza IO. Da testo o da file a `string[][]`. Le porte:
 ⚠️ **La virgola non è mai un separatore di colonna quando c'è un'alternativa**: separa già i punti dentro
 una cella (`EKMUR, PISIP`), lezione pagata in `ClausePaste`.
 
-⚠️ **Normalizzare prima di spezzare**: en-dash `–`/em-dash `—` → `-`, NBSP → spazio, spazi multipli → uno.
-Nelle cinque righe d'esempio della tabella «Aeroporti alternati» convivono `–` e `-`, e una riga ha un
-doppio spazio.
+⚠️ **Normalizzare prima di spezzare, ma non tutto allo stesso momento.** Fine-riga e spazi unificatori
+(`U+00A0`, `U+202F`, `U+2009`) si appianano **sempre**: sono differenze che nessuno vede. Trattini lunghi e
+spazi ripetuti si appianano **solo dove si spezza per spazi** (`TestoTabellare.NormalizzaSegni`) — dentro
+una cella di un CSV sono contenuto scritto da qualcuno, e riscriverlo sarebbe cambiare il documento mentre
+lo si importa. Nelle cinque righe d'esempio degli «Aeroporti alternati» convivono `–` e `-`, e una riga ha
+un doppio spazio.
 
 ### Stadio 2 — Mappatura (`TableImportSpec` + registry)
 
