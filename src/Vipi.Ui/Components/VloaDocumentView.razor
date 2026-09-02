@@ -242,18 +242,32 @@
         <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n}" : "off")</span>
     };
 
+    /// <summary>
+    /// Che cosa è già stato derivato. ⚠️ <b>Si scrive PRIMA dell'<c>await</c></b>:
+    /// <c>OnParametersSetAsync</c> scatta a <b>ogni</b> ridisegno del genitore, non solo quando i parametri
+    /// cambiano, e senza guardia questa derivazione ripartiva a ogni giro — con la precedente magari ancora
+    /// in volo, cioè due operazioni sullo <b>stesso</b> contesto. Lo scope proprio protegge dal contesto
+    /// <b>del circuito</b>, non da <b>sé stessi</b>: è il difetto che il 2 settembre 2026 ha abbattuto tre
+    /// circuiti in produzione da <c>AttachmentBlockEditor</c>, dove il commento lungo lo racconta per esteso.
+    /// </summary>
+    private (int DocId, bool UseFrozen)? _derivato;
+
     protected override async Task OnParametersSetAsync()
     {
-        if (DocId is int docId)
-        {
-            // Derivate: frozen dalla release effettiva nella vista pubblica, live in bozza/anteprima (doc 10 §3d).
-            var d = await VloaView.ResolveForViewAsync(docId, UseFrozen);
-            _aor = d.Aor;
-            _freq = d.Freq;
-            _coord = d.Coord;
-        }
+        // ⚠️ Fuori dalla guardia: non tocca il database, e deve seguire i parametri a ogni giro.
         // vLOA editabile solo lato italiano (CH/AOD dell'ACC home).
         _canEdit = !string.IsNullOrWhiteSpace(HomeAcc) && Authz.IsEditor;
+
+        if (DocId is not int docId) return;
+        var ora = (docId, UseFrozen);
+        if (_derivato == ora) return;
+        _derivato = ora;
+
+        // Derivate: frozen dalla release effettiva nella vista pubblica, live in bozza/anteprima (doc 10 §3d).
+        var d = await VloaView.ResolveForViewAsync(docId, UseFrozen);
+        _aor = d.Aor;
+        _freq = d.Freq;
+        _coord = d.Coord;
     }
 
     /// <summary>Le righe di un lato della coppia, scartato l'involucro di visibilità della vLOA.</summary>

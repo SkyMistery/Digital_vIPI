@@ -69,13 +69,21 @@ public class VloaDocumentViewTests : TestContext
         public Task ToggleAorSectorAsync(int docId, string callsign, CancellationToken ct = default) => Task.CompletedTask;
         public Task ToggleFrequencyAsync(int docId, string callsign, CancellationToken ct = default) => Task.CompletedTask;
 
-        public Task<VloaViewDerived> ResolveForViewAsync(int docId, bool useFrozen, CancellationToken ct = default) =>
-            Task.FromResult(new VloaViewDerived(VloaAorData.Empty, VloaFreqData.Empty, Coordination));
+        /// <summary>Quante derivazioni sono partite: serve alla guardia sulla corsa, qui sotto.</summary>
+        public int Derivazioni { get; private set; }
+
+        public Task<VloaViewDerived> ResolveForViewAsync(int docId, bool useFrozen, CancellationToken ct = default)
+        {
+            Derivazioni++;
+            return Task.FromResult(new VloaViewDerived(VloaAorData.Empty, VloaFreqData.Empty, Coordination));
+        }
     }
+
+    private readonly FakeDerivation _derivazione;
 
     public VloaDocumentViewTests()
     {
-        var fake = new FakeDerivation();
+        var fake = _derivazione = new FakeDerivation();
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddSingleton<IOnlineAtcProvider>(new NoOneOnline());
@@ -279,5 +287,39 @@ public class VloaDocumentViewTests : TestContext
             LegacyDirection("s-2", "LIBB → LDZO"), LegacyDirection("s-3", "LDZO → LIBB"), extra)));
 
         Assert.Contains("Radar handover at BEBIX.", cut.Markup);
+    }
+
+    /// <summary>
+    /// 🔴 La corsa che il 2 settembre 2026 ha abbattuto tre circuiti in produzione da
+    /// <c>AttachmentBlockEditor</c> aveva due fratelli senza <b>nessuna</b> guardia, e questo era uno.
+    /// <c>OnParametersSetAsync</c> scatta a <b>ogni</b> ridisegno del genitore, non solo quando i parametri
+    /// cambiano: senza guardia la derivazione ripartiva a ogni giro, con la precedente magari ancora in volo
+    /// — due operazioni sullo <b>stesso</b> contesto.
+    /// <para>⚠️ Lo scope proprio (<c>OwningComponentBase</c>) non basta: protegge dal contesto <b>del
+    /// circuito</b>, non da <b>sé stessi</b>.</para>
+    /// </summary>
+    [Fact]
+    public void Ridisegnare_con_gli_stessi_parametri_non_rideriva_niente()
+    {
+        var cut = Render(DocWith(Coordination(Outbound(), Inbound())));
+        Assert.Equal(1, _derivazione.Derivazioni);
+
+        for (var i = 0; i < 4; i++)
+            cut.SetParametersAndRender(p => p.Add(x => x.HomeAcc, "LIBB"));
+
+        Assert.Equal(1, _derivazione.Derivazioni);
+    }
+
+    /// <summary>Ma quando cambia il verso della domanda — bozza o copia congelata — si rilegge: la guardia
+    /// serve a non ripetersi, non a impedire di cambiare idea.</summary>
+    [Fact]
+    public void Cambiare_la_vista_frozen_fa_riderivare()
+    {
+        var cut = Render(DocWith(Coordination(Outbound(), Inbound())));
+        Assert.Equal(1, _derivazione.Derivazioni);
+
+        cut.SetParametersAndRender(p => p.Add(x => x.UseFrozen, true));
+
+        Assert.Equal(2, _derivazione.Derivazioni);
     }
 }
