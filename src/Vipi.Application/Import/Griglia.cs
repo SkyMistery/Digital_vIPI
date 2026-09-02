@@ -64,7 +64,12 @@ public sealed record Griglia(IReadOnlyList<IReadOnlyList<string>> Righe, FormaGr
     /// non riconosce niente restituisce una riga per riga (<see cref="FormaGriglia.RigaIntera"/>) invece di
     /// indovinare uno spezzamento per spazi che sbaglierebbe le celle multi-parola.
     /// </summary>
-    public static Griglia Leggi(string? testo)
+    /// <param name="virgola">
+    /// Se la virgola possa fare da separatore. ⚠️ Va spenta per le tabelle in cui la virgola separa gia'
+    /// qualcosa <b>dentro</b> una cella — i punti di una clausola, «EKMUR, PISIP» — perche' li' le due cose
+    /// diventerebbero indistinguibili. E' la lezione pagata dall'incolla delle clausole.
+    /// </param>
+    public static Griglia Leggi(string? testo, bool virgola = true)
     {
         var t = TestoTabellare.Normalizza(testo);
         if (t.Trim().Length == 0) return Vuota;
@@ -79,7 +84,7 @@ public sealed record Griglia(IReadOnlyList<IReadOnlyList<string>> Righe, FormaGr
 
         // ⚠️ Il CSV si legge sul testo INTERO e non riga per riga: una cella fra virgolette puo' contenere
         // un a-capo, e spezzare prima le righe lo trasformerebbe in due righe monche.
-        foreach (var sep in new[] { ';', '|', ',' })
+        foreach (var sep in virgola ? new[] { ';', '|', ',' } : new[] { ';', '|' })
             if (Coerente(righe, sep))
                 return new Griglia(LeggiCsv(t, sep), FormaGriglia.Csv);
 

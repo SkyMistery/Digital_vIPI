@@ -139,7 +139,8 @@
 
     @if (_import)
     {
-        <ImportaTabella Spec="@Spec" Risolutore="@Risolutore" OnImporta="Importa"
+        <ImportaTabella Spec="@Spec" Risolutore="@Risolutore" Sorgenti="@Sorgenti"
+                        CaricaSorgente="@CaricaSorgente" OnImporta="Importa"
                         OnAnnulla="() => { _import = false; return Task.CompletedTask; }" />
     }
     @* ⚠️ Lo si dice PRIMA, non dopo un fallimento: un alternato estero è il caso normale su un campo di
@@ -177,6 +178,12 @@
     /// <summary>Le righe approvate nell'anteprima, con la scelta fra «in coda» e «sostituisci». La
     /// costruzione delle righe del payload la fa la pagina, che e' quella che sa salvarle.</summary>
     [Parameter] public EventCallback<RichiestaImport> OnImporta { get; set; }
+
+    /// <summary>Gli altri vSOP militari da cui si puo' prendere questa stessa tabella.</summary>
+    [Parameter] public IReadOnlyList<SorgenteTabella>? Sorgenti { get; set; }
+
+    /// <summary>Come si legge la tabella degli alternati di uno di quelli.</summary>
+    [Parameter] public Func<string, Task<Griglia>>? CaricaSorgente { get; set; }
 
     /// <summary>Aggiunge lo scalo con questo ICAO. Il nome lo risolve l'host (archivio, poi sorgente).</summary>
     [Parameter] public EventCallback<string> OnAdd { get; set; }

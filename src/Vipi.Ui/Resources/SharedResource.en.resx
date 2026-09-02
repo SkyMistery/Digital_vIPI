@@ -3106,6 +3106,7 @@
   <data name="Imp_ImportAppendOne" xml:space="preserve"><value>Append 1 row</value></data>
   <data name="Imp_ImportReplaceOne" xml:space="preserve"><value>Replace with 1 row</value></data>
   <data name="Imp_SkippedOne" xml:space="preserve"><value>1 row left out</value></data>
+  <data name="Imp_FromDoc" xml:space="preserve"><value>From another document…</value></data>
   <data name="Imp_Open" xml:space="preserve"><value>Import</value></data>
   <data name="Imp_PasteLabel" xml:space="preserve"><value>Paste the table</value></data>
   <data name="Imp_PasteHint" xml:space="preserve"><value>from Excel, a CSV or a PDF; or load a file</value></data>

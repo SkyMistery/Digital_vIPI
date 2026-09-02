@@ -36,6 +36,34 @@ public static class SpecTabelle
             },
             SpezzaRiga: SpezzaAlternato);
 
+    /// <summary>La chiave della tabella delle clausole di un accordo di coordinamento.</summary>
+    public const string Clausole = "agreementclauses";
+
+    /// <summary>
+    /// Le clausole di un accordo: punti, livello, ricevente, condizione.
+    ///
+    /// <para>⚠️ <b>La virgola non separa le colonne</b> di questa tabella, e la ragione e' scritta nella
+    /// prima cella: i punti si scrivono «EKMUR, PISIP». Usare la virgola anche fra le colonne renderebbe le
+    /// due cose indistinguibili — ed e' il motivo per cui <see cref="Griglia.Leggi"/> sa spegnerla.</para>
+    /// <para>⚠️ Il <b>ricevente</b> e' una colonna come le altre ma non finisce nella clausola: e' del lato B
+    /// dell'accordo, e righe con riceventi diversi sono <b>accordi diversi</b> — cosa che va detta prima di
+    /// scrivere, non scoperta dopo.</para>
+    /// </summary>
+    public static SpecImport ClausoleAccordo(
+        string punti, string livello, string ricevente, string condizione) =>
+        new(Clausole,
+            new[]
+            {
+                new ColonnaSpec("cops", punti, TipoCella.Testo, Obbligatoria: true,
+                    Sinonimi: new[] { "POINTS", "COP", "COPS", "FIX", "PUNTI" }),
+                new ColonnaSpec("level", livello, TipoCella.Livello,
+                    Sinonimi: new[] { "LEVEL", "LEVELS", "FL", "LIVELLO" }),
+                new ColonnaSpec("receiver", ricevente, TipoCella.Testo,
+                    Sinonimi: new[] { "RECEIVER", "TO", "RECEIVING", "RICEVENTE" }),
+                new ColonnaSpec("condition", condizione, TipoCella.Testo,
+                    Sinonimi: new[] { "CONDITION", "REMARKS", "NOTE", "CONDIZIONE" }),
+            });
+
     /// <summary>I tipi d'impianto che si scrivono accanto all'ident in un SOP: servono a capire DOVE finisce
     /// il nome dell'aeroporto e comincia la radioassistenza.</summary>
     private static readonly HashSet<string> Impianti = new(StringComparer.OrdinalIgnoreCase)

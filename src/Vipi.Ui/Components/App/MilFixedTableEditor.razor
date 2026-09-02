@@ -79,7 +79,7 @@
 
     @if (_import)
     {
-        <ImportaTabella Spec="@Spec" OnImporta="Importa"
+        <ImportaTabella Spec="@Spec" Sorgenti="@Sorgenti" CaricaSorgente="@CaricaSorgente" OnImporta="Importa"
                         OnAnnulla="() => { _import = false; return Task.CompletedTask; }" />
     }
 }
@@ -108,6 +108,12 @@
 
     /// <summary>La chiave della tabella, per la specifica d'import (<c>callsigns</c>, <c>parkings</c>).</summary>
     [Parameter] public string Chiave { get; set; } = "fixed";
+
+    /// <summary>Gli altri documenti da cui si puo' prendere questa stessa tabella.</summary>
+    [Parameter] public IReadOnlyList<SorgenteTabella>? Sorgenti { get; set; }
+
+    /// <summary>Come si legge quella tabella dal documento scelto.</summary>
+    [Parameter] public Func<string, Task<Griglia>>? CaricaSorgente { get; set; }
 
     private bool _import;
 

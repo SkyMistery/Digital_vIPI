@@ -24,6 +24,20 @@
     <div class="imp-tools">
         <InputFile OnChange="CaricaFile" accept=".csv,.tsv,.txt,.xlsx" aria-label="@L["Imp_LoadFile"]" />
 
+        @* ⚠️ Non e' un formato: e' la stessa tabella scritta in un altro documento. Sul corpus vero (quindici
+           SOP con le stesse sezioni) e' il guadagno piu' grosso dell'import, e non ha niente da riconoscere. *@
+        @if (Sorgenti is { Count: > 0 } sorgenti)
+        {
+            <select class="app-in imp-sheet" aria-label="@L["Imp_FromDoc"]"
+                    @onchange="e => DaDocumento(e.Value?.ToString())">
+                <option value="" selected>@L["Imp_FromDoc"]</option>
+                @foreach (var so in sorgenti)
+                {
+                    <option value="@so.Chiave">@so.Etichetta</option>
+                }
+            </select>
+        }
+
         @* Un file con piu' fogli: quale si legge lo dice chi importa, non il caso. *@
         @if (_fogli.Count > 1)
         {
@@ -112,6 +126,12 @@
     /// <summary>Vero mentre l'editor sta salvando: i tasti si spengono.</summary>
     [Parameter] public bool Occupato { get; set; }
 
+    /// <summary>Gli altri documenti da cui si puo' prendere questa stessa tabella. Vuoto = niente tendina.</summary>
+    [Parameter] public IReadOnlyList<SorgenteTabella>? Sorgenti { get; set; }
+
+    /// <summary>Come si legge la tabella di una di quelle sorgenti. Serve solo se <see cref="Sorgenti"/> c'e'.</summary>
+    [Parameter] public Func<string, Task<Griglia>>? CaricaSorgente { get; set; }
+
     private string _testo = "";
     private string? _guasto;
     private bool _intestazione;
@@ -189,6 +209,26 @@
             await Rileggi();
         }
         catch (IOException guasto) { _guasto = guasto.Message; }
+    }
+
+    /// <summary>
+    /// Prende la tabella da un altro documento. ⚠️ Passa <b>dalla stessa anteprima</b> di tutto il resto,
+    /// anche se qui non c'e' niente da indovinare: la domanda che l'anteprima fa non e' «ho letto bene?», e'
+    /// «e' questo che volevi?» — e su una tabella copiata da un altro campo quella domanda pesa di piu', non
+    /// di meno.
+    /// </summary>
+    private async Task DaDocumento(string? chiave)
+    {
+        if (string.IsNullOrWhiteSpace(chiave) || CaricaSorgente is null) return;
+
+        _guasto = null;
+        _xlsx = null;
+        _fogli = new();
+        _testo = "";
+        _larghezzaFissa = false;
+        _griglia = await CaricaSorgente(chiave!);
+        _proposta = null;                       // la mappatura si riparte da zero: colonne diverse, ordine diverso
+        await Ricostruisci();
     }
 
     private async Task LeggiXlsx()

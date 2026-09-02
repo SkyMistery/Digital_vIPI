@@ -149,3 +149,14 @@ public interface IRisolutoreCelle
 /// butta via del lavoro: chi importa deve poter vedere quale sta premendo.</para>
 /// </param>
 public sealed record RichiestaImport(Proposta Proposta, bool Sostituisci);
+
+/// <summary>
+/// Una tabella <b>gia' scritta altrove</b> da cui partire: il vSOP di un altro campo, per esempio.
+///
+/// <para>⚠️ Sul corpus vero e' il guadagno piu' grosso di tutto l'import, e non e' un formato: quindici SOP
+/// militari hanno le stesse sezioni, e la meta' delle righe di uno somiglia a quelle di un altro. Qui non
+/// c'e' niente da riconoscere e niente da spezzare — le celle sono gia' celle e i codici sono gia' risolti —
+/// ma l'anteprima resta la stessa, perche' resta la stessa la domanda: <i>e' questo che volevi?</i></para>
+/// </summary>
+/// <param name="Chiave">Come chi ha aperto l'import ritrova la sorgente (un ICAO, un id).</param>
+public sealed record SorgenteTabella(string Chiave, string Etichetta);

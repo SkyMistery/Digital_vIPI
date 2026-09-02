@@ -256,6 +256,7 @@ else
             await CaricaRadioassistenzeAsync();
             await CaricaAlternatiAsync();
             await CaricaTabelleAsync();
+            await CaricaAltriSopAsync();
             _areeScelte = await Militari.ResolveRegulatedAreasAsync(_regulated);
         }
         catch (EditNotAllowedException) { _denied = true; }
@@ -300,7 +301,8 @@ else
                                      OnAddNavaid="AggiungiNavaidAlternato" OnRemoveNavaid="TogliNavaidAlternato"
                                      OnSetRilevamento="ScriviRilevamentoAlternato"
                                      OnSetDistanza="ScriviDistanzaAlternato"
-                                     Risolutore="RisolutoreCelle" OnImporta="ImportaAlternati" />
+                                     Risolutore="RisolutoreCelle" OnImporta="ImportaAlternati"
+                                     Sorgenti="_altriSop" CaricaSorgente="AlternatiDiUnAltroSop" />
                 break;
             case "regulated":
                 @* Come l'APP: nessuna area di default, si scelgono tutte a mano. Sotto, la tabella: nome e
@@ -316,14 +318,16 @@ else
                                      Chiave="milcallsigns" Editing="_shell.IsEditing"
                                      OnAdd="AggiungiNominativo" OnRemove="TogliNominativo"
                                      OnMove="SpostaNominativo" OnSet="ScriviNominativo"
-                                     OnImporta="ImportaNominativi" />
+                                     OnImporta="ImportaNominativi"
+                                     Sorgenti="_altriSop" CaricaSorgente="NominativiDiUnAltroSop" />
                 break;
             case "parkings":
                 <MilFixedTableEditor Colonne="MilDocumentPage.ColonneParcheggi(L)" Righe="_parcheggi"
                                      Chiave="milparkings" Editing="_shell.IsEditing"
                                      OnAdd="AggiungiParcheggio" OnRemove="TogliParcheggio"
                                      OnMove="SpostaParcheggio" OnSet="ScriviParcheggio"
-                                     OnImporta="ImportaParcheggi" />
+                                     OnImporta="ImportaParcheggi"
+                                     Sorgenti="_altriSop" CaricaSorgente="ParcheggiDiUnAltroSop" />
                 break;
             case "validity":
                 <div class="callout info" style="margin:0 0 10px">
@@ -736,6 +740,55 @@ else
         SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, Spostata(_parcheggi, m.Indice, m.Delta));
     private Task ScriviParcheggio((int Riga, int Colonna, string Testo) c) =>
         SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, ConCella(_parcheggi, c.Riga, c.Colonna, c.Testo));
+
+    // ---- prendere una tabella da un ALTRO vSOP ---------------------------------------------------------
+    //
+    // ⚠️ Quindici SOP militari hanno le stesse sezioni, e meta' delle righe di uno somiglia a quelle di un
+    // altro: e' il guadagno piu' grosso dell'import su questo corpus, e non ha niente da riconoscere. Passa
+    // comunque dall'anteprima, perche' la domanda che l'anteprima fa non e' «ho letto bene?» ma «e' questo
+    // che volevi?» — e copiando da un altro campo quella domanda pesa di piu'.
+
+    private IReadOnlyList<SorgenteTabella> _altriSop = Array.Empty<SorgenteTabella>();
+
+    /// <summary>Gli altri campi che HANNO un documento: da uno senza documento non c'e' niente da prendere.</summary>
+    private async Task CaricaAltriSopAsync()
+    {
+        var tutti = await Militari.ListAsync(perStaff: true);
+        _altriSop = tutti
+            .Where(a => a.DocumentId is not null
+                        && !string.Equals(a.Icao, _icao, StringComparison.OrdinalIgnoreCase))
+            .Select(a => new SorgenteTabella(a.Icao, $"{a.Icao} {a.Name}"))
+            .ToList();
+    }
+
+    /// <summary>Gli alternati di un altro SOP, rimessi in forma di griglia: quattro colonne come la tabella.</summary>
+    private async Task<Griglia> AlternatiDiUnAltroSop(string icao)
+    {
+        var righe = await Militari.GetDiversionsAsync(icao);
+        return new Griglia(
+            righe.Select(r => (IReadOnlyList<string>)new[]
+            {
+                $"{r.Icao} {r.Name}".Trim(),
+                r.Navaids.Count > 0
+                    ? NavaidText.ConTipo(r.Navaids[0].Code, r.Navaids[0].Type, r.Navaids[0].Channel, r.Navaids[0].Frequency)
+                    : "",
+                MilDiversionText.Rilevamento(r.Bearing),
+                MilDiversionText.Distanza(r.DistanceNm),
+            }).ToList(),
+            FormaGriglia.RigaIntera);
+    }
+
+    private Task<Griglia> NominativiDiUnAltroSop(string icao) =>
+        TabellaFissaDiUnAltroSop(icao, "callsigns", ColNominativi);
+
+    private Task<Griglia> ParcheggiDiUnAltroSop(string icao) =>
+        TabellaFissaDiUnAltroSop(icao, "parkings", ColParcheggi);
+
+    private async Task<Griglia> TabellaFissaDiUnAltroSop(string icao, string chiave, int colonne)
+    {
+        var righe = await Militari.GetFixedTableAsync(icao, chiave, colonne);
+        return new Griglia(righe.ToList(), FormaGriglia.RigaIntera);
+    }
 
     // ⚠️ L'import consegna la tabella INTERA (le vecchie piu' le nuove, o solo le nuove se si e' scelto
     // «sostituisci»): la fusione l'ha gia' fatta l'anteprima, che e' l'unico posto dove chi importa ha visto

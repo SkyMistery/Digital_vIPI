@@ -3114,6 +3114,7 @@
   <data name="Imp_ImportAppendOne" xml:space="preserve"><value>Aggiungi 1 riga in coda</value></data>
   <data name="Imp_ImportReplaceOne" xml:space="preserve"><value>Sostituisci con 1 riga</value></data>
   <data name="Imp_SkippedOne" xml:space="preserve"><value>1 riga resta fuori</value></data>
+  <data name="Imp_FromDoc" xml:space="preserve"><value>Da un altro documento…</value></data>
   <data name="Imp_Open" xml:space="preserve"><value>Importa</value></data>
   <data name="Imp_PasteLabel" xml:space="preserve"><value>Incolla la tabella</value></data>
   <data name="Imp_PasteHint" xml:space="preserve"><value>da Excel, da un CSV o da un PDF; oppure carica un file</value></data>

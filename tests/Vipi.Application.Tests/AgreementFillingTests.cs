@@ -336,4 +336,62 @@ public class AgreementFillingTests
         Id = id, SectionId = sectionId, Cops = cops, LevelValue = 130,
         LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrBelow, Order = id,
     };
+
+    // ---- l'incolla clausole ora sta sul primo stadio comune ---------------------------------------------
+
+    /// <summary>
+    /// ⚠️ Lo spezzamento non è più di <c>ClausePaste</c>: lo fa <c>Griglia</c>, lo stesso primo stadio di
+    /// ogni tabella importabile. Il guadagno si vede qui — la stessa incolla adesso legge anche il
+    /// <b>Markdown</b>, senza che nessuno abbia scritto una seconda grammatica.
+    /// </summary>
+    [Fact]
+    public void L_incolla_clausole_legge_anche_una_tabella_markdown()
+    {
+        var parsed = ClausePaste.Parse("| EKMUR | FL200 | LIRR_CTR |\n|---|---|---|\n| PISIP | FL240 | LIRR_CTR |");
+
+        Assert.Equal(2, parsed.Count);
+        Assert.All(parsed, p => Assert.True(p.Ok));
+        Assert.Equal(new[] { "EKMUR", "PISIP" }, parsed.Select(p => p.Clause!.Cops));
+        Assert.Equal(new[] { "LIRR_CTR" }, ClausePaste.DistinctReceivers(parsed));
+    }
+
+    /// <summary>E la tabella HTML che Excel mette davvero in clipboard, dove le celle SONO celle.</summary>
+    [Fact]
+    public void L_incolla_clausole_legge_anche_una_tabella_html()
+    {
+        var parsed = ClausePaste.Parse(
+            "<table><tr><td>EKMUR</td><td>FL200</td><td>LIRR_CTR</td></tr></table>");
+
+        var uno = Assert.Single(parsed);
+        Assert.True(uno.Ok);
+        Assert.Equal("EKMUR", uno.Clause!.Cops);
+        Assert.Equal("LIRR_CTR", uno.Receiver);
+    }
+
+    /// <summary>
+    /// ⚠️ Un'intestazione incollata insieme alle righe si riconosce e si salta: prima diventava una clausola
+    /// con i punti «POINTS», che poi qualcuno avrebbe dovuto cancellare a mano dall'accordo.
+    /// </summary>
+    [Fact]
+    public void L_intestazione_di_una_LoA_non_diventa_una_clausola()
+    {
+        var parsed = ClausePaste.Parse("POINTS\tLEVEL\tRECEIVER\nEKMUR\tFL200\tLIRR_CTR");
+
+        var uno = Assert.Single(parsed);
+        Assert.Equal("EKMUR", uno.Clause!.Cops);
+        Assert.Equal(2, uno.Line);          // il numero è quello del TESTO incollato: la riga 2
+    }
+
+    /// <summary>
+    /// ⚠️ E la virgola continua a NON separare le colonne: «EKMUR, PISIP» è una cella sola, con dentro due
+    /// punti. È la ragione per cui <c>Griglia.Leggi</c> sa spegnere la virgola.
+    /// </summary>
+    [Fact]
+    public void La_virgola_resta_dentro_la_cella_dei_punti()
+    {
+        var parsed = ClausePaste.Parse("EKMUR, PISIP\nABESI, TOSTA");
+
+        Assert.Equal(2, parsed.Count);
+        Assert.Equal("EKMUR, PISIP", parsed[0].Clause!.Cops);
+    }
 }

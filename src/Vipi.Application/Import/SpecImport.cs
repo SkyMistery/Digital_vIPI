@@ -93,35 +93,17 @@ public sealed record SpecImport(
                 .ToList());
 }
 
-/// <summary>
-/// Le tabelle importabili, per chiave.
-///
-/// <para>⚠️ E' un <b>elenco di descrittori</b> e non una catena di <c>if</c>, per la stessa ragione di
-/// <c>IReleaseTarget</c> e <c>IDocKindRoutes</c> (regola del 2 del runbook feature): la domanda «che tabella
-/// e'?» servirebbe alla mappatura, all'anteprima e all'applicazione, cioe' in tre posti. Cosi' invece
-/// aggiungere una tabella importabile e' aggiungere una specifica all'elenco, e nessuno dei tre cambia.</para>
-/// </summary>
-public static class RegistroImport
-{
-    /// <summary>
-    /// Tutte le tabelle importabili. ⚠️ E' una lista <b>fissa</b>, non un registro a cui ci si iscrive:
-    /// una raccolta statica scrivibile e' stato condiviso fra test che girano in parallelo, e in questo
-    /// progetto due contese di quel genere sono gia' costate una caccia ai rossi intermittenti. Aggiungere
-    /// una tabella importabile e' aggiungere una riga qui.
-    /// </summary>
-    private static readonly IReadOnlyList<SpecImport> Elenco = new[]
-    {
-        SpecImport.Generica(),
-    };
+/*
+   ⚠️ Qui c'era un registro, ed è stato tolto. L'idea era un elenco di tutte le tabelle importabili da cui
+   pescare per chiave; ma i titoli delle colonne stanno nella LINGUA DI CHI GUARDA — arrivano dal
+   localizzatore della pagina — e una lista statica avrebbe dovuto tenerne una copia neutra: due definizioni
+   degli stessi nomi, cioè esattamente il difetto che il registro doveva evitare.
 
-    private static readonly IReadOnlyDictionary<string, SpecImport> PerChiave =
-        Elenco.ToDictionary(s => s.Chiave, StringComparer.OrdinalIgnoreCase);
+   Le specifiche vivono nelle fabbriche, che sono UN posto solo: `SpecTabelle.AeroportiAlternati`,
+   `SpecTabelle.ClausoleAccordo`, `SpecImport.ColonneFisse`, `SpecImport.Generica`. Aggiungere una tabella
+   importabile resta «scrivere una fabbrica e passarla al pannello»: nessuno `switch` da toccare, che era il
+   punto (regola del 2 del runbook feature).
 
-    /// <summary>La specifica con questa chiave, o null.</summary>
-    public static SpecImport? Trova(string? chiave) =>
-        chiave is not null && PerChiave.TryGetValue(chiave, out var s) ? s : null;
-
-    /// <summary>Tutte le specifiche, in ordine di chiave.</summary>
-    public static IReadOnlyList<SpecImport> Tutte() =>
-        Elenco.OrderBy(s => s.Chiave, StringComparer.OrdinalIgnoreCase).ToList();
-}
+   Il giorno che servisse davvero enumerarle — un elenco a schermo delle tabelle importabili — il posto è
+   questo, e le fabbriche vorranno i titoli come argomento invece che cablati.
+*/
