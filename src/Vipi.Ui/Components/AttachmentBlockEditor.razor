@@ -14,6 +14,12 @@
 @inject IStringLocalizer<SharedResource> L
 
 <div class="att-edit">
+    @* La lettura della biblioteca è fallita: si dice, invece di lasciare una tendina vuota che sembra una
+       biblioteca vuota. ⚠️ Non è un caso teorico — vedi il commento su `_caricamento`. *@
+    @if (_errore is not null)
+    {
+        <p class="help"><b>@L["Common_Error"]</b>@_errore</p>
+    }
     <label class="att-field">
         <span class="muted">@L["Att_BlockPick"]</span>
         <select class="app-in" value="@Riferimento?.Slug" @onchange="e => ScegliAsync(e.Value as string)">
@@ -64,10 +70,13 @@
            apre il documento — riquadro incorporato compreso. *@
         <div class="att-preview"><AttachmentLink Reference="r" Note="@Note" /></div>
     }
-    else if (_voci.Count == 0)
+    else if (_voci.Count == 0 && _errore is null)
     {
         @* Il catch-22 al contrario: senza questa riga, chi apre l'editor e non trova niente in tendina non ha
-           modo di sapere che il posto da cui si comincia è un'altra pagina. *@
+           modo di sapere che il posto da cui si comincia è un'altra pagina.
+           ⚠️ Ma NON quando la lettura è fallita: «la biblioteca è vuota, caricane uno» manderebbe a caricare
+           un allegato che c'è già, e la pagina degli allegati lo direbbe. Una tendina vuota per un guasto e
+           una vuota per davvero sono due cose diverse, e vanno dette diverse. *@
         <p class="help">@L["Att_BlockEmptyHint"]</p>
     }
 </div>
@@ -88,13 +97,69 @@
     // ⚠️ La biblioteca si risolve dallo scope PROPRIO (OwningComponentBase): una lettura di questo componente
     // non deve passare per il DbContext condiviso del circuito, o due operazioni concorrenti lo fanno
     // esplodere. Stessa ragione di ImageBlockEditor.
+    // ⚠️ Ma lo scope proprio protegge dal contesto DEL CIRCUITO, non da SÉ STESSI: due letture di QUESTO
+    // componente in volo insieme collidono sul suo contesto, ed è esattamente quel che è successo in
+    // produzione il 2 settembre 2026. La serializzazione sta in `_caricamento`, non qui.
     private IAttachmentLibrary Biblioteca => ScopedServices.GetRequiredService<IAttachmentLibrary>();
+
+    /// <summary>
+    /// La lettura della biblioteca, <b>memorizzata come compito</b> e non come esito.
+    ///
+    /// <para>⚠️ <b>Qui c'era la corsa che ha abbattuto tre circuiti in produzione</b> il 2 settembre 2026
+    /// (1.4.1, `diagnostica/errori-richieste.txt`: quindici voci, tutte con questi due fotogrammi). La
+    /// guardia era <c>if (_voci.Count == 0)</c>, cioè si controllava <b>prima</b> dell'<c>await</c> e si
+    /// scriveva <b>dopo</b>: <c>OnParametersSetAsync</c> scatta a <b>ogni</b> ridisegno del genitore, e
+    /// finché la prima lettura era in volo <c>_voci</c> restava vuota — quindi ogni ridisegno ne faceva
+    /// partire un'altra <b>sullo stesso <c>DbContext</c></b>. La fotografia delle collisioni lo mostra a
+    /// occhio nudo: <b>quattro</b> SELECT identiche sulla tabella allegati aperte insieme, a 53, 39, 36 e 35
+    /// ms. Poi il resto a cascata — il renderer che si corrompe («unsupported frame type during diffing:
+    /// None») e le <c>ObjectDisposedException</c> di chi arriva mentre il circuito muore.</para>
+    ///
+    /// <para><b>Lo scope proprio non bastava</b>, e vale la pena dirlo perché il commento sopra prometteva
+    /// il contrario: <c>OwningComponentBase</c> protegge dal contesto <b>del circuito</b>, non da <b>sé
+    /// stessi</b>. Un componente che rientra mentre la sua lettura è in volo collide col proprio contesto.</para>
+    ///
+    /// <para>Il compito si scrive <b>prima</b> di aspettarlo, in un tratto senza <c>await</c> — e il
+    /// renderer di un circuito è a un filo solo, quindi non serve un lucchetto: chi arriva dopo aspetta
+    /// <b>la stessa</b> lettura invece di farne una sua. È il rimedio già scelto per gli altri pannelli
+    /// (<c>ReleasePanel</c>, <c>DocReviewBar</c>, <c>PageIntroZone</c>), che infatti scrivono la sentinella
+    /// prima dell'<c>await</c>; questo era l'unico rimasto con la guardia dalla parte sbagliata.</para>
+    ///
+    /// <para>⚠️ Ed è anche il rimedio a un difetto minore che nessuno aveva notato: con la guardia
+    /// sull'<b>esito</b>, una biblioteca <b>legittimamente vuota</b> faceva rileggere il database a ogni
+    /// ridisegno, per sempre.</para>
+    /// </summary>
+    private Task<IReadOnlyList<AttachmentRow>>? _caricamento;
+
+    /// <summary>Il guasto della lettura, da mostrare invece di portarsi via il circuito.</summary>
+    private string? _errore;
 
     // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su un render mode interattivo il secondo gira una
     // volta sola, e l'elenco resterebbe quello del primo blocco montato.
     protected override async Task OnParametersSetAsync()
     {
-        if (_voci.Count == 0) _voci = await Biblioteca.ListAsync();
+        try
+        {
+            // ⚠️ Assegnazione PRIMA dell'await: è tutto il punto. Vedi _caricamento.
+            // ⚠️ E sta DENTRO il try: una porta può sollevare in modo SINCRONO — prima ancora di
+            // restituire un compito — e allora l'eccezione passerebbe accanto alla rete di sicurezza.
+            // Non è un caso teorico: è il primo modo in cui questa correzione è stata scritta, e a
+            // trovarlo è stato il test qui sotto.
+            _caricamento ??= Biblioteca.ListAsync();
+            _voci = await _caricamento;
+            _errore = null;
+        }
+        catch (Exception ex)
+        {
+            // ⚠️ Rete di sicurezza: un'eccezione qui NON è catturabile dall'host — è ciclo di vita, non
+            // evento — e si porterebbe via il circuito, cioè la pagina. Meglio la tendina con un errore
+            // visibile (stessa scelta di ReleasePanel).
+            // Il compito fallito si butta: così un guasto passeggero non inchioda il componente fino al
+            // ricaricamento della pagina. I ridisegni qui li muovono i gesti di chi scrive, non un timer,
+            // quindi il ritentativo non diventa un martellamento.
+            _caricamento = null;
+            _errore = ex.Message;
+        }
     }
 
     private async Task ScegliAsync(string? slug)

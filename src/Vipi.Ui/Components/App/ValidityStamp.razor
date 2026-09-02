@@ -65,9 +65,25 @@
 
     private DocumentValidityStamp _stamp = DocumentValidityStamp.NotPublished;
 
+    /// <summary>
+    /// Che cosa è già stato letto. ⚠️ <b>Si scrive PRIMA dell'<c>await</c></b>: <c>OnParametersSetAsync</c>
+    /// scatta a <b>ogni</b> ridisegno del genitore, non solo quando i parametri cambiano davvero, e senza
+    /// guardia questo componente rileggeva il database a ogni giro — con la lettura precedente magari ancora
+    /// in volo, cioè due operazioni sullo <b>stesso</b> contesto.
+    /// <para>⚠️ Lo scope proprio non basta e la nota in cima al file lo lasciava credere: protegge dal
+    /// contesto <b>del circuito</b>, non da <b>sé stessi</b>. È lo stesso difetto che il 2 settembre 2026 ha
+    /// abbattuto tre circuiti in produzione da <c>AttachmentBlockEditor</c> — lì la guardia c'era ma stava
+    /// dalla parte sbagliata dell'<c>await</c>, qui non c'era affatto. Vedi il commento lungo là.</para>
+    /// </summary>
+    private (ReleaseTargetType Target, string Key, int? ReleaseId)? _letto;
+
     // ⚠️ In OnParametersSetAsync e non nel render: il render non tocca mai il database (regola del progetto).
     protected override async Task OnParametersSetAsync()
     {
+        var ora = (Target, Key ?? "", ReleaseId);
+        if (_letto == ora) return;
+        _letto = ora;
+
         var svc = ScopedServices.GetRequiredService<IDocumentValidityService>();
         _stamp = await svc.ResolveAsync(Target, Key ?? "", ReleaseId);
     }

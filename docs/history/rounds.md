@@ -2096,3 +2096,89 @@ in giù di 62px, perché il riferimento dello sticky diventa il contenitore. Tol
 
 Carta: `docs/design/piano-coerenza-sectorfile.md`. Perimetro dei servizi e motivi dei «no» alle altre
 proposte del 1 settembre: `docs/design/regole-perimetro-servizi.md`. Suite verde su tutti i progetti.
+
+---
+
+## La corsa del blocco allegato (2 settembre 2026)
+
+Segnalazione: guai sulla versione pubblica, e la cartella `diagnostica/` in mano. **Il file che ha detto
+tutto è `errori-richieste.txt`**: quindici voci, tre raffiche su **tre circuiti diversi** fra le 18:07 e le
+18:08, e **tutte e quindici** con gli stessi due fotogrammi —
+`AttachmentBlockEditor.OnParametersSetAsync` → `EfAttachmentLibrary.ListAsync`. Un componente solo, non
+quindici difetti.
+
+**La causa.** La guardia era `if (_voci.Count == 0) _voci = await Biblioteca.ListAsync();`: si controlla
+**prima** dell'`await` e si scrive **dopo**. `OnParametersSetAsync` scatta a **ogni** ridisegno del
+genitore, non solo quando i parametri cambiano, quindi finché la prima lettura era in volo `_voci` restava
+vuota e ogni ridisegno ne faceva partire un'altra — **sullo stesso `DbContext`**. La fotografia delle
+collisioni (§AV, 31 agosto) lo mostra a occhio nudo: **quattro** `SELECT` identiche sulla tabella allegati
+aperte insieme, a 53, 39, 36 e 35 ms. Il resto della raffica è conseguenza: il renderer che si corrompe
+(`NotImplementedException: Encountered unsupported frame type during diffing: None`) e le
+`ObjectDisposedException` di chi arriva mentre il circuito muore.
+
+⚠️ **Lo scope proprio non bastava, e il commento in cima al file prometteva il contrario.**
+`OwningComponentBase` protegge dal contesto **del circuito** — che è il difetto per cui era stato messo —
+ma non da **sé stessi**: un componente che rientra mentre la sua lettura è in volo collide col proprio
+contesto. È la riga che mancava, ed è stata scritta in tutti e tre i posti.
+
+**Il rimedio** è memorizzare il **compito** e non l'esito, scrivendolo **prima** di aspettarlo: chi arriva
+dopo aspetta *la stessa* lettura invece di farne una sua. È il pattern che gli altri pannelli avevano già
+(`ReleasePanel`, `DocReviewBar`, `PageIntroZone` scrivono la sentinella prima dell'`await`).
+
+**E la stessa forma aveva due fratelli**, cercati apposta dopo aver capito il primo — e messi peggio,
+perché una guardia non ce l'avevano affatto: **`ValidityStamp`**, che compare in **ogni** documento e su una
+vIPI ACC **una volta per blocco**, e **`VloaDocumentView`**. Guardie su (Target, Key, ReleaseId) e su
+(DocId, UseFrozen) — tutte scritte prima dell'`await`. ⚠️ In `VloaDocumentView` il calcolo di `_canEdit`
+resta **fuori** dalla guardia: non tocca il database e deve seguire i parametri a ogni giro.
+
+**Due cose in più, dalla stessa causa.** Una biblioteca **legittimamente vuota** faceva rileggere il
+database a ogni ridisegno, per sempre (la guardia era sull'esito). E un guasto della lettura **si portava
+via il circuito**, perché un'eccezione in un metodo del ciclo di vita non è catturabile dall'host: ora si
+dice in pagina, e la riga «la biblioteca è vuota, caricane uno» **non** compare — manderebbe a caricare un
+allegato che c'è già. ⚠️ Il `??=` sta **dentro** il `try`, perché una porta può sollevare in modo
+**sincrono**, prima ancora di restituire un compito: è il primo modo in cui questa correzione era stata
+scritta, e a trovarlo è stato il test.
+
+**7 test nuovi**, tutti verificati **rossi** ripristinando il codice di prima — senza quella prova sarebbero
+ornamenti, non guardie. Build Release verde sui due TFM, **nessuna migrazione**.
+
+---
+
+## Il rosso intermittente era il registro eventi di Windows (2 settembre 2026)
+
+Segnalati due rossi **intermittenti** nelle passate a soluzione intera. Uno è stato chiuso; l'altro resta
+senza nome, e vale la pena scrivere anche quello.
+
+**Quello chiuso.** `CorsaDbContextPagineTests` cadeva nello **spegnimento** dell'host di prova, non nel
+test: `WebApplicationFactory.Dispose` → `Host.StopAsync` → `AtcPollingHostedService.StopAsync` → una
+`LogWarning` → `ObjectDisposedException` su un `SafeEventLogWriteHandle`.
+
+La causa è un provider che **non abbiamo mai scelto**: `WebApplication.CreateBuilder` aggiunge da sé
+`EventLogLoggerProvider` quando gira su Windows. Costa due volte:
+
+- **rumore**: misurato sul registro della macchina, **535 voci** nel log Applicazione in **tre ore** di
+  suite — sorgente «.NET Runtime», id 1000, una decina di host per giro. In produzione (Linux) quel canale
+  non esiste nemmeno: non è mai stato né scelto né letto, e quel che si legge sta in `diagnostica/`;
+- **il rosso**: il provider tiene un handle che muore quando il provider viene disposto, e una riga di log
+  scritta **tardi** nello spegnimento lo trova già chiuso. `Logger.Log` raccoglie le eccezioni dei provider
+  e le rilancia, quindi l'errore risaliva dentro `Host.StopAsync` e faceva fallire il `Dispose` — cioè il
+  test. Servivano **due** condizioni insieme (il salvataggio finale che fallisce **e** l'handle già chiuso):
+  è la ragione dell'intermittenza, due volte su undici passate.
+
+⚠️ Si toglie **solo** quel provider: `ClearProviders()` porterebbe via anche console, debug e
+`DiagnosticaCircuito`, cioè la diagnostica che serve. E il tipo si **nomina** invece di cercarlo per
+stringa — se cambiasse nome, la riga non compila, invece di smettere di funzionare in silenzio.
+
+✅ **E si è controllato che la nostra catena non possa fare lo stesso danno**: `DiagnosticaCircuito` →
+`DiagnosticaErrori.Registra` è tutto dentro un `try/catch` che ingoia («non c'è un piano C, e non deve
+esserci»). Per questo **non** è stato aggiunto nessun `try` attorno alla riga di log di `StopAsync`: senza
+un trigger noto sarebbe impiastro difensivo, e la regola giusta è l'altra — *un provider di log non deve
+poter sollevare*.
+
+**Quello aperto.** Due apparizioni in `Vipi.Ui.Tests`, sempre dentro una passata a **soluzione intera** e
+mai isolando il progetto (diciotto giri in parallelo a sei vie, tutti verdi), e in nessuna delle due è
+stato catturato il **nome** del test. Escluse per misura tre piste: gli asset (`Vipi.Assets.Tests` lavora
+in una cartella temporanea sua), `Vipi.Hosting.Tests` e `Vipi.Infrastructure.Tests` (zero voci nel registro
+eventi, quindi non è la stessa causa), e `AssetVersion` (è una `ConcurrentDictionary`, e comunque la usa
+solo `App.razor`, che bUnit non rende). Finché non ricompare col suo nome **non si tocca niente**: una
+correzione a un difetto che non si sa nominare è solo un altro cambiamento.

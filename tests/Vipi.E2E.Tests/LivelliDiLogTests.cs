@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -124,5 +124,35 @@ public sealed class LivelliDiLogTests
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
                 Func<TState, Exception?, string> formatter) { }
         }
+    }
+
+    /// <summary>
+    /// 🔴 <b>Il registro eventi di Windows resta fuori.</b> <c>WebApplication.CreateBuilder</c> aggiunge da
+    /// sé <c>EventLogLoggerProvider</c> quando gira su Windows, e non lo vuole nessuno: la produzione è Linux
+    /// (quel canale là non esiste), quel che si legge sta in <c>diagnostica/</c>, e in sviluppo il costo è
+    /// reale — <b>misurato il 2 settembre 2026: 535 voci</b> nel registro Applicazione della macchina in tre
+    /// ore di suite, sorgente «.NET Runtime», id 1000.
+    ///
+    /// <para>⚠️ E non era solo rumore: quel provider tiene un <c>SafeEventLogWriteHandle</c> che muore quando
+    /// il provider viene disposto. Una riga di log scritta <b>tardi</b> nello spegnimento —
+    /// <c>AtcPollingHostedService.StopAsync</c> ne scrive una quando il salvataggio finale non riesce —
+    /// trovava l'handle già chiuso, e l'<c>ObjectDisposedException</c> risaliva fino a far fallire
+    /// <c>Host.StopAsync</c>: cioè il <c>Dispose</c> della fabbrica di prova, cioè il test. Era il rosso
+    /// intermittente di <c>CorsaDbContextPagineTests</c>.</para>
+    ///
+    /// <para>Questa prova guarda l'host <b>vero</b>, quello che i test d'integrazione avviano dal punto
+    /// d'ingresso: se qualcuno rimettesse il provider, qui si vede.</para>
+    /// </summary>
+    [Fact]
+    public void Il_registro_eventi_di_Windows_non_e_fra_i_provider()
+    {
+        using var fabbrica = new SmokeTests.VipiAppFactory();
+
+        var provider = fabbrica.Services.GetServices<ILoggerProvider>().ToList();
+
+        Assert.DoesNotContain(provider, p =>
+            p is Microsoft.Extensions.Logging.EventLog.EventLogLoggerProvider);
+        // ⚠️ E il controllo: se la lista fosse vuota questa prova direbbe verde senza provare niente.
+        Assert.NotEmpty(provider);
     }
 }

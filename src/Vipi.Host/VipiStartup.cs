@@ -170,6 +170,33 @@ internal static class VipiStartup
         // lasciato l'utente con la barra rossa e la cartella diagnostica VUOTA. Vedi DiagnosticaCircuito.
         builder.Logging.AddProvider(new DiagnosticaCircuito());
 
+        // ⚠️ VIA il registro eventi di Windows. `WebApplication.CreateBuilder` lo aggiunge DA SOLO quando gira
+        // su Windows, e non lo vuole nessuno:
+        //
+        //  - la produzione e' Linux (Plesk+Passenger), quindi la' quella riga non esiste nemmeno: e' un canale
+        //    che non e' mai stato ne' scelto ne' letto. Quel che si legge sta in `diagnostica/` (vedi le due
+        //    righe qui sopra), ed e' li' che vanno guardati i guasti;
+        //  - in sviluppo e SOTTO I TEST, invece, esiste eccome: MISURATO il 2 settembre 2026, **535 voci** nel
+        //    registro Applicazione della macchina in tre ore di suite — una decina di host per giro, ognuno
+        //    col suo provider, sorgente «.NET Runtime», id 1000;
+        //  - ed era la causa di un ROSSO INTERMITTENTE. Il provider tiene un `SafeEventLogWriteHandle` che
+        //    muore quando il provider viene disposto: una riga di log scritta TARDI nello spegnimento —
+        //    `AtcPollingHostedService.StopAsync` ne scrive una quando il salvataggio finale non riesce —
+        //    trovava l'handle gia' chiuso, e l'`ObjectDisposedException` risaliva fino a far fallire
+        //    `Host.StopAsync`, cioe' il `Dispose` della fabbrica di prova, cioe' il test.
+        //
+        // Una riga di log non deve poter far fallire uno spegnimento, e un giro di test non deve scrivere
+        // nel registro eventi della macchina.
+        //
+        // ⚠️ Si toglie SOLO quello: `ClearProviders()` porterebbe via anche la console, il debug e la riga
+        // qui sopra, cioe' la diagnostica che serve.
+        // ⚠️ Il tipo si nomina, non si cerca per stringa: se un domani sparisse o cambiasse nome, questa riga
+        // non compila — invece di smettere di funzionare in silenzio.
+        foreach (var registrato in builder.Logging.Services
+                     .Where(d => d.ImplementationType == typeof(Microsoft.Extensions.Logging.EventLog.EventLogLoggerProvider))
+                     .ToList())
+            builder.Logging.Services.Remove(registrato);
+
         // Modulo login IVAO standalone (scenario C). STACCABILE: attivo solo se VipiAuth:Enabled=true.
         // Se attivo, il ClaimsPrincipal lo produce questo modulo e HostIdentityCurrentUserProvider lo legge.
         var authEnabled = builder.AddVipiStandaloneAuth();
