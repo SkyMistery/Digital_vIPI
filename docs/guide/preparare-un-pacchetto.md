@@ -23,6 +23,17 @@ La domanda che decide tutto il resto, e la risposta sta in **`Directory.Build.pr
 database?». È l'unica domanda che qui costa una consegna coordinata con Ivao.It, e il 23 agosto 2026 è
 costata una serata.
 
+⚠️ **E il numero si ridecide quando cambia il CONTENUTO, non quando si decide di spedire.** Il 2 settembre
+2026 il pacchetto si chiamava «1.3.1» da quando conteneva i soli §AO–§AR; poi ci sono entrati §AS, §AT e
+§AU — un pannello, sei comandi, una porta d'ingresso nuova ai documenti. Una PATCH è «solo correzioni,
+nessuna pagina o sezione nuova»: è partito **1.4.0**. Un numero che promette una regola vale finché la
+regola si applica davvero.
+
+⚠️ **E poi si ripuliscono i doc dal numero vecchio.** Quel giorno erano rimaste tre righe che dicevano
+«non è in produzione, serve il pacchetto 1.3.1» su lavori che nel frattempo erano online: le voci **datate**
+sono fotografie e non si toccano, ma una riga che afferma un fatto **al presente** è quella su cui qualcuno
+prende una decisione fra sei mesi.
+
 🔒 **Dentro la finestra cieca** (nessuno amministra il database di Ivao.It) un MAJOR **non si spedisce**, e
 una migrazione nuova nemmeno: in produzione `Database.Migrate()` gira all'avvio, da solo, su DDL non
 transazionale, senza nessuno che possa ripristinare. Presidio: `MigrazioniDellaFinestraCiecaTests`.
@@ -86,6 +97,13 @@ ricompilati differiscono per l'MVID anche quando il loro codice non è cambiato.
   scambiarne uno solo fa chiedere nomi che non esistono. È il difetto del 24 agosto.
 
 Ogni `.dll` in più è una rinomina in più su un file che il processo tiene aperto: non è prudenza, è rischio.
+
+⚠️ **Il diff sceglie, le impronte VERIFICANO.** Le due cose non si sostituiscono: il `git diff` dice quali
+*progetti* guardare, poi si confronta lo `sha256` di ogni candidato con **la copia dentro il pacchetto
+precedente** (`artifacts/publish_old/<data>/solo-N-file-<versione>/`) e si tiene solo ciò che è cambiato
+davvero. Su 1.4.1 quel confronto ha tolto due file su undici: `vipi-ui.js` e `vipi-print.css` erano
+**identici**. ⚠️ Il satellite `en/Vipi.Ui.resources.dll` fa il contrario — cambia impronta a ogni
+ricompilazione anche a frasi ferme — quindi lì comanda il diff: si spedisce solo se un `.resx` è cambiato.
 
 ```powershell
 .\tools\prepara-pacchetto.ps1 -Azione Impronte -Pacchetto solo-N-file-<versione> -Versione <versione> -Elenco elenco.txt
