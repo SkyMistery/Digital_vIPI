@@ -75,16 +75,19 @@ Rispondi a queste quattro PRIMA di scrivere. Se una non ha risposta pulita, il d
 
 ## Un rosso intermittente
 
-- **Catturare il NOME, non il conteggio.** Nel ciclo di caccia si filtra ****, non solo :
-  un riepilogo «Failed: 1» senza il nome del test non si puo' analizzare, e il giro dopo e' verde. Costato
-  due volte il 2 settembre 2026.
-- **Riprodurre nella condizione in cui si e' visto.** Se compare solo a **soluzione intera**, isolare il
-  progetto non prova niente: quel verde e' il verde della condizione sbagliata.
-- ⚠️ **Finche' non ha un nome non si tocca niente.** Una correzione a un difetto che non si sa nominare e'
-  solo un altro cambiamento — e il verde che segue non e' una prova.
-- **Guardare fuori dal processo.** Il terzo caso non era nel codice ne' nei test: era il **registro eventi
-  di Windows**, un provider di log che  aggiunge da se'. Si e' visto con
-   — **535 voci in tre ore** — non leggendo sorgenti. Vedi .
+- **Catturare il NOME, non il conteggio.** Nel ciclo di caccia si filtra `[FAIL]`, non solo `Failed!`: un
+  riepilogo «Failed: 1» senza il nome del test non si può analizzare, e il giro dopo è verde. Costato due
+  volte il 2 settembre 2026.
+- **Riprodurre nella condizione in cui si è visto.** Se compare solo a **soluzione intera**, isolare il
+  progetto non prova niente: quel verde è il verde della condizione sbagliata. (Misurato: diciotto giri di
+  `Vipi.Ui.Tests` in parallelo a sei vie, tutti verdi, su un rosso che a soluzione intera si era visto due
+  volte.)
+- ⚠️ **Finché non ha un nome non si tocca niente.** Una correzione a un difetto che non si sa nominare è
+  solo un altro cambiamento — e il verde che segue non è una prova.
+- **Guardare fuori dal processo.** Un caso non era né nel codice né nei test: era il **registro eventi di
+  Windows**, un provider di log che `WebApplication.CreateBuilder` aggiunge da sé e che nessuno aveva
+  scelto. Si è visto con `Get-WinEvent` — **535 voci in tre ore di suite** — non leggendo sorgenti. La
+  cronaca sta in `history/rounds.md`.
 
 > **Prima di dire «non serve, misuriamo»: misura davvero.** Nell'audit dell'11 agosto tre voci su
 > trentaquattro sono state *ribaltate dal dato* — un difetto reale nel parser dei poligoni non toccava
