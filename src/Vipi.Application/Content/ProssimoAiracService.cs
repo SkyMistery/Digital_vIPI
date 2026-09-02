@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Domain;
 using Vipi.Domain.Services;
 
@@ -39,8 +39,10 @@ public sealed record EsitoProgrammazione(int Programmati, IReadOnlyList<(string 
 /// </summary>
 public interface IProssimoAiracService
 {
-    /// <summary>Il quadro. Solo documenti <b>pubblicati e non nascosti</b>: su una bozza «programmare una
-    /// release» non vuol dire niente, e su un documento nascosto non lo legge nessuno.</summary>
+    /// <summary>Il quadro. Solo i documenti che <see cref="ManagedDoc.VaTenutoAggiornato"/> ammette: su una
+    /// bozza «programmare una release» non vuol dire niente, e un documento nascosto non lo legge nessuno.
+    /// ⚠️ Quel cancello non è <c>IsPublished</c>, e il perché sta scritto lì: un documento pubblicato solo
+    /// per schedulazione resta <c>Status = Draft</c> pur essendo in vigore.</summary>
     Task<QuadroCicloEntrante> LeggiAsync(CancellationToken ct = default);
 
     /// <summary>
@@ -77,7 +79,7 @@ public sealed class ProssimoAiracService : IProssimoAiracService
         // ⚠️ `NextScheduledCycle` arriva dalla STESSA query dell'elenco (ManagedDoc): niente N+1, e niente
         // seconda lettura che potrebbe raccontare un'altra storia.
         var documenti = (await _admin.ListAsync(ct))
-            .Where(d => d.IsPublished && !d.IsHidden && d.DocumentId is not null)
+            .Where(d => d.VaTenutoAggiornato && d.DocumentId is not null)
             .Select(d => new DocumentoAlCicloEntrante(
                 d.ReleaseTarget, d.ReleaseKey, d.Title, d.AccCode,
                 GiaProgrammato: string.Equals(d.NextScheduledCycle, entrante.Cycle, StringComparison.Ordinal)))

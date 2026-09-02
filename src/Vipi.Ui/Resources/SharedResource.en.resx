@@ -1622,6 +1622,7 @@
   <data name="Airac_NextFrom" xml:space="preserve"><value>effective from {0}</value></data>
   <data name="Airac_NextToday" xml:space="preserve"><value>starts today</value></data>
   <data name="Airac_NextInDays" xml:space="preserve"><value>in {0} days</value></data>
+  <data name="Airac_NextInOneDay" xml:space="preserve"><value>in one day</value></data>
   <data name="Airac_NextMissing" xml:space="preserve"><value>{0} to schedule</value></data>
   <data name="Airac_NextCounts" xml:space="preserve"><value>{0} documents already have a release scheduled for this cycle, {1} do not.</value></data>
   <data name="Airac_NextAllDone" xml:space="preserve"><value>Every published document already has a release scheduled for this cycle.</value></data>

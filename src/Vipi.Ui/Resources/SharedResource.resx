@@ -1627,6 +1627,7 @@
   <data name="Airac_NextFrom" xml:space="preserve"><value>in vigore dal {0}</value></data>
   <data name="Airac_NextToday" xml:space="preserve"><value>entra oggi</value></data>
   <data name="Airac_NextInDays" xml:space="preserve"><value>fra {0} giorni</value></data>
+  <data name="Airac_NextInOneDay" xml:space="preserve"><value>fra un giorno</value></data>
   <data name="Airac_NextMissing" xml:space="preserve"><value>{0} da programmare</value></data>
   <data name="Airac_NextCounts" xml:space="preserve"><value>{0} documenti hanno già una release programmata a questo ciclo, {1} no.</value></data>
   <data name="Airac_NextAllDone" xml:space="preserve"><value>Tutti i documenti pubblicati hanno già una release programmata a questo ciclo.</value></data>

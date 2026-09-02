@@ -103,9 +103,9 @@
                 <b><Icon Name="calendar" /> @L["Airac_NextTitle"]</b>
                 <span class="pill grey">AIRAC @q.CicloEntrante</span>
                 <span class="muted">@(string.Format(L["Airac_NextFrom"].Value, q.EfficaceUtc.ToString("dd MMM yyyy")))</span>
-                <span class="pill @(q.GiorniAllEntrata <= 3 ? "amber" : "")">
-                    @(q.GiorniAllEntrata == 0 ? L["Airac_NextToday"].Value : string.Format(L["Airac_NextInDays"].Value, q.GiorniAllEntrata))
-                </span>
+                @* ⚠️ Il singolare ha una chiave SUA: «fra 1 giorni» si legge il giorno prima del cambio,
+                   cioe' l'unico giorno in cui questa riga la guarda davvero qualcuno. *@
+                <span class="pill @(q.GiorniAllEntrata <= 3 ? "amber" : "")">@Mancano(q.GiorniAllEntrata)</span>
                 @if (q.DaProgrammare > 0)
                 {
                     <span class="pill blue">@(string.Format(L["Airac_NextMissing"].Value, q.DaProgrammare))</span>
@@ -126,7 +126,9 @@
                 <ul style="margin:0 0 6px 18px;padding:0">
                     @foreach (var d in q.Documenti.Where(x => !x.GiaProgrammato).Take(MaxDaMostrare))
                     {
-                        <li>@d.Titolo @if (d.AccCode is { Length: > 0 } a) { <span class="muted">— @a</span> }</li>
+                        @* ⚠️ Lo spazio fra un'espressione e un `@if` Razor lo mangia il compilatore, e a
+                           schermo si leggeva «vIPI Brindisi— LIBB»: serve un carattere vero. *@
+                        <li>@d.Titolo&nbsp;@if (d.AccCode is { Length: > 0 } a) { <span class="muted">— @a</span> }</li>
                     }
                 </ul>
                 @if (q.DaProgrammare > MaxDaMostrare)
@@ -406,6 +408,15 @@
     /// ricarica: un giro riuscito a metà in silenzio è peggio di uno fallito, perché chi l'ha premuto crede
     /// di aver finito.</summary>
     private List<(string Titolo, string Motivo)> _airacSaltati = new();
+
+    /// <summary>«entra oggi» / «fra un giorno» / «fra N giorni»: tre frasi, perche' il singolare capita
+    /// proprio il giorno prima del cambio — l'unico in cui questa riga la legge qualcuno.</summary>
+    private string Mancano(int giorni)
+    {
+        if (giorni == 0) return L["Airac_NextToday"].Value;
+        if (giorni == 1) return L["Airac_NextInOneDay"].Value;
+        return string.Format(L["Airac_NextInDays"].Value, giorni);
+    }
 
     /// <summary>Quanti documenti mancanti si elencano prima di dire «e altri N». Dieci: è un promemoria di
     /// che cosa manca, non l'elenco — quello è il pannello sotto, con i suoi filtri.</summary>

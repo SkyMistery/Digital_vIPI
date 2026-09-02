@@ -15,10 +15,11 @@ public class ProssimoAiracServiceTests
     private static readonly DateTime EfficaceEntrante = new(2026, 9, 3, 0, 0, 0, DateTimeKind.Utc);
 
     private static ManagedDoc Doc(string titolo, string chiave, bool pubblicato = true, bool nascosto = false,
-        string? programmataA = null) =>
+        string? programmataA = null, string? inVigoreA = null) =>
         new(ReleaseTargetType.Airport, titolo, chiave, "LIRR",
             IsPublished: pubblicato, HasDraft: false, IsHidden: nascosto,
             ReleaseTargetType.Airport, chiave, DocumentId: 1,
+            EffectiveCycle: inVigoreA,
             NextScheduledCycle: programmataA);
 
     private static ProssimoAiracService Sut(FakeAdmin admin, FakeReleases rel) =>
@@ -67,6 +68,35 @@ public class ProssimoAiracServiceTests
         var q = await Sut(admin, new FakeReleases()).LeggiAsync();
 
         Assert.Equal("buono", Assert.Single(q.Documenti).Titolo);
+    }
+
+    /// <summary>
+    /// ⚠️ <b>Il difetto misurato dal vivo il 2 settembre 2026.</b> Una release <b>programmata</b> non promuove
+    /// la bozza a versione pubblicata — è voluto — quindi un documento pubblicato <i>solo</i> per
+    /// schedulazione resta <c>Status = Draft</c> pur essendo <b>in vigore e letto dal pubblico</b>. Col
+    /// cancello su <c>IsPublished</c> restava fuori da qui e dal giro della deriva: sul database di sviluppo
+    /// erano due su diciassette (vIPI Milano al 2608, Catania Radar al 2607).
+    /// <para>E si alimentava da sé: programmare al ciclo entrante è proprio il gesto che questa carta
+    /// insegna, quindi più lo si usava, più documenti uscivano dal controllo.</para>
+    /// </summary>
+    [Fact]
+    public async Task Un_documento_in_vigore_ma_non_promosso_resta_dentro()
+    {
+        var admin = new FakeAdmin(Doc("vIPI Milano", "LIMM_WS2_CTR", pubblicato: false, inVigoreA: "2608"));
+
+        var q = await Sut(admin, new FakeReleases()).LeggiAsync();
+
+        Assert.Equal("vIPI Milano", Assert.Single(q.Documenti).Titolo);
+        Assert.Equal(1, q.DaProgrammare);
+    }
+
+    /// <summary>⚠️ Ma nascosto resta fuori comunque: il cancello è «non nascosto E (pubblicato O in vigore)».</summary>
+    [Fact]
+    public async Task Un_documento_in_vigore_ma_nascosto_resta_fuori()
+    {
+        var admin = new FakeAdmin(Doc("vLOA nascosta", "X", pubblicato: false, nascosto: true, inVigoreA: "2607"));
+
+        Assert.Empty((await Sut(admin, new FakeReleases()).LeggiAsync()).Documenti);
     }
 
     /// <summary>I mancanti stanno in cima: sono quelli da guardare.</summary>

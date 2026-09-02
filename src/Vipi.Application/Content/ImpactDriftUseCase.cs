@@ -83,10 +83,14 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
     {
         var gestiti = await _admin.ListAsync(ct);
 
-        // Solo i PUBBLICATI e non nascosti: su una bozza «la copia pubblicata è indietro» non vuol dire
-        // niente, e su un documento nascosto non lo legge nessuno. Sono decine di righe, non migliaia.
+        // Solo quelli che il pubblico legge, o che dovrebbe leggere: su una bozza «la copia pubblicata è
+        // indietro» non vuol dire niente, e su un documento nascosto non lo legge nessuno. Sono decine di
+        // righe, non migliaia.
+        // ⚠️ Il cancello è `VaTenutoAggiornato` e NON `IsPublished`: una release programmata non promuove
+        // la bozza, quindi un documento pubblicato solo per schedulazione resta Status=Draft per sempre pur
+        // essendo in vigore — e questo giro non lo guardava affatto. Misurato dal vivo, due su diciassette.
         var candidati = gestiti
-            .Where(d => d.IsPublished && !d.IsHidden && d.DocumentId is not null)
+            .Where(d => d.VaTenutoAggiornato && d.DocumentId is not null)
             .ToList();
 
         var attuali = new List<RaiseImpactInput>();

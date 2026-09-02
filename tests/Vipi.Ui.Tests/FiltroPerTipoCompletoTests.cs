@@ -1,4 +1,4 @@
-using Vipi.Application.Routing;
+﻿using Vipi.Application.Routing;
 using Xunit;
 
 namespace Vipi.Ui.Tests;
@@ -28,12 +28,17 @@ public class FiltroPerTipoCompletoTests
     };
 
     /// <summary>Il solo corpo dell'inizializzatore di <c>KindFilters</c>: il resto della pagina nomina i tipi
-    /// per mille altre ragioni, e cercarli ovunque farebbe passare un filtro che non c'è.</summary>
+    /// per mille altre ragioni, e cercarli ovunque farebbe passare un filtro che non c'è.
+    /// <para>⚠️ Si cerca la <b>dichiarazione</b> (<c>KindFilters =&gt;</c>) e non la prima occorrenza del nome:
+    /// quella è l'uso nel markup, centosessanta righe più su, e da lì il primo <c>};</c> è di un membro
+    /// qualunque scritto in mezzo. Il 2 settembre 2026 è bastato aggiungere un metodo con un'espressione
+    /// <c>switch</c> — che finisce per <c>};</c> — perché questa guardia leggesse un corpo troncato e
+    /// accusasse la pagina di aver perso <b>tutti e cinque</b> i filtri, che erano al loro posto.</para></summary>
     private static string CorpoDelFiltro()
     {
         var sorgente = File.ReadAllText(Path.Combine(Radice(), "Pages", "VersioniPage.razor"));
-        var inizio = sorgente.IndexOf("KindFilters", StringComparison.Ordinal);
-        Assert.True(inizio > 0, "KindFilters non trovato in VersioniPage.razor");
+        var inizio = sorgente.IndexOf("KindFilters =>", StringComparison.Ordinal);
+        Assert.True(inizio > 0, "la dichiarazione di KindFilters non e' stata trovata in VersioniPage.razor");
 
         var fine = sorgente.IndexOf("};", inizio, StringComparison.Ordinal);
         Assert.True(fine > inizio, "l'inizializzatore di KindFilters non si chiude");
